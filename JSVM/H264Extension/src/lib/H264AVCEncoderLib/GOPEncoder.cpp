@@ -1859,6 +1859,13 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 
   //===== get slice header parameters =====
   NalRefIdc     eNalRefIdc      = NalRefIdc( min( 3, max( 0, (Int)( m_uiDecompositionStages - m_uiNotCodedMCTFStages - uiTemporalLevel ) ) ) );
+
+  // Bug fix: yiliang.bao@nokia.com
+  // encoder crashes if GOP size is 1 (m_uiDecompositionStages == 0), 
+  // because a low-pass frame becomes a non-reference frame
+  if (uiTemporalLevel == 0 && eNalRefIdc == NAL_REF_IDC_PRIORITY_LOWEST)
+    eNalRefIdc = NAL_REF_IDC_PRIORITY_HIGHEST;
+
   NalUnitType   eNalUnitType    = ( m_bH264AVCCompatible
                                     ? ( uiFrameIdInGOP ? NAL_UNIT_CODED_SLICE          : NAL_UNIT_CODED_SLICE_IDR          )
                                     : ( uiFrameIdInGOP ? NAL_UNIT_CODED_SLICE_SCALABLE : NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) );
@@ -3261,7 +3268,11 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 
   UInt  uiStage;
   UInt  uiMaxStage        = m_uiDecompositionStages - m_uiNotCodedMCTFStages;
-  UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, uiMaxStage - 1 ) );
+  // Bug fix: yiliang.bao@nokia.com
+  // uiMaxStage is unsigned, it has a problem when uiMaxStage == 0,
+  // uiMaxStage - 1 will result in a large number
+  UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, (Int)uiMaxStage - 1 ) );
+  //UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, uiMaxStage - 1 ) );
   Char  acResolution[10];
 
   sprintf( acResolution, "%dx%d", 16*m_uiFrameWidthInMb, 16*m_uiFrameHeightInMb );
