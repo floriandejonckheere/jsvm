@@ -1324,14 +1324,8 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   rbCorrupted = false;
   Int iLastQP = m_pcSliceHeader->getPicQp();
 
-  UInt  uiBitsLast   = m_pcCabacWriter->getNumberOfWrittenBits();
-  UInt  uiBitsPath1  = 0;
-  UInt  uiBitsPath2  = 0;
-  UInt  uiBitsPath3  = 0;
-
-  Bool  bCheck1 = ( m_uiCutLayer == m_pcSliceHeader->getQualityLevel() && m_uiCutPath == 0 );
-  Bool  bCheck2 = ( m_uiCutLayer == m_pcSliceHeader->getQualityLevel() && m_uiCutPath == 1 );
-  Bool  bCheck3 = ( m_uiCutLayer == m_pcSliceHeader->getQualityLevel() && m_uiCutPath == 2 );
+  UInt  uiBitsLast = m_pcCabacWriter->getNumberOfWrittenBits();
+  Bool  bCheck     = ( m_uiCutLayer == m_pcSliceHeader->getQualityLevel() );
 
   try
   {
@@ -1365,14 +1359,14 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
             if (iCycle == 0)
               iBitsLuma += m_pcCabacWriter->getNumberOfWrittenBits() - iLastBitsLuma;
 
-            if( bCheck1 && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+            if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
             {
               throw WriteStop();
             }
            
           } else if (iLumaScanIdx < 16) {
             RNOK( xEncodeCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, iLumaScanIdx ) );
-            if( bCheck2 && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+            if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
             {
               throw WriteStop();
             }
@@ -1389,13 +1383,18 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                 if (iCycle == 0)
                   iBitsChroma += m_pcCabacWriter->getNumberOfWrittenBits() - iLastBitsChroma;
 
-                if( bCheck1 && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
                 {
                   throw WriteStop();
                 }
 
               } else if (iChromaDCScanIdx < 4) {
                 RNOK( xEncodeCoefficientChromaDCRef( uiPlane, uiMbYIdx, uiMbXIdx, iChromaDCScanIdx ) );
+
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                {
+                  throw WriteStop();
+                }
 
               } // if
 
@@ -1410,14 +1409,14 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
               if ( !iCompleteChromaAC) {
                   RNOK( xEncodeNewCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, itCompleteChromaAC, iLastQP ) );
               
-                if( bCheck1 && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
                 {
                   throw WriteStop();
                 }
 
               } else if (iChromaACScanIdx < 16) {
                 RNOK( xEncodeCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, iChromaACScanIdx ) );
-                if( bCheck2 && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
                 {
                   throw WriteStop();
                 }
@@ -1444,30 +1443,18 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         iCycle++;
       } // while
     }
-    uiBitsPath1 = m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast;
-    uiBitsLast  = m_pcCabacWriter->getNumberOfWrittenBits();
+    UInt uiBitsPath = m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast;
     if( pFile )
     {
-      fprintf( pFile, "\t%d", uiBitsPath1 );
-    }
-    //===== REFINEMENT PASS =====
-    {
-    }
-    uiBitsPath2 = m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast;
-    uiBitsLast  = m_pcCabacWriter->getNumberOfWrittenBits();
-    if( pFile )
-    {
-      fprintf( pFile, "\t%d", uiBitsPath2 );
-      // ==
-    }
-    uiBitsPath3 = m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast;
-    uiBitsLast  = m_pcCabacWriter->getNumberOfWrittenBits();
-    if( pFile )
-    {
-      fprintf( pFile, "\t%d", uiBitsPath3 );
+      fprintf( pFile, "\t%d\t0\t0", uiBitsPath );
     }
 
     RNOK( m_pcCabacWriter->RQencodeTermBit( 1 ) );
+
+	if( bCheck )
+    {
+      throw WriteStop();
+    }
   }
   catch( WriteStop )
   {
