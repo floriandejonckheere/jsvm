@@ -92,7 +92,7 @@ main( int argc, char** argv)
   H264AVCDecoderTest* pcH264AVCDecoderTest = NULL;
   DecoderParameter    cParameter;
 
-  printf("JSVM 0.0 Decoder\n\n\n");
+  printf("JSVM 1.0 Decoder\n\n\n");
 
   RNOKRS( cParameter.init( argc, argv ), -2 );
 
