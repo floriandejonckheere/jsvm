@@ -753,7 +753,9 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setPicOrderPresentFlag                   ( true );
     pcPPSHP->setNumRefIdxActive( LIST_0               , m_pcCodingParameter->getNumRefFrames() );
     pcPPSHP->setNumRefIdxActive( LIST_1               , m_pcCodingParameter->getNumRefFrames() );
-    pcPPSHP->setPicInitQp                             ( (Int)rcLayerParameters.getBaseQpResidual() );
+    // heiko.schwarz@hhi.fhg.de: ensures that the PPS QP will be in the valid range (specified QP can be outside that range to force smaller/higher lambdas)
+    //pcPPSHP->setPicInitQp                             ( (Int)rcLayerParameters.getBaseQpResidual() );
+    pcPPSHP->setPicInitQp                             ( min( 51, max( 0, (Int)rcLayerParameters.getBaseQpResidual() ) ) );
     pcPPSHP->setChomaQpIndexOffset                    ( 0 );
     pcPPSHP->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
     pcPPSHP->setConstrainedIntraPredFlag              ( true );
@@ -767,9 +769,7 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSLP->setPicOrderPresentFlag                   ( pcPPSHP->getPicOrderPresentFlag                   ()  );
     pcPPSLP->setNumRefIdxActive( LIST_0               , pcPPSHP->getNumRefIdxActive               ( LIST_0 )  );
     pcPPSLP->setNumRefIdxActive( LIST_1               , pcPPSHP->getNumRefIdxActive               ( LIST_1 )  );
-    // heiko.schwarz@hhi.fhg.de: ensures that the PPS QP will be in the valid range (specified QP can be outside that range to force smaller/higher lambdas)
-    //pcPPSLP->setPicInitQp                             ( pcPPSHP->getPicInitQp                             ()  );
-    pcPPSHP->setPicInitQp                             ( min( 51, max( 0, (Int)rcLayerParameters.getBaseQpResidual() ) ) );
+    pcPPSLP->setPicInitQp                             ( pcPPSHP->getPicInitQp                             ()  );
     pcPPSLP->setChomaQpIndexOffset                    ( pcPPSHP->getChomaQpIndexOffset                    ()  );
     pcPPSLP->setDeblockingFilterParametersPresentFlag ( pcPPSHP->getDeblockingFilterParametersPresentFlag ()  );
     pcPPSLP->setConstrainedIntraPredFlag              ( false                                                 );
