@@ -992,6 +992,23 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
                                                         RefFrameList*       pcRefFrameList0,
                                                         RefFrameList*       pcRefFrameList1 )
 {
+  //-- Samsung 2005.02.xx
+  if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
+  {
+    if( cIdx.x() )
+    {
+      return 1;		//	if not MB_boundary
+    }
+
+    // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
+    if( ( pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 ) ) &&
+          pcMbDataAccessRes->getMbDataLeft().getMbMode() == INTRA_BL )
+    {
+      return 1;
+    }
+  }
+  //--
+
   ROFRS( pcMbDataAccessMot, cIdx.x() ? 3 : ((iFilterIdc==2 && !pcMbDataAccessRes->isAvailableLeft())|| !pcMbDataAccessRes->isLeftMbExisting()) ? 0 : 4 );
 
   const MbData& rcMbDataCurrMot = pcMbDataAccessMot->getMbDataCurr();
@@ -1055,6 +1072,23 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
                                                         RefFrameList*       pcRefFrameList0,
                                                         RefFrameList*       pcRefFrameList1 )
 {
+  //-- Samsung 2005.02.xx
+  if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
+  {
+    if( cIdx.y() )
+    {
+      return 1;		//	if not MB_boundary
+    }
+
+    // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
+    if( ( pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 ) ) &&
+          pcMbDataAccessRes->getMbDataAbove().getMbMode() == INTRA_BL )
+    {
+      return 1;
+    }
+  }
+  //--
+
   ROFRS( pcMbDataAccessMot, cIdx.y() ? 3 : ((iFilterIdc==2 && !pcMbDataAccessRes->isAvailableAbove())|| !pcMbDataAccessRes->isAboveMbExisting()) ? 0 : 4 );
 
   const MbData& rcMbDataCurrMot = pcMbDataAccessMot->getMbDataCurr();
