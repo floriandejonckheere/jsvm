@@ -1446,10 +1446,14 @@ CabacWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
   UInt    uiSymbol  = 0;
   TCoeff* piCoeff   = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   UInt    uiCtx     = rcMbDataAccessBase.getCtxCodedBlockBit( cIdx );
+  // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
+  TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
   for( UInt ui = 0; ui < 16; ui++ )  
   {
-    if( piCoeff[ g_aucFrameScan[ui] ] )
+    // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
+    //if( piCoeff[ g_aucFrameScan[ui] ] )
+    if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
     {
       uiSymbol = 1;
       break;
@@ -1476,10 +1480,14 @@ CabacWriter::RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
   UInt    uiSymbol  = 0;
   TCoeff* piCoeff   = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   UInt    uiCtx     = rcMbDataAccessBase.getCtxCodedBlockBit( 24 + cIdx.plane() );
+  // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
+  TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
   for( UInt ui = 0; ui < 4; ui++ )  
   {
-    if( piCoeff[ g_aucIndexChromaDCScan[ui] ] )
+    // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
+    //if( piCoeff[ g_aucIndexChromaDCScan[ui] ] )
+    if( piCoeff[ g_aucIndexChromaDCScan[ui] ] && !piBCoeff[ g_aucIndexChromaDCScan[ui] ] )
     {
       uiSymbol = 1;
       break;
@@ -1505,10 +1513,14 @@ CabacWriter::RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
   UInt    uiSymbol  = 0;
   TCoeff* piCoeff   = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   UInt    uiCtx     = rcMbDataAccessBase.getCtxCodedBlockBit( 16 + cIdx );
+  // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
+  TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
   for( UInt ui = 1; ui < 16; ui++ )  
   {
-    if( piCoeff[ g_aucFrameScan[ui] ] )
+    // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
+    //if( piCoeff[ g_aucFrameScan[ui] ] )
+    if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
     {
       uiSymbol = 1;
       break;
@@ -2293,6 +2305,8 @@ CabacWriter::RQencodeCycleSymbol( UInt uiCycle )
   RNOK( CabaEncoder::writeEPSymbol( uiCycle == 0 ) );
   if ( uiCycle > 0 )
     RNOK( CabaEncoder::writeEPSymbol( uiCycle == 1 ) );
+  // heiko.schwarz@hhi.fhg.de: return added
+  return Err::m_nOK;
 }
 // ==
 

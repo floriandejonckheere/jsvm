@@ -125,6 +125,10 @@ public:
 protected:
   ULong  xSwap( ULong ul )
   {
+    // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
+#if BIG_ENDIAN
+    return ul;
+#else
     UInt ul2;
 
     ul2  = ul>>24;
@@ -133,6 +137,7 @@ protected:
     ul2 |= ul<<24;
 
     return ul2;
+#endif
   }
 
 protected:

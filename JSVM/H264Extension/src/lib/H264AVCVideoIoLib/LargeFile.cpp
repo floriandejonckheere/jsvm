@@ -95,6 +95,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #else
 #ifndef _LARGEFILE64_SOURCE
 #define _LARGEFILE64_SOURCE
+// heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
+#define _FILE_OFFSET_BITS 64
 #endif
 # include <sys/ioctl.h>
 # include <sys/types.h>
@@ -181,7 +183,9 @@ ErrVal LargeFile::open( const std::string& rcFilename, enum OpenMode eOpenMode, 
 		return Err::m_nERR;
 	}
 
-	m_iFileHandle = open64( rcFilename.c_str(), iOpenMode, iPermMode );
+  // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
+	//m_iFileHandle = open64( rcFilename.c_str(), iOpenMode, iPermMode );
+  m_iFileHandle = ::open( rcFilename.c_str(), iOpenMode, iPermMode );
 
 #endif
 
@@ -214,7 +218,9 @@ ErrVal LargeFile::seek( Int64 iOffset, int iOrigin )
 #if defined( MSYS_WIN32 )
 	iNewOffset = _lseeki64( m_iFileHandle, iOffset, iOrigin );
 #elif defined( MSYS_UNIX_LARGEFILE )
-	iNewOffset = lseek64( m_iFileHandle, iOffset, iOrigin );
+  // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
+	//iNewOffset = lseek64( m_iFileHandle, iOffset, iOrigin );
+  iNewOffset = ::lseek( m_iFileHandle, iOffset, iOrigin );
 #endif
 	
 	return ( iNewOffset == -1 ) ? Err::m_nERR : Err::m_nOK;
@@ -228,7 +234,9 @@ Int64 LargeFile::tell()
 #if defined( MSYS_WIN32 )
 	iOffset = _telli64( m_iFileHandle );
 #elif defined( MSYS_UNIX_LARGEFILE )
-	iOffset = lseek64( m_iFileHandle, 0, SEEK_CUR );
+  // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
+	//iOffset = lseek64( m_iFileHandle, 0, SEEK_CUR );
+  iOffset = ::lseek( m_iFileHandle, 0, SEEK_CUR );
 #endif
   ROT( iOffset == -1 )
 

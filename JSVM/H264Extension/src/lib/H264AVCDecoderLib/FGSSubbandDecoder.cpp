@@ -916,7 +916,12 @@ RQFGSDecoder::xDecodingFGS()
     
     UInt  uiTermBit = 0;
     RNOK( m_pcCabacReader->RQdecodeTermBit( uiTermBit ) );
-    ROF ( uiTermBit );
+    // heiko.schwarz@hhi.fhg.de: decoder could assert when nearly complete FGS slices are decoded
+    //ROF ( uiTermBit );
+    if( !uiTermBit )
+    {
+      throw CabaDecoder::ReadStop();
+    }
   }
   catch( CabaDecoder::ReadStop )
   {

@@ -2315,6 +2315,8 @@ CabacReader::RQdecodeCycleSymbol( UInt& uiCycle )
     RNOK( CabaDecoder::getEpSymbol( itSymbol ) );
     uiCycle = 2 - itSymbol;
   }
+  // heiko.schwarz@hhi.fhg.de: return added
+  return Err::m_nOK;
 }
 // ==
 

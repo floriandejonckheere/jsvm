@@ -1484,7 +1484,9 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
     rcControlData.getSliceHeader()->getLayerId                (),
     rcControlData.getSliceHeader()->getTemporalLevel          (),
     rcControlData.getSliceHeader()->getQualityLevel           (),
-    rcControlData.getSliceHeader()->isH264AVCCompatible       () ? "AVC" : " LP",
+    // heiko.schwarz@hhi.fhg.de: corrected output
+    // rcControlData.getSliceHeader()->isH264AVCCompatible       () ? "AVC" : " LP",
+    rcControlData.getSliceHeader()->isH264AVCCompatible       () ? "AVC" : " HP",
     rcControlData.getSliceHeader()->getSliceType              () == B_SLICE ? 'B' : 'P',
     rcControlData.getSliceHeader()->getBaseLayerId            (),
     rcControlData.getSliceHeader()->getAdaptivePredictionFlag () ? 1 : 0,
@@ -1863,8 +1865,10 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   // Bug fix: yiliang.bao@nokia.com
   // encoder crashes if GOP size is 1 (m_uiDecompositionStages == 0), 
   // because a low-pass frame becomes a non-reference frame
-  if (uiTemporalLevel == 0 && eNalRefIdc == NAL_REF_IDC_PRIORITY_LOWEST)
+  if( uiTemporalLevel == 0 && eNalRefIdc == NAL_REF_IDC_PRIORITY_LOWEST )
+  {
     eNalRefIdc = NAL_REF_IDC_PRIORITY_HIGHEST;
+  }
 
   NalUnitType   eNalUnitType    = ( m_bH264AVCCompatible
                                     ? ( uiFrameIdInGOP ? NAL_UNIT_CODED_SLICE          : NAL_UNIT_CODED_SLICE_IDR          )
@@ -3236,12 +3240,16 @@ MCTFEncoder::xCalculateAndAddPSNR( PicBufferList& rcPicBufferInputList,
     //===== add PSNR =====
     m_adPSNRSumY[ uiStage ] += dYPSNR;
     m_adPSNRSumU[ uiStage ] += dUPSNR;
-    m_adPSNRSumV[ uiStage ] += dUPSNR;
+    // heiko.schwarz@hhi.fhg.de: correct usage of the V-PSNR
+    //m_adPSNRSumV[ uiStage ] += dUPSNR;
+    m_adPSNRSumV[ uiStage ] += dVPSNR;
 
     //===== output PSNR =====
     if( bOutput )
     {
-      printf( "  Frame%5d:    Y %6.3f dB    U %6.3f dB    V %6.3f dB\n", iPoc, dYPSNR, dUPSNR, dUPSNR );
+      // heiko.schwarz@hhi.fhg.de: correct usage of the V-PSNR
+      //printf( "  Frame%5d:    Y %6.3f dB    U %6.3f dB    V %6.3f dB\n", iPoc, dYPSNR, dUPSNR, dUPSNR );
+      printf( "  Frame%5d:    Y %6.3f dB    U %6.3f dB    V %6.3f dB\n", iPoc, dYPSNR, dUPSNR, dVPSNR );
     }
   }
 
