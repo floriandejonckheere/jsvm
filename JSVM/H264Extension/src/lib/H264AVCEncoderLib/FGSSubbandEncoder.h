@@ -242,17 +242,17 @@ private:
   
   ErrVal            xEncodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
-                                                    UInt                uiScanIndex,
+                                                    UInt&               uiComplete,
                                                     Int&                riLastQp );
   ErrVal            xEncodeNewCoefficientChromaDC ( UInt                uiPlane,
                                                     UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx,
-                                                    UInt                uiDCIdx,
+                                                    UInt&               uiComplete,
                                                     Int&                riLastQP );
   ErrVal            xEncodeNewCoefficientChromaAC ( UInt                uiPlane,
                                                     UInt                uiB8YIdx,
                                                     UInt                uiB8XIdx,
-                                                    UInt                uiScanIndex,
+                                                    UInt&               uiComplete,
                                                     Int&                riLastQP );
   
   ErrVal            xEncodeCoefficientLumaRef     ( UInt                uiBlockYIndex,

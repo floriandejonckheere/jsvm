@@ -200,17 +200,17 @@ private:
   
   ErrVal            xDecodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
-                                                    UInt                uiScanIndex,
+                                                    UInt&               uiComplete,
                                                     Int&                riLastQp );
   ErrVal            xDecodeNewCoefficientChromaDC ( UInt                uiPlane,
                                                     UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx,
-                                                    UInt                uiDCIdx,
+                                                    UInt&               uiComplete,
                                                     Int&                riLastQP );
   ErrVal            xDecodeNewCoefficientChromaAC ( UInt                uiPlane,
                                                     UInt                uiB8YIdx,
                                                     UInt                uiB8XIdx,
-                                                    UInt                uiScanIndex,
+                                                    UInt&               uiComplete,
                                                     Int&                riLastQP );
   
   ErrVal            xDecodeCoefficientLumaRef     ( UInt                uiBlockYIndex,

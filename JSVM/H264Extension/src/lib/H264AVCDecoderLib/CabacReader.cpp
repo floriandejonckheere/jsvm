@@ -2114,7 +2114,9 @@ CabacReader::RQdecodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                       UInt            uiScanIndex,
                                       UInt&           ruiLast )
 {
-  ruiLast                   = 0;
+  // == Nokia, m11509
+  //ruiLast                   = 0;
+  // ==
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = g_aucFrameScan;
@@ -2169,7 +2171,9 @@ CabacReader::RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
                                         UInt            uiScanIndex,
                                         UInt&           ruiLast )
 {
-  ruiLast                   = 0;
+  // == Nokia, m11509
+  //ruiLast                   = 0;
+  // ==
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = ( eResidualMode == CHROMA_DC ? g_aucIndexChromaDCScan : g_aucFrameScan );
@@ -2227,6 +2231,15 @@ CabacReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
                                   UInt          uiScanIndex,
                                   UInt&         ruiLast )
 {
+  // == Nokia, m11509
+  if( ruiLast )
+  {
+    RNOK( CabaDecoder::getSymbol( ruiLast, m_cLastCCModel.get( type2ctx2 [eResidualMode], uiScanIndex-1 ) ) );
+    ROTRS(ruiLast, Err::m_nOK);
+  } else
+    ruiLast = 0;
+  // ==
+
   //===== SIGNIFICANCE BIT ======
   UInt uiSig = 0;
   RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get( type2ctx2[eResidualMode], uiScanIndex ) ) );
@@ -2257,11 +2270,6 @@ CabacReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
 
     piCoeff[pucScan[uiScanIndex]] = ( uiSign ? -(Int)uiCoeff : (Int)uiCoeff );
 
-    //===== LAST SYMBOL =====
-    if( uiScanIndex < uiStop - 1 )
-    {
-      RNOK( CabaDecoder::getSymbol( ruiLast, m_cLastCCModel.get( type2ctx2 [eResidualMode], uiScanIndex ) ) );
-    }
   }
 
   return Err::m_nOK;
@@ -2295,6 +2303,20 @@ CabacReader::xRQdecodeTCoeffsRef( TCoeff*       piCoeff,
 }
 
 
+// == Nokia, m11509
+ErrVal
+CabacReader::RQdecodeCycleSymbol( UInt& uiCycle )
+{
+  UInt itSymbol;
+  RNOK( CabaDecoder::getEpSymbol( itSymbol ) );
+  if (itSymbol == 1)
+    uiCycle = 0;
+  else {
+    RNOK( CabaDecoder::getEpSymbol( itSymbol ) );
+    uiCycle = 2 - itSymbol;
+  }
+}
+// ==
 
 
 H264AVC_NAMESPACE_END

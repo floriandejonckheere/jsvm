@@ -2095,7 +2095,9 @@ CabacWriter::RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                       UInt&           ruiLast,
                                       UInt            uiSigCtx )
 {
-  ruiLast                   = 0;
+  // == Nokia, m11509
+  //ruiLast                   = 0;
+  // ==
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = g_aucFrameScan;
@@ -2151,7 +2153,9 @@ CabacWriter::RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
                                         UInt&           ruiLast,
                                         UInt            uiSigCtx )
 {
-  ruiLast                   = 0;
+  // == Nokia, m11509
+  //ruiLast                   = 0;
+  // ==
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = ( eResidualMode == CHROMA_DC ? g_aucIndexChromaDCScan : g_aucFrameScan );
@@ -2210,6 +2214,24 @@ CabacWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
                                   UInt&         ruiLast,
                                   UInt          uiSigCtx )
 {
+  // == Nokia, m11509 (move EOB check to start)
+  if( ruiLast )
+  {
+    ruiLast = 1;
+    for( UInt ui = uiScanIndex; ui < uiStop; ui++ )
+    {
+      if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]] )
+      {
+        ruiLast = 0;
+        break;
+      }
+    }
+    RNOK( CabaEncoder::writeSymbol( ruiLast, m_cLastCCModel.get( type2ctx2 [eResidualMode], uiSigCtx ) ) );
+    ROTRS(ruiLast, Err::m_nOK);
+  } else
+    ruiLast = 0;
+  // ==
+
   //===== SIGNIFICANCE BIT ======
   UInt uiSig = piCoeff[pucScan[uiScanIndex] ] ? 1 : 0;
   RNOK( CabaEncoder::writeSymbol( uiSig, m_cMapCCModel.get( type2ctx2[eResidualMode], uiScanIndex ) ) );
@@ -2233,20 +2255,6 @@ CabacWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
       RNOK( CabaEncoder::writeExGolombLevel( uiAbs, m_cAbsCCModel.get( type2ctx1 [eResidualMode], uiCtx ) ) );
     }
 
-    //===== LAST SYMBOL =====
-    ruiLast = 1;
-    if( uiScanIndex < uiStop - 1 )
-    {
-      for( UInt ui = uiScanIndex + 1; ui < uiStop; ui++ )
-      {
-        if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]] )
-        {
-          ruiLast = 0;
-          break;
-        }
-      }
-      RNOK( CabaEncoder::writeSymbol( ruiLast, m_cLastCCModel.get( type2ctx2 [eResidualMode], uiScanIndex ) ) );
-    }
   }
 
   return Err::m_nOK;
@@ -2278,6 +2286,15 @@ CabacWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
 }
 
 
+// == Nokia, m11509
+ErrVal
+CabacWriter::RQencodeCycleSymbol( UInt uiCycle )
+{
+  RNOK( CabaEncoder::writeEPSymbol( uiCycle == 0 ) );
+  if ( uiCycle > 0 )
+    RNOK( CabaEncoder::writeEPSymbol( uiCycle == 1 ) );
+}
+// ==
 
 
 H264AVC_NAMESPACE_END

@@ -196,6 +196,9 @@ public:
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
                                      UInt            uiScanIndex );
+  // == Nokia, m11509
+  ErrVal  RQdecodeCycleSymbol      ( UInt&           uiCycle );
+  // ==
 
   ErrVal  blFlag              ( MbDataAccess& rcMbDataAccess );
   Bool    isEndOfSlice        ();

@@ -204,6 +204,9 @@ public:
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
                                      UInt            uiScanIndex );
+  // == Nokia, m11509
+  ErrVal  RQencodeCycleSymbol      ( UInt            uiCycle );
+  // ==
 
   ErrVal  blFlag    ( MbDataAccess& rcMbDataAccess );
   ErrVal  blockModes( MbDataAccess& rcMbDataAccess );
