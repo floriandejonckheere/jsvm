@@ -149,12 +149,12 @@ class MyList : public std::list< T >
 public:
   typedef typename std::list<T>::iterator MyIterator;
 
-  MyList& operator += ( const MyList& rcMyList) { if( ! rcMyList.empty() ) { insert( end(), rcMyList.begin(), rcMyList.end());} return *this; }
-  T popBack()                           { T cT = back(); pop_back(); return cT;  }
-  T popFront()                          { T cT = front(); pop_front(); return cT; }
+  MyList& operator += ( const MyList& rcMyList) { if( ! rcMyList.empty() ) { insert( this->end(), rcMyList.begin(), rcMyList.end());} return *this; } // leszek
+  T popBack()                           { T cT = this->back(); this->pop_back(); return cT;  }
+  T popFront()                          { T cT = this->front(); this->pop_front(); return cT; }
   Void pushBack( const T& rcT )         { if( sizeof(T) == 4) { if( rcT != NULL ){ push_back( rcT);} } }
   Void pushFront( const T& rcT )        { if( sizeof(T) == 4) { if( rcT != NULL ){ push_front( rcT);} } }
-  MyIterator find( const T& rcT ) {  return std::find( begin(), end(), rcT ); }
+  MyIterator find( const T& rcT ) {  return std::find( this->begin(), this->end(), rcT ); } // leszek
 };
 
 class ExtBinDataAccessor : public BinDataAccessor

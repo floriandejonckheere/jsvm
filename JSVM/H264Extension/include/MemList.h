@@ -373,6 +373,7 @@ public:
     T* pcT;
     T* pcOrigT;
     UInt uiSize;
+    UInt uiUsableSize; // leszek
 
     if( MEM_CONT == rcMemIf.getMemType() )
     {

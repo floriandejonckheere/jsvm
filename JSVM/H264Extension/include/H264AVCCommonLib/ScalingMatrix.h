@@ -156,7 +156,7 @@ private:
 template<UInt uiBufSize>
 ScalingMatrix::ScalingList<uiBufSize>::ScalingList()
 {
-  setAll(16);
+  this->setAll(16); // leszek: C++ standard compliance
 }
 
 
@@ -173,7 +173,7 @@ ScalingMatrix::ScalingList<uiBufSize>::read( HeaderSymbolReadIf*  pcReadIf,
   
   this->get(0)  = ( ( 8 + iDeltaScale ) & 0xff );
   UInt  n       = 1;
-  for(; n < size(); n++ ) 
+  for(; n < this->size(); n++ ) // leszek
   {
    	RNOK( pcReadIf->getSvlc( iDeltaScale,   "SCALING: delta_scale" ) );
     this->get( pucScan[n] ) = ( ( this->get( pucScan[n-1] ) + iDeltaScale ) & 0xff );
@@ -182,7 +182,7 @@ ScalingMatrix::ScalingList<uiBufSize>::read( HeaderSymbolReadIf*  pcReadIf,
       break;
     }
   }
-  for( ; n < size(); n++ ) 
+  for( ; n < this->size(); n++ ) // leszek
   {
     this->get( pucScan[n] ) = this->get( pucScan[n - 1] );
   }
@@ -203,8 +203,8 @@ ScalingMatrix::ScalingList<uiBufSize>::write( HeaderSymbolWriteIf*  pcWriteIf,
     return Err::m_nOK;
   }
 
-  const UChar ucLast    = this->get( pucScan[size()-1] );
-  Int         iLastDiff = size() - 2;
+  const UChar ucLast    = this->get( pucScan[this->size()-1] ); // leszek
+  Int         iLastDiff = this->size() - 2; // leszek
   for( ; iLastDiff >= 0; iLastDiff-- ) 
   {
     if( ucLast != this->get( pucScan[iLastDiff] ) )

@@ -133,6 +133,9 @@ public:
     Bool bLum;
   }FilterParameter;
 
+  static const UChar g_aucBetaTab[52]; // leszek
+  static const AlphaClip g_acAlphaClip[52]; // leszek
+
 protected:
 	LoopFilter();
 	virtual ~LoopFilter();

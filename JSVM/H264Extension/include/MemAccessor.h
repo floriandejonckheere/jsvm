@@ -333,7 +333,8 @@ public:
   Void push_back( MemAccessor< T >& rcMemAccessor )
   {
     m_cMemAccessorList.push_back( rcMemAccessor );
-    m_uiSize += uiSize;
+    //m_uiSize += uiSize; // leszek: uiSize is not defined
+	m_uiSize += rcMemAccessor.m_uiSize; // leszek: this seems to be the intention
   }
 
   Void push_front( T* pcT, UInt uiSize, T* pcOrigT=NULL, UInt uiUsableSize=0 )
@@ -347,7 +348,8 @@ public:
   Void push_front( MemAccessor< T >& rcMemAccessor )
   {
     m_cMemAccessorList.push_front( rcMemAccessor );
-    m_uiSize += uiSize;
+    //m_uiSize += uiSize; // leszek: uiSize is not defined
+	m_uiSize += rcMemAccessor.m_uiSize; // leszek: this seems to be the intention
   }
 
 private:

@@ -102,7 +102,7 @@ H264AVC_NAMESPACE_BEGIN
 
 
 
-const UChar g_aucBetaTab[52]  =
+const UChar LoopFilter::g_aucBetaTab[52]  =
 {
     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
     0,  0,  0,  0,  0,  0,  2,  2,  2,  3,
@@ -114,7 +114,7 @@ const UChar g_aucBetaTab[52]  =
 
 
 
-const LoopFilter::AlphaClip g_acAlphaClip[52] =
+const LoopFilter::AlphaClip LoopFilter::g_acAlphaClip[52] =
 {
   {  0, { 0, 0, 0, 0, 0} },
   {  0, { 0, 0, 0, 0, 0} },
