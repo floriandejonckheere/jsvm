@@ -128,7 +128,7 @@ private:
   ULong  xSwap( ULong ul )
   {
     // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
-#if BIG_ENDIAN
+#ifdef MSYS_BIG_ENDIAN
     return ul;
 #else
     ULong ul2;
