@@ -339,7 +339,7 @@ Extractor::xSetParameters()
   {
     for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
     {
-      for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      for( uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
       {
         Int64 i64NALUBytes = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, uiFGSLayer );
         if( (Double)i64NALUBytes <= dRemainingBytes )
@@ -360,7 +360,7 @@ Extractor::xSetParameters()
 
 
   //===== set FGS layer for current layer =====
-  for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+  for( uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
   {
     Int64 i64FGSLayerBytes = 0;
     for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
@@ -649,8 +649,8 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
 {
   ROT( m_bInit );
   
-  ::memset( m_aaaui64NumNALUBytes, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_FGS_LAYERS*sizeof(UInt64) );
-  ::memset( m_aauiNumPictures,     0x00, MAX_LAYERS*(MAX_DSTAGES+1)               *sizeof(UInt)   );
+  ::memset( m_aaaui64NumNALUBytes, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) );
+  ::memset( m_aauiNumPictures,     0x00, MAX_LAYERS*(MAX_DSTAGES+1)                   *sizeof(UInt)   );
 
   m_uiNumLayers           = pcScalableSei->getNumLayers           ();
   m_bAVCBaseLayer         = pcScalableSei->getBaseLayerIsAVC      ();
@@ -692,9 +692,9 @@ ScalableStreamDescription::addPacket( UInt  uiNumBytes,
 {
   ROF( m_bInit      );
   ROT( m_bAnalyzed  );
-  ROF( uiLayer    <  MAX_LAYERS     );
-  ROF( uiLevel    <= MAX_DSTAGES    );
-  ROF( uiFGSLayer <  MAX_FGS_LAYERS );
+  ROF( uiLayer    <  MAX_LAYERS         );
+  ROF( uiLevel    <= MAX_DSTAGES        );
+  ROF( uiFGSLayer <  MAX_QUALITY_LEVELS );
 
   m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGSLayer] += uiNumBytes;
 
@@ -744,7 +744,7 @@ ScalableStreamDescription::analyse()
       m_aaui64BaseLayerBytes[uiLayer][uiLevel] = m_aaaui64NumNALUBytes[uiLayer][uiLevel][0];
       m_aaui64FGSLayerBytes [uiLayer][uiLevel] = 0;
 
-      for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      for( uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
       {
         m_aaui64FGSLayerBytes   [uiLayer][uiLevel] += m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGSLayer];
       }

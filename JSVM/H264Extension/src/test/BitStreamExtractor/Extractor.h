@@ -138,7 +138,7 @@ private:
   UInt    m_auiFrameHeight      [MAX_LAYERS];
   UInt    m_auiDecStages        [MAX_LAYERS];
 
-  UInt64  m_aaaui64NumNALUBytes [MAX_LAYERS][MAX_DSTAGES+1][MAX_FGS_LAYERS];
+  UInt64  m_aaaui64NumNALUBytes [MAX_LAYERS][MAX_DSTAGES+1][MAX_QUALITY_LEVELS];
   UInt64  m_aaui64BaseLayerBytes[MAX_LAYERS][MAX_DSTAGES+1];
   UInt64  m_aaui64FGSLayerBytes [MAX_LAYERS][MAX_DSTAGES+1];
   UInt    m_aauiNumPictures     [MAX_LAYERS][MAX_DSTAGES+1];
