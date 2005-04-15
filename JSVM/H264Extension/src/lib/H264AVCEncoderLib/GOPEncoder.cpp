@@ -1995,7 +1995,7 @@ MCTFEncoder::xInitReordering ( UInt uiFrameIdInGOP )
         pcSliceHeader->getRplrBuffer( LIST_0 ).setRefPicListReorderingFlag( false );
       }
     }
-    else
+    else if( pcSliceHeader->getNalRefIdc() )
     {
       ROF( pcSliceHeader->getSliceType() == P_SLICE );
 
