@@ -186,8 +186,8 @@ ErrVal CodingParameter::check()
   }
   else
   {
-    UInt uiIntraPeriod = getLogFactor( getGOPSize(), getIntraPeriod() );
-    ROTREPORT( uiIntraPeriod == MSYS_UINT_MAX,            "Intra period must be a power of 2 of GOP size (or -1)" );
+    UInt uiIntraPeriod = getIntraPeriod() / getGOPSize() - 1;
+    ROTREPORT( getIntraPeriod() % getGOPSize(),         "Intra period must be a power of 2 of GOP size (or -1)" );
     setIntraPeriodLowPass( uiIntraPeriod );
   }
 
@@ -204,6 +204,9 @@ ErrVal CodingParameter::check()
   for( UInt uiLayer = 0; uiLayer < getNumberOfLayers(); uiLayer++ )
   {
     LayerParameters*  pcLayer               = &m_acLayerParameters[uiLayer];
+
+	RNOK( pcLayer->check() );
+
     LayerParameters*  pcBaseLayer           = uiLayer ? &m_acLayerParameters[uiLayer-1] : 0;
     UInt              uiLogFactorInOutRate  = getLogFactor( pcLayer->getOutputFrameRate (), pcLayer->getInputFrameRate() );
     UInt              uiLogFactorMaxInRate  = getLogFactor( pcLayer->getInputFrameRate  (), getMaximumFrameRate       () );
