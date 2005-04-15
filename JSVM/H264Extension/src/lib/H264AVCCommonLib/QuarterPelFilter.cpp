@@ -550,15 +550,15 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
   }
 
   // bot
-  ps -= iMargin*2; //old
-  for( y = 0; y < iMarginNew; y++ ) //old
+  ps -= iMarginNew*2; //old
+  for( y = 0; y < iMargin; y++ ) //old
   {
     ::memcpy( &ps[y*uiTmpXSize], &ps[(y-1)*uiTmpXSize], uiTmpXSize*sizeof(XXPel) );
   }
 
   //top
-  ps = &psTemp[ iMargin * uiTmpXSize - iMargin*2 ]; //old
-  for( y = 0; y < iMarginNew; y++ ) //old
+  ps = &psTemp[ iMargin * uiTmpXSize - iMarginNew*2 ]; //old
+  for( y = 0; y < iMargin-1; y++ ) //old
   {
     ::memcpy( &ps[-(y+1)*uiTmpXSize], &ps[-y*uiTmpXSize], uiTmpXSize*sizeof(XXPel) );
   }
