@@ -2242,7 +2242,15 @@ CabacReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
 
   //===== SIGNIFICANCE BIT ======
   UInt uiSig = 0;
-  RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get( type2ctx2[eResidualMode], uiScanIndex ) ) );
+  UInt uiLastScanPosition = uiScanIndex + 1;
+  while (uiLastScanPosition < uiStop && piCoeffBase[pucScan[uiLastScanPosition]])
+    uiLastScanPosition ++;
+
+  if (uiLastScanPosition < uiStop)
+  {
+    RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get( type2ctx2[eResidualMode], uiScanIndex ) ) );
+  } else
+    uiSig = 1;
 
   if( uiSig )
   {

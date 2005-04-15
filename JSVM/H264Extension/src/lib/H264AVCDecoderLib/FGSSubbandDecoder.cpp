@@ -1124,11 +1124,16 @@ RQFGSDecoder::xDecodeNewCoefficientLuma( UInt   uiBlockYIndex,
 
   // == Nokia, m11509
   UInt    uiScanIndex = 16;
+  UInt    uiNeedEob = 0;
   for (int iIndex = 0; iIndex < 16; iIndex++)
+  {
+    if ((m_apaucLumaCoefMap[iIndex][uiBlockIndex] & SIGNIFICANT) && (m_apaucLumaCoefMap[iIndex][uiBlockIndex] & CODED))
+      uiNeedEob = 1;
     if (! (m_apaucLumaCoefMap[iIndex][uiBlockIndex] & (SIGNIFICANT|CODED))) {
       uiScanIndex = iIndex;
       break;
     }
+  }
   uiComplete &= (uiScanIndex == 16);
   ROTRS(uiScanIndex == 16, Err::m_nOK);
   // ==
@@ -1200,8 +1205,6 @@ RQFGSDecoder::xDecodeNewCoefficientLuma( UInt   uiBlockYIndex,
   if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
   {
     // == Nokia, m11509
-    UInt uiNeedEob = (uiScanIndex > 0);
-
     while (uiScanIndex < 16) {
       UInt  ui8x8ScanIndex  = 4*uiScanIndex + 2*( uiBlockYIndex % 2 ) + ( uiBlockXIndex % 2 );
       RNOK( m_pcCabacReader->RQdecodeNewTCoeff_8x8( *pcMbDataAccessEL, *pcMbDataAccessBL,
@@ -1265,8 +1268,6 @@ RQFGSDecoder::xDecodeNewCoefficientLuma( UInt   uiBlockYIndex,
 
 
     // == Nokia, m11509
-    UInt uiNeedEob = (uiScanIndex > 0);
-
     while (uiScanIndex < 16) {
       RNOK( m_pcCabacReader->RQdecodeNewTCoeff_Luma( *pcMbDataAccessEL, *pcMbDataAccessBL,
                                                     LUMA_SCAN, c4x4Idx, uiScanIndex, uiNeedEob ) );
@@ -1320,11 +1321,16 @@ RQFGSDecoder::xDecodeNewCoefficientChromaDC ( UInt    uiPlane,
 
   // == Nokia, m11509
   UInt    uiDCIdx = 4;
+  UInt    uiNeedEob = 0;
   for (int iIndex = 0; iIndex < 4; iIndex++)
+  {
+    if (( m_aapaucChromaDCCoefMap[uiPlane][iIndex][uiMbIndex] & SIGNIFICANT ) && ( m_aapaucChromaDCCoefMap[uiPlane][iIndex][uiMbIndex] & CODED ))
+      uiNeedEob = 1;
     if (! (m_aapaucChromaDCCoefMap[uiPlane][iIndex][uiMbIndex] & (SIGNIFICANT|CODED))) {
       uiDCIdx = iIndex;
       break;
     }
+  }
   uiComplete &= (uiDCIdx == 4);
   ROTRS(uiDCIdx == 4, Err::m_nOK);
   // ==
@@ -1425,8 +1431,6 @@ RQFGSDecoder::xDecodeNewCoefficientChromaDC ( UInt    uiPlane,
   // == Nokia, m11509
 
   // Encode EOB marker?
-  UInt uiNeedEob = (uiDCIdx > 0);
-
   while (uiDCIdx < 4) {
     RNOK( m_pcCabacReader->RQdecodeNewTCoeff_Chroma( *pcMbDataAccessEL, *pcMbDataAccessBL,
                                                     CHROMA_DC, CIdx(4*uiPlane), uiDCIdx, uiNeedEob ) );
@@ -1484,11 +1488,15 @@ RQFGSDecoder::xDecodeNewCoefficientChromaAC ( UInt    uiPlane,
 
   // == Nokia, m11509
   UInt    uiScanIndex = 16;
-  for (int iIndex = 1; iIndex < 16; iIndex++)
+  UInt    uiNeedEob = 0;
+  for (int iIndex = 1; iIndex < 16; iIndex++) {
+    if ((m_aapaucChromaACCoefMap[uiPlane][iIndex][uiB8Index] & SIGNIFICANT) && (m_aapaucChromaACCoefMap[uiPlane][iIndex][uiB8Index] & CODED))
+      uiNeedEob = 1;
     if (! (m_aapaucChromaACCoefMap[uiPlane][iIndex][uiB8Index] & (SIGNIFICANT|CODED))) {
       uiScanIndex = iIndex;
       break;
     }
+  }
   uiComplete &= (uiScanIndex == 16);
   ROTRS(uiScanIndex == 16, Err::m_nOK);
   // ==
@@ -1619,9 +1627,6 @@ RQFGSDecoder::xDecodeNewCoefficientChromaAC ( UInt    uiPlane,
 
 
   // == Nokia, m11509
-
-  UInt uiNeedEob = (uiScanIndex > 1);
-
   while (uiScanIndex < 16) {
 
     RNOK( m_pcCabacReader->RQdecodeNewTCoeff_Chroma( *pcMbDataAccessEL, *pcMbDataAccessBL,

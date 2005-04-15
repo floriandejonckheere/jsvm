@@ -2246,7 +2246,14 @@ CabacWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
 
   //===== SIGNIFICANCE BIT ======
   UInt uiSig = piCoeff[pucScan[uiScanIndex] ] ? 1 : 0;
-  RNOK( CabaEncoder::writeSymbol( uiSig, m_cMapCCModel.get( type2ctx2[eResidualMode], uiScanIndex ) ) );
+  UInt uiLastScanPosition = uiScanIndex + 1;
+  while (uiLastScanPosition < uiStop && piCoeffBase[pucScan[uiLastScanPosition]])
+    uiLastScanPosition ++;
+
+  if (uiLastScanPosition < uiStop)
+  {
+    RNOK( CabaEncoder::writeSymbol( uiSig, m_cMapCCModel.get( type2ctx2[eResidualMode], uiScanIndex ) ) );
+  }
 
   if( uiSig )
   {
