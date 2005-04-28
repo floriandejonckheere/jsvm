@@ -129,6 +129,7 @@ MCTFDecoder::MCTFDecoder()
 , m_uiGOPSize                     ( 0 )
 , m_uiDecompositionStages         ( 0 )
 , m_papcFrame                     ( 0 )
+, m_pcCurrSliceHeader             ( 0 )
 , m_papcResidual                  ( 0 )
 , m_pcBaseLayerFrame              ( 0 )
 , m_pcBaseLayerResidual           ( 0 )
@@ -234,6 +235,7 @@ MCTFDecoder::init( H264AVCDecoder*      pcH264AVCDecoder,
   m_uiDecompositionStages         = 0;
 
   m_papcFrame                     = 0;
+  m_pcCurrSliceHeader             = 0;
   m_papcResidual                  = 0;
   m_pcBaseLayerFrame              = 0;
   m_pcBaseLayerResidual           = 0;
@@ -269,6 +271,7 @@ MCTFDecoder::uninit()
   m_uiMaxGOPSize              = 0;
   m_uiFrameWidthInMb          = 0;
   m_uiFrameHeightInMb         = 0;
+  m_pcCurrSliceHeader         = 0;
 
   RNOK( xDeleteData() );
 
@@ -714,6 +717,9 @@ MCTFDecoder::xInitGOP( SliceHeader*  pcSliceHeader )
 
     m_papcFrame   [uiIndex]->setBandType  ( LPS );
     m_papcResidual[uiIndex]->setBandType  ( HPS );
+
+    RNOK( m_papcFrame   [uiIndex]->uninitHalfPel() );
+    RNOK( m_papcResidual[uiIndex]->uninitHalfPel() );
   }
   if( m_pcAnchorFrame->isValid() )
   {
@@ -732,6 +738,10 @@ MCTFDecoder::xInitGOP( SliceHeader*  pcSliceHeader )
   }
   m_cControlDataUpd.clear();
 
+  if( m_pcAnchorFrame->isValid() )
+  {
+    m_pacControlData[0].setBaseRep(true);
+  }
 
   //============================ PARAMETERS ================================
   m_uiGOPId                   = pcSliceHeader->getGOPId               ();
@@ -849,7 +859,7 @@ MCTFDecoder::xAddBaseLayerResidual( ControlData& rcControlData,
 
 
 ErrVal
-MCTFDecoder::initSlice( SliceHeader* pcSliceHeader )
+MCTFDecoder::initSlice( SliceHeader* pcSliceHeader, UInt uiLastLayer )
 {
   ROFRS( m_bActive, Err::m_nOK );
 
@@ -871,6 +881,19 @@ MCTFDecoder::initSlice( SliceHeader* pcSliceHeader )
     RNOK( xReconstructLastFGS() );
   }
 
+  if( uiLastLayer == m_uiLayerId                                                         &&
+      m_pcCurrSliceHeader != 0                                                           &&
+      m_pcCurrSliceHeader->getLayerId() == m_uiLayerId                                   &&
+    (!pcSliceHeader                                                                      ||
+      pcSliceHeader->getLayerId       () != m_pcCurrSliceHeader->getLayerId      ()      ||
+      pcSliceHeader->getTemporalLevel () != m_pcCurrSliceHeader->getTemporalLevel()      ||
+      pcSliceHeader->getPoc           () != m_pcCurrSliceHeader->getPoc          ()        ) )
+  {
+    // After all slices of the current picture, pic, have been decoded from the bitstream,
+    // the inverse motion compensated temporal filtering process is invoked
+    xInvokeMCTF( m_pcCurrSliceHeader->getFrameIdInsideGOP() );
+    m_pcCurrSliceHeader = 0;
+  }
   return Err::m_nOK;
 }
 
@@ -1131,6 +1154,7 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*& rpcSliceHeader )
   rpcSliceHeader = 0;
 
   RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+  m_pcCurrSliceHeader = rcControlData.getSliceHeader();
 
   DTRACE_NEWFRAME;
 
@@ -1213,6 +1237,7 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
   rpcSliceHeader = 0;
 
   RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+  m_pcCurrSliceHeader = rcControlData.getSliceHeader();
 
   DTRACE_NEWFRAME;
 
@@ -1220,6 +1245,415 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
 }
 
 
+ErrVal
+MCTFDecoder::xInvokeMCTF( UInt uiFrameIdInGOP )
+// After all slices of the current picture, pic, have been decoded from the bitstream,
+// the inverse motion compensated temporal filtering process is invoked
+// If picture pic is marked as "residual picture",
+//   The "check for inverse prediction process" in subclause S.8.8.3 is invoked with pic and NULL as inputs
+// Otherwise (i.e. picture pic is not marked as "residual picture"),
+//   The "check for inverse update process" in subclause S.8.8.4 is invoked with pic and NULL as inputs
+{
+  ControlData&  rcControlData       = m_pacControlData[ uiFrameIdInGOP ];   
+  IntFrame*     pcFrame             = m_papcFrame     [ uiFrameIdInGOP ];
+
+  if ( pcFrame->getBandType() == HPS )
+  {
+    xCheckForInversePrediction( (Int)(uiFrameIdInGOP), -1 );
+  }
+  // Otherwise (i.e. picture pic is not marked as "residual picture"),
+ 	// The "check for inverse update process" in subclause S.8.8.4 is invoked with pic and NULL as inputs
+  else
+  {
+    // Move from ::xReconstruct()
+    //===== loopfilter for low-pass frames / set anchor frame =====
+    if (uiFrameIdInGOP == m_uiGOPSize)
+    {
+      SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
+      RefFrameList& rcRefFrameList0 = rcControlData.getDPCMRefFrameList( 0 );
+      RefFrameList& rcRefFrameList1 = rcControlData.getDPCMRefFrameList( 1 );
+      MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
+
+      if( pcSliceHeader && pcSliceHeader->getTemporalLevel() == 0 )
+      {
+        RNOK( m_pcLoopFilter->process( *pcSliceHeader,
+                                       pcFrame,
+                                       ( pcSliceHeader->isIntra() ? NULL : pcMbDataCtrl ),
+                                       pcMbDataCtrl,
+                                       m_uiFrameWidthInMb,
+                                       &rcRefFrameList0,
+                                       &rcRefFrameList1 ) );
+
+        RNOK( m_pcAnchorFrame->copyAll ( pcFrame ) );
+        m_pcAnchorFrame->setValid   ();
+      }
+      else
+      { 
+        m_pcAnchorFrame->setUnvalid ();
+      }
+    }
+
+    // Otherwise (i.e. picture pic is not marked as "residual picture"),
+    // The "check for inverse update process" in subclause S.8.8.4 is invoked with pic and NULL as inputs
+    xCheckForInverseUpdate( (Int)(uiFrameIdInGOP), -1 );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP )
+// Inputs to this process are
+// - A picture prdPic that is to be checked in this process if it can be inverse predicted.
+// - A picture updPic that is inverse updated prior to invoking this process.
+//   If updPic is NULL (-1), it indicates that no picture is inverse updated prior to invoking this process.
+//
+// Outputs of this process are zero or more modified pictures (including prdPic), which replace the input version in the decoded picture buffer.
+//
+// For each picture refPic in the reference picture lists RefPicListX (with X being 0 or 1) of prdPic,
+// - If all of the following conditions are true,
+// 	 - refPic is not marked as "base representation"
+// 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic
+//   The following applies:
+// 	 - Let Y be a template variable that is derived by Y = 1 - X.
+// 	 - The variable curActiveUpdLYrefPic[curTemporalLevelrefPic] is incremented by 1,
+// 	 - The "check for inverse update process" in subclause S.8.8.4 is invoked with refPic and prdPic as input.
+//
+// - If all of the following conditions are true,
+//   - refPic is marked as "base representation"
+// 	 - updPic is equal to NULL
+//   The following applies:
+//   - The variable curActivePrdLXprdPic is incremented by 1,
+//
+// - If all of the following conditions are true,
+//   - refPic is not marked as "base representation"
+// 	 - updPic is equal to NULL or updPic is equal to refPic
+// 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic + 1
+//   The following applies:
+// 	 - The variable curActivePrdLXprdPic is incremented by 1,
+//
+// If all of the following conditions are true for picture prdPic,
+// - curActivePrdL0prdPic is equal to maxActivePrdL0prdPic
+// - curActivePrdL1prdPic is equal to maxActivePrdL1prdPic
+// The following applies:
+// - The inverse prediction step is performed on prdPic. The motion compensated prediction process in subclause S.8.8.2 of [1] is invoked with prdPic as input and the output is a modified picture prdPic, which replaces the input version in the decoded picture buffer.
+// - The marking "residual picture" is removed for the picture prdPic.
+// - The variable curTemporalLevelprdPic is incremented by 1,
+// - The "check for inverse update process" in subclause S.8.8.4 is invoked with prdPic and NULL as input.
+{
+  ControlData&  rcPrdPicControlData   = m_pacControlData[ iPrdPicIdInGOP ];
+  SliceHeader*  pcPrdPicSliceHeader   = rcPrdPicControlData.getSliceHeader();
+  UInt uiPredictionLevel = rcPrdPicControlData.getCurTemporalLevel();
+
+  if ( uiPredictionLevel >= m_uiDecompositionStages )
+  {
+    rcPrdPicControlData.setBaseRep(true);
+    return Err::m_nOK;
+  }
+
+  Int iPicGap = 1 << ( m_uiDecompositionStages - uiPredictionLevel - 1 );
+
+  //===== list 0 =====
+  Int iRefPicId;
+  UInt uiList0Size     = pcPrdPicSliceHeader->getNumRefIdxActive( LIST_0 );
+// For each picture refPic in the reference picture lists RefPicListX (with X being 0 or 1) of prdPic,
+  for( iRefPicId = iPrdPicIdInGOP - iPicGap; iRefPicId >= 0 && uiList0Size; iRefPicId -= iPicGap, --uiList0Size )
+  {
+    ControlData&  rcRefPicControlData = m_pacControlData[ iRefPicId ];
+// - If all of the following conditions are true,
+// 	 - refPic is not marked as "base representation"
+// 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic
+    if ( rcRefPicControlData.isBaseRep() == false && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel )
+    {
+//   The following applies:
+// 	 - Let Y be a template variable that is derived by Y = 1 - X.
+// 	 - The variable curActiveUpdLYrefPic[curTemporalLevelrefPic] is incremented by 1,
+// 	 - The "check for inverse update process" in subclause S.8.8.4 is invoked with refPic and prdPic as input.
+      rcRefPicControlData.incCurActiveUpdL1( rcRefPicControlData.getCurTemporalLevel() );
+      xCheckForInverseUpdate( iRefPicId, iPrdPicIdInGOP );
+    }
+
+// - If all of the following conditions are true,
+//   - refPic is marked as "base representation"
+// 	 - updPic is equal to NULL
+    if ( rcRefPicControlData.isBaseRep() == true && iUpdPicIdInGOP == -1 )
+    {
+//   The following applies:
+//   - The variable curActivePrdLXprdPic is incremented by 1,
+      rcPrdPicControlData.incCurActivePrdL0();
+    }
+
+// - If all of the following conditions are true,
+//   - refPic is not marked as "base representation"
+// 	 - updPic is equal to NULL or updPic is equal to refPic
+// 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic + 1
+    if ( rcRefPicControlData.isBaseRep() == false && (iUpdPicIdInGOP == -1 || iUpdPicIdInGOP == iRefPicId) && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel + 1 )
+    {
+//   The following applies:
+// 	 - The variable curActivePrdLXprdPic is incremented by 1,
+      rcPrdPicControlData.incCurActivePrdL0();
+    }
+  }
+
+  //===== list 1 =====
+  UInt uiList1Size     = pcPrdPicSliceHeader->getNumRefIdxActive( LIST_1 );
+// For each picture refPic in the reference picture lists RefPicListX (with X being 0 or 1) of prdPic,
+  for( iRefPicId = iPrdPicIdInGOP + iPicGap; iRefPicId <= m_uiGOPSize && uiList1Size; iRefPicId += iPicGap, --uiList1Size )
+  {
+    ControlData&  rcRefPicControlData = m_pacControlData[ iRefPicId ];
+// - If all of the following conditions are true,
+// 	 - refPic is not marked as "base representation"
+// 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic
+    if ( rcRefPicControlData.isBaseRep() == false && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel )
+    {
+//   The following applies:
+// 	 - Let Y be a template variable that is derived by Y = 1 - X.
+// 	 - The variable curActiveUpdLYrefPic[curTemporalLevelrefPic] is incremented by 1,
+// 	 - The "check for inverse update process" in subclause S.8.8.4 is invoked with refPic and prdPic as input.
+      rcRefPicControlData.incCurActiveUpdL0( rcRefPicControlData.getCurTemporalLevel() );
+      xCheckForInverseUpdate( iRefPicId, iPrdPicIdInGOP );
+    }
+
+// - If all of the following conditions are true,
+//   - refPic is marked as "base representation"
+// 	 - updPic is equal to NULL
+    if ( rcRefPicControlData.isBaseRep() == true && iUpdPicIdInGOP == -1 )
+    {
+//   The following applies:
+//   - The variable curActivePrdLXprdPic is incremented by 1,
+      rcPrdPicControlData.incCurActivePrdL1();
+    }
+
+// - If all of the following conditions are true,
+//   - refPic is not marked as "base representation"
+// 	 - updPic is equal to NULL or updPic is equal to refPic
+// 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic + 1
+    if ( rcRefPicControlData.isBaseRep() == false && (iUpdPicIdInGOP == -1 || iUpdPicIdInGOP == iRefPicId) && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel + 1 )
+    {
+//   The following applies:
+// 	 - The variable curActivePrdLXprdPic is incremented by 1,
+      rcPrdPicControlData.incCurActivePrdL1();
+    }
+  }
+
+// If all of the following conditions are true for picture prdPic,
+// - curActivePrdL0prdPic is equal to maxActivePrdL0prdPic
+// - curActivePrdL1prdPic is equal to maxActivePrdL1prdPic
+  if ( rcPrdPicControlData.getCurActivePrdL0() == pcPrdPicSliceHeader->getNumRefIdxActive( LIST_0 ) && 
+       rcPrdPicControlData.getCurActivePrdL1() == pcPrdPicSliceHeader->getNumRefIdxActive( LIST_1 ) )
+  {
+// The following applies:
+// - The inverse prediction step is performed on prdPic. The motion compensated prediction process in subclause S.8.8.2 of [1] is invoked with prdPic as input and the output is a modified picture prdPic, which replaces the input version in the decoded picture buffer.
+// - The marking "residual picture" is removed for the picture prdPic.
+// - The variable curTemporalLevelprdPic is incremented by 1,
+// - The "check for inverse update process" in subclause S.8.8.4 is invoked with prdPic and NULL as input.
+    xInversePrediction( iPrdPicIdInGOP );
+    rcPrdPicControlData.incCurTemporalLevel();
+    if ( rcPrdPicControlData.getCurTemporalLevel() == m_uiDecompositionStages )
+      rcPrdPicControlData.setBaseRep(true);
+    else
+      xCheckForInverseUpdate( iPrdPicIdInGOP, -1 );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+MCTFDecoder::xCheckForInverseUpdate( Int iUpdPicIdInGOP, Int iPrdPicIdInGOP )
+// Inputs to this process are
+// - A picture updPic that is to be checked in this process if it can be inverse updated.
+// - A picture prdPic that is checked for inverse prediction prior to invoking this process.
+//   If prdPic is NULL, it indicates that no picture is checked for inverse prediction prior to invoking this process.
+//
+// Output of this process is possibly the modified picture updPic, which replace the input version in the decoded picture buffer.
+//
+// If all of the following conditions are true for picture updPic,
+// - updPic is not marked as "residual picture"
+// - updPic is not marked as "base representation"
+// - curTemporalLevelupdPic is less than decomposition_stages
+// - curActiveUpdL0updPic[curTemporalLevelupdPic] is equal to maxActiveUpdL0updPic[curTemporalLevelupdPic]
+// - curActiveUpdL1updPic[curTemporalLevelupdPic] is equal to maxActiveUpdL1updPic[curTemporalLevelupdPic]
+// The following applies:
+// - The inverse update step is performed on updPic. The motion compensated update process in subclause S.8.8.1 of [1] is invoked with updPic and curTemporalLevelupdPic as inputs and the output is a modified picture updPic, which replaces the input version in the decoded picture buffer.
+// - The variable curTemporalLevelupdPic is incremented by 1,
+// - For each picture refPic in the update picture lists updPicListX (with X being 0 or 1) of updPic, the following applies:
+//   - If (prdPic is equal to NULL or prdPic is not equal to refPic)
+//     - The "check for inverse prediction process" in subclause S.8.8.3 is invoked with refPic and updPic as inputs.
+// - The "check for inverse update process" in subclause S.8.8.4 is invoked with updPic and NULL as inputs.
+{
+  ControlData&  rcUpdPicControlData   = m_pacControlData[ iUpdPicIdInGOP ];
+  SliceHeader*  pcUpdPicSliceHeader   = rcUpdPicControlData.getSliceHeader();
+  UInt uiUpdateLevel = rcUpdPicControlData.getCurTemporalLevel();
+
+  if ( uiUpdateLevel >= m_uiDecompositionStages )
+  {
+    rcUpdPicControlData.setBaseRep(true);
+    return Err::m_nOK;
+  }
+
+  Int iPicGap = 1 << ( m_uiDecompositionStages - uiUpdateLevel - 1 );
+  UInt uiList0Size = pcUpdPicSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_0 );
+  UInt uiList1Size = pcUpdPicSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_1 );
+
+// If all of the following conditions are true for picture updPic,
+// - updPic is not marked as "residual picture"
+// - updPic is not marked as "base representation"
+// - curTemporalLevelupdPic is less than decomposition_stages
+// - curActiveUpdL0updPic[curTemporalLevelupdPic] is equal to maxActiveUpdL0updPic[curTemporalLevelupdPic]
+// - curActiveUpdL1updPic[curTemporalLevelupdPic] is equal to maxActiveUpdL1updPic[curTemporalLevelupdPic]
+  if ( m_papcFrame[ iUpdPicIdInGOP ]->getBandType() == LPS &&
+       rcUpdPicControlData.isBaseRep() == false &&
+       uiUpdateLevel < m_uiDecompositionStages &&
+       rcUpdPicControlData.getCurActiveUpdL0(uiUpdateLevel) == uiList0Size &&
+       rcUpdPicControlData.getCurActiveUpdL1(uiUpdateLevel) == uiList1Size )
+  {
+// The following applies:
+// - The inverse update step is performed on updPic. The motion compensated update process in subclause S.8.8.1 of [1] is invoked with updPic and curTemporalLevelupdPic as inputs and the output is a modified picture updPic, which replaces the input version in the decoded picture buffer.
+// - The variable curTemporalLevelupdPic is incremented by 1,
+    xInverseUpdate( iUpdPicIdInGOP );
+    rcUpdPicControlData.incCurTemporalLevel();
+
+// - For each picture refPic in the update picture lists updPicListX (with X being 0 or 1) of updPic, the following applies:
+//   - If (prdPic is equal to NULL or prdPic is not equal to refPic)
+//     - The "check for inverse prediction process" in subclause S.8.8.3 is invoked with refPic and updPic as inputs.
+    //===== list 0 =====
+    Int iRefPicId;
+    for( iRefPicId = iUpdPicIdInGOP - iPicGap; iRefPicId >= 0 && uiList0Size; iRefPicId -= iPicGap, --uiList0Size )
+    {
+      if ( iPrdPicIdInGOP == -1 || iPrdPicIdInGOP != iRefPicId )
+      {
+        xCheckForInversePrediction( iRefPicId, iUpdPicIdInGOP );
+      }
+    }
+
+    //===== list 1 =====
+    for( iRefPicId = iUpdPicIdInGOP + iPicGap; iRefPicId <= m_uiGOPSize && uiList1Size; iRefPicId += iPicGap, --uiList1Size )
+    {
+      if ( iPrdPicIdInGOP == -1 || iPrdPicIdInGOP != iRefPicId )
+      {
+        xCheckForInversePrediction( iRefPicId, iUpdPicIdInGOP );
+      }
+    }
+
+    if ( rcUpdPicControlData.getCurTemporalLevel() == m_uiDecompositionStages )
+      rcUpdPicControlData.setBaseRep(true);
+    else
+// - The "check for inverse update process" in subclause S.8.8.4 is invoked with updPic and NULL as inputs.
+      xCheckForInverseUpdate( iUpdPicIdInGOP, -1 );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+MCTFDecoder::xInversePrediction( UInt uiFrameIdInGOP )
+{
+  //===== PREDICTION =====
+  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
+  IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+  IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
+  UInt          uiBaseLevel     = m_uiDecompositionStages - rcControlData.getCurTemporalLevel() - 1;
+  UInt          uiFramePrd      = uiFrameIdInGOP >> uiBaseLevel;
+
+  printf("xInversePrediction(FR%d, TL%d)\n", uiFrameIdInGOP, rcControlData.getCurTemporalLevel());
+
+  //===== get reference frame lists =====
+  RefFrameList  acRefFrameList[2];
+  RNOK( xGetPredictionLists         ( acRefFrameList[0], acRefFrameList[1], uiBaseLevel, uiFramePrd ) );
+
+  //===== prediction =====
+  RNOK( xMotionCompensation         ( pcMCFrame, &acRefFrameList[0], &acRefFrameList[1],
+                                      rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
+
+
+  RNOK( pcFrame ->inversePrediction ( pcMCFrame, pcFrame ) );
+  //pcFrame       ->clip              ();
+  pcFrame       ->setBandType       ( LPS );
+
+  //===== de-blocking =====
+  RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
+                                       pcFrame,
+                                       rcControlData.getMbDataCtrl (),
+                                       rcControlData.getMbDataCtrl (),
+                                       m_uiFrameWidthInMb,
+                                       &acRefFrameList[0],
+                                       &acRefFrameList[1] ) );
+
+  //===== clear half-pel buffers and buffer extension status =====
+  // RNOK( xClearBufferExtensions() );
+  RNOK( pcFrame->uninitHalfPel() );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+MCTFDecoder::xInverseUpdate( UInt uiFrameIdInGOP )
+{
+  //===== UPDATE =====
+  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
+  SliceHeader*  pcSliceHeader   = rcControlData     .getSliceHeader ();
+  MbDataCtrl*   pcMbDataCtrl    = m_cControlDataUpd .getMbDataCtrl  ();
+  m_cControlDataUpd.setSliceHeader( pcSliceHeader );
+  IntFrame*     pcMCFrame0      = m_apcFrameTemp  [0];
+  IntFrame*     pcMCFrame1      = m_apcFrameTemp  [1];
+  IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+  UInt          uiBaseLevel     = m_uiDecompositionStages - rcControlData.getCurTemporalLevel() - 1;
+  UInt          uiFrameUpd      = uiFrameIdInGOP >> uiBaseLevel;
+
+  printf("xInverseUpdate    (FR%d, TL%d)\n", uiFrameIdInGOP, rcControlData.getCurTemporalLevel());
+
+  //===== get reference lists =====
+  RefFrameList  acRefFrameList[2];
+  CtrlDataList  acCtrlDataList[2];
+  RNOK( xGetUpdateLists       ( acRefFrameList[0], acRefFrameList[1],
+                                acCtrlDataList[0], acCtrlDataList[1], uiBaseLevel, uiFrameUpd ) );
+
+  //===== list 0 motion compensation =====
+  RNOK( pcMbDataCtrl->reset() );
+  RNOK( pcMbDataCtrl->clear() );
+  RNOK( pcMbDataCtrl->deriveUpdateMotionFieldAdaptive ( *pcSliceHeader,
+                                                        &acCtrlDataList[0],
+                                                        m_cConnectionArray,
+                                                        m_pusUpdateWeights,
+                                                        true, LIST_0 ) );
+  m_pcQuarterPelFilter->setClipMode                   ( false );
+  RNOK( xMotionCompensation                           ( pcMCFrame0,
+                                                        &acRefFrameList[0],
+                                                        &acRefFrameList[1],
+                                                        pcMbDataCtrl,
+                                                        *pcSliceHeader ) );
+  m_pcQuarterPelFilter->setClipMode                   ( true );
+  RNOK( pcMCFrame0->adaptiveWeighting                 ( m_pusUpdateWeights ) );
+
+  //===== list 1 motion compensation =====
+  RNOK( pcMbDataCtrl->reset() );
+  RNOK( pcMbDataCtrl->clear() );
+  RNOK( pcMbDataCtrl->deriveUpdateMotionFieldAdaptive ( *pcSliceHeader,
+                                                        &acCtrlDataList[1],
+                                                        m_cConnectionArray,
+                                                        m_pusUpdateWeights,
+                                                        false, LIST_1 ) );
+  m_pcQuarterPelFilter->setClipMode                   ( false );
+  RNOK( xMotionCompensation                           ( pcMCFrame1,
+                                                        &acRefFrameList[0],
+                                                        &acRefFrameList[1],
+                                                        pcMbDataCtrl,
+                                                        *pcSliceHeader ) );
+  m_pcQuarterPelFilter->setClipMode                   ( true );
+  RNOK( pcMCFrame1->adaptiveWeighting                 ( m_pusUpdateWeights ) );
+
+  //===== inverse update =====
+  RNOK( pcFrame->inverseUpdate                        ( pcMCFrame0, pcMCFrame1, pcFrame ) );
+
+
+  //----- clear slice header reference -----
+  m_cControlDataUpd.setSliceHeader( NULL );
+
+  //===== clear half-pel buffers and buffer extension status =====
+  // RNOK( xClearBufferExtensions() );
+  RNOK( pcFrame->uninitHalfPel() );
+
+  return Err::m_nOK;
+}
 
 ErrVal
 MCTFDecoder::xDumpFrames( Char* pFilename, UInt uiStage )
@@ -1556,58 +1990,6 @@ MCTFDecoder::xReconstruct( PicBufferList&  rcPicBufferOutputList,
   m_eNextNalType  = ( m_eNextNalType == ALL ? LOW_PASS : m_eNextNalType );
 
   ROTRS( m_bReconstructed, Err::m_nOK );
-
-
-  //===== loopfilter for low-pass frames / set anchor frame =====
-  {
-    UInt          uiFrameIdInGOP  = m_uiGOPSize;
-    IntFrame*     pcFrame         = m_papcFrame     [ uiFrameIdInGOP ];
-    ControlData&  rcControlData   = m_pacControlData[ uiFrameIdInGOP ];
-    SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
-    MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
-    RefFrameList& rcRefFrameList0 = rcControlData.getDPCMRefFrameList( 0 );
-    RefFrameList& rcRefFrameList1 = rcControlData.getDPCMRefFrameList( 1 );
-
-    if( pcSliceHeader && pcSliceHeader->getTemporalLevel() == 0 )
-    {
-      RNOK( m_pcLoopFilter->process( *pcSliceHeader,
-                                     pcFrame,
-                                     ( pcSliceHeader->isIntra() ? NULL : pcMbDataCtrl ),
-                                     pcMbDataCtrl,
-                                     m_uiFrameWidthInMb,
-                                     &rcRefFrameList0,
-                                     &rcRefFrameList1 ) );
-
-      RNOK( m_pcAnchorFrame->copyAll ( pcFrame ) );
-      m_pcAnchorFrame->setValid   ();
-    }
-    else
-    { 
-      m_pcAnchorFrame->setUnvalid ();
-    }
-  }
-
-
-  //===== reconstruction =====
-  {
-    printf("\nRECONSTRUCTION:\n");
-    UInt   uiCurrStage = m_uiDecompositionStages;
-    while( uiCurrStage-- > 0 )
-    {
-      RNOK( xCompositionStage( uiCurrStage ) );
-    }
-    printf("\n");
-  }
-#if DEBUG_OUTPUT
-  //===== just debug output for first frame =====
-  if( ! m_uiDecompositionStages )
-  {
-    for( UInt uiBaseLevel = 0; uiBaseLevel <= MAX_DSTAGES; uiBaseLevel++ )
-    {
-      RNOK( xDumpFrames( "..//H264AVCEncoderLibTest//dec_rec", uiBaseLevel ) );
-    }
-  }
-#endif
 
 
   //===== copy to output buffer list =====

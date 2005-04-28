@@ -172,7 +172,7 @@ public:
                                   PicBufferList&              rcPicBufferUnusedList,
                                   PicBufferList&              rcPicBufferReleaseList,
                                   Int&                        riMaxPoc );
-  ErrVal          initSlice     ( SliceHeader* pcSliceHeader );
+  ErrVal          initSlice     ( SliceHeader* pcSliceHeader, UInt uiLastLayer );
 
 
 
@@ -217,6 +217,14 @@ protected:
   ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
                                                 IntFrame*                     pcFrame );
   ErrVal      xInitBaseLayerData              ( ControlData&                  rcControlData );
+  //===== check for inverse MCTF =====
+  ErrVal      xInvokeMCTF                     ( UInt                          uiFrameIdInGOP );
+  ErrVal      xCheckForInversePrediction      (  Int                          iPrdPicIdInGOP,
+                                                 Int                          iUpdPicIdInGOP );
+  ErrVal      xCheckForInverseUpdate          (  Int                          iUpdPicIdInGOP,
+                                                 Int                          iPrdPicIdInGOP );
+  ErrVal      xInversePrediction              ( UInt                          uiFrameIdInGOP );
+  ErrVal      xInverseUpdate                  ( UInt                          uiFrameIdInGOP );
   
   //===== decode pictures / subbands =====
   ErrVal      xDecodeLowPassSignal            ( SliceHeader*&                 rpcSliceHeader );
@@ -301,6 +309,7 @@ protected:
   ControlData         m_cControlDataUpd;
   MbDataCtrl*         m_pcBaseLayerCtrl;
 
+  SliceHeader*        m_pcCurrSliceHeader;
   
   ConnectionArray     m_cConnectionArray;
   UShort*             m_pusUpdateWeights;

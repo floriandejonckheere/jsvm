@@ -864,7 +864,16 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
 {
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
-    RNOK( m_apcMCTFDecoder[uiLayer]->initSlice( pcSliceHeader ) );
+    UInt  uiLastLayer;
+#if UNRESTRICTED_INTER_LAYER_PREDICTION
+    uiLastLayer = uiLayer;
+#else
+    if( m_pcLastSPS && m_pcLastSPS == m_pcRecSPS )
+      uiLastLayer = m_pcRecSPS->getLayerId();
+    else
+      uiLastLayer = MAX_LAYERS;
+#endif
+    RNOK( m_apcMCTFDecoder[uiLayer]->initSlice( pcSliceHeader, uiLastLayer ) );
   }
   ROFRS( m_bActive, Err::m_nOK );
 

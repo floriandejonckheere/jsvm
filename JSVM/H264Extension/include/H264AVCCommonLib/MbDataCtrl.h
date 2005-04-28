@@ -230,6 +230,13 @@ public:
   ErrVal        setSliceHeader      ( SliceHeader* pcSliceHeader )
   {
     m_pcSliceHeader = pcSliceHeader;
+    if ( pcSliceHeader != NULL )
+    {
+      m_bBaseRep = false;
+      m_uiCurTemporalLevel = pcSliceHeader->getTemporalLevel();
+      if ( m_uiCurTemporalLevel > 0 )
+        --m_uiCurTemporalLevel;
+    }
     return Err::m_nOK;
   }
 
@@ -261,6 +268,21 @@ public:
   Void          setBaseLayerResolution( Bool bHalfRes ) { m_bHalfResolutionBaseLayer = bHalfRes; }
   Bool          isHalfResolutionBaseLayer() { return m_bHalfResolutionBaseLayer; }
 
+  Bool          isBaseRep         () { return m_bBaseRep; }
+  Void          setBaseRep        ( Bool bBaseRep ) { m_bBaseRep = bBaseRep; }
+
+  UInt          getCurTemporalLevel  () { return m_uiCurTemporalLevel; }
+  Void          incCurTemporalLevel  () { ++m_uiCurTemporalLevel; }
+
+  UInt          getCurActivePrdL0    () { return m_uiCurActivePrdL0; }
+  UInt          getCurActivePrdL1    () { return m_uiCurActivePrdL1; }
+  Void          incCurActivePrdL0    () { ++m_uiCurActivePrdL0; }
+  Void          incCurActivePrdL1    () { ++m_uiCurActivePrdL1; }
+
+  UInt          getCurActiveUpdL0    ( UInt uiTemporalLevel ) { return m_uiCurActiveUpdL0[uiTemporalLevel]; }
+  UInt          getCurActiveUpdL1    ( UInt uiTemporalLevel ) { return m_uiCurActiveUpdL1[uiTemporalLevel]; }
+  Void          incCurActiveUpdL0    ( UInt uiTemporalLevel ) { ++m_uiCurActiveUpdL0[uiTemporalLevel]; }
+  Void          incCurActiveUpdL1    ( UInt uiTemporalLevel ) { ++m_uiCurActiveUpdL1[uiTemporalLevel]; }
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
   SliceHeader*  m_pcSliceHeader;
@@ -279,6 +301,13 @@ private:
   UInt          m_uiBaseLayerId;
   UInt          m_uiBaseLayerIdMotion;
   Bool          m_bHalfResolutionBaseLayer;
+
+  Bool			m_bBaseRep;
+  UInt			m_uiCurTemporalLevel;
+  UInt			m_uiCurActivePrdL0;
+  UInt			m_uiCurActivePrdL1;
+  UInt			m_uiCurActiveUpdL0[MAX_DSTAGES];
+  UInt			m_uiCurActiveUpdL1[MAX_DSTAGES];
 };
 
 

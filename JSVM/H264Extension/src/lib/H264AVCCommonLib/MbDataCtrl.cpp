@@ -769,6 +769,15 @@ ControlData::ControlData()
 , m_uiUseBLMotion     ( 0   )
 , m_dScalingFactor    ( 1.0 )
 {
+  m_bBaseRep = false;
+  m_uiCurTemporalLevel = 0;
+  m_uiCurActivePrdL0 = 0;
+  m_uiCurActivePrdL1 = 0;
+  for ( UInt uiIndex = 0; uiIndex < MAX_DSTAGES; uiIndex++ )
+  {
+    m_uiCurActiveUpdL0[uiIndex] = 0;
+    m_uiCurActiveUpdL1[uiIndex] = 0;
+  }
 }
 
 ControlData::~ControlData()
@@ -783,6 +792,15 @@ ControlData::clear()
   m_pcBaseLayerCtrl     = 0;
   m_uiUseBLMotion       = 0;
   m_dScalingFactor      = 1.0;
+  m_bBaseRep = false;
+  m_uiCurTemporalLevel = 0;
+  m_uiCurActivePrdL0 = 0;
+  m_uiCurActivePrdL1 = 0;
+  for ( UInt uiIndex = 0; uiIndex < MAX_DSTAGES; uiIndex++ )
+  {
+    m_uiCurActiveUpdL0[uiIndex] = 0;
+    m_uiCurActiveUpdL1[uiIndex] = 0;
+  }
 }
 
 ErrVal
