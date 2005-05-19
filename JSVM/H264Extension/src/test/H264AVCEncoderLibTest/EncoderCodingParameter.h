@@ -262,6 +262,13 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::setTotalFrames( uiFrms );
       continue;
     }
+    if( equals( pcCom, "-lcupd", 6 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt uiLCUpd = atoi( argv[n] );
+      CodingParameter::setLowComplxUpdFlag( uiLCUpd );
+      continue;
+    }
 
     if( equals( pcCom, "-pf", 3) )
     {
@@ -300,6 +307,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -lqp    (Layer) (ResidualAndMotionQP)\n");
   printf("  -ilpred (Layer) (InterLayerPredictionMode)\n");
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
+  printf("  -lcupd  Update method selection <0, original update, 1, low-complexity (default)>\n");
   printf("  -h      Print Option List \n");
   printf("\n");
 }
@@ -458,6 +466,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   RNOK( xReadLine( f, "%lf", &rcLayer.m_adQpModeDecision[5] ) );
   RNOK( xReadLine( f, "", NULL ) );// skip line
   RNOK( xReadLine( f, "%d",  &rcLayer.m_uiInterLayerPredictionMode ) );
+  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiBaseQualityLevel ) );
   RNOK( xReadLine( f, "", NULL ) );// skip line
   RNOK( xReadLine( f, "%d",  &rcLayer.m_uiMotionInfoMode ) );
   RNOK( xReadLine( f, "%s",  acTemp ) );

@@ -147,6 +147,41 @@ ErrVal YuvBufferCtrl::initMb( UInt uiMbY, UInt uiMbX )
 }
 
 
+ErrVal YuvBufferCtrl::initSlice( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMarginSize, UInt uiXMarginSize, UInt uiResolution )
+{
+  ROT( 0 ==  uiYFrameSize );
+  ROT( 0 != (uiYFrameSize&0xf) );
+  ROT( 0 ==  uiXFrameSize );
+  ROT( 0 != (uiXFrameSize&0xf) );
+  ROT( 2 < uiResolution );
+  ROT( 1 & uiXMarginSize );
+
+
+  uiYFrameSize  <<= uiResolution;
+  uiXFrameSize  <<= uiResolution;
+  uiYMarginSize <<= uiResolution;
+  uiXMarginSize <<= uiResolution;
+
+  m_uiXMargin = uiXMarginSize;
+  m_uiYMargin = uiYMarginSize/2;
+
+  m_cBufferParam.m_iHeight     = uiYFrameSize;
+  m_cBufferParam.m_iStride     = uiXFrameSize   + 2*uiXMarginSize;
+  m_cBufferParam.m_iWidth      = uiXFrameSize;
+  m_cBufferParam.m_iResolution = uiResolution;
+
+  m_iResolution   = uiResolution;
+  m_uiChromaSize  = ((uiYFrameSize >> 1) + uiYMarginSize)
+                  * ((uiXFrameSize >> 1) + uiXMarginSize);
+
+  m_uiLumBaseOffset = (m_cBufferParam.m_iStride) * uiYMarginSize + uiXMarginSize;
+  m_uiCbBaseOffset  = (m_cBufferParam.m_iStride/2) * uiYMarginSize/2 + uiXMarginSize/2;
+  m_uiCbBaseOffset += 4*m_uiChromaSize;
+  m_bInitDone = true;
+
+  return Err::m_nOK;
+}
+
 ErrVal YuvBufferCtrl::initSPS( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMarginSize, UInt uiXMarginSize, UInt uiResolution )
 {
   ROT( 0 ==  uiYFrameSize );

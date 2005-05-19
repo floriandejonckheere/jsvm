@@ -145,6 +145,8 @@ public:
                       UInt&             uiMbX,
                       UInt&             uiMbY,
                       UInt&             uiSize );
+  ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
+                                      Bool&             bFinishChecking );
 
 protected:
   ErrVal xCreateDecoder();
@@ -189,6 +191,10 @@ struct PacketDescription
   UInt  Level;
   UInt  FGSLayer;
   Bool  ApplyToNext;
+  UInt  NalUnitType; 
+  UInt  SPSid;
+  UInt  PPSid;
+  UInt  SPSidRefByPPS[256];
 };
 
 

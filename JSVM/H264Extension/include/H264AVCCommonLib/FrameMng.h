@@ -229,6 +229,7 @@ public:
   IntFrame*   getPredictionIntFrame()  { return m_pcPredictionIntFrame; }
 
 
+  ErrVal initSlice( SliceHeader *rcSH );
   ErrVal initSPS( const SequenceParameterSet& rcSPS );
 
   ErrVal initFrame( SliceHeader& rcSH, PicBuffer* pcPicBuffer );

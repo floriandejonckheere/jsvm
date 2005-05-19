@@ -494,6 +494,8 @@ public:
   SliceType                         getSliceType                  ()  const { return m_eSliceType; }
   UInt                              getPicParameterSetId          ()  const { return m_uiPicParameterSetId; }
   UInt                              getFrameNum                   ()  const { return m_uiFrameNum; }
+  UInt                              getNumMbsInSlice              ()  const { return m_uiNumMbsInSlice; }
+  Bool                              getFgsComponentSep            ()  const { return m_bFgsComponentSep; }
   UInt                              getIdrPicId                   ()  const { return m_uiIdrPicId; }
   UInt                              getPicOrderCntLsb             ()  const { return m_uiPicOrderCntLsb; }
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
@@ -502,6 +504,7 @@ public:
   UInt                              getDecompositionStages        ()  const { return m_uiDecompositionStages; }
   UInt                              getFrameIdInsideGOP           ()  const { return m_uiFrameIdInsideGOP; }
   UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
+  UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
   Bool                              getNumRefIdxActiveOverrideFlag()  const { return m_bNumRefIdxActiveOverrideFlag; }
   UInt                              getNumRefIdxActive ( ListIdx e )  const { return m_auiNumRefIdxActive[e]; }
@@ -529,6 +532,8 @@ public:
   Void  setSliceType                  ( SliceType   e  )  { m_eSliceType                        = e;  }
   Void  setPicParameterSetId          ( UInt        ui )  { m_uiPicParameterSetId               = ui; }
   Void  setFrameNum                   ( UInt        ui )  { m_uiFrameNum                        = ui; }
+  Void  setNumMbsInSlice              ( UInt        ui )  { m_uiNumMbsInSlice                   = ui; }
+  Void  setFgsComponentSep            ( Bool        b  )  { m_bFgsComponentSep                  = b;  }
   Void  setIdrPicId                   ( UInt        ui )  { m_uiIdrPicId                        = ui; }
   Void  setPicOrderCntLsb             ( UInt        ui )  { m_uiPicOrderCntLsb                  = ui; }
   Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
@@ -537,6 +542,7 @@ public:
   Void  setDecompositionStages        ( UInt        ui )  { m_uiDecompositionStages             = ui; }
   Void  setFrameIdInsideGOP           ( UInt        ui )  { m_uiFrameIdInsideGOP                = ui; }
   Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; }
+  Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
   Void  setNumRefIdxActiveOverrideFlag( Bool        b  )  { m_bNumRefIdxActiveOverrideFlag      = b;  }
   Void  setNumRefIdxActive            ( ListIdx     e,
@@ -572,6 +578,8 @@ protected:
   SliceType                   m_eSliceType;
   UInt                        m_uiPicParameterSetId;
   UInt                        m_uiFrameNum;
+  UInt                        m_uiNumMbsInSlice;
+  Bool                        m_bFgsComponentSep;
   UInt                        m_uiIdrPicId;
   UInt                        m_uiPicOrderCntLsb;
   Bool                        m_bDirectSpatialMvPredFlag;
@@ -580,6 +588,7 @@ protected:
   UInt                        m_uiDecompositionStages;
   UInt                        m_uiFrameIdInsideGOP;
   UInt                        m_uiBaseLayerId;
+  UInt                        m_uiBaseQualityLevel;
   Bool                        m_bAdaptivePredictionFlag;
   Bool                        m_bNumRefIdxActiveOverrideFlag;
   UInt                        m_auiNumRefIdxActive[2];

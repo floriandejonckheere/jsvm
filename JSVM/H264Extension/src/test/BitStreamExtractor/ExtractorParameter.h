@@ -115,6 +115,7 @@ public:
   Int                   getResult           ()            const { return m_iResult;         }
   Bool                  getAnalysisOnly     ()            const { return m_bAnalysisOnly;   }
   UInt                  getLayer            ()            const { return m_uiLayer;         }
+  void                  setLayer            (UInt layer)  { m_uiLayer = layer;        }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }

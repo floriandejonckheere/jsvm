@@ -160,6 +160,20 @@ ErrVal MbDecoder::uninit()
 
 
 
+Void MbDecoder::setMotCompType(MCType type)
+{
+  m_pcMotionCompensation->setMotCompType(type);
+}
+
+MCType  MbDecoder::getMotCompType()
+{
+  return m_pcMotionCompensation->getMotCompType();
+}
+
+Void MbDecoder::setUpdateWeightsBuf(UShort* updateWeightsBuf)
+{
+  m_pcMotionCompensation->setUpdateWeightsBuf(updateWeightsBuf);
+}
 
 
 ErrVal MbDecoder::decodeResidual( MbDataAccess& rcMbDataAccess,

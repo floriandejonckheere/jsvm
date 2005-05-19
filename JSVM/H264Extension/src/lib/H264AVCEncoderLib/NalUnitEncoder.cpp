@@ -206,9 +206,7 @@ NalUnitEncoder::closeNalUnit( UInt& ruiBits )
   RNOK( m_pcBitWriteBuffer->flushBuffer() );
 
   //===== convert to payload and add header =====
-  Bool  bDDIPresent   = ( m_eNalUnitType == NAL_UNIT_SPS_SCALABLE         ||
-                          m_eNalUnitType == NAL_UNIT_PPS_SCALABLE         ||
-                          m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+  Bool  bDDIPresent   = ( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
                           m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE );
   UInt  uiHeaderBytes = ( bDDIPresent ? 2 : 1 );
   UInt  uiBits        = m_pcBitWriteBuffer->getNumberOfWrittenBits();

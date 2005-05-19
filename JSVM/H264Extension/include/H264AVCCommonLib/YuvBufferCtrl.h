@@ -131,6 +131,7 @@ public:
   const YuvBufferParameter& getBufferParameter() const { return m_cBufferParam; }
   ErrVal initMb( UInt uiMbY, UInt uiMbX );
   ErrVal initMb() { return initMb( 0, 0 ); }
+  ErrVal initSlice( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMarginSize = 0, UInt uiXMarginSize = 0, UInt uiResolution = 0 );
   ErrVal initSPS( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMarginSize = 0, UInt uiXMarginSize = 0, UInt uiResolution = 0 );
   ErrVal uninit();
 

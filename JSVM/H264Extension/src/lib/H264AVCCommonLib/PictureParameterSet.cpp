@@ -145,11 +145,6 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NALU HEADER: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                        "NALU HEADER: nal_unit_type" ) );
-  if( m_eNalUnitType == NAL_UNIT_PPS_SCALABLE )
-  {
-    UChar ucDDI = ( m_uiLayerId << 5 );
-    RNOK( pcWriteIf->writeCode( ucDDI, 8,                                 "NALU HEADER: decodability_dependency_information" ) );
-  }
 
   //===== NAL unit payload =====
   RNOK( pcWriteIf->writeUvlc( getPicParameterSetId(),                     "PPS: pic_parameter_set_id" ) );
@@ -179,12 +174,10 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
 ErrVal
 PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
-                           NalUnitType          eNalUnitType,
-                           UInt                 uiLayerId )
+                           NalUnitType          eNalUnitType )
 {
   //===== NAL unit header =====
   setNalUnitType    ( eNalUnitType );
-  setLayerId        ( uiLayerId    );
 
 
   Bool  bTmp;

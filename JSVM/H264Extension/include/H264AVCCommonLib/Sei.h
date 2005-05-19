@@ -215,7 +215,7 @@ public:
     UInt  getAVCTempResStages         ()                const { return m_uiAVCTempResStages; }
     UInt  getSpatialResolutionFactor  ( UInt uiLayer )  const { return m_uiSpatialResolutionFactor  [uiLayer]; }
     UInt  getTemporalResolutionFactor ( UInt uiLayer )  const { return m_uiTemporalResolutionFactor [uiLayer]; }
-  
+
     Void  setMaxHorFrameDimInMB       ( UInt ui )                { m_uiMaxHorFrameDimInMB = ui; }
     Void  setMaxVerFrameDimInMB       ( UInt ui )                { m_uiMaxVerFrameDimInMB = ui; }
     Void  setFrameRateUnitNom         ( UInt ui )                { m_uiFrameRateUnitNom = ui; }

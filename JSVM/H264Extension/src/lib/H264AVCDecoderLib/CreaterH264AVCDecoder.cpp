@@ -184,6 +184,13 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 }
 
 
+ErrVal
+CreaterH264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
+                                                  Bool&             bFinishChecking )
+{
+  return m_pcH264AVCDecoder->checkSliceLayerDependency( pcBinDataAccessor, bFinishChecking );
+}
+
 
 ErrVal CreaterH264AVCDecoder::create( CreaterH264AVCDecoder*& rpcCreaterH264AVCDecoder )
 {
@@ -440,15 +447,13 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   Bool        bApplyToNext  = false;
   Bool        bScalable     = ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
                                 eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       );
+  UInt        uiSPSid       = 0;
+  UInt        uiPPSid       = 0;
   Bool        bParameterSet = ( eNalUnitType == NAL_UNIT_SPS                      ||
-                                eNalUnitType == NAL_UNIT_SPS_SCALABLE             ||
-                                eNalUnitType == NAL_UNIT_PPS                      ||
-                                eNalUnitType == NAL_UNIT_PPS_SCALABLE               );
+                                eNalUnitType == NAL_UNIT_PPS                        );
 
 
-  if( eNalUnitType == NAL_UNIT_SPS_SCALABLE             ||
-      eNalUnitType == NAL_UNIT_PPS_SCALABLE             ||
-      eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
+  if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
   {
     ucByte      = (pcBinData->data())[1];
@@ -519,6 +524,58 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     m_pcNalUnitParser->closeNalUnit();
   }
 
+  if( eNalUnitType != NAL_UNIT_SEI )
+  {
+    ULong*  pulData = (ULong*)( pcBinData->data() + 1 );
+    UInt    uiSize  =     8 * ( pcBinData->size() - 1 ) - 1;
+    RNOK( m_pcBitReadBuffer->initPacket( pulData, uiSize ) );
+
+    uiSize = pcBinData->byteSize();
+    BinData cBinData( new UChar[uiSize], uiSize );
+    memcpy( cBinData.data(), pcBinData->data(), uiSize );
+    BinDataAccessor cBinDataAccessor;
+    cBinData.setMemAccessor( cBinDataAccessor );
+    
+    RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor ) );
+  
+    // get the SPSid
+    if(eNalUnitType == NAL_UNIT_SPS )
+    {
+      SequenceParameterSet* pcSPS = NULL;
+      RNOK( SequenceParameterSet::create  ( pcSPS   ) );
+      RNOK( pcSPS->read( m_pcUvlcReader, eNalUnitType ) );
+      uiSPSid = pcSPS->getSeqParameterSetId();
+      pcSPS->destroy();
+    }
+    // get the PPSid and the referenced SPSid
+    else if( eNalUnitType == NAL_UNIT_PPS )
+    {
+      PictureParameterSet* pcPPS = NULL;
+      RNOK( PictureParameterSet::create  ( pcPPS   ) );
+      RNOK( pcPPS->read( m_pcUvlcReader, eNalUnitType ) );
+      uiPPSid = pcPPS->getPicParameterSetId();
+      uiSPSid = pcPPS->getSeqParameterSetId();
+      pcPPS->destroy();
+      rcPacketDescription.SPSidRefByPPS[uiPPSid] = uiSPSid;
+    }
+    // get the PPSid and SPSid referenced by the slice header
+    else if(  eNalUnitType == NAL_UNIT_CODED_SLICE              ||
+              eNalUnitType == NAL_UNIT_CODED_SLICE_IDR          ||
+              eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
+              eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
+    {
+      UInt uiTemp;
+      RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: first_mb_in_slice" ) );
+      RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
+      RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
+      uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
+    }
+    m_pcNalUnitParser->closeNalUnit();
+  }
+
+  rcPacketDescription.NalUnitType   = eNalUnitType;
+  rcPacketDescription.SPSid         = uiSPSid;
+  rcPacketDescription.PPSid         = uiPPSid;
 
   rcPacketDescription.Scalable      = bScalable;
   rcPacketDescription.ParameterSet  = bParameterSet;

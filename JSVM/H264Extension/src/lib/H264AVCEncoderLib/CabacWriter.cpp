@@ -2305,17 +2305,16 @@ CabacWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
 }
 
 
-// == Nokia, m11509
 ErrVal
 CabacWriter::RQencodeCycleSymbol( UInt uiCycle )
 {
-  RNOK( CabaEncoder::writeEPSymbol( uiCycle == 0 ) );
+  // Changed mapping to match syntax (justin.ridge@nokia.com)
+  RNOK( CabaEncoder::writeEPSymbol( uiCycle > 0 ) );
   if ( uiCycle > 0 )
-    RNOK( CabaEncoder::writeEPSymbol( uiCycle == 1 ) );
+    RNOK( CabaEncoder::writeEPSymbol( uiCycle - 1 ) );
   // heiko.schwarz@hhi.fhg.de: return added
   return Err::m_nOK;
 }
-// ==
 
 
 H264AVC_NAMESPACE_END

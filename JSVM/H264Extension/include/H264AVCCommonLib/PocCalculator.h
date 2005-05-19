@@ -101,6 +101,7 @@ public:
   PocCalculator();
 
   static  ErrVal  create  ( PocCalculator*& rpcPocCalculator );
+  ErrVal  copy            ( PocCalculator*& rpcPocCalculator );
   ErrVal  destroy         ();
 
   ErrVal  setPoc          ( SliceHeader& rcSliceHeader, Int iContFrameNumber );

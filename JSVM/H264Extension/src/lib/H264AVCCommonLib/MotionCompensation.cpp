@@ -230,6 +230,8 @@ ErrVal MotionCompensation::init( QuarterPelFilter* pcQuarterPelFilter,
   ROT( NULL == pcQuarterPelFilter );
   ROT( NULL == pcSampleWeighting );
 
+  setMotCompType(PRED_MC);   // default to PRED_MC
+
   m_pcQuarterPelFilter  = pcQuarterPelFilter;
   m_pcSampleWeighting   = pcSampleWeighting;
 
@@ -875,7 +877,14 @@ Void MotionCompensation::xPredLuma( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int
     if( NULL != pcRefBuffer )
     {
       const Mv cMv = rcMc8x8D.m_aacMv[n][0];
-      m_pcQuarterPelFilter->predBlk( apcTarBuffer[n], pcRefBuffer, rcMc8x8D.m_cIdx, cMv, iSizeY, iSizeX );
+      if(getMotCompType() == UPDT_MC)
+      {
+        int index = (m_curMbY*4 + rcMc8x8D.m_cIdx.y())*m_uiMbInFrameX*4 + m_curMbX*4 + rcMc8x8D.m_cIdx.x();
+        m_pcQuarterPelFilter->predBlkAdapt( apcTarBuffer[n], pcRefBuffer, rcMc8x8D.m_cIdx, cMv, iSizeY, iSizeX, 
+          (UShort*)(m_pusUpdateWeights + index));
+      }
+      else
+        m_pcQuarterPelFilter->predBlk( apcTarBuffer[n], pcRefBuffer, rcMc8x8D.m_cIdx, cMv, iSizeY, iSizeX );
     }
   }
   m_pcSampleWeighting->weightLumaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_bBi );
@@ -891,7 +900,14 @@ Void MotionCompensation::xPredLuma( IntYuvMbBuffer* apcTarBuffer[2], Int iSizeX,
     if( NULL != pcRefBuffer )
     {
       const Mv cMv = rcMc8x8D.m_aacMv[n][eSParIdx];
-      m_pcQuarterPelFilter->predBlk( apcTarBuffer[n], pcRefBuffer, cIdx, cMv, iSizeY, iSizeX );
+      if(getMotCompType() == UPDT_MC)
+      {
+        int index = (m_curMbY*4 + cIdx.y())*m_uiMbInFrameX*4 + m_curMbX*4 + cIdx.x();
+        m_pcQuarterPelFilter->predBlkAdapt( apcTarBuffer[n], pcRefBuffer, cIdx, cMv, iSizeY, iSizeX, 
+          (UShort*)(m_pusUpdateWeights + index) );
+      }
+      else
+        m_pcQuarterPelFilter->predBlk( apcTarBuffer[n], pcRefBuffer, cIdx, cMv, iSizeY, iSizeX  );
     }
   }
 }
@@ -1024,7 +1040,21 @@ Void MotionCompensation::xPredChroma( IntYuvMbBuffer* apcTarBuffer[2], Int iSize
 
 
 
+Void MotionCompensation::setMotCompType(MCType type)
+{
+  m_isUpdateComp = type;
+}
 
+MCType  MotionCompensation::getMotCompType()
+{
+  return m_isUpdateComp;
+}
+
+
+Void MotionCompensation::setUpdateWeightsBuf(UShort* updateWeightsBuf)
+{
+  m_pusUpdateWeights = updateWeightsBuf;
+}
 
 
 ErrVal MotionCompensation::calcMvMb( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase )
@@ -1085,6 +1115,11 @@ ErrVal MotionCompensation::compensateSubMb( B8x8Idx         c8x8Idx,
                                             Bool            bCalcMv,
                                             Bool            bFaultTolerant )
 {
+  if(getMotCompType() == UPDT_MC)
+  {
+    m_curMbX = rcMbDataAccess.getMbX();
+    m_curMbY = rcMbDataAccess.getMbY();
+  }
   if( bCalcMv )
   {
     xCalc8x8( c8x8Idx, rcMbDataAccess, NULL, bFaultTolerant );
@@ -1192,6 +1227,11 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
                                          Bool             bFaultTolerant )
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
+  if(getMotCompType() == UPDT_MC)
+  {
+    m_curMbX = rcMbDataAccess.getMbX();
+    m_curMbY = rcMbDataAccess.getMbY();
+  }
 
   switch( eMbMode )
   {

@@ -234,6 +234,27 @@ ErrVal ReadBitstreamFile::create( ReadBitstreamFile*& rpcReadBitstreamFile )
 }
 
 
+ErrVal ReadBitstreamFile::getPosition( Int& iPos )
+{
+  ROFS( m_cFile.is_open());
+
+  iPos = m_cFile.tell(); 
+
+  return Err::m_nOK;
+}
+
+
+ErrVal ReadBitstreamFile::setPosition( Int  iPos )
+{
+  ROFS( m_cFile.is_open());
+
+  // seek the bitstream to the prev start position
+  RNOK( m_cFile.seek( iPos, SEEK_SET ) );
+
+  return Err::m_nOK;
+}
+
+
 ErrVal ReadBitstreamFile::uninit()
 {
   if( m_cFile.is_open() )

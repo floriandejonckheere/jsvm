@@ -236,9 +236,31 @@ ErrVal H264AVCDecoderTest::go()
   for( uiFrame = 0; ( uiFrame <= MSYS_UINT_MAX && ! bEOS); )
   {
     BinData* pcBinData;
+    BinDataAccessor cBinDataAccessor;
+
+    Int  iPos;
+    Bool bFinishChecking;
+
+    RNOK( m_pcReadBitstream->getPosition(iPos) );
+
+    do 
+    {
+      // analyze the dependency information
+      RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+      
+      pcBinData->setMemAccessor( cBinDataAccessor );
+
+      // open the NAL Unit, determine the type and if it's a slice get the frame size
+      bFinishChecking = false;
+      RNOK( m_pcH264AVCDecoder->checkSliceLayerDependency( &cBinDataAccessor, bFinishChecking ) );
+
+      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+    } while( ! bFinishChecking );
+
+    RNOK( m_pcReadBitstream->setPosition(iPos) );
+
     RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
     
-    BinDataAccessor cBinDataAccessor;
     pcBinData->setMemAccessor( cBinDataAccessor );
     // open the NAL Unit, determine the type and if it's a slice get the frame size
     RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize ) );

@@ -251,6 +251,16 @@ Extractor::xAnalyse()
  
     //==== update stream description =====
     RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
+
+    UInt eNalUnitType = cPacketDescription.NalUnitType;
+    if(  eNalUnitType == NAL_UNIT_CODED_SLICE              ||
+         eNalUnitType == NAL_UNIT_CODED_SLICE_IDR          ||
+         eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
+         eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
+    {
+      m_cScalableStreamDescription.m_bSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
+      m_cScalableStreamDescription.m_bPPSRequired[uiLayer][cPacketDescription.PPSid] = true;
+    }
   }
 
   RNOK( m_cScalableStreamDescription.analyse() );
@@ -303,6 +313,7 @@ Extractor::xSetParameters()
     }
   }
   ERROR( uiExtLayer==MSYS_UINT_MAX, "Spatial resolution of extraction/inclusion point not supported" );
+  m_pcExtractorParameter->setLayer(uiExtLayer);
   //--- level ---
   for( uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
   {
@@ -490,7 +501,7 @@ Extractor::xExtractPoints()
     {
       Double  dWeight     = -dSNRLayerDiff;
       uiShrinkSize        = (UInt)ceil( (Double)uiPacketSize * dWeight );
-      if( uiPacketSize - uiShrinkSize > 10 ) // ten bytes should be enough for the slice headers
+      if( uiPacketSize - uiShrinkSize > 12 ) // 12 bytes should be enough for the slice headers
       {
         RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
         pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
@@ -500,6 +511,34 @@ Extractor::xExtractPoints()
         bKeep = bCrop = false;
       }
     }
+
+    UInt eNalUnitType = cPacketDescription.NalUnitType;
+    Bool bRequired = false;
+    if(  eNalUnitType == NAL_UNIT_SPS )
+    {
+      for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
+      {
+        if( m_cScalableStreamDescription.m_bSPSRequired[layer][cPacketDescription.SPSid] )
+        {
+          bRequired = true;
+          break;
+        }
+      }
+      bKeep = bRequired;
+    }
+    else if( eNalUnitType == NAL_UNIT_PPS )
+    {
+      for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
+      {
+        if( m_cScalableStreamDescription.m_bPPSRequired[layer][cPacketDescription.PPSid] )
+        {
+          bRequired = true;
+          break;
+        }
+      }
+      bKeep = bRequired;
+    }
+
     uiNumInput++;
     if( bKeep ) uiNumKept   ++;
     if( bCrop ) uiNumCropped++;
@@ -593,7 +632,7 @@ Extractor::xExtractLayerLevel()
       {
         Double  dWeight     = -dSNRLayerDiff;
         uiShrinkSize        = (UInt)ceil( (Double)uiPacketSize * dWeight );
-        if( uiPacketSize - uiShrinkSize > 10 ) // slice header bytes
+        if( uiPacketSize - uiShrinkSize > 12 ) // 12 bytes should be enough for the slice headers
         {
           RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
           pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
@@ -603,6 +642,32 @@ Extractor::xExtractLayerLevel()
           bKeep = bCrop = false;
         }
       }
+    }
+    UInt eNalUnitType = cPacketDescription.NalUnitType;
+    Bool bRequired = false;
+    if(  eNalUnitType == NAL_UNIT_SPS )
+    {
+      for( UInt layer = 0; layer <= uiMaxLayer; layer ++ )
+      {
+        if( m_cScalableStreamDescription.m_bSPSRequired[layer][cPacketDescription.SPSid] )
+        {
+          bRequired = true;
+          break;
+        }
+      }
+      bKeep = bRequired;
+    }
+    else if( eNalUnitType == NAL_UNIT_PPS )
+    {
+      for( UInt layer = 0; layer <= uiMaxLayer; layer ++ )
+      {
+        if( m_cScalableStreamDescription.m_bPPSRequired[layer][cPacketDescription.PPSid] )
+        {
+          bRequired = true;
+          break;
+        }
+      }
+      bKeep = bRequired;
     }
     uiNumInput++;
     if( bKeep )   uiNumKept++;
@@ -666,6 +731,10 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
     m_auiFrameWidth [uiLayer] = m_uiMaxWidth    >> pcScalableSei->getSpatialResolutionFactor  ( uiLayer );
     m_auiFrameHeight[uiLayer] = m_uiMaxHeight   >> pcScalableSei->getSpatialResolutionFactor  ( uiLayer );
     m_auiDecStages  [uiLayer] = m_uiMaxDecStages - pcScalableSei->getTemporalResolutionFactor ( uiLayer );
+    for( UInt uiNum = 0; uiNum < 32; uiNum ++ )
+      m_bSPSRequired[uiLayer][uiNum] = false;
+    for( uiNum = 0; uiNum < 256; uiNum ++ )
+      m_bPPSRequired[uiLayer][uiNum] = false;
   }
 
   m_bInit     = true;

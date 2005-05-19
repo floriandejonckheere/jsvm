@@ -240,6 +240,7 @@ private:
   MbDataCtrl        m_cMbDataCtrlEL;
   MbDataCtrl*       m_pcCurrMbDataCtrl;
   SliceHeader*      m_pcCurrSliceHeader;
+  Bool              m_bFgsComponentSep;
 
 
   enum

@@ -96,6 +96,27 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "ExtractorParameter.h"
 
 
+enum NalUnitType
+{
+  NAL_UNIT_EXTERNAL                 = 0,
+  NAL_UNIT_CODED_SLICE              = 1,
+  NAL_UNIT_CODED_SLICE_DATAPART_A   = 2,
+  NAL_UNIT_CODED_SLICE_DATAPART_B   = 3,
+  NAL_UNIT_CODED_SLICE_DATAPART_C   = 4,
+  NAL_UNIT_CODED_SLICE_IDR          = 5,
+  NAL_UNIT_SEI                      = 6,
+  NAL_UNIT_SPS                      = 7,
+  NAL_UNIT_PPS                      = 8,
+  NAL_UNIT_ACCESS_UNIT_DELIMITER    = 9,
+  NAL_UNIT_END_OF_SEQUENCE          = 10,
+  NAL_UNIT_END_OF_STREAM            = 11,
+  NAL_UNIT_FILLER_DATA              = 12,
+
+  NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
+  NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
+};
+
+
 class ScalableStreamDescription
 {
 public:
@@ -123,6 +144,8 @@ public:
                               UInt uiLevel,
                               UInt uiFGS   )    const { return m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGS]; }
  
+  Bool    m_bSPSRequired[MAX_LAYERS][32];
+  Bool    m_bPPSRequired[MAX_LAYERS][256];
 
 private:
   Bool    m_bInit;

@@ -119,6 +119,9 @@ public:
   ErrVal init( const std::string& rcFileName );
   virtual ErrVal uninit();
 
+  virtual ErrVal getPosition( Int& iPos );
+  virtual ErrVal setPosition( Int  iPos );
+
 protected:
   LargeFile m_cFile;
 };

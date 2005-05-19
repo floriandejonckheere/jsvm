@@ -385,6 +385,30 @@ ErrVal FrameMng::uninit()
 }
 
 
+ErrVal FrameMng::initSlice( SliceHeader *rcSH )
+{
+  m_uiMaxFrameNumCurr = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
+  m_uiMaxFrameNumPrev = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
+  m_uiNumRefFrames    = rcSH->getSPS().getNumRefFrames();
+  m_iMaxEntriesinDPB  = rcSH->getSPS().getMaxDPBSize();
+
+  if( ! m_iMaxEntriesinDPB )
+  {
+    printf("WARNING: Size of Decoded picture buffer is less than 1 frame!");
+  }
+
+  if( m_pcRefinementIntFrame )
+  {
+    RNOK( m_pcRefinementIntFrame->init( false ) );
+  }
+  if( m_pcPredictionIntFrame )
+  {
+    RNOK( m_pcPredictionIntFrame->init( false ) );
+  }
+
+  return Err::m_nOK;
+}
+
 ErrVal FrameMng::initSPS( const SequenceParameterSet& rcSPS )
 {
   m_uiMaxFrameNumCurr = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );

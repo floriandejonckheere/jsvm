@@ -106,6 +106,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_eSliceType                        ( B_SLICE )
 , m_uiPicParameterSetId               ( rcPPS.getPicParameterSetId() )
 , m_uiFrameNum                        ( 0 )
+, m_uiNumMbsInSlice                   ( 0 )
+, m_bFgsComponentSep                  ( 0 )
 , m_uiIdrPicId                        ( 0 )
 , m_uiPicOrderCntLsb                  ( 0 )
 , m_bDirectSpatialMvPredFlag          ( true )
@@ -114,6 +116,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiDecompositionStages             ( 0 )
 , m_uiFrameIdInsideGOP                ( 0 )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
+, m_uiBaseQualityLevel                ( 0 )
 , m_bAdaptivePredictionFlag           ( false )
 , m_bNumRefIdxActiveOverrideFlag      ( false )
 , m_bNoOutputOfPriorPicsFlag          ( true  )
@@ -175,6 +178,11 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK(     pcWriteIf->writeUvlc( m_uiPicParameterSetId,                        "SH: pic_parameter_set_id" ) );
   RNOK(     pcWriteIf->writeCode( m_uiFrameNum,
                                   getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
+  if( m_eSliceType == F_SLICE )
+  {
+    RNOK(   pcWriteIf->writeUvlc( m_uiNumMbsInSlice,                            "SH: num_mbs_in_slice" ) );
+    RNOK(   pcWriteIf->writeFlag( m_bFgsComponentSep,                           "SH: fgs_comp_sep" ) );
+  }
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
     RNOK(   pcWriteIf->writeUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
@@ -199,8 +207,15 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     UInt    uiFrameIdInsideGOP  = max( 1, m_uiFrameIdInsideGOP );
     RNOK(   pcWriteIf->writeUvlc( uiFrameIdInsideGOP,                           "SH: pic_id_inside_gop" ) );
 
-    UInt  uiBaseLayerIdPlus1 = m_uiBaseLayerId + 1;
-    RNOK(   pcWriteIf->writeUvlc( uiBaseLayerIdPlus1,                           "SH: base_layer_id_plus1" ) );
+    UInt  uiBaseLayerIdPlus1;
+    
+    // should be the same for all the slices in the picture
+    if( m_uiBaseLayerId == MSYS_UINT_MAX )
+      uiBaseLayerIdPlus1 = 0;
+    else
+      // one example (m_uiBaseLayerId, m_uiBaseQualityLevel) -> uiBaseLayerIdPlus1 mapping
+      uiBaseLayerIdPlus1 = ( (m_uiBaseLayerId << 2) + m_uiBaseQualityLevel ) + 1;
+    RNOK(   pcWriteIf->writeUvlc( uiBaseLayerIdPlus1,                           "SH: base_id_plus1" ) );
     if( uiBaseLayerIdPlus1 )
     {
       RNOK( pcWriteIf->writeFlag( m_bAdaptivePredictionFlag,                    "SH: adaptive_prediction_flag" ) );
@@ -388,6 +403,11 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
  
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
+  if( m_eSliceType == F_SLICE )
+  {
+    RNOK(   pcReadIf->getUvlc( m_uiNumMbsInSlice,                            "SH: num_mbs_in_slice" ) );
+    RNOK(   pcReadIf->getFlag( m_bFgsComponentSep,                           "SH: fgs_comp_sep" ) );
+  }
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
@@ -410,8 +430,19 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     RNOK(   pcReadIf->getUvlc( m_uiDecompositionStages,                      "SH: decomposition_stages" ) );
     RNOK(   pcReadIf->getUvlc( m_uiFrameIdInsideGOP,                         "SH: pic_id_inside_gop" ) );
 
-    RNOK(   pcReadIf->getUvlc( uiTmp,                                        "SH: base_layer_id_plus1" ) );
+    RNOK(   pcReadIf->getUvlc( uiTmp,                                        "SH: base_id_plus1" ) );
     m_uiBaseLayerId = uiTmp - 1;
+    // should be the same for all the slices in the picture
+    if( m_uiBaseLayerId != MSYS_UINT_MAX )
+    {
+      m_uiBaseQualityLevel = m_uiBaseLayerId & 0x03;
+      m_uiBaseLayerId >>= 2;
+    }
+    else
+    {
+      m_uiBaseQualityLevel = 0;
+    }
+
     if( m_uiBaseLayerId != MSYS_UINT_MAX )
     {
       RNOK( pcReadIf->getFlag( m_bAdaptivePredictionFlag,                    "SH: adaptive_prediction_flag" ) );

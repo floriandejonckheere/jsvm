@@ -142,6 +142,7 @@ public:
   Bool                  getDirect8x8InferenceFlag             ()          const { return m_bDirect8x8InferenceFlag;}
   UInt                  getMbInFrame                          ()          const { return m_uiFrameWidthInMbs * m_uiFrameHeightInMbs;}
   Bool                  getInitState                          ()          const { return m_bInitDone; }
+  Bool                  getLowComplxUpdFlag                   ()          const { return m_bLowComplxUpdFlag; }
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
   Void  setLayerId                            ( UInt        ui )          { m_uiLayerId                             = ui; }
@@ -161,12 +162,11 @@ public:
   Void  setFrameHeightInMbs                   ( UInt        ui )          { m_uiFrameHeightInMbs                    = ui; }
   Void  setDirect8x8InferenceFlag             ( Bool        b  )          { m_bDirect8x8InferenceFlag               = b;  }
   Void  setInitState                          ( Bool        b  )          { m_bInitDone                             = b;  }
-
+  Void  setLowComplxUpdFlag                   ( Bool        b  )          { m_bLowComplxUpdFlag                     = b;  }
 
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
-                NalUnitType           eNalUnitType,
-                UInt                  uiLayerId );
+                NalUnitType           eNalUnitType );
 
 
 protected:
@@ -197,7 +197,7 @@ protected:
   UInt          m_uiFrameWidthInMbs;
   UInt          m_uiFrameHeightInMbs;
   Bool          m_bDirect8x8InferenceFlag;
-
+  Bool          m_bLowComplxUpdFlag;
 
 private:
   static const LevelLimit m_aLevelLimit[52];

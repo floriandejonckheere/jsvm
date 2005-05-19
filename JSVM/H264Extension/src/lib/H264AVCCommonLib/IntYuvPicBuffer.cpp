@@ -1294,7 +1294,7 @@ Void IntYuvPicBuffer::setZero()
 
 
 
-ErrVal IntYuvPicBuffer::adaptiveWeighting( UShort* pusUpdateWeights )
+ErrVal IntYuvPicBuffer::adaptiveWeighting( UShort* pusUpdateWeights, Bool bLowComplxUpdFlag )
 {
   m_rcYuvBufferCtrl.initMb();
 
@@ -1305,22 +1305,25 @@ ErrVal IntYuvPicBuffer::adaptiveWeighting( UShort* pusUpdateWeights )
   UInt  uiDiv     = ( 1 << ( 3 + 4 ) );
   UInt  y, x, yb, xb;
 
-  //===== determine final weights =====
-  for( yb = 0; yb < uiHeight; yb+=4 )
-  for( xb = 0; xb < uiWidth;  xb+=4 )
+  if (!bLowComplxUpdFlag)
   {
-    Int iSSD = 0;
-    for(   y = 0; y < 4; y++ )
+    //===== determine final weights =====
+    for( yb = 0; yb < uiHeight; yb+=4 )
+    for( xb = 0; xb < uiWidth;  xb+=4 )
     {
-      XPel* p = pAnchor + (yb+y) * iStride + xb;
-      for(  x = 0; x < 4; x++ )
-      {
-        iSSD += (Int)p[x]*(Int)p[x];
-      }
+        Int iSSD = 0;
+        for(   y = 0; y < 4; y++ )
+        {
+        XPel* p = pAnchor + (yb+y) * iStride + xb;
+        for(  x = 0; x < 4; x++ )
+        {
+            iSSD += (Int)p[x]*(Int)p[x];
+        }
+        }
+        iSSD                                       = ( iSSD + 128 ) >> 8;
+        UShort usWeight                            = (UShort) max( 0, min( 16, 20 - iSSD ) );
+        pusUpdateWeights[(yb*(uiWidth>>2)+xb)>>2] *= usWeight;
     }
-    iSSD                                       = ( iSSD + 128 ) >> 8;
-    UShort usWeight                            = (UShort) max( 0, min( 16, 20 - iSSD ) );
-    pusUpdateWeights[(yb*(uiWidth>>2)+xb)>>2] *= usWeight;
   }
 
   //===== luminance =====

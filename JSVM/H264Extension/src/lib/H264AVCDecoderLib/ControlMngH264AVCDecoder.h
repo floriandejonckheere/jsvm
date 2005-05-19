@@ -152,6 +152,7 @@ public:
   ErrVal initMbForDecoding    ( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex );
   ErrVal initMbForFiltering   ( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex );
 
+  ErrVal initSlice0           (SliceHeader *rcSH);
   ErrVal initSPS              ( SequenceParameterSet& rcSequenceParameterSet );
   ErrVal initParameterSets    ( const SequenceParameterSet& rcSPS,
                                 const PictureParameterSet&  rcPPSLP,
@@ -199,6 +200,7 @@ protected:
   SampleWeighting*        m_pcSampleWeighting;
   MCTFDecoder*            m_apcMCTFDecoder          [MAX_LAYERS];
   H264AVCDecoder*         m_pcH264AVCDecoder;
+  Bool                    m_uiInitilized            [MAX_LAYERS];
 };
 
 H264AVC_NAMESPACE_END

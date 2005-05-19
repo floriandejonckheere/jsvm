@@ -153,8 +153,16 @@ public:
                                       Int             iPoc );
 
   Void    setReconstructionSPS( const SequenceParameterSet* pcSPS )     { m_pcRecSPS = pcSPS; }
+  Void    setReconstructionLayerId( UInt uiLayerId )     { m_uiRecLayerId = uiLayerId; }
+  Void    setVeryFirstSPS( const SequenceParameterSet* pcSPS )     { m_pcVeryFirstSPS = pcSPS; }
 
+  ErrVal  calculatePoc              ( NalUnitType   eNalUnitType,
+                                      SliceHeader&  rcSliceHeader,
+                                      Int&          slicePoc  );
+  ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
+                                      Bool&             bFinishChecking );
 
+  Void    setQualityLevelForPrediction( UInt ui ) { m_uiQualityLevelForPrediction = ui; }
 
 protected:
 
@@ -205,6 +213,25 @@ protected:
   Bool                          m_bEnhancementLayer;
   Bool                          m_bSpatialScalability;
   Bool                          m_bActive;
+  UInt                          m_uiRecLayerId;
+  UInt                          m_uiLastLayerId;
+  const SequenceParameterSet*   m_pcVeryFirstSPS;
+
+  Bool                          m_bCheckNextSlice;
+  Bool                          m_bDependencyInitialized;
+
+  Int                           m_iLastPocChecked;
+  Int                           m_iFirstSlicePoc;
+
+  Int                           m_iFirstLayerIdx;
+  Int                           m_iLastLayerIdx;
+  Bool                          m_bBaseLayerAvcCompliant;
+
+  Int                           m_auiBaseLayerId[MAX_LAYERS];
+  Int                           m_auiBaseQualityLevel[MAX_LAYERS];
+
+  // should this layer be decoded at all, and up to which FGS layer should be decoded
+  UInt                          m_uiQualityLevelForPrediction;
 };
 
 H264AVC_NAMESPACE_END

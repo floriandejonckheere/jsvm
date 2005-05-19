@@ -296,6 +296,7 @@ protected:
                                           IntFrame*                   pcResidual,
                                           IntFrame*                   pcPredSignal,
                                           IntFrame*                   pcTempFrame,
+                                          IntFrame*                   pcSubband,
                                           UInt&                       ruiBits );
 
 
@@ -371,6 +372,8 @@ protected:
   Bool                          m_bTraceEnable;                       // trace file
   UInt                          m_uiLayerId;                          // layer id for current layer
   UInt                          m_uiBaseLayerId;                      // layer if of base layer
+  UInt                          m_uiBaseQualityLevel;                 // quality level of the base layer
+  UInt                          m_uiQualityLevelForPrediction;        // quality level for prediction
   UInt                          m_uiFrameWidthInMb;                   // frame width in macroblocks
   UInt                          m_uiFrameHeightInMb;                  // frame height in macroblocks
   UInt                          m_uiMbNumber;                         // number of macroblocks in a frame
@@ -415,6 +418,7 @@ protected:
   UInt                          m_uiGOPNumber;                        // number of coded GOP's
   Bool                          m_abIsRef[MAX_DSTAGES];               // state of temporal layer (H.264/AVC base layer)
   UIntList                      m_cLPFrameNumList;                    // list of frame_num for low-pass frames
+  Bool                          m_bLowComplxUpdFlag;
 
   //----- frame memories -----
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories

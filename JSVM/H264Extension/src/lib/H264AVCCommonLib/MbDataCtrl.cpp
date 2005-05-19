@@ -768,7 +768,10 @@ ControlData::ControlData()
 , m_pcBaseLayerCtrl   ( 0   )
 , m_uiUseBLMotion     ( 0   )
 , m_dScalingFactor    ( 1.0 )
+, m_pcFgsMbDataCtrl   ( NULL )
+, m_bIsNormalMbDataCtrl ( true )
 {
+// *LMH: Inverse MCTF
   m_bBaseRep = false;
   m_uiCurTemporalLevel = 0;
   m_uiCurActivePrdL0 = 0;
@@ -792,6 +795,7 @@ ControlData::clear()
   m_pcBaseLayerCtrl     = 0;
   m_uiUseBLMotion       = 0;
   m_dScalingFactor      = 1.0;
+// *LMH: Inverse MCTF
   m_bBaseRep = false;
   m_uiCurTemporalLevel = 0;
   m_uiCurActivePrdL0 = 0;

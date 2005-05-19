@@ -176,6 +176,10 @@ public:
                             Bool            bCalcMv,
                             Bool            bFaultTolerant );
 
+
+  Void   setMotCompType   ( MCType type);
+  MCType getMotCompType   ();
+  Void   setUpdateWeightsBuf( UShort* updateWeightsBuf );
   ErrVal calcMvMb   (                   MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
   ErrVal calcMvSubMb( B8x8Idx c8x8Idx,  MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
@@ -223,6 +227,10 @@ protected:
   Mv   m_cMax;
   UInt m_uiMbInFrameY;
   UInt m_uiMbInFrameX;
+  MCType    m_isUpdateComp;
+  UShort*   m_pusUpdateWeights;      // array for storing update weights
+  int m_curMbX;
+  int m_curMbY;
 };
 
 #if defined( WIN32 )

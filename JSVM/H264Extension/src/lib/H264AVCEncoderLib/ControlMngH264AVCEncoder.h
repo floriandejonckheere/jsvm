@@ -160,6 +160,7 @@ public:
   ErrVal destroy();
 
 
+  ErrVal initSlice0       (SliceHeader *rcSH)                     { return Err::m_nERR; }
   ErrVal initSPS          ( SequenceParameterSet&       rcSPS   ) { return Err::m_nERR; }
   ErrVal initParameterSets( const SequenceParameterSet& rcSPS,
                             const PictureParameterSet&  rcPPSLP,

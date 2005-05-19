@@ -375,7 +375,6 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
     pcScalableSEI->setTemporalResolutionFactor ( uiLayer, auiTemporalResolutionFactors [uiLayer] );
   }
   
-
   //===== write message =====
   UInt              uiBits = 0;
   SEI::MessageList  cSEIMessageList;
@@ -728,7 +727,7 @@ H264AVCEncoder::xInitParameterSets()
 
 
     //===== set sequence parameter set parameters =====
-    pcSPS->setNalUnitType                         ( bH264AVCCompatible ? NAL_UNIT_SPS : NAL_UNIT_SPS_SCALABLE );
+    pcSPS->setNalUnitType                         ( NAL_UNIT_SPS );
     pcSPS->setLayerId                             ( rcLayerParameters.getLayerId() );
     pcSPS->setProfileIdc                          ( bH264AVCCompatible ? MAIN_PROFILE : SCALABLE_PROFILE );
     pcSPS->setConstrainedSet0Flag                 ( false );
@@ -744,10 +743,10 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setFrameWidthInMbs                     ( uiMbX );
     pcSPS->setFrameHeightInMbs                    ( uiMbY );
     pcSPS->setDirect8x8InferenceFlag              ( true  );
-
+    pcSPS->setLowComplxUpdFlag                    ( m_pcCodingParameter->getLowComplxUpdFlag() );
 
     //===== set picture parameter set parameters =====
-    pcPPSHP->setNalUnitType                           ( bH264AVCCompatible ? NAL_UNIT_PPS : NAL_UNIT_PPS_SCALABLE );
+    pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
     pcPPSHP->setLayerId                               ( rcLayerParameters.getLayerId() );
     pcPPSHP->setEntropyCodingModeFlag                 ( true );
     pcPPSHP->setPicOrderPresentFlag                   ( true );

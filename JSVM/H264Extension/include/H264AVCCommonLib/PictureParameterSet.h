@@ -141,8 +141,7 @@ public:
 
   ErrVal write      ( HeaderSymbolWriteIf*  pcWriteIf ) const;
   ErrVal read       ( HeaderSymbolReadIf*   pcReadIf,
-                      NalUnitType           eNalUnitType,
-                      UInt                  uiLayerId );
+                      NalUnitType           eNalUnitType );
 
 protected:
   ErrVal xWriteFrext( HeaderSymbolWriteIf*  pcWriteIf ) const;

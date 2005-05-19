@@ -175,6 +175,11 @@ public:
                                 RefFrameList&   rcRefFrameList1,
                                 Bool            bCalcMv,
                                 Bool            bFaultTolerant );
+
+  Void    setMotCompType      ( MCType type );
+  MCType  getMotCompType      ();
+  Void    setUpdateWeightsBuf ( UShort* updateWeightsBuf );
+
   ErrVal  estimatePrediction  ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,
                                 Bool            bHalfResBaseLayer,

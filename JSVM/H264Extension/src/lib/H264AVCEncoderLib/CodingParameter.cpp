@@ -240,6 +240,12 @@ ErrVal CodingParameter::check()
       ROTREPORT( uiLogFactorWidth == MSYS_UINT_MAX,     "Frame width and height must be a power of 2 from layer to layer" );
       pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
     }
+
+    if( pcLayer->getBaseQualityLevel() > 3 )
+      pcLayer->setBaseQualityLevel(3);
+
+    if( uiLayer == 0 && pcLayer->getBaseQualityLevel() != 0 )
+      pcLayer->setBaseQualityLevel(0);
   }
 
  return Err::m_nOK;

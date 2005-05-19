@@ -140,6 +140,11 @@ public:
                                             TCoeff*         piCoeff,
                                             TCoeff*         piCoeffBase,
                                             const UChar*    pucScale,
+                                            Bool            bFirstIsDc,
+                                            UInt&           ruiAbsSum );
+  ErrVal        requantLumaDcCoeffs       ( TCoeff*         piCoeff,
+                                            TCoeff*         piCoeffBase,
+                                            const UChar*    pucScale,
                                             UInt&           ruiAbsSum );
   ErrVal        requant8x8Block           ( IntYuvMbBuffer& rcResData,
                                             TCoeff*         piCoeff,

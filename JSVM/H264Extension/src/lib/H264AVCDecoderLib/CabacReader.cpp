@@ -2317,11 +2317,11 @@ CabacReader::RQdecodeCycleSymbol( UInt& uiCycle )
 {
   UInt itSymbol;
   RNOK( CabaDecoder::getEpSymbol( itSymbol ) );
-  if (itSymbol == 1)
-    uiCycle = 0;
-  else {
+  // Changed mapping to match syntax in WD (justin.ridge@nokia.com)
+  uiCycle = 1 + itSymbol;
+  if (itSymbol == 1) {
     RNOK( CabaDecoder::getEpSymbol( itSymbol ) );
-    uiCycle = 2 - itSymbol;
+    uiCycle += itSymbol;
   }
   // heiko.schwarz@hhi.fhg.de: return added
   return Err::m_nOK;

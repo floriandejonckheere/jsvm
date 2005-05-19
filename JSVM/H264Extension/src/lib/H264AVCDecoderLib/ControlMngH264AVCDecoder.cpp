@@ -116,6 +116,7 @@ ControlMngH264AVCDecoder::ControlMngH264AVCDecoder():
     m_apcMCTFDecoder          [uiLayer] = NULL;
     m_apcPocCalculator        [uiLayer] = NULL;
     m_apcYuvFullPelBufferCtrl [uiLayer] = NULL;
+    m_uiInitilized            [uiLayer] = false;
   }
 }
 
@@ -318,44 +319,57 @@ ErrVal ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess& rcMbDataAcces
 }
 
 
-
-ErrVal ControlMngH264AVCDecoder::initSPS( SequenceParameterSet& rcSequenceParameterSet )
+ErrVal ControlMngH264AVCDecoder::initSlice0(SliceHeader *rcSH)
 {
-  UInt  uiLayer             = rcSequenceParameterSet.getLayerId           ();
-  m_auiMbXinFrame[uiLayer]  = rcSequenceParameterSet.getFrameWidthInMbs   ();
-  m_auiMbYinFrame[uiLayer]  = rcSequenceParameterSet.getFrameHeightInMbs  ();
+  UInt  uiLayer             = rcSH->getLayerId           ();
+  
+  if(m_uiInitilized[uiLayer]) 
+    return Err::m_nOK;
+  
+  m_auiMbXinFrame[uiLayer]  = rcSH->getSPS().getFrameWidthInMbs   ();
+  m_auiMbYinFrame[uiLayer]  = rcSH->getSPS().getFrameHeightInMbs  ();
 
   UInt uiSizeX = m_auiMbXinFrame  [uiLayer] << 4;
   UInt uiSizeY = m_auiMbYinFrame  [uiLayer] << 4;
 
-  RNOK( m_apcYuvFullPelBufferCtrl [uiLayer]->initSPS( uiSizeY, uiSizeX, YUV_Y_MARGIN, YUV_X_MARGIN ) );
+  RNOK( m_apcYuvFullPelBufferCtrl [uiLayer]->initSlice( uiSizeY, uiSizeX, YUV_Y_MARGIN, YUV_X_MARGIN ) );
 
   if( uiLayer == 0 )
   {
-    m_bLayer0IsAVC  = ( rcSequenceParameterSet.getNalUnitType() == NAL_UNIT_SPS );
+    m_bLayer0IsAVC  = ( rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE || 
+                        rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR);
     
-    RNOK( m_pcFrameMng->initSPS             ( rcSequenceParameterSet ) );
-    m_pcH264AVCDecoder->setReconstructionSPS( m_bLayer0IsAVC ? NULL : &rcSequenceParameterSet );
+    RNOK( m_pcFrameMng->initSlice             ( rcSH ) );
+    m_pcH264AVCDecoder->setReconstructionSPS( m_bLayer0IsAVC ? NULL : &rcSH->getSPS() );
+    m_pcH264AVCDecoder->setReconstructionLayerId( uiLayer );
   }
   else
   {
-    m_pcH264AVCDecoder->setReconstructionSPS( &rcSequenceParameterSet );
+    m_pcH264AVCDecoder->setReconstructionSPS( &rcSH->getSPS() );
+    m_pcH264AVCDecoder->setReconstructionLayerId( uiLayer );
   }
-  
 
-  if( rcSequenceParameterSet.getNalUnitType() == NAL_UNIT_SPS_SCALABLE )
+  if( rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_SCALABLE ||  
+      rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
   {
-    m_apcMCTFDecoder[uiLayer]->initSPS( rcSequenceParameterSet );
+      m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
   }
 
+  m_uiInitilized[uiLayer] = true;
+
+  return Err::m_nOK;
+}
+ErrVal ControlMngH264AVCDecoder::initSPS( SequenceParameterSet& rcSequenceParameterSet )
+{
   return Err::m_nOK;
 }
 
 
 
+
 ErrVal ControlMngH264AVCDecoder::initSlice( SliceHeader& rcSH, ProcessingState eProcessingState )
 {
-  m_uiCurrLayer   = rcSH.getSPS().getLayerId();
+  m_uiCurrLayer   = rcSH.getLayerId();
   m_pcMbDataCtrl  = rcSH.getFrameUnit()->getMbDataCtrl();
 
   RNOK( m_pcMbDataCtrl->initSlice( rcSH, eProcessingState, true, NULL ) );
@@ -390,7 +404,7 @@ ErrVal ControlMngH264AVCDecoder::initSlice( SliceHeader& rcSH, ProcessingState e
 
 ErrVal ControlMngH264AVCDecoder::initSliceForReading( const SliceHeader& rcSH )
 {
-  m_uiCurrLayer   = rcSH.getSPS().getLayerId();
+  m_uiCurrLayer   = rcSH.getLayerId();
 
   MbSymbolReadIf* pcMbSymbolReadIf;
   
@@ -412,7 +426,7 @@ ErrVal ControlMngH264AVCDecoder::initSliceForReading( const SliceHeader& rcSH )
 
 ErrVal ControlMngH264AVCDecoder::initSliceForDecoding( const SliceHeader& rcSH )
 {
-  m_uiCurrLayer   = rcSH.getSPS().getLayerId();
+  m_uiCurrLayer   = rcSH.getLayerId();
 
   RNOK( m_pcMotionCompensation->initSlice( rcSH ) );
 
@@ -422,7 +436,7 @@ ErrVal ControlMngH264AVCDecoder::initSliceForDecoding( const SliceHeader& rcSH )
 
 ErrVal ControlMngH264AVCDecoder::initSliceForFiltering( const SliceHeader& rcSH )
 {
-  m_uiCurrLayer   = rcSH.getSPS().getLayerId();
+  m_uiCurrLayer   = rcSH.getLayerId();
 
   return Err::m_nOK;
 }

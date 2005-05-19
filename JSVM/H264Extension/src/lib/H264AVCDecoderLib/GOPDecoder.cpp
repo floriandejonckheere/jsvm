@@ -129,6 +129,7 @@ MCTFDecoder::MCTFDecoder()
 , m_uiGOPSize                     ( 0 )
 , m_uiDecompositionStages         ( 0 )
 , m_papcFrame                     ( 0 )
+// *LMH: Inverse MCTF
 , m_pcCurrSliceHeader             ( 0 )
 , m_papcResidual                  ( 0 )
 , m_pcBaseLayerFrame              ( 0 )
@@ -142,6 +143,8 @@ MCTFDecoder::MCTFDecoder()
 , m_pcLowPassBaseReconstruction   ( 0 )
 , m_bActive( false )
 , m_bReconstructed( true )
+, m_bLowComplxUpdFlag             ( 1 )
+, m_uiQualityLevelForPrediction   ( 3 )
 {
   ::memset( m_apcFrameTemp, 0x00, sizeof( m_apcFrameTemp ) );
 }
@@ -233,8 +236,10 @@ MCTFDecoder::init( H264AVCDecoder*      pcH264AVCDecoder,
   m_uiFrameNumber                 = 0;
   m_uiGOPSize                     = 0;
   m_uiDecompositionStages         = 0;
+  m_bLowComplxUpdFlag             = 1;
 
   m_papcFrame                     = 0;
+// *LMH: Inverse MCTF
   m_pcCurrSliceHeader             = 0;
   m_papcResidual                  = 0;
   m_pcBaseLayerFrame              = 0;
@@ -271,6 +276,7 @@ MCTFDecoder::uninit()
   m_uiMaxGOPSize              = 0;
   m_uiFrameWidthInMb          = 0;
   m_uiFrameHeightInMb         = 0;
+// *LMH: Inverse MCTF
   m_pcCurrSliceHeader         = 0;
 
   RNOK( xDeleteData() );
@@ -285,19 +291,22 @@ MCTFDecoder::uninit()
 __inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; ( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
 
 ErrVal
-MCTFDecoder::initSPS( const SequenceParameterSet& rcSPS )
+MCTFDecoder::initSlice0     ( SliceHeader* rcSH )
 {
+  if(m_bActive) 
+    return Err::m_nOK;
+
   //===== get and set relevant parameters =====
-  UInt  uiMaxDPBSize  = rcSPS.getMaxDPBSize();
-  m_uiLayerId         = rcSPS.getLayerId();
-  m_uiFrameWidthInMb  = rcSPS.getFrameWidthInMbs();
-  m_uiFrameHeightInMb = rcSPS.getFrameHeightInMbs();
+  UInt  uiMaxDPBSize  = rcSH->getSPS().getMaxDPBSize();
+  m_uiLayerId         = rcSH->getLayerId();
+  m_uiFrameWidthInMb  = rcSH->getSPS().getFrameWidthInMbs();
+  m_uiFrameHeightInMb = rcSH->getSPS().getFrameHeightInMbs();
   m_uiMbNumber        = m_uiFrameWidthInMb * m_uiFrameHeightInMb;
   m_uiMaxGOPSize      = downround2powerof2( uiMaxDPBSize );
 
   //===== re-allocate dynamic memory =====
   RNOK( xDeleteData() );
-  RNOK( xCreateData( rcSPS ) );
+  RNOK( xCreateData( rcSH->getSPS() ) );
 
   //===== initialize some parameters =====
   m_bActive         = true;
@@ -355,6 +364,7 @@ MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
   //===== decoding =====
   if( rpcSliceHeader->getSliceType() == F_SLICE )
   {
+    if( m_uiQualityLevelForPrediction > 0 )
     RNOK( xDecodeFGSRefinement  ( rpcSliceHeader ) );
   }
   else if( rpcSliceHeader->getTemporalLevel() )
@@ -549,7 +559,7 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
   ROFRS( ( m_pusUpdateWeights = new UShort[ uiNum4x4Blocks      ] ), Err::m_nERR );
 
 
-  
+
   //========== RE-INITIALIZE OBJECTS ==========
   RNOK( m_cConnectionArray.init   ( rcSPS ) );
   ROT ( m_cDownConvert    .init   ( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4 ) );
@@ -718,6 +728,7 @@ MCTFDecoder::xInitGOP( SliceHeader*  pcSliceHeader )
     m_papcFrame   [uiIndex]->setBandType  ( LPS );
     m_papcResidual[uiIndex]->setBandType  ( HPS );
 
+// *LMH: Inverse MCTF
     RNOK( m_papcFrame   [uiIndex]->uninitHalfPel() );
     RNOK( m_papcResidual[uiIndex]->uninitHalfPel() );
   }
@@ -738,6 +749,7 @@ MCTFDecoder::xInitGOP( SliceHeader*  pcSliceHeader )
   }
   m_cControlDataUpd.clear();
 
+// *LMH: Inverse MCTF
   if( m_pcAnchorFrame->isValid() )
   {
     m_pacControlData[0].setBaseRep(true);
@@ -748,7 +760,6 @@ MCTFDecoder::xInitGOP( SliceHeader*  pcSliceHeader )
   m_uiGOPSize                 = pcSliceHeader->getGOPSize             ();
   m_uiDecompositionStages     = pcSliceHeader->getDecompositionStages ();
   m_eNextNalType              = ALL;
-  
   return Err::m_nOK;
 }
 
@@ -858,6 +869,7 @@ MCTFDecoder::xAddBaseLayerResidual( ControlData& rcControlData,
 
 
 
+// *LMH: Inverse MCTF
 ErrVal
 MCTFDecoder::initSlice( SliceHeader* pcSliceHeader, UInt uiLastLayer )
 {
@@ -881,6 +893,7 @@ MCTFDecoder::initSlice( SliceHeader* pcSliceHeader, UInt uiLastLayer )
     RNOK( xReconstructLastFGS() );
   }
 
+// *LMH: Inverse MCTF
   if( uiLastLayer == m_uiLayerId                                                         &&
       m_pcCurrSliceHeader != 0                                                           &&
       m_pcCurrSliceHeader->getLayerId() == m_uiLayerId                                   &&
@@ -948,6 +961,7 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
       m_pcRQFGSDecoder->getSliceHeader()->getPoc          ()      == rpcSliceHeader->getPoc           () &&
       m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel () + 1  == rpcSliceHeader->getQualityLevel  ()  )
   {
+    if( rpcSliceHeader->getQualityLevel() <= m_uiQualityLevelForPrediction )
     RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
   }
 
@@ -1153,7 +1167,9 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*& rpcSliceHeader )
   //----- set slice header to zero (slice header is stored in control data) -----
   rpcSliceHeader = 0;
 
+  if( m_uiQualityLevelForPrediction > 0 )
   RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+// *LMH: Inverse MCTF
   m_pcCurrSliceHeader = rcControlData.getSliceHeader();
 
   DTRACE_NEWFRAME;
@@ -1236,7 +1252,9 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
   //----- set slice header to zero (slice header is stored in control data) -----
   rpcSliceHeader = 0;
 
+  if( m_uiQualityLevelForPrediction > 0 )
   RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+// *LMH: Inverse MCTF
   m_pcCurrSliceHeader = rcControlData.getSliceHeader();
 
   DTRACE_NEWFRAME;
@@ -1244,6 +1262,7 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
   return Err::m_nOK;
 }
 
+// *LMH: Inverse MCTF
 
 ErrVal
 MCTFDecoder::xInvokeMCTF( UInt uiFrameIdInGOP )
@@ -1588,6 +1607,15 @@ MCTFDecoder::xInversePrediction( UInt uiFrameIdInGOP )
 ErrVal
 MCTFDecoder::xInverseUpdate( UInt uiFrameIdInGOP )
 {
+  MbDecoder*  pcMbDecoder;
+  pcMbDecoder = m_pcSliceDecoder->getMbDecoder();
+
+  if (m_bLowComplxUpdFlag)
+  {
+    pcMbDecoder->setUpdateWeightsBuf(m_pusUpdateWeights);
+    pcMbDecoder->setMotCompType(UPDT_MC);
+  }
+
   //===== UPDATE =====
   ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
   SliceHeader*  pcSliceHeader   = rcControlData     .getSliceHeader ();
@@ -1622,7 +1650,7 @@ MCTFDecoder::xInverseUpdate( UInt uiFrameIdInGOP )
                                                         pcMbDataCtrl,
                                                         *pcSliceHeader ) );
   m_pcQuarterPelFilter->setClipMode                   ( true );
-  RNOK( pcMCFrame0->adaptiveWeighting                 ( m_pusUpdateWeights ) );
+  RNOK( pcMCFrame0->adaptiveWeighting                 ( m_pusUpdateWeights, m_bLowComplxUpdFlag ) );
 
   //===== list 1 motion compensation =====
   RNOK( pcMbDataCtrl->reset() );
@@ -1639,11 +1667,13 @@ MCTFDecoder::xInverseUpdate( UInt uiFrameIdInGOP )
                                                         pcMbDataCtrl,
                                                         *pcSliceHeader ) );
   m_pcQuarterPelFilter->setClipMode                   ( true );
-  RNOK( pcMCFrame1->adaptiveWeighting                 ( m_pusUpdateWeights ) );
+  RNOK( pcMCFrame1->adaptiveWeighting                 ( m_pusUpdateWeights, m_bLowComplxUpdFlag ) );
 
   //===== inverse update =====
   RNOK( pcFrame->inverseUpdate                        ( pcMCFrame0, pcMCFrame1, pcFrame ) );
 
+  if (m_bLowComplxUpdFlag)
+    pcMbDecoder->setMotCompType(PRED_MC);
 
   //----- clear slice header reference -----
   m_cControlDataUpd.setSliceHeader( NULL );
@@ -1822,6 +1852,12 @@ MCTFDecoder::xCompositionStage( UInt  uiBaseLevel )
   }
 #endif
 
+  MbDecoder*  pcMbDecoder;
+  if (m_bLowComplxUpdFlag)
+  {
+    pcMbDecoder = m_pcSliceDecoder->getMbDecoder();
+    pcMbDecoder->setUpdateWeightsBuf(m_pusUpdateWeights);
+  }
    
 
   //===== CHECK IF COMPOSITION IS POSSIBLE / USEFUL =====
@@ -1842,6 +1878,8 @@ MCTFDecoder::xCompositionStage( UInt  uiBaseLevel )
 
   
   //===== UPDATE =====
+  if (m_bLowComplxUpdFlag)
+    pcMbDecoder->setMotCompType(UPDT_MC);
   Bool      bUpdate    = false;
   for( UInt uiFrameUpd = 2; uiFrameUpd <= ( m_uiGOPSize >> uiBaseLevel ); uiFrameUpd += 2 )
   {
@@ -1882,8 +1920,7 @@ MCTFDecoder::xCompositionStage( UInt  uiBaseLevel )
                                                           pcMbDataCtrl,
                                                           *pcSliceHeader ) );
     m_pcQuarterPelFilter->setClipMode                   ( true );
-    RNOK( pcMCFrame0->adaptiveWeighting                 ( m_pusUpdateWeights ) );
-
+    RNOK( pcMCFrame0->adaptiveWeighting                 ( m_pusUpdateWeights, m_bLowComplxUpdFlag ) );
     
     //===== list 1 motion compensation =====
     RNOK( pcMbDataCtrl->reset() );
@@ -1900,8 +1937,7 @@ MCTFDecoder::xCompositionStage( UInt  uiBaseLevel )
                                                           pcMbDataCtrl,
                                                           *pcSliceHeader ) );
     m_pcQuarterPelFilter->setClipMode                   ( true );
-    RNOK( pcMCFrame1->adaptiveWeighting                 ( m_pusUpdateWeights ) );
-
+    RNOK( pcMCFrame1->adaptiveWeighting                 ( m_pusUpdateWeights, m_bLowComplxUpdFlag ) );
 
     //===== inverse update =====
     RNOK( pcFrame->inverseUpdate                        ( pcMCFrame0, pcMCFrame1, pcFrame ) );
@@ -1918,6 +1954,8 @@ MCTFDecoder::xCompositionStage( UInt  uiBaseLevel )
 
 
   //===== PREDICTION =====
+  if (m_bLowComplxUpdFlag)
+    pcMbDecoder->setMotCompType(PRED_MC);
   Bool      bPrediction = false;
   for( UInt uiFramePrd  = 1; uiFramePrd <= ( m_uiGOPSize >> uiBaseLevel ); uiFramePrd += 2 )
   {

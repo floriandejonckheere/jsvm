@@ -99,6 +99,9 @@ public:
   virtual ErrVal extractPacket( BinData*& rpcBinData, Bool& rbEOS ) = 0; 
   virtual ErrVal releasePacket( BinData* pcBinData ) = 0;
 
+  virtual ErrVal getPosition( Int& iPos ) = 0;
+  virtual ErrVal setPosition( Int  iPos ) = 0;
+
   virtual ErrVal uninit() = 0;
   virtual ErrVal destroy() = 0;
 

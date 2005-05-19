@@ -650,16 +650,63 @@ Transform::requant4x4Block( IntYuvMbBuffer& rcResData,
                             TCoeff*         piCoeff,
                             TCoeff*         piCoeffBase,
                             const UChar*    pucScale,
+                            Bool            bFirstIsDc,
                             UInt&           ruiAbsSum )
 {
+  Int iDcCoeff;
+
   //===== trafo =====
   x4x4Trafo( rcResData.getLumBlk (), rcResData.getLStride(), piCoeff );
+
+  // backup the first coefficient
+  if (bFirstIsDc)
+  {
+    iDcCoeff = piCoeff[0];
+    piCoeff[0] = 0;
+  }
 
   //===== quantization =====
   xRequantUniform4x4( piCoeff, piCoeffBase, m_cLumaQp, pucScale, ruiAbsSum );
 
+  // restored the first coefficient
+  if (bFirstIsDc)
+    piCoeff[0] = iDcCoeff;
+
   return Err::m_nOK;
 }
+
+
+ErrVal
+Transform::requantLumaDcCoeffs( TCoeff*         piCoeff,
+                                TCoeff*         piCoeffBase,
+                                const UChar*    pucScale,
+                                UInt&           ruiAbsSum )
+{
+  // the transform was already performed
+  xForTransformLumaDc( piCoeff );
+
+  ruiAbsSum = 0;
+  for( UInt n = 0; n < 16; n ++ )
+  {
+    Int   iLevel = piCoeff[n<<4];
+    UInt  uiSign = ((UInt)iLevel)>>31;
+    Int   iAdd   = ( m_cLumaQp.per() <= 3 ? ( 1 << ( 3 - m_cLumaQp.per() ) ) : 0 ); 
+
+    iLevel       = abs( iLevel ) * g_aaiQuantCoef[ m_cLumaQp.rem() ][0];
+    if( pucScale )
+    {
+      iLevel     = ( iLevel << 4 ) / pucScale[0];
+    }
+    iLevel       = ( iLevel + 2 * m_cLumaQp.add() ) >> ( m_cLumaQp.bits() + 1 );
+    
+    ruiAbsSum    += iLevel;
+    iLevel       = ( uiSign ? -iLevel : iLevel );
+    piCoeff[n<<4]  = iLevel;
+  }
+
+  return Err::m_nOK;
+}
+
 
 
 ErrVal

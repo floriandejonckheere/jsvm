@@ -911,6 +911,32 @@ Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pc
 
 
 
+
+Void QuarterPelFilter::predBlkAdapt( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX, 
+                                      UShort* weight)
+{
+  XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
+  XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );
+  Int iDesStride  = pcDesBuffer->getLStride();
+  Int iSrcStride  = pcSrcBuffer->getLStride();
+  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
+
+  pucSrc += iOffset;
+
+  Int iDx = cMv.getHor() & 3;
+  Int iDy = cMv.getVer() & 3;
+
+  UShort usWeight;
+
+  weightOnEnergy(&usWeight, pucSrc + (iDy+1)/4*iSrcStride + (iDx+1)/4, iSrcStride, iSizeY, iSizeX );
+  *weight = (*weight) *usWeight;
+
+  xPredAdapt( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX, *weight, 128 );
+
+  return;
+}
+
+
 Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
 {
   for( UInt y = 0; y < uiSizeY; y++)
@@ -1176,6 +1202,98 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
   }
 }
 
+Void QuarterPelFilter::xPredAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
+                                    UInt uiSizeY, UInt uiSizeX, UShort weight, UShort wMax )
+{
+  int methodId;
+  static int f4tap[4][4] = {
+    { 0, 16,  0,  0}, 
+    {-2, 14,  5, -1},
+    {-2, 10, 10, -2},
+    {-1,  5, 14, -2}
+  };
 
+  if(weight > wMax/2)
+  {
+    methodId = 2; 
+  }
+  else if(weight > 0)
+  {
+    methodId = 1; 
+  }
+  else
+    return;
+
+
+  // INTERPOLATION
+  if(methodId==1)
+  {
+    // method 1: bi-linear for sub-pel samples
+    for( UInt y = 0; y < uiSizeY; y++)
+    {
+      for( UInt x = 0; x < uiSizeX; x++)
+      {
+        Int iTemp;
+        iTemp  = pucSrc[x - 0]*(4-iDx)*(4-iDy);
+        iTemp += pucSrc[x + 1]*iDx*(4-iDy);
+        iTemp += pucSrc[x + 1*iSrcStride]*(4-iDx)*iDy;
+        iTemp += pucSrc[x + 1*iSrcStride + 1]*iDx*iDy;
+
+        pucDest[x] = xClip( (iTemp + 8) >>4 );
+      }
+      pucDest += iDestStride;
+      pucSrc += iSrcStride;
+    }
+  }
+  else if(methodId == 2)
+  {
+    // method 2: 4 tap filter for sub-pel samples
+    for( UInt y = 0; y < uiSizeY; y++)
+    {
+      for( UInt x = 0; x < uiSizeX; x++)
+      {
+        Int iTemp1[4], iTemp2;
+        int i, j;
+
+        for(i=0;i<4;i++)
+        {
+          iTemp1[i] = 0;
+          for(j=0;j<4;j++)
+            iTemp1[i] += pucSrc[x + (i-1)*iSrcStride + j-1] * f4tap[iDx][j];
+        }
+
+        iTemp2 = 0;
+        for(j=0;j<4;j++)
+          iTemp2 += iTemp1[j] * f4tap[iDy][j];
+
+        pucDest[x] = xClip( (iTemp2 + 128) >> 8 );
+      }
+      pucDest += iDestStride;
+      pucSrc += iSrcStride;
+    }
+  }
+}
+
+Void QuarterPelFilter::weightOnEnergy(UShort *usWeight, XPel* pucSrc, Int iSrcStride, Int iSizeY, Int iSizeX)
+{
+  Int iSSD = 0;
+  int bitsShift = 8, i;
+
+  for( UInt y = 0; y < iSizeY; y++)
+  {
+    for( UInt x = 0; x < iSizeX; x++)
+    {
+      Int iTemp;
+      iTemp  = xClip( pucSrc[iSrcStride*y + x]);
+      iSSD += iTemp*iTemp;
+    }
+  }
+
+  for( i = (iSizeY/4)*(iSizeX/4); i > 1; i >>= 1 )
+    bitsShift ++;
+
+  iSSD                                = ( iSSD + (1 << (bitsShift-1)) ) >> bitsShift;
+  *usWeight                           = (UShort) max( 0, min( 16, 20 - iSSD ) );
+}
 
 H264AVC_NAMESPACE_END

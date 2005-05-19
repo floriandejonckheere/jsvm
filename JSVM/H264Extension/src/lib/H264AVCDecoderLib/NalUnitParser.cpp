@@ -150,12 +150,10 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   switch( m_eNalUnitType )
   {
   case NAL_UNIT_SPS:
-  case NAL_UNIT_SPS_SCALABLE:
     DTRACE_HEADER( "SEQUENCE PARAMETER SET" );
     break;
 
   case NAL_UNIT_PPS:
-  case NAL_UNIT_PPS_SCALABLE:
     DTRACE_HEADER( "PICTURE PARAMETER SET" );
     break;
 
@@ -233,9 +231,7 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor )
   m_eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
 
-  if( m_eNalUnitType == NAL_UNIT_SPS_SCALABLE         ||
-      m_eNalUnitType == NAL_UNIT_PPS_SCALABLE         ||
-      m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
       m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
     ROF( pcBinDataAccessor->size() > 1 );

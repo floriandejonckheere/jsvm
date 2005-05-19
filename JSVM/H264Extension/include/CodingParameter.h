@@ -193,6 +193,7 @@ public:
     , m_uiNotCodedMCTFStages              (0)
     , m_uiTemporalResolution              (0)
     , m_uiFrameDelay                      (0)
+    , m_uiBaseQualityLevel                (3)
 /*
     
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
@@ -236,6 +237,7 @@ public:
   Double                          getNumFGSLayers                   () const {return m_dNumFGSLayers; }
   Double                          getQpModeDecision          (UInt ui) const {return m_adQpModeDecision[ui]; }
   UInt                            getInterLayerPredictionMode       () const {return m_uiInterLayerPredictionMode; }
+  UInt                            getBaseQualityLevel               () const {return m_uiBaseQualityLevel; }
   UInt                            getMotionInfoMode                 () const {return m_uiMotionInfoMode; }
   const std::string&              getMotionInfoFilename             () const {return m_cMotionInfoFilename; }
   UInt                            getFGSMode                        () const {return m_uiFGSMode; }
@@ -314,6 +316,7 @@ public:
 
   Void setUseH264Syntax                   (Bool   p) { m_bUseH264Syntax                   = p; }
   */
+  Void setBaseQualityLevel                (UInt   p) { m_uiBaseQualityLevel               = p; }
 
   //===== check =====
   ErrVal  check();
@@ -340,6 +343,8 @@ public:
   
   Double                    m_adQpModeDecision[MAX_DSTAGES];
   UInt                      m_uiInterLayerPredictionMode;
+
+  UInt                      m_uiBaseQualityLevel;
 
   UInt                      m_uiMotionInfoMode;
   std::string               m_cMotionInfoFilename;
@@ -398,6 +403,7 @@ public:
     , m_uiNumRefFrames                    ( 0 )
     , m_uiBaseLayerMode                   ( 0 )
     , m_uiNumberOfLayers                  ( 0 )
+    , m_bLowComplxUpdFlag                 ( 1 )
   {
   }
 	virtual ~CodingParameter()
@@ -426,7 +432,9 @@ public:
   UInt                            getNumRefFrames         ()              const   { return m_uiNumRefFrames; }
   UInt                            getBaseLayerMode        ()              const   { return m_uiBaseLayerMode; }
   UInt                            getNumberOfLayers       ()              const   { return m_uiNumberOfLayers; }
+  Bool                            getLowComplxUpdFlag     ()              const   { return m_bLowComplxUpdFlag; }
 
+  Void                            setLowComplxUpdFlag     ( UInt  n   )   { m_bLowComplxUpdFlag = (n==1); }
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
   Void                            setMaximumDelay         ( Double  d )   { m_dMaximumDelay         = d; }
@@ -457,7 +465,8 @@ protected:
   UInt                      m_uiIntraPeriodLowPass;
   UInt                      m_uiNumRefFrames;
   UInt                      m_uiBaseLayerMode;
-  
+  Bool                      m_bLowComplxUpdFlag;
+
   MotionVectorSearchParams  m_cMotionVectorSearchParams;
   LoopFilterParams          m_cLoopFilterParams;
 

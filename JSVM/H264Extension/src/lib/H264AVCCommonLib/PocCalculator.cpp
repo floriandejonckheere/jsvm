@@ -116,6 +116,26 @@ ErrVal PocCalculator::create( PocCalculator*& rpcPocCalculator )
 }
 
 
+ErrVal PocCalculator::copy( PocCalculator*& rpcPocCalculator )
+{
+  rpcPocCalculator = new PocCalculator;
+
+  ROT( NULL == rpcPocCalculator );
+
+  rpcPocCalculator->m_iLastIdrFrameNum = m_iLastIdrFrameNum;
+  rpcPocCalculator->m_iBitsLsb         = m_iBitsLsb;
+  rpcPocCalculator->m_iTop2BotOffset   = m_iTop2BotOffset;
+  rpcPocCalculator->m_iPrevRefPocMsb   = m_iPrevRefPocMsb;
+  rpcPocCalculator->m_iPrevRefPocLsb   = m_iPrevRefPocLsb;
+  rpcPocCalculator->m_iMaxPocLsb       = m_iMaxPocLsb;
+  rpcPocCalculator->m_iFrameNumOffset  = m_iFrameNumOffset;
+  rpcPocCalculator->m_iRefOffsetSum    = m_iRefOffsetSum;
+  rpcPocCalculator->m_iPrevFrameNum    = m_iPrevFrameNum;
+
+  return Err::m_nOK;
+}
+
+
 ErrVal PocCalculator::destroy()
 {
   delete this;

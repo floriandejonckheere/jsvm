@@ -957,6 +957,22 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
   return Err::m_nOK;
 }
 
+Void MbEncoder::setMotCompType(MCType type)
+{
+  m_pcMotionEstimation->setMotCompType(type);
+}
+
+MCType  MbEncoder::getMotCompType()
+{
+  return m_pcMotionEstimation->getMotCompType();
+}
+
+Void MbEncoder::setUpdateWeightsBuf(UShort* updateWeightsBuf)
+{
+  m_pcMotionEstimation->setUpdateWeightsBuf(updateWeightsBuf);
+}
+
+
 
 
 

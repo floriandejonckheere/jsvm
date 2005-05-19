@@ -216,8 +216,6 @@ enum NalUnitType
   NAL_UNIT_END_OF_STREAM            = 11,
   NAL_UNIT_FILLER_DATA              = 12,
 
-  NAL_UNIT_SPS_SCALABLE             = 14,
-  NAL_UNIT_PPS_SCALABLE             = 15,
   NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
   NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
 };
@@ -295,7 +293,11 @@ H264AVC_NAMESPACE_END
 
 #define DEBUG_OUTPUT        0
 
-
+enum MCType
+{
+  PRED_MC = 0x00,
+  UPDT_MC = 0x01
+};
 
 //===== special features for investigation =====
 #define UNRESTRICTED_INTER_LAYER_PREDICTION   0   // unrestricted inter-layer prediction (not WD / JSVM compatible)

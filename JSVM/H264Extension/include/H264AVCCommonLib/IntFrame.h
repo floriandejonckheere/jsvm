@@ -143,12 +143,12 @@ public:
     return Err::m_nOK;
   }
 
-  ErrVal adaptiveWeighting( UShort*   pusUpdateWeights )
+  ErrVal adaptiveWeighting( UShort*   pusUpdateWeights, Bool bLowComplxUpdFlag )
   {
-    RNOK( getFullPelYuvBuffer()->adaptiveWeighting( pusUpdateWeights ) );
+    RNOK( getFullPelYuvBuffer()->adaptiveWeighting( pusUpdateWeights, bLowComplxUpdFlag ) );
     return Err::m_nOK;
   }
-  
+
   ErrVal update           ( IntFrame* pcMCPFrame0, IntFrame* pcMCPFrame1, IntFrame* pcSrcFrame )
   {
     RNOK( getFullPelYuvBuffer()->update           ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), pcMCPFrame1->getFullPelYuvBuffer() ) );

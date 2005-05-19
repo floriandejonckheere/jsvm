@@ -257,11 +257,6 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NALU HEADER: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                        "NALU HEADER: nal_unit_type" ) );
-  if( m_eNalUnitType == NAL_UNIT_SPS_SCALABLE )
-  {
-    UChar ucDDI = ( m_uiLayerId << 5 );
-    RNOK( pcWriteIf->writeCode( ucDDI, 8,                                 "NALU HEADER: decodability_dependency_information" ) );
-  }
 
   //===== Sequence parameter set =====
   RNOK  ( pcWriteIf->writeCode( getProfileIdc(),                  8,      "SPS: profile_idc" ) );
@@ -273,6 +268,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeCode( getLevelIdc(),                    8,      "SPS: level_idc" ) );
   RNOK  ( pcWriteIf->writeUvlc( getSeqParameterSetId(),                   "SPS: seq_parameter_set_id" ) );
   
+  RNOK  ( pcWriteIf->writeFlag( m_bLowComplxUpdFlag,                      "SPS: low_complx_upd_flag" ) );
   //--- fidelity range extension syntax ---
   RNOK  ( xWriteFrext( pcWriteIf ) );
   
@@ -297,12 +293,10 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
 ErrVal
 SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
-                            NalUnitType         eNalUnitType,
-                            UInt                uiLayerId )
+                            NalUnitType         eNalUnitType )
 {
   //===== NAL unit header =====
   setNalUnitType    ( eNalUnitType );
-  setLayerId        ( uiLayerId    );
 
   Bool  bTmp;
   UInt  uiTmp;
@@ -322,6 +316,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK  ( pcReadIf->getCode( m_uiLevelIdc,                        8,      "SPS: level_idc" ) );
   RNOK  ( pcReadIf->getUvlc( m_uiSeqParameterSetId,                       "SPS: seq_parameter_set_id" ) );
 
+  RNOK  ( pcReadIf->getFlag( m_bLowComplxUpdFlag,                         "SPS: low_complx_upd_flag" ) );
   //--- fidelity range extension syntax ---
   RNOK  ( xReadFrext( pcReadIf ) );
 

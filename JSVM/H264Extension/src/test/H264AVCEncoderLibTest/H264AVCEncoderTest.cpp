@@ -374,7 +374,6 @@ H264AVCEncoderTest::go()
     cBinData.reset();
   }
 
-
   //===== determine parameters for required frame buffers =====
   for( uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
   {

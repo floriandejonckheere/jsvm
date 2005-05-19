@@ -184,7 +184,8 @@ private:
                                             const QpParameter&          cQP,
                                             UInt&                       uiCoeffCost,
                                             UInt&                       ruiCbp,
-                                            LumaIdx                     cIdx );
+                                            LumaIdx                     cIdx,
+                                            UInt                        uiStart );
   ErrVal            xSetSymbols8x8        ( TCoeff*                     piCoeff,
                                             TCoeff*                     piCoeffBase,
                                             const QpParameter&          cQP,
@@ -297,6 +298,9 @@ private:
   MbDataCtrl*       m_pcCurrMbDataCtrl;
   SliceHeader*      m_pcSliceHeader;
   SliceType         m_eSliceType;
+  UInt              m_uiFirstMbInSlice;
+  UInt              m_uiNumMbsInSlice;
+  Bool              m_bFgsComponentSep;
 
   IntFrame*         m_pcOrgResidual;
 

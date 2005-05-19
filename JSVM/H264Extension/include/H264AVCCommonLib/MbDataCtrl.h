@@ -152,6 +152,19 @@ public:
   const MbData& getMbData( UInt uiIndex )   const { AOT_DBG( uiIndex >= m_uiSize );  return m_pcMbData[ uiIndex ]; }
   const Bool isPicCodedField( )              const { return m_bPicCodedField; }
 
+  MbData& getMbDataByIndex( UInt uiIndex )        { AOT_DBG( uiIndex >= m_uiSize );  return m_pcMbData[ uiIndex ]; }
+
+  ErrVal saveQpAndCbp( MbDataCtrl *pSrcMbDataCtrl )
+  {
+    for( UInt uiMbIdx = 0; uiMbIdx < getSize(); uiMbIdx++ )
+    {
+      getMbDataByIndex( uiMbIdx ).setQp      ( pSrcMbDataCtrl->getMbData( uiMbIdx ).getQp() );
+      getMbDataByIndex( uiMbIdx ).setMbExtCbp( pSrcMbDataCtrl->getMbData( uiMbIdx ).getMbExtCbp() );
+    }
+
+    return Err::m_nOK;
+  }
+
   ErrVal clear() { return xResetData(); }
 
   MbData& getMbData( UInt uiMbX, UInt uiMbY )   { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
@@ -230,6 +243,7 @@ public:
   ErrVal        setSliceHeader      ( SliceHeader* pcSliceHeader )
   {
     m_pcSliceHeader = pcSliceHeader;
+// *LMH: Inverse MCTF
     if ( pcSliceHeader != NULL )
     {
       m_bBaseRep = false;
@@ -237,6 +251,58 @@ public:
       if ( m_uiCurTemporalLevel > 0 )
         --m_uiCurTemporalLevel;
     }
+    return Err::m_nOK;
+  }
+
+  MbDataCtrl*   getFgsBaseMbDataCtrl()  { return  m_pcFgsMbDataCtrl; }
+  ErrVal        setFgsMbDataCtrl( MbDataCtrl* pcMbDataCtrl )
+  {
+    m_pcFgsMbDataCtrl = pcMbDataCtrl;
+    return Err::m_nOK;
+  }
+
+  ErrVal        switchMbDataCtrlQpAndCbp( MbDataCtrl*  pcMbDataCtrl0, MbDataCtrl*  pcMbDataCtrl1 )
+  {
+    UChar ucQp;
+    UInt  uiMbCbp;
+
+    for( UInt uiMbIdx = 0; uiMbIdx < m_pcMbDataCtrl->getSize(); uiMbIdx++ )
+    {
+      ucQp = pcMbDataCtrl0->getMbData(uiMbIdx).getQp();
+      pcMbDataCtrl0->getMbDataByIndex(uiMbIdx).setQp(pcMbDataCtrl1->getMbData(uiMbIdx).getQp());
+
+      pcMbDataCtrl1->getMbDataByIndex(uiMbIdx).setQp(ucQp);
+
+      uiMbCbp = pcMbDataCtrl0->getMbData(uiMbIdx).getMbExtCbp();
+      pcMbDataCtrl0->getMbDataByIndex(uiMbIdx).setMbExtCbp(pcMbDataCtrl1->getMbData(uiMbIdx).getMbExtCbp());
+
+      pcMbDataCtrl1->getMbDataByIndex(uiMbIdx).setMbExtCbp(uiMbCbp);
+    }
+
+    return Err::m_nOK;
+  }
+
+  ErrVal        activateMbDataCtrlForQpAndCbp( Bool bNormalMbDataCtrl )
+  {
+    // restore the state first
+    if( ! m_bIsNormalMbDataCtrl )
+      switchMbDataCtrlQpAndCbp( m_pcMbDataCtrl, m_pcFgsMbDataCtrl );
+
+    if( ! bNormalMbDataCtrl )
+      switchMbDataCtrlQpAndCbp( m_pcMbDataCtrl, m_pcFgsMbDataCtrl );
+
+    m_bIsNormalMbDataCtrl = bNormalMbDataCtrl;
+
+    return Err::m_nOK;
+  }
+
+  ErrVal        saveMbDataQpAndCbp()
+  {
+    // should not happen, not designed so general
+    if( ! m_bIsNormalMbDataCtrl )
+      return Err::m_nERR;
+
+    m_pcFgsMbDataCtrl->saveQpAndCbp(m_pcMbDataCtrl);
     return Err::m_nOK;
   }
 
@@ -268,6 +334,7 @@ public:
   Void          setBaseLayerResolution( Bool bHalfRes ) { m_bHalfResolutionBaseLayer = bHalfRes; }
   Bool          isHalfResolutionBaseLayer() { return m_bHalfResolutionBaseLayer; }
 
+// *LMH: Inverse MCTF
   Bool          isBaseRep         () { return m_bBaseRep; }
   Void          setBaseRep        ( Bool bBaseRep ) { m_bBaseRep = bBaseRep; }
 
@@ -302,12 +369,15 @@ private:
   UInt          m_uiBaseLayerIdMotion;
   Bool          m_bHalfResolutionBaseLayer;
 
+// *LMH: Inverse MCTF
   Bool			m_bBaseRep;
   UInt			m_uiCurTemporalLevel;
   UInt			m_uiCurActivePrdL0;
   UInt			m_uiCurActivePrdL1;
   UInt			m_uiCurActiveUpdL0[MAX_DSTAGES];
   UInt			m_uiCurActiveUpdL1[MAX_DSTAGES];
+  MbDataCtrl*   m_pcFgsMbDataCtrl;
+  Bool          m_bIsNormalMbDataCtrl;
 };
 
 

@@ -157,7 +157,7 @@ public:
                                   MotionCompensation*         pcMotionCompensation,
                                   QuarterPelFilter*           pcQuarterPelFilter );
   ErrVal          uninit        ();
-  ErrVal          initSPS       ( const SequenceParameterSet& rcSPS );
+  ErrVal          initSlice0     ( SliceHeader* pcSliceHeader );
   
   ErrVal          process       ( SliceHeader*&               rpcSliceHeader,
                                   PicBuffer*                  pcPicBuffer,
@@ -172,6 +172,7 @@ public:
                                   PicBufferList&              rcPicBufferUnusedList,
                                   PicBufferList&              rcPicBufferReleaseList,
                                   Int&                        riMaxPoc );
+// *LMH: Inverse MCTF
   ErrVal          initSlice     ( SliceHeader* pcSliceHeader, UInt uiLastLayer );
 
 
@@ -189,8 +190,10 @@ public:
                                     Bool         bHighPass,
                                     Bool         bSpatialScalability,
                                     Int          iPoc );
+  Void            setLowComplxUpdFlag( Bool b ) { m_bLowComplxUpdFlag = b; }
 
-
+  Void setQualityLevelForPrediction( UInt ui ) { m_uiQualityLevelForPrediction = ui; }
+  PocCalculator*  getPocCalculator()           { return m_pcPocCalculator; }
 
 protected:
   //===== create and initialize data arrays =====
@@ -217,6 +220,7 @@ protected:
   ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
                                                 IntFrame*                     pcFrame );
   ErrVal      xInitBaseLayerData              ( ControlData&                  rcControlData );
+// *LMH: Inverse MCTF
   //===== check for inverse MCTF =====
   ErrVal      xInvokeMCTF                     ( UInt                          uiFrameIdInGOP );
   ErrVal      xCheckForInversePrediction      (  Int                          iPrdPicIdInGOP,
@@ -293,6 +297,7 @@ protected:
   UInt                m_uiFrameNumber;
   UInt                m_uiGOPSize;
   UInt                m_uiDecompositionStages;
+  Bool                m_bLowComplxUpdFlag;
 
   //----- frame memories -----
   IntFrame*           m_apcFrameTemp    [NUM_TMP_FRAMES];
@@ -309,10 +314,14 @@ protected:
   ControlData         m_cControlDataUpd;
   MbDataCtrl*         m_pcBaseLayerCtrl;
 
+// *LMH: Inverse MCTF
   SliceHeader*        m_pcCurrSliceHeader;
   
   ConnectionArray     m_cConnectionArray;
   UShort*             m_pusUpdateWeights;
+
+  // should this layer be decoded at all, and up to which FGS layer should be decoded
+  Int                 m_uiQualityLevelForPrediction;
 };
 
 
