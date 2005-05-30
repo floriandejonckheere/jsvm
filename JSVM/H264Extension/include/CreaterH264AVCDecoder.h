@@ -117,6 +117,7 @@ class SampleWeighting;
 class ParameterSetMng;
 class PocCalculator;
 
+class DecodedPicBuffer;
 class MCTFDecoder;
 class ReconstructionBypass;
 class RQFGSDecoder;
@@ -154,6 +155,7 @@ protected:
 protected:
   H264AVCDecoder*         m_pcH264AVCDecoder;
   RQFGSDecoder*           m_pcRQFGSDecoder;
+  DecodedPicBuffer*       m_apcDecodedPicBuffer     [MAX_LAYERS];
   MCTFDecoder*            m_apcMCTFDecoder          [MAX_LAYERS];
   FrameMng*               m_pcFrameMng;
   ParameterSetMng*        m_pcParameterSetMng;

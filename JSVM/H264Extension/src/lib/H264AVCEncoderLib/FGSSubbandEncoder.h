@@ -212,10 +212,6 @@ private:
                                             Bool&                       bSigDC,
                                             Bool&                       bSigAC,
                                             Int                         iNumCoeff );
-  ErrVal            xUpdateMacroblockQP   ( MbDataAccess&               rcMbDataAccess,
-                                            Int                         iNewQP );
-  ErrVal            xUpdateMacroblockCoef ( MbDataAccess&               rcMbDataAccess,
-                                            MbDataAccess&               rcMbDataAccessEL );
   ErrVal            xScaleTCoeffs         ( MbDataAccess&               rcMbDataAccess,
                                             Bool                        bBaseLayer );
   ErrVal            xReconstructMacroblock( MbDataAccess&               rcMbDataAccess,
@@ -223,8 +219,6 @@ private:
   ErrVal            xRequantizeMacroblock ( MbDataAccess&               rcMbDataAccess,
                                             MbDataAccess&               rcMbDataAccessBL,
                                             IntYuvMbBuffer&             rcBLRecBuffer );
-  ErrVal            xUpdateMacroblock     ( MbDataAccess&               rcMbDataAccess,
-                                            MbDataAccess&               rcMbDataAccessEL );
 
   ErrVal            xScaleBaseLayerCoeffs ();
   ErrVal            xResidualTransform    ();

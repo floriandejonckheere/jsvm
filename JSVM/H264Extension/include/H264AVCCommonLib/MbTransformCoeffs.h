@@ -138,6 +138,8 @@ protected:
   UChar  m_aaucCoeffCount[24];
 };
 
+
+
 H264AVC_NAMESPACE_END
 
 

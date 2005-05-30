@@ -499,10 +499,8 @@ public:
   UInt                              getIdrPicId                   ()  const { return m_uiIdrPicId; }
   UInt                              getPicOrderCntLsb             ()  const { return m_uiPicOrderCntLsb; }
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
-  UInt                              getGOPId                      ()  const { return m_uiGOPId; }
-  UInt                              getGOPSize                    ()  const { return m_uiGOPSize; }
   UInt                              getDecompositionStages        ()  const { return m_uiDecompositionStages; }
-  UInt                              getFrameIdInsideGOP           ()  const { return m_uiFrameIdInsideGOP; }
+  Bool                              getKeyPictureFlag             ()  const { return m_bKeyPictureFlag; }
   UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
@@ -537,10 +535,8 @@ public:
   Void  setIdrPicId                   ( UInt        ui )  { m_uiIdrPicId                        = ui; }
   Void  setPicOrderCntLsb             ( UInt        ui )  { m_uiPicOrderCntLsb                  = ui; }
   Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
-  Void  setGOPId                      ( UInt        ui )  { m_uiGOPId                           = ui; }
-  Void  setGOPSize                    ( UInt        ui )  { m_uiGOPSize                         = ui; }
   Void  setDecompositionStages        ( UInt        ui )  { m_uiDecompositionStages             = ui; }
-  Void  setFrameIdInsideGOP           ( UInt        ui )  { m_uiFrameIdInsideGOP                = ui; }
+  Void  setKeyPictureFlag             ( Bool        b  )  { m_bKeyPictureFlag                   = b;  }
   Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; }
   Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
@@ -583,10 +579,8 @@ protected:
   UInt                        m_uiIdrPicId;
   UInt                        m_uiPicOrderCntLsb;
   Bool                        m_bDirectSpatialMvPredFlag;
-  UInt                        m_uiGOPId;
-  UInt                        m_uiGOPSize;
   UInt                        m_uiDecompositionStages;
-  UInt                        m_uiFrameIdInsideGOP;
+  Bool                        m_bKeyPictureFlag;
   UInt                        m_uiBaseLayerId;
   UInt                        m_uiBaseQualityLevel;
   Bool                        m_bAdaptivePredictionFlag;

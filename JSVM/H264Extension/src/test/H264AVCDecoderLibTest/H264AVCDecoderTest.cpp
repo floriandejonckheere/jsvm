@@ -228,6 +228,11 @@ ErrVal H264AVCDecoderTest::go()
   Bool      bEOS            = false;
   Bool      bYuvDimSet      = false;
 
+  // HS: packet trace
+  UInt   uiMaxPocDiff = m_pcParameter->uiMaxPocDiff;
+  UInt   uiLastPoc    = MSYS_UINT_MAX;
+  UChar* pcLastFrame  = 0;
+
   cPicBufferOutputList.clear();
   cPicBufferUnusedList.clear();
   
@@ -279,6 +284,10 @@ ErrVal H264AVCDecoderTest::go()
         uiCbOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiLumSize; 
         uiCrOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiLumSize/4;
         bYuvDimSet = true;
+
+        // HS: decoder robustness
+        pcLastFrame = new UChar [uiSize];
+        ROF( pcLastFrame );
       }
     }
     
@@ -292,6 +301,21 @@ ErrVal H264AVCDecoderTest::go()
       cPicBufferOutputList.pop_front();
       if( pcPicBuffer != NULL )
       {
+        // HS: decoder robustness
+        while( uiLastPoc + uiMaxPocDiff < (UInt)pcPicBuffer->getCts() )
+        {
+          RNOK( m_pcWriteYuv->writeFrame( pcLastFrame + uiLumOffset, 
+                                          pcLastFrame + uiCbOffset, 
+                                          pcLastFrame + uiCrOffset,
+                                           uiMbY << 4,
+                                           uiMbX << 4,
+                                          (uiMbX << 4)+ YUV_X_MARGIN*2 ) );
+          printf("REPEAT FRAME\n");
+          uiFrame   ++;
+          uiLastPoc += uiMaxPocDiff;
+        }
+
+        
         RNOK( m_pcWriteYuv->writeFrame( *pcPicBuffer + uiLumOffset, 
                                         *pcPicBuffer + uiCbOffset, 
                                         *pcPicBuffer + uiCrOffset,
@@ -299,6 +323,11 @@ ErrVal H264AVCDecoderTest::go()
                                          uiMbX << 4,
                                         (uiMbX << 4)+ YUV_X_MARGIN*2 ) );
         uiFrame++;
+      
+    
+        // HS: decoder robustness
+        uiLastPoc = pcPicBuffer->getCts();
+        ::memcpy( pcLastFrame, *pcPicBuffer+0, uiSize*sizeof(UChar) );
       }
     }
     
@@ -308,7 +337,8 @@ ErrVal H264AVCDecoderTest::go()
   }
 
   printf("\n %d frames decoded\n", uiFrame );
-  
+
+  delete [] pcLastFrame; // HS: decoder robustness
   
   RNOK( m_pcH264AVCDecoder->uninit() );
   

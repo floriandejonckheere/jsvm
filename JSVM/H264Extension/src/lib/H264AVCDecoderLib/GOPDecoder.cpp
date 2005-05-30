@@ -103,6 +103,1011 @@ __inline Void printSpaces( UInt uiNum )
 }
 
 
+
+
+//////////////////////////////////////////////////////////////////////////
+// DPB UNIT
+//////////////////////////////////////////////////////////////////////////
+DPBUnit::DPBUnit()
+: m_iPoc                ( MSYS_INT_MIN )
+, m_uiFrameNum          ( MSYS_UINT_MAX )
+, m_uiTemporalLevel     ( MSYS_UINT_MAX )
+, m_bKeyPicture         ( false )
+, m_bResidual           ( false )
+, m_bExisting           ( false )
+, m_bNeededForReference ( false )
+, m_bOutputted          ( false )
+, m_bBaseRepresentation ( false )
+, m_pcFrame             ( 0 )
+, m_cControlData        ()
+{
+}
+
+DPBUnit::~DPBUnit()
+{
+  MbDataCtrl*   pcMbDataCtrl  = m_cControlData.getMbDataCtrl  ();
+  SliceHeader*  pcSliceHeader = m_cControlData.getSliceHeader ();
+  if( pcMbDataCtrl )
+  {
+    pcMbDataCtrl->uninit();
+  }
+  delete pcMbDataCtrl;
+  delete pcSliceHeader;
+  delete m_pcFrame;
+}
+
+ErrVal
+DPBUnit::create( DPBUnit*&                    rpcDPBUnit,
+                 YuvBufferCtrl&               rcYuvBufferCtrl,
+                 const SequenceParameterSet&  rcSPS )
+{
+  rpcDPBUnit = new DPBUnit();
+  ROF( rpcDPBUnit );
+
+  MbDataCtrl* pcMbDataCtrl = 0;
+  ROFRS( ( rpcDPBUnit->m_pcFrame    = new IntFrame  ( rcYuvBufferCtrl, rcYuvBufferCtrl ) ), Err::m_nERR );
+  ROFRS( ( pcMbDataCtrl             = new MbDataCtrl()                                   ), Err::m_nERR );
+  RNOK (   rpcDPBUnit->m_pcFrame    ->init          ()               );
+           rpcDPBUnit->m_pcFrame    ->setDPBUnit    ( rpcDPBUnit   );
+  RNOK (   pcMbDataCtrl             ->init          ( rcSPS        ) );
+  RNOK (   rpcDPBUnit->m_cControlData.setMbDataCtrl ( pcMbDataCtrl ) );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::destroy()
+{
+  delete this;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::init( Int  iPoc,
+               UInt uiFrameNum,
+               UInt uiTemporalLevel,
+               Bool bKeyPicture,
+               Bool bResidual,
+               Bool bNeededForReference )
+{
+  m_iPoc                = iPoc;
+  m_uiFrameNum          = uiFrameNum;
+  m_uiTemporalLevel     = uiTemporalLevel;
+  m_bKeyPicture         = bKeyPicture;
+  m_bResidual           = bResidual;
+  m_bExisting           = true;
+  m_bNeededForReference = bNeededForReference;
+  m_bOutputted          = false;
+  m_bBaseRepresentation = false;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::initNonEx( Int   iPoc,
+                    UInt  uiFrameNum )
+{
+  m_iPoc                = iPoc;
+  m_uiFrameNum          = uiFrameNum;
+  m_uiTemporalLevel     = MSYS_UINT_MAX;
+  m_bKeyPicture         = false;
+  m_bResidual           = false;
+  m_bExisting           = false;
+  m_bNeededForReference = true;
+  m_bOutputted          = false;
+  m_bBaseRepresentation = false;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::initBase( DPBUnit&   rcDPBUnit,
+                   IntFrame*  pcFrameBaseRep )
+{
+  ROT( rcDPBUnit.m_bBaseRepresentation );
+  m_iPoc                = rcDPBUnit.m_iPoc;
+  m_uiFrameNum          = rcDPBUnit.m_uiFrameNum;
+  m_uiTemporalLevel     = rcDPBUnit.m_uiTemporalLevel;
+  m_bKeyPicture         = rcDPBUnit.m_bKeyPicture;
+  m_bResidual           = rcDPBUnit.m_bResidual;
+  m_bExisting           = rcDPBUnit.m_bExisting;
+  m_bNeededForReference = rcDPBUnit.m_bNeededForReference;
+  m_bOutputted          = rcDPBUnit.m_bOutputted;
+  m_bBaseRepresentation = true;
+  RNOK( m_pcFrame->copyAll( pcFrameBaseRep ) );
+  m_pcFrame->setPOC( m_iPoc );
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::uninit()
+{
+  m_iPoc                = MSYS_INT_MIN;
+  m_uiFrameNum          = MSYS_UINT_MAX;
+  m_uiTemporalLevel     = MSYS_UINT_MAX;
+  m_bKeyPicture         = false;
+  m_bResidual           = false;
+  m_bExisting           = false;
+  m_bNeededForReference = false;
+  m_bOutputted          = false;
+  m_bBaseRepresentation = false;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::markNonRef()
+{
+  ROF( m_bNeededForReference );
+  m_bNeededForReference = false;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::markOutputted()
+{
+  ROT( m_bOutputted );
+  m_bOutputted = true;
+  return Err::m_nOK;
+}
+
+ErrVal
+DPBUnit::unmarkResidual()
+{
+  ROF( m_bResidual );
+  m_bResidual = false;
+  return Err::m_nOK;
+}
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// DECODED PICTURE BUFFER
+//////////////////////////////////////////////////////////////////////////
+DecodedPicBuffer::DecodedPicBuffer()
+: m_bInitDone         ( false )
+, m_pcYuvBufferCtrl   ( 0 )
+, m_uiNumRefFrames    ( 0 )
+, m_uiMaxFrameNum     ( 0 )
+, m_uiLastRefFrameNum ( MSYS_UINT_MAX )
+, m_iMaxKeyPoc        ( MSYS_INT_MIN )
+, m_pcCurrDPBUnit     ( 0 )
+{
+}
+
+DecodedPicBuffer::~DecodedPicBuffer()
+{
+}
+
+ErrVal
+DecodedPicBuffer::create( DecodedPicBuffer*& rpcDecodedPicBuffer )
+{
+  rpcDecodedPicBuffer = new DecodedPicBuffer;
+  ROT( NULL == rpcDecodedPicBuffer );
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::destroy()
+{
+  ROT( m_bInitDone );
+  delete this;
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::init( YuvBufferCtrl* pcYuvBufferCtrl,
+                        UInt           uiLayer )
+{
+  ROT( m_bInitDone );
+  ROF( pcYuvBufferCtrl );
+
+  m_pcYuvBufferCtrl   = pcYuvBufferCtrl;
+  m_uiNumRefFrames    = 0;
+  m_uiMaxFrameNum     = 0;
+  m_uiLastRefFrameNum = MSYS_UINT_MAX;
+  m_iMaxKeyPoc        = MSYS_INT_MIN;
+  m_uiLayer           = uiLayer;
+  m_bInitDone         = true;
+  
+  return Err::m_nOK;
+}
+
+__inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; ( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
+
+ErrVal
+DecodedPicBuffer::initSPS( const SequenceParameterSet& rcSPS )
+{
+  ROF( m_bInitDone );
+  
+  UInt  uiMaxPicsInDPB  = downround2powerof2( rcSPS.getMaxDPBSize() ) + 5; // up to 3 base representations + 2 extra (should use "real DPB" size in future)
+  RNOK( xCreateData( uiMaxPicsInDPB, rcSPS ) );
+  m_uiNumRefFrames      = rcSPS.getNumRefFrames();
+  m_uiMaxFrameNum       = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );
+  
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::uninit()
+{
+  ROF( m_bInitDone );
+
+  RNOK( xDeleteData() );
+  ROF ( m_cPicBufferList.empty() );
+  
+  m_pcYuvBufferCtrl   = 0;
+  m_uiNumRefFrames    = 0;
+  m_uiMaxFrameNum     = 0;
+  m_uiLastRefFrameNum = MSYS_UINT_MAX;
+  m_iMaxKeyPoc        = MSYS_INT_MIN;
+  m_bInitDone         = false;
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xCreateData( UInt                         uiMaxPicsInDPB,
+                               const SequenceParameterSet&  rcSPS )
+{
+  ROF( m_bInitDone );
+  RNOK( xDeleteData() );
+
+  while( uiMaxPicsInDPB-- )
+  {
+    DPBUnit*  pcDPBUnit = 0;
+    RNOK( DPBUnit::create( pcDPBUnit, *m_pcYuvBufferCtrl, rcSPS ) );
+    m_cFreeDPBUnitList.pushBack( pcDPBUnit );
+  }
+  RNOK( DPBUnit::create( m_pcCurrDPBUnit, *m_pcYuvBufferCtrl, rcSPS ) );
+  RNOK( m_pcCurrDPBUnit->uninit() );
+  
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xDeleteData()
+{
+  ROF( m_bInitDone );
+
+  m_cFreeDPBUnitList += m_cUsedDPBUnitList;
+  m_cUsedDPBUnitList.clear();
+
+  while( m_cFreeDPBUnitList.size() )
+  {
+    DPBUnit*  pcDPBUnit = m_cFreeDPBUnitList.popFront();
+    pcDPBUnit->destroy();
+  }
+  if( m_pcCurrDPBUnit )
+  {
+    m_pcCurrDPBUnit->destroy();
+    m_pcCurrDPBUnit = 0;
+  }
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xClearBuffer()
+{
+  //===== remove non-output/non-ref pictures =====
+  //--- store in temporary list ---
+  DPBUnitList cTempList;
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    Bool  bNoOutput = ( !(*iter)->isExisting() || (*iter)->isBaseRep() || (*iter)->isOutputted() );
+    Bool  bNonRef   = ( !(*iter)->isNeededForRef() );
+    if( bNonRef && bNoOutput )
+    {
+      cTempList.push_back( *iter );
+    }
+  }
+  //--- move to free list ---
+  while( cTempList.size() )
+  {
+    DPBUnit*  pcDPBUnit = cTempList.popFront();
+    RNOK( pcDPBUnit->uninit() );
+    m_cUsedDPBUnitList.remove( pcDPBUnit );
+    m_cFreeDPBUnitList.push_back( pcDPBUnit );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xUpdateMemory()
+{
+  //===== get number of reference frames =====
+  UInt uiCurrNumRefFrames     = 0;
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->isNeededForRef() && !(*iter)->isBaseRep() )
+    {
+      uiCurrNumRefFrames++;
+    }
+  }
+  ROTRS( uiCurrNumRefFrames <= m_uiNumRefFrames, Err::m_nOK );
+
+  //===== sliding window reference picture update =====
+  //--- look for last ref frame that shall be removed ---
+  UInt uiRefFramesToRemove = uiCurrNumRefFrames - m_uiNumRefFrames;
+  iter                     = m_cUsedDPBUnitList.begin();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->isNeededForRef() && !(*iter)->isBaseRep() )
+    {
+      uiRefFramesToRemove--;
+      if( uiRefFramesToRemove == 0 )
+      {
+        break;
+      }
+    }
+  }
+  ROT( uiRefFramesToRemove );
+  //--- delete reference label ---
+  end   = ++iter;
+  iter  = m_cUsedDPBUnitList.begin();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->isNeededForRef() )
+    {
+      RNOK( (*iter)->markNonRef() );
+    }
+  }
+
+  //===== clear buffer =====
+  RNOK( xClearBuffer() );
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xOutput( PicBufferList&   rcOutputList,
+                           PicBufferList&   rcUnusedList )
+{
+  ROTRS( m_cFreeDPBUnitList.size(), Err::m_nOK ); // no need for output
+  
+  //===== smallest non-ref/output poc value =====
+  Int       iMinOutputPoc   = MSYS_INT_MAX;
+  DPBUnit*  pcElemToRemove  = 0;
+  DPBUnitList::iterator iter =  m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end  =  m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    Bool bOutput = ( !(*iter)->isOutputted() && (*iter)->isExisting() && !(*iter)->isBaseRep() && !(*iter)->isNeededForRef() );
+    if(  bOutput && (*iter)->getPoc() < iMinOutputPoc )
+    {
+      iMinOutputPoc   = (*iter)->getPoc();
+      pcElemToRemove  = (*iter);
+    }
+  }
+  ROF( pcElemToRemove ); // error, nothing can be removed
+
+  //===== copy all output elements to temporary list =====
+  DPBUnitList cOutputList;
+  Int iMaxPoc = iMinOutputPoc;
+  Int iMinPoc = MSYS_INT_MAX;
+  iter        = m_cUsedDPBUnitList.begin();
+  for( ; iter != end; iter++ )
+  {
+    Bool bOutput = ( (*iter)->getPoc() <= iMinOutputPoc && !(*iter)->isOutputted() );
+    if( bOutput )
+    {
+      if( !(*iter)->isOutputted() )
+      {
+        RNOK( (*iter)->markOutputted() );
+      }
+      if( (*iter)->isExisting() && !(*iter)->isBaseRep() )
+      {
+        cOutputList.push_back( *iter );
+        if( (*iter)->getPoc() < iMinPoc )
+        {
+          iMinPoc = (*iter)->getPoc();
+        }
+      }
+    }
+  }
+
+  //===== real output =====
+  for( Int iPoc = iMinPoc; iPoc <= iMaxPoc; iPoc++ )
+  {
+    iter = cOutputList.begin();
+    end  = cOutputList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() == iPoc )
+      {
+        DPBUnit* pcDPBUnit = *iter;
+        cOutputList.remove( pcDPBUnit );
+
+        //----- output -----
+        ROT( m_cPicBufferList.empty() );
+        PicBuffer*  pcPicBuffer = m_cPicBufferList.popFront();
+        pcDPBUnit->getFrame()->store( pcPicBuffer );
+        rcOutputList.push_back( pcPicBuffer );
+        rcUnusedList.push_back( pcPicBuffer );
+        break; // only one picture per Poc
+      }
+    }
+  }
+  ROT( cOutputList.size() );
+
+  //===== clear buffer =====
+  RNOK( xClearBuffer() );
+
+  //===== check =====
+  ROT( m_cFreeDPBUnitList.empty() ); // this should never happen
+
+  return Err::m_nOK;
+}
+
+
+
+ErrVal
+DecodedPicBuffer::xClearOutputAll( PicBufferList&   rcOutputList,
+                                   PicBufferList&   rcUnusedList,
+                                   Int&             riMaxPoc )
+{
+  //===== create output list =====
+  DPBUnitList cOutputList;
+  Int         iMinPoc = MSYS_INT_MAX;
+  Int         iMaxPoc = MSYS_INT_MIN;
+  DPBUnitList::iterator iter =  m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end  =  m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )  
+  {
+    Bool bOutput = ( !(*iter)->isOutputted() && (*iter)->isExisting() && !(*iter)->isBaseRep() );
+    if(  bOutput )
+    {
+      cOutputList.push_back( *iter );
+      if( (*iter)->getPoc() < iMinPoc ) iMinPoc = (*iter)->getPoc();
+      if( (*iter)->getPoc() > iMaxPoc ) iMaxPoc = (*iter)->getPoc();
+    }
+  }
+
+  //===== real output =====
+  for( Int iPoc = iMinPoc; iPoc <= iMaxPoc; iPoc++ )
+  {
+    iter = cOutputList.begin();
+    end  = cOutputList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() == iPoc )
+      {
+        DPBUnit* pcDPBUnit = *iter;
+        cOutputList.remove( pcDPBUnit );
+
+        //----- output -----
+        ROT( m_cPicBufferList.empty() );
+        PicBuffer*  pcPicBuffer = m_cPicBufferList.popFront();
+        pcDPBUnit->getFrame()->store( pcPicBuffer );
+        rcOutputList.push_back( pcPicBuffer );
+        rcUnusedList.push_back( pcPicBuffer );
+        if( iPoc > riMaxPoc )
+        {
+          riMaxPoc = iPoc;
+        }
+        break; // only one picture per Poc
+      }
+    }
+  }
+  ROT( cOutputList.size() );
+
+  //===== uninit all elements and move to free list =====
+  while( m_cUsedDPBUnitList.size() )
+  {
+    DPBUnit* pcDPBUnit = m_cUsedDPBUnitList.popFront();
+    RNOK( pcDPBUnit->uninit() );
+    m_cFreeDPBUnitList.push_back( pcDPBUnit );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+DecodedPicBuffer::xStorePicture( DPBUnit*       pcDPBUnit,
+                                 PicBufferList& rcOutputList,
+                                 PicBufferList& rcUnusedList,
+                                 Bool           bTreatAsIdr )
+{
+  ROF( pcDPBUnit == m_pcCurrDPBUnit ); // check
+
+  //---- fill border ----
+  RNOK( m_pcYuvBufferCtrl->initMb() );
+  RNOK( pcDPBUnit->getFrame()->extendFrame( NULL ) );
+
+  if( bTreatAsIdr )
+  {
+    //===== IDR pictures =====
+    Int iDummy;
+    RNOK( xClearOutputAll( rcOutputList, rcUnusedList, iDummy ) ); // clear and output all pictures
+    m_cUsedDPBUnitList.push_back( pcDPBUnit );                                    // store current picture
+  }
+  else
+  {
+    //===== non-IDR picture =====
+    m_cUsedDPBUnitList.push_back( pcDPBUnit );                                    // store current picture
+    RNOK( xUpdateMemory() );                                                      // memory update 
+    RNOK( xOutput( rcOutputList, rcUnusedList ) );         // output
+  }
+  RNOK( xDumpDPB() );
+
+  m_pcCurrDPBUnit = m_cFreeDPBUnitList.popFront();                                // new current DPB unit
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xCheckMissingPics( SliceHeader*   pcSliceHeader,
+                                     PicBufferList& rcOutputList,
+                                     PicBufferList& rcUnusedList )
+{
+  ROTRS( pcSliceHeader->isIdrNalUnit(), Err::m_nOK );
+  ROTRS( ( ( m_uiLastRefFrameNum + 1 ) % m_uiMaxFrameNum ) == pcSliceHeader->getFrameNum(), Err::m_nOK );
+
+  UInt  uiMissingFrames = pcSliceHeader->getFrameNum() - m_uiLastRefFrameNum - 1;
+  if( pcSliceHeader->getFrameNum() <= m_uiLastRefFrameNum )
+  {
+    uiMissingFrames += m_uiMaxFrameNum;
+  }
+
+  if( ! pcSliceHeader->getSPS().getRequiredFrameNumUpdateBehaviourFlag() )
+  {
+    printf("\nLOST PICTURES = %d\n", uiMissingFrames );
+    ROT(1);
+  }
+  else
+  {
+    for( UInt uiIndex = 1; uiIndex <= uiMissingFrames; uiIndex++ )
+    {
+      Bool  bTreatAsIdr = ( m_cUsedDPBUnitList.empty() );
+      Int   iPoc        = ( bTreatAsIdr ? 0 : m_cUsedDPBUnitList.back()->getPoc() );
+      UInt  uiFrameNum  = ( m_uiLastRefFrameNum + uiIndex ) % m_uiMaxFrameNum;
+
+      RNOK( m_pcCurrDPBUnit->initNonEx( iPoc, uiFrameNum ) );
+      RNOK( xStorePicture( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, bTreatAsIdr ) );
+    }
+  }
+
+  m_uiLastRefFrameNum = ( m_uiLastRefFrameNum + uiMissingFrames ) % m_uiMaxFrameNum;
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xDumpDPB()
+{
+#if 1 // NO_DEBUG
+  return Err::m_nOK;
+#endif
+
+  printf("\nDECODED PICTURE BUFFER (Layer %d)\n", m_uiLayer );
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( Int iIndex = 0; iter != end; iter++, iIndex++ )
+  {
+    DPBUnit* p = (*iter);
+    printf("\tPOS=%d:\tFN=%d\tPoc=%d\t%s\t", iIndex, p->getFrameNum(), p->getPoc(), (p->isNeededForRef()?"REF":"   ") );
+    if(  p->isOutputted() )   printf("Outputted  ");
+    if( !p->isExisting () )   printf("NotExisting   ");
+    if(  p->isBaseRep  () )   printf("BasRep   ");
+    if(  p->isResidual () )   printf("Residual   ");
+    printf("\n");
+  }
+  printf("\n");
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xInitPrdList0( RefFrameList&  rcList )
+{
+  Bool  bBaseRep    = m_pcCurrDPBUnit->isKeyPic ();
+  Int   iMaxPoc     = m_pcCurrDPBUnit->getPoc   ();
+  UInt  uiTempLevel = m_pcCurrDPBUnit->getTLevel();
+  UInt  uiSize      = m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxActive( LIST_0 );
+
+  while( uiSize-- )
+  {
+    DPBUnit*              pNext = 0;
+    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() < iMaxPoc &&
+          ( !pNext || (*iter)->getPoc() > pNext->getPoc() ) &&
+          (*iter)->isBaseRep() == bBaseRep &&
+          ( bBaseRep || (*iter)->getTLevel() < uiTempLevel ) )
+      {
+        pNext = (*iter);
+      }
+    }
+    ROF( pNext );
+
+    iMaxPoc = pNext->getPoc();
+    rcList.add( pNext->getFrame() );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xInitPrdList1( RefFrameList&  rcList )
+{
+  Bool  bBaseRep    = m_pcCurrDPBUnit->isKeyPic ();
+  Int   iMinPoc     = m_pcCurrDPBUnit->getPoc   ();
+  UInt  uiTempLevel = m_pcCurrDPBUnit->getTLevel();
+  UInt  uiSize      = m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxActive( LIST_1 );
+
+  while( uiSize-- )
+  {
+    DPBUnit*              pNext = 0;
+    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() > iMinPoc &&
+          ( !pNext || (*iter)->getPoc() < pNext->getPoc() ) && 
+          (*iter)->isBaseRep() == bBaseRep &&
+          ( bBaseRep || (*iter)->getTLevel() < uiTempLevel ) )
+      {
+        pNext = (*iter);
+      }
+    }
+    ROF( pNext );
+
+    iMinPoc = pNext->getPoc();
+    rcList.add( pNext->getFrame() );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xInitUpdList0( DPBUnit*       pcDPBUnit,
+                                 RefFrameList&  rcList,
+                                 CtrlDataList&  rcCtrl,
+                                 UInt           uiUpdLevel )
+{
+  Bool  bBaseRep    = pcDPBUnit->isKeyPic ();
+  Int   iMaxPoc     = pcDPBUnit->getPoc   ();
+  UInt  uiTempLevel = pcDPBUnit->getTLevel();
+  UInt  uiSize      = pcDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxUpdate( uiUpdLevel, LIST_0 );
+
+  while( uiSize-- )
+  {
+    DPBUnit*              pNext = 0;
+    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() < iMaxPoc &&
+          ( !pNext || (*iter)->getPoc() > pNext->getPoc() ) &&
+          (*iter)->isResidual() &&
+          (*iter)->getTLevel() == uiUpdLevel + 1 )
+      {
+        pNext = (*iter);
+      }
+    }
+    if( pNext )
+    {
+      iMaxPoc = pNext->getPoc();
+      rcList.add( pNext->getFrame() );
+      rcCtrl.add( &pNext->getCtrlData() );
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xInitUpdList1( DPBUnit*       pcDPBUnit,
+                                 RefFrameList&  rcList,
+                                 CtrlDataList&  rcCtrl,
+                                 UInt           uiUpdLevel )
+{
+  Bool  bBaseRep    = pcDPBUnit->isKeyPic ();
+  Int   iMinPoc     = pcDPBUnit->getPoc   ();
+  UInt  uiTempLevel = pcDPBUnit->getTLevel();
+  UInt  uiSize      = pcDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxUpdate( uiUpdLevel, LIST_1 );
+
+  while( uiSize-- )
+  {
+    DPBUnit*              pNext = 0;
+    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() > iMinPoc &&
+          ( !pNext || (*iter)->getPoc() < pNext->getPoc() ) &&
+          (*iter)->isResidual() &&
+          (*iter)->getTLevel() == uiUpdLevel + 1 )
+      {
+        pNext = (*iter);
+      }
+    }
+    if( pNext )
+    {
+      iMinPoc = pNext->getPoc();
+      rcList.add( pNext->getFrame() );
+      rcCtrl.add( &pNext->getCtrlData() );
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xDumpRefList( ListIdx       eListIdx,
+                                RefFrameList& rcList )
+{
+#if 1 // NO_DEBUG
+  return Err::m_nOK;
+#endif
+
+  printf("\nList %d =", eListIdx );
+  for( UInt uiIndex = 1; uiIndex <= rcList.getSize(); uiIndex++ )
+  {
+    printf(" %d", rcList[uiIndex]->getPOC() );
+  }
+  printf("\n");
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::xSetAllComplete( Int iMaxKeyPoc )
+{
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->getPoc() <= iMaxKeyPoc )
+    {
+      (*iter)->getCtrlData().setComplete( true );
+    }
+  }
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
+                                   PicBuffer*&    rpcPicBuffer,
+                                   Bool           bResidual,
+                                   SliceHeader*   pcSliceHeader,
+                                   PicBufferList& rcOutputList,
+                                   PicBufferList& rcUnusedList )
+{
+  ROF( m_bInitDone );
+
+  //===== insert pic buffer in list =====
+  m_cPicBufferList.push_back( rpcPicBuffer );
+  rpcPicBuffer = 0;
+
+  //===== check missing pictures =====
+  RNOK( xCheckMissingPics( pcSliceHeader, rcOutputList, rcUnusedList ) );
+
+  //===== set key pictures to complete status =====
+  if( pcSliceHeader->getPoc() > m_iMaxKeyPoc ) // HS: this is not the WD
+  {
+    // new GOP -> mark all pictures as complete, since they cannot be update anymore
+    RNOK( xSetAllComplete( m_iMaxKeyPoc ) );
+    if( pcSliceHeader->getKeyPictureFlag() )
+    {
+      m_iMaxKeyPoc = pcSliceHeader->getPoc();
+    }
+  }
+
+  //===== initialize current DPB unit =====
+  RNOK( m_pcCurrDPBUnit->init( pcSliceHeader->getPoc(),
+                               pcSliceHeader->getFrameNum(),
+                               pcSliceHeader->getTemporalLevel(),
+                               pcSliceHeader->getKeyPictureFlag(),
+                               bResidual,
+                               pcSliceHeader->getNalRefIdc() > 0 ) );
+  ROT( pcSliceHeader->getKeyPictureFlag() && !pcSliceHeader->getNalRefIdc() ); // just a check
+  m_pcCurrDPBUnit->getFrame()->setPOC       ( pcSliceHeader->getPoc() );
+  SliceHeader* pcOldSH = m_pcCurrDPBUnit->getCtrlData().getSliceHeader();
+  delete pcOldSH;
+  m_pcCurrDPBUnit->getCtrlData().clear();
+  m_pcCurrDPBUnit->getCtrlData().setSliceHeader( pcSliceHeader );
+  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->reset();
+  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->clear();
+
+  //===== set DPB unit =====
+  rpcCurrDPBUnit = m_pcCurrDPBUnit;
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::clear( PicBufferList& rcOutputList,
+                         PicBufferList& rcUnusedList,
+                         Int&           riMaxPoc )
+{
+  RNOK( xClearOutputAll( rcOutputList, rcUnusedList, riMaxPoc ) ); // clear and output all pictures
+  ROF ( m_cPicBufferList.empty() );
+  return Err::m_nOK;
+}
+
+
+DPBUnit*
+DecodedPicBuffer::getLastUnit()
+{
+  ROTRS( m_cUsedDPBUnitList.empty(), 0 );
+  return m_cUsedDPBUnitList.back();
+}
+
+
+DPBUnit*
+DecodedPicBuffer::getDPBUnit( Int iPoc )
+{
+  DPBUnit*              pcDPBUnit = 0;
+  DPBUnitList::iterator iter      = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end       = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter)->getPoc() == iPoc && !(*iter)->isBaseRep() )
+    {
+      pcDPBUnit = *iter;
+      break;
+    }
+  }
+  return pcDPBUnit;
+}
+
+
+ErrVal
+DecodedPicBuffer::setPrdRefLists( DPBUnit* pcCurrDPBUnit )
+{
+  ROF( m_pcCurrDPBUnit == pcCurrDPBUnit );
+  ROF( m_pcCurrDPBUnit->getCtrlData().getSliceHeader() );
+
+  RefFrameList& rcList0 = m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_0 );
+  RefFrameList& rcList1 = m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_1 );
+  
+  rcList0.reset();
+  rcList1.reset();
+  ROTRS( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isIntra(),   Err::m_nOK );
+
+  RNOK( xInitPrdList0( rcList0 ) );
+  RNOK( xDumpRefList ( LIST_0, rcList0 ) );
+  ROTRS( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isInterP(),  Err::m_nOK );
+
+  RNOK( xInitPrdList1( rcList1 ) );
+  RNOK( xDumpRefList ( LIST_1, rcList1 ) );
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::setUpdRefLists( DPBUnit* pcCurrDPBUnit,
+                                  UInt     uiUpdLevel )
+{
+  ROF( pcCurrDPBUnit->getCtrlData().getSliceHeader() );
+
+  RefFrameList& rcList0 = pcCurrDPBUnit->getCtrlData().getUpdFrameList( uiUpdLevel, LIST_0 );
+  RefFrameList& rcList1 = pcCurrDPBUnit->getCtrlData().getUpdFrameList( uiUpdLevel, LIST_1 );
+  CtrlDataList& rcCtrl0 = pcCurrDPBUnit->getCtrlData().getUpdCtrlList ( uiUpdLevel, LIST_0 );
+  CtrlDataList& rcCtrl1 = pcCurrDPBUnit->getCtrlData().getUpdCtrlList ( uiUpdLevel, LIST_1 );
+
+  rcList0.reset();
+  rcList1.reset();
+  rcCtrl0.reset();
+  rcCtrl1.reset();
+  RNOK( xInitUpdList0( pcCurrDPBUnit, rcList0, rcCtrl0, uiUpdLevel ) );
+  RNOK( xInitUpdList1( pcCurrDPBUnit, rcList1, rcCtrl1, uiUpdLevel ) );
+#if 0 // NO_DEBUG
+  printf("\nUPDATE:");
+#endif
+  RNOK( xDumpRefList ( LIST_0, rcList0 ) );
+  RNOK( xDumpRefList ( LIST_1, rcList1 ) );
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::store( DPBUnit*&        rpcDPBUnit,
+                         PicBufferList&   rcOutputList,
+                         PicBufferList&   rcUnusedList,
+                         IntFrame*        pcFrameBaseRep )
+{
+  RNOK( xStorePicture( rpcDPBUnit, rcOutputList, rcUnusedList,
+                       rpcDPBUnit->getCtrlData().getSliceHeader()->isIdrNalUnit() ) );
+  if( rpcDPBUnit->isNeededForRef() )
+  {
+    m_uiLastRefFrameNum = rpcDPBUnit->getFrameNum();
+  }
+  ROFRS( pcFrameBaseRep, Err::m_nOK );
+
+
+  //===== store base representation =====
+  //--- get DPB unit ---
+  if( m_cFreeDPBUnitList.empty() )
+  {
+    // not sure whether this always works ...
+    RNOK( xOutput( rcOutputList, rcUnusedList ) );
+  }
+  DPBUnit*  pcBaseRep = m_cFreeDPBUnitList.popFront();
+  //--- init unit and extend picture ---
+  RNOK( pcBaseRep->initBase( *rpcDPBUnit, pcFrameBaseRep ) );
+  RNOK( m_pcYuvBufferCtrl->initMb() );
+  RNOK( pcBaseRep->getFrame()->extendFrame( NULL ) );
+  //--- store just before normal representation of the same picture
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+    if( (*iter) == rpcDPBUnit )
+    {
+      break;
+    }
+  }
+  ROT( iter == end );
+  m_cUsedDPBUnitList.insert( iter, pcBaseRep );
+  RNOK( xDumpDPB() );
+
+  //===== reset DPB unit =====
+  rpcDPBUnit = 0;
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+DecodedPicBuffer::update( DPBUnit*  pcDPBUnit,
+                          Bool      bUnmarkResidual )
+{
+  ROF( pcDPBUnit );
+
+  //---- fill border ----
+  RNOK( m_pcYuvBufferCtrl->initMb() );
+  RNOK( pcDPBUnit->getFrame()->extendFrame( NULL ) );
+
+  if( bUnmarkResidual )
+  {
+    RNOK( pcDPBUnit->unmarkResidual() );
+  }
+  return Err::m_nOK;
+}
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// MCTF DECODER
+//////////////////////////////////////////////////////////////////////////
 MCTFDecoder::MCTFDecoder()
 : m_pcH264AVCDecoder              ( 0 )
 , m_pcSliceReader                 ( 0 )
@@ -114,37 +1119,31 @@ MCTFDecoder::MCTFDecoder()
 , m_pcParameterSetMng             ( 0 )
 , m_pcPocCalculator               ( 0 )
 , m_pcYuvFullPelBufferCtrl        ( 0 )
+, m_pcDecodedPictureBuffer        ( 0 )
 , m_pcMotionCompensation          ( 0 )
 , m_pcQuarterPelFilter            ( 0 )
 , m_bInitDone                     ( false )
 , m_bCreateDone                   ( false )
-, m_eNextNalType                  ( LOW_PASS_IDR )
-, m_uiMaxDecompositionStages      ( 0 )
-, m_uiMaxGOPSize                  ( 0 )
+, m_bWaitForIdr                   ( true )
 , m_uiFrameWidthInMb              ( 0 )
 , m_uiFrameHeightInMb             ( 0 )
 , m_uiMbNumber                    ( 0 )
-, m_uiGOPId                       ( 0 )
-, m_uiFrameNumber                 ( 0 )
-, m_uiGOPSize                     ( 0 )
-, m_uiDecompositionStages         ( 0 )
-, m_papcFrame                     ( 0 )
 // *LMH: Inverse MCTF
 , m_pcCurrSliceHeader             ( 0 )
-, m_papcResidual                  ( 0 )
-, m_pcBaseLayerFrame              ( 0 )
-, m_pcBaseLayerResidual           ( 0 )
-, m_pcAnchorFrame                 ( 0 )
+, m_pcResidual                    ( 0 )
 , m_pcPredSignal                  ( 0 )
+, m_pcBaseLayerResidual           ( 0 )
+, m_pcBaseLayerFrame              ( 0 )
 , m_pcBaseLayerCtrl               ( 0 )
-, m_pacControlData                ( 0 )
+, m_pcCurrDPBUnit                 ( 0 )
 , m_uiLayerId                     ( 0 )
 , m_pusUpdateWeights              ( 0 )
-, m_pcLowPassBaseReconstruction   ( 0 )
-, m_bActive( false )
-, m_bReconstructed( true )
+, m_bActive                       ( false )
 , m_bLowComplxUpdFlag             ( 1 )
 , m_uiQualityLevelForPrediction   ( 3 )
+#if MULTIPLE_LOOP_DECODING
+, m_bCompletelyDecodeLayer        ( false )
+#endif
 {
   ::memset( m_apcFrameTemp, 0x00, sizeof( m_apcFrameTemp ) );
 }
@@ -190,6 +1189,7 @@ MCTFDecoder::init( H264AVCDecoder*      pcH264AVCDecoder,
                    ParameterSetMng*     pcParameterSetMng,
                    PocCalculator*       pcPocCalculator,
                    YuvBufferCtrl*       pcYuvFullPelBufferCtrl,
+                   DecodedPicBuffer*    pcDecodedPictureBuffer,
                    MotionCompensation*  pcMotionCompensation,
                    QuarterPelFilter*    pcQuarterPelFilter )
 {
@@ -204,6 +1204,7 @@ MCTFDecoder::init( H264AVCDecoder*      pcH264AVCDecoder,
   ROT( NULL == pcPocCalculator );
   ROT( NULL == pcQuarterPelFilter );
   ROT( NULL == pcYuvFullPelBufferCtrl );
+  ROT( NULL == pcDecodedPictureBuffer );
   ROT( NULL == pcMotionCompensation );
   ROT( NULL == pcRQFGSDecoder );
 
@@ -217,42 +1218,32 @@ MCTFDecoder::init( H264AVCDecoder*      pcH264AVCDecoder,
   m_pcParameterSetMng             = pcParameterSetMng;
   m_pcPocCalculator               = pcPocCalculator;
   m_pcYuvFullPelBufferCtrl        = pcYuvFullPelBufferCtrl;
+  m_pcDecodedPictureBuffer        = pcDecodedPictureBuffer;
   m_pcMotionCompensation          = pcMotionCompensation;
   m_pcQuarterPelFilter            = pcQuarterPelFilter;
   m_pcRQFGSDecoder                = pcRQFGSDecoder;
 
-  m_bActive = false;
   
   m_bInitDone                     = true;
   m_bCreateDone                   = false;
-  m_eNextNalType                  = LOW_PASS_IDR;
-  m_uiMaxDecompositionStages      = 0;
-  m_uiMaxGOPSize                  = 0;
+  m_bWaitForIdr                   = true;
+  m_bActive                       = false;
   m_uiFrameWidthInMb              = 0;
   m_uiFrameHeightInMb             = 0;
   m_uiMbNumber                    = 0;
-  m_uiGOPId                       = 0;
-  
-  m_uiFrameNumber                 = 0;
-  m_uiGOPSize                     = 0;
-  m_uiDecompositionStages         = 0;
   m_bLowComplxUpdFlag             = 1;
 
-  m_papcFrame                     = 0;
 // *LMH: Inverse MCTF
   m_pcCurrSliceHeader             = 0;
-  m_papcResidual                  = 0;
+  m_pcResidual                    = 0;
   m_pcBaseLayerFrame              = 0;
   m_pcBaseLayerResidual           = 0;
-  m_pcAnchorFrame                 = 0;
   m_pcPredSignal                  = 0;
-
   m_pcBaseLayerCtrl               = 0;
-  m_pacControlData                = 0;
+  m_pcCurrDPBUnit                 = 0;
   m_pusUpdateWeights              = 0;
 
   m_uiLayerId                     = 0;
-
 
   return Err::m_nOK;
 }
@@ -272,8 +1263,6 @@ MCTFDecoder::uninit()
   m_pcPocCalculator           = NULL;
   m_pcYuvFullPelBufferCtrl    = NULL;
   m_pcMotionCompensation      = NULL;
-  m_uiMaxDecompositionStages  = 0;
-  m_uiMaxGOPSize              = 0;
   m_uiFrameWidthInMb          = 0;
   m_uiFrameHeightInMb         = 0;
 // *LMH: Inverse MCTF
@@ -288,29 +1277,27 @@ MCTFDecoder::uninit()
 
 
 
-__inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; ( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
 
 ErrVal
-MCTFDecoder::initSlice0     ( SliceHeader* rcSH )
+MCTFDecoder::initSlice0( SliceHeader* rcSH )
 {
-  if(m_bActive) 
-    return Err::m_nOK;
+  ROTRS( m_bActive, Err::m_nOK );
 
   //===== get and set relevant parameters =====
-  UInt  uiMaxDPBSize  = rcSH->getSPS().getMaxDPBSize();
   m_uiLayerId         = rcSH->getLayerId();
   m_uiFrameWidthInMb  = rcSH->getSPS().getFrameWidthInMbs();
   m_uiFrameHeightInMb = rcSH->getSPS().getFrameHeightInMbs();
   m_uiMbNumber        = m_uiFrameWidthInMb * m_uiFrameHeightInMb;
-  m_uiMaxGOPSize      = downround2powerof2( uiMaxDPBSize );
 
   //===== re-allocate dynamic memory =====
   RNOK( xDeleteData() );
   RNOK( xCreateData( rcSH->getSPS() ) );
 
+  //===== initialize DPB =====
+  RNOK( m_pcDecodedPictureBuffer->initSPS( rcSH->getSPS() ) );  // + 1 (prev. Anchor) + 1 (base rep.)
+
   //===== initialize some parameters =====
   m_bActive         = true;
-  m_bReconstructed  = true;
   m_bInitDone       = true;
 
   return Err::m_nOK;
@@ -322,60 +1309,36 @@ ErrVal
 MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
                       PicBuffer*     pcPicBuffer,
                       PicBufferList& rcPicBufferOutputList,
-                      PicBufferList& rcPicBufferUnusedList,
-                      PicBufferList& rcPicBufferReleaseList )
+                      PicBufferList& rcPicBufferUnusedList )
 {
-  ROF( m_bInitDone );
+  ROF  ( m_bInitDone );
+  ROTRS( m_bWaitForIdr && !rpcSliceHeader->isIdrNalUnit(), Err::m_nOK );
+  m_bWaitForIdr = false;
 
-
-
-  //===== initialize GOP =====
-  if( xIsNewGOP( rpcSliceHeader ) )
-  {
-    Int iMaxPoc;
-    RNOK( xReconstruct( rcPicBufferOutputList, rcPicBufferUnusedList, iMaxPoc ) );
-  }
-
-  //===== store picture buffers =====
-  if( pcPicBuffer && m_cPicBufferList.size() <= m_uiMaxGOPSize )
-  {
-    m_cPicBufferList      .push_back( pcPicBuffer );
-  }
-  else
-  {
-    rcPicBufferUnusedList .push_back( pcPicBuffer );
-  }
-
-
-  //===== check NAL unit for the start of the next GOP =====
-  switch( m_eNextNalType )
-  {
-  case LOW_PASS_IDR:
-    ROFRS( rpcSliceHeader->getTemporalLevel   () == 0,                                  Err::m_nOK );
-    ROFRS( rpcSliceHeader->getNalUnitType     () == NAL_UNIT_CODED_SLICE_IDR_SCALABLE,  Err::m_nOK );
-    RNOK ( xInitGOP( rpcSliceHeader ) );
-    break;
-  
-  case LOW_PASS:
-    RNOK ( xInitGOP( rpcSliceHeader ) );
-    break;
-  }
 
   //===== decoding =====
   if( rpcSliceHeader->getSliceType() == F_SLICE )
   {
     if( m_uiQualityLevelForPrediction > 0 )
-    RNOK( xDecodeFGSRefinement  ( rpcSliceHeader ) );
+    {
+      RNOK( xDecodeFGSRefinement( rpcSliceHeader ) );
+    }
   }
-  else if( rpcSliceHeader->getTemporalLevel() )
+  else if( !rpcSliceHeader->getKeyPictureFlag() )
   {
-    RNOK( xDecodeHighPassSignal ( rpcSliceHeader ) );
+    RNOK( xDecodeHighPassSignal ( rpcSliceHeader, pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList ) );
   }
   else
   {
-    RNOK( xDecodeLowPassSignal  ( rpcSliceHeader ) );
+    RNOK( xDecodeLowPassSignal  ( rpcSliceHeader, pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList ) );
   }
 
+
+  //===== clear unused pic buffer ====
+  if( pcPicBuffer )
+  {
+    rcPicBufferUnusedList.push_back( pcPicBuffer );
+  }
 
   //===== delete slice header (if not stored) =====
   delete rpcSliceHeader;
@@ -390,13 +1353,9 @@ MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
 ErrVal
 MCTFDecoder::finishProcess( PicBufferList&  rcPicBufferOutputList,
                             PicBufferList&  rcPicBufferUnusedList,
-                            PicBufferList&  rcPicBufferReleaseList,
                             Int&            riMaxPoc )
 {
-  RNOK( xReconstruct( rcPicBufferOutputList, rcPicBufferUnusedList, riMaxPoc ) );
-
-  rcPicBufferUnusedList += m_cPicBufferList;
-  m_cPicBufferList      .clear();
+  RNOK( m_pcDecodedPictureBuffer->clear( rcPicBufferOutputList, rcPicBufferUnusedList, riMaxPoc ) );
 
   return Err::m_nOK;
 }
@@ -404,60 +1363,59 @@ MCTFDecoder::finishProcess( PicBufferList&  rcPicBufferOutputList,
 
 
 ErrVal
-MCTFDecoder::reconstruct( PicBufferList&  rcPicBufferOutputList,
-                          PicBufferList&  rcPicBufferUnusedList,
-                          PicBufferList&  rcPicBufferReleaseList,
-                          Int&            riMaxPoc )
+MCTFDecoder::getBaseLayerMotionAndResidual( IntFrame*&   pcResidual,
+                                            MbDataCtrl*& pcMbDataCtrl,
+                                            Int          iPoc )
 {
-  RNOK( xReconstruct( rcPicBufferOutputList, rcPicBufferUnusedList, riMaxPoc ) );
+  pcResidual            = 0;
+  pcMbDataCtrl          = 0;
+  DPBUnit*  pcLastUnit  = m_pcDecodedPictureBuffer->getLastUnit();
 
-  rcPicBufferUnusedList += m_cPicBufferList;
-  m_cPicBufferList.clear();
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-MCTFDecoder::getBaseLayerData( IntFrame*&   pcFrame,
-                               IntFrame*&   pcResidual,
-                               MbDataCtrl*& pcMbDataCtrl,
-                               Bool         bHighPass,
-                               Bool         bSpatialScalability,
-                               Int          iPoc )
-{
-  UInt  uiPos   = MSYS_UINT_MAX;
-  pcFrame       = 0;
-  pcResidual    = 0;
-  pcMbDataCtrl  = 0;
-
-  for( UInt uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++ )
+  if( pcLastUnit && pcLastUnit->getCtrlData().getSliceHeader() && pcLastUnit->getCtrlData().getSliceHeader()->getPoc() == iPoc )
   {
-    if( m_pacControlData[uiFrame].getSliceHeader() &&
-        m_pacControlData[uiFrame].getSliceHeader()->getPoc() == iPoc )
-    {
-      pcResidual    = m_papcResidual  [uiFrame];
-      pcFrame       = m_papcFrame     [uiFrame];
-      pcMbDataCtrl  = m_pacControlData[uiFrame].getMbDataCtrl();
-      uiPos         = uiFrame;
-      break;
-    }
+    pcMbDataCtrl  = pcLastUnit->getCtrlData().getMbDataCtrl();
+    pcResidual    = m_pcResidual;
+  }
+  
+  return Err::m_nOK;
+}
+ 
+
+
+ErrVal
+MCTFDecoder::getReconstructedBaseLayer( IntFrame*&   pcFrame,
+                                        Bool         bSpatialScalability,
+                                        Int          iPoc )
+{
+  pcFrame                     = 0;
+  MbDataCtrl*   pcMbDataCtrl  = 0;
+  SliceHeader*  pcSliceHeader = 0;
+  DPBUnit*      pcBaseDPBUnit = m_pcDecodedPictureBuffer->getDPBUnit( iPoc );
+
+  if( pcBaseDPBUnit )
+  {
+    pcFrame       = pcBaseDPBUnit->getFrame   ();
+    pcMbDataCtrl  = pcBaseDPBUnit->getCtrlData().getMbDataCtrl  ();
+    pcSliceHeader = pcBaseDPBUnit->getCtrlData().getSliceHeader ();
   }
 
-#if ! UNRESTRICTED_INTER_LAYER_PREDICTION
+#if MULTIPLE_LOOP_DECODING
+  if( pcFrame && ! m_bCompletelyDecodeLayer )
+#else
   if( pcFrame )
+#endif
   {
-    if ( bHighPass && bSpatialScalability )
+    Bool bConstrainedIntra = pcSliceHeader->getPPS().getConstrainedIntraPredFlag();
+    if ( bConstrainedIntra && bSpatialScalability )
     {
       RNOK( m_apcFrameTemp[0]->copy( pcFrame ) );
       pcFrame = m_apcFrameTemp[0];
 
       m_pcLoopFilter->setFilterMode( LoopFilter::LFMode( LoopFilter::LFM_NO_INTER_FILTER + LoopFilter::LFM_EXTEND_INTRA_SUR ) );
-      RNOK( m_pcLoopFilter->process(*m_pacControlData[uiPos].getSliceHeader (),
+      RNOK( m_pcLoopFilter->process(*pcSliceHeader,
                                      pcFrame,
-                                     m_pacControlData[uiPos].getMbDataCtrl  (),
-                                     m_pacControlData[uiPos].getMbDataCtrl  (),
+                                     pcMbDataCtrl,
+                                     pcMbDataCtrl,
                                      m_uiFrameWidthInMb,
                                      NULL,
                                      NULL ) );
@@ -465,19 +1423,19 @@ MCTFDecoder::getBaseLayerData( IntFrame*&   pcFrame,
     }
     else if( bSpatialScalability )
     {
-      RNOK( m_pcLoopFilter->process(*m_pacControlData[uiPos].getSliceHeader (),
+      RNOK( m_pcLoopFilter->process(*pcSliceHeader,
                                      pcFrame,
-                                     m_pacControlData[uiPos].getMbDataCtrl  (),
-                                     m_pacControlData[uiPos].getMbDataCtrl  (),
+                                     pcMbDataCtrl,
+                                     pcMbDataCtrl,
                                      m_uiFrameWidthInMb,
-                                    &m_pacControlData[uiPos].getDPCMRefFrameList( LIST_0 ),
-                                    &m_pacControlData[uiPos].getDPCMRefFrameList( LIST_1 ) ) );
+                                    &pcBaseDPBUnit->getCtrlData().getPrdFrameList( LIST_0 ),
+                                    &pcBaseDPBUnit->getCtrlData().getPrdFrameList( LIST_1 ) ) );
     }
   }
-#endif
   
   return Err::m_nOK;
 }
+
 
 
 
@@ -491,33 +1449,16 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
 
 
   //========== CREATE FRAME MEMORIES ==========
-  ROFRS   ( ( m_papcFrame                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
-  ROFRS   ( ( m_papcResidual                = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
-  
-  for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
-  {
-    ROFRS ( ( m_papcFrame     [ uiIndex ]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
-    ROFRS ( ( m_papcResidual  [ uiIndex ]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
-    RNOK  (   m_papcFrame     [ uiIndex ]   ->init        () );
-    RNOK  (   m_papcResidual  [ uiIndex ]   ->init        () );
-  }
-  
   for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES;  uiIndex++ )
   {
     ROFRS ( ( m_apcFrameTemp  [ uiIndex ]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                             *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
     RNOK  (   m_apcFrameTemp  [ uiIndex ]   ->init        () );
   }
-  
-  ROFRS   ( ( m_pcLowPassBaseReconstruction = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+
+  ROFRS   ( ( m_pcResidual                  = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                             *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
-  RNOK    (   m_pcLowPassBaseReconstruction ->init        () );
-  
-  ROFRS   ( ( m_pcAnchorFrame               = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
-  RNOK    (   m_pcAnchorFrame               ->init        () );
+  RNOK    (   m_pcResidual                  ->init        () );
   
   ROFRS   ( ( m_pcPredSignal                = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                             *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
@@ -534,16 +1475,6 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
 
 
   //========== CREATE MACROBLOCK DATA MEMORIES ==========
-  ROFRS   ( ( m_pacControlData  = new ControlData[ m_uiMaxGOPSize + 1 ] ), Err::m_nERR );
-
-  for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
-  {
-    MbDataCtrl*   pcMbDataCtrl                = 0;
-    ROFRS ( (     pcMbDataCtrl                = new MbDataCtrl  () ), Err::m_nERR );
-    RNOK  (       pcMbDataCtrl                ->init            ( rcSPS ) );
-    RNOK  (       m_pacControlData[ uiIndex ] . setMbDataCtrl   ( pcMbDataCtrl ) );
-  }
-  
   MbDataCtrl*   pcMbDataCtrl    = 0;
   ROFRS   ( (   pcMbDataCtrl    = new MbDataCtrl() ), Err::m_nERR );
   RNOK    (     pcMbDataCtrl    ->init          ( rcSPS ) );
@@ -575,36 +1506,6 @@ MCTFDecoder::xDeleteData()
   UInt uiIndex;
 
   //========== DELETE FRAME MEMORIES ==========
-  if( m_papcFrame )
-  {
-    for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
-    {
-      if( m_papcFrame[ uiIndex ] )
-      {
-        RNOK(   m_papcFrame[ uiIndex ]->uninit() );
-        delete  m_papcFrame[ uiIndex ];
-        m_papcFrame[ uiIndex ] = 0;
-      }
-    }
-    delete [] m_papcFrame;
-    m_papcFrame = 0;
-  }
-  
-  if( m_papcResidual )
-  {
-    for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
-    {
-      if( m_papcResidual[ uiIndex ] )
-      {
-        RNOK(   m_papcResidual[ uiIndex ]->uninit() );
-        delete  m_papcResidual[ uiIndex ];
-        m_papcResidual[ uiIndex ] = 0;
-      }
-    }
-    delete [] m_papcResidual;
-    m_papcResidual = 0;
-  }
-  
   for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )
   {
     if( m_apcFrameTemp[ uiIndex ] )
@@ -615,18 +1516,11 @@ MCTFDecoder::xDeleteData()
     }
   }
 
-  if( m_pcLowPassBaseReconstruction )
+  if( m_pcResidual )
   {
-    RNOK(   m_pcLowPassBaseReconstruction->uninit() );
-    delete  m_pcLowPassBaseReconstruction;
-    m_pcLowPassBaseReconstruction = 0;
-  }
-
-  if( m_pcAnchorFrame )
-  {
-    RNOK(   m_pcAnchorFrame->uninit() );
-    delete  m_pcAnchorFrame;
-    m_pcAnchorFrame = 0;
+    RNOK(   m_pcResidual->uninit() );
+    delete  m_pcResidual;
+    m_pcResidual = 0;
   }
 
   if( m_pcPredSignal )
@@ -652,35 +1546,16 @@ MCTFDecoder::xDeleteData()
 
 
   //========== DELETE MACROBLOCK DATA MEMORIES (and SLICE HEADER) ==========
-  if( m_pacControlData )
+  MbDataCtrl*   pcMbDataCtrl  = m_cControlDataUpd.getMbDataCtrl  ();
+  SliceHeader*  pcSliceHeader = m_cControlDataUpd.getSliceHeader ();
+  if( pcMbDataCtrl )
   {
-    for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
-    {
-      MbDataCtrl*   pcMbDataCtrl  = m_pacControlData[ uiIndex ].getMbDataCtrl  ();
-      SliceHeader*  pcSliceHeader = m_pacControlData[ uiIndex ].getSliceHeader ();
-      if( pcMbDataCtrl )
-      {
-        RNOK( pcMbDataCtrl->uninit() );
-      }
-      delete pcMbDataCtrl;
-      delete pcSliceHeader;
-    }
-    delete [] m_pacControlData;
-    m_pacControlData = 0;
+    RNOK( pcMbDataCtrl->uninit() );
   }
-
-  {
-    MbDataCtrl*   pcMbDataCtrl  = m_cControlDataUpd.getMbDataCtrl  ();
-    SliceHeader*  pcSliceHeader = m_cControlDataUpd.getSliceHeader ();
-    if( pcMbDataCtrl )
-    {
-      RNOK( pcMbDataCtrl->uninit() );
-    }
-    delete pcMbDataCtrl;
-    delete pcSliceHeader;
-    m_cControlDataUpd.setMbDataCtrl ( 0 );
-    m_cControlDataUpd.setSliceHeader( 0 );
-  }
+  delete pcMbDataCtrl;
+  delete pcSliceHeader;
+  m_cControlDataUpd.setMbDataCtrl ( 0 );
+  m_cControlDataUpd.setSliceHeader( 0 );
 
   if( m_pcBaseLayerCtrl )
   {
@@ -695,71 +1570,6 @@ MCTFDecoder::xDeleteData()
   m_pusUpdateWeights  = 0;
 
 
-  return Err::m_nOK;
-}
-
-
-
-
-Bool
-MCTFDecoder::xIsNewGOP( SliceHeader* pcSliceHeader )
-{
-  ROTRS( m_eNextNalType == LOW_PASS_IDR,              true );
-  ROTRS( pcSliceHeader->getSliceType() != F_SLICE &&
-         pcSliceHeader->getGOPId    () != m_uiGOPId,  true );
-
-  return false;
-}
-
-
-
-ErrVal
-MCTFDecoder::xInitGOP( SliceHeader*  pcSliceHeader )
-{
-  m_bReconstructed = false;
-
-
-  UInt uiIndex;
-  for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
-  {
-    m_papcFrame   [uiIndex]->initRecLayer ();
-    m_papcResidual[uiIndex]->initRecLayer ();
-
-    m_papcFrame   [uiIndex]->setBandType  ( LPS );
-    m_papcResidual[uiIndex]->setBandType  ( HPS );
-
-// *LMH: Inverse MCTF
-    RNOK( m_papcFrame   [uiIndex]->uninitHalfPel() );
-    RNOK( m_papcResidual[uiIndex]->uninitHalfPel() );
-  }
-  if( m_pcAnchorFrame->isValid() )
-  {
-    RNOK( m_papcFrame[0]->copyAll( m_pcAnchorFrame ) );
-  }
-
-
-  //============================= CONTROL DATA =============================
-  for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
-  {
-    SliceHeader*  pcSH = m_pacControlData[uiIndex].getSliceHeader();
-    delete pcSH;
-
-    m_pacControlData[uiIndex].clear();
-    m_pacControlData[uiIndex].setSliceHeader( 0 );
-  }
-  m_cControlDataUpd.clear();
-
-// *LMH: Inverse MCTF
-  if( m_pcAnchorFrame->isValid() )
-  {
-    m_pacControlData[0].setBaseRep(true);
-  }
-
-  //============================ PARAMETERS ================================
-  m_uiGOPId                   = pcSliceHeader->getGOPId               ();
-  m_uiGOPSize                 = pcSliceHeader->getGOPSize             ();
-  m_uiDecompositionStages     = pcSliceHeader->getDecompositionStages ();
-  m_eNextNalType              = ALL;
   return Err::m_nOK;
 }
 
@@ -894,8 +1704,7 @@ MCTFDecoder::initSlice( SliceHeader* pcSliceHeader, UInt uiLastLayer )
   }
 
 // *LMH: Inverse MCTF
-  if( uiLastLayer == m_uiLayerId                                                         &&
-      m_pcCurrSliceHeader != 0                                                           &&
+  if( m_pcCurrSliceHeader != 0                                                           &&
       m_pcCurrSliceHeader->getLayerId() == m_uiLayerId                                   &&
     (!pcSliceHeader                                                                      ||
       pcSliceHeader->getLayerId       () != m_pcCurrSliceHeader->getLayerId      ()      ||
@@ -904,7 +1713,12 @@ MCTFDecoder::initSlice( SliceHeader* pcSliceHeader, UInt uiLastLayer )
   {
     // After all slices of the current picture, pic, have been decoded from the bitstream,
     // the inverse motion compensated temporal filtering process is invoked
-    xInvokeMCTF( m_pcCurrSliceHeader->getFrameIdInsideGOP() );
+#if MULTIPLE_LOOP_DECODING
+    Bool bIntraOnly   = ( !m_bCompletelyDecodeLayer && uiLastLayer != m_uiLayerId );
+#else
+    Bool bIntraOnly   = ( uiLastLayer != m_uiLayerId );
+#endif
+    RNOK( xInvokeMCTF( m_pcCurrSliceHeader, bIntraOnly ) );
     m_pcCurrSliceHeader = 0;
   }
   return Err::m_nOK;
@@ -917,24 +1731,52 @@ MCTFDecoder::xReconstructLastFGS()
 {
   if( m_pcRQFGSDecoder->changed() )
   {
-    SliceHeader*  pcSliceHeader   = m_pcRQFGSDecoder->getSliceHeader      ();
-    UInt          uiFrameIdInGOP  = pcSliceHeader   ->getFrameIdInsideGOP ();
-    IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-    IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
-    ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
+    DPBUnit*      pcLastUnit      = m_pcDecodedPictureBuffer->getLastUnit();
+    SliceHeader*  pcSliceHeader   = m_pcRQFGSDecoder->getSliceHeader();
+    ROF( pcLastUnit );
+    ROF( pcSliceHeader == pcLastUnit->getCtrlData().getSliceHeader() );
 
-    RNOK( m_pcRQFGSDecoder->reconstruct( pcFrame ) );
+    IntFrame*     pcFrame         = pcLastUnit->getFrame    ();
+    ControlData&  rcControlData   = pcLastUnit->getCtrlData ();
+
+    RNOK( m_pcRQFGSDecoder->reconstruct( pcFrame, pcSliceHeader->getKeyPictureFlag() ) );
 
     RNOK( xAddBaseLayerResidual   ( rcControlData, pcFrame ) );
-    RNOK( pcResidual      ->copy  ( pcFrame ) )
-    RNOK( xZeroIntraMacroblocks   ( pcResidual, rcControlData ) );
-    RNOK( pcFrame         ->add   ( m_pcPredSignal ) );
+    RNOK( m_pcResidual    ->copy  ( pcFrame ) )
+    RNOK( xZeroIntraMacroblocks   ( m_pcResidual, rcControlData ) );
 
-    RNOK( xClipIntraMacroblocks( pcFrame, rcControlData, pcSliceHeader->getTemporalLevel() == 0 ) );
+    if( pcSliceHeader->getKeyPictureFlag() )
+    {
+      RNOK( pcFrame         ->add   ( m_pcPredSignal ) );
+      RNOK( xClipIntraMacroblocks   ( pcFrame, rcControlData, !pcLastUnit->isResidual() ) );
+    }
+
+    //===== update picture in DPB =====
+    RNOK( m_pcDecodedPictureBuffer->update( pcLastUnit ) );
+  }
+  else if( !m_pcRQFGSDecoder->getSliceHeader()->getKeyPictureFlag() )
+  {
+    //===== restore base layer intra coefficients =====
+    MbDataCtrl* pcMbDataCtrl = m_pcDecodedPictureBuffer->getLastUnit()->getCtrlData().getMbDataCtrl();
+    RNOK( pcMbDataCtrl          ->initSlice( *m_pcRQFGSDecoder->getSliceHeader(), PRE_PROCESS, true, NULL ) );
+    RNOK( m_pcMotionCompensation->initSlice( *m_pcRQFGSDecoder->getSliceHeader()              ) );
+
+    for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
+    {
+      UInt          uiMbY           = uiMbIndex / m_uiFrameWidthInMb;
+      UInt          uiMbX           = uiMbIndex % m_uiFrameWidthInMb;
+      MbDataAccess* pcMbDataAccess  = 0;
+
+      RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
+      if( pcMbDataAccess->getMbData().isIntra() )
+      {
+        pcMbDataAccess->getMbTCoeffs().copyFrom( pcMbDataAccess->getMbData().getIntraBaseCoeffs() );
+      }
+    }
   }
 
   RNOK( m_pcRQFGSDecoder->finishPicture () );
-
+  
 
   return Err::m_nOK;
 }
@@ -962,7 +1804,9 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
       m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel () + 1  == rpcSliceHeader->getQualityLevel  ()  )
   {
     if( rpcSliceHeader->getQualityLevel() <= m_uiQualityLevelForPrediction )
-    RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
+    {
+      RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
+    }
   }
 
   return Err::m_nOK;
@@ -974,7 +1818,7 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
 
 
 ErrVal
-MCTFDecoder::xInitBaseLayerData( ControlData& rcControlData )
+MCTFDecoder::xInitBaseLayerMotionAndResidual( ControlData& rcControlData )
 {
   //===== init =====
   rcControlData.setBaseLayerRec ( 0 );
@@ -982,7 +1826,6 @@ MCTFDecoder::xInitBaseLayerData( ControlData& rcControlData )
   rcControlData.setBaseLayerCtrl( 0 );
 
   
-  IntFrame*   pcBaseFrame         = 0;
   IntFrame*   pcBaseResidual      = 0;
   MbDataCtrl* pcBaseDataCtrl      = 0;
   Bool        bSpatialScalability = false;
@@ -990,15 +1833,11 @@ MCTFDecoder::xInitBaseLayerData( ControlData& rcControlData )
 
   if( rcControlData.getSliceHeader()->getBaseLayerId() != MSYS_UINT_MAX )
   {
-    RNOK( m_pcH264AVCDecoder->getBaseLayerData( pcBaseFrame,
-                                                pcBaseResidual,
-                                                pcBaseDataCtrl,
-                                                bSpatialScalability,
-                                                m_uiLayerId,
-                                                rcControlData.getSliceHeader()->getBaseLayerId(),
-                                                rcControlData.getSliceHeader()->getTemporalLevel() > 0,
-                                                rcControlData.getSliceHeader()->getPoc() ) );
-    bBaseDataAvailable = pcBaseFrame && pcBaseResidual && pcBaseDataCtrl;
+    RNOK( m_pcH264AVCDecoder->getBaseLayerMotionAndResidual( pcBaseResidual, pcBaseDataCtrl, bSpatialScalability,
+                                                             m_uiLayerId,
+                                                             rcControlData.getSliceHeader()->getBaseLayerId(),
+                                                             rcControlData.getSliceHeader()->getPoc() ) );    
+    bBaseDataAvailable = pcBaseResidual && pcBaseDataCtrl;
     ROF( bBaseDataAvailable );
 
     rcControlData.setBaseLayerResolution( bSpatialScalability );
@@ -1024,8 +1863,6 @@ MCTFDecoder::xInitBaseLayerData( ControlData& rcControlData )
   //===== residual data =====
   if( bBaseDataAvailable )
   {
-    // if RECONSTRUCTION BYPASS ?????  ===> zero intra macroblocks ?????
-
     RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual ) ); 
     if( rcControlData.isHalfResolutionBaseLayer() )
     {
@@ -1035,9 +1872,35 @@ MCTFDecoder::xInitBaseLayerData( ControlData& rcControlData )
     rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
   }
 
+  return Err::m_nOK;
+}
+
+
+
+
+
+
+
+ErrVal
+MCTFDecoder::xInitBaseLayerReconstruction( ControlData& rcControlData )
+{
+  //===== init =====
+  rcControlData.setBaseLayerRec ( 0 );
+  IntFrame*   pcBaseFrame       = 0;
+
+  if( rcControlData.getSliceHeader()->getBaseLayerId() != MSYS_UINT_MAX )
+  {
+    RNOK( m_pcH264AVCDecoder->getReconstructedBaseLayer( pcBaseFrame,
+                                                         m_uiLayerId,
+                                                         rcControlData.getSliceHeader()->getBaseLayerId(),
+                                                         rcControlData.isHalfResolutionBaseLayer(),
+                                                         rcControlData.getSliceHeader()->getTemporalLevel() > 0,
+                                                         rcControlData.getSliceHeader()->getPoc() ) );
+    ROF( pcBaseFrame );
+  }
 
   //==== reconstructed (intra) data =====
-  if( bBaseDataAvailable )
+  if( pcBaseFrame )
   {
     RNOK( m_pcBaseLayerFrame->copy( pcBaseFrame ) );
     if( rcControlData.isHalfResolutionBaseLayer() )
@@ -1054,10 +1917,11 @@ MCTFDecoder::xInitBaseLayerData( ControlData& rcControlData )
 
 
 
-
-
 ErrVal
-MCTFDecoder::xDecodeLowPassSignal( SliceHeader*& rpcSliceHeader )
+MCTFDecoder::xDecodeLowPassSignal( SliceHeader*&  rpcSliceHeader,
+                                   PicBuffer*&    rpcPicBuffer,
+                                   PicBufferList& rcOutputList,
+                                   PicBufferList& rcUnusedList )
 {
   printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d )\n",
     rpcSliceHeader->getPoc                    (),
@@ -1071,34 +1935,25 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*& rpcSliceHeader )
     rpcSliceHeader->getPicQp                  () );
 
 
-  UInt          uiFrameIdInGOP      = rpcSliceHeader->getFrameIdInsideGOP();
-  ControlData&  rcControlData       = m_pacControlData[ uiFrameIdInGOP ];   
-  IntFrame*     pcFrame             = m_papcFrame     [ uiFrameIdInGOP ];
-  IntFrame*     pcResidual          = m_papcResidual  [ uiFrameIdInGOP ];
-  IntFrame*     pcLPFrame           = m_apcFrameTemp  [0];
-  MbDataCtrl*   pcMbDataCtrl        = rcControlData.getMbDataCtrl();
-  UInt          uiMbRead            = 0;
+  //===== init =====
+  Bool bResidual = false;
+  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, bResidual, rpcSliceHeader,
+                                                   rcOutputList, rcUnusedList ) );
+  RNOK( xInitBaseLayerMotionAndResidual ( m_pcCurrDPBUnit->getCtrlData() ) );
+  RNOK( xInitBaseLayerReconstruction    ( m_pcCurrDPBUnit->getCtrlData() ) );
 
-  ROT ( pcFrame->getRecLayer() );
-  
-  RNOK( rcControlData      .setSliceHeader(  rpcSliceHeader ) );
-  RNOK( pcMbDataCtrl      ->reset         () );
-  RNOK( pcMbDataCtrl      ->clear         () );
-  pcFrame->setPOC( rpcSliceHeader->getPoc() );
-
-  
-  RNOK( xInitBaseLayerData( rcControlData ) );
-
+  ControlData&  rcControlData = m_pcCurrDPBUnit->getCtrlData();
+  IntFrame*     pcFrame       = m_pcCurrDPBUnit->getFrame   ();
+  IntFrame*     pcResidual    = m_pcResidual;
+  IntFrame*     pcLPFrame     = m_apcFrameTemp[0];
+  MbDataCtrl*   pcMbDataCtrl  = rcControlData.getMbDataCtrl();
+  UInt          uiMbRead      = 0;
   
   //----- initialize reference lists -----
-  RefFrameList& cRefFrameList0 = rcControlData.getDPCMRefFrameList( 0 );
-  RefFrameList& cRefFrameList1 = rcControlData.getDPCMRefFrameList( 1 );
-  cRefFrameList0.reset();
-  cRefFrameList1.reset();
-  RNOK( cRefFrameList0.add  ( m_pcLowPassBaseReconstruction ) );
-  RNOK( xFillAndExtendFrame ( m_pcLowPassBaseReconstruction ) );
+  RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );
 
-  //----- decode and reconstruct low-pass picture and subband -----
+
+  //----- decode and reconstruct low-pass picture and residual -----
   if( rpcSliceHeader->isIntra() )
   {
     //----- parsing -----
@@ -1142,38 +1997,36 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*& rpcSliceHeader )
                                                   m_pcPredSignal,
                                                   rcControlData.getBaseLayerRec(),
                                                   rcControlData.getBaseLayerSbb(),
-                                                  cRefFrameList0,
+                                                  rcControlData.getPrdFrameList( LIST_0 ),
                                                   m_uiFrameWidthInMb,
                                                   uiMbRead ) );
   }
 
-  //----- store non-filtered subband and residual -----
-  RNOK( pcFrame->copy( pcLPFrame ) );
-  pcFrame   ->setBandType( LPS );
-  pcFrame   ->addRecLayer();
-  pcResidual->addRecLayer();
 
-  //----- loop-filtering and store in DPCM buffer (for following low-pass frames) -----
+  //----- store non-filtered frame and residual -----
+  RNOK( pcFrame->copy( pcLPFrame ) );
+
+  //----- loop-filtering and store in DPB as base representation -----
   RNOK( m_pcLoopFilter->process( *rpcSliceHeader,
                                  pcLPFrame,
                                  ( rpcSliceHeader->isIntra() ? NULL : pcMbDataCtrl ),
                                  pcMbDataCtrl,
                                  m_uiFrameWidthInMb,
-                                 &cRefFrameList0,
-                                 &cRefFrameList1 ) );
-  m_pcLowPassBaseReconstruction->uninitHalfPel();
-  RNOK( m_pcLowPassBaseReconstruction->copy( pcLPFrame ) );
+                                 &rcControlData.getPrdFrameList( LIST_0 ),
+                                 &rcControlData.getPrdFrameList( LIST_1 ) ) );
+  RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcLPFrame ) );
 
   //----- set slice header to zero (slice header is stored in control data) -----
   rpcSliceHeader = 0;
 
   if( m_uiQualityLevelForPrediction > 0 )
-  RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+  {
+    RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+  }
 // *LMH: Inverse MCTF
   m_pcCurrSliceHeader = rcControlData.getSliceHeader();
 
   DTRACE_NEWFRAME;
-
   return Err::m_nOK;
 }
 
@@ -1182,7 +2035,10 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*& rpcSliceHeader )
 
 
 ErrVal
-MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
+MCTFDecoder::xDecodeHighPassSignal( SliceHeader*&   rpcSliceHeader,
+                                    PicBuffer*&     rpcPicBuffer,
+                                    PicBufferList&  rcOutputList,
+                                    PicBufferList&  rcUnusedList )
 {
   printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d )\n",
     rpcSliceHeader->getPoc                    (),
@@ -1195,26 +2051,22 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
     rpcSliceHeader->getAdaptivePredictionFlag () ? 1 : 0,
     rpcSliceHeader->getPicQp                  () );
 
+  //===== init =====
+  Bool bResidual = true;
+  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, bResidual, rpcSliceHeader,
+                                                   rcOutputList, rcUnusedList ) );
+  RNOK( xInitBaseLayerMotionAndResidual( m_pcCurrDPBUnit->getCtrlData() ) );
 
-  UInt          uiFrameIdInGOP      = rpcSliceHeader->getFrameIdInsideGOP();
-  ControlData&  rcControlData       = m_pacControlData[ uiFrameIdInGOP ];   
-  IntFrame*     pcFrame             = m_papcFrame     [ uiFrameIdInGOP ];
-  IntFrame*     pcResidual          = m_papcResidual  [ uiFrameIdInGOP ];
-  MbDataCtrl*   pcMbDataCtrl        = rcControlData.getMbDataCtrl();
-  UInt          uiMbRead            = 0;
-
-
-  ROT( pcFrame->getRecLayer() );
+  ControlData&  rcControlData = m_pcCurrDPBUnit->getCtrlData();
+  IntFrame*     pcFrame       = m_pcCurrDPBUnit->getFrame   ();
+  IntFrame*     pcResidual    = m_pcResidual;
+  MbDataCtrl*   pcMbDataCtrl  = rcControlData.getMbDataCtrl();
+  UInt          uiMbRead      = 0;
   
-  RNOK( rcControlData      .setSliceHeader(  rpcSliceHeader ) );
-  RNOK( pcMbDataCtrl      ->reset         () );
-  RNOK( pcMbDataCtrl      ->clear         () );
-  pcFrame->setPOC( rpcSliceHeader->getPoc() );
+  //----- initialize reference lists -----
+  RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );
 
-  
-  RNOK( xInitBaseLayerData( rcControlData ) );
 
-  
   //----- parsing -----
   RNOK( m_pcControlMng  ->initSliceForReading ( *rpcSliceHeader ) );
   
@@ -1238,22 +2090,20 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
                                                 rcControlData.getBaseLayerCtrl(),
                                                 pcFrame,
                                                 pcResidual,
-                                                m_pcPredSignal,
                                                 rcControlData.getBaseLayerSbb(),
-                                                rcControlData.getBaseLayerRec(),
                                                 m_uiFrameWidthInMb,
                                                 uiMbRead ) );
 
   //----- updating -----
-  pcResidual->addRecLayer();
-  pcFrame->addRecLayer();
-  pcFrame->setBandType( HPS );
+  RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList ) );
 
   //----- set slice header to zero (slice header is stored in control data) -----
   rpcSliceHeader = 0;
 
   if( m_uiQualityLevelForPrediction > 0 )
-  RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+  {
+    RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+  }
 // *LMH: Inverse MCTF
   m_pcCurrSliceHeader = rcControlData.getSliceHeader();
 
@@ -1262,65 +2112,65 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*& rpcSliceHeader )
   return Err::m_nOK;
 }
 
-// *LMH: Inverse MCTF
 
+// *LMH: Inverse MCTF
 ErrVal
-MCTFDecoder::xInvokeMCTF( UInt uiFrameIdInGOP )
+MCTFDecoder::xInvokeMCTF( SliceHeader*  pcSliceHeader,
+                          Bool          bIntraOnly ) //HS: only intra macroblocks in non-key pictures are reconstructed
 // After all slices of the current picture, pic, have been decoded from the bitstream,
 // the inverse motion compensated temporal filtering process is invoked
 // If picture pic is marked as "residual picture",
-//   The "check for inverse prediction process" in subclause S.8.8.3 is invoked with pic and NULL as inputs
+//   The "check for inverse prediction process" in subclause S.8.8.1 is invoked with pic and NULL as inputs
 // Otherwise (i.e. picture pic is not marked as "residual picture"),
-//   The "check for inverse update process" in subclause S.8.8.4 is invoked with pic and NULL as inputs
+//   The "check for inverse update process" in subclause S.8.8.2 is invoked with pic and NULL as inputs
 {
-  ControlData&  rcControlData       = m_pacControlData[ uiFrameIdInGOP ];   
-  IntFrame*     pcFrame             = m_papcFrame     [ uiFrameIdInGOP ];
+  DPBUnit*  pcLastDPBUnit = m_pcDecodedPictureBuffer->getLastUnit();
+  ROF( pcLastDPBUnit );
+  ROF( pcLastDPBUnit->getCtrlData().getSliceHeader() == pcSliceHeader );
 
-  if ( pcFrame->getBandType() == HPS )
+
+  if( pcLastDPBUnit->isResidual() )
   {
-    xCheckForInversePrediction( (Int)(uiFrameIdInGOP), -1 );
+    RNOK( xCheckForInversePrediction( pcLastDPBUnit, NULL, bIntraOnly ) );
   }
   // Otherwise (i.e. picture pic is not marked as "residual picture"),
- 	// The "check for inverse update process" in subclause S.8.8.4 is invoked with pic and NULL as inputs
+ 	// The "check for inverse update process" in subclause S.8.8.2 is invoked with pic and NULL as inputs
   else
   {
-    // Move from ::xReconstruct()
-    //===== loopfilter for low-pass frames / set anchor frame =====
-    if (uiFrameIdInGOP == m_uiGOPSize)
+    // HS: loop filter for low-pass frames
+    if( pcLastDPBUnit->isKeyPic() && ! bIntraOnly )
     {
-      SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
-      RefFrameList& rcRefFrameList0 = rcControlData.getDPCMRefFrameList( 0 );
-      RefFrameList& rcRefFrameList1 = rcControlData.getDPCMRefFrameList( 1 );
+      IntFrame*     pcFrame         = pcLastDPBUnit->getFrame   ();
+      ControlData&  rcControlData   = pcLastDPBUnit->getCtrlData();
+      RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( 0 );
+      RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( 1 );
       MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
 
-      if( pcSliceHeader && pcSliceHeader->getTemporalLevel() == 0 )
-      {
-        RNOK( m_pcLoopFilter->process( *pcSliceHeader,
-                                       pcFrame,
-                                       ( pcSliceHeader->isIntra() ? NULL : pcMbDataCtrl ),
-                                       pcMbDataCtrl,
-                                       m_uiFrameWidthInMb,
-                                       &rcRefFrameList0,
-                                       &rcRefFrameList1 ) );
-
-        RNOK( m_pcAnchorFrame->copyAll ( pcFrame ) );
-        m_pcAnchorFrame->setValid   ();
-      }
-      else
-      { 
-        m_pcAnchorFrame->setUnvalid ();
-      }
+      RNOK( m_pcLoopFilter->process( *pcSliceHeader,
+                                      pcFrame,
+                                      ( pcSliceHeader->isIntra() ? NULL : pcMbDataCtrl ),
+                                      pcMbDataCtrl,
+                                      m_uiFrameWidthInMb,
+                                     &rcRefFrameList0,
+                                     &rcRefFrameList1 ) );
+      RNOK( m_pcDecodedPictureBuffer->update( pcLastDPBUnit ) );
     }
 
     // Otherwise (i.e. picture pic is not marked as "residual picture"),
-    // The "check for inverse update process" in subclause S.8.8.4 is invoked with pic and NULL as inputs
-    xCheckForInverseUpdate( (Int)(uiFrameIdInGOP), -1 );
+    // The "check for inverse update process" in subclause S.8.8.2 is invoked with pic and NULL as inputs
+    RNOK( xCheckForInverseUpdate( pcLastDPBUnit, NULL, bIntraOnly ) );
   }
+
   return Err::m_nOK;
 }
 
+
+
+
 ErrVal
-MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP )
+MCTFDecoder::xCheckForInversePrediction( DPBUnit* pcPrdDPBUnit,
+                                         DPBUnit* pcUpdDPBUnit,
+                                         Bool     bIntraOnly )
 // Inputs to this process are
 // - A picture prdPic that is to be checked in this process if it can be inverse predicted.
 // - A picture updPic that is inverse updated prior to invoking this process.
@@ -1335,7 +2185,7 @@ MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP 
 //   The following applies:
 // 	 - Let Y be a template variable that is derived by Y = 1 - X.
 // 	 - The variable curActiveUpdLYrefPic[curTemporalLevelrefPic] is incremented by 1,
-// 	 - The "check for inverse update process" in subclause S.8.8.4 is invoked with refPic and prdPic as input.
+// 	 - The "check for inverse update process" in subclause S.8.8.2 is invoked with refPic and prdPic as input.
 //
 // - If all of the following conditions are true,
 //   - refPic is marked as "base representation"
@@ -1357,44 +2207,45 @@ MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP 
 // - The inverse prediction step is performed on prdPic. The motion compensated prediction process in subclause S.8.8.2 of [1] is invoked with prdPic as input and the output is a modified picture prdPic, which replaces the input version in the decoded picture buffer.
 // - The marking "residual picture" is removed for the picture prdPic.
 // - The variable curTemporalLevelprdPic is incremented by 1,
-// - The "check for inverse update process" in subclause S.8.8.4 is invoked with prdPic and NULL as input.
+// - The "check for inverse update process" in subclause S.8.8.2 is invoked with prdPic and NULL as input.
 {
-  ControlData&  rcPrdPicControlData   = m_pacControlData[ iPrdPicIdInGOP ];
+  ControlData&  rcPrdPicControlData   = pcPrdDPBUnit->getCtrlData();
   SliceHeader*  pcPrdPicSliceHeader   = rcPrdPicControlData.getSliceHeader();
-  UInt uiPredictionLevel = rcPrdPicControlData.getCurTemporalLevel();
-
-  if ( uiPredictionLevel >= m_uiDecompositionStages )
+  UInt          uiPredictionLevel     = rcPrdPicControlData.getCurTemporalLevel();
+  if( uiPredictionLevel >= pcPrdPicSliceHeader->getDecompositionStages() )
   {
-    rcPrdPicControlData.setBaseRep(true);
+    rcPrdPicControlData.setComplete( true ); // HS: that's not the WD !!!!
     return Err::m_nOK;
   }
+  RefFrameList& rcPrdFrameList0       = rcPrdPicControlData.getPrdFrameList( LIST_0 );
+  RefFrameList& rcPrdFrameList1       = rcPrdPicControlData.getPrdFrameList( LIST_1 );
+  Int           iIdInRefList;
 
-  Int iPicGap = 1 << ( m_uiDecompositionStages - uiPredictionLevel - 1 );
 
   //===== list 0 =====
-  Int iRefPicId;
-  UInt uiList0Size     = pcPrdPicSliceHeader->getNumRefIdxActive( LIST_0 );
 // For each picture refPic in the reference picture lists RefPicListX (with X being 0 or 1) of prdPic,
-  for( iRefPicId = iPrdPicIdInGOP - iPicGap; iRefPicId >= 0 && uiList0Size; iRefPicId -= iPicGap, --uiList0Size )
+  for( iIdInRefList = 1; iIdInRefList <= rcPrdFrameList0.getSize(); iIdInRefList++ )
   {
-    ControlData&  rcRefPicControlData = m_pacControlData[ iRefPicId ];
+    DPBUnit* pcDPBUnitRef = rcPrdFrameList0[iIdInRefList]->getDPBUnit();
+
 // - If all of the following conditions are true,
-// 	 - refPic is not marked as "base representation"
 // 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic
-    if ( rcRefPicControlData.isBaseRep() == false && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel )
+    if (!pcDPBUnitRef->getCtrlData().isComplete() && // HS: that's not in the WD
+         pcDPBUnitRef->getCtrlData().getCurTemporalLevel() == uiPredictionLevel )
     {
 //   The following applies:
 // 	 - Let Y be a template variable that is derived by Y = 1 - X.
 // 	 - The variable curActiveUpdLYrefPic[curTemporalLevelrefPic] is incremented by 1,
-// 	 - The "check for inverse update process" in subclause S.8.8.4 is invoked with refPic and prdPic as input.
-      rcRefPicControlData.incCurActiveUpdL1( rcRefPicControlData.getCurTemporalLevel() );
-      xCheckForInverseUpdate( iRefPicId, iPrdPicIdInGOP );
+// 	 - The "check for inverse update process" in subclause S.8.8.2 is invoked with refPic and prdPic as input.
+      pcDPBUnitRef->getCtrlData().incCurActiveUpdL1( pcDPBUnitRef->getCtrlData().getCurTemporalLevel() );
+      RNOK( xCheckForInverseUpdate( pcDPBUnitRef, pcPrdDPBUnit, bIntraOnly) );
     }
+
 
 // - If all of the following conditions are true,
 //   - refPic is marked as "base representation"
 // 	 - updPic is equal to NULL
-    if ( rcRefPicControlData.isBaseRep() == true && iUpdPicIdInGOP == -1 )
+    if ( pcDPBUnitRef->getCtrlData().isComplete() && !pcUpdDPBUnit )
     {
 //   The following applies:
 //   - The variable curActivePrdLXprdPic is incremented by 1,
@@ -1405,7 +2256,9 @@ MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP 
 //   - refPic is not marked as "base representation"
 // 	 - updPic is equal to NULL or updPic is equal to refPic
 // 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic + 1
-    if ( rcRefPicControlData.isBaseRep() == false && (iUpdPicIdInGOP == -1 || iUpdPicIdInGOP == iRefPicId) && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel + 1 )
+    if ( !pcDPBUnitRef->getCtrlData().isComplete() &&
+         ( !pcUpdDPBUnit || pcUpdDPBUnit == pcDPBUnitRef ) &&
+         pcDPBUnitRef->getCtrlData().getCurTemporalLevel() >= uiPredictionLevel + 1 ) // bug fix by HS (>= instead of ==) -> important for some low-delay coding structures
     {
 //   The following applies:
 // 	 - The variable curActivePrdLXprdPic is incremented by 1,
@@ -1413,29 +2266,30 @@ MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP 
     }
   }
 
+  
   //===== list 1 =====
-  UInt uiList1Size     = pcPrdPicSliceHeader->getNumRefIdxActive( LIST_1 );
 // For each picture refPic in the reference picture lists RefPicListX (with X being 0 or 1) of prdPic,
-  for( iRefPicId = iPrdPicIdInGOP + iPicGap; iRefPicId <= m_uiGOPSize && uiList1Size; iRefPicId += iPicGap, --uiList1Size )
+  for( iIdInRefList = 1; iIdInRefList <= rcPrdFrameList1.getSize(); iIdInRefList++ )
   {
-    ControlData&  rcRefPicControlData = m_pacControlData[ iRefPicId ];
+    DPBUnit* pcDPBUnitRef = rcPrdFrameList1[iIdInRefList]->getDPBUnit();
+
 // - If all of the following conditions are true,
-// 	 - refPic is not marked as "base representation"
 // 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic
-    if ( rcRefPicControlData.isBaseRep() == false && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel )
+    if (!pcDPBUnitRef->getCtrlData().isComplete() && // HS: that's not in the WD
+         pcDPBUnitRef->getCtrlData().getCurTemporalLevel() == uiPredictionLevel )
     {
 //   The following applies:
 // 	 - Let Y be a template variable that is derived by Y = 1 - X.
 // 	 - The variable curActiveUpdLYrefPic[curTemporalLevelrefPic] is incremented by 1,
-// 	 - The "check for inverse update process" in subclause S.8.8.4 is invoked with refPic and prdPic as input.
-      rcRefPicControlData.incCurActiveUpdL0( rcRefPicControlData.getCurTemporalLevel() );
-      xCheckForInverseUpdate( iRefPicId, iPrdPicIdInGOP );
+// 	 - The "check for inverse update process" in subclause S.8.8.2 is invoked with refPic and prdPic as input.
+      pcDPBUnitRef->getCtrlData().incCurActiveUpdL0( pcDPBUnitRef->getCtrlData().getCurTemporalLevel() );
+      RNOK( xCheckForInverseUpdate( pcDPBUnitRef, pcPrdDPBUnit, bIntraOnly ) );
     }
 
 // - If all of the following conditions are true,
 //   - refPic is marked as "base representation"
 // 	 - updPic is equal to NULL
-    if ( rcRefPicControlData.isBaseRep() == true && iUpdPicIdInGOP == -1 )
+    if ( pcDPBUnitRef->getCtrlData().isComplete() && !pcUpdDPBUnit )
     {
 //   The following applies:
 //   - The variable curActivePrdLXprdPic is incremented by 1,
@@ -1446,14 +2300,16 @@ MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP 
 //   - refPic is not marked as "base representation"
 // 	 - updPic is equal to NULL or updPic is equal to refPic
 // 	 - curTemporalLevelrefPic is equal to curTemporalLevelprdPic + 1
-    if ( rcRefPicControlData.isBaseRep() == false && (iUpdPicIdInGOP == -1 || iUpdPicIdInGOP == iRefPicId) && rcRefPicControlData.getCurTemporalLevel() == uiPredictionLevel + 1 )
+    if ( !pcDPBUnitRef->getCtrlData().isComplete() &&
+         ( !pcUpdDPBUnit || pcUpdDPBUnit == pcDPBUnitRef ) &&
+         pcDPBUnitRef->getCtrlData().getCurTemporalLevel() == uiPredictionLevel + 1 ) // bug fix by HS (>= instead of ==) -> important for some low-delay coding structures
     {
 //   The following applies:
 // 	 - The variable curActivePrdLXprdPic is incremented by 1,
       rcPrdPicControlData.incCurActivePrdL1();
     }
   }
-
+  
 // If all of the following conditions are true for picture prdPic,
 // - curActivePrdL0prdPic is equal to maxActivePrdL0prdPic
 // - curActivePrdL1prdPic is equal to maxActivePrdL1prdPic
@@ -1461,23 +2317,29 @@ MCTFDecoder::xCheckForInversePrediction( Int iPrdPicIdInGOP, Int iUpdPicIdInGOP 
        rcPrdPicControlData.getCurActivePrdL1() == pcPrdPicSliceHeader->getNumRefIdxActive( LIST_1 ) )
   {
 // The following applies:
-// - The inverse prediction step is performed on prdPic. The motion compensated prediction process in subclause S.8.8.2 of [1] is invoked with prdPic as input and the output is a modified picture prdPic, which replaces the input version in the decoded picture buffer.
+// - The inverse prediction step is performed on prdPic. The motion compensated prediction process in subclause S.8.8.4 of [1] is invoked with prdPic as input and the output is a modified picture prdPic, which replaces the input version in the decoded picture buffer.
 // - The marking "residual picture" is removed for the picture prdPic.
 // - The variable curTemporalLevelprdPic is incremented by 1,
-// - The "check for inverse update process" in subclause S.8.8.4 is invoked with prdPic and NULL as input.
-    xInversePrediction( iPrdPicIdInGOP );
+// - The "check for inverse update process" in subclause S.8.8.2 is invoked with prdPic and NULL as input.
+    RNOK( xInversePrediction( pcPrdDPBUnit, bIntraOnly ) );
     rcPrdPicControlData.incCurTemporalLevel();
-    if ( rcPrdPicControlData.getCurTemporalLevel() == m_uiDecompositionStages )
-      rcPrdPicControlData.setBaseRep(true);
+    if ( rcPrdPicControlData.getCurTemporalLevel() == pcPrdPicSliceHeader->getDecompositionStages() )
+    {
+      rcPrdPicControlData.setComplete( true ); // HS: that's not the WD !!!!
+    }
     else
-      xCheckForInverseUpdate( iPrdPicIdInGOP, -1 );
+    {
+      RNOK( xCheckForInverseUpdate( pcPrdDPBUnit, NULL, bIntraOnly ) );
+    }
   }
 
   return Err::m_nOK;
 }
 
 ErrVal
-MCTFDecoder::xCheckForInverseUpdate( Int iUpdPicIdInGOP, Int iPrdPicIdInGOP )
+MCTFDecoder::xCheckForInverseUpdate( DPBUnit* pcUpdDPBUnit,
+                                     DPBUnit* pcPrdDPBUnit,
+                                     Bool     bIntraOnly )
 // Inputs to this process are
 // - A picture updPic that is to be checked in this process if it can be inverse updated.
 // - A picture prdPic that is checked for inverse prediction prior to invoking this process.
@@ -1496,22 +2358,20 @@ MCTFDecoder::xCheckForInverseUpdate( Int iUpdPicIdInGOP, Int iPrdPicIdInGOP )
 // - The variable curTemporalLevelupdPic is incremented by 1,
 // - For each picture refPic in the update picture lists updPicListX (with X being 0 or 1) of updPic, the following applies:
 //   - If (prdPic is equal to NULL or prdPic is not equal to refPic)
-//     - The "check for inverse prediction process" in subclause S.8.8.3 is invoked with refPic and updPic as inputs.
-// - The "check for inverse update process" in subclause S.8.8.4 is invoked with updPic and NULL as inputs.
+//     - The "check for inverse prediction process" in subclause S.8.8.1 is invoked with refPic and updPic as inputs.
+// - The "check for inverse update process" in subclause S.8.8.2 is invoked with updPic and NULL as inputs.
 {
-  ControlData&  rcUpdPicControlData   = m_pacControlData[ iUpdPicIdInGOP ];
+  ControlData&  rcUpdPicControlData   = pcUpdDPBUnit->getCtrlData();
   SliceHeader*  pcUpdPicSliceHeader   = rcUpdPicControlData.getSliceHeader();
-  UInt uiUpdateLevel = rcUpdPicControlData.getCurTemporalLevel();
-
-  if ( uiUpdateLevel >= m_uiDecompositionStages )
+  UInt          uiUpdateLevel         = rcUpdPicControlData.getCurTemporalLevel();
+  if( uiUpdateLevel >= pcUpdPicSliceHeader->getDecompositionStages() )
   {
-    rcUpdPicControlData.setBaseRep(true);
+    rcUpdPicControlData.setComplete( true ); // HS: that's not the WD !!!!
     return Err::m_nOK;
   }
-
-  Int iPicGap = 1 << ( m_uiDecompositionStages - uiUpdateLevel - 1 );
-  UInt uiList0Size = pcUpdPicSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_0 );
-  UInt uiList1Size = pcUpdPicSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_1 );
+  RefFrameList& rcUpdFrameList0       = rcUpdPicControlData.getUpdFrameList( uiUpdateLevel, LIST_0 );
+  RefFrameList& rcUpdFrameList1       = rcUpdPicControlData.getUpdFrameList( uiUpdateLevel, LIST_1 );
+  Int           iIdInUpdList;
 
 // If all of the following conditions are true for picture updPic,
 // - updPic is not marked as "residual picture"
@@ -1519,421 +2379,169 @@ MCTFDecoder::xCheckForInverseUpdate( Int iUpdPicIdInGOP, Int iPrdPicIdInGOP )
 // - curTemporalLevelupdPic is less than decomposition_stages
 // - curActiveUpdL0updPic[curTemporalLevelupdPic] is equal to maxActiveUpdL0updPic[curTemporalLevelupdPic]
 // - curActiveUpdL1updPic[curTemporalLevelupdPic] is equal to maxActiveUpdL1updPic[curTemporalLevelupdPic]
-  if ( m_papcFrame[ iUpdPicIdInGOP ]->getBandType() == LPS &&
-       rcUpdPicControlData.isBaseRep() == false &&
-       uiUpdateLevel < m_uiDecompositionStages &&
-       rcUpdPicControlData.getCurActiveUpdL0(uiUpdateLevel) == uiList0Size &&
-       rcUpdPicControlData.getCurActiveUpdL1(uiUpdateLevel) == uiList1Size )
+  if (!pcUpdDPBUnit->isResidual() &&
+      !rcUpdPicControlData.isComplete() && // HS: that's not in the WD !!!
+       uiUpdateLevel < pcUpdPicSliceHeader->getDecompositionStages() &&
+       rcUpdPicControlData.getCurActiveUpdL0(uiUpdateLevel) == pcUpdPicSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_0 ) &&
+       rcUpdPicControlData.getCurActiveUpdL1(uiUpdateLevel) == pcUpdPicSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_1 ) )
   {
 // The following applies:
 // - The inverse update step is performed on updPic. The motion compensated update process in subclause S.8.8.1 of [1] is invoked with updPic and curTemporalLevelupdPic as inputs and the output is a modified picture updPic, which replaces the input version in the decoded picture buffer.
 // - The variable curTemporalLevelupdPic is incremented by 1,
-    xInverseUpdate( iUpdPicIdInGOP );
+    RNOK( xInverseUpdate( pcUpdDPBUnit, bIntraOnly ) );
     rcUpdPicControlData.incCurTemporalLevel();
 
 // - For each picture refPic in the update picture lists updPicListX (with X being 0 or 1) of updPic, the following applies:
 //   - If (prdPic is equal to NULL or prdPic is not equal to refPic)
-//     - The "check for inverse prediction process" in subclause S.8.8.3 is invoked with refPic and updPic as inputs.
+//     - The "check for inverse prediction process" in subclause S.8.8.1 is invoked with refPic and updPic as inputs.
     //===== list 0 =====
-    Int iRefPicId;
-    for( iRefPicId = iUpdPicIdInGOP - iPicGap; iRefPicId >= 0 && uiList0Size; iRefPicId -= iPicGap, --uiList0Size )
+    for( iIdInUpdList = 1; iIdInUpdList <= rcUpdFrameList0.getSize(); iIdInUpdList++ )
     {
-      if ( iPrdPicIdInGOP == -1 || iPrdPicIdInGOP != iRefPicId )
+      DPBUnit* pcDPBUnitRef = rcUpdFrameList0[iIdInUpdList]->getDPBUnit();
+      
+      if( pcPrdDPBUnit == NULL || pcPrdDPBUnit != pcDPBUnitRef )
       {
-        xCheckForInversePrediction( iRefPicId, iUpdPicIdInGOP );
+        RNOK( xCheckForInversePrediction( pcDPBUnitRef, pcUpdDPBUnit, bIntraOnly ) );
       }
     }
 
     //===== list 1 =====
-    for( iRefPicId = iUpdPicIdInGOP + iPicGap; iRefPicId <= m_uiGOPSize && uiList1Size; iRefPicId += iPicGap, --uiList1Size )
+    for( iIdInUpdList = 1; iIdInUpdList <= rcUpdFrameList1.getSize(); iIdInUpdList++ )
     {
-      if ( iPrdPicIdInGOP == -1 || iPrdPicIdInGOP != iRefPicId )
+      DPBUnit* pcDPBUnitRef = rcUpdFrameList1[iIdInUpdList]->getDPBUnit();
+      
+      if( pcPrdDPBUnit == NULL || pcPrdDPBUnit != pcDPBUnitRef )
       {
-        xCheckForInversePrediction( iRefPicId, iUpdPicIdInGOP );
+        RNOK( xCheckForInversePrediction( pcDPBUnitRef, pcUpdDPBUnit, bIntraOnly ) );
       }
     }
 
-    if ( rcUpdPicControlData.getCurTemporalLevel() == m_uiDecompositionStages )
-      rcUpdPicControlData.setBaseRep(true);
+    if( rcUpdPicControlData.getCurTemporalLevel() == pcUpdPicSliceHeader->getDecompositionStages() )
+    {
+      rcUpdPicControlData.setComplete( true ); // HS: that's not the WD !!!!
+    }
     else
-// - The "check for inverse update process" in subclause S.8.8.4 is invoked with updPic and NULL as inputs.
-      xCheckForInverseUpdate( iUpdPicIdInGOP, -1 );
+    {
+// - The "check for inverse update process" in subclause S.8.8.2 is invoked with updPic and NULL as inputs.
+      RNOK( xCheckForInverseUpdate( pcUpdDPBUnit, NULL, bIntraOnly ) );
+    }
   }
 
   return Err::m_nOK;
 }
 
+
 ErrVal
-MCTFDecoder::xInversePrediction( UInt uiFrameIdInGOP )
+MCTFDecoder::xInversePrediction( DPBUnit* pcDPBUnit,
+                                 Bool     bIntraOnly )
 {
   //===== PREDICTION =====
-  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-  IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+  ControlData&  rcControlData   = pcDPBUnit->getCtrlData();
+  IntFrame*     pcFrame         = pcDPBUnit->getFrame   ();
   IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
-  UInt          uiBaseLevel     = m_uiDecompositionStages - rcControlData.getCurTemporalLevel() - 1;
-  UInt          uiFramePrd      = uiFrameIdInGOP >> uiBaseLevel;
 
-  printf("xInversePrediction(FR%d, TL%d)\n", uiFrameIdInGOP, rcControlData.getCurTemporalLevel());
-
-  //===== get reference frame lists =====
-  RefFrameList  acRefFrameList[2];
-  RNOK( xGetPredictionLists         ( acRefFrameList[0], acRefFrameList[1], uiBaseLevel, uiFramePrd ) );
-
-  //===== prediction =====
-  RNOK( xMotionCompensation         ( pcMCFrame, &acRefFrameList[0], &acRefFrameList[1],
-                                      rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
-
-
-  RNOK( pcFrame ->inversePrediction ( pcMCFrame, pcFrame ) );
-  //pcFrame       ->clip              ();
-  pcFrame       ->setBandType       ( LPS );
-
-  //===== de-blocking =====
-  RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
-                                       pcFrame,
-                                       rcControlData.getMbDataCtrl (),
-                                       rcControlData.getMbDataCtrl (),
-                                       m_uiFrameWidthInMb,
-                                       &acRefFrameList[0],
-                                       &acRefFrameList[1] ) );
-
-  //===== clear half-pel buffers and buffer extension status =====
-  // RNOK( xClearBufferExtensions() );
-  RNOK( pcFrame->uninitHalfPel() );
-
-  return Err::m_nOK;
-}
-
-ErrVal
-MCTFDecoder::xInverseUpdate( UInt uiFrameIdInGOP )
-{
-  MbDecoder*  pcMbDecoder;
-  pcMbDecoder = m_pcSliceDecoder->getMbDecoder();
-
-  if (m_bLowComplxUpdFlag)
-  {
-    pcMbDecoder->setUpdateWeightsBuf(m_pusUpdateWeights);
-    pcMbDecoder->setMotCompType(UPDT_MC);
-  }
-
-  //===== UPDATE =====
-  ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-  SliceHeader*  pcSliceHeader   = rcControlData     .getSliceHeader ();
-  MbDataCtrl*   pcMbDataCtrl    = m_cControlDataUpd .getMbDataCtrl  ();
-  m_cControlDataUpd.setSliceHeader( pcSliceHeader );
-  IntFrame*     pcMCFrame0      = m_apcFrameTemp  [0];
-  IntFrame*     pcMCFrame1      = m_apcFrameTemp  [1];
-  IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-  UInt          uiBaseLevel     = m_uiDecompositionStages - rcControlData.getCurTemporalLevel() - 1;
-  UInt          uiFrameUpd      = uiFrameIdInGOP >> uiBaseLevel;
-
-  printf("xInverseUpdate    (FR%d, TL%d)\n", uiFrameIdInGOP, rcControlData.getCurTemporalLevel());
-
-  //===== get reference lists =====
-  RefFrameList  acRefFrameList[2];
-  CtrlDataList  acCtrlDataList[2];
-  RNOK( xGetUpdateLists       ( acRefFrameList[0], acRefFrameList[1],
-                                acCtrlDataList[0], acCtrlDataList[1], uiBaseLevel, uiFrameUpd ) );
-
-  //===== list 0 motion compensation =====
-  RNOK( pcMbDataCtrl->reset() );
-  RNOK( pcMbDataCtrl->clear() );
-  RNOK( pcMbDataCtrl->deriveUpdateMotionFieldAdaptive ( *pcSliceHeader,
-                                                        &acCtrlDataList[0],
-                                                        m_cConnectionArray,
-                                                        m_pusUpdateWeights,
-                                                        true, LIST_0 ) );
-  m_pcQuarterPelFilter->setClipMode                   ( false );
-  RNOK( xMotionCompensation                           ( pcMCFrame0,
-                                                        &acRefFrameList[0],
-                                                        &acRefFrameList[1],
-                                                        pcMbDataCtrl,
-                                                        *pcSliceHeader ) );
-  m_pcQuarterPelFilter->setClipMode                   ( true );
-  RNOK( pcMCFrame0->adaptiveWeighting                 ( m_pusUpdateWeights, m_bLowComplxUpdFlag ) );
-
-  //===== list 1 motion compensation =====
-  RNOK( pcMbDataCtrl->reset() );
-  RNOK( pcMbDataCtrl->clear() );
-  RNOK( pcMbDataCtrl->deriveUpdateMotionFieldAdaptive ( *pcSliceHeader,
-                                                        &acCtrlDataList[1],
-                                                        m_cConnectionArray,
-                                                        m_pusUpdateWeights,
-                                                        false, LIST_1 ) );
-  m_pcQuarterPelFilter->setClipMode                   ( false );
-  RNOK( xMotionCompensation                           ( pcMCFrame1,
-                                                        &acRefFrameList[0],
-                                                        &acRefFrameList[1],
-                                                        pcMbDataCtrl,
-                                                        *pcSliceHeader ) );
-  m_pcQuarterPelFilter->setClipMode                   ( true );
-  RNOK( pcMCFrame1->adaptiveWeighting                 ( m_pusUpdateWeights, m_bLowComplxUpdFlag ) );
-
-  //===== inverse update =====
-  RNOK( pcFrame->inverseUpdate                        ( pcMCFrame0, pcMCFrame1, pcFrame ) );
-
-  if (m_bLowComplxUpdFlag)
-    pcMbDecoder->setMotCompType(PRED_MC);
-
-  //----- clear slice header reference -----
-  m_cControlDataUpd.setSliceHeader( NULL );
-
-  //===== clear half-pel buffers and buffer extension status =====
-  // RNOK( xClearBufferExtensions() );
-  RNOK( pcFrame->uninitHalfPel() );
-
-  return Err::m_nOK;
-}
-
-ErrVal
-MCTFDecoder::xDumpFrames( Char* pFilename, UInt uiStage )
-{
-  Char     acTemp[1000];
-  if( uiStage == MSYS_UINT_MAX )  sprintf( acTemp, "%s_L%d.yuv",      pFilename, m_uiLayerId );
-  else                            sprintf( acTemp, "%s_L%d_S%d.yuv",  pFilename, m_uiLayerId, uiStage );
-  FILE*    pFile = ::fopen( acTemp, m_uiGOPId ? "ab" : "wb" );
+  //===== reconstruct intra =====
+  RNOK( xInitBaseLayerReconstruction( rcControlData ) );
+  RNOK( xReconstructIntra           ( pcFrame,
+                                      rcControlData.getBaseLayerRec(),
+                                      m_apcFrameTemp[0],
+                                      m_apcFrameTemp[1],
+                                      rcControlData.getMbDataCtrl(),
+                                     *rcControlData.getSliceHeader() ) );
   
-  for( UInt uiFrame = 1; uiFrame <= m_uiGOPSize; uiFrame++ )
+  if( ! bIntraOnly )
   {
-    if( m_pacControlData[ uiFrame ].getSliceHeader() )
-    {
-      RNOK( m_papcFrame[ uiFrame ]->dump( pFile, m_pacControlData[ uiFrame ].getMbDataCtrl() ) );
-    }
-  }
-
-  ::fclose( pFile );
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-MCTFDecoder::xClearBufferExtensions()
-{
-  for( UInt uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++ )
-  {
-    RNOK( m_papcFrame   [uiFrame]->uninitHalfPel() );
-    RNOK( m_papcResidual[uiFrame]->uninitHalfPel() );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-MCTFDecoder::xGetPredictionLists( RefFrameList& rcRefList0,
-                                  RefFrameList& rcRefList1,
-                                  UInt          uiBaseLevel,
-                                  UInt          uiFrame )
-{
-  rcRefList0.reset();
-  rcRefList1.reset();
-
-  UInt          uiFrameIdInGOP  = ( uiFrame << uiBaseLevel );
-  SliceHeader*  pcSliceHeader   = m_pacControlData[uiFrameIdInGOP].getSliceHeader();
-  UInt          uiList0Size     = pcSliceHeader->getNumRefIdxActive( LIST_0 );
-  UInt          uiList1Size     = pcSliceHeader->getNumRefIdxActive( LIST_1 );
-
-  //===== list 0 =====
-  {
-    for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
-    {
-      IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
-
-      if( ! pcFrame->isExtended() )
-      {
-        RNOK( xFillAndExtendFrame   ( pcFrame ) );
-      }
-
-      RNOK( rcRefList0.add( pcFrame ) );
-      uiList0Size--;
-    }
-    ROT( uiList0Size );
-  }
-
-  //===== list 1 =====
-  {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
-    {
-      IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
-
-      //----- create half-pel buffer -----
-      if( ! pcFrame->isExtended() )
-      {
-        RNOK( xFillAndExtendFrame   ( pcFrame ) );
-      }
-
-      RNOK( rcRefList1.add( pcFrame ) );
-      uiList1Size--;
-    }
-    ROT( uiList1Size );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-
-ErrVal  
-MCTFDecoder::xGetUpdateLists( RefFrameList& rcRefList0,
-                              RefFrameList& rcRefList1,
-                              CtrlDataList& rcCtrlList0,
-                              CtrlDataList& rcCtrlList1,
-                              UInt          uiBaseLevel,
-                              UInt          uiFrame )
-{
-  rcRefList0  .reset();
-  rcRefList1  .reset();
-  rcCtrlList0 .reset();
-  rcCtrlList1 .reset();
-
-  UInt          uiFrameIdInGOP  = ( uiFrame << uiBaseLevel );
-  SliceHeader*  pcSliceHeader   = m_pacControlData[uiFrameIdInGOP].getSliceHeader();
-  UInt          uiUpdateLevel   = m_uiDecompositionStages - uiBaseLevel - 1;
-  UInt          uiList0Size     = pcSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_0 );
-  UInt          uiList1Size     = pcSliceHeader->getNumRefIdxUpdate( uiUpdateLevel, LIST_1 );
-
-  //===== list 0 =====
-  {
-    for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
-    {
-      IntFrame*     pcFrame       =  m_papcResidual   [ iFrameId << uiBaseLevel ];
-      ControlData*  pcControlData = &m_pacControlData [ iFrameId << uiBaseLevel ];
-
-      if( ! pcFrame->isExtended() )
-      {
-        RNOK( xFillAndExtendFrame( pcFrame ) );
-      }
-
-      RNOK( rcRefList0  .add( pcFrame ) );
-      RNOK( rcCtrlList0 .add( pcControlData ) );
-      uiList0Size--;
-    }
-    ROT( uiList0Size );
-  }
-
-  //===== list 1 =====
-  {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
-    {
-      IntFrame*     pcFrame       =  m_papcResidual   [ iFrameId << uiBaseLevel ];
-      ControlData*  pcControlData = &m_pacControlData [ iFrameId << uiBaseLevel ];
-
-      if( ! pcFrame->isExtended() )
-      {
-        RNOK( xFillAndExtendFrame( pcFrame ) );
-      }
-
-      RNOK( rcRefList1  .add( pcFrame ) );
-      RNOK( rcCtrlList1 .add( pcControlData ) );
-      uiList1Size--;
-    }
-    ROT( uiList1Size );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-
-
-
-
-ErrVal
-MCTFDecoder::xCompositionStage( UInt  uiBaseLevel )
-{
-#if DEBUG_OUTPUT
-  if( uiBaseLevel + 1 == m_uiDecompositionStages )
-  {
-    RNOK( xDumpFrames( "..//H264AVCEncoderLibTest//dec_rec", uiBaseLevel + 1 ) );
-  }
+#if 0 // NO_DEBUG
+    printf("xInversePrediction(FR%d, TL%d)\n", pcDPBUnit->getPoc(), rcControlData.getCurTemporalLevel());
 #endif
+    //===== prediction =====
+    RNOK( xMotionCompensation         ( pcMCFrame,
+                                        &rcControlData.getPrdFrameList( LIST_0 ),
+                                        &rcControlData.getPrdFrameList( LIST_1 ),
+                                        rcControlData.getMbDataCtrl(),
+                                        *rcControlData.getSliceHeader() ) );
 
-  MbDecoder*  pcMbDecoder;
-  if (m_bLowComplxUpdFlag)
-  {
-    pcMbDecoder = m_pcSliceDecoder->getMbDecoder();
-    pcMbDecoder->setUpdateWeightsBuf(m_pusUpdateWeights);
-  }
-   
 
-  //===== CHECK IF COMPOSITION IS POSSIBLE / USEFUL =====
-  {
-    Bool  bOk     = true;
-    UInt  uiFrame = 0;
-    for(; uiFrame <= ( m_uiGOPSize >> uiBaseLevel ); uiFrame++ )
-    {
-      if( ! m_papcFrame[ uiFrame << uiBaseLevel ]->getRecLayer() )
-      {
-        bOk = false;
-      }
-    }
-    ROFRS( bOk, Err::m_nOK );
+    RNOK( pcFrame ->inversePrediction ( pcMCFrame, pcFrame ) );
+
+    //===== de-blocking =====
+    RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
+                                         pcFrame,
+                                         rcControlData.getMbDataCtrl (),
+                                         rcControlData.getMbDataCtrl (),
+                                         m_uiFrameWidthInMb,
+                                        &rcControlData.getPrdFrameList( LIST_0 ),
+                                        &rcControlData.getPrdFrameList( LIST_1 ) ) );
   }
 
+  //===== update picture in DPB =====
+  RNOK( m_pcDecodedPictureBuffer->update( pcDPBUnit, true ) );
+
+  return Err::m_nOK;
+}
 
 
-  
-  //===== UPDATE =====
-  if (m_bLowComplxUpdFlag)
-    pcMbDecoder->setMotCompType(UPDT_MC);
-  Bool      bUpdate    = false;
-  for( UInt uiFrameUpd = 2; uiFrameUpd <= ( m_uiGOPSize >> uiBaseLevel ); uiFrameUpd += 2 )
+ErrVal
+MCTFDecoder::xInverseUpdate( DPBUnit* pcDPBUnit,
+                             Bool     bIntraOnly )
+{
+  //===== get reference lists =====
+  RNOK ( m_pcDecodedPictureBuffer->setUpdRefLists( pcDPBUnit, pcDPBUnit->getCtrlData().getCurTemporalLevel() ) );
+  ROTRS( bIntraOnly, Err::m_nOK ); 
+
+  if( pcDPBUnit->getCtrlData().getUpdCtrlList( pcDPBUnit->getCtrlData().getCurTemporalLevel(), LIST_0 ).getSize() ||
+      pcDPBUnit->getCtrlData().getUpdCtrlList( pcDPBUnit->getCtrlData().getCurTemporalLevel(), LIST_1 ).getSize()    )
   {
-    bUpdate                       = true;
-    UInt          uiFrameIdInGOP  = uiFrameUpd << uiBaseLevel;
-    ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
+    //===== UPDATE =====
+    ControlData&  rcControlData   = pcDPBUnit->getCtrlData();
     SliceHeader*  pcSliceHeader   = rcControlData     .getSliceHeader ();
     MbDataCtrl*   pcMbDataCtrl    = m_cControlDataUpd .getMbDataCtrl  ();
     m_cControlDataUpd.setSliceHeader( pcSliceHeader );
     IntFrame*     pcMCFrame0      = m_apcFrameTemp  [0];
     IntFrame*     pcMCFrame1      = m_apcFrameTemp  [1];
-    IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+    IntFrame*     pcFrame         = pcDPBUnit->getFrame();
+    UInt          uiUpdLevel      = rcControlData.getCurTemporalLevel();
+    MbDecoder*    pcMbDecoder     = m_pcSliceDecoder->getMbDecoder();
+    
+    if( m_bLowComplxUpdFlag )
+    {
+      pcMbDecoder->setUpdateWeightsBuf( m_pusUpdateWeights );
+      pcMbDecoder->setMotCompType     ( UPDT_MC );
+    }
 
-
-    //===== get reference lists =====
-    RefFrameList  acRefFrameList[2];
-    CtrlDataList  acCtrlDataList[2];
-    RNOK( xGetUpdateLists       ( acRefFrameList[0], acRefFrameList[1],
-                                  acCtrlDataList[0], acCtrlDataList[1], uiBaseLevel, uiFrameUpd ) );
-
-    if( uiFrameUpd == 2 ) printf("              -");
-    printSpaces( ( 1 << ( uiBaseLevel + 1 ) ) - 1 );
-    printf( acRefFrameList[0].getActive() || acRefFrameList[1].getActive() ? "U" : "-" );
-
+#if 0 // NO_DEBUG
+    printf("xInverseUpdate    (FR%d, TL%d)\n", pcDPBUnit->getPoc(), rcControlData.getCurTemporalLevel());
+#endif
 
     //===== list 0 motion compensation =====
     RNOK( pcMbDataCtrl->reset() );
     RNOK( pcMbDataCtrl->clear() );
     RNOK( pcMbDataCtrl->deriveUpdateMotionFieldAdaptive ( *pcSliceHeader,
-                                                          &acCtrlDataList[0],
+                                                          &rcControlData.getUpdCtrlList( uiUpdLevel, LIST_0 ),
                                                           m_cConnectionArray,
                                                           m_pusUpdateWeights,
                                                           true, LIST_0 ) );
     m_pcQuarterPelFilter->setClipMode                   ( false );
     RNOK( xMotionCompensation                           ( pcMCFrame0,
-                                                          &acRefFrameList[0],
-                                                          &acRefFrameList[1],
+                                                          &rcControlData.getUpdFrameList( uiUpdLevel, LIST_0 ),
+                                                          &rcControlData.getUpdFrameList( uiUpdLevel, LIST_1 ),
                                                           pcMbDataCtrl,
                                                           *pcSliceHeader ) );
     m_pcQuarterPelFilter->setClipMode                   ( true );
     RNOK( pcMCFrame0->adaptiveWeighting                 ( m_pusUpdateWeights, m_bLowComplxUpdFlag ) );
-    
+
     //===== list 1 motion compensation =====
     RNOK( pcMbDataCtrl->reset() );
     RNOK( pcMbDataCtrl->clear() );
     RNOK( pcMbDataCtrl->deriveUpdateMotionFieldAdaptive ( *pcSliceHeader,
-                                                          &acCtrlDataList[1],
+                                                          &rcControlData.getUpdCtrlList( uiUpdLevel, LIST_1 ),
                                                           m_cConnectionArray,
                                                           m_pusUpdateWeights,
                                                           false, LIST_1 ) );
     m_pcQuarterPelFilter->setClipMode                   ( false );
     RNOK( xMotionCompensation                           ( pcMCFrame1,
-                                                          &acRefFrameList[0],
-                                                          &acRefFrameList[1],
+                                                          &rcControlData.getUpdFrameList( uiUpdLevel, LIST_0 ),
+                                                          &rcControlData.getUpdFrameList( uiUpdLevel, LIST_1 ),
                                                           pcMbDataCtrl,
                                                           *pcSliceHeader ) );
     m_pcQuarterPelFilter->setClipMode                   ( true );
@@ -1942,147 +2550,55 @@ MCTFDecoder::xCompositionStage( UInt  uiBaseLevel )
     //===== inverse update =====
     RNOK( pcFrame->inverseUpdate                        ( pcMCFrame0, pcMCFrame1, pcFrame ) );
 
+    //===== update picture in DPB =====
+    RNOK( m_pcDecodedPictureBuffer->update( pcDPBUnit ) );
+
+    if( m_bLowComplxUpdFlag )
+    {
+      pcMbDecoder->setMotCompType(PRED_MC);
+    }
 
     //----- clear slice header reference -----
     m_cControlDataUpd.setSliceHeader( NULL );
   }
-  if( bUpdate ) printf("\n");
-
-  //===== clear half-pel buffers and buffer extension status =====
-  RNOK( xClearBufferExtensions() );
-
-
-
-  //===== PREDICTION =====
-  if (m_bLowComplxUpdFlag)
-    pcMbDecoder->setMotCompType(PRED_MC);
-  Bool      bPrediction = false;
-  for( UInt uiFramePrd  = 1; uiFramePrd <= ( m_uiGOPSize >> uiBaseLevel ); uiFramePrd += 2 )
-  {
-    if( uiFramePrd == 1 )  printf("              ");
-    printSpaces( uiFramePrd == 1 ? 1 << uiBaseLevel : ( ( 1 << ( uiBaseLevel + 1 ) ) - 1 ) );
-    printf("P");
-
-    bPrediction                   = true;
-    UInt          uiFrameIdInGOP  = uiFramePrd << uiBaseLevel;
-    ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-    IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-    IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
-
-    //===== get reference frame lists =====
-    RefFrameList  acRefFrameList[2];
-    RNOK( xGetPredictionLists         ( acRefFrameList[0], acRefFrameList[1], uiBaseLevel, uiFramePrd ) );
-
-    //===== prediction =====
-    RNOK( xMotionCompensation         ( pcMCFrame, &acRefFrameList[0], &acRefFrameList[1],
-                                        rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
-    RNOK( pcFrame ->inversePrediction ( pcMCFrame, pcFrame ) );
-    //pcFrame       ->clip              ();
-    pcFrame       ->setBandType       ( LPS );
-
-    //===== de-blocking =====
-    RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
-                                         pcFrame,
-                                         rcControlData.getMbDataCtrl (),
-                                         rcControlData.getMbDataCtrl (),
-                                         m_uiFrameWidthInMb,
-                                         &acRefFrameList[0],
-                                         &acRefFrameList[1] ) );
-  }
-  if( bPrediction ) printf("\n");
-
-  //===== clear half-pel buffers and buffer extension status =====
-  RNOK( xClearBufferExtensions() );
-
-
-#if DEBUG_OUTPUT
-  RNOK( xDumpFrames( "..//H264AVCEncoderLibTest//dec_rec", uiBaseLevel ) );
-#endif
-
 
   return Err::m_nOK;
 }
-
 
 
 
 ErrVal
-MCTFDecoder::clearReconstructionStatus( PicBufferList&  rcPicBufferUnusedList )
+MCTFDecoder::xReconstructIntra( IntFrame*     pcFrame,
+                                IntFrame*     pcBaseLayerRec,
+                                IntFrame*     pcBaseRepFrame, // temporary usage
+                                IntFrame*     pcPredSignal,   // temporary usage
+                                MbDataCtrl*   pcMbDataCtrl,
+                                SliceHeader&  rcSH )
 {
-  m_bReconstructed       = true;
-  rcPicBufferUnusedList += m_cPicBufferList;
-  m_cPicBufferList.clear();
-
-  return Err::m_nOK;
-}
+  Bool            bCalcMv         = false;
+  Bool            bFaultTolerant  = false;
+  MbDecoder*      pcMbDecoder     = m_pcSliceDecoder->getMbDecoder();
 
 
+  RNOK( pcMbDataCtrl          ->initSlice( rcSH, PRE_PROCESS, true, NULL ) );
+  RNOK( m_pcMotionCompensation->initSlice( rcSH              ) );
 
-
-ErrVal
-MCTFDecoder::xReconstruct( PicBufferList&  rcPicBufferOutputList,
-                           PicBufferList&  rcPicBufferUnusedList,
-                           Int&            riMaxPoc )
-{
-  //===== update parameters =====
-  m_eNextNalType  = ( m_eNextNalType == ALL ? LOW_PASS : m_eNextNalType );
-
-  ROTRS( m_bReconstructed, Err::m_nOK );
-
-
-  //===== copy to output buffer list =====
-  riMaxPoc = MSYS_INT_MIN;
-  for( UInt uiFrame = 1; uiFrame <= m_uiGOPSize; uiFrame++ )
+  for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
   {
-    if( m_papcFrame[uiFrame]->getRecLayer() && 
-        m_papcFrame[uiFrame]->getBandType() == LPS )
-    {
-      ROT( m_cPicBufferList.empty() );
+    UInt          uiMbY           = uiMbIndex / m_uiFrameWidthInMb;
+    UInt          uiMbX           = uiMbIndex % m_uiFrameWidthInMb;
+    MbDataAccess* pcMbDataAccess  = 0;
 
-      PicBuffer*  pcPicBuffer = m_cPicBufferList.popFront();
+    RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
+    RNOK( m_pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
 
-      m_papcFrame[uiFrame]->store( pcPicBuffer );
 
-      rcPicBufferOutputList.push_back( pcPicBuffer );
-      rcPicBufferUnusedList.push_back( pcPicBuffer );
-
-      if( m_pacControlData[uiFrame].getSliceHeader()->getPoc() > riMaxPoc )
-      {
-        riMaxPoc = m_pacControlData[uiFrame].getSliceHeader()->getPoc();
-      }
-    }
+    RNOK( pcMbDecoder->reconstructIntraPred( *pcMbDataAccess, pcBaseRepFrame, pcPredSignal, pcBaseLayerRec ) );
+    RNOK( pcMbDecoder->reconstructIntra    ( *pcMbDataAccess, pcFrame,        pcPredSignal ) );
   }
 
-  //===== clear status =====
-#if ! UNRESTRICTED_INTER_LAYER_PREDICTION
-
-  RNOK( m_pcH264AVCDecoder->clearReconstructionStatus( riMaxPoc, rcPicBufferUnusedList ) );
-
-#else
-
-  m_bReconstructed       = true;
-  rcPicBufferUnusedList += m_cPicBufferList;
-  m_cPicBufferList.clear();
-
-#endif
-
   return Err::m_nOK;
 }
-
-
-
-
-
-ErrVal MCTFDecoder::xFillAndExtendFrame( IntFrame* rcFrame )
-{
-  RNOK( m_pcYuvFullPelBufferCtrl->initMb() );
-
-  RNOK( rcFrame->extendFrame( NULL ) );
-
-  return Err::m_nOK;
-}
-
-
 
 
 

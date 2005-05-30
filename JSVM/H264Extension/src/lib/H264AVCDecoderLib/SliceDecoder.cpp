@@ -90,6 +90,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/Transform.h"
+#include "H264AVCCommonLib/IntFrame.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -264,9 +265,7 @@ ErrVal SliceDecoder::decodeHighPass( SliceHeader& rcSH,
                                      MbDataCtrl*  pcMbDataCtrlBase,
                                      IntFrame*    pcFrame, 
                                      IntFrame*    pcResidual,
-                                     IntFrame*    pcPredSignal,
                                      IntFrame*    pcBaseSubband,
-                                     IntFrame*    pcBaseLayer,
                                      UInt         uiMbInRow,
                                      UInt         uiMbRead )
 {
@@ -274,7 +273,9 @@ ErrVal SliceDecoder::decodeHighPass( SliceHeader& rcSH,
   m_pcMbDecoder->setReconstructionBypass( m_bReconstructionBypass );
 
   //====== initialization ======
-  UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
+  UInt            uiMbAddress = rcSH.getFirstMbInSlice();
+  IntYuvMbBuffer  cZeroBuffer;
+  cZeroBuffer.setAllSamplesToZero();
 
   if( pcMbDataCtrlBase )
   {
@@ -297,17 +298,17 @@ ErrVal SliceDecoder::decodeHighPass( SliceHeader& rcSH,
     RNOK( pcMbDataCtrl    ->initMb            (  pcMbDataAccess,     uiMbY, uiMbX ) );
     RNOK( m_pcControlMng  ->initMbForDecoding ( *pcMbDataAccess,     uiMbAddress  ) );
 
-    if( pcMbDataAccess->getMbData().isIntra() )
+    if( ! pcMbDataAccess->getMbData().isIntra() )
     {
-      pcMbDataAccess->getSH().setSliceType( I_SLICE );
-      RNOK( m_pcMbDecoder ->decodeIntra       ( *pcMbDataAccess, pcFrame, pcResidual, pcPredSignal, pcBaseLayer ) );
-      pcMbDataAccess->getSH().setSliceType( P_SLICE );
+      m_pcTransform->setClipMode( false );
+      RNOK( m_pcMbDecoder ->decodeResidual    ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseSubband ) );
+      m_pcTransform->setClipMode( true );
     }
     else
     {
-      m_pcTransform->setClipMode( false );
-      RNOK( m_pcMbDecoder ->decodeResidual    ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcPredSignal, pcBaseSubband ) );
-      m_pcTransform->setClipMode( true );
+      RNOK( m_pcMbDecoder->scaleAndStoreIntraCoeffs( *pcMbDataAccess ) );
+      RNOK( pcFrame   ->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) )
+      RNOK( pcResidual->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) )
     }
     uiMbRead--;
   }

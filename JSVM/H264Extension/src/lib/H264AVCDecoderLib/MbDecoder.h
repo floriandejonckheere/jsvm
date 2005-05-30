@@ -130,7 +130,6 @@ public:
                                   MbDataAccess* pcMbDataAccessBase,
                                   IntFrame*     pcFrame,
                                   IntFrame*     pcResidual,
-                                  IntFrame*     pcPredSignal,
                                   IntFrame*     pcBaseSubband );
   ErrVal decodeIntra            ( MbDataAccess& rcMbDataAccess,
                                   IntFrame*     pcFrame,
@@ -151,6 +150,14 @@ public:
                                   RefFrameList& rcRefFrameList1,
                                   Bool          bCalcMv, 
                                   Bool          bFaultTolerant );
+  ErrVal reconstructIntraPred   ( MbDataAccess& rcMbDataAccess,
+                                  IntFrame*     pcFrame,
+                                  IntFrame*     pcPredSignal,
+                                  IntFrame*     pcBaseLayer );
+  ErrVal reconstructIntra       ( MbDataAccess& rcMbDataAccess,
+                                  IntFrame*     pcFrame,
+                                  IntFrame*     pcPredSignal );
+  ErrVal scaleAndStoreIntraCoeffs( MbDataAccess& rcMbDataAccess );
 
   Void   setMotCompType         ( MCType type );
   MCType getMotCompType         ();
@@ -221,11 +228,6 @@ protected:
 
 protected:
   MbTransformCoeffs   m_cTCoeffs;
-  Int                 m_iScaleY;
-  Int                 m_iScaleU;
-  Int                 m_iScaleV;
-  Int                 m_iShiftU;
-  Int                 m_iShiftV;
   
   Transform*          m_pcTransform;
   IntraPrediction*    m_pcIntraPrediction;

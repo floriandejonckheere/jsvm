@@ -153,6 +153,7 @@ public:
   Void  add         ( IntYuvMbBuffer& rcIntYuvMbBuffer );
   Void  subtract    ( IntYuvMbBuffer& rcIntYuvMbBuffer );
   Void  clip        ();
+  Bool  isZero      ();
 
 
 protected:

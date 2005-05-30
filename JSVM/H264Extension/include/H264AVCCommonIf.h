@@ -185,6 +185,9 @@ public:
   operator Pel*()  { return m_pcBuffer; }
   Void* getMediaPacket() { return m_pcMediaPacket; }
   UInt64& getCts() { return m_ui64Cts; }
+  
+  Void setCts( UInt64 ui64 ) { m_ui64Cts = ui64; } // HS: decoder robustness
+
 private:
   Void*   m_pcMediaPacket;
   Pel*    m_pcBuffer;

@@ -92,6 +92,10 @@ Extractor::Extractor()
 : m_pcReadBitstream       ( 0 )
 , m_pcWriteBitstream      ( 0 )
 , m_pcExtractorParameter  ( 0 )
+// HS: packet trace
+, m_pcTraceFile           ( 0 )
+, m_pcExtractionTraceFile ( 0 )
+, m_uiMaxSize             ( 0 )
 {
 }
 
@@ -140,6 +144,28 @@ Extractor::init( ExtractorParameter *pcExtractorParameter )
 
   RNOK( h264::H264AVCPacketAnalyzer::create( m_pcH264AVCPacketAnalyzer ) );
 
+  // HS: packet trace
+  if( m_pcExtractorParameter->getTraceEnabled() )
+  {
+    m_pcTraceFile = ::fopen( m_pcExtractorParameter->getTraceFile().c_str(), "wt" );
+    ROF( m_pcTraceFile );
+  }
+  else
+  {
+    m_pcTraceFile = 0;
+  }
+  if( m_pcExtractorParameter->getExtractTrace() )
+  {
+    m_pcExtractionTraceFile = ::fopen( m_pcExtractorParameter->getExtractTraceFile().c_str(), "rt" );
+    ROF( m_pcExtractionTraceFile );
+
+    RNOK( m_cLargeFile.open( m_pcExtractorParameter->getInFile(), LargeFile::OM_READONLY ) );
+  }
+  else
+  {
+    m_pcExtractionTraceFile = 0;
+  }
+
 
   m_aucStartCodeBuffer[0] = 0;
   m_aucStartCodeBuffer[1] = 0;
@@ -175,6 +201,22 @@ Extractor::destroy()
     RNOK( m_pcWriteBitstream->destroy() );  
   }
 
+  // HS: packet trace
+  if( m_pcTraceFile )
+  {
+    ::fclose( m_pcTraceFile );
+    m_pcTraceFile = 0;
+  }
+  if( m_pcExtractionTraceFile )
+  {
+    ::fclose( m_pcExtractionTraceFile );
+    m_pcExtractionTraceFile = 0;
+  }
+  if( m_cLargeFile.is_open() )
+  {
+    RNOK( m_cLargeFile.close() );
+  }
+
   delete this;
 
   return Err::m_nOK;
@@ -195,7 +237,12 @@ Extractor::xAnalyse()
   BinData*                pcBinData     = 0;
   h264::SEI::SEIMessage*  pcScalableSei = 0;
   h264::PacketDescription cPacketDescription;
- 
+
+  // HS: packet trace
+  Int64                   i64StartPos   = 0;
+  Int64                   i64EndPos     = 0;
+  Int                     iLastTempLevel= 0;
+  m_uiMaxSize                           = 0;
 
   //========== initialize (scalable SEI message shall be the first packet of the stream) ===========
   {
@@ -206,6 +253,30 @@ Extractor::xAnalyse()
     //--- analyse packet ---
     RNOK( m_pcH264AVCPacketAnalyzer ->process( pcBinData, cPacketDescription, pcScalableSei ) );
     ROF ( pcScalableSei );
+
+    // HS: packet trace
+    if( ! cPacketDescription.ApplyToNext )
+    {
+      i64EndPos     = static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->getFilePos();
+      UInt  uiStart = (UInt)( i64StartPos & 0xFFFFFFFF  );
+      UInt  uiSize  = (UInt)( i64EndPos   - i64StartPos );
+      i64StartPos   = i64EndPos;
+      if( m_pcTraceFile )
+      {
+        ::fprintf( m_pcTraceFile, "Start-Pos.  Length  LId  TId  QId   Packet-Type  Discardable  Truncatable""\n" );
+        ::fprintf( m_pcTraceFile, "==========  ======  ===  ===  ===  ============  ===========  ===========""\n" );
+        ::fprintf( m_pcTraceFile, "0x%08x"   "%8d"   "%5d""%5d""%5d""  %s"        "         %s""         %s" "\n",
+          uiStart,
+          uiSize,
+          cPacketDescription.Layer,
+          cPacketDescription.Level,
+          cPacketDescription.FGSLayer,
+          "StreamHeader",
+          " No", " No" );
+      }
+      m_uiMaxSize = max( m_uiMaxSize, uiSize );
+    }
+
     //--- initialize stream description ----
     RNOK( m_cScalableStreamDescription.init( (h264::SEI::ScalableSei*)pcScalableSei ) );
     delete pcScalableSei;
@@ -231,6 +302,37 @@ Extractor::xAnalyse()
     //===== get packet description =====
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
     ROT ( pcScalableSei );
+
+    // HS: packet trace
+    if( ! cPacketDescription.ApplyToNext )
+    {
+      if( iLastTempLevel )
+      {
+        cPacketDescription.Level  = iLastTempLevel;
+        iLastTempLevel            = 0;
+      }
+      i64EndPos     = static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->getFilePos();
+      UInt  uiStart = (UInt)( i64StartPos & 0xFFFFFFFF  );
+      UInt  uiSize  = (UInt)( i64EndPos   - i64StartPos );
+      i64StartPos   = i64EndPos;
+      if( m_pcTraceFile )
+      {
+        ::fprintf( m_pcTraceFile, "0x%08x"   "%8d"   "%5d""%5d""%5d""  %s"        "         %s""         %s" "\n",
+          uiStart,
+          uiSize,
+          cPacketDescription.Layer,
+          cPacketDescription.Level,
+          cPacketDescription.FGSLayer,
+          cPacketDescription.ParameterSet ? "ParameterSet" : "   SliceData",
+          cPacketDescription.ParameterSet || ( cPacketDescription.Level == 0 && cPacketDescription.FGSLayer == 0 )  ? " No" : "Yes",
+          cPacketDescription.FGSLayer ? "Yes" : " No" );
+      }
+      m_uiMaxSize = max( m_uiMaxSize, uiSize );
+    }
+    else
+    {
+      iLastTempLevel = cPacketDescription.Level;
+    }
 
     //===== set packet length =====
     while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
@@ -417,7 +519,11 @@ Extractor::go()
   RNOK ( xAnalyse() );
   ROTRS( m_pcExtractorParameter->getAnalysisOnly(), Err::m_nOK );
 
-  if( m_pcExtractorParameter->getExtractionList().empty() )
+  if( m_pcExtractionTraceFile ) // HS: packet trace
+  {
+    RNOK( xExtractTrace() ); // HS: packet trace
+  }
+  else if( m_pcExtractorParameter->getExtractionList().empty() )
   {
     RNOK( xExtractLayerLevel() );
   }
@@ -692,6 +798,159 @@ Extractor::xExtractLayerLevel()
 }
 
 
+// HS: packet trace
+ErrVal
+Extractor::xReadLineExtractTrace( Char* pcFormatString,
+                                  UInt* puiStart,
+                                  UInt* puiLength )
+{
+  if( NULL != puiStart && NULL != puiLength )
+  {
+    //--- don't ask me why ----
+    ROTR( 0 == fscanf( m_pcExtractionTraceFile, pcFormatString, puiStart, puiLength ), Err::m_nInvalidParameter );
+  }
+
+  for( Int n = 0; n < 0x400; n++ )
+  {
+    ROTRS( '\n' == fgetc( m_pcExtractionTraceFile ), Err::m_nOK );
+  }
+
+  return Err::m_nERR;
+}
+
+
+// HS: packet trace
+ErrVal
+Extractor::xExtractTrace()
+{
+  Bool    bEOS            = false;
+  Int64   i64StartPos     = 0;
+  Int64   i64EndPos       = 0;
+  Int     iLastTempLevel  = 0;
+  UInt    uiNextStart     = 0;
+  UInt    uiNextLength    = 0;
+
+  UInt    uiNumDiscarded  = 0;
+  UInt    uiNumTruncated  = 0;
+  UInt    uiNumKept       = 0;
+
+  UChar*  pucPacketBuffer = new UChar[ m_uiMaxSize + 1 ];
+  ROF( pucPacketBuffer );
+
+  RNOK( m_pcH264AVCPacketAnalyzer->init() );
+
+  RNOK( xReadLineExtractTrace( "",      NULL,          NULL ) );  // skip first line
+  RNOK( xReadLineExtractTrace( "",      NULL,          NULL ) );  // skip second line
+  RNOK( xReadLineExtractTrace( "%x %d", &uiNextStart,  &uiNextLength ) );
+
+  while( ! bEOS )
+  {
+    //=========== get packet ===========
+    BinData*  pcBinData;
+    RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+    if( bEOS )
+    {
+      continue;
+    }
+
+    //========== get packet description ==========
+    h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
+    h264::PacketDescription cPacketDescription;
+    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
+    delete pcScalableSEIMessage;
+
+    if( ! cPacketDescription.ApplyToNext )    
+    {
+      i64EndPos       = static_cast<ReadBitstreamFile*>( m_pcReadBitstream )->getFilePos();
+      UInt  uiStart   = (UInt)( i64StartPos & 0xFFFFFFFF  );
+      UInt  uiSize    = (UInt)( i64EndPos   - i64StartPos );
+      i64StartPos     = i64EndPos;
+
+      printf("PACKET 0x%08x (%6d)     ", uiStart, uiSize );
+
+      //////////////////////////////////////////////////////////////////////////
+      if( uiStart == uiNextStart )
+      {
+        //===== read packet =====
+        ROT ( uiSize > m_uiMaxSize );
+        RNOK( m_cLargeFile.seek( uiStart, SEEK_SET ) );
+        UInt  uiReadSize = 0;
+        RNOK( m_cLargeFile.read( pucPacketBuffer, uiSize, uiReadSize ) );
+        ROF ( uiSize == uiReadSize );
+
+        //===== modify last bytes if necessary ====
+        if( uiSize < uiNextLength )
+        {
+          fprintf( stderr, "\nERROR: The packet at start pos. 0x%08x is shorter than %d bytes\n", uiNextStart, uiNextLength );
+          ROT( true );
+        }
+        else if( uiSize > uiNextLength )
+        {
+          if( cPacketDescription.FGSLayer == 0 )
+          {
+            fprintf( stderr, "\nERROR: The packet at start pos. 0x%08x is not truncatable\n", uiNextStart, uiNextLength );
+            ROT( true );
+          }
+          
+          //===== truncate packet =====
+          if( pcBinData->size() - uiSize + uiNextLength < 10 )
+          {
+            uiNextLength = 10 + uiSize - pcBinData->size();
+
+            fprintf( stderr, "\nWARNING: The size of the packet at start pos. 0x%08x was increased to %d bytes\n", uiNextStart, uiNextLength );
+          }
+
+          pucPacketBuffer[uiNextLength-1] |= 0x01; // trailing one
+
+          printf("truncated to %d bytes\n", uiNextLength );
+          uiNumTruncated++;
+        }
+        else
+        {
+          printf("kept\n");
+          uiNumKept++;
+        }
+        
+        //===== write packet =====
+        static_cast<WriteBitstreamToFile*>( m_pcWriteBitstream )->writePacket( pucPacketBuffer, uiNextLength );
+      
+        //===== get next traget packet ====
+        if( xReadLineExtractTrace( "%x %d", &uiNextStart,  &uiNextLength ) != Err::m_nOK )
+        {
+          uiNextStart   = 0xFFFFFFFF;
+          uiNextLength  = 1;
+        }
+      }
+      else if( uiStart > uiNextStart )
+      {
+        fprintf( stderr, "\nERROR: It exists no packet with start pos. 0x%08x\n", uiNextStart );
+        ROT( true );
+      }
+      else
+      {
+        printf("discarded\n");
+        uiNumDiscarded++;
+      }
+    }
+    else
+    {
+      iLastTempLevel  = cPacketDescription.Level;
+    }
+
+    RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+  }
+
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+
+  delete pucPacketBuffer;
+
+  printf("\n\n\n");
+  printf("%d packets kept (%d truncated)\n", uiNumKept+uiNumTruncated, uiNumTruncated );
+  printf("%d packets discarded\n", uiNumDiscarded );
+  printf("\n");
+
+  return Err::m_nOK;
+}
 
 
 
@@ -731,7 +990,8 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
     m_auiFrameWidth [uiLayer] = m_uiMaxWidth    >> pcScalableSei->getSpatialResolutionFactor  ( uiLayer );
     m_auiFrameHeight[uiLayer] = m_uiMaxHeight   >> pcScalableSei->getSpatialResolutionFactor  ( uiLayer );
     m_auiDecStages  [uiLayer] = m_uiMaxDecStages - pcScalableSei->getTemporalResolutionFactor ( uiLayer );
-    for( UInt uiNum = 0; uiNum < 32; uiNum ++ )
+    UInt uiNum;
+    for( uiNum = 0; uiNum < 32; uiNum ++ )
       m_bSPSRequired[uiLayer][uiNum] = false;
     for( uiNum = 0; uiNum < 256; uiNum ++ )
       m_bPPSRequired[uiLayer][uiNum] = false;
@@ -880,3 +1140,6 @@ ScalableStreamDescription::output( FILE* pFile )
 
   printf("\n\n");
 }
+
+
+

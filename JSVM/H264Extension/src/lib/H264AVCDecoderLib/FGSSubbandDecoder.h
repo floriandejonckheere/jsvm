@@ -133,7 +133,8 @@ public:
   ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
                                             MbDataCtrl*                 pcCurrMbDataCtrl );
   ErrVal            decodeNextLayer       ( SliceHeader*                pcSliceHeader );
-  ErrVal            reconstruct           ( IntFrame*                   pcRecResidual );
+  ErrVal            reconstruct           ( IntFrame*                   pcRecResidual,
+                                            Bool                        bReconstructIntra );
   ErrVal            finishPicture         ();
 
   Bool              isInitialized         ()    { return m_bPicInit; }
@@ -146,15 +147,6 @@ public:
 private:
   ErrVal            xInitSPS              ( const SequenceParameterSet& rcSPS );
   ErrVal            xScaleBaseLayerCoeffs ();
-
-  ErrVal            xUpdateMacroblock     ( MbDataAccess&               rcMbDataAccess,
-                                            MbDataAccess&               rcMbDataAccessEL,
-                                            Bool                        bRefinement );
-  ErrVal            xUpdateMacroblockQP   ( MbDataAccess&               rcMbDataAccess,
-                                            MbDataAccess&               rcMbDataAccessEL,
-                                            Int                         iNewQP );
-  ErrVal            xUpdateMacroblockCoef ( MbDataAccess&               rcMbDataAccess,
-                                            MbDataAccess&               rcMbDataAccessEL );
 
   ErrVal            xScale4x4Block        ( TCoeff*                     piCoeff,
                                             const UChar*                pucScale,

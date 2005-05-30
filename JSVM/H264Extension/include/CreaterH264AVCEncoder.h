@@ -146,17 +146,13 @@ public:
   ErrVal writeParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,
                               Bool&               rbMoreSets );
   
-  ErrVal process(  ExtBinDataAccessorList&  rcInputExtBinDataAccessorList, 
-                   ExtBinDataAccessorList&  rcOutputExtBinDataAccessorList, 
-                   ExtBinDataAccessorList&  rcUnusedExtBinDataAccessorList, 
+  ErrVal process(  ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
                    PicBuffer*               apcOriginalPicBuffer    [MAX_LAYERS],
                    PicBuffer*               apcReconstructPicBuffer [MAX_LAYERS],
                    PicBufferList*           apcPicBufferOutputList,
                    PicBufferList*           apcPicBufferUnusedList );
 
-  ErrVal finish (  ExtBinDataAccessorList&  rcInputExtBinDataAccessorList, 
-                   ExtBinDataAccessorList&  rcOutputExtBinDataAccessorList, 
-                   ExtBinDataAccessorList&  rcUnusedExtBinDataAccessorList, 
+  ErrVal finish (  ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
                    PicBufferList*           apcPicBufferOutputList,
                    PicBufferList*           apcPicBufferUnusedList,
                    UInt&                    ruiNumCodedFrames,

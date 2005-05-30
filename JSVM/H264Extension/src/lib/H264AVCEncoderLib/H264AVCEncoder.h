@@ -117,6 +117,7 @@ class FrameMng;
 
 
 
+
 class H264AVCENCODERLIB_API H264AVCEncoder
 {
 protected:
@@ -137,16 +138,12 @@ public:
 
   ErrVal writeParameterSets ( ExtBinDataAccessor*       pcExtBinDataAccessor,
                               Bool&                     rbMoreSets );
-  ErrVal process            ( ExtBinDataAccessorList&   rcInputExtBinDataAccessorList, 
-                              ExtBinDataAccessorList&   rcOutputExtBinDataAccessorList, 
-                              ExtBinDataAccessorList&   rcUnusedExtBinDataAccessorList, 
+  ErrVal process            ( ExtBinDataAccessorList&   rcExtBinDataAccessorList, 
                               PicBuffer*                apcOriginalPicBuffer   [MAX_LAYERS],
                               PicBuffer*                apcReconstructPicBuffer[MAX_LAYERS],
                               PicBufferList*            apcPicBufferOutputList,
                               PicBufferList*            apcPicBufferUnusedList );
-  ErrVal finish             ( ExtBinDataAccessorList&   rcInputExtBinDataAccessorList, 
-                              ExtBinDataAccessorList&   rcOutputExtBinDataAccessorList, 
-                              ExtBinDataAccessorList&   rcUnusedExtBinDataAccessorList, 
+  ErrVal finish             ( ExtBinDataAccessorList&   rcExtBinDataAccessorList, 
                               PicBufferList*            apcPicBufferOutputList,
                               PicBufferList*            apcPicBufferUnusedList,
                               UInt&                     ruiNumCodedFrames,
@@ -173,8 +170,6 @@ protected:
   ErrVal xInitParameterSets ();
   ErrVal xWriteScalableSEI  ( ExtBinDataAccessor*       pcExtBinDataAccessor );
   ErrVal xProcessGOP        ( UInt                      uiLayer,
-                              ExtBinDataAccessorList*   pacOutputExtBinDataAccessorList, 
-                              ExtBinDataAccessorList&   rcUnusedExtBinDataAccessorList, 
                               PicBuffer*                pcOriginalPicBuffer, 
                               PicBuffer*                pcReconstructPicBuffer, 
                               PicBufferList&            rcPicBufferOutputList, 
@@ -196,8 +191,7 @@ protected:
   Bool                              m_bTraceEnable;
 
   MCTFEncoder*                      m_apcMCTFEncoder    [MAX_LAYERS];
-  ExtBinDataAccessorList            m_aacMCTFOutputList [MAX_LAYERS][2];
-  Bool                              m_bFirstGOPCodedForAllLayers;
+  AccessUnitList                    m_cAccessUnitList;
 };
 
 

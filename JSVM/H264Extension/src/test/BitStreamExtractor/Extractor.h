@@ -187,6 +187,12 @@ protected:
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
 
+  // HS: packet trace
+  ErrVal        xReadLineExtractTrace ( Char*               pcFormatString,
+                                        UInt*               puiStart,
+                                        UInt*               puiLength );
+  ErrVal        xExtractTrace         ();
+
 protected:
   ReadBitstreamIf*              m_pcReadBitstream;
   WriteBitstreamIf*             m_pcWriteBitstream;
@@ -198,6 +204,12 @@ protected:
 
   ScalableStreamDescription     m_cScalableStreamDescription;
   Double                        m_aadTargetSNRLayer[MAX_LAYERS][MAX_DSTAGES+1];
+
+  // HS: packet trace
+  FILE*                         m_pcTraceFile;
+  FILE*                         m_pcExtractionTraceFile;
+  LargeFile                     m_cLargeFile;
+  UInt                          m_uiMaxSize;
 };
 
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

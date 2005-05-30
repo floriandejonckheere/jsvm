@@ -171,3 +171,12 @@ ErrVal WriteBitstreamToFile::writePacket( BinDataAccessor* pcBinDataAccessor, Bo
   return Err::m_nOK;
 }
 
+ErrVal
+WriteBitstreamToFile::writePacket( Void* pBuffer, UInt uiLength )
+{
+  if( uiLength )
+  {
+    RNOK( m_cFile.write( pBuffer, uiLength ) );
+  }
+  return Err::m_nOK;
+}

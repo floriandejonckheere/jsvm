@@ -198,7 +198,11 @@ ErrVal MbParser::process( MbDataAccess& rcMbDataAccess, Bool& rbEndOfSlice)
     else
     {
       DECRNOK( xReadIntraPredModes( rcMbDataAccess ) );
-      DECRNOK( xReadTextureInfo( rcMbDataAccess, false ) );
+
+      Bool bTrafo8x8Flag = ( rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() &&
+                             rcMbDataAccess.getMbData().is8x8TrafoFlagPresent()        &&
+                            !rcMbDataAccess.getMbData().isIntra4x4() );
+      DECRNOK( xReadTextureInfo( rcMbDataAccess, bTrafo8x8Flag ) );
     }
   }
   m_bPrevIsSkipped = ! bIsCoded;

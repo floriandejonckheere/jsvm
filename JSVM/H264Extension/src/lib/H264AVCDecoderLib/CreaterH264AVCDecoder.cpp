@@ -142,6 +142,7 @@ CreaterH264AVCDecoder::CreaterH264AVCDecoder():
   m_pcCabacReader         ( NULL ),
   m_pcSampleWeighting     ( NULL )
 {
+  ::memset( m_apcDecodedPicBuffer,     0x00, MAX_LAYERS * sizeof( Void* ) );
   ::memset( m_apcMCTFDecoder,          0x00, MAX_LAYERS * sizeof( Void* ) );
   ::memset( m_apcPocCalculator,        0x00, MAX_LAYERS * sizeof( Void* ) );
   ::memset( m_apcYuvFullPelBufferCtrl, 0x00, MAX_LAYERS * sizeof( Void* ) );
@@ -224,6 +225,7 @@ ErrVal CreaterH264AVCDecoder::xCreateDecoder()
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
+    RNOK( DecodedPicBuffer    ::create( m_apcDecodedPicBuffer     [uiLayer] ) );
     RNOK( MCTFDecoder         ::create( m_apcMCTFDecoder          [uiLayer] ) );
     RNOK( PocCalculator       ::create( m_apcPocCalculator        [uiLayer] ) );
     RNOK( YuvBufferCtrl       ::create( m_apcYuvFullPelBufferCtrl [uiLayer] ) );
@@ -262,6 +264,7 @@ ErrVal CreaterH264AVCDecoder::destroy()
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
+    RNOK( m_apcDecodedPicBuffer    [uiLayer]->destroy() );
     RNOK( m_apcMCTFDecoder         [uiLayer]->destroy() );
     RNOK( m_apcPocCalculator       [uiLayer]->destroy() );
     RNOK( m_apcYuvFullPelBufferCtrl[uiLayer]->destroy() );
@@ -304,7 +307,7 @@ ErrVal CreaterH264AVCDecoder::init()
                                           m_pcMotionCompensation,
                                           m_pcFrameMng ) );
 
-  RNOK( m_pcH264AVCDecoder           ->init( m_apcMCTFDecoder,
+  RNOK( m_pcH264AVCDecoder        ->init( m_apcMCTFDecoder,
                                           m_pcSliceReader,
                                           m_pcSliceDecoder,
                                           m_pcRQFGSDecoder,
@@ -324,19 +327,22 @@ ErrVal CreaterH264AVCDecoder::init()
   
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
-    RNOK( m_apcMCTFDecoder[uiLayer]->init ( m_pcH264AVCDecoder,
-                                            m_pcSliceReader, 
-                                            m_pcSliceDecoder, 
-                                            m_pcRQFGSDecoder,
-                                            m_pcNalUnitParser, 
-                                            m_pcControlMng, 
-                                            m_pcLoopFilter, 
-                                            m_pcUvlcReader, 
-                                            m_pcParameterSetMng, 
-                                            m_apcPocCalculator        [uiLayer],
-                                            m_apcYuvFullPelBufferCtrl [uiLayer],
-                                            m_pcMotionCompensation,
-                                            m_pcQuarterPelFilter ) );
+    RNOK( m_apcDecodedPicBuffer[uiLayer]->init ( m_apcYuvFullPelBufferCtrl [uiLayer],
+                                                 uiLayer ) );
+    RNOK( m_apcMCTFDecoder     [uiLayer]->init ( m_pcH264AVCDecoder,
+                                                 m_pcSliceReader, 
+                                                 m_pcSliceDecoder, 
+                                                 m_pcRQFGSDecoder,
+                                                 m_pcNalUnitParser, 
+                                                 m_pcControlMng, 
+                                                 m_pcLoopFilter, 
+                                                 m_pcUvlcReader, 
+                                                 m_pcParameterSetMng, 
+                                                 m_apcPocCalculator        [uiLayer],
+                                                 m_apcYuvFullPelBufferCtrl [uiLayer],
+                                                 m_apcDecodedPicBuffer     [uiLayer],
+                                                 m_pcMotionCompensation,
+                                                 m_pcQuarterPelFilter ) );
   }
 
   RNOK( m_pcControlMng            ->init( m_pcFrameMng,
@@ -390,6 +396,7 @@ ErrVal CreaterH264AVCDecoder::uninit()
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
+    RNOK( m_apcDecodedPicBuffer    [uiLayer] ->uninit() );
     RNOK( m_apcMCTFDecoder         [uiLayer] ->uninit() );
     RNOK( m_apcYuvFullPelBufferCtrl[uiLayer] ->uninit() );
   }
@@ -457,8 +464,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
   {
     ucByte      = (pcBinData->data())[1];
-    uiLayer     = ( ucByte >> 5 );
-    uiLevel     = ( ucByte >> 2 ) & 7;
+    uiLevel     = ( ucByte >> 5 );
+    uiLayer     = ( ucByte >> 2 ) & 7;
     uiFGSLayer  = ( ucByte      ) & 3;
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||

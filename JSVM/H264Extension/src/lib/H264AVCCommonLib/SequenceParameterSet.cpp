@@ -170,6 +170,9 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiFrameWidthInMbs                       ( 0 )
 , m_uiFrameHeightInMbs                      ( 0 )
 , m_bDirect8x8InferenceFlag                 ( false )
+#if MULTIPLE_LOOP_DECODING
+, m_bAlwaysDecodeBaseLayer                  ( false )
+#endif
 {
 }
 
@@ -268,7 +271,13 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeCode( getLevelIdc(),                    8,      "SPS: level_idc" ) );
   RNOK  ( pcWriteIf->writeUvlc( getSeqParameterSetId(),                   "SPS: seq_parameter_set_id" ) );
   
-  RNOK  ( pcWriteIf->writeFlag( m_bLowComplxUpdFlag,                      "SPS: low_complx_upd_flag" ) );
+  if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
+  {
+    RNOK( pcWriteIf->writeFlag( m_bLowComplxUpdFlag,                      "SPS: low_complx_upd_flag" ) );
+#if MULTIPLE_LOOP_DECODING
+    RNOK( pcWriteIf->writeFlag( m_bAlwaysDecodeBaseLayer,                 "SPS: always_decode_base_layer" ) );
+#endif
+  }
   //--- fidelity range extension syntax ---
   RNOK  ( xWriteFrext( pcWriteIf ) );
   
@@ -316,7 +325,13 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK  ( pcReadIf->getCode( m_uiLevelIdc,                        8,      "SPS: level_idc" ) );
   RNOK  ( pcReadIf->getUvlc( m_uiSeqParameterSetId,                       "SPS: seq_parameter_set_id" ) );
 
-  RNOK  ( pcReadIf->getFlag( m_bLowComplxUpdFlag,                         "SPS: low_complx_upd_flag" ) );
+  if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
+  {
+    RNOK( pcReadIf->getFlag( m_bLowComplxUpdFlag,                         "SPS: low_complx_upd_flag" ) );
+#if MULTIPLE_LOOP_DECODING
+    RNOK( pcReadIf->getFlag( m_bAlwaysDecodeBaseLayer,                    "SPS: always_decode_base_layer" ) );
+#endif
+  }
   //--- fidelity range extension syntax ---
   RNOK  ( xReadFrext( pcReadIf ) );
 

@@ -102,7 +102,9 @@ class H264AVCCOMMONLIB_API MbData :
 public MbDataStruct
 {
 public:
-  MbData() : m_pcMbTCoeffs   ( NULL )
+  MbData()
+  : m_pcMbTCoeffs         ( 0 )
+  , m_pcMbIntraBaseTCoeffs( 0 )
   {
     m_apcMbMvdData   [ LIST_0 ]  = NULL;
     m_apcMbMvdData   [ LIST_1 ]  = NULL;
@@ -112,19 +114,21 @@ public:
 
   ~MbData()
   {
+    clearIntraBaseCoeffs();
   }
 
-  Void init(  MbTransformCoeffs* pcMbTCoeffs,
-              MbMvData* pcMbMvdDataList0,
-              MbMvData* pcMbMvdDataList1,
-              MbMotionData* pcMbMotionDataList0,
-              MbMotionData* pcMbMotionDataList1)
+  Void init(  MbTransformCoeffs*  pcMbTCoeffs,
+              MbMvData*           pcMbMvdDataList0,
+              MbMvData*           pcMbMvdDataList1,
+              MbMotionData*       pcMbMotionDataList0,
+              MbMotionData*       pcMbMotionDataList1)
   {
-    m_pcMbTCoeffs         = pcMbTCoeffs;
-    m_apcMbMvdData[0]     = pcMbMvdDataList0;
-    m_apcMbMvdData[1]     = pcMbMvdDataList1;
-    m_apcMbMotionData[0]  = pcMbMotionDataList0;
-    m_apcMbMotionData[1]  = pcMbMotionDataList1;
+    m_pcMbTCoeffs           = pcMbTCoeffs;
+    m_pcMbIntraBaseTCoeffs  = 0;
+    m_apcMbMvdData[0]       = pcMbMvdDataList0;
+    m_apcMbMvdData[1]       = pcMbMvdDataList1;
+    m_apcMbMotionData[0]    = pcMbMotionDataList0;
+    m_apcMbMotionData[1]    = pcMbMotionDataList1;
   }
 
 public:
@@ -146,8 +150,13 @@ public:
   ErrVal  copyMotionBL  ( MbData& rcMbData, Bool bDirect8x8, UInt    uiSliceId = MSYS_UINT_MAX );
   ErrVal  upsampleMotion( MbData& rcMbData, Par8x8  ePar8x8, Bool bDirect8x8   );
 
+  Void                clearIntraBaseCoeffs  ()                                { delete m_pcMbIntraBaseTCoeffs; m_pcMbIntraBaseTCoeffs = 0; }
+  ErrVal              storeIntraBaseCoeffs  ( MbTransformCoeffs& rcCoeffs );
+  MbTransformCoeffs&  getIntraBaseCoeffs    ()                                { return *m_pcMbIntraBaseTCoeffs; }
+
 private:
   MbTransformCoeffs*  m_pcMbTCoeffs;
+  MbTransformCoeffs*  m_pcMbIntraBaseTCoeffs;
   MbMvData*           m_apcMbMvdData[2];
   MbMotionData*       m_apcMbMotionData[2];
 };

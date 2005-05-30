@@ -526,7 +526,7 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
 
   ROT( NULL == psTemp )
 
-  XXPel*  ps          = &psTemp[ iMargin * uiTmpXSize ];
+  XXPel*  ps          = &psTemp[ iMargin * uiTmpXSize + 2*iMargin ]; // fix provided by Shijun Sun
 
   for( y = 0; y < iHeight; y++ )
   {
@@ -550,20 +550,20 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
   }
 
   // bot
-  ps -= iMarginNew*2; //old
-  for( y = 0; y < iMargin; y++ ) //old
+  ps -= iMargin*2;               // fix provided by Shijun Sun
+  for( y = 0; y < iMargin; y++ ) // fix provided by Shijun Sun
   {
     ::memcpy( &ps[y*uiTmpXSize], &ps[(y-1)*uiTmpXSize], uiTmpXSize*sizeof(XXPel) );
   }
 
   //top
-  ps = &psTemp[ iMargin * uiTmpXSize - iMarginNew*2 ]; //old
-  for( y = 0; y < iMargin-1; y++ ) //old
+  ps = &psTemp[ iMargin * uiTmpXSize ]; // fix provided by Shijun Sun
+  for( y = 0; y < iMargin; y++ )        // fix provided by Shijun Sun
   {
     ::memcpy( &ps[-(y+1)*uiTmpXSize], &ps[-y*uiTmpXSize], uiTmpXSize*sizeof(XXPel) );
   }
 
-  ps = &psTemp[ 4*uiTmpXSize ];
+  ps = &psTemp[ 4*uiTmpXSize + 2*iMargin ]; // fix provided by Shijun Sun
   iStride = uiTmpXSize;
 
   Int   iDesStrideHP  = pcHalfPelBuffer->getLStride();

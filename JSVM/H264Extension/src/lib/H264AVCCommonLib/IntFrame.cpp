@@ -97,11 +97,9 @@ IntFrame::IntFrame( YuvBufferCtrl& rcYuvFullPelBufferCtrl,
                     YuvBufferCtrl& rcYuvHalfPelBufferCtrl )
 : m_cFullPelYuvBuffer     ( rcYuvFullPelBufferCtrl ),
   m_cHalfPelYuvBuffer     ( rcYuvHalfPelBufferCtrl ),
-  m_uiBandType            ( 0 ),
-  m_uiRecLayer            ( 0 ),
   m_bHalfPel              ( false ),
   m_bExtended             ( false ),
-  m_bValid                ( false )
+  m_pcDPBUnit             ( 0 )
 {
 }
 
@@ -122,7 +120,6 @@ ErrVal IntFrame::init( Bool bHalfPel )
     m_bHalfPel = true;
   }
   m_bExtended = false;
-  m_bValid    = false;
 
   return Err::m_nOK;
 }
@@ -145,7 +142,6 @@ ErrVal IntFrame::uninit()
   RNOK( m_cHalfPelYuvBuffer.uninit() );
   m_bHalfPel  = false;
   m_bExtended = false;
-  m_bValid    = false;
   
   return Err::m_nOK;
 }

@@ -202,5 +202,16 @@ MbData::upsampleMotion( MbData& rcMbData, Par8x8 ePar8x8, Bool bDirect8x8 )
 }
 
 
+ErrVal
+MbData::storeIntraBaseCoeffs( MbTransformCoeffs& rcCoeffs )
+{
+  ROT( m_pcMbIntraBaseTCoeffs );
+  
+  ROFRS( ( m_pcMbIntraBaseTCoeffs = new MbTransformCoeffs() ), Err::m_nERR );
+  m_pcMbIntraBaseTCoeffs->copyFrom( rcCoeffs );
+  return Err::m_nOK;
+}
+
+
 
 H264AVC_NAMESPACE_END

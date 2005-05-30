@@ -253,6 +253,11 @@ public:
   UInt  getAboveChromaCbp       ()                const;
   UInt  getAutoCbp              ()                const;
 
+  UInt  getLeftLumaCbpFGS       ( LumaIdx cIdx )  const;
+  UInt  getAboveLumaCbpFGS      ( LumaIdx cIdx )  const;
+  UInt  getLeftChromaCbpFGS     ()                const;
+  UInt  getAboveChromaCbpFGS    ()                const;
+
   Void  getMvdLeft    ( Mv& rcMv, ListIdx eListIdx, LumaIdx cIdx )  const;
   Void  getMvdAbove   ( Mv& rcMv, ListIdx eListIdx, LumaIdx cIdx )  const;
 
@@ -842,6 +847,42 @@ __inline UInt MbDataAccess::getAutoCbp() const
   }
 
   return uiCbp;
+}
+
+__inline UInt MbDataAccess::getLeftLumaCbpFGS( LumaIdx cIdx )  const
+{
+  const MbData& rcMbData = xGetBlockLeft( cIdx );
+
+  if( ! xIsAvailable( rcMbData ) )
+  {
+    return 1;
+  }
+  return ( rcMbData.getMbCbp() >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
+}
+
+__inline UInt MbDataAccess::getAboveLumaCbpFGS( LumaIdx cIdx )  const
+{
+  const MbData& rcMbData = xGetBlockAbove( cIdx );
+
+  if( ! xIsAvailable( rcMbData ) )
+  {
+    return 1;
+  }
+  return ( rcMbData.getMbCbp() >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
+}
+
+__inline UInt MbDataAccess::getLeftChromaCbpFGS()  const
+{
+  const MbData& rcMbData = xGetMbLeft();
+
+  return rcMbData.getMbCbp() >> 4;
+}
+
+__inline UInt MbDataAccess::getAboveChromaCbpFGS()  const
+{
+  const MbData& rcMbData = xGetMbAbove();
+
+  return rcMbData.getMbCbp() >> 4;
 }
 
 

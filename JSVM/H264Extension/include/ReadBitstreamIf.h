@@ -101,6 +101,7 @@ public:
 
   virtual ErrVal getPosition( Int& iPos ) = 0;
   virtual ErrVal setPosition( Int  iPos ) = 0;
+  virtual Int64  getFilePos ()            = 0;
 
   virtual ErrVal uninit() = 0;
   virtual ErrVal destroy() = 0;

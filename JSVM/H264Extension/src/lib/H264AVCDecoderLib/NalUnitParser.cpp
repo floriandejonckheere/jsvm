@@ -202,15 +202,26 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   ROFVS( bDDIPresent );
 
   //===== nal unit type =====
-  UChar ucDDI = ( m_uiLayerId       << 5 );
-  ucDDI      += ( m_uiTemporalLevel << 2 );
-  ucDDI      += ( m_uiQualityLevel       );
-  DTRACE_TH   ( "NALU HEADER: decodability_dependency_information" );
+  DTRACE_TH   ( "NALU HEADER: temporal_level" );
   DTRACE_TY   ( " u(v)" );
   DTRACE_POS;
-  DTRACE_CODE ( ucDDI );
-  DTRACE_BITS ( ucDDI, 8 );
-  DTRACE_COUNT( 8 );
+  DTRACE_CODE ( m_uiTemporalLevel );
+  DTRACE_BITS ( m_uiTemporalLevel, 3 );
+  DTRACE_COUNT( 3 );
+  DTRACE_N;
+  DTRACE_TH   ( "NALU HEADER: dependency_id" );
+  DTRACE_TY   ( " u(v)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_uiLayerId );
+  DTRACE_BITS ( m_uiLayerId, 3 );
+  DTRACE_COUNT( 3 );
+  DTRACE_N;
+  DTRACE_TH   ( "NALU HEADER: quality_level" );
+  DTRACE_TY   ( " u(v)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_uiQualityLevel );
+  DTRACE_BITS ( m_uiQualityLevel, 2 );
+  DTRACE_COUNT( 2 );
   DTRACE_N;
 }
 
@@ -237,15 +248,15 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor )
     ROF( pcBinDataAccessor->size() > 1 );
 
     ucByte              = pcBinDataAccessor->data()[1];
-    m_uiLayerId         = ( ucByte >> 5 );
-    m_uiTemporalLevel   = ( ucByte >> 2 ) & 7;
+    m_uiTemporalLevel   = ( ucByte >> 5 );
+    m_uiLayerId         = ( ucByte >> 2 ) & 7;
     m_uiQualityLevel    = ( ucByte      ) & 3;
     uiHeaderLength      ++;
   }
   else
   {
-    m_uiLayerId       = 0;
     m_uiTemporalLevel = ( m_eNalRefIdc > 0 ? 0 : 1 );
+    m_uiLayerId       = 0;
     m_uiQualityLevel  = 0;
   }
 

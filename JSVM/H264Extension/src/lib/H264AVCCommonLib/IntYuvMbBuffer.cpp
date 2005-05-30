@@ -332,6 +332,57 @@ IntYuvMbBuffer::clip()
 }
 
 
+Bool
+IntYuvMbBuffer::isZero()
+{
+  Int   x, y;
+  XPel* pPel    = getMbLumAddr();
+  Int   iStride = getLStride  ();
+
+  for( y = 0; y < 16; y++ )
+  {
+    for( x = 0; x < 16; x++ )
+    {
+      if( pPel[x] )
+      {
+        return false;
+      }
+    }
+    pPel += iStride;
+  }
+
+  pPel    = getMbCbAddr ();
+  iStride = getCStride  ();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 0; x < 8; x++ )
+    {
+      if( pPel[x] )
+      {
+        return false;
+      }
+    }
+    pPel += iStride;
+  }
+
+  pPel    = getMbCrAddr ();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 0; x < 8; x++ )
+    {
+      if( pPel[x] )
+      {
+        return false;
+      }
+    }
+    pPel += iStride;
+  }
+
+  return true;
+}
+
 Void
 IntYuvMbBuffer::subtract( IntYuvMbBuffer& rcIntYuvMbBuffer )
 {

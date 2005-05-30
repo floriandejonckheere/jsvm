@@ -141,28 +141,33 @@ public:
                       PicBufferList&    rcPicBufferReleaseList );
 
 
-  ErrVal  clearReconstructionStatus ( Int             iMaxPoc,
-                                      PicBufferList&  rcPicBufferUnusedList );
-  ErrVal  getBaseLayerData          ( IntFrame*&      pcFrame,
-                                      IntFrame*&      pcResidual,
-                                      MbDataCtrl*&    pcMbDataCtrl,
-                                      Bool&           bSpatialScalability,
-                                      UInt            uiLayerId,
-                                      UInt            uiBaseLayerId,
-                                      Bool            bHighPass,
-                                      Int             iPoc );
+  ErrVal  getBaseLayerMotionAndResidual ( IntFrame*&      pcResidual,
+                                          MbDataCtrl*&    pcMbDataCtrl,
+                                          Bool&           bSpatialScalability,
+                                          UInt            uiLayerId,
+                                          UInt            uiBaseLayerId,
+                                          Int             iPoc );
+  ErrVal  getReconstructedBaseLayer     ( IntFrame*&      pcFrame,
+                                          UInt            uiLayerId,
+                                          UInt            uiBaseLayerId,
+                                          Bool            bSpatialScalability,
+                                          Bool            bHighPass,
+                                          Int             iPoc );
 
-  Void    setReconstructionSPS( const SequenceParameterSet* pcSPS )     { m_pcRecSPS = pcSPS; }
-  Void    setReconstructionLayerId( UInt uiLayerId )     { m_uiRecLayerId = uiLayerId; }
-  Void    setVeryFirstSPS( const SequenceParameterSet* pcSPS )     { m_pcVeryFirstSPS = pcSPS; }
+  Void    setBaseAVCCompatible        ( Bool                        bAVCCompatible )    { m_bBaseLayerIsAVCCompatible = bAVCCompatible; }
+  Void    setReconstructionLayerId    ( UInt                        uiLayerId )         { m_uiRecLayerId = uiLayerId; }
+  Void    setVeryFirstSPS             ( const SequenceParameterSet* pcSPS )             { m_pcVeryFirstSPS = pcSPS; }
 
-  ErrVal  calculatePoc              ( NalUnitType   eNalUnitType,
-                                      SliceHeader&  rcSliceHeader,
-                                      Int&          slicePoc  );
-  ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
-                                      Bool&             bFinishChecking );
+  ErrVal  calculatePoc                ( NalUnitType       eNalUnitType,
+                                        SliceHeader&      rcSliceHeader,
+                                        Int&              slicePoc  );
+  ErrVal  checkSliceLayerDependency   ( BinDataAccessor*  pcBinDataAccessor,
+                                        Bool&             bFinishChecking );
 
   Void    setQualityLevelForPrediction( UInt ui ) { m_uiQualityLevelForPrediction = ui; }
+#if MULTIPLE_LOOP_DECODING
+  Void    setCompletelyDecodeLayer    ( Bool b )  { m_bCompletelyDecodeLayer = b; }
+#endif
 
 protected:
 
@@ -201,21 +206,21 @@ protected:
   SliceHeader*                  m_pcPrevSliceHeader;
   Bool                          m_bInitDone;
   Bool                          m_bLastFrame;
-  const SequenceParameterSet*   m_pcLastSPS;
-  const SequenceParameterSet*   m_pcRecSPS;
   Bool                          m_bFrameDone;
 
   MCTFDecoder*                  m_apcMCTFDecoder[MAX_LAYERS];
   RQFGSDecoder*                 m_pcRQFGSDecoder;
   PicBuffer*                    m_pcFGSPicBuffer;
-  SliceHeader*                  m_pcVeryFirstSliceHeader;
 
   Bool                          m_bEnhancementLayer;
   Bool                          m_bSpatialScalability;
   Bool                          m_bActive;
+  Bool                          m_bBaseLayerIsAVCCompatible;
+  UInt                          m_uiSPSCount;
   UInt                          m_uiRecLayerId;
   UInt                          m_uiLastLayerId;
   const SequenceParameterSet*   m_pcVeryFirstSPS;
+  SliceHeader*                  m_pcVeryFirstSliceHeader;
 
   Bool                          m_bCheckNextSlice;
   Bool                          m_bDependencyInitialized;
@@ -232,6 +237,10 @@ protected:
 
   // should this layer be decoded at all, and up to which FGS layer should be decoded
   UInt                          m_uiQualityLevelForPrediction;
+#if MULTIPLE_LOOP_DECODING
+  Bool                          m_bCompletelyDecodeLayer;
+  Bool                          m_abCompletlyDecodeBaseLayer[MAX_LAYERS];
+#endif
 };
 
 H264AVC_NAMESPACE_END

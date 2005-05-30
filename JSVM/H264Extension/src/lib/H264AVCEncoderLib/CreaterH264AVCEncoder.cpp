@@ -168,17 +168,13 @@ CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAcces
 
 
 ErrVal
-CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList, 
-                                ExtBinDataAccessorList&  rcOutputExtBinDataAccessorList, 
-                                ExtBinDataAccessorList&  rcUnusedExtBinDataAccessorList, 
+CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
                                 PicBuffer*               apcOriginalPicBuffer     [MAX_LAYERS],
                                 PicBuffer*               apcReconstructPicBuffer  [MAX_LAYERS],
                                 PicBufferList*           apcPicBufferOutputList,
                                 PicBufferList*           apcPicBufferUnusedList )
 {
-  RNOK( m_pcH264AVCEncoder->process( rcInputExtBinDataAccessorList, 
-                                     rcOutputExtBinDataAccessorList, 
-                                     rcUnusedExtBinDataAccessorList, 
+  RNOK( m_pcH264AVCEncoder->process( rcExtBinDataAccessorList, 
                                      apcOriginalPicBuffer, 
                                      apcReconstructPicBuffer, 
                                      apcPicBufferOutputList, 
@@ -188,17 +184,13 @@ CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcInputExtBinDataAccess
 
 
 ErrVal
-CreaterH264AVCEncoder::finish ( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList, 
-                                ExtBinDataAccessorList&  rcOutputExtBinDataAccessorList, 
-                                ExtBinDataAccessorList&  rcUnusedExtBinDataAccessorList, 
+CreaterH264AVCEncoder::finish ( ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
                                 PicBufferList*           apcPicBufferOutputList,
                                 PicBufferList*           apcPicBufferUnusedList,
                                 UInt&                    ruiNumCodedFrames,
                                 Double&                  rdHighestLayerOutputRate )
 {
-  RNOK( m_pcH264AVCEncoder->finish( rcInputExtBinDataAccessorList, 
-                                    rcOutputExtBinDataAccessorList, 
-                                    rcUnusedExtBinDataAccessorList, 
+  RNOK( m_pcH264AVCEncoder->finish( rcExtBinDataAccessorList, 
                                     apcPicBufferOutputList, 
                                     apcPicBufferUnusedList,
                                     ruiNumCodedFrames,

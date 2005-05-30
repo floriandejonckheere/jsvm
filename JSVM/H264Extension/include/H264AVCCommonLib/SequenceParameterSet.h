@@ -143,6 +143,9 @@ public:
   UInt                  getMbInFrame                          ()          const { return m_uiFrameWidthInMbs * m_uiFrameHeightInMbs;}
   Bool                  getInitState                          ()          const { return m_bInitDone; }
   Bool                  getLowComplxUpdFlag                   ()          const { return m_bLowComplxUpdFlag; }
+#if MULTIPLE_LOOP_DECODING
+  Bool                  getAlwaysDecodeBaseLayer              ()          const { return m_bAlwaysDecodeBaseLayer; }
+#endif
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
   Void  setLayerId                            ( UInt        ui )          { m_uiLayerId                             = ui; }
@@ -163,6 +166,9 @@ public:
   Void  setDirect8x8InferenceFlag             ( Bool        b  )          { m_bDirect8x8InferenceFlag               = b;  }
   Void  setInitState                          ( Bool        b  )          { m_bInitDone                             = b;  }
   Void  setLowComplxUpdFlag                   ( Bool        b  )          { m_bLowComplxUpdFlag                     = b;  }
+#if MULTIPLE_LOOP_DECODING
+  Void  setAlwaysDecodeBaseLayer              ( Bool        b  )          { m_bAlwaysDecodeBaseLayer                = b;  }
+#endif
 
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
@@ -198,6 +204,9 @@ protected:
   UInt          m_uiFrameHeightInMbs;
   Bool          m_bDirect8x8InferenceFlag;
   Bool          m_bLowComplxUpdFlag;
+#if MULTIPLE_LOOP_DECODING
+  Bool          m_bAlwaysDecodeBaseLayer;
+#endif
 
 private:
   static const LevelLimit m_aLevelLimit[52];

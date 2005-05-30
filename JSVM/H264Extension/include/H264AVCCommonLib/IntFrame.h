@@ -100,6 +100,7 @@ H264AVC_NAMESPACE_BEGIN
 
 class QuarterPelFilter;
 class MbDataCtrl;
+class DPBUnit;
 
 
 class H264AVCCOMMONLIB_API IntFrame
@@ -117,6 +118,9 @@ public:
   ErrVal  load            ( PicBuffer*        pcPicBuffer );
   ErrVal  store           ( PicBuffer*        pcPicBuffer );
   ErrVal  extendFrame     ( QuarterPelFilter* pcQuarterPelFilter );
+
+  Void      setDPBUnit      ( DPBUnit*  pcDPBUnit ) { m_pcDPBUnit = pcDPBUnit; }
+  DPBUnit*  getDPBUnit      ()                      { return m_pcDPBUnit; }
 
   
   ErrVal clip()
@@ -170,8 +174,6 @@ public:
 
   ErrVal  copyAll     ( IntFrame* pcSrcFrame )
   {
-    m_uiBandType  = pcSrcFrame->m_uiBandType;
-    m_uiRecLayer  = pcSrcFrame->m_uiRecLayer;
     m_iPOC        = pcSrcFrame->m_iPOC;
     RNOK( m_cFullPelYuvBuffer.copy( &pcSrcFrame->m_cFullPelYuvBuffer ) );
   
@@ -213,9 +215,9 @@ public:
     return Err::m_nOK;
   }
 
-  ErrVal dump( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
+  ErrVal dump( FILE* pFile, Int uiBandType, MbDataCtrl* pcMbDataCtrl )
   {
-    if( m_uiBandType != 0 )
+    if( uiBandType != 0 )
     {
       RNOK( getFullPelYuvBuffer()->dumpHPS( pFile, pcMbDataCtrl ) );
     }
@@ -250,22 +252,10 @@ public:
   IntYuvPicBuffer*  getFullPelYuvBuffer     ()        { return &m_cFullPelYuvBuffer; }
   IntYuvPicBuffer*  getHalfPelYuvBuffer     ()        { return &m_cHalfPelYuvBuffer; }
 
-
-  Void  setBandType   ( UInt ui ) { m_uiBandType = ui;    }
-  UInt  getBandType   ()  const   { return m_uiBandType;  }
-
-  UInt  getRecLayer   ()  const   { return m_uiRecLayer;  }
-  Void  addRecLayer   ()          { m_uiRecLayer++;       }
-  Void  initRecLayer  ()          { m_uiRecLayer = 0;     }
-  Void  setRecLayer   ( UInt ui ) { m_uiRecLayer = ui;    }
-
   Int   getPOC()          const   { return m_iPOC; }
   Void  setPOC( Int iPoc)         { m_iPOC = iPoc; }
 
-  Void  setValid  ()  { m_bValid = true; }
-  Void  setUnvalid()  { m_bValid = false; }
   Bool  isHalfPel()   { return m_bHalfPel; }
-  Bool  isValid()     { return m_bValid; }
 
   Bool  isExtended () { return m_bExtended; }
   Void  clearExtended() { m_bExtended = false; }
@@ -275,12 +265,11 @@ protected:
   IntYuvPicBuffer m_cFullPelYuvBuffer;
   IntYuvPicBuffer m_cHalfPelYuvBuffer;
   
-  UInt            m_uiBandType;
-  UInt            m_uiRecLayer;
   Int             m_iPOC;
-  Bool            m_bValid;
   Bool            m_bHalfPel;
   Bool            m_bExtended;
+
+  DPBUnit*        m_pcDPBUnit;
 };
 
 

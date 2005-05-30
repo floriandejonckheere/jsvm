@@ -122,6 +122,8 @@ public:
   virtual ErrVal getPosition( Int& iPos );
   virtual ErrVal setPosition( Int  iPos );
 
+  virtual Int64  getFilePos() { return m_cFile.tell(); }
+
 protected:
   LargeFile m_cFile;
 };

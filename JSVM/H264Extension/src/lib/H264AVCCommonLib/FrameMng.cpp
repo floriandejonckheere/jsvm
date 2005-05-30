@@ -160,12 +160,10 @@ ErrVal FrameMng::FrameUnitBuffer::releaseFrameUnit( FrameUnit* pcFrameUnit )
 
 
 FrameMng::FrameMng()
-  : m_bInitDone               ( false ),
-    m_pcQuarterPelFilter      ( NULL ),
-    m_pcOriginalFrameUnit     ( NULL ),
-    m_pcCurrentFrameUnit      ( NULL ),
-    m_eOutputMode             ( OM_FLUSH ),
-    m_eInitialOutputMode      ( OM_BUMPING ) // OM_DELAYED | OM_BUMPING
+: m_bInitDone               ( false )
+, m_pcQuarterPelFilter      ( NULL )
+, m_pcOriginalFrameUnit     ( NULL )
+, m_pcCurrentFrameUnit      ( NULL )
 {
   m_uiPrecedingRefFrameNum  = 0;
   m_iEntriesInDPB           = 0;
@@ -316,13 +314,7 @@ ErrVal FrameMng::init( YuvBufferCtrl* pcYuvFullPelBufferCtrl, YuvBufferCtrl* pcY
     ROF( m_pcPredictionIntFrame = new IntFrame( *pcYuvFullPelBufferCtrl, *pcYuvFullPelBufferCtrl ) );
   }
 
-  m_cPicBufferDelayedOutputList.clear();
   m_bInitDone = true;
-
-  //there are two valid modes OM_BUMPING and OM_DELAYED
-  ROT( m_eInitialOutputMode != OM_BUMPING && m_eInitialOutputMode != OM_DELAYED );
-
-  m_eOutputMode = m_eInitialOutputMode;
 
   return Err::m_nOK;
 }
@@ -368,16 +360,12 @@ ErrVal FrameMng::uninit()
   AOT( ! m_cShortTermList.empty() );
   AOT( ! m_cNonRefList.empty() );
   AOT( ! m_cOrderedPOCList.empty() );
-  AOT( ! m_cPicBufferDelayedUnusedList.empty() );
-  AOT( ! m_cPicBufferDelayedOutputList.empty() );
   AOT( ! m_cPicBufferUnusedList.empty() );
   AOT( ! m_cPicBufferOutputList.empty() );
 
   m_cShortTermList.clear();
   m_cNonRefList.clear();
   m_cOrderedPOCList.clear();
-  m_cPicBufferDelayedUnusedList.clear();
-  m_cPicBufferDelayedOutputList.clear();
   m_cPicBufferUnusedList.clear();
   m_cPicBufferOutputList.clear();
 
@@ -390,7 +378,7 @@ ErrVal FrameMng::initSlice( SliceHeader *rcSH )
   m_uiMaxFrameNumCurr = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
   m_uiMaxFrameNumPrev = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
   m_uiNumRefFrames    = rcSH->getSPS().getNumRefFrames();
-  m_iMaxEntriesinDPB  = rcSH->getSPS().getMaxDPBSize();
+  m_iMaxEntriesinDPB  = min( 16, rcSH->getSPS().getMaxDPBSize() );
 
   if( ! m_iMaxEntriesinDPB )
   {
@@ -414,7 +402,7 @@ ErrVal FrameMng::initSPS( const SequenceParameterSet& rcSPS )
   m_uiMaxFrameNumCurr = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );
   m_uiMaxFrameNumPrev = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );
   m_uiNumRefFrames    = rcSPS.getNumRefFrames();
-  m_iMaxEntriesinDPB  = rcSPS.getMaxDPBSize();
+  m_iMaxEntriesinDPB  = rcSPS.getMaxDPBSize()+3; // to be on a safe side for inter-layer prediction
 
   if( ! m_iMaxEntriesinDPB )
   {
@@ -459,12 +447,6 @@ ErrVal FrameMng::initFrame( SliceHeader& rcSH, PicBuffer* pcPicBuffer )
 
   rcSH.setFrameUnit( m_pcCurrentFrameUnit );
 
-  if( m_eOutputMode == OM_DELAYED_LOCKED )
-  {
-    // unlock the output mode
-    m_eOutputMode = OM_DELAYED;
-  }
-
   return Err::m_nOK;
 }
 
@@ -489,6 +471,8 @@ ErrVal FrameMng::xCheckMissingFrameNums( SliceHeader& rcSH )
         FrameUnit*  pcFrameUnit = 0;
         RNOK( m_cFrameUnitBuffer.getFrameUnit( pcFrameUnit ) );
 
+        RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) ); // HS: decoder robustness
+
         pcFrameUnit->setFrameNumber( uiFrameNum );
         m_cShortTermList.push_front( pcFrameUnit );
         m_iEntriesInDPB++;
@@ -511,79 +495,11 @@ ErrVal FrameMng::xCheckMissingFrameNums( SliceHeader& rcSH )
 
 ErrVal FrameMng::setPicBufferLists( PicBufferList& rcPicBufferOutputList, PicBufferList& rcPicBufferUnusedList, Bool bForceIfLocked )
 {
-  switch( m_eOutputMode )
-  {
-  case OM_BUMPING :
-    {
-      rcPicBufferUnusedList += m_cPicBufferUnusedList;
-      m_cPicBufferUnusedList.clear();
+  rcPicBufferUnusedList += m_cPicBufferUnusedList;
+  m_cPicBufferUnusedList.clear();
 
-      rcPicBufferOutputList += m_cPicBufferOutputList;
-      m_cPicBufferOutputList.clear();
-    }
-    break;
-  case OM_DELAYED :
-    {
-      m_cPicBufferDelayedUnusedList += m_cPicBufferUnusedList;
-      m_cPicBufferDelayedOutputList += m_cPicBufferOutputList;
-      m_eOutputMode = OM_DELAYED_LOCKED;
-      m_cPicBufferOutputList.clear();
-      m_cPicBufferUnusedList.clear();
-
-      if( ! m_cPicBufferDelayedOutputList.empty() )
-      {
-        PicBuffer* pcPicBuffer = m_cPicBufferDelayedOutputList.popFront();
-        rcPicBufferOutputList.push_back( pcPicBuffer );
-
-
-
-        PicBufferList::iterator ppcUnused = m_cPicBufferDelayedUnusedList.begin();
-        while( m_cPicBufferDelayedUnusedList.end() != ppcUnused )
-        {
-          PicBufferList::iterator ppcPicBuffer = m_cPicBufferDelayedOutputList.find( *ppcUnused );
-          if( m_cPicBufferDelayedUnusedList.end() == ppcPicBuffer )
-          {
-            rcPicBufferUnusedList.push_back( *ppcUnused );
-            ppcUnused = m_cPicBufferDelayedUnusedList.erase( ppcUnused );
-          }
-          else
-          {
-            ppcUnused++;
-          }
-        }
-      }
-    }
-    break;
-  case OM_DELAYED_LOCKED :
-    {
-      if( bForceIfLocked )
-      {
-        m_eOutputMode = OM_DELAYED;
-        RNOK( setPicBufferLists( rcPicBufferOutputList, rcPicBufferUnusedList ) );
-        m_eOutputMode = OM_DELAYED_LOCKED;
-      }
-      // perform only one output per input
-    }
-    break;
-  case OM_FLUSH :
-    {
-      rcPicBufferOutputList += m_cPicBufferDelayedOutputList;
-      rcPicBufferOutputList += m_cPicBufferOutputList;
-      m_cPicBufferDelayedOutputList.clear();
-      m_cPicBufferOutputList.clear();
-
-      rcPicBufferUnusedList += m_cPicBufferDelayedUnusedList;
-      rcPicBufferUnusedList += m_cPicBufferUnusedList;
-      m_cPicBufferDelayedUnusedList.clear();
-      m_cPicBufferUnusedList.clear();
-    }
-    break;
-  default :
-    {
-      AOT(1);
-    }
-    break;
-  }
+  rcPicBufferOutputList += m_cPicBufferOutputList;
+  m_cPicBufferOutputList.clear();
 
   return Err::m_nOK;
 }
@@ -753,9 +669,15 @@ ErrVal FrameMng::xClearListsIDR( const SliceHeader& rcSH  )
     if( ! rcSH.getNoOutputOfPriorPicsFlag() )
     {
       if( (*iter)->getFGSPicBuffer() )
+      {
+        (*iter)->getFGSPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getFGSPicBuffer() );
+      }
       else
+      {
+        (*iter)->getPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getPicBuffer() );
+      }
     }
 
 
@@ -785,9 +707,15 @@ ErrVal FrameMng::outputAll()
   for( iter = m_cOrderedPOCList.begin(); iter != m_cOrderedPOCList.end(); iter++ )
   {
     if( (*iter)->getFGSPicBuffer() )
+    {
+      (*iter)->getFGSPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
       m_cPicBufferOutputList.push_back( (*iter)->getFGSPicBuffer() );
+    }
     else
+    {
+      (*iter)->getPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
       m_cPicBufferOutputList.push_back( (*iter)->getPicBuffer() );
+    }
     (*iter)->setOutputDone();
   }
   m_cOrderedPOCList.erase( m_cOrderedPOCList.begin(), iter );
@@ -795,7 +723,6 @@ ErrVal FrameMng::outputAll()
   RNOK( xAddToFreeList( m_cShortTermList ) );
   RNOK( xAddToFreeList( m_cNonRefList ) );
 
-  m_eOutputMode = OM_FLUSH;
   return Err::m_nOK;
 }
 
@@ -803,7 +730,7 @@ ErrVal FrameMng::outputAll()
 
 ErrVal FrameMng::xSetOutputList( FrameUnit* pcFrameUnit )
 {
-  ROTRS( m_iEntriesInDPB <= m_iMaxEntriesinDPB*2, Err::m_nOK );
+  ROTRS( m_iEntriesInDPB <= m_iMaxEntriesinDPB, Err::m_nOK );
 
   //===== get minimum POC for output =====
   Int     iMinPOCtoOuput = MSYS_INT_MAX;
@@ -823,9 +750,15 @@ ErrVal FrameMng::xSetOutputList( FrameUnit* pcFrameUnit )
     if( (*iter)->getMaxPOC() <= iMinPOCtoOuput )
     {
       if( (*iter)->getFGSPicBuffer() )
+      {
+        (*iter)->getFGSPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getFGSPicBuffer() );
+      }
       else
+      {
+        (*iter)->getPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getPicBuffer() );
+      }
       (*iter)->setOutputDone();
       if( xFindAndErase( m_cNonRefList, *iter ) )
       {
@@ -841,63 +774,6 @@ ErrVal FrameMng::xSetOutputList( FrameUnit* pcFrameUnit )
 
   return Err::m_nOK;
 }
-
-
-
-ErrVal
-FrameMng::forceOutput( Int             iMaxPoc,
-                       PicBufferList&  rcUnusedList )
-{
-  RNOK( xForceOutputPoc( iMaxPoc ) );
-
-  rcUnusedList += m_cPicBufferUnusedList;
-
-  m_cPicBufferOutputList.clear();
-  m_cPicBufferUnusedList.clear();
-
-  return Err::m_nOK;
-}
-
-
-
-
-ErrVal
-FrameMng::xForceOutputPoc( Int iMaxPoc )
-{
-  //===== output =====
-  FUIter iter = m_cOrderedPOCList.begin();
-  while( iter != m_cOrderedPOCList.end() && (*iter)->getMaxPOC() <= iMaxPoc )
-  {
-    if( (*iter)->getFGSPicBuffer() )
-      m_cPicBufferOutputList.push_back( (*iter)->getFGSPicBuffer() );
-    else
-      m_cPicBufferOutputList.push_back( (*iter)->getPicBuffer() );
-  
-    (*iter)->setOutputDone();
-  
-    if( xFindAndErase( m_cNonRefList, *iter ) )
-    {
-      RNOK( xAddToFreeList( *iter ) );
-    }
-
-    iter++;
-  }
-  m_cOrderedPOCList.erase( m_cOrderedPOCList.begin(), iter );
-
-  iter = m_cOrderedPOCList.begin();
-  for( ; iter != m_cOrderedPOCList.end(); iter++ )
-  {
-    if( ! (*iter)->getFGSPicBuffer() )
-    {
-      (*iter)->getFGSIntFrame()->load( (*iter)->getPicBuffer() );
-    }
-  }
-
-
-  return Err::m_nOK;
-}
-
-
 
 
 ErrVal FrameMng::storeFGSPicture( PicBuffer* pcPicBuffer )
@@ -962,7 +838,7 @@ ErrVal FrameMng::xMmcoMarkShortTermAsUnused( const FrameUnit* pcCurrFrameUnit, U
   if( iter == m_cShortTermList.end() )
   {
     printf("\nMMCO not possible\n" );
-    ROT(1);
+    return Err::m_nOK; // HS: decoder robustness
   }
 
   FrameUnit* pcFrameUnit = (*iter);
@@ -1018,12 +894,14 @@ ErrVal FrameMng::xSlidingWindowUpdate()
 {
   UInt  uiS = m_cShortTermList.size();
 
-  ROT( uiS > m_uiNumRefFrames );
-
-  if( uiS == m_uiNumRefFrames )
+  //ROT( uiS > m_uiNumRefFrames );
+  //if( uiS == m_uiNumRefFrames )
+  while( uiS >= m_uiNumRefFrames ) // HS: decoder robustness
   {
-    RNOK( xRemove( m_cShortTermList.popBack() ) )
+    RNOK( xRemove( m_cShortTermList.popBack() ) );
+    uiS--; // HS: decoder robustness
   }
+
   return Err::m_nOK;
 }
 

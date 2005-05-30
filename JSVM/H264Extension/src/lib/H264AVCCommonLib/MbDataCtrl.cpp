@@ -123,8 +123,8 @@ MbDataCtrl::MbDataCtrl():
 
 MbDataCtrl::~MbDataCtrl()
 {
-  xDeleteData();
-  AOT_DBG( m_bInitDone );
+  AOT( xDeleteData() );
+  AOT( m_bInitDone );
 }
 
 ErrVal MbDataCtrl::xCreateData( UInt uiSize )
@@ -158,6 +158,10 @@ ErrVal MbDataCtrl::xDeleteData()
 {
   H264AVC_DELETE_CLASS( m_pcMbDataAccess );
 
+  for( UInt uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
+  {
+    m_pcMbData[ uiIdx ].clearIntraBaseCoeffs();
+  }
   H264AVC_DELETE( m_pcMbTCoeffs );
   H264AVC_DELETE( m_apcMbMvdData[1] );
   H264AVC_DELETE( m_apcMbMvdData[0] );
@@ -173,6 +177,7 @@ ErrVal MbDataCtrl::xResetData()
   UInt uiIdx;
   for( uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
   {
+    m_pcMbData[ uiIdx ].clearIntraBaseCoeffs();
     m_pcMbData[ uiIdx ].reset();
   }
   for( uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
@@ -328,7 +333,6 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
 
   if( rcSH.isInterB() )
   {
-    //if( rcSH.getNalUnitType() < NAL_UNIT_SCALABLE_LAYER_0 )
     if( rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_IDR_SCALABLE &&
         rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_SCALABLE     && bDecoder )
     {
@@ -766,13 +770,14 @@ ControlData::ControlData()
 , m_pcBaseLayerRec    ( 0   )
 , m_pcBaseLayerSbb    ( 0   )
 , m_pcBaseLayerCtrl   ( 0   )
+, m_pcBaseCtrlData    ( 0   )
 , m_uiUseBLMotion     ( 0   )
 , m_dScalingFactor    ( 1.0 )
 , m_pcFgsMbDataCtrl   ( NULL )
 , m_bIsNormalMbDataCtrl ( true )
 {
 // *LMH: Inverse MCTF
-  m_bBaseRep = false;
+  m_bComplete = false;
   m_uiCurTemporalLevel = 0;
   m_uiCurActivePrdL0 = 0;
   m_uiCurActivePrdL1 = 0;
@@ -796,7 +801,7 @@ ControlData::clear()
   m_uiUseBLMotion       = 0;
   m_dScalingFactor      = 1.0;
 // *LMH: Inverse MCTF
-  m_bBaseRep = false;
+  m_bComplete = false;
   m_uiCurTemporalLevel = 0;
   m_uiCurActivePrdL0 = 0;
   m_uiCurActivePrdL1 = 0;
@@ -805,6 +810,8 @@ ControlData::clear()
     m_uiCurActiveUpdL0[uiIndex] = 0;
     m_uiCurActiveUpdL1[uiIndex] = 0;
   }
+
+  m_bIsNormalMbDataCtrl = true;
 }
 
 ErrVal

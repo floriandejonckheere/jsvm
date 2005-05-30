@@ -152,6 +152,43 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer )
   m_cFGSIntFrame.init( false);
   m_pcFGSPicBuffer = NULL;
 
+  m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
+
+  return Err::m_nOK;
+}
+
+
+// HS: decoder robustness
+ErrVal FrameUnit::init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
+{
+  ROT( NULL != m_pcPicBuffer );
+
+  m_uiFrameNumber = rcSH.getFrameNum();
+
+  RNOK( m_cFrame.   init( NULL, this ) );
+  m_cFrame.getFullPelYuvBuffer()->copy( rcFrameUnit.getFrame().getFullPelYuvBuffer() );
+  m_cFrame.getFullPelYuvBuffer()->fillMargin();
+  
+  RNOK( m_cMbDataCtrl.init( rcSH.getSPS() ) );
+
+  m_uiStatus = 0;
+
+  UInt uiStamp = m_cFrame.stamp() + 1;
+  m_cFrame.   stamp() = uiStamp;
+
+  m_cResidual.init( false );
+  m_cResidual.getFullPelYuvBuffer()->clear();
+  m_bInitDone = true;
+
+  m_cFGSIntFrame.init( false);
+  m_cFGSIntFrame.getFullPelYuvBuffer()->copy( rcFrameUnit.getFGSIntFrame()->getFullPelYuvBuffer() );
+  m_cFGSIntFrame.getFullPelYuvBuffer()->fillMargin();
+  m_pcFGSPicBuffer = NULL;
+
+  m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
+
+  setOutputDone();
+
   return Err::m_nOK;
 }
 

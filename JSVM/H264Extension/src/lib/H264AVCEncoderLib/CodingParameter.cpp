@@ -143,6 +143,11 @@ ErrVal LayerParameters::check()
   ROTREPORT( getInterLayerPredictionMode() < 0 ||
              getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
   ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
+#if MULTIPLE_LOOP_DECODING
+  ROTREPORT( getDecodingLoops           () > 2,         "Unsupported mode for decoding loops" );
+#else
+  ROTREPORT( getDecodingLoops           () > 1,         "Unsupported mode for decoding loops" );
+#endif
   
   return Err::m_nOK;
 }
@@ -205,7 +210,7 @@ ErrVal CodingParameter::check()
   {
     LayerParameters*  pcLayer               = &m_acLayerParameters[uiLayer];
 
-	RNOK( pcLayer->check() );
+	  RNOK( pcLayer->check() );
 
     LayerParameters*  pcBaseLayer           = uiLayer ? &m_acLayerParameters[uiLayer-1] : 0;
     UInt              uiLogFactorInOutRate  = getLogFactor( pcLayer->getOutputFrameRate (), pcLayer->getInputFrameRate() );
@@ -239,6 +244,11 @@ ErrVal CodingParameter::check()
       ROTREPORT( uiLogFactorWidth != uiLogFactorHeight, "Frame width and height have to increase simultaneously from layer to layer" );
       ROTREPORT( uiLogFactorWidth == MSYS_UINT_MAX,     "Frame width and height must be a power of 2 from layer to layer" );
       pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
+
+      if( pcLayer->getDecodingLoops() == 0 ) // single-loop decoding also for low-pass
+      {
+        pcBaseLayer->setContrainedIntraForLP();
+      }
     }
 
     if( pcLayer->getBaseQualityLevel() > 3 )

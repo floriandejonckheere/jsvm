@@ -190,6 +190,49 @@ ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer )
   return Err::m_nOK;
 }
 
+// HS: decoder robustness
+ErrVal
+YuvPicBuffer::copy( YuvPicBuffer* pcPicBuffer )
+{
+  Pel   *pDes   = getLumOrigin();
+  Pel   *pScr   = pcPicBuffer->getMbLumAddr();
+  Int   iStride = getLStride();
+  Int   iWidth  = getLWidth();
+  Int   iHeight = getLHeight();
+  UInt  y;
+
+  for( y = 0; y < iHeight; y++ )
+  {
+    ::memcpy( pDes, pScr, iWidth* sizeof(Pel) );
+    pDes += iStride,
+    pScr += iStride;
+  }
+
+  iWidth >>= 1;
+  iHeight >>=1;
+  iStride  >>= 1;
+  pScr = pcPicBuffer->getCbOrigin();
+  pDes = getCbOrigin();
+
+  for( y = 0; y < iHeight; y++ )
+  {
+    ::memcpy( pDes, pScr, iWidth* sizeof(Pel) );
+    pDes += iStride,
+    pScr += iStride;
+  }
+
+  pScr = pcPicBuffer->getCrOrigin();
+  pDes = getCrOrigin();
+
+  for( y = 0; y < iHeight; y++ )
+  {
+    ::memcpy( pDes, pScr, iWidth* sizeof(Pel) );
+    pDes += iStride,
+    pScr += iStride;
+  }
+
+  return Err::m_nOK;
+}
 
 ErrVal YuvPicBuffer::fillMargin()
 {

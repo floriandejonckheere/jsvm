@@ -101,6 +101,7 @@ public:
 
   virtual ErrVal writePacket( BinDataAccessor* pcBinDataAccessor, Bool bNewAU = false ) = 0;
   virtual ErrVal writePacket( BinData* pcBinData, Bool bNewAU = false ) = 0;
+  virtual ErrVal writePacket( Void* pBuffer, UInt uiLength ) = 0;
 
 };
 

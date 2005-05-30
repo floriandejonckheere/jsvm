@@ -252,12 +252,7 @@ H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
     m_apcMCTFEncoder[uiLayer] = 0;
   }
 
-  for( uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
-  {
-    m_aacMCTFOutputList[uiLayer][0].clear();
-    m_aacMCTFOutputList[uiLayer][1].clear();
-  }
-  m_bFirstGOPCodedForAllLayers  = false;
+  m_cAccessUnitList.clear();
 
   return Err::m_nOK;
 }
@@ -277,16 +272,15 @@ H264AVCEncoder::uninit()
   m_bInitDone                   = false;
   m_bVeryFirstCall              = true;
   m_bTraceEnable                = false;
-  m_bFirstGOPCodedForAllLayers  = false;
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
     m_apcMCTFEncoder    [uiLayer] = NULL;
     m_acOrgPicBufferList[uiLayer]   .clear();
     m_acRecPicBufferList[uiLayer]   .clear();
-    m_aacMCTFOutputList [uiLayer][0].clear();
-    m_aacMCTFOutputList [uiLayer][1].clear();
   }
+
+  m_cAccessUnitList.clear();
 
   return Err::m_nOK;
 }
@@ -455,10 +449,9 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
 }
 
 
+
 ErrVal
-H264AVCEncoder::process( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList,
-                         ExtBinDataAccessorList&  rcOutputExtBinDataAccessorList,
-                         ExtBinDataAccessorList&  rcUnusedExtBinDataAccessorList,
+H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                          PicBuffer*               apcOriginalPicBuffer    [MAX_LAYERS],
                          PicBuffer*               apcReconstructPicBuffer [MAX_LAYERS],
                          PicBufferList*           apcPicBufferOutputList,
@@ -472,8 +465,6 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList,
     if( apcOriginalPicBuffer[uiLayer] )
     {
       RNOK( xProcessGOP( uiLayer,
-                         m_aacMCTFOutputList    [uiLayer],
-                         rcUnusedExtBinDataAccessorList,
                          apcOriginalPicBuffer   [uiLayer],
                          apcReconstructPicBuffer[uiLayer],
                          apcPicBufferOutputList [uiLayer],
@@ -488,49 +479,14 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList,
     }
   }
 
-  if( ! m_bFirstGOPCodedForAllLayers )
-  {
-    //----- set flag -----
-    for( m_bFirstGOPCodedForAllLayers = true, uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-    {
-      if( m_aacMCTFOutputList[uiLayer][0].empty() )
-      {
-        m_bFirstGOPCodedForAllLayers = false;
-        break;
-      }
-    }
-    if( m_bFirstGOPCodedForAllLayers )
-    {
-      //----- order first packets -----
-      for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-      {
-        rcOutputExtBinDataAccessorList += m_aacMCTFOutputList[uiLayer][0];
-        m_aacMCTFOutputList[uiLayer][0].clear();
-      }
-    }
-  }
-  else
-  {
-    for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-    {
-      ROT( m_aacMCTFOutputList[uiLayer][0].size() );
-    }
-  }
-
-  for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-  {
-    rcOutputExtBinDataAccessorList += m_aacMCTFOutputList[uiLayer][1];
-    m_aacMCTFOutputList[uiLayer][1].clear();
-  }
+  m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
 
   return Err::m_nOK;
 }
 
 
 ErrVal
-H264AVCEncoder::finish( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList,
-                        ExtBinDataAccessorList&  rcOutputExtBinDataAccessorList,
-                        ExtBinDataAccessorList&  rcUnusedExtBinDataAccessorList,
+H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                         PicBufferList*           apcPicBufferOutputList,
                         PicBufferList*           apcPicBufferUnusedList,
                         UInt&                    ruiNumCodedFrames,
@@ -542,58 +498,20 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList,
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     RNOK( xProcessGOP( uiLayer,
-                       m_aacMCTFOutputList[uiLayer],
-                       rcUnusedExtBinDataAccessorList,
                        NULL,
                        NULL,
                        apcPicBufferOutputList[uiLayer],
                        apcPicBufferUnusedList[uiLayer] ) );
   }
 
+  m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
   
-  if( ! m_bFirstGOPCodedForAllLayers )
-  {
-    //----- set flag -----
-    for( m_bFirstGOPCodedForAllLayers = true, uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-    {
-      if( m_aacMCTFOutputList[uiLayer][0].empty() )
-      {
-        m_bFirstGOPCodedForAllLayers = false;
-        break;
-      }
-    }
-    if( m_bFirstGOPCodedForAllLayers )
-    {
-      //----- order first packets -----
-      for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-      {
-        rcOutputExtBinDataAccessorList += m_aacMCTFOutputList[uiLayer][0];
-        m_aacMCTFOutputList[uiLayer][0].clear();
-      }
-    }
-    else
-    {
-      ROT(1);
-    }
-  }
-  else
-  {
-    for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-    {
-      ROT( m_aacMCTFOutputList[uiLayer][0].size() );
-    }
-  }
-  for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-  {
-    rcOutputExtBinDataAccessorList += m_aacMCTFOutputList[uiLayer][1];
-    m_aacMCTFOutputList[uiLayer][1].clear();
-  }
-
-
   for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {
     RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ) );
   }
+  printf("                                   ----------------------------------------\n");
+  printf("                                   (*): These PSNR values are not accurate!\n\n");
 
   return Err::m_nOK;
 }
@@ -602,8 +520,6 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcInputExtBinDataAccessorList,
 
 ErrVal
 H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
-                             ExtBinDataAccessorList*  pacOutputExtBinDataAccessorList,
-                             ExtBinDataAccessorList&  rcUnusedExtBinDataAccessorList,
                              PicBuffer*               pcOriginalPicBuffer,
                              PicBuffer*               pcReconstructPicBuffer,
                              PicBufferList&           rcPicBufferOutputList,
@@ -619,8 +535,7 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 
     if( m_acOrgPicBufferList[uiLayer].size() )
     {
-      RNOK( m_apcMCTFEncoder[uiLayer]->process ( pacOutputExtBinDataAccessorList,
-                                                 rcUnusedExtBinDataAccessorList,
+      RNOK( m_apcMCTFEncoder[uiLayer]->process ( m_cAccessUnitList,
                                                  m_acOrgPicBufferList[uiLayer],
                                                  m_acRecPicBufferList[uiLayer],
                                                  rcPicBufferUnusedList ) );
@@ -653,8 +568,7 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
   if( m_acOrgPicBufferList[uiLayer].size() == uiTargetBufferSize )
   {
     //===== ENCODE GROUP OF PICTURES =====
-    RNOK( m_apcMCTFEncoder[uiLayer]->process( pacOutputExtBinDataAccessorList,
-                                              rcUnusedExtBinDataAccessorList,
+    RNOK( m_apcMCTFEncoder[uiLayer]->process( m_cAccessUnitList,
                                               m_acOrgPicBufferList[uiLayer],
                                               m_acRecPicBufferList[uiLayer],
                                               rcPicBufferUnusedList ) );
@@ -700,7 +614,7 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << rcLayerParameters.getDecompositionStages() );
-    UInt              uiNumRefPic         = uiDPBSize;
+    UInt              uiNumRefPic         = uiDPBSize - ( uiDPBSize > 1 ? 1 : 0 );
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
     ROT( bH264AVCCompatible && uiDPBSize > 16 );
     ROT( uiLevelIdc == MSYS_UINT_MAX );
@@ -712,38 +626,47 @@ H264AVCEncoder::xInitParameterSets()
     PictureParameterSet*  pcPPSHP;
     
     RNOK( SequenceParameterSet::create( pcSPS   ) );
-    RNOK( PictureParameterSet ::create( pcPPSLP ) );
     RNOK( PictureParameterSet ::create( pcPPSHP ) );
-
     pcPPSHP->setPicParameterSetId( uiPPSId++ );
-    pcPPSLP->setPicParameterSetId( uiPPSId++ );
     pcPPSHP->setSeqParameterSetId( uiSPSId   );
-    pcPPSLP->setSeqParameterSetId( uiSPSId   );
-    pcSPS  ->setSeqParameterSetId( uiSPSId++ );
-    
-    RNOK( m_pcParameterSetMng->store( pcSPS   ) );
-    RNOK( m_pcParameterSetMng->store( pcPPSLP ) );
     RNOK( m_pcParameterSetMng->store( pcPPSHP ) );
+    if( rcLayerParameters.getContrainedIntraForLP() )
+    {
+      pcPPSLP = pcPPSHP;
+    }
+    else
+    {
+      RNOK( PictureParameterSet ::create( pcPPSLP ) );
+      pcPPSLP->setPicParameterSetId( uiPPSId++ );
+      pcPPSLP->setSeqParameterSetId( uiSPSId   );
+      RNOK( m_pcParameterSetMng->store( pcPPSLP ) );
+    }
+    pcSPS->setSeqParameterSetId( uiSPSId++ );
+    RNOK( m_pcParameterSetMng->store( pcSPS   ) );
 
 
     //===== set sequence parameter set parameters =====
     pcSPS->setNalUnitType                         ( NAL_UNIT_SPS );
     pcSPS->setLayerId                             ( rcLayerParameters.getLayerId() );
-    pcSPS->setProfileIdc                          ( bH264AVCCompatible ? MAIN_PROFILE : SCALABLE_PROFILE );
+    pcSPS->setProfileIdc                          ( bH264AVCCompatible ? ( rcLayerParameters.getAdaptiveTransform() > 0 ? HIGH_PROFILE : MAIN_PROFILE ) : SCALABLE_PROFILE );
     pcSPS->setConstrainedSet0Flag                 ( false );
     pcSPS->setConstrainedSet1Flag                 ( bH264AVCCompatible ? 1 : 0 );
     pcSPS->setConstrainedSet2Flag                 ( false );
     pcSPS->setConstrainedSet3Flag                 ( false );
     pcSPS->setLevelIdc                            ( uiLevelIdc );
-    pcSPS->setSeqScalingMatrixPresentFlag         ( bH264AVCCompatible ? false : rcLayerParameters.getAdaptiveTransform() > 1 );
+    pcSPS->setSeqScalingMatrixPresentFlag         ( rcLayerParameters.getAdaptiveTransform() > 1 );
     pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 - 4 );
-    pcSPS->setLog2MaxPicOrderCntLsb               ( uiRequiredPocBits );
+    pcSPS->setLog2MaxPicOrderCntLsb               ( min( 15, uiRequiredPocBits + 2 ) );  // HS: decoder robustness -> value increased by 2
     pcSPS->setNumRefFrames                        ( uiNumRefPic );
     pcSPS->setRequiredFrameNumUpdateBehaviourFlag ( true );
     pcSPS->setFrameWidthInMbs                     ( uiMbX );
     pcSPS->setFrameHeightInMbs                    ( uiMbY );
     pcSPS->setDirect8x8InferenceFlag              ( true  );
     pcSPS->setLowComplxUpdFlag                    ( m_pcCodingParameter->getLowComplxUpdFlag() );
+#if MULTIPLE_LOOP_DECODING
+    pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
+                                                    rcLayerParameters.getDecodingLoops() > 1 );
+#endif
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
@@ -758,23 +681,26 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setChomaQpIndexOffset                    ( 0 );
     pcPPSHP->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
     pcPPSHP->setConstrainedIntraPredFlag              ( true );
-    pcPPSHP->setTransform8x8ModeFlag                  ( bH264AVCCompatible ? false : rcLayerParameters.getAdaptiveTransform() > 0 );
+    pcPPSHP->setTransform8x8ModeFlag                  ( rcLayerParameters.getAdaptiveTransform() > 0 );
     pcPPSHP->setPicScalingMatrixPresentFlag           ( false );
     pcPPSHP->set2ndChromaQpIndexOffset                ( 0 );
 
-    pcPPSLP->setNalUnitType                           ( pcPPSHP->getNalUnitType                           ()  );
-    pcPPSLP->setLayerId                               ( pcPPSHP->getLayerId                               ()  );
-    pcPPSLP->setEntropyCodingModeFlag                 ( pcPPSHP->getEntropyCodingModeFlag                 ()  );
-    pcPPSLP->setPicOrderPresentFlag                   ( pcPPSHP->getPicOrderPresentFlag                   ()  );
-    pcPPSLP->setNumRefIdxActive( LIST_0               , pcPPSHP->getNumRefIdxActive               ( LIST_0 )  );
-    pcPPSLP->setNumRefIdxActive( LIST_1               , pcPPSHP->getNumRefIdxActive               ( LIST_1 )  );
-    pcPPSLP->setPicInitQp                             ( pcPPSHP->getPicInitQp                             ()  );
-    pcPPSLP->setChomaQpIndexOffset                    ( pcPPSHP->getChomaQpIndexOffset                    ()  );
-    pcPPSLP->setDeblockingFilterParametersPresentFlag ( pcPPSHP->getDeblockingFilterParametersPresentFlag ()  );
-    pcPPSLP->setConstrainedIntraPredFlag              ( false                                                 );
-    pcPPSLP->setTransform8x8ModeFlag                  ( pcPPSHP->getTransform8x8ModeFlag                  ()  );
-    pcPPSLP->setPicScalingMatrixPresentFlag           ( pcPPSHP->getPicScalingMatrixPresentFlag           ()  );
-    pcPPSLP->set2ndChromaQpIndexOffset                ( pcPPSHP->get2ndChromaQpIndexOffset                ()  );
+    if( ! rcLayerParameters.getContrainedIntraForLP() )
+    {
+      pcPPSLP->setNalUnitType                           ( pcPPSHP->getNalUnitType                           ()  );
+      pcPPSLP->setLayerId                               ( pcPPSHP->getLayerId                               ()  );
+      pcPPSLP->setEntropyCodingModeFlag                 ( pcPPSHP->getEntropyCodingModeFlag                 ()  );
+      pcPPSLP->setPicOrderPresentFlag                   ( pcPPSHP->getPicOrderPresentFlag                   ()  );
+      pcPPSLP->setNumRefIdxActive( LIST_0               , pcPPSHP->getNumRefIdxActive               ( LIST_0 )  );
+      pcPPSLP->setNumRefIdxActive( LIST_1               , pcPPSHP->getNumRefIdxActive               ( LIST_1 )  );
+      pcPPSLP->setPicInitQp                             ( pcPPSHP->getPicInitQp                             ()  );
+      pcPPSLP->setChomaQpIndexOffset                    ( pcPPSHP->getChomaQpIndexOffset                    ()  );
+      pcPPSLP->setDeblockingFilterParametersPresentFlag ( pcPPSHP->getDeblockingFilterParametersPresentFlag ()  );
+      pcPPSLP->setConstrainedIntraPredFlag              ( false                                                 );
+      pcPPSLP->setTransform8x8ModeFlag                  ( pcPPSHP->getTransform8x8ModeFlag                  ()  );
+      pcPPSLP->setPicScalingMatrixPresentFlag           ( pcPPSHP->getPicScalingMatrixPresentFlag           ()  );
+      pcPPSLP->set2ndChromaQpIndexOffset                ( pcPPSHP->get2ndChromaQpIndexOffset                ()  );
+    }
 
 
     //===== initialization using parameter sets =====

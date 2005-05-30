@@ -100,6 +100,7 @@ public:
   std::string  cYuvFile;
   Int          nResult; 
   UInt         nFrames;
+  UInt         uiMaxPocDiff; // HS: decoder robustness
 
 protected:
   ErrVal xPrintUsage(char** argv);

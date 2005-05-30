@@ -98,13 +98,24 @@ DecoderParameter::~DecoderParameter()
 
 ErrVal DecoderParameter::init(int argc, char** argv)
 {
-  if( argc < 3 || argc > 3 )
+  if( argc < 3 || argc > 4 ) // HS: decoder robustness
   {
     RNOKS( xPrintUsage( argv ) );
   }
 
   cBitstreamFile = argv[1];
   cYuvFile       = argv[2];
+
+  if( argc > 3 ) // HS: decoder robustness
+  {
+    uiMaxPocDiff = atoi( argv[3] );
+    ROT( 0 == uiMaxPocDiff );
+  }
+  else
+  {
+    uiMaxPocDiff = 1000; // should be large enough
+  }
+
   return Err::m_nOK;
 }
 
@@ -112,6 +123,7 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
 ErrVal DecoderParameter::xPrintUsage(char **argv)
 {
-  printf("usage: %s BitstreamFile YuvOutputFile\n\n", argv[0] );
+  printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff]\n\n", argv[0] );  // HS: decoder robustness
+  //printf("usage: %s BitstreamFile YuvOutputFile\n\n", argv[0] );
   ROTS(1);
 }

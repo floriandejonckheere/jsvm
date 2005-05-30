@@ -28,6 +28,8 @@ tmp/CITY_rec_layer2.yuv                           # Reconstructed file
 34.00                                             # QP for motion estimation / mode decision (stage 5)
 
 2                                                 # Inter-layer Prediction (0: never, 1: always, 2:adaptive)
+3                                                 # Base quality level (0, 1, 2, 3) (0: no, 3, all) 
+1                                                 # Decoding loops (0:single, 1:multiple for LP, 2:multiple)
 
 1                                                 # Motion Info Mode (0:no, 1:load, 2:save )
 mot/CITY_layer2.mot                               # Motion Info File

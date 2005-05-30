@@ -111,6 +111,7 @@ protected:
 
 public:
   ErrVal init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer );
+  ErrVal init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit ); // HS: decoder robustness
   ErrVal uninit();
 
   static ErrVal create( FrameUnit*& rpcFrameUnit, YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, Bool bOriginal = false );
@@ -149,6 +150,8 @@ public:
   Frame& getFGSFrame()                 { return m_cFGSFrame;    }
   const Frame& getFGSFrame()    const  { return m_cFGSFrame;    }
 
+  Bool getContrainedIntraPred() const { return m_bConstrainedIntraPred; }
+
 private:
   Frame         m_cFrame;
   MbDataCtrl    m_cMbDataCtrl;
@@ -163,6 +166,7 @@ private:
   IntFrame      m_cFGSIntFrame;
   PicBuffer*    m_pcFGSPicBuffer;
   Frame         m_cFGSFrame;
+  Bool          m_bConstrainedIntraPred;
 };
 
 

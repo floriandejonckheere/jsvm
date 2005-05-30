@@ -129,14 +129,67 @@ class RQFGSEncoder;
 
 
 
-
-typedef MyList<UInt>  UIntList;
-
+typedef MyList<UInt>        UIntList;
 
 
 #define TARGET_MOTION_RATE_FACTOR   0.670
 #define MAX_MOTION_RATE_FACTOR      0.800
 #define MOTION_RATE_INC_FACTOR      1.500
+
+
+
+class H264AVCENCODERLIB_API AccessUnit
+{
+public:
+  AccessUnit  ( Int         iPoc )  : m_iPoc( iPoc )        {}
+  ~AccessUnit ()                                            {}
+
+  Int                     getPoc          () const          { return m_iPoc; }
+  ExtBinDataAccessorList& getNalUnitList  ()                { return m_cNalUnitList; }
+  
+private:
+  Int                     m_iPoc;
+  ExtBinDataAccessorList  m_cNalUnitList;
+};
+
+
+class H264AVCENCODERLIB_API AccessUnitList
+{
+public:
+  AccessUnitList  ()  {}
+  ~AccessUnitList ()  {}
+
+  Void        clear           ()            { m_cAccessUnitList.clear(); }
+  AccessUnit& getAccessUnit   ( Int iPoc )
+  {
+    std::list<AccessUnit>::iterator  iter = m_cAccessUnitList.begin();
+    std::list<AccessUnit>::iterator  end  = m_cAccessUnitList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter).getPoc() == iPoc )
+      {
+        return (*iter);
+      }
+    }
+    AccessUnit cAU( iPoc );
+    m_cAccessUnitList.push_back( cAU );
+    return m_cAccessUnitList.back();
+  }
+  Void        emptyNALULists  ( ExtBinDataAccessorList& rcOutputList )
+  {
+    while( ! m_cAccessUnitList.empty() )
+    {
+      ExtBinDataAccessorList& rcNaluList = m_cAccessUnitList.front().getNalUnitList();
+      rcOutputList += rcNaluList;
+      rcNaluList.clear();
+      m_cAccessUnitList.pop_front();
+    }
+  }
+
+private:
+  std::list<AccessUnit>  m_cAccessUnitList;
+};
+
 
 
 
@@ -178,8 +231,7 @@ public:
  
   ErrVal        addParameterSetBits ( UInt                            uiParameterSetBits );
   Bool          firstGOPCoded       ()                                { return m_bFirstGOPCoded; }
-  ErrVal        process             ( ExtBinDataAccessorList*         pacOutExtBinDataAccessorList,
-                                      ExtBinDataAccessorList&         rcUnusedExrBinDataAccessorList,
+  ErrVal        process             ( AccessUnitList&                 rcAccessUnitList,
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
                                       PicBufferList&                  rcPicBufferUnusedList );
@@ -213,6 +265,7 @@ protected:
 
   
   ErrVal  xInitGOP                      ( PicBufferList&              rcPicBufferInputList );
+  ErrVal  xUpdateBitCounts              ();
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
                                           PicBufferList&              rcPicBufferUnusedList );
@@ -272,8 +325,8 @@ protected:
 
 
   //===== stage encoding =====
-  ErrVal  xEncodeLowPassPictures        ( ExtBinDataAccessorList*     pacOutputList );
-  ErrVal  xEncodeHighPassPictures       ( ExtBinDataAccessorList*     pacOutputList,
+  ErrVal  xEncodeLowPassPictures        ( AccessUnitList&             rcAccessUnitList );
+  ErrVal  xEncodeHighPassPictures       ( AccessUnitList&             rcAccessUnitList,
                                           UInt                        uiBaseLevel );
 
   //===== basic encoding =====
@@ -340,10 +393,6 @@ protected:
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
   ErrVal        xGetFrameNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
   MbDataCtrl*   xGetMbDataCtrlL1    ( SliceHeader& rcSH, UInt uiCurrBasePos );
-
-
-  //===== debug =====
-  ErrVal  xDumpFrames   ( Char* pFilename, Bool bAll, UInt uiStage );
 
   
 protected:
@@ -414,7 +463,6 @@ protected:
   UInt                          m_uiGOPSize;                          // current GOP size
   UInt                          m_uiFrameCounter;                     // current frame counter
   UInt                          m_uiFrameNum;                         // current value of syntax element frame_num
-  UInt                          m_uiGOPId;                            // GOP identifier
   UInt                          m_uiGOPNumber;                        // number of coded GOP's
   Bool                          m_abIsRef[MAX_DSTAGES];               // state of temporal layer (H.264/AVC base layer)
   UIntList                      m_cLPFrameNumList;                    // list of frame_num for low-pass frames
@@ -423,6 +471,9 @@ protected:
   //----- frame memories -----
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
   IntFrame**                    m_papcFrame;                          // frame stores
+#if MULTIPLE_LOOP_DECODING
+  IntFrame**                    m_papcFrameILPred;
+#endif
   IntFrame**                    m_papcResidual;                       // frame stores for residual data
   IntFrame**                    m_papcSubband;                        // reconstructed subband pictures
   IntFrame*                     m_apcLowPassTmpOrg  [2];              // temporal storage for original low-pass pcitures
@@ -463,6 +514,11 @@ protected:
   Int                           m_iLastFGSError;
   UInt                          m_uiNotYetConsideredBaseLayerBits;
 
+#if MULTIPLE_LOOP_DECODING
+  Bool                          m_bCompletelyDecodeLayer;
+  Bool                          m_bLayerReconstructionNotPossible;
+  Bool                          m_bHighestLayer;
+#endif
 };
 
 #if defined( WIN32 )

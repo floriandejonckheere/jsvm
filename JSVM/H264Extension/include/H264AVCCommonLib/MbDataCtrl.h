@@ -246,7 +246,7 @@ public:
 // *LMH: Inverse MCTF
     if ( pcSliceHeader != NULL )
     {
-      m_bBaseRep = false;
+      m_bComplete = false;
       m_uiCurTemporalLevel = pcSliceHeader->getTemporalLevel();
       if ( m_uiCurTemporalLevel > 0 )
         --m_uiCurTemporalLevel;
@@ -299,9 +299,7 @@ public:
   ErrVal        saveMbDataQpAndCbp()
   {
     // should not happen, not designed so general
-    if( ! m_bIsNormalMbDataCtrl )
-      return Err::m_nERR;
-
+    ROT( ! m_bIsNormalMbDataCtrl );
     m_pcFgsMbDataCtrl->saveQpAndCbp(m_pcMbDataCtrl);
     return Err::m_nOK;
   }
@@ -309,19 +307,19 @@ public:
   IntFrame*     getBaseLayerRec     ()  { return  m_pcBaseLayerRec;     }
   IntFrame*     getBaseLayerSbb     ()  { return  m_pcBaseLayerSbb;     }
   MbDataCtrl*   getBaseLayerCtrl    ()  { return  m_pcBaseLayerCtrl;    }
+  ControlData*  getBaseCtrlData     ()  { return  m_pcBaseCtrlData;     }
   UInt          getUseBLMotion      ()  { return  m_uiUseBLMotion;      }
   
   Void          setBaseLayerRec     ( IntFrame*   pcBaseLayerRec  )   { m_pcBaseLayerRec  = pcBaseLayerRec;   }
   Void          setBaseLayerSbb     ( IntFrame*   pcBaseLayerSbb  )   { m_pcBaseLayerSbb  = pcBaseLayerSbb;   }
   Void          setBaseLayerCtrl    ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrl = pcBaseLayerCtrl;  }
+  Void          setBaseCtrlData     ( ControlData*pcBaseCtrlData  )   { m_pcBaseCtrlData  = pcBaseCtrlData;   }
   Void          setUseBLMotion      ( UInt        uiUseBLMotion   )   { m_uiUseBLMotion   = uiUseBLMotion;    }
 
   Void          setLambda           ( Double d ) { m_dLambda = d; }
 
   Void          setScalingFactor    ( Double  d ) { m_dScalingFactor      = d; }
   Double        getScalingFactor    ()  const     { return m_dScalingFactor;      }
-
-  RefFrameList& getDPCMRefFrameList( UInt ui )  { AOT(ui>1); return m_acDPCMRefFrameList[ui]; }
 
   Void          setBaseLayer        ( UInt  uiBaseLayerId, UInt  uiBaseLayerIdMotion )
   {
@@ -335,8 +333,8 @@ public:
   Bool          isHalfResolutionBaseLayer() { return m_bHalfResolutionBaseLayer; }
 
 // *LMH: Inverse MCTF
-  Bool          isBaseRep         () { return m_bBaseRep; }
-  Void          setBaseRep        ( Bool bBaseRep ) { m_bBaseRep = bBaseRep; }
+  Bool          isComplete           () { return m_bComplete; }
+  Void          setComplete          ( Bool bComplete ) { m_bComplete = bComplete; }
 
   UInt          getCurTemporalLevel  () { return m_uiCurTemporalLevel; }
   Void          incCurTemporalLevel  () { ++m_uiCurTemporalLevel; }
@@ -350,6 +348,15 @@ public:
   UInt          getCurActiveUpdL1    ( UInt uiTemporalLevel ) { return m_uiCurActiveUpdL1[uiTemporalLevel]; }
   Void          incCurActiveUpdL0    ( UInt uiTemporalLevel ) { ++m_uiCurActiveUpdL0[uiTemporalLevel]; }
   Void          incCurActiveUpdL1    ( UInt uiTemporalLevel ) { ++m_uiCurActiveUpdL1[uiTemporalLevel]; }
+
+
+  RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
+  RefFrameList& getUpdFrameList     ( UInt uiLevel,
+                                      UInt uiList )   { return m_aacUpdFrameList[uiLevel][uiList]; }
+  CtrlDataList& getUpdCtrlList      ( UInt uiLevel,
+                                      UInt uiList )   { return m_aacUpdCtrlList [uiLevel][uiList]; }
+
+
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
   SliceHeader*  m_pcSliceHeader;
@@ -359,25 +366,29 @@ private:
   IntFrame*     m_pcBaseLayerRec;
   IntFrame*     m_pcBaseLayerSbb;
   MbDataCtrl*   m_pcBaseLayerCtrl;
+  ControlData*  m_pcBaseCtrlData;
   UInt          m_uiUseBLMotion;
 
   Double        m_dScalingFactor;
-
-  RefFrameList  m_acDPCMRefFrameList[2];
 
   UInt          m_uiBaseLayerId;
   UInt          m_uiBaseLayerIdMotion;
   Bool          m_bHalfResolutionBaseLayer;
 
 // *LMH: Inverse MCTF
-  Bool			m_bBaseRep;
-  UInt			m_uiCurTemporalLevel;
-  UInt			m_uiCurActivePrdL0;
-  UInt			m_uiCurActivePrdL1;
-  UInt			m_uiCurActiveUpdL0[MAX_DSTAGES];
-  UInt			m_uiCurActiveUpdL1[MAX_DSTAGES];
+  Bool          m_bComplete;
+  UInt			    m_uiCurTemporalLevel;
+  UInt			    m_uiCurActivePrdL0;
+  UInt			    m_uiCurActivePrdL1;
+  UInt			    m_uiCurActiveUpdL0[MAX_DSTAGES];
+  UInt			    m_uiCurActiveUpdL1[MAX_DSTAGES];
+  
   MbDataCtrl*   m_pcFgsMbDataCtrl;
   Bool          m_bIsNormalMbDataCtrl;
+
+  RefFrameList  m_acPrdFrameList                [2];
+  RefFrameList  m_aacUpdFrameList[MAX_DSTAGES+1][2];
+  CtrlDataList  m_aacUpdCtrlList [MAX_DSTAGES+1][2];
 };
 
 

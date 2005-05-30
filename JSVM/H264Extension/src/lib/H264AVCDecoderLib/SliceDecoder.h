@@ -123,9 +123,7 @@ public:
                                 MbDataCtrl*   pcMbDataCtrlPred, 
                                 IntFrame*     pcFrame, 
                                 IntFrame*     pcResidual,
-                                IntFrame*     pcPredSignal,
                                 IntFrame*     pcBaseSubband,
-                                IntFrame*     pcBaseLayer,
                                 UInt          uiMbInRow,
                                 UInt          uiMbRead );
   ErrVal decodeIntra          ( SliceHeader&  rcSH,

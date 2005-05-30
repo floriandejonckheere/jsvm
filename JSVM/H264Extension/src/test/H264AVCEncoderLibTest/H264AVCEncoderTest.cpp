@@ -345,9 +345,7 @@ H264AVCEncoderTest::go()
   PicBuffer*              apcReconstructPicBuffer [MAX_LAYERS];
   PicBufferList           acPicBufferOutputList   [MAX_LAYERS];
   PicBufferList           acPicBufferUnusedList   [MAX_LAYERS];
-  ExtBinDataAccessorList  cInExtBinDataAccessorList;
   ExtBinDataAccessorList  cOutExtBinDataAccessorList;
-  ExtBinDataAccessorList  cUnusedExtBinDataAccessorList;
 
 
   
@@ -418,9 +416,7 @@ H264AVCEncoderTest::go()
     }
 
     //===== call encoder =====
-    RNOK( m_pcH264AVCEncoder->process( cInExtBinDataAccessorList,
-                                       cOutExtBinDataAccessorList,
-                                       cUnusedExtBinDataAccessorList,
+    RNOK( m_pcH264AVCEncoder->process( cOutExtBinDataAccessorList,
                                        apcOriginalPicBuffer,
                                        apcReconstructPicBuffer,
                                        acPicBufferOutputList,
@@ -429,7 +425,6 @@ H264AVCEncoderTest::go()
     //===== write and release NAL unit buffers =====
     UInt  uiBytesUsed = 0;
     RNOK( xWrite  ( cOutExtBinDataAccessorList, uiBytesUsed ) );
-    RNOK( xRelease( cUnusedExtBinDataAccessorList ) );
     uiWrittenBytes   += uiBytesUsed;
     
     //===== write and release reconstructed pictures =====
@@ -444,9 +439,7 @@ H264AVCEncoderTest::go()
   //===== finish encoding =====
   UInt  uiNumCodedFrames = 0;
   Double  dHighestLayerOutputRate = 0.0;
-  RNOK( m_pcH264AVCEncoder->finish( cInExtBinDataAccessorList,
-                                    cOutExtBinDataAccessorList,
-                                    cUnusedExtBinDataAccessorList,
+  RNOK( m_pcH264AVCEncoder->finish( cOutExtBinDataAccessorList,
                                     acPicBufferOutputList,
                                     acPicBufferUnusedList,
                                     uiNumCodedFrames,
@@ -454,8 +447,6 @@ H264AVCEncoderTest::go()
 
   //===== write and release NAL unit buffers =====
   RNOK( xWrite  ( cOutExtBinDataAccessorList, uiWrittenBytes ) );
-  RNOK( xRelease( cUnusedExtBinDataAccessorList ) );
-  RNOK( xRelease( cInExtBinDataAccessorList ) );
 
   //===== write and release reconstructed pictures =====
   for( uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )

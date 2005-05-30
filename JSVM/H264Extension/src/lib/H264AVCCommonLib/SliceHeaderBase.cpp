@@ -111,10 +111,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiIdrPicId                        ( 0 )
 , m_uiPicOrderCntLsb                  ( 0 )
 , m_bDirectSpatialMvPredFlag          ( true )
-, m_uiGOPId                           ( 0 )
-, m_uiGOPSize                         ( 0 )
 , m_uiDecompositionStages             ( 0 )
-, m_uiFrameIdInsideGOP                ( 0 )
+, m_bKeyPictureFlag                   ( false )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevel                ( 0 )
 , m_bAdaptivePredictionFlag           ( false )
@@ -162,10 +160,9 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
       m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE )
   {
-    UChar ucDDI = ( m_uiLayerId       << 5 );
-    ucDDI      += ( m_uiTemporalLevel << 2 );
-    ucDDI      += ( m_uiQualityLevel       );
-    RNOK( pcWriteIf->writeCode( ucDDI,          8,                              "NALU HEADER: decodability_dependency_information" ) );
+    RNOK( pcWriteIf->writeCode( m_uiTemporalLevel,  3,                          "NALU HEADER: temporal_level" ) );
+    RNOK( pcWriteIf->writeCode( m_uiLayerId,        3,                          "NALU HEADER: dependency_id" ) );
+    RNOK( pcWriteIf->writeCode( m_uiQualityLevel,   2,                          "NALU HEADER: quality_level" ) );
   }
 
   
@@ -176,13 +173,13 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK(     pcWriteIf->writeUvlc( uiSliceType,                                  "SH: slice_type" ) );
   
   RNOK(     pcWriteIf->writeUvlc( m_uiPicParameterSetId,                        "SH: pic_parameter_set_id" ) );
-  RNOK(     pcWriteIf->writeCode( m_uiFrameNum,
-                                  getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
-  if( m_eSliceType == F_SLICE )
+  if( m_eSliceType == F_SLICE ) // HS: coding order changed to match the text
   {
     RNOK(   pcWriteIf->writeUvlc( m_uiNumMbsInSlice,                            "SH: num_mbs_in_slice" ) );
     RNOK(   pcWriteIf->writeFlag( m_bFgsComponentSep,                           "SH: fgs_comp_sep" ) );
   }
+  RNOK(     pcWriteIf->writeCode( m_uiFrameNum,
+                                  getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
     RNOK(   pcWriteIf->writeUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
@@ -199,17 +196,10 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( m_eSliceType != F_SLICE )
   {
-    RNOK(   pcWriteIf->writeCode( m_uiGOPId, 4,                                 "SH: gop_id" ) );
-    RNOK(   pcWriteIf->writeUvlc( m_uiGOPSize,                                  "SH: gop_size" ) );
+    RNOK(   pcWriteIf->writeFlag( m_bKeyPictureFlag,                            "SH: key_picture_flag" ) );
     RNOK(   pcWriteIf->writeUvlc( m_uiDecompositionStages,                      "SH: decomposition_stages" ) );
 
-    //----- that's a bit tricky (different parameter for encoder and decoder) -----
-    UInt    uiFrameIdInsideGOP  = max( 1, m_uiFrameIdInsideGOP );
-    RNOK(   pcWriteIf->writeUvlc( uiFrameIdInsideGOP,                           "SH: pic_id_inside_gop" ) );
-
     UInt  uiBaseLayerIdPlus1;
-    
-    // should be the same for all the slices in the picture
     if( m_uiBaseLayerId == MSYS_UINT_MAX )
       uiBaseLayerIdPlus1 = 0;
     else
@@ -400,14 +390,13 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   Int   iTmp;
   UInt  uiTmp;
 
- 
-  RNOK(     pcReadIf->getCode( m_uiFrameNum,
-                               getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
-  if( m_eSliceType == F_SLICE )
+  if( m_eSliceType == F_SLICE ) // HS: coding order changed to match the text
   {
     RNOK(   pcReadIf->getUvlc( m_uiNumMbsInSlice,                            "SH: num_mbs_in_slice" ) );
     RNOK(   pcReadIf->getFlag( m_bFgsComponentSep,                           "SH: fgs_comp_sep" ) );
   }
+  RNOK(     pcReadIf->getCode( m_uiFrameNum,
+                               getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
@@ -425,14 +414,11 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   
   if( m_eSliceType != F_SLICE )
   {
-    RNOK(   pcReadIf->getCode( m_uiGOPId, 4,                                 "SH: gop_id" ) );
-    RNOK(   pcReadIf->getUvlc( m_uiGOPSize,                                  "SH: gop_size" ) );
+    RNOK(   pcReadIf->getFlag( m_bKeyPictureFlag,                            "SH: key_picture_flag" ) );
     RNOK(   pcReadIf->getUvlc( m_uiDecompositionStages,                      "SH: decomposition_stages" ) );
-    RNOK(   pcReadIf->getUvlc( m_uiFrameIdInsideGOP,                         "SH: pic_id_inside_gop" ) );
 
     RNOK(   pcReadIf->getUvlc( uiTmp,                                        "SH: base_id_plus1" ) );
     m_uiBaseLayerId = uiTmp - 1;
-    // should be the same for all the slices in the picture
     if( m_uiBaseLayerId != MSYS_UINT_MAX )
     {
       m_uiBaseQualityLevel = m_uiBaseLayerId & 0x03;

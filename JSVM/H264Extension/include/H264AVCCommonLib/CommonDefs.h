@@ -291,8 +291,6 @@ H264AVC_NAMESPACE_END
 #define MAX_DSTAGES         6
 #define LOG2_GOP_ID_WRAP    4
 
-#define DEBUG_OUTPUT        0
-
 enum MCType
 {
   PRED_MC = 0x00,
@@ -300,7 +298,8 @@ enum MCType
 };
 
 //===== special features for investigation =====
-#define UNRESTRICTED_INTER_LAYER_PREDICTION   0   // unrestricted inter-layer prediction (not WD / JSVM compatible)
+#define MULTIPLE_LOOP_DECODING 1   // multiple-loop decoding (enables additional option,
+                                   // single-loop decoding is still possible, when the flag is set
 
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

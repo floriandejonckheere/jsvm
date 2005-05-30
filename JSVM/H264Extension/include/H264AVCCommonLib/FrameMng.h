@@ -248,9 +248,6 @@ public:
   ErrVal  outputAll               ();
   ErrVal  getRecYuvBuffer         ( YuvPicBuffer*& rpcRecYuvBuffer );
 
-  ErrVal  forceOutput( Int             iMaxPoc,
-                       PicBufferList&  rcUnusedList );
-
   FrameUnit*        getReconstructedFrameUnit( Int iPoc );
 
 protected:
@@ -260,7 +257,6 @@ protected:
   ErrVal            xClearListsIDR              ( const SliceHeader& rcSH );
   ErrVal            xManageMemory               ( const SliceHeader& rcSH );
   ErrVal            xSetOutputList              ( FrameUnit* pcFrameUnit );
-  ErrVal            xForceOutputPoc             ( Int  iMaxPoc );
   ErrVal            xSlidingWindowUpdate        ();
   ErrVal            xStoreCurrentPicture        ( const SliceHeader& rcSH );                // MMCO 6
   ErrVal            xReferenceListRemapping     ( SliceHeader& rcSH, ListIdx eListIdx );
@@ -283,14 +279,11 @@ private:
   QuarterPelFilter* m_pcQuarterPelFilter;
   UInt              m_uiPrecedingRefFrameNum;
 
-  PicBufferList     m_cPicBufferDelayedUnusedList;
-  PicBufferList     m_cPicBufferDelayedOutputList;
   PicBufferList     m_cPicBufferOutputList;
   PicBufferList     m_cPicBufferUnusedList;
   FrameUnit*        m_pcOriginalFrameUnit;
   FrameUnit*        m_pcCurrentFrameUnit;
 
-  RefPicList<FrameUnit*> m_acTmpShortTermRefList[2];
   RefPicList<Frame*>     m_cPocOrderedFrameList;
 
   Int               m_iEntriesInDPB;
@@ -304,8 +297,6 @@ private:
   FUList            m_cOrderedPOCList;
 
   FrameUnitBuffer   m_cFrameUnitBuffer;
-  OutputMode        m_eOutputMode;
-  OutputMode        m_eInitialOutputMode;
 
   static UInt       m_uiDBPMemory[256];
   IntFrame*         m_pcRefinementIntFrame;

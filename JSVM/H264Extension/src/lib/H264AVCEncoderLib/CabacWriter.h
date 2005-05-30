@@ -143,39 +143,12 @@ public:
                                     MbDataAccess&   rcMbDataAccessBase );
   ErrVal  RQencodeTermBit         ( UInt            uiBit );
 
-  //===== new transform coefficients =====
-  ErrVal  RQencodeNewTCoeff_8x8   ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    B8x8Idx         c8x8Idx );
-  ErrVal  RQencodeNewTCoeff_Luma  ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    ResidualMode    eResidualMode,
-                                    LumaIdx         cIdx );
-  ErrVal  RQencodeNewTCoeff_Chroma( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    ResidualMode    eResidualMode,
-                                    ChromaIdx       cIdx );
-
-  //===== transform coefficients refinements =====
-  ErrVal  RQencodeTCoeffRef_8x8   ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    B8x8Idx         c8x8Idx );
-  ErrVal  RQencodeTCoeffRef_Luma  ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    ResidualMode    eResidualMode,
-                                    LumaIdx         cIdx );
-  ErrVal  RQencodeTCoeffRef_Chroma( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    ResidualMode    eResidualMode,
-                                    ChromaIdx       cIdx );
-
-
+  //===== coefficients =====
   ErrVal  RQencodeNewTCoeff_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
                                      UInt            uiScanIndex,
-                                     UInt&           ruiLast,
-                                     UInt            uiSigCtx );
+                                     UInt&           ruiLast );
   ErrVal  RQencodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
@@ -185,8 +158,7 @@ public:
                                      ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex,
-                                     UInt&           ruiLast,
-                                     UInt            uiSigCtx );
+                                     UInt&           ruiLast );
   ErrVal  RQencodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
@@ -197,8 +169,7 @@ public:
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
                                      UInt            uiScanIndex,
-                                     UInt&           ruiLast,
-                                     UInt            uiSigCtx );
+                                     UInt&           ruiLast );
   ErrVal  RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
@@ -261,27 +232,12 @@ protected:
 
   ErrVal  xRQencodeNewTCoeffs ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
-                                UInt          uiNumSig,
-                                UInt          uiStart,
-                                UInt          uiStop,
-                                ResidualMode  eResidualMode,
-                                const UChar*  pucScan );
-  ErrVal  xRQencodeTCoeffsRef ( TCoeff*       piCoeff,
-                                TCoeff*       piCoeffBase,
-                                UInt          uiStart,
-                                UInt          uiStop,
-                                ResidualMode  eResidualMode,
-                                const UChar*  pucScan );
-
-  ErrVal  xRQencodeNewTCoeffs ( TCoeff*       piCoeff,
-                                TCoeff*       piCoeffBase,
                                 UInt          uiStart,
                                 UInt          uiStop,
                                 ResidualMode  eResidualMode,
                                 const UChar*  pucScan,
                                 UInt          uiScanIndex,
-                                UInt&         ruiLast,
-                                UInt          uiSigCtx );
+                                UInt&         ruiLast );
   ErrVal  xRQencodeTCoeffsRef ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
                                 const UChar*  pucScan,

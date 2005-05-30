@@ -188,29 +188,13 @@ public:
     , m_uiFGSMode                         (0)
     , m_cFGSRateFilename                  ("none")
     , m_dFGSRate                          (0)
-
     , m_uiDecompositionStages             (0)
     , m_uiNotCodedMCTFStages              (0)
     , m_uiTemporalResolution              (0)
     , m_uiFrameDelay                      (0)
     , m_uiBaseQualityLevel                (3)
-/*
-    
-    , m_uiBaseLayerId                     (MSYS_UINT_MAX)
-    , m_uiBaseLayerSpatRes                (0)
-    , m_uiBaseLayerTempRes                (0)
-    , m_uiTempRes                         (0)
-    , m_uiTempScalStages                  (0)
-    , m_uiNotCodedMCTFStages              (0)
-    , m_uiDecompositionStages             (0)
-    , m_uiGOPMode                         (0)
-    , m_uiTemporalFilteringMode           (2)
-    , m_uiMaxNumberOfReferenceFramesMCTF  (1)
-    , m_uiDPCMReferenceFrames             (1)
-    , m_uiIntraLowPassPeriod              (MSYS_UINT_MAX)
-    , m_bUseH264Syntax                    (0)
-    , m_uiFrameDelay                      (MSYS_UINT_MAX)
-    */
+    , m_uiDecodingLoops                   (0)
+    , m_bConstrainedIntraPredForLP        (false)
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
   }
@@ -251,22 +235,8 @@ public:
 
   UInt                            getBaseLayerSpatRes               () const {return m_uiBaseLayerSpatRes; }
   UInt                            getBaseLayerTempRes               () const {return m_uiBaseLayerTempRes; }
-/*  
-  UInt                            getBaseLayerId                    () const {return m_uiBaseLayerId; }
-  UInt                            getTempRes                        () const {return m_uiTempRes; }
-  UInt                            getTempScalStages                 () const {return m_uiTempScalStages; }
-
-
-
-  UInt                            getResolutionStages               () const {return m_uiResolutionStages; }
-  UInt                            getGOPMode                        () const {return m_uiGOPMode; }
-  UInt                            getTemporalFilteringMode          () const {return m_uiTemporalFilteringMode; }
-  UInt                            getMaxNumRefFrames                () const {return m_uiMaxNumberOfReferenceFramesMCTF; }
-  UInt                            getDPCMReferenceFrames            () const {return m_uiDPCMReferenceFrames; }
-  UInt                            getIntraLowPassPeriod             () const {return m_uiIntraLowPassPeriod; }
-
-  Bool                            getUseH264Syntax                  () const {return m_bUseH264Syntax; }
-  */
+  UInt                            getDecodingLoops                  () const {return m_uiDecodingLoops; }
+  Bool                            getContrainedIntraForLP           () const {return m_bConstrainedIntraPredForLP; }
 
 
   //===== set =====
@@ -300,23 +270,9 @@ public:
 
   Void setBaseLayerSpatRes                (UInt   p) { m_uiBaseLayerSpatRes               = p; }
   Void setBaseLayerTempRes                (UInt   p) { m_uiBaseLayerTempRes               = p; }
- /*  
-  Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
-  Void setTempRes                         (UInt   p) { m_uiTempRes                        = p; }
-  Void setTempScalStages                  (UInt   p) { m_uiTempScalStages                 = p; }
-
-
-
-  Void setResolutionStages                (UInt   p) { m_uiResolutionStages               = p; }
-  Void setGOPMode                         (UInt   p) { m_uiGOPMode                        = p; }
-  Void setTemporalFilteringMode           (UInt   p) { m_uiTemporalFilteringMode          = p; }
-  Void setMaxNumRefFrames                 (UInt   p) { m_uiMaxNumberOfReferenceFramesMCTF = p; }
-  Void setDPCMReferenceFrames             (UInt   p) { m_uiDPCMReferenceFrames            = p; }
-  Void setIntraLowPassPeriod              (UInt   p) { m_uiIntraLowPassPeriod             = p; }
-
-  Void setUseH264Syntax                   (Bool   p) { m_bUseH264Syntax                   = p; }
-  */
   Void setBaseQualityLevel                (UInt   p) { m_uiBaseQualityLevel               = p; }
+  Void setDecodingLoops                   (UInt   p) { m_uiDecodingLoops                  = p; }
+  Void setContrainedIntraForLP            ()         { m_bConstrainedIntraPredForLP       = true; }
 
   //===== check =====
   ErrVal  check();
@@ -343,6 +299,8 @@ public:
   
   Double                    m_adQpModeDecision[MAX_DSTAGES];
   UInt                      m_uiInterLayerPredictionMode;
+  UInt                      m_uiDecodingLoops;
+  Bool                      m_bConstrainedIntraPredForLP;
 
   UInt                      m_uiBaseQualityLevel;
 
@@ -362,27 +320,6 @@ public:
   //----- for scalable SEI ----
   UInt                      m_uiBaseLayerSpatRes;
   UInt                      m_uiBaseLayerTempRes;
-/*
-  UInt                      m_uiBaseLayerId;
-UInt                      m_uiTempRes;
-UInt                      m_uiTempScalStages;
-
-UInt                      m_uiNumberOfTotalFrames;
-
-  UInt                      m_uiDecompositionStages;
-UInt                      m_uiResolutionStages;
-UInt                      m_uiGOPMode;
-  UInt                      m_uiNotCodedMCTFStages;
-UInt                      m_uiTemporalFilteringMode;
-  UInt                      m_uiMaxNumberOfReferenceFramesMCTF;
-UInt                      m_uiDPCMReferenceFrames;
-UInt                      m_uiIntraLowPassPeriod;
-
-Bool                      m_bUseH264Syntax;
-UInt                      m_uiFrameDelay;
-
-UInt                      m_uiTemporalResolution;
-*/
 };
 
 

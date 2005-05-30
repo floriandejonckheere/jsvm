@@ -120,6 +120,12 @@ public:
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }
 
+  // HS: packet trace
+  Bool                  getTraceEnabled     ()            const { return m_bTraceFile;      }
+  Bool                  getExtractTrace     ()            const { return m_bTraceExtract;   }
+  const std::string&    getTraceFile        ()            const { return m_cTraceFile;      }
+  const std::string&    getExtractTraceFile ()            const { return m_cExtractTrace;   }
+
   Void    setResult           ( Int     iResult )   { m_iResult = iResult;  }
   ErrVal  init                ( Int     argc,
                                 Char**  argv );
@@ -138,6 +144,12 @@ protected:
   Double          m_dFGSLayer;
   Bool            m_bAnalysisOnly;
   MyList<Point>   m_cExtractionList;
+
+  // HS: packet trace
+  Bool            m_bTraceFile;
+  Bool            m_bTraceExtract;
+  std::string     m_cTraceFile;
+  std::string     m_cExtractTrace;
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

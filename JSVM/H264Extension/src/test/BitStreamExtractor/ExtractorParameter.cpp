@@ -103,6 +103,11 @@ ExtractorParameter::ExtractorParameter()
 , m_uiLevel       ( MSYS_UINT_MAX )
 , m_dFGSLayer     ( 10.0 )
 , m_bAnalysisOnly ( true )
+// HS: packet trace
+, m_bTraceFile    ( false )
+, m_bTraceExtract ( false )
+, m_cTraceFile    ()
+, m_cExtractTrace ()
 {
 }
 
@@ -167,6 +172,7 @@ ExtractorParameter::init( Int     argc,
   m_uiLayer = MSYS_UINT_MAX;
   m_uiLevel = MSYS_UINT_MAX;
 
+  Bool  bTraceExtractionSpecified = false; // HS: packet trace
   Bool  bExtractionPointSpecified = false;
   Bool  bLayerSpecified           = false;
   Bool  bLevelSpecified           = false;
@@ -174,6 +180,14 @@ ExtractorParameter::init( Int     argc,
   Point cPoint;
 
 #define EXIT(x,m) {if(x){printf("\n%s\n",m);RNOKS(xPrintUsage(argv))}}
+
+  if( argc > 3 && equal( "-pt", argv[1] ) ) // HS: packet trace
+  {
+    m_cTraceFile  = argv[2];
+    m_bTraceFile  = true;
+    argv         += 2;
+    argc         -= 2;
+  }
 
   //===== get file names and set parameter "AnalysisOnly" =====
   EXIT( argc < 2, "No arguments specified" );
@@ -191,6 +205,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( iArg + 1 == argc,           "Option \"-l\" without argument specified" );
       EXIT( bLayerSpecified,            "Multiple options \"-l\"" );
       EXIT( bExtractionPointSpecified,  "Option \"-l\" used in connection with option \"-e\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-l\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiLayer       = atoi( argv[ ++iArg ] );
       bLayerSpecified = true;
       continue;
@@ -201,6 +216,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( iArg + 1 == argc,           "Option \"-t\" without argument specified" );
       EXIT( bLevelSpecified,            "Multiple options \"-t\"" );
       EXIT( bExtractionPointSpecified,  "Option \"-t\" used in connection with option \"-e\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-t\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiLevel       = atoi( argv[ ++iArg ] );
       bLevelSpecified = true;
       continue;
@@ -211,6 +227,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( iArg + 1 == argc,           "Option \"-f\" without argument specified" );
       EXIT( bFGSSpecified,              "Multiple options \"-f\"" );
       EXIT( bExtractionPointSpecified,  "Option \"-t\" used in connection with option \"-e\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-f\" used in connection with option \"-et\"" ); // HS: packet trace
       m_dFGSLayer     = atof( argv[ ++iArg ] );
       bFGSSpecified   = true;
       continue;
@@ -223,6 +240,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bLayerSpecified,            "Option \"-e\" used in connection with option \"-l\"" );
       EXIT( bLevelSpecified,            "Option \"-e\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-e\" used in connection with option \"-f\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-e\" used in connection with option \"-et\"" ); // HS: packet trace
       ErrVal errVal  = xParseFormatString( argv[++iArg], cPoint );
       EXIT(  errVal != Err::m_nOK,      "Wrong format string with option \"-e\" specified" );
       m_cExtractionList.push_back( cPoint );
@@ -230,6 +248,19 @@ ExtractorParameter::init( Int     argc,
       continue;
     }
 
+    if( equal( "-et", argv[iArg] ) ) // HS: packet trace
+    {
+      EXIT( iArg + 1 == argc,           "Option \"-et\" without argument specified" );
+      EXIT( bTraceExtractionSpecified,  "Multiple options \"-et\"" );
+      EXIT( bLayerSpecified,            "Option \"-et\" used in connection with option \"-l\"" );
+      EXIT( bLevelSpecified,            "Option \"-et\" used in connection with option \"-t\"" );
+      EXIT( bFGSSpecified,              "Option \"-et\" used in connection with option \"-f\"" );
+      EXIT( bExtractionPointSpecified,  "Option \"-et\" used in connection with option \"-e\"" );
+      m_cExtractTrace           = argv[++iArg];
+      m_bTraceExtract           = true;
+      bTraceExtractionSpecified = true;
+      continue;
+    }
 
     EXIT( true, "Unknown option specified" );
   }
@@ -244,8 +275,10 @@ ExtractorParameter::init( Int     argc,
 ErrVal
 ExtractorParameter::xPrintUsage( Char **argv )
 {
-  printf("\nusage: %s InputStream [OutputStream [-e] | [[-l] [-t]]]\n", argv[0] );
+  printf("\nusage: %s [-pt TraceFile] InputStream [OutputStream [-e] | [[-l] [-t] [-f]] | [-et TraceFile]]\n", argv[0] ); // HS: packet trace
+  //printf("\nusage: %s InputStream [OutputStream [-e] | [[-l] [-t]]]\n", argv[0] );
   printf("\noptions:\n");
+  printf("\tpt         -> generate a packet trace file from given stream\n"); // HS: packet trace
   printf("\t-e AxB@C:D -> extract sub bit stream\n" );
   printf("\t               - A frame width [luma samples]\n");
   printf("\t               - B frame height [luma samples]\n");
@@ -254,8 +287,11 @@ ExtractorParameter::xPrintUsage( Char **argv )
   printf("\t-l L       -> extract all layers <= L\n");
   printf("\t-t T       -> extract all levels <= T\n");
   printf("\t-f F       -> extract all FGS layers <= F (0 - base layer only)\n");
+  printf("\t-et        -> extract packets as specified by given (modified) packet trace file\n"); // HS: packet trace
   printf("\n");
   printf("The option \"-e\" cannot be used together with \"-l\", \"-t\" and \"-f\"\n" );
+  printf("The option \"-e\" cannot be used together with \"-et\"\n" ); // HS: packet trace
+  printf("The option \"-et\" cannot be used together with \"-l\", \"-t\" and \"-f\"\n" ); // HS: packet trace
   printf("\n");
   ROTS(1);
 }
