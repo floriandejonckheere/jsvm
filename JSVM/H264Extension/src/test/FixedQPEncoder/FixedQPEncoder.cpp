@@ -139,6 +139,7 @@ typedef struct
   unsigned int    uiNumberOfLayers;               // needed for encode                 - config file
   unsigned int    uiNumberOfFrames;               //                   (never changed) - config file
   double          dFramesPerSecond;               //                   (never changed) - config file
+  unsigned int    uiConstrainedIntraBL;
   LayerParameters acLayerParameters[MAX_LAYERS];  // needed for encode                 - config file
 }
 EncoderParameters;
@@ -169,6 +170,10 @@ encode( EncoderParameters& rcEncoderParameters )
   cCommandLineString    += " -numl ";
   sprintf( acTempString, "%d", rcEncoderParameters.uiNumberOfLayers );
   cCommandLineString    += acTempString;
+  if( rcEncoderParameters.uiConstrainedIntraBL )
+  {
+    cCommandLineString  += " -bcip";
+  }
 
   //----- layer settings -----
   for( unsigned int uiLayer = 0; uiLayer < rcEncoderParameters.uiNumberOfLayers; uiLayer++ )
@@ -370,6 +375,7 @@ read_config_file( EncoderParameters& cEncoderParameters, FILE* pFile )
   ROT( read_line( pFile, "%d",  &cEncoderParameters.uiNumberOfFrames ) );
   ROT( read_line( pFile, "%lf", &cEncoderParameters.dFramesPerSecond ) );
   ROT( read_line( pFile, "%d",  &cEncoderParameters.uiNumberOfLayers ) );
+  ROT( read_line( pFile, "%d",  &cEncoderParameters.uiConstrainedIntraBL ) );
   ROT( read_line( pFile, "",    NULL ) );
 
   for( unsigned int uiLayer = 0; uiLayer < cEncoderParameters.uiNumberOfLayers; uiLayer++ )

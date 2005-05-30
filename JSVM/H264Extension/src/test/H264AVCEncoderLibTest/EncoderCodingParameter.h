@@ -257,7 +257,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     }
     if( equals( pcCom, "-frms", 5 ) )
     {
-      ROTS( NULL == argv[n] );
+      ROTS( NULL == argv[n] ); 
       UInt uiFrms = atoi( argv[n] );
       CodingParameter::setTotalFrames( uiFrms );
       continue;
@@ -267,6 +267,13 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       ROTS( NULL == argv[n] );
       UInt uiLCUpd = atoi( argv[n] );
       CodingParameter::setLowComplxUpdFlag( uiLCUpd );
+      continue;
+    }
+    if( equals( pcCom, "-bcip", 5 ) )
+    {
+      n--;
+      ROTS( NULL == argv[n] );
+      CodingParameter::getLayerParameters(0).setContrainedIntraForLP();
       continue;
     }
 
