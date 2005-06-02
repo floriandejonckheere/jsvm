@@ -1111,6 +1111,51 @@ ErrVal IntYuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
   return Err::m_nOK;
 }
 
+// Hanke@RWTH
+Bool IntYuvPicBuffer::isCurr4x4BlkNotZero ( LumaIdx cIdx )
+{
+  XPel* pPel      = getMbLumAddr(); 
+  Int   iStride   = getLStride();
+   
+  for( Int iY = 0; iY<4; ++iY ) {
+    for( Int iX = 0; iX<4; ++iX )
+    {
+      if ( pPel [ (cIdx.y()*4+iY)*iStride + cIdx.x()*4+iX ] )
+        return true;
+    } 
+  }
+  return false;
+}
+
+Bool IntYuvPicBuffer::isLeft4x4BlkNotZero ( LumaIdx cIdx )
+{
+  XPel* pPel      = getMbLumAddr(); 
+  Int   iStride   = getLStride();
+     
+  for( Int iY = 0; iY<4; ++iY ) {
+    for( Int iX = 0; iX<4; ++iX )
+    {
+      if ( pPel [ (cIdx.y()*4+iY)*iStride + cIdx.x()*4+iX - 16 ] )
+        return true;
+    } 
+  }
+  return false;
+}
+
+Bool IntYuvPicBuffer::isAbove4x4BlkNotZero ( LumaIdx cIdx )
+{
+  XPel* pPel      = getMbLumAddr(); 
+  Int   iStride   = getLStride();
+   
+  for( Int iY = 0; iY<4; ++iY ) {
+    for( Int iX = 0; iX<4; ++iX )
+    {
+      if ( pPel [ (cIdx.y()*4+iY - 16 )*iStride + cIdx.x()*4+iX ] )
+        return true;
+    } 
+  }
+  return false;
+}
 
 
 ErrVal IntYuvPicBuffer::upsampleResidual( DownConvert& rcDownConvert, UInt uiStages, MbDataCtrl* pcMbDataCtrl, Bool bClip )

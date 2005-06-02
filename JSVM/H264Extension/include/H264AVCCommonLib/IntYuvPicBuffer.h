@@ -126,6 +126,11 @@ public:
     m_pPelCurrV = m_pucYuvBuffer + m_rcBufferParam.getVBlk( cIdx );
   }
 
+  // Hanke@RWTH
+  Bool          isCurr4x4BlkNotZero ( LumaIdx cIdx );
+  Bool          isLeft4x4BlkNotZero ( LumaIdx cIdx );
+  Bool          isAbove4x4BlkNotZero( LumaIdx cIdx );
+ 
   XPel*         getYBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getYBlk( cIdx ); }
   XPel*         getUBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getUBlk( cIdx ); }
   XPel*         getVBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getVBlk( cIdx ); }

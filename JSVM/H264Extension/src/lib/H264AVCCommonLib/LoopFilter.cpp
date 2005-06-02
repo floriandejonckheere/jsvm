@@ -220,6 +220,8 @@ ErrVal LoopFilter::init(  ControlMngIf* pcControlMngIf
   m_pcReconstructionBypass = pcReconstructionBypass;
 
   m_pcControlMngIf  = pcControlMngIf;
+  m_pcHighpassFrame = NULL; // Hanke@RWTH
+
   return Err::m_nOK;
 }
 
@@ -235,6 +237,9 @@ ErrVal LoopFilter::uninit()
 
 ErrVal LoopFilter::process( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer )
 {
+  // Hanke@RWTH // switch off filter modifications
+  setHighpassFramePointer();
+
   m_pcIntYuvBuffer = pcIntYuvPicBuffer;
   ROT( NULL == m_pcControlMngIf );
 
@@ -895,6 +900,13 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
     RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
     RNOK(   m_pcControlMngIf->initMbForFiltering( *pcMbDataAccessRes, uiMbAddress ) );
 
+    // Hanke@RWTH
+    if( m_pcHighpassFrame ) {
+      m_pcHighpassYuvBuffer = m_pcHighpassFrame->getFullPelYuvBuffer();
+    }else{
+      m_pcHighpassYuvBuffer = NULL;
+    }
+
     if( 0 == (m_eLFMode & LFM_NO_FILTER) )
     {
       RNOK( xFilterMb( pcMbDataAccessMot,
@@ -912,10 +924,10 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
 
       if( uiMask )
       {
-		    IntYuvMbBufferExtension cBuffer;
+        IntYuvMbBufferExtension cBuffer;
         cBuffer.setAllSamplesToZero();
 
-		    cBuffer.loadSurrounding( pcFrame->getFullPelYuvBuffer() );
+        cBuffer.loadSurrounding( pcFrame->getFullPelYuvBuffer() );
 
         RNOK( m_pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
   	    pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
@@ -923,6 +935,9 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
     }
 
   }
+
+  // Hanke@RWTH: Reset pointer
+  setHighpassFramePointer();
 
   return Err::m_nOK;
 }
@@ -1021,9 +1036,15 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
     // this is a edge inside of a macroblock
     ROTRS( rcMbDataCurrMot.isIntra(), 3 );
 
-    ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
-    ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
-
+    // Hanke@RWTH
+    if( m_pcHighpassYuvBuffer ) {
+      ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                          ), 2 );
+      ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+    }else{ 
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
+    }
+    
     if( rcMbDataCurrMot.isInterPMb() )
     {
       return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_LEFT_NEIGHBOUR,
@@ -1049,9 +1070,15 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
   ROTRS( rcMbDataCurrMot.isIntra(), 4 );
   ROTRS( rcMbDataLeftMot.isIntra(), 4 );
 
-  ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
-  ROTRS( rcMbDataLeftRes.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
-
+  // Hanke@RWTH
+  if( m_pcHighpassYuvBuffer ) {
+    ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                          ), 2 );
+    ROTRS( m_pcHighpassYuvBuffer->isLeft4x4BlkNotZero ( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
+  }else{ 
+    ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
+    ROTRS( rcMbDataLeftRes.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
+  }
+  
   if( rcMbDataCurrMot.isInterPMb() && rcMbDataLeftMot.isInterPMb())
   {
     return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataLeftMot, cIdx + LEFT_MB_LEFT_NEIGHBOUR,
@@ -1101,9 +1128,15 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
     // internal edge
     ROTRS( rcMbDataCurrMot.isIntra(), 3 );
 
-    ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                           ), 2 );
-    ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
-
+    // Hanke@RWTH
+    if( m_pcHighpassYuvBuffer ) {
+      ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                           ), 2 );
+      ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+    }else{
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                           ), 2 );
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
+    }
+    
     if( rcMbDataCurrMot.isInterPMb() )
     {
       return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_ABOVE_NEIGHBOUR,
@@ -1128,9 +1161,15 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
   ROTRS( rcMbDataCurrMot. isIntra(), 4 );
   ROTRS( rcMbDataAboveMot.isIntra(), 4 );
 
-  ROTRS( rcMbDataCurrRes. is4x4BlkCoded( cIdx                            ), 2 );
-  ROTRS( rcMbDataAboveRes.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
-
+  // Hanke@RWTH
+  if( m_pcHighpassYuvBuffer ) {
+    ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero  ( cIdx                            ), 2 );
+    ROTRS( m_pcHighpassYuvBuffer->isAbove4x4BlkNotZero ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+  }else{
+    ROTRS( rcMbDataCurrRes. is4x4BlkCoded( cIdx                            ), 2 );
+    ROTRS( rcMbDataAboveRes.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+  }
+  
   if( rcMbDataCurrMot.isInterPMb() && rcMbDataAboveMot.isInterPMb())
   {
     return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataAboveMot, cIdx + ABOVE_MB_ABOVE_NEIGHBOUR,

@@ -607,7 +607,7 @@ Extractor::xExtractPoints()
     {
       Double  dWeight     = -dSNRLayerDiff;
       uiShrinkSize        = (UInt)ceil( (Double)uiPacketSize * dWeight );
-      if( uiPacketSize - uiShrinkSize > 12 ) // 12 bytes should be enough for the slice headers
+      if( uiPacketSize - uiShrinkSize > 25 ) // 25 bytes should be enough for the slice headers
       {
         RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
         pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
@@ -738,7 +738,7 @@ Extractor::xExtractLayerLevel()
       {
         Double  dWeight     = -dSNRLayerDiff;
         uiShrinkSize        = (UInt)ceil( (Double)uiPacketSize * dWeight );
-        if( uiPacketSize - uiShrinkSize > 12 ) // 12 bytes should be enough for the slice headers
+        if( uiPacketSize - uiShrinkSize > 25 ) // 25 bytes should be enough for the slice headers
         {
           RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
           pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one

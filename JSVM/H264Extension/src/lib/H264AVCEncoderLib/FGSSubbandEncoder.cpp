@@ -341,7 +341,16 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
   m_bFgsComponentSep = m_pcSliceHeader->getFgsComponentSep();
 
   m_pcSliceHeader->setSliceType   ( F_SLICE );
-  m_pcSliceHeader->setNalUnitType ( NAL_UNIT_CODED_SLICE_SCALABLE );
+
+  if( m_pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
+  {
+    m_pcSliceHeader->setNalUnitType ( NAL_UNIT_CODED_SLICE_IDR_SCALABLE );
+  }
+  else if( m_pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE )
+  {
+    m_pcSliceHeader->setNalUnitType ( NAL_UNIT_CODED_SLICE_SCALABLE );
+  }
+
   m_pcSliceHeader->setQualityLevel( 1 );
   m_pcSliceHeader->setSliceHeaderQp       ( iNewSliceQP );
   m_dLambda          /= pow( 2.0, (Double)(iOldSliceQP-iNewSliceQP) / 3.0 );

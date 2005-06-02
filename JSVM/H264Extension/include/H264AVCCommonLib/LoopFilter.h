@@ -159,6 +159,9 @@ public:
 
   Void setFilterMode( LFMode eLFMode = LFM_DEFAULT_FILTER ) { m_eLFMode = eLFMode; }
 
+  // Hanke@RWTH
+  Void setHighpassFramePointer( IntFrame* pcHighpassFrame = NULL ) { m_pcHighpassFrame = pcHighpassFrame; }
+
 private:
 
   UChar xCheckMvDataB( const MbData& rcQMbData, const LumaIdx cQIdx, const MbData& rcPMbData, const LumaIdx cPIdx, const Short sHorMvThr, const Short sVerMvThr );
@@ -169,7 +172,7 @@ private:
   __inline Void xFilter( Pel* pFlt, const Int& iOffset, const Int& iIndexA, const Int& iIndexB, const UChar& ucBs, const Bool& bLum );
 
   __inline UInt xGetHorFilterStrength( const MbDataAccess& rcMbDataAccess, LumaIdx cIdx, Int iFilterIdc);
-	__inline UInt xGetVerFilterStrength( const MbDataAccess& rcMbDataAccess, LumaIdx cIdx, Int iFilterIdc);
+  __inline UInt xGetVerFilterStrength( const MbDataAccess& rcMbDataAccess, LumaIdx cIdx, Int iFilterIdc);
   __inline ErrVal xLumaHorFiltering  ( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
   __inline ErrVal xLumaVerFiltering  ( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
   __inline ErrVal xChromaHorFiltering( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
@@ -231,13 +234,17 @@ private:
                                                   RefFrameList*       pcRefFrameList1 );
 
 protected:
-	UChar m_aucBs[4];
+  // Hanke@RWTH
+  IntFrame*        m_pcHighpassFrame;
+  IntYuvPicBuffer* m_pcHighpassYuvBuffer;
+
+  UChar m_aucBs[4];
 
   ControlMngIf*    m_pcControlMngIf;
   FrameUnit*       m_pcRecFrameUnit;
   UChar            m_aaaucBs[2][4][4];
   IntYuvPicBuffer* m_pcIntYuvBuffer;
-  LFMode            m_eLFMode;
+  LFMode           m_eLFMode;
   ReconstructionBypass*         m_pcReconstructionBypass;
 
 protected:

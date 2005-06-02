@@ -378,7 +378,8 @@ ErrVal FrameMng::initSlice( SliceHeader *rcSH )
   m_uiMaxFrameNumCurr = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
   m_uiMaxFrameNumPrev = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
   m_uiNumRefFrames    = rcSH->getSPS().getNumRefFrames();
-  m_iMaxEntriesinDPB  = min( 16, rcSH->getSPS().getMaxDPBSize() );
+  m_iMaxEntriesinDPB  = min( 16, rcSH->getSPS().getMaxDPBSize() )+3; // to be on a safe side for inter-layer prediction
+
 
   if( ! m_iMaxEntriesinDPB )
   {

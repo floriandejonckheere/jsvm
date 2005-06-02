@@ -2439,6 +2439,9 @@ MCTFDecoder::xInversePrediction( DPBUnit* pcDPBUnit,
   ControlData&  rcControlData   = pcDPBUnit->getCtrlData();
   IntFrame*     pcFrame         = pcDPBUnit->getFrame   ();
   IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
+  IntFrame*     pcResidual      = m_apcFrameTemp  [2];
+
+  RNOK( pcResidual->copy( pcFrame ) ); // Hanke@RWTH
 
   //===== reconstruct intra =====
   RNOK( xInitBaseLayerReconstruction( rcControlData ) );
@@ -2465,6 +2468,9 @@ MCTFDecoder::xInversePrediction( DPBUnit* pcDPBUnit,
     RNOK( pcFrame ->inversePrediction ( pcMCFrame, pcFrame ) );
 
     //===== de-blocking =====
+    // Hanke@RWTH: set pointer to current residual frame
+    m_pcLoopFilter->setHighpassFramePointer( pcResidual ); 
+
     RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
                                          pcFrame,
                                          rcControlData.getMbDataCtrl (),
