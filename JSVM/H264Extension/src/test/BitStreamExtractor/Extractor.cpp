@@ -23,7 +23,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -35,10 +35,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -70,7 +70,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -126,15 +126,15 @@ Extractor::init( ExtractorParameter *pcExtractorParameter )
   m_pcExtractorParameter->setResult( -1 );
 
   ReadBitstreamFile*  pcReadBitstreamFile;
-  RNOKS( ReadBitstreamFile::create( pcReadBitstreamFile ) ); 
-  RNOKS( pcReadBitstreamFile->init( m_pcExtractorParameter->getInFile() ) );  
+  RNOKS( ReadBitstreamFile::create( pcReadBitstreamFile ) );
+  RNOKS( pcReadBitstreamFile->init( m_pcExtractorParameter->getInFile() ) );
   m_pcReadBitstream = (ReadBitstreamIf*)pcReadBitstreamFile;
 
   if( !m_pcExtractorParameter->getAnalysisOnly() )
   {
     WriteBitstreamToFile*  pcWriteBitstreamFile;
-    RNOKS( WriteBitstreamToFile::create( pcWriteBitstreamFile ) ); 
-    RNOKS( pcWriteBitstreamFile->init( m_pcExtractorParameter->getOutFile() ) );  
+    RNOKS( WriteBitstreamToFile::create( pcWriteBitstreamFile ) );
+    RNOKS( pcWriteBitstreamFile->init( m_pcExtractorParameter->getOutFile() ) );
     m_pcWriteBitstream = (WriteBitstreamIf*)pcWriteBitstreamFile;
   }
   else
@@ -184,21 +184,21 @@ Extractor::destroy()
 {
   m_cBinDataStartCode.reset();
 
-  if( NULL != m_pcH264AVCPacketAnalyzer )       
+  if( NULL != m_pcH264AVCPacketAnalyzer )
   {
-    RNOK( m_pcH264AVCPacketAnalyzer->destroy() );       
+    RNOK( m_pcH264AVCPacketAnalyzer->destroy() );
   }
 
-  if( NULL != m_pcReadBitstream )     
+  if( NULL != m_pcReadBitstream )
   {
-    RNOK( m_pcReadBitstream->uninit() );  
-    RNOK( m_pcReadBitstream->destroy() );  
+    RNOK( m_pcReadBitstream->uninit() );
+    RNOK( m_pcReadBitstream->destroy() );
   }
 
-  if( NULL != m_pcWriteBitstream )     
+  if( NULL != m_pcWriteBitstream )
   {
-    RNOK( m_pcWriteBitstream->uninit() );  
-    RNOK( m_pcWriteBitstream->destroy() );  
+    RNOK( m_pcWriteBitstream->uninit() );
+    RNOK( m_pcWriteBitstream->destroy() );
   }
 
   // HS: packet trace
@@ -339,7 +339,7 @@ Extractor::xAnalyse()
     {
       RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
     }
-    
+
     //==== get parameters =====
     UInt  uiPacketSize  = 4 + pcBinData->size();
     if( ! bApplyToNext )
@@ -350,7 +350,7 @@ Extractor::xAnalyse()
     }
     bApplyToNext  = cPacketDescription.ApplyToNext;
     bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
- 
+
     //==== update stream description =====
     RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
 
@@ -370,7 +370,7 @@ Extractor::xAnalyse()
 
   //----- reset input file -----
   RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->uninit() );
-  RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->init  ( m_pcExtractorParameter->getInFile() ) );  
+  RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->init  ( m_pcExtractorParameter->getInFile() ) );
 
   return Err::m_nOK;
 }
@@ -391,7 +391,7 @@ Extractor::xSetParameters()
   {
     m_aadTargetSNRLayer[uiLayer][uiLevel] = -1;
   }
-  
+
 
 #define ERROR(x,t)   {if(x) {::printf("\nERROR:   %s\n",t); assert(0); return Err::m_nERR;} }
 #define WARNING(x,t) {if(x) {::printf("\nWARNING: %s\n",t); } }
@@ -429,7 +429,7 @@ Extractor::xSetParameters()
   ERROR( uiExtLevel>m_cScalableStreamDescription.getMaxLevel(uiExtLayer), "Spatio-temporal resolution of extraction/inclusion point not supported" );
   //--- target number of bytes -----
   Double  dTargetNumExtBytes  = rcExtPoint.dBitRate / 8.0 * 1000.0 / ((Double)(1<<uiExtLevel)*m_cScalableStreamDescription.getFrameRateUnit() ) * (Double)m_cScalableStreamDescription.getNumPictures(uiExtLayer,uiExtLevel);
-    
+
 
   //===== get and set required base layer packets ======
   Double  dRemainingBytes     = dTargetNumExtBytes;
@@ -859,7 +859,7 @@ Extractor::xExtractTrace()
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
     delete pcScalableSEIMessage;
 
-    if( ! cPacketDescription.ApplyToNext )    
+    if( ! cPacketDescription.ApplyToNext )
     {
       i64EndPos       = static_cast<ReadBitstreamFile*>( m_pcReadBitstream )->getFilePos();
       UInt  uiStart   = (UInt)( i64StartPos & 0xFFFFFFFF  );
@@ -891,11 +891,11 @@ Extractor::xExtractTrace()
             fprintf( stderr, "\nERROR: The packet at start pos. 0x%08x is not truncatable\n", uiNextStart, uiNextLength );
             ROT( true );
           }
-          
+
           //===== truncate packet =====
-          if( pcBinData->size() - uiSize + uiNextLength < 10 )
+          if( pcBinData->size() - uiSize + uiNextLength < 25 )
           {
-            uiNextLength = 10 + uiSize - pcBinData->size();
+            uiNextLength = 25 + uiSize - pcBinData->size();
 
             fprintf( stderr, "\nWARNING: The size of the packet at start pos. 0x%08x was increased to %d bytes\n", uiNextStart, uiNextLength );
           }
@@ -910,10 +910,10 @@ Extractor::xExtractTrace()
           printf("kept\n");
           uiNumKept++;
         }
-        
+
         //===== write packet =====
         static_cast<WriteBitstreamToFile*>( m_pcWriteBitstream )->writePacket( pucPacketBuffer, uiNextLength );
-      
+
         //===== get next traget packet ====
         if( xReadLineExtractTrace( "%x %d", &uiNextStart,  &uiNextLength ) != Err::m_nOK )
         {
@@ -972,7 +972,7 @@ ErrVal
 ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
 {
   ROT( m_bInit );
-  
+
   ::memset( m_aaaui64NumNALUBytes, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) );
   ::memset( m_aauiNumPictures,     0x00, MAX_LAYERS*(MAX_DSTAGES+1)                   *sizeof(UInt)   );
 
@@ -984,7 +984,7 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
   m_uiMaxDecStages        = pcScalableSei->getMaxDecStages        ();
   UInt  m_uiMaxWidth      = pcScalableSei->getMaxHorFrameDimInMB  () << 4;
   UInt  m_uiMaxHeight     = pcScalableSei->getMaxVerFrameDimInMB  () << 4;
-  
+
   for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
     m_auiFrameWidth [uiLayer] = m_uiMaxWidth    >> pcScalableSei->getSpatialResolutionFactor  ( uiLayer );
@@ -999,7 +999,7 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
 
   m_bInit     = true;
   m_bAnalyzed = false;
-  
+
   return Err::m_nOK;
 }
 
@@ -1008,7 +1008,7 @@ ScalableStreamDescription::uninit()
 {
   m_bInit     = false;
   m_bAnalyzed = false;
-  
+
   return Err::m_nOK;
 }
 
