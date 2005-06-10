@@ -2823,7 +2823,7 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
     UInt          uiFrameIdInGOP  = uiFramePrd << uiBaseLevel;
     ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
     IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-    //IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
+    IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP]; // Hanke@RWTH
     IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
 
     //===== get reference frame lists =====
@@ -2840,6 +2840,9 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
     if( m_bCompletelyDecodeLayer )
       rcControlData.activateMbDataCtrlForQpAndCbp( false );
 #endif
+    // Hanke@RWTH: set pointer to current residual frame
+    m_pcLoopFilter->setHighpassFramePointer( pcResidual ); 
+
     RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
                                          pcFrame,
                                          rcControlData.getMbDataCtrl (),
