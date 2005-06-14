@@ -160,9 +160,18 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
       m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE )
   {
-    RNOK( pcWriteIf->writeCode( m_uiTemporalLevel,  3,                          "NALU HEADER: temporal_level" ) );
-    RNOK( pcWriteIf->writeCode( m_uiLayerId,        3,                          "NALU HEADER: dependency_id" ) );
-    RNOK( pcWriteIf->writeCode( m_uiQualityLevel,   2,                          "NALU HEADER: quality_level" ) );
+    //{{Variable Lengh NAL unit header data with priority and dead substream flag
+    //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+    RNOK (pcWriteIf->writeCode( m_uiSimplePriorityId,  6,                       "NALU HEADER: simple_priority_id"));
+    RNOK (pcWriteIf->writeFlag( m_bDiscardableFlag,                             "NALU HEADER: discardable_flag"));
+    RNOK (pcWriteIf->writeFlag( m_bExtensionFlag,                               "NALU HEADER: extension_flag"));
+    if( m_bExtensionFlag == true )
+    {
+      RNOK (pcWriteIf->writeCode( m_uiTemporalLevel,   3,                       "NALU HEADER: temporal_level"));
+      RNOK( pcWriteIf->writeCode( m_uiLayerId,         3,                       "NALU HEADER: dependency_id" ) );
+      RNOK( pcWriteIf->writeCode( m_uiQualityLevel,    2,                       "NALU HEADER: quality_level" ) );
+    } 
+    //}}Variable Lengh NAL unit header data with priority and dead substream flag
   }
 
   

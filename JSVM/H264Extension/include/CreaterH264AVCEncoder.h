@@ -159,6 +159,18 @@ public:
                    Double&                  rdHighestLayerOutputRate );
 
 
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  ErrVal writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDataAccessor,
+                                   UInt* uiaQualityLevel, 
+                                   UInt *uiaDelta, 
+                                   UInt uiNumLevels, 
+                                   UInt uiLayer);
+  ErrVal writeDeadSubstreamSEI( ExtBinDataAccessor*     pcExtBinDataAccessor,
+                                UInt                    uiDeltaBytesDS, 
+                                UInt                    uiLayer);
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
 
 protected:
   ErrVal xCreateEncoder();

@@ -223,6 +223,11 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
   {
     case SUB_SEQ_INFO:  return SubSeqInfo ::create( (SubSeqInfo*&)  rpcSEIMessage );
     case SCALABLE_SEI:  return ScalableSei::create( (ScalableSei*&) rpcSEIMessage );
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    case DEADSUBSTREAM_SEI: return DeadSubstreamSEI::create((DeadSubstreamSEI*&) rpcSEIMessage);
+    case QUALITYLEVEL_SEI: return QualityLevelSEI::create((QualityLevelSEI*&) rpcSEIMessage);
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
   return Err::m_nOK;
@@ -459,6 +464,110 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf* pcReadIf )
   return Err::m_nOK;
 }
 
+//{{Quality level estimation and modified truncation- JVTO044 and m12007
+//France Telecom R&D-(nathalie.cammas@francetelecom.com)
+//////////////////////////////////////////////////////////////////////////
+// 
+//      QUALITY LEVEL     S E I
+//
+//////////////////////////////////////////////////////////////////////////
 
+SEI::QualityLevelSEI::QualityLevelSEI     ()
+ : SEIMessage                     ( QUALITYLEVEL_SEI ),
+ m_uiNumLevels         ( 0 ),
+ m_uiDependencyId      ( 0 )
+{
+  ::memset( m_auiQualityLevel,  0x00, MAX_NUM_RD_LEVELS*sizeof(UInt) );
+  ::memset( m_auiDeltaBytesRateOfLevel, 0x00, MAX_NUM_RD_LEVELS*sizeof(UInt) );
+}
+
+
+SEI::QualityLevelSEI::~QualityLevelSEI()
+{
+}
+
+
+ErrVal
+SEI::QualityLevelSEI::create( QualityLevelSEI*& rpcSeiMessage )
+{
+  rpcSeiMessage = new QualityLevelSEI();
+  ROT( NULL == rpcSeiMessage )
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SEI::QualityLevelSEI::write( HeaderSymbolWriteIf* pcWriteIf )
+{
+  RNOK  ( pcWriteIf->writeCode( m_uiDependencyId, 3,"QualityLevelSEI: DependencyId"   ) );
+  RNOK  ( pcWriteIf->writeCode( m_uiNumLevels, 4,"QualityLevelSEI: NumLevels"   ) );
+  for(UInt ui = 0; ui < m_uiNumLevels; ui++)
+  {
+	RNOK  ( pcWriteIf->writeCode( m_auiQualityLevel[ui], 8,"QualityLevelSEI: QualityLevel"   ) );
+	RNOK  ( pcWriteIf->writeUvlc( m_auiDeltaBytesRateOfLevel[ui],"QualityLevelSEI: DeDeltaBytesRateOfLevellta"   ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SEI::QualityLevelSEI::read ( HeaderSymbolReadIf* pcReadIf )
+{
+  RNOK  ( pcReadIf->getCode( m_uiDependencyId, 3,"QualityLevelSEI: DependencyId"   ) );
+  RNOK  ( pcReadIf->getCode( m_uiNumLevels, 4,"QualityLevelSEI: NumLevels"   ) );
+  for(UInt ui = 0; ui < m_uiNumLevels; ui++)
+  {
+	RNOK  ( pcReadIf->getCode( m_auiQualityLevel[ui], 8,"QualityLevelSEI: QualityLevel"   ) );
+	RNOK  ( pcReadIf->getUvlc( m_auiDeltaBytesRateOfLevel[ui],"QualityLevelSEI: DeltaBytesRateOfLevel"   ) );
+  }
+  return Err::m_nOK;
+}
+
+//////////////////////////////////////////////////////////////////////////
+// 
+//      DEAD SUBSTREAM    S E I
+//
+//////////////////////////////////////////////////////////////////////////
+
+SEI::DeadSubstreamSEI::DeadSubstreamSEI     ()
+ : SEIMessage                     ( DEADSUBSTREAM_SEI ),
+ m_uiDeltaBytesDeadSubstream         ( 0 ),
+ m_uiDependencyId						( 0 )
+{
+}
+
+
+SEI::DeadSubstreamSEI::~DeadSubstreamSEI()
+{
+}
+
+
+ErrVal
+SEI::DeadSubstreamSEI::create( DeadSubstreamSEI*& rpcSeiMessage )
+{
+  rpcSeiMessage = new DeadSubstreamSEI();
+  ROT( NULL == rpcSeiMessage )
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SEI::DeadSubstreamSEI::write( HeaderSymbolWriteIf* pcWriteIf )
+{
+  RNOK  ( pcWriteIf->writeCode( m_uiDependencyId,3,"DeadSubstreamSEI: DependencyId"   ) );
+  RNOK  ( pcWriteIf->writeUvlc( m_uiDeltaBytesDeadSubstream,"DeadSubstreamSEI: DeltaBytesDeadSubstream"   ) );
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SEI::DeadSubstreamSEI::read ( HeaderSymbolReadIf* pcReadIf )
+{
+  RNOK  ( pcReadIf->getCode( m_uiDependencyId,3,"DeadSubstreamSEI: DependencyId"   ) );
+  RNOK  ( pcReadIf->getUvlc( m_uiDeltaBytesDeadSubstream,"DeadSubstreamSEI: DeltaBytesDeadSubstream"   ) );
+  return Err::m_nOK;
+}
+//}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 H264AVC_NAMESPACE_END

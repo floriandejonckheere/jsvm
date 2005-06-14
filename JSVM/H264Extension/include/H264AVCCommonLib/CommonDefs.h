@@ -290,6 +290,7 @@ H264AVC_NAMESPACE_END
 #define MAX_FGS_LAYERS      3
 #define MAX_DSTAGES         6
 #define LOG2_GOP_ID_WRAP    4
+#define PRI_ID_BITS         6
 
 enum MCType
 {
@@ -301,5 +302,11 @@ enum MCType
 #define MULTIPLE_LOOP_DECODING 1   // multiple-loop decoding (enables additional option,
                                    // single-loop decoding is still possible, when the flag is set
 
+//{{Quality level estimation and modified truncation- JVTO044 and m12007
+//France Telecom R&D-(nathalie.cammas@francetelecom.com)
+#define MAX_NUM_RD_LEVELS      50
+#define MIN_BITS_FOR_RD_POINTS  5000
+#define MAX_NBFRAMES 1000
+//}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

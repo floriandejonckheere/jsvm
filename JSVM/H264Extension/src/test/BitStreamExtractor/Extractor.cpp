@@ -92,11 +92,23 @@ Extractor::Extractor()
 : m_pcReadBitstream       ( 0 )
 , m_pcWriteBitstream      ( 0 )
 , m_pcExtractorParameter  ( 0 )
+//{{Quality level estimation and modified truncation- JVTO044 and m12007
+//France Telecom R&D-(nathalie.cammas@francetelecom.com)
+, m_bInInputStreamQL      ( false )
+, m_bInInputStreamDS      ( false )
+//}}Quality level estimation and modified truncation- JVTO044 and m12007
 // HS: packet trace
 , m_pcTraceFile           ( 0 )
 , m_pcExtractionTraceFile ( 0 )
 , m_uiMaxSize             ( 0 )
 {
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    for(UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+	{
+		m_aSizeDeadSubstream[uiLayer] = 0;
+	}
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 }
 
 
@@ -237,6 +249,41 @@ Extractor::xAnalyse()
   BinData*                pcBinData     = 0;
   h264::SEI::SEIMessage*  pcScalableSei = 0;
   h264::PacketDescription cPacketDescription;
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  //Dead substream information
+  UInt uiMaxRateDS = 0;
+  Bool bMaxRateDS = false;
+  
+  //Quality levels information
+  UInt uiSEI = 0;
+  UInt ui;
+  UInt uiNumFrame;
+ 
+  //Common information to dead substreams and quality levels
+  //arrays initialization
+  static UInt auiNumImage[MAX_LAYERS] = 
+  { 
+    0,0,0,0,0,0,0,0
+  };
+  
+  
+  for(uiNumFrame=0; uiNumFrame<MAX_NBFRAMES; uiNumFrame++)
+  {
+    for(uiLayer=0; uiLayer<MAX_LAYERS; uiLayer++)
+    {
+      m_aaadMaxRate[uiLayer][uiNumFrame] = 0;
+      m_aaiNumLevels[uiLayer][uiNumFrame] = 0;
+      for(uiFGSLayer=0; uiFGSLayer<MAX_FGS_LAYERS; uiFGSLayer++)
+	  {
+		  m_aaiLevelForFrame[uiLayer][uiNumFrame] = -1;
+		  m_aaadBytesForFrameFGS[uiLayer][uiNumFrame][uiFGSLayer] = 0;
+      }
+    }
+  }
+  uiLayer = 0;
+  uiFGSLayer = 0;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   // HS: packet trace
   Int64                   i64StartPos   = 0;
@@ -287,6 +334,10 @@ Extractor::xAnalyse()
     }
     //---- update stream description -----
     RNOK( m_cScalableStreamDescription.addPacket( 4+pcBinData->size(), 0, 0, 0, false ) );
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    addPacket(0,0,0,4+pcBinData->size());
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
   }
 
 
@@ -352,6 +403,48 @@ Extractor::xAnalyse()
     bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
 
     //==== update stream description =====
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    //count number of picture per layer in input stream
+	if (bNewPicture && uiFGSLayer == 0 && cPacketDescription.NalUnitType != NAL_UNIT_SEI)
+	{
+		auiNumImage[uiLayer] ++;
+	}
+	if(cPacketDescription.ParameterSet || cPacketDescription.NalUnitType == NAL_UNIT_SEI )
+	{
+		uiNumFrame = auiNumImage[uiLayer];
+	}
+	else
+		uiNumFrame = auiNumImage[uiLayer]-1;
+
+    //Saving of Dead substream SEI information
+	uiMaxRateDS   = cPacketDescription.MaxRateDS;
+	if(uiMaxRateDS != 0)
+	{
+		//bMaxRateDS = true;
+		m_bInInputStreamDS = true;
+		m_aaadMaxRate[uiLayer][uiNumFrame] = uiMaxRateDS;
+		bApplyToNext = false;
+		if(!m_bExtractDeadSubstream[uiLayer])
+		{
+          RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
+		}
+	}
+	//Saving of Quality Level SEI information
+	if(cPacketDescription.uiNumLevelsQL != 0)
+	{   
+        m_bInInputStreamQL = true;
+        m_aaiNumLevels[uiLayer][uiNumFrame] = cPacketDescription.uiNumLevelsQL;
+        m_aauiSEIQLPacketSize[uiLayer][uiNumFrame] = uiPacketSize;
+		for(ui = 0; ui < m_aaiNumLevels[uiLayer][uiNumFrame]; ui++)
+		{
+			m_aaauiBytesForQualityLevel[uiLayer][uiNumFrame][ui] = cPacketDescription.auiDeltaBytesRateOfLevelQL[ui];
+			m_aaadQualityLevel[uiLayer][uiNumFrame][ui] = cPacketDescription.auiQualityLevelQL[ui];
+		}
+        bApplyToNext = false;
+	}
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
+    
     RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
 
     UInt eNalUnitType = cPacketDescription.NalUnitType;
@@ -363,6 +456,12 @@ Extractor::xAnalyse()
       m_cScalableStreamDescription.m_bSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
       m_cScalableStreamDescription.m_bPPSRequired[uiLayer][cPacketDescription.PPSid] = true;
     }
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  addPacket(uiLayer, uiNumFrame,uiFGSLayer,uiPacketSize);
+  if(bNewPicture)
+      setLevel(uiLayer, uiLevel,uiNumFrame);
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   }
 
   RNOK( m_cScalableStreamDescription.analyse() );
@@ -371,7 +470,35 @@ Extractor::xAnalyse()
   //----- reset input file -----
   RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->uninit() );
   RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->init  ( m_pcExtractorParameter->getInFile() ) );
-
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  //save number of frames per layer
+  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+  {
+	  m_auiNbImages[uiLayer] = auiNumImage[uiLayer];
+  }
+  //initialize max rate for each frame
+  //if dead substream is present for the layer: max rate is equal to max rate before dead substream
+  //else max rate is equal to the rate of the frame
+  if(m_bInInputStreamQL)
+  {
+    setQualityLevel();
+  	UInt uiLayerDeb = 0;
+	if(m_bInInputStreamDS == false)
+	{
+		uiLayerDeb = 0;
+	 }
+	else
+	{
+		  uiLayerDeb = m_cScalableStreamDescription.getNumberOfLayers()-1;
+	 }
+  
+	for(uiLayer = uiLayerDeb; uiLayer < m_cScalableStreamDescription.getNumberOfLayers();uiLayer++)
+	{
+	  CalculateMaxRate(uiLayer);
+	}
+  }
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   return Err::m_nOK;
 }
 
@@ -529,6 +656,24 @@ Extractor::go()
   }
   else
   {
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    //if there is dead substream in the input stream
+    // and but no R/D information
+    if(m_bInInputStreamDS && !m_bInInputStreamQL)
+    {
+        go_DS();
+	    return Err::m_nOK;
+    }
+    //if there is R/D information in the input stream
+    //with or without dead substream
+    if(m_bInInputStreamQL)
+    {
+	    go_QL();
+	    return Err::m_nOK;
+    }
+    //default case: there is no dead substream, nor R/D information
+    //in the input stream
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
     RNOK( xSetParameters() );
     RNOK( xExtractPoints() );
   }
@@ -952,6 +1097,1126 @@ Extractor::xExtractTrace()
   return Err::m_nOK;
 }
 
+//{{Quality level estimation and modified truncation- JVTO044 and m12007
+//France Telecom R&D-(nathalie.cammas@francetelecom.com)
+ErrVal
+Extractor::go_DS()
+{
+	//if we want to keep or throw away the dead substream
+	for(UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+	{
+        setExtractDeadSubstream(m_pcExtractorParameter->getExtractDeadSubstream(uiLayer),uiLayer);
+	}
+
+	//Calculate the size of the dead substream
+	CalculateSizeDeadSubstream();
+
+	UInt uiExtLayer, uiExtLevel;
+	RNOK( xSetParameters_DS() );
+	RNOK( xExtractPoints_DS() );
+	
+	return Err::m_nOK;
+}
+
+ErrVal
+Extractor::go_QL()
+{
+  UInt uiExtLayer;
+  Double dRateTarget;
+  UInt uiExtLevel;
+  //determine layer, level and rateTarget for output stream
+  GetExtParameters();
+
+  //search optimal quality for target rate
+  QualityLevelSearch();
+  
+  //extract NALs for optimal quality
+  RNOK(ExtractPointsFromRate());
+	return Err::m_nOK;
+}
+
+Void Extractor::setQualityLevel()
+{
+	UInt uiLevel;
+    UInt uiLayer;
+    UInt uiNumImage;
+    for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+    {
+        for(uiNumImage = 0; uiNumImage < MAX_NBFRAMES; uiNumImage++)
+        {
+            UInt uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][0];
+	        for(uiLevel = 0; uiLevel < m_aaiNumLevels[uiLayer][uiNumImage]; uiLevel++)
+	        {
+		        if(uiLevel == 0)
+		        {
+			        m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel] = m_aaadBytesForFrameFGS[uiLayer][uiNumImage][0];
+			        m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel] += m_aauiSEIQLPacketSize[uiLayer][uiNumImage];
+			        uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel];
+		        }
+		        else
+		        {
+                    UInt uiDeltaRate = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel];
+			        m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel] = uiRateOld + uiDeltaRate;
+			        uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel];
+		        }
+            }
+        }
+    }
+}
+
+Void Extractor::GetExtParameters()
+{
+  UInt uiLayer,uiLevel;
+
+  const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
+  MyList<ExtractorParameter::Point>::const_iterator cIter       = rcExtList.begin ();
+  MyList<ExtractorParameter::Point>::const_iterator cEnd        = rcExtList.end   ();
+  const ExtractorParameter::Point&                  rcExtPoint  = *cIter;
+  UInt uiExtLayer  = MSYS_UINT_MAX;
+  UInt uiExtLevel  = MSYS_UINT_MAX;
+  //----- layer -----
+  for( uiLayer = 0; uiLayer <= m_cScalableStreamDescription.getNumberOfLayers(); uiLayer++ )
+  {
+    if( rcExtPoint.uiWidth  == m_cScalableStreamDescription.getFrameWidth (uiLayer) &&
+        rcExtPoint.uiHeight == m_cScalableStreamDescription.getFrameHeight(uiLayer)    )
+    {
+      uiExtLayer = uiLayer;
+      break;
+    }
+  }
+  m_pcExtractorParameter->setLayer(uiExtLayer);
+  //--- level ---
+  for( uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
+  {
+    if( rcExtPoint.dFrameRate == (Double)(1<<uiLevel)*m_cScalableStreamDescription.getFrameRateUnit() )
+    {
+      uiExtLevel = uiLevel;
+      break;
+    }
+  }
+  m_pcExtractorParameter->setLevel(uiLevel);
+   //--- target number of bytes -----
+  Double  dTargetNumExtBytes  = rcExtPoint.dBitRate / 8.0 * 1000.0 / ((Double)(1<<uiExtLevel)*m_cScalableStreamDescription.getFrameRateUnit() ) * (Double)m_cScalableStreamDescription.getNumPictures(uiExtLayer,uiExtLevel);
+
+  m_pcExtractorParameter->setTargetRate(dTargetNumExtBytes);
+}
+
+ErrVal Extractor::QualityLevelSearch()
+{
+
+  Double R,D;
+  UInt uiNFrames;
+  UInt uiDecStages;
+  UInt uiNumPictures;
+  UInt uiLayer;
+  Int uiPoint;
+  UInt uiLevel;
+  UInt uiFGSLayer;
+  Double rate; 
+  Int64 i64NALUBytes;
+
+  UInt uiExtLayer = m_pcExtractorParameter->getLayer();
+  UInt uiExtLevel = m_pcExtractorParameter->getLevel();
+  Double dRateConstraint = m_pcExtractorParameter->getTargetRate();
+  UInt uiMaxLayers = uiExtLayer+1;
+  
+  // Getting min and max QualityLevel
+  Double QualityLevelMin = 0;
+  Double QualityLevelMax = 255;
+ 
+  printf("---------Rate target: %f \n", dRateConstraint);
+
+  Double minRate = 0;
+
+  minRate= GetRateForQualityLevel(QualityLevelMax, uiMaxLayers, uiExtLevel, uiExtLayer);
+  Double maxRate = GetRateForQualityLevel(QualityLevelMin, uiMaxLayers, uiExtLevel, uiExtLayer);
+
+  // iteration loop
+  int iter;
+  int iterMax = 10;
+  Double midQualityLevel;
+  Double midRate;
+  for(iter=0; iter<iterMax; iter++)
+  {  
+    midQualityLevel = (QualityLevelMin+QualityLevelMax)/2;
+    midRate = GetRateForQualityLevel(midQualityLevel, uiMaxLayers, uiExtLevel, uiExtLayer);
+
+    if (midRate > dRateConstraint)
+    {
+      QualityLevelMin = midQualityLevel;
+      maxRate = midRate;
+    }
+    else
+    {
+      QualityLevelMax = midQualityLevel;
+      minRate = midRate;
+    }
+  }
+  printf("---------Rate generated: %f (target=%f) QualityLevel %f\n", minRate, dRateConstraint, QualityLevelMax);
+  
+  
+  // set the rate for each frames
+  for(uiLayer = 0; uiLayer < uiMaxLayers; uiLayer++)
+  {
+	uiNumPictures = m_auiNbImages[uiLayer];	
+    for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+    {
+	if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+      {
+		  rate = GetRateForQualityLevel(uiLayer, uiNFrames,QualityLevelMax, uiExtLayer);
+	      m_aadTargetByteForFrame[uiNFrames][uiLayer] = rate;		  
+	  }
+    }
+  }
+
+  return Err::m_nOK;
+
+}
+
+Double Extractor::GetRateForQualityLevel(double QualityLevel, UInt uiMaxLayers, UInt uiExtLevel, UInt uiExtLayer)
+{
+  UInt uiNFrames;
+  UInt uiNumPictures;
+  UInt uiLayer;
+
+  Double sum=0;
+
+  for(uiLayer = 0; uiLayer < uiMaxLayers; uiLayer++)
+  {
+    uiNumPictures = m_auiNbImages[uiLayer];
+    for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+    {
+	 if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+	 {
+		sum += GetRateForQualityLevel(uiLayer, uiNFrames,QualityLevel,uiExtLayer);
+	  }
+    }
+  }
+  return sum;
+}
+
+
+Double Extractor::GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel, UInt uiExtLayer)
+{
+	Int i = 0;
+	//minimal rate for the frame (BL)
+	Double rate = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][0];
+	Bool stop = true;
+
+	while (i<m_aaiNumLevels[uiLayer][uiNumImage] && stop)
+  {
+    if (m_aaadQualityLevel[uiLayer][uiNumImage][i]>QualityLevel)
+		rate = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][i];
+	if(m_aaadQualityLevel[uiLayer][uiNumImage][i]<=QualityLevel)
+		stop = false;
+    i++;
+
+  }
+  i--;
+  //if target lambda is lower than min lambda of the frame, max rate of the frame is returned 
+  if(QualityLevel < m_aaadQualityLevel[uiLayer][uiNumImage][m_aaiNumLevels[uiLayer][uiNumImage]-1])
+  {
+	  rate = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][m_aaiNumLevels[uiLayer][uiNumImage]-1];
+  }
+  else
+  {
+	  //QualityLevel = 0 is the minimum value of QualityLevel: corresponds to max rate of the frame
+	  if(QualityLevel == 0)
+		  rate = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][m_aaiNumLevels[uiLayer][uiNumImage]-1];
+
+  }
+ 
+  if(rate > m_aaadMaxRate[uiLayer][uiNumImage])
+	  rate = m_aaadMaxRate[uiLayer][uiNumImage];
+
+  return rate;
+}
+
+
+ErrVal
+Extractor::ExtractPointsFromRate()
+{
+  UInt  uiNumInput    = 0;
+  UInt  uiNumKept     = 0;
+  UInt  uiNumCropped  = 0;
+  Bool  bKeep         = false;
+  Bool  bApplyToNext  = false;
+  Bool  bNewPicture   = false;
+  Bool  bEOS          = false;
+  Bool  bCrop         = false;
+  Bool  bSEIPacket    = true;
+  Bool	bQualityLevelSEI  = false;
+  Bool  bDSSEI  = false;
+  Bool bAlreadyExtracted = false;
+
+  UInt  uiLayer       = 0;
+  UInt  uiLevel       = 0;
+  UInt  uiFGSLayer    = 0;
+  UInt  uiPacketSize  = 0;
+  UInt  uiShrinkSize  = 0;
+
+  Double totalPackets = 0;
+	
+  Double dTot = 0;
+
+  UInt uiSEI = 0;
+  Bool bPrevPacketWasSEI = false;
+  UInt uiSEISize = 0;
+  Int currFrame[MAX_LAYERS];
+  UInt uiTotalSEI = 0;
+  Bool bKeepSEI = false;
+  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+  {
+	    currFrame[uiLayer] = 0;
+  }
+
+
+  RNOK( m_pcH264AVCPacketAnalyzer->init() );
+
+  while( ! bEOS )
+  {
+    //=========== get packet ===========
+    BinData*  pcBinData;
+  	RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+    if( bEOS )
+	{
+		continue;
+	}
+	
+    //========== get packet description ==========
+    h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
+    h264::PacketDescription cPacketDescription;
+    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
+    delete pcScalableSEIMessage;
+
+    //============ get packet size ===========
+    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+    {
+      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
+    }
+    uiPacketSize  = 4 + pcBinData->size();
+    uiShrinkSize  = 0;
+	
+	bKeep = false;
+	bCrop = false;
+    //============ set parameters ===========
+	uiLayer    = cPacketDescription.Layer;
+    uiLevel    = cPacketDescription.Level;
+    uiFGSLayer = cPacketDescription.FGSLayer;
+    
+    bApplyToNext = cPacketDescription.ApplyToNext;
+    bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
+	
+	bQualityLevelSEI = (cPacketDescription.uiNumLevelsQL != 0);
+	bDSSEI = (cPacketDescription.MaxRateDS != 0);
+
+	UInt uiCurrFrame = 0;
+
+	if (bSEIPacket)
+    {
+      bNewPicture = false;
+      //bSEIPacket = false;
+    }
+	// update frame number
+    if (bNewPicture && uiFGSLayer == 0)
+    {
+      currFrame[uiLayer]++;
+    }
+	
+	if(bSEIPacket || cPacketDescription.ParameterSet)
+		uiCurrFrame = 0;
+	else
+	{
+        if(!bApplyToNext)
+            uiCurrFrame = currFrame[uiLayer]-1;
+		else
+			uiCurrFrame = currFrame[uiLayer];
+	}
+	
+	if(bSEIPacket)
+		bSEIPacket = false;
+
+	/*if(bPrevPacketWasSEI)
+	{
+		bPrevPacketWasSEI = false;
+		//Bool bKeepSEI = //m_abKeepQualityLevelSEI[uiSEI-1];
+		if(bKeepSEI)
+			m_aadTargetByteForFrame[uiCurrFrame][uiLayer] -= uiSEISize;
+        bKeepSEI = false;
+	}*/
+
+	if(bQualityLevelSEI)
+	{
+		//RD SEI packet
+		//look if packet is kept or not
+		bKeep = (m_aaiLevelForFrame[uiLayer][uiCurrFrame] <= m_pcExtractorParameter->getLevel()
+			&& uiLayer <= m_pcExtractorParameter->getLayer());//m_abKeepQualityLevelSEI[uiSEI];
+        //bKeepSEI = bKeep;
+		//bPrevPacketWasSEI = true;
+		uiSEISize = uiPacketSize;
+        if(bKeep)
+            m_aadTargetByteForFrame[uiCurrFrame][uiLayer] -= uiSEISize;
+		uiTotalSEI += uiPacketSize;
+		uiSEI++;
+	}
+	else
+	{
+        //look if parameter sets NAL Unit
+        UInt eNalUnitType = cPacketDescription.NalUnitType;
+        if(eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS)
+        {
+            Bool bRequired = false;
+            if(  eNalUnitType == NAL_UNIT_SPS )
+            {
+                for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
+                {
+                    if( m_cScalableStreamDescription.m_bSPSRequired[layer][cPacketDescription.SPSid] )
+                    {
+                        bRequired = true;
+                        break;
+                    }
+                }
+            bKeep = bRequired;
+            }
+            else if( eNalUnitType == NAL_UNIT_PPS )
+            {
+                for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
+                {
+                    if( m_cScalableStreamDescription.m_bPPSRequired[layer][cPacketDescription.PPSid] )
+                    {
+                        bRequired = true;
+                        break;
+                    }
+                }
+            bKeep = bRequired;
+            }
+        }
+        else
+        {
+            //remove Dead substream SEI NAL
+		    if(bDSSEI)
+		    {
+			    bKeep = false;
+			    bCrop = false;
+		    }
+		    else
+		    {
+			    //============ check packet ===========
+			    Double dRemainingBytes = m_aadTargetByteForFrame[uiCurrFrame][uiLayer];
+				if (uiLayer>m_pcExtractorParameter->getLayer())
+		        {
+		            bKeep=false;
+		            bCrop=false;
+		        }
+		        else
+		        {
+			        if (dRemainingBytes <=0 )
+			        { // rate has been already generated
+				        //printf("removing packet - rate has been reached\n");
+				        bKeep = false;
+				        bCrop = false;
+			        }
+			        else if (dRemainingBytes >= uiPacketSize)
+			        { // packet can be fully kept
+			            //printf("keeping full packet\n");
+			            bKeep = true;
+			            bCrop = false;
+			        }
+		            else
+		            { // packet should be truncated
+			            //printf("cropping packet\n");
+		                bKeep = true;
+		                bCrop = true;
+		                uiShrinkSize = uiPacketSize - dRemainingBytes;
+			            dTot += dRemainingBytes;
+		            }
+      
+			    // remove size for target
+			    m_aadTargetByteForFrame[uiCurrFrame][uiLayer] -= uiPacketSize;
+		        }
+
+		        if( bCrop && uiFGSLayer == 0 )
+		        {
+			        //NC: keep if uiFGSLayer == 0
+			        bKeep = true;
+			        bCrop = false;
+			        //~NC
+		        }
+		    }
+	    }
+    }
+    if( bCrop )
+    {
+      if( uiPacketSize - uiShrinkSize > 13 ) // ten bytes should be enough for the slice headers
+      {
+        RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
+#if FGS_ORDER
+        pcBinData->data()[0]                    |= 0x80; // set forbidden bit
+        pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
+#endif
+        totalPackets += (uiPacketSize - uiShrinkSize);
+      }
+      else
+      {
+        bKeep = bCrop = false;
+      }
+
+    }
+	else
+		if(bKeep)
+		{
+			totalPackets += uiPacketSize;
+			dTot += uiPacketSize;
+		}
+
+    uiNumInput++;
+    if( bKeep ) uiNumKept   ++;
+    if( bCrop ) uiNumCropped++;
+
+    //============ write and release packet ============
+    if( bKeep )
+    {
+      RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+      RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
+    }
+    RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+	
+  }
+
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+	
+  printf(" totalPackets %4f \n ", totalPackets);
+
+  printf("\n\nNumber of input packets:  %d\nNumber of output packets: %d (cropped: %d)\n\n", uiNumInput, uiNumKept, uiNumCropped );
+  
+  printf("total SEI in bitstream: %d \n ",uiTotalSEI);
+
+  return Err::m_nOK;
+}
+
+Void Extractor::CalculateMaxRate(UInt uiLayer)
+{
+	UInt uiNumImage;
+	UInt ui;
+    for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
+	  {
+		  UInt maxRate = 0;
+		  for(ui = 0; ui < MAX_FGS_LAYERS; ui++)
+		  {
+			  maxRate += m_aaadBytesForFrameFGS[uiLayer][uiNumImage][ui];
+		  }
+		  
+		  m_aaadMaxRate[uiLayer][uiNumImage] = maxRate;
+	  }
+}
+
+Void Extractor::setLevel(UInt                    uiLayer,
+                      UInt                    uiLevel,
+                      UInt                    uiNumImage)
+{
+	   m_aaiLevelForFrame[uiLayer][uiNumImage] = uiLevel; 
+}
+
+Void Extractor::setMaxRateDS(UInt                    uiNumBytes,
+						 UInt				  uiMaxRate,
+                      UInt                    uiLayer,
+                      UInt                    uiFGSLayer,
+					  UInt					  uiNumImage,
+					  Bool					   bMaxRate )
+{
+   //if(uiFGSLayer == 0 && bMaxRate == true)
+   //{
+	   m_aaadMaxRate[uiLayer][uiNumImage] = (Double)uiMaxRate;
+	   //m_aaadBytesForFrameFGS[uiLayer][uiNumImage][uiFGSLayer] += uiNumBytes;
+   //}
+}
+
+Void Extractor::addPacket(UInt                    uiLayer,
+                      UInt                    uiNumImage,
+                      UInt                    uiFGSLayer,
+                      UInt                    uiNumBytes)
+{
+  m_aaadBytesForFrameFGS[uiLayer][uiNumImage][uiFGSLayer] += uiNumBytes;
+}
+
+
+ErrVal
+Extractor::xSetParameters_DS()
+{
+  UInt  uiLayer, uiLevel, uiFGSLayer;
+  UInt uiNFrames;
+
+  //=========== clear all ===========
+  for( uiLayer = 0; uiLayer <  MAX_LAYERS;  uiLayer++ )
+  {
+      for( uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
+      {
+	    m_aaadMaxRateForLevel[uiLayer][uiLevel] = 0;
+	    for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+	    { 
+		      //calculate size of max rate for each level
+		    if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+		    {
+			    m_aaadMaxRate[uiLayer][uiNFrames] -= m_aaadBytesForFrameFGS[uiLayer][uiNFrames][0];
+			    m_aaadMaxRateForLevel[uiLayer][uiLevel] += m_aaadMaxRate[uiLayer][uiNFrames];
+			    //initialize target rate for each frame per layer per FGSLayer to -1
+			    for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+	            {
+	 	            m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = -1;
+		        }
+		    }
+        }
+      }
+  }
+  
+
+#define ERROR(x,t)   {if(x) {::printf("\nERROR:   %s\n",t); assert(0); return Err::m_nERR;} }
+#define WARNING(x,t) {if(x) {::printf("\nWARNING: %s\n",t); } }
+
+
+  const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
+  ROT( rcExtList.size() != 1 );
+  MyList<ExtractorParameter::Point>::const_iterator cIter       = rcExtList.begin ();
+  MyList<ExtractorParameter::Point>::const_iterator cEnd        = rcExtList.end   ();
+  const ExtractorParameter::Point&                  rcExtPoint  = *cIter;
+  UInt                                              uiExtLayer  = MSYS_UINT_MAX;
+  UInt                                              uiExtLevel  = MSYS_UINT_MAX;
+  //----- layer -----
+  for( uiLayer = 0; uiLayer <= m_cScalableStreamDescription.getNumberOfLayers(); uiLayer++ )
+  {
+    if( rcExtPoint.uiWidth  == m_cScalableStreamDescription.getFrameWidth (uiLayer) &&
+        rcExtPoint.uiHeight == m_cScalableStreamDescription.getFrameHeight(uiLayer)    )
+    {
+      uiExtLayer = uiLayer;
+      break;
+    }
+  }
+  m_pcExtractorParameter->setLayer(uiExtLayer);
+  ERROR( uiExtLayer==MSYS_UINT_MAX, "Spatial resolution of extraction/inclusion point not supported" );
+  //--- level ---
+  for( uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
+  {
+    if( rcExtPoint.dFrameRate == (Double)(1<<uiLevel)*m_cScalableStreamDescription.getFrameRateUnit() )
+    {
+      uiExtLevel = uiLevel;
+      break;
+    }
+  }
+  m_pcExtractorParameter->setLevel(uiExtLevel);
+  ERROR( uiExtLevel==MSYS_UINT_MAX, "Temporal resolution of extraction/inclusion point not supported" );
+  ERROR( uiExtLevel>m_cScalableStreamDescription.getMaxLevel(uiExtLayer), "Spatio-temporal resolution of extraction/inclusion point not supported" );
+  //--- target number of bytes -----
+  Double  dTargetNumExtBytes  = rcExtPoint.dBitRate / 8.0 * 1000.0 / ((Double)(1<<uiExtLevel)*m_cScalableStreamDescription.getFrameRateUnit() ) * (Double)m_cScalableStreamDescription.getNumPictures(uiExtLayer,uiExtLevel);
+
+  //initialization of booleans to indicate if deadsubstream 
+  // has to be removed
+  Bool bKeepSize = false;//if true, target rate does not include size of dead substreams
+						// if false, target rate includes size of dead substreams
+  Bool bKeepAllDS = true;
+  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+  {
+	  //remove dead substream of output layer
+	  //if(uiLayer == uiExtLayer)
+        //  m_abRemoveMaxRateNAL[uiLayer] = true;
+	  //determine if all deadsubstreams are kept or removed
+	  if(m_bExtractDeadSubstream[uiLayer])
+		  bKeepAllDS = false;
+  }
+
+  //calculate minimum size of output stream if dead substreams are kept:
+  //minimum size = BL (all layer) + FGS (included layers)
+  //if minimum size of output stream is to high compared to target rate
+  // dead substreams are thrown away
+  if(m_bInInputStreamDS)
+  {
+	//if(!m_bExtractDeadSubstream[0] || !m_bExtractDeadSubstream[1] )
+    if(bKeepAllDS)
+	{
+		Double dMinOutputSize = 0;
+ 		for(uiLayer = 0; uiLayer < uiExtLayer; uiLayer ++)
+		{
+			for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames ++)
+			{
+				for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+				{
+					if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= uiExtLevel)
+						dMinOutputSize += m_aaadBytesForFrameFGS[uiLayer][uiNFrames][uiFGSLayer];
+				}
+			}
+		}
+		for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames ++)
+		{
+			if(m_aaiLevelForFrame[uiExtLayer][uiNFrames] <= uiExtLevel)
+				dMinOutputSize += m_aaadBytesForFrameFGS[uiExtLayer][uiNFrames][0];
+		}
+		if(dMinOutputSize >= dTargetNumExtBytes)
+		{
+			printf(" cannot keep deadsubstream to generate bitstream \n ");
+			  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+			  {
+				m_bExtractDeadSubstream[uiLayer] = true;
+			  }
+			  bKeepSize = true;
+		}	
+	}
+  }//end if(m_bDSInInputStream)
+  else
+  { //to be sure that we do not want to extract something that is not in the stream
+	  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+	  {
+		m_bExtractDeadSubstream[uiLayer] = false;
+	  }
+  }
+
+  //===== get and set required base layer packets ======
+  Double  dRemainingBytes     = dTargetNumExtBytes;
+
+  //removed size of dead substreams from target rate:
+  //here, we can keep dead substreams in the output stream
+  //so now we calculate the remaining bytes to pass the rest
+  //of the datas (target rate - size Of Dead substreams)
+  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+  {
+	  if(m_bExtractDeadSubstream[uiLayer])
+	  {
+		  if(!bKeepSize && m_bInInputStreamDS)
+			dRemainingBytes -= m_aSizeDeadSubstream[uiLayer];
+	  }
+  }
+
+  //set base layer packets for all layers
+  for( uiLayer = 0; uiLayer <= uiExtLayer; uiLayer++ )
+  {
+      for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+      {
+        Int64 i64NALUBytes                    = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, 0 );
+        dRemainingBytes                      -= (Double)i64NALUBytes;
+	    for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+	    {
+	    	if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= uiExtLevel)
+		    {
+             m_aaadTargetBytesFGS[uiLayer][uiNFrames][0] = 1;
+		    }
+	    }
+      }
+  }
+
+  if( dRemainingBytes < 0.0 )
+  {
+    WARNING( true, "Bit-rate overflow for extraction/inclusion point" );
+    return Err::m_nOK;
+  }
+
+
+  //===== set maximum possible bytes for included layers ======
+  Bool bStop = false;
+  for( uiLayer = 0; uiLayer <  uiExtLayer; uiLayer++ )
+  {
+    if(m_bExtractDeadSubstream[uiLayer])
+  {
+	  //in this case, we want to remove dead substreams from the input stream
+	  //for each level, we will try to pass all the datas except the dead substreams
+	  //so for each level, we will try to pass at most max rate of the level
+	  //if remaining bytes is not enough to pass max rate for each level: each level
+	  //will be truncated at a fraction corresponding to remaining bytes and size of FGS level
+	  //else if remaining bytes is enough to pass max rate for each level: each level
+	  //will be truncated at a fraction corresponding to max rate and size of FGS level
+	  for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+    {
+     bStop = false;
+      for( uiFGSLayer = 1; (uiFGSLayer < MAX_FGS_LAYERS && bStop == false); uiFGSLayer++ )
+      {
+		  Int64 i64NALUBytes = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, uiFGSLayer );
+		  if(i64NALUBytes < m_aaadMaxRateForLevel[uiLayer][uiLevel])
+		  {
+			//size of FGS for this level is lower than max rate of this level
+              if( (Double)i64NALUBytes <= dRemainingBytes )
+              {
+				  //size of FGS for this level is lower than remaining bytes
+                 dRemainingBytes                      -= (Double)i64NALUBytes;
+		         for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+		         {
+					 if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+			       {
+				     //for each  frame of this level, FGS layer is kept 
+                     m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = 1;
+					 //remove size of FGS of the frame from max rate of the frame
+					 m_aaadMaxRate[uiLayer][uiNFrames] -= m_aaadBytesForFrameFGS[uiLayer][uiNFrames][uiFGSLayer];
+				   }
+				 }
+                //removed size of FGS for this level from max rate for this level
+				m_aaadMaxRateForLevel[uiLayer][uiLevel] -=  (Double)i64NALUBytes;
+			  }
+              else
+              {
+				//size of FGS for this level is higher than remaining bytes
+                //====== set fractional FGS layer and exit =====
+				Double  dFGSLayer = dRemainingBytes / (Double)i64NALUBytes;
+				for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+				{
+					if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+					{
+						//FGS of this frame from this level is truncated
+						m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = dFGSLayer;
+					}
+				}
+				return Err::m_nOK;
+			  }
+		  }
+		  else
+		  {
+			  //size of FGS for this level is higher than max rate of this level
+			  //only max rate of this level will be passed
+			  if( m_aaadMaxRateForLevel[uiLayer][uiLevel] <= dRemainingBytes )
+              {
+			     //max rate of this level is lower than remaining bytes
+                 dRemainingBytes                      -= (Double)m_aaadMaxRateForLevel[uiLayer][uiLevel];
+				 m_aaadMaxRateForLevel[uiLayer][uiLevel] -= m_aaadMaxRateForLevel[uiLayer][uiLevel];
+		         for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+		         {
+			       if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+			       {
+					   if( m_aaadMaxRate[uiLayer][uiNFrames] >= m_aaadBytesForFrameFGS[uiLayer][uiNFrames][uiFGSLayer])
+					   {
+						   //if max rate of the frame for this level is higher than size of FGS of the frame
+						   //FGS is entirely kept 
+						   m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = 1;
+					   }
+					   else
+					   {
+						   //max rate of the frame is lower than size of FGS for the frame
+						   //FGS of the frame is truncated
+                           Double dFGSLayer = m_aaadMaxRate[uiLayer][uiNFrames]/m_aaadBytesForFrameFGS[uiLayer][uiNFrames][uiFGSLayer];
+                           m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = dFGSLayer;
+					   }
+				   }
+				 }
+				 //we have found the FGS layer corresponding to max rate of this level
+				 //no more FGS will be passed for this level
+				 bStop = true;
+			  }
+              else
+              {
+                //max rate of this level is higher than remaining bytes
+			    //FGS of this level will be truncated
+                //====== set fractional FGS layer and exit =====
+				Double  dFGSLayer = dRemainingBytes / m_aaadMaxRateForLevel[uiLayer][uiLevel];
+				for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+				{
+					if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+					{
+						m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = dFGSLayer;
+					}
+				}
+				return Err::m_nOK;
+			  }
+		  }
+	  } //end for uiFGSLayer
+	} //end for uiLevel
+	 }//if extractDeadSubstream
+  else
+  {
+   //here we want to keep dead substreams in the output stream
+    for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+    {
+      for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      {
+        Int64 i64NALUBytes = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, uiFGSLayer );
+        if( (Double)i64NALUBytes <= dRemainingBytes )
+        {
+		  //Size of FGS for this level is lower than remaining bytes
+		  // FGS of all frames of this level is kept
+          dRemainingBytes                      -= (Double)i64NALUBytes;
+		  for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+		  {
+			  if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+			  {
+                  m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = 1;
+			  }
+		  }
+        }
+        else
+        {
+		  //Size of FGS for this level is higher than remaining bytes
+		  //FGS of all frames of this layer is truncated
+          //====== set fractional FGS layer and exit =====
+          Double  dFGSLayer = dRemainingBytes / (Double)i64NALUBytes;
+		  for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+		  {
+			  if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+			     {
+				 m_aaadTargetBytesFGS[uiLayer][uiNFrames][uiFGSLayer] = dFGSLayer;
+				 }
+		  }
+          return Err::m_nOK;
+        }
+      }
+    }
+  }
+  }
+
+  //===== set FGS layer for current layer =====
+  for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+  {
+    Int64 i64FGSLayerBytes = 0;
+    for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+    {
+      i64FGSLayerBytes += m_cScalableStreamDescription.getNALUBytes( uiExtLayer, uiLevel, uiFGSLayer );
+    }
+    if( (Double)i64FGSLayerBytes <= dRemainingBytes )
+    {
+      //Size of FGS of all levels is lower than remaining bytes
+	  //FGS of all frames from all levels is kept
+      dRemainingBytes -= (Double)i64FGSLayerBytes;
+      for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+      {
+		 for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+		  {
+			  if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+			     {
+					m_aaadTargetBytesFGS[uiExtLayer][uiNFrames][uiFGSLayer] = 1;
+				 }
+		  }
+      }
+    }
+    else
+    {
+	 //Size of FGs of all levels is higher than remaining bytes
+	 //FGS of all frames from all levels is truncated
+      Double dFGSLayer = dRemainingBytes / (Double)i64FGSLayerBytes;
+      for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+      {
+		for(uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+		  {
+			  if(m_aaiLevelForFrame[uiLayer][uiNFrames] == uiLevel)
+			     {
+					m_aaadTargetBytesFGS[uiExtLayer][uiNFrames][uiFGSLayer] = dFGSLayer;
+				  }
+		  }
+      }
+      return Err::m_nOK;
+    }
+  }
+  WARNING( dRemainingBytes>0.0, "Bit-rate underflow for extraction/inclusion point" );
+
+
+#undef ERROR
+#undef WARNING
+
+  return Err::m_nOK;
+}
+
+
+Void Extractor::CalculateSizeDeadSubstream()
+{
+	Double sumFGS = 0.0;
+	Double sumMaxRate = 0.0;
+	for(UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+	{
+		sumFGS = 0.0;
+		sumMaxRate = 0.0;
+		for(UInt uiNFrames = 0; uiNFrames < MAX_NBFRAMES; uiNFrames++)
+		{
+            for(UInt uiFGS = 1; uiFGS < MAX_FGS_LAYERS; uiFGS++)
+			{	
+				sumFGS+= m_aaadBytesForFrameFGS[uiLayer][uiNFrames][uiFGS];
+			}
+			sumMaxRate += (m_aaadMaxRate[uiLayer][uiNFrames]-m_aaadBytesForFrameFGS[uiLayer][uiNFrames][0]);
+		}
+		m_aSizeDeadSubstream[uiLayer] = sumFGS - sumMaxRate;
+	}
+}
+
+ErrVal
+Extractor::xExtractPoints_DS()
+{
+  UInt  uiNumInput    = 0;
+  UInt  uiNumKept     = 0;
+  UInt  uiNumCropped  = 0;
+  Bool  bKeep         = false;
+  Bool  bApplyToNext  = false;
+  Bool  bEOS          = false;
+  Bool  bCrop         = false;
+
+  UInt  uiLayer       = 0;
+  UInt  uiLevel       = 0;
+  UInt  uiFGSLayer    = 0;
+  UInt  uiPacketSize  = 0;
+  UInt  uiShrinkSize  = 0;
+  Bool  bNewPicture   = false;
+  Bool  bSEIPacket    = true;
+
+  Int currFrame[MAX_LAYERS];
+  //count number of frame per layer
+  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+  {
+	    currFrame[uiLayer] = 0;
+  }
+
+  RNOK( m_pcH264AVCPacketAnalyzer->init() );
+
+  while( ! bEOS )
+  {
+    //=========== get packet ===========
+    BinData*  pcBinData;
+    RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+    if( bEOS )
+    {
+      continue;
+    }
+
+    //========== get packet description ==========
+    h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
+    h264::PacketDescription cPacketDescription;
+    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
+    delete pcScalableSEIMessage;
+
+    //============ get packet size ===========
+    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+    {
+      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
+    }
+    uiPacketSize  = 4 + pcBinData->size();
+    uiShrinkSize  = 0;
+
+    //============ set parameters ===========
+	uiLayer    = cPacketDescription.Layer;
+    uiLevel    = cPacketDescription.Level;
+    uiFGSLayer = cPacketDescription.FGSLayer;
+    bApplyToNext = cPacketDescription.ApplyToNext;
+	bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
+	//first packet is an SEI packet
+	if (bSEIPacket)
+    {
+      bNewPicture = false;
+    }
+
+	// update frame number
+    if (bNewPicture && uiFGSLayer == 0)
+    {
+      currFrame[uiLayer]++;
+    }
+
+	UInt uiCurrFrame = 0;
+	Bool bParameterSet = cPacketDescription.ParameterSet;
+	if(bParameterSet || bSEIPacket)
+	{
+		uiCurrFrame = 0;
+		bSEIPacket = false;
+	}
+	else
+	{
+		if(!bApplyToNext)
+			uiCurrFrame = currFrame[uiLayer]-1;//[uiFGSLayer];
+		else
+			uiCurrFrame = currFrame[uiLayer];
+	}
+	
+    if(cPacketDescription.MaxRateDS != 0 && (m_bExtractDeadSubstream[uiLayer] || 
+		uiLayer >= m_pcExtractorParameter->getLayer()||
+		m_aaiLevelForFrame[uiLayer][uiCurrFrame] > m_pcExtractorParameter->getLevel()))
+		//m_abRemoveMaxRateNAL[uiLayer]))
+	{
+		//Dead substream SEI NAL that we don't want to keep 
+		bKeep = false;
+		bCrop = false;
+	}
+	else
+	{
+		//look if SPS or PPS nal unit
+		UInt eNalUnitType = cPacketDescription.NalUnitType;
+		if( eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS)
+		{
+            Bool bRequired = false;
+			if(  eNalUnitType == NAL_UNIT_SPS )
+			{
+				for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
+				{
+					if( m_cScalableStreamDescription.m_bSPSRequired[layer][cPacketDescription.SPSid] )
+					{
+						bRequired = true;
+						break;
+					}
+				}
+				bKeep = bRequired;
+			}
+			else if( eNalUnitType == NAL_UNIT_PPS )
+			{
+				for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
+				{
+					if( m_cScalableStreamDescription.m_bPPSRequired[layer][cPacketDescription.PPSid] )
+					{
+						bRequired = true;
+						break;
+					}
+				}
+				bKeep = bRequired;
+			}
+		}
+		else
+		{
+			if(m_aaadTargetBytesFGS[uiLayer][uiCurrFrame][uiFGSLayer] == -1)
+			{
+				//NAL is thrown away
+				bKeep  = false;
+				bCrop = false;
+			}
+			if(m_aaadTargetBytesFGS[uiLayer][uiCurrFrame][uiFGSLayer] == 1)
+			{
+				//NAL is kept
+				bKeep = true;
+				bCrop = false;
+			}
+			if(m_aaadTargetBytesFGS[uiLayer][uiCurrFrame][uiFGSLayer] != -1 && 
+				m_aaadTargetBytesFGS[uiLayer][uiCurrFrame][uiFGSLayer] != 1)
+			{
+				//NAL is truncated
+				Double dWeight = m_aaadTargetBytesFGS[uiLayer][uiCurrFrame][uiFGSLayer];
+				uiShrinkSize        = uiPacketSize - (UInt)ceil( (Double)uiPacketSize * dWeight );
+				if(uiPacketSize - uiShrinkSize > 13)
+				{
+					RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
+					pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
+					bKeep = true;
+					bCrop = true;
+					if(uiFGSLayer == 0 && bKeep && bCrop)
+					{
+						bKeep = true;
+						bCrop = false;
+					}
+				}
+				else
+				{
+					bKeep = false;
+					bCrop = false;
+				}
+			}
+		}
+	}
+
+    uiNumInput++;
+    if( bKeep ) uiNumKept   ++;
+    if( bCrop ) uiNumCropped++;
+
+
+    //============ write and release packet ============
+    if( bKeep )
+    {
+      RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+      RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
+    }
+    RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+  }
+
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+
+
+  printf("\n\nNumber of input packets:  %d\nNumber of output packets: %d (cropped: %d)\n\n", uiNumInput, uiNumKept, uiNumCropped );
+
+  return Err::m_nOK;
+}
+
+//}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 
 

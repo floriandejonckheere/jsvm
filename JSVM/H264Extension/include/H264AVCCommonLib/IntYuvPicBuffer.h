@@ -192,6 +192,10 @@ public:
   ErrVal        setNonZeroFlags         ( UShort* pusNonZeroFlags, UInt uiStride );
 
   ErrVal        clear();
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  UInt          MSDCompute( IntYuvPicBuffer*  pcSrcYuvPicBuffer );
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 protected:
   Void xFillPlaneMargin     ( XPel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );

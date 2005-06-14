@@ -181,6 +181,14 @@ public:
   ErrVal        go                  ();
   ErrVal        destroy             ();
 
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  //if there is dead substream in the input bitstream but no R/D information
+  ErrVal        go_DS                  ();
+  //if there is R/D information (with or without Dead substreams)
+  ErrVal        go_QL                  ();
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
 protected:
   ErrVal        xAnalyse            ();
   ErrVal        xSetParameters      ();
@@ -192,6 +200,46 @@ protected:
                                         UInt*               puiStart,
                                         UInt*               puiLength );
   ErrVal        xExtractTrace         ();
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  ErrVal        xSetParameters_DS      ();
+  ErrVal        xExtractPoints_DS      ();
+  //initialize temporal level of a frame
+  Void setLevel(UInt                    uiLayer,
+                      UInt                    uiLevel,
+					  UInt					  uiNumImage);
+  //intialize max rate for a frame from SEI dead substream information
+  Void setMaxRateDS(UInt                    uiNumBytes,
+						 UInt				  uiMaxRate,
+                      UInt                    uiLayer,
+                      UInt                    uiFGSLayer,
+					  UInt					  uiNumImage,
+					  Bool					  bMaxRate );
+  //count size of packets for each frame
+  Void addPacket(UInt                    uiLayer,
+                      UInt                    uiLevel,
+                      UInt                    uiFGSLayer,
+                      UInt                    uiNumBytes);
+  //set if dead substream must be kept or thrown away (from command line argument)
+  Void setExtractDeadSubstream(Bool b, UInt ui) { m_bExtractDeadSubstream[ui] = b;}
+  //calculate the size of the dead substream
+  Void CalculateSizeDeadSubstream();
+  //determine layer, level and target rate for output stream
+  Void GetExtParameters();
+  //search optimal quality for target rate
+  ErrVal QualityLevelSearch();
+  //extract NALs given optimal quality
+  ErrVal ExtractPointsFromRate();
+  //get total rate for a given quality 
+  Double GetRateForQualityLevel(double QualityLevel, UInt uiMaxLayers, UInt uiExtLevel, UInt uiExtLayer);
+  //intialize R/D arrays from SEI information
+  Void setQualityLevel();
+  //get image rate for a given quality
+  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel,UInt uiExtLayer);
+  //Calculate max rate for each frame of a layer (in case of dead substreams use of SEI information
+  // from dead substreams)
+  Void CalculateMaxRate(UInt uiLayer);
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 protected:
   ReadBitstreamIf*              m_pcReadBitstream;
@@ -210,6 +258,28 @@ protected:
   FILE*                         m_pcExtractionTraceFile;
   LargeFile                     m_cLargeFile;
   UInt                          m_uiMaxSize;
+
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Double						m_aaadMaxRate[MAX_LAYERS][MAX_NBFRAMES]; //size of each frame for each layer without deadsubstream
+  Double                        m_aaadTargetBytesFGS[MAX_LAYERS][MAX_NBFRAMES][MAX_FGS_LAYERS]; //bytes to be extracted for each FGS layer for each frame 																							// at each layer		
+  Int							m_aaiLevelForFrame[MAX_LAYERS][MAX_NBFRAMES];//temporal level of each frame
+  Double                        m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_NBFRAMES][MAX_FGS_LAYERS]; //size of each FGS layer for each frame at each layer
+  Double						m_aaadMaxRateForLevel[MAX_LAYERS][MAX_DSTAGES+1]; //size of layer for each level without deadsubstream
+  Bool							m_bExtractDeadSubstream[MAX_LAYERS]; //indicate if deadsubstream has to be removed (command line)
+  UInt							m_aSizeDeadSubstream[MAX_LAYERS]; //size of deadsubstream for each layer
+  Bool							m_bInInputStreamDS; //indicate if deadsubstream is in the input bitstream
+  Bool							m_bInInputStreamQL;// indicate if RD informations are in the input bitstream
+  Double m_aadTargetByteForFrame[MAX_NBFRAMES][MAX_LAYERS];
+  UInt m_aaauiBytesForQualityLevel[MAX_LAYERS][MAX_NBFRAMES][MAX_NUM_RD_LEVELS];
+  Double m_aaadQualityLevel[MAX_LAYERS][MAX_NBFRAMES][MAX_NUM_RD_LEVELS];
+  UInt m_aauiSEIQLPacketSize[MAX_LAYERS][MAX_NBFRAMES];
+  Int m_aaiNumLevels[MAX_LAYERS][MAX_NBFRAMES];
+  UInt m_auiNbImages[MAX_LAYERS];
+  UInt m_auiLayerOfQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
+  UInt m_auiLevelOfQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
+  Bool m_abKeepQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 };
 
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

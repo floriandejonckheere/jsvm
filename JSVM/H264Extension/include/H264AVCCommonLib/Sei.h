@@ -117,7 +117,12 @@ public:
   {
     SUB_SEQ_INFO                          = 10,
     SCALABLE_SEI                          = 19,
-    RESERVED_SEI                          = 20
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    QUALITYLEVEL_SEI                      = 20,
+	DEADSUBSTREAM_SEI                     = 21,
+    RESERVED_SEI                          = 22
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
   };
 
 
@@ -239,6 +244,57 @@ public:
     UInt  m_uiSpatialResolutionFactor   [MAX_LAYERS];
     UInt  m_uiTemporalResolutionFactor  [MAX_LAYERS];
   };
+  
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  class H264AVCCOMMONLIB_API QualityLevelSEI : public SEIMessage
+  {
+	protected:
+    QualityLevelSEI ();
+    ~QualityLevelSEI();
+
+  public:
+    static ErrVal create  ( QualityLevelSEI*&         rpcSeiMessage );
+    ErrVal        write   ( HeaderSymbolWriteIf*  pcWriteIf );
+    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf );
+	
+	UInt		 getNumLevel() { return m_uiNumLevels;}
+	Void		 setNumLevel(UInt ui) { m_uiNumLevels = ui;}
+	UInt		 getDeltaBytesRateOfLevel(UInt ui) { return m_auiDeltaBytesRateOfLevel[ui];}
+	Void		 setDeltaBytesRateOfLevel(UInt uiIndex, UInt ui) { m_auiDeltaBytesRateOfLevel[uiIndex] = ui;}
+	UInt		 getQualityLevel(UInt ui) { return m_auiQualityLevel[ui];}
+	Void		 setQualityLevel(UInt uiIndex, UInt ui) { m_auiQualityLevel[uiIndex] = ui;}
+	UInt		 getDependencyId() { return m_uiDependencyId;}
+	Void		 setDependencyId( UInt ui) { m_uiDependencyId = ui;}
+
+  private:
+	  UInt m_auiQualityLevel[MAX_NUM_RD_LEVELS];
+	  UInt m_auiDeltaBytesRateOfLevel[MAX_NUM_RD_LEVELS];
+	  UInt m_uiNumLevels;
+	  UInt m_uiDependencyId;
+  };
+
+  class H264AVCCOMMONLIB_API DeadSubstreamSEI : public SEIMessage
+  {
+	protected:
+    DeadSubstreamSEI ();
+    ~DeadSubstreamSEI();
+
+  public:
+    static ErrVal create  ( DeadSubstreamSEI*&         rpcSeiMessage );
+    ErrVal        write   ( HeaderSymbolWriteIf*  pcWriteIf );
+    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf );
+	
+	UInt		 getDeltaBytesDeadSubstream() { return m_uiDeltaBytesDeadSubstream;}
+	Void		 setDeltaBytesDeadSubstream(UInt ui) { m_uiDeltaBytesDeadSubstream = ui;}
+	UInt		 getDependencyId() { return m_uiDependencyId;}
+	Void		 setDependencyId( UInt ui) { m_uiDependencyId = ui;}
+
+  private:
+	  UInt m_uiDeltaBytesDeadSubstream;
+	  UInt m_uiDependencyId;
+  };
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 
   typedef MyList<SEIMessage*> MessageList;

@@ -452,6 +452,19 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   UInt        uiLevel       = 0;
   UInt        uiFGSLayer    = 0;
   Bool        bApplyToNext  = false;
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  UInt		  uiSimplePriorityId = 0;
+  Bool		  bDiscardableFlag = false;
+  Bool		  bExtensionFlag = false;
+  rcPacketDescription.MaxRateDS       = 0;
+  rcPacketDescription.uiNumLevelsQL = 0;
+	for(UInt ui = 0; ui < MAX_NUM_RD_LEVELS; ui++)
+	{
+		rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = 0;
+		rcPacketDescription.auiQualityLevelQL[ui] = 0;
+	}
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   Bool        bScalable     = ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
                                 eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       );
   UInt        uiSPSid       = 0;
@@ -463,10 +476,27 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
   {
-    ucByte      = (pcBinData->data())[1];
-    uiLevel     = ( ucByte >> 5 );
-    uiLayer     = ( ucByte >> 2 ) & 7;
-    uiFGSLayer  = ( ucByte      ) & 3;
+    //{{Variable Lengh NAL unit header data with priority and dead substream flag
+    //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+    ucByte             = (pcBinData->data())[1];
+	  uiSimplePriorityId = ( ucByte >> 2);
+	  bDiscardableFlag	 = ( ucByte >> 1) & 1;
+	  bExtensionFlag     = ( ucByte     ) & 1;
+	  if(bExtensionFlag)
+	  {
+		    ucByte      = pcBinData->data()[2];
+		    uiLevel     = ( ucByte >> 5 );
+		    uiLayer     = ( ucByte >> 2 ) & 7;
+		    uiFGSLayer  = ( ucByte      ) & 3;
+	  }
+	  else
+	  {
+        // Look up simple priority ID in mapping table (J. Ridge, Y-K. Wang @ Nokia)
+        uiLevel    = m_uiTemporalLevelList[uiSimplePriorityId];
+        uiLayer    = m_uiDependencyIdList [uiSimplePriorityId];
+        uiFGSLayer = m_uiQualityLevelList [uiSimplePriorityId];
+	  }
+    //}}Variable Lengh NAL unit header data with priority and dead substream flag
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||
            eNalUnitType == NAL_UNIT_CODED_SLICE_IDR   )
@@ -522,6 +552,37 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
           }
           break;
         }
+      //{{Quality level estimation and modified truncation- JVTO044 and m12007
+      //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+      case SEI::DEADSUBSTREAM_SEI:
+		  {
+			  SEI::DeadSubstreamSEI* pcSEI           = (SEI::DeadSubstreamSEI*)pcSEIMessage;
+			  UInt uiMaxRate = pcSEI->getDeltaBytesDeadSubstream();
+              rcPacketDescription.MaxRateDS       = uiMaxRate;
+			  uiLayer = pcSEI->getDependencyId();
+			  bApplyToNext = true;
+			  break;
+		  }
+      case SEI::QUALITYLEVEL_SEI:
+		  {
+			UInt uiNum = 0;
+			UInt uiDeltaBytesRateOfLevel = 0;
+			UInt uiQualityLevel = 0;
+			SEI::QualityLevelSEI* pcSEI           = (SEI::QualityLevelSEI*)pcSEIMessage;
+			uiNum = pcSEI->getNumLevel();
+			rcPacketDescription.uiNumLevelsQL = uiNum;
+			for(UInt ui = 0; ui < uiNum; ui++)
+			{
+				uiQualityLevel = pcSEI->getQualityLevel(ui);
+				uiDeltaBytesRateOfLevel = pcSEI->getDeltaBytesRateOfLevel(ui);
+				rcPacketDescription.auiQualityLevelQL[ui] = uiQualityLevel;
+				rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = uiDeltaBytesRateOfLevel;
+			}
+            uiLayer = pcSEI->getDependencyId();
+			bApplyToNext = true;
+			break;
+		  }
+      //}}Quality level estimation and modified truncation- JVTO044 and m12007
       default:
         {
           delete pcSEIMessage;
@@ -551,6 +612,18 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       SequenceParameterSet* pcSPS = NULL;
       RNOK( SequenceParameterSet::create  ( pcSPS   ) );
       RNOK( pcSPS->read( m_pcUvlcReader, eNalUnitType ) );
+      // Copy simple priority ID mapping from SPS
+      if ( !pcSPS->getNalUnitExtFlag() )
+      {
+        for ( UInt uiPriId = 0; uiPriId < pcSPS->getNumSimplePriIdVals(); uiPriId++)
+        {
+            UInt uiLayer, uiTempLevel, uiQualLevel;
+            pcSPS->getSimplePriorityMap( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
+            m_uiTemporalLevelList[uiPriId] = uiTempLevel;
+            m_uiDependencyIdList [uiPriId] = uiLayer;
+            m_uiQualityLevelList [uiPriId] = uiQualLevel;
+        }
+      }
       uiSPSid = pcSPS->getSeqParameterSetId();
       pcSPS->destroy();
     }

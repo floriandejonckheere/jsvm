@@ -130,6 +130,14 @@ public:
   ErrVal  init                ( Int     argc,
                                 Char**  argv );
 
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Bool	getExtractDeadSubstream(UInt ui) { return m_bExtractDeadSubstream[ui];}
+  Void	setLevel( UInt &uiLevel) { m_uiLevel = uiLevel;}
+  Void  setTargetRate(Double d) { m_dTargetRate = d;}
+  Double getTargetRate() { return m_dTargetRate;}
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
 protected:
   ErrVal  xPrintUsage         ( Char**  argv );
   ErrVal  xParseFormatString  ( Char*   pFormatString,
@@ -150,6 +158,12 @@ protected:
   Bool            m_bTraceExtract;
   std::string     m_cTraceFile;
   std::string     m_cExtractTrace;
+
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Bool			 m_bExtractDeadSubstream[MAX_LAYERS];
+  Double	     m_dTargetRate;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

@@ -514,6 +514,17 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       m_uiSPSCount++;
       RNOK( m_pcParameterSetMng ->store   ( pcSPS   ) );
 
+      // Copy simple priority ID mapping from SPS to NAL unit parser
+      if ( !pcSPS->getNalUnitExtFlag() )
+      {
+        for ( UInt uiPriId = 0; uiPriId < pcSPS->getNumSimplePriIdVals(); uiPriId++)
+        {
+            UInt uiLayer, uiTempLevel, uiQualLevel;
+            pcSPS->getSimplePriorityMap( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
+            m_pcNalUnitParser->setSimplePriorityMap( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
+        }
+      }
+
       for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
       {
           m_apcMCTFDecoder[uiLayer]->setLowComplxUpdFlag( pcSPS->getLowComplxUpdFlag() );

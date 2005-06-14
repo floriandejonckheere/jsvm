@@ -174,8 +174,13 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bAlwaysDecodeBaseLayer                  ( false )
 #endif
 {
+  for ( UInt uiPriId = 0; uiPriId < (1 << PRI_ID_BITS); uiPriId++ )
+  {
+      m_uiTemporalLevelList[uiPriId] = 0;
+      m_uiDependencyIdList [uiPriId] = 0;
+      m_uiQualityLevelList [uiPriId] = 0;
+  }
 }
-
 
 SequenceParameterSet::~SequenceParameterSet()
 {
@@ -273,6 +278,19 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
+    RNOK( pcWriteIf->writeFlag( m_bNalUnitExtFlag,                        "SPS: nal_unit_extension_flag" ) );
+    if ( m_bNalUnitExtFlag == 0 )
+    {
+        RNOK ( pcWriteIf->writeUvlc( m_uiNumSimplePriIdVals - 1,          "SPS: number_of_simple_priority_id_values_minus1" ) );
+        for ( UInt uiPriCount = 0; uiPriCount < m_uiNumSimplePriIdVals; uiPriCount++ )
+        {
+            RNOK ( pcWriteIf->writeCode( uiPriCount,              PRI_ID_BITS, "SPS: priority_id" ) );
+            RNOK ( pcWriteIf->writeCode( m_uiTemporalLevelList[uiPriCount], 3, "SPS: temporal_level_list[priority_id]" ) );
+            RNOK ( pcWriteIf->writeCode( m_uiDependencyIdList [uiPriCount], 3, "SPS: dependency_id_list[priority_id]" ) );
+            RNOK ( pcWriteIf->writeCode( m_uiQualityLevelList [uiPriCount], 2, "SPS: quality_level_list[priority_id]" ) );
+        }
+    }
+
     RNOK( pcWriteIf->writeFlag( m_bLowComplxUpdFlag,                      "SPS: low_complx_upd_flag" ) );
 #if MULTIPLE_LOOP_DECODING
     RNOK( pcWriteIf->writeFlag( m_bAlwaysDecodeBaseLayer,                 "SPS: always_decode_base_layer" ) );
@@ -327,6 +345,21 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
 
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
+
+    RNOK( pcReadIf->getFlag( m_bNalUnitExtFlag,                           "SPS: nal_unit_extension_flag" ) );
+    if ( m_bNalUnitExtFlag == 0 )
+    {
+        RNOK ( pcReadIf->getUvlc( m_uiNumSimplePriIdVals,                 "SPS: number_of_simple_priority_id_values_minus1" ) );
+        m_uiNumSimplePriIdVals++;
+        for ( UInt uiPriCount = 0; uiPriCount < m_uiNumSimplePriIdVals; uiPriCount++ )
+        {
+            RNOK ( pcReadIf->getCode( uiTmp,              PRI_ID_BITS,    "SPS: priority_id" ) );
+            RNOK ( pcReadIf->getCode( m_uiTemporalLevelList[uiTmp], 3,    "SPS: temporal_level_list[priority_id]" ) );
+            RNOK ( pcReadIf->getCode( m_uiDependencyIdList [uiTmp], 3,    "SPS: dependency_id_list[priority_id]" ) );
+            RNOK ( pcReadIf->getCode( m_uiQualityLevelList [uiTmp], 2,    "SPS: quality_level_list[priority_id]" ) );
+        }
+    }
+
     RNOK( pcReadIf->getFlag( m_bLowComplxUpdFlag,                         "SPS: low_complx_upd_flag" ) );
 #if MULTIPLE_LOOP_DECODING
     RNOK( pcReadIf->getFlag( m_bAlwaysDecodeBaseLayer,                    "SPS: always_decode_base_layer" ) );

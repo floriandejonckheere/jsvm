@@ -312,6 +312,58 @@ ErrVal getRateSpecifiers( UInt&   ruiFrameRateUnitNom,
   return Err::m_nOK;
 }
 
+//{{Quality level estimation and modified truncation- JVTO044 and m12007
+//France Telecom R&D-(nathalie.cammas@francetelecom.com)
+ErrVal H264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDataAccessor, UInt* uiaQualityLevel, UInt *uiaDelta, UInt uiNumLevels, UInt uiLayer ) 
+{
+	//===== create message =====
+  SEI::QualityLevelSEI* pcQualityLevelSEI;
+  RNOK( SEI::QualityLevelSEI::create( pcQualityLevelSEI ) );
+
+  //===== set message =====
+  pcQualityLevelSEI->setNumLevel(uiNumLevels);
+  pcQualityLevelSEI->setDependencyId(uiLayer);
+
+  UInt ui;
+  for(ui= 0; ui < uiNumLevels; ui++)
+  {
+	  pcQualityLevelSEI->setQualityLevel(ui,uiaQualityLevel[ui]);
+	  pcQualityLevelSEI->setDeltaBytesRateOfLevel(ui,uiaDelta[ui]);
+  }
+  
+  //===== write message =====
+  UInt              uiBits = 0;
+  SEI::MessageList  cSEIMessageList;
+  cSEIMessageList.push_back                       ( pcQualityLevelSEI );
+  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+
+  return Err::m_nOK;
+}
+
+ErrVal H264AVCEncoder::writeDeadSubstreamSEI(ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiDeltaBytesDS, UInt uiLayer ) 
+{
+	//===== create message =====
+  SEI::DeadSubstreamSEI* pcDeadSubstreamSEI;
+  RNOK( SEI::DeadSubstreamSEI::create( pcDeadSubstreamSEI ) );
+
+  //===== set message =====
+  pcDeadSubstreamSEI->setDeltaBytesDeadSubstream(uiDeltaBytesDS);
+  pcDeadSubstreamSEI->setDependencyId(uiLayer);
+
+  //===== write message =====
+  UInt              uiBits = 0;
+  SEI::MessageList  cSEIMessageList;
+  cSEIMessageList.push_back                       ( pcDeadSubstreamSEI );
+  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+  
+  return Err::m_nOK;
+}
+//}}Quality level estimation and modified truncation- JVTO044 and m12007
+
 
 ErrVal
 H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor ) 
@@ -402,6 +454,15 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
   {
     RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
     SequenceParameterSet& rcSPS = *m_cUnWrittenSPS.front();
+    // Copy simple priority ID mapping into SPS
+    rcSPS.setNalUnitExtFlag ( m_pcCodingParameter->getExtendedPriorityId() );
+    for ( UInt uiPriId = 0; uiPriId < m_pcCodingParameter->getNumSimplePris(); uiPriId++)
+    {
+        UInt uiTempLevel, uiLayer, uiQualLevel;
+        m_pcCodingParameter->getSimplePriorityMap ( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
+        rcSPS.setSimplePriorityMap( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
+    }
+    rcSPS.setNumSimplePriIdVals( m_pcCodingParameter->getNumSimplePris() );
     RNOK( m_pcNalUnitEncoder->write( rcSPS ) );
     RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
 

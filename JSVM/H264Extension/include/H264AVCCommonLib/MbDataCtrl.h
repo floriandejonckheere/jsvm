@@ -356,6 +356,11 @@ public:
   CtrlDataList& getUpdCtrlList      ( UInt uiLevel,
                                       UInt uiList )   { return m_aacUpdCtrlList [uiLevel][uiList]; }
 
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Void          setScalingFactor_FT    ( Double  d ) { m_dScalingFactorFT      = d; }
+  Double        getScalingFactor_FT    ()  const     { return m_dScalingFactorFT;      }
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
@@ -389,6 +394,11 @@ private:
   RefFrameList  m_acPrdFrameList                [2];
   RefFrameList  m_aacUpdFrameList[MAX_DSTAGES+1][2];
   CtrlDataList  m_aacUpdCtrlList [MAX_DSTAGES+1][2];
+
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Double		m_dScalingFactorFT;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 };
 
 

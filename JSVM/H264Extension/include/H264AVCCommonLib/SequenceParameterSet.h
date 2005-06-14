@@ -146,6 +146,13 @@ public:
 #if MULTIPLE_LOOP_DECODING
   Bool                  getAlwaysDecodeBaseLayer              ()          const { return m_bAlwaysDecodeBaseLayer; }
 #endif
+  UInt                  getNalUnitExtFlag                     ()          const { return m_bNalUnitExtFlag; }
+  UInt                  getNumSimplePriIdVals                 ()          const { return m_uiNumSimplePriIdVals; }
+  Void                  getSimplePriorityMap ( UInt uiSimplePri, UInt& uiTemporalLevel, UInt& uiLayer, UInt& uiQualityLevel ) const
+                                                                          { uiTemporalLevel = m_uiTemporalLevelList[uiSimplePri];
+                                                                            uiLayer         = m_uiDependencyIdList [uiSimplePri];
+                                                                            uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
+                                                                          }
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
   Void  setLayerId                            ( UInt        ui )          { m_uiLayerId                             = ui; }
@@ -169,6 +176,13 @@ public:
 #if MULTIPLE_LOOP_DECODING
   Void  setAlwaysDecodeBaseLayer              ( Bool        b  )          { m_bAlwaysDecodeBaseLayer                = b;  }
 #endif
+  Void  setNalUnitExtFlag                     ( Bool        b  )          { m_bNalUnitExtFlag                       = b;  }
+  Void  setNumSimplePriIdVals                 ( UInt        ui )          { m_uiNumSimplePriIdVals                  = ui; }
+  Void  setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
+                                                                          { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;
+                                                                            m_uiDependencyIdList [uiSimplePri] = uiLayer;
+                                                                            m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
+                                                                          }
 
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
@@ -204,6 +218,11 @@ protected:
   UInt          m_uiFrameHeightInMbs;
   Bool          m_bDirect8x8InferenceFlag;
   Bool          m_bLowComplxUpdFlag;
+  Bool          m_bNalUnitExtFlag;
+  UInt          m_uiNumSimplePriIdVals;
+  UInt          m_uiTemporalLevelList[1 << PRI_ID_BITS];
+  UInt          m_uiDependencyIdList [1 << PRI_ID_BITS];
+  UInt          m_uiQualityLevelList [1 << PRI_ID_BITS];
 #if MULTIPLE_LOOP_DECODING
   Bool          m_bAlwaysDecodeBaseLayer;
 #endif

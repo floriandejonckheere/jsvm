@@ -291,6 +291,10 @@ protected:
 
   //===== control data initialization =====
   ErrVal  xSetScalingFactorsMCTF        ( UInt                        uiBaseLevel );
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  ErrVal  xSetScalingFactorsMCTF_FT     ( UInt                        uiBaseLevel );
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   ErrVal  xSetScalingFactorsAVC         ();
   ErrVal  xGetListSizes                 ( UInt                        uiTemporalLevel,
                                           UInt                        uiFrameIdInGOP,
@@ -393,7 +397,7 @@ protected:
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
   ErrVal        xGetFrameNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
   MbDataCtrl*   xGetMbDataCtrlL1    ( SliceHeader& rcSH, UInt uiCurrBasePos );
-
+  Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
   
 protected:
   //----- instances -----
@@ -513,6 +517,13 @@ protected:
   Double                        m_dFGSCutFactor;
   Int                           m_iLastFGSError;
   UInt                          m_uiNotYetConsideredBaseLayerBits;
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  FILE*                         m_pRateFile;
+  FILE*                         m_pDistoFile;
+  Bool							m_bQualityLevelsEstimation;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  Bool                          m_bExtendedPriorityId;
 
 #if MULTIPLE_LOOP_DECODING
   Bool                          m_bCompletelyDecodeLayer;

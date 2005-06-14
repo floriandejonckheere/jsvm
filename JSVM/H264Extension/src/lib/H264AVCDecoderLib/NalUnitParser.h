@@ -116,6 +116,23 @@ public:
   UInt          getLayerId      ()      { return m_uiLayerId;       }
   UInt          getTemporalLevel()      { return m_uiTemporalLevel; }
   UInt          getQualityLevel ()      { return m_uiQualityLevel;  }
+  
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  Bool			getDiscardableFlag ()	{ return m_bDiscardableFlag;}
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Int			getMaxRate		   (UInt ui)   { return m_iMaxRate[ui];}
+  Void			setMaxRate		   (Int i, UInt ui) { m_iMaxRate[ui] = i;}
+  Void			setDSInBitstream	(Bool b, UInt ui) { m_bDSInBitstream[ui] = b;}
+  Void			setCheckDSTruncation( Bool b) { m_bCheckDSTruncation = b;}
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  Void  setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
+                                                                          { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;
+                                                                            m_uiDependencyIdList [uiSimplePri] = uiLayer;
+                                                                            m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
+                                                                          }
 
 protected:
   Void    xTrace                ( Bool  bDDIPresent     );
@@ -131,6 +148,22 @@ protected:
   UInt          m_uiLayerId;
   UInt          m_uiTemporalLevel;
   UInt          m_uiQualityLevel;
+
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  UInt			m_uiSimplePriorityId;
+  Bool			m_bDiscardableFlag;
+  Bool			m_bExtensionFlag;
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Int       m_iMaxRate[MAX_LAYERS];
+  Bool			m_bDSInBitstream[MAX_LAYERS];
+  Bool			m_bCheckDSTruncation;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  UInt          m_uiTemporalLevelList[1 << PRI_ID_BITS];
+  UInt          m_uiDependencyIdList [1 << PRI_ID_BITS];
+  UInt          m_uiQualityLevelList [1 << PRI_ID_BITS];
 };
 
 

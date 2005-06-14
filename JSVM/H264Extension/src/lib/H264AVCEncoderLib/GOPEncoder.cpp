@@ -115,6 +115,10 @@ H264AVC_NAMESPACE_BEGIN
 #define FACTOR_53_HP  0.84779124789065851738306954082825  //sqrt(23.0/32.0)
 #define FACTOR_53_LP  1.2247448713915890490986420373529   //sqrt( 3.0/ 2.0)
 
+//{{Scaling factor Base Layer-France Telecom R&D (nathalie.cammas@francetelecom.com), JVTO045 and m11876
+#define FACTOR_53_HP_BL 1
+#define FACTOR_22_HP_BL 1
+//}}Scaling factor Base Layer
 
 __inline Void printSpaces( UInt uiNum )
 {
@@ -312,6 +316,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiBaseLayerId           = m_uiLayerId ? m_uiLayerId - 1 : MSYS_UINT_MAX;
   m_uiBaseQualityLevel      = pcLayerParameters->getBaseQualityLevel        ();
 
+  m_bExtendedPriorityId     = pcCodingParameter->getExtendedPriorityId();
+
   m_uiQualityLevelForPrediction = 3;
 
   if( pcCodingParameter->getNumberOfLayers() > pcLayerParameters->getLayerId() + 1 )
@@ -495,7 +501,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
       }
       else
       {
-        // warn ob bit-rate underflow (provided by Steffen Kamp)
+        // warn on bit-rate underflow (provided by Steffen Kamp)
         if( uiSumFGSBits[uiLayer] > 0 ) {
           m_uiFGSCutLayer = uiLayer+1;
         } else {
@@ -522,7 +528,32 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     
     ::fseek( m_pFGSFile, 0, SEEK_SET );
   }
-
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  m_bQualityLevelsEstimation = pcCodingParameter->getQualityLevelsEstimation();
+  if(!m_bQualityLevelsEstimation && !strcmp(pcLayerParameters->getRateFilename().c_str(), "none"))
+  {
+    m_pRateFile = NULL;
+  }
+  else
+  {
+	if(m_bQualityLevelsEstimation)
+      m_pRateFile = ::fopen( pcLayerParameters->getRateFilename().c_str(), "wt" );
+	else
+	  m_pRateFile = NULL;
+  }
+  if(!m_bQualityLevelsEstimation && !strcmp(pcLayerParameters->getDistoFilename().c_str(), "none"))
+  {
+    m_pDistoFile = NULL;
+  }
+  else
+  {
+	  if(m_bQualityLevelsEstimation)
+          m_pDistoFile = ::fopen( pcLayerParameters->getDistoFilename().c_str(), "wt" );
+	  else
+		  m_pDistoFile = NULL;
+  }
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   return Err::m_nOK;
 }
 
@@ -1368,9 +1399,14 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     //---- write Slice Header -----
     ETRACE_NEWSLICE;
     //pcSliceHeader->setQualityLevel       ( uiRecLayer );
+    xAssignSimplePriorityId( pcSliceHeader );
     RNOK( m_pcNalUnitEncoder->write  ( *pcSliceHeader ) );
     Int iQp = pcSliceHeader->getPicQp();
-
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    Double dScalFactor = rcControlData.getScalingFactor_FT();
+    m_pcRQFGSEncoder->setNextLayerForRD(pcOrgResidual, dScalFactor, m_pDistoFile, m_pRateFile);
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
     uiLastRecLayer = uiRecLayer;
 
     //---- encode next bit-plane for current NAL unit ----
@@ -1391,7 +1427,14 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     {
       fprintf( m_pFGSFile, "\t%d", uiPacketBits );
     }
-
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    if( m_pRateFile ) 
+    {
+		fprintf( m_pRateFile, "\t%d", uiRecLayer );
+    }
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
+    
     printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, PrRef,              QP%3d ) %10d bits\n",
       rcControlData.getSliceHeader()->getPoc                    (),
       rcControlData.getSliceHeader()->getLayerId                (),
@@ -1494,6 +1537,7 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
 
   //---- write Slice Header -----
   ETRACE_NEWSLICE;
+  xAssignSimplePriorityId( pcSliceHeader );
   RNOK( m_pcNalUnitEncoder->write               ( *pcSliceHeader ) );
 
 
@@ -1588,6 +1632,7 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
 
   //---- write Slice Header -----
   ETRACE_NEWSLICE;
+  xAssignSimplePriorityId( rcControlData.getSliceHeader() );
   RNOK( m_pcNalUnitEncoder->write( *rcControlData.getSliceHeader() ) );
 
 
@@ -1701,7 +1746,10 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   {
     m_pacControlData[ uiFrame ].clear();
     m_pacControlData[ uiFrame ].setScalingFactor( 1.0 );
-
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    m_pacControlData[ uiFrame ].setScalingFactor_FT( 1.0 );
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
     MbDataCtrl* pcMbDataCtrl = m_pacControlData[ uiFrame ].getMbDataCtrl();
     RNOK( pcMbDataCtrl->reset () );
     RNOK( pcMbDataCtrl->clear () );
@@ -2013,25 +2061,31 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   Bool          bKeyPicture     = ( uiFrameIdInGOP == 0 || uiFrameIdInGOP == ( 1 << m_uiDecompositionStages ) );
 
   //===== set simple slice header parameters =====
-  pcSliceHeader->setNalRefIdc                   ( eNalRefIdc        );
-  pcSliceHeader->setNalUnitType                 ( eNalUnitType      );
-  pcSliceHeader->setLayerId                     ( m_uiLayerId       );
-  pcSliceHeader->setTemporalLevel               ( uiTemporalLevel   );
-  pcSliceHeader->setQualityLevel                ( 0                 );
+  pcSliceHeader->setNalRefIdc                   ( eNalRefIdc            );
+  pcSliceHeader->setNalUnitType                 ( eNalUnitType          );
+  pcSliceHeader->setLayerId                     ( m_uiLayerId           );
+  pcSliceHeader->setTemporalLevel               ( uiTemporalLevel       );
+  pcSliceHeader->setQualityLevel                ( 0                     );
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  pcSliceHeader->setDiscardableFlag             ( false                 );
+  pcSliceHeader->setExtensionFlag	              ( m_bExtendedPriorityId );
+  pcSliceHeader->setSimplePriorityId            ( 0	                    );
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
-  pcSliceHeader->setFirstMbInSlice              ( 0                 );
-  pcSliceHeader->setLastMbInSlice               ( m_uiMbNumber - 1  );
-  pcSliceHeader->setSliceType                   ( eSliceType        );
-  pcSliceHeader->setFrameNum                    ( m_uiFrameNum      );
-  pcSliceHeader->setIdrPicId                    ( 0                 );
-  pcSliceHeader->setDirectSpatialMvPredFlag     ( true              );
-  pcSliceHeader->setKeyPictureFlag              ( bKeyPicture       );
-  pcSliceHeader->setDecompositionStages         ( uiDecStages       );
-  pcSliceHeader->setNumRefIdxActiveOverrideFlag ( false             );
-  pcSliceHeader->setCabacInitIdc                ( 0                 );
-  pcSliceHeader->setSliceHeaderQp               ( 0                 );
+  pcSliceHeader->setFirstMbInSlice              ( 0                     );
+  pcSliceHeader->setLastMbInSlice               ( m_uiMbNumber - 1      );
+  pcSliceHeader->setSliceType                   ( eSliceType            );
+  pcSliceHeader->setFrameNum                    ( m_uiFrameNum          );
+  pcSliceHeader->setIdrPicId                    ( 0                     );
+  pcSliceHeader->setDirectSpatialMvPredFlag     ( true                  );
+  pcSliceHeader->setKeyPictureFlag              ( bKeyPicture           );
+  pcSliceHeader->setDecompositionStages         ( uiDecStages           );
+  pcSliceHeader->setNumRefIdxActiveOverrideFlag ( false                 );
+  pcSliceHeader->setCabacInitIdc                ( 0                     );
+  pcSliceHeader->setSliceHeaderQp               ( 0                     );
   // Currently hard-coded
-  pcSliceHeader->setNumMbsInSlice               ( m_uiMbNumber      );
+  pcSliceHeader->setNumMbsInSlice               ( m_uiMbNumber          );
 
   //===== set prediction and update list sizes =====
   {
@@ -2150,12 +2204,108 @@ MCTFEncoder::xSetScalingFactorsAVC()
   for( UInt uiLevel = 0; uiLevel < m_uiDecompositionStages; uiLevel++ )
   {
     RNOK( xSetScalingFactorsMCTF( uiLevel ) );
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    RNOK( xSetScalingFactorsMCTF_FT( uiLevel ) );
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
   }
 
   m_bAdaptiveQP     = bAdaptiveQP;
   return Err::m_nOK;
 }
 
+//{{Quality level estimation and modified truncation- JVTO044 and m12007
+//France Telecom R&D-(nathalie.cammas@francetelecom.com)
+ErrVal
+MCTFEncoder::xSetScalingFactorsMCTF_FT( UInt uiBaseLevel )
+{
+  Double  adRateL0 [( 1 << MAX_DSTAGES )];
+  Double  adRateL1 [( 1 << MAX_DSTAGES )];
+  Double  adRateBi [( 1 << MAX_DSTAGES )];
+
+  Double  dScalingBase    = m_pacControlData[0].getScalingFactor_FT();
+  Double  dScalingLowPass = 0.0;
+  Int     iLowPassSize    = ( m_uiGOPSize >> uiBaseLevel );
+  Int     iFrame;
+
+
+  //===== get connection data =====
+  for( iFrame = 1; iFrame <= iLowPassSize; iFrame += 2 )
+  {
+    RNOK( xGetConnections( m_pacControlData[ iFrame << uiBaseLevel ], adRateL0[iFrame], adRateL1[iFrame], adRateBi[iFrame] ) );
+  }
+
+  //===== get low-pass scaling =====
+  for( iFrame = 0; iFrame <= iLowPassSize; iFrame += 2 )
+  {
+    Double  dScalLPCurr = 1.0;
+
+    if( iFrame > 0 )
+    {
+      if( ( iFrame + 1 ) < iLowPassSize )
+      {
+        dScalLPCurr = ( adRateBi[iFrame-1] + adRateBi[iFrame+1] ) * ( FACTOR_53_LP*FACTOR_53_LP - 1.0 ) / 2.0 +
+                      ( adRateL1[iFrame-1] + adRateL0[iFrame+1] ) * ( FACTOR_22_LP*FACTOR_22_LP - 1.0 ) / 2.0 + 1.0;
+      }
+      else
+      {
+        dScalLPCurr = ( adRateBi[iFrame-1] / 2.0 ) * ( FACTOR_53_LP*FACTOR_53_LP - 1.0 ) +
+                      ( adRateL1[iFrame-1]       ) * ( FACTOR_22_LP*FACTOR_22_LP - 1.0 ) + 1.0;
+      }
+    }
+    else
+    {
+      if( iLowPassSize )
+      {
+        dScalLPCurr = ( adRateBi[iFrame+1] / 2.0 ) * ( FACTOR_53_LP*FACTOR_53_LP - 1.0 ) +
+                      ( adRateL0[iFrame+1]       ) * ( FACTOR_22_LP*FACTOR_22_LP - 1.0 ) + 1.0;
+      }
+    }
+
+	dScalLPCurr = sqrt(dScalLPCurr);
+
+    dScalingLowPass += dScalLPCurr;
+  }
+  dScalingLowPass /= (Double)( 1 + ( iLowPassSize >> 1 ) );
+
+  
+  //===== get high-pass scaling and set scaling factors =====
+  Double dFactor53;
+  Double dFactor22;
+
+  if(m_bUpdate == 0)
+  {
+	  dFactor53 = FACTOR_53_HP_BL;
+	  dFactor22 = FACTOR_22_HP_BL;
+  }
+  else
+  {
+	  dFactor53 = FACTOR_53_HP;
+	  dFactor22 = FACTOR_22_HP;
+  }
+
+  for( iFrame = 0; iFrame <= iLowPassSize; iFrame++ )
+  {
+    Double dScal = dScalingBase;
+
+    if( iFrame % 2 )
+    {
+      //===== high-pass pictures =====
+      dScal *= sqrt(( adRateBi[iFrame]                    ) * ( dFactor53*dFactor53 - 1.0 ) +
+               ( adRateL0[iFrame] + adRateL1[iFrame] ) * ( dFactor22*dFactor22 - 1.0 ) + 1.0);
+    }
+    else
+    {
+      //===== low-pass pictures =====
+      dScal *= dScalingLowPass;
+    }
+    m_pacControlData[ iFrame << uiBaseLevel ].setScalingFactor_FT( dScal );
+  }
+
+
+  return Err::m_nOK;
+}
+//}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 
 ErrVal
@@ -2209,6 +2359,20 @@ MCTFEncoder::xSetScalingFactorsMCTF( UInt uiBaseLevel )
   }
   dScalingLowPass /= (Double)( 1 + ( iLowPassSize >> 1 ) );
 
+  //{{Scaling factor Base Layer-France Telecom R&D (nathalie.cammas@francetelecom.com), JVTO045 and m11876
+  Double dFactor53;
+  Double dFactor22;
+  if(m_bUpdate == 0)
+  {
+	  dFactor53 = FACTOR_53_HP_BL;
+	  dFactor22 = FACTOR_22_HP_BL;
+  }
+  else
+  {
+	  dFactor53 = FACTOR_53_HP;
+	  dFactor22 = FACTOR_22_HP;
+  }
+  //}}Scaling factor Base Layer
   
 
   //===== get high-pass scaling and set scaling factors =====
@@ -2219,8 +2383,10 @@ MCTFEncoder::xSetScalingFactorsMCTF( UInt uiBaseLevel )
     if( iFrame % 2 )
     {
       //===== high-pass pictures =====
-      dScal *= ( adRateBi[iFrame]                    ) * ( FACTOR_53_HP - 1.0 ) +
-               ( adRateL0[iFrame] + adRateL1[iFrame] ) * ( FACTOR_22_HP - 1.0 ) + 1.0;
+      //{{Scaling factor Base Layer-France Telecom R&D (nathalie.cammas@francetelecom.com), JVTO045 and m11876
+      dScal *= ( adRateBi[iFrame]                    ) * ( dFactor53 - 1.0 ) +
+               ( adRateL0[iFrame] + adRateL1[iFrame] ) * ( dFactor22 - 1.0 ) + 1.0;
+      //}}Scaling factor Base Layer
     }
     else
     {
@@ -2894,6 +3060,13 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       continue;
     }
 
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    if( m_pDistoFile )
+    {
+      fprintf( m_pDistoFile, "%d\t%d ",uiFrameIdInGOP,-1 );
+    }
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
     UInt          uiBits          = 0;
     ControlData&  rcControlData   = m_pacControlData[ uiFrameIdInGOP ];
@@ -2921,6 +3094,13 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
     m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
 
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    if( m_pRateFile ) // m_pRateFile should be equal to NULL if m_uiFGSMode is different from 2
+    {
+      fprintf( m_pRateFile, "%d",  uiBits + m_uiNotYetConsideredBaseLayerBits ); 
+    }
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
     //===== write FGS info to file =====
     if( m_uiFGSMode == 1 && m_pFGSFile )
@@ -2999,6 +3179,18 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       fprintf( m_pFGSFile, "\n" );
     }
 
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    if( m_pRateFile ) 
+    {
+		fprintf( m_pRateFile, "\n");
+    }
+	if( m_pDistoFile ) 
+    {
+		fprintf( m_pDistoFile, "\n");
+    }
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
 #if MULTIPLE_LOOP_DECODING
     if( uiFrameIdInGOP && m_papcFrameILPred )
     {
@@ -3035,6 +3227,13 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     
     AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    if(m_pDistoFile )
+    {
+      fprintf( m_pDistoFile, "%d\t%d ",uiFrameIdInGOP, uiBaseLevel );
+    }
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
     RNOK( xInitControlDataHighPass( uiFrameIdInGOP ) );
 
@@ -3050,6 +3249,13 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
     m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
 
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    if( m_pRateFile ) 
+    {
+		fprintf( m_pRateFile, "%d", uiBits + m_uiNotYetConsideredBaseLayerBits );
+    }
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
     //===== save FGS info =====
     if( m_uiFGSMode == 1 && m_pFGSFile )
@@ -3087,8 +3293,20 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     {
       fprintf( m_pFGSFile, "\n" );
     }
-  }
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    if( m_pRateFile ) 
+    {
+		fprintf( m_pRateFile, "\n");
+    }
+	if( m_pDistoFile ) 
+    {
+		fprintf( m_pDistoFile, "\n");
+    }
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+  }
+  
   return Err::m_nOK;
 }
 
@@ -3170,6 +3388,10 @@ MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
       RNOK( xMotionEstimationStage  ( iLevel ) );
       RNOK( xDecompositionStage     ( iLevel ) );
       RNOK( xSetScalingFactorsMCTF  ( iLevel ) );
+      //{{Quality level estimation and modified truncation- JVTO044 and m12007
+      //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+      RNOK( xSetScalingFactorsMCTF_FT( iLevel ) );
+      //}}Quality level estimation and modified truncation- JVTO044 and m12007
     }
 
     printf("\nCODING:\n");
@@ -3421,7 +3643,6 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   // uiMaxStage is unsigned, it has a problem when uiMaxStage == 0,
   // uiMaxStage - 1 will result in a large number
   UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, (Int)uiMaxStage - 1 ) );
-  //UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, uiMaxStage - 1 ) );
   Char  acResolution[10];
 
   sprintf( acResolution, "%dx%d", 16*m_uiFrameWidthInMb, 16*m_uiFrameHeightInMb );
@@ -3706,6 +3927,25 @@ MCTFEncoder::xGetMbDataCtrlL1( SliceHeader& rcSH, UInt uiCurrBasePos )
     }
   }
   return 0;
+}
+
+Void
+MCTFEncoder::xAssignSimplePriorityId( SliceHeader* pcSliceHeader )
+{
+    // Lookup simple priority ID from mapping table (J. Ridge, Y-K. Wang @ Nokia)
+    Bool bFound = false;
+    for ( UInt uiSimplePriId = 0; uiSimplePriId < (1 << PRI_ID_BITS); uiSimplePriId++ )
+    {
+        UInt uiLayer, uiTempLevel, uiQualLevel;
+        m_pcSPS->getSimplePriorityMap( uiSimplePriId, uiTempLevel, uiLayer, uiQualLevel );
+        if ( pcSliceHeader->getTemporalLevel() == uiTempLevel && m_uiLayerId == uiLayer && pcSliceHeader->getQualityLevel() == uiQualLevel )
+        {
+            pcSliceHeader->setSimplePriorityId ( uiSimplePriId );
+            bFound = true;
+            break;
+        }
+    }
+    AOF( bFound );
 }
 
 

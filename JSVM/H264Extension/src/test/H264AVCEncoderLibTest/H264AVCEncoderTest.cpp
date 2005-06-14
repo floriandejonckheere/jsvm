@@ -165,6 +165,33 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
   m_cBinDataStartCode.reset ();
   m_cBinDataStartCode.set   ( m_aucStartCodeBuffer, 4 );
 
+  // Example priority ID assignment: (a) spatial, (b) temporal, (c) quality
+  // Other priority assignments can be created by adjusting the mapping table.
+  // (J. Ridge, Nokia)
+  UInt  uiPriorityId = 0;
+  for( UInt uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+  {
+      UInt uiBitplanes;
+      if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getFGSMode() > 0 )
+      {
+        uiBitplanes = MAX_QUALITY_LEVELS - 1;  
+      } else {
+        uiBitplanes = (UInt) m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers();
+        if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers() > (Double) uiBitplanes)
+        {
+          uiBitplanes++;
+        }
+      }
+      for ( UInt uiTempLevel = 0; uiTempLevel <= m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getDecompositionStages(); uiTempLevel++ )
+      {
+          for ( UInt uiQualLevel = 0; uiQualLevel <= uiBitplanes; uiQualLevel++ )
+          {
+              m_pcEncoderCodingParameter->setSimplePriorityMap( uiPriorityId++, uiTempLevel, uiLayer, uiQualLevel );
+          }
+      }
+  }
+  m_pcEncoderCodingParameter->setNumSimplePris( uiPriorityId );
+
   return Err::m_nOK;
 }
 
@@ -347,7 +374,6 @@ H264AVCEncoderTest::go()
   PicBufferList           acPicBufferUnusedList   [MAX_LAYERS];
   ExtBinDataAccessorList  cOutExtBinDataAccessorList;
 
-
   
   //===== initialization =====
   RNOK( m_pcH264AVCEncoder->init( m_pcEncoderCodingParameter ) ); 
@@ -387,7 +413,7 @@ H264AVCEncoderTest::go()
     m_auiStride   [uiLayer] =  (auiMbX[uiLayer]<<4)+ 2*YUV_X_MARGIN;
   }
 
-  
+
   //===== loop over frames =====
   for( uiFrame = 0; uiFrame < uiMaxFrame; uiFrame++ )
   {

@@ -188,6 +188,11 @@ public:
     , m_uiFGSMode                         (0)
     , m_cFGSRateFilename                  ("none")
     , m_dFGSRate                          (0)
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    , m_cDistoFilename                    ("none")
+    , m_cRateFilename                     ("none")
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
     , m_uiDecompositionStages             (0)
     , m_uiNotCodedMCTFStages              (0)
     , m_uiTemporalResolution              (0)
@@ -227,6 +232,11 @@ public:
   UInt                            getFGSMode                        () const {return m_uiFGSMode; }
   const std::string&              getFGSFilename                    () const {return m_cFGSRateFilename; }
   Double                          getFGSRate                        () const {return m_dFGSRate; }
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  const std::string&              getRateFilename                    () const {return m_cRateFilename; }
+  const std::string&              getDistoFilename                   () const {return m_cDistoFilename; }
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   UInt                            getDecompositionStages            () const {return m_uiDecompositionStages; }
   UInt                            getNotCodedMCTFStages             () const {return m_uiNotCodedMCTFStages; }
@@ -262,6 +272,11 @@ public:
   Void setFGSMode                         (UInt   p) { m_uiFGSMode                        = p; }
   Void setFGSFilename                     (Char*  p) { m_cFGSRateFilename                 = p; }
   Void setFGSRate                         (Double p) { m_dFGSRate                         = p; }
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Void setDistoFilename                    (Char*  p) { m_cDistoFilename                 = p; }
+  Void setRateFilename                     (Char*  p) { m_cRateFilename                 = p; }
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   
   Void setDecompositionStages             (UInt   p) { m_uiDecompositionStages            = p; }
   Void setNotCodedMCTFStages              (UInt   p) { m_uiNotCodedMCTFStages             = p; }
@@ -310,6 +325,11 @@ public:
   UInt                      m_uiFGSMode;
   std::string               m_cFGSRateFilename;
   Double                    m_dFGSRate;
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  std::string               m_cRateFilename;
+  std::string               m_cDistoFilename;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   //----- derived parameters -----
   UInt                      m_uiDecompositionStages;
@@ -341,7 +361,15 @@ public:
     , m_uiBaseLayerMode                   ( 0 )
     , m_uiNumberOfLayers                  ( 0 )
     , m_bLowComplxUpdFlag                 ( 1 )
+    , m_bExtendedPriorityId               ( false )
+    , m_uiNumSimplePris                   (0)
   {
+      for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
+      {
+        m_uiTemporalLevelList[uiLoop] = 0;
+        m_uiDependencyIdList [uiLoop] = 0;
+        m_uiQualityLevelList [uiLoop] = 0;
+      }
   }
 	virtual ~CodingParameter()
   {
@@ -370,6 +398,13 @@ public:
   UInt                            getBaseLayerMode        ()              const   { return m_uiBaseLayerMode; }
   UInt                            getNumberOfLayers       ()              const   { return m_uiNumberOfLayers; }
   Bool                            getLowComplxUpdFlag     ()              const   { return m_bLowComplxUpdFlag; }
+  Bool                            getExtendedPriorityId   ()              const   { return m_bExtendedPriorityId; }
+  UInt                            getNumSimplePris        ()              const   { return m_uiNumSimplePris; }
+  Void                            getSimplePriorityMap    ( UInt uiSimplePri, UInt& uiTemporalLevel, UInt& uiLayer, UInt& uiQualityLevel )
+                                                                          { uiTemporalLevel = m_uiTemporalLevelList[uiSimplePri];
+                                                                            uiLayer         = m_uiDependencyIdList [uiSimplePri];
+                                                                            uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
+                                                                          }
 
   Void                            setLowComplxUpdFlag     ( UInt  n   )   { m_bLowComplxUpdFlag = (n==1); }
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
@@ -383,9 +418,18 @@ public:
   Void                            setNumRefFrames         ( UInt    n )   { m_uiNumRefFrames        = n; }
   Void                            setBaseLayerMode        ( UInt    n )   { m_uiBaseLayerMode       = n; }
   Void                            setNumberOfLayers       ( UInt    n )   { m_uiNumberOfLayers      = n; }
+  Void                            setNumSimplePris        ( UInt    n )   { m_uiNumSimplePris       = n; }
+  Void                            setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
+                                                                          { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;
+                                                                            m_uiDependencyIdList [uiSimplePri] = uiLayer;
+                                                                            m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
+                                                                          }
 
   ErrVal                          check                   ();
-
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Bool getQualityLevelsEstimation() { return m_bQualityLevelsEstimation;}
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -409,6 +453,15 @@ protected:
 
   UInt                      m_uiNumberOfLayers;
   LayerParameters           m_acLayerParameters[MAX_LAYERS];
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  Bool						m_bQualityLevelsEstimation;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  Bool                      m_bExtendedPriorityId;
+  UInt                      m_uiNumSimplePris;
+  UInt                      m_uiTemporalLevelList[1 << PRI_ID_BITS];
+  UInt                      m_uiDependencyIdList [1 << PRI_ID_BITS];
+  UInt                      m_uiQualityLevelList [1 << PRI_ID_BITS];
 };
 
 #if defined( MSYS_WIN32 )

@@ -159,6 +159,13 @@ public:
                                             FILE*                       pFile );
   ErrVal            reconstruct           ( IntFrame*                   pcRecResidual );
   ErrVal            finishPicture         ();
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  ErrVal            setNextLayerForRD     (IntFrame*                   pOrgResidual, 
+                                            Double&                     rdScalFactor, 
+                                            FILE*&                      rpDistoFile, 
+                                            FILE*&                      rpRateFile);
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   
 private:
   Int               xScaleLevel4x4        ( Int                         iLevel,
@@ -274,6 +281,12 @@ private:
                                                     UInt                uiB8Y,
                                                     UInt                uiB8X );
 
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  UInt              xCalculateNormalizedMSD       ();
+  ErrVal            xReconstructBetweenPasses     (IntFrame*            pcRecResidual);
+  ErrVal			CheckRD                       (UInt                 uiWrittenBits);
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 private:
   Bool              m_bInit;
@@ -324,6 +337,14 @@ private:
   UInt              m_uiMaxBits;
   
   Bool              m_bTraceEnable;
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  IntFrame*         m_pcOrgResidualFT;
+  Double            m_dScalFactorFT;
+  FILE *            m_pDistoFile;
+  FILE *            m_pRateFile;
+  UInt				m_uiNumBitsForRDPoint;
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 };
 
 

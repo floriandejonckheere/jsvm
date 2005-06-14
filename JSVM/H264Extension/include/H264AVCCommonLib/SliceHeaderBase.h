@@ -519,6 +519,12 @@ public:
   const DeblockingFilterParameter&  getDeblockingFilterParameter  ()  const { return m_cDeblockingFilterParameter; }
   DeblockingFilterParameter&        getDeblockingFilterParameter  ()        { return m_cDeblockingFilterParameter; }
 
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  UInt                              getSimplePriorityId			  ()	    { return m_uiSimplePriorityId;}
+  Bool                              getDiscardableFlag			  ()		{ return m_bDiscardableFlag;}
+  Bool                              getExtensionFlag              ()    	{ return m_bExtensionFlag;}
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
   //===== set parameters =====
   Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
@@ -551,6 +557,13 @@ public:
   Void  setCabacInitIdc               ( UInt        ui )  { m_uiCabacInitIdc                    = ui; }
   Void  setSliceQpDelta               ( Int         i  )  { m_iSliceQpDelta                     = i;  }
   Void  setSliceHeaderQp              ( Int         i  )  { setSliceQpDelta( i - m_rcPPS.getPicInitQp() );  }
+  
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  Void setSimplePriorityId			  (UInt			ui)	   { m_uiSimplePriorityId = ui;}
+  Void setDiscardableFlag			  (Bool			b)	   { m_bDiscardableFlag = b;}
+  Void setExtensionFlag				  (Bool         b)	   { m_bExtensionFlag = b;}
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
 
 
@@ -594,6 +607,13 @@ protected:
   UInt                        m_uiCabacInitIdc;
   Int                         m_iSliceQpDelta;
   DeblockingFilterParameter   m_cDeblockingFilterParameter;
+
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  UInt						            m_uiSimplePriorityId;
+  Bool					              m_bDiscardableFlag;
+  Bool                        m_bExtensionFlag;
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
 };
 
 

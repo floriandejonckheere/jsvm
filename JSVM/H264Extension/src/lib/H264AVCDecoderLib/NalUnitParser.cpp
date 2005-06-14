@@ -102,6 +102,22 @@ NalUnitParser::NalUnitParser()
 , m_uiTemporalLevel     ( 0 )
 , m_uiQualityLevel      ( 0 )
 {
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  UInt uiLayer;
+  m_bCheckDSTruncation = false;
+  for(uiLayer = 0; uiLayer < MAX_LAYERS;uiLayer++)
+  {
+      m_bDSInBitstream[uiLayer] = false;
+      m_iMaxRate[uiLayer] = 0;
+  }
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
+  {
+    m_uiTemporalLevelList[uiLoop] = 0;
+    m_uiDependencyIdList [uiLoop] = 0;
+    m_uiQualityLevelList [uiLoop] = 0;
+  }
 }
 
 
@@ -241,6 +257,11 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor )
   ROT( ucByte & 0x80 );                                     // forbidden_zero_bit ( &10000000b)
   m_eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
+  
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  m_bDiscardableFlag = false;
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
       m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
@@ -248,9 +269,28 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor )
     ROF( pcBinDataAccessor->size() > 1 );
 
     ucByte              = pcBinDataAccessor->data()[1];
-    m_uiTemporalLevel   = ( ucByte >> 5 );
-    m_uiLayerId         = ( ucByte >> 2 ) & 7;
-    m_uiQualityLevel    = ( ucByte      ) & 3;
+    //{{Variable Lengh NAL unit header data with priority and dead substream flag
+    //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+    m_uiSimplePriorityId = ( ucByte >> 2);
+	  m_bDiscardableFlag	 = ( ucByte >> 1) & 1;
+	  m_bExtensionFlag     = ( ucByte     ) & 1;
+	  if(m_bExtensionFlag)
+	  {
+		    ucByte              = pcBinDataAccessor->data()[2];
+		    m_uiTemporalLevel   = ( ucByte >> 5 );
+		    m_uiLayerId         = ( ucByte >> 2 ) & 7;
+		    m_uiQualityLevel    = ( ucByte      ) & 3;
+		    uiHeaderLength      ++;
+	  }
+    else
+    {
+        // Look up simple priority ID in mapping table (J. Ridge, Y-K. Wang @ Nokia)
+        m_uiTemporalLevel = m_uiTemporalLevelList[m_uiSimplePriorityId];
+        m_uiLayerId       = m_uiDependencyIdList [m_uiSimplePriorityId];
+        m_uiQualityLevel  = m_uiQualityLevelList [m_uiSimplePriorityId];
+	  }
+    //}}Variable Lengh NAL unit header data with priority and dead substream flag
+
     uiHeaderLength      ++;
   }
   else
@@ -268,6 +308,33 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor )
   m_pucBuffer         = pcBinDataAccessor->data() + uiHeaderLength;
   UInt uiPacketLength = pcBinDataAccessor->size() - uiHeaderLength;
 
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  if(m_bDSInBitstream[m_uiLayerId] && m_bCheckDSTruncation)
+  {
+	  //if DEADSUBSTREAM in bitstream
+	  // deadsubstream must be removed before decoding the NAL unit
+	  if(m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ||m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+		  m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || m_eNalUnitType == NAL_UNIT_CODED_SLICE)   
+	  {
+		if(m_bDiscardableFlag == false && m_iMaxRate[m_uiLayerId] > 0)
+		{
+            Int idiff = m_iMaxRate[m_uiLayerId] - uiPacketLength;
+			m_iMaxRate[m_uiLayerId] = idiff;
+			if(m_iMaxRate[m_uiLayerId] < 0 && m_uiQualityLevel != 0)  
+			{
+				//Nal unit must be trunc
+				uiPacketLength = uiPacketLength + idiff;
+			}
+		}
+		if(m_bDiscardableFlag == true)
+        {
+			//Nal unit must be discarded
+			uiPacketLength = 0;
+		}
+	  }
+  }
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   // nothing more to do
   ROTRS( NAL_UNIT_END_OF_STREAM   == m_eNalUnitType ||

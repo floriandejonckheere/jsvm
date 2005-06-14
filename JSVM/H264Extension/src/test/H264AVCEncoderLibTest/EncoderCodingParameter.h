@@ -168,6 +168,28 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters( uiLayer ).setNumFGSLayers( uiNumLayers );
       CodingParameter::getLayerParameters( uiLayer ).setFGSFilename ( argv[n]     );
       CodingParameter::getLayerParameters( uiLayer ).setFGSMode     ( 1           );
+      //{{Quality level estimation and modified truncation- JVTO044 and m12007
+      //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+      {
+          char distoFileName[256], rateFileName[256];
+          char layer[2];
+          int lastCharPosToCopy = strcspn( argv[n], "_-" );
+          strncpy( distoFileName, argv[n], lastCharPosToCopy );
+          strncpy( rateFileName, argv[n], lastCharPosToCopy );
+          distoFileName[lastCharPosToCopy] = 0;
+          rateFileName[lastCharPosToCopy] = 0;
+
+          strcat( distoFileName, "_disto" );
+          strcat( rateFileName, "_rate" );
+
+          sprintf(layer,"%d",uiLayer); //use of sprintf rather than itoa for portability
+          strcat( distoFileName, layer );
+          strcat( rateFileName, layer );
+
+          CodingParameter::getLayerParameters( uiLayer ).setDistoFilename ( distoFileName     );      
+          CodingParameter::getLayerParameters( uiLayer ).setRateFilename ( rateFileName     );      
+      }
+      //}}Quality level estimation and modified truncation- JVTO044 and m12007
       continue;
     }
     if( equals( pcCom, "-encfgs", 7 ) )
@@ -181,6 +203,28 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters( uiLayer ).setFGSRate     ( dFGSRate    );
       CodingParameter::getLayerParameters( uiLayer ).setFGSFilename ( argv[n]     );
       CodingParameter::getLayerParameters( uiLayer ).setFGSMode     ( 2           );
+      //{{Quality level estimation and modified truncation- JVTO044 and m12007
+      //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+      {
+          char distoFileName[256], rateFileName[256];
+          char layer[2];
+          int lastCharPosToCopy = strcspn( argv[n], "_-" );
+          strncpy( distoFileName, argv[n], lastCharPosToCopy );
+          strncpy( rateFileName, argv[n], lastCharPosToCopy );
+          distoFileName[lastCharPosToCopy] = 0;
+          rateFileName[lastCharPosToCopy] = 0;
+
+          strcat( distoFileName, "_disto" );
+          strcat( rateFileName, "_rate" );
+
+          sprintf(layer,"%d",uiLayer); //use of sprintf rather than itoa for portability
+          strcat( distoFileName, layer );
+          strcat( rateFileName, layer );
+
+          CodingParameter::getLayerParameters( uiLayer ).setDistoFilename ( distoFileName     );      
+          CodingParameter::getLayerParameters( uiLayer ).setRateFilename ( rateFileName     );      
+      }
+      //}}Quality level estimation and modified truncation- JVTO044 and m12007
       continue;
     }
 
@@ -376,6 +420,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   RNOK( xReadLine( f, "%lf", &m_dMaximumFrameRate ) );
   RNOK( xReadLine( f, "%lf", &m_dMaximumDelay ) );
   RNOK( xReadLine( f, "%d",  &m_uiTotalFrames ) );
+  //{{Quality level estimation and modified truncation- JVTO044 and m12007
+  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+  RNOK (xReadLine(f, "%d",&m_bQualityLevelsEstimation));
+  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   //=== MCTF ===
   RNOK( xReadLine( f, "", NULL ) );// skip line
