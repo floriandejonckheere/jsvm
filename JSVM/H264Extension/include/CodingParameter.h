@@ -361,7 +361,7 @@ public:
     , m_uiBaseLayerMode                   ( 0 )
     , m_uiNumberOfLayers                  ( 0 )
     , m_bLowComplxUpdFlag                 ( 1 )
-    , m_bExtendedPriorityId               ( false )
+    , m_bExtendedPriorityId               ( 0 )
     , m_uiNumSimplePris                   (0)
   {
       for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
@@ -418,6 +418,7 @@ public:
   Void                            setNumRefFrames         ( UInt    n )   { m_uiNumRefFrames        = n; }
   Void                            setBaseLayerMode        ( UInt    n )   { m_uiBaseLayerMode       = n; }
   Void                            setNumberOfLayers       ( UInt    n )   { m_uiNumberOfLayers      = n; }
+  Void                            setExtendedPriorityId   ( Bool    b )   { m_bExtendedPriorityId   = b; }
   Void                            setNumSimplePris        ( UInt    n )   { m_uiNumSimplePris       = n; }
   Void                            setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
                                                                           { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;

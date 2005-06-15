@@ -165,32 +165,41 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
   m_cBinDataStartCode.reset ();
   m_cBinDataStartCode.set   ( m_aucStartCodeBuffer, 4 );
 
+  // Extended NAL unit priority is enabled by default, since 6-bit short priority
+  // is incompatible with extended 4CIF Palma test set.  Change value to false
+  // to enable short ID.
+  m_pcEncoderCodingParameter->setExtendedPriorityId( true );
+
   // Example priority ID assignment: (a) spatial, (b) temporal, (c) quality
   // Other priority assignments can be created by adjusting the mapping table.
   // (J. Ridge, Nokia)
-  UInt  uiPriorityId = 0;
-  for( UInt uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+  if ( !m_pcEncoderCodingParameter->getExtendedPriorityId() )
   {
-      UInt uiBitplanes;
-      if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getFGSMode() > 0 )
-      {
-        uiBitplanes = MAX_QUALITY_LEVELS - 1;  
-      } else {
-        uiBitplanes = (UInt) m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers();
-        if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers() > (Double) uiBitplanes)
+    UInt  uiPriorityId = 0;
+    for( UInt uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+    {
+        UInt uiBitplanes;
+        if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getFGSMode() > 0 )
         {
-          uiBitplanes++;
-        }
-      }
-      for ( UInt uiTempLevel = 0; uiTempLevel <= m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getDecompositionStages(); uiTempLevel++ )
-      {
-          for ( UInt uiQualLevel = 0; uiQualLevel <= uiBitplanes; uiQualLevel++ )
+          uiBitplanes = MAX_QUALITY_LEVELS - 1;  
+        } else {
+          uiBitplanes = (UInt) m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers();
+          if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers() > (Double) uiBitplanes)
           {
-              m_pcEncoderCodingParameter->setSimplePriorityMap( uiPriorityId++, uiTempLevel, uiLayer, uiQualLevel );
+            uiBitplanes++;
           }
-      }
+        }
+        for ( UInt uiTempLevel = 0; uiTempLevel <= m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getDecompositionStages(); uiTempLevel++ )
+        {
+            for ( UInt uiQualLevel = 0; uiQualLevel <= uiBitplanes; uiQualLevel++ )
+            {
+                m_pcEncoderCodingParameter->setSimplePriorityMap( uiPriorityId++, uiTempLevel, uiLayer, uiQualLevel );
+                AOF( uiPriorityId > ( 1 << PRI_ID_BITS ) );
+            }
+        }
+    }
+    m_pcEncoderCodingParameter->setNumSimplePris( uiPriorityId );
   }
-  m_pcEncoderCodingParameter->setNumSimplePris( uiPriorityId );
 
   return Err::m_nOK;
 }
