@@ -3945,8 +3945,12 @@ MCTFEncoder::xAssignSimplePriorityId( SliceHeader* pcSliceHeader )
             break;
         }
     }
-    AOF( bFound );
-}
+    if ( !bFound && pcSliceHeader->getExtensionFlag() )
+    {
+      pcSliceHeader->setSimplePriorityId( 0 );
+    } else {
+      AOF( bFound );
+    }}
 
 
 H264AVC_NAMESPACE_END
