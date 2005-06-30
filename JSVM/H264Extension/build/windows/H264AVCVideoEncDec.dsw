@@ -36,6 +36,30 @@ Package=<4>
 
 ###############################################################################
 
+Project: "EncoderBitstreamMerger"="..\..\SRC\TEST\EncoderBitstreamMerger\EncoderBitstreamMerger.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name H264AVCCommonLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCDecoderLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCEncoderLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCVideoIoLibStatic
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "FixedQPEncoderStatic"="..\..\src\test\FixedQPEncoder\FixedQPEncoder.dsp" - Package Owner=<4>
 
 Package=<5>
