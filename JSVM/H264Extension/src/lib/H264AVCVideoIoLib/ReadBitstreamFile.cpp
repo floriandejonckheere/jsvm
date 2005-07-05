@@ -238,7 +238,7 @@ ErrVal ReadBitstreamFile::getPosition( Int& iPos )
 {
   ROFS( m_cFile.is_open());
 
-  iPos = m_cFile.tell(); 
+  iPos = (Int)m_cFile.tell(); 
 
   return Err::m_nOK;
 }

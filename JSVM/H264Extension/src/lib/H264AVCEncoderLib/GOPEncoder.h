@@ -250,13 +250,17 @@ public:
                                       IntFrame*&                      pcResidual,
                                       MbDataCtrl*&                    pcMbDataCtrl,
                                       Bool&                           bForCopyOnly,
-                                      Bool                            bSpatialScalability,
+                                      Int                             iSpatialScalability,
                                       Int                             iPoc,
                                       Bool                            bMotion );
 
   UInt*         getGOPBitsBase      ()  { return m_auiCurrGOPBitsBase;  }
   UInt*         getGOPBitsFGS       ()  { return m_auiCurrGOPBitsFGS;   }
 
+
+  //===== ESS =====
+  Int                     getSpatialScalabilityType() { return m_pcResizeParameters->m_iSpatialScalabilityType; }
+  ResizeParameters*       getResizeParameters()       { return m_pcResizeParameters; }
 
 protected:
   //===== data management =====
@@ -316,12 +320,19 @@ protected:
                                           CtrlDataList&               rcCtrlList1,
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame );
-  ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData, Bool bMotion = false );
+  ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData, 
+                                          UInt                        uiBaseLevel,  //TMM_ESS
+                                          UInt                        uiFrame,      //TMM_ESS
+                                          Bool                        bMotion = false ); 
   ErrVal  xInitControlDataMotion        ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bMotionEstimation );
-  ErrVal  xInitControlDataLowPass       ( UInt                        uiFrameIdInGOP );
-  ErrVal  xInitControlDataHighPass      ( UInt                        uiFrameIdInGOP );
+  ErrVal  xInitControlDataLowPass       ( UInt                        uiFrameIdInGOP,
+                                          UInt                        uiBaseLevel,  //TMM_ESS
+                                          UInt                        uiFrame  );   //TMM_ESS
+  ErrVal  xInitControlDataHighPass      ( UInt                        uiFrameIdInGOP,
+                                          UInt                        uiBaseLevel,   //TMM_ESS
+                                          UInt                        uiFrame  );    //TMM_ESS
   ErrVal  xGetConnections               ( ControlData&                rcControlData,
                                           Double&                     rdL0Rate,
                                           Double&                     rdL1Rate,
@@ -399,6 +410,9 @@ protected:
   MbDataCtrl*   xGetMbDataCtrlL1    ( SliceHeader& rcSH, UInt uiCurrBasePos );
   Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
   
+   //===== ESS =====
+   ErrVal		xFillPredictionLists_ESS( UInt uiBaseLevel , UInt uiFrame );
+
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;
@@ -530,6 +544,9 @@ protected:
   Bool                          m_bLayerReconstructionNotPossible;
   Bool                          m_bHighestLayer;
 #endif
+
+ //----- ESS -----
+  ResizeParameters*				m_pcResizeParameters; 
 };
 
 #if defined( WIN32 )

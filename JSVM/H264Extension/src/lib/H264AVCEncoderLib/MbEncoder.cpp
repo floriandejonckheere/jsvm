@@ -279,6 +279,8 @@ MbEncoder::encodeIntra( MbDataAccess&  rcMbDataAccess,
   {
     ROF ( pcBaseLayer );
     //===== check intra base mode (if base layer is available) =====
+
+    if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
     RNOK( xEstimateMbIntraBL( m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayer, false, pcMbDataAccessBase  ) );
   }
   if( rcMbDataAccess.getSH().getBaseLayerId() == MSYS_UINT_MAX ||
@@ -355,7 +357,7 @@ MbEncoder::xCheckInterMbMode8x8( IntMbTempData*&   rpcMbTempData,
 ErrVal
 MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
                          MbDataAccess*    pcMbDataAccessBase,
-                         Bool             bHalfResBaseLayer,
+                         Int              iSpatialScalabilityType,
                          IntFrame*        pcFrame,
                          IntFrame*        pcRecSubband,
                          IntFrame*        pcPredSignal,
@@ -397,7 +399,10 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
       if( ! pcMbDataAccessBase->getMbData().isIntra() )
       {
         //--- only if base layer is in inter mode ---
-        RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, bHalfResBaseLayer,  pcMbDataAccessBase, true ) );
+          
+          // TMM_ESS 
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
+					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, iSpatialScalabilityType,  pcMbDataAccessBase, true ) );
       }
 
       if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
@@ -421,7 +426,8 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
     //===== only when intra BL is allowed =====
     if( pcMbDataAccessBase->getMbData().isIntra() || ! pcMbDataAccessBase->getSH().getPPS().getConstrainedIntraPredFlag() )
     {
-      RNOK( xEstimateMbIntraBL( m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayerRec, false, pcMbDataAccessBase ) );
+		  if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
+			  RNOK( xEstimateMbIntraBL( m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayerRec, false, pcMbDataAccessBase ) );
     }
   }
 
@@ -433,7 +439,9 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
     if( ( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isIntra() ) || rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
     {
       //--- only if base layer is in intra mode or adaptive prediction is enabled ---
-      RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, bHalfResBaseLayer,  pcMbDataAccessBase, false ) );
+      // TMM_ESS 
+      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
+				RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, iSpatialScalabilityType,  pcMbDataAccessBase, false ) );
     }
 
     RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1 ) );
@@ -815,7 +823,7 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
 ErrVal
 MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
                                MbDataAccess*   pcMbDataAccessBase,
-                               Bool            bHalfResBaseLayer,
+                               Int             iSpatialScalabilityType,
                                RefFrameList&   rcRefFrameList0,
                                RefFrameList&   rcRefFrameList1,
                                const IntFrame* pcBaseLayerFrame,
@@ -861,7 +869,9 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
       if( ! pcMbDataAccessBase->getMbData().isIntra() )
       {
         //--- only if base layer is in intra mode ---
-        RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, bHalfResBaseLayer,         pcMbDataAccessBase, true ) );
+          // TMM_ESS 
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
+					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, iSpatialScalabilityType,         pcMbDataAccessBase, true ) );
       }
 
       if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
@@ -886,6 +896,7 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 #if MULTIPLE_LOOP_DECODING
     if( pcMbDataAccessBase->getMbData().isIntra() || rcMbDataAccess.getSH().getSPS().getAlwaysDecodeBaseLayer() )
 #endif
+      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
     RNOK  ( xEstimateMbIntraBL  ( m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayerFrame, bBSlice,                                                              pcMbDataAccessBase ) );
   }
 
@@ -896,7 +907,9 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
   {
     if( ( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isIntra() ) || rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
     {
-      RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, bHalfResBaseLayer,         pcMbDataAccessBase, false ) );
+      // TMM_ESS 
+      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
+				RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, iSpatialScalabilityType,         pcMbDataAccessBase, false ) );
     }
 
     RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1,                                                       pcMbDataAccessBase, false ) );
@@ -2764,7 +2777,7 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
                               RefFrameList&     rcRefFrameList1,
                               const IntFrame*   pcBaseLayerRec,
                               Bool              bBSlice,
-                              Bool              bHalfResBaseLayer,
+                              Int               iSpatialScalabilityType,
                               MbDataAccess*     pcMbDataAccessBase,
                               Bool              bResidualPred )
 {
@@ -2796,11 +2809,11 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
     ROT( bResidualPred );
 
     //===== INTRA MODE =====
-    RNOK( xEstimateMbIntraBL  (  rpcIntMbTempData, rpcIntMbBestData, pcBaseLayerRec, bBSlice, pcMbDataAccessBase ) );
+    if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
+	    RNOK( xEstimateMbIntraBL  (  rpcIntMbTempData, rpcIntMbBestData, pcBaseLayerRec, bBSlice, pcMbDataAccessBase ) );
   }
 
-
-  if( bHalfResBaseLayer && ! pcMbDataAccessBase->getMbData().isIntra() && rpcIntMbTempData->getSH().getAdaptivePredictionFlag() )
+  if( (iSpatialScalabilityType != SST_RATIO_1) && ! pcMbDataAccessBase->getMbData().isIntra() && rpcIntMbTempData->getSH().getAdaptivePredictionFlag() )
   {
     UInt  uiMaxIter = 3;
 
@@ -6259,6 +6272,15 @@ MbEncoder::xQPelEstimateMb8x8( IntMbTempData*&  rpcMbTempData,
     IntYuvMbBuffer  cYuvMbBuffer[2];
     IntFrame*       pcRefFrame;
     UInt            uiCostTest;
+
+// TMM_ESS {
+    if ( eBlkMode != BLK_8x8 )
+    {
+      // no QPEL reft in case of sub-partitioning of 8x8 blk
+      rpcMbTempData->rdCost() = FLOAT_MAX;
+      return Err::m_nOK;
+    }
+// TMM_ESS }
 
     ROF( eBlkMode == BLK_8x8 );
     rpcMbTempData->setBlkMode( Par8x8(uiBlk), eBlkMode );

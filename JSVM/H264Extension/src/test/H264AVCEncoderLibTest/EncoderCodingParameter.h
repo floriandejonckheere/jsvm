@@ -94,6 +94,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
+#define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
  
 class EncoderCodingParameter : 
 public h264::CodingParameter 
@@ -248,6 +249,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       UInt    uiLayer = atoi( argv[n  ] );
       Double  dResQp  = atof( argv[n+1] );
       CodingParameter::getLayerParameters( uiLayer ).setBaseQpResidual( dResQp );
+      printf("\n********** layer %1d - rqp = %f **********\n\n",uiLayer,dResQp);
       n += 1;
       continue;      
     }
@@ -466,6 +468,46 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   {
     getLayerParameters(ui).setLayerId(ui);
     RNOK( xReadLayerFromFile( aacLayerConfigName[ui], getLayerParameters(ui) ) );
+// TMM_ESS {
+     ResizeParameters * curr;
+    curr = getResizeParameters(ui);
+
+    if (ui>0)
+    {
+      ResizeParameters * prev = getResizeParameters(ui-1);
+      curr->m_iInWidth  = prev->m_iOutWidth;
+      curr->m_iInHeight = prev->m_iOutHeight;
+
+      bool is_crop_aligned = (curr->m_iPosX%16 == 0) && (curr->m_iPosY%16 == 0);
+      if      ((curr->m_iInWidth == curr->m_iOutWidth) && (curr->m_iInHeight == curr->m_iOutHeight) &&
+               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
+        curr->m_iSpatialScalabilityType = SST_RATIO_1;
+      else if ((curr->m_iInWidth*2 == curr->m_iOutWidth) && (curr->m_iInHeight*2 == curr->m_iOutHeight) &&
+               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
+        curr->m_iSpatialScalabilityType = SST_RATIO_2;
+      else if ((curr->m_iInWidth*3 == curr->m_iOutWidth*2) && (curr->m_iInHeight*3 == curr->m_iOutHeight*2) &&
+               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
+      {
+        curr->m_iSpatialScalabilityType = SST_RATIO_3_2;
+        if ( curr->m_iExtendedSpatialScalability == ESS_NONE )
+          curr->m_iExtendedSpatialScalability = ESS_SEQ;
+      }
+      else
+      {
+        curr->m_iSpatialScalabilityType = SST_RATIO_X;
+        if ( curr->m_iExtendedSpatialScalability == ESS_NONE )
+          curr->m_iExtendedSpatialScalability = ESS_SEQ;
+      }
+      
+      ROTREPORT((curr->m_iExtendedSpatialScalability < ESS_PICT) && (curr->m_iOutWidth * curr->m_iInHeight != curr->m_iOutHeight * curr->m_iInWidth) , "\n ResizeParameters::readPictureParameters () : current version does not support different horiz and vertic spatial ratios\n");
+
+     }
+    else
+    {
+      curr->m_iSpatialScalabilityType = SST_RATIO_1;
+      curr->m_iExtendedSpatialScalability = ESS_NONE;
+    }
+// TMM_ESS }
   }
 
   return Err::m_nOK;
@@ -531,6 +573,55 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   RNOK( xReadLine( f, "%d",  &rcLayer.m_uiMotionInfoMode ) );
   RNOK( xReadLine( f, "%s",  acTemp ) );
   rcLayer.setMotionInfoFilename( acTemp );
+
+// TMM_ESS {
+  // default values
+  rcLayer.m_ResizeParameter.m_iInWidth  = rcLayer.m_uiFrameWidth;
+  rcLayer.m_ResizeParameter.m_iInHeight = rcLayer.m_uiFrameHeight;
+  rcLayer.m_ResizeParameter.m_iOutWidth  = rcLayer.m_uiFrameWidth;
+  rcLayer.m_ResizeParameter.m_iOutHeight = rcLayer.m_uiFrameHeight;
+  rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_uiFrameWidth;
+  rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_uiFrameHeight;
+  rcLayer.m_ResizeParameter.m_iPosX  = 0;
+  rcLayer.m_ResizeParameter.m_iPosY  = 0;
+  rcLayer.m_ResizeParameter.m_bCrop = false;
+
+  // read
+  xReadLine( f, "", NULL );
+  while (xReadLine( f, "%s",  acTemp ) == Err::m_nOK)
+    {
+    if (strcmp(acTemp, "ESS") == 0 || strcmp(acTemp, "TMM") == 0)
+        {
+          RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability ) );
+
+         if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  
+          {
+            rcLayer.m_ResizeParameter.m_bCrop = true;        
+            RNOK( xReadLine( f, "%s",  acTemp ) );
+            if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
+            {
+              rcLayer.m_ResizeParameter.m_pParamFile = fopen( acTemp, "r");
+              if( NULL == rcLayer.m_ResizeParameter.m_pParamFile )
+              { 
+                printf( "failed to open resize parameter file %s\n", acTemp);
+                return Err::m_nERR;
+              }
+              rcLayer.m_ResizeParameter.m_iSpatialScalabilityType = SST_RATIO_X;
+              rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX = -1;
+              rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY = -1;
+              rcLayer.m_ResizeParameter.m_iChromaPhaseX = -1;
+              rcLayer.m_ResizeParameter.m_iChromaPhaseY = -1;
+            }
+            else{  
+              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iOutWidth ) );
+              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iOutHeight ) );
+              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iPosX ) );
+              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iPosY ) );
+            }
+          }
+        }
+    }
+// TMM_ESS }
 
   ::fclose(f);
 

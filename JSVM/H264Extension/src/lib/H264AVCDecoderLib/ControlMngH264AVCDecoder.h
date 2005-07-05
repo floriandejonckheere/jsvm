@@ -112,6 +112,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "GOPDecoder.h"
 #include "H264AVCDecoder.h"
 
+// TMM_ESS 
+#include "ResizeParameters.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -153,6 +155,10 @@ public:
   ErrVal initMbForFiltering   ( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex );
 
   ErrVal initSlice0           (SliceHeader *rcSH);
+  // TMM_ESS 
+  ErrVal initSPS              ( SequenceParameterSet& rcSequenceParameterSet,
+                                UInt  uiLayer );
+	
   ErrVal initSPS              ( SequenceParameterSet& rcSequenceParameterSet );
   ErrVal initParameterSets    ( const SequenceParameterSet& rcSPS,
                                 const PictureParameterSet&  rcPPSLP,
@@ -201,6 +207,7 @@ protected:
   MCTFDecoder*            m_apcMCTFDecoder          [MAX_LAYERS];
   H264AVCDecoder*         m_pcH264AVCDecoder;
   Bool                    m_uiInitilized            [MAX_LAYERS];
+  ResizeParameters        m_ResizeParameter[MAX_LAYERS]; // TMM_ESS
 };
 
 H264AVC_NAMESPACE_END

@@ -1111,7 +1111,7 @@ Extractor::go_DS()
 	//Calculate the size of the dead substream
 	CalculateSizeDeadSubstream();
 
-	UInt uiExtLayer, uiExtLevel;
+	//UInt uiExtLayer, uiExtLevel;
 	RNOK( xSetParameters_DS() );
 	RNOK( xExtractPoints_DS() );
 	
@@ -1121,9 +1121,9 @@ Extractor::go_DS()
 ErrVal
 Extractor::go_QL()
 {
-  UInt uiExtLayer;
-  Double dRateTarget;
-  UInt uiExtLevel;
+  //UInt uiExtLayer;
+  //Double dRateTarget;
+  //UInt uiExtLevel;
   //determine layer, level and rateTarget for output stream
   GetExtParameters();
 
@@ -1204,16 +1204,16 @@ Void Extractor::GetExtParameters()
 ErrVal Extractor::QualityLevelSearch()
 {
 
-  Double R,D;
+  //Double R,D;
   UInt uiNFrames;
-  UInt uiDecStages;
+  //UInt uiDecStages;
   UInt uiNumPictures;
   UInt uiLayer;
-  Int uiPoint;
-  UInt uiLevel;
-  UInt uiFGSLayer;
+  //Int uiPoint;
+  //UInt uiLevel;
+  //UInt uiFGSLayer;
   Double rate; 
-  Int64 i64NALUBytes;
+  //Int64 i64NALUBytes;
 
   UInt uiExtLayer = m_pcExtractorParameter->getLayer();
   UInt uiExtLevel = m_pcExtractorParameter->getLevel();
@@ -2252,8 +2252,9 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
 
   for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
-    m_auiFrameWidth [uiLayer] = m_uiMaxWidth    >> pcScalableSei->getSpatialResolutionFactor  ( uiLayer );
-    m_auiFrameHeight[uiLayer] = m_uiMaxHeight   >> pcScalableSei->getSpatialResolutionFactor  ( uiLayer );
+    m_auiFrameWidth [uiLayer] = pcScalableSei->getFrameWidthInMB(uiLayer)  * 16; // TMM_ESS
+    m_auiFrameHeight[uiLayer] = pcScalableSei->getFrameHeightInMB(uiLayer) * 16; // TMM_ESS
+
     m_auiDecStages  [uiLayer] = m_uiMaxDecStages - pcScalableSei->getTemporalResolutionFactor ( uiLayer );
     UInt uiNum;
     for( uiNum = 0; uiNum < 32; uiNum ++ )

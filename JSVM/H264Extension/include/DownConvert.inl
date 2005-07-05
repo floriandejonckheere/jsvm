@@ -94,6 +94,8 @@ DownConvert::DownConvert()
 , m_paiImageBuffer2( 0 )
 #endif
 , m_paiTmp1dBuffer( 0 )
+, m_padFilter(0)        //TMM_ESS
+, m_paiTmp1dBufferOut(0)//TMM_ESS
 {
 }
 
@@ -106,6 +108,8 @@ DownConvert::~DownConvert()
 #endif
   delete [] m_paiImageBuffer;
   delete [] m_paiTmp1dBuffer;
+ 
+  xDestroyFilterTmm(); // TMM_ESS
 }
 
 
@@ -125,6 +129,9 @@ DownConvert::init( int iMaxWidth, int iMaxHeight )
   m_iImageStride    = iMaxWidth;
   m_paiImageBuffer  = new int [ iPicSize ];
   m_paiTmp1dBuffer  = new int [ iMaxDim  ];
+  
+  xInitFilterTmm(iMaxDim); // TMM_ESS
+  
 #ifndef NO_MB_DATA_CTRL
   m_paiImageBuffer2 = new int [ iPicSize ];
   return ( m_paiImageBuffer2 == 0 || m_paiImageBuffer == 0 || m_paiTmp1dBuffer == 0 );

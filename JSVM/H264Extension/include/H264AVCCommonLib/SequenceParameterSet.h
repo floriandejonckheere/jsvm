@@ -93,6 +93,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/HeaderSymbolWriteIf.h"
 #include "H264AVCCommonLib/ScalingMatrix.h"
 
+// TMM_ESS 
+#include "ResizeParameters.h"
+
+
 H264AVC_NAMESPACE_BEGIN
 
 
@@ -188,6 +192,13 @@ public:
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
                 NalUnitType           eNalUnitType );
 
+// TMM_ESS {
+  Void setResizeParameters    ( const ResizeParameters * params );
+  Void getResizeParameters    ( ResizeParameters * params ) const;
+
+  Void setExtendedSpatialScalability ( UInt ui ) { m_uiExtendedSpatialScalability = ui ;}
+  UInt getExtendedSpatialScalability () const    { return m_uiExtendedSpatialScalability; }
+// TMM_ESS }
 
 protected:
   static ErrVal xGetLevelLimit        ( const LevelLimit*&    rpcLevelLimit,
@@ -226,6 +237,16 @@ protected:
 #if MULTIPLE_LOOP_DECODING
   Bool          m_bAlwaysDecodeBaseLayer;
 #endif
+
+// TMM_ESS {
+  UInt          m_uiExtendedSpatialScalability;
+  UInt          m_uiChromaPhaseXPlus1;
+  UInt          m_uiChromaPhaseYPlus1;
+  Int           m_iScaledBaseLeftOffset;
+  Int           m_iScaledBaseTopOffset;
+  Int           m_iScaledBaseRightOffset;
+  Int           m_iScaledBaseBottomOffset;
+// TMM_ESS }
 
 private:
   static const LevelLimit m_aLevelLimit[52];

@@ -1144,6 +1144,7 @@ MCTFDecoder::MCTFDecoder()
 #if MULTIPLE_LOOP_DECODING
 , m_bCompletelyDecodeLayer        ( false )
 #endif
+, m_pcResizeParameter             ( 0 ) //TMM_ESS
 {
   ::memset( m_apcFrameTemp, 0x00, sizeof( m_apcFrameTemp ) );
 }
@@ -1833,6 +1834,20 @@ MCTFDecoder::xInitBaseLayerMotionAndResidual( ControlData& rcControlData )
 
   if( rcControlData.getSliceHeader()->getBaseLayerId() != MSYS_UINT_MAX )
   {
+      //TMM_ESS { 
+      SliceHeader* pcSliceHeader=rcControlData.getSliceHeader();
+      Int poc = pcSliceHeader->getPoc();
+      m_pcResizeParameter->setPictureParametersByOffset(poc,
+                                                      pcSliceHeader->getLeftOffset(),
+                                                      pcSliceHeader->getRightOffset(),
+                                                      pcSliceHeader->getTopOffset(),
+                                                      pcSliceHeader->getBottomOffset(),
+                                                      pcSliceHeader->getBaseChromaPhaseX(),
+                                                      pcSliceHeader->getBaseChromaPhaseY()
+                                                    );
+      m_pcResizeParameter->setPOC( poc );
+     //TMM_ESS }   
+      
     RNOK( m_pcH264AVCDecoder->getBaseLayerMotionAndResidual( pcBaseResidual, pcBaseDataCtrl, bSpatialScalability,
                                                              m_uiLayerId,
                                                              rcControlData.getSliceHeader()->getBaseLayerId(),
@@ -1840,7 +1855,8 @@ MCTFDecoder::xInitBaseLayerMotionAndResidual( ControlData& rcControlData )
     bBaseDataAvailable = pcBaseResidual && pcBaseDataCtrl;
     ROF( bBaseDataAvailable );
 
-    rcControlData.setBaseLayerResolution( bSpatialScalability );
+    rcControlData.setSpatialScalability( bSpatialScalability );
+    rcControlData.setSpatialScalabilityType(m_pcResizeParameter->m_iSpatialScalabilityType);
   }
 
 
@@ -1848,13 +1864,18 @@ MCTFDecoder::xInitBaseLayerMotionAndResidual( ControlData& rcControlData )
   if( pcBaseDataCtrl )
   {
     RNOK( m_pcBaseLayerCtrl->initSlice( *rcControlData.getSliceHeader(), PRE_PROCESS, false, NULL ) );
-    if( ! rcControlData.isHalfResolutionBaseLayer() )
+
+    // TMM_ESS {
+    if (m_pcResizeParameter->m_iSpatialScalabilityType == SST_RATIO_1) 
     {
-      RNOK( m_pcBaseLayerCtrl->copyMotionBL  ( *pcBaseDataCtrl ) );
+      RNOK( m_pcBaseLayerCtrl->copyMotionBL  ( *pcBaseDataCtrl, m_pcResizeParameter ) );
     }
     else
     {
-      RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl ) );
+     if(m_pcResizeParameter->m_iExtendedSpatialScalability == ESS_PICT ) 
+      {RNOK( m_pcDecodedPictureBuffer->fillPredictionLists_ESS( m_pcResizeParameter ) );}
+   
+      RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameter) );
     }
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
   }
@@ -1864,11 +1885,9 @@ MCTFDecoder::xInitBaseLayerMotionAndResidual( ControlData& rcControlData )
   if( bBaseDataAvailable )
   {
     RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual ) ); 
-    if( rcControlData.isHalfResolutionBaseLayer() )
-    {
-      RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, 1,
-                                                     pcBaseDataCtrl, false ) );
-    }
+	// TMM_ESS 
+	RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, m_pcResizeParameter, pcBaseDataCtrl, false) ); 
+		
     rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
   }
 
@@ -1890,10 +1909,24 @@ MCTFDecoder::xInitBaseLayerReconstruction( ControlData& rcControlData )
 
   if( rcControlData.getSliceHeader()->getBaseLayerId() != MSYS_UINT_MAX )
   {
+    //TMM_ESS { 
+      SliceHeader* pcSliceHeader=rcControlData.getSliceHeader();
+      Int poc = pcSliceHeader->getPoc();
+      m_pcResizeParameter->setPictureParametersByOffset(poc,
+                                                      pcSliceHeader->getLeftOffset(),
+                                                      pcSliceHeader->getRightOffset(),
+                                                      pcSliceHeader->getTopOffset(),
+                                                      pcSliceHeader->getBottomOffset(),
+                                                      pcSliceHeader->getBaseChromaPhaseX(),
+                                                      pcSliceHeader->getBaseChromaPhaseY()
+                                                    );
+      m_pcResizeParameter->setPOC( poc );
+     //TMM_ESS }   
+    
     RNOK( m_pcH264AVCDecoder->getReconstructedBaseLayer( pcBaseFrame,
                                                          m_uiLayerId,
                                                          rcControlData.getSliceHeader()->getBaseLayerId(),
-                                                         rcControlData.isHalfResolutionBaseLayer(),
+                                                         rcControlData.getSpatialScalability(),
                                                          rcControlData.getSliceHeader()->getTemporalLevel() > 0,
                                                          rcControlData.getSliceHeader()->getPoc() ) );
     ROF( pcBaseFrame );
@@ -1903,10 +1936,9 @@ MCTFDecoder::xInitBaseLayerReconstruction( ControlData& rcControlData )
   if( pcBaseFrame )
   {
     RNOK( m_pcBaseLayerFrame->copy( pcBaseFrame ) );
-    if( rcControlData.isHalfResolutionBaseLayer() )
-    {
-      RNOK( m_pcBaseLayerFrame->upsample( m_cDownConvert, 1, true ) );
-    }
+	// TMM_ESS 
+	RNOK( m_pcBaseLayerFrame->upsample(m_cDownConvert, m_pcResizeParameter, true) );
+
     rcControlData.setBaseLayerRec( m_pcBaseLayerFrame );
   }
 
@@ -1961,7 +1993,7 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*&  rpcSliceHeader,
     RNOK( m_pcSliceReader ->read                ( *rpcSliceHeader,
                                                   pcMbDataCtrl,
                                                   rcControlData.getBaseLayerCtrl(),
-                                                  rcControlData.isHalfResolutionBaseLayer(),
+                                                  rcControlData.getSpatialScalabilityType(),
                                                   m_uiFrameWidthInMb,
                                                   uiMbRead ) );
 
@@ -1983,7 +2015,7 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*&  rpcSliceHeader,
     RNOK( m_pcSliceReader ->read                ( *rpcSliceHeader,
                                                   pcMbDataCtrl,
                                                   rcControlData.getBaseLayerCtrl(),
-                                                  rcControlData.isHalfResolutionBaseLayer(),
+                                                  rcControlData.getSpatialScalabilityType(),
                                                   m_uiFrameWidthInMb,
                                                   uiMbRead ) );
 
@@ -2073,7 +2105,7 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*&   rpcSliceHeader,
   RNOK( m_pcSliceReader ->read                ( *rpcSliceHeader,
                                                 pcMbDataCtrl,
                                                 rcControlData.getBaseLayerCtrl(),
-                                                rcControlData.isHalfResolutionBaseLayer(),
+                                                rcControlData.getSpatialScalabilityType(),
                                                 m_uiFrameWidthInMb,
                                                 uiMbRead ) );
 
@@ -2680,8 +2712,69 @@ MCTFDecoder::xCalcMv( SliceHeader*  pcSliceHeader,
   return Err::m_nOK;
 }
 
+// TMM_ESS {
+ErrVal
+DecodedPicBuffer::fillPredictionLists_ESS( ResizeParameters *pcResizeParameters )
+{
+  pcResizeParameters->initRefListPoc();
+  ROTRS( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isIntra(),   Err::m_nOK );
+  
+  Bool  bBaseRep    = m_pcCurrDPBUnit->isKeyPic ();
+  Int   iMaxPoc     = m_pcCurrDPBUnit->getPoc   ();
+  Int   iMinPoc     = iMaxPoc;
+  UInt  uiTempLevel = m_pcCurrDPBUnit->getTLevel();
+  UInt  uiSize0      = m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxActive( LIST_0 );
+  
+  Int idx=0;
+ 
+   //===== list 0 =====
+  while( uiSize0-- )
+  {
+    DPBUnit*              pNext = 0;
+    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() < iMaxPoc &&
+          ( !pNext || (*iter)->getPoc() > pNext->getPoc() ) &&
+          (*iter)->isBaseRep() == bBaseRep &&
+          ( bBaseRep || (*iter)->getTLevel() < uiTempLevel ) )
+      {
+        pNext = (*iter);
+      }
+    }
+    ROF( pNext );
+	iMaxPoc = pNext->getPoc();
+	pcResizeParameters->m_aiRefListPoc[0][idx++]=iMaxPoc;  
+  }
+  
+  //===== list 1 =====
+  ROTRS( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isInterP(),  Err::m_nOK );
+  UInt  uiSize1      = m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxActive( LIST_1 );
+  idx=0;
+  while( uiSize1-- )
+  {
+    DPBUnit*              pNext = 0;
+    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+    for( ; iter != end; iter++ )
+    {
+      if( (*iter)->getPoc() > iMinPoc &&
+          ( !pNext || (*iter)->getPoc() < pNext->getPoc() ) && 
+          (*iter)->isBaseRep() == bBaseRep &&
+          ( bBaseRep || (*iter)->getTLevel() < uiTempLevel ) )
+      {
+        pNext = (*iter);
+      }
+    }
+    ROF( pNext );
+	iMinPoc = pNext->getPoc();
+    pcResizeParameters->m_aiRefListPoc[1][idx++]=iMinPoc;  
+  }
 
-
+  return Err::m_nOK;
+}
+// TMM_ESS }
 
 H264AVC_NAMESPACE_END
 

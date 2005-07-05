@@ -614,6 +614,33 @@ protected:
   Bool					              m_bDiscardableFlag;
   Bool                        m_bExtensionFlag;
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
+
+
+// TMM_ESS {
+public:
+  Int           getLeftOffset ()   const { return m_iScaledBaseLeftOffset; }
+  Int           getRightOffset ()  const { return m_iScaledBaseRightOffset; }
+  Int           getTopOffset ()    const { return m_iScaledBaseTopOffset; }
+  Int           getBottomOffset () const { return m_iScaledBaseBottomOffset; }
+  Int           getBaseChromaPhaseX () const { return (Int)m_uiBaseChromaPhaseXPlus1-1; }
+  Int           getBaseChromaPhaseY () const { return (Int)m_uiBaseChromaPhaseYPlus1-1; }
+  Void          setLeftOffset   ( Int i ) { m_iScaledBaseLeftOffset = i; }
+  Void          setRightOffset  ( Int i ) { m_iScaledBaseRightOffset = i; }
+  Void          setTopOffset    ( Int i ) { m_iScaledBaseTopOffset = i; }
+  Void          setBottomOffset ( Int i ) { m_iScaledBaseBottomOffset = i; }
+  Void          setBaseChromaPhaseX ( Int i)  { m_uiBaseChromaPhaseXPlus1 = i+1; }
+  Void          setBaseChromaPhaseY ( Int i)  { m_uiBaseChromaPhaseYPlus1 = i+1; }
+  Void          Print               ( );
+
+protected:
+  UInt          m_uiBaseChromaPhaseXPlus1;
+  UInt          m_uiBaseChromaPhaseYPlus1;
+
+  Int           m_iScaledBaseLeftOffset;
+  Int           m_iScaledBaseTopOffset;
+  Int           m_iScaledBaseRightOffset;
+  Int           m_iScaledBaseBottomOffset;
+// TMM_ESS }
 };
 
 

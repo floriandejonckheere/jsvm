@@ -102,6 +102,7 @@ public:
 
   MbMvData()
   {
+    clear();  
   }
 
   Void clear()
@@ -192,6 +193,12 @@ public:
       m_usMotPredFlags( 0x0000 )
   {
     m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = BLOCK_NOT_AVAILABLE;
+    m_usMotPredFlags=0; 
+  
+    m_acRefPic[ 0 ].setFrame( NULL ); 
+    m_acRefPic[ 1 ].setFrame( NULL );
+    m_acRefPic[ 2 ].setFrame( NULL );
+    m_acRefPic[ 3 ].setFrame( NULL );
   }
 
 
@@ -285,6 +292,10 @@ public:
   
   ErrVal  upsampleMotion( const MbMotionData& rcMbMvData, Par8x8 ePar8x8 );
 
+// TMM_ESS {
+  ErrVal upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , ResizeParameters* pcParameters );
+  ErrVal upsampleMotionNonDyad( SChar* scBl8x8RefIdx , Mv* acBl4x4Mv , ResizeParameters* pcParameters , Mv deltaMv[4] ); 
+// TMM_ESS }
 private:
   Bool  xGetMotPredFlag ( UInt  uiPos )  const
   {

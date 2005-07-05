@@ -112,7 +112,7 @@ public:
 
   ErrVal read             ( MbDataAccess&   rcMbDataAccess,
                             MbDataAccess*   pcMbDataAccessBase,
-                            Bool            bHalfResBaseLayer,
+                            Int             iSpatialScalabilityType,
                             Bool&           rbEndOfSlice);
 
 protected:

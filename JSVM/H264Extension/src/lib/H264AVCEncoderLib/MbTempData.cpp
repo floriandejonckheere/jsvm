@@ -111,6 +111,9 @@ ErrVal IntMbTempData::uninit()
 IntMbTempData::IntMbTempData() :
 m_pcMbDataAccess( NULL )
 {
+  m_pcMbDataAccess = NULL;  
+  clear();
+  
   MbData::init( this, &m_acMbMvdData[0], &m_acMbMvdData[1], &m_acMbMotionData[0], &m_acMbMotionData[1] );
 }
 

@@ -594,6 +594,13 @@ ErrVal MbDecoder::calcMv( MbDataAccess& rcMbDataAccess,
         if( ( rcMbDataAccess.getMbData().getBlockFwdBwd( c8x8Idx.b8x8Index() ) & uiFwdBwd ) != 0 )
         {
           Mv cMv = rcMbDataAccess.getMbMotionData( ListIdx(uiFwdBwd-1) ).getMv( c8x8Idx.b8x8() );
+// TMM_ESS {
+          // mv enforced to have 1/2 pel accuracy
+          if ( cMv.getHor()%2 != 0 )
+            cMv.setHor( 2*(Int)(cMv.getHor()/2) );
+          if ( cMv.getVer()%2 != 0 )
+            cMv.setVer( 2*(Int)(cMv.getVer()/2) );
+// TMM_ESS }
           cMv   += rcMbDataAccess.getMbMvdData   ( ListIdx(uiFwdBwd-1) ).getMv( c8x8Idx.b8x8() );
           rcMbDataAccess.getMbMotionData( ListIdx(uiFwdBwd-1) ).setAllMv( cMv,  c8x8Idx.b8x8() );
         }

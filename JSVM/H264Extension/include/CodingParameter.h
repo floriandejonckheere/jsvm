@@ -98,7 +98,8 @@ H264AVC_NAMESPACE_BEGIN
 # pragma warning( disable: 4275 )
 #endif
 
-
+// TMM_ESS 
+#include "ResizeParameters.h"
 
 
 class H264AVCENCODERLIB_API MotionVectorSearchParams
@@ -289,6 +290,12 @@ public:
   Void setDecodingLoops                   (UInt   p) { m_uiDecodingLoops                  = p; }
   Void setContrainedIntraForLP            ()         { m_bConstrainedIntraPredForLP       = true; }
 
+// TMM_ESS {
+  int                 getExtendedSpatialScalability     () { return m_ResizeParameter.m_iExtendedSpatialScalability; }
+  int                 getSpatialScalabilityType         () { return m_ResizeParameter.m_iSpatialScalabilityType; }
+  Void                setResizeParameters      (ResizeParameters *p) { memcpy(&m_ResizeParameter, p, sizeof(ResizeParameters)); }
+  ResizeParameters*   getResizeParameters      () {return &m_ResizeParameter; }
+// TMM_ESS }
   //===== check =====
   ErrVal  check();
 
@@ -340,6 +347,9 @@ public:
   //----- for scalable SEI ----
   UInt                      m_uiBaseLayerSpatRes;
   UInt                      m_uiBaseLayerTempRes;
+
+  //----- ESS ---- 
+  ResizeParameters          m_ResizeParameter;
 };
 
 
@@ -431,6 +441,10 @@ public:
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
   Bool getQualityLevelsEstimation() { return m_bQualityLevelsEstimation;}
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
+  // TMM_ESS 
+  ResizeParameters*               getResizeParameters  ( UInt    n )    { return m_acLayerParameters[n].getResizeParameters(); }
+
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );

@@ -241,9 +241,58 @@ ErrVal CodingParameter::check()
       ROTREPORT( pcLayer->getFrameHeight()  < pcBaseLayer->getFrameHeight(), "Frame height less than base layer frame height" );
       UInt uiLogFactorWidth  = getLogFactor( pcBaseLayer->getFrameWidth (), pcLayer->getFrameWidth () );
       UInt uiLogFactorHeight = getLogFactor( pcBaseLayer->getFrameHeight(), pcLayer->getFrameHeight() );
-      ROTREPORT( uiLogFactorWidth != uiLogFactorHeight, "Frame width and height have to increase simultaneously from layer to layer" );
-      ROTREPORT( uiLogFactorWidth == MSYS_UINT_MAX,     "Frame width and height must be a power of 2 from layer to layer" );
+     
       pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
+			
+// TMM_ESS {
+      ResizeParameters * resize = pcLayer->getResizeParameters();
+      if (resize->m_iExtendedSpatialScalability != ESS_NONE)
+        {
+          ROTREPORT(resize->m_iInWidth  % 16,   "Base layer width must be a multiple of 16" );
+          ROTREPORT(resize->m_iInHeight % 16,   "Base layer height must be a multiple of 16" );
+          if (resize->m_bCrop)
+            {
+              ROTREPORT( resize->m_iPosX % 2 , "Cropping Window must be even aligned" );
+              ROTREPORT( resize->m_iPosY % 2 , "Cropping Window must be even aligned" );  
+              ROTREPORT(resize->m_iGlobWidth  % 16, "Enhancement layer width must be a multiple of 16" );
+              ROTREPORT(resize->m_iGlobHeight % 16, "Enhancement layer height must be a multiple of 16" );
+            }
+          else
+            {
+              resize->m_iGlobWidth = resize->m_iOutWidth;
+              resize->m_iGlobHeight = resize->m_iOutHeight;
+            }
+          printf("\n\n*************************\n%dx%d  -> %dx%d %s -> %dx%d\n",
+                 resize->m_iInWidth, resize->m_iInHeight,
+                 resize->m_iOutWidth, resize->m_iOutHeight,
+                 (resize->m_bCrop ? "Crop" : "No_Crop"),
+                 resize->m_iGlobWidth, resize->m_iGlobHeight);
+          printf("ExtendedSpatialScalability: %d    SpatialScalabilityType: %d\n",
+            resize->m_iExtendedSpatialScalability,
+            resize->m_iSpatialScalabilityType
+            );
+
+          
+          if ( resize->m_iSpatialScalabilityType <= 1 ) {
+            printf("INTRA UPSAMPL - 1/2 FILTER INTERP\n");
+            printf("INTER UPSAMPL - BILINEAR\n");
+            printf("UPSAMPLE MOTION - AUTOMATIC\n");
+          }
+          else {
+            switch (resize->m_iIntraUpsamplingType)
+              {
+              case 1:  printf("INTRA UPSAMPL - LANCZOS\n"); break;
+              case 2:  printf("INTRA UPSAMPL - 1/2 FILTER INTERP + 1/4 PEL LINEAR INTERP + CHOICE AT 1/4 LEVEL\n"); break;
+              case 3:  printf("INTRA UPSAMPL - KAISER\n"); break;
+              default: printf("INTRA UPSAMPL - UNKNOWN ????????\n");
+              }
+            }
+        }
+      else
+        {
+          printf("\n\n*************************\n D_Upsampling - No_Crop\n");
+        }
+// TMM_ESS }
 
       if( pcLayer->getDecodingLoops() == 0 ) // single-loop decoding also for low-pass
       {

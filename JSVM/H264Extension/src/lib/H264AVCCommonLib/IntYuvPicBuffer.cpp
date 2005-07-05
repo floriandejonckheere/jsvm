@@ -1222,8 +1222,8 @@ Bool IntYuvPicBuffer::isAbove4x4BlkNotZero ( LumaIdx cIdx )
   return false;
 }
 
-
-ErrVal IntYuvPicBuffer::upsampleResidual( DownConvert& rcDownConvert, UInt uiStages, MbDataCtrl* pcMbDataCtrl, Bool bClip )
+// TMM_ESS {
+ErrVal IntYuvPicBuffer::upsampleResidual( DownConvert& rcDownConvert, ResizeParameters* pcParameters, MbDataCtrl* pcMbDataCtrl, Bool bClip )
 {
   RNOK( m_rcYuvBufferCtrl.initMb() );
 
@@ -1232,19 +1232,16 @@ ErrVal IntYuvPicBuffer::upsampleResidual( DownConvert& rcDownConvert, UInt uiSta
   XPel*   pPelV     = getMbCrAddr ();
   Int     iStrideY  = getLStride  ();
   Int     iStrideC  = getCStride  ();
-  UInt    uiHeight  = getLHeight  () >> uiStages;
-  UInt    uiWidth   = getLWidth   () >> uiStages;
 
-  {
-    rcDownConvert.upsampleResidual  ( pPelY, iStrideY,
-                                      pPelU, iStrideC,
-                                      pPelV, iStrideC, uiWidth, uiHeight, pcMbDataCtrl, bClip, uiStages );
-  }
-
+  rcDownConvert.upsampleResidual(pPelY, iStrideY,
+                                 pPelU, iStrideC,
+                                 pPelV, iStrideC,
+                                 pcParameters,
+                                 pcMbDataCtrl, bClip);
   return Err::m_nOK;
 }
 
-ErrVal IntYuvPicBuffer::upsample( DownConvert& rcDownConvert, UInt uiStages, Bool bClip )
+ErrVal IntYuvPicBuffer::upsample( DownConvert& rcDownConvert, ResizeParameters* pcParameters, Bool bClip )
 {
   RNOK( m_rcYuvBufferCtrl.initMb() );
 
@@ -1253,15 +1250,15 @@ ErrVal IntYuvPicBuffer::upsample( DownConvert& rcDownConvert, UInt uiStages, Boo
   XPel*   pPelV     = getMbCrAddr ();
   Int     iStrideY  = getLStride  ();
   Int     iStrideC  = getCStride  ();
-  UInt    uiHeight  = getLHeight  () >> uiStages;
-  UInt    uiWidth   = getLWidth   () >> uiStages;
 
-  rcDownConvert.upsample  ( pPelY, iStrideY,
-                            pPelU, iStrideC,
-                            pPelV, iStrideC, uiWidth, uiHeight, bClip, uiStages );
-
+  rcDownConvert.upsample(pPelY, iStrideY,
+                         pPelU, iStrideC,
+                         pPelV, iStrideC,
+                         pcParameters,
+                         bClip);
   return Err::m_nOK;
 }
+// TMM_ESS }
 
 
 

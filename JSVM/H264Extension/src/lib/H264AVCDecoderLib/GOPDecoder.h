@@ -92,6 +92,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "DownConvert.h"
 
+// TMM_ESS 
+#include "ResizeParameters.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -219,7 +221,8 @@ public:
   ErrVal              clear             ( PicBufferList&              rcOutputList,
                                           PicBufferList&              rcUnusedList,
                                           Int&                        riMaxPoc );
-
+ //===== ESS ============
+  ErrVal			  fillPredictionLists_ESS( ResizeParameters *pcResizeParameters ); 
 
 protected:
   ErrVal              xCreateData       ( UInt                        uiMaxPicsInDPB,
@@ -368,6 +371,12 @@ public:
 #endif
   PocCalculator*  getPocCalculator              ()                  { return m_pcPocCalculator; }
 
+// TMM_ESS {
+  Void              setResizeParameters ( ResizeParameters* params ) { m_pcResizeParameter = params; }
+  ResizeParameters* getResizeParameters ()                           { return m_pcResizeParameter; }
+  Int               getSpatialScalabilityType()                      { return m_pcResizeParameter->m_iSpatialScalabilityType; }
+// TMM_ESS }
+
 protected:
   //===== create and initialize data arrays =====
   ErrVal      xCreateData                     ( const SequenceParameterSet&   rcSPS );
@@ -474,6 +483,9 @@ protected:
   ConnectionArray     m_cConnectionArray;
   UShort*             m_pusUpdateWeights;
 
+// TMM_ESS 
+  ResizeParameters*   m_pcResizeParameter;
+ 
   // should this layer be decoded at all, and up to which FGS layer should be decoded
   Int                 m_uiQualityLevelForPrediction;
 #if MULTIPLE_LOOP_DECODING

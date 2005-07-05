@@ -103,7 +103,10 @@ protected:
 
 public:
   virtual ErrVal initSlice0           (SliceHeader *rcSH)                               = 0;
-  virtual ErrVal initSPS              ( SequenceParameterSet&       rcSPS )             = 0;
+// TMM_ESS 
+  virtual ErrVal initSPS              ( SequenceParameterSet&       rcSPS,
+                                        UInt  uiLayer )                                 = 0;
+
   virtual ErrVal initParameterSets    ( const SequenceParameterSet& rcSPS,
                                         const PictureParameterSet&  rcPPSLP,
                                         const PictureParameterSet&  rcPPSHP )           = 0;

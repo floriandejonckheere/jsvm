@@ -255,41 +255,172 @@ MbDataCtrl::copyMotion( MbDataCtrl& rcMbDataCtrl )
 }
 
 
-ErrVal
-MbDataCtrl::copyMotionBL( MbDataCtrl& rcMbDataCtrl )
-{
-  Bool bDirect8x8 = rcMbDataCtrl.xGetDirect8x8InferenceFlag();
+// TMM_ESS {
 
-  for( UInt n = 0; n < m_uiSize; n++ )
-  {
-    RNOK( m_pcMbData[n].copyMotionBL( rcMbDataCtrl.m_pcMbData[n], bDirect8x8, m_uiSliceId ) );
-  }
+// motion copying (upsampling with factor=1) with/without cropping (MB aligned)
+ErrVal
+MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
+{
+  Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
+
+  Int  iMbOrigX = pcParameters->m_iPosX/16;
+  Int  iMbOrigY = pcParameters->m_iPosY/16;
+  Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
+  Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
+
+ for( Int iMbY = iMbOrigY ; iMbY < iMbEndY; iMbY++)
+  for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
+	 {
+    MbData& rcMbDes = m_pcMbData[iMbY*rcBaseMbDataCtrl.m_uiMbStride + iMbX];
+    RNOK( rcMbDes.copyMotionBL( rcBaseMbDataCtrl.m_pcMbData[(iMbY - iMbOrigY)*rcBaseMbDataCtrl.m_uiMbStride + (iMbX - iMbOrigX)], bDirect8x8, m_uiSliceId ) );
+    rcMbDes.setInCropWindowFlag( true );
+	 }
   return Err::m_nOK;
 }
 
 
-
-
+// motion upsampling (upsampling with factor=2) with/without cropping (MB aligned)
 ErrVal
-MbDataCtrl::upsampleMotion( MbDataCtrl& rcMbDataCtrl )
+MbDataCtrl::xUpsampleMotionDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
 {
-  Bool bDirect8x8 = rcMbDataCtrl.xGetDirect8x8InferenceFlag();
+	Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
+	Int  iMbX,iMbY,iBaseMbY,iBaseMbX,iPar;
+	UInt uiBaseMbStride=rcBaseMbDataCtrl.m_uiMbStride;
 
-  for( Int iMbY = 0; iMbY < m_iMbPerColumn; iMbY+=2 )
-  for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX+=2 )
-  for( Int iPar = 0; iPar < 4;              iPar++  )
+	Int  iMbOrigX = pcParameters->m_iPosX/16;
+	Int  iMbOrigY = pcParameters->m_iPosY/16;
+	Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
+	Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
+
+  //loop on scaled base window MBs
+  for( iMbY = iMbOrigY,iBaseMbY = 0 ; iMbY < iMbEndY; iMbY+=2,iBaseMbY++)
+  for( iMbX = iMbOrigX,iBaseMbX = 0 ; iMbX < iMbEndX; iMbX+=2,iBaseMbX++)
+  for( iPar = 0; iPar < 4;              iPar++  )
   {
-    MbData& rcMbDes = m_pcMbData[(iMbY+(iPar/2))*m_uiMbStride+(iMbX+(iPar%2))];
-    MbData& rcMbSrc = rcMbDataCtrl.m_pcMbData[(iMbY/2)*rcMbDataCtrl.m_uiMbStride+(iMbX/2)];
-    Par8x8  ePar    = Par8x8( iPar );
+		MbData& rcMbDes = m_pcMbData[(iMbY+(iPar/2))*m_uiMbStride+(iMbX+(iPar%2))];
+    MbData& rcMbSrc = rcBaseMbDataCtrl.m_pcMbData[iBaseMbY*uiBaseMbStride+iBaseMbX];
 
+    Par8x8  ePar    = Par8x8( iPar );
+		rcMbDes.setInCropWindowFlag( true );
     RNOK( rcMbDes.upsampleMotion( rcMbSrc, ePar, bDirect8x8 ) );
   }
 
   return Err::m_nOK;
 }
 
+ErrVal
+MbDataCtrl::upsampleMotion( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
+{
+	switch (pcParameters->m_iSpatialScalabilityType)
+	{
+	case SST_RATIO_1:
+		return copyMotionBL(rcBaseMbDataCtrl, pcParameters);
+		break;
+	case SST_RATIO_2:
+		return xUpsampleMotionDyad(rcBaseMbDataCtrl, pcParameters);
+		break;
+	case SST_RATIO_3_2:
+		return xUpsampleMotion3_2(rcBaseMbDataCtrl, pcParameters);
+		break;
+	case SST_RATIO_X:
+	default:
+		return xUpsampleMotionNonDyad(rcBaseMbDataCtrl, pcParameters);
+		break;
+	}
+}
 
+// motion upsampling with any cropping and upsampling factor
+ErrVal
+MbDataCtrl::xUpsampleMotionNonDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
+{
+  if( pcParameters->m_iExtendedSpatialScalability == ESS_PICT )
+  {
+  Int index = m_pcSliceHeader->getPoc();
+  pcParameters->setPOC(index);
+  pcParameters->setCurrentPictureParametersWith(index);
+  }
+
+  Int     iScaledBaseOrigX = pcParameters->m_iPosX;
+  Int     iScaledBaseOrigY = pcParameters->m_iPosY; 
+  Int     iScaledBaseWidth = pcParameters->m_iOutWidth;
+  Int     iScaledBaseHeight = pcParameters->m_iOutHeight;
+
+  // loop on MBs of high res picture
+  //--------------------------------
+  for( Int iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
+  {
+    for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
+    {
+      // get current high res MB and upsampling
+      MbData& rcMbDes = m_pcMbData[iMbY*m_uiMbStride+iMbX];
+
+      // check if MB is inside cropping window - if not, no upsampling is performed
+      if ( (iMbX >= (iScaledBaseOrigX+15) / 16) && (iMbX < (iScaledBaseOrigX+iScaledBaseWidth) / 16) &&
+           (iMbY >= (iScaledBaseOrigY+15) / 16) && (iMbY < (iScaledBaseOrigY+iScaledBaseHeight) / 16) )
+      {
+          RNOK( rcMbDes.upsampleMotionNonDyad( rcBaseMbDataCtrl.m_pcMbData, 
+                                                 (Int)16*iMbX-iScaledBaseOrigX , (Int)16*iMbY-iScaledBaseOrigY ,
+                                                 pcParameters ) );
+          rcMbDes.setInCropWindowFlag( true );
+		  }
+      else
+      {
+          rcMbDes.noUpsampleMotion();
+         // rcMbDes.setInCropWindowFlag( false );
+      }
+	 } // end of for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
+  } // end of for( Int iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
+
+  return Err::m_nOK;
+}
+
+
+
+ErrVal
+MbDataCtrl::xUpsampleMotion3_2(MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
+{
+  Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
+  
+  UInt uiBaseMbStride=rcBaseMbDataCtrl.m_uiMbStride;
+  Int iMbY,iMbX,iBaseMbY,iBaseMbX;
+  const MbData* apcBaseMbData[4];	
+  
+  Int  iMbOrigX = pcParameters->m_iPosX/16;
+  Int  iMbOrigY = pcParameters->m_iPosY/16;
+  Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
+  Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
+ 
+  for( iMbY = iMbOrigY, iBaseMbY = 0 ; iMbY < iMbEndY; iMbY+=3, iBaseMbY+=2 )
+    for( iMbX = iMbOrigX, iBaseMbX = 0 ; iMbX < iMbEndX;   iMbX+=3, iBaseMbX+=2)
+      {
+		Int iSMbWidth=(((iMbX+3)<=iMbEndX)? 3 : 1);
+		Int iSMbHeight=(((iMbY+3)<=iMbEndY)? 3 : 1);
+				
+		apcBaseMbData[1]=apcBaseMbData[2]=apcBaseMbData[3]=0;
+		apcBaseMbData[0]=&(rcBaseMbDataCtrl.m_pcMbData[iBaseMbY*uiBaseMbStride+iBaseMbX]);
+		if(iSMbWidth==3)
+			apcBaseMbData[1]=&(rcBaseMbDataCtrl.m_pcMbData[iBaseMbY*uiBaseMbStride+(iBaseMbX + 1)]);
+		if(iSMbHeight==3)
+		apcBaseMbData[2]=&(rcBaseMbDataCtrl.m_pcMbData[(iBaseMbY + 1)*uiBaseMbStride+iBaseMbX]);
+		if((iSMbWidth==3)&&(iSMbHeight==3))
+		apcBaseMbData[3]=&(rcBaseMbDataCtrl.m_pcMbData[(iBaseMbY + 1)*uiBaseMbStride+(iBaseMbX + 1)]);
+     
+        for( Int iSMbidxY = 0; iSMbidxY < iSMbHeight; iSMbidxY++  ) 
+          for( Int iSMbidxX = 0; iSMbidxX < iSMbWidth; iSMbidxX++  ) 
+            {
+              MbData& rcMbDes = m_pcMbData[(iMbY+iSMbidxY)*m_uiMbStride+(iMbX+iSMbidxX)];
+              SMbIdx  eSMbIdx = SMbIdx( iSMbidxY*3+iSMbidxX );
+   
+			  RNOK( rcMbDes.upsampleMotion3_2(apcBaseMbData,eSMbIdx,bDirect8x8,pcParameters));
+              rcMbDes.setInCropWindowFlag( true );
+
+			}
+      }
+
+  return Err::m_nOK;
+}
+
+// TMM_ESS }
 
 
 ErrVal MbDataCtrl::uninit()

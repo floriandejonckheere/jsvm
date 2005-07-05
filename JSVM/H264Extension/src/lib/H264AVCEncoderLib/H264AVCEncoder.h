@@ -152,14 +152,14 @@ public:
 
   ErrVal  getBaseLayerStatus  ( UInt&         ruiBaseLayerId,
                                 UInt&         ruiBaseLayerIdMotionOnly,
-                                Bool&         rbHalfResolutionBaseLayer,
+                                Int&          riSpatialScalabilityType,
                                 UInt          uiLayerId,
                                 Int           iPoc );
   ErrVal  getBaseLayerData    ( IntFrame*&    pcFrame,
                                 IntFrame*&    pcResidual,
                                 MbDataCtrl*&  pcMbDataCtrl,
                                 Bool&         bForCopyOnly,
-                                Bool          bSpatialScalability,
+                                Int                             iSpatialScalability,
                                 UInt          uiBaseLayerId,
                                 Int           iPoc,
                                 Bool          bMotion );

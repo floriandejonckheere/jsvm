@@ -151,7 +151,7 @@ public:
                                         UInt          uiMbInRow,
                                         Double        dLambda,
                                         Int           iMaxDeltaQp,
-                                        Bool          bHalfResBaseLayer);
+                                        Int						iSpatialScalabilityType);
 
 
 

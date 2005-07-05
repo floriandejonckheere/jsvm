@@ -121,6 +121,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bAdaptiveRefPicBufferingModeFlag  ( false )
 , m_uiCabacInitIdc                    ( 0 )
 , m_iSliceQpDelta                     ( 0 )
+,m_uiBaseChromaPhaseXPlus1            ( 1 ) // TMM_ESS
+,m_uiBaseChromaPhaseYPlus1            ( 1 ) // TMM_ESS
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -278,6 +280,25 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   {
     RNOK( getDeblockingFilterParameter().write( pcWriteIf ) );
   }
+
+// TMM_ESS {
+  if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
+  {
+    if ( 1 /* chroma_format_idc */ > 0 )
+    {
+      RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
+      RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
+    }
+    
+    if (getSPS().getExtendedSpatialScalability() == ESS_PICT)
+    {
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,                       "SH: ScaledBaseLeftOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,                        "SH: ScaledBaseTopOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,                      "SH: ScaledBaseRightOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,                     "SH: ScaledBaseBottomOffset" ) );
+    }
+  }
+// TMM_ESS }
 
   return Err::m_nOK;
 }
@@ -508,6 +529,25 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   {
     RNOK( getDeblockingFilterParameter().read( pcReadIf ) );
   }
+
+// TMM_ESS {
+  if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
+  {
+    if ( 1 /* chroma_format_idc */ > 0 )
+    {
+      RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 2,                 "SH: BaseChromaPhaseXPlus1" ) );
+      RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,                 "SH: BaseChromaPhaseYPlus1" ) );
+    }
+
+    if (getSPS().getExtendedSpatialScalability() == ESS_PICT)
+    {
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                          "SH: ScaledBaseLeftOffset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                           "SH: ScaledBaseTopOffset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                         "SH: ScaledBaseRightOffset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                        "SH: ScaledBaseBottomOffset" ) );
+    }
+  }
+// TMM_ESS }
 
   return Err::m_nOK;
 }

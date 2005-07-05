@@ -217,7 +217,7 @@ ErrVal MbParser::process( MbDataAccess& rcMbDataAccess, Bool& rbEndOfSlice)
 
 ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
                        MbDataAccess*  pcMbDataAccessBase,
-                       Bool           bHalfResBaseLayer,
+                       Int            iSpatialScalabilityType,
                        Bool&          rbEndOfSlice)
 {
   ROF( m_bInitDone );
@@ -226,22 +226,34 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
   //===== base layer mode flag and base layer refinement flag =====
   if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
   {
-    if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+    if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() == true )// TMM_ESS
     {
-      if( ! m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess ) && bHalfResBaseLayer && ! pcMbDataAccessBase->getMbData().isIntra() )
-      {
-        m_pcMbSymbolReadIf->isBLQRef( rcMbDataAccess );
-      }
-      else
-      {
+			if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+			{
+	            // TMM_ESS 
+				if( ! m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess ) && (iSpatialScalabilityType != SST_RATIO_1) && ! pcMbDataAccessBase->getMbData().isIntra() )
+	
+				{
+					m_pcMbSymbolReadIf->isBLQRef( rcMbDataAccess );
+				}
+				else
+				{
+					rcMbDataAccess.getMbData().setBLQRefFlag( false );
+				}
+			}
+			else
+			{
+				rcMbDataAccess.getMbData().setBLSkipFlag( true  );
+				rcMbDataAccess.getMbData().setBLQRefFlag( false );
+			}
+// TMM_ESS {
+    }
+    else  // ( rcMbDataAccess.getMbData().getInCropWindowFlag() == false )
+    {
+        rcMbDataAccess.getMbData().setBLSkipFlag( false );
         rcMbDataAccess.getMbData().setBLQRefFlag( false );
-      }
     }
-    else
-    {
-      rcMbDataAccess.getMbData().setBLSkipFlag( true  );
-      rcMbDataAccess.getMbData().setBLQRefFlag( false );
-    }
+// TMM_ESS }
   }
   else
   {

@@ -161,7 +161,7 @@ public:
 
   ErrVal  encodeInterP        ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,
-                                Bool            bHalfResBaseLayer,
+                                Int             iSpatialScalabilityType,
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcRecSubband,
                                 IntFrame*       pcPredSignal,
@@ -182,7 +182,7 @@ public:
 
   ErrVal  estimatePrediction  ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,
-                                Bool            bHalfResBaseLayer,
+                                Int							iSpatialScalabilityType,
                                 RefFrameList&   rcRefFrameList0,
                                 RefFrameList&   rcRefFrameList1,
                                 const IntFrame* pcBaseLayerFrame,
@@ -271,7 +271,7 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   const IntFrame*   pcBaseLayerRec,
                                   Bool              bBSlice,
-                                  Bool              bHalfResBaseLayer,
+                                  Int				iSpatialScalabilityType,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   Bool              bResidualPred );
   ErrVal  xEstimateMbDirect     ( IntMbTempData*&   rpcMbTempData,

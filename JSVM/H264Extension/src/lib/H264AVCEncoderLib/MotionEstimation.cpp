@@ -241,6 +241,13 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
 
   if( bQPelRefinementOnly )
   {
+// TMM_ESS {
+    // mv enforced to have 1/2 pel accuracy
+    if ( rcMvPred.getHor()%2 != 0 )
+      rcMvPred.setHor( 2*(Int)(rcMvPred.getHor()/2) );
+    if ( rcMvPred.getVer()%2 != 0 )
+      rcMvPred.setVer( 2*(Int)(rcMvPred.getVer()/2) );
+// TMM_ESS }
     ROT( rcMvPred.getHor() % 2 );
     ROT( rcMvPred.getVer() % 2 );
     rcMv = rcMvPred;

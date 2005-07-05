@@ -170,6 +170,9 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiFrameWidthInMbs                       ( 0 )
 , m_uiFrameHeightInMbs                      ( 0 )
 , m_bDirect8x8InferenceFlag                 ( false )
+,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
+,m_uiChromaPhaseXPlus1                      ( 1 ) // TMM_ESS
+,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
 #if MULTIPLE_LOOP_DECODING
 , m_bAlwaysDecodeBaseLayer                  ( false )
 #endif
@@ -312,6 +315,29 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeFlag( true,                                     "SPS: frame_mbs_only_flag" ) );
   RNOK  ( pcWriteIf->writeFlag( getDirect8x8InferenceFlag(),              "SPS: direct_8x8_inference_flag" ) );
   RNOK  ( pcWriteIf->writeFlag( false,                                    "SPS: frame_cropping_flag" ) );
+
+// TMM_ESS {
+  if(  getProfileIdc() == SCALABLE_PROFILE )
+  {
+    RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,       "SPS: ExtendedSpatialScalability" ) );
+    if (getExtendedSpatialScalability() > ESS_NONE)
+    {
+      if ( 1 /* chroma_format_idc */ > 0 )
+      {
+        RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: ChromaPhaseXPlus1" ) );
+        RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: ChromaPhaseYPlus1" ) );
+      }
+      if (getExtendedSpatialScalability() == ESS_SEQ)
+      {
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,                       "SPS: ScaledBaseLeftOffset" ) );
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,                        "SPS: ScaledBaseTopOffset" ) );
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,                      "SPS: ScaledBaseRightOffset" ) );
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,                     "SPS: ScaledBaseBottomOffset" ) );
+      }
+	}
+  }
+// TMM_ESS }
+
   RNOK  ( pcWriteIf->writeFlag( false,                                    "SPS: vui_parameters_present_flag" ) );
 
   return Err::m_nOK;
@@ -386,6 +412,33 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK( pcReadIf->getFlag( m_bDirect8x8InferenceFlag,                     "SPS: direct_8x8_inference_flag" ) );
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: frame_cropping_flag" ) );
   ROT ( bTmp );
+  
+// TMM_ESS {
+  if (m_eProfileIdc == SCALABLE_PROFILE)
+  {
+    RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: ExtendedSpatialScalability" ) );
+    if (m_uiExtendedSpatialScalability > ESS_NONE)
+    {
+      if ( 1 /* chroma_format_idc */ > 0 )
+      {
+        RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                "SPS: ChromaPhaseXPlus1" ) );
+        RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                "SPS: ChromaPhaseYPlus1" ) );
+      }
+      if (m_uiExtendedSpatialScalability == ESS_SEQ)
+      {
+        RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                          "SPS: ScaledBaseLeftOffset" ) );
+        RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                           "SPS: ScaledBaseTopOffset" ) );
+        RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                         "SPS: ScaledBaseRightOffset" ) );
+        RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                        "SPS: ScaledBaseBottomOffset" ) );
+      }
+    }
+  }
+  else
+  {
+    m_uiExtendedSpatialScalability = ESS_NONE;
+  }
+// TMM_ESS }
+
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: vui_parameters_present_flag" ) );
   ROT ( bTmp );
 
@@ -441,6 +494,64 @@ SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
 
   return Err::m_nOK;
 }
+
+
+// TMM_ESS {
+Void SequenceParameterSet::setResizeParameters ( const ResizeParameters * params )
+{
+  m_uiExtendedSpatialScalability = (UInt)params->m_iExtendedSpatialScalability;
+
+  m_uiChromaPhaseXPlus1 = (UInt)(params->m_iChromaPhaseX+1);
+  m_uiChromaPhaseYPlus1 = (UInt)(params->m_iChromaPhaseY+1);
+
+  if (m_uiExtendedSpatialScalability == ESS_SEQ)
+  {
+    m_iScaledBaseLeftOffset   = params->m_iPosX /2;
+    m_iScaledBaseTopOffset    = params->m_iPosY /2;
+    m_iScaledBaseRightOffset  = (params->m_iGlobWidth - params->m_iPosX - params->m_iOutWidth) /2;
+    m_iScaledBaseBottomOffset = (params->m_iGlobHeight - params->m_iPosY - params->m_iOutHeight) /2;
+    printf("offset: %d,%d %d,%d\n", m_iScaledBaseLeftOffset, m_iScaledBaseTopOffset, m_iScaledBaseRightOffset, m_iScaledBaseBottomOffset);
+  }
+  else
+  {
+    m_iScaledBaseBottomOffset = 0;
+    m_iScaledBaseLeftOffset = 0;
+    m_iScaledBaseRightOffset = 0;
+    m_iScaledBaseTopOffset = 0;
+  }
+ }
+
+Void SequenceParameterSet::getResizeParameters ( ResizeParameters * params ) const
+{
+  params->m_iExtendedSpatialScalability = m_uiExtendedSpatialScalability;
+
+  params->m_bCrop = (m_uiExtendedSpatialScalability != ESS_NONE);
+
+  int w = m_uiFrameWidthInMbs * 16;
+  int h = m_uiFrameHeightInMbs * 16;
+  params->m_iGlobWidth  = w;
+  params->m_iGlobHeight = h;
+
+  params->m_iChromaPhaseX = (Int)m_uiChromaPhaseXPlus1 - 1;
+  params->m_iChromaPhaseY = (Int)m_uiChromaPhaseYPlus1 - 1;
+
+
+  if (m_uiExtendedSpatialScalability == ESS_SEQ)
+  {
+    params->m_iPosX       = m_iScaledBaseLeftOffset *2;
+    params->m_iPosY       = m_iScaledBaseTopOffset *2;
+    params->m_iOutWidth   = w - params->m_iPosX - (m_iScaledBaseRightOffset *2);
+    params->m_iOutHeight  = h - params->m_iPosY - (m_iScaledBaseBottomOffset *2);
+  }
+  else
+  {
+    params->m_iOutWidth   = w;
+    params->m_iOutHeight  = h;
+    params->m_iPosX       = 0;
+    params->m_iPosY       = 0;
+  }
+}
+// TMM_ESS }
 
 
 H264AVC_NAMESPACE_END

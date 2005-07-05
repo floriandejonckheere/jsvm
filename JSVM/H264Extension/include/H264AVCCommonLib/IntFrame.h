@@ -236,18 +236,20 @@ public:
     return Err::m_nOK;
   }
 
-
-  ErrVal upsample     ( DownConvert& rcDownConvert, UInt uiStages, Bool bClip )
+// TMM_ESS {
+	ErrVal upsample     ( DownConvert& rcDownConvert, ResizeParameters* pcParameters, Bool bClip )
   {
-    RNOK( getFullPelYuvBuffer()->upsample( rcDownConvert, uiStages, bClip ) );
+    RNOK( getFullPelYuvBuffer()->upsample( rcDownConvert, pcParameters, bClip ) );
     return Err::m_nOK;
   }
 
-  ErrVal upsampleResidual( DownConvert& rcDownConvert, UInt uiStages, MbDataCtrl* pcMbDataCtrl, Bool bClip )
+  ErrVal upsampleResidual ( DownConvert& rcDownConvert, ResizeParameters* pcParameters, MbDataCtrl* pcMbDataCtrl, Bool bClip )
   {
-    RNOK( getFullPelYuvBuffer()->upsampleResidual( rcDownConvert, uiStages, pcMbDataCtrl, bClip ) );
+    RNOK( getFullPelYuvBuffer()->upsampleResidual( rcDownConvert, pcParameters, pcMbDataCtrl, bClip ) );
     return Err::m_nOK;
   }
+// TMM_ESS }
+
 
   IntYuvPicBuffer*  getFullPelYuvBuffer     ()        { return &m_cFullPelYuvBuffer; }
   IntYuvPicBuffer*  getHalfPelYuvBuffer     ()        { return &m_cHalfPelYuvBuffer; }

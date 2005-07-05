@@ -177,8 +177,10 @@ public:
                                           ListIdx           eListUpd );
 
   ErrVal        copyMotion    ( MbDataCtrl& rcMbDataCtrl );
-  ErrVal        copyMotionBL  ( MbDataCtrl& rcMbDataCtrl );
-  ErrVal        upsampleMotion( MbDataCtrl& rcMbDataCtrl );
+	// TMM_ESS {
+  ErrVal        copyMotionBL  ( MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters  );
+  ErrVal        upsampleMotion ( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+	// TMM_ESS }
 
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
@@ -192,6 +194,13 @@ protected:
   Void xAddConnectionForMV   ( ConnectionData& rcConnectionData, ListIdx eListIdx, Int iRefIdx, LumaIdx cIdx, Int iNumConnected, const Mv& rcMv );
 
   Bool xGetDirect8x8InferenceFlag() { return m_bDirect8x8InferenceFlag; }
+
+// TMM_ESS {
+  ErrVal  xUpsampleMotionDyad( MbDataCtrl& rcMbDataCtrl,ResizeParameters* pcParameters );
+  ErrVal  xUpsampleMotionNonDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+  ErrVal  xUpsampleMotion3_2(MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters );
+// TMM_ESS }
+
 protected:
   DynBuf<DFP*>        m_cpDFPBuffer;
   MbTransformCoeffs*  m_pcMbTCoeffs;
@@ -329,8 +338,13 @@ public:
   UInt          getBaseLayerId    () { return m_uiBaseLayerId; }
   UInt          getBaseLayerIdMotion()  { return m_uiBaseLayerIdMotion; }
 
-  Void          setBaseLayerResolution( Bool bHalfRes ) { m_bHalfResolutionBaseLayer = bHalfRes; }
-  Bool          isHalfResolutionBaseLayer() { return m_bHalfResolutionBaseLayer; }
+// TMM_ESS {
+  Void          setSpatialScalabilityType ( int iSST )   { m_iSpatialScalabilityType = iSST; }
+  Int           getSpatialScalabilityType ()             { return m_iSpatialScalabilityType; }
+  Void          setSpatialScalability ( Bool b )         { m_bSpatialScalability = b; }
+  Bool          getSpatialScalability ()                 { return m_bSpatialScalability; }
+// TMM_ESS }
+
 
 // *LMH: Inverse MCTF
   Bool          isComplete           () { return m_bComplete; }
@@ -378,7 +392,9 @@ private:
 
   UInt          m_uiBaseLayerId;
   UInt          m_uiBaseLayerIdMotion;
-  Bool          m_bHalfResolutionBaseLayer;
+
+  Int           m_iSpatialScalabilityType; // TMM_ESS
+  Bool          m_bSpatialScalability;     // TMM_ESS  
 
 // *LMH: Inverse MCTF
   Bool          m_bComplete;

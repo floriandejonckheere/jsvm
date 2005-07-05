@@ -120,6 +120,9 @@ MbTransformCoeffs::load( FILE* pFile )
 
 Void MbTransformCoeffs::clear()
 {
+  for (Int i=0; i<24; i++)
+    ::memset( &(m_aaiLevel[i][0]), 0, 16*sizeof(TCoeff) );
+  
   ::memset( m_aaiLevel, 0, sizeof( m_aaiLevel ) );
   ::memset( m_aaucCoeffCount, 0, sizeof(m_aaucCoeffCount));
 }
@@ -168,7 +171,9 @@ Void MbTransformCoeffs::copyFrom( MbTransformCoeffs& rcMbTransformCoeffs )
 
 
 MbTransformCoeffs::MbTransformCoeffs()
-{}
+{
+  clear();  
+}
 
 
 

@@ -95,6 +95,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #endif
 
+#include "ResizeParameters.h"
+#define LANCZOS_OPTIM 1
+
 
 class DownConvert
 {
@@ -116,6 +119,13 @@ public:
                                   unsigned char* pucBufferU, int iStrideU,
                                   unsigned char* pucBufferV, int iStrideV,
                                   int            iWidth,     int iHeight, int iStages = 1 );                // low-resolution
+// TMM_ESS }
+  void  upsample                ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  bool              bClip = true );
+
   void  upsample                ( short*         psBufferY,  int iStrideY,
                                   short*         psBufferU,  int iStrideU,
                                   short*         psBufferV,  int iStrideV,
@@ -132,6 +142,14 @@ public:
                                   int            iWidth,     int iHeight, int* piFilter, bool bClip, int iStages = 1 );    // low-resolution
 
 #ifndef NO_MB_DATA_CTRL
+  // TMM_ESS 
+  void upsampleResidual         ( short*            psBufferY,  int iStrideY,
+                                  short*            psBufferU,  int iStrideU,
+                                  short*            psBufferV,  int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  h264::MbDataCtrl* pcMbDataCtrl,
+                                  bool              bClip );
+
   void  upsampleResidual        ( short*         psBufferY,  int iStrideY,
                                   short*         psBufferU,  int iStrideU,
                                   short*         psBufferV,  int iStrideV,
@@ -206,6 +224,187 @@ private:
   int*  m_paiImageBuffer2;
 #endif
   int*  m_paiTmp1dBuffer;
+
+// TMM_ESS {
+
+// =================================================================================
+//   GENERAL
+// =================================================================================
+public:
+  void  upsample_tmm            ( unsigned char*    pucBufferY, int iStrideY,
+                                  unsigned char*    pucBufferU, int iStrideU,
+                                  unsigned char*    pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters );
+
+private:
+  void   xInitFilterTmm         ( int iMaxDim );
+  void   xDestroyFilterTmm      ( );
+
+  void   xGenericUpsample       ( unsigned char*    pucBufferY, int iStrideY,
+                                  unsigned char*    pucBufferU, int iStrideU,
+                                  unsigned char*    pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters );
+  void   xCrop                  ( unsigned char*    pucBufferY, int iStrideY,
+                                  unsigned char*    pucBufferU, int iStrideU,
+                                  unsigned char*    pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters );
+  void   xGenericUpsample       ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  bool              bClip = true );
+  void   xCrop                  ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  bool              bClip = true );
+
+#ifndef NO_MB_DATA_CTRL
+  void   xInitFilterTmmResidual        ( int iMaxDim );
+  void   xDestroyFilterTmmResidual     ( );
+
+  void   xGenericUpsample       ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  h264::MbDataCtrl* pcMbDataCtrl,
+                                  bool              bClip = true );
+  void   xUpsamplingFrame       ( ResizeParameters* pcParameters,
+                                  int* piSrcBlock,   // low-resolution src-addr
+                                  int* piDesBlock,   // high-resolution src-addr
+                                  bool bLuma,
+								                  h264::MbDataCtrl* pcMbDataCtrl);
+  void   xUpsamplingBlock       ( int iInWidth,      // low-resolution width
+                                  int iInHeight,     // low-resolution height
+                                  int iOutWidth,     // high-resolution width
+                                  int iOutHeight,    // high-resolution height
+                                  int* piSrcBlock,   // low-resolution src-addr
+                                  int* piDesBlock,   // high-resolution src-addr
+                                  int xNumphi,       // dephasage on X direction
+                                  int yNumphi,       // dephasage on Y direction
+                                  int Numerateur,
+                                  int iInBlockSize);
+  void xComputeLastSamplePosition( int xNumphi,
+                                   int yNumphi,
+                                   int iPelPerMb,
+                                   int Numerateur,
+                                   int Denominateur,
+                                   int *xlastsample,
+                                   int *ylastsample);
+
+  void xCopyBuffer		(int *pitmpDes,
+						           int *piDes,
+						           int ixlastsample,
+						           int iylastsample,
+						           int ixout,
+						           int iyout,
+						           int iSizeOut);
+  void   xUpsamplingDataResidual ( int iInLength , int iOutLength, double phase_init);
+
+private:
+  int *m_pitmpDes4;
+	int *m_pitmpDes8;
+	int *m_pitmpDes16; 
+
+
+#endif
+  
+  void   xSetValue              ( unsigned char* pucBuffer, int iStride,
+                                  int iWidth, int iHeight,
+                                  unsigned char value );
+  void   xSetValue              ( short* psBuffer, int iStride,
+                                  int iWidth, int iHeight,
+                                  short value );
+  void   xUpsampling            ( ResizeParameters* pcParameters,
+                                  bool bLuma );
+  void   xComputeNumeratorDenominator ( int iInWidth , int iOutWidth ,
+                                        int* iNumerator, int *iDenominator);
+
+// =================================================================================
+//   INTRA 1 Lanczos
+// =================================================================================
+private:
+  void   xInitFilterTmm1        ( int iMaxDim );
+  void   xDestroyFilterTmm1     ( );
+  void   xUpsampling1           ( ResizeParameters* pcParameters,
+                                  bool bLuma );
+#if LANCZOS_OPTIM
+  void   xUpsamplingData1       ( int iInLength , int iOutLength , long spos );
+  long   xGetFilter             ( long x );
+#else
+  void   xUpsamplingData1       ( int iInLength , int iOutLength , int iNumerator , int iDenominator );
+  double xGetFilter             ( double x );
+#endif
+
+private:
+#if LANCZOS_OPTIM
+  long* m_padFilter;
+#else
+  double* m_padFilter;
+#endif
+
+  
+  
+// =================================================================================
+//   INTRA 2
+// =================================================================================
+private:
+  void   xInitFilterTmm2        ( int iMaxDim );
+  void   xDestroyFilterTmm2     ( );
+  void   xUpsampling2           ( ResizeParameters* pcParameters,
+                                  bool bLuma );
+  void   xUpsamplingData2       ( int iInLength , int iOutLength , int iNumerator , int iDenominator );
+
+// =================================================================================
+  
+// INTRA 2 / INTER 2 
+private:
+  int* m_Tmp1dBufferInHalfpel;
+  int* m_Tmp1dBufferInQ1pel;
+  int* m_Tmp1dBufferInQ3pel;
+  
+// =================================================================================
+  
+// INTRA 3
+public:
+  void upsample3            ( unsigned char* pucBufferY, unsigned char* pucBufferU, unsigned char* pucBufferV,
+                              int input_width, int input_height, int output_width, int output_height,
+                              int crop_x0, int crop_y0, int crop_w, int crop_h, 
+                              int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+                              int output_chroma_phase_shift_x, int output_chroma_phase_shift_y);
+  
+  void downsample3          ( unsigned char* pucBufferY, unsigned char* pucBufferU, unsigned char* pucBufferV,
+                              int input_width, int input_height, int output_width, int output_height,
+                              int crop_x0, int crop_y0, int crop_w, int crop_h, 
+                              int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+                              int output_chroma_phase_shift_x, int output_chroma_phase_shift_y );
+
+  void UnifiedOneForthPix ( unsigned char **out4Y, int img_width, int img_height );
+
+  
+private:
+  void   xUpsampling3           ( ResizeParameters* pcParameters,
+                                  bool bLuma );
+  void   xUpsampling3           ( int input_width, int input_height,
+                                  int output_width, int output_height,
+                                  int crop_x0, int crop_y0, int crop_w, int crop_h,
+                                  int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y,
+                                  bool uv_flag );
+  void   xDownsampling3         ( int input_width, int input_height, int output_width, int output_height,
+                                  int crop_x0, int crop_y0, int crop_w, int crop_h,
+                                  int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flg );
+
+
+// =================================================================================
+// =================================================================================
+private:
+  int*  m_paiTmp1dBufferIn;
+  int*  m_paiTmp1dBufferOut;
+
+// TMM_ESS }
+  
 };
 
 
@@ -213,7 +412,7 @@ private:
 
 
 #include "DownConvert.inl"
-
+#include "DownConvertTmm.inl"
 
 
 

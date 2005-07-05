@@ -164,6 +164,18 @@ const UChar g_aucConvertBlockOrder[17] =
   10, 11, 14, 15, 0xff,
 };
 
+// TMM_ESS {
+const UChar g_aucConvertTo8x8Idx[16]=
+{		
+    0 ,0 ,1 , 1,
+    0 ,0 ,1 , 1,
+    2 ,2 ,3 , 3,
+    2 ,2 ,3 ,3
+};
+
+const UChar g_aucConvertTo4x4Idx[4]=
+{  0,2,8,10 };
+// TMM_ESS }
 
 class LumaIdx
 {

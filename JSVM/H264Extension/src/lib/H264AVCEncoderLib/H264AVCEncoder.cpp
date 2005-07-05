@@ -144,23 +144,14 @@ H264AVCEncoder::destroy()
 ErrVal
 H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
                                     UInt&   ruiBaseLayerIdMotionOnly,
-                                    Bool&   rbHalfResolutionBaseLayer,
+                                    Int &   riSpatialScalabilityType,
                                     UInt    uiLayerId,
                                     Int     iPoc )
 {
   //===== get spatial resolution ratio =====
-  if( m_apcMCTFEncoder[uiLayerId]->getFrameHeight() == 2 * m_apcMCTFEncoder[ruiBaseLayerId]->getFrameHeight() &&
-      m_apcMCTFEncoder[uiLayerId]->getFrameWidth () == 2 * m_apcMCTFEncoder[ruiBaseLayerId]->getFrameWidth ()   )
-  {
-    rbHalfResolutionBaseLayer = true;
-  }
-  else
-  {
-    ROF( m_apcMCTFEncoder[uiLayerId]->getFrameHeight() == m_apcMCTFEncoder[ruiBaseLayerId]->getFrameHeight() &&
-         m_apcMCTFEncoder[uiLayerId]->getFrameWidth () == m_apcMCTFEncoder[ruiBaseLayerId]->getFrameWidth ()   )
-
-    rbHalfResolutionBaseLayer = false;
-  }
+ 
+// TMM_ESS 
+  riSpatialScalabilityType = m_apcMCTFEncoder[uiLayerId]->getSpatialScalabilityType();
 
   //===== check data availability =====
   if( ruiBaseLayerId < m_pcCodingParameter->getNumberOfLayers() )
@@ -186,14 +177,16 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
                                   IntFrame*&    pcResidual,
                                   MbDataCtrl*&  pcMbDataCtrl,
                                   Bool&         bForCopyOnly,
-                                  Bool          bSpatialScalability,
+                                  Int           iSpatialScalability,
                                   UInt          uiBaseLayerId,
                                   Int           iPoc,
                                   Bool          bMotion )
 {
   ROF ( uiBaseLayerId < MAX_LAYERS );
+
   RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl,
-                                                           bForCopyOnly, bSpatialScalability, iPoc, bMotion ) );
+                                                           bForCopyOnly, iSpatialScalability, iPoc, bMotion ) );
+
   return Err::m_nOK;
 }
 
@@ -418,7 +411,11 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     pcScalableSEI->setSpatialResolutionFactor  ( uiLayer, auiSpatialResolutionFactors  [uiLayer] );
-    pcScalableSEI->setTemporalResolutionFactor ( uiLayer, auiTemporalResolutionFactors [uiLayer] );
+	pcScalableSEI->setTemporalResolutionFactor ( uiLayer, auiTemporalResolutionFactors [uiLayer] );
+// TMM_ESS {
+    pcScalableSEI->setFrameWidthInMB  (uiLayer, m_pcCodingParameter->getLayerParameters(uiLayer).getFrameWidth() / 16);
+    pcScalableSEI->setFrameHeightInMB (uiLayer, m_pcCodingParameter->getLayerParameters(uiLayer).getFrameHeight() / 16);
+// TMM_ESS }
   }
   
   //===== write message =====
@@ -723,6 +720,9 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setFrameWidthInMbs                     ( uiMbX );
     pcSPS->setFrameHeightInMbs                    ( uiMbY );
     pcSPS->setDirect8x8InferenceFlag              ( true  );
+    // TMM_ESS 
+    pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
+
     pcSPS->setLowComplxUpdFlag                    ( m_pcCodingParameter->getLowComplxUpdFlag() );
 #if MULTIPLE_LOOP_DECODING
     pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 

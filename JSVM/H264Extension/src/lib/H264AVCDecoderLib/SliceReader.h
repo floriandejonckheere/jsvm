@@ -124,7 +124,7 @@ public:
   ErrVal  read           ( SliceHeader&   rcSH,
                            MbDataCtrl*    pcMbDataCtrl,
                            MbDataCtrl*    pcMbDataCtrlBase,
-                           Bool           bHalfResBaseLayer,
+                           Int             iSpatialScalabilityType,
                            UInt           uiMbInRow,
                            UInt&          ruiMbRead );
 

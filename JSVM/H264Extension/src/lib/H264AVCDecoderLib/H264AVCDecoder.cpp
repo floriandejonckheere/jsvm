@@ -533,6 +533,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       ruiMbX  = max( pcSPS->getFrameWidthInMbs (), ruiMbX );
       ruiMbY  = max( pcSPS->getFrameHeightInMbs(), ruiMbY );
       ruiSize = ( (ruiMbX << 3 ) + YUV_X_MARGIN ) * ( ( ruiMbY << 3 ) + YUV_Y_MARGIN ) * 6;
+      m_pcControlMng->initSPS(*pcSPS, m_uiSPSCount-1); // TMM_ESS
     }
     break;
 
@@ -589,18 +590,17 @@ H264AVCDecoder::getBaseLayerMotionAndResidual( IntFrame*&    pcResidual,
     //===== base layer is scalable extension =====
 
     //--- get spatial resolution ratio ---
-    if( m_apcMCTFDecoder[uiLayerId]->getFrameHeight() == 2 * m_apcMCTFDecoder[uiBaseLayerId]->getFrameHeight() &&
-        m_apcMCTFDecoder[uiLayerId]->getFrameWidth () == 2 * m_apcMCTFDecoder[uiBaseLayerId]->getFrameWidth ()   )
+    // TMM_ESS {
+	if( m_apcMCTFDecoder[uiLayerId]->getFrameHeight() != m_apcMCTFDecoder[uiBaseLayerId]->getFrameHeight() &&
+        m_apcMCTFDecoder[uiLayerId]->getFrameWidth () != m_apcMCTFDecoder[uiBaseLayerId]->getFrameWidth ()   )
     {
       bSpatialScalability = true;
     }
     else
     {
-      ROF( m_apcMCTFDecoder[uiLayerId]->getFrameHeight() == m_apcMCTFDecoder[uiBaseLayerId]->getFrameHeight() &&
-           m_apcMCTFDecoder[uiLayerId]->getFrameWidth () == m_apcMCTFDecoder[uiBaseLayerId]->getFrameWidth ()   )
-
       bSpatialScalability = false;
     }
+	// TMM_ESS }
 
     //--- get data ---
     RNOK( m_apcMCTFDecoder[uiBaseLayerId]->getBaseLayerMotionAndResidual( pcResidual, pcMbDataCtrl, iPoc ) );
@@ -610,18 +610,17 @@ H264AVCDecoder::getBaseLayerMotionAndResidual( IntFrame*&    pcResidual,
     //===== base layer is standard H.264/AVC =====
 
     //--- get spatial resolution ratio ---
-    if( m_apcMCTFDecoder[uiLayerId]->getFrameHeight() == 32 * m_pcVeryFirstSliceHeader->getSPS().getFrameHeightInMbs () &&
-        m_apcMCTFDecoder[uiLayerId]->getFrameWidth () == 32 * m_pcVeryFirstSliceHeader->getSPS().getFrameWidthInMbs  ()   )
+    // TMM_ESS {
+	if( m_apcMCTFDecoder[uiLayerId]->getFrameHeight() == 16 * m_pcVeryFirstSliceHeader->getSPS().getFrameHeightInMbs () &&
+           m_apcMCTFDecoder[uiLayerId]->getFrameWidth () == 16 * m_pcVeryFirstSliceHeader->getSPS().getFrameWidthInMbs  ()   )
     {
-      bSpatialScalability = true;
+      bSpatialScalability = false;
     }
     else
     {
-      ROF( m_apcMCTFDecoder[uiLayerId]->getFrameHeight() == 16 * m_pcVeryFirstSliceHeader->getSPS().getFrameHeightInMbs () &&
-           m_apcMCTFDecoder[uiLayerId]->getFrameWidth () == 16 * m_pcVeryFirstSliceHeader->getSPS().getFrameWidthInMbs  ()   )
-
-      bSpatialScalability = false;
+      bSpatialScalability = true;
     }
+	// TMM_ESS }
 
     //--- get data ---
     pcResidual              = 0;

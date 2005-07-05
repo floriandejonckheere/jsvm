@@ -231,6 +231,12 @@ public:
     Void  setAVCTempResStages         ( UInt ui )                { m_uiAVCTempResStages = ui; }
     Void  setSpatialResolutionFactor  ( UInt uiLayer, UInt ui )  { m_uiSpatialResolutionFactor  [uiLayer] = ui; }
     Void  setTemporalResolutionFactor ( UInt uiLayer, UInt ui )  { m_uiTemporalResolutionFactor [uiLayer] = ui; }
+// TMM_ESS {
+    UInt getFrameWidthInMB  ( UInt uiLayer )  const   { return m_uiFrameWidthInMB[uiLayer]; }
+    UInt getFrameHeightInMB ( UInt uiLayer )  const   { return m_uiFrameHeightInMB[uiLayer]; }
+    Void setFrameWidthInMB  ( UInt uiLayer, UInt ui ) { m_uiFrameWidthInMB[uiLayer] = ui; }
+    Void setFrameHeightInMB ( UInt uiLayer, UInt ui ) { m_uiFrameHeightInMB[uiLayer] = ui; }
+// TMM_ESS }
 
   private:
     UInt  m_uiMaxHorFrameDimInMB;
@@ -243,6 +249,9 @@ public:
     UInt  m_uiAVCTempResStages;
     UInt  m_uiSpatialResolutionFactor   [MAX_LAYERS];
     UInt  m_uiTemporalResolutionFactor  [MAX_LAYERS];
+    Bool  m_bNonDyadicSpatialScalability;   // TMM_ESS
+    UInt  m_uiFrameWidthInMB  [MAX_LAYERS]; // TMM_ESS
+    UInt  m_uiFrameHeightInMB [MAX_LAYERS]; // TMM_ESS
   };
   
   //{{Quality level estimation and modified truncation- JVTO044 and m12007

@@ -195,7 +195,7 @@ ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
 ErrVal  SliceReader::read( SliceHeader&   rcSH,
                            MbDataCtrl*    pcMbDataCtrl,
                            MbDataCtrl*    pcMbDataCtrlBase,
-                           Bool           bHalfResBaseLayer,
+                           Int            iSpatialScalabilityType,
                            UInt           uiMbInRow,
                            UInt&          ruiMbRead )
 {
@@ -224,7 +224,7 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
     }
     RNOK( m_pcMbParser        ->read      ( *pcMbDataAccess,
                                             pcMbDataAccessBase,
-                                            bHalfResBaseLayer,
+                                            iSpatialScalabilityType,
                                             bEndOfSlice  ) );
     ruiMbRead++;
   }

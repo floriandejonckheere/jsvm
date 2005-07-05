@@ -198,7 +198,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
   IntFrame*     pcBaseLayerResidual   =  rcControlData.getBaseLayerSbb          ();
   MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
   Double        dLambda               =  rcControlData.getLambda                ();
-  Bool          bHalfResBaseLayer     =  rcControlData.isHalfResolutionBaseLayer();
+  Int           iSpatialScalabilityType =  rcControlData.getSpatialScalabilityType(); // TMM_ESS
   UInt          uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
   UInt          uiLastMbAddress       =  rcSliceHeader.getLastMbInSlice         ();
   UInt          uiBits                =  m_pcMbCoder ->getBitCount              ();
@@ -232,7 +232,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 
     RNOK( m_pcMbEncoder     ->encodeInterP    ( *pcMbDataAccess,
                                                 pcMbDataAccessBase,
-                                                bHalfResBaseLayer,
+                                                iSpatialScalabilityType,
                                                 pcFrame,
                                                 pcRecSubband,
                                                 pcPredSignal,
@@ -242,7 +242,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
                                                 dLambda ) );
     RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
                                                 pcMbDataAccessBase,
-                                                bHalfResBaseLayer,
+                                                iSpatialScalabilityType,
                                                 (uiMbAddress == uiLastMbAddress) ) );
 
     if( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
@@ -273,7 +273,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
   SliceHeader&  rcSliceHeader     = *rcControlData.getSliceHeader           ();
   MbDataCtrl*   pcMbDataCtrl      =  rcControlData.getMbDataCtrl            ();
   MbDataCtrl*   pcBaseLayerCtrl   =  rcControlData.getBaseLayerCtrl         ();
-  Bool          bHalfResBaseLayer =  rcControlData.isHalfResolutionBaseLayer();
+  Int           iSpatialScalabilityType =  rcControlData.getSpatialScalabilityType(); // TMM_ESS
 
   RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
   if( pcBaseLayerCtrl )
@@ -313,7 +313,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
                                                 dLambda ) );
     RNOK( m_pcMbCoder       ->encode          ( *pcMbDataAccess,
                                                 pcMbDataAccessBase,
-                                                bHalfResBaseLayer,
+                                                iSpatialScalabilityType,
                                                 ( uiMbAddress == uiLastMbAddress ) ) );
   }
   
@@ -340,7 +340,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                             UInt          uiMbInRow,
                                             Double        dLambda,
                                             Int           iMaxDeltaQp,
-                                            Bool          bHalfResBaseLayer)
+                                            Int           iSpatialScalabilityType)
 {
   ROF( m_bInitDone );
 
@@ -384,7 +384,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       pcMbDataAccess->getMbData().setQp( iQPIntra );
 
       RNOK( m_pcMbEncoder ->encodeIntra   ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseLayer, pcPredSignal, dLambda ) );
-      RNOK( m_pcMbCoder   ->encode        ( *pcMbDataAccess, pcMbDataAccessBase, bHalfResBaseLayer, (uiMbAddress == uiLastMbAddress ) ) );
+      RNOK( m_pcMbCoder   ->encode        ( *pcMbDataAccess, pcMbDataAccessBase, iSpatialScalabilityType, (uiMbAddress == uiLastMbAddress ) ) );
 
       ruiMbCoded++;
     }
@@ -403,7 +403,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
 
       m_pcTransform->setClipMode( true );
 
-      RNOK( m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, bHalfResBaseLayer, (uiMbAddress == uiLastMbAddress ) ) );
+      RNOK( m_pcMbCoder->encode( *pcMbDataAccess, pcMbDataAccessBase, iSpatialScalabilityType, (uiMbAddress == uiLastMbAddress ) ) );
 
       if( bCoded )
       {

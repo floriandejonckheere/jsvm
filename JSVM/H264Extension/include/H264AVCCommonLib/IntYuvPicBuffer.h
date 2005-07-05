@@ -187,8 +187,10 @@ public:
 
   ErrVal        getSSD                  ( Double& dSSDY, Double& dSSDU, Double& dSSDV, PicBuffer* pcOrgPicBuffer );
 
-  ErrVal        upsample                ( DownConvert& rcDownConvert, UInt uiStages, Bool bClip );
-  ErrVal        upsampleResidual        ( DownConvert& rcDownConvert, UInt uiStages, MbDataCtrl* pcMbDataCtrl, Bool bClip );
+    // TMM_ESS {
+    ErrVal        upsampleResidual        ( DownConvert& rcDownConvert, ResizeParameters *pcParameters, MbDataCtrl* pcMbDataCtrl, Bool bClip );
+    ErrVal        upsample                ( DownConvert& rcDownConvert, ResizeParameters *pcParameters, Bool bClip );
+    // TMM_ESS }
   ErrVal        setNonZeroFlags         ( UShort* pusNonZeroFlags, UInt uiStride );
 
   ErrVal        clear();

@@ -116,6 +116,11 @@ const UChar g_aaucAvailableBlkMask[16][8] =
 
 IntraPrediction::IntraPrediction()
 {
+  m_uiAvailableMaskMb=0;
+  m_uiAvailable=0;
+  m_bSpecial=false;
+  ::memset(m_ac8x8Pred,0,26*sizeof(XPel));
+  
   m_pucHor = m_ac8x8Pred+1;
   m_pucVer = m_ac8x8Pred+18;
 }

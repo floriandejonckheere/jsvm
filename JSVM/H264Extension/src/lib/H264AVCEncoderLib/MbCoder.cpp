@@ -156,7 +156,7 @@ ErrVal MbCoder::uninit()
 
 ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
                         MbDataAccess* pcMbDataAccessBase,
-                        Bool          bHalfResBaseLayer,
+                        Int           iSpatialScalabilityType,
                         Bool          bTerminateSlice )
 {
   ROF( m_bInitDone );
@@ -177,20 +177,30 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
     //===== base layer mode flag and base layer refinement flag =====
     if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
     {
-      if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() == true )// TMM_ESS
       {
-        RNOK  ( m_pcMbSymbolWriteIf->BLSkipFlag( rcMbDataAccess ) );
+				if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+				{
+					RNOK  ( m_pcMbSymbolWriteIf->BLSkipFlag( rcMbDataAccess ) );
 
-        if( ! rcMbDataAccess.getMbData().getBLSkipFlag() && bHalfResBaseLayer && ! pcMbDataAccessBase->getMbData().isIntra() )
-        {
-          RNOK( m_pcMbSymbolWriteIf->BLQRefFlag( rcMbDataAccess ) );
-        }
+					if( ! rcMbDataAccess.getMbData().getBLSkipFlag() && (iSpatialScalabilityType != SST_RATIO_1) && ! pcMbDataAccessBase->getMbData().isIntra() )
+					{
+						RNOK( m_pcMbSymbolWriteIf->BLQRefFlag( rcMbDataAccess ) );
+					}
+				}
+				else
+				{
+					ROF( rcMbDataAccess.getMbData().getBLSkipFlag () );
+					ROT( rcMbDataAccess.getMbData().getBLQRefFlag () );
+				}
+// TMM_ESS {
       }
-      else
+      else  // of if ( rcMbDataAccess.getMbData().getInCropWindowFlag() == true )
       {
-        ROF( rcMbDataAccess.getMbData().getBLSkipFlag () );
-        ROT( rcMbDataAccess.getMbData().getBLQRefFlag () );
+          ROT  ( rcMbDataAccess.getMbData().getBLSkipFlag () );
+          ROT  ( rcMbDataAccess.getMbData().getBLQRefFlag () );
       }
+// TMM_ESS }
     }
     else
     {

@@ -1299,7 +1299,7 @@ RQFGSEncoder::CheckRD(UInt uiWrittenBits)
 {
     if(m_pDistoFile)
     {
-	UInt uiRD, uiIndex;
+//	UInt uiRD, uiIndex;
 	Bool stop = false;
 	UInt uiDist = 0;
 
@@ -1364,7 +1364,7 @@ RQFGSEncoder::xCalculateNormalizedMSD()
 
   //get distorsion 
   UInt uiEq = 0.0;
-  Double SSDY, SSDU, SSDV;
+  Double SSDY;//, SSDU, SSDV;
   SSDY = pcInterpassRec1->getFullPelYuvBuffer()->MSDCompute( m_pcOrgResidualFT->getFullPelYuvBuffer() );
 
   result = SSDY*m_dScalFactorFT*m_dScalFactorFT; 

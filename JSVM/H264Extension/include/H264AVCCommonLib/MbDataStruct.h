@@ -170,6 +170,8 @@ public:
                                   SParIdx4x8  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
   Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
                                   SParIdx4x4  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
+// TMM_ESS 
+  Bool    getInCropWindowFlag   ()                        const { return   m_bInCropWindowFlag; }
 
 
   Void    setResidualPredFlags  ( UShort      usFlags   )       { m_usResidualPredFlags = usFlags; } 
@@ -193,6 +195,8 @@ public:
   Void    setResidualPredFlag   ( Bool        bFlag,
                                   ParIdx8x8   eParIdx,
                                   SParIdx4x4  eSParIdx  );
+// TMM_ESS 
+  Void    setInCropWindowFlag   ( Bool        bFlag  )       { m_bInCropWindowFlag = bFlag; } 
 
 
   ErrVal  save( FILE* pFile );
@@ -228,6 +232,10 @@ protected:
 
   Bool    m_bTransformSize8x8;
   Bool    m_bSkipFlag;
+
+  // TMM_ESS 
+  Bool    m_bInCropWindowFlag;  // indicates if the scaled base layer MB is inside the cropping window
+
 protected:
   static const UChar m_aucACTab[6];
 };

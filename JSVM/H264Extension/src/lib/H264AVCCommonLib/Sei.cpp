@@ -389,8 +389,11 @@ SEI::ScalableSei::ScalableSei     ()
  , m_uiNumLayers                  ( 0 )
  , m_bBaseLayerIsAVC              ( false )
  , m_uiAVCTempResStages           ( 0 )
+, m_bNonDyadicSpatialScalability ( true )  
 {
   ::memset( m_uiSpatialResolutionFactor,  0x00, MAX_LAYERS*sizeof(UInt) );
+    ::memset( m_uiFrameWidthInMB,  0x00, MAX_LAYERS*sizeof(UInt) ); // TMM_ESS
+    ::memset( m_uiFrameHeightInMB, 0x00, MAX_LAYERS*sizeof(UInt) ); // TMM_ESS
   ::memset( m_uiTemporalResolutionFactor, 0x00, MAX_LAYERS*sizeof(UInt) );
 }
 
@@ -425,11 +428,24 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf* pcWriteIf )
   {
     RNOK( pcWriteIf->writeUvlc( m_uiAVCTempResStages,                   "ScalableSEI: Log2AVCTempResFactor" ) );
   }
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-  {
-    RNOK( pcWriteIf->writeUvlc( m_uiSpatialResolutionFactor [uiLayer],  "ScalableSEI: Log2SpatResFactor"    ) );
-    RNOK( pcWriteIf->writeUvlc( m_uiTemporalResolutionFactor[uiLayer],  "ScalableSEI: Log2TempResFactor"    ) );
-  }
+
+    // TMM_ESS {
+    RNOK  ( pcWriteIf->writeFlag( m_bNonDyadicSpatialScalability,         "ScalableSEI: NonDyadicSpatialScalabilityFlag" ) );  
+
+    for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
+    {
+        if (m_bNonDyadicSpatialScalability) 
+        {
+            RNOK( pcWriteIf->writeUvlc( m_uiFrameWidthInMB[uiLayer],            "ScalableSEI: FrameWidthInMB"    ) );
+            RNOK( pcWriteIf->writeUvlc( m_uiFrameHeightInMB[uiLayer],           "ScalableSEI: FrameHeightInMB"    ) );
+        }
+        else
+        {
+            RNOK( pcWriteIf->writeUvlc( m_uiSpatialResolutionFactor [uiLayer],  "ScalableSEI: Log2SpatResFactor"    ) );
+        }
+        RNOK( pcWriteIf->writeUvlc( m_uiTemporalResolutionFactor[uiLayer],  "ScalableSEI: Log2TempResFactor"    ) );
+    }
+    // TMM_ESS }
 
   return Err::m_nOK;
 }
@@ -455,11 +471,23 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf* pcReadIf )
   {
     RNOK( pcReadIf->getUvlc( m_uiAVCTempResStages,                   "ScalableSEI: Log2AVCTempResFactor" ) );
   }
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-  {
-    RNOK( pcReadIf->getUvlc( m_uiSpatialResolutionFactor [uiLayer],  "ScalableSEI: Log2SpatResFactor"    ) );
-    RNOK( pcReadIf->getUvlc( m_uiTemporalResolutionFactor[uiLayer],  "ScalableSEI: Log2TempResFactor"    ) );
-  }
+    // TMM_ESS {
+    RNOK  ( pcReadIf->getFlag( m_bNonDyadicSpatialScalability,         "ScalableSEI: NonDyadicSpatialScalabilityFlag" ) );
+    
+    for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
+    {
+        if (m_bNonDyadicSpatialScalability) 
+        {
+            RNOK( pcReadIf->getUvlc( m_uiFrameWidthInMB[uiLayer],            "ScalableSEI: FrameWidthInMB"    ) );
+            RNOK( pcReadIf->getUvlc( m_uiFrameHeightInMB[uiLayer],           "ScalableSEI: FrameHeightInMB"    ) );
+        }
+        else
+        {
+            RNOK( pcReadIf->getUvlc( m_uiSpatialResolutionFactor [uiLayer],  "ScalableSEI: Log2SpatResFactor"    ) );
+        }	
+        RNOK( pcReadIf->getUvlc( m_uiTemporalResolutionFactor[uiLayer],  "ScalableSEI: Log2TempResFactor"    ) );
+    }
+    // TMM_ESS }
 
   return Err::m_nOK;
 }

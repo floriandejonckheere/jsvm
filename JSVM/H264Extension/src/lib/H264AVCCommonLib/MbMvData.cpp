@@ -213,5 +213,94 @@ MbMotionData::upsampleMotion( const MbMotionData& rcMbMotionData, Par8x8 ePar8x8
   return Err::m_nOK;
 }
 
+// TMM_ESS {
+ErrVal
+MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , ResizeParameters* pcParameters )
+{
+  int iScaledBaseWidth  = pcParameters->m_iOutWidth;
+  int iScaledBaseHeight = pcParameters->m_iOutHeight;
+  int iBaseWidth        = pcParameters->m_iInWidth;
+  int iBaseHeight       = pcParameters->m_iInHeight;
+  
+#if DO_QDIV
+  // operator // for equations p.87
+  int divShiftW = (int) ( floor( log( (double)iBaseWidth ) / log(2.) ) + 15 );
+  int divScaleW = ( (1<<divShiftW) + iBaseWidth/2 ) / iBaseWidth;
+  int divShiftH = (int) ( floor( log( (double)iBaseHeight ) / log(2.) ) + 15 );
+  int divScaleH = ( (1<<divShiftH) + iBaseHeight/2 ) / iBaseHeight;
+  int num;
+#endif
+
+   for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
+  {	
+	m_acRefPic[uiB8x8Idx].setFrame(NULL);
+	m_ascRefIdx[uiB8x8Idx] = pscBl4x4RefIdx[g_aucConvertTo4x4Idx[uiB8x8Idx]];
+	m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?-1:m_ascRefIdx[uiB8x8Idx]); 
+  }
+
+  Int   dx , dy;
+
+  for (Int iB4x4Idx=0 ; iB4x4Idx<16 ; iB4x4Idx++ )
+  {
+    m_acMv[iB4x4Idx] = acBl4x4Mv[iB4x4Idx];
+
+    dx = (Int) m_acMv[iB4x4Idx].getHor();
+    dy = (Int) m_acMv[iB4x4Idx].getVer();
+    
+#if DO_QDIV
+    // operator // for equations p.87
+    num = ((dx>0)?dx:(-dx)) * iScaledBaseWidth + iBaseWidth/2;
+     //dx = ((dx>0)?1:(-1)) * ( ( ( ( (num&0xffff) * divScaleW ) >> 16 ) + (num>>16)*divScaleW ) >> (divShiftW-16) );
+	dx=((dx>0)?1:(-1)) * ((num*divScaleW)>>divShiftW);
+
+    num = ((dy>0)?dy:(-dy)) * iScaledBaseHeight + iBaseHeight/2;
+	//    dy = ((dy>0)?1:(-1)) * ( ( ( ( (num&0xffff) * divScaleH ) >> 16 ) + (num>>16)*divScaleH ) >> (divShiftH-16) );
+	dy=((dy>0)?1:(-1)) * ((num*divScaleH)>>divShiftH);
+#else
+    Int sign;
+    sign = (dx>0) ? 1 : (-1);
+    dx = sign * (sign * dx * iScaledBaseWidth + iBaseWidth/2 ) / iBaseWidth;
+    sign = (dy>0)?1:(-1);
+    dy = sign * (sign * dy * iScaledBaseHeight + iBaseHeight/2) / iBaseHeight;
+#endif
+
+    m_acMv[iB4x4Idx].set( dx , dy );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+MbMotionData::upsampleMotionNonDyad(SChar*              scBl8x8RefIdx , 
+                                    Mv*                 acBl4x4Mv , 
+                                    ResizeParameters*   pcParameters , 
+                                    Mv                  deltaMv[4] ) 
+{
+  upsampleMotionNonDyad( scBl8x8RefIdx , acBl4x4Mv , pcParameters );
+
+  // PICTURE LEVEL ESS 
+  for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
+  {	
+  	const UChar *b4Idx = &(g_aucConvertBlockOrder[uiB8x8Idx*4]);
+    if (m_ascRefIdx[uiB8x8Idx] > 0)
+    {
+      m_acMv[*(b4Idx++)] += deltaMv[uiB8x8Idx];
+      m_acMv[*(b4Idx++)] += deltaMv[uiB8x8Idx];
+      m_acMv[*(b4Idx++)] += deltaMv[uiB8x8Idx];
+      m_acMv[*b4Idx] += deltaMv[uiB8x8Idx];
+     }
+    else
+    {
+      m_acMv[*(b4Idx++)].set(0,0);
+      m_acMv[*(b4Idx++)].set(0,0);
+      m_acMv[*(b4Idx++)].set(0,0);
+      m_acMv[*(b4Idx)].set(0,0);
+    }
+  }
+  return Err::m_nOK;
+}
+
+// TMM_ESS }
 
 H264AVC_NAMESPACE_END

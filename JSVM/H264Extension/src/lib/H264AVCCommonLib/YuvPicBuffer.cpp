@@ -201,7 +201,7 @@ YuvPicBuffer::copy( YuvPicBuffer* pcPicBuffer )
   Int   iHeight = getLHeight();
   UInt  y;
 
-  for( y = 0; y < iHeight; y++ )
+  for( y = 0; y < (UInt)iHeight; y++ )
   {
     ::memcpy( pDes, pScr, iWidth* sizeof(Pel) );
     pDes += iStride,
@@ -214,7 +214,7 @@ YuvPicBuffer::copy( YuvPicBuffer* pcPicBuffer )
   pScr = pcPicBuffer->getCbOrigin();
   pDes = getCbOrigin();
 
-  for( y = 0; y < iHeight; y++ )
+  for( y = 0; y < (UInt)iHeight; y++ )
   {
     ::memcpy( pDes, pScr, iWidth* sizeof(Pel) );
     pDes += iStride,
@@ -224,7 +224,7 @@ YuvPicBuffer::copy( YuvPicBuffer* pcPicBuffer )
   pScr = pcPicBuffer->getCrOrigin();
   pDes = getCrOrigin();
 
-  for( y = 0; y < iHeight; y++ )
+  for( y = 0; y < (UInt)iHeight; y++ )
   {
     ::memcpy( pDes, pScr, iWidth* sizeof(Pel) );
     pDes += iStride,

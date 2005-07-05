@@ -23,9 +23,9 @@ CFG=H264AVCCommonLibStatic - Win32 Debug
 
 # Begin Project
 # PROP AllowPerConfigDependencies 0
-# PROP Scc_ProjName ""
-# PROP Scc_LocalPath ""
-CPP=xicl6.exe
+# PROP Scc_ProjName "H264AVCCommonLibStatic"
+# PROP Scc_LocalPath "..\..\.."
+CPP=cl.exe
 RSC=rc.exe
 
 !IF  "$(CFG)" == "H264AVCCommonLibStatic - Win32 Release"
@@ -47,7 +47,7 @@ RSC=rc.exe
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LIB32=xilink6.exe -lib
+LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
 
@@ -70,7 +70,7 @@ LIB32=xilink6.exe -lib
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LIB32=xilink6.exe -lib
+LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo /out:"..\..\..\..\..\lib\H264AVCCommonLibStaticd.lib"
 
@@ -187,6 +187,10 @@ SOURCE=.\QuarterPelFilter.cpp
 # Begin Source File
 
 SOURCE=.\ReconstructionBypass.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ResizeParameters.cpp
 # End Source File
 # Begin Source File
 
@@ -387,6 +391,10 @@ SOURCE=..\..\..\include\H264AVCCommonLib\QuarterPelFilter.h
 # Begin Source File
 
 SOURCE=..\..\..\include\H264AVCCommonLib\ReconstructionBypass.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\include\ResizeParameters.h
 # End Source File
 # Begin Source File
 
