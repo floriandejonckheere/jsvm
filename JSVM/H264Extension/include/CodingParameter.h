@@ -373,6 +373,11 @@ public:
     , m_bLowComplxUpdFlag                 ( 1 )
     , m_bExtendedPriorityId               ( 0 )
     , m_uiNumSimplePris                   (0)
+    //{{Adaptive GOP structure
+    // --ETRI & KHU
+    , m_uiUseAGS                          (0)
+    , m_uiWriteGOPMode                    (0)
+    //}}Adaptive GOP structure
   {
       for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
       {
@@ -445,6 +450,16 @@ public:
   // TMM_ESS 
   ResizeParameters*               getResizeParameters  ( UInt    n )    { return m_acLayerParameters[n].getResizeParameters(); }
 
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  UInt getUseAGS () const { return m_uiUseAGS; }
+  Void setUseAGS (UInt p) { m_uiUseAGS = p; }
+  UInt getWriteGOPMode () const { return m_uiWriteGOPMode; }
+  Void setWriteGOPMode (UInt p) { m_uiWriteGOPMode = p; }
+  const std::string& getGOPModeFile () const { return m_cGOPModeFilename; }
+  Void setGOPModeFile (Char*   p) { m_cGOPModeFilename = p; }
+  //}}Adaptive GOP structure
+
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -477,6 +492,13 @@ protected:
   UInt                      m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt                      m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt                      m_uiQualityLevelList [1 << PRI_ID_BITS];
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  UInt	m_uiWriteGOPMode;
+  UInt	m_uiUseAGS;
+  std::string               m_cGOPModeFilename;
+  //}}Adaptive GOP structure
 };
 
 #if defined( MSYS_WIN32 )

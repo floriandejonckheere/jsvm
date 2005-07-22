@@ -247,6 +247,12 @@ H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
 
   m_cAccessUnitList.clear();
 
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  m_uiGOPOrder = 0;
+  m_uiTarget = 0xffffffff;
+  //}}Adaptive GOP structure
+
   return Err::m_nOK;
 }
 
@@ -408,6 +414,12 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   pcScalableSEI->setNumLayers                ( uiNumLayers );
   pcScalableSEI->setBaseLayerIsAVC           ( bBaseLayerIsAVC );
   pcScalableSEI->setAVCTempResStages         ( uiAVCTempResStages );
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  pcScalableSEI->setUseAGS          ( m_pcCodingParameter->getUseAGS()?1:0 );
+  //}}Adaptive GOP structure
+
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     pcScalableSEI->setSpatialResolutionFactor  ( uiLayer, auiSpatialResolutionFactors  [uiLayer] );
@@ -518,6 +530,11 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   UInt  uiLayer;
   UInt  uiNumLayers = m_pcCodingParameter->getNumberOfLayers();
 
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  if ( !m_pcCodingParameter->getUseAGS() ) {
+  //}}Adaptive GOP structure
+
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     if( apcOriginalPicBuffer[uiLayer] )
@@ -539,6 +556,107 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
 
   m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
 
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  }
+  else 
+  {
+    if ( m_pcCodingParameter->getWriteGOPMode() ) 
+    {
+      m_uiGOPOrder = 0xffffffff;	
+      for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
+      {
+        if( apcOriginalPicBuffer[uiLayer] )
+        {
+          RNOK( xProcessGOP( uiLayer,
+                             apcOriginalPicBuffer   [uiLayer],
+                             apcReconstructPicBuffer[uiLayer],
+                             apcPicBufferOutputList [uiLayer],
+                             apcPicBufferUnusedList [uiLayer] ) );
+        }
+        else
+        {
+          if( apcReconstructPicBuffer[uiLayer] )
+          {
+            apcPicBufferUnusedList[uiLayer].push_back( apcReconstructPicBuffer[uiLayer] );
+          }
+        }
+      }
+
+      m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
+    }
+    else 
+    {
+      if ((1 == (m_uiTarget - m_acOrgPicBufferList[uiNumLayers-1].size()) 
+          && apcOriginalPicBuffer[uiNumLayers-1])|| (m_uiTarget == m_acOrgPicBufferList[uiNumLayers-1].size()))
+      {
+
+				int order = 0;
+				int i;
+
+				for (i = 0; i < 8 && (m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i ) ); i++) {
+					if ( m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i) )
+						order++;
+				}
+
+				m_bGOPDone = false;
+			
+			  for (i = 0; i < order; i++) 
+        {
+				
+					if (i == order-1 ) {
+						m_bGOPDone = true;
+					}
+					for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
+          {
+            m_apcMCTFEncoder[uiLayer]->setSelectPos(i);
+            if( apcOriginalPicBuffer[uiLayer] )
+            {
+              RNOK( xProcessGOP( uiLayer,
+                                 apcOriginalPicBuffer   [uiLayer],
+                                 apcReconstructPicBuffer[uiLayer],
+                                 apcPicBufferOutputList [uiLayer],
+                                 apcPicBufferUnusedList [uiLayer] ) );
+            }
+            else
+            {
+              if( apcReconstructPicBuffer[uiLayer] )
+              {
+                apcPicBufferUnusedList[uiLayer].push_back( apcReconstructPicBuffer[uiLayer] );
+              }
+            }
+          }
+          m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList ); //!! ??
+				}
+			  m_uiTarget = 0xffffffff;
+				m_uiGOPOrder++;
+			}
+			else {
+        for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
+        {
+          if( apcOriginalPicBuffer[uiLayer] )
+          {
+            RNOK( xProcessGOP( uiLayer,
+                               apcOriginalPicBuffer   [uiLayer],
+                               apcReconstructPicBuffer[uiLayer],
+                               apcPicBufferOutputList [uiLayer],
+                               apcPicBufferUnusedList [uiLayer] ) );
+          }
+          else
+          {
+            if( apcReconstructPicBuffer[uiLayer] )
+            {
+              apcPicBufferUnusedList[uiLayer].push_back( apcReconstructPicBuffer[uiLayer] );
+            }
+          }
+        }
+        m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList ); //!! ??
+			}
+    }
+
+  }
+  //}}Adaptive GOP structure
+
   return Err::m_nOK;
 }
 
@@ -552,6 +670,11 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
 {
   UInt  uiLayer;
   UInt  uiNumLayers = m_pcCodingParameter->getNumberOfLayers();
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  if ( !m_pcCodingParameter->getUseAGS() ) {
+  //}}Adaptive GOP structure
 
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
@@ -571,6 +694,70 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   printf("                                   ----------------------------------------\n");
   printf("                                   (*): These PSNR values are not accurate!\n\n");
 
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  }
+  else
+  {
+    if (m_pcCodingParameter->getWriteGOPMode())
+    {
+      for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
+      {
+        RNOK( xProcessGOP( uiLayer,
+                           NULL,
+                           NULL,
+                           apcPicBufferOutputList[uiLayer],
+                           apcPicBufferUnusedList[uiLayer] ) );
+      }
+
+      m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
+  
+      for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
+      {
+        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ) );
+      }
+      printf("                                   ----------------------------------------\n");
+      printf("                                   (*): These PSNR values are not accurate!\n\n");
+    }
+    else
+    {
+      int order = 0;
+		  int i;
+		  
+		  for (i = 0; i < 8 && (m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i ) ); i++) {
+			  if ( m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i) )
+				  order++;
+		  }
+
+		  m_bGOPDone = false;
+		  
+		  for (i = 0; i < order; i++) {
+			  
+			  if (i == order-1 ) {
+				  m_bGOPDone = true;
+			  }
+        for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
+        {
+          m_apcMCTFEncoder[uiLayer]->setSelectPos(i);
+          RNOK( xProcessGOP( uiLayer,
+                             NULL,
+                             NULL,
+                             apcPicBufferOutputList[uiLayer],
+                             apcPicBufferUnusedList[uiLayer] ) );
+        }
+        
+        m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
+      }  
+      for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
+      {
+        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ) );
+      }
+      printf("                                   ----------------------------------------\n");
+      printf("                                   (*): These PSNR values are not accurate!\n\n");
+    }
+  }
+  //}}Adaptive GOP structure
+
   return Err::m_nOK;
 }
 
@@ -583,6 +770,12 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
                              PicBufferList&           rcPicBufferOutputList,
                              PicBufferList&           rcPicBufferUnusedList )
 { 
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  if ( !m_pcCodingParameter->getUseAGS() ) {
+  //}}Adaptive GOP structure
+
   if( pcOriginalPicBuffer == NULL )
   {
     //===== FINISH ENCODING =====
@@ -642,6 +835,183 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
     m_acOrgPicBufferList[uiLayer].clear();
     m_acRecPicBufferList[uiLayer].clear();
   }
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  }
+  else
+  {
+		if( pcOriginalPicBuffer == NULL )
+		{
+			//===== FINISH ENCODING =====
+			if( pcReconstructPicBuffer )
+			{
+				rcPicBufferUnusedList.push_back( pcReconstructPicBuffer );
+			}
+
+      if ( m_pcCodingParameter->getWriteGOPMode() ) { // mode decision
+
+				if( m_acOrgPicBufferList[uiLayer].size() )
+				{
+					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
+                                                         m_acOrgPicBufferList[uiLayer],
+                                                         m_acRecPicBufferList[uiLayer],
+                                                         rcPicBufferUnusedList ) );
+					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
+				}
+				
+				rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
+				rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
+				
+				m_acOrgPicBufferList[uiLayer].clear();
+				m_acRecPicBufferList[uiLayer].clear();
+			}
+			else {
+				if ( !m_bGOPDone ) 
+        {
+					PicBufferList templist;
+					templist +=	rcPicBufferUnusedList;
+					rcPicBufferUnusedList.clear();
+					
+					if( m_acOrgPicBufferList[uiLayer].size() ) { // !!!!!
+						RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
+                                                           m_acOrgPicBufferList[uiLayer],
+                                                           m_acRecPicBufferList[uiLayer],
+                                                           rcPicBufferUnusedList ) );
+						rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
+				  }
+          m_acRecPicBufferList[uiLayer] += rcPicBufferUnusedList;
+				  rcPicBufferUnusedList.clear();
+					rcPicBufferUnusedList += templist;
+					
+				}
+				else 
+        {
+					PicBufferList templist;
+					PicBufferList templist2;
+					templist +=	rcPicBufferUnusedList;
+					rcPicBufferUnusedList.clear();
+
+					if( m_acOrgPicBufferList[uiLayer].size() ) {	// !!!!!
+					//===== ENCODE GROUP OF PICTURES =====
+						RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
+                                                           m_acOrgPicBufferList[uiLayer],
+                                                           m_acRecPicBufferList[uiLayer],
+                                                           rcPicBufferUnusedList ) );
+						
+						//----- set output list -----
+						rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
+						templist2 += rcPicBufferUnusedList;
+						rcPicBufferUnusedList.clear();
+						rcPicBufferUnusedList += templist;
+						
+						
+					}
+          //----- update unused list -----
+          rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
+					rcPicBufferUnusedList += templist2;
+					rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
+					
+					//----- reset orig and reconstructed list -----
+					m_acOrgPicBufferList[uiLayer].clear();
+					m_acRecPicBufferList[uiLayer].clear();
+				}
+			}
+			
+			return Err::m_nOK;
+		}
+		
+		UInt  uiTargetBufferSize = ( 1 << m_pcCodingParameter->getLayerParameters(uiLayer).getDecompositionStages() );
+
+		if( ! m_apcMCTFEncoder[uiLayer]->firstGOPCoded() )
+		{
+			uiTargetBufferSize++;
+		}
+		
+		UInt add_size = 0;
+		if (!m_uiGOPOrder && !(uiTargetBufferSize%2))
+			add_size = 1;
+		
+		if (uiTargetBufferSize + add_size != m_acOrgPicBufferList[uiLayer].size()) {
+			//===== INSERT BUFFERS =====
+			m_acOrgPicBufferList[uiLayer].push_back( pcOriginalPicBuffer );
+			m_acRecPicBufferList[uiLayer].push_back( pcReconstructPicBuffer );
+		
+			ROT( m_acOrgPicBufferList[uiLayer].size() > uiTargetBufferSize );
+			
+			if (uiLayer == (m_pcCodingParameter->getNumberOfLayers()-1))
+				m_uiTarget = uiTargetBufferSize;
+		}
+
+		if( m_acOrgPicBufferList[uiLayer].size() == uiTargetBufferSize + add_size)
+		{
+			
+			if (m_pcCodingParameter->getWriteGOPMode()) {
+				
+				//===== ENCODE GROUP OF PICTURES =====
+				RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
+                                                       m_acOrgPicBufferList[uiLayer],
+                                                       m_acRecPicBufferList[uiLayer],
+                                                       rcPicBufferUnusedList ) );
+				
+				//----- set output list -----
+				rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
+				
+				//----- update unused list -----
+				rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
+				rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
+				
+				//----- reset orig and reconstructed list -----
+				m_acOrgPicBufferList[uiLayer].clear();
+				m_acRecPicBufferList[uiLayer].clear();
+				
+				
+			}
+			else {
+				if ( !m_bGOPDone ) {
+					PicBufferList templist;
+					templist +=	rcPicBufferUnusedList;
+					rcPicBufferUnusedList.clear();
+					
+					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
+                                                         m_acOrgPicBufferList[uiLayer],
+                                                         m_acRecPicBufferList[uiLayer],
+                                                         rcPicBufferUnusedList ) );
+					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
+					m_acRecPicBufferList[uiLayer] += rcPicBufferUnusedList;
+					rcPicBufferUnusedList.clear();
+					rcPicBufferUnusedList += templist;
+					
+				}
+				else {
+					PicBufferList templist;
+					PicBufferList templist2;
+					templist +=	rcPicBufferUnusedList;
+					rcPicBufferUnusedList.clear();
+					//===== ENCODE GROUP OF PICTURES =====
+					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
+                                                         m_acOrgPicBufferList[uiLayer],
+                                                         m_acRecPicBufferList[uiLayer],
+                                                         rcPicBufferUnusedList ) );
+					
+					//----- set output list -----
+					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
+					templist2 += rcPicBufferUnusedList;
+					rcPicBufferUnusedList.clear();
+					rcPicBufferUnusedList += templist;
+					//----- update unused list -----
+					rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
+					rcPicBufferUnusedList += templist2;
+					rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
+					
+					//----- reset orig and reconstructed list -----
+					m_acOrgPicBufferList[uiLayer].clear();
+					m_acRecPicBufferList[uiLayer].clear();
+				}
+			}
+		}
+  }
+  //}}Adaptive GOP structure
 
   return Err::m_nOK;
 }

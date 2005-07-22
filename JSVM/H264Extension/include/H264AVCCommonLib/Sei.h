@@ -238,6 +238,12 @@ public:
     Void setFrameHeightInMB ( UInt uiLayer, UInt ui ) { m_uiFrameHeightInMB[uiLayer] = ui; }
 // TMM_ESS }
 
+    //{{Adaptive GOP structure
+    // --ETRI & KHU
+	  Bool  getUseAGS           ()                const { return m_bUseAGS; }
+	  Void  setUseAGS           ( Bool b  )                { m_bUseAGS = b; }
+	  //}}Adaptive GOP structure
+
   private:
     UInt  m_uiMaxHorFrameDimInMB;
     UInt  m_uiMaxVerFrameDimInMB;
@@ -252,6 +258,11 @@ public:
     Bool  m_bNonDyadicSpatialScalability;   // TMM_ESS
     UInt  m_uiFrameWidthInMB  [MAX_LAYERS]; // TMM_ESS
     UInt  m_uiFrameHeightInMB [MAX_LAYERS]; // TMM_ESS
+
+    //{{Adaptive GOP structure
+	  // --ETRI & KHU
+	  Bool  m_bUseAGS;
+	  //}}Adaptive GOP structure
   };
   
   //{{Quality level estimation and modified truncation- JVTO044 and m12007

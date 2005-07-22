@@ -31,3 +31,7 @@ cfg/SOCCER_layer0.cfg.linux           # Layer configuration file
 cfg/SOCCER_layer1.cfg.linux           # Layer configuration file
 cfg/SOCCER_layer2.cfg.linux           # Layer configuration file
 
+#============================== ADAPTIVE GOP STRUCTURE ==============================
+0				# Use adaptive GOP structure (0: no, 1: yes)
+0				# Mode decision (0: AGS Coding, 1: Mode Decision)
+ags/Soccer_gop_mode.dat		# GOP mode file

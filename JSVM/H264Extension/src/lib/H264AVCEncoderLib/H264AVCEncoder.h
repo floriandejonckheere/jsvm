@@ -204,6 +204,13 @@ protected:
 
   MCTFEncoder*                      m_apcMCTFEncoder    [MAX_LAYERS];
   AccessUnitList                    m_cAccessUnitList;
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  UInt m_uiTarget;
+  UInt m_uiGOPOrder;
+  Bool m_bGOPDone;
+  //}}Adaptive GOP structure
 };
 
 

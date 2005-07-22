@@ -336,6 +336,14 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       printHelp();
       return Err::m_nOK;
     }
+    //{{Adaptive GOP structure
+	  // --ETRI & KHU
+	  if (equals( pcCom, "-anaags", 7) )
+	  {
+	    m_uiWriteGOPMode	= atoi( argv[n] );
+        continue;
+	  }
+	  //}}Adaptive GOP structure
 
     return Err::m_nERR;
   }
@@ -363,6 +371,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -anafgs (Layer) (NumFGSLayers) (File for storing FGS parameters)\n");
   printf("  -encfgs (Layer) (bit-rate in kbps) (File with stored FGS parameters)\n");
   printf("  -lcupd  Update method [0 - original, 1 - low-complexity (default)]\n");
+  printf("  -anaags  [1 - mode decision for Adaptive GOP Structure]\n");
   printf("  -h      Print Option List \n");
   printf("\n");
 }
@@ -461,6 +470,18 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   {
     RNOK( xReadLine( f, "%s", aacLayerConfigName[ui] ) );
   }
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  //=== ADAPTIVE GOP STRUCTURE ===
+  Char  acTemp[256];
+  RNOK( xReadLine( f, "", NULL ) );// skip line
+  RNOK( xReadLine( f, "", NULL ) );// skip line
+  RNOK( xReadLine( f, "%d", &m_uiUseAGS ) );
+  RNOK( xReadLine( f, "%d", &m_uiWriteGOPMode ) );
+  RNOK( xReadLine( f, "%s", acTemp ) );
+  m_cGOPModeFilename = acTemp;
+  //}}Adaptive GOP structure
 
   fclose( f );
 

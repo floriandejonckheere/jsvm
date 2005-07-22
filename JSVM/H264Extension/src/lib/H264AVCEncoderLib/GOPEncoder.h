@@ -262,6 +262,18 @@ public:
   Int                     getSpatialScalabilityType() { return m_pcResizeParameters->m_iSpatialScalabilityType; }
   ResizeParameters*       getResizeParameters()       { return m_pcResizeParameters; }
 
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  ErrVal        process_ags         ( AccessUnitList&                 rcAccessUnitList,
+                                      PicBufferList&                  rcPicBufferInputList,
+                                      PicBufferList&                  rcPicBufferOutputList,
+                                      PicBufferList&                  rcPicBufferUnusedList );
+  UInt			getSelect(int gop, int index) {return m_uiSelect[gop][index];}
+  void			setSelect(int gop, int index, UInt p) {m_uiSelect[gop][index] = p;}
+  UInt			getSelectPos() {return m_uiSelectPos;}
+  void			setSelectPos(UInt p) {m_uiSelectPos = p;}
+  //}}Adaptive GOP structure
+
 protected:
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
@@ -413,6 +425,13 @@ protected:
    //===== ESS =====
    ErrVal		xFillPredictionLists_ESS( UInt uiBaseLevel , UInt uiFrame );
 
+
+  //===== adaptive gop structure =====
+  //{{Adaptive GOP structure
+  // --ETRI & KHU  
+  UInt	xSelectGOPMode	(Double **mse, UInt *seltype, UInt pos, UInt gop_size, UInt gn_pos, UInt gn_1_pos);
+  //}}Adaptive GOP structure
+
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;
@@ -538,6 +557,18 @@ protected:
   Bool							m_bQualityLevelsEstimation;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   Bool                          m_bExtendedPriorityId;
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  UInt			m_uiWriteGOPMode;
+  UInt			m_uiUseAGS;
+  UInt			m_uiSelectPos;
+  UInt*			m_puiGOPMode;
+  UInt**		m_uiSelect;
+  Double		m_dMSETemp;
+  Bool      m_bFinish;
+  std::string	m_cGOPModeFilename;
+  //}}Adaptive GOP structure
 
 #if MULTIPLE_LOOP_DECODING
   Bool                          m_bCompletelyDecodeLayer;

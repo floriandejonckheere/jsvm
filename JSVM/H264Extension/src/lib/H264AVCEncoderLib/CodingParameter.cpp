@@ -229,6 +229,14 @@ ErrVal CodingParameter::check()
     pcLayer->setDecompositionStages ( getDecompositionStages() - uiLogFactorMaxInRate );
     pcLayer->setFrameDelay          ( uiMaxFrameDelay  /  ( 1 << uiLogFactorMaxInRate ) );
 
+    //{{Adaptive GOP structure
+    // --ETRI & KHU
+    if ( getUseAGS() ) {
+      ROTREPORT( pcLayer->getInputFrameRate() > (1 << pcLayer->getDecompositionStages()), "AGS: GOP size must be greater than input frame rate" );
+      ROTREPORT( pcLayer->getDecompositionStages() < 3, "AGS: Decomposition Stages must be equal or greater than 3" );
+    }
+    //}}Adaptive GOP structure
+
     if( pcBaseLayer ) // for sub-sequence SEI
     {
       ROTREPORT( pcLayer->getInputFrameRate() < pcBaseLayer->getInputFrameRate(), "Input frame rate less than base layer output frame rate" );

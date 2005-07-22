@@ -236,6 +236,15 @@ protected:
   UInt              m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt              m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt              m_uiQualityLevelList [1 << PRI_ID_BITS];
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  UInt	m_auiLog2MaxFrameNum[MAX_LAYERS];
+  UInt	m_auiLog2MaxPOCLSB[MAX_LAYERS];
+  UInt	m_auiLevel[MAX_LAYERS];
+  Bool	m_bBaseLayerIsAVC;
+  Bool  m_bUseAGS;
+  //}}Adaptive GOP structure
 };
 
 

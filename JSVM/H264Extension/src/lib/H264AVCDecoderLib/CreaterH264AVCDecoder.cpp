@@ -497,11 +497,90 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         uiFGSLayer = m_uiQualityLevelList [uiSimplePriorityId];
 	  }
     //}}Variable Lengh NAL unit header data with priority and dead substream flag
+
+    //{{Adaptive GOP structure
+    // --ETRI & KHU
+    if (m_bUseAGS) {
+      
+      ULong*  pulData = (ULong*)( pcBinData->data() + 2 );
+		  UInt    uiSize  =     8 * ( pcBinData->size() - 1 ) - 1;
+		  RNOK( m_pcBitReadBuffer->initPacket( pulData, uiSize ) );
+		  
+		  uiSize = pcBinData->byteSize();
+		  BinData cBinData( new UChar[uiSize], uiSize );
+		  memcpy( cBinData.data(), pcBinData->data(), uiSize );
+		  BinDataAccessor cBinDataAccessor;
+		  cBinData.setMemAccessor( cBinDataAccessor );
+
+		  m_pcNalUnitParser->initNalUnit( &cBinDataAccessor );
+
+		  Bool bTmp;
+		  UInt uiTmp;
+		  Int	iTmp;
+      UInt uiSliceType;
+
+      RNOK( m_pcUvlcReader    ->getUvlc( uiTmp,  "SH: first_mb_in_slice" ) );
+      RNOK( m_pcUvlcReader    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
+      if (uiSliceType == F_SLICE) {
+        if (uiLayer == 0) {
+			    if (m_bBaseLayerIsAVC && m_auiLevel[0] == 0)
+				    ;
+			    else
+				    uiLevel = m_auiLevel[0];
+		    }
+		    else {
+			    uiLevel = m_auiLevel[uiLayer];
+		    }
+      }
+      else {
+        RNOK( m_pcUvlcReader    ->getUvlc( uiTmp,           "SH: pic_parameter_set_id" ) );
+
+        if( uiSliceType == F_SLICE )
+        {
+          RNOK(   m_pcUvlcReader->getUvlc( uiTmp,                            "SH: num_mbs_in_slice" ) );
+          RNOK(   m_pcUvlcReader->getFlag( bTmp,                           "SH: fgs_comp_sep" ) );
+        }
+        RNOK(     m_pcUvlcReader->getCode( uiTmp,
+                                  m_auiLog2MaxFrameNum[uiLayer],                "SH: frame_num" ) );
+        if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+        {
+          RNOK(   m_pcUvlcReader->getUvlc( uiTmp,                                 "SH: idr_pic_id" ) );
+        }
+  
+        RNOK(     m_pcUvlcReader->getCode( uiTmp,
+                                   m_auiLog2MaxPOCLSB[uiLayer],          "SH: pic_order_cnt_lsb" ) );
+        RNOK(     m_pcUvlcReader->getSvlc( iTmp,                                         "SH: delta_pic_order_cnt_bottom" ) );
+        ROT ( iTmp );
+  
+        if( uiSliceType == P_SLICE )
+        {
+          RNOK(   m_pcUvlcReader->getFlag( bTmp,                   "SH: direct_spatial_mv_pred_flag" ) );
+        }
+  
+        if( uiSliceType != F_SLICE )
+        {
+          RNOK(   m_pcUvlcReader->getFlag( bTmp,                            "SH: key_picture_flag" ) );
+          RNOK(   m_pcUvlcReader->getUvlc( uiTmp,                      "SH: decomposition_stages" ) );
+          if (uiTmp != 0) {
+				      uiLevel = uiLevel + (m_auiDecompositionStages[uiLayer] - uiTmp);
+				      m_auiLevel[uiLayer] = uiLevel;
+	        }
+        }
+      }
+		  m_pcNalUnitParser->closeNalUnit();
+    }
+    //}}Adaptive GOP structure
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||
            eNalUnitType == NAL_UNIT_CODED_SLICE_IDR   )
   {
     uiLevel     = ( eNalRefIdc > 0 ? 0 : 1+m_uiStdAVCOffset);
+
+    //{{Adaptive GOP structure
+    // --ETRI & KHU
+    if (m_bUseAGS)
+      m_auiLevel[0] = uiLevel;
+    //}}Adaptive GOP structure
   }
   else if( eNalUnitType == NAL_UNIT_SEI )
   {
@@ -549,6 +628,12 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               m_auiDecompositionStages[uiIndex] = uiMaxDecStages - pcSEI->getTemporalResolutionFactor(uiIndex);
             }
             m_uiStdAVCOffset = m_auiDecompositionStages[0] - pcSEI->getAVCTempResStages();
+
+            //{{Adaptive GOP structure
+            // --ETRI & KHU
+            m_bBaseLayerIsAVC = pcSEI->getBaseLayerIsAVC();
+			      m_bUseAGS = pcSEI->getUseAGS();
+            //}}Adaptive GOP structure
           }
           break;
         }
@@ -625,6 +710,15 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         }
       }
       uiSPSid = pcSPS->getSeqParameterSetId();
+
+      //{{Adaptive GOP structure
+      // --ETRI & KHU
+      if (m_bUseAGS) {
+        m_auiLog2MaxFrameNum[uiSPSid] = pcSPS->getLog2MaxFrameNum();
+        m_auiLog2MaxPOCLSB[uiSPSid] = pcSPS->getLog2MaxPicOrderCntLsb();
+      }
+      //}}Adaptive GOP structure
+
       pcSPS->destroy();
     }
     // get the PPSid and the referenced SPSid
@@ -714,6 +808,15 @@ H264AVCPacketAnalyzer::init()
   RNOK( m_pcNalUnitParser ->init( m_pcBitReadBuffer ) );
 
   ::memset( m_auiDecompositionStages, 0x00, MAX_LAYERS*sizeof(UInt) );
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  ::memset( m_auiLog2MaxFrameNum, 0x00, MAX_LAYERS*sizeof(UInt) );
+  ::memset( m_auiLog2MaxPOCLSB, 0x00, MAX_LAYERS*sizeof(UInt) );
+  ::memset( m_auiLevel, 0x00, MAX_LAYERS*sizeof(UInt) );
+  m_bBaseLayerIsAVC = 0;
+  m_bUseAGS = 0;
+  //}}Adaptive GOP structure
 
   return Err::m_nOK;
 }

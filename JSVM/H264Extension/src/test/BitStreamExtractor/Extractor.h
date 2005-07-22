@@ -143,6 +143,11 @@ public:
   UInt64  getNALUBytes      ( UInt uiLayer,
                               UInt uiLevel,
                               UInt uiFGS   )    const { return m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGS]; }
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU 
+  Bool	  getUseAGS () {return m_bUseAGS;}
+  //}}Adaptive GOP structure
  
   Bool    m_bSPSRequired[MAX_LAYERS][32];
   Bool    m_bPPSRequired[MAX_LAYERS][256];
@@ -165,6 +170,11 @@ private:
   UInt64  m_aaui64BaseLayerBytes[MAX_LAYERS][MAX_DSTAGES+1];
   UInt64  m_aaui64FGSLayerBytes [MAX_LAYERS][MAX_DSTAGES+1];
   UInt    m_aauiNumPictures     [MAX_LAYERS][MAX_DSTAGES+1];
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  Bool    m_bUseAGS;
+  //}}Adaptive GOP structure
 };
 
 

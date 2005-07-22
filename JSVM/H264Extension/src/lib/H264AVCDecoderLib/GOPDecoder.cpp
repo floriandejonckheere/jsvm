@@ -2046,7 +2046,19 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*&  rpcSliceHeader,
                                  m_uiFrameWidthInMb,
                                  &rcControlData.getPrdFrameList( LIST_0 ),
                                  &rcControlData.getPrdFrameList( LIST_1 ) ) );
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  UInt tmp = m_pcDecodedPictureBuffer->getNumRefFrames();
+  m_pcDecodedPictureBuffer->setNumRefFrames(rpcSliceHeader->getDecompositionStages() - 1);
+  //}}Adaptive GOP structure
+
   RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcLPFrame ) );
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  m_pcDecodedPictureBuffer->setNumRefFrames(tmp);
+  //}}Adaptive GOP structure
 
   //----- set slice header to zero (slice header is stored in control data) -----
   rpcSliceHeader = 0;

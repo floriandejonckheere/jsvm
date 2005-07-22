@@ -224,6 +224,12 @@ public:
  //===== ESS ============
   ErrVal			  fillPredictionLists_ESS( ResizeParameters *pcResizeParameters ); 
 
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  UInt            getNumRefFrames        () { return m_uiNumRefFrames; };
+  Void            setNumRefFrames (UInt ui) { m_uiNumRefFrames = ui; };
+  //}}Adaptive GOP structure
+
 protected:
   ErrVal              xCreateData       ( UInt                        uiMaxPicsInDPB,
                                           const SequenceParameterSet& rcSPS );

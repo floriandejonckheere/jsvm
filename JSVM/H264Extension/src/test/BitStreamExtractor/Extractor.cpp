@@ -301,6 +301,19 @@ Extractor::xAnalyse()
     RNOK( m_pcH264AVCPacketAnalyzer ->process( pcBinData, cPacketDescription, pcScalableSei ) );
     ROF ( pcScalableSei );
 
+    //{{Adaptive GOP structure
+    // --ETRI & KHU (M.W Park)
+    const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
+	  ExtractorParameter::Point cPoint;
+	  cPoint = rcExtList.front();
+	  if (m_cScalableStreamDescription.getUseAGS()) {
+		  if (cPoint.dFrameRate < 7.5) {
+			  printf("AGS does not support %.1fHz Frame rate\n", cPoint.dFrameRate);
+			  exit(0);
+		  }
+	  }
+    //}}Adaptive GOP structure
+
     // HS: packet trace
     if( ! cPacketDescription.ApplyToNext )
     {
@@ -2249,6 +2262,11 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
   m_uiMaxDecStages        = pcScalableSei->getMaxDecStages        ();
   UInt  m_uiMaxWidth      = pcScalableSei->getMaxHorFrameDimInMB  () << 4;
   UInt  m_uiMaxHeight     = pcScalableSei->getMaxVerFrameDimInMB  () << 4;
+
+  //{{Adaptive GOP structure
+  // --ETRI & KHU
+  m_bUseAGS = pcScalableSei->getUseAGS();
+  //}}Adaptive GOP structure
 
   for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
