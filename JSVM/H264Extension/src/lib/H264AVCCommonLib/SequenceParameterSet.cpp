@@ -174,6 +174,8 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
 ,m_uiChromaPhaseXPlus1                      ( 1 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
+, m_bLowComplxUpdFlag                       ( 0 ) 
+, m_uiNumSimplePriIdVals                    ( 0 ) 
 #if MULTIPLE_LOOP_DECODING
 , m_bAlwaysDecodeBaseLayer                  ( false )
 #endif

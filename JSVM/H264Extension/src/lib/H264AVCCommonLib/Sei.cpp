@@ -429,11 +429,6 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf* pcWriteIf )
     RNOK( pcWriteIf->writeUvlc( m_uiAVCTempResStages,                   "ScalableSEI: Log2AVCTempResFactor" ) );
   }
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  RNOK  ( pcWriteIf->writeFlag( m_bUseAGS,                      "ScalableSEI: use_adaptive_gop_structure_flag"       ) );
-  //}}Adaptive GOP structure
-
     // TMM_ESS {
     RNOK  ( pcWriteIf->writeFlag( m_bNonDyadicSpatialScalability,         "ScalableSEI: NonDyadicSpatialScalabilityFlag" ) );  
 
@@ -476,11 +471,6 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf* pcReadIf )
   {
     RNOK( pcReadIf->getUvlc( m_uiAVCTempResStages,                   "ScalableSEI: Log2AVCTempResFactor" ) );
   }
-
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  RNOK  ( pcReadIf->getFlag( m_bUseAGS,                      "ScalableSEI: use_adaptive_gop_structure_flag"       ) );
-  //}}Adaptive GOP structure
 
     // TMM_ESS {
     RNOK  ( pcReadIf->getFlag( m_bNonDyadicSpatialScalability,         "ScalableSEI: NonDyadicSpatialScalabilityFlag" ) );

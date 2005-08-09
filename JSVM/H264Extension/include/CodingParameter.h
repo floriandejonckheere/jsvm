@@ -101,6 +101,19 @@ H264AVC_NAMESPACE_BEGIN
 // TMM_ESS 
 #include "ResizeParameters.h"
 
+#define MAX_CONFIG_PARAMS 256
+
+class H264AVCENCODERLIB_API EncoderConfigLineBase
+{
+public:
+  EncoderConfigLineBase(Char* pcTag) {strcpy(m_pcTag, pcTag); m_uiType = 0;};
+  EncoderConfigLineBase() {};
+  Char* getTag() {return m_pcTag;};
+  virtual void setVar(Char* pvValue) = 0;
+protected:
+  Char m_pcTag[256];
+  UInt m_uiType;
+};
 
 class H264AVCENCODERLIB_API MotionVectorSearchParams
 {
@@ -492,6 +505,8 @@ protected:
   UInt                      m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt                      m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt                      m_uiQualityLevelList [1 << PRI_ID_BITS];
+  EncoderConfigLineBase*    m_pEncoderLines[MAX_CONFIG_PARAMS];
+  EncoderConfigLineBase*    m_pLayerLines  [MAX_CONFIG_PARAMS];
 
   //{{Adaptive GOP structure
   // --ETRI & KHU

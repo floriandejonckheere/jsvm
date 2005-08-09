@@ -415,11 +415,6 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   pcScalableSEI->setBaseLayerIsAVC           ( bBaseLayerIsAVC );
   pcScalableSEI->setAVCTempResStages         ( uiAVCTempResStages );
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  pcScalableSEI->setUseAGS          ( m_pcCodingParameter->getUseAGS()?1:0 );
-  //}}Adaptive GOP structure
-
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     pcScalableSEI->setSpatialResolutionFactor  ( uiLayer, auiSpatialResolutionFactors  [uiLayer] );

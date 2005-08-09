@@ -1,7 +1,7 @@
 #ifndef _RESIZE_PARAMETERS_H_
 #define _RESIZE_PARAMETERS_H_
 
-#include "TypeDefs.h"
+#include "Typedefs.h"
 #include "H264AVCCommonIf.h"
 
 #define MAX_PICT_PARAM_NB          128
@@ -50,7 +50,7 @@ public:
     Void init ();
 
     Void  setCurrentPictureParametersWith ( Int index );
-    Void setPictureParametersByOffset ( Int index, Int ol, Int or, Int ot, Int ob, Int bcpx, Int bcpy );
+    Void setPictureParametersByOffset ( Int iIndex, Int iOl, Int iOr, Int iOt, Int iOb, Int iBcpx, Int iBcpy );
     Void setPictureParametersByValue ( Int index, Int px, Int py, Int ow, Int oh, Int bcpx, Int bcpy );
 
     const PictureParameters* getCurrentPictureParameters ( Int index ) 

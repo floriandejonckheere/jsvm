@@ -295,7 +295,7 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
                                 short*         psBufferU,  int iStrideU,
                                 short*         psBufferV,  int iStrideV,
                                 ResizeParameters* pcParameters,
-                                MbDataCtrl*    pcMbDataCtrl,
+                                h264::MbDataCtrl*    pcMbDataCtrl,
                                 bool           bClip )
 {
   //===== Upsampling ======
@@ -337,7 +337,7 @@ DownConvert::xGenericUpsample ( short* psBufferY, int iStrideY,
                                 short* psBufferU, int iStrideU,
                                 short* psBufferV, int iStrideV,
                                 ResizeParameters* pcParameters,
-                                MbDataCtrl*    pcMbDataCtrl,
+                                h264::MbDataCtrl*    pcMbDataCtrl,
                                 bool bClip )
 {
   int   min = ( bClip ?   0 : -32768 );

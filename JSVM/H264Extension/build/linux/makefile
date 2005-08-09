@@ -23,7 +23,7 @@ debug:
 	make -C test/FixedQPEncoder debug
 	make -C tools/DownConvert debug
 	make -C tools/PSNR debug
-	make -C test/EncoderBitstreamMerger
+	make -C test/EncoderBitstreamMerger debug
 release:
 	make -C lib/H264AVCVideoIoLib release
 	make -C lib/H264AVCCommonLib release
@@ -35,7 +35,7 @@ release:
 	make -C test/FixedQPEncoder release
 	make -C tools/DownConvert release
 	make -C tools/PSNR release
-	make -C test/EncoderBitstreamMerger
+	make -C test/EncoderBitstreamMerger release
 clean:
 	make -C lib/H264AVCVideoIoLib clean
 	make -C lib/H264AVCCommonLib clean
@@ -47,4 +47,4 @@ clean:
 	make -C test/FixedQPEncoder clean
 	make -C tools/DownConvert clean
 	make -C tools/PSNR clean
-	make -C test/EncoderBitstreamMerger
+	make -C test/EncoderBitstreamMerger clean

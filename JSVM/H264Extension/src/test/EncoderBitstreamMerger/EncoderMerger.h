@@ -75,7 +75,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 ********************************************************************************
 */
-#include "typedefs.h"
+#include "Typedefs.h"
 
 #include "H264AVCDecoderLib.h"
 #include "CreaterH264AVCDecoder.h"

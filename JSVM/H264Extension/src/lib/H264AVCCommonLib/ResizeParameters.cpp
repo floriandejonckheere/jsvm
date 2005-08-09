@@ -60,12 +60,12 @@ ResizeParameters::setCurrentPictureParametersWith ( Int index )
 }
 
 Void
-ResizeParameters::setPictureParametersByOffset ( Int index, Int ol, Int or, Int ot, Int ob, Int bcpx, Int bcpy )
+ResizeParameters::setPictureParametersByOffset ( Int iIndex, Int iOl, Int iOr, Int iOt, Int iOb, Int iBcpx, Int iBcpy )
 {
-  setPictureParametersByValue(index,
-                              ol*2, ot*2,
-                              m_iGlobWidth - (ol*2) - (or *2), m_iGlobHeight - (ot*2) - (ob *2),
-                              bcpx, bcpy
+  setPictureParametersByValue(iIndex,
+                              iOl*2, iOt*2,
+                              m_iGlobWidth - (iOl*2) - (iOr *2), m_iGlobHeight - (iOt*2) - (iOb *2),
+                              iBcpx, iBcpy
                              );
 }
 

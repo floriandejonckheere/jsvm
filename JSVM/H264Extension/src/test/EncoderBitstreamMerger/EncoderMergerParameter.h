@@ -78,7 +78,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #ifndef _CODER_EXTRACTOR_PARAMETER_H_
 #define _CODER_EXTRACTOR_PARAMETER_H_
 
-#include "TypeDefs.h"
+#include "Typedefs.h"
 #include "string.h" 
 #include "H264AVCEncoderLib.h"
 #include "H264AVCCommonLib.h"

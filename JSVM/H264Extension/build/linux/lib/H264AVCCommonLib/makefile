@@ -58,6 +58,7 @@ OBJS          	= \
 			$(OBJ_DIR)/Quantizer.o \
 			$(OBJ_DIR)/QuarterPelFilter.o \
 			$(OBJ_DIR)/ReconstructionBypass.o \
+			$(OBJ_DIR)/ResizeParameters.o \
 			$(OBJ_DIR)/SampleWeighting.o \
 			$(OBJ_DIR)/SequenceParameterSet.o \
 			$(OBJ_DIR)/ScalingMatrix.o \

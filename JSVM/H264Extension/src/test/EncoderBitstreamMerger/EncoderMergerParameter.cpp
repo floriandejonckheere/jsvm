@@ -77,7 +77,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 */
 #include "EncoderMergerParameter.h"
 
+#ifndef MSYS_WIN32
+#define equal(a,b)  (!strcasecmp((a),(b)))
+#else
 #define equal(a,b)  (!stricmp((a),(b)))
+#endif
 
 EncoderMergerParameter::EncoderMergerParameter()
 {

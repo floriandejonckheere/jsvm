@@ -149,4 +149,4 @@ public:
 };
 
 
-#endif __RATEPOINTSMANAGER_H
+#endif // __RATEPOINTSMANAGER_H

@@ -95,7 +95,94 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
- 
+
+
+class EncoderConfigLineStr : public h264::EncoderConfigLineBase
+{
+public:
+  EncoderConfigLineStr(Char* pcTag, Char** pcPar, Char* pcDefault)
+  {
+    strcpy(m_pcTag, pcTag);
+    m_pcPar  = *pcPar;
+    strcpy(m_pcPar, pcDefault);
+    m_uiType = 1;
+  };
+  void setVar(Char* pvValue) {
+    strcpy(m_pcPar, pvValue);
+  };
+protected:
+  Char* m_pcPar;
+};
+
+class EncoderConfigLineDbl : public h264::EncoderConfigLineBase
+{
+public:
+  EncoderConfigLineDbl(Char* pcTag, Double* pdPar, Double pdDefault)
+  {
+    strcpy(m_pcTag, pcTag);
+    m_pdPar  = pdPar;
+    *m_pdPar = pdDefault;
+    m_uiType = 2;
+  };
+  void setVar(Char* pvValue) {
+    *m_pdPar = atof(pvValue);
+  };
+protected:
+  Double* m_pdPar;
+};
+
+class EncoderConfigLineInt : public h264::EncoderConfigLineBase
+{
+public:
+  EncoderConfigLineInt(Char* pcTag, Int* piPar, Int piDefault)
+  {
+    strcpy(m_pcTag, pcTag);
+    m_piPar  = piPar;
+    *m_piPar = piDefault;
+    m_uiType = 3;
+  };
+  void setVar(Char* pvValue) {
+    *m_piPar = atoi(pvValue);
+  };
+protected:
+  Int* m_piPar;
+};
+
+class EncoderConfigLineUInt : public h264::EncoderConfigLineBase
+{
+public:
+  EncoderConfigLineUInt(Char* pcTag, UInt* puiPar, UInt puiDefault)
+  {
+    strcpy(m_pcTag, pcTag);
+    m_puiPar  = puiPar;
+    *m_puiPar = puiDefault;
+    m_uiType  = 4;
+  };
+  void setVar(Char* pvValue) {
+    *m_puiPar = atoi(pvValue);
+  };
+protected:
+  UInt* m_puiPar;
+};
+
+class EncoderConfigLineChar : public h264::EncoderConfigLineBase
+{
+public:
+  EncoderConfigLineChar(Char* pcTag, Char* pcPar, Char pcDefault)
+  {
+    strcpy(m_pcTag, pcTag);
+    m_pcPar  = pcPar;
+    *m_pcPar = pcDefault;
+    m_uiType = 5;
+  };
+  void setVar(Char* pvValue) {
+    *m_pcPar = (Char)atoi(pvValue);
+  };
+protected:
+  Char* m_pcPar;
+};
+
+
 class EncoderCodingParameter : 
 public h264::CodingParameter 
 {
@@ -120,6 +207,7 @@ protected:
   ErrVal  xReadLayerFromFile ( Char*                   pcFilename,
                                h264::LayerParameters&  rcLayer );
   
+  ErrVal  xReadLine( FILE* hFile, Char paacTag[4][256] );
   ErrVal  xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0 );
   ErrVal  xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0, Void* pvP1 );
 };
@@ -377,6 +465,50 @@ Void EncoderCodingParameter::printHelp()
 }
 
 
+ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, Char paacTag[4][256] )
+{
+  if( NULL != paacTag )
+  {
+    UInt uiTagNum = 0;
+    Bool bFlush   = false;
+    Char* pacStr  = &paacTag[0][0];
+    for( Int n = 0; n < 4; n++ )
+    {
+      paacTag[n][0] = 0;
+    }
+    for( Int n = 0; n < 1024; n++ )
+    {
+      Char cChar = fgetc( hFile );
+      if ( cChar == '\n' || feof (hFile) )
+      {
+        cChar = 0;
+      } else if ( cChar == '#' )
+      {
+        bFlush = true;
+      }
+      if ( !bFlush )
+      {
+        if ( cChar == ' ' )
+        {
+          *pacStr = 0;
+          ROTR( uiTagNum == 3, Err::m_nERR );
+          if ( paacTag[uiTagNum][0] != 0 )
+          {
+            uiTagNum++;
+            pacStr = &paacTag[uiTagNum][0];
+          }
+        } else {
+          *pacStr = cChar;
+          pacStr++;
+
+        }
+      }
+      ROTRS( 0 == cChar, Err::m_nOK );
+    }
+  }
+
+  return Err::m_nERR;
+}
 
 ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0 )
 {
@@ -423,57 +555,75 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
     return Err::m_nERR;
   } 
 
-  //=== GENERAL ===
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "", NULL ) );// skip line 
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%s",  pcBitstreamFile ) );
-  RNOK( xReadLine( f, "%lf", &m_dMaximumFrameRate ) );
-  RNOK( xReadLine( f, "%lf", &m_dMaximumDelay ) );
-  RNOK( xReadLine( f, "%d",  &m_uiTotalFrames ) );
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  RNOK (xReadLine(f, "%d",&m_bQualityLevelsEstimation));
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  Char aacTags[4][256];
+  Char acGopFsp[256], *pcGopFsp = acGopFsp;
+  UInt uiLayerCnt   = 0;
+  UInt uiParLnCount = 0;
 
-  //=== MCTF ===
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d",  &m_uiGOPSize ) );
-  RNOK( xReadLine( f, "%d",  &m_uiIntraPeriod ) );
-  RNOK( xReadLine( f, "%d",  &m_uiNumRefFrames ) );
-  RNOK( xReadLine( f, "%d",  &m_uiBaseLayerMode ) );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("OutputFile",              &pcBitstreamFile,                                      "test.264");
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRate",               &m_dMaximumFrameRate,                                  60.0      );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("MaxDelay",                &m_dMaximumDelay,                                      1200.0    );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("FramesToBeEncoded",       &m_uiTotalFrames,                                      1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("GOPSize",                 &m_uiGOPSize,                                          1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IntraPeriod",             &m_uiIntraPeriod,                                      -1);
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumberReferenceFrames",   &m_uiNumRefFrames,                                     1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerMode",           &m_uiBaseLayerMode,                                    3 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumLayers",               &m_uiNumberOfLayers,                                   1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineChar("QLevelEst",               (Char*)&m_bQualityLevelsEstimation,                    0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchRange",             &(m_cMotionVectorSearchParams.m_uiSearchRange),        96);
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BiPredIter",              &(m_cMotionVectorSearchParams.m_uiNumMaxIter),         4 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IterSearchRange",         &(m_cMotionVectorSearchParams.m_uiIterSearchRange),    8 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LoopFilterDisable",       &(m_cLoopFilterParams.m_uiFilterIdc),                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterAlphaC0Offset", (Int*)&(m_cLoopFilterParams.m_iAlphaOffset),           0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterBetaOffset",    (Int*)&(m_cLoopFilterParams.m_iBetaOffset),            0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineChar("SearchMode",              (Char*)&(m_cMotionVectorSearchParams.m_eSearchMode),   0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineChar("SearchFuncFullPel",       (Char*)&(m_cMotionVectorSearchParams.m_eFullPelDFunc), 0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineChar("SearchFuncSubPel",        (Char*)&(m_cMotionVectorSearchParams.m_eSubPelDFunc),  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("UseAdaptiveGOP",          &m_uiUseAGS,                                           0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("AGSModeDecision",         &m_uiWriteGOPMode,                                     0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("AGSGOPModeFile",          &pcGopFsp,                                             "ags.dat");
+  m_pEncoderLines[uiParLnCount] = NULL;
 
-  //=== MOTION SEARCH ===
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d", &m_cMotionVectorSearchParams.m_eSearchMode ) );
-  RNOK( xReadLine( f, "%d", &m_cMotionVectorSearchParams.m_eFullPelDFunc ) );
-  RNOK( xReadLine( f, "%d", &m_cMotionVectorSearchParams.m_eSubPelDFunc ) );
-  RNOK( xReadLine( f, "%d", &m_cMotionVectorSearchParams.m_uiSearchRange ) );
-  RNOK( xReadLine( f, "%d", &m_cMotionVectorSearchParams.m_uiNumMaxIter ) );
-  RNOK( xReadLine( f, "%d", &m_cMotionVectorSearchParams.m_uiIterSearchRange ) );
-  
-  //=== LOOP FILTER ===
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f,"%d", &m_cLoopFilterParams.m_uiFilterIdc ) );
-  RNOK( xReadLine( f,"%d", &m_cLoopFilterParams.m_iAlphaOffset ) );
-  RNOK( xReadLine( f,"%d", &m_cLoopFilterParams.m_iBetaOffset ) );
-  
-  //=== LAYER DEFINITION ===
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d", &m_uiNumberOfLayers ) );
-
-  for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
+  while (!feof(f))
   {
-    RNOK( xReadLine( f, "%s", aacLayerConfigName[ui] ) );
+    RNOK( xReadLine( f, aacTags ) );
+    if ( aacTags[0][0] == 0 )
+    {
+      continue;
+    }
+    for (UInt ui=0; m_pEncoderLines[ui] != NULL; ui++)
+    {
+      if (equals( aacTags[0], m_pEncoderLines[ui]->getTag(), strlen(m_pEncoderLines[ui]->getTag())))
+      {
+        m_pEncoderLines[ui]->setVar(aacTags[1]);
+        break;
+      }
+    }
+    if( equals( aacTags[0], "LayerCfg", 8) )
+    {
+      strcpy (aacLayerConfigName[uiLayerCnt++], aacTags[1]);
+      continue;
+    }
+  }
+
+  uiParLnCount = 0;
+  while (m_pEncoderLines[uiParLnCount] != NULL)
+  {
+    delete m_pEncoderLines[uiParLnCount];
+    m_pEncoderLines[uiParLnCount] = NULL;
+    uiParLnCount++;
+  }
+
+  if ( uiLayerCnt != m_uiNumberOfLayers )
+  {
+    fprintf(stderr, "Could not locate all layer config files: check config file syntax\n");
+    AOT(1);
   }
 
   //{{Adaptive GOP structure
   // --ETRI & KHU
   //=== ADAPTIVE GOP STRUCTURE ===
+#if 0
   Char  acTemp[256];
   RNOK( xReadLine( f, "", NULL ) );// skip line
   RNOK( xReadLine( f, "", NULL ) );// skip line
@@ -481,6 +631,8 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   RNOK( xReadLine( f, "%d", &m_uiWriteGOPMode ) );
   RNOK( xReadLine( f, "%s", acTemp ) );
   m_cGOPModeFilename = acTemp;
+#endif
+  m_cGOPModeFilename = acGopFsp;
   //}}Adaptive GOP structure
 
   fclose( f );
@@ -541,6 +693,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
                                                     h264::LayerParameters&  rcLayer )
 {
   Char  acTemp[256];
+  Char  acEssFsp[256], *pcEssFsp = acEssFsp;
   FILE *f = fopen( pcFilename, "r");
   if( NULL == f )
   { 
@@ -548,54 +701,104 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
     return Err::m_nERR;
   } 
 
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "", NULL ) );// skip line 
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiFrameWidth ) );
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiFrameHeight ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_dInputFrameRate ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_dOutputFrameRate ) );
-  RNOK( xReadLine( f, "%s",  acTemp ) );
-  rcLayer.setInputFilename( acTemp );
-  RNOK( xReadLine( f, "%s",  acTemp ) );
-  rcLayer.setOutputFilename( acTemp );
+  Char aacTags[4][256];
+  UInt uiParLnCount = 0;
+  Char cInfile[256], cOutfile[256], cMotfile[256];
+  Char *pcInfile  = cInfile;
+  Char *pcOutfile = cOutfile;
+  Char *pcMotfile = cMotfile;
 
-  
-  RNOK( xReadLine( f, "", NULL ) );// skip line 
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiUpdateStep ) );
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiAdaptiveQPSetting ) );
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiMCTFIntraMode ) );
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiAdaptiveTransform ) );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceWidth",    &(rcLayer.m_uiFrameWidth),               176       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",   &(rcLayer.m_uiFrameHeight),              352       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateIn",    &(rcLayer.m_dInputFrameRate),            30        );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateOut",   &(rcLayer.m_dOutputFrameRate),           30        );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",      &pcInfile,                               "test.yuv");
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",      &pcOutfile,                              "rec.yuv" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UpdateStep",     &(rcLayer.m_uiUpdateStep),               1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("AdaptiveQP",     &(rcLayer.m_uiAdaptiveQPSetting),        1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseIntra",       &(rcLayer.m_uiMCTFIntraMode),            1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",     &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",             &(rcLayer.m_dBaseQpResidual),            32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("NumFGSLayers",   &(rcLayer.m_dNumFGSLayers),              0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP0",          &(rcLayer.m_adQpModeDecision[0]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP1",          &(rcLayer.m_adQpModeDecision[1]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP2",          &(rcLayer.m_adQpModeDecision[2]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP3",          &(rcLayer.m_adQpModeDecision[3]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP4",          &(rcLayer.m_adQpModeDecision[4]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP5",          &(rcLayer.m_adQpModeDecision[5]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("InterLayerPred", &(rcLayer.m_uiInterLayerPredictionMode), 0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",    &(rcLayer.m_uiBaseQualityLevel),         3         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("DecodeLoops",    &(rcLayer.m_uiDecodingLoops),            1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MotionInfoMode", &(rcLayer.m_uiMotionInfoMode),           0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("MotionInfoFile", &pcMotfile,                              "test.mot");
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("UseESS",         &(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability), 0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ESSPicParamFile",&pcEssFsp,                                                  "ess.dat" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropWidth",   &(rcLayer.m_ResizeParameter.m_iOutWidth),                   0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropHeight",  &(rcLayer.m_ResizeParameter.m_iOutHeight),                  0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",     &(rcLayer.m_ResizeParameter.m_iPosX),                       0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",     &(rcLayer.m_ResizeParameter.m_iPosY),                       0         );
+  m_pLayerLines[uiParLnCount] = NULL;
 
-  
-  RNOK( xReadLine( f, "", NULL ) );// skip line 
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiMaxAbsDeltaQP ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_dBaseQpResidual ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_dNumFGSLayers ) );
+  while (!feof(f))
+  {
+    RNOK( xReadLine( f, aacTags ) );
+    if ( aacTags[0][0] == 0 )
+    {
+      continue;
+    }
+    for (UInt ui=0; m_pLayerLines[ui] != NULL; ui++)
+    {
+      if (equals( aacTags[0], m_pLayerLines[ui]->getTag(), strlen(m_pLayerLines[ui]->getTag())))
+      {
+        m_pLayerLines[ui]->setVar(aacTags[1]);
+        break;
+      }
+    }
+  }
+  rcLayer.setInputFilename     ( cInfile  );
+  rcLayer.setOutputFilename    ( cOutfile );
+  rcLayer.setMotionInfoFilename( cMotfile );
 
-  
-  RNOK( xReadLine( f, "", NULL ) );// skip line 
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_adQpModeDecision[0] ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_adQpModeDecision[1] ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_adQpModeDecision[2] ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_adQpModeDecision[3] ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_adQpModeDecision[4] ) );
-  RNOK( xReadLine( f, "%lf", &rcLayer.m_adQpModeDecision[5] ) );
-  
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiInterLayerPredictionMode ) );
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiBaseQualityLevel ) );
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiDecodingLoops ) );
-  
-  RNOK( xReadLine( f, "", NULL ) );// skip line
-  RNOK( xReadLine( f, "%d",  &rcLayer.m_uiMotionInfoMode ) );
-  RNOK( xReadLine( f, "%s",  acTemp ) );
-  rcLayer.setMotionInfoFilename( acTemp );
+  uiParLnCount = 0;
+  while (m_pLayerLines[uiParLnCount] != NULL)
+  {
+    delete m_pLayerLines[uiParLnCount];
+    m_pLayerLines[uiParLnCount] = NULL;
+    uiParLnCount++;
+  }
 
 // TMM_ESS {
+  if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  
+  {
+    rcLayer.m_ResizeParameter.m_bCrop = true;        
+    if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
+    {
+      rcLayer.m_ResizeParameter.m_pParamFile = fopen( acEssFsp, "r");
+      if( NULL == rcLayer.m_ResizeParameter.m_pParamFile )
+      { 
+        printf( "failed to open resize parameter file %s\n", acTemp);
+        return Err::m_nERR;
+      }
+      rcLayer.m_ResizeParameter.m_iSpatialScalabilityType = SST_RATIO_X;
+      rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX       = -1;
+      rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY       = -1;
+      rcLayer.m_ResizeParameter.m_iChromaPhaseX           = -1;
+      rcLayer.m_ResizeParameter.m_iChromaPhaseY           = -1;
+    }
+  } else {
+    // default values
+    rcLayer.m_ResizeParameter.m_iInWidth    = rcLayer.m_uiFrameWidth;
+    rcLayer.m_ResizeParameter.m_iInHeight   = rcLayer.m_uiFrameHeight;
+    rcLayer.m_ResizeParameter.m_iOutWidth   = rcLayer.m_uiFrameWidth;
+    rcLayer.m_ResizeParameter.m_iOutHeight  = rcLayer.m_uiFrameHeight;
+    rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_uiFrameWidth;
+    rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_uiFrameHeight;
+    rcLayer.m_ResizeParameter.m_iPosX       = 0;
+    rcLayer.m_ResizeParameter.m_iPosY       = 0;
+    rcLayer.m_ResizeParameter.m_bCrop       = false;
+  }
+#if 0
   // default values
   rcLayer.m_ResizeParameter.m_iInWidth  = rcLayer.m_uiFrameWidth;
   rcLayer.m_ResizeParameter.m_iInHeight = rcLayer.m_uiFrameHeight;
@@ -642,6 +845,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
           }
         }
     }
+#endif
 // TMM_ESS }
 
   ::fclose(f);
