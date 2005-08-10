@@ -1634,7 +1634,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
     UInt uiBitsPath = m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast;
     if( pFile )
     {
-      fprintf( pFile, "\t%d\t0\t0", uiBitsPath );
+      fprintf( pFile, "\t%d", uiBitsPath );
     }
 
     RNOK( m_pcCabacWriter->RQencodeTermBit( 1 ) );

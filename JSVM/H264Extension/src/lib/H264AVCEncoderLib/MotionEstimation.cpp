@@ -370,7 +370,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   Short sVer      = cMv.getVer();
   UInt  uiMvBits  = xGetBits( sHor, sVer );
   ruiBits        += uiMvBits;
-  ruiCost         = (UInt)( fWeight * (Double)( uiMinSAD - xGetCost( uiMvBits ) ) ) + xGetCost( ruiBits );
+  ruiCost         = (UInt)floor( fWeight * (Double)( uiMinSAD - xGetCost( uiMvBits ) ) ) + xGetCost( ruiBits );
   rcMv            = cMv;
 
   return Err::m_nOK;

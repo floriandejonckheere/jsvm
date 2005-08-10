@@ -112,7 +112,7 @@ ErrVal RateDistortion::create( RateDistortion *&rpcRateDistortion )
 Double RateDistortion::getCost( UInt uiBits, UInt uiDistortion )
 {
   Double d = ((Double)uiDistortion + (Double)uiBits * m_dCost+.5);
-  return (Double)(UInt)d;
+  return (Double)(UInt)floor(d);
 }
 
 Double RateDistortion::getFCost( UInt uiBits, UInt uiDistortion )
@@ -162,8 +162,8 @@ RateDistortion::setMbQpLambda( MbDataAccess& rcMbDataAccess, UInt uiQp, Double d
 
   m_dCost                 = dLambda;
   m_dSqrtCost             = sqrt( dLambda );
-  m_uiCostFactorMotionSAD = (UInt)(65536.0 * sqrt( m_dCost ));
-  m_uiCostFactorMotionSSE = (UInt)(65536.0 *       m_dCost  );
+  m_uiCostFactorMotionSAD = (UInt)floor(65536.0 * sqrt( m_dCost ));
+  m_uiCostFactorMotionSSE = (UInt)floor(65536.0 *       m_dCost  );
 
   return Err::m_nOK;
 }

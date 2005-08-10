@@ -1033,16 +1033,24 @@ ControlData::storeBQLayerQpAndCbp()
 }
 
 ErrVal
-ControlData::restoreBQLayerQpAndCbp()
+ControlData::switchBQLayerQpAndCbp()
 {
   ROF( m_pacBQMbQP );
   ROF( m_pauiBQMbCbp );
   ROF( m_pabBQ8x8Trafo );
   for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
   {
+    UChar ucQP  = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    UInt  uiCbp = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
+    Bool  bT8x8 = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
+
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp               ( m_pacBQMbQP     [uiMbIndex] );
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiBQMbCbp   [uiMbIndex] );
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabBQ8x8Trafo [uiMbIndex] );
+
+    m_pacBQMbQP     [uiMbIndex] = ucQP;
+    m_pauiBQMbCbp   [uiMbIndex] = uiCbp;
+    m_pabBQ8x8Trafo [uiMbIndex] = bT8x8;
   }
   return Err::m_nOK;
 }

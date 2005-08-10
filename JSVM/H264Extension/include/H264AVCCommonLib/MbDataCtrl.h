@@ -355,7 +355,7 @@ public:
   ErrVal        initBQData            ( UInt uiNumMb );
   ErrVal        uninitBQData          ();
   ErrVal        storeBQLayerQpAndCbp  ();
-  ErrVal        restoreBQLayerQpAndCbp();
+  ErrVal        switchBQLayerQpAndCbp ();
 
 private:
   MbDataCtrl*   m_pcMbDataCtrl;

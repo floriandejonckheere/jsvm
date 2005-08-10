@@ -1184,7 +1184,7 @@ MbEncoder::xEstimateMbIntra16( IntMbTempData*&  rpcMbTempData,
     RNOK( MbCoder::xScanLumaIntra16x16( *rpcMbTempData, *rpcMbTempData, uiAcAbs != 0 ) );
     UInt uiBits = BitCounter::getNumberOfWrittenBits();
 
-    UInt uiRd = (UInt)m_pcRateDistortionIf->getCost( uiBits, uiDist );
+    UInt uiRd = (UInt)floor(m_pcRateDistortionIf->getCost( uiBits, uiDist ));
     if( uiRd < uiBestRd )
     {
       uiBestRd   = uiRd;

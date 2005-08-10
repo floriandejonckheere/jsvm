@@ -310,4 +310,12 @@ enum MCType
 #define MAX_NBFRAMES 1000
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+
+// heiko.schwarz@hhi.fhg.de: Hack for ensuring that the scaling factors
+// work with the closed-loop config files
+// and the other available config files
+// SHOULD BE REMOVED in the future
+#define SCALING_FACTOR_HACK 1
+
+
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

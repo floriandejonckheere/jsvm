@@ -197,7 +197,7 @@ class H264AVCENCODERLIB_API MCTFEncoder
 {
   enum
   {
-    NUM_TMP_FRAMES  = 2
+    NUM_TMP_FRAMES  = 3
   };
   enum
   {
@@ -334,6 +334,11 @@ protected:
                                           RefFrameList&               rcRefList1,
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame );
+  ErrVal  xGetCLRecPredictionLists      ( RefFrameList&               rcRefList0,
+                                          RefFrameList&               rcRefList1,
+                                          UInt                        uiBaseLevel,
+                                          UInt                        uiFrame,
+                                          Bool                        bHalfPel = false );
   ErrVal  xGetUpdateLists               ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
                                           CtrlDataList&               rcCtrlList0,
@@ -385,6 +390,7 @@ protected:
                                           IntFrame*                   pcPredSignal,
                                           IntFrame*                   pcTempFrame,
                                           IntFrame*                   pcSubband,
+                                          IntFrame*                   pcCLRec,
                                           UInt&                       ruiBits );
 
 
@@ -518,6 +524,7 @@ protected:
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
   IntFrame**                    m_papcFrame;                          // frame stores
   IntFrame**                    m_papcBQFrame;                        // base quality frames
+  IntFrame**                    m_papcCLRecFrame;                     // closed-loop rec. (needed when m_uiQualityLevelForPrediction < NumFGS)
 #if MULTIPLE_LOOP_DECODING
   IntFrame**                    m_papcFrameILPred;
 #endif
