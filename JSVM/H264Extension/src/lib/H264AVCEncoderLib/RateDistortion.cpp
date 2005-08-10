@@ -109,16 +109,16 @@ ErrVal RateDistortion::create( RateDistortion *&rpcRateDistortion )
   return Err::m_nOK;
 }
 
-Float RateDistortion::getCost( UInt uiBits, UInt uiDistortion )
+Double RateDistortion::getCost( UInt uiBits, UInt uiDistortion )
 {
   Double d = ((Double)uiDistortion + (Double)uiBits * m_dCost+.5);
-  return (UInt)d;
+  return (Double)(UInt)d;
 }
 
-Float RateDistortion::getFCost( UInt uiBits, UInt uiDistortion )
+Double RateDistortion::getFCost( UInt uiBits, UInt uiDistortion )
 {
   Double d = (((Double)uiDistortion) + ((Double)uiBits * m_dCost));
-  return (Float)d;
+  return d;
 }
 
 

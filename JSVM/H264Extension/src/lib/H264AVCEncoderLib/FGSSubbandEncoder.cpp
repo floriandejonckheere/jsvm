@@ -308,9 +308,7 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
                            Double       dLambda,
                            Int          iMaxQpDelta,
                            Bool&        rbFinished,
-                           UInt         uiCutLayer,
-                           UInt         uiCutPath,
-                           UInt         uiMaxBits )
+                           Bool         bTruncate )
 {
   ROT( m_bPicInit );
   ROF( m_bInit );
@@ -333,10 +331,7 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
   m_iRemainingTCoeff  = (Int)floor( (Double)uiNumTCoeff * dNumFGSLayers + 0.5 );
   m_bPicInit          = true;
 
-  m_uiCutLayer        = uiCutLayer;
-  m_uiCutPath         = uiCutPath;
-  m_uiMaxBits         = uiMaxBits;
-  if( m_uiCutLayer )
+  if( bTruncate )
   {
     m_iRemainingTCoeff = MSYS_INT_MAX;
   }
@@ -396,6 +391,7 @@ RQFGSEncoder::finishPicture()
 ErrVal
 RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
                                Bool&  rbCorrupted,
+                               UInt   uiMaxBits,
                                FILE*  pFile )
 {
   ROF( m_bInit );
@@ -404,7 +400,7 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   rbFinished  = false;
 
   RNOK ( xResidualTransform() );
-  RNOK ( xEncodingFGS( rbFinished, rbCorrupted, pFile ) );
+  RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, pFile ) );
   ROTRS( rbFinished, Err::m_nOK );
 
   Int iOldSliceQP     = m_pcSliceHeader->getPicQp();
@@ -1363,11 +1359,10 @@ RQFGSEncoder::xCalculateNormalizedMSD()
   xReconstructBetweenPasses(pcInterpassRec1);
 
   //get distorsion 
-  UInt uiEq = 0.0;
   Double SSDY;//, SSDU, SSDV;
   SSDY = pcInterpassRec1->getFullPelYuvBuffer()->MSDCompute( m_pcOrgResidualFT->getFullPelYuvBuffer() );
 
-  result = SSDY*m_dScalFactorFT*m_dScalFactorFT; 
+  result = (UInt)floor(SSDY*m_dScalFactorFT*m_dScalFactorFT+.5); 
 
   pcInterpassRec1->uninit();
   delete pcInterpassRec1;
@@ -1460,6 +1455,7 @@ RQFGSEncoder::xReconstructBetweenPasses(IntFrame* pcRecResidual)
 ErrVal
 RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                             Bool& rbCorrupted,
+                            UInt  uiMaxBits,
                             FILE* pFile )
 {
   RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
@@ -1474,7 +1470,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   Int iLastQP = m_pcSliceHeader->getPicQp();
 
   UInt  uiBitsLast = m_pcCabacWriter->getNumberOfWrittenBits();
-  Bool  bCheck     = ( m_uiCutLayer == m_pcSliceHeader->getQualityLevel() );
+  Bool  bCheck     = ( uiMaxBits != 0 );
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
   UInt uiDist = 0;
@@ -1527,7 +1523,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                 if (iCycle == 0)
                   iBitsLuma += m_pcCabacWriter->getNumberOfWrittenBits() - iLastBitsLuma;
 
-                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   throw WriteStop();
                 }
@@ -1538,7 +1534,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                
               } else if (iLumaScanIdx < 16) {
                 RNOK( xEncodeCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, iLumaScanIdx ) );
-                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   throw WriteStop();
                 }
@@ -1561,7 +1557,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                 if (iCycle == 0)
                   iBitsChroma += m_pcCabacWriter->getNumberOfWrittenBits() - iLastBitsChroma;
 
-                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   throw WriteStop();
                 }
@@ -1573,7 +1569,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
               } else if (iChromaDCScanIdx < 4) {
                 RNOK( xEncodeCoefficientChromaDCRef( uiPlane, uiMbYIdx, uiMbXIdx, iChromaDCScanIdx ) );
 
-                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   throw WriteStop();
                 }
@@ -1594,7 +1590,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
               if ( !iCompleteChromaAC) {
                 RNOK( xEncodeNewCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, itCompleteChromaAC, iLastQP ) );
 
-                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   throw WriteStop();
                 }
@@ -1605,7 +1601,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 
               } else if (iChromaACScanIdx < 16) {
                 RNOK( xEncodeCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, iChromaACScanIdx ) );
-                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= m_uiMaxBits )
+                if( bCheck && m_pcCabacWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   throw WriteStop();
                 }
@@ -1642,11 +1638,6 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
     }
 
     RNOK( m_pcCabacWriter->RQencodeTermBit( 1 ) );
-
-	if( bCheck )
-    {
-      throw WriteStop();
-    }
   }
   catch( WriteStop )
   {

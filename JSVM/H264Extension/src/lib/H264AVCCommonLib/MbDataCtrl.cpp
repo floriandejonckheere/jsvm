@@ -895,17 +895,22 @@ ConnectionArray::clear()
 
 
 ControlData::ControlData()
-: m_pcMbDataCtrl      ( 0   )
-, m_pcSliceHeader     ( 0   )
-, m_dLambda           ( 0   )
-, m_pcBaseLayerRec    ( 0   )
-, m_pcBaseLayerSbb    ( 0   )
-, m_pcBaseLayerCtrl   ( 0   )
-, m_pcBaseCtrlData    ( 0   )
-, m_uiUseBLMotion     ( 0   )
-, m_dScalingFactor    ( 1.0 )
-, m_pcFgsMbDataCtrl   ( NULL )
+: m_pcMbDataCtrl        ( 0   )
+, m_pcSliceHeader       ( 0   )
+, m_dLambda             ( 0   )
+, m_pcBaseLayerRec      ( 0   )
+, m_pcBaseLayerSbb      ( 0   )
+, m_pcBaseLayerCtrl     ( 0   )
+, m_pcBaseCtrlData      ( 0   )
+, m_uiUseBLMotion       ( 0   )
+, m_dScalingFactor      ( 1.0 )
+, m_pacFGSMbQP          ( 0 )
+, m_pauiFGSMbCbp        ( 0 )
+, m_pabFGS8x8Trafo      ( 0 )
 , m_bIsNormalMbDataCtrl ( true )
+, m_pacBQMbQP           ( 0 )
+, m_pauiBQMbCbp         ( 0 )
+, m_pabBQ8x8Trafo       ( 0 )
 {
 // *LMH: Inverse MCTF
   m_bComplete = false;
@@ -921,6 +926,12 @@ ControlData::ControlData()
 
 ControlData::~ControlData()
 {
+  AOT( m_pacBQMbQP );
+  AOT( m_pauiBQMbCbp );
+  AOT( m_pabBQ8x8Trafo );
+  AOT( m_pacFGSMbQP );
+  AOT( m_pauiFGSMbCbp );
+  AOT( m_pabFGS8x8Trafo );
 }
 
 Void
@@ -981,6 +992,125 @@ ControlData::init( SliceHeader*  pcSliceHeader )
   return Err::m_nOK;
 }
 
+ErrVal
+ControlData::initBQData( UInt uiNumMb )
+{
+  ROT( m_pacBQMbQP );
+  ROT( m_pauiBQMbCbp );
+  ROT( m_pabBQ8x8Trafo );
+  ROFRS( ( m_pacBQMbQP      = new UChar [uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_pauiBQMbCbp    = new UInt  [uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_pabBQ8x8Trafo  = new Bool  [uiNumMb] ), Err::m_nERR );
+  return Err::m_nOK;
+}
+
+ErrVal
+ControlData::uninitBQData()
+{
+  delete [] m_pacBQMbQP;
+  delete [] m_pauiBQMbCbp;
+  delete [] m_pabBQ8x8Trafo;
+  m_pacBQMbQP     = 0;
+  m_pauiBQMbCbp   = 0;
+  m_pabBQ8x8Trafo = 0;
+  return Err::m_nOK;
+}
+
+
+ErrVal
+ControlData::storeBQLayerQpAndCbp()
+{
+  ROF( m_pacBQMbQP );
+  ROF( m_pauiBQMbCbp );
+  ROF( m_pabBQ8x8Trafo );
+  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
+  {
+    m_pacBQMbQP     [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    m_pauiBQMbCbp   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
+    m_pabBQ8x8Trafo [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+ControlData::restoreBQLayerQpAndCbp()
+{
+  ROF( m_pacBQMbQP );
+  ROF( m_pauiBQMbCbp );
+  ROF( m_pabBQ8x8Trafo );
+  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
+  {
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp               ( m_pacBQMbQP     [uiMbIndex] );
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiBQMbCbp   [uiMbIndex] );
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabBQ8x8Trafo [uiMbIndex] );
+  }
+  return Err::m_nOK;
+}
+
+
+
+
+ErrVal
+ControlData::initFGSData( UInt uiNumMb )
+{
+  ROT( m_pacFGSMbQP );
+  ROT( m_pauiFGSMbCbp );
+  ROT( m_pabFGS8x8Trafo );
+  ROFRS( ( m_pacFGSMbQP      = new UChar [uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_pauiFGSMbCbp    = new UInt  [uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_pabFGS8x8Trafo  = new Bool  [uiNumMb] ), Err::m_nERR );
+  return Err::m_nOK;
+}
+
+ErrVal
+ControlData::uninitFGSData()
+{
+  delete [] m_pacFGSMbQP;
+  delete [] m_pauiFGSMbCbp;
+  delete [] m_pabFGS8x8Trafo;
+  m_pacFGSMbQP      = 0;
+  m_pauiFGSMbCbp    = 0;
+  m_pabFGS8x8Trafo  = 0;
+  return Err::m_nOK;
+}
+
+ErrVal
+ControlData::storeFGSLayerQpAndCbp()
+{
+  ROF( m_pacFGSMbQP );
+  ROF( m_pauiFGSMbCbp );
+  ROF( m_pabFGS8x8Trafo );
+  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
+  {
+    m_pacFGSMbQP     [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    m_pauiFGSMbCbp   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
+    m_pabFGS8x8Trafo [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+ControlData::switchFGSLayerQpAndCbp()
+{
+  ROF( m_pacFGSMbQP );
+  ROF( m_pauiFGSMbCbp );
+  ROF( m_pabFGS8x8Trafo );
+  for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
+  {
+    UChar ucQP  = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    UInt  uiCbp = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
+    Bool  bT8x8 = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
+
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp               ( m_pacFGSMbQP     [uiMbIndex] );
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiFGSMbCbp   [uiMbIndex] );
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabFGS8x8Trafo [uiMbIndex] );
+
+    m_pacFGSMbQP     [uiMbIndex] = ucQP;
+    m_pauiFGSMbCbp   [uiMbIndex] = uiCbp;
+    m_pabFGS8x8Trafo [uiMbIndex] = bT8x8;
+  }
+  return Err::m_nOK;
+}
 
 
 

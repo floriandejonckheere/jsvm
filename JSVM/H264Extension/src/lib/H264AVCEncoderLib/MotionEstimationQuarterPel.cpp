@@ -431,7 +431,7 @@ ErrVal MotionEstimationQuarterPel::compensateBlock( IntYuvMbBuffer* pcRecPelData
   }
   else
   {
-    pcRefPelData2->set4x4Block( B4x4Idx(uiBlk) ); // HEIKO
+    pcRefPelData2->set4x4Block( B4x4Idx(uiBlk) );
     XPel iStride2 = pcRefPelData2->getLStride();
     XPel* pSrc2 = pcRefPelData2->getLumBlk();
     for( UInt y = 0; y < uiYSize; y++)

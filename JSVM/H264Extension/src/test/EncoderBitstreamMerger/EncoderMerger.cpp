@@ -418,7 +418,6 @@ ErrVal EncoderMerger::go_DS()
 
 ErrVal EncoderMerger::go_QL()
 {
-
   RNOK ( AnalyseBitstream_QL() );
   UInt uiLayer;
   UInt uiExtLayer = m_pcEncoderMergerParameter->m_uiNumOfLayer;
@@ -434,6 +433,7 @@ ErrVal EncoderMerger::go_QL()
   RNOK( m_pcH264AVCEncoder->init( m_pcEncoderMergerParameter )); 
 
   RNOK(addQualityLevel());
+  return Err::m_nOK;
 }
 
 ErrVal
@@ -576,7 +576,6 @@ Void EncoderMerger::ReadFGSRateAndDistoFile(UInt uiLayer, std::string & FGSRateF
 {
   Char  acLine    [1000];
   Char  acLineDisto    [1000];
-  Char  acLine3    [1000];
   FILE *file = ::fopen( FGSRateFilename.c_str(), "rt" );
   FILE *fileDisto = ::fopen( DistoFilename.c_str(), "rt" );
   UInt uiNFrames = 0;
@@ -584,17 +583,13 @@ Void EncoderMerger::ReadFGSRateAndDistoFile(UInt uiLayer, std::string & FGSRateF
   Int uiLevel;
   Double dWLayer = (uiLayer == 0 ? 1 : (uiLayer == 1 ? 4: 16));
   Int index = 0;
-  UInt uiCutLayer;
-  Double dDistoCut;
   Double div = 8.0;
   Double acc = 0.0;
 
 	Int i,c;
 	Int i2,c2;
-	Int i3,c3;
 	Int temp;
 	Int temp2;
-	Int temp3;
 	UInt ui, uiN;
 
 	for(ui = 0; ui < MAX_LAYERS;ui++)
@@ -651,7 +646,7 @@ Void EncoderMerger::ReadFGSRateAndDistoFile(UInt uiLayer, std::string & FGSRateF
 		if(temp == 1 || temp == 2 || temp == 3)
 		{
 			acc+= m_aaadByteForFrameFGS[uiNumFrame][uiLayer][temp];
-			temp = acc;
+			temp = (UInt)floor(acc);
 			div = 1.0;
 		}
 		//read disto
@@ -701,9 +696,7 @@ Void EncoderMerger::PrintSizeFrames(UInt uiLayer, UInt uiNbFrames)
 
 Void EncoderMerger::CalculateQualityLevel(UInt uiExtLayer)
 {
-  Double R,D;
   UInt uiNFrames;
-  UInt uiDecStages;
   UInt uiNumPictures;
   UInt uiLayer;
   Int uiPoint;
@@ -1129,8 +1122,7 @@ ErrVal EncoderMerger::writeQualityLevel(UInt uiLayer, UInt uiNFrames)
 	printf("NumLevels %d: \n",uiNumLevels);
 	UInt uiRate[MAX_NUM_RD_LEVELS];
 	UInt uiQualityLevel[MAX_NUM_RD_LEVELS];
-	Bool abSign[MAX_NUM_RD_LEVELS];
-	UInt uiRateOld = rpm[uiNFrames][uiLayer]->getValidRate(0);
+	UInt uiRateOld = (UInt)floor(rpm[uiNFrames][uiLayer]->getValidRate(0));
 	UInt ui;
 	
 	UInt uiMaxLayers = m_pcEncoderMergerParameter->m_uiNumOfLayer;
@@ -1138,13 +1130,13 @@ ErrVal EncoderMerger::writeQualityLevel(UInt uiLayer, UInt uiNFrames)
 	{	
 		if(ui == 0)
 		{
-			uiRate[ui] = rpm[uiNFrames][uiLayer]->getValidRate(ui);
-			uiRateOld = rpm[uiNFrames][uiLayer]->getValidRate(ui);
+			uiRate[ui] = (UInt)floor(rpm[uiNFrames][uiLayer]->getValidRate(ui));
+			uiRateOld = (UInt)floor(rpm[uiNFrames][uiLayer]->getValidRate(ui));
 		}
 		else
 		{
-			uiRate[ui] = rpm[uiNFrames][uiLayer]->getValidRate(ui) - uiRateOld;
-            uiRateOld = rpm[uiNFrames][uiLayer]->getValidRate(ui);
+			uiRate[ui] = (UInt)floor(rpm[uiNFrames][uiLayer]->getValidRate(ui) ) - uiRateOld;
+      uiRateOld = (UInt)floor(rpm[uiNFrames][uiLayer]->getValidRate(ui) );
 		}
 		
 		Double QualityLevel;
@@ -1174,3 +1166,4 @@ ErrVal EncoderMerger::writeQualityLevel(UInt uiLayer, UInt uiNFrames)
 
 	return Err::m_nOK;
 }
+

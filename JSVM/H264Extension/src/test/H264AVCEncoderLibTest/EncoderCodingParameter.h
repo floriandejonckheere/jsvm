@@ -410,6 +410,16 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters(0).setContrainedIntraForLP();
       continue;
     }
+    if( equals( pcCom, "-cl", 3 ) )
+    {
+      ROTS( NULL == argv[n] );
+      ROTS( NULL == argv[n+1] );
+      UInt uiLayer = atoi( argv[n] );
+      UInt uiCLoop = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setClosedLoop( uiCLoop );
+      n += 1;
+      continue;
+    }
 
     if( equals( pcCom, "-pf", 3) )
     {
@@ -458,7 +468,9 @@ Void EncoderCodingParameter::printHelp()
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
   printf("  -anafgs (Layer) (NumFGSLayers) (File for storing FGS parameters)\n");
   printf("  -encfgs (Layer) (bit-rate in kbps) (File with stored FGS parameters)\n");
+  printf("  -cl     (Layer) (ClosedLoopParameter)\n");
   printf("  -lcupd  Update method [0 - original, 1 - low-complexity (default)]\n");
+  printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   printf("  -anaags  [1 - mode decision for Adaptive GOP Structure]\n");
   printf("  -h      Print Option List \n");
   printf("\n");
@@ -469,14 +481,15 @@ ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, Char paacTag[4][256] )
 {
   if( NULL != paacTag )
   {
+    Int  n;
     UInt uiTagNum = 0;
     Bool bFlush   = false;
     Char* pacStr  = &paacTag[0][0];
-    for( Int n = 0; n < 4; n++ )
+    for( n = 0; n < 4; n++ )
     {
       paacTag[n][0] = 0;
     }
-    for( Int n = 0; n < 1024; n++ )
+    for( n = 0; n < 1024; n++ )
     {
       Char cChar = fgetc( hFile );
       if ( cChar == '\n' || feof (hFile) )
@@ -565,7 +578,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("MaxDelay",                &m_dMaximumDelay,                                      1200.0    );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("FramesToBeEncoded",       &m_uiTotalFrames,                                      1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("GOPSize",                 &m_uiGOPSize,                                          1 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IntraPeriod",             &m_uiIntraPeriod,                                      -1);
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IntraPeriod",             &m_uiIntraPeriod,                                      UInt(-1));
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumberReferenceFrames",   &m_uiNumRefFrames,                                     1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerMode",           &m_uiBaseLayerMode,                                    3 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumLayers",               &m_uiNumberOfLayers,                                   1 );
@@ -715,6 +728,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",      &pcInfile,                               "test.yuv");
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",      &pcOutfile,                              "rec.yuv" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UpdateStep",     &(rcLayer.m_uiUpdateStep),               1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ClosedLoop",     &(rcLayer.m_uiClosedLoop),               0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("AdaptiveQP",     &(rcLayer.m_uiAdaptiveQPSetting),        1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseIntra",       &(rcLayer.m_uiMCTFIntraMode),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );

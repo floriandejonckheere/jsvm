@@ -1560,6 +1560,10 @@ ErrVal UvlcWriter::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
   //===== loop over 4x4 blocks =====
   for( uiBlk = 0; uiBlk < 4; uiBlk++ )
   {
+    if( auiTrailingOnes[uiBlk] > 3 )
+    {
+      auiTrailingOnes[uiBlk] = 3;
+    }
     B4x4Idx cIdx( c8x8Idx.b4x4() + 4*(uiBlk/2) + (uiBlk%2) );
 
     xPredictNonZeroCnt( rcMbDataAccess, cIdx, auiCoeffCnt[uiBlk], auiTrailingOnes[uiBlk] );

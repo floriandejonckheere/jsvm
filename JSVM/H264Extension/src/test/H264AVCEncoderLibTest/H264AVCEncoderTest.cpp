@@ -495,10 +495,10 @@ H264AVCEncoderTest::go()
   m_cEncoderIoParameter.nFrames = uiFrame;
   m_cEncoderIoParameter.nResult = 0;
 
-  printf( "\n\n%d bit [%d byte]   rate: %.4f kbit/s  (%d frames @ %.2f fps)\n",
+  printf( "\n\n%d bit [%d byte]   rate: %.4lf kbit/s  (%d frames @ %.2lf fps)\n",
     uiWrittenBytes*8,
     uiWrittenBytes,
-    0.008f*(Double)uiWrittenBytes*dHighestLayerOutputRate/(Double)uiNumCodedFrames,
+    0.008*(Double)uiWrittenBytes*dHighestLayerOutputRate/(Double)uiNumCodedFrames,
     uiNumCodedFrames,
     dHighestLayerOutputRate );
 

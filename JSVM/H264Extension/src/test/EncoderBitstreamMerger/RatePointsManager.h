@@ -150,3 +150,4 @@ public:
 
 
 #endif // __RATEPOINTSMANAGER_H
+

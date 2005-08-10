@@ -275,6 +275,10 @@ public:
   //}}Adaptive GOP structure
 
 protected:
+  ErrVal  xProcessClosedLoop            ( AccessUnitList&             rcAccessUnitList,
+                                          PicBufferList&              rcPicBufferInputList,
+                                          PicBufferList&              rcPicBufferOutputList,
+                                          PicBufferList&              rcPicBufferUnusedList );
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
   ErrVal  xDeleteData                   ();
@@ -326,6 +330,10 @@ protected:
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bHalfPel = false );
+  ErrVal  xGetBQPredictionLists         ( RefFrameList&               rcRefList0,
+                                          RefFrameList&               rcRefList1,
+                                          UInt                        uiBaseLevel,
+                                          UInt                        uiFrame );
   ErrVal  xGetUpdateLists               ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
                                           CtrlDataList&               rcCtrlList0,
@@ -474,6 +482,7 @@ protected:
   UInt                          m_uiNumMaxIter;                       // maximum number of iteration for bi-directional search
   UInt                          m_uiIterSearchRange;                  // search range for iterative search
   UInt                          m_iMaxDeltaQp;                        // maximum QP changing
+  UInt                          m_uiClosedLoopMode;                   // closed-loop coding mode (0:open-loop)
   Bool                          m_bUpdate;                            // usage of update steps
   Bool                          m_bH264AVCCompatible;                 // H.264/AVC compatibility
   Bool                          m_bInterLayerPrediction;              // inter-layer prediction
@@ -508,6 +517,7 @@ protected:
   //----- frame memories -----
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
   IntFrame**                    m_papcFrame;                          // frame stores
+  IntFrame**                    m_papcBQFrame;                        // base quality frames
 #if MULTIPLE_LOOP_DECODING
   IntFrame**                    m_papcFrameILPred;
 #endif
@@ -531,7 +541,7 @@ protected:
   UShort*                       m_pusUpdateWeights;                   // array for storing update weights
 
   //----- PSNR & rate  -----
-  Float                         m_fOutputFrameRate;
+  Double                        m_fOutputFrameRate;
   UInt                          m_uiParameterSetBits;
   UInt                          m_auiNumFramesCoded [MAX_DSTAGES+1];
   UInt                          m_auiCurrGOPBitsBase[MAX_DSTAGES+1];
@@ -545,9 +555,8 @@ protected:
   //----- FGS -----
   UInt                          m_uiFGSMode;
   FILE*                         m_pFGSFile;
-  UInt                          m_uiFGSCutLayer;
-  UInt                          m_uiFGSCutPath;
-  Double                        m_dFGSCutFactor;
+  Double                        m_dFGSBitRateFactor;
+  Double                        m_dFGSRoundingOffset;
   Int                           m_iLastFGSError;
   UInt                          m_uiNotYetConsideredBaseLayerBits;
   //{{Quality level estimation and modified truncation- JVTO044 and m12007

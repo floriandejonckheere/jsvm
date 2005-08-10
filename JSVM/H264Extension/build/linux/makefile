@@ -7,9 +7,9 @@ all:
 	make -C test/H264AVCEncoderLibTest
 	make -C test/BitStreamExtractor
 	make -C test/FixedQPEncoder
+	make -C test/EncoderBitstreamMerger
 	make -C tools/DownConvert
 	make -C tools/PSNR
-	make -C test/EncoderBitstreamMerger
 
 
 debug:
@@ -21,9 +21,10 @@ debug:
 	make -C test/H264AVCEncoderLibTest debug
 	make -C test/BitStreamExtractor debug
 	make -C test/FixedQPEncoder debug
+	make -C test/EncoderBitstreamMerger debug
 	make -C tools/DownConvert debug
 	make -C tools/PSNR debug
-	make -C test/EncoderBitstreamMerger debug
+
 release:
 	make -C lib/H264AVCVideoIoLib release
 	make -C lib/H264AVCCommonLib release
@@ -33,9 +34,10 @@ release:
 	make -C test/H264AVCEncoderLibTest release
 	make -C test/BitStreamExtractor release
 	make -C test/FixedQPEncoder release
+	make -C test/EncoderBitstreamMerger release
 	make -C tools/DownConvert release
 	make -C tools/PSNR release
-	make -C test/EncoderBitstreamMerger release
+
 clean:
 	make -C lib/H264AVCVideoIoLib clean
 	make -C lib/H264AVCCommonLib clean
@@ -45,6 +47,6 @@ clean:
 	make -C test/H264AVCEncoderLibTest clean
 	make -C test/BitStreamExtractor clean
 	make -C test/FixedQPEncoder clean
+	make -C test/EncoderBitstreamMerger clean
 	make -C tools/DownConvert clean
 	make -C tools/PSNR clean
-	make -C test/EncoderBitstreamMerger clean

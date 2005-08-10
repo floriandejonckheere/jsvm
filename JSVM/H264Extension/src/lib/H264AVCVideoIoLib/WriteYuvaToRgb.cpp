@@ -124,19 +124,16 @@ Int Clip( const Int iX )
 #define pack16 (((R >> 3) << 11 ) | ((G >> 2) << 5 ) | (B >> 3) )
 
 
-//##ModelId=3EB9187A025B
 WriteYuvaToRgb::WriteYuvaToRgb()
 {
 }
 
-//##ModelId=3EB9187A025C
 WriteYuvaToRgb::~WriteYuvaToRgb()
 {
 }
 
 
 
-//##ModelId=3EBA4F73017B
 ErrVal WriteYuvaToRgb::create( WriteYuvaToRgb*& rpcWriteYuvaToRgb )
 {
   rpcWriteYuvaToRgb = new WriteYuvaToRgb;
@@ -146,7 +143,6 @@ ErrVal WriteYuvaToRgb::create( WriteYuvaToRgb*& rpcWriteYuvaToRgb )
   return Err::m_nOK;
 }
 
-//##ModelId=3EB9187A0263
 ErrVal WriteYuvaToRgb::destroy()
 { 
   delete this;
@@ -154,7 +150,6 @@ ErrVal WriteYuvaToRgb::destroy()
   return Err::m_nOK; 
 }
 
-//##ModelId=3EB9187A0264
 ErrVal WriteYuvaToRgb::setFrameDimension( UInt uiLumHeight, UInt uiLumWidth )
 {
   m_uiHeight = uiLumHeight; 
@@ -162,7 +157,6 @@ ErrVal WriteYuvaToRgb::setFrameDimension( UInt uiLumHeight, UInt uiLumWidth )
   return Err::m_nOK; 
 }
 
-//##ModelId=3EBA4F7301D9
 ErrVal WriteYuvaToRgb::writeFrameRGB( UChar *pucRGB,
                                       UInt uiDestStride,
                                       const UChar *pLum,
@@ -296,7 +290,6 @@ ErrVal WriteYuvaToRgb::writeFrameYV12( UChar *pucDest,
   return Err::m_nOK;
 }
 
-//##ModelId=3EBA4F730302
 ErrVal WriteYuvaToRgb::writeFrameYUYV( UChar* pucYUYV,
                                        UInt uiDestStride,
                                        const UChar *pLum,

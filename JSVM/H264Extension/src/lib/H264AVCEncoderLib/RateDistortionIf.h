@@ -102,11 +102,11 @@ protected:
 	virtual ~RateDistortionIf() {}
 
 public:
-  virtual ErrVal setMbQpLambda( MbDataAccess& rcMbDataAccess, UInt uiQp, Double dLambda ) = 0;
+  virtual ErrVal  setMbQpLambda( MbDataAccess& rcMbDataAccess, UInt uiQp, Double dLambda ) = 0;
   
-  virtual Float getCost( UInt uiBits, UInt uiDistortion ) = 0;
-  virtual Float getFCost( UInt uiBits, UInt uiDistortion ) = 0;
-  virtual UInt getMotionCostShift( Bool bSad ) = 0;
+  virtual Double  getCost( UInt uiBits, UInt uiDistortion ) = 0;
+  virtual Double  getFCost( UInt uiBits, UInt uiDistortion ) = 0;
+  virtual UInt    getMotionCostShift( Bool bSad ) = 0;
 
   virtual ErrVal  fixMacroblockQP( MbDataAccess& rcMbDataAccess ) = 0;
 };

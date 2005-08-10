@@ -108,56 +108,35 @@ Modify list:
 #pragma once
 #endif // _MSC_VER > 1000
 
-// h264 namepace begin
 H264AVC_NAMESPACE_BEGIN
 
-//##ModelId=3EB91A2B1070
 class H264AVCCOMMONLIB_API YuvBufferIf
 {
 protected:
-	//##ModelId=3EB91A2B1071
 	YuvBufferIf() {}
-	//##ModelId=3EB91A2B1072
   virtual ~YuvBufferIf() {}
 public:
-	//##ModelId=3EB91A2B1089
   virtual const Int getCStride()   const  = 0;
-  //##ModelId=3EB91A2B107A
   virtual Pel* getLumBlk()   = 0;
-	//##ModelId=3EB91A2B108F
   virtual Pel* getYBlk( LumaIdx cIdx ) = 0;
-	//##ModelId=3EB91A2B1092
   virtual Pel* getUBlk( LumaIdx cIdx ) = 0;
-	//##ModelId=3EB91A2B1095
   virtual Pel* getVBlk( LumaIdx cIdx ) = 0;
-  //##ModelId=3EB91A2B107F
   virtual const Int getLStride()    const = 0;
 
-  //##ModelId=3EB91A2B1074
   virtual Pel* getMbLumAddr() = 0;
-	//##ModelId=3EB91A2B1076
   virtual Pel* getMbCbAddr()  = 0;
-	//##ModelId=3EB91A2B1078
   virtual Pel* getMbCrAddr()  = 0;
 
-  //##ModelId=3EB91A2B107C
   virtual Void set4x4Block( LumaIdx cIdx ) = 0;
 
-  //##ModelId=3EB91A2B1081
   virtual const Int getLWidth()     const = 0;
-	//##ModelId=3EB91A2B1083
   virtual const Int getLHeight()    const = 0;
-	//##ModelId=3EB91A2B1085
   virtual const Int getLXMargin()   const = 0;
-	//##ModelId=3EB91A2B1087
   virtual const Int getLYMargin()   const = 0;
-	//##ModelId=3EB91A2B108B
   virtual const Int getCWidth()     const = 0;
-	//##ModelId=3EB91A2B108D
   virtual const Int getCHeight()    const = 0;
 };
 
-// h264 namepace end
 H264AVC_NAMESPACE_END
 
 #endif // !defined(AFX_YUVBUFFERRWIF_H__E94AE8DA_A40D_4411_8226_A471358FDCDD__INCLUDED_)

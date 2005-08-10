@@ -1676,12 +1676,12 @@ MbEncoder::xEncode8x8IntraBlock( IntMbTempData& rcMbTempData,
   rcMbTempData.        set4x4Block( c8x8Idx );
   m_pcIntOrgMbPelData->set4x4Block( c8x8Idx );
   
-  UInt  uiAbsSum;
-  Float fBestRd     = FLOAT_MAX;
-  UInt  uiBestMode  = 2;
-  UInt  uiBestBits  = 0;
-  Int   iPredMode   = 0;
-  Bool  bValid      = true;
+  UInt   uiAbsSum;
+  Double fBestRd     = DOUBLE_MAX;
+  UInt   uiBestMode  = 2;
+  UInt   uiBestBits  = 0;
+  Int    iPredMode   = 0;
+  Bool   bValid      = true;
 
   Int           iScalMat  = 6;
   const UChar*  pucScale  = ( rcMbTempData.getSH().isScalingMatrixPresent(iScalMat) ? rcMbTempData.getSH().getScalingMatrix(iScalMat) : NULL );
@@ -1714,7 +1714,7 @@ MbEncoder::xEncode8x8IntraBlock( IntMbTempData& rcMbTempData,
         uiBits += ( BitCounter::getNumberOfWrittenBits() ) - 1;
       }
 
-      Float fCost = m_pcRateDistortionIf->getFCost( uiBits, uiDist );
+      Double fCost = m_pcRateDistortionIf->getFCost( uiBits, uiDist );
 
       if( fCost < fBestRd )
       {
@@ -1762,7 +1762,7 @@ MbEncoder::xEncode4x4IntraBlock( IntMbTempData& rcMbTempData,
   m_pcIntOrgMbPelData->set4x4Block( cIdx );
   UInt uiAbsSum;
 
-  Float fBestRd = FLOAT_MAX;
+  Double fBestRd = DOUBLE_MAX;
   UInt uiBestMode = 2;
   UInt uiBestBits = 0;
   Int iPredMode = 0;
@@ -1799,7 +1799,7 @@ MbEncoder::xEncode4x4IntraBlock( IntMbTempData& rcMbTempData,
         uiBits += BitCounter::getNumberOfWrittenBits() - 1;
       }
 
-      Float fCost = m_pcRateDistortionIf->getFCost( uiBits, uiDist );
+      Double fCost = m_pcRateDistortionIf->getFCost( uiBits, uiDist );
 
       if( fCost < fBestRd )
       {
@@ -1995,7 +1995,7 @@ MbEncoder::xEncodeChromaIntra( IntMbTempData& rcMbTempData,
   if( m_pcIntMbBestIntraChroma == NULL)
   {
     m_pcIntMbBestIntraChroma = &m_acIntMbTempData[4];
-    Float fBestRd = FLOAT_MAX;
+    Double fBestRd = DOUBLE_MAX;
     for( UInt uiPM = 0; uiPM < 4; uiPM++ )
     {
       Bool bValid = false;
@@ -2014,7 +2014,7 @@ MbEncoder::xEncodeChromaIntra( IntMbTempData& rcMbTempData,
         RNOK( UvlcWriter::intraPredModeChroma( rcMbTempData ) );
         uiBits += BitCounter::getNumberOfWrittenBits();
 
-        Float fNewRd = m_pcRateDistortionIf->getCost( uiBits, uiDist );
+        Double fNewRd = m_pcRateDistortionIf->getCost( uiBits, uiDist );
 
         if( fNewRd < fBestRd )
         {
@@ -2923,7 +2923,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
   ROF( ! bBiPredOnly || rcRefFrameList1.getActive() );
 
   Bool            bPSlice       = rpcMbTempData->getMbDataAccess().getSH().isInterP();
-  Float           fRdCost       = 0;
+  Double          fRdCost       = 0;
   UInt            uiCost  [3]   = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX }, uiCostTest;
   UInt            uiMbBits[3]   = { ( ! bPSlice ? 3 : 1 ), 3, 5 };
   Int             iRefIdx [2]   = { 0, 0 }, iRefIdxBi[2], iRefIdxTest;
@@ -3136,7 +3136,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
             uiBits    [2]     = uiBitsTest;
             uiCost    [2]     = uiCostTest;
 
-            RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[1],
+            RNOK( m_pcMotionEstimation->compensateBlock     ( &cYuvMbBuffer[uiDir],
                                                               PART_16x16, MODE_16x16 ) );
           }
         }
@@ -3247,9 +3247,9 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->setBLQRefFlag( false );
   rpcMbTempData->setResidualPredFlag( bResidualPred, PART_16x16 );
 
-  Bool  bPSlice       = rpcMbTempData->getMbDataAccess().getSH().isInterP();
-  Float fRdCost       = 0;
-  UInt  uiLastMode    = 0;
+  Bool   bPSlice       = rpcMbTempData->getMbDataAccess().getSH().isInterP();
+  Double fRdCost       = 0;
+  UInt   uiLastMode    = 0;
   
   for( UInt   uiBlk = 0; uiBlk < 2; uiBlk++ )
   {
@@ -3582,9 +3582,9 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->setBLQRefFlag( false );
   rpcMbTempData->setResidualPredFlag( bResidualPred, PART_16x16 );
 
-  Bool  bPSlice       = rpcMbTempData->getMbDataAccess().getSH().isInterP();
-  Float fRdCost       = 0;
-  UInt  uiLastMode    = 0;
+  Bool   bPSlice       = rpcMbTempData->getMbDataAccess().getSH().isInterP();
+  Double fRdCost       = 0;
+  UInt   uiLastMode    = 0;
 
   for( UInt   uiBlk = 0; uiBlk < 2; uiBlk++ )
   {
@@ -4107,7 +4107,7 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
   
 
   Bool            bPSlice         = rpcMbTempData->getMbDataAccess().getSH().isInterP();
-  Float           fRdCost         = 0;
+  Double          fRdCost         = 0;
   UInt            uiSubMbBits     = 0;  
   ParIdx8x8       aeParIdx8x8 [4] = { PART_8x8_0, PART_8x8_1, PART_8x8_2, PART_8x8_3 };
   ParIdx8x8       eParIdx8x8      = aeParIdx8x8[ ePar8x8 ];
@@ -4425,7 +4425,7 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
   
 
   Bool            bPSlice         = rpcMbTempData->getMbDataAccess().getSH().isInterP();
-  Float           fRdCost         = 0;
+  Double          fRdCost         = 0;
   UInt            uiSubMbBits     = 0;
   SParIdx8x4      aeParIdx8x4 [2] = { SPART_8x4_0, SPART_8x4_1 };
   ParIdx8x8       aeParIdx8x8 [4] = { PART_8x8_0, PART_8x8_1, PART_8x8_2, PART_8x8_3 };
@@ -4862,7 +4862,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
   ROF( ! bBiPredOnly || rcRefFrameList1.getActive() );
   
   Bool            bPSlice         = rpcMbTempData->getMbDataAccess().getSH().isInterP();
-  Float           fRdCost         = 0;
+  Double          fRdCost         = 0;
   UInt            uiSubMbBits     = 0;
   SParIdx4x8      aeParIdx4x8 [2] = { SPART_4x8_0, SPART_4x8_1 };
   ParIdx8x8       aeParIdx8x8 [4] = { PART_8x8_0, PART_8x8_1, PART_8x8_2, PART_8x8_3 };
@@ -5300,7 +5300,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
 
 
   Bool            bPSlice         = rpcMbTempData->getMbDataAccess().getSH().isInterP();
-  Float           fRdCost         = 0;
+  Double          fRdCost         = 0;
   UInt            uiSubMbBits     = 0;
   SParIdx4x4      aeParIdx4x4 [4] = { SPART_4x4_0, SPART_4x4_1, SPART_4x4_2, SPART_4x4_3 };
   ParIdx8x8       aeParIdx8x8 [4] = { PART_8x8_0, PART_8x8_1, PART_8x8_2, PART_8x8_3 };
@@ -6277,7 +6277,7 @@ MbEncoder::xQPelEstimateMb8x8( IntMbTempData*&  rpcMbTempData,
     if ( eBlkMode != BLK_8x8 )
     {
       // no QPEL reft in case of sub-partitioning of 8x8 blk
-      rpcMbTempData->rdCost() = FLOAT_MAX;
+      rpcMbTempData->rdCost() = DOUBLE_MAX;
       return Err::m_nOK;
     }
 // TMM_ESS }

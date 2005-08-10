@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -157,7 +157,7 @@ void readColorComponent( ColorComponent* cc, FILE* file )
 void writeColorComponent( ColorComponent* cc, FILE* file, int downScale )
 {
   int outwidth  = cc->width   >> downScale;
-  int outheight = cc->height  >> downScale; 
+  int outheight = cc->height  >> downScale;
   int wsize;
 
   for( int i = 0; i < outheight; i++ )
@@ -190,7 +190,7 @@ double psnr( ColorComponent& rec, ColorComponent& org, int rec_x, int rec_y )
     pOrg   += org.width;
   }
 
-  return ( 10.0 * log10( (double)rec.width * (double)rec.height * 65025.0 / ssd ) ); 
+  return ( 10.0 * log10( (double)rec.width * (double)rec.height * 65025.0 / ssd ) );
 }
 
 void getPSNR( double& psnrY, double& psnrU, double& psnrV, YuvFrame& rcFrameOrg, YuvFrame& rcFrameRec, int rec_x, int rec_y )
@@ -214,7 +214,7 @@ void writeFrame( YuvFrame* f, FILE* file, int downscale )
   writeColorComponent( &f->cr,  file, downscale );
 }
 
-void downsampleFrame( YuvFrame* pcFrame, DownConvert& rcDownConvert, int iStages ) 
+void downsampleFrame( YuvFrame* pcFrame, DownConvert& rcDownConvert, int iStages )
 {
   rcDownConvert.downsample( pcFrame->lum.data,  pcFrame->lum.width,
                             pcFrame->cb .data,  pcFrame->cb .width,
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
   FILE*         org_file        = 0;
   FILE*         rec_file        = 0;
   FILE*         str_file        = 0;
-  
+
   //===== variables =====
   unsigned int  index, sidx, skip, skip_between, sequence_length;
   int           py, pu, pv, br;
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 
   //===== read input parameters =====
   print_usage_and_exit(argc < 5, argv[0]);
-  if (strcmp(argv[1], "-tmm") != NULL)
+  if( strcmp(argv[1], "-tmm") != 0 )
     {
       print_usage_and_exit      ( argc > 10 || argc == 9, argv[0] );
       org_width         = atoi  ( argv[1] );
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
           str_file        = fopen ( argv[ind++], "rb" );
           fps             = atof  ( argv[ind++] );
           stream          = 1;
-        }     
+        }
    }
 
   //===== check input parameters =====
@@ -394,7 +394,7 @@ int main(int argc, char *argv[])
     py = (int)floor( acc * psnrY + 0.5 );
     pu = (int)floor( acc * psnrU + 0.5 );
     pv = (int)floor( acc * psnrV + 0.5 );
-    fprintf(stdout,"%d\t"OUT"\t"OUT"\t"OUT"\n",index,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc); 
+    fprintf(stdout,"%d\t"OUT"\t"OUT"\t"OUT"\n",index,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
   }
   fprintf(stdout,"\n");
 
@@ -404,11 +404,11 @@ int main(int argc, char *argv[])
   br = (int)floor( acc * bitrate                                 + 0.5 );
   if( stream )
   {
-    fprintf(stderr,OUT"\t"OUT"\t"OUT"\t"OUT"\n",br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc); 
+    fprintf(stderr,OUT"\t"OUT"\t"OUT"\t"OUT"\n",br/acc,br%acc,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
   }
   else
   {
-    fprintf(stderr,"total\t"OUT"\t"OUT"\t"OUT"\n",py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc); 
+    fprintf(stderr,"total\t"OUT"\t"OUT"\t"OUT"\n",py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
   }
   fprintf(stdout, "\n");
 

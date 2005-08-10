@@ -96,7 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #define DC_PRED         2
 #define OUTSIDE         -1
-#define FLOAT_MAX       3.402823466e+38F
+#define DOUBLE_MAX      1.7e+308
 
 
 #define NO_LEFT_REF        1
@@ -258,9 +258,10 @@ enum Profile
 
 enum DFunc
 {
-  DF_SAD = 0,
-  DF_SSD,
-  DF_HADAMARD
+  DF_SAD      = 0,
+  DF_SSD      = 1,
+  DF_HADAMARD = 2,
+  DF_YUV_SAD  = 3
 };
 
 enum SearchMode

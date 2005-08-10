@@ -109,26 +109,19 @@ Modify list:
 #endif // _MSC_VER > 1000
 
 
-//##ModelId=3EB9187A0258
 class WriteYuvaToRgb 
 {
 
 protected:
-	//##ModelId=3EB9187A025B
 	WriteYuvaToRgb();
-	//##ModelId=3EB9187A025C
 	virtual ~WriteYuvaToRgb();
 
 public:
-	//##ModelId=3EBA4F73017B
   static ErrVal create( WriteYuvaToRgb*& rpcWriteYuvaToRgb );
-	//##ModelId=3EB9187A0263
   ErrVal destroy();
 
-	//##ModelId=3EB9187A0264
   ErrVal setFrameDimension( UInt uiLumHeight, UInt uiLumWidth );
 
-	//##ModelId=3EBA4F7301D9
   virtual ErrVal writeFrameRGB(  UChar* pucRGB,
                                  UInt uiDestStride,
                                  const UChar *pLum,
@@ -138,7 +131,6 @@ public:
                                  UInt uiLumWidth,
                                  UInt uiLumStride );
 
-	//##ModelId=3EBA4F730302
   virtual ErrVal writeFrameYUYV( UChar* pucYUYV,
                                  UInt uiDestStride,
                                  const UChar *pLum,
@@ -148,7 +140,6 @@ public:
                                  UInt uiLumWidth,
                                  UInt uiLumStride );
 
-	//##ModelId=3EBA4F730302
   virtual ErrVal writeFrameYV12( UChar* pucYUYV,
                                  UInt uiDestStride,
                                  const UChar *pLum,
@@ -159,9 +150,7 @@ public:
                                  UInt uiLumStride );
 
 protected:
-	//##ModelId=3EB9187A0271
   UInt m_uiHeight; 
-	//##ModelId=3EB9187A0272
   UInt m_uiWidth;
 };
 

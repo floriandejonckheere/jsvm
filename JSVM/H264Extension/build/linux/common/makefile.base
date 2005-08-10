@@ -45,8 +45,8 @@ endif
 #########################################################
 
 # default cpp flags for all configurations
-#CPPFLAGS          = -Wall -fPIC $(DEFS) -I$(INC_DIR) $(USER_INC_DIRS)
-CPPFLAGS          = -fPIC $(DEFS) -I$(INC_DIR) $(USER_INC_DIRS)
+#CPPFLAGS          = -Wall -fPIC $(DEFS) -I$(CURDIR)/$(INC_DIR) $(USER_INC_DIRS)
+CPPFLAGS          = -fPIC $(DEFS) -I$(CURDIR)/$(INC_DIR) $(USER_INC_DIRS)
 #
 # debug cpp flags
 DEBUG_CPPFLAGS    = -g  -D_DEBUG
@@ -176,14 +176,14 @@ $(OBJ_DIR)/%.d.o: $(SRC_DIR4)/%.asm
 # see also: http://make.paulandlesley.org/autodep.html
 #    2005-01-25 Steffen Kamp (kamp@ient.rwth-aachen.de), RWTH Aachen
 define COMPILE_AND_DEPEND_RELEASE
-	$(CPP) -c -MMD $(CPPFLAGS) $(RELEASE_CPPFLAGS) -o $@ $<
+	$(CPP) -c -MMD $(CPPFLAGS) $(RELEASE_CPPFLAGS) -o $@ $(CURDIR)/$<
 	@cp $(OBJ_DIR)/$*.r.d $(OBJ_DIR)/$*.r.P; \
 		sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 		-e '/^$$/ d' -e 's/$$/ :/' < $(OBJ_DIR)/$*.r.d >> $(OBJ_DIR)/$*.r.P; \
 		rm -f $(OBJ_DIR)/$*.r.d
 endef
 define COMPILE_AND_DEPEND_DEBUG
-	$(CPP) -c -MMD $(CPPFLAGS) $(DEBUG_CPPFLAGS) -o $@ $<
+	$(CPP) -c -MMD $(CPPFLAGS) $(DEBUG_CPPFLAGS) -o $@ $(CURDIR)/$<
 	@cp $(OBJ_DIR)/$*.d.d $(OBJ_DIR)/$*.d.P; \
 		sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
 		-e '/^$$/ d' -e 's/$$/ :/' < $(OBJ_DIR)/$*.d.d >> $(OBJ_DIR)/$*.d.P; \

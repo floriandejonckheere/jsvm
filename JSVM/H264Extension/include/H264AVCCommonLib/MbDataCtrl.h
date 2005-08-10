@@ -263,43 +263,13 @@ public:
     return Err::m_nOK;
   }
 
-  MbDataCtrl*   getFgsBaseMbDataCtrl()  { return  m_pcFgsMbDataCtrl; }
-  ErrVal        setFgsMbDataCtrl( MbDataCtrl* pcMbDataCtrl )
-  {
-    m_pcFgsMbDataCtrl = pcMbDataCtrl;
-    return Err::m_nOK;
-  }
-
-  ErrVal        switchMbDataCtrlQpAndCbp( MbDataCtrl*  pcMbDataCtrl0, MbDataCtrl*  pcMbDataCtrl1 )
-  {
-    UChar ucQp;
-    UInt  uiMbCbp;
-
-    for( UInt uiMbIdx = 0; uiMbIdx < m_pcMbDataCtrl->getSize(); uiMbIdx++ )
-    {
-      ucQp = pcMbDataCtrl0->getMbData(uiMbIdx).getQp();
-      pcMbDataCtrl0->getMbDataByIndex(uiMbIdx).setQp(pcMbDataCtrl1->getMbData(uiMbIdx).getQp());
-
-      pcMbDataCtrl1->getMbDataByIndex(uiMbIdx).setQp(ucQp);
-
-      uiMbCbp = pcMbDataCtrl0->getMbData(uiMbIdx).getMbExtCbp();
-      pcMbDataCtrl0->getMbDataByIndex(uiMbIdx).setMbExtCbp(pcMbDataCtrl1->getMbData(uiMbIdx).getMbExtCbp());
-
-      pcMbDataCtrl1->getMbDataByIndex(uiMbIdx).setMbExtCbp(uiMbCbp);
-    }
-
-    return Err::m_nOK;
-  }
-
   ErrVal        activateMbDataCtrlForQpAndCbp( Bool bNormalMbDataCtrl )
   {
     // restore the state first
-    if( ! m_bIsNormalMbDataCtrl )
-      switchMbDataCtrlQpAndCbp( m_pcMbDataCtrl, m_pcFgsMbDataCtrl );
-
-    if( ! bNormalMbDataCtrl )
-      switchMbDataCtrlQpAndCbp( m_pcMbDataCtrl, m_pcFgsMbDataCtrl );
-
+    if( m_bIsNormalMbDataCtrl != bNormalMbDataCtrl )
+    {
+      switchFGSLayerQpAndCbp();
+    }
     m_bIsNormalMbDataCtrl = bNormalMbDataCtrl;
 
     return Err::m_nOK;
@@ -309,7 +279,7 @@ public:
   {
     // should not happen, not designed so general
     ROT( ! m_bIsNormalMbDataCtrl );
-    m_pcFgsMbDataCtrl->saveQpAndCbp(m_pcMbDataCtrl);
+    storeFGSLayerQpAndCbp();
     return Err::m_nOK;
   }
 
@@ -376,6 +346,17 @@ public:
   Double        getScalingFactor_FT    ()  const     { return m_dScalingFactorFT;      }
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+  
+  ErrVal        initFGSData             ( UInt uiNumMb );
+  ErrVal        uninitFGSData           ();
+  ErrVal        storeFGSLayerQpAndCbp   ();
+  ErrVal        switchFGSLayerQpAndCbp  ();
+
+  ErrVal        initBQData            ( UInt uiNumMb );
+  ErrVal        uninitBQData          ();
+  ErrVal        storeBQLayerQpAndCbp  ();
+  ErrVal        restoreBQLayerQpAndCbp();
+
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
   SliceHeader*  m_pcSliceHeader;
@@ -404,8 +385,15 @@ private:
   UInt			    m_uiCurActiveUpdL0[MAX_DSTAGES];
   UInt			    m_uiCurActiveUpdL1[MAX_DSTAGES];
   
-  MbDataCtrl*   m_pcFgsMbDataCtrl;
+  UChar*        m_pacFGSMbQP;
+  UInt*         m_pauiFGSMbCbp;
+  Bool*         m_pabFGS8x8Trafo;
   Bool          m_bIsNormalMbDataCtrl;
+
+  //===== base quality data (CBP, QP, 8x8flag) =====
+  UChar*        m_pacBQMbQP;
+  UInt*         m_pauiBQMbCbp;
+  Bool*         m_pabBQ8x8Trafo;
 
   RefFrameList  m_acPrdFrameList                [2];
   RefFrameList  m_aacUpdFrameList[MAX_DSTAGES+1][2];

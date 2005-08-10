@@ -101,7 +101,7 @@ H264AVC_NAMESPACE_BEGIN
 ErrVal MotionVectorSearchParams::check() const
 {
   ROTREPORT( 4 < m_eSearchMode,   "No Such Search Mode 0==Block,1==Spiral,2==Log,3==Fast, 4==NewFast" )
-  ROTREPORT( 3 < m_eFullPelDFunc, "No Such Search Func (Full Pel) 0==SAD,1==SSE,2==Hadamard" )
+  ROTREPORT( 3 < m_eFullPelDFunc, "No Such Search Func (Full Pel) 0==SAD,1==SSE,2==Hadamard,3==YUV-SAD" )
   ROTREPORT( 3 == m_eFullPelDFunc && (m_eSearchMode==2 || m_eSearchMode==3), "Log and Fast search not possible in comb. with distortion measure 3" )
   ROTREPORT( 2 < m_eSubPelDFunc,  "No Such Search Func (Sub Pel) 0==SAD,1==SSE,2==Hadamard" )
   ROTREPORT( 1 < m_uiDirectMode,  "Direct Mode Exceeds Supported Range 0==Temporal, 1==Spatial");
@@ -148,7 +148,9 @@ ErrVal LayerParameters::check()
 #else
   ROTREPORT( getDecodingLoops           () > 1,         "Unsupported mode for decoding loops" );
 #endif
-  
+  ROTREPORT( getClosedLoop              () > 2,         "Unsupported closed-loop mode" );
+  ROTREPORT( getUpdateStep() && getClosedLoop(),        "Closed-loop coding for MCTF is not supported" );
+
   return Err::m_nOK;
 }
 

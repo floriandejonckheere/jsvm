@@ -872,7 +872,7 @@ Extractor::xExtractLayerLevel()
     //============ check packet ===========
     bKeep = ( uiLayer <= uiMaxLayer && uiLevel <= uiMaxLevel );
     bCrop = false;
-    if( bKeep )
+    if( bKeep && uiLayer == uiMaxLayer )
     {
       Double  dSNRLayerDiff = dMaxFGSLayer - (Double)uiFGSLayer;
       Double  dUpRound      = ceil  ( dSNRLayerDiff );
@@ -1149,7 +1149,7 @@ Void Extractor::setQualityLevel()
 	        {
 		        if(uiLevel == 0)
 		        {
-			        m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel] = m_aaadBytesForFrameFGS[uiLayer][uiNumImage][0];
+			        m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel] = (UInt)m_aaadBytesForFrameFGS[uiLayer][uiNumImage][0];
 			        m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel] += m_aauiSEIQLPacketSize[uiLayer][uiNumImage];
 			        uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiNumImage][uiLevel];
 		        }
@@ -1527,7 +1527,7 @@ Extractor::ExtractPointsFromRate()
 			            //printf("cropping packet\n");
 		                bKeep = true;
 		                bCrop = true;
-		                uiShrinkSize = uiPacketSize - dRemainingBytes;
+		                uiShrinkSize = uiPacketSize - (UInt)floor(dRemainingBytes+0.49);
 			            dTot += dRemainingBytes;
 		            }
       
@@ -1585,7 +1585,7 @@ Extractor::ExtractPointsFromRate()
 
   RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
 	
-  printf(" totalPackets %4f \n ", totalPackets);
+  printf(" totalPackets %4lf \n ", totalPackets);
 
   printf("\n\nNumber of input packets:  %d\nNumber of output packets: %d (cropped: %d)\n\n", uiNumInput, uiNumKept, uiNumCropped );
   
@@ -1603,7 +1603,7 @@ Void Extractor::CalculateMaxRate(UInt uiLayer)
 		  UInt maxRate = 0;
 		  for(ui = 0; ui < MAX_FGS_LAYERS; ui++)
 		  {
-			  maxRate += m_aaadBytesForFrameFGS[uiLayer][uiNumImage][ui];
+			  maxRate += (UInt)m_aaadBytesForFrameFGS[uiLayer][uiNumImage][ui];
 		  }
 		  
 		  m_aaadMaxRate[uiLayer][uiNumImage] = maxRate;
@@ -2023,7 +2023,7 @@ Void Extractor::CalculateSizeDeadSubstream()
 			}
 			sumMaxRate += (m_aaadMaxRate[uiLayer][uiNFrames]-m_aaadBytesForFrameFGS[uiLayer][uiNFrames][0]);
 		}
-		m_aSizeDeadSubstream[uiLayer] = sumFGS - sumMaxRate;
+		m_aSizeDeadSubstream[uiLayer] = (Int)floor( sumFGS - sumMaxRate );
 	}
 }
 

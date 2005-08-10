@@ -117,7 +117,6 @@ Modify list:
 #endif
 
 
-//##ModelId=3EB9187A02C6
 ErrVal WriteYuvaToDisplay::xUseMMX()
 {
 #ifndef NO_MMX_SUPPORT
@@ -134,7 +133,6 @@ ErrVal WriteYuvaToDisplay::xUseMMX()
   return Err::m_nOK;
 }
 
-//##ModelId=3EB9187A02B4
 WriteYuvaToDisplay::WriteYuvaToDisplay() :
   m_pcDisplay( NULL ),
   m_pcWriteYuvToRgb( NULL ),
@@ -146,14 +144,12 @@ WriteYuvaToDisplay::WriteYuvaToDisplay() :
 
 }
 
-//##ModelId=3EB9187A02B5
 WriteYuvaToDisplay::~WriteYuvaToDisplay()
 {
 
 }
 
 
-//##ModelId=3EB9187A02B7
 ErrVal WriteYuvaToDisplay::create( WriteYuvIf*& rpcWriteYuv, const std::string& rcTitle )
 {
   WriteYuvaToDisplay* pcWriteYuvaToDisplay;
@@ -171,7 +167,6 @@ ErrVal WriteYuvaToDisplay::create( WriteYuvIf*& rpcWriteYuv, const std::string& 
 }
 
 
-//##ModelId=3EB9187A02BB
 ErrVal WriteYuvaToDisplay::destroy()
 { 
   if( m_pcDisplay )
@@ -190,7 +185,6 @@ ErrVal WriteYuvaToDisplay::destroy()
 }
 
 
-//##ModelId=3EB9187A02BC
 ErrVal WriteYuvaToDisplay::xSetFrameDimension( UInt uiLumHeight, UInt uiLumWidth )
 {
   //ROT( m_bInitDone );
@@ -229,7 +223,6 @@ ErrVal WriteYuvaToDisplay::xSetFrameDimension( UInt uiLumHeight, UInt uiLumWidth
 }
 
 
-//##ModelId=3EB9187A02BF
 ErrVal WriteYuvaToDisplay::writeFrame( const UChar *pLum,
                                        const UChar *pCb,
                                        const UChar *pCr,

@@ -106,14 +106,14 @@ protected:
 public:
   virtual ErrVal  setMbQpLambda( MbDataAccess& rcMbDataAccess, UInt uiQp, Double dLambda );
 
-  static ErrVal create( RateDistortion *&rpcRateDistortion );
+  static  ErrVal create( RateDistortion *&rpcRateDistortion );
   virtual ErrVal destroy();
   virtual ErrVal init( CodingParameter *pcCodingParameter );
   virtual ErrVal uninit();
 
-  Float getCost( UInt uiBits, UInt uiDistortion );
-  Float getFCost( UInt uiBits, UInt uiDistortion );
-  UInt getMotionCostShift( Bool bSad) { return (bSad) ? m_uiCostFactorMotionSAD : m_uiCostFactorMotionSSE; }
+  Double  getCost( UInt uiBits, UInt uiDistortion );
+  Double  getFCost( UInt uiBits, UInt uiDistortion );
+  UInt    getMotionCostShift( Bool bSad) { return (bSad) ? m_uiCostFactorMotionSAD : m_uiCostFactorMotionSSE; }
 
   ErrVal  fixMacroblockQP( MbDataAccess& rcMbDataAccess );
 

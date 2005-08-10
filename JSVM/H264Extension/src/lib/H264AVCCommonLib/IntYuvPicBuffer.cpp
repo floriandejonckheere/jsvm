@@ -260,16 +260,16 @@ UInt IntYuvPicBuffer::MSDCompute( IntYuvPicBuffer*  pcSrcYuvPicBuffer )
   pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb();
   m_rcYuvBufferCtrl.initMb();
 
-  XPel* pSrc        = pcSrcYuvPicBuffer->getMbLumAddr();
-  XPel* pDes        = getMbLumAddr();
-  Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
-  Int   iDesStride  = getLStride();
-  UInt  uiHeight    = pcSrcYuvPicBuffer->getLHeight();
-  UInt  uiWidth     = pcSrcYuvPicBuffer->getLWidth ();
-  UInt  y, x;
-  float fLumaDist = 0.0;
-  float fChromaUDist = 0.0;
-  float fChromaVDist = 0.0;
+  XPel*  pSrc        = pcSrcYuvPicBuffer->getMbLumAddr();
+  XPel*  pDes        = getMbLumAddr();
+  Int    iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+  Int    iDesStride  = getLStride();
+  UInt   uiHeight    = pcSrcYuvPicBuffer->getLHeight();
+  UInt   uiWidth     = pcSrcYuvPicBuffer->getLWidth ();
+  UInt   y, x;
+  UInt   fLumaDist    = 0;
+  UInt   fChromaUDist = 0;
+  UInt   fChromaVDist = 0;
 
   //===== luminance =====
   for( y = 0; y < uiHeight; y++ )

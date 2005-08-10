@@ -162,6 +162,7 @@ MCTFEncoder::MCTFEncoder()
 , m_uiNumMaxIter                    ( 0 )
 , m_uiIterSearchRange               ( 0 )
 , m_iMaxDeltaQp                     ( 0 )
+, m_uiClosedLoopMode                ( 0 )
 , m_bUpdate                         ( false )
 , m_bH264AVCCompatible              ( true  )
 , m_bInterLayerPrediction           ( true  )
@@ -187,6 +188,7 @@ MCTFEncoder::MCTFEncoder()
 , m_uiGOPNumber                     ( 0 )
 //----- frame memories -----
 , m_papcFrame                       ( 0 )
+, m_papcBQFrame                     ( 0 )
 #if MULTIPLE_LOOP_DECODING
 , m_papcFrameILPred                 ( 0 )
 #endif
@@ -210,9 +212,8 @@ MCTFEncoder::MCTFEncoder()
 //--- FGS ---
 , m_uiFGSMode                       ( 0 )
 , m_pFGSFile                        ( 0 )
-, m_uiFGSCutLayer                   ( 0 )
-, m_uiFGSCutPath                    ( 0 )
-, m_dFGSCutFactor                   ( 0.0 )
+, m_dFGSBitRateFactor               ( 0.0 )
+, m_dFGSRoundingOffset              ( 0.0 )
 , m_iLastFGSError                   ( 0 )
 , m_uiNotYetConsideredBaseLayerBits ( 0 )
 , m_bLowComplxUpdFlag               ( 1 )
@@ -338,8 +339,10 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiNumMaxIter            = pcCodingParameter->getMotionVectorSearchParams().getNumMaxIter      ();
   m_uiIterSearchRange       = pcCodingParameter->getMotionVectorSearchParams().getIterSearchRange ();
   m_iMaxDeltaQp             = pcLayerParameters->getMaxAbsDeltaQP           ();
+  m_uiClosedLoopMode        = pcLayerParameters->getClosedLoop              ();
   m_bUpdate                 = pcLayerParameters->getUpdateStep              ()  > 0  &&
                             ( pcCodingParameter->getBaseLayerMode           () == 0 || m_uiLayerId >  0 );
+  ROT( m_uiClosedLoopMode && m_bUpdate ); // double-check
   m_bH264AVCCompatible      = pcCodingParameter->getBaseLayerMode           ()  > 0 && m_uiLayerId == 0;
   m_bInterLayerPrediction   = pcLayerParameters->getInterLayerPredictionMode()  > 0;
   m_bAdaptivePrediction     = pcLayerParameters->getInterLayerPredictionMode()  > 1;
@@ -427,9 +430,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     ROF( m_pFGSFile );
   }
 
-  m_uiFGSCutLayer                   = 0;
-  m_uiFGSCutPath                    = 0;
-  m_dFGSCutFactor                   = 0;
+  m_dFGSBitRateFactor               = 0.0;
+  m_dFGSRoundingOffset              = 0.0;
   m_iLastFGSError                   = 0;
   m_uiNotYetConsideredBaseLayerBits = 0;
 
@@ -440,10 +442,9 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     UInt  uiNumFrames                       =     0;
     UInt  uiBaseBits                        =     0;
     UInt  uiSumBaseBits                     =     0;
+    UInt  uiSumAllBits                      =     0;
     UInt  uiFGSBits     [MAX_FGS_LAYERS]    =   { 0, 0, 0 };
-    UInt  uiSumFGSBits  [MAX_FGS_LAYERS]    =   { 0, 0, 0 };
-    UInt  uiPBits       [MAX_FGS_LAYERS][3] = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
-    UInt  uiSumPBits    [MAX_FGS_LAYERS][3] = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
+    UInt  uiDummy;
 
     for( ; ; )
     {
@@ -455,80 +456,33 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
         break;
       }
   
-      sscanf( acLine, "%d %d %d %d %d %d %d %d %d %d %d %d %d ", // MAX_QUALITY_LEVEL must be equal to 4
-        &uiBaseBits,
-        &uiPBits[0][0], &uiPBits[0][1], &uiPBits[0][2], &uiFGSBits[0],
-        &uiPBits[1][0], &uiPBits[1][1], &uiPBits[1][2], &uiFGSBits[1],
-        &uiPBits[2][0], &uiPBits[2][1], &uiPBits[2][2], &uiFGSBits[2] );
+      sscanf( acLine, "%d %d %d %d %d %d %d ",
+        &uiBaseBits, &uiDummy, &uiFGSBits[0], &uiDummy, &uiFGSBits[1], &uiDummy, &uiFGSBits[2] );
+      if( uiFGSBits[0] == 0 )
+      {
+        fprintf( stderr, "Error: no FGS layers coded during analysis\n" );
+        ROT(1);
+      }
 
       uiNumFrames   ++;
       uiSumBaseBits += uiBaseBits;
-      for( Int k = 0; k < MAX_FGS_LAYERS; k++ )
-      {
-        for( Int l = 0; l < 3; l++ )  uiSumPBits[k][l] += uiPBits[k][l];
-        uiSumFGSBits[k] += uiFGSBits[k];
-      }
+      uiSumAllBits  += uiBaseBits;
+      uiSumAllBits  += uiFGSBits[0];
+      uiSumAllBits  += uiFGSBits[1];
+      uiSumAllBits  += uiFGSBits[2];
     }
     ROF( uiNumFrames );
 
     Double  dTargetBits   = 1000.0 * pcLayerParameters->getFGSRate() * (Double)uiNumFrames / pcLayerParameters->getOutputFrameRate();
     UInt    uiTargetBits  = (UInt)floor( dTargetBits + 0.5 );
 
-
     if( uiTargetBits <= uiSumBaseBits )
     {
-      ROT(1);
+      ROF( uiTargetBits );
+      printf("Warning: Layer %d bitrate overflow (only base layer coded)\n", m_uiLayerId );
     }
-    uiTargetBits -= uiSumBaseBits;
-
-    for( UInt uiLayer = 0; uiLayer < MAX_FGS_LAYERS; uiLayer++ )
-    {
-      if( uiTargetBits <= uiSumFGSBits[uiLayer] )
-      {
-        m_uiFGSCutLayer = uiLayer+1;
-        uiTargetBits    = ( uiTargetBits >= (uiSumFGSBits[uiLayer]-uiSumPBits[uiLayer][0]-uiSumPBits[uiLayer][1]-uiSumPBits[uiLayer][2] )
-                          ? uiTargetBits  - (uiSumFGSBits[uiLayer]-uiSumPBits[uiLayer][0]-uiSumPBits[uiLayer][1]-uiSumPBits[uiLayer][2] ) : 0 );
-        for( UInt uiPath = 0; uiPath < 3; uiPath++ )
-        {
-          if( uiTargetBits <= uiSumPBits[uiLayer][uiPath] )
-          {
-            m_uiFGSCutPath  = uiPath;
-            m_dFGSCutFactor = (Double)uiTargetBits / (Double)uiSumPBits[uiLayer][uiPath];
-            break;
-          }
-          else
-          {
-            uiTargetBits -= uiSumPBits[uiLayer][uiPath];
-          }
-        }
-        break;
-      }
-      else
-      {
-        // warn on bit-rate underflow (provided by Steffen Kamp)
-        if( uiSumFGSBits[uiLayer] > 0 ) {
-          m_uiFGSCutLayer = uiLayer+1;
-        } else {
-         ::printf("Warning: Layer %d FGS layer %d does not have any bits", m_uiLayerId, uiLayer );
-        }
-        
-        uiTargetBits -= uiSumFGSBits[uiLayer];
-      }
-    }
-    ROF( m_uiFGSCutLayer );
-    m_dNumFGSLayers = m_uiFGSCutLayer;
-    
-    // warn ob bit-rate underflow (provided by Steffen Kamp)
-    if( uiTargetBits > 0 ) {
-      if( m_dFGSCutFactor != 0. ) {
-        ::printf("Note:    Layer %d cutting FGS %f to avoid underflow of %d bits (FGSCutPath=%d FGSCutFactor=%f)\n",
-                  m_uiLayerId, (float)m_dNumFGSLayers, uiTargetBits, m_uiFGSCutPath, (float)m_dFGSCutFactor );
-      } else {
-        ::printf("Warning: Layer %d bitrate underflow (%d bits left) - encoding %f full FGS layers\n",
-                  m_uiLayerId, uiTargetBits, (float)m_dNumFGSLayers );
-         m_dFGSCutFactor = 1.; // make sure we keep the whole layer
-      }
-    }
+    m_dFGSBitRateFactor = (Double)uiTargetBits / (Double)uiSumAllBits;
+    m_dNumFGSLayers     = 1.0; // something greater than zero
     
     ::fseek( m_pFGSFile, 0, SEEK_SET );
   }
@@ -699,6 +653,10 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
 
   //========== CREATE FRAME MEMORIES ==========
   ROFRS   ( ( m_papcFrame                     = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
+  if( m_uiClosedLoopMode == 2 )
+  {
+    ROFRS ( ( m_papcBQFrame                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
+  }
 #if MULTIPLE_LOOP_DECODING
   if( m_bCompletelyDecodeLayer && m_bUpdate )
   ROFRS   ( ( m_papcFrameILPred               = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
@@ -710,6 +668,11 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   {
     ROFRS ( ( m_papcFrame         [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                               *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+    if( m_papcBQFrame )
+    {
+      ROFRS(( m_papcBQFrame       [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+    }
 #if MULTIPLE_LOOP_DECODING
     if( m_papcFrameILPred )
     ROFRS ( ( m_papcFrameILPred   [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
@@ -720,6 +683,10 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     ROFRS ( ( m_papcSubband       [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                               *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
     RNOK  (   m_papcFrame         [ uiIndex ] ->init        () );
+    if( m_papcBQFrame )
+    {
+      RNOK(   m_papcBQFrame       [ uiIndex ] ->init        () );
+    }
 #if MULTIPLE_LOOP_DECODING
     if( m_papcFrameILPred )
     RNOK  (   m_papcFrameILPred   [ uiIndex ] ->init        () );
@@ -776,15 +743,17 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     ROFRS ( (     pcMbDataCtrl                = new MbDataCtrl  () ), Err::m_nERR );
     RNOK  (       pcMbDataCtrl                ->init            ( rcSPS ) );
     RNOK  (       m_pacControlData[ uiIndex ] . setMbDataCtrl   ( pcMbDataCtrl ) );
-
-    ROFRS ( (     pcMbDataCtrl                = new MbDataCtrl  () ), Err::m_nERR );
-    RNOK  (       pcMbDataCtrl                ->init            ( rcSPS ) );
-    RNOK  (       m_pacControlData[ uiIndex ] . setFgsMbDataCtrl( pcMbDataCtrl ) );
+    RNOK  (       m_pacControlData[ uiIndex ] .initFGSData      ( m_uiFrameWidthInMb * m_uiFrameHeightInMb ) );
 
     Bool          bLowPass                    = ( ( uiIndex % ( 1 << m_uiDecompositionStages ) ) == 0 );
     SliceHeader*  pcSliceHeader               = 0;
     ROFRS ( (     pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ), Err::m_nERR );
     RNOK  (       m_pacControlData[ uiIndex ] . setSliceHeader  (  pcSliceHeader ) );
+
+    if( m_uiClosedLoopMode == 2 )
+    {
+      RNOK(       m_pacControlData[ uiIndex ] .initBQData       ( m_uiFrameWidthInMb * m_uiFrameHeightInMb ) );
+    }
   }
   
   MbDataCtrl*   pcMbDataCtrl    = 0;
@@ -835,6 +804,21 @@ MCTFEncoder::xDeleteData()
     }
     delete [] m_papcFrame;
     m_papcFrame = 0;
+  }
+  
+  if( m_papcBQFrame )
+  {
+    for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
+    {
+      if( m_papcBQFrame[ uiIndex ] )
+      {
+        RNOK(   m_papcBQFrame[ uiIndex ]->uninit() );
+        delete  m_papcBQFrame[ uiIndex ];
+        m_papcBQFrame[ uiIndex ] = 0;
+      }
+    }
+    delete [] m_papcBQFrame;
+    m_papcBQFrame = 0;
   }
 
 #if MULTIPLE_LOOP_DECODING
@@ -945,6 +929,9 @@ MCTFEncoder::xDeleteData()
   {
     for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
     {
+      RNOK( m_pacControlData[ uiIndex ].uninitBQData() );
+      RNOK( m_pacControlData[ uiIndex ].uninitFGSData() );
+
       MbDataCtrl*   pcMbDataCtrl  = m_pacControlData[ uiIndex ].getMbDataCtrl  ();
       SliceHeader*  pcSliceHeader = m_pacControlData[ uiIndex ].getSliceHeader ();
       if( pcMbDataCtrl )
@@ -1418,7 +1405,9 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader();
   MbDataCtrl*   pcMbDataCtrl  = rcControlData.getMbDataCtrl ();
   IntFrame*     pcOrgResidual = pcTempFrame;
+  UInt          uiRealBLBits  = ruiBits;
   UInt          uiLastRecLayer;
+  ruiBits                     = 0;
 
   //===== set original residual signal =====
   RNOK( pcOrgResidual->subtract( pcFrame, pcPredSignal ) );
@@ -1426,37 +1415,50 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 
   UInt uiTarget;
   UInt uiFGSMaxBits = 0;
+  UInt uiBaseBits                 =   0;
+  UInt uiEstimatedHeaderBits      =   0;
+  UInt uiFrameBits                =   0;
+  UInt uiFGSBits [MAX_FGS_LAYERS] = { 0, 0, 0 };
   
   if( m_uiFGSMode == 2 )
   {
     Char  acLine    [1000];
-    UInt  uiBaseBits                    =     0;
-    UInt  uiFGSBits [MAX_FGS_LAYERS]    =   { 0, 0, 0 };
-    UInt  uiPBits   [MAX_FGS_LAYERS][3] = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
     Int   i, c;
     for(  i = 0; ( c = fgetc(m_pFGSFile), ( c != '\n' && c != EOF ) ); acLine[i++] = c );
     acLine[i] = '\0';
     ROT( feof(m_pFGSFile) );
 
-    sscanf( acLine, "%d %d %d %d %d %d %d %d %d %d %d %d %d ",
-      &uiBaseBits,
-      &uiPBits[0][0], &uiPBits[0][1], &uiPBits[0][2], &uiFGSBits[0],
-      &uiPBits[1][0], &uiPBits[1][1], &uiPBits[1][2], &uiFGSBits[1],
-      &uiPBits[2][0], &uiPBits[2][1], &uiPBits[2][2], &uiFGSBits[2] );
+    UInt uiDummy;
+    sscanf( acLine, "%d %d %d %d %d %d %d ",
+      &uiBaseBits, &uiEstimatedHeaderBits, &uiFGSBits[0], &uiDummy, &uiFGSBits[1], &uiDummy, &uiFGSBits[2] );
+    uiEstimatedHeaderBits = uiFGSBits[0] - uiEstimatedHeaderBits;
+    uiFrameBits           = uiBaseBits + uiFGSBits[0] + uiFGSBits[1] + uiFGSBits[2];
 
-    if( m_uiFGSCutLayer )
+    Double  dReal         = (Double)uiFrameBits * m_dFGSBitRateFactor + m_dFGSRoundingOffset + 0.0000001;
+    uiFGSMaxBits          = (UInt)floor( dReal );
+    m_dFGSRoundingOffset  = dReal - (Double)uiFGSMaxBits;
+    //----- correct base layer bits -----#
+    if( uiFGSMaxBits >= uiRealBLBits )
     {
-      uiFGSMaxBits  = (UInt)floor( (Double)uiPBits[m_uiFGSCutLayer-1][m_uiFGSCutPath]*m_dFGSCutFactor );
-      if( (Int)uiFGSMaxBits >= m_iLastFGSError )
-      {
-        uiFGSMaxBits   -= m_iLastFGSError;
-        m_iLastFGSError = 0;
-      }
-      
-      uiTarget      = uiFGSBits[m_uiFGSCutLayer-1] + uiFGSMaxBits;
-      for( UInt ui = m_uiFGSCutPath; ui < 3; ui++ )
-        uiTarget -= uiPBits[m_uiFGSCutLayer-1][ui];
+      uiFGSMaxBits -= uiRealBLBits;
     }
+    else
+    {
+      m_iLastFGSError += uiRealBLBits - uiFGSMaxBits;
+      uiFGSMaxBits     = 0;
+    }
+    //----- consider last FGS errors -----
+    if( (Int)uiFGSMaxBits >= m_iLastFGSError )
+    {
+      uiFGSMaxBits   -= m_iLastFGSError;
+      m_iLastFGSError = 0;
+    }
+    else
+    {
+      m_iLastFGSError -= (Int)uiFGSMaxBits;
+      uiFGSMaxBits     = 0;
+    }
+    uiTarget = uiFGSMaxBits;
   }
 
   //===== initialize FGS encoder =====
@@ -1467,10 +1469,27 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
                                        rcControlData.getLambda(),
                                        m_iMaxDeltaQp,
                                        bFinished,
-                                       m_uiFGSCutLayer,
-                                       m_uiFGSCutPath,
-                                       uiFGSMaxBits ) );
+                                       ( m_uiFGSMode == 2 ) ) );
 
+  // HS: bug-fix for m_uiQualityLevelForPrediction == 0
+  if( 0 == m_uiQualityLevelForPrediction)
+  {
+    RNOK( m_pcRQFGSEncoder->reconstruct   ( pcFrame ) );
+    RNOK( xAddBaseLayerResidual           ( rcControlData, pcFrame, false ) );
+    RNOK( pcResidual      ->copy          ( pcFrame ) );
+    RNOK( xZeroIntraMacroblocks           ( pcResidual, rcControlData ) );
+    RNOK( pcFrame         ->add           ( pcPredSignal ) );
+    RNOK( xClipIntraMacroblocks   ( pcFrame, rcControlData, pcSliceHeader->getTemporalLevel() == 0 ) );
+    RNOK( pcSubband       ->copy          ( pcFrame ) );
+
+    RNOK( rcControlData.saveMbDataQpAndCbp() );
+  }
+
+  if( m_uiFGSMode == 2 && uiTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+  {
+    bFinished        = true;
+    m_iLastFGSError -= (Int)uiFGSMaxBits;
+  }
 
   //===== encoding of FGS packets =====
   for( UInt uiRecLayer = 1; !bFinished; uiRecLayer++ )
@@ -1496,16 +1515,34 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 
     //---- encode next bit-plane for current NAL unit ----
     Bool bCorrupted = false;
-    RNOK( m_pcRQFGSEncoder->encodeNextLayer     ( bFinished, bCorrupted, ( m_uiFGSMode == 1 ? m_pFGSFile : 0 ) ) );
+    if( m_uiFGSMode == 2 && uiTarget < uiFGSBits[uiRecLayer-1] - uiEstimatedHeaderBits ) // probably truncate in payload
+    {
+      uiFGSMaxBits -= uiEstimatedHeaderBits;
+    }
+    RNOK( m_pcRQFGSEncoder->encodeNextLayer     ( bFinished, bCorrupted, uiFGSMaxBits, ( m_uiFGSMode == 1 ? m_pFGSFile : 0 ) ) );
 
     //----- close NAL UNIT -----
     RNOK( m_pcNalUnitEncoder->closeNalUnit      ( uiPacketBits ) );
     RNOK( xAppendNewExtBinDataAccessor          ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
     uiPacketBits += 4*8;
 
-    if( uiRecLayer == m_uiFGSCutLayer )
+    if( m_uiFGSMode == 2 )
     {
-      m_iLastFGSError += (Int)uiPacketBits - (Int)uiTarget;
+      if( uiRecLayer == 3 || uiPacketBits >= uiTarget || bFinished )
+      {
+        m_iLastFGSError += (Int)uiPacketBits - (Int)uiTarget;
+        bFinished = true;
+      }
+      else
+      {
+        uiTarget     -= uiPacketBits;
+        uiFGSMaxBits  = uiTarget;
+        if( uiTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+        {
+          bFinished        = true;
+          m_iLastFGSError -= (Int)uiFGSMaxBits;
+        }
+      }
     }
 
     if( m_uiFGSMode == 1 && m_pFGSFile )
@@ -1947,7 +1984,7 @@ MCTFEncoder::getBaseLayerData( IntFrame*&   pcFrame,
         pcMbDataCtrl  = m_pacControlData[uiFrame].getMbDataCtrl();        //    -> it is reset in ControlData::clear at the beginning of the next GOP
         bForCopyOnly  = false;
       }
-      else if( ! m_bH264AVCCompatible )
+      else if( ! m_bH264AVCCompatible && ! m_uiClosedLoopMode )
       {
         pcResidual      = 0;
         pcFrame         = 0;
@@ -2612,6 +2649,48 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 }
 
 
+ErrVal
+MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
+                                    RefFrameList& rcRefList1,
+                                    UInt          uiBaseLevel,
+                                    UInt          uiFrame )
+{
+  rcRefList0.reset();
+  rcRefList1.reset();
+
+  UInt          uiFrameIdInGOP  = ( uiFrame << uiBaseLevel );
+  SliceHeader*  pcSliceHeader   = m_pacControlData[uiFrameIdInGOP].getSliceHeader();
+  UInt          uiList0Size     = pcSliceHeader->getNumRefIdxActive( LIST_0 );
+  UInt          uiList1Size     = pcSliceHeader->getNumRefIdxActive( LIST_1 );
+
+  //===== list 0 =====
+  {
+    for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+    {
+      IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
+      RNOK( xFillAndExtendFrame   ( pcFrame ) );
+
+      RNOK( rcRefList0.add( pcFrame ) );
+      uiList0Size--;
+    }
+    ROT( uiList0Size );
+  }
+
+  //===== list 1 =====
+  {
+    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    {
+      IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
+      RNOK( xFillAndExtendFrame   ( pcFrame ) );
+
+      RNOK( rcRefList1.add( pcFrame ) );
+      uiList1Size--;
+    }
+    ROT( uiList1Size );
+  }
+
+  return Err::m_nOK;
+}
 
 
 ErrVal  
@@ -2784,7 +2863,7 @@ MCTFEncoder::xInitControlDataMotion( UInt uiBaseLevel,
 
   SliceType       eSliceType        = pcSliceHeader->getSliceType   ();
   Double          dScalFactor       = rcControlData.getScalingFactor();
-  if( ! m_bH264AVCCompatible )
+  if( ! m_bH264AVCCompatible && ! m_uiClosedLoopMode )
   {
     dScalFactor *= ( eSliceType == B_SLICE ? FACTOR_53_HP : FACTOR_22_HP );
   }
@@ -2915,12 +2994,29 @@ MCTFEncoder::xDecompositionStage( UInt uiBaseLevel )
     IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
     IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
 
+    //--- closed-loop for base quality layer ---
+    IntFrame*     pcBQFrame       = 0;
+    RefFrameList  acBQRefFrameList[2];
+    if( m_papcBQFrame )
+    {
+      pcBQFrame = m_papcBQFrame[uiFrameIdInGOP];
+      RNOK( xGetBQPredictionLists ( acBQRefFrameList[0], acBQRefFrameList[1], uiBaseLevel, uiFramePrd ) );
+    }
+
     //===== get reference frame lists =====
     RefFrameList  acRefFrameList[2];
     RNOK( xGetPredictionLists   ( acRefFrameList[0], acRefFrameList[1], uiBaseLevel, uiFramePrd, false ) );
 
     //===== set lambda and QP =====
     RNOK( xInitControlDataMotion( uiBaseLevel, uiFramePrd, false ) );
+
+    //--- closed-loop control for base quality layer ---
+    if( pcBQFrame )
+    {
+      RNOK( xMotionCompensation   ( pcMCFrame, &acBQRefFrameList[0], &acBQRefFrameList[1],
+                                    rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
+      RNOK( pcBQFrame->prediction ( pcMCFrame, pcFrame ) );
+    }
 
     //===== prediction =====
     RNOK( xMotionCompensation   ( pcMCFrame, &acRefFrameList[0], &acRefFrameList[1],
@@ -2933,10 +3029,8 @@ MCTFEncoder::xDecompositionStage( UInt uiBaseLevel )
   }
   if( bPrediction ) printf("\n");
 
-
   //===== clear half-pel buffers and buffer extension status =====
   RNOK( xClearBufferExtensions() );
-
 
 
 
@@ -3133,6 +3227,25 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
     IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP]; // Hanke@RWTH
     IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
 
+    //--- closed-loop coding of base quality layer ---
+    IntFrame*     pcBQFrame       = 0;
+    IntFrame*     pcBQResidual    = 0;
+    RefFrameList  acBQRefFrameList[2];
+    if( m_papcBQFrame )
+    {
+      IntFrame*     pcBQFrame       = m_papcBQFrame   [uiFrameIdInGOP];
+      IntFrame*     pcBQResidual    = m_apcFrameTemp  [1];
+      RNOK( xGetBQPredictionLists       ( acBQRefFrameList[0], acBQRefFrameList[1], uiBaseLevel, uiFramePrd ) );
+
+      RNOK( pcBQResidual->copy( pcBQFrame ) );
+      RNOK( xZeroIntraMacroblocks( pcBQResidual, rcControlData ) );
+
+      //===== prediction =====
+      RNOK( xMotionCompensation         ( pcMCFrame, &acBQRefFrameList[0], &acBQRefFrameList[1],
+                                          rcControlData.getMbDataCtrl(), *rcControlData.getSliceHeader() ) );
+      RNOK( pcBQFrame->inversePrediction( pcMCFrame, pcBQFrame ) );
+    }
+
     //===== get reference frame lists =====
     RefFrameList  acRefFrameList[2];
     RNOK( xGetPredictionLists         ( acRefFrameList[0], acRefFrameList[1], uiBaseLevel, uiFramePrd, false ) );
@@ -3157,6 +3270,21 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
                                          m_uiFrameWidthInMb,
                                          &acRefFrameList[0],
                                          &acRefFrameList[1] ) );
+
+    //--- closed-loop coding of base quality layer ---
+    if( pcBQFrame )
+    {
+      RNOK( rcControlData.restoreBQLayerQpAndCbp() );
+      m_pcLoopFilter->setHighpassFramePointer( pcBQResidual );
+      RNOK( m_pcLoopFilter->process( *rcControlData.getSliceHeader(),
+                                     pcBQFrame,
+                                     rcControlData.getMbDataCtrl (),
+                                     rcControlData.getMbDataCtrl (),
+                                     m_uiFrameWidthInMb,
+                                     &acBQRefFrameList[0],
+                                     &acBQRefFrameList[1] ) );
+    }
+
 #if MULTIPLE_LOOP_DECODING
     if( m_bCompletelyDecodeLayer )
       rcControlData.activateMbDataCtrlForQpAndCbp( true );
@@ -3235,7 +3363,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
 
     //===== initialize =====
-        RNOK( xInitControlDataLowPass ( uiFrameIdInGOP, m_uiDecompositionStages-1,uiFrame ) );
+    RNOK( xInitControlDataLowPass ( uiFrameIdInGOP, m_uiDecompositionStages-1,uiFrame ) );
 
     //===== base layer encoding =====
     RNOK( pcBLRecFrame->copy      ( pcFrame ) );
@@ -3341,6 +3469,13 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 	  }
 	  //}}Adaptive GOP structure
 
+
+    //--- closed-loop coding of base quality layer ---
+    if( m_papcBQFrame )
+    {
+      RNOK( m_papcBQFrame[uiFrameIdInGOP]->copy( pcBLRecFrame ) ); // save base quality layer reconstruction
+    }
+
     //===== FGS enhancement layers =====
     if( m_dNumFGSLayers == 0.0 )
     {
@@ -3349,7 +3484,11 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     else
     {
       //----- encode FGS enhancement -----
-      uiBits = 0;
+      if( m_uiFGSMode == 2 )
+      {
+        uiBits += m_uiNotYetConsideredBaseLayerBits;
+        m_uiNotYetConsideredBaseLayerBits = 0;
+      }
 
       RNOK( xEncodeFGSLayer ( rcOutputList,
                               rcControlData,
@@ -3359,22 +3498,22 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                               pcBLRecFrame,
                               m_papcSubband[uiFrameIdInGOP],
                               uiBits ) );
-    //{{Adaptive GOP structure
-    // --ETRI & KHU
-    if (!m_uiUseAGS) 
-    {
-    //}}Adaptive GOP structure
+      //{{Adaptive GOP structure
+      // --ETRI & KHU
+      if (!m_uiUseAGS) 
+      {
+      //}}Adaptive GOP structure
 
-      m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() ] += uiBits;
+        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() ] += uiBits;
     
-    //{{Adaptive GOP structure
-    // --ETRI & KHU
-    }
-    else
-    {
-      m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
-    }
-    //}}Adaptive GOP structure
+      //{{Adaptive GOP structure
+      // --ETRI & KHU
+      }
+      else
+      {
+        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
+      }
+      //}}Adaptive GOP structure
       
 
       //----- store for inter-layer prediction (non-deblocked version) -----
@@ -3443,6 +3582,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     UInt          uiBits          = 0;
     UInt          uiBitsRes       = 0;
     IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+    IntFrame*     pcBQFrame       = ( m_papcBQFrame ? m_papcBQFrame[uiFrameIdInGOP] : 0 );
     IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
     IntFrame*     pcPredSignal    = m_apcFrameTemp  [0];
     IntFrame*     pcBLRecFrame    = m_apcFrameTemp  [1];
@@ -3459,17 +3599,32 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     }
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
-        RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame ) );
+    RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame ) );
 
 
     //===== base layer encoding =====
-    RNOK( pcBLRecFrame->copy      ( pcFrame ) );
-    RNOK( xEncodeHighPassSignal   ( rcOutputList,
-                                    rcControlData,
-                                    pcBLRecFrame,
-                                    pcResidual,
-                                    pcPredSignal,
-                                    uiBits, uiBitsRes ) );
+    //--- closed-loop coding of base quality layer ---
+    if( pcBQFrame )
+    {
+      RNOK( xEncodeHighPassSignal   ( rcOutputList,
+                                      rcControlData,
+                                      pcBQFrame,
+                                      pcResidual,
+                                      pcPredSignal,
+                                      uiBits, uiBitsRes ) );
+      RNOK( rcControlData.storeBQLayerQpAndCbp() );
+    }
+    else
+    {
+      RNOK( pcBLRecFrame->copy      ( pcFrame ) );
+      RNOK( xEncodeHighPassSignal   ( rcOutputList,
+                                      rcControlData,
+                                      pcBLRecFrame,
+                                      pcResidual,
+                                      pcPredSignal,
+                                      uiBits, uiBitsRes ) );
+    }
+
     //{{Adaptive GOP structure
     // --ETRI & KHU
     if (!m_uiUseAGS) 
@@ -3550,13 +3705,26 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     //===== FGS enhancement ====
     if( m_dNumFGSLayers == 0.0 )
     {
-      RNOK( pcFrame->copy         ( pcBLRecFrame ) );
+      //--- closed-loop coding of base quality layer ---
+      if( pcBQFrame )
+      {
+        RNOK( pcFrame->copy         ( pcBQFrame ) );
+      }
+      else
+      {
+        RNOK( pcFrame->copy         ( pcBLRecFrame ) );
+      }
 
       RNOK( m_papcSubband[uiFrameIdInGOP]->copy( pcFrame ) );
     }
     else
     {
-      uiBits = 0;
+      if( m_uiFGSMode == 2 )
+      {
+        uiBits += m_uiNotYetConsideredBaseLayerBits;
+        m_uiNotYetConsideredBaseLayerBits = 0;
+      }
+
       RNOK( xEncodeFGSLayer       ( rcOutputList,
                                     rcControlData,
                                     pcFrame,
@@ -3657,6 +3825,62 @@ MCTFEncoder::xSwitchOriginalPictures()
 
 
 
+ErrVal
+MCTFEncoder::xProcessClosedLoop( AccessUnitList&  rcAccessUnitList,
+                                 PicBufferList&   rcPicBufferInputList,
+                                 PicBufferList&   rcPicBufferOutputList,
+                                 PicBufferList&   rcPicBufferUnusedList )
+{
+  Int iLevel;
+  g_nLayer = m_uiLayerId;
+  ETRACE_LAYER(m_uiLayerId);
+
+  //===== init group of pictures =====
+  RNOK( xInitGOP( rcPicBufferInputList ) );
+
+  
+  //===== set the scaling factors =====
+  RNOK( xSetScalingFactorsAVC     () );
+
+  //===== encode low-pass pictures =====
+  printf("\nLOW-PASS CODING:\n");
+  RNOK( xEncodeLowPassPictures    ( rcAccessUnitList ) );
+
+  //===== store anchor frame =====
+  if( m_uiGOPSize == ( 1 << m_uiDecompositionStages ) )
+  {
+    RNOK( m_pcAnchorFrameReconstructed->copyAll( m_papcFrame[ m_uiGOPSize ] ) );
+  }
+  RNOK( xCalculateAndAddPSNR( rcPicBufferInputList, 0, m_uiDecompositionStages == m_uiNotCodedMCTFStages ) );
+
+  //===== loop over temporal levels =====
+  for( iLevel = m_uiDecompositionStages - 1; iLevel >= (Int)m_uiNotCodedMCTFStages; iLevel-- )
+  {
+    //===== motion estimation and decomposition =====
+    printf("\nDECOMPOSITION:\n");
+    RNOK( xMotionEstimationStage  ( iLevel ) );
+    RNOK( xDecompositionStage     ( iLevel ) );
+
+    //===== encoding ======
+    printf("\nHIGH-PASS CODING:\n");
+    RNOK( xEncodeHighPassPictures ( rcAccessUnitList, iLevel ) );
+
+    //===== reconstruction =====
+    printf("\nRECONSTRUCTION:\n");
+    RNOK( xCompositionStage       ( iLevel, rcPicBufferInputList ) );
+  }
+
+  //===== finish GOP =====
+  RNOK( xStoreReconstruction( rcPicBufferOutputList ) );
+  RNOK( xFinishGOP          ( rcPicBufferInputList,
+                              rcPicBufferOutputList,
+                              rcPicBufferUnusedList ) );
+
+  return Err::m_nOK;
+}
+
+
+
     
 ErrVal
 MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
@@ -3664,6 +3888,16 @@ MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
                       PicBufferList&    rcPicBufferOutputList,
                       PicBufferList&    rcPicBufferUnusedList )
 {
+  if( m_uiClosedLoopMode )
+  {
+    RNOK( xProcessClosedLoop( rcAccessUnitList,
+                              rcPicBufferInputList,
+                              rcPicBufferOutputList,
+                              rcPicBufferUnusedList ) );
+    return Err::m_nOK;
+  }
+
+  
   Int iLevel;
   g_nLayer = m_uiLayerId;
   ETRACE_LAYER(m_uiLayerId);
@@ -3767,6 +4001,9 @@ MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
   
   return Err::m_nOK;
 }
+
+
+
 
 //{{Adaptive GOP structure
 // --ETRI & KHU
@@ -4332,7 +4569,7 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 	tmp_mse[2] = (mse[2][0] + mse[2][1] + mse[2][2] + mse[2][3])/4.0;
 	tmp_mse[3] = (mse[1][0] + mse[1][1] + mse[1][2] + mse[1][3] + mse[1][4] + mse[1][5] + mse[1][6] + mse[1][7])/8.0;
 
-//	printf("%.6f %.6f %.6f %.6f \n\n", tmp_mse[0], tmp_mse[1], tmp_mse[2], tmp_mse[3]);
+//	printf("%.6lf %.6lf %.6lf %.6lf \n\n", tmp_mse[0], tmp_mse[1], tmp_mse[2], tmp_mse[3]);
 
 	for(i = 0; i < 4; i++) {
 		if (tmp_mse[i] < tmp_min) {
@@ -4352,7 +4589,7 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 	tmp_mse[2] = (mse[2][0] + mse[2][1])/2.0;
 	tmp_mse[3] = (mse[1][0] + mse[1][1] + mse[1][2] + mse[1][3])/4.0;
 
-//	printf("%.6f %.6f %.6f \n\n", tmp_mse[1], tmp_mse[2], tmp_mse[3]);
+//	printf("%.6lf %.6lf %.6lf \n\n", tmp_mse[1], tmp_mse[2], tmp_mse[3]);
 
 	tmp_min = 0xffffffff;
 	for(i = 1; i < 4; i++) {
@@ -4367,7 +4604,7 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 		tmp_mse[2] = mse[2][0];
 		tmp_mse[3] = (mse[1][0] + mse[1][1])/2.0;
 
-//  printf("%.6f %.6f \n\n", tmp_mse[2], tmp_mse[3]);
+//  printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
 
 		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
 			seltype[pos++] = gop_size-2;
@@ -4380,7 +4617,7 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 		tmp_mse[2] = mse[2][1];
 		tmp_mse[3] = (mse[1][2] + mse[1][3])/2.0;
 
-//		printf("%.6f %.6f \n\n", tmp_mse[2], tmp_mse[3]);
+//		printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
 
 
 		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
@@ -4402,7 +4639,7 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 	tmp_mse[2] = (mse[2][2] + mse[2][3])/2.0;
 	tmp_mse[3] = (mse[1][4] + mse[1][5] + mse[1][6] + mse[1][7])/4.0;
 
-//	printf("%.6f %.6f %.6f \n\n", tmp_mse[1], tmp_mse[2], tmp_mse[3]);
+//	printf("%.6lf %.6lf %.6lf \n\n", tmp_mse[1], tmp_mse[2], tmp_mse[3]);
 
 
 	tmp_min = 0xffffffff;
@@ -4418,7 +4655,7 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 		tmp_mse[2] = mse[2][2];
 		tmp_mse[3] = (mse[1][4] + mse[1][5])/2.0;
 
-//		printf("%.6f %.6f \n\n", tmp_mse[2], tmp_mse[3]);
+//		printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
 
 		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
 			seltype[pos++] = gop_size-2;
@@ -4431,7 +4668,7 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 		tmp_mse[2] = mse[2][3];
 		tmp_mse[3] = (mse[1][6] + mse[1][7])/2.0;
 
-//		printf("%.6f %.6f \n\n", tmp_mse[2], tmp_mse[3]);
+//		printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
 
 		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
 			seltype[pos++] = gop_size-2;
@@ -4460,6 +4697,15 @@ MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
   {
     PicBuffer*  pcPicBuffer = rcPicBufferOutputList.popBack();
     rcPicBufferUnusedList.push_back( pcPicBuffer );
+  }
+
+  //--- closed-loop coding of base quality level ----
+  // move last LP frame to the beginning -> for next GOP
+  if( m_papcBQFrame && m_uiGOPSize == (1<<m_uiDecompositionStages) ) // full GOP
+  {
+    IntFrame*  pcTempFrame      = m_papcBQFrame[0];
+    m_papcBQFrame[0]            = m_papcBQFrame[m_uiGOPSize];
+    m_papcBQFrame[m_uiGOPSize]  = pcTempFrame;
   }
 
   //===== update bit counts etc. =====
@@ -4592,11 +4838,11 @@ MCTFEncoder::xCalculateAndAddPSNR( PicBufferList& rcPicBufferInputList,
         pPelRec  += iStride;
       }
 
-      Float fRefValueY  = 255.0 * 255.0 * 16.0 * 16.0 * (Float)m_uiMbNumber;
-      Float fRefValueC  = fRefValueY / 4.0;
-      dYPSNR            = 10.0 * log10( fRefValueY / (Float)uiSSDY );
-      dUPSNR            = 10.0 * log10( fRefValueC / (Float)uiSSDU );
-      dVPSNR            = 10.0 * log10( fRefValueC / (Float)uiSSDV );
+      Double fRefValueY = 255.0 * 255.0 * 16.0 * 16.0 * (Double)m_uiMbNumber;
+      Double fRefValueC = fRefValueY / 4.0;
+      dYPSNR            = 10.0 * log10( fRefValueY / (Double)uiSSDY );
+      dUPSNR            = 10.0 * log10( fRefValueC / (Double)uiSSDU );
+      dVPSNR            = 10.0 * log10( fRefValueC / (Double)uiSSDV );
     }
 
     //===== add PSNR =====
@@ -4610,8 +4856,7 @@ MCTFEncoder::xCalculateAndAddPSNR( PicBufferList& rcPicBufferInputList,
     if( bOutput )
     {
       // heiko.schwarz@hhi.fhg.de: correct usage of the V-PSNR
-      //printf( "  Frame%5d:    Y %6.3f dB    U %6.3f dB    V %6.3f dB\n", iPoc, dYPSNR, dUPSNR, dUPSNR );
-      printf( "  Frame%5d:    Y %6.3f dB    U %6.3f dB    V %6.3f dB\n", iPoc, dYPSNR, dUPSNR, dVPSNR );
+      printf( "  Frame%5d:    Y %6.3lf dB    U %6.3lf dB    V %6.3lf dB\n", iPoc, dYPSNR, dUPSNR, dVPSNR );
     }
   }
 
@@ -4683,7 +4928,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 #if MULTIPLE_LOOP_DECODING
     if( m_bLayerReconstructionNotPossible )
     {
-      printf(" %9s @ %7.4f" "  %10.4f" "  %10.4f" "   --n.a.--" "  --n.a.--" "  --n.a.--" "\n",
+      printf(" %9s @ %7.4lf" "  %10.4lf" "  %10.4lf" "   --n.a.--" "  --n.a.--" "  --n.a.--" "\n",
         acResolution,
         dFps,
         m_adSeqBitsBase [uiStage] * dScale,
@@ -4691,7 +4936,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
     }
     else
 #endif
-    printf(" %9s @ %7.4f" "  %10.4f" "  %10.4f" "  %8.4f%c" " %8.4f%c" " %8.4f%c" "\n",
+    printf(" %9s @ %7.4lf" "  %10.4lf" "  %10.4lf" "  %8.4lf%c" " %8.4lf%c" " %8.4lf%c" "\n",
       acResolution,
       dFps,
       m_adSeqBitsBase [uiStage] * dScale,

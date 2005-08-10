@@ -698,7 +698,7 @@ int main(int argc, char *argv[])
 
   fprintf(stderr, "\n" );
   double delta_in_s = (double)(end_time - start_time) / CLOCKS_PER_SEC;
-  fprintf(stderr, "in %.2f seconds => %.0f ms/frame\n", delta_in_s, delta_in_s/written*1000);
+  fprintf(stderr, "in %.2lf seconds => %.0lf ms/frame\n", delta_in_s, delta_in_s/written*1000);
 
   return 0;
 }

@@ -253,9 +253,9 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
     rcMv = rcMvPred;
   }
 
-  UInt  uiMinSAD  = MSYS_UINT_MAX;
-  Mv    cMv       = rcMv;
-  Float fWeight;
+  UInt   uiMinSAD  = MSYS_UINT_MAX;
+  Mv     cMv       = rcMv;
+  Double fWeight;
 
   if( pcRefPelData2 )
   {
@@ -277,6 +277,14 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   }
 
   //===== FULL-PEL ESTIMATION ======
+  // heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search) >>>>
+  Bool bOriginalSearchModeIsYUVSAD = false;
+  if( pcRefPelData2 && m_cParams.getFullPelDFunc() == DF_YUV_SAD )
+  {
+    bOriginalSearchModeIsYUVSAD  = true;
+    m_cParams.setFullPelDFunc( DF_SAD );
+  }
+  // <<< heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search)
   xGetMotionCost( ( 1 != m_cParams.getFullPelDFunc() ), 0 );
   m_pcXDistortion->getDistStruct( uiMode, m_cParams.getFullPelDFunc(), false, m_cXDSS );
   m_cXDSS.pYOrg = pcWeightedYuvBuffer->getLumBlk();
@@ -342,6 +350,13 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
       return Err::m_nOK;
     }
   }
+  // heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search) >>>>
+  if( bOriginalSearchModeIsYUVSAD )
+  {
+    m_cParams.setFullPelDFunc( DF_YUV_SAD );
+  }
+  // <<< heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search)
+
 
   //===== SUB-PEL ESTIMATION =====
   xGetMotionCost( 1 != ( 1 & m_cParams.getSubPelDFunc() ), 0 );
@@ -355,7 +370,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   Short sVer      = cMv.getVer();
   UInt  uiMvBits  = xGetBits( sHor, sVer );
   ruiBits        += uiMvBits;
-  ruiCost         = (UInt)( fWeight * (Float)( uiMinSAD - xGetCost( uiMvBits ) ) ) + xGetCost( ruiBits );
+  ruiCost         = (UInt)( fWeight * (Double)( uiMinSAD - xGetCost( uiMvBits ) ) ) + xGetCost( ruiBits );
   rcMv            = cMv;
 
   return Err::m_nOK;

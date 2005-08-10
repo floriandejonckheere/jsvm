@@ -150,12 +150,10 @@ public:
                                             Double                      dLambda,
                                             Int                         iMaxQpDelta,
                                             Bool&                       rbFinished,
-                                            UInt                        uiCutLayer,
-                                            UInt                        uiCutPath,
-                                            UInt                        uiMaxBits );
-  ErrVal            encodeNextLayer       ( //UInt                        uiBasePos,
-                                            Bool&                       rbFinished,
+                                            Bool                        bTruncate );
+  ErrVal            encodeNextLayer       ( Bool&                       rbFinished,
                                             Bool&                       rbCorrupted,
+                                            UInt                        uiMaxBits,
                                             FILE*                       pFile );
   ErrVal            reconstruct           ( IntFrame*                   pcRecResidual );
   ErrVal            finishPicture         ();
@@ -234,6 +232,7 @@ private:
 
   ErrVal            xEncodingFGS                  ( Bool&               rbFinished,
                                                     Bool&               rbCorrupted,
+                                                    UInt                uiMaxBits,
                                                     FILE*               pFile );
   ErrVal            xInitializeCodingPath         ();
   ErrVal            xUpdateCodingPath             ();
@@ -331,10 +330,6 @@ private:
   UChar*            m_apaucChromaACBlockMap [2];
   UChar*            m_paucSubMbMap;
   UInt*             m_pauiMacroblockMap;
-
-  UInt              m_uiCutLayer;
-  UInt              m_uiCutPath;
-  UInt              m_uiMaxBits;
   
   Bool              m_bTraceEnable;
   //{{Quality level estimation and modified truncation- JVTO044 and m12007

@@ -114,16 +114,13 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_VOID void
 #endif
 #if !(defined MSYS_NO_TYPE_VOID )
-  //##ModelId=3FBA14BC00BB
   typedef MSYS_TYPE_VOID Void;
 #endif
 
-//##ModelId=3A5F3AC50350
 #if !(defined MSYS_TYPE_BOOL)
   #define MSYS_TYPE_BOOL bool
 #endif
 #if !(defined MSYS_NO_TYPE_BOOL )
-  //##ModelId=3FBA14BC00CB
   typedef MSYS_TYPE_BOOL Bool;
 #endif
 
@@ -131,7 +128,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_SCHAR signed char
 #endif
 #if !(defined MSYS_NO_TYPE_SCHAR )
-  //##ModelId=3FBA14BC00CD
   typedef MSYS_TYPE_SCHAR SChar;
 #endif
 
@@ -139,7 +135,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_CHAR char
 #endif
 #if !(defined MSYS_NO_TYPE_CHAR )
-  //##ModelId=3FBA14BC00DB
   typedef MSYS_TYPE_CHAR Char;
 #endif
 
@@ -147,7 +142,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_UCHAR unsigned char
 #endif
 #if !(defined MSYS_NO_TYPE_UCHAR )
-  //##ModelId=3FBA14BC00EA
   typedef MSYS_TYPE_UCHAR UChar;
 #endif
 
@@ -155,7 +149,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_INT8 signed char
 #endif
 #if !(defined MSYS_NO_TYPE_INT8 )
-  //##ModelId=3FBA14BC00FA
   typedef MSYS_TYPE_INT8 Int8;
 #endif
 
@@ -163,7 +156,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_UINT8 unsigned char
 #endif
 #if !(defined MSYS_NO_TYPE_UINT8 )
-  //##ModelId=3FBA14BC00FC
   typedef MSYS_TYPE_UINT8 UInt8;
 #endif
 
@@ -171,7 +163,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_SHORT short
 #endif
 #if !(defined MSYS_NO_TYPE_SHORT )
-  //##ModelId=3FBA14BC010A
   typedef MSYS_TYPE_SHORT Short;
 #endif
 
@@ -179,7 +170,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_USHORT unsigned short
 #endif
 #if !(defined MSYS_NO_TYPE_USHORT )
-  //##ModelId=3FBA14BC0119
   typedef MSYS_TYPE_USHORT UShort;
 #endif
 
@@ -187,7 +177,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_INT16 short
 #endif
 #if !(defined MSYS_NO_TYPE_INT16 )
-  //##ModelId=3FBA14BC0128
   typedef MSYS_TYPE_INT16 Int16;
 #endif
 
@@ -195,7 +184,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_UINT16 unsigned short
 #endif
 #if !(defined MSYS_NO_TYPE_UINT16 )
-  //##ModelId=3FBA14BC012A
   typedef MSYS_TYPE_UINT16 UInt16;
 #endif
 
@@ -203,7 +191,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_INT int
 #endif
 #if !(defined MSYS_NO_TYPE_INT )
-  //##ModelId=3FBA14BC0139
   typedef MSYS_TYPE_INT Int;
 #endif
 
@@ -211,27 +198,20 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_UINT unsigned int
 #endif
 #if !(defined MSYS_NO_TYPE_UINT )
-  //##ModelId=3FBA14BC0157
   typedef MSYS_TYPE_UINT UInt;
 #endif
 
-//##ModelId=3A5F3AC6013C
 #if !(defined MSYS_TYPE_INT32)
   #define MSYS_TYPE_INT32 int
 #endif
-// The Trimedia SDK has it's own Int32
 #if !(defined MSYS_NO_TYPE_INT32 )
-  //##ModelId=3FBA14BC0159
   typedef MSYS_TYPE_INT32 Int32;
 #endif
 
-//##ModelId=3A5F3AC6015D
 #if !(defined MSYS_TYPE_UINT32)
   #define MSYS_TYPE_UINT32 unsigned int
 #endif
-// The Trimedia SDK has it's own UInt32
 #if !(defined MSYS_NO_TYPE_UINT32 )
-  //##ModelId=3FBA14BC0168
   typedef MSYS_TYPE_UINT32 UInt32;
 #endif
 
@@ -239,7 +219,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_LONG long
 #endif
 #if !(defined MSYS_NO_TYPE_LONG )
-  //##ModelId=3FBA14BC0178
   typedef MSYS_TYPE_LONG Long;
 #endif
 
@@ -247,7 +226,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_ULONG unsigned long
 #endif
 #if !(defined MSYS_NO_TYPE_ULONG )
-  //##ModelId=3FBA14BC0186
   typedef MSYS_TYPE_ULONG ULong;
 #endif
 
@@ -257,7 +235,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
     #define MSYS_TYPE_INT64 __int64
   #endif
   #if !(defined MSYS_NO_TYPE_INT64 )
-    //##ModelId=3FBA14BC0188
     typedef MSYS_TYPE_INT64 Int64;
   #endif
   
@@ -265,7 +242,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
     #define MSYS_TYPE_UINT64 unsigned __int64
   #endif
   #if !(defined MSYS_NO_TYPE_UINT64 )
-    //##ModelId=3FBA14BC0197
     typedef MSYS_TYPE_UINT64 UInt64;
   #endif
 #elif defined( MSYS_LINUX )
@@ -289,7 +265,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_FLOAT float
 #endif
 #if !(defined MSYS_NO_TYPE_FLOAT )
-  //##ModelId=3FBA14BC01A6
   typedef MSYS_TYPE_FLOAT Float;
 #endif
 
@@ -297,7 +272,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_DOUBLE double
 #endif
 #if !(defined MSYS_NO_TYPE_DOUBLE )
-  //##ModelId=3FBA14BC01B6
   typedef MSYS_TYPE_DOUBLE Double;
 #endif
 
@@ -352,8 +326,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_ERRVAL int
 #endif
 #if !(defined MSYS_NO_TYPE_ERRVAL )
-  // MSysLib error return value
-  //##ModelId=3FBA14BC01D4
   typedef MSYS_TYPE_ERRVAL ErrVal;
 #endif
 
@@ -368,7 +340,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #define MSYS_TYPE_INSTSTATE unsigned int
 #endif
 #if !(defined MSYS_NO_TYPE_INSTSTATE )
-  //##ModelId=3FBA14BC01D6
   typedef MSYS_TYPE_INSTSTATE InstState;
 #endif
 

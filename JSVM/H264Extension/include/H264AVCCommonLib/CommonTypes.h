@@ -93,7 +93,7 @@ H264AVC_NAMESPACE_BEGIN
 class CostData
 {
 public:
-  CostData( Float fRdCost = 0.0, UInt uiAddBits = 0, UInt uiBits = 0, UInt uiYDist = 0, UInt uiUDist = 0, UInt uiVDist = 0):  m_fRdCost(fRdCost),  m_uiAddBits(uiAddBits), m_uiBits(uiBits),  m_uiYDist(uiYDist),  m_uiUDist(uiUDist),  m_uiVDist(uiVDist) {}
+  CostData( Double fRdCost = 0.0, UInt uiAddBits = 0, UInt uiBits = 0, UInt uiYDist = 0, UInt uiUDist = 0, UInt uiVDist = 0):  m_fRdCost(fRdCost),  m_uiAddBits(uiAddBits), m_uiBits(uiBits),  m_uiYDist(uiYDist),  m_uiUDist(uiUDist),  m_uiVDist(uiVDist) {}
   virtual ~CostData() {}
 
   CostData( const CostData& rcCostData)  { CostData( rcCostData.m_fRdCost, rcCostData.m_uiBits, rcCostData.m_uiYDist, rcCostData.m_uiUDist, rcCostData.m_uiVDist); }
@@ -106,21 +106,21 @@ public:
     const_cast<CostData*>(this)->m_uiBits  += rcCostData.m_uiBits;
     const_cast<CostData*>(this)->m_fRdCost += rcCostData.m_fRdCost;
   }
-  const UInt distY()      const { return m_uiYDist; }
-  const UInt distU()      const { return m_uiUDist; }
-  const UInt distV()      const { return m_uiVDist; }
-  const UInt bits()       const { return m_uiBits; }
-  const UInt coeffCost()  const { return m_uiCoeffCost; }
-  const Float rdCost()    const { return m_fRdCost; }
-  const UInt& addBits()   const { return m_uiAddBits; }
+  const UInt   distY()      const { return m_uiYDist; }
+  const UInt   distU()      const { return m_uiUDist; }
+  const UInt   distV()      const { return m_uiVDist; }
+  const UInt   bits()       const { return m_uiBits; }
+  const UInt   coeffCost()  const { return m_uiCoeffCost; }
+  const Double rdCost()     const { return m_fRdCost; }
+  const UInt&  addBits()    const { return m_uiAddBits; }
 
-  UInt& distY()       { return m_uiYDist; }
-  UInt& distU()       { return m_uiUDist; }
-  UInt& distV()       { return m_uiVDist; }
-  UInt& bits()        { return m_uiBits; }
-  UInt& addBits()     { return m_uiAddBits; }
-  UInt& coeffCost()   { return m_uiCoeffCost; }
-  Float& rdCost()     { return m_fRdCost; }
+  UInt&   distY()       { return m_uiYDist; }
+  UInt&   distU()       { return m_uiUDist; }
+  UInt&   distV()       { return m_uiVDist; }
+  UInt&   bits()        { return m_uiBits; }
+  UInt&   addBits()     { return m_uiAddBits; }
+  UInt&   coeffCost()   { return m_uiCoeffCost; }
+  Double& rdCost()      { return m_fRdCost; }
 
   Bool operator < ( const CostData& rcCostData) { return m_fRdCost < rcCostData.m_fRdCost; }
   Bool operator > ( const CostData& rcCostData) { return m_fRdCost > rcCostData.m_fRdCost; }
@@ -137,7 +137,7 @@ public:
   }
   Void clear()
   {
-    m_fRdCost     = FLOAT_MAX;
+    m_fRdCost     = DOUBLE_MAX;
     m_uiAddBits    = 0;
     m_uiBits       = 0;
     m_uiYDist      = 0;
@@ -146,13 +146,13 @@ public:
     m_uiCoeffCost  = 0;
   }
 protected:
-  Float m_fRdCost;
-  UInt m_uiAddBits;
-  UInt m_uiBits;
-  UInt m_uiYDist;
-  UInt m_uiUDist;
-  UInt m_uiVDist;
-  UInt m_uiCoeffCost;
+  Double m_fRdCost;
+  UInt   m_uiAddBits;
+  UInt   m_uiBits;
+  UInt   m_uiYDist;
+  UInt   m_uiUDist;
+  UInt   m_uiVDist;
+  UInt   m_uiCoeffCost;
 };
 
 

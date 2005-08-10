@@ -99,6 +99,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #define AVC_HACK     1
+#define CLOSED_LOOP  1
 
 
 void
@@ -263,6 +264,9 @@ encode_layer( EncoderParameters& rcEncoderParameters )
     {
       rcLayer.uiMotionFileMode = 2;
     }
+#endif
+#if CLOSED_LOOP
+    rcLayer.uiMotionFileMode = 2;
 #endif
 
     //--- run ---
