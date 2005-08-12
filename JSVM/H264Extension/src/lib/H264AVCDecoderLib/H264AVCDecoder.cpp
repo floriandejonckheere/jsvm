@@ -646,7 +646,6 @@ H264AVCDecoder::getReconstructedBaseLayer( IntFrame*&    pcFrame,
                                            UInt          uiLayerId,
                                            UInt          uiBaseLayerId,
                                            Bool          bSpatialScalability,
-                                           Bool          bHighPass,
                                            Int           iPoc )
 {
   if( uiBaseLayerId || m_apcMCTFDecoder[uiBaseLayerId]->isActive() )

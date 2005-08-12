@@ -161,7 +161,13 @@ public:
   
   ErrVal inverseUpdate    ( IntFrame* pcMCPFrame0, IntFrame* pcMCPFrame1, IntFrame* pcSrcFrame )
   {
-    RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), pcMCPFrame1->getFullPelYuvBuffer() ) );
+		if (pcMCPFrame0 && pcMCPFrame1){
+			RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), pcMCPFrame1->getFullPelYuvBuffer() ) );
+		}else if (pcMCPFrame0){
+			RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), (IntYuvPicBuffer*)NULL ) );
+		}else{
+			RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), (IntYuvPicBuffer*)NULL, pcMCPFrame1->getFullPelYuvBuffer() ) );
+		}
     return Err::m_nOK;
   }
 

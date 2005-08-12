@@ -327,6 +327,8 @@ protected:
   ErrVal  xClearBufferExtensions        ();
   ErrVal  xGetPredictionLists           ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
+																					CtrlDataList&								rcCtrlList0,
+																					CtrlDataList&								rcCtrlList1,
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bHalfPel = false );

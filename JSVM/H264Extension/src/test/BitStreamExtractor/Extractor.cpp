@@ -160,6 +160,8 @@ Extractor::init( ExtractorParameter *pcExtractorParameter )
   if( m_pcExtractorParameter->getTraceEnabled() )
   {
     m_pcTraceFile = ::fopen( m_pcExtractorParameter->getTraceFile().c_str(), "wt" );
+		if (!m_pcTraceFile)
+			fprintf( stderr, "\nCANNOT OPEN TRACE FILE \"%s\"\n\n", m_pcExtractorParameter->getTraceFile().c_str() );
     ROF( m_pcTraceFile );
   }
   else
@@ -169,6 +171,8 @@ Extractor::init( ExtractorParameter *pcExtractorParameter )
   if( m_pcExtractorParameter->getExtractTrace() )
   {
     m_pcExtractionTraceFile = ::fopen( m_pcExtractorParameter->getExtractTraceFile().c_str(), "rt" );
+    if (!m_pcExtractionTraceFile)
+			fprintf( stderr, "\nCANNOT OPEN TRACE FILE \"%s\"\n\n", m_pcExtractorParameter->getExtractTraceFile().c_str() );
     ROF( m_pcExtractionTraceFile );
 
     RNOK( m_cLargeFile.open( m_pcExtractorParameter->getInFile(), LargeFile::OM_READONLY ) );
@@ -1033,7 +1037,7 @@ Extractor::xExtractTrace()
         {
           if( cPacketDescription.FGSLayer == 0 )
           {
-            fprintf( stderr, "\nERROR: The packet at start pos. 0x%08x is not truncatable\n", uiNextStart, uiNextLength );
+            fprintf( stderr, "\nERROR: The packet at start pos. 0x%08x is not truncatable\n", uiNextStart );
             ROT( true );
           }
 

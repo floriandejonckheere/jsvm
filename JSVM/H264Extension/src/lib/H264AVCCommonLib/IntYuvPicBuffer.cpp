@@ -1588,80 +1588,179 @@ ErrVal IntYuvPicBuffer::inverseUpdate( IntYuvPicBuffer*  pcSrcYuvPicBuffer,
                                        IntYuvPicBuffer*  pcMCPYuvPicBuffer1 )
 {
   pcSrcYuvPicBuffer ->m_rcYuvBufferCtrl.initMb();
-  pcMCPYuvPicBuffer0->m_rcYuvBufferCtrl.initMb();
-  pcMCPYuvPicBuffer1->m_rcYuvBufferCtrl.initMb();
+	if (pcMCPYuvPicBuffer0)
+		pcMCPYuvPicBuffer0->m_rcYuvBufferCtrl.initMb();
+	if (pcMCPYuvPicBuffer1)
+		pcMCPYuvPicBuffer1->m_rcYuvBufferCtrl.initMb();
   m_rcYuvBufferCtrl.initMb();
 
-  XPel* pSrcAnchor  = pcSrcYuvPicBuffer ->getMbLumAddr();
-  XPel* pMCP0Anchor = pcMCPYuvPicBuffer0->getMbLumAddr();
-  XPel* pMCP1Anchor = pcMCPYuvPicBuffer1->getMbLumAddr();
-  XPel* pDesAnchor  = getMbLumAddr();
-  Int   iSrcStride  = pcSrcYuvPicBuffer ->getLStride();
-  Int   iMCP0Stride = pcMCPYuvPicBuffer0->getLStride();
-  Int   iMCP1Stride = pcMCPYuvPicBuffer1->getLStride();
-  Int   iDesStride  = getLStride();
-  UInt  uiHeight    = getLHeight();
-  UInt  uiWidth     = getLWidth ();
-  UInt  y, x;
+	if (pcMCPYuvPicBuffer0 && pcMCPYuvPicBuffer1)
+	{
+		XPel* pSrcAnchor  = pcSrcYuvPicBuffer ->getMbLumAddr();
+		XPel* pMCP0Anchor = pcMCPYuvPicBuffer0->getMbLumAddr();
+		XPel* pMCP1Anchor = pcMCPYuvPicBuffer1->getMbLumAddr();
+		XPel* pDesAnchor  = getMbLumAddr();
+		Int   iSrcStride  = pcSrcYuvPicBuffer ->getLStride();
+		Int   iMCP0Stride = pcMCPYuvPicBuffer0->getLStride();
+		Int   iMCP1Stride = pcMCPYuvPicBuffer1->getLStride();
+		Int   iDesStride  = getLStride();
+		UInt  uiHeight    = getLHeight();
+		UInt  uiWidth     = getLWidth ();
+		UInt  y, x;
 
-  //===== luminance =====
-  for( y = 0; y < uiHeight; y++ )
-  {
-    XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-    XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
-    XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
-    XPel* pDes  = pDesAnchor  + y * iDesStride;
+		//===== luminance =====
+		for( y = 0; y < uiHeight; y++ )
+		{
+			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+			XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
+			XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
+			XPel* pDes  = pDesAnchor  + y * iDesStride;
 
-    for( x = 0; x < uiWidth; x++ )
-    {
-      pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
-    }
-  }
+			for( x = 0; x < uiWidth; x++ )
+			{
+				pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
+			}
+		}
 
 
-  //===== chrominance U =====
-  iSrcStride  >>= 1;
-  iMCP0Stride >>= 1;
-  iMCP1Stride >>= 1;
-  iDesStride  >>= 1;
-  uiHeight    >>= 1;
-  uiWidth     >>= 1;
-  pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCbAddr();
-  pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCbAddr();
-  pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCbAddr();
-  pDesAnchor    = getMbCbAddr();
+		//===== chrominance U =====
+		iSrcStride  >>= 1;
+		iMCP0Stride >>= 1;
+		iMCP1Stride >>= 1;
+		iDesStride  >>= 1;
+		uiHeight    >>= 1;
+		uiWidth     >>= 1;
+		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCbAddr();
+		pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCbAddr();
+		pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCbAddr();
+		pDesAnchor    = getMbCbAddr();
 
-  for( y = 0; y < uiHeight; y++ )
-  {
-    XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-    XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
-    XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
-    XPel* pDes  = pDesAnchor  + y * iDesStride;
+		for( y = 0; y < uiHeight; y++ )
+		{
+			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+			XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
+			XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
+			XPel* pDes  = pDesAnchor  + y * iDesStride;
 
-    for( x = 0; x < uiWidth; x++ )
-    {
-      pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
-    }
-  }
+			for( x = 0; x < uiWidth; x++ )
+			{
+				pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
+			}
+		}
 
-  //===== chrominance V =====
-  pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCrAddr();
-  pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCrAddr();
-  pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCrAddr();
-  pDesAnchor    = getMbCrAddr();
+		//===== chrominance V =====
+		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCrAddr();
+		pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCrAddr();
+		pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCrAddr();
+		pDesAnchor    = getMbCrAddr();
 
-  for( y = 0; y < uiHeight; y++ )
-  {
-    XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-    XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
-    XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
-    XPel* pDes  = pDesAnchor  + y * iDesStride;
+		for( y = 0; y < uiHeight; y++ )
+		{
+			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+			XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
+			XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
+			XPel* pDes  = pDesAnchor  + y * iDesStride;
 
-    for( x = 0; x < uiWidth; x++ )
-    {
-      pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
-    }
-  }
+			for( x = 0; x < uiWidth; x++ )
+			{
+				pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
+			}
+		}
+	}
+	else
+	{
+		XPel* pSrcAnchor  = pcSrcYuvPicBuffer ->getMbLumAddr();
+		XPel* pMCAnchor ;
+		XPel* pDesAnchor  = getMbLumAddr();
+
+		Int   iSrcStride  = pcSrcYuvPicBuffer ->getLStride();
+		Int   iMCStride;
+
+		Int   iDesStride  = getLStride();
+		UInt  uiHeight    = getLHeight();
+		UInt  uiWidth     = getLWidth ();
+		UInt  y, x;
+
+		if (pcMCPYuvPicBuffer0)
+		{
+			pMCAnchor = pcMCPYuvPicBuffer0->getMbLumAddr();
+			iMCStride = pcMCPYuvPicBuffer0->getLStride();
+		}
+		else
+		{
+			pMCAnchor = pcMCPYuvPicBuffer1->getMbLumAddr();
+			iMCStride = pcMCPYuvPicBuffer1->getLStride();
+		}
+		
+		
+
+		//===== luminance =====
+		for( y = 0; y < uiHeight; y++ )
+		{
+			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+			XPel* pMC		= pMCAnchor		+ y * iMCStride;
+			XPel* pDes  = pDesAnchor  + y * iDesStride;
+
+			for( x = 0; x < uiWidth; x++ )
+			{
+				pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
+			}
+		}
+
+
+		//===== chrominance U =====
+		iSrcStride  >>= 1;
+		iMCStride >>= 1;
+		iDesStride  >>= 1;
+		uiHeight    >>= 1;
+		uiWidth     >>= 1;
+		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCbAddr();
+		if (pcMCPYuvPicBuffer0)
+		{
+			pMCAnchor = pcMCPYuvPicBuffer0->getMbCbAddr();
+		}
+		else
+		{
+			pMCAnchor = pcMCPYuvPicBuffer1->getMbCbAddr();
+		}
+		pDesAnchor    = getMbCbAddr();
+
+		for( y = 0; y < uiHeight; y++ )
+		{
+			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+			XPel* pMC		= pMCAnchor		+ y * iMCStride;
+			XPel* pDes  = pDesAnchor  + y * iDesStride;
+
+			for( x = 0; x < uiWidth; x++ )
+			{
+				pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
+			}
+		}
+
+		//===== chrominance V =====
+		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCrAddr();
+		if (pcMCPYuvPicBuffer0)
+		{
+			pMCAnchor = pcMCPYuvPicBuffer0->getMbCbAddr();
+		}
+		else
+		{
+			pMCAnchor = pcMCPYuvPicBuffer1->getMbCbAddr();
+		}
+		pDesAnchor    = getMbCrAddr();
+
+		for( y = 0; y < uiHeight; y++ )
+		{
+			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+			XPel* pMC		= pMCAnchor		+ y * iMCStride;
+			XPel* pDes  = pDesAnchor  + y * iDesStride;
+
+			for( x = 0; x < uiWidth; x++ )
+			{
+				pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
+			}
+		}
+	}
 
   return Err::m_nOK;
 }

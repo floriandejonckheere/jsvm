@@ -151,7 +151,6 @@ public:
                                           UInt            uiLayerId,
                                           UInt            uiBaseLayerId,
                                           Bool            bSpatialScalability,
-                                          Bool            bHighPass,
                                           Int             iPoc );
 
   Void    setBaseAVCCompatible        ( Bool                        bAVCCompatible )    { m_bBaseLayerIsAVCCompatible = bAVCCompatible; }

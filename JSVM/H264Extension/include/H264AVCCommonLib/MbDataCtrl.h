@@ -252,14 +252,6 @@ public:
   ErrVal        setSliceHeader      ( SliceHeader* pcSliceHeader )
   {
     m_pcSliceHeader = pcSliceHeader;
-// *LMH: Inverse MCTF
-    if ( pcSliceHeader != NULL )
-    {
-      m_bComplete = false;
-      m_uiCurTemporalLevel = pcSliceHeader->getTemporalLevel();
-      if ( m_uiCurTemporalLevel > 0 )
-        --m_uiCurTemporalLevel;
-    }
     return Err::m_nOK;
   }
 
@@ -316,24 +308,6 @@ public:
 // TMM_ESS }
 
 
-// *LMH: Inverse MCTF
-  Bool          isComplete           () { return m_bComplete; }
-  Void          setComplete          ( Bool bComplete ) { m_bComplete = bComplete; }
-
-  UInt          getCurTemporalLevel  () { return m_uiCurTemporalLevel; }
-  Void          incCurTemporalLevel  () { ++m_uiCurTemporalLevel; }
-
-  UInt          getCurActivePrdL0    () { return m_uiCurActivePrdL0; }
-  UInt          getCurActivePrdL1    () { return m_uiCurActivePrdL1; }
-  Void          incCurActivePrdL0    () { ++m_uiCurActivePrdL0; }
-  Void          incCurActivePrdL1    () { ++m_uiCurActivePrdL1; }
-
-  UInt          getCurActiveUpdL0    ( UInt uiTemporalLevel ) { return m_uiCurActiveUpdL0[uiTemporalLevel]; }
-  UInt          getCurActiveUpdL1    ( UInt uiTemporalLevel ) { return m_uiCurActiveUpdL1[uiTemporalLevel]; }
-  Void          incCurActiveUpdL0    ( UInt uiTemporalLevel ) { ++m_uiCurActiveUpdL0[uiTemporalLevel]; }
-  Void          incCurActiveUpdL1    ( UInt uiTemporalLevel ) { ++m_uiCurActiveUpdL1[uiTemporalLevel]; }
-
-
   RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
   RefFrameList& getUpdFrameList     ( UInt uiLevel,
                                       UInt uiList )   { return m_aacUpdFrameList[uiLevel][uiList]; }
@@ -377,13 +351,6 @@ private:
   Int           m_iSpatialScalabilityType; // TMM_ESS
   Bool          m_bSpatialScalability;     // TMM_ESS  
 
-// *LMH: Inverse MCTF
-  Bool          m_bComplete;
-  UInt			    m_uiCurTemporalLevel;
-  UInt			    m_uiCurActivePrdL0;
-  UInt			    m_uiCurActivePrdL1;
-  UInt			    m_uiCurActiveUpdL0[MAX_DSTAGES];
-  UInt			    m_uiCurActiveUpdL1[MAX_DSTAGES];
   
   UChar*        m_pacFGSMbQP;
   UInt*         m_pauiFGSMbCbp;

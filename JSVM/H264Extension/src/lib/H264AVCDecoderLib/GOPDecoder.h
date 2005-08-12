@@ -237,7 +237,6 @@ protected:
   
 
   ErrVal              xClearBuffer      (); // remove non-ref frames that are not output pictures
-  ErrVal              xSetAllComplete   ( Int                         iMaxKeyPoc );
   ErrVal              xUpdateMemory     ();
   ErrVal              xOutput           ( PicBufferList&              rcOutputList,
                                           PicBufferList&              rcUnusedList );
@@ -279,7 +278,6 @@ private:
   UInt                m_uiNumRefFrames;
   UInt                m_uiMaxFrameNum;
   UInt                m_uiLastRefFrameNum;
-  Int                 m_iMaxKeyPoc;
   DPBUnitList         m_cUsedDPBUnitList;
   DPBUnitList         m_cFreeDPBUnitList;
   DPBUnit*            m_pcCurrDPBUnit;
@@ -413,15 +411,10 @@ protected:
   //===== check for inverse MCTF =====
   ErrVal      xInvokeMCTF                     ( SliceHeader*                  pcSliceHeader,
                                                 Bool                          bIntraOnly );
-  ErrVal      xCheckForInversePrediction      ( DPBUnit*                      pcPrdDPBUnit,
-                                                DPBUnit*                      pcUpdDPBUnit,
-                                                Bool                          bIntraOnly );
-  ErrVal      xCheckForInverseUpdate          ( DPBUnit*                      pcUpdDPBUnit,
-                                                DPBUnit*                      pcPrdDPBUnit,
-                                                Bool                          bIntraOnly );
   ErrVal      xInversePrediction              ( DPBUnit*                      pcDPBUnit,
                                                 Bool                          bIntraOnly );
   ErrVal      xInverseUpdate                  ( DPBUnit*                      pcDPBUnit,
+																								UInt													uiUpdLevel,
                                                 Bool                          bIntraOnly );
   
   //===== decode pictures / subbands =====

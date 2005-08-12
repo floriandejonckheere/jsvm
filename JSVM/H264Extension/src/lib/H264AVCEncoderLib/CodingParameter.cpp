@@ -140,8 +140,7 @@ ErrVal LayerParameters::check()
   ROTREPORT( getAdaptiveTransform       () > 2,         "FRExt mode not supported" );
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
   ROTREPORT( getNumFGSLayers            () > 3,         "Number of FGS layers not supported" );
-  ROTREPORT( getInterLayerPredictionMode() < 0 ||
-             getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
+  ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
   ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
 #if MULTIPLE_LOOP_DECODING
   ROTREPORT( getDecodingLoops           () > 2,         "Unsupported mode for decoding loops" );

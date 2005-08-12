@@ -52,7 +52,7 @@ CPPFLAGS          = -fPIC $(DEFS) -I$(CURDIR)/$(INC_DIR) $(USER_INC_DIRS)
 DEBUG_CPPFLAGS    = -g  -D_DEBUG
 #
 # release cpp
-RELEASE_CPPFLAGS  = -O3 -DNDEBUG
+RELEASE_CPPFLAGS  =  -O3 -ffloat-store -DNDEBUG
 
 
 #########################################################
