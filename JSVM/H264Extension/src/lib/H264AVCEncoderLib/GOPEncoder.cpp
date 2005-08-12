@@ -3944,7 +3944,12 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 			IntFrame*     pcOrgResidual = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
 			pcOrgResidual->init(false);
 			pcOrgResidual->setZero();
-			pcOrgResidual->subtract( pcFrame, pcBLRecFrame );
+      if( pcBQFrame )
+      {
+        pcOrgResidual->subtract( pcFrame, pcBQFrame );
+      } else {
+			  pcOrgResidual->subtract( pcFrame, pcBLRecFrame );
+      }
 
 			xAddBaseLayerResidual( rcControlData, pcOrgResidual, true );
 			pcOrgResidual->store(reconst_picbuf);
@@ -4355,7 +4360,22 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		IntFrame* pcRecAnchorFrame_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
 		IntFrame* pcOrgAnchorFrame_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
 		IntFrame* pcLowPassBaseReconstruction_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-		pcLowPassBaseReconstruction_save->uninit();
+    IntFrame* pcBQFrame_save = 0;
+    IntFrame* pcCLFrame_save = 0;
+    if( m_papcBQFrame    )
+    {
+      pcBQFrame_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
+      pcBQFrame_save->init(false);
+      pcBQFrame_save->copyAll(m_papcBQFrame[0]);
+    }
+    if( m_papcCLRecFrame )
+    {
+      pcCLFrame_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
+      pcCLFrame_save->init(false);
+      pcCLFrame_save->copyAll(m_papcCLRecFrame[0]);
+    }
+
+    pcLowPassBaseReconstruction_save->uninit();
 		pcLowPassBaseReconstruction_save->init(false);
 		pcLowPassBaseReconstruction_save->setZero();
 		pcLowPassBaseReconstruction_save->copyAll(m_pcLowPassBaseReconstruction);
@@ -4438,6 +4458,14 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);
 		m_pcLowPassBaseReconstruction->setZero();
 		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
+    if( pcBQFrame_save )
+    {
+      m_papcBQFrame[0]->copyAll( pcBQFrame_save );
+    }
+    if( pcCLFrame_save )
+    {
+      m_papcCLRecFrame[0]->copyAll( pcCLFrame_save );
+    }
 		m_cLPFrameNumList.clear();
 		m_cLPFrameNumList += cLPFrameNumList_save;
 		rcPicBufferInputList.clear();
@@ -4505,6 +4533,14 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);			
 		m_pcLowPassBaseReconstruction->setZero();
 		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
+    if( pcBQFrame_save )
+    {
+      m_papcBQFrame[0]->copyAll( pcBQFrame_save );
+    }
+    if( pcCLFrame_save )
+    {
+      m_papcCLRecFrame[0]->copyAll( pcCLFrame_save );
+    }
 		m_cLPFrameNumList.clear();
 		m_cLPFrameNumList += cLPFrameNumList_save;
 		rcPicBufferInputList.clear();
@@ -4572,6 +4608,14 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);			
 		m_pcLowPassBaseReconstruction->setZero();
 		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
+    if( pcBQFrame_save )
+    {
+      m_papcBQFrame[0]->copyAll( pcBQFrame_save );
+    }
+    if( pcCLFrame_save )
+    {
+      m_papcCLRecFrame[0]->copyAll( pcCLFrame_save );
+    }
 		m_cLPFrameNumList.clear();
 		m_cLPFrameNumList += cLPFrameNumList_save;
 		rcPicBufferInputList.clear();
@@ -4639,6 +4683,14 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);			
 		m_pcLowPassBaseReconstruction->setZero();
 		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
+    if( pcBQFrame_save )
+    {
+      m_papcBQFrame[0]->copyAll( pcBQFrame_save );
+    }
+    if( pcCLFrame_save )
+    {
+      m_papcCLRecFrame[0]->copyAll( pcCLFrame_save );
+    }
 		m_cLPFrameNumList.clear();
 		m_cLPFrameNumList += cLPFrameNumList_save;
 		rcPicBufferInputList.clear();
@@ -4714,6 +4766,14 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);		
 		m_pcLowPassBaseReconstruction->setZero();
 		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
+    if( pcBQFrame_save )
+    {
+      m_papcBQFrame[0]->copyAll( pcBQFrame_save );
+    }
+    if( pcCLFrame_save )
+    {
+      m_papcCLRecFrame[0]->copyAll( pcCLFrame_save );
+    }
 
 		FILE* d_gop; // write to file
 
