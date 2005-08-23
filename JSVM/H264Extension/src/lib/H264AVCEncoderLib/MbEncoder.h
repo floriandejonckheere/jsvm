@@ -176,9 +176,14 @@ public:
                                 Bool            bCalcMv,
                                 Bool            bFaultTolerant );
 
-  Void    setMotCompType      ( MCType type );
-  MCType  getMotCompType      ();
-  Void    setUpdateWeightsBuf ( UShort* updateWeightsBuf );
+  Void    setUpdId(UpdId id);
+  UpdId   getUpdId();
+  ErrVal  compensateUpdate(      MbDataAccess&   rcMbDataAccess,
+                                 IntFrame*       pcMCFrame,
+                                 Int             iRefIdx,
+                                 ListIdx         eListPrd,
+                                 IntFrame*       pcPrdFrame);
+
 
   ErrVal  estimatePrediction  ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,

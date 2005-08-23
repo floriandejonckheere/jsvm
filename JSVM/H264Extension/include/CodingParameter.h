@@ -387,7 +387,6 @@ public:
     , m_uiNumRefFrames                    ( 0 )
     , m_uiBaseLayerMode                   ( 0 )
     , m_uiNumberOfLayers                  ( 0 )
-    , m_bLowComplxUpdFlag                 ( 1 )
     , m_bExtendedPriorityId               ( 0 )
     , m_uiNumSimplePris                   (0)
     //{{Adaptive GOP structure
@@ -429,7 +428,6 @@ public:
   UInt                            getNumRefFrames         ()              const   { return m_uiNumRefFrames; }
   UInt                            getBaseLayerMode        ()              const   { return m_uiBaseLayerMode; }
   UInt                            getNumberOfLayers       ()              const   { return m_uiNumberOfLayers; }
-  Bool                            getLowComplxUpdFlag     ()              const   { return m_bLowComplxUpdFlag; }
   Bool                            getExtendedPriorityId   ()              const   { return m_bExtendedPriorityId; }
   UInt                            getNumSimplePris        ()              const   { return m_uiNumSimplePris; }
   Void                            getSimplePriorityMap    ( UInt uiSimplePri, UInt& uiTemporalLevel, UInt& uiLayer, UInt& uiQualityLevel )
@@ -438,7 +436,6 @@ public:
                                                                             uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
                                                                           }
 
-  Void                            setLowComplxUpdFlag     ( UInt  n   )   { m_bLowComplxUpdFlag = (n==1); }
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
   Void                            setMaximumDelay         ( Double  d )   { m_dMaximumDelay         = d; }
@@ -493,7 +490,6 @@ protected:
   UInt                      m_uiIntraPeriodLowPass;
   UInt                      m_uiNumRefFrames;
   UInt                      m_uiBaseLayerMode;
-  Bool                      m_bLowComplxUpdFlag;
 
   MotionVectorSearchParams  m_cMotionVectorSearchParams;
   LoopFilterParams          m_cLoopFilterParams;

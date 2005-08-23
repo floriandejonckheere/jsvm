@@ -244,7 +244,6 @@ public:
   UInt getCtxRefIdx         ( ListIdx eLstIdx, ParIdx8x8 eParIdx ) const;
   UInt getCtxMotPredFlag    ( ListIdx eLstIdx, ParIdx8x8 eParIdx ) const;
   UInt getCtxMbType         ()                  const;
-  UInt getCtxResPredFlag    ()                  const;
   UInt getCtx8x8Flag        ()                  const;
 
   UInt  getLeftLumaCbp          ( LumaIdx cIdx )  const;
@@ -677,16 +676,6 @@ __inline Int MbDataAccess::decodeIntraPredMode( LumaIdx cIdx )
   return (iIntraPredMode < iMostProbable) ? iIntraPredMode : iIntraPredMode+1;
 }
 
-
-
-
-__inline UInt MbDataAccess::getCtxResPredFlag()  const
-{
-  UInt uiCtx = ( m_rcMbLeft.getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
-  uiCtx     += (m_rcMbAbove.getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
-  
-  return uiCtx;
-}
 
 
 __inline UInt MbDataAccess::getCtxMbType() const

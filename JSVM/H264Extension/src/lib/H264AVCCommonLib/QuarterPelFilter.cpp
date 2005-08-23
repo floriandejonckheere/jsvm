@@ -912,31 +912,6 @@ Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pc
 
 
 
-Void QuarterPelFilter::predBlkAdapt( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX, 
-                                      UShort* weight)
-{
-  XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
-  XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );
-  Int iDesStride  = pcDesBuffer->getLStride();
-  Int iSrcStride  = pcSrcBuffer->getLStride();
-  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
-
-  pucSrc += iOffset;
-
-  Int iDx = cMv.getHor() & 3;
-  Int iDy = cMv.getVer() & 3;
-
-  UShort usWeight;
-
-  weightOnEnergy(&usWeight, pucSrc + (iDy+1)/4*iSrcStride + (iDx+1)/4, iSrcStride, iSizeY, iSizeX );
-  *weight = (*weight) *usWeight;
-
-  xPredAdapt( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX, *weight, 128 );
-
-  return;
-}
-
-
 Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
 {
   for( UInt y = 0; y < uiSizeY; y++)
@@ -1202,10 +1177,51 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
   }
 }
 
-Void QuarterPelFilter::xPredAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
-                                    UInt uiSizeY, UInt uiSizeX, UShort weight, UShort wMax )
+
+Void QuarterPelFilter::xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
+                                    UInt uiSizeY, UInt uiSizeX )
 {
-  int methodId;
+  static int f2tap[4][2] = {
+    { 4,  0}, 
+    { 3,  1},
+    { 2,  2},
+    { 1,  3}
+  };
+  int sx1, sx2, sy1, sy2; 
+  for( Int y = 0; y < uiSizeY + 1; y++)
+  {
+    for( Int x = 0; x < uiSizeX + 1; x++)
+    {
+      Int iTemp1[2], iTemp2;
+      int i, j;
+      sx1 = max(0, x + 1 - (int)uiSizeX);
+      sx2 = min(2, x + 1);
+      sy1 = max(0, y + 1 - (int)uiSizeY);
+      sy2 = min(2, y + 1);
+
+      for(i = sy1; i < sy2; i++)
+      {
+        iTemp1[i] = 0;
+       
+        for(j = sx1; j < sx2; j++ )
+          iTemp1[i] += pucSrc[x - i*iSrcStride - j] * f2tap[iDx][j];
+      }
+
+      iTemp2 = 0;
+      for(i = sy1; i < sy2; i++)
+        iTemp2 += iTemp1[i] * f2tap[iDy][i];
+
+      pucDest[x] = iTemp2;
+    }
+    pucDest += iDestStride;
+    pucSrc += iSrcStride; 
+  }
+}
+
+
+Void QuarterPelFilter::xUpdInterp4Tap(Int* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
+                                    UInt uiSizeY, UInt uiSizeX )
+{
   static int f4tap[4][4] = {
     { 0, 16,  0,  0}, 
     {-2, 14,  5, -1},
@@ -1213,64 +1229,80 @@ Void QuarterPelFilter::xPredAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride,
     {-1,  5, 14, -2}
   };
 
-  if(weight > wMax/2)
+  int sx1, sx2, sy1, sy2; 
+  for( Int y = 0; y < uiSizeY + 3; y++)
   {
-    methodId = 2; 
-  }
-  else if(weight > 0)
-  {
-    methodId = 1; 
-  }
-  else
-    return;
-
-
-  // INTERPOLATION
-  if(methodId==1)
-  {
-    // method 1: bi-linear for sub-pel samples
-    for( UInt y = 0; y < uiSizeY; y++)
+    for( Int x = 0; x < uiSizeX + 3; x++)
     {
-      for( UInt x = 0; x < uiSizeX; x++)
-      {
-        Int iTemp;
-        iTemp  = pucSrc[x - 0]*(4-iDx)*(4-iDy);
-        iTemp += pucSrc[x + 1]*iDx*(4-iDy);
-        iTemp += pucSrc[x + 1*iSrcStride]*(4-iDx)*iDy;
-        iTemp += pucSrc[x + 1*iSrcStride + 1]*iDx*iDy;
+      Int iTemp1[4], iTemp2;
+      int i, j;
+      sx1 = max(0, x + 1 - (int)uiSizeX);
+      sx2 = min(4, x + 1);
+      sy1 = max(0, y + 1 - (int)uiSizeY);
+      sy2 = min(4, y + 1);
 
-        pucDest[x] = xClip( (iTemp + 8) >>4 );
+      for(i = sy1; i < sy2; i++)
+      {
+        iTemp1[i] = 0;
+       
+        for(j = sx1; j < sx2; j++ )
+          iTemp1[i] += pucSrc[x - i*iSrcStride - j] * f4tap[iDx][j];
       }
-      pucDest += iDestStride;
-      pucSrc += iSrcStride;
+
+      iTemp2 = 0;
+      for(i = sy1; i < sy2; i++)
+        iTemp2 += iTemp1[i] * f4tap[iDy][i];
+
+      pucDest[x] = iTemp2;
     }
+    pucDest += iDestStride;
+    pucSrc += iSrcStride; 
   }
-  else if(methodId == 2)
+}
+
+Void QuarterPelFilter::xUpdInterpChroma( Int* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX )
+{
+  Int iDx = (cMv.getHor() & 0x7);
+  Int iDy = (cMv.getVer() & 0x7);
+
+  static int f2tapC[8][2] = {
+    { 8,  0}, 
+    { 7,  1},
+    { 6,  2},
+    { 5,  3},
+    { 4,  4}, 
+    { 3,  5},
+    { 2,  6},
+    { 1,  7}
+  };
+  int sx1, sx2, sy1, sy2; 
+  for( Int y = 0; y < iSizeY + 1; y++)
   {
-    // method 2: 4 tap filter for sub-pel samples
-    for( UInt y = 0; y < uiSizeY; y++)
+    for( Int x = 0; x < iSizeX + 1; x++)
     {
-      for( UInt x = 0; x < uiSizeX; x++)
+      Int iTemp1[2], iTemp2;
+      int i, j;
+      sx1 = max(0, x + 1 - (int)iSizeX);
+      sx2 = min(2, x + 1);
+      sy1 = max(0, y + 1 - (int)iSizeY);
+      sy2 = min(2, y + 1);
+
+      for(i = sy1; i < sy2; i++)
       {
-        Int iTemp1[4], iTemp2;
-        int i, j;
-
-        for(i=0;i<4;i++)
-        {
-          iTemp1[i] = 0;
-          for(j=0;j<4;j++)
-            iTemp1[i] += pucSrc[x + (i-1)*iSrcStride + j-1] * f4tap[iDx][j];
-        }
-
-        iTemp2 = 0;
-        for(j=0;j<4;j++)
-          iTemp2 += iTemp1[j] * f4tap[iDy][j];
-
-        pucDest[x] = xClip( (iTemp2 + 128) >> 8 );
+        iTemp1[i] = 0;
+       
+        for(j = sx1; j < sx2; j++ )
+          iTemp1[i] += pucSrc[x - i*iSrcStride - j] * f2tapC[iDx][j];
       }
-      pucDest += iDestStride;
-      pucSrc += iSrcStride;
+
+      iTemp2 = 0;
+      for(i = sy1; i < sy2; i++)
+        iTemp2 += iTemp1[i] * f2tapC[iDy][i];
+
+      pucDest[x] = iTemp2;
     }
+    pucDest += iDestStride;
+    pucSrc += iSrcStride; 
   }
 }
 

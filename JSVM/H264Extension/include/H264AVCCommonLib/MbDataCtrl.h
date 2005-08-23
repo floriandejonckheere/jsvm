@@ -102,32 +102,6 @@ H264AVC_NAMESPACE_BEGIN
 
 
 
-class H264AVCCOMMONLIB_API ConnectionArray
-{
-public:
-	ConnectionArray         ();
-  virtual ~ConnectionArray();
-
-public:
-  ErrVal          init    ( const SequenceParameterSet& rcSPS );
-  ErrVal          clear   ();
-  ConnectionData& getData ( UInt uiMbX, UInt uiMbY )
-  {
-    AOF( uiMbX < m_uiNumCol );
-    AOF( uiMbY < m_uiNumRow );
-    return m_pcData [ uiMbY * m_uiNumCol + uiMbX ];
-  }
-
-protected:
-  Bool            m_bInitDone;
-  UInt            m_uiSize;
-  UInt            m_uiNumCol;
-  UInt            m_uiNumRow;
-  ConnectionData* m_pcData;
-};
-
-
-
 
 
 class H264AVCCOMMONLIB_API MbDataCtrl
@@ -169,18 +143,14 @@ public:
 
   MbData& getMbData( UInt uiMbX, UInt uiMbY )   { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
 
-  ErrVal deriveUpdateMotionFieldAdaptive( SliceHeader&      rcSH,
-                                          CtrlDataList*     pcCtrlDataList,
-                                          ConnectionArray&  rcConnectionArray,
-                                          UShort*           pusUpdateWeights,
-                                          Bool              bDecoder,
-                                          ListIdx           eListUpd );
 
   ErrVal        copyMotion    ( MbDataCtrl& rcMbDataCtrl );
 	// TMM_ESS {
   ErrVal        copyMotionBL  ( MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters  );
   ErrVal        upsampleMotion ( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
 	// TMM_ESS }
+
+  ErrVal        copyBaseResidualAvailFlags( MbDataCtrl& rcSrcMbDataCtrl );
 
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
@@ -191,8 +161,6 @@ protected:
   ErrVal xDeleteData();
   ErrVal xResetData();
 
-  Void xAddConnectionForMV   ( ConnectionData& rcConnectionData, ListIdx eListIdx, Int iRefIdx, LumaIdx cIdx, Int iNumConnected, const Mv& rcMv );
-
   Bool xGetDirect8x8InferenceFlag() { return m_bDirect8x8InferenceFlag; }
 
 // TMM_ESS {
@@ -200,6 +168,8 @@ protected:
   ErrVal  xUpsampleMotionNonDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
   ErrVal  xUpsampleMotion3_2(MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters );
 // TMM_ESS }
+
+  ErrVal  xSetBaseResidualAvailFlagsRatioX( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
 
 protected:
   DynBuf<DFP*>        m_cpDFPBuffer;

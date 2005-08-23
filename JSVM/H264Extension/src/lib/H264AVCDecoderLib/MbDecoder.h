@@ -159,9 +159,15 @@ public:
                                   IntFrame*     pcPredSignal );
   ErrVal scaleAndStoreIntraCoeffs( MbDataAccess& rcMbDataAccess );
 
-  Void   setMotCompType         ( MCType type );
-  MCType getMotCompType         ();
-  Void   setUpdateWeightsBuf    ( UShort* updateWeightsBuf );
+  Void    setUpdId(UpdId id);
+  UpdId   getUpdId();
+  ErrVal
+  compensateUpdate(   MbDataAccess&   rcMbDataAccess,
+                      IntFrame*       pcMCFrame,
+                      Int             iRefIdx,
+                      ListIdx         eListPrd,
+                      IntFrame*       pcPrdFrame);
+
 
   ErrVal calcMv                 ( MbDataAccess& rcMbDataAccess,
                                   MbDataAccess* pcMbDataAccessBaseMotion );

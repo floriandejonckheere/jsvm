@@ -279,6 +279,78 @@ MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcPara
 }
 
 
+ErrVal
+MbDataCtrl::xSetBaseResidualAvailFlagsRatioX( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
+{
+  UInt uiBaseMbStride=rcBaseMbDataCtrl.m_uiMbStride;
+  Int  iMbY, iMbX, iBaseY0, iBaseX0, iBaseY1, iBaseX1;
+  Int iScaledBaseOrigX  = pcParameters->m_iPosX;
+  Int iScaledBaseOrigY  = pcParameters->m_iPosY; 
+  Int iScaledBaseWidth  = pcParameters->m_iOutWidth;
+  Int iScaledBaseHeight = pcParameters->m_iOutHeight;
+  Int iBaseWidth        = pcParameters->m_iInWidth;
+  Int iBaseHeight       = pcParameters->m_iInHeight;
+
+  if( pcParameters->m_iExtendedSpatialScalability == ESS_PICT )
+  {
+    Int index = m_pcSliceHeader->getPoc();
+    pcParameters->setPOC(index);
+    pcParameters->setCurrentPictureParametersWith(index);
+  }
+
+  // loop on MBs of high res picture
+  //--------------------------------
+  for( iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
+  {
+    for( iMbX = 0; iMbX < m_iMbPerLine; iMbX++ )
+    {
+      // get current high res MB
+      MbData& rcMbDes = m_pcMbData[iMbY * m_uiMbStride + iMbX];
+
+      Int iSMbWidth, iSMbHeight;
+      const MbData* pcBaseMbData0;	
+
+      // why not iScaledBaseWidth/2 as rounding offset?
+      iBaseX0 = ((16 * iMbX - iScaledBaseOrigX) * iBaseWidth  + iBaseWidth/2) /iScaledBaseWidth;
+      iBaseY0 = ((16 * iMbY - iScaledBaseOrigY) * iBaseHeight + iBaseHeight/2)/iScaledBaseHeight;
+      iBaseX1 = ((16 * iMbX + 15 - iScaledBaseOrigX) * iBaseWidth  + iBaseWidth/2) /iScaledBaseWidth;
+      iBaseY1 = ((16 * iMbY + 15 - iScaledBaseOrigY) * iBaseHeight + iBaseHeight/2)/iScaledBaseHeight;
+
+      pcBaseMbData0 = & rcBaseMbDataCtrl.m_pcMbData[iBaseY0/16 * uiBaseMbStride + iBaseX0/16];
+
+      iSMbWidth   = ( iBaseX1/16 > iBaseX0/16 ) ? 2 : 1;
+      iSMbHeight  = ( iBaseY1/16 > iBaseY0/16 ) ? 2 : 1;
+
+      UShort usResidualAvailFlagsBase = 0;
+      for( Int iBaseMbY = 0; iBaseMbY < iSMbHeight; iBaseMbY ++ )
+      {
+        for( Int iBaseMbX = 0; iBaseMbX < iSMbWidth; iBaseMbX ++ )
+        {
+          const MbData* pcMbSrc = pcBaseMbData0 + iBaseMbY * uiBaseMbStride + iBaseMbX;
+
+          usResidualAvailFlagsBase |= pcMbSrc->isLumaResidualAvailable()   ? 15 : 0;
+          usResidualAvailFlagsBase |= pcMbSrc->isChromaResidualAvailable() ? (1 << 4) : 0;
+        }
+      }
+      
+      rcMbDes.setResidualAvailFlagsBase( usResidualAvailFlagsBase );
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+MbDataCtrl::copyBaseResidualAvailFlags( MbDataCtrl& rcSrcMbDataCtrl )
+{
+  for( UInt uiMbIdx = 0 ; uiMbIdx < m_uiSize; uiMbIdx ++ )
+    m_pcMbData[uiMbIdx].setResidualAvailFlagsBase( rcSrcMbDataCtrl.m_pcMbData[uiMbIdx].getResidualAvailFlagsBase() );
+
+  return Err::m_nOK;
+}
+
+
 // motion upsampling (upsampling with factor=2) with/without cropping (MB aligned)
 ErrVal
 MbDataCtrl::xUpsampleMotionDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
@@ -311,6 +383,10 @@ MbDataCtrl::xUpsampleMotionDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters*
 ErrVal
 MbDataCtrl::upsampleMotion( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
 {
+  // for other cases, the flags are set while motion is resampled
+  if( pcParameters->m_iSpatialScalabilityType >= SST_RATIO_3_2 )
+		xSetBaseResidualAvailFlagsRatioX(rcBaseMbDataCtrl, pcParameters);
+
 	switch (pcParameters->m_iSpatialScalabilityType)
 	{
 	case SST_RATIO_1:
@@ -592,298 +668,6 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 }
 
 
-
-
-Void MbDataCtrl::xAddConnectionForMV( ConnectionData&  rcConnectionData,
-                                      ListIdx          eListIdx,
-                                      Int              iRefIdx,
-                                      LumaIdx          cIdx,
-                                      Int              iNumConnected,
-                                      const Mv&        rcMv )
-{
-  if( iNumConnected == 0 )
-  {
-    return;
-  }
-
-  Int iNumAlreadyConnected = rcConnectionData.getConnected( eListIdx, iRefIdx, cIdx );
-
-  if( iNumAlreadyConnected == 0 )
-  {
-    //===== there is not motion vector assigned to this block =====
-    rcConnectionData.setConnected ( eListIdx, iRefIdx, cIdx, iNumConnected  );
-    rcConnectionData.setMv        ( eListIdx, iRefIdx, cIdx, rcMv           );
-    return;
-  }
-
-  const Mv& rcAssignedMv = rcConnectionData.getMv( eListIdx, iRefIdx, cIdx );
-
-
-  if( rcAssignedMv.getHor() == rcMv.getHor() &&
-      rcAssignedMv.getVer() == rcMv.getVer()    )
-  {
-    rcConnectionData.addConnected ( eListIdx, iRefIdx, cIdx, iNumConnected );
-    return;
-  }
-
-  if( iNumConnected >= iNumAlreadyConnected )
-  {
-    //===== other connection with more valid pixels =====
-    rcConnectionData.setConnected ( eListIdx, iRefIdx, cIdx, iNumConnected  );
-    rcConnectionData.setMv        ( eListIdx, iRefIdx, cIdx, rcMv           );
-    return;
-  }
-}
-
-
-
-
-
-
-ErrVal MbDataCtrl::deriveUpdateMotionFieldAdaptive( SliceHeader&      rcSH,
-                                                    CtrlDataList*     pcCtrlDataList,
-                                                    ConnectionArray&  rcConnectionArray,
-                                                    UShort*           pusUpdateWeights,
-                                                    Bool              bDecoder,
-                                                    ListIdx           eListUpd )
-{
-  ListIdx eListPrd = ListIdx( 1-eListUpd );
-  Int     iWStride = 4*m_iMbPerLine;
-  Int     iMbYPrd, iMbXPrd, iMbYUpd, iMbXUpd, iBlkYUpd, iBlkXUpd, iRefIdx;
-
-
-  //===== initialize arrays and set quantization parameters =====
-  {
-    RNOK( initSlice( rcSH, bDecoder ? PARSE_PROCESS : ENCODE_PROCESS, false, NULL ) );
-
-    for( iMbYUpd = 0; iMbYUpd < m_iMbPerColumn; iMbYUpd++ )
-    for( iMbXUpd = 0; iMbXUpd < m_iMbPerLine;   iMbXUpd++ )
-    {
-      MbDataAccess* pcMbDataAccess;
-      RNOK( initMb( pcMbDataAccess, iMbYUpd, iMbXUpd ) );
-
-      //----- clear weights -----
-      for( Int y = 0; y < 4; y++ )
-      for( Int x = 0; x < 4; x++ )
-      {
-        pusUpdateWeights[(4*iMbYUpd+y)*iWStride+(4*iMbXUpd+x)] = 0;
-      }
-    }
-  }
-
-
-  //====== check for empty reference list =====
-  if( pcCtrlDataList->getActive() < 1 )
-  {
-    //---- set macroblock mode to intra: no update signal ----
-    for( iMbYUpd = 0; iMbYUpd < m_iMbPerColumn; iMbYUpd++ )
-    for( iMbXUpd = 0; iMbXUpd < m_iMbPerLine;   iMbXUpd++ )
-    {
-      getMbData( iMbXUpd, iMbYUpd ).setMbMode( INTRA_4X4 );
-    }
-    return Err::m_nOK;
-  }
-
-
-  //====== first run: derive update motion vectors and set number of connected samples ======
-  {
-    RNOK( rcConnectionArray.clear() );
-
-    for( iRefIdx = 1; iRefIdx <= (Int)pcCtrlDataList->getActive(); iRefIdx++ )    
-    for( iMbYPrd = 0; iMbYPrd <  m_iMbPerColumn;                   iMbYPrd++ )
-    for( iMbXPrd = 0; iMbXPrd <  m_iMbPerLine;                     iMbXPrd++ )
-    {
-      MbDataCtrl*   pcMbDataCtrlPrd = (*pcCtrlDataList)[ iRefIdx ]->getMbDataCtrl();
-      MbData&       rcMbDataPrd     = pcMbDataCtrlPrd->getMbData( iMbXPrd, iMbYPrd );
-      MbMotionData& rcMbMotDataPrd  = rcMbDataPrd.getMbMotionData( eListPrd );
-      MbMode        eMbModePrd      = rcMbDataPrd.getMbMode();
-
-      for( B8x8Idx c8x8IdxPrd; c8x8IdxPrd.isLegal(); c8x8IdxPrd++ )
-      {
-        if( eMbModePrd>=INTRA_4X4 || rcMbMotDataPrd.getRefIdx( c8x8IdxPrd.b8x8() ) != iRefIdx )
-        {
-          continue;
-        }
-
-        for( S4x4Idx cIdxPrd( c8x8IdxPrd ); cIdxPrd.isLegal( c8x8IdxPrd ); cIdxPrd++ )
-        {
-          Int       iYPrd   = ( iMbYPrd << 4 )   +  ( cIdxPrd.y() << 2 );
-          Int       iXPrd   = ( iMbXPrd << 4 )   +  ( cIdxPrd.x() << 2 );
-          Mv        cMvPrd  = rcMbMotDataPrd.getMv( cIdxPrd );
-
-          Int       iDY     = ( cMvPrd.getVer() + 2 ) >> 2;
-          Int       iDX     = ( cMvPrd.getHor() + 2 ) >> 2;
-          Int       iYUpd   = iYPrd + iDY;
-          Int       iXUpd   = iXPrd + iDX;
-          Mv        cMvUpd;
-
-          cMvUpd.set( -cMvPrd.getHor(), -cMvPrd.getVer() );
-
-          iMbYUpd = iYUpd >> 4;   iYUpd -= iMbYUpd << 4;    iBlkYUpd = iYUpd >> 2;    iYUpd -= iBlkYUpd << 2;
-          iMbXUpd = iXUpd >> 4;   iXUpd -= iMbXUpd << 4;    iBlkXUpd = iXUpd >> 2;    iXUpd -= iBlkXUpd << 2;
-    
-          for( Int iBY = 0; iBY < 2; iBY++ )
-          for( Int iBX = 0; iBX < 2; iBX++ )
-          {
-            Int iMbY  = iMbYUpd + ( ( iBlkYUpd + iBY ) >> 2 );
-            Int iMbX  = iMbXUpd + ( ( iBlkXUpd + iBX ) >> 2 );
-
-            if( iMbY < 0 || iMbY >= m_iMbPerColumn ||
-                iMbX < 0 || iMbX >= m_iMbPerLine     )
-            {
-              continue;
-            }
-
-            ConnectionData& rcConnectionData  = rcConnectionArray.getData( iMbX, iMbY );
-            B4x4Idx         cIdxUpd             ( 4* ( ( iBlkYUpd + iBY ) % 4 ) + ( iBlkXUpd + iBX ) % 4 );
-            Int             iNumPel           = ( iBY ? iYUpd : 4 - iYUpd ) * ( iBX ? iXUpd : 4 - iXUpd );
-
-            xAddConnectionForMV( rcConnectionData, eListUpd, iRefIdx, cIdxUpd, iNumPel, cMvUpd );
-          }
-        }
-      }
-    }
-  }
-
-
-  //====== second run: set mb modes, refidx, mv, number of connected samples, and update weights ======
-  for( iMbYUpd = 0; iMbYUpd < m_iMbPerColumn; iMbYUpd++ )
-  for( iMbXUpd = 0; iMbXUpd < m_iMbPerLine;   iMbXUpd++ )
-  {
-    MbData&         rcMbDataUpd       = getMbData( iMbXUpd, iMbYUpd );
-    MbMotionData&   rcMbMotDataUpd    = rcMbDataUpd.getMbMotionData( eListUpd );
-    MbMotionData&   rcMbMotDataZero   = rcMbDataUpd.getMbMotionData( eListPrd );
-    ConnectionData& rcConnectionData  = rcConnectionArray.getData( iMbXUpd, iMbYUpd );
-    Bool            bAllWeightsZero   = true;
-
-    for( B8x8Idx c8x8IdxUpd; c8x8IdxUpd.isLegal(); c8x8IdxUpd++ )
-    {
-      Par8x8    ePar          = c8x8IdxUpd.b8x8Index();
-      ParIdx8x8 eParIdx       = c8x8IdxUpd.b8x8();
-      Int       iMaxConnected = -1;
-      Int       iBestRefIdx   =  1;
-
-      //----- get reference indices -----
-      for( iRefIdx = 1; iRefIdx <= (Int)pcCtrlDataList->getActive(); iRefIdx++ )
-      {
-        Int iNumConnected = rcConnectionData.getConnected( eListUpd, iRefIdx, B4x4Idx( eParIdx + SPART_4x4_0 ) )
-                          + rcConnectionData.getConnected( eListUpd, iRefIdx, B4x4Idx( eParIdx + SPART_4x4_1 ) )
-                          + rcConnectionData.getConnected( eListUpd, iRefIdx, B4x4Idx( eParIdx + SPART_4x4_2 ) )
-                          + rcConnectionData.getConnected( eListUpd, iRefIdx, B4x4Idx( eParIdx + SPART_4x4_3 ) );
-        if( iNumConnected > iMaxConnected )
-        {
-          iMaxConnected = iNumConnected;
-          iBestRefIdx   = iRefIdx;
-        }
-      }
-
-      //----- set reference indices and motion vectors for current list -----
-      rcMbMotDataUpd  .setRefIdx( iBestRefIdx,                                                               eParIdx );
-      rcMbMotDataUpd  .setAllMv ( rcConnectionData.getMv(eListUpd,iBestRefIdx,B4x4Idx(eParIdx+SPART_4x4_0)), eParIdx, SPART_4x4_0 );
-      rcMbMotDataUpd  .setAllMv ( rcConnectionData.getMv(eListUpd,iBestRefIdx,B4x4Idx(eParIdx+SPART_4x4_1)), eParIdx, SPART_4x4_1 );
-      rcMbMotDataUpd  .setAllMv ( rcConnectionData.getMv(eListUpd,iBestRefIdx,B4x4Idx(eParIdx+SPART_4x4_2)), eParIdx, SPART_4x4_2 );
-      rcMbMotDataUpd  .setAllMv ( rcConnectionData.getMv(eListUpd,iBestRefIdx,B4x4Idx(eParIdx+SPART_4x4_3)), eParIdx, SPART_4x4_3 );
-
-      //----- clear motion data for opposite list -----
-      rcMbMotDataZero .setRefIdx( BLOCK_NOT_PREDICTED,  eParIdx );
-      rcMbMotDataZero .setAllMv ( Mv::ZeroMv(),         eParIdx );
-    }
-
-
-    //----- set weights -----
-    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-    {
-      Int iNumConnected       = rcConnectionData.getConnected( eListUpd, rcMbMotDataUpd.getRefIdx( cIdx ), cIdx );
-      Int iWeight             = min( 8, max( 0, ( iNumConnected - 8 ) ) ); // 50 - 100%
-      Int iPos                = (4*iMbYUpd+cIdx.y())*iWStride + (4*iMbXUpd+cIdx.x());
-      pusUpdateWeights[iPos]  = iWeight;
-      if( iWeight )
-      {
-        bAllWeightsZero       = false;
-      }
-    }
-
-
-    //----- set macroblock modes -----
-    if( bAllWeightsZero )
-    {
-      rcMbDataUpd   .setMbMode  ( INTRA_4X4 );
-      rcMbDataUpd   .setFwdBwd  ( 0x0000 );
-      rcMbMotDataUpd.setRefIdx  ( BLOCK_NOT_PREDICTED );
-    }
-    else
-    {
-      rcMbDataUpd   .setMbMode ( MODE_8x8 );
-      rcMbDataUpd   .setFwdBwd ( eListUpd == LIST_0 ? 0x1111 : 0x2222 );
-      rcMbDataUpd   .setBlkMode( B_8x8_0, BLK_4x4 );
-      rcMbDataUpd   .setBlkMode( B_8x8_1, BLK_4x4 );
-      rcMbDataUpd   .setBlkMode( B_8x8_2, BLK_4x4 );
-      rcMbDataUpd   .setBlkMode( B_8x8_3, BLK_4x4 );
-    }
-  }
-
-  return Err::m_nOK;
-}
-
-
-#undef MEDIAN
-
-
-
-
-
-
-
-
-ConnectionArray::ConnectionArray()
-: m_bInitDone   ( false )
-, m_uiSize      ( 0     )
-, m_uiNumCol    ( 0     )
-, m_uiNumRow    ( 0     )
-, m_pcData      ( 0     )
-{
-}
-
-
-ConnectionArray::~ConnectionArray()
-{
-  delete [] m_pcData;
-}
-
-
-ErrVal
-ConnectionArray::init( const SequenceParameterSet& rcSPS )
-{
-  UInt uiSize = rcSPS.getMbInFrame();
-  ROF( uiSize );
-
-  if( m_uiSize != uiSize )
-  {
-    delete [] m_pcData;
-    m_pcData  = 0;
-
-    ROFRS( ( m_pcData = new ConnectionData [ uiSize ] ), Err::m_nERR );
-    m_uiSize  = uiSize;
-  }
-
-  m_uiNumCol   = rcSPS.getFrameWidthInMbs ();
-  m_uiNumRow   = rcSPS.getFrameHeightInMbs();
-  m_bInitDone  = true;
-
-  return Err::m_nOK;
-}
-
-ErrVal
-ConnectionArray::clear()
-{
-  ROF( m_bInitDone );
-
-  for( UInt uiIndex = 0; uiIndex < m_uiSize; uiIndex++ )
-  {
-    m_pcData[uiIndex].clear();
-  }
-  return Err::m_nOK;
-}
 
 
 

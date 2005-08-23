@@ -367,7 +367,6 @@ public:
   ErrVal          getReconstructedBaseLayer     ( IntFrame*&   pcFrame,
                                                   Bool         bSpatialScalability,
                                                   Int          iPoc );
-  Void            setLowComplxUpdFlag           ( Bool          b ) { m_bLowComplxUpdFlag = b; }
 
   Void            setQualityLevelForPrediction  ( UInt ui )         { m_uiQualityLevelForPrediction = ui; }
 #if MULTIPLE_LOOP_DECODING
@@ -392,6 +391,12 @@ protected:
                                                 RefFrameList*                 pcRefFrameList1,
                                                 MbDataCtrl*                   pcMbDataCtrl,
                                                 SliceHeader&                  rcSH );
+  ErrVal
+  xUpdateCompensation(  IntFrame*        pcMCFrame,
+                        RefFrameList*    pcRefFrameList,
+                        CtrlDataList*    pcCtrlDataList,
+                        ListIdx          eListUpd);
+
   ErrVal      xReconstructIntra               ( IntFrame*                     pcFrame,
                                                 IntFrame*                     pcBaseLayerRec,
                                                 IntFrame*                     pcBaseRepFrame,
@@ -463,8 +468,6 @@ protected:
   Bool                m_bActive;
   UInt                m_uiLayerId;
   
-  //----- decomposition structure ----
-  Bool                m_bLowComplxUpdFlag;
 
   //----- frame memories and control data -----
   IntFrame*           m_apcFrameTemp    [NUM_TMP_FRAMES];
@@ -479,8 +482,6 @@ protected:
 // *LMH: Inverse MCTF
   SliceHeader*        m_pcCurrSliceHeader;
   
-  ConnectionArray     m_cConnectionArray;
-  UShort*             m_pusUpdateWeights;
 
 // TMM_ESS 
   ResizeParameters*   m_pcResizeParameter;

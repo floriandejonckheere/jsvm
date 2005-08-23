@@ -1088,7 +1088,6 @@ H264AVCEncoder::xInitParameterSets()
     // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
-    pcSPS->setLowComplxUpdFlag                    ( m_pcCodingParameter->getLowComplxUpdFlag() );
 #if MULTIPLE_LOOP_DECODING
     pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
                                                     rcLayerParameters.getDecodingLoops() > 1 );

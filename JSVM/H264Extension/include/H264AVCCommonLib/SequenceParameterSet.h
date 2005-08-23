@@ -146,7 +146,6 @@ public:
   Bool                  getDirect8x8InferenceFlag             ()          const { return m_bDirect8x8InferenceFlag;}
   UInt                  getMbInFrame                          ()          const { return m_uiFrameWidthInMbs * m_uiFrameHeightInMbs;}
   Bool                  getInitState                          ()          const { return m_bInitDone; }
-  Bool                  getLowComplxUpdFlag                   ()          const { return m_bLowComplxUpdFlag; }
 #if MULTIPLE_LOOP_DECODING
   Bool                  getAlwaysDecodeBaseLayer              ()          const { return m_bAlwaysDecodeBaseLayer; }
 #endif
@@ -179,7 +178,6 @@ public:
   Void  setFrameHeightInMbs                   ( UInt        ui )          { m_uiFrameHeightInMbs                    = ui; }
   Void  setDirect8x8InferenceFlag             ( Bool        b  )          { m_bDirect8x8InferenceFlag               = b;  }
   Void  setInitState                          ( Bool        b  )          { m_bInitDone                             = b;  }
-  Void  setLowComplxUpdFlag                   ( Bool        b  )          { m_bLowComplxUpdFlag                     = b;  }
 #if MULTIPLE_LOOP_DECODING
   Void  setAlwaysDecodeBaseLayer              ( Bool        b  )          { m_bAlwaysDecodeBaseLayer                = b;  }
 #endif
@@ -234,7 +232,6 @@ protected:
   UInt          m_uiFrameWidthInMbs;
   UInt          m_uiFrameHeightInMbs;
   Bool          m_bDirect8x8InferenceFlag;
-  Bool          m_bLowComplxUpdFlag;
   Bool          m_bNalUnitExtFlag;
   UInt          m_uiNumSimplePriIdVals;
   UInt          m_uiTemporalLevelList[1 << PRI_ID_BITS];

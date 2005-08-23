@@ -525,10 +525,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
         }
       }
 
-      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
-      {
-          m_apcMCTFDecoder[uiLayer]->setLowComplxUpdFlag( pcSPS->getLowComplxUpdFlag() );
-      }
 
       ruiMbX  = max( pcSPS->getFrameWidthInMbs (), ruiMbX );
       ruiMbY  = max( pcSPS->getFrameHeightInMbs(), ruiMbY );

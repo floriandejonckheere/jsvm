@@ -295,6 +295,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
     }
   }
 
+  rcMbDataAccess.getMbData().updateResidualAvailFlags();
 
   //--- write terminating bit ---
   RNOK( m_pcMbSymbolWriteIf->terminatingBit ( bTerminateSlice ? 1:0 ) );

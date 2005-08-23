@@ -123,7 +123,7 @@ CabacReader::CabacReader():
   m_cMvdCCModel         ( 2,                NUM_MV_RES_CTX ),
   m_cRefPicCCModel      ( 2,                NUM_REF_NO_CTX ),
   m_cBLPredFlagCCModel  ( 2,                NUM_BL_PRED_FLAG_CTX ),
-  m_cResPredFlagCCModel ( 1,                4 ),
+  m_cResPredFlagCCModel ( 1,                NUM_RES_PRED_FLAG_CTX ),
   m_cDeltaQpCCModel     ( 1,                NUM_DELTA_QP_CTX ),
   m_cIntraPredCCModel   ( 9,                NUM_IPR_CTX ),
   m_cCbpCCModel         ( 3,                NUM_CBP_CTX ),
@@ -514,7 +514,8 @@ ErrVal CabacReader::resPredFlag( MbDataAccess& rcMbDataAccess )
 {
   UInt  uiSymbol;
 
-  UInt  uiCtx = 0;
+  UInt  uiCtx = rcMbDataAccess.getMbData().isBaseResidualAvailable();
+
   RNOK( CabaDecoder::getSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
   rcMbDataAccess.getMbData().setResidualPredFlag( (uiSymbol!=0), PART_16x16 );
 

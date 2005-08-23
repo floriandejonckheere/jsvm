@@ -137,6 +137,8 @@ MbDataStruct::MbDataStruct()
 , m_ucChromaPredMode    ( 0 )
 , m_ucQp                ( 0 )
 , m_usResidualPredFlags ( 0 )
+, m_usResidualAvailFlags    ( 0 )
+, m_usResidualAvailFlagsBase( 0 )
 , m_bTransformSize8x8   ( false )
 , m_bSkipFlag       ( true )
 , m_bInCropWindowFlag ( false ) //TMM_ESS	
@@ -158,6 +160,8 @@ Void MbDataStruct::reset()
   m_ucChromaPredMode    = 0;
   m_ucQp                = 0;
   m_usResidualPredFlags = 0;
+  m_usResidualAvailFlags      = 0;
+  m_usResidualAvailFlagsBase  = 0;
   m_bTransformSize8x8   = 0;
   m_bInCropWindowFlag   = false; //TMM_ESS	
   DO_DBG( clearIntraPredictionModes( true ) );
@@ -315,5 +319,16 @@ MbDataStruct::is8x8TrafoFlagPresent() const // only for MCTF case (skip mode)
 }
 
 
+Void
+MbDataStruct::updateResidualAvailFlags()
+{
+  m_usResidualAvailFlags = 0;
+  if( ! isIntra() )
+  {
+    m_usResidualAvailFlags = (getMbCbp() & 15) | ((getMbCbp() >> 4) ? 16 : 0);
+    if( getResidualPredFlag( PART_16x16 ) )
+      m_usResidualAvailFlags |= m_usResidualAvailFlagsBase;
+  }
+}
 
 H264AVC_NAMESPACE_END

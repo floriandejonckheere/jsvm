@@ -413,13 +413,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::setTotalFrames( uiFrms );
       continue;
     }
-    if( equals( pcCom, "-lcupd", 6 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt uiLCUpd = atoi( argv[n] );
-      CodingParameter::setLowComplxUpdFlag( uiLCUpd );
-      continue;
-    }
     if( equals( pcCom, "-bcip", 5 ) )
     {
       n--;

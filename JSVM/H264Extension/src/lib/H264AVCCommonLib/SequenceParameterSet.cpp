@@ -174,7 +174,6 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
 ,m_uiChromaPhaseXPlus1                      ( 1 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
-, m_bLowComplxUpdFlag                       ( 0 ) 
 , m_uiNumSimplePriIdVals                    ( 0 ) 
 #if MULTIPLE_LOOP_DECODING
 , m_bAlwaysDecodeBaseLayer                  ( false )
@@ -299,7 +298,6 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
         }
     }
 
-    RNOK( pcWriteIf->writeFlag( m_bLowComplxUpdFlag,                      "SPS: low_complx_upd_flag" ) );
 #if MULTIPLE_LOOP_DECODING
     RNOK( pcWriteIf->writeFlag( m_bAlwaysDecodeBaseLayer,                 "SPS: always_decode_base_layer" ) );
 #endif
@@ -396,7 +394,6 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
         }
     }
 
-    RNOK( pcReadIf->getFlag( m_bLowComplxUpdFlag,                         "SPS: low_complx_upd_flag" ) );
 #if MULTIPLE_LOOP_DECODING
     RNOK( pcReadIf->getFlag( m_bAlwaysDecodeBaseLayer,                    "SPS: always_decode_base_layer" ) );
 #endif

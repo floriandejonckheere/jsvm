@@ -143,6 +143,7 @@ protected:
     Bool              m_bBi;
     IntYuvPicBuffer*  m_apcRefBuffer[2];
     Mv3D              m_aacMv[2][6];
+    Mv3D              m_aacMvd[2][6];  // differential motion vector 
   };
 
 protected:
@@ -176,10 +177,52 @@ public:
                             Bool            bCalcMv,
                             Bool            bFaultTolerant );
 
+  Void    setUpdId(UpdId id);
+  UpdId   getUpdId();
 
-  Void   setMotCompType   ( MCType type);
-  MCType getMotCompType   ();
-  Void   setUpdateWeightsBuf( UShort* updateWeightsBuf );
+  ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
+                  IntFrame*       pcMCFrame,
+                  IntFrame*       pcPrdFrame,
+                  ListIdx         eListPrd,
+                  Int             iRefIdx); 
+
+  ErrVal updateSubMb( B8x8Idx         c8x8Idx,
+                      MbDataAccess&   rcMbDataAccess,
+                      IntFrame*       pcMCFrame,
+                      IntFrame*       pcPrdFrame,
+                      ListIdx         eListPrd );
+
+  Void xUpdateMb8x8Mode(    B8x8Idx         c8x8Idx,
+                            MbDataAccess&   rcMbDataAccess,
+                            IntFrame*       pcMCFrame,
+                            IntFrame*       pcPrdFrame,
+                            ListIdx         eListPrd );
+
+  ErrVal updateDirectBlock( MbDataAccess&   rcMbDataAccess, 
+                            IntFrame*       pcMCFrame,
+                            IntFrame*       pcPrdFrame,
+                            ListIdx         eListPrd,
+                            Int             iRefIdx,                                             
+                            B8x8Idx         c8x8Idx );
+
+  Void xUpdateBlk( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D );
+  Void xUpdateBlk( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
+
+  Void xUpdateLuma( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, UShort *usWeight );
+  Void xUpdateLuma( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
+
+  Void updateBlkAdapt( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX, 
+                                      UShort *usWeight);
+
+  Void xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
+                                    UInt uiSizeY, UInt uiSizeX, UShort weight, UShort wMax );
+
+  __inline Void xUpdateChroma( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer,  LumaIdx cIdx, Mv cMv, 
+    Int iSizeY, Int iSizeX, UShort *usWeight);
+  Void xUpdateChroma( IntFrame* pcSrcFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
+  Void xUpdateChroma( IntFrame* pcSrcFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, UShort *usWeight );
+  __inline Void xUpdateChromaPel( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX, UShort weight );
+
   ErrVal calcMvMb   (                   MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
   ErrVal calcMvSubMb( B8x8Idx c8x8Idx,  MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
@@ -227,16 +270,16 @@ protected:
   Mv   m_cMax;
   UInt m_uiMbInFrameY;
   UInt m_uiMbInFrameX;
-  MCType    m_isUpdateComp;
-  UShort*   m_pusUpdateWeights;      // array for storing update weights
   int m_curMbX;
   int m_curMbY;
+  UpdId m_updId;  // NML_UPD: normal update ; INV_UPD: inverse update
 };
 
 #if defined( WIN32 )
 # pragma warning( default: 4251 )
 #endif
 
+#define DMV_THRES   5
 
 
 H264AVC_NAMESPACE_END

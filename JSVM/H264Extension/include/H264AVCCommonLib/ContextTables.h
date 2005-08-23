@@ -96,6 +96,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #define NUM_BL_PRED_FLAG_CTX   4
 
+#define NUM_RES_PRED_FLAG_CTX   2
+
 #define NUM_IPR_CTX    2
 #define NUM_CBP_CTX    4
 #define NUM_BCBP_CTX   4
@@ -288,30 +290,28 @@ static const Short INIT_BL_PRED_FLAG_P[3][2][4][2] =
 
 
 
-static const Short INIT_RES_PRED_FLAG_I[1][1][4][2] =
+static const Short INIT_RES_PRED_FLAG_I[1][1][NUM_RES_PRED_FLAG_CTX][2] =
 {
   //----- model 0 -----
   {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
+    {  CTX_UNUSED ,  CTX_UNUSED }
   }
 };
-static const Short INIT_RES_PRED_FLAG_P[3][1][4][2] =
+static const Short INIT_RES_PRED_FLAG_P[3][1][NUM_RES_PRED_FLAG_CTX][2] =
 {
   //----- model 0 -----
   {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
+    {  { 0,  16 } ,  { 0, 80 } }
   },
   //----- model 1 -----
   {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
+    {  { 0,  16 } ,  { 0, 80 } }
   },
   //----- model 2 -----
   {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
+    {  { 0,  16 } ,  { 0, 80 } }
   }
 };
-
-
 
 
 static const Short INIT_DELTA_QP_I[1][1][4][2]=

@@ -170,6 +170,18 @@ public:
                                   SParIdx4x8  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
   Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
                                   SParIdx4x4  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
+
+  Bool    isBaseResidualAvailable   ()                    const { return m_usResidualAvailFlagsBase != 0; }
+
+  UShort  getResidualAvailFlags     ()                          { return m_usResidualAvailFlags; }
+  Void    updateResidualAvailFlags	();
+  UShort  getResidualAvailFlagsBase ()                    const { return m_usResidualAvailFlagsBase; }
+  Void    setResidualAvailFlagsBase ( UShort  usResAvailFlags ) { m_usResidualAvailFlagsBase = usResAvailFlags; }
+
+  Bool    isLumaResidualAvailable   ()                    const { return (m_usResidualAvailFlags & 15) != 0; }
+  Bool    isLumaResidualAvailable   ( Par8x8  ePar8x8  )  const { return ((m_usResidualAvailFlags >> ePar8x8) & 1) != 0; }
+  Bool    isChromaResidualAvailable ()                    const { return ((m_usResidualAvailFlags >> 4) & 1) != 0; }
+
 // TMM_ESS 
   Bool    getInCropWindowFlag   ()                        const { return   m_bInCropWindowFlag; }
 
@@ -229,6 +241,9 @@ protected:
   UChar   m_ucQp;
 
   UShort  m_usResidualPredFlags;
+
+  UShort  m_usResidualAvailFlagsBase;
+  UShort  m_usResidualAvailFlags;
 
   Bool    m_bTransformSize8x8;
   Bool    m_bSkipFlag;

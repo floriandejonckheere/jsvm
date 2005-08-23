@@ -293,11 +293,11 @@ H264AVC_NAMESPACE_END
 #define LOG2_GOP_ID_WRAP    4
 #define PRI_ID_BITS         6
 
-enum MCType
+enum UpdId
 {
-  PRED_MC = 0x00,
-  UPDT_MC = 0x01
-};
+  NML_UPD = 0x00,    // normal update
+  INV_UPD = 0x01     // inverse update
+};  
 
 //===== special features for investigation =====
 #define MULTIPLE_LOOP_DECODING 1   // multiple-loop decoding (enables additional option,

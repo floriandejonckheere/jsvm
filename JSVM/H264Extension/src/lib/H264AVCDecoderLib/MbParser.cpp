@@ -207,6 +207,8 @@ ErrVal MbParser::process( MbDataAccess& rcMbDataAccess, Bool& rbEndOfSlice)
   }
   m_bPrevIsSkipped = ! bIsCoded;
 
+  rcMbDataAccess.getMbData().updateResidualAvailFlags();
+
   rbEndOfSlice = m_pcMbSymbolReadIf->isEndOfSlice();
 
   return Err::m_nOK;
@@ -411,6 +413,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
 
   }
 
+  rcMbDataAccess.getMbData().updateResidualAvailFlags();
 
   //===== terminating bits =====
   rbEndOfSlice = m_pcMbSymbolReadIf->isEndOfSlice();

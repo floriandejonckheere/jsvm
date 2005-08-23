@@ -411,6 +411,11 @@ protected:
                                           UInt                        uiNumMaxIter,
                                           UInt                        uiIterSearchRange,
                                           UInt                        uiIntraMode );
+  ErrVal
+  MCTFEncoder::xUpdateCompensation( IntFrame*        pcMCFrame,
+                                    RefFrameList*    pcRefFrameList,
+                                    CtrlDataList*    pcCtrlDataList,
+                                    ListIdx          eListUpd);
 
 
   //===== auxiliary functions =====
@@ -453,7 +458,6 @@ protected:
   ExtBinDataAccessor            m_cExtBinDataAccessor;
   BinData                       m_cBinData;
   DownConvert                   m_cDownConvert;
-  ConnectionArray               m_cConnectionArray;
 
   //----- references -----
   const SequenceParameterSet*   m_pcSPS;
@@ -520,7 +524,6 @@ protected:
   UInt                          m_uiGOPNumber;                        // number of coded GOP's
   Bool                          m_abIsRef[MAX_DSTAGES];               // state of temporal layer (H.264/AVC base layer)
   UIntList                      m_cLPFrameNumList;                    // list of frame_num for low-pass frames
-  Bool                          m_bLowComplxUpdFlag;
 
   //----- frame memories -----
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
@@ -547,7 +550,6 @@ protected:
   //----- auxiliary buffers -----
   UInt                          m_uiWriteBufferSize;                  // size of temporary write buffer
   UChar*                        m_pucWriteBuffer;                     // write buffer
-  UShort*                       m_pusUpdateWeights;                   // array for storing update weights
 
   //----- PSNR & rate  -----
   Double                        m_fOutputFrameRate;

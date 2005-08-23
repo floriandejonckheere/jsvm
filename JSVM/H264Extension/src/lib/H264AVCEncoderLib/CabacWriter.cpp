@@ -117,7 +117,7 @@ CabacWriter::CabacWriter():
   m_cMvdCCModel( 2, NUM_MV_RES_CTX ),
   m_cRefPicCCModel( 2, NUM_REF_NO_CTX ),
   m_cBLPredFlagCCModel( 2, NUM_BL_PRED_FLAG_CTX ),
-  m_cResPredFlagCCModel( 1, 4 ),
+  m_cResPredFlagCCModel( 1, NUM_RES_PRED_FLAG_CTX ),
   m_cDeltaQpCCModel( 1, NUM_DELTA_QP_CTX ),
   m_cIntraPredCCModel( 9, NUM_IPR_CTX ),
   m_cCbpCCModel( 3, NUM_CBP_CTX ),
@@ -505,8 +505,8 @@ ErrVal CabacWriter::BLQRefFlag( MbDataAccess& rcMbDataAccess )
 ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 {
   UInt  uiSymbol = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
+  UInt  uiCtx = rcMbDataAccess.getMbData().isBaseResidualAvailable();
 
-  UInt  uiCtx = 0;
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
 
   ETRACE_T( "ResidualPredFlag " );

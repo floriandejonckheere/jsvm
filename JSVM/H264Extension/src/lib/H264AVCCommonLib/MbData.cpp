@@ -179,6 +179,8 @@ MbData::copyMotionBL( MbData& rcMbData,
   m_apcMbMvdData[0]->copyFrom( *rcMbData.m_apcMbMvdData[0] );
   m_apcMbMvdData[1]->copyFrom( *rcMbData.m_apcMbMvdData[1] );
 
+  setResidualAvailFlagsBase( rcMbData.getResidualAvailFlags() );
+
   return Err::m_nOK;
 }
 
@@ -197,6 +199,13 @@ MbData::upsampleMotion( MbData& rcMbData, Par8x8 ePar8x8, Bool bDirect8x8 )
   uiFwdBwd += (0 < m_apcMbMotionData[0]->getRefIdx( B_8x8_0 )) ? 1:0;
   uiFwdBwd += (0 < m_apcMbMotionData[1]->getRefIdx( B_8x8_0 )) ? 2:0;
   m_usFwdBwd = (uiFwdBwd<<12)|(uiFwdBwd<<8)|(uiFwdBwd<<4)|(uiFwdBwd);
+
+  UShort usResidualAvailFlagsBase;
+
+  usResidualAvailFlagsBase  = rcMbData.isLumaResidualAvailable(ePar8x8) ? 15 : 0;
+  usResidualAvailFlagsBase |= rcMbData.isChromaResidualAvailable() ? (1 << 4) : 0;
+  
+  setResidualAvailFlagsBase( usResidualAvailFlagsBase );
 
   return Err::m_nOK;
 }

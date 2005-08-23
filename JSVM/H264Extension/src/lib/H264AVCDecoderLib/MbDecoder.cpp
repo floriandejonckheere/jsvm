@@ -160,19 +160,46 @@ ErrVal MbDecoder::uninit()
 
 
 
-Void MbDecoder::setMotCompType(MCType type)
+
+Void MbDecoder::setUpdId(UpdId id)
 {
-  m_pcMotionCompensation->setMotCompType(type);
+  m_pcMotionCompensation->setUpdId(id);
 }
 
-MCType  MbDecoder::getMotCompType()
+UpdId  MbDecoder::getUpdId()
 {
-  return m_pcMotionCompensation->getMotCompType();
+  return m_pcMotionCompensation->getUpdId();
 }
 
-Void MbDecoder::setUpdateWeightsBuf(UShort* updateWeightsBuf)
+ErrVal
+MbDecoder::compensateUpdate(  MbDataAccess&   rcMbDataAccess,
+                              IntFrame*       pcMCFrame,
+                              Int             iRefIdx,
+                              ListIdx         eListPrd,
+                              IntFrame*       pcPrdFrame)
 {
-  m_pcMotionCompensation->setUpdateWeightsBuf(updateWeightsBuf);
+
+  if( rcMbDataAccess.getMbData().isIntra() )
+  {
+    return Err::m_nOK;
+  }
+  else
+  {
+    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+    {
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        if( rcMbDataAccess.getMbData().getMbMotionData(eListPrd).getRefIdx( c8x8Idx.b8x8() ) == iRefIdx )
+          RNOK( m_pcMotionCompensation->updateSubMb( c8x8Idx, rcMbDataAccess, pcMCFrame, pcPrdFrame, eListPrd ) );
+      }
+    }
+    else
+    {
+      RNOK( m_pcMotionCompensation->updateMb( rcMbDataAccess, pcMCFrame, pcPrdFrame, eListPrd, iRefIdx ) );
+    }
+  }
+
+  return Err::m_nOK;
 }
 
 
