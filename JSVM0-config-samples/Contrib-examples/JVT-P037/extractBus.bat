@@ -1,0 +1,31 @@
+
+@CALL batch\extract	BUS_352x288_30_768	BUS_352x288_30_640	-e 352x288@30:640
+@CALL batch\extract	BUS_352x288_30_640	BUS_352x288_30_512	-e 352x288@30:512
+@CALL batch\extract	BUS_352x288_30_512	BUS_352x288_30_448	-e 352x288@30:448
+@CALL batch\extract	BUS_352x288_30_448	BUS_352x288_30_384	-e 352x288@30:384
+
+@CALL batch\extract	BUS_352x288_30_768	BUS_176x144_15_192	-e 176x144@15:192
+
+@CALL batch\extract	BUS_176x144_15_192	BUS_176x144_15_160	-e 176x144@15:160
+@CALL batch\extract	BUS_176x144_15_160	BUS_176x144_15_128	-e 176x144@15:128
+@CALL batch\extract	BUS_176x144_15_128	BUS_176x144_15_112	-e 176x144@15:112
+@CALL batch\extract	BUS_176x144_15_112	BUS_176x144_15_96	-e 176x144@15:96
+
+@CALL batch\extract	BUS_352x288_30_768	BUS_352x288_15_r4  -t 4
+@CALL batch\extract	BUS_352x288_30_640	BUS_352x288_15_r3  -t 4
+@CALL batch\extract	BUS_352x288_30_512	BUS_352x288_15_r2  -t 4
+@CALL batch\extract	BUS_352x288_30_448	BUS_352x288_15_r1  -t 4
+@CALL batch\extract	BUS_352x288_30_384	BUS_352x288_15_r0  -t 4
+
+@CALL batch\extract	BUS_352x288_15_r4	BUS_352x288_7.5_r4  -t 3
+@CALL batch\extract	BUS_352x288_15_r3	BUS_352x288_7.5_r3  -t 3
+@CALL batch\extract	BUS_352x288_15_r2	BUS_352x288_7.5_r2  -t 3
+@CALL batch\extract	BUS_352x288_15_r1	BUS_352x288_7.5_r1  -t 3
+@CALL batch\extract	BUS_352x288_15_r0	BUS_352x288_7.5_r0  -t 3
+
+@CALL batch\extract	BUS_176x144_15_192	BUS_176x144_7.5_r4 -t 3  
+@CALL batch\extract	BUS_176x144_15_160	BUS_176x144_7.5_r3 -t 3  
+@CALL batch\extract	BUS_176x144_15_128	BUS_176x144_7.5_r2 -t 3  
+@CALL batch\extract	BUS_176x144_15_112	BUS_176x144_7.5_r1 -t 3  
+@CALL batch\extract	BUS_176x144_15_96	BUS_176x144_7.5_r0 -t 3  
+
