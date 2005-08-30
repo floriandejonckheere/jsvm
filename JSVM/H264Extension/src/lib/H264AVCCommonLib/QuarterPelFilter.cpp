@@ -1321,6 +1321,8 @@ Void QuarterPelFilter::weightOnEnergy(UShort *usWeight, XPel* pucSrc, Int iSrcSt
     }
   }
 
+  iSSD = iSSD<<2;
+
   for( i = (iSizeY/4)*(iSizeX/4); i > 1; i >>= 1 )
     bitsShift ++;
 

@@ -1674,7 +1674,112 @@ ErrVal IntYuvPicBuffer::inverseUpdate( IntYuvPicBuffer*  pcSrcYuvPicBuffer,
   return Err::m_nOK;
 }
 
+ErrVal
+IntYuvPicBuffer::copyMSB8BitsMB( IntYuvPicBuffer*  pcSrcYuvPicBuffer )
+{
+  //===== luminance =====
+  XPel* pDes        = getMbLumAddr();
+  XPel* pSrc        = pcSrcYuvPicBuffer->getMbLumAddr();
+  Int   iDesStride  = getLStride();
+  Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+  UInt  y, x;
 
+  for( y = 0; y < 16; y++ )
+  {
+    for ( x = 0; x < 16; x++)
+    {
+      // clip to 9 bits
+      pDes[x] = gClipMinMax(pSrc[x], -256, 255);
+      // bitshift to 8 MSB bits
+      pDes[x] = pDes[x]>>1;
+    }
+    pDes += iDesStride;
+    pSrc += iSrcStride;
+  }
+
+  //===== chrominance U =====
+  iDesStride  >>= 1;
+  iSrcStride  >>= 1;
+  pDes = getMbCbAddr();
+  pSrc = pcSrcYuvPicBuffer->getMbCbAddr();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for ( x = 0; x < 8; x++)
+    {
+      // clip to 9 bits
+      pDes[x] = gClipMinMax(pSrc[x], -256, 255);
+      // bitshift to 8 MSB bits
+      pDes[x] = pDes[x]>>1;
+    }
+    pDes += iDesStride;
+    pSrc += iSrcStride;
+  }
+
+  //===== chrominance V =====
+  pDes = getMbCrAddr();
+  pSrc = pcSrcYuvPicBuffer->getMbCrAddr();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for ( x = 0; x < 8 ; x++)
+    {
+      // clip to 9 bits
+      pDes[x] = gClipMinMax(pSrc[x], -256, 255);
+      // bitshift to 8 MSB bits
+      pDes[x] = pDes[x]>>1;
+    }
+    pDes += iDesStride;
+    pSrc += iSrcStride;
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+IntYuvPicBuffer::setZeroMB()
+{
+  //===== luminance =====
+  XPel* pDes        = getMbLumAddr();
+  Int   iDesStride  = getLStride();
+  UInt  y, x;
+
+  for( y = 0; y < 16; y++ )
+  {
+    for ( x = 0; x < 16; x++)
+    {
+      pDes[x] = 0;
+    }
+    pDes += iDesStride;
+  }
+
+  //===== chrominance U =====
+  iDesStride  >>= 1;
+  pDes = getMbCbAddr();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for ( x = 0; x < 8; x++)
+    {
+      pDes[x] = 0;
+    }
+    pDes += iDesStride;
+  }
+
+  //===== chrominance V =====
+  pDes = getMbCrAddr();
+
+  for( y = 0; y < 8; y++ )
+  {
+    for ( x = 0; x < 8 ; x++)
+    {
+      pDes[x] = 0;
+    }
+    pDes += iDesStride;
+  }
+
+  return Err::m_nOK;
+}
 
 H264AVC_NAMESPACE_END
 

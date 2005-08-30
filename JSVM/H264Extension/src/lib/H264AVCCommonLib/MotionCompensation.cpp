@@ -1418,9 +1418,9 @@ Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride
       pBuf[x] = (pBuf[x] + (1 << (bitShift-1))) >> bitShift;
       pBuf[x] = max(-Th, min(Th, pBuf[x]));
       if(getUpdId() == NML_UPD)
-        pDest[x] = (XPel)gClip( pDest[x] + ((pBuf[x] + 1)>>2) );
+        pDest[x] = (XPel)gClip( pDest[x] + ((pBuf[x] + 1)>>1) );
       else
-        pDest[x] = (XPel)gClip( pDest[x] - ((pBuf[x] + 1)>>2) );
+        pDest[x] = (XPel)gClip( pDest[x] - ((pBuf[x] + 1)>>1) );
     }
     pBuf += BUF_W;
     pDest += iDestStride;
@@ -1507,9 +1507,9 @@ __inline Void MotionCompensation::xUpdateChromaPel( XPel* pucDest, Int iDestStri
       pBuf[x] = (pBuf[x] + 32) >> 6;
       pBuf[x] = max(-Th, min(Th, pBuf[x]));
       if(getUpdId() == NML_UPD)
-        pucDest[x] = (XPel)gClip( pucDest[x] + ((pBuf[x] + 1)>>2) );
+        pucDest[x] = (XPel)gClip( pucDest[x] + ((pBuf[x] + 1)>>1) );
       else  // inverse update
-        pucDest[x] = (XPel)gClip( pucDest[x] - ((pBuf[x] + 1)>>2) );
+        pucDest[x] = (XPel)gClip( pucDest[x] - ((pBuf[x] + 1)>>1) );
     }
     pBuf += BUF_W;
     pucDest += iDestStride;

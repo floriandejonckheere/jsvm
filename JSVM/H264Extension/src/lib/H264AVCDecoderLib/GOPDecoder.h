@@ -397,6 +397,10 @@ protected:
                         CtrlDataList*    pcCtrlDataList,
                         ListIdx          eListUpd);
 
+  ErrVal      xCopyMSB8BitsNonIntraMacroblocks( IntFrame*                     pcDesFrame,
+                                                IntFrame*                     pcSrcFrame,
+                                                ControlData*                  pcCtrlData );
+
   ErrVal      xReconstructIntra               ( IntFrame*                     pcFrame,
                                                 IntFrame*                     pcBaseLayerRec,
                                                 IntFrame*                     pcBaseRepFrame,

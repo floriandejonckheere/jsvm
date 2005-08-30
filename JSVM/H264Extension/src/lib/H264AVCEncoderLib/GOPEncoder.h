@@ -417,6 +417,9 @@ protected:
                                     CtrlDataList*    pcCtrlDataList,
                                     ListIdx          eListUpd);
 
+  ErrVal  xCopyMSB8BitsNonIntraMacroblocks( IntFrame*                     pcDesFrame,
+                                            IntFrame*                     pcSrcFrame,
+                                            ControlData*                  pcCtrlData );
 
   //===== auxiliary functions =====
   ErrVal  xCalculateAndAddPSNR          ( PicBufferList&              rcPicBufferInputList,

@@ -171,6 +171,9 @@ public:
   ErrVal        inverseUpdate           ( IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer0, IntYuvPicBuffer*  pcMCPYuvPicBuffer1 );
 
   ErrVal        copy                    ( IntYuvPicBuffer*  pcSrcYuvPicBuffer );
+  ErrVal        copyMSB8BitsMB          ( IntYuvPicBuffer*  pcSrcYuvPicBuffer );
+  ErrVal        setZeroMB               ();
+
   ErrVal        subtract                ( IntYuvPicBuffer*  pcSrcYuvPicBuffer0, IntYuvPicBuffer* pcSrcYuvPicBuffer1 );
   ErrVal        add                     ( IntYuvPicBuffer*  pcSrcYuvPicBuffer );
 

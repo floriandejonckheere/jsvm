@@ -5442,6 +5442,9 @@ MCTFEncoder::xUpdateCompensation( IntFrame*        pcMCFrame,
 
   for( iRefIdx = 1; iRefIdx <= (Int)pcCtrlDataList->getActive(); iRefIdx++ )    
   {
+    IntFrame* pcResFrame = m_apcFrameTemp  [1];
+    RNOK( xCopyMSB8BitsNonIntraMacroblocks ( pcResFrame, (*pcRefFrameList)[ iRefIdx ], (*pcCtrlDataList)[ iRefIdx ] ) );
+
     for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
     {
       UInt          uiMbY           = uiMbIndex / m_uiFrameWidthInMb;
@@ -5456,13 +5459,37 @@ MCTFEncoder::xUpdateCompensation( IntFrame*        pcMCFrame,
       RNOK( m_pcYuvHalfPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
       RNOK( m_pcMotionEstimation    ->initMb(                 uiMbY, uiMbX, *pcMbDataAccess ) );
 
-
       RNOK( pcMbEncoder->compensateUpdate( *pcMbDataAccess, pcMCFrame,
-                                            iRefIdx, eListPrd, (*pcRefFrameList)[ iRefIdx ] ) );
-
-
+                                            iRefIdx, eListPrd, pcResFrame ) );
     }
   }  // iRefIdx
+
+  return Err::m_nOK;
+}
+
+ErrVal
+MCTFEncoder::xCopyMSB8BitsNonIntraMacroblocks( IntFrame*    pcDesFrame,
+                                               IntFrame*    pcSrcFrame,
+                                               ControlData* pcCtrlData )
+{
+  MbDataCtrl*       pcMbDataCtrl      = pcCtrlData->getMbDataCtrl       ();
+  IntYuvPicBuffer*  pcSrcYuvPicBuffer = pcSrcFrame->getFullPelYuvBuffer ();
+  IntYuvPicBuffer*  pcDesYuvPicBuffer = pcDesFrame->getFullPelYuvBuffer ();
+
+  for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
+  {
+    UInt          uiMbY           = uiMbIndex / m_uiFrameWidthInMb;
+    UInt          uiMbX           = uiMbIndex % m_uiFrameWidthInMb;
+    MbDataAccess* pcMbDataAccess  = 0;
+
+    RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
+    RNOK( m_pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
+
+    if( !( pcMbDataAccess->getMbData().isIntra() ) )
+      pcDesYuvPicBuffer->copyMSB8BitsMB( pcSrcYuvPicBuffer );
+    else
+      pcDesYuvPicBuffer->setZeroMB();
+  }
 
   return Err::m_nOK;
 }
