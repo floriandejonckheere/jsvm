@@ -1344,9 +1344,6 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator 
 //   INTRA 3 
 // =================================================================================
 
-#define CE10_1 1  // direct interpolation
-#define FLT_RES_PARA 0  // 0: 16 phases; 1: 8 phases; 2: 4 phases
-
 __inline
 void
 DownConvert::upsample3( unsigned char* pucBufferY, unsigned char* pucBufferU, unsigned char* pucBufferV,
@@ -1385,13 +1382,14 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
   int fact = (bLuma ? 1 : 2);
   int input_width   = pcParameters->m_iInWidth   /fact;
   int input_height  = pcParameters->m_iInHeight  /fact;
-  int output_width  = pcParameters->m_iOutWidth  /fact;
-  int output_height = pcParameters->m_iOutHeight /fact;
-  
-  int crop_x0 = 0;
-  int crop_y0 = 0;
-  int crop_w = output_width;
-  int crop_h = output_height;
+  // SSUN@SHARP
+  int output_width  = pcParameters->m_iGlobWidth /fact;  
+  int output_height = pcParameters->m_iGlobHeight/fact;
+  int crop_x0 = pcParameters->m_iPosX /fact;
+  int crop_y0 = pcParameters->m_iPosY /fact;
+  int crop_w = pcParameters->m_iOutWidth /fact;
+  int crop_h = pcParameters->m_iOutHeight/fact;  
+  // End of SSUN@SHARP
   int input_chroma_phase_shift_x = pcParameters->m_iBaseChromaPhaseX;
   int input_chroma_phase_shift_y = pcParameters->m_iBaseChromaPhaseY;
   int output_chroma_phase_shift_x = pcParameters->m_iChromaPhaseX;
@@ -1704,7 +1702,6 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
                                       {0,0,-5,-4,14,40,50,35,8,-6,-4,1},
                                       {0,1,-5,-5,12,39,51,36,9,-6,-5,1}
                                     },
-#if 1
                                     // Kaiser, N=3, D=2, beta=4
                                     { 
                                       {2,0,-9,0,39,64,39,0,-9,0,2,0},
@@ -1724,27 +1721,6 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
                                       {0,2,-1,-9,4,44,63,33,-3,-8,1,2},
                                       {0,2,0,-9,2,41,64,36,-2,-8,0,2}
                                     },
-#else
-                                    // Kaiser, N=3, D=2, beta=1.2
-                                    { 
-                                      {6,0,-12,0,39,62,39,0,-12,0,6,0},
-                                      {6,1,-12,-2,36,62,41,2,-12,-1,6,1},
-                                      {6,1,-11,-3,34,61,43,4,-12,-2,6,1},
-                                      {6,2,-11,-5,31,60,46,6,-12,-3,6,2},
-                                      {5,3,-10,-6,28,60,48,8,-12,-4,6,2},
-                                      {5,4,-9,-7,26,58,49,10,-12,-4,6,2},
-                                      {5,4,-9,-9,23,58,52,13,-12,-6,6,3},
-                                      {4,5,-8,-10,21,56,53,15,-11,-6,6,3},
-                                      {4,5,-7,-11,18,55,55,18,-11,-7,5,4},
-                                      {3,6,-6,-11,15,53,56,21,-10,-8,5,4},
-                                      {3,6,-6,-12,13,52,58,23,-9,-9,4,5},
-                                      {2,6,-4,-12,10,49,58,26,-7,-9,4,5},
-                                      {2,6,-4,-12,8,48,60,28,-6,-10,3,5},
-                                      {2,6,-3,-12,6,46,60,31,-5,-11,2,6},
-                                      {1,6,-2,-12,4,43,61,34,-3,-11,1,6},
-                                      {1,6,-1,-12,2,41,62,36,-2,-12,1,6}
-                                    },
-#endif
                                     // Kaiser, N=3, D=1, beta=4
                                     { 
                                       {0,0,0,0,0,128,0,0,0,0,0,0},

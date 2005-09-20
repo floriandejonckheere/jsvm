@@ -380,11 +380,12 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     fprintf (   stderr, "    out_uv_ph_x: output chroma phase shift in horizontal direction (default:-1)\n" );
     fprintf (   stderr, "    out_uv_ph_y: output chroma phase shift in vertical direction (default:-1)\n" );
     fprintf (   stderr, "crop_paras_file: input file containing cropping window parameters.\n" );
-    fprintf (   stderr, "                 data format - each line has three (even) integer numbers\n" );
-    fprintf (   stderr, "                 representing x_orig, y_orig, crop_window_width (luma samples)\n" );
-    fprintf (   stderr, "                 for each picture to be resampled; when ess_mode is \"1\", the\n" );
-    fprintf (   stderr, "                 parameters of the first line will be used for all pictures;\n" );
-    fprintf (   stderr, "                 when the file is not available, the default parameters are\n" );
+    fprintf (   stderr, "                 data format - each line has four integer numbers\n" );
+    fprintf (   stderr, "                 representing x_orig, y_orig, crop_window_width, and\n" );
+    fprintf (   stderr, "                 crop_window_height for each picture to be resampled;\n" );
+    fprintf (   stderr, "                 when ess_mode is \"1\", the parameters of the first line\n" );
+    fprintf (   stderr, "                 will be used for all pictures; when the file is not\n" );
+    fprintf (   stderr, "                 available, the default parameters will be set to\n" );
     fprintf (   stderr, "                 \"0, 0, the maximum of win and wout\" for all pictures.\n" );
     fprintf (   stderr, "              t: number of temporal downsampling stages (default: 0)\n" );
     fprintf (   stderr, "           skip: number of frames to skip at start (default: 0)\n" );
@@ -664,10 +665,11 @@ int main(int argc, char *argv[])
           crop_x0=crop_y0=0;
           crop_w=max(input_width, output_width);
         }
-        else if(ess_mode==2) fscanf(crop_paras_file,"%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w);
-        else if(index == skip_at_start) fscanf(crop_paras_file,"%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w);
+        else if(ess_mode==2) fscanf(crop_paras_file,"%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w,&crop_h);
+        else if(index == skip_at_start) fscanf(crop_paras_file,"%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w, &crop_h);
 
-        if( (crop_x0&1) || (crop_y0&1) || (crop_w&1) || crop_w<1 || crop_w>max(input_width, output_width) ){
+        if( (crop_x0&1) || (crop_y0&1) || (crop_w&1) || crop_w<1 || crop_w>max(input_width, output_width) ||
+            (crop_h&1) || crop_h<1 || crop_h>max(input_height, output_height)){
           fprintf(stderr, "cropping parameters must be even value integers!\n");
           break;
         }

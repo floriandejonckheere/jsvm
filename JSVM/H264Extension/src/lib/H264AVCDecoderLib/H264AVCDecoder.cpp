@@ -677,7 +677,7 @@ H264AVCDecoder::getReconstructedBaseLayer( IntFrame*&    pcFrame,
                                        m_pcVeryFirstSliceHeader->getSPS().getFrameWidthInMbs(),
                                        NULL,
                                        NULL,
-                                       bSpatialScalability) );   // SSUN@SHARP
+                                       false ) );   // SSUN@SHARP
         m_pcLoopFilter->setFilterMode();
       }
       // else -> done at another position
