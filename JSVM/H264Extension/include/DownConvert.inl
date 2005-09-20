@@ -134,6 +134,7 @@ DownConvert::init( int iMaxWidth, int iMaxHeight )
   
 #ifndef NO_MB_DATA_CTRL
   m_paiImageBuffer2 = new int [ iPicSize ];
+
   return ( m_paiImageBuffer2 == 0 || m_paiImageBuffer == 0 || m_paiTmp1dBuffer == 0 );
 #endif
 

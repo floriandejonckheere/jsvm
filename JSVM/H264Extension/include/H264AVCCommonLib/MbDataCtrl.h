@@ -163,13 +163,10 @@ protected:
 
   Bool xGetDirect8x8InferenceFlag() { return m_bDirect8x8InferenceFlag; }
 
-// TMM_ESS {
-  ErrVal  xUpsampleMotionDyad( MbDataCtrl& rcMbDataCtrl,ResizeParameters* pcParameters );
-  ErrVal  xUpsampleMotionNonDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
-  ErrVal  xUpsampleMotion3_2(MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters );
-// TMM_ESS }
-
-  ErrVal  xSetBaseResidualAvailFlagsRatioX( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+// TMM_ESS_UNIFIED {
+  ErrVal  xUpsampleMotionDyad(MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+  ErrVal  xUpsampleMotionESS(MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+// TMM_ESS_UNIFIED }
 
 protected:
   DynBuf<DFP*>        m_cpDFPBuffer;
@@ -177,7 +174,7 @@ protected:
   MbMotionData*       m_apcMbMotionData[2];
   MbMvData*           m_apcMbMvdData[2];
   MbData*             m_pcMbData;
-	MbDataAccess*       m_pcMbDataAccess;
+  MbDataAccess*       m_pcMbDataAccess;
   SliceHeader*        m_pcSliceHeader;
   UChar               m_ucLastMbQp;
   UInt                m_uiMbStride;

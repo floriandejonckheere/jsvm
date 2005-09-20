@@ -163,7 +163,6 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 
   Bool  bIsCoded  = true;
 
-
   //===== skip flag =====
   if( rcMbDataAccess.getSH().isH264AVCCompatible() )
   {
@@ -304,6 +303,79 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
   {
     RNOK( m_pcMbSymbolWriteIf->finishSlice() );
   }
+
+
+
+
+
+#if 0
+if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+{
+  static FILE *fp=NULL;
+  static int mbIdx=0;
+  int iMbY = rcMbDataAccess.m_uiPosY;
+  int iMbX = rcMbDataAccess.m_uiPosX;
+	int i;
+
+  if (iMbY==0 && iMbX==0)
+	{
+    mbIdx = 0;
+		if (fp!=NULL) fclose(fp);
+		char	fname[80];
+		sprintf(fname,"coded_%1d.dat",rcMbDataAccess.m_rcSliceHeader.getPoc());
+		fp = fopen(fname,"wb");
+	}
+
+  MbData& rcMbDes = rcMbDataAccess.getMbData();
+
+  if (mbIdx%30==0)
+    fprintf(fp,"   mbAddr  |inCrop ResFlag|blSkip blQRef|mode inter8x8|  ref idx l0  |  ref idx l1  |  mvs l0 & l1\n");
+  fprintf(fp,"%4d %2d %2d | ",mbIdx,iMbY,iMbX);
+  fprintf(fp,"   %1d      %2d | ",pcMbDataAccessBase->getMbData().getInCropWindowFlag(),rcMbDes.getResidualAvailFlags());
+  fprintf(fp,"%1d         %1d | ",rcMbDes.getBLSkipFlag (),rcMbDes.getBLQRefFlag () );
+  fprintf(fp," %2d       %1d | ",rcMbDes.getMbMode(),rcMbDes.isInter8x8());
+  for (i=0;i<4; i++)
+    fprintf(fp," % 2d",rcMbDes.m_apcMbMotionData[0]->m_ascRefIdx[i]);
+  fprintf(fp," | ");
+  for (i=0;i<4; i++)
+    fprintf(fp," % 2d",rcMbDes.m_apcMbMotionData[1]->m_ascRefIdx[i]);
+  fprintf(fp," | ");
+  for (i=0;i<16; i++)
+    fprintf(fp,"%1d,%1d:",rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getVer());
+  fprintf(fp," | ");
+  for (i=0;i<16; i++)
+    fprintf(fp,"%1d,%1d:",rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getVer());
+  fprintf(fp,"\n");
+
+  fflush(fp);
+
+
+  static FILE *fp1=NULL;
+  if (iMbY==0 && iMbX==0)
+	{
+		if (fp1!=NULL) fclose(fp1);
+		char	fname[80];
+		sprintf(fname,"mvcoded_%1d.dat",rcMbDataAccess.m_rcSliceHeader.getPoc());
+		fp1 = fopen(fname,"wb");
+	}
+  fprintf(fp1,"%4d %2d %2d | ",mbIdx,iMbY,iMbX);
+  for (i=0;i<16; i++)
+    fprintf(fp1,"%1d,%1d:",rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getVer());
+  fprintf(fp1," | ");
+  for (i=0;i<16; i++)
+    fprintf(fp1,"%1d,%1d:",rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getVer());
+  fprintf(fp1,"\n");
+  fflush(fp1);
+
+
+  mbIdx++;
+//  fclose(fp);
+}
+#endif
+
+
+
+
 
   return Err::m_nOK;
 }

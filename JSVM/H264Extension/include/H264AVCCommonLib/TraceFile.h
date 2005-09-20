@@ -97,6 +97,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #define MAX_LINE_LENGTH 255
 
+#define BUG_FIX     1  
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -212,7 +213,7 @@ H264AVC_NAMESPACE_END
 
 #if DECODER_TRACE
   #define INIT_DTRACE      TraceFile::initTrace   ()
-  #define OPEN_DTRACE      TraceFile::openTrace   ("..\\H264AVCEncoderLibTest\\TraceDecoder")
+  #define OPEN_DTRACE      TraceFile::openTrace   ("TraceDecoder")
   #define CLOSE_DTRACE     TraceFile::closeTrace  ()
   
   #define DTRACE_LAYER(x)  TraceFile::setLayer    (x) 

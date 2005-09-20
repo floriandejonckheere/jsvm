@@ -445,7 +445,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     UInt  uiNumFrames                       =     0;
     UInt  uiBaseBits                        =     0;
     UInt  uiSumBaseBits                     =     0;
-    UInt  uiSumAllBits                      =     0;
+    UInt  uiSumFGSBits  [MAX_FGS_LAYERS]    =   { 0, 0, 0 };
     UInt  uiFGSBits     [MAX_FGS_LAYERS]    =   { 0, 0, 0 };
     UInt  uiDummy;
 
@@ -461,30 +461,46 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   
       sscanf( acLine, "%d %d %d %d %d %d %d ",
         &uiBaseBits, &uiDummy, &uiFGSBits[0], &uiDummy, &uiFGSBits[1], &uiDummy, &uiFGSBits[2] );
-      if( uiFGSBits[0] == 0 )
-      {
-        fprintf( stderr, "Error: no FGS layers coded during analysis\n" );
-        ROT(1);
-      }
 
-      uiNumFrames   ++;
-      uiSumBaseBits += uiBaseBits;
-      uiSumAllBits  += uiBaseBits;
-      uiSumAllBits  += uiFGSBits[0];
-      uiSumAllBits  += uiFGSBits[1];
-      uiSumAllBits  += uiFGSBits[2];
+      uiNumFrames     ++;
+      uiSumBaseBits   += uiBaseBits;
+      uiSumFGSBits[0] += uiFGSBits[0];
+      uiSumFGSBits[1] += uiFGSBits[1];
+      uiSumFGSBits[2] += uiFGSBits[2];
     }
     ROF( uiNumFrames );
 
     Double  dTargetBits   = 1000.0 * pcLayerParameters->getFGSRate() * (Double)uiNumFrames / pcLayerParameters->getOutputFrameRate();
     UInt    uiTargetBits  = (UInt)floor( dTargetBits + 0.5 );
+    UInt    uiSumAllBits  = uiSumBaseBits + uiSumFGSBits[0] + uiSumFGSBits[1] + uiSumFGSBits[2];
 
     if( uiTargetBits <= uiSumBaseBits )
     {
       ROF( uiTargetBits );
       printf("Warning: Layer %d bitrate overflow (only base layer coded)\n", m_uiLayerId );
+      m_dFGSCutFactor     = 0.0;
+      m_dFGSBitRateFactor = (Double)uiTargetBits / (Double)uiSumBaseBits; // there is a chance that only coding the base layer is not the right thing for closed-loop
     }
-    m_dFGSBitRateFactor = (Double)uiTargetBits / (Double)uiSumAllBits;
+    else if( uiTargetBits >= uiSumAllBits )
+    {
+      printf("Warning: Layer %d bitrate underflow (code as much as possible)\n", m_uiLayerId );
+      m_dFGSCutFactor     = 3.0;
+      m_dFGSBitRateFactor = (Double)uiTargetBits / (Double)uiSumAllBits; // it is possible that not all layers have been coded during the analysis run (e.g. for closed-loop)
+    }
+    else
+    {
+      uiTargetBits   -= uiSumBaseBits;
+      for( UInt uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      {
+        if( uiTargetBits < uiSumFGSBits[uiFGSLayer] )
+        {
+          m_dFGSCutFactor = (Double)uiFGSLayer + (Double)uiTargetBits / (Double)uiSumFGSBits[uiFGSLayer];
+          break;
+        }
+        uiTargetBits -= uiSumFGSBits[uiFGSLayer];
+      }
+      m_dFGSBitRateFactor = 0.0;
+    }
     m_dNumFGSLayers     = 1.0; // something greater than zero
     
     ::fseek( m_pFGSFile, 0, SEEK_SET );
@@ -1078,6 +1094,16 @@ MCTFEncoder::xMotionEstimation( RefFrameList*    pcRefFrameList0,
   {
     ROF ( pcBaseLayerCtrl )
     RNOK( pcMbDataCtrl->copyMotion( *pcBaseLayerCtrl ) );
+    // <<<< bug fix by heiko.schwarz@hhi.fhg.de
+    if( pcBaseLayerFrame ) // the motion data are not just copied, but inferred from the base layer
+    {
+      for( UInt uiIndex = 0; uiIndex < m_uiMbNumber; uiIndex++ )
+      {
+        pcMbDataCtrl->getMbDataByIndex( uiIndex ).getMbMvdData( LIST_0 ).clear();
+        pcMbDataCtrl->getMbDataByIndex( uiIndex ).getMbMvdData( LIST_1 ).clear();
+      }
+    }
+    // >>>> bug fix by heiko.schwarz@hhi.fhg.de
     return Err::m_nOK;
   }
 
@@ -1430,6 +1456,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   UInt uiEstimatedHeaderBits      =   0;
   UInt uiFrameBits                =   0;
   UInt uiFGSBits [MAX_FGS_LAYERS] = { 0, 0, 0 };
+  Double  dRealValuedFGSBits          = 0.0;
   
   if( m_uiFGSMode == 2 )
   {
@@ -1443,11 +1470,29 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     sscanf( acLine, "%d %d %d %d %d %d %d ",
       &uiBaseBits, &uiEstimatedHeaderBits, &uiFGSBits[0], &uiDummy, &uiFGSBits[1], &uiDummy, &uiFGSBits[2] );
     uiEstimatedHeaderBits = uiFGSBits[0] - uiEstimatedHeaderBits;
-    uiFrameBits           = uiBaseBits + uiFGSBits[0] + uiFGSBits[1] + uiFGSBits[2];
 
-    Double  dReal         = (Double)uiFrameBits * m_dFGSBitRateFactor + m_dFGSRoundingOffset + 0.0000001;
-    uiFGSMaxBits          = (UInt)floor( dReal );
-    m_dFGSRoundingOffset  = dReal - (Double)uiFGSMaxBits;
+    if( m_dFGSBitRateFactor == 0.0 ) // target rate lies inside the range of the analysis run
+    {
+      ROF( m_dFGSCutFactor > 0 && m_dFGSCutFactor < 3 );
+      
+      dRealValuedFGSBits   += (Double)uiBaseBits;
+      Double    dFactor     = m_dFGSCutFactor;
+      for( UInt uiFGSLayer  = 0; dFactor > 0; uiFGSLayer++ )
+      {
+        dRealValuedFGSBits += (Double)uiFGSBits[uiFGSLayer] * min( dFactor, 1.0 );
+        dFactor            -= 1.0;
+      }
+    }
+    else
+    {
+      dRealValuedFGSBits    = uiBaseBits + ( m_dFGSCutFactor > 0 ? uiFGSBits[0] + uiFGSBits[1] + uiFGSBits[2] : 0 );
+      dRealValuedFGSBits   *= m_dFGSBitRateFactor;
+    }
+
+    dRealValuedFGSBits     += m_dFGSRoundingOffset + 0.0000001;
+    uiFGSMaxBits            = (UInt)floor( dRealValuedFGSBits );
+    m_dFGSRoundingOffset    = dRealValuedFGSBits - (Double)uiFGSMaxBits;
+
     //----- correct base layer bits -----#
     if( uiFGSMaxBits >= uiRealBLBits )
     {
@@ -1891,7 +1936,9 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   {
     RNOK  ( xInitSliceHeader( 0, 0 ) );
   }
-  else
+  // <<<< bug fix by H.Schwarz 19/9/05
+  else if( m_bH264AVCCompatible )
+  // >>>> bug fix by H.Schwarz 19/9/05
   {
     //----- copy frame_num of anchor frame -> needed for RPLR command setting -----
     m_pacControlData[0].getSliceHeader()->setFrameNum( m_cLPFrameNumList.front()  );
@@ -2038,7 +2085,8 @@ MCTFEncoder::getBaseLayerData( IntFrame*&   pcFrame,
                                      m_pacControlData[uiPos].getMbDataCtrl  (),
                                      m_uiFrameWidthInMb,
                                      NULL,
-                                     NULL ) );
+                                     NULL,
+                                     m_pacControlData[uiPos].getSpatialScalability()) );  // SSUN@SHARP
       m_pcLoopFilter->setFilterMode();
     }
         else if( iSpatialScalability != SST_RATIO_1 )
@@ -2049,7 +2097,8 @@ MCTFEncoder::getBaseLayerData( IntFrame*&   pcFrame,
                                      m_pacControlData[uiPos].getMbDataCtrl  (),
                                      m_uiFrameWidthInMb,
                                     &m_pacControlData[uiPos].getPrdFrameList( LIST_0 ),
-                                    &m_pacControlData[uiPos].getPrdFrameList( LIST_1 ) ) );
+                                    &m_pacControlData[uiPos].getPrdFrameList( LIST_1 ),
+                                     m_pacControlData[uiPos].getSpatialScalability()) );  // SSUN@SHARP
     }
   }
   
@@ -2193,7 +2242,8 @@ MCTFEncoder::xSetBaseLayerData( UInt uiFrameIdInGOP )
   pcSliceHeader->setBaseQualityLevel        ( m_uiBaseQualityLevel );
   pcSliceHeader->setAdaptivePredictionFlag  ( uiBaseLayerId != MSYS_UINT_MAX ? bAdaptive : false );
   rcControlData .setBaseLayer               ( uiBaseLayerId, uiBaseLayerIdMotion );
-    rcControlData .setSpatialScalabilityType  ( iSpatialScalabilityType );
+  rcControlData .setSpatialScalability( iSpatialScalabilityType > SST_RATIO_1 );  // SSUN@SHARP
+  rcControlData .setSpatialScalabilityType  ( iSpatialScalabilityType );
 
   return Err::m_nOK;
 }
@@ -3315,11 +3365,11 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
 				RefFrameList  acRefFrameList[2];
 				CtrlDataList  cCtrlDataList;
 
-				if( ! pcFrame->isExtended() )
+				if( ! pcResidual->isExtended() ) // bug fix by J. Reichel 2005-09-20
         {
-          RNOK( xFillAndExtendFrame( pcFrame ) );
+          RNOK( xFillAndExtendFrame( pcResidual ) ); // bug fix by J. Reichel 2005-09-20
         }
-        acRefFrameList[1].add(pcFrame);
+        acRefFrameList[1].add(pcResidual); // bug fix by J. Reichel 2005-09-20
 				cCtrlDataList.add(&rcControlData);
 				//===== list 1 motion compensation =====
         m_pcQuarterPelFilter->setClipMode                   ( true );
@@ -3346,11 +3396,11 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
 				CtrlDataList  cCtrlDataList;
 
         
-				if( ! pcFrame->isExtended() )
+				if( ! pcResidual->isExtended() ) // bug fix by J. Reichel 2005-09-20
         {
-          RNOK( xFillAndExtendFrame( pcFrame ) );
+          RNOK( xFillAndExtendFrame( pcResidual ) ); // bug fix by J. Reichel 2005-09-20
         }
-				acRefFrameList[0].add(pcFrame);
+				acRefFrameList[0].add(pcResidual); // bug fix by J. Reichel 2005-09-20
 				cCtrlDataList.add(&rcControlData);
 				//===== list 0 motion compensation =====
         m_pcQuarterPelFilter->setClipMode                   ( true );
@@ -3407,7 +3457,8 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
                                          rcControlData.getMbDataCtrl (),
                                          m_uiFrameWidthInMb,
                                          &acRefFrameList[0],
-                                         &acRefFrameList[1] ) );
+                                         &acRefFrameList[1],
+                                         rcControlData.getSpatialScalability()) );  // SSUN@SHARP
 
 #if MULTIPLE_LOOP_DECODING
     if( m_bCompletelyDecodeLayer )
@@ -3430,7 +3481,8 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
                                      rcControlData.getMbDataCtrl (),
                                      m_uiFrameWidthInMb,
                                      &acCLRecRefFrameList[0],
-                                     &acCLRecRefFrameList[1] ) );
+                                     &acCLRecRefFrameList[1],
+                                     rcControlData.getSpatialScalability()) );  // SSUN@SHARP
     }
 
 #if 1 // HEIKO
@@ -3456,7 +3508,8 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
                                      rcControlData.getMbDataCtrl (),
                                      m_uiFrameWidthInMb,
                                      &acBQRefFrameList[0],
-                                     &acBQRefFrameList[1] ) );
+                                     &acBQRefFrameList[1],
+                                     rcControlData.getSpatialScalability()) );  // SSUN@SHARP
       RNOK( rcControlData.switchBQLayerQpAndCbp() );
     }
   }
@@ -3587,7 +3640,8 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                     pcMbDataCtrl,
                                     m_uiFrameWidthInMb,
                                     &rcControlData.getPrdFrameList( LIST_0 ),
-                                    &rcControlData.getPrdFrameList( LIST_1 ) ) );
+                                    &rcControlData.getPrdFrameList( LIST_1 ),
+                                    rcControlData.getSpatialScalability()) );  // SSUN@SHARP
 
     //----- store for prediction of following low-pass pictures -----
     RNOK( m_pcLowPassBaseReconstruction ->copy( pcBLRecFrame ) );
@@ -3700,7 +3754,8 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                       pcMbDataCtrl,
                                       m_uiFrameWidthInMb,
                                       &rcControlData.getPrdFrameList( LIST_0 ),
-                                      &rcControlData.getPrdFrameList( LIST_1 ) ) );
+                                      &rcControlData.getPrdFrameList( LIST_1 ),
+                                      rcControlData.getSpatialScalability()) );  // SSUN@SHARP
 #if MULTIPLE_LOOP_DECODING
       if( m_bCompletelyDecodeLayer )
         rcControlData.activateMbDataCtrlForQpAndCbp( true );
@@ -3715,7 +3770,8 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                         pcMbDataCtrl,
                                         m_uiFrameWidthInMb,
                                         &rcControlData.getPrdFrameList( LIST_0 ),
-                                        &rcControlData.getPrdFrameList( LIST_1 ) ) );
+                                        &rcControlData.getPrdFrameList( LIST_1 ),
+                                        rcControlData.getSpatialScalability()) );  // SSUN@SHARP
       }
     }
 

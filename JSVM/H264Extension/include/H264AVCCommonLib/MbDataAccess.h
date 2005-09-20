@@ -368,7 +368,7 @@ private:
   static const UChar   m_aucChroma2LumaIdx[8];
   static const UChar   m_auc4x4Idx28x8Idx[16];
 
-protected:
+public:
   MbData&        m_rcMbCurr;
   const MbData&  m_rcMbLeft;
   const MbData&  m_rcMbAbove;

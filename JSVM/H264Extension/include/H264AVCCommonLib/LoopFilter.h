@@ -151,7 +151,8 @@ public:
                           MbDataCtrl*         pcMbDataCtrlRes,
                           UInt                uiMbInRow,
                           RefFrameList*       pcRefFrameList0,
-                          RefFrameList*       pcRefFrameList1 );
+                          RefFrameList*       pcRefFrameList1,
+                          bool                spatial_scalable_flg);  // SSUN@SHARP
 
   ErrVal init( ControlMngIf*          pcControlMngIf,
                ReconstructionBypass*  pcReconstructionBypass );
@@ -189,7 +190,8 @@ private:
                                                   const MbDataAccess* rcMbDataAccessRes,
                                                   IntYuvPicBuffer*    pcYuvBuffer,
                                                   RefFrameList*       pcRefFrameList0,
-                                                  RefFrameList*       pcRefFrameList1 );
+                                                  RefFrameList*       pcRefFrameList1,
+                                                  bool                spatial_scalable_flg);  // SSUN@SHARP
   
   __inline ErrVal xLumaHorFiltering             ( const MbDataAccess& rcMbDataAccessRes,
                                                   const DFP&          rcDFP,
@@ -225,13 +227,15 @@ private:
                                                   LumaIdx             cIdx,
                                                   Int                 iFilterIdc,
                                                   RefFrameList*       pcRefFrameList0,
-                                                  RefFrameList*       pcRefFrameList1 );
+                                                  RefFrameList*       pcRefFrameList1,
+                                                  bool                spatial_scalable_flg);  // SSUN@SHARP
   __inline UInt   xGetVerFilterStrength_RefIdx  ( const MbDataAccess* pcMbDataAccessMot,
                                                   const MbDataAccess* pcMbDataAccessRes,
                                                   LumaIdx             cIdx,
                                                   Int                 iFilterIdc,
                                                   RefFrameList*       pcRefFrameList0,
-                                                  RefFrameList*       pcRefFrameList1 );
+                                                  RefFrameList*       pcRefFrameList1,
+                                                  bool                spatial_scalable_flg);  // SSUN@SHARP
 
 protected:
   // Hanke@RWTH

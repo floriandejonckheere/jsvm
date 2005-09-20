@@ -106,7 +106,6 @@ ResizeParameters::readPictureParameters ( Int index )
 
     ROTREPORT( iPosX % 2 , "Cropping Window must be even aligned" );
     ROTREPORT( iPosY % 2 , "Cropping Window must be even aligned" );  
-    ROTREPORT(iOutWidth * m_iInHeight != iOutHeight * m_iInWidth , "\n ResizeParameters::readPictureParameters () : current version does not support different horiz and vertic spatial ratios\n");
 
     setPictureParametersByValue(index, iPosX, iPosY, iOutWidth, iOutHeight, iBaseChromaPhaseX, iBaseChromaPhaseY );
       

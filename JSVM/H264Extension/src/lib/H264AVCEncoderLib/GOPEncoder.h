@@ -569,6 +569,7 @@ protected:
   //----- FGS -----
   UInt                          m_uiFGSMode;
   FILE*                         m_pFGSFile;
+  Double                        m_dFGSCutFactor;
   Double                        m_dFGSBitRateFactor;
   Double                        m_dFGSRoundingOffset;
   Int                           m_iLastFGSError;

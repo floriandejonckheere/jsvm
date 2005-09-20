@@ -672,8 +672,9 @@ int main(int argc, char *argv[])
           break;
         }
 
-        crop_h = (crop_w*min(input_height, output_height)+min(input_width, output_width)/2)/min(input_width, output_width);
-        crop_h = crop_h - (crop_h&1);  // must be even!
+
+        //SSUN@SHARP crop_h = (crop_w*min(input_height, output_height)+min(input_width, output_width)/2)/min(input_width, output_width);
+        //SSUN@SHARP crop_h = crop_h - (crop_h&1);  // must be even!
 
         ess_readFrame     ( &cFrame, input_file, input_width, input_height );
         ess_resampleFrame ( &cFrame, cDownConvert, input_width, input_height, output_width, output_height,

@@ -184,7 +184,7 @@ public:
     return Mv( (iScale * getHor() + 128) >> 8, (iScale * getVer() + 128) >> 8);
   }
 
-private:
+public:
 	static const Mv* m_cMvZero1;
   static const Mv m_cMvZero;
 

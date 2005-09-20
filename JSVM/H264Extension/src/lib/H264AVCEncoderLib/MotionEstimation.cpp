@@ -347,6 +347,12 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
       rcMv     = cMvBase;
       ruiBits += 2;
       ruiCost  = MSYS_UINT_MAX / 2;
+      // >>>> bug fix by H.Schwarz 19/9/05
+      if( bOriginalSearchModeIsYUVSAD )
+      {
+        m_cParams.setFullPelDFunc( DF_YUV_SAD );
+      }
+      // <<<< bug fix by H.Schwarz 19/9/05
       return Err::m_nOK;
     }
   }

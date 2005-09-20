@@ -134,6 +134,8 @@ public:
   Bool    isIntra4x4        ()                            const { return m_eMbMode == INTRA_4X4; }
   Bool    isIntra16x16      ()                            const { return m_eMbMode  > INTRA_4X4 && m_eMbMode < MODE_PCM; }
   Bool    isIntra           ()                            const { return m_eMbMode >= INTRA_4X4; }
+  Bool    isIntra_BL        ()                            const { return m_eMbMode == INTRA_BL; } // SSUN@SHARP
+  Bool    isIntra_nonBL     ()                            const { return (m_eMbMode >= INTRA_4X4 && m_eMbMode != INTRA_BL); } // SSUN@SHARP
   Bool    isSkiped          ()                            const { return m_eMbMode == MODE_SKIP; }
   Bool    isPCM             ()                            const { return m_eMbMode == MODE_PCM; }
   Bool    isAcCoded         ()                            const { AOF_DBG(isIntra16x16()); return m_eMbMode>=(INTRA_4X4 + 13); }
@@ -227,7 +229,7 @@ public:
   Bool isTransformSize8x8   ()                          const     { return m_bTransformSize8x8; }
   Void setTransformSize8x8  ( Bool bTransformSize8x8)             { m_bTransformSize8x8 = bTransformSize8x8; }
 
-protected:
+public:
   UInt    m_uiSliceId;
   Bool    m_bBLSkipFlag;
   Bool    m_bBLQRefFlag;
@@ -251,7 +253,7 @@ protected:
   // TMM_ESS 
   Bool    m_bInCropWindowFlag;  // indicates if the scaled base layer MB is inside the cropping window
 
-protected:
+public:
   static const UChar m_aucACTab[6];
 };
 

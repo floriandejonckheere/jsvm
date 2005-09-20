@@ -1384,7 +1384,8 @@ MCTFDecoder::getReconstructedBaseLayer( IntFrame*&   pcFrame,
                                      pcMbDataCtrl,
                                      m_uiFrameWidthInMb,
                                      NULL,
-                                     NULL ) );
+                                     NULL,
+                                     pcBaseDPBUnit->getCtrlData().getSpatialScalability()) );  // SSUN@SHARP
       m_pcLoopFilter->setFilterMode();
     }
     else if( bSpatialScalability )
@@ -1395,7 +1396,8 @@ MCTFDecoder::getReconstructedBaseLayer( IntFrame*&   pcFrame,
                                      pcMbDataCtrl,
                                      m_uiFrameWidthInMb,
                                     &pcBaseDPBUnit->getCtrlData().getPrdFrameList( LIST_0 ),
-                                    &pcBaseDPBUnit->getCtrlData().getPrdFrameList( LIST_1 ) ) );
+                                    &pcBaseDPBUnit->getCtrlData().getPrdFrameList( LIST_1 ),
+                                    pcBaseDPBUnit->getCtrlData().getSpatialScalability()) );  // SSUN@SHARP
     }
   }
   
@@ -2002,7 +2004,8 @@ MCTFDecoder::xDecodeLowPassSignal( SliceHeader*&  rpcSliceHeader,
                                  pcMbDataCtrl,
                                  m_uiFrameWidthInMb,
                                  &rcControlData.getPrdFrameList( LIST_0 ),
-                                 &rcControlData.getPrdFrameList( LIST_1 ) ) );
+                                 &rcControlData.getPrdFrameList( LIST_1 ),
+                                 rcControlData.getSpatialScalability()) );  // SSUN@SHARP
 
 
   RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcLPFrame ) );
@@ -2072,6 +2075,7 @@ MCTFDecoder::xDecodeHighPassSignal( SliceHeader*&   rpcSliceHeader,
   {
     RNOK( xCalcMv( rpcSliceHeader, pcMbDataCtrl, rcControlData.getBaseLayerCtrl() ) );
   }
+    
 
   //----- decode residual signals -----
   RNOK( m_pcControlMng  ->initSliceForDecoding( *rpcSliceHeader ) );
@@ -2125,21 +2129,7 @@ MCTFDecoder::xInvokeMCTF( SliceHeader*  pcSliceHeader,
 		RefFrameList& rcPrdFrameList0       = rcPrdPicControlData.getPrdFrameList( LIST_0 );
 		RefFrameList& rcPrdFrameList1       = rcPrdPicControlData.getPrdFrameList( LIST_1 );
 		Int           iIdInRefList;
-		//===== PREDICTION Intra=====
-		IntFrame*     pcFrame         = pcLastDPBUnit->getFrame   ();
-		IntFrame*     pcResidual      = m_apcFrameTemp  [2];
 
-		RNOK( pcResidual->copy( pcFrame ) ); // Hanke@RWTH
-
-		//===== reconstruct intra =====
-		RNOK( xInitBaseLayerReconstruction( rcPrdPicControlData ) );
-		RNOK( xReconstructIntra           ( pcFrame,
-																				rcPrdPicControlData.getBaseLayerRec(),
-																				m_apcFrameTemp[0],
-																				m_apcFrameTemp[1],
-																				rcPrdPicControlData.getMbDataCtrl(),
-																			 *rcPrdPicControlData.getSliceHeader() ) );
- 
 		//===== list 0 =====
 		// For each picture refPic in the reference picture lists RefPicListX (with X being 0 or 1) of prdPic,
 		for( iIdInRefList = 1; iIdInRefList <= rcPrdFrameList0.getSize(); iIdInRefList++ )
@@ -2182,7 +2172,8 @@ MCTFDecoder::xInvokeMCTF( SliceHeader*  pcSliceHeader,
                                       pcMbDataCtrl,
                                       m_uiFrameWidthInMb,
                                      &rcRefFrameList0,
-                                     &rcRefFrameList1 ) );
+                                     &rcRefFrameList1,
+                                      rcControlData.getSpatialScalability()) );  // SSUN@SHARP
       RNOK( m_pcDecodedPictureBuffer->update( pcLastDPBUnit ) );
     }
   }
@@ -2200,6 +2191,18 @@ MCTFDecoder::xInversePrediction( DPBUnit* pcDPBUnit,
   IntFrame*     pcFrame         = pcDPBUnit->getFrame   ();
   IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
   IntFrame*     pcResidual      = m_apcFrameTemp  [2];
+
+  // <<<<< bug-fix by J. Reichel 2005-09-20 (moved from xInvokeMCTF)
+     RNOK( pcResidual->copy( pcFrame ) ); // Hanke@RWTH
+     //===== reconstruct intra ===== 
+     RNOK( xInitBaseLayerReconstruction( rcControlData) );
+     RNOK( xReconstructIntra           ( pcFrame,
+                                         rcControlData.getBaseLayerRec(),
+                                         m_apcFrameTemp[0],
+                                         m_apcFrameTemp[1],
+                                         rcControlData.getMbDataCtrl(),
+                                        *rcControlData.getSliceHeader() ) );
+  // >>>> bug-fix by J. Reichel 2005-09-20
 
   if( ! bIntraOnly )
   {
@@ -2226,7 +2229,8 @@ MCTFDecoder::xInversePrediction( DPBUnit* pcDPBUnit,
                                          rcControlData.getMbDataCtrl (),
                                          m_uiFrameWidthInMb,
                                         &rcControlData.getPrdFrameList( LIST_0 ),
-                                        &rcControlData.getPrdFrameList( LIST_1 ) ) );
+                                        &rcControlData.getPrdFrameList( LIST_1 ),
+                                         rcControlData.getSpatialScalability()) );  // SSUN@SHARP
   }
 
   //===== update picture in DPB =====
@@ -2459,6 +2463,28 @@ MCTFDecoder::xCalcMv( SliceHeader*  pcSliceHeader,
 
     //===== motion compensation for macroblock =====
     RNOK( pcMbDecoder->calcMv( *pcMbDataAccess, pcMbDataAccessBase ) );
+
+  
+#if 0
+  static FILE *fp1=NULL;
+  if (uiMbY==0 && uiMbX==0)
+	{
+		if (fp1!=NULL) fclose(fp1);
+		char	fname[80];
+		sprintf(fname,"mvdecoded_%1d.dat",pcSliceHeader->getPoc());
+		fp1 = fopen(fname,"wb");
+	}
+  MbData& rcMbDes = pcMbDataAccess->getMbData();
+  fprintf(fp1,"%4d %2d %2d | ",uiMbIndex,uiMbY,uiMbX);
+  for (int i=0;i<16; i++)
+    fprintf(fp1,"%1d,%1d:",rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getVer());
+  fprintf(fp1," | ");
+  for (i=0;i<16; i++)
+    fprintf(fp1,"%1d,%1d:",rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getVer());
+  fprintf(fp1,"\n");
+  fflush(fp1);
+#endif
+
   }
 
   return Err::m_nOK;

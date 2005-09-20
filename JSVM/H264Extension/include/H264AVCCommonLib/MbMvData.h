@@ -172,7 +172,7 @@ public:
 private:
   MbMvData( const MbMvData& )                   {}
 
-protected:
+public:
   Mv  m_acMv[16];
 };
 
@@ -315,7 +315,7 @@ private:
 private:
   static const UInt   m_auiBlk2Part[16];
 
-protected:
+public:
   SChar   m_ascRefIdx[4];
   RefPic  m_acRefPic [4];
   UShort  m_usMotPredFlags;

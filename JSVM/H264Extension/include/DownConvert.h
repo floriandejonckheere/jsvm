@@ -244,6 +244,13 @@ private:
                                   unsigned char*    pucBufferU, int iStrideU,
                                   unsigned char*    pucBufferV, int iStrideV,
                                   ResizeParameters* pcParameters );
+  // SSUN@SHARP
+  void   xGenericUpsampleEss    ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  bool              bClip = true );
+  // end of SSUN@SHARP
   void   xCrop                  ( unsigned char*    pucBufferY, int iStrideY,
                                   unsigned char*    pucBufferU, int iStrideU,
                                   unsigned char*    pucBufferV, int iStrideV,
@@ -269,11 +276,34 @@ private:
                                   ResizeParameters* pcParameters,
                                   h264::MbDataCtrl* pcMbDataCtrl,
                                   bool              bClip = true );
+  // SSUN@SHARP
+  void   xGenericUpsampleEss    ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  h264::MbDataCtrl* pcMbDataCtrl,
+                                  bool              bClip = true );
+  void   xFilterResidualHor     ( short *buf_in, short *buf_out, 
+                                  int width, int height, 
+                                  int x, int y, int w, int h,  
+                                  int wsize_in, int hsize_in, 
+                                  h264::MbDataCtrl*  pcMbDataCtrl, 
+                                  bool chroma, 
+                                  unsigned char *buf_blocksize );
+  void   xFilterResidualVer     ( short *buf_in, short *buf_out, 
+                                  int width, int height, 
+                                  int x, int y, int w, int h, 
+                                  int wsize_in, int hsize_in, 
+                                  h264::MbDataCtrl*  pcMbDataCtrl, 
+                                  bool chroma, 
+                                  unsigned char *buf_blocksize );
+  // end of SSUN@SHARP
   void   xUpsamplingFrame       ( ResizeParameters* pcParameters,
                                   int* piSrcBlock,   // low-resolution src-addr
                                   int* piDesBlock,   // high-resolution src-addr
                                   bool bLuma,
 								                  h264::MbDataCtrl* pcMbDataCtrl);
+//TMM_ESS_UNIFIED {
   void   xUpsamplingBlock       ( int iInWidth,      // low-resolution width
                                   int iInHeight,     // low-resolution height
                                   int iOutWidth,     // high-resolution width
@@ -282,16 +312,16 @@ private:
                                   int* piDesBlock,   // high-resolution src-addr
                                   int xNumphi,       // dephasage on X direction
                                   int yNumphi,       // dephasage on Y direction
-                                  int Numerateur,
+                                  int* Numerateur,
                                   int iInBlockSize);
   void xComputeLastSamplePosition( int xNumphi,
                                    int yNumphi,
                                    int iPelPerMb,
-                                   int Numerateur,
-                                   int Denominateur,
+                                   int *Numerateur,
+                                   int *Denominateur,
                                    int *xlastsample,
                                    int *ylastsample);
-
+//TMM_ESS_UNIFIED }
   void xCopyBuffer		(int *pitmpDes,
 						           int *piDes,
 						           int ixlastsample,

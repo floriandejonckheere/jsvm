@@ -681,9 +681,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
         if ( curr->m_iExtendedSpatialScalability == ESS_NONE )
           curr->m_iExtendedSpatialScalability = ESS_SEQ;
       }
-      
-      ROTREPORT((curr->m_iExtendedSpatialScalability < ESS_PICT) && (curr->m_iOutWidth * curr->m_iInHeight != curr->m_iOutHeight * curr->m_iInWidth) , "\n ResizeParameters::readPictureParameters () : current version does not support different horiz and vertic spatial ratios\n");
-
      }
     else
     {
@@ -750,6 +747,13 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",     &(rcLayer.m_ResizeParameter.m_iPosX),                       0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",     &(rcLayer.m_ResizeParameter.m_iPosY),                       0         );
   m_pLayerLines[uiParLnCount] = NULL;
+
+  // SSUN@SHARP reset ResizeParameters
+  if( rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability == 0 )
+  {
+    rcLayer.m_ResizeParameter.m_iOutWidth = rcLayer.m_uiFrameWidth;
+    rcLayer.m_ResizeParameter.m_iOutHeight = rcLayer.m_uiFrameHeight;
+  } // end of SSUN@SHARP end of reset ResizeParameters
 
   while (!feof(f))
   {

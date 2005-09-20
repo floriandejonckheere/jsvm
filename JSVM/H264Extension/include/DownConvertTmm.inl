@@ -12,6 +12,10 @@
 #define DEFAULTU 0
 #define DEFAULTV 0
 
+#define ESS_ARRAY_SIZE   64   //TMM_ESS_UNIFIED
+
+#define DIRECT_INTERP 0  // 1: direct interpolation on; 0: off  - SSUN@SHARP
+
 __inline
 void
 DownConvert::xInitFilterTmm (int iMaxDim )
@@ -184,21 +188,75 @@ DownConvert::upsample ( short* psBufferY, int iStrideY,
                );
       break;
     default:
+#if DIRECT_INTERP // SSUN@SHARP
+      xGenericUpsampleEss(psBufferY, iStrideY,
+                          psBufferU, iStrideU,
+                          psBufferV, iStrideV,
+                          pcParameters, bClip
+                         );
+#else // end of SSUN@SHARP
       xGenericUpsample(psBufferY, iStrideY,
                        psBufferU, iStrideU,
                        psBufferV, iStrideV,
                        pcParameters, bClip
                        );
+#endif
     }
 
   //===== Cropping =====
-  if (pcParameters->m_bCrop)
-    xCrop(psBufferY, iStrideY,
-          psBufferU, iStrideU,
-          psBufferV, iStrideV,
-          pcParameters, bClip
-          );
+#if DIRECT_INTERP  // SSUN@SHARP
+  if(pcParameters->m_iSpatialScalabilityType <= SST_RATIO_2)
+#endif // end of SSUN@SHARP
+    if (pcParameters->m_bCrop)
+      xCrop(psBufferY, iStrideY,
+            psBufferU, iStrideU,
+            psBufferV, iStrideV,
+            pcParameters, bClip
+            );
 }
+
+
+//SSUN@SHARP
+__inline
+void
+DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
+                                  short* psBufferU, int iStrideU,
+                                  short* psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  bool bClip )
+{
+  int   min = ( bClip ?   0 : -32768 );
+  int   max = ( bClip ? 255 :  32767 );
+
+  int iInWidth = pcParameters->m_iInWidth;
+  int iInHeight = pcParameters->m_iInHeight;
+  int iGlobWidth = pcParameters->m_iGlobWidth;
+  int iGlobHeight = pcParameters->m_iGlobHeight;
+  
+  //===== luma =====
+  xCopyToImageBuffer  ( psBufferY, iInWidth,   iInHeight,   iStrideY );
+  xUpsampling3        ( pcParameters, true);
+  xCopyFromImageBuffer( psBufferY, iGlobWidth,   iGlobHeight,  iStrideY, min, max );
+
+
+  // ===== parameters for chromas =====
+  iInWidth    >>= 1;
+  iInHeight   >>= 1;
+  iGlobWidth   >>= 1;
+  iGlobHeight  >>= 1;
+  
+  //===== chroma cb =====
+  xCopyToImageBuffer  ( psBufferU, iInWidth, iInHeight, iStrideU );
+  xUpsampling3        ( pcParameters, false);
+  xCopyFromImageBuffer( psBufferU, iGlobWidth, iGlobHeight, iStrideU, min, max );
+
+  //===== chroma cr =====
+  xCopyToImageBuffer  ( psBufferV, iInWidth, iInHeight, iStrideV );
+  xUpsampling3        ( pcParameters, false);
+  xCopyFromImageBuffer( psBufferV, iGlobWidth, iGlobHeight, iStrideV, min, max ); 
+} 
+// end of SSUN@SHARP
+
 
 __inline
 void
@@ -313,6 +371,14 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
                        );
       break;
     default:
+#if DIRECT_INTERP // SSUN@SHARP
+      xGenericUpsampleEss(psBufferY, iStrideY,
+                          psBufferU, iStrideU,
+                          psBufferV, iStrideV,
+                          pcParameters,
+                          pcMbDataCtrl,
+                          bClip);
+#else // end of SSUN@SHARP
       xGenericUpsample(psBufferY, iStrideY,
                        psBufferU, iStrideU,
                        psBufferV, iStrideV,
@@ -320,16 +386,231 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
                        pcMbDataCtrl,
                        bClip
                        );
+#endif
     }    
 
   //===== Cropping =====
-  if (pcParameters->m_bCrop)
-    xCrop(psBufferY, iStrideY,
-          psBufferU, iStrideU,
-          psBufferV, iStrideV,
-          pcParameters, bClip
-          );
+#if DIRECT_INTERP  // SSUN@SHARP
+  if(pcParameters->m_iSpatialScalabilityType <= SST_RATIO_2)
+#endif // end of SSUN@SHARP
+    if (pcParameters->m_bCrop)
+      xCrop(psBufferY, iStrideY,
+            psBufferU, iStrideU,
+            psBufferV, iStrideV,
+            pcParameters, bClip
+            );
 }
+
+
+
+// SSUN@SHARP
+__inline
+void
+DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out, 
+                                  int width, int height, 
+                                  int x, int y, int w, int h, 
+                                  int wsize_in, int hsize_in, 
+                                  h264::MbDataCtrl*  pcMbDataCtrl, 
+                                  bool chroma, 
+                                  unsigned char *buf_blocksize )
+{
+  int j, i, k, i1, ii;
+  short *ptr1, *ptr2;
+  unsigned char *ptr3;
+  int p, p2, p3, block = 8;
+  int iMbPerRow = wsize_in >> 4;
+  int new_div[2];  // for the simplified division operation
+  int *x16, *k16, *p16;
+
+  x16 = (int *)malloc( sizeof(int)*w ); 
+  k16 = (int *)malloc( sizeof(int)*w ); // for relative phase shift in unit of 1/16 sample
+  p16 = (int *)malloc( sizeof(int)*w );
+
+  // initialize the simplified division operator
+  new_div[0] = 0;
+  while( (1<<( new_div[0] + 1 )) < w ) new_div[0] += 1;
+  new_div[0] += 15;
+  new_div[1] = ( ( 1<<new_div[0] ) + w/2 ) / w;
+
+  for( i = 0; i < w; i++ ) 
+  {
+    ii = i * wsize_in;
+    i1 = ( ( ( ( ii & 0xffff ) * new_div[1] ) >> 16 ) + ( ii>>16 ) * new_div[1] ) >> ( new_div[0] - 16 );
+    k = ( ( ( ( ( ii & 0xffff ) * new_div[1] ) >> 16 ) + ( ii>>16 ) * new_div[1] ) >> ( new_div[0] - 20 ) ) - i1 * 16;
+    p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+    p = p < 0 ? 0 : p;
+    x16[i] = i1; k16[i] = k; p16[i] = p;
+  }
+
+  for( j = 0; j < hsize_in; j++ )
+  {
+    ptr1 = buf_in + j * wsize_in;
+    ptr2 = buf_out + j * width + x;
+    ptr3 = buf_blocksize + j * width + x;
+    for( i = 0; i < w; i++ )
+    {
+      i1 = x16[i]; k = k16[i]; p = p16[i];
+      if( !chroma )
+      {
+        const h264::MbData& rcMbData = pcMbDataCtrl->getMbData( (p>>4) + (j>>4) * iMbPerRow );
+        if( rcMbData.isIntra16x16() ) block = 16;
+        else if( rcMbData.isTransformSize8x8() ) block = 8;
+        else block = 4;
+        ptr3[i] = block;
+      }
+      p = p / block;
+      p2 = ( i1 / block ) == p ? i1 : ( p * block );
+      p3 = ( (i1+1) / block ) == p ? (i1+1) : ( p*block + (block-1) );
+      ptr2[i] = (16-k) * ptr1[p2] + k * ptr1[p3];
+    }
+  }
+  free( x16 );
+  free( k16 );
+  free( p16 );
+}
+
+__inline
+void
+DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out, 
+                                  int width, int height, 
+                                  int x, int y, int w, int h, 
+                                  int wsize_in, int hsize_in, 
+                                  h264::MbDataCtrl*  pcMbDataCtrl, 
+                                  bool chroma, 
+                                  unsigned char *buf_blocksize )
+{
+  int j, i, k, j1, jj;
+  short *ptr1, *ptr2;
+  unsigned char *ptr3;
+  int p, p2, p3, block = 8;
+  int new_div[2];  // for the simplified division operation
+  int *y16, *k16, *p16;
+
+  y16 = (int *)malloc( sizeof(int) * h );
+  k16 = (int *)malloc( sizeof(int) * h ); // for relative phase shift in unit of 1/16 sample
+  p16 = (int *)malloc( sizeof(int) * h );
+
+  // initialize the simplified division operator
+  new_div[0] = 0;
+  while( (1<<( new_div[0] + 1 )) < h ) new_div[0] += 1;
+  new_div[0] += 15;
+  new_div[1] =( ( 1 << new_div[0] ) + h/2 ) / h;
+
+  for( j = 0; j < h; j++ )
+  {
+    jj = j * hsize_in;
+    j1 = ( ( ( ( jj & 0xffff ) * new_div[1] ) >> 16 ) + ( jj >> 16 ) * new_div[1] ) >> ( new_div[0] - 16 );
+    k = ( ( ( ( ( jj & 0xffff ) * new_div[1] ) >> 16 ) + ( jj >> 16 ) * new_div[1] ) >> ( new_div[0] - 20 ) ) - j1 * 16;
+    p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+    p = p < 0 ? 0 : p;
+    y16[j] = j1; k16[j] = k; p16[j] = p;
+  }
+
+  for( i = 0; i < w; i++ )
+  {
+    ptr1 = buf_in + i + x;
+    ptr3 = buf_blocksize + i + x;
+    ptr2 = buf_out + i + x + width * y;
+    for( j = 0; j < h; j++ )
+    {
+      j1 = y16[j]; k = k16[j]; p = p16[j];
+      if( !chroma ){
+        block = ptr3[ wsize_in * p ];
+      }
+      p = p / block;
+      p2 = ( j1/block ) == p ? j1 : ( p*block );
+      p3 = ( (j1+1) / block ) == p ? (j1+1) : ( p*block + (block-1) );
+      ptr2[j*width] = ( (16-k) * ptr1[wsize_in*p2] + k * ptr1[wsize_in*p3] + 128 ) >> 8;
+    }
+  }
+  free(y16);
+  free(k16);
+  free(p16);
+}
+
+__inline
+void
+DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
+                                  short* psBufferU, int iStrideU,
+                                  short* psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  h264::MbDataCtrl*    pcMbDataCtrl,
+                                  bool bClip )
+{
+  int iWidth=pcParameters->m_iInWidth;
+  int iHeight=pcParameters->m_iInHeight;
+  int width=pcParameters->m_iGlobWidth;
+  int height=pcParameters->m_iGlobHeight;
+  int x, y, w, h, j, i;
+  short *buf1, *ptr1, *buf2, *ptr2, *tmp_buf1, *tmp_buf2;
+  unsigned char *tmp_buf3;
+
+  tmp_buf1=(short *)malloc(iWidth*iHeight*sizeof(short));
+  tmp_buf2=(short *)malloc(width*iHeight*sizeof(short));
+  tmp_buf3=(unsigned char *)malloc(width*iHeight);
+  memset(tmp_buf3, 4, width*iHeight);
+
+  x=pcParameters->m_iPosX;
+  y=pcParameters->m_iPosY;
+  w=pcParameters->m_iOutWidth;
+  h=pcParameters->m_iOutHeight;
+
+  // luma
+  buf1=buf2=psBufferY;
+  ptr1=buf1;
+  ptr2=tmp_buf1;
+  for(j=0;j<iHeight;j++){
+    for(i=0;i<iWidth;i++)ptr2[i]=ptr1[i];
+    ptr2+=iWidth;
+    ptr1+=iStrideY;
+  }
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 0, tmp_buf3);
+  for(j=0;j<height;j++){
+    for(i=0;i<width;i++)buf1[i]=0;
+    buf1+=iStrideY;
+  }
+  xFilterResidualVer(tmp_buf2, buf2, iStrideY, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 0, tmp_buf3);
+
+  // chroma
+  width>>=1; height>>=1; x>>=1; y>>=1; w>>=1; h>>=1; iWidth>>=1; iHeight>>=1;
+  // U
+  buf1=buf2=psBufferU;
+  ptr1=buf1;
+  ptr2=tmp_buf1;
+  for(j=0;j<iHeight;j++){
+    for(i=0;i<iWidth;i++)ptr2[i]=ptr1[i];
+    ptr2+=iWidth+2;
+    ptr1+=iStrideU;
+  }
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+  for(j=0;j<height;j++){
+    for(i=0;i<width;i++)buf1[i]=0;
+    buf1+=iStrideU;
+  }
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+
+  // V
+  buf1=buf2=psBufferV;
+  ptr1=buf1;
+  ptr2=tmp_buf1;
+  for(j=0;j<iHeight;j++){
+    for(i=0;i<iWidth;i++)ptr2[i]=ptr1[i];
+    ptr2+=iWidth+2;
+    ptr1+=iStrideV;
+  }
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+  for(j=0;j<height;j++){
+    for(i=0;i<width;i++)buf1[i]=0;
+    buf1+=iStrideU;
+  }
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+  
+  free(tmp_buf1);
+  free(tmp_buf2);
+  free(tmp_buf3);
+} 
+// end of SSUN@SHARP
+
 
 __inline
 void
@@ -375,13 +656,11 @@ __inline
 void
 DownConvert::xInitFilterTmmResidual ( int iMaxDim )
 {
-  int max_f = 4;
-  int iSizeOut4PL  = 4  *max_f;
-  int iSizeOut8PL  = 8  *max_f;
-  int iSizeOut16PL = 16 *max_f;
- 	m_pitmpDes4 = new int [iSizeOut4PL*iSizeOut4PL];
-	m_pitmpDes8 = new int [iSizeOut8PL*iSizeOut8PL];
-	m_pitmpDes16 = new int [iSizeOut16PL*iSizeOut16PL];
+//TMM_ESS_UNIFIED {
+ 	m_pitmpDes4 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
+	m_pitmpDes8 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
+	m_pitmpDes16 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
+//TMM_ESS_UNIFIED }
 }
 
 __inline
@@ -401,6 +680,7 @@ DownConvert::xUpsamplingFrame( ResizeParameters* pcParameters,
                                bool bLuma,
                                h264::MbDataCtrl* pcMbDataCtrl)
 {
+//TMM_ESS_UNIFIED {
   int iInWidth    = pcParameters->m_iInWidth;
   int iInHeight   = pcParameters->m_iInHeight;
   int iOutWidth   = pcParameters->m_iOutWidth;
@@ -416,37 +696,31 @@ DownConvert::xUpsamplingFrame( ResizeParameters* pcParameters,
 	int iPelPerMb = bLuma?16:8;
 	int iMbPerRow = iInWidth/iPelPerMb;
 	
-	int iSizeIn4PL ;
-	int iSizeOut4PL;
-	int iSizeIn8PL ;
-	int iSizeOut8PL;
-	int iSizeIn16PL ;
-	int iSizeOut16PL;
-	int Numerator;
-	int Denominator;
+  int numCase=0;
+  int nbOfBlksPerLine[3]={1,2,4};
+	int iBlkWidthIn[3] ;
+	int iBlkWidthOut[3];
+	int iBlkHeightIn[3] ;
+	int iBlkHeightOut[3];
+	int Numerator[2];
+	int Denominator[2];
 
-  xComputeNumeratorDenominator(iInWidth, iOutWidth, &Numerator, &Denominator);
+  xComputeNumeratorDenominator(iInWidth, iOutWidth, &(Numerator[0]), &(Denominator[0]));
+  xComputeNumeratorDenominator(iInHeight, iOutHeight, &(Numerator[1]), &(Denominator[1]));
 
- 	iSizeIn4PL = Denominator * ((4 - 1)/Denominator +1);
-	iSizeIn8PL = Denominator * ((8 - 1)/Denominator +1);
-	iSizeIn16PL = Denominator * ((16 - 1)/Denominator +1);
-
-	iSizeOut4PL = (Numerator * iSizeIn4PL) / Denominator;
-	iSizeOut8PL = (Numerator * iSizeIn8PL) / Denominator;
-	iSizeOut16PL = (Numerator * iSizeIn16PL) / Denominator;
-
-		
-	int *pitmpDes4 = m_pitmpDes4;
-	int *pitmpDes8 = m_pitmpDes8;
-	int *pitmpDes16 = m_pitmpDes16;
+  for (int cas=0; cas<3; cas++)
+  {
+   	iBlkWidthIn[cas] = Denominator[0] * (( (16/nbOfBlksPerLine[cas]) - 1)/Denominator[0] +1);
+  	iBlkWidthOut[cas] = (Numerator[0] * iBlkWidthIn[cas]) / Denominator[0];
+   	iBlkHeightIn[cas] = Denominator[1] * (( (16/nbOfBlksPerLine[cas]) - 1)/Denominator[1] +1);
+  	iBlkHeightOut[cas] = (Numerator[1] * iBlkHeightIn[cas]) / Denominator[1];
+  }
 		
 	int xoutCOMMON=0, youtCOMMON=0;
-	double xphiCOMMON = 0, yphiCOMMON = 0;
 	int xNumphiCOMMON = 0, yNumphiCOMMON = 0;
-		
 	int youtSlice =0, xoutSlice=0;
-	double yphiSlice=0, xphiSlice=0;
 	int yNumphiSlice=0, xNumphiSlice=0;
+
 	for( int yin=0 ; yin < iInHeight; yin+= iPelPerMb )
 	{
 		int xoutMB=xoutSlice;
@@ -463,177 +737,71 @@ DownConvert::xUpsamplingFrame( ResizeParameters* pcParameters,
 			
 			if( bLuma )
 			{
-				if(rcMbData.isIntra16x16() )
-				{
-          xUpsamplingBlock(iSizeIn16PL, iSizeIn16PL, iSizeOut16PL, iSizeOut16PL, piSrc, pitmpDes16,
-						               xNumphiMB,yNumphiMB,Numerator,16);
+				if(rcMbData.isIntra16x16() )              numCase = 0;
+        else if(rcMbData.isTransformSize8x8() )   numCase = 1;
+        else                                      numCase = 2;
+      }
+      else                                        numCase = 1;
 
-					// xoutMB and xphiMB Update and Output affectation
-					int ixlastsample,iylastsample;
-					xComputeLastSamplePosition(xNumphiMB,yNumphiMB,iPelPerMb,Numerator,Denominator,&ixlastsample,&iylastsample);
+      int *pitmpDes = (numCase==0) ? m_pitmpDes16 : ( (numCase==1) ? m_pitmpDes8 : m_pitmpDes4 );
+      int nbBlks = nbOfBlksPerLine[numCase];
+			int iSize = iPelPerMb/nbBlks;
 
-					xCopyBuffer(pitmpDes16,piDes,ixlastsample,iylastsample,xoutMB,youtMB,iSizeOut16PL);
+			int youtLine = youtMB, xoutLine = xoutMB;
+			int yNumphiLine = yNumphiMB,xNumphiLine = xNumphiMB;
 
-					xoutMB += ixlastsample;
-					xNumphiMB = (xNumphiMB + ixlastsample*Denominator) % Numerator;
-					
-					youtMB += iylastsample;
-					yNumphiMB = (yNumphiMB + iylastsample*Denominator) % Numerator;
-					
-					xNumphiCOMMON = xNumphiMB;
-					yNumphiCOMMON = yNumphiMB;
-					
-					xoutCOMMON = xoutMB;
-					youtCOMMON = youtMB;
-
-				}
-				else if(rcMbData.isTransformSize8x8() )
-				{
-					int iSize = iPelPerMb/2;
-					int yout16x8 = youtMB, xout16x8 = xoutMB;
-					int yNumphi16x8 = yNumphiMB,xNumphi16x8 = xNumphiMB;
-
-					for( int y = 0; y < 2; y++)
-					{
-						int xout8x8=xout16x8;
-						int xNumphi8x8=xNumphi16x8;
-
-						for( int x=0; x < 2; x++)
-						{
-							int yout8x8=yout16x8;
-							int yNumphi8x8=yNumphi16x8;
-
-							int iSrcOffset = iPelPerMb/2 *(x+y*m_iImageStride);
-							xUpsamplingBlock(iSizeIn8PL, iSizeIn8PL, iSizeOut8PL, iSizeOut8PL, piSrc + iSrcOffset, pitmpDes8,
-								                xNumphi8x8,yNumphi8x8,Numerator,8);
-							
-							// xout8x8 and xphi8x8 Update and Output affectation
-							int ixlastsample,iylastsample;
-							xComputeLastSamplePosition(xNumphi8x8,yNumphi8x8,iPelPerMb/2,Numerator,Denominator,&ixlastsample,&iylastsample);
-							
-							xCopyBuffer(pitmpDes8,piDes,ixlastsample,iylastsample,xout8x8,yout8x8,iSizeOut8PL);
-
-							
-							xout8x8 += ixlastsample;
-							xNumphi8x8 = (xNumphi8x8 + ixlastsample*Denominator) % Numerator;
-
-							yout8x8 += iylastsample;
-							yNumphi8x8 = (yNumphi8x8 + iylastsample*Denominator) % Numerator;
-
-							xNumphiCOMMON = xNumphi8x8;
-							yNumphiCOMMON = yNumphi8x8;
-
-							xoutCOMMON = xout8x8;
-							youtCOMMON = yout8x8;
-						}
-						yNumphi16x8 = yNumphiCOMMON;
-						yout16x8 = youtCOMMON;
-					}
-					xNumphiMB = xNumphiCOMMON;
-					xoutMB = xoutCOMMON;
-
-				}
-				else 
-				{
-					int iSize = iPelPerMb/4;
-					int yout16x4 = youtMB, xout16x4 = xoutMB;
-					int yNumphi16x4 = yNumphiMB,xNumphi16x4 = xNumphiMB;
-					for( int y = 0; y < 4; y++)
-					{
-						int xout4x4=xout16x4;
-						int xNumphi4x4=xNumphi16x4;
-
-						for( int x=0; x < 4; x++)
-						{
-							int yout4x4=yout16x4;
-							int yNumphi4x4=yNumphi16x4;
-
-							int iSrcOffset = iPelPerMb/4 *(x+y*m_iImageStride);
-							xUpsamplingBlock(iSizeIn4PL, iSizeIn4PL, iSizeOut4PL, iSizeOut4PL, piSrc + iSrcOffset, pitmpDes4,
-								                xNumphi4x4,yNumphi4x4,Numerator,4);
-							
-							// xout4x4 and xphi4x4 Update and Output affectation
-							int ixlastsample,iylastsample;
-							xComputeLastSamplePosition(xNumphi4x4,yNumphi4x4,iPelPerMb/4,Numerator,Denominator,&ixlastsample,&iylastsample);
-
-							xCopyBuffer(pitmpDes4,piDes,ixlastsample,iylastsample,xout4x4,yout4x4,iSizeOut4PL);
-							
-							
-							xout4x4 += ixlastsample;
-							xNumphi4x4 = (xNumphi4x4 + ixlastsample*Denominator) % Numerator;
-
-							yout4x4 += iylastsample;
-							yNumphi4x4 = (yNumphi4x4 + iylastsample*Denominator) % Numerator;
-
-							xNumphiCOMMON = xNumphi4x4;
-							yNumphiCOMMON = yNumphi4x4;
-
-							xoutCOMMON = xout4x4;
-							youtCOMMON = yout4x4;
-						}
-						yNumphi16x4 = yNumphiCOMMON;
-						yout16x4 = youtCOMMON;
-					}
-					xNumphiMB = xNumphiCOMMON;
-					xoutMB = xoutCOMMON;
-				}				
-			}
-			else // !bLuma
+			for( int y = 0; y < nbBlks; y++)
 			{
-				int iSize = iPelPerMb/2;
-				int yout16x8 = youtMB, xout16x8 = xoutMB;
-				int yNumphi16x8 = yNumphiMB,xNumphi16x8 = xNumphiMB;
-				
-				for( int y = 0; y < 2; y++)
+				int xoutCol=xoutLine;
+				int xNumphiCol=xNumphiLine;
+
+				for( int x=0; x < nbBlks; x++)
 				{
-					int xout8x8=xout16x8;
-					int xNumphi8x8=xNumphi16x8;
+					int youtCol=youtLine;
+					int yNumphiCol=yNumphiLine;
+
+					int iSrcOffset = iPelPerMb/nbBlks *(x+y*m_iImageStride);
+					xUpsamplingBlock(iBlkWidthIn[numCase], iBlkHeightIn[numCase], iBlkWidthOut[numCase], iBlkHeightOut[numCase], 
+                           piSrc + iSrcOffset, pitmpDes, xNumphiCol,yNumphiCol,Numerator,16/nbBlks);
 					
-					for( int x=0; x < 2; x++)
-					{
-						int yout8x8=yout16x8;
-						int yNumphi8x8=yNumphi16x8;
-						
-						int iSrcOffset = iPelPerMb/2 *(x+y*m_iImageStride);
-						xUpsamplingBlock(iSizeIn8PL, iSizeIn8PL, iSizeOut8PL, iSizeOut8PL, piSrc + iSrcOffset, pitmpDes8,
-							xNumphi8x8,yNumphi8x8,Numerator,8);
-						
-						// xout8x8 and xphi8x8 Update and Output affectation
-						int ixlastsample,iylastsample;
-						xComputeLastSamplePosition(xNumphi8x8,yNumphi8x8,iPelPerMb/2,Numerator,Denominator,&ixlastsample,&iylastsample);
-						
-						xCopyBuffer(pitmpDes8,piDes,ixlastsample,iylastsample,xout8x8,yout8x8,iSizeOut8PL);
-						
-						
-						xout8x8 += ixlastsample;
-						xNumphi8x8 = (xNumphi8x8 + ixlastsample*Denominator) % Numerator;
-						
-						yout8x8 += iylastsample;
-						yNumphi8x8 = (yNumphi8x8 + iylastsample*Denominator) % Numerator;
-						
-						xNumphiCOMMON = xNumphi8x8;
-						yNumphiCOMMON = yNumphi8x8;
-						
-						xoutCOMMON = xout8x8;
-						youtCOMMON = yout8x8;
-					}
-					yNumphi16x8 = yNumphiCOMMON;
-					yout16x8 = youtCOMMON;
+					// xoutCol and xphi8x8 Update and Output affectation
+					int ixlastsample,iylastsample;
+					xComputeLastSamplePosition(xNumphiCol,yNumphiCol,iPelPerMb/nbBlks,Numerator,Denominator,&ixlastsample,&iylastsample);
+					
+					xCopyBuffer(pitmpDes,piDes,ixlastsample,iylastsample,xoutCol,youtCol,iBlkWidthOut[numCase]);
+
+					
+					xoutCol += ixlastsample;
+					xNumphiCol = ( (xNumphiCol + ixlastsample*Denominator[0]) % Numerator[0] ) % ESS_ARRAY_SIZE; 
+
+					youtCol += iylastsample;
+					yNumphiCol = ( (yNumphiCol + iylastsample*Denominator[1]) % Numerator[1] ) % ESS_ARRAY_SIZE; 
+
+					xNumphiCOMMON = xNumphiCol;
+					yNumphiCOMMON = yNumphiCol;
+
+					xoutCOMMON = xoutCol;
+					youtCOMMON = youtCol;
 				}
-				xNumphiMB = xNumphiCOMMON;
-				xoutMB = xoutCOMMON;			
+				yNumphiLine = yNumphiCOMMON;
+				youtLine = youtCOMMON;
 			}
-			
-		}
+			xNumphiMB = xNumphiCOMMON;
+			xoutMB = xoutCOMMON;
+
+    } // end of for( int xin=0; xin < iInWidth;  xin+= iPelPerMb )
+
 		yNumphiSlice = yNumphiCOMMON;
 		youtSlice = youtCOMMON;
 
-	}
+  } // end of for( int yin=0 ; yin < iInHeight; yin+= iPelPerMb )
 	
+//TMM_ESS_UNIFIED }
 }
 
 __inline
 void
+//TMM_ESS_UNIFIED {
 DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
                                int iInHeight,      // low-resolution height
                                int iOutWidth,       // high-resolution width
@@ -642,9 +810,14 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
                                int* piDesBlock,  // high-resolution src-addr
                                int xNumphi,
                                int yNumphi,
-                               int Numerator,
+                               int* Numerator,
                                int iInBlockSize)
 {
+  iInWidth = iInWidth % ESS_ARRAY_SIZE;
+  iInHeight = iInHeight % ESS_ARRAY_SIZE;
+  iOutWidth = iOutWidth % ESS_ARRAY_SIZE;
+  iOutHeight = iOutHeight % ESS_ARRAY_SIZE;
+
 
   // ===== vertical upsampling =====
 	int xin,yin;
@@ -656,11 +829,12 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
       for (yin=iInBlockSize; yin<iInHeight; yin++)
         m_paiTmp1dBufferIn[yin] = piSrc[(iInBlockSize-1) * m_iImageStride];
 
-
-      xUpsamplingDataResidual(iInHeight, iOutHeight, (double)xNumphi / Numerator);
+      xUpsamplingDataResidual(iInHeight, iOutHeight, (double)xNumphi / Numerator[0]);
       
       for(int yout = 0; yout < iOutHeight; yout++ )
+      {
         piDesBlock[yout*iOutWidth+xin] = m_paiTmp1dBufferOut[yout];
+      }
     }
 
     for (xin=iInBlockSize; xin<iInWidth; xin++)
@@ -671,12 +845,13 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
       for (yin=iInBlockSize; yin<iInHeight; yin++)
         m_paiTmp1dBufferIn[yin] = piSrcBlock[ iInBlockSize-1+(iInBlockSize-1)* m_iImageStride];
 
-      xUpsamplingDataResidual(iInHeight, iOutHeight, (double)xNumphi / Numerator);
+      xUpsamplingDataResidual(iInHeight, iOutHeight, (double)xNumphi / Numerator[0]);
       
       for(int yout = 0; yout < iOutHeight; yout++ )
+      {
         piDesBlock[yout*iOutWidth+xin] = m_paiTmp1dBufferOut[yout];
+      }
     }
-
 
   // ===== horizontal upsampling =====
   for (int yout=0; yout<iOutHeight; yout++)
@@ -685,29 +860,31 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
       for (int xin=0; xin<iInWidth; xin++)
         m_paiTmp1dBufferIn[xin] = piSrc[xin];
 
-      xUpsamplingDataResidual(iInWidth, iOutWidth, (double)yNumphi / Numerator);
+      xUpsamplingDataResidual(iInWidth, iOutWidth, (double)yNumphi / Numerator[0]);
 
       memcpy(&piDesBlock[yout * iOutWidth], m_paiTmp1dBufferOut, iOutWidth*sizeof(int));
     }
 }
+//TMM_ESS_UNIFIED }
 
+//TMM_ESS_UNIFIED {
 __inline
 void
-DownConvert::xComputeLastSamplePosition(int xNumphi,
-									   int yNumphi,
-									   int iPelPerMb,
-									   int Numerator,
-									   int Denominator,
-									   int *pixlastsample,
-									   int *piylastsample)
+DownConvert::xComputeLastSamplePosition( int xNumphi,
+									                       int yNumphi,
+									                       int iPelPerMb,
+									                       int *Numerator,
+									                       int *Denominator,
+									                       int *pixlastsample,
+									                       int *piylastsample)
 {
-
-	int ixtmp = (Numerator*iPelPerMb - xNumphi);
-	*pixlastsample = 1+(ixtmp-1)/Denominator;
-	int iytmp = (Numerator*iPelPerMb - yNumphi);
-	*piylastsample = 1+(iytmp-1)/Denominator;
+	int ixtmp = (Numerator[0]*iPelPerMb - xNumphi);
+	*pixlastsample = 1+(ixtmp-1)/Denominator[0];
+	int iytmp = (Numerator[1]*iPelPerMb - yNumphi);
+	*piylastsample = 1+(iytmp-1)/Denominator[1];
 
 }
+//TMM_ESS_UNIFIED }
 
 __inline
 void
@@ -717,17 +894,16 @@ DownConvert::xCopyBuffer(int *pitmpDes,
 						 int iylastsample,
 						 int ixout,
 						 int iyout,
-						 int iSizeOut)
+						 int iBlkWidthOut)
 {
+  iBlkWidthOut = iBlkWidthOut % ESS_ARRAY_SIZE; //TMM_ESS_UNIFIED
 
 	int iDesOffset = ixout + iyout*m_iImageStride;
 	for  (int iycopy = 0 ; iycopy<iylastsample ; iycopy++) 		
 	{
-	    memcpy(piDes+iDesOffset, pitmpDes +iSizeOut*iycopy, ixlastsample*sizeof(int));
+	    memcpy(piDes+iDesOffset, pitmpDes +iBlkWidthOut*iycopy, ixlastsample*sizeof(int));
 		iDesOffset += m_iImageStride; 
 	}
-
-
 }
 
 #endif  // of #ifndef NO_MB_DATA_CTRL
@@ -1076,10 +1252,14 @@ DownConvert::xUpsampling2( ResizeParameters* pcParameters, bool bLuma
 
       xUpsamplingData2(iInWidth, iOutWidth, iNumerator , iDenominator);
 
-      memcpy(piSrc, m_paiTmp1dBufferOut, iOutWidth*sizeof(int));
-    }
+//TMM_ESS_UNIFIED {
+      for( int i = 0; i < iOutWidth; i++ )
+        piSrc[i] = ( m_paiTmp1dBufferOut[i] + 512 ) >> 10;
+//TMM_ESS_UNIFIED }
+  }
 }
 
+//TMM_ESS_UNIFIED {
 __inline
 void
 DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator , int iDenominator )
@@ -1091,6 +1271,7 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator 
   int x,y;
   int iTemp;
 
+  // half pel samples (6 taps 1 -5 20 20 -5 1)
   for(  x = 0; x < iInLength ; x++)
     {
       y=x;
@@ -1107,17 +1288,19 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator 
       iTemp += m_paiTmp1dBufferIn[y];
       y = (x+3 < iInLength ? x+3 : iInLength -1);
       iTemp += m_paiTmp1dBufferIn[y];
-      Tmp1dBufferInHalfpel[x] = ((iTemp + 16) >> 5);
+      Tmp1dBufferInHalfpel[x] = iTemp;
     }
 
+  // 1/4 pel samples
   for( x = 0; x < iInLength-1 ; x++)
     {
-      Tmp1dBufferInQ1pel[x] = (m_paiTmp1dBufferIn[x] + Tmp1dBufferInHalfpel[x] + 1) >> 1;
-      Tmp1dBufferInQ3pel[x] = (m_paiTmp1dBufferIn[x+1] + Tmp1dBufferInHalfpel[x] + 1) >> 1;
+      Tmp1dBufferInQ1pel[x] = ( (m_paiTmp1dBufferIn[x]<<5) + Tmp1dBufferInHalfpel[x] + 1) >> 1;
+      Tmp1dBufferInQ3pel[x] = ( (m_paiTmp1dBufferIn[x+1]<<5) + Tmp1dBufferInHalfpel[x] + 1) >> 1;
     }
-  Tmp1dBufferInQ1pel[iInLength-1] = (m_paiTmp1dBufferIn[iInLength-1] + Tmp1dBufferInHalfpel[iInLength-1] + 1) >> 1;
+  Tmp1dBufferInQ1pel[iInLength-1] = ( (m_paiTmp1dBufferIn[iInLength-1]<<5) + Tmp1dBufferInHalfpel[iInLength-1] + 1) >> 1;
   Tmp1dBufferInQ3pel[iInLength-1] = Tmp1dBufferInHalfpel[iInLength-1] ;
 
+  // generic interpolation to nearest 1/4 pel position
   for (int iout=0; iout<iOutLength; iout++)
     {
       double    dpos0 = ((double)iout * iInLength / iOutLength);
@@ -1128,32 +1311,33 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator 
       switch (iIndex)
         {
         case 0:
-          m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos0];
+          m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos0] << 5; // original pel value
           break;
 			
         case 1:
         case 2:
-          m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ1pel[ipos0];
+          m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ1pel[ipos0]; // 1/4 pel value
           break;
 			
         case 3:
         case 4:
-          m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInHalfpel[ipos0];
+          m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInHalfpel[ipos0]; // half pel value
           break;
 			
         case 5:
         case 6:
-          m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ3pel[ipos0];
+          m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ3pel[ipos0]; // 1/4 pel value
           break;
 			
         case 7:
           int ipos1 = (ipos0+1 < iInLength) ? ipos0+1 : ipos0;
-          m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos1];
+          m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos1] << 5; // original pel value
           break;
 
         }
     }  
 }
+//TMM_ESS_UNIFIED }
 
 
 // =================================================================================
@@ -1229,29 +1413,29 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
                            int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
                            int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag )
 {
-#if CE10_1
+#if DIRECT_INTERP  // SSUN@SHARP
   const int filter16[16][6] = { // Lanczos3
                                 {0,0,32,0,0,0},
                                 {0,-2,32,2,0,0},
                                 {1,-3,31,4,-1,0},
-                                {1,-4,30,7,-2,0},
+                                {1,-4,30,6,-1,0},
                                 {1,-4,28,9,-2,0},
-                                {1,-5,27,11,-3,1},
+                                {1,-4,27,11,-3,0},
                                 {1,-5,25,14,-3,0},
                                 {1,-5,22,17,-4,1},
                                 {1,-5,20,20,-5,1},
                                 {1,-4,17,22,-5,1},
                                 {0,-3,14,25,-5,1},
-                                {1,-3,11,27,-5,1},
+                                {0,-3,11,27,-4,1},
                                 {0,-2,9,28,-4,1},
-                                {0,-2,7,30,-4,1},
+                                {0,-1,6,30,-4,1},
                                 {0,-1,4,31,-3,1},
                                 {0,0,2,32,-2,0}
                               };
 #endif
   int i, j, k, *px, *py, div_scale, div_shift;
-#if CE10_1
-  int up_res = (16>>FLT_RES_PARA);
+#if DIRECT_INTERP  // SSUN@SHARP
+  int up_res = 16;
   int x16, y16, x, y, m;
 #else
   int up_res = 4;
@@ -1261,7 +1445,7 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
   // initialization
   px = (int *)malloc(sizeof(int)*output_width);
   py = (int *)malloc(sizeof(int)*output_height);
-#if !CE10_1
+#if !DIRECT_INTERP  // SSUN@SHARP
   QPel = (unsigned char **) malloc (sizeof(unsigned char *)*(input_height+8)*4);
   QPel[0] = (unsigned char *) malloc ((input_width+8)*(input_height+8)*16);
   for( j=1; j<((input_height+8)*4); j++) QPel[j] = QPel[j-1] + (input_width+8)*4;
@@ -1278,9 +1462,6 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
     {
       k = (i-crop_x0)*input_width*up_res + up_res/4*(2+input_chroma_phase_shift_x)*input_width - up_res/4*(2+output_chroma_phase_shift_x)*crop_w;
       px[i] = ((((k&0xffff)*div_scale)>>16)+(k>>16)*div_scale)>>(div_shift-16);
-#if CE10_1
-      px[i]*=(1<<FLT_RES_PARA);
-#endif
     }
   }
   div_shift = 0;
@@ -1295,12 +1476,9 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
     {
       k = (j-crop_y0)*input_height*up_res + up_res/4*(2+input_chroma_phase_shift_y)*input_height - up_res/4*(2+output_chroma_phase_shift_y)*crop_h;
       py[j] = ((((k&0xffff)*div_scale)>>16)+(k>>16)*div_scale)>>(div_shift-16);
-#if CE10_1
-      py[j]*=(1<<FLT_RES_PARA);
-#endif
     }
   }
-#if CE10_1
+#if DIRECT_INTERP  // SSUN@SHARP
   //========== horizontal upsampling ===========
   for( j = 0; j < input_height; j++ ) 
   {
@@ -1366,7 +1544,7 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
   // free memory
   free(px);
   free(py);
-#if !CE10_1
+#if !DIRECT_INTERP  // SSUN@SHARP
   free(QPel[0]);
   free(QPel);
 #endif

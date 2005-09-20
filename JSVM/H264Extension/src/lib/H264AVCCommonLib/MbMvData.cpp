@@ -246,6 +246,7 @@ MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , Re
 
     dx = (Int) m_acMv[iB4x4Idx].getHor();
     dy = (Int) m_acMv[iB4x4Idx].getVer();
+
     
 #if DO_QDIV
     // operator // for equations p.87

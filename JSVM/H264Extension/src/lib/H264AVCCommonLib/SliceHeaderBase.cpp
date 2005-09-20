@@ -122,6 +122,12 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bAdaptiveRefPicBufferingModeFlag  ( false )
 , m_uiCabacInitIdc                    ( 0 )
 , m_iSliceQpDelta                     ( 0 )
+//TMM_ESS_UNIFIED {
+, m_iScaledBaseLeftOffset             ( 0 ) 
+, m_iScaledBaseTopOffset              ( 0 ) 
+, m_iScaledBaseRightOffset            ( 0 ) 
+, m_iScaledBaseBottomOffset           ( 0 ) 
+//TMM_ESS_UNIFIED }
 ,m_uiBaseChromaPhaseXPlus1            ( 1 ) // TMM_ESS
 ,m_uiBaseChromaPhaseYPlus1            ( 1 ) // TMM_ESS
 {

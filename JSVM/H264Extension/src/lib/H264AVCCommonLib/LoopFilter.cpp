@@ -872,7 +872,8 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
                             MbDataCtrl*   pcMbDataCtrlRes,
                             UInt          uiMbInRow,
                             RefFrameList* pcRefFrameList0,
-                            RefFrameList* pcRefFrameList1 )
+                            RefFrameList* pcRefFrameList1,
+                            bool          spatial_scalable_flg)  // SSUN@SHARP
 {
   ROT( NULL == m_pcControlMngIf );
 
@@ -913,7 +914,8 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
                        pcMbDataAccessRes,
                        pcFrame->getFullPelYuvBuffer(),
                        pcRefFrameList0,
-                       pcRefFrameList1 ) );
+                       pcRefFrameList1,
+                       spatial_scalable_flg ) );  // SSUN@SHARP
     }
 
     if( m_eLFMode & LFM_EXTEND_INTRA_SUR )
@@ -948,7 +950,8 @@ __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess*  pcMbDataAccessMot,
                                        const MbDataAccess*  pcMbDataAccessRes,
                                        IntYuvPicBuffer*     pcYuvBuffer,
                                        RefFrameList*        pcRefFrameList0,
-                                       RefFrameList*        pcRefFrameList1 )
+                                       RefFrameList*        pcRefFrameList1,
+                                       bool                 spatial_scalable_flg)  // SSUN@SHARP
 {
   const DFP& rcDFP      = pcMbDataAccessRes->getDeblockingFilterParameter();
   const Int iFilterIdc  = rcDFP.getDisableDeblockingFilterIdc();
@@ -968,7 +971,8 @@ __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess*  pcMbDataAccessMot,
                                                                           cIdx,
                                                                           iFilterIdc,
                                                                           pcRefFrameList0,
-                                                                          pcRefFrameList1 );
+                                                                          pcRefFrameList1,
+                                                                          spatial_scalable_flg );  // SSUN@SHARP
     }
     else
     {
@@ -981,7 +985,8 @@ __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess*  pcMbDataAccessMot,
                                                                           cIdx,
                                                                           iFilterIdc,
                                                                           pcRefFrameList0,
-                                                                          pcRefFrameList1 );
+                                                                          pcRefFrameList1,
+                                                                          spatial_scalable_flg );  // SSUN@SHARP
     }
     else
     {
@@ -1005,24 +1010,73 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
                                                         LumaIdx             cIdx,
                                                         Int                 iFilterIdc,
                                                         RefFrameList*       pcRefFrameList0,
-                                                        RefFrameList*       pcRefFrameList1 )
+                                                        RefFrameList*       pcRefFrameList1,
+                                                        bool                spatial_scalable_flg )  // SSUN@SHARP
 {
-  //-- Samsung 2005.02.xx
-  if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
-  {
+  // SSUN@SHARP JVT-P013r1
+  if(spatial_scalable_flg)
+  { 
     if( cIdx.x() )
     {
-      return 1;		//	if not MB_boundary
+      const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
+      if( rcMbDataCurr.isIntra_BL() )
+      {
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx                          ), 1 );
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 1 );
+        return( 0 );
+      }
     }
-
-    // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
-    if( ( pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 ) ) &&
-          pcMbDataAccessRes->getMbDataLeft().getMbMode() == INTRA_BL )
+    else if(pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 )){
+      const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
+      const MbData& rcMbDataLeft = pcMbDataAccessRes->getMbDataLeft();
+      if(rcMbDataCurr.isIntra_BL() && rcMbDataLeft.isIntra_BL()){
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 1 );
+        ROTRS( rcMbDataLeft.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR), 1 );
+        return(0);
+      }
+      else if(rcMbDataCurr.isIntra_BL()){
+        ROTRS( rcMbDataLeft.isIntra_nonBL(), 4 );
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 );
+        if( m_pcHighpassYuvBuffer && !rcMbDataLeft.isIntra()) {
+          ROTRS( m_pcHighpassYuvBuffer->isLeft4x4BlkNotZero ( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
+        }
+        else{
+          ROTRS( rcMbDataLeft.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR), 2 );
+        }
+        return(1);
+      }
+      else if(rcMbDataLeft.isIntra_BL()){
+        ROTRS( rcMbDataCurr.isIntra_nonBL(), 4 );
+        ROTRS( rcMbDataLeft.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR), 2 );
+        if( m_pcHighpassYuvBuffer ) {
+          ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx ), 2 );
+        }
+        else {
+          ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 );
+        }
+        return(1);
+      }
+    }
+  } 
+  // SSUN@SHARP end of JVT-P013r1
+  else{  
+    //-- Samsung 2005.02.xx
+    if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
     {
-      return 1;
+      if( cIdx.x() )
+      {
+        return 1;		//	if not MB_boundary
+      }
+
+      // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
+      if( ( pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 ) ) &&
+            pcMbDataAccessRes->getMbDataLeft().getMbMode() == INTRA_BL )
+      {
+        return 1;
+      }
     }
+    //--
   }
-  //--
 
   ROFRS( pcMbDataAccessMot, cIdx.x() ? 3 : ((iFilterIdc==2 && !pcMbDataAccessRes->isAvailableLeft())|| !pcMbDataAccessRes->isLeftMbExisting()) ? 0 : 4 );
 
@@ -1097,25 +1151,72 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
                                                         LumaIdx             cIdx,
                                                         Int                 iFilterIdc,
                                                         RefFrameList*       pcRefFrameList0,
-                                                        RefFrameList*       pcRefFrameList1 )
+                                                        RefFrameList*       pcRefFrameList1,
+                                                        bool                spatial_scalable_flg )  // SSUN@SHARP
 {
-  //-- Samsung 2005.02.xx
-  if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
-  {
+  // SSUN@SHARP JVT-P013r1
+  if(spatial_scalable_flg){  
     if( cIdx.y() )
     {
-      return 1;		//	if not MB_boundary
+      const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
+      if( rcMbDataCurr.isIntra_BL() )
+      {
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx                          ), 1 );
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 1 );
+        return( 0 );
+      }
     }
-
-    // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
-    if( ( pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 ) ) &&
-          pcMbDataAccessRes->getMbDataAbove().getMbMode() == INTRA_BL )
-    {
-      return 1;
+    else if(pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 )){
+      const MbData& rcMbDataCurr = pcMbDataAccessRes->getMbDataCurr();
+      const MbData& rcMbDataAbove = pcMbDataAccessRes->getMbDataAbove();
+      if(rcMbDataCurr.isIntra_BL() && rcMbDataAbove.isIntra_BL()){
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 1 );
+        ROTRS( rcMbDataAbove.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR), 1 );
+        return(0);
+      }
+      if(rcMbDataCurr.isIntra_BL()){
+        ROTRS( rcMbDataAbove.isIntra_nonBL(), 4 );
+        ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 );
+        if( m_pcHighpassYuvBuffer && !rcMbDataAbove.isIntra() ) {
+          ROTRS( m_pcHighpassYuvBuffer->isAbove4x4BlkNotZero ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
+        }
+        else{
+          ROTRS( rcMbDataAbove.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR), 2 );
+        }
+        return(1);
+      }
+      else if(rcMbDataAbove.isIntra_BL()){
+        ROTRS( rcMbDataCurr.isIntra_nonBL(), 4 );
+        ROTRS( rcMbDataAbove.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR), 2 );
+        if( m_pcHighpassYuvBuffer ) {
+          ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx ), 2 );
+        }
+        else {
+          ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 );
+        }
+        return(1);
+      }
     }
   }
-  //--
+  // SSUN@SHARP end of JVT-P013r1
+  else{  
+    //-- Samsung 2005.02.xx
+    if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
+    {
+      if( cIdx.y() )
+      {
+        return 1;		//	if not MB_boundary
+      }
 
+      // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
+      if( ( pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 ) ) &&
+            pcMbDataAccessRes->getMbDataAbove().getMbMode() == INTRA_BL )
+      {
+        return 1;
+      }
+    }
+    //--
+  }
   ROFRS( pcMbDataAccessMot, cIdx.y() ? 3 : ((iFilterIdc==2 && !pcMbDataAccessRes->isAvailableAbove())|| !pcMbDataAccessRes->isAboveMbExisting()) ? 0 : 4 );
 
   const MbData& rcMbDataCurrMot = pcMbDataAccessMot->getMbDataCurr();

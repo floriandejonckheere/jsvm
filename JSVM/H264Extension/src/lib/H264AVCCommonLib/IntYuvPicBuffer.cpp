@@ -1085,6 +1085,8 @@ ErrVal IntYuvPicBuffer::dumpLPS( FILE* pFile )
     ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
   }
 
+  delete [] pChar; // bug-fix by H. Schwarz / J. Reichel
+
   return Err::m_nOK;
 }
 
@@ -1172,6 +1174,10 @@ ErrVal IntYuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
     pPel += iStride;
     ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
   }
+
+
+  delete [] pChar; // bug-fix by H. Schwarz / J. Reichel
+  delete [] pucIntra; // bug-fix by H. Schwarz / J. Reichel
 
   return Err::m_nOK;
 }

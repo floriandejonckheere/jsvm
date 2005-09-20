@@ -1683,10 +1683,12 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
 
+
   switch( eMbMode )
   {
   case MODE_16x16:
     {
+
       if( bCalcMv )
       {
         xCalc16x16( rcMbDataAccess, NULL );
@@ -1699,7 +1701,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
       IntFrame* pcRefFrame0 = ( iRefIdx0 > 0 ? rcRefFrameList0[ iRefIdx0 ] : NULL );
       IntFrame* pcRefFrame1 = ( iRefIdx1 > 0 ? rcRefFrameList1[ iRefIdx1 ] : NULL );
       xGetMbPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D );
-      
+
       xPredLuma(   pcRecBuffer, 16, 16, cMC8x8D );
       xPredChroma( pcRecBuffer,  8,  8, cMC8x8D );
     }
