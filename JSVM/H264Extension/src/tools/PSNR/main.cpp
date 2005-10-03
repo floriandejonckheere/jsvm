@@ -274,7 +274,8 @@ int main(int argc, char *argv[])
   //===== variables =====
   unsigned int  index, sidx, skip, skip_between, sequence_length;
   int           py, pu, pv, br;
-  double        bitrate, psnrY, psnrU, psnrV;
+  double        bitrate = 0.0;
+  double        psnrY, psnrU, psnrV;
   YuvFrame      cOrgFrame, cRecFrame;
   DownConvert   cDownConvert;
   double        AveragePSNR_Y = 0.0;
