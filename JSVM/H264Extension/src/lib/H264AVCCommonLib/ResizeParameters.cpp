@@ -96,7 +96,7 @@ ResizeParameters::setPictureParametersByValue ( Int index, Int px, Int py, Int o
 ErrVal
 ResizeParameters::readPictureParameters ( Int index )
 {
-    Int iPosX, iPosY, iOutWidth, iOutHeight, iBaseChromaPhaseX=0, iBaseChromaPhaseY=0;
+    Int iPosX, iPosY, iOutWidth, iOutHeight, iBaseChromaPhaseX=-1, iBaseChromaPhaseY=-1;  // SSUN, 27Sept2005
 
     if ( fscanf(m_pParamFile,"%d,%d,%d,%d\n",&iPosX,&iPosY,&iOutWidth,&iOutHeight) == 0 )
     {

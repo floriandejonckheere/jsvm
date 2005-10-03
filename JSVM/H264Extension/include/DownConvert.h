@@ -288,14 +288,14 @@ private:
                                   int x, int y, int w, int h,  
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
-                                  bool chroma, 
+                                  bool chroma, int rounding_para,  // SSUN, 27Sept2005
                                   unsigned char *buf_blocksize );
   void   xFilterResidualVer     ( short *buf_in, short *buf_out, 
                                   int width, int height, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
-                                  bool chroma, 
+                                  bool chroma, int rounding_para,  // SSUN, 27Sept2005
                                   unsigned char *buf_blocksize );
   // end of SSUN@SHARP
   void   xUpsamplingFrame       ( ResizeParameters* pcParameters,
