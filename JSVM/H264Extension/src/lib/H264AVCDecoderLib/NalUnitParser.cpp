@@ -243,7 +243,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
 
 
 ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor )
+NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag )
 {
   ROF( pcBinDataAccessor->size() );
   ROF( pcBinDataAccessor->data() );
@@ -256,6 +256,8 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor )
   //===== NAL unit header =====
   ROT( ucByte & 0x80 );                                     // forbidden_zero_bit ( &10000000b)
   m_eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
+  if ( m_eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST && KeyPicFlag != NULL )
+	*KeyPicFlag = true;
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
   
   //{{Variable Lengh NAL unit header data with priority and dead substream flag

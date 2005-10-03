@@ -320,7 +320,7 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
 
   if( ! bEos )
   {
-    RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor ) );
+    RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL ) );
 
     eNalUnitType = m_pcNalUnitParser->getNalUnitType();
 
@@ -482,7 +482,8 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     return Err::m_nOK;
   }
 
-  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor ) );
+  Bool KeyPicFlag = false;
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag ) );
 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();
   
@@ -492,6 +493,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   case NAL_UNIT_CODED_SLICE_IDR:
     RNOK( xStartSlice() );
     RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
+    m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag);
     m_bActive = true;
     break;
 
@@ -548,6 +550,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     {
       RNOK( xStartSlice() );
       RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
+	  m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag);
     }
     break;
 
@@ -993,7 +996,7 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 
 
   //===== decode slice =====
-  Bool  bLowPass     = ( rcSH.isIdrNalUnit() || rcSH.getAdaptiveRefPicBufferingFlag() );
+  Bool  bLowPass     = ( rcSH.isIdrNalUnit() || rcSH.getKeyPictureFlag() );
   Bool  bReconstruct = bLowPass || ! m_bEnhancementLayer;
 #if MULTIPLE_LOOP_DECODING
   bReconstruct = ( bReconstruct || m_bCompletelyDecodeLayer );
@@ -1031,7 +1034,7 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
       else
 #endif
       {
-        if( rcSH.isIdrNalUnit() || rcSH.getAdaptiveRefPicBufferingFlag() ) 
+        if( rcSH.isIdrNalUnit() || rcSH.getKeyPictureFlag() ) 
         {
           if( m_bSpatialScalability && ! rcSH.getPPS().getConstrainedIntraPredFlag() )
           {
@@ -1130,7 +1133,7 @@ H264AVCDecoder::xReconstructLastFGS()
       else
 #endif
       {
-        Bool bLowpass = ( pcSliceHeader->isIdrNalUnit() || pcSliceHeader->getAdaptiveRefPicBufferingFlag() );
+        Bool bLowpass = ( pcSliceHeader->isIdrNalUnit() || pcSliceHeader->getKeyPictureFlag() );
         RNOK( xClipIntraMacroblocks( pcRecFrame, pcMbDataCtrl, pcSliceHeader, bLowpass ) );
         if( bLowpass && m_bSpatialScalability && ! pcSliceHeader->getPPS().getConstrainedIntraPredFlag() )
         {

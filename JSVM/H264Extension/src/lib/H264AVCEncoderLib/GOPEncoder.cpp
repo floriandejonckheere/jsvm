@@ -2265,15 +2265,12 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 
 
   //===== get slice header parameters =====
-  NalRefIdc     eNalRefIdc      = NalRefIdc( min( 3, max( 0, (Int)( m_uiDecompositionStages - m_uiNotCodedMCTFStages - uiTemporalLevel ) ) ) );
+  NalRefIdc     eNalRefIdc;
 
-  // Bug fix: yiliang.bao@nokia.com
-  // encoder crashes if GOP size is 1 (m_uiDecompositionStages == 0), 
-  // because a low-pass frame becomes a non-reference frame
-  if( uiTemporalLevel == 0 && eNalRefIdc == NAL_REF_IDC_PRIORITY_LOWEST )
-  {
-    eNalRefIdc = NAL_REF_IDC_PRIORITY_HIGHEST;
-  }
+  if ( uiFrameIdInGOP == 0 || uiFrameIdInGOP == ( 1 << m_uiDecompositionStages ) )
+	  eNalRefIdc = NAL_REF_IDC_PRIORITY_HIGHEST;
+  else
+	  eNalRefIdc = NalRefIdc( min( 2, max( 0, (Int)( m_uiDecompositionStages - m_uiNotCodedMCTFStages - uiTemporalLevel ) ) ) );
 
   NalUnitType   eNalUnitType    = ( m_bH264AVCCompatible
                                     ? ( uiFrameIdInGOP ? NAL_UNIT_CODED_SLICE          : NAL_UNIT_CODED_SLICE_IDR          )
@@ -2282,7 +2279,7 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   UInt          uiGOPSize       = uiFrameIdInGOP ? m_uiGOPSize             : 1;
   UInt          uiDecStages     = uiFrameIdInGOP ? m_uiDecompositionStages : 0;
 
-  Bool          bKeyPicture     = ( uiFrameIdInGOP == 0 || uiFrameIdInGOP == ( 1 << m_uiDecompositionStages ) );
+  Bool          bKeyPicture     = ( eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST ) ? 1 : 0;
 
   //===== set simple slice header parameters =====
   pcSliceHeader->setNalRefIdc                   ( eNalRefIdc            );
@@ -5262,8 +5259,14 @@ MCTFEncoder::xSetRplrAndMmco( SliceHeader& rcSH )
   }
 
   // end of command list
-  rcSH.getMmcoBuffer().set( uiPos, Mmco( MMCO_END) );
-  rcSH.setAdaptiveRefPicBufferingFlag( true );
+  if ( uiPos )
+  {
+	rcSH.getMmcoBuffer().set( uiPos, Mmco( MMCO_END) );
+
+	rcSH.setAdaptiveRefPicBufferingFlag( true );
+  }
+  else
+	rcSH.setAdaptiveRefPicBufferingFlag( false );
 
   // insert frame_num
   m_cLPFrameNumList.push_front( uiCurrFrameNr );

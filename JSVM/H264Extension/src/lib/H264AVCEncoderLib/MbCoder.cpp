@@ -221,7 +221,12 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 
       if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX && eMbModeSet == INTRA_4X4 )
       {
-        RNOK( m_pcMbSymbolWriteIf->blFlag( rcMbDataAccess ) );    
+		Bool bConstrainedInterLayerPred = rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase );;
+
+	    if( ( pcMbDataAccessBase->getMbData().isIntra() || !bConstrainedInterLayerPred ) &&
+			pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) {
+          RNOK( m_pcMbSymbolWriteIf->blFlag( rcMbDataAccess ) );    
+		}
       }
     }
 

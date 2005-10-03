@@ -271,6 +271,9 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
 
     if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX && rcMbDataAccess.getMbData().getMbMode() == INTRA_4X4 )
     {
+	  Bool bConstrainedInterLayerPred = rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase );
+	  if( ( pcMbDataAccessBase->getMbData().isIntra() || !bConstrainedInterLayerPred ) &&
+	      pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
       DECRNOK( m_pcMbSymbolReadIf->blFlag( rcMbDataAccess ) );
     }
   }

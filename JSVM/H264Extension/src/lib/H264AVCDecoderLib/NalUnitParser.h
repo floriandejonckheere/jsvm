@@ -108,7 +108,7 @@ public:
   ErrVal        init            ( BitReadBuffer*    pcBitReadBuffer   );
   ErrVal        destroy         ();
 
-  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor );
+  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, Bool* KeyPicFlag );
   ErrVal        closeNalUnit    ();
 
   NalUnitType   getNalUnitType  ()      { return m_eNalUnitType;    }

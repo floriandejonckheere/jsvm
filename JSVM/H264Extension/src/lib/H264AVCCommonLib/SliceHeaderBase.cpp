@@ -214,7 +214,6 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( m_eSliceType != F_SLICE )
   {
-    RNOK(   pcWriteIf->writeFlag( m_bKeyPictureFlag,                            "SH: key_picture_flag" ) );
 // VW {
     RNOK(   pcWriteIf->writeUvlc( m_uiNumberOfUpdateLevel,                      "SH: number_of_update_level" ) );
 // VW }
@@ -459,7 +458,6 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   
   if( m_eSliceType != F_SLICE )
   {
-    RNOK(   pcReadIf->getFlag( m_bKeyPictureFlag,                            "SH: key_picture_flag" ) );
 //VW {
     RNOK(   pcReadIf->getUvlc( m_uiNumberOfUpdateLevel,                      "SH: number_of_update_level" ) );
 //VW }

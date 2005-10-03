@@ -232,6 +232,30 @@ public:
   Bool  isLeftMbExisting  () const { return m_uiPosX != 0; }
   Bool  isAboveMbExisting () const { return ( ! ( m_uiPosY == 0 ) ); }
 
+  Bool isConstrainedInterLayerPred( MbDataAccess* pcMbDataAccessBase )
+  {
+    Bool bConstrainedInterLayerPred;
+#if !MULTIPLE_LOOP_DECODING
+	if( getSH().getKeyPictureFlag() && !pcMbDataAccessBase->getSH().getPPS().getConstrainedIntraPredFlag() )
+	  bConstrainedInterLayerPred = 0;
+	else 
+	  bConstrainedInterLayerPred = 1;
+#else
+	if( getSH().getKeyPictureFlag() )
+	{
+	  if( pcMbDataAccessBase->getSH().getPPS().getConstrainedIntraPredFlag() ) bConstrainedInterLayerPred = 1;
+	  else                                                                     bConstrainedInterLayerPred = 0;
+	}
+	else
+	{
+	  if( getSH().getSPS().getAlwaysDecodeBaseLayer() ) bConstrainedInterLayerPred = 0;
+	  else                                              bConstrainedInterLayerPred = 1;
+	}
+    // Note that bConstrainedInterLyaerPred, especially for multiloop case, might be modified, cleared, or removed...
+#endif
+	return bConstrainedInterLayerPred;
+  }
+
   UInt getCtxChromaPredMode ()                  const;
   UInt getCtxCoeffCount     ( LumaIdx cIdx )    const;
   UInt getCtxCoeffCount     ( ChromaIdx cIdx )  const;

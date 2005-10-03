@@ -515,7 +515,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     BinDataAccessor cBinDataAccessor;
     cBinData.setMemAccessor( cBinDataAccessor );
 
-    RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor ) );
+    RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL ) );
     SEI::MessageList cMessageList;
     RNOK( SEI::read( m_pcUvlcReader, cMessageList ) );
 
@@ -604,7 +604,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     BinDataAccessor cBinDataAccessor;
     cBinData.setMemAccessor( cBinDataAccessor );
     
-    RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor ) );
+	RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL ) );
   
     // get the SPSid
     if(eNalUnitType == NAL_UNIT_SPS )

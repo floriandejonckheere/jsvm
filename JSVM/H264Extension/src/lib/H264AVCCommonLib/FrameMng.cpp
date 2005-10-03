@@ -552,7 +552,7 @@ ErrVal FrameMng::xSetInitialReferenceListPFrame( SliceHeader& rcSH )
 {
   RefPicList<RefPic>& rcList = rcSH.getRefPicList( LIST_0 );
 
-  if( ! rcSH.getAdaptiveRefPicBufferingFlag() )
+  if( ! rcSH.getKeyPictureFlag() ) 
     m_cShortTermList.setRefPicListFGS( rcList );
   else
     m_cShortTermList.setRefPicList( rcList );
@@ -569,7 +569,7 @@ ErrVal FrameMng::xSetInitialReferenceListBFrame( SliceHeader& rcSH )
 
   //====== set Poc ordered short-term list and get index with smallest Poc greater than current ======
   m_cPocOrderedFrameList.reset();
-  if( ! rcSH.getAdaptiveRefPicBufferingFlag() )
+  if( ! rcSH.getKeyPictureFlag() ) 
     m_cShortTermList.setRefFrameListFGS( m_cPocOrderedFrameList );
   else
     m_cShortTermList.setRefFrameList( m_cPocOrderedFrameList );
@@ -998,7 +998,7 @@ ErrVal FrameMng::xReferenceListRemapping( SliceHeader& rcSH, ListIdx eListIdx )
       else
       { // everything is fine
         //---- set frame ----
-        if( ! rcSH.getAdaptiveRefPicBufferingFlag() )
+        if( ! rcSH.getKeyPictureFlag() ) 
         {
           if( (*iter)->getFGSPicBuffer() )
           {

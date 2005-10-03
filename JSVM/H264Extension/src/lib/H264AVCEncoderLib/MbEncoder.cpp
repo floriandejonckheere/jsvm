@@ -280,6 +280,7 @@ MbEncoder::encodeIntra( MbDataAccess&  rcMbDataAccess,
     ROF ( pcBaseLayer );
     //===== check intra base mode (if base layer is available) =====
 
+    if( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
     if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
     RNOK( xEstimateMbIntraBL( m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayer, false, pcMbDataAccessBase  ) );
   }
@@ -893,9 +894,7 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
   //===== intra base layer mode =====
   if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
   {
-#if MULTIPLE_LOOP_DECODING
-    if( pcMbDataAccessBase->getMbData().isIntra() || rcMbDataAccess.getSH().getSPS().getAlwaysDecodeBaseLayer() )
-#endif
+    if( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
       if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
     RNOK  ( xEstimateMbIntraBL  ( m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayerFrame, bBSlice,                                                              pcMbDataAccessBase ) );
   }
