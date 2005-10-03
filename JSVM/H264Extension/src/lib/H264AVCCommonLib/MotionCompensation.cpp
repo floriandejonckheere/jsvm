@@ -1410,7 +1410,7 @@ Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride
   }
 
   pBuf = interpBuf;
-  int Th = max(0,weight - 6);
+  int Th = max(0, (int)weight/2 - 1 ) ;
   for( UInt y = 0; y < updSizeY; y++)
   {
     for( UInt x = 0; x < updSizeX; x++)
@@ -1418,9 +1418,9 @@ Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride
       pBuf[x] = (pBuf[x] + (1 << (bitShift-1))) >> bitShift;
       pBuf[x] = max(-Th, min(Th, pBuf[x]));
       if(getUpdId() == NML_UPD)
-        pDest[x] = (XPel)gClip( pDest[x] + ((pBuf[x] + 1)>>1) );
+        pDest[x] = (XPel)gClip( pDest[x] + ((pBuf[x] + (pBuf[x]>0? 1:-1))/4) );
       else
-        pDest[x] = (XPel)gClip( pDest[x] - ((pBuf[x] + 1)>>1) );
+        pDest[x] = (XPel)gClip( pDest[x] - ((pBuf[x] + (pBuf[x]>0? 1:-1))/4) );
     }
     pBuf += BUF_W;
     pDest += iDestStride;
@@ -1499,7 +1499,7 @@ __inline Void MotionCompensation::xUpdateChromaPel( XPel* pucDest, Int iDestStri
   m_pcQuarterPelFilter->xUpdInterpChroma(pBuf, BUF_W, pucSrc, iSrcStride, cMv, iSizeY, iSizeX);
 
   pBuf = interpBuf;
-  int Th = max(0,weight - 6);
+  int Th = max(0, (int)weight/2 - 1 ) ;
   for( UInt y = 0; y < iSizeY + 1; y++)
   {
     for( UInt x = 0; x < iSizeX + 1; x++)
@@ -1507,9 +1507,9 @@ __inline Void MotionCompensation::xUpdateChromaPel( XPel* pucDest, Int iDestStri
       pBuf[x] = (pBuf[x] + 32) >> 6;
       pBuf[x] = max(-Th, min(Th, pBuf[x]));
       if(getUpdId() == NML_UPD)
-        pucDest[x] = (XPel)gClip( pucDest[x] + ((pBuf[x] + 1)>>1) );
+        pucDest[x] = (XPel)gClip( pucDest[x] + ((pBuf[x] + (pBuf[x]>0? 2:-2))/4) );
       else  // inverse update
-        pucDest[x] = (XPel)gClip( pucDest[x] - ((pBuf[x] + 1)>>1) );
+        pucDest[x] = (XPel)gClip( pucDest[x] - ((pBuf[x] + (pBuf[x]>0? 2:-2))/4) );
     }
     pBuf += BUF_W;
     pucDest += iDestStride;
