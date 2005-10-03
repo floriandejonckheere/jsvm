@@ -436,8 +436,8 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   {
     ii = i * wsize_in *4 + rounding_para;
     if( ii < 0 ) ii = 0;
-    i1 = ( ( ( ( ii & 0xffff ) * new_div[1] ) >> 16 ) + ( ii>>16 ) * new_div[1] ) >> ( new_div[0] - 16 );
-    k = ( ( ( ( ( ii & 0xffff ) * new_div[1] ) >> 16 ) + ( ii>>16 ) * new_div[1] ) >> ( new_div[0] - 20 ) ) - i1 * 16;
+    i1 = ( ( ( ( ii & 0xffff ) * new_div[1] ) >> 16 ) + ( ii>>16 ) * new_div[1] ) >> ( new_div[0] - 14 );
+    k = ( ( ( ( ( ii & 0xffff ) * new_div[1] ) >> 16 ) + ( ii>>16 ) * new_div[1] ) >> ( new_div[0] - 18 ) ) - i1 * 16;
     p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
     p = p < 0 ? 0 : p;
     x16[i] = i1; k16[i] = k; p16[i] = p;
@@ -501,8 +501,8 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
   {
     jj = j * hsize_in * 4 + rounding_para;
     if( jj < 0 ) jj = 0;
-    j1 = ( ( ( ( jj & 0xffff ) * new_div[1] ) >> 16 ) + ( jj >> 16 ) * new_div[1] ) >> ( new_div[0] - 16 );
-    k = ( ( ( ( ( jj & 0xffff ) * new_div[1] ) >> 16 ) + ( jj >> 16 ) * new_div[1] ) >> ( new_div[0] - 20 ) ) - j1 * 16;
+    j1 = ( ( ( ( jj & 0xffff ) * new_div[1] ) >> 16 ) + ( jj >> 16 ) * new_div[1] ) >> ( new_div[0] - 14 );
+    k = ( ( ( ( ( jj & 0xffff ) * new_div[1] ) >> 16 ) + ( jj >> 16 ) * new_div[1] ) >> ( new_div[0] - 18 ) ) - j1 * 16;
     p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
     p = p < 0 ? 0 : p;
     y16[j] = j1; k16[j] = k; p16[j] = p;
@@ -568,13 +568,13 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr1+=iStrideY;
   }
   rounding_para = 2*(iWidth-w);
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 0, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 0, rounding_para, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideY;
   }
   rounding_para = 2*(iHeight-h);
-  xFilterResidualVer(tmp_buf2, buf2, iStrideY, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 0, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideY, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 0, rounding_para, tmp_buf3);
 
   // chroma
   width>>=1; height>>=1; x>>=1; y>>=1; w>>=1; h>>=1; iWidth>>=1; iHeight>>=1;
@@ -588,13 +588,13 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr1+=iStrideU;
   }
   rounding_para = (2+pcParameters->m_iBaseChromaPhaseX)*iWidth - (2+pcParameters->m_iChromaPhaseX)*w;
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
   rounding_para = (2+pcParameters->m_iBaseChromaPhaseY)*iHeight - (2+pcParameters->m_iChromaPhaseY)*h;
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
 
   // V
   buf1=buf2=psBufferV;
@@ -606,13 +606,13 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr1+=iStrideV;
   }
   rounding_para = (2+pcParameters->m_iBaseChromaPhaseX)*iWidth - (2+pcParameters->m_iChromaPhaseX)*w;
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
   rounding_para = (2+pcParameters->m_iBaseChromaPhaseY)*iHeight - (2+pcParameters->m_iChromaPhaseY)*h;
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
   
   free(tmp_buf1);
   free(tmp_buf2);
