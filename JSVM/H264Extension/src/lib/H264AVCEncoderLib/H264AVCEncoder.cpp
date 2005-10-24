@@ -1037,7 +1037,7 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << rcLayerParameters.getDecompositionStages() );
-    UInt              uiNumRefPic         = uiDPBSize - ( uiDPBSize > 1 ? 1 : 0 );
+    UInt              uiNumRefPic         = uiDPBSize - ( uiDPBSize > 2 ? 1 : 0 );
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
     ROT( bH264AVCCompatible && uiDPBSize > 16 );
     ROT( uiLevelIdc == MSYS_UINT_MAX );
