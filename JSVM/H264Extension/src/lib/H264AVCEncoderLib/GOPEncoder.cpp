@@ -535,6 +535,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   //{{Adaptive GOP structure
   // --ETRI & KHU
   m_uiUseAGS = pcCodingParameter->getUseAGS();
+  m_uiMaxDecStages = m_uiDecompositionStages; // -- 10.18.2005
   if (m_uiUseAGS) 
   {
 	  m_uiWriteGOPMode = pcCodingParameter->getWriteGOPMode();
@@ -1556,11 +1557,27 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     RNOK( xInitExtBinDataAccessor               (  m_cExtBinDataAccessor ) );
     RNOK( m_pcNalUnitEncoder->initNalUnit       ( &m_cExtBinDataAccessor ) );
 
+	//{{Adaptive GOP structure -- 10.18.2005
+    // --ETRI & KHU 
+    UInt uitemp_TL = pcSliceHeader->getTemporalLevel();
+    if (m_uiUseAGS) {
+      pcSliceHeader->setTemporalLevel(m_uiTemporalLevel_AGS);
+    }
+    //}}Adaptive GOP structure -- 10.18.2005
+
     //---- write Slice Header -----
     ETRACE_NEWSLICE;
     //pcSliceHeader->setQualityLevel       ( uiRecLayer );
     xAssignSimplePriorityId( pcSliceHeader );
     RNOK( m_pcNalUnitEncoder->write  ( *pcSliceHeader ) );
+
+	//{{Adaptive GOP structure -- 10.18.2005
+    // --ETRI & KHU 
+    if (m_uiUseAGS) {
+      pcSliceHeader->setTemporalLevel(uitemp_TL);
+    }
+    //}}Adaptive GOP structure -- 10.18.2005
+
     Int iQp = pcSliceHeader->getPicQp();
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -1723,12 +1740,25 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
   RNOK( xInitExtBinDataAccessor                 (  m_cExtBinDataAccessor ) );
   RNOK( m_pcNalUnitEncoder->initNalUnit         ( &m_cExtBinDataAccessor ) );
 
+  //{{Adaptive GOP structure -- 10.18.2005
+  // --ETRI & KHU 
+  UInt uitemp_TL = pcSliceHeader->getTemporalLevel();
+  if (m_uiUseAGS && !m_bH264AVCCompatible) {
+    pcSliceHeader->setTemporalLevel(m_uiTemporalLevel_AGS);
+  }
+  //}}Adaptive GOP structure -- 10.18.2005
+
   //---- write Slice Header -----
   ETRACE_NEWSLICE;
   xAssignSimplePriorityId( pcSliceHeader );
   RNOK( m_pcNalUnitEncoder->write               ( *pcSliceHeader ) );
 
-
+  //{{Adaptive GOP structure -- 10.18.2005
+  // --ETRI & KHU 
+  if (m_uiUseAGS && !m_bH264AVCCompatible) {
+    pcSliceHeader->setTemporalLevel(uitemp_TL);
+  }
+  //}}Adaptive GOP structure -- 10.18.2005
 
   rcControlData.getPrdFrameList( LIST_0 ).reset();
   rcControlData.getPrdFrameList( LIST_1 ).reset();
@@ -1818,11 +1848,25 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
   RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
   RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
 
+  //{{Adaptive GOP structure -- 10.18.2005
+  // --ETRI & KHU 
+  UInt uitemp_TL = rcControlData.getSliceHeader()->getTemporalLevel();
+  if (m_uiUseAGS && !m_bH264AVCCompatible) {
+    rcControlData.getSliceHeader()->setTemporalLevel(m_uiTemporalLevel_AGS);
+  }
+  //}}Adaptive GOP structure -- 10.18.2005
+
   //---- write Slice Header -----
   ETRACE_NEWSLICE;
   xAssignSimplePriorityId( rcControlData.getSliceHeader() );
   RNOK( m_pcNalUnitEncoder->write( *rcControlData.getSliceHeader() ) );
 
+  //{{Adaptive GOP structure -- 10.18.2005
+  // --ETRI & KHU 
+  if (m_uiUseAGS && !m_bH264AVCCompatible) {
+    rcControlData.getSliceHeader()->setTemporalLevel(uitemp_TL);
+  }
+  //}}Adaptive GOP structure -- 10.18.2005
 
   //----- write slice data -----
   RNOK( m_pcSliceEncoder->encodeHighPassPicture ( uiMbCoded, uiBits, uiBitsRes,
@@ -2195,13 +2239,31 @@ MCTFEncoder::xGetListSizes( UInt  uiTemporalLevel,
   //----- check intra -----
   if( m_uiLowPassIntraPeriod != MSYS_UINT_MAX )
   {
-    UInt  uiCurrFrame   = (   m_uiGOPNumber                << m_uiDecompositionStages ) + uiFrameIdInGOP;
-    UInt  uiIntraPeriod = ( ( m_uiLowPassIntraPeriod + 1 ) << m_uiDecompositionStages );
-    if( ( uiCurrFrame % uiIntraPeriod ) == 0 )
-    {
-      auiPredListSize[0] = 0;
-      auiPredListSize[1] = 0;
+	//{{Adaptive GOP structure -- 10.18.2005
+    // --ETRI & KHU
+    if (!m_uiUseAGS) {
+    //}}Adaptive GOP structure -- 10.18.2005
+
+		UInt  uiCurrFrame   = (   m_uiGOPNumber                << m_uiDecompositionStages ) + uiFrameIdInGOP;
+		UInt  uiIntraPeriod = ( ( m_uiLowPassIntraPeriod + 1 ) << m_uiDecompositionStages );
+		if( ( uiCurrFrame % uiIntraPeriod ) == 0 )
+		{
+		  auiPredListSize[0] = 0;
+		  auiPredListSize[1] = 0;
+		}
+	//{{Adaptive GOP structure -- 10.18.2005
+    // --ETRI & KHU
     }
+    else {
+      UInt  uiCurrFrame   = m_uiFrameCounter - 1 - m_uiGOPSize + uiFrameIdInGOP;
+	    UInt  uiIntraPeriod = ( ( m_uiLowPassIntraPeriod + 1 ) << m_uiMaxDecStages );
+      if( ( uiCurrFrame % uiIntraPeriod ) == 0 )
+      {
+        auiPredListSize[0] = 0;
+        auiPredListSize[1] = 0;
+      }
+    }
+    //}}Adaptive GOP structure -- 10.18.2005
   }
 
   return Err::m_nOK;
@@ -3580,6 +3642,94 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     //===== initialize =====
     RNOK( xInitControlDataLowPass ( uiFrameIdInGOP, m_uiDecompositionStages-1,uiFrame ) );
 
+    //{{Adaptive GOP structure -- 10.18.2005
+    // --ETRI & KHU 
+    if (m_uiUseAGS) {
+	    if (!m_uiWriteGOPMode) {
+		    if (m_uiMaxDecStages == 4) {
+			    UInt order = (m_uiFrameCounter - m_uiGOPSize)/16;
+			    int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 16 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 3;
+			    else
+			      m_uiTemporalLevel_AGS = 4;
+		    }
+		    else if (m_uiMaxDecStages == 5) {
+			    UInt order = (m_uiFrameCounter - m_uiGOPSize)/32;
+			    int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 32 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 16 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 3;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 4;
+			    else
+			      m_uiTemporalLevel_AGS = 5;
+		    }
+		    else if (m_uiMaxDecStages == 6) {
+			    UInt order = (m_uiFrameCounter - m_uiGOPSize)/64;
+		        int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 64 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 32 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 16 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 3;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 4;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 5;
+			    else
+			      m_uiTemporalLevel_AGS = 6;
+        }
+        else if (m_uiMaxDecStages == 3) {
+          UInt order = (m_uiFrameCounter - m_uiGOPSize)/8;
+		      int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else
+			      m_uiTemporalLevel_AGS = 3;
+		      }
+	    }
+    }
+    //}}Adaptive GOP structure -- 10.18.2005
+
     //===== base layer encoding =====
     RNOK( pcBLRecFrame->copy      ( pcFrame ) );
     RNOK( xEncodeLowPassSignal    ( rcOutputList,
@@ -3837,6 +3987,94 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 
     RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame ) );
 
+    //{{Adaptive GOP structure -- 10.18.2005
+    // --ETRI & KHU 
+    if (m_uiUseAGS) {
+
+	    if (!m_uiWriteGOPMode) {
+		    if (m_uiMaxDecStages == 4) {
+			    UInt order = (m_uiFrameCounter - m_uiGOPSize)/16;
+			    int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 16 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 3;
+			    else
+			      m_uiTemporalLevel_AGS = 4;
+		    }
+		    else if (m_uiMaxDecStages == 5) {
+			    UInt order = (m_uiFrameCounter - m_uiGOPSize)/32;
+			    int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 32 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 16 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 3;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 4;
+			    else
+			      m_uiTemporalLevel_AGS = 5;
+		    }
+		    else if (m_uiMaxDecStages == 6) {
+			    UInt order = (m_uiFrameCounter - m_uiGOPSize)/64;
+		        int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 64 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 32 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 16 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 3;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 4;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 5;
+			    else
+			      m_uiTemporalLevel_AGS = 6;
+        }
+        else if (m_uiMaxDecStages == 3) {
+          UInt order = (m_uiFrameCounter - m_uiGOPSize)/8;
+		      int pre_encoded = 0;
+
+			    for(int i = 0; i < m_uiSelectPos;i++) {
+			      pre_encoded += 1 << m_uiSelect[order][i];
+			    }
+			    pre_encoded += uiFrameIdInGOP;
+			    if (pre_encoded % 8 == 0)
+			      m_uiTemporalLevel_AGS = 0;
+			    else if (pre_encoded % 4 == 0)
+			      m_uiTemporalLevel_AGS = 1;
+			    else if (pre_encoded % 2 == 0)
+			      m_uiTemporalLevel_AGS = 2;
+			    else
+			      m_uiTemporalLevel_AGS = 3;
+		      }
+	    }
+    }
+    //}}Adaptive GOP structure -- 10.18.2005
 
     //===== base layer encoding =====
     //--- closed-loop coding of base quality layer ---

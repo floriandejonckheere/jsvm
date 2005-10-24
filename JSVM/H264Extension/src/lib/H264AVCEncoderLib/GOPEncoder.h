@@ -589,6 +589,9 @@ protected:
   Double		m_dMSETemp;
   Bool      m_bFinish;
   std::string	m_cGOPModeFilename;
+
+  UInt      m_uiMaxDecStages; // -- // -- 10.18.2005
+  UInt      m_uiTemporalLevel_AGS; // -- 10.18.2005
   //}}Adaptive GOP structure
 
 #if MULTIPLE_LOOP_DECODING
