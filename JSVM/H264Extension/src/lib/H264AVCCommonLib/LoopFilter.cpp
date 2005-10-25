@@ -1038,6 +1038,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
         ROTRS( rcMbDataLeft.isIntra_nonBL(), 4 );
         ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 );
         if( m_pcHighpassYuvBuffer && !rcMbDataLeft.isIntra()) {
+          ROTRS( rcMbDataLeft.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
           ROTRS( m_pcHighpassYuvBuffer->isLeft4x4BlkNotZero ( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
         }
         else{
@@ -1049,6 +1050,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
         ROTRS( rcMbDataCurr.isIntra_nonBL(), 4 );
         ROTRS( rcMbDataLeft.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR), 2 );
         if( m_pcHighpassYuvBuffer ) {
+          ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
           ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx ), 2 );
         }
         else {
@@ -1092,7 +1094,9 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
 
     // Hanke@RWTH
     if( m_pcHighpassYuvBuffer ) {
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
       ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                          ), 2 );
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
       ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
     }else{ 
       ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
@@ -1126,7 +1130,9 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
 
   // Hanke@RWTH
   if( m_pcHighpassYuvBuffer ) {
+    ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
     ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                          ), 2 );
+    ROTRS( rcMbDataLeftRes.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
     ROTRS( m_pcHighpassYuvBuffer->isLeft4x4BlkNotZero ( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
   }else{ 
     ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
@@ -1178,6 +1184,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
         ROTRS( rcMbDataAbove.isIntra_nonBL(), 4 );
         ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 );
         if( m_pcHighpassYuvBuffer && !rcMbDataAbove.isIntra() ) {
+          ROTRS( rcMbDataAbove.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
           ROTRS( m_pcHighpassYuvBuffer->isAbove4x4BlkNotZero ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
         }
         else{
@@ -1189,6 +1196,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
         ROTRS( rcMbDataCurr.isIntra_nonBL(), 4 );
         ROTRS( rcMbDataAbove.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR), 2 );
         if( m_pcHighpassYuvBuffer ) {
+          ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
           ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx ), 2 );
         }
         else {
@@ -1231,7 +1239,9 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
 
     // Hanke@RWTH
     if( m_pcHighpassYuvBuffer ) {
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                           ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
       ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                           ), 2 );
+      ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
       ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
     }else{
       ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                           ), 2 );
@@ -1264,7 +1274,9 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
 
   // Hanke@RWTH
   if( m_pcHighpassYuvBuffer ) {
+    ROTRS( rcMbDataCurrRes. is4x4BlkCoded( cIdx                            ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
     ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero  ( cIdx                            ), 2 );
+    ROTRS( rcMbDataAboveRes.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
     ROTRS( m_pcHighpassYuvBuffer->isAbove4x4BlkNotZero ( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
   }else{
     ROTRS( rcMbDataCurrRes. is4x4BlkCoded( cIdx                            ), 2 );
