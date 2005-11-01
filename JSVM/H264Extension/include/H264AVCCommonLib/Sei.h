@@ -120,7 +120,7 @@ public:
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     QUALITYLEVEL_SEI                      = 20,
-	DEADSUBSTREAM_SEI                     = 21,
+	  DEADSUBSTREAM_SEI                     = 21,
     RESERVED_SEI                          = 22
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
   };

@@ -655,9 +655,18 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
     ResizeParameters * curr;
     curr = getResizeParameters(ui);
 
+    // HS: set base layer id
+    UInt uiBaseLayerId = getLayerParameters(ui).getBaseLayerId();
+    if( ui && uiBaseLayerId == MSYS_UINT_MAX )
+    {
+      uiBaseLayerId = ui - 1; // default value
+    }
+    getLayerParameters(ui).setBaseLayerId(uiBaseLayerId);
+    // HS: set base layer id
+
     if (ui>0)
     {
-      ResizeParameters * prev = getResizeParameters(ui-1);
+      ResizeParameters * prev = getResizeParameters(uiBaseLayerId); // HS: use "real" base layer
       curr->m_iInWidth  = prev->m_iOutWidth;
       curr->m_iInHeight = prev->m_iOutHeight;
 
@@ -747,6 +756,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",     &(rcLayer.m_ResizeParameter.m_iPosX),                       0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",     &(rcLayer.m_ResizeParameter.m_iPosY),                       0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",&(rcLayer.m_uiForceReorderingCommands),  0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerId",    &(rcLayer.m_uiBaseLayerId),              MSYS_UINT_MAX );
   m_pLayerLines[uiParLnCount] = NULL;
 
   // SSUN@SHARP reset ResizeParameters

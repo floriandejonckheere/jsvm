@@ -332,10 +332,10 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       }
       if (getExtendedSpatialScalability() == ESS_SEQ)
       {
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,                       "SPS: ScaledBaseLeftOffset" ) );
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,                        "SPS: ScaledBaseTopOffset" ) );
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,                      "SPS: ScaledBaseRightOffset" ) );
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,                     "SPS: ScaledBaseBottomOffset" ) );
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: ScaledBaseLeftOffset" ) );
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: ScaledBaseTopOffset" ) );
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: ScaledBaseRightOffset" ) );
+        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: ScaledBaseBottomOffset" ) );
       }
   	}
   }

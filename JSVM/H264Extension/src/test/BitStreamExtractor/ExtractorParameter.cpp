@@ -181,6 +181,7 @@ ExtractorParameter::init( Int     argc,
 
   Bool  bTraceExtractionSpecified = false; // HS: packet trace
   Bool  bExtractionPointSpecified = false;
+  Bool  bRemoveLayerSpecified     = false;
   Bool  bLayerSpecified           = false;
   Bool  bLevelSpecified           = false;
   Bool  bFGSSpecified             = false;
@@ -218,6 +219,17 @@ ExtractorParameter::init( Int     argc,
       continue;
     }
 
+    if( equal( "-r", argv[iArg] ) )
+    {
+      EXIT( iArg + 1 == argc,           "Option \"-r\" without argument specified" );
+      EXIT( bExtractionPointSpecified,  "Option \"-r\" used in connection with option \"-e\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-r\" used in connection with option \"-et\"" ); // HS: packet trace
+      UInt uiRemoveLayer = atoi( argv[ ++iArg ] );
+      m_cRemoveList.push_back( uiRemoveLayer );
+      bRemoveLayerSpecified = true;
+      continue;
+    }
+
     if( equal( "-t", argv[iArg] ) )
     {
       EXIT( iArg + 1 == argc,           "Option \"-t\" without argument specified" );
@@ -245,6 +257,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( iArg + 1 == argc,           "Option \"-e\" without argument specified" );
       EXIT( bExtractionPointSpecified,  "Multiple options \"-e\"" );
       EXIT( bLayerSpecified,            "Option \"-e\" used in connection with option \"-l\"" );
+      EXIT( bRemoveLayerSpecified,      "Option \"-e\" used in connection with option \"-r\"" );
       EXIT( bLevelSpecified,            "Option \"-e\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-e\" used in connection with option \"-f\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-e\" used in connection with option \"-et\"" ); // HS: packet trace
@@ -260,6 +273,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( iArg + 1 == argc,           "Option \"-et\" without argument specified" );
       EXIT( bTraceExtractionSpecified,  "Multiple options \"-et\"" );
       EXIT( bLayerSpecified,            "Option \"-et\" used in connection with option \"-l\"" );
+      EXIT( bRemoveLayerSpecified,      "Option \"-et\" used in connection with option \"-r\"" );
       EXIT( bLevelSpecified,            "Option \"-et\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-et\" used in connection with option \"-f\"" );
       EXIT( bExtractionPointSpecified,  "Option \"-et\" used in connection with option \"-e\"" );

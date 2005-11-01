@@ -172,6 +172,7 @@ FrameMng::FrameMng()
   m_uiMaxFrameNumCurr       = 0;
   m_uiMaxFrameNumPrev       = 0;
   m_pcRefinementIntFrame    = 0;
+  m_pcRefinementIntFrameSpatial = 0;
   m_pcPredictionIntFrame    = 0;
 
 }
@@ -309,6 +310,10 @@ ErrVal FrameMng::init( YuvBufferCtrl* pcYuvFullPelBufferCtrl, YuvBufferCtrl* pcY
   {
     ROF( m_pcRefinementIntFrame = new IntFrame( *pcYuvFullPelBufferCtrl, *pcYuvFullPelBufferCtrl ) );
   }
+  if( m_pcRefinementIntFrameSpatial == 0)
+  {
+    ROF( m_pcRefinementIntFrameSpatial = new IntFrame( *pcYuvFullPelBufferCtrl, *pcYuvFullPelBufferCtrl ) );
+  }
   if( m_pcPredictionIntFrame == 0)
   {
     ROF( m_pcPredictionIntFrame = new IntFrame( *pcYuvFullPelBufferCtrl, *pcYuvFullPelBufferCtrl ) );
@@ -327,6 +332,13 @@ ErrVal FrameMng::uninit()
     m_pcRefinementIntFrame->uninit();
     delete m_pcRefinementIntFrame;
     m_pcRefinementIntFrame = NULL;
+  }
+
+  if( NULL != m_pcRefinementIntFrameSpatial )
+  {
+    m_pcRefinementIntFrameSpatial->uninit();
+    delete m_pcRefinementIntFrameSpatial;
+    m_pcRefinementIntFrameSpatial = NULL;
   }
 
   if( NULL != m_pcPredictionIntFrame )
@@ -390,6 +402,10 @@ ErrVal FrameMng::initSlice( SliceHeader *rcSH )
   {
     RNOK( m_pcRefinementIntFrame->init( false ) );
   }
+  if( m_pcRefinementIntFrameSpatial )
+  {
+    RNOK( m_pcRefinementIntFrameSpatial->init( false ) );
+  }
   if( m_pcPredictionIntFrame )
   {
     RNOK( m_pcPredictionIntFrame->init( false ) );
@@ -413,6 +429,10 @@ ErrVal FrameMng::initSPS( const SequenceParameterSet& rcSPS )
   if( m_pcRefinementIntFrame )
   {
     RNOK( m_pcRefinementIntFrame->init( false ) );
+  }
+  if( m_pcRefinementIntFrameSpatial )
+  {
+    RNOK( m_pcRefinementIntFrameSpatial->init( false ) );
   }
   if( m_pcPredictionIntFrame )
   {

@@ -226,6 +226,7 @@ protected:
 public:
   FrameUnit*  getCurrentFrameUnit   () { return m_pcCurrentFrameUnit; }
   IntFrame*   getRefinementIntFrame () { return m_pcRefinementIntFrame; }
+  IntFrame*   getRefinementIntFrame2() { return m_pcRefinementIntFrameSpatial; }
   IntFrame*   getPredictionIntFrame()  { return m_pcPredictionIntFrame; }
 
 
@@ -300,6 +301,7 @@ private:
 
   static UInt       m_uiDBPMemory[256];
   IntFrame*         m_pcRefinementIntFrame;
+  IntFrame*         m_pcRefinementIntFrameSpatial;
   IntFrame*         m_pcPredictionIntFrame;
 
 };

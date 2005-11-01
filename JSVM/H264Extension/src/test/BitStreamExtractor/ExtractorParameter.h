@@ -119,6 +119,7 @@ public:
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }
+  const MyList<UInt>&   getRemoveList       ()            const { return m_cRemoveList;     }
 
   // HS: packet trace
   Bool                  getTraceEnabled     ()            const { return m_bTraceFile;      }
@@ -152,6 +153,7 @@ protected:
   Double          m_dFGSLayer;
   Bool            m_bAnalysisOnly;
   MyList<Point>   m_cExtractionList;
+  MyList<UInt>    m_cRemoveList;
 
   // HS: packet trace
   Bool            m_bTraceFile;

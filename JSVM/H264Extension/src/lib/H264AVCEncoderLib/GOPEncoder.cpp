@@ -311,7 +311,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 
   //----- fixed control parameters -----
   m_uiLayerId               = pcLayerParameters->getLayerId                 ();
-  m_uiBaseLayerId           = m_uiLayerId ? m_uiLayerId - 1 : MSYS_UINT_MAX;
+  m_uiBaseLayerId           = pcLayerParameters->getBaseLayerId             ();
   m_uiBaseQualityLevel      = pcLayerParameters->getBaseQualityLevel        ();
 
   m_bExtendedPriorityId     = pcCodingParameter->getExtendedPriorityId();
@@ -355,8 +355,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_bHighestLayer                   = ( pcCodingParameter->getNumberOfLayers() == m_uiLayerId + 1 );
 #endif
 
-    // TMM_ESS 
-    m_pcResizeParameters = pcLayerParameters->getResizeParameters();
+  // TMM_ESS 
+  m_pcResizeParameters = pcLayerParameters->getResizeParameters();
 
   for( UInt uiStage = 0; uiStage < MAX_DSTAGES; uiStage++ )
   {

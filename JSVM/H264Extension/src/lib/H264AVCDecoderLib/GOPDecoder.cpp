@@ -1511,6 +1511,9 @@ MCTFDecoder::getBaseLayerData ( IntFrame*&    pcFrame,
 
   if( bSpatialScalability )
   {
+    RNOK( m_apcFrameTemp[0]->copy( pcFrame ) );
+    pcFrame = m_apcFrameTemp[0];
+
 #if MULTIPLE_LOOP_DECODING
     if( pcSliceHeader->getPPS().getConstrainedIntraPredFlag() && !m_bCompletelyDecodeLayer )
 #else

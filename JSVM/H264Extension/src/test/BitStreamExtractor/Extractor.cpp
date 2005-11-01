@@ -875,6 +875,19 @@ Extractor::xExtractLayerLevel()
 
     //============ check packet ===========
     bKeep = ( uiLayer <= uiMaxLayer && uiLevel <= uiMaxLevel );
+    if( bKeep )
+    {
+      MyList<UInt>::const_iterator  iter = m_pcExtractorParameter->getRemoveList().begin();
+      MyList<UInt>::const_iterator  end  = m_pcExtractorParameter->getRemoveList().end  ();
+      for( ; iter != end; iter++ )
+      {
+        if( uiLayer == (*iter) )
+        {
+          bKeep = false;
+          break;
+        }
+      }
+    }
     bCrop = false;
     if( bKeep && uiLayer == uiMaxLayer )
     {

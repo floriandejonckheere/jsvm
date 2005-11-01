@@ -177,6 +177,9 @@ public:
   ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
   ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
 
+protected:
+  ErrVal xInitESS             ( SliceHeader* pcSliceHeader );
+
 
 protected:
   UInt                    m_uiCurrLayer;

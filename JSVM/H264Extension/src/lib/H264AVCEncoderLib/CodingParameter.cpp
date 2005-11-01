@@ -150,6 +150,8 @@ ErrVal LayerParameters::check()
   ROTREPORT( getClosedLoop              () > 2,         "Unsupported closed-loop mode" );
   ROTREPORT( getUpdateStep() && getClosedLoop(),        "Closed-loop coding for MCTF is not supported" );
 
+  ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
+
   return Err::m_nOK;
 }
 
@@ -213,7 +215,8 @@ ErrVal CodingParameter::check()
 
 	  RNOK( pcLayer->check() );
 
-    LayerParameters*  pcBaseLayer           = uiLayer ? &m_acLayerParameters[uiLayer-1] : 0;
+    UInt              uiBaseLayerId         = uiLayer && pcLayer->getBaseLayerId() != MSYS_UINT_MAX ? pcLayer->getBaseLayerId() : MSYS_UINT_MAX;
+    LayerParameters*  pcBaseLayer           = uiBaseLayerId != MSYS_UINT_MAX ? &m_acLayerParameters[uiBaseLayerId] : 0;
     UInt              uiLogFactorInOutRate  = getLogFactor( pcLayer->getOutputFrameRate (), pcLayer->getInputFrameRate() );
     UInt              uiLogFactorMaxInRate  = getLogFactor( pcLayer->getInputFrameRate  (), getMaximumFrameRate       () );
 

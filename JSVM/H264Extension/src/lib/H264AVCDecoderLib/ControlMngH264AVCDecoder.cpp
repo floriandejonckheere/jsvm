@@ -319,7 +319,7 @@ ErrVal ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess& rcMbDataAcces
 }
 
 
-ErrVal ControlMngH264AVCDecoder::initSlice0(SliceHeader *rcSH)
+ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
 {
   UInt  uiLayer             = rcSH->getLayerId                    ();
   ROTRS( m_uiInitilized[uiLayer], Err::m_nOK );
@@ -351,6 +351,8 @@ ErrVal ControlMngH264AVCDecoder::initSlice0(SliceHeader *rcSH)
     m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
   }
 
+  RNOK( xInitESS( rcSH ) );
+
   m_uiInitilized[uiLayer] = true;
 
   return Err::m_nOK;
@@ -363,48 +365,57 @@ ErrVal ControlMngH264AVCDecoder::initSPS( SequenceParameterSet& rcSequenceParame
   m_auiMbXinFrame[uiLayer]  = rcSequenceParameterSet.getFrameWidthInMbs   ();
   m_auiMbYinFrame[uiLayer]  = rcSequenceParameterSet.getFrameHeightInMbs  ();
 
-  rcSequenceParameterSet.getResizeParameters(&m_ResizeParameter[uiLayer]);
+  return Err::m_nOK;
+}
 
-  if (uiLayer != 0)
+
+ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
+{
+  UInt uiLayer = pcSliceHeader->getLayerId();
+  UInt uiBaseLayer = pcSliceHeader->getBaseLayerId();
+
+  pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameter[uiLayer]);
+
+  if (uiBaseLayer != MSYS_UINT_MAX )
+  {
+    ResizeParameters * curr = &m_ResizeParameter[uiLayer];
+    curr->m_iInWidth  = m_auiMbXinFrame  [uiBaseLayer] << 4;
+    curr->m_iInHeight = m_auiMbYinFrame  [uiBaseLayer] << 4;
+
+    bool is_crop_aligned = (curr->m_iPosX%16 == 0) && (curr->m_iPosY%16 == 0);
+    if      ((curr->m_iInWidth == curr->m_iOutWidth) && (curr->m_iInHeight == curr->m_iOutHeight) &&
+             is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
+      curr->m_iSpatialScalabilityType = SST_RATIO_1;
+    else if ((curr->m_iInWidth*2 == curr->m_iOutWidth) && (curr->m_iInHeight*2 == curr->m_iOutHeight) &&
+             is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
+      curr->m_iSpatialScalabilityType = SST_RATIO_2;
+    else if ((curr->m_iInWidth*3 == curr->m_iOutWidth*2) && (curr->m_iInHeight*3 == curr->m_iOutHeight*2) &&
+             is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
+      curr->m_iSpatialScalabilityType = SST_RATIO_3_2;
+    else
+      curr->m_iSpatialScalabilityType = SST_RATIO_X;
+
+    if ( curr->m_iExtendedSpatialScalability == ESS_NONE && curr->m_iSpatialScalabilityType > SST_RATIO_2 )
     {
-      ResizeParameters * curr = &m_ResizeParameter[uiLayer];
-      curr->m_iInWidth  = m_auiMbXinFrame  [uiLayer-1] << 4;
-      curr->m_iInHeight = m_auiMbYinFrame  [uiLayer-1] << 4;
-
-      bool is_crop_aligned = (curr->m_iPosX%16 == 0) && (curr->m_iPosY%16 == 0);
-      if      ((curr->m_iInWidth == curr->m_iOutWidth) && (curr->m_iInHeight == curr->m_iOutHeight) &&
-               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-        curr->m_iSpatialScalabilityType = SST_RATIO_1;
-      else if ((curr->m_iInWidth*2 == curr->m_iOutWidth) && (curr->m_iInHeight*2 == curr->m_iOutHeight) &&
-               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-        curr->m_iSpatialScalabilityType = SST_RATIO_2;
-      else if ((curr->m_iInWidth*3 == curr->m_iOutWidth*2) && (curr->m_iInHeight*3 == curr->m_iOutHeight*2) &&
-               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-        curr->m_iSpatialScalabilityType = SST_RATIO_3_2;
-      else
-        curr->m_iSpatialScalabilityType = SST_RATIO_X;
-
-      if ( curr->m_iExtendedSpatialScalability == ESS_NONE && curr->m_iSpatialScalabilityType > SST_RATIO_2 )
-      {
-        printf("\nControlMngH264AVCDecoder::initSPS() - use of Extended Spatial Scalability not signaled\n");
-        return Err::m_nERR;
-      }
-      //end 
-
-      m_apcMCTFDecoder[uiLayer]->setResizeParameters(&m_ResizeParameter[uiLayer]);
-
-      if (curr->m_iExtendedSpatialScalability == ESS_SEQ)
-      {
-        printf("Extended Spatial Scalability - crop win: origin=(%3d,%3d) - size=(%3d,%3d)\n\n",
-               curr->m_iPosX,curr->m_iPosY,curr->m_iOutWidth,curr->m_iOutHeight);
-      }
-      else if (curr->m_iExtendedSpatialScalability == ESS_PICT)
-      {
-        printf("Extended Spatial Scalability - crop win by picture\n\n");
-      }
-      
+      printf("\nControlMngH264AVCDecoder::initEES() - use of Extended Spatial Scalability not signaled\n");
+      return Err::m_nERR;
     }
-		return Err::m_nOK;
+    //end 
+
+    m_apcMCTFDecoder[uiLayer]->setResizeParameters(&m_ResizeParameter[uiLayer]);
+
+    if (curr->m_iExtendedSpatialScalability == ESS_SEQ)
+    {
+      printf("Extended Spatial Scalability - crop win: origin=(%3d,%3d) - size=(%3d,%3d)\n\n",
+             curr->m_iPosX,curr->m_iPosY,curr->m_iOutWidth,curr->m_iOutHeight);
+    }
+    else if (curr->m_iExtendedSpatialScalability == ESS_PICT)
+    {
+      printf("Extended Spatial Scalability - crop win by picture\n\n");
+    }
+    
+  }
+	return Err::m_nOK;
 }
 // TMM_ESS }
 

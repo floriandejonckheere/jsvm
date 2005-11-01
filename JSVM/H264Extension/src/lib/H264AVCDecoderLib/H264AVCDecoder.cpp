@@ -528,9 +528,9 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       }
 
 
-      ruiMbX  = max( pcSPS->getFrameWidthInMbs (), ruiMbX );
-      ruiMbY  = max( pcSPS->getFrameHeightInMbs(), ruiMbY );
-      ruiSize = ( (ruiMbX << 3 ) + YUV_X_MARGIN ) * ( ( ruiMbY << 3 ) + YUV_Y_MARGIN ) * 6;
+      ruiMbX  = pcSPS->getFrameWidthInMbs ();
+      ruiMbY  = pcSPS->getFrameHeightInMbs();
+      ruiSize = max( ruiSize, ( (ruiMbX << 3 ) + YUV_X_MARGIN ) * ( ( ruiMbY << 3 ) + YUV_Y_MARGIN ) * 6 );
       m_pcControlMng->initSPS(*pcSPS, m_uiSPSCount-1); // TMM_ESS
     }
     break;
@@ -624,7 +624,7 @@ H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
     FrameUnit*  pcFrameUnit = m_pcFrameMng->getReconstructedFrameUnit( iPoc );
     ROF( pcFrameUnit );
 
-    pcFrame             = m_pcFrameMng->getRefinementIntFrame();
+    pcFrame             = rbSpatialScalability ? m_pcFrameMng->getRefinementIntFrame2() : m_pcFrameMng->getRefinementIntFrame();
     pcResidual          = pcFrameUnit ->getResidual();
     pcMbDataCtrl        = pcFrameUnit ->getMbDataCtrl();
     rbConstrainedIPred  = pcFrameUnit ->getContrainedIntraPred();
@@ -960,6 +960,7 @@ H264AVCDecoder::xReconstructLastFGS()
   IntFrame*     pcResidual          = m_pcRQFGSDecoder->getSliceHeader()->getFrameUnit()->getResidual();
   IntFrame*     pcRecFrame          = m_pcRQFGSDecoder->getSliceHeader()->getFrameUnit()->getFGSIntFrame();
   IntFrame*     pcILPredFrame       = m_pcFrameMng    ->getRefinementIntFrame();
+  IntFrame*     pcILPredFrameSpatial= m_pcFrameMng    ->getRefinementIntFrame2();
   Bool          bReconstructFGS     = m_pcRQFGSDecoder->changed();
 
   //===== reconstruct FGS =====
@@ -1001,6 +1002,8 @@ H264AVCDecoder::xReconstructLastFGS()
   //===== loop-filter for spatial scalable coding =====
   if( m_bEnhancementLayer && m_bSpatialScalability )
   {
+    RNOK( pcILPredFrameSpatial->copy( pcILPredFrame ) );
+    
 #if MULTIPLE_LOOP_DECODING
     if( pcSliceHeader->getFrameUnit()->getContrainedIntraPred() && !m_bCompletelyDecodeLayer )
 #else
@@ -1009,7 +1012,7 @@ H264AVCDecoder::xReconstructLastFGS()
     {
       m_pcLoopFilter->setFilterMode( LoopFilter::LFMode( LoopFilter::LFM_NO_INTER_FILTER + LoopFilter::LFM_EXTEND_INTRA_SUR ) );
       RNOK( m_pcLoopFilter->process( *m_pcVeryFirstSliceHeader,
-                                     pcILPredFrame,
+                                     pcILPredFrameSpatial,
                                      pcMbDataCtrl,
                                      pcMbDataCtrl,
                                      m_pcVeryFirstSliceHeader->getSPS().getFrameWidthInMbs(),
@@ -1020,7 +1023,7 @@ H264AVCDecoder::xReconstructLastFGS()
     }
     else
     {
-      RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrame->getFullPelYuvBuffer() ) );
+      RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial->getFullPelYuvBuffer() ) );
     }
   }
 
