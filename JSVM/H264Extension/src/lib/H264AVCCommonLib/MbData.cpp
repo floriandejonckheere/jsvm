@@ -887,16 +887,6 @@ MbData::xFillMbMvData(ResizeParameters* pcParameters )
 // TMM_ESS_UNIFIED }
 
 
-ErrVal
-MbData::storeIntraBaseCoeffs( MbTransformCoeffs& rcCoeffs )
-{
-  ROT( m_pcMbIntraBaseTCoeffs );
-  
-  ROFRS( ( m_pcMbIntraBaseTCoeffs = new MbTransformCoeffs() ), Err::m_nERR );
-  m_pcMbIntraBaseTCoeffs->copyFrom( rcCoeffs );
-  return Err::m_nOK;
-}
-
 
 
 H264AVC_NAMESPACE_END

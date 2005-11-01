@@ -121,7 +121,6 @@ public MbDataStruct
 public:
   MbData()
   : m_pcMbTCoeffs         ( 0 )
-  , m_pcMbIntraBaseTCoeffs( 0 )
   {
     m_apcMbMvdData   [ LIST_0 ]  = NULL;
     m_apcMbMvdData   [ LIST_1 ]  = NULL;
@@ -131,7 +130,6 @@ public:
 
   ~MbData()
   {
-    clearIntraBaseCoeffs();
   }
 
   Void init(  MbTransformCoeffs*  pcMbTCoeffs,
@@ -141,7 +139,6 @@ public:
               MbMotionData*       pcMbMotionDataList1)
   {
     m_pcMbTCoeffs           = pcMbTCoeffs;
-    m_pcMbIntraBaseTCoeffs  = 0;
     m_apcMbMvdData[0]       = pcMbMvdDataList0;
     m_apcMbMvdData[1]       = pcMbMvdDataList1;
     m_apcMbMotionData[0]    = pcMbMotionDataList0;
@@ -172,13 +169,8 @@ public:
   ErrVal  noUpsampleMotion(); 
   // TMM_ESS_UNIFIED }
 
-  Void                clearIntraBaseCoeffs  ()                                { delete m_pcMbIntraBaseTCoeffs; m_pcMbIntraBaseTCoeffs = 0; }
-  ErrVal              storeIntraBaseCoeffs  ( MbTransformCoeffs& rcCoeffs );
-  MbTransformCoeffs&  getIntraBaseCoeffs    ()                                { return *m_pcMbIntraBaseTCoeffs; }
-
-public:
+protected:
   MbTransformCoeffs*  m_pcMbTCoeffs;
-  MbTransformCoeffs*  m_pcMbIntraBaseTCoeffs;
   MbMvData*           m_apcMbMvdData[2];
   MbMotionData*       m_apcMbMotionData[2];
 
@@ -189,12 +181,12 @@ public:
    UChar ucIdx4x4Base		[2][2];
   } InfoBaseDim;
 
-  static const UChar		m_aucPredictor   [2][4];
+  static const UChar		    m_aucPredictor   [2][4];
   static const BlkMode      m_aeBuildBlkMode [2][2];
-  static const MbMode		m_aeBuildMbMode  [2][2];
-  static const Char			m_acSuffixMbMode [2][7];
-  static const Char			m_acSuffixBlkMode[2][4];
-  static const Char			m_acComputeMbSize[2][5];
+  static const MbMode		    m_aeBuildMbMode  [2][2];
+  static const Char			    m_acSuffixMbMode [2][7];
+  static const Char			    m_acSuffixBlkMode[2][4];
+  static const Char			    m_acComputeMbSize[2][5];
   static const InfoBaseDim	m_aMapInfoBaseDim[];
 
   MbData*                   m_apcMbData     [4];
@@ -218,34 +210,34 @@ public:
                                 UInt            aui4x4Idx[4][4]	 );
 
   ErrVal xInheritMbMotionData ( const Bool      abBaseMbIntra[4] ,
-							    const MbMode    aeMbMode     [4],
+							                  const MbMode    aeMbMode     [4],
                                 const BlkMode   aeBlkMode    [4][4],
                                 BorderType      aeBorder     [4][2],
                                 UInt            auiMbIdx     [4][4]	, 
-                                UInt		    aui4x4Idx    [4][4]	);
+                                UInt		        aui4x4Idx    [4][4]	);
 
   ErrVal xInherit8x8MotionData( const Bool       abBaseMbIntra[4] ,
-							    const MbMode     aeMbMode     [4],
+							                  const MbMode     aeMbMode     [4],
                                 const BlkMode    aeBlkMode    [4][4],
                                 const BorderType aeBorder     [4][2],
-							    const UInt       auiMbIdx     [4][4], 
-                                const UInt		 aui4x4Idx    [4][4]);
+							                  const UInt       auiMbIdx     [4][4], 
+                                const UInt		   aui4x4Idx    [4][4]);
 
   ErrVal xFillMbMvData		  ( ResizeParameters* pcParameters );
 
   Char   xGetMbModeSize		  ( const UInt      uiB8x8Idx , 
-                                const UChar     ucDim,
-                                const MbMode    aeMbMode     [4],   
-                                const UInt      auiMbIdx     [4][4]	);
+                              const UChar     ucDim,
+                              const MbMode    aeMbMode     [4],   
+                              const UInt      auiMbIdx     [4][4]	);
 
-  Char   xGetSubMbModeSize	  ( const UInt      uiB8x8Idx , 
-							    const UChar     ucDim,
-							    const BlkMode   aeBlkMode    [4][4], 
-							    const UInt      auiMbIdx     [4][4] , 
-							    const UInt	    aui4x4Idx    [4][4]);
+  Char   xGetSubMbModeSize	( const UInt      uiB8x8Idx , 
+							                const UChar     ucDim,
+							                const BlkMode   aeBlkMode    [4][4], 
+							                const UInt      auiMbIdx     [4][4] , 
+							                const UInt	    aui4x4Idx    [4][4]);
 
   Void   xComputeMbModeSize	  ( Char&           cSuffix, 
-							    const UChar     ucDim, 
+              							    const UChar     ucDim, 
                                 const Bool      bIsBase8x8,
                                 const BlkMode   aeBlkMode    [4][4], 
                                 const UInt      auiMbIdx     [4][4], 
@@ -254,16 +246,16 @@ public:
   Char   xComputeSubMbModeSize( const UInt          uiB8x8Idx , 
                                 const UChar         ucDim, 
                                 const Bool          abBaseMbIntra[4],
-							    const MbMode        aeMbMode     [4],
+							                  const MbMode        aeMbMode     [4],
                                 const BlkMode       aeBlkMode    [4][4],
                                 const BorderType    aeBorder     [4][2],
-							    const UInt          auiMbIdx     [4][4], 
-                                const UInt		    aui4x4Idx    [4][4] );
+							                  const UInt          auiMbIdx     [4][4], 
+                                const UInt		      aui4x4Idx    [4][4] );
 							  
   ErrVal xMergeBl8x8MvAndRef( const UInt uiBlIdx	);
   ErrVal xFillMvandRefBl4x4	( const UInt uiBlIdx, const UChar* pucWhich, const UInt uiList, const SChar* psChosenRefIdx );
-  ErrVal xCopyBl8x8			( const UInt uiBlIdx, const UInt uiBlIdxCopy ); 
-  ErrVal xRemoveIntra		( const UInt uiBlIdx, const Bool* abBl8x8Intra );
+  ErrVal xCopyBl8x8			    ( const UInt uiBlIdx, const UInt uiBlIdxCopy ); 
+  ErrVal xRemoveIntra		    ( const UInt uiBlIdx, const Bool* abBl8x8Intra );
 // TMM_ESS_UNIFIED }
 };
 

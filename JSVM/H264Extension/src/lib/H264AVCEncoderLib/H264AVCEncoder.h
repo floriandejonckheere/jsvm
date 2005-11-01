@@ -158,6 +158,7 @@ public:
   ErrVal  getBaseLayerData    ( IntFrame*&    pcFrame,
                                 IntFrame*&    pcResidual,
                                 MbDataCtrl*&  pcMbDataCtrl,
+                                Bool&         bConstrainedIPredBL,
                                 Bool&         bForCopyOnly,
                                 Int                             iSpatialScalability,
                                 UInt          uiBaseLayerId,

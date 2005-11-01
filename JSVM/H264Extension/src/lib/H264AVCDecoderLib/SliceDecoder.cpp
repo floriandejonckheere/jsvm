@@ -97,18 +97,19 @@ H264AVC_NAMESPACE_BEGIN
 
 
 SliceDecoder::SliceDecoder():
-  m_pcMbDecoder( NULL ),
+  m_pcMbDecoder ( NULL ),
   m_pcControlMng( NULL ),
-  m_bInitDone( false)
+  m_pcTransform ( NULL ),
+  m_bInitDone   ( false)
 {
-  m_bReconstructionBypass = false;
 }
 
 SliceDecoder::~SliceDecoder()
 {
 }
 
-ErrVal SliceDecoder::create( SliceDecoder*& rpcSliceDecoder )
+ErrVal
+SliceDecoder::create( SliceDecoder*& rpcSliceDecoder )
 {
   rpcSliceDecoder = new SliceDecoder;
   ROT( NULL == rpcSliceDecoder );
@@ -116,23 +117,25 @@ ErrVal SliceDecoder::create( SliceDecoder*& rpcSliceDecoder )
 }
 
 
-ErrVal SliceDecoder::destroy()
+ErrVal
+SliceDecoder::destroy()
 {
   ROT( m_bInitDone );
   delete this;
   return Err::m_nOK;
 }
 
-ErrVal SliceDecoder::init( MbDecoder* pcMbDecoder,
-                           ControlMngIf* pcControlMng,
-                           Transform* pcTransform)
+ErrVal
+SliceDecoder::init( MbDecoder*    pcMbDecoder,
+                    ControlMngIf* pcControlMng,
+                    Transform*    pcTransform)
 {
   ROT( m_bInitDone );
   ROT( NULL == pcMbDecoder );
   ROT( NULL == pcControlMng );
   ROT( NULL == pcTransform );
 
-  m_pcTransform = pcTransform;
+  m_pcTransform   = pcTransform;
   m_pcMbDecoder   = pcMbDecoder;
   m_pcControlMng  = pcControlMng;
   m_bInitDone     = true;
@@ -140,7 +143,8 @@ ErrVal SliceDecoder::init( MbDecoder* pcMbDecoder,
 }
 
 
-ErrVal SliceDecoder::uninit()
+ErrVal
+SliceDecoder::uninit()
 {
   ROF( m_bInitDone );
   m_pcMbDecoder   =  NULL;
@@ -151,172 +155,72 @@ ErrVal SliceDecoder::uninit()
 
 
 
-ErrVal SliceDecoder::process( const SliceHeader& rcSH, UInt uiMbRead )
+ErrVal
+SliceDecoder::process( const SliceHeader& rcSH, Bool bReconstructAll, UInt uiMbRead )
 {
   ROF( m_bInitDone );
 
-  //====== initialization ======
-  UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
-  m_pcMbDecoder->setReconstructionBypass( m_bReconstructionBypass );
-
   //===== loop over macroblocks =====
-  for( ; uiMbRead; uiMbAddress++ )
+  for( UInt uiMbAddress = rcSH.getFirstMbInSlice(); uiMbRead; uiMbAddress++, uiMbRead-- )
   {
     MbDataAccess* pcMbDataAccess;
-    RNOK( m_pcControlMng->initMbForDecoding( pcMbDataAccess, uiMbAddress ) );
-    RNOK( m_pcMbDecoder->process( *pcMbDataAccess ) );
-    uiMbRead--;
-  }
-
-  m_pcMbDecoder->setReconstructionBypass();
-
-  return Err::m_nOK;
-}
-
-
-ErrVal SliceDecoder::decodeIntra( SliceHeader&  rcSH,
-                                  MbDataCtrl*   pcMbDataCtrl,
-                                  IntFrame*     pcFrame,
-                                  IntFrame*     pcSubband,
-                                  IntFrame*     pcPredSignal,
-                                  IntFrame*     pcBaseLayer,
-                                  UInt          uiMbInRow,
-                                  UInt          uiMbRead )
-{
-  ROF( m_bInitDone );
-
-  //====== initialization ======
-  UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
-
-  RNOK( pcMbDataCtrl->initSlice( rcSH, DECODE_PROCESS, true, NULL ) );
-
-  //===== loop over macroblocks =====
-  for( ; uiMbRead; uiMbAddress++ )
-  {
-    UInt          uiMbY       = uiMbAddress / uiMbInRow;
-    UInt          uiMbX       = uiMbAddress % uiMbInRow;
-    MbDataAccess* pcMbDataAccess;
-
-    RNOK( pcMbDataCtrl  ->initMb            (  pcMbDataAccess, uiMbY, uiMbX ) );
-    RNOK( m_pcControlMng->initMbForDecoding ( *pcMbDataAccess, uiMbAddress  ) );
-
-    RNOK( m_pcMbDecoder ->decodeIntra       ( *pcMbDataAccess, pcFrame, pcSubband, pcPredSignal, pcBaseLayer ) );
-    uiMbRead--;
+    RNOK( m_pcControlMng->initMbForDecoding(  pcMbDataAccess, uiMbAddress ) );
+    RNOK( m_pcMbDecoder ->process          ( *pcMbDataAccess, bReconstructAll ) );
   }
 
   return Err::m_nOK;
 }
 
 
-ErrVal SliceDecoder::decodeInterP( SliceHeader&   rcSH,
-                                   MbDataCtrl*    pcMbDataCtrl,
-                                   MbDataCtrl*    pcMbDataCtrlBase,
-                                   IntFrame*      pcFrame,
-                                   IntFrame*      pcSubband,
-                                   IntFrame*      pcPredSignal,
-                                   IntFrame*      pcBaseLayer,
-                                   IntFrame*      pcBaseLayerSubband,
-                                   RefFrameList&  rcRefFrameList,
-                                   UInt           uiMbInRow, 
-                                   UInt           uiMbRead )
+ErrVal
+SliceDecoder::decode( SliceHeader&   rcSH,
+                      MbDataCtrl*    pcMbDataCtrl,
+                      MbDataCtrl*    pcMbDataCtrlBase,
+                      IntFrame*      pcFrame,
+                      IntFrame*      pcResidual,
+                      IntFrame*      pcPredSignal,
+                      IntFrame*      pcBaseLayer,
+                      IntFrame*      pcBaseLayerResidual,
+                      RefFrameList*  pcRefFrameList0,
+                      RefFrameList*  pcRefFrameList1,
+                      Bool           bReconstructAll,
+                      UInt           uiMbInRow, 
+                      UInt           uiMbRead )
 {
   ROF( m_bInitDone );
-  m_pcMbDecoder->setReconstructionBypass( m_bReconstructionBypass );
 
   //====== initialization ======
-  UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
-
   RNOK( pcMbDataCtrl->initSlice( rcSH, DECODE_PROCESS, true, NULL ) );
 
   //===== loop over macroblocks =====
-  for( ; uiMbRead; uiMbAddress++ )
+  for( UInt uiMbAddress = rcSH.getFirstMbInSlice(); uiMbRead; uiMbAddress++, uiMbRead-- )
   {
     UInt          uiMbY               = uiMbAddress / uiMbInRow;
     UInt          uiMbX               = uiMbAddress % uiMbInRow;
     MbDataAccess* pcMbDataAccess      = 0;
     MbDataAccess* pcMbDataAccessBase  = 0;
 
-    RNOK( pcMbDataCtrl  ->initMb            (  pcMbDataAccess, uiMbY, uiMbX ) );
+    RNOK( pcMbDataCtrl  ->initMb            (  pcMbDataAccess,     uiMbY, uiMbX ) );
     if( pcMbDataCtrlBase )
     {
-      RNOK( pcMbDataCtrlBase->initMb        ( pcMbDataAccessBase, uiMbY, uiMbX  ) );
+      RNOK( pcMbDataCtrlBase->initMb        (  pcMbDataAccessBase, uiMbY, uiMbX ) );
     }
     RNOK( m_pcControlMng->initMbForDecoding ( *pcMbDataAccess, uiMbAddress  ) );
 
-    RNOK( m_pcMbDecoder ->decodeInterP      ( *pcMbDataAccess,
+    RNOK( m_pcMbDecoder ->decode            ( *pcMbDataAccess,
                                               pcMbDataAccessBase,
                                               pcFrame,
-                                              pcSubband,
+                                              pcResidual,
                                               pcPredSignal,
                                               pcBaseLayer,
-                                              pcBaseLayerSubband,
-                                              rcRefFrameList ) );
-    uiMbRead--;
+                                              pcBaseLayerResidual,
+                                              pcRefFrameList0,
+                                              pcRefFrameList1,
+                                              bReconstructAll ) );
   }
 
-  m_pcMbDecoder->setReconstructionBypass();
   return Err::m_nOK;
 }
-
-
-
-ErrVal SliceDecoder::decodeHighPass( SliceHeader& rcSH,
-                                     MbDataCtrl*  pcMbDataCtrl,
-                                     MbDataCtrl*  pcMbDataCtrlBase,
-                                     IntFrame*    pcFrame, 
-                                     IntFrame*    pcResidual,
-                                     IntFrame*    pcBaseSubband,
-                                     UInt         uiMbInRow,
-                                     UInt         uiMbRead )
-{
-  ROF( m_bInitDone );
-  m_pcMbDecoder->setReconstructionBypass( m_bReconstructionBypass );
-
-  //====== initialization ======
-  UInt            uiMbAddress = rcSH.getFirstMbInSlice();
-  IntYuvMbBuffer  cZeroBuffer;
-  cZeroBuffer.setAllSamplesToZero();
-
-  if( pcMbDataCtrlBase )
-  {
-    RNOK( pcMbDataCtrlBase->initSlice( rcSH, PRE_PROCESS, true, NULL     ) );
-  }
-  RNOK( pcMbDataCtrl    ->initSlice( rcSH, DECODE_PROCESS, true, NULL  ) );
-
-  //===== loop over macroblocks =====
-  for( ; uiMbRead; uiMbAddress++ )
-  {
-    UInt          uiMbY       = uiMbAddress / uiMbInRow;
-    UInt          uiMbX       = uiMbAddress % uiMbInRow;
-    MbDataAccess* pcMbDataAccess;
-    MbDataAccess* pcMbDataAccessBase = NULL;
-
-    if( pcMbDataCtrlBase )
-    {
-      RNOK( pcMbDataCtrlBase->initMb            (  pcMbDataAccessBase, uiMbY, uiMbX ) );
-    }
-    RNOK( pcMbDataCtrl    ->initMb            (  pcMbDataAccess,     uiMbY, uiMbX ) );
-    RNOK( m_pcControlMng  ->initMbForDecoding ( *pcMbDataAccess,     uiMbAddress  ) );
-
-    if( ! pcMbDataAccess->getMbData().isIntra() )
-    {
-      m_pcTransform->setClipMode( false );
-      RNOK( m_pcMbDecoder ->decodeResidual    ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseSubband ) );
-      m_pcTransform->setClipMode( true );
-    }
-    else
-    {
-      RNOK( m_pcMbDecoder->scaleAndStoreIntraCoeffs( *pcMbDataAccess ) );
-      RNOK( pcFrame   ->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) )
-      RNOK( pcResidual->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) )
-    }
-    uiMbRead--;
-  }
-
-  m_pcMbDecoder->setReconstructionBypass();
-  return Err::m_nOK;
-}
-
 
 
 

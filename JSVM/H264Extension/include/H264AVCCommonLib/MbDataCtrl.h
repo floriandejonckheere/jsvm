@@ -248,11 +248,11 @@ public:
   ControlData*  getBaseCtrlData     ()  { return  m_pcBaseCtrlData;     }
   UInt          getUseBLMotion      ()  { return  m_uiUseBLMotion;      }
   
-  Void          setBaseLayerRec     ( IntFrame*   pcBaseLayerRec  )   { m_pcBaseLayerRec  = pcBaseLayerRec;   }
-  Void          setBaseLayerSbb     ( IntFrame*   pcBaseLayerSbb  )   { m_pcBaseLayerSbb  = pcBaseLayerSbb;   }
-  Void          setBaseLayerCtrl    ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrl = pcBaseLayerCtrl;  }
-  Void          setBaseCtrlData     ( ControlData*pcBaseCtrlData  )   { m_pcBaseCtrlData  = pcBaseCtrlData;   }
-  Void          setUseBLMotion      ( UInt        uiUseBLMotion   )   { m_uiUseBLMotion   = uiUseBLMotion;    }
+  Void          setBaseLayerRec     ( IntFrame*   pcBaseLayerRec  )   { m_pcBaseLayerRec    = pcBaseLayerRec;   }
+  Void          setBaseLayerSbb     ( IntFrame*   pcBaseLayerSbb  )   { m_pcBaseLayerSbb    = pcBaseLayerSbb;   }
+  Void          setBaseLayerCtrl    ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrl   = pcBaseLayerCtrl;  }
+  Void          setBaseCtrlData     ( ControlData*pcBaseCtrlData  )   { m_pcBaseCtrlData    = pcBaseCtrlData;   }
+  Void          setUseBLMotion      ( UInt        uiUseBLMotion   )   { m_uiUseBLMotion     = uiUseBLMotion;    }
 
   Void          setLambda           ( Double d ) { m_dLambda = d; }
 
@@ -276,10 +276,6 @@ public:
 
 
   RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
-  RefFrameList& getUpdFrameList     ( UInt uiLevel,
-                                      UInt uiList )   { return m_aacUpdFrameList[uiLevel][uiList]; }
-  CtrlDataList& getUpdCtrlList      ( UInt uiLevel,
-                                      UInt uiList )   { return m_aacUpdCtrlList [uiLevel][uiList]; }
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -329,13 +325,11 @@ private:
   UInt*         m_pauiBQMbCbp;
   Bool*         m_pabBQ8x8Trafo;
 
-  RefFrameList  m_acPrdFrameList                [2];
-  RefFrameList  m_aacUpdFrameList[MAX_DSTAGES+1][2];
-  CtrlDataList  m_aacUpdCtrlList [MAX_DSTAGES+1][2];
+  RefFrameList  m_acPrdFrameList[2];
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Double		m_dScalingFactorFT;
+  Double		    m_dScalingFactorFT;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 };
 

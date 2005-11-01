@@ -246,19 +246,20 @@ public:
   Void    decActive   ();
   Void    rightShift  ();
   Void    leftShift   ();
+  Void    switchFirst ();
 
   UInt    getSize     ()                const;
   UInt    getActive   ()                const;
   T*      getEntry    ( UInt  uiIndex ) const;
   T*      operator[]  ( UInt  uiIndex ) const   { return getEntry( uiIndex - 1 ); }
 
+  ErrVal  setElementAndRemove( UInt uiIPos, UInt uiRPos, T* pEntry );
+
 private:
   UInt    m_uiSize;
   UInt    m_uiActive;
   T*      m_apT[((1<<MAX_DSTAGES)+2)>>1];
 };
-
-
 
 
 
@@ -368,6 +369,36 @@ XDataList<T>::leftShift()
     m_apT[i-1] = m_apT[i];
   }
   m_apT[ m_uiSize - 1 ] = pFirst;
+}
+
+
+template< class T >
+Void
+XDataList<T>::switchFirst()
+{
+  T*  pTmp = m_apT[0];
+  m_apT[0] = m_apT[1];
+  m_apT[1] = pTmp;
+}
+
+
+template< class T >
+ErrVal
+XDataList<T>::setElementAndRemove( UInt uiIPos, UInt uiRPos, T* pEntry )
+{
+  ROT( uiIPos >= ((1<<MAX_DSTAGES)+2)>>1 );
+  ROT( uiIPos >= m_uiSize );
+  ROT( uiIPos >  uiRPos   );
+  if( uiIPos != uiRPos )
+  {
+    if( uiRPos >= m_uiSize && m_uiSize < ((1<<MAX_DSTAGES)+2)>>1 )
+    {
+      m_uiSize++;
+    }
+    ::memmove( &(m_apT[uiIPos+1]), &(m_apT[uiIPos]), (min(uiRPos,m_uiSize-1)-uiIPos)*sizeof(T*) );
+  }
+  m_apT[uiIPos] = pEntry;
+  return Err::m_nOK;
 }
 
 

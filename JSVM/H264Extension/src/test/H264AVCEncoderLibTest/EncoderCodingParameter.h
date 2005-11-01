@@ -746,6 +746,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropHeight",  &(rcLayer.m_ResizeParameter.m_iOutHeight),                  0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",     &(rcLayer.m_ResizeParameter.m_iPosX),                       0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",     &(rcLayer.m_ResizeParameter.m_iPosY),                       0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",&(rcLayer.m_uiForceReorderingCommands),  0         );
   m_pLayerLines[uiParLnCount] = NULL;
 
   // SSUN@SHARP reset ResizeParameters
@@ -814,54 +815,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
     rcLayer.m_ResizeParameter.m_iPosX       = 0;
     rcLayer.m_ResizeParameter.m_iPosY       = 0;
   }
-#if 0
-  // default values
-  rcLayer.m_ResizeParameter.m_iInWidth  = rcLayer.m_uiFrameWidth;
-  rcLayer.m_ResizeParameter.m_iInHeight = rcLayer.m_uiFrameHeight;
-  rcLayer.m_ResizeParameter.m_iOutWidth  = rcLayer.m_uiFrameWidth;
-  rcLayer.m_ResizeParameter.m_iOutHeight = rcLayer.m_uiFrameHeight;
-  rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_uiFrameWidth;
-  rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_uiFrameHeight;
-  rcLayer.m_ResizeParameter.m_iPosX  = 0;
-  rcLayer.m_ResizeParameter.m_iPosY  = 0;
-  rcLayer.m_ResizeParameter.m_bCrop = false;
-
-  // read
-  xReadLine( f, "", NULL );
-  while (xReadLine( f, "%s",  acTemp ) == Err::m_nOK)
-    {
-    if (strcmp(acTemp, "ESS") == 0 || strcmp(acTemp, "TMM") == 0)
-        {
-          RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability ) );
-
-         if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  
-          {
-            rcLayer.m_ResizeParameter.m_bCrop = true;        
-            RNOK( xReadLine( f, "%s",  acTemp ) );
-            if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
-            {
-              rcLayer.m_ResizeParameter.m_pParamFile = fopen( acTemp, "r");
-              if( NULL == rcLayer.m_ResizeParameter.m_pParamFile )
-              { 
-                printf( "failed to open resize parameter file %s\n", acTemp);
-                return Err::m_nERR;
-              }
-              rcLayer.m_ResizeParameter.m_iSpatialScalabilityType = SST_RATIO_X;
-              rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX = -1;
-              rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY = -1;
-              rcLayer.m_ResizeParameter.m_iChromaPhaseX = -1;
-              rcLayer.m_ResizeParameter.m_iChromaPhaseY = -1;
-            }
-            else{  
-              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iOutWidth ) );
-              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iOutHeight ) );
-              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iPosX ) );
-              RNOK( xReadLine( f, "%d",  &rcLayer.m_ResizeParameter.m_iPosY ) );
-            }
-          }
-        }
-    }
-#endif
 // TMM_ESS }
 
   ::fclose(f);

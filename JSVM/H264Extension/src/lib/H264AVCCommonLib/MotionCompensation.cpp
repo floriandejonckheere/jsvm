@@ -1022,19 +1022,6 @@ Void MotionCompensation::xPredChroma( IntYuvMbBuffer* apcTarBuffer[2], Int iSize
 
 
 
-
-
-
-Void MotionCompensation::setUpdId(UpdId id)
-{
-  m_updId = id;
-}
-
-UpdId  MotionCompensation::getUpdId()
-{
-  return m_updId;
-}
-
 ErrVal MotionCompensation::updateSubMb( B8x8Idx         c8x8Idx,
                                         MbDataAccess&   rcMbDataAccess,
                                         IntFrame*       pcMCFrame,
@@ -1415,12 +1402,9 @@ Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride
   {
     for( UInt x = 0; x < updSizeX; x++)
     {
-      pBuf[x] = (pBuf[x] + (1 << (bitShift-1))) >> bitShift;
-      pBuf[x] = max(-Th, min(Th, pBuf[x]));
-      if(getUpdId() == NML_UPD)
-        pDest[x] = (XPel)gClip( pDest[x] + ((pBuf[x] + (pBuf[x]>0? 1:-1))/4) );
-      else
-        pDest[x] = (XPel)gClip( pDest[x] - ((pBuf[x] + (pBuf[x]>0? 1:-1))/4) );
+      pBuf [x] = (pBuf[x] + (1 << (bitShift-1))) >> bitShift;
+      pBuf [x] = max(-Th, min(Th, pBuf[x]));
+      pDest[x] = (XPel)gClip( pDest[x] + ((pBuf[x] + (pBuf[x]>0? 1:-1))/4) );
     }
     pBuf += BUF_W;
     pDest += iDestStride;
@@ -1504,12 +1488,9 @@ __inline Void MotionCompensation::xUpdateChromaPel( XPel* pucDest, Int iDestStri
   {
     for( UInt x = 0; x < iSizeX + 1; x++)
     {
-      pBuf[x] = (pBuf[x] + 32) >> 6;
-      pBuf[x] = max(-Th, min(Th, pBuf[x]));
-      if(getUpdId() == NML_UPD)
-        pucDest[x] = (XPel)gClip( pucDest[x] + ((pBuf[x] + (pBuf[x]>0? 2:-2))/4) );
-      else  // inverse update
-        pucDest[x] = (XPel)gClip( pucDest[x] - ((pBuf[x] + (pBuf[x]>0? 2:-2))/4) );
+      pBuf   [x] = (pBuf[x] + 32) >> 6;
+      pBuf   [x] = max(-Th, min(Th, pBuf[x]));
+      pucDest[x] = (XPel)gClip( pucDest[x] + ((pBuf[x] + (pBuf[x]>0? 2:-2))/4) );
     }
     pBuf += BUF_W;
     pucDest += iDestStride;

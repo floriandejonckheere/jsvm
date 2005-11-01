@@ -158,10 +158,6 @@ ErrVal MbDataCtrl::xDeleteData()
 {
   H264AVC_DELETE_CLASS( m_pcMbDataAccess );
 
-  for( UInt uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
-  {
-    m_pcMbData[ uiIdx ].clearIntraBaseCoeffs();
-  }
   H264AVC_DELETE( m_pcMbTCoeffs );
   H264AVC_DELETE( m_apcMbMvdData[1] );
   H264AVC_DELETE( m_apcMbMvdData[0] );
@@ -177,7 +173,6 @@ ErrVal MbDataCtrl::xResetData()
   UInt uiIdx;
   for( uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
   {
-    m_pcMbData[ uiIdx ].clearIntraBaseCoeffs();
     m_pcMbData[ uiIdx ].reset();
   }
   for( uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
@@ -357,44 +352,6 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* p
       }
 	 } // end of for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
   } // end of for( Int iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
-
-
-#if 0
-//static FILE *fp=fopen("upsamp_motion_ess.dat","wb");
-char  filename[80];
-int i;
-sprintf(filename,"upsamp_motion_%1d.dat",m_pcSliceHeader->getPoc());
-FILE *fp=fopen(filename,"wb");
-//fprintf(fp,"****************************** frame %2d ******************************\n",m_pcSliceHeader->getPoc());
-for( iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
-{
-  for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
-  {
-    MbData& rcMbDes = m_pcMbData[iMbY*m_uiMbStride+iMbX];
-    if ((iMbY*m_iMbPerColumn+iMbX)%30==0)
-      fprintf(fp," mb Addr  |inCrop mode|FwBw CBP ResFlag|  blks mode  |  ref idx 0   |   ref idx 1  | mvs l0 & l1\n");
-    fprintf(fp,"%3d %2d %2d | ",iMbY*m_iMbPerColumn+iMbX,iMbY,iMbX);
-    fprintf(fp,"  %1d   %2d  | ",rcMbDes.getInCropWindowFlag(),rcMbDes.m_eMbMode);
-    fprintf(fp,"%5d %5d %2d | ",rcMbDes.m_usFwdBwd,rcMbDes.getMbExtCbp(),rcMbDes.m_usResidualAvailFlagsBase);
-    fprintf(fp,"%2d %2d %2d %2d | ",rcMbDes.m_aBlkMode[0],rcMbDes.m_aBlkMode[1],rcMbDes.m_aBlkMode[2],rcMbDes.m_aBlkMode[3]);
-    for (i=0;i<4; i++)
-      fprintf(fp," % 2d",rcMbDes.m_apcMbMotionData[0]->m_ascRefIdx[i]);
-    fprintf(fp," | ");
-    for (i=0;i<4; i++)
-      fprintf(fp," % 2d",rcMbDes.m_apcMbMotionData[1]->m_ascRefIdx[i]);
-    fprintf(fp," | ");
-    for (i=0;i<16; i++)
-      fprintf(fp,"%1d,%1d:",rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[0]->m_acMv[i].getVer());
-    fprintf(fp," | ");
-    for (i=0;i<16; i++)
-      fprintf(fp,"%1d,%1d:",rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getHor(),rcMbDes.m_apcMbMotionData[1]->m_acMv[i].getVer());
-    fprintf(fp,"\n");
- }
-}
-//fflush(fp);
-fclose(fp);
-#endif
-
 
   return Err::m_nOK;
 }

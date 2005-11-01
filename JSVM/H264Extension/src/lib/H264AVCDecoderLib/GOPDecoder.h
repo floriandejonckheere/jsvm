@@ -133,8 +133,8 @@ public:
                                 UInt      uiFrameNum,
                                 UInt      uiTemporalLevel,
                                 Bool      bKeyPicture,
-                                Bool      bResidual,
-                                Bool      bNeededForReference );
+                                Bool      bNeededForReference,
+                                Bool      bConstrainedIPred );
   ErrVal        initNonEx     ( Int       iPoc,
                                 UInt      uiFrameNum );
   ErrVal        initBase      ( DPBUnit&  rcDPBUnit,
@@ -144,33 +144,42 @@ public:
 
   ErrVal        markNonRef    ();
   ErrVal        markOutputted ();
-  ErrVal        unmarkResidual();
 
 
   Int           getPoc        ()  const { return m_iPoc; }
   UInt          getFrameNum   ()  const { return m_uiFrameNum; }
   UInt          getTLevel     ()  const { return m_uiTemporalLevel; }
   Bool          isKeyPic      ()  const { return m_bKeyPicture; }
-  Bool          isResidual    ()  const { return m_bResidual; }
   Bool          isExisting    ()  const { return m_bExisting; }
   Bool          isNeededForRef()  const { return m_bNeededForReference; }
   Bool          isOutputted   ()  const { return m_bOutputted; }
   Bool          isBaseRep     ()  const { return m_bBaseRepresentation; }
+  Bool          isConstrIPred ()  const { return m_bConstrainedIntraPred; }
   IntFrame*     getFrame      ()        { return m_pcFrame; }
   ControlData&  getCtrlData   ()        { return m_cControlData; }
+
+  Int           getPicNum     ( UInt uiCurrFrameNum, 
+                                UInt uiMaxFrameNum ) const
+  {
+    if( m_uiFrameNum > uiCurrFrameNum )
+    {
+      return (Int)m_uiFrameNum - (Int)uiMaxFrameNum;
+    }
+    return (Int)m_uiFrameNum;
+  }
 
 private:
   Int         m_iPoc;
   UInt        m_uiFrameNum;
   UInt        m_uiTemporalLevel;
   Bool        m_bKeyPicture;
-  Bool        m_bResidual;
   Bool        m_bExisting;
   Bool        m_bNeededForReference;
   Bool        m_bOutputted;
   Bool        m_bBaseRepresentation;
   IntFrame*   m_pcFrame;
   ControlData m_cControlData;
+  Bool        m_bConstrainedIntraPred;
 };
 
 typedef MyList<DPBUnit*>  DPBUnitList;
@@ -193,81 +202,72 @@ protected:
   virtual ~DecodedPicBuffer ();
 
 public:
-  static ErrVal       create            ( DecodedPicBuffer*&          rpcDecodedPicBuffer );
-  ErrVal              destroy           ();
-  ErrVal              init              ( YuvBufferCtrl*              pcFullPelBufferCtrl,
-                                          UInt                        uiLayer ); // just for dump output
-  ErrVal              initSPS           ( const SequenceParameterSet& rcSPS );
-  ErrVal              uninit            ();
+  static ErrVal       create              ( DecodedPicBuffer*&          rpcDecodedPicBuffer );
+  ErrVal              destroy             ();
+  ErrVal              init                ( YuvBufferCtrl*              pcFullPelBufferCtrl,
+                                            UInt                        uiLayer ); // just for dump output
+  ErrVal              initSPS             ( const SequenceParameterSet& rcSPS );
+  ErrVal              uninit              ();
 
 
-  ErrVal              initCurrDPBUnit   ( DPBUnit*&                   rpcCurrDPBUnit,
-                                          PicBuffer*&                 rpcPicBuffer,
-                                          Bool                        bResidual,
-                                          SliceHeader*                pcSliceHeader,
-                                          PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList );
-  DPBUnit*            getLastUnit       ();
-  DPBUnit*            getDPBUnit        ( Int                         iPoc );
-  ErrVal              setPrdRefLists    ( DPBUnit*                    pcCurrDPBUnit );
-  ErrVal              setUpdRefLists    ( DPBUnit*                    pcCurrDPBUnit,
-                                          UInt                        uiUpdLevel );
-  ErrVal              store             ( DPBUnit*&                   rpcDPBUnit,
-                                          PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList,
-                                          IntFrame*                   pcFrameBaseRep = NULL );
-  ErrVal              update            ( DPBUnit*                    pcDPBUnit,
-                                          Bool                        bUnmarkResidual = false );
-  ErrVal              clear             ( PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList,
-                                          Int&                        riMaxPoc );
+  ErrVal              initCurrDPBUnit     ( DPBUnit*&                   rpcCurrDPBUnit,
+                                            PicBuffer*&                 rpcPicBuffer,
+                                            SliceHeader*                pcSliceHeader,
+                                            PicBufferList&              rcOutputList,
+                                            PicBufferList&              rcUnusedList );
+  DPBUnit*            getLastUnit         ();
+  DPBUnit*            getDPBUnit          ( Int                         iPoc );
+  ErrVal              setPrdRefLists      ( DPBUnit*                    pcCurrDPBUnit );
+  ErrVal              store               ( DPBUnit*&                   rpcDPBUnit,
+                                            PicBufferList&              rcOutputList,
+                                            PicBufferList&              rcUnusedList,
+                                            IntFrame*                   pcFrameBaseRep = NULL );
+  ErrVal              update              ( DPBUnit*                    pcDPBUnit );
+  ErrVal              clear               ( PicBufferList&              rcOutputList,
+                                            PicBufferList&              rcUnusedList,
+                                            Int&                        riMaxPoc );
  //===== ESS ============
-  ErrVal			  fillPredictionLists_ESS( ResizeParameters *pcResizeParameters ); 
-
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  UInt            getNumRefFrames        () { return m_uiNumRefFrames; };
-  Void            setNumRefFrames (UInt ui) { m_uiNumRefFrames = ui; };
-  //}}Adaptive GOP structure
+  ErrVal			        fillPredictionLists_ESS( ResizeParameters *pcResizeParameters ); 
 
 protected:
-  ErrVal              xCreateData       ( UInt                        uiMaxPicsInDPB,
-                                          const SequenceParameterSet& rcSPS );
-  ErrVal              xDeleteData       ();
+  ErrVal              xCreateData         ( UInt                        uiMaxPicsInDPB,
+                                            const SequenceParameterSet& rcSPS );
+  ErrVal              xDeleteData         ();
   
 
-  ErrVal              xClearBuffer      (); // remove non-ref frames that are not output pictures
-  ErrVal              xUpdateMemory     ();
-  ErrVal              xOutput           ( PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList );
-  ErrVal              xClearOutputAll   ( PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList,
-                                          Int&                        riMaxPoc );
+  ErrVal              xClearBuffer        (); // remove non-ref frames that are not output pictures
+  ErrVal              xUpdateMemory       ( SliceHeader*                pcSliceHeader );
+  ErrVal              xSlidingWindow      ();
+  ErrVal              xMMCO               ( SliceHeader*                pcSliceHeader );
+  ErrVal              xMarkShortTermUnused( DPBUnit*                    pcCurrentDPBUnit,
+                                            UInt                        uiDiffOfPicNums );
+  
+  ErrVal              xOutput             ( PicBufferList&              rcOutputList,
+                                            PicBufferList&              rcUnusedList );
+  ErrVal              xClearOutputAll     ( PicBufferList&              rcOutputList,
+                                            PicBufferList&              rcUnusedList,
+                                            Int&                        riMaxPoc );
 
   
-  ErrVal              xStorePicture     ( DPBUnit*                    pcDPBUnit, // just for checking
-                                          PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList,
-                                          Bool                        bTreatAsIdr );
-  ErrVal              xCheckMissingPics ( SliceHeader*                pcSliceHeader,
-                                          PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList );
+  ErrVal              xStorePicture       ( DPBUnit*                    pcDPBUnit, // just for checking
+                                            PicBufferList&              rcOutputList,
+                                            PicBufferList&              rcUnusedList,
+                                            Bool                        bTreatAsIdr );
+  ErrVal              xCheckMissingPics   ( SliceHeader*                pcSliceHeader,
+                                            PicBufferList&              rcOutputList,
+                                            PicBufferList&              rcUnusedList );
 
-  ErrVal              xInitPrdList0     ( RefFrameList&               rcList );  // have to be modified later
-  ErrVal              xInitPrdList1     ( RefFrameList&               rcList );  // have to be modified later
-  ErrVal              xInitUpdList0     ( DPBUnit*                    pcDPBUnit,
-                                          RefFrameList&               rcList,
-                                          CtrlDataList&               rcCtrl,
-                                          UInt                        uiUpdLevel );
-  ErrVal              xInitUpdList1     ( DPBUnit*                    pcDPBUnit,
-                                          RefFrameList&               rcList,
-                                          CtrlDataList&               rcCtrl,
-                                          UInt                        uiUpdLevel );
+  ErrVal              xInitPrdListPSlice  ( RefFrameList&               rcList );
+  ErrVal              xInitPrdListsBSlice ( RefFrameList&               rcList0,
+                                            RefFrameList&               rcList1 );
+  ErrVal              xPrdListRemapping   ( RefFrameList&               rcList,
+                                            ListIdx                     eListIdx,
+                                            SliceHeader*                pcSliceHeader );
 
   //===== debugging ======
-  ErrVal              xDumpDPB          ();
-  ErrVal              xDumpRefList      ( ListIdx                     eListIdx,
-                                          RefFrameList&               rcList );
+  ErrVal              xDumpDPB            ();
+  ErrVal              xDumpRefList        ( ListIdx                     eListIdx,
+                                            RefFrameList&               rcList );
 
 
 private:
@@ -343,17 +343,18 @@ public:
                                   MotionCompensation*         pcMotionCompensation,
                                   QuarterPelFilter*           pcQuarterPelFilter );
   ErrVal          uninit        ();
-  ErrVal          initSlice0     ( SliceHeader* pcSliceHeader );
+  ErrVal          initSlice0    ( SliceHeader*                pcSliceHeader );
+  ErrVal          initSlice     ( SliceHeader*                pcSliceHeader,
+                                  UInt                        uiLastLayer );
   
   ErrVal          process       ( SliceHeader*&               rpcSliceHeader,
                                   PicBuffer*                  pcPicBuffer,
                                   PicBufferList&              rcPicBufferOutputList,
-                                  PicBufferList&              rcPicBufferUnusedList );
+                                  PicBufferList&              rcPicBufferUnusedList,
+                                  Bool                        bReconstructionLayer );
   ErrVal          finishProcess ( PicBufferList&              rcPicBufferOutputList,
                                   PicBufferList&              rcPicBufferUnusedList,
                                   Int&                        riMaxPoc );
-// *LMH: Inverse MCTF
-  ErrVal          initSlice     ( SliceHeader* pcSliceHeader, UInt uiLastLayer );
 
 
 
@@ -361,12 +362,12 @@ public:
   UInt            getFrameWidth   () { return m_uiFrameWidthInMb*16; }
   UInt            getFrameHeight  () { return m_uiFrameHeightInMb*16; }
 
-  ErrVal          getBaseLayerMotionAndResidual ( IntFrame*&   pcResidual,
-                                                  MbDataCtrl*& pcMbDataCtrl,
-                                                  Int          iPoc );
-  ErrVal          getReconstructedBaseLayer     ( IntFrame*&   pcFrame,
-                                                  Bool         bSpatialScalability,
-                                                  Int          iPoc );
+  ErrVal          getBaseLayerData              ( IntFrame*&    pcFrame,
+                                                  IntFrame*&    pcResidual,
+                                                  MbDataCtrl*&  pcMbDataCtrl,
+                                                  Bool&         rbConstrainedIPred,
+                                                  Bool          bSpatialScalability,
+                                                  Int           iPoc );
 
   Void            setQualityLevelForPrediction  ( UInt ui )         { m_uiQualityLevelForPrediction = ui; }
 #if MULTIPLE_LOOP_DECODING
@@ -385,58 +386,22 @@ protected:
   ErrVal      xCreateData                     ( const SequenceParameterSet&   rcSPS );
   ErrVal      xDeleteData                     ();
 
-  //===== inverse MCTF & motion compensation =====
-  ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,
-                                                RefFrameList*                 pcRefFrameList0,
-                                                RefFrameList*                 pcRefFrameList1,
-                                                MbDataCtrl*                   pcMbDataCtrl,
-                                                SliceHeader&                  rcSH );
-  ErrVal
-  xUpdateCompensation(  IntFrame*        pcMCFrame,
-                        RefFrameList*    pcRefFrameList,
-                        CtrlDataList*    pcCtrlDataList,
-                        ListIdx          eListUpd);
 
-
-  ErrVal      xReconstructIntra               ( IntFrame*                     pcFrame,
-                                                IntFrame*                     pcBaseLayerRec,
-                                                IntFrame*                     pcBaseRepFrame,
-                                                IntFrame*                     pcPredSignal,
-                                                MbDataCtrl*                   pcMbDataCtrl,
-                                                SliceHeader&                  rcSH );
   ErrVal      xZeroIntraMacroblocks           ( IntFrame*                     pcFrame,
                                                 ControlData&                  rcCtrlData );
-  ErrVal      xClipIntraMacroblocks           ( IntFrame*                     pcFrame,
-                                                ControlData&                  rcCtrlData,
-                                                Bool                          bClipAll );
   ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
                                                 IntFrame*                     pcFrame );
-  ErrVal      xInitBaseLayerMotionAndResidual ( ControlData&                  rcControlData );
-  ErrVal      xInitBaseLayerReconstruction    ( ControlData&                  rcControlData );
-// *LMH: Inverse MCTF
-  //===== check for inverse MCTF =====
-  ErrVal      xInvokeMCTF                     ( SliceHeader*                  pcSliceHeader,
-                                                Bool                          bIntraOnly );
-  ErrVal      xInversePrediction              ( DPBUnit*                      pcDPBUnit,
-                                                Bool                          bIntraOnly );
-  ErrVal      xInverseUpdate                  ( DPBUnit*                      pcDPBUnit,
-																								UInt													uiUpdLevel,
-                                                Bool                          bIntraOnly );
+  ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData );
+
   
   //===== decode pictures / subbands =====
-  ErrVal      xDecodeLowPassSignal            ( SliceHeader*&                 rpcSliceHeader,
+  ErrVal      xDecodeBaseRepresentation       ( SliceHeader*&                 rpcSliceHeader,
                                                 PicBuffer*&                   rpcPicBuffer,
                                                 PicBufferList&                rcOutputList,
-                                                PicBufferList&                rcUnusedList );
-  ErrVal      xDecodeHighPassSignal           ( SliceHeader*&                 rpcSliceHeader,
-                                                PicBuffer*&                   rpcPicBuffer,
-                                                PicBufferList&                rcOutputList,
-                                                PicBufferList&                rcUnusedList );
+                                                PicBufferList&                rcUnusedList,
+                                                Bool                          bReconstructionLayer );
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
-  ErrVal      xReconstructLastFGS             ();
-  ErrVal      xCalcMv                         ( SliceHeader*                  pcSliceHeader,
-                                                MbDataCtrl*                   pcMbDataCtrl,
-                                                MbDataCtrl*                   pcMbDataCtrlBase );
+  ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer );
 
 
 protected:
@@ -473,18 +438,15 @@ protected:
   //----- frame memories and control data -----
   IntFrame*           m_apcFrameTemp    [NUM_TMP_FRAMES];
   IntFrame*           m_pcResidual;
+  IntFrame*           m_pcILPrediction;
   IntFrame*           m_pcPredSignal;
   IntFrame*           m_pcBaseLayerFrame;
   IntFrame*           m_pcBaseLayerResidual;
-  ControlData         m_cControlDataUpd;
   MbDataCtrl*         m_pcBaseLayerCtrl;
   DPBUnit*            m_pcCurrDPBUnit;
-
-// *LMH: Inverse MCTF
-  SliceHeader*        m_pcCurrSliceHeader;
   
 
-// TMM_ESS 
+  // TMM_ESS 
   ResizeParameters*   m_pcResizeParameter;
  
   // should this layer be decoded at all, and up to which FGS layer should be decoded

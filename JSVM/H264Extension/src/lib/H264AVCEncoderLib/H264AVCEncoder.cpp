@@ -176,6 +176,7 @@ ErrVal
 H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
                                   IntFrame*&    pcResidual,
                                   MbDataCtrl*&  pcMbDataCtrl,
+                                  Bool&         bConstrainedIPredBL,
                                   Bool&         bForCopyOnly,
                                   Int           iSpatialScalability,
                                   UInt          uiBaseLayerId,
@@ -184,7 +185,7 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
 {
   ROF ( uiBaseLayerId < MAX_LAYERS );
 
-  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl,
+  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl, bConstrainedIPredBL,
                                                            bForCopyOnly, iSpatialScalability, iPoc, bMotion ) );
 
   return Err::m_nOK;
@@ -686,8 +687,6 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   {
     RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ) );
   }
-  printf("                                   ----------------------------------------\n");
-  printf("                                   (*): These PSNR values are not accurate!\n\n");
 
   //{{Adaptive GOP structure
   // --ETRI & KHU
@@ -1037,11 +1036,11 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << rcLayerParameters.getDecompositionStages() )
-											//{{Adaptive GOP structure -- 10.18.2005
+											                      //{{Adaptive GOP structure -- 10.18.2005
                                             // --ETRI & KHU
                                             + (m_pcCodingParameter->getUseAGS() && !bH264AVCCompatible? 20: 0);
                                             //}}Adaptive GOP structure -- 10.18.2005
-    UInt              uiNumRefPic         = uiDPBSize - ( uiDPBSize > 2 ? 1 : 0 );
+    UInt              uiNumRefPic         = uiDPBSize; 
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
     ROT( bH264AVCCompatible && uiDPBSize > 16 );
     ROT( uiLevelIdc == MSYS_UINT_MAX );
@@ -1082,7 +1081,7 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setConstrainedSet3Flag                 ( false );
     pcSPS->setLevelIdc                            ( uiLevelIdc );
     pcSPS->setSeqScalingMatrixPresentFlag         ( rcLayerParameters.getAdaptiveTransform() > 1 );
-    pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 - 4 );
+    pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 );
     pcSPS->setLog2MaxPicOrderCntLsb               ( min( 15, uiRequiredPocBits + 2 ) );  // HS: decoder robustness -> value increased by 2
     pcSPS->setNumRefFrames                        ( uiNumRefPic );
     pcSPS->setRequiredFrameNumUpdateBehaviourFlag ( true );

@@ -92,7 +92,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/FrameMng.h"
 #include "MbDecoder.h"
 
+
+
 H264AVC_NAMESPACE_BEGIN
+
+
 
 MbDecoder::MbDecoder():
   m_pcTransform( NULL ),
@@ -101,7 +105,6 @@ MbDecoder::MbDecoder():
   m_pcFrameMng( NULL ),
   m_bInitDone( false )
 {
-  m_bReconstructionBypass = false;
 }
 
 MbDecoder::~MbDecoder()
@@ -160,320 +163,78 @@ ErrVal MbDecoder::uninit()
 
 
 
-
-Void MbDecoder::setUpdId(UpdId id)
-{
-  m_pcMotionCompensation->setUpdId(id);
-}
-
-UpdId  MbDecoder::getUpdId()
-{
-  return m_pcMotionCompensation->getUpdId();
-}
-
 ErrVal
-MbDecoder::compensateUpdate(  MbDataAccess&   rcMbDataAccess,
-                              IntFrame*       pcMCFrame,
-                              Int             iRefIdx,
-                              ListIdx         eListPrd,
-                              IntFrame*       pcPrdFrame)
+MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
+                   MbDataAccess*  pcMbDataAccessBase,
+                   IntFrame*      pcFrame,
+                   IntFrame*      pcResidual,
+                   IntFrame*      pcPredSignal,
+                   IntFrame*      pcBaseLayer,
+                   IntFrame*      pcBaseLayerResidual,
+                   RefFrameList*  pcRefFrameList0,
+                   RefFrameList*  pcRefFrameList1,
+                   Bool           bReconstructAll )
 {
+  ROF( m_bInitDone );
+
+  IntYuvMbBuffer  cPredBuffer;  cPredBuffer.setAllSamplesToZero();
+
+  //===== scale coefficients =====
+  RNOK( xScaleTCoeffs( rcMbDataAccess ) );
 
   if( rcMbDataAccess.getMbData().isIntra() )
   {
-    return Err::m_nOK;
-  }
-  else
-  {
-    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+    //===== clear residual signal for intra macroblocks =====
+    if( pcResidual )
     {
-      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-      {
-        if( rcMbDataAccess.getMbData().getMbMotionData(eListPrd).getRefIdx( c8x8Idx.b8x8() ) == iRefIdx )
-          RNOK( m_pcMotionCompensation->updateSubMb( c8x8Idx, rcMbDataAccess, pcMCFrame, pcPrdFrame, eListPrd ) );
-      }
+      IntYuvMbBuffer  cYuvMbBuffer;  cYuvMbBuffer.setAllSamplesToZero();
+      RNOK( pcResidual->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
     }
-    else
+
+    if( rcMbDataAccess.getMbData().isPCM() )
     {
-      RNOK( m_pcMotionCompensation->updateMb( rcMbDataAccess, pcMCFrame, pcPrdFrame, eListPrd, iRefIdx ) );
+      //===== I_PCM mode =====
+      RNOK( xDecodeMbPCM( rcMbDataAccess, pcFrame->getFullPelYuvBuffer() ) );
+      cPredBuffer.loadBuffer( pcFrame->getFullPelYuvBuffer() );
     }
-  }
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-MbDecoder::scaleAndStoreIntraCoeffs( MbDataAccess& rcMbDataAccess )
-{
-  ROF( rcMbDataAccess.getMbData().isIntra() );
-  RNOK( xScaleTCoeffs( rcMbDataAccess ) );
-  RNOK( rcMbDataAccess.getMbData().storeIntraBaseCoeffs( m_cTCoeffs ) );
-  return Err::m_nOK;
-}
-
-
-ErrVal MbDecoder::decodeResidual( MbDataAccess& rcMbDataAccess,
-                                  MbDataAccess* pcMbDataAccessBase,
-                                  IntFrame*     pcFrame,
-                                  IntFrame*     pcResidual,
-                                  IntFrame*     pcBaseSubband )
-{
-  ROF( m_bInitDone );
-
-  RNOK( xScaleTCoeffs( rcMbDataAccess ) );
-
-  IntYuvMbBuffer cYuvMbBuffer;
-  IntYuvMbBuffer cPredBuffer;
-  cPredBuffer.setAllSamplesToZero();
-
-  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) )
-  {
-    cYuvMbBuffer.loadBuffer( pcBaseSubband->getFullPelYuvBuffer() );
-  }
-  else
-  {
-    cYuvMbBuffer.setAllSamplesToZero();
-  }
-
-  if( rcMbDataAccess.getMbData().isTransformSize8x8() )
-  {
-    for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
+    else if( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL )
     {
-      if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx ) )
-      {
-        RNOK( m_pcTransform->invTransform8x8Blk( cYuvMbBuffer.getYBlk   ( cIdx ),
-                                                 cYuvMbBuffer.getLStride(),
-                                                 m_cTCoeffs  .get8x8    ( cIdx ) ) );
-      }
-    }
-  }
-  else
-  {
-    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-    {
-      if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx ) )
-      {
-        RNOK( m_pcTransform->invTransform4x4Blk( cYuvMbBuffer.getYBlk   ( cIdx ),
-                                                 cYuvMbBuffer.getLStride(),
-                                                 m_cTCoeffs  .get       ( cIdx ) ) );
-      }
-    }
-  }
-
-  RNOK( xDecodeChroma( rcMbDataAccess, cYuvMbBuffer, cPredBuffer, rcMbDataAccess.getMbData().getCbpChroma4x4(), false ) );
-
-  pcFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer );
-
-  if( pcResidual )
-  {
-    RNOK( pcResidual->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
-  }
-
-  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) )
-  {
-    rcMbDataAccess.getMbData().setMbExtCbp( rcMbDataAccess.getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
-  }
-  return Err::m_nOK;
-}
-
-
-
-
-ErrVal MbDecoder::decodeIntra( MbDataAccess&  rcMbDataAccess,
-                               IntFrame*      pcFrame,
-                               IntFrame*      pcSubband,
-                               IntFrame*      pcPredSignal,
-                               IntFrame*      pcBaseLayer )
-{
-  ROF( m_bInitDone );
-
-  RNOK( xScaleTCoeffs( rcMbDataAccess ) );
-  IntYuvMbBuffer  cPredBuffer;
-  cPredBuffer.setAllSamplesToZero();
-
-  IntYuvPicBuffer* pcRecYuvBuffer = pcFrame->getFullPelYuvBuffer();
-
-  if( pcSubband )
-  {
-    IntYuvMbBuffer  cYuvMbBuffer;
-    cYuvMbBuffer.setAllSamplesToZero();
-    RNOK( pcSubband->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
-  }
-
-  if( rcMbDataAccess.getMbData().isPCM() )
-  {
-    RNOK( xDecodeMbPCM( rcMbDataAccess, pcRecYuvBuffer ) );
-    return Err::m_nOK;
-  }
-
-  if( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL )
-  {
-    RNOK( xDecodeMbIntraBL( rcMbDataAccess, pcRecYuvBuffer, cPredBuffer, pcBaseLayer->getFullPelYuvBuffer() ) );
-  }
-  else
-  {
-    m_pcIntraPrediction->setAvailableMaskMb( rcMbDataAccess.getAvailableMask() );
-    IntYuvMbBuffer cRecYuvBuffer;
-    cRecYuvBuffer.loadIntraPredictors( pcRecYuvBuffer );
-
-    if( rcMbDataAccess.getMbData().isIntra4x4() )
-    {
-      if( rcMbDataAccess.getMbData().isTransformSize8x8() )
-      {
-        RNOK( xDecodeMbIntra8x8( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-      }
-      else
-      {
-        RNOK( xDecodeMbIntra4x4( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-      }
-    }
-    else
-    {
-      RNOK( xDecodeMbIntra16x16( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-    }
-    pcRecYuvBuffer->loadBuffer( &cRecYuvBuffer );
-  }
-
-
-  if( pcPredSignal )
-  {
-    RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &cPredBuffer ) );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-MbDecoder::decodeInterP( MbDataAccess&    rcMbDataAccess,
-                         MbDataAccess*    pcMbDataAccessBase,
-                         IntFrame*        pcFrame,
-                         IntFrame*        pcSubband,
-                         IntFrame*        pcPredSignal,
-                         IntFrame*        pcBaseLayer,
-                         IntFrame*        pcBaseLayerSubband,
-                         RefFrameList&    rcRefFrameList0 )
-{
-  ROF( m_bInitDone );
-
-  RNOK( xScaleTCoeffs( rcMbDataAccess ) );
-  IntYuvMbBuffer  cPredBuffer;
-  cPredBuffer.setAllSamplesToZero();
-
-  IntYuvPicBuffer*  pcRecYuvBuffer = pcFrame->getFullPelYuvBuffer();
-
-  if( pcSubband && rcMbDataAccess.getMbData().isIntra() )
-  {
-    IntYuvMbBuffer  cYuvMbBuffer;
-    cYuvMbBuffer.setAllSamplesToZero();
-    RNOK( pcSubband->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
-  }
-
-  if( rcMbDataAccess.getMbData().isPCM() )
-  {
-    RNOK( xDecodeMbPCM( rcMbDataAccess, pcRecYuvBuffer ) );
-    return Err::m_nOK;
-  }
-
-  if( rcMbDataAccess.getMbData().isIntra() )
-  {
-    if( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL )
-    {
-      RNOK( xDecodeMbIntraBL( rcMbDataAccess, pcRecYuvBuffer, cPredBuffer, pcBaseLayer->getFullPelYuvBuffer() ) );
+      //===== I_BL mode =====
+      RNOK( xDecodeMbIntraBL( rcMbDataAccess,  pcFrame->getFullPelYuvBuffer(),
+                              cPredBuffer, pcBaseLayer->getFullPelYuvBuffer() ) );
     }
     else
     {
       m_pcIntraPrediction->setAvailableMaskMb( rcMbDataAccess.getAvailableMask() );
-      IntYuvMbBuffer cRecYuvBuffer;
-      cRecYuvBuffer.loadIntraPredictors( pcRecYuvBuffer );
+      IntYuvMbBuffer cRecBuffer;  cRecBuffer.loadIntraPredictors( pcFrame->getFullPelYuvBuffer() );
 
-      if( rcMbDataAccess.getMbData().isIntra4x4() )
+      if( rcMbDataAccess.getMbData().isIntra16x16() )
       {
-        if( rcMbDataAccess.getMbData().isTransformSize8x8() )
-        {
-          RNOK( xDecodeMbIntra8x8( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-        }
-        else
-        {
-          RNOK( xDecodeMbIntra4x4( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-        }
+        //===== I_16x16 mode ====
+        RNOK( xDecodeMbIntra16x16( rcMbDataAccess, cRecBuffer, cPredBuffer ) );
+      }
+      else if( rcMbDataAccess.getMbData().isTransformSize8x8() )
+      {
+        //===== I_8x8 mode =====
+        RNOK( xDecodeMbIntra8x8( rcMbDataAccess, cRecBuffer, cPredBuffer ) );
       }
       else
       {
-        RNOK( xDecodeMbIntra16x16( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
+        //===== I_4x4 mode =====
+        RNOK( xDecodeMbIntra4x4( rcMbDataAccess, cRecBuffer, cPredBuffer ) );
       }
-      pcRecYuvBuffer->loadBuffer( &cRecYuvBuffer );
+      RNOK( pcFrame->getFullPelYuvBuffer()->loadBuffer( &cRecBuffer ) );
     }
   }
   else
   {
-    RefFrameList cRefFrameList1;
-    RNOK( xDecodeMbInter( rcMbDataAccess, pcMbDataAccessBase, cPredBuffer, pcRecYuvBuffer, pcSubband, pcBaseLayerSubband, rcRefFrameList0, cRefFrameList1 ) );
+    //===== motion-compensated modes =====
+    RNOK( xDecodeMbInter( rcMbDataAccess, pcMbDataAccessBase,
+                          cPredBuffer, pcFrame->getFullPelYuvBuffer(),
+                          pcResidual, pcBaseLayerResidual,
+                          *pcRefFrameList0, *pcRefFrameList1, bReconstructAll ) );
   }
 
-  if( pcPredSignal )
-  {
-    RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &cPredBuffer ) );
-  }
-
-  return Err::m_nOK;
-}
-
-
-
-
-
-ErrVal MbDecoder::reconstructIntraPred( MbDataAccess&  rcMbDataAccess,
-                                        IntFrame*      pcFrame, // only base layer coefficients (without FGS are decoded)
-                                        IntFrame*      pcPredSignal,
-                                        IntFrame*      pcBaseLayer )
-{
-  ROF( m_bInitDone );
-  ROFRS( rcMbDataAccess.getMbData().isIntra(), Err::m_nOK );
-
-
-  IntYuvPicBuffer*  pcRecYuvBuffer = pcFrame->getFullPelYuvBuffer();
-  IntYuvMbBuffer    cPredBuffer;
-
-  //===== set base layer coefficients transform coefficients =====
-  m_cTCoeffs.copyFrom( rcMbDataAccess.getMbData().getIntraBaseCoeffs() );
-
-
-  if( rcMbDataAccess.getMbData().isPCM() )
-  {
-    RNOK( xDecodeMbPCM( rcMbDataAccess, pcRecYuvBuffer ) );
-    return Err::m_nOK;
-  }
-
-  if( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL )
-  {
-    RNOK( xDecodeMbIntraBL( rcMbDataAccess, pcRecYuvBuffer, cPredBuffer, pcBaseLayer->getFullPelYuvBuffer() ) );
-  }
-  else
-  {
-    m_pcIntraPrediction->setAvailableMaskMb( rcMbDataAccess.getAvailableMask() );
-    IntYuvMbBuffer cRecYuvBuffer;
-    cRecYuvBuffer.loadIntraPredictors( pcRecYuvBuffer );
-
-    if( rcMbDataAccess.getMbData().isIntra4x4() )
-    {
-      if( rcMbDataAccess.getMbData().isTransformSize8x8() )
-      {
-        RNOK( xDecodeMbIntra8x8( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-      }
-      else
-      {
-        RNOK( xDecodeMbIntra4x4( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-      }
-    }
-    else
-    {
-      RNOK( xDecodeMbIntra16x16( rcMbDataAccess, cRecYuvBuffer, cPredBuffer ) );
-    }
-    pcRecYuvBuffer->loadBuffer( &cRecYuvBuffer );
-  }
 
   //===== store prediction signal =====
   if( pcPredSignal )
@@ -484,125 +245,6 @@ ErrVal MbDecoder::reconstructIntraPred( MbDataAccess&  rcMbDataAccess,
   return Err::m_nOK;
 }
 
-
-
-
-
-ErrVal MbDecoder::reconstructIntra( MbDataAccess&  rcMbDataAccess,
-                                    IntFrame*      pcFrame,
-                                    IntFrame*      pcPredSignal )
-{
-  ROF( m_bInitDone );
-  ROFRS( rcMbDataAccess.getMbData().isIntra(), Err::m_nOK );
-
-
-  //===== decode intra residual and add prediction ======
-  /* the intra residual reconstruction is similar to that
-     in RQFGSDecoder::xReconstructMacroblock(...) */
-  IntYuvMbBuffer      cMbBuffer;
-  Int                 iLStride  = cMbBuffer.getLStride();
-  Int                 iCStride  = cMbBuffer.getCStride();
-  Bool                b8x8      = rcMbDataAccess.getMbData().isTransformSize8x8();
-  MbTransformCoeffs&  rcCoeffs  = rcMbDataAccess.getMbTCoeffs();
-
-  //----- load prediction signal -----
-  cMbBuffer.loadBuffer( pcPredSignal->getFullPelYuvBuffer() );
-
-  if ( rcMbDataAccess.getMbData().isIntra16x16() )
-  {
-    // inverse transform on luma DC
-    RNOK( m_pcTransform->invTransformDcCoeff( rcCoeffs.get( B4x4Idx(0) ), 1 ) );
-
-    // inverse transform on entire MB
-    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-    {
-      RNOK( m_pcTransform->invTransform4x4Blk( cMbBuffer.getYBlk( cIdx ), iLStride, rcCoeffs.get( cIdx ) ) );
-    }
-  }
-  else if( b8x8 )
-  {
-    for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
-    {
-      RNOK( m_pcTransform->invTransform8x8Blk( cMbBuffer.getYBlk( cIdx ), iLStride, rcCoeffs.get8x8( cIdx ) ) );
-    }
-  }
-  else
-  {
-    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-    {
-      RNOK( m_pcTransform->invTransform4x4Blk( cMbBuffer.getYBlk( cIdx ), iLStride, rcCoeffs.get( cIdx ) ) );
-    }
-  }
-
-  Int       iShift, iScale;
-  Quantizer cQuantizer;
-  cQuantizer.setQp( rcMbDataAccess, false );
-
-  const QpParameter&  cCQp      = cQuantizer.getChromaQp();
-  Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
-  UInt                uiUScalId = ( bIntra ? 1 : 4 );
-  UInt                uiVScalId = ( bIntra ? 2 : 5 );
-  const UChar*        pucScaleU = rcMbDataAccess.getSH().getScalingMatrix( uiUScalId );
-  const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
-
-  // scaling has already been performed on DC coefficients
-  /* HS: old scaling modified:
-     (I did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
-  iScale = ( pucScaleU ? pucScaleU[0] : 1 );
-  iShift = ( pucScaleU ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale, iShift );     
-  iScale = ( pucScaleV ? pucScaleV[0] : 1 );
-  iShift = ( pucScaleV ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale, iShift );
-
-  RNOK( m_pcTransform->invTransformChromaBlocks( cMbBuffer.getMbCbAddr(), iCStride, rcCoeffs.get( CIdx(0) ) ) );
-  RNOK( m_pcTransform->invTransformChromaBlocks( cMbBuffer.getMbCrAddr(), iCStride, rcCoeffs.get( CIdx(4) ) ) );
-
-
-  //===== write back to frame =====
-  RNOK( pcFrame->getFullPelYuvBuffer()->loadBuffer( &cMbBuffer ) );
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-MbDecoder::compensatePrediction( MbDataAccess&    rcMbDataAccess,
-                                 IntFrame*        pcMCFrame,
-                                 RefFrameList&    rcRefFrameList0,
-                                 RefFrameList&    rcRefFrameList1,
-                                 Bool             bCalcMv,
-                                 Bool             bFaultTolerant )
-{
-  IntYuvMbBuffer  cYuvMbBuffer;
-
-
-  if( rcMbDataAccess.getMbData().isIntra() )
-  {
-    cYuvMbBuffer.setAllSamplesToZero();
-  }
-  else
-  {
-    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
-    {
-      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-      {
-        //----- motion compensated prediction -----
-        RNOK( m_pcMotionCompensation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
-      }
-    }
-    else
-    {
-      //----- motion compensated prediction -----
-      RNOK( m_pcMotionCompensation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
-    }
-  }
-
-  //===== insert into frame =====
-  RNOK( pcMCFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
-    
-  return Err::m_nOK;
-}
 
 
 ErrVal MbDecoder::calcMv( MbDataAccess& rcMbDataAccess,
@@ -667,7 +309,8 @@ ErrVal MbDecoder::calcMv( MbDataAccess& rcMbDataAccess,
 
 
 
-ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess )
+ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess,
+                           Bool          bReconstructAll )
 {
   ROF( m_bInitDone );
 
@@ -712,7 +355,7 @@ ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess )
     }
     else
     {
-      RNOK( xDecodeMbInter( rcMbDataAccess, cYuvMbBuffer, cPredIntYuvMbBuffer, cResIntYuvMbBuffer ) );
+      RNOK( xDecodeMbInter( rcMbDataAccess, cYuvMbBuffer, cPredIntYuvMbBuffer, cResIntYuvMbBuffer, bReconstructAll ) );
     }
   }
 
@@ -763,8 +406,7 @@ ErrVal MbDecoder::xDecodeMbPCM( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRec
 
 
 
-ErrVal MbDecoder::xDecodeMbPCM( MbDataAccess& rcMbDataAccess, IntYuvPicBuffer *pcRecYuvBuffer
-                               )
+ErrVal MbDecoder::xDecodeMbPCM( MbDataAccess& rcMbDataAccess, IntYuvPicBuffer *pcRecYuvBuffer )
 {
   Pel*  pucSrc  = rcMbDataAccess.getMbTCoeffs().getPelBuffer();
   XPel* pucDest = pcRecYuvBuffer->getMbLumAddr();
@@ -830,20 +472,22 @@ ErrVal MbDecoder::xDecodeMbPCM( MbDataAccess& rcMbDataAccess, IntYuvPicBuffer *p
 
 
 ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
-                                  YuvMbBuffer& rcRecYuvBuffer,
+                                  YuvMbBuffer&    rcRecYuvBuffer,
                                   IntYuvMbBuffer& rcPredIntYuvMbBuffer,
-                                  IntYuvMbBuffer& rcResIntYuvMbBuffer )
+                                  IntYuvMbBuffer& rcResIntYuvMbBuffer,
+                                  Bool            bReconstruct )
 {
   rcResIntYuvMbBuffer.setAllSamplesToZero();
 
-
-  if( m_bReconstructionBypass )
+  if( ! bReconstruct )
   {
-    RNOK( m_pcMotionCompensation->calculateMb( rcMbDataAccess, &rcRecYuvBuffer, true ) );
+    RNOK( m_pcMotionCompensation->calculateMb ( rcMbDataAccess, &rcRecYuvBuffer, true ) );
     rcRecYuvBuffer.setZero();
   }
   else
-  RNOK( m_pcMotionCompensation->compensateMb( rcMbDataAccess, &rcRecYuvBuffer, true ) );
+  {
+    RNOK( m_pcMotionCompensation->compensateMb( rcMbDataAccess, &rcRecYuvBuffer, true ) );
+  }
 
   rcPredIntYuvMbBuffer.loadBuffer( &rcRecYuvBuffer );
     
@@ -896,50 +540,56 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
                                   MbDataAccess*     pcMbDataAccessBase,
                                   IntYuvMbBuffer&   rcPredBuffer,
                                   IntYuvPicBuffer*  pcRecYuvBuffer,
-                                  IntFrame*         pcSubband,
-                                  IntFrame*         pcBaseSubband,
+                                  IntFrame*         pcResidual,
+                                  IntFrame*         pcBaseResidual,
                                   RefFrameList&     rcRefFrameList0,
-                                  RefFrameList&     rcRefFrameList1 )
+                                  RefFrameList&     rcRefFrameList1,
+                                  Bool              bReconstruct )
 {
-  IntYuvMbBuffer  cYuvMbBuffer, cYuvMbBufferRes;
-  Bool            bCalcMv         = true;
-  Bool            bFaultTolerant  = true;
+  IntYuvMbBuffer      cYuvMbBuffer;         cYuvMbBuffer        .setAllSamplesToZero();
+  IntYuvMbBuffer      cYuvMbBufferResidual; cYuvMbBufferResidual.setAllSamplesToZero();
+  MbTransformCoeffs&  rcCoeffs        = m_cTCoeffs;
+  Bool                bCalcMv         = false;
+  Bool                bFaultTolerant  = true;
 
+  //===== derive motion vectors =====
   calcMv( rcMbDataAccess, pcMbDataAccessBase );
-  bCalcMv = false;
 
-  if( ! m_bReconstructionBypass )
-  if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+  //===== get prediction signal when full reconstruction is requested =====
+  if( bReconstruct )
   {
-    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+    {
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        //----- motion compensated prediction -----
+        RNOK( m_pcMotionCompensation->compensateSubMb ( c8x8Idx,
+                                                        rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                                        &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
+      }
+    }
+    else
     {
       //----- motion compensated prediction -----
-      RNOK( m_pcMotionCompensation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
+      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                                        &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
     }
-  }
-  else
-  {
-    //----- motion compensated prediction -----
-    RNOK( m_pcMotionCompensation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
+
+    rcPredBuffer.loadLuma   ( cYuvMbBuffer );
+    rcPredBuffer.loadChroma ( cYuvMbBuffer );
   }
 
-  rcPredBuffer.loadLuma   (  cYuvMbBuffer );
-  rcPredBuffer.loadChroma ( cYuvMbBuffer );
 
-  //////////////////////////////////////////////////////////////////////////
-  cYuvMbBufferRes.setAllSamplesToZero();
+  //===== reconstruct residual signal by using transform coefficients ======
   m_pcTransform->setClipMode( false );
-  //////////////////////////////////////////////////////////////////////////
-  MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
-
   if( rcMbDataAccess.getMbData().isTransformSize8x8() )
   {
     for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
     {
       if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx ) )
       {
-        RNOK( m_pcTransform->invTransform8x8Blk( cYuvMbBufferRes.getYBlk( cIdx ),
-                                                 cYuvMbBufferRes.getLStride(),
+        RNOK( m_pcTransform->invTransform8x8Blk( cYuvMbBufferResidual.getYBlk( cIdx ),
+                                                 cYuvMbBufferResidual.getLStride(),
                                                  rcCoeffs.get8x8(cIdx) ) );
       }
     }
@@ -950,37 +600,47 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
     {
       if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx ) )
       {
-        RNOK( m_pcTransform->invTransform4x4Blk( cYuvMbBufferRes.getYBlk( cIdx ),
-                                                 cYuvMbBufferRes.getLStride(),
+        RNOK( m_pcTransform->invTransform4x4Blk( cYuvMbBufferResidual.getYBlk( cIdx ),
+                                                 cYuvMbBufferResidual.getLStride(),
                                                  rcCoeffs.get(cIdx) ) );
       }
     }
   }
 
   UInt uiChromaCbp = rcMbDataAccess.getMbData().getCbpChroma4x4();
-  RNOK( xDecodeChroma( rcMbDataAccess, cYuvMbBufferRes, rcPredBuffer, uiChromaCbp, false ) );
+  RNOK( xDecodeChroma( rcMbDataAccess, cYuvMbBufferResidual, rcPredBuffer, uiChromaCbp, false ) );
   m_pcTransform->setClipMode( true );
 
 
+  //===== add base layer residual =====
   if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) )
   {
     IntYuvMbBuffer cBaseLayerBuffer;
-    cBaseLayerBuffer.loadBuffer( pcBaseSubband->getFullPelYuvBuffer() );
-    cYuvMbBufferRes.add( cBaseLayerBuffer );
-  }
-
-  cYuvMbBuffer.add( cYuvMbBufferRes );
-  cYuvMbBuffer.clip();
-
-  pcRecYuvBuffer->loadBuffer( &cYuvMbBuffer );
-
-  if( pcSubband )
-  {
-    RNOK( pcSubband->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBufferRes ) );
-  }
-  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) )
-  {
+    cBaseLayerBuffer.loadBuffer( pcBaseResidual->getFullPelYuvBuffer() );
+    cYuvMbBufferResidual.add( cBaseLayerBuffer );
+    //--- set CBP ---
     rcMbDataAccess.getMbData().setMbExtCbp( rcMbDataAccess.getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
+  }
+
+
+  //===== reconstruct signal =====
+  if( bReconstruct )
+  {
+    cYuvMbBuffer.add( cYuvMbBufferResidual );
+    cYuvMbBuffer.clip();
+  }
+
+
+  //===== store reconstructed residual =====
+  if( pcResidual )
+  {
+    RNOK( pcResidual->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBufferResidual ) );
+  }
+
+  //===== store reconstructed signal =====
+  if( pcRecYuvBuffer )
+  {
+    RNOK( pcRecYuvBuffer->loadBuffer( &cYuvMbBuffer ) );
   }
 
   return Err::m_nOK;
@@ -1016,7 +676,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
 
   // scaling has already been performed on DC coefficients
   /* HS: old scaling modified:
-     (I did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
+     (It did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
   iScale = ( pucScaleU ? pucScaleU[0] : 1 );
   iShift = ( pucScaleU ? 5 : 1 );
   m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale, iShift );     
@@ -1033,9 +693,8 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
 
 
 ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess, 
-                                     IntYuvMbBuffer& cYuvMbBuffer
-                                     ,IntYuvMbBuffer&  rcPredBuffer
-                                    )
+                                     IntYuvMbBuffer& cYuvMbBuffer,
+                                     IntYuvMbBuffer&  rcPredBuffer )
 {
   Int  iStride = cYuvMbBuffer.getLStride();
 
@@ -1065,10 +724,9 @@ ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
 
 
 
-ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess& rcMbDataAccess,
-                                     IntYuvMbBuffer& cYuvMbBuffer
-                                     ,IntYuvMbBuffer& rcPredBuffer
-                                    )
+ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess&   rcMbDataAccess,
+                                     IntYuvMbBuffer& cYuvMbBuffer,
+                                     IntYuvMbBuffer& rcPredBuffer )
 {
   Int  iStride = cYuvMbBuffer.getLStride();
 
@@ -1099,19 +757,14 @@ ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess& rcMbDataAccess,
 
 
 
-
-
-
-
 ErrVal MbDecoder::xDecodeMbIntraBL( MbDataAccess&     rcMbDataAccess,
                                     IntYuvPicBuffer*  pcRecYuvBuffer,
                                     IntYuvMbBuffer&   rcPredBuffer,
-                                    IntYuvPicBuffer*  pcBaseYuvBuffer
-                                    )
+                                    IntYuvPicBuffer*  pcBaseYuvBuffer )
 {
   IntYuvMbBuffer      cYuvMbBuffer;
-  MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
-  Int                 iStride       = cYuvMbBuffer  .getLStride   ();
+  MbTransformCoeffs&  rcCoeffs = m_cTCoeffs;
+  Int                 iStride  = cYuvMbBuffer.getLStride();
 
   cYuvMbBuffer.loadBuffer ( pcBaseYuvBuffer );
   rcPredBuffer.loadLuma   ( cYuvMbBuffer );
@@ -1153,9 +806,8 @@ ErrVal MbDecoder::xDecodeMbIntraBL( MbDataAccess&     rcMbDataAccess,
 
 
 ErrVal MbDecoder::xDecodeMbIntra16x16( MbDataAccess&    rcMbDataAccess,
-                                       IntYuvMbBuffer& cYuvMbBuffer
-                                       ,IntYuvMbBuffer& rcPredBuffer
-                                       )
+                                       IntYuvMbBuffer&  cYuvMbBuffer,
+                                       IntYuvMbBuffer& rcPredBuffer )
 {
   Int  iStride = cYuvMbBuffer.getLStride();
 
@@ -1212,7 +864,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
 
   // scaling has already been performed on DC coefficients
   /* HS: old scaling modified:
-     (I did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
+     (It did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
   iScale = ( pucScaleU ? pucScaleU[0] : 1 );
   iShift = ( pucScaleU ? 5 : 1 );
   m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale, iShift );     
@@ -1302,7 +954,8 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
   const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
 
   //===== copy all coefficients =====
-  m_cTCoeffs.copyFrom( rcMbDataAccess.getMbTCoeffs() );
+  MbTransformCoeffs& rcTCoeffs = m_cTCoeffs;
+  rcTCoeffs.copyFrom( rcMbDataAccess.getMbTCoeffs() );
 
   //===== luma =====
   if( b16x16 )
@@ -1316,9 +969,9 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
     }
     for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
     {
-      RNOK( xScale4x4Block( m_cTCoeffs.get( cIdx ), pucScaleY, 1, cLQp ) );
+      RNOK( xScale4x4Block( rcTCoeffs.get( cIdx ), pucScaleY, 1, cLQp ) );
     }
-    TCoeff* piCoeff = m_cTCoeffs.get( B4x4Idx(0) );
+    TCoeff* piCoeff = rcTCoeffs.get( B4x4Idx(0) );
     for( Int uiDCIdx = 0; uiDCIdx < 16; uiDCIdx++ )
       piCoeff[16*uiDCIdx] *= iScaleY;
   }
@@ -1327,7 +980,7 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
     //===== 8x8 BLOCKS =====
     for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
     {
-      RNOK( xScale8x8Block( m_cTCoeffs.get8x8( cIdx ), pucScaleY, cLQp ) );
+      RNOK( xScale8x8Block( rcTCoeffs.get8x8( cIdx ), pucScaleY, cLQp ) );
     }
   }
   else
@@ -1335,7 +988,7 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
     //===== 4x4 BLOCKS =====
     for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
     {
-      RNOK( xScale4x4Block( m_cTCoeffs.get( cIdx ), pucScaleY, 0, cLQp ) );
+      RNOK( xScale4x4Block( rcTCoeffs.get( cIdx ), pucScaleY, 0, cLQp ) );
     }
   }
 
@@ -1346,15 +999,15 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
      (I did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
   for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
   {
-    RNOK( xScale4x4Block( m_cTCoeffs.get( cIdx ), ( cIdx.plane() ? pucScaleV : pucScaleU ), 1, cCQp ) );
+    RNOK( xScale4x4Block( rcTCoeffs.get( cIdx ), ( cIdx.plane() ? pucScaleV : pucScaleU ), 1, cCQp ) );
   }
   UInt    uiDCIdx;
-  TCoeff* piCoeff = m_cTCoeffs.get( CIdx(0) );
+  TCoeff* piCoeff = rcTCoeffs.get( CIdx(0) );
   for( uiDCIdx = 0; uiDCIdx < 4; uiDCIdx++ )
   {
     piCoeff[16*uiDCIdx] *= iScaleU;
   }
-  piCoeff = m_cTCoeffs.get( CIdx(4) );
+  piCoeff = rcTCoeffs.get( CIdx(4) );
   for( uiDCIdx = 0; uiDCIdx < 4; uiDCIdx++ )
   {
     piCoeff[16*uiDCIdx] *= iScaleV;

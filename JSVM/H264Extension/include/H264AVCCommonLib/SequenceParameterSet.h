@@ -156,9 +156,6 @@ public:
                                                                             uiLayer         = m_uiDependencyIdList [uiSimplePri];
                                                                             uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
                                                                           }
-// VW {
-	UInt									getNumRefIdxUpdateActiveDefault	(UInt uiIdx)		const { return m_auiNumRefIdxUpdateActiveDefault[uiIdx];}
-// VW }
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
   Void  setLayerId                            ( UInt        ui )          { m_uiLayerId                             = ui; }
@@ -188,9 +185,6 @@ public:
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
-// VW {
-	Void setNumRefIdxUpdateActiveDefault			(UInt ui, UInt uiIdx )									{m_auiNumRefIdxUpdateActiveDefault[uiIdx]=ui;}
-// VW }
 
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,

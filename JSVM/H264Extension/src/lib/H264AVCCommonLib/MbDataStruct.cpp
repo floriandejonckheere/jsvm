@@ -180,7 +180,7 @@ Void MbDataStruct::clear()
   m_uiBCBP              = 0;
   m_usResidualPredFlags = 0;
   m_bTransformSize8x8   = 0;
-  m_bInCropWindowFlag   = false; //TMM_ESS		
+  m_bInCropWindowFlag   = false; //TMM_ESS	
   clearIntraPredictionModes( true );
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
 }

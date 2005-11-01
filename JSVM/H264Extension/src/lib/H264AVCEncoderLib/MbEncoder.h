@@ -176,8 +176,6 @@ public:
                                 Bool            bCalcMv,
                                 Bool            bFaultTolerant );
 
-  Void    setUpdId(UpdId id);
-  UpdId   getUpdId();
   ErrVal  compensateUpdate(      MbDataAccess&   rcMbDataAccess,
                                  IntFrame*       pcMCFrame,
                                  Int             iRefIdx,

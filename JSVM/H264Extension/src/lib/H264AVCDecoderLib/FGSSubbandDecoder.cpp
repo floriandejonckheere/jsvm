@@ -346,8 +346,7 @@ RQFGSDecoder::decodeNextLayer( SliceHeader* pcSliceHeader )
 
 
 ErrVal
-RQFGSDecoder::reconstruct( IntFrame*  pcRecResidual,
-                           Bool       bReconstructIntra )
+RQFGSDecoder::reconstruct( IntFrame*  pcRecResidual )
 {
   ROF( m_bInit );
   ROF( m_bPicInit );
@@ -364,13 +363,9 @@ RQFGSDecoder::reconstruct( IntFrame*  pcRecResidual,
   {
     MbDataAccess* pcMbDataAccess = 0;
     RNOK( m_pcCurrMbDataCtrl->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
-
-    if( bReconstructIntra || !pcMbDataAccess->getMbData().isIntra() )
-    {
-      RNOK( pcYuvBufferCtrl   ->initMb( uiMbY, uiMbX ) );
-      RNOK( xReconstructMacroblock    ( *pcMbDataAccess, cMbBuffer    ) );
-      RNOK( pcRecResidual->getFullPelYuvBuffer()->loadBuffer( &cMbBuffer ) );
-    }
+    RNOK( pcYuvBufferCtrl   ->initMb( uiMbY, uiMbX ) );
+    RNOK( xReconstructMacroblock    ( *pcMbDataAccess, cMbBuffer    ) );
+    RNOK( pcRecResidual->getFullPelYuvBuffer()->loadBuffer( &cMbBuffer ) );
   }
 
   return Err::m_nOK;

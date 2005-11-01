@@ -124,105 +124,66 @@ public:
                                   FrameMng*           pcFrameMng  );
   ErrVal uninit                 ();
 
-  ErrVal process                ( MbDataAccess& rcMbDataAccess );
-
-  ErrVal decodeResidual         ( MbDataAccess& rcMbDataAccess,
+  ErrVal process                ( MbDataAccess& rcMbDataAccess,
+                                  Bool          bReconstructAll );
+  ErrVal decode                 ( MbDataAccess& rcMbDataAccess,
                                   MbDataAccess* pcMbDataAccessBase,
                                   IntFrame*     pcFrame,
                                   IntFrame*     pcResidual,
-                                  IntFrame*     pcBaseSubband );
-  ErrVal decodeIntra            ( MbDataAccess& rcMbDataAccess,
-                                  IntFrame*     pcFrame,
-                                  IntFrame*     pcSubband,
-                                  IntFrame*     pcPredSignal,
-                                  IntFrame*     pcBaseLayer );
-  ErrVal decodeInterP           ( MbDataAccess& rcMbDataAccess,
-                                  MbDataAccess* pcMbDataAccessBase,
-                                  IntFrame*     pcFrame,
-                                  IntFrame*     pcSubband,
                                   IntFrame*     pcPredSignal,
                                   IntFrame*     pcBaseLayer,
-                                  IntFrame*     pcBaseLayerSubband,
-                                  RefFrameList& rcRefFrameList );
-  ErrVal compensatePrediction   ( MbDataAccess& rcMbDataAccess,
-                                  IntFrame*     pcMCFrame,
-                                  RefFrameList& rcRefFrameList0,
-                                  RefFrameList& rcRefFrameList1,
-                                  Bool          bCalcMv, 
-                                  Bool          bFaultTolerant );
-  ErrVal reconstructIntraPred   ( MbDataAccess& rcMbDataAccess,
-                                  IntFrame*     pcFrame,
-                                  IntFrame*     pcPredSignal,
-                                  IntFrame*     pcBaseLayer );
-  ErrVal reconstructIntra       ( MbDataAccess& rcMbDataAccess,
-                                  IntFrame*     pcFrame,
-                                  IntFrame*     pcPredSignal );
-  ErrVal scaleAndStoreIntraCoeffs( MbDataAccess& rcMbDataAccess );
-
-  Void    setUpdId(UpdId id);
-  UpdId   getUpdId();
-  ErrVal
-  compensateUpdate(   MbDataAccess&   rcMbDataAccess,
-                      IntFrame*       pcMCFrame,
-                      Int             iRefIdx,
-                      ListIdx         eListPrd,
-                      IntFrame*       pcPrdFrame);
-
-
+                                  IntFrame*     pcBaseLayerResidual,
+                                  RefFrameList* pcRefFrameList0,
+                                  RefFrameList* pcRefFrameList1,
+                                  Bool          bReconstructAll );
   ErrVal calcMv                 ( MbDataAccess& rcMbDataAccess,
                                   MbDataAccess* pcMbDataAccessBaseMotion );
 
-  Void  setReconstructionBypass ( Bool          bEnable =false ) { m_bReconstructionBypass = bEnable; }
-
 protected:
 	ErrVal xDecodeMbPCM           ( MbDataAccess&     rcMbDataAccess,
-                                  YuvMbBuffer&      rcRecYuvBuffer
-                                  );
+                                  YuvMbBuffer&      rcRecYuvBuffer );
   ErrVal xDecodeMbInter         ( MbDataAccess&     rcMbDataAccess,
                                   YuvMbBuffer&      rcRecYuvBuffer, 
                                   IntYuvMbBuffer&   rcPredIntYuvMbBuffer,
-                                  IntYuvMbBuffer&   rcResIntYuvMbBuffer
-                                  );
+                                  IntYuvMbBuffer&   rcResIntYuvMbBuffer,
+                                  Bool              bReconstruct );
   ErrVal xDecodeChroma          ( MbDataAccess&     rcMbDataAccess,
                                   YuvMbBuffer&      rcRecYuvBuffer,
                                   UInt              uiChromaCbp,
                                   Bool              bPredChroma );
-
-
-
+  
+  
+  ErrVal xDecodeMbPCM           ( MbDataAccess&     rcMbDataAccess,
+                                  IntYuvPicBuffer*  pcRecYuvBuffer );
+  ErrVal xDecodeMbIntra4x4      ( MbDataAccess&     rcMbDataAccess,
+                                  IntYuvMbBuffer&   cYuvMbBuffer
+                                  ,IntYuvMbBuffer&  rcPredBuffer );
+  ErrVal xDecodeMbIntra8x8      ( MbDataAccess&     rcMbDataAccess,
+                                  IntYuvMbBuffer&   cYuvMbBuffer
+                                  ,IntYuvMbBuffer&  rcPredBuffer );
+  ErrVal xDecodeMbIntra16x16    ( MbDataAccess&     rcMbDataAccess,
+                                  IntYuvMbBuffer&   cYuvMbBuffer
+                                  ,IntYuvMbBuffer&  rcPredBuffer );
+  ErrVal xDecodeMbIntraBL       ( MbDataAccess&     rcMbDataAccess,
+                                  IntYuvPicBuffer*  pcRecYuvBuffer,
+                                  IntYuvMbBuffer&   rcPredBuffer,
+                                  IntYuvPicBuffer*  pcBaseYuvBuffer );
   ErrVal xDecodeMbInter         ( MbDataAccess&     rcMbDataAccess,
                                   MbDataAccess*     pcMbDataAccessBase,
                                   IntYuvMbBuffer&   rcPredBuffer,
                                   IntYuvPicBuffer*  pcRecYuvBuffer,
-                                  IntFrame*         pcSubband,
-                                  IntFrame*         pcBaseSubband,
+                                  IntFrame*         pcResidual,
+                                  IntFrame*         pcBaseResidual,
                                   RefFrameList&     rcRefFrameList0, 
-                                  RefFrameList&     rcRefFrameList1 );
-  ErrVal xDecodeMbPCM           ( MbDataAccess&     rcMbDataAccess,
-                                  IntYuvPicBuffer*  pcRecYuvBuffer
-                                  );
-  ErrVal xDecodeMbIntra4x4      ( MbDataAccess&     rcMbDataAccess,
-                                  IntYuvMbBuffer&   cYuvMbBuffer
-                                  ,IntYuvMbBuffer&  rcPredBuffer
-                                  );
-  ErrVal xDecodeMbIntra8x8      ( MbDataAccess&     rcMbDataAccess,
-                                  IntYuvMbBuffer&   cYuvMbBuffer
-                                  ,IntYuvMbBuffer&  rcPredBuffer
-                                  );
-  ErrVal xDecodeMbIntra16x16    ( MbDataAccess&     rcMbDataAccess,
-                                  IntYuvMbBuffer&   cYuvMbBuffer
-                                  ,IntYuvMbBuffer&  rcPredBuffer
-                                  );
-  ErrVal xDecodeMbIntraBL       ( MbDataAccess&     rcMbDataAccess,
-                                  IntYuvPicBuffer*  pcRecYuvBuffer,
-                                  IntYuvMbBuffer&   rcPredBuffer,
-                                  IntYuvPicBuffer*  pcBaseYuvBuffer
-                                  );
+                                  RefFrameList&     rcRefFrameList1,
+                                  Bool              bReconstruct );
   ErrVal xDecodeChroma          ( MbDataAccess&     rcMbDataAccess,
                                   IntYuvMbBuffer&   rcRecYuvBuffer,
                                   IntYuvMbBuffer&   rcPredBuffer,
                                   UInt              uiChromaCbp,
                                   Bool              bPredChroma );
+  
+  
   ErrVal xScaleTCoeffs          ( MbDataAccess&      rcMbDataAccess );
   ErrVal xScale4x4Block         ( TCoeff*            piCoeff,
                                   const UChar*       pucScale,
@@ -240,7 +201,6 @@ protected:
   MotionCompensation* m_pcMotionCompensation;
   FrameMng*           m_pcFrameMng;
   Bool                m_bInitDone;
-  Bool                m_bReconstructionBypass;
 };
 
 H264AVC_NAMESPACE_END

@@ -348,7 +348,7 @@ ErrVal ControlMngH264AVCDecoder::initSlice0(SliceHeader *rcSH)
   if( rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_SCALABLE ||  
       rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
   {
-      m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
+    m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
   }
 
   m_uiInitilized[uiLayer] = true;

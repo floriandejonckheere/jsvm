@@ -133,8 +133,7 @@ public:
   ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
                                             MbDataCtrl*                 pcCurrMbDataCtrl );
   ErrVal            decodeNextLayer       ( SliceHeader*                pcSliceHeader );
-  ErrVal            reconstruct           ( IntFrame*                   pcRecResidual,
-                                            Bool                        bReconstructIntra );
+  ErrVal            reconstruct           ( IntFrame*                   pcRecResidual );
   ErrVal            finishPicture         ();
 
   Bool              isInitialized         ()    { return m_bPicInit; }

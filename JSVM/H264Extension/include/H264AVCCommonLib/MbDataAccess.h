@@ -234,26 +234,14 @@ public:
 
   Bool isConstrainedInterLayerPred( MbDataAccess* pcMbDataAccessBase )
   {
-    Bool bConstrainedInterLayerPred;
-#if !MULTIPLE_LOOP_DECODING
-	if( getSH().getKeyPictureFlag() && !pcMbDataAccessBase->getSH().getPPS().getConstrainedIntraPredFlag() )
-	  bConstrainedInterLayerPred = 0;
-	else 
-	  bConstrainedInterLayerPred = 1;
-#else
-	if( getSH().getKeyPictureFlag() )
-	{
-	  if( pcMbDataAccessBase->getSH().getPPS().getConstrainedIntraPredFlag() ) bConstrainedInterLayerPred = 1;
-	  else                                                                     bConstrainedInterLayerPred = 0;
-	}
-	else
-	{
-	  if( getSH().getSPS().getAlwaysDecodeBaseLayer() ) bConstrainedInterLayerPred = 0;
-	  else                                              bConstrainedInterLayerPred = 1;
-	}
-    // Note that bConstrainedInterLyaerPred, especially for multiloop case, might be modified, cleared, or removed...
+#if MULTIPLE_LOOP_DECODING
+    if( getSH().getSPS().getAlwaysDecodeBaseLayer() )
+    {
+      return false;
+    }
+    else
 #endif
-	return bConstrainedInterLayerPred;
+  	return getSH().getBaseLayerUsesConstrainedIntraPred();
   }
 
   UInt getCtxChromaPredMode ()                  const;

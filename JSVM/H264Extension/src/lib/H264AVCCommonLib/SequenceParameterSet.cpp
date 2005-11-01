@@ -337,12 +337,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
         RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,                      "SPS: ScaledBaseRightOffset" ) );
         RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,                     "SPS: ScaledBaseBottomOffset" ) );
       }
-	}
-// VW {
-		RNOK  ( pcWriteIf->writeUvlc( m_auiNumRefIdxUpdateActiveDefault[LIST_0],	"SPS: num_ref_idx_update_l0_active_default" ) );
-		RNOK  ( pcWriteIf->writeUvlc( m_auiNumRefIdxUpdateActiveDefault[LIST_1],	"SPS: num_ref_idx_update_l1_active_default" ) );
-// VW }
-
+  	}
   }
 // TMM_ESS }
 
@@ -439,11 +434,6 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
         RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                        "SPS: ScaledBaseBottomOffset" ) );
       }
     }
-// VW {
-		RNOK  ( pcReadIf->getUvlc( m_auiNumRefIdxUpdateActiveDefault[LIST_0],	"SPS: num_ref_idx_update_l0_active_default" ) );
-		RNOK  ( pcReadIf->getUvlc( m_auiNumRefIdxUpdateActiveDefault[LIST_1],	"SPS: num_ref_idx_update_l1_active_default" ) );
-// VW }
-
   }
   else
   {

@@ -108,7 +108,7 @@ class ControlMngIf;
 class RQFGSDecoder;
 
 
-class H264AVCDECODERLIB_API H264AVCDecoder //: public DecoderIf
+class H264AVCDECODERLIB_API H264AVCDecoder
 { 
 protected:
 	H264AVCDecoder         ();
@@ -141,16 +141,13 @@ public:
                       PicBufferList&    rcPicBufferReleaseList );
 
 
-  ErrVal  getBaseLayerMotionAndResidual ( IntFrame*&      pcResidual,
+  ErrVal  getBaseLayerData              ( IntFrame*&      pcFrame,
+                                          IntFrame*&      pcResidual,
                                           MbDataCtrl*&    pcMbDataCtrl,
-                                          Bool&           bSpatialScalability,
+                                          Bool&           rbConstrainedIPred,
+                                          Bool&           rbSpatialScalability,
                                           UInt            uiLayerId,
                                           UInt            uiBaseLayerId,
-                                          Int             iPoc );
-  ErrVal  getReconstructedBaseLayer     ( IntFrame*&      pcFrame,
-                                          UInt            uiLayerId,
-                                          UInt            uiBaseLayerId,
-                                          Bool            bSpatialScalability,
                                           Int             iPoc );
 
   Void    setBaseAVCCompatible        ( Bool                        bAVCCompatible )    { m_bBaseLayerIsAVCCompatible = bAVCCompatible; }
@@ -179,17 +176,9 @@ protected:
   ErrVal  xDecodeFGSRefinement      ( SliceHeader*&   rpcSliceHeader,
                                       PicBuffer*&     rpcPicBuffer );
 
-  ErrVal  xCopyIntraMacroblocks     ( IntFrame*       pcDesFrame,
-                                      IntFrame*       pcSrcFrame,
-                                      MbDataCtrl*     pcMbDataCtrl,
-                                      SliceHeader*    pcSliceHeader );
   ErrVal  xZeroIntraMacroblocks     ( IntFrame*       pcFrame,
                                       MbDataCtrl*     pcMbDataCtrl,
                                       SliceHeader*    pcSliceHeader );
-  ErrVal  xClipIntraMacroblocks     ( IntFrame*       pcFrame,
-                                      MbDataCtrl*     pcMbDataCtrl,
-                                      SliceHeader*    pcSliceHeader,
-                                      Bool            bClipAll );
 
 protected:
   SliceReader*                  m_pcSliceReader;

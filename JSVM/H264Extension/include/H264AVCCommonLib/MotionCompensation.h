@@ -177,9 +177,6 @@ public:
                             Bool            bCalcMv,
                             Bool            bFaultTolerant );
 
-  Void    setUpdId(UpdId id);
-  UpdId   getUpdId();
-
   ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
                   IntFrame*       pcMCFrame,
                   IntFrame*       pcPrdFrame,
@@ -272,7 +269,6 @@ protected:
   UInt m_uiMbInFrameX;
   int m_curMbX;
   int m_curMbY;
-  UpdId m_updId;  // NML_UPD: normal update ; INV_UPD: inverse update
 };
 
 #if defined( WIN32 )

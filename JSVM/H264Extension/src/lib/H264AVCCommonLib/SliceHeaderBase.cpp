@@ -111,8 +111,6 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiIdrPicId                        ( 0 )
 , m_uiPicOrderCntLsb                  ( 0 )
 , m_bDirectSpatialMvPredFlag          ( true )
-, m_uiNumberOfUpdateLevel             ( 0 )	//VW
-, m_bNumRefIdxUpdateActiveOverrideFlag(true) //VW
 , m_bKeyPictureFlag                   ( false )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevel                ( 0 )
@@ -214,9 +212,6 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( m_eSliceType != F_SLICE )
   {
-// VW {
-    RNOK(   pcWriteIf->writeUvlc( m_uiNumberOfUpdateLevel,                      "SH: number_of_update_level" ) );
-// VW }
     UInt  uiBaseLayerIdPlus1;
     if( m_uiBaseLayerId == MSYS_UINT_MAX )
       uiBaseLayerIdPlus1 = 0;
@@ -250,20 +245,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     {
       RNOK( getRplrBuffer( LIST_1 ).write( pcWriteIf ) );
     }
-//VW {
-		if (m_uiNumberOfUpdateLevel>0) 
-		{
-			pcWriteIf->writeFlag( m_bNumRefIdxUpdateActiveOverrideFlag,			          "SH: num_ref_idx_update_active_override_flag" );
-			if (m_bNumRefIdxUpdateActiveOverrideFlag)
-			{
-				for( UInt uiIndex = 0; uiIndex < m_uiNumberOfUpdateLevel; uiIndex++ )
-				{
-					RNOK( pcWriteIf->writeUvlc( m_aauiNumRefIdxActiveUpdate[uiIndex + m_uiTemporalLevel][LIST_0], "SH: num_ref_idx_update_l0_active" ) );
-					RNOK( pcWriteIf->writeUvlc( m_aauiNumRefIdxActiveUpdate[uiIndex + m_uiTemporalLevel][LIST_1], "SH: num_ref_idx_update_l1_active" ) );
-				}
-			}
-		}
-// VW }
+
     if( getNalRefIdc() )
     {
       if( isIdrNalUnit() )
@@ -458,9 +440,6 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   
   if( m_eSliceType != F_SLICE )
   {
-//VW {
-    RNOK(   pcReadIf->getUvlc( m_uiNumberOfUpdateLevel,                      "SH: number_of_update_level" ) );
-//VW }
     RNOK(   pcReadIf->getUvlc( uiTmp,                                        "SH: base_id_plus1" ) );
     m_uiBaseLayerId = uiTmp - 1;
     if( m_uiBaseLayerId != MSYS_UINT_MAX )
@@ -505,33 +484,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     {
       RNOK( getRplrBuffer( LIST_1 ).read( pcReadIf, getNumRefIdxActive( LIST_1 ) ) );
     }
-//VW {
-		if (m_uiNumberOfUpdateLevel > 0)
-		{
-			pcReadIf->getFlag( m_bNumRefIdxUpdateActiveOverrideFlag,               "SH: num_ref_idx_update_active_override_flag" );
-			if (m_bNumRefIdxUpdateActiveOverrideFlag)
-			{
-				for( UInt uiIndex = 0; uiIndex < m_uiNumberOfUpdateLevel; uiIndex++ )
-				{
-					RNOK( pcReadIf->getUvlc( m_aauiNumRefIdxActiveUpdate[uiIndex+m_uiTemporalLevel][LIST_0], "SH: num_ref_idx_update_l0_active" ) );
-					RNOK( pcReadIf->getUvlc( m_aauiNumRefIdxActiveUpdate[uiIndex+m_uiTemporalLevel][LIST_1], "SH: num_ref_idx_update_l1_active" ) );
-				}
-			}
-			else
-			{
-				for( UInt uiIndex = 0; uiIndex < m_uiNumberOfUpdateLevel; uiIndex++ )
-				{
-					m_aauiNumRefIdxActiveUpdate[uiIndex+m_uiTemporalLevel][LIST_0]=getSPS().getNumRefIdxUpdateActiveDefault(LIST_0);
-					m_aauiNumRefIdxActiveUpdate[uiIndex+m_uiTemporalLevel][LIST_1]=getSPS().getNumRefIdxUpdateActiveDefault(LIST_1);
-				}
-			}
-		}
-		for( UInt uiIndex = m_uiNumberOfUpdateLevel; uiIndex < MAX_TEMP_LEVELS-m_uiTemporalLevel; uiIndex++ )
-		{
-			m_aauiNumRefIdxActiveUpdate[uiIndex+m_uiTemporalLevel][LIST_0]=0;
-			m_aauiNumRefIdxActiveUpdate[uiIndex+m_uiTemporalLevel][LIST_1]=0;
-		}
-//VW }
+
     if( getNalRefIdc() )
     {
       if( isIdrNalUnit() )

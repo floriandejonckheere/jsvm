@@ -215,6 +215,7 @@ public:
     , m_uiBaseQualityLevel                (3)
     , m_uiDecodingLoops                   (0)
     , m_bConstrainedIntraPredForLP        (false)
+    , m_uiForceReorderingCommands         (0)
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
   }
@@ -263,6 +264,7 @@ public:
   UInt                            getBaseLayerTempRes               () const {return m_uiBaseLayerTempRes; }
   UInt                            getDecodingLoops                  () const {return m_uiDecodingLoops; }
   Bool                            getContrainedIntraForLP           () const {return m_bConstrainedIntraPredForLP; }
+  UInt                            getForceReorderingCommands        () const {return m_uiForceReorderingCommands; }
 
 
   //===== set =====
@@ -305,6 +307,7 @@ public:
   Void setBaseQualityLevel                (UInt   p) { m_uiBaseQualityLevel               = p; }
   Void setDecodingLoops                   (UInt   p) { m_uiDecodingLoops                  = p; }
   Void setContrainedIntraForLP            ()         { m_bConstrainedIntraPredForLP       = true; }
+  Void setForceReorderingCommands         (UInt   p) { m_uiForceReorderingCommands        = p; }
 
 // TMM_ESS {
   int                 getExtendedSpatialScalability     () { return m_ResizeParameter.m_iExtendedSpatialScalability; }
@@ -340,6 +343,7 @@ public:
   UInt                      m_uiInterLayerPredictionMode;
   UInt                      m_uiDecodingLoops;
   Bool                      m_bConstrainedIntraPredForLP;
+  UInt                      m_uiForceReorderingCommands;
 
   UInt                      m_uiBaseQualityLevel;
 

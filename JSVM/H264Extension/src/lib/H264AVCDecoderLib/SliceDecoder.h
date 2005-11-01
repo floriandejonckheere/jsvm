@@ -94,7 +94,6 @@ H264AVC_NAMESPACE_BEGIN
 
 class MbDecoder;
 class IntFrame;
-class IntFrameBase;
 class Transform;
 
 class SliceDecoder
@@ -104,54 +103,36 @@ protected:
 	virtual ~SliceDecoder();
 
 public:
-  static ErrVal create( SliceDecoder*& rpcSliceDecoder );
+  static ErrVal create( SliceDecoder*&      rpcSliceDecoder );
   ErrVal destroy();
-  ErrVal init( MbDecoder* pcMbDecoder, ControlMngIf* pcControlMng,
-      Transform* pcTransform );
 
-  ErrVal uninit();
+  ErrVal init         ( MbDecoder*          pcMbDecoder,
+                        ControlMngIf*       pcControlMng,
+                        Transform*          pcTransform );
+  ErrVal uninit       ();
 
-  ErrVal process( const SliceHeader& rcSH, UInt uiMbRead );
-
-  Void setReconstructionBypass( Bool bEnable = false ) { m_bReconstructionBypass = bEnable; }
-
-  MbDecoder* getMbDecoder() { return m_pcMbDecoder; }
-
-
-  ErrVal decodeHighPass       ( SliceHeader&  rcSH,
-                                MbDataCtrl*   pcMbDataCtrl, 
-                                MbDataCtrl*   pcMbDataCtrlPred, 
-                                IntFrame*     pcFrame, 
-                                IntFrame*     pcResidual,
-                                IntFrame*     pcBaseSubband,
-                                UInt          uiMbInRow,
-                                UInt          uiMbRead );
-  ErrVal decodeIntra          ( SliceHeader&  rcSH,
-                                MbDataCtrl*   pcMbDataCtrl,
-                                IntFrame*     pcFrame,
-                                IntFrame*     pcSubband,
-                                IntFrame*     pcPredSignal,
-                                IntFrame*     pcBaseLayer,
-                                UInt          uiMbInRow,
-                                UInt          uiMbRead );
-  ErrVal decodeInterP         ( SliceHeader&  rcSH, 
-                                MbDataCtrl*   pcMbDataCtrl,
-                                MbDataCtrl*   pcMbDataCtrlBase,
-                                IntFrame*     pcFrame,
-                                IntFrame*     pcRecSubband,
-                                IntFrame*     pcPredSignal,
-                                IntFrame*     pcBaseLayer,
-                                IntFrame*     pcBaseLayerSubband,
-                                RefFrameList& rcRefFrameList,
-                                UInt          uiMbInRow,
-                                UInt          uiMbRead );
+  ErrVal process      ( const SliceHeader&  rcSH,
+                        Bool                bReconstructAll,
+                        UInt                uiMbRead );
+  ErrVal decode       ( SliceHeader&        rcSH,
+                        MbDataCtrl*         pcMbDataCtrl,
+                        MbDataCtrl*         pcMbDataCtrlBase,
+                        IntFrame*           pcFrame,
+                        IntFrame*           pcResidual,
+                        IntFrame*           pcPredSignal,
+                        IntFrame*           pcBaseLayer,
+                        IntFrame*           pcBaseLayerResidual,
+                        RefFrameList*       pcRefFrameList0,
+                        RefFrameList*       pcRefFrameList1,
+                        Bool                bReconstructAll,
+                        UInt                uiMbInRow,
+                        UInt                uiMbRead );
 
 protected:
-  MbDecoder* m_pcMbDecoder;
+  MbDecoder*    m_pcMbDecoder;
   ControlMngIf* m_pcControlMng;
-  Transform* m_pcTransform;
-  Bool m_bInitDone;
-  Bool m_bReconstructionBypass;
+  Transform*    m_pcTransform;
+  Bool          m_bInitDone;
 };
 
 

@@ -425,7 +425,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
   if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
   {
     //===== only when intra BL is allowed =====
-    if( pcMbDataAccessBase->getMbData().isIntra() || ! pcMbDataAccessBase->getSH().getPPS().getConstrainedIntraPredFlag() )
+    if( pcMbDataAccessBase->getMbData().isIntra() || ! rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
     {
 		  if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) // TMM_ESS
 			  RNOK( xEstimateMbIntraBL( m_pcIntMbTempData, m_pcIntMbBestData, pcBaseLayerRec, false, pcMbDataAccessBase ) );
@@ -978,16 +978,6 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
   return Err::m_nOK;
 }
 
-
-Void MbEncoder::setUpdId(UpdId id)
-{
-  m_pcMotionEstimation->setUpdId(id);
-}
-
-UpdId  MbEncoder::getUpdId()
-{
-  return m_pcMotionEstimation->getUpdId();
-}
 
 ErrVal
 MbEncoder::compensateUpdate(  MbDataAccess&   rcMbDataAccess,

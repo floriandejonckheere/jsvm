@@ -249,6 +249,7 @@ public:
   ErrVal        getBaseLayerData    ( IntFrame*&                      pcFrame,
                                       IntFrame*&                      pcResidual,
                                       MbDataCtrl*&                    pcMbDataCtrl,
+                                      Bool&                           bConstrainedIPredBL,
                                       Bool&                           bForCopyOnly,
                                       Int                             iSpatialScalability,
                                       Int                             iPoc,
@@ -327,8 +328,6 @@ protected:
   ErrVal  xClearBufferExtensions        ();
   ErrVal  xGetPredictionLists           ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
-																					CtrlDataList&								rcCtrlList0,
-																					CtrlDataList&								rcCtrlList1,
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bHalfPel = false );
@@ -502,6 +501,7 @@ protected:
   Bool                          m_bHaarFiltering;                     // haar-based decomposition
   Bool                          m_bBiPredOnly;                        // only bi-direktional prediction
   Bool                          m_bAdaptiveQP;                        // QP's are set based on chosen modes
+  Bool                          m_bForceReOrderingCommands;           // always write re-ordering commands (error robustness)
   Bool                          m_bWriteSubSequenceSei;               // Subsequence SEI message (H.264/AVC base layer)
   Double                        m_adBaseQpLambdaMotion[MAX_DSTAGES];  // base QP's for mode decision and motion estimation
   Double                        m_dBaseQPResidual;                    // base residual QP
@@ -530,9 +530,6 @@ protected:
   IntFrame**                    m_papcFrame;                          // frame stores
   IntFrame**                    m_papcBQFrame;                        // base quality frames
   IntFrame**                    m_papcCLRecFrame;                     // closed-loop rec. (needed when m_uiQualityLevelForPrediction < NumFGS)
-#if MULTIPLE_LOOP_DECODING
-  IntFrame**                    m_papcFrameILPred;
-#endif
   IntFrame**                    m_papcResidual;                       // frame stores for residual data
   IntFrame**                    m_papcSubband;                        // reconstructed subband pictures
   IntFrame*                     m_apcLowPassTmpOrg  [2];              // temporal storage for original low-pass pcitures
@@ -591,12 +588,10 @@ protected:
   std::string	m_cGOPModeFilename;
 
   UInt      m_uiMaxDecStages; // -- // -- 10.18.2005
-  UInt      m_uiTemporalLevel_AGS; // -- 10.18.2005
   //}}Adaptive GOP structure
 
 #if MULTIPLE_LOOP_DECODING
   Bool                          m_bCompletelyDecodeLayer;
-  Bool                          m_bLayerReconstructionNotPossible;
   Bool                          m_bHighestLayer;
 #endif
 

@@ -499,9 +499,6 @@ public:
   UInt                              getIdrPicId                   ()  const { return m_uiIdrPicId; }
   UInt                              getPicOrderCntLsb             ()  const { return m_uiPicOrderCntLsb; }
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
-// VW {
-  UInt                              getNumberOfUpdateLevel        ()  const { return m_uiNumberOfUpdateLevel; }
-// VW }
   Bool                              getKeyPictureFlag             ()  const { return m_bKeyPictureFlag; }
   UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
@@ -528,6 +525,8 @@ public:
   Bool                              getExtensionFlag              ()    	{ return m_bExtensionFlag;}
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
+  Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
+
   //===== set parameters =====
   Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
   Void  setNalUnitType                ( NalUnitType e  )  { m_eNalUnitType                      = e;  }
@@ -543,9 +542,6 @@ public:
   Void  setIdrPicId                   ( UInt        ui )  { m_uiIdrPicId                        = ui; }
   Void  setPicOrderCntLsb             ( UInt        ui )  { m_uiPicOrderCntLsb                  = ui; }
   Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
-// VW {
-  Void  setNumberOfUpdateLevel        ( UInt        ui )  { m_uiNumberOfUpdateLevel             = ui; }
-// VW  }
   Void  setKeyPictureFlag             ( Bool        b  )  { m_bKeyPictureFlag                   = b;  }
   Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; }
   Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
@@ -553,9 +549,6 @@ public:
   Void  setNumRefIdxActiveOverrideFlag( Bool        b  )  { m_bNumRefIdxActiveOverrideFlag      = b;  }
   Void  setNumRefIdxActive            ( ListIdx     e,
                                         UInt        ui )  { m_auiNumRefIdxActive[e]             = ui; }
-// VW {
-  Void  setNumRefIdxUpdateActiveOverrideFlag( Bool  b  )  { m_bNumRefIdxUpdateActiveOverrideFlag= b;  }
-// VW }
   Void  setNumRefIdxUpdate            ( UInt        ui,
                                         ListIdx     e,
                                         UInt        p  )  { m_aauiNumRefIdxActiveUpdate[ui][e]  = p;  }
@@ -572,6 +565,7 @@ public:
   Void setExtensionFlag				  (Bool         b)	   { m_bExtensionFlag = b;}
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
+  Void setBaseLayerUsesConstrainedIntraPred( Bool b ) { m_bBaseLayerUsesConstrainedIntraPred = b; }
 
 
 protected:
@@ -615,6 +609,8 @@ protected:
   Int                         m_iSliceQpDelta;
   DeblockingFilterParameter   m_cDeblockingFilterParameter;
 
+  Bool                        m_bBaseLayerUsesConstrainedIntraPred;
+
   //{{Variable Lengh NAL unit header data with priority and dead substream flag
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   UInt						            m_uiSimplePriorityId;
@@ -622,10 +618,6 @@ protected:
   Bool                        m_bExtensionFlag;
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
-// VW {
-	UInt												m_uiNumberOfUpdateLevel;
-	Bool												m_bNumRefIdxUpdateActiveOverrideFlag;
-// VW }
 // TMM_ESS {
 public:
   Int           getLeftOffset ()   const { return m_iScaledBaseLeftOffset; }
