@@ -1000,7 +1000,7 @@ H264AVCDecoder::xReconstructLastFGS()
 
 
   //===== loop-filter for spatial scalable coding =====
-  if( m_bEnhancementLayer && m_bSpatialScalability )
+  if( m_bEnhancementLayer )
   {
     RNOK( pcILPredFrameSpatial->copy( pcILPredFrame ) );
     
