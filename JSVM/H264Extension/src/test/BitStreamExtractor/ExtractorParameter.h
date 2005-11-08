@@ -118,6 +118,7 @@ public:
   void                  setLayer            (UInt layer)  { m_uiLayer = layer;        }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
+  Double                getBitrate          ()            const { return m_dBitrate;        }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }
   const MyList<UInt>&   getRemoveList       ()            const { return m_cRemoveList;     }
 
@@ -151,6 +152,7 @@ protected:
   UInt            m_uiLayer;
   UInt            m_uiLevel;
   Double          m_dFGSLayer;
+  Double					m_dBitrate;
   Bool            m_bAnalysisOnly;
   MyList<Point>   m_cExtractionList;
   MyList<UInt>    m_cRemoveList;

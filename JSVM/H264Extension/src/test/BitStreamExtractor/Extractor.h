@@ -134,6 +134,12 @@ public:
   Void    output    ( FILE*                   pFile );
 
   UInt    getNumberOfLayers ()                  const { return m_uiNumLayers; }
+  UInt    getNumOfScalableLayers()              const { return m_uiScalableNumLayersMinus1 + 1; }
+  UInt    getNumberOfScalableLayers ( UInt uiLayer, UInt uiTL, UInt uiQL ) const { return m_aaauiScalableLayerId[uiLayer][uiTL][uiQL]; }
+  UInt    getBitrateOfScalableLayers( UInt uiScalableLayer ) const { return m_auiBitrate[uiScalableLayer]; }
+  UInt    getDependencyId           ( UInt uiScalableLayer ) const { return m_auiDependencyId[uiScalableLayer]; }
+  UInt    getTempLevel              ( UInt uiScalableLayer ) const { return m_auiTempLevel[uiScalableLayer]; }
+  UInt    getFGSLevel               ( UInt uiScalableLayer ) const { return m_auiQualityLevel[uiScalableLayer]; }
   UInt    getFrameWidth     ( UInt uiLayer )    const { return m_auiFrameWidth  [uiLayer]; }
   UInt    getFrameHeight    ( UInt uiLayer )    const { return m_auiFrameHeight [uiLayer]; }
   UInt    getMaxLevel       ( UInt uiLayer )    const { return m_auiDecStages   [uiLayer]; }
@@ -166,6 +172,22 @@ private:
   UInt64  m_aaui64FGSLayerBytes [MAX_LAYERS][MAX_DSTAGES+1];
   UInt    m_aauiNumPictures     [MAX_LAYERS][MAX_DSTAGES+1];
 
+  UInt    m_uiScalableNumLayersMinus1;
+  UInt    m_auiBitrate              [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
+  UInt    m_auiTempLevel            [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
+  UInt    m_auiDependencyId         [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
+  UInt    m_auiQualityLevel         [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
+  Double  m_adFramerate             [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
+  UInt    m_auiFrmWidth             [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
+  UInt    m_auiFrmHeight            [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
+  UInt    m_aaauiScalableLayerId    [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt    m_aaauiBitrate            [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt    m_aaauiTempLevel          [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt    m_aaauiDependencyId       [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt    m_aaauiQualityLevel       [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  Double  m_aaadFramerate           [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt    m_aaauiFrmWidth           [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt    m_aaauiFrmHeight          [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 };
 
 
@@ -181,6 +203,7 @@ public:
   ErrVal        init                ( ExtractorParameter* pcExtractorParameter );
   ErrVal        go                  ();
   ErrVal        destroy             ();
+  ErrVal        xWriteScalableSEIToBuffer( h264::SEI::ScalableSei* pcScalableSei, BinData* pcBinData );
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -195,6 +218,8 @@ protected:
   ErrVal        xSetParameters      ();
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
+  ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage, 
+                  UInt uiKeepScalableLayer,UInt& uiMaxLayer, UInt& uiMaxTempLevel, UInt& uiMaxFGSLayer, UInt uiMaxBitrate);
 
   // HS: packet trace
   ErrVal        xReadLineExtractTrace ( Char*               pcFormatString,

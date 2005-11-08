@@ -166,6 +166,7 @@ public:
                                 Bool          bMotion );
   UInt*   getGOPBitsBase      ( UInt          uiBaseLayerId );
   UInt*   getGOPBitsFGS       ( UInt          uiBaseLayerId );
+  UInt*   getGOPBits					( UInt					uiScalableLayerId );
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -179,10 +180,17 @@ public:
                                 UInt                    uiLayer );
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
+	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }
+	Double* dGetFramerate				()			 { return m_dFinalFramerate; }
+	Double* dGetBitrate					()			 { return m_dFinalBitrate; }
+	Double m_aaauidSeqBits [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 protected:
   ErrVal xInitParameterSets ();
   ErrVal xWriteScalableSEI  ( ExtBinDataAccessor*       pcExtBinDataAccessor );
+	ErrVal xWriteSubPicSEI		( ExtBinDataAccessor*				pcExtBinDataAccessor );
   ErrVal xProcessGOP        ( UInt                      uiLayer,
+                              UInt&                     uiScalableLayer,
                               PicBuffer*                pcOriginalPicBuffer, 
                               PicBuffer*                pcReconstructPicBuffer, 
                               PicBufferList&            rcPicBufferOutputList, 
@@ -203,6 +211,9 @@ protected:
   Bool                              m_bInitDone;
   Bool                              m_bTraceEnable;
 
+	Bool															m_bScalableSeiMessage;
+  Double														m_dFinalBitrate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
+	Double														m_dFinalFramerate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
   MCTFEncoder*                      m_apcMCTFEncoder    [MAX_LAYERS];
   AccessUnitList                    m_cAccessUnitList;
 

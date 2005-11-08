@@ -82,6 +82,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "BStreamExtractor.h"
 #include "Extractor.h"
+#include "ScalableModifyCode.h"
+#include "ScalableTestCode.h"
 #include <math.h>
 
 
@@ -345,128 +347,6 @@ Extractor::xAnalyse()
   }
 
 
-  while( ! bEOS )
-  {
-    //===== get packet =====
-    RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
-    if( bEOS )
-    {
-      continue;
-    }
-
-    //===== get packet description =====
-    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
-    ROT ( pcScalableSei );
-
-    // HS: packet trace
-    if( ! cPacketDescription.ApplyToNext )
-    {
-      if( iLastTempLevel )
-      {
-        cPacketDescription.Level  = iLastTempLevel;
-        iLastTempLevel            = 0;
-      }
-      i64EndPos     = static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->getFilePos();
-      UInt  uiStart = (UInt)( i64StartPos & 0xFFFFFFFF  );
-      UInt  uiSize  = (UInt)( i64EndPos   - i64StartPos );
-      i64StartPos   = i64EndPos;
-      if( m_pcTraceFile )
-      {
-        ::fprintf( m_pcTraceFile, "0x%08x"   "%8d"   "%5d""%5d""%5d""  %s"        "         %s""         %s" "\n",
-          uiStart,
-          uiSize,
-          cPacketDescription.Layer,
-          cPacketDescription.Level,
-          cPacketDescription.FGSLayer,
-          cPacketDescription.ParameterSet ? "ParameterSet" : "   SliceData",
-          cPacketDescription.ParameterSet || ( cPacketDescription.Level == 0 && cPacketDescription.FGSLayer == 0 )  ? " No" : "Yes",
-          cPacketDescription.FGSLayer ? "Yes" : " No" );
-      }
-      m_uiMaxSize = max( m_uiMaxSize, uiSize );
-    }
-    else
-    {
-      iLastTempLevel = cPacketDescription.Level;
-    }
-
-    //===== set packet length =====
-    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
-    {
-      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
-    }
-
-    //==== get parameters =====
-    UInt  uiPacketSize  = 4 + pcBinData->size();
-    if( ! bApplyToNext )
-    {
-      uiLayer     = cPacketDescription.Layer;
-      uiLevel     = cPacketDescription.Level;
-      uiFGSLayer  = cPacketDescription.FGSLayer;
-    }
-    bApplyToNext  = cPacketDescription.ApplyToNext;
-    bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
-
-    //==== update stream description =====
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    //count number of picture per layer in input stream
-	if (bNewPicture && uiFGSLayer == 0 && cPacketDescription.NalUnitType != NAL_UNIT_SEI)
-	{
-		auiNumImage[uiLayer] ++;
-	}
-	if(cPacketDescription.ParameterSet || cPacketDescription.NalUnitType == NAL_UNIT_SEI )
-	{
-		uiNumFrame = auiNumImage[uiLayer];
-	}
-	else
-		uiNumFrame = auiNumImage[uiLayer]-1;
-
-    //Saving of Dead substream SEI information
-	uiMaxRateDS   = cPacketDescription.MaxRateDS;
-	if(uiMaxRateDS != 0)
-	{
-		//bMaxRateDS = true;
-		m_bInInputStreamDS = true;
-		m_aaadMaxRate[uiLayer][uiNumFrame] = uiMaxRateDS;
-		bApplyToNext = false;
-		if(!m_bExtractDeadSubstream[uiLayer])
-		{
-          RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
-		}
-	}
-	//Saving of Quality Level SEI information
-	if(cPacketDescription.uiNumLevelsQL != 0)
-	{   
-        m_bInInputStreamQL = true;
-        m_aaiNumLevels[uiLayer][uiNumFrame] = cPacketDescription.uiNumLevelsQL;
-        m_aauiSEIQLPacketSize[uiLayer][uiNumFrame] = uiPacketSize;
-		for(ui = 0; ui < m_aaiNumLevels[uiLayer][uiNumFrame]; ui++)
-		{
-			m_aaauiBytesForQualityLevel[uiLayer][uiNumFrame][ui] = cPacketDescription.auiDeltaBytesRateOfLevelQL[ui];
-			m_aaadQualityLevel[uiLayer][uiNumFrame][ui] = cPacketDescription.auiQualityLevelQL[ui];
-		}
-        bApplyToNext = false;
-	}
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-    
-    RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
-
-    UInt eNalUnitType = cPacketDescription.NalUnitType;
-    if(  eNalUnitType == NAL_UNIT_CODED_SLICE              ||
-         eNalUnitType == NAL_UNIT_CODED_SLICE_IDR          ||
-         eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
-         eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
-    {
-      m_cScalableStreamDescription.m_bSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
-      m_cScalableStreamDescription.m_bPPSRequired[uiLayer][cPacketDescription.PPSid] = true;
-    }
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  addPacket(uiLayer, uiNumFrame,uiFGSLayer,uiPacketSize);
-  if(bNewPicture)
-      setLevel(uiLayer, uiLevel,uiNumFrame);
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-  }
 
   RNOK( m_cScalableStreamDescription.analyse() );
   m_cScalableStreamDescription.output( stdout );
@@ -474,35 +354,6 @@ Extractor::xAnalyse()
   //----- reset input file -----
   RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->uninit() );
   RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->init  ( m_pcExtractorParameter->getInFile() ) );
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  //save number of frames per layer
-  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
-  {
-	  m_auiNbImages[uiLayer] = auiNumImage[uiLayer];
-  }
-  //initialize max rate for each frame
-  //if dead substream is present for the layer: max rate is equal to max rate before dead substream
-  //else max rate is equal to the rate of the frame
-  if(m_bInInputStreamQL)
-  {
-    setQualityLevel();
-  	UInt uiLayerDeb = 0;
-	if(m_bInInputStreamDS == false)
-	{
-		uiLayerDeb = 0;
-	 }
-	else
-	{
-		  uiLayerDeb = m_cScalableStreamDescription.getNumberOfLayers()-1;
-	 }
-  
-	for(uiLayer = uiLayerDeb; uiLayer < m_cScalableStreamDescription.getNumberOfLayers();uiLayer++)
-	{
-	  CalculateMaxRate(uiLayer);
-	}
-  }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   return Err::m_nOK;
 }
 
@@ -816,147 +667,387 @@ Extractor::xExtractPoints()
   return Err::m_nOK;
 }
 
+ErrVal
+Extractor::xWriteScalableSEIToBuffer(h264::SEI::ScalableSei* pcScalableSei, BinData* pcBinData )
+{
+	const UInt uiSEILength = 1000;
+	UChar		pulStreamPacket[uiSEILength];
+	pcBinData->reset();
+	pcBinData->set( new UChar[uiSEILength], uiSEILength );
 
+	UChar *m_pucBuffer = pcBinData->data();
+
+	ScalableModifyCode cScalableModifyCode;
+	ScalableTestCode cScalableTestCode;
+	RNOK( cScalableTestCode.init() );
+	RNOK( cScalableModifyCode.init( (ULong*) pulStreamPacket ) );
+	RNOK( cScalableTestCode.SEICode( pcScalableSei, &cScalableTestCode ) );
+	UInt uiBits = cScalableTestCode.getNumberOfWrittenBits();
+	UInt uiSize = (uiBits+7)/8;
+	RNOK( cScalableModifyCode.WriteFlag( 0 ) );
+	RNOK( cScalableModifyCode.WriteCode( 0 ,2 ) );
+	RNOK( cScalableModifyCode.WriteCode( NAL_UNIT_SEI, 5 ) );
+	RNOK( cScalableModifyCode.WritePayloadHeader( pcScalableSei->getMessageType(), uiSize ) );
+	RNOK( cScalableModifyCode.SEICode( pcScalableSei, &cScalableModifyCode ) );
+	uiBits = cScalableModifyCode.getNumberOfWrittenBits();
+	uiSize = (uiBits+7)/8;
+	UInt uiAlignedBits = 8 - (uiBits&7);
+	if( uiAlignedBits != 0 && uiAlignedBits != 8 )
+	{
+		RNOK( cScalableModifyCode.WriteCode( 1 << (uiAlignedBits-1), uiAlignedBits ) );
+	}
+	RNOK ( cScalableModifyCode.WriteTrailingBits() );
+	RNOK ( cScalableModifyCode.flushBuffer() );
+	uiBits = cScalableModifyCode.getNumberOfWrittenBits();
+	uiBits              = ( uiBits >> 3 ) + ( 0 != ( uiBits & 0x07 ) );
+	uiSize = uiBits;
+	RNOK( cScalableModifyCode.ConvertRBSPToPayload( m_pucBuffer, pulStreamPacket, uiSize, 2 ) );
+	pcBinData->decreaseEndPos( uiSEILength - uiSize );
+	return Err::m_nOK;
+}
+
+ErrVal
+Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage,
+						UInt uiKeepScalableLayer,UInt& uiMaxLayer, UInt& uiMaxTempLevel, UInt& uiMaxFGSLayer, UInt uiMaxBitrate)
+{
+	h264::SEI::ScalableSei* pcNewScalableSei;
+	RNOK( h264::SEI::ScalableSei::create(pcNewScalableSei) );
+
+	h264::SEI::ScalableSei* pcOldScalableSei = ( h264::SEI::ScalableSei*) pcScalableSEIMessage;
+	pcNewScalableSei->setNumLayersMinus1( uiKeepScalableLayer-1);
+
+	UInt uiNumScalableLayer = 0;
+	for( UInt uiScalableLayer = 0; uiScalableLayer <= pcOldScalableSei->getNumLayersMinus1(); uiScalableLayer++ )
+	{
+		ROF( pcOldScalableSei->getDecodingDependencyInfoPresentFlag( uiScalableLayer ) );
+		if( uiMaxLayer == MSYS_UINT_MAX )
+		{
+			if( pcOldScalableSei->getQualityLevel( uiScalableLayer ) > uiMaxFGSLayer ||
+				  pcOldScalableSei->getTemporalLevel( uiScalableLayer ) > uiMaxTempLevel )
+				continue;
+		}
+		else
+		{
+			if( pcOldScalableSei->getDependencyId(uiScalableLayer) > uiMaxLayer || pcOldScalableSei->getTemporalLevel(uiScalableLayer) > uiMaxTempLevel )
+				continue;
+			if( pcOldScalableSei->getDependencyId(uiScalableLayer) == uiMaxLayer && pcOldScalableSei->getTemporalLevel(uiScalableLayer) == uiMaxTempLevel 
+				&& pcOldScalableSei->getQualityLevel( uiScalableLayer) > uiMaxFGSLayer )
+				continue;
+		}
+		pcNewScalableSei->setLayerId( uiNumScalableLayer, uiNumScalableLayer );
+		pcNewScalableSei->setFGSlayerFlag( uiNumScalableLayer, pcOldScalableSei->getFGSLayerFlag( uiScalableLayer ) );
+		pcNewScalableSei->setSubPicLayerFlag( uiNumScalableLayer, pcOldScalableSei->getSubPicLayerFlag( uiScalableLayer ) );
+		pcNewScalableSei->setSubRegionLayerFlag( uiNumScalableLayer, pcOldScalableSei->getSubRegionLayerFlag( uiScalableLayer ) );
+		pcNewScalableSei->setProfileLevelInfoPresentFlag( uiNumScalableLayer, pcOldScalableSei->getProfileLevelInfoPresentFlag( uiScalableLayer ) );
+		pcNewScalableSei->setDecodingDependencyInfoPresentFlag( uiNumScalableLayer, pcOldScalableSei->getDecodingDependencyInfoPresentFlag( uiScalableLayer ) );
+		pcNewScalableSei->setBitrateInfoPresentFlag( uiNumScalableLayer, pcOldScalableSei->getBitrateInfoPresentFlag( uiScalableLayer ) );
+		pcNewScalableSei->setFrmRateInfoPresentFlag( uiNumScalableLayer, pcOldScalableSei->getFrmRateInfoPresentFlag( uiScalableLayer ) );
+		pcNewScalableSei->setFrmSizeInfoPresentFlag( uiNumScalableLayer, pcOldScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) );
+		pcNewScalableSei->setLayerDependencyInfoPresentFlag( uiNumScalableLayer, pcOldScalableSei->getLayerDependencyInfoPresentFlag( uiScalableLayer ) );
+		pcNewScalableSei->setInitParameterSetsInfoPresentFlag( uiNumScalableLayer, pcOldScalableSei->getInitParameterSetsInfoPresentFlag( uiScalableLayer ) );
+
+		if(pcNewScalableSei->getProfileLevelInfoPresentFlag(uiNumScalableLayer))
+		{
+			pcNewScalableSei->setLayerProfileIdc(uiNumScalableLayer, pcOldScalableSei->getLayerProfileIdc( uiScalableLayer ) );
+			pcNewScalableSei->setLayerConstraintSet0Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet0Flag( uiScalableLayer ) );
+			pcNewScalableSei->setLayerConstraintSet1Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet1Flag( uiScalableLayer ) );
+			pcNewScalableSei->setLayerConstraintSet2Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet2Flag( uiScalableLayer ) );
+			pcNewScalableSei->setLayerConstraintSet3Flag(uiNumScalableLayer, pcOldScalableSei->getLayerConstraintSet3Flag( uiScalableLayer ) );
+			pcNewScalableSei->setLayerLevelIdc(uiNumScalableLayer, pcOldScalableSei->getLayerLevelIdc( uiScalableLayer ) );
+		}
+
+		if(pcNewScalableSei->getDecodingDependencyInfoPresentFlag(uiNumScalableLayer))
+		{
+			pcNewScalableSei->setTemporalLevel(uiNumScalableLayer, pcOldScalableSei->getTemporalLevel( uiScalableLayer ) );
+			pcNewScalableSei->setDependencyId(uiNumScalableLayer, pcOldScalableSei->getDependencyId( uiScalableLayer ) );
+			pcNewScalableSei->setQualityLevel(uiNumScalableLayer, pcOldScalableSei->getQualityLevel( uiScalableLayer ) );
+		}
+
+		if(pcNewScalableSei->getBitrateInfoPresentFlag(uiNumScalableLayer))
+		{
+			if( uiNumScalableLayer == uiKeepScalableLayer-1 && uiMaxBitrate != MSYS_UINT_MAX )
+			{
+				pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, uiMaxBitrate );
+			}
+			else
+				pcNewScalableSei->setAvgBitrate(uiNumScalableLayer, pcOldScalableSei->getAvgBitrate( uiScalableLayer ) );
+			pcNewScalableSei->setMaxBitrate(uiNumScalableLayer, pcOldScalableSei->getMaxBitrate( uiScalableLayer ) );
+		}
+
+		if(pcNewScalableSei->getFrmRateInfoPresentFlag(uiNumScalableLayer))
+		{
+			pcNewScalableSei->setConstantFrmRateIdc(uiNumScalableLayer, pcOldScalableSei->getConstantFrmRateIdc( uiScalableLayer ) );
+			pcNewScalableSei->setAvgFrmRate(uiNumScalableLayer, pcOldScalableSei->getAvgFrmRate( uiScalableLayer ) );
+		}
+
+		if(pcNewScalableSei->getFrmSizeInfoPresentFlag(uiNumScalableLayer))
+		{
+			pcNewScalableSei->setFrmWidthInMbsMinus1(uiNumScalableLayer, pcOldScalableSei->getFrmWidthInMbsMinus1( uiScalableLayer ) );
+			pcNewScalableSei->setFrmHeightInMbsMinus1(uiNumScalableLayer, pcOldScalableSei->getFrmHeightInMbsMinus1( uiScalableLayer ) );
+		}
+
+		if(pcNewScalableSei->getSubRegionLayerFlag(uiNumScalableLayer))
+		{
+			pcNewScalableSei->setBaseRegionLayerId(uiNumScalableLayer, pcOldScalableSei->getBaseRegionLayerId( uiScalableLayer ) );
+			pcNewScalableSei->setDynamicRectFlag(uiNumScalableLayer, pcOldScalableSei->getDynamicRectFlag( uiScalableLayer ) );
+			if(pcNewScalableSei->getDynamicRectFlag(uiNumScalableLayer))
+			{
+				pcNewScalableSei->setHorizontalOffset(uiNumScalableLayer, pcOldScalableSei->getHorizontalOffset( uiScalableLayer ) );
+				pcNewScalableSei->setVerticalOffset(uiNumScalableLayer, pcOldScalableSei->getVerticalOffset( uiScalableLayer ) );
+				pcNewScalableSei->setRegionWidth(uiNumScalableLayer, pcOldScalableSei->getRegionWidth( uiScalableLayer ) );
+				pcNewScalableSei->setRegionHeight(uiNumScalableLayer, pcOldScalableSei->getRegionHeight( uiScalableLayer ) );
+			}
+		}
+
+		if(pcNewScalableSei->getLayerDependencyInfoPresentFlag(uiNumScalableLayer))
+		{
+			pcNewScalableSei->setNumDirectlyDependentLayers(uiNumScalableLayer, pcOldScalableSei->getNumDirectlyDependentLayers( uiScalableLayer ) );
+			for( UInt j = 0; j < pcNewScalableSei->getNumDirectlyDependentLayers(uiNumScalableLayer); j++)
+			{
+				//pcScalableSEI->m_directly_dependent_layer_id_delta;
+			}
+		}
+
+		if(pcNewScalableSei->getInitParameterSetsInfoPresentFlag(uiNumScalableLayer))
+		{
+			UInt uiNumInitSPSMinus1 = 0;	//should be changed
+			UInt uiNumInitPPSMinus1 = 0;	//should be changed
+			pcNewScalableSei->setNumInitSeqParameterSetMinus1(uiNumScalableLayer, pcOldScalableSei->getNumInitSPSMinus1( uiScalableLayer ) );
+			pcNewScalableSei->setNumInitPicParameterSetMinus1(uiNumScalableLayer, pcOldScalableSei->getNumInitPPSMinus1( uiScalableLayer ) );
+			for( UInt j = 0; j <= pcNewScalableSei->getNumInitSPSMinus1(uiNumScalableLayer); j++)
+			{
+				//
+			}
+			for( j = 0; j <= pcNewScalableSei->getNumInitPPSMinus1(uiNumScalableLayer); j++)
+			{
+				//
+			}
+		}
+
+		uiNumScalableLayer++;
+	
+	}
+	RNOK( xWriteScalableSEIToBuffer( pcNewScalableSei, pcBinData ) );
+	// write pcNewScalableSei into bitstream pcBinData
+	return Err::m_nOK;
+}
 
 ErrVal
 Extractor::xExtractLayerLevel()
 {
-  UInt    uiMaxLayer    = m_pcExtractorParameter->getLayer();
-  UInt    uiMaxLevel    = m_pcExtractorParameter->getLevel();
-  Double  dMaxFGSLayer  = m_pcExtractorParameter->getFGSLayer();
-  UInt    uiNumInput    = 0;
-  UInt    uiNumKept     = 0;
-  UInt    uiNumCropped  = 0;
-  Bool    bKeep         = false;
-  Bool    bApplyToNext  = false;
-  Bool    bEOS          = false;
-  Bool    bCrop         = false;
-  UInt    uiLayer       = 0;
-  UInt    uiLevel       = 0;
-  UInt    uiFGSLayer    = 0;
+	UInt uiWantedScalableLayer = m_pcExtractorParameter->getLayer();
+	UInt uiMaxTempLevel			= m_pcExtractorParameter->getLevel();
+	UInt uiMaxFGSLayer			= (UInt) m_pcExtractorParameter->getFGSLayer();
+	UInt uiMaxBitrate				= (UInt) m_pcExtractorParameter->getBitrate();
+	UInt uiMaxLayer = MSYS_UINT_MAX;
+	UInt uiKeepScalableLayer= 0;
+
+	UInt uiDecreaseBitrate = MSYS_UINT_MAX;
+
+	if( uiMaxFGSLayer != 10 || uiMaxTempLevel != MSYS_UINT_MAX )
+	{	
+		//TL or QL
+		uiKeepScalableLayer = 0;
+		for ( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+		{
+			if( m_cScalableStreamDescription.getFGSLevel( uiScalableLayer ) <= uiMaxFGSLayer &&
+				  m_cScalableStreamDescription.getTempLevel( uiScalableLayer ) <= uiMaxTempLevel )	
+			uiKeepScalableLayer++;
+		}
+	}
+	else
+	{	
+		// L or B
+		uiKeepScalableLayer = 0;
+		if( uiWantedScalableLayer != MSYS_UINT_MAX && uiWantedScalableLayer >= m_cScalableStreamDescription.getNumOfScalableLayers() )
+		{
+			//specific scalable layer
+			uiWantedScalableLayer = m_cScalableStreamDescription.getNumOfScalableLayers()-1;
+		}
+		else if( uiMaxBitrate != MSYS_UINT_MAX )
+		{
+			UInt uiCurrBitrate, uiPrevBitrate = 0, uiFinalBitrate = MSYS_UINT_MAX;
+			UInt uiPos = 0;
+			for( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+			{
+				uiCurrBitrate = m_cScalableStreamDescription.getBitrateOfScalableLayers( uiScalableLayer );
+				if( uiCurrBitrate == uiMaxBitrate )
+				{
+					uiFinalBitrate = uiCurrBitrate;
+					uiPos = uiScalableLayer;
+					uiDecreaseBitrate = 0;
+					break;
+				}
+				else if( uiCurrBitrate > uiMaxBitrate && uiPrevBitrate < uiMaxBitrate && 
+					m_cScalableStreamDescription.getFGSLevel( uiScalableLayer ) != 0 )
+				{
+					uiFinalBitrate = uiCurrBitrate;
+					uiPos = uiScalableLayer;
+					uiDecreaseBitrate = uiMaxBitrate - uiPrevBitrate;
+					break;
+				}
+				uiPrevBitrate = uiCurrBitrate;
+			}
+			if( uiDecreaseBitrate == MSYS_UINT_MAX )	// No FGS layer satisfy
+			{
+				uiFinalBitrate = 0;
+				uiPrevBitrate = m_cScalableStreamDescription.getBitrateOfScalableLayers( 0 );
+				if( uiPrevBitrate > uiMaxBitrate )
+				{
+					printf( "Too small bitrate. No packet will be released. \n" );
+					exit( 1 );
+				}
+				for( UInt uiScalableLayer = 1; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+				{
+					uiCurrBitrate = m_cScalableStreamDescription.getBitrateOfScalableLayers( uiScalableLayer );
+					if( uiCurrBitrate <= uiMaxBitrate && uiCurrBitrate > uiFinalBitrate )
+					{
+						uiFinalBitrate = uiCurrBitrate;
+						uiPos = uiScalableLayer;
+					}
+				}
+				uiMaxBitrate = uiFinalBitrate;
+			}		
+			uiWantedScalableLayer = uiPos;
+		}
+		if( uiWantedScalableLayer != MSYS_UINT_MAX )
+		{
+			uiMaxLayer		 = m_cScalableStreamDescription.getDependencyId( uiWantedScalableLayer );
+			uiMaxTempLevel = m_cScalableStreamDescription.getTempLevel( uiWantedScalableLayer );
+			uiMaxFGSLayer  = m_cScalableStreamDescription.getFGSLevel ( uiWantedScalableLayer );
+		}
+		for( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+		{
+			if( m_cScalableStreamDescription.getDependencyId( uiScalableLayer ) > uiMaxLayer || 
+				m_cScalableStreamDescription.getTempLevel( uiScalableLayer ) > uiMaxTempLevel )
+				continue;
+			if( m_cScalableStreamDescription.getDependencyId( uiScalableLayer ) == uiMaxLayer &&
+				m_cScalableStreamDescription.getTempLevel( uiScalableLayer ) == uiMaxTempLevel &&
+				m_cScalableStreamDescription.getFGSLevel ( uiScalableLayer ) > uiMaxFGSLayer )
+				continue;
+			uiKeepScalableLayer++;
+		}
+	}
+	Bool bTruncated = ( uiDecreaseBitrate != 0 && uiDecreaseBitrate != MSYS_UINT_MAX );
+	UInt uiNumInput					= 0;
+	UInt uiNumKept					= 0;
+	Bool bKeep							= false;
+	Bool bApplyToNext				= false;
+	Bool bEOS								= false;
+	UInt uiScalableLayer		= 0;
+	UInt uiLayer						= 0;
+	UInt uiTempLevel				= 0;
+	UInt uiFGSLayer					= 0;
   UInt    uiPacketSize  = 0;
   UInt    uiShrinkSize  = 0;
 
-  RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
-  while( ! bEOS )
-  {
-    //=========== get packet ===========
-    BinData*  pcBinData;
-    RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
-    if( bEOS )
-    {
-      continue;
-    }
+	RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
+	while( ! bEOS )
+	{
+		UInt uiScalableLayer = 0;
+		//========== get packet ==============
+		BinData * pcBinData;
+		RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+		if( bEOS )
+		{
+			continue;
+		}
+		//===== get packet description ======
+		h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
+		h264::PacketDescription cPacketDescription;
+		RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
+		if( pcScalableSEIMessage )
+		{
+			if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI )
+			{
+				//RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+				RNOK( xChangeScalableSEIMesssage( pcBinData, pcScalableSEIMessage, uiKeepScalableLayer,
+					uiMaxLayer, uiMaxTempLevel, uiMaxFGSLayer, uiMaxBitrate ) );
+			}
+		}
 
-    //========== get packet description ==========
-    h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
-    h264::PacketDescription cPacketDescription;
-    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
-    delete pcScalableSEIMessage;
+		delete pcScalableSEIMessage;
 
-    //============ get packet size ===========
-    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
-    {
-      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
-    }
-    uiPacketSize  = 4 + pcBinData->size();
-    uiShrinkSize  = 0;
-
-    //============ set parameters ===========
-    if( ! bApplyToNext  )
-    {
-      uiLayer    = cPacketDescription.Layer;
-      uiLevel    = cPacketDescription.Level;
-      uiFGSLayer = cPacketDescription.FGSLayer;
-    }
-    bApplyToNext = cPacketDescription.ApplyToNext;
-
-    //============ check packet ===========
-    bKeep = ( uiLayer <= uiMaxLayer && uiLevel <= uiMaxLevel );
-    if( bKeep )
-    {
-      MyList<UInt>::const_iterator  iter = m_pcExtractorParameter->getRemoveList().begin();
-      MyList<UInt>::const_iterator  end  = m_pcExtractorParameter->getRemoveList().end  ();
-      for( ; iter != end; iter++ )
-      {
-        if( uiLayer == (*iter) )
-        {
-          bKeep = false;
-          break;
-        }
-      }
-    }
-    bCrop = false;
-    if( bKeep && uiLayer == uiMaxLayer )
-    {
-      Double  dSNRLayerDiff = dMaxFGSLayer - (Double)uiFGSLayer;
-      Double  dUpRound      = ceil  ( dSNRLayerDiff );
-      Double  dDownRound    = floor ( dSNRLayerDiff );
-      bKeep                 =           ( dUpRound    >= 0.0 );
-      bCrop                 = bKeep &&  ( dDownRound  <  0.0 );
-      if( bCrop )
-      {
-        Double  dWeight     = -dSNRLayerDiff;
-        uiShrinkSize        = (UInt)ceil( (Double)uiPacketSize * dWeight );
-        if( uiPacketSize - uiShrinkSize > 25 ) // 25 bytes should be enough for the slice headers
-        {
-          RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
-          pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
-        }
-        else
-        {
-          bKeep = bCrop = false;
-        }
-      }
-    }
-    UInt eNalUnitType = cPacketDescription.NalUnitType;
-    Bool bRequired = false;
-    if(  eNalUnitType == NAL_UNIT_SPS )
-    {
-      for( UInt layer = 0; layer <= uiMaxLayer; layer ++ )
-      {
-        if( m_cScalableStreamDescription.m_bSPSRequired[layer][cPacketDescription.SPSid] )
-        {
-          bRequired = true;
-          break;
-        }
-      }
-      bKeep = bRequired;
-    }
-    else if( eNalUnitType == NAL_UNIT_PPS )
-    {
-      for( UInt layer = 0; layer <= uiMaxLayer; layer ++ )
-      {
-        if( m_cScalableStreamDescription.m_bPPSRequired[layer][cPacketDescription.PPSid] )
-        {
-          bRequired = true;
-          break;
-        }
-      }
-      bKeep = bRequired;
-    }
-    uiNumInput++;
-    if( bKeep )   uiNumKept++;
-    if( bCrop )   uiNumCropped++;
+		//============ get packet size ===========
+		while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+		{
+			RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
+		}
 
 
-    //============ write and release packet ============
-    if( bKeep )
-    {
-      RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
-      RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
-    }
-    RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
-  }
+		//============ set parameters ===========
+		if( ! bApplyToNext  )
+		{
+			uiLayer					= cPacketDescription.Layer;
+			uiTempLevel			= cPacketDescription.Level;
+			uiFGSLayer			= cPacketDescription.FGSLayer;
+			uiScalableLayer = m_cScalableStreamDescription.getNumberOfScalableLayers( uiLayer,uiTempLevel, uiFGSLayer );
+		}
+		bApplyToNext = cPacketDescription.ApplyToNext;
 
-  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+		//============ check packet ===========
+		if( uiWantedScalableLayer == MSYS_UINT_MAX )	//input: -t,-f
+			bKeep = ( uiFGSLayer <= uiMaxFGSLayer && uiTempLevel <= uiMaxTempLevel );
+		else	//input: -l,-b
+		{
+			if( uiLayer > uiMaxLayer || uiTempLevel > uiMaxTempLevel )
+				bKeep = false;
+			else if( uiLayer == uiMaxLayer && uiTempLevel == uiMaxTempLevel && uiFGSLayer > uiMaxFGSLayer )
+				bKeep = false;
+			else
+				bKeep = true;
+		}
+
+		UInt eNalUnitType = cPacketDescription.NalUnitType;
+		Bool bRequired = false;
+		if(  eNalUnitType == NAL_UNIT_SPS )
+		{
+			bRequired = true;
+			bKeep = bRequired;
+		}
+		else if( eNalUnitType == NAL_UNIT_PPS )
+		{
+			bRequired = true;
+			bKeep = bRequired;
+		}
+		uiNumInput++;
+		if( bKeep )   uiNumKept++;
 
 
-  printf("\n\nNumber of input packets:  %d\nNumber of output packets: %d (cropped: %d)\n\n", uiNumInput, uiNumKept, uiNumCropped );
+		//============ write and release packet ============
+		if( bKeep )
+		{
+			uiPacketSize  += 4 + pcBinData->size();
+			//first check if truncated FGS layer :liuhui 2005-10-12
+			if( cPacketDescription.NalUnitType != NAL_UNIT_PPS &&
+					cPacketDescription.NalUnitType != NAL_UNIT_SPS &&
+					cPacketDescription.NalUnitType != NAL_UNIT_SEI )
+				if( uiScalableLayer == uiWantedScalableLayer && bTruncated )
+				{
+					Double dTemp = (Double)uiMaxBitrate/m_cScalableStreamDescription.getBitrateOfScalableLayers( uiWantedScalableLayer );
+					UInt uiSize = floor(pcBinData->size()  * dTemp );
+					pcBinData->decreaseEndPos( pcBinData->size() - uiSize );
+				}
+			RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+			RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
+		}
+		RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+	}
 
-  return Err::m_nOK;
+	RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+	printf("Total Packet Size: %d\n", uiPacketSize );
+
+
+	printf("\n\nNumber of input packets :  %d\n" 
+		"Number of output packets:  %d \n", uiNumInput, uiNumKept );
+	if( bTruncated )
+	{
+		printf( "The scalable layer %d is truncated. \n\n", uiWantedScalableLayer );
+	}
+
+	return Err::m_nOK;
 }
 
 
@@ -2253,37 +2344,102 @@ ScalableStreamDescription::~ScalableStreamDescription()
 ErrVal
 ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
 {
-  ROT( m_bInit );
+	ROT( m_bInit );
 
-  ::memset( m_aaaui64NumNALUBytes, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) );
-  ::memset( m_aauiNumPictures,     0x00, MAX_LAYERS*(MAX_DSTAGES+1)                   *sizeof(UInt)   );
+	::memset( m_aaaui64NumNALUBytes, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) );
+	::memset( m_aauiNumPictures,		 0x00, MAX_LAYERS*(MAX_DSTAGES+1)										*sizeof(UInt)   );
 
-  m_uiNumLayers           = pcScalableSei->getNumLayers           ();
-  m_bAVCBaseLayer         = pcScalableSei->getBaseLayerIsAVC      ();
-  m_uiAVCTempResStages    = pcScalableSei->getAVCTempResStages    ();
-  m_uiFrameRateUnitDenom  = pcScalableSei->getFrameRateUnitDenom  ();
-  m_uiFrameRateUnitNom    = pcScalableSei->getFrameRateUnitNom    ();
-  m_uiMaxDecStages        = pcScalableSei->getMaxDecStages        ();
-  UInt  m_uiMaxWidth      = pcScalableSei->getMaxHorFrameDimInMB  () << 4;
-  UInt  m_uiMaxHeight     = pcScalableSei->getMaxVerFrameDimInMB  () << 4;
+	::memset( m_auiBitrate,					 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_auiTempLevel,				 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_auiDependencyId,		 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_auiQualityLevel,		 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_adFramerate,				 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_auiFrmWidth,				 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_auiFrmHeight,				 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
 
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-  {
-    m_auiFrameWidth [uiLayer] = pcScalableSei->getFrameWidthInMB(uiLayer)  * 16; // TMM_ESS
-    m_auiFrameHeight[uiLayer] = pcScalableSei->getFrameHeightInMB(uiLayer) * 16; // TMM_ESS
+	::memset( m_aaauiScalableLayerId,0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_aaauiBitrate,				 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_aaauiTempLevel,			 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_aaauiDependencyId,	 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_aaauiQualityLevel,	 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_aaadFramerate,			 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_aaauiFrmWidth,			 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
+	::memset( m_aaauiFrmHeight,			 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(UInt)   );
 
-    m_auiDecStages  [uiLayer] = m_uiMaxDecStages - pcScalableSei->getTemporalResolutionFactor ( uiLayer );
-    UInt uiNum;
-    for( uiNum = 0; uiNum < 32; uiNum ++ )
-      m_bSPSRequired[uiLayer][uiNum] = false;
-    for( uiNum = 0; uiNum < 256; uiNum ++ )
-      m_bPPSRequired[uiLayer][uiNum] = false;
-  }
+	m_uiScalableNumLayersMinus1 = pcScalableSei->getNumLayersMinus1();
+	UInt m_uiMaxWidth;
+	UInt m_uiMaxHeight;
+	if( pcScalableSei->getDecodingDependencyInfoPresentFlag( m_uiScalableNumLayersMinus1 ) )
+	{
+		m_uiNumLayers			=	pcScalableSei->getDependencyId( m_uiScalableNumLayersMinus1 ) + 1;
+		m_uiMaxDecStages	= pcScalableSei->getTemporalLevel( m_uiScalableNumLayersMinus1 ) + 1;
+	}
+	if( pcScalableSei->getFrmSizeInfoPresentFlag( m_uiScalableNumLayersMinus1 ) )
+	{
+		m_uiMaxWidth			= ( pcScalableSei->getFrmWidthInMbsMinus1 ( m_uiScalableNumLayersMinus1 ) + 1 ) << 4;
+		m_uiMaxHeight			= ( pcScalableSei->getFrmHeightInMbsMinus1( m_uiScalableNumLayersMinus1 ) + 1 ) << 4; 
+	}
 
-  m_bInit     = true;
-  m_bAnalyzed = false;
+	m_bAVCBaseLayer = false;
+	m_uiAVCTempResStages = 0;
+	m_uiFrameRateUnitDenom = 4;
+	m_uiFrameRateUnitNom = 15;
 
-  return Err::m_nOK;
+	UInt uiLayer = 0;
+	UInt uiLevel = 0;
+	UInt uiFGS	 = 0;
+	for ( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; uiScalableLayer++ )
+	{
+		if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiScalableLayer ) )
+		{
+			uiLayer = pcScalableSei->getDependencyId( uiScalableLayer );
+			uiLevel = pcScalableSei->getTemporalLevel( uiScalableLayer );
+			uiFGS		= pcScalableSei->getQualityLevel( uiScalableLayer );
+		}
+		
+		m_auiFrameWidth [ uiLayer ] = pcScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) ?
+																( pcScalableSei->getFrmWidthInMbsMinus1		(uiScalableLayer)+1 ) << 4 : 0;
+		m_auiFrameHeight[ uiLayer ] = pcScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) ?
+																( pcScalableSei->getFrmHeightInMbsMinus1	(uiScalableLayer)+1 ) << 4 : 0;
+		m_auiDecStages	[ uiLayer ] = pcScalableSei->getDecodingDependencyInfoPresentFlag( uiScalableLayer ) ?
+																	pcScalableSei->getTemporalLevel( uiScalableLayer )	  : 0;
+
+		m_aaauiScalableLayerId[uiLayer][uiLevel][uiFGS] = uiScalableLayer;
+		m_aaauiTempLevel			[uiLayer][uiLevel][uiFGS] = uiLevel;
+		m_aaauiDependencyId		[uiLayer][uiLevel][uiFGS] = uiLayer;
+		m_aaauiQualityLevel		[uiLayer][uiLevel][uiFGS] = uiFGS;
+
+		m_aaadFramerate				[uiLayer][uiLevel][uiFGS] = pcScalableSei->getFrmRateInfoPresentFlag( uiScalableLayer ) ?
+																				pcScalableSei->getAvgFrmRate( uiScalableLayer )/256.0 : 0;
+		m_aaauiBitrate				[uiLayer][uiLevel][uiFGS] = pcScalableSei->getBitrateInfoPresentFlag( uiScalableLayer ) ?
+																				pcScalableSei->getAvgBitrate( uiScalableLayer ) : 0;
+		m_aaauiFrmWidth				[uiLayer][uiLevel][uiFGS] = pcScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) ?
+																			( pcScalableSei->getFrmWidthInMbsMinus1		( uiScalableLayer ) + 1 ) << 4 : 0;
+		m_aaauiFrmHeight			[uiLayer][uiLevel][uiFGS] = pcScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) ?
+																			( pcScalableSei->getFrmHeightInMbsMinus1	( uiScalableLayer ) + 1 ) << 4 : 0;
+
+		m_adFramerate			[ uiScalableLayer ] = m_aaadFramerate			[uiLayer][uiLevel][uiFGS];
+		m_auiBitrate			[ uiScalableLayer ] = m_aaauiBitrate			[uiLayer][uiLevel][uiFGS];
+		m_auiFrmWidth			[ uiScalableLayer ] = m_aaauiFrmWidth			[uiLayer][uiLevel][uiFGS];
+		m_auiFrmHeight		[ uiScalableLayer ] = m_aaauiFrmHeight		[uiLayer][uiLevel][uiFGS];
+		m_auiTempLevel		[ uiScalableLayer ] = m_aaauiTempLevel		[uiLayer][uiLevel][uiFGS];
+		m_auiDependencyId	[ uiScalableLayer ] = m_aaauiDependencyId [uiLayer][uiLevel][uiFGS];
+		m_auiQualityLevel [ uiScalableLayer ] = m_aaauiQualityLevel [uiLayer][uiLevel][uiFGS];
+
+	}
+
+	UInt uiNum, uiIndex;
+	for( uiIndex = 0; uiIndex <= uiLayer; uiIndex++ )
+	{
+		for( uiNum = 0; uiNum < 32; uiNum ++ )
+			m_bSPSRequired[uiIndex][uiNum] = false;
+		for( uiNum = 0; uiNum < 256; uiNum ++ )
+			m_bPPSRequired[uiIndex][uiNum] = false;
+	}
+
+	m_bInit = true;
+	m_bAnalyzed = false;
+	return Err::m_nOK;
 }
 
 ErrVal
@@ -2324,104 +2480,33 @@ ScalableStreamDescription::analyse()
 {
   ROF( m_bInit );
 
-  UInt  uiLayer, uiLevel, uiFGSLayer;
-
-  ::memset( m_aaui64BaseLayerBytes, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*sizeof(UInt64) );
-  ::memset( m_aaui64FGSLayerBytes,  0x00, MAX_LAYERS*(MAX_DSTAGES+1)*sizeof(UInt64) );
-
-  UInt auiMaxUsedDecStages[MAX_LAYERS];
-  ::memset( auiMaxUsedDecStages, 0x00, MAX_LAYERS*sizeof(UInt) );
-  for( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-  {
-    for( uiLevel = MAX_DSTAGES; uiLevel > 0; uiLevel-- )
-    {
-      if( m_aauiNumPictures[uiLayer][uiLevel] )
-      {
-        auiMaxUsedDecStages[uiLayer] = uiLevel;
-        break;
-      }
-    }
-  }
-  if( m_bAVCBaseLayer )
-  {
-    auiMaxUsedDecStages[0] = max( auiMaxUsedDecStages[0], m_auiDecStages[0]-m_uiAVCTempResStages );
-  }
-
-
-  //===== adding NAL unit packet bytes =====
-  for( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-  {
-    for( uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
-    {
-      m_aaui64BaseLayerBytes[uiLayer][uiLevel] = m_aaaui64NumNALUBytes[uiLayer][uiLevel][0];
-      m_aaui64FGSLayerBytes [uiLayer][uiLevel] = 0;
-
-      for( uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-      {
-        m_aaui64FGSLayerBytes   [uiLayer][uiLevel] += m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGSLayer];
-      }
-
-      if( uiLevel )
-      {
-        m_aaui64BaseLayerBytes  [uiLayer][uiLevel] += m_aaui64BaseLayerBytes[uiLayer][uiLevel-1];
-        m_aaui64FGSLayerBytes   [uiLayer][uiLevel] += m_aaui64FGSLayerBytes [uiLayer][uiLevel-1];
-      }
-      if( uiLayer )
-      {
-        m_aaui64BaseLayerBytes  [uiLayer][uiLevel] += m_aaui64BaseLayerBytes[uiLayer-1][uiLevel];
-        m_aaui64FGSLayerBytes   [uiLayer][uiLevel] += m_aaui64FGSLayerBytes [uiLayer-1][uiLevel];
-
-        if( uiLevel )
-        {
-          m_aaui64BaseLayerBytes[uiLayer][uiLevel] -= m_aaui64BaseLayerBytes[uiLayer-1][uiLevel-1];
-          m_aaui64FGSLayerBytes [uiLayer][uiLevel] -= m_aaui64FGSLayerBytes [uiLayer-1][uiLevel-1];
-        }
-      }
-      if( uiLevel && uiLevel <= auiMaxUsedDecStages[uiLayer] )
-      {
-        m_aauiNumPictures[uiLayer][uiLevel] += m_aauiNumPictures[uiLayer][uiLevel-1];
-      }
-    }
-  }
 
   m_bAnalyzed = true;
   return Err::m_nOK;
 }
 
 
-
 Void
 ScalableStreamDescription::output( FILE* pFile )
 {
-  printf("\nsupported bit-rates:");
-  printf("\n====================\n\n");
+	printf("\nContained Layers:");
+	printf("\n====================\n\n");
 
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-  {
-    Char  acFormat[20];
-    UInt  uiFrameWidth  = m_auiFrameWidth   [uiLayer];
-    UInt  uiFrameHeight = m_auiFrameHeight  [uiLayer];
-    sprintf( acFormat, "L%d %dx%d", uiLayer, uiFrameWidth, uiFrameHeight );
-
-    for( UInt uiLevel = 0; uiLevel <= m_auiDecStages[uiLayer]; uiLevel++ )
-    {
-      if( m_aauiNumPictures[uiLayer][uiLevel] && ( uiLayer || uiLevel >= m_auiDecStages[0]-m_uiAVCTempResStages || !m_bAVCBaseLayer ) )
-      {
-        Double  dFrameRate  = (Double)( ( 1 << uiLevel ) * m_uiFrameRateUnitNom ) / (Double)m_uiFrameRateUnitDenom;
-        Double  dMinBitRate = (Double)(Int64) m_aaui64BaseLayerBytes[uiLayer][uiLevel];
-        Double  dMaxBitRate = (Double)(Int64)(m_aaui64BaseLayerBytes[uiLayer][uiLevel]+m_aaui64FGSLayerBytes [uiLayer][uiLevel]);
-        Double  dRateFactor = 8.0 / 1000.0 * dFrameRate / (Double)m_aauiNumPictures[uiLayer][uiLevel];
-
-        printf("%12s @ %7.4lf Hz   ->  %8.2lf kbit/s  - %8.2lf kbit/s\n",
-          acFormat, dFrameRate,
-          dRateFactor*dMinBitRate,
-          dRateFactor*dMaxBitRate );
-      }
-    }
-    printf("\n");
-  }
-
-  printf("\n\n");
+	printf( "       Layer" "   Resolution" "   Framerate" "   Bitrate" "      DTQ\n" );
+for ( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; uiScalableLayer++ )
+	{
+		UInt uiFrameWidth		= m_auiFrmWidth							[uiScalableLayer];
+		UInt uiFrameHeight	= m_auiFrmHeight						[uiScalableLayer];
+		Double dFrameRate		= m_adFramerate							[uiScalableLayer];
+		Double dBitrate			= (Double)m_auiBitrate			[uiScalableLayer];
+		UInt uiDependencyId = m_auiDependencyId					[uiScalableLayer];
+		UInt uiTempLevel		= m_auiTempLevel						[uiScalableLayer];
+		UInt uiQualityLevel	= m_auiQualityLevel					[uiScalableLayer];
+		
+		printf( "       %3d     %3dx%3d      %7.4lf   %8.2lf     (%d,%d,%d) \n", 
+			uiScalableLayer,uiFrameWidth, uiFrameHeight, dFrameRate, dBitrate, uiDependencyId, uiTempLevel, uiQualityLevel );
+	}
+	printf( "\n\n" );
 }
 
 

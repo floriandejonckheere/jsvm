@@ -145,6 +145,7 @@ MCTFEncoder::MCTFEncoder()
 //----- fixed control parameters -----
 , m_bTraceEnable                    ( true )
 , m_uiLayerId                       ( 0 )
+, m_uiScalableLayerId								( 0 )
 , m_uiBaseLayerId                   ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevel              ( 3 )
 , m_uiQualityLevelForPrediction     ( 3 )
@@ -230,6 +231,11 @@ MCTFEncoder::MCTFEncoder()
     m_adPSNRSumU        [ui]  = 0.0;
     m_adPSNRSumV        [ui]  = 0.0;
   }
+	for( ui = 0; ui < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; ui++ ) 
+	{
+		m_auiCurrGOPBits		[ui] = 0;
+		m_adSeqBits					[ui] = 0.0;
+	}
 }
 
 
@@ -409,6 +415,11 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     m_adPSNRSumV        [ui]  = 0.0;
   }
 
+  for( UInt ui = 0; ui < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; ui++ )	
+	{
+		m_auiCurrGOPBits		[ui] = 0;
+		m_adSeqBits					[ui] = 0.0;
+	}
 
   //----- FGS -----
   m_uiFGSMode = pcLayerParameters->getFGSMode();
@@ -1589,6 +1600,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
       uiRecLayer, iQp, uiPacketBits );
 
     ruiBits += uiPacketBits;
+    m_auiCurrGOPBits[m_uiScalableLayerId + uiRecLayer] += uiPacketBits;
     if( uiRecLayer == m_uiQualityLevelForPrediction)
     {
       RNOK( m_pcRQFGSEncoder->reconstruct   ( pcFrame ) );
@@ -1910,6 +1922,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   m_uiNotYetConsideredBaseLayerBits = 0;
   UInt* pauiBLGopBitsBase           = m_pcH264AVCEncoder->getGOPBitsBase( m_uiBaseLayerId );
   UInt* pauiBLGopBitsFGS            = m_pcH264AVCEncoder->getGOPBitsFGS ( m_uiBaseLayerId );
+ 	UInt* pauiBLGopBits								= m_pcH264AVCEncoder->getGOPBits		( m_uiBaseLayerId );
   for( UInt uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ )
   {
     m_auiCurrGOPBitsBase[uiStage]      = ( pauiBLGopBitsBase ? pauiBLGopBitsBase [uiStage] : 0 );
@@ -1918,6 +1931,11 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
     m_uiNotYetConsideredBaseLayerBits += m_auiCurrGOPBitsBase[uiStage];
     m_uiNotYetConsideredBaseLayerBits += m_auiCurrGOPBitsFGS [uiStage];
   }
+	m_auiCurrGOPBits			[0]						+= m_uiParameterSetBits;
+	for( uiStage = 0; uiStage < MAX_DSTAGES * MAX_QUALITY_LEVELS; uiStage++ )
+	{
+		m_auiCurrGOPBits    [uiStage]      = ( pauiBLGopBits ? pauiBLGopBits[uiStage] : 0 );
+	}	
   m_auiCurrGOPBitsBase  [0]           += m_uiParameterSetBits;
   m_uiNotYetConsideredBaseLayerBits   += m_uiParameterSetBits;
 
@@ -3418,6 +3436,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       //}}Adaptive GOP structure
       m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
       m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
+      m_auiCurrGOPBits	  [ m_uiScalableLayerId ] += uiBits;
       //{{Adaptive GOP structure
       // --ETRI & KHU
     }
@@ -3615,6 +3634,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
   }
 
+	m_uiScalableLayerId += m_dNumFGSLayers+1;
   return Err::m_nOK;
 }
 
@@ -3684,6 +3704,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
       //}}Adaptive GOP structure
       m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
       m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
+      m_auiCurrGOPBits		[ m_uiScalableLayerId ] += uiBits;
       //{{Adaptive GOP structure
       // --ETRI & KHU
     }
@@ -3826,6 +3847,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   }
+  m_uiScalableLayerId += m_dNumFGSLayers+1;
   
   return Err::m_nOK;
 }
@@ -3893,7 +3915,8 @@ ErrVal
 MCTFEncoder::xProcessClosedLoop( AccessUnitList&  rcAccessUnitList,
                                  PicBufferList&   rcPicBufferInputList,
                                  PicBufferList&   rcPicBufferOutputList,
-                                 PicBufferList&   rcPicBufferUnusedList )
+                                 PicBufferList&   rcPicBufferUnusedList,
+                                 Double           m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
   Int iLevel;
   g_nLayer = m_uiLayerId;
@@ -3938,7 +3961,8 @@ MCTFEncoder::xProcessClosedLoop( AccessUnitList&  rcAccessUnitList,
   RNOK( xStoreReconstruction( rcPicBufferOutputList ) );
   RNOK( xFinishGOP          ( rcPicBufferInputList,
                               rcPicBufferOutputList,
-                              rcPicBufferUnusedList ) );
+                              rcPicBufferUnusedList,
+                              m_aaauidSeqBits ) );
 
   return Err::m_nOK;
 }
@@ -3950,14 +3974,16 @@ ErrVal
 MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
                       PicBufferList&    rcPicBufferInputList,
                       PicBufferList&    rcPicBufferOutputList,
-                      PicBufferList&    rcPicBufferUnusedList )
+                      PicBufferList&    rcPicBufferUnusedList,
+                      Double            m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
   if( m_uiClosedLoopMode )
   {
     RNOK( xProcessClosedLoop( rcAccessUnitList,
                               rcPicBufferInputList,
                               rcPicBufferOutputList,
-                              rcPicBufferUnusedList ) );
+                              rcPicBufferUnusedList,
+                              m_aaauidSeqBits ) );
     return Err::m_nOK;
   }
 
@@ -4051,7 +4077,8 @@ MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
   RNOK( xStoreReconstruction( rcPicBufferOutputList ) );
   RNOK( xFinishGOP          ( rcPicBufferInputList,
                               rcPicBufferOutputList,
-                              rcPicBufferUnusedList ) );
+                              rcPicBufferUnusedList,
+                              m_aaauidSeqBits ) );
   
   return Err::m_nOK;
 }
@@ -4065,7 +4092,8 @@ ErrVal
 MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
                       PicBufferList&    rcPicBufferInputList,
                       PicBufferList&    rcPicBufferOutputList,
-                      PicBufferList&    rcPicBufferUnusedList )
+                      PicBufferList&    rcPicBufferUnusedList,
+                      Double            m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
 	int i, j;
 	
@@ -4100,8 +4128,10 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		UInt                          auiNumFramesCoded [MAX_DSTAGES+1];
 		UInt                          auiCurrGOPBitsBase[MAX_DSTAGES+1];
 		UInt                          auiCurrGOPBitsFGS [MAX_DSTAGES+1];
+    UInt                          auiCurrGOPBits    [MAX_DSTAGES * MAX_QUALITY_LEVELS];
 		Double                        adSeqBitsBase     [MAX_DSTAGES+1];
 		Double                        adSeqBitsFGS      [MAX_DSTAGES+1];
+    Double                        adSeqBits         [MAX_DSTAGES * MAX_QUALITY_LEVELS];
 		Double                        adPSNRSumY        [MAX_DSTAGES+1];
 		Double                        adPSNRSumU        [MAX_DSTAGES+1];
 		Double                        adPSNRSumV        [MAX_DSTAGES+1];
@@ -4119,6 +4149,11 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			adPSNRSumV[uiStage] = m_adPSNRSumV[uiStage];
       if (uiStage != MAX_DSTAGES)
 				abIsRef[uiStage] = m_abIsRef[uiStage];
+		}
+		for ( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
+		{
+			auiCurrGOPBits[uiStage] = m_auiCurrGOPBits[uiStage];
+			adSeqBits			[uiStage] = m_adSeqBits			[uiStage];
 		}
 		Bool bFirstGOPCoded_save = m_bFirstGOPCoded;
 		UInt uiFrameNum_save = m_uiFrameNum;
@@ -4204,6 +4239,11 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
 		}
+		for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
+		{
+			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
+			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
+		}
 		m_uiFrameCounter = uiFrameCounter_save;
 		m_uiParameterSetBits = uiParameterSetBits_save;
 		m_pcAnchorFrameReconstructed->setZero();
@@ -4238,7 +4278,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 				rcPicBufferOutputList_temp.pop_front();
 			}				
 			m_dMSETemp = 0;
-			process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList);
+      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
       mse[4][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
       if (first == 1) 
         first = 0;
@@ -4271,6 +4311,11 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
 		}			
+    for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
+		{
+			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
+			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
+		}
 		m_uiFrameCounter = uiFrameCounter_save;
 		m_uiParameterSetBits = uiParameterSetBits_save;
 		m_pcAnchorFrameReconstructed->setZero();
@@ -4305,7 +4350,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 				rcPicBufferOutputList_temp.pop_front();
 			}				
 			m_dMSETemp = 0;
-			process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList);
+      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
       mse[3][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
       if (first == 1) 
         first = 0;
@@ -4337,6 +4382,11 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
+		}
+		for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
+		{
+			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
+			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
 		}
 		m_uiFrameCounter = uiFrameCounter_save;
 		m_uiParameterSetBits = uiParameterSetBits_save;
@@ -4372,7 +4422,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 				rcPicBufferOutputList_temp.pop_front();
 			}				
 			m_dMSETemp = 0;
-			process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList);
+      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
       mse[2][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
       if (first == 1) 
         first = 0;
@@ -4404,6 +4454,11 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
+		}
+    for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
+		{
+			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
+			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
 		}
 		m_uiFrameCounter = uiFrameCounter_save;
 		m_uiParameterSetBits = uiParameterSetBits_save;
@@ -4440,7 +4495,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 				rcPicBufferOutputList_temp.pop_front();
 			}				
 			m_dMSETemp = 0;
-			process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList);
+      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
       mse[1][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
       if (first == 1) first = 0;
       rcAccessUnitList.clear();
@@ -4475,6 +4530,11 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
+		}
+    for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
+		{
+			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
+			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
 		}
 		m_uiFrameCounter = uiFrameCounter_save;
 		m_uiGOPNumber = uiGOPNumber_save;
@@ -4530,7 +4590,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			}
 			if (first == 1) first = 0;
 			m_uiDecompositionStages = m_puiGOPMode[i];
-			process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList);
+      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
 			rcPicBufferOutputList_gop += rcPicBufferOutputList;
 			rcPicBufferInputList.clear();
 			rcPicBufferOutputList.clear();
@@ -4592,7 +4652,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		}
 		if (first == 1) first = 0;
 		m_uiDecompositionStages = m_puiGOPMode[0];
-		process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList);
+    process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
 		
 		rcPicBufferInputList.clear();
 		rcPicBufferInputList += rcPicBufferInputList_save;
@@ -4743,7 +4803,8 @@ UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 ErrVal
 MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
                          PicBufferList& rcPicBufferOutputList,
-                         PicBufferList& rcPicBufferUnusedList )
+                         PicBufferList& rcPicBufferUnusedList,
+                         Double         m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
   UInt  uiLowPassSize = m_uiGOPSize >> m_uiNotCodedMCTFStages;
 
@@ -4777,6 +4838,14 @@ MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
     m_adSeqBitsBase[uiLevel] += (Double)m_auiCurrGOPBitsBase[uiLevel];
     m_adSeqBitsFGS [uiLevel] += (Double)m_auiCurrGOPBitsFGS [uiLevel];
   }
+  for( UInt uiLevel = 0; uiLevel < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiLevel++ )
+	{
+		m_adSeqBits		 [uiLevel] += (Double)m_auiCurrGOPBits		[uiLevel];
+	}
+	UInt uiLayerOffset = m_uiScalableLayerId - ( m_uiDecompositionStages-m_uiNotCodedMCTFStages+1 )*( m_dNumFGSLayers+1 );
+	for( uiLevel = 0; uiLevel <= m_uiDecompositionStages-m_uiNotCodedMCTFStages; uiLevel++ )
+		for( UInt uiFGS = 0; uiFGS <= (UInt)m_dNumFGSLayers; uiFGS++ )
+			m_aaauidSeqBits [m_uiLayerId][uiLevel][uiFGS] = m_adSeqBits[uiLayerOffset+uiLevel * ((UInt)m_dNumFGSLayers+1) + uiFGS];
 
   //===== update parameters =====
   m_uiParameterSetBits  = 0;
@@ -4945,7 +5014,10 @@ print_with_comma( FILE* pFile, Double d )
 
 ErrVal
 MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
-                     Double&  rdOutputRate)
+                     Double&  rdOutputRate,
+                     Double*  rdOutputFramerate,
+                     Double*  rdOutputBitrate,
+                     Double   m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
   ROFRS( m_auiNumFramesCoded[0], Err::m_nOK );
 
@@ -4979,28 +5051,63 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   }
 
 
-  if( m_uiLayerId == 0 )
-  {
-    printf("\n\n\nSUMMARY:\n");
-    printf("                     " "   min. rate" "   max. rate" "    Y-PSNR" "    U-PSNR" "    V-PSNR\n" );
-    printf("                     " "  ----------" "  ----------" "  --------" "  --------" "  --------\n" );
-  }
-
-
+	UInt uiLayerOffset = m_uiScalableLayerId - ( uiMaxStage+1 )*( m_dNumFGSLayers+1 );
+	for( uiStage = 1; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
+	{
+		m_adSeqBits	[uiStage]	+= m_adSeqBits	[uiStage-1];
+	}
+	static Double aaadCurrBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];	
+	for( UInt uiLevel = 0; uiLevel < MAX_TEMP_LEVELS; uiLevel++ )
+	{
+		UInt uiLayer, uiFGS;
+		Double dBits;
+		if( uiLevel == 0 )
+		{
+			dBits = 0;
+			for( uiLayer = 0; uiLayer <= m_uiLayerId; uiLayer++ )
+			for( uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
+			{
+				dBits += m_aaauidSeqBits[uiLayer][uiLevel][uiFGS];
+				aaadCurrBits[uiLayer][uiLevel][uiFGS] = dBits;
+			}
+		}
+		else
+		{
+			dBits = m_adSeqBitsFGS [uiLevel-1];
+			for( uiLayer = 0; uiLayer <= m_uiLayerId; uiLayer++ )
+			for( uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
+			{
+				dBits += m_aaauidSeqBits[uiLayer][uiLevel][uiFGS];
+				aaadCurrBits[uiLayer][uiLevel][uiFGS] = dBits;
+			}
+		}
+	}
+	if( m_uiLayerId == 0 )
+	{
+		printf( " \n\n\nSUMMARY:\n" );
+		printf( "                       " " SNR Level" " bitrate " "   Y-PSNR " "   U-PSNR " "   V-PSNR \n" );
+		printf( "                       " " ---------" " --------" " ---------" " ---------" " ---------\n" );
+	}
   for( uiStage = uiMinStage; uiStage <= uiMaxStage; uiStage++ )
   {
     Double  dFps    = m_fOutputFrameRate / (Double)( 1 << ( uiMaxStage - uiStage ) );
     Double  dScale  = dFps / 1000 / (Double)m_auiNumFramesCoded[uiStage];
-
-    printf(" %9s @ %7.4lf" "  %10.4lf" "  %10.4lf" "  %8.4lf " " %8.4lf " " %8.4lf " "\n",
-      acResolution,
-      dFps,
-      m_adSeqBitsBase [uiStage] * dScale,
-      m_adSeqBitsFGS  [uiStage] * dScale,
-      m_adPSNRSumY    [uiStage],
-      m_adPSNRSumU    [uiStage],
-      m_adPSNRSumV    [uiStage] );
-  }
+		for( UInt uiFGS = 0; uiFGS <= m_dNumFGSLayers; uiFGS++ )
+		{
+			UInt uiIndex = uiLayerOffset + uiStage*( (UInt)m_dNumFGSLayers+1 ) + uiFGS ;
+			Double dBitrate = aaadCurrBits[m_uiLayerId][uiStage][uiFGS] * dScale;
+			rdOutputFramerate[ uiIndex ] = dFps;
+			rdOutputBitrate[ uiIndex ] = dBitrate;
+			printf( " %9s @ %7.4lf" " %10.4lf" " %10.4lf" " %8.4lf" " %8.4lf" " %8.4lf" "\n",
+				acResolution,
+				dFps,
+				(Double)uiFGS,
+				dBitrate,
+				m_adPSNRSumY	[uiStage],
+				m_adPSNRSumU	[uiStage],
+				m_adPSNRSumV	[uiStage] );
+		}
+	}
 
   ruiNumCodedFrames = m_auiNumFramesCoded[uiMaxStage];
   rdOutputRate      = m_fOutputFrameRate;

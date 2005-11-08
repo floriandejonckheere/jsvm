@@ -168,7 +168,6 @@ SEI::xWrite( HeaderSymbolWriteIf* pcWriteIf,
   UInt uiBits = pcWriteTestIf->getNumberOfWrittenBits() - uiStart;
 
   UInt uiSize = (uiBits+7)/8;
-  AOT( uiSize > 255 );
 
   RNOK( xWritePayloadHeader( pcWriteIf, pcSEIMessage->getMessageType(), uiSize ) );
   RNOK( pcSEIMessage->write( pcWriteIf ) );
@@ -223,6 +222,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
   {
     case SUB_SEQ_INFO:  return SubSeqInfo ::create( (SubSeqInfo*&)  rpcSEIMessage );
     case SCALABLE_SEI:  return ScalableSei::create( (ScalableSei*&) rpcSEIMessage );
+    case SUB_PIC_SEI:   return SubPicSei::create	( (SubPicSei*&)		rpcSEIMessage );
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     case DEADSUBSTREAM_SEI: return DeadSubstreamSEI::create((DeadSubstreamSEI*&) rpcSEIMessage);
@@ -379,22 +379,59 @@ SEI::SubSeqInfo::init( UInt  uiSubSeqLayerNum,
 //
 //////////////////////////////////////////////////////////////////////////
 
-SEI::ScalableSei::ScalableSei     ()
- : SEIMessage                     ( SCALABLE_SEI )
- , m_uiMaxHorFrameDimInMB         ( 0 )
- , m_uiMaxVerFrameDimInMB         ( 0 )
- , m_uiFrameRateUnitNom           ( 0 )
- , m_uiFrameRateUnitDenom         ( 0 )
- , m_uiMaxDecStages               ( 0 )
- , m_uiNumLayers                  ( 0 )
- , m_bBaseLayerIsAVC              ( false )
- , m_uiAVCTempResStages           ( 0 )
-, m_bNonDyadicSpatialScalability ( true )  
-{
-  ::memset( m_uiSpatialResolutionFactor,  0x00, MAX_LAYERS*sizeof(UInt) );
-    ::memset( m_uiFrameWidthInMB,  0x00, MAX_LAYERS*sizeof(UInt) ); // TMM_ESS
-    ::memset( m_uiFrameHeightInMB, 0x00, MAX_LAYERS*sizeof(UInt) ); // TMM_ESS
-  ::memset( m_uiTemporalResolutionFactor, 0x00, MAX_LAYERS*sizeof(UInt) );
+SEI::ScalableSei::ScalableSei	() 
+: SEIMessage									( SCALABLE_SEI )
+, m_num_layers_minus1					( 0	)
+{	
+	::memset( m_layer_id, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_fgs_layer_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_sub_pic_layer_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_sub_region_layer_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_profile_level_info_present_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_decoding_dependency_info_present_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_bitrate_info_present_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_frm_rate_info_present_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_frm_size_info_present_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_layer_dependency_info_present_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_init_parameter_sets_info_present_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+
+	::memset( m_layer_profile_idc, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_layer_constraint_set0_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_layer_constraint_set1_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_layer_constraint_set2_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_layer_constraint_set3_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_layer_level_idc, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+
+	::memset( m_temporal_level, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_dependency_id, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_quality_level, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+
+	::memset( m_avg_bitrate, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_max_bitrate, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+
+	::memset( m_constant_frm_rate_idc, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_avg_frm_rate, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+
+	::memset( m_frm_width_in_mbs_minus1, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_frm_height_in_mbs_minus1, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+
+	::memset( m_base_region_layer_id, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_dynamic_rect_flag, 0x00, MAX_SCALABLE_LAYERS*sizeof(Bool) );
+	::memset( m_horizontal_offset, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_vertical_offset, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_region_width, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_region_height, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+
+	//::memset( m_roi_id, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+
+	::memset( m_num_directly_dependent_layers, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_directly_dependent_layer_id_delta, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt*) );
+
+	::memset( m_num_init_seq_parameter_set_minus1, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_init_seq_parameter_set_id_delta, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt*) );
+	::memset( m_num_init_pic_parameter_set_minus1, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
+	::memset( m_init_pic_parameter_set_id_delta, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt*) );
+
 }
 
 
@@ -402,95 +439,248 @@ SEI::ScalableSei::~ScalableSei()
 {
 }
 
-
 ErrVal
 SEI::ScalableSei::create( ScalableSei*& rpcSeiMessage )
 {
-  rpcSeiMessage = new ScalableSei();
-  ROT( NULL == rpcSeiMessage )
-  return Err::m_nOK;
+	rpcSeiMessage = new ScalableSei();
+	ROT( NULL == rpcSeiMessage )
+		return Err::m_nOK;
 }
 
 
 ErrVal
-SEI::ScalableSei::write( HeaderSymbolWriteIf* pcWriteIf )
+SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
-  ROF( m_uiNumLayers ); // check if initialized
+	ROF( m_num_layers_minus1+1 );
+	RNOK		( pcWriteIf->writeUvlc(m_num_layers_minus1,													"ScalableSEI: num_layers_minus1"											) );
+	for( UInt i = 0; i <= m_num_layers_minus1; i++ )
+	{
+		RNOK	( pcWriteIf->writeCode( m_layer_id[i],												8,		"ScalableSEI: layer_id"															) );
+		RNOK	( pcWriteIf->writeFlag( m_fgs_layer_flag[i],												"ScalableSEI: fgs_layer_flag"												) );
+		RNOK	( pcWriteIf->writeFlag( m_sub_pic_layer_flag[i],										"ScalableSEI: sub_pic_layer_flag"										) );
+		RNOK	( pcWriteIf->writeFlag( m_sub_region_layer_flag[i],									"ScalableSEI: sub_region_layer_flag"									) );
+		RNOK	( pcWriteIf->writeFlag( m_profile_level_info_present_flag[i],				"ScalableSEI: profile_level_info_present_flag"				) );
+		RNOK	( pcWriteIf->writeFlag( m_decoding_dependency_info_present_flag[i],	"ScalableSEI: decoding_dependency_info_present_flag"	) );
+		RNOK	( pcWriteIf->writeFlag( m_bitrate_info_present_flag[i],							"ScalableSEI: bitrate_info_present_flag"							) );
+		RNOK	( pcWriteIf->writeFlag( m_frm_rate_info_present_flag[i],						"ScalableSEI: frm_rate_info_present_flag"						) );
+		RNOK	( pcWriteIf->writeFlag( m_frm_size_info_present_flag[i],						"ScalableSEI: frm_size_info_present_flag"						) );
+		RNOK	( pcWriteIf->writeFlag( m_layer_dependency_info_present_flag[i],		"ScalableSEI: layer_dependency_info_present_flag"		) );
+		RNOK	( pcWriteIf->writeFlag( m_init_parameter_sets_info_present_flag[i],	"ScalableSEI: init_parameter_sets_info_present_flag" ) );
 
-  RNOK  ( pcWriteIf->writeUvlc( m_uiMaxHorFrameDimInMB-1,               "ScalableSEI: MaxHorFrameDimInMB"   ) );
-  RNOK  ( pcWriteIf->writeUvlc( m_uiMaxVerFrameDimInMB-1,               "ScalableSEI: MaxVerFrameDimInMB"   ) );
-  RNOK  ( pcWriteIf->writeUvlc( m_uiFrameRateUnitNom-1,                 "ScalableSEI: FrameRateUnitsNom"    ) );
-  RNOK  ( pcWriteIf->writeUvlc( m_uiFrameRateUnitDenom-1,               "ScalableSEI: FrameRateUnitsDenom"  ) );
-  RNOK  ( pcWriteIf->writeUvlc( m_uiMaxDecStages,                       "ScalableSEI: MaxDecStages"         ) );
-  RNOK  ( pcWriteIf->writeUvlc( m_uiNumLayers-1,                        "ScalableSEI: NumLayers"            ) );
-  RNOK  ( pcWriteIf->writeFlag( m_bBaseLayerIsAVC,                      "ScalableSEI: BaseLayerIsAVC"       ) );
-  if( m_bBaseLayerIsAVC )
-  {
-    RNOK( pcWriteIf->writeUvlc( m_uiAVCTempResStages,                   "ScalableSEI: Log2AVCTempResFactor" ) );
-  }
+		if ( m_profile_level_info_present_flag[i] )
+		{
+			RNOK	( pcWriteIf->writeCode( m_layer_profile_idc[i],							8,		"ScalableSEI: layer_profile_idc"											) );
+			RNOK	( pcWriteIf->writeFlag( m_layer_constraint_set0_flag[i],					"ScalableSEI: layer_constraint_set0_flag"						) );
+			RNOK	( pcWriteIf->writeFlag( m_layer_constraint_set1_flag[i],					"ScalableSEI: layer_constraint_set1_flag"						) );
+			RNOK	( pcWriteIf->writeFlag( m_layer_constraint_set2_flag[i],					"ScalableSEI: layer_constraint_set2_flag"						) );
+			RNOK	( pcWriteIf->writeFlag( m_layer_constraint_set3_flag[i],					"ScalableSEI: layer_constraint_set3_flag"						) );
+			RNOK	( pcWriteIf->writeCode( 0,																	4,		"ScalableSEI: reserved_zero_4bits"										) );
+			RNOK	( pcWriteIf->writeCode( m_layer_level_idc[i],								8,		"ScalableSEI: layer_level_idc"												) );
+		}
 
-    // TMM_ESS {
-    RNOK  ( pcWriteIf->writeFlag( m_bNonDyadicSpatialScalability,         "ScalableSEI: NonDyadicSpatialScalabilityFlag" ) );  
+		if ( m_decoding_dependency_info_present_flag[i] )
+		{
+			RNOK	( pcWriteIf->writeCode( m_temporal_level[i],								3,		"ScalableSEI: temporal_level"												) );
+			RNOK	( pcWriteIf->writeCode( m_dependency_id[i],							3,		"ScalableSEI: dependency_level"											) );
+			RNOK	( pcWriteIf->writeCode( m_quality_level[i],									2,		"ScalableSEI: quality_level"													) );
+		}
 
-    for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-    {
-        if (m_bNonDyadicSpatialScalability) 
-        {
-            RNOK( pcWriteIf->writeUvlc( m_uiFrameWidthInMB[uiLayer],            "ScalableSEI: FrameWidthInMB"    ) );
-            RNOK( pcWriteIf->writeUvlc( m_uiFrameHeightInMB[uiLayer],           "ScalableSEI: FrameHeightInMB"    ) );
-        }
-        else
-        {
-            RNOK( pcWriteIf->writeUvlc( m_uiSpatialResolutionFactor [uiLayer],  "ScalableSEI: Log2SpatResFactor"    ) );
-        }
-        RNOK( pcWriteIf->writeUvlc( m_uiTemporalResolutionFactor[uiLayer],  "ScalableSEI: Log2TempResFactor"    ) );
-    }
-    // TMM_ESS }
+		if ( m_bitrate_info_present_flag[i] )
+		{
+			RNOK	( pcWriteIf->writeCode( m_avg_bitrate[i],										16,		"ScalableSEI: avg_bitrate"														) );
+			RNOK	( pcWriteIf->writeCode( m_max_bitrate[i],										16,		"ScalableSEI: max_bitrate"														) );
+		}
+		if ( m_frm_rate_info_present_flag[i] )
+		{
+			RNOK	( pcWriteIf->writeCode( m_constant_frm_rate_idc[i],			2,		"ScalableSEI: constant_frm_bitrate_idc"							) );
+			RNOK	( pcWriteIf->writeCode( m_avg_frm_rate[i],									16,		"ScalableSEI: avg_frm_rate"													) );
+		}
 
-  return Err::m_nOK;
+		if ( m_frm_size_info_present_flag[i] )
+		{
+			RNOK	( pcWriteIf->writeUvlc( m_frm_width_in_mbs_minus1[i],							"ScalableSEI: frm_width_in_mbs_minus1"								) );
+			RNOK	( pcWriteIf->writeUvlc( m_frm_height_in_mbs_minus1[i],						"ScalableSEI: frm_height_in_mbs_minus1"							) );
+		}
+
+		if ( m_sub_region_layer_flag[i] )
+		{
+			RNOK	( pcWriteIf->writeCode ( m_base_region_layer_id[i],					8,		"ScalableSEI: base_region_layer_id"									) );
+			RNOK	( pcWriteIf->writeFlag ( m_dynamic_rect_flag[i],									"ScalableSEI: dynamic_rect_flag"											) );
+			if ( m_dynamic_rect_flag[i] )
+			{
+				RNOK	( pcWriteIf->writeCode ( m_horizontal_offset[i],					16,		"ScalableSEI: horizontal_offset"											) );
+				RNOK	( pcWriteIf->writeCode ( m_vertical_offset[i],						16,		"ScalableSEI: vertical_offset"												) );
+				RNOK	( pcWriteIf->writeCode ( m_region_width[i],								16,		"ScalableSEI: region_width"													) );
+				RNOK	( pcWriteIf->writeCode ( m_region_height[i],							16,		"ScalableSEI: region_height"													) );
+			}
+		}
+
+		if ( m_layer_dependency_info_present_flag[i] )
+		{
+			RNOK	( pcWriteIf->writeUvlc ( m_num_directly_dependent_layers[i],			"ScalableSEI: num_directly_dependent_layers"					) );
+			for ( UInt j = 0; j < MAX_SCALABLE_LAYERS; j++ )
+				m_directly_dependent_layer_id_delta[j] = new UInt [m_num_directly_dependent_layers[i]];
+			for ( j = 0; j < m_num_directly_dependent_layers[i]; j++ )
+			{
+				RNOK( pcWriteIf->writeUvlc (m_directly_dependent_layer_id_delta[i][j],"ScalableSEI: directly_dependent_layers_id_delta"		) );
+			}
+		}
+
+		if ( m_init_parameter_sets_info_present_flag[i] ) 
+		{
+
+			RNOK	( pcWriteIf->writeUvlc ( m_num_init_seq_parameter_set_minus1[i],	"ScalableSEI: num_init_seq_parameter_set_minus1"			) );
+			for ( UInt j = 0; j < MAX_SCALABLE_LAYERS; j++ )
+				m_init_seq_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i]+1];
+			for ( j = 0; j <= m_num_init_seq_parameter_set_minus1[i]; j++ )
+			{
+				RNOK ( pcWriteIf->writeUvlc ( m_init_seq_parameter_set_id_delta[i][j],"ScalableSEI: init_seq_parameter_set_id_delta"				) );
+			}
+
+			RNOK	( pcWriteIf->writeUvlc ( m_num_init_pic_parameter_set_minus1[i],	"ScalableSEI: num_init_pic_parameter_set_minus1"			) );
+			for ( j = 0; j < MAX_SCALABLE_LAYERS; j++ )
+				m_init_pic_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i]+1];
+			for ( j = 0; j <= m_num_init_pic_parameter_set_minus1[i]; j++ )
+				RNOK ( pcWriteIf->writeUvlc ( m_init_pic_parameter_set_id_delta[i][j],"ScalableSEI: init_pic_parameter_set_id_delta"				) );
+		}
+
+	}
+
+	return Err::m_nOK;
 }
 
-
-ErrVal
-SEI::ScalableSei::read ( HeaderSymbolReadIf* pcReadIf )
+SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 {
-  RNOK  ( pcReadIf->getUvlc( m_uiMaxHorFrameDimInMB,                 "ScalableSEI: MaxHorFrameDimInMB"   ) );
-  RNOK  ( pcReadIf->getUvlc( m_uiMaxVerFrameDimInMB,                 "ScalableSEI: MaxVerFrameDimInMB"   ) );
-  RNOK  ( pcReadIf->getUvlc( m_uiFrameRateUnitNom,                   "ScalableSEI: FrameRateUnitsNom"    ) );
-  RNOK  ( pcReadIf->getUvlc( m_uiFrameRateUnitDenom,                 "ScalableSEI: FrameRateUnitsDenom"  ) );
-  RNOK  ( pcReadIf->getUvlc( m_uiMaxDecStages,                       "ScalableSEI: MaxDecStages"  ) );
-  RNOK  ( pcReadIf->getUvlc( m_uiNumLayers,                          "ScalableSEI: NumLayers"            ) );
-  m_uiMaxHorFrameDimInMB  ++;
-  m_uiMaxVerFrameDimInMB  ++;
-  m_uiFrameRateUnitNom    ++;
-  m_uiFrameRateUnitDenom  ++;
-  m_uiNumLayers           ++;
-  
-  RNOK  ( pcReadIf->getFlag( m_bBaseLayerIsAVC,                      "ScalableSEI: BaseLayerIsAVC"       ) );
-  if( m_bBaseLayerIsAVC )
-  {
-    RNOK( pcReadIf->getUvlc( m_uiAVCTempResStages,                   "ScalableSEI: Log2AVCTempResFactor" ) );
-  }
 
-    // TMM_ESS {
-    RNOK  ( pcReadIf->getFlag( m_bNonDyadicSpatialScalability,         "ScalableSEI: NonDyadicSpatialScalabilityFlag" ) );
-    
-    for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
-    {
-        if (m_bNonDyadicSpatialScalability) 
-        {
-            RNOK( pcReadIf->getUvlc( m_uiFrameWidthInMB[uiLayer],            "ScalableSEI: FrameWidthInMB"    ) );
-            RNOK( pcReadIf->getUvlc( m_uiFrameHeightInMB[uiLayer],           "ScalableSEI: FrameHeightInMB"    ) );
-        }
-        else
-        {
-            RNOK( pcReadIf->getUvlc( m_uiSpatialResolutionFactor [uiLayer],  "ScalableSEI: Log2SpatResFactor"    ) );
-        }	
-        RNOK( pcReadIf->getUvlc( m_uiTemporalResolutionFactor[uiLayer],  "ScalableSEI: Log2TempResFactor"    ) );
-    }
-    // TMM_ESS }
+	RNOK	( pcReadIf->getUvlc( m_num_layers_minus1 ,																""	) );
 
-  return Err::m_nOK;
+	for ( UInt i = 0; i <= m_num_layers_minus1; i++ )
+	{
+		RNOK	( pcReadIf->getCode( m_layer_id[i],																	8,			""	) );
+		RNOK	( pcReadIf->getFlag( m_fgs_layer_flag[i],																""	) );
+		RNOK	( pcReadIf->getFlag( m_sub_pic_layer_flag[i],														""	) );
+		RNOK	( pcReadIf->getFlag( m_sub_region_layer_flag[i],													""	) );
+		RNOK	( pcReadIf->getFlag( m_profile_level_info_present_flag[i],								""	) );
+		RNOK	( pcReadIf->getFlag( m_decoding_dependency_info_present_flag[i],					""	) );
+		RNOK	( pcReadIf->getFlag( m_bitrate_info_present_flag[i],											""	) );
+		RNOK	( pcReadIf->getFlag( m_frm_rate_info_present_flag[i],											""	) );
+		RNOK	( pcReadIf->getFlag( m_frm_size_info_present_flag[i],											""	) );
+		RNOK	( pcReadIf->getFlag( m_layer_dependency_info_present_flag[i],								""	) );
+		RNOK	( pcReadIf->getFlag( m_init_parameter_sets_info_present_flag[i],						""	) );
+
+		if( m_profile_level_info_present_flag[i] )
+		{
+			RNOK	( pcReadIf->getCode( m_layer_profile_idc[i],											8,		""	) );
+			RNOK	( pcReadIf->getFlag( m_layer_constraint_set0_flag[i],										""	) );
+			RNOK	( pcReadIf->getFlag( m_layer_constraint_set0_flag[i],										""	) );
+			RNOK	( pcReadIf->getFlag( m_layer_constraint_set0_flag[i],										""	) );
+			RNOK	( pcReadIf->getFlag( m_layer_constraint_set0_flag[i],										""	) );
+			UInt uiReserved;
+			RNOK	( pcReadIf->getCode( uiReserved,																	4,		""	) );
+			RNOK	( pcReadIf->getCode( m_layer_level_idc[i],												8,		""	) );
+		}
+
+		if( m_decoding_dependency_info_present_flag[i] )
+		{
+			RNOK	( pcReadIf->getCode( m_temporal_level[i],													3,		""	) );
+			RNOK	( pcReadIf->getCode( m_dependency_id[i],												3,		""	) );
+			RNOK	( pcReadIf->getCode( m_quality_level[i],													2,		""	) );
+		}
+
+		if( m_bitrate_info_present_flag[i] )
+		{
+			RNOK	( pcReadIf->getCode( m_avg_bitrate[i],														16,		""	) );
+			RNOK	( pcReadIf->getCode( m_max_bitrate[i],														16,		""	) );
+		}
+
+		if( m_frm_rate_info_present_flag[i] )
+		{
+			RNOK	( pcReadIf->getCode( m_constant_frm_rate_idc[i],									2,		""	) );
+			RNOK	( pcReadIf->getCode( m_avg_frm_rate[i],														16,		""	) );
+		}
+
+		if( m_frm_size_info_present_flag[i] )
+		{
+			RNOK	( pcReadIf->getUvlc( m_frm_width_in_mbs_minus1[i],											""	) );
+			RNOK	( pcReadIf->getUvlc( m_frm_height_in_mbs_minus1[i],											""	) );
+		}
+
+		if( m_sub_region_layer_flag[i] )
+		{
+			RNOK	( pcReadIf->getCode( m_base_region_layer_id[i],										8,		""	) );
+			RNOK	( pcReadIf->getFlag( m_dynamic_rect_flag[i],														""	) );
+			if( m_dynamic_rect_flag[i] )
+			{
+				RNOK( pcReadIf->getCode( m_horizontal_offset[i],											16,		""	) );
+				RNOK( pcReadIf->getCode( m_vertical_offset[i],												16,		""	) );
+				RNOK( pcReadIf->getCode( m_region_width[i],														16,		""	) );
+				RNOK( pcReadIf->getCode( m_region_height[i],													16,		""	) );
+			}
+		}
+
+		if( m_layer_dependency_info_present_flag[i] )
+		{
+			RNOK	( pcReadIf->getUvlc( m_num_directly_dependent_layers[i],								""	) );
+			m_directly_dependent_layer_id_delta[i] = new UInt [ m_num_directly_dependent_layers[i] ];
+			for( UInt j = 0; j < m_num_directly_dependent_layers[i]; j++)
+			{
+				RNOK	( pcReadIf->getUvlc( m_directly_dependent_layer_id_delta[i][j],				""  ) );
+			}
+		}
+
+		if( m_init_parameter_sets_info_present_flag[i] )
+		{
+			RNOK	( pcReadIf->getUvlc( m_num_init_seq_parameter_set_minus1[i],						""  ) );
+			m_init_seq_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i] + 1 ];
+			for( UInt j = 0; j <= m_num_init_seq_parameter_set_minus1[i]; j++ )
+			{
+				RNOK	( pcReadIf->getUvlc( m_init_seq_parameter_set_id_delta[i][j],					""	) );
+			}
+			RNOK	( pcReadIf->getUvlc( m_num_init_pic_parameter_set_minus1[i],						""	) );
+			m_init_pic_parameter_set_id_delta[i] = new UInt [ m_num_init_pic_parameter_set_minus1[i] + 1 ];
+			for( j = 0; j <= m_num_init_pic_parameter_set_minus1[i]; j++ )
+			{
+				RNOK	( pcReadIf->getUvlc( m_init_pic_parameter_set_id_delta[i][j],					""	) );
+			}
+		}
+	}	
+
+	return Err::m_nOK;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//
+//			SUB-PICTURE SCALABLE LAYER SEI
+//
+//////////////////////////////////////////////////////////////////////////
+
+SEI::SubPicSei::SubPicSei ()
+: SEIMessage		( SUB_PIC_SEI ),
+m_uiLayerId			( 0 )
+{
+}
+
+SEI::SubPicSei::~SubPicSei ()
+{
+}
+
+SEI::SubPicSei::create( SubPicSei*& rpcSeiMessage)
+{
+	rpcSeiMessage = new SubPicSei();
+	ROT( NULL == rpcSeiMessage );
+	return Err::m_nOK;
+}
+
+SEI::SubPicSei::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+	RNOK	( pcWriteIf->writeUvlc( m_uiLayerId, "Sub-picture scalable SEI: m_uiLayerId" ) );
+	return Err::m_nOK;
+}
+
+SEI::SubPicSei::read( HeaderSymbolReadIf *pcReadIf )
+{
+	RNOK	( pcReadIf->getUvlc( m_uiLayerId, "Sub-picture scalable SEI: m_uiLayerd" ) );
+	return Err::m_nOK;
 }
 
 //{{Quality level estimation and modified truncation- JVTO044 and m12007

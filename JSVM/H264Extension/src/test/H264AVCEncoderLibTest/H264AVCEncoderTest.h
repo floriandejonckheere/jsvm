@@ -122,6 +122,7 @@ public:
                     Char**  argv );
   ErrVal go       ();
   ErrVal destroy  ();
+  ErrVal ScalableDealing ();
 
 protected:
   ErrVal  xGetNewPicBuffer( PicBuffer*&             rpcPicBuffer,
@@ -158,6 +159,8 @@ protected:
 
   UChar                         m_aucStartCodeBuffer[5];
   BinData                       m_cBinDataStartCode;
+  Char                          m_acWriteToBitFileName	[256];
+  Char                          m_acWriteToBitFileTempName[256];
 };
 
 

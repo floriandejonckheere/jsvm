@@ -109,10 +109,18 @@ H264AVCEncoder::H264AVCEncoder():
   m_pcCodingParameter ( NULL ),
   m_pcFrameMng        ( NULL ),
   m_bVeryFirstCall    ( true ),
+  m_bScalableSeiMessage( false ),
   m_bInitDone         ( false ),
   m_bTraceEnable      ( false )
 {
   ::memset( m_apcMCTFEncoder, 0x00, MAX_LAYERS*sizeof(Void*) );
+  ::memset( m_dFinalFramerate, 0x00,MAX_LAYERS*MAX_DSTAGES*MAX_QUALITY_LEVELS*sizeof(Double) );
+	::memset( m_dFinalBitrate,	0x00, MAX_LAYERS*MAX_DSTAGES*MAX_QUALITY_LEVELS*sizeof(Double) );
+	for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
+	for( UInt uj = 0; uj < MAX_TEMP_LEVELS; uj++ )
+	for( UInt uk = 0; uk < MAX_QUALITY_LEVELS; uk++ )
+		m_aaauidSeqBits[ui][uj][uk] = 0;
+
 }
 
 
@@ -206,7 +214,12 @@ H264AVCEncoder::getGOPBitsFGS( UInt uiBaseLayerId )
   return m_apcMCTFEncoder[uiBaseLayerId]->getGOPBitsFGS();
 }
 
-
+UInt*
+H264AVCEncoder::getGOPBits( UInt uiBaseLayerId )
+{
+	ROFRS( uiBaseLayerId < MAX_LAYERS , 0 );
+	return m_apcMCTFEncoder[uiBaseLayerId]->getGOPBits();
+}
 
 
 ErrVal
@@ -271,6 +284,7 @@ H264AVCEncoder::uninit()
   m_pcFrameMng                  = NULL;
   m_bInitDone                   = false;
   m_bVeryFirstCall              = true;
+  m_bScalableSeiMessage         = true;
   m_bTraceEnable                = false;
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
@@ -366,78 +380,208 @@ ErrVal H264AVCEncoder::writeDeadSubstreamSEI(ExtBinDataAccessor* pcExtBinDataAcc
 
 
 ErrVal
-H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor ) 
+H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 {
-  //===== create message =====
-  SEI::ScalableSei* pcScalableSEI;
-  RNOK( SEI::ScalableSei::create( pcScalableSEI ) );
+	//===== create message =====
+	SEI::ScalableSei* pcScalableSEI;
+	RNOK(SEI::ScalableSei::create(pcScalableSEI) );
+
+
+	//===== set message =====
+	UInt uiInputLayers = m_pcCodingParameter->getNumberOfLayers ();
+	UInt uiLayerNum = 0;	//total scalable layer numbers
+	for ( UInt i = 0; i < uiInputLayers; i++ )	//calculate total scalable layer numbers
+	{
+		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
+		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
+		UInt uiTotalFGSLevel = rcLayer.getNumFGSLayers () + 1;
+		uiLayerNum += uiTotalTempLevel * uiTotalFGSLevel;
+	}
+	//===== get bitrate information ====
+	Double *dBitrate = dGetBitrate();
+	//===== get framerate information ===
+	Double *dFramerate = dGetFramerate();
+  
+	UInt uiNumLayersMinus1 = uiLayerNum - 1;
+
+	pcScalableSEI->setNumLayersMinus1 ( uiNumLayersMinus1 );
+
+	UInt uiNumScalableLayer = 0;
+	for ( UInt uiCurrLayer = 0; uiCurrLayer < uiInputLayers; uiCurrLayer++)
+	{
+		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( uiCurrLayer );
+		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
+		UInt uiTotalFGSLevel = rcLayer.getNumFGSLayers () + 1;
+		Bool bFGSLayerFlag = uiTotalFGSLevel > 1;
+
+		for ( UInt uiCurrTempLevel = 0; uiCurrTempLevel < uiTotalTempLevel; uiCurrTempLevel++ )
+		{
+			for ( UInt uiCurrFGSLevel = 0; uiCurrFGSLevel < uiTotalFGSLevel; uiCurrFGSLevel++ )
+			{
+				//Bool bSubPicLayerFlag = false;
+				Bool bSubRegionLayerFlag = false;
+				Bool bProfileLevelInfoPresentFlag = false;
+				Bool bDecodingDependencyInfoPresentFlag = true;
+				Bool bBitrateInfoPresentFlag = true;
+				Bool bFrmRateInfoPresentFlag = true;//rcLayer.getInputFrameRate () > 0;
+				Bool bFrmSizeInfoPresentFlag = true;
+				Bool bLayerDependencyInfoPresentFlag = false;			//may be changed
+				Bool bInitParameterSetsInfoPresentFlag = false;		//may be changed
+
+				pcScalableSEI->setLayerId(uiNumScalableLayer, uiNumScalableLayer);
+				pcScalableSEI->setFGSlayerFlag(uiNumScalableLayer, bFGSLayerFlag);
+				//pcScalableSEI->setSubPicLayerFlag(uiNumScalableLayer,0);
+				pcScalableSEI->setSubRegionLayerFlag(uiNumScalableLayer, bSubRegionLayerFlag);
+				pcScalableSEI->setProfileLevelInfoPresentFlag(uiNumScalableLayer, bProfileLevelInfoPresentFlag);
+				pcScalableSEI->setDecodingDependencyInfoPresentFlag(uiNumScalableLayer, bDecodingDependencyInfoPresentFlag);
+				pcScalableSEI->setBitrateInfoPresentFlag(uiNumScalableLayer, bBitrateInfoPresentFlag);
+				pcScalableSEI->setFrmRateInfoPresentFlag(uiNumScalableLayer, bFrmRateInfoPresentFlag);
+				pcScalableSEI->setFrmSizeInfoPresentFlag(uiNumScalableLayer, bFrmSizeInfoPresentFlag);
+				pcScalableSEI->setLayerDependencyInfoPresentFlag(uiNumScalableLayer, bLayerDependencyInfoPresentFlag);
+				pcScalableSEI->setInitParameterSetsInfoPresentFlag(uiNumScalableLayer, bInitParameterSetsInfoPresentFlag);
+
+				if(pcScalableSEI->getProfileLevelInfoPresentFlag(uiNumScalableLayer))
+				{
+					UInt uilayerProfileIdc = 0;	//may be changed
+					Bool bLayerConstraintSet0Flag = false;	//may be changed
+					Bool bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiCurrLayer == 0;
+					Bool bLayerConstraintSet1Flag = ( bH264AVCCompatible ? 1 : 0 );	//may be changed
+					Bool bLayerConstraintSet2Flag = false;	//may be changed
+					Bool bLayerConstraintSet3Flag = false;	//may be changed
+					UInt uiLayerLevelIdc = 0;		//may be changed
+
+					pcScalableSEI->setLayerProfileIdc(uiNumScalableLayer, uilayerProfileIdc);
+					pcScalableSEI->setLayerConstraintSet0Flag(uiNumScalableLayer, bLayerConstraintSet0Flag);
+					pcScalableSEI->setLayerConstraintSet1Flag(uiNumScalableLayer, bLayerConstraintSet1Flag);
+					pcScalableSEI->setLayerConstraintSet2Flag(uiNumScalableLayer, bLayerConstraintSet2Flag);
+					pcScalableSEI->setLayerConstraintSet3Flag(uiNumScalableLayer, bLayerConstraintSet3Flag);
+					pcScalableSEI->setLayerLevelIdc(uiNumScalableLayer, uiLayerLevelIdc);
+				}
+
+				if(pcScalableSEI->getDecodingDependencyInfoPresentFlag(uiNumScalableLayer))
+				{
+					UInt uiTempLevel = uiCurrTempLevel;
+					UInt uiDependencyID = uiCurrLayer;
+					UInt uiQualityLevel = uiCurrFGSLevel;
+
+					pcScalableSEI->setTemporalLevel(uiNumScalableLayer, uiTempLevel);
+					pcScalableSEI->setDependencyId(uiNumScalableLayer, uiDependencyID);
+					pcScalableSEI->setQualityLevel(uiNumScalableLayer, uiQualityLevel);
+				}
+
+				if(pcScalableSEI->getBitrateInfoPresentFlag(uiNumScalableLayer))
+				{
+					UInt uiAvgBitrate =(UInt)( dBitrate[uiNumScalableLayer] + 0.5 );	//should be changed
+					UInt uiMaxBitrate = 0;	//should be changed
+
+					pcScalableSEI->setAvgBitrate(uiNumScalableLayer, uiAvgBitrate);
+					pcScalableSEI->setMaxBitrate(uiNumScalableLayer, uiMaxBitrate);
+				}
+
+				if(pcScalableSEI->getFrmRateInfoPresentFlag(uiNumScalableLayer))
+				{
+					UInt uiConstantFrmRateIdc = 0;
+					UInt uiAvgFrmRate = (UInt)( 256*dFramerate[uiNumScalableLayer] + 0.5 );
+
+					pcScalableSEI->setConstantFrmRateIdc(uiNumScalableLayer, uiConstantFrmRateIdc);
+					pcScalableSEI->setAvgFrmRate(uiNumScalableLayer, uiAvgFrmRate);
+				}
+
+				if(pcScalableSEI->getFrmSizeInfoPresentFlag(uiNumScalableLayer))
+				{
+					UInt uiFrmWidthInMbsMinus1 = rcLayer.getFrameWidth()/16 - 1;
+					UInt uiFrmHeightInMbsMinus1 = rcLayer.getFrameHeight()/16 - 1;
+
+					pcScalableSEI->setFrmWidthInMbsMinus1(uiNumScalableLayer, uiFrmWidthInMbsMinus1);
+					pcScalableSEI->setFrmHeightInMbsMinus1(uiNumScalableLayer, uiFrmHeightInMbsMinus1);
+				}
+
+				if(pcScalableSEI->getSubRegionLayerFlag(uiNumScalableLayer))
+				{
+					UInt uiBaseRegionLayerId = 0;
+					Bool bDynamicRectFlag = false;
+
+					pcScalableSEI->setBaseRegionLayerId(uiNumScalableLayer, uiBaseRegionLayerId);
+					pcScalableSEI->setDynamicRectFlag(uiNumScalableLayer, bDynamicRectFlag);
+					if(pcScalableSEI->getDynamicRectFlag(uiNumScalableLayer))
+					{
+						UInt uiHorizontalOffset = 0;
+						UInt uiVerticalOffset = 0;
+						UInt uiRegionWidth = 0;
+						UInt uiRegionHeight = 0;
+						pcScalableSEI->setHorizontalOffset(uiNumScalableLayer, uiHorizontalOffset);
+						pcScalableSEI->setVerticalOffset(uiNumScalableLayer, uiVerticalOffset);
+						pcScalableSEI->setRegionWidth(uiNumScalableLayer, uiRegionWidth);
+						pcScalableSEI->setRegionHeight(uiNumScalableLayer, uiRegionHeight);
+					}
+				}
+
+				if(pcScalableSEI->getLayerDependencyInfoPresentFlag(uiNumScalableLayer))
+				{
+					UInt uiNumDirectlyDependentLayers = 0;	//should be changed
+					pcScalableSEI->setNumDirectlyDependentLayers(uiNumScalableLayer, uiNumDirectlyDependentLayers);
+					for( UInt j = 0; j < pcScalableSEI->getNumDirectlyDependentLayers(uiNumScalableLayer); j++)
+					{
+						UInt uiDelta = 0;	// should be changed
+						pcScalableSEI->setDirectlyDependentLayerIdDelta( uiNumScalableLayer, j, uiDelta );
+					}
+				}
+
+				if(pcScalableSEI->getInitParameterSetsInfoPresentFlag(uiNumScalableLayer))
+				{
+					UInt uiNumInitSPSMinus1 = 0;	//should be changed
+					UInt uiNumInitPPSMinus1 = 0;	//should be changed
+					pcScalableSEI->setNumInitSeqParameterSetMinus1(uiNumScalableLayer, uiNumInitSPSMinus1);
+					pcScalableSEI->setNumInitPicParameterSetMinus1(uiNumScalableLayer, uiNumInitPPSMinus1);
+					for( UInt j = 0; j <= pcScalableSEI->getNumInitSPSMinus1(uiNumScalableLayer); j++)
+					{
+						UInt uiDelta = 0; //should be changed
+						pcScalableSEI->setInitSeqParameterSetIdDelta( uiNumScalableLayer, j, uiDelta );
+					}
+					for( j = 0; j <= pcScalableSEI->getNumInitPPSMinus1(uiNumScalableLayer); j++)
+					{
+						UInt uiDelta = 0; //should be changed
+						pcScalableSEI->setInitPicParameterSetIdDelta( uiNumScalableLayer, j, uiDelta );
+					}
+				}
+
+				uiNumScalableLayer++;
+			}
+		}
+
+	}
+
+	UInt              uiBits = 0;
+	SEI::MessageList  cSEIMessageList;
+	cSEIMessageList.push_back                       ( pcScalableSEI );
+	RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+	RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+	RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+	RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+
+	return Err::m_nOK;
+
+}
+ErrVal
+H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor )
+{
+	SEI::SubPicSei* pcSubPicSEI;
+	RNOK( SEI::SubPicSei::create( pcSubPicSEI ) );
 
   //===== set message =====
-  UInt              uiLayer;
-  UInt              uiNumLayers           = m_pcCodingParameter->getNumberOfLayers  ();
-  LayerParameters&  rcLayer0              = m_pcCodingParameter->getLayerParameters ( 0 );
-  LayerParameters&  rcLayerN              = m_pcCodingParameter->getLayerParameters ( uiNumLayers - 1 );
-  Bool              bBaseLayerIsAVC       = m_pcCodingParameter->getBaseLayerMode   () > 0;
-  UInt              uiMaxHorFrameDimInMB  = ( rcLayerN.getFrameWidth  () + 15 ) / 16;
-  UInt              uiMaxVerFrameDimInMB  = ( rcLayerN.getFrameHeight () + 15 ) / 16;
-  Double            dInputFrameRate       = rcLayerN.getInputFrameRate();
-  UInt              uiMaxDecStages        = rcLayerN.getDecompositionStages();
-  UInt              uiAVCTempResStages    = ( m_pcCodingParameter->getBaseLayerMode() > 1 ? rcLayer0.getDecompositionStages() - rcLayer0.getNotCodedMCTFStages() : 1 );
-  UInt              uiFrameRateUnitNom;
-  UInt              uiFrameRateUnitDenom;
-  UInt              auiSpatialResolutionFactors [MAX_LAYERS];
-  UInt              auiTemporalResolutionFactors[MAX_LAYERS];
-  ::memset( auiSpatialResolutionFactors,  0x00, MAX_LAYERS*sizeof(UInt) );
-  ::memset( auiTemporalResolutionFactors, 0x00, MAX_LAYERS*sizeof(UInt) );
-  for( uiLayer = uiNumLayers - 1; uiLayer > 0; uiLayer-- )
-  {
-    UInt uiSpatResDiff = m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseLayerSpatRes();
-    UInt uiTempResDiff = m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseLayerTempRes();
-    
-    for( UInt uiBase = 0; uiBase < uiLayer; uiBase++ )
-    {
-      auiSpatialResolutionFactors  [uiBase] += uiSpatResDiff;
-      auiTemporalResolutionFactors [uiBase] += uiTempResDiff;
-    }
-  }
-  if( bBaseLayerIsAVC )
-  {
-    auiTemporalResolutionFactors[0] += rcLayer0.getNotCodedMCTFStages();
-  }
-  RNOK( getRateSpecifiers( uiFrameRateUnitNom, uiFrameRateUnitDenom,
-                           dInputFrameRate/(Double)(1<<uiMaxDecStages) ) );
-
-  pcScalableSEI->setMaxHorFrameDimInMB       ( uiMaxHorFrameDimInMB );
-  pcScalableSEI->setMaxVerFrameDimInMB       ( uiMaxVerFrameDimInMB );
-  pcScalableSEI->setFrameRateUnitNom         ( uiFrameRateUnitNom );
-  pcScalableSEI->setFrameRateUnitDenom       ( uiFrameRateUnitDenom );
-  pcScalableSEI->setMaxDecStages             ( uiMaxDecStages );
-  pcScalableSEI->setNumLayers                ( uiNumLayers );
-  pcScalableSEI->setBaseLayerIsAVC           ( bBaseLayerIsAVC );
-  pcScalableSEI->setAVCTempResStages         ( uiAVCTempResStages );
-
-  for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-  {
-    pcScalableSEI->setSpatialResolutionFactor  ( uiLayer, auiSpatialResolutionFactors  [uiLayer] );
-	pcScalableSEI->setTemporalResolutionFactor ( uiLayer, auiTemporalResolutionFactors [uiLayer] );
-// TMM_ESS {
-    pcScalableSEI->setFrameWidthInMB  (uiLayer, m_pcCodingParameter->getLayerParameters(uiLayer).getFrameWidth() / 16);
-    pcScalableSEI->setFrameHeightInMB (uiLayer, m_pcCodingParameter->getLayerParameters(uiLayer).getFrameHeight() / 16);
-// TMM_ESS }
-  }
+	UInt uiScalableLayerId = 0;	//should be changed
+	pcSubPicSEI->setLayerId( uiScalableLayerId );
   
-  //===== write message =====
+	//===== write message =====
   UInt              uiBits = 0;
   SEI::MessageList  cSEIMessageList;
-  cSEIMessageList.push_back                       ( pcScalableSEI );
+  cSEIMessageList.push_back                       ( pcSubPicSEI );
   RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
   RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
 
-  return Err::m_nOK;
+	return Err::m_nOK;
 }
-
 
 ErrVal
 H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bool &rbMoreSets )
@@ -447,11 +591,13 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
     m_bVeryFirstCall = false;
 
     RNOK( xInitParameterSets() );
+    if( m_bScalableSeiMessage )
     RNOK( xWriteScalableSEI( pcExtBinDataAccessor ) );
 
     return Err::m_nOK;
   }
-
+  else
+    m_bScalableSeiMessage = true;
     
   UInt uiBits;
 
@@ -524,6 +670,7 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                          PicBufferList*           apcPicBufferUnusedList )
 {
   UInt  uiLayer;
+	UInt	uiScalableLayer = 0;
   UInt  uiNumLayers = m_pcCodingParameter->getNumberOfLayers();
 
   //{{Adaptive GOP structure
@@ -536,6 +683,7 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
     if( apcOriginalPicBuffer[uiLayer] )
     {
       RNOK( xProcessGOP( uiLayer,
+ 												 uiScalableLayer,
                          apcOriginalPicBuffer   [uiLayer],
                          apcReconstructPicBuffer[uiLayer],
                          apcPicBufferOutputList [uiLayer],
@@ -565,6 +713,7 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
         if( apcOriginalPicBuffer[uiLayer] )
         {
           RNOK( xProcessGOP( uiLayer,
+														 uiScalableLayer,
                              apcOriginalPicBuffer   [uiLayer],
                              apcReconstructPicBuffer[uiLayer],
                              apcPicBufferOutputList [uiLayer],
@@ -609,6 +758,7 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
             if( apcOriginalPicBuffer[uiLayer] )
             {
               RNOK( xProcessGOP( uiLayer,
+ 																 uiScalableLayer,
                                  apcOriginalPicBuffer   [uiLayer],
                                  apcReconstructPicBuffer[uiLayer],
                                  apcPicBufferOutputList [uiLayer],
@@ -633,6 +783,7 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
           if( apcOriginalPicBuffer[uiLayer] )
           {
             RNOK( xProcessGOP( uiLayer,
+															 uiScalableLayer,
                                apcOriginalPicBuffer   [uiLayer],
                                apcReconstructPicBuffer[uiLayer],
                                apcPicBufferOutputList [uiLayer],
@@ -665,6 +816,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                         Double&                  rdHighestLayerOutputRate )
 {
   UInt  uiLayer;
+	UInt	uiScalableLayer = 0;
   UInt  uiNumLayers = m_pcCodingParameter->getNumberOfLayers();
 
   //{{Adaptive GOP structure
@@ -675,6 +827,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     RNOK( xProcessGOP( uiLayer,
+ 											 uiScalableLayer,
                        NULL,
                        NULL,
                        apcPicBufferOutputList[uiLayer],
@@ -685,7 +838,8 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   
   for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {
-    RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ) );
+    RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ,
+																						 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
   }
 
   //{{Adaptive GOP structure
@@ -698,6 +852,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
       for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
       {
         RNOK( xProcessGOP( uiLayer,
+													 uiScalableLayer,
                            NULL,
                            NULL,
                            apcPicBufferOutputList[uiLayer],
@@ -708,7 +863,8 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   
       for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
       {
-        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ) );
+        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate,
+																								 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
       }
       printf("                                   ----------------------------------------\n");
       printf("                                   (*): These PSNR values are not accurate!\n\n");
@@ -734,6 +890,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
         {
           m_apcMCTFEncoder[uiLayer]->setSelectPos(i);
           RNOK( xProcessGOP( uiLayer,
+ 														 uiScalableLayer,
                              NULL,
                              NULL,
                              apcPicBufferOutputList[uiLayer],
@@ -744,7 +901,8 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
       }  
       for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
       {
-        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ) );
+        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate,
+																								 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
       }
       printf("                                   ----------------------------------------\n");
       printf("                                   (*): These PSNR values are not accurate!\n\n");
@@ -759,6 +917,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
 
 ErrVal
 H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
+														 UInt&										uiScalableLayer,
                              PicBuffer*               pcOriginalPicBuffer,
                              PicBuffer*               pcReconstructPicBuffer,
                              PicBufferList&           rcPicBufferOutputList,
@@ -780,10 +939,13 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 
     if( m_acOrgPicBufferList[uiLayer].size() )
     {
+			m_apcMCTFEncoder[uiLayer]->setScalableLayer( uiScalableLayer );
       RNOK( m_apcMCTFEncoder[uiLayer]->process ( m_cAccessUnitList,
                                                  m_acOrgPicBufferList[uiLayer],
                                                  m_acRecPicBufferList[uiLayer],
-                                                 rcPicBufferUnusedList ) );
+                                                 rcPicBufferUnusedList,
+																								 m_aaauidSeqBits ) );
+   		uiScalableLayer = m_apcMCTFEncoder[uiLayer]->getScalableLayer();
       rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
     }
 
@@ -813,10 +975,13 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
   if( m_acOrgPicBufferList[uiLayer].size() == uiTargetBufferSize )
   {
     //===== ENCODE GROUP OF PICTURES =====
+    m_apcMCTFEncoder[uiLayer]->setScalableLayer( uiScalableLayer );
     RNOK( m_apcMCTFEncoder[uiLayer]->process( m_cAccessUnitList,
                                               m_acOrgPicBufferList[uiLayer],
                                               m_acRecPicBufferList[uiLayer],
-                                              rcPicBufferUnusedList ) );
+                                              rcPicBufferUnusedList,
+																							m_aaauidSeqBits ) );
+		uiScalableLayer = m_apcMCTFEncoder[uiLayer]->getScalableLayer();
 
     //----- set output list -----
     rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
@@ -850,7 +1015,8 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
                                                          m_acOrgPicBufferList[uiLayer],
                                                          m_acRecPicBufferList[uiLayer],
-                                                         rcPicBufferUnusedList ) );
+                                                         rcPicBufferUnusedList,
+																												 m_aaauidSeqBits ) );
 					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
 				}
 				
@@ -871,7 +1037,8 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 						RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
                                                            m_acOrgPicBufferList[uiLayer],
                                                            m_acRecPicBufferList[uiLayer],
-                                                           rcPicBufferUnusedList ) );
+                                                           rcPicBufferUnusedList,
+																													 m_aaauidSeqBits ) );
 						rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
 				  }
           m_acRecPicBufferList[uiLayer] += rcPicBufferUnusedList;
@@ -891,7 +1058,8 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 						RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
                                                            m_acOrgPicBufferList[uiLayer],
                                                            m_acRecPicBufferList[uiLayer],
-                                                           rcPicBufferUnusedList ) );
+                                                           rcPicBufferUnusedList,
+																													 m_aaauidSeqBits ) );
 						
 						//----- set output list -----
 						rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
@@ -946,7 +1114,8 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 				RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
                                                        m_acOrgPicBufferList[uiLayer],
                                                        m_acRecPicBufferList[uiLayer],
-                                                       rcPicBufferUnusedList ) );
+                                                       rcPicBufferUnusedList,
+																											 m_aaauidSeqBits ) );
 				
 				//----- set output list -----
 				rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
@@ -970,7 +1139,8 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
                                                          m_acOrgPicBufferList[uiLayer],
                                                          m_acRecPicBufferList[uiLayer],
-                                                         rcPicBufferUnusedList ) );
+                                                         rcPicBufferUnusedList,
+																												 m_aaauidSeqBits ) );
 					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
 					m_acRecPicBufferList[uiLayer] += rcPicBufferUnusedList;
 					rcPicBufferUnusedList.clear();
@@ -986,7 +1156,8 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
                                                          m_acOrgPicBufferList[uiLayer],
                                                          m_acRecPicBufferList[uiLayer],
-                                                         rcPicBufferUnusedList ) );
+                                                         rcPicBufferUnusedList,
+																												 m_aaauidSeqBits ) );
 					
 					//----- set output list -----
 					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];

@@ -101,6 +101,7 @@ H264AVCEncoderTest::H264AVCEncoderTest() :
   ::memset( m_auiHeight,    0x00, MAX_LAYERS*sizeof(UInt) );
   ::memset( m_auiWidth,     0x00, MAX_LAYERS*sizeof(UInt) );
   ::memset( m_auiStride,    0x00, MAX_LAYERS*sizeof(UInt) );
+  strcpy( m_acWriteToBitFileTempName, "temp.svc" );
 }
 
 
@@ -150,6 +151,8 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 
   //===== init bitstream writer =====
   RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) )
+	strcpy( m_acWriteToBitFileName, m_cEncoderIoParameter.pBitstreamFile );
+	strcpy( m_cEncoderIoParameter.pBitstreamFile, m_acWriteToBitFileTempName );
   RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.pBitstreamFile ) );  
   
 
@@ -232,11 +235,6 @@ H264AVCEncoderTest::destroy()
     }
   }
 
-  if( m_pcWriteBitstreamToFile )     
-  {
-    RNOK( m_pcWriteBitstreamToFile->uninit() );  
-    RNOK( m_pcWriteBitstreamToFile->destroy() );  
-  }
 
   RNOK( m_pcEncoderCodingParameter->destroy());
 
@@ -400,10 +398,13 @@ H264AVCEncoderTest::go()
     cBinData.setMemAccessor( cExtBinDataAccessor );
 
     RNOK( m_pcH264AVCEncoder      ->writeParameterSets( &cExtBinDataAccessor, bMoreSets) );
+		if( m_pcH264AVCEncoder->getScalableSeiMessage() )
+		{		
     RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
     RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
     
     uiWrittenBytes += 4 + cExtBinDataAccessor.size();
+		}
     cBinData.reset();
   }
 
@@ -495,16 +496,75 @@ H264AVCEncoderTest::go()
   m_cEncoderIoParameter.nFrames = uiFrame;
   m_cEncoderIoParameter.nResult = 0;
 
-  printf( "\n\n%d bit [%d byte]   rate: %.4lf kbit/s  (%d frames @ %.2lf fps)\n",
-    uiWrittenBytes*8,
-    uiWrittenBytes,
-    0.008*(Double)uiWrittenBytes*dHighestLayerOutputRate/(Double)uiNumCodedFrames,
-    uiNumCodedFrames,
-    dHighestLayerOutputRate );
+	{
+		UChar   aucParameterSetBuffer[1000];
+		BinData cBinData;
+		cBinData.reset();
+		cBinData.set( aucParameterSetBuffer, 1000 );
+
+		ExtBinDataAccessor cExtBinDataAccessor;
+		cBinData.setMemAccessor( cExtBinDataAccessor );
+		m_pcH264AVCEncoder->SetVeryFirstCall();
+		RNOK( m_pcH264AVCEncoder      ->writeParameterSets( &cExtBinDataAccessor, bMoreSets) );
+		RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
+		RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
+		uiWrittenBytes += 4 + cExtBinDataAccessor.size();
+		cBinData.reset();
+	}
+
+  if( m_pcWriteBitstreamToFile )
+  {
+    RNOK( m_pcWriteBitstreamToFile->uninit() );  
+    RNOK( m_pcWriteBitstreamToFile->destroy() );  
+  }
+	RNOK	( ScalableDealing() );
 
   return Err::m_nOK;
 }
 
+ErrVal
+H264AVCEncoderTest::ScalableDealing()
+{
+	FILE *ftemp = fopen( m_acWriteToBitFileTempName, "rb");
+	FILE *f = fopen( m_acWriteToBitFileName, "wb" );
 
+	UChar pvBuffer[4];
 
+	fseek( ftemp, SEEK_SET, SEEK_END );
+	long lFileLength = ftell( ftemp );
 
+	long lpos = 0;
+	long loffset = -5;	//start offset from end of file
+	Bool bMoreSets = true;
+	do {
+		fseek( ftemp, loffset, SEEK_END);
+		fread( pvBuffer, 1, 4, ftemp );
+		if( pvBuffer[0] == 0 && pvBuffer[1] == 0 && pvBuffer[2] == 0 && pvBuffer[3] == 1)
+		{
+			bMoreSets = false;
+			lpos = abs( loffset );
+		}
+		else
+		{
+			loffset --;
+		}
+	} while( bMoreSets );
+
+	fseek( ftemp, loffset, SEEK_END );
+
+	UChar *pvChar = new UChar[lFileLength];
+	fread( pvChar, 1, lpos, ftemp );
+	fseek( ftemp, 0, SEEK_SET );
+	fread( pvChar+lpos, 1, lFileLength-lpos, ftemp);
+	fclose(ftemp);
+	fflush(ftemp);
+	fwrite( pvChar, 1, lFileLength, f);	
+	delete pvChar;
+	fclose(f);
+	fflush(f);
+	std::string cCommandLineString;
+	cCommandLineString += "del ";
+	cCommandLineString += m_acWriteToBitFileTempName;
+	int iResult = system( cCommandLineString.c_str() );
+	return Err::m_nOK;
+}

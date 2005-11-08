@@ -220,6 +220,7 @@ ErrVal H264AVCDecoderTest::go()
   UInt      uiMbY           = 0;
   UInt      uiNalUnitType   = 0;
   UInt      uiSize          = 0;
+  UInt      uiNonRequiredPic= 0;
   UInt      uiLumOffset     = 0;
   UInt      uiCbOffset      = 0;
   UInt      uiCrOffset      = 0;
@@ -268,7 +269,7 @@ ErrVal H264AVCDecoderTest::go()
     
     pcBinData->setMemAccessor( cBinDataAccessor );
     // open the NAL Unit, determine the type and if it's a slice get the frame size
-    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize ) );
+	RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize ) ); 
     
     // get new picture buffer if required if coded Slice || coded IDR slice
     pcPicBuffer = NULL;

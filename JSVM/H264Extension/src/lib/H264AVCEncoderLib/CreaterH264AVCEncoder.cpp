@@ -157,6 +157,17 @@ CreaterH264AVCEncoder::~CreaterH264AVCEncoder()
 
 }
 
+Bool
+CreaterH264AVCEncoder::getScalableSeiMessage()
+{
+	return m_pcH264AVCEncoder->bGetScalableSeiMessage();
+}
+
+Void
+CreaterH264AVCEncoder::SetVeryFirstCall()
+{ 
+	m_pcH264AVCEncoder->SetVeryFirstCall(); 
+}
 
 ErrVal
 CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,

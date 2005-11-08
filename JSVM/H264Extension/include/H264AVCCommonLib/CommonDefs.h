@@ -292,6 +292,7 @@ H264AVC_NAMESPACE_END
 #define MAX_DSTAGES         6
 #define LOG2_GOP_ID_WRAP    4
 #define PRI_ID_BITS         6
+#define MAX_SCALABLE_LAYERS MAX_LAYERS * MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS
 
 //===== special features for investigation =====
 #define MULTIPLE_LOOP_DECODING 1   // multiple-loop decoding (enables additional option,

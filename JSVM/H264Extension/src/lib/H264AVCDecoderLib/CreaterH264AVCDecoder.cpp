@@ -536,20 +536,22 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
           break;
         }
       case SEI::SCALABLE_SEI:
-        {
-          uiLevel               = 0;
-          uiLayer               = 0;
-          pcScalableSEIMessage  = pcSEIMessage;
-          {
-            //===== set parameters used for further parsing =====
-            SEI::ScalableSei* pcSEI           = (SEI::ScalableSei*)pcSEIMessage;
-            UInt              uiMaxDecStages  = pcSEI->getMaxDecStages();
-            for( UInt uiIndex = 0; uiIndex < pcSEI->getNumLayers(); uiIndex++ )
-            {
-              m_auiDecompositionStages[uiIndex] = uiMaxDecStages - pcSEI->getTemporalResolutionFactor(uiIndex);
-            }
-            m_uiStdAVCOffset = m_auiDecompositionStages[0] - pcSEI->getAVCTempResStages();
-          }
+			{
+				uiLevel = 0;
+				uiLayer = 0;
+				pcScalableSEIMessage = pcSEIMessage;
+				{
+					//====set parameters used for further parsing =====
+					SEI::ScalableSei* pcSEI		= (SEI::ScalableSei*)pcSEIMessage;
+					UInt uiNumScalableLayers  = pcSEI->getNumLayersMinus1() + 1;
+				}
+				break;
+			}
+      case SEI::SUB_PIC_SEI:
+			{
+				SEI::SubPicSei* pcSEI		= (SEI::SubPicSei*)pcSEIMessage;
+				UInt uiScalableLayerId	= pcSEI->getLayerId();
+        bApplyToNext  = true;
           break;
         }
       //{{Quality level estimation and modified truncation- JVTO044 and m12007

@@ -171,6 +171,8 @@ public:
                                 UInt                    uiLayer);
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+  Bool getScalableSeiMessage ( Void );
+	Void SetVeryFirstCall ( Void );
 
 protected:
   ErrVal xCreateEncoder();

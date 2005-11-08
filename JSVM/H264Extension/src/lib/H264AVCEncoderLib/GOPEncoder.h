@@ -234,9 +234,13 @@ public:
   ErrVal        process             ( AccessUnitList&                 rcAccessUnitList,
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
-                                      PicBufferList&                  rcPicBufferUnusedList );
+                                      PicBufferList&                  rcPicBufferUnusedList,
+                                      Double                          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
   ErrVal        finish              ( UInt&                           ruiNumCodedFrames,
-                                      Double&                         rdOutputRate );
+                                      Double&                         rdOutputRate,
+                                      Double*                         rdOutputFramerate,
+                                      Double*                         rdOutputBitrate,
+                                      Double                          aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 
 
 
@@ -258,6 +262,9 @@ public:
   UInt*         getGOPBitsBase      ()  { return m_auiCurrGOPBitsBase;  }
   UInt*         getGOPBitsFGS       ()  { return m_auiCurrGOPBitsFGS;   }
 
+  UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
+  Void          setScalableLayer    (UInt p)	{ m_uiScalableLayerId = p; }
+  UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
 
   //===== ESS =====
   Int                     getSpatialScalabilityType() { return m_pcResizeParameters->m_iSpatialScalabilityType; }
@@ -268,7 +275,8 @@ public:
   ErrVal        process_ags         ( AccessUnitList&                 rcAccessUnitList,
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
-                                      PicBufferList&                  rcPicBufferUnusedList );
+                                      PicBufferList&                  rcPicBufferUnusedList,
+                                      Double                          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
   UInt			getSelect(int gop, int index) {return m_uiSelect[gop][index];}
   void			setSelect(int gop, int index, UInt p) {m_uiSelect[gop][index] = p;}
   UInt			getSelectPos() {return m_uiSelectPos;}
@@ -279,7 +287,8 @@ protected:
   ErrVal  xProcessClosedLoop            ( AccessUnitList&             rcAccessUnitList,
                                           PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
-                                          PicBufferList&              rcPicBufferUnusedList );
+                                          PicBufferList&              rcPicBufferUnusedList,
+                                          Double                      m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
   ErrVal  xDeleteData                   ();
@@ -289,7 +298,8 @@ protected:
   ErrVal  xUpdateBitCounts              ();
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
-                                          PicBufferList&              rcPicBufferUnusedList );
+                                          PicBufferList&              rcPicBufferUnusedList,
+                                          Double                      m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 
   ErrVal  xInitExtBinDataAccessor       ( ExtBinDataAccessor&         rcExtBinDataAccessor );
   ErrVal  xAppendNewExtBinDataAccessor  ( ExtBinDataAccessorList&     rcExtBinDataAccessorList,
@@ -476,6 +486,7 @@ protected:
   //----- fixed control parameters ----
   Bool                          m_bTraceEnable;                       // trace file
   UInt                          m_uiLayerId;                          // layer id for current layer
+  UInt                          m_uiScalableLayerId;                  // scalable layer id for current layer
   UInt                          m_uiBaseLayerId;                      // layer if of base layer
   UInt                          m_uiBaseQualityLevel;                 // quality level of the base layer
   UInt                          m_uiQualityLevelForPrediction;        // quality level for prediction
@@ -559,6 +570,9 @@ protected:
   Double                        m_adPSNRSumY        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumU        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumV        [MAX_DSTAGES+1];
+
+  UInt m_auiCurrGOPBits     [ MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS];
+  Double m_adSeqBits        [ MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS];
 
   //----- FGS -----
   UInt                          m_uiFGSMode;

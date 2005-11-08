@@ -116,12 +116,13 @@ public:
   enum MessageType
   {
     SUB_SEQ_INFO                          = 10,
-    SCALABLE_SEI                          = 19,
+    SCALABLE_SEI                          = 22,
+		SUB_PIC_SEI														= 23,
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    QUALITYLEVEL_SEI                      = 20,
-	  DEADSUBSTREAM_SEI                     = 21,
-    RESERVED_SEI                          = 22
+    QUALITYLEVEL_SEI                      = 25,
+	  DEADSUBSTREAM_SEI                     = 21,	//??
+    RESERVED_SEI                          = 26
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
   };
 
@@ -198,61 +199,166 @@ public:
     UInt  m_uiSubSeqFrameNum;
   };
 
+	class H264AVCCOMMONLIB_API ScalableSei: public SEIMessage
+	{
+	protected:
+		ScalableSei ();
+		~ScalableSei();
 
-  class H264AVCCOMMONLIB_API ScalableSei : public SEIMessage
-  {
-  protected:
-    ScalableSei ();
-    ~ScalableSei();
+	public:
+		static ErrVal create ( ScalableSei*&			rpcSeiMessage);
+		ErrVal write				 ( HeaderSymbolWriteIf	*pcWriteIf);
+		ErrVal read					 ( HeaderSymbolReadIf		*pcReadIf);
 
-  public:
-    static ErrVal create  ( ScalableSei*&         rpcSeiMessage );
-    ErrVal        write   ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf );
-  
-    UInt  getMaxHorFrameDimInMB       ()                const { return m_uiMaxHorFrameDimInMB; }
-    UInt  getMaxVerFrameDimInMB       ()                const { return m_uiMaxVerFrameDimInMB; }
-    UInt  getFrameRateUnitNom         ()                const { return m_uiFrameRateUnitNom; }
-    UInt  getFrameRateUnitDenom       ()                const { return m_uiFrameRateUnitDenom; }
-    UInt  getMaxDecStages             ()                const { return m_uiMaxDecStages; }
-    UInt  getNumLayers                ()                const { return m_uiNumLayers; }
-    Bool  getBaseLayerIsAVC           ()                const { return m_bBaseLayerIsAVC; }
-    UInt  getAVCTempResStages         ()                const { return m_uiAVCTempResStages; }
-    UInt  getSpatialResolutionFactor  ( UInt uiLayer )  const { return m_uiSpatialResolutionFactor  [uiLayer]; }
-    UInt  getTemporalResolutionFactor ( UInt uiLayer )  const { return m_uiTemporalResolutionFactor [uiLayer]; }
+		Void setNumLayersMinus1( UInt ui )																				{ m_num_layers_minus1 = ui;	}
+		Void setLayerId ( UInt uilayer, UInt uiId )																{ m_layer_id															[uilayer] = uiId; }
+		Void setFGSlayerFlag ( UInt uilayer, Bool bFlag )													{ m_fgs_layer_flag												[uilayer] = bFlag; }
+		Void setSubPicLayerFlag ( UInt uilayer, Bool bFlag)												{ m_sub_pic_layer_flag[uilayer] = bFlag; }
+		Void setSubRegionLayerFlag ( UInt uilayer, Bool bFlag)										{ m_sub_region_layer_flag									[uilayer] = bFlag; }
+		Void setProfileLevelInfoPresentFlag ( UInt uilayer, Bool bFlag)						{ m_profile_level_info_present_flag				[uilayer] = bFlag; }
+		Void setDecodingDependencyInfoPresentFlag ( UInt uilayer, Bool bFlag )		{ m_decoding_dependency_info_present_flag	[uilayer] = bFlag; }
+		Void setBitrateInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_bitrate_info_present_flag							[uilayer] = bFlag; }
+		Void setFrmRateInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_frm_rate_info_present_flag						[uilayer] = bFlag; }
+		Void setFrmSizeInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_frm_size_info_present_flag						[uilayer] = bFlag; }
+		Void setLayerDependencyInfoPresentFlag ( UInt uilayer, Bool bFlag )				{ m_layer_dependency_info_present_flag		[uilayer] = bFlag; }
+		Void setInitParameterSetsInfoPresentFlag ( UInt uilayer, Bool bFlag )			{ m_init_parameter_sets_info_present_flag	[uilayer] = bFlag; }
+		Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )											{ m_layer_profile_idc											[uilayer] = uiIdc; }
+		Void setLayerConstraintSet0Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set0_flag						[uilayer] = bFlag; }
+		Void setLayerConstraintSet1Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set1_flag						[uilayer] = bFlag; }
+		Void setLayerConstraintSet2Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set2_flag						[uilayer] = bFlag; }
+		Void setLayerConstraintSet3Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set3_flag						[uilayer] = bFlag; }
+		Void setLayerLevelIdc ( UInt uilayer, UInt uiIdc )												{ m_layer_level_idc												[uilayer] = uiIdc; }
+		Void setTemporalLevel ( UInt uilayer, UInt uiLevel )											{ m_temporal_level												[uilayer] = uiLevel; }
+		Void setDependencyId ( UInt uilayer, UInt uiId )													{ m_dependency_id													[uilayer] = uiId; }
+		Void setQualityLevel ( UInt uilayer, UInt uiLevel )												{ m_quality_level													[uilayer] = uiLevel; }
+		Void setAvgBitrate ( UInt uilayer, UInt uiBitrate )												{ m_avg_bitrate														[uilayer] = uiBitrate; }
+		Void setMaxBitrate ( UInt uilayer, UInt uiBitrate )												{ m_max_bitrate														[uilayer] = uiBitrate; }
+		Void setConstantFrmRateIdc ( UInt uilayer, UInt uiFrmrate )								{ m_constant_frm_rate_idc									[uilayer] = uiFrmrate; }
+		Void setAvgFrmRate ( UInt uilayer, UInt uiFrmrate )												{ m_avg_frm_rate													[uilayer] = uiFrmrate; }
+		Void setFrmWidthInMbsMinus1 ( UInt uilayer, UInt uiWidth )								{ m_frm_width_in_mbs_minus1								[uilayer] = uiWidth; }
+		Void setFrmHeightInMbsMinus1 ( UInt uilayer, UInt uiHeight )							{ m_frm_height_in_mbs_minus1							[uilayer] = uiHeight; }
+		Void setBaseRegionLayerId ( UInt uilayer, UInt uiId )											{ m_base_region_layer_id									[uilayer] = uiId; }
+		Void setDynamicRectFlag ( UInt uilayer, Bool bFlag )											{ m_dynamic_rect_flag											[uilayer] = bFlag; }
+		Void setHorizontalOffset ( UInt uilayer, UInt uiOffset )									{ m_horizontal_offset											[uilayer] = uiOffset; }
+		Void setVerticalOffset ( UInt uilayer, UInt uiOffset )										{ m_vertical_offset												[uilayer] = uiOffset; }
+		Void setRegionWidth ( UInt uilayer, UInt uiWidth )												{ m_region_width													[uilayer] = uiWidth; }
+		Void setRegionHeight ( UInt uilayer, UInt uiHeight )											{ m_region_height													[uilayer] = uiHeight; }
+		Void setNumDirectlyDependentLayers ( UInt uilayer, UInt uiNum )						{ m_num_directly_dependent_layers					[uilayer] = uiNum; }
+		Void setDirectlyDependentLayerIdDelta( UInt uilayer, UInt uiTar, UInt uiDelta ){ m_directly_dependent_layer_id_delta[uilayer][uiTar] = uiDelta;	}
+		Void setNumInitSeqParameterSetMinus1 ( UInt uilayer, UInt uiNum )					{ m_num_init_seq_parameter_set_minus1			[uilayer] = uiNum; }
+		Void setInitSeqParameterSetIdDelta ( UInt uilayer, UInt uiSPS, UInt uiTar){ m_init_seq_parameter_set_id_delta				[uilayer][uiSPS] = uiTar;	}
+		Void setNumInitPicParameterSetMinus1 ( UInt uilayer, UInt uiNum )					{ m_num_init_pic_parameter_set_minus1			[uilayer] = uiNum; }
+		Void setInitPicParameterSetIdDelta ( UInt uilayer, UInt uiPPS, UInt uiTar){ m_init_pic_parameter_set_id_delta				[uilayer][uiPPS] = uiTar; }
 
-    Void  setMaxHorFrameDimInMB       ( UInt ui )                { m_uiMaxHorFrameDimInMB = ui; }
-    Void  setMaxVerFrameDimInMB       ( UInt ui )                { m_uiMaxVerFrameDimInMB = ui; }
-    Void  setFrameRateUnitNom         ( UInt ui )                { m_uiFrameRateUnitNom = ui; }
-    Void  setFrameRateUnitDenom       ( UInt ui )                { m_uiFrameRateUnitDenom = ui; }
-    Void  setMaxDecStages             ( UInt ui )                { m_uiMaxDecStages = ui; }
-    Void  setNumLayers                ( UInt ui )                { m_uiNumLayers = ui; }
-    Void  setBaseLayerIsAVC           ( Bool b  )                { m_bBaseLayerIsAVC = b; }
-    Void  setAVCTempResStages         ( UInt ui )                { m_uiAVCTempResStages = ui; }
-    Void  setSpatialResolutionFactor  ( UInt uiLayer, UInt ui )  { m_uiSpatialResolutionFactor  [uiLayer] = ui; }
-    Void  setTemporalResolutionFactor ( UInt uiLayer, UInt ui )  { m_uiTemporalResolutionFactor [uiLayer] = ui; }
-// TMM_ESS {
-    UInt getFrameWidthInMB  ( UInt uiLayer )  const   { return m_uiFrameWidthInMB[uiLayer]; }
-    UInt getFrameHeightInMB ( UInt uiLayer )  const   { return m_uiFrameHeightInMB[uiLayer]; }
-    Void setFrameWidthInMB  ( UInt uiLayer, UInt ui ) { m_uiFrameWidthInMB[uiLayer] = ui; }
-    Void setFrameHeightInMB ( UInt uiLayer, UInt ui ) { m_uiFrameHeightInMB[uiLayer] = ui; }
-// TMM_ESS }
+		UInt getNumLayersMinus1() const {return m_num_layers_minus1;}
+		UInt getLayerId ( UInt uilayer ) const { return m_layer_id[uilayer]; }
+		Bool getFGSLayerFlag ( UInt uilayer ) const { return m_fgs_layer_flag[uilayer]; }
+		Bool getSubPicLayerFlag ( UInt uilayer ) { return m_sub_pic_layer_flag[uilayer]; }
+		Bool getSubRegionLayerFlag ( UInt uilayer ) const { return m_sub_region_layer_flag[uilayer]; }
+		Bool getProfileLevelInfoPresentFlag ( UInt uilayer ) const { return m_profile_level_info_present_flag[uilayer]; }
+		Bool getDecodingDependencyInfoPresentFlag ( UInt uilayer ) const { return m_decoding_dependency_info_present_flag[uilayer]; }
+		Bool getBitrateInfoPresentFlag ( UInt uilayer ) const { return m_bitrate_info_present_flag[uilayer]; }
+		Bool getFrmRateInfoPresentFlag ( UInt uilayer ) const { return m_frm_rate_info_present_flag[uilayer]; }
+		Bool getFrmSizeInfoPresentFlag ( UInt uilayer ) const { return m_frm_size_info_present_flag[uilayer]; }
+		Bool getLayerDependencyInfoPresentFlag ( UInt uilayer ) const { return m_layer_dependency_info_present_flag[uilayer]; }
+		Bool getInitParameterSetsInfoPresentFlag ( UInt uilayer ) const { return m_init_parameter_sets_info_present_flag[uilayer]; }
 
-  private:
-    UInt  m_uiMaxHorFrameDimInMB;
-    UInt  m_uiMaxVerFrameDimInMB;
-    UInt  m_uiFrameRateUnitNom;
-    UInt  m_uiFrameRateUnitDenom;
-    UInt  m_uiMaxDecStages;
-    UInt  m_uiNumLayers;
-    Bool  m_bBaseLayerIsAVC;
-    UInt  m_uiAVCTempResStages;
-    UInt  m_uiSpatialResolutionFactor   [MAX_LAYERS];
-    UInt  m_uiTemporalResolutionFactor  [MAX_LAYERS];
-    Bool  m_bNonDyadicSpatialScalability;   // TMM_ESS
-    UInt  m_uiFrameWidthInMB  [MAX_LAYERS]; // TMM_ESS
-    UInt  m_uiFrameHeightInMB [MAX_LAYERS]; // TMM_ESS
-  };
+		UInt getLayerProfileIdc ( UInt uilayer ) const { return m_layer_profile_idc[uilayer]; }
+		Bool getLayerConstraintSet0Flag ( UInt uilayer ) const { return m_layer_constraint_set0_flag[uilayer]; }
+		Bool getLayerConstraintSet1Flag ( UInt uilayer ) const { return m_layer_constraint_set1_flag[uilayer]; }
+		Bool getLayerConstraintSet2Flag ( UInt uilayer ) const { return m_layer_constraint_set2_flag[uilayer]; }
+		Bool getLayerConstraintSet3Flag ( UInt uilayer ) const { return m_layer_constraint_set3_flag[uilayer]; }
+		UInt getLayerLevelIdc ( UInt uilayer ) const { return m_layer_level_idc[uilayer]; }
+		UInt getTemporalLevel ( UInt uilayer ) const { return m_temporal_level[uilayer]; }
+		UInt getDependencyId ( UInt uilayer ) const { return m_dependency_id[uilayer]; }
+		UInt getQualityLevel ( UInt uilayer ) const { return m_quality_level[uilayer]; }
+		UInt getAvgBitrate ( UInt uilayer ) const { return m_avg_bitrate[uilayer]; }
+		UInt getMaxBitrate ( UInt uilayer ) const { return m_max_bitrate[uilayer]; }
+		UInt getConstantFrmRateIdc ( UInt uilayer ) const { return m_constant_frm_rate_idc[uilayer]; }
+		UInt getAvgFrmRate ( UInt uilayer ) const { return m_avg_frm_rate[uilayer]; }
+		UInt getFrmWidthInMbsMinus1 ( UInt uilayer ) const { return m_frm_width_in_mbs_minus1[uilayer]; }
+		UInt getFrmHeightInMbsMinus1 ( UInt uilayer ) const { return m_frm_height_in_mbs_minus1[uilayer]; }
+		UInt getBaseRegionLayerId ( UInt uilayer ) const { return m_base_region_layer_id[uilayer]; }
+		Bool getDynamicRectFlag ( UInt uilayer ) const { return m_dynamic_rect_flag[uilayer]; }
+		UInt getHorizontalOffset ( UInt uilayer ) const { return m_horizontal_offset[uilayer]; }
+		UInt getVerticalOffset ( UInt uilayer ) const { return m_vertical_offset[uilayer]; }
+		UInt getRegionWidth ( UInt uilayer ) const { return m_region_width[uilayer]; }
+		UInt getRegionHeight ( UInt uilayer ) const { return m_region_height[uilayer]; }
+		UInt getNumDirectlyDependentLayers ( UInt uilayer ) const { return m_num_directly_dependent_layers[uilayer]; }
+		//
+		UInt getNumInitSPSMinus1 ( UInt uilayer ) const { return m_num_init_seq_parameter_set_minus1[uilayer]; }
+		UInt getNumInitPPSMinus1 ( UInt uilayer ) const { return m_num_init_pic_parameter_set_minus1[uilayer]; }
+
+	private:
+		UInt m_num_layers_minus1;
+		UInt m_layer_id[MAX_SCALABLE_LAYERS];
+		Bool m_fgs_layer_flag[MAX_SCALABLE_LAYERS];
+		Bool m_sub_pic_layer_flag[MAX_SCALABLE_LAYERS];
+		Bool m_sub_region_layer_flag[MAX_SCALABLE_LAYERS];
+		Bool m_profile_level_info_present_flag[MAX_SCALABLE_LAYERS];
+		Bool m_decoding_dependency_info_present_flag[MAX_SCALABLE_LAYERS];
+		Bool m_bitrate_info_present_flag[MAX_SCALABLE_LAYERS];
+		Bool m_frm_rate_info_present_flag[MAX_SCALABLE_LAYERS];
+		Bool m_frm_size_info_present_flag[MAX_SCALABLE_LAYERS];
+		Bool m_layer_dependency_info_present_flag[MAX_SCALABLE_LAYERS];
+		Bool m_init_parameter_sets_info_present_flag[MAX_SCALABLE_LAYERS];
+
+		UInt m_layer_profile_idc[MAX_SCALABLE_LAYERS];
+		Bool m_layer_constraint_set0_flag[MAX_SCALABLE_LAYERS];
+		Bool m_layer_constraint_set1_flag[MAX_SCALABLE_LAYERS];
+		Bool m_layer_constraint_set2_flag[MAX_SCALABLE_LAYERS];
+		Bool m_layer_constraint_set3_flag[MAX_SCALABLE_LAYERS];
+		UInt m_layer_level_idc[MAX_SCALABLE_LAYERS];
+
+		UInt m_temporal_level[MAX_SCALABLE_LAYERS];
+		UInt m_dependency_id[MAX_SCALABLE_LAYERS];
+		UInt m_quality_level[MAX_SCALABLE_LAYERS];
+
+		UInt m_avg_bitrate[MAX_SCALABLE_LAYERS];
+		UInt m_max_bitrate[MAX_SCALABLE_LAYERS];
+
+		UInt m_constant_frm_rate_idc[MAX_SCALABLE_LAYERS];
+		UInt m_avg_frm_rate[MAX_SCALABLE_LAYERS];
+
+		UInt m_frm_width_in_mbs_minus1[MAX_SCALABLE_LAYERS];
+		UInt m_frm_height_in_mbs_minus1[MAX_SCALABLE_LAYERS];
+
+		UInt m_base_region_layer_id[MAX_SCALABLE_LAYERS];
+		Bool m_dynamic_rect_flag[MAX_SCALABLE_LAYERS];
+		UInt m_horizontal_offset[MAX_SCALABLE_LAYERS];
+		UInt m_vertical_offset[MAX_SCALABLE_LAYERS];
+		UInt m_region_width[MAX_SCALABLE_LAYERS];
+		UInt m_region_height[MAX_SCALABLE_LAYERS];
+
+		//UInt m_roi_id[MAX_SCALABLE_LAYERS];
+
+		UInt m_num_directly_dependent_layers[MAX_SCALABLE_LAYERS];
+		UInt *m_directly_dependent_layer_id_delta[MAX_SCALABLE_LAYERS];
+
+		UInt m_num_init_seq_parameter_set_minus1[MAX_SCALABLE_LAYERS];
+		UInt *m_init_seq_parameter_set_id_delta[MAX_SCALABLE_LAYERS];
+		UInt m_num_init_pic_parameter_set_minus1[MAX_SCALABLE_LAYERS];
+		UInt *m_init_pic_parameter_set_id_delta[MAX_SCALABLE_LAYERS];
+
+	};
+
+	class H264AVCCOMMONLIB_API SubPicSei : public SEIMessage
+	{
+	protected:
+		SubPicSei ();
+		~SubPicSei();
+
+	public:
+		static ErrVal create	( SubPicSei*&				rpcSeiMessage );
+		ErrVal				write		( HeaderSymbolWriteIf*	pcWriteIf );
+		ErrVal				read		( HeaderSymbolReadIf*		pcReadIf  );	
+
+		UInt getLayerId	()					const	{ return m_uiLayerId;				}
+		Void setLayerId ( UInt uiLayerId) { m_uiLayerId = uiLayerId;	}
+
+	private:
+		UInt m_uiLayerId;
+	};
   
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
