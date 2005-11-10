@@ -445,9 +445,9 @@ DecodedPicBuffer::xClearBuffer()
 ErrVal
 DecodedPicBuffer::xUpdateMemory( SliceHeader* pcSliceHeader )
 {
-  ROFRS( pcSliceHeader->getNalRefIdc(), Err::m_nOK );
+  ROTRS( pcSliceHeader && pcSliceHeader->getNalRefIdc() == NAL_REF_IDC_PRIORITY_LOWEST, Err::m_nOK );
 
-  if( pcSliceHeader->getAdaptiveRefPicBufferingFlag() )
+  if( pcSliceHeader && pcSliceHeader->getAdaptiveRefPicBufferingFlag() )
   {
     RNOK( xMMCO( pcSliceHeader ) );
   }
