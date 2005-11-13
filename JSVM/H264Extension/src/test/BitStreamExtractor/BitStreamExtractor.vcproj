@@ -208,10 +208,10 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\ScalableModifyCode.cpp">
+				RelativePath="ScalableModifyCode.cpp">
 			</File>
 			<File
-				RelativePath=".\ScalableTestCode.cpp">
+				RelativePath="ScalableTestCode.cpp">
 			</File>
 		</Filter>
 		<Filter
@@ -227,10 +227,10 @@
 				RelativePath="ExtractorParameter.h">
 			</File>
 			<File
-				RelativePath=".\ScalableModifyCode.h">
+				RelativePath="ScalableModifyCode.h">
 			</File>
 			<File
-				RelativePath=".\ScalableTestCode.h">
+				RelativePath="ScalableTestCode.h">
 			</File>
 		</Filter>
 		<Filter
