@@ -135,6 +135,10 @@ DPBUnit::~DPBUnit()
   }
   delete pcMbDataCtrl;
   delete pcSliceHeader;
+  if( m_pcFrame )
+  {
+    m_pcFrame->uninit();
+  }
   delete m_pcFrame;
 }
 
