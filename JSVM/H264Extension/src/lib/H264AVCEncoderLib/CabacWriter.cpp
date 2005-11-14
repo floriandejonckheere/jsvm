@@ -1798,9 +1798,6 @@ CabacWriter::RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                       UInt            uiScanIndex,
                                       UInt&           ruiLast )
 {
-  // == Nokia, m11509
-  //ruiLast                   = 0;
-  // ==
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = g_aucFrameScan;

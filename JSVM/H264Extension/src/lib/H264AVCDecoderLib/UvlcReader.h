@@ -90,7 +90,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-#include "H264AVCCommonLib/HeaderSymbolReadIf.h"
+#include "MbSymbolReadIf.h"
 #include "H264AVCCommonLib/Quantizer.h"
 
 H264AVC_NAMESPACE_BEGIN
@@ -100,6 +100,7 @@ class BitReadBuffer;
 
 class UvlcReader
 : public HeaderSymbolReadIf
+, public MbSymbolReadIf
 , public Quantizer
 
 {
@@ -128,11 +129,77 @@ public:
   ErrVal  getFlag     ( Bool& rbFlag,                 Char* pcTraceString );
   ErrVal  readByteAlign();
 
+  ErrVal  codeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 )
+    {return xCodeFromBitstream2Di(auiCode, auiLen, uiWidth, uiHeight, uiVal1, uiVal2);};
+  ErrVal  blFlag      ( MbDataAccess& rcMbDataAccess );
+  Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess );
+  Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess );
+  Bool    isBLQRef    ( MbDataAccess& rcMbDataAccess );
+  Bool    isEndOfSlice();
+  ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess );
+  ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess );
+  ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess );
+
+  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      );
+  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
+  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
+  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
+  
+  ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
+  ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
+  ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
+  ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
+  ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx8x4 eSParIdx );
+  ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x8 eSParIdx );
+  ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx );
+
+  ErrVal  cbp( MbDataAccess& rcMbDataAccess );
+  ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
+  ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
+  ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
+  ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
+
+  ErrVal  motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
+  ErrVal  motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
+  ErrVal  motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
+  ErrVal  motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
+
+  ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, LumaIdx   cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp);
+  ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, ResidualMode eResidualMode );
+
+  ErrVal  deltaQp             ( MbDataAccess& rcMbDataAccess );
+  ErrVal  intraPredModeLuma   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx );
+  ErrVal  intraPredModeChroma ( MbDataAccess& rcMbDataAccess );
+  ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess );
+
+  ErrVal  startSlice          ( const SliceHeader& rcSliceHeader );
+  ErrVal  finishSlice         ( const SliceHeader& rcSliceHeader );
+  
+  ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
+  ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp);
+  ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) {return intraPredModeLuma( rcMbDataAccess, cIdx );}
 private:
   ErrVal xGetFlag     ( UInt& ruiCode );
   ErrVal xGetCode     ( UInt& ruiCode, UInt uiLength );
   ErrVal xGetUvlcCode ( UInt& ruiVal  );
   ErrVal xGetSvlcCode ( Int&  riVal   );
+  ErrVal xGetRefFrame ( Bool bWriteBit, UInt& uiRefFrame );
+  ErrVal xGetMotionPredFlag( Bool& rbFlag );
+  ErrVal xGetMvd      ( Mv& cMv );
+  ErrVal xGetMvdQPel  ( MbDataAccess& rcMbDataAccess, Mv& cMv );
+  ErrVal xGetMvdComponentQPel( Short& sMvdComp );
+  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
+  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
+  ErrVal xGetTrailingOnes16( UInt uiLastCoeffCount, UInt& uiCoeffCount, UInt& uiTrailingOnes );
+  ErrVal xCodeFromBitstream2D( const UChar* aucCode, const UChar* aucLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
+  ErrVal xCodeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
+  ErrVal xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun );
+  ErrVal xGetLevelVLC0( Int& iLevel );
+  ErrVal xGetLevelVLCN( Int& iLevel, UInt uiVlcLength );
+  ErrVal xGetRun( UInt uiVlcPos, UInt& uiRun  );
+  ErrVal xGetTotalRun16( UInt uiVlcPos, UInt& uiTotalRun );
+  ErrVal xGetTotalRun4( UInt& uiVlcPos, UInt& uiTotalRun );
+  ErrVal xGetTrailingOnes4( UInt& uiCoeffCount, UInt& uiTrailingOnes );
 
 protected:
   BitReadBuffer*  m_pcBitReadBuffer;

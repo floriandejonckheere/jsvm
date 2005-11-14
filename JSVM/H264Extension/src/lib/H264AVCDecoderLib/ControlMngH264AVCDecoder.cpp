@@ -438,7 +438,7 @@ ErrVal ControlMngH264AVCDecoder::initSlice( SliceHeader& rcSH, ProcessingState e
     }
     else
     {
-      ROT(1);
+      pcMbSymbolReadIf = m_pcUvlcReader;
     }
 
     RNOK( pcMbSymbolReadIf->startSlice( rcSH ) );
@@ -468,7 +468,7 @@ ErrVal ControlMngH264AVCDecoder::initSliceForReading( const SliceHeader& rcSH )
   }
   else
   {
-    ROT(1);
+    pcMbSymbolReadIf = m_pcUvlcReader;
   }
 
   RNOK( pcMbSymbolReadIf->startSlice( rcSH ) );

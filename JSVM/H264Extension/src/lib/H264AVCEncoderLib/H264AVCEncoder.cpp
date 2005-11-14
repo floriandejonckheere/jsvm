@@ -1270,7 +1270,7 @@ H264AVCEncoder::xInitParameterSets()
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
     pcPPSHP->setLayerId                               ( rcLayerParameters.getLayerId() );
-    pcPPSHP->setEntropyCodingModeFlag                 ( true );
+    pcPPSHP->setEntropyCodingModeFlag                 ( rcLayerParameters.getEntropyCodingModeFlag() );
     pcPPSHP->setPicOrderPresentFlag                   ( true );
     pcPPSHP->setNumRefIdxActive( LIST_0               , m_pcCodingParameter->getNumRefFrames() );
     pcPPSHP->setNumRefIdxActive( LIST_1               , m_pcCodingParameter->getNumRefFrames() );

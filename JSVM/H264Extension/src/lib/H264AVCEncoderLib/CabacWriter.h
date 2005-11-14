@@ -225,8 +225,6 @@ public:
   ErrVal  terminatingBit ( UInt uiIsLast );
   UInt getNumberOfWrittenBits();
 
-  ErrVal residualBlock( const TCoeff* piCoeff, LumaIdx cIdx ) { return Err::m_nOK; }
-
 protected:
   ErrVal xInitContextModels( const SliceHeader& rcSliceHeader );
 

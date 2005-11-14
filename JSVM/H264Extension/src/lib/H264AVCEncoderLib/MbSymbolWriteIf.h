@@ -162,8 +162,6 @@ public:
 
   virtual ErrVal  startSlice          ( const SliceHeader& rcSliceHeader ) = 0;
   virtual ErrVal  finishSlice         ( ) = 0;
-
-  virtual ErrVal  residualBlock       ( const TCoeff* piCoeff, LumaIdx cIdx ) = 0;
 };
 
 

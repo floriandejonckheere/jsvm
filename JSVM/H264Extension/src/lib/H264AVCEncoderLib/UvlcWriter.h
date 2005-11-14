@@ -108,6 +108,8 @@ public MbSymbolWriteIf
 protected:
 	UvlcWriter( Bool bTraceEnable = false );
 	virtual ~UvlcWriter();
+  ErrVal xWriteMvdComponentQPel ( Short sMvdComp, UInt uiAbsSum, UInt uiCtx );
+  ErrVal xWriteMvdQPel          ( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx );
 
 public:
   static ErrVal create( UvlcWriter*& rpcUvlcWriter, Bool bTraceEnable = true );
@@ -126,10 +128,10 @@ public:
   ErrVal  mbMode( MbDataAccess& rcMbDataAccess/*, Bool bBLQRefFlag*/ );
   ErrVal  resPredFlag( MbDataAccess& rcMbDataAccess );
 
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      ) { return Err::m_nERR; }
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) { return Err::m_nERR; }
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  ) { return Err::m_nERR; }
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  ) { return Err::m_nERR; }
+  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      );
+  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
+  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
+  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -153,7 +155,7 @@ public:
   ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, ResidualMode eResidualMode );
   ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, ResidualMode eResidualMode );
 
-  ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess )  { return Err::m_nERR; }
+  ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess );
   ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode );
 
   ErrVal  deltaQp( MbDataAccess& rcMbDataAccess );
@@ -196,10 +198,6 @@ public:
   ErrVal xWriteSvlcCode( Int iVal);
 
   UInt xConvertToUInt( Int iValue )  {  return ( iValue <= 0) ? -iValue<<1 : (iValue<<1)-1; }
-
-  ErrVal startSlice( Bool bIsIntra );
-  ErrVal residualBlock( const TCoeff* piCoeff, LumaIdx cIdx );
-
 
 private:
   __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );

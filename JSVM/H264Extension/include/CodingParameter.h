@@ -189,6 +189,7 @@ public:
     , m_dOutputFrameRate                  (7.5)
     , m_cInputFilename                    ("none")
     , m_cOutputFilename                   ("none")
+    , m_uiEntropyCodingModeFlag           (1)
     , m_uiUpdateStep                      (0)
     , m_uiClosedLoop                      (0)
     , m_uiAdaptiveQPSetting               (1)
@@ -236,6 +237,7 @@ public:
   const std::string&              getOutputFilename                 () const {return m_cOutputFilename; }
   UInt                            getUpdateStep                     () const {return m_uiUpdateStep; }
   UInt                            getClosedLoop                     () const {return m_uiClosedLoop; }
+  Bool                            getEntropyCodingModeFlag          () const {return m_uiEntropyCodingModeFlag == 1; }
   UInt                            getAdaptiveQPSetting              () const {return m_uiAdaptiveQPSetting; }
   UInt                            getMCTFIntraMode                  () const {return m_uiMCTFIntraMode; }
   UInt                            getAdaptiveTransform              () const {return m_uiAdaptiveTransform; }
@@ -279,6 +281,7 @@ public:
   Void setOutputFilename                  (Char*  p) { m_cOutputFilename                  = p; }
   Void setUpdateStep                      (UInt   p) { m_uiUpdateStep                     = p; }
   Void setClosedLoop                      (UInt   p) { m_uiClosedLoop                     = p; }
+  Void setEntropyCodingModeFlag           (Bool   p) { m_uiEntropyCodingModeFlag          = p; }
   Void setAdaptiveQPSetting               (UInt   p) { m_uiAdaptiveQPSetting              = p; }
   Void setMCTFIntraMode                   (UInt   p) { m_uiMCTFIntraMode                  = p; }
   Void setAdaptiveTransform               (UInt   p) { m_uiAdaptiveTransform              = p; }
@@ -334,6 +337,7 @@ public:
 
   UInt                      m_uiUpdateStep;
   UInt                      m_uiClosedLoop;
+  UInt                      m_uiEntropyCodingModeFlag;
   UInt                      m_uiAdaptiveQPSetting;
   UInt                      m_uiMCTFIntraMode;
   UInt                      m_uiAdaptiveTransform;

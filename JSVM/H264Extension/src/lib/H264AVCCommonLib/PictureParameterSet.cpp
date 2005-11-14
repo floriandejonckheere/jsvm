@@ -189,7 +189,6 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
   RNOK( pcReadIf->getUvlc( m_uiSeqParameterSetId,                         "PPS: seq_parameter_set_id" ) );
   ROT ( m_uiSeqParameterSetId > 31 );
   RNOK( pcReadIf->getFlag( m_bEntropyCodingModeFlag,                      "PPS: entropy_coding_mode_flag" ) );
-  ROF ( m_bEntropyCodingModeFlag );
   RNOK( pcReadIf->getFlag( m_bPicOrderPresentFlag,                        "PPS: pic_order_present_flag" ) );
   RNOK( pcReadIf->getUvlc( uiTmp,                                         "PPS: num_slice_groups_minus1" ) );
   ROT ( uiTmp );
