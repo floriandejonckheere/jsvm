@@ -228,6 +228,9 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case DEADSUBSTREAM_SEI: return DeadSubstreamSEI::create((DeadSubstreamSEI*&) rpcSEIMessage);
     case QUALITYLEVEL_SEI: return QualityLevelSEI::create((QualityLevelSEI*&) rpcSEIMessage);
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-25
+	case NON_REQUIRED_SEI: return NonRequiredSei::create((NonRequiredSei*&) rpcSEIMessage); 
+#endif
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
   return Err::m_nOK;
@@ -788,5 +791,66 @@ SEI::DeadSubstreamSEI::read ( HeaderSymbolReadIf* pcReadIf )
   return Err::m_nOK;
 }
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
+#if NON_REQUIRED_SEI_ENABLE
+SEI::NonRequiredSei::NonRequiredSei	()
+: SEIMessage						( NON_REQUIRED_SEI )
+, m_uiNumInfoEntriesMinus1			(0)
+{
+	::memset( m_uiEntryDependencyId,			0x00, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
+	::memset( m_uiNumNonRequiredPicsMinus1,		0x00, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
+	::memset( m_uiNonRequiredPicDependencyId,	0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+	::memset( m_uiNonRequiredPicQulityLevel,	0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+	::memset( m_uiNonRequiredPicFragmentOrder,  0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+}
+
+SEI::NonRequiredSei::~NonRequiredSei ()
+{
+}
+
+ErrVal
+SEI::NonRequiredSei::create ( NonRequiredSei*& rpcSeiMessage )
+{
+	rpcSeiMessage = new NonRequiredSei();
+	ROT( NULL == rpcSeiMessage)
+		return Err::m_nOK;
+}
+
+ErrVal
+SEI::NonRequiredSei::write( HeaderSymbolWriteIf* pcWriteIf )
+{
+	RNOK	(pcWriteIf->writeUvlc( m_uiNumInfoEntriesMinus1,	"NonRequiredSEI: NumInfoEntriesMinus1"	));
+	for( UInt uiLayer = 0; uiLayer <= m_uiNumInfoEntriesMinus1; uiLayer++)
+	{
+		RNOK(pcWriteIf->writeCode( m_uiEntryDependencyId[uiLayer],	3,	"NonRequiredSEI: EntryDependencyId"		));
+		RNOK(pcWriteIf->writeUvlc( m_uiNumNonRequiredPicsMinus1[uiLayer],	"NonRequiredSEI: NumNonRequiredPicsMinus1"	));
+		for( UInt NonRequiredLayer = 0; NonRequiredLayer <= m_uiNumNonRequiredPicsMinus1[uiLayer]; NonRequiredLayer++)
+		{
+			RNOK(pcWriteIf->writeCode( m_uiNonRequiredPicDependencyId[uiLayer][NonRequiredLayer],	3,	"NonRequiredSEI: NonRequiredPicDependencyId"));
+			RNOK(pcWriteIf->writeCode( m_uiNonRequiredPicQulityLevel[uiLayer][NonRequiredLayer],	2,	"NonRequiredSEI: NonRequiredPicQulityLevel"	));
+			RNOK(pcWriteIf->writeCode( m_uiNonRequiredPicFragmentOrder[uiLayer][NonRequiredLayer],	2,	"NonRequiredSEI: NonRequiredFragmentOrder"	));
+		}
+	}
+	return Err::m_nOK;
+}
+
+ErrVal
+SEI::NonRequiredSei::read( HeaderSymbolReadIf* pcReadIf )
+{
+	RNOK	(pcReadIf->getUvlc( m_uiNumInfoEntriesMinus1,	"NonRequiredSEI: NumInfoEntriesMinus1"	));
+	for( UInt uiLayer = 0; uiLayer <= m_uiNumInfoEntriesMinus1; uiLayer++)
+	{
+		RNOK(pcReadIf->getCode( m_uiEntryDependencyId[uiLayer],	3,	"NonRequiredSEI: EntryDependencyId"		));
+		RNOK(pcReadIf->getUvlc( m_uiNumNonRequiredPicsMinus1[uiLayer],	"NonRequiredSEI: NumNonRequiredPicsMinus1"	));
+		for( UInt NonRequiredLayer = 0; NonRequiredLayer <= m_uiNumNonRequiredPicsMinus1[uiLayer]; NonRequiredLayer++)
+		{
+			RNOK(pcReadIf->getCode( m_uiNonRequiredPicDependencyId[uiLayer][NonRequiredLayer],	3,	"NonRequiredSEI: NonRequiredPicDependencyId"));
+			RNOK(pcReadIf->getCode( m_uiNonRequiredPicQulityLevel[uiLayer][NonRequiredLayer],	2,	"NonRequiredSEI: NonRequiredPicQulityLevel"	));
+			RNOK(pcReadIf->getCode( m_uiNonRequiredPicFragmentOrder[uiLayer][NonRequiredLayer],	2,	"NonRequiredSEI: NonRequiredFragmentOrder"	));
+		}
+	}
+	return Err::m_nOK;
+}
+#endif//shenqiu 05-09-15
 
 H264AVC_NAMESPACE_END

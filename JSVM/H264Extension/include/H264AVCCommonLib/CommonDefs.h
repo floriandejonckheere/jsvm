@@ -312,6 +312,12 @@ H264AVC_NAMESPACE_END
 // SHOULD BE REMOVED in the future
 #define SCALING_FACTOR_HACK 1
 
+#define NON_REQUIRED_SEI_ENABLE 0
+#if NON_REQUIRED_SEI_ENABLE	
+#define MAX_NUM_INFO_ENTRIES 8
+#define MAX_NUM_NON_REQUIRED_PICS 32
+#define INTER_LAYER_PREDICT_NUM 1        //prediction from the layer (LayerId - INTER_LAYER_PREDICT_NUM)
+#endif
 
 #define AR_FGS_MAX_BASE_WEIGHT                        32
 #define AR_FGS_BASE_WEIGHT_SHIFT_BITS                 5

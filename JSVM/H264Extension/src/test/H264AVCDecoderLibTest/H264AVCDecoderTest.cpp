@@ -220,7 +220,9 @@ ErrVal H264AVCDecoderTest::go()
   UInt      uiMbY           = 0;
   UInt      uiNalUnitType   = 0;
   UInt      uiSize          = 0;
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu
   UInt      uiNonRequiredPic= 0;
+#endif
   UInt      uiLumOffset     = 0;
   UInt      uiCbOffset      = 0;
   UInt      uiCrOffset      = 0;
@@ -269,7 +271,13 @@ ErrVal H264AVCDecoderTest::go()
     
     pcBinData->setMemAccessor( cBinDataAccessor );
     // open the NAL Unit, determine the type and if it's a slice get the frame size
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
+	RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic ) ); 
+	if(uiNonRequiredPic)
+		continue;
+#else
 	RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize ) ); 
+#endif
     
     // get new picture buffer if required if coded Slice || coded IDR slice
     pcPicBuffer = NULL;

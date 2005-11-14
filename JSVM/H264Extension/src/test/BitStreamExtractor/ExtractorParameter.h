@@ -139,6 +139,9 @@ public:
   Void  setTargetRate(Double d) { m_dTargetRate = d;}
   Double getTargetRate() { return m_dTargetRate;}
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
+  UInt	getExtractNonRequiredPics()	{ return	m_uiExtractNonRequiredPics;}
+#endif
 
 protected:
   ErrVal  xPrintUsage         ( Char**  argv );
@@ -168,6 +171,9 @@ protected:
   Bool			 m_bExtractDeadSubstream[MAX_LAYERS];
   Double	     m_dTargetRate;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
+  UInt			 m_uiExtractNonRequiredPics;
+#endif
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

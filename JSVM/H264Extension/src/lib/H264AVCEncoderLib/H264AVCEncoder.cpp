@@ -121,9 +121,13 @@ H264AVCEncoder::H264AVCEncoder():
 	for( UInt uk = 0; uk < MAX_QUALITY_LEVELS; uk++ )
 		m_aaauidSeqBits[ui][uj][uk] = 0;
 
+#if NON_REQUIRED_SEI_ENABLE
+	for(UInt ui = 0; ui < 1<<MAX_DSTAGES; ui++)
+	{
+		m_uiNonRequiredSEIWritten[ui] =  0;
+	}
+#endif
 }
-
-
 H264AVCEncoder::~H264AVCEncoder()
 {
 }
@@ -923,6 +927,9 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
                              PicBufferList&           rcPicBufferOutputList,
                              PicBufferList&           rcPicBufferUnusedList )
 { 
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-30
+	m_apcMCTFEncoder[uiLayer]->setNonRequiredSEIWritten(m_uiNonRequiredSEIWritten);
+#endif
 
   //{{Adaptive GOP structure
   // --ETRI & KHU

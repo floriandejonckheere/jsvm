@@ -92,6 +92,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "GOPDecoder.h"
+#if NON_REQUIRED_SEI_ENABLE //shenqiu 
+#include "H264AVCCommonLib/Sei.h" 
+#endif
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -131,11 +134,20 @@ public:
                   MotionCompensation* pcMotionCompensation );
   ErrVal uninit ();
 
+#if NON_REQUIRED_SEI_ENABLE //shenqiu
+  ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
+	  UInt&             ruiNalUnitType,
+	  UInt&             ruiMbX,
+	  UInt&             ruiMbY,
+	  UInt&             ruiSize,
+	  UInt&				ruiNonRequiredPic); 
+#else
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
                       UInt&             ruiNalUnitType,
                       UInt&             ruiMbX,
                       UInt&             ruiMbY,
                       UInt&             ruiSize );
+#endif
   ErrVal  process   ( PicBuffer*        pcPicBuffer,
                       PicBufferList&    rcPicBufferOutputList,
                       PicBufferList&    rcPicBufferUnusedList,
@@ -231,6 +243,12 @@ protected:
 #if MULTIPLE_LOOP_DECODING
   Bool                          m_bCompletelyDecodeLayer;
   Bool                          m_abCompletlyDecodeBaseLayer[MAX_LAYERS];
+#endif
+
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
+  SEI::NonRequiredSei*			m_pcNonRequiredSei;
+  UInt							m_uiNonRequiredSeiReadFlag;
+  UInt							m_uiNonRequiredSeiRead[1<<MAX_DSTAGES];
 #endif
 };
 

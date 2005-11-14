@@ -169,20 +169,37 @@ CreaterH264AVCDecoder::process( PicBuffer*     pcPicBuffer,
 }
 
 
-
+#if NON_REQUIRED_SEI_ENABLE //shenqiu
 ErrVal
 CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
-                                UInt&             ruiNalUnitType,
-                                UInt&             uiMbX,
-                                UInt&             uiMbY,
-                                UInt&             uiSize )
+								  UInt&             ruiNalUnitType,
+								  UInt&             uiMbX,
+								  UInt&             uiMbY,
+								  UInt&             uiSize,
+								  UInt&			  uiNonRequiredPic) 
 {
-  return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
-                                      ruiNalUnitType,
-                                      uiMbX,
-                                      uiMbY,
-                                      uiSize );
+	return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
+		ruiNalUnitType,
+		uiMbX,
+		uiMbY,
+		uiSize,
+		uiNonRequiredPic);
 }
+#else
+ErrVal
+CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
+								  UInt&             ruiNalUnitType,
+								  UInt&             uiMbX,
+								  UInt&             uiMbY,
+								  UInt&             uiSize) 
+{
+	return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
+		ruiNalUnitType,
+		uiMbX,
+		uiMbY,
+		uiSize); 
+}
+#endif
 
 
 ErrVal
@@ -431,6 +448,9 @@ H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 : m_pcBitReadBuffer       ( NULL )
 , m_pcUvlcReader          ( NULL )
 , m_pcNalUnitParser       ( NULL )
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 10-10-02
+, m_pcNonRequiredSEI	  ( NULL )
+#endif
 {
 }
 
@@ -588,6 +608,14 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			break;
 		  }
       //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-25
+	  case SEI::NON_REQUIRED_SEI: 
+		  {
+			  m_pcNonRequiredSEI = (SEI::NonRequiredSei*) pcSEIMessage;
+			  m_uiNonRequiredSeiRead = 1;
+			  break;
+		  }
+#endif
       default:
         {
           delete pcSEIMessage;
@@ -654,6 +682,13 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
       RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
       uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-05
+	  if(m_uiNonRequiredSeiRead != 1 && uiLayer == 0)
+	  {
+		  m_pcNonRequiredSEI = NULL;
+	  }
+	  m_uiNonRequiredSeiRead = 0;
+#endif
     }
     m_pcNalUnitParser->closeNalUnit();
   }

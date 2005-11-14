@@ -306,6 +306,9 @@ protected:
   UInt m_auiLevelOfQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
   Bool m_abKeepQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
+  UInt							m_uiExtractNonRequiredPics;
+#endif
 };
 
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

@@ -136,9 +136,19 @@ H264AVCDecoder::H264AVCDecoder()
 #if MULTIPLE_LOOP_DECODING
 , m_bCompletelyDecodeLayer        ( false )
 #endif
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
+, m_pcNonRequiredSei			  ( NULL )
+, m_uiNonRequiredSeiReadFlag	  ( 0 )
+#endif
 {
   ::memset( m_apcMCTFDecoder, 0x00, MAX_LAYERS * sizeof( Void* ) );
   m_pcVeryFirstSliceHeader = NULL;
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
+  for(UInt ui = 0; ui < 1<<MAX_DSTAGES; ui++)
+  {
+	  m_uiNonRequiredSeiRead[ui] =  0;
+  }
+#endif
 }
 
 
@@ -460,13 +470,22 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
   return Err::m_nOK;
 }
 
-
+#if NON_REQUIRED_SEI_ENABLE //shenqiu
 ErrVal
 H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
-                            UInt&             ruiNalUnitType,
-                            UInt&             ruiMbX,
-                            UInt&             ruiMbY,
-                            UInt&             ruiSize )
+						   UInt&             ruiNalUnitType,
+						   UInt&             ruiMbX,
+						   UInt&             ruiMbY,
+						   UInt&             ruiSize,
+						   UInt&			  ruiNonRequiredPic)
+#else
+ErrVal
+H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
+						   UInt&             ruiNalUnitType,
+						   UInt&             ruiMbX,
+						   UInt&             ruiMbY,
+						   UInt&             ruiSize)
+#endif
 {
   ROF( m_bInitDone );
 
@@ -565,7 +584,17 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       while( ! cMessageList.empty() )
       {
         SEI::SEIMessage*  pcSEIMessage = cMessageList.popBack();
-        delete pcSEIMessage;
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
+		if(pcSEIMessage->getMessageType() == SEI::NON_REQUIRED_SEI)
+		{
+			m_pcNonRequiredSei = (SEI::NonRequiredSei*) pcSEIMessage;
+			m_uiNonRequiredSeiReadFlag = 1;
+		}
+		else
+#endif
+		{
+			delete pcSEIMessage;
+		}
       }
     }
     break;
@@ -574,6 +603,43 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     return Err::m_nERR;
     break;
   }
+
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
+  ruiNonRequiredPic = 0;
+  if(m_pcSliceHeader)
+  {
+	  //===== calculate POC =====
+	  RNOK( m_pcPocCalculator->calculatePoc( *m_pcSliceHeader ) );
+
+	  if(m_uiNonRequiredSeiReadFlag && m_uiNonRequiredSeiRead[m_pcSliceHeader->getPoc()] == 0)
+	  {
+		  m_uiNonRequiredSeiRead[m_pcSliceHeader->getPoc()] = 1;
+		  m_uiNonRequiredSeiReadFlag = 0;
+	  }
+
+	  if(m_uiNonRequiredSeiRead[m_pcSliceHeader->getPoc()])
+	  {
+		  for(UInt i = 0; i <= m_pcNonRequiredSei->getNumInfoEntriesMinus1(); i++)
+		  {
+			  if(m_pcNonRequiredSei->getEntryDependencyId(i))  // it should be changed to if(DenpendencyId == LayerId of the shown picture) 
+			  {
+				  for(UInt j = 0; j <= m_pcNonRequiredSei->getNumNonRequiredPicsMinus1(i); j++)
+				  {
+					  if(m_pcSliceHeader->getLayerId() == m_pcNonRequiredSei->getNonRequiredPicDependencyId(i,j) &&
+						  m_pcSliceHeader->getQualityLevel() == m_pcNonRequiredSei->getNonRequiredPicQulityLevel(i,j))  // it should be add something about FragmentFlag
+					  {
+						  ruiNonRequiredPic = 1;
+						  ROTRS( m_apcMCTFDecoder[m_pcSliceHeader->getLayerId()]->getWaitForIdr() && !m_pcSliceHeader->isIdrNalUnit(), Err::m_nOK );
+						  m_apcMCTFDecoder[m_pcSliceHeader->getLayerId()]->setWaitForIdr(false);
+						  return Err::m_nOK;
+					  }
+				  }
+			  }
+		  }
+	  }
+  }
+#endif
+
   return Err::m_nOK;
 }
 
@@ -768,7 +834,10 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 
 ErrVal H264AVCDecoder::xStartSlice()
 {
+#if NON_REQUIRED_SEI_ENABLE //shenqiu 05-10-02
+#else
   delete m_pcPrevSliceHeader;
+#endif
   m_pcPrevSliceHeader = m_pcSliceHeader;
   m_pcSliceHeader     = NULL;
 

@@ -215,6 +215,9 @@ MCTFEncoder::MCTFEncoder()
 , m_iLastFGSError                   ( 0 )
 , m_uiNotYetConsideredBaseLayerBits ( 0 )
 , m_pcResizeParameters              ( 0 )//TMM_ESS
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-30
+, m_uiNonRequiredSEIWrittenFlag		( 0 )
+#endif
 {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -3537,6 +3540,12 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 
     //===== base layer encoding =====
     RNOK( pcBLRecFrame->copy      ( pcFrame ) );
+
+#if NON_REQUIRED_SEI_ENABLE  
+	m_uiNonRequiredSEIWrittenFlag = m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()];
+	m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()] = 1;
+#endif
+
     RNOK( xEncodeLowPassSignal    ( rcOutputList,
                                     rcControlData,
                                     pcBLRecFrame,
@@ -3798,6 +3807,11 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
     RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame ) );
+
+#if NON_REQUIRED_SEI_ENABLE  
+	m_uiNonRequiredSEIWrittenFlag = m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()];
+	m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()] = 1;
+#endif
 
     //===== base layer encoding =====
     //--- closed-loop coding of base quality layer ---
@@ -5404,7 +5418,55 @@ MCTFEncoder::xWriteSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, Sli
   return Err::m_nOK;
 }
 
+#if NON_REQUIRED_SEI_ENABLE
+ErrVal
+MCTFEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit )
+{
+	UInt uiBit = 0;
+	Bool m_bWriteSEI = true; 
+	UInt temp1, temp2;
 
+	if( m_bWriteSEI )
+	{
+		RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
+		RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
+
+		SEI::MessageList cSEIMessageList;
+		SEI::NonRequiredSei* pcNonRequiredSei;
+		RNOK( SEI::NonRequiredSei::create( pcNonRequiredSei ) );
+
+		cSEIMessageList.push_back( pcNonRequiredSei );
+
+
+		//----- set the non-required sei parameter -----
+		// these parameters should be write according to cfg file or the details of encoding
+		pcNonRequiredSei->setNumInfoEntriesMinus1(0);
+		temp1 = pcNonRequiredSei->getNumInfoEntriesMinus1() + 1;
+		for(UInt i = 0; i < temp1; i++)
+		{
+			pcNonRequiredSei->setEntryDependencyId(i, 2);
+			pcNonRequiredSei->setNumNonRequiredPicsMinus1(i,0);
+			temp2 = pcNonRequiredSei->getNumNonRequiredPicsMinus1(i) + 1;
+			for(UInt j = 0; j < temp2; j++)
+			{
+				pcNonRequiredSei->setNonNonRequiredPicDependencyId(i,j,1);
+				pcNonRequiredSei->setNonNonRequiredPicQulityLevel(i,j,1);
+				pcNonRequiredSei->setNonNonRequiredPicFragmentOrder(i,j,0);
+			}
+		}
+
+
+		RNOK( m_pcNalUnitEncoder->write( cSEIMessageList ) );
+
+		RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBit ) );
+		RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+		uiBit += 4*8;
+		ruiBit += uiBit;
+	}
+
+	return Err::m_nOK;
+}
+#endif
 
 
 ErrVal

@@ -243,6 +243,14 @@ ExtractorParameter::init( Int     argc,
 			continue;
 		}
 
+#if NON_REQUIRED_SEI_ENABLE   //shenqiu 05-10-09
+		if (equal( "-enp",argv[iArg] ))  //extract non-required pictures 
+		{
+			EXIT( iArg + 1 == argc,			 "Option \"-enp\" without argument specified" );
+			m_uiExtractNonRequiredPics = atoi(argv[++iArg]);
+			continue;
+		}
+#endif
     EXIT( true, "Unknown option specified" );
   }
   return Err::m_nOK;

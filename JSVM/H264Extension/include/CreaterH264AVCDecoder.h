@@ -141,11 +141,21 @@ public:
                       PicBufferList&    rcPicBufferOutputList,
                       PicBufferList&    rcPicBufferUnusedList,
                       PicBufferList&    rcPicBufferReleaseList );
+#if NON_REQUIRED_SEI_ENABLE //shenqiu
   ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor,
-                      UInt&             ruiNalUnitType,
-                      UInt&             uiMbX,
-                      UInt&             uiMbY,
-                      UInt&             uiSize );
+	  UInt&             ruiNalUnitType,
+	  UInt&             uiMbX,
+	  UInt&             uiMbY,
+	  UInt&             uiSize,
+	  UInt&				uiNonRequiredPic); 
+#else
+  ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor,
+	  UInt&             ruiNalUnitType,
+	  UInt&             uiMbX,
+	  UInt&             uiMbY,
+	  UInt&             uiSize); 
+#endif
+
   ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
                                       Bool&             bFinishChecking );
 
@@ -222,6 +232,10 @@ public:
   ErrVal        process ( BinData*              pcBinData,
                           PacketDescription&    rcPacketDescription,
                           SEI::SEIMessage*&     pcScalableSEIMessage );
+#if NON_REQUIRED_SEI_ENABLE //shenqiu 05-10-02
+  SEI::NonRequiredSei*	getNonRequiredSEI()	{return m_pcNonRequiredSEI;}
+  UInt					getNonRequiredSEIRead() { return m_uiNonRequiredSeiRead;}
+#endif
 
 protected:
   ErrVal        xCreate ();
@@ -236,6 +250,10 @@ protected:
   UInt              m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt              m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt              m_uiQualityLevelList [1 << PRI_ID_BITS];
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 10-10-02
+  SEI::NonRequiredSei*  m_pcNonRequiredSEI;
+  UInt					m_uiNonRequiredSeiRead;
+#endif
 
 };
 

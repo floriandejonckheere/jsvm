@@ -223,6 +223,10 @@ protected:
   UInt m_uiGOPOrder;
   Bool m_bGOPDone;
   //}}Adaptive GOP structure
+
+#if NON_REQUIRED_SEI_ENABLE
+  UInt							m_uiNonRequiredSEIWritten[1<<MAX_DSTAGES];
+#endif
 };
 
 

@@ -282,6 +282,10 @@ public:
   UInt			getSelectPos() {return m_uiSelectPos;}
   void			setSelectPos(UInt p) {m_uiSelectPos = p;}
   //}}Adaptive GOP structure
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-30
+  void			setNonRequiredSEIWritten(UInt* p)	{ m_uiNonRequiredSEIWritten = p; }
+  UInt*			getNonRequiredSEIWritten()			{ return m_uiNonRequiredSEIWritten; }
+#endif
 
 protected:
   ErrVal  xProcessClosedLoop            ( AccessUnitList&             rcAccessUnitList,
@@ -449,6 +453,9 @@ protected:
   ErrVal        xSetRplr            ( RplrBuffer& rcRplrBuffer, UIntList cFrameNumList, UInt uiCurrFrameNr );
   ErrVal        xSetRplrAndMmco     ( SliceHeader& rcSH );
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-25
+  ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit );  
+#endif
   ErrVal        xGetFrameNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
   MbDataCtrl*   xGetMbDataCtrlL1    ( SliceHeader& rcSH, UInt uiCurrBasePos );
   Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
@@ -628,6 +635,11 @@ protected:
     REF_LIST_TYPE_FGS_3    = 0x03,     // use the base reconstructed as the reference
     REF_LIST_TYPE_NORMAL   = 0x04,     // either original in MCTF, or the upper-layer reconstructed in close-loop
   };
+
+#if NON_REQUIRED_SEI_ENABLE
+  UInt*							m_uiNonRequiredSEIWritten;
+  UInt							m_uiNonRequiredSEIWrittenFlag;
+#endif
 };
 
 #if defined( WIN32 )

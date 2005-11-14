@@ -192,6 +192,10 @@ Extractor::init( ExtractorParameter *pcExtractorParameter )
   m_cBinDataStartCode.reset();
   m_cBinDataStartCode.set( m_aucStartCodeBuffer, 4 );
 
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
+  m_uiExtractNonRequiredPics = pcExtractorParameter->getExtractNonRequiredPics();
+#endif
+
   return Err::m_nOK;
 }
 
@@ -844,6 +848,10 @@ Extractor::xExtractLayerLevel()
 
 	UInt uiDecreaseBitrate = MSYS_UINT_MAX;
 
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-02
+	h264::SEI::NonRequiredSei* pcNonRequiredDescription = NULL;  
+#endif
+
 	if( uiMaxFGSLayer != 10 || uiMaxTempLevel != MSYS_UINT_MAX )
 	{	
 		//TL or QL
@@ -968,6 +976,9 @@ Extractor::xExtractLayerLevel()
 			}
 		}
 
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu	
+		pcNonRequiredDescription = m_pcH264AVCPacketAnalyzer->getNonRequiredSEI();
+#endif
 		delete pcScalableSEIMessage;
 
 		//============ get packet size ===========
@@ -999,6 +1010,28 @@ Extractor::xExtractLayerLevel()
 			else
 				bKeep = true;
 		}
+
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-11-03	
+		if(m_pcH264AVCPacketAnalyzer->getNonRequiredSEIRead() == 1)
+			bKeep = 0;
+		if( m_uiExtractNonRequiredPics && pcNonRequiredDescription)
+		{
+			for(UInt i = 0; i <= pcNonRequiredDescription->getNumInfoEntriesMinus1(); i++)
+			{
+				if(pcNonRequiredDescription->getEntryDependencyId(i))  // it should be changed to if(DenpendencyId == LayerId of the shown picture) 
+				{
+					for(UInt j = 0; j <= pcNonRequiredDescription->getNumNonRequiredPicsMinus1(i); j++)
+					{
+						if(cPacketDescription.Layer == pcNonRequiredDescription->getNonRequiredPicDependencyId(i,j) &&
+							cPacketDescription.FGSLayer == pcNonRequiredDescription->getNonRequiredPicQulityLevel(i,j))  // it should be add something about FragmentFlag
+						{
+							bKeep = 0;
+						}
+					}
+				}
+			}
+		}
+#endif
 
 		UInt eNalUnitType = cPacketDescription.NalUnitType;
 		Bool bRequired = false;

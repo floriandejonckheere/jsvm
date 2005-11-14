@@ -380,6 +380,10 @@ public:
   ResizeParameters* getResizeParameters ()                           { return m_pcResizeParameter; }
   Int               getSpatialScalabilityType()                      { return m_pcResizeParameter->m_iSpatialScalabilityType; }
 // TMM_ESS }
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-04
+  void				setWaitForIdr(Bool b)	{ m_bWaitForIdr = b;}
+  Bool				getWaitForIdr()			{ return m_bWaitForIdr;}
+#endif
 
 protected:
   //===== create and initialize data arrays =====

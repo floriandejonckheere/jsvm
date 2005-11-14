@@ -124,6 +124,10 @@ public:
 	  DEADSUBSTREAM_SEI                     = 21,	//??
     RESERVED_SEI                          = 26
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-15
+    ,
+  	NON_REQUIRED_SEI					            = 24
+#endif
   };
 
 
@@ -411,6 +415,45 @@ public:
   };
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+
+#if NON_REQUIRED_SEI_ENABLE
+  class H264AVCCOMMONLIB_API NonRequiredSei : public SEIMessage
+  {
+  protected:
+	  NonRequiredSei ();
+	  ~NonRequiredSei();
+
+  public:
+	  static ErrVal create	(NonRequiredSei*&			rpcSeiMessage);
+	  ErrVal		write	(HeaderSymbolWriteIf*		pcWriteIf);
+	  ErrVal		read	(HeaderSymbolReadIf*		pcReadIf);
+
+	  UInt			getNumInfoEntriesMinus1()					const{ return m_uiNumInfoEntriesMinus1;}
+	  UInt			getEntryDependencyId(UInt uiLayer)			const{ return m_uiEntryDependencyId[uiLayer];}
+	  UInt			getNumNonRequiredPicsMinus1(UInt uiLayer)	const{ return m_uiNumNonRequiredPicsMinus1[uiLayer];}
+	  UInt			getNonRequiredPicDependencyId(UInt uiLayer, UInt uiNonRequiredLayer)	const{ return m_uiNonRequiredPicDependencyId[uiLayer][uiNonRequiredLayer];}
+	  UInt			getNonRequiredPicQulityLevel(UInt uiLayer, UInt uiNonRequiredLayer)		const{ return m_uiNonRequiredPicQulityLevel[uiLayer][uiNonRequiredLayer];}
+	  UInt			getNonRequiredPicFragmentOrder(UInt uiLayer, UInt uiNonRequiredLayer)	const{ return m_uiNonRequiredPicFragmentOrder[uiLayer][uiNonRequiredLayer];}
+
+
+	  Void			setNumInfoEntriesMinus1(UInt ui)					{ m_uiNumInfoEntriesMinus1 = ui;}
+	  Void			setEntryDependencyId(UInt uiLayer, UInt ui)			{ m_uiEntryDependencyId[uiLayer] = ui;}
+	  Void			setNumNonRequiredPicsMinus1(UInt uiLayer, UInt ui)	{ m_uiNumNonRequiredPicsMinus1[uiLayer] = ui;}
+	  Void			setNonNonRequiredPicDependencyId(UInt uiLayer, UInt uiNonRequiredLayer, UInt ui)		{m_uiNonRequiredPicDependencyId[uiLayer][uiNonRequiredLayer] = ui;}
+	  Void			setNonNonRequiredPicQulityLevel(UInt uiLayer, UInt uiNonRequiredLayer, UInt ui)			{m_uiNonRequiredPicQulityLevel[uiLayer][uiNonRequiredLayer] = ui;}
+	  Void			setNonNonRequiredPicFragmentOrder(UInt uiLayer, UInt uiNonRequiredLayer, UInt ui)		{m_uiNonRequiredPicFragmentOrder[uiLayer][uiNonRequiredLayer] = ui;}
+
+
+  private:
+	  UInt		m_uiNumInfoEntriesMinus1;
+	  UInt		m_uiEntryDependencyId[MAX_NUM_INFO_ENTRIES];
+	  UInt		m_uiNumNonRequiredPicsMinus1[MAX_NUM_INFO_ENTRIES];
+	  UInt		m_uiNonRequiredPicDependencyId[MAX_NUM_INFO_ENTRIES][MAX_NUM_NON_REQUIRED_PICS];
+	  UInt		m_uiNonRequiredPicQulityLevel[MAX_NUM_INFO_ENTRIES][MAX_NUM_NON_REQUIRED_PICS];
+	  UInt		m_uiNonRequiredPicFragmentOrder[MAX_NUM_INFO_ENTRIES][MAX_NUM_NON_REQUIRED_PICS];
+  };//shenqiu 05-09-15
+
+#endif
 
   typedef MyList<SEIMessage*> MessageList;
   
