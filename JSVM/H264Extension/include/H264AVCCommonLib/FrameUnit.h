@@ -152,6 +152,14 @@ public:
 
   Bool getContrainedIntraPred() const { return m_bConstrainedIntraPred; }
 
+  IntFrame* getFGSReconstruction(UInt uiLayerIdx) 
+  { 
+    return (uiLayerIdx > 3) ? 0 : m_apcFGSRecon[uiLayerIdx];
+  }
+  Void setFGSReconCount(UInt uiFGSReconCount) { m_uiFGSReconCount = uiFGSReconCount;  }
+  UInt getFGSReconCount()                     { return m_uiFGSReconCount;  }
+  Void decFGSReconCount()                     { m_uiFGSReconCount -= (m_uiFGSReconCount > 1) ? 1 : 0;  }
+
 private:
   Frame         m_cFrame;
   MbDataCtrl    m_cMbDataCtrl;
@@ -167,6 +175,13 @@ private:
   PicBuffer*    m_pcFGSPicBuffer;
   Frame         m_cFGSFrame;
   Bool          m_bConstrainedIntraPred;
+
+  UInt          m_uiFGSReconCount;
+  IntFrame*     m_apcFGSRecon[4];             // base layer of the first FGS layer
+  IntFrame      m_cFGSRecon0;
+  IntFrame      m_cFGSRecon1;
+  IntFrame      m_cFGSRecon2;
+  IntFrame      m_cFGSRecon3;
 };
 
 

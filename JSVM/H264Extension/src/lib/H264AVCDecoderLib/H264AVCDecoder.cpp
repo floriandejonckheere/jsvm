@@ -167,7 +167,8 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
                              LoopFilter*         pcLoopFilter,
                              HeaderSymbolReadIf* pcHeaderSymbolReadIf,
                              ParameterSetMng*    pcParameterSetMng,
-                             PocCalculator*      pcPocCalculator )
+                             PocCalculator*      pcPocCalculator,
+                             MotionCompensation* pcMotionCompensation )
 {
 
   ROT( NULL == pcSliceReader );
@@ -200,6 +201,7 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
   m_uiRecLayerId              = 0;
   m_uiLastLayerId             = MSYS_UINT_MAX;
   m_pcVeryFirstSPS            = 0;
+  m_pcMotionCompensation      = pcMotionCompensation;
 
   m_bActive = false;
 
@@ -231,6 +233,7 @@ ErrVal H264AVCDecoder::uninit()
   m_bInitDone             = false;
   m_bLastFrame            = false;
   m_bFrameDone            = true;
+  m_pcMotionCompensation  = NULL;
 
   delete m_pcSliceHeader;
   delete m_pcPrevSliceHeader;
@@ -952,6 +955,31 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
 
 
 
+IntFrame*
+H264AVCDecoder::xFindRefFrame(UInt uiLayerIdx)
+{
+  Int  iRefPoc;
+  UInt uiFGSReconCount, uiRefFGSReconCount;
+  IntFrame *pcRefFrame;
+
+  // get the reference frame POC
+  iRefPoc = m_pcRQFGSDecoder->getSliceHeader()->getRefPic(1, LIST_0).getFrame()->getPOC();
+
+  // find the FGS base reconstruction
+  FrameUnit* pcRefFrameUnit     = m_pcFrameMng->getReconstructedFrameUnit( iRefPoc );
+  FrameUnit* pcCurrentFrameUnit = m_pcRQFGSDecoder->getSliceHeader()->getFrameUnit();
+
+  // what is the FGS base count of the current frame
+  uiRefFGSReconCount = pcRefFrameUnit->getFGSReconCount();
+  uiFGSReconCount    = pcCurrentFrameUnit->getFGSReconCount();
+
+  pcRefFrame = (uiRefFGSReconCount > uiLayerIdx) ? 
+    pcRefFrameUnit->getFGSReconstruction(uiLayerIdx) : pcRefFrameUnit->getFGSReconstruction(uiRefFGSReconCount - 1);
+
+  return pcRefFrame;
+}
+
+
 ErrVal
 H264AVCDecoder::xReconstructLastFGS()
 {
@@ -1059,6 +1087,36 @@ H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& 
 
         m_pcFGSPicBuffer  = rpcPicBuffer;
         rpcPicBuffer      = 0;
+      }
+
+      if( rpcSliceHeader->getTemporalLevel()  == 0      &&
+        m_pcRQFGSDecoder->getSliceHeader()->isInterP()  && 
+        ( rpcSliceHeader->getQualityLevel()   == 1 ) )
+      {
+        // get the new predictor
+        UInt uiQualityLayer = rpcSliceHeader->getQualityLevel();
+
+        FrameUnit*    pcCurrentFrmUnit  = m_pcRQFGSDecoder->getSliceHeader()->getFrameUnit();
+        IntFrame*     pcBaseFrame       = m_pcFrameMng->getRefinementIntFrame();
+        IntFrame*     pcLowPassRefFrameBase;
+        IntFrame*     pcLowPassRefFrameEnh;
+
+        pcLowPassRefFrameBase  = xFindRefFrame(0);
+        pcLowPassRefFrameEnh   = xFindRefFrame(1);
+
+        pcBaseFrame->copy( m_pcFrameMng->getPredictionIntFrame() );
+
+        // m_pcRQFGSDecoder->getSliceHeader has the slice header of the base layer
+        m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseBlock(rpcSliceHeader->getBaseWeightZeroBaseBlock() );
+        m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseCoeff(rpcSliceHeader->getBaseWeightZeroBaseCoeff() );
+        m_pcRQFGSDecoder->getSliceHeader()->setLowPassFgsMcFilter     (rpcSliceHeader->getLowPassFgsMcFilter() );
+
+        m_pcMotionCompensation->loadNewLowPassPredictors(
+          m_pcFrameMng->getYuvFullPelBufferCtrl(), 
+          m_pcFrameMng->getPredictionIntFrame(), 
+          pcBaseFrame, pcLowPassRefFrameBase, pcLowPassRefFrameEnh, 
+          pcCurrentFrmUnit->getMbDataCtrl(), m_pcRQFGSDecoder, 
+          m_pcRQFGSDecoder->getSliceHeader());
       }
 
       RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );

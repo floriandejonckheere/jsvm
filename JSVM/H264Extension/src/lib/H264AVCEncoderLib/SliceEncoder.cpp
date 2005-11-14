@@ -188,7 +188,8 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
                                    IntFrame*        pcPredSignal,
                                    ControlData&     rcControlData,
                                    UInt             uiMbInRow,
-                                   RefFrameList&    rcRefFrameList )
+                                   RefFrameList&    rcRefFrameList,
+                                   RefFrameList&    rcRefFrameListBase )
 {
   ROF( m_bInitDone );
 
@@ -230,16 +231,34 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     }
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
 
-    RNOK( m_pcMbEncoder     ->encodeInterP    ( *pcMbDataAccess,
-                                                pcMbDataAccessBase,
-                                                iSpatialScalabilityType,
-                                                pcFrame,
-                                                pcRecSubband,
-                                                pcPredSignal,
-                                                pcBaseLayerFrame,
-                                                pcBaseLayerResidual,
-                                                rcRefFrameList,
-                                                dLambda ) );
+    if( rcRefFrameListBase.getSize() )
+    {
+      RNOK( m_pcMbEncoder     ->encodeInterP    ( *pcMbDataAccess,
+                                                  pcMbDataAccessBase,
+                                                  iSpatialScalabilityType,
+                                                  pcFrame,
+                                                  pcRecSubband,
+                                                  pcPredSignal,
+                                                  pcBaseLayerFrame,
+                                                  pcBaseLayerResidual,
+                                                  rcRefFrameList,
+                                                  & rcRefFrameListBase,
+                                                  dLambda ) );
+    }
+    else
+    {
+      RNOK( m_pcMbEncoder     ->encodeInterP    ( *pcMbDataAccess,
+                                                  pcMbDataAccessBase,
+                                                  iSpatialScalabilityType,
+                                                  pcFrame,
+                                                  pcRecSubband,
+                                                  pcPredSignal,
+                                                  pcBaseLayerFrame,
+                                                  pcBaseLayerResidual,
+                                                  rcRefFrameList,
+                                                  0,
+                                                  dLambda ) );
+    }
     RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
                                                 pcMbDataAccessBase,
                                                 iSpatialScalabilityType,

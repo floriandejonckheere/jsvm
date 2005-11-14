@@ -444,6 +444,9 @@ protected:
   IntFrame*           m_pcBaseLayerResidual;
   MbDataCtrl*         m_pcBaseLayerCtrl;
   DPBUnit*            m_pcCurrDPBUnit;
+
+  IntFrame*           m_aapcFGSRecon[2][4];
+  UInt                m_uiNumLayers[2];
   
 
   // TMM_ESS 

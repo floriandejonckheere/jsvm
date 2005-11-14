@@ -91,6 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "CodingParameter.h"
 #include "MotionEstimation.h"
 
+#include "H264AVCCommonLib/Transform.h"
 
   
 H264AVC_NAMESPACE_BEGIN
@@ -124,9 +125,10 @@ ErrVal MotionEstimation::init(  XDistortion*  pcXDistortion,
                                 CodingParameter* pcCodingParameter,
                                 RateDistortionIf* pcRateDistortionIf,
                                 QuarterPelFilter* pcQuarterPelFilter,
+                                Transform*        pcTransform,
                                 SampleWeighting* pcSampleWeighting)
 {
-  RNOK( MotionCompensation::init( pcQuarterPelFilter, pcSampleWeighting ) );
+  RNOK( MotionCompensation::init( pcQuarterPelFilter, pcTransform, pcSampleWeighting ) );
   ROT( NULL == pcXDistortion );
   ROT( NULL == pcCodingParameter );
   ROT( NULL == pcQuarterPelFilter );

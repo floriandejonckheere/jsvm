@@ -203,6 +203,7 @@ class H264AVCCOMMONLIB_API FrameMng
     ErrVal uninit();
     ErrVal getFrameUnit( FrameUnit*& rpcFrameUnit );
     ErrVal releaseFrameUnit( FrameUnit* pcFrameUnit );
+    YuvBufferCtrl* getYuvFullPelBufferCtrl()  { return m_pcYuvFullPelBufferCtrl;  }
 
   protected:
     FUList            m_cFreeList;
@@ -250,6 +251,8 @@ public:
   ErrVal  getRecYuvBuffer         ( YuvPicBuffer*& rpcRecYuvBuffer );
 
   FrameUnit*        getReconstructedFrameUnit( Int iPoc );
+
+  YuvBufferCtrl*    getYuvFullPelBufferCtrl() { return m_cFrameUnitBuffer.getYuvFullPelBufferCtrl();  }
 
 protected:
   ErrVal            xCheckMissingFrameNums( SliceHeader& rcSH );

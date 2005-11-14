@@ -100,8 +100,17 @@ FrameUnit::FrameUnit( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYu
  , m_cFGSFrame      ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
  , m_cFGSIntFrame   ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
  , m_pcFGSPicBuffer ( NULL)
+ , m_uiFGSReconCount(0)
+ , m_cFGSRecon0     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
+ , m_cFGSRecon1     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
+ , m_cFGSRecon2     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
+ , m_cFGSRecon3     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
 {
     m_uiStatus = 0;
+    m_apcFGSRecon[0] = & m_cFGSRecon0;
+    m_apcFGSRecon[1] = & m_cFGSRecon1;
+    m_apcFGSRecon[2] = & m_cFGSRecon2;
+    m_apcFGSRecon[3] = & m_cFGSRecon3;
 }
 
 FrameUnit::~FrameUnit()
@@ -154,6 +163,11 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer )
 
   m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
 
+  for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+  {
+    RNOK( m_apcFGSRecon[uiLayerIdx]->init( false ) );
+  }
+
   return Err::m_nOK;
 }
 
@@ -196,6 +210,9 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
 Void FrameUnit::setPoc( Int iPoc )
 {
   m_cFrame.setPOC( iPoc );
+  for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+    m_apcFGSRecon[uiLayerIdx]->setPOC( iPoc );
+
   m_iMaxPOC = iPoc;
 }
 
@@ -208,6 +225,9 @@ ErrVal FrameUnit::uninit()
   m_pcFGSPicBuffer = NULL;
   RNOK( m_cFGSFrame.uninit() );
   m_cFGSIntFrame.uninit();
+
+  for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+    RNOK( m_apcFGSRecon[uiLayerIdx]->uninit() );
 
   m_uiFrameNumber = 0;
   m_uiStatus      = 0;

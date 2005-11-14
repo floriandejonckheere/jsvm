@@ -402,6 +402,7 @@ protected:
                                           IntFrame*                   pcTempFrame,
                                           IntFrame*                   pcSubband,
                                           IntFrame*                   pcCLRec,
+                                          UInt                        uiFrameIdInGOP,
                                           UInt&                       ruiBits );
 
 
@@ -611,6 +612,22 @@ protected:
 
  //----- ESS -----
   ResizeParameters*				m_pcResizeParameters; 
+  UInt                          m_uiBaseWeightZeroBaseBlock;
+  UInt                          m_uiBaseWeightZeroBaseCoeff;
+  UInt                          m_uiNumLayers[2];
+  IntFrame*                     m_aapcFGSRecon[2][4];             // previous low-pass base layer reconstruction
+
+  Double                        m_dLowPassEnhRef;
+  UInt                          m_uiLowPassFgsMcFilter;
+
+  enum RefListType
+  {
+    REF_LIST_TYPE_FGS_0    = 0x00,     // base reconstructed as the reference
+    REF_LIST_TYPE_FGS_1    = 0x01,     // use the base reconstructed as the reference
+    REF_LIST_TYPE_FGS_2    = 0x02,     // use the base reconstructed as the reference
+    REF_LIST_TYPE_FGS_3    = 0x03,     // use the base reconstructed as the reference
+    REF_LIST_TYPE_NORMAL   = 0x04,     // either original in MCTF, or the upper-layer reconstructed in close-loop
+  };
 };
 
 #if defined( WIN32 )

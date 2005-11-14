@@ -365,6 +365,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
                          IntFrame*        pcBaseLayerRec,
                          IntFrame*        pcBaseLayerSbb,
                          RefFrameList&    rcRefFrameList0,
+                         RefFrameList*    pcRefFrameList0Base,
                          Double           dLambda )
 {
   ROF( bInitDone );
@@ -445,12 +446,59 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
 				RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, iSpatialScalabilityType,  pcMbDataAccessBase, false ) );
     }
 
-    RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1 ) );
+    // if 2 reference frames are supplied, do not evaluate the skip mode here
+    if( pcRefFrameList0Base == 0 )
+      RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1 ) );
     RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
     RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
     RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
     RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
     RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
+  }
+
+  // motion estimation was made with the enhancement reference frame
+  // cost evaluation with the actual reference frame
+  if( pcRefFrameList0Base != 0 && ! m_pcIntMbBestData->getMbDataAccess().getMbData().isIntra() )
+  {
+    Bool bResidualPredUsed;
+
+    bResidualPredUsed = false;
+    if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+    {
+      if( m_pcIntMbBestData->getMbDataAccess().getMbData().getResidualPredFlag( PART_16x16 ) )
+        bResidualPredUsed = true;
+    }
+
+    if( bResidualPredUsed )
+    {
+      ROF( pcBaseLayerSbb );
+      cBaseLayerBuffer    .loadBuffer ( pcBaseLayerSbb->getFullPelYuvBuffer() );
+      m_pcIntOrgMbPelData->subtract( cBaseLayerBuffer );
+    }
+
+    if(m_pcIntMbBestData->getMbDataAccess().getMbData().isTransformSize8x8())
+    {
+      RNOK( xSetRdCost8x8InterMb( *m_pcIntMbBestData, pcMbDataAccessBase, *pcRefFrameList0Base, cRefFrameList1 ) );
+    }
+    else
+    {
+      RNOK( xSetRdCostInterMb   ( *m_pcIntMbBestData, pcMbDataAccessBase, *pcRefFrameList0Base, cRefFrameList1 ) );
+    }
+
+    if( bResidualPredUsed )
+      m_pcIntOrgMbPelData->add( cBaseLayerBuffer );
+
+    // get skip mode motion vector
+    Mv  cMvPredL0, cCurrentMv;
+
+    m_pcIntMbBestData->getMbDataAccess().getMvPredictorSkipMode( cMvPredL0 );
+    cCurrentMv = m_pcIntMbBestData->getMbMotionData( LIST_0 ).getMv();
+
+    // check skip mode only when motion vector is equal to skip mode motion vector
+    if (m_pcIntMbBestData->getMbMode() == MODE_16x16 && cCurrentMv == cMvPredL0 )
+    {
+      RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, *pcRefFrameList0Base, cRefFrameList1 ) );
+    }
   }
 
   m_pcTransform->setClipMode( true );

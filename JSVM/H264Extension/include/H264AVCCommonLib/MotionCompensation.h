@@ -106,6 +106,9 @@ class QuarterPelFilter;
 class FrameMng;
 class Frame;
 
+class FGSCoder;
+class Transform;
+
 #if defined( WIN32 )
 # pragma warning( disable: 4251 )
 #endif
@@ -155,6 +158,7 @@ public:
   ErrVal destroy();
 
   ErrVal init( QuarterPelFilter* pcQuarterPelFilter,
+               Transform*        pcTransform,
                SampleWeighting* pcSampleWeighting);
 
   ErrVal initSlice( const SliceHeader& rcSH );
@@ -176,6 +180,56 @@ public:
                             IntYuvMbBuffer* pcRecBuffer,
                             Bool            bCalcMv,
                             Bool            bFaultTolerant );
+  Void xAdjustResidualRefBlk          ( XPel*           piResidualRef,
+                                        UInt            uiBlkWidth,
+                                        UInt            uiBlkHeight,
+                                        Int             iStride,
+                                        UChar*          pucSigMap,
+                                        Bool            bNonzeroBaseBlock,
+                                        Int             iBcbpCtx,
+                                        UInt            uiWeightZeroBlk,
+                                        UInt            uiWeightZeroCoeff);
+
+  Void xAdjustResidualRefBlkSpatial   ( XPel*           piResidualRef,
+                                        UInt            uiBlkWidth,
+                                        UInt            uiBlkHeight,
+                                        Int             iStride,
+                                        UInt            uiWeightZeroBlk);
+
+  Void xAdjustResidualRefBlkFrequency ( XPel*           piResidualRef,
+                                        UInt            uiBlkWidth,
+                                        UInt            uiBlkHeight,
+                                        Int             iStride,
+                                        UChar*          pucSigMap,
+                                        UInt            uiWeightZeroCoeff);
+
+  void xAdjustChromaResidualRefBlock  ( XPel*           piResidualRef,
+                                        Int             iStride,
+                                        UChar*          pusSigMap,
+                                        UInt            uiWeightZeroCoeff);
+
+  ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess, 
+                                        RefFrameList&   rcRefFrameList0, 
+                                        RefFrameList&   rcRefFrameList1, 
+                                        IntYuvMbBuffer* pcYuvMbBuffer);
+
+  ErrVal xAdaptiveMotionCompensation  ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
+                                        IntFrame*       pcMCFrame,
+                                        IntFrame*       pcBaseFrame,
+                                        RefFrameList*   pcRefFrameListBase,
+                                        RefFrameList*   pcRefFrameListEnh,
+                                        MbDataCtrl*     pcMbDataCtrl,
+                                        FGSCoder*       pcFGSCoder,
+                                        SliceHeader*    pcSliceHeader );
+
+  ErrVal loadNewLowPassPredictors     ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
+                                        IntFrame*       pcPredSignal, 
+                                        IntFrame*       pcBaseFrame, 
+                                        IntFrame*       pcLowPassRefFrameBase,
+                                        IntFrame*       pcLowPassRefFrameEnh,
+                                        MbDataCtrl*     pcMbDataCtrl,
+                                        FGSCoder*       pcFGSCoder,
+                                        SliceHeader*    pcSliceHeader);
 
   ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
                   IntFrame*       pcMCFrame,
@@ -262,6 +316,7 @@ private:
 
 protected:
   QuarterPelFilter* m_pcQuarterPelFilter;
+  Transform*        m_pcTransform;
   SampleWeighting* m_pcSampleWeighting;
   Mv   m_cMin;
   Mv   m_cMax;

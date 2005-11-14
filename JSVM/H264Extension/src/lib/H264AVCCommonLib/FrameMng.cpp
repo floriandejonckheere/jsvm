@@ -799,6 +799,10 @@ ErrVal FrameMng::xSetOutputList( FrameUnit* pcFrameUnit )
 
 ErrVal FrameMng::storeFGSPicture( PicBuffer* pcPicBuffer )
 {
+  UInt uiFGSReconCount = m_pcCurrentFrameUnit->getFGSReconCount();
+  m_pcCurrentFrameUnit->getFGSReconstruction(uiFGSReconCount)->copyAll(m_pcCurrentFrameUnit->getFGSIntFrame());
+  m_pcCurrentFrameUnit->setFGSReconCount(uiFGSReconCount + 1);
+
   m_pcCurrentFrameUnit->setFGS( pcPicBuffer );
   m_pcCurrentFrameUnit->getFGSIntFrame()->store( pcPicBuffer );
 
@@ -810,6 +814,13 @@ ErrVal FrameMng::storeFGSPicture( PicBuffer* pcPicBuffer )
 
 ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
 {
+  Frame& cBaseFrame = m_pcCurrentFrameUnit->getFrame();
+  PicBuffer cTempPicBuffer(cBaseFrame.getFullPelYuvBuffer()->getBuffer());
+
+  // Base layer
+  m_pcCurrentFrameUnit->getFGSReconstruction(0)->load(& cTempPicBuffer);
+  m_pcCurrentFrameUnit->setFGSReconCount(1);
+
   RNOK( m_pcCurrentFrameUnit->getFrame().extendFrame( m_pcQuarterPelFilter ) );
 
   if( rcSH.getNalRefIdc() )

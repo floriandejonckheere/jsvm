@@ -231,6 +231,18 @@ MCTFEncoder::MCTFEncoder()
     m_adPSNRSumU        [ui]  = 0.0;
     m_adPSNRSumV        [ui]  = 0.0;
   }
+  m_dLowPassEnhRef        = AR_FGS_DEFAULT_LOW_PASS_ENH_REF;
+
+  m_uiLowPassFgsMcFilter  = AR_FGS_DEFAULT_FILTER;
+
+  for( UInt uiIndex = 0; uiIndex < 2; uiIndex ++ )
+  {
+    // at least one layer, which is the base layer
+    m_uiNumLayers[uiIndex] = 1;
+
+    for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+      m_aapcFGSRecon[uiIndex][uiLayerIdx] = 0;
+  }
 	for( ui = 0; ui < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; ui++ ) 
 	{
 		m_auiCurrGOPBits		[ui] = 0;
@@ -316,6 +328,12 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_pcRQFGSEncoder          = pcRQFGSEncoder;
 
   //----- fixed control parameters -----
+  m_dLowPassEnhRef          = pcCodingParameter->getLowPassEnhRef();
+  m_uiLowPassFgsMcFilter    = pcCodingParameter->getLowPassFgsMcFilter();
+
+  pcLayerParameters->getAdaptiveRefFGSWeights(
+    m_uiBaseWeightZeroBaseBlock, m_uiBaseWeightZeroBaseCoeff);
+
   m_uiLayerId               = pcLayerParameters->getLayerId                 ();
   m_uiBaseLayerId           = pcLayerParameters->getBaseLayerId             ();
   m_uiBaseQualityLevel      = pcLayerParameters->getBaseQualityLevel        ();
@@ -740,6 +758,16 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     }
   }
   
+  for( uiIndex = 0; uiIndex < 2;  uiIndex++ )
+  {
+    for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+    {
+      ROFRS   ( ( m_aapcFGSRecon[uiIndex][uiLayerIdx]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+      RNOK    (   m_aapcFGSRecon[uiIndex][uiLayerIdx]   ->init        () );
+    }
+  }
+  
   ROFRS   ( ( m_pcLowPassBaseReconstruction   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                               *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
   RNOK    (   m_pcLowPassBaseReconstruction   ->init        () );
@@ -906,6 +934,19 @@ MCTFEncoder::xDeleteData()
       RNOK(   m_apcLowPassTmpOrg[ uiIndex ]->uninit() );
       delete  m_apcLowPassTmpOrg[ uiIndex ];
       m_apcLowPassTmpOrg[ uiIndex ] = 0;
+    }
+  }
+
+  for( uiIndex = 0; uiIndex < 2; uiIndex ++ )
+  {
+    for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx++ )
+    {
+      if( m_aapcFGSRecon[uiIndex][uiLayerIdx] )
+      {
+        RNOK(   m_aapcFGSRecon[uiIndex][uiLayerIdx]->uninit() );
+        delete  m_aapcFGSRecon[uiIndex][uiLayerIdx];
+        m_aapcFGSRecon[uiIndex][uiLayerIdx]  = 0;
+      }
     }
   }
 
@@ -1415,6 +1456,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
                               IntFrame*               pcTempFrame,
                               IntFrame*               pcSubband,
                               IntFrame*               pcCLRec,
+                              UInt                    uiFrameIdInGOP,
                               UInt&                   ruiBits )
 {
   Bool          bFinished     = false;
@@ -1424,6 +1466,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   UInt          uiRealBLBits  = ruiBits;
   UInt          uiLastRecLayer;
   ruiBits                     = 0;
+  SliceType     eBaseSliceType = pcSliceHeader->getSliceType();
 
   //===== set original residual signal =====
   RNOK( pcOrgResidual->subtract( pcFrame, pcPredSignal ) );
@@ -1534,6 +1577,46 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     //----- init NAL UNIT -----
     RNOK( xInitExtBinDataAccessor               (  m_cExtBinDataAccessor ) );
     RNOK( m_pcNalUnitEncoder->initNalUnit       ( &m_cExtBinDataAccessor ) );
+
+    Bool bBaseLayerKeyPic;
+
+    bBaseLayerKeyPic = pcSliceHeader->getTemporalLevel() == 0;
+
+    pcSliceHeader->setArFgsUsageFlag              ( bBaseLayerKeyPic );
+    pcSliceHeader->setBaseWeightZeroBaseBlock     ( 0 );
+    pcSliceHeader->setBaseWeightZeroBaseCoeff     ( 0 );
+
+    // reconstruct the base of each FGS layer, the first base layer is already stored
+    if( eBaseSliceType == P_SLICE && bBaseLayerKeyPic && uiRecLayer == 1 )
+    {
+      IntFrame *pcLowPassRefFrameBase, *pcLowPassRefFrameEnh;
+
+      pcSliceHeader->setBaseWeightZeroBaseBlock ( m_uiBaseWeightZeroBaseBlock );
+      pcSliceHeader->setBaseWeightZeroBaseCoeff ( m_uiBaseWeightZeroBaseCoeff );
+      pcSliceHeader->setLowPassFgsMcFilter      ( m_uiLowPassFgsMcFilter      );
+
+      // use the discrete base layer and the top layer as 2 references
+      pcLowPassRefFrameBase = m_aapcFGSRecon[0][0];
+      pcLowPassRefFrameEnh  = m_aapcFGSRecon[0][1];
+
+      m_pcMotionEstimation->loadNewLowPassPredictors(
+        m_pcYuvFullPelBufferCtrl, 
+        pcPredSignal, pcPredSignal, 
+        pcLowPassRefFrameBase, pcLowPassRefFrameEnh,
+        rcControlData.getMbDataCtrl(), 
+        m_pcRQFGSEncoder,
+        rcControlData.getSliceHeader());
+
+      RNOK( pcOrgResidual->subtract( pcFrame,  pcPredSignal ) );
+
+      RNOK( xAddBaseLayerResidual( rcControlData, pcOrgResidual, true ) );
+
+      // this is not necessary as the pointer was passed to the FGS encoder already
+      m_pcRQFGSEncoder->setNewOriginalResidual( pcOrgResidual );
+    }
+
+    if( bBaseLayerKeyPic )
+      m_uiNumLayers[1] = 2;
 
     //---- write Slice Header -----
     ETRACE_NEWSLICE;
@@ -1699,8 +1782,28 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
     //----- initialize reference lists -----
     ROF ( pcSliceHeader->getNumRefIdxActive ( LIST_0 ) == 1 );
     ROF ( pcSliceHeader->getNumRefIdxActive ( LIST_1 ) == 0 );
-    RNOK( rcControlData.getPrdFrameList ( LIST_0 ).add  ( m_pcLowPassBaseReconstruction ) );
-    RNOK( xFillAndUpsampleFrame                         ( m_pcLowPassBaseReconstruction ) );
+
+    RefFrameList  cDPCMRefFrameListBase;
+    cDPCMRefFrameListBase.reset();
+
+    IntFrame *pcBaseRefCopyFrm = m_apcFrameTemp[2];   // not used anywhere else
+    if( m_dNumFGSLayers > 0.0 && m_dLowPassEnhRef > 0 )
+    {
+      pcBaseRefCopyFrm->copy(m_pcLowPassBaseReconstruction);
+      m_pcLowPassBaseReconstruction->getFullPelYuvBuffer()->addWeighted
+        ( m_papcFrame[0]->getFullPelYuvBuffer(), m_dLowPassEnhRef );
+
+      RNOK( rcControlData.getPrdFrameList ( LIST_0 ).add  ( m_pcLowPassBaseReconstruction ) );
+      RNOK( xFillAndUpsampleFrame                         ( m_pcLowPassBaseReconstruction ) );
+
+      RNOK( cDPCMRefFrameListBase.add                     ( pcBaseRefCopyFrm ) );
+      RNOK( xFillAndUpsampleFrame                         ( pcBaseRefCopyFrm ) );
+    }
+    else
+    {
+      RNOK( rcControlData.getPrdFrameList ( LIST_0 ).add  ( m_pcLowPassBaseReconstruction ) );
+      RNOK( xFillAndUpsampleFrame                         ( m_pcLowPassBaseReconstruction ) );
+    }
 
     RNOK( m_pcSliceEncoder->encodeInterPictureP ( uiBits,
                                                   pcFrame,
@@ -1708,7 +1811,15 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
                                                   pcPredSignal,
                                                   rcControlData,
                                                   m_uiFrameWidthInMb,
-                                                  rcControlData.getPrdFrameList( LIST_0 ) ) );
+                                                  rcControlData.getPrdFrameList( LIST_0 ),
+                                                  cDPCMRefFrameListBase ) );
+
+    // restore the base layer
+    if( m_dNumFGSLayers > 0.0 && m_dLowPassEnhRef > 0 )
+    {
+      m_pcLowPassBaseReconstruction->copy       ( pcBaseRefCopyFrm );
+      RNOK( pcBaseRefCopyFrm->uninitHalfPel     () );
+    }
 
     RNOK( m_pcLowPassBaseReconstruction->uninitHalfPel() );
   }
@@ -2637,6 +2748,9 @@ MCTFEncoder::xClearBufferExtensions()
     }
   }
 
+  for( UInt uiLayerIdx = 0; uiLayerIdx < m_uiNumLayers[0]; uiLayerIdx ++ )
+    m_aapcFGSRecon[0][uiLayerIdx]->uninitHalfPel();
+
   return Err::m_nOK;
 }
 
@@ -3481,6 +3595,15 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                     &rcControlData.getPrdFrameList( LIST_1 ),
                                     rcControlData.getSpatialScalability()) );  // SSUN@SHARP
 
+    m_uiNumLayers[0] = m_uiNumLayers[1];
+
+    for( UInt uiLayerIdx = 0; uiLayerIdx < m_uiNumLayers[0]; uiLayerIdx ++ )
+    {
+      RNOK( m_aapcFGSRecon[0][uiLayerIdx]->copy( m_aapcFGSRecon[1][uiLayerIdx] ) );
+    }
+
+    RNOK( m_aapcFGSRecon[0][0]->copy( m_pcLowPassBaseReconstruction ) );
+
     //----- store for prediction of following low-pass pictures -----
     RNOK( m_pcLowPassBaseReconstruction ->copy( pcBLRecFrame ) );
 
@@ -3560,6 +3683,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                               pcBLRecFrame,
                               m_papcSubband[uiFrameIdInGOP],
                               m_papcCLRecFrame ? m_papcCLRecFrame[uiFrameIdInGOP] : 0,
+                              uiFrameIdInGOP,
                               uiBits ) );
       //{{Adaptive GOP structure
       // --ETRI & KHU
@@ -3595,6 +3719,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                       &rcControlData.getPrdFrameList( LIST_0 ),
                                       &rcControlData.getPrdFrameList( LIST_1 ),
                                       rcControlData.getSpatialScalability()) );  // SSUN@SHARP
+      RNOK( m_aapcFGSRecon[1][m_uiNumLayers[1] - 1]->copy( pcFrame ) );
 #if MULTIPLE_LOOP_DECODING
       if( m_bCompletelyDecodeLayer )
         rcControlData.activateMbDataCtrlForQpAndCbp( true );
@@ -3810,6 +3935,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
                               pcBLRecFrame,
                               m_papcSubband[uiFrameIdInGOP],
                               m_papcCLRecFrame ? m_papcCLRecFrame[uiFrameIdInGOP] : 0,
+                              uiFrameIdInGOP,
                               uiBits ) );
       //{{Adaptive GOP structure
       // --ETRI & KHU

@@ -430,6 +430,24 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       n += 1;
       continue;
     }
+    if( equals( pcCom, "-ref", 4 ) )
+    {
+      ROTS( NULL == argv[n] );
+      Double dLowPassEnhRef = atof( argv[n] );
+      CodingParameter::setLowPassEnhRef( dLowPassEnhRef );
+      continue;
+    }
+    if( equals( pcCom, "-ar", 3 ) )
+    {
+      ROTS( NULL == argv[n] );
+      ROTS( NULL == argv[n + 1] );
+      UInt uiBaseRefWeightZeroBlock = atoi( argv[n] );
+      UInt uiBaseRefWeightZeroCoeff = atoi( argv[n + 1] );
+      CodingParameter::setAdaptiveRefFGSWeights( uiBaseRefWeightZeroBlock, uiBaseRefWeightZeroCoeff );
+      // skip two
+      n += 1;
+      continue;
+    }
 
     if( equals( pcCom, "-pf", 3) )
     {
@@ -758,6 +776,9 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",     &(rcLayer.m_ResizeParameter.m_iPosY),                       0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",&(rcLayer.m_uiForceReorderingCommands),  0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerId",    &(rcLayer.m_uiBaseLayerId),              MSYS_UINT_MAX );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("EnhRefME",       &(rcLayer.m_dLowPassEnhRef),              0.5 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroBlock",&(rcLayer.m_uiBaseWeightZeroBaseBlock),          2       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroCoeff",&(rcLayer.m_uiBaseWeightZeroBaseCoeff),          14       );
   m_pLayerLines[uiParLnCount] = NULL;
 
   // SSUN@SHARP reset ResizeParameters

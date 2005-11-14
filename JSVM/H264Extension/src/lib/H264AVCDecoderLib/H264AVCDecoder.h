@@ -127,7 +127,8 @@ public:
                   LoopFilter*         pcLoopFilter,
                   HeaderSymbolReadIf* pcHeaderSymbolReadIf,
                   ParameterSetMng*    pcParameterSetMng,
-                  PocCalculator*      pcPocCalculator);
+                  PocCalculator*      pcPocCalculator,
+                  MotionCompensation* pcMotionCompensation );
   ErrVal uninit ();
 
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
@@ -179,6 +180,7 @@ protected:
   ErrVal  xZeroIntraMacroblocks     ( IntFrame*       pcFrame,
                                       MbDataCtrl*     pcMbDataCtrl,
                                       SliceHeader*    pcSliceHeader );
+  IntFrame *xFindRefFrame           ( UInt            uiLayerIdx);
 
 protected:
   SliceReader*                  m_pcSliceReader;
@@ -195,6 +197,7 @@ protected:
   Bool                          m_bInitDone;
   Bool                          m_bLastFrame;
   Bool                          m_bFrameDone;
+  MotionCompensation*           m_pcMotionCompensation;
 
   MCTFDecoder*                  m_apcMCTFDecoder[MAX_LAYERS];
   RQFGSDecoder*                 m_pcRQFGSDecoder;

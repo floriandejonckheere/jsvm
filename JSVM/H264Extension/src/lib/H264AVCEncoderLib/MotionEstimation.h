@@ -169,6 +169,7 @@ public:
                         CodingParameter* pcCodingParameter,
                         RateDistortionIf* pcRateDistortionIf,
                         QuarterPelFilter* pcQuarterPelFilter,
+                        Transform*        pcTransform,
                         SampleWeighting* pcSampleWeighting);
 
   UInt    getRateCost           ( UInt                  uiBits,

@@ -317,6 +317,11 @@ ErrVal CodingParameter::check()
 
     if( uiLayer == 0 && pcLayer->getBaseQualityLevel() != 0 )
       pcLayer->setBaseQualityLevel(0);
+
+    // pass parameters from command line to layer configurations
+    // take effect only if they are not provided in layer configuration files
+    pcLayer->setLowPassEnhRef( m_dLowPassEnhRef );
+    pcLayer->setAdaptiveRefFGSWeights( m_uiBaseWeightZeroBaseBlock, m_uiBaseWeightZeroBaseCoeff );
   }
 
  return Err::m_nOK;

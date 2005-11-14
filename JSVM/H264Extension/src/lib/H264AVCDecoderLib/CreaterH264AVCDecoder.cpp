@@ -301,13 +301,14 @@ ErrVal CreaterH264AVCDecoder::init()
      
   RNOK( m_pcIntraPrediction       ->init() );
   RNOK( m_pcMotionCompensation    ->init( m_pcQuarterPelFilter,
+                                          m_pcTransform,
                                           m_pcSampleWeighting ) );
   RNOK( m_pcMbDecoder             ->init( m_pcTransform,
                                           m_pcIntraPrediction,
                                           m_pcMotionCompensation,
                                           m_pcFrameMng ) );
 
-  RNOK( m_pcH264AVCDecoder        ->init( m_apcMCTFDecoder,
+  RNOK( m_pcH264AVCDecoder           ->init( m_apcMCTFDecoder,
                                           m_pcSliceReader,
                                           m_pcSliceDecoder,
                                           m_pcRQFGSDecoder,
@@ -317,7 +318,8 @@ ErrVal CreaterH264AVCDecoder::init()
                                           m_pcLoopFilter,
                                           m_pcUvlcReader,
                                           m_pcParameterSetMng,
-                                          m_apcPocCalculator[0] ) );
+                                          m_apcPocCalculator[0],
+                                          m_pcMotionCompensation) );
 
   RNOK( m_pcRQFGSDecoder          ->init( m_apcYuvFullPelBufferCtrl,
                                           m_pcTransform,

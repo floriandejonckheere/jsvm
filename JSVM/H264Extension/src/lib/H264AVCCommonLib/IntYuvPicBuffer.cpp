@@ -823,6 +823,75 @@ ErrVal IntYuvPicBuffer::add( IntYuvPicBuffer*  pcSrcYuvPicBuffer )
 
 
 
+ErrVal IntYuvPicBuffer::addWeighted( IntYuvPicBuffer* pcSrcYuvPicBuffer, 
+                                     Double           dWeight )
+{
+  pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb();
+  m_rcYuvBufferCtrl.initMb();
+
+  XPel* pSrc        = pcSrcYuvPicBuffer->getMbLumAddr();
+  XPel* pDes        = getMbLumAddr();
+  Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+  Int   iDesStride  = getLStride();
+  UInt  uiHeight    = pcSrcYuvPicBuffer->getLHeight();
+  UInt  uiWidth     = pcSrcYuvPicBuffer->getLWidth ();
+  UInt  y, x;
+  Int   iWeightT, iWeightS;
+
+  iWeightS = (Int) (dWeight * 256 + 0.5);
+  iWeightT = 256 - iWeightS;
+
+  //===== luminance =====
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pDes[x] = ( pDes[x] * iWeightT + pSrc[x] * iWeightS + 128) >> 8;
+//      pDes[x] += pSrc[x];
+    }
+    pSrc  += iSrcStride;
+    pDes  += iDesStride;
+  }
+
+  //===== chrominance U =====
+  iSrcStride  >>= 1;
+  iDesStride  >>= 1;
+  uiHeight    >>= 1;
+  uiWidth     >>= 1;
+  pSrc          = pcSrcYuvPicBuffer->getMbCbAddr();
+  pDes          = getMbCbAddr();
+
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pDes[x] = ( pDes[x] * iWeightT + pSrc[x] * iWeightS + 128) >> 8;
+//      pDes[x] += pSrc[x];
+    }
+    pSrc  += iSrcStride;
+    pDes  += iDesStride;
+  }
+
+  //===== chrominance V =====
+  pSrc          = pcSrcYuvPicBuffer->getMbCrAddr();
+  pDes          = getMbCrAddr();
+
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pDes[x] = ( pDes[x] * iWeightT + pSrc[x] * iWeightS + 128) >> 8;
+//      pDes[x] += pSrc[x];
+    }
+    pSrc  += iSrcStride;
+    pDes  += iDesStride;
+  }
+
+  return Err::m_nOK;
+}
+
+
+
 ErrVal IntYuvPicBuffer::inverseUpdate( IntYuvPicBuffer*  pcSrcYuvPicBuffer,
                                        IntYuvPicBuffer*  pcMCPYuvPicBuffer,
                                        UInt              uiShift )

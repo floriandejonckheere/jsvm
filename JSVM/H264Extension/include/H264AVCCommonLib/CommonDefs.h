@@ -313,4 +313,20 @@ H264AVC_NAMESPACE_END
 #define SCALING_FACTOR_HACK 1
 
 
+#define AR_FGS_MAX_BASE_WEIGHT                        32
+#define AR_FGS_BASE_WEIGHT_SHIFT_BITS                 5
+
+// default values
+#define AR_FGS_DEFAULT_LOW_PASS_ENH_REF               0.0
+#define AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK         32
+#define AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF         32
+
+#define AR_FGS_MC_INTERP_AVC                          0
+#define AR_FGS_MC_INTERP_BILINEAR                     1
+#define AR_FGS_MC_INTERP_4_TAP                        2
+#define AR_FGS_DEFAULT_FILTER                         AR_FGS_MC_INTERP_AVC
+
+#define AR_FGS_COMPENSATE_SIGNED_FRAME                1
+
+
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

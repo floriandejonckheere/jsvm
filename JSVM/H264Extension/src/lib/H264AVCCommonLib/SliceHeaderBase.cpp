@@ -128,6 +128,10 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 //TMM_ESS_UNIFIED }
 ,m_uiBaseChromaPhaseXPlus1            ( 1 ) // TMM_ESS
 ,m_uiBaseChromaPhaseYPlus1            ( 1 ) // TMM_ESS
+, m_bArFgsUsageFlag                   ( false )
+, m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
+, m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
+, m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -295,6 +299,26 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     }
   }
 // TMM_ESS }
+
+  if( m_eSliceType == F_SLICE )
+  {
+    RNOK( pcWriteIf->writeFlag( m_bArFgsUsageFlag,                               "SH: base_layer_key_pic_flag" ) );
+    if( m_bArFgsUsageFlag )
+    {
+      // send other information conditionally
+      UInt uiWeight;
+
+      // AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
+      uiWeight = ( m_uiBaseWeightZeroBaseBlock >= AR_FGS_MAX_BASE_WEIGHT )
+        ? ( AR_FGS_MAX_BASE_WEIGHT - 1 ) : m_uiBaseWeightZeroBaseBlock;
+      RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: base_ref_weight_for_zero_base_block" ) );
+
+      // AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
+      uiWeight = ( m_uiBaseWeightZeroBaseCoeff >= AR_FGS_MAX_BASE_WEIGHT )
+        ? ( AR_FGS_MAX_BASE_WEIGHT - 1 ) : m_uiBaseWeightZeroBaseCoeff;
+      RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: base_ref_weight_for_zero_base_coeff" ) );
+    }
+  }
 
   return Err::m_nOK;
 }
@@ -535,6 +559,27 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     }
   }
 // TMM_ESS }
+
+  if( m_eSliceType == F_SLICE )
+  {
+    RNOK( pcReadIf->getFlag( m_bArFgsUsageFlag,                               "SH: base_layer_key_pic_flag" ) );
+    if( m_bArFgsUsageFlag ) 
+    {
+      // send other information conditionally
+      RNOK( pcReadIf->getCode( m_uiBaseWeightZeroBaseBlock, 5,                "SH: base_ref_weight_for_zero_base_block" ) );
+      if( m_uiBaseWeightZeroBaseBlock == AR_FGS_MAX_BASE_WEIGHT - 1 )
+	      m_uiBaseWeightZeroBaseBlock = AR_FGS_MAX_BASE_WEIGHT;
+
+      RNOK( pcReadIf->getCode( m_uiBaseWeightZeroBaseCoeff, 5,                "SH: base_ref_weight_for_zero_base_coeff" ) );
+      if( m_uiBaseWeightZeroBaseCoeff == AR_FGS_MAX_BASE_WEIGHT - 1 )
+	      m_uiBaseWeightZeroBaseCoeff = AR_FGS_MAX_BASE_WEIGHT;
+    }
+    else
+    {
+      m_uiBaseWeightZeroBaseBlock = AR_FGS_MAX_BASE_WEIGHT;
+      m_uiBaseWeightZeroBaseCoeff = AR_FGS_MAX_BASE_WEIGHT;
+    }
+  }
 
   return Err::m_nOK;
 }

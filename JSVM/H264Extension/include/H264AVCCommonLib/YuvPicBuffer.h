@@ -103,6 +103,8 @@ public:
   YuvPicBuffer( YuvBufferCtrl& rcYuvBufferCtrl );
 	virtual ~YuvPicBuffer();
 
+  Pel* getBuffer()      { return m_pucYuvBuffer; }
+
   Pel* getLumBlk()      { return m_pPelCurr; }
   Pel* getYBlk( LumaIdx cIdx )
   { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getYBlk( cIdx ); }

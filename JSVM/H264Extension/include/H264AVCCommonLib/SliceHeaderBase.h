@@ -518,6 +518,27 @@ public:
   const DeblockingFilterParameter&  getDeblockingFilterParameter  ()  const { return m_cDeblockingFilterParameter; }
   DeblockingFilterParameter&        getDeblockingFilterParameter  ()        { return m_cDeblockingFilterParameter; }
 
+  UInt                              getBaseWeightZeroBaseBlock()            { return m_uiBaseWeightZeroBaseBlock;     }
+  UInt                              getBaseWeightZeroBaseCoeff()            { return m_uiBaseWeightZeroBaseCoeff;     }
+
+  Void  setBaseWeightZeroBaseBlock(UInt ui)
+  { 
+    m_uiBaseWeightZeroBaseBlock = (ui >= AR_FGS_MAX_BASE_WEIGHT - 1) 
+      ? AR_FGS_MAX_BASE_WEIGHT : ui; 
+  }
+  Void  setBaseWeightZeroBaseCoeff(UInt ui)
+  {
+    m_uiBaseWeightZeroBaseCoeff = (ui >= AR_FGS_MAX_BASE_WEIGHT - 1) 
+      ? AR_FGS_MAX_BASE_WEIGHT : ui; 
+  }
+
+  Void  setArFgsUsageFlag               ( Bool b  )         { m_bArFgsUsageFlag       = b;  }
+  Bool  getArFgsUsageFlag               ()                  { return m_bArFgsUsageFlag;     }
+  
+  Void  setLowPassFgsMcFilter           ( UInt ui )         { m_uiLowPassFgsMcFilter  = ui;  }
+  UInt  getLowPassFgsMcFilter           ()                  { return m_uiLowPassFgsMcFilter;  }
+  
+
   //{{Variable Lengh NAL unit header data with priority and dead substream flag
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   UInt                              getSimplePriorityId			  ()	    { return m_uiSimplePriorityId;}
@@ -643,6 +664,11 @@ protected:
   Int           m_iScaledBaseRightOffset;
   Int           m_iScaledBaseBottomOffset;
 // TMM_ESS }
+
+  Bool          m_bArFgsUsageFlag;
+  UInt          m_uiLowPassFgsMcFilter;
+  UInt          m_uiBaseWeightZeroBaseBlock;
+  UInt          m_uiBaseWeightZeroBaseCoeff;
 };
 
 #define IS_KEY_PICTURE(pcSH)    ( (pcSH)->getKeyPictureFlag() )

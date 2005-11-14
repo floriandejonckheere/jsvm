@@ -167,6 +167,13 @@ public:
                                             FILE*&                      rpRateFile);
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   
+  ErrVal            setNewOriginalResidual( IntFrame                    *pcNewOriginalResidual )
+  {
+    m_pcOrgResidual = pcNewOriginalResidual;
+
+    return Err::m_nOK;
+  }
+  
 private:
   ErrVal            xVLCParseLuma         ( UInt   uiBlockYIndex,
                                             UInt   uiBlockXIndex,

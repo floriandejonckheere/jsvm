@@ -218,6 +218,9 @@ public:
     , m_bConstrainedIntraPredForLP        (false)
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
+    , m_dLowPassEnhRef                    ( -1.0 )
+    , m_uiBaseWeightZeroBaseBlock         ( INT_MAX )
+    , m_uiBaseWeightZeroBaseCoeff         ( INT_MAX )
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
   }
@@ -324,7 +327,29 @@ public:
   //===== check =====
   ErrVal  check();
 
+  Void                            setLowPassEnhRef        ( Double d )   
+  {
+    if( m_dLowPassEnhRef < 0 )
+      m_dLowPassEnhRef = ( d < 0.0 ) ? 0.0 : ( ( d > 1.0 ) ? 1.0 : d );
+    // else it has already been set up properly 
+  }
 
+  Double                          getLowPassEnhRef        ()            { return m_dLowPassEnhRef;        }
+  Void                            setAdaptiveRefFGSWeights( UInt  uiBlock, UInt  uiCoeff )
+  {
+    // do not allow AR_FGS_MAX_BASE_WEIGHT - 1, to store it in 5-bit fixed-length
+    m_uiBaseWeightZeroBaseBlock = (uiBlock >= AR_FGS_MAX_BASE_WEIGHT - 1) 
+    ? AR_FGS_MAX_BASE_WEIGHT : uiBlock; 
+
+    // do not allow AR_FGS_MAX_BASE_WEIGHT - 1, to store it in 5-bit fixed-length
+    m_uiBaseWeightZeroBaseCoeff = (uiCoeff >= AR_FGS_MAX_BASE_WEIGHT - 1) 
+    ? AR_FGS_MAX_BASE_WEIGHT : uiCoeff;
+  }
+  Void                            getAdaptiveRefFGSWeights( UInt& uiBlock, UInt& uiCoeff )
+  { 
+    uiBlock = m_uiBaseWeightZeroBaseBlock; 
+    uiCoeff = m_uiBaseWeightZeroBaseCoeff;
+  }
 
 public:
   UInt                      m_uiLayerId;
@@ -379,6 +404,10 @@ public:
 
   //----- ESS ---- 
   ResizeParameters          m_ResizeParameter;
+
+  Double                    m_dLowPassEnhRef;
+  UInt                      m_uiBaseWeightZeroBaseBlock;
+  UInt                      m_uiBaseWeightZeroBaseCoeff;
 };
 
 
@@ -406,6 +435,11 @@ public:
     , m_uiUseAGS                          (0)
     , m_uiWriteGOPMode                    (0)
     //}}Adaptive GOP structure
+    , m_dLowPassEnhRef                    ( AR_FGS_DEFAULT_LOW_PASS_ENH_REF )
+    , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
+    , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
+
+    , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
   {
       for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
       {
@@ -485,6 +519,29 @@ public:
   const std::string& getGOPModeFile () const { return m_cGOPModeFilename; }
   Void setGOPModeFile (Char*   p) { m_cGOPModeFilename = p; }
   //}}Adaptive GOP structure
+  Void                            setLowPassEnhRef        ( Double d )   
+  { 
+    m_dLowPassEnhRef = ( d < 0.0 ) ? 0.0 : ( ( d > 1.0 ) ? 1.0 : d );
+  }
+
+  Double                          getLowPassEnhRef        ()            { return m_dLowPassEnhRef;        }
+  Void                            setAdaptiveRefFGSWeights( UInt  uiBlock, UInt  uiCoeff )
+  {
+    // do not allow AR_FGS_MAX_BASE_WEIGHT - 1, to store it in 5-bit fixed-length
+    m_uiBaseWeightZeroBaseBlock = (uiBlock >= AR_FGS_MAX_BASE_WEIGHT - 1) 
+      ? AR_FGS_MAX_BASE_WEIGHT : uiBlock; 
+
+    m_uiBaseWeightZeroBaseCoeff = (uiCoeff >= AR_FGS_MAX_BASE_WEIGHT - 1) 
+      ? AR_FGS_MAX_BASE_WEIGHT : uiCoeff;
+  }
+  Void                            getAdaptiveRefFGSWeights( UInt& uiBlock, UInt& uiCoeff )
+  { 
+    uiBlock = m_uiBaseWeightZeroBaseBlock; 
+    uiCoeff = m_uiBaseWeightZeroBaseCoeff;
+  }
+
+  Void                            setLowPassFgsMcFilter   ( UInt ui )   { m_uiLowPassFgsMcFilter  = ui;   }
+  UInt                            getLowPassFgsMcFilter   ()            { return m_uiLowPassFgsMcFilter;  }
 
 private:
   UInt                            getLogFactor            ( Double  r0,
@@ -526,6 +583,11 @@ protected:
   UInt	m_uiUseAGS;
   std::string               m_cGOPModeFilename;
   //}}Adaptive GOP structure
+  Double                    m_dLowPassEnhRef;
+  UInt                      m_uiBaseWeightZeroBaseBlock;
+  UInt                      m_uiBaseWeightZeroBaseCoeff;
+
+  UInt                      m_uiLowPassFgsMcFilter;
 };
 
 #if defined( MSYS_WIN32 )

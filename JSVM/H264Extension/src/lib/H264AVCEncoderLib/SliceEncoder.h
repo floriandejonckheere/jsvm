@@ -136,7 +136,9 @@ public:
                                         IntFrame*     pcPredSignal,
                                         ControlData&  rcControlData,
                                         UInt          uiMbInRow,
-                                        RefFrameList& rcRefFrameList );
+                                        RefFrameList& rcRefFrameList,
+                                        RefFrameList&    rcRefFrameListBase
+                                        );
   ErrVal      encodeHighPassPicture   ( UInt&         ruiMbCoded,
                                         UInt&         ruiBits,
                                         UInt&         ruiBitsRes,

@@ -110,6 +110,54 @@ public:
   ErrVal destroy();
   Void setClipMode( Bool bEnableClip ) { m_bClip = bEnableClip; }
 
+  Bool getClipMode()                   { return m_bClip; }
+  Void e4x4Trafo          ( XPel*               pOrg,
+                            Int                 iStride,
+                            TCoeff*             piCoeff )
+  {
+    x4x4Trafo( pOrg, iStride, piCoeff );
+  }
+
+  Void e4x4InverseTrafo   ( XPel*               pOrg,
+                            Int                 iStride,
+                            TCoeff*             piCoeff )
+  {
+    x4x4InverseTrafo( pOrg, iStride, piCoeff );
+  }
+
+  Void eForTransformChromaDc    ( TCoeff* piCoeff )
+  {
+    xForTransformChromaDc( piCoeff );
+  }
+
+  Void eForTransformLumaDc      ( TCoeff* piCoeff )
+  {
+    xForTransformLumaDc( piCoeff );
+  }
+
+  Void e8x8Trafo                ( XPel*               pOrg, 
+                                  Int                 iStride,
+                                  TCoeff*             piCoeff )
+  {
+    x8x8Trafo( pOrg, iStride, piCoeff );
+  }
+
+  Void e8x8InverseTrafo         ( XPel*               pOrg, 
+                                  Int                 iStride,
+                                  TCoeff*             piCoeff )
+  {
+    Int i, j;
+
+    // pOrg is used as predictor in the function
+    for( i = 0; i < 8; i ++ )
+    {
+      for( j = 0; j < 8; j ++ )
+        pOrg[i * iStride + j] = 0;
+    }
+
+    invTransform8x8Blk( pOrg, iStride, piCoeff );
+  }
+
   ErrVal        transform8x8Blk           ( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiAbsSum );
   ErrVal        transform4x4Blk           ( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiAbsSum );
   ErrVal        transformMb16x16          ( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiDcAbs,  UInt& ruiAcAbs );

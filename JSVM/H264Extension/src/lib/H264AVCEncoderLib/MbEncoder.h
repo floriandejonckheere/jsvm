@@ -168,6 +168,7 @@ public:
                                 IntFrame*       pcBaseLayerRec,
                                 IntFrame*       pcBaseLayerSbb,
                                 RefFrameList&   rcRefFrameList0,
+                                RefFrameList*   pcRefFrameList0Base,
                                 Double          dLambda );
   ErrVal  compensatePrediction( MbDataAccess&   rcMbDataAccess,
                                 IntFrame*       pcMCFrame,

@@ -1290,6 +1290,14 @@ MCTFDecoder::MCTFDecoder()
 , m_pcResizeParameter             ( 0 ) //TMM_ESS
 {
   ::memset( m_apcFrameTemp, 0x00, sizeof( m_apcFrameTemp ) );
+
+  for( UInt uiIndex = 0; uiIndex < 2; uiIndex ++ )
+  {
+    m_uiNumLayers[uiIndex] = 1;
+
+    for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+      m_aapcFGSRecon[uiIndex][uiLayerIdx] = 0;
+  }
 }
 
 
@@ -1569,6 +1577,16 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
     RNOK  (   m_apcFrameTemp  [ uiIndex ]   ->init        () );
   }
 
+  for( uiIndex = 0; uiIndex < 2;  uiIndex++ )
+  {
+    for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+    {
+      ROFRS   ( ( m_aapcFGSRecon[uiIndex][uiLayerIdx] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                                *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+      RNOK    (   m_aapcFGSRecon[uiIndex][uiLayerIdx] ->init        () );
+    }
+  }
+
   ROFRS   ( ( m_pcResidual                  = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                             *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
   RNOK    (   m_pcResidual                  ->init        () );
@@ -1619,6 +1637,19 @@ MCTFDecoder::xDeleteData()
       RNOK(   m_apcFrameTemp[ uiIndex ]->uninit() );
       delete  m_apcFrameTemp[ uiIndex ];
       m_apcFrameTemp[ uiIndex ] = 0;
+    }
+  }
+
+  for( uiIndex = 0; uiIndex < 2;  uiIndex++ )
+  {
+    for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+    {
+      if( m_aapcFGSRecon[uiIndex][uiLayerIdx] )
+      {
+        RNOK(   m_aapcFGSRecon[uiIndex][uiLayerIdx]->uninit() );
+        delete  m_aapcFGSRecon[uiIndex][uiLayerIdx];
+        m_aapcFGSRecon[uiIndex][uiLayerIdx] = 0;
+      }
     }
   }
 
@@ -1795,6 +1826,20 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
     RNOK( pcFrame         ->add        ( m_pcPredSignal ) );
     RNOK( pcFrame         ->clip       () );
   }
+  // save the key frame for future reference
+  IntFrame *pcSavedEnhRefFrame = m_aapcFGSRecon[1][m_uiNumLayers[1] - 1];
+
+  pcSavedEnhRefFrame->copy(pcFrame);
+
+  // loop filtering should be combined with the final loop filtering on low-pass frame
+  RNOK( m_pcLoopFilter->process ( *pcSliceHeader,
+    pcSavedEnhRefFrame,
+    rcControlData.getMbDataCtrl(),
+    rcControlData.getMbDataCtrl(),
+    m_uiFrameWidthInMb,
+    & rcControlData.getPrdFrameList( LIST_0 ),
+    & rcControlData.getPrdFrameList( LIST_1 ),
+    rcControlData.getSpatialScalability() ) );
   RNOK( m_pcRQFGSDecoder->finishPicture () );
 
   //===== store intra signal for inter-layer prediction =====
@@ -1847,8 +1892,39 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
         rpcSliceHeader->getTemporalLevel          (),
         rpcSliceHeader->getQualityLevel           (),
         rpcSliceHeader->getPicQp                  () );
+      UInt uiRecLayer = rpcSliceHeader->getQualityLevel();
+
+      if( m_pcRQFGSDecoder->getSliceHeader()->getTemporalLevel()  == 0      &&
+        m_pcRQFGSDecoder->getSliceHeader()->isInterP() &&
+        (rpcSliceHeader->getQualityLevel() == 1) )
+      {
+        // get the new predictor
+        IntFrame*     pcBaseFrame           = m_apcFrameTemp[2];        // should not be used
+        IntFrame*     pcLowPassRefFrameBase;
+        IntFrame*     pcLowPassRefFrameEnh;
+
+        // use the discrete base layer and the top layer as 2 references
+        pcLowPassRefFrameBase = m_aapcFGSRecon[0][0];
+        pcLowPassRefFrameEnh  = m_aapcFGSRecon[0][1];
+
+        pcBaseFrame->copy( m_pcPredSignal );
+
+        // m_pcRQFGSDecoder->getSliceHeader has the slice header of the base layer
+        m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseBlock(rpcSliceHeader->getBaseWeightZeroBaseBlock() );
+        m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseCoeff(rpcSliceHeader->getBaseWeightZeroBaseCoeff() );
+        m_pcRQFGSDecoder->getSliceHeader()->setLowPassFgsMcFilter     (rpcSliceHeader->getLowPassFgsMcFilter() );
+
+        m_pcMotionCompensation->loadNewLowPassPredictors(
+          m_pcYuvFullPelBufferCtrl, m_pcPredSignal, 
+          pcBaseFrame, pcLowPassRefFrameBase, pcLowPassRefFrameEnh, 
+          m_pcRQFGSDecoder->getMbDataCtrl(), m_pcRQFGSDecoder, 
+          m_pcRQFGSDecoder->getSliceHeader());
+      }
 
       RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
+
+      if( m_pcRQFGSDecoder->getSliceHeader()->getTemporalLevel() == 0 )
+        m_uiNumLayers[1] = 2;
     }
   }
 
@@ -1974,6 +2050,10 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
     rpcSliceHeader->getAdaptivePredictionFlag () ? 1 : 0,
     rpcSliceHeader->getPicQp                  () );
 
+  m_uiNumLayers[0] = m_uiNumLayers[1];
+
+  for( UInt uiLayerIdx = 0; uiLayerIdx < m_uiNumLayers[0]; uiLayerIdx ++ )
+    m_aapcFGSRecon[0][uiLayerIdx]->copy(m_aapcFGSRecon[1][uiLayerIdx]);
 
   //===== init =====
   RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, rpcSliceHeader,
@@ -2057,6 +2137,8 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   {
     RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
   }
+
+  m_aapcFGSRecon[1][0]->copy(pcBaseRepFrame);
 
   DTRACE_NEWFRAME;
   return Err::m_nOK;

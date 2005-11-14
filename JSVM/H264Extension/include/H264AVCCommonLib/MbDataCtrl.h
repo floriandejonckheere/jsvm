@@ -133,6 +133,7 @@ public:
     for( UInt uiMbIdx = 0; uiMbIdx < getSize(); uiMbIdx++ )
     {
       getMbDataByIndex( uiMbIdx ).setQp      ( pSrcMbDataCtrl->getMbData( uiMbIdx ).getQp() );
+      getMbDataByIndex( uiMbIdx ).setTransformSize8x8 ( pSrcMbDataCtrl->getMbData( uiMbIdx ).isTransformSize8x8() );
       getMbDataByIndex( uiMbIdx ).setMbExtCbp( pSrcMbDataCtrl->getMbData( uiMbIdx ).getMbExtCbp() );
     }
 

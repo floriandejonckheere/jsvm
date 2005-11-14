@@ -113,6 +113,11 @@ public:
   virtual ErrVal init();
   ErrVal uninit();
 
+  Void predBlkBilinear( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
+  Void predBlk4Tap    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
+  Bool getClipMode    ()        { return m_bClip; }
+  Void setClipMode( Bool bEnableClip ) { m_bClip = bEnableClip; }
+
   virtual ErrVal filterFrame( IntYuvPicBuffer* pcPelBuffer, IntYuvPicBuffer* pcHalfPelBuffer );
   Void filterBlock( Pel* pDes, Pel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
   {
@@ -167,10 +172,17 @@ protected:
   static Void xXFilter3( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
   static Void xXFilter4( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
 
+  Int xClip( Int iPel ) { return ( m_bClip ? gClip( iPel ) : iPel); }
+
 protected:
+  Bool m_bClip;
   FilterBlockFunc m_afpFilterBlockFunc[4];
   XFilterBlockFunc m_afpXFilterBlockFunc[4];
 };
+
+#if AR_FGS_COMPENSATE_SIGNED_FRAME
+#define SIGNED_ROUNDING(x, o, s)    ( ( (x) >= 0 ) ? ( ( (x) + (o) ) >> s ) : -( ( -(x) + (o) ) >> s ) )
+#endif
 
 H264AVC_NAMESPACE_END
 

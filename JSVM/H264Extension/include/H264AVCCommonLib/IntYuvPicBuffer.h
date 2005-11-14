@@ -177,6 +177,8 @@ public:
   ErrVal        subtract                ( IntYuvPicBuffer*  pcSrcYuvPicBuffer0, IntYuvPicBuffer* pcSrcYuvPicBuffer1 );
   ErrVal        add                     ( IntYuvPicBuffer*  pcSrcYuvPicBuffer );
 
+  ErrVal        addWeighted             ( IntYuvPicBuffer*  pcSrcYuvPicBuffer, Double dWeight );
+
   ErrVal        dumpLPS                 ( FILE* pFile );
   ErrVal        dumpHPS                 ( FILE* pFile, MbDataCtrl* pcMbDataCtrl );
 
