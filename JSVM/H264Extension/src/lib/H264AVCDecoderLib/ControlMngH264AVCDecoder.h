@@ -177,6 +177,9 @@ public:
   ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
   ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
 
+  UvlcReader*  getUvlcReader()  { return m_pcUvlcReader;  };
+  CabacReader* getCabacReader() { return m_pcCabacReader; };
+
 protected:
   ErrVal xInitESS             ( SliceHeader* pcSliceHeader );
 

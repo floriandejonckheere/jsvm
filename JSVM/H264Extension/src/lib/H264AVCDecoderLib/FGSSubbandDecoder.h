@@ -90,11 +90,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-#include "H264AVCCommonLib/CabacContextModel2DBuffer.h"
-#include "CabaDecoder.h"
+#include "MbSymbolReadIf.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/Transform.h"
 
+#include "H264AVCCommonLib/FGSCoder.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -103,10 +103,12 @@ class YuvBufferCtrl;
 class Transform;
 class MbDataCtrl;
 class CabacReader;
+class UvlcReader;
 
 
 
 class RQFGSDecoder  
+  : public FGSCoder
 {
 private:
   enum
@@ -127,6 +129,7 @@ public:
 
   ErrVal            init                  ( YuvBufferCtrl**             apcYuvFullPelBufferCtrl,
                                             Transform*                  pcTransform,
+                                            UvlcReader*                 pcUvlcReader,
                                             CabacReader*                pcCabacReader );
   ErrVal            uninit                ();
 
@@ -144,50 +147,9 @@ public:
 
 
 private:
-  ErrVal            xInitSPS              ( const SequenceParameterSet& rcSPS );
   ErrVal            xScaleBaseLayerCoeffs ();
-
-  ErrVal            xScale4x4Block        ( TCoeff*                     piCoeff,
-                                            const UChar*                pucScale,
-                                            UInt                        uiStart,
-                                            const QpParameter&          rcQP );
-  ErrVal            xScale8x8Block        ( TCoeff*                     piCoeff,
-                                            const UChar*                pucScale,
-                                            const QpParameter&          rcQP );
-  ErrVal            xScaleTCoeffs         ( MbDataAccess&               rcMbDataAccess,
-                                            Bool                        bBaseLayer );
-  Int               xScaleLevel4x4        ( Int                         iLevel,
-                                            Int                         iIndex,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  Int               xScaleLevel8x8        ( Int                         iLevel,
-                                            Int                         iIndex,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  ErrVal            xScaleSymbols4x4      ( TCoeff*                     piCoeff,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  ErrVal            xScaleSymbols8x8      ( TCoeff*                     piCoeff,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  ErrVal            xUpdateSymbols        ( TCoeff*                     piCoeff,
-                                            TCoeff*                     piCoeffEL,
-                                            Bool&                       bSigDC,
-                                            Bool&                       bSigAC,
-                                            Int                         iNumCoeff );
-  ErrVal            xReconstructMacroblock( MbDataAccess&               rcMbDataAccess,
-                                            IntYuvMbBuffer&             rcMbBuffer );
-
-
-
-
   ErrVal            xDecodingFGS                  ();
-  ErrVal            xInitializeCodingPath         ();
-  ErrVal            xUpdateCodingPath             ();
-  ErrVal            xUpdateMacroblock             ( MbDataAccess&       rcMbDataAccessBL,
-                                                    MbDataAccess&       rcMbDataAccessEL,
-                                                    UInt                uiMbY,
-                                                    UInt                uiMbX );
+
   
   ErrVal            xDecodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
@@ -215,45 +177,19 @@ private:
                                                     UInt                uiB8YIdx,
                                                     UInt                uiB8XIdx,
                                                     UInt                uiScanIdx );
+  ErrVal            xInitializeMacroblockQPs      ();
 
 
 private:
-  Bool              m_bInit;
-  YuvBufferCtrl**   m_papcYuvFullPelBufferCtrl;
-  Transform*        m_pcTransform;
+  MbSymbolReadIf*   m_pcSymbolReader;
+  UvlcReader*       m_pcUvlcReader;
   CabacReader*      m_pcCabacReader;
 
-  Bool              m_bPicInit;
   Bool              m_bPicChanged;
   Bool              m_bPicFinished;
-  UInt              m_uiWidthInMB;
-  UInt              m_uiHeightInMB;
-  MbDataCtrl        m_cMbDataCtrlEL;
-  MbDataCtrl*       m_pcCurrMbDataCtrl;
   SliceHeader*      m_pcCurrSliceHeader;
-  Bool              m_bFgsComponentSep;
 
 
-  enum
-  {
-    CLEAR               = 0x00,
-    SIGNIFICANT         = 0x01, // was significant in base layer or during the current path
-    CODED               = 0x02, // was coded during the current path
-    TRANSFORM_SPECIFIED = 0x04, // transform size was specified in base layer or during current path
-    CHROMA_CBP_CODED    = 0x08,
-    CHROMA_CBP_AC_CODED = 0x10,
-
-    NUM_COEFF_SHIFT     = 16
-  };
-
-  UChar*            m_apaucLumaCoefMap         [16];
-  UChar*            m_aapaucChromaDCCoefMap [2][ 4];
-  UChar*            m_aapaucChromaACCoefMap [2][16];
-  UChar*            m_paucBlockMap;
-  UChar*            m_apaucChromaDCBlockMap [2];
-  UChar*            m_apaucChromaACBlockMap [2];
-  UChar*            m_paucSubMbMap;
-  UInt*             m_pauiMacroblockMap;
 };
 
 

@@ -156,6 +156,68 @@ public:
   virtual ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess) = 0;
   virtual ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp) = 0;
   virtual ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) = 0;
+  virtual ErrVal  RQdecodeCycleSymbol ( UInt& uiCycle ) = 0;
+  virtual ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase ) = 0;
+  virtual ErrVal  RQdecode8x8Flag     ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase ) = 0;
+  virtual Bool    RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         LumaIdx         cIdx ) = 0;
+  virtual Bool    RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         ChromaIdx       cIdx ) = 0;
+  virtual Bool    RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         ChromaIdx       cIdx ) = 0;
+  virtual Bool    RQdecodeCBP_Chroma   ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase ) = 0;
+  virtual Bool    RQdecodeCBP_ChromaAC ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase ) = 0;
+  virtual Bool    RQdecodeCBP_8x8      ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         B8x8Idx         c8x8Idx ) = 0;
+  virtual ErrVal  RQdecodeTermBit      ( UInt&           ruiBit ) = 0;
+  virtual ErrVal  RQdecodeNewTCoeff_8x8    ( MbDataAccess&   rcMbDataAccess,
+                                             MbDataAccess&   rcMbDataAccessBase,
+                                             B8x8Idx         c8x8Idx,
+                                             UInt            uiScanIndex,
+                                             Bool&           rbLast ) = 0;
+  virtual ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
+                                             MbDataAccess&   rcMbDataAccessBase,
+                                             B8x8Idx         c8x8Idx,
+                                             UInt            uiScanIndex ) = 0;
+  virtual ErrVal  RQdecodeNewTCoeff_Luma   ( MbDataAccess&   rcMbDataAccess,
+                                             MbDataAccess&   rcMbDataAccessBase,
+                                             ResidualMode    eResidualMode,
+                                             LumaIdx         cIdx,
+                                             UInt            uiScanIndex,
+                                             Bool&           rbLast,
+                                             UInt&           ruiNumCoefRead ) = 0;
+  virtual ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
+                                             MbDataAccess&   rcMbDataAccessBase,
+                                             ResidualMode    eResidualMode,
+                                             LumaIdx         cIdx,
+                                             UInt            uiScanIndex,
+                                             UInt            uiNumSig ) = 0;
+  virtual ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                             MbDataAccess&   rcMbDataAccessBase,
+                                             ResidualMode    eResidualMode,
+                                             ChromaIdx       cIdx,
+                                             UInt            uiScanIndex,
+                                             Bool&           rbLast,
+                                             UInt&           ruiNumCoefRead ) = 0;
+  virtual ErrVal  RQdecodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                             MbDataAccess&   rcMbDataAccessBase,
+                                             ResidualMode    eResidualMode,
+                                             ChromaIdx       cIdx,
+                                             UInt            uiScanIndex,
+                                             UInt            uiNumSig ) = 0;
+  virtual ErrVal  RQdecodeEobOffsets_Luma  () = 0;
+  virtual ErrVal  RQdecodeEobOffsets_Chroma() = 0;
+  virtual ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
+                                             UInt            uiMaxV ) = 0;
+  virtual Bool RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx) = 0;
 };
 
 

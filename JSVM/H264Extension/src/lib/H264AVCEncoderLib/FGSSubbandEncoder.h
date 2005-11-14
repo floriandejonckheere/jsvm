@@ -90,11 +90,12 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-#include "H264AVCCommonLib/CabacContextModel2DBuffer.h"
-#include "CabaEncoder.h"
-#include "CabacWriter.h"
+#include "MbSymbolWriteIf.h"
+#include "ControlMngH264AVCEncoder.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/Transform.h"
+
+#include "H264AVCCommonLib/FGSCoder.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -112,6 +113,7 @@ class MbEncoder;
 
 
 class RQFGSEncoder  
+  : public FGSCoder
 {
 private:
   enum
@@ -137,7 +139,7 @@ public:
 
   ErrVal            init                  ( YuvBufferCtrl**             apcYuvFullPelBufferCtrl,
                                             Transform*                  pcTransform,
-                                            CabacWriter*                pcCabacWriter,
+                                            ControlMngH264AVCEncoder*   pcControlMng,
                                             MbEncoder*                  pcMbEncoder );
   ErrVal            uninit                ();
   ErrVal            initSPS               ( const SequenceParameterSet& rcSPS );
@@ -166,18 +168,18 @@ public:
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   
 private:
-  Int               xScaleLevel4x4        ( Int                         iLevel,
-                                            Int                         iIndex,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  Int               xScaleLevel8x8        ( Int                         iLevel,
-                                            Int                         iIndex,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-
+  ErrVal            xVLCParseLuma         ( UInt   uiBlockYIndex,
+                                            UInt   uiBlockXIndex,
+                                            UInt*  pauiNumCoefHist,
+                                            UInt*  pauiHighMagHist);
+  ErrVal            xVLCParseChromaAC     ( UInt   uiPlane,
+                                            UInt   uiBlockYIndex,
+                                            UInt   uiBlockXIndex,
+                                            UInt*  pauiNumCoefHist);
 
   ErrVal            xSetSymbolsChroma     ( TCoeff*                     piCoeff,
-                                            TCoeff*                     piCoeffBase,
+                                            UInt                        uiMbX,
+                                            UInt                        uiMbY,
                                             const QpParameter&          cQP,
                                             UInt&                       uiCoeffCostDC,
                                             UInt&                       uiCoeffCostAC,
@@ -185,7 +187,8 @@ private:
                                             Bool&                       bSigAC,
                                             ChromaIdx                   cIdx );
   ErrVal            xSetSymbols4x4        ( TCoeff*                     piCoeff,
-                                            TCoeff*                     piCoeffBase,
+                                            UInt                        uiMbX,
+                                            UInt                        uiMbY,
                                             const QpParameter&          cQP,
                                             UInt&                       uiCoeffCost,
                                             UInt&                       ruiCbp,
@@ -199,28 +202,6 @@ private:
                                             LumaIdx                     cIdx );
 
 
-  ErrVal            xScaleSymbols4x4      ( TCoeff*                     piCoeff,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  ErrVal            xScaleSymbols8x8      ( TCoeff*                     piCoeff,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  ErrVal            xScale4x4Block        ( TCoeff*                     piCoeff,
-                                            const UChar*                pucScale,
-                                            UInt                        uiStart,
-                                            const QpParameter&          rcQP );
-  ErrVal            xScale8x8Block        ( TCoeff*                     piCoeff,
-                                            const UChar*                pucScale,
-                                            const QpParameter&          rcQP );
-  ErrVal            xUpdateSymbols        ( TCoeff*                     piCoeff,
-                                            TCoeff*                     piCoeffEL,
-                                            Bool&                       bSigDC,
-                                            Bool&                       bSigAC,
-                                            Int                         iNumCoeff );
-  ErrVal            xScaleTCoeffs         ( MbDataAccess&               rcMbDataAccess,
-                                            Bool                        bBaseLayer );
-  ErrVal            xReconstructMacroblock( MbDataAccess&               rcMbDataAccess,
-                                            IntYuvMbBuffer&             rcMbBuffer );
   ErrVal            xRequantizeMacroblock ( MbDataAccess&               rcMbDataAccess,
                                             MbDataAccess&               rcMbDataAccessBL,
                                             IntYuvMbBuffer&             rcBLRecBuffer );
@@ -234,12 +215,7 @@ private:
                                                     Bool&               rbCorrupted,
                                                     UInt                uiMaxBits,
                                                     FILE*               pFile );
-  ErrVal            xInitializeCodingPath         ();
-  ErrVal            xUpdateCodingPath             ();
-  ErrVal            xUpdateMacroblock             ( MbDataAccess&       rcMbDataAccessBL,
-                                                    MbDataAccess&       rcMbDataAccessEL,
-                                                    UInt                uiMbY,
-                                                    UInt                uiMbX );
+
   
   ErrVal            xEncodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
@@ -288,48 +264,20 @@ private:
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 private:
-  Bool              m_bInit;
-  YuvBufferCtrl**   m_papcYuvFullPelBufferCtrl;
-  Transform*        m_pcTransform;
-  CabacWriter*      m_pcCabacWriter;
+  MbSymbolWriteIf*  m_pcSymbolWriter;
+  ControlMngH264AVCEncoder* m_pcControlMng;
   MbEncoder*        m_pcMbEncoder;
 
-  Bool              m_bPicInit;
-  UInt              m_uiWidthInMB;
-  UInt              m_uiHeightInMB;
   Int               m_iRemainingTCoeff;
   Double            m_dLambda;
   Int               m_iMaxQpDelta;
-  MbDataCtrl        m_cMbDataCtrlEL;
-  MbDataCtrl*       m_pcCurrMbDataCtrl;
   SliceHeader*      m_pcSliceHeader;
   SliceType         m_eSliceType;
   UInt              m_uiFirstMbInSlice;
   UInt              m_uiNumMbsInSlice;
-  Bool              m_bFgsComponentSep;
 
   IntFrame*         m_pcOrgResidual;
 
-  enum
-  {
-    CLEAR               = 0x00,
-    SIGNIFICANT         = 0x01, // was significant in base layer or during the current path
-    CODED               = 0x02, // was coded during the current path
-    TRANSFORM_SPECIFIED = 0x04, // transform size was specified in base layer or during current path
-    CHROMA_CBP_CODED    = 0x08,
-    CHROMA_CBP_AC_CODED = 0x10,
-
-    NUM_COEFF_SHIFT     = 16
-  };
-
-  UChar*            m_apaucLumaCoefMap         [16];
-  UChar*            m_aapaucChromaDCCoefMap [2][ 4];
-  UChar*            m_aapaucChromaACCoefMap [2][16];
-  UChar*            m_paucBlockMap;
-  UChar*            m_apaucChromaDCBlockMap [2];
-  UChar*            m_apaucChromaACBlockMap [2];
-  UChar*            m_paucSubMbMap;
-  UInt*             m_pauiMacroblockMap;
   
   Bool              m_bTraceEnable;
   //{{Quality level estimation and modified truncation- JVTO044 and m12007

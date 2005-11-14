@@ -186,6 +186,8 @@ public:
   ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex ) { return Err::m_nERR; };
   ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
 
+  UvlcWriter*  getUvlcWriter()  { return m_pcUvlcWriter;  };
+  CabacWriter* getCabacWriter() { return m_pcCabacWriter; };
 protected:
   FrameMng*               m_pcFrameMng;
   MCTFEncoder*            m_apcMCTFEncoder          [MAX_LAYERS];

@@ -145,7 +145,7 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
                                      UInt            uiScanIndex,
-                                     UInt&           ruiLast );
+                                     Bool&           rbLast );
   ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
@@ -155,27 +155,34 @@ public:
                                      ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex,
-                                     UInt&           ruiLast );
+                                     Bool&           rbLast,
+                                     UInt&           ruiNumCoefRead );
   ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
-                                     UInt            uiScanIndex );
+                                     UInt            uiScanIndex,
+                                     UInt            uiNumSig );
   ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
                                      UInt            uiScanIndex,
-                                     UInt&           ruiLast );
+                                     Bool&           rbLast,
+                                     UInt&           ruiNumCoefRead );
   ErrVal  RQdecodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
-                                     UInt            uiScanIndex );
-  // == Nokia, m11509
+                                     UInt            uiScanIndex,
+                                     UInt            uiNumSig );
   ErrVal  RQdecodeCycleSymbol      ( UInt&           uiCycle );
-  // ==
-
+  ErrVal  RQdecodeEobOffsets_Luma  () { return Err::m_nOK; };
+  ErrVal  RQdecodeEobOffsets_Chroma() { return Err::m_nOK; };
+  ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
+                                     UInt            uiMaxV ) { return Err::m_nOK; };
+  Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+  
   ErrVal  blFlag              ( MbDataAccess& rcMbDataAccess );
   Bool    isEndOfSlice        ();
   Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess );
@@ -228,7 +235,8 @@ protected:
                                 ResidualMode  eResidualMode,
                                 const UChar*  pucScan,
                                 UInt          uiScanIndex,
-                                UInt&         ruiLast );
+                                Bool&         rbLast,
+                                UInt&         ruiNumCoefRead );
   ErrVal  xRQdecodeTCoeffsRef ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
                                 const UChar*  pucScan,

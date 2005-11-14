@@ -99,6 +99,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+class UcBitGrpWriter;
 
 class UvlcWriter :
 public MbSymbolWriteIf
@@ -110,6 +111,35 @@ protected:
 	virtual ~UvlcWriter();
   ErrVal xWriteMvdComponentQPel ( Short sMvdComp, UInt uiAbsSum, UInt uiCtx );
   ErrVal xWriteMvdQPel          ( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx );
+  ErrVal xRQencodeNewTCoeffs( TCoeff*       piCoeff,
+                                    TCoeff*       piCoeffBase,
+                                    UInt          uiStart,
+                                    UInt          uiStop,
+                                    ResidualMode  eResidualMode,
+                                    const UChar*  pucScan,
+                                    UInt          uiScanIndex,
+                                    UInt*         pauiEobShift,
+                                    Bool&         rbLast,
+                                    UInt&         ruiNumCoefWritten );
+  ErrVal xRQencodeTCoeffsRef( TCoeff*       piCoeff,
+                                  TCoeff*       piCoeffBase,
+                                  const UChar*  pucScan,
+                                  UInt          uiScanIndex,
+                                  UInt          uiStop,
+                                  UInt          uiNumSig );
+  ErrVal xRQencodeSigMagGreater1( TCoeff* piCoeff, TCoeff* piCoeffBase, UInt uiBaseCode, UInt uiStart, UInt uiStop, UInt uiVlcTable, const UChar*  pucScan, UInt& ruiNumMagG1 );
+  ErrVal xWriteS3Code ( UInt uiSymbol, UInt uiCutoff );
+  ErrVal xWriteGolomb(UInt uiSymbol, UInt uiK);
+  ErrVal xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen );
+  ErrVal xRQencodeEobOffsets ( UInt* auiSeq, UInt uiLen );
+  UInt m_auiShiftLuma[16];
+  UInt m_auiShiftChroma[16];
+  UInt m_auiVlcTabMap[16*16];
+  UInt m_uiCbpStats[3][2];
+  UcBitGrpWriter* m_pBitGrpRef;
+  UcBitGrpWriter* m_pBitGrpSgn;
+  UInt m_auiSigMap[16];
+  UInt m_uiCbpStat4x4[2];
 
 public:
   static ErrVal create( UvlcWriter*& rpcUvlcWriter, Bool bTraceEnable = true );
@@ -199,6 +229,56 @@ public:
 
   UInt xConvertToUInt( Int iValue )  {  return ( iValue <= 0) ? -iValue<<1 : (iValue<<1)-1; }
 
+  Bool    RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, B8x8Idx c8x8Idx );
+  Bool    RQencodeBCBP_4x4( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx );
+  Bool    RQencodeCBP_Chroma( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
+  Bool    RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, ChromaIdx cIdx );
+  Bool    RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess, MbDataAccess&   rcMbDataAccessBase, ChromaIdx cIdx );
+  Bool    RQencodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
+  ErrVal  RQencodeDeltaQp( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
+  ErrVal  RQencode8x8Flag( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
+  ErrVal  RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
+                                      MbDataAccess&   rcMbDataAccessBase,
+                                      B8x8Idx         c8x8Idx,
+                                      UInt            uiScanIndex,
+                                      UInt&           ruiLast );
+  ErrVal RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        LumaIdx         cIdx,
+                                        UInt            uiScanIndex,
+                                        Bool&           rbLast,
+                                        UInt&           ruiNumCoefWritten );
+  ErrVal RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                          MbDataAccess&   rcMbDataAccessBase,
+                                          ResidualMode    eResidualMode,
+                                          ChromaIdx       cIdx,
+                                          UInt            uiScanIndex,
+                                          Bool&           rbLast,
+                                          UInt&           ruiNumCoefWritten );
+  ErrVal RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
+                                      MbDataAccess&   rcMbDataAccessBase,
+                                      B8x8Idx         c8x8Idx,
+                                      UInt            uiScanIndex );
+  ErrVal RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        LumaIdx         cIdx,
+                                        UInt            uiScanIndex,
+                                        UInt            uiNumSig );
+  ErrVal RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        ChromaIdx       cIdx,
+                                        UInt            uiScanIndex,
+                                        UInt            uiNumSig );
+  ErrVal RQencodeCycleSymbol( UInt uiCycle );
+  ErrVal RQencodeTermBit ( UInt uiIsLast ) { return Err::m_nOK;}
+  Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+  ErrVal RQencodeEobOffsets_Luma ( UInt* auiSeq );
+  ErrVal RQencodeEobOffsets_Chroma( UInt* auiSeq );
+  ErrVal RQencodeVlcTableMap( UInt* auiTable, UInt uiMaxH, UInt uiMaxV );
+  static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
 private:
   __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );
   __inline ErrVal xWriteFlag( UInt uiCode );
@@ -215,7 +295,35 @@ protected:
   UInt m_uiRun;
 };
 
+class UcBitGrpWriter
+{
+public:
+  UcBitGrpWriter( UvlcWriter* pParent,
+                  UInt uiInitTable   = 1,
+                  UInt uiScaleFac    = 3,
+                  UInt uiScaleLimit  = 512,
+                  UInt uiGroupMin    = 1,
+                  UInt uiGroupMax    = 4,
+                  UInt uiStabPerdiod = 8 );
+  ErrVal Init();
+  ErrVal Flush();
+  ErrVal Write( UChar ucBit );
 
+protected:
+  ErrVal xUpdate();
+  UInt m_auiSymCount[2];
+  UInt m_uiScaleFac;
+  UInt m_uiScaleLimit;
+  UInt m_uiGroupMin;
+  UInt m_uiGroupMax;
+  UInt m_uiCode;
+  UInt m_uiLen;
+  UInt m_uiInitTable;
+  UInt m_uiTable;
+  UInt m_uiFlip;
+  UInt m_uiStabPeriod;
+  UvlcWriter* m_pParent;
+};
 
 H264AVC_NAMESPACE_END
 

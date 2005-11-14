@@ -162,6 +162,56 @@ public:
 
   virtual ErrVal  startSlice          ( const SliceHeader& rcSliceHeader ) = 0;
   virtual ErrVal  finishSlice         ( ) = 0;
+  // FGS-related
+  virtual Bool    RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, B8x8Idx c8x8Idx ) = 0;
+  virtual Bool    RQencodeBCBP_4x4( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx ) = 0;
+  virtual Bool    RQencodeCBP_Chroma( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
+  virtual Bool    RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, ChromaIdx cIdx ) = 0;
+  virtual Bool    RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess, MbDataAccess&   rcMbDataAccessBase, ChromaIdx cIdx ) = 0;
+  virtual Bool    RQencodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
+  virtual ErrVal  RQencodeDeltaQp( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
+  virtual ErrVal  RQencode8x8Flag( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
+  virtual ErrVal  RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
+                                      MbDataAccess&   rcMbDataAccessBase,
+                                      B8x8Idx         c8x8Idx,
+                                      UInt            uiScanIndex,
+                                      UInt&           ruiLast ) = 0;
+  virtual ErrVal RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        LumaIdx         cIdx,
+                                        UInt            uiScanIndex,
+                                        Bool&           rbLast,
+                                        UInt&           ruiNumCoefWritten ) = 0;
+  virtual ErrVal RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                          MbDataAccess&   rcMbDataAccessBase,
+                                          ResidualMode    eResidualMode,
+                                          ChromaIdx       cIdx,
+                                          UInt            uiScanIndex,
+                                          Bool&           rbLast,
+                                          UInt&           ruiNumCoefWritten ) = 0;
+  virtual ErrVal RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
+                                      MbDataAccess&   rcMbDataAccessBase,
+                                      B8x8Idx         c8x8Idx,
+                                      UInt            uiScanIndex ) = 0;
+  virtual ErrVal RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        LumaIdx         cIdx,
+                                        UInt            uiScanIndex,
+                                        UInt            uiNumSig ) = 0;
+  virtual ErrVal RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        ChromaIdx       cIdx,
+                                        UInt            uiScanIndex,
+                                        UInt            uiNumSig ) = 0;
+  virtual ErrVal RQencodeCycleSymbol( UInt uiCycle ) = 0;
+  virtual ErrVal RQencodeTermBit ( UInt uiIsLast ) = 0;
+  virtual Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx) = 0;
+  virtual ErrVal RQencodeEobOffsets_Luma   ( UInt* pauiSeq ) = 0;
+  virtual ErrVal RQencodeEobOffsets_Chroma ( UInt* pauiSeq ) = 0;
+  virtual ErrVal RQencodeVlcTableMap       ( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV ) = 0;
 };
 
 

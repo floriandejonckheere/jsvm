@@ -405,7 +405,7 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
 
   RNOK( m_pcRQFGSEncoder            ->init( m_apcYuvFullPelBufferCtrl,
                                             m_pcTransform,
-                                            m_pcCabacWriter,
+                                            m_pcControlMng,
                                             m_pcMbEncoder ) );
 
   for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )

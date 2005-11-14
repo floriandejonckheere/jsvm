@@ -96,6 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 class BitReadBuffer;
+class UcBitGrpReader;
 
 
 class UvlcReader
@@ -114,6 +115,22 @@ public:
 protected:
 	UvlcReader();
 	virtual ~UvlcReader();
+  ErrVal  xRQdecodeNewTCoeffs ( TCoeff*       piCoeff,
+                                TCoeff*       piCoeffBase,
+                                UInt          uiStart,
+                                UInt          uiStop,
+                                ResidualMode  eResidualMode,
+                                const UChar*  pucScan,
+                                UInt          uiScanIndex,
+                                UInt*         pauiEobShift,
+                                Bool&         rbLast,
+                                UInt&         ruiNumCoefRead );
+  ErrVal  xRQdecodeTCoeffsRef ( TCoeff*       piCoeff,
+                                TCoeff*       piCoeffBase,
+                                const UChar*  pucScan,
+                                UInt          uiScanIndex,
+                                UInt          uiStop,
+                                UInt          uiNumSig );
 
 public:
   static ErrVal create( UvlcReader*& rpcUvlcReader );
@@ -178,6 +195,68 @@ public:
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
   ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp);
   ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) {return intraPredModeLuma( rcMbDataAccess, cIdx );}
+  ErrVal  RQdecodeCycleSymbol ( UInt& uiCycle );
+  ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess,
+                                MbDataAccess&   rcMbDataAccessBase );
+  ErrVal  RQdecode8x8Flag     ( MbDataAccess&   rcMbDataAccess,
+                                MbDataAccess&   rcMbDataAccessBase );
+  Bool    RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccess,
+                                 MbDataAccess&   rcMbDataAccessBase,
+                                 LumaIdx         cIdx );
+  Bool    RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
+                                 MbDataAccess&   rcMbDataAccessBase,
+                                 ChromaIdx       cIdx );
+  Bool    RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccess,
+                                 MbDataAccess&   rcMbDataAccessBase,
+                                 ChromaIdx       cIdx );
+  Bool    RQdecodeCBP_Chroma   ( MbDataAccess&   rcMbDataAccess,
+                                 MbDataAccess&   rcMbDataAccessBase );
+  Bool    RQdecodeCBP_ChromaAC ( MbDataAccess&   rcMbDataAccess,
+                                 MbDataAccess&   rcMbDataAccessBase );
+  Bool    RQdecodeCBP_8x8      ( MbDataAccess&   rcMbDataAccess,
+                                 MbDataAccess&   rcMbDataAccessBase,
+                                 B8x8Idx         c8x8Idx );
+  ErrVal  RQdecodeTermBit     ( UInt&           ruiBit ) { ruiBit = 1; return Err::m_nOK; };
+  ErrVal  RQdecodeNewTCoeff_8x8    ( MbDataAccess&   rcMbDataAccess,
+                                     MbDataAccess&   rcMbDataAccessBase,
+                                     B8x8Idx         c8x8Idx,
+                                     UInt            uiScanIndex,
+                                     Bool&           rbLast );
+  ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
+                                     MbDataAccess&   rcMbDataAccessBase,
+                                     B8x8Idx         c8x8Idx,
+                                     UInt            uiScanIndex );
+  ErrVal  RQdecodeNewTCoeff_Luma   ( MbDataAccess&   rcMbDataAccess,
+                                     MbDataAccess&   rcMbDataAccessBase,
+                                     ResidualMode    eResidualMode,
+                                     LumaIdx         cIdx,
+                                     UInt            uiScanIndex,
+                                     Bool&           rbLast,
+                                     UInt&           ruiNumCoefRead );
+  ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
+                                     MbDataAccess&   rcMbDataAccessBase,
+                                     ResidualMode    eResidualMode,
+                                     LumaIdx         cIdx,
+                                     UInt            uiScanIndex,
+                                     UInt            uiNumSig );
+  ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                     MbDataAccess&   rcMbDataAccessBase,
+                                     ResidualMode    eResidualMode,
+                                     ChromaIdx       cIdx,
+                                     UInt            uiScanIndex,
+                                     Bool&           rbLast,
+                                     UInt&           ruiNumCoefRead );
+  ErrVal  RQdecodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                     MbDataAccess&   rcMbDataAccessBase,
+                                     ResidualMode    eResidualMode,
+                                     ChromaIdx       cIdx,
+                                     UInt            uiScanIndex,
+                                     UInt            uiNumSig );
+  ErrVal  RQdecodeEobOffsets_Luma  ();
+  ErrVal  RQdecodeEobOffsets_Chroma();
+  ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
+                                     UInt            uiMaxV );
+  Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
 private:
   ErrVal xGetFlag     ( UInt& ruiCode );
   ErrVal xGetCode     ( UInt& ruiCode, UInt uiLength );
@@ -200,6 +279,18 @@ private:
   ErrVal xGetTotalRun16( UInt uiVlcPos, UInt& uiTotalRun );
   ErrVal xGetTotalRun4( UInt& uiVlcPos, UInt& uiTotalRun );
   ErrVal xGetTrailingOnes4( UInt& uiCoeffCount, UInt& uiTrailingOnes );
+  ErrVal xRQdecodeEobOffsets       ( UInt* pauiShift, UInt            uiLen );
+  ErrVal xGetGolomb(UInt& uiSymbol, UInt uiK);
+  ErrVal xGetS3Code( UInt& uiSymbol, UInt uiCutoff );
+  ErrVal  xDecodeMonSeq           ( UInt*           auiSeq,
+                                    UInt uiStart,
+                                     UInt            uiLen );
+  ErrVal xRQdecodeSigMagGreater1( TCoeff* piCoeff,
+                                     TCoeff* piCoeffBase,
+                                     const UChar* pucScan,
+                                     UInt    uiTermSym,
+                                     UInt    uiStart,
+                                     UInt    uiStop );
 
 protected:
   BitReadBuffer*  m_pcBitReadBuffer;
@@ -207,8 +298,47 @@ protected:
   UInt            m_uiPosCounter;
   Bool            m_bRunLengthCoding;
   UInt            m_uiRun;
+  UInt m_auiShiftLuma[16];
+  UInt m_auiShiftChroma[16];
+  UInt m_auiVlc[16*16];
+  UInt m_uiCbpStats[3][2];
+  UInt m_uiCbp8x8;
+  UcBitGrpReader* m_pBitGrpRef;
+  UcBitGrpReader* m_pBitGrpSgn;
+  UInt m_auiSigMap[16];
+  UInt m_uiCbpStat4x4[2];
+  UInt m_uiCurrCbp4x4;
 };
 
+class UcBitGrpReader
+{
+public:
+  UcBitGrpReader( UvlcReader* pParent,
+                  UInt uiInitTable   = 1,
+                  UInt uiScaleFac    = 3,
+                  UInt uiScaleLimit  = 512,
+                  UInt uiGroupMin    = 1,
+                  UInt uiGroupMax    = 4,
+                  UInt uiStabPerdiod = 8 );
+  ErrVal Init();
+  ErrVal Read( UChar& ucBit, UInt uiMaxSym );
+
+protected:
+  ErrVal xFetchSymbol( UInt uiMaxSym );
+  ErrVal xUpdate();
+  UInt m_auiSymCount[2];
+  UInt m_uiScaleFac;
+  UInt m_uiScaleLimit;
+  UInt m_uiGroupMin;
+  UInt m_uiGroupMax;
+  UInt m_uiCode;
+  UInt m_uiLen;
+  UInt m_uiInitTable;
+  UInt m_uiTable;
+  UInt m_uiFlip;
+  UInt m_uiStabPeriod;
+  UvlcReader* m_pParent;
+};
 H264AVC_NAMESPACE_END
 
 #endif // !defined(AFX_UVLCREADER_H__EA98D347_89D5_4D2D_B6D5_FB3A374CD295__INCLUDED_)

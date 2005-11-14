@@ -645,6 +645,7 @@ protected:
 // TMM_ESS }
 };
 
+#define IS_KEY_PICTURE(pcSH)    ( (pcSH)->getKeyPictureFlag() )
 
 
 #if defined( WIN32 )

@@ -280,8 +280,16 @@ const UChar g_aucCbpInter[48] =
   23, 30, 31, 12
 };
 
-
-
+const UInt g_auiISymCode[3][16] =
+{ {  0,  1,  2,  3,  4,  5,  6,  7                                },
+  {  0,  4,  5, 28,  6, 29, 30, 31                                },
+  {  0,  4,  5, 28, 12, 29, 60,252, 13, 61,124,253,125,254,510,511}
+};
+const UInt g_auiISymLen[3][16] =
+{ { 3, 3, 3, 3, 3, 3, 3, 3                        },
+  { 1, 3, 3, 5, 3, 5, 5, 5                        },
+  { 1, 3, 3, 5, 4, 5, 6, 8, 4, 6, 7, 8, 7, 8, 9, 9}
+};
 
 
 UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
@@ -293,11 +301,15 @@ UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
   m_bRunLengthCoding( false ),
   m_uiRun( 0 )
 {
+  m_pBitGrpRef = new UcBitGrpWriter( this, 1, 15, 1024, 16 );
+  m_pBitGrpSgn = new UcBitGrpWriter( this, 1, 15, 1024, 16 );
 }
 
 
 UvlcWriter::~UvlcWriter()
 {
+  delete m_pBitGrpRef;
+  delete m_pBitGrpSgn;
 }
 
 
@@ -373,6 +385,7 @@ ErrVal UvlcWriter::startSlice( const SliceHeader& rcSliceHeader )
 {
   m_bRunLengthCoding  = ! rcSliceHeader.isIntra();
   m_uiRun             = 0;
+  ::memset( m_auiSigMap, 0, 16*sizeof(UInt) );
   return Err::m_nOK;
 }
 
@@ -1577,5 +1590,1070 @@ ErrVal UvlcWriter::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
 }
 
 
+Bool
+UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
+                              MbDataAccess& rcMbDataAccessBase,
+                              B8x8Idx       c8x8Idx )
+{
+  UInt uiSymbol  = ( ( rcMbDataAccess.getMbData().getMbCbp() >> c8x8Idx.b8x8Index() ) & 1 ? 1 : 0 );
+  UInt uiBaseCbp = rcMbDataAccessBase.getMbData().getMbCbp();
+  UInt uiCbp     = rcMbDataAccess.getMbData().getMbCbp();
+  B8x8Idx uiFirstCbp;
+
+  if (uiFirstCbp == c8x8Idx) {
+    // Maintain stats; split CBP by base context
+    UInt uiCode[2] = {0,0};
+    UInt uiLen[2]  = {0,0};
+    UInt uiVlc[2]  = {0,0};
+    UInt uiBaseCtx;
+    UInt uiCBlk;
+    for (UInt ui=0; ui<4; ui++)
+    {
+      uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
+      uiCBlk    = (uiCbp     & 0xf & (1<<ui)) ? 1 : 0;
+      uiLen[uiBaseCtx]++;
+      uiCode[uiBaseCtx] <<= 1;
+      uiCode[uiBaseCtx] |= uiCBlk;
+    }
+    // Determine optimal VLC for each context, and av symbol size
+    for (UInt uiB=0; uiB<2; uiB++)
+    {
+      if ( uiLen[uiB] > 0 )
+      {
+        UInt uiFlip = (m_uiCbpStats[uiB][0] <= m_uiCbpStats[uiB][1]) ? 1 : 0;
+        if ( uiFlip )
+        {
+          uiCode[uiB] = uiCode[uiB] ^ ((1 << uiLen[uiB])-1);
+        }
+        if ( uiLen[uiB] <= 2 )
+        {
+          uiVlc[uiB] = 0;
+        } else if ( uiLen[uiB] == 3 )
+        {
+          uiVlc[uiB] = (m_uiCbpStats[uiB][uiFlip] < 2*m_uiCbpStats[uiB][1-uiFlip]) ? 0 : 1;
+        } else {
+          if (m_uiCbpStats[uiB][uiFlip] < 2*m_uiCbpStats[uiB][1-uiFlip])
+          {
+            uiVlc[uiB] = 0;
+          } else {
+            uiVlc[uiB] = 2;
+          }
+        }
+      }
+    }
+    // Decide on the optimal VLC
+    for (UInt uiB=0; uiB<2; uiB++)
+    {
+      if ( uiLen[uiB] > 0 )
+      {
+        if ( uiVlc[uiB] == 0 )
+        {
+          RNOK( xWriteCode( uiCode[uiB], uiLen[uiB] ) );
+        } else {
+          RNOK( xWriteCode(g_auiISymCode[uiVlc[uiB]][uiCode[uiB]], g_auiISymLen[uiVlc[uiB]][uiCode[uiB]]) );
+        }
+      }
+    }
+    // Update stats
+    for (UInt ui=0; ui<4; ui++)
+    {
+      uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
+      uiCBlk    = (uiCbp     & 0xf & (1<<ui)) ? 1 : 0;
+      m_uiCbpStats[uiBaseCtx][uiCBlk]++;
+    }
+    // Scale counter if necessary
+    if ( m_uiCbpStats[uiB][0] + m_uiCbpStats[uiB][1] > 512 )
+    {
+      m_uiCbpStats[uiB][0] >>= 4;
+      m_uiCbpStats[uiB][1] >>= 4;
+    }
+    ETRACE_T( "CBP_Luma" );
+    ETRACE_V( uiCode[0] );
+    ETRACE_N;
+    ETRACE_T( "CBP_Luma" );
+    ETRACE_V( uiCode[1] );
+    ETRACE_N;
+  }
+
+  if( uiSymbol )
+  {
+    rcMbDataAccessBase.getMbData().setMbCbp( rcMbDataAccessBase.getMbData().getMbCbp() | ( 1 << c8x8Idx.b8x8Index() ) );
+  }
+
+  return ( uiSymbol == 1 );
+}
+
+Bool
+UvlcWriter::RQpeekCbp4x4( MbDataAccess&  rcMbDataAccess,
+                          MbDataAccess&  rcMbDataAccessBase,
+                          LumaIdx        cIdx )
+{
+  UInt    uiSymbol  = 0;
+  TCoeff* piCoeff   = rcMbDataAccess.    getMbTCoeffs().get( cIdx );
+  TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+
+  for( UInt ui = 0; ui < 16; ui++ )  
+  {
+    if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
+    {
+      uiSymbol = 1;
+      break;
+    }
+  }
+  return ( uiSymbol == 1 );
+}
+
+Bool
+UvlcWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
+                               MbDataAccess&  rcMbDataAccessBase,
+                               LumaIdx        cIdx )
+{
+  if ( (cIdx.x() %2) == 0 && (cIdx.y() %2) == 0)
+  {
+    // Write
+    UInt    uiCode    = 0;
+    UInt    uiLen     = 0;
+    UInt uiFlip = (m_uiCbpStat4x4[1] > m_uiCbpStat4x4[0]) ? 1 : 0;
+    UInt uiVlc = (m_uiCbpStat4x4[uiFlip] < 2*m_uiCbpStat4x4[1-uiFlip]) ? 0 : 2;
+
+    for( UInt uiY=cIdx.y(); uiY<cIdx.y()+2; uiY++)
+      for (UInt uiX=cIdx.x(); uiX<cIdx.x()+2; uiX++)
+      {
+        UInt uiSymbol = 0;
+        B4x4Idx cTmp(uiY*4+uiX);
+        uiSymbol = RQpeekCbp4x4(rcMbDataAccess, rcMbDataAccessBase, cTmp);
+        rcMbDataAccessBase.getMbData().setBCBP( cTmp, uiSymbol );
+        uiCode <<= 1;
+        uiCode |= uiSymbol;
+        uiLen++;
+        m_uiCbpStat4x4[uiSymbol]++;
+      }
+
+    if (uiFlip)
+      uiCode = uiCode ^ ((1<<uiLen)-1);
+    if (uiVlc == 0)
+    {
+      ANOK( xWriteCode( uiCode, uiLen ) );
+    } else {
+      ANOK( xWriteCode( g_auiISymCode[2][uiCode], g_auiISymLen[2][uiCode] ) );
+    }
+    // Scaling
+    if (m_uiCbpStat4x4[0]+m_uiCbpStat4x4[1] > 512)
+    {
+      m_uiCbpStat4x4[0] >>= 1;
+      m_uiCbpStat4x4[0] >>= 1;
+    }
+    ETRACE_T( "BCBP_4x4" );
+    ETRACE_V( uiCode );
+    ETRACE_N;
+  }
+  return RQpeekCbp4x4(rcMbDataAccess, rcMbDataAccessBase, cIdx);
+}
+
+Bool
+UvlcWriter::RQencodeCBP_Chroma( MbDataAccess& rcMbDataAccess,
+                                 MbDataAccess& rcMbDataAccessBase )
+{
+  UInt  uiSymbol          = ( ( rcMbDataAccess.getMbData().getMbCbp() >> 4 ) ? 1 : 0 );
+  UInt  uiLeftChromaCbp   = rcMbDataAccessBase.getLeftChromaCbpFGS ();
+  UInt  uiAboveChromaCbp  = rcMbDataAccessBase.getAboveChromaCbpFGS();
+  UInt  uiCtx             = ( uiLeftChromaCbp > 0 ? 1 : 0 ) + ( uiAboveChromaCbp > 0 ? 2 : 0 );
+
+  ANOK( xWriteFlag( uiSymbol ) );
+  ETRACE_T( "CBP_Chroma" );
+  ETRACE_V( uiSymbol );
+  ETRACE_N;
+
+  if( uiSymbol )
+  {
+    rcMbDataAccessBase.getMbData().setMbCbp( rcMbDataAccessBase.getMbData().getMbCbp() | 0x10 );
+  }
+  return ( uiSymbol == 1 );
+}
+
+Bool
+UvlcWriter::RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    ChromaIdx       cIdx )
+{
+  UInt    uiSymbol  = 0;
+  TCoeff* piCoeff   = rcMbDataAccess.getMbTCoeffs().get( cIdx );
+  TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+
+  for( UInt ui = 0; ui < 4; ui++ )  
+  {
+    if( piCoeff[ g_aucIndexChromaDCScan[ui] ] && !piBCoeff[ g_aucIndexChromaDCScan[ui] ] )
+    {
+      uiSymbol = 1;
+      break;
+    }
+  }
+
+  ANOK( xWriteFlag( uiSymbol ) );
+  ETRACE_T( "BCBP_ChromaDC" );
+  ETRACE_V( uiSymbol );
+  ETRACE_N;
+
+  rcMbDataAccessBase.getMbData().setBCBP( 24 + cIdx.plane(), uiSymbol );
+  
+  return ( uiSymbol == 1 );
+}
+
+
+Bool
+UvlcWriter::RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
+                                    MbDataAccess&  rcMbDataAccessBase,
+                                    ChromaIdx      cIdx )
+{
+  UInt    uiSymbol  = 0;
+  TCoeff* piCoeff   = rcMbDataAccess.getMbTCoeffs().get( cIdx );
+  TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+
+  for( UInt ui = 1; ui < 16; ui++ )  
+  {
+    if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
+    {
+      uiSymbol = 1;
+      break;
+    }
+  }
+
+  ANOK( xWriteFlag( uiSymbol ) );
+  ETRACE_T( "BCBP_ChromaAC" );
+  ETRACE_V( uiSymbol );
+  ETRACE_N;
+
+  rcMbDataAccessBase.getMbData().setBCBP( 16 + cIdx, uiSymbol );
+  
+  return ( uiSymbol == 1 );
+}
+
+Bool
+UvlcWriter::RQencodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess,
+                                   MbDataAccess& rcMbDataAccessBase )
+{
+  UInt  uiSymbol          = ( ( rcMbDataAccess.getMbData().getMbCbp() >> 5 ) ? 1 : 0 );
+  ANOK( xWriteFlag( uiSymbol ) );
+  ETRACE_T( "CBP_ChromaAC" );
+  ETRACE_V( uiSymbol );
+  ETRACE_N;
+
+  if( uiSymbol )
+  {
+    rcMbDataAccessBase.getMbData().setMbCbp( ( rcMbDataAccessBase.getMbData().getMbCbp() & 0xF ) | 0x20 );
+  }
+  return ( uiSymbol == 1 );
+}
+
+ErrVal
+UvlcWriter::RQencodeDeltaQp( MbDataAccess& rcMbDataAccess,
+                              MbDataAccess& rcMbDataAccessBase )
+{
+  ETRACE_T ("DQp");
+
+  RNOK( xWriteSvlcCode( rcMbDataAccess.getDeltaQp() ) );
+
+  ETRACE_TY ("se(v)");
+  ETRACE_N;
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencode8x8Flag( MbDataAccess& rcMbDataAccess,
+                              MbDataAccess& rcMbDataAccessBase ) 
+{
+  UInt uiSymbol = rcMbDataAccess.getMbData().isTransformSize8x8() ? 1 : 0;
+ 
+  RNOK( xWriteFlag( uiSymbol ) );
+  ETRACE_T( "TRAFO_8x8" );
+  ETRACE_V( uiSymbol );
+  ETRACE_N;
+
+  rcMbDataAccessBase.getMbData().setTransformSize8x8( rcMbDataAccess.getMbData().isTransformSize8x8() );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    B8x8Idx         c8x8Idx,
+                                    UInt            uiScanIndex,
+                                    UInt&           ruiLast )
+{
+  TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
+  TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
+  const UChar*  pucScan     = g_aucFrameScan64;
+  const UInt    uiCtxOffset = 2;
+  UInt          uiStop      = 64;
+
+  ROT( piCoeffBase[pucScan[uiScanIndex]] );
+
+  ETRACE_T( "LUMA_8x8_NEW" );
+  ETRACE_V( c8x8Idx.b8x8Index() );
+  ETRACE_V( uiScanIndex );
+  ETRACE_N;
+
+  rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4(),   1 );
+  rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+1, 1 );
+  rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+4, 1 );
+  rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+5, 1 );
+
+  //===== end-of-block =====
+  if( ruiLast )
+  {
+    for( UInt ui = uiScanIndex; ui < 64; ui++ )
+    {
+      if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]] )
+      {
+        ruiLast = 0;
+        break;
+      }
+    }
+    RNOK( xWriteFlag( ruiLast ) );
+    ROTRS( ruiLast, Err::m_nOK );
+  }
+  else
+  {
+    ruiLast = 0;
+  }
+
+  //===== SIGNIFICANCE BIT =====
+  UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
+  RNOK( xWriteFlag( uiSig ) );
+  
+  if( uiSig )
+  {
+    UInt  uiAbs     = ( piCoeff[pucScan[uiScanIndex]] > 0 ? piCoeff[pucScan[uiScanIndex]] : -piCoeff[pucScan[uiScanIndex]] );
+    UInt  uiSign    = ( piCoeff[pucScan[uiScanIndex]] > 0 ?                             0 :                              1 );
+
+    xWriteLevelVLC0( piCoeff[pucScan[uiScanIndex]] );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
+                                      MbDataAccess&   rcMbDataAccessBase,
+                                      ResidualMode    eResidualMode,
+                                      LumaIdx         cIdx,
+                                      UInt            uiScanIndex,
+                                      Bool&           rbLast,
+                                      UInt&           ruiNumCoefWritten )
+{
+  TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
+  TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+  const UChar*  pucScan     = g_aucFrameScan;
+  UInt          uiStart     = 0;
+  UInt          uiStop      = 16;
+
+  ROT( piCoeffBase[pucScan[uiScanIndex]] );
+
+  ETRACE_T( "LUMA_4x4_NEW" );
+  ETRACE_V( cIdx.b4x4() );
+  ETRACE_V( uiScanIndex );
+  ETRACE_N;
+
+  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, m_auiShiftLuma, rbLast, ruiNumCoefWritten ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        ChromaIdx       cIdx,
+                                        UInt            uiScanIndex,
+                                        Bool&           rbLast,
+                                        UInt&           ruiNumCoefWritten )
+{
+  TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
+  TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+  const UChar*  pucScan     = ( eResidualMode == CHROMA_DC ? g_aucIndexChromaDCScan : g_aucFrameScan );
+  UInt          uiStart     = ( eResidualMode == CHROMA_AC ? 1 : 0  );
+  UInt          uiStop      = ( eResidualMode == CHROMA_DC ? 4 : 16 );
+
+  ROT( piCoeffBase[pucScan[uiScanIndex]] );
+
+  ETRACE_T( "CHROMA_4x4_NEW" );
+  ETRACE_V( cIdx );
+  ETRACE_V( uiScanIndex );
+  ETRACE_N;
+
+  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, m_auiShiftChroma, rbLast, ruiNumCoefWritten ) );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
+                                 TCoeff*       piCoeffBase,
+                                 UInt          uiStart,
+                                 UInt          uiStop,
+                                 ResidualMode  eResidualMode,
+                                 const UChar*  pucScan,
+                                 UInt          uiScanIndex,
+                                 UInt*         pauiEobShift,
+                                 Bool&         rbLast,
+                                 UInt&         ruiNumCoefWritten )
+{
+  UInt uiBaseLast = 0;
+  for ( UInt ui=0; ui<uiStop; ui++ )
+  {
+    if ( piCoeffBase[pucScan[ui]] )
+    {
+      uiBaseLast = ui;
+    }
+  }
+  UInt uiCycle = 0;
+  for ( UInt ui=uiStart; ui<uiScanIndex; ui++ )
+  {
+    if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
+    {
+      uiCycle = ui + 1;
+    }
+  }
+  AOF( uiCycle < uiStop );
+  Bool bSkipEob = !rbLast;
+  ruiNumCoefWritten = 0;
+
+  if( rbLast )
+  {
+    rbLast = true;
+    for( UInt ui = uiScanIndex; ui < uiStop; ui++ )
+    {
+      if( piCoeff[pucScan[ui]] && !piCoeffBase[pucScan[ui]] )
+      {
+        rbLast = false;
+        break;
+      }
+    }
+    if (rbLast) {
+
+      UInt uiCountMag2;
+      UInt uiLastPos = 0;
+      for( UInt ui = uiStart; ui < uiStop; ui++ )
+      {
+        if ( ! piCoeffBase[pucScan[ui]] )
+          uiLastPos++;
+        if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
+        {
+          uiLastPos = 1;
+        }
+      }
+      RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, uiLastPos, uiStart, uiStop, uiCycle*16+uiBaseLast, pucScan, uiCountMag2 ) );
+      if ( uiCountMag2 == 0 )
+      {
+        RNOK( xWriteS3Code( min(pauiEobShift[uiCycle], uiLastPos), m_auiVlcTabMap[uiCycle*16 + uiBaseLast] ) );
+      }
+    }
+    ROTRS(rbLast, Err::m_nOK);
+  } else
+    rbLast = false;
+
+  //===== SIGNIFICANCE BIT ======
+  UInt uiSig;
+  do
+  {
+    ruiNumCoefWritten++;
+
+    UInt uiLastScanPosition = uiScanIndex + 1;
+    while (uiLastScanPosition < uiStop && piCoeffBase[pucScan[uiLastScanPosition]])
+      uiLastScanPosition ++;
+  
+    if (uiLastScanPosition < uiStop)
+    {
+      uiSig = piCoeff[pucScan[uiScanIndex] ] ? 1 : 0;
+    } else {
+      uiSig = 1;
+    }
+
+    if( uiSig )
+    {
+      break;
+    }
+
+    uiScanIndex++;
+    while (uiScanIndex < uiStop && piCoeffBase[pucScan[uiScanIndex]])
+      uiScanIndex++;
+  }
+  while ( true );
+  UInt uiSymbol = ruiNumCoefWritten - ((bSkipEob || ruiNumCoefWritten <= pauiEobShift[uiCycle]) ? 1 : 0);
+  RNOK( xWriteS3Code( uiSymbol, m_auiVlcTabMap[uiCycle*16+uiBaseLast] ) );
+  RNOK( xWriteFlag( piCoeff[pucScan[uiScanIndex]] < 0 ? 1 : 0 ) );
+
+  // Check whether any more nonzero values
+  Bool bFinished = true;
+  for( UInt ui=uiScanIndex+1; ui<uiStop; ui++ )
+  {
+    bFinished &= ( piCoeffBase[pucScan[ui]] != 0 );
+    if( !bFinished )
+      break;
+  }
+  if( bFinished )
+  {
+    UInt uiCountMag2;
+    RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, 0, uiStart, uiStop, uiCycle*16+uiBaseLast, pucScan, uiCountMag2 ) );
+    if( uiCountMag2 == 0 )
+    {
+      RNOK( xWriteS3Code( 0, m_auiVlcTabMap[uiCycle*16 + uiBaseLast] ) );
+    }
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
+                                     TCoeff* piCoeffBase,
+                                     UInt    uiBaseCode,
+                                     UInt    uiStart,
+                                     UInt    uiStop,
+                                     UInt    uiVlcTable,
+                                     const UChar*  pucScan,
+                                     UInt&   ruiNumMagG1 )
+{
+  // Any magnitudes greater than one?
+  ruiNumMagG1      = 0;
+  UInt uiCountMag1 = 0;
+  UInt uiMaxMag    = 0;
+  for( UInt ui = uiStart; ui < uiStop; ui++ )
+  {
+    if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
+    {
+      uiCountMag1++;
+      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -piCoeff[pucScan[ui]] : piCoeff[pucScan[ui]] );
+      if ( uiAbs > 1 )
+      {
+        ruiNumMagG1++;
+      }
+      if ( uiAbs > uiMaxMag )
+      {
+        uiMaxMag = uiAbs;
+      }
+    }
+  }
+
+  if( ruiNumMagG1 == 0 )
+  {
+    return Err::m_nOK;
+  }
+
+  // Find optimal terminating code
+  UInt uiTermSym;
+  if ( uiMaxMag < 4 )
+  {
+    uiTermSym = 2*(ruiNumMagG1-1) + uiMaxMag%2;
+  } else {
+    uiTermSym = uiCountMag1*(uiMaxMag-2) + ruiNumMagG1 - 1;
+  }
+  RNOK( xWriteS3Code( uiBaseCode+uiTermSym+1, m_auiVlcTabMap[uiVlcTable] ) );
+
+  UInt uiFlip      = 0;
+  UInt uiRemaining = ruiNumMagG1;
+  UInt uiBegin     = 0;
+  UInt uiEnd       = uiCountMag1;
+  UInt uiCount     = 0;
+  for( UInt ui = uiStart; ui < uiStop; ui++ )
+  {
+    if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
+    {
+      // Coding last value(s) may be unnecessary
+      if ( uiRemaining == uiEnd-uiCount )
+        break;
+      // Range check for interval splitting
+      uiCount++;
+      if ( uiCount <= uiBegin )
+        continue;
+      if ( uiCount > uiEnd )
+        break;
+      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -piCoeff[pucScan[ui]] : piCoeff[pucScan[ui]] );
+      RNOK( xWriteFlag( (uiAbs > 1) ? 1 : 0 ) );
+      uiRemaining -= ( uiAbs > 1 ) ? 1-uiFlip : uiFlip;
+      if ( uiRemaining == 0 )
+        break;
+    }
+  }
+  UInt uiOutstanding = ruiNumMagG1;
+  Bool bSeenMaxMag   = false;
+  for( UInt ui = uiStart; ui < uiStop; ui++ )
+  {
+    if( !bSeenMaxMag && uiOutstanding == 1 )
+      break;
+    if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
+    {
+      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -piCoeff[pucScan[ui]] : piCoeff[pucScan[ui]] );
+      bSeenMaxMag |= ( uiAbs == uiMaxMag );
+      for ( UInt uiCutoff=1; uiAbs>uiCutoff && uiCutoff<uiMaxMag; uiCutoff++ )
+      {
+        RNOK( xWriteFlag( uiAbs > (uiCutoff+1) ) );
+      }
+      if( uiAbs > 1 )
+        uiOutstanding--;
+      if( uiOutstanding == 0 )
+        break;
+    }
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    B8x8Idx         c8x8Idx,
+                                    UInt            uiScanIndex )
+{
+  TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
+  TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
+  const UChar*  pucScan     = g_aucFrameScan64;
+
+  ROF( piCoeffBase[pucScan[uiScanIndex]] );
+
+  ETRACE_T( "LUMA_8x8_REF" );
+  ETRACE_V( c8x8Idx.b8x8Index() );
+  ETRACE_V( uiScanIndex );
+  ETRACE_N;
+
+  UChar ucCode[64];
+  UInt uiLen      = 0;
+  UInt uiPos;
+  UInt uiFirstPos = 64;
+
+  UChar vlc_code[8] = { 0, 1, 2,12,13,14,30,31};
+  UChar vlc_len[8]  = { 2, 2, 2, 4, 4, 4, 5, 5};
+
+  for ( UInt ui=0; ui<64; ui++ )
+  {
+    UInt uiSig = ( piCoeffBase[pucScan[ui]] ? 1 : 0 );
+    if ( uiSig ) {
+      ucCode[uiLen] = (piCoeff[pucScan[ui]] ? 1 : 0);
+      uiLen++;
+      if (ui == uiScanIndex)
+        uiPos = uiLen;
+      if (ui < uiFirstPos)
+        uiFirstPos = ui;
+    }
+  }
+  if (uiScanIndex == uiFirstPos)
+  {
+    UInt uiPos;
+    for (uiPos=0; uiPos<uiLen; uiPos+=3)
+    {
+      if ( uiPos+3 < uiLen )
+      {
+        UInt uiCode = ucCode[uiPos]<<2 + ucCode[uiPos+1]<<1 + ucCode[uiPos+2];
+        RNOK( xWriteCode( vlc_code[uiCode & ((1<<3)-1)], vlc_len[uiCode & ((1<<3)-1)]) );
+      } else {
+        UInt uiCode = ucCode[uiPos];
+        if ( uiPos+2 < uiLen )
+        {
+          uiCode <<= 1;
+          uiCode += ucCode[uiPos+1];
+        }
+        RNOK( xWriteCode( vlc_code[uiCode & ((1<<3)-1)], vlc_len[uiCode & ((1<<3)-1)]) );
+      }
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
+                                      MbDataAccess&   rcMbDataAccessBase,
+                                      ResidualMode    eResidualMode,
+                                      LumaIdx         cIdx,
+                                      UInt            uiScanIndex,
+                                      UInt            uiNumSig )
+{
+  TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
+  TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+  const UChar*  pucScan     = g_aucFrameScan;
+  UInt          uiStart     = 0;
+  UInt          uiStop      = 16;
+
+  ROF( piCoeffBase[pucScan[uiScanIndex]] );
+
+  ETRACE_T( "LUMA_4x4_REF" );
+  ETRACE_V( cIdx.b4x4() );
+  ETRACE_V( uiScanIndex );
+  ETRACE_N;
+
+  RNOK( xRQencodeTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex, uiStop, uiNumSig ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
+                                 TCoeff*       piCoeffBase,
+                                 const UChar*  pucScan,
+                                 UInt          uiScanIndex,
+                                 UInt          uiStop,
+                                 UInt          uiNumSig)
+{
+  UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
+  m_pBitGrpRef->Write( uiSig );
+  m_auiSigMap[uiScanIndex] = uiSig;
+
+  if( uiNumSig == 1 )
+  {
+    m_pBitGrpRef->Flush();
+    for( UInt ui=0; ui<uiStop; ui++ )
+    {
+      if( m_auiSigMap[ui] )
+      {
+        UInt uiSignBL = ( piCoeffBase[pucScan[ui]] < 0 ? 1 : 0 );
+        UInt uiSignEL = ( piCoeff    [pucScan[ui]] < 0 ? 1 : 0 );
+        UInt uiSymbol = ( uiSignBL ^ uiSignEL );
+        RNOK( m_pBitGrpSgn->Write( uiSymbol ) );
+      }
+    }
+    RNOK( m_pBitGrpSgn->Flush() );
+    ::memset( m_auiSigMap, 0, 16*sizeof(UInt) );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
+                                        MbDataAccess&   rcMbDataAccessBase,
+                                        ResidualMode    eResidualMode,
+                                        ChromaIdx       cIdx,
+                                        UInt            uiScanIndex,
+                                        UInt            uiNumSig )
+{
+  TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
+  TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+  const UChar*  pucScan     = ( eResidualMode == CHROMA_DC ? g_aucIndexChromaDCScan : g_aucFrameScan );
+  UInt          uiStart     = ( eResidualMode == CHROMA_AC ? 1 : 0  );
+  UInt          uiStop      = ( eResidualMode == CHROMA_DC ? 4 : 16 );
+
+  ROF( piCoeffBase[pucScan[uiScanIndex]] );
+
+  ETRACE_T( "CHROMA_4x4_REF" );
+  ETRACE_V( cIdx );
+  ETRACE_V( uiScanIndex );
+  ETRACE_N;
+
+  RNOK( xRQencodeTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex, uiStop, uiNumSig ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeCycleSymbol( UInt uiCycle )
+{
+  RNOK( xWriteFlag( uiCycle > 0 ) );
+  if ( uiCycle > 0 )
+    RNOK( xWriteFlag( uiCycle - 1 ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xWriteGolomb(UInt uiSymbol, UInt uiK)
+{
+  UInt uiQ = uiSymbol / uiK;
+  UInt uiR = uiSymbol - uiQ * uiK;
+  UInt uiC = 0;
+  UInt uiT = uiK >> 1;
+
+  while ( uiT > 0 )
+  {
+    uiC++;
+    uiT >>= 1;
+  }
+
+  // Unary part
+  for ( UInt ui = 0; ui < uiQ; ui++ )
+  {
+    RNOK( xWriteFlag( 1 ) );
+  }
+  RNOK( xWriteFlag( 0 ) );
+
+  // Binary part
+  if ( uiR < uiC )
+  {
+    RNOK( xWriteCode( uiR, uiC ) );
+  } else if ( uiC > 0 ) {
+    RNOK( xWriteFlag( 1 ) );
+    RNOK( xWriteCode( uiR - uiC, uiC ) );
+  }
+  ETRACE_N;
+
+  return Err::m_nOK;
+}
+
+UInt
+UvlcWriter::peekGolomb(UInt uiSymbol, UInt uiK)
+{
+  UInt uiQ = uiSymbol / uiK;
+  UInt uiR = uiSymbol - uiQ * uiK;
+  UInt uiC = 0;
+  UInt uiT = uiK >> 1;
+
+  while ( uiT > 0 )
+  {
+    uiC++;
+    uiT >>= 1;
+  }
+
+  // Unary part
+  uiT = uiQ + 1 + uiC;
+  if ( uiR >= uiC && uiC > 0 )
+  {
+    uiT++;
+  }
+
+  return uiT;
+}
+
+ErrVal
+UvlcWriter::RQencodeEobOffsets_Luma( UInt* pauiSeq )
+{
+  m_pBitGrpRef    ->Init();
+  m_pBitGrpSgn    ->Init();
+  m_uiCbpStat4x4[0] = m_uiCbpStat4x4[1] = 0;
+  m_uiCbpStats[0][0] = m_uiCbpStats[0][1] = m_uiCbpStats[1][0] = m_uiCbpStats[1][1] = 0;
+
+  memcpy( m_auiShiftLuma, pauiSeq, sizeof(UInt)*16 );
+  return xRQencodeEobOffsets(pauiSeq, 16);
+}
+
+ErrVal
+UvlcWriter::RQencodeEobOffsets_Chroma( UInt* auiSeq )
+{
+  memcpy( m_auiShiftChroma, auiSeq, sizeof(UInt)*16 );
+  m_auiShiftChroma[0] = 15;
+  return xRQencodeEobOffsets(auiSeq+1, 15);
+}
+
+ErrVal
+UvlcWriter::xRQencodeEobOffsets( UInt* auiSeq, UInt uiMax )
+{
+  UInt uiNumEnd = 0;
+  for (UInt uiEc=0; uiEc<uiMax && auiSeq[uiEc] == uiMax-1 && uiNumEnd<4; uiEc++)
+  {
+    uiNumEnd++;
+  }
+  if ( uiNumEnd )
+  {
+    RNOK( xWriteGolomb( uiNumEnd-1, 1 ) );
+  } else {
+    ETRACE_T("Eob");
+    RNOK( xWriteCode( 0x7, 3 ) );
+    ETRACE_N;
+  }
+  RNOK( xWriteGolomb( auiSeq[uiNumEnd], 2 ) );
+  RNOK( xEncodeMonSeq( auiSeq+uiNumEnd+1, auiSeq[uiNumEnd], uiMax-uiNumEnd-1 ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQencodeVlcTableMap( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV )
+{
+  memcpy( m_auiVlcTabMap, pauiTable, sizeof(UInt)*uiMaxH*uiMaxV );
+  // Form vector for first column
+  RNOK( xWriteGolomb( pauiTable[0], 1 ) );
+  UInt* auiCol = new UInt[uiMaxV];
+  UInt* puiCurrVal = pauiTable;
+  for (UInt uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
+  {
+    auiCol[uiV] = 5 - *puiCurrVal;
+  }
+  for (UInt uiV=uiMaxV-1; uiV>0; uiV--)
+  {
+    if (auiCol[uiV] == auiCol[uiV-1])
+    {
+      auiCol[uiV] = 0;
+    } else {
+      break;
+    }
+  }
+  RNOK( xEncodeMonSeq( auiCol+1, auiCol[0], uiMaxV-1 ) );
+  // Get rid of EOB
+  for (UInt uiV=1; uiV<uiMaxV; uiV++)
+  {
+    if (auiCol[uiV] == 0)
+    {
+      auiCol[uiV] = auiCol[uiV-1];
+    }
+  }
+  puiCurrVal = pauiTable;
+  UInt* auiRow = new UInt[uiMaxH];
+  for (UInt uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
+  {
+    auiRow[0] = auiCol[uiV];
+    for (UInt uiH=1; uiH<uiMaxH; uiH++)
+    {
+      auiRow[uiH] = 5 - puiCurrVal[uiH];
+    }
+    for (UInt uiH=uiMaxH-1; uiH>0; uiH--)
+    {
+      if (auiRow[uiH] == auiRow[uiH-1])
+      {
+        auiRow[uiH] = 0;
+      } else {
+        break;
+      }
+    }
+    RNOK( xEncodeMonSeq( auiRow+1, auiRow[0], uiMaxH-1 ) );
+  }
+  delete auiRow;
+  delete auiCol;
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
+{
+  UInt uiRun   = 0;
+  UInt uiLevel = uiStartVal;
+  for (UInt uiPos=0; uiPos<uiLen && uiLevel > 0; uiPos++)
+  {
+    if (auiSeq[uiPos] == uiLevel)
+    {
+      uiRun++;
+    } else {
+      RNOK( xWriteGolomb( uiRun, 1 ) );
+      uiRun = 1;
+      uiLevel--;
+      while ( uiLevel > auiSeq[uiPos] )
+      {
+        RNOK( xWriteGolomb( 0, 1 ) );
+        uiLevel--;
+      }
+    }
+  }
+  if (uiLevel > 0)
+  {
+    RNOK( xWriteGolomb( uiRun, 1 ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xWriteS3Code ( UInt uiSymbol, UInt uiCutoff )
+{
+  if ( uiSymbol <= uiCutoff )
+  {
+    RNOK( xWriteGolomb( uiSymbol, 1 ) );
+  }
+  else
+  {
+    UInt uiLen = (uiSymbol - uiCutoff-1)/3 *2 + uiCutoff+1;
+    RNOK( xWriteCode( (1 << uiLen) - 1, uiLen ) );
+    RNOK( xWriteCode( (uiSymbol - uiCutoff-1)%3, 2) );
+  }
+  return Err::m_nOK;
+}
+
+UcBitGrpWriter::UcBitGrpWriter( UvlcWriter* pParent,
+                                UInt uiInitTable,
+                                UInt uiScaleFac,
+                                UInt uiScaleLimit,
+                                UInt uiGroupMin,
+                                UInt uiGroupMax,
+                                UInt uiStabPeriod )
+{
+  m_pParent      = pParent;
+  m_uiScaleFac   = uiScaleFac;
+  m_uiScaleLimit = uiScaleLimit;
+  m_uiGroupMin   = uiGroupMin;
+  m_uiGroupMax   = uiGroupMax;
+  m_uiInitTable  = uiInitTable;
+  m_uiStabPeriod = uiStabPeriod;
+  Init();
+}
+
+ErrVal
+UcBitGrpWriter::Init()
+{
+  m_auiSymCount[0] = 0;
+  m_auiSymCount[1] = 0;
+  m_uiCode         = 0;
+  m_uiLen          = 0;
+  m_uiFlip         = 0;
+  m_uiTable        = m_uiInitTable;
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UcBitGrpWriter::Write( UChar ucBit )
+{
+  AOF((ucBit & 0xfe) == 0);
+
+  m_auiSymCount[ucBit]++;
+
+  if ( m_uiTable == 0 )
+  {
+    RNOK( m_pParent->writeFlag( ( ucBit ^ m_uiFlip ) != 0 , "" ) );
+    m_uiCode = 0;
+    m_uiLen  = 0;
+    RNOK( xUpdate() );
+  } else {
+    m_uiCode <<= 1;
+    m_uiCode += ucBit;
+    m_uiLen++;
+
+    if ( m_uiLen == ((m_uiTable == 1 ) ? 3 : 4) )
+    {
+      if ( m_uiFlip )
+      {
+        m_uiCode = m_uiCode ^ ((1 << m_uiLen) - 1);
+      }
+      RNOK( m_pParent->writeCode( g_auiISymCode[m_uiTable][m_uiCode], g_auiISymLen[m_uiTable][m_uiCode], "" ) );
+      m_uiCode   = 0;
+      m_uiLen    = 0;
+      RNOK( xUpdate() );
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UcBitGrpWriter::Flush()
+{
+  if ( m_uiLen == 0 )
+    return Err::m_nOK;
+
+  if ( m_uiFlip )
+  {
+    m_uiCode = m_uiCode ^ ((1 << m_uiLen) - 1);
+  }
+  if ( m_uiLen <= 2 )
+  {
+    RNOK( m_pParent->writeCode( m_uiCode, m_uiLen, "" ) );
+  } else {
+    RNOK( m_pParent->writeCode( g_auiISymCode[1][m_uiCode], g_auiISymLen[1][m_uiCode], "" ) );
+  }
+
+  RNOK( xUpdate() );
+
+  m_uiCode = 0;
+  m_uiLen  = 0;
+  return Err::m_nOK;
+}
+
+ErrVal
+UcBitGrpWriter::xUpdate()
+{
+  if (m_auiSymCount[0] + m_auiSymCount[1] > m_uiStabPeriod)
+  {
+    m_uiFlip  = ( m_auiSymCount[0] < m_auiSymCount[1] ) ? 1 : 0;
+    m_uiTable = (m_auiSymCount[m_uiFlip] < 2*m_auiSymCount[1-m_uiFlip]) ? 0
+                  : ((7*m_auiSymCount[1-m_uiFlip]<=m_auiSymCount[m_uiFlip]) ? 2 : 1);
+  }
+
+  if ( m_auiSymCount[0] + m_auiSymCount[1] > m_uiScaleLimit )
+  {
+    m_auiSymCount[0] >>= m_uiScaleFac;
+    m_auiSymCount[1] >>= m_uiScaleFac;
+  }
+
+  return Err::m_nOK;
+}
 
 H264AVC_NAMESPACE_END
