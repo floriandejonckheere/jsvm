@@ -223,7 +223,8 @@ MCTFEncoder::MCTFEncoder()
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
   ::memset( m_apcLowPassTmpOrg, 0x00, sizeof( m_apcLowPassTmpOrg  ) );
 
-  for( UInt ui = 0; ui <= MAX_DSTAGES; ui++ )
+  UInt ui;
+  for( ui = 0; ui <= MAX_DSTAGES; ui++ )
   {
     m_auiNumFramesCoded [ui]  = 0;
     m_auiCurrGOPBitsBase[ui]  = 0;
@@ -2033,11 +2034,12 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   }
   
 
+  UInt uiStage;
   m_uiNotYetConsideredBaseLayerBits = 0;
   UInt* pauiBLGopBitsBase           = m_pcH264AVCEncoder->getGOPBitsBase( m_uiBaseLayerId );
   UInt* pauiBLGopBitsFGS            = m_pcH264AVCEncoder->getGOPBitsFGS ( m_uiBaseLayerId );
  	UInt* pauiBLGopBits								= m_pcH264AVCEncoder->getGOPBits		( m_uiBaseLayerId );
-  for( UInt uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ )
+  for( uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ )
   {
     m_auiCurrGOPBitsBase[uiStage]      = ( pauiBLGopBitsBase ? pauiBLGopBitsBase [uiStage] : 0 );
     m_auiCurrGOPBitsFGS [uiStage]      = ( pauiBLGopBitsFGS  ? pauiBLGopBitsFGS  [uiStage] : 0 );
@@ -3768,7 +3770,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
   }
 
-	m_uiScalableLayerId += m_dNumFGSLayers+1;
+	m_uiScalableLayerId += (UInt)(m_dNumFGSLayers+1);
   return Err::m_nOK;
 }
 
@@ -3987,7 +3989,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   }
-  m_uiScalableLayerId += m_dNumFGSLayers+1;
+  m_uiScalableLayerId += (UInt)(m_dNumFGSLayers+1);
   
   return Err::m_nOK;
 }
