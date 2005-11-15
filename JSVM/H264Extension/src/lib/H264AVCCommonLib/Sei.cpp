@@ -554,6 +554,7 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 	return Err::m_nOK;
 }
 
+ErrVal
 SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 {
   UInt i, j;
