@@ -1599,6 +1599,7 @@ UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
   UInt uiBaseCbp = rcMbDataAccessBase.getMbData().getMbCbp();
   UInt uiCbp     = rcMbDataAccess.getMbData().getMbCbp();
   B8x8Idx uiFirstCbp;
+  UInt ui, uiB;
 
   if (uiFirstCbp == c8x8Idx) {
     // Maintain stats; split CBP by base context
@@ -1607,7 +1608,7 @@ UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
     UInt uiVlc[2]  = {0,0};
     UInt uiBaseCtx;
     UInt uiCBlk;
-    for (UInt ui=0; ui<4; ui++)
+    for (ui=0; ui<4; ui++)
     {
       uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
       uiCBlk    = (uiCbp     & 0xf & (1<<ui)) ? 1 : 0;
@@ -1616,7 +1617,7 @@ UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
       uiCode[uiBaseCtx] |= uiCBlk;
     }
     // Determine optimal VLC for each context, and av symbol size
-    for (UInt uiB=0; uiB<2; uiB++)
+    for (uiB=0; uiB<2; uiB++)
     {
       if ( uiLen[uiB] > 0 )
       {
@@ -1642,20 +1643,20 @@ UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
       }
     }
     // Decide on the optimal VLC
-    for (UInt uiB=0; uiB<2; uiB++)
+    for (uiB=0; uiB<2; uiB++)
     {
       if ( uiLen[uiB] > 0 )
       {
         if ( uiVlc[uiB] == 0 )
         {
-          RNOK( xWriteCode( uiCode[uiB], uiLen[uiB] ) );
+          ANOK( xWriteCode( uiCode[uiB], uiLen[uiB] ) );
         } else {
-          RNOK( xWriteCode(g_auiISymCode[uiVlc[uiB]][uiCode[uiB]], g_auiISymLen[uiVlc[uiB]][uiCode[uiB]]) );
+          ANOK( xWriteCode(g_auiISymCode[uiVlc[uiB]][uiCode[uiB]], g_auiISymLen[uiVlc[uiB]][uiCode[uiB]]) );
         }
       }
     }
     // Update stats
-    for (UInt ui=0; ui<4; ui++)
+    for (ui=0; ui<4; ui++)
     {
       uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
       uiCBlk    = (uiCbp     & 0xf & (1<<ui)) ? 1 : 0;
@@ -1999,8 +2000,9 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
                                  Bool&         rbLast,
                                  UInt&         ruiNumCoefWritten )
 {
+  UInt ui;
   UInt uiBaseLast = 0;
-  for ( UInt ui=0; ui<uiStop; ui++ )
+  for ( ui=0; ui<uiStop; ui++ )
   {
     if ( piCoeffBase[pucScan[ui]] )
     {
@@ -2008,7 +2010,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
     }
   }
   UInt uiCycle = 0;
-  for ( UInt ui=uiStart; ui<uiScanIndex; ui++ )
+  for ( ui=uiStart; ui<uiScanIndex; ui++ )
   {
     if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
     {
@@ -2022,7 +2024,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
   if( rbLast )
   {
     rbLast = true;
-    for( UInt ui = uiScanIndex; ui < uiStop; ui++ )
+    for( ui = uiScanIndex; ui < uiStop; ui++ )
     {
       if( piCoeff[pucScan[ui]] && !piCoeffBase[pucScan[ui]] )
       {
@@ -2034,7 +2036,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
 
       UInt uiCountMag2;
       UInt uiLastPos = 0;
-      for( UInt ui = uiStart; ui < uiStop; ui++ )
+      for( ui = uiStart; ui < uiStop; ui++ )
       {
         if ( ! piCoeffBase[pucScan[ui]] )
           uiLastPos++;
@@ -2086,7 +2088,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
 
   // Check whether any more nonzero values
   Bool bFinished = true;
-  for( UInt ui=uiScanIndex+1; ui<uiStop; ui++ )
+  for( ui=uiScanIndex+1; ui<uiStop; ui++ )
   {
     bFinished &= ( piCoeffBase[pucScan[ui]] != 0 );
     if( !bFinished )
@@ -2118,7 +2120,8 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
   ruiNumMagG1      = 0;
   UInt uiCountMag1 = 0;
   UInt uiMaxMag    = 0;
-  for( UInt ui = uiStart; ui < uiStop; ui++ )
+  UInt ui;
+  for( ui = uiStart; ui < uiStop; ui++ )
   {
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
@@ -2155,7 +2158,7 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
   UInt uiBegin     = 0;
   UInt uiEnd       = uiCountMag1;
   UInt uiCount     = 0;
-  for( UInt ui = uiStart; ui < uiStop; ui++ )
+  for( ui = uiStart; ui < uiStop; ui++ )
   {
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
@@ -2177,7 +2180,7 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
   }
   UInt uiOutstanding = ruiNumMagG1;
   Bool bSeenMaxMag   = false;
-  for( UInt ui = uiStart; ui < uiStop; ui++ )
+  for( ui = uiStart; ui < uiStop; ui++ )
   {
     if( !bSeenMaxMag && uiOutstanding == 1 )
       break;
@@ -2242,7 +2245,7 @@ UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
     {
       if ( uiPos+3 < uiLen )
       {
-        UInt uiCode = ucCode[uiPos]<<2 + ucCode[uiPos+1]<<1 + ucCode[uiPos+2];
+        UInt uiCode = (ucCode[uiPos]<<2) + (ucCode[uiPos+1]<<1) + (ucCode[uiPos+2]);
         RNOK( xWriteCode( vlc_code[uiCode & ((1<<3)-1)], vlc_len[uiCode & ((1<<3)-1)]) );
       } else {
         UInt uiCode = ucCode[uiPos];
@@ -2458,11 +2461,12 @@ UvlcWriter::RQencodeVlcTableMap( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV )
   RNOK( xWriteGolomb( pauiTable[0], 1 ) );
   UInt* auiCol = new UInt[uiMaxV];
   UInt* puiCurrVal = pauiTable;
-  for (UInt uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
+  UInt  uiV, uiH;
+  for (uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
   {
     auiCol[uiV] = 5 - *puiCurrVal;
   }
-  for (UInt uiV=uiMaxV-1; uiV>0; uiV--)
+  for (uiV=uiMaxV-1; uiV>0; uiV--)
   {
     if (auiCol[uiV] == auiCol[uiV-1])
     {
@@ -2473,7 +2477,7 @@ UvlcWriter::RQencodeVlcTableMap( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV )
   }
   RNOK( xEncodeMonSeq( auiCol+1, auiCol[0], uiMaxV-1 ) );
   // Get rid of EOB
-  for (UInt uiV=1; uiV<uiMaxV; uiV++)
+  for (uiV=1; uiV<uiMaxV; uiV++)
   {
     if (auiCol[uiV] == 0)
     {
@@ -2482,14 +2486,14 @@ UvlcWriter::RQencodeVlcTableMap( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV )
   }
   puiCurrVal = pauiTable;
   UInt* auiRow = new UInt[uiMaxH];
-  for (UInt uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
+  for (uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
   {
     auiRow[0] = auiCol[uiV];
-    for (UInt uiH=1; uiH<uiMaxH; uiH++)
+    for (uiH=1; uiH<uiMaxH; uiH++)
     {
       auiRow[uiH] = 5 - puiCurrVal[uiH];
     }
-    for (UInt uiH=uiMaxH-1; uiH>0; uiH--)
+    for (uiH=uiMaxH-1; uiH>0; uiH--)
     {
       if (auiRow[uiH] == auiRow[uiH-1])
       {

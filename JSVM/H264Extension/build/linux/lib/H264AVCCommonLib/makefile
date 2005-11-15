@@ -34,6 +34,7 @@ DEFS			= -DMSYS_LINUX
 OBJS          	= \
 			$(OBJ_DIR)/CabacContextModel.o \
 			$(OBJ_DIR)/CabacContextModel2DBuffer.o \
+			$(OBJ_DIR)/FGSCoder.o \
 			$(OBJ_DIR)/Frame.o \
 			$(OBJ_DIR)/FrameMng.o \
 			$(OBJ_DIR)/FrameUnit.o \

@@ -970,9 +970,15 @@ Void QuarterPelFilter::predBlk4Tap( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer
 Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
 {
   if( giInterpolationType == AR_FGS_MC_INTERP_BILINEAR )
-    return predBlkBilinear(pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX);
+  {
+    predBlkBilinear(pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX);
+    return;
+  }
   else if( giInterpolationType == AR_FGS_MC_INTERP_4_TAP )
-    return predBlk4Tap(pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX);
+  {
+    predBlk4Tap(pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX);
+    return;
+  }
 
   XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
   XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );

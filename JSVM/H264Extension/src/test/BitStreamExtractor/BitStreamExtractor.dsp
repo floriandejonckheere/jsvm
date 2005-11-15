@@ -25,7 +25,7 @@ CFG=BitStreamExtractorStatic - Win32 Debug
 # PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=xicl6.exe
+CPP=cl.exe
 RSC=rc.exe
 
 !IF  "$(CFG)" == "BitStreamExtractorStatic - Win32 Release"
@@ -49,7 +49,7 @@ RSC=rc.exe
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=xilink6.exe
+LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 ws2_32.lib ddraw.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /profile /debug /machine:I386 /out:"..\..\..\..\..\bin\BitStreamExtractorStatic.exe" /libpath:"..\..\..\..\..\lib"
 
@@ -74,7 +74,7 @@ LINK32=xilink6.exe
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LINK32=xilink6.exe
+LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /debug /machine:I386 /pdbtype:sept
 # ADD LINK32 ws2_32.lib ddraw.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /pdb:"..\..\..\..\..\bin\BitStreamExtractorStaticd.pdb" /debug /machine:I386 /out:"..\..\..\..\..\bin\BitStreamExtractorStaticd.exe" /pdbtype:sept /libpath:"..\..\..\..\..\lib"
 # SUBTRACT LINK32 /pdb:none
@@ -101,6 +101,14 @@ SOURCE=.\Extractor.cpp
 
 SOURCE=.\ExtractorParameter.cpp
 # End Source File
+# Begin Source File
+
+SOURCE=.\ScalableModifyCode.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\ScalableTestCode.cpp
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -116,6 +124,14 @@ SOURCE=.\Extractor.h
 # Begin Source File
 
 SOURCE=.\ExtractorParameter.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ScalableModifyCode.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\ScalableTestCode.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

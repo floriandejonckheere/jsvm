@@ -424,7 +424,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_fOutputFrameRate          = pcLayerParameters->getOutputFrameRate();
   m_uiParameterSetBits        = 0;
   
-  for( UInt ui = 0; ui <= MAX_DSTAGES; ui++ )
+  UInt ui;
+  for( ui = 0; ui <= MAX_DSTAGES; ui++ )
   {
     m_auiNumFramesCoded [ui]  = 0;
     m_auiCurrGOPBitsBase[ui]  = 0;
@@ -435,8 +436,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     m_adPSNRSumU        [ui]  = 0.0;
     m_adPSNRSumV        [ui]  = 0.0;
   }
-
-  for( UInt ui = 0; ui < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; ui++ )	
+  for( ui = 0; ui < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; ui++ )	
 	{
 		m_auiCurrGOPBits		[ui] = 0;
 		m_adSeqBits					[ui] = 0.0;
@@ -4973,12 +4973,13 @@ MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
   }
 
   //===== update bit counts etc. =====
-  for( UInt uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
+  UInt uiLevel;
+  for( uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
   {
     m_adSeqBitsBase[uiLevel] += (Double)m_auiCurrGOPBitsBase[uiLevel];
     m_adSeqBitsFGS [uiLevel] += (Double)m_auiCurrGOPBitsFGS [uiLevel];
   }
-  for( UInt uiLevel = 0; uiLevel < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiLevel++ )
+  for( uiLevel = 0; uiLevel < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiLevel++ )
 	{
 		m_adSeqBits		 [uiLevel] += (Double)m_auiCurrGOPBits		[uiLevel];
 	}

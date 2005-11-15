@@ -1069,6 +1069,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   try
   {
     {
+      UInt uiScanPos;
       UInt iStartCycle = 0, iCycle = 0;
       UInt iLastBitsLuma   = 0;
       UInt iLastBitsChroma = 0;
@@ -1119,7 +1120,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       } // macroblock iteration
       
       // Tally over base pos to find EOB shift
-      for (UInt uiScanPos=0; uiScanPos<16; uiScanPos++)
+      for (uiScanPos=0; uiScanPos<16; uiScanPos++)
       {
         auiEobShift[uiScanPos] = 0;
         for (UInt uiHpos=1; uiHpos<16; uiHpos++) {
@@ -1140,7 +1141,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       RNOK( m_pcSymbolWriter->RQencodeEobOffsets_Luma( auiEobShift ) );
 
       // VLC selection for sig coeffs
-      for (UInt uiScanPos=0; uiScanPos<16; uiScanPos++)
+      for (     uiScanPos=0; uiScanPos<16; uiScanPos++)
       for (UInt uiBase   =0; uiBase   <16; uiBase++   )
       {
         UInt uiCutoff;
@@ -1152,7 +1153,6 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           {
             UInt uiSymbol;
             UInt uiCount;
-            UInt uiCodeLen;
             if (uiHpos == 0)
             {
               uiSymbol = auiEobShift[uiScanPos];
@@ -1176,7 +1176,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       }
 
       // Tally over base pos to find EOB shift
-      for (UInt uiScanPos=0; uiScanPos<16; uiScanPos++) {
+      for (uiScanPos=0; uiScanPos<16; uiScanPos++) {
         auiEobShift[uiScanPos] = 0;
         UInt uiEobTotal = 0;
         for (UInt uiBase=0; uiBase<16; uiBase++)

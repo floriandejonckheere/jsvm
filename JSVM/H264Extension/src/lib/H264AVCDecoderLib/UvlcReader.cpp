@@ -645,14 +645,14 @@ Bool UvlcReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
 {
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
 
-  ROFRS( m_bRunLengthCoding, Err::m_nOK );
+  ROFRS( m_bRunLengthCoding, false );
 
   if ( m_uiRun > 0 )
   {
     m_uiRun--;
   } else {
     DTRACE_T( "Run" );
-    RNOK( xGetUvlcCode( m_uiRun ) );
+    ANOK( xGetUvlcCode( m_uiRun ) );
     DTRACE_N;
   }
   rcMbDataAccess.getMbData().setSkipFlag( m_uiRun != 0 );
@@ -663,7 +663,7 @@ Bool UvlcReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
 Bool UvlcReader::isBLSkipped( MbDataAccess& rcMbDataAccess )
 {
   UInt uiCode;
-  DECRNOK( xGetFlag( uiCode ) );
+  ANOK( xGetFlag( uiCode ) );
 
   DTRACE_T( "BLSkipFlag" );
   DTRACE_TY( "ae(v)" );
@@ -679,7 +679,7 @@ Bool UvlcReader::isBLSkipped( MbDataAccess& rcMbDataAccess )
 Bool UvlcReader::isBLQRef( MbDataAccess& rcMbDataAccess )
 {
   UInt uiCode;
-  DECRNOK( xGetFlag( uiCode ) );
+  ANOK( xGetFlag( uiCode ) );
 
   rcMbDataAccess.getMbData().setBLQRefFlag( ( uiCode != 0 ) );
   return rcMbDataAccess.getMbData().getBLQRefFlag();
@@ -706,7 +706,7 @@ ErrVal UvlcReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   DTRACE_T( "ResidualPredFlag" );
   RNOK( xGetFlag( uiCode ) );
   DTRACE_N;
-  rcMbDataAccess.getMbData().setResidualPredFlag( uiCode, PART_16x16 );
+  rcMbDataAccess.getMbData().setResidualPredFlag( uiCode?true:false, PART_16x16 );
 
   return Err::m_nOK;
 }
@@ -898,7 +898,6 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
   const UChar*  pucScan;
   TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
 
-  Int   iLevel;
   Int   iRun      = 0;
   UInt  uiPos;
   UInt  uiMaxPos  = 16;
@@ -976,7 +975,7 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
 {
   TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan;
-  Int           iRun = 0, iLevel;
+  Int           iRun = 0;
   UInt          uiPos, uiMaxPos;
   Int aiLevelRun[32];
 
@@ -1037,7 +1036,7 @@ ErrVal UvlcReader::transformSize8x8Flag( MbDataAccess& rcMbDataAccess )
 
   UInt  uiCode;
   RNOK( xGetFlag( uiCode) );
-  rcMbDataAccess.getMbData().setTransformSize8x8( uiCode );
+  rcMbDataAccess.getMbData().setTransformSize8x8( uiCode?true:false );
 
   DTRACE_V( uiCode );
   DTRACE_N;
@@ -1620,7 +1619,6 @@ ErrVal UvlcReader::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
   TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get8x8( c8x8Idx );
 
   UInt  uiBlk;
-  Int   iLevel;
   Int   iOverallRun = 0;
   UInt  uiPos;
   UInt  uiMaxPos    = 64;
@@ -1743,14 +1741,15 @@ UvlcReader::RQdecodeCBP_8x8( MbDataAccess& rcMbDataAccess,
     UInt uiVlc[3]  = {0,0,0};
     UInt uiBaseCtx;
     UInt uiCBlk;
-    for (UInt ui=0; ui<4; ui++)
+    UInt uiB, ui;
+    for (ui=0; ui<4; ui++)
     {
       uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
       uiLen[uiBaseCtx]++;
       uiLen[2]++;
     }
     // Determine optimal VLC for each context, and av symbol size
-    for (UInt uiB=0; uiB<3; uiB++)
+    for (uiB=0; uiB<3; uiB++)
     {
       if ( uiLen[uiB] > 0 )
       {
@@ -1772,17 +1771,19 @@ UvlcReader::RQdecodeCBP_8x8( MbDataAccess& rcMbDataAccess,
       }
     }
     // Decide on the optimal VLC
-    for (UInt uiB=0; uiB<2; uiB++)
+    for (uiB=0; uiB<2; uiB++)
     {
       if ( uiLen[uiB] > 0 )
       {
         UInt uiFlip = (m_uiCbpStats[uiB][0] <= m_uiCbpStats[uiB][1]) ? 1 : 0;
         if ( uiVlc[uiB] == 0 )
         {
-          RNOK( xGetCode( uiCode[uiB], uiLen[uiB] ) );
-        } else {
+          ANOK( xGetCode( uiCode[uiB], uiLen[uiB] ) );
+        }
+        else
+        {
           UInt uiTemp;
-          RNOK( xCodeFromBitstream2Di( g_auiISymCode[uiVlc[uiB]], g_auiISymLen[uiVlc[uiB]], 16, 1, uiCode[uiB], uiTemp ) );
+          ANOK( xCodeFromBitstream2Di( g_auiISymCode[uiVlc[uiB]], g_auiISymLen[uiVlc[uiB]], 16, 1, uiCode[uiB], uiTemp ) );
         }
         if ( uiFlip )
         {
@@ -1791,7 +1792,7 @@ UvlcReader::RQdecodeCBP_8x8( MbDataAccess& rcMbDataAccess,
       }
     }
     m_uiCbp8x8 = 0;
-    for (UInt ui=0; ui<4; ui++)
+    for (ui=0; ui<4; ui++)
     {
       UInt uiCblk;
       uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
@@ -1799,7 +1800,7 @@ UvlcReader::RQdecodeCBP_8x8( MbDataAccess& rcMbDataAccess,
       m_uiCbp8x8 += ( uiCblk << ui );
     }
     // Update stats
-    for (UInt ui=0; ui<4; ui++)
+    for (ui=0; ui<4; ui++)
     {
       uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
       uiCBlk    = (m_uiCbp8x8     & 0xf & (1<<ui)) ? 1 : 0;
@@ -2201,7 +2202,8 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
                                   UInt&         ruiNumCoefRead )
 {
   UInt uiBaseLast = 0;
-  for ( UInt ui=0; ui<uiStop; ui++ )
+  UInt ui;
+  for (ui=0; ui<uiStop; ui++ )
   {
     if ( piCoeffBase[pucScan[ui]] )
     {
@@ -2209,7 +2211,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
     }
   }
   UInt uiCycle = 0;
-  for ( UInt ui=uiStart; ui<uiScanIndex; ui++ )
+  for (ui=uiStart; ui<uiScanIndex; ui++ )
   {
     if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
     {
@@ -2269,7 +2271,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
 
   // Check whether any more nonzero values
   Bool bFinished = true;
-  for( UInt ui=uiScanIndex+1; ui<uiStop; ui++ )
+  for( ui=uiScanIndex+1; ui<uiStop; ui++ )
   {
     bFinished &= ( piCoeffBase[pucScan[ui]] != 0 );
     if( !bFinished )
@@ -2281,7 +2283,6 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
     RNOK( xGetS3Code( uiSymbol, m_auiVlc[uiCycle*16 + uiBaseLast] ) );
     if( uiSymbol > 0 )
     {
-      UInt uiCountMag2;
       RNOK( xRQdecodeSigMagGreater1( piCoeff, piCoeffBase, pucScan, uiSymbol-1, uiStart, uiStop ) );
     }
   }
@@ -2297,8 +2298,9 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
                                      UInt    uiStop )
 {
   // Find optimal terminating code
+  UInt ui;
   UInt uiCountMag1 = 0;
-  for ( UInt ui=uiStart; ui<uiStop; ui++ )
+  for (ui=uiStart; ui<uiStop; ui++ )
   {
     if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
     {
@@ -2323,7 +2325,7 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
   UInt uiEnd       = uiCountMag1;
   UInt uiRemVal    = uiFlip;
   UInt uiCount     = 0;
-  for (UInt ui=uiStart; ui<uiStop; ui++)
+  for (ui=uiStart; ui<uiStop; ui++)
   {
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
@@ -2343,7 +2345,7 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
 
   UInt uiOutstanding = uiCountMag2;
   Bool bSeenMaxMag   = false;
-  for( UInt ui = uiStart; ui < uiStop; ui++ )
+  for(ui = uiStart; ui < uiStop; ui++ )
   {
     if( !bSeenMaxMag && uiOutstanding == 1 )
       break;
@@ -2368,7 +2370,7 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
         break;
     }
   }
-  for ( UInt ui=uiStart; ui<uiStop; ui++ )
+  for (ui=uiStart; ui<uiStop; ui++ )
   {
     if ( auiRemMag[ui] )
     {
@@ -2387,19 +2389,19 @@ UvlcReader::xRQdecodeTCoeffsRef( TCoeff*       piCoeff,
                                   UInt          uiStop,
                                   UInt          uiNumSig )
 {
-  UChar ucBit;
+  UChar ucBit, ui;
   RNOK( m_pBitGrpRef->Read( ucBit, uiNumSig ) );
   m_auiSigMap[uiScanIndex] = ucBit;
 
   if( uiNumSig == 1 )
   {
     UInt uiLen = 0;
-    for( UInt ui=0; ui<uiStop; ui++ )
+    for( ui=0; ui<uiStop; ui++ )
     {
       if( m_auiSigMap[ui] )
         uiLen++;
     }
-    for( UInt ui=0; ui<uiStop; ui++ )
+    for( ui=0; ui<uiStop; ui++ )
     {
       if( m_auiSigMap[ui] )
       {
@@ -2529,7 +2531,8 @@ UvlcReader::RQdecodeVlcTableMap( UInt uiMaxH, UInt uiMaxV )
   auiCol[0] = 5 - m_auiVlc[0];
   RNOK( xDecodeMonSeq( auiCol+1, auiCol[0], uiMaxV-1 ) );
   // Get rid of EOB
-  for (UInt uiV=1; uiV<uiMaxV; uiV++)
+  UInt uiV;
+  for (uiV=1; uiV<uiMaxV; uiV++)
   {
     if (auiCol[uiV] == 0)
     {
@@ -2539,7 +2542,7 @@ UvlcReader::RQdecodeVlcTableMap( UInt uiMaxH, UInt uiMaxV )
 
   UInt* puiCurrVal = m_auiVlc;
   UInt* auiRow = new UInt[uiMaxH];
-  for (UInt uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
+  for (uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
   {
     auiRow[0] = auiCol[uiV];
     puiCurrVal[0] = (5 - auiCol[uiV]);

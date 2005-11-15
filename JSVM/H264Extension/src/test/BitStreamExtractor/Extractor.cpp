@@ -267,7 +267,6 @@ Extractor::xAnalyse()
   
   //Quality levels information
   UInt uiSEI = 0;
-  UInt ui;
   UInt uiNumFrame;
  
   //Common information to dead substreams and quality levels
