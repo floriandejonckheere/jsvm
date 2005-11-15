@@ -1145,7 +1145,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       for (UInt uiBase   =0; uiBase   <16; uiBase++   )
       {
         UInt uiCutoff;
-        UInt uiBestCost = -1;
+        UInt uiBestCost = UInt(-1);
         for ( uiCutoff = 0; uiCutoff < 16; uiCutoff++ )
         {
           UInt uiCost = 0;

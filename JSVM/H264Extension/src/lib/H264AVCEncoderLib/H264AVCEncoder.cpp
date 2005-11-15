@@ -398,7 +398,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	{
 		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
 		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
-		UInt uiTotalFGSLevel = rcLayer.getNumFGSLayers () + 1;
+		UInt uiTotalFGSLevel = (UInt)rcLayer.getNumFGSLayers () + 1;
 		uiLayerNum += uiTotalTempLevel * uiTotalFGSLevel;
 	}
 	//===== get bitrate information ====
@@ -415,7 +415,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	{
 		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( uiCurrLayer );
 		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
-		UInt uiTotalFGSLevel = rcLayer.getNumFGSLayers () + 1;
+		UInt uiTotalFGSLevel = (UInt)rcLayer.getNumFGSLayers () + 1;
 		Bool bFGSLayerFlag = uiTotalFGSLevel > 1;
 
 		for ( UInt uiCurrTempLevel = 0; uiCurrTempLevel < uiTotalTempLevel; uiCurrTempLevel++ )
@@ -533,11 +533,12 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 
 				if(pcScalableSEI->getInitParameterSetsInfoPresentFlag(uiNumScalableLayer))
 				{
+          UInt j;
 					UInt uiNumInitSPSMinus1 = 0;	//should be changed
 					UInt uiNumInitPPSMinus1 = 0;	//should be changed
 					pcScalableSEI->setNumInitSeqParameterSetMinus1(uiNumScalableLayer, uiNumInitSPSMinus1);
 					pcScalableSEI->setNumInitPicParameterSetMinus1(uiNumScalableLayer, uiNumInitPPSMinus1);
-					for( UInt j = 0; j <= pcScalableSEI->getNumInitSPSMinus1(uiNumScalableLayer); j++)
+					for( j = 0; j <= pcScalableSEI->getNumInitSPSMinus1(uiNumScalableLayer); j++)
 					{
 						UInt uiDelta = 0; //should be changed
 						pcScalableSEI->setInitSeqParameterSetIdDelta( uiNumScalableLayer, j, uiDelta );

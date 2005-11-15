@@ -266,7 +266,8 @@ ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCo
 		if( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) )
 		{
 			pcScalableTestCode->WriteUVLC( pcScalableSei->getNumInitSPSMinus1( uiLayer ) );
-			for( UInt ui = 0; ui <= pcScalableSei->getNumInitSPSMinus1( uiLayer ); ui++ )
+      UInt ui;
+			for( ui = 0; ui <= pcScalableSei->getNumInitSPSMinus1( uiLayer ); ui++ )
 			{
 				//
 			}

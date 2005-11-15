@@ -4985,7 +4985,7 @@ MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
 	{
 		m_adSeqBits		 [uiLevel] += (Double)m_auiCurrGOPBits		[uiLevel];
 	}
-	UInt uiLayerOffset = m_uiScalableLayerId - ( m_uiDecompositionStages-m_uiNotCodedMCTFStages+1 )*( m_dNumFGSLayers+1 );
+	UInt uiLayerOffset = (UInt)m_uiScalableLayerId - ( m_uiDecompositionStages-m_uiNotCodedMCTFStages+1 )*( (UInt)m_dNumFGSLayers+1 );
 	for( uiLevel = 0; uiLevel <= m_uiDecompositionStages-m_uiNotCodedMCTFStages; uiLevel++ )
 		for( UInt uiFGS = 0; uiFGS <= (UInt)m_dNumFGSLayers; uiFGS++ )
 			m_aaauidSeqBits [m_uiLayerId][uiLevel][uiFGS] = m_adSeqBits[uiLayerOffset+uiLevel * ((UInt)m_dNumFGSLayers+1) + uiFGS];
@@ -5194,7 +5194,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   }
 
 
-	UInt uiLayerOffset = m_uiScalableLayerId - ( uiMaxStage+1 )*( m_dNumFGSLayers+1 );
+	UInt uiLayerOffset = (UInt)m_uiScalableLayerId - ( uiMaxStage+1 )*( (UInt)m_dNumFGSLayers+1 );
 	for( uiStage = 1; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
 	{
 		m_adSeqBits	[uiStage]	+= m_adSeqBits	[uiStage-1];

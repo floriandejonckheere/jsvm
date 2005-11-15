@@ -817,7 +817,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage
 			UInt uiNumInitPPSMinus1 = 0;	//should be changed
 			pcNewScalableSei->setNumInitSeqParameterSetMinus1(uiNumScalableLayer, pcOldScalableSei->getNumInitSPSMinus1( uiScalableLayer ) );
 			pcNewScalableSei->setNumInitPicParameterSetMinus1(uiNumScalableLayer, pcOldScalableSei->getNumInitPPSMinus1( uiScalableLayer ) );
-			for( UInt j = 0; j <= pcNewScalableSei->getNumInitSPSMinus1(uiNumScalableLayer); j++)
+      UInt j;
+			for( j = 0; j <= pcNewScalableSei->getNumInitSPSMinus1(uiNumScalableLayer); j++)
 			{
 				//
 			}
@@ -1059,7 +1060,7 @@ Extractor::xExtractLayerLevel()
 				if( uiScalableLayer == uiWantedScalableLayer && bTruncated )
 				{
 					Double dTemp = (Double)uiMaxBitrate/m_cScalableStreamDescription.getBitrateOfScalableLayers( uiWantedScalableLayer );
-					UInt uiSize = floor(pcBinData->size()  * dTemp );
+					UInt uiSize = (UInt)floor(pcBinData->size()  * dTemp );
 					pcBinData->decreaseEndPos( pcBinData->size() - uiSize );
 				}
 			RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );

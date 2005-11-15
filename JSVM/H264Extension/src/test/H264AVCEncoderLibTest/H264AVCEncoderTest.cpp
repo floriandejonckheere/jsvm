@@ -380,6 +380,7 @@ H264AVCEncoderTest::go()
   PicBufferList           acPicBufferOutputList   [MAX_LAYERS];
   PicBufferList           acPicBufferUnusedList   [MAX_LAYERS];
   ExtBinDataAccessorList  cOutExtBinDataAccessorList;
+  Bool                    bMoreSets;
 
   
   //===== initialization =====
@@ -387,7 +388,7 @@ H264AVCEncoderTest::go()
 
 
   //===== write parameter sets =====
-  for( Bool bMoreSets = true; bMoreSets;  )
+  for( bMoreSets = true; bMoreSets;  )
   {
     UChar   aucParameterSetBuffer[1000];
     BinData cBinData;
