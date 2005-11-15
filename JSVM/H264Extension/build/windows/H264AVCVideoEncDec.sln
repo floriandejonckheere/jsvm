@@ -1,0 +1,122 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BitStreamExtractorStatic", "..\..\src\test\BitStreamExtractor\BitStreamExtractor.vcproj", "{88A96066-A5FA-41D0-82B5-AB2A4B51DB08}"
+	ProjectSection(ProjectDependencies) = postProject
+		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
+		{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6} = {E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}
+		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DownConvertStatic", "..\..\src\tools\DownConvert\DownConvertStatic.vcproj", "{E89A623A-EE7D-41A0-921A-26472D977E2D}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EncoderBitstreamMerger", "..\..\SRC\TEST\EncoderBitstreamMerger\EncoderBitstreamMerger.vcproj", "{51673EE3-0E29-4CFE-857D-E3B104F08F27}"
+	ProjectSection(ProjectDependencies) = postProject
+		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777} = {429A9314-F0A4-46E4-9B79-CF1FBEFBB777}
+		{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6} = {E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}
+		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FixedQPEncoderStatic", "..\..\src\test\FixedQPEncoder\FixedQPEncoder.vcproj", "{C5ED719C-55C1-4C07-97C5-20FD17EB5297}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "H264AVCCommonLibStatic", "..\..\src\lib\H264AVCCommonLib\H264AVCCommonLibStatic.vcproj", "{5C23B105-7DEC-40A8-86B8-612F117880E9}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "H264AVCDecoderLibStatic", "..\..\src\lib\H264AVCDecoderLib\H264AVCDecoderLibStatic.vcproj", "{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "H264AVCDecoderLibTestStatic", "..\..\src\test\H264AVCDecoderLibTest\H264AVCDecoderLibTestStatic.vcproj", "{E1129CA9-6027-4460-B239-CB48A593AF07}"
+	ProjectSection(ProjectDependencies) = postProject
+		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
+		{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6} = {E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}
+		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "H264AVCEncoderLibStatic", "..\..\src\lib\H264AVCEncoderLib\H264AVCEncoderLibStatic.vcproj", "{429A9314-F0A4-46E4-9B79-CF1FBEFBB777}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "H264AVCEncoderLibTestStatic", "..\..\src\test\H264AVCEncoderLibTest\H264AVCEncoderLibTestStatic.vcproj", "{2B585AEA-D48A-412E-9DEB-ADB44FB79648}"
+	ProjectSection(ProjectDependencies) = postProject
+		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777} = {429A9314-F0A4-46E4-9B79-CF1FBEFBB777}
+		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "H264AVCVideoIoLibStatic", "..\..\src\lib\H264AVCVideoIoLib\H264AVCVideoIoLibStatic.vcproj", "{82257DCF-2D80-412C-8416-128CE791E930}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PSNRStatic", "..\..\src\tools\PSNR\PSNRStatic.vcproj", "{E4058406-161E-45E5-A71A-F54939AE8AC5}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SourceCodeControl) = preSolution
+		SccNumberOfProjects = 1
+		SccProjectUniqueName0 = ..\\..\\src\\lib\\H264AVCCommonLib\\H264AVCCommonLibStatic.vcproj
+		SccProjectName0 = H264AVCCommonLibStatic
+		SccLocalPath0 = ..\\..
+		SccProvider0 = MSSCCI:Microsoft\u0020Visual\u0020SourceSafe
+		SccProjectFilePathRelativizedFromConnection0 = src\\lib\\H264AVCCommonLib\\
+	EndGlobalSection
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{88A96066-A5FA-41D0-82B5-AB2A4B51DB08}.Debug.ActiveCfg = Debug|Win32
+		{88A96066-A5FA-41D0-82B5-AB2A4B51DB08}.Debug.Build.0 = Debug|Win32
+		{88A96066-A5FA-41D0-82B5-AB2A4B51DB08}.Release.ActiveCfg = Release|Win32
+		{88A96066-A5FA-41D0-82B5-AB2A4B51DB08}.Release.Build.0 = Release|Win32
+		{E89A623A-EE7D-41A0-921A-26472D977E2D}.Debug.ActiveCfg = Debug|Win32
+		{E89A623A-EE7D-41A0-921A-26472D977E2D}.Debug.Build.0 = Debug|Win32
+		{E89A623A-EE7D-41A0-921A-26472D977E2D}.Release.ActiveCfg = Release|Win32
+		{E89A623A-EE7D-41A0-921A-26472D977E2D}.Release.Build.0 = Release|Win32
+		{51673EE3-0E29-4CFE-857D-E3B104F08F27}.Debug.ActiveCfg = Debug|Win32
+		{51673EE3-0E29-4CFE-857D-E3B104F08F27}.Debug.Build.0 = Debug|Win32
+		{51673EE3-0E29-4CFE-857D-E3B104F08F27}.Release.ActiveCfg = Release|Win32
+		{51673EE3-0E29-4CFE-857D-E3B104F08F27}.Release.Build.0 = Release|Win32
+		{C5ED719C-55C1-4C07-97C5-20FD17EB5297}.Debug.ActiveCfg = Debug|Win32
+		{C5ED719C-55C1-4C07-97C5-20FD17EB5297}.Debug.Build.0 = Debug|Win32
+		{C5ED719C-55C1-4C07-97C5-20FD17EB5297}.Release.ActiveCfg = Release|Win32
+		{C5ED719C-55C1-4C07-97C5-20FD17EB5297}.Release.Build.0 = Release|Win32
+		{5C23B105-7DEC-40A8-86B8-612F117880E9}.Debug.ActiveCfg = Debug|Win32
+		{5C23B105-7DEC-40A8-86B8-612F117880E9}.Debug.Build.0 = Debug|Win32
+		{5C23B105-7DEC-40A8-86B8-612F117880E9}.Release.ActiveCfg = Release|Win32
+		{5C23B105-7DEC-40A8-86B8-612F117880E9}.Release.Build.0 = Release|Win32
+		{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}.Debug.ActiveCfg = Debug|Win32
+		{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}.Debug.Build.0 = Debug|Win32
+		{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}.Release.ActiveCfg = Release|Win32
+		{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}.Release.Build.0 = Release|Win32
+		{E1129CA9-6027-4460-B239-CB48A593AF07}.Debug.ActiveCfg = Debug|Win32
+		{E1129CA9-6027-4460-B239-CB48A593AF07}.Debug.Build.0 = Debug|Win32
+		{E1129CA9-6027-4460-B239-CB48A593AF07}.Release.ActiveCfg = Release|Win32
+		{E1129CA9-6027-4460-B239-CB48A593AF07}.Release.Build.0 = Release|Win32
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777}.Debug.ActiveCfg = Debug|Win32
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777}.Debug.Build.0 = Debug|Win32
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777}.Release.ActiveCfg = Release|Win32
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777}.Release.Build.0 = Release|Win32
+		{2B585AEA-D48A-412E-9DEB-ADB44FB79648}.Debug.ActiveCfg = Debug|Win32
+		{2B585AEA-D48A-412E-9DEB-ADB44FB79648}.Debug.Build.0 = Debug|Win32
+		{2B585AEA-D48A-412E-9DEB-ADB44FB79648}.Release.ActiveCfg = Release|Win32
+		{2B585AEA-D48A-412E-9DEB-ADB44FB79648}.Release.Build.0 = Release|Win32
+		{82257DCF-2D80-412C-8416-128CE791E930}.Debug.ActiveCfg = Debug|Win32
+		{82257DCF-2D80-412C-8416-128CE791E930}.Debug.Build.0 = Debug|Win32
+		{82257DCF-2D80-412C-8416-128CE791E930}.Release.ActiveCfg = Release|Win32
+		{82257DCF-2D80-412C-8416-128CE791E930}.Release.Build.0 = Release|Win32
+		{E4058406-161E-45E5-A71A-F54939AE8AC5}.Debug.ActiveCfg = Debug|Win32
+		{E4058406-161E-45E5-A71A-F54939AE8AC5}.Debug.Build.0 = Debug|Win32
+		{E4058406-161E-45E5-A71A-F54939AE8AC5}.Release.ActiveCfg = Release|Win32
+		{E4058406-161E-45E5-A71A-F54939AE8AC5}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
