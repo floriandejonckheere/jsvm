@@ -671,6 +671,7 @@ SEI::SubPicSei::~SubPicSei ()
 {
 }
 
+ErrVal
 SEI::SubPicSei::create( SubPicSei*& rpcSeiMessage)
 {
 	rpcSeiMessage = new SubPicSei();
@@ -678,12 +679,14 @@ SEI::SubPicSei::create( SubPicSei*& rpcSeiMessage)
 	return Err::m_nOK;
 }
 
+ErrVal
 SEI::SubPicSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
 	RNOK	( pcWriteIf->writeUvlc( m_uiLayerId, "Sub-picture scalable SEI: m_uiLayerId" ) );
 	return Err::m_nOK;
 }
 
+ErrVal
 SEI::SubPicSei::read( HeaderSymbolReadIf *pcReadIf )
 {
 	RNOK	( pcReadIf->getUvlc( m_uiLayerId, "Sub-picture scalable SEI: m_uiLayerd" ) );
