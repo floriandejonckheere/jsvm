@@ -3,7 +3,6 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="H264AVCEncoderLibStatic"
-	ProjectGUID="{C119DED4-31CC-40B0-AD5D-96CEC499AC3E}"
 	SccProjectName=""
 	SccLocalPath="">
 	<Platforms>
@@ -18,17 +17,11 @@
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2"
-			WholeProgramOptimization="FALSE">
+			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="1"
-				OptimizeForProcessor="3"
-				OptimizeForWindowsApplication="TRUE"
+				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;EXCEL=1;USE_NAMESPACE_H264AVC"
 				StringPooling="TRUE"

@@ -4,8 +4,7 @@
 	Version="7.10"
 	Name="H264AVCDecoderLibTestStatic"
 	SccProjectName=""
-	SccLocalPath=""
-	ProjectGUID="{88A3E6F0-A268-42EC-A4BE-15F7122185BC}">
+	SccLocalPath="">
 	<Platforms>
 		<Platform
 			Name="Win32"/>

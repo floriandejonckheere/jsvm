@@ -4,8 +4,7 @@
 	Version="7.10"
 	Name="DownConvertStatic"
 	SccProjectName=""
-	SccLocalPath=""
-	ProjectGUID="{A9AB7B8B-D1AE-4AA0-B1BD-696B22C1579B}">
+	SccLocalPath="">
 	<Platforms>
 		<Platform
 			Name="Win32"/>

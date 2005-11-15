@@ -3,7 +3,6 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="H264AVCVideoIoLibStatic"
-	ProjectGUID="{6733F303-4133-4392-B2D6-C51BCFF2457F}"
 	SccProjectName=""
 	SccLocalPath="">
 	<Platforms>
@@ -18,17 +17,11 @@
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2"
-			WholeProgramOptimization="FALSE">
+			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="1"
-				OptimizeForProcessor="3"
-				OptimizeForWindowsApplication="TRUE"
+				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCVIDEOIOLIB_LIB"
 				StringPooling="TRUE"

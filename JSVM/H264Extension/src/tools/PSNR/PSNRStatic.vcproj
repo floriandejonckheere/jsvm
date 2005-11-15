@@ -4,8 +4,7 @@
 	Version="7.10"
 	Name="PSNRStatic"
 	SccProjectName=""
-	SccLocalPath=""
-	ProjectGUID="{776090EF-5F55-4262-B215-2D965CEF74FB}">
+	SccLocalPath="">
 	<Platforms>
 		<Platform
 			Name="Win32"/>

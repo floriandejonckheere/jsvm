@@ -3,7 +3,6 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="H264AVCEncoderLibTestStatic"
-	ProjectGUID="{B7A146EC-90DD-490F-BF5F-A3FEA1758B53}"
 	SccProjectName=""
 	SccLocalPath="">
 	<Platforms>
@@ -48,8 +47,7 @@
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="..\..\..\..\..\bin\H264AVCEncoderLibTestStaticd.pdb"
 				SubSystem="1"
-				TargetMachine="1"
-				FixedBaseAddress="1"/>
+				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"
 				TypeLibraryName=".\..\..\..\build\windows\test\H264AVCEncoderLibTest\DebugStatic/H264AVCEncoderLibTestStatic.tlb"
@@ -82,17 +80,11 @@
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2"
-			WholeProgramOptimization="FALSE">
+			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="1"
-				OptimizeForProcessor="3"
-				OptimizeForWindowsApplication="TRUE"
+				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="NDEBUG;EXCEL=1;WIN32;_CONSOLE;H264AVCVIDEOIOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB"
 				StringPooling="TRUE"

@@ -3,9 +3,8 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="H264AVCCommonLibStatic"
-	ProjectGUID="{63E1ECB3-33DC-4CF0-B10E-61BE65F8F84C}"
-	SccProjectName=""
-	SccLocalPath="">
+	SccProjectName="H264AVCCommonLibStatic"
+	SccLocalPath="..\..\..">
 	<Platforms>
 		<Platform
 			Name="Win32"/>
@@ -70,17 +69,11 @@
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
-			CharacterSet="2"
-			WholeProgramOptimization="FALSE">
+			CharacterSet="2">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="2"
-				EnableIntrinsicFunctions="TRUE"
-				FavorSizeOrSpeed="1"
-				OptimizeForProcessor="3"
-				OptimizeForWindowsApplication="TRUE"
+				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;USE_NAMESPACE_H264AVC"
 				StringPooling="TRUE"
@@ -152,6 +145,26 @@
 			</File>
 			<File
 				RelativePath="CabacContextModel2DBuffer.cpp">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BasicRuntimeChecks="3"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="2"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="FGSCoder.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -653,7 +666,24 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\ResizeParameters.cpp">
+				RelativePath="ResizeParameters.cpp">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BasicRuntimeChecks="3"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="2"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="SampleWeighting.cpp">
@@ -922,6 +952,9 @@
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\ControlMngIf.h">
+			</File>
+			<File
+				RelativePath="..\..\..\include\H264AVCCommonLib\FGSCoder.h">
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\Frame.h">

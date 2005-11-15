@@ -4,8 +4,7 @@
 	Version="7.10"
 	Name="FixedQPEncoderStatic"
 	SccProjectName=""
-	SccLocalPath=""
-	ProjectGUID="{BF690007-45B1-456A-B968-58FAC446FB43}">
+	SccLocalPath="">
 	<Platforms>
 		<Platform
 			Name="Win32"/>

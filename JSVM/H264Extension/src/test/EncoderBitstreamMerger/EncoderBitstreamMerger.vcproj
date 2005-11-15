@@ -3,7 +3,6 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="EncoderBitstreamMerger"
-	ProjectGUID="{ABCBD27F-E438-4F69-AE5C-E38CF8A5F88B}"
 	SccProjectName=""
 	SccLocalPath="">
 	<Platforms>
@@ -13,8 +12,8 @@
 	<Configurations>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic"
+			IntermediateDirectory=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
@@ -24,30 +23,32 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;H264AVCVIDEOIOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;H264AVCENCODERLIB_LIB"
 				StringPooling="TRUE"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="TRUE"
 				UsePrecompiledHeader="2"
-				PrecompiledHeaderFile=".\Release/EncoderBitstreamMerger.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				PrecompiledHeaderFile=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/EncoderBitstreamMerger.pch"
+				AssemblerListingLocation=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/"
+				ObjectFile=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/"
+				ProgramDataBaseFileName=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE"/>
+				SuppressStartupBanner="TRUE"
+				CompileAs="0"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile=".\Release/EncoderBitstreamMerger.exe"
+				OutputFile="..\..\..\..\..\bin\EncoderBitstreamMerger.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				ProgramDatabaseFile=".\Release/EncoderBitstreamMerger.pdb"
+				AdditionalLibraryDirectories="..\..\..\..\..\lib"
+				ProgramDatabaseFile="..\..\..\..\..\bin\EncoderBitstreamMerger.pdb"
 				SubSystem="1"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Release/EncoderBitstreamMerger.tlb"
+				TypeLibraryName=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/EncoderBitstreamMerger.tlb"
 				HeaderFileName=""/>
 			<Tool
 				Name="VCPostBuildEventTool"/>
@@ -144,6 +145,7 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						Optimization="2"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -163,6 +165,7 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						Optimization="2"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -182,6 +185,7 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						Optimization="2"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -201,6 +205,7 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						Optimization="2"
+						AdditionalIncludeDirectories=""
 						PreprocessorDefinitions=""/>
 				</FileConfiguration>
 				<FileConfiguration
