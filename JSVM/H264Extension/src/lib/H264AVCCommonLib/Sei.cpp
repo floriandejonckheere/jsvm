@@ -454,9 +454,11 @@ SEI::ScalableSei::create( ScalableSei*& rpcSeiMessage )
 ErrVal
 SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
+  UInt i, j;
+
 	ROF( m_num_layers_minus1+1 );
 	RNOK		( pcWriteIf->writeUvlc(m_num_layers_minus1,													"ScalableSEI: num_layers_minus1"											) );
-	for( UInt i = 0; i <= m_num_layers_minus1; i++ )
+	for( i = 0; i <= m_num_layers_minus1; i++ )
 	{
 		RNOK	( pcWriteIf->writeCode( m_layer_id[i],												8,		"ScalableSEI: layer_id"															) );
 		RNOK	( pcWriteIf->writeFlag( m_fgs_layer_flag[i],												"ScalableSEI: fgs_layer_flag"												) );
@@ -521,7 +523,7 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 		if ( m_layer_dependency_info_present_flag[i] )
 		{
 			RNOK	( pcWriteIf->writeUvlc ( m_num_directly_dependent_layers[i],			"ScalableSEI: num_directly_dependent_layers"					) );
-			for ( UInt j = 0; j < MAX_SCALABLE_LAYERS; j++ )
+			for ( j = 0; j < MAX_SCALABLE_LAYERS; j++ )
 				m_directly_dependent_layer_id_delta[j] = new UInt [m_num_directly_dependent_layers[i]];
 			for ( j = 0; j < m_num_directly_dependent_layers[i]; j++ )
 			{
@@ -533,7 +535,7 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 		{
 
 			RNOK	( pcWriteIf->writeUvlc ( m_num_init_seq_parameter_set_minus1[i],	"ScalableSEI: num_init_seq_parameter_set_minus1"			) );
-			for ( UInt j = 0; j < MAX_SCALABLE_LAYERS; j++ )
+			for ( j = 0; j < MAX_SCALABLE_LAYERS; j++ )
 				m_init_seq_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i]+1];
 			for ( j = 0; j <= m_num_init_seq_parameter_set_minus1[i]; j++ )
 			{
@@ -554,10 +556,11 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 
 SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 {
+  UInt i, j;
 
 	RNOK	( pcReadIf->getUvlc( m_num_layers_minus1 ,																""	) );
 
-	for ( UInt i = 0; i <= m_num_layers_minus1; i++ )
+	for ( i = 0; i <= m_num_layers_minus1; i++ )
 	{
 		RNOK	( pcReadIf->getCode( m_layer_id[i],																	8,			""	) );
 		RNOK	( pcReadIf->getFlag( m_fgs_layer_flag[i],																""	) );
@@ -625,7 +628,7 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 		{
 			RNOK	( pcReadIf->getUvlc( m_num_directly_dependent_layers[i],								""	) );
 			m_directly_dependent_layer_id_delta[i] = new UInt [ m_num_directly_dependent_layers[i] ];
-			for( UInt j = 0; j < m_num_directly_dependent_layers[i]; j++)
+			for( j = 0; j < m_num_directly_dependent_layers[i]; j++)
 			{
 				RNOK	( pcReadIf->getUvlc( m_directly_dependent_layer_id_delta[i][j],				""  ) );
 			}
@@ -635,7 +638,7 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 		{
 			RNOK	( pcReadIf->getUvlc( m_num_init_seq_parameter_set_minus1[i],						""  ) );
 			m_init_seq_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i] + 1 ];
-			for( UInt j = 0; j <= m_num_init_seq_parameter_set_minus1[i]; j++ )
+			for( j = 0; j <= m_num_init_seq_parameter_set_minus1[i]; j++ )
 			{
 				RNOK	( pcReadIf->getUvlc( m_init_seq_parameter_set_id_delta[i][j],					""	) );
 			}
