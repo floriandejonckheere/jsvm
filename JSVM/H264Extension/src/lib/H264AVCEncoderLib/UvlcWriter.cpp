@@ -2432,10 +2432,11 @@ ErrVal
 UvlcWriter::xRQencodeEobOffsets( UInt* auiSeq, UInt uiMax )
 {
   UInt uiNumEnd = 0;
-  for (UInt uiEc=0; uiEc<uiMax && auiSeq[uiEc] == uiMax-1 && uiNumEnd<4; uiEc++)
+  for (UInt uiEc=0; uiEc<uiMax && auiSeq[uiEc] == uiMax-1 && uiNumEnd<3; uiEc++)
   {
     uiNumEnd++;
   }
+
   if ( uiNumEnd )
   {
     RNOK( xWriteGolomb( uiNumEnd-1, 1 ) );
