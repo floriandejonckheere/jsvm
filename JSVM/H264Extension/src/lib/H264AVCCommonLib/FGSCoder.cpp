@@ -685,6 +685,7 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
 }
 
 
+ErrVal
 FGSCoder::xScale4x4Block( TCoeff*            piCoeff,
                           const UChar*       pucScale,
                           UInt               uiStart,
