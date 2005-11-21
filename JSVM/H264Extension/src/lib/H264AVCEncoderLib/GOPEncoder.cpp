@@ -635,8 +635,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 		  for(j = 0; j < line; j++) 
       {
 			  UInt sum = 0;
-			  //for(i = 0;sum < (1<<(4+m_uiLayerId)); i++) 
-        for(i = 0;sum < (1<<(pcLayerParameters->getDecompositionStages())); i++)
+        for(i = 0;sum < (UInt)(1<<(pcLayerParameters->getDecompositionStages())); i++)
         {
 				  fscanf(d_gop, "%d ", &temp);
 				  if (temp > 6)
@@ -666,7 +665,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 
 
 
-__inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; ( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
+__inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; (UInt)( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
 
 ErrVal
 MCTFEncoder::initParameterSets( const SequenceParameterSet& rcSPS,
@@ -2866,7 +2865,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 1 =====
   {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
@@ -2922,7 +2921,7 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 1 =====
   {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
       RNOK( xFillAndExtendFrame   ( pcFrame ) );
@@ -2979,7 +2978,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 1 =====
   {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 
@@ -3046,7 +3045,7 @@ MCTFEncoder::xGetUpdateLists( RefFrameList& rcRefList0,
 
   //===== list 1 =====
   {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame*     pcFrame       =  m_papcResidual   [ iFrameId << uiBaseLevel ];
       ControlData*  pcControlData = &m_pacControlData [ iFrameId << uiBaseLevel ];
@@ -4153,7 +4152,7 @@ MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
     printf("\nDECOMPOSITION:\n");
 
     //===== MCTF decomposition =====
-    for( iLevel = 0; iLevel < m_uiDecompositionStages; iLevel++ )
+    for( iLevel = 0; iLevel < (Int)m_uiDecompositionStages; iLevel++ )
     {
       RNOK( xMotionEstimationStage  ( iLevel ) );
       RNOK( xDecompositionStage     ( iLevel ) );
@@ -4185,7 +4184,7 @@ MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
     }
 
     //===== decomposition =====
-    for( iLevel = m_uiNotCodedMCTFStages; iLevel < m_uiDecompositionStages; iLevel++ )
+    for( iLevel = m_uiNotCodedMCTFStages; iLevel < (Int)m_uiDecompositionStages; iLevel++ )
     {
       RNOK( xDecompositionStage     ( iLevel ) );
     }
@@ -4413,10 +4412,10 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		rcPicBufferOutputList_temp.clear();
 		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;
 
-    for(i = 0; i < (1<<(GN - m_uiDecompositionStages)); i++) 
+    for(i = 0; i < (Int)(1<<(GN - m_uiDecompositionStages)); i++) 
     {
 			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (1<<m_uiDecompositionStages) + first; j++) 
+      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
       {
 				if (rcPicBufferInputList_temp.size() == 0) break;
 				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
@@ -4485,10 +4484,10 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		rcPicBufferOutputList_temp.clear();
 		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;
 		
-    for(i = 0; i < (1<<(GN-m_uiDecompositionStages)); i++) 
+    for(i = 0; i < (Int)(1<<(GN-m_uiDecompositionStages)); i++) 
     {
 			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (1<<m_uiDecompositionStages) + first; j++) 
+      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
       {
 				if (rcPicBufferInputList_temp.size() == 0) break;
 				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
@@ -4557,10 +4556,10 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		rcPicBufferOutputList_temp.clear();
 		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;			
 
-    for(i = 0; i < (1<<(GN-m_uiDecompositionStages)); i++) 
+    for(i = 0; i < (Int)(1<<(GN-m_uiDecompositionStages)); i++) 
     {
 			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (1<<m_uiDecompositionStages) + first; j++) 
+      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
       {
 				if (rcPicBufferInputList_temp.size() == 0) break;
 				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
@@ -4629,10 +4628,10 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		rcPicBufferOutputList_temp.clear();
 		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;			
 
-    for(i = 0; i < (1<<(GN-m_uiDecompositionStages)); i++) 
+    for(i = 0; i < (Int)(1<<(GN-m_uiDecompositionStages)); i++) 
     {
 			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (1<<m_uiDecompositionStages) + first; j++) 
+      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
       {
 				if (rcPicBufferInputList_temp.size() == 0) break;
 				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
@@ -4654,7 +4653,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 
 		fclose(m_pMotionInfoFile);
 		fclose(m_pFGSFile);
-		for (i = 0; i < GN+1; i++)
+		for (i = 0; i < (Int)GN+1; i++)
 			delete mse[i];
 		delete mse;
 		m_pMotionInfoFile = pMotionInfoFile;
@@ -4727,7 +4726,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		for(i = 0; (i < 8) &&  m_puiGOPMode[i]; i++) {
 			m_uiSelectPos = i;
 			if (rcPicBufferInputList_temp.size() == 0) break;
-			for(j = 0; j < (1<<m_puiGOPMode[i]) + first; j++) 
+			for(j = 0; j < (Int)(1<<m_puiGOPMode[i]) + (Int)first; j++) 
       {
 				if (rcPicBufferInputList_temp.size() == 0) break;
 				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
@@ -4755,7 +4754,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		first = 0;
 		m_puiGOPMode[0] = m_uiSelect[order][m_uiSelectPos];	
     
-		for(i = 0; i < m_uiSelectPos;i++) 
+		for(i = 0; i < (Int)m_uiSelectPos;i++) 
     {
 			pre_encoded += 1 << m_uiSelect[order][i];
 		}
@@ -4768,7 +4767,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
     if (m_bFinish)
       return Err::m_nOK;
 
-    if ((Int)rcPicBufferInputList.size()-(Int)pre_encoded < m_uiSelect[order][m_uiSelectPos]) 
+    if ((Int)rcPicBufferInputList.size()-(Int)pre_encoded < (Int)m_uiSelect[order][m_uiSelectPos]) 
     {
       m_puiGOPMode[0] = rcPicBufferInputList.size() - (Int)pre_encoded;
       m_bFinish = 1;
@@ -4781,7 +4780,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		rcPicBufferOutputList_temp.clear();
 		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;
 		
-		for (i = 0; i < pre_encoded; i++) 
+		for (i = 0; i < (Int)pre_encoded; i++) 
     {
 			if (rcPicBufferInputList_temp.size() == 0) break;
 			rcPicBufferInputList_temp.pop_front();			
@@ -4789,7 +4788,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			rcPicBufferOutputList_temp.pop_front();
 		}
 		
-		for(j = 0; j < (1<<m_puiGOPMode[0]) + first; j++) 
+		for(j = 0; j < (Int)(1<<m_puiGOPMode[0]) + (Int)first; j++) 
     {
 			if (rcPicBufferInputList_temp.size() == 0) break;
 			rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
@@ -5489,7 +5488,7 @@ MCTFEncoder::xGetFrameNumList( SliceHeader& rcSH, UIntList& rcFrameNumList, List
 
   if( eLstIdx == LIST_1 )
   {
-    for( Int i = uiCurrBasePos+1; i <= m_uiGOPSize; i++ )
+    for( Int i = (Int)uiCurrBasePos+1; i <= (Int)m_uiGOPSize; i++ )
     {
       if( m_pacControlData[i].getSliceHeader()->getTemporalLevel() < uiLevel )
       {
@@ -5580,7 +5579,7 @@ MCTFEncoder::xFillPredictionLists_ESS( UInt          uiBaseLevel,
 
     //===== list 1 =====
     idx=0;
-    for( iFrameId = Int( uiFrame + 1 ); iFrameId <= ( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
         IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
         m_pcResizeParameters->m_aiRefListPoc[1][idx++]=pcFrame->getPOC();	

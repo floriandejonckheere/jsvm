@@ -1223,7 +1223,7 @@ Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ru
   Int  iStartY     = cStrukt.iBestY;  //   6 7 8
 
   // fist search
-  for( iDist = 1; iDist <= uiSearchRange; iDist*=2 )
+  for( iDist = 1; iDist <= (Int)uiSearchRange; iDist*=2 )
   {
     if( bFirstSearchDiamond == 1 )
     {
@@ -1246,7 +1246,7 @@ Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ru
     if( (cStrukt.iBestX == 0) && (cStrukt.iBestY == 0) )
     {
       // test his neighborhood
-      for( iDist = 1; iDist <= uiSearchRange; iDist*=2 )
+      for( iDist = 1; iDist <= (Int)uiSearchRange; iDist*=2 )
       {
         xTZ8PointDiamondSearch( cStrukt, cSearchRect, 0, 0, iDist );
         if( bTestZeroVectorStop && (cStrukt.uiBestRound > 0) ) // stop criterion
@@ -1317,7 +1317,7 @@ Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ru
       iStartY                 = cStrukt.iBestY;
       cStrukt.uiBestDistance  = 0;
       cStrukt.ucPointNr       = 0;
-      for( iDist = 1; iDist < uiSearchRange + 1; iDist*=2 )
+      for( iDist = 1; iDist < (Int)uiSearchRange + 1; iDist*=2 )
       {
         if( bStarRefinementDiamond == 1 )
         {

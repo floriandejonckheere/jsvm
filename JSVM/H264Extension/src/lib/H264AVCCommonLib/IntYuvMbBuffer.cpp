@@ -744,12 +744,12 @@ Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, UInt uiSize, XPel *puc
     iAdd   =-1;
   }
 
-  for( x = 0; x <= uiSize; x++ )
+  for( x = 0; x <= (Int)uiSize; x++ )
   {
     pPelH[x] = puc[(x-1)*iAdd - iStride];
   }	
 
-  for( y = 0; y <= uiSize; y++ )
+  for( y = 0; y <= (Int)uiSize; y++ )
   {
     pPelV[y] = puc[(y-1)*iStride - iAdd];
   }	
@@ -759,9 +759,9 @@ Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, UInt uiSize, XPel *puc
     pPelV[0] = pPelH[0] = (pPelH[1] + pPelV[1] + 1)>>1;
   }
 
-  for( y = 0; y < uiSize; y++, puc += iStride )
+  for( y = 0; y < (Int)uiSize; y++, puc += iStride )
   {
-    for( xo = 0, x = 0; x < uiSize; x++, xo += iAdd )
+    for( xo = 0, x = 0; x < (Int)uiSize; x++, xo += iAdd )
     {
       const Int iOffset = x-y;
 	    if( iOffset > 0 )

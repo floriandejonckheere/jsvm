@@ -217,9 +217,7 @@ public:
   //if there is R/D information (with or without Dead substreams)
   ErrVal        go_QL                  ();
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-#ifdef JVT_Q081
-  ErrVal        xExtractPointsClosedLoop      ();
-#endif
+
 protected:
   ErrVal        xAnalyse            ();
   ErrVal        xPrimaryAnalyse            ();
@@ -284,17 +282,6 @@ protected:
   Bool IsFrameToCut(UInt uiFrame);
   Void AllocateAndInitializeDatas();
 
-#ifdef JVT_Q081
-  Bool useCLExtraction() { return m_bUsedCLExtraction; } 
-  UInt getFGSMaxCL() { return m_uiFGSMaxCL; }
-  UInt getLevelMaxCL() { return m_uiLevelMaxCL; }
-  UInt getLayerMaxCL() { return m_uiLayerMaxCL; }
-  ErrVal xAnalyseStreamForDsAndQL();
-#endif
-#ifdef JVT_P029
-  ErrVal        xExtractPoints_ForQLEstimation();
-  Void			setCutParameters();
-#endif
 protected:
   ReadBitstreamIf*              m_pcReadBitstream;
   WriteBitstreamIf*             m_pcWriteBitstream;
@@ -337,27 +324,6 @@ protected:
   UInt m_auiPID[64];
   UInt m_uiNbPID;
   Bool m_bQualityLevelInSEI; //indicates if QualityLayers are in SEI messages
-#ifdef JVT_Q081
-  Bool        m_bUsedCLExtraction;
-  UInt        m_uiFGSMaxCL;
-  UInt        m_uiLevelMaxCL;
-  UInt        m_uiLayerMaxCL;
-  UInt        m_auiNumFrame[MAX_LAYERS];
-#endif
-#ifdef JVT_P029
-  UInt							m_uiCutFrame;
-  UInt							m_uiCutPoint;
-  UInt							m_uiCutLayer;
-  UInt							m_uiFGSCutLayer;
-  UInt							m_uiTarget;
-  UInt                          m_uiFrameDeb;
-  UInt                          m_uiFrameEnd;
-  UInt                          m_uiSizeGop;
-  UInt                          m_uiIntraFromPreviousGop;
-  UInt*							m_uiTargetFrame;
-  UInt*                         m_auiFramesToCut;
-  UInt                          m_uiNbFrameToCut;
-#endif
 };
 class ExtractStop{};
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

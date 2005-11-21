@@ -116,31 +116,28 @@ EncoderMerger::init( EncoderMergerParameter *pcEncoderMergerParameter )
   m_pcEncoderMergerParameter  = pcEncoderMergerParameter;
   
   m_uiNumOfLayer = pcEncoderMergerParameter->m_uiNumOfLayer;
-#ifdef QL_CLOSEDLOOP
   if(pcEncoderMergerParameter->m_uiMode == 1)
   {
-#endif
-  RNOKS( ReadBitstreamFile::create( m_pcReadBitstream ) ); 
-  RNOKS( m_pcReadBitstream->init( m_pcEncoderMergerParameter->getInFile() ));
+    RNOKS( ReadBitstreamFile::create( m_pcReadBitstream ) ); 
+    RNOKS( m_pcReadBitstream->init( m_pcEncoderMergerParameter->getInFile() ));
 
-  WriteBitstreamToFile*  pcWriteBitstreamFile;
-  RNOKS( WriteBitstreamToFile::create( pcWriteBitstreamFile ) ); 
-  RNOKS( pcWriteBitstreamFile->init( m_pcEncoderMergerParameter->getOutFile()/*, MAX_PACKET_SIZE*/ ) );  
-  m_pcWriteBitstreamToFile = pcWriteBitstreamFile;
+    WriteBitstreamToFile*  pcWriteBitstreamFile;
+    RNOKS( WriteBitstreamToFile::create( pcWriteBitstreamFile ) ); 
+    RNOKS( pcWriteBitstreamFile->init( m_pcEncoderMergerParameter->getOutFile()/*, MAX_PACKET_SIZE*/ ) );  
+    m_pcWriteBitstreamToFile = pcWriteBitstreamFile;
   
-  RNOK( h264::H264AVCPacketAnalyzer::create( m_pcH264AVCPacketAnalyzer ) );
+    RNOK( h264::H264AVCPacketAnalyzer::create( m_pcH264AVCPacketAnalyzer ) );
   
-  RNOK( h264::CreaterH264AVCEncoder::create( m_pcH264AVCEncoder ) );
-  RNOK( m_pcH264AVCEncoder->init(pcEncoderMergerParameter));
-  m_aucStartCodeBuffer[0] = 0;
-  m_aucStartCodeBuffer[1] = 0;
-  m_aucStartCodeBuffer[2] = 0;
-  m_aucStartCodeBuffer[3] = 1;
-  m_cBinDataStartCode.reset();
-  m_cBinDataStartCode.set( m_aucStartCodeBuffer, 4 );
-#ifdef QL_CLOSEDLOOP
+    RNOK( h264::CreaterH264AVCEncoder::create( m_pcH264AVCEncoder ) );
+    RNOK( m_pcH264AVCEncoder->init(pcEncoderMergerParameter));
+    m_aucStartCodeBuffer[0] = 0;
+    m_aucStartCodeBuffer[1] = 0;
+    m_aucStartCodeBuffer[2] = 0;
+    m_aucStartCodeBuffer[3] = 1;
+    m_cBinDataStartCode.reset();
+    m_cBinDataStartCode.set( m_aucStartCodeBuffer, 4 );
   }
-#endif
+
   return Err::m_nOK;
 }
 
@@ -460,17 +457,13 @@ ErrVal EncoderMerger::EstimateQL()
 
   if(m_pcEncoderMergerParameter->getQLInSEI() == 1)
   {
-      //QualityLayers are put in SEI messages
-#ifdef QL_CLOSEDLOOP
-      RNOK(addQualityLevel_SEI(auiQLForFramesOrder));
-#endif
+    //QualityLayers are put in SEI messages
+    RNOK(addQualityLevel_SEI(auiQLForFramesOrder));
   }
   else
   {
-      //Quality Layers are put in Priority_Id
-#ifdef QL_CLOSEDLOOP
-      RNOK(addQualityLevel_PID(auiQLForFramesOrder));
-#endif
+    //Quality Layers are put in Priority_Id
+    RNOK(addQualityLevel_PID(auiQLForFramesOrder));
   }
   return Err::m_nOK;
 }
@@ -478,18 +471,17 @@ ErrVal EncoderMerger::EstimateQL()
 
 ErrVal EncoderMerger::go()
 {
-#ifdef QL_CLOSEDLOOP
 	if(m_pcEncoderMergerParameter->m_uiMode == 0)
 	{
-  UInt uiWidth = m_pcEncoderMergerParameter->m_uiWidth;
-  UInt uiHeight = m_pcEncoderMergerParameter->m_uiHeight;
-  UInt uiNumOfFrames = m_pcEncoderMergerParameter->m_uiNumOfFrames;
-  UInt uiGopSize = m_pcEncoderMergerParameter->m_uiGopSize;
-  UInt uiFGSLayer = m_pcEncoderMergerParameter->m_uiMaxFGS;
-  UInt uiLayer = m_pcEncoderMergerParameter->m_uiLayer;
+    UInt uiWidth = m_pcEncoderMergerParameter->m_uiWidth;
+    UInt uiHeight = m_pcEncoderMergerParameter->m_uiHeight;
+    UInt uiNumOfFrames = m_pcEncoderMergerParameter->m_uiNumOfFrames;
+    UInt uiGopSize = m_pcEncoderMergerParameter->m_uiGopSize;
+    UInt uiFGSLayer = m_pcEncoderMergerParameter->m_uiMaxFGS;
+    UInt uiLayer = m_pcEncoderMergerParameter->m_uiLayer;
   
-  ComputeAllDisto(m_pcEncoderMergerParameter->m_cOrig,uiWidth,uiHeight,uiNumOfFrames,uiGopSize,
-	  m_pcEncoderMergerParameter->m_cRoot,uiFGSLayer,uiLayer,m_pcEncoderMergerParameter->m_cDistoFilename);
+    ComputeAllDisto(m_pcEncoderMergerParameter->m_cOrig,uiWidth,uiHeight,uiNumOfFrames,uiGopSize,
+	                  m_pcEncoderMergerParameter->m_cRoot,uiFGSLayer,uiLayer,m_pcEncoderMergerParameter->m_cDistoFilename);
 
 	}
 	if(m_pcEncoderMergerParameter->m_uiMode == 1)
@@ -497,9 +489,6 @@ ErrVal EncoderMerger::go()
         PrimaryAnalyse();
         EstimateQL();
 	}
-#else
-	RNOK(go_QL());
-#endif
 	return Err::m_nOK;
 }
 
@@ -785,21 +774,6 @@ ErrVal EncoderMerger::go_QL()
   else
   {
       m_fPID = 0;
-  }
-
-  if(m_pcEncoderMergerParameter->getQLInSEI() == 1)
-  {
-      //QualityLayers are put in SEI messages
-#ifndef QL_CLOSEDLOOP
-      RNOK(addQualityLevel_SEI());
-#endif
-  }
-  else
-  {
-      //Quality Layers are put in Priority_Id
-#ifndef QL_CLOSEDLOOP
-      RNOK(addQualityLevel_PID());
-#endif
   }
 
   if(m_pcEncoderMergerParameter->m_bWritePID == true)
@@ -1110,7 +1084,7 @@ Void EncoderMerger::ReadFGSRateAndDistoFile(std::string & DistoFilename)
         fprintf(saveDisto,"%d ", uiFrame);
         for(uiPoint = 1; uiPoint < 9; uiPoint++)
         {
-            iTemp = m_aaadDisto[0][uiPoint][uiFrame]-m_aaadDisto[0][uiPoint-1][uiFrame];
+            iTemp = (Int)floor( m_aaadDisto[0][uiPoint][uiFrame]-m_aaadDisto[0][uiPoint-1][uiFrame] + 0.5 );
             fprintf(saveDisto,"%d ", iTemp);
         }
         fprintf(saveDisto, "\n");
@@ -1202,7 +1176,7 @@ Void EncoderMerger::CalculateQualityLevel(UInt uiExtLayer)
         rpm[uiLayer][uiNFrames]->PrintValidPoints();
 		rpm[uiLayer][uiNFrames]->SetMaxRate(m_aadByteForFrame[uiLayer][uiNFrames]);
 
-		for(UInt ui = 1; ui < rpm[uiLayer][uiNFrames]->getNbValidPoints(); ui++)
+		for(UInt ui = 1; ui < (UInt)rpm[uiLayer][uiNFrames]->getNbValidPoints(); ui++)
 		{
 			Double QualityLevel = rpm[uiLayer][uiNFrames]->getValidQualityLevel(ui);
 			if(QualityLevel > QualityLevelMax[uiLayer]) QualityLevelMax[uiLayer] = QualityLevel;
@@ -1225,7 +1199,7 @@ Void EncoderMerger::CalculateQualityLevel(UInt uiExtLayer)
   }
 
 }
-#ifdef QL_CLOSEDLOOP
+
 ErrVal EncoderMerger::addQualityLevel_SEI(UInt ***auiQLForFrames)
 {
 
@@ -1283,14 +1257,14 @@ ErrVal EncoderMerger::addQualityLevel_SEI(UInt ***auiQLForFrames)
     bApplyToNext  = cPacketDescription.ApplyToNext;
     bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
     
-	if(bNewPicture && !bSEIPacket && uiFGSLayer == 0)
+	if(bNewPicture && !bSEIPacket && (Int)uiFGSLayer == 0)
 	{
         if(uiLayer == 0 ||
             (uiLayerPrev <= uiLayer && uiLevelPrev<uiLevel) ||
             (uiLayerPrev == uiLayer && uiLevelPrev == uiLevel) ||
 			 (uiLayer < uiLayerPrev))
         {
-            for(uiLayerForSEI = uiLayer; uiLayerForSEI <= m_pcEncoderMergerParameter->m_uiNumOfLayer; uiLayerForSEI++)
+            for(uiLayerForSEI = uiLayer; uiLayerForSEI <= (UInt)m_pcEncoderMergerParameter->m_uiNumOfLayer; uiLayerForSEI++)
             {
                 writeQualityLevel_SEI(auiQLForFrames, uiLayerForSEI,uiNumFrame[uiLayerForSEI]);
                 uiNumFrame[uiLayerForSEI] ++;
@@ -1315,98 +1289,8 @@ ErrVal EncoderMerger::addQualityLevel_SEI(UInt ***auiQLForFrames)
 
   return Err::m_nOK;
 }
-#else
-ErrVal EncoderMerger::addQualityLevel_SEI()
-{
 
-  UInt                    uiLayer       = 0;
-  UInt                    uiLevel       = 0;
-  UInt                    uiFGSLayer    = 0;
-  Bool                    bNewPicture   = false;
-  Bool                    bApplyToNext  = false;
-  Bool                    bEOS          = false;
-  Bool                    bFirstPacket  = true;
-  BinData*                pcBinData     = 0;
-  h264::SEI::SEIMessage*  pcScalableSei = 0;
-  h264::PacketDescription cPacketDescription;
 
-  UInt                    uiLayerForSEI = 0;
-  UInt                    uiLevelPrev   = 0;
-  UInt                    uiLayerPrev   = 0;
-
-  UInt uiNumFrame[MAX_LAYERS];
-  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
-  {
-	  uiNumFrame[uiLayer] = 0;
-  }
-  uiLayer = 0;
-  Bool bSEIPacket = true; 
-
-  RNOK( m_pcH264AVCPacketAnalyzer->init() );
-
-  while( ! bEOS )
-  {
-    //===== get packet =====
-    RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
-    if( bEOS )
-    {
-      continue;
-    }
-
-    //===== get packet description =====
-    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
-    
-    //===== set packet length =====
-    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
-    {
-      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
-    }
-    
-    //==== get parameters =====
-    UInt  uiPacketSize  = 4 + pcBinData->size();
-    if( ! bApplyToNext )
-    {
-      uiLayer     = cPacketDescription.Layer;
-      uiLevel     = cPacketDescription.Level;
-      uiFGSLayer  = cPacketDescription.FGSLayer;
-    }
-    bApplyToNext  = cPacketDescription.ApplyToNext;
-    bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
-    
-	if(bNewPicture && !bSEIPacket && uiFGSLayer == 0)
-	{
-        if(uiLayer == 0 ||
-            (uiLayerPrev <= uiLayer && uiLevelPrev<uiLevel) ||
-            (uiLayerPrev == uiLayer && uiLevelPrev == uiLevel) ||
-			 (uiLayer < uiLayerPrev))
-        {
-            for(uiLayerForSEI = uiLayer; uiLayerForSEI < m_pcEncoderMergerParameter->m_uiNumOfLayer; uiLayerForSEI++)
-            {
-                writeQualityLevel_SEI(uiLayerForSEI,uiNumFrame[uiLayerForSEI]);
-                uiNumFrame[uiLayerForSEI] ++;
-            }
-        }
-	}
-
-	if(bSEIPacket)
-		bSEIPacket = false;
-
-    RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
-	RNOK( m_pcWriteBitstreamToFile->writePacket( pcBinData ) );
-	RNOK( m_pcReadBitstream->releasePacket( pcBinData ) ); 
-
-    uiLayerPrev = uiLayer;
-    uiLevelPrev = uiLevel;
-  }
-
-  //----- reset input file -----
-  RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->uninit() );
-  RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->init  ( m_pcEncoderMergerParameter->getInFile() ) );  
-
-  return Err::m_nOK;
-}
-#endif
-#ifdef QL_CLOSEDLOOP
 ErrVal EncoderMerger::addQualityLevel_PID(UInt ***auiQLForFrames)
 {
 
@@ -1491,93 +1375,8 @@ ErrVal EncoderMerger::addQualityLevel_PID(UInt ***auiQLForFrames)
 
   return Err::m_nOK;
 }
-#else
-ErrVal EncoderMerger::addQualityLevel_PID()
-{
 
-  UInt                    uiLayer       = 0;
-  UInt                    uiLevel       = 0;
-  UInt                    uiFGSLayer    = 0;
-  Bool                    bNewPicture   = false;
-  Bool                    bApplyToNext  = false;
-  Bool                    bEOS          = false;
-  Bool                    bFirstPacket  = true;
-  BinData*                pcBinData     = 0;
-  h264::SEI::SEIMessage*  pcScalableSei = 0;
-  h264::PacketDescription cPacketDescription;
 
-  UInt                    uiLayerForSEI = 0;
-  UInt                    uiLevelPrev   = 0;
-  UInt                    uiLayerPrev   = 0;
-
-  UInt uiNumFrame[MAX_LAYERS];
-  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
-  {
-	  uiNumFrame[uiLayer] = 0;
-  }
-  uiLayer = 0;
-  Bool bSEIPacket = true; 
-
-  RNOK( m_pcH264AVCPacketAnalyzer->init() );
-
-  while( ! bEOS )
-  {
-    //===== get packet =====
-    RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
-    if( bEOS )
-    {
-      continue;
-    }
-
-    //===== get packet description =====
-    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
-    
-    //===== set packet length =====
-    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
-    {
-      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
-    }
-    
-    //==== get parameters =====
-    UInt  uiPacketSize  = 4 + pcBinData->size();
-    if( ! bApplyToNext )
-    {
-      uiLayer     = cPacketDescription.Layer;
-      uiLevel     = cPacketDescription.Level;
-      uiFGSLayer  = cPacketDescription.FGSLayer;
-    }
-    bApplyToNext  = cPacketDescription.ApplyToNext;
-    bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
-
-    if(bNewPicture && !bSEIPacket && uiFGSLayer != 0)
-    {
-        writeQualityLevel_PID(uiLayer,uiNumFrame[uiLayer]-1,uiFGSLayer,uiLevel,pcBinData); 
-    }
-
-    if(bNewPicture && !bSEIPacket && uiFGSLayer == 0)
-    {   
-      uiNumFrame[uiLayer]++;
-    }
-
-	if(bSEIPacket)
-		bSEIPacket = false;
-
-    RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
-	RNOK( m_pcWriteBitstreamToFile->writePacket( pcBinData ) );
-	RNOK( m_pcReadBitstream->releasePacket( pcBinData ) ); 
-
-    uiLayerPrev = uiLayer;
-    uiLevelPrev = uiLevel;
-  }
-
-  //----- reset input file -----
-  RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->uninit() );
-  RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->init  ( m_pcEncoderMergerParameter->getInFile() ) );  
-
-  return Err::m_nOK;
-}
-#endif
-#ifdef QL_CLOSEDLOOP
 ErrVal EncoderMerger::writeQualityLevel_PID(UInt *** auiQLForFrames, UInt uiLayer, UInt uiNFrames, UInt uiFGSLayer, 
                                         UInt uiLevel,BinData*  pcBinData)
 {
@@ -1617,168 +1416,3 @@ ErrVal EncoderMerger::writeQualityLevel_SEI(UInt ***auiQLForFrames, UInt uiLayer
 
 	return Err::m_nOK;
 }
-#else
-ErrVal EncoderMerger::writeQualityLevel_PID(UInt uiLayer, UInt uiNFrames, UInt uiFGSLayer, 
-                                        UInt uiLevel,BinData*  pcBinData)
-{
-	UChar ucByte = pcBinData->data()[1];
-
-    if(m_pcEncoderMergerParameter->m_bReadPID == true)
-    {
-        ucByte = m_uiSavedPID[uiLayer][uiFGSLayer][uiNFrames];
-        pcBinData->data()[1] = ucByte;
-		printf("Write Simple PriorityId Layer %d Frame %d Level %d FGS %d PriorityId %d\n", uiLayer,
-        uiNFrames, uiLevel, uiFGSLayer, ucByte);
-    }
-    else
-    {
-    Double QualityLevel = log(rpm[uiLayer][uiNFrames]->getValidQualityLevel(uiFGSLayer));
-    Int iQualityLevelToCode;
-    if(uiFGSLayer == 0)
-    {
-        iQualityLevelToCode = 63;
-    }
-    else
-    {
-        if(uiLayer ==0)
-        {
-            if(m_uiMaxLayer >1)
-            {
-                iQualityLevelToCode = (Int)(20*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer])+42);
-    	        iQualityLevelToCode = (iQualityLevelToCode < 42 ? 42: iQualityLevelToCode > 62 ? 62 : iQualityLevelToCode);
-            }
-            else
-            {
-                iQualityLevelToCode = (Int)(31*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer])+31);
-    	        iQualityLevelToCode = (iQualityLevelToCode < 31 ? 31: iQualityLevelToCode > 62 ? 62 : iQualityLevelToCode);
-            }
-        }
-        if(uiLayer ==1)
-        {
-            if(m_uiMaxLayer >1)
-            {
-                iQualityLevelToCode = (Int)(20*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer])+21);
-    	        iQualityLevelToCode = (iQualityLevelToCode < 21 ? 21: iQualityLevelToCode > 41 ? 41 : iQualityLevelToCode);
-            }
-            else
-            {
-                iQualityLevelToCode = (Int)(30*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer]));
-        	    iQualityLevelToCode = (iQualityLevelToCode < 0 ? 0: iQualityLevelToCode > 30 ? 30 : iQualityLevelToCode);
-            }
-        }
-        if(uiLayer ==2)
-        {
-            iQualityLevelToCode = (Int)(20*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer]));
-    	    iQualityLevelToCode = (iQualityLevelToCode < 0 ? 0: iQualityLevelToCode > 20 ? 20 : iQualityLevelToCode);
-        }
-
-    }
-		
-
-    UInt uiQL = iQualityLevelToCode;
-
-    uiQL <<= 2;
-    ucByte = uiQL | ucByte;
-	pcBinData->data()[1] = ucByte;
-	ucByte = 0;
-	ucByte = pcBinData->data()[1];
-	printf("Write Simple PriorityId Layer %d Frame %d Level %d FGS %d QL %d PriorityId %d\n", uiLayer,
-        uiNFrames, uiLevel, uiFGSLayer,iQualityLevelToCode, ucByte);
-
-}
-
-    if(m_pcEncoderMergerParameter->m_bWritePID == true)
-    {
-        fprintf(m_fPID, "%d %d %d %d\n", uiLayer, uiNFrames, uiFGSLayer, ucByte);
-    }
-
-	return Err::m_nOK;
-}
-
-ErrVal EncoderMerger::writeQualityLevel_SEI(UInt uiLayer, UInt uiNFrames)
-{
-	UChar aucParameterSetBuffer[1000];
-
-	BinData cBinData;
-    cBinData.reset();
-    cBinData.set( aucParameterSetBuffer, 1000 );
-
-    ExtBinDataAccessor cExtBinDataAccessor;
-    cBinData.setMemAccessor( cExtBinDataAccessor );
-
-	UInt uiNumLevels = rpm[uiLayer][uiNFrames]->getNbValidPoints();
-	printf("NumLevels %d: \n",uiNumLevels);
-	UInt uiRate[MAX_NUM_RD_LEVELS];
-	UInt uiQualityLevel[MAX_NUM_RD_LEVELS];
-	UInt uiRateOld = (UInt)floor(rpm[uiLayer][uiNFrames]->getValidRate(0));
-	UInt ui;
-	
-	UInt uiMaxLayers = m_pcEncoderMergerParameter->m_uiNumOfLayer;
-	for(ui = 0; ui < uiNumLevels; ui++)
-	{	
-		if(ui == 0)
-		{
-			uiRate[ui] = (UInt)floor(rpm[uiLayer][uiNFrames]->getValidRate(ui));
-			uiRateOld = (UInt)floor(rpm[uiLayer][uiNFrames]->getValidRate(ui));
-		}
-		else
-		{
-            uiRate[ui] = (UInt)floor(rpm[uiLayer][uiNFrames]->getValidRate(ui) ) - uiRateOld;
-            uiRateOld = (UInt)floor(rpm[uiLayer][uiNFrames]->getValidRate(ui) );
-		}
-		
-		Double QualityLevel;
-		Int iQualityLevelToCode = 0;
-		if(ui == 0)
-		{
-			//first slope is infinite
-			iQualityLevelToCode = 63;//255;
-		}
-		else
-		{
-		QualityLevel = log(rpm[uiLayer][uiNFrames]->getValidQualityLevel(ui));
-		if(uiLayer ==0)
-        {
-            if(m_uiMaxLayer >1)
-            {
-                iQualityLevelToCode = (Int)(20*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer])+42);
-    	        iQualityLevelToCode = (iQualityLevelToCode < 42 ? 42: iQualityLevelToCode > 62 ? 62 : iQualityLevelToCode);
-            }
-            else
-            {
-                iQualityLevelToCode = (Int)(31*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer])+31);
-    	        iQualityLevelToCode = (iQualityLevelToCode < 31 ? 31: iQualityLevelToCode > 62 ? 62 : iQualityLevelToCode);
-            }
-        }
-        if(uiLayer ==1)
-        {
-            if(m_uiMaxLayer >1)
-            {
-                iQualityLevelToCode = (Int)(20*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer])+21);
-    	        iQualityLevelToCode = (iQualityLevelToCode < 21 ? 21: iQualityLevelToCode > 41 ? 41 : iQualityLevelToCode);
-            }
-            else
-            {
-                iQualityLevelToCode = (Int)(30*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer]));
-        	    iQualityLevelToCode = (iQualityLevelToCode < 0 ? 0: iQualityLevelToCode > 30 ? 30 : iQualityLevelToCode);
-            }
-        }
-        if(uiLayer ==2)
-        {
-            iQualityLevelToCode = (Int)(20*(QualityLevel-m_dQualityLevelMin[uiLayer]) / (m_dQualityLevelMax[uiLayer] - m_dQualityLevelMin[uiLayer]));
-    	    iQualityLevelToCode = (iQualityLevelToCode < 0 ? 0: iQualityLevelToCode > 20 ? 20 : iQualityLevelToCode);
-        }
-		}
-		uiQualityLevel[ui] = iQualityLevelToCode;
-		
-	}
-	m_pcH264AVCEncoder->writeQualityLevelInfosSEI(&cExtBinDataAccessor, uiQualityLevel,uiRate,uiNumLevels, uiLayer);
-	
-    RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
-    RNOK( m_pcWriteBitstreamToFile->writePacket( &cExtBinDataAccessor ) );
-     
-	cBinData.reset();
-
-	return Err::m_nOK;
-}
-#endif

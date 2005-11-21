@@ -235,7 +235,7 @@ Void YuvMbBuffer::loadBuffer( IntYuvMbBuffer* pcSrcBuffer )
   {
     for( x = 0; x < 16; x++ )
     {
-      pDes[x] = pSrc[x];
+      pDes[x] = (Pel)pSrc[x];
     }
     pDes += iDesStride;
     pSrc += iSrcStride;
@@ -250,7 +250,7 @@ Void YuvMbBuffer::loadBuffer( IntYuvMbBuffer* pcSrcBuffer )
   {
     for( x = 0; x < 8; x++ )
     {
-      pDes[x] = pSrc[x];
+      pDes[x] = (Pel)pSrc[x];
     }
     pDes += iDesStride;
     pSrc += iSrcStride;
@@ -263,7 +263,7 @@ Void YuvMbBuffer::loadBuffer( IntYuvMbBuffer* pcSrcBuffer )
   {
     for( x = 0; x < 8; x++ )
     {
-      pDes[x] = pSrc[x];
+      pDes[x] = (Pel)pSrc[x];
     }
     pDes += iDesStride;
     pSrc += iSrcStride;

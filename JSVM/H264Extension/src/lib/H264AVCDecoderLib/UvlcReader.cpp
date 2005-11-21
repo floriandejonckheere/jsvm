@@ -443,7 +443,7 @@ ErrVal UvlcReader::xGetSvlcCode( Int& riVal)
     DTRACE_BITS(uiBits, uiLength);
 
     uiBits += (1 << uiLength);
-    riVal = ( uiBits & 1) ? -(uiBits>>1) : (uiBits>>1);
+    riVal = ( uiBits & 1) ? -(Int)(uiBits>>1) : (Int)(uiBits>>1);
   }
   else
   {
@@ -951,10 +951,10 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
   }
 
   uiPos += uiTotalRun + uiCoeffCnt - 1;
-  for ( UInt i = uiCoeffCnt; i > 0; i-- )
+  for ( Int i = (Int)uiCoeffCnt; i > 0; i-- )
   {
     piCoeff[ pucScan [uiPos--] ] = aiLevelRun[i-1];
-    for ( UInt j = 0; j < aiLevelRun[i-1+0x10]; j++ )
+    for ( Int j = 0; j < aiLevelRun[i-1+0x10]; j++ )
     {
       piCoeff[ pucScan [uiPos--] ] = 0;
     }
@@ -1018,10 +1018,10 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
   }
 
   uiPos += uiTotalRun + uiCoeffCnt - 1;
-  for ( UInt i = uiCoeffCnt; i > 0; i-- )
+  for ( Int i = (Int)uiCoeffCnt; i > 0; i-- )
   {
     piCoeff[ pucScan [uiPos--] ] = aiLevelRun[i-1];
-    for ( UInt j = 0; j < aiLevelRun[i-1+0x10]; j++ )
+    for ( Int j = 0; j < aiLevelRun[i-1+0x10]; j++ )
     {
       piCoeff[ pucScan [uiPos--] ] = 0;
     }
@@ -1086,7 +1086,7 @@ ErrVal UvlcReader::xGetMvd( Mv& cMv )
 
   RNOK( xGetUvlcCode( uiTemp ) );
 
-  Short sHor = ( uiTemp & 1) ? ((uiTemp+1)>>1) : -(uiTemp>>1);
+  Short sHor = ( uiTemp & 1) ? (Int)((uiTemp+1)>>1) : -(Int)(uiTemp>>1);
   DTRACE_CODE( sHor );
   DTRACE_TY("se(v)");
   DTRACE_N;
@@ -1095,7 +1095,7 @@ ErrVal UvlcReader::xGetMvd( Mv& cMv )
 
   RNOK( xGetUvlcCode( uiTemp ) );
 
-  Short sVer = ( uiTemp & 1) ? ((uiTemp+1)>>1) : -(uiTemp>>1);
+  Short sVer = ( uiTemp & 1) ? (Int)((uiTemp+1)>>1) : -(Int)(uiTemp>>1);
 
   DTRACE_CODE( sVer );
   DTRACE_TY("se(v)");
@@ -1508,7 +1508,7 @@ ErrVal UvlcReader::xGetLevelVLC0( Int& iLevel )
     uiLength += uiAddBit + 16;
  }
 
-  iLevel = uiSign ? -uiLevel : uiLevel;
+  iLevel = uiSign ? -(Int)uiLevel : (Int)uiLevel;
 
   DTRACE_POS;
   DTRACE_T( "  VLC0 lev " );
@@ -1581,7 +1581,7 @@ ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
     uiLength++;
   }
   
-  iLevel = (uiSign) ? -uiLevAbs : uiLevAbs;
+  iLevel = (uiSign) ? -(Int)uiLevAbs : (Int)uiLevAbs;
 
   DTRACE_POS;
   DTRACE_T( "  VLCN lev: " );
@@ -1645,11 +1645,11 @@ ErrVal UvlcReader::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
     xGetRunLevel      ( aaiLevelRun[uiBlk],   auiCoeffCnt[uiBlk], auiTrailingOnes[uiBlk], 16, auiTotalRun[uiBlk] );
 
     uiPos = ((auiTotalRun[uiBlk] + auiCoeffCnt[uiBlk] - 1) << 2) + uiBlk;
-    for ( UInt i = auiCoeffCnt[uiBlk]; i > 0; i-- )
+    for ( Int i = (Int)auiCoeffCnt[uiBlk]; i > 0; i-- )
     {
       piCoeff[ pucScan [uiPos] ] = aaiLevelRun[uiBlk][i-1];
       uiPos -= 4;
-      for ( UInt j = 0; j < aaiLevelRun[uiBlk][i-1+0x10]; j++ )
+      for ( Int j = 0; j < aaiLevelRun[uiBlk][i-1+0x10]; j++ )
       {
         piCoeff[ pucScan [uiPos] ] = 0;
         uiPos -= 4;
@@ -1863,8 +1863,8 @@ UvlcReader::RQdecodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
 
     m_uiCurrCbp4x4 = 0;
     UInt ui = uiLen;
-    for( UInt uiY=cIdx.y(); uiY<cIdx.y()+2; uiY++)
-      for (UInt uiX=cIdx.x(); uiX<cIdx.x()+2; uiX++)
+    for( Int uiY=cIdx.y(); uiY<cIdx.y()+2; uiY++)
+      for( Int uiX=cIdx.x(); uiX<cIdx.x()+2; uiX++)
       {
         UInt uiSymbol = 0;
         B4x4Idx cTmp(uiY*4+uiX);
@@ -2363,7 +2363,7 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
           break;
       }
       uiSymbol += 2;
-      piCoeff[pucScan[ui]] = (piCoeff[pucScan[ui]] > 0) ? uiSymbol : -uiSymbol;
+      piCoeff[pucScan[ui]] = (piCoeff[pucScan[ui]] > 0) ? (Int)uiSymbol : -(Int)uiSymbol;
       bSeenMaxMag |= ( uiSymbol == uiMaxMag );
       uiOutstanding--;
       if( uiOutstanding == 0 )
@@ -2374,7 +2374,7 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
   {
     if ( auiRemMag[ui] )
     {
-      piCoeff[pucScan[ui]] = ( piCoeff[pucScan[ui]] > 0 ) ? uiMaxMag : -uiMaxMag;
+      piCoeff[pucScan[ui]] = ( piCoeff[pucScan[ui]] > 0 ) ? (Int)uiMaxMag : -(Int)uiMaxMag;
     }
   }
 

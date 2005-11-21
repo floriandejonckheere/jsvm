@@ -1422,9 +1422,9 @@ Void QuarterPelFilter::xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStrid
     { 1,  3}
   };
   int sx1, sx2, sy1, sy2; 
-  for( Int y = 0; y < uiSizeY + 1; y++)
+  for( Int y = 0; y < (Int)uiSizeY + 1; y++)
   {
-    for( Int x = 0; x < uiSizeX + 1; x++)
+    for( Int x = 0; x < (Int)uiSizeX + 1; x++)
     {
       Int iTemp1[2], iTemp2;
       int i, j;
@@ -1464,9 +1464,9 @@ Void QuarterPelFilter::xUpdInterp4Tap(Int* pucDest, XPel* pucSrc, Int iDestStrid
   };
 
   int sx1, sx2, sy1, sy2; 
-  for( Int y = 0; y < uiSizeY + 3; y++)
+  for( Int y = 0; y < (Int)uiSizeY + 3; y++)
   {
-    for( Int x = 0; x < uiSizeX + 3; x++)
+    for( Int x = 0; x < (Int)uiSizeX + 3; x++)
     {
       Int iTemp1[4], iTemp2;
       int i, j;
@@ -1545,9 +1545,9 @@ Void QuarterPelFilter::weightOnEnergy(UShort *usWeight, XPel* pucSrc, Int iSrcSt
   Int iSSD = 0;
   int bitsShift = 8, i;
 
-  for( UInt y = 0; y < iSizeY; y++)
+  for( Int y = 0; y < iSizeY; y++)
   {
-    for( UInt x = 0; x < iSizeX; x++)
+    for( Int x = 0; x < iSizeX; x++)
     {
       Int iTemp;
       iTemp  = xClip( pucSrc[iSrcStride*y + x]);

@@ -1442,8 +1442,8 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
     {
       dest  = 0;
       cnt   = 0;
-      for( n1=0; n1<  uiDelta; n1++)
-      for( m1=m; m1<m+uiDelta; m1++)
+      for( n1=0; n1<  (Int)uiDelta; n1++)
+      for( m1=m; m1<m+(Int)uiDelta; m1++)
       {
         dest += pucSrc[m1+n1*iStride];
         cnt  ++;
@@ -1454,8 +1454,8 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
       *pucDest = (Pel)dest;
       pucDest++;
 
-      for( n1=0; n1<  uiDelta; n1++)
-      for( m1=m; m1<m+uiDelta; m1++)
+      for( n1=0; n1<  (Int)uiDelta; n1++)
+      for( m1=m; m1<m+(Int)uiDelta; m1++)
       {
         idx  = m1 + n1*iStride;
         diff = pucSrc[idx] - dest;
@@ -1475,8 +1475,8 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
     {
       dest  = 0;
       cnt   = 0;
-      for( n1=0; n1<  uiDelta; n1++)
-      for( m1=m; m1<m+uiDelta; m1++)
+      for( n1=0; n1<  (Int)uiDelta; n1++)
+      for( m1=m; m1<m+(Int)uiDelta; m1++)
       {
         dest += pucSrc[m1+n1*iStride];
         cnt  ++;
@@ -1487,8 +1487,8 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
       *pucDest = (Pel)dest;
       pucDest++;
 
-      for( n1=0; n1<  uiDelta; n1++)
-      for( m1=m; m1<m+uiDelta; m1++)
+      for( n1=0; n1<  (Int)uiDelta; n1++)
+      for( m1=m; m1<m+(Int)uiDelta; m1++)
       {
         idx  = m1 + n1*iStride;
         diff = pucSrc[idx] - dest;
@@ -1507,8 +1507,8 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
     {
       dest  = 0;
       cnt   = 0;
-      for( n1=0; n1<  uiDelta; n1++)
-      for( m1=m; m1<m+uiDelta; m1++)
+      for( n1=0; n1<  (Int)uiDelta; n1++)
+      for( m1=m; m1<m+(Int)uiDelta; m1++)
       {
         dest += pucSrc[m1+n1*iStride];
         cnt  ++;
@@ -1519,8 +1519,8 @@ MbEncoder::xEstimateMbPCM( IntMbTempData*&   rpcMbTempData,
       *pucDest = (Pel)dest;
       pucDest++;
 
-      for( n1=0; n1<  uiDelta; n1++)
-      for( m1=m; m1<m+uiDelta; m1++)
+      for( n1=0; n1<  (Int)uiDelta; n1++)
+      for( m1=m; m1<m+(Int)uiDelta; m1++)
       {
         idx  = m1 + n1*iStride;
         diff = pucSrc[idx] - dest;
@@ -3004,13 +3004,13 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
   if( pcMbDataAccessBase )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx() >  0                           &&
-        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx() <= rcRefFrameList0.getActive()   )
+        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx() <= (Int)rcRefFrameList0.getActive()   )
     {
       iBLRefIdx [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx ();
       cBLMvPred [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ();
     }
     if( pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx() >  0                           &&
-        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx() <= rcRefFrameList1.getActive()   )
+        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx() <= (Int)rcRefFrameList1.getActive()   )
     {
       iBLRefIdx [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx ();
       cBLMvPred [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getMv     ();
@@ -3025,7 +3025,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->setResidualPredFlag( bResidualPred, PART_16x16 );
 
   //===== LIST 0 PREDICTION ======
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList0.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
                                                         LIST_0, PART_16x16 );
@@ -3073,7 +3073,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
 
 
   //===== LIST 1 PREDICTION =====
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList1.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
                                                         LIST_1, PART_16x16 );
@@ -3152,7 +3152,7 @@ MbEncoder::xEstimateMb16x16( IntMbTempData*&  rpcMbTempData,
       UInt          uiDir           = uiIter % 2;
       RefFrameList& rcRefFrameList  = ( uiDir ? rcRefFrameList1 : rcRefFrameList0 );
 
-      for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList.getActive(); iRefIdxTest++ )
+      for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
         pcRefFrame  = rcRefFrameList[iRefIdxTest];
@@ -3334,13 +3334,13 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
     if( pcMbDataAccessBase )
     {
       if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) >  0                           &&
-          pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) <= rcRefFrameList0.getActive()   )
+          pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) <= (Int)rcRefFrameList0.getActive()   )
       {
         iBLRefIdx [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx ( eParIdx );
         cBLMvPred [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx );
       }
       if( pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx ) >  1                           &&
-          pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx ) <= rcRefFrameList1.getActive()   )
+          pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx ) <= (Int)rcRefFrameList1.getActive()   )
       {
         iBLRefIdx [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx ( eParIdx );
         cBLMvPred [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getMv     ( eParIdx );
@@ -3356,7 +3356,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
     }
 
     //===== LIST 0 PREDICTION ======
-    for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList0.getActive(); iRefIdxTest++ )
+    for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
     {
       rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
                                                           LIST_0, eParIdx );
@@ -3404,7 +3404,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
 
 
     //===== LIST 1 PREDICTION =====
-    for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList1.getActive(); iRefIdxTest++ )
+    for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
     {
       rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
                                                           LIST_1, eParIdx );
@@ -3483,7 +3483,7 @@ MbEncoder::xEstimateMb16x8 ( IntMbTempData*&  rpcMbTempData,
         UInt  uiDir                   = uiIter % 2;
         RefFrameList& rcRefFrameList  = ( uiDir ? rcRefFrameList1 : rcRefFrameList0 );
 
-        for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList.getActive(); iRefIdxTest++ )
+        for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
         {
           UInt  uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
           pcRefFrame        = rcRefFrameList[iRefIdxTest];
@@ -3669,13 +3669,13 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
     if( pcMbDataAccessBase )
     {
       if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) >  0                           &&
-          pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) <= rcRefFrameList0.getActive()   )
+          pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx ) <= (Int)rcRefFrameList0.getActive()   )
       {
         iBLRefIdx [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx ( eParIdx );
         cBLMvPred [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx );
       }
       if( pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx ) >  0                           &&
-          pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx ) <= rcRefFrameList1.getActive()   )
+          pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx ) <= (Int)rcRefFrameList1.getActive()   )
       {
         iBLRefIdx [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx ( eParIdx );
         cBLMvPred [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getMv     ( eParIdx );
@@ -3691,7 +3691,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
     }
 
     //===== LIST 0 PREDICTION ======
-    for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList0.getActive(); iRefIdxTest++ )
+    for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
     {
       rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
                                                           LIST_0, eParIdx );
@@ -3739,7 +3739,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
 
 
     //===== LIST 1 PREDICTION =====
-    for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList1.getActive(); iRefIdxTest++ )
+    for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
     {
       rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
                                                           LIST_1, eParIdx );
@@ -3818,7 +3818,7 @@ MbEncoder::xEstimateMb8x16 ( IntMbTempData*&  rpcMbTempData,
         UInt          uiDir           = uiIter % 2;
         RefFrameList& rcRefFrameList  = ( uiDir ? rcRefFrameList1 : rcRefFrameList0 );
 
-        for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList.getActive(); iRefIdxTest++ )
+        for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
         {
           uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiMbBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
           pcRefFrame  = rcRefFrameList[iRefIdxTest];
@@ -4191,13 +4191,13 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
   if( pcMbDataAccessBase )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList0.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
     {
       iBLRefIdx [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx8x8 );
     }
     if( pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList1.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList1.getActive() )
     {
       iBLRefIdx [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [1] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getMv     ( eParIdx8x8 );
@@ -4209,7 +4209,7 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
   rpcMbTempData->setBlkMode( ePar8x8, BLK_8x8 );
 
   //===== LIST 0 PREDICTION ======
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList0.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[0][iRefIdxTest], iRefIdxTest,
                                                         LIST_0, eParIdx8x8, SPART_8x8 );
@@ -4257,7 +4257,7 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
 
 
   //===== LIST 1 PREDICTION =====
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList1.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbDataAccess().getMvPredictor   ( cMvPred[1][iRefIdxTest], iRefIdxTest,
                                                         LIST_1, eParIdx8x8, SPART_8x8 );
@@ -4336,7 +4336,7 @@ MbEncoder::xEstimateSubMb8x8( Par8x8            ePar8x8,
       UInt          uiDir           = uiIter % 2;
       RefFrameList& rcRefFrameList  = ( uiDir ? rcRefFrameList1 : rcRefFrameList0 );
 
-      for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList.getActive(); iRefIdxTest++ )
+      for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         uiBitsTest  = ( uiBasePredType == 2 ? 0 : uiBlkBits[2] ) + uiMotBits[1-uiDir] + getRefIdxBits( iRefIdxTest, rcRefFrameList );
         pcRefFrame  = rcRefFrameList[iRefIdxTest];
@@ -4510,14 +4510,14 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
   if( pcMbDataAccessBase )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList0.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
     {
       iBLRefIdx [0]    = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [0][0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx8x8, SPART_8x4_0 );
       cBLMvPred [0][1] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx8x8, SPART_8x4_1 );
     }
     if( pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList1.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList1.getActive() )
     {
       iBLRefIdx [1]    = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [1][0] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getMv     ( eParIdx8x8, SPART_8x4_0 );
@@ -4532,7 +4532,7 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
 
 
   //===== LIST 0 PREDICTION ======
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList0.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_0 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
     uiBitsTest  = 0;
@@ -4610,7 +4610,7 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
 
 
   //===== LIST 1 PREDICTION =====
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList1.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
     uiBitsTest  = 0;
@@ -4726,7 +4726,7 @@ MbEncoder::xEstimateSubMb8x4( Par8x8            ePar8x8,
       ListIdx       eListIdx        = ListIdx( uiDir );
       RefFrameList& rcRefFrameList  = ( uiDir ? rcRefFrameList1 : rcRefFrameList0 );
 
-      for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList.getActive(); iRefIdxTest++ )
+      for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         Mv  cMvPredTest[2];
 
@@ -4947,14 +4947,14 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
   if( pcMbDataAccessBase )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList0.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
     {
       iBLRefIdx [0]    = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [0][0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx8x8, SPART_4x8_0 );
       cBLMvPred [0][1] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx8x8, SPART_4x8_1 );
     }
     if( pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList1.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList1.getActive() )
     {
       iBLRefIdx [1]    = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [1][0] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getMv     ( eParIdx8x8, SPART_4x8_0 );
@@ -4969,7 +4969,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
 
 
   //===== LIST 0 PREDICTION ======
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList0.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_0 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
     uiBitsTest  = 0;
@@ -5047,7 +5047,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
 
 
   //===== LIST 1 PREDICTION =====
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList1.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
     uiBitsTest  = 0;
@@ -5163,7 +5163,7 @@ MbEncoder::xEstimateSubMb4x8( Par8x8            ePar8x8,
       ListIdx       eListIdx        = ListIdx( uiDir );
       RefFrameList& rcRefFrameList  = ( uiDir ? rcRefFrameList1 : rcRefFrameList0 );
 
-      for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList.getActive(); iRefIdxTest++ )
+      for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         Mv  cMvPredTest[2];
 
@@ -5385,7 +5385,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
   if( pcMbDataAccessBase )
   {
     if( pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList0.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList0.getActive() )
     {
       iBLRefIdx [0]    = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [0][0] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx8x8, SPART_4x4_0 );
@@ -5394,7 +5394,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
       cBLMvPred [0][3] = pcMbDataAccessBase->getMbMotionData( LIST_0 ).getMv     ( eParIdx8x8, SPART_4x4_3 );
     }
     if( pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) >  0 &&
-        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= rcRefFrameList1.getActive() )
+        pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( eParIdx8x8 ) <= (Int)rcRefFrameList1.getActive() )
     {
       iBLRefIdx [1]    = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx ( eParIdx8x8 );
       cBLMvPred [1][0] = pcMbDataAccessBase->getMbMotionData( LIST_1 ).getMv     ( eParIdx8x8, SPART_4x4_0 );
@@ -5411,7 +5411,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
 
 
   //===== LIST 0 PREDICTION ======
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList0.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList0.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_0 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
     uiBitsTest  = 0;
@@ -5493,7 +5493,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
 
 
   //===== LIST 1 PREDICTION =====
-  for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList1.getActive(); iRefIdxTest++ )
+  for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList1.getActive(); iRefIdxTest++ )
   {
     rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxTest, eParIdx8x8 );
     uiBitsTest  = 0;
@@ -5618,7 +5618,7 @@ MbEncoder::xEstimateSubMb4x4( Par8x8            ePar8x8,
       ListIdx       eListIdx        = ListIdx( uiDir );
       RefFrameList& rcRefFrameList  = ( uiDir ? rcRefFrameList1 : rcRefFrameList0 );
 
-      for( iRefIdxTest = 1; iRefIdxTest <= rcRefFrameList.getActive(); iRefIdxTest++ )
+      for( iRefIdxTest = 1; iRefIdxTest <= (Int)rcRefFrameList.getActive(); iRefIdxTest++ )
       {
         Mv  cMvPredTest[4];
 

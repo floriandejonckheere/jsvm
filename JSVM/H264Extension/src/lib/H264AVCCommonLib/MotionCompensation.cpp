@@ -749,8 +749,8 @@ ErrVal MotionCompensation::initMb( UInt uiMbY, UInt uiMbX, MbDataAccess& rcMbDat
 {
   UInt uiMbInFrameY = m_uiMbInFrameY;
 
-  m_cMin.setHor( (Short) max( (Int)MSYS_SHORT_MIN, (Int)((-uiMbX << 4) - (16+8) ) << 2 ) );
-  m_cMin.setVer( (Short) max( (Int)MSYS_SHORT_MIN, (Int)((-uiMbY << 4) - (16+8) ) << 2 ) );
+  m_cMin.setHor( (Short) max( (Int)MSYS_SHORT_MIN, (Int)((-(Int)uiMbX << 4) - (16+8) ) << 2 ) );
+  m_cMin.setVer( (Short) max( (Int)MSYS_SHORT_MIN, (Int)((-(Int)uiMbY << 4) - (16+8) ) << 2 ) );
 
   m_cMax.setHor( (Short) min( (Int)MSYS_SHORT_MAX, (Int)(((m_uiMbInFrameX - uiMbX) << 4) + 8 ) << 2 ) );
   m_cMax.setVer( (Short) min( (Int)MSYS_SHORT_MAX, (Int)(((  uiMbInFrameY - uiMbY) << 4) + 8 ) << 2 ) );
@@ -1413,9 +1413,9 @@ Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride
 
   pBuf = interpBuf;
   int Th = max(0, (int)weight/2 - 1 ) ;
-  for( UInt y = 0; y < updSizeY; y++)
+  for( Int y = 0; y < updSizeY; y++)
   {
-    for( UInt x = 0; x < updSizeX; x++)
+    for( Int x = 0; x < updSizeX; x++)
     {
       pBuf [x] = (pBuf[x] + (1 << (bitShift-1))) >> bitShift;
       pBuf [x] = max(-Th, min(Th, pBuf[x]));
@@ -1499,9 +1499,9 @@ __inline Void MotionCompensation::xUpdateChromaPel( XPel* pucDest, Int iDestStri
 
   pBuf = interpBuf;
   int Th = max(0, (int)weight/2 - 1 ) ;
-  for( UInt y = 0; y < iSizeY + 1; y++)
+  for( Int y = 0; y < iSizeY + 1; y++)
   {
-    for( UInt x = 0; x < iSizeX + 1; x++)
+    for( Int x = 0; x < iSizeX + 1; x++)
     {
       pBuf   [x] = (pBuf[x] + 32) >> 6;
       pBuf   [x] = max(-Th, min(Th, pBuf[x]));
@@ -1992,8 +1992,8 @@ MotionCompensation::xAdjustResidualRefBlkSpatial(XPel*     piResidualRef,
       Int iOrig = piResidualRef[i * iStride + j];
 
       piResidualRef[i * iStride + j] = ( iOrig >= 0 ) 
-        ?  ( (  iOrig * (AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroBlk) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS )
-        : -( ( -iOrig * (AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroBlk) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
+        ?  ( (  iOrig * (AR_FGS_MAX_BASE_WEIGHT - (Int)uiWeightZeroBlk) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS )
+        : -( ( -iOrig * (AR_FGS_MAX_BASE_WEIGHT - (Int)uiWeightZeroBlk) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
     }
   }
 }

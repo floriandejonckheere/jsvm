@@ -1721,11 +1721,11 @@ UvlcWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
     UInt uiFlip = (m_uiCbpStat4x4[1] > m_uiCbpStat4x4[0]) ? 1 : 0;
     UInt uiVlc = (m_uiCbpStat4x4[uiFlip] < 2*m_uiCbpStat4x4[1-uiFlip]) ? 0 : 2;
 
-    for( UInt uiY=cIdx.y(); uiY<cIdx.y()+2; uiY++)
-      for (UInt uiX=cIdx.x(); uiX<cIdx.x()+2; uiX++)
+    for( Int iY=cIdx.y(); iY<cIdx.y()+2; iY++)
+      for ( Int iX=cIdx.x(); iX<cIdx.x()+2; iX++)
       {
         UInt uiSymbol = 0;
-        B4x4Idx cTmp(uiY*4+uiX);
+        B4x4Idx cTmp(iY*4+iX);
         uiSymbol = RQpeekCbp4x4(rcMbDataAccess, rcMbDataAccessBase, cTmp);
         rcMbDataAccessBase.getMbData().setBCBP( cTmp, uiSymbol );
         uiCode <<= 1;

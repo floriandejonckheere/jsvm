@@ -420,8 +420,8 @@ ErrVal MbDecoder::xDecodeMbPCM( MbDataAccess& rcMbDataAccess, IntYuvPicBuffer *p
     {
       dest = *pucSrc++;
 
-      for( n1=0; n1< +uiDelta; n1++ )
-      for( m1=m; m1<m+uiDelta; m1++ )
+      for( n1=0; n1< +(Int)uiDelta; n1++ )
+      for( m1=m; m1<m+(Int)uiDelta; m1++ )
       {
         pucDest[m1+n1*iStride] = dest;
       }
@@ -438,8 +438,8 @@ ErrVal MbDecoder::xDecodeMbPCM( MbDataAccess& rcMbDataAccess, IntYuvPicBuffer *p
     {
       dest = *pucSrc++;
 
-      for( n1=0; n1< +uiDelta; n1++ )
-      for( m1=m; m1<m+uiDelta; m1++ )
+      for( n1=0; n1< +(Int)uiDelta; n1++ )
+      for( m1=m; m1<m+(Int)uiDelta; m1++ )
       {
         pucDest[m1+n1*iStride] = dest;
       }
@@ -455,8 +455,8 @@ ErrVal MbDecoder::xDecodeMbPCM( MbDataAccess& rcMbDataAccess, IntYuvPicBuffer *p
     {
       dest = *pucSrc++;
 
-      for( n1=0; n1< +uiDelta; n1++ )
-      for( m1=m; m1<m+uiDelta; m1++ )
+      for( n1=0; n1< +(Int)uiDelta; n1++ )
+      for( m1=m; m1<m+(Int)uiDelta; m1++ )
       {
         pucDest[m1+n1*iStride] = dest;
       }

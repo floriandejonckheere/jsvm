@@ -236,7 +236,7 @@ Void MotionEstimationQuarterPel::xSubPelSearch( IntYuvPicBuffer*  pcPelData,
     }
   }
 
-  for( n = 1; n < uiNumHPelPos; n++ )
+  for( n = 1; n < (Int)uiNumHPelPos; n++ )
   {
     if( bQPelOnly && n != uiBestHPelPos )
     {
@@ -268,7 +268,7 @@ Void MotionEstimationQuarterPel::xSubPelSearch( IntYuvPicBuffer*  pcPelData,
   m_pcQuarterPelFilter->filterBlock( m_aXQPelSearch, pPel, iStride, uiXSize, uiYSize, g_aucFilter[m_uiBestMode]);
   m_cXDSS.iYStride = 16;
 
-  for( n = 1; n < uiNumQPelPos; n++ )
+  for( n = 1; n < (Int)uiNumQPelPos; n++ )
   {
     Mv cMvTest = g_acQPSearchMv[n];
     m_cXDSS.pYSearch = m_apXQPelSearch[n];

@@ -124,8 +124,8 @@ void RatePointManager::SetValidPoints(UInt* uiFGSIndex[MAX_FGS_LAYERS], UInt uiN
 	 m_adRDSlope[iValidPosAdd] = rdslope;
      for(uiFGS = 1; uiFGS <= MAX_FGS_LAYERS; uiFGS++)
      {
-         if(iPoint <= uiFGSIndex[uiFGS][uiNFrames] && iPoint > uiFGSIndex[uiFGS-1][uiNFrames])
-             uiFGSValidIndex[uiFGS] = iValidPosAdd;
+         if(iPoint <= (Int)uiFGSIndex[uiFGS][uiNFrames] && iPoint > (Int)uiFGSIndex[uiFGS-1][uiNFrames])
+             uiFGSValidIndex[uiFGS] = (UInt)iValidPosAdd;
      }
      if (rdslope <0)
       {
@@ -147,7 +147,7 @@ void RatePointManager::SetValidPoints(UInt* uiFGSIndex[MAX_FGS_LAYERS], UInt uiN
   
   m_iNbValidPoint = iValidPosAdd;
   m_iNbValidPoint = uiMaxFGSLayerUsed;
-  for(uiFGS = 1; uiFGS < m_iNbValidPoint; uiFGS++)
+  for(uiFGS = 1; uiFGS < (UInt)m_iNbValidPoint; uiFGS++)
   {
       double dSlopeFGS = (m_adRDSlope[uiFGSValidIndex[uiFGS]] > 0 ? m_adRDSlope[uiFGSValidIndex[uiFGS]] : m_adRDSlope[uiFGSValidIndex[uiFGS]-1]);
       m_adRDSlope[uiFGS] = dSlopeFGS;

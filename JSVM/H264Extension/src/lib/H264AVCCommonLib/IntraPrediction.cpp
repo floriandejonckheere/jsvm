@@ -714,7 +714,7 @@ Void IntraPrediction::xPred16x16IMode2DC( Pel* puc, Int iStride ) // DC predicti
 
 Void IntraPrediction::xPred16x16IMode3Plane( Pel* puc, Int iStride ) // plane prediction
 {
-  UInt n, m;
+  Int n, m;
   Int iH = 0;
   Int iV = 0;
 
@@ -809,7 +809,7 @@ Void IntraPrediction::xPred8x8IMode0DC( Pel* puc, Int iStride ) // DC prediction
 
 Void IntraPrediction::xPred8x8IMode3Plane( Pel* puc, Int iStride ) // plane prediction
 {
-  UInt n, m;
+  Int n, m;
   Int iH = 0;
   Int iV = 0;
 
@@ -938,7 +938,7 @@ Void IntraPrediction::xPred16x16IMode2DC( XPel* puc, Int iStride ) // DC predict
 
 Void IntraPrediction::xPred16x16IMode3Plane( XPel* puc, Int iStride ) // plane prediction
 {
-  UInt n, m;
+  Int n, m;
   Int iH = 0;
   Int iV = 0;
 
@@ -1283,7 +1283,7 @@ Void IntraPrediction::xPred8x8IMode0DC( XPel* puc, Int iStride ) // DC predictio
 
 Void IntraPrediction::xPred8x8IMode3Plane( XPel* puc, Int iStride ) // plane prediction
 {
-  UInt n, m;
+  Int n, m;
   Int iH = 0;
   Int iV = 0;
 

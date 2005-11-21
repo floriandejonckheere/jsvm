@@ -724,7 +724,7 @@ ErrVal CabacReader::xGetMvdComponent( Short& rsMvdComp, UInt uiAbsSum, UInt uiCt
   UInt uiSign;
   RNOKCABAC( CabaDecoder::getEpSymbol( uiSign ) );
 
-  rsMvdComp = ( 0 != uiSign ) ? -uiSymbol : uiSymbol;
+  rsMvdComp = ( 0 != uiSign ) ? -(Int)uiSymbol : (Int)uiSymbol;
 
   return Err::m_nOK;
 }

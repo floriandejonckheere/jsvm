@@ -117,11 +117,6 @@ ExtractorParameter::ExtractorParameter()
 	    m_bExtractDeadSubstream[uiLayer] = false;
     }
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
-#ifdef JVT_Q081
-    m_uiLevelMaxCL=0;
-    m_uiFGSMaxCL=0;
-    m_bUsedCLExtraction=false;
-#endif
 }
 
 
@@ -191,9 +186,7 @@ ExtractorParameter::init( Int     argc,
   Bool  bFGSSpecified             = false;
   Bool	bBitrateSpecified					= false;
   Point cPoint;
-#ifdef JVT_P029
-  m_bTruncationForQLEstimation = false;
-#endif
+
   m_bExtractUsingQL = false;
   
 #define EXIT(x,m) {if(x){printf("\n%s\n",m);RNOKS(xPrintUsage(argv))}}
@@ -302,34 +295,6 @@ if( equal( "-e", argv[iArg] ) )
 	   continue;
 	}
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
-#ifdef JVT_Q081
-  if (equal( "-cl", argv[iArg] ))
-  {
-	   EXIT( iArg + 1 == argc,           "Option \"-cl\" without first argument specified" );
-     m_uiFGSMaxCL = atoi(argv[++iArg]);
-	   EXIT( iArg + 1 == argc,           "Option \"-cl\" without second argument specified" );
-     m_uiLevelMaxCL = atoi(argv[++iArg]);
-       EXIT( iArg + 1 == argc,           "Option \"-cl\" without third argument specified" );
-     m_uiLayerMaxCL = atoi(argv[++iArg]);
-     m_bUsedCLExtraction = true;
-
-    continue;
-  }
-#endif
-#ifdef JVT_P029
-	if(equal("-cut",argv[iArg]))
-	{
-		m_uiCutFrame = atoi( argv[ ++iArg ] );
-		m_uiCutLayer = atoi( argv[ ++iArg ] );
-        m_uiLayer       =  m_uiCutLayer;
-		m_uiCutPoint = atoi(argv[++iArg]);
-		m_uiInterGopFrame = atoi(argv[++iArg]);
-        m_uiSizeGop = atoi(argv[++iArg]);
-		m_uiNbFrames = atoi(argv[++iArg]);
-		m_bTruncationForQLEstimation = true;
-		continue;
-	}
-#endif
     if(equal( "-ql", argv[iArg] ))
     {
         m_bExtractUsingQL = true;

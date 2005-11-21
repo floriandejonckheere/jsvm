@@ -334,7 +334,7 @@ DecodedPicBuffer::init( YuvBufferCtrl* pcYuvBufferCtrl,
 
 
 
-__inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; ( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
+__inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; (UInt)( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
 
 
 
@@ -1884,7 +1884,7 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
       m_pcRQFGSDecoder->getSliceHeader()->getPoc          ()      == rpcSliceHeader->getPoc           () &&
       m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel () + 1  == rpcSliceHeader->getQualityLevel  ()  )
   {
-    if( rpcSliceHeader->getQualityLevel() <= m_uiQualityLevelForPrediction )
+    if( rpcSliceHeader->getQualityLevel() <= (UInt)m_uiQualityLevelForPrediction )
     {
       printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, PrRef,              QP%3d )\n",
         rpcSliceHeader->getPoc                    (),

@@ -157,7 +157,6 @@ void EncoderMergerParameter::init(Int argc, char **argv)
 	EncoderIoParameter m_cEncoderIoParameter;
 	Char*   pcBitstreamFile = m_cEncoderIoParameter.pBitstreamFile;
 	pcBitstreamFile [0] = (Char) 0;
-#ifdef QL_CLOSEDLOOP
 	char fileName[256];
 	m_uiMode = atoi( argv[ 1 ] );
 	if(m_uiMode == 0)
@@ -196,59 +195,6 @@ void EncoderMergerParameter::init(Int argc, char **argv)
         CodingParameter::setNumberOfLayers(m_uiNumOfLayer+1);
 	}
         
-#else
-    m_bReadPID = false;
-    m_bWritePID = false;
-	static int indexLayer = 0;
-	for( Int iArg = 0; iArg < argc; iArg++ )
-	{
-		
-	if( equal( "-numl", argv[iArg] ) )
-    {
-	  m_uiNumOfLayer       = atoi( argv[ ++iArg ] );
-      CodingParameter::setNumberOfLayers(m_uiNumOfLayer);
-	}
-	if( equal("-infile", argv[iArg]))
-	{
-		char fileName[256];
-        strcpy( fileName, argv[++iArg]);
-		m_acInFile = fileName;
-	}
-	if(equal("-ql",argv[iArg]))
-	{
-		iArg++;
-		//set rd files name
-		 char distoFileName[256];
-         strcpy( distoFileName, argv[iArg]);
-		 strcat( distoFileName, "_disto" );
-		 m_cDistoFilename = distoFileName;
-         iArg++;
-         m_uiQLInSEI = atoi(argv[iArg]);	
-	}
-
-    if(equal("-outfile",argv[iArg]))
-    {
-        iArg++;
-        m_cOutFile = argv[iArg];
-    }
-    if(equal("-readPID",argv[iArg]))
-    {
-        iArg++;
-        m_bReadPID = true;
-        char fileName[256];
-        strcpy( fileName, argv[iArg]);
-        m_cPID = fileName;
-    }
-    if(equal("-writePID",argv[iArg]))
-    {
-        iArg++;
-        m_bWritePID = true;
-        char fileName[256];
-        strcpy( fileName, argv[iArg]);
-        m_cPID = fileName;
-    }
-	}
-#endif
 }
 
 

@@ -486,8 +486,8 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
     }
   }
   
-  if( bEos || ( m_bCheckNextSlice && (m_iFirstLayerIdx == m_pcNalUnitParser->getLayerId() ||
-      (m_pcNalUnitParser->getLayerId() > m_iFirstLayerIdx && m_iPrevPoc != slicePoc) ) 
+  if( bEos || ( m_bCheckNextSlice && (m_iFirstLayerIdx == (Int)m_pcNalUnitParser->getLayerId() ||
+      ((Int)m_pcNalUnitParser->getLayerId() > m_iFirstLayerIdx && m_iPrevPoc != slicePoc) ) 
       && slicePoc != m_iFirstSlicePoc )) //JVT-P031
   {
     // setup the state information for the previous slices

@@ -147,21 +147,7 @@ public:
   UInt	getExtractNonRequiredPics()	{ return	m_uiExtractNonRequiredPics;}
 #endif
   Bool getExtractUsingQL() { return m_bExtractUsingQL;}
-#ifdef JVT_Q081
-  Bool useCLExtraction() { return m_bUsedCLExtraction; } 
-  UInt getFGSMaxCL() { return m_uiFGSMaxCL; }
-  UInt getLevelMaxCL() { return m_uiLevelMaxCL; }
-  UInt getLayerMaxCL() { return m_uiLayerMaxCL; }
-#endif
-#ifdef JVT_P029
-  UInt  getCutFrame() {return m_uiCutFrame;}
-  UInt getCutPoint() {return m_uiCutPoint;}
-  UInt getCutLayer() { return m_uiCutLayer;}
-  UInt getSizeGop() { return m_uiSizeGop;}
-  UInt getNbFrames() { return m_uiNbFrames;}
-  UInt getInterGopFrame() { return m_uiInterGopFrame;}
-  Bool getTruncationForQLEstimation() { return m_bTruncationForQLEstimation;}
-#endif
+
 protected:
   ErrVal  xPrintUsage         ( Char**  argv );
   ErrVal  xParseFormatString  ( Char*   pFormatString,
@@ -197,21 +183,6 @@ protected:
 #endif
 
   Bool           m_bExtractUsingQL;
-#ifdef JVT_Q081
-  Bool        m_bUsedCLExtraction;
-  UInt        m_uiFGSMaxCL;
-  UInt        m_uiLevelMaxCL;
-  UInt        m_uiLayerMaxCL;
-#endif
-#ifdef JVT_P029
-  UInt			  m_uiCutFrame;
-  UInt			  m_uiCutPoint;
-  UInt			  m_uiCutLayer;
-  UInt			  m_uiInterGopFrame; //cut an intergop frame
-  UInt            m_uiSizeGop;
-  UInt			  m_uiNbFrames;
-  Bool			  m_bTruncationForQLEstimation;
-#endif
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

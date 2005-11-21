@@ -84,29 +84,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCDecoderLibTest.h"
 #include "H264AVCDecoderTest.h"
 
-#ifdef JVT_P029
-#include "ReadYUVFile.h"
-double getEqm(Pel* rec, Pel* org, UInt h,UInt w,UInt stride)
-{
-    unsigned char*  pOrg  = org;//.getBuffer();
-    unsigned char*  pRec  = rec;//.getBuffer();
-  double          ssd   = 0;
-  int             diff;
-
-  for  ( int r = 0; r < h; r++ )
-  {
-    for( int c = 0; c < w;  c++ )
-    {
-      diff  = pRec[c] - pOrg[c];
-      ssd  += (double)( diff * diff );
-    }
-    pRec   += stride;
-    pOrg   += stride;
-  }
-
-  return (ssd);///((double)rec.width * (double)rec.height)); 
-}
-#endif
 
 H264AVCDecoderTest::H264AVCDecoderTest() :
   m_pcH264AVCDecoder( NULL ),
@@ -237,21 +214,7 @@ ErrVal H264AVCDecoderTest::go()
   PicBufferList cPicBufferOutputList; 
   PicBufferList cPicBufferUnusedList;
   PicBufferList cPicBufferReleaseList;
-#ifdef JVT_P029
-  PicBuffer*    pcPicOrigBuffer = NULL;
-  ReadYuvFile*  pcReaderYUV = NULL;
-  Double eqm = 0.0;
-  Double eqmLast = 0.0;
-  Double eqmGop = 0.0;
-  UInt seq_length;
-  //UInt uiFrameDeb, uiFrameEnd,intraFrame;
-  UInt uiSizeGop;
-  FILE *fEqm;
-  UInt uiNbFrames = 0;
-  UInt uiEnd;
-  UInt uiDeb;
-  FILE *fDisto = fopen("disto","wt");
-#endif
+
   UInt      uiMbX           = 0;
   UInt      uiMbY           = 0;
   UInt      uiNalUnitType   = 0;
@@ -276,32 +239,7 @@ ErrVal H264AVCDecoderTest::go()
   cPicBufferUnusedList.clear();
   
   RNOK( m_pcH264AVCDecoder->init() );
-#ifdef JVT_P029
-  if(m_pcParameter->m_bQL == true)
-  {
-  ReadYuvFile::create(pcReaderYUV);
-  seq_length = m_pcParameter->seq_length;
-  uiSizeGop = m_pcParameter->sizeGop;
-  if(m_pcParameter->InterGopFrame == false)
-      uiEnd = 1;
-  else
-  {
-      //intergop frames are cut
-      if(m_pcParameter->FirstInterGopFrame == 0)
-      {
-          uiDeb = 0;
-          uiEnd = 1+uiSizeGop;
-      }
-      else
-      {
-          uiDeb = 1;
-          uiEnd = 1+uiSizeGop*2;
-      }
-  }
-  fEqm = fopen("eqp","wt");
-  pcReaderYUV->init(m_pcParameter->cOrigYUV,m_pcParameter->h,m_pcParameter->w);
-  }
-#endif
+
   Bool bToDecode = false; //JVT-P031
   for( uiFrame = 0; ( uiFrame <= MSYS_UINT_MAX && ! bEOS); )
   {
@@ -409,15 +347,7 @@ if(bToDecode)//JVT-P031
     if( uiNalUnitType == 1 || uiNalUnitType == 5 || uiNalUnitType == 20 || uiNalUnitType == 21 )
     {
       RNOK( xGetNewPicBuffer( pcPicBuffer, uiSize ) );
-#ifdef JVT_P029
-	  if(m_pcParameter->m_bQL == true)
-  {
-      if(pcPicOrigBuffer == NULL && (m_pcParameter->w == (uiMbX << 4)))
-      {
-          pcPicOrigBuffer = new PicBuffer( new UChar[ uiSize ] );
-      }
-  }
-#endif 
+
       if( ! bYuvDimSet )
       {
         UInt uiLumSize  = ((uiMbX<<3)+  YUV_X_MARGIN) * ((uiMbY<<3)    + YUV_Y_MARGIN ) * 4;
@@ -456,86 +386,17 @@ if(bToDecode)//JVT-P031
           uiLastPoc += uiMaxPocDiff;
         }
 
-#ifdef JVT_P029
-		if(m_pcParameter->m_bQL == true)
-  {
-        RNOK( pcReaderYUV->readFrame(*pcPicOrigBuffer+uiLumOffset,
-                                    *pcPicOrigBuffer+uiCbOffset,
-                                    *pcPicOrigBuffer+uiCrOffset,
-                                    uiMbY << 4,
-                                    uiMbX << 4,
-                                    (uiMbX << 4)+ YUV_X_MARGIN*2 ) );
-        //calculate eqm
-            eqm = getEqm(*pcPicOrigBuffer+uiLumOffset,
-            *pcPicBuffer+uiLumOffset,
-            uiMbY << 4,
-            uiMbX << 4,
-            (uiMbX << 4)+ YUV_X_MARGIN*2 );
-			if(m_pcParameter->InterGopFrame == true)
-			{
-                if(uiFrame >= uiDeb && uiFrame < uiEnd)
-				{
-                    printf(" Frame %d eqm %f \n",uiFrame,eqm);
-                    eqmGop += eqm;
-                    eqmLast = eqm;
-                    uiNbFrames++;
-                }
-                else
-                {
-                    if(uiFrame > uiDeb)
-                    {
-                    printf("Save eqm uiEnd %d eqmGop %f nbFrames %d \n", uiEnd, eqmGop, uiNbFrames);
-					printf(" Frame %d eqm %f \n",uiFrame,eqm);
-					fprintf(fDisto,"%d \n",(int)( eqmGop / (double)seq_length + 0.5 ));
-					eqmGop = eqm;//eqmLast+eqm;
-					eqmLast = eqm;
-                    uiDeb = uiEnd;
-					uiEnd += uiSizeGop*2;
-					uiNbFrames = 1;//2;
-                    }
-                }
-			}
-			else
-			{
-				if(uiFrame < uiEnd)
-				{
-					printf(" Frame %d eqm %f \n",uiFrame,eqm);
-                    eqmGop += eqm;
-                    eqmLast = eqm;
-					uiNbFrames++;
-				}
-				else
-				{
-					printf("Save eqm uiEnd %d eqmGop %f nbFrames %d \n", uiEnd, eqmGop, uiNbFrames);
-					printf(" Frame %d eqm %f \n",uiFrame,eqm);
-					fprintf(fDisto,"%d \n",(int)( eqmGop / (double)seq_length + 0.5 ));
-					eqmGop = eqm;//eqmLast+eqm;
-					eqmLast = eqm;
-					uiEnd += uiSizeGop;
-					uiNbFrames = 1;//2;
-				}
-			}
-        
-        fprintf(fEqm,"%f\n",eqm);
-     
-  }
-  if(m_pcParameter->m_bQL == false)
-  {
-#endif          
         RNOK( m_pcWriteYuv->writeFrame( *pcPicBuffer + uiLumOffset, 
                                         *pcPicBuffer + uiCbOffset, 
                                         *pcPicBuffer + uiCrOffset,
                                          uiMbY << 4,
                                          uiMbX << 4,
                                         (uiMbX << 4)+ YUV_X_MARGIN*2 ) );
-#ifdef JVT_P029
-  }
-#endif
         uiFrame++;
       
     
         // HS: decoder robustness
-        uiLastPoc = pcPicBuffer->getCts();
+        uiLastPoc = (UInt)pcPicBuffer->getCts();
         ::memcpy( pcLastFrame, *pcPicBuffer+0, uiSize*sizeof(UChar) );
       }
     }
@@ -546,19 +407,7 @@ if(bToDecode)//JVT-P031
   }
 
   printf("\n %d frames decoded\n", uiFrame );
-#ifdef JVT_P029
-  if(m_pcParameter->m_bQL == true)
-  {
-  //FILE *fDisto = fopen("disto","wt");
-  //fprintf(fDisto,"%d",(int)( eqm / (double)seq_length + 0.5 ));
-  printf("Save eqm uiEnd %d eqmGop %f nbFrames %d \n", uiEnd, eqmGop, uiNbFrames);
-  fprintf(fDisto,"%d",(int)( eqmGop / (double)seq_length + 0.5 ));
-  fclose(fDisto);
-  pcReaderYUV->uninit();
-  pcReaderYUV->destroy();
-  fclose(fEqm);
-  }
-#endif
+
   delete [] pcLastFrame; // HS: decoder robustness
   
   RNOK( m_pcH264AVCDecoder->uninit() );

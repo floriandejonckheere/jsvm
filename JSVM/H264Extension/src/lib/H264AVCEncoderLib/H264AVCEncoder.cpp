@@ -122,9 +122,9 @@ H264AVCEncoder::H264AVCEncoder():
 		m_aaauidSeqBits[ui][uj][uk] = 0;
 
 #if NON_REQUIRED_SEI_ENABLE
-	for(UInt ui = 0; ui < 1<<MAX_DSTAGES; ui++)
+	for(UInt uiX = 0; uiX < 1<<MAX_DSTAGES; uiX++)
 	{
-		m_uiNonRequiredSEIWritten[ui] =  0;
+		m_uiNonRequiredSEIWritten[uiX] =  0;
 	}
 #endif
 }

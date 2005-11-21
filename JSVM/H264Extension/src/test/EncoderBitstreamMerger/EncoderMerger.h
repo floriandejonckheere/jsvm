@@ -114,24 +114,11 @@ public:
                       Bool                    bNewPicture );
   Void PrintSizeFrames(UInt uiLayer, UInt uiNbFrames);
   Void CalculateQualityLevel(UInt uiExtLayer);
-#ifdef QL_CLOSEDLOOP
   ErrVal writeQualityLevel_PID(UInt ***auiQLForFrames, UInt uiLayer, UInt uiNFrames, UInt uiFGSLayer, UInt uiLevel, BinData*  pcBinData);
   ErrVal writeQualityLevel_SEI(UInt ***auiQLForFrames, UInt uiLayer, UInt uiNFrames);
-#else
-  ErrVal writeQualityLevel_PID(UInt uiLayer, UInt uiNFrames, UInt uiFGSLayer, UInt uiLevel, BinData*  pcBinData);
-  ErrVal writeQualityLevel_SEI(UInt uiLayer, UInt uiNFrames);
-#endif
   Void ReadPID(std::string & PIDFilename);
-#ifdef QL_CLOSEDLOOP
   ErrVal addQualityLevel_SEI(UInt ***auiQLForFrames);
-#else
-  ErrVal addQualityLevel_SEI();
-#endif
-#ifdef QL_CLOSEDLOOP
   ErrVal addQualityLevel_PID(UInt ***auiQLForFrames);
-#else
-  ErrVal addQualityLevel_PID();
-#endif
 
   void SetQualityLayerForFrames(UInt *auiQLForFrames, UInt uiNumOfFrames, UInt uiGopSize, 
                               RDTree *pcRDTreeList, ppRDTree apcRDTree,
