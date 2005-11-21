@@ -284,6 +284,7 @@ ErrVal H264AVCDecoderTest::go()
     UInt uiFragNb, auiStartPos[MAX_FRAGMENTS], auiEndPos[MAX_FRAGMENTS];
     uiFragNb = 0;
     bEOS = false;
+    pcBinData = 0;
     while(!bStart && !bEOS)
     {
       if(bFirst)
@@ -403,7 +404,11 @@ if(bToDecode)//JVT-P031
    } 
     RNOK( xRemovePicBuffer( cPicBufferReleaseList ) );
     RNOK( xRemovePicBuffer( cPicBufferUnusedList ) );
-    RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+    if( pcBinData )
+    {
+      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+      pcBinData = 0;
+    }
   }
 
   printf("\n %d frames decoded\n", uiFrame );

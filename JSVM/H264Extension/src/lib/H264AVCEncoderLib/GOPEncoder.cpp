@@ -540,7 +540,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
       }
       m_dFGSBitRateFactor = 0.0;
     }
-    m_dNumFGSLayers     = 1.0; // something greater than zero
+    m_dNumFGSLayers     = 3.0; // (HS): fix - maximum number of FGS layers
+    pcLayerParameters->setNumFGSLayers( m_dNumFGSLayers ); // (HS): fix - also store in layer parameters
     
     //JVT-P031
     if(m_bUseDiscardableUnit)

@@ -119,7 +119,6 @@ H264AVCDecoder::H264AVCDecoder()
 , m_bLastFrame                    ( false )
 , m_bFrameDone                    ( true  )
 , m_bEnhancementLayer             ( false )
-, m_bSpatialScalability           ( false )
 , m_bBaseLayerIsAVCCompatible     ( false )
 , m_uiSPSCount                    ( 0 )
 , m_uiRecLayerId                  ( 0 )
@@ -223,7 +222,6 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
   m_pcPocCalculator           = pcPocCalculator;
   m_pcFGSPicBuffer            = 0;
   m_bEnhancementLayer         = false;
-  m_bSpatialScalability       = false;
   m_bBaseLayerIsAVCCompatible = false;
   m_uiSPSCount                = 0;
   m_uiRecLayerId              = 0;
@@ -671,7 +669,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       if (m_uiSPSCount == 1)
       {
         m_bEnhancementLayer = true;
-        m_bSpatialScalability = pcSPS->getFrameHeightInMbs() != m_pcVeryFirstSPS->getFrameHeightInMbs();
       }
       m_uiSPSCount++;
       RNOK( m_pcParameterSetMng ->store   ( pcSPS   ) );

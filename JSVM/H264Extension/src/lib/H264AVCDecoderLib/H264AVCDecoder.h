@@ -240,7 +240,6 @@ protected:
   PicBuffer*                    m_pcFGSPicBuffer;
 
   Bool                          m_bEnhancementLayer;
-  Bool                          m_bSpatialScalability;
   Bool                          m_bActive;
   Bool                          m_bBaseLayerIsAVCCompatible;
   UInt                          m_uiSPSCount;

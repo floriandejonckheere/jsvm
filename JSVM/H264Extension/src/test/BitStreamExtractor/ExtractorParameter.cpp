@@ -256,7 +256,7 @@ ExtractorParameter::init( Int     argc,
 			continue;
 		}
 #endif
-if( equal( "-e", argv[iArg] ) )
+    if( equal( "-e", argv[iArg] ) )
     {
       EXIT( iArg + 1 == argc,           "Option \"-e\" without argument specified" );
       EXIT( bExtractionPointSpecified,  "Multiple options \"-e\"" );
@@ -287,13 +287,13 @@ if( equal( "-e", argv[iArg] ) )
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     //option utilized to remove Dead Substream of uiLayer
-	if(equal( "-ds",argv[iArg] ))
-	{
-	   EXIT( iArg + 1 == argc,           "Option \"-ds\" without argument specified" );
+	  if(equal( "-ds",argv[iArg] ))
+	  {
+  	   EXIT( iArg + 1 == argc,           "Option \"-ds\" without argument specified" );
        UInt uiLayer = atoi(argv[++iArg]);
-	   m_bExtractDeadSubstream[uiLayer] = true;
-	   continue;
-	}
+	     m_bExtractDeadSubstream[uiLayer] = true;
+	     continue;
+	  }
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
     if(equal( "-ql", argv[iArg] ))
     {

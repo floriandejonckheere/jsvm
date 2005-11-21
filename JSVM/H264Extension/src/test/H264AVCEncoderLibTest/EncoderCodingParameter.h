@@ -466,6 +466,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -anafgs (Layer) (NumFGSLayers) (File for storing FGS parameters)\n");
   printf("  -encfgs (Layer) (bit-rate in kbps) (File with stored FGS parameters)\n");
   printf("  -cl     (Layer) (ClosedLoopParameter)\n");
+  printf("  -ds     (Layer) (Rate for inter-layer prediction)\n");
   printf("  -lcupd  Update method [0 - original, 1 - low-complexity (default)]\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   printf("  -anaags  [1 - mode decision for Adaptive GOP Structure]\n");

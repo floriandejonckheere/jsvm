@@ -93,16 +93,16 @@ void print_usage_and_exit_1( int test, char* name, char* message = 0 )
       fprintf ( stderr, "\nERROR: %s\n", message );
     }
     fprintf (   stderr, "\nUsage: %s <w> <h> <orig> <root> <disto> <nf> <gs> <fgs> <l> \n\n", name );
-	fprintf (   stderr, "\t  w: width\n" );
-	fprintf (   stderr, "\t  h: height\n" );
+	  fprintf (   stderr, "\t  w: width\n" );
+	  fprintf (   stderr, "\t  h: height\n" );
     fprintf (   stderr, "\t  orig: orig yuv file\n" );
-	fprintf (   stderr, "\t  root: root extracted yuv files\n" );
-	fprintf (   stderr, "\t  disto: disto file\n" );
-	fprintf (   stderr, "\t   nf: number of frames\n" );
+	  fprintf (   stderr, "\t  root: root extracted yuv files\n" );
+	  fprintf (   stderr, "\t  disto: disto file\n" );
+	  fprintf (   stderr, "\t   nf: number of frames\n" );
     fprintf (   stderr, "\t   gs: gop size\n" );
-	fprintf (   stderr, "\t  fgs: number of FGS layer\n" );
-	fprintf (   stderr, "\t   l: layer\n" );
-	fprintf (   stderr, "\n" );
+	  fprintf (   stderr, "\t  fgs: number of FGS layer\n" );
+	  fprintf (   stderr, "\t   l: layer\n" );
+	  fprintf (   stderr, "\n" );
     exit    (   1 );
   }
 }
@@ -116,16 +116,16 @@ void print_usage_and_exit_2( int test, char* name, char* message = 0 )
       fprintf ( stderr, "\nERROR: %s\n", message );
     }
     fprintf (   stderr, "\nUsage: %s <numl> <in> <out> <disto> <rate> <nf> <gs> <fgs> <SEIm>\n\n", name );
-	fprintf (   stderr, "\t   numl: number of layer\n" );
-	fprintf (   stderr, "\t   in: input file\n" );
-	fprintf (   stderr, "\t  out: output file generated\n" );
-	fprintf (   stderr, "\t  disto: disto file \n" );
-	fprintf (   stderr, "\t  rate: rate file \n" );
+	  fprintf (   stderr, "\t   numl: number of layer\n" );
+	  fprintf (   stderr, "\t   in: input file\n" );
+	  fprintf (   stderr, "\t  out: output file generated\n" );
+	  fprintf (   stderr, "\t  disto: disto file \n" );
+	  fprintf (   stderr, "\t  rate: rate file \n" );
     fprintf (   stderr, "\t   nf: number of frames\n" );
     fprintf (   stderr, "\t   gs: gop size\n" );
-	fprintf (   stderr, "\t  fgs: number of FGS layer\n" );
-	fprintf (   stderr, "\t  SEIm: QL in SEI message (1) or priority_id (0) \n" );
-	fprintf (   stderr, "\n" );
+	  fprintf (   stderr, "\t  fgs: number of FGS layer\n" );
+	  fprintf (   stderr, "\t  SEIm: QL in SEI message (1) or priority_id (0) \n" );
+	  fprintf (   stderr, "\n" );
     exit    (   1 );
   }
 }
@@ -192,7 +192,7 @@ void EncoderMergerParameter::init(Int argc, char **argv)
 		m_uiGopSize = atoi(argv[8]);
 		m_uiMaxFGS = atoi(argv[9]);
 		m_uiQLInSEI = atoi(argv[10]);
-        CodingParameter::setNumberOfLayers(m_uiNumOfLayer+1);
+    CodingParameter::setNumberOfLayers(m_uiNumOfLayer+1);
 	}
         
 }
