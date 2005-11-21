@@ -101,17 +101,9 @@ NalUnitParser::NalUnitParser()
 , m_uiLayerId           ( 0 )
 , m_uiTemporalLevel     ( 0 )
 , m_uiQualityLevel      ( 0 )
+, m_bCheckAllNALUs      ( false ) //JVT-P031
+, m_uiDecodedLayer      ( 0 ) //JVT-P031
 {
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  UInt uiLayer;
-  m_bCheckDSTruncation = false;
-  for(uiLayer = 0; uiLayer < MAX_LAYERS;uiLayer++)
-  {
-      m_bDSInBitstream[uiLayer] = false;
-      m_iMaxRate[uiLayer] = 0;
-  }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
   {
     m_uiTemporalLevelList[uiLoop] = 0;
@@ -241,6 +233,72 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   DTRACE_N;
 }
 
+//JVT-P031
+UInt
+NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor )
+{
+  ROF( pcBinDataAccessor->size() );
+  ROF( pcBinDataAccessor->data() );
+
+  NalUnitType   eNalUnitType;
+  NalRefIdc     eNalRefIdc;
+  Bool			bExtensionFlag;
+
+  UInt  uiHeaderLength  = 1;
+  UChar ucByte          = pcBinDataAccessor->data()[0];
+
+
+  //===== NAL unit header =====
+  ROT( ucByte & 0x80 );                                     // forbidden_zero_bit ( &10000000b)
+  eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
+  eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
+  
+  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  m_bDiscardableFlag = false;
+  //}}Variable Lengh NAL unit header data with priority and dead substream flag
+
+  if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+      eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+  {
+    ROF( pcBinDataAccessor->size() > 1 );
+
+    ucByte              = pcBinDataAccessor->data()[1];
+	bExtensionFlag     = ( ucByte     ) & 1;
+	if(bExtensionFlag)
+	{
+	  uiHeaderLength      ++;
+	}
+    uiHeaderLength      ++;
+  }
+
+  return uiHeaderLength;
+}
+ErrVal
+NalUnitParser::initSODBNalUnit( BinDataAccessor* pcBinDataAccessor )
+{
+  m_pucBuffer = pcBinDataAccessor->data();
+  UInt uiPacketLength = pcBinDataAccessor->size();
+
+  UInt uiBits;
+  xConvertRBSPToSODB(uiPacketLength, uiBits);
+
+  RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBits) );
+  return Err::m_nOK;
+}
+
+UInt
+NalUnitParser::getBytesLeft()               
+{
+  return(m_pcBitReadBuffer->getBytesLeft());
+}
+
+UInt
+NalUnitParser::getBitsLeft()               
+{
+  return(m_pcBitReadBuffer->getBitsLeft());
+}
+//~JVT-P031
 
 ErrVal
 NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag )
@@ -260,11 +318,6 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
 	*KeyPicFlag = true;
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
   
-  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
-  m_bDiscardableFlag = false;
-  //}}Variable Lengh NAL unit header data with priority and dead substream flag
-
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
       m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
@@ -310,33 +363,13 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
   m_pucBuffer         = pcBinDataAccessor->data() + uiHeaderLength;
   UInt uiPacketLength = pcBinDataAccessor->size() - uiHeaderLength;
 
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  if(m_bDSInBitstream[m_uiLayerId] && m_bCheckDSTruncation)
+  //JVT-P031
+  if(m_bDiscardableFlag == true && m_uiDecodedLayer > m_uiLayerId && !m_bCheckAllNALUs)
   {
-	  //if DEADSUBSTREAM in bitstream
-	  // deadsubstream must be removed before decoding the NAL unit
-	  if(m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ||m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-		  m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || m_eNalUnitType == NAL_UNIT_CODED_SLICE)   
-	  {
-		if(m_bDiscardableFlag == false && m_iMaxRate[m_uiLayerId] > 0)
-		{
-            Int idiff = m_iMaxRate[m_uiLayerId] - uiPacketLength;
-			m_iMaxRate[m_uiLayerId] = idiff;
-			if(m_iMaxRate[m_uiLayerId] < 0 && m_uiQualityLevel != 0)  
-			{
-				//Nal unit must be trunc
-				uiPacketLength = uiPacketLength + idiff;
-			}
-		}
-		if(m_bDiscardableFlag == true)
-        {
-			//Nal unit must be discarded
-			uiPacketLength = 0;
-		}
-	  }
+		//Nal unit or fragment must be discarded
+        uiPacketLength = 0;
   }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  //~JVT-P031
 
   // nothing more to do
   ROTRS( NAL_UNIT_END_OF_STREAM   == m_eNalUnitType ||
@@ -348,9 +381,10 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
   UInt uiBitsInPacket;
   // RBSP->SODB
   RNOK( xConvertRBSPToSODB    ( uiPacketLength, uiBitsInPacket ) );
-
-  RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBitsInPacket) );
-
+  if(!m_bDiscardableFlag || (m_bDiscardableFlag && m_uiDecodedLayer == m_uiLayerId) || m_bCheckAllNALUs) //JVT-P031
+  {
+      RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBitsInPacket) );
+  }
   return Err::m_nOK;
 }
 

@@ -121,9 +121,9 @@ public:
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     QUALITYLEVEL_SEI                      = 25,
-	  DEADSUBSTREAM_SEI                     = 21,	//??
-    RESERVED_SEI                          = 26
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
+	//}}Quality level estimation and modified truncation- JVTO044 and m12007
+	RESERVED_SEI                          = 26
+    
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-15
     ,
   	NON_REQUIRED_SEI					            = 24
@@ -390,27 +390,6 @@ public:
 	  UInt m_auiQualityLevel[MAX_NUM_RD_LEVELS];
 	  UInt m_auiDeltaBytesRateOfLevel[MAX_NUM_RD_LEVELS];
 	  UInt m_uiNumLevels;
-	  UInt m_uiDependencyId;
-  };
-
-  class H264AVCCOMMONLIB_API DeadSubstreamSEI : public SEIMessage
-  {
-	protected:
-    DeadSubstreamSEI ();
-    ~DeadSubstreamSEI();
-
-  public:
-    static ErrVal create  ( DeadSubstreamSEI*&         rpcSeiMessage );
-    ErrVal        write   ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf );
-	
-	UInt		 getDeltaBytesDeadSubstream() { return m_uiDeltaBytesDeadSubstream;}
-	Void		 setDeltaBytesDeadSubstream(UInt ui) { m_uiDeltaBytesDeadSubstream = ui;}
-	UInt		 getDependencyId() { return m_uiDependencyId;}
-	Void		 setDependencyId( UInt ui) { m_uiDependencyId = ui;}
-
-  private:
-	  UInt m_uiDeltaBytesDeadSubstream;
 	  UInt m_uiDependencyId;
   };
   //}}Quality level estimation and modified truncation- JVTO044 and m12007

@@ -140,7 +140,7 @@ public:
     m_iNbPoint++;
   }
 
-  void SetValidPoints();
+  void SetValidPoints(UInt* uiFGSIndex[MAX_FGS_LAYERS], UInt uiNFrames);
 
   int getNbValidPoints() { return m_iNbValidPoint;}
   double getValidQualityLevel(int ind) { return m_adRDSlope[ind];}

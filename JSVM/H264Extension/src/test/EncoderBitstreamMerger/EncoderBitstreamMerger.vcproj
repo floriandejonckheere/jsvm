@@ -218,6 +218,9 @@
 						BasicRuntimeChecks="3"/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath=".\RDTree.cpp">
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -230,6 +233,9 @@
 			</File>
 			<File
 				RelativePath="RatePointsManager.h">
+			</File>
+			<File
+				RelativePath=".\RDTree.hpp">
 			</File>
 		</Filter>
 		<Filter

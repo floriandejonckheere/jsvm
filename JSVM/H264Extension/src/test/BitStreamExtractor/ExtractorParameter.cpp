@@ -117,6 +117,11 @@ ExtractorParameter::ExtractorParameter()
 	    m_bExtractDeadSubstream[uiLayer] = false;
     }
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#ifdef JVT_Q081
+    m_uiLevelMaxCL=0;
+    m_uiFGSMaxCL=0;
+    m_bUsedCLExtraction=false;
+#endif
 }
 
 
@@ -177,13 +182,20 @@ ExtractorParameter::init( Int     argc,
   m_cExtractionList.clear();
   m_uiLayer = MSYS_UINT_MAX;
   m_uiLevel = MSYS_UINT_MAX;
-
+  
+  Bool  bTraceExtractionSpecified = false; // HS: packet trace
+  Bool  bExtractionPointSpecified = false;
+  
   Bool  bLayerSpecified           = false;
   Bool  bLevelSpecified           = false;
   Bool  bFGSSpecified             = false;
-	Bool	bBitrateSpecified					= false;
+  Bool	bBitrateSpecified					= false;
   Point cPoint;
-
+#ifdef JVT_P029
+  m_bTruncationForQLEstimation = false;
+#endif
+  m_bExtractUsingQL = false;
+  
 #define EXIT(x,m) {if(x){printf("\n%s\n",m);RNOKS(xPrintUsage(argv))}}
 
   //===== get file names and set parameter "AnalysisOnly" =====
@@ -251,6 +263,79 @@ ExtractorParameter::init( Int     argc,
 			continue;
 		}
 #endif
+if( equal( "-e", argv[iArg] ) )
+    {
+      EXIT( iArg + 1 == argc,           "Option \"-e\" without argument specified" );
+      EXIT( bExtractionPointSpecified,  "Multiple options \"-e\"" );
+      EXIT( bLayerSpecified,            "Option \"-e\" used in connection with option \"-l\"" );
+      EXIT( bLevelSpecified,            "Option \"-e\" used in connection with option \"-t\"" );
+      EXIT( bFGSSpecified,              "Option \"-e\" used in connection with option \"-f\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-e\" used in connection with option \"-et\"" ); // HS: packet trace
+      ErrVal errVal  = xParseFormatString( argv[++iArg], cPoint );
+      EXIT(  errVal != Err::m_nOK,      "Wrong format string with option \"-e\" specified" );
+      m_cExtractionList.push_back( cPoint );
+      bExtractionPointSpecified = true;
+      continue;
+    }
+
+    if( equal( "-et", argv[iArg] ) ) // HS: packet trace
+    {
+      EXIT( iArg + 1 == argc,           "Option \"-et\" without argument specified" );
+      EXIT( bTraceExtractionSpecified,  "Multiple options \"-et\"" );
+      EXIT( bLayerSpecified,            "Option \"-et\" used in connection with option \"-l\"" );
+      EXIT( bLevelSpecified,            "Option \"-et\" used in connection with option \"-t\"" );
+      EXIT( bFGSSpecified,              "Option \"-et\" used in connection with option \"-f\"" );
+      EXIT( bExtractionPointSpecified,  "Option \"-et\" used in connection with option \"-e\"" );
+      m_cExtractTrace           = argv[++iArg];
+      m_bTraceExtract           = true;
+      bTraceExtractionSpecified = true;
+      continue;
+    }
+    //{{Quality level estimation and modified truncation- JVTO044 and m12007
+    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
+    //option utilized to remove Dead Substream of uiLayer
+	if(equal( "-ds",argv[iArg] ))
+	{
+	   EXIT( iArg + 1 == argc,           "Option \"-ds\" without argument specified" );
+       UInt uiLayer = atoi(argv[++iArg]);
+	   m_bExtractDeadSubstream[uiLayer] = true;
+	   continue;
+	}
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
+#ifdef JVT_Q081
+  if (equal( "-cl", argv[iArg] ))
+  {
+	   EXIT( iArg + 1 == argc,           "Option \"-cl\" without first argument specified" );
+     m_uiFGSMaxCL = atoi(argv[++iArg]);
+	   EXIT( iArg + 1 == argc,           "Option \"-cl\" without second argument specified" );
+     m_uiLevelMaxCL = atoi(argv[++iArg]);
+       EXIT( iArg + 1 == argc,           "Option \"-cl\" without third argument specified" );
+     m_uiLayerMaxCL = atoi(argv[++iArg]);
+     m_bUsedCLExtraction = true;
+
+    continue;
+  }
+#endif
+#ifdef JVT_P029
+	if(equal("-cut",argv[iArg]))
+	{
+		m_uiCutFrame = atoi( argv[ ++iArg ] );
+		m_uiCutLayer = atoi( argv[ ++iArg ] );
+        m_uiLayer       =  m_uiCutLayer;
+		m_uiCutPoint = atoi(argv[++iArg]);
+		m_uiInterGopFrame = atoi(argv[++iArg]);
+        m_uiSizeGop = atoi(argv[++iArg]);
+		m_uiNbFrames = atoi(argv[++iArg]);
+		m_bTruncationForQLEstimation = true;
+		continue;
+	}
+#endif
+    if(equal( "-ql", argv[iArg] ))
+    {
+        m_bExtractUsingQL = true;
+        continue;
+    }
+
     EXIT( true, "Unknown option specified" );
   }
   return Err::m_nOK;

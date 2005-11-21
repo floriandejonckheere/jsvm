@@ -116,8 +116,12 @@ public:
   Bool                  getAnalysisOnly     ()            const { return m_bAnalysisOnly;   }
   UInt                  getLayer            ()            const { return m_uiLayer;         }
   void                  setLayer            (UInt layer)  { m_uiLayer = layer;        }
+  UInt                  getLayerId            ()            const { return m_uiLayerId;         }
+  void                  setLayerId            (UInt layer)  { m_uiLayerId = layer;        }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
+  void					setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;		}
+  UInt					getMaxFGSLayerKept  ()			  { return m_uiMaxFGSLayerKept;		}
   Double                getBitrate          ()            const { return m_dBitrate;        }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }
   const MyList<UInt>&   getRemoveList       ()            const { return m_cRemoveList;     }
@@ -142,7 +146,22 @@ public:
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
   UInt	getExtractNonRequiredPics()	{ return	m_uiExtractNonRequiredPics;}
 #endif
-
+  Bool getExtractUsingQL() { return m_bExtractUsingQL;}
+#ifdef JVT_Q081
+  Bool useCLExtraction() { return m_bUsedCLExtraction; } 
+  UInt getFGSMaxCL() { return m_uiFGSMaxCL; }
+  UInt getLevelMaxCL() { return m_uiLevelMaxCL; }
+  UInt getLayerMaxCL() { return m_uiLayerMaxCL; }
+#endif
+#ifdef JVT_P029
+  UInt  getCutFrame() {return m_uiCutFrame;}
+  UInt getCutPoint() {return m_uiCutPoint;}
+  UInt getCutLayer() { return m_uiCutLayer;}
+  UInt getSizeGop() { return m_uiSizeGop;}
+  UInt getNbFrames() { return m_uiNbFrames;}
+  UInt getInterGopFrame() { return m_uiInterGopFrame;}
+  Bool getTruncationForQLEstimation() { return m_bTruncationForQLEstimation;}
+#endif
 protected:
   ErrVal  xPrintUsage         ( Char**  argv );
   ErrVal  xParseFormatString  ( Char*   pFormatString,
@@ -153,9 +172,11 @@ protected:
   std::string     m_cOutFile;
   Int             m_iResult;
   UInt            m_uiLayer;
+  UInt			  m_uiLayerId;
   UInt            m_uiLevel;
   Double          m_dFGSLayer;
-  Double					m_dBitrate;
+  UInt			  m_uiMaxFGSLayerKept;
+  Double		  m_dBitrate;
   Bool            m_bAnalysisOnly;
   MyList<Point>   m_cExtractionList;
   MyList<UInt>    m_cRemoveList;
@@ -173,6 +194,23 @@ protected:
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
   UInt			 m_uiExtractNonRequiredPics;
+#endif
+
+  Bool           m_bExtractUsingQL;
+#ifdef JVT_Q081
+  Bool        m_bUsedCLExtraction;
+  UInt        m_uiFGSMaxCL;
+  UInt        m_uiLevelMaxCL;
+  UInt        m_uiLayerMaxCL;
+#endif
+#ifdef JVT_P029
+  UInt			  m_uiCutFrame;
+  UInt			  m_uiCutPoint;
+  UInt			  m_uiCutLayer;
+  UInt			  m_uiInterGopFrame; //cut an intergop frame
+  UInt            m_uiSizeGop;
+  UInt			  m_uiNbFrames;
+  Bool			  m_bTruncationForQLEstimation;
 #endif
 };
 

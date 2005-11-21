@@ -121,6 +121,8 @@ public:
   Bool isByteAligned()              {  return( 0 == (m_iValidBits & (0x7)) );   }
 
   Bool isValid();
+  UInt getBytesLeft()               {  return(m_uiBitsLeft/8); }//JVT-P031
+  UInt getBitsLeft()                {  return(m_uiBitsLeft); }//JVT-P031
 
 private:
   __inline Void xReadNextWord();

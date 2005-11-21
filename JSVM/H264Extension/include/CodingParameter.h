@@ -204,11 +204,6 @@ public:
     , m_uiFGSMode                         (0)
     , m_cFGSRateFilename                  ("none")
     , m_dFGSRate                          (0)
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    , m_cDistoFilename                    ("none")
-    , m_cRateFilename                     ("none")
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
     , m_uiDecompositionStages             (0)
     , m_uiNotCodedMCTFStages              (0)
     , m_uiTemporalResolution              (0)
@@ -221,6 +216,8 @@ public:
     , m_dLowPassEnhRef                    ( -1.0 )
     , m_uiBaseWeightZeroBaseBlock         ( INT_MAX )
     , m_uiBaseWeightZeroBaseCoeff         ( INT_MAX )
+    , m_bUseDiscardable                   (false) //JVT-P031
+    , m_dPredFGSRate                      (0.0) //JVT-P031
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
   }
@@ -255,12 +252,7 @@ public:
   UInt                            getFGSMode                        () const {return m_uiFGSMode; }
   const std::string&              getFGSFilename                    () const {return m_cFGSRateFilename; }
   Double                          getFGSRate                        () const {return m_dFGSRate; }
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  const std::string&              getRateFilename                    () const {return m_cRateFilename; }
-  const std::string&              getDistoFilename                   () const {return m_cDistoFilename; }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+  
   UInt                            getDecompositionStages            () const {return m_uiDecompositionStages; }
   UInt                            getNotCodedMCTFStages             () const {return m_uiNotCodedMCTFStages; }
   UInt                            getTemporalResolution             () const {return m_uiTemporalResolution; }
@@ -273,7 +265,8 @@ public:
   UInt                            getForceReorderingCommands        () const {return m_uiForceReorderingCommands; }
   UInt                            getBaseLayerId                    () const {return m_uiBaseLayerId; }
 
-
+  Bool                            getUseDiscardable                 () const {return m_bUseDiscardable;} //JVT-P031
+  Double                          getPredFGSRate                    () const {return m_dPredFGSRate;} //JVT-P031
   //===== set =====
   Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
   Void setFrameWidth                      (UInt   p) { m_uiFrameWidth                     = p; }
@@ -299,11 +292,6 @@ public:
   Void setFGSMode                         (UInt   p) { m_uiFGSMode                        = p; }
   Void setFGSFilename                     (Char*  p) { m_cFGSRateFilename                 = p; }
   Void setFGSRate                         (Double p) { m_dFGSRate                         = p; }
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Void setDistoFilename                    (Char*  p) { m_cDistoFilename                 = p; }
-  Void setRateFilename                     (Char*  p) { m_cRateFilename                 = p; }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   
   Void setDecompositionStages             (UInt   p) { m_uiDecompositionStages            = p; }
   Void setNotCodedMCTFStages              (UInt   p) { m_uiNotCodedMCTFStages             = p; }
@@ -318,6 +306,8 @@ public:
   Void setForceReorderingCommands         (UInt   p) { m_uiForceReorderingCommands        = p; }
   Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
 
+  Void setUseDiscardable                 (Bool b)     {m_bUseDiscardable                  = b;} //JVT-P031
+  Void setPredFGSRate                    (Double d)   {m_dPredFGSRate                     = d;} //JVT-P031
 // TMM_ESS {
   int                 getExtendedSpatialScalability     () { return m_ResizeParameter.m_iExtendedSpatialScalability; }
   int                 getSpatialScalabilityType         () { return m_ResizeParameter.m_iSpatialScalabilityType; }
@@ -386,12 +376,7 @@ public:
   UInt                      m_uiFGSMode;
   std::string               m_cFGSRateFilename;
   Double                    m_dFGSRate;
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  std::string               m_cRateFilename;
-  std::string               m_cDistoFilename;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+  
   //----- derived parameters -----
   UInt                      m_uiDecompositionStages;
   UInt                      m_uiNotCodedMCTFStages;
@@ -408,6 +393,12 @@ public:
   Double                    m_dLowPassEnhRef;
   UInt                      m_uiBaseWeightZeroBaseBlock;
   UInt                      m_uiBaseWeightZeroBaseCoeff;
+
+  //JVT-P031
+  Bool                      m_bUseDiscardable; //indicate if discardable stream is coded for this layer 
+                                                //discardable stream should not be used for inter-layer prediction
+  Double                    m_dPredFGSRate; //rate use for inter-layer prediction (after that rate, stream is discardable)
+
 };
 
 
@@ -502,11 +493,7 @@ public:
                                                                           }
 
   ErrVal                          check                   ();
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool getQualityLevelsEstimation() { return m_bQualityLevelsEstimation;}
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+  
   // TMM_ESS 
   ResizeParameters*               getResizeParameters  ( UInt    n )    { return m_acLayerParameters[n].getResizeParameters(); }
 
@@ -565,10 +552,6 @@ protected:
 
   UInt                      m_uiNumberOfLayers;
   LayerParameters           m_acLayerParameters[MAX_LAYERS];
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool						m_bQualityLevelsEstimation;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   Bool                      m_bExtendedPriorityId;
   UInt                      m_uiNumSimplePris;
   UInt                      m_uiTemporalLevelList[1 << PRI_ID_BITS];

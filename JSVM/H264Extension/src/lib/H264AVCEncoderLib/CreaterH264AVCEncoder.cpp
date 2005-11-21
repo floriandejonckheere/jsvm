@@ -184,11 +184,6 @@ ErrVal CreaterH264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcEx
 	RNOK( m_pcH264AVCEncoder->writeQualityLevelInfosSEI( pcExtBinDataAccessor, uiaQualityLevel,uiaDelta, uiNumLevels, uiLayer ) );
   return Err::m_nOK;
 }
-ErrVal CreaterH264AVCEncoder::writeDeadSubstreamSEI(ExtBinDataAccessor* pcExtBinDataAccessor,UInt uiDeltaBytesDS, UInt uiLayer)
-{
-	RNOK( m_pcH264AVCEncoder->writeDeadSubstreamSEI( pcExtBinDataAccessor, uiDeltaBytesDS,uiLayer ) );
-  return Err::m_nOK;
-}
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 ErrVal

@@ -140,6 +140,16 @@ H264AVCDecoder::H264AVCDecoder()
 , m_pcNonRequiredSei			  ( NULL )
 , m_uiNonRequiredSeiReadFlag	  ( 0 )
 #endif
+//JVT-P031
+, m_uiFirstFragmentPPSId          ( 0 )
+, m_uiFirstFragmentNumMbsInSlice  ( 0 )
+, m_bFirstFragmentFGSCompSep      ( false )
+, m_uiLastFragOrder               ( 0 )
+, m_uiNumberOfSPS                 ( 0 )
+, m_uiDecodedLayer                ( 0 )
+, m_uiNumOfNALInAU                ( 0 )
+, m_iPrevPoc                      ( 0 )
+//~JVT-P031
 {
   ::memset( m_apcMCTFDecoder, 0x00, MAX_LAYERS * sizeof( Void* ) );
   m_pcVeryFirstSliceHeader = NULL;
@@ -149,6 +159,14 @@ H264AVCDecoder::H264AVCDecoder()
 	  m_uiNonRequiredSeiRead[ui] =  0;
   }
 #endif
+  //JVT-P031
+  UInt uiLayer;
+  for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+  {
+      m_uiNumberOfFragment[uiLayer] = 0;
+      m_uiSPSId[uiLayer] = 0;
+  }
+  //~JVT-P031
 }
 
 
@@ -220,6 +238,7 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
     ROT( NULL == apcMCTFDecoder[uiLayer] );
 
     m_apcMCTFDecoder[uiLayer] = apcMCTFDecoder[uiLayer];
+    m_uiNumberOfFragment[uiLayer] = 0;//JVT-P031
   }
 
   m_bInitDone = true;
@@ -333,7 +352,10 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
 
   if( ! bEos )
   {
+    m_uiNumOfNALInAU++;//JVT-P031
+    m_pcNalUnitParser->setCheckAllNALUs(true);//JVT-P031
     RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL ) );
+    m_pcNalUnitParser->setCheckAllNALUs(false);//JVT-P031
 
     eNalUnitType = m_pcNalUnitParser->getNalUnitType();
 
@@ -352,12 +374,54 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
     else
     {
       // read the slice header
+      //JVT-P031
       RNOK( m_pcSliceReader->readSliceHeader( m_pcNalUnitParser->getNalUnitType   (),
                                               m_pcNalUnitParser->getNalRefIdc     (),
                                               m_pcNalUnitParser->getLayerId       (),
                                               m_pcNalUnitParser->getTemporalLevel (),
                                               m_pcNalUnitParser->getQualityLevel  (),
-                                              pcSliceHeader ) );
+                                              pcSliceHeader,
+                                              m_uiFirstFragmentPPSId,
+                                              m_uiFirstFragmentNumMbsInSlice,
+                                              m_bFirstFragmentFGSCompSep
+                                              ) );
+      //To detect if fragments have been lost or previously extracted
+      if(pcSliceHeader->getFragmentedFlag())
+      {
+          m_uiNumberOfFragment[pcSliceHeader->getLayerId()]++;
+      }
+      if(pcSliceHeader->getFragmentOrder() == 0)
+      {
+          m_uiFirstFragmentPPSId = pcSliceHeader->getPicParameterSetId();
+          m_uiFirstFragmentNumMbsInSlice = pcSliceHeader->getNumMbsInSlice();
+          m_bFirstFragmentFGSCompSep = pcSliceHeader->getFgsComponentSep();
+          //activate corresponding SPS
+          PictureParameterSet * rcPPS;
+          m_pcParameterSetMng->get(rcPPS,m_uiFirstFragmentPPSId);
+          UInt uiSPSId = rcPPS->getSeqParameterSetId();
+          Bool bFound = false;
+          for(UInt ui = 0; ui < m_uiNumberOfSPS; ui++)
+          {
+              if(m_uiSPSId[ui] == uiSPSId)
+              {
+                  bFound = true;
+                  break;
+              }
+          } 
+          if(!bFound)
+          {
+              m_uiSPSId[m_uiNumberOfSPS] = uiSPSId;
+              m_uiNumberOfSPS++;
+          }          
+      }
+      else
+      {
+        if( pcSliceHeader != NULL )
+            delete pcSliceHeader;
+          
+        return Err::m_nOK;      
+      }
+      //~JVT-P031
 
       calculatePoc( eNalUnitType, *pcSliceHeader, slicePoc );
 
@@ -421,12 +485,16 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
       m_bCheckNextSlice = true;
     }
   }
-
-  if( bEos || ( m_bCheckNextSlice && m_iFirstLayerIdx == m_pcNalUnitParser->getLayerId() && slicePoc != m_iFirstSlicePoc ))
+  
+  if( bEos || ( m_bCheckNextSlice && (m_iFirstLayerIdx == m_pcNalUnitParser->getLayerId() ||
+      (m_pcNalUnitParser->getLayerId() > m_iFirstLayerIdx && m_iPrevPoc != slicePoc) ) 
+      && slicePoc != m_iFirstSlicePoc )) //JVT-P031
   {
     // setup the state information for the previous slices
     bFinishChecking   = true;
-    m_bCheckNextSlice = false;
+    m_iPrevPoc = slicePoc; //JVT-P031
+    if(bEos) //JVT-P031
+        m_bCheckNextSlice = false;
     m_iLastPocChecked = m_iFirstSlicePoc;
 
     m_apcMCTFDecoder[m_iLastLayerIdx]->setQualityLevelForPrediction( 3 );
@@ -470,6 +538,43 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
   return Err::m_nOK;
 }
 
+//JVT-P031
+Void H264AVCDecoder::initNumberOfFragment()
+{
+    UInt uiLayer;
+    for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+    {
+        m_uiNumberOfFragment[uiLayer] = 0;
+    }
+}
+Void H264AVCDecoder::getDecodedResolution(UInt &uiLayerId)
+{
+ UInt uiSPSId, uiX, uiY, uiMBX,uiMBY = 0;
+ SequenceParameterSet *rcSPS;
+ for(uiSPSId = 0; uiSPSId < m_uiNumberOfSPS; uiSPSId++)
+ {
+    if(uiSPSId == 0)
+    {
+        m_pcParameterSetMng->get(rcSPS,uiSPSId);
+        uiMBX = rcSPS->getFrameWidthInMbs();
+        uiMBY = rcSPS->getFrameHeightInMbs();
+        uiLayerId = uiSPSId;
+    }
+    else
+    {
+        m_pcParameterSetMng->get(rcSPS,uiSPSId);
+        uiX = rcSPS->getFrameWidthInMbs();
+        uiY = rcSPS->getFrameHeightInMbs();
+        if(uiX > uiMBX && uiY > uiMBY)
+        {
+            uiMBX = uiX;
+            uiMBY = uiY;
+            uiLayerId = uiSPSId;
+        }
+    }
+ }
+}
+//~JVT-P031
 #if NON_REQUIRED_SEI_ENABLE //shenqiu
 ErrVal
 H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
@@ -477,14 +582,30 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 						   UInt&             ruiMbX,
 						   UInt&             ruiMbY,
 						   UInt&             ruiSize,
-						   UInt&			  ruiNonRequiredPic)
+						   UInt&			  ruiNonRequiredPic
+                           //JVT-P031
+                           ,Bool&            rbStartDecoding,
+                            UInt&             ruiStartPos,
+                            UInt&             ruiEndPos,
+                            Bool&             bFragmented,
+                            Bool&             bDiscardable
+                            //~JVT-P031
+                            )
 #else
 ErrVal
 H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 						   UInt&             ruiNalUnitType,
 						   UInt&             ruiMbX,
 						   UInt&             ruiMbY,
-						   UInt&             ruiSize)
+						   UInt&             ruiSize
+                           //JVT-P031
+                           ,Bool&            rbStartDecoding,
+                            UInt&             ruiStartPos,
+                            UInt&             ruiEndPos,
+                            Bool&             bFragmented,
+                            Bool&             bDiscardable
+                            //~JVT-P031
+                            )
 #endif
 {
   ROF( m_bInitDone );
@@ -501,11 +622,21 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     m_bLastFrame = true;
     delete m_pcSliceHeader;
     m_pcSliceHeader = 0;
+    rbStartDecoding = true; //JVT-P031
     return Err::m_nOK;
   }
 
   Bool KeyPicFlag = false;
+  //JVT-P031
+  Bool bLastFragment;
+  UInt uiHeaderBits;
+  UInt uiBytesLeft = pcBinDataAccessor->size();
+  getDecodedResolution(m_uiDecodedLayer);
+  m_pcNalUnitParser->setDecodedLayer(m_uiDecodedLayer);
+  ruiStartPos = m_pcNalUnitParser->getNalHeaderSize(pcBinDataAccessor);
+  //~JVT-P031
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag ) );
+  UInt uiBitsLeft = m_pcNalUnitParser->getBitsLeft(); //JVT-P031
 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();
   
@@ -513,10 +644,17 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   {
   case NAL_UNIT_CODED_SLICE:
   case NAL_UNIT_CODED_SLICE_IDR:
-    RNOK( xStartSlice() );
+    //JVT-P031
+    RNOK( xStartSlice(bLastFragment) );
+    ruiEndPos = pcBinDataAccessor->size();
+    bDiscardable = false;
+    uiHeaderBits = uiBitsLeft - m_pcNalUnitParser->getBitsLeft();
+    ruiStartPos += (uiHeaderBits+7)>>3; 
+    //~JVT-P031
     RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
     m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag);
     m_bActive = true;
+    rbStartDecoding = true; //JVT-P031
     break;
 
   case NAL_UNIT_SPS:
@@ -554,6 +692,9 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       ruiMbY  = pcSPS->getFrameHeightInMbs();
       ruiSize = max( ruiSize, ( (ruiMbX << 3 ) + YUV_X_MARGIN ) * ( ( ruiMbY << 3 ) + YUV_Y_MARGIN ) * 6 );
       m_pcControlMng->initSPS(*pcSPS, m_uiSPSCount-1); // TMM_ESS
+      ruiEndPos = pcBinDataAccessor->size(); //JVT-P031
+      bDiscardable = false;//JVT-P031
+      rbStartDecoding = true;//JVT-P031
     }
     break;
 
@@ -564,15 +705,47 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       RNOK( pcPPS->read( m_pcHeaderSymbolReadIf,
                          m_pcNalUnitParser->getNalUnitType() ) );
       RNOK( m_pcParameterSetMng->store( pcPPS   ) );
+      ruiEndPos = pcBinDataAccessor->size();//JVT-P031
+      bDiscardable = false;//JVT-P031
+      rbStartDecoding = true;//JVT-P031
     }
     break;
 
   case NAL_UNIT_CODED_SLICE_SCALABLE:
   case NAL_UNIT_CODED_SLICE_IDR_SCALABLE:
     {
-      RNOK( xStartSlice() );
+      //JVT-P031
+      getDecodedResolution(m_uiDecodedLayer);
+      if(m_pcNalUnitParser->getLayerId() < m_uiDecodedLayer && m_pcNalUnitParser->getDiscardableFlag())
+          bDiscardable = true;
+      else
+          bDiscardable = false;
+
+      UInt uiDummy = m_pcNalUnitParser->getBitsLeft();
+      RNOK( xStartSlice(bLastFragment) );
+      if(bDiscardable)
+        ruiEndPos = 0;
+      else
+        ruiEndPos = pcBinDataAccessor->size();
+      uiHeaderBits = uiBitsLeft - m_pcNalUnitParser->getBitsLeft();
+      if(bDiscardable)
+        ruiStartPos = 0;
+      else
+        ruiStartPos += (uiHeaderBits+7)>>3;
+      if(m_pcSliceHeader && (m_pcSliceHeader->getFragmentedFlag() && !bLastFragment)) 
+        ruiEndPos -= 2;
+      if(!bDiscardable)
+      //~JVT-P031
       RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
+      if(m_pcSliceHeader) //JVT-P031
 	    m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag);
+      //JVT-P031
+      bFragmented = (!m_pcSliceHeader ? false : m_pcSliceHeader->getFragmentedFlag());
+      if( (bLastFragment) || (!bFragmented) || 
+          ( bFragmented && m_pcSliceHeader->getFragmentOrder()+1 == m_uiNumberOfFragment[m_pcSliceHeader->getLayerId() ])) 
+       
+          rbStartDecoding = true;
+      //~JVT-P031
     }
     break;
 
@@ -596,6 +769,9 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			delete pcSEIMessage;
 		}
       }
+      ruiEndPos = pcBinDataAccessor->size();//JVT-P031
+      bDiscardable = false;//JVT-P031
+      rbStartDecoding = true;//JVT-P031
     }
     break;
 
@@ -643,7 +819,13 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   return Err::m_nOK;
 }
 
-
+//JVT-P031
+ErrVal
+H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor)
+{
+  return m_pcNalUnitParser->initSODBNalUnit(pcBinDataAccessor);
+}
+//~JVT-P031
 
 ErrVal
 H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
@@ -831,23 +1013,59 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 
 
 
-
-ErrVal H264AVCDecoder::xStartSlice()
+ErrVal H264AVCDecoder::xStartSlice(Bool& bLastFragment) //JVT-P031
+//ErrVal H264AVCDecoder::xStartSlice()
 {
-#if NON_REQUIRED_SEI_ENABLE //shenqiu 05-10-02
-#else
-  delete m_pcPrevSliceHeader;
-#endif
-  m_pcPrevSliceHeader = m_pcSliceHeader;
-  m_pcSliceHeader     = NULL;
-
-  RNOK( m_pcSliceReader->readSliceHeader( m_pcNalUnitParser->getNalUnitType   (),
+  //JVT-P031
+  SliceHeader * pSliceHeader = NULL;
+  bLastFragment = false;
+  if(m_pcNalUnitParser->getDiscardableFlag() == false || m_pcNalUnitParser->getLayerId() == m_uiDecodedLayer)
+  {
+      UInt uiPPSId = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getPicParameterSetId() : 0;
+      UInt uiNumMbsInSlice = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getNumMbsInSlice() : 0;
+      Bool bFGSCompSep = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getFgsComponentSep() : 0;
+      RNOK( m_pcSliceReader->readSliceHeader( m_pcNalUnitParser->getNalUnitType   (),
                                           m_pcNalUnitParser->getNalRefIdc     (),
                                           m_pcNalUnitParser->getLayerId       (),
                                           m_pcNalUnitParser->getTemporalLevel (),
                                           m_pcNalUnitParser->getQualityLevel  (),
-                                          m_pcSliceHeader ) );
+                                          pSliceHeader,
+                                          uiPPSId,
+                                          uiNumMbsInSlice,
+                                          bFGSCompSep));
+  
+  if( (!pSliceHeader->getFragmentedFlag()) || ( (pSliceHeader->getFragmentedFlag()) && (pSliceHeader->getFragmentOrder() == 0) ) )
+  {
+#if NON_REQUIRED_SEI_ENABLE //shenqiu 05-10-02
+#else
+  delete m_pcPrevSliceHeader;
+#endif
+    //delete m_pcPrevSliceHeader;
+    m_pcPrevSliceHeader = m_pcSliceHeader;
+    m_pcSliceHeader     = pSliceHeader;
+    m_uiLastFragOrder = 0;
+  }
+  else
+  {
+    // just ensure that fragmented information are correct
+    if(pSliceHeader->getFragmentOrder() != m_uiLastFragOrder+1)
+    {
+      printf("pb with fragment ordering information\n");
+    }
 
+    // set current slice header with last fragment info, in order to start the decoding process
+    bLastFragment = true;
+    delete pSliceHeader;
+  }
+  }
+  else
+  {
+    // set current slice header with last fragment info, in order to start the decoding process
+    bLastFragment = true;
+    delete pSliceHeader;
+  }
+  //~JVT-P031
+ 
   return Err::m_nOK;
 }
 

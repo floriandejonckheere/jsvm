@@ -274,28 +274,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters( uiLayer ).setNumFGSLayers( uiNumLayers );
       CodingParameter::getLayerParameters( uiLayer ).setFGSFilename ( argv[n]     );
       CodingParameter::getLayerParameters( uiLayer ).setFGSMode     ( 1           );
-      //{{Quality level estimation and modified truncation- JVTO044 and m12007
-      //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-      {
-          char distoFileName[256], rateFileName[256];
-          char layer[2];
-          int lastCharPosToCopy = strcspn( argv[n], "_-" );
-          strncpy( distoFileName, argv[n], lastCharPosToCopy );
-          strncpy( rateFileName, argv[n], lastCharPosToCopy );
-          distoFileName[lastCharPosToCopy] = 0;
-          rateFileName[lastCharPosToCopy] = 0;
-
-          strcat( distoFileName, "_disto" );
-          strcat( rateFileName, "_rate" );
-
-          sprintf(layer,"%d",uiLayer); //use of sprintf rather than itoa for portability
-          strcat( distoFileName, layer );
-          strcat( rateFileName, layer );
-
-          CodingParameter::getLayerParameters( uiLayer ).setDistoFilename ( distoFileName     );      
-          CodingParameter::getLayerParameters( uiLayer ).setRateFilename ( rateFileName     );      
-      }
-      //}}Quality level estimation and modified truncation- JVTO044 and m12007
       continue;
     }
     if( equals( pcCom, "-encfgs", 7 ) )
@@ -309,28 +287,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters( uiLayer ).setFGSRate     ( dFGSRate    );
       CodingParameter::getLayerParameters( uiLayer ).setFGSFilename ( argv[n]     );
       CodingParameter::getLayerParameters( uiLayer ).setFGSMode     ( 2           );
-      //{{Quality level estimation and modified truncation- JVTO044 and m12007
-      //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-      {
-          char distoFileName[256], rateFileName[256];
-          char layer[2];
-          int lastCharPosToCopy = strcspn( argv[n], "_-" );
-          strncpy( distoFileName, argv[n], lastCharPosToCopy );
-          strncpy( rateFileName, argv[n], lastCharPosToCopy );
-          distoFileName[lastCharPosToCopy] = 0;
-          rateFileName[lastCharPosToCopy] = 0;
-
-          strcat( distoFileName, "_disto" );
-          strcat( rateFileName, "_rate" );
-
-          sprintf(layer,"%d",uiLayer); //use of sprintf rather than itoa for portability
-          strcat( distoFileName, layer );
-          strcat( rateFileName, layer );
-
-          CodingParameter::getLayerParameters( uiLayer ).setDistoFilename ( distoFileName     );      
-          CodingParameter::getLayerParameters( uiLayer ).setRateFilename ( rateFileName     );      
-      }
-      //}}Quality level estimation and modified truncation- JVTO044 and m12007
       continue;
     }
 
@@ -456,6 +412,19 @@ ErrVal EncoderCodingParameter::init( Int     argc,
                             pcBitstreamFile ) );
       continue;
     }
+    //JVT-P031
+    if( equals( pcCom, "-ds", 3) )
+    {
+     ROTS( NULL == argv[n] );
+     ROTS( NULL == argv[n+1] );
+     UInt uiLayer = atoi(argv[n]);
+     CodingParameter::getLayerParameters(uiLayer).setUseDiscardable(true);
+     Double dRate = atof(argv[n+1]);
+     CodingParameter::getLayerParameters(uiLayer).setPredFGSRate(dRate);
+     n+=1;
+     continue;
+    }
+    //~JVT-P031
 
     if( equals( pcCom, "-h", 2) )
     {
@@ -609,7 +578,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumberReferenceFrames",   &m_uiNumRefFrames,                                     1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerMode",           &m_uiBaseLayerMode,                                    3 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumLayers",               &m_uiNumberOfLayers,                                   1 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineChar("QLevelEst",               (Char*)&m_bQualityLevelsEstimation,                    0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchRange",             &(m_cMotionVectorSearchParams.m_uiSearchRange),        96);
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BiPredIter",              &(m_cMotionVectorSearchParams.m_uiNumMaxIter),         4 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IterSearchRange",         &(m_cMotionVectorSearchParams.m_uiIterSearchRange),    8 );

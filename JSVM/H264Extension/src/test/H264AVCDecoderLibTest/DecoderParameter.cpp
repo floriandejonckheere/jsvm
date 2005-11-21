@@ -88,6 +88,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define stricmp strcasecmp
 #endif
 
+#ifdef JVT_P029
+#define equal(a,b)  (!stricmp((a),(b)))
+#endif
 DecoderParameter::DecoderParameter()
 {
 }
@@ -98,14 +101,35 @@ DecoderParameter::~DecoderParameter()
 
 ErrVal DecoderParameter::init(int argc, char** argv)
 {
+#ifdef JVT_P029
+  m_bQL = false;
+  if( argc < 3 || argc > 11 ) // HS: decoder robustness
+  {
+    RNOKS( xPrintUsage( argv ) );
+  }
+#else
   if( argc < 3 || argc > 4 ) // HS: decoder robustness
   {
     RNOKS( xPrintUsage( argv ) );
   }
-
+#endif
   cBitstreamFile = argv[1];
   cYuvFile       = argv[2];
-
+#ifdef JVT_P029
+  if(argc >3 && equal(argv[3],"-ql") )
+  {
+      cOrigYUV = argv[4];
+      w = atoi(argv[5]);
+	  h = atoi(argv[6]);
+      seq_length = atoi(argv[7]);
+	  sizeGop = atoi(argv[8]);
+    InterGopFrame = ( atoi(argv[9]) ? true : false );
+      FirstInterGopFrame = atoi(argv[10]);
+	  m_bQL = true;
+	  uiMaxPocDiff = 1000; // should be large enough
+  }
+  else
+#endif
   if( argc > 3 ) // HS: decoder robustness
   {
     uiMaxPocDiff = atoi( argv[3] );
@@ -115,7 +139,6 @@ ErrVal DecoderParameter::init(int argc, char** argv)
   {
     uiMaxPocDiff = 1000; // should be large enough
   }
-
   return Err::m_nOK;
 }
 

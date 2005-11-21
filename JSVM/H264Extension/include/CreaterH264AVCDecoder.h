@@ -147,14 +147,38 @@ public:
 	  UInt&             uiMbX,
 	  UInt&             uiMbY,
 	  UInt&             uiSize,
-	  UInt&				uiNonRequiredPic); 
+	  UInt&				uiNonRequiredPic
+      //JVT-P031
+      ,Bool&             rbStartDecoding,
+     UInt&             ruiStartPos,
+     UInt&             ruiEndPos,
+     Bool&              bFragmented,
+     Bool&              bDiscardable
+     //~JVT-P031
+     ); 
 #else
   ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor,
 	  UInt&             ruiNalUnitType,
 	  UInt&             uiMbX,
 	  UInt&             uiMbY,
-	  UInt&             uiSize); 
+	  UInt&             uiSize
+      //JVT-P031
+      ,Bool&             rbStartDecoding,
+     UInt&             ruiStartPos,
+     UInt&             ruiEndPos,
+     Bool&              bFragmented,
+     Bool&              bDiscardable
+     //~JVT-P031
+     ); 
 #endif
+
+  //JVT-P031
+  ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor);
+  Void decreaseNumOfNALInAU();
+  Void    setDependencyInitialized(Bool b);
+  UInt    getNumOfNALInAU();
+  Void    initNumberOfFragment();
+  //~JVT-P031
 
   ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
                                       Bool&             bFinishChecking );
@@ -212,8 +236,11 @@ struct PacketDescription
   UInt auiDeltaBytesRateOfLevelQL[MAX_NUM_RD_LEVELS];
   UInt auiQualityLevelQL[MAX_NUM_RD_LEVELS];
   UInt uiNumLevelsQL;
-  UInt  MaxRateDS;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  UInt uiPId;
+  Bool bDiscardable;//JVT-P031
+  Bool bFragmentedFlag;//JVT-P031
+  UInt NalRefIdc;
 };
 
 

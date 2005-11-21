@@ -225,7 +225,6 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case SUB_PIC_SEI:   return SubPicSei::create	( (SubPicSei*&)		rpcSEIMessage );
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    case DEADSUBSTREAM_SEI: return DeadSubstreamSEI::create((DeadSubstreamSEI*&) rpcSEIMessage);
     case QUALITYLEVEL_SEI: return QualityLevelSEI::create((QualityLevelSEI*&) rpcSEIMessage);
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-25
@@ -753,50 +752,6 @@ SEI::QualityLevelSEI::read ( HeaderSymbolReadIf* pcReadIf )
   return Err::m_nOK;
 }
 
-//////////////////////////////////////////////////////////////////////////
-// 
-//      DEAD SUBSTREAM    S E I
-//
-//////////////////////////////////////////////////////////////////////////
-
-SEI::DeadSubstreamSEI::DeadSubstreamSEI     ()
- : SEIMessage                     ( DEADSUBSTREAM_SEI ),
- m_uiDeltaBytesDeadSubstream         ( 0 ),
- m_uiDependencyId						( 0 )
-{
-}
-
-
-SEI::DeadSubstreamSEI::~DeadSubstreamSEI()
-{
-}
-
-
-ErrVal
-SEI::DeadSubstreamSEI::create( DeadSubstreamSEI*& rpcSeiMessage )
-{
-  rpcSeiMessage = new DeadSubstreamSEI();
-  ROT( NULL == rpcSeiMessage )
-  return Err::m_nOK;
-}
-
-
-ErrVal
-SEI::DeadSubstreamSEI::write( HeaderSymbolWriteIf* pcWriteIf )
-{
-  RNOK  ( pcWriteIf->writeCode( m_uiDependencyId,3,"DeadSubstreamSEI: DependencyId"   ) );
-  RNOK  ( pcWriteIf->writeUvlc( m_uiDeltaBytesDeadSubstream,"DeadSubstreamSEI: DeltaBytesDeadSubstream"   ) );
-  return Err::m_nOK;
-}
-
-
-ErrVal
-SEI::DeadSubstreamSEI::read ( HeaderSymbolReadIf* pcReadIf )
-{
-  RNOK  ( pcReadIf->getCode( m_uiDependencyId,3,"DeadSubstreamSEI: DependencyId"   ) );
-  RNOK  ( pcReadIf->getUvlc( m_uiDeltaBytesDeadSubstream,"DeadSubstreamSEI: DeltaBytesDeadSubstream"   ) );
-  return Err::m_nOK;
-}
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 #if NON_REQUIRED_SEI_ENABLE

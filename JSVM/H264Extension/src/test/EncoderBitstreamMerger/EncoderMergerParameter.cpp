@@ -83,6 +83,53 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define equal(a,b)  (!stricmp((a),(b)))
 #endif
 
+
+void print_usage_and_exit_1( int test, char* name, char* message = 0 )
+{
+  if( test )
+  {
+    if( message )
+    {
+      fprintf ( stderr, "\nERROR: %s\n", message );
+    }
+    fprintf (   stderr, "\nUsage: %s <w> <h> <orig> <root> <disto> <nf> <gs> <fgs> <l> \n\n", name );
+	fprintf (   stderr, "\t  w: width\n" );
+	fprintf (   stderr, "\t  h: height\n" );
+    fprintf (   stderr, "\t  orig: orig yuv file\n" );
+	fprintf (   stderr, "\t  root: root extracted yuv files\n" );
+	fprintf (   stderr, "\t  disto: disto file\n" );
+	fprintf (   stderr, "\t   nf: number of frames\n" );
+    fprintf (   stderr, "\t   gs: gop size\n" );
+	fprintf (   stderr, "\t  fgs: number of FGS layer\n" );
+	fprintf (   stderr, "\t   l: layer\n" );
+	fprintf (   stderr, "\n" );
+    exit    (   1 );
+  }
+}
+
+void print_usage_and_exit_2( int test, char* name, char* message = 0 )
+{
+  if( test )
+  {
+    if( message )
+    {
+      fprintf ( stderr, "\nERROR: %s\n", message );
+    }
+    fprintf (   stderr, "\nUsage: %s <numl> <in> <out> <disto> <rate> <nf> <gs> <fgs> <SEIm>\n\n", name );
+	fprintf (   stderr, "\t   numl: number of layer\n" );
+	fprintf (   stderr, "\t   in: input file\n" );
+	fprintf (   stderr, "\t  out: output file generated\n" );
+	fprintf (   stderr, "\t  disto: disto file \n" );
+	fprintf (   stderr, "\t  rate: rate file \n" );
+    fprintf (   stderr, "\t   nf: number of frames\n" );
+    fprintf (   stderr, "\t   gs: gop size\n" );
+	fprintf (   stderr, "\t  fgs: number of FGS layer\n" );
+	fprintf (   stderr, "\t  SEIm: QL in SEI message (1) or priority_id (0) \n" );
+	fprintf (   stderr, "\n" );
+    exit    (   1 );
+  }
+}
+
 EncoderMergerParameter::EncoderMergerParameter()
 {
 }
@@ -110,10 +157,48 @@ void EncoderMergerParameter::init(Int argc, char **argv)
 	EncoderIoParameter m_cEncoderIoParameter;
 	Char*   pcBitstreamFile = m_cEncoderIoParameter.pBitstreamFile;
 	pcBitstreamFile [0] = (Char) 0;
-	m_bDS = false;
-	m_bNivQ = false;
-	Int iNbInfile = 0;
-
+#ifdef QL_CLOSEDLOOP
+	char fileName[256];
+	m_uiMode = atoi( argv[ 1 ] );
+	if(m_uiMode == 0)
+	{
+		print_usage_and_exit_1( argc<11 , argv[0]);
+		m_uiWidth = atoi(argv[2]);
+		m_uiHeight = atoi(argv[3]);
+		strcpy( fileName, argv[4]);
+		m_cOrig = fileName;
+		strcpy( fileName, argv[5]);
+		m_cRoot = fileName;
+		strcpy( fileName, argv[6]);
+		m_cDistoFilename = fileName;
+		m_uiNumOfFrames = atoi(argv[7]);
+		m_uiGopSize = atoi(argv[8]);
+		m_uiMaxFGS = atoi(argv[9]);
+		m_uiLayer = atoi(argv[10]);
+	}
+	if(m_uiMode == 1)
+	{
+		print_usage_and_exit_2( argc<11 , argv[0]);
+        m_uiNumOfLayer       = atoi( argv[ 2 ] )-1;
+		CodingParameter::setNumberOfLayers(m_uiNumOfLayer);
+		strcpy( fileName, argv[3]);
+		m_acInFile = fileName;
+		strcpy( fileName, argv[4]);
+		m_cOutFile = fileName;
+		strcpy( fileName, argv[5]);
+		m_cDistoFilename = fileName;
+		strcpy( fileName, argv[6]);
+		m_cFGSRateFilename = fileName;
+		m_uiNumOfFrames = atoi(argv[7]);
+		m_uiGopSize = atoi(argv[8]);
+		m_uiMaxFGS = atoi(argv[9]);
+		m_uiQLInSEI = atoi(argv[10]);
+        CodingParameter::setNumberOfLayers(m_uiNumOfLayer+1);
+	}
+        
+#else
+    m_bReadPID = false;
+    m_bWritePID = false;
 	static int indexLayer = 0;
 	for( Int iArg = 0; iArg < argc; iArg++ )
 	{
@@ -125,36 +210,20 @@ void EncoderMergerParameter::init(Int argc, char **argv)
 	}
 	if( equal("-infile", argv[iArg]))
 	{
-		int iLayer = atoi( argv[ ++iArg ] );
 		char fileName[256];
-        strcpy( fileName, argv[iArg+1]);
-		m_acInFile[iLayer] = fileName;
-		iNbInfile++;
-	}
-	if(equal("-ds",argv[iArg]))
-	{
-		m_bDS = true;
+        strcpy( fileName, argv[++iArg]);
+		m_acInFile = fileName;
 	}
 	if(equal("-ql",argv[iArg]))
 	{
-		m_bNivQ = true;
 		iArg++;
-		for(Int i = 0; i < m_uiNumOfLayer; i++)
-		{
-		  char layer[256];
-		  //set rd files name
-		 char distoFileName[256], rateFileName[256];
+		//set rd files name
+		 char distoFileName[256];
          strcpy( distoFileName, argv[iArg]);
-		 strcpy( rateFileName, argv[iArg]);
 		 strcat( distoFileName, "_disto" );
-		 strcat( rateFileName, "_rate" );
-		 sprintf(layer,"%d",i); //use of sprintf rather than itoa for portability
-		strcat( distoFileName, layer );
-		strcat( rateFileName, layer );
-		
-		m_cDistoFilename[i] = distoFileName;
-		m_cFGSRateFilename[i] = rateFileName;
-		}
+		 m_cDistoFilename = distoFileName;
+         iArg++;
+         m_uiQLInSEI = atoi(argv[iArg]);	
 	}
 
     if(equal("-outfile",argv[iArg]))
@@ -162,29 +231,24 @@ void EncoderMergerParameter::init(Int argc, char **argv)
         iArg++;
         m_cOutFile = argv[iArg];
     }
-    if(equal("-gopsize",argv[iArg]))
+    if(equal("-readPID",argv[iArg]))
     {
         iArg++;
-        UInt uiLayer = atoi(argv[iArg]);
-        iArg++;
-        UInt gop = atoi(argv[iArg]);
-        m_uiGOPSize[uiLayer] = atoi(argv[iArg]);
+        m_bReadPID = true;
+        char fileName[256];
+        strcpy( fileName, argv[iArg]);
+        m_cPID = fileName;
     }
-
+    if(equal("-writePID",argv[iArg]))
+    {
+        iArg++;
+        m_bWritePID = true;
+        char fileName[256];
+        strcpy( fileName, argv[iArg]);
+        m_cPID = fileName;
+    }
 	}
-	
-	//set output file name
-	if(m_bNivQ && m_bDS)
-	{
-		printf("Error: Quality Levels and Dead Substreams can not be added at the same time\n");
-		exit(1);
-	}
-	if(m_bDS && (iNbInfile!=m_uiNumOfLayer))
-	{
-		printf("Error: Dead Substream: number of input files not enough compared to number of layer\n");
-		exit(1);
-	}
-
+#endif
 }
 
 

@@ -81,7 +81,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 using namespace h264;
 
 
-void RatePointManager::SetValidPoints()
+void RatePointManager::SetValidPoints(UInt* uiFGSIndex[MAX_FGS_LAYERS], UInt uiNFrames)
 {
   // Search for Valid RD points
   m_adValidDisto[0] = m_adDisto[0];
@@ -90,6 +90,21 @@ void RatePointManager::SetValidPoints()
   int iValidPosAdd = 1;
   int iPoint;
   m_adRDSlope[0] = 1000000000;
+  UInt uiFGSValidIndex[MAX_FGS_LAYERS+1];
+  UInt uiFGS;
+  for(uiFGS = 0; uiFGS <= MAX_FGS_LAYERS; uiFGS++)
+  {
+      uiFGSValidIndex[uiFGS] = uiFGS;
+  }
+  UInt uiMaxFGSLayerUsed = 0;
+  Int iCount = 0;
+  for(iPoint = 1; iPoint < m_iNbPoint; iPoint++)
+  {
+      if(m_adRate[iPoint] > 0)
+          iCount++;
+  }
+  iCount = iCount/4;
+  uiMaxFGSLayerUsed = iCount+1;
   for(iPoint=1; iPoint < m_iNbPoint; iPoint++)
   {
     bool b_insertionOK=true;
@@ -107,7 +122,11 @@ void RatePointManager::SetValidPoints()
         rdslope = d_deltaDisto/d_deltaRate;
      
 	 m_adRDSlope[iValidPosAdd] = rdslope;
-
+     for(uiFGS = 1; uiFGS <= MAX_FGS_LAYERS; uiFGS++)
+     {
+         if(iPoint <= uiFGSIndex[uiFGS][uiNFrames] && iPoint > uiFGSIndex[uiFGS-1][uiNFrames])
+             uiFGSValidIndex[uiFGS] = iValidPosAdd;
+     }
      if (rdslope <0)
       {
         b_rejectPoint=true;
@@ -127,6 +146,14 @@ void RatePointManager::SetValidPoints()
   }
   
   m_iNbValidPoint = iValidPosAdd;
+  m_iNbValidPoint = uiMaxFGSLayerUsed;
+  for(uiFGS = 1; uiFGS < m_iNbValidPoint; uiFGS++)
+  {
+      double dSlopeFGS = (m_adRDSlope[uiFGSValidIndex[uiFGS]] > 0 ? m_adRDSlope[uiFGSValidIndex[uiFGS]] : m_adRDSlope[uiFGSValidIndex[uiFGS]-1]);
+      m_adRDSlope[uiFGS] = dSlopeFGS;
+      m_adValidRate[uiFGS] = m_adRate[uiFGSIndex[uiFGS][uiNFrames]];
+      printf("dSlope %f ValidRate %f \n",m_adRDSlope[uiFGS], m_adValidRate[uiFGS]);
+  }
 }
 
 

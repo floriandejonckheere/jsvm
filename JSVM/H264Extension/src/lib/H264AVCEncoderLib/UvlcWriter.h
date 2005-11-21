@@ -149,6 +149,7 @@ public:
   ErrVal uninit();
 
   ErrVal  startSlice( const SliceHeader& rcSliceHeader );
+  ErrVal  startFragment(); //JVT-P031
   ErrVal  finishSlice();
 
   ErrVal closeSlice();

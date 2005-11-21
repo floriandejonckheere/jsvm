@@ -166,9 +166,6 @@ public:
                                    UInt *uiaDelta, 
                                    UInt uiNumLevels, 
                                    UInt uiLayer);
-  ErrVal writeDeadSubstreamSEI( ExtBinDataAccessor*     pcExtBinDataAccessor,
-                                UInt                    uiDeltaBytesDS, 
-                                UInt                    uiLayer);
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
   Bool getScalableSeiMessage ( Void );

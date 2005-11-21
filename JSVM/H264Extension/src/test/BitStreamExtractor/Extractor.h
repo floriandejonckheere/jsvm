@@ -142,6 +142,7 @@ public:
   UInt    getFGSLevel               ( UInt uiScalableLayer ) const { return m_auiQualityLevel[uiScalableLayer]; }
   UInt    getFrameWidth     ( UInt uiLayer )    const { return m_auiFrameWidth  [uiLayer]; }
   UInt    getFrameHeight    ( UInt uiLayer )    const { return m_auiFrameHeight [uiLayer]; }
+  
   UInt    getMaxLevel       ( UInt uiLayer )    const { return m_auiDecStages   [uiLayer]; }
   Double  getFrameRateUnit  ()                  const { return (Double)m_uiFrameRateUnitNom/(Double)m_uiFrameRateUnitDenom; }
   UInt    getNumPictures    ( UInt uiLayer,
@@ -149,9 +150,13 @@ public:
   UInt64  getNALUBytes      ( UInt uiLayer,
                               UInt uiLevel,
                               UInt uiFGS   )    const { return m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGS]; }
- 
+  //add France Telecom
+  Double getFrameRate(UInt uiExtLayer, UInt uiLevel) { return m_aaadFramerate[uiExtLayer][uiLevel][0];}
+  //~add France Telecom
   Bool    m_bSPSRequired[MAX_LAYERS][32];
   Bool    m_bPPSRequired[MAX_LAYERS][256];
+
+
 
 private:
   Bool    m_bInit;
@@ -212,9 +217,12 @@ public:
   //if there is R/D information (with or without Dead substreams)
   ErrVal        go_QL                  ();
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+#ifdef JVT_Q081
+  ErrVal        xExtractPointsClosedLoop      ();
+#endif
 protected:
   ErrVal        xAnalyse            ();
+  ErrVal        xPrimaryAnalyse            ();
   ErrVal        xSetParameters      ();
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
@@ -267,6 +275,26 @@ protected:
   Void CalculateMaxRate(UInt uiLayer);
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+  UInt getPIDIndex(UInt uiPID);
+  UInt addPIDToTable(UInt uiPID);
+  Double GetTruncatedRate(Double dQL, UInt uilevel, UInt uiLayer);
+  UInt GetNearestPIDForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel);
+  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel,UInt uiExtLayer,Double dRatio);
+  Double Extractor::CalculateSizeOfIncludedLayers(UInt uiExtLayer, UInt uiExtLevel);
+  Bool IsFrameToCut(UInt uiFrame);
+  Void AllocateAndInitializeDatas();
+
+#ifdef JVT_Q081
+  Bool useCLExtraction() { return m_bUsedCLExtraction; } 
+  UInt getFGSMaxCL() { return m_uiFGSMaxCL; }
+  UInt getLevelMaxCL() { return m_uiLevelMaxCL; }
+  UInt getLayerMaxCL() { return m_uiLayerMaxCL; }
+  ErrVal xAnalyseStreamForDsAndQL();
+#endif
+#ifdef JVT_P029
+  ErrVal        xExtractPoints_ForQLEstimation();
+  Void			setCutParameters();
+#endif
 protected:
   ReadBitstreamIf*              m_pcReadBitstream;
   WriteBitstreamIf*             m_pcWriteBitstream;
@@ -287,28 +315,49 @@ protected:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Double						m_aaadMaxRate[MAX_LAYERS][MAX_NBFRAMES]; //size of each frame for each layer without deadsubstream
-  Double                        m_aaadTargetBytesFGS[MAX_LAYERS][MAX_NBFRAMES][MAX_FGS_LAYERS]; //bytes to be extracted for each FGS layer for each frame 																							// at each layer		
-  Int							m_aaiLevelForFrame[MAX_LAYERS][MAX_NBFRAMES];//temporal level of each frame
-  Double                        m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_NBFRAMES][MAX_FGS_LAYERS]; //size of each FGS layer for each frame at each layer
+  Double*						m_aaadMaxRate[MAX_LAYERS]; //size of each frame for each layer without deadsubstream
+  Double*                       m_aaadTargetBytesFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //bytes to be extracted for each FGS layer for each frame 																							// at each layer		
+  Int*							m_aaiLevelForFrame[MAX_LAYERS];//temporal level of each frame
+  Double*                       m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //size of each FGS layer for each frame at each layer
   Double						m_aaadMaxRateForLevel[MAX_LAYERS][MAX_DSTAGES+1]; //size of layer for each level without deadsubstream
   Bool							m_bExtractDeadSubstream[MAX_LAYERS]; //indicate if deadsubstream has to be removed (command line)
   UInt							m_aSizeDeadSubstream[MAX_LAYERS]; //size of deadsubstream for each layer
   Bool							m_bInInputStreamDS; //indicate if deadsubstream is in the input bitstream
   Bool							m_bInInputStreamQL;// indicate if RD informations are in the input bitstream
-  Double m_aadTargetByteForFrame[MAX_NBFRAMES][MAX_LAYERS];
-  UInt m_aaauiBytesForQualityLevel[MAX_LAYERS][MAX_NBFRAMES][MAX_NUM_RD_LEVELS];
-  Double m_aaadQualityLevel[MAX_LAYERS][MAX_NBFRAMES][MAX_NUM_RD_LEVELS];
-  UInt m_aauiSEIQLPacketSize[MAX_LAYERS][MAX_NBFRAMES];
-  Int m_aaiNumLevels[MAX_LAYERS][MAX_NBFRAMES];
-  UInt m_auiNbImages[MAX_LAYERS];
-  UInt m_auiLayerOfQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
-  UInt m_auiLevelOfQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
-  Bool m_abKeepQualityLevelSEI[MAX_LAYERS*MAX_NBFRAMES];
+  Double*                       m_aadTargetByteForFrame[MAX_LAYERS];
+  UInt*                         m_aaauiBytesForQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
+  Double*                       m_aaadQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
+  Int*                          m_aaiNumLevels[MAX_LAYERS];
+  UInt                          m_auiNbImages[MAX_LAYERS];
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
   UInt							m_uiExtractNonRequiredPics;
 #endif
+  UInt m_uiQualityLevel;
+  UInt m_auiPID[64];
+  UInt m_uiNbPID;
+  Bool m_bQualityLevelInSEI; //indicates if QualityLayers are in SEI messages
+#ifdef JVT_Q081
+  Bool        m_bUsedCLExtraction;
+  UInt        m_uiFGSMaxCL;
+  UInt        m_uiLevelMaxCL;
+  UInt        m_uiLayerMaxCL;
+  UInt        m_auiNumFrame[MAX_LAYERS];
+#endif
+#ifdef JVT_P029
+  UInt							m_uiCutFrame;
+  UInt							m_uiCutPoint;
+  UInt							m_uiCutLayer;
+  UInt							m_uiFGSCutLayer;
+  UInt							m_uiTarget;
+  UInt                          m_uiFrameDeb;
+  UInt                          m_uiFrameEnd;
+  UInt                          m_uiSizeGop;
+  UInt                          m_uiIntraFromPreviousGop;
+  UInt*							m_uiTargetFrame;
+  UInt*                         m_auiFramesToCut;
+  UInt                          m_uiNbFrameToCut;
+#endif
 };
-
+class ExtractStop{};
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

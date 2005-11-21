@@ -242,7 +242,13 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
                               UInt          uiLayerId,
                               UInt          uiTemporalLevel,
                               UInt          uiQualityLevel,
-                              SliceHeader*& rpcSH )
+                              SliceHeader*& rpcSH
+                              //JVT-P031
+                              ,UInt         uiFirstFragSHPPSId
+                              ,UInt         uiFirstFragNumMbsInSlice
+                              ,Bool         bFirstFragFGSCompSep
+                              //~JVT-P031
+                              )
 {
   Bool                  bScalable         = ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
                                               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE );
@@ -254,15 +260,68 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
 
 
   //===== read first parameters =====
-  RNOK( m_pcHeaderReadIf    ->getUvlc( uiFirstMbInSlice,  "SH: first_mb_in_slice" ) );
-  RNOK( m_pcHeaderReadIf    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
-  if( uiSliceType > 4 && ! bScalable )
+  //JVT-P031
+  UInt uiFragOrder = 0;
+  Bool bFragFlag = false;
+  Bool bLastFragFlag = false;
+  UInt uiNumMbsInSlice = 0;
+  Bool bFGSCompSep = false;
+
+
+  if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
+      eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
   {
-    uiSliceType -= 5;
+      RNOK( m_pcHeaderReadIf    ->getUvlc( uiFirstMbInSlice,  "SH: first_mb_in_slice" ) );
+      RNOK( m_pcHeaderReadIf    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
+      if( uiSliceType > 4 && ! bScalable )
+      {
+        uiSliceType -= 5;
+      }
+      if(uiSliceType == F_SLICE)
+      {
+        RNOK( m_pcHeaderReadIf    ->getFlag( bFragFlag,  "SH: fgs_frag_flag" ) );
+        if(bFragFlag)
+        {
+          RNOK( m_pcHeaderReadIf    ->getUvlc( uiFragOrder,  "SH: fgs_frag_order" ) );
+          if(uiFragOrder!=0)
+          {
+            RNOK( m_pcHeaderReadIf    ->getFlag( bLastFragFlag,  "SH: fgs_last_frag_flag" ) );
+          }
+        }
+	  }
+	  if(uiFragOrder == 0)
+      {
+           RNOK( m_pcHeaderReadIf    ->getUvlc( uiPPSId,           "SH: pic_parameter_set_id" ) );
+      }
+      else
+      {
+          // Get PPS Id from first fragment 
+        uiPPSId = uiFirstFragSHPPSId;
+        uiNumMbsInSlice = uiFirstFragNumMbsInSlice;
+        bFGSCompSep = bFirstFragFGSCompSep;
+      }
+      
+      if(uiFragOrder == 0 && uiSliceType == F_SLICE)
+      {
+         RNOK( m_pcHeaderReadIf    ->getUvlc( uiNumMbsInSlice,  "SH: num_mbs_in_slice" ) );
+         RNOK( m_pcHeaderReadIf    ->getFlag( bFGSCompSep,  "SH: fgs_comp_sep" ) );
+      }
+      
+      RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
+      RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
   }
-  RNOK( m_pcHeaderReadIf    ->getUvlc( uiPPSId,           "SH: pic_parameter_set_id" ) );
-  RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
-  RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
+  else
+  {
+      RNOK( m_pcHeaderReadIf    ->getUvlc( uiFirstMbInSlice,  "SH: first_mb_in_slice" ) );
+      RNOK( m_pcHeaderReadIf    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
+      if( uiSliceType > 4 && ! bScalable )
+      {
+          uiSliceType -= 5;
+      }
+      RNOK( m_pcHeaderReadIf    ->getUvlc( uiPPSId,           "SH: pic_parameter_set_id" ) );
+      RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
+      RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
+  }
 
 
   //===== create and initialize slice header =====
@@ -275,10 +334,16 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
   rpcSH->setQualityLevel  ( uiQualityLevel  );
   rpcSH->setFirstMbInSlice( uiFirstMbInSlice);
   rpcSH->setSliceType     ( SliceType( uiSliceType ) );
-
-
+  rpcSH->setFragmentedFlag( bFragFlag );
+  rpcSH->setFragmentOrder ( uiFragOrder );
+  rpcSH->setLastFragmentFlag( bLastFragFlag );
+  rpcSH->setFgsComponentSep(bFGSCompSep);
+  rpcSH->setNumMbsInSlice(uiNumMbsInSlice);
+  //~JVT-P031
+ 
   //===== read remaining parameters =====
-  RNOK( rpcSH->read( m_pcHeaderReadIf ) );    
+  if(uiFragOrder == 0) //JVT-P031
+      RNOK( rpcSH->read( m_pcHeaderReadIf ) );    
 
 
   return Err::m_nOK;

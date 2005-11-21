@@ -152,20 +152,16 @@ public:
                                             Double                      dLambda,
                                             Int                         iMaxQpDelta,
                                             Bool&                       rbFinished,
-                                            Bool                        bTruncate );
+                                            Bool                        bTruncate,
+                                            Bool                        bUseDiscardable); //JVT-P031
   ErrVal            encodeNextLayer       ( Bool&                       rbFinished,
                                             Bool&                       rbCorrupted,
                                             UInt                        uiMaxBits,
-                                            FILE*                       pFile );
+                                            UInt                        uiFrac,
+                                            Bool                        bFragmented,
+                                            FILE*                       pFile ); //JVT-P031
   ErrVal            reconstruct           ( IntFrame*                   pcRecResidual );
   ErrVal            finishPicture         ();
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  ErrVal            setNextLayerForRD     (IntFrame*                   pOrgResidual, 
-                                            Double&                     rdScalFactor, 
-                                            FILE*&                      rpDistoFile, 
-                                            FILE*&                      rpRateFile);
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   
   ErrVal            setNewOriginalResidual( IntFrame                    *pcNewOriginalResidual )
   {
@@ -217,11 +213,11 @@ private:
   ErrVal            xResidualTransform    ();
 
 
-
-  ErrVal            xEncodingFGS                  ( Bool&               rbFinished,
-                                                    Bool&               rbCorrupted,
-                                                    UInt                uiMaxBits,
-                                                    FILE*               pFile );
+  ErrVal            xEncodingFGS                  ( Bool&               rbFinished, 
+                                                    Bool&               rbCorrupted, 
+                                                    UInt                uiMaxBits, 
+                                                    UInt                uiFracNb, 
+                                                    FILE*               pFile ); //JVT-P031
 
   
   ErrVal            xEncodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
@@ -262,14 +258,59 @@ private:
                                                     UInt                uiScanIdx,
                                                     UInt                uiB8Y,
                                                     UInt                uiB8X );
+  //JVT-P031
+ErrVal            xStoreFGSState(UInt iLumaScanIdx,
+                             UInt iChromaDCScanIdx,
+                             UInt iChromaACScanIdx,
+                             UInt iStartCycle,
+                             UInt iCompleteLuma,
+                             UInt iCompleteChromaDC,
+                             UInt iCompleteChromaAC,
+                             UInt iCycle,
+                             UInt itCompleteLuma,
+                             UInt itCompleteChromaDC,
+                             UInt itCompleteChromaAC,
+                             UInt bAllowChromaDC,
+                             UInt bAllowChromaAC,
+                             UInt uiMbYIdx,
+                             UInt uiMbXIdx,
+                             UInt uiB8YIdx,
+                             UInt uiB8XIdx,
+                             UInt uiBlockYIdx,
+                             UInt uiBlockXIdx,
+                             UInt iLastBitsLuma,
+                             UInt uiBitsLast,
+                             UInt uiFGSPart,
+                             UInt uiPlane,
+                             Int iLastQP);
 
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  UInt              xCalculateNormalizedMSD       ();
-  ErrVal            xReconstructBetweenPasses     (IntFrame*            pcRecResidual);
-  ErrVal			CheckRD                       (UInt                 uiWrittenBits);
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+  ErrVal            xRestoreFGSState(UInt& riLumaScanIdx,
+                             UInt& riChromaDCScanIdx,
+                             UInt& riChromaACScanIdx,
+                             UInt& riStartCycle,
+                             UInt& riCompleteLuma,
+                             UInt& riCompleteChromaDC,
+                             UInt& riCompleteChromaAC,
+                             UInt& riCycle,
+                             UInt& ritCompleteLuma,
+                             UInt& ritCompleteChromaDC,
+                             UInt& ritCompleteChromaAC,
+                             UInt& rbAllowChromaDC,
+                             UInt& rbAllowChromaAC,
+                             UInt& ruiMbYIdx,
+                             UInt& ruiMbXIdx,
+                             UInt& ruiB8YIdx,
+                             UInt& ruiB8XIdx,
+                             UInt& ruiBlockYIdx,
+                             UInt& ruiBlockXIdx,
+                             UInt& riLastBitsLuma,
+                             UInt& ruiBitsLast,
+                             UInt& ruiFGSPart,
+                             UInt& ruiPlane,
+                             Int& riLastQP);
+  ErrVal        xSaveCodingPath();
+  ErrVal        xRestoreCodingPath();
+  //~JVT-P031
 private:
   MbSymbolWriteIf*  m_pcSymbolWriter;
   ControlMngH264AVCEncoder* m_pcControlMng;
@@ -287,14 +328,39 @@ private:
 
   
   Bool              m_bTraceEnable;
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  IntFrame*         m_pcOrgResidualFT;
-  Double            m_dScalFactorFT;
-  FILE *            m_pDistoFile;
-  FILE *            m_pRateFile;
-  UInt				m_uiNumBitsForRDPoint;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
+  //JVT-P031
+  UInt               m_iLumaScanIdx;
+  UInt               m_iChromaDCScanIdx;
+  UInt               m_iChromaACScanIdx;
+  UInt               m_iStartCycle;
+  UInt               m_iCompleteLuma;
+  UInt               m_iCompleteChromaDC;
+  UInt               m_iCompleteChromaAC;
+  UInt               m_iCycle;
+  UInt              m_itCompleteLuma;
+  UInt              m_itCompleteChromaDC;
+  UInt              m_itCompleteChromaAC;
+  UInt              m_bAllowChromaDC;
+  UInt              m_bAllowChromaAC;
+  UInt              m_uiMbYIdx;
+  UInt              m_uiMbXIdx;
+  UInt              m_uiB8YIdx;
+  UInt              m_uiB8XIdx;
+  UInt              m_uiBlockYIdx;
+  UInt              m_uiBlockXIdx;
+  UInt               m_iLastBitsLuma;
+  UInt              m_uiBitsLast;
+  UInt              m_uiFGSPart;
+  UInt              m_uiPlane;
+  Int               m_iLastQP;
+  Bool              m_bUseDiscardableUnit;   
+  MbTransformCoeffs ** m_aMyELTransformCoefs;
+  MbTransformCoeffs ** m_aMyBLTransformCoefs;
+  UInt              * m_auiMbCbpStored;
+  UInt              * m_auiBCBPStored;
+  Int               * m_aiBLQP;
+  Bool              * m_abELtransform8x8;
 };
 
 

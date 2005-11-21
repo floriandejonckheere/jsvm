@@ -140,14 +140,38 @@ public:
 	  UInt&             ruiMbX,
 	  UInt&             ruiMbY,
 	  UInt&             ruiSize,
-	  UInt&				ruiNonRequiredPic); 
+	  UInt&				ruiNonRequiredPic
+      //JVT-P031
+      ,Bool&             rbStartDecoding,
+       UInt&             ruiStartPos,
+       UInt&             ruiEndPos,
+       Bool&             bFragmented,
+       Bool&             bDiscardable
+      //~JVT-P031
+      ); 
 #else
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
                       UInt&             ruiNalUnitType,
                       UInt&             ruiMbX,
                       UInt&             ruiMbY,
-                      UInt&             ruiSize );
+                      UInt&             ruiSize
+                      //JVT-P031
+                      ,Bool&             rbStartDecoding,
+                      UInt&             ruiStartPos,
+                      UInt&             ruiEndPos,
+                      Bool&             bFragmented,
+                      Bool&             bDiscardable
+                      //~JVT-P031
+                      );
 #endif
+  //JVT-P031
+  ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor);
+  Void    getDecodedResolution(UInt &uiLayerId);
+  UInt    getNumOfNALInAU() {return m_uiNumOfNALInAU;}
+  Void    decreaseNumOfNALInAU(){ m_uiNumOfNALInAU--;}
+  Void    setDependencyInitialized(Bool b) { m_bDependencyInitialized = b;}
+  Void    initNumberOfFragment();
+  //~JVT-P031
   ErrVal  process   ( PicBuffer*        pcPicBuffer,
                       PicBufferList&    rcPicBufferOutputList,
                       PicBufferList&    rcPicBufferUnusedList,
@@ -181,7 +205,7 @@ public:
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
-  ErrVal  xStartSlice               ();
+  ErrVal  xStartSlice               (Bool& bLastFragment); //JVT-P031
   ErrVal  xProcessSlice             ( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
                                       PicBuffer*&     rpcPicBuffer );
@@ -250,6 +274,19 @@ protected:
   UInt							m_uiNonRequiredSeiReadFlag;
   UInt							m_uiNonRequiredSeiRead[1<<MAX_DSTAGES];
 #endif
+  //JVT-P031
+  UInt                          m_uiFirstFragmentPPSId;
+  UInt                          m_uiFirstFragmentNumMbsInSlice;
+  Bool                          m_bFirstFragmentFGSCompSep;
+  UInt                          m_uiLastFragOrder;
+  UInt                          m_uiNumberOfFragment[MAX_LAYERS];
+  UInt                          m_uiNumberOfSPS;
+  UInt                          m_uiSPSId[MAX_LAYERS];
+  UInt                          m_uiDecodedLayer;
+  UInt                          m_uiNumOfNALInAU;
+  SliceHeader*                  m_pcSliceHeaderStored;
+  Int                           m_iPrevPoc;
+  //~JVT-P031
 };
 
 H264AVC_NAMESPACE_END

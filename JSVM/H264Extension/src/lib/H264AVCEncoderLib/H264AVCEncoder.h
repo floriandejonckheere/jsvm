@@ -175,10 +175,7 @@ public:
                                     UInt *              uiaDelta, 
                                     UInt                uiNumLevels, 
                                     UInt                uiLayer ) ;
-  ErrVal writeDeadSubstreamSEI( ExtBinDataAccessor*     pcExtBinDataAccessor, 
-                                UInt                    deltaDS, 
-                                UInt                    uiLayer );
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
 	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }

@@ -87,6 +87,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
+#define JVT_P029
 
 class DecoderParameter  
 {
@@ -101,7 +102,16 @@ public:
   Int          nResult; 
   UInt         nFrames;
   UInt         uiMaxPocDiff; // HS: decoder robustness
-
+#ifdef JVT_P029
+  std::string  cOrigYUV;
+  UInt w;
+  UInt h;
+  UInt seq_length;
+  UInt sizeGop;
+  Bool InterGopFrame;
+  UInt FirstInterGopFrame;
+  Bool m_bQL;
+#endif
 protected:
   ErrVal xPrintUsage(char** argv);
 };

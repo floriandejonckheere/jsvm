@@ -51,6 +51,7 @@ BSC32=bscmake.exe
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /machine:I386
 # ADD LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /pdb:"..\..\..\..\..\bin\EncoderBitstreamMerger.pdb" /machine:I386 /out:"..\..\..\..\..\bin\EncoderBitstreamMerger.exe" /libpath:"..\..\..\..\..\lib"
+# SUBTRACT LINK32 /pdb:none
 
 !ELSEIF  "$(CFG)" == "EncoderBitstreamMerger - Win32 Debug"
 
@@ -103,6 +104,10 @@ SOURCE=.\EncoderMergerParameter.cpp
 
 SOURCE=.\RatePointsManager.cpp
 # End Source File
+# Begin Source File
+
+SOURCE=.\RDTree.cpp
+# End Source File
 # End Group
 # Begin Group "Header Files"
 
@@ -118,6 +123,10 @@ SOURCE=.\EncoderMergerParameter.h
 # Begin Source File
 
 SOURCE=.\RatePointsManager.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\RDTree.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

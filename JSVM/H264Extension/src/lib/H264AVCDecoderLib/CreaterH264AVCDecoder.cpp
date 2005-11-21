@@ -176,14 +176,29 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 								  UInt&             uiMbX,
 								  UInt&             uiMbY,
 								  UInt&             uiSize,
-								  UInt&			  uiNonRequiredPic) 
+								  UInt&			  uiNonRequiredPic
+                                  //JVT-P031
+                                  ,Bool&            rbStartDecoding,
+                                UInt&             ruiStartPos,
+                                UInt&             ruiEndPos,
+                                Bool&              bFragmented,
+                                Bool&              bDiscardable
+                                //~JVT-P031) 
 {
 	return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
 		ruiNalUnitType,
 		uiMbX,
 		uiMbY,
 		uiSize,
-		uiNonRequiredPic);
+		uiNonRequiredPic
+        //JVT-P031
+        ,rbStartDecoding,
+        ruiStartPos,
+        ruiEndPos,
+        bFragmented,
+        bDiscardable
+        //~JVT-P031
+                           );
 }
 #else
 ErrVal
@@ -191,16 +206,58 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 								  UInt&             ruiNalUnitType,
 								  UInt&             uiMbX,
 								  UInt&             uiMbY,
-								  UInt&             uiSize) 
+								  UInt&             uiSize
+                                  //JVT-P031
+                                  ,Bool&            rbStartDecoding,
+                                UInt&             ruiStartPos,
+                                UInt&             ruiEndPos,
+                                Bool&              bFragmented,
+                                Bool&              bDiscardable
+                                //~JVT-P031
+                                ) 
 {
 	return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
 		ruiNalUnitType,
 		uiMbX,
 		uiMbY,
-		uiSize); 
+		uiSize
+        //JVT-P031
+        ,rbStartDecoding,
+        ruiStartPos,
+        ruiEndPos,
+        bFragmented,
+        bDiscardable
+        //~JVT-P031
+        ); 
 }
 #endif
 
+//JVT-P031
+ErrVal
+CreaterH264AVCDecoder::initPacket ( BinDataAccessor*  pcBinDataAccessor)
+{
+  return( m_pcH264AVCDecoder->initPacket(pcBinDataAccessor) );
+}
+Void
+CreaterH264AVCDecoder::decreaseNumOfNALInAU()
+{
+    m_pcH264AVCDecoder->decreaseNumOfNALInAU();
+}
+Void
+CreaterH264AVCDecoder::setDependencyInitialized(Bool b)
+{
+    m_pcH264AVCDecoder->setDependencyInitialized(b);
+}
+UInt
+CreaterH264AVCDecoder::getNumOfNALInAU()
+{
+    return m_pcH264AVCDecoder->getNumOfNALInAU();
+}
+Void CreaterH264AVCDecoder::initNumberOfFragment()
+{
+    m_pcH264AVCDecoder->initNumberOfFragment();
+}
+//~JVT-P031
 
 ErrVal
 CreaterH264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
@@ -451,6 +508,7 @@ H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 10-10-02
 , m_pcNonRequiredSEI	  ( NULL )
 #endif
+, m_uiStdAVCOffset         ( 0 )
 {
 }
 
@@ -480,7 +538,9 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   UInt		  uiSimplePriorityId = 0;
   Bool		  bDiscardableFlag = false;
   Bool		  bExtensionFlag = false;
-  rcPacketDescription.MaxRateDS       = 0;
+  Bool bFragmentedFlag = false; //JVT-P031
+  UInt uiFragmentOrder = 0; //JVT-P031
+  Bool bLastFragmentFlag = false; //JVT-P031
   rcPacketDescription.uiNumLevelsQL = 0;
 	for(UInt ui = 0; ui < MAX_NUM_RD_LEVELS; ui++)
 	{
@@ -579,15 +639,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         }
       //{{Quality level estimation and modified truncation- JVTO044 and m12007
       //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-      case SEI::DEADSUBSTREAM_SEI:
-		  {
-			  SEI::DeadSubstreamSEI* pcSEI           = (SEI::DeadSubstreamSEI*)pcSEIMessage;
-			  UInt uiMaxRate = pcSEI->getDeltaBytesDeadSubstream();
-              rcPacketDescription.MaxRateDS       = uiMaxRate;
-			  uiLayer = pcSEI->getDependencyId();
-			  bApplyToNext = true;
-			  break;
-		  }
       case SEI::QUALITYLEVEL_SEI:
 		  {
 			UInt uiNum = 0;
@@ -636,8 +687,9 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     memcpy( cBinData.data(), pcBinData->data(), uiSize );
     BinDataAccessor cBinDataAccessor;
     cBinData.setMemAccessor( cBinDataAccessor );
-    
+    m_pcNalUnitParser->setCheckAllNALUs(true); //JVT-P031
 	RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL ) );
+    m_pcNalUnitParser->setCheckAllNALUs(false);//JVT-P031
   
     // get the SPSid
     if(eNalUnitType == NAL_UNIT_SPS )
@@ -678,10 +730,28 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
     {
       UInt uiTemp;
-      RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: first_mb_in_slice" ) );
-      RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
-      RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
-      uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
+      //JVT-P031
+    RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: first_mb_in_slice" ) );
+    RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
+    if(uiTemp == F_SLICE)
+    {
+       RNOK( m_pcUvlcReader->getFlag( bFragmentedFlag,  "SH: fragmented_flag" ) );
+       if(bFragmentedFlag)
+       {
+            RNOK( m_pcUvlcReader->getUvlc(uiFragmentOrder,  "SH: fragment_order" ) );
+            if(uiFragmentOrder!=0)
+            {
+                RNOK( m_pcUvlcReader->getFlag( bLastFragmentFlag,  "SH: last_fragment_flag" ) );
+            }
+       }
+    }
+  
+    if(uiFragmentOrder == 0)
+    {
+        RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
+        uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
+    }     
+    //~JVT-P031
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-05
 	  if(m_uiNonRequiredSeiRead != 1 && uiLayer == 0)
 	  {
@@ -703,7 +773,10 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   rcPacketDescription.FGSLayer      = uiFGSLayer;
   rcPacketDescription.Level         = uiLevel;
   rcPacketDescription.ApplyToNext   = bApplyToNext;
-
+  rcPacketDescription.uiPId         = uiSimplePriorityId;
+  rcPacketDescription.bDiscardable  = bDiscardableFlag;//JVT-P031
+  rcPacketDescription.bFragmentedFlag   = bFragmentedFlag;//JVT-P031
+  rcPacketDescription.NalRefIdc     = eNalRefIdc;
   return Err::m_nOK;
 }
 

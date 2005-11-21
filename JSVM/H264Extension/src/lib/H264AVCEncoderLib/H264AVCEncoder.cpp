@@ -359,27 +359,6 @@ ErrVal H264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDat
 
   return Err::m_nOK;
 }
-
-ErrVal H264AVCEncoder::writeDeadSubstreamSEI(ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiDeltaBytesDS, UInt uiLayer ) 
-{
-	//===== create message =====
-  SEI::DeadSubstreamSEI* pcDeadSubstreamSEI;
-  RNOK( SEI::DeadSubstreamSEI::create( pcDeadSubstreamSEI ) );
-
-  //===== set message =====
-  pcDeadSubstreamSEI->setDeltaBytesDeadSubstream(uiDeltaBytesDS);
-  pcDeadSubstreamSEI->setDependencyId(uiLayer);
-
-  //===== write message =====
-  UInt              uiBits = 0;
-  SEI::MessageList  cSEIMessageList;
-  cSEIMessageList.push_back                       ( pcDeadSubstreamSEI );
-  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
-  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
-  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  
-  return Err::m_nOK;
-}
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 

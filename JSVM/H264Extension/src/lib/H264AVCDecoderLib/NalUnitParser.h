@@ -121,19 +121,20 @@ public:
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   Bool			getDiscardableFlag ()	{ return m_bDiscardableFlag;}
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Int			getMaxRate		   (UInt ui)   { return m_iMaxRate[ui];}
-  Void			setMaxRate		   (Int i, UInt ui) { m_iMaxRate[ui] = i;}
-  Void			setDSInBitstream	(Bool b, UInt ui) { m_bDSInBitstream[ui] = b;}
-  Void			setCheckDSTruncation( Bool b) { m_bCheckDSTruncation = b;}
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   Void  setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
                                                                           { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
-
+  //JVT-P031
+  UInt getBytesLeft();
+  UInt getBitsLeft();
+  ErrVal initSODBNalUnit( BinDataAccessor* pcBinDataAccessor );
+  UInt getNalHeaderSize( BinDataAccessor* pcBinDataAccessor );
+  Bool getFragmentedFlag() { return m_bFragmentedFlag;}
+  Void setCheckAllNALUs(Bool b) { m_bCheckAllNALUs = b;}
+  Void setDecodedLayer( UInt uiLayer) { m_uiDecodedLayer = uiLayer;}
+  //~JVT-P031
 protected:
   Void    xTrace                ( Bool  bDDIPresent     );
   ErrVal  xConvertPayloadToRBSP ( UInt& ruiPacketLength );
@@ -155,15 +156,14 @@ protected:
   Bool			m_bDiscardableFlag;
   Bool			m_bExtensionFlag;
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Int       m_iMaxRate[MAX_LAYERS];
-  Bool			m_bDSInBitstream[MAX_LAYERS];
-  Bool			m_bCheckDSTruncation;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   UInt          m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt          m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt          m_uiQualityLevelList [1 << PRI_ID_BITS];
+  //JVT-P031
+  Bool          m_bFragmentedFlag;
+  Bool          m_bCheckAllNALUs;
+  UInt          m_uiDecodedLayer;
+  //~JVT-P031
 };
 
 

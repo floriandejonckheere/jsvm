@@ -218,6 +218,9 @@ MCTFEncoder::MCTFEncoder()
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-30
 , m_uiNonRequiredSEIWrittenFlag		( 0 )
 #endif
+, m_bUseDiscardableUnit             ( false )//JVT-P031
+, m_dPredFGSBitRateFactor               ( 0.0 )//JVT-P031
+, m_iPredLastFGSError                   ( 0 )//JVT-P031
 {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -469,7 +472,13 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiNotYetConsideredBaseLayerBits = 0;
 
   // analyse and set parameters
-  if( m_uiFGSMode == 2 )
+  //JVT-P031
+  m_bUseDiscardableUnit = pcLayerParameters->getUseDiscardable();
+  m_dPredFGSCutFactor = 0.0;
+  m_dPredFGSRoundingOffset              = 0.0;
+  m_iPredLastFGSError = 0;
+  if(m_bUseDiscardableUnit || m_uiFGSMode == 2)
+  //JVT-P031
   {
     Char  acLine        [1000];
     UInt  uiNumFrames                       =     0;
@@ -533,35 +542,44 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     }
     m_dNumFGSLayers     = 1.0; // something greater than zero
     
+    //JVT-P031
+    if(m_bUseDiscardableUnit)
+    {
+    Double  dPredTargetBits   = 1000.0 * pcLayerParameters->getPredFGSRate() * (Double)uiNumFrames / pcLayerParameters->getOutputFrameRate();
+    UInt    uiPredTargetBits  = (UInt)floor( dPredTargetBits + 0.5 );
+    
+    if( uiPredTargetBits <= uiSumBaseBits )
+    {
+      ROF( uiPredTargetBits );
+      printf("Warning: Layer %d bitrate overflow (only base layer coded)\n", m_uiLayerId );
+      m_dPredFGSCutFactor     = 0.0;
+      m_dPredFGSBitRateFactor = (Double)uiPredTargetBits / (Double)uiSumBaseBits; // there is a chance that only coding the base layer is not the right thing for closed-loop
+    }
+    else if( uiPredTargetBits >= uiSumAllBits )
+    {
+      printf("Warning: Layer %d bitrate underflow (code as much as possible)\n", m_uiLayerId );
+      m_dPredFGSCutFactor     = 3.0;
+      m_dPredFGSBitRateFactor = (Double)uiPredTargetBits / (Double)uiSumAllBits; // it is possible that not all layers have been coded during the analysis run (e.g. for closed-loop)
+    }
+    else
+    {
+      uiPredTargetBits   -= uiSumBaseBits;
+      for( UInt uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      {
+        if( uiPredTargetBits < uiSumFGSBits[uiFGSLayer] )
+        {
+          m_dPredFGSCutFactor = (Double)uiFGSLayer + (Double)uiPredTargetBits / (Double)uiSumFGSBits[uiFGSLayer];
+          break;
+        }
+        uiPredTargetBits -= uiSumFGSBits[uiFGSLayer];
+      }
+      m_dPredFGSBitRateFactor = 0.0;
+    }
+    }
+    //~JVT-P031
     ::fseek( m_pFGSFile, 0, SEEK_SET );
   }
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  m_bQualityLevelsEstimation = pcCodingParameter->getQualityLevelsEstimation();
-  if(!m_bQualityLevelsEstimation && !strcmp(pcLayerParameters->getRateFilename().c_str(), "none"))
-  {
-    m_pRateFile = NULL;
-  }
-  else
-  {
-	if(m_bQualityLevelsEstimation)
-      m_pRateFile = ::fopen( pcLayerParameters->getRateFilename().c_str(), "wt" );
-	else
-	  m_pRateFile = NULL;
-  }
-  if(!m_bQualityLevelsEstimation && !strcmp(pcLayerParameters->getDistoFilename().c_str(), "none"))
-  {
-    m_pDistoFile = NULL;
-  }
-  else
-  {
-	  if(m_bQualityLevelsEstimation)
-          m_pDistoFile = ::fopen( pcLayerParameters->getDistoFilename().c_str(), "wt" );
-	  else
-		  m_pDistoFile = NULL;
-  }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+  
   //{{Adaptive GOP structure
   // --ETRI & KHU
   m_uiUseAGS = pcCodingParameter->getUseAGS();
@@ -606,7 +624,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 		  m_uiSelect = new UInt*[line];
 		  
 		  for(j = 0; j < line + 1; j++) 
-      {
+      { 
 			  m_uiSelect[j] = new UInt[8];
 			  for (i = 0; i < 8; i++) {
 				  m_uiSelect[j][i] = 0;
@@ -707,7 +725,7 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   {
     ROFRS ( ( m_papcBQFrame                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
   }
-  if( m_uiQualityLevelForPrediction < 3 )
+  if( m_uiQualityLevelForPrediction < 3 || m_bUseDiscardableUnit) //JVT-P031
   {
     ROFRS ( ( m_papcCLRecFrame                = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
   }
@@ -1468,7 +1486,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   MbDataCtrl*   pcMbDataCtrl  = rcControlData.getMbDataCtrl ();
   IntFrame*     pcOrgResidual = pcTempFrame;
   UInt          uiRealBLBits  = ruiBits;
-  UInt          uiLastRecLayer;
+  UInt          uiLastRecLayer = 0;
   ruiBits                     = 0;
   SliceType     eBaseSliceType = pcSliceHeader->getSliceType();
 
@@ -1483,8 +1501,17 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   UInt uiFrameBits                =   0;
   UInt uiFGSBits [MAX_FGS_LAYERS] = { 0, 0, 0 };
   Double  dRealValuedFGSBits          = 0.0;
-  
-  if( m_uiFGSMode == 2 )
+  //JVT-P031
+  Bool bAlreadyReconstructed = false;
+  UInt uiPredFGSMaxBits = 0;
+  UInt uiPredTarget = 0;
+  Bool bFinishedFrag = false;
+  Bool bSetToDiscardable = false;
+  Bool bLastFragToCode = false;
+  UInt uiFGSCutBits = 0;
+  Double  dPredRealValuedFGSBits          = 0.0;
+  if(m_bUseDiscardableUnit || m_uiFGSMode == 2)
+  //~JVT-P031
   {
     Char  acLine    [1000];
     Int   i, c;
@@ -1541,6 +1568,54 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
       uiFGSMaxBits     = 0;
     }
     uiTarget = uiFGSMaxBits;
+//JVT-P031
+    if(m_bUseDiscardableUnit)
+    {
+    if( m_dPredFGSBitRateFactor == 0.0 ) // target rate lies inside the range of the analysis run
+    {
+      ROF( m_dPredFGSCutFactor > 0 && m_dPredFGSCutFactor < 3 );
+      
+      dPredRealValuedFGSBits   += (Double)uiBaseBits;
+      Double    dPredFactor     = m_dPredFGSCutFactor;
+      for( UInt uiFGSLayer  = 0; dPredFactor > 0; uiFGSLayer++ )
+      {
+        dPredRealValuedFGSBits += (Double)uiFGSBits[uiFGSLayer] * min( dPredFactor, 1.0 );
+        dPredFactor            -= 1.0;
+      }
+    }
+    else
+    {
+      dPredRealValuedFGSBits    = uiBaseBits + ( m_dPredFGSCutFactor > 0 ? uiFGSBits[0] + uiFGSBits[1] + uiFGSBits[2] : 0 );
+      dPredRealValuedFGSBits   *= m_dPredFGSBitRateFactor;
+    }
+
+    dPredRealValuedFGSBits     += m_dPredFGSRoundingOffset + 0.0000001;
+    uiPredFGSMaxBits            = (UInt)floor( dPredRealValuedFGSBits );
+    m_dPredFGSRoundingOffset    = dPredRealValuedFGSBits - (Double)uiPredFGSMaxBits;
+   //----- correct base layer bits -----#
+    if( uiPredFGSMaxBits >= uiRealBLBits )
+    {
+      uiPredFGSMaxBits -= uiRealBLBits;
+    }
+    else
+    {
+      m_iPredLastFGSError += uiRealBLBits - uiPredFGSMaxBits;
+      uiPredFGSMaxBits     = 0;
+    }
+    //----- consider last FGS errors -----
+    if( (Int)uiPredFGSMaxBits >= m_iPredLastFGSError )
+    {
+      uiPredFGSMaxBits   -= m_iPredLastFGSError;
+      m_iPredLastFGSError = 0;
+    }
+    else
+    {
+      m_iPredLastFGSError -= (Int)uiPredFGSMaxBits;
+      uiPredFGSMaxBits     = 0;
+    }
+    uiPredTarget = uiPredFGSMaxBits;
+    }
+    //~JVT-P031
   }
 
   //===== initialize FGS encoder =====
@@ -1551,7 +1626,8 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
                                        rcControlData.getLambda(),
                                        m_iMaxDeltaQp,
                                        bFinished,
-                                       ( m_uiFGSMode == 2 ) ) );
+                                       (m_uiFGSMode == 2 ), 
+                                       m_bUseDiscardableUnit) ); //JVT-P031
 
   // HS: bug-fix for m_uiQualityLevelForPrediction == 0
   if( 0 == m_uiQualityLevelForPrediction)
@@ -1573,15 +1649,18 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     m_iLastFGSError -= (Int)uiFGSMaxBits;
   }
 
+  //JVT-P031
+  if( m_uiFGSMode == 2 && m_bUseDiscardableUnit && uiPredTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+  {
+    bSetToDiscardable = true;
+    m_iPredLastFGSError -= (Int)uiPredFGSMaxBits;
+  }
+  //~JVT-P031
+
   //===== encoding of FGS packets =====
   for( UInt uiRecLayer = 1; !bFinished; uiRecLayer++ )
   {
     UInt  uiPacketBits  = 0;
-
-    //----- init NAL UNIT -----
-    RNOK( xInitExtBinDataAccessor               (  m_cExtBinDataAccessor ) );
-    RNOK( m_pcNalUnitEncoder->initNalUnit       ( &m_cExtBinDataAccessor ) );
-
     Bool bBaseLayerKeyPic;
 
     bBaseLayerKeyPic = pcSliceHeader->getTemporalLevel() == 0;
@@ -1622,73 +1701,167 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     if( bBaseLayerKeyPic )
       m_uiNumLayers[1] = 2;
 
+    //JVT-P031
+    Bool bCorrupted = false;
+    UInt uiFrac = 0;
+    UInt uiFragmentBits;
+	// Currently, fragmented NAL units are only designed to truncate correctly the
+	// progressive refinement slices NAL units
+	// Thus, only two fragments are created, the first containing the part of the 
+	// progressive refinement slice NAL unit that is retained for the target bit-rate
+    bFinishedFrag = false;
+    while(!bFinishedFrag)
+    {
+      uiFragmentBits = 0;
+      //~JVT-P031
+
+    //----- init NAL UNIT -----
+    RNOK( xInitExtBinDataAccessor               (  m_cExtBinDataAccessor ) );
+    RNOK( m_pcNalUnitEncoder->initNalUnit       ( &m_cExtBinDataAccessor ) );
+
     //---- write Slice Header -----
     ETRACE_NEWSLICE;
     //pcSliceHeader->setQualityLevel       ( uiRecLayer );
     xAssignSimplePriorityId( pcSliceHeader );
-    RNOK( m_pcNalUnitEncoder->write  ( *pcSliceHeader ) );
 
-    Int iQp = pcSliceHeader->getPicQp();
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    Double dScalFactor = rcControlData.getScalingFactor_FT();
-    m_pcRQFGSEncoder->setNextLayerForRD(pcOrgResidual, dScalFactor, m_pDistoFile, m_pRateFile);
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-    uiLastRecLayer = uiRecLayer;
-
-    //---- encode next bit-plane for current NAL unit ----
-    Bool bCorrupted = false;
-    if( m_uiFGSMode == 2 && uiTarget < uiFGSBits[uiRecLayer-1] - uiEstimatedHeaderBits ) // probably truncate in payload
-    {
-      uiFGSMaxBits -= uiEstimatedHeaderBits;
-    }
-    RNOK( m_pcRQFGSEncoder->encodeNextLayer     ( bFinished, bCorrupted, uiFGSMaxBits, ( m_uiFGSMode == 1 ? m_pFGSFile : 0 ) ) );
-
-    //----- close NAL UNIT -----
-    RNOK( m_pcNalUnitEncoder->closeNalUnit      ( uiPacketBits ) );
-    RNOK( xAppendNewExtBinDataAccessor          ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
-    uiPacketBits += 4*8;
-
-    if( m_uiFGSMode == 2 )
-    {
-      if( uiRecLayer == 3 || uiPacketBits >= uiTarget || bFinished )
+    //JVT-P031
+    // set fragment status
+      Bool bFragmented = ( m_bUseDiscardableUnit && ((!bSetToDiscardable && (uiPredTarget < uiFGSBits[uiRecLayer-1] - uiEstimatedHeaderBits)) || uiFrac!=0) );
+      if(bFragmented)
       {
-        m_iLastFGSError += (Int)uiPacketBits - (Int)uiTarget;
-        bFinished = true;
+        pcSliceHeader->setFragmentedFlag(true);
+        pcSliceHeader->setFragmentOrder(uiFrac);
+        // only 2 fragments
+        pcSliceHeader->setLastFragmentFlag((uiFrac==0) ? false : true);
+        if(uiFrac != 0)
+        {
+            pcSliceHeader->setDiscardableFlag(true);
+            bSetToDiscardable = true;
+        }
       }
       else
       {
-        uiTarget     -= uiPacketBits;
-        uiFGSMaxBits  = uiTarget;
-        if( uiTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+        pcSliceHeader->setFragmentedFlag(false);
+        pcSliceHeader->setFragmentOrder(0);
+        pcSliceHeader->setLastFragmentFlag(true);
+        if(m_bUseDiscardableUnit == true && bSetToDiscardable)
+            pcSliceHeader->setDiscardableFlag(true);
+      }
+    //~JVT-P031
+
+    RNOK( m_pcNalUnitEncoder->write  ( *pcSliceHeader ) );
+
+    Int iQp = pcSliceHeader->getPicQp();
+    uiLastRecLayer = uiRecLayer;
+
+    //---- encode next bit-plane for current NAL unit ----
+    
+    uiFGSCutBits = (bFragmented && uiFrac == 0 || !bFragmented && m_bUseDiscardableUnit && !bSetToDiscardable  ) ? uiPredFGSMaxBits : uiFGSMaxBits; //JVT-P031  
+
+    Bool bCorrupted = false;
+    
+    //JVT-P031
+    if(m_uiFGSMode == 2 && uiFGSCutBits < uiFGSBits[uiRecLayer-1] - uiEstimatedHeaderBits) // probably truncate in payload
+    {
+         uiFGSCutBits -= uiEstimatedHeaderBits;
+    }
+    RNOK( m_pcRQFGSEncoder->encodeNextLayer     ( bFinished, bCorrupted, uiFGSCutBits, uiFrac, bFragmented, ( m_uiFGSMode == 1 ? m_pFGSFile : 0 ) ) );
+      
+    if(uiFrac != 0)
+    {
+        bFinishedFrag = true;
+    }
+    uiFrac++;
+    //~JVT-P031
+
+    //----- close NAL UNIT -----
+    RNOK( m_pcNalUnitEncoder->closeNalUnit      ( uiFragmentBits ) ); //JVT-P031
+      
+    RNOK( xAppendNewExtBinDataAccessor          ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+    //JVT-P031
+    uiFragmentBits += 4*8;
+    uiPacketBits += uiFragmentBits;
+    if(!m_bUseDiscardableUnit || ((bFragmented && uiFrac == 1) || (!bFragmented && !bSetToDiscardable)))
+         ruiBits += uiPacketBits;
+  
+    if((m_bUseDiscardableUnit && !bSetToDiscardable) )//|| (!bFragmented && !m_bUseDiscardableUnit ))
+    {
+      RNOK( m_pcRQFGSEncoder->reconstruct   ( pcFrame ) );
+      RNOK( xAddBaseLayerResidual           ( rcControlData, pcFrame, false ) );
+      RNOK( pcResidual      ->copy          ( pcFrame ) );
+      RNOK( xZeroIntraMacroblocks           ( pcResidual, rcControlData ) );
+      RNOK( pcFrame         ->add           ( pcPredSignal ) );
+      RNOK( xClipIntraMacroblocks   ( pcFrame, rcControlData, pcSliceHeader->getTemporalLevel() == 0 ) );
+      RNOK( pcSubband       ->copy          ( pcFrame ) );
+      bAlreadyReconstructed = true;
+      
+      RNOK( rcControlData.saveMbDataQpAndCbp() );
+    }
+    //~JVT-P031
+
+    //JVT-P031
+    if( m_uiFGSMode == 2 )
+      {
+        if( uiRecLayer == 3 || uiFragmentBits >= uiTarget || bFinished )
         {
-          bFinished        = true;
-          m_iLastFGSError -= (Int)uiFGSMaxBits;
+           m_iLastFGSError += (Int)uiFragmentBits - (Int)uiTarget;
+           bFinished = true;
+           bFinishedFrag = true;
+        }
+        else
+        {
+          uiTarget     -= uiFragmentBits;
+          uiFGSMaxBits  = uiTarget;
+          if( uiTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+          {
+             bFinished        = true;
+             m_iLastFGSError -= (Int)uiFGSMaxBits;
+             bFinishedFrag = true;
+          }
         }
       }
-    }
 
-    if( m_uiFGSMode == 1 && m_pFGSFile )
-    {
-      fprintf( m_pFGSFile, "\t%d", uiPacketBits );
-    }
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    if( m_pRateFile ) 
-    {
-		fprintf( m_pRateFile, "\t%d", uiRecLayer );
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-    
-    printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, PrRef,              QP%3d ) %10d bits\n",
+      if( m_bUseDiscardableUnit && !bSetToDiscardable )
+      {
+        if( uiRecLayer == 3 || uiFragmentBits >= uiPredTarget )
+        {
+           m_iPredLastFGSError += (Int)uiFragmentBits - (Int)uiPredTarget;
+           bSetToDiscardable = true;
+           bLastFragToCode = true;
+           if( uiTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+          {
+             bFinishedFrag = true;
+          }
+        }
+        else
+        {
+          uiPredTarget     -= uiFragmentBits;
+          uiPredFGSMaxBits  = uiPredTarget;
+          if( uiPredTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+          {
+             bSetToDiscardable = true;
+             m_iPredLastFGSError -= (Int)uiPredFGSMaxBits;
+          }
+        }
+      }
+
+      printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, PrRef,              QP%3d ) %10d bits\n",
       rcControlData.getSliceHeader()->getPoc                    (),
       rcControlData.getSliceHeader()->getLayerId                (),
       rcControlData.getSliceHeader()->getTemporalLevel          (),
       uiRecLayer, iQp, uiPacketBits );
 
-    ruiBits += uiPacketBits;
+      if(!bFragmented)
+          break;         
+    }
+    //~JVT-P031
+    if( m_uiFGSMode == 1 && m_pFGSFile )
+    {
+      fprintf( m_pFGSFile, "\t%d", uiPacketBits );
+    }
+ 
     m_auiCurrGOPBits[m_uiScalableLayerId + uiRecLayer] += uiPacketBits;
-    if( uiRecLayer == m_uiQualityLevelForPrediction)
+    if( uiRecLayer == m_uiQualityLevelForPrediction && !bAlreadyReconstructed) //JVT-P031
     {
       RNOK( m_pcRQFGSEncoder->reconstruct   ( pcFrame ) );
       RNOK( xAddBaseLayerResidual           ( rcControlData, pcFrame, false ) );
@@ -1704,7 +1877,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   
 
   //===== reconstruction =====
-  if( uiLastRecLayer < m_uiQualityLevelForPrediction )
+  if( uiLastRecLayer < m_uiQualityLevelForPrediction &&  !bAlreadyReconstructed) //JVT-P031
   {
     RNOK( m_pcRQFGSEncoder->reconstruct   ( pcFrame ) );
     RNOK( xAddBaseLayerResidual           ( rcControlData, pcFrame, false ) );
@@ -2024,10 +2197,6 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   {
     m_pacControlData[ uiFrame ].clear();
     m_pacControlData[ uiFrame ].setScalingFactor( 1.0 );
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    m_pacControlData[ uiFrame ].setScalingFactor_FT( 1.0 );
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
     MbDataCtrl* pcMbDataCtrl = m_pacControlData[ uiFrame ].getMbDataCtrl();
     RNOK( pcMbDataCtrl->reset () );
     RNOK( pcMbDataCtrl->clear () );
@@ -2526,116 +2695,11 @@ MCTFEncoder::xSetScalingFactorsAVC()
   for( UInt uiLevel = 0; uiLevel < m_uiDecompositionStages; uiLevel++ )
   {
     RNOK( xSetScalingFactorsMCTF( uiLevel ) );
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    RNOK( xSetScalingFactorsMCTF_FT( uiLevel ) );
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
   }
 
   m_bAdaptiveQP     = bAdaptiveQP;
   return Err::m_nOK;
 }
-
-//{{Quality level estimation and modified truncation- JVTO044 and m12007
-//France Telecom R&D-(nathalie.cammas@francetelecom.com)
-ErrVal
-MCTFEncoder::xSetScalingFactorsMCTF_FT( UInt uiBaseLevel )
-{
-  Double  adRateL0 [( 1 << MAX_DSTAGES )];
-  Double  adRateL1 [( 1 << MAX_DSTAGES )];
-  Double  adRateBi [( 1 << MAX_DSTAGES )];
-
-  Double  dScalingBase    = m_pacControlData[0].getScalingFactor_FT();
-  Double  dScalingLowPass = 0.0;
-  Int     iLowPassSize    = ( m_uiGOPSize >> uiBaseLevel );
-  Int     iFrame;
-
-
-  //===== get connection data =====
-  for( iFrame = 1; iFrame <= iLowPassSize; iFrame += 2 )
-  {
-    RNOK( xGetConnections( m_pacControlData[ iFrame << uiBaseLevel ], adRateL0[iFrame], adRateL1[iFrame], adRateBi[iFrame] ) );
-  }
-
-  //===== get low-pass scaling =====
-  for( iFrame = 0; iFrame <= iLowPassSize; iFrame += 2 )
-  {
-    Double  dScalLPCurr = 1.0;
-
-    if( iFrame > 0 )
-    {
-      if( ( iFrame + 1 ) < iLowPassSize )
-      {
-        dScalLPCurr = ( adRateBi[iFrame-1] + adRateBi[iFrame+1] ) * ( FACTOR_53_LP*FACTOR_53_LP - 1.0 ) / 2.0 +
-                      ( adRateL1[iFrame-1] + adRateL0[iFrame+1] ) * ( FACTOR_22_LP*FACTOR_22_LP - 1.0 ) / 2.0 + 1.0;
-      }
-      else
-      {
-        dScalLPCurr = ( adRateBi[iFrame-1] / 2.0 ) * ( FACTOR_53_LP*FACTOR_53_LP - 1.0 ) +
-                      ( adRateL1[iFrame-1]       ) * ( FACTOR_22_LP*FACTOR_22_LP - 1.0 ) + 1.0;
-      }
-    }
-    else
-    {
-      if( iLowPassSize )
-      {
-        dScalLPCurr = ( adRateBi[iFrame+1] / 2.0 ) * ( FACTOR_53_LP*FACTOR_53_LP - 1.0 ) +
-                      ( adRateL0[iFrame+1]       ) * ( FACTOR_22_LP*FACTOR_22_LP - 1.0 ) + 1.0;
-      }
-    }
-
-	dScalLPCurr = sqrt(dScalLPCurr);
-
-    dScalingLowPass += dScalLPCurr;
-  }
-  dScalingLowPass /= (Double)( 1 + ( iLowPassSize >> 1 ) );
-
-  
-  //===== get high-pass scaling and set scaling factors =====
-  Double dFactor53;
-  Double dFactor22;
-
-#if SCALING_FACTOR_HACK
-  // heiko.schwarz@hhi.fhg.de: This is a bad hack for ensuring that the
-  // closed-loop config files work and use identical scaling factor as
-  // the MCTF version. The non-update scaling factors don't work and shall
-  // be completely removed in future versions.
-  if( m_bUpdate == 0 && m_uiLayerId == 0 && m_uiFrameWidthInMb <= 11 )
-#else
-  if( m_bUpdate == 0 && m_uiClosedLoopMode == 0 )
-#endif
-  {
-	  dFactor53 = FACTOR_53_HP_BL;
-	  dFactor22 = FACTOR_22_HP_BL;
-  }
-  else
-  {
-	  dFactor53 = FACTOR_53_HP;
-	  dFactor22 = FACTOR_22_HP;
-  }
-
-  for( iFrame = 0; iFrame <= iLowPassSize; iFrame++ )
-  {
-    Double dScal = dScalingBase;
-
-    if( iFrame % 2 )
-    {
-      //===== high-pass pictures =====
-      dScal *= sqrt(( adRateBi[iFrame]                    ) * ( dFactor53*dFactor53 - 1.0 ) +
-               ( adRateL0[iFrame] + adRateL1[iFrame] ) * ( dFactor22*dFactor22 - 1.0 ) + 1.0);
-    }
-    else
-    {
-      //===== low-pass pictures =====
-      dScal *= dScalingLowPass;
-    }
-    m_pacControlData[ iFrame << uiBaseLevel ].setScalingFactor_FT( dScal );
-  }
-
-
-  return Err::m_nOK;
-}
-//}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 
 ErrVal
@@ -3517,14 +3581,6 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       continue;
     }
 
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    if( m_pDistoFile )
-    {
-      fprintf( m_pDistoFile, "%d\t%d ",uiFrameIdInGOP,-1 );
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
     UInt          uiBits          = 0;
     ControlData&  rcControlData   = m_pacControlData[ uiFrameIdInGOP ];
     SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
@@ -3571,14 +3627,6 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] ++;
     }
     //}}Adaptive GOP structure
-
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    if( m_pRateFile ) // m_pRateFile should be equal to NULL if m_uiFGSMode is different from 2
-    {
-      fprintf( m_pRateFile, "%d",  uiBits + m_uiNotYetConsideredBaseLayerBits ); 
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
     //===== write FGS info to file =====
     if( m_uiFGSMode == 1 && m_pFGSFile )
@@ -3757,18 +3805,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       fprintf( m_pFGSFile, "\n" );
     }
 
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    if( m_pRateFile ) 
-    {
-		fprintf( m_pRateFile, "\n");
-    }
-	if( m_pDistoFile ) 
-    {
-		fprintf( m_pDistoFile, "\n");
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-  }
+   }
 
 	m_uiScalableLayerId += (UInt)(m_dNumFGSLayers+1);
   return Err::m_nOK;
@@ -3800,14 +3837,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     
     AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    if(m_pDistoFile )
-    {
-      fprintf( m_pDistoFile, "%d\t%d ",uiFrameIdInGOP, uiBaseLevel );
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+    
     RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame ) );
 
 #if NON_REQUIRED_SEI_ENABLE  
@@ -3856,15 +3886,6 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     }
     //}}Adaptive GOP structure
     
-
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    if( m_pRateFile ) 
-    {
-		  fprintf( m_pRateFile, "%d", uiBits + m_uiNotYetConsideredBaseLayerBits );
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
     //===== save FGS info =====
     if( m_uiFGSMode == 1 && m_pFGSFile )
     {
@@ -3976,18 +3997,6 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     {
       fprintf( m_pFGSFile, "\n" );
     }
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    if( m_pRateFile ) 
-    {
-		fprintf( m_pRateFile, "\n");
-    }
-	if( m_pDistoFile ) 
-    {
-		fprintf( m_pDistoFile, "\n");
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
   }
   m_uiScalableLayerId += (UInt)(m_dNumFGSLayers+1);
   
@@ -4149,10 +4158,6 @@ MCTFEncoder::process( AccessUnitList&   rcAccessUnitList,
       RNOK( xMotionEstimationStage  ( iLevel ) );
       RNOK( xDecompositionStage     ( iLevel ) );
       RNOK( xSetScalingFactorsMCTF  ( iLevel ) );
-      //{{Quality level estimation and modified truncation- JVTO044 and m12007
-      //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-      RNOK( xSetScalingFactorsMCTF_FT( iLevel ) );
-      //}}Quality level estimation and modified truncation- JVTO044 and m12007
     }
 
     printf("\nCODING:\n");

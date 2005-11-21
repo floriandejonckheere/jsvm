@@ -184,14 +184,30 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     } 
     //}}Variable Lengh NAL unit header data with priority and dead substream flag
   }
-
-  
+ 
   //===== slice header =====
   RNOK(     pcWriteIf->writeUvlc( m_uiFirstMbInSlice,                           "SH: first_mb_in_slice" ) );
   
   UInt  uiSliceType = ( m_eSliceType == B_SLICE ? 0 : m_eSliceType == P_SLICE ? 1 : UInt(m_eSliceType) );
   RNOK(     pcWriteIf->writeUvlc( uiSliceType,                                  "SH: slice_type" ) );
   
+  //JVT-P031
+  if(uiSliceType == F_SLICE)
+  {
+     RNOK( pcWriteIf    ->writeFlag( m_bFragmentedFlag,  "SH: fgs_frag_flag" ) );
+     if(m_bFragmentedFlag)
+     {
+        RNOK( pcWriteIf    ->writeUvlc( m_uiFragmentOrder,  "SH: fgs_frag_order" ) );
+        if(m_uiFragmentOrder!=0)
+        {
+          RNOK( pcWriteIf    ->writeFlag( m_bLastFragmentFlag,  "SH: fgs_last_frag_flag" ) );
+        }
+     }
+  }
+  if(m_uiFragmentOrder == 0)
+  {
+  //~JVT-P031
+
   RNOK(     pcWriteIf->writeUvlc( m_uiPicParameterSetId,                        "SH: pic_parameter_set_id" ) );
   if( m_eSliceType == F_SLICE ) // HS: coding order changed to match the text
   {
@@ -319,7 +335,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: base_ref_weight_for_zero_base_coeff" ) );
     }
   }
-
+} //JVT-P031
   return Err::m_nOK;
 }
 
@@ -440,11 +456,11 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   Int   iTmp;
   UInt  uiTmp;
 
-  if( m_eSliceType == F_SLICE ) // HS: coding order changed to match the text
+  /*if( m_eSliceType == F_SLICE ) // HS: coding order changed to match the text
   {
     RNOK(   pcReadIf->getUvlc( m_uiNumMbsInSlice,                            "SH: num_mbs_in_slice" ) );
     RNOK(   pcReadIf->getFlag( m_bFgsComponentSep,                           "SH: fgs_comp_sep" ) );
-  }
+  }*/
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )

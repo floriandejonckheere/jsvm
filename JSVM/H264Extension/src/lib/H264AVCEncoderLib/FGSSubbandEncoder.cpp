@@ -108,12 +108,6 @@ RQFGSEncoder::RQFGSEncoder()
 , m_pcSliceHeader             ( 0 )
 , m_pcOrgResidual             ( 0 )
 , m_bTraceEnable              ( true )
-//{{Quality level estimation and modified truncation- JVTO044 and m12007
-//France Telecom R&D-(nathalie.cammas@francetelecom.com)
-, m_pcOrgResidualFT           ( 0 )
-, m_pRateFile                 ( NULL )
-, m_pDistoFile                ( NULL )
-//}}Quality level estimation and modified truncation- JVTO044 and m12007
 {
   ::memset( m_apaucLumaCoefMap,       0x00,   16*sizeof(UChar*) );
   ::memset( m_aapaucChromaDCCoefMap,  0x00, 2* 4*sizeof(UChar*) );
@@ -123,10 +117,7 @@ RQFGSEncoder::RQFGSEncoder()
   m_paucBlockMap        = 0;
   m_paucSubMbMap        = 0;
   m_pauiMacroblockMap   = 0;
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  m_uiNumBitsForRDPoint = MIN_BITS_FOR_RD_POINTS;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
+  m_bUseDiscardableUnit =  false; //JVT-P031
 }
 
 
@@ -209,7 +200,17 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
                            Double       dLambda,
                            Int          iMaxQpDelta,
                            Bool&        rbFinished,
-                           Bool         bTruncate )
+                           Bool         bTruncate,
+                           Bool         bUseDiscardableUnit) //JVT-P031
+/*ErrVal
+RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
+                           MbDataCtrl*  pcCurrMbDataCtrl,
+                           IntFrame*    pcOrgResidual,
+                           Double       dNumFGSLayers,
+                           Double       dLambda,
+                           Int          iMaxQpDelta,
+                           Bool&        rbFinished,
+                           Bool         bTruncate )*/
 {
   ROT( m_bPicInit );
   ROF( m_bInit );
@@ -231,7 +232,7 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
   UInt  uiNumTCoeff   = m_uiWidthInMB*m_uiHeightInMB*(16*16+2*8*8);
   m_iRemainingTCoeff  = (Int)floor( (Double)uiNumTCoeff * dNumFGSLayers + 0.5 );
   m_bPicInit          = true;
-
+  m_bUseDiscardableUnit   = bUseDiscardableUnit; //JVT-P031
   if( bTruncate )
   {
     m_iRemainingTCoeff = MSYS_INT_MAX;
@@ -268,10 +269,6 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
 
   RNOK( xScaleBaseLayerCoeffs() );
 
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  m_uiNumBitsForRDPoint = MIN_BITS_FOR_RD_POINTS;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   return Err::m_nOK;
 }
 
@@ -293,29 +290,32 @@ RQFGSEncoder::finishPicture()
   return Err::m_nOK;
 }
 
-
 ErrVal
 RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
                                Bool&  rbCorrupted,
                                UInt   uiMaxBits,
-                               FILE*  pFile )
+                               UInt uiFrac,
+                               Bool bFragmented,
+                               FILE*  pFile ) //JVT-P031
 {
   ROF( m_bInit );
   ROF( m_bPicInit );
   rbCorrupted = false;
   rbFinished  = false;
 
-  RNOK ( xResidualTransform() );
-  RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, pFile ) );
+  //JVT-P031
+  if(!uiFrac) RNOK ( xResidualTransform() );
+  RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, uiFrac, pFile ) );
   ROTRS( rbFinished, Err::m_nOK );
 
   Int iOldSliceQP     = m_pcSliceHeader->getPicQp();
   Int iNewSliceQP     = max( 0, iOldSliceQP - RQ_QP_DELTA );
   rbFinished          = ( iNewSliceQP == iOldSliceQP );
-  m_pcSliceHeader->setQualityLevel ( m_pcSliceHeader->getQualityLevel() + 1 );
+  if((bFragmented && uiFrac != 0) || !bFragmented)
+      m_pcSliceHeader->setQualityLevel ( m_pcSliceHeader->getQualityLevel() + 1 );
   m_pcSliceHeader->setSliceHeaderQp       ( iNewSliceQP );
   m_dLambda          /= pow( 2.0, (Double)(iOldSliceQP-iNewSliceQP) / 3.0 );
-
+  //~JVT-P031
   return Err::m_nOK;
 }
 
@@ -872,105 +872,50 @@ RQFGSEncoder::xScaleBaseLayerCoeffs()
   return Err::m_nOK;
 }
 
-
-//{{Quality level estimation and modified truncation- JVTO044 and m12007
-//France Telecom R&D-(nathalie.cammas@francetelecom.com)
-ErrVal
-RQFGSEncoder::CheckRD(UInt uiWrittenBits)
+//JVT-P031
+ErrVal RQFGSEncoder::xSaveCodingPath()
 {
-    if(m_pDistoFile)
+    typedef MbTransformCoeffs* pMbTransformCoeffs;
+    m_aMyELTransformCoefs = new pMbTransformCoeffs[m_uiHeightInMB*m_uiWidthInMB];
+    m_aMyBLTransformCoefs = new pMbTransformCoeffs[m_uiHeightInMB*m_uiWidthInMB];
+    m_auiMbCbpStored = new UInt[m_uiHeightInMB*m_uiWidthInMB];
+    m_auiBCBPStored = new UInt[m_uiHeightInMB*m_uiWidthInMB];
+    m_aiBLQP = new Int[m_uiHeightInMB*m_uiWidthInMB];
+    m_abELtransform8x8 = new Bool[m_uiHeightInMB*m_uiWidthInMB];
+
+    for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
+  {
+    for( UInt uiMbX = 0; uiMbX < m_uiWidthInMB;  uiMbX++ )
     {
-//	UInt uiRD, uiIndex;
-	Bool stop = false;
-	UInt uiDist = 0;
+        m_aMyELTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB] = new MbTransformCoeffs();
+        m_aMyBLTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB] = new MbTransformCoeffs();
 
-	if(uiWrittenBits < m_uiNumBitsForRDPoint)
-		return Err::m_nOK;
-	else
-	{
+        //--- Get MbData for BL and EL
+      MbDataAccess* pcMbDataAccessBL = 0;
+      MbDataAccess* pcMbDataAccessEL = 0;
 
-		uiDist = 0;
-	   uiDist = xCalculateNormalizedMSD();
-	   if(m_pDistoFile)
-		   fprintf(m_pDistoFile,"\t%d",uiDist);
-       if(m_pRateFile)
-	       fprintf(m_pRateFile,"\t%d",uiWrittenBits);
+      RNOK( m_pcCurrMbDataCtrl->initMb( pcMbDataAccessBL, uiMbY, uiMbX ) );
+      RNOK( m_cMbDataCtrlEL    .initMb( pcMbDataAccessEL, uiMbY, uiMbX ) );
 
-	   m_uiNumBitsForRDPoint += MIN_BITS_FOR_RD_POINTS;
-	}
+      //--------------------------------------------------------
+      //--- Perform some backup of BL and EL 
+      // coeffs
+      m_aMyBLTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB]->copyFrom(pcMbDataAccessBL->getMbData().getMbTCoeffs());
+      m_aMyELTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB]->copyFrom(pcMbDataAccessEL->getMbData().getMbTCoeffs());
+      // store CBP before update (but it seems not to have any influence)
+      m_auiMbCbpStored[uiMbY+uiMbX*m_uiHeightInMB] = pcMbDataAccessBL->getMbData().getMbExtCbp();
+      m_auiBCBPStored[uiMbY+uiMbX*m_uiHeightInMB] = pcMbDataAccessBL->getMbData().getBCBP();
+      m_aiBLQP[uiMbY+uiMbX*m_uiHeightInMB] = pcMbDataAccessBL->getMbData().getQp();
+      m_abELtransform8x8[uiMbY+uiMbX*m_uiHeightInMB] = pcMbDataAccessEL->getMbData().isTransformSize8x8();
     }
-	return Err::m_nOK;
+  }
+
+    return Err::m_nOK;
 }
 
-ErrVal
-RQFGSEncoder::setNextLayerForRD(IntFrame* pOrgResidual, Double& rdScalFactor, FILE*& rpDistoFile, 
-								FILE*& rpRateFile)
+ErrVal RQFGSEncoder::xRestoreCodingPath()
 {
-	UInt uiLayer         = ( m_pcSliceHeader->getSPS().getSeqParameterSetId() % MAX_LAYERS );
-  if(m_pcOrgResidualFT == 0)
-  {
-    m_pcOrgResidualFT = new IntFrame( *m_papcYuvFullPelBufferCtrl[uiLayer], *m_papcYuvFullPelBufferCtrl[uiLayer]);
-    m_pcOrgResidualFT->init();
-  }
-  else if( (pOrgResidual->getFullPelYuvBuffer()->getLWidth() != m_pcOrgResidualFT->getFullPelYuvBuffer()->getLWidth())
-    || (pOrgResidual->getFullPelYuvBuffer()->getLHeight() != m_pcOrgResidualFT->getFullPelYuvBuffer()->getLHeight()) )
-  {
-    m_pcOrgResidualFT->uninit();
-    delete m_pcOrgResidualFT;
-    m_pcOrgResidualFT = new IntFrame( *m_papcYuvFullPelBufferCtrl[uiLayer], *m_papcYuvFullPelBufferCtrl[uiLayer]);
-    m_pcOrgResidualFT->init();
-  }
-  m_pcOrgResidualFT->copy(pOrgResidual);
-
-  m_dScalFactorFT = rdScalFactor; 
-  m_pDistoFile = rpDistoFile; 
-  m_pRateFile = rpRateFile;
-
-  return Err::m_nOK;
-};
-
-UInt 
-RQFGSEncoder::xCalculateNormalizedMSD()
-{
-  UInt result = 0;
-
-  IntFrame* pcInterpassRec1;
-  UInt uiLayer         = ( m_pcSliceHeader->getSPS().getSeqParameterSetId() % MAX_LAYERS );
-
-  if(!m_pcOrgResidualFT) return 0;
-
-  pcInterpassRec1= new IntFrame( *m_papcYuvFullPelBufferCtrl[uiLayer], *m_papcYuvFullPelBufferCtrl[uiLayer]);
-  pcInterpassRec1->init(false);
-  xReconstructBetweenPasses(pcInterpassRec1);
-
-  //get distorsion 
-  Double SSDY;//, SSDU, SSDV;
-  SSDY = pcInterpassRec1->getFullPelYuvBuffer()->MSDCompute( m_pcOrgResidualFT->getFullPelYuvBuffer() );
-
-  result = (UInt)floor(SSDY*m_dScalFactorFT*m_dScalFactorFT+.5); 
-
-  pcInterpassRec1->uninit();
-  delete pcInterpassRec1;
-
-
-  return result;
-}
-
-ErrVal
-RQFGSEncoder::xReconstructBetweenPasses(IntFrame* pcRecResidual)
-{
-  //a method to perform partial reconstruction between FGS passes
-  //the updated result (Base layer + partial enhancement layer) is returned in buffer XXXX
-
-  IntYuvMbBuffer  * cMbBuffer;
-  cMbBuffer = new IntYuvMbBuffer();
-
-  UInt            uiLayer         = ( m_pcSliceHeader->getSPS().getSeqParameterSetId() % MAX_LAYERS );
-  YuvBufferCtrl*  pcYuvBufferCtrl = m_papcYuvFullPelBufferCtrl[uiLayer];
-  MbTransformCoeffs * MyELTransformCoefs, * MyBLTransformCoefs;
-  MyELTransformCoefs = new MbTransformCoeffs();
-  MyBLTransformCoefs = new MbTransformCoeffs();
-  for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
+    for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
   {
     for( UInt uiMbX = 0; uiMbX < m_uiWidthInMB;  uiMbX++ )
     {
@@ -982,90 +927,172 @@ RQFGSEncoder::xReconstructBetweenPasses(IntFrame* pcRecResidual)
       RNOK( m_pcCurrMbDataCtrl->initMb( pcMbDataAccessBL, uiMbY, uiMbX ) );
       RNOK( m_cMbDataCtrlEL    .initMb( pcMbDataAccessEL, uiMbY, uiMbX ) );
 
-      //--------------------------------------------------------
-      //--- Perform some backup of BL and EL 
-      // coeffs
-      MyBLTransformCoefs->copyFrom(pcMbDataAccessBL->getMbData().getMbTCoeffs());
-      MyELTransformCoefs->copyFrom(pcMbDataAccessEL->getMbData().getMbTCoeffs());
-      // store CBP before update (but it seems not to have any influence)
-      UInt    uiMbCbpStored = pcMbDataAccessBL->getMbData().getMbExtCbp();
-      UInt    uiBCBPStored = pcMbDataAccessBL->getMbData().getBCBP();
-      Int     iBLQP = pcMbDataAccessBL->getMbData().getQp();
-      Bool    bELtransform8x8 = pcMbDataAccessEL->getMbData().isTransformSize8x8();
-
-      //-----------------------------------------------------------
-      //---- Perform coefficients updating
-      // code inspired from RQFGSEncoder::xUpdateCodingPath
-
-      // scale enhancement layer coefficients (inverse quantization)
-      pcMbDataAccessEL->getMbData().setTransformSize8x8( pcMbDataAccessBL->getMbData().isTransformSize8x8() );    
-
-      RNOK( xScaleTCoeffs( *pcMbDataAccessEL, false ) );
-      RNOK( xUpdateMacroblock( *pcMbDataAccessBL, *pcMbDataAccessEL, uiMbY, uiMbX ) );
-
-
-      //----------------------------------------------------------
-      //----- Perform reconstruction of the block
-      // Inverse transform now (model : RQFGSEncoder::reconstruct)
-      //Initialise buffer control (to control access in pcRecResidual)
-      RNOK( pcYuvBufferCtrl   ->initMb(                  uiMbY, uiMbX ) );
-
-      //reconstruct MB (transfo inverse)
-      RNOK( xReconstructMacroblock    ( *pcMbDataAccessBL, *cMbBuffer    ) );
-
-      RNOK( pcRecResidual->getFullPelYuvBuffer()->loadBuffer( cMbBuffer ) );
-
-      //--------------------------------------------------
       //----- restore informations on BL and EL
-      pcMbDataAccessBL->getMbData().setBCBP(uiBCBPStored);
-      pcMbDataAccessBL->getMbData().setMbExtCbp(uiMbCbpStored);
-      pcMbDataAccessBL->getMbData().setQp(iBLQP);
+      pcMbDataAccessBL->getMbData().setBCBP(m_auiBCBPStored[uiMbY+uiMbX*m_uiHeightInMB]);
+      pcMbDataAccessBL->getMbData().setMbExtCbp(m_auiMbCbpStored[uiMbY+uiMbX*m_uiHeightInMB]);
+      pcMbDataAccessBL->getMbData().setQp(m_aiBLQP[uiMbY+uiMbX*m_uiHeightInMB]);
       // restore Coeffs
-      m_cMbDataCtrlEL.getMbData(uiMbX,uiMbY).getMbTCoeffs().copyFrom(*MyELTransformCoefs);
-      m_pcCurrMbDataCtrl->getMbData(uiMbX,uiMbY).getMbTCoeffs().copyFrom(*MyBLTransformCoefs);
-      pcMbDataAccessEL->getMbData().setTransformSize8x8( bELtransform8x8 );
+      m_cMbDataCtrlEL.getMbData(uiMbX,uiMbY).getMbTCoeffs().copyFrom(*m_aMyELTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB]);
+      m_pcCurrMbDataCtrl->getMbData(uiMbX,uiMbY).getMbTCoeffs().copyFrom(*m_aMyBLTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB]);
+      pcMbDataAccessEL->getMbData().setTransformSize8x8( m_abELtransform8x8[uiMbY+uiMbX*m_uiHeightInMB] );
     }
   }
-  delete MyELTransformCoefs;
-  delete MyBLTransformCoefs;
-  delete cMbBuffer;
+    delete []m_aMyELTransformCoefs;
+    delete []m_aMyBLTransformCoefs;
+    delete []m_auiMbCbpStored;
+    delete []m_auiBCBPStored;
+    delete []m_aiBLQP;
+    delete []m_abELtransform8x8;
+
+    return Err::m_nOK;
+}
+
+ErrVal
+RQFGSEncoder::xStoreFGSState(UInt iLumaScanIdx,
+                             UInt iChromaDCScanIdx,
+                             UInt iChromaACScanIdx,
+                             UInt iStartCycle,
+                             UInt iCompleteLuma,
+                             UInt iCompleteChromaDC,
+                             UInt iCompleteChromaAC,
+                             UInt iCycle,
+                             UInt itCompleteLuma,
+                             UInt itCompleteChromaDC,
+                             UInt itCompleteChromaAC,
+                             UInt bAllowChromaDC,
+                             UInt bAllowChromaAC,
+                             UInt uiMbYIdx,
+                             UInt uiMbXIdx,
+                             UInt uiB8YIdx,
+                             UInt uiB8XIdx,
+                             UInt uiBlockYIdx,
+                             UInt uiBlockXIdx,
+                             UInt iLastBitsLuma,
+                             UInt uiBitsLast,
+                             UInt uiFGSPart,
+                             UInt uiPlane,
+                             Int iLastQP)
+{
+  m_iLumaScanIdx = iLumaScanIdx;
+  m_iChromaDCScanIdx = iChromaDCScanIdx;
+  m_iChromaACScanIdx = iChromaACScanIdx;
+  m_iStartCycle = iStartCycle;
+  m_iCompleteLuma = iCompleteLuma;
+  m_iCompleteChromaDC = iCompleteChromaDC;
+  m_iCompleteChromaAC = iCompleteChromaAC;
+  m_iCycle = iCycle;
+  m_itCompleteLuma = itCompleteLuma;
+  m_itCompleteChromaDC = itCompleteChromaDC;
+  m_itCompleteChromaAC = itCompleteChromaAC;
+  m_bAllowChromaDC = bAllowChromaDC;
+  m_bAllowChromaAC = bAllowChromaAC;
+  m_uiMbYIdx = uiMbYIdx;
+  m_uiMbXIdx = uiMbXIdx;
+  m_uiB8YIdx = uiB8YIdx;
+  m_uiB8XIdx = uiB8XIdx;
+  m_uiBlockYIdx = uiBlockYIdx;
+  m_uiBlockXIdx = uiBlockXIdx;
+  m_iLastBitsLuma = iLastBitsLuma;
+  m_uiBitsLast = uiBitsLast;
+  m_uiFGSPart = uiFGSPart;
+  m_uiPlane = uiPlane;
+  m_iLastQP = iLastQP;
 
   return Err::m_nOK;
 }
-//}}Quality level estimation and modified truncation- JVTO044 and m12007
 
-
-
+ErrVal
+RQFGSEncoder::xRestoreFGSState(UInt& riLumaScanIdx,
+                             UInt& riChromaDCScanIdx,
+                             UInt& riChromaACScanIdx,
+                             UInt& riStartCycle,
+                             UInt& riCompleteLuma,
+                             UInt& riCompleteChromaDC,
+                             UInt& riCompleteChromaAC,
+                             UInt& riCycle,
+                             UInt& ritCompleteLuma,
+                             UInt& ritCompleteChromaDC,
+                             UInt& ritCompleteChromaAC,
+                             UInt& rbAllowChromaDC,
+                             UInt& rbAllowChromaAC,
+                             UInt& ruiMbYIdx,
+                             UInt& ruiMbXIdx,
+                             UInt& ruiB8YIdx,
+                             UInt& ruiB8XIdx,
+                             UInt& ruiBlockYIdx,
+                             UInt& ruiBlockXIdx,
+                             UInt& riLastBitsLuma,
+                             UInt& ruiBitsLast,
+                             UInt& ruiFGSPart,
+                             UInt& ruiPlane,
+                             Int& riLastQP)
+{
+  riLumaScanIdx = m_iLumaScanIdx;
+  riChromaDCScanIdx = m_iChromaDCScanIdx;
+  riChromaACScanIdx = m_iChromaACScanIdx;
+  riStartCycle = m_iStartCycle;
+  riCompleteLuma = m_iCompleteLuma;
+  riCompleteChromaDC = m_iCompleteChromaDC;
+  riCompleteChromaAC = m_iCompleteChromaAC;
+  riCycle = m_iCycle;
+  ritCompleteLuma = m_itCompleteLuma;
+  ritCompleteChromaDC = m_itCompleteChromaDC;
+  ritCompleteChromaAC = m_itCompleteChromaAC;
+  rbAllowChromaDC = m_bAllowChromaDC;
+  rbAllowChromaAC = m_bAllowChromaAC;
+  ruiMbYIdx = m_uiMbYIdx;
+  ruiMbXIdx = m_uiMbXIdx;
+  ruiB8YIdx = m_uiB8YIdx;
+  ruiB8XIdx = m_uiB8XIdx;
+  ruiBlockYIdx = m_uiBlockYIdx;
+  ruiBlockXIdx = m_uiBlockXIdx;
+  riLastBitsLuma = m_iLastBitsLuma;
+  ruiBitsLast = m_uiBitsLast;
+  ruiFGSPart = m_uiFGSPart;
+  ruiPlane = m_uiPlane;
+  riLastQP = m_iLastQP;
+  return Err::m_nOK;
+}
+//~JVT-P031
 
 ErrVal
 RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                             Bool& rbCorrupted,
-                            UInt  uiMaxBits,
-                            FILE* pFile )
+                            UInt uiMaxBits,
+                            UInt uiFracNb,
+                            FILE* pFile ) //JVT-P031 (modified for fragments)
 {
+  Bool bRestore = true;
+  Bool bFirstPass = true;
+
   RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
   m_pcSliceHeader->setSliceType( m_eSliceType );
-  AOT( m_pcSymbolWriter == 0 );
-  RNOK( m_pcSymbolWriter->startSlice( *m_pcSliceHeader ) );
+  if(!uiFracNb)
+  {
+    RNOK( m_pcSymbolWriter   ->startSlice( *m_pcSliceHeader ) );
+  }
+  else 
+  {
+    RNOK( m_pcSymbolWriter   ->startFragment() );
+  }
+
+  AOT( m_pcSymbolWriter == 0);
   m_pcSliceHeader->setSliceType( F_SLICE );
 
-
+  if(!uiFracNb) 
+  {
+      RNOK( xInitializeCodingPath() );
+  }
+  else
+      xRestoreCodingPath();
+  
   rbCorrupted = false;
   Int iLastQP = m_pcSliceHeader->getPicQp();
 
   UInt  uiBitsLast = m_pcSymbolWriter->getNumberOfWrittenBits();
   Bool  bCheck     = ( uiMaxBits != 0 );
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  UInt uiDist = 0;
-  if(m_pDistoFile)
-  {		
-    uiDist = xCalculateNormalizedMSD();
-    fprintf( m_pDistoFile, "\t%d", uiDist );
-  }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
+  
   try
   {
     {
@@ -1210,114 +1237,172 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         UInt itCompleteLuma     = 1;
         UInt itCompleteChromaDC = bAllowChromaDC;
         UInt itCompleteChromaAC = bAllowChromaAC;
-        for( UInt uiMbYIdx = uiFirstMbY; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
-        for( UInt uiMbXIdx = ( uiMbYIdx == uiFirstMbY ? uiFirstMbX : 0 ); uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
+
+        //if(!uiFracNb) bCheck = true;
+        //m_uiMaxBits = 10000;
+        if(!uiFracNb)
         {
-          //===== LUMA =====
-          for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
-          for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
+          // start values for loops
+          m_uiMbYIdx = uiFirstMbY;
+          m_uiMbXIdx = ( m_uiMbYIdx == uiFirstMbY ? uiFirstMbX : 0 );
+          m_uiB8YIdx = 2*m_uiMbYIdx;
+          m_uiB8XIdx = 2*m_uiMbXIdx;
+          m_uiBlockYIdx = 2*m_uiB8YIdx;
+          m_uiBlockXIdx = 2*m_uiB8XIdx;
+          m_uiPlane = 0;
+          m_uiFGSPart = 0;
+        }
+        else if(bRestore)
+        {
+          bCheck = false;
+          // restore status
+          UInt uiUnused;
+          xRestoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCompleteLuma, iCompleteChromaDC, iCompleteChromaAC, bAllowChromaDC, bAllowChromaAC, iCycle, itCompleteLuma, itCompleteChromaDC, itCompleteChromaAC, uiUnused, uiUnused, uiUnused, uiUnused, uiUnused, uiUnused, iLastBitsLuma, /*uiBitsLast*/uiUnused, uiUnused, uiUnused, iLastQP);
+          bRestore = false;
+        }
+
+        for( UInt uiMbYIdx = m_uiMbYIdx; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
+        {
+          for( UInt uiMbXIdx = m_uiMbXIdx; uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
           {
-            for( UInt uiBlockYIdx = 2 * uiB8YIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ )
-            for( UInt uiBlockXIdx = 2 * uiB8XIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ )
+            if(!bFirstPass)
             {
-              if (!iCompleteLuma) {
-                iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
-
-                RNOK( xEncodeNewCoefficientLuma( uiBlockYIdx, uiBlockXIdx, itCompleteLuma, iLastQP ) );
-
-                if (iCycle == 0)
-                  iBitsLuma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsLuma;
-
-                if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+              m_uiMbYIdx = uiMbYIdx;
+              m_uiMbXIdx = uiMbXIdx;
+              m_uiB8YIdx = 2*m_uiMbYIdx;
+              m_uiB8XIdx = 2*m_uiMbXIdx;
+            }
+            //===== LUMA =====
+            if( (m_uiFGSPart == 0) || (!bFirstPass) )
+            {
+              for( UInt uiB8YIdx = m_uiB8YIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
+              {
+                for( UInt uiB8XIdx = m_uiB8XIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
                 {
-                  throw WriteStop();
-                }
-                //{{Quality level estimation and modified truncation- JVTO044 and m12007
-                //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-                CheckRD(m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast);
-                //}}Quality level estimation and modified truncation- JVTO044 and m12007
-               
-              } else if (iLumaScanIdx < 16) {
-                RNOK( xEncodeCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, iLumaScanIdx ) );
-                if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                {
-                  throw WriteStop();
-                }
-                //{{Quality level estimation and modified truncation- JVTO044 and m12007
-                //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-                CheckRD(m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast);
-                //}}Quality level estimation and modified truncation- JVTO044 and m12007
+                  if(!bFirstPass)
+                  {
+                    m_uiBlockYIdx = 2*uiB8YIdx;
+                    m_uiBlockXIdx = 2*uiB8XIdx;
+                  }
+                  else
+                  {
+                    bFirstPass = false;
+                  }
+                  for( UInt uiBlockYIdx = m_uiBlockYIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ )
+                  {
+                    for( UInt uiBlockXIdx = m_uiBlockXIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ )
+                    {
+                      if (!iCompleteLuma) {
+                        iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
+
+                        RNOK( xEncodeNewCoefficientLuma( uiBlockYIdx, uiBlockXIdx, itCompleteLuma, iLastQP ) );
+
+                        if (iCycle == 0)
+                          iBitsLuma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsLuma;
+
+                        if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                        {
+                          xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCompleteLuma, iCompleteChromaDC, iCompleteChromaAC, bAllowChromaDC, bAllowChromaAC, iCycle, itCompleteLuma, itCompleteChromaDC, itCompleteChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx, uiBlockYIdx, uiBlockXIdx+1, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);
+                          throw WriteStop();
+                        }
+                      } else if (iLumaScanIdx < 16) {
+                        RNOK( xEncodeCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, iLumaScanIdx ) );
+                        if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                        {
+                          xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCompleteLuma, iCompleteChromaDC, iCompleteChromaAC, bAllowChromaDC, bAllowChromaAC, iCycle, itCompleteLuma, itCompleteChromaDC, itCompleteChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx, uiBlockYIdx, uiBlockXIdx+1, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);
+                          throw WriteStop();
+                        }
+                        }
+                    } // 4x4 block iteration
+                    m_uiBlockXIdx = 2 * uiB8XIdx;
+                  }
+                } // 8x8 block iteration
+                m_uiB8XIdx = 2 * uiMbXIdx;
               }
-            } // 4x4 block iteration
-          } // 8x8 block iteration
+              m_uiPlane = 0;
+              m_uiB8YIdx = 2 * uiMbYIdx;
+              m_uiB8XIdx = 2 * uiMbXIdx;
+            }
 
-          // ===== CHROMA DC =====
-          if( bAllowChromaDC && ( m_bFgsComponentSep == 0 || iLumaScanIdx == 16 ) ) {
-            for( UInt uiPlane = 0; uiPlane  < 2; uiPlane ++ ) {
+            // ===== CHROMA DC =====
+            if( (m_uiFGSPart == 1) || (!bFirstPass) )
+            {
+              if( bAllowChromaDC && ( m_bFgsComponentSep == 0 || iLumaScanIdx == 16 ) ) {
+                bFirstPass = false;
+                for( UInt uiPlane = m_uiPlane; uiPlane  < 2; uiPlane ++ ) {
 
-              if (!iCompleteChromaDC) {
-                iLastBitsChroma = m_pcSymbolWriter->getNumberOfWrittenBits();
-                RNOK( xEncodeNewCoefficientChromaDC( uiPlane, uiMbYIdx, uiMbXIdx, itCompleteChromaDC, iLastQP ) );
+                  if (!iCompleteChromaDC) {
+                    iLastBitsChroma = m_pcSymbolWriter->getNumberOfWrittenBits();
+                    RNOK( xEncodeNewCoefficientChromaDC( uiPlane, uiMbYIdx, uiMbXIdx, itCompleteChromaDC, iLastQP ) );
 
-                if (iCycle == 0)
-                  iBitsChroma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsChroma;
+                    if (iCycle == 0)
+                      iBitsChroma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsChroma;
 
-                if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                {
-                  throw WriteStop();
-                }
-                //{{Quality level estimation and modified truncation- JVTO044 and m12007
-                //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-                CheckRD(m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast);
-                //}}Quality level estimation and modified truncation- JVTO044 and m12007
+                    if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                    {
+                      xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCompleteLuma, iCompleteChromaDC, iCompleteChromaAC, bAllowChromaDC, bAllowChromaAC, iCycle, itCompleteLuma, itCompleteChromaDC, itCompleteChromaAC, uiMbYIdx, uiMbXIdx, 2*uiMbYIdx, 2*uiMbXIdx, 4*uiMbYIdx, 4*uiMbXIdx, iLastBitsLuma, uiBitsLast, 1, uiPlane+1, iLastQP);
+                      throw WriteStop();
+                    }
+                    } else if (iChromaDCScanIdx < 4) {
+                    RNOK( xEncodeCoefficientChromaDCRef( uiPlane, uiMbYIdx, uiMbXIdx, iChromaDCScanIdx ) );
 
-              } else if (iChromaDCScanIdx < 4) {
-                RNOK( xEncodeCoefficientChromaDCRef( uiPlane, uiMbYIdx, uiMbXIdx, iChromaDCScanIdx ) );
-
-                if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                {
-                  throw WriteStop();
-                }
-                //{{Quality level estimation and modified truncation- JVTO044 and m12007
-                //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-                CheckRD(m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast);
-                //}}Quality level estimation and modified truncation- JVTO044 and m12007
+                    if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                    {
+                      xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCompleteLuma, iCompleteChromaDC, iCompleteChromaAC, bAllowChromaDC, bAllowChromaAC, iCycle, itCompleteLuma, itCompleteChromaDC, itCompleteChromaAC, uiMbYIdx, uiMbXIdx, 2*uiMbYIdx, 2*uiMbXIdx, 4*uiMbYIdx, 4*uiMbXIdx, iLastBitsLuma, uiBitsLast, 1, uiPlane+1, iLastQP);
+                      throw WriteStop();
+                    }
+                  } // if
+                } // for
+                m_uiPlane = 0;
               } // if
-            } // for
-          } // if
+            }
+            m_uiFGSPart = 2;
 
-          // ===== CHROMA AC =====
-          if( bAllowChromaAC && ( m_bFgsComponentSep == 0 || iLumaScanIdx == 16 ) ) {
-            for( UInt uiPlane = 0; uiPlane  < 2; uiPlane ++ )
-            for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
-            for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ) {
-
-              if ( !iCompleteChromaAC) {
-                RNOK( xEncodeNewCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, itCompleteChromaAC, iLastQP ) );
-
-                if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+            // ===== CHROMA AC =====
+            if( (m_uiFGSPart == 2) || (!bFirstPass) )
+            {
+              if( bAllowChromaAC && ( m_bFgsComponentSep == 0 || iLumaScanIdx == 16 ) ) {
+                bFirstPass = false;
+                for( UInt uiPlane = m_uiPlane; uiPlane  < 2; uiPlane ++ )
                 {
-                  throw WriteStop();
-                }
-                //{{Quality level estimation and modified truncation- JVTO044 and m12007
-                //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-                CheckRD(m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast);
-                //}}Quality level estimation and modified truncation- JVTO044 and m12007
+                  for( UInt uiB8YIdx = m_uiB8YIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ ) {
+                    for( UInt uiB8XIdx = m_uiB8XIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ) {
 
-              } else if (iChromaACScanIdx < 16) {
-                RNOK( xEncodeCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, iChromaACScanIdx ) );
-                if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                {
-                  throw WriteStop();
+                      if ( !iCompleteChromaAC) {
+                        RNOK( xEncodeNewCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, itCompleteChromaAC, iLastQP ) );
+
+                        if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                        {
+                          xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCompleteLuma, iCompleteChromaDC, iCompleteChromaAC, bAllowChromaDC, bAllowChromaAC, iCycle, itCompleteLuma, itCompleteChromaDC, itCompleteChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
+                          throw WriteStop();
+                        }
+                       } else if (iChromaACScanIdx < 16) {
+                        RNOK( xEncodeCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, iChromaACScanIdx ) );
+                        if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                        {
+                          xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCompleteLuma, iCompleteChromaDC, iCompleteChromaAC, bAllowChromaDC, bAllowChromaAC, iCycle, itCompleteLuma, itCompleteChromaDC, itCompleteChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
+                          throw WriteStop();
+                        }
+                        } // if
+                    } // for
+                    m_uiB8XIdx = 2 * uiMbXIdx;
+                  }
+                  m_uiB8YIdx = 2 * uiMbYIdx;
                 }
-                //{{Quality level estimation and modified truncation- JVTO044 and m12007
-                //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-                CheckRD(m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast);
-                //}}Quality level estimation and modified truncation- JVTO044 and m12007
+                m_uiPlane = 0;
               } // if
-            } // for
-          } // if
-        } // macroblock iteration
+            }
+            m_uiFGSPart = 0;
+          } // macroblock iteration
+          m_uiMbXIdx = 0;
+        }
+
+        m_uiMbYIdx = uiFirstMbY;
+        m_uiMbXIdx = ( m_uiMbYIdx == uiFirstMbY ? uiFirstMbX : 0 );
+        m_uiB8YIdx = 2*m_uiMbYIdx;
+        m_uiB8XIdx = 2*m_uiMbXIdx;
+        m_uiBlockYIdx = 2*m_uiB8YIdx;
+        m_uiBlockXIdx = 2*m_uiB8XIdx;
 
         if (iCompleteLuma)
           iLumaScanIdx++;
@@ -1347,32 +1432,24 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   catch( WriteStop )
   {
     rbCorrupted = true;
+    // if it is fragmented, escape before saying is is finished
+    if( m_pcSliceHeader->getFragmentedFlag() && !m_pcSliceHeader->getLastFragmentFlag() ) 
+    {
+        xSaveCodingPath();
+        RNOK( xUpdateCodingPath() );
+        return Err::m_nOK;
+    }
   }
   rbFinished      = rbCorrupted || ( m_iRemainingTCoeff == 0 );
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)           
-  if(rbFinished)
-  {
-	  uiDist = 0;
-	if(m_pDistoFile)
-	{		
-	 uiDist = xCalculateNormalizedMSD();
-	 fprintf( m_pDistoFile, "\t%d", uiDist );
-	}
-  }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   RNOK( m_pcSymbolWriter->finishSlice() );
 
 
   RNOK( xUpdateCodingPath() );
 
   RNOK( xClearCodingPath() );
-  
+
   return Err::m_nOK;
 }
-
-
-
 
 ErrVal
 RQFGSEncoder::xEncodeNewCoefficientLuma( UInt   uiBlockYIndex,

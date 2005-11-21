@@ -389,6 +389,10 @@ ErrVal UvlcWriter::startSlice( const SliceHeader& rcSliceHeader )
   return Err::m_nOK;
 }
 
+ErrVal UvlcWriter::startFragment() //JVT-P031
+{
+    return Err::m_nOK;
+}
 
 ErrVal UvlcWriter::xWriteUvlcCode( UInt uiVal)
 {

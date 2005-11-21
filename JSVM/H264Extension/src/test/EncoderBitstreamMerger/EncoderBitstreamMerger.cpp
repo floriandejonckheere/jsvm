@@ -80,7 +80,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 int main(int argc, char **argv)
 {
-	printf("Program to add dead substreams or qualtiy levels information\n");
+	printf("Program to add quality layers information\n");
 	printf("-pf param.cfg: parameter files\n");
 	printf("-numl: number of layer \n");
 	printf("-ds: add of dead substreams \n ");

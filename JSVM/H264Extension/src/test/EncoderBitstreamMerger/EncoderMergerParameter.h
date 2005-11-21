@@ -99,14 +99,21 @@ class EncoderMergerParameter:
 public:
 
     Int m_uiNumOfLayer;
-	std::string  m_acInFile[MAX_LAYERS];
+	std::string  m_acInFile;
 	std::string m_cOutFile;
-    UInt m_uiGOPSize[MAX_LAYERS];
-	Bool m_bDS;
-	Bool m_bNivQ;
+    
+	std::string    m_cDistoFilename;
+    std::string	 m_cFGSRateFilename;
 
-	std::string    m_cDistoFilename[MAX_LAYERS];
-    std::string	 m_cFGSRateFilename[MAX_LAYERS];
+	UInt m_uiNumOfFrames;
+	UInt m_uiGopSize;
+	UInt m_uiMaxFGS;
+	UInt m_uiWidth;
+	UInt m_uiHeight;
+	std::string m_cOrig;
+	std::string m_cRoot;
+	UInt m_uiMode; //0 calculate disto, 1 estimate QL
+	UInt m_uiLayer;
 
 	EncoderMergerParameter();
 	~EncoderMergerParameter();
@@ -114,15 +121,18 @@ public:
 	static ErrVal create( EncoderMergerParameter*& rpcEncoderMergerParameter );
 	ErrVal destroy();
 	void init(Int argc, char **argv );
-	const std::string&    getInFile           (Int i)            const { return m_acInFile[i];         }
+	const std::string&    getInFile           ()            const { return m_acInFile;         }
     const std::string&    getOutFile          ()            const { return m_cOutFile;        }
 
-	std::string& getFGSRateFilename(UInt uiLayer) { return m_cFGSRateFilename[uiLayer];}
-    std::string& getDistoFilename(UInt uiLayer) { return m_cDistoFilename[uiLayer];}
+	std::string& getFGSRateFilename() { return m_cFGSRateFilename;}
+    std::string& getDistoFilename() { return m_cDistoFilename;}
 
-	Bool getInsertDS() { return m_bDS;}
-	Bool getInsertQL() { return m_bNivQ;}
-
+    Bool m_bReadPID;
+    Bool m_bWritePID;
+    std::string m_cPID;
+    std::string getPIDFilename() { return m_cPID;}
+    UInt m_uiQLInSEI; //if 1 QL are put in SEI message, if 0 QL are put in Priority_Id.
+    UInt getQLInSEI() { return m_uiQLInSEI;}
 };
 #endif
 

@@ -82,6 +82,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCEncoderLib.h"
 #include "CreaterH264AVCEncoder.h"
 #include "RatePointsManager.h"
+#include "RDTree.h"
 
 class ReadBitstreamFile;
 class WriteBitstreamToFile;
@@ -100,22 +101,12 @@ public:
   ErrVal        destroy             ();
   ErrVal        go();
 
-  ErrVal        go_DS();
   ErrVal        go_QL();
-
-  //Dead substream insertion
-  ErrVal countNumOfNAL (UInt uiLayer, UInt &uiNumSkip);
-  ErrVal WriteDeadSubstream(UInt uiLayer, UInt uiNFrames);
-  ErrVal AnalyseBitstream(UInt uiAnalyzedLayer);
-  Void	calculateMaxRate();
-  Void WriteDiscardableFlag(BinData*  pcBinData);
-  ErrVal MergeAndAddDSInfo(UInt *uiNumSkip );
-  
 
   //Quality levels insertion
   ErrVal        AnalyseBitstream_QL            ();
-  Void ReadFGSRateAndDistoFile(UInt uiLayer, std::string & FGSRateFilename,
-	  std::string & DistoFilename, UInt uiExtLevel);
+  ErrVal        PrimaryAnalyse();
+  Void EncoderMerger::ReadFGSRateAndDistoFile(std::string & DistoFilename);
   Void addPacket( UInt                    uiNumBytes,
                       UInt                    uiLayer,
                       UInt                    uiLevel,
@@ -123,12 +114,49 @@ public:
                       Bool                    bNewPicture );
   Void PrintSizeFrames(UInt uiLayer, UInt uiNbFrames);
   Void CalculateQualityLevel(UInt uiExtLayer);
-  ErrVal addQualityLevel();
-  ErrVal writeQualityLevel(UInt uiLayer, UInt uiNFrames);
-  
+#ifdef QL_CLOSEDLOOP
+  ErrVal writeQualityLevel_PID(UInt ***auiQLForFrames, UInt uiLayer, UInt uiNFrames, UInt uiFGSLayer, UInt uiLevel, BinData*  pcBinData);
+  ErrVal writeQualityLevel_SEI(UInt ***auiQLForFrames, UInt uiLayer, UInt uiNFrames);
+#else
+  ErrVal writeQualityLevel_PID(UInt uiLayer, UInt uiNFrames, UInt uiFGSLayer, UInt uiLevel, BinData*  pcBinData);
+  ErrVal writeQualityLevel_SEI(UInt uiLayer, UInt uiNFrames);
+#endif
+  Void ReadPID(std::string & PIDFilename);
+#ifdef QL_CLOSEDLOOP
+  ErrVal addQualityLevel_SEI(UInt ***auiQLForFrames);
+#else
+  ErrVal addQualityLevel_SEI();
+#endif
+#ifdef QL_CLOSEDLOOP
+  ErrVal addQualityLevel_PID(UInt ***auiQLForFrames);
+#else
+  ErrVal addQualityLevel_PID();
+#endif
+
+  void SetQualityLayerForFrames(UInt *auiQLForFrames, UInt uiNumOfFrames, UInt uiGopSize, 
+                              RDTree *pcRDTreeList, ppRDTree apcRDTree,
+                              UInt uiMinQL, UInt uiMaxQL);
+  UInt GetQL(UInt uiCurrentRate, UInt uiMinRate, UInt uiMaxRate, UInt uiQLRate0, UInt uiQLRateMax);
+  void GetRDProgress(RDTree *pcRDTree, char *cOutfile);
+  void BuildRDHierarchy(ppppRDTree aaaapcRDTrees, UInt uiNumOfFrames, UInt uiGopSize, UInt uiLayer, UInt uiMaxFGS);
+  void GetFrameOrder(UInt uiNumOfFrames, UInt uiGopSize, UInt *aFrameOrder);
+  void AllocateRDTrees(ppppRDTree &raaaapcRDTrees, UInt uiMaxLayer, UInt uiMaxFGS, UInt* auiNumOfFrames);
+  void ReadRateFromFile(std::string &cFile, ppppRDTree aaaapcRDTrees, UInt **aaFrameOrder, UInt uiMaxLayer);
+  Bool IsNewFrame(UInt uiLayerId, UInt uiLevelId, UInt uiFGSId, 
+                UInt &ruiLastLayerId, UInt &ruiLastLevelId, UInt &ruiLastFGSId);
+  void ReadDistoFromFile(std::string &cFile, ppppRDTree aaaapcRDTrees);
+  ErrVal EstimateQL();
+  void ComputeAllDisto(std::string& cOrig, UInt uiWidth, UInt uiHeight, 
+                     UInt uiNumOfFrames, UInt uiGopSize, 
+                     std::string& cRoot, UInt uiFGSLayer, UInt uiLayer, 
+                     std::string& cOutFilename);
+  void ComputeDeltaDisto(std::string& cOrig, UInt uiWidth, UInt uiHeight, 
+                       UInt uiNumOfFrames, UInt uiGopSize, 
+                       std::string& cRoot, UInt uiFGSLayer, UInt uiLevel, UInt uiLayer,
+                       FILE *fOUT);
 protected:
-  ReadBitstreamFile*              m_pcReadBitstream[MAX_LAYERS];
-  EncoderMergerParameter*           m_pcEncoderMergerParameter;
+  ReadBitstreamFile*              m_pcReadBitstream;
+  EncoderMergerParameter*         m_pcEncoderMergerParameter;
   h264::H264AVCPacketAnalyzer*  m_pcH264AVCPacketAnalyzer;
   h264::CreaterH264AVCEncoder*  m_pcH264AVCEncoder;
   Int m_uiNumOfLayer;
@@ -139,26 +167,26 @@ protected:
 
   UInt						m_auiNumFrameAtLayer[MAX_LAYERS];
 
-  //Dead substreams insertion
-  UInt						m_aaaauiRate[MAX_LAYERS][MAX_LAYERS][MAX_NBFRAMES][MAX_FGS_LAYERS];
-  UInt						m_aauiMaxRate[MAX_LAYERS][MAX_NBFRAMES];
-  
   //Quality levels insertion
-  Double  m_aaadDisto[MAX_LAYERS][MAX_NBFRAMES][MAX_NUM_RD_LEVELS]; // distorsion points for each frame and each layer
-  Double  m_aaadFGSRate[MAX_LAYERS][MAX_NBFRAMES][MAX_NUM_RD_LEVELS];//corresponding rate points 
-  Double m_aadWeight[MAX_LAYERS][MAX_NBFRAMES];
-  Double m_aadByteForFrame[MAX_NBFRAMES][MAX_LAYERS];
-  Double m_aaadByteForFrameFGS[MAX_NBFRAMES][MAX_LAYERS][MAX_FGS_LAYERS+1];
-  Double m_aadTargetByteForFrame[MAX_NBFRAMES][MAX_LAYERS];
-  RatePointManager  *rpm[MAX_NBFRAMES][MAX_LAYERS];
-  UInt m_aauiNbPoints[MAX_LAYERS][MAX_NBFRAMES]; //number of R/D distorsion points per each spatial frame
-  Int m_aaiLevel[MAX_LAYERS][MAX_NBFRAMES]; //temporal level of each frames
+  Double*  m_aaadDisto[MAX_LAYERS][MAX_NUM_RD_LEVELS]; // distorsion points for each frame and each layer
+  Double*  m_aaadFGSRate[MAX_LAYERS][MAX_NUM_RD_LEVELS];//corresponding rate points 
+  Double* m_aadWeight[MAX_LAYERS];
+  Double* m_aadByteForFrame[MAX_LAYERS];
+  Double* m_aaadByteForFrameFGS[MAX_LAYERS][MAX_FGS_LAYERS+1];
+  RatePointManager  **rpm[MAX_LAYERS];
   Double m_dQualityLevelMax[MAX_LAYERS];
   Double m_dQualityLevelMin[MAX_LAYERS];
 
   Double m_dQualityLevelMinGlobal;
   Double m_dQualityLevelMaxGlobal;
 
+  UInt* m_uiFGSIndex[MAX_LAYERS][MAX_FGS_LAYERS+1];
+  FILE *m_fPID;
+  UInt m_uiMaxLayer;
+  UInt* m_uiSavedPID[MAX_LAYERS][MAX_FGS_LAYERS];
+
+  UInt                          m_uiMaxFGS;
+  UInt*                          m_uiRateForFrame[MAX_LAYERS][MAX_FGS_LAYERS];
 
 };
 

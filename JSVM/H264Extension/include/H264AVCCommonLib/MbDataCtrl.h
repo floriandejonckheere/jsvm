@@ -277,13 +277,6 @@ public:
 
 
   RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
-
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Void          setScalingFactor_FT    ( Double  d ) { m_dScalingFactorFT      = d; }
-  Double        getScalingFactor_FT    ()  const     { return m_dScalingFactorFT;      }
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
-
   
   ErrVal        initFGSData             ( UInt uiNumMb );
   ErrVal        uninitFGSData           ();
@@ -328,10 +321,6 @@ private:
 
   RefFrameList  m_acPrdFrameList[2];
 
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Double		    m_dScalingFactorFT;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
 };
 
 

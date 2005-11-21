@@ -286,7 +286,8 @@ public:
   void			setNonRequiredSEIWritten(UInt* p)	{ m_uiNonRequiredSEIWritten = p; }
   UInt*			getNonRequiredSEIWritten()			{ return m_uiNonRequiredSEIWritten; }
 #endif
-
+  Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
+  Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
 protected:
   ErrVal  xProcessClosedLoop            ( AccessUnitList&             rcAccessUnitList,
                                           PicBufferList&              rcPicBufferInputList,
@@ -326,10 +327,6 @@ protected:
 
   //===== control data initialization =====
   ErrVal  xSetScalingFactorsMCTF        ( UInt                        uiBaseLevel );
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  ErrVal  xSetScalingFactorsMCTF_FT     ( UInt                        uiBaseLevel );
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   ErrVal  xSetScalingFactorsAVC         ();
   ErrVal  xGetListSizes                 ( UInt                        uiTemporalLevel,
                                           UInt                        uiFrameIdInGOP,
@@ -590,12 +587,6 @@ protected:
   Double                        m_dFGSRoundingOffset;
   Int                           m_iLastFGSError;
   UInt                          m_uiNotYetConsideredBaseLayerBits;
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  FILE*                         m_pRateFile;
-  FILE*                         m_pDistoFile;
-  Bool							m_bQualityLevelsEstimation;
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
   Bool                          m_bExtendedPriorityId;
 
   //{{Adaptive GOP structure
@@ -626,6 +617,13 @@ protected:
 
   Double                        m_dLowPassEnhRef;
   UInt                          m_uiLowPassFgsMcFilter;
+
+  //JVT-P031
+  Bool                          m_bUseDiscardableUnit;
+  Double                        m_dPredFGSCutFactor;
+  Double                        m_dPredFGSBitRateFactor;
+  Int                           m_iPredLastFGSError;
+  Double                        m_dPredFGSRoundingOffset;
 
   enum RefListType
   {

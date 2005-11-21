@@ -105,6 +105,7 @@ protected:
 
 public:
   ErrVal start();
+  ErrVal startFragment(); //JVT-P031
   ErrVal init( BitWriteBufferIf* pcBitWriteBufferIf );
   ErrVal uninit();
 
@@ -118,7 +119,7 @@ public:
   ErrVal writeExGolombMvd( UInt uiSymbol, CabacContextModel* pcCCModel, UInt uiMaxBin );
   ErrVal writeTerminatingBit( UInt uiBit );
   ErrVal finish();
-  UInt   getWrittenBits()  { return m_pcBitWriteBufferIf->getNumberOfWrittenBits() + 8 + m_uiBitsToFollow - m_uiBitsLeft; }
+  UInt   getWrittenBits()  { return m_pcBitWriteBufferIf->getNumberOfWrittenBits() + 8 + m_uiBitsToFollow - m_uiBitsLeft + 1; } //JVT-P031
 
 private:
   __inline ErrVal xWriteBit( UInt uiBit);

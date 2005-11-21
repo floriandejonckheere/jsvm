@@ -546,6 +546,14 @@ public:
   Bool                              getExtensionFlag              ()    	{ return m_bExtensionFlag;}
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
+  //JVT-P031
+  Bool                              getFragmentedFlag              ()       {return m_bFragmentedFlag;}
+  UInt                              getFragmentOrder               ()       {return m_uiFragmentOrder;}
+  Bool                              getLastFragmentFlag            ()       {return m_bLastFragmentFlag;}
+  Void                              setFragmentedFlag              (Bool b)    {m_bFragmentedFlag = b;}
+  Void                              setFragmentOrder               (UInt ui)   {m_uiFragmentOrder = ui;}
+  Void                              setLastFragmentFlag            (Bool b)    {m_bLastFragmentFlag = b;}
+  //~JVT-P031
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
 
   //===== set parameters =====
@@ -638,6 +646,12 @@ protected:
   Bool					              m_bDiscardableFlag;
   Bool                        m_bExtensionFlag;
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
+  
+  //JVT-P031
+  Bool                        m_bFragmentedFlag;
+  UInt                        m_uiFragmentOrder;
+  Bool                        m_bLastFragmentFlag;
+  //~JVT-P031
 
 // TMM_ESS {
 public:

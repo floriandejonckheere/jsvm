@@ -250,6 +250,14 @@ ErrVal CabacWriter::startSlice( const SliceHeader& rcSliceHeader )
   return Err::m_nOK;
 }
 
+//JVT-P031
+ErrVal CabacWriter::startFragment()
+{
+  RNOK( CabaEncoder::startFragment() );
+
+  return Err::m_nOK;
+}
+//~JVT-P031
 
 ErrVal CabacWriter::finishSlice()
 {

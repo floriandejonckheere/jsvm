@@ -119,7 +119,13 @@ public:
                             UInt          uiLayerId,
                             UInt          uiTemporalLevel,
                             UInt          uiQualityLevel,
-                            SliceHeader*& rpcSH );
+                            SliceHeader*& rpcSH
+                            //JVT-P031
+                            ,UInt         uiFirstFragSHPPSId
+                            ,UInt         uiFirstFragNumMbsInSlice
+                            ,Bool         bFirstFragFGSCompSep
+                            //~JVT-P031
+                            );
 
   ErrVal  read           ( SliceHeader&   rcSH,
                            MbDataCtrl*    pcMbDataCtrl,
