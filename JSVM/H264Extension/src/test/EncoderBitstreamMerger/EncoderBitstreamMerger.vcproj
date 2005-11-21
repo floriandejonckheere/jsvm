@@ -235,7 +235,7 @@
 				RelativePath="RatePointsManager.h">
 			</File>
 			<File
-				RelativePath=".\RDTree.hpp">
+				RelativePath=".\RDTree.h">
 			</File>
 		</Filter>
 		<Filter
