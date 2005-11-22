@@ -19,7 +19,7 @@ USER_LIB_DIRS	= -L/usr/X11R6/lib
 OBJ_DIR				= ./objects
 
 # set executable name
-PRJ_NAME			= EncoderBitstreamMerger
+PRJ_NAME			= QualityLevelAssigner
 
 # defines to set
 DEFS				= -DMSYS_LINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DMSYS_UNIX_LARGEFILE

@@ -2191,7 +2191,7 @@ UInt Extractor::getPIDIndex(UInt uiPID)
               return ui;
     }
 
-    return -1;
+    return MSYS_UINT_MAX;
 }
 
 

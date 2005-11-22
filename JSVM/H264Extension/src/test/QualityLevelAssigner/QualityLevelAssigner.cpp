@@ -89,9 +89,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "QualityLevelParameter.h"
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/CommonDefs.h"
-#include <io.h>
 #include <math.h>
 #if WIN32
+#include <io.h>
 #include <windows.h>
 #endif
 
@@ -1202,9 +1202,9 @@ QualityLevelAssigner::xReadDataFile( const std::string&  cFileName )
   }
 
   Bool    bEOS    = false;
-  UInt    uiLayer, uiFGS, uiFrame, uiPacketSize;
+  UInt    uiLayer, uiFGS, uiFrame, uiPacketSize, uiNumPackets;
   Double  dDeltaDist;
-  for( UInt uiNumPackets = 0; !bEOS; uiNumPackets++ )
+  for( uiNumPackets = 0; !bEOS; uiNumPackets++ )
   {
     Int iNumRead = fscanf( pFile,
                            " %d %d %d %d %lf",
