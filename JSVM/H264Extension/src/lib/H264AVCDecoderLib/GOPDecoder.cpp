@@ -1827,20 +1827,6 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
     RNOK( pcFrame         ->add        ( m_pcPredSignal ) );
     RNOK( pcFrame         ->clip       () );
   }
-  // save the key frame for future reference
-  IntFrame *pcSavedEnhRefFrame = m_aapcFGSRecon[1][m_uiNumLayers[1] - 1];
-
-  pcSavedEnhRefFrame->copy(pcFrame);
-
-  // loop filtering should be combined with the final loop filtering on low-pass frame
-  RNOK( m_pcLoopFilter->process ( *pcSliceHeader,
-                                  pcSavedEnhRefFrame,
-                                  rcControlData.getMbDataCtrl(),
-                                  rcControlData.getMbDataCtrl(),
-                                  m_uiFrameWidthInMb,
-                                  & rcControlData.getPrdFrameList( LIST_0 ),
-                                  & rcControlData.getPrdFrameList( LIST_1 ),
-                                  rcControlData.getSpatialScalability() ) );
   RNOK( m_pcRQFGSDecoder->finishPicture () );
 
   //===== store intra signal for inter-layer prediction =====
@@ -1862,6 +1848,13 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
                                    &rcControlData.getPrdFrameList( LIST_0 ),
                                    &rcControlData.getPrdFrameList( LIST_1 ),
                                     rcControlData.getSpatialScalability()) );  // SSUN@SHARP
+  }
+
+  // save the key frame for future reference
+  if( bKeyPicFlag )
+  {
+    IntFrame *pcSavedEnhRefFrame = m_aapcFGSRecon[1][m_uiNumLayers[1] - 1];
+    pcSavedEnhRefFrame->copy( pcFrame );
   }
 
   //===== update picture in DPB =====
