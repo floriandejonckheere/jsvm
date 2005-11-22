@@ -408,7 +408,7 @@ QualityLevelEstimation::init( UInt uiNumFGSLayers,
 {
   m_uiNumFGSPackets = uiNumFGSLayers;
   m_uiNumFrames     = uiNumFrames;
-  for( UInt uiFGSLayer = 0; uiFGSLayer < m_uiNumFGSPackets; uiFGSLayer++ )
+  for( UInt uiFGSLayer = 1; uiFGSLayer <= m_uiNumFGSPackets; uiFGSLayer++ )
   {
     ROFRS( ( m_aacFGSPacketEntry[uiFGSLayer] = new FGSPacketEntry [m_uiNumFrames] ), Err::m_nOK );
   }
@@ -435,8 +435,8 @@ QualityLevelEstimation::addPacket( UInt    uiFGSLayer,
                                    UInt    uiPacketSize,
                                    Double  dDeltaDistortion )
 {
-  ROF( uiFGSLayer              < m_uiNumFGSPackets );
-  ROF( uiFrameNumInCodingOrder < m_uiNumFrames     );
+  ROF( uiFGSLayer              <= m_uiNumFGSPackets );
+  ROF( uiFrameNumInCodingOrder <  m_uiNumFrames     );
 
   RNOK( m_aacFGSPacketEntry[uiFGSLayer][uiFrameNumInCodingOrder].init( uiFrameNumInCodingOrder,
                                                                        uiFGSLayer,
@@ -458,8 +458,8 @@ QualityLevelEstimation::optimizeQualityLevel( UInt uiMinLevel,
   //===== get initial quality layer list =====
   {
     //----- put all valid packets into list -----
-    for( UInt uiFGSLayer  = 0; uiFGSLayer < m_uiNumFGSPackets; uiFGSLayer ++ )
-    for( UInt uiFrame     = 0; uiFrame    < m_uiNumFrames;     uiFrame    ++ )
+    for( UInt uiFGSLayer  = 1; uiFGSLayer <= m_uiNumFGSPackets; uiFGSLayer ++ )
+    for( UInt uiFrame     = 0; uiFrame    <  m_uiNumFrames;     uiFrame    ++ )
     {
       if( m_aacFGSPacketEntry[uiFGSLayer][uiFrame].isValid() )
       {
@@ -471,7 +471,7 @@ QualityLevelEstimation::optimizeQualityLevel( UInt uiMinLevel,
   cQualityLayerList.sort( std::greater<QualityLayer>() );
   //----- make sure that FGSLayers are in the right order -----
   {
-    for( UInt uiFGSLayer = 1; uiFGSLayer < m_uiNumFGSPackets; uiFGSLayer++ )
+    for( UInt uiFGSLayer = 2; uiFGSLayer <= m_uiNumFGSPackets; uiFGSLayer++ )
     {
       QualityLayerList::iterator  iter  = cQualityLayerList.begin ();
       QualityLayerList::iterator  iend  = cQualityLayerList.end   ();
@@ -565,8 +565,8 @@ UInt
 QualityLevelEstimation::getQualityLevel( UInt uiFGSLayer,
                                          UInt uiFrameNumInCodingOrder ) const
 {
-  ROF( uiFGSLayer              < m_uiNumFGSPackets );
-  ROF( uiFrameNumInCodingOrder < m_uiNumFrames     );
+  ROF( uiFGSLayer              <= m_uiNumFGSPackets );
+  ROF( uiFrameNumInCodingOrder <  m_uiNumFrames     );
 
   return m_aacFGSPacketEntry[uiFGSLayer][uiFrameNumInCodingOrder].getQualityLevel();
 }

@@ -1808,6 +1808,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
 {
   DPBUnit*      pcLastDPBUnit   = m_pcDecodedPictureBuffer->getLastUnit();
   SliceHeader*  pcSliceHeader   = m_pcRQFGSDecoder->getSliceHeader();
+  Bool          bKeyPicFlag     = pcSliceHeader   ->getKeyPictureFlag(); // HS: fix by Nokia
   ROF( pcLastDPBUnit );
   ROF( pcSliceHeader == pcLastDPBUnit->getCtrlData().getSliceHeader() );
 
@@ -1833,13 +1834,13 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
 
   // loop filtering should be combined with the final loop filtering on low-pass frame
   RNOK( m_pcLoopFilter->process ( *pcSliceHeader,
-    pcSavedEnhRefFrame,
-    rcControlData.getMbDataCtrl(),
-    rcControlData.getMbDataCtrl(),
-    m_uiFrameWidthInMb,
-    & rcControlData.getPrdFrameList( LIST_0 ),
-    & rcControlData.getPrdFrameList( LIST_1 ),
-    rcControlData.getSpatialScalability() ) );
+                                  pcSavedEnhRefFrame,
+                                  rcControlData.getMbDataCtrl(),
+                                  rcControlData.getMbDataCtrl(),
+                                  m_uiFrameWidthInMb,
+                                  & rcControlData.getPrdFrameList( LIST_0 ),
+                                  & rcControlData.getPrdFrameList( LIST_1 ),
+                                  rcControlData.getSpatialScalability() ) );
   RNOK( m_pcRQFGSDecoder->finishPicture () );
 
   //===== store intra signal for inter-layer prediction =====
@@ -1847,9 +1848,9 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
 
   //===== loop filter =====
 #if MULTIPLE_LOOP_DECODING
-  if( bHighestLayer || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ )
+  if( bHighestLayer || bKeyPicFlag || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ ) // HS: fix by Nokia
 #else
-  if( bHighestLayer )
+  if( bHighestLayer || bKeyPicFlag ) // HS: fix by Nokia
 #endif
   {
     m_pcLoopFilter->setHighpassFramePointer( m_pcResidual );
@@ -2074,8 +2075,6 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 #else
   Bool          bReconstructAll = bReconstructionLayer || !bConstrainedIP;
 #endif
-  if( bReconstructAll )
-    printf("\t==> reconstruct\n" );
   
   //----- initialize reference lists -----
   RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );

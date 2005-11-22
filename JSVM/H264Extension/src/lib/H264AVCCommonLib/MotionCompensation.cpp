@@ -509,6 +509,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuff
     }
     break;
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       xCalc8x8( rcMbDataAccess, NULL, bFaultTolerant );
       xPredMb8x8Mode( rcMbDataAccess, pcRecBuffer );
@@ -564,6 +565,7 @@ ErrVal MotionCompensation::calculateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffe
     }
     break;
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       xCalc8x8( rcMbDataAccess, NULL, bFaultTolerant );
     }
@@ -1232,6 +1234,7 @@ ErrVal MotionCompensation::updateMb(MbDataAccess&   rcMbDataAccess,
     break;
 
   case MODE_8x8:
+  case MODE_8x8ref0:
     printf("function not defined for the case\n");
     ROT(1);
     break;
@@ -1541,6 +1544,7 @@ ErrVal MotionCompensation::calcMvMb( MbDataAccess& rcMbDataAccess, MbDataAccess*
     }
     break;
   case MODE_8x8:
+  case MODE_8x8ref0:
     xCalc8x8( rcMbDataAccess, pcMbDataAccessBase, false );
     break;
   default:
@@ -1806,6 +1810,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
     break;
 
   case MODE_8x8:
+  case MODE_8x8ref0:
     printf("function not defined for the case\n");
     ROT(1);
     break;

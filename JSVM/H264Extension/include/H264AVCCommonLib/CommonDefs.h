@@ -228,6 +228,7 @@ enum MbMode
   MODE_16x8         = 2,
   MODE_8x16         = 3,
   MODE_8x8          = 4,
+  MODE_8x8ref0      = 5,
   INTRA_4X4         = 6,
   MODE_PCM          = 25+6,
   INTRA_BL          = 36

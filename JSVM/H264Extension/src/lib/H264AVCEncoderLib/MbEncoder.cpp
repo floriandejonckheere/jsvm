@@ -1006,7 +1006,7 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
   }
   else
   {
-    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 || rcMbDataAccess.getMbData().getMbMode() == MODE_8x8ref0 )
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -1041,7 +1041,7 @@ MbEncoder::compensateUpdate(  MbDataAccess&   rcMbDataAccess,
   }
   else
   {
-    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 || rcMbDataAccess.getMbData().getMbMode() == MODE_8x8ref0 )
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -2383,7 +2383,7 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
   UInt            uiMbDist          = 0;
   UInt            uiMbBits          = 0;
   MbMode          eMbMode           = rcMbData.getMbMode();
-  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 );
+  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
   UInt            uiFwdBwd          = 0;
 
 
@@ -2538,16 +2538,16 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
   UInt            uiMbDist          = 0;
   UInt            uiMbBits          = 0;
   MbMode          eMbMode           = rcMbData.getMbMode();
-  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 );
+  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
   UInt            uiFwdBwd          = 0;
 
 
   //=== check ===
   ROT( eMbMode == MODE_SKIP && rcMbDataAccess.getSH().isInterP() ); // not for skip mode
-  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_0 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_0 ) != BLK_8x8 );
-  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_1 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_1 ) != BLK_8x8 );
-  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_2 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_2 ) != BLK_8x8 );
-  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_3 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_3 ) != BLK_8x8 );
+  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_0 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_0 ) != BLK_8x8 );
+  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_1 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_1 ) != BLK_8x8 );
+  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_2 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_2 ) != BLK_8x8 );
+  ROT((eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0) && rcMbData.getBlkMode( B_8x8_3 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_3 ) != BLK_8x8 );
 
 
 
@@ -2898,6 +2898,7 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
         break;
       }
     case MODE_8x8:
+    case MODE_8x8ref0:
       {
         RNOK( xQPelEstimateMb8x8  ( rpcIntMbTempData, rpcIntMbBestData, rcRefFrameList0, rcRefFrameList1, uiMaxIter, true, pcMbDataAccessBase, bResidualPred ) );
         break;

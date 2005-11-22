@@ -1274,6 +1274,7 @@ H264AVCDecoder::xReconstructLastFGS()
   IntFrame*     pcILPredFrame       = m_pcFrameMng    ->getRefinementIntFrame();
   IntFrame*     pcILPredFrameSpatial= m_pcFrameMng    ->getRefinementIntFrame2();
   Bool          bReconstructFGS     = m_pcRQFGSDecoder->changed();
+  Bool          bKeyPicFlag         = pcSliceHeader   ->getKeyPictureFlag(); // HS: fix by Nokia
 
   //===== reconstruct FGS =====
   if( bReconstructFGS )
@@ -1294,9 +1295,9 @@ H264AVCDecoder::xReconstructLastFGS()
 
   //===== loop filter =====
 #if MULTIPLE_LOOP_DECODING
-  if( !m_bEnhancementLayer || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ )
+  if( !m_bEnhancementLayer || bKeyPicFlag || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ ) // HS: fix by Nokia
 #else
-  if( !m_bEnhancementLayer )
+  if( !m_bEnhancementLayer || bKeyPicFlag ) // HS: fix by Nokia
 #endif
   {
     RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcRecFrame->getFullPelYuvBuffer() ) );

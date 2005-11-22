@@ -194,7 +194,7 @@ public:
   
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
   ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp);
-  ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) {return intraPredModeLuma( rcMbDataAccess, cIdx );}
+  ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ); // HS: bug fix by Nokia
   ErrVal  RQdecodeCycleSymbol ( UInt& uiCycle );
   ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess&   rcMbDataAccessBase );

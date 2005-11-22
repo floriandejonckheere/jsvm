@@ -1699,88 +1699,87 @@ Extractor::go_QL()
 Void Extractor::setQualityLevel()
 {
 	UInt uiLevel;
-    UInt uiLayer;
-    UInt uiNumImage;
-    UInt uiRef = 0;
-    UInt uiPID = 0;
-    m_uiNbPID = 0;
-    for(uiPID = 0; uiPID < MAX_SIZE_PID; uiPID++)
-        m_auiPID[uiPID] = 0;
+  UInt uiLayer;
+  UInt uiNumImage;
+  UInt uiRef = 0;
+  UInt uiPID = 0;
+  m_uiNbPID = 0;
+  for(uiPID = 0; uiPID < MAX_SIZE_PID; uiPID++)
+      m_auiPID[uiPID] = 0;
 
-    
-    if(m_bQualityLevelInSEI == false)
+  
+  if(m_bQualityLevelInSEI == false)
+  {
+    for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
     {
-        for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
-    {
-        for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
+      for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
+      {
+        for(uiLevel = 0; uiLevel < MAX_FGS_LAYERS; uiLevel++)
         {
-            for(uiLevel = 0; uiLevel < MAX_FGS_LAYERS; uiLevel++)
-            {
-                m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = 0;
-            }
+          m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = 0;
         }
+      }
     }
     for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
     {
-        for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
+      for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
+      {
+        m_aaiNumLevels[uiLayer][uiNumImage] = 0;
+        uiRef = 0;
+        for(uiLevel = 0; uiLevel < MAX_FGS_LAYERS; uiLevel++)
         {
-            m_aaiNumLevels[uiLayer][uiNumImage] = 0;
-            uiRef = 0;
-            for(uiLevel = 0; uiLevel < MAX_FGS_LAYERS; uiLevel++)
-            {
-                if(m_aaadBytesForFrameFGS[uiLayer][uiLevel][uiNumImage]!=0)
-                    m_aaiNumLevels[uiLayer][uiNumImage]++;
-                else
-                    break;
-                m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = uiRef+(UInt)m_aaadBytesForFrameFGS[uiLayer][uiLevel][uiNumImage];
-                uiRef += (UInt)m_aaadBytesForFrameFGS[uiLayer][uiLevel][uiNumImage];
-                addPIDToTable((UInt)m_aaadQualityLevel[uiLayer][uiLevel][uiNumImage]);
-         
-            }
+          if(m_aaadBytesForFrameFGS[uiLayer][uiLevel][uiNumImage]!=0)
+            m_aaiNumLevels[uiLayer][uiNumImage]++;
+          else
+            break;
+          m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = uiRef+(UInt)m_aaadBytesForFrameFGS[uiLayer][uiLevel][uiNumImage];
+          uiRef += (UInt)m_aaadBytesForFrameFGS[uiLayer][uiLevel][uiNumImage];
+          addPIDToTable((UInt)m_aaadQualityLevel[uiLayer][uiLevel][uiNumImage]);
         }
+      }
     }
-    }
-    else
-    {
+  }
+  else
+  {
     for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
     {
-        for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
-        {
-            UInt uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][0][uiNumImage];
-	        for(uiLevel = 0; uiLevel < (UInt)m_aaiNumLevels[uiLayer][uiNumImage]; uiLevel++)
-	        {
-		        if(uiLevel == 0)
-		        {
-			        m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = (UInt)m_aaadBytesForFrameFGS[uiLayer][0][uiNumImage];
-			        uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage];
-		        }
-		        else
-		        {
-                    UInt uiDeltaRate = m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage];
-			        m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = uiRateOld + uiDeltaRate;
-			        uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage];
-		        }
-                addPIDToTable((UInt)m_aaadQualityLevel[uiLayer][uiLevel][uiNumImage]);
-            }
+      for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
+      {
+        UInt uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][0][uiNumImage];
+	      for(uiLevel = 0; uiLevel < (UInt)m_aaiNumLevels[uiLayer][uiNumImage]; uiLevel++)
+	      {
+		      if(uiLevel == 0)
+		      {
+			      m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = (UInt)m_aaadBytesForFrameFGS[uiLayer][0][uiNumImage];
+			      uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage];
+		      }
+		      else
+		      {
+            UInt uiDeltaRate = m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage];
+			      m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage] = uiRateOld + uiDeltaRate;
+			      uiRateOld = m_aaauiBytesForQualityLevel[uiLayer][uiLevel][uiNumImage];
+		      }
+          addPIDToTable((UInt)m_aaadQualityLevel[uiLayer][uiLevel][uiNumImage]);
         }
+      }
     }
-    }
+  }
 
-    //ordering in decreasing order PID
-    UInt uiTempPID;
-    UInt uiEnd;
-    for(uiEnd = m_uiNbPID; uiEnd > 0; uiEnd--)
+  //ordering in decreasing order PID
+  UInt uiTempPID;
+  UInt uiEnd;
+  for(uiEnd = m_uiNbPID; uiEnd > 0; uiEnd--)
+  {
+    for(uiPID = 1; uiPID < uiEnd; uiPID++)
     {
-        for(uiPID = 1; uiPID < uiEnd; uiPID++)
-        {
-            if(m_auiPID[uiPID] > m_auiPID[uiPID-1])
-            {
-                uiTempPID = m_auiPID[uiPID-1];
-                m_auiPID[uiPID-1] = m_auiPID[uiPID];
-                m_auiPID[uiPID] = uiTempPID;
-            }
-        }
+      if(m_auiPID[uiPID] > m_auiPID[uiPID-1])
+      {
+        uiTempPID = m_auiPID[uiPID-1];
+        m_auiPID[uiPID-1] = m_auiPID[uiPID];
+        m_auiPID[uiPID] = uiTempPID;
+      }
     }
+  }
 }
 
 

@@ -462,6 +462,7 @@ MbCoder::xWriteMotionPredFlags( MbDataAccess&  rcMbDataAccess,
     }
     
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -548,6 +549,7 @@ MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
     }
     
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -625,6 +627,7 @@ MbCoder::xWriteMotionVectors( MbDataAccess& rcMbDataAccess,
     }
   
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -690,6 +693,7 @@ ErrVal MbCoder::xWriteMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx e
       return Err::m_nOK;
     }
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {

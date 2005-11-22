@@ -2,7 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="7.10"
-	Name="EncoderBitstreamMerger"
+	Name="QualityLevelAssigner"
+	ProjectGUID="{B4E46FE9-7ABF-468C-9FCD-49F4C9A98A05}"
 	SccProjectName=""
 	SccLocalPath="">
 	<Platforms>
@@ -12,8 +13,8 @@
 	<Configurations>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic"
-			IntermediateDirectory=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic"
+			OutputDirectory=".\..\..\..\build\windows\test\QualityLevelAssigner\ReleaseStatic"
+			IntermediateDirectory=".\..\..\..\build\windows\test\QualityLevelAssigner\ReleaseStatic"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
@@ -28,10 +29,10 @@
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="TRUE"
 				UsePrecompiledHeader="2"
-				PrecompiledHeaderFile=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/EncoderBitstreamMerger.pch"
-				AssemblerListingLocation=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/"
-				ObjectFile=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/"
-				ProgramDataBaseFileName=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/"
+				PrecompiledHeaderFile=".\..\..\..\build\windows\test\QualityLevelAssigner\ReleaseStatic/QualityLevelAssigner.pch"
+				AssemblerListingLocation=".\..\..\..\build\windows\test\QualityLevelAssigner\ReleaseStatic/"
+				ObjectFile=".\..\..\..\build\windows\test\QualityLevelAssigner\ReleaseStatic/"
+				ProgramDataBaseFileName=".\..\..\..\build\windows\test\QualityLevelAssigner\ReleaseStatic/"
 				WarningLevel="3"
 				SuppressStartupBanner="TRUE"
 				CompileAs="0"/>
@@ -39,16 +40,16 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="..\..\..\..\..\bin\EncoderBitstreamMerger.exe"
+				OutputFile="..\..\..\..\..\bin\QualityLevelAssigner.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="..\..\..\..\..\lib"
-				ProgramDatabaseFile="..\..\..\..\..\bin\EncoderBitstreamMerger.pdb"
+				ProgramDatabaseFile="..\..\..\..\..\bin\QualityLevelAssigner.pdb"
 				SubSystem="1"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\..\..\..\build\windows\test\EncoderBitStreamMerger\ReleaseStatic/EncoderBitstreamMerger.tlb"
+				TypeLibraryName=".\..\..\..\build\windows\test\QualityLevelAssigner\ReleaseStatic/QualityLevelAssigner.tlb"
 				HeaderFileName=""/>
 			<Tool
 				Name="VCPostBuildEventTool"/>
@@ -73,8 +74,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\..\..\..\build\windows\test\EncoderBitStreamMerger\DebugStatic"
-			IntermediateDirectory=".\..\..\..\build\windows\test\EncoderBitStreamMerger\DebugStatic"
+			OutputDirectory=".\..\..\..\build\windows\test\QualityLevelAssigner\DebugStatic"
+			IntermediateDirectory=".\..\..\..\build\windows\test\QualityLevelAssigner\DebugStatic"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="FALSE"
@@ -86,10 +87,10 @@
 				PreprocessorDefinitions="_DEBUG;WIN32;_CONSOLE;H264AVCVIDEOIOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;H264AVCENCODERLIB_LIB"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\..\..\..\build\windows\test\EncoderBitStreamMerger\DebugStatic/EncoderBitstreamMerger.pch"
-				AssemblerListingLocation=".\..\..\..\build\windows\test\EncoderBitStreamMerger\DebugStatic/"
-				ObjectFile=".\..\..\..\build\windows\test\EncoderBitStreamMerger\DebugStatic/"
-				ProgramDataBaseFileName=".\..\..\..\build\windows\test\EncoderBitStreamMerger\DebugStatic/"
+				PrecompiledHeaderFile=".\..\..\..\build\windows\test\QualityLevelAssigner\DebugStatic/QualityLevelAssigner.pch"
+				AssemblerListingLocation=".\..\..\..\build\windows\test\QualityLevelAssigner\DebugStatic/"
+				ObjectFile=".\..\..\..\build\windows\test\QualityLevelAssigner\DebugStatic/"
+				ProgramDataBaseFileName=".\..\..\..\build\windows\test\QualityLevelAssigner\DebugStatic/"
 				WarningLevel="3"
 				SuppressStartupBanner="TRUE"
 				DebugInformationFormat="3"
@@ -98,17 +99,17 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="..\..\..\..\..\bin\EncoderBitstreamMergerd.exe"
+				OutputFile="..\..\..\..\..\bin\QualityLevelAssignerd.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="..\..\..\..\..\lib"
 				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="..\..\..\..\..\bin\EncoderBitstreamMergerd.pdb"
+				ProgramDatabaseFile="..\..\..\..\..\bin\QualityLevelAssignerd.pdb"
 				SubSystem="1"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\..\..\..\build\windows\test\EncoderBitStreamMerger\DebugStatic/EncoderBitstreamMerger.tlb"
+				TypeLibraryName=".\..\..\..\build\windows\test\QualityLevelAssigner\DebugStatic/QualityLevelAssigner.tlb"
 				HeaderFileName=""/>
 			<Tool
 				Name="VCPostBuildEventTool"/>
@@ -139,7 +140,7 @@
 			Name="Source Files"
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat">
 			<File
-				RelativePath="EncoderBitstreamMerger.cpp">
+				RelativePath="QualityLevel.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
@@ -159,7 +160,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="EncoderMerger.cpp">
+				RelativePath="QualityLevelAssigner.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
@@ -179,7 +180,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="EncoderMergerParameter.cpp">
+				RelativePath="QualityLevelEstimation.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
@@ -199,7 +200,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="RatePointsManager.cpp">
+				RelativePath="QualityLevelParameter.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
@@ -217,25 +218,19 @@
 						PreprocessorDefinitions=""
 						BasicRuntimeChecks="3"/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\RDTree.cpp">
 			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl">
 			<File
-				RelativePath="EncoderMerger.h">
+				RelativePath="QualityLevelAssigner.h">
 			</File>
 			<File
-				RelativePath="EncoderMergerParameter.h">
+				RelativePath="QualityLevelEstimation.h">
 			</File>
 			<File
-				RelativePath="RatePointsManager.h">
-			</File>
-			<File
-				RelativePath=".\RDTree.h">
+				RelativePath="QualityLevelParameter.h">
 			</File>
 		</Filter>
 		<Filter

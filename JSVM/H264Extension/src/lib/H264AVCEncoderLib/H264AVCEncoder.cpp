@@ -825,6 +825,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
     RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate ,
 																						 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
   }
+  printf("\n");
 
   //{{Adaptive GOP structure
   // --ETRI & KHU
@@ -850,8 +851,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
         RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate,
 																								 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
       }
-      printf("                                   ----------------------------------------\n");
-      printf("                                   (*): These PSNR values are not accurate!\n\n");
+      printf("\n");
     }
     else
     {
@@ -888,8 +888,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
         RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate,
 																								 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
       }
-      printf("                                   ----------------------------------------\n");
-      printf("                                   (*): These PSNR values are not accurate!\n\n");
+      printf("\n");
     }
   }
   //}}Adaptive GOP structure

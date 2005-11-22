@@ -840,6 +840,48 @@ ErrVal UvlcReader::intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cIdx
   return Err::m_nOK;
 }
 
+
+ErrVal UvlcReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) // HS: bug fix by Nokia
+{
+  DTRACE_T( "IntraPredModeLuma" );
+  DTRACE_POS;
+
+  UInt uiBits;
+  RNOK( m_pcBitReadBuffer->get( uiBits, 1 ) );
+  DTRACE_BITS( uiBits,1 );
+  DTRACE_DO( m_uiBitCounter = 1 );
+
+  if( ! uiBits )
+  {
+    UInt uiCode;
+    RNOK( m_pcBitReadBuffer->get( uiCode, 3 ) );
+    rcMbDataAccess.getMbData().intraPredMode( cIdx ) = uiCode;
+    DTRACE_BITS( uiCode, 3 );
+    DTRACE_DO( m_uiBitCounter = 4 );
+  }
+  else
+  {
+    rcMbDataAccess.getMbData().intraPredMode( cIdx ) = -1;
+  }
+  
+  DTRACE_COUNT(m_uiBitCounter);
+  DTRACE_CODE(rcMbDataAccess.getMbData().intraPredMode( cIdx ));
+  DTRACE_N;
+  
+  const Int iPredMode = rcMbDataAccess.decodeIntraPredMode( cIdx );
+  {
+    S4x4Idx cIdx4x4(cIdx);
+    for( Int n = 0; n < 4; n++, cIdx4x4++ )
+    {
+      rcMbDataAccess.getMbData().intraPredMode( cIdx4x4 ) = iPredMode;
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+
+
 ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess )
 {
   UInt uiTemp;

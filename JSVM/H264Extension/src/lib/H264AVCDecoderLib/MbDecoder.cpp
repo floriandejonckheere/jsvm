@@ -288,7 +288,7 @@ ErrVal MbDecoder::calcMv( MbDataAccess& rcMbDataAccess,
   }
   else
   {
-    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 || rcMbDataAccess.getMbData().getMbMode() == MODE_8x8ref0 )
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -558,7 +558,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
   //===== get prediction signal when full reconstruction is requested =====
   if( bReconstruct )
   {
-    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 )
+    if( rcMbDataAccess.getMbData().getMbMode() == MODE_8x8 || rcMbDataAccess.getMbData().getMbMode() == MODE_8x8ref0 )
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {

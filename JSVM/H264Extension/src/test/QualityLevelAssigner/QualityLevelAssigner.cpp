@@ -103,6 +103,11 @@ QualityLevelAssigner::QualityLevelAssigner()
 : m_pcParameter             ( 0 )
 , m_pcH264AVCPacketAnalyzer ( 0 )
 , m_pcH264AVCDecoder        ( 0 )
+, m_pcBitCounter            ( 0 )
+, m_pcBitWriteBuffer        ( 0 )
+, m_pcUvlcWriter            ( 0 )
+, m_pcUvlcTester            ( 0 )
+, m_pcNalUnitEncoder        ( 0 )
 , m_uiNumLayers             ( 0 )
 , m_bOutputReconstructions  ( false ) // for debugging
 {
@@ -143,13 +148,25 @@ QualityLevelAssigner::init( QualityLevelParameter* pcParameter )
   //--- create objects ---
   RNOK( H264AVCPacketAnalyzer::create( m_pcH264AVCPacketAnalyzer ) );
   RNOK( CreaterH264AVCDecoder::create( m_pcH264AVCDecoder ) );
+  RNOK( BitCounter           ::create( m_pcBitCounter ) );
+  RNOK( BitWriteBuffer       ::create( m_pcBitWriteBuffer ) );
+  RNOK( UvlcWriter           ::create( m_pcUvlcWriter ) );
+  RNOK( UvlcWriter           ::create( m_pcUvlcTester ) );
+  RNOK( NalUnitEncoder       ::create( m_pcNalUnitEncoder ) );
+
+  //--- initialize encoder objects ---
+  RNOK( m_pcBitWriteBuffer  ->init() );
+  RNOK( m_pcBitCounter      ->init() );
+  RNOK( m_pcUvlcWriter      ->init( m_pcBitWriteBuffer ) );
+  RNOK( m_pcUvlcTester      ->init( m_pcBitCounter ) );
+  RNOK( m_pcNalUnitEncoder  ->init( m_pcBitWriteBuffer, m_pcUvlcWriter, m_pcUvlcTester ) );
 
   //--- get basic stream parameters ---
   RNOK( xInitStreamParameters() );
 
   //--- create arrays ---
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers;              uiLayer++ )
-  for( UInt uiFGS   = 0; uiFGS   < m_auiNumFGSLayers[uiLayer]; uiFGS  ++ )
+  for( UInt uiLayer = 0; uiLayer <  m_uiNumLayers;              uiLayer++ )
+  for( UInt uiFGS   = 0; uiFGS   <= m_auiNumFGSLayers[uiLayer]; uiFGS  ++ )
   {
     ROF( m_auiNumFrames[uiLayer] );
     ROFRS( ( m_aaadDeltaDist  [uiLayer][uiFGS] = new Double[m_auiNumFrames[uiLayer]] ), Err::m_nERR );
@@ -182,6 +199,32 @@ QualityLevelAssigner::destroy()
   {
     RNOK( m_pcH264AVCDecoder->destroy() );
   }
+  if( m_pcBitCounter )
+  {
+    RNOK( m_pcBitCounter->uninit  () );
+    RNOK( m_pcBitCounter->destroy () );
+  }
+  if( m_pcBitWriteBuffer )
+  {
+    RNOK( m_pcBitWriteBuffer->uninit  () );
+    RNOK( m_pcBitWriteBuffer->destroy () );
+  }
+  if( m_pcUvlcTester )
+  {
+    RNOK( m_pcUvlcTester->uninit  () );
+    RNOK( m_pcUvlcTester->destroy () );
+  }
+  if( m_pcUvlcWriter )
+  {
+    RNOK( m_pcUvlcWriter->uninit  () );
+    RNOK( m_pcUvlcWriter->destroy () );
+  }
+  if( m_pcNalUnitEncoder )
+  {
+    RNOK( m_pcNalUnitEncoder->uninit  () );
+    RNOK( m_pcNalUnitEncoder->destroy () )
+  }
+
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS;          uiLayer++ )
   for( UInt uiFGS   = 0; uiFGS   < MAX_QUALITY_LEVELS;  uiFGS  ++ )
@@ -223,7 +266,14 @@ QualityLevelAssigner::go()
     RNOK( xDetermineQualityIDs() );
 
     //===== write output stream with quality levels =====
-    RNOK( xWriteQualityLayerStream() );
+    if( m_pcParameter->writeQualityLayerSEI() )
+    {
+      RNOK( xWriteQualityLayerStreamSEI() );
+    }
+    else
+    {
+      RNOK( xWriteQualityLayerStreamPID() );
+    }
   }
 
   printf("\n");
@@ -419,7 +469,7 @@ QualityLevelAssigner::xInitRateAndDistortion()
   RNOK( xInitRateValues() );
 
   //----- create temporarily distortion arrays -----
-  UInt  uiLayer, uiFGS, uiTLevel;
+  UInt  uiLayer, uiFGS, uiTLevel, uiFrame;
   UInt* aaaauiDistortionDep[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_DSTAGES+1];
   UInt* aaaauiDistortionInd[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_DSTAGES+1];
   for( uiLayer  = 0;  uiLayer   <  m_uiNumLayers;              uiLayer  ++ )
@@ -429,10 +479,16 @@ QualityLevelAssigner::xInitRateAndDistortion()
     ROFRS( ( aaaauiDistortionDep[uiLayer][uiFGS][uiTLevel] = new UInt [m_auiNumFrames[uiLayer]] ), Err::m_nOK );
     ROFRS( ( aaaauiDistortionInd[uiLayer][uiFGS][uiTLevel] = new UInt [m_auiNumFrames[uiLayer]] ), Err::m_nOK );
   }
+  for( uiLayer  = 0;  uiLayer   <  m_uiNumLayers;              uiLayer  ++ )
+  for( uiFrame  = 0;  uiFrame   <  m_auiNumFrames[uiLayer];    uiFrame  ++ )
+  {
+    m_aaadDeltaDist[uiLayer][0][uiFrame] = 100.0; // dummy value
+  }
 
 
-  Bool bDep = false;
-  Bool bInd = true;
+  Bool bDep = m_pcParameter->useDependentDistCalc   ();
+  Bool bInd = m_pcParameter->useIndependentDistCalc ();
+  ROF( bDep || bInd );
 
 
   //----- determine picture distortions -----
@@ -511,35 +567,35 @@ QualityLevelAssigner::xInitRateAndDistortion()
           //---- preceding level 1 picture -----
           if( uiKeyPicCount )
           {
-            dDistortionBaseDep += log10( aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiPicNum-uiStepSize2] ) / 2;
-            dDistortionEnhDep  += log10( aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiPicNum-uiStepSize2] ) / 2;
+            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiPicNum-uiStepSize2] ) / 2;
+            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiPicNum-uiStepSize2] ) / 2;
 
-            dDistortionBaseInd += log10( aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiPicNum-uiStepSize2] ) / 2;
-            dDistortionEnhInd  += log10( aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiPicNum-uiStepSize2] ) / 2;
+            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiPicNum-uiStepSize2] ) / 2;
+            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiPicNum-uiStepSize2] ) / 2;
           }
           //---- normal pictures -----
           UInt uiStartPicNum  = ( uiKeyPicCount   ?  uiPicNum - uiStepSize2 + 1 : 0 );
           UInt uiEndPicNum    = ( bLastKeyPicture ? m_auiNumFrames[uiLayer] - 1 : uiPicNum + uiStepSize2 - 1 );
           for( UInt uiCheckPicNum = uiStartPicNum; uiCheckPicNum <= uiEndPicNum; uiCheckPicNum++ )
           {
-            dDistortionBaseDep += log10( aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiCheckPicNum] );
-            dDistortionEnhDep  += log10( aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiCheckPicNum] );
+            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiCheckPicNum] );
+            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiCheckPicNum] );
 
-            dDistortionBaseInd += log10( aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiCheckPicNum] );
-            dDistortionEnhInd  += log10( aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiCheckPicNum] );
+            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiCheckPicNum] );
+            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiCheckPicNum] );
           }
           //---- following level 1 picture -----
           if( ! bLastKeyPicture )
           {
-            dDistortionBaseDep += log10( aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiPicNum+uiStepSize2] ) / 2;
-            dDistortionEnhDep  += log10( aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiPicNum+uiStepSize2] ) / 2;
+            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiPicNum+uiStepSize2] ) / 2;
+            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiPicNum+uiStepSize2] ) / 2;
 
-            dDistortionBaseInd += log10( aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiPicNum+uiStepSize2] ) / 2;
-            dDistortionEnhInd  += log10( aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiPicNum+uiStepSize2] ) / 2;
+            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiPicNum+uiStepSize2] ) / 2;
+            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiPicNum+uiStepSize2] ) / 2;
           }
-          m_aaadDeltaDist[uiLayer][uiFGS-1][puiPic2FNum[uiPicNum]] = 0;
-          m_aaadDeltaDist[uiLayer][uiFGS-1][puiPic2FNum[uiPicNum]]+= ( bDep ? dDistortionBaseDep - dDistortionEnhDep : 0 );
-          m_aaadDeltaDist[uiLayer][uiFGS-1][puiPic2FNum[uiPicNum]]+= ( bInd ? dDistortionBaseInd - dDistortionEnhInd : 0 );
+          m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]] = 0;
+          m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]]+= ( bDep ? dDistortionBaseDep - dDistortionEnhDep : 0 );
+          m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]]+= ( bInd ? dDistortionBaseInd - dDistortionEnhInd : 0 );
         }
       }
 
@@ -557,15 +613,15 @@ QualityLevelAssigner::xInitRateAndDistortion()
           UInt    uiEndPicNum     = min( uiPicNum + uiStepSize2, m_auiNumFrames[uiLayer] ) - 1;
           for( UInt uiCheckPicNum = uiStartPicNum; uiCheckPicNum <= uiEndPicNum; uiCheckPicNum++ )
           {
-            dDistortionBaseDep += log10( aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel-1][uiCheckPicNum] );
-            dDistortionEnhDep  += log10( aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
+            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel-1][uiCheckPicNum] );
+            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
 
-            dDistortionBaseInd += log10( aaaauiDistortionInd[uiLayer][uiFGS-1][uiTLevel  ][uiCheckPicNum] );
-            dDistortionEnhInd  += log10( aaaauiDistortionInd[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
+            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][uiTLevel  ][uiCheckPicNum] );
+            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][uiTLevel  ][uiCheckPicNum] );
           }
-          m_aaadDeltaDist[uiLayer][uiFGS-1][puiPic2FNum[uiPicNum]] = 0;
-          m_aaadDeltaDist[uiLayer][uiFGS-1][puiPic2FNum[uiPicNum]]+= ( bDep ? dDistortionBaseDep - dDistortionEnhDep : 0 );
-          m_aaadDeltaDist[uiLayer][uiFGS-1][puiPic2FNum[uiPicNum]]+= ( bInd ? dDistortionBaseInd - dDistortionEnhInd : 0 );
+          m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]] = 0;
+          m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]]+= ( bDep ? dDistortionBaseDep - dDistortionEnhDep : 0 );
+          m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]]+= ( bInd ? dDistortionBaseInd - dDistortionEnhInd : 0 );
         }
       }
     }
@@ -608,9 +664,9 @@ QualityLevelAssigner::xInitRateValues()
 
 
   //===== init values ======
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers;               uiLayer ++ )
-  for( UInt uiFGS   = 0; uiFGS   < m_auiNumFGSLayers[uiLayer];  uiFGS   ++ )
-  for( UInt uiFrame = 0; uiFrame < m_auiNumFrames   [uiLayer];  uiFrame ++ )
+  for( UInt uiLayer = 0; uiLayer <  m_uiNumLayers;               uiLayer ++ )
+  for( UInt uiFGS   = 0; uiFGS   <= m_auiNumFGSLayers[uiLayer];  uiFGS   ++ )
+  for( UInt uiFrame = 0; uiFrame <  m_auiNumFrames   [uiLayer];  uiFrame ++ )
   {
     m_aaauiPacketSize[uiLayer][uiFGS][uiFrame] = 0;
   }
@@ -636,14 +692,13 @@ QualityLevelAssigner::xInitRateValues()
     i64StartPos         = i64EndPos;
 
     //----- analyse packets -----
-    if( cPacketDescription.FGSLayer )
+    if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI )
     {
-      m_aaauiPacketSize[cPacketDescription.Layer][cPacketDescription.FGSLayer-1][auiFrameNum[cPacketDescription.Layer]] = uiPacketSize;
-    }
-    else if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
-             ! cPacketDescription.FGSLayer )
-    {
-      auiFrameNum[cPacketDescription.Layer]++;
+      if( cPacketDescription.FGSLayer == 0 )
+      {
+        auiFrameNum[cPacketDescription.Layer]++;
+      }
+      m_aaauiPacketSize[cPacketDescription.Layer][cPacketDescription.FGSLayer][auiFrameNum[cPacketDescription.Layer]] += uiPacketSize;
     }
 
     //----- delete bin data -----
@@ -1000,22 +1055,22 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
       //----- decode packet -----
       {
         //----- re-direct stdout -----
-  #if WIN32 // for linux, this have to be slightly re-formulated
+#if WIN32 // for linux, this have to be slightly re-formulated
         Int   orig_stdout     = _dup(1);
         FILE* stdout_copy     = freopen( tmp_file_name, "wt", stdout );
-  #endif
+#endif
         //----- decode -----
         RNOK( m_pcH264AVCDecoder->process( pcPicBuffer,
                                            cPicBufferOutputList,
                                            cPicBufferUnusedList,
                                            cPicBufferReleaseList ) );
         //---- restore stdout -----
-  #if WIN32 // for linux, this have to be slightly re-formulated
+#if WIN32 // for linux, this have to be slightly re-formulated
         fclose( stdout );
         _dup2( orig_stdout, 1 );
         _iob[1] = *fdopen( 1, "wt" );
         fclose(  fdopen( orig_stdout, "w" ) );
-  #endif
+#endif
       }
 
       //----- determine distortion (and output for debugging) -----
@@ -1115,9 +1170,9 @@ QualityLevelAssigner::xWriteDataFile( const std::string&  cFileName )
     return Err::m_nERR;
   }
 
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers;               uiLayer ++ )
-  for( UInt uiFGS   = 0; uiFGS   < m_auiNumFGSLayers[uiLayer];  uiFGS   ++ )
-  for( UInt uiFrame = 0; uiFrame < m_auiNumFrames   [uiLayer];  uiFrame ++ )
+  for( UInt uiLayer = 0; uiLayer <  m_uiNumLayers;               uiLayer ++ )
+  for( UInt uiFGS   = 0; uiFGS   <= m_auiNumFGSLayers[uiLayer];  uiFGS   ++ )
+  for( UInt uiFrame = 0; uiFrame <  m_auiNumFrames   [uiLayer];  uiFrame ++ )
   {
     fprintf( pFile,
              "%d  %d  %5d  %6d  %lf\n",
@@ -1156,9 +1211,9 @@ QualityLevelAssigner::xReadDataFile( const std::string&  cFileName )
                            &uiLayer, &uiFGS, &uiFrame, &uiPacketSize, &dDeltaDist );
     if( iNumRead == 5 )
     {
-      ROF( uiLayer < m_uiNumLayers );
-      ROF( uiFGS   < m_auiNumFGSLayers[uiLayer] );
-      ROF( uiFrame < m_auiNumFrames   [uiLayer] );
+      ROF( uiLayer <  m_uiNumLayers );
+      ROF( uiFGS   <= m_auiNumFGSLayers[uiLayer] );
+      ROF( uiFrame <  m_auiNumFrames   [uiLayer] );
       m_aaauiPacketSize [uiLayer][uiFGS][uiFrame]  = uiPacketSize;
       m_aaadDeltaDist   [uiLayer][uiFGS][uiFrame]  = dDeltaDist;
     }
@@ -1173,7 +1228,7 @@ QualityLevelAssigner::xReadDataFile( const std::string&  cFileName )
   UInt uiTargetPackets = 0;
   for( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
-    uiTargetPackets += m_auiNumFGSLayers[uiLayer] * m_auiNumFrames[uiLayer];
+    uiTargetPackets += ( 1 + m_auiNumFGSLayers[uiLayer] ) * m_auiNumFrames[uiLayer];
   }
   if( uiTargetPackets != uiNumPackets )
   {
@@ -1215,8 +1270,8 @@ QualityLevelAssigner::xDetermineQualityIDs()
 
     //----- initialize with packets -----
     {
-      for( UInt uiFGSLayer = 0; uiFGSLayer < m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
-      for( UInt uiFrame    = 0; uiFrame    < m_auiNumFrames   [uiLayer]; uiFrame   ++ )
+      for( UInt uiFGSLayer = 1; uiFGSLayer <= m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
+      for( UInt uiFrame    = 0; uiFrame    <  m_auiNumFrames   [uiLayer]; uiFrame   ++ )
       {
         RNOK( cQualityLevelEstimation.addPacket( uiFGSLayer, uiFrame,
                                                  m_aaauiPacketSize [uiLayer][uiFGSLayer][uiFrame],
@@ -1229,10 +1284,10 @@ QualityLevelAssigner::xDetermineQualityIDs()
 
     //----- assign quality levels -----
     {
-      for( UInt uiFGSLayer = 0; uiFGSLayer < m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
-      for( UInt uiFrame    = 0; uiFrame    < m_auiNumFrames   [uiLayer]; uiFrame   ++ )
+      for( UInt uiFGSLayer = 0; uiFGSLayer <= m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
+      for( UInt uiFrame    = 0; uiFrame    <  m_auiNumFrames   [uiLayer]; uiFrame   ++ )
       {
-        m_aaauiQualityID[uiLayer][uiFGSLayer][uiFrame] = cQualityLevelEstimation.getQualityLevel( uiFGSLayer, uiFrame );
+        m_aaauiQualityID[uiLayer][uiFGSLayer][uiFrame] = ( uiFGSLayer ? cQualityLevelEstimation.getQualityLevel( uiFGSLayer, uiFrame ) : 63 );
       }
     }
   }
@@ -1243,9 +1298,9 @@ QualityLevelAssigner::xDetermineQualityIDs()
 
 
 ErrVal
-QualityLevelAssigner::xWriteQualityLayerStream()
+QualityLevelAssigner::xWriteQualityLayerStreamPID()
 {
-  printf( "write stream with quality layer \"%s\" ...", m_pcParameter->getOutputBitStreamName().c_str() );
+  printf( "write stream with quality layer (PID) \"%s\" ...", m_pcParameter->getOutputBitStreamName().c_str() );
 
   BinData*          pcBinData     = 0;
   SEI::SEIMessage*  pcScalableSEI = 0;
@@ -1286,7 +1341,7 @@ QualityLevelAssigner::xWriteQualityLayerStream()
     //----- analyse packets -----
     if( cPacketDescription.FGSLayer )
     {
-      pcBinData->data()[1] |= ( m_aaauiQualityID[cPacketDescription.Layer][cPacketDescription.FGSLayer-1][auiFrameNum[cPacketDescription.Layer]] << 2 );
+      pcBinData->data()[1] |= ( m_aaauiQualityID[cPacketDescription.Layer][cPacketDescription.FGSLayer][auiFrameNum[cPacketDescription.Layer]] << 2 );
     }
     else
     {
@@ -1312,5 +1367,146 @@ QualityLevelAssigner::xWriteQualityLayerStream()
   RNOK( pcWriteBitStream->destroy () );
 
   printf("\n");
+  return Err::m_nOK;
+}
+
+
+
+ErrVal
+QualityLevelAssigner::xWriteQualityLayerStreamSEI()
+{
+  printf( "write stream with quality layer (SEI) \"%s\" ...", m_pcParameter->getOutputBitStreamName().c_str() );
+
+  UInt              uiNumAccessUnits  = 0;
+  UInt              uiPrevLayer       = 0;
+  UInt              uiPrevLevel       = 0;
+  BinData*          pcBinData         = 0;
+  SEI::SEIMessage*  pcScalableSEI     = 0;
+  PacketDescription cPacketDescription;
+  UInt              auiFrameNum[MAX_LAYERS] = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX };
+
+  //===== init =====
+  RNOK( m_pcH264AVCPacketAnalyzer->init() );
+  ReadBitstreamFile*    pcReadBitStream   = 0;
+  WriteBitstreamToFile* pcWriteBitStream  = 0;
+  RNOK( ReadBitstreamFile   ::create( pcReadBitStream  ) );
+  RNOK( WriteBitstreamToFile::create( pcWriteBitStream ) );
+  RNOK( pcReadBitStream ->init( m_pcParameter->getInputBitStreamName  () ) );
+  RNOK( pcWriteBitStream->init( m_pcParameter->getOutputBitStreamName () ) );
+
+
+  //===== loop over packets =====
+  while( true )
+  {
+    //----- read packet -----
+    Bool bEOS = false;
+    RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
+    if( bEOS )
+    {
+      break;
+    }
+
+    //----- get packet description -----
+    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
+    delete pcScalableSEI; pcScalableSEI = 0;
+
+    //----- set packet size -----
+    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+    {
+      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove trailing zeros
+    }
+
+    //----- detect first slice data of access unit -----
+    Bool bNewAccessUnit = ( !cPacketDescription.ParameterSet                &&
+                            !cPacketDescription.ApplyToNext                 &&
+                             cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
+                             cPacketDescription.FGSLayer    == 0U );
+    if(  bNewAccessUnit )
+    {
+      bNewAccessUnit  =                   ( cPacketDescription.Layer == 0 );
+      bNewAccessUnit  = bNewAccessUnit || ( cPacketDescription.Layer >= uiPrevLayer && cPacketDescription.Level >  uiPrevLevel );
+      bNewAccessUnit  = bNewAccessUnit || ( cPacketDescription.Layer == uiPrevLayer && cPacketDescription.Level == uiPrevLevel );
+      bNewAccessUnit  = bNewAccessUnit || ( cPacketDescription.Layer <  uiPrevLayer );
+    }
+
+    //----- insert quality layer SEI and increase frame number -----
+    if( bNewAccessUnit )
+    {
+      for( UInt uiLayer = cPacketDescription.Layer; uiLayer < m_uiNumLayers; uiLayer++ )
+      {
+        auiFrameNum[uiLayer]++;
+        xInsertQualityLayerSEI( pcWriteBitStream, uiLayer, auiFrameNum[uiLayer] );
+      }
+      uiNumAccessUnits++;
+    }
+
+    //----- write and delete bin data -----
+    RNOK( pcWriteBitStream->writePacket   ( &m_cBinDataStartCode ) );
+    RNOK( pcWriteBitStream->writePacket   ( pcBinData ) );
+    RNOK( pcReadBitStream ->releasePacket ( pcBinData ) );
+
+    //----- update previous layer information -----
+    uiPrevLayer = cPacketDescription.Layer;
+    uiPrevLevel = cPacketDescription.Level;
+  }
+
+  
+  //===== uninit =====
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+  RNOK( pcReadBitStream ->uninit  () );
+  RNOK( pcWriteBitStream->uninit  () );
+  RNOK( pcReadBitStream ->destroy () );
+  RNOK( pcWriteBitStream->destroy () );
+
+
+  printf(" (%d AU's)\n", uiNumAccessUnits );
+  return Err::m_nOK;
+}
+
+
+
+ErrVal
+QualityLevelAssigner::xInsertQualityLayerSEI( WriteBitstreamToFile* pcWriteBitStream,
+                                              UInt                  uiLayer,
+                                              UInt                  uiFrameNum )
+{
+  //===== init binary data =====
+  const UInt          uiQLSEIMessageBufferSize = 1024;
+  UChar               aucQLSEIMessageBuffer[uiQLSEIMessageBufferSize];
+  BinData             cBinData;
+  ExtBinDataAccessor  cExtBinDataAccessor;
+  cBinData.reset          ();
+  cBinData.set            ( aucQLSEIMessageBuffer, uiQLSEIMessageBufferSize );
+  cBinData.setMemAccessor ( cExtBinDataAccessor );
+
+  //===== create SEI message =====
+  SEI::QualityLevelSEI* pcQualityLevelSEI;
+  SEI::MessageList      cSEIMessageList;
+  RNOK( SEI::QualityLevelSEI::create( pcQualityLevelSEI ) );
+  cSEIMessageList.push_back( pcQualityLevelSEI );
+
+  //===== set content of SEI message =====
+  UInt uiNumLayers;
+  for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers++ )
+  {
+    pcQualityLevelSEI->setQualityLevel          ( uiNumLayers,       m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] );
+    pcQualityLevelSEI->setDeltaBytesRateOfLevel ( uiNumLayers,       m_aaauiPacketSize [uiLayer][uiNumLayers][uiFrameNum] );
+  }
+  pcQualityLevelSEI->setDependencyId            ( uiLayer );
+  pcQualityLevelSEI->setNumLevel                ( uiNumLayers );
+
+  //===== encode SEI message =====
+  UInt uiBits = 0;
+  RNOK( m_pcNalUnitEncoder->initNalUnit ( &cExtBinDataAccessor ) );
+  RNOK( m_pcNalUnitEncoder->write       ( cSEIMessageList ) );
+  RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+
+  //===== write SEI message =====
+  RNOK( pcWriteBitStream->writePacket( &m_cBinDataStartCode ) );
+  RNOK( pcWriteBitStream->writePacket( &cExtBinDataAccessor ) );
+
+  //===== reset =====
+  cBinData.reset();
+
   return Err::m_nOK;
 }

@@ -190,6 +190,10 @@ double psnr( ColorComponent& rec, ColorComponent& org, int rec_x, int rec_y )
     pOrg   += org.width;
   }
 
+  if( ssd == 0.0 )
+  {
+    return 99.99;
+  }
   return ( 10.0 * log10( (double)rec.width * (double)rec.height * 65025.0 / ssd ) );
 }
 

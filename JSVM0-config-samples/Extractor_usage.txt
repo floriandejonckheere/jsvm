@@ -1,0 +1,60 @@
+
+Usage of the extractor
+
+
+JSVM version: JSVM_3_2
+
+PLEASE NOTE: The current extractor does not work when the base layer is AVC-compatible. Will be fixed soon.  
+
+1. To display the extracting opitons and simple usage
+Command: < extract >
+
+The following 3 options are supported (currently no meaningful combinations are supported):
+-l, -b, -t
+
+2. To display the information of contained scalable layers
+Command: < extract instream > 
+// instream is the file name (including path is needed) of the scalable bitsream
+Example: DTQ represents (Dependency_id, Temporal_level and Quality_level)
+
+       Layer   Resolution   Framerate    Bitrate      DTQ
+         0     176x144       3.7500     106.00     (0,0,0)
+         1     176x144       3.7500     206.00     (0,0,1)
+         2     176x144       3.7500     341.00     (0,0,2)
+         3     176x144       7.5000     430.00     (0,1,0)
+         4     176x144       7.5000     454.00     (0,1,1)
+         5     176x144       7.5000     508.00     (0,1,2)
+         6     176x144      15.0000     594.00     (0,2,0)
+         7     176x144      15.0000     631.00     (0,2,1)
+         8     176x144      15.0000     721.00     (0,2,2)
+         9     352x288       3.7500     666.00     (1,0,0)
+        10     352x288       3.7500    1010.00     (1,0,1)
+        11     352x288       7.5000    1364.00     (1,1,0)
+        12     352x288       7.5000    1454.00     (1,1,1)
+        13     352x288      15.0000    1838.00     (1,2,0)
+        14     352x288      15.0000    1963.00     (1,2,1)
+        15     352x288      30.0000    2192.00     (1,3,0)
+        16     352x288      30.0000    2358.00     (1,3,1)
+
+3. To extract according to scalable layer number
+Command: <extract instream outstream -l n> 
+// n is the layer number of the scalable layer, outstream is the file name (including 
+// path is needed) of the extracted bitsream
+Example: <extract instream outstream -l 10> will extract the layer 10 as in the above example. 
+
+4. To extract according to a target bitrate
+Command: < extract instream outstream -b br>
+// br is the target bitrate. The extraction process is as follows. 
+// 1) If there is a layer having a bitrate exactly equal to br, that layer is extracted. 
+//    Otherwise go to step 2. 
+// 2) The layer A having a bitrate smaller than but closest to br is found. If layer A is
+//    the highest layer, layer A is extracted. Otherwise, go to step 3. 
+// 3) If the next higher layer B to layer A is not a FGS layer, then layer A is extracted. 
+//    Otherise go to step 4.
+// 4) If the bitrate of layer B is greater than br, layer B is truncated to br. Otherwise,
+//    let layer A be replaced with layer B, and go to step 3.    
+
+5. To extract according to temporal_level
+Command: <extract instream outstream -t tl>
+// tl is the target temporal level. The extraction will extract all layers with 
+// temporal_level <= tl.

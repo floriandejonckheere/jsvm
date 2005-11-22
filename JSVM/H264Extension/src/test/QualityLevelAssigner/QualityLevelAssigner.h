@@ -89,8 +89,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCDecoderLib.h"
 #include "CreaterH264AVCDecoder.h"
 #include "H264AVCEncoderLib.h"
-#include "CreaterH264AVCEncoder.h"
 #include "QualityLevelEstimation.h"
+#include "../src/lib/H264AVCEncoderLib/BitCounter.h"
+#include "../src/lib/H264AVCEncoderLib/BitWriteBuffer.h"
+#include "../src/lib/H264AVCEncoderLib/UvlcWriter.h"
+#include "../src/lib/H264AVCEncoderLib/NalUnitEncoder.h"
 
 class ReadBitstreamFile;
 class WriteBitstreamToFile;
@@ -112,50 +115,60 @@ public:
 
 protected:
   //====== initialization ======
-  ErrVal          xInitStreamParameters   ();
+  ErrVal          xInitStreamParameters       ();
 
   //====== picture buffer and NAL unit handling ======
-  ErrVal          xGetNewPicBuffer        ( PicBuffer*&         rpcPicBuffer,
-                                            UInt                uiSize );
-  ErrVal          xRemovePicBuffer        ( PicBufferList&      rcPicBufferUnusedList );
-  ErrVal          xClearPicBufferLists    ();
-  ErrVal          xGetNextValidPacket     ( BinData*&           rpcBinData,
-                                            ReadBitstreamFile*  pcReadBitStream,
-                                            UInt                uiLayer,
-                                            UInt                uiFGSLayer,
-                                            UInt                uiLevel,
-                                            Bool                bIndependent,
-                                            Bool&               rbEOS,
-                                            UInt*               auiFrameNum );
+  ErrVal          xGetNewPicBuffer            ( PicBuffer*&           rpcPicBuffer,
+                                                UInt                  uiSize );
+  ErrVal          xRemovePicBuffer            ( PicBufferList&        rcPicBufferUnusedList );
+  ErrVal          xClearPicBufferLists        ();
+  ErrVal          xGetNextValidPacket         ( BinData*&             rpcBinData,
+                                                ReadBitstreamFile*    pcReadBitStream,
+                                                UInt                  uiLayer,
+                                                UInt                  uiFGSLayer,
+                                                UInt                  uiLevel,
+                                                Bool                  bIndependent,
+                                                Bool&                 rbEOS,
+                                                UInt*                 auiFrameNum );
 
   //====== get rate and distortion ======
-  ErrVal          xInitRateAndDistortion  ();
-  ErrVal          xInitRateValues         ();
-  ErrVal          xInitDistortion         ( UInt*               auiDistortion,
-                                            UInt                uiLayer,
-                                            UInt                uiFGSLayer,
-                                            UInt                uiLevel      = MSYS_UINT_MAX,
-                                            Bool                bIndependent = false );
-  ErrVal          xGetDistortion          ( UInt&               ruiDistortion,
-                                            const UChar*        pucReconstruction,
-                                            const UChar*        pucReference,
-                                            UInt                uiHeight,
-                                            UInt                uiWidth,
-                                            UInt                uiStride );
+  ErrVal          xInitRateAndDistortion      ();
+  ErrVal          xInitRateValues             ();
+  ErrVal          xInitDistortion             ( UInt*                 auiDistortion,
+                                                UInt                  uiLayer,
+                                                UInt                  uiFGSLayer,
+                                                UInt                  uiLevel      = MSYS_UINT_MAX,
+                                                Bool                  bIndependent = false );
+  ErrVal          xGetDistortion              ( UInt&                 ruiDistortion,
+                                                const UChar*          pucReconstruction,
+                                                const UChar*          pucReference,
+                                                UInt                  uiHeight,
+                                                UInt                  uiWidth,
+                                                UInt                  uiStride );
 
   //====== read from and write to data file =====
-  ErrVal          xWriteDataFile          ( const std::string&  cFileName );
-  ErrVal          xReadDataFile           ( const std::string&  cFileName );
+  ErrVal          xWriteDataFile              ( const std::string&    cFileName );
+  ErrVal          xReadDataFile               ( const std::string&    cFileName );
 
   //====== determine and write quality id's =====
-  ErrVal          xDetermineQualityIDs    ();
-  ErrVal          xWriteQualityLayerStream();
+  ErrVal          xDetermineQualityIDs        ();
+  ErrVal          xWriteQualityLayerStreamPID ();
+  ErrVal          xWriteQualityLayerStreamSEI ();
+  ErrVal          xInsertQualityLayerSEI      ( WriteBitstreamToFile* pcWriteBitStream,
+                                                UInt                  uiLayer,
+                                                UInt                  uiFrameNum );
 
 
 private:
   QualityLevelParameter*        m_pcParameter;
   h264::H264AVCPacketAnalyzer*  m_pcH264AVCPacketAnalyzer;
   h264::CreaterH264AVCDecoder*  m_pcH264AVCDecoder;
+  // for SEI writing
+  h264::BitCounter*             m_pcBitCounter;
+  h264::BitWriteBuffer*         m_pcBitWriteBuffer;
+  h264::UvlcWriter*             m_pcUvlcWriter;
+  h264::UvlcWriter*             m_pcUvlcTester;
+  h264::NalUnitEncoder*         m_pcNalUnitEncoder;
 
   Bool                          m_bOutputReconstructions;
   UInt                          m_uiNumLayers;

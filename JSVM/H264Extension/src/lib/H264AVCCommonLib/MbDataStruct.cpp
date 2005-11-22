@@ -276,7 +276,7 @@ MbDataStruct::upsampleMotion( const MbDataStruct& rcMbDataStruct, Par8x8 ePar8x8
   {
     m_eMbMode = INTRA_4X4;
   }
-  else if ( rcMbDataStruct.m_eMbMode == MODE_8x8 )
+  else if ( rcMbDataStruct.m_eMbMode == MODE_8x8 || rcMbDataStruct.m_eMbMode == MODE_8x8ref0 )
   {
     switch( rcMbDataStruct.m_aBlkMode[ePar8x8] )
     {
@@ -307,7 +307,7 @@ MbDataStruct::is8x8TrafoFlagPresent() const // only for MCTF case (skip mode)
   ROTRS( m_eMbMode == INTRA_BL, true  );
   ROTRS( m_eMbMode > INTRA_4X4, false );
 
-  if( m_eMbMode == MODE_8x8 )
+  if( m_eMbMode == MODE_8x8 || m_eMbMode == MODE_8x8ref0 )
   {
     for( UInt n = 0; n < 4; n++ )
     {

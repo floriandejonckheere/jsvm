@@ -85,7 +85,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 int main(int argc, char **argv)
 {
-  printf( "JSVM Quality Assigner (HHI version)\n\n\n" );
+  printf( "JSVM Quality Assigner (v 0.1)\n\n" );
+  printf( "Info: This tool relies on the scalable SEI message\n"
+          "      This tool assumes a fixed GOP size (non-AGS) throughout a sequence\n\n\n" );
 
   QualityLevelParameter*  pcParameter = 0;
   RNOKR( QualityLevelParameter::create( pcParameter ),            -1 );

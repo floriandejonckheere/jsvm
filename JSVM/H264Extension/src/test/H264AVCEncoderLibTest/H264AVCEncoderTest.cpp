@@ -564,7 +564,11 @@ H264AVCEncoderTest::ScalableDealing()
 	fclose(f);
 	fflush(f);
 	std::string cCommandLineString;
+#if WIN32
 	cCommandLineString += "del ";
+#else
+  cCommandLineString += "rm ";
+#endif
 	cCommandLineString += m_acWriteToBitFileTempName;
 	int iResult = system( cCommandLineString.c_str() );
 	return Err::m_nOK;

@@ -90,7 +90,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 QualityLevelParameter::QualityLevelParameter()
-: m_uiDataFileMode(0)
+: m_uiDataFileMode              ( 0 )
+, m_uiDistortionEstimationMode  ( 3 )
+, m_bQualityLayerSEI            ( false )
 {
 }
 
@@ -116,9 +118,9 @@ QualityLevelParameter::init( Int argc, Char** argv )
   
   for( Int iArg = 1; iArg < argc; iArg++ )
   {
-    if( !(iArg+1<argc) || !strcmp( argv[iArg], "-in" ) )
+    if( !strcmp( argv[iArg], "-in" ) )
     {
-      if( ! m_cInputBitStreamName.empty() )
+      if( !(iArg+1<argc) || ! m_cInputBitStreamName.empty() )
       {
         bError  = true;
         break;
@@ -169,6 +171,28 @@ QualityLevelParameter::init( Int argc, Char** argv )
       m_uiDataFileMode  = 1;
       m_cDataFileName   = argv[++iArg];
     }
+    else if( !strcmp( argv[iArg], "-ind" ) )
+    {
+      if( m_uiDistortionEstimationMode != 3 )
+      {
+        bError = true;
+        break;
+      }
+      m_uiDistortionEstimationMode  = 1;
+    }
+    else if( !strcmp( argv[iArg], "-dep" ) )
+    {
+      if( m_uiDistortionEstimationMode != 3 )
+      {
+        bError = true;
+        break;
+      }
+      m_uiDistortionEstimationMode  = 2;
+    }
+    else if( !strcmp( argv[iArg], "-sei" ) )
+    {
+      m_bQualityLayerSEI = true;
+    }
     else
     {
       bError = true;
@@ -211,13 +235,20 @@ QualityLevelParameter::init( Int argc, Char** argv )
 ErrVal
 QualityLevelParameter::xPrintUsage( Char** argv )
 {
-  printf("Usage: QualityLevelAssigner -in Input -org L Original [-out Output | -wp DatFile]\n" );
-  printf("or     QualityLevelAssigner -in Input -out Output -rp DatFile\n\n" );
+  printf("Usage: QualityLevelAssigner -in Input -org L Original [-org L Original]\n"
+         "                           [-out Output [-sei] | -wp DatFile] [-dep | -ind]\n" );
+  printf("or     QualityLevelAssigner -in Input -out Output -rp DatFile [-sei]\n\n" );
   printf("  -in  Input      - input bit-stream\n");
   printf("  -out Output     - output bit-stream with determined quality layer id's\n");
   printf("  -org L Original - original image sequence for layer L\n");
   printf("  -wp  DatFile    - data file for storing rate and distortion values\n");
-  printf("  -rp  DatFile    - data file with previously computed rate and distortion values\n\n");
+  printf("  -rp  DatFile    - data file with previously computed rate and\n"
+         "                    distortion values\n");
+  printf("  -sei            - provide quality layer info using SEI mesages\n");
+  printf("  -dep            - determine only dependent distortions\n"
+         "                    (speed-up by factor of 2, slight coding eff. losses)\n");
+  printf("  -ind            - determine only independent distortions\n"
+         "                    (speed-up by factor of 2, slight coding eff. losses)\n\n");
   ROTS(1);
 }
 

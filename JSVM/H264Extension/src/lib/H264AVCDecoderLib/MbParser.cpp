@@ -666,6 +666,13 @@ ErrVal MbParser::xReadReferenceFrames( MbDataAccess& rcMbDataAccess, MbMode eMbM
         }
         break;
       }
+    case MODE_8x8ref0:
+      {
+        rcMbMotionData.setRefIdx( 1 );
+        pcRefPic = rcSliceHeader.getRefPic( rcMbMotionData.getRefIdx(), eLstIdx ).getFrame();
+        rcMbMotionData.setRefPic( pcRefPic );
+        break;
+      }
     default:
       {
         AOT(1);
@@ -826,6 +833,11 @@ ErrVal MbParser::xReadReferenceFramesNoRefPic( MbDataAccess& rcMbDataAccess, MbM
         }
         break;
       }
+    case MODE_8x8ref0:
+      {
+        rcMbMotionData.setRefIdx( 1 );
+        break;
+      }
     default:
       {
         AOT(1);
@@ -930,6 +942,7 @@ ErrVal MbParser::xReadMotionPredFlags( MbDataAccess&  rcMbDataAccess,
         break;
       }
     case MODE_8x8:
+    case MODE_8x8ref0:
       {
         for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
         {
@@ -1007,6 +1020,7 @@ ErrVal MbParser::xReadMotionVectors( MbDataAccess& rcMbDataAccess, MbMode eMbMod
       return Err::m_nOK;
     }
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
@@ -1071,6 +1085,7 @@ ErrVal MbParser::xReadMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx e
       return Err::m_nOK;
     }
   case MODE_8x8:
+  case MODE_8x8ref0:
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {

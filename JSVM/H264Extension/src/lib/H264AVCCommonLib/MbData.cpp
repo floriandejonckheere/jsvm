@@ -365,12 +365,12 @@ MbData::xInitESS(MbData* rcBaseMbData,
     Int aiBaseMb[2],aiBaseCenter[2],aidBorder[2],aidBorderplus1[2];
 
     aiBaseCenter[0]  = ((aiPelOrig[0]+8)*pcParameters->m_iInWidth + pcParameters->m_iInWidth/2) / pcParameters->m_iOutWidth; 
-    aidBorder[0]     =(((8*(aiBaseCenter[0]>>3))*pcParameters->m_iOutWidth + pcParameters->m_iInWidth/2) / pcParameters->m_iInWidth ) - (aiPelOrig[0]+8);
-    aidBorderplus1[0]=(((8*((aiBaseCenter[0]>>3)+1))*pcParameters->m_iOutWidth + pcParameters->m_iInWidth/2) / pcParameters->m_iInWidth ) - (aiPelOrig[0]+8);
+    aidBorder[0]     = ( (8*(aiBaseCenter[0]>>3)-aiBaseCenter[0])*pcParameters->m_iOutWidth + pcParameters->m_iInWidth/2 ) / pcParameters->m_iInWidth; // HS (bug fix by Thomson)
+    aidBorderplus1[0]= ( (8+8*(aiBaseCenter[0]>>3)-aiBaseCenter[0])*pcParameters->m_iOutWidth + pcParameters->m_iInWidth/2 ) / pcParameters->m_iInWidth; // HS (bug fix by Thomson)
 
     aiBaseCenter[1]  = ((aiPelOrig[1]+8)*pcParameters->m_iInHeight + pcParameters->m_iInHeight/2) / pcParameters->m_iOutHeight; 
-    aidBorder[1]     =(((8*(aiBaseCenter[1]>>3))*pcParameters->m_iOutHeight + pcParameters->m_iInHeight/2) / pcParameters->m_iInHeight ) - (aiPelOrig[1]+8);
-    aidBorderplus1[1]=(((8*((aiBaseCenter[1]>>3)+1))*pcParameters->m_iOutHeight + pcParameters->m_iInHeight/2) / pcParameters->m_iInHeight ) - (aiPelOrig[1]+8);
+    aidBorder[1]     = ( (8*(aiBaseCenter[1]>>3)-aiBaseCenter[1])*pcParameters->m_iOutHeight + pcParameters->m_iInHeight/2 ) / pcParameters->m_iInHeight; // HS (bug fix by Thomson)
+    aidBorderplus1[1]= ( (8+8*(aiBaseCenter[1]>>3)-aiBaseCenter[1])*pcParameters->m_iOutHeight + pcParameters->m_iInHeight/2 ) / pcParameters->m_iInHeight; // HS (bug fix by Thomson)
 
 
     for(UInt uiDim=0; uiDim<2; uiDim++)

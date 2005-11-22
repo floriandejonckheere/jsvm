@@ -3145,8 +3145,6 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
   //===== residual data =====
   if( bBaseDataAvailable )
   {
-    // if RECONSTRUCTION BYPASS ?????  ===> zero intra macroblocks ?????
-
     RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual ) );
     // TMM_ESS 
     m_pcBaseLayerResidual->upsampleResidual(m_cDownConvert, m_pcResizeParameters, pcBaseDataCtrl, false);
@@ -5125,9 +5123,9 @@ MCTFEncoder::xCalculateAndAddPSNR( PicBufferList& rcPicBufferInputList,
 
       Double fRefValueY = 255.0 * 255.0 * 16.0 * 16.0 * (Double)m_uiMbNumber;
       Double fRefValueC = fRefValueY / 4.0;
-      dYPSNR            = 10.0 * log10( fRefValueY / (Double)uiSSDY );
-      dUPSNR            = 10.0 * log10( fRefValueC / (Double)uiSSDU );
-      dVPSNR            = 10.0 * log10( fRefValueC / (Double)uiSSDV );
+      dYPSNR            = ( uiSSDY ? 10.0 * log10( fRefValueY / (Double)uiSSDY ) : 99.99 );
+      dUPSNR            = ( uiSSDU ? 10.0 * log10( fRefValueC / (Double)uiSSDU ) : 99.99 );
+      dVPSNR            = ( uiSSDV ? 10.0 * log10( fRefValueC / (Double)uiSSDV ) : 99.99 );
     }
 
     //===== add PSNR =====
@@ -5221,11 +5219,11 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 		}
 		else
 		{
-			dBits = m_adSeqBitsFGS [uiLevel-1];
 			for( uiLayer = 0; uiLayer <= m_uiLayerId; uiLayer++ )
 			for( uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
 			{
-				dBits += m_aaauidSeqBits[uiLayer][uiLevel][uiFGS];
+        dBits  = aaadCurrBits   [uiLayer][uiLevel-1][uiFGS]; // HS: fix
+				dBits += m_aaauidSeqBits[uiLayer][uiLevel  ][uiFGS];
 				aaadCurrBits[uiLayer][uiLevel][uiFGS] = dBits;
 			}
 		}
@@ -5233,8 +5231,8 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 	if( m_uiLayerId == 0 )
 	{
 		printf( " \n\n\nSUMMARY:\n" );
-		printf( "                       " " SNR Level" " bitrate " "   Y-PSNR " "   U-PSNR " "   V-PSNR \n" );
-		printf( "                       " " ---------" " --------" " ---------" " ---------" " ---------\n" );
+		printf( "                       " " SNR Level" " bitrate " "   Y-PSNR" "   U-PSNR" "   V-PSNR\n" );
+		printf( "                       " " ---------" " --------" " --------" " --------" " --------\n" );
 	}
   for( uiStage = uiMinStage; uiStage <= uiMaxStage; uiStage++ )
   {
@@ -5246,14 +5244,26 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 			Double dBitrate = aaadCurrBits[m_uiLayerId][uiStage][uiFGS] * dScale;
 			rdOutputFramerate[ uiIndex ] = dFps;
 			rdOutputBitrate[ uiIndex ] = dBitrate;
-			printf( " %9s @ %7.4lf" " %10.4lf" " %10.4lf" " %8.4lf" " %8.4lf" " %8.4lf" "\n",
-				acResolution,
-				dFps,
-				(Double)uiFGS,
-				dBitrate,
-				m_adPSNRSumY	[uiStage],
-				m_adPSNRSumU	[uiStage],
-				m_adPSNRSumV	[uiStage] );
+
+      if( uiFGS == m_dNumFGSLayers )
+      {
+			  printf( " %9s @ %7.4lf" " %10.4lf" " %10.4lf" " %8.4lf" " %8.4lf" " %8.4lf" "\n",
+				  acResolution,
+				  dFps,
+				  (Double)uiFGS,
+				  dBitrate,
+				  m_adPSNRSumY	[uiStage],
+				  m_adPSNRSumU	[uiStage],
+				  m_adPSNRSumV	[uiStage] );
+      }
+      else
+      {
+			  printf( " %9s @ %7.4lf" " %10.4lf" " %10.4lf" "\n",
+				  acResolution,
+				  dFps,
+				  (Double)uiFGS,
+				  dBitrate );
+      }
 		}
 	}
 
