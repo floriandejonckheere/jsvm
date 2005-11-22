@@ -197,3 +197,4 @@ private:
 
 
 #endif // _QUALITY_LEVEL_ESTIMATION_H
+

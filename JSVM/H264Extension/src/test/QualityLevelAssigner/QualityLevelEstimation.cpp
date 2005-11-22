@@ -570,3 +570,4 @@ QualityLevelEstimation::getQualityLevel( UInt uiFGSLayer,
 
   return m_aacFGSPacketEntry[uiFGSLayer][uiFrameNumInCodingOrder].getQualityLevel();
 }
+
