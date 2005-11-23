@@ -101,7 +101,6 @@ H264AVCEncoderTest::H264AVCEncoderTest() :
   ::memset( m_auiHeight,    0x00, MAX_LAYERS*sizeof(UInt) );
   ::memset( m_auiWidth,     0x00, MAX_LAYERS*sizeof(UInt) );
   ::memset( m_auiStride,    0x00, MAX_LAYERS*sizeof(UInt) );
-  strcpy( m_acWriteToBitFileTempName, "temp.svc" );
 }
 
 
@@ -150,6 +149,9 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 
 
   //===== init bitstream writer =====
+  Char acTempName[1024];
+  sprintf( acTempName, "%s.temp", m_cEncoderIoParameter.pBitstreamFile );
+  strcpy( m_acWriteToBitFileTempName, acTempName );
   RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) )
 	strcpy( m_acWriteToBitFileName, m_cEncoderIoParameter.pBitstreamFile );
 	strcpy( m_cEncoderIoParameter.pBitstreamFile, m_acWriteToBitFileTempName );
@@ -568,6 +570,15 @@ H264AVCEncoderTest::ScalableDealing()
 	cCommandLineString += "del ";
 #else
   cCommandLineString += "rm ";
+#endif
+#if WIN32
+  for( UInt uiPos = 0; uiPos < strlen( m_acWriteToBitFileTempName ); uiPos++ )
+  {
+    if( m_acWriteToBitFileTempName[uiPos] == '/' )
+    {
+      m_acWriteToBitFileTempName[uiPos] = '\\';
+    }
+  }
 #endif
 	cCommandLineString += m_acWriteToBitFileTempName;
 	int iResult = system( cCommandLineString.c_str() );

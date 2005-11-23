@@ -340,8 +340,8 @@ ErrVal H264AVCDecoderTest::go()
     }
     //~JVT-P031
     
-if(bToDecode)//JVT-P031
-{
+  if(bToDecode)//JVT-P031
+  {
     // get new picture buffer if required if coded Slice || coded IDR slice
     pcPicBuffer = NULL;
     

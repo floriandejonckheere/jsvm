@@ -126,12 +126,13 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_iScaledBaseRightOffset            ( 0 ) 
 , m_iScaledBaseBottomOffset           ( 0 ) 
 //TMM_ESS_UNIFIED }
-,m_uiBaseChromaPhaseXPlus1            ( 1 ) // TMM_ESS
-,m_uiBaseChromaPhaseYPlus1            ( 1 ) // TMM_ESS
+, m_uiBaseChromaPhaseXPlus1           ( 1 ) // TMM_ESS
+, m_uiBaseChromaPhaseYPlus1           ( 1 ) // TMM_ESS
 , m_bArFgsUsageFlag                   ( false )
 , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
 , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
 , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
+, m_uiFragmentOrder                   ( 0 )
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );

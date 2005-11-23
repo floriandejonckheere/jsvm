@@ -2556,6 +2556,7 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setSliceHeaderQp               ( 0                     );
   // Currently hard-coded
   pcSliceHeader->setNumMbsInSlice               ( m_uiMbNumber          );
+  pcSliceHeader->setFragmentOrder               ( 0 );
 
   //===== set prediction and update list sizes =====
   {

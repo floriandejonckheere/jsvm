@@ -881,7 +881,6 @@ ErrVal UvlcReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx c
 }
 
 
-
 ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess )
 {
   UInt uiTemp;

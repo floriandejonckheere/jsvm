@@ -981,6 +981,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
       if( bFirst )
       {
         RNOK( pcReadBitStream->setPosition( iPos ) );
+        bFirst = false;
       }
       RNOK( xGetNextValidPacket( apcBinDataTmp[uiFragmentNumber], pcReadBitStream, uiLayer, uiFGSLayer, uiLevel, bIndependent, bEOS, auiFrameNumDecoding ) );
       ::memcpy( auiFrameNumAnalysis, auiFrameNumDecoding, MAX_LAYERS*sizeof(UInt) );
