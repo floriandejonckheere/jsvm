@@ -97,7 +97,7 @@ PocCalculator::PocCalculator()
   , m_iBitsLsb            ( 0 )
   , m_iTop2BotOffset      ( 1 )
   , m_iPrevRefPocMsb      ( 0 )
-  , m_iPrevRefPocLsb      ( 0 )
+  , m_iPrevRefPocLsb      ( -1) //--ICU/ETRI FMO Implementation
   , m_iMaxPocLsb          ( 0 )
   , m_iFrameNumOffset     ( 0 )
   , m_iRefOffsetSum       ( 0 )

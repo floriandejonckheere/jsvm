@@ -153,9 +153,12 @@ public:
 
   ErrVal        copyBaseResidualAvailFlags( MbDataCtrl& rcSrcMbDataCtrl );
 
+  //--ICU/ETRI FMO Implementation
+  const Int MbDataCtrl::getSliceGroupIDofMb(Int mb);
+
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
-  const MbData& xGetRefMbData( UInt uiSliceId, Int iMbY, Int iMbX, Bool bLoopFilter );
+  const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter ); 
   const MbData& xGetColMbData( UInt uiIndex );
 
   ErrVal xCreateData( UInt uiSize );

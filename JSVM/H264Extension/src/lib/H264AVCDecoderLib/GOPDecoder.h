@@ -229,6 +229,15 @@ public:
  //===== ESS ============
   ErrVal			        fillPredictionLists_ESS( ResizeParameters *pcResizeParameters ); 
 
+  DPBUnit*            getCurrDPBUnit(){return        m_pcCurrDPBUnit;};
+  ErrVal                 initPicBuffer(PicBuffer*&    rpcPicBuffer);
+  ErrVal              initPicCurrDPBUnit( DPBUnit*&                   rpcCurrDPBUnit,
+                                          PicBuffer*&                 rpcPicBuffer,
+                                          Bool                        bResidual,
+                                          SliceHeader*                pcSliceHeader,
+                                          PicBufferList&              rcOutputList,
+                                          PicBufferList&              rcUnusedList );
+
 protected:
   ErrVal              xCreateData         ( UInt                        uiMaxPicsInDPB,
                                             const SequenceParameterSet& rcSPS );
@@ -407,6 +416,9 @@ protected:
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
   ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer );
 
+  Bool isPictureDecComplete(SliceHeader* rpcSliceHeader);
+  const Bool isNewPictureStart(SliceHeader* rpcSliceHeader);
+  ErrVal InitWhenNewPictureStart(SliceHeader* pcSliceHeader, MbDataCtrl*   pcMbDataCtrl);
 
 protected:
   //----- references -----
@@ -461,6 +473,8 @@ protected:
 #if MULTIPLE_LOOP_DECODING
   Bool                m_bCompletelyDecodeLayer;
 #endif
+  
+  Int m_iMbProcessed;
 };
 
 H264AVC_NAMESPACE_END

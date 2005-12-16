@@ -92,6 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/TraceFile.h"
 #include <math.h>
 
+#include "H264AVCCommonLib/CFMO.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -1069,6 +1070,30 @@ DecodedPicBuffer::xDumpRefList( ListIdx       eListIdx,
 
 
 ErrVal
+DecodedPicBuffer::initPicCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
+                                   PicBuffer*&    rpcPicBuffer,
+                                   Bool           bResidual,  //--TM this variable should be removed
+                                   SliceHeader*   pcSliceHeader,
+                                   PicBufferList& rcOutputList,
+                                   PicBufferList& rcUnusedList )
+{
+    ROF( m_bInitDone );
+
+  //===== insert pic buffer in list =====
+  m_cPicBufferList.push_back( rpcPicBuffer );
+  rpcPicBuffer = 0;
+
+  SliceHeader* pcOldSH = m_pcCurrDPBUnit->getCtrlData().getSliceHeader();
+  delete pcOldSH;
+  m_pcCurrDPBUnit->getCtrlData().clear();
+  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->reset();
+  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->clear();
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
 DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
                                    PicBuffer*&    rpcPicBuffer,
                                    SliceHeader*   pcSliceHeader,
@@ -1077,10 +1102,7 @@ DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
 {
   ROF( m_bInitDone );
 
-  //===== insert pic buffer in list =====
-  m_cPicBufferList.push_back( rpcPicBuffer );
-  rpcPicBuffer = 0;
-
+  
   //===== check missing pictures =====
   RNOK( xCheckMissingPics( pcSliceHeader, rcOutputList, rcUnusedList ) );
 
@@ -1093,12 +1115,7 @@ DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
                                pcSliceHeader->getPPS().getConstrainedIntraPredFlag() ) );
   ROT( pcSliceHeader->getKeyPictureFlag() && !pcSliceHeader->getNalRefIdc() ); // just a check
   m_pcCurrDPBUnit->getFrame()->setPOC       ( pcSliceHeader->getPoc() );
-  SliceHeader* pcOldSH = m_pcCurrDPBUnit->getCtrlData().getSliceHeader();
-  delete pcOldSH;
-  m_pcCurrDPBUnit->getCtrlData().clear();
   m_pcCurrDPBUnit->getCtrlData().setSliceHeader( pcSliceHeader );
-  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->reset();
-  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->clear();
 
   //===== set DPB unit =====
   rpcCurrDPBUnit = m_pcCurrDPBUnit;
@@ -1288,6 +1305,7 @@ MCTFDecoder::MCTFDecoder()
 , m_bCompletelyDecodeLayer        ( false )
 #endif
 , m_pcResizeParameter             ( 0 ) //TMM_ESS
+, m_iMbProcessed                           (-1) //--ICU/ETRI FMO Implementation
 {
   ::memset( m_apcFrameTemp, 0x00, sizeof( m_apcFrameTemp ) );
 
@@ -1393,6 +1411,8 @@ MCTFDecoder::init( H264AVCDecoder*      pcH264AVCDecoder,
   m_pcCurrDPBUnit                 = 0;
 
   m_uiLayerId                     = 0;
+
+  m_iMbProcessed                  = -1;
 
   return Err::m_nOK;
 }
@@ -2050,6 +2070,10 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
     m_aapcFGSRecon[0][uiLayerIdx]->copy(m_aapcFGSRecon[1][uiLayerIdx]);
 
   //===== init =====
+  if(isNewPictureStart(rpcSliceHeader))
+    RNOK( m_pcDecodedPictureBuffer->initPicCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, 0, rpcSliceHeader,
+                                                     rcOutputList, rcUnusedList ) );
+
   RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, rpcSliceHeader,
                                                    rcOutputList, rcUnusedList ) );
   RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData() ) );
@@ -2069,6 +2093,9 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   Bool          bReconstructAll = bReconstructionLayer || !bConstrainedIP;
 #endif
   
+  if(isNewPictureStart(rpcSliceHeader))
+    m_iMbProcessed =0;
+
   //----- initialize reference lists -----
   RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );
 
@@ -2097,6 +2124,10 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
                                                 m_uiFrameWidthInMb,
                                                 uiMbRead ) );
 
+  m_iMbProcessed += uiMbRead;
+
+  if(isPictureDecComplete(rpcSliceHeader)) //--TM prob
+  {
   //----- store in decoded picture buffer -----
   if( bKeyPicture )
   {
@@ -2125,9 +2156,10 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   rpcSliceHeader = 0;
 
   //----- init FGS decoder -----
-  //if( m_uiQualityLevelForPrediction > 0 )
-  {
-    RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+    if( m_uiQualityLevelForPrediction > 0 )  //--TM problem : in jsvm40, this sentance is commented
+    {
+      RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+    }
   }
 
   m_aapcFGSRecon[1][0]->copy(pcBaseRepFrame);
@@ -2138,6 +2170,22 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 
 
 
+Bool MCTFDecoder::isPictureDecComplete(SliceHeader* rpcSliceHeader)
+{
+  Bool bPictureComplete ;
+  if(m_iMbProcessed  == rpcSliceHeader->getMbInPic())
+	  bPictureComplete = true;
+  else 
+	  bPictureComplete = false;
+  return bPictureComplete;
+}
+
+
+const Bool MCTFDecoder::isNewPictureStart(SliceHeader* rpcSliceHeader)
+{
+  if(m_iMbProcessed ==-1 || (m_iMbProcessed  == rpcSliceHeader->getMbInPic()) )  return true;
+  else return false;
+}
 
 
 // TMM_ESS {

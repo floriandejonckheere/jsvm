@@ -87,6 +87,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/SliceHeaderBase.h"
 #include "H264AVCCommonLib/TraceFile.h"
 
+#include "H264AVCCommonLib/CFMO.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -120,6 +121,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bAdaptiveRefPicBufferingModeFlag  ( false )
 , m_uiCabacInitIdc                    ( 0 )
 , m_iSliceQpDelta                     ( 0 )
+, m_pcFMO                             ( 0 ) //--ICU/ETRI FMO Implementation
 //TMM_ESS_UNIFIED {
 , m_iScaledBaseLeftOffset             ( 0 ) 
 , m_iScaledBaseTopOffset              ( 0 ) 
@@ -141,6 +143,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 
 SliceHeaderBase::~SliceHeaderBase()
 {
+  if(m_pcFMO !=NULL)
+	  m_pcFMO->finit();
 }
 
 
@@ -298,6 +302,11 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     RNOK( getDeblockingFilterParameter().write( pcWriteIf ) );
   }
 
+  if(getPPS().getNumSliceGroupsMinus1()>0 && getPPS().getSliceGroupMapType() >=3 && getPPS().getSliceGroupMapType() <= 5)
+  {    
+    RNOK(     pcWriteIf->writeCode( m_uiSliceGroupChangeCycle, getPPS().getLog2MaxSliceGroupChangeCycle(getSPS().getMbInFrame()) ,                "SH: slice_group_change_cycle" ) );
+  }
+
 // TMM_ESS {
   if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
   {
@@ -422,6 +431,11 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
   if( getPPS().getDeblockingFilterParametersPresentFlag() )
   {
     RNOK( getDeblockingFilterParameter().write( pcWriteIf ) );
+  }
+
+  if(getPPS().getNumSliceGroupsMinus1()>0 && getPPS().getSliceGroupMapType() >=3 && getPPS().getSliceGroupMapType() <= 5)
+  {    
+    RNOK(     pcWriteIf->writeCode( m_uiSliceGroupChangeCycle, getPPS().getLog2MaxSliceGroupChangeCycle(getSPS().getMbInFrame()) ,                "SH: slice_group_change_cycle" ) );
   }
 
   return Err::m_nOK;
@@ -558,6 +572,14 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     RNOK( getDeblockingFilterParameter().read( pcReadIf ) );
   }
 
+  UInt uiSliceGroupChangeCycle;
+  if( getPPS().getNumSliceGroupsMinus1()> 0  && getPPS().getSliceGroupMapType() >= 3  &&  getPPS().getSliceGroupMapType() <= 5)
+  {
+	  UInt pictureSizeInMB = getSPS().getFrameHeightInMbs()*getSPS().getFrameWidthInMbs();
+	  RNOK(     pcReadIf->getCode( uiSliceGroupChangeCycle, getLog2MaxSliceGroupChangeCycle(pictureSizeInMB), "SH: slice_group_change_cycle" ) ); 
+	  setSliceGroupChangeCycle(uiSliceGroupChangeCycle);
+  }
+
 // TMM_ESS {
   if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
   {
@@ -619,8 +641,12 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
   
   RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
                                getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-  RNOK(     pcReadIf->getSvlc( iTmp,                                         "SH: delta_pic_order_cnt_bottom" ) );
-  ROT ( iTmp );
+
+  if(getPPS().getPicOrderPresentFlag() == true)
+  {
+	  RNOK(     pcReadIf->getSvlc( iTmp,                                         "SH: delta_pic_order_cnt_bottom" ) );
+	  ROT ( iTmp );
+  }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -682,6 +708,18 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
     RNOK( getDeblockingFilterParameter().read( pcReadIf ) );
   }
 
+  //--ICU/ETRI FMO Implementation
+  UInt uiSliceGroupChangeCycle;
+  if( getPPS().getNumSliceGroupsMinus1()> 0  && getPPS().getSliceGroupMapType() >= 3  &&  getPPS().getSliceGroupMapType() <= 5)
+  {
+	  UInt pictureSizeInMB = getSPS().getFrameHeightInMbs()*getSPS().getFrameWidthInMbs();
+
+	  RNOK(     pcReadIf->getCode( uiSliceGroupChangeCycle, getLog2MaxSliceGroupChangeCycle(pictureSizeInMB), "SH: slice_group_change_cycle" ) );
+ 
+	   
+	  setSliceGroupChangeCycle(uiSliceGroupChangeCycle);
+  }
+
   return Err::m_nOK;
 }
 
@@ -720,6 +758,55 @@ SliceHeaderBase::DeblockingFilterParameter::read( HeaderSymbolReadIf* pcReadIf )
 }
 
 
+//--ICU/ETRI FMO Implementation
+ErrVal 
+SliceHeaderBase::FMOInit()
+{
+		
+	if(m_pcFMO == NULL)
+		m_pcFMO = new FMO();
+	else
+	{
+		m_pcFMO->finit();
+		m_pcFMO = new FMO();
+	}
+
+	const SequenceParameterSet* pcSPS = &(getSPS());
+	const PictureParameterSet* pcPPS = &(getPPS());
+
+	m_pcFMO->img_.field_pic_flag = false;  //interlaced TODO
+
+	m_pcFMO->pps_.num_slice_groups_minus1 = pcPPS->getNumSliceGroupsMinus1();
+	m_pcFMO->pps_.slice_group_map_type = pcPPS->getSliceGroupMapType();
+	m_pcFMO->img_.PicHeightInMapUnits = pcSPS->getFrameHeightInMbs(); 
+	m_pcFMO->img_.PicWidthInMbs = pcSPS->getFrameWidthInMbs();
+	m_pcFMO->img_.PicSizeInMbs = pcSPS->getFrameHeightInMbs()*pcSPS->getFrameWidthInMbs();
+	m_pcFMO->img_.slice_group_change_cycle = getSliceGroupChangeCycle();
+	m_pcFMO->pps_.num_slice_group_map_units_minus1 = pcPPS->getNumSliceGroupMapUnitsMinus1();	  
+	m_pcFMO->pps_.copy_run_length_minus1(pcPPS->getArrayRunLengthMinus1());
+	m_pcFMO->pps_.copy_top_left(pcPPS->getArrayTopLeft());
+	m_pcFMO->pps_.copy_bottom_right(pcPPS->getArrayBottomRight());
+	m_pcFMO->pps_.slice_group_change_direction_flag = pcPPS->getSliceGroupChangeDirection_flag();
+	m_pcFMO->pps_.slice_group_change_rate_minus1 = pcPPS->getSliceGroupChangeRateMinus1();
+	m_pcFMO->pps_.copy_slice_group_id(pcPPS->getArraySliceGroupId());
+
+	m_pcFMO->sps_.pic_height_in_map_units_minus1 =pcSPS->getFrameHeightInMbs()-1;
+	m_pcFMO->sps_.pic_width_in_mbs_minus1 = pcSPS->getFrameWidthInMbs()-1;
+	m_pcFMO->sps_.frame_mbs_only_flag = 1; // interlaced TODO
+	m_pcFMO->sps_.mb_adaptive_frame_field_flag = 0; //
+
+	m_pcFMO->init(&(m_pcFMO->pps_),&(m_pcFMO->sps_));
+
+	m_pcFMO->StartPicture();
+
+	return Err::m_nOK;
+}
+
+Int SliceHeaderBase::getNumMbInSlice()
+{  
+	Int SliceID =m_pcFMO->getSliceGroupId(getFirstMbInSlice());
+	return m_pcFMO->getNumMbInSliceGroup(SliceID);
+}
 
 H264AVC_NAMESPACE_END
 

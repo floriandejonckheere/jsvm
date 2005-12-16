@@ -90,6 +90,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/FrameMng.h"
 #include "H264AVCCommonLib/Transform.h"
 
+#include "H264AVCCommonLib/CFMO.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -215,7 +216,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 
 
   //===== loop over macroblocks =====
-  for( ; uiMbAddress <= uiLastMbAddress; uiMbAddress++ )
+  for( ; uiMbAddress <= uiLastMbAddress; ) //--ICU/ETRI FMO Implementation
   {
     ETRACE_NEWMB( uiMbAddress );
 
@@ -268,6 +269,8 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     {
       pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
     }
+
+    uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
   }
   
   ruiBits += m_pcMbCoder->getBitCount() - uiBits;
@@ -306,8 +309,10 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
   UInt          uiLastMbAddress     = rcSliceHeader.getLastMbInSlice  ();
   UInt          uiBits              = m_pcMbCoder ->getBitCount       ();
 
+  if(uiMbAddress == -1) return Err::m_nOK;
+
   //===== loop over macroblocks =====
-  for( ; uiMbAddress <= uiLastMbAddress; uiMbAddress++ )
+  for(  ; uiMbAddress <= uiLastMbAddress;  ) //--ICU/ETRI FMO Implementation
   {
     ETRACE_NEWMB( uiMbAddress );
 
@@ -334,6 +339,8 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
                                                 pcMbDataAccessBase,
                                                 iSpatialScalabilityType,
                                                 ( uiMbAddress == uiLastMbAddress ) ) );
+
+    uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
   }
   
   ruiBits += m_pcMbCoder->getBitCount() - uiBits;
@@ -377,7 +384,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
   cZeroBuffer.setAllSamplesToZero();
 
   //===== loop over macroblocks =====
-  for( ruiMbCoded = 0; uiMbAddress <= uiLastMbAddress; uiMbAddress++ )
+  for(  ruiMbCoded = 0; uiMbAddress <= uiLastMbAddress;  ) //--ICU/ETRI FMO Implementation
   {
     ETRACE_NEWMB( uiMbAddress );
 
@@ -437,6 +444,8 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
 
       RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
     }
+
+    uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress);
   }
 
 

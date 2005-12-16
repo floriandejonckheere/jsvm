@@ -103,7 +103,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-
+#include <math.h>
+class FMO;
 
 #if defined( WIN32 )
 # pragma warning( disable: 4275 )
@@ -518,6 +519,11 @@ public:
   const DeblockingFilterParameter&  getDeblockingFilterParameter  ()  const { return m_cDeblockingFilterParameter; }
   DeblockingFilterParameter&        getDeblockingFilterParameter  ()        { return m_cDeblockingFilterParameter; }
 
+  UInt  getLog2MaxSliceGroupChangeCycle(UInt uiPicSizeInMapUnits) const {return UInt(ceil( (log ( uiPicSizeInMapUnits*(getPPS().getSliceGroupChangeRateMinus1()+1.)+ 1. ))/log(2.) ));};
+  UInt  getSliceGroupChangeCycle() const {return m_uiSliceGroupChangeCycle;}
+  FMO*  getFMO() const { return  m_pcFMO;}
+  Int getNumMbInSlice();
+
   UInt                              getBaseWeightZeroBaseBlock()            { return m_uiBaseWeightZeroBaseBlock;     }
   UInt                              getBaseWeightZeroBaseCoeff()            { return m_uiBaseWeightZeroBaseCoeff;     }
 
@@ -596,6 +602,8 @@ public:
 
   Void setBaseLayerUsesConstrainedIntraPred( Bool b ) { m_bBaseLayerUsesConstrainedIntraPred = b; }
 
+  Void  setSliceGroupChangeCycle(UInt uiSliceGroupChangeCycle){m_uiSliceGroupChangeCycle = uiSliceGroupChangeCycle;};
+  ErrVal FMOInit();
 
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
@@ -637,6 +645,9 @@ protected:
   UInt                        m_uiCabacInitIdc;
   Int                         m_iSliceQpDelta;
   DeblockingFilterParameter   m_cDeblockingFilterParameter;
+
+  UInt                        m_uiSliceGroupChangeCycle;
+  FMO*                        m_pcFMO;
 
   Bool                        m_bBaseLayerUsesConstrainedIntraPred;
 

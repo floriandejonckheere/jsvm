@@ -172,6 +172,7 @@ public:
 };
 
 
+const unsigned CodParMAXNumSliceGroupsMinus1 =8; // the same as MAXNumSliceGroupsMinus1 in pictureParameter.h
 
 
 
@@ -267,6 +268,24 @@ public:
 
   Bool                            getUseDiscardable                 () const {return m_bUseDiscardable;} //JVT-P031
   Double                          getPredFGSRate                    () const {return m_dPredFGSRate;} //JVT-P031
+  
+  //--ICU/ETRI FMO Implementation :  FMO start 
+  UInt          getNumSliceGroupsMinus1() const {return m_uiNumSliceGroupsMinus1;}  //for test
+  UInt          getSliceGroupMapType() const {return  m_uiSliceGroupMapType;  }
+  Bool          getSliceGroupChangeDirection_flag () const {return m_bSliceGroupChangeDirection_flag;}
+  UInt          getSliceGroupChangeRateMinus1 () const {return m_uiSliceGroupChangeRateMinus1;}
+  UInt          getNumSliceGroupMapUnitsMinus1() const {return m_uiNumSliceGroupMapUnitsMinus1;}
+  UInt          getSliceGroupId(Int i) const {return m_uiSliceGroupId[i];}
+  UInt          getSliceMode() const {return m_uiSliceMode;}
+  UInt          getSliceArgument() const { return m_uiSliceArgument ;}
+  Char*         getSliceGroupConfigFileName() const{ return (Char*) m_acSliceGroupConfigFileName;}
+  UInt          getUseRedundantSlice() const { return m_uiUseRedundantSlice;}
+  UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}  
+  UInt*         getArrayTopLeft () const {return (UInt*)m_uiTopLeft;}
+  UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
+  UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
+  //--ICU/ETRI FMO Implementation : FMO end
+
   //===== set =====
   Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
   Void setFrameWidth                      (UInt   p) { m_uiFrameWidth                     = p; }
@@ -316,6 +335,9 @@ public:
 // TMM_ESS }
   //===== check =====
   ErrVal  check();
+
+//--ICU/ETRI FMO Implementation
+  Void setSliceGroupId(int i, UInt value) { m_uiSliceGroupId[i] = value;}
 
   Void                            setLowPassEnhRef        ( Double d )   
   {
@@ -393,6 +415,22 @@ public:
   Double                    m_dLowPassEnhRef;
   UInt                      m_uiBaseWeightZeroBaseBlock;
   UInt                      m_uiBaseWeightZeroBaseCoeff;
+
+  //--ICU/ETRI FMO Implementation : FMO start
+  UInt         m_uiNumSliceGroupsMinus1;  
+  UInt         m_uiSliceGroupMapType;  
+  UInt         m_uiRunLengthMinus1[CodParMAXNumSliceGroupsMinus1];  
+  UInt         m_uiTopLeft[CodParMAXNumSliceGroupsMinus1];
+  UInt         m_uiBottomRight[CodParMAXNumSliceGroupsMinus1];
+  Bool         m_bSliceGroupChangeDirection_flag;
+  UInt         m_uiSliceGroupChangeRateMinus1;
+  UInt         m_uiNumSliceGroupMapUnitsMinus1;
+  UInt         m_uiSliceGroupId[CodParMAXNumSliceGroupsMinus1];
+  UInt         m_uiSliceMode;
+  UInt         m_uiSliceArgument;
+  Char		   m_acSliceGroupConfigFileName[256];
+  UInt         m_uiUseRedundantSlice;
+  //--ICU/ETRI FMO Implementation : FMO end
 
   //JVT-P031
   Bool                      m_bUseDiscardable; //indicate if discardable stream is coded for this layer 

@@ -95,6 +95,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "SliceReader.h"
 #include "DecError.h"
 
+#include "H264AVCCommonLib/CFMO.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -172,7 +173,7 @@ ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
   Bool  bEndOfSlice       = false;
 
   //===== loop over macroblocks =====
-  for( ruiMbRead = 0; !bEndOfSlice; uiMbAddress++ )
+  for(  ruiMbRead = 0; !bEndOfSlice; ruiMbRead++ ) //--ICU/ETRI FMO Implementation
   {
     DTRACE_NEWMB( uiMbAddress );
     MbDataAccess* pcMbDataAccess;
@@ -180,7 +181,10 @@ ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
     RNOK( m_pcControlMng->initMbForParsing( pcMbDataAccess, uiMbAddress ) );
 
     DECRNOK( m_pcMbParser->process( *pcMbDataAccess, bEndOfSlice) );
-    ruiMbRead++;
+
+    //--ICU/ETRI FMO Implementation
+    uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
+
   }
 
   return Err::m_nOK;
@@ -208,7 +212,7 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
   RNOK( pcMbDataCtrl->initSlice( rcSH, PARSE_PROCESS, true, NULL ) );
 
   //===== loop over macroblocks =====
-  for( ruiMbRead = 0; !bEndOfSlice; uiMbAddress++ )
+  for( ruiMbRead = 0; !bEndOfSlice; ) //--ICU/ETRI FMO Implementation  
   {
     DTRACE_NEWMB( uiMbAddress );
 
@@ -227,8 +231,14 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
                                             iSpatialScalabilityType,
                                             bEndOfSlice  ) );
     ruiMbRead++;
+
+    //--ICU/ETRI FMO Implementation
+    uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
+
   }
-  ROF( ruiMbRead == uiNumMbInPic );
+
+  //--ICU/ETRI FMO Implementation
+  ROF( ruiMbRead == rcSH.getNumMbInSlice());
 
   return Err::m_nOK;
 }
@@ -345,6 +355,9 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
   if(uiFragOrder == 0) //JVT-P031
       RNOK( rpcSH->read( m_pcHeaderReadIf ) );    
 
+  //--ICU/ETRI FMO Implementation 
+  rpcSH->FMOInit();
+  rpcSH->setLastMbInSlice(rpcSH->getFMO()->getLastMBInSliceGroup(rpcSH->getFMO()->getSliceGroupId(uiFirstMbInSlice)));
 
   return Err::m_nOK;
 }

@@ -1113,13 +1113,19 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
   Bool  bNewFrame;
   Bool  bNewPic;
 
-  
+  Bool bVeryFirstSlice=false;  
+
   //===== set some basic parameters =====
   if( NULL == m_pcVeryFirstSliceHeader )
   {
     m_pcVeryFirstSliceHeader  = new SliceHeader( rcSH.getSPS(), rcSH.getPPS() );
-  }
 
+    //--ICU/ETRI FMO Implementation
+    m_pcVeryFirstSliceHeader->FMOInit();  
+    bVeryFirstSlice= true;   
+ 
+  }
+  
   
   printf("  Frame %4d ( LId 0, TL X, QL 0, AVC-%c, BId-1, AP 0, QP%3d )\n",
     rcSH.getPoc                    (),
@@ -1190,7 +1196,11 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
     RNOK( m_pcFrameMng->storePicture( rcSH ) );
 
     //===== init FGS decoder =====
-    RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
+    if( m_uiQualityLevelForPrediction > 0 )
+    {
+      //--ICU/ETRI FMO Implementation
+      RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
+    }
   }
 
   if( m_bFrameDone )

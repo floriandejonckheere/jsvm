@@ -88,6 +88,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/FrameUnit.h"
 
+#include "H264AVCCommonLib/CFMO.h"
 #include <math.h>
 
 H264AVC_NAMESPACE_BEGIN
@@ -469,13 +470,16 @@ const MbData& MbDataCtrl::xGetColMbData( UInt uiIndex )
   return (( m_pcMbDataCtrl0L1 == NULL ) ? xGetOutMbData() : m_pcMbDataCtrl0L1->getMbData( uiIndex ));
 }
 
-const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId, Int iMbY, Int iMbX, Bool bLoopFilter )
+const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter )
 {
   // check whether ref mb is inside
   ROTRS( iMbX < 0,               xGetOutMbData() );
   ROTRS( iMbY < 0,               xGetOutMbData() );
   ROTRS( iMbX >= m_iMbPerLine,   xGetOutMbData() );
   ROTRS( iMbY >= m_iMbPerColumn, xGetOutMbData() );
+
+  //--ICU/ETRI FMO Implementation
+  ROTRS( uiCurrSliceID != getSliceGroupIDofMb(iMbY * m_uiMbStride + iMbX + m_uiMbOffset ) , xGetOutMbData() );
 
   // get the ref mb data
   const MbData& rcMbData = getMbData( iMbY * m_uiMbStride + iMbX + m_uiMbOffset );
@@ -530,12 +534,14 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 
   Bool bColocatedField = ( m_pcMbDataCtrl0L1 == NULL) ? true : m_pcMbDataCtrl0L1->isPicCodedField();
 
+  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset);
+
   m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess(
                                        rcMbDataCurr,                                      // current
-                                       xGetRefMbData( uiSliceId, uiMbY,   uiMbX-1, bLf ), // left
-                                       xGetRefMbData( uiSliceId, uiMbY-1, uiMbX  , bLf ), // above
-                                       xGetRefMbData( uiSliceId, uiMbY-1, uiMbX-1, bLf ), // above left
-                                       xGetRefMbData( uiSliceId, uiMbY-1, uiMbX+1, bLf ), // above right
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left        //--ICU/ETRI FMO Implementation
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above       //--ICU/ETRI FMO Implementation
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left  //--ICU/ETRI FMO Implementation
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf ), // above right //--ICU/ETRI FMO Implementation
                                        xGetOutMbData(),                                   // unvalid
                                        xGetColMbData( uiCurrIdx ),
                                        *m_pcSliceHeader,
@@ -842,6 +848,17 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
     ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x04 :0;
   }
   return Err::m_nOK;
+}
+
+const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
+{
+  Int iRefSliceID ;
+  if(m_pcSliceHeader->getFMO() != NULL)
+	iRefSliceID =m_pcSliceHeader->getFMO()->getSliceGroupId(mb );
+  else
+	iRefSliceID =-1;
+
+  return iRefSliceID ;
 }
 
 H264AVC_NAMESPACE_END

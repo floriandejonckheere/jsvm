@@ -92,6 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/Transform.h"
 #include "H264AVCCommonLib/IntFrame.h"
 
+#include "H264AVCCommonLib/CFMO.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -160,12 +161,21 @@ SliceDecoder::process( const SliceHeader& rcSH, Bool bReconstructAll, UInt uiMbR
 {
   ROF( m_bInitDone );
 
+  //====== initialization ======
+  UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
+
   //===== loop over macroblocks =====
-  for( UInt uiMbAddress = rcSH.getFirstMbInSlice(); uiMbRead; uiMbAddress++, uiMbRead-- )
+  for( ; uiMbRead; uiMbRead--) //--ICU/ETRI FMO Implementation 
   {
+
     MbDataAccess* pcMbDataAccess;
+
+    //RNOK( pcMbDataCtrl  ->initMb            (  pcMbDataAccess, uiMbY, uiMbX ) ); //--TM problem
     RNOK( m_pcControlMng->initMbForDecoding(  pcMbDataAccess, uiMbAddress ) );
     RNOK( m_pcMbDecoder ->process          ( *pcMbDataAccess, bReconstructAll ) );
+
+    //--ICU/ETRI FMO Implementation
+    uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
   }
 
   return Err::m_nOK;
@@ -190,10 +200,12 @@ SliceDecoder::decode( SliceHeader&   rcSH,
   ROF( m_bInitDone );
 
   //====== initialization ======
+  UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
+
   RNOK( pcMbDataCtrl->initSlice( rcSH, DECODE_PROCESS, true, NULL ) );
 
   //===== loop over macroblocks =====
-  for( UInt uiMbAddress = rcSH.getFirstMbInSlice(); uiMbRead; uiMbAddress++, uiMbRead-- )
+  for( ; uiMbRead; )  //--ICU/ETRI FMO Implementation  //  for( UInt uiMbAddress = rcSH.getFirstMbInSlice(); uiMbRead; uiMbAddress++, uiMbRead-- )
   {
     UInt          uiMbY               = uiMbAddress / uiMbInRow;
     UInt          uiMbX               = uiMbAddress % uiMbInRow;
@@ -217,6 +229,12 @@ SliceDecoder::decode( SliceHeader&   rcSH,
                                               pcRefFrameList0,
                                               pcRefFrameList1,
                                               bReconstructAll ) );
+
+   uiMbRead--;
+
+   //--ICU/ETRI FMO Implementation
+	 uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
+
   }
 
   return Err::m_nOK;

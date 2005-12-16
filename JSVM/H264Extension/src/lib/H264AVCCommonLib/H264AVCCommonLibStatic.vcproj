@@ -164,6 +164,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\CFMO.cpp">
+			</File>
+			<File
 				RelativePath="FGSCoder.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">

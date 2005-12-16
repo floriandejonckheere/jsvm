@@ -1270,6 +1270,18 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setPicScalingMatrixPresentFlag           ( false );
     pcPPSHP->set2ndChromaQpIndexOffset                ( 0 );
 
+	  //--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSHP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSHP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSHP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSHP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSHP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSHP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSHP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSHP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSHP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
+
     if( ! rcLayerParameters.getContrainedIntraForLP() )
     {
       pcPPSLP->setNalUnitType                           ( pcPPSHP->getNalUnitType                           ()  );
@@ -1287,6 +1299,17 @@ H264AVCEncoder::xInitParameterSets()
       pcPPSLP->set2ndChromaQpIndexOffset                ( pcPPSHP->get2ndChromaQpIndexOffset                ()  );
     }
 
+  	//--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSLP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSLP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSLP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSLP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSLP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSLP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSLP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSLP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSLP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
 
     //===== initialization using parameter sets =====
     RNOK( m_pcControlMng->initParameterSets( *pcSPS, *pcPPSLP, *pcPPSHP ) );

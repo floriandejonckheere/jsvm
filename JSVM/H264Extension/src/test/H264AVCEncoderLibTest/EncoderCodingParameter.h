@@ -227,6 +227,8 @@ protected:
   ErrVal  xReadLine( FILE* hFile, Char paacTag[4][256] );
   ErrVal  xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0 );
   ErrVal  xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0, Void* pvP1 );
+
+  ErrVal xReadSliceGroupCfg(h264::LayerParameters&  rcLayer );
 };
 
 
@@ -710,6 +712,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   Char *pcInfile  = cInfile;
   Char *pcOutfile = cOutfile;
   Char *pcMotfile = cMotfile;
+  Char *pcSlcGrpCfgFileNm = rcLayer.m_acSliceGroupConfigFileName;
+
+  //--ICU/ETRI FMO Implementation
+  UInt bSliceGroupChangeDirection_flag;
 
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceWidth",    &(rcLayer.m_uiFrameWidth),               176       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",   &(rcLayer.m_uiFrameHeight),              352       );
@@ -748,6 +754,14 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("EnhRefME",       &(rcLayer.m_dLowPassEnhRef),              0.5 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroBlock",&(rcLayer.m_uiBaseWeightZeroBaseBlock),          2       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroCoeff",&(rcLayer.m_uiBaseWeightZeroBaseCoeff),          14       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceMode",      &(rcLayer.m_uiSliceMode),                             0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",  &(rcLayer.m_uiSliceArgument),                        50       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumSlicGrpMns1", &(rcLayer.m_uiNumSliceGroupsMinus1),                  0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpMapType",  &(rcLayer.m_uiSliceGroupMapType),                     2       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgDrFlag",&(bSliceGroupChangeDirection_flag),         0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgRtMus1",&(rcLayer.m_uiSliceGroupChangeRateMinus1),           85       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineCStr("SlcGrpCfgFileNm",&pcSlcGrpCfgFileNm,                               "sgcfg.cfg" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice),                     0       );
   m_pLayerLines[uiParLnCount] = NULL;
 
   // SSUN@SHARP reset ResizeParameters
@@ -818,11 +832,94 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   }
 // TMM_ESS }
 
+  //--ICU/ETRI FMO Implementation : FMO stuff start
+  rcLayer.m_bSliceGroupChangeDirection_flag = bSliceGroupChangeDirection_flag;
+  RNOK( xReadSliceGroupCfg( rcLayer)); //Slice group configuration file
+  //--ICU/ETRI FMO Implementation : FMO stuff end
+
   ::fclose(f);
 
   return Err::m_nOK;
 }
 
+ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLayer )
+{
+	int frame_mb_only;
+	int mapunit_height;
+	int mb_height;
+	int i;
+	int mb_width;
+ 	FILE* sgfile=NULL;
 
+	if( (rcLayer.getNumSliceGroupsMinus1()!=0)&&
+		((rcLayer.getSliceGroupMapType() == 0) || (rcLayer.getSliceGroupMapType() == 2) || (rcLayer.getSliceGroupMapType() == 6)) )
+	{ 
+		if (strlen (rcLayer.getSliceGroupConfigFileName()) > 0 && (sgfile=fopen(rcLayer.getSliceGroupConfigFileName(),"r"))==NULL)
+		{
+			printf("Error open file %s", rcLayer.getSliceGroupConfigFileName());
+		}
+		else
+		{
+			if (rcLayer.getSliceGroupMapType() == 0) 
+			{
+				for(i=0;i<=rcLayer.getNumSliceGroupsMinus1();i++)
+				{
+					fscanf(sgfile,"%d",(rcLayer.getArrayRunLengthMinus1()+i));
+					fscanf(sgfile,"%*[^\n]");
+
+				}
+			}
+			else if (rcLayer.getSliceGroupMapType() == 2)
+			{
+				// every two lines contain 'top_left' and 'bottom_right' value
+				for(i=0;i<rcLayer.getNumSliceGroupsMinus1();i++)
+				{
+					fscanf(sgfile,"%d",(rcLayer.getArrayTopLeft()+i));
+					fscanf(sgfile,"%*[^\n]");
+					fscanf(sgfile,"%d",(rcLayer.getArrayBottomRight()+i));
+					fscanf(sgfile,"%*[^\n]");
+				}
+
+			}
+			else if (rcLayer.getSliceGroupMapType()== 6)
+			{
+				//--ICU/ETRI
+				//TODO : currently map type 6 is partially supported 
+				// Assume that only frame mode(no interlaced mode) is available
+				// Assume that Frame cropping is not avaliable
+
+				int tmp;
+
+				/*
+				frame_mb_only = !(input->getPicInterlace() || input->getMbInterlace());
+				mb_width= (input->get_img_width()+img->get_auto_crop_right())/16;
+				mb_height= (input->get_img_height()+img->get_auto_crop_bottom())/16;
+				mapunit_height=mb_height/(2-frame_mb_only);
+				*/
+
+				
+				mb_width= (rcLayer.getFrameWidth())/16;
+				mb_height= (rcLayer.getFrameHeight())/16;
+				mapunit_height=mb_height;
+
+
+				// each line contains slice_group_id for one Macroblock
+				for (i=0;i<mapunit_height*mb_width;i++)
+				{
+					fscanf(sgfile,"%d", &tmp);
+					//input->set_slice_group_id_ith( i, (unsigned) tmp);
+					rcLayer.setSliceGroupId(i,(UInt)tmp);
+					assert(*(rcLayer.getArraySliceGroupId()+i) <= rcLayer.getNumSliceGroupsMinus1() );
+					fscanf(sgfile,"%*[^\n]");
+				}
+
+			}
+			fclose(sgfile);
+
+		}
+	}
+	return Err::m_nOK;
+
+}
 
 #endif // !defined(AFX_ENCODERCODINGPARAMETER_H__145580A5_E0D6_4E9C_820F_EA4EF1E1B793__INCLUDED_)
