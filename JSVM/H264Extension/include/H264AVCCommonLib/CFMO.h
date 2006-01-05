@@ -134,7 +134,7 @@ public :
 
 public:
 	
-	FMO():MbToSliceGroupMap_(null),MapUnitToSliceGroupMap_(null),numMbInSliceGroup_(null)	{	};	
+	FMO():MbToSliceGroupMap_(NULL),MapUnitToSliceGroupMap_(NULL),numMbInSliceGroup_(NULL)	{	};	
 	~FMO(){	finit();};		
 	int initImageParameter (ImageParameter *img){return 1;};	
 	int init (FMO_PPS* Pps, FMO_SPS* Sps);

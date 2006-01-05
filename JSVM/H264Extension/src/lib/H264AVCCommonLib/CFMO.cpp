@@ -53,7 +53,7 @@ H264AVC_NAMESPACE_BEGIN
 int FMO::GenerateMapUnitToSliceGroupMap()
 {
   
-  if (initMapUnitToSliceGroupMap() == NULL) return 0;
+  if ( !initMapUnitToSliceGroupMap() ) return 0;
 
   switch (pps_.slice_group_map_type)
   {
@@ -301,7 +301,7 @@ void FMO::calcMbNumInSliceGroup()
 	for(int i=0; i<NumberOfSliceGroups_; i++)
 		numMbInSliceGroup_[i] = 0;
 
-	for( i=0; i<PicSizeInMapUnits_; i++)
+	for(int i=0; i<PicSizeInMapUnits_; i++)
 		numMbInSliceGroup_[getSliceGroupId(i)]++;
 }
 

@@ -751,6 +751,9 @@ DecodedPicBuffer::xStorePicture( DPBUnit*       pcDPBUnit,
   RNOK( xDumpDPB() );
 
   m_pcCurrDPBUnit = m_cFreeDPBUnitList.popFront();                                // new current DPB unit
+#if 1 // bug fix (inserted by mwi 060105, proposed by HS)
+  m_pcCurrDPBUnit->getCtrlData().setSliceHeader( 0 );  // re-initialize 
+#endif
   return Err::m_nOK;
 }
 
