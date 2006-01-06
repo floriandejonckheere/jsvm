@@ -261,7 +261,11 @@ public:
                           SEI::SEIMessage*&     pcScalableSEIMessage );
 #if NON_REQUIRED_SEI_ENABLE //shenqiu 05-10-02
   SEI::NonRequiredSei*	getNonRequiredSEI()	{return m_pcNonRequiredSEI;}
+#if 1 //BUG_FIX shenqiu 05-10-02
+  UInt					getNonRequiredSeiFlag() { return m_uiNonRequiredSeiFlag;}
+#else
   UInt					getNonRequiredSEIRead() { return m_uiNonRequiredSeiRead;}
+#endif
 #endif
 
 protected:
@@ -279,7 +283,13 @@ protected:
   UInt              m_uiQualityLevelList [1 << PRI_ID_BITS];
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 10-10-02
   SEI::NonRequiredSei*  m_pcNonRequiredSEI;
+#if 1 //BUG_FIX shenqiu 05-11-24
+  UInt					m_uiNonRequiredSeiFlag;
+  UInt					m_uiPrevPicLayer;
+  UInt					m_uiCurrPicLayer;
+#else
   UInt					m_uiNonRequiredSeiRead;
+#endif
 #endif
 
 };
