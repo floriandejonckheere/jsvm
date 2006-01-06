@@ -231,7 +231,7 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
                                             iSpatialScalabilityType,
                                             bEndOfSlice  ) );
     ruiMbRead++;
-
+	if(ruiMbRead == uiNumMbInPic) bEndOfSlice = true; //FRAG_FIX
     //--ICU/ETRI FMO Implementation
     uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
 

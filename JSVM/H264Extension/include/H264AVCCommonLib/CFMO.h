@@ -78,7 +78,7 @@ public:
 	void copy_top_left(unsigned* Top_left)
 	{
 		assert(Max_Num_Slice_Groups>0);
-		for(int i=0;i<num_slice_groups_minus1;i++)
+		for(UInt i=0;i<num_slice_groups_minus1;i++)
 		{
 			top_left[i] = Top_left[i];
 		}
@@ -87,7 +87,7 @@ public:
 	void copy_bottom_right(unsigned* Bottom_right)
 	{
 		assert(Max_Num_Slice_Groups>0);
-		for(int i=0;i<num_slice_groups_minus1;i++)
+		for(UInt i=0;i<num_slice_groups_minus1;i++)
 		{
 			bottom_right[i] = Bottom_right[i];
 		}
@@ -96,7 +96,7 @@ public:
 	void copy_slice_group_id(unsigned int* Slice_group_id)
 	{
 		assert(Max_Num_Slice_Groups>0);
-		for(int i=0;i<num_slice_groups_minus1;i++)
+		for(UInt i=0;i<num_slice_groups_minus1;i++)
 			slice_group_id[i] = Slice_group_id[i];
 	}
 

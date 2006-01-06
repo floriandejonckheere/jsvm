@@ -142,6 +142,7 @@ public:
 	  UInt&             ruiSize,
 	  UInt&				ruiNonRequiredPic
       //JVT-P031
+	    ,Bool              bPreParseHeader //FRAG_FIX
       ,Bool&             rbStartDecoding,
        UInt&             ruiStartPos,
        UInt&             ruiEndPos,
@@ -156,7 +157,8 @@ public:
                       UInt&             ruiMbY,
                       UInt&             ruiSize
                       //JVT-P031
-                      ,Bool&             rbStartDecoding,
+	                    ,Bool             bPreParseHeader //FRAG_FIX
+                      ,Bool&            rbStartDecoding,
                       UInt&             ruiStartPos,
                       UInt&             ruiEndPos,
                       Bool&             bFragmented,
@@ -205,7 +207,7 @@ public:
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
-  ErrVal  xStartSlice               (Bool& bLastFragment); //JVT-P031
+  ErrVal  xStartSlice               ( Bool bPreParseHeader, Bool& bLastFragment); //FRAG_FIX
   ErrVal  xProcessSlice             ( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
                                       PicBuffer*&     rpcPicBuffer );
@@ -271,7 +273,13 @@ protected:
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
   SEI::NonRequiredSei*			m_pcNonRequiredSei;
   UInt							m_uiNonRequiredSeiReadFlag;
+#if 1 //BUG_FIX shenqiu 05-11-24
+	UInt							m_uiNonRequiredSeiRead;
+  UInt							m_uiPrevPicLayer;
+  UInt							m_uiCurrPicLayer;
+#else
   UInt							m_uiNonRequiredSeiRead[1<<MAX_DSTAGES];
+#endif
 #endif
   //JVT-P031
   UInt                          m_uiFirstFragmentPPSId;

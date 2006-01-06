@@ -161,14 +161,14 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 	  RNOK( pcWriteIf->writeUvlc( getSliceGroupMapType(),                             "PPS: slice_group_map_type" ) );
 	  if(getSliceGroupMapType() ==0)
 	  {
-		  for(int iSliceGroup=0;iSliceGroup<=getNumSliceGroupsMinus1();iSliceGroup++)
+		  for(UInt iSliceGroup=0;iSliceGroup<=getNumSliceGroupsMinus1();iSliceGroup++)
 		  {
 			  RNOK( pcWriteIf->writeUvlc( getRunLengthMinus1(iSliceGroup),                             "PPS: run_length_minus1 [iSliceGroup]" ) );
 		  }
 	  }
 	  else if (getSliceGroupMapType() ==2)
 	  {
-		  for(int iSliceGroup=0;iSliceGroup<getNumSliceGroupsMinus1();iSliceGroup++)
+		  for(UInt iSliceGroup=0;iSliceGroup<getNumSliceGroupsMinus1();iSliceGroup++)
 		  {
 			  RNOK( pcWriteIf->writeUvlc( getTopLeft(iSliceGroup),                             "PPS: top_left [iSliceGroup]" ) );
 			  RNOK( pcWriteIf->writeUvlc( getBottomRight(iSliceGroup),                             "PPS: bottom_right [iSliceGroup]" ) );
@@ -191,7 +191,7 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 			  iNumberBitsPerSliceGroupId = 1;
 		  //! JVT-F078, exlicitly signal number of MBs in the map
 		  RNOK( pcWriteIf->writeUvlc( getNumSliceGroupMapUnitsMinus1(),                             "PPS: num_slice_group_map_units_minus1" ) );
-		  for (int iSliceGroup=0; iSliceGroup<=getNumSliceGroupMapUnitsMinus1(); iSliceGroup++)
+		  for (UInt iSliceGroup=0; iSliceGroup<=getNumSliceGroupMapUnitsMinus1(); iSliceGroup++)
 			  RNOK( pcWriteIf->writeCode( getSliceGroupId(iSliceGroup), iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[iSliceGroup]" ) );
 	  }
 	  
@@ -250,14 +250,14 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
 	  RNOK( pcReadIf->getUvlc( m_uiSliceGroupMapType,                             "PPS: slice_group_map_type" ) );
 	  if(m_uiSliceGroupMapType ==0)
 	  {
-		  for(int i=0;i<=m_uiNumSliceGroupsMinus1;i++)
+		  for(UInt i=0;i<=m_uiNumSliceGroupsMinus1;i++)
 		  {
 			  RNOK( pcReadIf->getUvlc( m_uiRunLengthMinus1[i],                             "PPS: run_length_minus1 [i]" ) );
 		  }
 	  }
 	  else if (m_uiSliceGroupMapType ==2)
 	  {
-		  for(int i=0;i<m_uiNumSliceGroupsMinus1;i++)
+		  for(UInt i=0;i<m_uiNumSliceGroupsMinus1;i++)
 		  {
 			  RNOK( pcReadIf->getUvlc( m_uiTopLeft[i],                             "PPS: top_left [i]" ) );
 			  RNOK( pcReadIf->getUvlc( m_uiBottomRight[i],                             "PPS: bottom_right [i]" ) );
@@ -280,7 +280,7 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
 			  iNumberBitsPerSliceGroupId = 1;
 		  //! JVT-F078, exlicitly signal number of MBs in the map
 		  RNOK( pcReadIf->getUvlc( m_uiNumSliceGroupMapUnitsMinus1,                             "PPS: num_slice_group_map_units_minus1" ) );
-		  for (int i=0; i<=m_uiNumSliceGroupMapUnitsMinus1; i++)
+		  for (UInt i=0; i<=m_uiNumSliceGroupMapUnitsMinus1; i++)
 			  RNOK( pcReadIf->getCode( m_uiSliceGroupId[i], iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[i]" ) );
 	  }
 	  

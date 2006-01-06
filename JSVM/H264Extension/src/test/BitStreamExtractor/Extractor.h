@@ -140,6 +140,13 @@ public:
   UInt    getDependencyId           ( UInt uiScalableLayer ) const { return m_auiDependencyId[uiScalableLayer]; }
   UInt    getTempLevel              ( UInt uiScalableLayer ) const { return m_auiTempLevel[uiScalableLayer]; }
   UInt    getFGSLevel               ( UInt uiScalableLayer ) const { return m_auiQualityLevel[uiScalableLayer]; }
+#if 1 //BUG_FIX liuhui 0511
+	UInt    getFrmWidth               ( UInt uiScalableLayer ) const { return m_auiFrmWidth[uiScalableLayer]; }
+	UInt    getFrmHeight              ( UInt uiScalableLayer ) const { return m_auiFrmHeight[uiScalableLayer]; }
+	Double  getFrameRate              ( UInt uiScalableLayer ) const { return m_adFramerate[uiScalableLayer]; }
+	Bool    getBaseLayerModeAVC       ()                       const { return m_bAVCBaseLayer;                }
+	Void    setBaseLayerMode          ( Bool bAVCCompatible  )       { m_bAVCBaseLayer = bAVCCompatible;      }
+#endif
   UInt    getFrameWidth     ( UInt uiLayer )    const { return m_auiFrameWidth  [uiLayer]; }
   UInt    getFrameHeight    ( UInt uiLayer )    const { return m_auiFrameHeight [uiLayer]; }
   
@@ -224,8 +231,13 @@ protected:
   ErrVal        xSetParameters      ();
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
+#if 1 //BUG_FIX liuhui 0511
+	ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage, 
+                  UInt uiKeepScalableLayer,UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, UInt& uiMaxFGSLayer, UInt uiMaxBitrate);
+#else
   ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage, 
                   UInt uiKeepScalableLayer,UInt& uiMaxLayer, UInt& uiMaxTempLevel, UInt& uiMaxFGSLayer, UInt uiMaxBitrate);
+#endif
 
   // HS: packet trace
   ErrVal        xReadLineExtractTrace ( Char*               pcFormatString,

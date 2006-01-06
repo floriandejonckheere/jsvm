@@ -343,8 +343,7 @@ ErrVal
 DecodedPicBuffer::initSPS( const SequenceParameterSet& rcSPS )
 {
   ROF( m_bInitDone );
-  
-  UInt  uiMaxPicsInDPB  = downround2powerof2( rcSPS.getMaxDPBSize() ) + 5; // up to 3 base representations + 2 extra (should use "real DPB" size in future)
+	UInt  uiMaxPicsInDPB  = downround2powerof2( rcSPS.getMaxDPBSize() ) + 5; // up to 3 base representations + 2 extra (should use "real DPB" size in future)
   RNOK( xCreateData( uiMaxPicsInDPB, rcSPS ) );
   m_uiNumRefFrames      = rcSPS.getNumRefFrames();
   m_uiMaxFrameNum       = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );
@@ -419,7 +418,8 @@ DecodedPicBuffer::xDeleteData()
 ErrVal
 DecodedPicBuffer::xClearBuffer()
 {
-  //===== remove non-output/non-ref pictures =====
+
+	//===== remove non-output/non-ref pictures =====
   //--- store in temporary list ---
   DPBUnitList cTempList;
   DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
@@ -428,7 +428,7 @@ DecodedPicBuffer::xClearBuffer()
   {
     Bool  bNoOutput = ( !(*iter)->isExisting() || (*iter)->isBaseRep() || (*iter)->isOutputted() );
     Bool  bNonRef   = ( !(*iter)->isNeededForRef() );
-    if( bNonRef && bNoOutput )
+		if( bNonRef && bNoOutput )
     {
       cTempList.push_back( *iter );
     }
@@ -751,9 +751,10 @@ DecodedPicBuffer::xStorePicture( DPBUnit*       pcDPBUnit,
   RNOK( xDumpDPB() );
 
   m_pcCurrDPBUnit = m_cFreeDPBUnitList.popFront();                                // new current DPB unit
-#if 1 // bug fix (inserted by mwi 060105, proposed by HS)
-  m_pcCurrDPBUnit->getCtrlData().setSliceHeader( 0 );  // re-initialize 
+#if 1 // BUG-FIX liuhui 0511 from mail by Heiko
+  m_pcCurrDPBUnit->getCtrlData().setSliceHeader( 0 );
 #endif
+
   return Err::m_nOK;
 }
 
@@ -1025,7 +1026,6 @@ DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
           fprintf( stderr, "\nERROR: MISSING PICTURE !!!!\n\n");
           ROT(1);
         }
-
         //----- find picture in reference list -----
         UInt uiRemoveIndex = MSYS_UINT_MAX;
         for( UInt uiPos = uiIndex; uiPos < rcList.getActive(); uiPos++ ) // active is equal to size !!!
@@ -1107,10 +1107,9 @@ DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
 
   
   //===== check missing pictures =====
-  RNOK( xCheckMissingPics( pcSliceHeader, rcOutputList, rcUnusedList ) );
-
+	RNOK( xCheckMissingPics( pcSliceHeader, rcOutputList, rcUnusedList ) );
   //===== initialize current DPB unit =====
-  RNOK( m_pcCurrDPBUnit->init( pcSliceHeader->getPoc(),
+	RNOK( m_pcCurrDPBUnit->init( pcSliceHeader->getPoc(),
                                pcSliceHeader->getFrameNum(),
                                pcSliceHeader->getTemporalLevel(),
                                pcSliceHeader->getKeyPictureFlag(),
@@ -1213,7 +1212,6 @@ DecodedPicBuffer::store( DPBUnit*&        rpcDPBUnit,
     m_uiLastRefFrameNum = rpcDPBUnit->getFrameNum();
   }
   ROFRS( pcFrameBaseRep, Err::m_nOK );
-
 
   //===== store base representation =====
   //--- get DPB unit ---
@@ -1825,7 +1823,6 @@ MCTFDecoder::initSlice( SliceHeader* pcSliceHeader, UInt uiLastLayer )
 }
 
 
-
 ErrVal
 MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
 {
@@ -1834,7 +1831,6 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
   Bool          bKeyPicFlag     = pcSliceHeader   ->getKeyPictureFlag(); // HS: fix by Nokia
   ROF( pcLastDPBUnit );
   ROF( pcSliceHeader == pcLastDPBUnit->getCtrlData().getSliceHeader() );
-
   IntFrame*     pcFrame         = pcLastDPBUnit->getFrame    ();
   ControlData&  rcControlData   = pcLastDPBUnit->getCtrlData ();
 

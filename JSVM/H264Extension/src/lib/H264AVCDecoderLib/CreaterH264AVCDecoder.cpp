@@ -178,12 +178,14 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 								  UInt&             uiSize,
 								  UInt&			  uiNonRequiredPic
                                   //JVT-P031
+								  ,Bool             bPreParseHeader //FRAG_FIX
                                   ,Bool&            rbStartDecoding,
                                 UInt&             ruiStartPos,
                                 UInt&             ruiEndPos,
                                 Bool&              bFragmented,
                                 Bool&              bDiscardable
-                                //~JVT-P031) 
+                                //~JVT-P031
+																) 
 {
 	return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
 		ruiNalUnitType,
@@ -192,6 +194,7 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 		uiSize,
 		uiNonRequiredPic
         //JVT-P031
+		, bPreParseHeader //FRAG_FIX
         ,rbStartDecoding,
         ruiStartPos,
         ruiEndPos,
@@ -208,6 +211,7 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 								  UInt&             uiMbY,
 								  UInt&             uiSize
                                   //JVT-P031
+								  ,Bool             bPreParseHeader //FRAG_FIX
                                   ,Bool&            rbStartDecoding,
                                 UInt&             ruiStartPos,
                                 UInt&             ruiEndPos,
@@ -222,6 +226,7 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 		uiMbY,
 		uiSize
         //JVT-P031
+		, bPreParseHeader //FRAG_FIX
         ,rbStartDecoding,
         ruiStartPos,
         ruiEndPos,
@@ -627,6 +632,17 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 					//====set parameters used for further parsing =====
 					SEI::ScalableSei* pcSEI		= (SEI::ScalableSei*)pcSEIMessage;
 					UInt uiNumScalableLayers  = pcSEI->getNumLayersMinus1() + 1;
+#if 1 //BUG_FIX liuhui 0511
+					for(UInt uiIndex = 0; uiIndex < uiNumScalableLayers; uiIndex++ )
+					{
+						if( pcSEI->getDependencyId( uiIndex ) == 0 )
+						{
+							m_uiStdAVCOffset = pcSEI->getTemporalLevel( uiIndex ) - 1;
+						}
+						else
+							break;
+					}
+#endif
 				}
 				break;
 			}
@@ -663,7 +679,11 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 	  case SEI::NON_REQUIRED_SEI: 
 		  {
 			  m_pcNonRequiredSEI = (SEI::NonRequiredSei*) pcSEIMessage;
-			  m_uiNonRequiredSeiRead = 1;
+#if 1 //BUG_FIX shenqiu 05-11-24
+			  m_uiNonRequiredSeiFlag = 1;  
+#else
+				m_uiNonRequiredSeiRead = 1;
+#endif
 			  break;
 		  }
 #endif
@@ -753,11 +773,22 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     }     
     //~JVT-P031
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-05
-	  if(m_uiNonRequiredSeiRead != 1 && uiLayer == 0)
+#if 1 //BUG_FIX shenqiu 05-11-24 (change)
+		m_uiCurrPicLayer = (uiLayer << 4) + uiFGSLayer;
+	  if(m_uiCurrPicLayer <= m_uiPrevPicLayer && m_uiNonRequiredSeiFlag != 1)
+	  {
+		  m_pcNonRequiredSEI->destroy();
+		  m_pcNonRequiredSEI = NULL;
+	  }          
+	  m_uiNonRequiredSeiFlag = 0;
+	  m_uiPrevPicLayer = m_uiCurrPicLayer;
+#else //removed part
+		if(m_uiNonRequiredSeiRead != 1 && uiLayer == 0)
 	  {
 		  m_pcNonRequiredSEI = NULL;
 	  }
 	  m_uiNonRequiredSeiRead = 0;
+#endif //BUG_FIX
 #endif
     }
     m_pcNalUnitParser->closeNalUnit();

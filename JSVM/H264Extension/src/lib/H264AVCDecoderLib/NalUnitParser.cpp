@@ -301,7 +301,7 @@ NalUnitParser::getBitsLeft()
 //~JVT-P031
 
 ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag )
+NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag, Bool bPreParseHeader, Bool bConcatenated  ) //FRAG_FIX
 {
   ROF( pcBinDataAccessor->size() );
   ROF( pcBinDataAccessor->data() );
@@ -376,11 +376,20 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
          NAL_UNIT_END_OF_SEQUENCE == m_eNalUnitType,    Err::m_nOK );
 
   // Unit->RBSP
-  RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
+  if(bPreParseHeader) //FRAG_FIX
+      RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
 
   UInt uiBitsInPacket;
   // RBSP->SODB
   RNOK( xConvertRBSPToSODB    ( uiPacketLength, uiBitsInPacket ) );
+
+  //FRAG_FIX
+  if(bPreParseHeader)
+      m_uiBitsInPacketSaved = uiBitsInPacket;
+  if(!bPreParseHeader)
+      uiBitsInPacket = m_uiBitsInPacketSaved;
+
+
   if(!m_bDiscardableFlag || (m_bDiscardableFlag && m_uiDecodedLayer == m_uiLayerId) || m_bCheckAllNALUs) //JVT-P031
   {
       RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBitsInPacket) );

@@ -121,11 +121,14 @@ H264AVCEncoder::H264AVCEncoder():
 	for( UInt uk = 0; uk < MAX_QUALITY_LEVELS; uk++ )
 		m_aaauidSeqBits[ui][uj][uk] = 0;
 
+#if 1 //BUG_FIX shenqiu 05-11-24 (delete)
+#else
 #if NON_REQUIRED_SEI_ENABLE
 	for(UInt uiX = 0; uiX < 1<<MAX_DSTAGES; uiX++)
 	{
 		m_uiNonRequiredSEIWritten[uiX] =  0;
 	}
+#endif
 #endif
 }
 H264AVCEncoder::~H264AVCEncoder()
@@ -373,6 +376,21 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	//===== set message =====
 	UInt uiInputLayers = m_pcCodingParameter->getNumberOfLayers ();
 	UInt uiLayerNum = 0;	//total scalable layer numbers
+#if 1 //BUG_FIX liuhui 0511
+	for ( UInt i = 0; i < uiInputLayers; i++ )	//calculate total scalable layer numbers
+	{
+		Bool bH264AVCCompatible = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
+		Bool bSubSeq            = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
+
+		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
+		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages();
+		UInt uiMinTempLevel   = ( !bH264AVCCompatible ||bSubSeq ) ? 0: max( 0, uiTotalTempLevel - 1 );
+		UInt uiActTempLevel   = uiTotalTempLevel - uiMinTempLevel + 1;
+		UInt uiTotalFGSLevel  = (UInt)rcLayer.getNumFGSLayers () + 1;
+		uiLayerNum += uiActTempLevel * uiTotalFGSLevel;
+	}
+	UInt uiTotalScalableLayer = 0;
+#else
 	for ( UInt i = 0; i < uiInputLayers; i++ )	//calculate total scalable layer numbers
 	{
 		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
@@ -380,6 +398,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 		UInt uiTotalFGSLevel = (UInt)rcLayer.getNumFGSLayers () + 1;
 		uiLayerNum += uiTotalTempLevel * uiTotalFGSLevel;
 	}
+#endif
+
 	//===== get bitrate information ====
 	Double *dBitrate = dGetBitrate();
 	//===== get framerate information ===
@@ -396,11 +416,20 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
 		UInt uiTotalFGSLevel = (UInt)rcLayer.getNumFGSLayers () + 1;
 		Bool bFGSLayerFlag = uiTotalFGSLevel > 1;
+#if 1	//BUG_FIX liuhui 0511
+		Bool bH264AVCCompatible = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
+		Bool bSubSeq            = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
+		UInt uiMinTempLevel     = ( !bH264AVCCompatible ||bSubSeq ) ? 0: max(0,uiTotalTempLevel - 2);
+#endif
 
 		for ( UInt uiCurrTempLevel = 0; uiCurrTempLevel < uiTotalTempLevel; uiCurrTempLevel++ )
 		{
 			for ( UInt uiCurrFGSLevel = 0; uiCurrFGSLevel < uiTotalFGSLevel; uiCurrFGSLevel++ )
 			{
+#if 1 //BUG_FIX liuhui 0511
+				if( uiCurrTempLevel >= uiMinTempLevel )
+				{
+#endif
 				//Bool bSubPicLayerFlag = false;
 				Bool bSubRegionLayerFlag = false;
 				Bool bProfileLevelInfoPresentFlag = false;
@@ -443,7 +472,11 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 
 				if(pcScalableSEI->getDecodingDependencyInfoPresentFlag(uiNumScalableLayer))
 				{
+#if 1 //BUG_FIX liuhui 0511, for AVC-COMPATIBLE identification
+					UInt uiTempLevel = uiCurrTempLevel - uiMinTempLevel;
+#else
 					UInt uiTempLevel = uiCurrTempLevel;
+#endif
 					UInt uiDependencyID = uiCurrLayer;
 					UInt uiQualityLevel = uiCurrFGSLevel;
 
@@ -454,7 +487,11 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 
 				if(pcScalableSEI->getBitrateInfoPresentFlag(uiNumScalableLayer))
 				{
+#if 1 //BUG_FIX liuhui 0511
+					UInt uiAvgBitrate =(UInt)( dBitrate[uiTotalScalableLayer] + 0.5 );	//should be changed
+#else
 					UInt uiAvgBitrate =(UInt)( dBitrate[uiNumScalableLayer] + 0.5 );	//should be changed
+#endif
 					UInt uiMaxBitrate = 0;	//should be changed
 
 					pcScalableSEI->setAvgBitrate(uiNumScalableLayer, uiAvgBitrate);
@@ -464,7 +501,11 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 				if(pcScalableSEI->getFrmRateInfoPresentFlag(uiNumScalableLayer))
 				{
 					UInt uiConstantFrmRateIdc = 0;
+#if 1 //BUG_FIX liuhui 0511
+					UInt uiAvgFrmRate = (UInt)( 256*dFramerate[uiTotalScalableLayer] + 0.5 );
+#else
 					UInt uiAvgFrmRate = (UInt)( 256*dFramerate[uiNumScalableLayer] + 0.5 );
+#endif
 
 					pcScalableSEI->setConstantFrmRateIdc(uiNumScalableLayer, uiConstantFrmRateIdc);
 					pcScalableSEI->setAvgFrmRate(uiNumScalableLayer, uiAvgFrmRate);
@@ -530,6 +571,10 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 				}
 
 				uiNumScalableLayer++;
+#if 1 //BUG_FIX liuhui 0511
+				}
+				uiTotalScalableLayer++;
+#endif
 			}
 		}
 
@@ -906,8 +951,11 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
                              PicBufferList&           rcPicBufferOutputList,
                              PicBufferList&           rcPicBufferUnusedList )
 { 
+#if 1 //BUG_FIX shenqiu 05-11-24(delete)
+#else
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-30
 	m_apcMCTFEncoder[uiLayer]->setNonRequiredSEIWritten(m_uiNonRequiredSEIWritten);
+#endif
 #endif
 
   //{{Adaptive GOP structure

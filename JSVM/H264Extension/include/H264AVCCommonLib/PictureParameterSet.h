@@ -180,22 +180,22 @@ public:
   Void setSliceGroupId(UInt         uiSliceGroupId, Int i) {m_uiSliceGroupId[i] = uiSliceGroupId;}
   Void setArrayRunLengthMinus1 (UInt*        uiRunLengthMinus1) 
   { 
-	  for(int i=0;i<=getNumSliceGroupsMinus1();i++)
+	  for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
 		  m_uiRunLengthMinus1[i] = uiRunLengthMinus1[i];
   }  
   Void setArrayTopLeft (UInt*          uiTopLeft) 
   {
-	  for(int i=0;i<getNumSliceGroupsMinus1();i++)
+	  for(UInt i=0;i<getNumSliceGroupsMinus1();i++)
 		  m_uiTopLeft[i] = uiTopLeft[i];
   }
   Void setArrayBottomRight (UInt*          uiBottomRight)
   {
-	  for(int i=0;i<getNumSliceGroupsMinus1();i++)
+	  for(UInt i=0;i<getNumSliceGroupsMinus1();i++)
 		m_uiBottomRight[i] = uiBottomRight[i];
   }
   Void setArraySliceGroupId(UInt*         uiSliceGroupId) 
   {
-	  for(int i=0;i<=getNumSliceGroupsMinus1();i++)
+	  for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
 		m_uiSliceGroupId[i] = uiSliceGroupId[i];
   }
   Void setSliceGroupChangeCycle(UInt SliceGroupChangeCycle){ m_uiSliceGroupChangeCycle = SliceGroupChangeCycle;} 

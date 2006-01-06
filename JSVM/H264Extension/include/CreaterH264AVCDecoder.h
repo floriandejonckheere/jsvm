@@ -149,7 +149,8 @@ public:
 	  UInt&             uiSize,
 	  UInt&				uiNonRequiredPic
       //JVT-P031
-      ,Bool&             rbStartDecoding,
+	  ,Bool              bPreParseHeader //FRAG_FIX
+    ,Bool&             rbStartDecoding,
      UInt&             ruiStartPos,
      UInt&             ruiEndPos,
      Bool&              bFragmented,
@@ -163,7 +164,8 @@ public:
 	  UInt&             uiMbY,
 	  UInt&             uiSize
       //JVT-P031
-      ,Bool&             rbStartDecoding,
+ 	  ,Bool              bPreParseHeader //FRAG_FIX
+    ,Bool&             rbStartDecoding,
      UInt&             ruiStartPos,
      UInt&             ruiEndPos,
      Bool&              bFragmented,

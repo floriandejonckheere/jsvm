@@ -298,11 +298,11 @@ ErrVal H264AVCDecoderTest::go()
       pcBinDataTmp[uiFragNb]->setMemAccessor( cBinDataAccessorTmp[uiFragNb] );
       // open the NAL Unit, determine the type and if it's a slice get the frame size
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
-    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
+    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
     if(uiNonRequiredPic)
 		continue;
 #else
-    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
+    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, true, bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) ); //FRAG_FIX
 #endif
       uiTotalLength += auiEndPos[uiFragNb] - auiStartPos[uiFragNb];
 
@@ -331,7 +331,21 @@ ErrVal H264AVCDecoderTest::go()
           bToDecode = false;
           if((uiTotalLength != 0) && (!bDiscardable || bFragmented))
           {
-              m_pcH264AVCDecoder->initPacket( &cBinDataAccessor );
+              //FRAG_FIX
+			  if( (uiNalUnitType == 20) || (uiNalUnitType == 21) || (uiNalUnitType == 1) || (uiNalUnitType == 5) )
+              {
+#if NON_REQUIRED_SEI_ENABLE
+                RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic,
+                    false, bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
+                    bFragmented, bDiscardable) );
+#else
+                RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, 
+                    false, bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
+                    bFragmented, bDiscardable) );
+#endif
+              }
+              else
+                  m_pcH264AVCDecoder->initPacket( &cBinDataAccessor );
               bToDecode = true;
           }
         }

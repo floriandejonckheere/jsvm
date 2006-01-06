@@ -404,6 +404,9 @@ public:
 
   public:
 	  static ErrVal create	(NonRequiredSei*&			rpcSeiMessage);
+#if 1 //BUG_FIX shenqiu 05-11-24 (add)
+	  ErrVal		destroy ();  
+#endif
 	  ErrVal		write	(HeaderSymbolWriteIf*		pcWriteIf);
 	  ErrVal		read	(HeaderSymbolReadIf*		pcReadIf);
 

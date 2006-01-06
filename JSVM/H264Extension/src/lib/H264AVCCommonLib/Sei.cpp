@@ -777,6 +777,14 @@ SEI::NonRequiredSei::create ( NonRequiredSei*& rpcSeiMessage )
 	ROT( NULL == rpcSeiMessage)
 		return Err::m_nOK;
 }
+#if 1   //BUG_FIX shenqiu 05-11-24 (add)
+ErrVal
+SEI::NonRequiredSei::destroy() 
+{
+	delete this;
+	return Err::m_nOK;
+}
+#endif
 
 ErrVal
 SEI::NonRequiredSei::write( HeaderSymbolWriteIf* pcWriteIf )

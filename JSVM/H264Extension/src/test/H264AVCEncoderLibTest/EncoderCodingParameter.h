@@ -833,7 +833,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
 // TMM_ESS }
 
   //--ICU/ETRI FMO Implementation : FMO stuff start
-  rcLayer.m_bSliceGroupChangeDirection_flag = bSliceGroupChangeDirection_flag;
+  rcLayer.m_bSliceGroupChangeDirection_flag = ( bSliceGroupChangeDirection_flag != 0 );
   RNOK( xReadSliceGroupCfg( rcLayer)); //Slice group configuration file
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
@@ -844,11 +844,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
 
 ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLayer )
 {
-	int frame_mb_only;
-	int mapunit_height;
-	int mb_height;
-	int i;
-	int mb_width;
+	UInt mapunit_height;
+	UInt mb_height;
+	UInt i;
+	UInt mb_width;
  	FILE* sgfile=NULL;
 
 	if( (rcLayer.getNumSliceGroupsMinus1()!=0)&&

@@ -657,8 +657,11 @@ ErrVal UvlcWriter::mbMode( MbDataAccess& rcMbDataAccess )
   {
     uiMbMode--;
   }
-
-  ETRACE_T( "MbMode" );
+ #if 1 // Bug fix liuhui 0511 , from mail by Heiko
+   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
+ #endif
+	 
+	ETRACE_T( "MbMode" );
   RNOK( xWriteUvlcCode( uiMbMode ) );
   ETRACE_N;
 

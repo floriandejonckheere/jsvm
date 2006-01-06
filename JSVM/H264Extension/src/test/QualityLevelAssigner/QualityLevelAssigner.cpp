@@ -989,14 +989,14 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
 #if NON_REQUIRED_SEI_ENABLE
       RNOK( m_pcH264AVCDecoder->initPacket( &acBinDataAccessorTmp[uiFragmentNumber],
-                                            uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic,
+                                            uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true,
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
                                             bFragmented, bDiscardable ) );
 #else
       RNOK( m_pcH264AVCDecoder->initPacket( &acBinDataAccessorTmp[uiFragmentNumber],
-                                            uiNalUnitType, uiMbX, uiMbY, uiSize,
+                                            uiNalUnitType, uiMbX, uiMbY, uiSize, true,
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
-                                            bFragmented, bDiscardable ) );
+                                            bFragmented, bDiscardable ) ); //FRAG_FIX
 #endif
 
       uiTotalLength += ( auiEndPos[uiFragmentNumber] - auiStartPos[uiFragmentNumber] );

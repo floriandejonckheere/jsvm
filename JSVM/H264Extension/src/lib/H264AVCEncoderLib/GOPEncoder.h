@@ -282,9 +282,12 @@ public:
   UInt			getSelectPos() {return m_uiSelectPos;}
   void			setSelectPos(UInt p) {m_uiSelectPos = p;}
   //}}Adaptive GOP structure
+#if 1 //BUG_FIX shenqiu 05-11-24 (delete)
+#else
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-30
   void			setNonRequiredSEIWritten(UInt* p)	{ m_uiNonRequiredSEIWritten = p; }
   UInt*			getNonRequiredSEIWritten()			{ return m_uiNonRequiredSEIWritten; }
+#endif
 #endif
   Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
   Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
@@ -575,10 +578,13 @@ protected:
   Double                        m_adPSNRSumY        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumU        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumV        [MAX_DSTAGES+1];
-
+#if 1 //BUG_FIX liuhui 0511
+  UInt m_auiCurrGOPBits     [ MAX_SCALABLE_LAYERS ];
+  Double m_adSeqBits        [ MAX_SCALABLE_LAYERS ];
+#else
   UInt m_auiCurrGOPBits     [ MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS];
   Double m_adSeqBits        [ MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS];
-
+#endif
   //----- FGS -----
   UInt                          m_uiFGSMode;
   FILE*                         m_pFGSFile;
@@ -634,9 +640,12 @@ protected:
     REF_LIST_TYPE_NORMAL   = 0x04,     // either original in MCTF, or the upper-layer reconstructed in close-loop
   };
 
+#if 1 //BUG_FIX shenqiu 05-11-24 (delete)
+#else
 #if NON_REQUIRED_SEI_ENABLE
   UInt*							m_uiNonRequiredSEIWritten;
   UInt							m_uiNonRequiredSEIWrittenFlag;
+#endif
 #endif
 };
 

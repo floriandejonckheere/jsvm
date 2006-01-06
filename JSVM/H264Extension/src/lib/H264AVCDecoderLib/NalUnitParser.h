@@ -108,7 +108,9 @@ public:
   ErrVal        init            ( BitReadBuffer*    pcBitReadBuffer   );
   ErrVal        destroy         ();
 
-  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, Bool* KeyPicFlag );
+  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, Bool* KeyPicFlag, 
+	  Bool bPreParseHeader = true,
+      Bool bConcatenated = false); //FRAG_FIX
   ErrVal        closeNalUnit    ();
 
   NalUnitType   getNalUnitType  ()      { return m_eNalUnitType;    }
@@ -164,6 +166,7 @@ protected:
   Bool          m_bCheckAllNALUs;
   UInt          m_uiDecodedLayer;
   //~JVT-P031
+  UInt          m_uiBitsInPacketSaved; //FRAG_FIX
 };
 
 

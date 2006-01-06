@@ -120,7 +120,14 @@ public:
   void                  setLayerId            (UInt layer)  { m_uiLayerId = layer;        }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
-  void					setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;		}
+#if 1 //BUG_FIX liuhui 0511  
+	Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
+	UInt                  getScalableLayer    ()            const { return m_uiScalableLayer; }
+	Void                  setBitrate          ( Double dBitrate  ) { m_dBitrate = dBitrate;   }
+	Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
+	std::string           getOutFileName      ()            const { return m_cOutFile;        } 
+#endif
+	void					setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;		}
   UInt					getMaxFGSLayerKept  ()			  { return m_uiMaxFGSLayerKept;		}
   Double                getBitrate          ()            const { return m_dBitrate;        }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }
@@ -157,7 +164,10 @@ protected:
   std::string     m_cInFile;
   std::string     m_cOutFile;
   Int             m_iResult;
-  UInt            m_uiLayer;
+#if 1 //BUG_FIX liuhui 0511
+	UInt            m_uiScalableLayer; 
+#endif
+	UInt            m_uiLayer;
   UInt			  m_uiLayerId;
   UInt            m_uiLevel;
   Double          m_dFGSLayer;
