@@ -161,7 +161,7 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 	  RNOK( pcWriteIf->writeUvlc( getSliceGroupMapType(),                             "PPS: slice_group_map_type" ) );
 	  if(getSliceGroupMapType() ==0)
 	  {
-		  for(int iSliceGroup=0;iSliceGroup<getNumSliceGroupsMinus1();iSliceGroup++)
+		  for(int iSliceGroup=0;iSliceGroup<=getNumSliceGroupsMinus1();iSliceGroup++)
 		  {
 			  RNOK( pcWriteIf->writeUvlc( getRunLengthMinus1(iSliceGroup),                             "PPS: run_length_minus1 [iSliceGroup]" ) );
 		  }
@@ -233,6 +233,7 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
   //--ICU/ETRI FMO Implementation
   Int iNumberBitsPerSliceGroupId;
 
+
   RNOK( pcReadIf->getUvlc( m_uiPicParameterSetId,                         "PPS: pic_parameter_set_id" ) );
   ROT ( m_uiPicParameterSetId > 255 );
   RNOK( pcReadIf->getUvlc( m_uiSeqParameterSetId,                         "PPS: seq_parameter_set_id" ) );
@@ -249,7 +250,7 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
 	  RNOK( pcReadIf->getUvlc( m_uiSliceGroupMapType,                             "PPS: slice_group_map_type" ) );
 	  if(m_uiSliceGroupMapType ==0)
 	  {
-		  for(int i=0;i<m_uiNumSliceGroupsMinus1;i++)
+		  for(int i=0;i<=m_uiNumSliceGroupsMinus1;i++)
 		  {
 			  RNOK( pcReadIf->getUvlc( m_uiRunLengthMinus1[i],                             "PPS: run_length_minus1 [i]" ) );
 		  }
@@ -285,6 +286,7 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
 	  
   }
   //--ICU/ETRI FMO Implementation : FMO stuff end  
+
 
   RNOK( pcReadIf->getUvlc( uiTmp,                                         "PPS: num_ref_idx_l0_active_minus1" ) );
   ROT ( uiTmp > 14 );

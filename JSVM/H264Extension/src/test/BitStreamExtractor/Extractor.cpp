@@ -2397,7 +2397,11 @@ Extractor::ExtractPointsFromRate()
     }
     if( bCrop )
     {
+#if 1 // BUG FIX Martin.Winken@hhi.fhg.de
+      if( uiPacketSize - uiShrinkSize > 25 ) // 22 bytes should be enough for the slice headers
+#else
       if( uiPacketSize - uiShrinkSize > 13 ) // ten bytes should be enough for the slice headers
+#endif
       {
         RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
 #if FGS_ORDER

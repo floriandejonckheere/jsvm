@@ -23,7 +23,7 @@
 
 H264AVC_NAMESPACE_BEGIN
 
-const unsigned MAXnum_slice_groups_minus1 =8;
+const unsigned Max_Num_Slice_Groups =8;
 const int null= 0;
 
 
@@ -51,12 +51,12 @@ public:
 	unsigned num_slice_group_map_units_minus1;
 	unsigned num_slice_groups_minus1;
 	unsigned slice_group_map_type;
-	unsigned run_length_minus1[MAXnum_slice_groups_minus1];
-	unsigned top_left[MAXnum_slice_groups_minus1];		
-	unsigned bottom_right[MAXnum_slice_groups_minus1];
+	unsigned run_length_minus1[Max_Num_Slice_Groups];
+	unsigned top_left[Max_Num_Slice_Groups];		
+	unsigned bottom_right[Max_Num_Slice_Groups];
 	bool slice_group_change_direction_flag;
 	unsigned slice_group_change_rate_minus1;
-	unsigned int slice_group_id[MAXnum_slice_groups_minus1];
+	unsigned int slice_group_id[Max_Num_Slice_Groups];
 
 public:
 	FMO_PPS():num_slice_group_map_units_minus1(0)
@@ -68,8 +68,8 @@ public:
 
 	void copy_run_length_minus1(unsigned* Run_length_minus1)
 	{
-		assert(MAXnum_slice_groups_minus1>0);
-		for(int i=0;i<MAXnum_slice_groups_minus1;i++)
+		assert(Max_Num_Slice_Groups>0);
+		for(int i=0;i<Max_Num_Slice_Groups;i++)
 		{
 			run_length_minus1[i] = Run_length_minus1[i];
 		}
@@ -77,7 +77,7 @@ public:
 
 	void copy_top_left(unsigned* Top_left)
 	{
-		assert(MAXnum_slice_groups_minus1>0);
+		assert(Max_Num_Slice_Groups>0);
 		for(int i=0;i<num_slice_groups_minus1;i++)
 		{
 			top_left[i] = Top_left[i];
@@ -86,7 +86,7 @@ public:
 
 	void copy_bottom_right(unsigned* Bottom_right)
 	{
-		assert(MAXnum_slice_groups_minus1>0);
+		assert(Max_Num_Slice_Groups>0);
 		for(int i=0;i<num_slice_groups_minus1;i++)
 		{
 			bottom_right[i] = Bottom_right[i];
@@ -95,7 +95,7 @@ public:
 
 	void copy_slice_group_id(unsigned int* Slice_group_id)
 	{
-		assert(MAXnum_slice_groups_minus1>0);
+		assert(Max_Num_Slice_Groups>0);
 		for(int i=0;i<num_slice_groups_minus1;i++)
 			slice_group_id[i] = Slice_group_id[i];
 	}
@@ -124,7 +124,7 @@ class FMO
 	int *numMbInSliceGroup_;
 	
 	//enc
-	int FirstMBInSlice[MAXnum_slice_groups_minus1];
+	int FirstMBInSlice[Max_Num_Slice_Groups];
 
 public :
 	ImageParameter img_;         //!< image parameters
@@ -134,7 +134,7 @@ public :
 
 public:
 	
-	FMO():MbToSliceGroupMap_(NULL),MapUnitToSliceGroupMap_(NULL),numMbInSliceGroup_(NULL)	{	};	
+	FMO():MbToSliceGroupMap_(null),MapUnitToSliceGroupMap_(null),numMbInSliceGroup_(null)	{	};	
 	~FMO(){	finit();};		
 	int initImageParameter (ImageParameter *img){return 1;};	
 	int init (FMO_PPS* Pps, FMO_SPS* Sps);

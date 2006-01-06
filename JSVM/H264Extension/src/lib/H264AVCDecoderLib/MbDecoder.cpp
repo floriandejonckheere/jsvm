@@ -817,7 +817,22 @@ ErrVal MbDecoder::xDecodeMbIntra16x16( MbDataAccess&    rcMbDataAccess,
 
   MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
 
+#if 1 // BUG FIX Martin.Winken@hhi.fhg.de
+  Quantizer           cQuantizer;   cQuantizer.setQp    ( rcMbDataAccess, false );
+  const QpParameter   rcLQp       = cQuantizer.getLumaQp();
+  Int                 iScaleY     = g_aaiDequantCoef[rcLQp.rem()][0] << rcLQp.per();
+  const UChar*        pucScaleY   = rcMbDataAccess.getSH().getScalingMatrix( 0 );
+
+  if( pucScaleY )
+  {
+    iScaleY  *= pucScaleY[0];
+    iScaleY >>= 4;
+  }
+
+  RNOK( m_pcTransform->invTransformDcCoeff( rcCoeffs.get( B4x4Idx(0) ), iScaleY ) );
+#else
   RNOK( m_pcTransform->invTransformDcCoeff( rcCoeffs.get( B4x4Idx(0) ), 1 ) );
+#endif
 
   for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
@@ -961,19 +976,25 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
   if( b16x16 )
   {
     //===== INTRA_16x16 =====
+#if 1 // BUG FIX Martin Winken@hhi.fhg.de
+#else
     Int iScaleY  = aaiDequantDcCoef[cLQp.rem()] << cLQp.per();
     if( pucScaleY )
     {
       iScaleY  *= pucScaleY[0];
       iScaleY >>= 4;
     }
+#endif
     for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
     {
       RNOK( xScale4x4Block( rcTCoeffs.get( cIdx ), pucScaleY, 1, cLQp ) );
     }
+#if 1 // BUG FIX Martin.Winken@hhi.fhg.de
+#else
     TCoeff* piCoeff = rcTCoeffs.get( B4x4Idx(0) );
     for( Int uiDCIdx = 0; uiDCIdx < 16; uiDCIdx++ )
       piCoeff[16*uiDCIdx] *= iScaleY;
+#endif
   }
   else if( b8x8 )
   {

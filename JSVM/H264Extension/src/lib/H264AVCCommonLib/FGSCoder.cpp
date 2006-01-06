@@ -299,7 +299,7 @@ FGSCoder::xInitializeCodingPath()
     Bool    bIntra4x4       =     rcMbData.isIntra4x4   ();
     Bool    bIntra16x16     =     rcMbData.isIntra16x16 ();
     Bool    bIsSignificant  = (   rcMbData.getMbCbp()          > 0 );
-    Bool    bIsSigLuma      = ( ( rcMbData.getMbCbp() & 0xFF ) > 0 );
+    Bool    bIsSigLuma      = ( ( rcMbData.getMbCbp() & 0x0F ) > 0 );
     Bool    b8x8Present     = (   pcMbDataAccess->getSH().getPPS().getTransform8x8ModeFlag() &&
                                   rcMbData.is8x8TrafoFlagPresent() );
     Bool    b8x8Transform   = ( b8x8Present && ( bIsSigLuma || bIntra4x4 ) && rcMbData.isTransformSize8x8() );

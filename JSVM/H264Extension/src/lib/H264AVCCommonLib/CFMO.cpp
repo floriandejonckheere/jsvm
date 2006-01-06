@@ -53,7 +53,7 @@ H264AVC_NAMESPACE_BEGIN
 int FMO::GenerateMapUnitToSliceGroupMap()
 {
   
-  if ( !initMapUnitToSliceGroupMap() ) return 0;
+  if (initMapUnitToSliceGroupMap() == NULL) return 0;
 
   switch (pps_.slice_group_map_type)
   {
@@ -301,7 +301,7 @@ void FMO::calcMbNumInSliceGroup()
 	for(int i=0; i<NumberOfSliceGroups_; i++)
 		numMbInSliceGroup_[i] = 0;
 
-	for(int i=0; i<PicSizeInMapUnits_; i++)
+	for( i=0; i<PicSizeInMapUnits_; i++)
 		numMbInSliceGroup_[getSliceGroupId(i)]++;
 }
 
@@ -642,7 +642,7 @@ int FMO::StartPicture ()
   
   assert (MbToSliceGroupMap_ != NULL);
   
-  for (i=0; i<MAXnum_slice_groups_minus1; i++)
+  for (i=0; i<Max_Num_Slice_Groups; i++)
     FirstMBInSlice[i] = getFirstMBOfSliceGroup (i);
   return 0;
 }
@@ -770,7 +770,7 @@ void FMO::InitFirstMBsInSlices()
 {
 
 	int k;
-	for (k=0;k<MAXnum_slice_groups_minus1;k++)
+	for (k=0;k<Max_Num_Slice_Groups;k++)
 		FirstMBInSlice[k] = -1;
 }
 

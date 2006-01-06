@@ -95,10 +95,13 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/ScalingMatrix.h"
 
 
+//--ICU/ETRI FMO Implementation
 #include <math.h>
 
 H264AVC_NAMESPACE_BEGIN
 
+
+//--ICU/ETRI FMO Implementation
 const unsigned MAXNumSliceGroupsMinus1 =8; //it is also defined at cfmo.h
 
 
@@ -147,6 +150,8 @@ public:
   UInt          getLog2MaxSliceGroupChangeCycle(UInt uiPicSizeInMapUnits) const {return UInt(ceil( (log ( uiPicSizeInMapUnits*(m_uiSliceGroupChangeRateMinus1+1.)+ 1. ))/log(2.) ));};
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
+
+
   Void  setNalUnitType                          ( NalUnitType e )           { m_eNalUnitType                            = e; }
   Void  setLayerId                              ( UInt        ui )          { m_uiLayerId                               = ui; }
   Void  setPicParameterSetId                    ( UInt        ui )          { m_uiPicParameterSetId                     = ui; }
@@ -175,7 +180,7 @@ public:
   Void setSliceGroupId(UInt         uiSliceGroupId, Int i) {m_uiSliceGroupId[i] = uiSliceGroupId;}
   Void setArrayRunLengthMinus1 (UInt*        uiRunLengthMinus1) 
   { 
-	  for(int i=0;i<getNumSliceGroupsMinus1();i++)
+	  for(int i=0;i<=getNumSliceGroupsMinus1();i++)
 		  m_uiRunLengthMinus1[i] = uiRunLengthMinus1[i];
   }  
   Void setArrayTopLeft (UInt*          uiTopLeft) 
@@ -190,11 +195,12 @@ public:
   }
   Void setArraySliceGroupId(UInt*         uiSliceGroupId) 
   {
-	  for(int i=0;i<getNumSliceGroupsMinus1();i++)
+	  for(int i=0;i<=getNumSliceGroupsMinus1();i++)
 		m_uiSliceGroupId[i] = uiSliceGroupId[i];
   }
   Void setSliceGroupChangeCycle(UInt SliceGroupChangeCycle){ m_uiSliceGroupChangeCycle = SliceGroupChangeCycle;} 
   //--ICU/ETRI FMO Implementation : FMO stuff end
+
 
   ErrVal write      ( HeaderSymbolWriteIf*  pcWriteIf ) const;
   ErrVal read       ( HeaderSymbolReadIf*   pcReadIf,
@@ -211,6 +217,7 @@ protected:
   UInt          m_uiSeqParameterSetId;
   Bool          m_bEntropyCodingModeFlag;
   Bool          m_bPicOrderPresentFlag;
+
 
   //--ICU/ETRI FMO Implementation : FMO stuff start
   UInt          m_uiNumSliceGroupsMinus1;  

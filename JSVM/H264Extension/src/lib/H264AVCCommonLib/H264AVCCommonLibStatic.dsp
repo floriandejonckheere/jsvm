@@ -93,6 +93,10 @@ SOURCE=.\CabacContextModel2DBuffer.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CFMO.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\FGSCoder.cpp
 # End Source File
 # Begin Source File
@@ -259,6 +263,10 @@ SOURCE=..\..\..\include\H264AVCCommonLib\CabacContextModel2DBuffer.h
 # Begin Source File
 
 SOURCE=..\..\..\include\H264AVCCommonLib\CabacTables.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\include\H264AVCCommonLib\CFMO.h
 # End Source File
 # Begin Source File
 
