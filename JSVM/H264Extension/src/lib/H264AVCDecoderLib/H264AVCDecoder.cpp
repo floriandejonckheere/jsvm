@@ -644,7 +644,11 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   ruiStartPos = m_pcNalUnitParser->getNalHeaderSize(pcBinDataAccessor);
   ruiStartPos = 0; //FRAG_FIX
   //~JVT-P031
+#if BUG_FIX //mwi, from heiko 060116
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,bPreParseHeader ) );
+#else
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag ) );
+#endif  
   UInt uiBitsLeft = m_pcNalUnitParser->getBitsLeft(); //JVT-P031
 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();

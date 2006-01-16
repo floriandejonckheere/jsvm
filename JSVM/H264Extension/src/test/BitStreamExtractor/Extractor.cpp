@@ -970,9 +970,11 @@ Extractor::xExtractPoints()
 		{
 			if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI )
 			{
+#if 0 //FIX France Telecom: SEI message should be re-written with the right info (here all info is kept)
 				delete pcScalableSEIMessage;
 				RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
 				continue;
+#endif
 			}
 		}
 #endif
