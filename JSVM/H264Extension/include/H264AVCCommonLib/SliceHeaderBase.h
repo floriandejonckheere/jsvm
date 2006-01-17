@@ -634,6 +634,9 @@ protected:
   Bool                        m_bKeyPictureFlag;
   UInt                        m_uiBaseLayerId;
   UInt                        m_uiBaseQualityLevel;
+#ifdef FRAG_FIX_2
+  UInt						  m_uiBaseFragmentOrder;
+#endif
   Bool                        m_bAdaptivePredictionFlag;
   Bool                        m_bNumRefIdxActiveOverrideFlag;
   UInt                        m_auiNumRefIdxActive[2];

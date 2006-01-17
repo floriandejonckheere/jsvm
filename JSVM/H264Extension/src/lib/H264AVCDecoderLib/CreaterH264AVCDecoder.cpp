@@ -750,6 +750,9 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
     {
       UInt uiTemp;
+#ifdef FRAG_FIX_2
+	  Bool bTemp;
+#endif
       //JVT-P031
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: first_mb_in_slice" ) );
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
@@ -764,6 +767,13 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
                 RNOK( m_pcUvlcReader->getFlag( bLastFragmentFlag,  "SH: last_fragment_flag" ) );
             }
        }
+#ifdef FRAG_FIX_2
+		if(uiFragmentOrder == 0 )
+		{
+			RNOK( m_pcUvlcReader    ->getUvlc( uiTemp,  "SH: num_mbs_in_slice" ) );
+			RNOK( m_pcUvlcReader    ->getFlag( bTemp,  "SH: fgs_comp_sep" ) );
+		}
+#endif
     }
   
     if(uiFragmentOrder == 0)
