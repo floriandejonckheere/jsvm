@@ -1153,6 +1153,9 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         } // for
       } // macroblock iteration
       
+      RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
+      RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
+
       // Tally over base pos to find EOB shift
       for (uiScanPos=0; uiScanPos<16; uiScanPos++)
       {

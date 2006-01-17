@@ -2750,27 +2750,17 @@ UcBitGrpReader::xFetchSymbol( UInt uiMaxSym )
 ErrVal
 UcBitGrpReader::xUpdate()
 {
-#if 1 // Bug fix liuhui 0511  - move after table selection from mail by Heiko
-#else
-  if ( m_auiSymCount[0] + m_auiSymCount[1] > m_uiScaleLimit )
-  {
-    m_auiSymCount[0] >>= m_uiScaleFac;
-    m_auiSymCount[1] >>= m_uiScaleFac;
-  }
-#endif
   if (m_auiSymCount[0] + m_auiSymCount[1] > m_uiStabPeriod)
   {
     m_uiFlip  = ( m_auiSymCount[0] < m_auiSymCount[1] ) ? 1 : 0;
     m_uiTable = (m_auiSymCount[m_uiFlip] < 2*m_auiSymCount[1-m_uiFlip]) ? 0
                   : ((7*m_auiSymCount[1-m_uiFlip]<=m_auiSymCount[m_uiFlip]) ? 2 : 1);
   }
-#if 1 // Bug fix liuhui 0511 - from mail by Heiko
 	if ( m_auiSymCount[0] + m_auiSymCount[1] > m_uiScaleLimit )
   {
     m_auiSymCount[0] >>= m_uiScaleFac;
     m_auiSymCount[1] >>= m_uiScaleFac;
   }
-#endif
 
   return Err::m_nOK;
 }
