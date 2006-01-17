@@ -1670,10 +1670,12 @@ UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
       m_uiCbpStats[uiBaseCtx][uiCBlk]++;
     }
     // Scale counter if necessary
-    if ( m_uiCbpStats[uiB][0] + m_uiCbpStats[uiB][1] > 512 )
-    {
-      m_uiCbpStats[uiB][0] >>= 4;
-      m_uiCbpStats[uiB][1] >>= 4;
+    for (uiB = 0; uiB < 2; uiB++) {
+      if ( m_uiCbpStats[uiB][0] + m_uiCbpStats[uiB][1] > 512 )
+      {
+        m_uiCbpStats[uiB][0] >>= 4;
+        m_uiCbpStats[uiB][1] >>= 4;
+      }
     }
     ETRACE_T( "CBP_Luma" );
     ETRACE_V( uiCode[0] );
@@ -1749,7 +1751,7 @@ UvlcWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
     if (m_uiCbpStat4x4[0]+m_uiCbpStat4x4[1] > 512)
     {
       m_uiCbpStat4x4[0] >>= 1;
-      m_uiCbpStat4x4[0] >>= 1;
+      m_uiCbpStat4x4[1] >>= 1;
     }
     ETRACE_T( "BCBP_4x4" );
     ETRACE_V( uiCode );
@@ -2230,13 +2232,12 @@ UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
   UInt uiPos;
   UInt uiFirstPos = 64;
 
-  UChar vlc_code[8] = { 0, 1, 2,12,13,14,30,31};
-  UChar vlc_len[8]  = { 2, 2, 2, 4, 4, 4, 5, 5};
-
-  for ( UInt ui=0; ui<64; ui++ )
+  UInt ui;
+  for ( ui=0; ui<64; ui++ )
   {
     UInt uiSig = ( piCoeffBase[pucScan[ui]] ? 1 : 0 );
-    if ( uiSig ) {
+    if ( uiSig )
+    {
       ucCode[uiLen] = (piCoeff[pucScan[ui]] ? 1 : 0);
       uiLen++;
       if (ui == uiScanIndex)
@@ -2247,23 +2248,25 @@ UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
   }
   if (uiScanIndex == uiFirstPos)
   {
-    UInt uiPos;
-    for (uiPos=0; uiPos<uiLen; uiPos+=3)
+    for( ui=0; ui<64; ui++ )
     {
-      if ( uiPos+3 < uiLen )
+      if ( piCoeffBase[pucScan[ui]] )
+        RNOK( m_pBitGrpRef->Write( piCoeff[pucScan[ui]] ? 1 : 0 ));
+    }
+    RNOK( m_pBitGrpRef->Flush() );
+    for ( UInt ui=0; ui<64; ui++ )
+    {
+      UInt uiSig = ( piCoeffBase[pucScan[ui]] ? 1 : 0 );
+      UInt uiSigEL = ( piCoeff[pucScan[ui]] ? 1 : 0 );
+      if ( uiSig && uiSigEL )
       {
-        UInt uiCode = (ucCode[uiPos]<<2) + (ucCode[uiPos+1]<<1) + (ucCode[uiPos+2]);
-        RNOK( xWriteCode( vlc_code[uiCode & ((1<<3)-1)], vlc_len[uiCode & ((1<<3)-1)]) );
-      } else {
-        UInt uiCode = ucCode[uiPos];
-        if ( uiPos+2 < uiLen )
-        {
-          uiCode <<= 1;
-          uiCode += ucCode[uiPos+1];
-        }
-        RNOK( xWriteCode( vlc_code[uiCode & ((1<<3)-1)], vlc_len[uiCode & ((1<<3)-1)]) );
+        UInt uiSignBL = ( piCoeffBase[pucScan[ui]] < 0 ? 1 : 0 );
+        UInt uiSignEL = ( piCoeff    [pucScan[ui]] < 0 ? 1 : 0 );
+        UInt uiSymbol = ( uiSignBL ^ uiSignEL );
+        RNOK( m_pBitGrpSgn->Write( uiSymbol ) );
       }
     }
+    RNOK( m_pBitGrpSgn->Flush() );
   }
 
   return Err::m_nOK;
@@ -2340,7 +2343,6 @@ UvlcWriter::RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
   UInt          uiStart     = ( eResidualMode == CHROMA_AC ? 1 : 0  );
   UInt          uiStop      = ( eResidualMode == CHROMA_DC ? 4 : 16 );
 
-  ROF( piCoeffBase[pucScan[uiScanIndex]] );
 
   ETRACE_T( "CHROMA_4x4_REF" );
   ETRACE_V( cIdx );
@@ -2457,6 +2459,7 @@ UvlcWriter::xRQencodeEobOffsets( UInt* auiSeq, UInt uiMax )
   }
   RNOK( xWriteGolomb( auiSeq[uiNumEnd], 2 ) );
   RNOK( xEncodeMonSeq( auiSeq+uiNumEnd+1, auiSeq[uiNumEnd], uiMax-uiNumEnd-1 ) );
+  ETRACE_N;
   return Err::m_nOK;
 }
 
@@ -2564,15 +2567,11 @@ UcBitGrpWriter::UcBitGrpWriter( UvlcWriter* pParent,
                                 UInt uiInitTable,
                                 UInt uiScaleFac,
                                 UInt uiScaleLimit,
-                                UInt uiGroupMin,
-                                UInt uiGroupMax,
                                 UInt uiStabPeriod )
 {
   m_pParent      = pParent;
   m_uiScaleFac   = uiScaleFac;
   m_uiScaleLimit = uiScaleLimit;
-  m_uiGroupMin   = uiGroupMin;
-  m_uiGroupMax   = uiGroupMax;
   m_uiInitTable  = uiInitTable;
   m_uiStabPeriod = uiStabPeriod;
   Init();

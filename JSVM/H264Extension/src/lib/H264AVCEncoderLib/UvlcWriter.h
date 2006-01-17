@@ -303,8 +303,6 @@ public:
                   UInt uiInitTable   = 1,
                   UInt uiScaleFac    = 3,
                   UInt uiScaleLimit  = 512,
-                  UInt uiGroupMin    = 1,
-                  UInt uiGroupMax    = 4,
                   UInt uiStabPerdiod = 8 );
   ErrVal Init();
   ErrVal Flush();

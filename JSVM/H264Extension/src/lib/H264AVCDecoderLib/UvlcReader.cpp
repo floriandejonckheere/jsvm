@@ -1848,10 +1848,12 @@ UvlcReader::RQdecodeCBP_8x8( MbDataAccess& rcMbDataAccess,
       m_uiCbpStats[uiBaseCtx][uiCBlk]++;
     }
     // Scale counter if necessary
-    if ( m_uiCbpStats[uiB][0] + m_uiCbpStats[uiB][1] > 512 )
-    {
-      m_uiCbpStats[uiB][0] >>= 4;
-      m_uiCbpStats[uiB][1] >>= 4;
+    for (uiB = 0; uiB < 2; uiB++) {
+      if ( m_uiCbpStats[uiB][0] + m_uiCbpStats[uiB][1] > 512 )
+      {
+        m_uiCbpStats[uiB][0] >>= 4;
+        m_uiCbpStats[uiB][1] >>= 4;
+      }
     }
   }
     uiSymbol = (m_uiCbp8x8 >> c8x8Idx.b8x8Index()) & 0x1;
@@ -1919,7 +1921,7 @@ UvlcReader::RQdecodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
     if (m_uiCbpStat4x4[0]+m_uiCbpStat4x4[1] > 512)
     {
       m_uiCbpStat4x4[0] >>= 1;
-      m_uiCbpStat4x4[0] >>= 1;
+      m_uiCbpStat4x4[1] >>= 1;
     }
     DTRACE_T( "BCBP_4x4" );
     DTRACE_V( uiCode );
@@ -2087,34 +2089,45 @@ UvlcReader::RQdecodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
     }
   }
 
-  UChar vlc_code[8] = { 0, 1, 2,12,13,14,30,31};
-  UChar vlc_len[8]  = { 2, 2, 2, 4, 4, 4, 5, 5};
-
-  UInt uiSymbol;
-  UInt uiTemp;
-  UInt uiCount = uiLen;
-  UChar ucCode[64];
-  uiPos = 0;
   if (uiScanIndex == uiFirstPos) {
+    UChar ucSymbol;
+    UInt  uiLoop;
+    UInt  uiCount = uiLen;
+    Int   iCode[64];
+    UInt  uiSignCount = 0;
+    uiPos = 0;
     while ( uiCount > 0 )
-      if (uiCount < 3) {
-        RNOK( xGetCode( uiSymbol, uiCount ) );
-        if ( uiCount == 2 )
-          ucCode[uiPos++] = ( uiSymbol & 0x2 ) ? 1 : 0;
-        ucCode[uiPos++] = (uiSymbol & 0x1) ? 1 : 0;
-        break;
-      } else {
-        RNOK( xCodeFromBitstream2D( vlc_code, vlc_len, 8, 1, uiSymbol, uiTemp ) );
-        ucCode[uiPos++] = (uiSymbol & 0x4) ? 1 : 0;
-        ucCode[uiPos++] = (uiSymbol & 0x2) ? 1 : 0;
-        ucCode[uiPos++] = (uiSymbol & 0x1) ? 1 : 0;
-        uiCount -= 3;
-      }
-    for ( UInt ui=0,uiPos=0; ui<64; ui++ )
     {
-      UInt uiSig = ( piCoeffBase[pucScan[ui]] ? 1 : 0 );
+      RNOK( m_pBitGrpRef->Read( ucSymbol, uiCount ) );
+      uiCount--;
+      iCode[uiPos++] = ucSymbol;
+      if (ucSymbol)
+        uiSignCount++;
+    }
+    for (uiLoop=0,uiPos=0; uiLoop<64; uiLoop++)
+    {
+      UInt uiSig = ( piCoeffBase[pucScan[uiLoop]] ? 1 : 0 );
+      UInt uiSigEL = ( iCode[uiPos] ? 1 : 0 );
+      if ( uiSig )
+      {
+        if ( uiSigEL )
+        {
+          RNOK( m_pBitGrpSgn->Read( ucSymbol, uiSignCount ) );
+          uiSignCount--;
+          UInt uiSymbol = ucSymbol;
+          UInt uiSignBL = ( piCoeffBase[pucScan[uiLoop]] < 0 ? 1 : 0 );
+          UInt uiSignEL = ( uiSignBL ^ uiSymbol );
+          iCode[uiPos] = ( uiSignEL ? -1 : 1 );
+        }
+        uiPos++;
+      }
+    }
+
+    for ( uiLoop=0,uiPos=0; uiLoop<64; uiLoop++ )
+    {
+      UInt uiSig = ( piCoeffBase[pucScan[uiLoop]] ? 1 : 0 );
       if ( uiSig ) {
-        piCoeff[pucScan[ui]] = ucCode[uiPos++];
+        piCoeff[pucScan[uiLoop]] = iCode[uiPos++];
       }
     }
   }
@@ -2218,7 +2231,6 @@ UvlcReader::RQdecodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
   UInt          uiStart     = ( eResidualMode == CHROMA_AC ? 1 : 0  );
   UInt          uiStop      = ( eResidualMode == CHROMA_DC ? 4 : 16 );
 
-  ROF( piCoeffBase[pucScan[uiScanIndex]] );
 
   DTRACE_T( "CHROMA_4x4_REF" );
   DTRACE_V( cIdx );
@@ -2650,15 +2662,11 @@ UcBitGrpReader::UcBitGrpReader( UvlcReader* pParent,
                                 UInt uiInitTable,
                                 UInt uiScaleFac,
                                 UInt uiScaleLimit,
-                                UInt uiGroupMin,
-                                UInt uiGroupMax,
                                 UInt uiStabPeriod )
 {
   m_pParent      = pParent;
   m_uiScaleFac   = uiScaleFac;
   m_uiScaleLimit = uiScaleLimit;
-  m_uiGroupMin   = uiGroupMin;
-  m_uiGroupMax   = uiGroupMax;
   m_uiInitTable  = uiInitTable;
   m_uiStabPeriod = uiStabPeriod;
   Init();
