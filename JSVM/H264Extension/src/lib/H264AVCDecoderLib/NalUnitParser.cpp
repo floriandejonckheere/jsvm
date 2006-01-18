@@ -384,11 +384,13 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
   RNOK( xConvertRBSPToSODB    ( uiPacketLength, uiBitsInPacket ) );
 
   //FRAG_FIX
+  if(!(m_bDiscardableFlag && m_uiDecodedLayer > m_uiLayerId)) //FRAG_FIX_3
+  {
   if(bPreParseHeader)
       m_uiBitsInPacketSaved = uiBitsInPacket;
-  if(!bPreParseHeader)
+  if(!bPreParseHeader && !bConcatenated) //FRAG_FIX_3
       uiBitsInPacket = m_uiBitsInPacketSaved;
-
+  } //FRAG_FIX_3
 
   if(!m_bDiscardableFlag || (m_bDiscardableFlag && m_uiDecodedLayer == m_uiLayerId) || m_bCheckAllNALUs) //JVT-P031
   {

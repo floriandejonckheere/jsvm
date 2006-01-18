@@ -282,6 +282,7 @@ ErrVal H264AVCDecoderTest::go()
     BinData* pcBinDataTmp[MAX_FRAGMENTS];
     BinDataAccessor cBinDataAccessorTmp[MAX_FRAGMENTS];
     UInt uiFragNb, auiStartPos[MAX_FRAGMENTS], auiEndPos[MAX_FRAGMENTS];
+	Bool bConcatenated = false; //FRAG_FIX_3
     uiFragNb = 0;
     bEOS = false;
     pcBinData = 0;
@@ -298,11 +299,15 @@ ErrVal H264AVCDecoderTest::go()
       pcBinDataTmp[uiFragNb]->setMemAccessor( cBinDataAccessorTmp[uiFragNb] );
       // open the NAL Unit, determine the type and if it's a slice get the frame size
 #if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
-    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
+    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, 
+		false, //FRAG_FIX_3
+		bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
     if(uiNonRequiredPic)
 		continue;
 #else
-    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, true, bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) ); //FRAG_FIX
+    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, true, 
+		false, //FRAG_FIX_3
+		bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) ); //FRAG_FIX
 #endif
       uiTotalLength += auiEndPos[uiFragNb] - auiStartPos[uiFragNb];
 
@@ -325,6 +330,9 @@ ErrVal H264AVCDecoderTest::go()
               RNOK( m_pcReadBitstream->releasePacket( pcBinDataTmp[uiFrag] ) );
               pcBinDataTmp[uiFrag] = NULL;
               m_pcH264AVCDecoder->decreaseNumOfNALInAU();
+			  //FRAG_FIX_3
+			  if(uiFrag > 0) 
+				  bConcatenated = true; //~FRAG_FIX_3
           }
           
           pcBinData->setMemAccessor( cBinDataAccessor );
@@ -336,11 +344,13 @@ ErrVal H264AVCDecoderTest::go()
               {
 #if NON_REQUIRED_SEI_ENABLE
                 RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic,
-                    false, bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
+                    false, bConcatenated, //FRAG_FIX_3
+					bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
                     bFragmented, bDiscardable) );
 #else
                 RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, 
-                    false, bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
+                    false , bConcatenated, //FRAG_FIX_3
+					bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
                     bFragmented, bDiscardable) );
 #endif
               }

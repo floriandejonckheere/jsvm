@@ -591,6 +591,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 						   UInt&			  ruiNonRequiredPic
                            //JVT-P031
 						               ,Bool             bPreParseHeader //FRAG_FIX
+						   , Bool			bConcatenated //FRAG_FIX_3
                            ,Bool&            rbStartDecoding,
                             UInt&             ruiStartPos,
                             UInt&             ruiEndPos,
@@ -607,6 +608,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 						   UInt&             ruiSize
                            //JVT-P031
              						   ,Bool             bPreParseHeader //FRAG_FIX
+						   , Bool			bConcatenated //FRAG_FIX_3
                            ,Bool&            rbStartDecoding,
                             UInt&             ruiStartPos,
                             UInt&             ruiEndPos,

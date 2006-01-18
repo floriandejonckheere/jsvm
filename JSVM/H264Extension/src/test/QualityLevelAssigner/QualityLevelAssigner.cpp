@@ -990,11 +990,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 #if NON_REQUIRED_SEI_ENABLE
       RNOK( m_pcH264AVCDecoder->initPacket( &acBinDataAccessorTmp[uiFragmentNumber],
                                             uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true,
+											false, //FRAG_FIX_3
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
                                             bFragmented, bDiscardable ) );
 #else
       RNOK( m_pcH264AVCDecoder->initPacket( &acBinDataAccessorTmp[uiFragmentNumber],
                                             uiNalUnitType, uiMbX, uiMbY, uiSize, true,
+											false, //FRAG_FIX_3
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
                                             bFragmented, bDiscardable ) ); //FRAG_FIX
 #endif
