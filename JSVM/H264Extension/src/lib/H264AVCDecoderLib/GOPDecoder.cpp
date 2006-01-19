@@ -753,6 +753,8 @@ DecodedPicBuffer::xStorePicture( DPBUnit*       pcDPBUnit,
   m_pcCurrDPBUnit = m_cFreeDPBUnitList.popFront();                                // new current DPB unit
 #if 1 // BUG-FIX liuhui 0511 from mail by Heiko
   m_pcCurrDPBUnit->getCtrlData().setSliceHeader( 0 );
+  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->reset();
+  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->clear();
 #endif
 
   return Err::m_nOK;
