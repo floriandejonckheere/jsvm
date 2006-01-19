@@ -93,6 +93,12 @@ H264AVC_NAMESPACE_BEGIN
 
 class BitReadBuffer
 {
+#ifdef CAVLC_BUGFIX
+public:
+  class ReadStop
+  {
+  };
+#endif
 protected:
 	BitReadBuffer();
 	virtual ~BitReadBuffer();

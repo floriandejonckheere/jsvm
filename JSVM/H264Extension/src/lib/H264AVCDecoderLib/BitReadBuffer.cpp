@@ -219,7 +219,14 @@ ErrVal BitReadBuffer::flush( UInt uiNumberOfBits  )
 
 ErrVal BitReadBuffer::get( UInt& ruiBits  )
 {
+#ifdef CAVLC_BUGFIX
+  if( 0 == m_uiBitsLeft )
+  {
+    throw ReadStop();
+  }
+#else
   DECROTR( 0 == m_uiBitsLeft, Err::m_nEndOfBuffer )
+#endif
 
   m_uiBitsLeft --;
   m_iValidBits --;
@@ -246,7 +253,14 @@ ErrVal BitReadBuffer::get( UInt& ruiBits, UInt uiNumberOfBits  )
   // check the number_of_bits parameter matches the range
   AOT_DBG( uiNumberOfBits > 32 );
 
+#ifdef CAVLC_BUGFIX
+  if( uiNumberOfBits > m_uiBitsLeft )
+  {
+    throw ReadStop();
+  }
+#else
   ROTRS  ( uiNumberOfBits > m_uiBitsLeft, Err::m_nEndOfBuffer );
+#endif
 
   m_uiBitsLeft  -= uiNumberOfBits;
   m_iValidBits -= uiNumberOfBits;

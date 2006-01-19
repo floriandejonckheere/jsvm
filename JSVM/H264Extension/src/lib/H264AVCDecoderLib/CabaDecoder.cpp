@@ -135,10 +135,14 @@ __inline Void CabaDecoder::xReadBit( UInt& ruiValue )
 {
   if( 0 == m_uiBitsLeft-- )
   {
+#ifdef CAVLC_BUGFIX
+    m_pcBitReadBuffer->get( m_uiWord, 8 );
+#else
     if( Err::m_nOK != m_pcBitReadBuffer->get( m_uiWord, 8 ) )
     {
       throw ReadStop();
     }
+#endif
     m_uiBitsLeft = 7;
   }
   ruiValue += ruiValue + ((m_uiWord >> 7)&1);
@@ -166,11 +170,15 @@ ErrVal CabaDecoder::start()
   while( ! m_pcBitReadBuffer->isWordAligned() && ( 8 > m_uiBitsLeft) )
   {
     UInt uiByte;
+#ifdef CAVLC_BUGFIX
+    m_pcBitReadBuffer->get( uiByte, 8 );
+#else
     ErrVal eResult = m_pcBitReadBuffer->get( uiByte, 8 );
     if(    eResult != Err::m_nOK )
     {
       throw ReadStop();
     }
+#endif
     m_uiWord <<= 8;
     m_uiWord += uiByte;
     m_uiBitsLeft += 8;
