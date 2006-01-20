@@ -742,14 +742,14 @@ Extractor::xSetParameters()
   UInt                                              uiExtLayer  = MSYS_UINT_MAX;
   UInt                                              uiExtLevel  = MSYS_UINT_MAX;
   //----- layer -----
-  for( uiLayer = 0; uiLayer <= m_cScalableStreamDescription.getNumberOfLayers(); uiLayer++ )
+  for( uiLayer = 0; uiLayer < m_cScalableStreamDescription.getNumberOfLayers(); uiLayer++ )
   {
-    if( rcExtPoint.uiWidth  == m_cScalableStreamDescription.getFrameWidth (uiLayer) &&
-        rcExtPoint.uiHeight == m_cScalableStreamDescription.getFrameHeight(uiLayer)    )
+	if( rcExtPoint.uiWidth  < m_cScalableStreamDescription.getFrameWidth (uiLayer) ||
+        rcExtPoint.uiHeight < m_cScalableStreamDescription.getFrameHeight(uiLayer)    )
     {
-      uiExtLayer = uiLayer;
       break;
     }
+	uiExtLayer = uiLayer;
   }
   ERROR( uiExtLayer==MSYS_UINT_MAX, "Spatial resolution of extraction/inclusion point not supported" );
   m_pcExtractorParameter->setLayer(uiExtLayer);
@@ -776,9 +776,22 @@ Extractor::xSetParameters()
   for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
   {
      Int64 i64NALUBytes                    = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, 0 );
+	 if (dRemainingBytes<(Double)i64NALUBytes)
+	 {
+		 // J.Reichel -> CGS and FGS supports (note this will work only if the uiLevel for the framerate doesn't change for the different layer)
+		 // not enough bit for a layer, if the previous layer was a CGS, then it should become the new max layer
+		 if( uiExtLayer>0 &&
+			 rcExtPoint.uiWidth  == m_cScalableStreamDescription.getFrameWidth (uiLayer-1) &&
+			 rcExtPoint.uiHeight == m_cScalableStreamDescription.getFrameHeight(uiLayer-1)    )
+		 {
+			uiExtLayer=uiLayer-1;
+			break;
+		 }
+	 }
      dRemainingBytes                      -= (Double)i64NALUBytes;
      m_aadTargetSNRLayer[uiLayer][uiLevel] = 0;
 	 m_pcExtractorParameter->setMaxFGSLayerKept(0);
+
   }
   if( dRemainingBytes < 0.0 )
   {
