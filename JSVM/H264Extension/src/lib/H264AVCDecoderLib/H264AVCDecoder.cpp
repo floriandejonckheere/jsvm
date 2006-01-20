@@ -789,7 +789,22 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       rbStartDecoding = true;//JVT-P031
     }
     break;
-
+#ifdef   CONFORMANCE_BUGFIX
+  case NAL_UNIT_ACCESS_UNIT_DELIMITER:
+    {
+      RNOK ( m_pcNalUnitParser->readAUDelimiter());
+    }
+    break;
+  case NAL_UNIT_END_OF_SEQUENCE:
+    {
+      RNOK ( m_pcNalUnitParser->readEndOfSeqence());
+    }
+  case NAL_UNIT_END_OF_STREAM:
+    {
+      RNOK ( m_pcNalUnitParser->readEndOfStream());
+    }
+    break;
+#endif // CONFORMANCE_BUGFIX
   default:
     return Err::m_nERR;
     break;
@@ -1045,6 +1060,11 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 
   case NAL_UNIT_PPS:
   case NAL_UNIT_SEI:
+#ifdef   CONFORMANCE_BUGFIX
+	case NAL_UNIT_ACCESS_UNIT_DELIMITER:
+	case NAL_UNIT_END_OF_SEQUENCE:
+	case NAL_UNIT_END_OF_STREAM:
+#endif //CONFORMANCE_BUGFIX
     {
     }
     break;

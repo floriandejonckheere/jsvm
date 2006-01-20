@@ -360,9 +360,16 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   //===== Sequence parameter set =====
   RNOK  ( pcReadIf->getCode( uiTmp,                               8,      "SPS: profile_idc" ) );
   m_eProfileIdc  = Profile ( uiTmp );
+#ifdef   CONFORMANCE_BUGFIX
+  ROT   ( m_eProfileIdc != MAIN_PROFILE  &&
+          m_eProfileIdc != EXTENDED_PROFILE  &&
+          m_eProfileIdc != HIGH_PROFILE  &&
+          m_eProfileIdc != SCALABLE_PROFILE );
+#else //!CONFORMANCE_BUGFIX
   ROT   ( m_eProfileIdc != MAIN_PROFILE  &&
           m_eProfileIdc != HIGH_PROFILE  &&
           m_eProfileIdc != SCALABLE_PROFILE );
+#endif //CONFORMANCE_BUGFIX
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet0Flag,                      "SPS: constrained_set0_flag" ) );
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet1Flag,                      "SPS: constrained_set1_flag" ) );
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet2Flag,                      "SPS: constrained_set2_flag" ) );

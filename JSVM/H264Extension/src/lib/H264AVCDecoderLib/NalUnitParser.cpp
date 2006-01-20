@@ -475,5 +475,36 @@ NalUnitParser::xConvertRBSPToSODB( UInt  uiPacketLength,
   return Err::m_nOK;
 }
 
+#ifdef   CONFORMANCE_BUGFIX
+ErrVal NalUnitParser::readAUDelimiter()
+{
+  DTRACE_HEADER("Access Unit Delimiter");
+
+  UInt uiPicDelimiterType;
+  m_pcBitReadBuffer->get(uiPicDelimiterType, 3);
+
+  DTRACE_TH( "AUD: primary_pic_type"  );
+  DTRACE_TY( " u(3)" );
+  DTRACE_BITS(uiPicDelimiterType, 3);
+  DTRACE_POS;
+  DTRACE_CODE(uiPicDelimiterType);
+  DTRACE_COUNT(3);
+  DTRACE_N;
+
+  return Err::m_nOK;
+}
+
+ErrVal NalUnitParser::readEndOfSeqence()
+{
+  DTRACE_HEADER("End of Sequence");
+  return Err::m_nOK;
+}
+
+ErrVal NalUnitParser::readEndOfStream()
+{
+  DTRACE_HEADER("End of Stream");
+  return Err::m_nOK;
+}
+#endif //CONFORMANCE_BUGFIX
 
 H264AVC_NAMESPACE_END

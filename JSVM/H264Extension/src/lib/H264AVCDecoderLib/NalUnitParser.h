@@ -137,6 +137,12 @@ public:
   Void setCheckAllNALUs(Bool b) { m_bCheckAllNALUs = b;}
   Void setDecodedLayer( UInt uiLayer) { m_uiDecodedLayer = uiLayer;}
   //~JVT-P031
+#ifdef   CONFORMANCE_BUGFIX
+	ErrVal	readAUDelimiter       ();
+  ErrVal  readEndOfSeqence      ();
+  ErrVal  readEndOfStream       ();
+#endif //CONFORMANCE_BUGFIX
+
 protected:
   Void    xTrace                ( Bool  bDDIPresent     );
   ErrVal  xConvertPayloadToRBSP ( UInt& ruiPacketLength );
