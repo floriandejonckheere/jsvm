@@ -571,7 +571,6 @@ Extractor::xAnalyse()
     bApplyToNext  = cPacketDescription.ApplyToNext;
     bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
     uiPId = cPacketDescription.uiPId;
-	
 	//JVT-P031
 	if(cPacketDescription.bDiscardable)
 	{
@@ -1082,7 +1081,6 @@ Extractor::xExtractPoints()
   }
 
   RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
-
 
   printf("\n\nNumber of input packets:  %d\nNumber of output packets: %d (cropped: %d)\n\n", uiNumInput, uiNumKept, uiNumCropped );
 
@@ -1730,6 +1728,7 @@ Extractor::xExtractLayerLevel()
 					}
 				}
 #endif
+			printf("Layer %d Level %d FGSLayer%d PacketSize %d \n", uiLayer, uiTempLevel, uiFGSLayer, uiPacketSize);
 			RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
 			RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
 #if 1 //BUG_FIX liuhui 0511: the previous removed to this part
@@ -3371,6 +3370,7 @@ Extractor::xExtractPoints_DS()
 				    //NAL is truncated
 				    Double dWeight = m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame];
 				    uiShrinkSize        = uiPacketSize - (UInt)m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame]; //(UInt)ceil( (Double)uiPacketSize * dWeight );
+            m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame] = -1; //BUG_FIX_FT_01_2006
 				    if(uiPacketSize - uiShrinkSize > 25)
 				    {
 					    RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
@@ -3409,8 +3409,7 @@ Extractor::xExtractPoints_DS()
   }
 
   RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
-
-
+	
   printf("\n\nNumber of input packets:  %d\nNumber of output packets: %d (cropped: %d)\n\n", uiNumInput, uiNumKept, uiNumCropped );
 
   return Err::m_nOK;

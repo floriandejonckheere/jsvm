@@ -473,7 +473,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 				if(pcScalableSEI->getDecodingDependencyInfoPresentFlag(uiNumScalableLayer))
 				{
 #if 1 //BUG_FIX liuhui 0511, for AVC-COMPATIBLE identification
-					UInt uiTempLevel = uiCurrTempLevel - uiMinTempLevel;
+					//UInt uiTempLevel = uiCurrTempLevel - uiMinTempLevel;
+					UInt uiTempLevel = uiCurrTempLevel; //BUG_FIX_FT_01_2006
 #else
 					UInt uiTempLevel = uiCurrTempLevel;
 #endif
