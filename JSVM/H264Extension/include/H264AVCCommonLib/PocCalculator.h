@@ -104,6 +104,10 @@ public:
   ErrVal  copy            ( PocCalculator*& rpcPocCalculator );
   ErrVal  destroy         ();
 
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+	ErrVal  initSPS         ( const SequenceParameterSet&  rcSequenceParameterSet );
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+
   ErrVal  setPoc          ( SliceHeader& rcSliceHeader, Int iContFrameNumber );
   ErrVal  calculatePoc    ( SliceHeader& rcSliceHeader );
 

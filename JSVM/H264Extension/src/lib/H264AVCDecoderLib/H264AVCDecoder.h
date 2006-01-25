@@ -246,7 +246,11 @@ protected:
   Bool                          m_bEnhancementLayer;
   Bool                          m_bActive;
   Bool                          m_bBaseLayerIsAVCCompatible;
+#ifdef   SPS_BUGFIX
+	Bool                          m_bNewSPS;
+#else //!SPS_BUGFIX
   UInt                          m_uiSPSCount;
+#endif //SPS_BUGFIX
   UInt                          m_uiRecLayerId;
   UInt                          m_uiLastLayerId;
   const SequenceParameterSet*   m_pcVeryFirstSPS;

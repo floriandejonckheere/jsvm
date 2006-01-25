@@ -120,7 +120,11 @@ H264AVCDecoder::H264AVCDecoder()
 , m_bFrameDone                    ( true  )
 , m_bEnhancementLayer             ( false )
 , m_bBaseLayerIsAVCCompatible     ( false )
+#ifdef   SPS_BUGFIX
+, m_bNewSPS                       ( false )
+#else //!SPS_BUGFIX
 , m_uiSPSCount                    ( 0 )
+#endif //SPS_BUGFIX
 , m_uiRecLayerId                  ( 0 )
 , m_uiLastLayerId                 ( MSYS_UINT_MAX )
 , m_pcVeryFirstSPS                ( NULL )
@@ -231,7 +235,11 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
   m_pcFGSPicBuffer            = 0;
   m_bEnhancementLayer         = false;
   m_bBaseLayerIsAVCCompatible = false;
+#ifdef   SPS_BUGFIX
+	m_bNewSPS                   = false;
+#else //!SPS_BUGFIX
   m_uiSPSCount                = 0;
+#endif //SPS_BUGFIX
   m_uiRecLayerId              = 0;
   m_uiLastLayerId             = MSYS_UINT_MAX;
   m_pcVeryFirstSPS            = 0;
@@ -285,6 +293,10 @@ ErrVal H264AVCDecoder::uninit()
   m_pcParameterSetMng     = NULL;
   m_pcPocCalculator       = NULL;
 
+#ifdef   SPS_BUGFIX
+	m_bNewSPS               = false;
+	if( m_pcVeryFirstSliceHeader )
+#endif //SPS_BUGFIX
   delete m_pcVeryFirstSliceHeader;
   m_pcVeryFirstSliceHeader = NULL;
 
@@ -584,36 +596,36 @@ Void H264AVCDecoder::getDecodedResolution(UInt &uiLayerId)
 #if NON_REQUIRED_SEI_ENABLE //shenqiu
 ErrVal
 H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
-						   UInt&             ruiNalUnitType,
-						   UInt&             ruiMbX,
-						   UInt&             ruiMbY,
-						   UInt&             ruiSize,
-						   UInt&			  ruiNonRequiredPic
-                           //JVT-P031
-						               ,Bool             bPreParseHeader //FRAG_FIX
-						   , Bool			bConcatenated //FRAG_FIX_3
-                           ,Bool&            rbStartDecoding,
-                            UInt&             ruiStartPos,
-                            UInt&             ruiEndPos,
-                            Bool&             bFragmented,
-                            Bool&             bDiscardable
+													  UInt&             ruiNalUnitType,
+														UInt&             ruiMbX,
+														UInt&             ruiMbY,
+														UInt&             ruiSize,
+														UInt&             ruiNonRequiredPic
+														//JVT-P031
+														, Bool            bPreParseHeader //FRAG_FIX
+														, Bool			      bConcatenated //FRAG_FIX_3
+														, Bool&           rbStartDecoding,
+														UInt&             ruiStartPos,
+														UInt&             ruiEndPos,
+														Bool&             bFragmented,
+														Bool&             bDiscardable
                             //~JVT-P031
                             )
 #else
 ErrVal
 H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
-						   UInt&             ruiNalUnitType,
-						   UInt&             ruiMbX,
-						   UInt&             ruiMbY,
-						   UInt&             ruiSize
+													  UInt&             ruiNalUnitType,
+														UInt&             ruiMbX,
+														UInt&             ruiMbY,
+														UInt&             ruiSize
                            //JVT-P031
-             						   ,Bool             bPreParseHeader //FRAG_FIX
-						                , Bool			bConcatenated //FRAG_FIX_3
-                           ,Bool&            rbStartDecoding,
-                            UInt&             ruiStartPos,
-                            UInt&             ruiEndPos,
-                            Bool&             bFragmented,
-                            Bool&             bDiscardable
+													 , Bool             bPreParseHeader //FRAG_FIX
+													 , Bool			        bConcatenated //FRAG_FIX_3
+													 , Bool&            rbStartDecoding,
+													  UInt&             ruiStartPos,
+														UInt&             ruiEndPos,
+														Bool&             bFragmented,
+														Bool&             bDiscardable
                             //~JVT-P031
                             )
 #endif
@@ -683,12 +695,23 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       if( NULL == m_pcVeryFirstSPS )
       {
         setVeryFirstSPS( pcSPS );
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+        RNOK( m_pcPocCalculator->initSPS( *pcSPS ) );
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
       }
+#ifdef   SPS_BUGFIX
+			if ( pcSPS->getProfileIdc()==SCALABLE_PROFILE )
+#else //!SPS_BUGFIX
       if (m_uiSPSCount == 1)
+#endif //SPS_BUGFIX
       {
         m_bEnhancementLayer = true;
       }
+#ifdef   SPS_BUGFIX
+			m_bNewSPS = true;
+#else //!SPS_BUGFIX
       m_uiSPSCount++;
+#endif //SPS_BUGFIX
       RNOK( m_pcParameterSetMng ->store   ( pcSPS   ) );
 
       // Copy simple priority ID mapping from SPS to NAL unit parser
@@ -706,7 +729,11 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       ruiMbX  = pcSPS->getFrameWidthInMbs ();
       ruiMbY  = pcSPS->getFrameHeightInMbs();
       ruiSize = max( ruiSize, ( (ruiMbX << 3 ) + YUV_X_MARGIN ) * ( ( ruiMbY << 3 ) + YUV_Y_MARGIN ) * 6 );
+#ifdef   SPS_BUGFIX
+			m_pcControlMng->initSPS( *pcSPS, m_uiRecLayerId );
+#else //!SPS_BUGFIX
       m_pcControlMng->initSPS(*pcSPS, m_uiSPSCount-1); // TMM_ESS
+#endif //SPS_BUGFIX
       ruiEndPos = pcBinDataAccessor->size(); //JVT-P031
       bDiscardable = false;//JVT-P031
       rbStartDecoding = true;//JVT-P031
@@ -1210,10 +1237,16 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 
     //--ICU/ETRI FMO Implementation
     m_pcVeryFirstSliceHeader->FMOInit();  
-    bVeryFirstSlice= true;   
- 
+    bVeryFirstSlice= true;
   }
-  
+#ifdef   SPS_BUGFIX
+	else if ( m_bNewSPS && (rcSH.getSPS().getProfileIdc() != SCALABLE_PROFILE) )
+	{
+		delete m_pcVeryFirstSliceHeader;
+		m_pcVeryFirstSliceHeader  = new SliceHeader( rcSH.getSPS(), rcSH.getPPS() );
+	}
+	m_bNewSPS = false;
+#endif //!SPS_BUGFIX
   
   printf("  Frame %4d ( LId 0, TL X, QL 0, AVC-%c, BId-1, AP 0, QP%3d )\n",
     rcSH.getPoc                    (),

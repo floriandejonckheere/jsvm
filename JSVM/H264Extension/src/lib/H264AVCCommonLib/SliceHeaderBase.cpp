@@ -111,6 +111,11 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bFgsComponentSep                  ( 0 )
 , m_uiIdrPicId                        ( 0 )
 , m_uiPicOrderCntLsb                  ( 0 )
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+, m_iDeltaPicOrderCntBottom           ( 0 )
+, m_bFieldPicFlag                     ( false )
+, m_bBottomFieldFlag                  ( false )
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 , m_bDirectSpatialMvPredFlag          ( true )
 , m_bKeyPictureFlag                   ( false )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
@@ -141,6 +146,10 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+  m_aiDeltaPicOrderCnt[LIST_0] = 0;
+  m_aiDeltaPicOrderCnt[LIST_1] = 0;
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 }
 
 
@@ -650,8 +659,6 @@ ErrVal
 SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
 {
   Bool  bTmp;
-  Int   iTmp;
-
  
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
@@ -660,14 +667,31 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
   
-  RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
-                               getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-
-  if(getPPS().getPicOrderPresentFlag() == true)
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+  if( 0 == getSPS().getPicOrderCntType() )
   {
-	  RNOK(     pcReadIf->getSvlc( iTmp,                                         "SH: delta_pic_order_cnt_bottom" ) );
-	  ROT ( iTmp );
+    RNOKS( pcReadIf->getCode( m_uiPicOrderCntLsb, getSPS().getLog2MaxPicOrderCntLsb(),
+			                                                                       "SH: pic_order_cnt_lsb" ) );
+    if( getPPS().getPicOrderPresentFlag() && (! getFieldPicFlag()) )
+    {
+      RNOKS( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                   "SH: delta_pic_order_cnt_bottom" ) );
+    }
   }
+
+  if( (1 == getSPS().getPicOrderCntType()) && (! getSPS().getDeltaPicOrderAlwaysZeroFlag()) )
+  {
+     RNOKS( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[LIST_0],                 "SH: delta_picture_order_cnt[0]" ) );
+     if ( getPPS().getPicOrderPresentFlag() && (! getFieldPicFlag()) )
+  {
+       RNOKS( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[LIST_1],               "SH: delta_picture_order_cnt[1]" ) );
+     }
+  }
+#else //!PIC_ORDER_CNT_TYPE_BUGFIX
+  RNOKS( pcReadIf->getCode( m_uiPicOrderCntLsb, getSPS().getLog2MaxPicOrderCntLsb(),
+		                                                                         "SH: pic_order_cnt_lsb" ) );
+	RNOK( pcReadIf->getSvlc( iTmp,                                             "SH: delta_pic_order_cnt_bottom" ) );
+	ROT ( iTmp );
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   
   if( m_eSliceType == B_SLICE )
   {

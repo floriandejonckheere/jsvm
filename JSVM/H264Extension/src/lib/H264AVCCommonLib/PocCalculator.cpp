@@ -142,39 +142,131 @@ ErrVal PocCalculator::destroy()
   return Err::m_nOK;
 }
 
-
-ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+ErrVal PocCalculator::initSPS( const SequenceParameterSet& rcSequenceParameterSet )
 {
-  Int iCurrPocMsb = m_iPrevRefPocMsb;
-  Int iCurrPocLsb = rcSliceHeader.getPicOrderCntLsb();
-  Int iDiffPocLsb = m_iPrevRefPocLsb - iCurrPocLsb;
-
-  if( rcSliceHeader.isIdrNalUnit() )
+  switch( rcSequenceParameterSet.getPicOrderCntType() )
   {
-    iCurrPocMsb   = 0;
-    iCurrPocLsb   = 0;
-    m_iMaxPocLsb  = ( 1 << rcSliceHeader.getSPS().getLog2MaxPicOrderCntLsb() );
+  case 0:
+    {
+      m_iPrevRefPocMsb  = 0;
+      m_iPrevRefPocLsb  = 0;
+      m_iMaxPocLsb      = ( 1 << rcSequenceParameterSet.getLog2MaxPicOrderCntLsb() );
+    }
+    break;
+  case 1:
+    {
+      m_iFrameNumOffset  = 0;
+      m_iRefOffsetSum    = 0;
+      for( UInt uiIndex = 0; uiIndex < rcSequenceParameterSet.getNumRefFramesInPicOrderCntCycle(); uiIndex++ )
+      {
+        m_iRefOffsetSum += rcSequenceParameterSet.getOffsetForRefFrame( uiIndex );
+      }
+    }
+    break;
+  case 2:
+    {
+      m_iFrameNumOffset  = 0;
+    }
+    break;
+  default:
+    {
+      return Err::m_nERR;
+    }
+    break;
   }
-  else if( iDiffPocLsb >= ( m_iMaxPocLsb >> 1 ) )
-  {
-    iCurrPocMsb  += m_iMaxPocLsb;
-  }
-  else if( -iDiffPocLsb > ( m_iMaxPocLsb >> 1 ) )
-  {
-    iCurrPocMsb  -= m_iMaxPocLsb;
-  }
-
-  if( rcSliceHeader.getNalRefIdc() )
-  {
-    m_iPrevRefPocMsb = iCurrPocMsb;
-    m_iPrevRefPocLsb = iCurrPocLsb;
-  }
-
-  rcSliceHeader.setPoc( iCurrPocMsb + iCurrPocLsb );
 
   return Err::m_nOK;
 }
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 
+ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
+{
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+  switch( rcSliceHeader.getSPS().getPicOrderCntType() )
+  {
+  case 0:
+    {
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+      Int iCurrPocMsb = m_iPrevRefPocMsb;
+      Int iCurrPocLsb = rcSliceHeader.getPicOrderCntLsb();
+      Int iDiffPocLsb = m_iPrevRefPocLsb - iCurrPocLsb;
+
+      if( rcSliceHeader.isIdrNalUnit() )
+      {
+        iCurrPocMsb   = 0;
+        iCurrPocLsb   = 0;
+        m_iMaxPocLsb  = ( 1 << rcSliceHeader.getSPS().getLog2MaxPicOrderCntLsb() );
+      }
+      else if( iDiffPocLsb >= ( m_iMaxPocLsb >> 1 ) )
+      {
+        iCurrPocMsb  += m_iMaxPocLsb;
+      }
+      else if( -iDiffPocLsb > ( m_iMaxPocLsb >> 1 ) )
+      {
+        iCurrPocMsb  -= m_iMaxPocLsb;
+      }
+
+      if( rcSliceHeader.getNalRefIdc() )
+      {
+        m_iPrevRefPocMsb = iCurrPocMsb;
+        m_iPrevRefPocLsb = iCurrPocLsb;
+      }
+
+      rcSliceHeader.setPoc( iCurrPocMsb + iCurrPocLsb );
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+    }
+    break;
+
+  case 1:
+    {
+      printf( "\n pic_order_count type 1 not supported in PocCalculator::calculatePoc\n" );
+      return Err::m_nERR;
+    }
+    break;
+  case 2:
+    {
+      Int iCurrPOC;
+
+      if( rcSliceHeader.isIdrNalUnit() )
+      {
+        m_iFrameNumOffset  = 0;
+        iCurrPOC           = 0;
+      }
+      else
+      {
+        if( (Int)rcSliceHeader.getFrameNum() < m_iPrevFrameNum )
+        {
+          m_iFrameNumOffset += ( 1 << rcSliceHeader.getSPS().getLog2MaxFrameNum() );
+        }
+        if( rcSliceHeader.getNalRefIdc() )
+        {
+          iCurrPOC = 2 * ( m_iFrameNumOffset + rcSliceHeader.getFrameNum() );
+        }
+        else
+        {
+          iCurrPOC = 2 * ( m_iFrameNumOffset + rcSliceHeader.getFrameNum() ) - 1;
+        }
+      }
+
+      if( rcSliceHeader.getNalRefIdc() )
+      {
+        m_iPrevFrameNum = rcSliceHeader.getFrameNum();
+      }
+
+      rcSliceHeader.setPoc( iCurrPOC );
+    }
+    break;
+  default:
+    {
+      return Err::m_nERR;
+    }
+    break;
+  }
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+
+  return Err::m_nOK;
+}
 
 ErrVal PocCalculator::setPoc( SliceHeader&  rcSliceHeader,
                               Int           iContFrameNumber )

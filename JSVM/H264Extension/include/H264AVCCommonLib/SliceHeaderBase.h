@@ -560,6 +560,14 @@ public:
   Void                              setFragmentOrder               (UInt ui)   {m_uiFragmentOrder = ui;}
   Void                              setLastFragmentFlag            (Bool b)    {m_bLastFragmentFlag = b;}
   //~JVT-P031
+  
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+  Bool                              getFieldPicFlag               ()  const { return m_bFieldPicFlag; }
+  Bool                              getBottomFieldFlag            ()  const { return m_bBottomFieldFlag; }
+	Int                               getDeltaPicOrderCntBottom     ()  const { return m_iDeltaPicOrderCntBottom; }
+  Int                               getDeltaPicOrderCnt           ( UInt ui)
+		                                                                  const {return m_aiDeltaPicOrderCnt[ui]; }
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
 
   //===== set parameters =====
@@ -604,6 +612,14 @@ public:
 
   Void  setSliceGroupChangeCycle(UInt uiSliceGroupChangeCycle){m_uiSliceGroupChangeCycle = uiSliceGroupChangeCycle;};
   ErrVal FMOInit();
+  
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+  Void setFieldPicFlag                ( Bool        b  )  { m_bFieldPicFlag                     = b;  }
+  Void setBottomFieldFlag             ( Bool        b  )  { m_bBottomFieldFlag                  = b;  }
+  Void setDeltaPicOrderCntBottom      ( Int         i  )  { m_iDeltaPicOrderCntBottom           = i;  }
+  Void setDeltaPicOrderCnt            ( UInt        ui,
+		                                    Int         i  )  { m_aiDeltaPicOrderCnt[ui]            = i;  }
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
@@ -666,6 +682,12 @@ protected:
   UInt                        m_uiFragmentOrder;
   Bool                        m_bLastFragmentFlag;
   //~JVT-P031
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+  Bool                        m_bFieldPicFlag;
+  Bool                        m_bBottomFieldFlag;
+	Int                         m_iDeltaPicOrderCntBottom;
+  Int                         m_aiDeltaPicOrderCnt[2];
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 
 // TMM_ESS {
 public:

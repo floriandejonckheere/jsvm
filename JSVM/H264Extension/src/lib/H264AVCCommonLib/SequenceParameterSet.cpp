@@ -166,7 +166,17 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bSeqScalingMatrixPresentFlag            ( false )
 , m_uiLog2MaxFrameNum                       ( 0 )
 , m_uiLog2MaxPicOrderCntLsb                 ( 4 )
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+, m_uiPicOrderCntType                       ( 0 )
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 , m_uiNumRefFrames                          ( 0 )
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+, m_bDeltaPicOrderAlwaysZeroFlag            ( false )
+, m_iOffsetForNonRefPic                     ( 0 )
+, m_iOffsetForTopToBottomField              ( 0 )
+, m_uiNumRefFramesInPicOrderCntCycle        ( 0 )
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+
 , m_bRequiredFrameNumUpdateBehaviourFlag    ( false )
 , m_uiFrameWidthInMbs                       ( 0 )
 , m_uiFrameHeightInMbs                      ( 0 )
@@ -361,7 +371,8 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK  ( pcReadIf->getCode( uiTmp,                               8,      "SPS: profile_idc" ) );
   m_eProfileIdc  = Profile ( uiTmp );
 #ifdef   CONFORMANCE_BUGFIX
-  ROT   ( m_eProfileIdc != MAIN_PROFILE  &&
+  ROT   ( m_eProfileIdc != BASELINE_PROFILE  &&
+          m_eProfileIdc != MAIN_PROFILE  &&
           m_eProfileIdc != EXTENDED_PROFILE  &&
           m_eProfileIdc != HIGH_PROFILE  &&
           m_eProfileIdc != SCALABLE_PROFILE );
@@ -406,10 +417,14 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_frame_num_minus_4" ) );
   ROT   ( uiTmp > 12 );
   setLog2MaxFrameNum( uiTmp + 4 );
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+	RNOK  ( xReadPicOrderCntInfo( pcReadIf ) );
+#else //!PIC_ORDER_CNT_TYPE_BUGFIX
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: pic_order_cnt_type" ) );
   ROF   ( uiTmp == 0 );
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_pic_order_cnt_lsb_minus4" ) );
   setLog2MaxPicOrderCntLsb ( uiTmp + 4 );
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   RNOK( pcReadIf->getUvlc( m_uiNumRefFrames,                              "SPS: num_ref_frames" ) );
   RNOK( pcReadIf->getFlag( m_bRequiredFrameNumUpdateBehaviourFlag,        "SPS: required_frame_num_update_behaviour_flag" ) );
   RNOK( pcReadIf->getUvlc( uiTmp,                                         "SPS: pic_width_in_mbs_minus_1" ) );
@@ -562,5 +577,38 @@ Void SequenceParameterSet::getResizeParameters ( ResizeParameters * params ) con
 }
 // TMM_ESS }
 
+#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+ErrVal SequenceParameterSet::xReadPicOrderCntInfo( HeaderSymbolReadIf* pcReadIf )
+{
+  RNOK( pcReadIf->getUvlc( m_uiPicOrderCntType,                  "SPS: pic_order_cnt_type" ) );
+  ROT( m_uiPicOrderCntType>2 );
+
+  ROTRS( 2 == m_uiPicOrderCntType, Err::m_nOK );
+
+  if( 0 == m_uiPicOrderCntType )
+  {
+    UInt uiTmp;
+    RNOK( pcReadIf->getUvlc( uiTmp,                              "SPS: log2_max_pic_order_cnt_lsb_minus4" ));
+    setLog2MaxPicOrderCntLsb( 4+uiTmp );
+  }
+	else if( 1 == m_uiPicOrderCntType )
+	{
+		RNOK( pcReadIf->getFlag( m_bDeltaPicOrderAlwaysZeroFlag,     "SPS: delta_pic_order_always_zero_flag" ));
+		RNOK( pcReadIf->getSvlc( m_iOffsetForNonRefPic,              "SPS: offset_for_non_ref_pic" ));
+		RNOK( pcReadIf->getSvlc( m_iOffsetForTopToBottomField,       "SPS: offset_for_top_to_bottom_field" ));
+		RNOK( pcReadIf->getUvlc( m_uiNumRefFramesInPicOrderCntCycle, "SPS: num_ref_frames_in_pic_order_cnt_cycle" ));
+		RNOK( initOffsetForRefFrame( m_uiNumRefFramesInPicOrderCntCycle ) );
+
+		for( UInt i = 0; i < m_uiNumRefFramesInPicOrderCntCycle; i++)
+		{
+			Int  iTmp;
+			RNOK( pcReadIf->getSvlc( iTmp,                             "SPS: offset_for_ref_frame" ) );
+			setOffsetForRefFrame( i, iTmp );
+		}
+	}
+
+  return Err::m_nOK;
+}
+#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 
 H264AVC_NAMESPACE_END
