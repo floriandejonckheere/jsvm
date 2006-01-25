@@ -608,7 +608,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 						   UInt&             ruiSize
                            //JVT-P031
              						   ,Bool             bPreParseHeader //FRAG_FIX
-						   , Bool			bConcatenated //FRAG_FIX_3
+						                , Bool			bConcatenated //FRAG_FIX_3
                            ,Bool&            rbStartDecoding,
                             UInt&             ruiStartPos,
                             UInt&             ruiEndPos,
@@ -647,7 +647,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   ruiStartPos = 0; //FRAG_FIX
   //~JVT-P031
 #if BUG_FIX //mwi, from heiko 060116
-  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,bPreParseHeader ) );
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2
 #else
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag ) );
 #endif  
@@ -746,8 +746,19 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       if( (bDiscardable) || !bLastFragment) //FRAG_FIX
         ruiStartPos = 0;
       else
-        ruiStartPos += (uiHeaderBits+7)>>3;
-      if(m_pcSliceHeader && (m_pcSliceHeader->getFragmentedFlag() && !bLastFragment)) 
+      {
+        if(m_pcNalUnitParser->getExtensionFlag())
+        {
+          ruiStartPos += (uiHeaderBits+3*8+7)>>3;//(uiHeaderBits+7)>>3; //BUG_FIX_FT_01_2006_2
+          //3*8 is used to take into account the nal header which has already been read
+          //uiHeaderBits only contains the remaining bits of the slice header read
+        }
+        else
+        {
+          ruiStartPos += (uiHeaderBits+2*8+7)>>3;//BUG_FIX_FT_01_2006_2
+        }
+      }
+      if(m_pcSliceHeader && (m_pcSliceHeader->getFragmentedFlag() && !bLastFragment ))
         ruiEndPos -= 2;
       if(!bDiscardable)
       //~JVT-P031

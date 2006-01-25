@@ -1728,8 +1728,8 @@ Extractor::xExtractLayerLevel()
 					}
 				}
 #endif
-			printf("Layer %d Level %d FGSLayer%d PacketSize %d \n", uiLayer, uiTempLevel, uiFGSLayer, uiPacketSize);
-			RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+			
+        RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
 			RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
 #if 1 //BUG_FIX liuhui 0511: the previous removed to this part
 			uiPacketSize  += 4 + pcBinData->size();
@@ -2845,7 +2845,8 @@ Extractor::xSetParameters_DS()
 			    m_aaadMaxRate[uiLayer][uiNFrames] -= m_aaadBytesForFrameFGS[uiLayer][0][uiNFrames];
 			    m_aaadMaxRateForLevel[uiLayer][uiLevel] += m_aaadMaxRate[uiLayer][uiNFrames];
 			    //initialize target rate for each frame per layer per FGSLayer to -1
-			    for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+          //for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++) 
+			    for(uiFGSLayer = 0; uiFGSLayer <= MAX_FGS_LAYERS; uiFGSLayer++) //BUG_FIX_FT_01_2006_2
 	            {
 	 	            m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiNFrames] = -1;
 		        }
@@ -3015,8 +3016,9 @@ Extractor::xSetParameters_DS()
 	  for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
     {
      bStop = false;
-      for( uiFGSLayer = 1; (uiFGSLayer < MAX_FGS_LAYERS && bStop == false); uiFGSLayer++ )
-      {
+      //for( uiFGSLayer = 1; (uiFGSLayer < MAX_FGS_LAYERS && bStop == false); uiFGSLayer++ )
+     for( uiFGSLayer = 1; (uiFGSLayer <= MAX_FGS_LAYERS && bStop == false); uiFGSLayer++ ) //BUG_FIX_FT_01_2006_2
+     {
 		  Int64 i64NALUBytes = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, uiFGSLayer );
 		  if(i64NALUBytes < m_aaadMaxRateForLevel[uiLayer][uiLevel])
 		  {
@@ -3110,7 +3112,8 @@ Extractor::xSetParameters_DS()
    //here we want to keep dead substreams in the output stream
     for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
     {
-      for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      //for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      for( uiFGSLayer = 1; uiFGSLayer <= MAX_FGS_LAYERS; uiFGSLayer++ ) //BUG_FIX_FT_01_2006_2
       {
         Int64 i64NALUBytes = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, uiFGSLayer );
         if( (Double)i64NALUBytes <= dRemainingBytes )
@@ -3147,7 +3150,8 @@ Extractor::xSetParameters_DS()
   }
 
   //===== set FGS layer for current layer =====
-  for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+  //for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+  for( uiFGSLayer = 1; uiFGSLayer <= MAX_FGS_LAYERS; uiFGSLayer++ ) //BUG_FIX_FT_01_2006_2
   {
     Int64 i64FGSLayerBytes = 0;
     for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
@@ -3278,7 +3282,8 @@ Extractor::xExtractPoints_DS()
 	bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
 	bKeep = false;
 	bCrop = false;
-	//first packet is an SEI packet
+  
+  //first packet is an SEI packet
 	if (bSEIPacket)
     {
       bNewPicture = false;
@@ -3397,7 +3402,6 @@ Extractor::xExtractPoints_DS()
     uiNumInput++;
     if( bKeep ) uiNumKept   ++;
     if( bCrop ) uiNumCropped++;
-
 
     //============ write and release packet ============
     if( bKeep )

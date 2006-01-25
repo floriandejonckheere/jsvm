@@ -134,6 +134,7 @@ public:
   ErrVal initSODBNalUnit( BinDataAccessor* pcBinDataAccessor );
   UInt getNalHeaderSize( BinDataAccessor* pcBinDataAccessor );
   Bool getFragmentedFlag() { return m_bFragmentedFlag;}
+  Bool  getExtensionFlag() { return m_bExtensionFlag;} //BUG_FIX_FT_01_2006_2
   Void setCheckAllNALUs(Bool b) { m_bCheckAllNALUs = b;}
   Void setDecodedLayer( UInt uiLayer) { m_uiDecodedLayer = uiLayer;}
   //~JVT-P031
