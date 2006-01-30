@@ -543,6 +543,17 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 #if 1 //BUG_FIX liuhui 0511
 			m_dNumFGSLayers     = 3.0;
 #endif
+
+#if 1 //BUG_FIX YKW 0601: to get the true number of FGS layers
+      for( UInt uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+      {
+        if (uiSumFGSBits[uiFGSLayer] == 0)
+        {
+					m_dNumFGSLayers = (Double)uiFGSLayer;
+          break;
+        }
+      }
+#endif
     }
     else
     {
