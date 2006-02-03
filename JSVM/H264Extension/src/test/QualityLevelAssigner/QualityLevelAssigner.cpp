@@ -877,6 +877,8 @@ QualityLevelAssigner::xGetDistortion( UInt&         ruiDistortion,
 
 
 
+#define FIX_HS 1
+
 ErrVal
 QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
                                        UInt   uiLayer,
@@ -885,7 +887,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
                                        Bool   bIndependent )
 {
   ROT( m_pcParameter->getOriginalFileName( uiLayer ).empty() );
-  
+
   if( uiLevel == MSYS_UINT_MAX )
     printf( "determine distortion (layer %d - FGS %d - base layer  ) ...", uiLayer, uiFGSLayer );
   else
@@ -927,7 +929,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
   RNOK( ReadYuvFile       ::create( pcReadYuv       ) );
   RNOK( pcReadBitStream ->init( m_pcParameter->getInputBitStreamName() ) );
   RNOK( pcReadYuv       ->init( m_pcParameter->getOriginalFileName  ( uiLayer ), m_auiFrameHeight[uiLayer], m_auiFrameWidth[uiLayer] ) );
-  
+
   if( m_bOutputReconstructions )
   {
     Char  acName[1024];
@@ -959,23 +961,26 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
       }
       RNOK( m_pcH264AVCDecoder->checkSliceLayerDependency( &cBinDataAccessor, bFinishChecking ) );
       RNOK( pcReadBitStream->releasePacket( pcBinData ) );
-    	
+
     } while( !bFinishChecking );
-    
-    
+
+
 #define MAX_FRAGMENTS 10 // see H264AVCDecoderTest::go()
 
     Bool            bFragmented       = false;
     Bool            bDiscardable      = false;
     Bool            bStart            = false;
     Bool            bFirst            = true;
+#if FIX_HS
+    Bool            bConcatenated     = false;
+#endif
     UInt            uiTotalLength     = 0;
     UInt            uiFragmentNumber  = 0;
     BinData*        apcBinDataTmp       [MAX_FRAGMENTS];
     BinDataAccessor acBinDataAccessorTmp[MAX_FRAGMENTS];
     UInt            auiStartPos         [MAX_FRAGMENTS];
     UInt            auiEndPos           [MAX_FRAGMENTS];
-    
+
     for( pcBinData = 0, bEOS = false; !bStart && !bEOS; )
     {
       if( bFirst )
@@ -989,14 +994,18 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
 #if NON_REQUIRED_SEI_ENABLE
       RNOK( m_pcH264AVCDecoder->initPacket( &acBinDataAccessorTmp[uiFragmentNumber],
-                                            uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true,
-											false, //FRAG_FIX_3
+                                            uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, false, //FRAG_FIX_3
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
                                             bFragmented, bDiscardable ) );
+#if FIX_HS
+      if( uiNonRequiredPic )
+      {
+        continue;
+      }
+#endif
 #else
       RNOK( m_pcH264AVCDecoder->initPacket( &acBinDataAccessorTmp[uiFragmentNumber],
-                                            uiNalUnitType, uiMbX, uiMbY, uiSize, true,
-											false, //FRAG_FIX_3
+                                            uiNalUnitType, uiMbX, uiMbY, uiSize, true, false, //FRAG_FIX_3
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
                                             bFragmented, bDiscardable ) ); //FRAG_FIX
 #endif
@@ -1024,19 +1033,49 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
             RNOK( pcReadBitStream->releasePacket( apcBinDataTmp[uiFragment] ) );
             apcBinDataTmp[uiFragment] = 0;
             m_pcH264AVCDecoder->decreaseNumOfNALInAU();
+
+#if FIX_HS
+            if( uiFragment > 0 )
+            {
+              bConcatenated = true;
+            }
+#endif
           }
 
           pcBinData->setMemAccessor( cBinDataAccessor );
           bToDecode = false;
           if( ( uiTotalLength != 0 ) && ( !bDiscardable || bFragmented ) )
           {
+#if FIX_HS
+            if( ( uiNalUnitType == 20 ) || ( uiNalUnitType == 21 ) || ( uiNalUnitType == 1 ) || ( uiNalUnitType == 5 ) )
+            {
+#if NON_REQUIRED_SEI_ENABLE
+              RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType,
+                                                    uiMbX, uiMbY, uiSize, uiNonRequiredPic,
+                                                    false, bConcatenated, bStart,
+                                                    auiStartPos[uiFragmentNumber+1], auiEndPos[uiFragmentNumber+1],
+                                                    bFragmented, bDiscardable ) );
+#else
+              RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType,
+                                                    uiMbX, uiMbY, uiSize
+                                                    false, bConcatenated, bStart,
+                                                    auiStartPos[uiFragmentNumber+1], auiEndPos[uiFragmentNumber+1],
+                                                    bFragmented, bDiscardable ) );
+#endif
+            }
+            else
+            {
+              RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor ) );
+            }
+#else
             m_pcH264AVCDecoder->initPacket( &cBinDataAccessor );
+#endif
             bToDecode = true;
           }
         }
       }
     }
-    
+
     if( bToDecode )
     {
       //----- get pic buffer -----
@@ -1048,8 +1087,8 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
         {
           RNOK( xGetNewPicBuffer( pcPicBufferOrig, uiSize ) );
           UInt uiLumSize  = ((uiMbX<<3)+  YUV_X_MARGIN) * ((uiMbY<<3)    + YUV_Y_MARGIN ) * 4;
-          uiLumOffset     = ((uiMbX<<4)+2*YUV_X_MARGIN) * YUV_Y_MARGIN   + YUV_X_MARGIN;  
-          uiCbOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 +   uiLumSize; 
+          uiLumOffset     = ((uiMbX<<4)+2*YUV_X_MARGIN) * YUV_Y_MARGIN   + YUV_X_MARGIN;
+          uiCbOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 +   uiLumSize;
           uiCrOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiLumSize/4;
           bYuvDimSet      = true;
         }
@@ -1138,7 +1177,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
   remove( tmp_file_name );
 #endif
 
-  
+
   //===== uninit =====
   RNOK( m_pcH264AVCPacketAnalyzer ->uninit  () );
   RNOK( m_pcH264AVCDecoder        ->uninit  () );
