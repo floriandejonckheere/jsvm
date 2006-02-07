@@ -162,6 +162,8 @@ public:
 
   virtual ErrVal  startSlice          ( const SliceHeader& rcSliceHeader ) = 0;
   virtual ErrVal  startFragment       () = 0; //JVT-P031
+  virtual ErrVal  getLastByte         (UChar &uiLastByte, UInt &uiLastBitPos) = 0; //FIX_FRAG_CAVLC
+  virtual ErrVal  setFirstBits(UChar ucByte,UInt uiLastBitPos) = 0; //FIX_FRAG_CAVLC
   virtual ErrVal  finishSlice         ( ) = 0;
   // FGS-related
   virtual Bool    RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, B8x8Idx c8x8Idx ) = 0;

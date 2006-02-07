@@ -169,7 +169,18 @@ ErrVal CabaEncoder::startFragment()
   return Err::m_nOK;
 }
 //~JVT-P031
-
+//FIX_FRAG_CAVLC
+ErrVal CabaEncoder::getLastByte(UChar &uiLastByte, UInt &uiLastBitPos)
+{
+  RNOK(m_pcBitWriteBufferIf->getLastByte(uiLastByte, uiLastBitPos));
+  return Err::m_nOK;
+}
+ErrVal CabaEncoder::setFirstBits(UChar ucByte,UInt uiLastBitPos)
+{
+  RNOK( m_pcBitWriteBufferIf->write(ucByte,uiLastBitPos));
+  return Err::m_nOK;
+}
+//~FIX_FRAG_CAVLC
 ErrVal CabaEncoder::uninit()
 {
   m_pcBitWriteBufferIf = NULL;

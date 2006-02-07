@@ -2868,15 +2868,16 @@ Extractor::xSetParameters_DS()
   UInt                                              uiExtLayer  = MSYS_UINT_MAX;
   UInt                                              uiExtLevel  = MSYS_UINT_MAX;
   //----- layer -----
-  for( uiLayer = 0; uiLayer <= m_cScalableStreamDescription.getNumberOfLayers(); uiLayer++ )
+  //FIX_FRAG_CAVLC
+  for( uiLayer = 0; uiLayer < m_cScalableStreamDescription.getNumberOfLayers(); uiLayer++ )
   {
-    if( rcExtPoint.uiWidth  == m_cScalableStreamDescription.getFrameWidth (uiLayer) &&
-        rcExtPoint.uiHeight == m_cScalableStreamDescription.getFrameHeight(uiLayer)    )
+	if( rcExtPoint.uiWidth  < m_cScalableStreamDescription.getFrameWidth (uiLayer) ||
+        rcExtPoint.uiHeight < m_cScalableStreamDescription.getFrameHeight(uiLayer)    )
     {
-      uiExtLayer = uiLayer;
       break;
     }
-  }
+	uiExtLayer = uiLayer;
+  }//~FIX_FRAG_CAVLC
   m_pcExtractorParameter->setLayer(uiExtLayer);
   ERROR( uiExtLayer==MSYS_UINT_MAX, "Spatial resolution of extraction/inclusion point not supported" );
   //--- level ---
@@ -2982,6 +2983,20 @@ Extractor::xSetParameters_DS()
       for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
       {
         Int64 i64NALUBytes                    = m_cScalableStreamDescription.getNALUBytes( uiLayer, uiLevel, 0 );
+        //FIX_FRAG_CAVLC
+        if (dRemainingBytes<(Double)i64NALUBytes)
+	      {
+		        // J.Reichel -> CGS and FGS supports (note this will work only if the uiLevel for the framerate doesn't change for the different layer)
+		        // not enough bit for a layer, if the previous layer was a CGS, then it should become the new max layer
+		        if( uiExtLayer>0 &&
+			          rcExtPoint.uiWidth  == m_cScalableStreamDescription.getFrameWidth (uiLayer-1) &&
+			          rcExtPoint.uiHeight == m_cScalableStreamDescription.getFrameHeight(uiLayer-1)    )
+		        {
+			          uiExtLayer=uiLayer-1;
+			          break;
+		        }
+	      }
+        //~FIX_FRAG_CAVLC
         dRemainingBytes                      -= (Double)i64NALUBytes;
 	    for(uiNFrames = 0; uiNFrames < m_auiNbImages[uiLayer]; uiNFrames++)
 	    {

@@ -372,7 +372,8 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
   {
     m_uiNumOfNALInAU++;//JVT-P031
     m_pcNalUnitParser->setCheckAllNALUs(true);//JVT-P031
-    RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL ) );
+    UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
+    RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
     m_pcNalUnitParser->setCheckAllNALUs(false);//JVT-P031
 
     eNalUnitType = m_pcNalUnitParser->getNalUnitType();
@@ -583,7 +584,7 @@ Void H264AVCDecoder::getDecodedResolution(UInt &uiLayerId)
         m_pcParameterSetMng->get(rcSPS,uiSPSId);
         uiX = rcSPS->getFrameWidthInMbs();
         uiY = rcSPS->getFrameHeightInMbs();
-        if(uiX > uiMBX && uiY > uiMBY)
+        if(uiX >= uiMBX && uiY >= uiMBY) //FIX_FRAG_CAVLC
         {
             uiMBX = uiX;
             uiMBY = uiY;
@@ -658,8 +659,9 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   ruiStartPos = m_pcNalUnitParser->getNalHeaderSize(pcBinDataAccessor);
   ruiStartPos = 0; //FRAG_FIX
   //~JVT-P031
+  UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
 #if BUG_FIX //mwi, from heiko 060116
-  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
 #else
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag ) );
 #endif  
@@ -786,7 +788,14 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
         }
       }
       if(m_pcSliceHeader && (m_pcSliceHeader->getFragmentedFlag() && !bLastFragment ))
-        ruiEndPos -= 2;
+      { //FIX_FRAG_CAVLC
+        if(bPreParseHeader)
+        {
+          ruiEndPos -= uiNumBytesRemoved;
+        }//~FIX_FRAG_CAVLC
+          ruiEndPos -= 2;
+
+      }//FIX_FRAG_CAVLC
       if(!bDiscardable)
       //~JVT-P031
       RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );

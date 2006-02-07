@@ -607,7 +607,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     BinDataAccessor cBinDataAccessor;
     cBinData.setMemAccessor( cBinDataAccessor );
 
-    RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL ) );
+    UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
+    RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
     SEI::MessageList cMessageList;
     RNOK( SEI::read( m_pcUvlcReader, cMessageList ) );
 
@@ -712,7 +713,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     BinDataAccessor cBinDataAccessor;
     cBinData.setMemAccessor( cBinDataAccessor );
     m_pcNalUnitParser->setCheckAllNALUs(true); //JVT-P031
-	RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL ) );
+	  UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
+  	RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
     m_pcNalUnitParser->setCheckAllNALUs(false);//JVT-P031
   
     // get the SPSid

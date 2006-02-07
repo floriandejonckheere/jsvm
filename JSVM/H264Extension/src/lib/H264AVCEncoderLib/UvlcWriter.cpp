@@ -391,9 +391,21 @@ ErrVal UvlcWriter::startSlice( const SliceHeader& rcSliceHeader )
 
 ErrVal UvlcWriter::startFragment() //JVT-P031
 {
+    RNOK( m_pcBitWriteBufferIf->writeAlignOne() ); //FIX_FRAG_CAVLC
     return Err::m_nOK;
 }
-
+//FIX_FRAG_CAVLC
+ErrVal UvlcWriter::getLastByte(UChar &uiLastByte, UInt &uiLastBitPos)
+{
+  RNOK(m_pcBitWriteBufferIf->getLastByte(uiLastByte, uiLastBitPos));
+  return Err::m_nOK;
+}
+ErrVal UvlcWriter::setFirstBits(UChar ucByte,UInt uiLastBitPos)
+{
+  RNOK( m_pcBitWriteBufferIf->write(ucByte,uiLastBitPos));
+  return Err::m_nOK;
+}
+//~FIX_FRAG_CAVLC
 ErrVal UvlcWriter::xWriteUvlcCode( UInt uiVal)
 {
   UInt uiLength = 1;

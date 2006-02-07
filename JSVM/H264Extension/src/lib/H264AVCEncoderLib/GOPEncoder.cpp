@@ -461,7 +461,19 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   //----- FGS -----
   m_uiFGSMode = pcLayerParameters->getFGSMode();
   m_pFGSFile  = 0;
-  
+  //FIX_FRAG_CAVLC
+  m_bUseDiscardableUnit = pcLayerParameters->getUseDiscardable();
+  if(m_bUseDiscardableUnit)
+  {
+    m_pFGSFile = ::fopen( pcLayerParameters->getFGSFilename().c_str(), "rt" );
+		if (!m_pFGSFile)
+			fprintf( stderr, "Error: FGS failed '%s' couldn't be Opened\n",pcLayerParameters->getFGSFilename().c_str());
+    
+    ROF( m_pFGSFile );
+  }
+  else
+  {
+    //~FIX_FRAG_CAVLC
   if( m_uiFGSMode == 1 )
   {
     m_pFGSFile = ::fopen( pcLayerParameters->getFGSFilename().c_str(), "wt" );
@@ -477,7 +489,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     
     ROF( m_pFGSFile );
   }
-
+ } //FIX_FRAG_CAVLC
   m_dFGSBitRateFactor               = 0.0;
   m_dFGSRoundingOffset              = 0.0;
   m_iLastFGSError                   = 0;
@@ -520,7 +532,10 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
       uiSumFGSBits[2] += uiFGSBits[2];
     }
     ROF( uiNumFrames );
-
+    //FIX_FRAG_CAVLC
+    if(m_uiFGSMode == 2)
+    {
+      //~FIX_FRAG_CAVLC
     Double  dTargetBits   = 1000.0 * pcLayerParameters->getFGSRate() * (Double)uiNumFrames / pcLayerParameters->getOutputFrameRate();
     UInt    uiTargetBits  = (UInt)floor( dTargetBits + 0.5 );
     UInt    uiSumAllBits  = uiSumBaseBits + uiSumFGSBits[0] + uiSumFGSBits[1] + uiSumFGSBits[2];
@@ -577,13 +592,14 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 		m_dNumFGSLayers     = 3.0; // (HS): fix - maximum number of FGS layers
 #endif
     pcLayerParameters->setNumFGSLayers( m_dNumFGSLayers ); // (HS): fix - also store in layer parameters
-    
+    }//FIX_FRAG_CAVLC
     //JVT-P031
     if(m_bUseDiscardableUnit)
     {
     Double  dPredTargetBits   = 1000.0 * pcLayerParameters->getPredFGSRate() * (Double)uiNumFrames / pcLayerParameters->getOutputFrameRate();
     UInt    uiPredTargetBits  = (UInt)floor( dPredTargetBits + 0.5 );
-    
+    UInt    uiSumAllBits  = uiSumBaseBits + uiSumFGSBits[0] + uiSumFGSBits[1] + uiSumFGSBits[2]; //FIX_FRAG_CAVLC
+
     if( uiPredTargetBits <= uiSumBaseBits )
     {
       ROF( uiPredTargetBits );
@@ -1561,7 +1577,11 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     sscanf( acLine, "%d %d %d %d %d %d %d ",
       &uiBaseBits, &uiEstimatedHeaderBits, &uiFGSBits[0], &uiDummy, &uiFGSBits[1], &uiDummy, &uiFGSBits[2] );
     uiEstimatedHeaderBits = uiFGSBits[0] - uiEstimatedHeaderBits;
-
+  
+    //FIX_FRAG_CAVLC
+    if(m_uiFGSMode == 2)
+    {
+      //~FIX_FRAG_CAVLC
     if( m_dFGSBitRateFactor == 0.0 ) // target rate lies inside the range of the analysis run
     {
       ROF( m_dFGSCutFactor > 0 && m_dFGSCutFactor < 3 );
@@ -1606,6 +1626,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
       uiFGSMaxBits     = 0;
     }
     uiTarget = uiFGSMaxBits;
+    }//FIX_FRAG_CAVLC
 //JVT-P031
     if(m_bUseDiscardableUnit)
     {
@@ -1803,8 +1824,14 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     {
          uiFGSCutBits -= uiEstimatedHeaderBits;
     }
-    RNOK( m_pcRQFGSEncoder->encodeNextLayer     ( bFinished, bCorrupted, uiFGSCutBits, uiFrac, bFragmented, ( m_uiFGSMode == 1 ? m_pFGSFile : 0 ) ) );
-      
+    RNOK( m_pcRQFGSEncoder->encodeNextLayer     ( bFinished, bCorrupted, uiFGSCutBits, uiFrac, bFragmented, ( m_uiFGSMode == 1 && !m_bUseDiscardableUnit ? m_pFGSFile : 0 ) ) ); //FIX_FRAG_CAVLC
+     
+    //FIX_FRAG_CAVLC
+    if(bFragmented && uiFrac == 0 && bCorrupted == false) // first fragment ends exactly at the end of a nal unit
+    {
+      bFinishedFrag = true;
+    }
+    //~FIX_FRAG_CAVLC
     if(uiFrac != 0)
     {
         bFinishedFrag = true;
@@ -1866,7 +1893,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
            m_iPredLastFGSError += (Int)uiFragmentBits - (Int)uiPredTarget;
            bSetToDiscardable = true;
            bLastFragToCode = true;
-           if( uiTarget < 2*uiEstimatedHeaderBits ) // the payload should be at least so big as the header
+           if( m_uiFGSMode == 2 && (uiTarget < 2*uiEstimatedHeaderBits) )//FIX_FRAG_CAVLC
           {
              bFinishedFrag = true;
           }
@@ -1893,7 +1920,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
           break;         
     }
     //~JVT-P031
-    if( m_uiFGSMode == 1 && m_pFGSFile )
+    if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC
     {
       fprintf( m_pFGSFile, "\t%d", uiPacketBits );
     }
@@ -3707,7 +3734,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     //}}Adaptive GOP structure
 
     //===== write FGS info to file =====
-    if( m_uiFGSMode == 1 && m_pFGSFile )
+    if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC
     {
       fprintf( m_pFGSFile, "%d", uiBits + m_uiNotYetConsideredBaseLayerBits );
       m_uiNotYetConsideredBaseLayerBits = 0;
@@ -3878,7 +3905,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     }
 
 
-    if( m_uiFGSMode == 1 && m_pFGSFile )
+    if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC)
     {
       fprintf( m_pFGSFile, "\n" );
     }
@@ -3968,7 +3995,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     //}}Adaptive GOP structure
     
     //===== save FGS info =====
-    if( m_uiFGSMode == 1 && m_pFGSFile )
+    if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC)
     {
       fprintf( m_pFGSFile, "%d", uiBits + m_uiNotYetConsideredBaseLayerBits );
       m_uiNotYetConsideredBaseLayerBits = 0;
@@ -4074,7 +4101,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     }
 
 
-    if( m_uiFGSMode == 1 && m_pFGSFile )
+    if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC)
     {
       fprintf( m_pFGSFile, "\n" );
     }

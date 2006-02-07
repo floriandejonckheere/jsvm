@@ -110,6 +110,7 @@ public:
   virtual ErrVal writeAlignOne() = 0;
   virtual ErrVal flushBuffer() = 0;
   virtual ErrVal samples( const Pel* pPel, UInt uiNumberOfSamples ) = 0;
+  virtual ErrVal getLastByte(UChar &uiLastByte, UInt &uiLastBitPos) = 0; //FIX_FRAG_CAVLC
 };
 
 

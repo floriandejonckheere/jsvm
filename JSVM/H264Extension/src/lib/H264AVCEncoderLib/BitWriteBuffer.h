@@ -122,6 +122,8 @@ public:
 
   ErrVal loadContent( BitWriteBuffer& rcBitWriteBuffer );
 
+  ErrVal getLastByte(UChar &uiLastByte, UInt &uiLastBitPos);//FIX_FRAG_CAVLC
+
 protected:
   ULong  xSwap( ULong ul )
   {

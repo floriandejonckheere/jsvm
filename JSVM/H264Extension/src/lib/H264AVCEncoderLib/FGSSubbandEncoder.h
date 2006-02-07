@@ -361,6 +361,9 @@ private:
   UInt              * m_auiBCBPStored;
   Int               * m_aiBLQP;
   Bool              * m_abELtransform8x8;
+
+  UChar             m_ucLastByte;//FIX_FRAG_CAVLC
+  UInt              m_uiLastBitPos; //FIX_FRAG_CAVLC
 };
 
 

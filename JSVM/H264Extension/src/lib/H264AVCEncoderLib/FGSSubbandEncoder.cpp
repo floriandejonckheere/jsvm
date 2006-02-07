@@ -308,6 +308,10 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, uiFrac, pFile ) );
   ROTRS( rbFinished, Err::m_nOK );
 
+  //FIX_FRAG_CAVLC
+  if((bFragmented && (uiFrac != 0 || !rbCorrupted) ) || !bFragmented)
+  {
+    //~FIX_FRAG_CAVLC
   Int iOldSliceQP     = m_pcSliceHeader->getPicQp();
   Int iNewSliceQP     = max( 0, iOldSliceQP - RQ_QP_DELTA );
   rbFinished          = ( iNewSliceQP == iOldSliceQP );
@@ -315,6 +319,7 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
       m_pcSliceHeader->setQualityLevel ( m_pcSliceHeader->getQualityLevel() + 1 );
   m_pcSliceHeader->setSliceHeaderQp       ( iNewSliceQP );
   m_dLambda          /= pow( 2.0, (Double)(iOldSliceQP-iNewSliceQP) / 3.0 );
+   } //FIX_FRAG_CAVLC
   //~JVT-P031
   return Err::m_nOK;
 }
@@ -1099,7 +1104,12 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 
   UInt  uiBitsLast = m_pcSymbolWriter->getNumberOfWrittenBits();
   Bool  bCheck     = ( uiMaxBits != 0 );
-  
+  //FIX_FRAG_CAVLC
+  if( uiFracNb )
+  {
+    RNOK( m_pcSymbolWriter->setFirstBits(m_ucLastByte, m_uiLastBitPos));
+  }
+  //~FIX_FRAG_CAVLC
   try
   {
     {
@@ -1119,6 +1129,8 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       UInt uiFirstMbX = m_uiFirstMbInSlice % m_uiWidthInMB;
       UInt uiLastMbY  = (UInt) ( ( m_uiFirstMbInSlice + m_uiNumMbsInSlice ) / m_uiWidthInMB );
       UInt uiLastMbX  = ( m_uiFirstMbInSlice + m_uiNumMbsInSlice ) % m_uiWidthInMB;
+      if(!uiFracNb) //FIX_FRAG_CAVLC
+      {
       // Pre-scan frame to find VLC positions
       UInt  auiEobShift[16];
       UInt  auiHighMagHist[16];
@@ -1240,6 +1252,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       delete pauiVlcTab;
       delete pauiHistLuma;
       delete pauiHistChroma;
+      } //FIX_FRAG_CAVLC
 
       while (iLumaScanIdx < 16 || iChromaDCScanIdx < 4 || iChromaACScanIdx < 16) {
         UInt bAllowChromaDC = (iCycle == 0) || ((iCycle >= iStartCycle) && ((iCycle-iStartCycle) % 2 == 0));
@@ -1447,6 +1460,9 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
     {
         xSaveCodingPath();
         RNOK( xUpdateCodingPath() );
+        //FIX_FRAG_CAVLC
+        //save last written byte
+        RNOK(m_pcSymbolWriter->getLastByte(m_ucLastByte, m_uiLastBitPos));
         return Err::m_nOK;
     }
   }

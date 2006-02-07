@@ -301,7 +301,9 @@ NalUnitParser::getBitsLeft()
 //~JVT-P031
 
 ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag, Bool bPreParseHeader, Bool bConcatenated  ) //FRAG_FIX
+NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag, 
+                           UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
+                           Bool bPreParseHeader, Bool bConcatenated  ) //FRAG_FIX
 {
   ROF( pcBinDataAccessor->size() );
   ROF( pcBinDataAccessor->data() );
@@ -375,10 +377,13 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
   ROTRS( NAL_UNIT_END_OF_STREAM   == m_eNalUnitType ||
          NAL_UNIT_END_OF_SEQUENCE == m_eNalUnitType,    Err::m_nOK );
 
+  uiNumBytesRemoved = uiPacketLength;//FIX_FRAG_CAVLC
   // Unit->RBSP
   if(bPreParseHeader) //FRAG_FIX
+  {//FIX_FRAG_CAVLC
       RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
-
+      uiNumBytesRemoved -= uiPacketLength; //FIX_FRAG_CAVLC
+  }//FIX_FRAG_CAVLC
   UInt uiBitsInPacket;
   // RBSP->SODB
   RNOK( xConvertRBSPToSODB    ( uiPacketLength, uiBitsInPacket ) );

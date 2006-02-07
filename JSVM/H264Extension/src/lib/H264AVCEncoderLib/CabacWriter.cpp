@@ -258,7 +258,18 @@ ErrVal CabacWriter::startFragment()
   return Err::m_nOK;
 }
 //~JVT-P031
-
+//FIX_FRAG_CAVLC
+ErrVal CabacWriter::getLastByte(UChar &uiLastByte, UInt &uiLastBitPos)
+{
+  RNOK(CabaEncoder::getLastByte(uiLastByte, uiLastBitPos ));
+  return Err::m_nOK;
+}
+ErrVal CabacWriter::setFirstBits(UChar ucByte, UInt uiLastBitPos)
+{
+  RNOK( CabaEncoder::setFirstBits(ucByte, uiLastBitPos));
+  return Err::m_nOK;
+}
+//~FIX_FRAG_CAVLC
 ErrVal CabacWriter::finishSlice()
 {
   RNOK( CabaEncoder::finish() );

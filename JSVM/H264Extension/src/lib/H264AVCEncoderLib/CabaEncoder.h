@@ -106,6 +106,8 @@ protected:
 public:
   ErrVal start();
   ErrVal startFragment(); //JVT-P031
+  ErrVal getLastByte(UChar &uiLastByte, UInt &uiLastBitPos); //FIX_FRAG_CAVLC
+  ErrVal setFirstBits(UChar ucByte,UInt uiLastBitPos); //FIX_FRAG_CAVLC
   ErrVal init( BitWriteBufferIf* pcBitWriteBufferIf );
   ErrVal uninit();
 

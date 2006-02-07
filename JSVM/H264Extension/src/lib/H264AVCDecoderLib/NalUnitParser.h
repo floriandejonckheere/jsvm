@@ -109,8 +109,9 @@ public:
   ErrVal        destroy         ();
 
   ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, Bool* KeyPicFlag, 
+    UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
 	  Bool bPreParseHeader = true,
-      Bool bConcatenated = false); //FRAG_FIX
+    Bool bConcatenated = false); //FRAG_FIX
   ErrVal        closeNalUnit    ();
 
   NalUnitType   getNalUnitType  ()      { return m_eNalUnitType;    }

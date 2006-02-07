@@ -120,6 +120,8 @@ public:
   ErrVal writeAlignOne()                                  { return Err::m_nERR; }
   ErrVal flushBuffer()                                    { m_uiBitCounter = 0; return Err::m_nOK; }
 
+  ErrVal   getLastByte(UChar &uiLastByte, UInt &uiLastBitPos) { return Err::m_nERR;} //FIX_FRAG_CAVLC
+
 private:
   UInt m_uiBitCounter;
 };

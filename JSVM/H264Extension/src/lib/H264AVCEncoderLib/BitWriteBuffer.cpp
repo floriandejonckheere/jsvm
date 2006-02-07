@@ -158,7 +158,25 @@ ErrVal BitWriteBuffer::initPacket( ULong* pulBits, UInt uiPacketLength )
   return Err::m_nOK;
 
 }
-
+//FIX_FRAG_CAVLC
+ErrVal BitWriteBuffer::getLastByte(UChar &uiLastByte, UInt &uiLastBitPos)
+{
+  UInt uiBytePos = m_iValidBits/8;
+  if(m_iValidBits%8 != 0)
+  {
+    uiBytePos = uiBytePos*8;
+    uiLastByte = (UChar)(m_ulCurrentBits >> uiBytePos);
+    uiLastBitPos = (m_iValidBits/8+1)*8-m_iValidBits;
+    uiLastByte = (uiLastByte >> (8-uiLastBitPos));
+  }
+  else
+  {
+    uiLastByte = 0;
+    uiLastBitPos = 0;
+  }
+  return Err::m_nOK;
+}
+//~FIX_FRAG_CAVLC
 ErrVal BitWriteBuffer::write( UInt uiBits, UInt uiNumberOfBits )
 {
   AOF_DBG( uiNumberOfBits <= 32 );

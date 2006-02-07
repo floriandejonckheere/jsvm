@@ -150,6 +150,8 @@ public:
 
   ErrVal  startSlice( const SliceHeader& rcSliceHeader );
   ErrVal  startFragment(); //JVT-P031
+  ErrVal  getLastByte(UChar &uiLastByte, UInt &uiLastBitPos); //FIX_FRAG_CAVLC
+  ErrVal  setFirstBits(UChar ucByte,UInt uiLastBitPos); //FIX_FRAG_CAVLC
   ErrVal  finishSlice();
 
   ErrVal closeSlice();
