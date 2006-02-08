@@ -480,7 +480,6 @@ NalUnitParser::xConvertRBSPToSODB( UInt  uiPacketLength,
   return Err::m_nOK;
 }
 
-#ifdef   CONFORMANCE_BUGFIX
 ErrVal NalUnitParser::readAUDelimiter()
 {
   DTRACE_HEADER("Access Unit Delimiter");
@@ -510,6 +509,5 @@ ErrVal NalUnitParser::readEndOfStream()
   DTRACE_HEADER("End of Stream");
   return Err::m_nOK;
 }
-#endif //CONFORMANCE_BUGFIX
 
 H264AVC_NAMESPACE_END

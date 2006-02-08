@@ -120,11 +120,7 @@ H264AVCDecoder::H264AVCDecoder()
 , m_bFrameDone                    ( true  )
 , m_bEnhancementLayer             ( false )
 , m_bBaseLayerIsAVCCompatible     ( false )
-#ifdef   SPS_BUGFIX
 , m_bNewSPS                       ( false )
-#else //!SPS_BUGFIX
-, m_uiSPSCount                    ( 0 )
-#endif //SPS_BUGFIX
 , m_uiRecLayerId                  ( 0 )
 , m_uiLastLayerId                 ( MSYS_UINT_MAX )
 , m_pcVeryFirstSPS                ( NULL )
@@ -139,15 +135,11 @@ H264AVCDecoder::H264AVCDecoder()
 #if MULTIPLE_LOOP_DECODING
 , m_bCompletelyDecodeLayer        ( false )
 #endif
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
 , m_pcNonRequiredSei			  ( NULL )
 , m_uiNonRequiredSeiReadFlag	  ( 0 )
-#if 1 //BUG_FIX shenqiu 05-11-24
 , m_uiNonRequiredSeiRead    	  ( 0 )
 , m_uiPrevPicLayer				  ( 0 )
 , m_uiCurrPicLayer				  ( 0 )
-#endif
-#endif
 //JVT-P031
 , m_uiFirstFragmentPPSId          ( 0 )
 , m_uiFirstFragmentNumMbsInSlice  ( 0 )
@@ -161,15 +153,6 @@ H264AVCDecoder::H264AVCDecoder()
 {
   ::memset( m_apcMCTFDecoder, 0x00, MAX_LAYERS * sizeof( Void* ) );
   m_pcVeryFirstSliceHeader = NULL;
-#if 1 //BUG_FIX shenqiu 05-11-24 (delete)
-#else
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
-  for(UInt ui = 0; ui < 1<<MAX_DSTAGES; ui++)
-  {
-	  m_uiNonRequiredSeiRead[ui] =  0;
-  }
-#endif
-#endif
   //JVT-P031
   UInt uiLayer;
   for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
@@ -235,11 +218,7 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
   m_pcFGSPicBuffer            = 0;
   m_bEnhancementLayer         = false;
   m_bBaseLayerIsAVCCompatible = false;
-#ifdef   SPS_BUGFIX
 	m_bNewSPS                   = false;
-#else //!SPS_BUGFIX
-  m_uiSPSCount                = 0;
-#endif //SPS_BUGFIX
   m_uiRecLayerId              = 0;
   m_uiLastLayerId             = MSYS_UINT_MAX;
   m_pcVeryFirstSPS            = 0;
@@ -299,10 +278,8 @@ ErrVal H264AVCDecoder::uninit()
   m_pcParameterSetMng     = NULL;
   m_pcPocCalculator       = NULL;
 
-#ifdef   SPS_BUGFIX
 	m_bNewSPS               = false;
 	if( m_pcVeryFirstSliceHeader )
-#endif //SPS_BUGFIX
   delete m_pcVeryFirstSliceHeader;
   m_pcVeryFirstSliceHeader = NULL;
 
@@ -600,7 +577,6 @@ Void H264AVCDecoder::getDecodedResolution(UInt &uiLayerId)
  }
 }
 //~JVT-P031
-#if NON_REQUIRED_SEI_ENABLE //shenqiu
 ErrVal
 H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 													  UInt&             ruiNalUnitType,
@@ -618,24 +594,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 														Bool&             bDiscardable
                             //~JVT-P031
                             )
-#else
-ErrVal
-H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
-													  UInt&             ruiNalUnitType,
-														UInt&             ruiMbX,
-														UInt&             ruiMbY,
-														UInt&             ruiSize
-                           //JVT-P031
-													 , Bool             bPreParseHeader //FRAG_FIX
-													 , Bool			        bConcatenated //FRAG_FIX_3
-													 , Bool&            rbStartDecoding,
-													  UInt&             ruiStartPos,
-														UInt&             ruiEndPos,
-														Bool&             bFragmented,
-														Bool&             bDiscardable
-                            //~JVT-P031
-                            )
-#endif
 {
   ROF( m_bInitDone );
 
@@ -666,11 +624,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   ruiStartPos = 0; //FRAG_FIX
   //~JVT-P031
   UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-#if 1 //BUG_FIX //mwi, from heiko 060116
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
-#else
-  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag ) );
-#endif  
   UInt uiBitsLeft = m_pcNalUnitParser->getBitsLeft(); //JVT-P031
 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();
@@ -704,19 +658,11 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       {
         setVeryFirstSPS( pcSPS );
       }
-#ifdef   SPS_BUGFIX
 			if ( pcSPS->getProfileIdc()==SCALABLE_PROFILE )
-#else //!SPS_BUGFIX
-      if (m_uiSPSCount == 1)
-#endif //SPS_BUGFIX
       {
         m_bEnhancementLayer = true;
       }
-#ifdef   SPS_BUGFIX
 			m_bNewSPS = true;
-#else //!SPS_BUGFIX
-      m_uiSPSCount++;
-#endif //SPS_BUGFIX
       RNOK( m_pcParameterSetMng ->store   ( pcSPS   ) );
 
       // Copy simple priority ID mapping from SPS to NAL unit parser
@@ -734,11 +680,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       ruiMbX  = pcSPS->getFrameWidthInMbs ();
       ruiMbY  = pcSPS->getFrameHeightInMbs();
       ruiSize = max( ruiSize, ( (ruiMbX << 3 ) + YUV_X_MARGIN ) * ( ( ruiMbY << 3 ) + YUV_Y_MARGIN ) * 6 );
-#ifdef   SPS_BUGFIX
 			m_pcControlMng->initSPS( *pcSPS, m_uiRecLayerId );
-#else //!SPS_BUGFIX
-      m_pcControlMng->initSPS(*pcSPS, m_uiSPSCount-1); // TMM_ESS
-#endif //SPS_BUGFIX
       ruiEndPos = pcBinDataAccessor->size(); //JVT-P031
       bDiscardable = false;//JVT-P031
       rbStartDecoding = true;//JVT-P031
@@ -822,14 +764,12 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       while( ! cMessageList.empty() )
       {
         SEI::SEIMessage*  pcSEIMessage = cMessageList.popBack();
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
 		if(pcSEIMessage->getMessageType() == SEI::NON_REQUIRED_SEI)
 		{
 			m_pcNonRequiredSei = (SEI::NonRequiredSei*) pcSEIMessage;
 			m_uiNonRequiredSeiReadFlag = 1;
 		}
 		else
-#endif
 		{
 			delete pcSEIMessage;
 		}
@@ -839,7 +779,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       rbStartDecoding = true;//JVT-P031
     }
     break;
-#ifdef   CONFORMANCE_BUGFIX
   case NAL_UNIT_ACCESS_UNIT_DELIMITER:
     {
       RNOK ( m_pcNalUnitParser->readAUDelimiter());
@@ -863,13 +802,10 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       rbStartDecoding = true;//JVT-P031
     }
     break;
-#endif // CONFORMANCE_BUGFIX
   default:
     return Err::m_nERR;
     break;
   }
-#if 1 //BUG_FIX shenqiu 05-11-24 (change)
-#if NON_REQUIRED_SEI_ENABLE  
   ruiNonRequiredPic = 0;
   if(m_pcSliceHeader)
   {
@@ -907,44 +843,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 		  }
 	  }
   }
-#endif //NON_REQUIRED_SEI_ENABLE
-#else //#if 0, the following be removed by previous
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
-  ruiNonRequiredPic = 0;
-  if(m_pcSliceHeader)
-  {
-	  //===== calculate POC =====
-	  RNOK( m_pcPocCalculator->calculatePoc( *m_pcSliceHeader ) );
-
-	  if(m_uiNonRequiredSeiReadFlag && m_uiNonRequiredSeiRead[m_pcSliceHeader->getPoc()] == 0)
-	  {
-		  m_uiNonRequiredSeiRead[m_pcSliceHeader->getPoc()] = 1;
-		  m_uiNonRequiredSeiReadFlag = 0;
-	  }
-
-	  if(m_uiNonRequiredSeiRead[m_pcSliceHeader->getPoc()])
-	  {
-		  for(UInt i = 0; i <= m_pcNonRequiredSei->getNumInfoEntriesMinus1(); i++)
-		  {
-			  if(m_pcNonRequiredSei->getEntryDependencyId(i))  // it should be changed to if(DenpendencyId == LayerId of the shown picture) 
-			  {
-				  for(UInt j = 0; j <= m_pcNonRequiredSei->getNumNonRequiredPicsMinus1(i); j++)
-				  {
-					  if(m_pcSliceHeader->getLayerId() == m_pcNonRequiredSei->getNonRequiredPicDependencyId(i,j) &&
-						  m_pcSliceHeader->getQualityLevel() == m_pcNonRequiredSei->getNonRequiredPicQulityLevel(i,j))  // it should be add something about FragmentFlag
-					  {
-						  ruiNonRequiredPic = 1;
-						  ROTRS( m_apcMCTFDecoder[m_pcSliceHeader->getLayerId()]->getWaitForIdr() && !m_pcSliceHeader->isIdrNalUnit(), Err::m_nOK );
-						  m_apcMCTFDecoder[m_pcSliceHeader->getLayerId()]->setWaitForIdr(false);
-						  return Err::m_nOK;
-					  }
-				  }
-			  }
-		  }
-	  }
-  }
-#endif
-#endif
   return Err::m_nOK;
 }
 
@@ -1136,11 +1034,9 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 
   case NAL_UNIT_PPS:
   case NAL_UNIT_SEI:
-#ifdef   CONFORMANCE_BUGFIX
 	case NAL_UNIT_ACCESS_UNIT_DELIMITER:
 	case NAL_UNIT_END_OF_SEQUENCE:
 	case NAL_UNIT_END_OF_STREAM:
-#endif //CONFORMANCE_BUGFIX
     {
     }
     break;
@@ -1184,12 +1080,9 @@ ErrVal H264AVCDecoder::xStartSlice(Bool bPreParseHeader, Bool& bLastFragment) //
   
     if( (!pSliceHeader->getFragmentedFlag()) || ( (pSliceHeader->getFragmentedFlag()) && (pSliceHeader->getFragmentOrder() == 0) ) )
     {
-//#if NON_REQUIRED_SEI_ENABLE //shenqiu 05-10-02
-//#else
       if(bPreParseHeader) //FRAG_FIX
       {
 		    delete m_pcPrevSliceHeader;
-//#endif
         m_pcPrevSliceHeader = m_pcSliceHeader;
         m_pcSliceHeader     = pSliceHeader;
         m_uiLastFragOrder = 0;
@@ -1281,14 +1174,12 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
     m_pcVeryFirstSliceHeader->FMOInit();  
     bVeryFirstSlice= true;
   }
-#ifdef   SPS_BUGFIX
 	else if ( m_bNewSPS && (rcSH.getSPS().getProfileIdc() != SCALABLE_PROFILE) )
 	{
 		delete m_pcVeryFirstSliceHeader;
 		m_pcVeryFirstSliceHeader  = new SliceHeader( rcSH.getSPS(), rcSH.getPPS() );
 	}
 	m_bNewSPS = false;
-#endif //!SPS_BUGFIX
   
   printf("  Frame %4d ( LId 0, TL X, QL 0, AVC-%c, BId-1, AP 0, QP%3d )\n",
     rcSH.getPoc                    (),

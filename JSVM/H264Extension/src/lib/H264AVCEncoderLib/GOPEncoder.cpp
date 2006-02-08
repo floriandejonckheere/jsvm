@@ -216,12 +216,6 @@ MCTFEncoder::MCTFEncoder()
 , m_iLastFGSError                   ( 0 )
 , m_uiNotYetConsideredBaseLayerBits ( 0 )
 , m_pcResizeParameters              ( 0 )//TMM_ESS
-#if 1 //BUG_FIX shenqiu 05-11-24 (delete)
-#else
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-30
-, m_uiNonRequiredSEIWrittenFlag		( 0 )
-#endif
-#endif
 , m_bUseDiscardableUnit             ( false )//JVT-P031
 , m_dPredFGSBitRateFactor               ( 0.0 )//JVT-P031
 , m_iPredLastFGSError                   ( 0 )//JVT-P031
@@ -254,11 +248,7 @@ MCTFEncoder::MCTFEncoder()
     for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
       m_aapcFGSRecon[uiIndex][uiLayerIdx] = 0;
   }
-#if 1 //BUG_FIX liuhui 0511
 	for( ui = 0; ui < MAX_SCALABLE_LAYERS; ui++ ) 
-#else
-	for( ui = 0; ui < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; ui++ ) 
-#endif
 	{
 		m_auiCurrGOPBits		[ui] = 0;
 		m_adSeqBits					[ui] = 0.0;
@@ -448,11 +438,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     m_adPSNRSumU        [ui]  = 0.0;
     m_adPSNRSumV        [ui]  = 0.0;
   }
-#if 1 //BUG_FIX liuhui 0511
 	for( ui = 0; ui < MAX_SCALABLE_LAYERS; ui++ ) 
-#else
-  for( ui = 0; ui < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; ui++ )
-#endif
 	{
 		m_auiCurrGOPBits		[ui] = 0;
 		m_adSeqBits					[ui] = 0.0;
@@ -546,20 +532,15 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
       printf("Warning: Layer %d bitrate overflow (only base layer coded)\n", m_uiLayerId );
       m_dFGSCutFactor     = 0.0;
       m_dFGSBitRateFactor = (Double)uiTargetBits / (Double)uiSumBaseBits; // there is a chance that only coding the base layer is not the right thing for closed-loop
-#if 1 //BUG_FIX liuhui 0511
 			m_dNumFGSLayers     = 0.0;
-#endif
     }
     else if( uiTargetBits >= uiSumAllBits )
     {
       printf("Warning: Layer %d bitrate underflow (code as much as possible)\n", m_uiLayerId );
       m_dFGSCutFactor     = 3.0;
       m_dFGSBitRateFactor = (Double)uiTargetBits / (Double)uiSumAllBits; // it is possible that not all layers have been coded during the analysis run (e.g. for closed-loop)
-#if 1 //BUG_FIX liuhui 0511
 			m_dNumFGSLayers     = 3.0;
-#endif
 
-#if 1 //BUG_FIX YKW 0601: to get the true number of FGS layers
       for( UInt uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
       {
         if (uiSumFGSBits[uiFGSLayer] == 0)
@@ -568,7 +549,6 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
           break;
         }
       }
-#endif
     }
     else
     {
@@ -578,19 +558,13 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
         if( uiTargetBits < uiSumFGSBits[uiFGSLayer] )
         {
           m_dFGSCutFactor = (Double)uiFGSLayer + (Double)uiTargetBits / (Double)uiSumFGSBits[uiFGSLayer];
-#if 1 //BUG_FIX liuhui 0511
 					m_dNumFGSLayers = uiFGSLayer + 1;
-#endif
           break;
         }
         uiTargetBits -= uiSumFGSBits[uiFGSLayer];
       }
       m_dFGSBitRateFactor = 0.0;
     }
-#if 1 //BUG_FIX liuhui 0511
-#else
-		m_dNumFGSLayers     = 3.0; // (HS): fix - maximum number of FGS layers
-#endif
     pcLayerParameters->setNumFGSLayers( m_dNumFGSLayers ); // (HS): fix - also store in layer parameters
     }//FIX_FRAG_CAVLC
     //JVT-P031
@@ -2308,23 +2282,13 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
     m_uiNotYetConsideredBaseLayerBits += m_auiCurrGOPBitsBase[uiStage];
     m_uiNotYetConsideredBaseLayerBits += m_auiCurrGOPBitsFGS [uiStage];
   }
-#if 1 //BUG_FIX liuhui 0511:remove this part to end of function
-#else
-	m_auiCurrGOPBits			[0]						+= m_uiParameterSetBits;
-#endif
-#if 1 //BUG_FIX liuhui 0511
 	for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-#else
-	for( uiStage = 0; uiStage < MAX_DSTAGES * MAX_QUALITY_LEVELS; uiStage++ )
-#endif
 	{
 		m_auiCurrGOPBits    [uiStage]      = ( pauiBLGopBits ? pauiBLGopBits[uiStage] : 0 );
 	}	
   m_auiCurrGOPBitsBase  [0]           += m_uiParameterSetBits;
   m_uiNotYetConsideredBaseLayerBits   += m_uiParameterSetBits;
-#if 1 //BUG_FIX liuhui 0511: add this part from previous one
 	m_auiCurrGOPBits      [0]           += m_uiParameterSetBits;
-#endif
 
   return Err::m_nOK;
 }
@@ -3791,13 +3755,6 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 
     //===== base layer encoding =====
     RNOK( pcBLRecFrame->copy      ( pcFrame ) );
-#if 1 //BUG_FIX shenqiu 05-11-24 (delete)
-#else
-#if NON_REQUIRED_SEI_ENABLE  
-	m_uiNonRequiredSEIWrittenFlag = m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()];
-	m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()] = 1;
-#endif
-#endif
 
     RNOK( xEncodeLowPassSignal    ( rcOutputList,
                                     rcControlData,
@@ -4034,14 +3991,6 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
     
     RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame ) );
-
-#if 1 //shenqiu 05-11-24 (delete)
-#else
-#if NON_REQUIRED_SEI_ENABLE  
-	m_uiNonRequiredSEIWrittenFlag = m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()];
-	m_uiNonRequiredSEIWritten[rcControlData.getSliceHeader()->getPoc()] = 1;
-#endif
-#endif
 
     //===== base layer encoding =====
     //--- closed-loop coding of base quality layer ---
@@ -4495,11 +4444,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
       if (uiStage != MAX_DSTAGES)
 				abIsRef[uiStage] = m_abIsRef[uiStage];
 		}
-#if 1 //BUG_FIX liuhui 0511
 	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-#else
-		for ( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
-#endif	
 		{
 			auiCurrGOPBits[uiStage] = m_auiCurrGOPBits[uiStage];
 			adSeqBits			[uiStage] = m_adSeqBits			[uiStage];
@@ -4588,11 +4533,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
 		}
-#if 1 //BUG_FIX liuhui 0511
 	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-#else
-		for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
-#endif
 		{
 			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
 			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
@@ -4664,11 +4605,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
 		}			
-#if 1 //BUG_FIX liuhui 0511
 	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-#else
-    for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
-#endif
 		{
 			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
 			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
@@ -4740,11 +4677,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
 		}
-#if 1 //BUG_FIX liuhui 0511
 	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-#else
-		for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
-#endif
 		{
 			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
 			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
@@ -4816,11 +4749,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
 		}
-#if 1 //BUG_FIX liuhui 0511
 	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-#else
-    for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
-#endif
 		{
 			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
 			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
@@ -4896,11 +4825,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			if (uiStage != MAX_DSTAGES)
 				m_abIsRef[uiStage] = abIsRef[uiStage];
 		}
-#if 1 //BUG_FIX liuhui 0511
 	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-#else
-    for( uiStage = 0; uiStage < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiStage++ )
-#endif
 		{
 			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
 			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
@@ -5208,11 +5133,7 @@ MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
     m_adSeqBitsBase[uiLevel] += (Double)m_auiCurrGOPBitsBase[uiLevel];
     m_adSeqBitsFGS [uiLevel] += (Double)m_auiCurrGOPBitsFGS [uiLevel];
   }
-#if 1 //BUG_FIX liuhui 0511
 	for( uiLevel = 0; uiLevel < MAX_SCALABLE_LAYERS; uiLevel++ )
-#else
-  for( uiLevel = 0; uiLevel < MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS; uiLevel++ )
-#endif
 	{
 		m_adSeqBits		 [uiLevel] += (Double)m_auiCurrGOPBits		[uiLevel];
 	}
@@ -5431,7 +5352,6 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 		m_adSeqBits	[uiStage]	+= m_adSeqBits	[uiStage-1];
 	}
 	static Double aaadCurrBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];	
-#if 1 //BUG_FIX liuhui 0511
   for( UInt uiLevel = 0; uiLevel < MAX_TEMP_LEVELS; uiLevel++ )
 	{
 		Double dBits = 0;
@@ -5467,33 +5387,6 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 			}
 		} 
 	}	
-#else
-	for( UInt uiLevel = 0; uiLevel < MAX_TEMP_LEVELS; uiLevel++ )
-	{
-		UInt uiLayer, uiFGS;
-		Double dBits;
-		if( uiLevel == 0 )
-		{
-			dBits = 0;
-			for( uiLayer = 0; uiLayer <= m_uiLayerId; uiLayer++ )
-			for( uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
-			{
-				dBits += m_aaauidSeqBits[uiLayer][uiLevel][uiFGS];
-				aaadCurrBits[uiLayer][uiLevel][uiFGS] = dBits;
-			}
-		}
-		else
-		{
-			for( uiLayer = 0; uiLayer <= m_uiLayerId; uiLayer++ )
-			for( uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
-			{
-        dBits  = aaadCurrBits   [uiLayer][uiLevel-1][uiFGS]; // HS: fix
-				dBits += m_aaauidSeqBits[uiLayer][uiLevel  ][uiFGS];
-				aaadCurrBits[uiLayer][uiLevel][uiFGS] = dBits;
-			}
-		}
-	}
-#endif //BUG_FIX liuhui 0511
 
 	if( m_uiLayerId == 0 )
 	{
@@ -5703,7 +5596,6 @@ MCTFEncoder::xWriteSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, Sli
   return Err::m_nOK;
 }
 
-#if NON_REQUIRED_SEI_ENABLE
 ErrVal
 MCTFEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit )
 {
@@ -5751,7 +5643,6 @@ MCTFEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccess
 
 	return Err::m_nOK;
 }
-#endif
 
 
 ErrVal

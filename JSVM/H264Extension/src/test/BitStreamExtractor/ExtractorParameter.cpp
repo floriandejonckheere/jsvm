@@ -99,9 +99,7 @@ ExtractorParameter::ExtractorParameter()
 : m_cInFile       ()
 , m_cOutFile      ()
 , m_iResult       ( -10 )
-#if 1 //BUG_FIX liuhui 0511
 , m_uiScalableLayer( MSYS_UINT_MAX )
-#endif
 , m_uiLayer       ( MSYS_UINT_MAX )
 , m_uiLevel       ( MSYS_UINT_MAX )
 , m_dFGSLayer     ( 10.0 )
@@ -180,15 +178,9 @@ ExtractorParameter::init( Int     argc,
   m_cExtractionList.clear();
   m_uiLayer = MSYS_UINT_MAX;
   m_uiLevel = MSYS_UINT_MAX;
-#if 1 //BUG_FIX liuhui 0511
 	m_uiScalableLayer = MSYS_UINT_MAX; 
 	Bool  bScalableLayerSpecified   = false;
-#endif
-#if 1 //BUG_FIX shenqiu 05-11-24 (add)
-#if NON_REQUIRED_SEI_ENABLE  
 	m_uiExtractNonRequiredPics = MSYS_UINT_MAX;
-#endif
-#endif
 
   Bool  bTraceExtractionSpecified = false; // HS: packet trace
   Bool  bExtractionPointSpecified = false;
@@ -214,7 +206,6 @@ ExtractorParameter::init( Int     argc,
   //===== process arguments =====
   for( Int iArg = 3; iArg < argc; iArg++ )
   {
-#if 1 //BUG_FIX liuhui 0511, change the old "-l" to new "-sl"&"-l"
     if( equal( "-sl", argv[iArg] ) ) // -sl
     {
 			EXIT( iArg + 1 == argc,           "Option \"-sl\" without argument specified" );
@@ -239,32 +230,14 @@ ExtractorParameter::init( Int     argc,
       bLayerSpecified = true;
       continue;
     }
-#else
-    if( equal( "-l", argv[iArg] ) )
-    {
-      EXIT( iArg + 1 == argc,           "Option \"-l\" without argument specified" );
-      EXIT( bLayerSpecified,            "Multiple options \"-l\"" );
-			EXIT( bLevelSpecified,						"Option \"-l\" used in connection with option \"-t\"" );
-			EXIT( bFGSSpecified,							"Option \"-l\" used in connection with option \"-f\"" );
-			EXIT( bBitrateSpecified,					"Option \"-l\" used in connection with option \"-b\"" );
-      m_uiLayer       = atoi( argv[ ++iArg ] );
-      bLayerSpecified = true;
-      continue;
-    }
-#endif
 
     if( equal( "-t", argv[iArg] ) )
     {
       EXIT( iArg + 1 == argc,           "Option \"-t\" without argument specified" );
       EXIT( bLevelSpecified,            "Multiple options \"-t\"" );
-#if 1 //BUG_FIX liuhui 0511
 			EXIT( bExtractionPointSpecified,  "Option \"-t\" used in connection with option \"-e\"" );
 			EXIT( bScalableLayerSpecified,    "Option \"-t\" used in connection with option \"-sl\"" ); 
 			EXIT( bBitrateSpecified,					"Option \"-t\" used in connection with option \"-b\"" );
-#else
-			EXIT( bLayerSpecified,						"Option \"-l\" used in connection with option \"-l\"" );
-			EXIT( bBitrateSpecified,					"Option \"-l\" used in connection with option \"-b\"" );
-#endif
       m_uiLevel       = atoi( argv[ ++iArg ] );
       bLevelSpecified = true;
       continue;
@@ -274,14 +247,9 @@ ExtractorParameter::init( Int     argc,
     {
       EXIT( iArg + 1 == argc,           "Option \"-f\" without argument specified" );
       EXIT( bFGSSpecified,              "Multiple options \"-f\"" );
-#if 1 //BUG_FIX liuhui 0511
 		  EXIT( bExtractionPointSpecified,  "Option \"-f\" used in connection with option \"-e\"" );
 			EXIT( bScalableLayerSpecified,    "Option \"-f\" used in connection with option \"-sl\"" );
 			EXIT( bBitrateSpecified,					"Option \"-f\" used in connection with option \"-b\"" );
-#else
-			EXIT( bLayerSpecified,						"Option \"-l\" used in connection with option \"-l\"" );
-			EXIT( bFGSSpecified,							"Option \"-l\" used in connection with option \"-b\"" );
-#endif
       m_dFGSLayer     = atof( argv[ ++iArg ] );
       bFGSSpecified   = true;
       continue;
@@ -291,38 +259,28 @@ ExtractorParameter::init( Int     argc,
 		{
 			EXIT( iArg + 1 == argc,						"Option \"-b\" without argument specified" );
 			EXIT( bBitrateSpecified,					"Multiple options \"-b\"" );
-#if 1 //BUG_FIX liuhui 0511
 			EXIT( bExtractionPointSpecified,  "Option \"-b\" used in connection with option \"-e\"" );
 		  EXIT( bScalableLayerSpecified,    "Option \"-b\" used in connection with option \"-sl\"" );
 		  EXIT( bLayerSpecified,						"Option \"-b\" used in connection with option \"-l\"" );
 		  EXIT( bLevelSpecified,						"Option \"-b\" used in connection with option \"-t\"" );
 		  EXIT( bFGSSpecified,							"Option \"-b\" used in connection with option \"-f\"" );
-#else
-			EXIT( bLayerSpecified,						"Option \"-l\" used in connection with option \"-l\"" );
-			EXIT( bLevelSpecified,						"Option \"-l\" used in connection with option \"-t\"" );
-			EXIT( bFGSSpecified,							"Option \"-l\" used in connection with option \"-f\"" );
-#endif
 			m_dBitrate				= atof( argv[ ++iArg ] );
 			bBitrateSpecified = true;
 			continue;
 		}
 
-#if NON_REQUIRED_SEI_ENABLE   //shenqiu 05-10-09
 		if (equal( "-enp",argv[iArg] ))  //extract non-required pictures 
 		{
 			EXIT( iArg + 1 == argc,			 "Option \"-enp\" without argument specified" );
 			m_uiExtractNonRequiredPics = atoi(argv[++iArg]);
 			continue;
 		}
-#endif
     if( equal( "-e", argv[iArg] ) )
     {
       EXIT( iArg + 1 == argc,           "Option \"-e\" without argument specified" );
       EXIT( bExtractionPointSpecified,  "Multiple options \"-e\"" );
-#if 1 //BUG_FIX liuhui 0511
 			EXIT( bScalableLayerSpecified,    "Option \"-e\" used in connection with option \"-sl\"" ); 
-#endif
-     EXIT( bLayerSpecified,            "Option \"-e\" used in connection with option \"-l\"" );
+      EXIT( bLayerSpecified,            "Option \"-e\" used in connection with option \"-l\"" );
       EXIT( bLevelSpecified,            "Option \"-e\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-e\" used in connection with option \"-f\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-e\" used in connection with option \"-et\"" ); // HS: packet trace
@@ -337,9 +295,7 @@ ExtractorParameter::init( Int     argc,
     {
       EXIT( iArg + 1 == argc,           "Option \"-et\" without argument specified" );
       EXIT( bTraceExtractionSpecified,  "Multiple options \"-et\"" );
-#if 1 //BUG_FIX liuhui 0511
 			EXIT( bScalableLayerSpecified,    "Option \"-et\" used in connection with option \"-sl\"" ); 
-#endif
       EXIT( bLayerSpecified,            "Option \"-et\" used in connection with option \"-l\"" );
       EXIT( bLevelSpecified,            "Option \"-et\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-et\" used in connection with option \"-f\"" );
@@ -373,7 +329,6 @@ ExtractorParameter::init( Int     argc,
 }
 
 
-#if 1 //BUG_FIX liuhui 0511
 ErrVal
 ExtractorParameter::xPrintUsage( Char **argv )
 {
@@ -395,17 +350,3 @@ ExtractorParameter::xPrintUsage( Char **argv )
 	printf("\n");
   ROTS(1);
 }
-#else
-ErrVal
-ExtractorParameter::xPrintUsage( Char **argv )
-{
-  printf("\nUsage: %s InputStream [OutputStream [-l] | [-t] [-f] | [-b]]", argv[0] );
-  printf("\noptions:\n");
-  printf("\t-l L       -> extract specific scalable layer ID = L\n");
-  printf("\t-t T       -> extract all temporal levels <= T\n");
-  printf("\t-f F       -> extract all FGS layers <= F (0 - base layer only)\n");
-  printf("\t-b B       -> extract all scalable layers with the biggest bitrate <= B\n");
-  printf("\n");
-  ROTS(1);
-}
-#endif

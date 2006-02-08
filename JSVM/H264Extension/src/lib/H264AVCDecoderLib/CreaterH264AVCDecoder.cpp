@@ -169,17 +169,16 @@ CreaterH264AVCDecoder::process( PicBuffer*     pcPicBuffer,
 }
 
 
-#if NON_REQUIRED_SEI_ENABLE //shenqiu
 ErrVal
 CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
-								  UInt&             ruiNalUnitType,
-								  UInt&             uiMbX,
-								  UInt&             uiMbY,
-								  UInt&             uiSize,
-								  UInt&			  uiNonRequiredPic
-                                  //JVT-P031
-								  ,Bool             bPreParseHeader //FRAG_FIX
-								  , Bool			bConcatenated //FRAG_FIX_3
+								                  UInt&             ruiNalUnitType,
+								                  UInt&             uiMbX,
+								                  UInt&             uiMbY,
+								                  UInt&             uiSize,
+								                  UInt&			  uiNonRequiredPic
+                                                  //JVT-P031
+								                  ,Bool             bPreParseHeader //FRAG_FIX
+								                  , Bool			bConcatenated //FRAG_FIX_3
                                   ,Bool&            rbStartDecoding,
                                 UInt&             ruiStartPos,
                                 UInt&             ruiEndPos,
@@ -189,57 +188,22 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 																) 
 {
 	return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
-		ruiNalUnitType,
-		uiMbX,
-		uiMbY,
-		uiSize,
-		uiNonRequiredPic
-        //JVT-P031
-		, bPreParseHeader //FRAG_FIX
-		, bConcatenated //FRAG_FIX_3
-        ,rbStartDecoding,
-        ruiStartPos,
-        ruiEndPos,
-        bFragmented,
-        bDiscardable
-        //~JVT-P031
-                           );
+		                                      ruiNalUnitType,
+		                                      uiMbX,
+		                                      uiMbY,
+		                                      uiSize,
+		                                      uiNonRequiredPic
+                                              //JVT-P031
+		                                      , bPreParseHeader //FRAG_FIX
+		                                      , bConcatenated //FRAG_FIX_3
+                                              ,rbStartDecoding,
+                                              ruiStartPos,
+                                              ruiEndPos,
+                                              bFragmented,
+                                              bDiscardable
+                                              //~JVT-P031
+                                               );
 }
-#else
-ErrVal
-CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
-								  UInt&             ruiNalUnitType,
-								  UInt&             uiMbX,
-								  UInt&             uiMbY,
-								  UInt&             uiSize
-                                  //JVT-P031
-								  ,Bool             bPreParseHeader //FRAG_FIX
-								  , Bool			bConcatenated //FRAG_FIX_3
-                                  ,Bool&            rbStartDecoding,
-                                UInt&             ruiStartPos,
-                                UInt&             ruiEndPos,
-                                Bool&              bFragmented,
-                                Bool&              bDiscardable
-                                //~JVT-P031
-                                ) 
-{
-	return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
-		ruiNalUnitType,
-		uiMbX,
-		uiMbY,
-		uiSize
-        //JVT-P031
-		, bPreParseHeader //FRAG_FIX
-		, bConcatenated //FRAG_FIX_3
-        ,rbStartDecoding,
-        ruiStartPos,
-        ruiEndPos,
-        bFragmented,
-        bDiscardable
-        //~JVT-P031
-        ); 
-}
-#endif
 
 //JVT-P031
 ErrVal
@@ -514,9 +478,7 @@ H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 : m_pcBitReadBuffer       ( NULL )
 , m_pcUvlcReader          ( NULL )
 , m_pcNalUnitParser       ( NULL )
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 10-10-02
 , m_pcNonRequiredSEI	  ( NULL )
-#endif
 , m_uiStdAVCOffset         ( 0 )
 {
 }
@@ -637,7 +599,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 					//====set parameters used for further parsing =====
 					SEI::ScalableSei* pcSEI		= (SEI::ScalableSei*)pcSEIMessage;
 					UInt uiNumScalableLayers  = pcSEI->getNumLayersMinus1() + 1;
-#if 1 //BUG_FIX liuhui 0511
 					for(UInt uiIndex = 0; uiIndex < uiNumScalableLayers; uiIndex++ )
 					{
 						if( pcSEI->getDependencyId( uiIndex ) == 0 )
@@ -647,7 +608,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 						else
 							break;
 					}
-#endif
 				}
 				break;
 			}
@@ -680,18 +640,12 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			break;
 		  }
       //}}Quality level estimation and modified truncation- JVTO044 and m12007
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-25
-	  case SEI::NON_REQUIRED_SEI: 
+  	  case SEI::NON_REQUIRED_SEI: 
 		  {
 			  m_pcNonRequiredSEI = (SEI::NonRequiredSei*) pcSEIMessage;
-#if 1 //BUG_FIX shenqiu 05-11-24
 			  m_uiNonRequiredSeiFlag = 1;  
-#else
-				m_uiNonRequiredSeiRead = 1;
-#endif
 			  break;
 		  }
-#endif
       default:
         {
           delete pcSEIMessage;
@@ -784,8 +738,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
     }     
     //~JVT-P031
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-05
-#if 1 //BUG_FIX shenqiu 05-11-24 (change)
 		m_uiCurrPicLayer = (uiLayer << 4) + uiFGSLayer;
 	  if(m_uiCurrPicLayer <= m_uiPrevPicLayer && m_uiNonRequiredSeiFlag != 1)
 	  {
@@ -794,14 +746,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 	  }          
 	  m_uiNonRequiredSeiFlag = 0;
 	  m_uiPrevPicLayer = m_uiCurrPicLayer;
-#else //removed part
-		if(m_uiNonRequiredSeiRead != 1 && uiLayer == 0)
-	  {
-		  m_pcNonRequiredSEI = NULL;
-	  }
-	  m_uiNonRequiredSeiRead = 0;
-#endif //BUG_FIX
-#endif
     }
     m_pcNalUnitParser->closeNalUnit();
   }

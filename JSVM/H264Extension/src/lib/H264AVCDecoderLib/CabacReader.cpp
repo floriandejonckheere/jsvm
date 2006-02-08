@@ -101,7 +101,7 @@ H264AVC_NAMESPACE_BEGIN
 const int MAX_COEFF[9] = {8,16,16,16,15,4,4,15,15};
 const int COUNT_THR[9] = { 3, 4, 4, 4, 3, 2, 2, 3, 3};
 
-#ifdef FAST_CABAC
+#if 0 // FAST_CABAC
 #define RNOKCABAC( exp ) exp
 #else
 #define RNOKCABAC( exp ) RNOK(exp)

@@ -122,12 +122,8 @@ public:
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     QUALITYLEVEL_SEI                      = 25,
 	//}}Quality level estimation and modified truncation- JVTO044 and m12007
-	RESERVED_SEI                          = 26
-    
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-15
-    ,
+	  RESERVED_SEI                          = 26,
   	NON_REQUIRED_SEI					            = 24
-#endif
   };
 
 
@@ -395,7 +391,6 @@ public:
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 
-#if NON_REQUIRED_SEI_ENABLE
   class H264AVCCOMMONLIB_API NonRequiredSei : public SEIMessage
   {
   protected:
@@ -404,9 +399,7 @@ public:
 
   public:
 	  static ErrVal create	(NonRequiredSei*&			rpcSeiMessage);
-#if 1 //BUG_FIX shenqiu 05-11-24 (add)
 	  ErrVal		destroy ();  
-#endif
 	  ErrVal		write	(HeaderSymbolWriteIf*		pcWriteIf);
 	  ErrVal		read	(HeaderSymbolReadIf*		pcReadIf);
 
@@ -434,8 +427,6 @@ public:
 	  UInt		m_uiNonRequiredPicQulityLevel[MAX_NUM_INFO_ENTRIES][MAX_NUM_NON_REQUIRED_PICS];
 	  UInt		m_uiNonRequiredPicFragmentOrder[MAX_NUM_INFO_ENTRIES][MAX_NUM_NON_REQUIRED_PICS];
   };//shenqiu 05-09-15
-
-#endif
 
   typedef MyList<SEIMessage*> MessageList;
   

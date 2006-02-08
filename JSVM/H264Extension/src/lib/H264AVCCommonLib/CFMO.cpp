@@ -144,7 +144,10 @@ int FMO::GenerateMbToSliceGroupMap()
  */
 void FMO::printFmoMaps()
 {
-#ifdef PRINT_FMO_MAPS
+#if 0 // debug
+  return;
+#endif
+
   unsigned i,j;
 
 	printf("\n");
@@ -170,8 +173,6 @@ void FMO::printFmoMaps()
 		printf("\n");
 	}
 	printf("\n");
-#endif
-
 }
 
 int FMO::init(FMO_PPS* pps, FMO_SPS* sps)

@@ -878,12 +878,12 @@ Void MotionEstimation::xPelLogSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt
 __inline
 Void MotionEstimation::xTZSearchHelp( IntTZSearchStrukt& rcStrukt, const Int iSearchX, const Int iSearchY, const UChar ucPointNr, const UInt uiDistance )
 {
-  #ifdef TZ_OUTPUT_weg
+#if 0 //degug
   std::cout << "Pruefpunkt           "
             << "  PX:"  << std::setw(4) << std::setfill(' ') << iSearchX
             << "  PY:"  << std::setw(4) << std::setfill(' ') << iSearchY
             << "  Dis:" << std::setw(6) << std::setfill(' ') << uiDistance << std::endl;
-  #endif
+#endif
 
   m_cXDSS.pYSearch = rcStrukt.pucYRef +  iSearchY     * rcStrukt.iYStride +  iSearchX;
   m_cXDSS.pUSearch = rcStrukt.pucURef + (iSearchY>>1) * rcStrukt.iCStride + (iSearchX>>1);

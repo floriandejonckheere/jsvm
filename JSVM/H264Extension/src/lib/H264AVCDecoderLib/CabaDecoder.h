@@ -97,15 +97,7 @@ class CabacContextModel;
 
 class CabaDecoder
 {
-#ifdef CAVLC_BUGFIX
-#else
-public:
-  class ReadStop
-  {
-  };
-#endif
-
-  protected:
+protected:
 	CabaDecoder();
 	virtual ~CabaDecoder();
 

@@ -92,9 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "GOPDecoder.h"
-#if NON_REQUIRED_SEI_ENABLE //shenqiu 
 #include "H264AVCCommonLib/Sei.h" 
-#endif
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -134,40 +132,22 @@ public:
                   MotionCompensation* pcMotionCompensation );
   ErrVal uninit ();
 
-#if NON_REQUIRED_SEI_ENABLE //shenqiu
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
-	  UInt&             ruiNalUnitType,
-	  UInt&             ruiMbX,
-	  UInt&             ruiMbY,
-	  UInt&             ruiSize,
-	  UInt&				ruiNonRequiredPic
-      //JVT-P031
-	    ,Bool              bPreParseHeader //FRAG_FIX
-		 , Bool			bConcatenated //FRAG_FIX_3
-      ,Bool&             rbStartDecoding,
-       UInt&             ruiStartPos,
-       UInt&             ruiEndPos,
-       Bool&             bFragmented,
-       Bool&             bDiscardable
-      //~JVT-P031
-      ); 
-#else
-  ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
-                      UInt&             ruiNalUnitType,
-                      UInt&             ruiMbX,
-                      UInt&             ruiMbY,
-                      UInt&             ruiSize
-                      //JVT-P031
-	                    ,Bool             bPreParseHeader //FRAG_FIX
-						 , Bool			bConcatenated //FRAG_FIX_3
-                      ,Bool&            rbStartDecoding,
-                      UInt&             ruiStartPos,
-                      UInt&             ruiEndPos,
-                      Bool&             bFragmented,
-                      Bool&             bDiscardable
-                      //~JVT-P031
-                      );
-#endif
+	                    UInt&             ruiNalUnitType,
+	                    UInt&             ruiMbX,
+	                    UInt&             ruiMbY,
+	                    UInt&             ruiSize,
+	                    UInt&				ruiNonRequiredPic
+                        //JVT-P031
+	                      ,Bool              bPreParseHeader //FRAG_FIX
+		                  , Bool			bConcatenated //FRAG_FIX_3
+                        ,Bool&             rbStartDecoding,
+                        UInt&             ruiStartPos,
+                        UInt&             ruiEndPos,
+                        Bool&             bFragmented,
+                        Bool&             bDiscardable
+                        //~JVT-P031
+                        ); 
   //JVT-P031
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor);
   Void    getDecodedResolution(UInt &uiLayerId);
@@ -250,11 +230,7 @@ protected:
   Bool                          m_bEnhancementLayer;
   Bool                          m_bActive;
   Bool                          m_bBaseLayerIsAVCCompatible;
-#ifdef   SPS_BUGFIX
 	Bool                          m_bNewSPS;
-#else //!SPS_BUGFIX
-  UInt                          m_uiSPSCount;
-#endif //SPS_BUGFIX
   UInt                          m_uiRecLayerId;
   UInt                          m_uiLastLayerId;
   const SequenceParameterSet*   m_pcVeryFirstSPS;
@@ -280,17 +256,11 @@ protected:
   Bool                          m_abCompletlyDecodeBaseLayer[MAX_LAYERS];
 #endif
 
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-01
   SEI::NonRequiredSei*			m_pcNonRequiredSei;
   UInt							m_uiNonRequiredSeiReadFlag;
-#if 1 //BUG_FIX shenqiu 05-11-24
 	UInt							m_uiNonRequiredSeiRead;
   UInt							m_uiPrevPicLayer;
   UInt							m_uiCurrPicLayer;
-#else
-  UInt							m_uiNonRequiredSeiRead[1<<MAX_DSTAGES];
-#endif
-#endif
   //JVT-P031
   UInt                          m_uiFirstFragmentPPSId;
   UInt                          m_uiFirstFragmentNumMbsInSlice;

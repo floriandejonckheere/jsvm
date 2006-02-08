@@ -141,40 +141,22 @@ public:
                       PicBufferList&    rcPicBufferOutputList,
                       PicBufferList&    rcPicBufferUnusedList,
                       PicBufferList&    rcPicBufferReleaseList );
-#if NON_REQUIRED_SEI_ENABLE //shenqiu
   ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor,
-	  UInt&             ruiNalUnitType,
-	  UInt&             uiMbX,
-	  UInt&             uiMbY,
-	  UInt&             uiSize,
-	  UInt&				uiNonRequiredPic
-      //JVT-P031
-	  ,Bool              bPreParseHeader //FRAG_FIX
-	   , Bool			bConcatenated //FRAG_FIX_3
-    ,Bool&             rbStartDecoding,
-     UInt&             ruiStartPos,
-     UInt&             ruiEndPos,
-     Bool&              bFragmented,
-     Bool&              bDiscardable
-     //~JVT-P031
-     ); 
-#else
-  ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor,
-	  UInt&             ruiNalUnitType,
-	  UInt&             uiMbX,
-	  UInt&             uiMbY,
-	  UInt&             uiSize
-      //JVT-P031
- 	  ,Bool              bPreParseHeader //FRAG_FIX
-	   , Bool			bConcatenated //FRAG_FIX_3
-    ,Bool&             rbStartDecoding,
-     UInt&             ruiStartPos,
-     UInt&             ruiEndPos,
-     Bool&              bFragmented,
-     Bool&              bDiscardable
-     //~JVT-P031
-     ); 
-#endif
+	                    UInt&             ruiNalUnitType,
+	                    UInt&             uiMbX,
+	                    UInt&             uiMbY,
+	                    UInt&             uiSize,
+	                    UInt&				uiNonRequiredPic
+                        //JVT-P031
+	                    ,Bool              bPreParseHeader //FRAG_FIX
+	                    , Bool			bConcatenated //FRAG_FIX_3
+                      ,Bool&             rbStartDecoding,
+                      UInt&             ruiStartPos,
+                      UInt&             ruiEndPos,
+                      Bool&              bFragmented,
+                      Bool&              bDiscardable
+                      //~JVT-P031
+                      ); 
 
   //JVT-P031
   ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor);
@@ -263,14 +245,8 @@ public:
   ErrVal        process ( BinData*              pcBinData,
                           PacketDescription&    rcPacketDescription,
                           SEI::SEIMessage*&     pcScalableSEIMessage );
-#if NON_REQUIRED_SEI_ENABLE //shenqiu 05-10-02
   SEI::NonRequiredSei*	getNonRequiredSEI()	{return m_pcNonRequiredSEI;}
-#if 1 //BUG_FIX shenqiu 05-10-02
   UInt					getNonRequiredSeiFlag() { return m_uiNonRequiredSeiFlag;}
-#else
-  UInt					getNonRequiredSEIRead() { return m_uiNonRequiredSeiRead;}
-#endif
-#endif
 
 protected:
   ErrVal        xCreate ();
@@ -285,17 +261,10 @@ protected:
   UInt              m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt              m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt              m_uiQualityLevelList [1 << PRI_ID_BITS];
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 10-10-02
   SEI::NonRequiredSei*  m_pcNonRequiredSEI;
-#if 1 //BUG_FIX shenqiu 05-11-24
   UInt					m_uiNonRequiredSeiFlag;
   UInt					m_uiPrevPicLayer;
   UInt					m_uiCurrPicLayer;
-#else
-  UInt					m_uiNonRequiredSeiRead;
-#endif
-#endif
-
 };
 
 

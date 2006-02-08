@@ -227,9 +227,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     case QUALITYLEVEL_SEI: return QualityLevelSEI::create((QualityLevelSEI*&) rpcSEIMessage);
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-09-25
-	case NON_REQUIRED_SEI: return NonRequiredSei::create((NonRequiredSei*&) rpcSEIMessage); 
-#endif
+  	case NON_REQUIRED_SEI: return NonRequiredSei::create((NonRequiredSei*&) rpcSEIMessage); 
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
   return Err::m_nOK;
@@ -754,7 +752,6 @@ SEI::QualityLevelSEI::read ( HeaderSymbolReadIf* pcReadIf )
 
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
-#if NON_REQUIRED_SEI_ENABLE
 SEI::NonRequiredSei::NonRequiredSei	()
 : SEIMessage						( NON_REQUIRED_SEI )
 , m_uiNumInfoEntriesMinus1			(0)
@@ -777,14 +774,13 @@ SEI::NonRequiredSei::create ( NonRequiredSei*& rpcSeiMessage )
 	ROT( NULL == rpcSeiMessage)
 		return Err::m_nOK;
 }
-#if 1   //BUG_FIX shenqiu 05-11-24 (add)
+
 ErrVal
 SEI::NonRequiredSei::destroy() 
 {
 	delete this;
 	return Err::m_nOK;
 }
-#endif
 
 ErrVal
 SEI::NonRequiredSei::write( HeaderSymbolWriteIf* pcWriteIf )
@@ -821,6 +817,5 @@ SEI::NonRequiredSei::read( HeaderSymbolReadIf* pcReadIf )
 	}
 	return Err::m_nOK;
 }
-#endif//shenqiu 05-09-15
 
 H264AVC_NAMESPACE_END

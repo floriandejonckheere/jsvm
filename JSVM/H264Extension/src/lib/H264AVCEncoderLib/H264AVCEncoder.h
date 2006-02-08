@@ -224,13 +224,6 @@ protected:
   UInt m_uiGOPOrder;
   Bool m_bGOPDone;
   //}}Adaptive GOP structure
-
-#if 1 //BUG_FIX shenqiu 05-11-24 (delete)
-#else
-#if NON_REQUIRED_SEI_ENABLE
-  UInt							m_uiNonRequiredSEIWritten[1<<MAX_DSTAGES];
-#endif
-#endif
 };
 
 

@@ -120,13 +120,11 @@ public:
   void                  setLayerId            (UInt layer)  { m_uiLayerId = layer;        }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
-#if 1 //BUG_FIX liuhui 0511  
 	Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
 	UInt                  getScalableLayer    ()            const { return m_uiScalableLayer; }
 	Void                  setBitrate          ( Double dBitrate  ) { m_dBitrate = dBitrate;   }
 	Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
 	std::string           getOutFileName      ()            const { return m_cOutFile;        } 
-#endif
 	void					setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;		}
   UInt					getMaxFGSLayerKept  ()			  { return m_uiMaxFGSLayerKept;		}
   Double                getBitrate          ()            const { return m_dBitrate;        }
@@ -150,9 +148,7 @@ public:
   Void  setTargetRate(Double d) { m_dTargetRate = d;}
   Double getTargetRate() { return m_dTargetRate;}
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
   UInt	getExtractNonRequiredPics()	{ return	m_uiExtractNonRequiredPics;}
-#endif
   Bool getExtractUsingQL() { return m_bExtractUsingQL;}
 
 protected:
@@ -164,9 +160,7 @@ protected:
   std::string     m_cInFile;
   std::string     m_cOutFile;
   Int             m_iResult;
-#if 1 //BUG_FIX liuhui 0511
 	UInt            m_uiScalableLayer; 
-#endif
 	UInt            m_uiLayer;
   UInt			  m_uiLayerId;
   UInt            m_uiLevel;
@@ -188,9 +182,7 @@ protected:
   Bool			 m_bExtractDeadSubstream[MAX_LAYERS];
   Double	     m_dTargetRate;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-#if NON_REQUIRED_SEI_ENABLE  //shenqiu 05-10-09
   UInt			 m_uiExtractNonRequiredPics;
-#endif
 
   Bool           m_bExtractUsingQL;
 };

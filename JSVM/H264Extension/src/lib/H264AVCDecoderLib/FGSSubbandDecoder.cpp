@@ -85,9 +85,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "FGSSubbandDecoder.h"
 #include "CabacReader.h"
 #include "UvlcReader.h"
-#ifdef CAVLC_BUGFIX
 #include "BitReadBuffer.h"
-#endif
 
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/IntFrame.h"
@@ -424,18 +422,10 @@ RQFGSDecoder::xDecodingFGS()
     //ROF ( uiTermBit );
     if( !uiTermBit )
     {
-#ifdef CAVLC_BUGFIX
       throw BitReadBuffer::ReadStop();
-#else
-      throw CabaDecoder::ReadStop();
-#endif
     }
   }
-#ifdef CAVLC_BUGFIX
   catch( BitReadBuffer::ReadStop )
-#else
-  catch( CabaDecoder::ReadStop )
-#endif
   {
     m_bPicFinished = true;
   }

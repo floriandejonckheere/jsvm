@@ -314,18 +314,8 @@ H264AVC_NAMESPACE_END
 // SHOULD BE REMOVED in the future
 #define SCALING_FACTOR_HACK 1
 
-#define NON_REQUIRED_SEI_ENABLE 1
-#if NON_REQUIRED_SEI_ENABLE	
 #define MAX_NUM_INFO_ENTRIES 8
 #define MAX_NUM_NON_REQUIRED_PICS 32
-#define INTER_LAYER_PREDICT_NUM 1       //prediction from the layer (LayerId - INTER_LAYER_PREDICT_NUM)
-                                        /* comment from Heiko Schwarz:
-                                           That's a BAD solution, since even the current encoder allows
-                                           to chose a layer different from LayerId-1 for inter-layer
-                                           prediction. The SEI message should use the actual parameters
-                                           that are additionally transmitted in the slice header.
-                                         */
-#endif
 
 #define AR_FGS_MAX_BASE_WEIGHT                        32
 #define AR_FGS_BASE_WEIGHT_SHIFT_BITS                 5
@@ -341,11 +331,6 @@ H264AVC_NAMESPACE_END
 #define AR_FGS_DEFAULT_FILTER                         AR_FGS_MC_INTERP_AVC
 
 #define AR_FGS_COMPENSATE_SIGNED_FRAME                1
-
-#define CONFORMANCE_BUGFIX
-#define SPS_BUGFIX
-#define CAVLC_BUGFIX
-
 
 #define MVC_PROFILE                                   MULTI_VIEW_PROFILE  // ( MULTI_VIEW_PROFILE or HIGH_PROFILE )
 #define WEIGHTED_PRED_FLAG                            0                   // (0:no weighted prediction, 1:random weights)

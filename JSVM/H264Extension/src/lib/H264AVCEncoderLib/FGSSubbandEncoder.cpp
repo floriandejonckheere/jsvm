@@ -1085,19 +1085,10 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   AOT( m_pcSymbolWriter == 0);
   m_pcSliceHeader->setSliceType( F_SLICE );
 
-#if 1 // BUG FIX Martin.Winken@hhi.fhg.de
   if( uiFracNb )
   {
     RNOK( xRestoreCodingPath() );
   }
-#else
-  if(!uiFracNb) 
-  {
-    RNOK( xInitializeCodingPath() );
-  }
-  else
-    xRestoreCodingPath();
-#endif
   
   rbCorrupted = false;
   Int iLastQP = m_pcSliceHeader->getPicQp();
