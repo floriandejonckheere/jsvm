@@ -170,7 +170,8 @@ public:
                                           SChar   sL1RefIdx ) const;
   Int             getDistScaleFactorScal( SChar   sL0RefIdx,
                                           SChar   sL1RefIdx ) const;
-
+  Int             getDistScaleFactorWP  ( const Frame*    pcFrameL0, const Frame*     pcFrameL1 )  const;
+  Int             getDistScaleFactorWP  ( const IntFrame* pcFrameL0, const IntFrame*  pcFrameL1 )  const;
 
 protected:
   ErrVal          xInitScalingMatrix    ();

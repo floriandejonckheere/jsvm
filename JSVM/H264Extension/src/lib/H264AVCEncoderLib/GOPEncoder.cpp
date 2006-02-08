@@ -1206,6 +1206,7 @@ MCTFEncoder::xMotionEstimation( RefFrameList*    pcRefFrameList0,
   {
     RNOK( m_pcMotionEstimation->initSlice( rcSliceHeader ) );
     RNOK( pcMbEncoder         ->initSlice( rcSliceHeader ) );
+    RNOK( m_pcMotionEstimation->getSW()->initSlice( rcSliceHeader ) );
   }
 
 
@@ -2439,6 +2440,28 @@ MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
 }
 
 
+ErrVal
+MCTFEncoder::getBaseLayerSH( SliceHeader*&  rpcSliceHeader,
+                             Int            iPoc )
+{
+  rpcSliceHeader = 0;
+
+  for( UInt uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++ )
+  {
+    if( m_papcFrame[uiFrame]->getPOC() == iPoc )
+    {
+      if( m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() <= ( m_uiDecompositionStages - m_uiNotCodedMCTFStages ) )
+      {
+        rpcSliceHeader = m_pacControlData[uiFrame].getSliceHeader();
+      }
+      break;
+    }
+  }
+  ROF( rpcSliceHeader );
+
+  return Err::m_nOK;
+}
+
 
 ErrVal
 MCTFEncoder::xGetListSizes( UInt  uiTemporalLevel,
@@ -2699,6 +2722,73 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 
   //===== set base layer data =====
   RNOK( xSetBaseLayerData( uiFrameIdInGOP ) );
+
+  //===== prediction weights =====
+  if( pcSliceHeader->isInterP() )
+  {
+    RNOK( pcSliceHeader->getPredWeightTable( LIST_0 ).uninit() );
+    RNOK( pcSliceHeader->getPredWeightTable( LIST_0 ).init( 64 ) );
+
+    if( pcSliceHeader->getPPS().getWeightedPredFlag() )
+    {
+      pcSliceHeader->setBasePredWeightTableFlag( false );
+#if INFER_ELAYER_PRED_WEIGHTS
+      if( pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX )
+      {
+        pcSliceHeader->setBasePredWeightTableFlag( true );
+      }
+#endif
+      if( ! pcSliceHeader->getBasePredWeightTableFlag() )
+      {
+        pcSliceHeader->setLumaLog2WeightDenom   ( 6 );
+        pcSliceHeader->setChromaLog2WeightDenom ( 6 );
+        RNOK( pcSliceHeader->getPredWeightTable ( LIST_0 ).initDefaults( pcSliceHeader->getLumaLog2WeightDenom(), pcSliceHeader->getChromaLog2WeightDenom() ) );
+        RNOK( pcSliceHeader->getPredWeightTable ( LIST_0 ).createRandomParameters() );
+      }
+      else
+      {
+        SliceHeader* pcBaseLayerSH = 0;
+        RNOK( m_pcH264AVCEncoder->getBaseLayerSH( pcBaseLayerSH, pcSliceHeader->getBaseLayerId(), pcSliceHeader->getPoc() ) );
+        ROF ( pcBaseLayerSH );
+        RNOK( pcSliceHeader->getPredWeightTable( LIST_0 ).copy( pcBaseLayerSH->getPredWeightTable( LIST_0 ) ) );
+      }
+    }
+  }
+  else if( pcSliceHeader->isInterB() )
+  {
+    RNOK( pcSliceHeader->getPredWeightTable( LIST_0 ).uninit() );
+    RNOK( pcSliceHeader->getPredWeightTable( LIST_1 ).uninit() );
+    RNOK( pcSliceHeader->getPredWeightTable( LIST_0 ).init( 64 ) );
+    RNOK( pcSliceHeader->getPredWeightTable( LIST_1 ).init( 64 ) );
+
+    if( pcSliceHeader->getPPS().getWeightedBiPredIdc() == 1 )
+    {
+      pcSliceHeader->setBasePredWeightTableFlag( false );
+#if INFER_ELAYER_PRED_WEIGHTS
+      if( pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX )
+      {
+        pcSliceHeader->setBasePredWeightTableFlag( true );
+      }
+#endif
+      if( ! pcSliceHeader->getBasePredWeightTableFlag() )
+      {
+        pcSliceHeader->setLumaLog2WeightDenom   ( 6 );
+        pcSliceHeader->setChromaLog2WeightDenom ( 6 );
+        RNOK( pcSliceHeader->getPredWeightTable ( LIST_0 ).initDefaults( pcSliceHeader->getLumaLog2WeightDenom(), pcSliceHeader->getChromaLog2WeightDenom() ) );
+        RNOK( pcSliceHeader->getPredWeightTable ( LIST_1 ).initDefaults( pcSliceHeader->getLumaLog2WeightDenom(), pcSliceHeader->getChromaLog2WeightDenom() ) );
+        RNOK( pcSliceHeader->getPredWeightTable ( LIST_0 ).createRandomParameters() );
+        RNOK( pcSliceHeader->getPredWeightTable ( LIST_1 ).createRandomParameters() );
+      }
+      else
+      {
+        SliceHeader* pcBaseLayerSH = 0;
+        RNOK( m_pcH264AVCEncoder->getBaseLayerSH( pcBaseLayerSH, pcSliceHeader->getBaseLayerId(), pcSliceHeader->getPoc() ) );
+        ROF ( pcBaseLayerSH );
+        RNOK( pcSliceHeader->getPredWeightTable( LIST_0 ).copy( pcBaseLayerSH->getPredWeightTable( LIST_0 ) ) );
+        RNOK( pcSliceHeader->getPredWeightTable( LIST_1 ).copy( pcBaseLayerSH->getPredWeightTable( LIST_1 ) ) );
+      }
+    }
+  }
 
     // TMM_ESS {
     if (m_uiLayerId > 0)

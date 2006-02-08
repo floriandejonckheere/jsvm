@@ -142,52 +142,19 @@ ErrVal PocCalculator::destroy()
   return Err::m_nOK;
 }
 
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-ErrVal PocCalculator::initSPS( const SequenceParameterSet& rcSequenceParameterSet )
-{
-  switch( rcSequenceParameterSet.getPicOrderCntType() )
-  {
-  case 0:
-    {
-      m_iPrevRefPocMsb  = 0;
-      m_iPrevRefPocLsb  = 0;
-      m_iMaxPocLsb      = ( 1 << rcSequenceParameterSet.getLog2MaxPicOrderCntLsb() );
-    }
-    break;
-  case 1:
-    {
-      m_iFrameNumOffset  = 0;
-      m_iRefOffsetSum    = 0;
-      for( UInt uiIndex = 0; uiIndex < rcSequenceParameterSet.getNumRefFramesInPicOrderCntCycle(); uiIndex++ )
-      {
-        m_iRefOffsetSum += rcSequenceParameterSet.getOffsetForRefFrame( uiIndex );
-      }
-    }
-    break;
-  case 2:
-    {
-      m_iFrameNumOffset  = 0;
-    }
-    break;
-  default:
-    {
-      return Err::m_nERR;
-    }
-    break;
-  }
-
-  return Err::m_nOK;
-}
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 
 ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
-{
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
+    {
+  if( rcSliceHeader.isIdrNalUnit() )
+    {
+    RNOK( xInitSPS( rcSliceHeader.getSPS() ) );
+    }
+
   switch( rcSliceHeader.getSPS().getPicOrderCntType() )
   {
   case 0:
     {
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+      //===== POC mode 0 =====
       Int iCurrPocMsb = m_iPrevRefPocMsb;
       Int iCurrPocLsb = rcSliceHeader.getPicOrderCntLsb();
       Int iDiffPocLsb = m_iPrevRefPocLsb - iCurrPocLsb;
@@ -196,7 +163,6 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
       {
         iCurrPocMsb   = 0;
         iCurrPocLsb   = 0;
-        m_iMaxPocLsb  = ( 1 << rcSliceHeader.getSPS().getLog2MaxPicOrderCntLsb() );
       }
       else if( iDiffPocLsb >= ( m_iMaxPocLsb >> 1 ) )
       {
@@ -206,34 +172,62 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
       {
         iCurrPocMsb  -= m_iMaxPocLsb;
       }
-
       if( rcSliceHeader.getNalRefIdc() )
       {
         m_iPrevRefPocMsb = iCurrPocMsb;
         m_iPrevRefPocLsb = iCurrPocLsb;
       }
-
       rcSliceHeader.setPoc( iCurrPocMsb + iCurrPocLsb );
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
     }
     break;
-
   case 1:
     {
-      printf( "\n pic_order_count type 1 not supported in PocCalculator::calculatePoc\n" );
-      return Err::m_nERR;
+      //===== POC mode 1 =====
+      Int   iExpectedPoc    = 0;
+      UInt  uiAbsFrameNum   = 0;
+
+      //--- update parameters, set AbsFrameNum ---
+      if( ! rcSliceHeader.isIdrNalUnit() && m_iPrevFrameNum > (Int)rcSliceHeader.getFrameNum() )
+      {
+        m_iFrameNumOffset  += ( 1 << rcSliceHeader.getSPS().getLog2MaxFrameNum() );
+    }
+      m_iPrevFrameNum       = rcSliceHeader.getFrameNum();
+      if( rcSliceHeader.getSPS().getNumRefFramesInPicOrderCntCycle() )
+      {
+        uiAbsFrameNum       = m_iFrameNumOffset + m_iPrevFrameNum;
+        if( uiAbsFrameNum > 0 && rcSliceHeader.getNalRefIdc() == 0 )
+    {
+          uiAbsFrameNum--;
+        }
+      }
+
+      //--- get expected POC ---
+      if( uiAbsFrameNum > 0 )
+      {
+        Int iPocCycleCount  = ( uiAbsFrameNum - 1 ) / rcSliceHeader.getSPS().getNumRefFramesInPicOrderCntCycle();
+        Int iFrameNumCycle  = ( uiAbsFrameNum - 1 ) % rcSliceHeader.getSPS().getNumRefFramesInPicOrderCntCycle();
+        iExpectedPoc        = iPocCycleCount * m_iRefOffsetSum;
+        
+        for( Int iIndex = 0; iIndex <= iFrameNumCycle; iIndex++ )
+        {
+          iExpectedPoc     += rcSliceHeader.getSPS().getOffsetForRefFrame( iIndex );
+      }
+      }
+      if( rcSliceHeader.getNalRefIdc() == 0 )
+      {
+        iExpectedPoc       += rcSliceHeader.getSPS().getOffsetForNonRefPic();
+      }
+
+      //--- set POC ---
+      rcSliceHeader.setPoc( iExpectedPoc + rcSliceHeader.getDeltaPicOrderCnt( 0 ) );
     }
     break;
   case 2:
     {
-      Int iCurrPOC;
-
-      if( rcSliceHeader.isIdrNalUnit() )
-      {
-        m_iFrameNumOffset  = 0;
-        iCurrPOC           = 0;
-      }
-      else
+      //===== POC mode 2 =====
+      Int iCurrPoc = 0; // for IDR NAL unit
+      
+      if( ! rcSliceHeader.isIdrNalUnit() )
       {
         if( (Int)rcSliceHeader.getFrameNum() < m_iPrevFrameNum )
         {
@@ -241,32 +235,62 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
         }
         if( rcSliceHeader.getNalRefIdc() )
         {
-          iCurrPOC = 2 * ( m_iFrameNumOffset + rcSliceHeader.getFrameNum() );
+          iCurrPoc           = 2 * ( m_iFrameNumOffset + rcSliceHeader.getFrameNum() );
         }
         else
         {
-          iCurrPOC = 2 * ( m_iFrameNumOffset + rcSliceHeader.getFrameNum() ) - 1;
+          iCurrPoc           = 2 * ( m_iFrameNumOffset + rcSliceHeader.getFrameNum() ) - 1;
         }
       }
-
       if( rcSliceHeader.getNalRefIdc() )
       {
         m_iPrevFrameNum = rcSliceHeader.getFrameNum();
       }
-
-      rcSliceHeader.setPoc( iCurrPOC );
+      rcSliceHeader.setPoc( iCurrPoc );
     }
     break;
   default:
-    {
-      return Err::m_nERR;
-    }
+    ROT(1);
     break;
   }
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
-
   return Err::m_nOK;
 }
+
+
+ErrVal
+PocCalculator::xInitSPS( const SequenceParameterSet& rcSPS )
+{
+  switch( rcSPS.getPicOrderCntType() )
+  {
+  case 0:
+    {
+      m_iPrevRefPocMsb  = 0;
+      m_iPrevRefPocLsb  = 0;
+      m_iMaxPocLsb      = ( 1 << rcSPS.getLog2MaxPicOrderCntLsb() );
+    }
+    break;
+  case 1:
+    {
+      m_iFrameNumOffset = 0;
+      m_iRefOffsetSum   = 0;
+      for( UInt uiIndex = 0; uiIndex < rcSPS.getNumRefFramesInPicOrderCntCycle(); uiIndex++ )
+    {
+        m_iRefOffsetSum+= rcSPS.getOffsetForRefFrame( uiIndex );
+      }
+    }
+    break;
+  case 2:
+    {
+      m_iFrameNumOffset = 0;
+    }
+    break;
+  default:
+    ROT(1);
+    break;
+  }
+  return Err::m_nOK;
+}
+
 
 ErrVal PocCalculator::setPoc( SliceHeader&  rcSliceHeader,
                               Int           iContFrameNumber )
@@ -286,7 +310,6 @@ ErrVal PocCalculator::setPoc( SliceHeader&  rcSliceHeader,
 
   return Err::m_nOK;
 }
-
 
 
 H264AVC_NAMESPACE_END

@@ -44,6 +44,7 @@ OBJS          	= \
 			$(OBJ_DIR)/GOPEncoder.o \
 			$(OBJ_DIR)/H264AVCEncoder.o \
 			$(OBJ_DIR)/H264AVCEncoderLib.o \
+			$(OBJ_DIR)/InputPicBuffer.o \
 			$(OBJ_DIR)/IntraPredictionSearch.o \
 			$(OBJ_DIR)/MbCoder.o \
 			$(OBJ_DIR)/MbEncoder.o \
@@ -52,7 +53,10 @@ OBJS          	= \
 			$(OBJ_DIR)/MotionEstimationCost.o \
 			$(OBJ_DIR)/MotionEstimationQuarterPel.o \
 			$(OBJ_DIR)/NalUnitEncoder.o \
+			$(OBJ_DIR)/PicEncoder.o \
 			$(OBJ_DIR)/RateDistortion.o \
+			$(OBJ_DIR)/RecPicBuffer.o \
+			$(OBJ_DIR)/SequenceStructure.o \
 			$(OBJ_DIR)/SliceEncoder.o \
 			$(OBJ_DIR)/UvlcWriter.o \
 				

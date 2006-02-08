@@ -93,6 +93,143 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 
+Int iRandom( Int iMin, Int iMax )
+{
+  Int iRange = iMax - iMin + 1;
+  Int iValue = rand() % iRange;
+  return iMin + iValue;
+}
+
+ErrVal
+SliceHeaderBase::PredWeight::createRandomParameters()
+{
+  setLumaWeightFlag  ( 0 == ( rand() & 1 ) );
+  setChromaWeightFlag( 0 == ( rand() & 1 ) );
+
+  if( getLumaWeightFlag() )
+  {
+    setLumaOffset   (     iRandom( -64, 63 ) );
+    setLumaWeight   (     iRandom( -64, 63 ) );
+  }
+  if( getChromaWeightFlag() )
+  {
+    setChromaOffset ( 0,  iRandom( -64, 63 ) );
+    setChromaWeight ( 0,  iRandom( -64, 63 ) );
+    setChromaOffset ( 1,  iRandom( -64, 63 ) );
+    setChromaWeight ( 1,  iRandom( -64, 63 ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+SliceHeaderBase::PredWeight::write( HeaderSymbolWriteIf* pcWriteIf ) const
+{
+  RNOK(   pcWriteIf->writeFlag( getLumaWeightFlag(),    "PWT: luma_weight_flag" ) );
+  if( getLumaWeightFlag() )
+  {
+    RNOK( pcWriteIf->writeSvlc( getLumaWeight(),        "PWT: luma_weight" ) );
+    RNOK( pcWriteIf->writeSvlc( getLumaOffset(),        "PWT: luma_offset" ) );
+  }
+
+  RNOK(   pcWriteIf->writeFlag( getChromaWeightFlag(),  "PWT: chroma_weight_flag" ) );
+  if( getChromaWeightFlag() )
+  {
+    RNOK( pcWriteIf->writeSvlc( getChromaWeight( 0 ),   "PWT: cr_weight" ) );
+    RNOK( pcWriteIf->writeSvlc( getChromaOffset( 0 ),   "PWT: cr_offset" ) );
+    RNOK( pcWriteIf->writeSvlc( getChromaWeight( 1 ),   "PWT: cb_weight" ) );
+    RNOK( pcWriteIf->writeSvlc( getChromaOffset( 1 ),   "PWT: cb_offset" ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SliceHeaderBase::PredWeight::read( HeaderSymbolReadIf* pcReadIf )
+{
+  RNOK(   pcReadIf->getFlag( m_bLumaWeightFlag,     "PWT: luma_weight_flag" ) );
+  if( getLumaWeightFlag() )
+  {
+    RNOK( pcReadIf->getSvlc( m_iLumaWeight,         "PWT: luma_weight" ) );
+    RNOK( pcReadIf->getSvlc( m_iLumaOffset,         "PWT: luma_offset" ) );
+    ROTR( (-128 > m_iLumaWeight) || (127 < m_iLumaWeight), Err::m_nInvalidParameter );
+    ROTR( (-128 > m_iLumaOffset) || (127 < m_iLumaOffset), Err::m_nInvalidParameter );
+  }
+
+  RNOK(   pcReadIf->getFlag( m_bChromaWeightFlag,   "PWT: chroma_weight_flag" ) );
+  if( getChromaWeightFlag() )
+  {
+    RNOK( pcReadIf->getSvlc( m_aiChromaWeight[0],   "PWT: cr_weight" ) );
+    RNOK( pcReadIf->getSvlc( m_aiChromaOffset[0],   "PWT: cr_offset" ) );
+    RNOK( pcReadIf->getSvlc( m_aiChromaWeight[1],   "PWT: cb_weight" ) );
+    RNOK( pcReadIf->getSvlc( m_aiChromaOffset[1],   "PWT: cb_offset" ) );
+    ROTR( (-128 > m_aiChromaWeight[0]) || (127 < m_aiChromaWeight[0]), Err::m_nInvalidParameter );
+    ROTR( (-128 > m_aiChromaOffset[0]) || (127 < m_aiChromaOffset[0]), Err::m_nInvalidParameter );
+    ROTR( (-128 > m_aiChromaWeight[1]) || (127 < m_aiChromaWeight[1]), Err::m_nInvalidParameter );
+    ROTR( (-128 > m_aiChromaOffset[1]) || (127 < m_aiChromaOffset[1]), Err::m_nInvalidParameter );
+  }
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SliceHeaderBase::PredWeightTable::initDefaults( UInt uiLumaWeightDenom, UInt uiChromaWeightDenom )
+{
+  const Int iLumaWeight   = 1 << uiLumaWeightDenom;
+  const Int iChromaWeight = 1 << uiChromaWeightDenom;
+
+  for( UInt ui = 0; ui < size(); ui++ )
+  {
+    RNOK( get( ui ).init( iLumaWeight, iChromaWeight, iChromaWeight ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal SliceHeaderBase::PredWeightTable::createRandomParameters()
+{
+  ROT( 0 == size() );
+
+  for( UInt n = 0; n < size(); n++ )
+  {
+    RNOK( get(n).createRandomParameters( ) );
+  }
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SliceHeaderBase::PredWeightTable::write( HeaderSymbolWriteIf* pcWriteIf, UInt uiNumber ) const
+{
+  for( UInt ui = 0; ui < uiNumber; ui++ )
+  {
+    RNOK( get( ui ).write( pcWriteIf ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal SliceHeaderBase::PredWeightTable::read( HeaderSymbolReadIf* pcReadIf, UInt uiNumber )
+{
+  for( UInt ui = 0; ui < uiNumber; ui++ )
+  {
+    RNOK( get( ui ).read( pcReadIf ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+SliceHeaderBase::PredWeightTable::copy( const PredWeightTable& rcPredWeightTable )
+{
+  UInt uiCopySize = min( m_uiBufferSize, rcPredWeightTable.m_uiBufferSize );
+  for( UInt ui = 0; ui < uiCopySize; ui++ )
+  {
+    m_pT[ui].copy( rcPredWeightTable.m_pT[ui] );
+  }
+  return Err::m_nOK;
+}
+
+
+
+
 
 SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
                                   const PictureParameterSet&  rcPPS )
@@ -111,11 +248,10 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bFgsComponentSep                  ( 0 )
 , m_uiIdrPicId                        ( 0 )
 , m_uiPicOrderCntLsb                  ( 0 )
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
 , m_iDeltaPicOrderCntBottom           ( 0 )
-, m_bFieldPicFlag                     ( false )
-, m_bBottomFieldFlag                  ( false )
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+, m_bBasePredWeightTableFlag          ( false )
+, m_uiLumaLog2WeightDenom             ( 0 )
+, m_uiChromaLog2WeightDenom           ( 0 )
 , m_bDirectSpatialMvPredFlag          ( true )
 , m_bKeyPictureFlag                   ( false )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
@@ -146,10 +282,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-  m_aiDeltaPicOrderCnt[LIST_0] = 0;
-  m_aiDeltaPicOrderCnt[LIST_1] = 0;
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+  ::memset( m_aiDeltaPicOrderCnt,         0x00, 2*sizeof(Int) );
 }
 
 
@@ -157,6 +290,8 @@ SliceHeaderBase::~SliceHeaderBase()
 {
   if(m_pcFMO !=NULL)
 	  m_pcFMO->finit();
+  ANOK( m_acPredWeightTable[LIST_0].uninit() );
+  ANOK( m_acPredWeightTable[LIST_1].uninit() );
 }
 
 
@@ -246,9 +381,23 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     RNOK(   pcWriteIf->writeUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
   
+  if( getSPS().getPicOrderCntType() == 0 )
+  {
   RNOK(     pcWriteIf->writeCode( m_uiPicOrderCntLsb,
                                   getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-  RNOK(     pcWriteIf->writeSvlc( 0,                                            "SH: delta_pic_order_cnt_bottom" ) );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcWriteIf->writeSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
+    }
+  }
+  if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
+  {
+    RNOK(   pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
+    }
+  }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -293,6 +442,26 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     if( m_eSliceType == B_SLICE )
     {
       RNOK( getRplrBuffer( LIST_1 ).write( pcWriteIf ) );
+    }
+
+    if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
+        ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
+    {
+      if( m_uiBaseLayerId != MSYS_UINT_MAX )
+      {
+        RNOK( pcWriteIf->writeFlag( m_bBasePredWeightTableFlag,                "PWT: base_pred_weight_table_flag" ) );
+      }
+      if( ! m_bBasePredWeightTableFlag )
+      {
+        RNOK( pcWriteIf->writeUvlc( m_uiLumaLog2WeightDenom,                   "PWT: luma_log_weight_denom" ) );
+        RNOK( pcWriteIf->writeUvlc( m_uiChromaLog2WeightDenom,                 "PWT: chroma_log_weight_denom" ) );
+
+        RNOK( m_acPredWeightTable[LIST_0].write( pcWriteIf, getNumRefIdxActive( LIST_0 ) ) );
+        if( m_eSliceType == B_SLICE )
+        {
+          RNOK( m_acPredWeightTable[LIST_1].write( pcWriteIf, getNumRefIdxActive( LIST_1) ) );
+        }
+      }
     }
 
     if( getNalRefIdc() )
@@ -396,9 +565,23 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
     RNOK(   pcWriteIf->writeUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
   
+  if( getSPS().getPicOrderCntType() == 0 )
+  {
   RNOK(     pcWriteIf->writeCode( m_uiPicOrderCntLsb,
                                   getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-  RNOK(     pcWriteIf->writeSvlc( 0,                                            "SH: delta_pic_order_cnt_bottom" ) );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcWriteIf->writeSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
+    }
+  }
+  if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
+  {
+    RNOK(   pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
+    }
+  }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -425,6 +608,19 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
   if( m_eSliceType == B_SLICE )
   {
     RNOK( getRplrBuffer( LIST_1 ).write( pcWriteIf ) );
+  }
+
+  if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
+      ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
+  {
+    RNOK( pcWriteIf->writeUvlc( m_uiLumaLog2WeightDenom,                      "PWT: luma_log_weight_denom" ) );
+    RNOK( pcWriteIf->writeUvlc( m_uiChromaLog2WeightDenom,                    "PWT: chroma_log_weight_denom" ) );
+
+    RNOK( m_acPredWeightTable[LIST_0].write( pcWriteIf, getNumRefIdxActive( LIST_0 ) ) );
+    if( m_eSliceType == B_SLICE )
+    {
+      RNOK( m_acPredWeightTable[LIST_1].write( pcWriteIf, getNumRefIdxActive( LIST_1) ) );
+    }
   }
 
   if( getNalRefIdc() )
@@ -492,7 +688,6 @@ ErrVal
 SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 {
   Bool  bTmp;
-  Int   iTmp;
   UInt  uiTmp;
 
   /*if( m_eSliceType == F_SLICE ) // HS: coding order changed to match the text
@@ -507,10 +702,23 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
   
+  if( getSPS().getPicOrderCntType() == 0 )
+  {
   RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
                                getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-  RNOK(     pcReadIf->getSvlc( iTmp,                                         "SH: delta_pic_order_cnt_bottom" ) );
-  ROT ( iTmp );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
+    }
+  }
+  if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
+  {
+    RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
+    }
+  }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -568,6 +776,33 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     if( m_eSliceType == B_SLICE )
     {
       RNOK( getRplrBuffer( LIST_1 ).read( pcReadIf, getNumRefIdxActive( LIST_1 ) ) );
+    }
+
+    RNOK( m_acPredWeightTable[LIST_0].init( 64 ) );
+    RNOK( m_acPredWeightTable[LIST_1].init( 64 ) );
+
+    if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
+        ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
+    {
+      if( m_uiBaseLayerId != MSYS_UINT_MAX )
+      {
+        RNOK( pcReadIf->getFlag( m_bBasePredWeightTableFlag,                "PWT: base_pred_weight_table_flag" ) );
+      }
+      if( ! m_bBasePredWeightTableFlag )
+      {
+        RNOK( pcReadIf->getUvlc( m_uiLumaLog2WeightDenom,                   "PWT: luma_log_weight_denom" ) );
+        RNOK( pcReadIf->getUvlc( m_uiChromaLog2WeightDenom,                 "PWT: chroma_log_weight_denom" ) );
+        ROTR( m_uiLumaLog2WeightDenom   > 7, Err::m_nInvalidParameter );
+        ROTR( m_uiChromaLog2WeightDenom > 7, Err::m_nInvalidParameter );
+
+        RNOK( m_acPredWeightTable[LIST_0].initDefaults( m_uiLumaLog2WeightDenom, m_uiChromaLog2WeightDenom ) );
+        RNOK( m_acPredWeightTable[LIST_0].read( pcReadIf, getNumRefIdxActive( LIST_0 ) ) );
+        if( m_eSliceType == B_SLICE )
+        {
+          RNOK( m_acPredWeightTable[LIST_1].initDefaults( m_uiLumaLog2WeightDenom, m_uiChromaLog2WeightDenom ) );
+          RNOK( m_acPredWeightTable[LIST_1].read( pcReadIf, getNumRefIdxActive( LIST_1) ) );
+        }
+      }
     }
 
     if( getNalRefIdc() )
@@ -659,6 +894,8 @@ ErrVal
 SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
 {
   Bool  bTmp;
+  Int   iTmp;
+
  
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
@@ -667,31 +904,14 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
   
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-  if( 0 == getSPS().getPicOrderCntType() )
-  {
-    RNOKS( pcReadIf->getCode( m_uiPicOrderCntLsb, getSPS().getLog2MaxPicOrderCntLsb(),
-			                                                                       "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() && (! getFieldPicFlag()) )
-    {
-      RNOKS( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                   "SH: delta_pic_order_cnt_bottom" ) );
-    }
-  }
+  RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
+                               getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
 
-  if( (1 == getSPS().getPicOrderCntType()) && (! getSPS().getDeltaPicOrderAlwaysZeroFlag()) )
+  if(getPPS().getPicOrderPresentFlag() == true)
   {
-     RNOKS( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[LIST_0],                 "SH: delta_picture_order_cnt[0]" ) );
-     if ( getPPS().getPicOrderPresentFlag() && (! getFieldPicFlag()) )
-  {
-       RNOKS( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[LIST_1],               "SH: delta_picture_order_cnt[1]" ) );
-     }
-  }
-#else //!PIC_ORDER_CNT_TYPE_BUGFIX
-  RNOKS( pcReadIf->getCode( m_uiPicOrderCntLsb, getSPS().getLog2MaxPicOrderCntLsb(),
-		                                                                         "SH: pic_order_cnt_lsb" ) );
 	RNOK( pcReadIf->getSvlc( iTmp,                                             "SH: delta_pic_order_cnt_bottom" ) );
 	ROT ( iTmp );
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+  }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -720,6 +940,26 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
   if( m_eSliceType == B_SLICE )
   {
     RNOK( getRplrBuffer( LIST_1 ).read( pcReadIf, getNumRefIdxActive( LIST_1 ) ) );
+  }
+
+  RNOK( m_acPredWeightTable[LIST_0].init( 64 ) );
+  RNOK( m_acPredWeightTable[LIST_1].init( 64 ) );
+
+  if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
+      ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
+  {
+    RNOK( pcReadIf->getUvlc( m_uiLumaLog2WeightDenom,                     "PWT: luma_log_weight_denom" ) );
+    RNOK( pcReadIf->getUvlc( m_uiChromaLog2WeightDenom,                   "PWT: chroma_log_weight_denom" ) );
+    ROTR( m_uiLumaLog2WeightDenom   > 7, Err::m_nInvalidParameter );
+    ROTR( m_uiChromaLog2WeightDenom > 7, Err::m_nInvalidParameter );
+
+    RNOK( m_acPredWeightTable[LIST_0].initDefaults( m_uiLumaLog2WeightDenom, m_uiChromaLog2WeightDenom ) );
+    RNOK( m_acPredWeightTable[LIST_0].read( pcReadIf, getNumRefIdxActive( LIST_0 ) ) );
+    if( m_eSliceType == B_SLICE )
+    {
+      RNOK( m_acPredWeightTable[LIST_1].initDefaults( m_uiLumaLog2WeightDenom, m_uiChromaLog2WeightDenom ) );
+      RNOK( m_acPredWeightTable[LIST_1].read( pcReadIf, getNumRefIdxActive( LIST_1) ) );
+    }
   }
 
   if( getNalRefIdc() )

@@ -101,6 +101,7 @@ H264AVC_NAMESPACE_BEGIN
 class QuarterPelFilter;
 class MbDataCtrl;
 class DPBUnit;
+class RecPicBufUnit;
 
 
 class H264AVCCOMMONLIB_API IntFrame
@@ -122,6 +123,8 @@ public:
   Void      setDPBUnit      ( DPBUnit*  pcDPBUnit ) { m_pcDPBUnit = pcDPBUnit; }
   DPBUnit*  getDPBUnit      ()                      { return m_pcDPBUnit; }
 
+  Void            setRecPicBufUnit( RecPicBufUnit* pcUnit ) { m_pcDPBUnit = (DPBUnit*)(Void*)pcUnit; }
+  RecPicBufUnit*  getRecPicBufUnit()                        { return (RecPicBufUnit*)(Void*)m_pcDPBUnit; }
   
   ErrVal clip()
   {

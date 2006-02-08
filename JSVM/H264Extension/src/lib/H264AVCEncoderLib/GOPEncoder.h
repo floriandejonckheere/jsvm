@@ -258,6 +258,8 @@ public:
                                       Int                             iSpatialScalability,
                                       Int                             iPoc,
                                       Bool                            bMotion );
+  ErrVal        getBaseLayerSH      ( SliceHeader*&                   rpcSliceHeader,
+                                      Int                             iPoc );
 
   UInt*         getGOPBitsBase      ()  { return m_auiCurrGOPBitsBase;  }
   UInt*         getGOPBitsFGS       ()  { return m_auiCurrGOPBitsFGS;   }

@@ -125,10 +125,12 @@ protected:
     Void clear()
     {
       m_apcRefBuffer[0] = m_apcRefBuffer[1] = NULL;
+      m_apcPW[0]        = m_apcPW[1]        = NULL;
     }
 
     B4x4Idx         m_cIdx;
-    Bool            m_bBi;
+    PW              m_acPW[2];
+    const PW*       m_apcPW[2];
     YuvPicBuffer*   m_apcRefBuffer[2];
     Mv3D            m_aacMv[2][6];
   };
@@ -140,10 +142,12 @@ protected:
     Void clear()
     {
       m_apcRefBuffer[0] = m_apcRefBuffer[1] = NULL;
+      m_apcPW[0]        = m_apcPW[1]        = NULL;
     }
 
     B4x4Idx           m_cIdx;
-    Bool              m_bBi;
+    PW                m_acPW[2];
+    const PW*         m_apcPW[2];
     IntYuvPicBuffer*  m_apcRefBuffer[2];
     Mv3D              m_aacMv[2][6];
     Mv3D              m_aacMvd[2][6];  // differential motion vector 
@@ -306,6 +310,7 @@ private:
 
   __inline Void xGetMbPredData  ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame, IntMC8x8D& rcMC8x8D );
   __inline Void xGetBlkPredData ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame, IntMC8x8D& rcMC8x8D, BlkMode eBlkMode );
+
   __inline Void xPredChromaPel  ( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
   __inline Void xPredChroma     ( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
 

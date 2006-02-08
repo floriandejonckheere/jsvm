@@ -279,7 +279,7 @@ public:
 
 
 
-template< class T, UInt uiMemSize = 32 >
+template< class T, UInt uiMemSize = 64 >
 class RefPicList
 {
 public:

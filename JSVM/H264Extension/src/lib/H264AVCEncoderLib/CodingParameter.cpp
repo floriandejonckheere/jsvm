@@ -88,6 +88,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib.h"
 
 #include "CodingParameter.h"
+#include "SequenceStructure.h"
 
 #include <math.h>
 
@@ -175,6 +176,37 @@ ErrVal CodingParameter::check()
 {
   ROTS( m_cLoopFilterParams         .check() );
   ROTS( m_cMotionVectorSearchParams .check() );
+
+  if( getMVCmode() )
+  {
+    Bool bStringNotOk = SequenceStructure::checkString( getSequenceFormatString() ); 
+
+    //===== coder is operated in MVC mode =====
+    ROTREPORT( getFrameWidth        () <= 0 ||
+               getFrameWidth        ()  % 16,             "Frame Width  must be greater than 0 and a multiple of 16" );
+    ROTREPORT( getFrameHeight       () <= 0 ||
+               getFrameHeight       ()  % 16,             "Frame Height must be greater than 0 and a multiple of 16" );
+    ROTREPORT( getMaximumFrameRate  () <= 0.0,            "Frame rate not supported" );
+    ROTREPORT( getTotalFrames       () == 0,              "Total Number Of Frames must be greater than 0" );
+    ROTREPORT( getSymbolMode        ()  > 1,              "Symbol mode not supported" );
+    ROTREPORT( get8x8Mode           ()  > 2,              "FRExt mode not supported" );
+    ROTREPORT( getDPBSize           () == 0,              "DPBSize must be greater than 0" );
+    ROTREPORT( getNumDPBRefFrames   () == 0 ||
+               getNumDPBRefFrames   ()  > getDPBSize(),   "NumRefFrames must be greater than 0 and must not be greater than DPB size" );
+    ROTREPORT( getLog2MaxFrameNum   ()  < 4 ||
+               getLog2MaxFrameNum   ()  > 16,             "Log2MaxFrameNum must be in the range of [4..16]" );
+    ROTREPORT( getLog2MaxPocLsb     ()  < 4 ||
+               getLog2MaxPocLsb     ()  > 15,             "Log2MaxFrameNum must be in the range of [4..15]" );
+    ROTREPORT( bStringNotOk,                              "Unvalid SequenceFormatString" );
+    ROTREPORT( getMaxRefIdxActiveBL0() <= 0 ||
+               getMaxRefIdxActiveBL0()  > 15,             "Unvalid value for MaxRefIdxActiveBL0" );
+    ROTREPORT( getMaxRefIdxActiveBL1() <= 0 ||
+               getMaxRefIdxActiveBL1()  > 15,             "Unvalid value for MaxRefIdxActiveBL1" );
+    ROTREPORT( getMaxRefIdxActiveP  () <= 0 ||
+               getMaxRefIdxActiveP  ()  > 15,             "Unvalid value for MaxRefIdxActiveP" );
+
+    return Err::m_nOK;
+  }
 
   ROTREPORT( getMaximumFrameRate() <= 0.0,              "Maximum frame rate not supported" );
   ROTREPORT( getMaximumDelay    ()  < 0.0,              "Maximum delay must be greater than or equal to 0" );

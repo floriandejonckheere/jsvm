@@ -377,6 +377,9 @@ public:
                                                   Bool&         rbConstrainedIPred,
                                                   Bool          bSpatialScalability,
                                                   Int           iPoc );
+  ErrVal          getBaseLayerPWTable           ( SliceHeader::PredWeightTable*& rpcPredWeightTable,
+                                                  ListIdx                        eListIdx,
+                                                  Int                            iPoc );
 
   Void            setQualityLevelForPrediction  ( UInt ui )         { m_uiQualityLevelForPrediction = ui; }
 #if MULTIPLE_LOOP_DECODING

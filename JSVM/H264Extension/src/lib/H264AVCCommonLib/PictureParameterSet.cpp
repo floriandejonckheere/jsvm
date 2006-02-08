@@ -99,6 +99,8 @@ PictureParameterSet::PictureParameterSet()
 , m_uiSeqParameterSetId                     ( MSYS_UINT_MAX )
 , m_bEntropyCodingModeFlag                  ( false )
 , m_bPicOrderPresentFlag                    ( false )
+, m_bWeightedPredFlag                       ( false )
+, m_uiWeightedBiPredIdc                     ( 0 )
 , m_uiPicInitQp                             ( 26 )
 , m_iChomaQpIndexOffset                     ( 0 )
 , m_bDeblockingFilterParametersPresentFlag  ( false )
@@ -200,8 +202,8 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
     
   RNOK( pcWriteIf->writeUvlc( getNumRefIdxActive(LIST_0)-1,               "PPS: num_ref_idx_l0_active_minus1" ) );
   RNOK( pcWriteIf->writeUvlc( getNumRefIdxActive(LIST_1)-1,               "PPS: num_ref_idx_l1_active_minus1" ) );
-  RNOK( pcWriteIf->writeFlag( false,                                      "PPS: weighted_pred_flag" ) );
-  RNOK( pcWriteIf->writeCode( 0, 2,                                       "PPS: weighted_bipred_idc" ) );
+  RNOK( pcWriteIf->writeFlag( m_bWeightedPredFlag,                        "PPS: weighted_pred_flag" ) );
+  RNOK( pcWriteIf->writeCode( m_uiWeightedBiPredIdc, 2,                   "PPS: weighted_bipred_idc" ) );
   RNOK( pcWriteIf->writeSvlc( (Int)getPicInitQp() - 26,                   "PPS: pic_init_qp_minus26" ) );
   RNOK( pcWriteIf->writeSvlc( 0,                                          "PPS: pic_init_qs_minus26" ) );
   RNOK( pcWriteIf->writeSvlc( getChomaQpIndexOffset(),                    "PPS: chroma_qp_index_offset" ) );
@@ -289,15 +291,11 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
 
 
   RNOK( pcReadIf->getUvlc( uiTmp,                                         "PPS: num_ref_idx_l0_active_minus1" ) );
-  ROT ( uiTmp > 14 );
   setNumRefIdxActive( LIST_0, uiTmp + 1 );
   RNOK( pcReadIf->getUvlc( uiTmp,                                         "PPS: num_ref_idx_l1_active_minus1" ) );
-  ROT ( uiTmp > 14 );
   setNumRefIdxActive( LIST_1, uiTmp + 1 );
-  RNOK( pcReadIf->getFlag( bTmp,                                          "PPS: weighted_pred_flag" ) );
-  ROT ( bTmp );
-  RNOK( pcReadIf->getCode( uiTmp, 2,                                      "PPS: weighted_bipred_idc" ) );
-  ROT ( uiTmp );
+  RNOK( pcReadIf->getFlag( m_bWeightedPredFlag,                           "PPS: weighted_pred_flag" ) );
+  RNOK( pcReadIf->getCode( m_uiWeightedBiPredIdc, 2,                      "PPS: weighted_bipred_idc" ) );
   RNOK( pcReadIf->getSvlc( iTmp,                                          "PPS: pic_init_qp_minus26" ) );
   ROT ( iTmp < -26 || iTmp > 25 );
   setPicInitQp( (UInt)( iTmp + 26 ) );

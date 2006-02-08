@@ -25,7 +25,7 @@ CFG=H264AVCEncoderLibStatic - Win32 Debug
 # PROP AllowPerConfigDependencies 0
 # PROP Scc_ProjName ""
 # PROP Scc_LocalPath ""
-CPP=xicl6.exe
+CPP=cl.exe
 RSC=rc.exe
 
 !IF  "$(CFG)" == "H264AVCEncoderLibStatic - Win32 Release"
@@ -47,7 +47,7 @@ RSC=rc.exe
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LIB32=xilink6.exe -lib
+LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo
 
@@ -70,7 +70,7 @@ LIB32=xilink6.exe -lib
 BSC32=bscmake.exe
 # ADD BASE BSC32 /nologo
 # ADD BSC32 /nologo
-LIB32=xilink6.exe -lib
+LIB32=link.exe -lib
 # ADD BASE LIB32 /nologo
 # ADD LIB32 /nologo /out:"..\..\..\..\..\lib\H264AVCEncoderLibStaticd.lib"
 
@@ -134,6 +134,10 @@ SOURCE=.\H264AVCEncoderLib.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\InputPicBuffer.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\IntraPredictionSearch.cpp
 # End Source File
 # Begin Source File
@@ -166,7 +170,19 @@ SOURCE=.\NalUnitEncoder.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\PicEncoder.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\RateDistortion.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\RecPicBuffer.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\SequenceStructure.cpp
 # End Source File
 # Begin Source File
 
@@ -238,6 +254,10 @@ SOURCE=..\..\..\include\H264AVCEncoderLib.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\InputPicBuffer.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\IntraPredictionSearch.h
 # End Source File
 # Begin Source File
@@ -274,11 +294,23 @@ SOURCE=.\NalUnitEncoder.h
 # End Source File
 # Begin Source File
 
+SOURCE=.\PicEncoder.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\RateDistortion.h
 # End Source File
 # Begin Source File
 
 SOURCE=.\RateDistortionIf.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\RecPicBuffer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\SequenceStructure.h
 # End Source File
 # Begin Source File
 

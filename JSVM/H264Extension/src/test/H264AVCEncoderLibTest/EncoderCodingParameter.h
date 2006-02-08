@@ -89,42 +89,22 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
  
  
-#include "string.h" 
+#include <string> 
 #include "CodingParameter.h"
 
 
 
 #define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
 
-
-class EncoderConfigLineCStr : public h264::EncoderConfigLineBase
-{
-public:
-  EncoderConfigLineCStr(Char* pcTag, Char** pcPar, Char* pcDefault)
-  {
-    strcpy(m_pcTag, pcTag);
-    m_pcPar  = *pcPar;
-    strcpy(m_pcPar, pcDefault);
-    m_uiType = 1;
-  };
-  void setVar(Char* pvValue) {
-    strcpy(m_pcPar, pvValue);
-  };
-protected:
-  Char* m_pcPar;
-};
-
 class EncoderConfigLineStr : public h264::EncoderConfigLineBase
 {
 public:
-  EncoderConfigLineStr(Char* pcTag, std::string* pcPar, Char* pcDefault)
+  EncoderConfigLineStr( Char* pcTag, std::string* pcPar, Char* pcDefault ) : EncoderConfigLineBase( pcTag, 1 ), m_pcPar( pcPar )
   {
-    strcpy(m_pcTag, pcTag);
-    m_pcPar  = pcPar;
     *m_pcPar = pcDefault;
-    m_uiType = 1;
   };
-  void setVar(Char* pvValue) {
+  Void setVar( std::string& pvValue )
+  {
     *m_pcPar = pvValue;
   };
 protected:
@@ -134,15 +114,13 @@ protected:
 class EncoderConfigLineDbl : public h264::EncoderConfigLineBase
 {
 public:
-  EncoderConfigLineDbl(Char* pcTag, Double* pdPar, Double pdDefault)
+  EncoderConfigLineDbl( Char* pcTag, Double* pdPar, Double pdDefault ) :  EncoderConfigLineBase( pcTag, 2 ), m_pdPar( pdPar ) 
   {
-    strcpy(m_pcTag, pcTag);
-    m_pdPar  = pdPar;
     *m_pdPar = pdDefault;
-    m_uiType = 2;
   };
-  void setVar(Char* pvValue) {
-    *m_pdPar = atof(pvValue);
+  void setVar( std::string& pvValue )
+  {
+    *m_pdPar = atof( pvValue.c_str() );
   };
 protected:
   Double* m_pdPar;
@@ -151,15 +129,13 @@ protected:
 class EncoderConfigLineInt : public h264::EncoderConfigLineBase
 {
 public:
-  EncoderConfigLineInt(Char* pcTag, Int* piPar, Int piDefault)
+  EncoderConfigLineInt( Char* pcTag, Int* piPar, Int piDefault ) : EncoderConfigLineBase( pcTag, 3 ), m_piPar( piPar )
   {
-    strcpy(m_pcTag, pcTag);
-    m_piPar  = piPar;
     *m_piPar = piDefault;
-    m_uiType = 3;
   };
-  void setVar(Char* pvValue) {
-    *m_piPar = atoi(pvValue);
+  void setVar( std::string& pvValue)
+  {
+    *m_piPar = atoi( pvValue.c_str() );
   };
 protected:
   Int* m_piPar;
@@ -168,15 +144,13 @@ protected:
 class EncoderConfigLineUInt : public h264::EncoderConfigLineBase
 {
 public:
-  EncoderConfigLineUInt(Char* pcTag, UInt* puiPar, UInt puiDefault)
+  EncoderConfigLineUInt( Char* pcTag, UInt* puiPar, UInt puiDefault ) : EncoderConfigLineBase( pcTag, 4 ), m_puiPar( puiPar )
   {
-    strcpy(m_pcTag, pcTag);
-    m_puiPar  = puiPar;
     *m_puiPar = puiDefault;
-    m_uiType  = 4;
   };
-  void setVar(Char* pvValue) {
-    *m_puiPar = atoi(pvValue);
+  void setVar( std::string& pvValue)
+  {
+    *m_puiPar = atoi( pvValue.c_str() );
   };
 protected:
   UInt* m_puiPar;
@@ -185,19 +159,18 @@ protected:
 class EncoderConfigLineChar : public h264::EncoderConfigLineBase
 {
 public:
-  EncoderConfigLineChar(Char* pcTag, Char* pcPar, Char pcDefault)
+  EncoderConfigLineChar( Char* pcTag, Char* pcPar, Char pcDefault ) : EncoderConfigLineBase( pcTag, 5 ), m_pcPar( pcPar )
   {
-    strcpy(m_pcTag, pcTag);
-    m_pcPar  = pcPar;
     *m_pcPar = pcDefault;
-    m_uiType = 5;
   };
-  void setVar(Char* pvValue) {
-    *m_pcPar = (Char)atoi(pvValue);
+  void setVar( std::string& pvValue )
+  {
+    *m_pcPar = (Char)atoi( pvValue.c_str() );
   };
 protected:
   Char* m_pcPar;
 };
+
 
 
 class EncoderCodingParameter : 
@@ -212,22 +185,19 @@ public:
   ErrVal        destroy   ();
   ErrVal        init      ( Int     argc,
                             Char**  argv,
-                            Char*   pcBitstreamFile );
+                            std::string&               rcBitstreamFile );
 
   Void          printHelp ();
 
 protected:
   Bool    equals( const Char* str1, const Char* str2, UInt nLetter ) { return 0 == ::strncmp( str1, str2, nLetter); }
 
-  ErrVal  xReadFromFile      ( Char*                   pcFilename,
-                               Char*                   pcBitstreamFile  );
-  ErrVal  xReadLayerFromFile ( Char*                   pcFilename,
+  ErrVal  xReadFromFile      ( std::string&            rcFilename,
+                               std::string&            rcBitstreamFile  );
+  ErrVal  xReadLayerFromFile ( std::string&            rcFilename,
                                h264::LayerParameters&  rcLayer );
-  
-  ErrVal  xReadLine( FILE* hFile, Char paacTag[4][256] );
-  ErrVal  xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0 );
-  ErrVal  xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0, Void* pvP1 );
-
+  ErrVal  xReadLine          ( FILE*                   hFile,
+                               std::string*            pacTag );
   ErrVal xReadSliceGroupCfg(h264::LayerParameters&  rcLayer );
 };
 
@@ -253,11 +223,11 @@ ErrVal EncoderCodingParameter::destroy()
 
 ErrVal EncoderCodingParameter::init( Int     argc,
                                      Char**  argv,
-                                     Char*   pcBitstreamFile  )
+                                     std::string& rcBitstreamFile  )
 {
   Char* pcCom;
 
-  pcBitstreamFile [0] = (Char) 0;
+  rcBitstreamFile = "";
 
   ROTS( argc < 2 )
 
@@ -295,7 +265,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     if( equals( pcCom, "-bf", 3 ) )
     {
       ROTS( NULL == argv[n] );
-      strcpy( pcBitstreamFile, argv[n] );
+      rcBitstreamFile = argv[n];
       continue;
     }
     if( equals( pcCom, "-numl", 5 ) )
@@ -410,8 +380,8 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     if( equals( pcCom, "-pf", 3) )
     {
       ROTS( NULL == argv[n] );
-      RNOKS( xReadFromFile( argv[n],
-                            pcBitstreamFile ) );
+      std::string cFilename = argv[n];
+      RNOKS( xReadFromFile( cFilename, rcBitstreamFile ) );  
       continue;
     }
     //JVT-P031
@@ -477,107 +447,70 @@ Void EncoderCodingParameter::printHelp()
 }
 
 
-ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, Char paacTag[4][256] )
-{
-  if( NULL != paacTag )
+ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, std::string* pacTag )
   {
+  ROF( pacTag );
+
     Int  n;
     UInt uiTagNum = 0;
-    Bool bFlush   = false;
-    Char* pacStr  = &paacTag[0][0];
+  Bool          bComment  = false;
+  std::string*  pcTag     = &pacTag[0];
+
     for( n = 0; n < 4; n++ )
     {
-      paacTag[n][0] = 0;
+      pacTag[n] = "";
     }
-    for( n = 0; n < 1024; n++ )
+
+  for( n = 0; ; n++ )
     {
       Char cChar = fgetc( hFile );
-      if ( cChar == '\n' || feof (hFile) )
+    ROTRS( cChar == '\n' || feof( hFile ), Err::m_nOK );  // end of line
+    if   ( cChar == '#' )
       {
-        cChar = 0;
-      } else if ( cChar == '#' )
-      {
-        bFlush = true;
+      bComment = true;
       }
-      if ( !bFlush )
+    if( ! bComment )
       {
-        if ( cChar == ' ' )
+      if ( cChar == '\t' || cChar == ' ' ) // white space
         {
-          *pacStr = 0;
           ROTR( uiTagNum == 3, Err::m_nERR );
-          if ( paacTag[uiTagNum][0] != 0 )
+        if( ! pcTag->empty() )
           {
             uiTagNum++;
-            pacStr = &paacTag[uiTagNum][0];
+          pcTag = &pacTag[uiTagNum]; 
           }
-        } else {
-          *pacStr = cChar;
-          pacStr++;
-
-        }
-      }
-      ROTRS( 0 == cChar, Err::m_nOK );
-    }
+  }
+      else
+  {
+        *pcTag += cChar;
+  }
+}
   }
 
   return Err::m_nERR;
 }
 
-ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0 )
+ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::string& rcBitstreamFile )
 {
-  if( NULL != pvP0 )
-  {
-    ROTR( 0 == fscanf( hFile, pcFormat, pvP0 ), Err::m_nInvalidParameter ); 
-  }
-
-  for( Int n = 0; n < 256; n++ )
-  {
-    ROTRS( '\n' == fgetc( hFile ), Err::m_nOK );
-  }
-
-  return Err::m_nERR;
-}
-
-
-ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, Char* pcFormat, Void* pvP0, Void* pvP1 )
-{
-  if( NULL != pvP0 && NULL != pvP1 )
-  {
-    ROTR( 0 == fscanf( hFile, pcFormat, pvP0, pvP1 ), Err::m_nInvalidParameter );
-  }
-
-  for( Int n = 0; n < 256; n++ )
-  {
-    ROTRS( '\n' == fgetc( hFile ), Err::m_nOK );
-  }
-
-  return Err::m_nERR;
-}
-
-
-ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
-                                              Char* pcBitstreamFile  )
-{
+  std::string acLayerConfigName[MAX_LAYERS];
+  std::string acTags[4];
   UInt  ui;
-  Char  aacLayerConfigName[MAX_LAYERS][256];
+  UInt        uiLayerCnt   = 0;
+  UInt        uiParLnCount = 0;
 
-  FILE *f = fopen( pcFilename, "r");
+  FILE *f = fopen( rcFilename.c_str(), "r");
   if( NULL == f )
   { 
-    printf( "failed to open %s parameter file\n",pcFilename);
+    printf( "failed to open %s parameter file\n", rcFilename.c_str() );
     return Err::m_nERR;
   } 
 
-  Char aacTags[4][256];
-  UInt uiLayerCnt   = 0;
-  UInt uiParLnCount = 0;
-
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineCStr("OutputFile",              &pcBitstreamFile,                                      "test.264");
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("OutputFile",              &rcBitstreamFile,                                      "test.264");
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRate",               &m_dMaximumFrameRate,                                  60.0      );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("MaxDelay",                &m_dMaximumDelay,                                      1200.0    );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("FramesToBeEncoded",       &m_uiTotalFrames,                                      1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("GOPSize",                 &m_uiGOPSize,                                          1 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IntraPeriod",             &m_uiIntraPeriod,                                      UInt(-1));
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IntraPeriod",             &m_uiIntraPeriod,                                      MSYS_UINT_MAX );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumberReferenceFrames",   &m_uiNumRefFrames,                                     1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerMode",           &m_uiBaseLayerMode,                                    3 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumLayers",               &m_uiNumberOfLayers,                                   1 );
@@ -596,26 +529,49 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("AGSModeDecision",         &m_uiWriteGOPMode,                                     0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("AGSGOPModeFile",          &m_cGOPModeFilename,                           "ags.dat" );
   //}}Adaptive GOP structure
+  std::string cInputFile, cReconFile;
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MVCMode",                 &m_uiMVCmode,                                          0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",               &cInputFile,                                           "in.yuv");
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",               &cReconFile,                                           "rec.yuv");
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceWidth",             &m_uiFrameWidth,                                       0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",            &m_uiFrameHeight,                                      0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",              &m_uiSymbolMode,                                       1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",                   &m_ui8x8Mode,                                          1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("BasisQP",                 &m_dBasisQp,                                          26 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("DPBSize",                 &m_uiDPBSize,                                           1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NumRefFrames",            &m_uiNumDPBRefFrames,                                  1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("Log2MaxFrameNum",         &m_uiLog2MaxFrameNum,                                  4 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("Log2MaxPocLsb",           &m_uiLog2MaxPocLsb,                                    4 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("SequenceFormatString",    &m_cSequenceFormatString,                              "A0*n{P0}" );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("DeltaLayer0Quant",        &m_adDeltaQpLayer[0],                                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("DeltaLayer1Quant",        &m_adDeltaQpLayer[1],                                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("DeltaLayer2Quant",        &m_adDeltaQpLayer[2],                                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("DeltaLayer3Quant",        &m_adDeltaQpLayer[3],                                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("DeltaLayer4Quant",        &m_adDeltaQpLayer[4],                                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("DeltaLayer5Quant",        &m_adDeltaQpLayer[5],                                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxRefIdxActiveBL0",      &m_uiMaxRefIdxActiveBL0,                               1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxRefIdxActiveBL1",      &m_uiMaxRefIdxActiveBL1,                               1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxRefIdxActiveP",        &m_uiMaxRefIdxActiveP,                                 1 );
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))
   {
-    RNOK( xReadLine( f, aacTags ) );
-    if ( aacTags[0][0] == 0 )
+    RNOK( xReadLine( f, acTags ) );
+    if ( acTags[0].empty() )
     {
       continue;
     }
     for (UInt ui=0; m_pEncoderLines[ui] != NULL; ui++)
     {
-      if (equals( aacTags[0], m_pEncoderLines[ui]->getTag(), strlen(m_pEncoderLines[ui]->getTag())))
+      if( acTags[0] == m_pEncoderLines[ui]->getTag() )
       {
-        m_pEncoderLines[ui]->setVar(aacTags[1]);
+        m_pEncoderLines[ui]->setVar( acTags[1] );
         break;
       }
     }
-    if( equals( aacTags[0], "LayerCfg", 8) )
+    if( acTags[0] == "LayerCfg" )
     {
-      strcpy (aacLayerConfigName[uiLayerCnt++], aacTags[1]);
+      acLayerConfigName[uiLayerCnt++] = acTags[1];
       continue;
     }
   }
@@ -626,6 +582,17 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
     delete m_pEncoderLines[uiParLnCount];
     m_pEncoderLines[uiParLnCount] = NULL;
     uiParLnCount++;
+  }
+
+  if( m_uiMVCmode )
+  {
+    m_uiNumberOfLayers = 0;
+    getLayerParameters(0).setInputFilename  ( (Char*)cInputFile.c_str() );
+    getLayerParameters(0).setOutputFilename ( (Char*)cReconFile.c_str() );
+    getLayerParameters(0).setFrameWidth     ( m_uiFrameWidth );
+    getLayerParameters(0).setFrameHeight    ( m_uiFrameHeight );
+    fclose( f );
+    return Err::m_nOK;
   }
 
   if ( uiLayerCnt != m_uiNumberOfLayers )
@@ -639,7 +606,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
   for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
     getLayerParameters(ui).setLayerId(ui);
-    RNOK( xReadLayerFromFile( aacLayerConfigName[ui], getLayerParameters(ui) ) );
+    RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
 // TMM_ESS {
     ResizeParameters * curr;
     curr = getResizeParameters(ui);
@@ -693,26 +660,19 @@ ErrVal EncoderCodingParameter::xReadFromFile( Char* pcFilename,
 
 
 
-
-ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFilename,
+ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFilename,
                                                     h264::LayerParameters&  rcLayer )
 {
-  Char  acTemp[256];
-  Char  acEssFsp[256], *pcEssFsp = acEssFsp;
-  FILE *f = fopen( pcFilename, "r");
+  std::string acTags[4];
+  std::string cInputFilename, cOutputFilename, cMotionFilename, cESSFilename;
+  UInt        uiParLnCount = 0;
+  
+  FILE *f = fopen( rcFilename.c_str(), "r");
   if( NULL == f )
   { 
-    printf( "failed to open %s layer config file\n",pcFilename);
+    printf( "failed to open %s layer config file\n", rcFilename.c_str() );
     return Err::m_nERR;
   } 
-
-  Char aacTags[4][256];
-  UInt uiParLnCount = 0;
-  Char cInfile[256], cOutfile[256], cMotfile[256];
-  Char *pcInfile  = cInfile;
-  Char *pcOutfile = cOutfile;
-  Char *pcMotfile = cMotfile;
-  Char *pcSlcGrpCfgFileNm = rcLayer.m_acSliceGroupConfigFileName;
 
   //--ICU/ETRI FMO Implementation
   UInt bSliceGroupChangeDirection_flag;
@@ -721,8 +681,8 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",   &(rcLayer.m_uiFrameHeight),              352       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateIn",    &(rcLayer.m_dInputFrameRate),            30        );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateOut",   &(rcLayer.m_dOutputFrameRate),           30        );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineCStr("InputFile",      &pcInfile,                               "test.yuv");
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineCStr("ReconFile",      &pcOutfile,                              "rec.yuv" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",      &cInputFilename,                         "test.yuv");
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",      &cOutputFilename,                        "rec.yuv" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",     &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UpdateStep",     &(rcLayer.m_uiUpdateStep),               1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ClosedLoop",     &(rcLayer.m_uiClosedLoop),               0         );
@@ -742,9 +702,9 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",    &(rcLayer.m_uiBaseQualityLevel),         3         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("DecodeLoops",    &(rcLayer.m_uiDecodingLoops),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MotionInfoMode", &(rcLayer.m_uiMotionInfoMode),           0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineCStr("MotionInfoFile", &pcMotfile,                              "test.mot");
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("MotionInfoFile", &cMotionFilename,                        "test.mot");
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("UseESS",         &(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability), 0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineCStr("ESSPicParamFile",&pcEssFsp,                                                  "ess.dat" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ESSPicParamFile",&cESSFilename,                                              "ess.dat" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropWidth",   &(rcLayer.m_ResizeParameter.m_iOutWidth),                   0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropHeight",  &(rcLayer.m_ResizeParameter.m_iOutHeight),                  0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",     &(rcLayer.m_ResizeParameter.m_iPosX),                       0         );
@@ -760,7 +720,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpMapType",  &(rcLayer.m_uiSliceGroupMapType),                     2       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgDrFlag",&(bSliceGroupChangeDirection_flag),         0       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgRtMus1",&(rcLayer.m_uiSliceGroupChangeRateMinus1),           85       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineCStr("SlcGrpCfgFileNm",&pcSlcGrpCfgFileNm,                               "sgcfg.cfg" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice),                     0       );
   m_pLayerLines[uiParLnCount] = NULL;
 
@@ -773,23 +733,23 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
 
   while (!feof(f))
   {
-    RNOK( xReadLine( f, aacTags ) );
-    if ( aacTags[0][0] == 0 )
+    RNOK( xReadLine( f, acTags ) );
+    if ( acTags[0].empty() )
     {
       continue;
     }
     for (UInt ui=0; m_pLayerLines[ui] != NULL; ui++)
     {
-      if (equals( aacTags[0], m_pLayerLines[ui]->getTag(), strlen(m_pLayerLines[ui]->getTag())))
+      if( acTags[0] == m_pLayerLines[ui]->getTag() )
       {
-        m_pLayerLines[ui]->setVar(aacTags[1]);
+        m_pLayerLines[ui]->setVar( acTags[1] );
         break;
       }
     }
   }
-  rcLayer.setInputFilename     ( cInfile  );
-  rcLayer.setOutputFilename    ( cOutfile );
-  rcLayer.setMotionInfoFilename( cMotfile );
+  rcLayer.setInputFilename     ( (Char*)cInputFilename.c_str() );
+  rcLayer.setOutputFilename    ( (Char*)cOutputFilename.c_str() );
+  rcLayer.setMotionInfoFilename( (Char*)cMotionFilename.c_str() );
 
   uiParLnCount = 0;
   while (m_pLayerLines[uiParLnCount] != NULL)
@@ -811,10 +771,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( Char*                   pcFi
     rcLayer.m_ResizeParameter.m_bCrop = true;        
     if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
     {
-      rcLayer.m_ResizeParameter.m_pParamFile = fopen( acEssFsp, "r");
+      rcLayer.m_ResizeParameter.m_pParamFile = fopen( cESSFilename.c_str(), "r");
       if( NULL == rcLayer.m_ResizeParameter.m_pParamFile )
       { 
-        printf( "failed to open resize parameter file %s\n", acTemp);
+        printf( "failed to open resize parameter file %s\n", cESSFilename.c_str() );
         return Err::m_nERR;
       }
       rcLayer.m_ResizeParameter.m_iSpatialScalabilityType = SST_RATIO_X;
@@ -853,9 +813,10 @@ ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLay
 	if( (rcLayer.getNumSliceGroupsMinus1()!=0)&&
 		((rcLayer.getSliceGroupMapType() == 0) || (rcLayer.getSliceGroupMapType() == 2) || (rcLayer.getSliceGroupMapType() == 6)) )
 	{ 
-		if (strlen (rcLayer.getSliceGroupConfigFileName()) > 0 && (sgfile=fopen(rcLayer.getSliceGroupConfigFileName(),"r"))==NULL)
+    if ( ! rcLayer.getSliceGroupConfigFileName().empty() &&
+         ( sgfile = fopen( rcLayer.getSliceGroupConfigFileName().c_str(), "r" ) ) == NULL )
 		{
-			printf("Error open file %s", rcLayer.getSliceGroupConfigFileName());
+      printf("Error open file %s", rcLayer.getSliceGroupConfigFileName().c_str() );
 		}
 		else
 		{

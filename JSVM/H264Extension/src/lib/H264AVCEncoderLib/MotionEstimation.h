@@ -113,6 +113,16 @@ class MotionEstimation
 : public MotionCompensation
 , public MotionEstimationCost
 {
+public:
+  class MEBiSearchParameters
+  {
+  public:
+    IntYuvMbBuffer* pcAltRefPelData;    // the prediction signal for the opposite list (not weighted)
+    UInt            uiL1Search;         // 1 if current search is L1 search, else false
+    const IntFrame* pcAltRefFrame;      // the reference frame of the opposite list
+    const PW*       apcWeight[2];       // { list 0 prediction weight, list 1 prediction weight }
+  };
+
 protected:
   typedef struct
   {
@@ -183,8 +193,9 @@ public:
                                   UInt                  uiBlk,
                                   UInt                  uiMode,
                                   Bool                  bQPelRefinementOnly,
-                                  UInt                  uiSearchRange  = 0,
-                                  IntYuvMbBuffer*       pcRefPelData2  = 0 );
+                                  UInt                  uiSearchRange,
+                                  const PW*             pcPW,
+                                  MEBiSearchParameters* pcBSP = 0 );
 
   
   virtual ErrVal compensateBlock( IntYuvMbBuffer *pcRecPelData, UInt uiBlk, UInt uiMode, IntYuvMbBuffer *pcRefPelData2 = NULL ) = 0;
@@ -202,7 +213,7 @@ protected:
   Void          xPelBlockSearch ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
   Void          xPelSpiralSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
   Void          xPelLogSearch   ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bFme,  UInt uiStep = 4, UInt uiSearchRange = 0 );
-  virtual Void  xSubPelSearch   ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode,     Bool bQPelOnly, IntYuvMbBuffer *pcRefPelData2 ) = 0;
+  virtual Void  xSubPelSearch   ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode,     Bool bQPelOnly ) = 0;
 
 protected:
   QuarterPelFilter* m_pcQuarterPelFilter;

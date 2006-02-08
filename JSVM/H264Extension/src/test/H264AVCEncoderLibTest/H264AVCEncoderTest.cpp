@@ -126,7 +126,7 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 {
   //===== create and read encoder parameters =====
   RNOK( EncoderCodingParameter::create( m_pcEncoderCodingParameter ) );
-  if( Err::m_nOK != m_pcEncoderCodingParameter->init( argc, argv, m_cEncoderIoParameter.pBitstreamFile ) )
+  if( Err::m_nOK != m_pcEncoderCodingParameter->init( argc, argv, m_cEncoderIoParameter.cBitstreamFilename ) )
   {
     m_pcEncoderCodingParameter->printHelp();
     return -3;
@@ -135,7 +135,8 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 
 
   //===== init instances for reading and writing yuv data =====
-  for( UInt uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+  UInt uiNumberOfLayers = m_pcEncoderCodingParameter->getMVCmode() ? 1 : m_pcEncoderCodingParameter->getNumberOfLayers();
+  for( UInt uiLayer = 0; uiLayer < uiNumberOfLayers; uiLayer++ )
   {
     h264::LayerParameters&  rcLayer = m_pcEncoderCodingParameter->getLayerParameters( uiLayer );
 
@@ -149,14 +150,19 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 
 
   //===== init bitstream writer =====
-  Char acTempName[1024];
-  sprintf( acTempName, "%s.temp", m_cEncoderIoParameter.pBitstreamFile );
-  strcpy( m_acWriteToBitFileTempName, acTempName );
-  RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) )
-	strcpy( m_acWriteToBitFileName, m_cEncoderIoParameter.pBitstreamFile );
-	strcpy( m_cEncoderIoParameter.pBitstreamFile, m_acWriteToBitFileTempName );
-  RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.pBitstreamFile ) );  
-  
+  if( m_pcEncoderCodingParameter->getMVCmode() )
+  {
+    RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) );
+    RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.cBitstreamFilename ) );  
+  }
+  else
+  {
+    m_cWriteToBitFileTempName                 = m_cEncoderIoParameter.cBitstreamFilename + ".temp";
+    m_cWriteToBitFileName                     = m_cEncoderIoParameter.cBitstreamFilename;
+    m_cEncoderIoParameter.cBitstreamFilename  = m_cWriteToBitFileTempName;
+    RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) );
+    RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.cBitstreamFilename ) );  
+  }
 
   //===== create encoder instance =====
   RNOK( h264::CreaterH264AVCEncoder::create( m_pcH264AVCEncoder ) );
@@ -372,6 +378,7 @@ H264AVCEncoderTest::go()
 {
   UInt                    uiWrittenBytes          = 0;
   const UInt              uiMaxFrame              = m_pcEncoderCodingParameter->getTotalFrames();
+  UInt                    uiNumLayers             = ( m_pcEncoderCodingParameter->getMVCmode() ? 1 : m_pcEncoderCodingParameter->getNumberOfLayers() );
   UInt                    uiFrame;
   UInt                    uiLayer;
   UInt                    auiMbX                  [MAX_LAYERS];
@@ -412,7 +419,7 @@ H264AVCEncoderTest::go()
   }
 
   //===== determine parameters for required frame buffers =====
-  for( uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+  for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     auiMbX        [uiLayer] = m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getFrameWidth () >> 4;
     auiMbY        [uiLayer] = m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getFrameHeight() >> 4;
@@ -431,7 +438,7 @@ H264AVCEncoderTest::go()
   for( uiFrame = 0; uiFrame < uiMaxFrame; uiFrame++ )
   {
     //===== get picture buffers and read original pictures =====
-    for( uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+    for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
     {
       UInt  uiSkip = ( 1 << m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getTemporalResolution() );
 
@@ -467,7 +474,7 @@ H264AVCEncoderTest::go()
     uiWrittenBytes   += uiBytesUsed;
     
     //===== write and release reconstructed pictures =====
-    for( uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+    for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
     {
       RNOK( xWrite  ( acPicBufferOutputList[uiLayer], uiLayer ) );
       RNOK( xRelease( acPicBufferUnusedList[uiLayer], uiLayer ) );
@@ -488,7 +495,7 @@ H264AVCEncoderTest::go()
   RNOK( xWrite  ( cOutExtBinDataAccessorList, uiWrittenBytes ) );
 
   //===== write and release reconstructed pictures =====
-  for( uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
+  for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     RNOK( xWrite  ( acPicBufferOutputList[uiLayer], uiLayer ) );
     RNOK( xRelease( acPicBufferUnusedList[uiLayer], uiLayer ) );
@@ -499,6 +506,7 @@ H264AVCEncoderTest::go()
   m_cEncoderIoParameter.nFrames = uiFrame;
   m_cEncoderIoParameter.nResult = 0;
 
+  if( ! m_pcEncoderCodingParameter->getMVCmode() )
 	{
 		UChar   aucParameterSetBuffer[1000];
 		BinData cBinData;
@@ -520,7 +528,11 @@ H264AVCEncoderTest::go()
     RNOK( m_pcWriteBitstreamToFile->uninit() );  
     RNOK( m_pcWriteBitstreamToFile->destroy() );  
   }
+
+  if( ! m_pcEncoderCodingParameter->getMVCmode() )
+  {
 	RNOK	( ScalableDealing() );
+  }
 
   return Err::m_nOK;
 }
@@ -528,8 +540,8 @@ H264AVCEncoderTest::go()
 ErrVal
 H264AVCEncoderTest::ScalableDealing()
 {
-	FILE *ftemp = fopen( m_acWriteToBitFileTempName, "rb");
-	FILE *f = fopen( m_acWriteToBitFileName, "wb" );
+  FILE *ftemp = fopen( m_cWriteToBitFileTempName.c_str(), "rb" );
+  FILE *f     = fopen( m_cWriteToBitFileName.c_str    (), "wb" );
 
 	UChar pvBuffer[4];
 
@@ -572,15 +584,15 @@ H264AVCEncoderTest::ScalableDealing()
   cCommandLineString += "rm ";
 #endif
 #if WIN32
-  for( UInt uiPos = 0; uiPos < strlen( m_acWriteToBitFileTempName ); uiPos++ )
+  for( UInt uiPos = 0; uiPos < m_cWriteToBitFileTempName.size(); uiPos++ )
   {
-    if( m_acWriteToBitFileTempName[uiPos] == '/' )
+    if( m_cWriteToBitFileTempName[uiPos] == '/' )
     {
-      m_acWriteToBitFileTempName[uiPos] = '\\';
+      m_cWriteToBitFileTempName[uiPos] = '\\';
     }
   }
 #endif
-	cCommandLineString += m_acWriteToBitFileTempName;
+	cCommandLineString += m_cWriteToBitFileTempName;
 	int iResult = system( cCommandLineString.c_str() );
 	return Err::m_nOK;
 }

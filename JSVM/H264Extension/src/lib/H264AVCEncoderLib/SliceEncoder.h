@@ -155,7 +155,13 @@ public:
                                         Int           iMaxDeltaQp,
                                         Int						iSpatialScalabilityType);
 
-
+  ErrVal      encodeSlice             ( SliceHeader&  rcSliceHeader,
+                                        IntFrame*     pcFrame,
+                                        MbDataCtrl*   pcMbDataCtrl,
+                                        RefFrameList& rcList0,
+                                        RefFrameList& rcList1,
+                                        UInt          uiMbInRow,
+                                        Double        dlambda );
 
 protected:
   MbEncoder* m_pcMbEncoder;

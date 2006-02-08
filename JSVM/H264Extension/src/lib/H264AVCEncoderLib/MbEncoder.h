@@ -198,6 +198,13 @@ public:
                                 UInt            uiIterSearchRange,
                                 UInt            uiIntraMode,
                                 Double          dLambda );
+  ErrVal  encodeMacroblock    ( MbDataAccess&   rcMbDataAccess,
+                                IntFrame*       pcFrame,
+                                RefFrameList&   rcList0,
+                                RefFrameList&   rcList1,
+                                UInt            uiNumMaxIter,
+                                UInt            uiIterSearchRange,
+                                Double          dLambda );
 
 protected:
 

@@ -105,13 +105,14 @@ H264AVC_NAMESPACE_BEGIN
 
 class H264AVCENCODERLIB_API EncoderConfigLineBase
 {
-public:
-  EncoderConfigLineBase(Char* pcTag) {strcpy(m_pcTag, pcTag); m_uiType = 0;};
-  EncoderConfigLineBase() {};
-  Char* getTag() {return m_pcTag;};
-  virtual void setVar(Char* pvValue) = 0;
 protected:
-  Char m_pcTag[256];
+  EncoderConfigLineBase(Char* pcTag, UInt uiType ) : m_cTag( pcTag ), m_uiType( uiType ) {}
+  EncoderConfigLineBase() {}
+public:
+  std::string&  getTag () { return m_cTag; }
+  virtual void  setVar ( std::string& rcValue ) = 0;
+protected:
+  std::string m_cTag;
   UInt m_uiType;
 };
 
@@ -278,7 +279,7 @@ public:
   UInt          getSliceGroupId(Int i) const {return m_uiSliceGroupId[i];}
   UInt          getSliceMode() const {return m_uiSliceMode;}
   UInt          getSliceArgument() const { return m_uiSliceArgument ;}
-  Char*         getSliceGroupConfigFileName() const{ return (Char*) m_acSliceGroupConfigFileName;}
+  const std::string&   getSliceGroupConfigFileName() const{ return m_cSliceGroupConfigFileName;}
   UInt          getUseRedundantSlice() const { return m_uiUseRedundantSlice;}
   UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}  
   UInt*         getArrayTopLeft () const {return (UInt*)m_uiTopLeft;}
@@ -428,7 +429,7 @@ public:
   UInt         m_uiSliceGroupId[CodParMAXNumSliceGroupsMinus1];
   UInt         m_uiSliceMode;
   UInt         m_uiSliceArgument;
-  Char		   m_acSliceGroupConfigFileName[256];
+  std::string  m_cSliceGroupConfigFileName;
   UInt         m_uiUseRedundantSlice;
   //--ICU/ETRI FMO Implementation : FMO end
 
@@ -469,7 +470,25 @@ public:
     , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
 
     , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
+    , m_uiMVCmode                         ( 0 )
+    , m_uiFrameWidth                      ( 0 )
+    , m_uiFrameHeight                     ( 0 )
+    , m_uiSymbolMode                      ( 0 )
+    , m_ui8x8Mode                         ( 0 )
+    , m_dBasisQp                          ( 0 )
+    , m_uiDPBSize                         ( 0 )
+    , m_uiNumDPBRefFrames                 ( 0 )
+    , m_uiLog2MaxFrameNum                 ( 0 )
+    , m_uiLog2MaxPocLsb                   ( 0 )
+    , m_cSequenceFormatString             ()
+    , m_uiMaxRefIdxActiveBL0              ( 0 )
+    , m_uiMaxRefIdxActiveBL1              ( 0 )
+    , m_uiMaxRefIdxActiveP                ( 0 )
   {
+    for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
+    {
+      m_adDeltaQpLayer[uiLayer] = 0;
+    }
       for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
       {
         m_uiTemporalLevelList[uiLoop] = 0;
@@ -510,6 +529,21 @@ public:
                                                                             uiLayer         = m_uiDependencyIdList [uiSimplePri];
                                                                             uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
                                                                           }
+  UInt                            getMVCmode              ()              const   { return m_uiMVCmode; }
+  UInt                            getFrameWidth           ()              const   { return m_uiFrameWidth; }
+  UInt                            getFrameHeight          ()              const   { return m_uiFrameHeight; }
+  UInt                            getSymbolMode           ()              const   { return m_uiSymbolMode; }
+  UInt                            get8x8Mode              ()              const   { return m_ui8x8Mode; }
+  Double                          getBasisQp              ()              const   { return m_dBasisQp; }
+  UInt                            getDPBSize              ()              const   { return m_uiDPBSize; }
+  UInt                            getNumDPBRefFrames      ()              const   { return m_uiNumDPBRefFrames; }
+  UInt                            getLog2MaxFrameNum      ()              const   { return m_uiLog2MaxFrameNum; }
+  UInt                            getLog2MaxPocLsb        ()              const   { return m_uiLog2MaxPocLsb; }
+  std::string                     getSequenceFormatString ()              const   { return m_cSequenceFormatString; }
+  Double                          getDeltaQpLayer         ( UInt ui )     const   { return m_adDeltaQpLayer[ui]; }
+  UInt                            getMaxRefIdxActiveBL0   ()              const   { return m_uiMaxRefIdxActiveBL0; }
+  UInt                            getMaxRefIdxActiveBL1   ()              const   { return m_uiMaxRefIdxActiveBL1; }
+  UInt                            getMaxRefIdxActiveP     ()              const   { return m_uiMaxRefIdxActiveP; }
 
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
@@ -529,6 +563,23 @@ public:
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
+
+  Void                            setMVCmode              ( UInt    p )   { m_uiMVCmode             = p; }
+  Void                            setFrameWidth           ( UInt    p )   { m_uiFrameWidth          = p; }
+  Void                            setFrameHeight          ( UInt    p )   { m_uiFrameHeight         = p; }
+  Void                            setSymbolMode           ( UInt    p )   { m_uiSymbolMode          = p; }
+  Void                            set8x8Mode              ( UInt    p )   { m_ui8x8Mode             = p; }
+  Void                            setBasisQp              ( Double  p )   { m_dBasisQp              = p; }
+  Void                            setDPBSize              ( UInt    p )   { m_uiDPBSize             = p; }
+  Void                            setNumDPBRefFrames      ( UInt    p )   { m_uiNumDPBRefFrames     = p; }
+  Void                            setLog2MaxFrameNum      ( UInt    p )   { m_uiLog2MaxFrameNum     = p; }
+  Void                            setLog2MaxPocLsb        ( UInt    p )   { m_uiLog2MaxPocLsb       = p; }
+  Void                            setSequenceFormatString ( Char*   p )   { m_cSequenceFormatString = p; }
+  Void                            setDeltaQpLayer         ( UInt    n,
+                                                            Double  p )   { m_adDeltaQpLayer[n]     = p; }
+  Void                            setMaxRefIdxActiveBL0   ( UInt    p )   { m_uiMaxRefIdxActiveBL0  = p; }
+  Void                            setMaxRefIdxActiveBL1   ( UInt    p )   { m_uiMaxRefIdxActiveBL1  = p; }
+  Void                            setMaxRefIdxActiveP     ( UInt    p )   { m_uiMaxRefIdxActiveP    = p; }
 
   ErrVal                          check                   ();
   
@@ -609,6 +660,22 @@ protected:
   UInt                      m_uiBaseWeightZeroBaseCoeff;
 
   UInt                      m_uiLowPassFgsMcFilter;
+
+  UInt                      m_uiMVCmode;
+  UInt                      m_uiFrameWidth;
+  UInt                      m_uiFrameHeight;
+  UInt                      m_uiSymbolMode;
+  UInt                      m_ui8x8Mode;
+  Double                    m_dBasisQp;
+  UInt                      m_uiDPBSize;
+  UInt                      m_uiNumDPBRefFrames;
+  UInt                      m_uiLog2MaxFrameNum;
+  UInt                      m_uiLog2MaxPocLsb;
+  std::string               m_cSequenceFormatString;
+  Double                    m_adDeltaQpLayer[6];
+  UInt                      m_uiMaxRefIdxActiveBL0;
+  UInt                      m_uiMaxRefIdxActiveBL1;
+  UInt                      m_uiMaxRefIdxActiveP;
 };
 
 #if defined( MSYS_WIN32 )

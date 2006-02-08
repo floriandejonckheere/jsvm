@@ -122,6 +122,8 @@ public:
   Bool                  getEntropyCodingModeFlag                ()            const { return m_bEntropyCodingModeFlag; }
   Bool                  getPicOrderPresentFlag                  ()            const { return m_bPicOrderPresentFlag; }
   UInt                  getNumRefIdxActive                      ( ListIdx e ) const { return m_auiNumRefIdxActive[e]; }
+  Bool                  getWeightedPredFlag                     ()            const { return m_bWeightedPredFlag; }
+  UInt                  getWeightedBiPredIdc                    ()            const { return m_uiWeightedBiPredIdc; }
   UInt                  getPicInitQp                            ()            const { return m_uiPicInitQp; }
   Int                   getChomaQpIndexOffset                   ()            const { return m_iChomaQpIndexOffset; }
   Bool                  getDeblockingFilterParametersPresentFlag()            const { return m_bDeblockingFilterParametersPresentFlag; }
@@ -159,6 +161,8 @@ public:
   Void  setEntropyCodingModeFlag                ( Bool        b )           { m_bEntropyCodingModeFlag                  = b; }
   Void  setPicOrderPresentFlag                  ( Bool        b )           { m_bPicOrderPresentFlag                    = b; }
   Void  setNumRefIdxActive                      ( ListIdx     e, UInt ui )  { m_auiNumRefIdxActive[e]                   = ui; }
+  Void  setWeightedPredFlag                     ( Bool        b )           { m_bWeightedPredFlag                       = b; }
+  Void  setWeightedBiPredIdc                    ( UInt        ui )          { m_uiWeightedBiPredIdc                     = ui; }
   Void  setPicInitQp                            ( UInt        ui )          { m_uiPicInitQp                             = ui; }
   Void  setChomaQpIndexOffset                   ( Int         i )           { m_iChomaQpIndexOffset                     = i; }
   Void  setDeblockingFilterParametersPresentFlag( Bool        b )           { m_bDeblockingFilterParametersPresentFlag  = b; }
@@ -233,6 +237,8 @@ protected:
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
   UInt          m_auiNumRefIdxActive[2];
+  Bool          m_bWeightedPredFlag;
+  UInt          m_uiWeightedBiPredIdc;
   UInt          m_uiPicInitQp;
   Int           m_iChomaQpIndexOffset;
   Bool          m_bDeblockingFilterParametersPresentFlag;

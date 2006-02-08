@@ -164,6 +164,9 @@ public:
                                 UInt          uiBaseLayerId,
                                 Int           iPoc,
                                 Bool          bMotion );
+  ErrVal  getBaseLayerSH      ( SliceHeader*& rpcSliceHeader,
+                                UInt          uiBaseLayerId,
+                                Int           iPoc );
   UInt*   getGOPBitsBase      ( UInt          uiBaseLayerId );
   UInt*   getGOPBitsFGS       ( UInt          uiBaseLayerId );
   UInt*   getGOPBits					( UInt					uiScalableLayerId );
@@ -177,6 +180,7 @@ public:
                                     UInt                uiLayer ) ;
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+  Void setScalableSEIMessage  ()       { m_bScalableSeiMessage = true; }
 	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
 	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }
 	Double* dGetFramerate				()			 { return m_dFinalFramerate; }

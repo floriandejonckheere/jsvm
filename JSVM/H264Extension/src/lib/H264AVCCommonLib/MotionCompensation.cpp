@@ -272,6 +272,8 @@ Void MotionCompensation::xGetMbPredData( MbDataAccess& rcMbDataAccess, MC8x8D& r
   Int nMax = rcMbDataAccess.getSH().isInterB() ? 2:1;
   Int iPredCount = 0;
 
+  const Frame* apcFrame[2];
+
   for( Int n = 0; n < nMax; n++)
   {
     ListIdx eLstIdx = ListIdx( n );
@@ -285,10 +287,19 @@ Void MotionCompensation::xGetMbPredData( MbDataAccess& rcMbDataAccess, MC8x8D& r
       const Frame* pcRefFrame = rcSH.getRefPic( rcMv3D.getRef(), eLstIdx ).getFrame();
 
       rcMC8x8D.m_apcRefBuffer[eLstIdx]  = const_cast<Frame*>(pcRefFrame)->getFullPelYuvBuffer();
+      apcFrame[n]                       = pcRefFrame;
+      rcMC8x8D.m_apcPW[eLstIdx]         = &rcSH.getPredWeight( eLstIdx, rcMv3D.getRef() );
       iPredCount++;
     }
   }
-  rcMC8x8D.m_bBi = ( iPredCount == 2 );
+  if( ( 2 == iPredCount ) && ( 2 == rcSH.getPPS().getWeightedBiPredIdc() ) ) // implicit mode
+  {
+    Int iScale = rcSH.getDistScaleFactorWP( apcFrame[0], apcFrame[1] );
+    rcMC8x8D.m_acPW[LIST_1].scaleL1Weight( iScale );
+    rcMC8x8D.m_acPW[LIST_0].scaleL0Weight( rcMC8x8D.m_acPW[LIST_1] );
+    rcMC8x8D.m_apcPW[LIST_1] = &rcMC8x8D.m_acPW[LIST_1];
+    rcMC8x8D.m_apcPW[LIST_0] = &rcMC8x8D.m_acPW[LIST_0];
+  }
 }
 
 
@@ -302,6 +313,8 @@ __inline Void MotionCompensation::xGetBlkPredData( MbDataAccess& rcMbDataAccess,
 
   Int nMax = rcMbDataAccess.getSH().isInterB() ? 2:1;
   Int iPredCount = 0;
+
+  const Frame* apcFrame[2];
 
   for( Int n = 0; n < nMax; n++)
   {
@@ -318,6 +331,9 @@ __inline Void MotionCompensation::xGetBlkPredData( MbDataAccess& rcMbDataAccess,
       const Frame* pcRefFrame = rcSH.getRefPic( rcMv3D.getRef(), eLstIdx ).getFrame();
 
       rcMC8x8D.m_apcRefBuffer[eLstIdx]  = const_cast<Frame*>(pcRefFrame)->getFullPelYuvBuffer();
+
+      apcFrame[n]                       = pcRefFrame;
+      rcMC8x8D.m_apcPW[eLstIdx]         = &rcSH.getPredWeight( eLstIdx, rcMv3D.getRef() );
 
       switch( eBlkMode )
       {
@@ -355,7 +371,14 @@ __inline Void MotionCompensation::xGetBlkPredData( MbDataAccess& rcMbDataAccess,
       }
     }
   }
-  rcMC8x8D.m_bBi = ( iPredCount == 2 );
+  if( ( 2 == iPredCount ) && ( 2 == rcSH.getPPS().getWeightedBiPredIdc() ) )
+  {
+    Int iScal = rcSH.getDistScaleFactorWP( apcFrame[0], apcFrame[1] );
+    rcMC8x8D.m_acPW[LIST_1].scaleL1Weight( iScal );
+    rcMC8x8D.m_acPW[LIST_0].scaleL0Weight( rcMC8x8D.m_acPW[LIST_1] );
+    rcMC8x8D.m_apcPW[LIST_1] = &rcMC8x8D.m_acPW[LIST_1];
+    rcMC8x8D.m_apcPW[LIST_0] = &rcMC8x8D.m_acPW[LIST_0];
+  }
 }
 
 
@@ -397,7 +420,7 @@ Void MotionCompensation::xPredChroma( YuvMbBuffer* apcTarBuffer[2], Int iSizeX, 
 Void MotionCompensation::xPredLuma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D )
 {
   YuvMbBuffer* apcTarBuffer[2];
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );                                    
 
   for( Int n = 0; n < 2; n++ )
   {
@@ -408,7 +431,7 @@ Void MotionCompensation::xPredLuma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iS
       m_pcQuarterPelFilter->predBlk( apcTarBuffer[n], pcRefBuffer, rcMc8x8D.m_cIdx, cMv, iSizeY, iSizeX );
     }
   }
-  m_pcSampleWeighting->weightLumaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->weightLumaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );
 }
 
 
@@ -417,7 +440,7 @@ Void MotionCompensation::xPredLuma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iS
 Void MotionCompensation::xPredChroma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D )
 {
   YuvMbBuffer* apcTarBuffer[2];
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );                                    
 
   for( Int n = 0; n < 2; n++ )
   {
@@ -428,7 +451,7 @@ Void MotionCompensation::xPredChroma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int 
       xPredChroma( apcTarBuffer[n], pcRefBuffer, rcMc8x8D.m_cIdx, cMv, iSizeY, iSizeX );
     }
   }
-  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );
 }
 
 
@@ -589,7 +612,7 @@ Void MotionCompensation::xPredMb8x8Mode( MbDataAccess& rcMbDataAccess, YuvMbBuff
     MC8x8D cMC8x8D( ePar8x8 );
     xGetBlkPredData( rcMbDataAccess, cMC8x8D, eBlkMode );
 
-    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_bBi );
+    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
 
     switch( eBlkMode )
     {
@@ -656,8 +679,8 @@ Void MotionCompensation::xPredMb8x8Mode( MbDataAccess& rcMbDataAccess, YuvMbBuff
       }
     }
 
-    m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_bBi );
-    m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_bBi );
+    m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
+    m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
   }
 }
 
@@ -674,7 +697,7 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
   if( bOneMv )
   {
     xGetBlkPredData( rcMbDataAccess, cMC8x8D, BLK_8x8 );
-    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_bBi );
+    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
 
     xPredLuma(   apcTarBuffer, 8, 8, cMC8x8D, SPART_4x4_0 );
     xPredChroma( apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_0 );
@@ -682,7 +705,7 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
   else
   {
     xGetBlkPredData( rcMbDataAccess, cMC8x8D, BLK_4x4 );
-    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_bBi );
+    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
 
     xPredLuma(   apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_0 );
     xPredLuma(   apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_1 );
@@ -695,8 +718,8 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
 
   }
 
-  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_bBi );
-  m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_bBi );
+  m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
+  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 
   rbValid = true;
   return Err::m_nOK;
@@ -717,7 +740,7 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
   if( rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag() )
   {
     xGetBlkPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D, BLK_8x8 );
-    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_bBi );
+    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
 
     xPredLuma(   apcTarBuffer, 8, 8, cMC8x8D, SPART_4x4_0 );
     xPredChroma( apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_0 );
@@ -725,7 +748,7 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
   else
   {
     xGetBlkPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D, BLK_4x4 );
-    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_bBi );
+    m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
 
     xPredLuma(   apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_0 );
     xPredLuma(   apcTarBuffer, 4, 4, cMC8x8D, SPART_4x4_1 );
@@ -738,8 +761,8 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
 
   }
 
-  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_bBi );
-  m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_bBi );
+  m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
+  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 
   return Err::m_nOK;
 }
@@ -782,98 +805,11 @@ __inline Void MotionCompensation::xPredChroma( YuvMbBuffer* pcDesBuffer, YuvPicB
 
 
 
-Void MotionCompensation::xGetMbPredData( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame, IntMC8x8D& rcMC8x8D )
-{
-  rcMC8x8D.clear();
-
-  Int nMax = rcMbDataAccess.getSH().isInterB() ? 2:1;
-  Int iPredCount = 0;
-
-  for( Int n = 0; n < nMax; n++)
-  {
-    ListIdx eLstIdx = ListIdx( n );
-    Mv3D& rcMv3D = rcMC8x8D.m_aacMv[eLstIdx][0];
-    rcMbDataAccess.getMbMotionData( eLstIdx ).getMv3D( rcMv3D, rcMC8x8D.m_cIdx );
-
-    if( BLOCK_NOT_PREDICTED != rcMv3D.getRef() )
-    {
-      rcMv3D.limitComponents( m_cMin, m_cMax );
-
-      rcMC8x8D.m_apcRefBuffer[eLstIdx]  = const_cast<IntFrame*>(pcRefFrame)->getFullPelYuvBuffer();
-      iPredCount++;
-    }
-  }
-  rcMC8x8D.m_bBi = ( iPredCount == 2 );
-}
-
-
-
-__inline Void MotionCompensation::xGetBlkPredData( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame, IntMC8x8D& rcMC8x8D, BlkMode eBlkMode )
-{
-  rcMC8x8D.clear();
-
-  Int nMax = rcMbDataAccess.getSH().isInterB() ? 2:1;
-  Int iPredCount = 0;
-
-  for( Int n = 0; n < nMax; n++)
-  {
-    ListIdx eLstIdx = ListIdx( n );
-    Mv3D& rcMv3D = rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_0];
-    const MbMotionData& rcMbMotionData = rcMbDataAccess.getMbMotionData( eLstIdx );
-
-    rcMbMotionData.getMv3D( rcMv3D, rcMC8x8D.m_cIdx + SPART_4x4_0 );
-    rcMv3D.limitComponents( m_cMin, m_cMax );
-
-    if( BLOCK_NOT_PREDICTED != rcMv3D.getRef() )
-    {
-      iPredCount++;
-
-      rcMC8x8D.m_apcRefBuffer[eLstIdx]  = const_cast<IntFrame*>(pcRefFrame)->getFullPelYuvBuffer();
-
-      switch( eBlkMode )
-      {
-      case BLK_8x8:
-        break;
-      case BLK_8x4:
-        {
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_2] = rcMbMotionData.getMv( rcMC8x8D.m_cIdx + SPART_4x4_2 );
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_2].limitComponents( m_cMin, m_cMax );
-        }
-        break;
-      case BLK_4x8:
-        {
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_1] = rcMbMotionData.getMv( rcMC8x8D.m_cIdx + SPART_4x4_1 );
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_1].limitComponents( m_cMin, m_cMax );
-        }
-        break;
-      case BLK_SKIP:
-      case BLK_4x4:
-        {
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_1] = rcMbMotionData.getMv( rcMC8x8D.m_cIdx + SPART_4x4_1 );
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_1].limitComponents( m_cMin, m_cMax );
-
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_2] = rcMbMotionData.getMv( rcMC8x8D.m_cIdx + SPART_4x4_2 );
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_2].limitComponents( m_cMin, m_cMax );
-
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_3] = rcMbMotionData.getMv( rcMC8x8D.m_cIdx + SPART_4x4_3 );
-          rcMC8x8D.m_aacMv[eLstIdx][SPART_4x4_3].limitComponents( m_cMin, m_cMax );
-        }
-        break;
-      default:
-        {
-          AOT(1);
-        }
-      }
-    }
-  }
-  rcMC8x8D.m_bBi = ( iPredCount == 2 );
-}
-
 
 Void MotionCompensation::xPredLuma( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D )
 {
   IntYuvMbBuffer* apcTarBuffer[2];
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );                                    
 
   for( Int n = 0; n < 2; n++ )
   {
@@ -884,7 +820,7 @@ Void MotionCompensation::xPredLuma( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int
       m_pcQuarterPelFilter->predBlk( apcTarBuffer[n], pcRefBuffer, rcMc8x8D.m_cIdx, cMv, iSizeY, iSizeX );
     }
   }
-  m_pcSampleWeighting->weightLumaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->weightLumaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );
 }
 
 Void MotionCompensation::xPredLuma( IntYuvMbBuffer* apcTarBuffer[2], Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx )
@@ -1008,7 +944,7 @@ __inline Void MotionCompensation::xPredChroma( IntYuvMbBuffer* pcDesBuffer, IntY
 Void MotionCompensation::xPredChroma( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D )
 {
   IntYuvMbBuffer* apcTarBuffer[2];
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );                                    
 
   for( Int n = 0; n < 2; n++ )
   {
@@ -1019,7 +955,7 @@ Void MotionCompensation::xPredChroma( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, I
       xPredChroma( apcTarBuffer[n], pcRefBuffer, rcMc8x8D.m_cIdx, cMv, iSizeY, iSizeX );
     }
   }
-  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_bBi );
+  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, iSizeX, iSizeY, rcMc8x8D.m_cIdx, rcMc8x8D.m_apcPW[LIST_0], rcMc8x8D.m_apcPW[LIST_1] );
 }
 
 Void MotionCompensation::xPredChroma( IntYuvMbBuffer* apcTarBuffer[2], Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx )
@@ -1602,7 +1538,8 @@ Void MotionCompensation::xPredMb8x8Mode(       B8x8Idx         c8x8Idx,
 
   IntMC8x8D cMC8x8D( ePar8x8 );
   xGetBlkPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D, eBlkMode );
-  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_bBi );
+  m_pcSampleWeighting->getTargetBuffers( apcTarBuffer, pcRecBuffer, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );                                    
+
   switch( eBlkMode )
   {
     case BLK_SKIP:
@@ -1668,8 +1605,8 @@ Void MotionCompensation::xPredMb8x8Mode(       B8x8Idx         c8x8Idx,
     }
   }
 
-  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_bBi );
-  m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_bBi );
+  m_pcSampleWeighting->weightLumaSamples  ( pcRecBuffer, 8, 8, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
+  m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 }
 
 
@@ -1831,6 +1768,9 @@ __inline Void MotionCompensation::xGetMbPredData(       MbDataAccess& rcMbDataAc
 
   Int iPredCount = 0;
 
+  const SliceHeader& rcSH = rcMbDataAccess.getSH();
+  const IntFrame* apcFrame[2];
+
   for (Int n = 0; n < 2; n++)
   {
     const IntFrame* pcRefFrame = n ? pcRefFrame1 : pcRefFrame0;
@@ -1847,10 +1787,21 @@ __inline Void MotionCompensation::xGetMbPredData(       MbDataAccess& rcMbDataAc
       rcMv3D.limitComponents( m_cMin, m_cMax );
 
       rcMC8x8D.m_apcRefBuffer [eLstIdx] = const_cast<IntFrame*>(pcRefFrame)->getFullPelYuvBuffer();
+      apcFrame[n]                       = pcRefFrame;
+      rcMC8x8D.m_apcPW[eLstIdx]         = &rcSH.getPredWeight( eLstIdx, rcMv3D.getRef() );
     }
   }
-  rcMC8x8D.m_bBi = ( iPredCount == 2 );
+  if( ( 2 == iPredCount ) && ( 2 == rcSH.getPPS().getWeightedBiPredIdc() ) )
+  {
+    Int iScale = rcSH.getDistScaleFactorWP( apcFrame[0], apcFrame[1] );
+    rcMC8x8D.m_acPW[LIST_1].scaleL1Weight( iScale );
+    rcMC8x8D.m_acPW[LIST_0].scaleL0Weight( rcMC8x8D.m_acPW[LIST_1] );
+    rcMC8x8D.m_apcPW[LIST_1] = &rcMC8x8D.m_acPW[LIST_1];
+    rcMC8x8D.m_apcPW[LIST_0] = &rcMC8x8D.m_acPW[LIST_0];
+  }
 }
+
+
 
 __inline Void MotionCompensation::xGetBlkPredData(       MbDataAccess& rcMbDataAccess,
                                                    const IntFrame*     pcRefFrame0,
@@ -1861,6 +1812,9 @@ __inline Void MotionCompensation::xGetBlkPredData(       MbDataAccess& rcMbDataA
   rcMC8x8D.clear();
 
   Int iPredCount = 0;
+
+  const SliceHeader& rcSH = rcMbDataAccess.getSH();
+  const IntFrame* apcFrame[2];
 
   for( Int n = 0; n < 2; n++)
   {
@@ -1879,6 +1833,8 @@ __inline Void MotionCompensation::xGetBlkPredData(       MbDataAccess& rcMbDataA
     {
       iPredCount++;
       rcMC8x8D.m_apcRefBuffer[eLstIdx]  = const_cast<IntFrame*>(pcRefFrame)->getFullPelYuvBuffer();
+      apcFrame[n]                       = pcRefFrame;
+      rcMC8x8D.m_apcPW[eLstIdx]         = &rcSH.getPredWeight( eLstIdx, rcMv3D.getRef() );
 
       switch( eBlkMode )
       {
@@ -1921,7 +1877,14 @@ __inline Void MotionCompensation::xGetBlkPredData(       MbDataAccess& rcMbDataA
       }
     }
   }
-  rcMC8x8D.m_bBi = ( iPredCount == 2 );
+  if( ( 2 == iPredCount ) && ( 2 == rcSH.getPPS().getWeightedBiPredIdc() ) )
+  {
+    Int iScale = rcSH.getDistScaleFactorWP( apcFrame[0], apcFrame[1] );
+    rcMC8x8D.m_acPW[LIST_1].scaleL1Weight( iScale );
+    rcMC8x8D.m_acPW[LIST_0].scaleL0Weight( rcMC8x8D.m_acPW[LIST_1] );
+    rcMC8x8D.m_apcPW[LIST_1] = &rcMC8x8D.m_acPW[LIST_1];
+    rcMC8x8D.m_apcPW[LIST_0] = &rcMC8x8D.m_acPW[LIST_0];
+  }
 }
 
 

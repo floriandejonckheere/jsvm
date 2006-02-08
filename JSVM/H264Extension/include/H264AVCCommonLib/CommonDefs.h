@@ -254,6 +254,8 @@ enum Profile
   HIGH_422_PROFILE  = 122,
   HIGH_444_PROFILE  = 144,
 
+  MULTI_VIEW_PROFILE= 78,
+
   SCALABLE_PROFILE  = 83
 };
 
@@ -316,7 +318,13 @@ H264AVC_NAMESPACE_END
 #if NON_REQUIRED_SEI_ENABLE	
 #define MAX_NUM_INFO_ENTRIES 8
 #define MAX_NUM_NON_REQUIRED_PICS 32
-#define INTER_LAYER_PREDICT_NUM 1        //prediction from the layer (LayerId - INTER_LAYER_PREDICT_NUM)
+#define INTER_LAYER_PREDICT_NUM 1       //prediction from the layer (LayerId - INTER_LAYER_PREDICT_NUM)
+                                        /* comment from Heiko Schwarz:
+                                           That's a BAD solution, since even the current encoder allows
+                                           to chose a layer different from LayerId-1 for inter-layer
+                                           prediction. The SEI message should use the actual parameters
+                                           that are additionally transmitted in the slice header.
+                                         */
 #endif
 
 #define AR_FGS_MAX_BASE_WEIGHT                        32
@@ -334,11 +342,15 @@ H264AVC_NAMESPACE_END
 
 #define AR_FGS_COMPENSATE_SIGNED_FRAME                1
 
-#define CLEANING_BUGFIX
 #define CONFORMANCE_BUGFIX
-#define PIC_ORDER_CNT_TYPE_BUGFIX
 #define SPS_BUGFIX
-
 #define CAVLC_BUGFIX
+
+
+#define MVC_PROFILE                                   MULTI_VIEW_PROFILE  // ( MULTI_VIEW_PROFILE or HIGH_PROFILE )
+#define WEIGHTED_PRED_FLAG                            0                   // (0:no weighted prediction, 1:random weights)
+#define WEIGHTED_BIPRED_IDC                           0                   // (0:no weighted bi-prediction, 1:random weights, 2:implicit weights)
+#define INFER_ELAYER_PRED_WEIGHTS                     0                   // (0:BL weights are not used, 1:infer enhancement layer prediction weights)
+
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

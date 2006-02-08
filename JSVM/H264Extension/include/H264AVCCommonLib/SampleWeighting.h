@@ -111,21 +111,34 @@ public:
   virtual ErrVal init();
   ErrVal uninit();
 
-  Void getTargetBuffers( YuvMbBuffer*    apcTarBuffer[2], YuvMbBuffer*    pcRecBuffer, Bool bBi );
-  Void getTargetBuffers( IntYuvMbBuffer* apcTarBuffer[2], IntYuvMbBuffer* pcRecBuffer, Bool bBi );
+  ErrVal initSlice( const SliceHeader& rcSliceHeader );
 
+  Void getTargetBuffers( YuvMbBuffer*    apcTarBuffer[2], YuvMbBuffer*    pcRecBuffer, const PW* pcPW0, const PW* pcPW1 );
+  Void getTargetBuffers( IntYuvMbBuffer* apcTarBuffer[2], IntYuvMbBuffer* pcRecBuffer, const PW* pcPW0, const PW* pcPW1 );
+
+  Void weightLumaSamples(   YuvMbBuffer*    pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
+  Void weightChromaSamples( YuvMbBuffer*    pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
+
+  Void weightLumaSamples(   IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
+  Void weightChromaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
+
+  //===== for motion estimation of bi-predicted blocks with standard weights =====
   Void inverseLumaSamples  ( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, IntYuvMbBuffer* pcFixBuffer, Int iYSize, Int iXSize );
-  Void inverseChromaSamples( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, IntYuvMbBuffer* pcFixBuffer, Int iYSize, Int iXSize );
 
-  Void weightLumaSamples(   YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, Bool bBi );
-  Void weightChromaSamples( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, Bool bBi );
+  //===== for motion estimation of bi-predicted blocks with non-standard weights =====
+  Void weightInverseLumaSamples  ( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, IntYuvMbBuffer* pcFixBuffer, const PW* pcSearchPW, const PW* pcFixPW, Double&  rdWeight, Int iYSize, Int iXSize );
 
-  Void weightLumaSamples(   IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, Bool bBi );
-  Void weightChromaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, Bool bBi );
+  //===== for motion estimation of unidirectional predicted blocks with non-standard weights =====
+  Void weightInverseLumaSamples  ( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, const PW* pcPW, Double&  rdWeight, Int iYSize, Int iXSize );
+  Void weightInverseChromaSamples( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, const PW* pcPW, Double* padWeight, Int iYSize, Int iXSize );
   
 protected:
-  __inline Void xMixB      ( Pel* pucDest, const Int iDestStride, Pel* pucSrc, const Int iSrcStride, const Int iSizeY, const Int iSizeX );
-  __inline Void xMixB      ( XPel* pucDest, const Int iDestStride, XPel* pucSrc, const Int iSrcStride, const Int iSizeY, const Int iSizeX );
+  Void xMixB      ( Pel*  pucDest, Int iDestStride, Pel*  pucSrc, Int iSrcStride, Int iSizeY, Int iSizeX );
+  Void xMixB      ( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Int iSizeY, Int iSizeX );
+  Void xMixBWeight( Pel*  pucDest, Int iDestStride, Pel*  pucSrc, Int iSrcStride, Int iSizeY, Int iSizeX, Int iWD, Int iWS, Int iOffset, UInt uiDenom );
+  Void xMixBWeight( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Int iSizeY, Int iSizeX, Int iWD, Int iWS, Int iOffset, UInt uiDenom );
+  Void xWeight    ( Pel*  pucDest, Int iDestStride,                               Int iSizeY, Int iSizeX, Int iWeight,      Int iOffset, UInt uiDenom );
+  Void xWeight    ( XPel* pucDest, Int iDestStride,                               Int iSizeY, Int iSizeX, Int iWeight,      Int iOffset, UInt uiDenom );
 
 private:
   static Void xMixB16x( Pel* pucDest, Int iDestStride, Pel* pucSrc, Int iSrcStride, Int iSizeY );
@@ -142,6 +155,11 @@ protected:
 private:
   YuvMbBuffer     m_cYuvBiBuffer;
   IntYuvMbBuffer  m_cIntYuvBiBuffer;
+  UInt            m_uiLumaLogWeightDenom;
+  UInt            m_uiChromaLogWeightDenom;
+  Bool            m_bExplicit;
+  Bool            m_bWeightedPredDisableP;
+  Bool            m_bWeightedPredDisableB;
 };
 
 

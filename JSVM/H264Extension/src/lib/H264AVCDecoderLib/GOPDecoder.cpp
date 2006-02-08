@@ -509,10 +509,6 @@ DecodedPicBuffer::xMarkShortTermUnused( DPBUnit* pcCurrentDPBUnit, UInt uiDiffOf
 
   UInt uiCurrPicNum = pcCurrentDPBUnit->getFrameNum();
   Int  iPicNumN     = (Int)uiCurrPicNum - (Int)uiDiffOfPicNums - 1;
-  if( uiCurrPicNum <= uiDiffOfPicNums )
-  {
-    iPicNumN += (Int)m_uiMaxFrameNum;
-  }
 
   DPBUnit*              pcDPBUnit = 0;
   DPBUnitList::iterator iter      = m_cUsedDPBUnitList.begin();
@@ -522,9 +518,10 @@ DecodedPicBuffer::xMarkShortTermUnused( DPBUnit* pcCurrentDPBUnit, UInt uiDiffOf
     if( (*iter)->isNeededForRef() && (*iter)->getPicNum(uiCurrPicNum,m_uiMaxFrameNum) == iPicNumN )
     {
       (*iter)->markNonRef();
+      return Err::m_nOK;
     }
   }
-
+  ROT(1);
   return Err::m_nOK;
 }
 
@@ -1524,6 +1521,20 @@ MCTFDecoder::finishProcess( PicBufferList&  rcPicBufferOutputList,
 
 
 ErrVal
+MCTFDecoder::getBaseLayerPWTable( SliceHeader::PredWeightTable*& rpcPredWeightTable,
+                                  ListIdx                        eListIdx,
+                                  Int                            iPoc )
+{
+  DPBUnit*      pcBaseDPBUnit = m_pcDecodedPictureBuffer->getDPBUnit( iPoc );
+  ROF( pcBaseDPBUnit );
+  SliceHeader*  pcSliceHeader = pcBaseDPBUnit->getCtrlData().getSliceHeader();
+  ROF( pcSliceHeader );
+  rpcPredWeightTable          = &pcSliceHeader->getPredWeightTable( eListIdx );
+  return Err::m_nOK;
+}
+
+
+ErrVal
 MCTFDecoder::getBaseLayerData ( IntFrame*&    pcFrame,
                                 IntFrame*&    pcResidual,
                                 MbDataCtrl*&  pcMbDataCtrl,
@@ -2064,6 +2075,30 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
     rpcSliceHeader->getBaseLayerId            (),
     rpcSliceHeader->getAdaptivePredictionFlag () ? 1 : 0,
     rpcSliceHeader->getPicQp                  () );
+
+  //===== infer prediction weights when required =====
+  if( rpcSliceHeader->getPPS().getWeightedBiPredIdc() == 1 && 
+      rpcSliceHeader->getSliceType()                  == B_SLICE &&
+      rpcSliceHeader->getBaseLayerId()                != MSYS_UINT_MAX &&
+      rpcSliceHeader->getBasePredWeightTableFlag() )
+  {
+    SliceHeader::PredWeightTable* pcPredWeightTableL0 = NULL;
+    SliceHeader::PredWeightTable* pcPredWeightTableL1 = NULL;
+    RNOK( m_pcH264AVCDecoder->getBaseLayerPWTable( pcPredWeightTableL0, rpcSliceHeader->getBaseLayerId(), LIST_0, rpcSliceHeader->getPoc() ) );
+    RNOK( m_pcH264AVCDecoder->getBaseLayerPWTable( pcPredWeightTableL1, rpcSliceHeader->getBaseLayerId(), LIST_1, rpcSliceHeader->getPoc() ) );
+    RNOK( rpcSliceHeader->getPredWeightTable( LIST_0 ).copy( *pcPredWeightTableL0 ) );
+    RNOK( rpcSliceHeader->getPredWeightTable( LIST_1 ).copy( *pcPredWeightTableL1 ) );
+  }
+  else if( rpcSliceHeader->getPPS().getWeightedPredFlag() && 
+           rpcSliceHeader->getSliceType()             == P_SLICE &&
+           rpcSliceHeader->getBaseLayerId()           != MSYS_UINT_MAX &&
+           rpcSliceHeader->getBasePredWeightTableFlag() )
+  {
+    SliceHeader::PredWeightTable* pcPredWeightTableL0 = NULL;
+    RNOK( m_pcH264AVCDecoder->getBaseLayerPWTable( pcPredWeightTableL0, rpcSliceHeader->getBaseLayerId(), LIST_0, rpcSliceHeader->getPoc() ) );
+    RNOK( rpcSliceHeader->getPredWeightTable( LIST_0 ).copy( *pcPredWeightTableL0 ) );
+  }
+
 
   m_uiNumLayers[0] = m_uiNumLayers[1];
 

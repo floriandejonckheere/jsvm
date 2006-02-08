@@ -101,7 +101,7 @@ class EncoderCodingParameter;
 typedef struct
 {
   UInt    uiNumberOfLayers;
-  Char    pBitstreamFile[256];
+  std::string cBitstreamFilename;
   Int     nResult; 
   UInt    nFrames;
 } EncoderIoParameter;
@@ -159,8 +159,8 @@ protected:
 
   UChar                         m_aucStartCodeBuffer[5];
   BinData                       m_cBinDataStartCode;
-  Char                          m_acWriteToBitFileName	[256];
-  Char                          m_acWriteToBitFileTempName[256];
+  std::string                   m_cWriteToBitFileName;
+  std::string                   m_cWriteToBitFileTempName;
 };
 
 

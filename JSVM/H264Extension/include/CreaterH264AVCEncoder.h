@@ -128,6 +128,7 @@ class XDistortion;
 class ControlMngH264AVCEncoder;
 class ReconstructionBypass;
 class RQFGSEncoder;
+class PicEncoder;
 
 
 
@@ -206,9 +207,8 @@ protected:
   RateDistortion*           m_pcRateDistortion;
   History*                  m_pcHistory;
   ReconstructionBypass*     m_pcReconstructionBypass;
-
+  PicEncoder*               m_pcPicEncoder;
   Bool                      m_bTraceEnable;
-
 };
 
 

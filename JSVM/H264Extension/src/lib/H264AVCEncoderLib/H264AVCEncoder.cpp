@@ -206,6 +206,17 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
   return Err::m_nOK;
 }
 
+ErrVal
+H264AVCEncoder::getBaseLayerSH( SliceHeader*& rpcSliceHeader,
+                                UInt          uiBaseLayerId,
+                                Int           iPoc )
+{
+  ROF( uiBaseLayerId < MAX_LAYERS );
+
+  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerSH( rpcSliceHeader, iPoc ) );
+  return Err::m_nOK;
+}
+
 
 UInt*
 H264AVCEncoder::getGOPBitsBase( UInt uiBaseLayerId )
@@ -253,12 +264,10 @@ H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
   m_pcControlMng      = pcControlMng;
   m_pcCodingParameter = pcCodingParameter;
 
-  ROF( m_pcCodingParameter->getNumberOfLayers() );
   UInt uiLayer;
   for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {
     ROT( NULL == apcMCTFEncoder[uiLayer] );
-
     m_apcMCTFEncoder[uiLayer] = apcMCTFEncoder[uiLayer];
   }
   for( ; uiLayer < MAX_LAYERS; uiLayer++ )
@@ -1323,6 +1332,9 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setPicScalingMatrixPresentFlag           ( false );
     pcPPSHP->set2ndChromaQpIndexOffset                ( 0 );
 
+    pcPPSHP->setWeightedPredFlag                      ( WEIGHTED_PRED_FLAG );
+    pcPPSHP->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
+
 	  //--ICU/ETRI FMO Implementation : FMO stuff start
 	  pcPPSHP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
 	  pcPPSHP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
@@ -1350,6 +1362,8 @@ H264AVCEncoder::xInitParameterSets()
       pcPPSLP->setTransform8x8ModeFlag                  ( pcPPSHP->getTransform8x8ModeFlag                  ()  );
       pcPPSLP->setPicScalingMatrixPresentFlag           ( pcPPSHP->getPicScalingMatrixPresentFlag           ()  );
       pcPPSLP->set2ndChromaQpIndexOffset                ( pcPPSHP->get2ndChromaQpIndexOffset                ()  );
+      pcPPSLP->setWeightedPredFlag                      ( pcPPSHP->getWeightedPredFlag                      ()  );
+      pcPPSLP->setWeightedBiPredIdc                     ( pcPPSHP->getWeightedBiPredIdc                     ()  );
     }
 
   	//--ICU/ETRI FMO Implementation : FMO stuff start

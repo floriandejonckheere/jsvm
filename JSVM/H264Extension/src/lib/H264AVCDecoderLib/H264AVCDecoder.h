@@ -190,6 +190,10 @@ public:
                                           UInt            uiLayerId,
                                           UInt            uiBaseLayerId,
                                           Int             iPoc );
+  ErrVal  getBaseLayerPWTable          ( SliceHeader::PredWeightTable*& rpcPredWeightTable,
+                                         UInt                           uiBaseLayerId,
+                                         ListIdx                        eListIdx,
+                                         Int                            iPoc );
 
   Void    setBaseAVCCompatible        ( Bool                        bAVCCompatible )    { m_bBaseLayerIsAVCCompatible = bAVCCompatible; }
   Void    setReconstructionLayerId    ( UInt                        uiLayerId )         { m_uiRecLayerId = uiLayerId; }
@@ -300,6 +304,8 @@ protected:
   SliceHeader*                  m_pcSliceHeaderStored;
   Int                           m_iPrevPoc;
   //~JVT-P031
+
+  SliceHeader::PredWeightTable  m_acLastPredWeightTable[2];
 };
 
 H264AVC_NAMESPACE_END

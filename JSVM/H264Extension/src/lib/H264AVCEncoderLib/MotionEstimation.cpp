@@ -228,7 +228,8 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
                                           UInt                 uiMode,
                                           Bool                 bQPelRefinementOnly,
                                           UInt                 uiSearchRange,
-                                          IntYuvMbBuffer*      pcRefPelData2 )
+                                          const PW*             pcPW,
+                                          MEBiSearchParameters* pcBSP )
 {
   const LumaIdx    cIdx                 = B4x4Idx(uiBlk);
   IntYuvMbBuffer*  pcWeightedYuvBuffer  = NULL;
@@ -238,6 +239,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   pcRefPelData[0] = const_cast<IntFrame&>(rcRefFrame).getFullPelYuvBuffer();
   pcRefPelData[1] = const_cast<IntFrame&>(rcRefFrame).getHalfPelYuvBuffer();
 
+  m_pcXDistortion->set4x4Block( cIdx );
   pcRefPelData[0]->set4x4Block( cIdx );
   pcRefPelData[1]->set4x4Block( cIdx );
 
@@ -257,34 +259,106 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
 
   UInt   uiMinSAD  = MSYS_UINT_MAX;
   Mv     cMv       = rcMv;
-  Double fWeight;
+  Double fWeight   = 1.0;
+  Double afCW[2]   = { 1.0, 1.0 };
 
-  if( pcRefPelData2 )
+  Bool      bOriginalSearchModeIsYUVSAD  = ( m_cParams.getFullPelDFunc() == DF_YUV_SAD );
+  const Int iXSize                       = m_pcXDistortion->getBlockWidth  ( uiMode ); 
+  const Int iYSize                       = m_pcXDistortion->getBlockHeight ( uiMode ); 
+
+  if( pcBSP ) // bi prediction
   {
+    ROF( pcBSP->pcAltRefPelData    );
+    ROF( pcBSP->pcAltRefFrame      );
+    ROF( pcBSP->apcWeight[LIST_0]  );
+    ROF( pcBSP->apcWeight[LIST_1]  );
+
+    pcWeightedYuvBuffer               = &cWeightedYuvBuffer;
+    pcWeightedYuvBuffer   ->set4x4Block( cIdx );
+    pcBSP->pcAltRefPelData->set4x4Block( cIdx );
+
+    if( rcMbDataAccess.getSH().getPPS().getWeightedBiPredIdc() == 2 ) // implicit weighting
+    {
+      //----- get implicit weights -----
+      PW              acIPW[2];
+      const IntFrame* pcFrameL0 = ( pcBSP->uiL1Search ? pcBSP->pcAltRefFrame : &rcRefFrame          );
+      const IntFrame* pcFrameL1 = ( pcBSP->uiL1Search ? &rcRefFrame          : pcBSP->pcAltRefFrame );
+      Int             iScale    = rcMbDataAccess.getSH().getDistScaleFactorWP( pcFrameL0, pcFrameL1 );
+
+      //----- weighting -----
+      if( iScale == 128 ) // same distance -> use normal function for same result
+  {
+        m_pcSampleWeighting->inverseLumaSamples         ( pcWeightedYuvBuffer,
+                                                          m_pcXDistortion->getYuvMbBuffer(),
+                                                          pcBSP->pcAltRefPelData,
+                                                          iYSize, iXSize );
     fWeight             = 0.5;
+      }
+      else
+      {
+        acIPW[1].scaleL1Weight( iScale   );
+        acIPW[0].scaleL0Weight( acIPW[1] );
+        m_pcSampleWeighting->weightInverseLumaSamples   ( pcWeightedYuvBuffer,
+                                                          m_pcXDistortion->getYuvMbBuffer(),
+                                                          pcBSP->pcAltRefPelData,
+                                                          &acIPW[pcBSP->uiL1Search],
+                                                          &acIPW[1-pcBSP->uiL1Search],
+                                                          fWeight, iYSize, iXSize );
+      }
+    }
+    else if( pcBSP->apcWeight[LIST_0]->getLumaWeightFlag() || 
+             pcBSP->apcWeight[LIST_1]->getLumaWeightFlag()   )
+    {
+      //----- explicit weighting -----
+      m_pcSampleWeighting->weightInverseLumaSamples     ( pcWeightedYuvBuffer,
+                                                          m_pcXDistortion->getYuvMbBuffer(),
+                                                          pcBSP->pcAltRefPelData,
+                                                          pcBSP->apcWeight[pcBSP->uiL1Search],
+                                                          pcBSP->apcWeight[1-pcBSP->uiL1Search],
+                                                          fWeight, iYSize, iXSize );
+    }
+    else
+    {
+      //----- standard weighting -----
+      m_pcSampleWeighting->inverseLumaSamples    ( pcWeightedYuvBuffer,
+                                                  m_pcXDistortion->getYuvMbBuffer(),
+                                                  pcBSP->pcAltRefPelData,
+                                                  iYSize, iXSize );
+      fWeight   = 0.5;
+    }
+  }
+  else // unidirectional prediction
+  {
+    ROF( pcPW );
+
+    if( pcPW->getLumaWeightFlag() || ( bOriginalSearchModeIsYUVSAD && pcPW->getChromaWeightFlag() ) )
+    {
     pcWeightedYuvBuffer = &cWeightedYuvBuffer;
-    const Int iXSize    = m_pcXDistortion->getBlockWidth  ( uiMode ); 
-    const Int iYSize    = m_pcXDistortion->getBlockHeight ( uiMode ); 
     pcWeightedYuvBuffer ->set4x4Block( cIdx );
-    m_pcXDistortion     ->set4x4Block( cIdx );
-    pcRefPelData2       ->set4x4Block( cIdx );
-    m_pcSampleWeighting ->inverseLumaSamples  ( pcWeightedYuvBuffer, m_pcXDistortion->getYuvMbBuffer(), pcRefPelData2, iYSize, iXSize );
-    m_pcSampleWeighting ->inverseChromaSamples( pcWeightedYuvBuffer, m_pcXDistortion->getYuvMbBuffer(), pcRefPelData2, iYSize, iXSize );
+
+      //----- weighting -----
+      m_pcSampleWeighting->weightInverseLumaSamples   ( pcWeightedYuvBuffer,
+                                                        m_pcXDistortion->getYuvMbBuffer(),
+                                                        pcPW, fWeight, iYSize, iXSize );
+      if( bOriginalSearchModeIsYUVSAD )
+      {
+        m_pcSampleWeighting->weightInverseChromaSamples( pcWeightedYuvBuffer,
+                                                         m_pcXDistortion->getYuvMbBuffer(),
+                                                         pcPW, afCW, iYSize, iXSize );
+      }
   }
   else
   {
-    fWeight             = 1.0;
+      //----- no weighting -----
     pcWeightedYuvBuffer = m_pcXDistortion->getYuvMbBuffer();
-    pcWeightedYuvBuffer ->set4x4Block( cIdx );
+      fWeight = afCW[0] = afCW[1] = 1.0;
+    }
   }
 
   //===== FULL-PEL ESTIMATION ======
-  // heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search) >>>>
-  Bool bOriginalSearchModeIsYUVSAD = false;
-  if( pcRefPelData2 && m_cParams.getFullPelDFunc() == DF_YUV_SAD )
+  if( bOriginalSearchModeIsYUVSAD && ( pcBSP /* bi-prediction */ || fWeight != afCW[0] || fWeight != afCW[1] /* different component weights */ ) )
   {
-    bOriginalSearchModeIsYUVSAD  = true;
-    m_cParams.setFullPelDFunc( DF_SAD );
+    m_cParams.setFullPelDFunc( DF_SAD ); // set to normal SAD
   }
   // <<< heiko.schwarz@hhi.fhg.de (fix for uninitialized memory with YUV_SAD and bi-directional search)
   xGetMotionCost( ( 1 != m_cParams.getFullPelDFunc() ), 0 );
@@ -317,13 +391,13 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
         break;
       case 2:
         {
-          xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, false, m_iMaxLogStep << ((NULL == pcRefPelData2) ? 1 : 0) );
+          xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, false, m_iMaxLogStep << ((NULL == pcBSP) ? 1 : 0) );
         }
         break;
       case 3:
         {
           rcMbDataAccess.getMvPredictors( m_acMvPredictors );
-          xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, true, (NULL == pcRefPelData2) ? 2 : 1 );
+          xPelLogSearch   ( pcRefPelData[0], cMv, uiMinSAD, true, (NULL == pcBSP) ? 2 : 1 );
         }
         break;
       case 4:
@@ -372,7 +446,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   m_cXDSS.pYOrg = pcWeightedYuvBuffer->getLumBlk();
   xSetCostScale( 0 );
 
-  xSubPelSearch( pcRefPelData[1], cMv, uiMinSAD, uiBlk, uiMode, bQPelRefinementOnly, pcRefPelData2 );
+  xSubPelSearch( pcRefPelData[1], cMv, uiMinSAD, uiBlk, uiMode, bQPelRefinementOnly );
 
   Short sHor      = cMv.getHor();
   Short sVer      = cMv.getVer();

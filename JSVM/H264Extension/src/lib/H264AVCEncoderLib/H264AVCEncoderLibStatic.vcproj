@@ -366,6 +366,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\InputPicBuffer.cpp">
+			</File>
+			<File
 				RelativePath="IntraPredictionSearch.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
@@ -526,6 +529,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\PicEncoder.cpp">
+			</File>
+			<File
 				RelativePath="RateDistortion.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
@@ -544,6 +550,12 @@
 						PreprocessorDefinitions=""
 						BasicRuntimeChecks="3"/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\RecPicBuffer.cpp">
+			</File>
+			<File
+				RelativePath=".\SequenceStructure.cpp">
 			</File>
 			<File
 				RelativePath="SliceEncoder.cpp">
@@ -632,6 +644,9 @@
 				RelativePath="..\..\..\include\H264AVCEncoderLib.h">
 			</File>
 			<File
+				RelativePath=".\InputPicBuffer.h">
+			</File>
+			<File
 				RelativePath="IntraPredictionSearch.h">
 			</File>
 			<File
@@ -659,10 +674,19 @@
 				RelativePath="NalUnitEncoder.h">
 			</File>
 			<File
+				RelativePath=".\PicEncoder.h">
+			</File>
+			<File
 				RelativePath="RateDistortion.h">
 			</File>
 			<File
 				RelativePath="RateDistortionIf.h">
+			</File>
+			<File
+				RelativePath=".\RecPicBuffer.h">
+			</File>
+			<File
+				RelativePath=".\SequenceStructure.h">
 			</File>
 			<File
 				RelativePath="SliceEncoder.h">

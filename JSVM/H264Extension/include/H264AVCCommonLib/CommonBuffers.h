@@ -230,7 +230,7 @@ protected:
   T m_aT[uiSize];
 };
 
-
+#define X_DATA_LIST_SIZE 64
 
 template< class T >
 class XDataList
@@ -258,7 +258,7 @@ public:
 private:
   UInt    m_uiSize;
   UInt    m_uiActive;
-  T*      m_apT[((1<<MAX_DSTAGES)+2)>>1];
+  T*      m_apT[X_DATA_LIST_SIZE];
 };
 
 
@@ -287,7 +287,7 @@ template< class T >
 ErrVal
 XDataList<T>::add( T* pT )
 {
-  ROF( m_uiSize < ( ( 1 << MAX_DSTAGES ) + 2 ) / 2 );
+  ROF( m_uiSize < X_DATA_LIST_SIZE );
 
   m_apT[ m_uiSize++ ] = pT;
   m_uiActive          = m_uiSize;
@@ -386,12 +386,12 @@ template< class T >
 ErrVal
 XDataList<T>::setElementAndRemove( UInt uiIPos, UInt uiRPos, T* pEntry )
 {
-  ROT( uiIPos >= ((1<<MAX_DSTAGES)+2)>>1 );
+  ROT( uiIPos >= X_DATA_LIST_SIZE );
   ROT( uiIPos >= m_uiSize );
   ROT( uiIPos >  uiRPos   );
   if( uiIPos != uiRPos )
   {
-    if( uiRPos >= m_uiSize && m_uiSize < ((1<<MAX_DSTAGES)+2)>>1 )
+    if( uiRPos >= m_uiSize && m_uiSize < X_DATA_LIST_SIZE )
     {
       m_uiSize++;
     }

@@ -221,6 +221,7 @@ protected:
   UInt                    m_auiMbYinFrame           [MAX_LAYERS];
   UInt                    m_uiCurrLayer;
   Bool                    m_bLayer0IsAVC;
+  Bool                    m_bMVCMode;
 };
 
 

@@ -424,6 +424,111 @@ public StatBuf<Mmco,32>
 class H264AVCCOMMONLIB_API SliceHeaderBase
 {
 public:
+  class H264AVCCOMMONLIB_API PredWeight
+  {
+  public:
+    PredWeight() : m_bLumaWeightFlag( false ), m_bChromaWeightFlag( false ), m_iLumaWeight( 0 ), m_iLumaOffset( 0 )
+    {
+      m_aiChromaWeight[0] = m_aiChromaWeight[1] = 0;
+      m_aiChromaOffset[0] = m_aiChromaOffset[1] = 0;
+    }
+    ~PredWeight() {}
+
+    ErrVal createRandomParameters(); // just for encoder testing
+
+    Void scaleL1Weight( Int iDistScaleFactor )
+    {
+      iDistScaleFactor >>= 2;
+      if( (iDistScaleFactor > 128) || (iDistScaleFactor < -64) )
+      {
+        iDistScaleFactor = 32;
+      }
+
+      m_iLumaWeight       = iDistScaleFactor;
+      m_aiChromaWeight[0] = iDistScaleFactor;
+      m_aiChromaWeight[1] = iDistScaleFactor;
+    }
+    Void scaleL0Weight( const PredWeight& rcPredWeightL1 )
+    {
+      m_iLumaWeight       = 64 - rcPredWeightL1.m_iLumaWeight;
+      m_aiChromaWeight[0] = 64 - rcPredWeightL1.m_aiChromaWeight[0];
+      m_aiChromaWeight[1] = 64 - rcPredWeightL1.m_aiChromaWeight[1];
+    }
+    ErrVal init( Int iLumaWeight, Int iChromaCbWeight, Int iChromaCrWeight )
+    {
+      m_iLumaWeight       = iLumaWeight;
+      m_aiChromaWeight[0] = iChromaCbWeight;
+      m_aiChromaWeight[1] = iChromaCrWeight;
+      return Err::m_nOK;
+    }
+
+    Bool  getLumaWeightFlag()                                  const { return m_bLumaWeightFlag; }
+    Bool  getChromaWeightFlag()                                const { return m_bChromaWeightFlag; }
+    Int   getLumaWeight()                                      const { return m_iLumaWeight; }
+    Int   getLumaOffset()                                      const { return m_iLumaOffset; }
+    Int   getChromaWeight( UInt uiChromaPlane )                const { return m_aiChromaWeight[uiChromaPlane]; }
+    Int   getChromaOffset( UInt uiChromaPlane )                const { return m_aiChromaOffset[uiChromaPlane]; }
+
+    Void  setLumaWeightFlag( Bool bLumaWeightFlag )                  { m_bLumaWeightFlag = bLumaWeightFlag; }
+    Void  setChromaWeightFlag( Bool bChromaWeightFlag )              { m_bChromaWeightFlag = bChromaWeightFlag; }
+    Void  setLumaWeight( Int iLumaWeight )                           { m_iLumaWeight = iLumaWeight; }
+    Void  setLumaOffset( Int iLumaOffset )                           { m_iLumaOffset = iLumaOffset; }
+    Void  setChromaWeight( UInt uiChromaPlane, Int iChromaWeight )   { m_aiChromaWeight[uiChromaPlane] = iChromaWeight; }
+    Void  setChromaOffset( UInt uiChromaPlane, Int iChromaOffset )   { m_aiChromaOffset[uiChromaPlane] = iChromaOffset; }
+
+    ErrVal write( HeaderSymbolWriteIf*  pcWriteIf ) const;
+    ErrVal read ( HeaderSymbolReadIf*   pcReadIf  );
+
+    Bool  operator!=( const PredWeight& rcPredWeight ) const
+    {
+      ROTRS( m_bLumaWeightFlag    != rcPredWeight.m_bLumaWeightFlag,    true );
+      ROTRS( m_bChromaWeightFlag  != rcPredWeight.m_bChromaWeightFlag,  true );
+      ROTRS( m_iLumaWeight        != rcPredWeight.m_iLumaWeight,        true );
+      ROTRS( m_iLumaOffset        != rcPredWeight.m_iLumaOffset,        true );
+      ROTRS( m_aiChromaWeight[0]  != rcPredWeight.m_aiChromaWeight[0],  true );
+      ROTRS( m_aiChromaWeight[1]  != rcPredWeight.m_aiChromaWeight[1],  true );
+      ROTRS( m_aiChromaOffset[0]  != rcPredWeight.m_aiChromaOffset[0],  true );
+      ROTRS( m_aiChromaOffset[1]  != rcPredWeight.m_aiChromaOffset[1],  true );
+      return false;
+    }
+    Bool  operator==( const PredWeight& rcPredWeight ) const
+    {
+      return !(*this != rcPredWeight);
+    }
+
+    Void  copy( const PredWeight& rcPredWeight )
+    {
+      m_bLumaWeightFlag   = rcPredWeight.m_bLumaWeightFlag;
+      m_bChromaWeightFlag = rcPredWeight.m_bChromaWeightFlag;
+      m_iLumaWeight       = rcPredWeight.m_iLumaWeight;
+      m_iLumaOffset       = rcPredWeight.m_iLumaOffset;
+      m_aiChromaWeight[0] = rcPredWeight.m_aiChromaWeight[0];
+      m_aiChromaWeight[1] = rcPredWeight.m_aiChromaWeight[1];
+      m_aiChromaOffset[0] = rcPredWeight.m_aiChromaOffset[0];
+      m_aiChromaOffset[1] = rcPredWeight.m_aiChromaOffset[1];
+    }
+
+  private:
+    Bool  m_bLumaWeightFlag;
+    Bool  m_bChromaWeightFlag;
+    Int   m_iLumaWeight;
+    Int   m_iLumaOffset;
+    Int   m_aiChromaWeight[2];
+    Int   m_aiChromaOffset[2];
+  };
+
+  class H264AVCCOMMONLIB_API PredWeightTable : public DynBuf<PredWeight>
+  {
+  public:
+    ErrVal initDefaults( UInt uiLumaWeightDenom, UInt uiChromaWeightDenom );
+    ErrVal createRandomParameters();
+
+    ErrVal write( HeaderSymbolWriteIf*  pcWriteIf,  UInt uiNumber ) const;
+    ErrVal read ( HeaderSymbolReadIf*   pcReadIf,   UInt uiNumber );
+
+    ErrVal copy ( const PredWeightTable& rcPredWeightTable );
+  };
+
   class H264AVCCOMMONLIB_API DeblockingFilterParameter
   {
   public:
@@ -499,6 +604,17 @@ public:
   Bool                              getFgsComponentSep            ()  const { return m_bFgsComponentSep; }
   UInt                              getIdrPicId                   ()  const { return m_uiIdrPicId; }
   UInt                              getPicOrderCntLsb             ()  const { return m_uiPicOrderCntLsb; }
+  Int                               getDeltaPicOrderCntBottom     ()  const { return m_iDeltaPicOrderCntBottom; }
+  Int                               getDeltaPicOrderCnt    (UInt ui)  const { return m_aiDeltaPicOrderCnt[ui]; }
+  Bool                              getBasePredWeightTableFlag    ()  const { return m_bBasePredWeightTableFlag; }
+  UInt                              getLumaLog2WeightDenom        ()  const { return m_uiLumaLog2WeightDenom; }
+  UInt                              getChromaLog2WeightDenom      ()  const { return m_uiChromaLog2WeightDenom; }
+  const PredWeightTable&            getPredWeightTable   (ListIdx e)  const { return m_acPredWeightTable[e]; }
+  PredWeightTable&                  getPredWeightTable   (ListIdx e)        { return m_acPredWeightTable[e]; }
+  const PredWeight&                 getPredWeight        (ListIdx e,
+                                                          UInt   ui)  const { return m_acPredWeightTable[e].get(ui-1); }
+  PredWeight&                       getPredWeight        (ListIdx e,
+                                                          UInt   ui)        { return m_acPredWeightTable[e].get(ui-1); }
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
   Bool                              getKeyPictureFlag             ()  const { return m_bKeyPictureFlag; }
   UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
@@ -560,14 +676,6 @@ public:
   Void                              setFragmentOrder               (UInt ui)   {m_uiFragmentOrder = ui;}
   Void                              setLastFragmentFlag            (Bool b)    {m_bLastFragmentFlag = b;}
   //~JVT-P031
-  
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-  Bool                              getFieldPicFlag               ()  const { return m_bFieldPicFlag; }
-  Bool                              getBottomFieldFlag            ()  const { return m_bBottomFieldFlag; }
-	Int                               getDeltaPicOrderCntBottom     ()  const { return m_iDeltaPicOrderCntBottom; }
-  Int                               getDeltaPicOrderCnt           ( UInt ui)
-		                                                                  const {return m_aiDeltaPicOrderCnt[ui]; }
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
 
   //===== set parameters =====
@@ -584,6 +692,12 @@ public:
   Void  setFgsComponentSep            ( Bool        b  )  { m_bFgsComponentSep                  = b;  }
   Void  setIdrPicId                   ( UInt        ui )  { m_uiIdrPicId                        = ui; }
   Void  setPicOrderCntLsb             ( UInt        ui )  { m_uiPicOrderCntLsb                  = ui; }
+  Void  setDeltaPicOrderCntBottom     ( Int         i  )  { m_iDeltaPicOrderCntBottom           = i;  }
+  Void  setDeltaPicOrderCnt           ( UInt        ui,
+                                        Int         i  )  { m_aiDeltaPicOrderCnt[ui]            = i;  }
+  Void  setBasePredWeightTableFlag    ( Bool        b  )  { m_bBasePredWeightTableFlag          = b;  }
+  Void  setLumaLog2WeightDenom        ( UInt        ui )  { m_uiLumaLog2WeightDenom             = ui; }
+  Void  setChromaLog2WeightDenom      ( UInt        ui )  { m_uiChromaLog2WeightDenom           = ui; }
   Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
   Void  setKeyPictureFlag             ( Bool        b  )  { m_bKeyPictureFlag                   = b;  }
   Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; }
@@ -613,14 +727,6 @@ public:
   Void  setSliceGroupChangeCycle(UInt uiSliceGroupChangeCycle){m_uiSliceGroupChangeCycle = uiSliceGroupChangeCycle;};
   ErrVal FMOInit();
   
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-  Void setFieldPicFlag                ( Bool        b  )  { m_bFieldPicFlag                     = b;  }
-  Void setBottomFieldFlag             ( Bool        b  )  { m_bBottomFieldFlag                  = b;  }
-  Void setDeltaPicOrderCntBottom      ( Int         i  )  { m_iDeltaPicOrderCntBottom           = i;  }
-  Void setDeltaPicOrderCnt            ( UInt        ui,
-		                                    Int         i  )  { m_aiDeltaPicOrderCnt[ui]            = i;  }
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
-
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
   ErrVal xReadScalable                ( HeaderSymbolReadIf*   pcReadIf );
@@ -645,6 +751,12 @@ protected:
   Bool                        m_bFgsComponentSep;
   UInt                        m_uiIdrPicId;
   UInt                        m_uiPicOrderCntLsb;
+  Int                         m_iDeltaPicOrderCntBottom;
+  Int                         m_aiDeltaPicOrderCnt[2];
+  Bool                        m_bBasePredWeightTableFlag;
+  UInt                        m_uiLumaLog2WeightDenom;
+  UInt                        m_uiChromaLog2WeightDenom;
+  PredWeightTable             m_acPredWeightTable[2];
   Bool                        m_bDirectSpatialMvPredFlag;
 
   Bool                        m_bKeyPictureFlag;
@@ -682,12 +794,6 @@ protected:
   UInt                        m_uiFragmentOrder;
   Bool                        m_bLastFragmentFlag;
   //~JVT-P031
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-  Bool                        m_bFieldPicFlag;
-  Bool                        m_bBottomFieldFlag;
-	Int                         m_iDeltaPicOrderCntBottom;
-  Int                         m_aiDeltaPicOrderCnt[2];
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 
 // TMM_ESS {
 public:
@@ -729,7 +835,7 @@ protected:
 # pragma warning( default: 4275 )
 #endif
 
-
+typedef SliceHeaderBase::PredWeight PW;
 
 H264AVC_NAMESPACE_END
 

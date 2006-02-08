@@ -255,6 +255,9 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
     m_uiNumberOfFragment[uiLayer] = 0;//JVT-P031
   }
 
+  RNOK( m_acLastPredWeightTable[LIST_0].init( 64 ) );
+  RNOK( m_acLastPredWeightTable[LIST_1].init( 64 ) );
+
   m_bInitDone = true;
 
   return Err::m_nOK;
@@ -264,6 +267,9 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
 
 ErrVal H264AVCDecoder::uninit()
 {
+  RNOK( m_acLastPredWeightTable[LIST_0].uninit() );
+  RNOK( m_acLastPredWeightTable[LIST_1].uninit() );
+
   m_pcSliceReader         = NULL;
   m_pcSliceDecoder        = NULL;
   m_pcFrameMng            = NULL;
@@ -660,7 +666,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   ruiStartPos = 0; //FRAG_FIX
   //~JVT-P031
   UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-#if BUG_FIX //mwi, from heiko 060116
+#if 1 //BUG_FIX //mwi, from heiko 060116
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
 #else
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag ) );
@@ -697,9 +703,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       if( NULL == m_pcVeryFirstSPS )
       {
         setVeryFirstSPS( pcSPS );
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-        RNOK( m_pcPocCalculator->initSPS( *pcSPS ) );
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
       }
 #ifdef   SPS_BUGFIX
 			if ( pcSPS->getProfileIdc()==SCALABLE_PROFILE )
@@ -840,15 +843,24 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   case NAL_UNIT_ACCESS_UNIT_DELIMITER:
     {
       RNOK ( m_pcNalUnitParser->readAUDelimiter());
+      ruiEndPos = pcBinDataAccessor->size();//JVT-P031
+      bDiscardable = false;//JVT-P031
+      rbStartDecoding = true;//JVT-P031
     }
     break;
   case NAL_UNIT_END_OF_SEQUENCE:
     {
       RNOK ( m_pcNalUnitParser->readEndOfSeqence());
+      ruiEndPos = pcBinDataAccessor->size();//JVT-P031
+      bDiscardable = false;//JVT-P031
+      rbStartDecoding = true;//JVT-P031
     }
   case NAL_UNIT_END_OF_STREAM:
     {
       RNOK ( m_pcNalUnitParser->readEndOfStream());
+      ruiEndPos = pcBinDataAccessor->size();//JVT-P031
+      bDiscardable = false;//JVT-P031
+      rbStartDecoding = true;//JVT-P031
     }
     break;
 #endif // CONFORMANCE_BUGFIX
@@ -943,6 +955,23 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor)
   return m_pcNalUnitParser->initSODBNalUnit(pcBinDataAccessor);
 }
 //~JVT-P031
+
+
+ErrVal
+H264AVCDecoder::getBaseLayerPWTable( SliceHeader::PredWeightTable*& rpcPredWeightTable,
+                                     UInt                           uiBaseLayerId,
+                                     ListIdx                        eListIdx,
+                                     Int                            iPoc )
+{
+  if( uiBaseLayerId || m_apcMCTFDecoder[uiBaseLayerId]->isActive() )
+  {
+    RNOK( m_apcMCTFDecoder[uiBaseLayerId]->getBaseLayerPWTable( rpcPredWeightTable, eListIdx, iPoc ) );
+    return Err::m_nOK;
+  }
+  rpcPredWeightTable = &m_acLastPredWeightTable[eListIdx];
+  return Err::m_nOK;
+}
+
 
 ErrVal
 H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
@@ -1238,6 +1267,10 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
   Bool  bNewPic;
 
   Bool bVeryFirstSlice=false;  
+
+  //===== store prediction weights table for inter-layer prediction =====
+  m_acLastPredWeightTable[LIST_0].copy( rcSH.getPredWeightTable( LIST_0 ) );
+  m_acLastPredWeightTable[LIST_1].copy( rcSH.getPredWeightTable( LIST_1 ) );
 
   //===== set some basic parameters =====
   if( NULL == m_pcVeryFirstSliceHeader )

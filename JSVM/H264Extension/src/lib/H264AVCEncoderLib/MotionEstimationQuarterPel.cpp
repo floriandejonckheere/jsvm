@@ -179,8 +179,7 @@ Void MotionEstimationQuarterPel::xSubPelSearch( IntYuvPicBuffer*  pcPelData,
                                                 UInt&             ruiSAD,
                                                 UInt              uiBlk,
                                                 UInt              uiMode,
-                                                Bool              bQPelOnly,
-                                                IntYuvMbBuffer*   pcRefPelData2 )
+                                                Bool              bQPelOnly )
 {
   Mv    cMvBestMatch  = rcMv;
   UInt  uiBestSad     = MSYS_UINT_MAX;

@@ -138,17 +138,13 @@ public:
   Bool                  getSeqScalingMatrixPresentFlag        ()          const { return m_bSeqScalingMatrixPresentFlag; }
   const ScalingMatrix&  getSeqScalingMatrix                   ()          const { return m_cSeqScalingMatrix; }
   UInt                  getLog2MaxFrameNum                    ()          const { return m_uiLog2MaxFrameNum;}
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
 	UInt                  getPicOrderCntType                    ()          const { return m_uiPicOrderCntType;}
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   UInt                  getLog2MaxPicOrderCntLsb              ()          const { return m_uiLog2MaxPicOrderCntLsb;}
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-  UInt                  getNumRefFramesInPicOrderCntCycle     ()          const { return m_uiNumRefFramesInPicOrderCntCycle;}
   Bool                  getDeltaPicOrderAlwaysZeroFlag        ()          const { return m_bDeltaPicOrderAlwaysZeroFlag;}
   Int                   getOffsetForNonRefPic                 ()          const { return m_iOffsetForNonRefPic;}
   Int                   getOffsetForTopToBottomField          ()          const { return m_iOffsetForTopToBottomField;}
-  UInt                  getOffsetForRefFrame                  ( UInt ui ) const { return m_piOffsetForRefFrame[ui];}
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+  UInt                  getNumRefFramesInPicOrderCntCycle     ()          const { return m_uiNumRefFramesInPicOrderCntCycle; }
+  Int                   getOffsetForRefFrame                  ( UInt ui ) const { return m_aiOffsetForRefFrame[ui]; }
   UInt                  getNumRefFrames                       ()          const { return m_uiNumRefFrames;}
   Bool                  getRequiredFrameNumUpdateBehaviourFlag()          const { return m_bRequiredFrameNumUpdateBehaviourFlag;}
   UInt                  getFrameWidthInMbs                    ()          const { return m_uiFrameWidthInMbs;}
@@ -178,18 +174,14 @@ public:
   Void  setSeqParameterSetId                  ( UInt        ui )          { m_uiSeqParameterSetId                   = ui; }
   Void  setSeqScalingMatrixPresentFlag        ( Bool        b  )          { m_bSeqScalingMatrixPresentFlag          = b;  }
   Void  setLog2MaxFrameNum                    ( UInt        ui )          { m_uiLog2MaxFrameNum                     = ui; }
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
 	Void  setPicOrderCntType                    ( UInt        ui )          { m_uiPicOrderCntType                     = ui; }
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   Void  setLog2MaxPicOrderCntLsb              ( UInt        ui )          { m_uiLog2MaxPicOrderCntLsb               = ui; }
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-	Void  setNumRefFramesInPicOrderCntCycle     ( UInt        ui )          { m_uiNumRefFramesInPicOrderCntCycle      = ui; }
 	Void  setDeltaPicOrderAlwaysZeroFlag        ( Bool        b  )          { m_bDeltaPicOrderAlwaysZeroFlag          = b;  }
   Void  setOffsetForNonRefPic                 ( Int         i  )          { m_iOffsetForNonRefPic                   = i;  }
   Void  setOffsetForTopToBottomField          ( Int         i  )          { m_iOffsetForTopToBottomField            = i;  }
+  Void  setNumRefFramesInPicOrderCntCycle     ( UInt        ui )          { m_uiNumRefFramesInPicOrderCntCycle      = ui; }
   Void  setOffsetForRefFrame                  ( UInt        ui, 
-		                                            Int         i  )          { m_piOffsetForRefFrame[ui]               = i;  }
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+                                                Int         i  )          { m_aiOffsetForRefFrame[ui]               = i;  }
   Void  setNumRefFrames                       ( UInt        ui )          { m_uiNumRefFrames                        = ui; }
   Void  setRequiredFrameNumUpdateBehaviourFlag( Bool        b  )          { m_bRequiredFrameNumUpdateBehaviourFlag  = b;  }
   Void  setFrameWidthInMbs                    ( UInt        ui )          { m_uiFrameWidthInMbs                     = ui; }
@@ -206,17 +198,6 @@ public:
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-  ErrVal initOffsetForRefFrame( UInt uiSize )
-  {
-    ROT ( uiSize<1 );
-
-    RNOK( m_piOffsetForRefFrame.uninit() );
-    RNOK( m_piOffsetForRefFrame.init( uiSize ) );
-
-    return Err::m_nOK;
-  }
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
 
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
@@ -231,9 +212,6 @@ public:
 // TMM_ESS }
 
 protected:
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
-	ErrVal xReadPicOrderCntInfo         ( HeaderSymbolReadIf* pcReadIf );
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   static ErrVal xGetLevelLimit        ( const LevelLimit*&    rpcLevelLimit,
                                         Int                   iLevelIdc );
   ErrVal        xReadFrext            ( HeaderSymbolReadIf*   pcReadIf );
@@ -255,17 +233,13 @@ protected:
 	Bool          m_bSeqScalingMatrixPresentFlag;
   ScalingMatrix m_cSeqScalingMatrix;
   UInt          m_uiLog2MaxFrameNum;
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
 	UInt          m_uiPicOrderCntType;
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
   UInt          m_uiLog2MaxPicOrderCntLsb;
-#ifdef   PIC_ORDER_CNT_TYPE_BUGFIX
   Bool          m_bDeltaPicOrderAlwaysZeroFlag;
   Int           m_iOffsetForNonRefPic;
   Int           m_iOffsetForTopToBottomField;
   UInt          m_uiNumRefFramesInPicOrderCntCycle;
-  DynBuf<Int>   m_piOffsetForRefFrame;
-#endif //PIC_ORDER_CNT_TYPE_BUGFIX
+  Int           m_aiOffsetForRefFrame[64];
   UInt          m_uiNumRefFrames;
   Bool          m_bRequiredFrameNumUpdateBehaviourFlag;
   UInt          m_uiFrameWidthInMbs;

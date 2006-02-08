@@ -199,7 +199,7 @@ SliceHeader::getDistScaleFactor( SChar sL0RefIdx,
     Int iDiffPocB = getPoc() - pcFrameL0->getPOC();
     Int iTDB      = gClipMinMax( iDiffPocB, -128, 127 );
     Int iTDD      = gClipMinMax( iDiffPocD, -128, 127 );
-    Int iX        = (0x4000 + (iTDD>>1)) / iTDD;
+    Int iX        = (0x4000 + abs(iTDD/2)) / iTDD;
     Int iScale    = gClipMinMax( (iTDB * iX + 32) >> 6, -1024, 1023 );
     return iScale;
   }
@@ -223,12 +223,45 @@ SliceHeader::getDistScaleFactorScal( SChar sL0RefIdx,
     Int iDiffPocB = getPoc() - pcFrameL0->getPOC();
     Int iTDB      = gClipMinMax( iDiffPocB, -128, 127 );
     Int iTDD      = gClipMinMax( iDiffPocD, -128, 127 );
-    Int iX        = (0x4000 + (iTDD>>1)) / iTDD;
+    Int iX        = (0x4000 + abs(iTDD/2)) / iTDD;
     Int iScale    = gClipMinMax( (iTDB * iX + 32) >> 6, -1024, 1023 );
     return iScale;
   }
 }
 
+
+Int
+SliceHeader::getDistScaleFactorWP( const Frame* pcFrameL0, const Frame* pcFrameL1 ) const
+{
+  Int iDiffPocD = pcFrameL1->getPOC() - pcFrameL0->getPOC();
+  if( iDiffPocD == 0 )
+  {
+    return 1024;
+  }
+  Int iDiffPocB = getPoc() - pcFrameL0->getPOC();
+  Int iTDB      = gClipMinMax( iDiffPocB, -128, 127 );
+  Int iTDD      = gClipMinMax( iDiffPocD, -128, 127 );
+  Int iX        = (0x4000 + abs(iTDD/2)) / iTDD;
+  Int iScale    = gClipMinMax( (iTDB * iX + 32) >> 6, -1024, 1023 );
+  return iScale;
+}
+
+
+Int
+SliceHeader::getDistScaleFactorWP( const IntFrame* pcFrameL0, const IntFrame* pcFrameL1 ) const
+{
+  Int iDiffPocD = pcFrameL1->getPOC() - pcFrameL0->getPOC();
+  if( iDiffPocD == 0 )
+  {
+    return 1024;
+  }
+  Int iDiffPocB = getPoc() - pcFrameL0->getPOC();
+  Int iTDB      = gClipMinMax( iDiffPocB, -128, 127 );
+  Int iTDD      = gClipMinMax( iDiffPocD, -128, 127 );
+  Int iX        = (0x4000 + abs(iTDD/2)) / iTDD;
+  Int iScale    = gClipMinMax( (iTDB * iX + 32) >> 6, -1024, 1023 );
+  return iScale;
+}
 
 
 H264AVC_NAMESPACE_END

@@ -427,6 +427,7 @@ ErrVal ControlMngH264AVCDecoder::initSlice( SliceHeader& rcSH, ProcessingState e
   m_pcMbDataCtrl  = rcSH.getFrameUnit()->getMbDataCtrl();
 
   RNOK( m_pcMbDataCtrl->initSlice( rcSH, eProcessingState, true, NULL ) );
+  RNOK( m_pcSampleWeighting->initSlice( rcSH ) );
 
   if( PARSE_PROCESS == eProcessingState )
   {
@@ -483,6 +484,7 @@ ErrVal ControlMngH264AVCDecoder::initSliceForDecoding( const SliceHeader& rcSH )
   m_uiCurrLayer   = rcSH.getLayerId();
 
   RNOK( m_pcMotionCompensation->initSlice( rcSH ) );
+  RNOK( m_pcSampleWeighting->initSlice( rcSH ) );
 
   return Err::m_nOK;
 }

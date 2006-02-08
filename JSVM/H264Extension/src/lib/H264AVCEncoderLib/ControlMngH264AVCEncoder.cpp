@@ -141,7 +141,10 @@ ControlMngH264AVCEncoder::initParameterSets( const SequenceParameterSet&  rcSPS,
   //===== initialize buffer controls and MCTFEncoder =====
   RNOK( m_apcYuvFullPelBufferCtrl[uiLayer]->initSPS( uiMbY<<4, uiMbX<<4, YUV_Y_MARGIN, YUV_X_MARGIN    ) );
   RNOK( m_apcYuvHalfPelBufferCtrl[uiLayer]->initSPS( uiMbY<<4, uiMbX<<4, YUV_Y_MARGIN, YUV_X_MARGIN, 1 ) );
+  if( ! m_bMVCMode )
+  {
   RNOK( m_apcMCTFEncoder         [uiLayer]->initParameterSets( rcSPS, rcPPSLP, rcPPSHP ) );
+  }
 
   return Err::m_nOK;
 }
@@ -290,6 +293,7 @@ ErrVal ControlMngH264AVCEncoder::init( FrameMng*               pcFrameMng,
     m_apcYuvHalfPelBufferCtrl [uiLayer] = apcYuvHalfPelBufferCtrl [uiLayer];
   }
 
+  m_bMVCMode = ( pcCodingParameter->getMVCmode() != 0 );
 
   return Err::m_nOK;
 }
@@ -331,6 +335,7 @@ ErrVal ControlMngH264AVCEncoder::initSliceForCoding( const SliceHeader& rcSH )
   RNOK( m_pcMbEncoder         ->initSlice ( rcSH ) )
   RNOK( m_pcMbCoder           ->initSlice ( rcSH, m_pcMbSymbolWriteIf, m_pcRateDistortion ) );
   RNOK( m_pcMotionEstimation  ->initSlice ( rcSH ) );
+  RNOK( m_pcSampleWeighting   ->initSlice ( rcSH ) );
 
   return Err::m_nOK;
 }
@@ -351,6 +356,7 @@ ErrVal ControlMngH264AVCEncoder::initSlice( SliceHeader& rcSH, ProcessingState e
 
   RNOK( m_pcMbDataCtrl          ->initSlice( rcSH, eProcessingState, false, NULL ) );
   RNOK( m_pcMotionEstimation    ->initSlice( rcSH ) );
+  RNOK( m_pcSampleWeighting     ->initSlice( rcSH ) );
   RNOK( m_pcMbEncoder           ->initSlice( rcSH ) );
 
   if( ENCODE_PROCESS == eProcessingState )

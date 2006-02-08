@@ -111,7 +111,7 @@ public:
 
   ErrVal compensateBlock( IntYuvMbBuffer *pcRecPelData, UInt uiBlk, UInt uiMode, IntYuvMbBuffer *pcRefPelData2 = NULL );
 
-  Void xSubPelSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode, Bool bQPelOnly, IntYuvMbBuffer *pcRefPelData2 );
+  Void xSubPelSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode, Bool bQPelOnly );
 
 protected:
   Void xCompensateBlocksHalf( XPel *pPelDes, IntYuvPicBuffer *pcRefPelData, Mv cMv, UInt uiMode, UInt uiYSize, UInt uiXSize );

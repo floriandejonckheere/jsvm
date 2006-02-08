@@ -86,6 +86,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "SliceEncoder.h"
 #include "MbCoder.h"
 #include "CodingParameter.h"
+#include "RecPicBuffer.h"
 #include "H264AVCCommonLib/PocCalculator.h"
 #include "H264AVCCommonLib/FrameMng.h"
 #include "H264AVCCommonLib/Transform.h"
@@ -454,6 +455,56 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
   return Err::m_nOK;
 }
 
+
+ErrVal
+SliceEncoder::encodeSlice( SliceHeader&  rcSliceHeader,
+                           IntFrame*     pcFrame,
+                           MbDataCtrl*   pcMbDataCtrl,
+                           RefFrameList& rcList0,
+                           RefFrameList& rcList1,
+                           UInt          uiMbInRow,
+                           Double        dlambda )
+{
+  ROF( pcFrame );
+  ROF( pcMbDataCtrl );
+
+  //===== get co-located picture =====
+  MbDataCtrl* pcMbDataCtrlL1 = NULL;
+  if( rcList1.getActive() && rcList1.getEntry( 0 )->getRecPicBufUnit() )
+  {
+    pcMbDataCtrlL1 = rcList1.getEntry( 0 )->getRecPicBufUnit()->getMbDataCtrl();
+  }
+  ROT( rcSliceHeader.isInterB() && ! pcMbDataCtrlL1 );
+
+  //===== initialization =====
+  RNOK( pcMbDataCtrl  ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, pcMbDataCtrlL1 ) );
+  RNOK( m_pcControlMng->initSliceForCoding( rcSliceHeader ) );
+
+  //===== loop over macroblocks =====
+  for( UInt uiMbAddress = rcSliceHeader.getFirstMbInSlice(); uiMbAddress <= rcSliceHeader.getLastMbInSlice(); uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr( uiMbAddress ) )
+  {
+    ETRACE_NEWMB( uiMbAddress );
+
+    UInt          uiMbY           = uiMbAddress / uiMbInRow;
+    UInt          uiMbX           = uiMbAddress % uiMbInRow;
+    MbDataAccess* pcMbDataAccess  = 0;
+
+    RNOK( pcMbDataCtrl  ->initMb          (  pcMbDataAccess, uiMbY, uiMbX ) );
+    RNOK( m_pcControlMng->initMbForCoding ( *pcMbDataAccess, uiMbAddress  ) );
+
+    RNOK( m_pcMbEncoder ->encodeMacroblock( *pcMbDataAccess,
+                                             pcFrame,
+                                             rcList0,
+                                             rcList1,
+                                             m_pcCodingParameter->getMotionVectorSearchParams().getNumMaxIter(),
+                                             m_pcCodingParameter->getMotionVectorSearchParams().getIterSearchRange(),
+                                             dlambda ) );
+    RNOK( m_pcMbCoder   ->encode          ( *pcMbDataAccess, NULL, SST_RATIO_1,
+                                             ( uiMbAddress == rcSliceHeader.getLastMbInSlice() ) ) );
+  }
+
+  return Err::m_nOK;
+}
 
 
 
