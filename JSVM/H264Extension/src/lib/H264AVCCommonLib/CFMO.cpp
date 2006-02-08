@@ -144,7 +144,7 @@ int FMO::GenerateMbToSliceGroupMap()
  */
 void FMO::printFmoMaps()
 {
-#if 0 // debug
+#if 1 // debug
   return;
 #endif
 
