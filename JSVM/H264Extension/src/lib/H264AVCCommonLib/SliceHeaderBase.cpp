@@ -256,9 +256,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bKeyPictureFlag                   ( false )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevel                ( 0 )
-#ifdef FRAG_FIX_2
-, m_uiBaseFragmentOrder				  ( 0 )
-#endif
+, m_uiBaseFragmentOrder				        ( 0 )
 , m_bAdaptivePredictionFlag           ( false )
 , m_bNumRefIdxActiveOverrideFlag      ( false )
 , m_bNoOutputOfPriorPicsFlag          ( true  )
@@ -359,21 +357,12 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   if(m_uiFragmentOrder == 0)
   {
   //~JVT-P031
-#ifdef FRAG_FIX_2
 	if( m_eSliceType == F_SLICE ) 
 	{
 		RNOK(   pcWriteIf->writeUvlc( m_uiNumMbsInSlice,                            "SH: num_mbs_in_slice" ) );
 		RNOK(   pcWriteIf->writeFlag( m_bFgsComponentSep,                           "SH: fgs_comp_sep" ) );
 	}
-#endif
   RNOK(     pcWriteIf->writeUvlc( m_uiPicParameterSetId,                        "SH: pic_parameter_set_id" ) );
-#ifndef FRAG_FIX_2
-  if( m_eSliceType == F_SLICE ) // HS: coding order changed to match the text
-  {
-    RNOK(   pcWriteIf->writeUvlc( m_uiNumMbsInSlice,                            "SH: num_mbs_in_slice" ) );
-    RNOK(   pcWriteIf->writeFlag( m_bFgsComponentSep,                           "SH: fgs_comp_sep" ) );
-  }
-#endif
   RNOK(     pcWriteIf->writeCode( m_uiFrameNum,
                                   getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
@@ -411,11 +400,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       uiBaseLayerIdPlus1 = 0;
     else
       // one example (m_uiBaseLayerId, m_uiBaseQualityLevel) -> uiBaseLayerIdPlus1 mapping
-#ifdef FRAG_FIX_2
 	  uiBaseLayerIdPlus1 = ( (m_uiBaseLayerId << 4) + (m_uiBaseQualityLevel << 2) + m_uiBaseFragmentOrder ) + 1;
-#else
-      uiBaseLayerIdPlus1 = ( (m_uiBaseLayerId << 2) + m_uiBaseQualityLevel ) + 1;
-#endif
     RNOK(   pcWriteIf->writeUvlc( uiBaseLayerIdPlus1,                           "SH: base_id_plus1" ) );
     if( uiBaseLayerIdPlus1 )
     {
@@ -731,14 +716,9 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     m_uiBaseLayerId = uiTmp - 1;
     if( m_uiBaseLayerId != MSYS_UINT_MAX )
     {
-#ifdef FRAG_FIX_2
-	  m_uiBaseFragmentOrder = m_uiBaseLayerId & 0x03;
+	    m_uiBaseFragmentOrder = m_uiBaseLayerId & 0x03;
       m_uiBaseQualityLevel = (m_uiBaseLayerId >> 2) & 0x03;
-	  m_uiBaseLayerId = m_uiBaseLayerId >> 4;
-#else
-      m_uiBaseQualityLevel = m_uiBaseLayerId & 0x03;
-      m_uiBaseLayerId >>= 2;
-#endif
+	    m_uiBaseLayerId = m_uiBaseLayerId >> 4;
     }
     else
     {

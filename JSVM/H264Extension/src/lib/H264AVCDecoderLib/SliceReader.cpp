@@ -297,14 +297,12 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
           {
             RNOK( m_pcHeaderReadIf    ->getFlag( bLastFragFlag,  "SH: fgs_last_frag_flag" ) );
           }
-        }
-#ifdef FRAG_FIX_2
-		if(uiFragOrder == 0 )
-		{
-			RNOK( m_pcHeaderReadIf    ->getUvlc( uiNumMbsInSlice,  "SH: num_mbs_in_slice" ) );
-			RNOK( m_pcHeaderReadIf    ->getFlag( bFGSCompSep,  "SH: fgs_comp_sep" ) );
-		}
-#endif
+       }
+		  if(uiFragOrder == 0 )
+		  {
+			  RNOK( m_pcHeaderReadIf    ->getUvlc( uiNumMbsInSlice,  "SH: num_mbs_in_slice" ) );
+			  RNOK( m_pcHeaderReadIf    ->getFlag( bFGSCompSep,  "SH: fgs_comp_sep" ) );
+		  }
 	  }
 	  if(uiFragOrder == 0)
       {
@@ -317,14 +315,6 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
         uiNumMbsInSlice = uiFirstFragNumMbsInSlice;
         bFGSCompSep = bFirstFragFGSCompSep;
       }
-#ifndef FRAG_FIX_2
-      if(uiFragOrder == 0 && uiSliceType == F_SLICE)
-      {
-         RNOK( m_pcHeaderReadIf    ->getUvlc( uiNumMbsInSlice,  "SH: num_mbs_in_slice" ) );
-         RNOK( m_pcHeaderReadIf    ->getFlag( bFGSCompSep,  "SH: fgs_comp_sep" ) );
-      }
-#endif
-      
       RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
       RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
   }
