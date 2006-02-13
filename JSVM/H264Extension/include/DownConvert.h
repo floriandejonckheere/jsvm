@@ -267,6 +267,15 @@ private:
                                   bool              bClip = true );
 
 #ifndef NO_MB_DATA_CTRL
+  void   xInitFilterTmmResidual        ( int iMaxDim );
+  void   xDestroyFilterTmmResidual     ( );
+
+  void   xGenericUpsample       ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  h264::MbDataCtrl* pcMbDataCtrl,
+                                  bool              bClip = true );
   // SSUN@SHARP
   void   xGenericUpsampleEss    ( short*            psBufferY, int iStrideY,
                                   short*            psBufferU, int iStrideU,
@@ -289,15 +298,46 @@ private:
                                   bool chroma, int rounding_para,  // SSUN, 27Sept2005
                                   unsigned char *buf_blocksize );
   // end of SSUN@SHARP
-   void xCopyBuffer		(int *pitmpDes,
+  void   xUpsamplingFrame       ( ResizeParameters* pcParameters,
+                                  int* piSrcBlock,   // low-resolution src-addr
+                                  int* piDesBlock,   // high-resolution src-addr
+                                  bool bLuma,
+								                  h264::MbDataCtrl* pcMbDataCtrl);
+//TMM_ESS_UNIFIED {
+  void   xUpsamplingBlock       ( int iInWidth,      // low-resolution width
+                                  int iInHeight,     // low-resolution height
+                                  int iOutWidth,     // high-resolution width
+                                  int iOutHeight,    // high-resolution height
+                                  int* piSrcBlock,   // low-resolution src-addr
+                                  int* piDesBlock,   // high-resolution src-addr
+                                  int xNumphi,       // dephasage on X direction
+                                  int yNumphi,       // dephasage on Y direction
+                                  int* Numerateur,
+                                  int iInBlockSize);
+  void xComputeLastSamplePosition( int xNumphi,
+                                   int yNumphi,
+                                   int iPelPerMb,
+                                   int *Numerateur,
+                                   int *Denominateur,
+                                   int *xlastsample,
+                                   int *ylastsample);
+//TMM_ESS_UNIFIED }
+  void xCopyBuffer		(int *pitmpDes,
 						           int *piDes,
 						           int ixlastsample,
 						           int iylastsample,
 						           int ixout,
 						           int iyout,
 						           int iSizeOut);
+  void   xUpsamplingDataResidual ( int iInLength , int iOutLength, double phase_init);
 
- #endif
+private:
+  int *m_pitmpDes4;
+	int *m_pitmpDes8;
+	int *m_pitmpDes16; 
+
+
+#endif
   
   void   xSetValue              ( unsigned char* pucBuffer, int iStride,
                                   int iWidth, int iHeight,
@@ -349,12 +389,10 @@ private:
   
 // INTRA 2 / INTER 2 
 private:
- 
-  int* m_aiTmp1dBufferInHalfpel;
-  int* m_aiTmp1dBufferInQ1pel;
-  int* m_aiTmp1dBufferInQ3pel;
+  int* m_Tmp1dBufferInHalfpel;
+  int* m_Tmp1dBufferInQ1pel;
+  int* m_Tmp1dBufferInQ3pel;
   
-
 // =================================================================================
   
 // INTRA 3
@@ -398,6 +436,9 @@ private:
 // TMM_ESS }
   
 };
+
+
+
 
 
 #include "DownConvert.inl"
