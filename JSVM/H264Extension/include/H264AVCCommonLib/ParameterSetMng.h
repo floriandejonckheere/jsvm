@@ -131,6 +131,8 @@ private:
   StatBuf<PictureParameterSet*,256> m_cPPSBuf;
   UInt m_uiActiveSPSId;
   UInt m_uiActivePPSId;
+  std::list<SequenceParameterSet*>  m_cSPSList;
+  std::list<PictureParameterSet*>   m_cPPSList;
 };
 
 

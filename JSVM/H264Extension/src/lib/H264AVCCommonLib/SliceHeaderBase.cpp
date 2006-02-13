@@ -874,7 +874,6 @@ ErrVal
 SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
 {
   Bool  bTmp;
-  Int   iTmp;
 
  
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
@@ -884,13 +883,22 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
   
-  RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
-                               getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-
-  if(getPPS().getPicOrderPresentFlag() == true)
+  if( getSPS().getPicOrderCntType() == 0 )
   {
-	RNOK( pcReadIf->getSvlc( iTmp,                                             "SH: delta_pic_order_cnt_bottom" ) );
-	ROT ( iTmp );
+    RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
+      getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
+    }
+  }
+  if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
+  {
+    RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
+    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    {
+      RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
+    }
   }
   
   if( m_eSliceType == B_SLICE )

@@ -126,6 +126,20 @@ ErrVal ParameterSetMng::uninit()
     RNOK( xDestroyPPS( uiPPSId ) )
   }
 
+  std::list<SequenceParameterSet*>::iterator ppcSPS = m_cSPSList.begin();
+  for( ; ppcSPS != m_cSPSList.end(); ppcSPS++ )
+  {
+    (*ppcSPS)->destroy();
+  }
+  m_cSPSList.clear();
+
+  std::list<PictureParameterSet*>::iterator ppcPPS = m_cPPSList.begin();
+  for( ; ppcPPS != m_cPPSList.end(); ppcPPS++ )
+  {
+    (*ppcPPS)->destroy();
+  }
+  m_cPPSList.clear();
+
   return Err::m_nOK;
 }
 
@@ -162,7 +176,12 @@ ErrVal ParameterSetMng::xDestroySPS( UInt uiSPSId )
 {
   ROF( m_cSPSBuf.isValidOffset(uiSPSId) )
 
-  RNOK( m_cSPSBuf.get( uiSPSId )->destroy() );
+  //RNOK( m_cSPSBuf.get( uiSPSId )->destroy() );
+  SequenceParameterSet* pcSPS = m_cSPSBuf.get( uiSPSId );
+  if( pcSPS )
+  {
+    m_cSPSList.push_back( pcSPS );
+  }
 
   m_cSPSBuf.set( uiSPSId, NULL );
 
@@ -203,7 +222,11 @@ ErrVal ParameterSetMng::xDestroyPPS(UInt uiPPSId)
 
   ROTRS( NULL == pcPPS, Err::m_nOK );
 
-  RNOK( pcPPS->destroy() );
+  //RNOK( pcPPS->destroy() );
+  if( pcPPS )
+  {
+    m_cPPSList.push_back( pcPPS );
+  }
 
   m_cPPSBuf.set( uiPPSId, NULL );
   return Err::m_nOK;
