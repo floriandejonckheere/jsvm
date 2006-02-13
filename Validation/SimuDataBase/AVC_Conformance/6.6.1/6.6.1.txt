@@ -69,7 +69,7 @@
 		        height => 144,
 		        bitstreamname => "NL3_SVA_E.264",
 		        decodedname   => "NL3_SVA_E_176x144.yuv",
-		        origname      => "NL3_SVA_E_rec.yuv ",
+		        origname      => "NL3_SVA_E_rec.yuv",
 		        psnr => 99,
 		      },
 		      #----------#
