@@ -1,0 +1,131 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	   => "6.6.21",
+    verbosemode    => 0,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 0,
+    
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                    ],
+   
+#==========================================================#
+#          Extracting + Decoding parameters  (i.e Tests )  #
+#==========================================================#  
+      tests      => [
+		      #----------#
+                      # Test   0 #
+                      #----------#
+                      {
+		        name   => "FREH-3",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "HCAFR1_HHI.264",
+		        decodedname   => "HCAFR1_HHI_352x288.yuv",
+		        origname      => "HCAFR1_HHI.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   1 #
+                      #----------#
+		      {
+		        name => "FREH-4",
+		        mode => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "HCAFF1_HHI.264",
+		        decodedname   => "HCAFF1_HHI_352x288.yuv", 
+		        origname      => "HCAFF1_HHI.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   2 #
+                      #----------#
+                      {
+		        name   => "FREH-8",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "HPCANL_BRCM_C.264",
+		        decodedname   => "HPCANL_BRCM_C_352x288.yuv",
+		        origname      => "HPCANL_BRCM_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   3 #
+                      #----------#
+                      {
+		        name   => "FREH-9",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "HPCA_BRCM_C.264",
+		        decodedname   => "HPCA_BRCM_C_352x288.yuv",
+		        origname      => "HPCA_BRCM_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   4 #
+                      #----------#
+                      {
+		        name   => "FREH-10",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "HPCAFLNL_BRCM_C.264",
+		        decodedname   => "HPCAFLNL_BRCM_C_352x288.yuv",
+		        origname      => "HPCAFLNL_BRCM_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   5 #
+                      #----------#
+                      {
+		        name   => "FREH-11",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "HPCAFL_BRCM_C.264",
+		        decodedname   => "HPCAFL_BRCM_C_352x288.yuv",
+		        origname      => "HPCAFL_BRCM_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   6 #
+                      #----------#
+                      {
+		        name   => "FREH-30",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "freh3.264",
+		        decodedname   => "brcm_freh3_352x288.yuv",
+		        origname      => "Freh3_dec.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   7 #
+                      #----------#
+                      {
+		        name   => "FREH-31",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "freh4.264",
+		        decodedname   => "brcm_freh4_352x288.yuv",
+		        origname      => "Freh4_dec.yuv",
+		        psnr => 99,
+		      }
+    		    ],
+}
+
+

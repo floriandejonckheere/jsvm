@@ -1,0 +1,510 @@
+#!/usr/bin/perl
+###############################################################################
+# Copyright 2006 -- Thomson R&D France Snc
+#                   Technology - Corporate Research
+###############################################################################
+# File          : Tools.pm
+# Author        : jerome.vieron@thomson.net
+# Creation date : 25 January 2006
+# Version       : 0.0.1
+################################################################################
+
+package Tools;
+
+#-----------------------#
+# System Packages       #
+#-----------------------#
+use strict;
+use IO::File;
+use Data::Dumper;  
+
+#-----------------------#
+# Project Packages      #
+#-----------------------#
+use Tools::External;
+
+#-----------------------#
+# Functions             #
+#-----------------------#
+
+###############################################################################
+# Function         : ReadSimu ($)
+###############################################################################
+sub ReadSimu ($)
+{
+  my $filename = shift;
+
+  my $hash;
+  my $str = "\$hash = ";
+  my $fh = new IO::File($filename, "r") or die "Can not open $filename : $!\n";
+  while (<$fh>)
+    {
+      $str .= $_;
+    }
+  $fh->close;
+
+  $str .= ";";
+  eval $str or die "problem : $@\n$str\n";
+
+  return $hash;
+}
+
+###############################################################################
+# Function         : LoadSimu ($;$)
+###############################################################################
+sub LoadSimu ($;$)
+{
+	my $simuname = shift;
+	my $param    = shift;	
+	my $dbdir    = $param->{path_database}."$simuname/";
+	my $simudir  = $param->{path_simu}."$simuname";
+	
+	my $simu= ReadSimu("$dbdir$simuname.txt");
+	
+	InitSimu($simu,$param);
+	
+	DirTree::BuildSimuDir ($simuname,$param,$simu->{runencode});
+	
+	return ($simu,$simudir);	
+}
+
+######################################################################################
+# Function         : ConcatPath($;$) 
+######################################################################################
+sub ConcatPath($;$) 
+{
+	my $path = shift;
+	my $str	 =shift;
+	$str =~ /^$path/ or $str="$path$str";
+	
+	return $str; 
+}
+
+######################################################################################
+# Function         : InitSimu ($;$)
+######################################################################################
+sub InitSimu($;$)
+{
+	my $simu   = shift;
+	my $param  = shift;
+			
+	$simu->{basestream}   = $simu->{name}."_".$simu->{width}."x".$simu->{height}."_".$simu->{framerate};
+	
+	
+	my $isdefined = (defined $simu->{originalwidth})+(defined $simu->{originalheight})+(defined $simu->{originalframerate});
+	
+	if(!$isdefined) 
+	{
+		$simu->{original}     = ConcatPath($param->{path_globalorig},$simu->{original});
+		$simu->{origname}     = $simu->{original};
+		
+	}
+	elsif($isdefined ==3)
+	{
+	$simu->{original}     = ConcatPath($param->{path_globalorig},$simu->{original});	
+	$simu->{origname}     = ConcatPath($param->{path_orig},$simu->{basestream}.".yuv");		
+	}
+	else
+	{
+	die "Each of originalwidth, originalheight and originalframerate parameter must be defined or NONE !\n";
+	}
+		
+	$simu->{configname}   = $param->{path_cfg}.$simu->{name}.".cfg";
+	$simu->{bitstreamname}= $param->{path_str}.$simu->{name}.".264" ; 
+	$simu->{logname}      = $param->{path_log}.$simu->{name}.".log";
+	#$simu->{tempopsnrname}= $param->{path_tmp}."psnr.dat";
+	
+	(defined $simu->{cropfilename}) and $simu->{cropfilename}=ConcatPath($param->{path_crop},$simu->{cropfilename});
+	(defined $simu->{verbosemode})  or  $simu->{verbosemode}   = 1;
+	(defined $simu->{runencode})    or  $simu->{runencode}     = 1;
+	(defined $simu->{nbfgslayer})   or  $simu->{nbfgslayer}    = 2;	
+	if($simu->{runencode} == 0)
+	{(defined $simu->{framerate}) 	or  $simu->{framerate} = 30;}
+	
+	(defined $simu->{psnrcheckrange})  or $simu->{psnrcheckrange} = 0.;   
+	(defined $simu->{bitratecheckrange}) or $simu->{bitratecheckrange}= 5.;
+	$simu->{psnrcheckrange} /= 100;   
+	$simu->{bitratecheckrange}/= 100;  		
+	
+	my $l = 0;	
+	foreach my $layer (@{$simu->{layers}})
+	{
+		(defined $layer->{width})     or ($layer->{width}     = $simu->{width});																																																															
+		(defined $layer->{height})    or ($layer->{height}    = $simu->{height});																																																															
+		(defined $layer->{framerate}) or ($layer->{framerate} = $simu->{framerate});
+		((defined $layer->{cropfilename}) and $layer->{cropfilename}=ConcatPath($param->{path_crop},$layer->{cropfilename}) );
+		#or ($layer->{cropfilename}=$simu->{cropfilename});
+		(defined $layer->{bitrate}) or $layer->{bitrate}=0;
+		(defined $layer->{bitrateDS}) or $layer->{bitrateDS}=0;
+		$layer->{motionname}   = $param->{path_mot}.$simu->{name}."_L$l.mot" ;									
+		$layer->{fgsname}      = $param->{path_fgs}.$simu->{name}."_L$l.dat";  
+		$layer->{reconname}    = $param->{path_tmp}.$simu->{name}."_rec_L$l.yuv";  																																																														
+		$layer->{basestream}   = $simu->{name}."_".$layer->{width}."x".$layer->{height}."_".$layer->{framerate}; 	
+		$layer->{origname}     = $param->{path_orig}.$layer->{basestream}.".yuv";
+		$l++;                                                                   																																																														
+	}
+	
+	my $tempstreamname=$simu->{bitstreamname};
+			
+	foreach my $test (@{$simu->{tests}})
+	{
+		my $bitrate =($test->{bitrate} ? $test->{bitrate}:50000);
+		
+		(defined $test->{framerate}) or ($test->{framerate} = $simu->{framerate});
+		$test->{basestream}    = $simu->{name}."_".$test->{width}."x".$test->{height}."_".$test->{framerate};
+		$test->{extractedname} = (($test->{mode}==0)? 
+					  ((defined $test->{bitstreamname})? ConcatPath($param->{path_str},$test->{bitstreamname}):$tempstreamname)
+					  :$param->{path_str}."Ext-".$test->{basestream}."-$bitrate.264");
+					  
+		$test->{extractoption} = $test->{width}."x".$test->{height}."\@".$test->{framerate}.":$bitrate";
+		$tempstreamname        = (($test->{mode}==3) ? $test->{extractedname} : $simu->{bitstreamname} );
+	      						 
+	        ((defined $test->{origname}) and $test->{origname}=ConcatPath($param->{path_orig},$test->{origname}))						 
+		or ($test->{origname}=ConcatPath($param->{path_orig},$test->{basestream}.".yuv"));
+		
+		((defined $test->{decodedname}) and $test->{decodedname}=ConcatPath($param->{path_rec},$test->{decodedname}))
+		or ($test->{decodedname}     = $param->{path_rec}.$test->{basestream}."-$bitrate.yuv");
+		
+		my $refl=FindRefLayer($simu,$test);
+		(defined $refl) and $test->{cropfilename}= $refl->{cropfilename} ;
+		(defined $test->{encdecmatch}) or $test->{encdecmatch}=0;	
+		if($test->{encdecmatch})
+ 		{
+	 		($test->{mode}==3) and die "Mode 3 and Encoder/Decoder match are not compliant $!";
+	 		(defined $refl) or die "ERROR: can not find corresponding reference layer for ".$test->{decodedname}." to check the encoder/decoder perfect match $!";
+	 		$test->{reconname}=$refl->{reconname};
+ 		}
+	}
+	
+    return 1;	
+}
+
+######################################################################################
+# Function         : FindRefLayer ($;$)
+######################################################################################
+sub FindRefLayer($;$)
+{
+	my $simu   = shift;
+	my $test   = shift;
+	
+	my $nblayer = $#{$simu->{layers}};
+	my @layers = @{$simu->{layers}};
+	while($nblayer>=0)
+	{
+		my $layer=@layers[$nblayer];
+		(($layer->{width} == $test->{width})&&($layer->{height} == $test->{height})&&( $layer->{framerate} >= $test->{framerate})) and return $layer;
+		$nblayer--;
+	}
+
+	#die "Can not find corresponding Layer";
+	return undef;
+}
+
+##############################################################################
+# Function         : CreateSequences ($;$)
+##############################################################################
+sub CreateSequences__($;$)
+{
+	my $simu=shift;
+	my $param=shift;
+	
+	::PrintLog(" Create Sequences\t.......... ");
+	
+	
+	
+	if($simu->{runencode})
+	{
+		foreach my $layer (@{$simu->{layers}})
+		{
+			 my $essopt=	((defined $layer->{croptype}) and ($layer->{croptype}==2))? 2:1;
+			 	
+			unless(-f $layer->{origname}) 
+			{ 	
+				External::Resize($param,
+					          $simu->{logname},
+					          $simu->{origname},
+					          $simu->{width},
+					          $simu->{height},
+				   	          $simu->{framerate},
+					          $layer->{origname},
+					          $layer->{width},
+					          $layer->{height},
+					          $layer->{framerate},
+					          $essopt,
+					          $simu->{nbframes},
+					          $layer->{cropfilename});	
+		       }
+		}
+	}
+
+
+	foreach my $test (@{$simu->{tests}})
+	{
+		 my $essopt=	((defined $test->{croptype}) and ($test->{croptype}==2))? 2:1;
+		 	
+		unless(-f $test->{origname}) 
+		{
+		External::Resize($param,
+		       $simu->{logname},
+		       $simu->{origname},
+		       $simu->{width},
+		       $simu->{height},
+		       $simu->{framerate},
+		       $test->{origname},
+		       $test->{width},
+		       $test->{height},
+		       $test->{framerate},
+		       $essopt,
+		       $simu->{nbframes},
+		       $test->{cropfilename});	
+		}
+	}
+	return 1;
+}
+
+
+##############################################################################
+# Function         : CreateSequences ($;$)
+##############################################################################
+sub CreateSequences($;$)
+{
+	my $simu=shift;
+	my $param=shift;
+	
+	::PrintLog(" Create Sequences\t.......... ");
+	
+	#build new original if needed
+	if ($simu->{origname} ne $simu->{original})
+	{
+				
+		unless(-f $simu->{origname}) 
+		{
+				 my $essopt=	((defined $simu->{croptype}) and ($simu->{croptype}==2))? 2:1;
+		 
+		 		External::Resize2($param,
+						  $simu->{logname},
+					          $simu->{original},
+					          $simu->{originalwidth},
+					          $simu->{originalheight},
+				   	          $simu->{originalframerate},
+					          $simu->{origname},
+					          $simu->{width},
+					          $simu->{height},
+					          $simu->{framerate},
+					          $essopt,
+					          $simu->{nbframes},
+					          $simu->{cropfilename});
+		}
+	}
+	
+	if($simu->{runencode})
+	{
+		foreach my $layer (@{$simu->{layers}})
+		{
+			 my $essopt=	((defined $layer->{croptype}) and ($layer->{croptype}==2))? 2:1;
+			 	
+			unless(-f $layer->{origname}) 
+			{ 	
+				External::Resize2($param,
+					          $simu->{logname},
+					          $simu->{origname},
+					          $simu->{width},
+					          $simu->{height},
+				   	          $simu->{framerate},
+					          $layer->{origname},
+					          $layer->{width},
+					          $layer->{height},
+					          $layer->{framerate},
+					          $essopt,
+					          $simu->{nbframes},
+					          $layer->{cropfilename});	
+		       }
+		}
+	}
+
+
+	foreach my $test (@{$simu->{tests}})
+	{
+		 my $essopt=	((defined $test->{croptype}) and ($test->{croptype}==2))? 2:1;
+		 	
+		unless(-f $test->{origname}) 
+		{
+		External::Resize2($param,
+		       $simu->{logname},
+		       $simu->{origname},
+		       $simu->{width},
+		       $simu->{height},
+		       $simu->{framerate},
+		       $test->{origname},
+		       $test->{width},
+		       $test->{height},
+		       $test->{framerate},
+		       $essopt,
+		       $simu->{nbframes},
+		       $test->{cropfilename});	
+		}
+	}
+	return 1;
+}
+
+
+######################################################################################
+# Function         : check_close ($;$;[$])
+######################################################################################
+sub check_close
+{
+	my $value = shift;
+	my $ref	  = shift;
+	my $range = ( $#_ >= 0 ) ? shift : 0.05;
+	my $up    = 1. + $range;
+	my $down  = 1. - $range;
+	
+	if ($value<$down*$ref) {return 0;}
+	if ($value>$up*$ref) {return 0;}
+	return 1;
+}
+
+###############################################################################
+# Function         : CheckResults ($$$$$$$$$$)
+###############################################################################
+sub CheckResults
+{
+	my ($simu,$test,$res_rate,$res_psnrY,$res_psnrCb,$res_psnrCr,$res_rate2,$res_psnrY2,$res_psnrCb2,$res_psnrCr2)= @_;
+	
+	my $expectedBitrate =$test->{bitrate};
+	my $expextedPSNR    =$test->{psnr};
+	my $result = 1;
+	
+	if (($res_rate == 0 and $res_rate ne "0") | ($res_psnrY == 0 and $res_psnrY ne "0"))
+	{
+		#not a number
+		::PrintLog("\t\t\t\t\tFailed (No results)\n");
+		$result = 0;
+	} 
+	else 
+	{
+		#check bitrate
+		#----------------				
+		::PrintLog("\tRate\t(${res_rate})\t\t");
+		($test->{mode}==2) and (($res_rate == $res_rate2) or ::PrintLog("Failed (Rate = $res_rate and Rate2 = $res_rate2 )\n"));
+		if (($expectedBitrate == 0 and $res_rate>0) 
+		or  ($expectedBitrate != 0 and check_close($res_rate,$expectedBitrate,$simu->{bitratecheckrange})))
+		{
+		  ::PrintLog("Passed\n");
+		  $result = 1;
+		} 
+		else 
+		{
+		   ::PrintLog("Failed (Result = $res_rate - Target: $expectedBitrate)\n");
+		   $result = 0;
+		};
+		
+		#Check PSNR
+		#----------------
+		::PrintLog("\tPSNR\t($res_psnrY)\t\t");
+		($test->{mode}==2) and (($res_psnrY == $res_psnrY2) or ::PrintLog("Failed (PSNRY = $res_psnrY and PSNRY2 = $res_psnrY2 )\n"));
+		if (($res_psnrY>=$expextedPSNR) or  check_close($res_psnrY,$expextedPSNR,$simu->{psnrcheckrange}))
+		{
+		  ::PrintLog("Passed\n");
+		  $result &= 1;
+		} 
+		else 
+		{
+		  ::PrintLog("Failed (result = $res_psnrY - Target: $expextedPSNR)\n");
+		  $result &= 0;
+		}
+	}
+
+	return $result;
+}
+
+###############################################################################
+# Function         : CheckPerfectEncodeDecodeMatch ($$$$)
+###############################################################################
+sub CheckPerfectEncodeDecodeMatch ($$$)
+{
+	my ($psnrY,$psnrCb,$psnrCr)= @_;
+	
+	#check Mismatch
+	#---------------
+	::PrintLog("\tEncoder/Decoder match\t\t");
+	
+	if(($psnrY==99.99)and ($psnrCr==99.99) and ($psnrCb==99.99))
+	{
+	 ::PrintLog("Passed\n");
+	 return 1;
+	}
+	else
+	{
+	::PrintLog("Failed ( Enc: $psnrY $psnrCb $psnrCr)\n"); 
+	return 0;
+	}
+}
+
+###############################################################################
+# Function         : ApplyTests ($;$)
+###############################################################################
+sub ApplyTests ($;$)
+{
+	my $simu  = shift;
+	my $param = shift;
+
+	::PrintLog(" Run Tests\t\t.......... \n\n");
+	
+	my $nbtest =$simu->{tests};
+	($nbtest) or die "No test defined for simu ".$simu->{name}."\n";
+	
+	my ($res_rate,$res_psnrY,$res_psnrCb,$res_psnrCr);
+        my ($res_rate2,$res_psnrY2,$res_psnrCb2,$res_psnrCr2);
+	
+	my $result = 1;
+	
+	foreach my $test (@{$simu->{tests}})	
+	{
+		::PrintLog("-----------------------------------------------\n");
+		::PrintLog($test->{name}." :: (".$test->{width}."x".$test->{height}.", ".$test->{framerate}.") -> ".$test->{bitrate}." - ".$test->{psnr}."\n");
+		::PrintLog("-----------------------------------------------\n");
+				
+		if ($test->{mode}==0) #decode only
+		{
+			#print Dumper($test);
+			($res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr) = External::Decode($simu,$test,$param);
+		}
+		elsif ($test->{mode}==1) #extract+decode
+		{
+			External::Extract($simu,$test,$param);	
+			($res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr) = External::Decode($simu,$test,$param);
+		} 
+		elsif ($test->{mode}==2) #doublecheck (extract+decode)
+		{
+			External::Extract($simu,$test,$param);	
+			($res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr) = External::Decode($simu,$test,$param);
+			External::Extract($simu,$test,$param);	
+			($res_rate2, $res_psnrY2, $res_psnrCb2, $res_psnrCr2) = External::Decode($simu,$test,$param);
+		}
+		else #extract + utilisation pour le prochain test
+		{
+			External::Extract($simu,$test,$param);
+			next;	
+		}	
+	
+		$result &= CheckResults($simu,$test,$res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr,$res_rate2, $res_psnrY2, $res_psnrCb2, $res_psnrCr2);	
+ 	
+ 		if($test->{encdecmatch})
+ 		{
+ 		
+ 		my($rate, $psnrY, $psnrCb, $psnrCr)=External::ComputePSNR($param->{path_bin},$simu->{logname},$test->{width},$test->{height},$test->{decodedname},$test->{reconname},$test->{extractedname},$test->{framerate},$param->{path_tmp}."psnr.dat");
+ 		$result &= CheckPerfectEncodeDecodeMatch ($psnrY, $psnrCb, $psnrCr);
+ 		}
+ 	 		
+ 	} #foreach
+	
+	return $result;
+}
+
+
+
+
+
+1;
+__END__

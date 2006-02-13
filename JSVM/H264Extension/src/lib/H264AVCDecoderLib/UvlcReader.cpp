@@ -2067,8 +2067,6 @@ UvlcReader::RQdecodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
   const UChar*  pucScan     = g_aucFrameScan64;
 
-  ROF( piCoeffBase[pucScan[uiScanIndex]] );
-
   DTRACE_T( "LUMA_8x8_REF" );
   DTRACE_V( c8x8Idx.b8x8Index() );
   DTRACE_V( uiScanIndex );
@@ -2177,8 +2175,6 @@ UvlcReader::RQdecodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
   const UChar*  pucScan     = g_aucFrameScan;
   UInt          uiStart     = 0;
   UInt          uiStop      = 16;
-
-  ROF( piCoeffBase[pucScan[uiScanIndex]] );
 
   DTRACE_T( "LUMA_4x4_REF" );
   DTRACE_V( cIdx.b4x4() );

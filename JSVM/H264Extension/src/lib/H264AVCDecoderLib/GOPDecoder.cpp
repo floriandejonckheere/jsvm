@@ -748,11 +748,9 @@ DecodedPicBuffer::xStorePicture( DPBUnit*       pcDPBUnit,
   RNOK( xDumpDPB() );
 
   m_pcCurrDPBUnit = m_cFreeDPBUnitList.popFront();                                // new current DPB unit
-#if 1 // BUG-FIX liuhui 0511 from mail by Heiko
   m_pcCurrDPBUnit->getCtrlData().setSliceHeader( 0 );
   m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->reset();
   m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->clear();
-#endif
 
   return Err::m_nOK;
 }
@@ -2192,10 +2190,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   rpcSliceHeader = 0;
 
   //----- init FGS decoder -----
-    if( m_uiQualityLevelForPrediction > 0 )  //--TM problem : in jsvm40, this sentance is commented
-    {
-      RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
-    }
+  RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
   }
 
   m_aapcFGSRecon[1][0]->copy(pcBaseRepFrame);

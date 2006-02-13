@@ -635,8 +635,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 				rcPacketDescription.auiQualityLevelQL[ui] = uiQualityLevel;
 				rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = uiDeltaBytesRateOfLevel;
 			}
-            uiLayer = pcSEI->getDependencyId();
-			bApplyToNext = true;
+      uiLayer = pcSEI->getDependencyId();
+			//bApplyToNext = true; fix provided by Nathalie
 			break;
 		  }
       //}}Quality level estimation and modified truncation- JVTO044 and m12007

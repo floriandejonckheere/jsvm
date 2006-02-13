@@ -1,0 +1,91 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	   => "6.6.1",
+    verbosemode    => 2,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 0,
+    
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [ ],
+   
+#==========================================================#
+#          Extracting + Decoding parameters  (i.e Tests )  #
+#==========================================================#  
+      tests      => [
+		      #----------#
+                      # Test   0 #
+                      #----------#
+                      {
+		        name => "AVCBS-1",
+		        mode => 0,
+		        width => 176,
+		        height => 144,
+		        bitstreamname => "CVBS3_Sony_C.jsv",
+		        decodedname   => "CVBS3_Sony_C_176x144.yuv",
+		        origname      => "CVBS3_Sony_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   1 #
+                      #----------#
+    		      {
+		        name => "AVCBS-2",
+		        mode => 0,
+		        width => 176,
+		        height => 144,
+		        bitstreamname => "BA3_SVA_C.264",
+		        decodedname   => "BA3_SVA_C_176x144.yuv",
+		        origname      => "BA3_SVA_C_rec.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   2 #
+                      #----------#
+                       {
+		        name => "AVCBS-3",
+		        mode => 0,
+		        width => 176,
+		        height => 144,
+		        bitstreamname => "SL1_SVA_B.264",
+		        decodedname   => "SL1_SVA_B_176x144.yuv",
+		        origname      => "SL1_SVA_B_rec.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   3 #
+                      #----------#
+                       {
+		        name => "AVCBS-4",
+		        mode => 0,
+		        width => 176,
+		        height => 144,
+		        bitstreamname => "NL3_SVA_E.264",
+		        decodedname   => "NL3_SVA_E_176x144.yuv",
+		        origname      => "NL3_SVA_E_rec.yuv ",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   4 #
+                      #----------#
+                       {
+		        name => "AVCBS-5",
+		        mode => 0,
+		        width => 720,
+		        height => 480,
+		        bitstreamname => "cvmp_mot_frm0_full_B.26l",
+		        decodedname   => "SL1_SVA_B_720x480.yuv",
+		        origname      => "cvmp_mot_frm0_full_rec_B.yuv",
+		        psnr => 99,
+		      },
+		   ],
+}
+
+

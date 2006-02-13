@@ -1,0 +1,75 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	=> "ESS_PIC",
+    original 	=> "CREW_4CIF60.yuv",
+    originalwidth => 704,
+    originalheight => 576,
+    originalframerate => 60,
+    width      	=> 704,
+    height     	=> 576,
+    framerate 	=> 30,
+    nbframes	=> 97,
+    verbosemode => 2,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 1,
+    singleloopflag => "-bcip",
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                      #----------#
+                      # Layer  0 #
+                      #----------#
+                       {
+                         width        => 384 ,
+			 height       => 336 ,
+			 cropfilename => "crew_pictlev.txt",
+			 croptype     => 2,
+			},
+		      #----------#
+                      # Layer  1 #
+                      #----------#
+		       {
+			width        => 640 ,
+			height       => 560 ,
+		       },
+		     ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+      tests      => [
+		      #----------#
+                      # Test   0 #
+                      #----------#
+                      {
+		        name => "BasicBL",
+		        mode => 1,
+		        width => 384,
+		        height => 336,
+		        framerate => 30,
+		        bitrate => 0,
+		        psnr => 34,
+		      },
+		      #----------#
+                      # Test   1 #
+                      #----------#
+		      {
+		        name => "BasicEL",
+	                mode => 1,
+		        width => 640,
+		        height => 560,
+		        framerate => 30,
+		        bitrate => 0,
+		        psnr => 34,
+		      },
+    		    ],
+}
+
+

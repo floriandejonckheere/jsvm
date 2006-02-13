@@ -1,0 +1,183 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	   => "6.6.20",
+    verbosemode    => 0,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 0,
+    
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                    ],
+   
+#==========================================================#
+#          Extracting + Decoding parameters  (i.e Tests )  #
+#==========================================================#  
+      tests      => [
+		      #----------#
+                      # Test   0 #
+                      #----------#
+                      {
+		        name   => "AVCCAMA-1",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "CAMANL1_TOSHIBA_B.264",
+		        decodedname   => "CAMANL1_TOSHIBA_B_352x288.yuv",
+		        origname      => "CAMANL1_TOSHIBA_B_dec.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   1 #
+                      #----------#
+		      {
+		        name => "AVCCAMA-2",
+		        mode => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "CAMANL2_TOSHIBA_B.264",
+		        decodedname   => "CAMANL2_TOSHIBA_B_352x288.yuv", 
+		        origname      => "CAMANL2_TOSHIBA_B_dec.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   2 #
+                      #----------#
+                      {
+		        name   => "AVCCAMA-3",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "CANLMA2_Sony_C.jsv",
+		        decodedname   => "CANLMA2_Sony_C_720x480.yuv",
+		        origname      => "CANLMA2_Sony_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   3 #
+                      #----------#
+                      {
+		        name   => "AVCCAMA-4",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "CANLMA3_Sony_C.jsv",
+		        decodedname   => "CANLMA3_Sony_C_720x480.yuv",
+		        origname      => "CANLMA3_Sony_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   4 #
+                      #----------#
+                      {
+		        name   => "AVCCAMA-5",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "CAMA1_Sony_C.jsv",
+		        decodedname   => "CAMA1_Sony_C_720x480.yuv",
+		        origname      => "CAMA1_Sony_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   5 #
+                      #----------#
+                      {
+		        name   => "AVCCAMA-6",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "CAMA1_TOSHIBA_B.264",
+		        decodedname   => "CAMA1_TOSHIBA_B_352x288.yuv",
+		        origname      => "CAMA1_TOSHIBA_B_dec.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   6 #
+                      #----------#
+                      {
+		        name   => "AVCCAMA-7",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "CAMANL3_Sand_E.264",
+		        decodedname   => "CAMANL3_Sand_E_352x288.yuv",
+		        origname      => "CAMANL3_Sand_E.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   7 #
+                      #----------#
+                      {
+		        name   => "AVCCAMA-8",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "CAMA3_Sand_E.264",
+		        decodedname   => "CAMA3_Sand_E_352x288.yuv",
+		        origname      => "CAMA3_Sand_E.yuv",
+		        psnr => 99,
+		      },	 
+		      #----------#
+                      # Test   8 #
+                      #----------#
+                      {
+		        name   => "AVCCAPAMA-1",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "CAPAMA3_Sand_F.264",
+		        decodedname   => "CAPAMA3_Sand_F_352x288.yuv",
+		        origname      => "CAPAMA3_Sand_F.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   9 #
+                      #----------#
+		      {
+		        name => "AVCCAPAMA-2",
+		        mode => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "cama1_vtc_c.avc",
+		        decodedname   => "cama1_vtc_c_720x480.yuv", 
+		        origname      => "cama1_vtc_c_recon.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test  10 #
+                      #----------#
+                      {
+		        name   => "AVCCAPAMA-3",
+		        mode   => 0,
+		        width  => 720,
+		        height => 576,
+		        bitstreamname => "cama2_vtc_b.avc",
+		        decodedname   => "cama2_vtc_b_720x576.yuv",
+		        origname      => "cama2_vtc_b_recon.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test  11 #
+                      #----------#
+                      {
+		        name   => "AVCCAPAMA-4",
+		        mode   => 0,
+		        width  => 352,
+		        height => 288,
+		        bitstreamname => "cama3_vtc_b.avc",
+		        decodedname   => "cama3_vtc_b_720x576.yuv",
+		        origname      => "cama3_vtc_b_recon.yuv",
+		        psnr => 99,
+		      }
+    		    ],
+}
+
+

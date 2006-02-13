@@ -214,6 +214,10 @@ int FMO::finit()
     delete[] MapUnitToSliceGroupMap_;
     MapUnitToSliceGroupMap_ = NULL; 
   }
+  if( numMbInSliceGroup_ )        // fix HS
+  {                               // fix HS
+    delete[] numMbInSliceGroup_;  // fix HS
+  }                               // fix HS
 
   return 0;
 }

@@ -1,0 +1,58 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+name              => "ARFGS",
+original          => "MOBILE_CIF30.yuv",
+originalwidth     => 352,
+originalheight    => 288,
+originalframerate => 30,
+width             => 176,
+height            => 144,
+framerate         => 30,
+nbframes          => 30,
+verbosemode       => 1,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+runencode      => 1,
+singleloopflag => "-ref 0.5 -ar 2 14",   # enabling AR-FGS
+
+#=======================#
+# Layers  parameters    #
+#=======================#     
+layers      => [
+                #----------#
+                # Layer  0 #
+                #----------#
+                {
+                 width        => 176,
+                 height       => 144,
+                 framerate    =>  30,
+                },
+               ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+bitratecheckrange  => 3,
+psnrcheckrange     => 0,
+         
+tests              => [
+                       #----------#
+                       # Test   0 #
+                       #----------#
+                       {
+                        name        => "Rec",
+                        mode        => 1,
+                        width       => 176,
+                        height      => 144,
+                        framerate   => 30,
+			bitrate     => 580,
+			psnr        => 32.97,
+                        encdecmatch => 1,
+                       },
+                      ],
+}
+

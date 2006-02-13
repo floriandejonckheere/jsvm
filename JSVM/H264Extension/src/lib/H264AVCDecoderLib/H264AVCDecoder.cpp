@@ -1087,6 +1087,11 @@ ErrVal H264AVCDecoder::xStartSlice(Bool bPreParseHeader, Bool& bLastFragment) //
         m_pcSliceHeader     = pSliceHeader;
         m_uiLastFragOrder = 0;
       } // FRAG_FIX
+      else // memory leak fix provided by Nathalie
+      {
+        delete pSliceHeader; 
+        pSliceHeader = 0;
+      }
     }
     else
     {
@@ -1171,6 +1176,7 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
     m_pcVeryFirstSliceHeader  = new SliceHeader( rcSH.getSPS(), rcSH.getPPS() );
 
     //--ICU/ETRI FMO Implementation
+    m_pcVeryFirstSliceHeader->setSliceGroupChangeCycle( rcSH.getSliceGroupChangeCycle() ); // fix HS
     m_pcVeryFirstSliceHeader->FMOInit();  
     bVeryFirstSlice= true;
   }
@@ -1178,6 +1184,8 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 	{
 		delete m_pcVeryFirstSliceHeader;
 		m_pcVeryFirstSliceHeader  = new SliceHeader( rcSH.getSPS(), rcSH.getPPS() );
+    m_pcVeryFirstSliceHeader->setSliceGroupChangeCycle( rcSH.getSliceGroupChangeCycle() ); // fix HS
+    m_pcVeryFirstSliceHeader->FMOInit();  // fix HS
 	}
 	m_bNewSPS = false;
   
@@ -1250,11 +1258,7 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
     RNOK( m_pcFrameMng->storePicture( rcSH ) );
 
     //===== init FGS decoder =====
-    if( m_uiQualityLevelForPrediction > 0 )
-    {
-      //--ICU/ETRI FMO Implementation
-      RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
-    }
+    RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
   }
 
   if( m_bFrameDone )

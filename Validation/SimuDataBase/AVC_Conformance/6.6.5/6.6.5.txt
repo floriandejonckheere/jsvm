@@ -1,0 +1,92 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	   => "6.6.5",
+    verbosemode    => 0,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 0,
+    
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                    ],
+   
+#==========================================================#
+#          Extracting + Decoding parameters  (i.e Tests )  #
+#==========================================================#  
+      tests      => [
+		      #----------#
+                      # Test   0 #
+                      #----------#
+                      {
+		        name   => "AVCFI-1",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "CVNLFI1_Sony_C.jsv",
+		        decodedname   => "CVNLFI1_Sony_C_720x480.yuv",
+		        origname      => "CVNLFI1_Sony_C.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   1 #
+                      #----------#
+		      {
+		        name => "AVCFI-2",
+		        mode => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "CVNLFI2_Sony_H.jsv",
+		        decodedname   => "CVNLFI2_Sony_H_720x480.yuv", 
+		        origname      => "CVNLFI2_Sony_H.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   2 #
+                      #----------#
+                      {
+		        name   => "AVCFI-3",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "Sharp_MP_Field_1_B.jvt",
+		        decodedname   => "Sharp_MP_Field_1_B_720x480.yuv",
+		        origname      => "Sharp_MP_Field_1_rec_B.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   3 #
+                      #----------#
+                      {
+		        name   => "AVCFI-4",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "Sharp_MP_Field_2_B.jvt",
+		        decodedname   => "Sharp_MP_Field_2_B_720x480.yuv",
+		        origname      => "Sharp_MP_Field_2_rec_B.yuv",
+		        psnr => 99,
+		      },
+		      #----------#
+                      # Test   4 #
+                      #----------#
+                      {
+		        name   => "AVCFI-5",
+		        mode   => 0,
+		        width  => 720,
+		        height => 480,
+		        bitstreamname => "Sharp_MP_Field_3_B.jvt",
+		        decodedname   => "Sharp_MP_Field_3_B_720x480.yuv",
+		        origname      => "Sharp_MP_Field_3_rec_B.yuv",
+		        psnr => 99,
+		      },
+    		    ],
+}
+
+
