@@ -14,12 +14,12 @@
 
 #define ESS_ARRAY_SIZE   64   //TMM_ESS_UNIFIED
 
-#define DIRECT_INTERP 0  // 1: direct interpolation on; 0: off  - SSUN@SHARP
+#define DIRECT_INTERP 1  // 1: direct interpolation on; 0: off  - SSUN@SHARP
 
 __inline
 void
 DownConvert::xInitFilterTmm (int iMaxDim )
-{  
+{
   m_paiTmp1dBufferIn = m_paiTmp1dBuffer;
   m_paiTmp1dBufferOut = new int [ iMaxDim  ];
 
@@ -36,9 +36,9 @@ DownConvert::xDestroyFilterTmm ( )
 {
   // TODO
   return;
-  
+
   delete [] m_paiTmp1dBufferOut;
-  
+
   xDestroyFilterTmm1();
   xDestroyFilterTmm2();
 #ifndef NO_MB_DATA_CTRL
@@ -94,7 +94,7 @@ DownConvert::xGenericUpsample ( unsigned char* pucBufferY, int iStrideY,
   int iInHeight = pcParameters->m_iInHeight;
   int iOutWidth = pcParameters->m_iOutWidth;
   int iOutHeight = pcParameters->m_iOutHeight;
-  
+
   //===== luma =====
   xCopyToImageBuffer  ( pucBufferY, iInWidth,   iInHeight,   iStrideY );
   xUpsampling         ( pcParameters, true );
@@ -106,16 +106,16 @@ DownConvert::xGenericUpsample ( unsigned char* pucBufferY, int iStrideY,
   iInHeight   >>= 1;
   iOutWidth   >>= 1;
   iOutHeight  >>= 1;
-  
+
   //===== chroma cb =====
   xCopyToImageBuffer  ( pucBufferU, iInWidth, iInHeight, iStrideU );
-  xUpsampling         ( pcParameters, false ); 
+  xUpsampling         ( pcParameters, false );
   xCopyFromImageBuffer( pucBufferU, iOutWidth, iOutHeight, iStrideU, 0, 255 );
 
   //===== chroma cr =====
   xCopyToImageBuffer  ( pucBufferV, iInWidth, iInHeight, iStrideV );
   xUpsampling         ( pcParameters, false );
-  xCopyFromImageBuffer( pucBufferV, iOutWidth, iOutHeight, iStrideV, 0, 255 ); 
+  xCopyFromImageBuffer( pucBufferV, iOutWidth, iOutHeight, iStrideV, 0, 255 );
 }
 
 
@@ -148,7 +148,7 @@ DownConvert::xCrop ( unsigned char* pucBufferY, int iStrideY,
   iPosY       >>= 1;
   iGlobWidth  >>= 1;
   iGlobHeight >>= 1;
-  
+
   //===== chroma cb =====
   ptr = &pucBufferU[iPosY * iStrideU + iPosX];
   xCopyToImageBuffer  ( pucBufferU, iOutWidth,  iOutHeight, iStrideU );
@@ -232,7 +232,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   int iInHeight = pcParameters->m_iInHeight;
   int iGlobWidth = pcParameters->m_iGlobWidth;
   int iGlobHeight = pcParameters->m_iGlobHeight;
-  
+
   //===== luma =====
   xCopyToImageBuffer  ( psBufferY, iInWidth,   iInHeight,   iStrideY );
   xUpsampling3        ( pcParameters, true);
@@ -244,7 +244,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   iInHeight   >>= 1;
   iGlobWidth   >>= 1;
   iGlobHeight  >>= 1;
-  
+
   //===== chroma cb =====
   xCopyToImageBuffer  ( psBufferU, iInWidth, iInHeight, iStrideU );
   xUpsampling3        ( pcParameters, false);
@@ -253,8 +253,8 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   //===== chroma cr =====
   xCopyToImageBuffer  ( psBufferV, iInWidth, iInHeight, iStrideV );
   xUpsampling3        ( pcParameters, false);
-  xCopyFromImageBuffer( psBufferV, iGlobWidth, iGlobHeight, iStrideV, min, max ); 
-} 
+  xCopyFromImageBuffer( psBufferV, iGlobWidth, iGlobHeight, iStrideV, min, max );
+}
 // end of SSUN@SHARP
 
 
@@ -273,7 +273,7 @@ DownConvert::xGenericUpsample ( short* psBufferY, int iStrideY,
   int iInHeight = pcParameters->m_iInHeight;
   int iOutWidth = pcParameters->m_iOutWidth;
   int iOutHeight = pcParameters->m_iOutHeight;
-  
+
   //===== luma =====
   xCopyToImageBuffer  ( psBufferY, iInWidth,   iInHeight,   iStrideY );
   xUpsampling         ( pcParameters, true);
@@ -285,7 +285,7 @@ DownConvert::xGenericUpsample ( short* psBufferY, int iStrideY,
   iInHeight   >>= 1;
   iOutWidth   >>= 1;
   iOutHeight  >>= 1;
-  
+
   //===== chroma cb =====
   xCopyToImageBuffer  ( psBufferU, iInWidth, iInHeight, iStrideU );
   xUpsampling         ( pcParameters, false);
@@ -294,7 +294,7 @@ DownConvert::xGenericUpsample ( short* psBufferY, int iStrideY,
   //===== chroma cr =====
   xCopyToImageBuffer  ( psBufferV, iInWidth, iInHeight, iStrideV );
   xUpsampling         ( pcParameters, false);
-  xCopyFromImageBuffer( psBufferV, iOutWidth, iOutHeight, iStrideV, min, max ); 
+  xCopyFromImageBuffer( psBufferV, iOutWidth, iOutHeight, iStrideV, min, max );
 }
 
 
@@ -330,7 +330,7 @@ DownConvert::xCrop ( short* psBufferY, int iStrideY,
   iPosY       >>= 1;
   iGlobWidth  >>= 1;
   iGlobHeight >>= 1;
-  
+
   //===== chroma cb =====
   ptr = &psBufferU[iPosY * iStrideU + iPosX];
   xCopyToImageBuffer  ( psBufferU, iOutWidth,  iOutHeight,   iStrideU );
@@ -387,7 +387,7 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
                        bClip
                        );
 #endif
-    }    
+    }
 
   //===== Cropping =====
 #if DIRECT_INTERP  // SSUN@SHARP
@@ -406,11 +406,11 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
 // SSUN@SHARP
 __inline
 void
-DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out, 
-                                  int width, int height, 
-                                  int x, int y, int w, int h, 
-                                  int wsize_in, int hsize_in, 
-                                  h264::MbDataCtrl*  pcMbDataCtrl, 
+DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
+                                  int width, int height,
+                                  int x, int y, int w, int h,
+                                  int wsize_in, int hsize_in,
+                                  h264::MbDataCtrl*  pcMbDataCtrl,
                                   bool chroma, int rounding_para,
                                   unsigned char *buf_blocksize )
 {
@@ -422,7 +422,7 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   int new_div[2];  // for the simplified division operation
   int *x16, *k16, *p16;
 
-  x16 = (int *)malloc( sizeof(int)*w ); 
+  x16 = (int *)malloc( sizeof(int)*w );
   k16 = (int *)malloc( sizeof(int)*w ); // for relative phase shift in unit of 1/16 sample
   p16 = (int *)malloc( sizeof(int)*w );
 
@@ -432,7 +432,7 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   new_div[0] += 15;
   new_div[1] = ( ( 1<<new_div[0] ) + w/2 ) / w;
 
-  for( i = 0; i < w; i++ ) 
+  for( i = 0; i < w; i++ )
   {
     ii = i * wsize_in *4 + rounding_para;
     if( ii < 0 ) ii = 0;
@@ -472,11 +472,11 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
 
 __inline
 void
-DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out, 
-                                  int width, int height, 
-                                  int x, int y, int w, int h, 
-                                  int wsize_in, int hsize_in, 
-                                  h264::MbDataCtrl*  pcMbDataCtrl, 
+DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
+                                  int width, int height,
+                                  int x, int y, int w, int h,
+                                  int wsize_in, int hsize_in,
+                                  h264::MbDataCtrl*  pcMbDataCtrl,
                                   bool chroma, int rounding_para,
                                   unsigned char *buf_blocksize )
 {
@@ -613,11 +613,11 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   }
   rounding_para = (2+pcParameters->m_iBaseChromaPhaseY)*iHeight - (2+pcParameters->m_iChromaPhaseY)*h;
   xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
-  
+
   free(tmp_buf1);
   free(tmp_buf2);
   free(tmp_buf3);
-} 
+}
 // end of SSUN@SHARP
 
 
@@ -632,12 +632,12 @@ DownConvert::xGenericUpsample ( short* psBufferY, int iStrideY,
 {
   int   min = ( bClip ?   0 : -32768 );
   int   max = ( bClip ? 255 :  32767 );
-  
+
   int iInWidth = pcParameters->m_iInWidth;
   int iInHeight = pcParameters->m_iInHeight;
   int iOutWidth = pcParameters->m_iOutWidth;
   int iOutHeight = pcParameters->m_iOutHeight;
-  
+
   //===== luma =====
   xCopyToImageBuffer  ( psBufferY, iInWidth,   iInHeight,   iStrideY );
   xUpsamplingFrame    ( pcParameters, m_paiImageBuffer, m_paiImageBuffer2, true, pcMbDataCtrl );
@@ -649,7 +649,7 @@ DownConvert::xGenericUpsample ( short* psBufferY, int iStrideY,
   iInHeight   >>= 1;
   iOutWidth   >>= 1;
   iOutHeight  >>= 1;
-  
+
   //===== chroma cb =====
   xCopyToImageBuffer  ( psBufferU, iInWidth, iInHeight, iStrideU );
   xUpsamplingFrame    ( pcParameters, m_paiImageBuffer, m_paiImageBuffer2, false, pcMbDataCtrl );
@@ -666,9 +666,9 @@ void
 DownConvert::xInitFilterTmmResidual ( int iMaxDim )
 {
 //TMM_ESS_UNIFIED {
- 	m_pitmpDes4 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
-	m_pitmpDes8 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
-	m_pitmpDes16 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
+  m_pitmpDes4 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
+  m_pitmpDes8 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
+  m_pitmpDes16 = new int [ESS_ARRAY_SIZE*ESS_ARRAY_SIZE];
 //TMM_ESS_UNIFIED }
 }
 
@@ -701,52 +701,52 @@ DownConvert::xUpsamplingFrame( ResizeParameters* pcParameters,
     iOutWidth   >>= 1;
     iOutHeight  >>= 1;
   }
-	
-	int iPelPerMb = bLuma?16:8;
-	int iMbPerRow = iInWidth/iPelPerMb;
-	
+
+  int iPelPerMb = bLuma?16:8;
+  int iMbPerRow = iInWidth/iPelPerMb;
+
   int numCase=0;
   int nbOfBlksPerLine[3]={1,2,4};
-	int iBlkWidthIn[3] ;
-	int iBlkWidthOut[3];
-	int iBlkHeightIn[3] ;
-	int iBlkHeightOut[3];
-	int Numerator[2];
-	int Denominator[2];
+  int iBlkWidthIn[3] ;
+  int iBlkWidthOut[3];
+  int iBlkHeightIn[3] ;
+  int iBlkHeightOut[3];
+  int Numerator[2];
+  int Denominator[2];
 
   xComputeNumeratorDenominator(iInWidth, iOutWidth, &(Numerator[0]), &(Denominator[0]));
   xComputeNumeratorDenominator(iInHeight, iOutHeight, &(Numerator[1]), &(Denominator[1]));
 
   for (int cas=0; cas<3; cas++)
   {
-   	iBlkWidthIn[cas] = Denominator[0] * (( (16/nbOfBlksPerLine[cas]) - 1)/Denominator[0] +1);
-  	iBlkWidthOut[cas] = (Numerator[0] * iBlkWidthIn[cas]) / Denominator[0];
-   	iBlkHeightIn[cas] = Denominator[1] * (( (16/nbOfBlksPerLine[cas]) - 1)/Denominator[1] +1);
-  	iBlkHeightOut[cas] = (Numerator[1] * iBlkHeightIn[cas]) / Denominator[1];
+    iBlkWidthIn[cas] = Denominator[0] * (( (16/nbOfBlksPerLine[cas]) - 1)/Denominator[0] +1);
+    iBlkWidthOut[cas] = (Numerator[0] * iBlkWidthIn[cas]) / Denominator[0];
+    iBlkHeightIn[cas] = Denominator[1] * (( (16/nbOfBlksPerLine[cas]) - 1)/Denominator[1] +1);
+    iBlkHeightOut[cas] = (Numerator[1] * iBlkHeightIn[cas]) / Denominator[1];
   }
-		
-	int xoutCOMMON=0, youtCOMMON=0;
-	int xNumphiCOMMON = 0, yNumphiCOMMON = 0;
-	int youtSlice =0, xoutSlice=0;
-	int yNumphiSlice=0, xNumphiSlice=0;
 
-	for( int yin=0 ; yin < iInHeight; yin+= iPelPerMb )
-	{
-		int xoutMB=xoutSlice;
-		int xNumphiMB=xNumphiSlice;
-		for( int xin=0; xin < iInWidth;  xin+= iPelPerMb )
-		{
-			int youtMB=youtSlice;
-			int yNumphiMB=yNumphiSlice;
-			int* piSrc = piSrcBlock + xin+ yin*m_iImageStride;
-			
-			int* piDes = piDesBlock ;
+  int xoutCOMMON=0, youtCOMMON=0;
+  int xNumphiCOMMON = 0, yNumphiCOMMON = 0;
+  int youtSlice =0, xoutSlice=0;
+  int yNumphiSlice=0, xNumphiSlice=0;
 
-			const h264::MbData& rcMbData = pcMbDataCtrl->getMbData((xin+yin*iMbPerRow)/iPelPerMb);
-			
-			if( bLuma )
-			{
-				if(rcMbData.isIntra16x16() )              numCase = 0;
+  for( int yin=0 ; yin < iInHeight; yin+= iPelPerMb )
+  {
+    int xoutMB=xoutSlice;
+    int xNumphiMB=xNumphiSlice;
+    for( int xin=0; xin < iInWidth;  xin+= iPelPerMb )
+    {
+      int youtMB=youtSlice;
+      int yNumphiMB=yNumphiSlice;
+      int* piSrc = piSrcBlock + xin+ yin*m_iImageStride;
+
+      int* piDes = piDesBlock ;
+
+      const h264::MbData& rcMbData = pcMbDataCtrl->getMbData((xin+yin*iMbPerRow)/iPelPerMb);
+
+      if( bLuma )
+      {
+        if(rcMbData.isIntra16x16() )              numCase = 0;
         else if(rcMbData.isTransformSize8x8() )   numCase = 1;
         else                                      numCase = 2;
       }
@@ -754,57 +754,57 @@ DownConvert::xUpsamplingFrame( ResizeParameters* pcParameters,
 
       int *pitmpDes = (numCase==0) ? m_pitmpDes16 : ( (numCase==1) ? m_pitmpDes8 : m_pitmpDes4 );
       int nbBlks = nbOfBlksPerLine[numCase];
-			int iSize = iPelPerMb/nbBlks;
+      int iSize = iPelPerMb/nbBlks;
 
-			int youtLine = youtMB, xoutLine = xoutMB;
-			int yNumphiLine = yNumphiMB,xNumphiLine = xNumphiMB;
+      int youtLine = youtMB, xoutLine = xoutMB;
+      int yNumphiLine = yNumphiMB,xNumphiLine = xNumphiMB;
 
-			for( int y = 0; y < nbBlks; y++)
-			{
-				int xoutCol=xoutLine;
-				int xNumphiCol=xNumphiLine;
+      for( int y = 0; y < nbBlks; y++)
+      {
+        int xoutCol=xoutLine;
+        int xNumphiCol=xNumphiLine;
 
-				for( int x=0; x < nbBlks; x++)
-				{
-					int youtCol=youtLine;
-					int yNumphiCol=yNumphiLine;
+        for( int x=0; x < nbBlks; x++)
+        {
+          int youtCol=youtLine;
+          int yNumphiCol=yNumphiLine;
 
-					int iSrcOffset = iPelPerMb/nbBlks *(x+y*m_iImageStride);
-					xUpsamplingBlock(iBlkWidthIn[numCase], iBlkHeightIn[numCase], iBlkWidthOut[numCase], iBlkHeightOut[numCase], 
+          int iSrcOffset = iPelPerMb/nbBlks *(x+y*m_iImageStride);
+          xUpsamplingBlock(iBlkWidthIn[numCase], iBlkHeightIn[numCase], iBlkWidthOut[numCase], iBlkHeightOut[numCase],
                            piSrc + iSrcOffset, pitmpDes, xNumphiCol,yNumphiCol,Numerator,16/nbBlks);
-					
-					// xoutCol and xphi8x8 Update and Output affectation
-					int ixlastsample,iylastsample;
-					xComputeLastSamplePosition(xNumphiCol,yNumphiCol,iPelPerMb/nbBlks,Numerator,Denominator,&ixlastsample,&iylastsample);
-					
-					xCopyBuffer(pitmpDes,piDes,ixlastsample,iylastsample,xoutCol,youtCol,iBlkWidthOut[numCase]);
 
-					
-					xoutCol += ixlastsample;
-					xNumphiCol = ( (xNumphiCol + ixlastsample*Denominator[0]) % Numerator[0] ) % ESS_ARRAY_SIZE; 
+          // xoutCol and xphi8x8 Update and Output affectation
+          int ixlastsample,iylastsample;
+          xComputeLastSamplePosition(xNumphiCol,yNumphiCol,iPelPerMb/nbBlks,Numerator,Denominator,&ixlastsample,&iylastsample);
 
-					youtCol += iylastsample;
-					yNumphiCol = ( (yNumphiCol + iylastsample*Denominator[1]) % Numerator[1] ) % ESS_ARRAY_SIZE; 
+          xCopyBuffer(pitmpDes,piDes,ixlastsample,iylastsample,xoutCol,youtCol,iBlkWidthOut[numCase]);
 
-					xNumphiCOMMON = xNumphiCol;
-					yNumphiCOMMON = yNumphiCol;
 
-					xoutCOMMON = xoutCol;
-					youtCOMMON = youtCol;
-				}
-				yNumphiLine = yNumphiCOMMON;
-				youtLine = youtCOMMON;
-			}
-			xNumphiMB = xNumphiCOMMON;
-			xoutMB = xoutCOMMON;
+          xoutCol += ixlastsample;
+          xNumphiCol = ( (xNumphiCol + ixlastsample*Denominator[0]) % Numerator[0] ) % ESS_ARRAY_SIZE;
+
+          youtCol += iylastsample;
+          yNumphiCol = ( (yNumphiCol + iylastsample*Denominator[1]) % Numerator[1] ) % ESS_ARRAY_SIZE;
+
+          xNumphiCOMMON = xNumphiCol;
+          yNumphiCOMMON = yNumphiCol;
+
+          xoutCOMMON = xoutCol;
+          youtCOMMON = youtCol;
+        }
+        yNumphiLine = yNumphiCOMMON;
+        youtLine = youtCOMMON;
+      }
+      xNumphiMB = xNumphiCOMMON;
+      xoutMB = xoutCOMMON;
 
     } // end of for( int xin=0; xin < iInWidth;  xin+= iPelPerMb )
 
-		yNumphiSlice = yNumphiCOMMON;
-		youtSlice = youtCOMMON;
+    yNumphiSlice = yNumphiCOMMON;
+    youtSlice = youtCOMMON;
 
   } // end of for( int yin=0 ; yin < iInHeight; yin+= iPelPerMb )
-	
+
 //TMM_ESS_UNIFIED }
 }
 
@@ -829,7 +829,7 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
 
 
   // ===== vertical upsampling =====
-	int xin,yin;
+  int xin,yin;
    for (xin=0; xin<iInBlockSize; xin++)
     {
       int* piSrc = &piSrcBlock[xin];
@@ -839,7 +839,7 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
         m_paiTmp1dBufferIn[yin] = piSrc[(iInBlockSize-1) * m_iImageStride];
 
       xUpsamplingDataResidual(iInHeight, iOutHeight, (double)xNumphi / Numerator[0]);
-      
+
       for(int yout = 0; yout < iOutHeight; yout++ )
       {
         piDesBlock[yout*iOutWidth+xin] = m_paiTmp1dBufferOut[yout];
@@ -855,7 +855,7 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
         m_paiTmp1dBufferIn[yin] = piSrcBlock[ iInBlockSize-1+(iInBlockSize-1)* m_iImageStride];
 
       xUpsamplingDataResidual(iInHeight, iOutHeight, (double)xNumphi / Numerator[0]);
-      
+
       for(int yout = 0; yout < iOutHeight; yout++ )
       {
         piDesBlock[yout*iOutWidth+xin] = m_paiTmp1dBufferOut[yout];
@@ -880,17 +880,17 @@ DownConvert::xUpsamplingBlock( int iInWidth,       // low-resolution width
 __inline
 void
 DownConvert::xComputeLastSamplePosition( int xNumphi,
-									                       int yNumphi,
-									                       int iPelPerMb,
-									                       int *Numerator,
-									                       int *Denominator,
-									                       int *pixlastsample,
-									                       int *piylastsample)
+                                         int yNumphi,
+                                         int iPelPerMb,
+                                         int *Numerator,
+                                         int *Denominator,
+                                         int *pixlastsample,
+                                         int *piylastsample)
 {
-	int ixtmp = (Numerator[0]*iPelPerMb - xNumphi);
-	*pixlastsample = 1+(ixtmp-1)/Denominator[0];
-	int iytmp = (Numerator[1]*iPelPerMb - yNumphi);
-	*piylastsample = 1+(iytmp-1)/Denominator[1];
+  int ixtmp = (Numerator[0]*iPelPerMb - xNumphi);
+  *pixlastsample = 1+(ixtmp-1)/Denominator[0];
+  int iytmp = (Numerator[1]*iPelPerMb - yNumphi);
+  *piylastsample = 1+(iytmp-1)/Denominator[1];
 
 }
 //TMM_ESS_UNIFIED }
@@ -898,21 +898,21 @@ DownConvert::xComputeLastSamplePosition( int xNumphi,
 __inline
 void
 DownConvert::xCopyBuffer(int *pitmpDes,
-						 int *piDes,
-						 int ixlastsample,
-						 int iylastsample,
-						 int ixout,
-						 int iyout,
-						 int iBlkWidthOut)
+             int *piDes,
+             int ixlastsample,
+             int iylastsample,
+             int ixout,
+             int iyout,
+             int iBlkWidthOut)
 {
   iBlkWidthOut = iBlkWidthOut % ESS_ARRAY_SIZE; //TMM_ESS_UNIFIED
 
-	int iDesOffset = ixout + iyout*m_iImageStride;
-	for  (int iycopy = 0 ; iycopy<iylastsample ; iycopy++) 		
-	{
-	    memcpy(piDes+iDesOffset, pitmpDes +iBlkWidthOut*iycopy, ixlastsample*sizeof(int));
-		iDesOffset += m_iImageStride; 
-	}
+  int iDesOffset = ixout + iyout*m_iImageStride;
+  for  (int iycopy = 0 ; iycopy<iylastsample ; iycopy++)
+  {
+      memcpy(piDes+iDesOffset, pitmpDes +iBlkWidthOut*iycopy, ixlastsample*sizeof(int));
+    iDesOffset += m_iImageStride;
+  }
 }
 
 #endif  // of #ifndef NO_MB_DATA_CTRL
@@ -966,14 +966,14 @@ DownConvert::xComputeNumeratorDenominator ( int iInWidth , int iOutWidth ,
                                            int* iNumerator, int *iDenominator)
 {
   int iA = 1;
-	int iB = iOutWidth;
+  int iB = iOutWidth;
   int iC = iInWidth;
-	while (iC != 0)
-	{
-		iA = iB;
-		iB = iC;		
-		iC = iA % iB;
-	}
+  while (iC != 0)
+  {
+    iA = iB;
+    iB = iC;
+    iC = iA % iB;
+  }
 
   *iNumerator = iOutWidth / iB;
   *iDenominator = iInWidth / iB;
@@ -998,7 +998,7 @@ DownConvert::xComputeNumeratorDenominator ( int iInWidth , int iOutWidth ,
 __inline
 void
 DownConvert::xInitFilterTmm1 (int iMaxDim )
-{  
+{
   const double pi = 3.14159265359;
 #if LANCZOS_OPTIM
   m_padFilter = new long[TMM_TABLE_SIZE];
@@ -1017,7 +1017,7 @@ DownConvert::xInitFilterTmm1 (int iMaxDim )
 #else
       m_padFilter[i] = sin(pix)/pix * sin(pixw)/pixw;
 #endif
-    } 
+    }
 }
 
 __inline
@@ -1070,11 +1070,11 @@ DownConvert::xUpsampling1( ResizeParameters* pcParameters,
 #else
       xUpsamplingData1(iInHeight, iOutHeight, iNumerator, iDenominator);
 #endif
-      
+
       for(int yout = 0; yout < iOutHeight; yout++ )
         piSrc[yout*m_iImageStride] = m_paiTmp1dBufferOut[yout];
     }
-  
+
   // ===== horizontal upsampling =====
   xComputeNumeratorDenominator(iInWidth,iOutWidth,&iNumerator,&iDenominator);
 #if LANCZOS_OPTIM
@@ -1145,10 +1145,10 @@ DownConvert::xUpsamplingData1 ( int iInLength , int iOutLength , int iNumerator 
         m_paiTmp1dBufferOut[iout] = m_paiTmp1dBufferIn[ipos0];
         continue;
       }
-      
+
       int begin=(int)ceil(dpos0-TMM_FILTER_WINDOW_SIZE);
       int end = (int)(dpos0+TMM_FILTER_WINDOW_SIZE);
-          
+
       double sval = 0;
       for (int i=begin; i<=end; i++)
         {
@@ -1211,8 +1211,8 @@ void
 DownConvert::xDestroyFilterTmm2 ( )
 {
   delete [] m_Tmp1dBufferInHalfpel;
-	delete [] m_Tmp1dBufferInQ1pel;
-	delete [] m_Tmp1dBufferInQ3pel;
+  delete [] m_Tmp1dBufferInQ1pel;
+  delete [] m_Tmp1dBufferInQ3pel;
 }
 
 __inline
@@ -1246,11 +1246,11 @@ DownConvert::xUpsampling2( ResizeParameters* pcParameters, bool bLuma
         m_paiTmp1dBufferIn[yin] = piSrc[yin * m_iImageStride];
 
       xUpsamplingData2(iInHeight, iOutHeight, iNumerator , iDenominator);
-      
+
       for(int yout = 0; yout < iOutHeight; yout++ )
         piSrc[yout*m_iImageStride] = m_paiTmp1dBufferOut[yout];
     }
-  
+
   // ===== horizontal upsampling =====
   xComputeNumeratorDenominator(iInWidth, iOutWidth, &iNumerator, &iDenominator);
   for (int yout=0; yout<iOutHeight; yout++)
@@ -1322,42 +1322,42 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator 
         case 0:
           m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos0] << 5; // original pel value
           break;
-			
+
         case 1:
         case 2:
           m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ1pel[ipos0]; // 1/4 pel value
           break;
-			
+
         case 3:
         case 4:
           m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInHalfpel[ipos0]; // half pel value
           break;
-			
+
         case 5:
         case 6:
           m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ3pel[ipos0]; // 1/4 pel value
           break;
-			
+
         case 7:
           int ipos1 = (ipos0+1 < iInLength) ? ipos0+1 : ipos0;
           m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos1] << 5; // original pel value
           break;
 
         }
-    }  
+    }
 }
 //TMM_ESS_UNIFIED }
 
 
 // =================================================================================
-//   INTRA 3 
+//   INTRA 3
 // =================================================================================
 
 __inline
 void
 DownConvert::upsample3( unsigned char* pucBufferY, unsigned char* pucBufferU, unsigned char* pucBufferV,
                         int input_width, int input_height, int output_width, int output_height,
-                        int crop_x0, int crop_y0, int crop_w, int crop_h, 
+                        int crop_x0, int crop_y0, int crop_w, int crop_h,
                         int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
                         int output_chroma_phase_shift_x, int output_chroma_phase_shift_y)
 {
@@ -1369,17 +1369,17 @@ DownConvert::upsample3( unsigned char* pucBufferY, unsigned char* pucBufferU, un
   //===== chroma cb =====
   xCopyToImageBuffer  ( pucBufferU, input_width/2, input_height/2, input_width/2 );
   xUpsampling3        ( input_width/2, input_height/2, output_width/2, output_height/2,
-                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2, 
+                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2,
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
                         output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
   xCopyFromImageBuffer( pucBufferU, output_width/2, output_height/2, output_width/2, 0, 255 );
   //===== chroma cr =====
   xCopyToImageBuffer  ( pucBufferV, input_width/2, input_height/2, input_width/2 );
   xUpsampling3        ( input_width/2, input_height/2, output_width/2, output_height/2,
-                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2, 
+                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2,
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
                         output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
-  xCopyFromImageBuffer( pucBufferV, output_width/2, output_height/2, output_width/2, 0, 255 );  
+  xCopyFromImageBuffer( pucBufferV, output_width/2, output_height/2, output_width/2, 0, 255 );
 }
 
 __inline
@@ -1392,12 +1392,12 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
   int input_width   = pcParameters->m_iInWidth   /fact;
   int input_height  = pcParameters->m_iInHeight  /fact;
   // SSUN@SHARP
-  int output_width  = pcParameters->m_iGlobWidth /fact;  
+  int output_width  = pcParameters->m_iGlobWidth /fact;
   int output_height = pcParameters->m_iGlobHeight/fact;
   int crop_x0 = pcParameters->m_iPosX /fact;
   int crop_y0 = pcParameters->m_iPosY /fact;
   int crop_w = pcParameters->m_iOutWidth /fact;
-  int crop_h = pcParameters->m_iOutHeight/fact;  
+  int crop_h = pcParameters->m_iOutHeight/fact;
   // End of SSUN@SHARP
   int input_chroma_phase_shift_x = pcParameters->m_iBaseChromaPhaseX;
   int input_chroma_phase_shift_y = pcParameters->m_iBaseChromaPhaseY;
@@ -1487,7 +1487,7 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
   }
 #if DIRECT_INTERP  // SSUN@SHARP
   //========== horizontal upsampling ===========
-  for( j = 0; j < input_height; j++ ) 
+  for( j = 0; j < input_height; j++ )
   {
     int*  piSrc = &m_paiImageBuffer[j*m_iImageStride];
     for( i = 0; i < output_width; i++ ){
@@ -1507,7 +1507,7 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
     ::memcpy( piSrc, m_paiTmp1dBuffer, output_width*sizeof(int) );
   }
   //========== vertical upsampling ===========
-  for( i = 0; i < output_width; i++ ) 
+  for( i = 0; i < output_width; i++ )
   {
     int*  piSrc = &m_paiImageBuffer[i];
     for( j = 0; j < output_height; j++ ){
@@ -1558,7 +1558,7 @@ DownConvert::xUpsampling3( int input_width, int input_height, int output_width, 
 }
 
 __inline
-void 
+void
 DownConvert::UnifiedOneForthPix ( unsigned char **out4Y, int img_width, int img_height )  // borrowed/modified from JM software
 {
   int is;
@@ -1594,7 +1594,7 @@ DownConvert::UnifiedOneForthPix ( unsigned char **out4Y, int img_width, int img_
       img4Y_tmp[j + 4][(i + 4) * 2 + 1] = is * 32;  // 1/2 pix pos
     }
   }
-  
+
   for (i = 0; i < (img_width + 2 * 4) * 2; i++)
   {
     for (j = 0; j < img_height + 2 * 4; j++)
@@ -1608,17 +1608,17 @@ DownConvert::UnifiedOneForthPix ( unsigned char **out4Y, int img_width, int img_
          img4Y_tmp[min (maxy, j + 2)][i]) +
          1 * (img4Y_tmp[max (0, j - 2)][i] +
          img4Y_tmp[min (maxy, j + 3)][i])) / 32;
-      
+
       out4Y[j*4][i*2] = max (0, min(255, (img4Y_tmp[j][i] + 512) / 1024));  // 1/2 pix
       out4Y[j*4+2][i*2] = max (0, min(255, (is + 512) / 1024));   // 1/2 pix
     }
   }
-  
+
   /* 1/4 pix */
   /* luma */
   ie2 = (img_width + 2 * 4 - 1) * 4;
   je2 = (img_height + 2 * 4 - 1) * 4;
-  
+
   for (j = 0; j < je2 + 4; j += 2)
     for (i = 0; i < ie2 + 3; i += 2)
     {
@@ -1646,7 +1646,7 @@ DownConvert::UnifiedOneForthPix ( unsigned char **out4Y, int img_width, int img_
       }
     }
   }
-    
+
   // free memory
   free( imgY );
   free( img4Y_tmp[0] );
@@ -1658,7 +1658,7 @@ __inline
 void
 DownConvert::downsample3( unsigned char* pucBufferY, unsigned char* pucBufferU, unsigned char* pucBufferV,
                           int input_width, int input_height, int output_width, int output_height,
-                          int crop_x0, int crop_y0, int crop_w, int crop_h, 
+                          int crop_x0, int crop_y0, int crop_w, int crop_h,
                           int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
                           int output_chroma_phase_shift_x, int output_chroma_phase_shift_y)
 {
@@ -1670,14 +1670,14 @@ DownConvert::downsample3( unsigned char* pucBufferY, unsigned char* pucBufferU, 
   //===== chroma cb =====
   xCopyToImageBuffer  ( pucBufferU, input_width/2, input_height/2, input_width/2 );
   xDownsampling3      ( input_width/2, input_height/2, output_width/2, output_height/2,
-                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2, 
+                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2,
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
                         output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
   xCopyFromImageBuffer( pucBufferU, output_width/2, output_height/2, output_width/2, 0, 255 );
   //===== chroma cr =====
   xCopyToImageBuffer  ( pucBufferV, input_width/2, input_height/2, input_width/2 );
   xDownsampling3      ( input_width/2, input_height/2, output_width/2, output_height/2,
-                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2, 
+                        crop_x0/2, crop_y0/2, crop_w/2, crop_h/2,
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
                         output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
   xCopyFromImageBuffer( pucBufferV, output_width/2, output_height/2, output_width/2, 0, 255 );
@@ -1691,7 +1691,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
                              int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
                              int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flg )
 {
-  const int filter16[3][16][12] = { 
+  const int filter16[3][16][12] = {
                                     // test
                                     {
                                       {1,-5,-6,10,38,52,38,10,-6,-5,1,0},
@@ -1712,7 +1712,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
                                       {0,1,-5,-5,12,39,51,36,9,-6,-5,1}
                                     },
                                     // Kaiser, N=3, D=2, beta=4
-                                    { 
+                                    {
                                       {2,0,-9,0,39,64,39,0,-9,0,2,0},
                                       {2,0,-8,-2,36,64,41,2,-9,0,2,0},
                                       {2,1,-8,-3,33,63,44,4,-9,-1,2,0},
@@ -1731,7 +1731,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
                                       {0,2,0,-9,2,41,64,36,-2,-8,0,2}
                                     },
                                     // Kaiser, N=3, D=1, beta=4
-                                    { 
+                                    {
                                       {0,0,0,0,0,128,0,0,0,0,0,0},
                                       {0,0,0,2,-6,127,7,-2,0,0,0,0},
                                       {0,0,0,3,-11,124,15,-4,1,0,0,0},
@@ -1764,7 +1764,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
   {
     px[i] = 16*crop_x0 + ( i*crop_w*16 + 4*(2+input_chroma_phase_shift_x)*crop_w - 4*(2+output_chroma_phase_shift_x)*output_width) / output_width;
   }
-  for( j = 0; j < input_height; j++ ) 
+  for( j = 0; j < input_height; j++ )
   {
     int*  piSrc = &m_paiImageBuffer[j*m_iImageStride];
     for( i = 0; i < output_width; i++ ){
@@ -1787,7 +1787,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
   {
     py[j] = 16*crop_y0 + ( j*crop_h*16 + 4*(2+input_chroma_phase_shift_y)*crop_h - 4*(2+output_chroma_phase_shift_y)*output_height) / output_height;
   }
-  for( i = 0; i < output_width; i++ ) 
+  for( i = 0; i < output_width; i++ )
   {
     int*  piSrc = &m_paiImageBuffer[i];
     for( j = 0; j < output_height; j++ ){
@@ -1807,7 +1807,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
       piSrc[j*m_iImageStride] = ( m_paiTmp1dBuffer[j] + (1<<13) ) / (1<<14);
     }
   }
-  
+
   // free memory
   free(px);
   free(py);
@@ -1853,7 +1853,7 @@ DownConvert::xUpsamplingDataResidual ( int iInLength , int iOutLength, double ph
      }
 
    for( x = 0; x < iInLength -1; x++)
-	   {
+     {
        Tmp1dBufferInQ1pel[x] = (m_paiTmp1dBufferIn[x] + Tmp1dBufferInHalfpel[x] + 1) >> 1;
        Tmp1dBufferInQ3pel[x] = (m_paiTmp1dBufferIn[x+1] + Tmp1dBufferInHalfpel[x] + 1) >> 1;
      }
@@ -1872,22 +1872,22 @@ DownConvert::xUpsamplingDataResidual ( int iInLength , int iOutLength, double ph
          case 0:
            m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos0];
            break;
-			
+
          case 1:
          case 2:
            m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ1pel[ipos0];
            break;
-			
+
          case 3:
          case 4:
            m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInHalfpel[ipos0];
            break;
-			
+
          case 5:
          case 6:
            m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ3pel[ipos0];
            break;
-			
+
          case 7:
            int ipos1 = (ipos0+1 < iInLength) ? ipos0+1 : ipos0;
            m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBufferIn[ipos1];
