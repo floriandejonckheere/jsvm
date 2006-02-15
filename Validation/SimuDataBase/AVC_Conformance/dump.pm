@@ -58,7 +58,7 @@ sub CheckDir($)
 	 
  	chdir $simudir or die "The directory $simudir doesn't exist! $!";	
  	my $currsimudir=getcwd();
-
+	
 	#for cygwin
 	$currsimudir=~ s|^/cygdrive/(.)/|$1:/|;
 	
@@ -99,7 +99,7 @@ sub Usage (;$)
              [-data <yuv_streams_directory>]    : Name of directory containing 
                                                  conformance streams/sequences 
                                                  (default: DATA/)
-  	     [-u]  			       : Usage	\n";
+             [-u]                              : Usage	\n";
     
   exit 1;
 }
@@ -126,13 +126,13 @@ while (@ARGV)
 		      }
 	elsif   (/-r/){
 				 $DoRemove =1;
-			}
+		      }
 	elsif(/-simu/)  
 	     {
 				 ($arg=shift @ARGV) or Usage;
 				 undef @ListSimus;
 				 @ListSimus=GetArg(\@ARGV);
-			  }			
+			  }
 	elsif(/-data/)
 	    {
 	       ($#ARGV >= 0) or Usage;
@@ -140,7 +140,7 @@ while (@ARGV)
 	       $arg=~ s|\\|/|g;
 	       $orig= CheckDir($arg);
 	    } 		  			
-	 else 		{Usage;}       
+		 else 		{Usage;}       
 	}
 }
 
@@ -194,10 +194,10 @@ foreach my $simuname (@ListSimus)
 			  	(-f "$str/$_") and next;
 			  	print "copy {$orig/$_} to {$str} \n";
 			  	copy("$orig/$_","$str") or die "can not copy $_ $!";
-				}	
-		    	}
+			    }	
+		    }
 		    	
-		    	while (<$hlogref>)
+		    while (<$hlogref>)
 		  	{
 		  	#chomp;
 		  	s/[\n\r]//g;	
