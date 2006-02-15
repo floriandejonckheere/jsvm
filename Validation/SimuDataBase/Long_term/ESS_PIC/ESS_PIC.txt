@@ -3,15 +3,17 @@
 #               General parameters                         #
 #==========================================================#
     name 	=> "ESS_PIC",
-    original 	=> "CREW_4CIF60.yuv",
+    original 	=> "CREW_4CIF30.yuv",
     originalwidth => 704,
     originalheight => 576,
-    originalframerate => 60,
-    width      	=> 704,
-    height     	=> 576,
+    originalframerate 	=> 30,
+    
+    width      		      => 640,
+    height     		      => 560,
     framerate 	=> 30,
     nbframes	=> 97,
-    verbosemode => 2,	
+    cropfilename        => "crop.txt",
+    verbosemode 	      => 1,	
 
 #==========================================================#
 #               Encoding parameters                        #
@@ -36,14 +38,15 @@
                       # Layer  1 #
                       #----------#
 		       {
-			width        => 640 ,
-			height       => 560 ,
 		       },
 		     ],
    
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #==========================================================#  
+    bitratecheckrange  => 3,
+    psnrcheckrange    =>  0,
+    
       tests      => [
 		      #----------#
                       # Test   0 #
@@ -54,8 +57,9 @@
 		        width => 384,
 		        height => 336,
 		        framerate => 30,
-		        bitrate => 0,
-		        psnr => 34,
+          		        bitrate => 697,
+          		        psnr => 37.66,
+          		        encdecmatch => 1,
 		      },
 		      #----------#
                       # Test   1 #
@@ -66,8 +70,9 @@
 		        width => 640,
 		        height => 560,
 		        framerate => 30,
-		        bitrate => 0,
-		        psnr => 34,
+          		        bitrate => 1342,
+          		        psnr => 36.15,
+          		        encdecmatch => 1,
 		      },
     		    ],
 }

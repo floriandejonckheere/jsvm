@@ -88,6 +88,7 @@ sub CopyDir ($;$)
       {
        if(-f "$srcdir/$_")
          {
+          (-f "$dstdir/$_") and (unlink "$dstdir/$_" or die "");
            copy("$srcdir/$_","$dstdir/$_") or die "Can not copy $srcdir/$_ to $dstdir/$_ $!";
          } 
          elsif(-d "$srcdir/$_") 
@@ -119,14 +120,14 @@ sub BuildSimuDir ($$;$)
 	my $simuname = shift;
 	my $param    = shift;	
 	my $mode     = shift;
-	my $dbdir    = $param->{path_database}."$simuname/";
+	my $dbdir    = $param->{path_database}."$simuname";
 	my $simudir  = $param->{path_simu}."$simuname";
 	
 	DirTree::CleanSimuDir($simudir,$param,0) if($mode);
 	
 	DirTree::CreateDir($param->{path_simu});
 	DirTree::CreateDirTree ($simudir);
-	DirTree::CopyDir($dbdir,"$simudir/");
+	DirTree::CopyDir($dbdir,"$simudir");
 }
 
 ###############################################################################

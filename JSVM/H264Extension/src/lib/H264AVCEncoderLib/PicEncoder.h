@@ -212,6 +212,7 @@ private:
   UInt                        m_uiWriteBufferSize;                  // size of temporary write buffer
   UChar*                      m_pucWriteBuffer;                     // write buffer
 
+  Bool                        m_bTraceEnable;
 };
 
 

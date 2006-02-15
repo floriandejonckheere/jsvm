@@ -40,7 +40,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="..\..\..\..\..\bin\QualityLevelAssigner.exe"
+				OutputFile="..\..\..\..\..\bin\QualityLevelAssignerStatic.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="..\..\..\..\..\lib"
@@ -99,7 +99,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="..\..\..\..\..\bin\QualityLevelAssignerd.exe"
+				OutputFile="..\..\..\..\..\bin\QualityLevelAssignerStaticd.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="..\..\..\..\..\lib"

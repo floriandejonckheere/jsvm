@@ -20,11 +20,13 @@ use IO::File;
 #-----------------------#
 # Local Constants       #
 #-----------------------#
-my $ENCODER   = "H264AVCEncoderLibTestStatic";
-my $PSNR      = "PSNRStatic";
-my $EXTRACTOR = "BitStreamExtractorStatic";
-my $DECODER   = "H264AVCDecoderLibTestStatic";
-my $RESAMPLER = "DownConvertStatic";
+my $ENCODER    = "H264AVCEncoderLibTestStatic";
+my $PSNR       = "PSNRStatic";
+my $EXTRACTOR  = "BitStreamExtractorStatic";
+my $DECODER    = "H264AVCDecoderLibTestStatic";
+my $RESAMPLER  = "DownConvertStatic";
+my $QLASSIGNER = "QualityLevelAssigner";
+my $JMDECODER  = "ldecod";
 
 #-----------------------#
 # Functions             #
@@ -133,6 +135,37 @@ sub Encode($;$)
 }
 
 ######################################################################################
+# Function         : QLAssigner ($;$)
+######################################################################################
+sub QLAssigner($$)
+{
+	my $simu=shift;
+	my $param=shift;
+	my $bin =$param->{path_bin};
+	my $display=1; 
+
+  ::PrintLog(" QualityLevelAssigner\t\t\t.......... ");
+
+  my $cmdLayer;
+ 	my $layer;
+ 	my $l=0;
+	foreach $layer (@{$simu->{layers}})
+  {
+   $cmdLayer .= " -org $l ".$layer->{origname};
+   $l++;
+  }
+
+	
+	my $cmd = "$bin$QLASSIGNER -in ".$simu->{bitstreamname}." $cmdLayer -out ".$simu->{bitstreamQLname}; 
+ ($cmd .= " -sei") if($simu->{qualitylayer}==2);
+	
+	my $ret = run($cmd, $simu->{logname},0);
+  	($ret == 0) or die "problem while executing the command:\n$cmd\n";
+}
+
+
+
+######################################################################################
 # Function         : Extract ($;$;$)
 ######################################################################################
 sub Extract($$;$)
@@ -143,7 +176,8 @@ sub Extract($$;$)
 	my $bin =$param->{path_bin};
 	my $display=1; 
 
-	my $cmd = "$bin$EXTRACTOR ".$simu->{bitstreamname}." ".$test->{extractedname}." -e ".$test->{extractoption}; 
+  my $cmd = "$bin$EXTRACTOR ".$test->{bitstreamname}." ".$test->{extractedname}." -e ".$test->{extractoption}; 
+ ($cmd .= " -ql") if($test->{useql});
 	
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n";
@@ -162,12 +196,31 @@ sub Decode($$;$)
 	my $tmp =$param->{path_tmp};
 	my $display=1; 
 
-	my $cmd ="$bin$DECODER ".$test->{extractedname}." ".$test->{decodedname};
+	my $cmd ="$bin$DECODER ". $test->{extractedname}." ".$test->{decodedname};
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
     	
   	return ComputePSNR($bin,$simu->{logname},$test->{width},$test->{height},$test->{origname},$test->{decodedname},$test->{extractedname},$test->{framerate},"${tmp}psnr.dat");	
  }
+
+###############################################################################
+# Function         : JMDecode ($;$;$)
+###############################################################################
+sub JMDecode($$;$)
+{
+	my $simu=shift;
+	my $test=shift;
+	my $param=shift;
+	
+	my $bin =$param->{path_bin};
+	my $tmp =$param->{path_tmp};
+	my $display=1; 
+
+	my $cmd ="$bin$JMDECODER ". $test->{extractedname}." ".$test->{jmdecodedname};
+	my $ret = run($cmd, $simu->{logname},0);
+  	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
+
+}
 
 
 ###############################################################################
@@ -310,11 +363,11 @@ sub Resize2($$;@)
 } 
 
 
-
-#########################################################################
-#Dirty
+##############################################################################
+# Function         : GetPowerof2 ($)
+##############################################################################
 sub GetPowerof2
-    {
+{
 	my $val=shift;
 
         ($val <1) and return -1;
@@ -331,8 +384,7 @@ sub GetPowerof2
         (($val == 1) && ($exp != 0)) and return $exp ;
 
         return -1 ;
-    }
-
+}
 
 
 1;

@@ -115,13 +115,16 @@ sub InitSimu($;$)
 	#$simu->{tempopsnrname}= $param->{path_tmp}."psnr.dat";
 	
 	(defined $simu->{cropfilename}) and $simu->{cropfilename}=ConcatPath($param->{path_crop},$simu->{cropfilename});
-	(defined $simu->{verbosemode})  or  $simu->{verbosemode}   = 1;
-	(defined $simu->{runencode})    or  $simu->{runencode}     = 1;
-	(defined $simu->{nbfgslayer})   or  $simu->{nbfgslayer}    = 2;	
+	(defined $simu->{verbosemode} ) or  $simu->{verbosemode}   = 1;
+	(defined $simu->{runencode}   ) or  $simu->{runencode}     = 1;
+	(defined $simu->{nbfgslayer}  ) or  $simu->{nbfgslayer}    = 2;	
+	(defined $simu->{qualitylayer}) or  $simu->{qualitylayer}  = 0; #0: off 1: PID NAL 2:SEI 
+  $simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264"  if($simu->{qualitylayer}); 
+
 	if($simu->{runencode} == 0)
-	{(defined $simu->{framerate}) 	or  $simu->{framerate} = 30;}
+	{(defined $simu->{framerate}) 	     or $simu->{framerate} = 30;}
 	
-	(defined $simu->{psnrcheckrange})  or $simu->{psnrcheckrange} = 0.;   
+	(defined $simu->{psnrcheckrange})    or $simu->{psnrcheckrange} = 0.;   
 	(defined $simu->{bitratecheckrange}) or $simu->{bitratecheckrange}= 5.;
 	$simu->{psnrcheckrange} /= 100;   
 	$simu->{bitratecheckrange}/= 100;  		
@@ -144,26 +147,39 @@ sub InitSimu($;$)
 		$l++;                                                                   																																																														
 	}
 	
-	my $tempstreamname=$simu->{bitstreamname};
+	my $tempstreamname;
 			
 	foreach my $test (@{$simu->{tests}})
 	{
-		my $bitrate =($test->{bitrate} ? $test->{bitrate}:50000);
+		my $bitrate =($test->{bitrate} ? $test->{bitrate}:500000);
 		
 		(defined $test->{framerate}) or ($test->{framerate} = $simu->{framerate});
-		$test->{basestream}    = $simu->{name}."_".$test->{width}."x".$test->{height}."_".$test->{framerate};
-		$test->{extractedname} = (($test->{mode}==0)? 
-					  ((defined $test->{bitstreamname})? ConcatPath($param->{path_str},$test->{bitstreamname}):$tempstreamname)
-					  :$param->{path_str}."Ext-".$test->{basestream}."-$bitrate.264");
-					  
-		$test->{extractoption} = $test->{width}."x".$test->{height}."\@".$test->{framerate}.":$bitrate";
-		$tempstreamname        = (($test->{mode}==3) ? $test->{extractedname} : $simu->{bitstreamname} );
-	      						 
-	        ((defined $test->{origname}) and $test->{origname}=ConcatPath($param->{path_orig},$test->{origname}))						 
+		(defined $test->{useql})     or ($test->{useql}=0);
+	 	$test->{basestream}    = $simu->{name}."_".$test->{width}."x".$test->{height}."_".$test->{framerate};
+	 	 ($test->{useql}) and  $test->{basestream}.="_ql"; 
+	 	  
+	  unless (defined $test->{bitstreamname})
+	  { 
+  	  if ($simu->{qualitylayer} and $test->{useql}) 
+  	    {$test->{bitstreamname}=((defined $tempstreamname)? $tempstreamname:$simu->{bitstreamQLname});}
+      else 
+        {$test->{bitstreamname}=((defined $tempstreamname)? $tempstreamname:$simu->{bitstreamname});}
+    }
+    else
+    {
+     $test->{bitstreamname}=ConcatPath($param->{path_str},$test->{bitstreamname}); 
+    }
+    undef $tempstreamname; 
+  
+  	$test->{extractedname} = (($test->{mode}==0)? $test->{bitstreamname}:$param->{path_str}."Ext_".$test->{basestream}."_$bitrate.264");
+	  $test->{extractoption} = $test->{width}."x".$test->{height}."\@".$test->{framerate}.":$bitrate";
+	  ($test->{mode}==3) and $tempstreamname=$test->{extractedname};
+	  	      						 
+	  ((defined $test->{origname}) and $test->{origname}=ConcatPath($param->{path_orig},$test->{origname}))						 
 		or ($test->{origname}=ConcatPath($param->{path_orig},$test->{basestream}.".yuv"));
 		
 		((defined $test->{decodedname}) and $test->{decodedname}=ConcatPath($param->{path_rec},$test->{decodedname}))
-		or ($test->{decodedname}     = $param->{path_rec}.$test->{basestream}."-$bitrate.yuv");
+		or ($test->{decodedname}     = $param->{path_rec}.$test->{basestream}."_$bitrate.yuv");
 		
 		my $refl=FindRefLayer($simu,$test);
 		(defined $refl) and $test->{cropfilename}= $refl->{cropfilename} ;
@@ -174,6 +190,14 @@ sub InitSimu($;$)
 	 		(defined $refl) or die "ERROR: can not find corresponding reference layer for ".$test->{decodedname}." to check the encoder/decoder perfect match $!";
 	 		$test->{reconname}=$refl->{reconname};
  		}
+ 		
+	 (defined $test->{jmdecmatch}) or $test->{jmdecmatch}=0;	
+	 if($test->{jmdecmatch})
+	 {
+	  ($test->{mode}==3) and die "Mode 3 and JSVM/JM match are not compliant $!";
+	   $test->{jmdecodedname}= $param->{path_rec}.$test->{basestream}."_${bitrate}_JM.yuv";
+	 }
+	
 	}
 	
     return 1;	
@@ -349,9 +373,9 @@ sub CreateSequences($;$)
 
 
 ######################################################################################
-# Function         : check_close ($;$;[$])
+# Function         : CheckRange($;$;[$])
 ######################################################################################
-sub check_close
+sub CheckRange
 {
 	my $value = shift;
 	my $ref	  = shift;
@@ -388,7 +412,7 @@ sub CheckResults
 		::PrintLog("\tRate\t(${res_rate})\t\t");
 		($test->{mode}==2) and (($res_rate == $res_rate2) or ::PrintLog("Failed (Rate = $res_rate and Rate2 = $res_rate2 )\n"));
 		if (($expectedBitrate == 0 and $res_rate>0) 
-		or  ($expectedBitrate != 0 and check_close($res_rate,$expectedBitrate,$simu->{bitratecheckrange})))
+		or  ($expectedBitrate != 0 and CheckRange($res_rate,$expectedBitrate,$simu->{bitratecheckrange})))
 		{
 		  ::PrintLog("Passed\n");
 		  $result = 1;
@@ -403,7 +427,7 @@ sub CheckResults
 		#----------------
 		::PrintLog("\tPSNR\t($res_psnrY)\t\t");
 		($test->{mode}==2) and (($res_psnrY == $res_psnrY2) or ::PrintLog("Failed (PSNRY = $res_psnrY and PSNRY2 = $res_psnrY2 )\n"));
-		if (($res_psnrY>=$expextedPSNR) or  check_close($res_psnrY,$expextedPSNR,$simu->{psnrcheckrange}))
+		if (($res_psnrY>=$expextedPSNR) or  CheckRange($res_psnrY,$expextedPSNR,$simu->{psnrcheckrange}))
 		{
 		  ::PrintLog("Passed\n");
 		  $result &= 1;
@@ -419,16 +443,14 @@ sub CheckResults
 }
 
 ###############################################################################
-# Function         : CheckPerfectEncodeDecodeMatch ($$$$)
+# Function         : CheckPerfectMatch ($$$$)
 ###############################################################################
-sub CheckPerfectEncodeDecodeMatch ($$$)
+sub CheckPerfectMatch ($$$)
 {
 	my ($psnrY,$psnrCb,$psnrCr)= @_;
 	
 	#check Mismatch
 	#---------------
-	::PrintLog("\tEncoder/Decoder match\t\t");
-	
 	if(($psnrY==99.99)and ($psnrCr==99.99) and ($psnrCb==99.99))
 	{
 	 ::PrintLog("Passed\n");
@@ -436,7 +458,7 @@ sub CheckPerfectEncodeDecodeMatch ($$$)
 	}
 	else
 	{
-	::PrintLog("Failed ( Enc: $psnrY $psnrCb $psnrCr)\n"); 
+	::PrintLog("Failed ($psnrY $psnrCb $psnrCr)\n"); 
 	return 0;
 	}
 }
@@ -488,14 +510,24 @@ sub ApplyTests ($;$)
 			next;	
 		}	
 	
+		#Check bitrate and/or PSNR
 		$result &= CheckResults($simu,$test,$res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr,$res_rate2, $res_psnrY2, $res_psnrCb2, $res_psnrCr2);	
  	
+ 	  #Check encoder/decoder matching 
  		if($test->{encdecmatch})
  		{
- 		
  		my($rate, $psnrY, $psnrCb, $psnrCr)=External::ComputePSNR($param->{path_bin},$simu->{logname},$test->{width},$test->{height},$test->{decodedname},$test->{reconname},$test->{extractedname},$test->{framerate},$param->{path_tmp}."psnr.dat");
- 		$result &= CheckPerfectEncodeDecodeMatch ($psnrY, $psnrCb, $psnrCr);
+ 		::PrintLog("\tEncoder/Decoder match\t\t");
+ 		$result &= CheckPerfectMatch ($psnrY, $psnrCb, $psnrCr);
  		}
+ 	 		
+ 	 	if($test->{jmmatch})
+ 	 	{
+ 	 	  External::JMDecode($simu,$test,$param);
+ 	 	  my($rate, $psnrY, $psnrCb, $psnrCr)=External::ComputePSNR($param->{path_bin},$simu->{logname},$test->{width},$test->{height},$test->{decodedname},$test->{jmdecodedname},$test->{extractedname},$test->{framerate},$param->{path_tmp}."psnr.dat");
+ 	 	  ::PrintLog("\tJM Decoder match\t\t");
+ 	 	  $result &= CheckPerfectMatch ($psnrY, $psnrCb, $psnrCr);
+ 	 	}	
  	 		
  	} #foreach
 	

@@ -36,7 +36,7 @@ layers      => [
                  framerate    =>  15,
                 },
                 #----------#
-                # Layer  1 #
+                # Layer  2 #
                 #----------#
                 {
                  width        => 352,
@@ -61,7 +61,7 @@ tests              => [
                         width       => 128,
                         height      => 96,
                         framerate   => 15,
-			bitrate     => 145,
+			bitrate     => 142,
 			psnr        => 29.05,
                         encdecmatch => 1,
                        },
@@ -74,8 +74,8 @@ tests              => [
                         width       => 192,
                         height      => 144,
                         framerate   => 15,
-			bitrate     => 228,
-			psnr        => 29.53,
+			                  bitrate     => 229,
+			                  psnr        => 29.53,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -87,7 +87,7 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-			bitrate     => 963,
+			                  bitrate     => 963,
 			psnr        => 30.89,
                         encdecmatch => 1,
                        },

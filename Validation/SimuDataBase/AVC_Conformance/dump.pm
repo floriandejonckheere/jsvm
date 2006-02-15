@@ -6,7 +6,7 @@
 # File          : run.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.1
+# Version       : 0.0.2
 ################################################################################
 
 
@@ -48,7 +48,24 @@ sub GetDir ($)
       
      return @filelist;
  }    
+###############################################################################
+# Function         : CheckDir($)                                                                             
+###############################################################################
+sub CheckDir($)
+{
+	my $simudir=shift;
+	my $currentdir=getcwd();
+	 
+ 	chdir $simudir or die "The directory $simudir doesn't exist! $!";	
+ 	my $currsimudir=getcwd();
 
+	#for cygwin
+	$currsimudir=~ s|^/cygdrive/(.)/|$1:/|;
+	
+	chdir $currentdir or die "Can not go back to root! $!";
+		
+	return "$currsimudir/"; 	
+}
 
 
 ###############################################################################
@@ -74,8 +91,14 @@ sub Usage (;$)
 {
   my $str = shift;
   (defined $str) and print "$str\n";
-  print "\n Usage: dump [-r] : Remove streams and YUV sequences (default: Copy)
-  	     [-s <name_simu1>...<name_simuN> ] : Name simus to copy/remove
+  print "\n Usage: dump 
+             [-c] : Copy streams and YUV sequences to appropriate simulations
+                    directories
+             [-r] : Remove streams and YUV sequences
+             [-simu <name_simu1>...<name_simuN> ] : Name simus to copy/remove
+             [-data <yuv_streams_directory>]    : Name of directory containing 
+                                                 conformance streams/sequences 
+                                                 (default: DATA/)
   	     [-u]  			       : Usage	\n";
     
   exit 1;
@@ -87,9 +110,9 @@ sub Usage (;$)
 
 $|=1;
 
-my $orig="DATA";
+my $orig;
 
-my $DoRemove = 0;
+my $DoRemove;
 my @ListSimus;
 
 while (@ARGV)
@@ -98,19 +121,31 @@ while (@ARGV)
 	
 	for($arg)
 	{
-	if   (/-r/)   {
+	if     (/-c/) {
+				 $DoRemove =0;
+		      }
+	elsif   (/-r/){
 				 $DoRemove =1;
 			}
-	elsif(/-s/)   {
-				 ($#ARGV >= 0) or Usage;
+	elsif(/-simu/)  
+	     {
+				 ($arg=shift @ARGV) or Usage;
 				 undef @ListSimus;
 				 @ListSimus=GetArg(\@ARGV);
 			  }			
-	
+	elsif(/-data/)
+	    {
+	       ($#ARGV >= 0) or Usage;
+	       $arg=shift @ARGV;
+	       $arg=~ s|\\|/|g;
+	       $orig= CheckDir($arg);
+	    } 		  			
 	 else 		{Usage;}       
 	}
 }
 
+(defined $orig)      or $orig="DATA";
+(defined $DoRemove)  or Usage;
 (defined @ListSimus) or @ListSimus=grep ( $_ ne $orig,GetDir("./"));
 
 foreach my $simuname (@ListSimus)
@@ -145,23 +180,22 @@ foreach my $simuname (@ListSimus)
 			my $logstr="$str/Readme.txt";
 			
 			my $hlogref = new IO::File "$logref", "r";
-		  	(defined $hlogref) or die "- Failed to open $hlogref : $!";
+		  	(defined $hlogref) or die "- Failed to open $logref : $!";
 		
 			my $hlogstr = new IO::File "$logstr", "r";
-		  	(defined $hlogstr) or die "- Failed to open $hlogstr : $!";
+		  	(defined $hlogstr) or die "- Failed to open $logstr : $!";
 		  	
 		  	while (<$hlogstr>)
 		  	{
 			  	#chomp;
-			  	s/[\n\r]//g;
+			  	s/\s*[\n\r]+//g;
 			  	unless (/^#/ or /^$/)
 			  	{
+			  	(-f "$str/$_") and next;
 			  	print "copy {$orig/$_} to {$str} \n";
 			  	copy("$orig/$_","$str") or die "can not copy $_ $!";
-			  	#(-f "$str/$_") and (unlink "$str/$_" or die "can not unlink $_ $!");
 				}	
 		    	}
-		    	
 		    	
 		    	while (<$hlogref>)
 		  	{

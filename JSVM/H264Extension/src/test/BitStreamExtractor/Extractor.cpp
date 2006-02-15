@@ -986,6 +986,12 @@ Extractor::xExtractPoints()
         uiNumFrame[uiLayer]++;
     //~JVT-P031
 
+    if(cPacketDescription.uiNumLevelsQL != 0) // fix provided by Nathalie
+    {
+        //QL SEI packet
+        bApplyToNext = false;
+    }
+
     //============ check packet ===========
     Double  dSNRLayerDiff = m_aadTargetSNRLayer[uiLayer][uiLevel] - (Double)uiFGSLayer;
     Double  dUpRound      = ceil  ( dSNRLayerDiff );

@@ -85,7 +85,6 @@ sub PrintLog
 			($display) and print $_;
 		}
 	}
-	
 	 $hlog->close;
 }
 
@@ -117,6 +116,8 @@ sub RunSimus
 		
 		($simu->{runencode}) and External::Encode($simu,$Param) and PrintLog("ok\n");
 			
+		($simu->{qualitylayer}) and External::QLAssigner($simu,$Param) and PrintLog("ok\n");	
+			
 		my $ret=Tools::ApplyTests ($simu,$Param) and PrintLog("ok\n");
 	
 		#print Dumper($simu);
@@ -124,7 +125,6 @@ sub RunSimus
 		
 		DirTree::CleanSimuDir ($simu->{name},$Param,$simu->{verbosemode}-$ret);
 	}
-	
 }
 
 ###############################################################################
@@ -162,7 +162,6 @@ sub Usage (;$)
 #------------------------------------------------------------------------------#
 # Main Program                                                                 #
 #------------------------------------------------------------------------------#
-
 $|=1;
 
 if( $#ARGV >=0){$Param->{path_database}="SimuDataBase";}
@@ -185,8 +184,7 @@ while (@ARGV)
 				 $arg=~ s|\\|/|g;
 				 $Param->{path_bin}= DirTree::CheckDir($arg);
 			 }			
-	 elsif( /^-/)
-	       		{
+  	 elsif( /^-/)   {
 			 	$arg =~ s/^-//;
 				my @simudir=grep (/^$arg/,@SimusDB);	 
 			       ($#simudir == 0) or (print "\n Several simulations sets (or no simulations set) beginning by $arg exist(s) ! \n" and Usage); 
@@ -198,12 +196,9 @@ while (@ARGV)
 	}
 }
 
-
-
 (defined @ListSimus) or @ListSimus=grep ( $_ ne "DATA", DirTree::GetDir($Param->{path_database}));
+
 # ===== Simulations ==================================================
-
-
 RunSimus(@ListSimus);
 
 1;

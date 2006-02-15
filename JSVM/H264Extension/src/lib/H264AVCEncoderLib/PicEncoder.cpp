@@ -127,6 +127,7 @@ PicEncoder::PicEncoder()
 , m_uiWrittenBytes          ( 0 )
 , m_uiWriteBufferSize       ( 0 )
 , m_pucWriteBuffer          ( NULL )
+, m_bTraceEnable            ( true )
 {
 }
 
