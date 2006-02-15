@@ -110,6 +110,8 @@ sub Usage (;$)
 
 $|=1;
 
+
+my $DEFAULT_DATA_DIR= "DATA";
 my $orig;
 
 my $DoRemove;
@@ -132,7 +134,7 @@ while (@ARGV)
 				($#ARGV >= 0) or Usage;
 				 undef @ListSimus;
 				 @ListSimus=GetArg(\@ARGV);
-			  }
+			 }
 	elsif(/-data/)
 	    {
 	       ($#ARGV >= 0) or Usage;
@@ -144,9 +146,9 @@ while (@ARGV)
 	}
 }
 
-(defined $orig)      or $orig="DATA";
+(defined $orig)      or $orig=$DEFAULT_DATA_DIR;
 (defined $DoRemove)  or Usage;
-(defined @ListSimus) or @ListSimus=grep ( $_ ne $orig,GetDir("./"));
+(defined @ListSimus) or @ListSimus=grep ( $_ ne $DEFAULT_DATA_DIR ,GetDir("./"));
 
 foreach my $simuname (@ListSimus)
 {

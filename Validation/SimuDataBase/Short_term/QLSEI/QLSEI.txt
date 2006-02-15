@@ -9,7 +9,7 @@ width      	      => 352,
 height     	      => 288,
 framerate 	      => 30,
 nbframes	        => 33,
-verbosemode       => 2,
+verbosemode       => 1,
 
 #==========================================================#
 #               Encoding parameters                        #
