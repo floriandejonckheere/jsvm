@@ -129,7 +129,7 @@ while (@ARGV)
 		      }
 	elsif(/-simu/)  
 	     {
-				 ($arg=shift @ARGV) or Usage;
+				($#ARGV >= 0) or Usage;
 				 undef @ListSimus;
 				 @ListSimus=GetArg(\@ARGV);
 			  }

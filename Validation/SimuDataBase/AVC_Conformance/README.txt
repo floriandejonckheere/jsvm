@@ -8,8 +8,11 @@ USAGE: dump.pm
 -------------- 
 	[-c] to copy "conformance sequences and bistreams" in the corresponding simus directories.
 	[-r] to remove "conformance sequences and bistreams of each simus directories.
-	[-s <name_simu1>...<name_simuN> ] name of the simulations to copy/remove.
+	[-simu <name_simu1>...<name_simuN> ] name of the simulations to copy/remove.
 	[-data <yuv_streams_directory>] name of the directory containing the bitstreams and YUV references sequences
 	[-u] Usage.
 	   
+
+NOTE:
+The numbering of the conformance tests corresponds to the classification of the conformance bit-streams in the ITU-T Recommendation H.264.1 "Conformance specification for H.264 advanced video coding".
 
