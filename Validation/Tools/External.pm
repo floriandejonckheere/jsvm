@@ -25,7 +25,7 @@ my $PSNR       = "PSNRStatic";
 my $EXTRACTOR  = "BitStreamExtractorStatic";
 my $DECODER    = "H264AVCDecoderLibTestStatic";
 my $RESAMPLER  = "DownConvertStatic";
-my $QLASSIGNER = "QualityLevelAssigner";
+my $QLASSIGNER = "QualityLevelAssignerStatic";
 my $JMDECODER  = "ldecod";
 
 #-----------------------#
