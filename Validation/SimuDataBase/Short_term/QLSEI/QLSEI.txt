@@ -15,7 +15,6 @@ verbosemode       => 1,
 #               Encoding parameters                        #
 #==========================================================#
 runencode	      => 1,
-#singleloopflag => "-bcip",
 qualitylayer    => 2,
       
 #=======================#

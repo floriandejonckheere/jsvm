@@ -6,7 +6,7 @@
 # File          : DirTree.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.1
+# Version       : 0.0.2
 ################################################################################
 
 package DirTree;

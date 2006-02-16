@@ -6,7 +6,7 @@
 # File          : Tools.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.1
+# Version       : 0.0.2
 ################################################################################
 
 package Tools;
@@ -88,11 +88,10 @@ sub InitSimu($;$)
 	my $simu   = shift;
 	my $param  = shift;
 			
+	#--- Simulation
+	#---------------		
 	$simu->{basestream}   = $simu->{name}."_".$simu->{width}."x".$simu->{height}."_".$simu->{framerate};
-	
-	
 	my $isdefined = (defined $simu->{originalwidth})+(defined $simu->{originalheight})+(defined $simu->{originalframerate});
-	
 	if(!$isdefined) 
 	{
 		$simu->{original}     = ConcatPath($param->{path_globalorig},$simu->{original});
@@ -121,14 +120,15 @@ sub InitSimu($;$)
 	(defined $simu->{qualitylayer}) or  $simu->{qualitylayer}  = 0; #0: off 1: PID NAL 2:SEI 
   $simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264"  if($simu->{qualitylayer}); 
 
-	if($simu->{runencode} == 0)
-	{(defined $simu->{framerate}) 	     or $simu->{framerate} = 30;}
+	if($simu->{runencode} == 0) {(defined $simu->{framerate}) 	     or $simu->{framerate} = 30;}
 	
 	(defined $simu->{psnrcheckrange})    or $simu->{psnrcheckrange} = 0.;   
 	(defined $simu->{bitratecheckrange}) or $simu->{bitratecheckrange}= 5.;
 	$simu->{psnrcheckrange} /= 100;   
 	$simu->{bitratecheckrange}/= 100;  		
 	
+	#--- Layers
+	#---------------	
 	my $l = 0;	
 	foreach my $layer (@{$simu->{layers}})
 	{
@@ -147,8 +147,9 @@ sub InitSimu($;$)
 		$l++;                                                                   																																																														
 	}
 	
+	#--- Tests
+	#---------------	
 	my $tempstreamname;
-			
 	foreach my $test (@{$simu->{tests}})
 	{
 		my $bitrate =($test->{bitrate} ? $test->{bitrate}:500000);
@@ -232,9 +233,7 @@ sub CreateSequences__($;$)
 	my $simu=shift;
 	my $param=shift;
 	
-	::PrintLog(" Create Sequences\t.......... ");
-	
-	
+	::PrintLog(" Create Sequences          .......... ");
 	
 	if($simu->{runencode})
 	{
@@ -295,12 +294,11 @@ sub CreateSequences($;$)
 	my $simu=shift;
 	my $param=shift;
 	
-	::PrintLog(" Create Sequences\t.......... ");
+	::PrintLog(" Create Sequences          .......... ");
 	
 	#build new original if needed
 	if ($simu->{origname} ne $simu->{original})
 	{
-				
 		unless(-f $simu->{origname}) 
 		{
 				 my $essopt=	((defined $simu->{croptype}) and ($simu->{croptype}==2))? 2:1;

@@ -30,14 +30,20 @@ It contains also the file:
 "run.pm" which is the main Perl script to be run in order to validate/evaluate JSVM perfomances (mainly after integration phase).
 ---------
 
-Usage: run [-bin <bin_directory>]   :to specify the bin directory location  (default value: ./bin)
+Usage: run 
+[-bin <bin_directory>]   :to specify the bin directory location  (default value: ./bin)
+
   	   [-seq <orig_directory>]  :to specify the orig directory location (default value: ./orig)
+
   	   [-name_simuset  [ <name_simu1>...<name_simuN>] ] 
   	   		:  to specify that the "name_simuset" simulations set must be run (default value: Short)
   	   	  	: "name_simuset" must the name of a sub-directory of the SimuDataBase directory     
-  	    NOTE 0: You can specify the name of the "Simulations" you want to run inside a given simulations-set by specifying 
-  	          <name-simu1>...<name-simuN>.
+  	    NOTE 0: You can specify the name of the "Simulations" you want to run inside a given simulations-set by specifying <name-simu1>...<name-simuN>.
   	    NOTE 1: You can just specify a prefix of the "name_simuset" set.
+
+[-u ] : print the Usage;
+[-v]  : print the Version number; 
+        
 
 The run.pm script works as following:
 ====================================

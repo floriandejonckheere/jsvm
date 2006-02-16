@@ -96,13 +96,15 @@ A "Simulation" is made up of 2 parts:
 
 
 ############################################################################################################
-#                                 CONFIG FILES and NAMES 	                                           #
+#                                 CONFIG FILES and NAMES CONVENTION	                                       #
 ############################################################################################################
 Let us assume that the name of the simulation is "SimuName".
-The users must respect the following rules in the writing config files. 
+The users must respect the following rules when writing the config files. 
 
 OutputFile      str/SimuName.str              # Bitstream file
 LayerCfg        cfg/SimuName_Li.cfg           # Layer i configuration file
 InputFile       orig/Simuname_176x144_15.yuv  # Input file "SimuName_widthxcolumn_framerate.yuv" of layer i
 ReconFile       tmp/Simuname_rec_Li.yuv       # Reconstructed file of layer i
 MotionInfoFile  mot/Simuname_Li.mot           # Motion Info File
+
+FGSFile         fgs/Simuname_Li.dat           # FGS analysis data

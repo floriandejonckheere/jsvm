@@ -6,7 +6,7 @@
 # File          : External.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.1
+# Version       : 0.0.2
 ################################################################################
 
 package External;
@@ -81,7 +81,7 @@ sub Encode($;$)
 	my $param=shift;
 	my $bin = $param->{path_bin};
 		
-	::PrintLog(" Encode\t\t\t.......... ");
+	 ::PrintLog(" Encode                    .......... ");
 		
 	my $FGSlayer	= $simu->{nbfgslayer};
 	my $FGSConf="";
@@ -144,7 +144,7 @@ sub QLAssigner($$)
 	my $bin =$param->{path_bin};
 	my $display=1; 
 
-  ::PrintLog(" QualityLevelAssigner\t\t\t.......... ");
+  ::PrintLog(" QualityLevelAssigner      .......... ");
 
   my $cmdLayer;
  	my $layer;
@@ -247,7 +247,7 @@ sub ComputePSNR($$$$$$$$$)
     my $PSNR = new IO::File $errname, "r";
     my $result=<$PSNR>;
     #chomp $result;
-    $result =~ s/[\n\r]//g;
+    $result =~ s/\s*[\n\r]+//g;
     $result =~ s/,/./g;
     $PSNR->close();
    
@@ -281,7 +281,6 @@ sub Resize($$;@)
 			my $f = new IO::File $cropfile , "w";
 			(defined $f) or die "- Failed to open the logfile $cropfile : $!";
 			print $f "0, 0,  $win, $hin ";
-			#print $f "0, 0,  $wout, $hout";
 			$f->close();
 		}
 	}

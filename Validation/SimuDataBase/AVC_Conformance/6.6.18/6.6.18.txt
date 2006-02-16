@@ -55,7 +55,7 @@
 		        mode   => 0,
 		        width  => 720,
 		        height => 480,
-		        bitstreamname => "camp_mot_fld0_full.264",
+            		        bitstreamname => "camp_mot_fld0_full.26l",
 		        decodedname   => "camp_mot_fld0_full_720x480.yuv",
 		        origname      => "camp_mot_fld0_full_rec.yuv",
 		        psnr => 99,

@@ -6,9 +6,8 @@
 # File          : run.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.1
+# Version       : 0.0.2
 ################################################################################
-
 
 #-----------------------#
 # System Packages       #
@@ -29,6 +28,7 @@ use Tools::DirTree;
 #-----------------------#    
 # Local variables       #    
 #-----------------------#    
+my $VERSION    = "0.0.2"; 
 my $GLOBAL_LOG = "../Global.log"; #=== Global Log file
 my $DO_DISPLAY = 1;            #=== Display on stdout or not	
 
@@ -144,15 +144,26 @@ sub GetArg($)
 }
 
 ###############################################################################
+# Function         : Version 
+###############################################################################
+sub Version ()
+{
+    print "-----------------------------------\n";
+  	print "ValidationScripts version $VERSION \n";
+  	print "-----------------------------------\n\n";      
+}
+###############################################################################
 # Function         : Usage ([$])
 ###############################################################################
 sub Usage (;$)
 {
   my $str = shift;
+  Version;
   (defined $str) and print "$str\n";
   print "\n Usage: run [-bin <bin_directory>]  
   	    [-seq <orig_directory>] 
   	    [-name_simuset  [ <name_simu1>...<name_simuN>] ]  
+  	    [-v]  				              : Version number
   	    [-u]  				              : Usage	\n";
     
   exit 1;
@@ -180,10 +191,17 @@ while (@ARGV)
 				 $Param->{path_globalorig} = DirTree::CheckDir($arg);
 			}
 	elsif( /-bin/)   {
-				 ($arg=shift @ARGV) or Usage;;
+  				            ($arg=shift @ARGV) or Usage;
 				 $arg=~ s|\\|/|g;
 				 $Param->{path_bin}= DirTree::CheckDir($arg);
 			 }			
+  	elsif(/-v/)     {
+  	                Version;
+  	                exit 1;
+  	                }
+  	elsif(/-u/)     {
+  	                Usage;
+  	                }  
   	 elsif( /^-/)   {
 			 	$arg =~ s/^-//;
 				my @simudir=grep (/^$arg/,@SimusDB);	 
