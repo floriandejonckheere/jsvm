@@ -50,6 +50,18 @@ sub ReadSimu ($)
 }
 
 ###############################################################################
+# Function         : SimuExist ($;$)
+###############################################################################
+sub SimuExist($;$)
+{
+  my $simuname = shift;
+	my $param    = shift;	
+	my $simufile  = $param->{path_database}."$simuname/$simuname.txt";
+	
+	return (-f $simufile) ;
+}
+
+###############################################################################
 # Function         : LoadSimu ($;$)
 ###############################################################################
 sub LoadSimu ($;$)
@@ -87,7 +99,7 @@ sub InitSimu($;$)
 {
 	my $simu   = shift;
 	my $param  = shift;
-			
+	
 	#--- Simulation
 	#---------------		
 	$simu->{basestream}   = $simu->{name}."_".$simu->{width}."x".$simu->{height}."_".$simu->{framerate};
@@ -100,12 +112,12 @@ sub InitSimu($;$)
 	}
 	elsif($isdefined ==3)
 	{
-	$simu->{original}     = ConcatPath($param->{path_globalorig},$simu->{original});	
-	$simu->{origname}     = ConcatPath($param->{path_orig},$simu->{basestream}.".yuv");		
+  	$simu->{original}     = ConcatPath($param->{path_globalorig},$simu->{original});	
+  	$simu->{origname}     = ConcatPath($param->{path_orig},$simu->{basestream}.".yuv");		
 	}
 	else
 	{
-	die "Each of originalwidth, originalheight and originalframerate parameter must be defined or NONE !\n";
+	  die "Each of originalwidth, originalheight and originalframerate parameter must be defined or NONE !\n";
 	}
 		
 	$simu->{configname}   = $param->{path_cfg}.$simu->{name}.".cfg";
@@ -124,7 +136,7 @@ sub InitSimu($;$)
 	
 	(defined $simu->{psnrcheckrange})    or $simu->{psnrcheckrange} = 0.;   
 	(defined $simu->{bitratecheckrange}) or $simu->{bitratecheckrange}= 5.;
-	$simu->{psnrcheckrange} /= 100;   
+	$simu->{psnrcheckrange}   /= 100;   
 	$simu->{bitratecheckrange}/= 100;  		
 	
 	#--- Layers
@@ -248,7 +260,7 @@ sub CreateSequences__($;$)
 					          $simu->{origname},
 					          $simu->{width},
 					          $simu->{height},
-				   	          $simu->{framerate},
+				   	        $simu->{framerate},
 					          $layer->{origname},
 					          $layer->{width},
 					          $layer->{height},
@@ -295,7 +307,7 @@ sub CreateSequences($;$)
 	my $param=shift;
 	
 	::PrintLog(" Create Sequences          .......... ");
-	
+		
 	#build new original if needed
 	if ($simu->{origname} ne $simu->{original})
 	{
@@ -304,7 +316,7 @@ sub CreateSequences($;$)
 				 my $essopt=	((defined $simu->{croptype}) and ($simu->{croptype}==2))? 2:1;
 		 
 		 		External::Resize2($param,
-						  $simu->{logname},
+						        $simu->{logname},
 					          $simu->{original},
 					          $simu->{originalwidth},
 					          $simu->{originalheight},

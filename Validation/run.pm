@@ -27,27 +27,27 @@ use Tools::DirTree;
 
 #-----------------------#    
 # Local variables       #    
-#-----------------------#    
+#-----------------------#   
 my $VERSION    = "0.0.2"; 
 my $GLOBAL_LOG = "../Global.log"; #=== Global Log file
-my $DO_DISPLAY = 1;            #=== Display on stdout or not	
+my $DO_DISPLAY = 1;               #=== Display on stdout or not	
 
 #=== Hash table containing Paths
 my $Param={
-	       path_globalorig 	=> "../../orig/",#=== original YUV sequences directory
-	       path_bin 	=> "../../bin/", #=== binaries directory 
+            path_globalorig 	=> "../../orig/",#=== original YUV sequences directory
+	          path_bin 	=> "../../bin/",         #=== binaries directory 
 	     
-	       path_orig 	=> "orig/",
-	       path_cfg 	=> "cfg/",
-	       path_tmp 	=> "tmp/",
-	       path_str 	=> "str/",
-               path_mot 	=> "mot/",
-               path_fgs 	=> "fgs/",
-               path_rec		=> "rec/",
-               path_crop	=> "crop/",
-               path_log		=> "../",               
-               path_database	=> "SimuDataBase/Short_term/",  #=== directory containing Simulations DataBase
-               path_simu	=> "SimuRun/",		   #=== directory where running simulations	
+	          path_orig 	=> "orig/",
+	          path_cfg 	=> "cfg/",
+	          path_tmp 	=> "tmp/",
+	          path_str 	=> "str/",
+            path_mot 	=> "mot/",
+            path_fgs 	=> "fgs/",
+            path_rec		=> "rec/",
+            path_crop	=> "crop/",
+            path_log		=> "../",               
+            path_database	=> "SimuDataBase/Short_term/",  #=== directory containing Simulations DataBase
+            path_simu	=> "SimuRun/",		                  #=== directory where running simulations	
  	      };
 
 
@@ -70,10 +70,10 @@ sub PrintLog
 	
 	my $is_append = (-f $log);
 	my $hlog = new IO::File $log, ($is_append ? "a" : "w");
-        (defined $hlog) or die "- Failed to open the logfile $log : $!";
+  (defined $hlog) or die "- Failed to open the logfile $log : $!";
          	
-  	unless (ref $string eq "IO::File")
-  	{
+  unless (ref $string eq "IO::File")
+  {
 		print $hlog $string;
 		($display) and print $string;
 	}
@@ -85,7 +85,7 @@ sub PrintLog
 			($display) and print $_;
 		}
 	}
-	 $hlog->close;
+  $hlog->close;
 }
 
 
@@ -100,6 +100,9 @@ sub RunSimus
 	
 	foreach my $simuname (@listsimus)
 	{
+	  print "$simuname\n";
+		(Tools::SimuExist($simuname,$Param)) or next;
+		
 		my ($simu,$simudir)=Tools::LoadSimu($simuname,$Param) ;
 		chdir $simudir or die "Can not change dir to $simudir $!";
 		
@@ -115,7 +118,7 @@ sub RunSimus
 		Tools::CreateSequences($simu,$Param) and PrintLog("ok\n");
 		
 		($simu->{runencode}) and External::Encode($simu,$Param) and PrintLog("ok\n");
-			
+		
 		($simu->{qualitylayer}) and External::QLAssigner($simu,$Param) and PrintLog("ok\n");	
 			
 		my $ret=Tools::ApplyTests ($simu,$Param) and PrintLog("ok\n");
@@ -160,7 +163,7 @@ sub Usage (;$)
   my $str = shift;
   Version;
   (defined $str) and print "$str\n";
-  print "\n Usage: run [-bin <bin_directory>]  
+   print "\n Usage: run [-bin <bin_directory>]  
   	    [-seq <orig_directory>] 
   	    [-name_simuset  [ <name_simu1>...<name_simuN>] ]  
   	    [-v]  				              : Version number
@@ -185,16 +188,16 @@ while (@ARGV)
 		
 	for($arg)
 	{
-	if   (/-seq/)   {
-				 ($arg=shift @ARGV) or Usage;
-				 $arg=~ s|\\|/|g;
-				 $Param->{path_globalorig} = DirTree::CheckDir($arg);
-			}
-	elsif( /-bin/)   {
+  	if   (/-seq/)   {
   				            ($arg=shift @ARGV) or Usage;
-				 $arg=~ s|\\|/|g;
-				 $Param->{path_bin}= DirTree::CheckDir($arg);
-			 }			
+  				            $arg=~ s|\\|/|g;
+  				            $Param->{path_globalorig} = DirTree::CheckDir($arg);
+  		              }
+  	elsif( /-bin/)  {
+  				            ($arg=shift @ARGV) or Usage;
+  				            $arg=~ s|\\|/|g;
+  				            $Param->{path_bin}= DirTree::CheckDir($arg);
+  			            }
   	elsif(/-v/)     {
   	                Version;
   	                exit 1;
@@ -202,19 +205,19 @@ while (@ARGV)
   	elsif(/-u/)     {
   	                Usage;
   	                }  
-  	 elsif( /^-/)   {
-			 	$arg =~ s/^-//;
-				my @simudir=grep (/^$arg/,@SimusDB);	 
-			       ($#simudir == 0) or (print "\n Several simulations sets (or no simulations set) beginning by $arg exist(s) ! \n" and Usage); 
-			       	$Param->{path_database} .= "/$simudir[0]/";
-				undef @ListSimus;
-				@ListSimus=GetArg(\@ARGV);
-			}
-	 else 	      {Usage;}       
+  	elsif( /^-/)   {
+  			 	            $arg =~ s/^-//;
+  				            my @simudir=grep (/^$arg/,@SimusDB);	 
+  			              ($#simudir == 0) or (print "\n Several simulations sets (or no simulations set) beginning by $arg exist(s) ! \n" and Usage); 
+  			       	      $Param->{path_database} .= "/$simudir[0]/";
+  				            undef @ListSimus;
+  				            @ListSimus=GetArg(\@ARGV);
+  			            }
+  	 else 	        {Usage;}       
 	}
 }
 
-(defined @ListSimus) or @ListSimus=grep ( $_ ne "DATA", DirTree::GetDir($Param->{path_database}));
+(defined @ListSimus) or @ListSimus= DirTree::GetDir($Param->{path_database});
 
 # ===== Simulations ==================================================
 RunSimus(@ListSimus);
