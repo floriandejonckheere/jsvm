@@ -270,7 +270,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_iScaledBaseRightOffset            ( 0 ) 
 , m_iScaledBaseBottomOffset           ( 0 ) 
 //TMM_ESS_UNIFIED }
-, m_uiBaseChromaPhaseXPlus1           ( 1 ) // TMM_ESS
+, m_uiBaseChromaPhaseXPlus1           ( 0 ) // TMM_ESS
 , m_uiBaseChromaPhaseYPlus1           ( 1 ) // TMM_ESS
 , m_bArFgsUsageFlag                   ( false )
 , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
@@ -874,7 +874,6 @@ ErrVal
 SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
 {
   Bool  bTmp;
-
  
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
@@ -885,8 +884,8 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
   
   if( getSPS().getPicOrderCntType() == 0 )
   {
-    RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
-      getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
+  RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
+                               getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
     if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
     {
       RNOK( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
@@ -896,7 +895,7 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
   {
     RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
     if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
-    {
+  {
       RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
   }

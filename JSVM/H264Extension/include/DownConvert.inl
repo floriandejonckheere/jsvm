@@ -89,13 +89,17 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 __inline
 DownConvert::DownConvert()
 : m_iImageStride  ( 0 )
-, m_paiImageBuffer( 0 )
+, m_paiImageBuffer		  ( NULL )
 #ifndef NO_MB_DATA_CTRL
-, m_paiImageBuffer2( 0 )
+, m_paiImageBuffer2		  ( NULL )
 #endif
-, m_paiTmp1dBuffer( 0 )
-, m_padFilter(0)        //TMM_ESS
-, m_paiTmp1dBufferOut(0)//TMM_ESS
+, m_paiTmp1dBuffer		  ( NULL )
+, m_padFilter			  ( NULL )     
+, m_aiTmp1dBufferInHalfpel( NULL )
+, m_aiTmp1dBufferInQ1pel  ( NULL )
+, m_aiTmp1dBufferInQ3pel  ( NULL )
+, m_paiTmp1dBufferIn	  ( NULL )
+, m_paiTmp1dBufferOut	  ( NULL )
 {
 }
 

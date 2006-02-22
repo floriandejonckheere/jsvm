@@ -6,7 +6,7 @@
 # File          : Tools.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.2
+# Version       : 0.0.3
 ################################################################################
 
 package Tools;
@@ -99,7 +99,7 @@ sub InitSimu($;$)
 {
 	my $simu   = shift;
 	my $param  = shift;
-	
+			
 	#--- Simulation
 	#---------------		
 	$simu->{basestream}   = $simu->{name}."_".$simu->{width}."x".$simu->{height}."_".$simu->{framerate};
@@ -112,12 +112,12 @@ sub InitSimu($;$)
 	}
 	elsif($isdefined ==3)
 	{
-  	$simu->{original}     = ConcatPath($param->{path_globalorig},$simu->{original});	
-  	$simu->{origname}     = ConcatPath($param->{path_orig},$simu->{basestream}.".yuv");		
+	$simu->{original}     = ConcatPath($param->{path_globalorig},$simu->{original});	
+	$simu->{origname}     = ConcatPath($param->{path_orig},$simu->{basestream}.".yuv");		
 	}
 	else
 	{
-	  die "Each of originalwidth, originalheight and originalframerate parameter must be defined or NONE !\n";
+	die "Each of originalwidth, originalheight and originalframerate parameter must be defined or NONE !\n";
 	}
 		
 	$simu->{configname}   = $param->{path_cfg}.$simu->{name}.".cfg";
@@ -132,11 +132,12 @@ sub InitSimu($;$)
 	(defined $simu->{qualitylayer}) or  $simu->{qualitylayer}  = 0; #0: off 1: PID NAL 2:SEI 
   $simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264"  if($simu->{qualitylayer}); 
 
-	if($simu->{runencode} == 0) {(defined $simu->{framerate}) 	     or $simu->{framerate} = 30;}
+	if($simu->{runencode} == 0)
+	{(defined $simu->{framerate}) 	     or $simu->{framerate} = 30;}
 	
 	(defined $simu->{psnrcheckrange})    or $simu->{psnrcheckrange} = 0.;   
 	(defined $simu->{bitratecheckrange}) or $simu->{bitratecheckrange}= 5.;
-	$simu->{psnrcheckrange}   /= 100;   
+	$simu->{psnrcheckrange} /= 100;   
 	$simu->{bitratecheckrange}/= 100;  		
 	
 	#--- Layers
@@ -159,6 +160,8 @@ sub InitSimu($;$)
 		$l++;                                                                   																																																														
 	}
 	
+	
+		
 	#--- Tests
 	#---------------	
 	my $tempstreamname;
@@ -195,8 +198,9 @@ sub InitSimu($;$)
 		or ($test->{decodedname}     = $param->{path_rec}.$test->{basestream}."_$bitrate.yuv");
 		
 		my $refl=FindRefLayer($simu,$test);
-		(defined $refl) and $test->{cropfilename}= $refl->{cropfilename} ;
-		(defined $test->{encdecmatch}) or $test->{encdecmatch}=0;	
+	  $test->{refl}=$refl;
+	  (defined $refl) and $test->{cropfilename}= $refl->{cropfilename} ;
+	  (defined $test->{encdecmatch}) or $test->{encdecmatch}=0;	
 		if($test->{encdecmatch})
  		{
 	 		($test->{mode}==3) and die "Mode 3 and Encoder/Decoder match are not compliant $!";
@@ -236,68 +240,6 @@ sub FindRefLayer($;$)
 	#die "Can not find corresponding Layer";
 	return undef;
 }
-
-##############################################################################
-# Function         : CreateSequences ($;$)
-##############################################################################
-sub CreateSequences__($;$)
-{
-	my $simu=shift;
-	my $param=shift;
-	
-	::PrintLog(" Create Sequences          .......... ");
-	
-	if($simu->{runencode})
-	{
-		foreach my $layer (@{$simu->{layers}})
-		{
-			 my $essopt=	((defined $layer->{croptype}) and ($layer->{croptype}==2))? 2:1;
-			 	
-			unless(-f $layer->{origname}) 
-			{ 	
-				External::Resize($param,
-					          $simu->{logname},
-					          $simu->{origname},
-					          $simu->{width},
-					          $simu->{height},
-				   	        $simu->{framerate},
-					          $layer->{origname},
-					          $layer->{width},
-					          $layer->{height},
-					          $layer->{framerate},
-					          $essopt,
-					          $simu->{nbframes},
-					          $layer->{cropfilename});	
-		       }
-		}
-	}
-
-
-	foreach my $test (@{$simu->{tests}})
-	{
-		 my $essopt=	((defined $test->{croptype}) and ($test->{croptype}==2))? 2:1;
-		 	
-		unless(-f $test->{origname}) 
-		{
-		External::Resize($param,
-		       $simu->{logname},
-		       $simu->{origname},
-		       $simu->{width},
-		       $simu->{height},
-		       $simu->{framerate},
-		       $test->{origname},
-		       $test->{width},
-		       $test->{height},
-		       $test->{framerate},
-		       $essopt,
-		       $simu->{nbframes},
-		       $test->{cropfilename});	
-		}
-	}
-	return 1;
-}
-
-
 ##############################################################################
 # Function         : CreateSequences ($;$)
 ##############################################################################
@@ -307,20 +249,21 @@ sub CreateSequences($;$)
 	my $param=shift;
 	
 	::PrintLog(" Create Sequences          .......... ");
-		
+	
 	#build new original if needed
 	if ($simu->{origname} ne $simu->{original})
 	{
+	
 		unless(-f $simu->{origname}) 
 		{
 				 my $essopt=	((defined $simu->{croptype}) and ($simu->{croptype}==2))? 2:1;
 		 
-		 		External::Resize2($param,
+		 		External::Resize($param,
 						        $simu->{logname},
 					          $simu->{original},
 					          $simu->{originalwidth},
 					          $simu->{originalheight},
-				   	          $simu->{originalframerate},
+				   	        $simu->{originalframerate},
 					          $simu->{origname},
 					          $simu->{width},
 					          $simu->{height},
@@ -331,56 +274,69 @@ sub CreateSequences($;$)
 		}
 	}
 	
-	if($simu->{runencode})
+	# build layers references
+	my $reforigname= $simu->{origname};
+	my $refwidth   = $simu->{width};
+	my $refheight   = $simu->{height};
+	my $refframerate   = $simu->{framerate};	
+		
+	my $nblayer = $#{$simu->{layers}};
+	my @layers = @{$simu->{layers}};
+	while($nblayer>=0)
 	{
-		foreach my $layer (@{$simu->{layers}})
-		{
-			 my $essopt=	((defined $layer->{croptype}) and ($layer->{croptype}==2))? 2:1;
+		my $layer=@layers[$nblayer];
+		my $essopt=	((defined $layer->{croptype}) and ($layer->{croptype}==2))? 2:1;
 			 	
 			unless(-f $layer->{origname}) 
 			{ 	
-				External::Resize2($param,
-					          $simu->{logname},
-					          $simu->{origname},
-					          $simu->{width},
-					          $simu->{height},
-				   	          $simu->{framerate},
-					          $layer->{origname},
-					          $layer->{width},
-					          $layer->{height},
-					          $layer->{framerate},
-					          $essopt,
-					          $simu->{nbframes},
-					          $layer->{cropfilename});	
-		       }
-		}
+		   External::Resize($param,
+    					          $simu->{logname},
+    					          $reforigname,
+    					          $refwidth,
+    					          $refheight,
+    				   	        $refframerate,
+    					          $layer->{origname},
+    					          $layer->{width},
+    					          $layer->{height},
+    					          $layer->{framerate},
+    					          $essopt,
+    					          $simu->{nbframes},
+    					          $layer->{cropfilename});	
+		  }
+		$reforigname    = $layer->{origname};
+    $refwidth       = $layer->{width};
+    $refheight      = $layer->{height};
+    $refframerate   = $layer->{framerate};	
+		
+		$nblayer--;
 	}
-
-
+	
+  # build tests references
 	foreach my $test (@{$simu->{tests}})
 	{
 		 my $essopt=	((defined $test->{croptype}) and ($test->{croptype}==2))? 2:1;
 		 	
+			print "HERE $simu->{origname} $simu->{original} \n ";
 		unless(-f $test->{origname}) 
 		{
-		External::Resize2($param,
-		       $simu->{logname},
-		       $simu->{origname},
-		       $simu->{width},
-		       $simu->{height},
-		       $simu->{framerate},
-		       $test->{origname},
-		       $test->{width},
-		       $test->{height},
-		       $test->{framerate},
-		       $essopt,
-		       $simu->{nbframes},
-		       $test->{cropfilename});	
+		my $refl= $test->{refl}; 
+		External::Resize($param,
+          		       $simu->{logname},
+          		       $refl->{origname},
+          		       $refl->{width},
+          		       $refl->{height},
+          		       $refl->{framerate},
+          		       $test->{origname},
+          		       $test->{width},
+          		       $test->{height},
+          		       $test->{framerate},
+          		       $essopt,
+          		       $simu->{nbframes},
+          		       $test->{cropfilename});	
 		}
 	}
 	return 1;
 }
-
 
 ######################################################################################
 # Function         : CheckRange($;$;[$])

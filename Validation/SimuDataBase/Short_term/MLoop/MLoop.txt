@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name              => "MLoop",
-original          => "BUS_CIF30.yuv",
+original          => "BUS_352x288_30.yuv",
 originalwidth     => 352,
 originalheight    => 288,
 originalframerate => 30,
@@ -64,8 +64,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-			birate      => 810,
-			psnr        => 42.64,
+                  			birate      => 799,
+                  			psnr        => 42.65,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -77,8 +77,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 15,
-			bitrate     => 1095,
-			psnr        => 31.07,
+                  			bitrate     => 1082,
+                  			psnr        => 31.04,
                         encdecmatch => 1,
                        },
                       ],

@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name              => "ARFGS",
-original          => "MOBILE_CIF30.yuv",
+original          => "MOBILE_352x288_30.yuv",
 originalwidth     => 352,
 originalheight    => 288,
 originalframerate => 30,
@@ -49,8 +49,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 30,
-			bitrate     => 580,
-			psnr        => 32.97,
+                        bitrate     => 574.1,
+                        psnr        => 33.03,
                         encdecmatch => 1,
                        },
                       ],

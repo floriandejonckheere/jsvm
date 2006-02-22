@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
     name 	=> "T2",
-    original 	=> "BUS_CIF30.yuv",
+    original 	=> "BUS_352x288_30.yuv",
     width      	=> 352,
     height     	=> 288,
     framerate 	=> 30,
@@ -25,14 +25,14 @@
                       #----------#
                        {
                          width        => 176,
-			 height       => 144,
-			 framerate    =>  15,
-			},
-		      #----------#
+                  			 height       => 144,
+                  			 framerate    =>  15,
+                  		 },
+                  		#----------#
                       # Layer  1 #
                       #----------#
-		       {
-		       },
+            		       {
+            		       },
 		   ],
    
 #==========================================================#
@@ -42,32 +42,32 @@
     psnrcheckrange    =>  0,
          
     tests      => [
-		      #----------#
+		                  #----------#
                       # Test   0 #
                       #----------#
                       {
-		        name => "BL",
-	                mode => 1,
-		        width => 176,
-		        height => 144,
-		        framerate => 15,
-		        bitrate => 0,
-		        psnr => 30.09,
-		        encdecmatch=>1,
-		      },
-		      #----------#
+            		        name => "BL",
+            	          mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 15,
+            		        bitrate => 106,
+            		        psnr => 30.17,
+            		        encdecmatch=>1,
+            		      },
+            		      #----------#
                       # Test   1 #
                       #----------#
-		      {
-		        name => "EL",
-		        mode => 0,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 0,
-            		        psnr => 28.78,
-		        encdecmatch=>1,
-		      },
+            		      {
+            		        name => "EL",
+            		        mode => 0,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 398,
+                        psnr => 28.80,
+            		        encdecmatch=>1,
+            		      },
 		  ],
 }
 

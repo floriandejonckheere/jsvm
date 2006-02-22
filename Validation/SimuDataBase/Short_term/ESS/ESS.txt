@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name        => "ESS",
-original    => "FOOTBALL_CIF30.yuv",
+original    => "FOOTBALL_352x288_30.yuv",
 width       => 352,
 height      => 288,
 framerate   => 30,
@@ -61,8 +61,8 @@ tests              => [
                         width       => 128,
                         height      => 96,
                         framerate   => 15,
-			bitrate     => 142,
-			psnr        => 29.05,
+                  			bitrate     => 113,
+                  			psnr        => 30.29,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -74,8 +74,8 @@ tests              => [
                         width       => 192,
                         height      => 144,
                         framerate   => 15,
-			                  bitrate     => 229,
-			                  psnr        => 29.53,
+			                  bitrate     => 231,
+			                  psnr        => 29.15,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -88,7 +88,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
 			                  bitrate     => 963,
-			psnr        => 30.89,
+			                  psnr        => 30.87,
                         encdecmatch => 1,
                        },
                       ],

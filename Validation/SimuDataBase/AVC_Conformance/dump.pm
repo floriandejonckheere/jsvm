@@ -6,7 +6,7 @@
 # File          : run.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.2
+# Version       : 0.0.3
 ################################################################################
 
 
@@ -19,7 +19,6 @@ use File::Copy;
 use File::Path;
 use Cwd;
 use Data::Dumper;
-
 
 ###############################################################################
 # Function         : GetDir ($)                                                                         
@@ -96,10 +95,10 @@ sub Usage (;$)
                     directories
              [-r] : Remove streams and YUV sequences
              [-simu <name_simu1>...<name_simuN> ] : Name simus to copy/remove
-             [-data <yuv_streams_directory>]    : Name of directory containing 
-                                                 conformance streams/sequences 
-                                                 (default: DATA/)
-             [-u]                              : Usage	\n";
+             [-data <yuv_streams_directory>]      : Name of directory containing 
+                                                    conformance streams/sequences 
+                                                    (default: ./DATA/)
+             [-u]                                 : Usage	\n";
     
   exit 1;
 }
@@ -124,24 +123,24 @@ while (@ARGV)
 	for($arg)
 	{
 	if     (/-c/) {
-				 $DoRemove =0;
-		      }
+				          $DoRemove =0;
+		             }
 	elsif   (/-r/){
-				 $DoRemove =1;
-		      }
+				          $DoRemove =1;
+		            }
 	elsif(/-simu/)  
-	     {
-				($#ARGV >= 0) or Usage;
-				 undef @ListSimus;
-				 @ListSimus=GetArg(\@ARGV);
-			 }
+	               {
+          				($#ARGV >= 0) or Usage;
+          				 undef @ListSimus;
+          				 @ListSimus=GetArg(\@ARGV);
+			           }
 	elsif(/-data/)
-	    {
-	       ($#ARGV >= 0) or Usage;
-	       $arg=shift @ARGV;
-	       $arg=~ s|\\|/|g;
-	       $orig= CheckDir($arg);
-	    } 		  			
+	               {
+        	       ($#ARGV >= 0) or Usage;
+        	       $arg=shift @ARGV;
+        	       $arg=~ s|\\|/|g;
+        	       $orig= CheckDir($arg);
+	                } 		  			
 		 else 		{Usage;}       
 	}
 }
@@ -160,14 +159,12 @@ foreach my $simuname (@ListSimus)
 			my @ListRef=GetFile($ref);
 			my @ListStr=GetFile($str);
 			
-			#print join("\n", @ListRef);
-			#print join("\n", @ListStr);
-			
-			foreach (@ListRef)
-			{ ($_ ne "Readme.txt") or next;
+  		foreach (@ListRef)
+			{ 
+			  ($_ ne "Readme.txt") or next;
 			  print "remove $ref/$_ \n";
 			  unlink "$ref/$_" or die "- Can not remove $ref/$_ : $!";
-			  }
+			 }
 			
 			foreach (@ListStr)
 			{ 
@@ -182,10 +179,10 @@ foreach my $simuname (@ListSimus)
 			my $logstr="$str/Readme.txt";
 			
 			my $hlogref = new IO::File "$logref", "r";
-		  	(defined $hlogref) or die "- Failed to open $logref : $!";
-		
-			my $hlogstr = new IO::File "$logstr", "r";
-		  	(defined $hlogstr) or die "- Failed to open $logstr : $!";
+		  (defined $hlogref) or die "- Failed to open $logref : $!";
+		  
+		  my $hlogstr = new IO::File "$logstr", "r";
+		  (defined $hlogstr) or die "- Failed to open $logstr : $!";
 		  	
 		  	while (<$hlogstr>)
 		  	{
@@ -201,20 +198,18 @@ foreach my $simuname (@ListSimus)
 		    	
 		    while (<$hlogref>)
 		  	{
-		  	#chomp;
-		  	s/[\n\r]//g;	
-		  	unless (/^#/ or /^$/)
-		  	{
-		  	print "copy {$orig/$_} to {$ref} \n";
-		  	copy("$orig/$_","$ref") or die "can not copy $_ $!";
-		  	#(-f "$ref/$_") and (unlink "$ref/$_" or die "can not unlink $_ $!");
-		  	}	
-		    	}
+  		  	#chomp;
+  		  	s/\s*[\n\r]+//g;
+  		  	unless (/^#/ or /^$/)
+  		  	{
+  		  	print "copy {$orig/$_} to {$ref} \n";
+  		  	copy("$orig/$_","$ref") or die "can not copy $_ $!";
+  		   	}	
+		   	}
 		     
-		    	$hlogref->close();
+		    $hlogref->close();
 		  	$hlogstr->close();
 		}
-	
 }
 
 1;

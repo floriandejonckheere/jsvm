@@ -5,8 +5,12 @@
 # File          : README.TXT
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.1
+# Version       : 0.0.3
 ################################################################################
+
+###################################################################################
+#PLEASE USE THE SPACES INSTEAD OF TABS when you write simulation and config files.# 
+###################################################################################
 
 
 The current directory contains various sub-directories each of them corresponding to a specific test-set.
@@ -87,7 +91,8 @@ A "Simulation" is made up of 2 parts:
 
 -Encoding:
 ----------
- It contains global encoding parameter as well specific parameters for each "Layer" to be encoded.
+ -It contains global encoding parameter as well specific parameters for each "Layer" to be encoded.
+ -If required, a step of so-called "quality layer assignment" will be applied.
   
 -Tests:
 -------
@@ -108,3 +113,5 @@ ReconFile       tmp/Simuname_rec_Li.yuv       # Reconstructed file of layer i
 MotionInfoFile  mot/Simuname_Li.mot           # Motion Info File
 
 FGSFile         fgs/Simuname_Li.dat           # FGS analysis data
+
+

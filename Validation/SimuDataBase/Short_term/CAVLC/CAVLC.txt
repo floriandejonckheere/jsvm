@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name        => "CAVLC",
-original    => "BUS_CIF30.yuv",
+original    => "BUS_352x288_30.yuv",
 width       => 352,
 height      => 288,
 framerate   => 30,
@@ -53,8 +53,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-			bitrate     => 275,
-			psnr        => 34.40,
+                        bitrate     => 268.2,
+                        psnr        => 34.48,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -66,8 +66,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-			bitrate     => 1565,
-			psnr        => 33.89,
+                        bitrate     => 1559.5,
+                        psnr        => 33.91,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -79,8 +79,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 3.75,
-			bitrate     => 815,
-			psnr        => 37.03,
+                        bitrate     => 805,
+                        psnr        => 37.05,
                         encdecmatch => 0,
                        },
                       ],

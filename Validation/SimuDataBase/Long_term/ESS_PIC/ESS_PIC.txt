@@ -2,23 +2,23 @@
 #==========================================================#
 #               General parameters                         #
 #==========================================================#
-    name 	=> "ESS_PIC",
-    original 	=> "CREW_4CIF30.yuv",
-    originalwidth => 704,
-    originalheight => 576,
+    name 		            => "ESS_PIC",
+    original 		        => "CREW_704x576_30.yuv",
+    originalwidth      	=> 704,
+    originalheight     	=> 576,
     originalframerate 	=> 30,
     
     width      		      => 640,
     height     		      => 560,
-    framerate 	=> 30,
-    nbframes	=> 97,
+    framerate 	      	=> 30,
+    nbframes		        => 97,
     cropfilename        => "crop.txt",
     verbosemode 	      => 1,	
 
 #==========================================================#
 #               Encoding parameters                        #
 #==========================================================#
-    runencode	=> 1,
+    runencode	     => 1,
     singleloopflag => "-bcip",
 
 #=======================#
@@ -29,17 +29,17 @@
                       # Layer  0 #
                       #----------#
                        {
-                         width        => 384 ,
-			 height       => 336 ,
-			 cropfilename => "crew_pictlev.txt",
-			 croptype     => 2,
-			},
-		      #----------#
+                        width        => 384 ,
+			                  height       => 336 ,
+			                  cropfilename => "crew_pictlev.txt",
+			                  croptype     => 2,
+			                 },
+		                  #----------#
                       # Layer  1 #
                       #----------#
-		       {
-		       },
-		     ],
+		                  {
+			      		       },
+		               ],
    
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
@@ -47,33 +47,33 @@
     bitratecheckrange  => 3,
     psnrcheckrange    =>  0,
     
-      tests      => [
-		      #----------#
-                      # Test   0 #
-                      #----------#
-                      {
-		        name => "BasicBL",
-		        mode => 1,
-		        width => 384,
-		        height => 336,
-		        framerate => 30,
-          		        bitrate => 697,
-          		        psnr => 37.54,
+     tests      => [
+		                #----------#
+                    # Test   0 #
+                    #----------#
+                    {
+          		        name => "BasicBL",
+          		        mode => 1,
+          		        width => 384,
+          		        height => 336,
+          		        framerate => 30,
+          		        bitrate => 771,
+          		        psnr => 36.61,
           		        encdecmatch => 1,
-		      },
-		      #----------#
-                      # Test   1 #
-                      #----------#
-		      {
-		        name => "BasicEL",
-	                mode => 1,
-		        width => 640,
-		        height => 560,
-		        framerate => 30,
-          		        bitrate => 1342,
-          		        psnr => 36.15,
+          		      },
+          		      #----------#
+                    # Test   1 #
+                    #----------#
+          		      {
+          		        name => "BasicEL",
+          	          mode => 1,
+          		        width => 640,
+          		        height => 560,
+          		        framerate => 30,
+          		        bitrate => 1488,
+          		        psnr => 35.64,
           		        encdecmatch => 1,
-		      },
+          		      },
     		    ],
 }
 

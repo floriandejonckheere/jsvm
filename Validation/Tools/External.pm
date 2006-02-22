@@ -6,7 +6,7 @@
 # File          : External.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.2
+# Version       : 0.0.3
 ################################################################################
 
 package External;
@@ -108,10 +108,9 @@ sub Encode($;$)
 		else
 		{
 			#Layer with FGS content
-			
 			$cmd = "$bin$ENCODER -pf ".$simu->{configname}." -bf ".$simu->{bitstreamname}." -numl $lp1  $DSConf $MotConf -mfile $l 2 ".$layer->{motionname}." $FGSConf -anafgs $l $FGSlayer ".$layer->{fgsname}." ".$simu->{singleloopflag};
-    		 	$ret = run($cmd, $simu->{logname},0);
-  			($ret == 0) or die "problem while executing the command:\n$cmd\n";
+    	$ret = run($cmd, $simu->{logname},0);
+  	 ($ret == 0) or die "problem while executing the command:\n$cmd\n";
 
 			if ($layer->{bitrateDS}>0)
 			{
@@ -128,7 +127,7 @@ sub Encode($;$)
 	
 	$cmd = "$bin$ENCODER -pf ".$simu->{configname}." -bf ".$simu->{bitstreamname}." -numl $lp1 $DSConf $MotConf $FGSConf ".$simu->{singleloopflag};
  	$ret = run($cmd,$simu->{logname},0);
-  	($ret == 0) or die "problem while executing the command:\n$cmd\n";
+  ($ret == 0) or die "problem while executing the command:\n$cmd\n";
   	
 	
   	return 1;
@@ -154,7 +153,6 @@ sub QLAssigner($$)
    $cmdLayer .= " -org $l ".$layer->{origname};
    $l++;
   }
-
 	
 	my $cmd = "$bin$QLASSIGNER -in ".$simu->{bitstreamname}." $cmdLayer -out ".$simu->{bitstreamQLname}; 
  ($cmd .= " -sei") if($simu->{qualitylayer}==2);
@@ -162,8 +160,6 @@ sub QLAssigner($$)
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n";
 }
-
-
 
 ######################################################################################
 # Function         : Extract ($;$;$)
@@ -219,9 +215,7 @@ sub JMDecode($$;$)
 	my $cmd ="$bin$JMDECODER ". $test->{extractedname}." ".$test->{jmdecodedname};
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
-
 }
-
 
 ###############################################################################
 # Function         : ComputePSNR ($$$$$)
@@ -271,46 +265,6 @@ sub Resize($$;@)
 	my $bin =$param->{path_bin};
 	my $tmp =$param->{path_tmp};
 	
-	unless (defined $cropfile) 
-	{
-		if($essopt ==2)
-		{ die "Cropping file is needed!\n";}
-		else
-		{
-			$cropfile = "${tmp}tempocrop.txt";
-			my $f = new IO::File $cropfile , "w";
-			(defined $f) or die "- Failed to open the logfile $cropfile : $!";
-			print $f "0, 0,  $win, $hin ";
-			$f->close();
-		}
-	}
-		
-	my $temporatio=GetPowerof2($frin/$frout);
-	my $temporesize="${tmp}temporesize.txt";
-	my $cmd ="$bin$RESAMPLER  -ess $essopt $namein $win $hin $nameout $wout $hout 0 0 0 0 $cropfile $temporatio 0 $nbfr 2> $temporesize";
-	
-	my $ret = run($cmd, $log,0);
-	($ret == 0) or die "problem while executing the command:\n$cmd\n";  
-
-	(-f $temporesize) and (unlink $temporesize or die" Can not remove $temporesize $!");
-	($cropfile eq "${tmp}tempocrop.txt") and (-f $cropfile) and (unlink $cropfile or die" Can not remove $cropfile $!");
-	  	   					         
-}     					         
-
-##############################################################################
-# Function         : Resize2 ($;$;@)
-##############################################################################
-#very dirty
-sub Resize2($$;@)
-{
-	my $param=shift;
-	my $log=shift;
-	my ($namein,$win,$hin,$frin,$nameout,$wout,$hout,$frout,$essopt,$nbfr,$cropfile)=@_;
-	
-	my $display=1;
-	my $bin =$param->{path_bin};
-	my $tmp =$param->{path_tmp};
-	
 	my $cmd;
 	my $ret;
 	my $temporatio=GetPowerof2($frin/$frout);
@@ -325,7 +279,7 @@ sub Resize2($$;@)
 	
 	if(defined $cropfile)
 	{
-		$cmd ="$bin$RESAMPLER  -ess $essopt $namein $win $hin $nameout $wout $hout 0 0 0 0 $cropfile $temporatio 0 $nbfr 2> ${tmp}temporesize.txt";	
+		$cmd ="$bin$RESAMPLER  -ess $essopt $namein $win $hin $nameout $wout $hout -1 0 -1 0 $cropfile $temporatio 0 $nbfr 2> ${tmp}temporesize.txt";	
 		$ret = run($cmd, $log,0);
 		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
 	}
@@ -335,29 +289,19 @@ sub Resize2($$;@)
 		{ die "Cropping file is needed!\n";}
 			
 		my $temporesize="${tmp}temporesize.txt";
-		if ( ($wratio != $hratio) or ($wres==-1) or ($hres==-1) ) #ESS downsampling
-		{
-			$cropfile = "${tmp}tempocrop.txt";
-			my $f = new IO::File $cropfile , "w";
-			(defined $f) or die "- Failed to open the logfile $cropfile : $!";
-			print $f "0, 0,  $win, $hin ";
-			#print $f "0, 0,  $wout, $hout";
-			$f->close();
+		$cropfile = "${tmp}tempocrop.txt";
+		my $f = new IO::File $cropfile , "w";
+		(defined $f) or die "- Failed to open the logfile $cropfile : $!";
+		print $f "0, 0,  $win, $hin ";
+		$f->close();
 			
-			$cmd ="$bin$RESAMPLER  -ess $essopt $namein $win $hin $nameout $wout $hout 0 0 0 0 $cropfile $temporatio 0 $nbfr 2> $temporesize";
+		$cmd ="$bin$RESAMPLER  -ess $essopt $namein $win $hin $nameout $wout $hout -1 0 -1 0 $cropfile $temporatio 0 $nbfr 2> $temporesize";
 		
-			$ret = run($cmd, $log,0);
-			($ret == 0) or die "problem while executing the command:\n$cmd\n";  
-			(-f $cropfile) and (unlink $cropfile or die "Can not remove $cropfile $!");
-		}
-		else
-		{
-			$cmd ="$bin$RESAMPLER  $win $hin $namein $wres $temporatio $nameout 0 $nbfr 2> $temporesize";
-			$ret = run($cmd, $log,0);
-			($ret == 0) or die "problem while executing the command:\n$cmd\n";  
-		}
+		$ret = run($cmd, $log,0);
+		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
+		(-f $cropfile) and (unlink $cropfile or die "Can not remove $cropfile $!");
+		
 		(-f $temporesize) and (unlink $temporesize or die" Can not remove $temporesize $!");
-		
 	}  	   					         
 } 
 

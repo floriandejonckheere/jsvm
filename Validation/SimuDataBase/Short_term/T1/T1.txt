@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
     name 	=> "T1",
-    original 	=> "BUS_CIF30.yuv",
+    original 	=> "BUS_352x288_30.yuv",
     width      	=> 352,
     height     	=> 288,
     framerate 	=> 30,
@@ -25,26 +25,26 @@
                       #----------#
                        {
                          width        => 176,
-			 height       => 144,
-			 framerate    =>  15,
-			 bitrate      => 256,
-			 bitrateDS    => 0 ,
-		       },
-		      #----------#
+                  			 height       => 144,
+                  			 framerate    =>  15,
+                  			 bitrate      => 256,
+                  			 bitrateDS    => 0 ,
+		                   },
+		                  #----------#
                       # Layer  1 #
                       #----------#
-		       {
-			 bitrate     =>0,
-			 bitrateDS   =>0,
-		       },
-		      #----------#
+          		        {
+                  			 bitrate     =>0,
+                  			 bitrateDS   =>0,
+          		         },
+		                  #----------#
                       # Layer  2 #
                       #----------#
-		       {
-			 bitrate    =>1536,
-			 bitrateDS  =>0,
-		       }		   
-   		    ],
+            		      {
+                  			 bitrate    =>1536,
+                  			 bitrateDS  =>0,
+            		      }		   
+   		              ],
    
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
@@ -54,126 +54,126 @@
 	
 
       tests      => [
-		      #----------#
+		                  #----------#
                       # Test   0 #
                       #----------#
                       {
-		        name => "Basic",
-		        mode => 0,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 0,
-		        psnr => 34.44,
-		      },
-		      #----------#
+            		        name => "Basic",
+            		        mode => 0,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 0,
+            		        psnr => 34.46,
+            		      },
+            		      #----------#
                       # Test   1 #
                       #----------#
-		      {
-		        name => "Basic-Ext",
-	                mode => 1,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 1536,
-		        psnr => 34.43,
-		       },
-    		      #----------#
+            		      {
+            		        name => "Basic-Ext",
+            	          mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 1536,
+            		        psnr => 34.45,
+            		      },
+    		              #----------#
                       # Test   2 #
                       #----------#
-    		      {
-		        name => "SNR",
-	                mode => 1,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 1536*0.9,
-		        psnr => 33.81,
-		      },
-		      #----------#
+    		              {
+            		        name => "SNR",
+            	          mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 1536*0.9,
+            		        psnr => 33.83,
+            		      },
+		                  #----------#
                       # Test   3 #
                       #----------#
                       {
-		        name => "SNR2",
-	                mode => 1,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 520,
-		        psnr => 28.85,
-		      },
-		      #----------#
+            		        name => "SNR2",
+            	          mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 513,
+            		        psnr => 28.84,
+            		      },
+            		      #----------#
                       # Test   4 #
                       #----------#
                       {
-		        name => "SNR3",
-	                mode => 1,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 364,
-		        psnr => 27.31,
-		      },
-		      #----------#
+            		        name => "SNR3",
+            	          mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 364,
+            		        psnr => 27.37,
+            		      },
+            		      #----------#
                       # Test   5 #
                       #----------#
                       {
-		        name => "Spatial",
-	                mode => 1,
-		        width => 176,
-		        height => 144,
-		        framerate => 15,
-		        bitrate => 0,
-		        psnr => 34.06,
-		      },
-		      #----------#
+            		        name => "Spatial",
+            	          mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 15,
+            		        bitrate => 0,
+            		        psnr => 34.15,
+            		      },
+            		      #----------#
                       # Test   6 #
                       #----------#
                       {
-		        name => "Temporal",
-	                mode => 1,
-		        width => 352,
-		        height => 288,
-		        framerate => 15,
-		        bitrate => 0,
-		        psnr => 35.22,
-		      },
-		      #----------#
+            		        name => "Temporal",
+            	          mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 15,
+            		        bitrate => 0,
+            		        psnr => 35.23,
+            		      },
+            		      #----------#
                       # Test   7 #
                       #----------#
                       {
-		        name => "SNR, 2x",
-	                mode => 2,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 1536*0.75,
-		        psnr => 0,
-		      },
-		      #----------#
+            		        name => "SNR, 2x",
+            	          mode => 2,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 1536*0.75,
+            		        psnr => 0,
+            		      },
+            		      #----------#
                       # Test   8 #
                       #----------#
                       {
-		        name => "SNR - ",
-	                mode => 3,
-		        width => 352,
-		        height => 288,
-		        framerate => 30,
-		        bitrate => 1536*0.8,
-		        psnr => 0,
-		      },
-		      #----------#
+            		        name => "SNR - ",
+            	          mode => 3,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 1536*0.8,
+            		        psnr => 0,
+            		      },
+            		      #----------#
                       # Test   9 #
                       #----------#
                       {
-		        name => "Temporal2",
-	                mode => 1,
-		        width => 352,
-		        height => 288,
-		        framerate => 15,
-		        bitrate => 0,
-		        psnr => 33.82,
-		       },
+            		        name => "Temporal2",
+            	          mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 15,
+            		        bitrate => 0,
+            		        psnr => 33.83,
+          		       },
 		  ],
 }
 

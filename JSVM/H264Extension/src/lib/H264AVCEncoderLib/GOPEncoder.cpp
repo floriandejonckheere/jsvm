@@ -2227,8 +2227,8 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
                 m_pcResizeParameters->m_iPosY,
                 m_pcResizeParameters->m_iOutWidth,
                 m_pcResizeParameters->m_iOutHeight,
-                0,
-                0);                                                	
+                m_pcResizeParameters->m_iBaseChromaPhaseX,
+                m_pcResizeParameters->m_iBaseChromaPhaseY);
         }
     }
     // TMM_ESS }
@@ -2386,7 +2386,7 @@ MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
                                      m_pacControlData[uiPos].getSpatialScalability()) );  // SSUN@SHARP
       m_pcLoopFilter->setFilterMode();
     }
-    else if( iSpatialScalability != SST_RATIO_1 )
+    else 
     {
       m_pcLoopFilter->setHighpassFramePointer( pcResidual );
       RNOK( m_pcLoopFilter->process(*m_pacControlData[uiPos].getSliceHeader (),

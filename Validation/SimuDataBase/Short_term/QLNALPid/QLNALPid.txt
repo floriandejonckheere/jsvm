@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name 	            => "QLNALPid",
-original 	        => "BUS_CIF30.yuv",
+original 	        => "BUS_352x288_30.yuv",
  
 width      	      => 352,
 height     	      => 288,
@@ -40,7 +40,7 @@ layers       => [
 		 bitrate     => 768,
 
 		},
-				       ],
+],
    
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
@@ -59,8 +59,8 @@ tests      => [
 		 height => 144,
 		 framerate => 15,
 		 useql     => 1,
-		 bitrate => 192,
-		 psnr => 32.68
+		 bitrate => 191.7,
+		 psnr => 32.91
 		},
 		#----------#
     # Test   1 #
@@ -71,8 +71,8 @@ tests      => [
 		 width => 176,
 		 height => 144,
 		 framerate => 15,
-		 bitrate => 192,
-		 psnr => 32.66,
+		 bitrate => 191.8,
+		 psnr => 32.89,
 		},
 		#----------#
     # Test   2 #
@@ -85,7 +85,7 @@ tests      => [
 		 framerate => 30,
 		 useql     => 1,
 		 bitrate => 700,
-		 psnr => 31.03,
+		 psnr => 31.06,
 		},
 		#----------#
     # Test   3 #
@@ -96,8 +96,8 @@ tests      => [
 		 width => 352,
 		 height => 288,
 		 framerate => 30,
-		 bitrate => 700,
-		 psnr => 30.86,
+		 bitrate => 699,
+		 psnr => 30.89,
 		 },
 	],
 }

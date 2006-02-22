@@ -2015,7 +2015,16 @@ MCTFDecoder::xInitBaseLayer( ControlData& rcControlData )
     {
       if(m_pcResizeParameter->m_iExtendedSpatialScalability == ESS_PICT ) 
       {
-        RNOK( m_pcDecodedPictureBuffer->fillPredictionLists_ESS( m_pcResizeParameter ) );
+        // BUGFIX_JV{
+        RefFrameList& rcList0=rcControlData.getPrdFrameList( LIST_0 );
+        RefFrameList& rcList1=rcControlData.getPrdFrameList( LIST_1 );
+  	 
+	      UInt uiIndex;
+        for( uiIndex = 1; uiIndex <= rcList0.getActive(); uiIndex++ )
+        m_pcResizeParameter->m_aiRefListPoc[0][uiIndex-1]=rcList0[uiIndex]->getPOC() ;
+        for( uiIndex = 1; uiIndex <= rcList1.getActive(); uiIndex++ )
+        m_pcResizeParameter->m_aiRefListPoc[1][uiIndex-1]=rcList1[uiIndex]->getPOC() ;
+        // BUGFIX_JV }
       }
       RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameter) );
     }
@@ -2110,6 +2119,13 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 
   RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, rpcSliceHeader,
                                                    rcOutputList, rcUnusedList ) );
+ 
+  //TMM_ESS {
+   //----- initialize reference lists -----
+   //BUG_FIX JV
+    RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );
+  //TMM_ESS }
+
   RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData() ) );
 
   ControlData&  rcControlData   = m_pcCurrDPBUnit->getCtrlData();
@@ -2129,9 +2145,6 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   
   if(isNewPictureStart(rpcSliceHeader))
     m_iMbProcessed =0;
-
-  //----- initialize reference lists -----
-  RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );
 
   //----- parsing -----
   RNOK( m_pcControlMng  ->initSliceForReading ( *rpcSliceHeader ) );
@@ -2190,7 +2203,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   rpcSliceHeader = 0;
 
   //----- init FGS decoder -----
-  RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+      RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
   }
 
   m_aapcFGSRecon[1][0]->copy(pcBaseRepFrame);
@@ -2217,72 +2230,6 @@ const Bool MCTFDecoder::isNewPictureStart(SliceHeader* rpcSliceHeader)
   if(m_iMbProcessed ==-1 || (m_iMbProcessed  == rpcSliceHeader->getMbInPic()) )  return true;
   else return false;
 }
-
-
-// TMM_ESS {
-ErrVal
-DecodedPicBuffer::fillPredictionLists_ESS( ResizeParameters *pcResizeParameters )
-{
-  pcResizeParameters->initRefListPoc();
-  ROTRS( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isIntra(),   Err::m_nOK );
-  
-  Bool  bBaseRep    = m_pcCurrDPBUnit->isKeyPic ();
-  Int   iMaxPoc     = m_pcCurrDPBUnit->getPoc   ();
-  Int   iMinPoc     = iMaxPoc;
-  UInt  uiTempLevel = m_pcCurrDPBUnit->getTLevel();
-  UInt  uiSize0      = m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxActive( LIST_0 );
-  
-  Int idx=0;
- 
-   //===== list 0 =====
-  while( uiSize0-- )
-  {
-    DPBUnit*              pNext = 0;
-    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter)->getPoc() < iMaxPoc &&
-          ( !pNext || (*iter)->getPoc() > pNext->getPoc() ) &&
-          (*iter)->isBaseRep() == bBaseRep &&
-          ( bBaseRep || (*iter)->getTLevel() < uiTempLevel ) )
-      {
-        pNext = (*iter);
-      }
-    }
-    ROF( pNext );
-	iMaxPoc = pNext->getPoc();
-	pcResizeParameters->m_aiRefListPoc[0][idx++]=iMaxPoc;  
-  }
-  
-  //===== list 1 =====
-  ROTRS( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isInterP(),  Err::m_nOK );
-  UInt  uiSize1      = m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->getNumRefIdxActive( LIST_1 );
-  idx=0;
-  while( uiSize1-- )
-  {
-    DPBUnit*              pNext = 0;
-    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-    for( ; iter != end; iter++ )
-    {
-      if( (*iter)->getPoc() > iMinPoc &&
-          ( !pNext || (*iter)->getPoc() < pNext->getPoc() ) && 
-          (*iter)->isBaseRep() == bBaseRep &&
-          ( bBaseRep || (*iter)->getTLevel() < uiTempLevel ) )
-      {
-        pNext = (*iter);
-      }
-    }
-    ROF( pNext );
-	iMinPoc = pNext->getPoc();
-    pcResizeParameters->m_aiRefListPoc[1][idx++]=iMinPoc;  
-  }
-
-  return Err::m_nOK;
-}
-// TMM_ESS }
-
 
 
 H264AVC_NAMESPACE_END

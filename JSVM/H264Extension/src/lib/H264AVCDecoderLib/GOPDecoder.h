@@ -226,9 +226,7 @@ public:
   ErrVal              clear               ( PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList,
                                             Int&                        riMaxPoc );
- //===== ESS ============
-  ErrVal			        fillPredictionLists_ESS( ResizeParameters *pcResizeParameters ); 
-
+  
   DPBUnit*            getCurrDPBUnit(){return        m_pcCurrDPBUnit;};
   ErrVal                 initPicBuffer(PicBuffer*&    rpcPicBuffer);
   ErrVal              initPicCurrDPBUnit( DPBUnit*&                   rpcCurrDPBUnit,

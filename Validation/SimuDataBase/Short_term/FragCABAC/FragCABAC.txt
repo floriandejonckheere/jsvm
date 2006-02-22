@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name              => "FragCABAC",
-original          => "BUS_CIF30.yuv",
+original          => "BUS_352x288_30.yuv",
 originalwidth     => 352,
 originalheight    => 288,
 originalframerate => 30,
@@ -29,8 +29,8 @@ layers      => [
                  width        => 176,
                  height       => 144,
                  framerate    =>  15,
-		 bitrate      => 384,
-		 bitrateDS    => 192,
+                 bitrate      => 384,
+                 bitrateDS    => 192,
                 },
                 #----------#
                 # Layer  1 #
@@ -58,8 +58,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-			bitrate     => 386,
-			psnr        => 37.02,
+                        bitrate     => 385.4,
+                        psnr        => 37.19,
                         encdecmatch => 0,
                        },
                        #----------#
@@ -71,8 +71,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 15,
-			bitrate     => 516,
-			psnr        => 28.17,
+                        bitrate     => 513,
+                        psnr        => 28.15,
                         encdecmatch => 0,
                        },
                       ],

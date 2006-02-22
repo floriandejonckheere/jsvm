@@ -177,7 +177,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiFrameHeightInMbs                      ( 0 )
 , m_bDirect8x8InferenceFlag                 ( false )
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
-,m_uiChromaPhaseXPlus1                      ( 1 ) // TMM_ESS
+,m_uiChromaPhaseXPlus1                      ( 0 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
 , m_uiNumSimplePriIdVals                    ( 0 ) 
 #if MULTIPLE_LOOP_DECODING
@@ -342,21 +342,18 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   if(  getProfileIdc() == SCALABLE_PROFILE )
   {
     RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,       "SPS: ExtendedSpatialScalability" ) );
-    if (getExtendedSpatialScalability() > ESS_NONE)
+    if ( 1 /* chroma_format_idc */ > 0 )
     {
-      if ( 1 /* chroma_format_idc */ > 0 )
-      {
-        RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: ChromaPhaseXPlus1" ) );
-        RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: ChromaPhaseYPlus1" ) );
-      }
-      if (getExtendedSpatialScalability() == ESS_SEQ)
-      {
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: ScaledBaseLeftOffset" ) );
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: ScaledBaseTopOffset" ) );
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: ScaledBaseRightOffset" ) );
-        RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: ScaledBaseBottomOffset" ) );
-      }
-  	}
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: ChromaPhaseXPlus1" ) );
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: ChromaPhaseYPlus1" ) );
+    }
+    if (getExtendedSpatialScalability() == ESS_SEQ)
+    {
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: ScaledBaseLeftOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: ScaledBaseTopOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: ScaledBaseRightOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: ScaledBaseBottomOffset" ) );
+    }
   }
 // TMM_ESS }
 
@@ -454,20 +451,17 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   if (m_eProfileIdc == SCALABLE_PROFILE)
   {
     RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: ExtendedSpatialScalability" ) );
-    if (m_uiExtendedSpatialScalability > ESS_NONE)
+    if ( 1 /* chroma_format_idc */ > 0 )
     {
-      if ( 1 /* chroma_format_idc */ > 0 )
-      {
-        RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                "SPS: ChromaPhaseXPlus1" ) );
-        RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                "SPS: ChromaPhaseYPlus1" ) );
-      }
-      if (m_uiExtendedSpatialScalability == ESS_SEQ)
-      {
-        RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                          "SPS: ScaledBaseLeftOffset" ) );
-        RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                           "SPS: ScaledBaseTopOffset" ) );
-        RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                         "SPS: ScaledBaseRightOffset" ) );
-        RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                        "SPS: ScaledBaseBottomOffset" ) );
-      }
+      RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                "SPS: ChromaPhaseXPlus1" ) );
+      RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                "SPS: ChromaPhaseYPlus1" ) );
+    }
+    if (m_uiExtendedSpatialScalability == ESS_SEQ)
+    {
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                          "SPS: ScaledBaseLeftOffset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                           "SPS: ScaledBaseTopOffset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                         "SPS: ScaledBaseRightOffset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                        "SPS: ScaledBaseBottomOffset" ) );
     }
   }
   else

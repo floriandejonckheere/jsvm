@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name              => "FragVLC",
-original          => "BUS_CIF30.yuv",
+original          => "BUS_352x288_30.yuv",
 originalwidth     => 352,
 originalheight    => 288,
 originalframerate => 30,
@@ -29,8 +29,8 @@ layers      => [
                  width        => 176,
                  height       => 144,
                  framerate    =>  15,
-		 bitrate      => 384,
-		 bitrateDS    => 192,
+                 bitrate      => 384,
+                 bitrateDS    => 192,
                 },
                 #----------#
                 # Layer  1 #
@@ -58,8 +58,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-			bitrate     => 386,
-			psnr        => 36.63,
+                        bitrate     => 385.6,
+                        psnr        => 36.76,
                         encdecmatch => 0,
                        },
                        #----------#
@@ -71,8 +71,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 15,
-			bitrate     => 532,
-			psnr        => 28.16,
+                        bitrate     => 530,
+                        psnr        => 28.12,
                         encdecmatch => 0,
                        },
                       ],

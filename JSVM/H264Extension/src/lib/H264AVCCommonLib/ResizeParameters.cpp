@@ -6,7 +6,7 @@
 Void
 ResizeParameters::init()
 {
-  xCleanGopParameters(m_pcCurrentGop);
+  xCleanGopParameters(m_acCurrentGop);
   initRefListPoc();
 }
 
@@ -26,7 +26,7 @@ ResizeParameters::xCleanPictureParameters ( PictureParameters * pc )
   pc->m_iPosY = -1;
   pc->m_iOutWidth  = -1;
   pc->m_iOutHeight = -1;
-  pc->m_iBaseChromaPhaseX = 0;
+  pc->m_iBaseChromaPhaseX = -1;  
   pc->m_iBaseChromaPhaseY = 0;
 }
 
@@ -49,7 +49,7 @@ ResizeParameters::setCurrentPictureParametersWith ( Int index )
     return;
 
   PictureParameters * pc;
-  pc = &m_pcCurrentGop[index % MAX_PICT_PARAM_NB];
+  pc = &m_acCurrentGop[index % MAX_PICT_PARAM_NB];
 
   m_iPosX      = pc->m_iPosX;
   m_iPosY      = pc->m_iPosY;
@@ -78,12 +78,12 @@ ResizeParameters::setPictureParametersByValue ( Int index, Int px, Int py, Int o
     m_iPosY       = py;
     m_iOutWidth   = ow;
     m_iOutHeight  = oh;
-    m_iBaseChromaPhaseX = bcpx;
-    m_iBaseChromaPhaseY = bcpy;
   }
 
-  PictureParameters * pc;
-  pc = &m_pcCurrentGop[index % MAX_PICT_PARAM_NB];
+  m_iBaseChromaPhaseX = bcpx;  
+  m_iBaseChromaPhaseY = bcpy;
+
+  PictureParameters * pc = &m_acCurrentGop[index % MAX_PICT_PARAM_NB];
 
   pc->m_iPosX      = m_iPosX;
   pc->m_iPosY      = m_iPosY;
@@ -96,7 +96,7 @@ ResizeParameters::setPictureParametersByValue ( Int index, Int px, Int py, Int o
 ErrVal
 ResizeParameters::readPictureParameters ( Int index )
 {
-    Int iPosX, iPosY, iOutWidth, iOutHeight, iBaseChromaPhaseX=-1, iBaseChromaPhaseY=-1;  // SSUN, 27Sept2005
+    Int iPosX, iPosY, iOutWidth, iOutHeight;  
 
     if ( fscanf(m_pParamFile,"%d,%d,%d,%d\n",&iPosX,&iPosY,&iOutWidth,&iOutHeight) == 0 )
     {
@@ -107,7 +107,7 @@ ResizeParameters::readPictureParameters ( Int index )
     ROTREPORT( iPosX % 2 , "Cropping Window must be even aligned" );
     ROTREPORT( iPosY % 2 , "Cropping Window must be even aligned" );  
 
-    setPictureParametersByValue(index, iPosX, iPosY, iOutWidth, iOutHeight, iBaseChromaPhaseX, iBaseChromaPhaseY );
+    setPictureParametersByValue(index, iPosX, iPosY, iOutWidth, iOutHeight, m_iBaseChromaPhaseX, m_iBaseChromaPhaseY );  
       
     return Err::m_nOK;
 }

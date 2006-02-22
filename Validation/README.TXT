@@ -5,27 +5,49 @@
 # File          : README.TXT
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.1
+# Version       : 0.0.3
 ################################################################################
 
 
 The current directory contains the following sub-directories:
--------------------------------------------------------------
--orig         : contains the original YUV sequences (typically the 4CIF sequences)
-                NOTE : The location of this directory can be specified.
+=============================================================
 
--bin          : contains the binaries of the encoder,decoder,extractor,downconvert and psnr tools; 
-                NOTE : The location of this directory can be specified.
-
--SimuDataBase : contains the "Simulations" data base (i.e. tests set) to be run for the evaluation phase 
+SimuDataBase : contains the "Simulations" data base (i.e. tests set) to be run for the evaluation phase 
                 
--SimuRun      : location where the "Simulations" will be run.
+Tools        : perl scripts and tools.
 
--Tools        : perl scripts and tools 
+SimuRun      : location where the "Simulations" will be run. (if not present, will be automatically created)
+
+[orig]         : contains the original YUV sequences (typically the 4CIF sequences) [OPTIONAL]
+                NOTE: The location of this directory (including its name) can be specifiede.
+               
+[bin]          : contains the binaries of the encoder,decoder,extractor,downconvert and psnr tools;[OPTIONAL] 
+                NOTE : The location of this directory (including its name) can be specified.
+
+
+IMPORTANT NOTES:
+================-
+
+1) The directory "orig"  must at least contain the following YUV sequences:
+- BUS_352x288_30.yuv, MOBILE_352x288_30.yuv, FOOTBALL_352x288_30.yuv  to run the Short-term simulations set.
+- CREW_704x576_30.yuv to run the Long-term simulations set.
+
+2) The directory "bin" must contain the following executables
+- DownConvertStatic
+- H264AVCDecoderLibTestStatic
+- H264AVCEncoderLibTestStatic
+- BitStreamExtractorStatic
+- PSNRStatic
+- QualityLevelAssignerStatic
+
+3) Before running AVC_Conformance simulation set, please read the README.TXT files located in the SimuDataBase/AVC_Conformance/ directory.
+You will have to download the conformance bistreams and YUV sequences available at "http://ftp3.itu.ch/av-arch/jvt-site/draft_conformance/".
+The numbering of the conformance tests corresponds to the classification of the conformance bit-streams in the ITU-T Recommendation H.264.1 "Conformance specification for H.264 advanced video coding".
+Please again, read the instructions...
 
 
 It contains also the file:
---------------------------
+==========================
 
 "run.pm" which is the main Perl script to be run in order to validate/evaluate JSVM perfomances (mainly after integration phase).
 ---------
@@ -33,17 +55,20 @@ It contains also the file:
 Usage: run 
 [-bin <bin_directory>]   :to specify the bin directory location  (default value: ./bin)
 
-  	   [-seq <orig_directory>]  :to specify the orig directory location (default value: ./orig)
+[-seq <orig_directory>]  :to specify the orig directory location (default value: ./orig)
 
-  	   [-name_simuset  [ <name_simu1>...<name_simuN>] ] 
-  	   		:  to specify that the "name_simuset" simulations set must be run (default value: Short)
-  	   	  	: "name_simuset" must the name of a sub-directory of the SimuDataBase directory     
-  	    NOTE 0: You can specify the name of the "Simulations" you want to run inside a given simulations-set by specifying <name-simu1>...<name-simuN>.
+[-SimusetName  [ <SimuName1>...<SimuNameN>] ] 
+  	   		:  to specify that the "SimusetName" simulations set must be run (default value: Short)
+  	   	  : "SimusetName" must be the name of a sub-directory of the SimuDataBase directory     
+  	    NOTE 0: You can specify the name of the "Simulations" you want to run inside a given simulations-set by specifying <SimuName1>...<SimuNameN>.
   	    NOTE 1: You can just specify a prefix of the "name_simuset" set.
 
 [-u ] : print the Usage;
 [-v]  : print the Version number; 
         
+
+
+
 
 The run.pm script works as following:
 ====================================
@@ -61,7 +86,8 @@ NOTE: if the sequences are already built, this creation will not be done.
 - Encoding process:
 -------------------
 This part can be set to OFF depending on the kind of Simulation you want to run.
-
+If required, a step of so-called "quality layer assignment" will be applied.
+ 
 - TESTS processes:
 -----------------
     For each test:
@@ -70,11 +96,10 @@ This part can be set to OFF depending on the kind of Simulation you want to run.
     
     
 A GLOBAL log file will be created at the root of the "SimuRun" directory.
-A LOCAL log file (detailed) will be created at the root of the "SimuRun/SimulationName" directory.     
+A LOCAL log file (detailed) will be created at the root of the "SimuRun" directory.
     
-    
-NOTE ABOUT CLEANING PROCESS
----------------------------
+NOTE CLEANING PROCESS
+===========================
 -At the beginning of a Simulation run, if the "SimuRun/SimulationName" directory exists it will be removed.
 Except if the encoding process is set to OFF.
 

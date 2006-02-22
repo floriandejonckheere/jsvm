@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name        => "FMO",
-original    => "BUS_CIF30.yuv",
+original    => "BUS_352x288_30.yuv",
 width       => 352,
 height      => 288,
 framerate   => 30,
@@ -53,8 +53,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-			bitrate     => 265,
-			psnr        => 34.21,
+                  			bitrate     => 255,
+                  			psnr        => 34.27,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -66,8 +66,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-			bitrate     => 1270,
-			psnr        => 34.02,
+                  			bitrate     => 1263,
+                  			psnr        => 34.01,
                         encdecmatch => 1,
                        },
                       ],

@@ -35,9 +35,9 @@ public:
     m_iSpatialScalabilityType = SST_RATIO_1;
     m_bCrop = false;
 
-    m_iChromaPhaseX = 0;
+    m_iChromaPhaseX = -1;  
     m_iChromaPhaseY = 0;
-    m_iBaseChromaPhaseX = 0;
+    m_iBaseChromaPhaseX = -1;  
     m_iBaseChromaPhaseY = 0;
     m_iIntraUpsamplingType = INTRA_UPSAMPLING_TYPE_DEFAULT;
 
@@ -54,19 +54,19 @@ public:
     Void setPictureParametersByValue ( Int index, Int px, Int py, Int ow, Int oh, Int bcpx, Int bcpy );
 
     const PictureParameters* getCurrentPictureParameters ( Int index ) 
-                    { return &m_pcCurrentGop[index%MAX_PICT_PARAM_NB];} 
+                    { return &m_acCurrentGop[index%MAX_PICT_PARAM_NB];} 
     Int  getLeftOffset   ( Int index ) const 
-                    { return (m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosX) /2; }
+                    { return (m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosX) /2; }
     Int  getRightOffset  ( Int index ) const 
-                     { return (m_iGlobWidth - m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosX - m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iOutWidth) /2; }
+                     { return (m_iGlobWidth - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosX - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iOutWidth) /2; }
     Int  getTopOffset    ( Int index ) const 
-                     { return (m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosY) /2; }
+                     { return (m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosY) /2; }
     Int  getBottomOffset ( Int index ) const 
-                     { return (m_iGlobHeight - m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosY - m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iOutHeight) /2; }
+                     { return (m_iGlobHeight - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosY - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iOutHeight) /2; }
     Int  getBaseChromaPhaseX ( Int index ) const 
-                     { return m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseX; }
+                     { return m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseX; }
     Int  getBaseChromaPhaseY ( Int index ) const 
-                     { return m_pcCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseY; }
+                     { return m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseY; }
 
     Int  getPOC() const { return m_iPOC; }; 
     Void setPOC( Int poc ) { m_iPOC = poc; }; 
@@ -106,7 +106,7 @@ public:
     Int   m_aiRefListPoc[2][MAX_REFLIST_SIZE]; 
 
 protected:
-    PictureParameters m_pcCurrentGop[MAX_PICT_PARAM_NB];
+    PictureParameters m_acCurrentGop[MAX_PICT_PARAM_NB];
 
 private:
     Void xCleanGopParameters     ( PictureParameters * pc );

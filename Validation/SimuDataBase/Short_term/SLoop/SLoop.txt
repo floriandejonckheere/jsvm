@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name              => "SLoop",
-original          => "BUS_CIF30.yuv",
+original          => "BUS_352x288_30.yuv",
 originalwidth     => 352,
 originalheight    => 288,
 originalframerate => 30,

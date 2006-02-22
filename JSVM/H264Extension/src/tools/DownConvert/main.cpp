@@ -108,16 +108,16 @@ typedef struct
 
 void createColorComponent( ColorComponent* cc )
 {
-  if( ! ( cc->data = (unsigned char*) malloc (cc->width * cc->height * sizeof(unsigned char)) ) )
+ if( ! ( cc->data = new unsigned char[cc->width * cc->height]))
   {
-    fprintf(stderr, "\nERROR: malloc failed!\n\n");
+   fprintf(stderr, "\nERROR: memory allocation failed!\n\n");
     exit(1);
   }
 }
 
 void deleteColorComponent( ColorComponent* cc )
 {
-  free( cc->data );
+  delete[] cc->data;
   cc->data = NULL;
 }
 
@@ -580,8 +580,8 @@ int main(int argc, char *argv[])
       print_usage_and_exit( ! input_width || ! output_width, argv[0], "Invalid input or output width!" );
       print_usage_and_exit( ! input_height || ! output_height, argv[0], "Invalid input or output height!" );
       //print_usage_and_exit( ! ess_downsample_flg, argv[0], "no upsampling support so far." );
-      print_usage_and_exit( input_height < output_height && input_height > output_height, argv[0], "no support for mixed down/up sampling." );
-      print_usage_and_exit( input_height > output_height && input_height < output_height, argv[0], "no support for mixed down/up sampling." );
+      print_usage_and_exit( input_width < output_width && input_height > output_height, argv[0], "no support for mixed down/up sampling." );
+      print_usage_and_exit( input_width > output_width && input_height < output_height, argv[0], "no support for mixed down/up sampling." );
       print_usage_and_exit( input_chroma_phase_shift_x > 1 || input_chroma_phase_shift_x < (-1), argv[0], "Invalid input_chroma_phase_shift_x!" );
       print_usage_and_exit( input_chroma_phase_shift_y > 1 || input_chroma_phase_shift_y < (-1), argv[0], "Invalid input_chroma_phase_shift_y!" );
       print_usage_and_exit( output_chroma_phase_shift_x > 1 || output_chroma_phase_shift_x < (-1), argv[0], "Invalid output_chroma_phase_shift_x!" );
@@ -664,6 +664,7 @@ int main(int argc, char *argv[])
         if (!crop_paras_file){
           crop_x0=crop_y0=0;
           crop_w=max(input_width, output_width);
+          crop_h=max(input_height, output_height);
         }
         else if(ess_mode==2) fscanf(crop_paras_file,"%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w,&crop_h);
         else if(index == skip_at_start) fscanf(crop_paras_file,"%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w, &crop_h);

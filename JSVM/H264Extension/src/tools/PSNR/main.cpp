@@ -111,16 +111,16 @@ typedef struct
 
 void createColorComponent( ColorComponent* cc )
 {
-  if( ! ( cc->data = (unsigned char*) malloc (cc->width * cc->height * sizeof(unsigned char)) ) )
+  if( ! ( cc->data = new unsigned char[cc->width * cc->height]))
   {
-    fprintf(stderr, "\nERROR: malloc failed!\n\n");
+   fprintf(stderr, "\nERROR: memory allocation failed!\n\n");
     exit(1);
   }
 }
 
 void deleteColorComponent( ColorComponent* cc )
 {
-  free( cc->data );
+  delete[] cc->data;
   cc->data = NULL;
 }
 

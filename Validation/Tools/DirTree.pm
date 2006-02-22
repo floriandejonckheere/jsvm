@@ -6,7 +6,7 @@
 # File          : DirTree.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.2
+# Version       : 0.0.3
 ################################################################################
 
 package DirTree;
@@ -88,7 +88,7 @@ sub CopyDir ($;$)
       {
        if(-f "$srcdir/$_")
          {
-          (-f "$dstdir/$_") and (unlink "$dstdir/$_" or die "");
+          (-f "$dstdir/$_") and (unlink "$dstdir/$_" or die ""); #not clean
            copy("$srcdir/$_","$dstdir/$_") or die "Can not copy $srcdir/$_ to $dstdir/$_ $!";
          } 
          elsif(-d "$srcdir/$_") 
@@ -144,13 +144,6 @@ sub CleanSimuDir ($$;$)
 	{
 	(-d $simudir)and (rmtree($simudir,0,1) or die "Can not remove ".$simudir." $!");
 	}
-	#elsif ($mode==1)
-	#{
-	#	foreach (qw/cfg orig tmp mot fgs crop/)
-	#	{
-	#	(-d "$simudir/$_")and (rmtree("$simudir/$_",0,1) or die "Can not remove "."$simudir/$_"." $!");	
-	#	}
-    	#}	
 }
 
 1;

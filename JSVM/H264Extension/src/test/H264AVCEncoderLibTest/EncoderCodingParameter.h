@@ -709,6 +709,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropHeight",  &(rcLayer.m_ResizeParameter.m_iOutHeight),                  0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",     &(rcLayer.m_ResizeParameter.m_iPosX),                       0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",     &(rcLayer.m_ResizeParameter.m_iPosY),                       0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSChromaPhaseX",&(rcLayer.m_ResizeParameter.m_iChromaPhaseX),              -1         );  // SSUN, Nov2005
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSChromaPhaseY",&(rcLayer.m_ResizeParameter.m_iChromaPhaseY),               0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseX",&(rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX),      -1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseY",&(rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY),       0         );  // SSUN, Nov2005
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",&(rcLayer.m_uiForceReorderingCommands),  0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerId",    &(rcLayer.m_uiBaseLayerId),              MSYS_UINT_MAX );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("EnhRefME",       &(rcLayer.m_dLowPassEnhRef),              0.5 );
@@ -723,13 +727,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice),                     0       );
   m_pLayerLines[uiParLnCount] = NULL;
-
-  // SSUN@SHARP reset ResizeParameters
-  if( rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability == 0 )
-  {
-    rcLayer.m_ResizeParameter.m_iOutWidth = rcLayer.m_uiFrameWidth;
-    rcLayer.m_ResizeParameter.m_iOutHeight = rcLayer.m_uiFrameHeight;
-  } // end of SSUN@SHARP end of reset ResizeParameters
 
   while (!feof(f))
   {
@@ -778,10 +775,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
         return Err::m_nERR;
       }
       rcLayer.m_ResizeParameter.m_iSpatialScalabilityType = SST_RATIO_X;
-      rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX       = -1;
-      rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY       = -1;
-      rcLayer.m_ResizeParameter.m_iChromaPhaseX           = -1;
-      rcLayer.m_ResizeParameter.m_iChromaPhaseY           = -1;
     }
   } else {
     // default values
@@ -789,6 +782,8 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
     rcLayer.m_ResizeParameter.m_iOutHeight  = rcLayer.m_uiFrameHeight;
     rcLayer.m_ResizeParameter.m_iPosX       = 0;
     rcLayer.m_ResizeParameter.m_iPosY       = 0;
+    rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX = rcLayer.m_ResizeParameter.m_iChromaPhaseX;  // SSUN, Nov2005
+    rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY = rcLayer.m_ResizeParameter.m_iChromaPhaseY;
   }
 // TMM_ESS }
 

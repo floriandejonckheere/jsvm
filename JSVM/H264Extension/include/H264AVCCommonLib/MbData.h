@@ -165,7 +165,7 @@ public:
   ErrVal  upsampleMotion( MbData& rcMbData, Par8x8  ePar8x8, Bool bDirect8x8   );
 
 	// TMM_ESS_UNIFIED {
-  ErrVal upsampleMotionESS( MbData* rcBaseMbData,const UInt uiBaseMbStride,const Int aiPelOrig[2],const Bool bDirect8x8,ResizeParameters* pcParameters);
+  ErrVal upsampleMotionESS( MbData* pcBaseMbData,const UInt uiBaseMbStride,const Int aiPelOrig[2],const Bool bDirect8x8,ResizeParameters* pcParameters);
   ErrVal  noUpsampleMotion(); 
   // TMM_ESS_UNIFIED }
 
@@ -196,7 +196,7 @@ protected:
   Int                       m_ai8x8Border	[2];
   MbClass                   m_eClass;               //current Mb Class
 
-  ErrVal xInitESS             ( MbData* rcBaseMbData,
+  ErrVal xInitESS             ( MbData*           pcBaseMbData,
                                 const UInt uiBaseMbStride,
                                 const Int         aiPelOrig[2],
                                 const             Bool bDirect8x8,
@@ -205,6 +205,9 @@ protected:
                                 MbMode            aeMbMode	  [4],
                                 BlkMode           aeBlkMode	  [4][4]);
 
+  ErrVal xInitInfoBaseDim     (InfoBaseDim*     pInf, 
+                               const UChar     ucDim);
+  
   ErrVal xInitUpsampleInfo    ( BorderType      aeBorder [4][2],
                                 UInt            auiMbIdx [4][4], 
                                 UInt            aui4x4Idx[4][4]	 );

@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
 name        => "BaseId",
-original    => "BUS_CIF30.yuv",
+original    => "BUS_352x288_30.yuv",
 width       => 352,
 height      => 288,
 framerate   => 30,
@@ -61,8 +61,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-			bitrate     => 475,
-			psnr        => 35.02,
+                        bitrate     => 462.4,
+                        psnr        => 35.02,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -74,8 +74,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-			bitrate     => 590,
-			psnr        => 25.11,
+                        bitrate     => 579,
+                        psnr        => 25.09,
                         encdecmatch => 1,
                        },
                       ],
