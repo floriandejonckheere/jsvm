@@ -521,6 +521,8 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       uiWeight = ( m_uiBaseWeightZeroBaseCoeff >= AR_FGS_MAX_BASE_WEIGHT )
         ? ( AR_FGS_MAX_BASE_WEIGHT - 1 ) : m_uiBaseWeightZeroBaseCoeff;
       RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: base_ref_weight_for_zero_base_coeff" ) );
+
+      RNOK( pcWriteIf->writeFlag( m_bFgsEntropyOrderFlag,                               "SH: fgs_order_flag" ) );
     }
   }
 } //JVT-P031
@@ -857,11 +859,14 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       RNOK( pcReadIf->getCode( m_uiBaseWeightZeroBaseCoeff, 5,                "SH: base_ref_weight_for_zero_base_coeff" ) );
       if( m_uiBaseWeightZeroBaseCoeff == AR_FGS_MAX_BASE_WEIGHT - 1 )
 	      m_uiBaseWeightZeroBaseCoeff = AR_FGS_MAX_BASE_WEIGHT;
+
+      RNOK( pcReadIf->getFlag( m_bFgsEntropyOrderFlag,                               "SH: fgs_order_flag" ) );
     }
     else
     {
       m_uiBaseWeightZeroBaseBlock = AR_FGS_MAX_BASE_WEIGHT;
       m_uiBaseWeightZeroBaseCoeff = AR_FGS_MAX_BASE_WEIGHT;
+      m_bFgsEntropyOrderFlag = 0;
     }
   }
 

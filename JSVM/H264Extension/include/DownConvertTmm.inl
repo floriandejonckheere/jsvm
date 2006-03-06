@@ -1095,21 +1095,21 @@ DownConvert::upsample3( unsigned char* pucBufferY, unsigned char* pucBufferU, un
   //===== luma =====
   xCopyToImageBuffer  ( pucBufferY, input_width,   input_height,   input_width );
   xUpsampling3        ( input_width, input_height, output_width, output_height,
-                        crop_x0, crop_y0, crop_w, crop_h, 0, 0, 0, 0, 0 );
+                        crop_x0, crop_y0, crop_w, crop_h, 0, 0, 0, 0 );
   xCopyFromImageBuffer( pucBufferY, output_width, output_height, output_width, 0, 255 );
   //===== chroma cb =====
   xCopyToImageBuffer  ( pucBufferU, input_width/2, input_height/2, input_width/2 );
   xUpsampling3        ( input_width/2, input_height/2, output_width/2, output_height/2,
                         crop_x0/2, crop_y0/2, crop_w/2, crop_h/2, 
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                        output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
+                        output_chroma_phase_shift_x, output_chroma_phase_shift_y );
   xCopyFromImageBuffer( pucBufferU, output_width/2, output_height/2, output_width/2, 0, 255 );
   //===== chroma cr =====
   xCopyToImageBuffer  ( pucBufferV, input_width/2, input_height/2, input_width/2 );
   xUpsampling3        ( input_width/2, input_height/2, output_width/2, output_height/2,
                         crop_x0/2, crop_y0/2, crop_w/2, crop_h/2, 
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                        output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
+                        output_chroma_phase_shift_x, output_chroma_phase_shift_y );
   xCopyFromImageBuffer( pucBufferV, output_width/2, output_height/2, output_width/2, 0, 255 );  
 }
 
@@ -1130,18 +1130,23 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
   int crop_w = pcParameters->m_iOutWidth /fact;
   int crop_h = pcParameters->m_iOutHeight/fact;  
   // End of SSUN@SHARP
-  int input_chroma_phase_shift_x = pcParameters->m_iBaseChromaPhaseX;
-  int input_chroma_phase_shift_y = pcParameters->m_iBaseChromaPhaseY;
-  int output_chroma_phase_shift_x = pcParameters->m_iChromaPhaseX;
-  int output_chroma_phase_shift_y = pcParameters->m_iChromaPhaseY;
-  bool uv_flag = !bLuma;
+  int input_chroma_phase_shift_x = 0;
+  int input_chroma_phase_shift_y = 0;
+  int output_chroma_phase_shift_x = 0;
+  int output_chroma_phase_shift_y = 0;
+
+  if(!bLuma){
+    input_chroma_phase_shift_x = pcParameters->m_iBaseChromaPhaseX;
+    input_chroma_phase_shift_y = pcParameters->m_iBaseChromaPhaseY;
+    output_chroma_phase_shift_x = pcParameters->m_iChromaPhaseX;
+    output_chroma_phase_shift_y = pcParameters->m_iChromaPhaseY;
+  }
 
   xUpsampling3(input_width, input_height,
     output_width, output_height,
     crop_x0, crop_y0, crop_w, crop_h,
     input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-    output_chroma_phase_shift_x, output_chroma_phase_shift_y,
-    uv_flag );
+    output_chroma_phase_shift_x, output_chroma_phase_shift_y );
 }
 
 __inline
@@ -1149,7 +1154,7 @@ void
 DownConvert::xUpsampling3( int input_width, int input_height, int output_width, int output_height,
                            int crop_x0, int crop_y0, int crop_w, int crop_h,
                            int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                           int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag )
+                           int output_chroma_phase_shift_x, int output_chroma_phase_shift_y )
 {
   const int filter16[16][6] = { // Lanczos3
                                 {0,0,32,0,0,0},

@@ -219,7 +219,29 @@ private:
                                                     UInt                uiFracNb, 
                                                     FILE*               pFile ); //JVT-P031
 
-  
+  ErrVal            xEncodingSubbandFGS           ( Bool& rbFinished,
+                                                    Bool& rbCorrupted,
+                                                    UInt  uiMaxBits,
+                                                    FILE* pFile );
+
+  ErrVal            xEncodeCoefficientLuma(         UInt   uiBlockYIndex,
+                                                    UInt   uiBlockXIndex,
+                                                    UInt   uiScanIndex,
+                                                    Int&   riLastQp );
+
+  ErrVal            xEncodeCoefficientChromaDC (  UInt    uiPlane,
+                                                  UInt    uiMbYIdx,
+                                                  UInt    uiMbXIdx,
+                                                  UInt    uiDCIdx,
+                                                  Int&    riLastQP );
+
+  ErrVal            xEncodeCoefficientChromaAC (  UInt    uiPlane,
+                                                  UInt    uiB8YIdx,
+                                                  UInt    uiB8XIdx,
+                                                  UInt    uiScanIdx,
+                                                  Int&    riLastQP );
+
+
   ErrVal            xEncodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
                                                     UInt&               uiComplete,

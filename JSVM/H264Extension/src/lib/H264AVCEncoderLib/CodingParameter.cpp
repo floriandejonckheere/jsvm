@@ -354,6 +354,7 @@ ErrVal CodingParameter::check()
     // take effect only if they are not provided in layer configuration files
     pcLayer->setLowPassEnhRef( m_dLowPassEnhRef );
     pcLayer->setAdaptiveRefFGSWeights( m_uiBaseWeightZeroBaseBlock, m_uiBaseWeightZeroBaseCoeff );
+    pcLayer->setFgsEncStructureFlag( m_uiFgsEncStructureFlag );
   }
 
  return Err::m_nOK;

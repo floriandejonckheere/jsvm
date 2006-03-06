@@ -221,19 +221,18 @@ public:
                                         IntFrame*       pcMCFrame,
                                         IntFrame*       pcBaseFrame,
                                         RefFrameList*   pcRefFrameListBase,
-                                        RefFrameList*   pcRefFrameListEnh,
                                         MbDataCtrl*     pcMbDataCtrl,
                                         FGSCoder*       pcFGSCoder,
                                         SliceHeader*    pcSliceHeader );
 
-  ErrVal loadNewLowPassPredictors     ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
+  ErrVal loadAdaptiveRefPredictors    ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
                                         IntFrame*       pcPredSignal, 
                                         IntFrame*       pcBaseFrame, 
-                                        IntFrame*       pcLowPassRefFrameBase,
-                                        IntFrame*       pcLowPassRefFrameEnh,
+                                        RefFrameList*   cRefListDiff,
                                         MbDataCtrl*     pcMbDataCtrl,
                                         FGSCoder*       pcFGSCoder,
                                         SliceHeader*    pcSliceHeader);
+
 
   ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
                   IntFrame*       pcMCFrame,

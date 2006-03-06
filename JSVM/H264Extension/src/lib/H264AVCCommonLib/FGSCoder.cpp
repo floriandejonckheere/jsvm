@@ -187,6 +187,15 @@ FGSCoder::xInit( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
   m_paucSubMbMap        = 0;
   m_pauiMacroblockMap   = 0;
 
+  ::memset( m_apaucBQLumaCoefMap,       0x00,   16*sizeof(UChar*) );
+  ::memset( m_aapaucBQChromaDCCoefMap,  0x00, 2* 4*sizeof(UChar*) );
+  ::memset( m_aapaucBQChromaACCoefMap,  0x00, 2*16*sizeof(UChar*) );
+  ::memset( m_apaucBQChromaDCBlockMap,  0x00,    2*sizeof(UChar*) );
+  ::memset( m_apaucBQChromaACBlockMap,  0x00,    2*sizeof(UChar*) );
+  m_paucBQBlockMap        = 0;
+  m_paucBQSubMbMap        = 0;
+  m_pauiBQMacroblockMap   = 0;
+
   return Err::m_nOK;
 }
 
@@ -240,6 +249,44 @@ FGSCoder::xInitSPS( const SequenceParameterSet& rcSPS )
     ROFRS   ( ( m_paucBlockMap                = new UChar[uiSize*16] ), Err::m_nERR );
     ROFRS   ( ( m_paucSubMbMap                = new UChar[uiSize*4 ] ), Err::m_nERR );
     ROFRS   ( ( m_pauiMacroblockMap           = new UInt [uiSize   ] ), Err::m_nERR );
+
+    for( i = 0; i < 16; i++ ) 
+    {
+      delete  [] m_apaucBQLumaCoefMap        [i];
+      delete  [] m_aapaucBQChromaACCoefMap[0][i];
+      delete  [] m_aapaucBQChromaACCoefMap[1][i];
+    }
+    for( i = 0; i < 4; i++ ) 
+    {
+      delete  [] m_aapaucBQChromaDCCoefMap[0][i];
+      delete  [] m_aapaucBQChromaDCCoefMap[1][i];
+    }
+    delete    [] m_apaucBQChromaDCBlockMap[0];
+    delete    [] m_apaucBQChromaDCBlockMap[1];
+    delete    [] m_apaucBQChromaACBlockMap[0];
+    delete    [] m_apaucBQChromaACBlockMap[1];
+    delete    [] m_paucBQBlockMap;
+    delete    [] m_paucBQSubMbMap;
+    delete    [] m_pauiBQMacroblockMap;
+
+    for( i = 0; i < 16; i++ )
+    {
+      ROFRS ( ( m_apaucBQLumaCoefMap        [i] = new UChar[uiSize*16] ), Err::m_nERR );
+      ROFRS ( ( m_aapaucBQChromaACCoefMap[0][i] = new UChar[uiSize*4 ] ), Err::m_nERR );
+      ROFRS ( ( m_aapaucBQChromaACCoefMap[1][i] = new UChar[uiSize*4 ] ), Err::m_nERR );
+    }
+    for( i = 0; i < 4; i++ )
+    {
+      ROFRS ( ( m_aapaucBQChromaDCCoefMap[0][i] = new UChar[uiSize   ] ), Err::m_nERR );
+      ROFRS ( ( m_aapaucBQChromaDCCoefMap[1][i] = new UChar[uiSize   ] ), Err::m_nERR );
+    }
+    ROFRS   ( ( m_apaucBQChromaDCBlockMap[0]    = new UChar[uiSize   ] ), Err::m_nERR );
+    ROFRS   ( ( m_apaucBQChromaDCBlockMap[1]    = new UChar[uiSize   ] ), Err::m_nERR );
+    ROFRS   ( ( m_apaucBQChromaACBlockMap[0]    = new UChar[uiSize*4 ] ), Err::m_nERR );
+    ROFRS   ( ( m_apaucBQChromaACBlockMap[1]    = new UChar[uiSize*4 ] ), Err::m_nERR );
+    ROFRS   ( ( m_paucBQBlockMap                = new UChar[uiSize*16] ), Err::m_nERR );
+    ROFRS   ( ( m_paucBQSubMbMap                = new UChar[uiSize*4 ] ), Err::m_nERR );
+    ROFRS   ( ( m_pauiBQMacroblockMap           = new UInt [uiSize   ] ), Err::m_nERR );
   }
 
   return Err::m_nOK;
@@ -281,8 +328,121 @@ FGSCoder::xUninit()
   delete    [] m_paucSubMbMap;
   delete    [] m_pauiMacroblockMap;
 
+  for( i = 0; i < 16; i++ ) 
+  {
+    delete  [] m_apaucBQLumaCoefMap        [i];
+    delete  [] m_aapaucBQChromaACCoefMap[0][i];
+    delete  [] m_aapaucBQChromaACCoefMap[1][i];
+  }
+  for( i = 0; i < 4; i++ ) 
+  {
+    delete  [] m_aapaucBQChromaDCCoefMap[0][i];
+    delete  [] m_aapaucBQChromaDCCoefMap[1][i];
+  }
+  delete    [] m_apaucBQChromaDCBlockMap[0];
+  delete    [] m_apaucBQChromaDCBlockMap[1];
+  delete    [] m_apaucBQChromaACBlockMap[0];
+  delete    [] m_apaucBQChromaACBlockMap[1];
+  delete    [] m_paucBQBlockMap;
+  delete    [] m_paucBQSubMbMap;
+  delete    [] m_pauiBQMacroblockMap;
+
   return Err::m_nOK;
 }
+
+
+ErrVal
+FGSCoder::xStoreBQLayerSigMap()
+{
+  int i, uiSize = m_uiWidthInMB * m_uiHeightInMB;
+
+  for( i = 0; i < 16; i++ )
+  {
+    memcpy( m_apaucBQLumaCoefMap[i], m_apaucLumaCoefMap[i], uiSize*16*sizeof(UChar));
+    memcpy( m_aapaucBQChromaACCoefMap[0][i], m_aapaucChromaACCoefMap[0][i], uiSize*4*sizeof(UChar) );
+    memcpy( m_aapaucBQChromaACCoefMap[1][i], m_aapaucChromaACCoefMap[1][i], uiSize*4*sizeof(UChar) );
+  }
+  for( i = 0; i < 4; i++ )
+  {
+    memcpy ( m_aapaucBQChromaDCCoefMap[0][i], m_aapaucChromaDCCoefMap[0][i], uiSize*sizeof(UChar) );
+    memcpy ( m_aapaucBQChromaDCCoefMap[1][i], m_aapaucChromaDCCoefMap[1][i], uiSize*sizeof(UChar) );
+  }
+  memcpy   ( m_apaucBQChromaDCBlockMap[0], m_apaucChromaDCBlockMap[0], uiSize*sizeof(UChar) );
+  memcpy   ( m_apaucBQChromaDCBlockMap[1], m_apaucChromaDCBlockMap[1], uiSize*sizeof(UChar) );
+  memcpy   ( m_apaucBQChromaACBlockMap[0], m_apaucChromaACBlockMap[0], uiSize*4*sizeof(UChar) );
+  memcpy   ( m_apaucBQChromaACBlockMap[1], m_apaucChromaACBlockMap[1], uiSize*4*sizeof(UChar) );
+  memcpy   ( m_paucBQBlockMap, m_paucBlockMap, uiSize*16*sizeof(UChar) );
+  memcpy   ( m_paucBQSubMbMap, m_paucSubMbMap, uiSize*4*sizeof(UChar) );
+  memcpy   ( m_pauiBQMacroblockMap, m_pauiMacroblockMap,  uiSize*sizeof(UInt) );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+FGSCoder::xSwitchBQLayerSigMap()
+{
+  int i, uiSize = m_uiWidthInMB * m_uiHeightInMB;
+  UChar* tmpBuf;
+  
+  ROFRS( (tmpBuf = new UChar[uiSize*16] ), Err::m_nERR); 
+
+  for( i = 0; i < 16; i++ )
+  {
+    memcpy( tmpBuf, m_apaucLumaCoefMap[i], uiSize*16*sizeof(UChar));
+    memcpy( m_apaucLumaCoefMap[i], m_apaucBQLumaCoefMap[i], uiSize*16*sizeof(UChar));
+    memcpy( m_apaucBQLumaCoefMap[i], tmpBuf, uiSize*16*sizeof(UChar));
+
+    memcpy( tmpBuf, m_aapaucChromaACCoefMap[0][i], uiSize*4*sizeof(UChar) );
+    memcpy( m_aapaucChromaACCoefMap[0][i], m_aapaucBQChromaACCoefMap[0][i], uiSize*4*sizeof(UChar) );
+    memcpy( m_aapaucBQChromaACCoefMap[0][i], tmpBuf, uiSize*4*sizeof(UChar) );
+
+    memcpy( tmpBuf, m_aapaucChromaACCoefMap[1][i], uiSize*4*sizeof(UChar) );
+    memcpy( m_aapaucChromaACCoefMap[1][i], m_aapaucBQChromaACCoefMap[1][i], uiSize*4*sizeof(UChar) );
+    memcpy( m_aapaucBQChromaACCoefMap[1][i], tmpBuf, uiSize*4*sizeof(UChar) );
+  }
+  for( i = 0; i < 4; i++ )
+  {
+    memcpy ( tmpBuf, m_aapaucChromaDCCoefMap[0][i], uiSize*sizeof(UChar) );
+    memcpy ( m_aapaucChromaDCCoefMap[0][i], m_aapaucBQChromaDCCoefMap[0][i], uiSize*sizeof(UChar) );
+    memcpy ( m_aapaucBQChromaDCCoefMap[0][i], tmpBuf, uiSize*sizeof(UChar) );
+
+    memcpy ( tmpBuf, m_aapaucChromaDCCoefMap[1][i], uiSize*sizeof(UChar) );
+    memcpy ( m_aapaucChromaDCCoefMap[1][i], m_aapaucBQChromaDCCoefMap[1][i], uiSize*sizeof(UChar) );
+    memcpy ( m_aapaucBQChromaDCCoefMap[1][i], tmpBuf, uiSize*sizeof(UChar) );
+  }
+  memcpy   ( tmpBuf, m_apaucChromaDCBlockMap[0], uiSize*sizeof(UChar) );
+  memcpy   ( m_apaucChromaDCBlockMap[0], m_apaucBQChromaDCBlockMap[0], uiSize*sizeof(UChar) );
+  memcpy   ( m_apaucBQChromaDCBlockMap[0], tmpBuf, uiSize*sizeof(UChar) );
+
+  memcpy   ( tmpBuf, m_apaucChromaDCBlockMap[1], uiSize*sizeof(UChar) );
+  memcpy   ( m_apaucChromaDCBlockMap[1], m_apaucBQChromaDCBlockMap[1], uiSize*sizeof(UChar) );
+  memcpy   ( m_apaucBQChromaDCBlockMap[1], tmpBuf, uiSize*sizeof(UChar) );
+
+  memcpy   ( tmpBuf, m_apaucChromaACBlockMap[0], uiSize*4*sizeof(UChar) );
+  memcpy   ( m_apaucChromaACBlockMap[0], m_apaucBQChromaACBlockMap[0], uiSize*4*sizeof(UChar) );
+  memcpy   ( m_apaucBQChromaACBlockMap[0], tmpBuf, uiSize*4*sizeof(UChar) );
+
+  memcpy   ( tmpBuf, m_apaucChromaACBlockMap[1], uiSize*4*sizeof(UChar) );
+  memcpy   ( m_apaucChromaACBlockMap[1], m_apaucBQChromaACBlockMap[1], uiSize*4*sizeof(UChar) );
+  memcpy   ( m_apaucBQChromaACBlockMap[1], tmpBuf, uiSize*4*sizeof(UChar) );
+
+  memcpy   ( tmpBuf, m_paucBlockMap, uiSize*16*sizeof(UChar) );
+  memcpy   ( m_paucBlockMap, m_paucBQBlockMap, uiSize*16*sizeof(UChar) );
+  memcpy   ( m_paucBQBlockMap, tmpBuf, uiSize*16*sizeof(UChar) );
+
+  memcpy   ( tmpBuf, m_paucSubMbMap, uiSize*4*sizeof(UChar) );
+  memcpy   ( m_paucSubMbMap, m_paucBQSubMbMap, uiSize*4*sizeof(UChar) );
+  memcpy   ( m_paucBQSubMbMap, tmpBuf, uiSize*4*sizeof(UChar) );
+
+  memcpy   ( tmpBuf, m_pauiMacroblockMap,  uiSize*sizeof(UInt) );
+  memcpy   ( m_pauiMacroblockMap,  m_pauiBQMacroblockMap, uiSize*sizeof(UInt) );
+  memcpy   ( m_pauiBQMacroblockMap, tmpBuf,  uiSize*sizeof(UInt) );
+
+  delete [] tmpBuf;
+
+  return Err::m_nOK;
+}
+
 
 
 ErrVal

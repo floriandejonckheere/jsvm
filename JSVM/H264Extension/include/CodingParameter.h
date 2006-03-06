@@ -216,8 +216,9 @@ public:
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
     , m_dLowPassEnhRef                    ( -1.0 )
-    , m_uiBaseWeightZeroBaseBlock         ( INT_MAX )
-    , m_uiBaseWeightZeroBaseCoeff         ( INT_MAX )
+    , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
+    , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
+    , m_uiFgsEncStructureFlag             ( AR_FGS_DEFAULT_ENC_STRUCTURE )
     , m_bUseDiscardable                   (false) //JVT-P031
     , m_dPredFGSRate                      (0.0) //JVT-P031
   {
@@ -364,6 +365,15 @@ public:
     uiCoeff = m_uiBaseWeightZeroBaseCoeff;
   }
 
+  Void                            setFgsEncStructureFlag( UInt  flag )
+  {
+    m_uiFgsEncStructureFlag = flag;
+  }
+  UInt                            getFgsEncStructureFlag( )
+  { 
+    return m_uiFgsEncStructureFlag; 
+  }
+
 public:
   UInt                      m_uiLayerId;
   UInt                      m_uiFrameWidth;
@@ -416,6 +426,7 @@ public:
   Double                    m_dLowPassEnhRef;
   UInt                      m_uiBaseWeightZeroBaseBlock;
   UInt                      m_uiBaseWeightZeroBaseCoeff;
+  UInt                      m_uiFgsEncStructureFlag;
 
   //--ICU/ETRI FMO Implementation : FMO start
   UInt         m_uiNumSliceGroupsMinus1;  
@@ -468,7 +479,7 @@ public:
     , m_dLowPassEnhRef                    ( AR_FGS_DEFAULT_LOW_PASS_ENH_REF )
     , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
     , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
-
+    , m_uiFgsEncStructureFlag             ( AR_FGS_DEFAULT_ENC_STRUCTURE )
     , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
     , m_uiMVCmode                         ( 0 )
     , m_uiFrameWidth                      ( 0 )
@@ -616,6 +627,15 @@ public:
     uiCoeff = m_uiBaseWeightZeroBaseCoeff;
   }
 
+  Void                            setFgsEncStructureFlag( UInt  flag )
+  {
+    m_uiFgsEncStructureFlag = flag;
+  }
+  UInt                            getFgsEncStructureFlag( )
+  { 
+    return m_uiFgsEncStructureFlag; 
+  }
+
   Void                            setLowPassFgsMcFilter   ( UInt ui )   { m_uiLowPassFgsMcFilter  = ui;   }
   UInt                            getLowPassFgsMcFilter   ()            { return m_uiLowPassFgsMcFilter;  }
 
@@ -658,7 +678,7 @@ protected:
   Double                    m_dLowPassEnhRef;
   UInt                      m_uiBaseWeightZeroBaseBlock;
   UInt                      m_uiBaseWeightZeroBaseCoeff;
-
+  UInt                      m_uiFgsEncStructureFlag;
   UInt                      m_uiLowPassFgsMcFilter;
 
   UInt                      m_uiMVCmode;

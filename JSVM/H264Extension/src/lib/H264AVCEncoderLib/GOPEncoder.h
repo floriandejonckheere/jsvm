@@ -463,6 +463,12 @@ protected:
   UInt	xSelectGOPMode	(Double **mse, UInt *seltype, UInt pos, UInt gop_size, UInt gn_pos, UInt gn_1_pos);
   //}}Adaptive GOP structure
 
+  ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
+                                          IntFrame*                   baseFrame,  
+                                          IntFrame*                   enhFrame,
+                                          YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
+  ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
+
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;
@@ -604,10 +610,14 @@ protected:
 
  //----- ESS -----
   ResizeParameters*				m_pcResizeParameters; 
+
   UInt                          m_uiBaseWeightZeroBaseBlock;
   UInt                          m_uiBaseWeightZeroBaseCoeff;
+  UInt                          m_uiFgsEncStructureFlag;
   UInt                          m_uiNumLayers[2];
-  IntFrame*                     m_aapcFGSRecon[2][4];             // previous low-pass base layer reconstruction
+  IntFrame*                     m_aapcFGSRecon[2][MAX_FGS_LAYERS+1];             // previous low-pass base layer reconstruction
+
+  IntFrame*                     m_aapcFGSPredFrame;     
 
   Double                        m_dLowPassEnhRef;
   UInt                          m_uiLowPassFgsMcFilter;

@@ -163,10 +163,12 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer )
 
   m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
 
-  for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+  for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
   {
     RNOK( m_apcFGSRecon[uiLayerIdx]->init( false ) );
   }
+
+  m_cMbDataCtrl.initFgsBQData(m_cMbDataCtrl.getSize());
 
   return Err::m_nOK;
 }
@@ -210,7 +212,7 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
 Void FrameUnit::setPoc( Int iPoc )
 {
   m_cFrame.setPOC( iPoc );
-  for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+  for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
     m_apcFGSRecon[uiLayerIdx]->setPOC( iPoc );
 
   m_iMaxPOC = iPoc;
@@ -226,8 +228,10 @@ ErrVal FrameUnit::uninit()
   RNOK( m_cFGSFrame.uninit() );
   m_cFGSIntFrame.uninit();
 
-  for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
+  for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
     RNOK( m_apcFGSRecon[uiLayerIdx]->uninit() );
+
+  m_cMbDataCtrl.uninitFgsBQData();
 
   m_uiFrameNumber = 0;
   m_uiStatus      = 0;

@@ -156,6 +156,12 @@ public:
   //--ICU/ETRI FMO Implementation
   const Int MbDataCtrl::getSliceGroupIDofMb(Int mb);
 
+  ErrVal        initFgsBQData             ( UInt uiNumMb );
+  ErrVal        uninitFgsBQData           ();
+  ErrVal        storeFgsBQLayerQpAndCbp   ();
+  ErrVal        switchFgsBQLayerQpAndCbp  ();
+
+
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
   const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter ); 
@@ -194,6 +200,11 @@ protected:
   Bool                m_bPicCodedField;
   Bool                m_bInitDone;
   Bool                m_bDirect8x8InferenceFlag;
+  UChar*        m_pacFgsBQMbQP;
+  UInt*         m_pauiFgsBQMbCbp;
+  UInt*         m_pauiFgsBQBCBP;
+  Bool*         m_pabFgsBQ8x8Trafo;
+
 };
 
 

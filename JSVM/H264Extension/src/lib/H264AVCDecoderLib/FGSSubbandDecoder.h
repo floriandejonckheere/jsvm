@@ -149,8 +149,27 @@ public:
 private:
   ErrVal            xScaleBaseLayerCoeffs ();
   ErrVal            xDecodingFGS                  ();
+  ErrVal            xDecodingSubbandFGS           ();
 
   
+  ErrVal            xDecodeCoefficientLuma(   UInt   uiBlockYIndex,
+                                              UInt   uiBlockXIndex,
+                                              UInt   uiScanIndex,
+                                              Int&   riLastQp );
+
+  ErrVal            xDecodeCoefficientChromaDC (  UInt    uiPlane,
+                                                  UInt    uiMbYIdx,
+                                                  UInt    uiMbXIdx,
+                                                  UInt    uiDCIdx,
+                                                  Int&    riLastQP );
+
+  ErrVal            xDecodeCoefficientChromaAC (  UInt    uiPlane,
+                                                  UInt    uiB8YIdx,
+                                                  UInt    uiB8XIdx,
+                                                  UInt    uiScanIdx,
+                                                  Int&    riLastQP );
+
+
   ErrVal            xDecodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
                                                     UInt&               uiComplete,

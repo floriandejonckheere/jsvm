@@ -1307,31 +1307,6 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
 
 
 
-IntFrame*
-H264AVCDecoder::xFindRefFrame(UInt uiLayerIdx)
-{
-  Int  iRefPoc;
-  UInt uiFGSReconCount, uiRefFGSReconCount;
-  IntFrame *pcRefFrame;
-
-  // get the reference frame POC
-  iRefPoc = m_pcRQFGSDecoder->getSliceHeader()->getRefPic(1, LIST_0).getFrame()->getPOC();
-
-  // find the FGS base reconstruction
-  FrameUnit* pcRefFrameUnit     = m_pcFrameMng->getReconstructedFrameUnit( iRefPoc );
-  FrameUnit* pcCurrentFrameUnit = m_pcRQFGSDecoder->getSliceHeader()->getFrameUnit();
-
-  // what is the FGS base count of the current frame
-  uiRefFGSReconCount = pcRefFrameUnit->getFGSReconCount();
-  uiFGSReconCount    = pcCurrentFrameUnit->getFGSReconCount();
-
-  pcRefFrame = (uiRefFGSReconCount > uiLayerIdx) ? 
-    pcRefFrameUnit->getFGSReconstruction(uiLayerIdx) : pcRefFrameUnit->getFGSReconstruction(uiRefFGSReconCount - 1);
-
-  return pcRefFrame;
-}
-
-
 ErrVal
 H264AVCDecoder::xReconstructLastFGS()
 {
@@ -1350,6 +1325,23 @@ H264AVCDecoder::xReconstructLastFGS()
     RNOK( m_pcRQFGSDecoder->reconstruct   ( pcRecFrame ) );
     RNOK( pcResidual      ->copy          ( pcRecFrame ) )
     RNOK( xZeroIntraMacroblocks           ( pcResidual, pcMbDataCtrl, pcSliceHeader ) );
+
+    if( bKeyPicFlag && pcSliceHeader->isInterP() )
+    {
+      RefFrameList  cRefListDiff;
+
+      setDiffPrdRefLists(cRefListDiff, m_pcFrameMng->getYuvFullPelBufferCtrl() );
+
+      //----- key frames: adaptive motion-compensated prediction -----
+      m_pcMotionCompensation->loadAdaptiveRefPredictors(
+        m_pcFrameMng->getYuvFullPelBufferCtrl(), m_pcFrameMng->getPredictionIntFrame(), 
+        m_pcFrameMng->getPredictionIntFrame(), &cRefListDiff, 
+        pcMbDataCtrl, m_pcRQFGSDecoder, 
+        m_pcRQFGSDecoder->getSliceHeader());
+
+      freeDiffPrdRefLists(cRefListDiff);
+    }
+
     RNOK( pcRecFrame      ->add           ( m_pcFrameMng->getPredictionIntFrame() ) );
     RNOK( pcRecFrame      ->clip          () );
   }
@@ -1443,33 +1435,18 @@ H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& 
       }
 
       if( rpcSliceHeader->getTemporalLevel()  == 0      &&
-        m_pcRQFGSDecoder->getSliceHeader()->isInterP()  && 
-        ( rpcSliceHeader->getQualityLevel()   == 1 ) )
+        m_pcRQFGSDecoder->getSliceHeader()->isInterP())
       {
-        // get the new predictor
-        UInt uiQualityLayer = rpcSliceHeader->getQualityLevel();
-
-        FrameUnit*    pcCurrentFrmUnit  = m_pcRQFGSDecoder->getSliceHeader()->getFrameUnit();
-        IntFrame*     pcBaseFrame       = m_pcFrameMng->getRefinementIntFrame();
-        IntFrame*     pcLowPassRefFrameBase;
-        IntFrame*     pcLowPassRefFrameEnh;
-
-        pcLowPassRefFrameBase  = xFindRefFrame(0);
-        pcLowPassRefFrameEnh   = xFindRefFrame(1);
-
-        pcBaseFrame->copy( m_pcFrameMng->getPredictionIntFrame() );
-
         // m_pcRQFGSDecoder->getSliceHeader has the slice header of the base layer
         m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseBlock(rpcSliceHeader->getBaseWeightZeroBaseBlock() );
         m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseCoeff(rpcSliceHeader->getBaseWeightZeroBaseCoeff() );
         m_pcRQFGSDecoder->getSliceHeader()->setLowPassFgsMcFilter     (rpcSliceHeader->getLowPassFgsMcFilter() );
 
-        m_pcMotionCompensation->loadNewLowPassPredictors(
-          m_pcFrameMng->getYuvFullPelBufferCtrl(), 
-          m_pcFrameMng->getPredictionIntFrame(), 
-          pcBaseFrame, pcLowPassRefFrameBase, pcLowPassRefFrameEnh, 
-          pcCurrentFrmUnit->getMbDataCtrl(), m_pcRQFGSDecoder, 
-          m_pcRQFGSDecoder->getSliceHeader());
+        if( rpcSliceHeader->getQualityLevel()   == 1 )
+        {
+          m_pcRQFGSDecoder->getMbDataCtrl()->storeFgsBQLayerQpAndCbp();
+          m_pcRQFGSDecoder->xStoreBQLayerSigMap();
+        }
       }
 
       RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
@@ -1485,6 +1462,52 @@ H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& 
   return Err::m_nOK;
 }
 
+
+ErrVal
+H264AVCDecoder::setDiffPrdRefLists( RefFrameList& diffPrdRefList, 
+                                    YuvBufferCtrl* pcYuvFullPelBufferCtrl )
+{
+  SliceHeader* pcSH = m_pcRQFGSDecoder->getSliceHeader();
+  ROTRS( pcSH->isIntra(),   Err::m_nOK );
+
+  RefPicList<RefPic>& rcBaseList = pcSH->getRefPicList( LIST_0 );
+
+  for(UInt i=0; i< rcBaseList.size(); i++)
+  {
+    Int iRefPoc;
+
+    IntFrame* pcDiffFrame;
+    ROFRS   ( ( pcDiffFrame                  = new IntFrame( *pcYuvFullPelBufferCtrl,
+                                                           *pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+    pcDiffFrame->init();
+
+    iRefPoc = rcBaseList.get(i).getFrame()->getPOC();
+
+    FrameUnit* pcRefFrameUnit     = m_pcFrameMng->getReconstructedFrameUnit( iRefPoc );
+
+    IntFrame* baseFrame = pcRefFrameUnit->getFGSReconstruction(0);
+    IntFrame* enhFrame = pcRefFrameUnit->getFGSIntFrame();
+
+    pcDiffFrame->subtract(enhFrame, baseFrame);
+    RNOK( pcDiffFrame->extendFrame( NULL ) );
+    RNOK( diffPrdRefList.add( pcDiffFrame ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+H264AVCDecoder::freeDiffPrdRefLists( RefFrameList& diffPrdRefList)
+{
+  for(UInt i=0; i< diffPrdRefList.getSize(); i++)
+  {
+    diffPrdRefList.getEntry(i)->uninit();
+    free(diffPrdRefList.getEntry(i));
+  }
+
+  return Err::m_nOK;
+}
 
 
 H264AVC_NAMESPACE_END

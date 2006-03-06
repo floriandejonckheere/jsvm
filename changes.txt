@@ -1,0 +1,99 @@
+
+
+JSVM_4_1 -> JSVM_4_2
+====================
+
+2-loop AR-FGS integration
+
+date: march 6, 2006
+author: Xianglin Wang (Nokia)
+contribution: JVT-R077
+
+changes:
+
+1) Modified AR-FGS buffer usage at decoder. Now it uses pictures from DPB for AR-FGS reference. So it can handle  reference picture reordering, etc. Meanwhile, I also cleaned up some necessary buffers. 
+
+2) According to JVT-R077, added decoder-oriented two loop FGS coding structure and a FGS entropy coder with a new coding order. 
+
+3) A couple of bug fixes from Shijun after his integration. 
+
+4) Bug fix recommendation from Heiko regarding an assertation failure in function xMarkShortTermUnused()
+
+
+
+JSVM_4_0 -> JSVM_4_1
+====================
+
+ESS TOOLS INTEGRATION
+
+date: february 18, 2006
+authors: J.Vieron (Thomson) and S.Sun (Sharp)
+contributions: JVT-Q038, JVT-Q015, JVT-R018, JVT-R006
+
+changes:
+ 
+ downconvert.inl:
+ ----------------
+ Cleaning of the initialisation. (very minor)
+
+ downconvert.h, downconvertTmm.inl:
+ ---------------------------------
+ Cleaning. 
+ -Removal of methods xInitFilterTmmResidual(), xDestroyFilterTmmResidual(),xGenericUpsample(),xUpsamplingFrame(),xUpsamplingBlock(), 
+   xComputeLastSamplePosition(), xUpsamplingDataResidual ().
+ -Removal of members m_pitmpDes4,m_pitmpDes8,m_pitmpDes16; 
+                                   
+ -Implementation of the upsampling 16 taps filter (adopted as normative cf. JVT-Q038)
+ -Dyadic becomes a special case of ESS. For luma in the dyadic case, the previous method filters at phase 0 position while the ESS mode interpolates 
+ at phase 1/2 [JVT-R018]
+ -Implementation of ESS downsampling filters (seven new sets of filters) based on the sine-windowed sinc function. (This is a 12 tap filters)[JVT-R006]
+
+ MbData.h , MbData.cpp:
+ ----------------------
+ Extension of the ESS mechanisms to support scaling ratios greater than 2 (cf. [JVT-Q015]) 
+ (->Introduction of a new method "xInitInfoBaseDim")
+ Various bug fixes.  
+ 
+ main.cpp (DownConvert):
+ ----------------------
+ Replacement of "malloc" by "new".
+  
+ main.cpp (PSNR):
+ ---------------
+ Replacement of "malloc" by "new".
+ 
+ EncoderCodingParameter.h:
+ -------------------------
+ Add of 4 new options in encoder config file:
+ "ESSChromaPhaseX","ESSChromaPhaseY", "ESSBaseChromaPhaseX","ESSBaseChromaPhaseY"
+ Changes in inititialisation of ResizeParameters.
+  
+ GOPDecoder.h,  GOPDecoder.cpp:
+ -----------------------------
+  Removal of method "fillPredictionLists_ESS". It has been replaced by a new piece of code in GOPDecoder.cpp (in method "xInitBaseLayer").
+  The goal of "fillPredictionLists_ESS" and, now, of the new code, is to associate reference list index and POC on the entire GOP. It is mandatory 
+  to support the Picture Level ESS.
+ 
+ GOPEncoder.cpp:
+ ----------------
+ Changes related to chroma phase shift
+ 
+ MbDecoder, MotionEstimation.cpp, MotionEstimationQuarterPer.cpp:
+ ----------------------------------------------------
+ Bug fixes to allow a real 1/4 pel refinement in case of ESS motion upsampling. 
+  
+ ResizeParameters.h,ResizeParameters.cpp:
+ ----------------------------------------
+ "m_acCurrentGop" replaces "m_pcCurrentGop".
+ Initialisation of parameters related to chroma phases (m_iChromaPhaseX, m_iBaseChromaPhaseX...) [JVT-Q038,JVT-R018]
+ 
+ SequenceParameterSet.cpp:
+ ------------------------
+ Dyadic case becomes a special ESS case ([JVT-R018]).
+ Initialisation of parameter "m_uiBaseChromaPhaseXPlus1"(to support a correct chroma phase shift). [JVT-R018]
+ 
+ 
+ SliceHeaderBase.cpp:
+ --------------------
+ Initialisation of parameter "m_uiBaseChromaPhaseXPlus1"(to support a correct chroma phase shift). [JVT-R018]
+

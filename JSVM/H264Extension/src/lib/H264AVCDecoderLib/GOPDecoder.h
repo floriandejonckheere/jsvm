@@ -226,6 +226,7 @@ public:
   ErrVal              clear               ( PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList,
                                             Int&                        riMaxPoc );
+
   
   DPBUnit*            getCurrDPBUnit(){return        m_pcCurrDPBUnit;};
   ErrVal                 initPicBuffer(PicBuffer*&    rpcPicBuffer);
@@ -267,6 +268,7 @@ protected:
   ErrVal              xInitPrdListPSlice  ( RefFrameList&               rcList );
   ErrVal              xInitPrdListsBSlice ( RefFrameList&               rcList0,
                                             RefFrameList&               rcList1 );
+
   ErrVal              xPrdListRemapping   ( RefFrameList&               rcList,
                                             ListIdx                     eListIdx,
                                             SliceHeader*                pcSliceHeader );
@@ -289,6 +291,7 @@ private:
   DPBUnitList         m_cFreeDPBUnitList;
   DPBUnit*            m_pcCurrDPBUnit;
   PicBufferList       m_cPicBufferList;
+
 };
 
 
@@ -393,6 +396,10 @@ public:
   void				setWaitForIdr(Bool b)	{ m_bWaitForIdr = b;}
   Bool				getWaitForIdr()			{ return m_bWaitForIdr;}
 
+  ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
+                                          YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
+  ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
+
 protected:
   //===== create and initialize data arrays =====
   ErrVal      xCreateData                     ( const SequenceParameterSet&   rcSPS );
@@ -460,7 +467,6 @@ protected:
   MbDataCtrl*         m_pcBaseLayerCtrl;
   DPBUnit*            m_pcCurrDPBUnit;
 
-  IntFrame*           m_aapcFGSRecon[2][4];
   UInt                m_uiNumLayers[2];
   
 

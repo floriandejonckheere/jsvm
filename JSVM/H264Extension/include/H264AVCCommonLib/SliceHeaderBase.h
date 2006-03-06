@@ -656,6 +656,9 @@ public:
 
   Void  setArFgsUsageFlag               ( Bool b  )         { m_bArFgsUsageFlag       = b;  }
   Bool  getArFgsUsageFlag               ()                  { return m_bArFgsUsageFlag;     }
+
+  Void  setFgsEntropyOrderFlag               ( Bool b  )         { m_bFgsEntropyOrderFlag       = b;  }
+  Bool  getFgsEntropyOrderFlag               ()                  { return m_bFgsEntropyOrderFlag;     }
   
   Void  setLowPassFgsMcFilter           ( UInt ui )         { m_uiLowPassFgsMcFilter  = ui;  }
   UInt  getLowPassFgsMcFilter           ()                  { return m_uiLowPassFgsMcFilter;  }
@@ -820,6 +823,7 @@ protected:
 // TMM_ESS }
 
   Bool          m_bArFgsUsageFlag;
+  Bool          m_bFgsEntropyOrderFlag;
   UInt          m_uiLowPassFgsMcFilter;
   UInt          m_uiBaseWeightZeroBaseBlock;
   UInt          m_uiBaseWeightZeroBaseCoeff;

@@ -376,7 +376,13 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       n += 1;
       continue;
     }
-
+    if( equals( pcCom, "-fs", 3 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt flag = atoi( argv[n] );
+      CodingParameter::setFgsEncStructureFlag( flag );
+      continue;
+    }
     if( equals( pcCom, "-pf", 3) )
     {
       ROTS( NULL == argv[n] );
@@ -715,9 +721,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseY",&(rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY),       0         );  // SSUN, Nov2005
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",&(rcLayer.m_uiForceReorderingCommands),  0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerId",    &(rcLayer.m_uiBaseLayerId),              MSYS_UINT_MAX );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("EnhRefME",       &(rcLayer.m_dLowPassEnhRef),              0.5 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroBlock",&(rcLayer.m_uiBaseWeightZeroBaseBlock),          2       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroCoeff",&(rcLayer.m_uiBaseWeightZeroBaseCoeff),          14       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("EnhRefME",       &(rcLayer.m_dLowPassEnhRef),              AR_FGS_DEFAULT_LOW_PASS_ENH_REF );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroBlock",&(rcLayer.m_uiBaseWeightZeroBaseBlock),   AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK   );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroCoeff",&(rcLayer.m_uiBaseWeightZeroBaseCoeff),   AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF   );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FgsEncStructure",&(rcLayer.m_uiFgsEncStructureFlag),   AR_FGS_DEFAULT_ENC_STRUCTURE   );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceMode",      &(rcLayer.m_uiSliceMode),                             0       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",  &(rcLayer.m_uiSliceArgument),                        50       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumSlicGrpMns1", &(rcLayer.m_uiNumSliceGroupsMinus1),                  0       );

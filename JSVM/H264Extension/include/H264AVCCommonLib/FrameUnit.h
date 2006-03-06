@@ -154,7 +154,7 @@ public:
 
   IntFrame* getFGSReconstruction(UInt uiLayerIdx) 
   { 
-    return (uiLayerIdx > 3) ? 0 : m_apcFGSRecon[uiLayerIdx];
+    return (uiLayerIdx > MAX_FGS_LAYERS) ? 0 : m_apcFGSRecon[uiLayerIdx];
   }
   Void setFGSReconCount(UInt uiFGSReconCount) { m_uiFGSReconCount = uiFGSReconCount;  }
   UInt getFGSReconCount()                     { return m_uiFGSReconCount;  }
@@ -177,7 +177,7 @@ private:
   Bool          m_bConstrainedIntraPred;
 
   UInt          m_uiFGSReconCount;
-  IntFrame*     m_apcFGSRecon[4];             // base layer of the first FGS layer
+  IntFrame*     m_apcFGSRecon[MAX_FGS_LAYERS + 1];             // base layer of the first FGS layer
   IntFrame      m_cFGSRecon0;
   IntFrame      m_cFGSRecon1;
   IntFrame      m_cFGSRecon2;

@@ -204,7 +204,10 @@ protected:
   ErrVal  xZeroIntraMacroblocks     ( IntFrame*       pcFrame,
                                       MbDataCtrl*     pcMbDataCtrl,
                                       SliceHeader*    pcSliceHeader );
-  IntFrame *xFindRefFrame           ( UInt            uiLayerIdx);
+
+  ErrVal  setDiffPrdRefLists        ( RefFrameList&               diffPrdRefList,
+                                      YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
+  ErrVal  freeDiffPrdRefLists       ( RefFrameList& diffPrdRefList);
 
 protected:
   SliceReader*                  m_pcSliceReader;

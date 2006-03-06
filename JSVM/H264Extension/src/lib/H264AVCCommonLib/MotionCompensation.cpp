@@ -2114,7 +2114,6 @@ MotionCompensation::xAdaptiveMotionCompensation(YuvBufferCtrl*  pcYuvFullPelBuff
                                                 IntFrame*       pcMCFrame,
                                                 IntFrame*       pcBaseFrame,
                                                 RefFrameList*   pcRefFrameListBase,
-                                                RefFrameList*   pcRefFrameListEnh,
                                                 MbDataCtrl*     pcMbDataCtrl,
                                                 FGSCoder*       pcFGSCoder,
                                                 SliceHeader*    pcSliceHeader )
@@ -2127,10 +2126,13 @@ MotionCompensation::xAdaptiveMotionCompensation(YuvBufferCtrl*  pcYuvFullPelBuff
   UChar aucSigMap[64];
   UInt uiBaseRefWeightZeroBlock;
   UInt uiBaseRefWeightZeroCoeff;
-  IntYuvMbBuffer cMbBufferBase, cMbBufferBaseRef, cMbBufferRef, cMbBufferEnhRef;
+  IntYuvMbBuffer cMbBufferBase, cMbBufferRef;
 
   uiBaseRefWeightZeroBlock    = pcSliceHeader->getBaseWeightZeroBaseBlock();
   uiBaseRefWeightZeroCoeff    = pcSliceHeader->getBaseWeightZeroBaseCoeff();
+
+  if(pcMCFrame != pcBaseFrame)
+    pcMCFrame->copy(pcBaseFrame);
 
   for( UInt uiMbIndex = 0; uiMbIndex < uiMbNumber; uiMbIndex++ )
   {
@@ -2147,7 +2149,6 @@ MotionCompensation::xAdaptiveMotionCompensation(YuvBufferCtrl*  pcYuvFullPelBuff
       RefFrameList    cRefFrameListDummy;
 
       cMbBufferBase.loadBuffer( pcBaseFrame->getFullPelYuvBuffer() );
-      xCompensateMbAllModes(*pcMbDataAccess, *pcRefFrameListBase, cRefFrameListDummy, &cMbBufferBaseRef);
       
       giInterpolationType = pcSliceHeader->getLowPassFgsMcFilter();
       xCompensateMbAllModes(*pcMbDataAccess, *pcRefFrameListBase, cRefFrameListDummy, &cMbBufferRef);
@@ -2254,30 +2255,16 @@ MotionCompensation::xAdaptiveMotionCompensation(YuvBufferCtrl*  pcYuvFullPelBuff
 
 
 ErrVal
-MotionCompensation::loadNewLowPassPredictors(YuvBufferCtrl* pcYuvFullPelBufferCtrl,
-                                             IntFrame*      pcPredSignal, 
-                                             IntFrame*      pcBaseFrame, 
-                                             IntFrame*      pcLowPassRefFrameBase,
-                                             IntFrame*      pcLowPassRefFrameEnh,
-                                             MbDataCtrl*    pcMbDataCtrl,
-                                             FGSCoder*      pcFGSCoder,
-                                             SliceHeader*   pcSliceHeader)
+MotionCompensation::loadAdaptiveRefPredictors(YuvBufferCtrl* pcYuvFullPelBufferCtrl,
+                                              IntFrame*      pcPredSignal, 
+                                              IntFrame*      pcBaseFrame, 
+                                              RefFrameList*  cRefListDiff,
+                                              MbDataCtrl*    pcMbDataCtrl,
+                                              FGSCoder*      pcFGSCoder,
+                                              SliceHeader*   pcSliceHeader)
 {
-  RefFrameList cRefListBase, cRefListEnh;
-
-  // extend the boundary and add the frame to the list
-  IntFrame* pcFrameDiff = new IntFrame( *pcYuvFullPelBufferCtrl, *pcYuvFullPelBufferCtrl );
-
-  pcFrameDiff->init();
-  RNOK( pcYuvFullPelBufferCtrl->initMb() );
-
-  pcFrameDiff->subtract(pcLowPassRefFrameEnh, pcLowPassRefFrameBase);
-  RNOK( pcFrameDiff->extendFrame( NULL ) );
-  RNOK( cRefListBase.add( pcFrameDiff ) );
-
-  RNOK( pcYuvFullPelBufferCtrl->initMb() );
-  RNOK( pcLowPassRefFrameEnh->extendFrame( NULL ) );
-  RNOK( cRefListEnh.add( pcLowPassRefFrameEnh ) );
+  pcMbDataCtrl->switchFgsBQLayerQpAndCbp();
+  pcFGSCoder->xSwitchBQLayerSigMap();
 
   Bool bSavedInterpClipMode = m_pcQuarterPelFilter->getClipMode();
   m_pcQuarterPelFilter->setClipMode(false);
@@ -2289,18 +2276,17 @@ MotionCompensation::loadNewLowPassPredictors(YuvBufferCtrl* pcYuvFullPelBufferCt
   RNOK( xAdaptiveMotionCompensation( pcYuvFullPelBufferCtrl,
                                      pcPredSignal, 
                                      pcBaseFrame,
-                                     & cRefListBase, 
-                                     & cRefListEnh,
+                                     cRefListDiff, 
                                      pcMbDataCtrl, 
                                      pcFGSCoder,
                                      pcSliceHeader ) );
 
   m_pcTransform->setClipMode(bSavedTransformClipMode);
 
-  pcFrameDiff->uninit();
-  delete pcFrameDiff;
-
   m_pcQuarterPelFilter->setClipMode(bSavedInterpClipMode);
+
+  pcMbDataCtrl->switchFgsBQLayerQpAndCbp();
+  pcFGSCoder->xSwitchBQLayerSigMap();
 
   return Err::m_nOK;
 }

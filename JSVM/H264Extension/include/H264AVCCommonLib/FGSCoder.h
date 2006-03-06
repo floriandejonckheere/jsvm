@@ -190,6 +190,9 @@ public:
   Void getCoeffSigMap         ( UInt uiMbX, UInt uiMbY, CIdx cIdx,       UChar *pucSigMap );
   Void getCoeffSigMapChroma8x8( UInt uiMbX, UInt uiMbY, UInt uiPlane,    UChar *pucSigMap );
 
+  ErrVal            xStoreBQLayerSigMap();
+  ErrVal            xSwitchBQLayerSigMap();
+
   static Bool isSignificant(UChar ucCoeffState)
   {
     return ( ( ucCoeffState & SIGNIFICANT ) != 0 );
@@ -204,6 +207,7 @@ public:
     CHROMA_CBP_CODED    = 0x08,
     CHROMA_CBP_AC_CODED = 0x10,
     BASE_SIGN           = 0x20,
+    NEWSIG              = 0x40, // new significant only during the current path
 
     NUM_COEFF_SHIFT     = 16
   };
@@ -247,6 +251,15 @@ protected:
   UChar*            m_apaucChromaACBlockMap [2];
   UChar*            m_paucSubMbMap;
   UInt*             m_pauiMacroblockMap;
+
+  UChar*            m_apaucBQLumaCoefMap         [16];
+  UChar*            m_aapaucBQChromaDCCoefMap [2][ 4];
+  UChar*            m_aapaucBQChromaACCoefMap [2][16];
+  UChar*            m_paucBQBlockMap;
+  UChar*            m_apaucBQChromaDCBlockMap [2];
+  UChar*            m_apaucBQChromaACBlockMap [2];
+  UChar*            m_paucBQSubMbMap;
+  UInt*             m_pauiBQMacroblockMap;
 
 private:
 

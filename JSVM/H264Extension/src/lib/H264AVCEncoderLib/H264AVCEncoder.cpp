@@ -1210,7 +1210,12 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiNumMb             = uiMbY * uiMbX;
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
+#if 1 // BUG_FIX
+    UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) ) 
+#else
     UInt              uiDPBSize           = ( 1 << rcLayerParameters.getDecompositionStages() )
+#endif
+
 											                      //{{Adaptive GOP structure -- 10.18.2005
                                             // --ETRI & KHU
                                             + (m_pcCodingParameter->getUseAGS() && !bH264AVCCompatible? 20: 0);

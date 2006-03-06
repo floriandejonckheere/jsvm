@@ -324,12 +324,12 @@ H264AVC_NAMESPACE_END
 #define AR_FGS_DEFAULT_LOW_PASS_ENH_REF               0.0
 #define AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK         32
 #define AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF         32
+#define AR_FGS_DEFAULT_ENC_STRUCTURE                  1
 
 #define AR_FGS_MC_INTERP_AVC                          0
 #define AR_FGS_MC_INTERP_BILINEAR                     1
 #define AR_FGS_MC_INTERP_4_TAP                        2
 #define AR_FGS_DEFAULT_FILTER                         AR_FGS_MC_INTERP_AVC
-
 #define AR_FGS_COMPENSATE_SIGNED_FRAME                1
 
 #define MVC_PROFILE                                   MULTI_VIEW_PROFILE  // ( MULTI_VIEW_PROFILE or HIGH_PROFILE )
