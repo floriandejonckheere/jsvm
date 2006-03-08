@@ -7,8 +7,8 @@ original          => "MOBILE_352x288_30.yuv",
 originalwidth     => 352,
 originalheight    => 288,
 originalframerate => 30,
-width             => 176,
-height            => 144,
+width             => 352,
+height            => 288,
 framerate         => 30,
 nbframes          => 30,
 verbosemode       => 1,	
@@ -17,7 +17,7 @@ verbosemode       => 1,
 #               Encoding parameters                        #
 #==========================================================#
 runencode      => 1,
-singleloopflag => "-ref 0.5 -ar 2 14",   # enabling AR-FGS
+singleloopflag => "-ref 0.5 -ar 2 14 -fs 0",   # enabling AR-FGS
 
 #=======================#
 # Layers  parameters    #
@@ -29,6 +29,14 @@ layers      => [
                 {
                  width        => 176,
                  height       => 144,
+                 framerate    =>  30,
+                },
+                #----------#
+                # Layer  1 #
+                #----------#
+                {
+                 width        => 352,
+                 height       => 288,
                  framerate    =>  30,
                 },
                ],
@@ -49,8 +57,34 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 30,
-                        bitrate     => 574.1,
+                        bitrate     => 573.66,
                         psnr        => 33.03,
+                        encdecmatch => 0,
+                       },
+                       #----------#
+                       # Test   1 #
+                       #----------#
+                       {
+                        name        => "Rec",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+                        bitrate     => 2500,
+                        psnr        => 32.05,
+                        encdecmatch => 0,
+                       },                      
+                       #----------#
+                       # Test   2 #
+                       #----------#
+                       {
+                        name        => "Rec",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+                        bitrate     => 5646,
+                        psnr        => 38.66,
                         encdecmatch => 1,
                        },
                       ],
