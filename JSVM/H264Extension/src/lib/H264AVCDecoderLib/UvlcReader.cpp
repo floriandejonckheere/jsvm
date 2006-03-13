@@ -711,6 +711,19 @@ ErrVal UvlcReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
+//-- JVT-R091
+ErrVal UvlcReader::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
+{
+  UInt uiCode;
+  DTRACE_T( "SmoothedRefFlag" );
+  RNOK( xGetFlag( uiCode ) );
+  DTRACE_N;
+  rcMbDataAccess.getMbData().setSmoothedRefFlag( uiCode?true:false );
+
+  return Err::m_nOK;
+}
+//--
+
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 {
   Mv cMv;

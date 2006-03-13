@@ -102,6 +102,7 @@ const int COUNT_THR[9] = { 3, 4, 4, 4, 3, 2, 2, 3, 3};
 
 CabacWriter::CabacWriter():
   m_cBLFlagCCModel(1,1),
+	m_cSRFlagCCModel(1,1),	// JVT-R091
   m_cBLSkipCCModel(1,4),
   m_cBLQRefCCModel(1,4),
   m_cBCbpCCModel( NUM_BLOCK_TYPES, NUM_BCBP_CTX ),
@@ -157,6 +158,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,         iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,         iQp ) );
     RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,         iQp ) );
+		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,         iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_I,           iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_I,          iQp ) );
@@ -186,6 +188,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,                   iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,                   iQp ) );
     RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,                   iQp ) );
+		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,                   iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_P            [iIndex], iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_P           [iIndex], iQp ) );
@@ -535,6 +538,22 @@ ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 
   return Err::m_nOK;
 }
+
+//-- JVT-R091
+ErrVal CabacWriter::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
+{
+  UInt uiSymbol = ( rcMbDataAccess.getMbData().getSmoothedRefFlag() ? 1 : 0 );
+
+  RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cSRFlagCCModel.get( 0, 0 ) ) );
+
+  ETRACE_T( "SRFlag:" );
+  ETRACE_TY( "ae(v)" );
+  ETRACE_CODE( uiSymbol );
+  ETRACE_N;
+
+  return Err::m_nOK;
+}
+//--
 
 ErrVal CabacWriter::mbMode( MbDataAccess& rcMbDataAccess )
 {

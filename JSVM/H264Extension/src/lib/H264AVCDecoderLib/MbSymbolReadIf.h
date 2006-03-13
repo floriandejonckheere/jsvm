@@ -117,6 +117,7 @@ public:
   virtual ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess ) = 0;
+	virtual ErrVal  smoothedRefFlag ( MbDataAccess& rcMbDataAccess ) = 0;	// JVT-R091
 
   virtual ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      ) = 0;
   virtual ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) = 0;

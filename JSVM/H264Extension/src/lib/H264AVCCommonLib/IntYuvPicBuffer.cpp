@@ -1684,5 +1684,238 @@ ErrVal IntYuvPicBuffer::inverseUpdate( IntYuvPicBuffer*  pcSrcYuvPicBuffer,
   return Err::m_nOK;
 }
 
+//-- JVT-R091
+ErrVal IntYuvPicBuffer::smoothMbInside()
+{
+  Int   y, x;
+  Int   iStride;
+  XPel* pDes;
+	XPel	iA;
+	XPel	pTmp[16];
+
+	// ------------------------------------------------------------------------
+	// Luma
+	// ------------------------------------------------------------------------
+
+	iStride = getLStride	();
+	pDes		= getMbLumAddr();
+
+	// Step #1: horizontal smoothing process
+	for( y = 0; y < 16; y++ )
+	{
+		for( x = 1; x < 15; x++ )
+		{
+			iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
+			pTmp[x] = iA;
+		}
+		for( x = 1; x < 15; x++ ) pDes[x] = pTmp[x];
+		pDes += iStride;
+	}
+
+	// Step #2: vertical smoothing process
+	pDes = getMbLumAddr() + iStride;
+	for( y = 1; y < 15; y++ )
+	{
+		for( x = 0; x < 16; x++ )
+		{
+			iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
+			pTmp[x] = iA;
+		}
+		for( x = 0; x < 16; x++ ) pDes[x] = pTmp[x];
+		pDes += iStride;
+	}
+
+	// ------------------------------------------------------------------------
+	// Chroma (Cb)
+	// ------------------------------------------------------------------------
+
+	iStride = getCStride  ();
+	pDes		= getMbCbAddr	();
+
+	// Step #1: horizontal smoothing process
+	for( y = 0; y < 8; y++ )
+	{
+		for( x = 1; x < 7; x++ )
+		{
+			iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
+			pTmp[x] = iA;
+		}
+		for( x = 1; x < 7; x++ ) pDes[x] = pTmp[x];
+		pDes += iStride;
+	}
+
+	// Step #2: vertical smoothing process
+	pDes = getMbCbAddr() + iStride;
+	for( y = 1; y < 7; y++ )
+	{
+		for( x = 0; x < 8; x++ )
+		{
+			iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
+			pTmp[x] = iA;
+		}
+		for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+		pDes += iStride;
+	}
+
+	// ------------------------------------------------------------------------
+	// Chroma (Cr)
+	// ------------------------------------------------------------------------
+
+	iStride = getCStride  ();
+	pDes		= getMbCrAddr	();
+
+	// Step #1: horizontal smoothing process
+	for( y = 0; y < 8; y++ )
+	{
+		for( x = 1; x < 7; x++ )
+		{
+			iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
+			pTmp[x] = iA;
+		}
+		for( x = 1; x < 7; x++ ) pDes[x] = pTmp[x];
+		pDes += iStride;
+	}
+
+	// Step #2: vertical smoothing process
+	pDes = getMbCrAddr() + iStride;
+	for( y = 1; y < 7; y++ )
+	{
+		for( x = 0; x < 8; x++ )
+		{
+			iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
+			pTmp[x] = iA;
+		}
+		for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+		pDes += iStride;
+	}
+
+	return Err::m_nOK;
+}
+
+ErrVal IntYuvPicBuffer::smoothMbTop ()
+{
+  Int   x;
+  Int   iStride;
+  XPel* pDes;
+	XPel  iA;
+	XPel	pTmp[16];
+
+	// disable smoothing across MB boundary due to FMO
+	return Err::m_nOK;
+
+	// ------------------------------------------------------------------------
+	// Luma
+	// ------------------------------------------------------------------------
+
+	iStride = getLStride  ();
+	pDes		= getMbLumAddr();
+	for( x = 0; x < 16; x++ )
+	{
+		iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
+		pTmp[x] = iA;
+	}
+	for( x = 0; x < 16; x++ ) pDes[x] = pTmp[x];
+
+	// ------------------------------------------------------------------------
+	// Chroma (Cb)
+	// ------------------------------------------------------------------------
+
+	iStride = getCStride  ();
+	pDes		= getMbCbAddr();
+	for( x = 0; x < 8; x++ )
+	{
+		iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
+		pTmp[x] = iA;
+	}
+	for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+
+	// ------------------------------------------------------------------------
+	// Chroma (Cr)
+	// ------------------------------------------------------------------------
+
+	iStride = getCStride  ();
+	pDes		= getMbCrAddr();
+	for( x = 0; x < 8; x++ )
+	{
+		iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
+		pTmp[x] = iA;
+	}
+	for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+
+	return Err::m_nOK;
+}
+
+ErrVal IntYuvPicBuffer::smoothMbLeft ()
+{
+  Int   y;
+  Int   iStride;
+  XPel* pDes;
+	XPel  iA;
+	XPel	pTmp[16];
+
+	// disable smoothing across MB boundary due to FMO
+	return Err::m_nOK;
+
+	// ------------------------------------------------------------------------
+	// Luma
+	// ------------------------------------------------------------------------
+
+	iStride = getLStride();
+	pDes		= getMbLumAddr();
+	for( y = 0; y < 16; y++ )
+	{
+		iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
+		pTmp[y] = iA;
+		pDes += iStride;
+	}
+	pDes		= getMbLumAddr();
+	for( y = 0; y < 16; y++ )
+	{
+		pDes[0] = pTmp[y];
+		pDes += iStride;
+	}
+
+	// ------------------------------------------------------------------------
+	// Chroma (Cb)
+	// ------------------------------------------------------------------------
+
+	iStride = getCStride();
+	pDes		= getMbCbAddr();
+	for( y = 0; y < 8; y++ )
+	{
+		iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
+		pTmp[y] = iA;
+		pDes += iStride;
+	}
+	pDes		= getMbCbAddr();
+	for( y = 0; y < 8; y++ )
+	{
+		pDes[0] = pTmp[y];
+		pDes += iStride;
+	}
+
+	// ------------------------------------------------------------------------
+	// Chroma (Cr)
+	// ------------------------------------------------------------------------
+
+	iStride = getCStride();
+	pDes		= getMbCrAddr();
+	for( y = 0; y < 8; y++ )
+	{
+		iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
+		pTmp[y] = iA;
+		pDes += iStride;
+	}
+	pDes		= getMbCrAddr();
+	for( y = 0; y < 8; y++ )
+	{
+		pDes[0] = pTmp[y];
+		pDes += iStride;
+	}
+
+	return Err::m_nOK;
+}
+//--
+
 H264AVC_NAMESPACE_END
 

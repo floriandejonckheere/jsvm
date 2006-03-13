@@ -149,6 +149,7 @@ public:
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcResidual,
                                 IntFrame*       pcBaseSubband,
+																IntFrame*				pcSRFrame, // JVT-R091
                                 Bool&           rbCoded,
                                 Double          dLambda,
                                 Int             iMaxDeltaQp );
@@ -218,12 +219,30 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0 );
+	//-- JVT-R012
+  ErrVal  xSetRdCostInterMbSR   ( IntMbTempData&    rcMbTempData,
+                                  MbDataAccess*     pcMbDataAccessBase,
+                                  RefFrameList&     rcRefFrameList0,
+                                  RefFrameList&     rcRefFrameList1,
+																	IntFrame*					pcBaseLayerSbb,
+                                  Bool              bBLSkip          = false,
+                                  UInt              uiAdditionalBits = 0 );
+	//--
   ErrVal  xSetRdCost8x8InterMb  ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0 );
+	//-- JVT-R012
+  ErrVal  xSetRdCost8x8InterMbSR( IntMbTempData&    rcMbTempData,
+                                  MbDataAccess*     pcMbDataAccessBaseMotion,
+                                  RefFrameList&     rcRefFrameList0,
+                                  RefFrameList&     rcRefFrameList1,
+																	IntFrame*					pcBaseLayerSbb,
+                                  Bool              bBLSkip          = false,
+                                  UInt              uiAdditionalBits = 0 );
+	//--
   ErrVal  xSetRdCostInterSubMb  ( IntMbTempData&    rcMbTempData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
@@ -248,6 +267,15 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   MbDataAccess*     pcMbDataAccessBaseMotion );
+	//-- JVT-R012
+  ErrVal  xCheckInterMbMode8x8SR( IntMbTempData*&   rpcMbTempData,
+                                  IntMbTempData*&   rpcMbBestData,
+                                  IntMbTempData*    pcMbRefData,
+                                  RefFrameList&     rcRefFrameList0,
+                                  RefFrameList&     rcRefFrameList1,
+																	IntFrame*					pcBaseLayerSbb,
+                                  MbDataAccess*     pcMbDataAccessBaseMotion );
+	//--
 
   ErrVal  xEstimateMbIntraBL    ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
@@ -285,6 +313,19 @@ protected:
                                   Int				iSpatialScalabilityType,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   Bool              bResidualPred );
+
+	//-- JVT-R091
+  ErrVal  xEstimateMbSR					( IntMbTempData*&   rpcIntMbTempData,
+                                  IntMbTempData*&   rpcIntMbBestData,
+                                  RefFrameList&     rcRefFrameList0,
+                                  RefFrameList&     rcRefFrameList1,
+                                  const IntFrame*   pcBaseLayerSbb,
+                                  Bool              bBSlice,
+                                  Int				iSpatialScalabilityType,
+                                  MbDataAccess*     pcMbDataAccessBaseMotion,
+                                  Bool              bResidualPred );
+	//--
+
   ErrVal  xEstimateMbDirect     ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,

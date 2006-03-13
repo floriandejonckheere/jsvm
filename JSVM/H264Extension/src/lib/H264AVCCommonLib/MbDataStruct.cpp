@@ -142,6 +142,7 @@ MbDataStruct::MbDataStruct()
 , m_bTransformSize8x8   ( false )
 , m_bSkipFlag       ( true )
 , m_bInCropWindowFlag ( false ) //TMM_ESS	
+, m_bSmoothedRefFlag		( false )	// JVT-R091
 {
   DO_DBG( clearIntraPredictionModes( true ) );
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
@@ -164,6 +165,7 @@ Void MbDataStruct::reset()
   m_usResidualAvailFlagsBase  = 0;
   m_bTransformSize8x8   = 0;
   m_bInCropWindowFlag   = false; //TMM_ESS	
+	m_bSmoothedRefFlag		= false; // JVT-R091
   DO_DBG( clearIntraPredictionModes( true ) );
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS  
 }
@@ -181,6 +183,7 @@ Void MbDataStruct::clear()
   m_usResidualPredFlags = 0;
   m_bTransformSize8x8   = 0;
   m_bInCropWindowFlag   = false; //TMM_ESS	
+	m_bSmoothedRefFlag		= false; // JVT-R091
   clearIntraPredictionModes( true );
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
 }
@@ -242,6 +245,7 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
   m_uiBCBP              = rcMbDataStruct.m_uiBCBP;
   m_usResidualPredFlags = rcMbDataStruct.m_usResidualPredFlags;
   m_bTransformSize8x8   = rcMbDataStruct.m_bTransformSize8x8;
+	m_bSmoothedRefFlag		= rcMbDataStruct.m_bSmoothedRefFlag; // JVT-R091
 
   ::memcpy( m_aBlkMode,     rcMbDataStruct.m_aBlkMode,      sizeof(m_aBlkMode) );
   ::memcpy( m_ascIPredMode, rcMbDataStruct.m_ascIPredMode,  sizeof(m_ascIPredMode) );

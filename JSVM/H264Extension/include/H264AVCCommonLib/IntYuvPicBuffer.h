@@ -198,6 +198,12 @@ public:
   ErrVal        setNonZeroFlags         ( UShort* pusNonZeroFlags, UInt uiStride );
 
   ErrVal        clear();
+
+	//-- JVT-R091
+	ErrVal				smoothMbInside					();
+	ErrVal				smoothMbTop							();
+	ErrVal				smoothMbLeft						();
+	//--
   
 protected:
   Void xFillPlaneMargin     ( XPel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );

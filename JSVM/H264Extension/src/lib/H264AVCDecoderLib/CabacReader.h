@@ -191,7 +191,8 @@ public:
   ErrVal  blockModes          ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess );
-  
+  ErrVal  smoothedRefFlag     ( MbDataAccess& rcMbDataAccess );	// JVT-R091
+
   ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      );
   ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
   ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
@@ -283,6 +284,7 @@ protected:
   CabacContextModel2DBuffer m_cBCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cTransSizeCCModel;
+	CabacContextModel2DBuffer m_cSRFlagCCModel;	// JVT-R091
 
   UInt m_uiBitCounter;
   UInt m_uiPosCounter;

@@ -197,7 +197,7 @@ class H264AVCENCODERLIB_API MCTFEncoder
 {
   enum
   {
-    NUM_TMP_FRAMES  = 3
+		NUM_TMP_FRAMES  = 3
   };
   enum
   {
@@ -391,6 +391,7 @@ protected:
                                           IntFrame*                   pcFrame,
                                           IntFrame*                   pcResidual,
                                           IntFrame*                   pcPredSignal,
+																					IntFrame*										pcSRFrame, // JVT-R091
                                           UInt&                       ruiBits,
                                           UInt&                       ruiBitsRes );
   ErrVal  xEncodeFGSLayer               ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
@@ -426,6 +427,16 @@ protected:
                                     CtrlDataList*    pcCtrlDataList,
                                     ListIdx          eListUpd);
 
+	//-- JVT-R091
+  ErrVal  xFixMCPrediction							( IntFrame*                   pcMCFrame,
+																					IntFrame*										pcBQFrame,
+                                          ControlData&                pcCtrlData );
+  ErrVal  xFixOrgResidual								( IntFrame*                   pcFrame,
+																					IntFrame*										pcOrgPred,
+																					IntFrame*										pcResidual,
+																					IntFrame*										pcSRFrame,
+                                          ControlData&                pcCtrlData );
+	//--
 
   //===== auxiliary functions =====
   ErrVal  xCalculateAndAddPSNR          ( PicBufferList&              rcPicBufferInputList,
@@ -556,6 +567,7 @@ protected:
   IntFrame*                     m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
   IntFrame*                     m_pcBaseLayerFrame;                   // base layer frame
   IntFrame*                     m_pcBaseLayerResidual;                // base layer residual
+	IntFrame**                    m_papcSmoothedFrame;									// JVT-R091; smoothed reference frame
 
   //----- control data arrays -----
   ControlData*                  m_pacControlData;                     // control data arrays

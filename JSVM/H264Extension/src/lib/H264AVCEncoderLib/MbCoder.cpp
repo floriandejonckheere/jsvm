@@ -293,7 +293,9 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
       Bool bTrafo8x8Flag = ( rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() &&
                              rcMbDataAccess.getMbData().is8x8TrafoFlagPresent()        &&
                             !rcMbDataAccess.getMbData().isIntra4x4() );
-      RNOK( xWriteTextureInfo( rcMbDataAccess, rcMbDataAccess.getMbTCoeffs(), bTrafo8x8Flag ) );
+			//-- JVT-R091
+			RNOK( xWriteTextureInfo( rcMbDataAccess, pcMbDataAccessBase, rcMbDataAccess.getMbTCoeffs(), bTrafo8x8Flag ) );
+			//--
     }
   }
 
@@ -719,8 +721,9 @@ ErrVal MbCoder::xWriteMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx e
 
 
 ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
-                                   const MbTransformCoeffs& rcMbTCoeff
-                                   , Bool                   bTrafo8x8Flag
+																	 MbDataAccess*						pcMbDataAccessBase,	// JVT-R091
+                                   const MbTransformCoeffs& rcMbTCoeff,
+                                   Bool											bTrafo8x8Flag
                                    )
 {
 
@@ -753,6 +756,16 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
     if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
     {
        RNOK( m_pcMbSymbolWriteIf->resPredFlag( rcMbDataAccess ) );
+
+			 //-- JVT-R091
+			 if ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
+						rcMbDataAccess.getMbData().getBLSkipFlag() &&
+						pcMbDataAccessBase &&
+						rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
+			 {
+					RNOK( m_pcMbSymbolWriteIf->smoothedRefFlag( rcMbDataAccess ) );
+			 }
+			 //--
     }
   }
 

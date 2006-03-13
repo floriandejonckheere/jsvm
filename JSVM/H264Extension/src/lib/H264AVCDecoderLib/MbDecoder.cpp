@@ -610,6 +610,41 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
   {
     IntYuvMbBuffer cBaseLayerBuffer;
     cBaseLayerBuffer.loadBuffer( pcBaseResidual->getFullPelYuvBuffer() );
+
+		//-- JVT-R091
+		if ( bReconstruct && rcMbDataAccess.getMbData().getSmoothedRefFlag() )
+		{
+			IntYuvMbBuffer cMbBuffer;
+
+			// obtain P
+			cMbBuffer.loadLuma	( cYuvMbBuffer );
+			cMbBuffer.loadChroma( cYuvMbBuffer );
+			
+			// P+Rb
+			cMbBuffer.add( cBaseLayerBuffer );
+
+			// S(P+Rb)
+			pcRecYuvBuffer->loadBuffer( &cMbBuffer );
+			pcRecYuvBuffer->smoothMbInside();
+			if ( rcMbDataAccess.isAboveMbExisting() )
+			{
+				pcRecYuvBuffer->smoothMbTop();
+			}
+			if ( rcMbDataAccess.isLeftMbExisting() )
+			{
+				pcRecYuvBuffer->smoothMbLeft();
+			}
+
+			// store new prediction
+			cYuvMbBuffer.loadBuffer	( pcRecYuvBuffer		);
+			cYuvMbBuffer.subtract		( cBaseLayerBuffer	);
+
+			// update rcPredBuffer
+			rcPredBuffer.loadLuma   ( cYuvMbBuffer			);
+			rcPredBuffer.loadChroma ( cYuvMbBuffer			);
+		}
+		//--
+
     cYuvMbBufferResidual.add( cBaseLayerBuffer );
     //--- set CBP ---
     rcMbDataAccess.getMbData().setMbExtCbp( rcMbDataAccess.getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );

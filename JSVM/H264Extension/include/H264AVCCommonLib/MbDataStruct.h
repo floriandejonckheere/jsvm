@@ -229,6 +229,11 @@ public:
   Bool isTransformSize8x8   ()                          const     { return m_bTransformSize8x8; }
   Void setTransformSize8x8  ( Bool bTransformSize8x8)             { m_bTransformSize8x8 = bTransformSize8x8; }
 
+	//-- JVT-R091
+  Void    setSmoothedRefFlag    ( Bool b )  { m_bSmoothedRefFlag = b;			}
+  Bool    getSmoothedRefFlag    () const    { return m_bSmoothedRefFlag;	}
+	//--
+
 public:
   UInt    m_uiSliceId;
   Bool    m_bBLSkipFlag;
@@ -252,6 +257,10 @@ public:
 
   // TMM_ESS 
   Bool    m_bInCropWindowFlag;  // indicates if the scaled base layer MB is inside the cropping window
+
+	//-- JVT-R091
+	Bool		m_bSmoothedRefFlag;		// indicates if the smoothed reference mode is used
+	//--
 
 public:
   static const UChar m_aucACTab[6];

@@ -137,8 +137,10 @@ protected:
                                     ListIdx       eLstIdx );
   
   
-  
-  ErrVal xWriteTextureInfo    ( MbDataAccess& rcMbDataAccess, const MbTransformCoeffs& rcMbTCoeff, Bool bTrafo8x8Flag );
+  //-- JVT-R091
+	ErrVal xWriteTextureInfo    ( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase, const MbTransformCoeffs& rcMbTCoeff, Bool bTrafo8x8Flag );
+	//--
+
   ErrVal xWriteMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal xWriteBlockMv        ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );
 

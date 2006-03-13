@@ -146,6 +146,7 @@ public:
                                         IntFrame*     pcFrame,
                                         IntFrame*     pcResidual,
                                         IntFrame*     pcPredSignal,
+																				IntFrame*			pcSRFrame, // JVT-R091
                                         IntFrame*     pcBaseSubband,
                                         IntFrame*     pcBaseLayer,
                                         MbDataCtrl*   pcMbDataCtrl,

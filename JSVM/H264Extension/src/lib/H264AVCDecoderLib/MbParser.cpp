@@ -202,7 +202,9 @@ ErrVal MbParser::process( MbDataAccess& rcMbDataAccess, Bool& rbEndOfSlice)
       Bool bTrafo8x8Flag = ( rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() &&
                              rcMbDataAccess.getMbData().is8x8TrafoFlagPresent()        &&
                             !rcMbDataAccess.getMbData().isIntra4x4() );
-      DECRNOK( xReadTextureInfo( rcMbDataAccess, bTrafo8x8Flag ) );
+      //-- JVT-R091
+			DECRNOK( xReadTextureInfo( rcMbDataAccess, NULL, bTrafo8x8Flag ) );
+			//--
     }
   }
   m_bPrevIsSkipped = ! bIsCoded;
@@ -410,8 +412,9 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
     Bool bTrafo8x8Flag = ( rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() &&
                            rcMbDataAccess.getMbData().is8x8TrafoFlagPresent()        &&
                           !rcMbDataAccess.getMbData().isIntra4x4() );
-    DECRNOK( xReadTextureInfo( rcMbDataAccess, bTrafo8x8Flag ) );
-
+    //-- JVT-R091
+		DECRNOK( xReadTextureInfo( rcMbDataAccess, pcMbDataAccessBase, bTrafo8x8Flag ) );
+		//--
   }
 
   rcMbDataAccess.getMbData().updateResidualAvailFlags();
@@ -1109,8 +1112,9 @@ ErrVal MbParser::xReadMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx e
 
 
 ErrVal
-MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess
-                            , Bool          bTrafo8x8Flag
+MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
+														MbDataAccess*		pcMbDataAccessBase,	// JVT-R091
+                            Bool						bTrafo8x8Flag
                            )
 {
   Bool bReadDQp = true;
@@ -1145,10 +1149,21 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess
     if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
     {
       DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
+
+			//-- JVT-R091
+			if ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
+					 rcMbDataAccess.getMbData().getBLSkipFlag() &&
+					 pcMbDataAccessBase &&
+					 rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
+			{
+				DECRNOK( m_pcMbSymbolReadIf->smoothedRefFlag( rcMbDataAccess ) );
+			}
+			//--
     }
     else if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
     {
       rcMbDataAccess.getMbData().setResidualPredFlag( true, PART_16x16 );
+			rcMbDataAccess.getMbData().setSmoothedRefFlag( false );	// JVT-R091
     }
   }
 

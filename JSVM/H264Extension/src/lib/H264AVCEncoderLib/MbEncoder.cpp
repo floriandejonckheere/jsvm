@@ -596,6 +596,7 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
                            IntFrame*      pcFrame,
                            IntFrame*      pcResidual,
                            IntFrame*      pcBaseSubband,
+													 IntFrame*			pcSRFrame, // JVT-R091
                            Bool&          rbCoded,
                            Double         dLambda,
                            Int            iMaxQpDelta )
@@ -618,18 +619,71 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
   Int     iMinCnt     = ( uiRPred == 0 || uiRPred == 2 ? 0 : 1 );
   Int     iMaxCnt     = ( uiRPred == 1 || uiRPred == 2 ? 2 : 1 );
 
+	//-- JVT-R091
+	Bool		bSmoothedRef = false;
+	rcMbDataAccess.getMbData().setSmoothedRefFlag( false );
+	if ( uiRPred == 2 && rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
+	{
+		iMaxCnt = 3;
+	}
+	//--
   
   m_pcXDistortion->loadOrgMbPelData( m_pcIntPicBuffer, m_pcIntOrgMbPelData );
 
   for( Int iCnt = iMinCnt; iCnt < iMaxCnt; iCnt++ )
   {
+		//-- JVT-R091
+		IntYuvMbBuffer cPrdMbBuffer, cBaseResMbBuffer, cMbBuffer, cNewPrdMbBuffer, cOrgMbBuffer;
+
+		// store original residual
+		cOrgMbBuffer		.loadLuma	 ( *m_pcIntOrgMbPelData										);
+		cOrgMbBuffer		.loadChroma( *m_pcIntOrgMbPelData										);
+
+		bSmoothedRef = ( iCnt == 2 );
+		if ( bSmoothedRef )
+		{
+			// obtain P & Rb
+			cPrdMbBuffer		.loadBuffer( pcSRFrame->getFullPelYuvBuffer()			);
+			cBaseResMbBuffer.loadBuffer( pcBaseSubband->getFullPelYuvBuffer()	);
+
+			// P+Rb & save to pcPredSR
+			cMbBuffer				.loadBuffer( pcSRFrame->getFullPelYuvBuffer()			);
+			cMbBuffer				.add			 ( cBaseResMbBuffer											);
+			pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cMbBuffer );
+
+			// S(P+Rb) & save to cMbBuffer
+			pcSRFrame->getFullPelYuvBuffer()->smoothMbInside();
+			if ( rcMbDataAccess.isAboveMbExisting() )
+			{
+				pcSRFrame->getFullPelYuvBuffer()->smoothMbTop();
+			}
+			if ( rcMbDataAccess.isLeftMbExisting() )
+			{
+				pcSRFrame->getFullPelYuvBuffer()->smoothMbLeft();
+			}
+			cMbBuffer.loadBuffer( pcSRFrame->getFullPelYuvBuffer() );
+
+			// restore pcPredSR
+			pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cPrdMbBuffer );
+
+			// compute new prediction -> S(P+Rb)-Rb
+			cNewPrdMbBuffer.loadLuma			( cMbBuffer					);
+			cNewPrdMbBuffer.loadChroma		( cMbBuffer					);
+			cNewPrdMbBuffer.subtract			( cBaseResMbBuffer	);
+
+			// compute new residual -> O-S(P+Rb)+Rb
+			m_pcIntOrgMbPelData->add			( cPrdMbBuffer			);
+			m_pcIntOrgMbPelData->subtract	( cNewPrdMbBuffer		);
+		}
+		//--
+
     for( UChar ucQp = ucMinQp; ucQp <= ucMaxQp; ucQp++ )
     {
       for( UInt uiTrafo8x8 = uiMinTrafo; uiTrafo8x8 < uiMaxTrafo; uiTrafo8x8++ )
       {
         m_pcIntMbTempData ->init( rcMbDataAccess );
 
-        if( iCnt )
+				if( iCnt )
         {
           m_pcIntMbTempData->loadBuffer( pcBaseSubband->getFullPelYuvBuffer() );
         }
@@ -640,8 +694,18 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
 
         m_pcIntMbTempData ->getTempYuvMbBuffer().loadLuma( *m_pcIntMbTempData );
         m_pcIntMbTempData ->setQp( ucQp );
-        m_pcTransform     ->setQp( *m_pcIntMbTempData, rcMbDataAccess.getSH().isIntra() );
 
+				//-- JVT-R091
+				// note: use intra offset as IntraBL does
+				if ( bSmoothedRef )
+				{
+					m_pcTransform		->setQp( *m_pcIntMbTempData, true );
+				}
+				else
+				{
+					m_pcTransform   ->setQp( *m_pcIntMbTempData, rcMbDataAccess.getSH().isIntra() );
+				}
+				//--
 
         //----- encode luminance signal -----
         UInt  uiExtCbp    = 0;
@@ -661,7 +725,10 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
             RNOK( xEncode8x8InterBlock( *m_pcIntMbTempData, c8x8Idx, uiBits, uiCbp ) );
             if( uiCbp )
             {
-              if( xGetCoeffCost() <= uiB8Thres )
+							//-- JVT-R091
+							// note: do not use coefficient skip as IntraBL does
+							if( !bSmoothedRef && xGetCoeffCost() <= uiB8Thres )
+							//--
               {
                 m_pcIntMbTempData->loadLuma( m_pcIntMbTempData->getTempYuvMbBuffer(), c8x8Idx );
 
@@ -689,7 +756,10 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
             }
             if( uiCbp )
             {
-              if( xGetCoeffCost() <= uiB8Thres )
+							//-- JVT-R091
+							// note: do not use coefficient skip as IntraBL does
+              if( !bSmoothedRef && xGetCoeffCost() <= uiB8Thres )
+							//--
               {
                 m_pcIntMbTempData->loadLuma( m_pcIntMbTempData->getTempYuvMbBuffer(), c8x8Idx );
 
@@ -704,7 +774,10 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
             }
           }
         }
-        if( 0 != uiExtCbp && uiCoeffCost <= uiMBThres )
+				//-- JVT-R091
+				// note: do not use coefficient skip as IntraBL does
+        if( !bSmoothedRef && 0 != uiExtCbp && uiCoeffCost <= uiMBThres )
+				//--
         {
           m_pcIntMbTempData->loadLuma( m_pcIntMbTempData->getTempYuvMbBuffer() );
           uiExtCbp = 0;
@@ -754,11 +827,28 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
 
           //----- set residual prediction flag -----
           rcMbDataAccess.getMbData().setResidualPredFlag( iCnt > 0, PART_16x16 );
+
+					//-- JVT-R091
+					if ( bSmoothedRef )
+					{
+						// update prediction signal
+						pcSRFrame->getFullPelYuvBuffer()->loadBuffer				( &cNewPrdMbBuffer	);
+
+						// set flag
+						rcMbDataAccess.getMbData().setSmoothedRefFlag( true );
+					}
+					//--
         }
 
         m_pcIntMbTempData->uninit();
       }
-    }  
+    }
+
+		//-- JVT-R091
+		// restore original residual
+		m_pcIntOrgMbPelData->loadLuma		( cOrgMbBuffer );
+		m_pcIntOrgMbPelData->loadChroma	( cOrgMbBuffer );
+		//--
   }
 
   return Err::m_nOK;
@@ -983,6 +1073,11 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
           // TMM_ESS 
 	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
 					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, iSpatialScalabilityType,         pcMbDataAccessBase, true ) );
+
+				//-- JVT-R091
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) ) 
+					RNOK( xEstimateMbSR				( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerResidual, bBSlice, iSpatialScalabilityType,			pcMbDataAccessBase, true ) );
+				//--
       }
 
       if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
@@ -2581,9 +2676,398 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
   return Err::m_nOK;
 }
 
+//-- JVT-R091
+ErrVal
+MbEncoder::xSetRdCostInterMbSR( IntMbTempData&  rcMbTempData,
+																MbDataAccess*   pcMbDataAccessBase,
+																RefFrameList&   rcRefFrameList0,
+																RefFrameList&   rcRefFrameList1,
+																IntFrame*				pcBaseLayerSbb,
+																Bool            bBLSkip,
+																UInt            uiAdditionalBits )
+{
+  IntYuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
+  IntYuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData  .getTempYuvMbBuffer ();
+  MbDataAccess&   rcMbDataAccess    = rcMbTempData  .getMbDataAccess    ();
+  MbData&         rcMbData          = rcMbDataAccess.getMbData          ();
+  UInt            uiMbDist          = 0;
+  UInt            uiMbBits          = 0;
+  MbMode          eMbMode           = rcMbData.getMbMode();
+  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 );
+  UInt            uiFwdBwd          = 0;
+
+  //===== set forward / backward indication =====
+  if( rcMbDataAccess.getSH().isInterB() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += (0 < rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+      uiFwdBwd += (0 < rcMbDataAccess.getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) )) ? 2:0;
+    }
+  }
+  if( rcMbDataAccess.getSH().isInterP() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd +=  (0 < rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+    }
+  }
+  rcMbTempData.setFwdBwd( uiFwdBwd );
+
+
+  //===== get prediction and copy to temp buffer =====
+  if( b8x8Mode )
+  {
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    {
+      RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                                   &rcYuvMbBuffer, false, false ) );
+    }
+  }
+  else
+  {
+    RNOK  ( m_pcMotionEstimation->compensateMb  ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                                  &rcYuvMbBuffer, false, false ) );
+  }
+
+	// compute smoothed reference prediction: P+Rb
+	IntYuvMbBuffer cBaseResMbBuffer;
+	cBaseResMbBuffer.loadBuffer	( pcBaseLayerSbb->getFullPelYuvBuffer() );
+	rcYuvMbBuffer		.add				( cBaseResMbBuffer );
+
+	// S(P+Rb)
+	// note: only pixels inside MB are considered
+	pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &rcYuvMbBuffer		);
+	pcBaseLayerSbb->getFullPelYuvBuffer()->smoothMbInside();
+
+	// S(P+Rb)-Rb
+	rcYuvMbBuffer.loadBuffer		( pcBaseLayerSbb->getFullPelYuvBuffer() );
+	rcYuvMbBuffer.subtract			( cBaseResMbBuffer );
+
+	// load into prediction buffer
+  rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
+  rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
+
+  //===== encode residual and get rate for coefficients =====
+  UInt  uiCoeffCost = 0;
+  UInt  uiExtCbp    = 0;
+  Bool  bSkipMode   = ( eMbMode == MODE_SKIP && rcMbDataAccess.getSH().isInterP() );
+  
+  if( ! bSkipMode )
+  {
+    //--- LUMA ---
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    {
+      xSetCoeffCost( 0 );
+      UInt  uiBits = 0;
+      UInt  uiCbp  = 0;
+
+      for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+      {
+        RNOK( xEncode4x4InterBlock( rcMbTempData, cIdx, uiBits, uiCbp ) );
+      }
+      if( uiCbp )
+      {
+        if( xGetCoeffCost() <= 4 )
+        {
+          rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer, c8x8Idx );
+
+          rcMbTempData.clearLumaLevels8x8( c8x8Idx );
+        }
+        else
+        {
+          uiCoeffCost += xGetCoeffCost();
+          uiExtCbp    += uiCbp;
+          uiMbBits    += uiBits;
+        }
+      }
+    }
+    if( uiExtCbp && uiCoeffCost <= 5 )
+    {
+      rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer );
+      uiExtCbp  = 0;
+      uiMbBits  = 0;
+
+      rcMbTempData.clearLumaLevels();
+    }
+
+    //--- CHROMA ---
+    RNOK( xEncodeChromaTexture( rcMbTempData, uiExtCbp, uiMbBits ) );
+  }
+  rcMbTempData.cbp() = xCalcMbCbp( uiExtCbp );
+
+  //===== get distortion =====
+  uiMbDist  += m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
+  uiMbDist  += m_pcXDistortion->get8x8Cb    ( rcYuvMbBuffer.getMbCbAddr (), rcYuvMbBuffer.getCStride() );
+  uiMbDist  += m_pcXDistortion->get8x8Cr    ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
+
+  //===== get rate =====
+  if( ! bSkipMode )
+  {
+    RNOK(   BitCounter::init() );
+
+    if( ! bBLSkip )
+    {
+      RNOK(   MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbDataAccess/*, false*/ ) );
+      if( b8x8Mode )
+      {
+        RNOK( MbCoder::m_pcMbSymbolWriteIf->blockModes( rcMbDataAccess ) );
+      }
+    }
+
+    RNOK(     MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbDataAccess ) );
+    
+    if( rcRefFrameList0.getActive() && !bBLSkip )
+    {
+      RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_0 ) );
+
+      RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+      RNOK(   MbCoder::xWriteMotionVectors            ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+    }
+
+    if( rcRefFrameList1.getActive() && !bBLSkip )
+    {
+      RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_1 ) );
+
+      RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbDataAccess,                     eMbMode, LIST_1 ) );
+      RNOK(   MbCoder::xWriteMotionVectors            ( rcMbDataAccess,                     eMbMode, LIST_1 ) );
+    }
+    
+    uiMbBits  += BitCounter::getNumberOfWrittenBits();
+  }
+
+  //===== set rd-cost =====
+  rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits+uiAdditionalBits, uiMbDist );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+MbEncoder::xCheckInterMbMode8x8SR( IntMbTempData*&   rpcMbTempData,
+																	 IntMbTempData*&   rpcMbBestData,
+																	 IntMbTempData*    pcMbRefData,
+																	 RefFrameList&     rcRefFrameList0,
+																	 RefFrameList&     rcRefFrameList1,
+																	 IntFrame*				 pcBaseLayerSbb,
+																	 MbDataAccess*     pcMbDataAccessBaseMotion )
+{
+  ROTRS( ! rpcMbTempData->getSH().getPPS().getTransform8x8ModeFlag(), Err::m_nOK );
+  ROTRS( ! pcMbRefData->is8x8TrafoFlagPresent(),                      Err::m_nOK );
+
+  if( pcMbRefData == rpcMbTempData )
+  {
+    rpcMbTempData->clearCost          ();
+    rpcMbTempData->getMbTCoeffs       ().clear();
+    rpcMbTempData->setTransformSize8x8( true );
+  }
+  else
+  {
+    rpcMbTempData->clear                ();
+    rpcMbTempData->setMbMode            (           pcMbRefData->getMbMode            () );
+    rpcMbTempData->setBLSkipFlag        (           pcMbRefData->getBLSkipFlag        () );
+    rpcMbTempData->setBLQRefFlag        (           pcMbRefData->getBLQRefFlag        () );
+    rpcMbTempData->setResidualPredFlags (           pcMbRefData->getResidualPredFlags () );
+    rpcMbTempData->setBlkMode           ( B_8x8_0,  pcMbRefData->getBlkMode           ( B_8x8_0 ) );
+    rpcMbTempData->setBlkMode           ( B_8x8_1,  pcMbRefData->getBlkMode           ( B_8x8_1 ) );
+    rpcMbTempData->setBlkMode           ( B_8x8_2,  pcMbRefData->getBlkMode           ( B_8x8_2 ) );
+    rpcMbTempData->setBlkMode           ( B_8x8_3,  pcMbRefData->getBlkMode           ( B_8x8_3 ) );
+    rpcMbTempData->setTransformSize8x8  ( true );
+
+    rpcMbTempData->getMbMotionData( LIST_0 ).copyFrom( pcMbRefData->getMbMotionData( LIST_0 ) );
+    rpcMbTempData->getMbMotionData( LIST_1 ).copyFrom( pcMbRefData->getMbMotionData( LIST_1 ) );
+    rpcMbTempData->getMbMvdData   ( LIST_0 ).copyFrom( pcMbRefData->getMbMvdData   ( LIST_0 ) );
+    rpcMbTempData->getMbMvdData   ( LIST_1 ).copyFrom( pcMbRefData->getMbMvdData   ( LIST_1 ) );
+  }
+
+  RNOK( xSetRdCost8x8InterMbSR( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefFrameList0, rcRefFrameList1, pcBaseLayerSbb ) );
+  RNOK( xCheckBestEstimation	(  rpcMbTempData, rpcMbBestData ) );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+MbEncoder::xSetRdCost8x8InterMbSR ( IntMbTempData&  rcMbTempData,
+																		MbDataAccess*   pcMbDataAccessBaseMotion,
+																		RefFrameList&   rcRefFrameList0,
+																		RefFrameList&   rcRefFrameList1,
+																		IntFrame*				pcBaseLayerSbb,
+																		Bool            bBLSkip,
+																		UInt            uiAdditionalBits )
+{
+  IntYuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
+  IntYuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData.getTempYuvMbBuffer();
+  MbDataAccess&   rcMbDataAccess    = rcMbTempData.getMbDataAccess();
+  MbData&         rcMbData          = rcMbDataAccess.getMbData();
+  UInt            uiMbDist          = 0;
+  UInt            uiMbBits          = 0;
+  MbMode          eMbMode           = rcMbData.getMbMode();
+  Bool            b8x8Mode          = ( eMbMode == MODE_8x8 );
+  UInt            uiFwdBwd          = 0;
+
+  //=== check ===
+  ROT( eMbMode == MODE_SKIP && rcMbDataAccess.getSH().isInterP() ); // not for skip mode
+  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_0 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_0 ) != BLK_8x8 );
+  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_1 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_1 ) != BLK_8x8 );
+  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_2 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_2 ) != BLK_8x8 );
+  ROT( eMbMode == MODE_8x8  && rcMbData.getBlkMode( B_8x8_3 ) != BLK_SKIP && rcMbData.getBlkMode( B_8x8_3 ) != BLK_8x8 );
 
 
 
+  //===== set forward / backward indication =====
+  if( rcMbDataAccess.getSH().isInterB() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += (0 < rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+      uiFwdBwd += (0 < rcMbDataAccess.getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) )) ? 2:0;
+    }
+  }
+  if( rcMbDataAccess.getSH().isInterP() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd +=  (0 < rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+    }
+  }
+  rcMbTempData.setFwdBwd( uiFwdBwd );
+
+
+  //===== get prediction and copy to temp buffer =====
+  if( b8x8Mode )
+  {
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    {
+      RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                                   &rcYuvMbBuffer, false, false ) );
+    }
+  }
+  else
+  {
+    RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                              &rcYuvMbBuffer, false, false ) );
+  }
+
+	// compute smoothed reference prediction: P+Rb
+	IntYuvMbBuffer cBaseResMbBuffer;
+	cBaseResMbBuffer.loadBuffer	( pcBaseLayerSbb->getFullPelYuvBuffer() );
+	rcYuvMbBuffer		.add				( cBaseResMbBuffer );
+
+	// S(P+Rb)
+	// note: only pixels inside MB are considered
+	pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &rcYuvMbBuffer		);
+	pcBaseLayerSbb->getFullPelYuvBuffer()->smoothMbInside();
+
+	// S(P+Rb)-Rb
+	rcYuvMbBuffer.loadBuffer		( pcBaseLayerSbb->getFullPelYuvBuffer() );
+	rcYuvMbBuffer.subtract			( cBaseResMbBuffer );
+
+	// load into prediction buffer
+  rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
+  rcTempYuvMbBuffer.loadChroma( rcYuvMbBuffer );
+
+  //===== encode residual and get rate for coefficients =====
+  UInt  uiCoeffCost = 0;
+  UInt  uiExtCbp    = 0;
+  rcMbTempData.setTransformSize8x8( true );
+
+  //--- LUMA ---
+  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+  {
+    xSetCoeffCost( 0 );
+    UInt  uiBits = 0;
+    UInt  uiCbp  = 0;
+
+    RNOK( xEncode8x8InterBlock( rcMbTempData, c8x8Idx, uiBits, uiCbp ) );
+    if( uiCbp )
+    {
+      if( xGetCoeffCost() <= 4 )
+      {
+        rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer, c8x8Idx );
+
+        rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
+      }
+      else
+      {
+        uiCoeffCost += xGetCoeffCost();
+        uiExtCbp    += uiCbp;
+        uiMbBits    += uiBits;
+      }
+    }
+  }
+  if( uiExtCbp && uiCoeffCost <= 5 )
+  {
+    rcYuvMbBuffer.loadLuma( rcTempYuvMbBuffer );
+    uiExtCbp  = 0;
+    uiMbBits  = 0;
+
+    rcMbTempData.clearLumaLevels();
+  }
+
+  //--- CHROMA ---
+  RNOK( xEncodeChromaTexture( rcMbTempData, uiExtCbp, uiMbBits ) );
+
+  
+  rcMbTempData.cbp() = xCalcMbCbp( uiExtCbp );
+
+  //===== get distortion =====
+  uiMbDist  += m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
+  uiMbDist  += m_pcXDistortion->get8x8Cb    ( rcYuvMbBuffer.getMbCbAddr (), rcYuvMbBuffer.getCStride() );
+  uiMbDist  += m_pcXDistortion->get8x8Cr    ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
+
+  //===== get rate =====
+  Bool      bOneListOnly    = ! ( rcRefFrameList0.getActive() && rcRefFrameList1.getActive() );
+  SliceType eRealSliceType  = rcMbDataAccess.getSH().getSliceType();
+  if( bOneListOnly )
+  {
+    rcMbDataAccess.getSH().setSliceType( P_SLICE );
+  }
+
+
+  Bool  bMbPredFlag = false;
+  RNOK(   BitCounter::init() );
+
+  if( ! bMbPredFlag && !bBLSkip )
+  {
+    RNOK(   MbCoder::m_pcMbSymbolWriteIf->mbMode    ( rcMbDataAccess/*, false*/ ) );
+    if( b8x8Mode )
+    {
+      RNOK( MbCoder::m_pcMbSymbolWriteIf->blockModes( rcMbDataAccess ) );
+    }
+  }
+
+  rcMbDataAccess.getSH().setSliceType( eRealSliceType );
+
+  RNOK(   MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbDataAccess ) );
+  
+  if( rcRefFrameList0.getActive() && !bBLSkip )
+  {
+    RNOK( MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, pcMbDataAccessBaseMotion, eMbMode, LIST_0 ) );
+
+    RNOK( MbCoder::xWriteReferenceFrames          ( rcMbDataAccess, eMbMode, LIST_0 ) );
+    RNOK( MbCoder::xWriteMotionVectors            ( rcMbDataAccess, eMbMode, LIST_0 ) );
+  }
+
+  if( rcRefFrameList1.getActive() && !bBLSkip )
+  {
+    RNOK( MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, pcMbDataAccessBaseMotion, eMbMode, LIST_1 ) );
+
+    RNOK( MbCoder::xWriteReferenceFrames          ( rcMbDataAccess, eMbMode, LIST_1 ) );
+    RNOK( MbCoder::xWriteMotionVectors            ( rcMbDataAccess, eMbMode, LIST_1 ) );
+  }
+  
+  uiMbBits  += BitCounter::getNumberOfWrittenBits();
+
+  
+  //===== set rd-cost =====
+  rcMbTempData.rdCost() = m_pcRateDistortionIf->getCost( uiMbBits+uiAdditionalBits, uiMbDist );
+
+  return Err::m_nOK;
+}
+//--
 
 ErrVal
 MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
@@ -2975,10 +3459,46 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
   return Err::m_nOK;
 }
 
+//-- JVT-R091
+ErrVal
+MbEncoder::xEstimateMbSR( IntMbTempData*&   rpcIntMbTempData,
+                          IntMbTempData*&   rpcIntMbBestData,
+                          RefFrameList&     rcRefFrameList0,
+                          RefFrameList&     rcRefFrameList1,
+                          const IntFrame*		pcBaseLayerSbb,
+                          Bool              bBSlice,
+                          Int               iSpatialScalabilityType,
+                          MbDataAccess*     pcMbDataAccessBase,
+                          Bool              bResidualPred )
+{
+  ROF( pcMbDataAccessBase );
 
+  if( ! pcMbDataAccessBase->getMbData().isIntra() )
+  {
+    ROF( bResidualPred || rpcIntMbTempData->getSH().getAdaptivePredictionFlag() );
 
+    //===== BASE LAYER MODE IS INTER =====
+    rpcIntMbTempData->clear               ();
+    rpcIntMbTempData->copyMotion          ( pcMbDataAccessBase->getMbData() );
+    rpcIntMbTempData->setBLSkipFlag       ( true  );
+    rpcIntMbTempData->setBLQRefFlag       ( false );
+    rpcIntMbTempData->getMbMvdData        ( LIST_0 ).setAllMv( Mv::ZeroMv() );
+    rpcIntMbTempData->getMbMvdData        ( LIST_1 ).setAllMv( Mv::ZeroMv() );
 
+    rpcIntMbTempData->setResidualPredFlag ( bResidualPred, PART_16x16 );
+		rpcIntMbTempData->setSmoothedRefFlag	( true );
 
+    IntMbTempData* pcMbRefData = rpcIntMbTempData;
+
+		IntFrame* pcTempFrame = (IntFrame*)pcBaseLayerSbb;
+    RNOK( xSetRdCostInterMbSR   ( *rpcIntMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1, pcTempFrame, true ) );
+    RNOK( xCheckBestEstimation	(  rpcIntMbTempData, rpcIntMbBestData ) );
+    RNOK( xCheckInterMbMode8x8SR(  rpcIntMbTempData, rpcIntMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, pcTempFrame, pcMbDataAccessBase ) );
+  }
+
+  return Err::m_nOK;
+}
+//--
 
 ErrVal
 MbEncoder::xEstimateMbSkip( IntMbTempData*&  rpcMbTempData,

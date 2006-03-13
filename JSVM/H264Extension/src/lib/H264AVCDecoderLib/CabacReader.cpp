@@ -118,6 +118,7 @@ CabacReader::CabacReader():
   m_cAbsCCModel         ( NUM_BLOCK_TYPES,  NUM_ABS_CTX ),
   m_cChromaPredCCModel  ( 1,                4 ),
   m_cBLFlagCCModel      ( 1,                1 ),
+	m_cSRFlagCCModel      ( 1,                1 ),	// JVT-R091
   m_cBLSkipCCModel      ( 1,                4 ),
   m_cBLQRefCCModel      ( 1,                4 ),
   m_cMbTypeCCModel      ( 3,                NUM_MB_TYPE_CTX ),
@@ -164,6 +165,7 @@ ErrVal CabacReader::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,         iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,         iQp ) );
     RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,         iQp ) );
+		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,         iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_I,           iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_I,          iQp ) );
@@ -193,6 +195,7 @@ ErrVal CabacReader::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,                   iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,                   iQp ) );
     RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,                   iQp ) );
+		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,                   iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_P            [iIndex], iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_P           [iIndex], iQp ) );
@@ -529,6 +532,21 @@ ErrVal CabacReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
+//-- JVT-R091
+ErrVal CabacReader::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
+{
+  UInt uiSymbol;
+  RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cSRFlagCCModel.get( 0, 0 ) ) );
+  rcMbDataAccess.getMbData().setSmoothedRefFlag( (uiSymbol!=0) );
+
+  DTRACE_T( "SmoothedRefFlag:" );
+  DTRACE_TY( "ae(v)" );
+  DTRACE_CODE( uiSymbol );
+  DTRACE_N;
+
+  return Err::m_nOK;
+}
+//--
 
 ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
 {

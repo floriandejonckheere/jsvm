@@ -120,7 +120,10 @@ protected:
   ErrVal xReadMbType                  ( MbDataAccess& rcMbDataAccess, Bool bBaseLayer );
   ErrVal xReadIntraPredModes          ( MbDataAccess& rcMbDataAccess );
 
-  ErrVal xReadTextureInfo             ( MbDataAccess& rcMbDataAccess, Bool bTrafo8x8Flag );
+	//-- JVT-R091
+	ErrVal xReadTextureInfo             ( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase, Bool bTrafo8x8Flag );
+	//--
+
   ErrVal xScanChromaBlocks            ( MbDataAccess& rcMbDataAccess, UInt uiChromCbp );
 
   ErrVal xReadMotionVectors           ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );

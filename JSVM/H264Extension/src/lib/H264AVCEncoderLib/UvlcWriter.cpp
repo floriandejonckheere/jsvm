@@ -690,6 +690,19 @@ ErrVal UvlcWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
+//-- JVT-R091
+ErrVal UvlcWriter::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
+{
+  UInt uiCode = ( rcMbDataAccess.getMbData().getSmoothedRefFlag() ? 1 : 0 );
+
+  ETRACE_T( "SmoothedRefFlag" );
+  RNOK( xWriteFlag( uiCode ) );
+  ETRACE_N;
+
+  return Err::m_nOK;
+}
+//--
+
 ErrVal UvlcWriter::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 {
   Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv();

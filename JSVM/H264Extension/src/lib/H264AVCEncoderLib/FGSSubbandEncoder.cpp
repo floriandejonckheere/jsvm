@@ -583,7 +583,18 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
   UInt          uiMbIndex = uiMbY * m_uiWidthInMB + uiMbX;
 
   rcMbDataAccess.getMbData().setQp( iQp );
-  m_pcTransform->setQp( rcMbDataAccess, bLowPass || bIntra );
+
+	//-- JVT-R091
+	// use intra offset for smoothed reference MB
+	if ( rcMbDataAccessBase.getMbData().getSmoothedRefFlag() )
+	{
+		m_pcTransform->setQp( rcMbDataAccess, true );
+	}
+	else
+	{
+		m_pcTransform->setQp( rcMbDataAccess, bLowPass || bIntra );
+	}
+	//--
 
   IntYuvMbBuffer  cMbBuffer;
   cMbBuffer.loadBuffer( m_pcOrgResidual->getFullPelYuvBuffer() );

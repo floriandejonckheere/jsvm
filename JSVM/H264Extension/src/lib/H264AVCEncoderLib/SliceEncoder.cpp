@@ -360,6 +360,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                             IntFrame*     pcFrame,
                                             IntFrame*     pcResidual,
                                             IntFrame*     pcPredSignal,
+																						IntFrame*			pcSRFrame, // JVT-R091
                                             IntFrame*     pcBaseSubband,
                                             IntFrame*     pcBaseLayer,
                                             MbDataCtrl*   pcMbDataCtrl,
@@ -413,6 +414,11 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       RNOK( m_pcMbEncoder ->encodeIntra   ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseLayer, pcPredSignal, dLambda ) );
       RNOK( m_pcMbCoder   ->encode        ( *pcMbDataAccess, pcMbDataAccessBase, iSpatialScalabilityType, (uiMbAddress == uiLastMbAddress ) ) );
 
+			//-- JVT-R091
+			// update with best data (intra)
+			pcSRFrame->getFullPelYuvBuffer()->loadBuffer( m_pcMbEncoder->getBestIntData() );	
+			//--
+
       ruiMbCoded++;
     }
     else
@@ -420,7 +426,9 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       pcMbDataAccess->getMbData().setQp( iQPRes );
 
       m_pcTransform->setClipMode( false );
-      RNOK( m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseSubband, bCoded, dLambda, iMaxDeltaQp ) );
+      RNOK( m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseSubband,
+																							 pcSRFrame, // JVT-R091
+																							 bCoded, dLambda, iMaxDeltaQp ) );
 
       if( pcMbDataAccess->getSH().getBaseLayerId() != MSYS_UINT_MAX && ! pcMbDataAccess->getSH().getAdaptivePredictionFlag() )
       {
@@ -443,12 +451,21 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
         pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
       }
 
+			//-- JVT-R091
+			// update with best-data (inter)
+			IntYuvMbBuffer	cPredBuffer, cResBuffer;
+			cPredBuffer.loadBuffer	( ((IntFrame*)pcSRFrame		)->getFullPelYuvBuffer() );
+			cResBuffer.	loadBuffer	( ((IntFrame*)pcResidual  )->getFullPelYuvBuffer() );
+			cPredBuffer.add					( cResBuffer );	
+			cPredBuffer.clip				();
+			pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cPredBuffer );
+			//--
+
       RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
     }
 
     uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress);
   }
-
 
   ruiBits += m_pcMbCoder->getBitCount() - uiBits;
 
