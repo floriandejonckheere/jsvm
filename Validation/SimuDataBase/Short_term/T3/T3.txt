@@ -73,7 +73,7 @@
             		        height => 256,
             		        framerate => 30,
             		        bitrate => 0,
-            		        psnr => 28.40,
+            		        psnr => 28.37,
             		      },
             		      #----------#
                       # Test   1 #
@@ -85,7 +85,7 @@
             		        height => 256,
             		        framerate => 30,
             		        bitrate => 755.8,
-            		        psnr => 28.36,
+            		        psnr => 28.34,
             		      },
     		              #----------#
                       # Test   2 #
@@ -97,7 +97,7 @@
             		        height => 256,
             		        framerate => 30,
             		        bitrate => 756*0.9,
-            		        psnr => 27.45,
+            		        psnr => 27.43,
         		        },
 		                  #----------#
                       # Test   3 #
@@ -133,7 +133,7 @@
             		        height => 256,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 29.19,
+            		        psnr => 29.16,
           		      },	
               		    #----------#
                       # Test   6 #
@@ -145,7 +145,7 @@
             		        height => 256,
             		        framerate => 7.5,
             		        bitrate => 0,
-            		        psnr => 29.91,
+            		        psnr => 29.88,
         		         },
         		          #----------#
                       # Test   7 #
@@ -157,7 +157,7 @@
             		        height => 256,
             		        framerate => 30/8,
             		        bitrate => 0,
-            		        psnr => 30.98,
+            		        psnr => 30.97,
             		      },	
 		                  #----------#
                       # Test   8 #
@@ -181,7 +181,7 @@
             		        height => 128,
             		        framerate => 15,
             		        bitrate => 384*0.8,
-            		        psnr => 35.91,
+            		        psnr => 35.90,
             		      },
             		      #----------#
                       # Test  10 #
@@ -229,7 +229,7 @@
             		        height => 256,
             		        framerate => 15,
             		        bitrate => 756*0.75,
-            		        psnr => 27.09,
+            		        psnr => 27.06,
             		      },		
             		      #----------#
                       # Test  14 #

@@ -2,13 +2,16 @@
 #==========================================================#
 #               General parameters                         #
 #==========================================================#
-name        => "CAVLC",
-original    => "BUS_352x288_30.yuv",
-width       => 352,
-height      => 288,
-framerate   => 30,
-nbframes    => 30,
-verbosemode => 1,	
+name        		=> "SmoothedRef",
+original    		=> "FOOTBALL_352x288_30.yuv",
+originalwidth   	=> 352,
+originalheight  	=> 288,
+originalframerate 	=> 30,
+width       		=> 352,
+height      		=> 288,
+framerate   		=> 15,
+nbframes    		=> 33,
+verbosemode 		=> 1,
 
 #==========================================================#
 #               Encoding parameters                        #
@@ -33,7 +36,7 @@ layers      => [
                 {
                  width        => 352,
                  height       => 288,
-                 framerate    =>  30,
+                 framerate    =>  15,
                 },
                ],
    
@@ -53,8 +56,8 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                        bitrate     => 268.2,
-                        psnr        => 34.48,
+                  	bitrate     => 335.9,
+                  	psnr        => 33.49,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -65,23 +68,10 @@ tests              => [
                         mode        => 1,
                         width       => 352,
                         height      => 288,
-                        framerate   => 30,
-                        bitrate     => 1562.9,
-                        psnr        => 33.88,
+                        framerate   => 15,
+			bitrate     => 725.6,
+			psnr        => 31.48,
                         encdecmatch => 1,
-                       },
-                       #----------#
-                       # Test   2 #
-                       #----------#
-                       {
-                        name        => "Temp Base",
-                        mode        => 1,
-                        width       => 352,
-                        height      => 288,
-                        framerate   => 3.75,
-                        bitrate     => 805,
-                        psnr        => 37.05,
-                        encdecmatch => 0,
                        },
                       ],
 }
