@@ -1,4 +1,48 @@
+JSVM_4_2 -> JSVM_4_3
+====================
 
+Smoothed reference prediction
+
+date: march 11, 2006
+author: Woo-Jin Han (Samsung Electronics)
+contribution: JVT-R091
+
+changes:
+
+1) According to JVT-R091, an additional prediction using smoothing function is added for single-loop decoding case. Smoothing function is applied to the sum of MC prediction and base-layer residual signal.
+
+2) New mode is signalled by additional syntax item only when the base_mode_flag and residual_prediction_flag are set.
+
+3) In motion estimation process, new functions to compute R-D cost of smoothed reference prediction are added for both 4x4 and 8x8 transform cases.
+
+4) New short-term test "SmoothedRef" is added.
+
+major S/W changes:
+
+ [ CommonLib changes ]
+
+ IntYuvPicBuffer: 3 new smoothing functions -> smoothMbInside(), smoothMbLeft() and smoothMbTop()
+ MbDataStruct: new MB variable -> m_bSmoothedRefFlag
+
+ [ Encoder-side changes ]
+
+ GOPEncoder: 
+     xFixMCPrediction() (called in xCompositionStage)
+       -> fix normal MC prediction with considerations of smoothed reference
+     xFixOrgResidual() (called in xEncodeHighPassPictures)
+       -> fix original residual with considerations of smoothed reference (necessary for FGS)
+ MbCoder: code segment to call smoothedRefFlag() when base_mode_flag && residual_prediction_flag = 1
+ MbEncoder:
+     new process for smoothed residual prediction (in encodeResidual)
+     new process for computing R-D cost of smoothed residual prediction (in estimatePrediction)
+     (xEstimateMbSR, xSetRdCostInterMbSR, xSetRdCost8x8InterMbSR, and xCheckInterMbMode8x8SR)
+ CabacWriter & UvlcWriter: smoothedRefFlag() -> write smoothed_ref_flag syntax item
+
+ [ Decoder-side changes ]
+
+ CabacReader & UvlcReader: smoothedRefFlag() -> read smoothed_ref_flag syntax item
+ MbDecoder: code segment in xDecodeMbInter() to generate smoothed reference prediction
+ MbParser: code segment to call smoothedRefFlag() when base_mode_flag && residual_prediction_flag = 1
 
 JSVM_4_1 -> JSVM_4_2
 ====================
