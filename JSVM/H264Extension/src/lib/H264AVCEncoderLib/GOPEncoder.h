@@ -563,6 +563,9 @@ protected:
   IntFrame**                    m_papcSubband;                        // reconstructed subband pictures
   IntFrame*                     m_apcLowPassTmpOrg  [2];              // temporal storage for original low-pass pcitures
   IntFrame*                     m_pcLowPassBaseReconstruction;        // base reconstruction of last low-pass picture
+//TMM_WP
+  Bool                          m_bBaseLayerWp;
+//TMM_WP
   IntFrame*                     m_pcAnchorFrameOriginal;              // original anchor frame
   IntFrame*                     m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
   IntFrame*                     m_pcBaseLayerFrame;                   // base layer frame

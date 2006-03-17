@@ -1365,6 +1365,112 @@ UInt XDistortion::xGetBiHAD4x  ( XDistSearchStruct* pcDSS )
   return uiSum;
 }
 
+//TMM_WP
+Void XDistortion::xGetWeight(XPel *pucRef, XPel *pucOrg, const UInt uiStride,
+                             const UInt uiHeight, const UInt uiWidth, 
+                             Double &dDCOrg, Double &dDCRef)
+{
+    /* get dc of org & ref frame */    
+    for (UInt y = 0; y < uiHeight; y++)
+    {
+        for (UInt x = 0; x < uiWidth; x++)
+        {
+            dDCOrg += (Double)pucOrg[x];
+            dDCRef += (Double)pucRef[x];
+        }
+
+        pucOrg += uiStride;
+        pucRef += uiStride;
+    }
+}
+
+
+
+ErrVal XDistortion::getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer, 
+                                   IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight,
+                                   UInt uiLumaLog2WeightDenom)
+{
+  ROT( NULL == pcRefPicBuffer );
+  ROT( NULL == pcOrgPicBuffer );
+
+  const Int iStride = pcRefPicBuffer->getLStride();
+  const Int iHeight = pcRefPicBuffer->getLHeight();
+  const Int iWidth  = pcRefPicBuffer->getLWidth();
+
+  AOT_DBG( iStride != pcOrgPicBuffer->getLStride() );
+
+  XPel* pucRef = pcRefPicBuffer->getLumOrigin();
+  XPel* pucOrg = pcOrgPicBuffer->getLumOrigin();
+
+  Double dDCOrg = 0;
+  Double dDCRef = 0;
+  xGetWeight( pucRef, pucOrg, iStride, iHeight, iWidth, dDCOrg, dDCRef);
+
+  if(dDCRef)
+  {
+      rfWeight = (Int) (rfWeight * dDCOrg / dDCRef + 0.5);
+      
+      if(rfWeight < -64 || rfWeight > 127)
+          rfWeight = 1 << uiLumaLog2WeightDenom;
+  }
+  
+  return Err::m_nOK;
+}
+
+
+ErrVal XDistortion::getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer, 
+                                     IntYuvPicBuffer* pcRefPicBuffer, 
+                                     Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb )
+{
+  ROT( NULL == pcRefPicBuffer );
+  ROT( NULL == pcOrgPicBuffer );
+
+  /* no weights for chroma */
+  rfWeight = 1 << uiChromaLog2WeightDenom;
+
+  return Err::m_nOK;
+}
+
+ErrVal XDistortion::getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, 
+                                    IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset )
+{
+  ROT( NULL == pcRefPicBuffer );
+  ROT( NULL == pcOrgPicBuffer );
+
+  const Int iStride = pcRefPicBuffer->getLStride();
+  const Int iHeight = pcRefPicBuffer->getLHeight();
+  const Int iWidth  = pcRefPicBuffer->getLWidth();
+
+  AOT_DBG( iStride != pcOrgPicBuffer->getLStride() );
+
+  XPel* pucRef = pcRefPicBuffer->getLumOrigin();
+  XPel* pucOrg = pcOrgPicBuffer->getLumOrigin();
+
+  Double dDCOrg = 0;
+  Double dDCRef = 0;
+  xGetWeight( pucRef, pucOrg, iStride, iHeight, iWidth, dDCOrg, dDCRef);
+
+  rfOffset = (Int) ( ( (dDCOrg - dDCRef)/ (iHeight * iWidth) ) + 0.5);
+
+  rfOffset = (rfOffset < -128) ? -128 : (rfOffset > 127 ? 127 : rfOffset);
+
+  return Err::m_nOK;
+}
+
+
+ErrVal XDistortion::getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, 
+                                      IntYuvPicBuffer* pcRefPicBuffer, 
+                                      Double& rfOffset, Bool bCb )
+{
+  ROT( NULL == pcRefPicBuffer );
+  ROT( NULL == pcOrgPicBuffer );
+
+  /* no offsets for chroma */
+  rfOffset = 0;
+
+  return Err::m_nOK;
+}
+//TMM_WP
 
 
 

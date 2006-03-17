@@ -7145,6 +7145,66 @@ MbEncoder::xQPelEstimateMb8x8( IntMbTempData*&  rpcMbTempData,
   return Err::m_nOK;
 }
 
+//TMM_WP
+ErrVal MbEncoder::getPredWeights( SliceHeader& rcSH, ListIdx eLstIdx, 
+                                  Double(*pafWeight)[3], IntFrame* pOrgFrame,
+                                  RefFrameList& rcRefFrameListX)
+{
+  IntYuvPicBuffer *pcOrgPicBuffer;
+  IntYuvPicBuffer *pcRefPicBuffer;
+  IntFrame* pRefFrame;
+  
+  pcOrgPicBuffer = pOrgFrame->getFullPelYuvBuffer();
+  
+  const Int iMaxRefPic    = rcSH.getNumRefIdxActive( eLstIdx );
+
+  Int iRefPic = 0;
+    
+  for( Int iRefPic = 0; iRefPic < rcRefFrameListX.getActive(); iRefPic++ )
+  {
+      pRefFrame = rcRefFrameListX.getEntry(iRefPic);
+      pcRefPicBuffer = pRefFrame->getFullPelYuvBuffer();
+        
+      m_pcXDistortion->getLumaWeight(  pcOrgPicBuffer, pcRefPicBuffer, pafWeight[iRefPic][0], rcSH.getLumaLog2WeightDenom() );
+      m_pcXDistortion->getChromaWeight(pcOrgPicBuffer, pcRefPicBuffer, pafWeight[iRefPic][1], rcSH.getChromaLog2WeightDenom(), true );
+      m_pcXDistortion->getChromaWeight(pcOrgPicBuffer, pcRefPicBuffer, pafWeight[iRefPic][2], rcSH.getChromaLog2WeightDenom(), false );
+
+//      printf( "\n%2.4f  %2.4f %2.4f", pafWeight[iRefPic][0],pafWeight[iRefPic][1],pafWeight[iRefPic][2]);
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal MbEncoder::getPredOffsets( SliceHeader& rcSH, ListIdx eLstIdx, 
+                                  Double(*pafOffsets)[3], IntFrame* pOrgFrame,
+                                  RefFrameList& rcRefFrameListX)
+{
+  IntYuvPicBuffer *pcOrgPicBuffer;
+  IntYuvPicBuffer *pcRefPicBuffer;
+  IntFrame* pRefFrame;
+  
+  pcOrgPicBuffer = pOrgFrame->getFullPelYuvBuffer();
+  
+  const Int iMaxRefPic    = rcSH.getNumRefIdxActive( eLstIdx );
+
+  Int iRefPic = 0;
+
+  for( Int iRefPic = 0; iRefPic < rcRefFrameListX.getActive(); iRefPic++ )
+  {
+      pRefFrame = rcRefFrameListX.getEntry(iRefPic);
+      pcRefPicBuffer = pRefFrame->getFullPelYuvBuffer();
+
+      m_pcXDistortion->getLumaOffsets(  pcOrgPicBuffer, pcRefPicBuffer, pafOffsets[iRefPic][0] );
+      m_pcXDistortion->getChromaOffsets(pcOrgPicBuffer, pcRefPicBuffer, pafOffsets[iRefPic][1], true );
+      m_pcXDistortion->getChromaOffsets(pcOrgPicBuffer, pcRefPicBuffer, pafOffsets[iRefPic][2], false );
+
+//      printf( "\nOffsets:%2.4f  %2.4f %2.4f\n", pafOffsets[iRefPic][0],pafOffsets[iRefPic][1],pafOffsets[iRefPic][2]);
+  }
+
+  return Err::m_nOK;
+}
+//TMM_WP
+
 
 
 H264AVC_NAMESPACE_END

@@ -246,6 +246,10 @@ ErrVal MotionCompensation::initSlice( const SliceHeader& rcSH )
   m_uiMbInFrameY = rcSH.getSPS().getFrameHeightInMbs();
   m_uiMbInFrameX = rcSH.getSPS().getFrameWidthInMbs();
 
+//TMM_WP
+      m_pcSampleWeighting->initSliceForWeighting(rcSH);
+//TMM_WP 
+
   RNOK( MotionVectorCalculation::initSlice( rcSH ) );
 
   return Err::m_nOK;
@@ -2290,7 +2294,6 @@ MotionCompensation::loadAdaptiveRefPredictors(YuvBufferCtrl* pcYuvFullPelBufferC
 
   return Err::m_nOK;
 }
-
 
 H264AVC_NAMESPACE_END
 

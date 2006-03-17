@@ -93,8 +93,8 @@ H264AVC_NAMESPACE_BEGIN
 
 
 SampleWeighting::SampleWeighting()
-: m_uiLumaLogWeightDenom    ( 0 )
-, m_uiChromaLogWeightDenom  ( 0 )
+: m_uiLumaLogWeightDenom    ( 5 )
+, m_uiChromaLogWeightDenom  ( 5 )
 , m_bExplicit               ( false )
 , m_bWeightedPredDisableP   ( true )
 , m_bWeightedPredDisableB   ( true )
@@ -835,6 +835,77 @@ SampleWeighting::weightInverseChromaSamples( IntYuvMbBuffer* pcDesBuffer,
   }
 }
 
+
+//TMM_WP
+ErrVal SampleWeighting::initSliceForWeighting( const SliceHeader& rcSliceHeader)
+{
+  if( rcSliceHeader.isIntra() )
+  {
+    m_bWeightedPredDisableP = true;
+    m_bWeightedPredDisableB = true;
+    m_bExplicit             = false;
+    return Err::m_nOK;
+  }
+
+  if( rcSliceHeader.isInterP() )
+  {
+    m_bExplicit             = rcSliceHeader.getPPS().getWeightedPredFlag();
+    m_bWeightedPredDisableP = ! m_bExplicit;
+    m_bWeightedPredDisableB = true;
+
+    if( m_bExplicit )
+    {
+      m_uiLumaLogWeightDenom   = rcSliceHeader.getLumaLog2WeightDenom();
+      m_uiChromaLogWeightDenom = rcSliceHeader.getChromaLog2WeightDenom();
+    }
+
+    return Err::m_nOK;
+  }
+
+
+  else if( rcSliceHeader.isInterB() )
+  {
+    switch( rcSliceHeader.getPPS().getWeightedBiPredIdc() )
+    {
+    case 0:
+      {
+        m_bExplicit               = false;
+        m_bWeightedPredDisableP   = true;
+        m_bWeightedPredDisableB   = true;
+        m_uiLumaLogWeightDenom    = 0;
+        m_uiChromaLogWeightDenom  = 0;
+      }
+      break;
+    case 1:
+      {
+        m_bExplicit               = true;
+        m_bWeightedPredDisableP   = false;
+        m_bWeightedPredDisableB   = false;
+        m_uiLumaLogWeightDenom    = rcSliceHeader.getLumaLog2WeightDenom();
+        m_uiChromaLogWeightDenom  = rcSliceHeader.getChromaLog2WeightDenom();
+      }
+      break;
+    case 2:
+      {
+        m_bExplicit               = false;
+        m_bWeightedPredDisableP   = true;
+        m_bWeightedPredDisableB   = false;
+        m_uiLumaLogWeightDenom    = 5;
+        m_uiChromaLogWeightDenom  = 5;
+      }
+      break;
+    default:
+      {
+        AOT(1);
+      }
+      break;
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+//TMM_WP
 
 H264AVC_NAMESPACE_END
 

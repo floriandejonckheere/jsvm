@@ -108,6 +108,9 @@ class FrameMng;
 class IntraPredictionSearch;
 class CodingParameter;
 
+//TMM_WP
+#define MAX_REF_FRAMES 64
+//TMM_WP
 
 
 class MbEncoder
@@ -206,6 +209,18 @@ public:
                                 UInt            uiNumMaxIter,
                                 UInt            uiIterSearchRange,
                                 Double          dLambda );
+
+//TMM_WP
+  ErrVal getPredWeights( SliceHeader& rcSH, ListIdx eLstIdx, 
+                         Double(*pafWeight)[3], IntFrame* pOrgFrame,
+                         RefFrameList& rcRefFrameListX);
+
+
+  ErrVal getPredOffsets( SliceHeader& rcSH, ListIdx eLstIdx, 
+                         Double(*pafOffsets)[3], IntFrame* pOrgFrame,
+                         RefFrameList& rcRefFrameListX);
+
+//TMM_WP
 
 protected:
 

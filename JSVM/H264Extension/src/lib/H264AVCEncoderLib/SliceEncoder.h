@@ -164,6 +164,18 @@ public:
                                         UInt          uiMbInRow,
                                         Double        dlambda );
 
+//TMM_WP
+  ErrVal xSetPredWeights( SliceHeader& rcSliceHeader, 
+                          IntFrame* pOrgFrame,
+                          RefFrameList& rcList0,
+                          RefFrameList& rcList1 );
+
+
+  ErrVal xInitDefaultWeights(Double *pdWeights, 
+                             UInt uiLumaWeightDenom, 
+                             UInt uiChromaWeightDenom);
+//TMM_WP
+
 protected:
   MbEncoder* m_pcMbEncoder;
   MbCoder* m_pcMbCoder;

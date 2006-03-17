@@ -134,6 +134,13 @@ public:
   virtual UInt    getLum16x16     ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
   virtual UInt    getLum8x8       ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
   virtual UInt    getLum4x4       ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
+//TMM_WP
+  ErrVal getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiLumaLog2WeightDenom );
+  ErrVal getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb );
+
+  ErrVal getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset );
+  ErrVal getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset, Bool bCb );
+//TMM_WP
 };
 
 

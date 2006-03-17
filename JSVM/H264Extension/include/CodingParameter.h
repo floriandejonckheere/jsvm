@@ -452,6 +452,38 @@ public:
 };
 
 
+//TMM_WP
+class H264AVCENCODERLIB_API SampleWeightingParams
+{
+  public:
+    SampleWeightingParams() : m_uiIPMode(0), m_uiBMode(0), m_uiLumaDenom(5), m_uiChromaDenom(5), m_fDiscardThr(1) { }
+        ErrVal check() const ;
+        ErrVal checkForValidChanges( const SampleWeightingParams& rcSW )const;
+
+        Bool operator == ( const SampleWeightingParams& rcSWP ) const ;
+        Bool operator != ( const SampleWeightingParams& rcSWP ) const { return !((*this) == rcSWP); }
+        ErrVal writeBinary( BinDataAccessor& rcBinDataAccessor )  const;
+        ErrVal readBinary( BinDataAccessor& rcBinDataAccessor );
+
+        UInt getIPMode()                  const { return m_uiIPMode; }
+        UInt getBMode()                   const { return m_uiBMode; }
+        UInt getLumaDenom()               const { return m_uiLumaDenom; }
+        UInt getChromaDenom()             const { return m_uiChromaDenom; }
+        Float getDiscardThr()             const { return m_fDiscardThr; }
+        Void setIPMode( UInt uiIPMode )         { m_uiIPMode      = uiIPMode; }
+        Void setBMode( UInt uiBMode )           { m_uiBMode       = uiBMode; }
+        Void setLumaDenom( UInt uiDenom )       { m_uiLumaDenom   = uiDenom; }
+        Void setChromaDenom( UInt uiDenom )     { m_uiChromaDenom = uiDenom; }
+        Void setDiscardThr( Float fDiscardThr ) { m_fDiscardThr = fDiscardThr; }
+
+  protected:
+        UInt m_uiIPMode;      // 0 off, 1 on, 2 random
+        UInt m_uiBMode;       // 0 off, 1 explicit, 2 implicit, 3 random
+        UInt m_uiLumaDenom;   // 0-7
+        UInt m_uiChromaDenom; // 0-7
+        Float m_fDiscardThr;
+};
+//TMM_WP
 
 
 
@@ -495,6 +527,10 @@ public:
     , m_uiMaxRefIdxActiveBL0              ( 0 )
     , m_uiMaxRefIdxActiveBL1              ( 0 )
     , m_uiMaxRefIdxActiveP                ( 0 )
+//TMM_WP
+      , m_uiIPMode                       (0)
+      , m_uiBMode                        (0)
+//TMM_WP
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -520,6 +556,10 @@ public:
 
   const LayerParameters&          getLayerParameters  ( UInt    n )   const   { return m_acLayerParameters[n]; }
   LayerParameters&                getLayerParameters  ( UInt    n )           { return m_acLayerParameters[n]; }
+
+//TMM_WP
+  SampleWeightingParams&           getSampleWeightingParams(UInt uiLayerId)  {return m_cSampleWeightingParams[uiLayerId];}
+//TMM_WP
   
   
   const std::string&              getInputFile            ()              const   { return m_cInputFile; }
@@ -540,6 +580,12 @@ public:
                                                                             uiLayer         = m_uiDependencyIdList [uiSimplePri];
                                                                             uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
                                                                           }
+
+//TMM_WP
+  UInt getIPMode()                  const { return m_uiIPMode; }
+  UInt getBMode()                   const { return m_uiBMode; }
+//TMM_WP
+
   UInt                            getMVCmode              ()              const   { return m_uiMVCmode; }
   UInt                            getFrameWidth           ()              const   { return m_uiFrameWidth; }
   UInt                            getFrameHeight          ()              const   { return m_uiFrameHeight; }
@@ -643,6 +689,7 @@ private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
 
+
 protected:
   std::string               m_cInputFile;
   Double                    m_dMaximumFrameRate;
@@ -696,6 +743,13 @@ protected:
   UInt                      m_uiMaxRefIdxActiveBL0;
   UInt                      m_uiMaxRefIdxActiveBL1;
   UInt                      m_uiMaxRefIdxActiveP;
+
+//TMM_WP
+  UInt m_uiIPMode;
+  UInt m_uiBMode;
+
+  SampleWeightingParams m_cSampleWeightingParams[MAX_LAYERS];
+//TMM_WP
 };
 
 #if defined( MSYS_WIN32 )

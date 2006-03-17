@@ -426,5 +426,11 @@ ErrVal ControlMngH264AVCEncoder::initMbForFiltering( MbDataAccess& rcMbDataAcces
   return Err::m_nOK;
 }
 
+//TMM_WP
+ErrVal ControlMngH264AVCEncoder::initSliceForWeighting ( const SliceHeader& rcSH)
+{
+        RNOK( m_pcSampleWeighting->initSlice( rcSH ) ); 
+}
+//TMM_WP
 
 H264AVC_NAMESPACE_END

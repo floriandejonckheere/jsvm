@@ -535,6 +535,12 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("AGSModeDecision",         &m_uiWriteGOPMode,                                     0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("AGSGOPModeFile",          &m_cGOPModeFilename,                           "ags.dat" );
   //}}Adaptive GOP structure
+
+//TMM_WP
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedPrediction",         &m_uiIPMode,                                     0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedBiprediction",       &m_uiBMode,                                      0 );  
+//TMM_WP
+
   std::string cInputFile, cReconFile;
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MVCMode",                 &m_uiMVCmode,                                          0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",               &cInputFile,                                           "in.yuv");

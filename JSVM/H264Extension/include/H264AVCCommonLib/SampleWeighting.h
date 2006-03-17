@@ -131,6 +131,11 @@ public:
   //===== for motion estimation of unidirectional predicted blocks with non-standard weights =====
   Void weightInverseLumaSamples  ( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, const PW* pcPW, Double&  rdWeight, Int iYSize, Int iXSize );
   Void weightInverseChromaSamples( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, const PW* pcPW, Double* padWeight, Int iYSize, Int iXSize );
+
+//TMM_WP
+  ErrVal initSliceForWeighting( const SliceHeader& rcSliceHeader);
+
+//TMM_WP
   
 protected:
   Void xMixB      ( Pel*  pucDest, Int iDestStride, Pel*  pucSrc, Int iSrcStride, Int iSizeY, Int iSizeX );

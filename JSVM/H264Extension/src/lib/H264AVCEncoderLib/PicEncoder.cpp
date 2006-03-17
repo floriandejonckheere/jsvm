@@ -440,8 +440,13 @@ PicEncoder::xInitPPS()
   m_pcPPS->setNumSliceGroupsMinus1                  ( 0 );
 
   //===== prediction weights =====
-  m_pcPPS->setWeightedPredFlag                      ( WEIGHTED_PRED_FLAG );
-  m_pcPPS->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
+//  m_pcPPS->setWeightedPredFlag                      ( WEIGHTED_PRED_FLAG );
+//  m_pcPPS->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
+
+//TMM_WP
+    m_pcPPS->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode());
+    m_pcPPS->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());  
+//TMM_WP
 
   return Err::m_nOK;
 }
@@ -590,8 +595,10 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
     rpcSliceHeader->getRplrBuffer( LIST_1 ).copy( *(StatBuf<Rplr,32>*)rcFrameSpec.getRplrBuf( LIST_1 ) );
   }
 
+#if 0
   //===== initialize prediction weights =====
   RNOK( xInitPredWeights( *rpcSliceHeader ) );
+#endif 
 
   //===== flexible macroblock ordering =====
   rpcSliceHeader->setSliceGroupChangeCycle( 1 );
@@ -698,6 +705,20 @@ PicEncoder::xEncodePicture( ExtBinDataAccessorList& rcExtBinDataAccessorList,
   //===== start picture =====
   RefFrameList  cList0, cList1;
   RNOK( xStartPicture( rcRecPicBufUnit, rcSliceHeader, cList0, cList1 ) );
+
+//TMM_WP
+  if(rcSliceHeader.getSliceType() == P_SLICE)
+      m_pcSliceEncoder->xSetPredWeights( rcSliceHeader, 
+                                         rcRecPicBufUnit.getRecFrame(),
+                                         cList0,
+                                         cList1);
+  else if(rcSliceHeader.getSliceType() == B_SLICE)
+      m_pcSliceEncoder->xSetPredWeights( rcSliceHeader, 
+                                         rcRecPicBufUnit.getRecFrame(),
+                                         cList0,
+                                         cList1);
+      
+//TMM_WP
 
   //===== encoding of slice groups =====
   for( Int iSliceGroupID = 0; ! rcSliceHeader.getFMO()->SliceGroupCompletelyCoded( iSliceGroupID ); iSliceGroupID++ )

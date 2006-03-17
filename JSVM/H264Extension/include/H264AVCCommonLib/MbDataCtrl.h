@@ -161,6 +161,9 @@ public:
   ErrVal        storeFgsBQLayerQpAndCbp   ();
   ErrVal        switchFgsBQLayerQpAndCbp  ();
 
+//TMM_WP
+  SliceHeader*  getSliceHeader      ()  { return  m_pcSliceHeader;      }
+//TMM_WP
 
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }

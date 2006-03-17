@@ -202,6 +202,11 @@ public:
 
   DFunc getDistortionFunction() { return m_cParams.getSubPelDFunc(); }
 
+//TMM_WP
+  Void setLstIdx( ListIdx eLstIdx) {m_eLstIdx = eLstIdx;}
+  ListIdx getLstIdx() {return m_eLstIdx;}
+//TMM_WP
+
 protected:
 
   Void          xTZSearch             ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange = 0 );
@@ -215,6 +220,10 @@ protected:
   Void          xPelLogSearch   ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bFme,  UInt uiStep = 4, UInt uiSearchRange = 0 );
   virtual Void  xSubPelSearch   ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode,     Bool bQPelOnly ) = 0;
 
+//TMM_WP
+   Int getDistScaleFactor(Int iCurrPoc, Int iL0Poc, Int iL1Poc ) const;
+//TMM_WP
+
 protected:
   QuarterPelFilter* m_pcQuarterPelFilter;
   MotionVectorSearchParams m_cParams;
@@ -226,6 +235,10 @@ protected:
 
   XDistortion*      m_pcXDistortion;
   XDistSearchStruct m_cXDSS;
+
+//TMM_WP
+  ListIdx m_eLstIdx;
+//TMM_WP
 };
 
 

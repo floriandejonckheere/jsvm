@@ -180,6 +180,10 @@ public:
   UvlcReader*  getUvlcReader()  { return m_pcUvlcReader;  };
   CabacReader* getCabacReader() { return m_pcCabacReader; };
 
+//TMM_WP
+  ErrVal initSliceForWeighting   ( const SliceHeader& rcSH ) {  RNOK( m_pcSampleWeighting->initSlice( rcSH ) );}
+//TMM_WP
+
 protected:
   ErrVal xInitESS             ( SliceHeader* pcSliceHeader );
 

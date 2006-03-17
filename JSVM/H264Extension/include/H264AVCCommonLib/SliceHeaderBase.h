@@ -462,6 +462,18 @@ public:
       return Err::m_nOK;
     }
 
+//TMM_WP
+    ErrVal initOffsets( Int iLumaOffset, Int iChromaCbOffset, Int iChromaCrOffset )
+    {
+        m_iLumaOffset = iLumaOffset;
+        m_aiChromaOffset[0] = iChromaCbOffset;
+        m_aiChromaOffset[1] = iChromaCrOffset;
+        return Err::m_nOK;
+    }
+
+    ErrVal setOffsets(  const Double *pafOffsets );
+    ErrVal getOffsets( Double *afOffset);
+//TMM_WP
     Bool  getLumaWeightFlag()                                  const { return m_bLumaWeightFlag; }
     Bool  getChromaWeightFlag()                                const { return m_bChromaWeightFlag; }
     Int   getLumaWeight()                                      const { return m_iLumaWeight; }
@@ -475,6 +487,14 @@ public:
     Void  setLumaOffset( Int iLumaOffset )                           { m_iLumaOffset = iLumaOffset; }
     Void  setChromaWeight( UInt uiChromaPlane, Int iChromaWeight )   { m_aiChromaWeight[uiChromaPlane] = iChromaWeight; }
     Void  setChromaOffset( UInt uiChromaPlane, Int iChromaOffset )   { m_aiChromaOffset[uiChromaPlane] = iChromaOffset; }
+
+//TMM_WP
+    ErrVal getPredWeights( Double *afWeight);
+    ErrVal setPredWeightsAndFlags( const Int iLumaScale, 
+                                   const Int iChromaScale, 
+                                   const Double *pfWeight, 
+                                   Double fDiscardThr );
+//TMM_WP
 
     ErrVal write( HeaderSymbolWriteIf*  pcWriteIf ) const;
     ErrVal read ( HeaderSymbolReadIf*   pcReadIf  );
@@ -526,6 +546,14 @@ public:
     ErrVal write( HeaderSymbolWriteIf*  pcWriteIf,  UInt uiNumber ) const;
     ErrVal read ( HeaderSymbolReadIf*   pcReadIf,   UInt uiNumber );
 
+//TMM_WP
+    ErrVal setPredWeightsAndFlags( const Int iLumaScale, 
+                                   const Int iChromaScale, 
+                                   const Double(*pafWeight)[3], 
+                                   Double fDiscardThr );
+
+    ErrVal setOffsets(  const Double(*pafOffsets)[3] );
+//TMM_WP
     ErrVal copy ( const PredWeightTable& rcPredWeightTable );
   };
 
@@ -615,6 +643,12 @@ public:
                                                           UInt   ui)  const { return m_acPredWeightTable[e].get(ui-1); }
   PredWeight&                       getPredWeight        (ListIdx e,
                                                           UInt   ui)        { return m_acPredWeightTable[e].get(ui-1); }
+
+//TMM_WP
+  ErrVal copyWeightedPred(PredWeightTable& pcPredWeightTable, UInt uiLumaLogWeightDenom,
+                          UInt uiChromaWeightDenom, ListIdx eListIdx, Bool bDecoder);
+//TMM_WP
+
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
   Bool                              getKeyPictureFlag             ()  const { return m_bKeyPictureFlag; }
   UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
@@ -760,6 +794,7 @@ protected:
   UInt                        m_uiLumaLog2WeightDenom;
   UInt                        m_uiChromaLog2WeightDenom;
   PredWeightTable             m_acPredWeightTable[2];
+
   Bool                        m_bDirectSpatialMvPredFlag;
 
   Bool                        m_bKeyPictureFlag;

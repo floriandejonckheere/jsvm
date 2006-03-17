@@ -178,9 +178,18 @@ SliceHeaderBase::PredWeightTable::initDefaults( UInt uiLumaWeightDenom, UInt uiC
   const Int iLumaWeight   = 1 << uiLumaWeightDenom;
   const Int iChromaWeight = 1 << uiChromaWeightDenom;
 
+//TMM_WP
+  const Int iLumaOffset = 0;
+  const Int iChromaOffset = 0;
+//TMM_WP
+
   for( UInt ui = 0; ui < size(); ui++ )
   {
     RNOK( get( ui ).init( iLumaWeight, iChromaWeight, iChromaWeight ) );
+
+//TMM_WP
+    RNOK( get( ui ).initOffsets( iLumaOffset, iChromaOffset, iChromaOffset ) );
+//TMM_WP
   }
   return Err::m_nOK;
 }
@@ -250,8 +259,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiPicOrderCntLsb                  ( 0 )
 , m_iDeltaPicOrderCntBottom           ( 0 )
 , m_bBasePredWeightTableFlag          ( false )
-, m_uiLumaLog2WeightDenom             ( 0 )
-, m_uiChromaLog2WeightDenom           ( 0 )
+, m_uiLumaLog2WeightDenom             ( 5 )
+, m_uiChromaLog2WeightDenom           ( 5 )
 , m_bDirectSpatialMvPredFlag          ( true )
 , m_bKeyPictureFlag                   ( false )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
@@ -432,7 +441,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
         ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
     {
-      if( m_uiBaseLayerId != MSYS_UINT_MAX )
+      if( m_bAdaptivePredictionFlag ) 
       {
         RNOK( pcWriteIf->writeFlag( m_bBasePredWeightTableFlag,                "PWT: base_pred_weight_table_flag" ) );
       }
@@ -766,10 +775,18 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
         ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
     {
-      if( m_uiBaseLayerId != MSYS_UINT_MAX )
+      if( m_bAdaptivePredictionFlag)//m_uiBaseLayerId != MSYS_UINT_MAX )
       {
         RNOK( pcReadIf->getFlag( m_bBasePredWeightTableFlag,                "PWT: base_pred_weight_table_flag" ) );
       }
+      else
+      {
+          if(m_uiBaseLayerId != MSYS_UINT_MAX)
+              m_bBasePredWeightTableFlag = true;
+          else
+              m_bBasePredWeightTableFlag = false;
+      }
+
       if( ! m_bBasePredWeightTableFlag )
       {
         RNOK( pcReadIf->getUvlc( m_uiLumaLog2WeightDenom,                   "PWT: luma_log_weight_denom" ) );
@@ -1084,6 +1101,120 @@ Int SliceHeaderBase::getNumMbInSlice()
 	Int SliceID =m_pcFMO->getSliceGroupId(getFirstMbInSlice());
 	return m_pcFMO->getNumMbInSliceGroup(SliceID);
 }
+
+
+
+//TMM_WP
+ErrVal SliceHeaderBase::PredWeight::setPredWeightsAndFlags( const Int iLumaScale, 
+                                                            const Int iChromaScale, 
+                                                            const Double *pfWeight, 
+                                                            Double fDiscardThr )
+{
+  const Double *pW = pfWeight;
+  const Int iLScale = iLumaScale;
+  const Int iCScale = iChromaScale;
+  const Double fMin = fDiscardThr;
+  const Double fMax = 1/fDiscardThr;
+
+//  const Int iLumW = max(min(((fMin<pW[0])&&(fMax>pW[0])) ? iLScale : (Int)(0.5 + pW[0] * iLScale), 127),-128);
+//  const Int iCbW  = max(min(((fMin<pW[1])&&(fMax>pW[1])) ? iCScale : (Int)(0.5 + pW[1] * iCScale), 127),-128);
+//  const Int iCrW  = max(min(((fMin<pW[2])&&(fMax>pW[2])) ? iCScale : (Int)(0.5 + pW[2] * iCScale), 127),-128);
+
+  const Int iLumW = (Int)pW[0];
+  const Int iCbW = (Int)pW[1];
+  const Int iCrW = (Int)pW[2];
+
+  RNOK( init( iLumW, iCbW, iCrW ) );
+
+  setLumaWeightFlag  ( (iLumW != iLScale) );
+  setChromaWeightFlag( (iCbW != iCScale) || (iCrW != iCScale) );
+
+  return Err::m_nOK;
+}
+
+ErrVal SliceHeaderBase::PredWeight::getPredWeights( Double *afWeight)
+{    
+    afWeight[0] = (Double) getLumaWeight();
+    afWeight[1] = (Double) getChromaWeight(0);
+    afWeight[2] = (Double) getChromaWeight(1);
+    
+    return Err::m_nOK;
+}
+
+ErrVal SliceHeaderBase::PredWeightTable::setPredWeightsAndFlags( const Int iLumaScale, const Int iChromaScale, const Double(*pafWeight)[3], Double fDiscardThr )
+{
+  ROT( 0 == size() );
+
+  for( UInt n = 0; n < size(); n++ )
+  {
+    RNOK( get(n).setPredWeightsAndFlags( iLumaScale, iChromaScale, pafWeight[n], fDiscardThr ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal SliceHeaderBase::copyWeightedPred(PredWeightTable& pcPredWeightTable, UInt uiLumaLogWeightDenom,
+                                         UInt uiChromaWeightDenom, ListIdx eListIdx, Bool bDecoder)
+{
+    m_uiLumaLog2WeightDenom = uiLumaLogWeightDenom;
+    m_uiChromaLog2WeightDenom = uiChromaWeightDenom;
+    Int iLumaScale = 1 << uiLumaLogWeightDenom;
+    Int iChromaScale = 1 << uiChromaWeightDenom;
+    Double afWeights[3];
+    Double afOffsets[3];
+
+    if(!bDecoder)
+    {
+        RNOK( getPredWeightTable(eListIdx).uninit() );
+        RNOK( getPredWeightTable(eListIdx).init( getNumRefIdxActive( eListIdx) ) );
+    }
+        
+    for( UInt n = 0; n < pcPredWeightTable.size(); n++ )
+    {
+        RNOK( pcPredWeightTable.get(n).getPredWeights( afWeights) );
+        m_acPredWeightTable[eListIdx].get(n).setPredWeightsAndFlags( iLumaScale, iChromaScale, afWeights, false );
+
+        /* Disable this for now since offsets are not supported for SVC. Enabling this will result in mismatch*/ 
+//        RNOK( pcPredWeightTable.get(n).getOffsets( afOffsets) );
+//        m_acPredWeightTable[eListIdx].get(n).setOffsets(afOffsets);
+    }
+
+    return Err::m_nOK;
+}
+
+ErrVal SliceHeaderBase::PredWeight::setOffsets( const Double *pfOffsets)
+{
+  const Double *pW = pfOffsets;
+
+  const Int iLumO = (Int)pW[0];
+  const Int iCbO = (Int)pW[1];
+  const Int iCrO = (Int)pW[2];
+
+  setLumaWeightFlag  ( (iLumO != 0) );
+  setChromaWeightFlag( (iCbO != 0) || (iCrO != 0) );
+
+  RNOK( initOffsets( iLumO, iCbO, iCrO ) );
+}
+
+ErrVal SliceHeaderBase::PredWeight::getOffsets( Double *afOffset)
+{    
+    afOffset[0] = (Double) getLumaOffset();
+    afOffset[1] = (Double) getChromaOffset(0);
+    afOffset[2] = (Double) getChromaOffset(1);
+    
+    return Err::m_nOK;
+}
+
+ErrVal SliceHeaderBase::PredWeightTable::setOffsets(  const Double(*pafOffsets)[3] )
+{
+  ROT( 0 == size() );
+
+  for( UInt n = 0; n < size(); n++ )
+  {
+    RNOK( get(n).setOffsets( pafOffsets[n] ) );
+  }
+  return Err::m_nOK;
+}
+//TMM_WP
 
 H264AVC_NAMESPACE_END
 

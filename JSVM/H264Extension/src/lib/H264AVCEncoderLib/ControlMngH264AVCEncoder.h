@@ -188,6 +188,11 @@ public:
 
   UvlcWriter*  getUvlcWriter()  { return m_pcUvlcWriter;  };
   CabacWriter* getCabacWriter() { return m_pcCabacWriter; };
+
+//TMM_WP
+  ErrVal initSliceForWeighting ( const SliceHeader& rcSH);
+//TMM_WP
+
 protected:
   FrameMng*               m_pcFrameMng;
   MCTFEncoder*            m_apcMCTFEncoder          [MAX_LAYERS];

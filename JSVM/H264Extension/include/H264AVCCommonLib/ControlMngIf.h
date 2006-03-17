@@ -134,6 +134,10 @@ public:
                                         UInt                        uiMbIndex )         = 0;
   virtual ErrVal initMbForFiltering   ( MbDataAccess&               rcMbDataAccess,
                                         UInt                        uiMbIndex )         = 0;
+
+//TMM_WP
+  virtual ErrVal initSliceForWeighting   ( const SliceHeader&          rcSH )           = 0;
+//TMM_WP
 };
 
 

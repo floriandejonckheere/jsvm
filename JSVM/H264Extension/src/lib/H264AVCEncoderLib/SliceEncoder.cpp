@@ -523,6 +523,96 @@ SliceEncoder::encodeSlice( SliceHeader&  rcSliceHeader,
   return Err::m_nOK;
 }
 
+//TMM_WP
+ErrVal SliceEncoder::xInitDefaultWeights(Double *pdWeights, UInt uiLumaWeightDenom, 
+                                         UInt uiChromaWeightDenom)
+{
+    const Int iLumaWeight = 1 << uiLumaWeightDenom;
+    const Int iChromaWeight = 1 << uiChromaWeightDenom;
+    
+    pdWeights[0] = iLumaWeight;
+    pdWeights[1] = pdWeights[2] = iChromaWeight;
+
+    return Err::m_nOK;
+}
+
+
+ErrVal SliceEncoder::xSetPredWeights( SliceHeader& rcSH, 
+                                      IntFrame* pOrgFrame,
+                                      RefFrameList& rcRefFrameList0,
+                                      RefFrameList& rcRefFrameList1)
+    
+{
+  RNOK( rcSH.getPredWeightTable(LIST_0).uninit() );
+  RNOK( rcSH.getPredWeightTable(LIST_1).uninit() );
+  RNOK( rcSH.getPredWeightTable(LIST_0).init( rcSH.getNumRefIdxActive( LIST_0) ) );
+  RNOK( rcSH.getPredWeightTable(LIST_1).init( rcSH.getNumRefIdxActive( LIST_1) ) );
+
+  ROTRS( rcSH.isIntra(), Err::m_nOK );
+
+  const SampleWeightingParams& rcSWP = m_pcCodingParameter->getSampleWeightingParams(rcSH.getLayerId());
+
+  { // determine denoms
+    const UInt uiLumaDenom = rcSWP.getLumaDenom();
+    rcSH.setLumaLog2WeightDenom  ( ( uiLumaDenom == MSYS_UINT_MAX ) ? gIntRandom(0,7) : uiLumaDenom );
+
+    const UInt uiChromaDenom = rcSWP.getChromaDenom();
+    rcSH.setChromaLog2WeightDenom( ( uiChromaDenom == MSYS_UINT_MAX ) ? gIntRandom(0,7) : uiChromaDenom );
+  }
+
+  const Int iChromaScale = 1<<rcSH.getChromaLog2WeightDenom();
+  const Int iLumaScale   = 1<<rcSH.getLumaLog2WeightDenom();
+
+   m_pcControlMng->initSliceForWeighting(rcSH);
+
+  if( rcSH.isInterB() )
+  {
+      ROTRS( 1 != rcSH.getPPS().getWeightedBiPredIdc(), Err::m_nOK );
+  }
+  else
+  {
+    ROTRS( ! rcSH.getPPS().getWeightedPredFlag(), Err::m_nOK );
+  }
+
+  if( rcSH.isInterB() )
+  {
+      RNOK( rcSH.getPredWeightTable(LIST_1).initDefaults( rcSH.getLumaLog2WeightDenom(), rcSH.getChromaLog2WeightDenom() ) );
+  }
+  RNOK( rcSH.getPredWeightTable(LIST_0).initDefaults( rcSH.getLumaLog2WeightDenom(), rcSH.getChromaLog2WeightDenom() ) );
+
+  Double afFwWeight[MAX_REF_FRAMES][3];
+  Double afBwWeight[MAX_REF_FRAMES][3];
+
+  Double afFwOffsets[MAX_REF_FRAMES][3];
+  Double afBwOffsets[MAX_REF_FRAMES][3];
+
+  Double fDiscardThr = m_pcCodingParameter->getSampleWeightingParams(rcSH.getLayerId()).getDiscardThr();
+
+  /* init arrays with default weights */
+  for (UInt x = 0; x < MAX_REF_FRAMES; x++)
+  {
+      xInitDefaultWeights(afFwWeight[x], rcSH.getLumaLog2WeightDenom(), rcSH.getChromaLog2WeightDenom());
+      xInitDefaultWeights(afBwWeight[x], rcSH.getLumaLog2WeightDenom(), rcSH.getChromaLog2WeightDenom());
+
+      afFwOffsets[x][0] = afFwOffsets[x][1] = afFwOffsets[x][2] = 0;
+      afBwOffsets[x][0] = afBwOffsets[x][1] = afBwOffsets[x][2] = 0;
+  }
+  
+  if( rcSH.isInterB() )
+  {
+      RNOK( m_pcMbEncoder->getPredWeights( rcSH, LIST_1, afBwWeight, 
+                                           pOrgFrame, rcRefFrameList1 ) );      
+      RNOK( rcSH.getPredWeightTable( LIST_1).setPredWeightsAndFlags( iLumaScale, iChromaScale, 
+                                                                     afBwWeight, fDiscardThr ) );
+  }
+
+  RNOK( m_pcMbEncoder->getPredWeights( rcSH, LIST_0, afFwWeight, pOrgFrame, rcRefFrameList0 ) );
+  RNOK( rcSH.getPredWeightTable( LIST_0).setPredWeightsAndFlags( iLumaScale, iChromaScale, 
+                                                                 afFwWeight, fDiscardThr ) );  
+
+  return Err::m_nOK;
+}
+//TMM_WP
 
 
 H264AVC_NAMESPACE_END

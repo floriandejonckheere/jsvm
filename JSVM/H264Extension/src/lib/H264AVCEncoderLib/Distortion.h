@@ -153,6 +153,16 @@ public:
     DO_DBG( rDistSearchStruct.iCStride = 0    );
   }
 
+//TMM_WP
+  ErrVal getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiLumaLog2WeightDenom );
+  ErrVal getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb );
+  ErrVal getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, 
+                         IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset );
+  ErrVal getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, 
+                           IntYuvPicBuffer* pcRefPicBuffer, 
+                           Double& rfOffset, Bool bCb );
+//TMM_WP
+
 private:
   static UInt xGetSAD16x          ( XDistSearchStruct* pcDSS );
   static UInt xGetSAD8x           ( XDistSearchStruct* pcDSS );
@@ -188,6 +198,12 @@ private:
 
   static UInt xCalcHadamard4x4    ( XPel *pucOrg, XPel *pPel,                Int iStride );
   static UInt xCalcBiHadamard4x4  ( XPel *pucOrg, XPel *pPelFix, XPel *pPel, Int iStride );
+
+//TMM_WP
+  Void xGetWeight(XPel *pucRef, XPel *pucOrg, const UInt uiStride,
+                  const UInt uiHeight, const UInt uiWidth, 
+                  Double &dDCOrg, Double &dDCRef);
+//TMM_WP
 
 protected:
   IntYuvMbBuffer  m_cOrgData;
