@@ -117,7 +117,7 @@ __inline
 Int gIntRandom(const Int iMin, const Int iMax)
 {
     Double fRange = (Double)(iMax - iMin + 1);
-    Int iValue = (Int)(fRange*rand()/(RAND_MAX+1.0)+.5);
+    Int iValue = (Int)(fRange*rand()/(RAND_MAX+1.0));
 
     AOT_DBG( (iValue + iMin)> iMax );
     return iValue + iMin;

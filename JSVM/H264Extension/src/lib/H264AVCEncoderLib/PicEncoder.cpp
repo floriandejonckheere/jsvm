@@ -444,7 +444,7 @@ PicEncoder::xInitPPS()
 //  m_pcPPS->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
 
 //TMM_WP
-    m_pcPPS->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode());
+    m_pcPPS->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode()!=0);
     m_pcPPS->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());  
 //TMM_WP
 

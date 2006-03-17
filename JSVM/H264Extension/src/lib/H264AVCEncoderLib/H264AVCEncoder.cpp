@@ -1296,7 +1296,7 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setWeightedPredFlag                      ( WEIGHTED_PRED_FLAG );
     pcPPSHP->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
 //TMM_WP
-    pcPPSHP->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode());
+    pcPPSHP->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode()!=0);
     pcPPSHP->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());  
 //TMM_WP
 

@@ -181,7 +181,7 @@ public:
   CabacReader* getCabacReader() { return m_pcCabacReader; };
 
 //TMM_WP
-  ErrVal initSliceForWeighting   ( const SliceHeader& rcSH ) {  RNOK( m_pcSampleWeighting->initSlice( rcSH ) );}
+  ErrVal initSliceForWeighting   ( const SliceHeader& rcSH ) {  return m_pcSampleWeighting->initSlice( rcSH ); }
 //TMM_WP
 
 protected:

@@ -1160,7 +1160,8 @@ ErrVal SliceHeaderBase::copyWeightedPred(PredWeightTable& pcPredWeightTable, UIn
     Int iLumaScale = 1 << uiLumaLogWeightDenom;
     Int iChromaScale = 1 << uiChromaWeightDenom;
     Double afWeights[3];
-    Double afOffsets[3];
+    /* Disable this for now since offsets are not supported for SVC. Enabling this will result in mismatch*/ 
+    //Double afOffsets[3];
 
     if(!bDecoder)
     {
@@ -1193,6 +1194,8 @@ ErrVal SliceHeaderBase::PredWeight::setOffsets( const Double *pfOffsets)
   setChromaWeightFlag( (iCbO != 0) || (iCrO != 0) );
 
   RNOK( initOffsets( iLumO, iCbO, iCrO ) );
+
+  return Err::m_nOK;
 }
 
 ErrVal SliceHeaderBase::PredWeight::getOffsets( Double *afOffset)

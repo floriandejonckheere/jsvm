@@ -1,3 +1,23 @@
+
+
+JSVM_4_3 -> JSVM_4_4
+====================
+
+Weighted prediction (encoder algorithm)
+
+Change log:
+Date: March 17, 2006
+Author: Purvin Pandit (Thomson)
+Contribution: JVT-P064
+
+Changes:
+
+1) Added weighted prediction algorithm for encoder (scale and offset)
+2) Weights for the Enhancement layer are always inherited if the corresponding base layer picture exists otherwise they are calculated
+3) Only scales are used in wp. Offsets are never used although code has been provided.
+
+
+
 JSVM_4_2 -> JSVM_4_3
 ====================
 
