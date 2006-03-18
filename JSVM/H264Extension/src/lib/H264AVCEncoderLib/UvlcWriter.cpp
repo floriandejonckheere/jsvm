@@ -2539,6 +2539,39 @@ UvlcWriter::RQencodeVlcTableMap( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV )
 }
 
 ErrVal
+UvlcWriter::RQupdateVlcTable()
+{
+  if ( m_pBitGrpRef->UpdateVlc() ) {
+    m_pBitGrpSgn->UpdateVlc();
+  }
+  return Err::m_nOK;
+}
+
+Bool
+UcBitGrpWriter::UpdateVlc()
+{
+
+  UInt uiFlag = m_uiCodedFlag;
+
+  if (uiFlag) {
+    // updating
+    m_uiFlip  = ( m_auiSymCount[0] < m_auiSymCount[1] ) ? 1 : 0;
+    m_uiTable = (m_auiSymCount[m_uiFlip] < 2*m_auiSymCount[1-m_uiFlip]) ? 0
+                  : ((7*m_auiSymCount[1-m_uiFlip]<=m_auiSymCount[m_uiFlip]) ? 2 : 1);
+
+    // scaling
+    if ( m_auiSymCount[0] + m_auiSymCount[1] > m_uiScaleLimit )
+    {
+      m_auiSymCount[0] >>= m_uiScaleFac;
+      m_auiSymCount[1] >>= m_uiScaleFac;
+    }
+    m_uiCodedFlag = false;
+  }
+
+  return (uiFlag != 0);
+}
+
+ErrVal
 UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
 {
   UInt uiRun   = 0;
@@ -2605,6 +2638,7 @@ UcBitGrpWriter::Init()
   m_uiLen          = 0;
   m_uiFlip         = 0;
   m_uiTable        = m_uiInitTable;
+  m_uiCodedFlag    = false;
 
   return Err::m_nOK;
 }
@@ -2615,13 +2649,13 @@ UcBitGrpWriter::Write( UChar ucBit )
   AOF((ucBit & 0xfe) == 0);
 
   m_auiSymCount[ucBit]++;
+  m_uiCodedFlag = true;
 
   if ( m_uiTable == 0 )
   {
     RNOK( m_pParent->writeFlag( ( ucBit ^ m_uiFlip ) != 0 , "" ) );
     m_uiCode = 0;
     m_uiLen  = 0;
-    RNOK( xUpdate() );
   } else {
     m_uiCode <<= 1;
     m_uiCode += ucBit;
@@ -2636,7 +2670,6 @@ UcBitGrpWriter::Write( UChar ucBit )
       RNOK( m_pParent->writeCode( g_auiISymCode[m_uiTable][m_uiCode], g_auiISymLen[m_uiTable][m_uiCode], "" ) );
       m_uiCode   = 0;
       m_uiLen    = 0;
-      RNOK( xUpdate() );
     }
   }
 
@@ -2660,29 +2693,8 @@ UcBitGrpWriter::Flush()
     RNOK( m_pParent->writeCode( g_auiISymCode[1][m_uiCode], g_auiISymLen[1][m_uiCode], "" ) );
   }
 
-  RNOK( xUpdate() );
-
   m_uiCode = 0;
   m_uiLen  = 0;
-  return Err::m_nOK;
-}
-
-ErrVal
-UcBitGrpWriter::xUpdate()
-{
-  if (m_auiSymCount[0] + m_auiSymCount[1] > m_uiStabPeriod)
-  {
-    m_uiFlip  = ( m_auiSymCount[0] < m_auiSymCount[1] ) ? 1 : 0;
-    m_uiTable = (m_auiSymCount[m_uiFlip] < 2*m_auiSymCount[1-m_uiFlip]) ? 0
-                  : ((7*m_auiSymCount[1-m_uiFlip]<=m_auiSymCount[m_uiFlip]) ? 2 : 1);
-  }
-
-  if ( m_auiSymCount[0] + m_auiSymCount[1] > m_uiScaleLimit )
-  {
-    m_auiSymCount[0] >>= m_uiScaleFac;
-    m_auiSymCount[1] >>= m_uiScaleFac;
-  }
-
   return Err::m_nOK;
 }
 

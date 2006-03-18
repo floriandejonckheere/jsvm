@@ -1425,6 +1425,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
               } // if
             }
             m_uiFGSPart = 0;
+            RNOK( m_pcSymbolWriter->RQupdateVlcTable() );
           } // macroblock iteration
           m_uiMbXIdx = 0;
         }
@@ -1579,6 +1580,7 @@ RQFGSEncoder::xEncodingSubbandFGS(  Bool& rbFinished,
               } // if
             } // for
           } // if
+          RNOK( m_pcSymbolWriter->RQupdateVlcTable() );
         } // macroblock iteration
 
         iLumaScanIdx++;
@@ -1663,6 +1665,7 @@ RQFGSEncoder::xEncodingSubbandFGS(  Bool& rbFinished,
               }
             } // for
           } // if
+          RNOK( m_pcSymbolWriter->RQupdateVlcTable() );
         } // macroblock iteration
 
         iLumaScanIdx++;

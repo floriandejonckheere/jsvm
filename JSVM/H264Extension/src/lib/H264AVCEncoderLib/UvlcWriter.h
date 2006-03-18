@@ -282,6 +282,7 @@ public:
   ErrVal RQencodeEobOffsets_Luma ( UInt* auiSeq );
   ErrVal RQencodeEobOffsets_Chroma( UInt* auiSeq );
   ErrVal RQencodeVlcTableMap( UInt* auiTable, UInt uiMaxH, UInt uiMaxV );
+  ErrVal RQupdateVlcTable         ();
   static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
 private:
   __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );
@@ -310,9 +311,9 @@ public:
   ErrVal Init();
   ErrVal Flush();
   ErrVal Write( UChar ucBit );
+  Bool   UpdateVlc();
 
 protected:
-  ErrVal xUpdate();
   UInt m_auiSymCount[2];
   UInt m_uiScaleFac;
   UInt m_uiScaleLimit;
@@ -324,6 +325,7 @@ protected:
   UInt m_uiTable;
   UInt m_uiFlip;
   UInt m_uiStabPeriod;
+  UInt m_uiCodedFlag;
   UvlcWriter* m_pParent;
 };
 

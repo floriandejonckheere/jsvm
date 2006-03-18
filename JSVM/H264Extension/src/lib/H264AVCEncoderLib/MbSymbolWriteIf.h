@@ -216,6 +216,7 @@ public:
   virtual ErrVal RQencodeEobOffsets_Luma   ( UInt* pauiSeq ) = 0;
   virtual ErrVal RQencodeEobOffsets_Chroma ( UInt* pauiSeq ) = 0;
   virtual ErrVal RQencodeVlcTableMap       ( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV ) = 0;
+  virtual ErrVal  RQupdateVlcTable         () = 0;
 };
 
 

@@ -257,6 +257,7 @@ public:
   ErrVal  RQdecodeEobOffsets_Chroma();
   ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
                                      UInt            uiMaxV );
+  ErrVal  RQupdateVlcTable         ();
   Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
 private:
   ErrVal xGetFlag     ( UInt& ruiCode );
@@ -321,10 +322,10 @@ public:
                   UInt uiStabPerdiod = 8 );
   ErrVal Init();
   ErrVal Read( UChar& ucBit, UInt uiMaxSym );
+  Bool   UpdateVlc();
 
 protected:
   ErrVal xFetchSymbol( UInt uiMaxSym );
-  ErrVal xUpdate();
   UInt m_auiSymCount[2];
   UInt m_uiScaleFac;
   UInt m_uiScaleLimit;
@@ -336,6 +337,7 @@ protected:
   UInt m_uiTable;
   UInt m_uiFlip;
   UInt m_uiStabPeriod;
+  UInt m_uiCodedFlag;
   UvlcReader* m_pParent;
 };
 H264AVC_NAMESPACE_END

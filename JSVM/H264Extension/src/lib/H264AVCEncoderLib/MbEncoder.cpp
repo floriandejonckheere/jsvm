@@ -7160,7 +7160,7 @@ ErrVal MbEncoder::getPredWeights( SliceHeader& rcSH, ListIdx eLstIdx,
 
   Int iRefPic = 0;
     
-  for( Int iRefPic = 0; iRefPic < (Int)rcRefFrameListX.getActive(); iRefPic++ )
+  for( iRefPic = 0; iRefPic < (Int)rcRefFrameListX.getActive(); iRefPic++ )
   {
       pRefFrame = rcRefFrameListX.getEntry(iRefPic);
       pcRefPicBuffer = pRefFrame->getFullPelYuvBuffer();
@@ -7189,7 +7189,7 @@ ErrVal MbEncoder::getPredOffsets( SliceHeader& rcSH, ListIdx eLstIdx,
 
   Int iRefPic = 0;
 
-  for( Int iRefPic = 0; iRefPic < (Int)rcRefFrameListX.getActive(); iRefPic++ )
+  for( iRefPic = 0; iRefPic < (Int)rcRefFrameListX.getActive(); iRefPic++ )
   {
       pRefFrame = rcRefFrameListX.getEntry(iRefPic);
       pcRefPicBuffer = pRefFrame->getFullPelYuvBuffer();

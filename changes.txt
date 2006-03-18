@@ -1,5 +1,40 @@
 
 
+JSVM_4_4 -> JSVM_4_5
+====================
+
+Simplified VLC update integration
+
+date: march 19, 2006
+author: Masato Shima (TI)
+contribution: JVT-R021
+
+changes:
+
+1) Addition of VLC updating function at the end of macroblock iteration
+  * FGSSubbandDecoder.cpp: placing function calls of "m_pcSymbolReader->RQupdateVlcTable()"
+  * UvlcReader.cpp       : adding definition of "UvlcReader::RQupdateVlcTable()"
+  * FGSSubbandEncoder.cpp: placing function calls of "m_pcSymbolWriter->RQupdateVlcTable()"
+  * UvlcWriter.cpp       : adding definition of "UvlcWriter::RQupdateVlcTable()"
+
+  * Minor changes (function declaration or so) in the following files
+    - CabacReader.h
+    - MbSymbolReadIf.h
+    - UvlcReader.h
+    - CabacWriter.h
+    - MbSymbolWriteIf.h
+    - UvlcWriter.h
+
+2) Removal of old VLC updating function
+  * UvlcReader.cpp: removal of "UcBitGrpReader::xUpdate()"
+  * UvlcWriter.cpp: removal of "UcBitGrpWriter::xUpdate()"
+
+3) Minor modification to build with VC6.0
+  * MbEncoder.cpp
+  * FGSSubbandDecoder.cpp
+
+
+
 JSVM_4_3 -> JSVM_4_4
 ====================
 

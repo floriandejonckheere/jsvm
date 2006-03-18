@@ -181,6 +181,7 @@ public:
   ErrVal  RQdecodeEobOffsets_Chroma() { return Err::m_nOK; };
   ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
                                      UInt            uiMaxV ) { return Err::m_nOK; };
+  ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
   Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   
   ErrVal  blFlag              ( MbDataAccess& rcMbDataAccess );

@@ -401,6 +401,7 @@ RQFGSDecoder::xDecodingFGS()
               }
             } // for
           } // if
+          RNOK( m_pcSymbolReader->RQupdateVlcTable() );
         } // macroblock iteration
 
         if (iCompleteLuma)
@@ -507,8 +508,9 @@ RQFGSDecoder::xDecodingSubbandFGS()
           } // 8x8 block iteration
 
           if( ( m_bFgsComponentSep == 0 || iLumaScanIdx == 16 ) ) {
+            UInt uiPlane;
             //===== CHROMA DC =====
-            for( UInt uiPlane = 0; uiPlane < 2; uiPlane ++ ) {
+            for( uiPlane = 0; uiPlane < 2; uiPlane ++ ) {
               if (iChromaDCScanIdx < 4) {
                 UInt  uiMbIndex = uiMbYIdx * m_uiWidthInMB + uiMbXIdx;
                 if(m_aapaucBQChromaDCCoefMap[uiPlane][iChromaDCScanIdx][uiMbIndex] & SIGNIFICANT)
@@ -519,7 +521,7 @@ RQFGSDecoder::xDecodingSubbandFGS()
             } // for
   
             //===== CHROMA AC =====
-            for( UInt uiPlane = 0; uiPlane < 2; uiPlane ++ )
+            for( uiPlane = 0; uiPlane < 2; uiPlane ++ )
             for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
             for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ) {
               if (iChromaACScanIdx < 16) {
@@ -531,6 +533,7 @@ RQFGSDecoder::xDecodingSubbandFGS()
               }
             } // for
           } // if
+          RNOK( m_pcSymbolReader->RQupdateVlcTable() );
         } // macroblock iteration
 
         iLumaScanIdx++;
@@ -577,6 +580,7 @@ RQFGSDecoder::xDecodingSubbandFGS()
                 RNOK( xDecodeCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, iChromaACScanIdx, iLastQP ) );
             } // for
           } // if
+          RNOK( m_pcSymbolReader->RQupdateVlcTable() );
         } // macroblock iteration
 
         iLumaScanIdx++;

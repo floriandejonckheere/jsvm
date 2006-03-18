@@ -219,6 +219,7 @@ public:
   virtual ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
                                              UInt            uiMaxV ) = 0;
   virtual Bool RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx) = 0;
+  virtual ErrVal  RQupdateVlcTable         () = 0;
 };
 
 
