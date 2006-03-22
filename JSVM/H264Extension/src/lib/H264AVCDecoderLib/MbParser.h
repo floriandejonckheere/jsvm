@@ -114,6 +114,8 @@ public:
                             MbDataAccess*   pcMbDataAccessBase,
                             Int             iSpatialScalabilityType,
                             Bool&           rbEndOfSlice);
+  ErrVal readMotion       ( MbDataAccess&  rcMbDataAccess,
+                            MbDataAccess*  pcMbDataAccessBase );
 
 protected:
   ErrVal xSkipMb                      ( MbDataAccess& rcMbDataAccess );

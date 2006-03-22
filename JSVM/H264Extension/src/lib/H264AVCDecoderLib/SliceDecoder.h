@@ -127,6 +127,7 @@ public:
                         Bool                bReconstructAll,
                         UInt                uiMbInRow,
                         UInt                uiMbRead );
+  ErrVal compensatePrediction( SliceHeader& rcSH );
 
 protected:
   MbDecoder*    m_pcMbDecoder;

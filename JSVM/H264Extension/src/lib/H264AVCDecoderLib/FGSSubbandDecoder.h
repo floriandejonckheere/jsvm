@@ -104,6 +104,8 @@ class Transform;
 class MbDataCtrl;
 class CabacReader;
 class UvlcReader;
+class MbParser;
+class MbDecoder;
 
 
 
@@ -111,10 +113,6 @@ class RQFGSDecoder
   : public FGSCoder
 {
 private:
-  enum
-  {
-    RQ_QP_DELTA = 6
-  };
   class ReadStop
   {
   };
@@ -129,6 +127,8 @@ public:
 
   ErrVal            init                  ( YuvBufferCtrl**             apcYuvFullPelBufferCtrl,
                                             Transform*                  pcTransform,
+                                            MbParser*                   pcMbParser,
+                                            MbDecoder*                  pcMbDecoder,
                                             UvlcReader*                 pcUvlcReader,
                                             CabacReader*                pcCabacReader );
   ErrVal            uninit                ();
@@ -143,7 +143,6 @@ public:
   Bool              isFinished            ()    { return m_bPicFinished; }
   Bool              changed               ()    { return m_bPicChanged; }
   SliceHeader*      getSliceHeader        ()    { return m_pcCurrSliceHeader; }
-  MbDataCtrl*       getMbDataCtrl        ()     { return m_pcCurrMbDataCtrl; }
 
 
 private:
@@ -169,6 +168,8 @@ private:
                                                   UInt    uiScanIdx,
                                                   Int&    riLastQP );
 
+  ErrVal            xDecodeMotionData             ( UInt                uiMbYIdx,
+                                                    UInt                uiMbXIdx );
 
   ErrVal            xDecodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
@@ -203,6 +204,8 @@ private:
   MbSymbolReadIf*   m_pcSymbolReader;
   UvlcReader*       m_pcUvlcReader;
   CabacReader*      m_pcCabacReader;
+  MbParser*         m_pcMbParser;
+  MbDecoder*        m_pcMbDecoder;
 
   Bool              m_bPicChanged;
   Bool              m_bPicFinished;

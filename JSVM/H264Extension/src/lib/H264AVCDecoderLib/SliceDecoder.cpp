@@ -241,5 +241,26 @@ SliceDecoder::decode( SliceHeader&   rcSH,
 }
 
 
+ErrVal
+SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
+{
+  ROF( m_bInitDone );
+
+  //====== initialization ======
+  RNOK( m_pcControlMng->initSlice( rcSH, DECODE_PROCESS ) );
+
+  //===== loop over macroblocks =====
+  for( UInt uiMbIndex = rcSH.getFirstMbInSlice();
+            uiMbIndex < rcSH.getFirstMbInSlice() + rcSH.getNumMbsInSlice();
+            uiMbIndex++ )
+  {
+    MbDataAccess* pcMbDataAccess  = 0;
+    RNOK( m_pcControlMng->initMbForDecoding   (  pcMbDataAccess, uiMbIndex ) );
+    RNOK( m_pcMbDecoder ->compensatePrediction( *pcMbDataAccess            ) );
+  }
+  return Err::m_nOK;
+}
+
+
 
 H264AVC_NAMESPACE_END

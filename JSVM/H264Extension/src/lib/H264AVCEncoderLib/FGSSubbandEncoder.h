@@ -116,10 +116,6 @@ class RQFGSEncoder
   : public FGSCoder
 {
 private:
-  enum
-  {
-    RQ_QP_DELTA = 6
-  };
   class WriteStop
   {
   };
@@ -138,6 +134,10 @@ public:
   ErrVal            destroy               ();
 
   ErrVal            init                  ( YuvBufferCtrl**             apcYuvFullPelBufferCtrl,
+                                            YuvBufferCtrl**             apcYuvHalfPelBufferCtrl,
+                                            QuarterPelFilter*           pcQuarterPelFilter,
+                                            MotionEstimation*           pcMotionEstimation,
+                                            MbCoder*                    pcMbCoder,
                                             Transform*                  pcTransform,
                                             ControlMngH264AVCEncoder*   pcControlMng,
                                             MbEncoder*                  pcMbEncoder );
@@ -148,12 +148,20 @@ public:
   ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
                                             MbDataCtrl*                 pcCurrMbDataCtrl,
                                             IntFrame*                   pcOrgResidual,
+                                            IntFrame*                   pcOrgFrame,
+                                            IntFrame*                   pcPredSignal,
+                                            RefFrameList*               pcRefFrameList0,
+                                            RefFrameList*               pcRefFrameList1,
+                                            UInt                        uiNumMaxIter,
+                                            UInt                        uiIterSearchRange,
                                             Double                      dNumFGSLayers,
                                             Double                      dLambda,
                                             Int                         iMaxQpDelta,
                                             Bool&                       rbFinished,
                                             Bool                        bTruncate,
                                             Bool                        bUseDiscardable); //JVT-P031
+  ErrVal            initArFgs             ( IntFrame*                   pcPredSignal,
+                                            RefFrameList*               pcRefFrameListDiff );
   ErrVal            encodeNextLayer       ( Bool&                       rbFinished,
                                             Bool&                       rbCorrupted,
                                             UInt                        uiMaxBits,
@@ -198,7 +206,8 @@ private:
                                             LumaIdx                     cIdx,
                                             UInt                        uiStart );
   ErrVal            xSetSymbols8x8        ( TCoeff*                     piCoeff,
-                                            TCoeff*                     piCoeffBase,
+                                            UInt                        uiMbX,
+                                            UInt                        uiMbY,
                                             const QpParameter&          cQP,
                                             UInt&                       uiCoeffCost,
                                             UInt&                       ruiCbp,
@@ -206,12 +215,14 @@ private:
 
 
   ErrVal            xRequantizeMacroblock ( MbDataAccess&               rcMbDataAccess,
-                                            MbDataAccess&               rcMbDataAccessBL,
-                                            IntYuvMbBuffer&             rcBLRecBuffer );
+                                            MbDataAccess&               rcMbDataAccessBL );
 
   ErrVal            xScaleBaseLayerCoeffs ();
   ErrVal            xResidualTransform    ();
 
+  ErrVal            xMotionEstimation     ();
+  ErrVal            xEncodeMotionData             ( UInt uiMbYIdx,
+                                                    UInt uiMbXIdx );
 
   ErrVal            xEncodingFGS                  ( Bool&               rbFinished, 
                                                     Bool&               rbCorrupted, 
@@ -268,18 +279,6 @@ private:
                                                     UInt                uiB8YIdx,
                                                     UInt                uiB8XIdx,
                                                     UInt                uiScanIdx );
-
-  UInt              xGetSigCtxLuma                ( UInt                uiScanIdx,
-                                                    UInt                uiBlockY,
-                                                    UInt                uiBlockX );
-  UInt              xGetSigCtxChromaDC            ( UInt                uiPlane,
-                                                    UInt                uiScanIdx,
-                                                    UInt                uiMbY,
-                                                    UInt                uiMbX );
-  UInt              xGetSigCtxChromaAC            ( UInt                uiPlane,
-                                                    UInt                uiScanIdx,
-                                                    UInt                uiB8Y,
-                                                    UInt                uiB8X );
   //JVT-P031
 ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt iChromaDCScanIdx,
@@ -386,6 +385,22 @@ private:
 
   UChar             m_ucLastByte;//FIX_FRAG_CAVLC
   UInt              m_uiLastBitPos; //FIX_FRAG_CAVLC
+
+  YuvBufferCtrl**   m_papcYuvHalfPelBufferCtrl;
+  QuarterPelFilter* m_pcQuarterPelFilter;
+  MotionEstimation* m_pcMotionEstimation;
+  MbCoder*          m_pcMbCoder;
+
+  IntFrame*         m_pcOrgFrame;
+  IntFrame*         m_pcPredSignal;
+  RefFrameList*     m_pcRefFrameList0;
+  RefFrameList*     m_pcRefFrameList1;
+
+  IntFrame*         m_pcFGSPredFrame;
+  RefFrameList*     m_pcRefFrameListDiff;
+
+  UInt              m_uiNumMaxIter;
+  UInt              m_uiIterSearchRange;
 };
 
 

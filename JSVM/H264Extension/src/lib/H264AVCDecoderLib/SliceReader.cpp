@@ -179,6 +179,7 @@ ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
     MbDataAccess* pcMbDataAccess;
 
     RNOK( m_pcControlMng->initMbForParsing( pcMbDataAccess, uiMbAddress ) );
+    pcMbDataAccess->getMbData().deactivateMotionRefinement();
 
     DECRNOK( m_pcMbParser->process( *pcMbDataAccess, bEndOfSlice) );
 
@@ -222,6 +223,7 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
     MbDataAccess* pcMbDataAccessBase  = 0;
 
     RNOK( pcMbDataCtrl        ->initMb    ( pcMbDataAccess,     uiMbY, uiMbX ) );
+    pcMbDataAccess->getMbData().deactivateMotionRefinement();
     if  ( pcMbDataCtrlBase )
     {
       RNOK( pcMbDataCtrlBase  ->initMb    ( pcMbDataAccessBase, uiMbY, uiMbX ) );

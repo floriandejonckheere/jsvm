@@ -370,6 +370,8 @@ ErrVal CreaterH264AVCDecoder::init()
 
   RNOK( m_pcRQFGSDecoder          ->init( m_apcYuvFullPelBufferCtrl,
                                           m_pcTransform,
+                                          m_pcMbParser,
+                                          m_pcMbDecoder,
                                           m_pcUvlcReader,
                                           m_pcCabacReader) );
   

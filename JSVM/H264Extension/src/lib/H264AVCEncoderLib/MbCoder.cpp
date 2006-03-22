@@ -313,7 +313,43 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 }
 
 
+ErrVal MbCoder::encodeMotion( MbDataAccess& rcMbDataAccess,
+                              MbDataAccess* pcMbDataAccessBase )
+{
+  ROT( rcMbDataAccess.getMbData().isIntra() );
+  //===== base mode flag =====
+  RNOK( m_pcMbSymbolWriteIf->BLSkipFlag( rcMbDataAccess ) );
+  ROTRS( rcMbDataAccess.getMbData().getBLSkipFlag(), Err::m_nOK );
 
+  //===== macroblock mode =====
+  RNOK( m_pcMbSymbolWriteIf->mbMode( rcMbDataAccess ) );
+  //===== BLOCK MODES =====
+  if( rcMbDataAccess.getMbData().isInter8x8() )
+  {
+    RNOK( m_pcMbSymbolWriteIf->blockModes( rcMbDataAccess ) );
+  }
+  //===== MOTION INFORMATION =====
+  MbMode eMbMode = rcMbDataAccess.getMbData().getMbMode();
+  if( rcMbDataAccess.getSH().isInterB() )
+  {
+    RNOK( xWriteMotionPredFlags( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_0 ) );
+    RNOK( xWriteMotionPredFlags( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_1 ) );
+    RNOK( xWriteReferenceFrames( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+    RNOK( xWriteReferenceFrames( rcMbDataAccess,                     eMbMode, LIST_1 ) );
+    RNOK( xWriteMotionVectors  ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+    RNOK( xWriteMotionVectors  ( rcMbDataAccess,                     eMbMode, LIST_1 ) );
+  }
+  else
+  {
+    RNOK( xWriteMotionPredFlags( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_0 ) );
+    RNOK( xWriteReferenceFrames( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+    RNOK( xWriteMotionVectors  ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+  }
+  //===== residual prediction flag =====
+  RNOK( m_pcMbSymbolWriteIf->resPredFlag( rcMbDataAccess ) );
+
+  return Err::m_nOK;
+}
 
 
 

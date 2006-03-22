@@ -160,6 +160,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/FGSCoder.h"
+#include "H264AVCCommonLib/IntFrame.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -294,6 +295,24 @@ FGSCoder::xInitSPS( const SequenceParameterSet& rcSPS )
 
 
 ErrVal
+FGSCoder::xInitBaseLayerSbb( UInt uiLayerId )
+{
+  YuvBufferCtrl* pcYuvBufferCtrl = m_papcYuvFullPelBufferCtrl[uiLayerId];
+
+  if( m_pcBaseLayerSbb )
+  {
+    RNOK( m_pcBaseLayerSbb->uninit() );
+    delete m_pcBaseLayerSbb;
+  }
+  ROFRS( ( m_pcBaseLayerSbb = new IntFrame( *pcYuvBufferCtrl, *pcYuvBufferCtrl ) ), Err::m_nERR );
+  RNOK( m_pcBaseLayerSbb->init() );
+  RNOK( m_pcBaseLayerSbb->setZero() );
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
 FGSCoder::xUninit()
 {
   Int i;
@@ -346,6 +365,13 @@ FGSCoder::xUninit()
   delete    [] m_paucBQBlockMap;
   delete    [] m_paucBQSubMbMap;
   delete    [] m_pauiBQMacroblockMap;
+
+  if( m_pcBaseLayerSbb )
+  {
+    RNOK( m_pcBaseLayerSbb->uninit() );
+    delete m_pcBaseLayerSbb;
+    m_pcBaseLayerSbb = 0;
+  }
 
   return Err::m_nOK;
 }
@@ -459,12 +485,14 @@ FGSCoder::xInitializeCodingPath()
     Bool    bIntra4x4       =     rcMbData.isIntra4x4   ();
     Bool    bIntra16x16     =     rcMbData.isIntra16x16 ();
     Bool    bIsSignificant  = (   rcMbData.getMbCbp()          > 0 );
-    Bool    bIsSigLuma      = ( ( rcMbData.getMbCbp() & 0xFF ) > 0 );
+    Bool    bIsSigLuma      = ( ( rcMbData.getMbCbp() & 0x0F ) > 0 );
     Bool    b8x8Present     = (   pcMbDataAccess->getSH().getPPS().getTransform8x8ModeFlag() &&
                                   rcMbData.is8x8TrafoFlagPresent() );
     Bool    b8x8Transform   = ( b8x8Present && ( bIsSigLuma || bIntra4x4 ) && rcMbData.isTransformSize8x8() );
     UInt    uiMbCbp         = pcMbDataAccess->getAutoCbp();
 
+    if( ! pcMbDataAccess->getMbData().isIntra() )
+      pcMbDataAccess->getMbData().activateMotionRefinement();
     //===== set macroblock mode =====
     m_pauiMacroblockMap[uiMbIndex] =  ( bIntra16x16 || bIsSignificant                           ? SIGNIFICANT         : CLEAR )
                                    +  ( bIntra16x16 || bIntra4x4 || bIsSigLuma || !b8x8Present  ? TRANSFORM_SPECIFIED : CLEAR );
@@ -715,6 +743,12 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
   Bool  b8x8      = rcMbDataAccessBL.getMbData().isTransformSize8x8();
   UInt  uiMbIndex = uiMbY*m_uiWidthInMB + uiMbX;
 
+  if( ! rcMbDataAccessBL.getMbData().isIntra() && ! rcMbDataAccessEL.getMbData().getBLSkipFlag() )
+  {
+    //----- update motion parameters -----
+    rcMbDataAccessBL.getMbData().copyFrom  ( rcMbDataAccessEL.getMbData() );
+    rcMbDataAccessBL.getMbData().copyMotion( rcMbDataAccessEL.getMbData() );
+  }
   //===== luma =====
   if( b8x8 )
   {
@@ -1003,7 +1037,7 @@ FGSCoder::xReconstructMacroblock( MbDataAccess&   rcMbDataAccess,
   Bool                b8x8      = rcMbDataAccess.getMbData().isTransformSize8x8();
   MbTransformCoeffs&  rcCoeffs  = rcMbDataAccess.getMbTCoeffs();
 
-  rcMbBuffer.setAllSamplesToZero();
+  rcMbBuffer.loadBuffer( m_pcBaseLayerSbb->getFullPelYuvBuffer() );
   
   TCoeff lumaDcCoeffs[16];
   if ( rcMbDataAccess.getMbData().isIntra16x16() )
@@ -1044,13 +1078,9 @@ FGSCoder::xReconstructMacroblock( MbDataAccess&   rcMbDataAccess,
     }
   }
 
-  Int       iShift, iScale;
-  UInt      uiPlane;
-  Quantizer cQuantizer;
-  cQuantizer.setQp( rcMbDataAccess, false );
-  TCoeff            chromaDcCoeffs[2][4];
-
-  const QpParameter&  cCQp      = cQuantizer.getChromaQp();
+  TCoeff              chromaDcCoeffs[2][4];
+  UInt                uiPlane;
+  Int                 iScale;
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
   UInt                uiUScalId = ( bIntra ? 1 : 4 );
   UInt                uiVScalId = ( bIntra ? 2 : 5 );
@@ -1066,14 +1096,10 @@ FGSCoder::xReconstructMacroblock( MbDataAccess&   rcMbDataAccess,
   }
 
   // scaling has already been performed on DC coefficients
-  /* HS: old scaling modified:
-     (I did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
-  iScale = ( pucScaleU ? pucScaleU[0] : 1 );
-  iShift = ( pucScaleU ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale, iShift );     
-  iScale = ( pucScaleV ? pucScaleV[0] : 1 );
-  iShift = ( pucScaleV ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale, iShift );
+  iScale = ( pucScaleU ? pucScaleU[0] : 16 );
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );     
+  iScale = ( pucScaleV ? pucScaleV[0] : 16 );
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale );
 
   RNOK( m_pcTransform->invTransformChromaBlocks( rcMbBuffer.getMbCbAddr(), iCStride, rcCoeffs.get( CIdx(0) ) ) );
   RNOK( m_pcTransform->invTransformChromaBlocks( rcMbBuffer.getMbCrAddr(), iCStride, rcCoeffs.get( CIdx(4) ) ) );
@@ -1249,6 +1275,72 @@ Void FGSCoder::getCoeffSigMapChroma8x8( UInt uiMbX, UInt uiMbY, UInt uiPlane, UC
   }
 }
 
+
+ErrVal
+FGSCoder::xClearBaseCoeffs( MbDataAccess& rcMbDataAccess, 
+                            MbDataAccess* pcMbDataAccessBase )
+{
+  UInt uiMbY     = pcMbDataAccessBase->getMbY();
+  UInt uiMbX     = pcMbDataAccessBase->getMbX();
+  UInt uiMbIndex = uiMbY * m_uiWidthInMB + uiMbX;
+
+  m_pauiMacroblockMap[uiMbIndex] = rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() && rcMbDataAccess.getMbData().is8x8TrafoFlagPresent() ? CLEAR : TRANSFORM_SPECIFIED;
+
+  //--- LUMA ---
+  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+  {
+    UInt uiSubMbIndex = ( 2*uiMbY + c8x8Idx.y()/2 ) * 2 * m_uiWidthInMB + ( 2*uiMbX + c8x8Idx.x() / 2 );
+
+    //===== set sub-macroblock mode =====
+    m_paucSubMbMap[uiSubMbIndex] = CLEAR;
+
+    for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+    {
+      UInt    uiBlockIdx  = ( 4*uiMbY + cIdx.y() ) * 4 * m_uiWidthInMB + ( 4*uiMbX + cIdx.x() );
+
+      //===== set transform coefficients =====
+      for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
+      {
+        m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] = CLEAR;
+      }
+
+      //===== set block mode =====
+      m_paucBlockMap[uiBlockIdx] = CLEAR;
+    }
+  }
+
+  //--- CHROMA DC ---
+  for( UInt uiPlane = 0; uiPlane < 2; uiPlane++ )
+  {
+    for( UInt ui = 0; ui < 4; ui++ )
+    {
+      m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] = CLEAR;
+    }
+    m_apaucChromaDCBlockMap[uiPlane][uiMbIndex] = CLEAR;
+  }
+
+  //--- CHROMA AC ---
+  for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
+  {
+    UInt    ui8x8Idx    = ( 2*uiMbY + cCIdx.y() ) * 2 * m_uiWidthInMB + ( 2 * uiMbX + cCIdx.x() );
+
+    for( UInt ui = 1; ui < 16; ui++ )
+    {
+      m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx]  = CLEAR;
+    }
+    m_apaucChromaACBlockMap[cCIdx.plane()][ui8x8Idx] = CLEAR;
+  }
+
+  //pcMbDataAccessBase->getMbData().setMbCbp( 0 );
+  pcMbDataAccessBase->getMbTCoeffs().clear();
+  pcMbDataAccessBase->getMbData().setTransformSize8x8( false );
+
+  IntYuvMbBuffer cZeroBuffer;
+  cZeroBuffer.setAllSamplesToZero();
+  RNOK( m_pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
+
+  return Err::m_nOK;
+}
 
 
 H264AVC_NAMESPACE_END

@@ -422,6 +422,15 @@ protected:
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
   ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer );
 
+  ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,
+                                                RefFrameList&                 rcRefFrameList0,
+                                                RefFrameList&                 rcRefFrameList1,
+                                                MbDataCtrl*                   pcMbDataCtrl,
+                                                SliceHeader&                  rcSH );
+  ErrVal      xFixMCPrediction                ( IntFrame*                     pcMCFrame,
+                                                ControlData&                  rcControlData );
+                                                                             
+
   Bool isPictureDecComplete(SliceHeader* rpcSliceHeader);
   const Bool isNewPictureStart(SliceHeader* rpcSliceHeader);
   ErrVal InitWhenNewPictureStart(SliceHeader* pcSliceHeader, MbDataCtrl*   pcMbDataCtrl);

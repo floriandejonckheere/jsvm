@@ -121,6 +121,7 @@ public MbDataStruct
 public:
   MbData()
   : m_pcMbTCoeffs         ( 0 )
+  , m_bHasMotionRefinement( false )
   {
     m_apcMbMvdData   [ LIST_0 ]  = NULL;
     m_apcMbMvdData   [ LIST_1 ]  = NULL;
@@ -136,13 +137,18 @@ public:
               MbMvData*           pcMbMvdDataList0,
               MbMvData*           pcMbMvdDataList1,
               MbMotionData*       pcMbMotionDataList0,
-              MbMotionData*       pcMbMotionDataList1)
+              MbMotionData*       pcMbMotionDataList1,
+              MbMotionData*       pcMbMotionDataBaseList0 = NULL,
+              MbMotionData*       pcMbMotionDataBaseList1 = NULL)
   {
+    AOT( m_bHasMotionRefinement );
     m_pcMbTCoeffs           = pcMbTCoeffs;
     m_apcMbMvdData[0]       = pcMbMvdDataList0;
     m_apcMbMvdData[1]       = pcMbMvdDataList1;
     m_apcMbMotionData[0]    = pcMbMotionDataList0;
     m_apcMbMotionData[1]    = pcMbMotionDataList1;
+    m_apcMbMotionDataBase[0] = pcMbMotionDataBaseList0;
+    m_apcMbMotionDataBase[1] = pcMbMotionDataBaseList1;
   }
 
 public:
@@ -153,6 +159,13 @@ public:
   const MbTransformCoeffs&  getMbTCoeffs    ()                    const { return *m_pcMbTCoeffs; }
   const MbMvData&           getMbMvdData    ( ListIdx eListIdx )  const { return *m_apcMbMvdData   [ eListIdx ]; }
   const MbMotionData&       getMbMotionData ( ListIdx eListIdx )  const { return *m_apcMbMotionData[ eListIdx ]; }
+
+  MbMotionData&             getMbMotionDataBase ( ListIdx eListIdx )        { return m_bHasMotionRefinement ? *m_apcMbMotionDataBase[eListIdx] : *m_apcMbMotionData[ eListIdx ]; }
+  const MbMotionData&       getMbMotionDataBase ( ListIdx eListIdx )  const { return m_bHasMotionRefinement ? *m_apcMbMotionDataBase[eListIdx] : *m_apcMbMotionData[ eListIdx ]; }
+
+  Void                      switchMotionRefinement();
+  Void                      activateMotionRefinement();
+  Void                      deactivateMotionRefinement()                    { m_bHasMotionRefinement = false; }
 
   operator MbTransformCoeffs& ()                                        { return *m_pcMbTCoeffs; }
 
@@ -173,6 +186,11 @@ protected:
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMvData*           m_apcMbMvdData[2];
   MbMotionData*       m_apcMbMotionData[2];
+
+  MbMode              m_eMbModeBase;
+  BlkMode             m_aBlkModeBase[4];
+  MbMotionData*       m_apcMbMotionDataBase[2];
+  Bool                m_bHasMotionRefinement;
 
 // TMM_ESS_UNIFIED {
   typedef struct  

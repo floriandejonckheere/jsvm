@@ -166,6 +166,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/Transform.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
 
+class IntFrame;
+
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -173,6 +175,11 @@ H264AVC_NAMESPACE_BEGIN
 class FGSCoder
 {
 public:
+
+  enum
+  {
+    RQ_QP_DELTA = 6
+  };
 
   FGSCoder()
     : m_bInit                     ( false )
@@ -182,6 +189,7 @@ public:
     , m_uiWidthInMB               ( 0 )
     , m_uiHeightInMB              ( 0 )
     , m_pcCurrMbDataCtrl          ( 0 )
+    , m_pcBaseLayerSbb            ( 0 )
   {
   }
 
@@ -197,6 +205,9 @@ public:
   {
     return ( ( ucCoeffState & SIGNIFICANT ) != 0 );
   }
+
+  IntFrame*   getBaseLayerSbb()   { return m_pcBaseLayerSbb;   }
+  MbDataCtrl* getMbDataCtrl()     { return m_pcCurrMbDataCtrl; }
 
   enum
   {
@@ -231,6 +242,9 @@ protected:
                                                     MbDataAccess&       rcMbDataAccessEL,
                                                     UInt                uiMbY,
                                                     UInt                uiMbX );
+  ErrVal            xClearBaseCoeffs( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
+
+  ErrVal            xInitBaseLayerSbb     ( UInt uiLayerId );
 
   Bool              m_bInit;
   Bool              m_bPicInit;
@@ -261,16 +275,20 @@ protected:
   UChar*            m_paucBQSubMbMap;
   UInt*             m_pauiBQMacroblockMap;
 
+  IntFrame*         m_pcBaseLayerSbb;
+
 private:
 
   void xUpdateCoeffMap(TCoeff& cBL, TCoeff cEL, UChar& sm)  
   {
     if ((cEL))                                                
     {
-      (cBL) += (cEL);
-      sm &= ~BASE_SIGN;
-      sm |= SIGNIFICANT;
-      sm |= SIGNIFICANT | ((cEL < 0) ? BASE_SIGN : 0);
+      if( sm | SIGNIFICANT && cEL < 0 ) // set sign only when base layer not significant
+      {
+        sm  |= BASE_SIGN;
+      }
+      sm    |= SIGNIFICANT;
+      cBL   += cEL;
     }
   }
 

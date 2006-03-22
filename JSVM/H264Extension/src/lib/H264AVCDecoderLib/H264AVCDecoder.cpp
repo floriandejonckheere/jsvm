@@ -1341,6 +1341,11 @@ H264AVCDecoder::xReconstructLastFGS()
 
       freeDiffPrdRefLists(cRefListDiff);
     }
+    else if( ! pcSliceHeader->isIntra() )
+    {
+      //----- "normal" motion-compensated prediction -----
+      RNOK( m_pcSliceDecoder->compensatePrediction( *pcSliceHeader ) );
+    }
 
     RNOK( pcRecFrame      ->add           ( m_pcFrameMng->getPredictionIntFrame() ) );
     RNOK( pcRecFrame      ->clip          () );
@@ -1417,11 +1422,12 @@ H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& 
 
     if( rpcSliceHeader->getQualityLevel() <= m_uiQualityLevelForPrediction )
     {
-      printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, PrRef,              QP%3d )\n",
+      printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, PrRef,        MR %d, QP%3d )\n",
         rpcSliceHeader->getPoc                    (),
         rpcSliceHeader->getLayerId                (),
         rpcSliceHeader->getTemporalLevel          (),
         rpcSliceHeader->getQualityLevel           (),
+        rpcSliceHeader->getAdaptivePredictionFlag (),
         rpcSliceHeader->getPicQp                  () );
 
       //===== set mem when first FGS layer ====
@@ -1441,6 +1447,7 @@ H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& 
         m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseBlock(rpcSliceHeader->getBaseWeightZeroBaseBlock() );
         m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseCoeff(rpcSliceHeader->getBaseWeightZeroBaseCoeff() );
         m_pcRQFGSDecoder->getSliceHeader()->setLowPassFgsMcFilter     (rpcSliceHeader->getLowPassFgsMcFilter() );
+        m_pcRQFGSDecoder->getSliceHeader()->setArFgsUsageFlag         (rpcSliceHeader->getArFgsUsageFlag() );
 
         if( rpcSliceHeader->getQualityLevel()   == 1 )
         {

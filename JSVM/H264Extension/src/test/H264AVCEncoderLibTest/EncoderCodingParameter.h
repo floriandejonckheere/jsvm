@@ -403,6 +403,16 @@ ErrVal EncoderCodingParameter::init( Int     argc,
      continue;
     }
     //~JVT-P031
+    if( equals( pcCom, "-fgsmot", 7 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt uiLayer         = atoi( argv[n  ] );
+      UInt uiFGSMotionMode = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setFGSMotionMode( uiFGSMotionMode );
+      n += 1;
+      continue;
+    }
 
     if( equals( pcCom, "-h", 2) )
     {
@@ -445,6 +455,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -encfgs (Layer) (bit-rate in kbps) (File with stored FGS parameters)\n");
   printf("  -cl     (Layer) (ClosedLoopParameter)\n");
   printf("  -ds     (Layer) (Rate for inter-layer prediction)\n");
+  printf("  -fgsmot (Layer) (FGSMotionRefinementMode) [0: no, 1: HP only, 2: all]\n");
   printf("  -lcupd  Update method [0 - original, 1 - low-complexity (default)]\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   printf("  -anaags  [1 - mode decision for Adaptive GOP Structure]\n");
@@ -739,6 +750,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgRtMus1",&(rcLayer.m_uiSliceGroupChangeRateMinus1),           85       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice),                     0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSMotion",      &(rcLayer.m_uiFGSMotionMode), 0);
   m_pLayerLines[uiParLnCount] = NULL;
 
   while (!feof(f))

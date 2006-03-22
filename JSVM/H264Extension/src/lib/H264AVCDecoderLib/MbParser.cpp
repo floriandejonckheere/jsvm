@@ -427,6 +427,197 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
 
 
 
+ErrVal MbParser::readMotion(MbDataAccess&  rcMbDataAccess,
+                            MbDataAccess*  pcMbDataAccessBase )
+{
+  ROT( rcMbDataAccess.getMbData().isIntra() );
+
+  UInt uiFwdBwdBase        = pcMbDataAccessBase->getMbData().getFwdBwd();
+
+  try {
+    //===== base mode flag =====
+    ROTRS( m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess ), Err::m_nOK );
+
+    rcMbDataAccess.getMbMotionData( LIST_0 ).reset();
+    rcMbDataAccess.getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
+    rcMbDataAccess.getMbMvdData   ( LIST_0 ).clear();
+    rcMbDataAccess.getMbMotionData( LIST_1 ).reset();
+    rcMbDataAccess.getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
+    rcMbDataAccess.getMbMvdData   ( LIST_1 ).clear();
+    rcMbDataAccess.getMbData().setBLSkipFlag( false );
+    rcMbDataAccess.getMbData().setBLQRefFlag( false );
+
+    // <<<<<
+    // really nasty code: set forward/backward indication of BASE LAYER (sic!)
+    // this probably should/could have been done somewhere else...
+    if( rcMbDataAccess.getSH().isH264AVCCompatible() )
+    {
+      if( pcMbDataAccessBase->getMbData().getMbMode() == MODE_SKIP )
+      {
+        UInt uiFwdBwd = 0;
+        if( pcMbDataAccessBase->getSH().isInterB() )
+        {
+          for( Int n = 3; n >= 0; n--)
+          {
+            uiFwdBwd <<= 4;
+            uiFwdBwd += (0 < pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+            uiFwdBwd += (0 < pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) )) ? 2:0;
+          }
+        }
+        if( pcMbDataAccessBase->getSH().isInterP() )
+        {
+          for( Int n = 3; n >= 0; n--)
+          {
+            uiFwdBwd <<= 4;
+            uiFwdBwd += (0 < pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+          }
+        }
+        pcMbDataAccessBase->getMbData().setFwdBwd( uiFwdBwd );
+      }
+      else if( pcMbDataAccessBase->getMbData().getMbMode() == MODE_8x8 )
+      {
+        UInt uiFwdBwd = 0;
+        for( Int n = 3; n >= 0; n-- )
+        {
+          uiFwdBwd <<= 4;
+          if( pcMbDataAccessBase->getMbData().getBlkMode( Par8x8(n) ) == BLK_SKIP )
+          {
+            uiFwdBwd += (0 < pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+            if( pcMbDataAccessBase->getSH().isInterB() ) 
+              uiFwdBwd += (0 < pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) )) ? 2:0;
+          }
+        }
+        pcMbDataAccessBase->getMbData().setFwdBwd( pcMbDataAccessBase->getMbData().getFwdBwd() | uiFwdBwd );
+      }
+    }
+    // >>>>>
+
+    //===== macroblock mode =====
+    DECRNOK( m_pcMbSymbolReadIf->mbMode( rcMbDataAccess ) );
+    if( rcMbDataAccess.getMbData().isIntra() )
+    {
+      // NOTE: this may happen only at a truncation point
+      // ----- restore base layer forward/backward indication -----
+      pcMbDataAccessBase->getMbData().setFwdBwd( uiFwdBwdBase );
+
+      // ----- mark as skipped macroblock -----
+      RNOK( rcMbDataAccess.getMbData().copyMotion( pcMbDataAccessBase->getMbData() ) );
+      rcMbDataAccess.getMbData().copyFrom  ( pcMbDataAccessBase->getMbData() );
+      rcMbDataAccess.getMbData().setBLSkipFlag( true );
+      return Err::m_nOK;
+    }
+
+    //===== BLOCK MODES =====
+    if( rcMbDataAccess.getMbData().isInter8x8() )
+    {
+      DECRNOK( m_pcMbSymbolReadIf->blockModes( rcMbDataAccess ) );
+
+      //===== set motion data for skip block mode =====
+      UInt  uiFwdBwd = 0;
+
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        UInt  uiBlkFwdBwd = rcMbDataAccess.getMbData().getBlockFwdBwd( c8x8Idx.b8x8Index() );
+
+        if( rcMbDataAccess.getMbData().getBlkMode( c8x8Idx.b8x8Index() ) == BLK_SKIP )
+        {
+          uiBlkFwdBwd = 3;
+          rcMbDataAccess.getMbMotionData( LIST_0 ).setRefIdx( 1,            c8x8Idx.b8x8() );
+          rcMbDataAccess.getMbMotionData( LIST_1 ).setRefIdx( 1,            c8x8Idx.b8x8() );
+          rcMbDataAccess.getMbMvdData   ( LIST_0 ).setAllMv ( Mv::ZeroMv(), c8x8Idx.b8x8() );
+          rcMbDataAccess.getMbMvdData   ( LIST_1 ).setAllMv ( Mv::ZeroMv(), c8x8Idx.b8x8() );
+        }
+
+        uiFwdBwd |= ( uiBlkFwdBwd << ( c8x8Idx.b8x8Index() * 4 ) );
+      }
+
+      rcMbDataAccess.getMbData().setFwdBwd( uiFwdBwd );
+    }
+
+    //===== MOTION DATA =====
+    MbMode eMbMode = rcMbDataAccess.getMbData().getMbMode();
+
+    if( eMbMode == MODE_SKIP )
+    {
+      if( rcMbDataAccess.getSH().isInterB() )
+      {
+        rcMbDataAccess.getMbData().setFwdBwd( 0x3333 );
+        rcMbDataAccess.getMbMotionData( LIST_0 ).clear( RefIdxValues(1) );
+        rcMbDataAccess.getMbMvdData   ( LIST_0 ).clear();
+        rcMbDataAccess.getMbMotionData( LIST_1 ).clear( RefIdxValues(1) );
+        rcMbDataAccess.getMbMvdData   ( LIST_1 ).clear();
+      }
+      else
+      {
+        rcMbDataAccess.getMbData().setFwdBwd( 0x1111 );
+        rcMbDataAccess.getMbMotionData( LIST_0 ).clear( RefIdxValues(1) );
+        rcMbDataAccess.getMbMvdData   ( LIST_0 ).clear();
+        rcMbDataAccess.getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
+        rcMbDataAccess.getMbMvdData   ( LIST_1 ).clear();
+      }
+    }
+    else
+    {
+      if( rcMbDataAccess.getSH().isInterB() )
+      {
+        DECRNOK( xReadMotionPredFlags         ( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_0 ) );
+        DECRNOK( xReadMotionPredFlags         ( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_1 ) );
+        DECRNOK( xReadReferenceFramesNoRefPic ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+        DECRNOK( xReadReferenceFramesNoRefPic ( rcMbDataAccess,                     eMbMode, LIST_1 ) );
+        DECRNOK( xReadMotionVectors           ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+        DECRNOK( xReadMotionVectors           ( rcMbDataAccess,                     eMbMode, LIST_1 ) );
+      }
+      else
+      {
+        DECRNOK( xReadMotionPredFlags         ( rcMbDataAccess, pcMbDataAccessBase, eMbMode, LIST_0 ) );
+        DECRNOK( xReadReferenceFramesNoRefPic ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+        DECRNOK( xReadMotionVectors           ( rcMbDataAccess,                     eMbMode, LIST_0 ) );
+      }
+    }
+    //===== residual prediction flag =====
+    DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
+
+    // nasty again, set reference pics
+    // <<<<<
+    if( rcMbDataAccess.getSH().isH264AVCCompatible() )
+    {
+      SliceHeader& rcSH = rcMbDataAccess.getSH();
+      for( UInt uiListIdx = 0; uiListIdx < UInt( rcSH.isInterB() ? 2 : 1 ); uiListIdx++ )
+      {
+        ListIdx eListIdx = ListIdx( uiListIdx );
+        MbMotionData& rcMbMotionData = rcMbDataAccess.getMbMotionData( eListIdx );
+        for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+        {
+          if( rcMbDataAccess.getMbData().isBlockFwdBwd( c8x8Idx.b8x8Index() , eListIdx ) )
+          {
+            const Frame* pcRefFrame = rcSH.getRefPic( rcMbMotionData.getRefIdx( c8x8Idx.b8x8Index() ), eListIdx ).getFrame();
+            rcMbMotionData.setRefPic( pcRefFrame, c8x8Idx.b8x8() );
+          }
+        }
+      }
+    }
+    // >>>>>
+  }
+  catch(...)
+  {
+    // ===== ERROR HANDLING (typically truncated FGS slice) =====
+    // ----- restore base layer forward/backward indication -----
+    pcMbDataAccessBase->getMbData().setFwdBwd( uiFwdBwdBase );
+
+    // ----- mark as skipped macroblock -----
+    RNOK( rcMbDataAccess.getMbData().copyMotion( pcMbDataAccessBase->getMbData() ) );
+          rcMbDataAccess.getMbData().copyFrom  ( pcMbDataAccessBase->getMbData() );
+          rcMbDataAccess.getMbData().setBLSkipFlag( true );
+    throw;
+  }
+
+  pcMbDataAccessBase->getMbData().setFwdBwd( uiFwdBwdBase );
+
+  return Err::m_nOK;
+}
+
+
+
 ErrVal MbParser::xReadMbType( MbDataAccess& rcMbDataAccess, Bool bBaseLayer )
 {
   DECRNOK( m_pcMbSymbolReadIf->mbMode( rcMbDataAccess ) );

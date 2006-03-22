@@ -374,6 +374,9 @@ public:
     return m_uiFgsEncStructureFlag; 
   }
 
+  UInt                            getFGSMotionMode() { return m_uiFGSMotionMode;  }
+  Void                            setFGSMotionMode( UInt uiFGSMotionMode ) { m_uiFGSMotionMode = uiFGSMotionMode; }
+
 public:
   UInt                      m_uiLayerId;
   UInt                      m_uiFrameWidth;
@@ -449,6 +452,7 @@ public:
                                                 //discardable stream should not be used for inter-layer prediction
   Double                    m_dPredFGSRate; //rate use for inter-layer prediction (after that rate, stream is discardable)
 
+  UInt                      m_uiFGSMotionMode;
 };
 
 

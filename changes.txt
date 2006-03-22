@@ -1,3 +1,36 @@
+JSVM_4_5 -> JSVM_4_6
+====================
+
+Adaptive motion refinement for FGS
+FGS processing in transform domain
+
+Date: March 22, 2006
+Author: Martin Winken, Heiko Schwarz (HHI)
+Contribution: JVT-R022
+
+Changes:
+
+1) Added motion estimation to RQFGSSubbandEncoder, using new function
+   RQFGSEncoder::xMotionEstimation()
+2) Mode decision for FGS is done in new function MbEncoder::encodeFGS(),
+   which evaluates R-D costs for the inter macroblock modes as well as
+   for simply requantizing the residual using the same prediction signal
+   (new function MbEncoder::xEstimateFGSSkip())
+3) Baselayer residual for inter-layer prediction is now stored in
+   IntFrame* FGSCoder::m_pcBaseLayerSbb and added in RQFGSEncoder::reconstruct(),
+   so the calls to MCTFEncoder::xAddBaseLayerResidual() in MCTFEncoder::xEncodeFGSLayer()
+   have been removed.
+4) FGS motion data are encoded in RQFGSEncoder::xEncodingFGS()/xEncodingSubbandFGS()
+   using new functions RQFGSEncoder::xEncodeMotionData(), MbCoder::encodeMotion()
+5) Decoding of FGS motion data is done in RQFGSDecoder::xDecodingFGS()/xDecodingSubbandFGS()
+   using new functions RQFGSDecoder::xDecodeMotionData(), MbParser::readMotion()
+6) At the decoder motion-compensated prediction using FGS motion data is done in
+   MCTFDecoder/H264AVCDecoder::xReconstructLastFGS()
+7) Inter-layer motion prediction uses Base Quality motion data which is stored in
+   MbData::{m_eMbModeBase,m_aBlkModeBase,m_apcMbMotionDataBase}
+
+8) FGS processing in transform domain (JVT decision)
+
 
 
 JSVM_4_4 -> JSVM_4_5

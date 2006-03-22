@@ -295,7 +295,7 @@ Void Transform::xInvTransform4x4BlkNoAc( XPel* puc, Int iStride, TCoeff* piCoeff
 
 
 
-Void Transform::invTransformChromaDc( TCoeff* piCoeff, const Int iQpScale, const Int iShift )
+Void Transform::invTransformChromaDc( TCoeff* piCoeff, Int iQpScale )
 {
   Int   tmp1, tmp2;
   Int   d00, d01, d10, d11;
@@ -308,15 +308,14 @@ Void Transform::invTransformChromaDc( TCoeff* piCoeff, const Int iQpScale, const
   tmp1 = d00 + d11;
   tmp2 = d10 + d01;
 
-  piCoeff[ 0] = ((tmp1 + tmp2)*iQpScale)>> iShift;
-  piCoeff[48] = ((tmp1 - tmp2)*iQpScale)>> iShift;
+  piCoeff[ 0] = ( ( tmp1 + tmp2 ) * iQpScale ) >> 5;
+  piCoeff[48] = ( ( tmp1 - tmp2 ) * iQpScale ) >> 5;
 
   tmp1 = d00 - d11;
   tmp2 = d01 - d10;
 
-  piCoeff[32] = ((tmp1 + tmp2)*iQpScale)>> iShift;
-  piCoeff[16] = ((tmp1 - tmp2)*iQpScale)>> iShift;
-
+  piCoeff[32] = ( ( tmp1 + tmp2 ) * iQpScale ) >> 5;
+  piCoeff[16] = ( ( tmp1 - tmp2 ) * iQpScale ) >> 5;
 }
 
 
@@ -350,7 +349,7 @@ Void Transform::xQuantDequantNonUniformLuma( TCoeff* piQCoeff, TCoeff* piCoeff, 
 {
   Int   iLevel = piCoeff[0];
   UInt  uiSign = ((UInt)iLevel)>>31;
-  Int   iAdd   = ( rcQp.per() <= 3 ? ( 1 << ( 3 - rcQp.per() ) ) : 0 ); 
+  Int   iAdd   = ( 1 << 3 ) >> rcQp.per();
 
   iLevel       = abs( iLevel ) * g_aaiQuantCoef[ rcQp.rem() ][0];
   if( pucScale )
@@ -409,13 +408,13 @@ Void Transform::xQuantDequantNonUniformLuma( TCoeff* piQCoeff, TCoeff* piCoeff, 
 
 Void Transform::xQuantDequantNonUniformChroma( TCoeff* piQCoeff, TCoeff* piCoeff, const QpParameter& rcQp, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs )
 {
-    Int   iAdd    = ( rcQp.per() <= 3 ? ( 1 << ( 3 - rcQp.per() ) ) : 0 ); 
+  Int   iAdd    = ( 1 << 3 ) >> rcQp.per();
   {
     Int   iLevel  = piCoeff[0];
     UInt  uiSign  = ((UInt)iLevel)>>31;
 
     iLevel        = ( abs( iLevel ) * g_aaiQuantCoef[ rcQp.rem() ][0] );
-    if( pucScale && rcQp.per() < 5 )
+    if( pucScale )
     {
       iLevel      = ( iLevel << 4 ) / pucScale[0];
     }
@@ -477,7 +476,7 @@ Void Transform::xQuantDequantUniform4x4( TCoeff* piQCoeff, TCoeff* piCoeff, cons
 {
   Int n     = 0;
   ruiAbsSum = 0;
-  Int iAdd  = ( rcQp.per() <= 3 ? ( 1 << ( 3 - rcQp.per() ) ) : 0 );
+  Int iAdd  = ( 1 << 3 ) >> rcQp.per();
 
   for( ; n < 16; n++ )
   {
@@ -525,11 +524,15 @@ Void Transform::xRequantUniform4x4( TCoeff*             piCoeff,
                                     const UChar*        pucScale,
                                     UInt&               ruiAbsSum )
 {
+  Int normAdjust[] = { 4, 5, 4, 5 };
+
   ruiAbsSum  = 0;
   for( Int n = 0; n < 16; n++ )
   {
     Int iLevel  = piCoeff[n];
     Int iSign   = iLevel;
+    iLevel     -= ( normAdjust[n/4] * normAdjust[n%4] * (Int)piCoeffBase[n] + ( 1 << 5 ) ) >> 6;
+    iSign       = iLevel;
     iLevel      = abs( iLevel ) * g_aaiQuantCoef[rcQp.rem()][n];
     
     if( pucScale )
@@ -564,10 +567,14 @@ Void Transform::xRequantNonUniformChroma( TCoeff*             piCoeff,
                                           UInt&               ruiDcAbs,
                                           UInt&               ruiAcAbs )
 {
+  Int normAdjust[] = { 4, 5, 4, 5 };
+
   Int   iLevel    = piCoeff[0];
   UInt  uiSign    = ((UInt)iLevel)>>31;
+  iLevel         -= ( (Int)piCoeffBase[0] + 1 ) >> 1;
+  uiSign          = ((UInt)iLevel)>>31;
   iLevel          = ( abs( iLevel ) * g_aaiQuantCoef[ rcQp.rem() ][0] );
-  if( pucScale && rcQp.per() < 5 )
+  if( pucScale )
   {
     iLevel        = ( iLevel << 4 ) / pucScale[0];
   }
@@ -583,6 +590,8 @@ Void Transform::xRequantNonUniformChroma( TCoeff*             piCoeff,
   {
     Int iLevel  = piCoeff[n];
     Int iSign   = iLevel;
+    iLevel     -= ( normAdjust[n/4] * normAdjust[n%4] * (Int)piCoeffBase[n] + ( 1 << 5 ) ) >> 6;
+    iSign       = iLevel;
     iLevel      = ( abs( iLevel ) * g_aaiQuantCoef[rcQp.rem()][n] );
     if( pucScale )
     {
@@ -690,7 +699,8 @@ Transform::requantLumaDcCoeffs( TCoeff*         piCoeff,
   {
     Int   iLevel = piCoeff[n<<4];
     UInt  uiSign = ((UInt)iLevel)>>31;
-    Int   iAdd   = ( m_cLumaQp.per() <= 3 ? ( 1 << ( 3 - m_cLumaQp.per() ) ) : 0 ); 
+    iLevel      -= ( (Int)piCoeffBase[n<<4] + 1 ) >> 1;
+    uiSign       = ((UInt)iLevel)>>31;
 
     iLevel       = abs( iLevel ) * g_aaiQuantCoef[ m_cLumaQp.rem() ][0];
     if( pucScale )
@@ -1451,7 +1461,7 @@ Transform::xQuantDequantUniform8x8( TCoeff*             piQCoeff,
                                     UInt&               ruiAbsSum )
 {
   UInt  uiAbsSum  = 0;
-  Int   iAdd      = ( rcQp.per() <= 5 ? ( 1 << ( 5 - rcQp.per() ) ) : 0 );
+  Int   iAdd      = ( 1 << 5 ) >> rcQp.per();
 
   for( Int n = 0; n < 64; n++ )
   {
@@ -1501,12 +1511,16 @@ Transform::xRequantUniform8x8( TCoeff*             piCoeff,
                                const UChar*        pucScale,
                                UInt&               ruiAbsSum )
 {
+  Int normAdjust[] = { 8, 9, 5, 9,   8, 9, 5, 9 };
+
   ruiAbsSum = 0;
 
   for( Int n = 0; n < 64; n++ )
   {
     Int iLevel  = piCoeff[n];
     Int iSign   = iLevel;
+    iLevel     -= ( normAdjust[n/8] * normAdjust[n%8] * (Int)piCoeffBase[n] + ( 1 << 5 ) ) >> 6;
+    iSign       = iLevel;
 
     iLevel      = abs( iLevel ) * g_aaiQuantCoef64[ rcQp.rem() ][ n ];
     if( pucScale )

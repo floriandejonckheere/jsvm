@@ -990,10 +990,10 @@ __inline Void MbDataAccess::xGetColocatedMvRefIdx( Mv& rcMv, SChar& rscRefIdx, L
 {
   ListIdx         eListIdx         = LIST_0;
 
-  if( ( rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx ) ) < 1 )
+  if( ( rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx ) ) < 1 )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx );
+    rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx );
   }
   if( rscRefIdx < 1 )
   {
@@ -1001,7 +1001,7 @@ __inline Void MbDataAccess::xGetColocatedMvRefIdx( Mv& rcMv, SChar& rscRefIdx, L
   }
   else
   {
-    rcMv = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( cIdx );
+    rcMv = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( cIdx );
   }
 }
 
@@ -1011,10 +1011,10 @@ __inline Void MbDataAccess::xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SCha
 {
   ListIdx         eListIdx         = LIST_0;
 
-  if( ( rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx ) ) < 1 )
+  if( ( rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx ) ) < 1 )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx );
+    rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx );
   }
   if( rscRefIdx < 1 )
   {
@@ -1022,10 +1022,10 @@ __inline Void MbDataAccess::xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SCha
   }
   else
   {
-    acMv[0] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
-    acMv[1] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
-    acMv[2] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
-    acMv[3] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
+    acMv[0] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
+    acMv[1] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
+    acMv[2] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
+    acMv[3] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
   }
 }
 
@@ -1034,10 +1034,10 @@ __inline const RefPic& MbDataAccess::xGetColocatedMvRefPic( Mv& rcMv, SChar& rsc
 {
   ListIdx         eListIdx         = LIST_0;
 
-  if( ( rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx ) ) < 1 )
+  if( ( rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx ) ) < 1 )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx );
+    rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx );
   }
   if( rscRefIdx < 1 )
   {
@@ -1045,20 +1045,20 @@ __inline const RefPic& MbDataAccess::xGetColocatedMvRefPic( Mv& rcMv, SChar& rsc
   }
   else
   {
-    rcMv = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( cIdx );
+    rcMv = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( cIdx );
   }
 
-  return m_rcMbColocated.getMbMotionData( eListIdx ).getRefPic( cIdx );
+  return m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPic( cIdx );
 }
 
 __inline const RefPic& MbDataAccess::xGetColocatedMvsRefPicNonInterlaced( Mv acMv[], SChar& rscRefIdx, ParIdx8x8 eParIdx ) const
 {
   ListIdx         eListIdx         = LIST_0;
 
-  if( ( rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx ) ) < 1 )
+  if( ( rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx ) ) < 1 )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = m_rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx );
+    rscRefIdx = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx );
   }
   if( rscRefIdx < 1 )
   {
@@ -1066,13 +1066,13 @@ __inline const RefPic& MbDataAccess::xGetColocatedMvsRefPicNonInterlaced( Mv acM
   }
   else
   {
-    acMv[0] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
-    acMv[1] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
-    acMv[2] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
-    acMv[3] = m_rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
+    acMv[0] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
+    acMv[1] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
+    acMv[2] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
+    acMv[3] = m_rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
   }
 
-  return m_rcMbColocated.getMbMotionData( eListIdx ).getRefPic( eParIdx );
+  return m_rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPic( eParIdx );
 }
 
 

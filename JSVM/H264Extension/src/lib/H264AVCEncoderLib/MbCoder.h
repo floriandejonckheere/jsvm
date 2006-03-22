@@ -118,6 +118,8 @@ public:
                               MbDataAccess* pcMbDataAccessBase,
                               Int									iSpatialScalabilityType,
                               Bool          bTerminateSlice );
+  ErrVal  encodeMotion      ( MbDataAccess& rcMbDataAccess,
+                              MbDataAccess* pcMbDataAccessBase );
   UInt    getBitCount       ()  { return m_pcMbSymbolWriteIf->getNumberOfWrittenBits(); }
 
 protected:

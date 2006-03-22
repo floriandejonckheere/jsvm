@@ -533,6 +533,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 
       RNOK( pcWriteIf->writeFlag( m_bFgsEntropyOrderFlag,                               "SH: fgs_order_flag" ) );
     }
+    RNOK( pcWriteIf->writeFlag( m_bAdaptivePredictionFlag,                       "SH: motion_refinement_flag" ) );
   }
 } //JVT-P031
   return Err::m_nOK;
@@ -885,6 +886,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       m_uiBaseWeightZeroBaseCoeff = AR_FGS_MAX_BASE_WEIGHT;
       m_bFgsEntropyOrderFlag = 0;
     }
+    RNOK( pcReadIf->getFlag( m_bAdaptivePredictionFlag,                       "SH: motion_refinement_flag" ) );
   }
 
   return Err::m_nOK;

@@ -99,6 +99,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "MbCoder.h"
 #include "BitCounter.h"
 #include "UvlcWriter.h"
+#include "H264AVCCommonLib/Quantizer.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -210,6 +211,21 @@ public:
                                 UInt            uiIterSearchRange,
                                 Double          dLambda );
 
+  ErrVal  encodeFGS           ( MbDataAccess&   rcMbDataAccess,
+                                MbDataAccess*   pcMbDataAccessBase,
+                                RefFrameList&   rcRefFrameList0,
+                                RefFrameList&   rcRefFrameList1,
+                                const IntFrame& rcOrigFrame,
+                                IntFrame*       pcPredSignal,
+                                IntFrame*       pcBQPredSignal,
+                                RefFrameList*   pcRefFrameListDiff,
+                                FGSCoder*       pcFGSCoder,
+                                IntYuvMbBuffer& rcBaseLayerBuffer,
+                                UInt            uiNumMaxIter,
+                                UInt            uiIterSearchRange,
+                                Double          dLambda,
+                                Int             iMaxQpDelta );
+
 //TMM_WP
   ErrVal getPredWeights( SliceHeader& rcSH, ListIdx eLstIdx, 
                          Double(*pafWeight)[3], IntFrame* pOrgFrame,
@@ -224,6 +240,16 @@ public:
 
 protected:
 
+  ErrVal  xScale4x4Block        ( TCoeff*            piCoeff,
+                                  const UChar*       pucScale,
+                                  UInt               uiStart,
+                                  const QpParameter& rcQP );
+  ErrVal  xScale8x8Block        ( TCoeff*            piCoeff,
+                                  const UChar*       pucScale,
+                                  const QpParameter& rcQP );
+  ErrVal  xScaleTCoeffs         ( MbDataAccess&      rcMbDataAccess,
+                                  MbTransformCoeffs& rcTCoeffs );
+
   ErrVal  xSetRdCostIntraMb     ( IntMbTempData&    rcMbTempData,
                                   UInt              uiCoeffBits,
                                   Bool              bBSlice,
@@ -233,7 +259,8 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bBLSkip          = false,
-                                  UInt              uiAdditionalBits = 0 );
+                                  UInt              uiAdditionalBits = 0,
+                                  Bool              bSkipMCPrediction = false );
 	//-- JVT-R012
   ErrVal  xSetRdCostInterMbSR   ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBase,
@@ -248,7 +275,8 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bBLSkip          = false,
-                                  UInt              uiAdditionalBits = 0 );
+                                  UInt              uiAdditionalBits = 0,
+                                  Bool              bSkipMCPrediction = false );
 	//-- JVT-R012
   ErrVal  xSetRdCost8x8InterMbSR( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
@@ -328,6 +356,15 @@ protected:
                                   Int				iSpatialScalabilityType,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   Bool              bResidualPred );
+
+  ErrVal  xEstimateMbFGSSkip    ( IntMbTempData*&   rpcMbTempData,
+                                  IntMbTempData*&   rpcMbBestData,
+                                  RefFrameList&     rcRefFrameList0,
+                                  RefFrameList&     rcRefFrameList1,
+                                  MbDataAccess*     pcMbDataAccessBase,
+                                  IntYuvMbBuffer&   rcBaseLayerBuffer,
+                                  IntFrame*         pcPredSignal,
+                                  Int               iMaxQpDelta );
 
 	//-- JVT-R091
   ErrVal  xEstimateMbSR					( IntMbTempData*&   rpcIntMbTempData,

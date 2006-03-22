@@ -435,7 +435,12 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             m_pcControlMng,
                                             pcCodingParameter,
                                             m_pcFrameMng ) );
+
   RNOK( m_pcRQFGSEncoder            ->init( m_apcYuvFullPelBufferCtrl,
+                                            m_apcYuvHalfPelBufferCtrl,
+                                            m_pcQuarterPelFilter,
+                                            m_pcMotionEstimation,
+                                            m_pcMbCoder,
                                             m_pcTransform,
                                             m_pcControlMng,
                                             m_pcMbEncoder ) );

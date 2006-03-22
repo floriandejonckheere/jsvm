@@ -246,6 +246,18 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
 }
 
 
+ErrVal MbDecoder::compensatePrediction( MbDataAccess& rcMbDataAccess )
+{
+  ROTRS( rcMbDataAccess.getMbData().isIntra(), Err::m_nOK );
+
+  IntYuvMbBuffer cIntYuvMbBuffer;
+  YuvMbBuffer    cYuvMbBuffer;
+  RNOK( m_pcMotionCompensation->compensateMb( rcMbDataAccess, &cYuvMbBuffer, false, false ) );
+  cIntYuvMbBuffer.loadBuffer( &cYuvMbBuffer );
+  RNOK( m_pcFrameMng->getPredictionIntFrame()->getFullPelYuvBuffer()->loadBuffer( &cIntYuvMbBuffer ) );
+  return Err::m_nOK;
+}
+
 
 ErrVal MbDecoder::calcMv( MbDataAccess& rcMbDataAccess,
                           MbDataAccess* pcMbDataAccessBaseMotion )
@@ -691,11 +703,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
 
   ROTRS( 0 == uiChromaCbp, Err::m_nOK );
 
-  Int       iShift, iScale;
-  Quantizer cQuantizer;
-  cQuantizer.setQp( rcMbDataAccess, false );
-
-  const QpParameter&  cCQp      = cQuantizer.getChromaQp();
+  Int                 iScale;
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
   UInt                uiUScalId = ( bIntra ? 1 : 4 );
   UInt                uiVScalId = ( bIntra ? 2 : 5 );
@@ -703,14 +711,10 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
   const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
 
   // scaling has already been performed on DC coefficients
-  /* HS: old scaling modified:
-     (It did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
-  iScale = ( pucScaleU ? pucScaleU[0] : 1 );
-  iShift = ( pucScaleU ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale, iShift );     
-  iScale = ( pucScaleV ? pucScaleV[0] : 1 );
-  iShift = ( pucScaleV ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale, iShift );
+  iScale = ( pucScaleU ? pucScaleU[0] : 16 );
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );     
+  iScale = ( pucScaleV ? pucScaleV[0] : 16 );
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale );
 
   RNOK( m_pcTransform->invTransformChromaBlocks( pucCb, iStride, rcCoeffs.get( CIdx(0) ) ) );
   RNOK( m_pcTransform->invTransformChromaBlocks( pucCr, iStride, rcCoeffs.get( CIdx(4) ) ) );
@@ -890,11 +894,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
 
   ROTRS( 0 == uiChromaCbp, Err::m_nOK );
   
-  Int       iShift, iScale;
-  Quantizer cQuantizer;
-  cQuantizer.setQp( rcMbDataAccess, false );
-
-  const QpParameter&  cCQp      = cQuantizer.getChromaQp();
+  Int                 iScale;
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
   UInt                uiUScalId = ( bIntra ? 1 : 4 );
   UInt                uiVScalId = ( bIntra ? 2 : 5 );
@@ -902,14 +902,10 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
   const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
 
   // scaling has already been performed on DC coefficients
-  /* HS: old scaling modified:
-     (It did not work for scaling matrices, when QpPer became less than 5 in an FGS enhancement) */
-  iScale = ( pucScaleU ? pucScaleU[0] : 1 );
-  iShift = ( pucScaleU ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale, iShift );     
-  iScale = ( pucScaleV ? pucScaleV[0] : 1 );
-  iShift = ( pucScaleV ? 5 : 1 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale, iShift );
+  iScale = ( pucScaleU ? pucScaleU[0] : 16 );
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );     
+  iScale = ( pucScaleV ? pucScaleV[0] : 16 );
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale );
 
   RNOK( m_pcTransform->invTransformChromaBlocks( pucCb, iStride, rcCoeffs.get( CIdx(0) ) ) );
   RNOK( m_pcTransform->invTransformChromaBlocks( pucCr, iStride, rcCoeffs.get( CIdx(4) ) ) );

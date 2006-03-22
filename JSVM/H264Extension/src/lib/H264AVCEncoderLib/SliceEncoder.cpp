@@ -232,6 +232,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
       RNOK( pcBaseLayerCtrl ->initMb          ( pcMbDataAccessBase, uiMbY, uiMbX ) );
     }
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
+    pcMbDataAccess->getMbData().deactivateMotionRefinement();
 
     if( rcRefFrameListBase.getSize() )
     {
@@ -328,6 +329,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
       RNOK( pcBaseLayerCtrl ->initMb          ( pcMbDataAccessBase, uiMbY, uiMbX ) );
     }
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
+    pcMbDataAccess->getMbData().deactivateMotionRefinement();
 
     RNOK( m_pcMbEncoder     ->encodeIntra     ( *pcMbDataAccess,
                                                 pcMbDataAccessBase,
@@ -398,6 +400,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
 
     RNOK( pcMbDataCtrl    ->initMb          (  pcMbDataAccess,    uiMbY, uiMbX ) );
     RNOK( m_pcControlMng  ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
+    pcMbDataAccess->getMbData().deactivateMotionRefinement();
 
     MbDataAccess* pcMbDataAccessBase  = 0;
     Bool          bWriteMotion        = rcSH.getBaseLayerId() == MSYS_UINT_MAX || rcSH.getAdaptivePredictionFlag();

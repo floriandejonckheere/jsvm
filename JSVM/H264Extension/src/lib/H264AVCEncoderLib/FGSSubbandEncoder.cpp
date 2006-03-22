@@ -108,6 +108,8 @@ RQFGSEncoder::RQFGSEncoder()
 , m_pcSliceHeader             ( 0 )
 , m_pcOrgResidual             ( 0 )
 , m_bTraceEnable              ( true )
+, m_pcFGSPredFrame            ( 0 )
+, m_pcRefFrameListDiff        ( 0 )
 {
   ::memset( m_apaucLumaCoefMap,       0x00,   16*sizeof(UChar*) );
   ::memset( m_aapaucChromaDCCoefMap,  0x00, 2* 4*sizeof(UChar*) );
@@ -146,12 +148,20 @@ RQFGSEncoder::destroy()
 
 ErrVal
 RQFGSEncoder::init( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
+                    YuvBufferCtrl**   apcYuvHalfPelBufferCtrl,
+                    QuarterPelFilter* pcQuarterPelFilter,
+                    MotionEstimation* pcMotionEstimation,
+                    MbCoder*          pcMbCoder,
                     Transform*      pcTransform,
                     ControlMngH264AVCEncoder* pcControlMng,
                     MbEncoder*      pcMbEncoder )
 {
   ROT( m_bInit );
   ROF( apcYuvFullPelBufferCtrl );
+  ROF( apcYuvHalfPelBufferCtrl );
+  ROF( pcQuarterPelFilter );
+  ROF( pcMotionEstimation );
+  ROF( pcMbCoder );
   ROF( pcTransform );
   ROF( pcControlMng );
   ROF( pcMbEncoder );
@@ -161,6 +171,10 @@ RQFGSEncoder::init( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
   m_iRemainingTCoeff          = 0;
   m_pcSliceHeader             = 0;
   m_pcOrgResidual             = 0;
+  m_papcYuvHalfPelBufferCtrl  = apcYuvHalfPelBufferCtrl;
+  m_pcQuarterPelFilter        = pcQuarterPelFilter;
+  m_pcMotionEstimation        = pcMotionEstimation;
+  m_pcMbCoder                 = pcMbCoder;
 
   xInit( apcYuvFullPelBufferCtrl, pcTransform );
 
@@ -175,6 +189,8 @@ RQFGSEncoder::uninit()
   ROF( m_bInit );
   
   xUninit();
+  m_pcFGSPredFrame = 0;
+  m_pcRefFrameListDiff = 0;
 
   m_pcMbEncoder               = 0;
   m_pcSymbolWriter            = 0;
@@ -196,6 +212,12 @@ ErrVal
 RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
                            MbDataCtrl*  pcCurrMbDataCtrl,
                            IntFrame*    pcOrgResidual,
+                           IntFrame*     pcOrgFrame,
+                           IntFrame*     pcPredSignal,
+                           RefFrameList* pcRefFrameList0,
+                           RefFrameList* pcRefFrameList1,
+                           UInt          uiNumMaxIter,
+                           UInt          uiIterSearchRange,
                            Double       dNumFGSLayers,
                            Double       dLambda,
                            Int          iMaxQpDelta,
@@ -218,6 +240,8 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
   ROF( pcCurrMbDataCtrl );
   ROF( pcOrgResidual );
   ROF( dNumFGSLayers >= 0.0 );
+  ROF( pcOrgFrame );
+  ROF( pcPredSignal );
 
   m_uiWidthInMB       = pcSliceHeader->getSPS().getFrameWidthInMbs  ();
   m_uiHeightInMB      = pcSliceHeader->getSPS().getFrameHeightInMbs ();
@@ -226,6 +250,12 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
   m_dLambda           = dLambda;
   m_pcCurrMbDataCtrl  = pcCurrMbDataCtrl;
   m_pcOrgResidual     = pcOrgResidual;
+  m_pcOrgFrame        = pcOrgFrame;
+  m_pcPredSignal      = pcPredSignal;
+  m_pcRefFrameList0   = pcRefFrameList0;
+  m_pcRefFrameList1   = pcRefFrameList1;
+  m_uiNumMaxIter      = uiNumMaxIter;
+  m_uiIterSearchRange = uiIterSearchRange;
 
   ROF( m_uiWidthInMB*m_uiHeightInMB <= m_cMbDataCtrlEL.getSize() );
 
@@ -265,10 +295,29 @@ RQFGSEncoder::initPicture( SliceHeader* pcSliceHeader,
   m_pcSliceHeader->setSliceHeaderQp       ( iNewSliceQP );
   m_dLambda          /= pow( 2.0, (Double)(iOldSliceQP-iNewSliceQP) / 3.0 );
 
+  RNOK( xInitBaseLayerSbb( m_pcSliceHeader->getSPS().getLayerId() ) );
   RNOK( xInitializeCodingPath() );
 
   RNOK( xScaleBaseLayerCoeffs() );
 
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RQFGSEncoder::initArFgs( IntFrame*     pcPredSignal,
+                         RefFrameList* pcRefFrameListDiff )
+{
+  if( m_pcSliceHeader->getArFgsUsageFlag() )
+  {
+    m_pcFGSPredFrame     = pcPredSignal;
+    m_pcRefFrameListDiff = pcRefFrameListDiff;
+  }
+  else
+  {
+    m_pcFGSPredFrame     = 0;
+    m_pcRefFrameListDiff = 0;
+  }
   return Err::m_nOK;
 }
 
@@ -286,6 +335,8 @@ RQFGSEncoder::finishPicture()
   m_pcSliceHeader     = 0;
   m_pcCurrMbDataCtrl  = 0;
   m_pcOrgResidual     = 0;
+  m_pcOrgFrame        = 0;
+  m_pcPredSignal      = 0;
 
   return Err::m_nOK;
 }
@@ -304,7 +355,11 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   rbFinished  = false;
 
   //JVT-P031
-  if(!uiFrac) RNOK ( xResidualTransform() );
+  if( ! uiFrac )
+  {
+    RNOK ( xMotionEstimation() );
+    RNOK ( xResidualTransform() );
+  }
   if(m_pcSliceHeader->getFgsEntropyOrderFlag() == 0)
   {
     RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, uiFrac, pFile ) );
@@ -510,22 +565,29 @@ RQFGSEncoder::xSetSymbols4x4( TCoeff*             piCoeff,
 
 ErrVal
 RQFGSEncoder::xSetSymbols8x8( TCoeff*             piCoeff,
-                              TCoeff*             piCoeffBase,
+                              UInt                uiMbX,
+                              UInt                uiMbY,
                               const QpParameter&  cQP,
                               UInt&               uiCoeffCost,
                               UInt&               ruiCbp,
                               LumaIdx             cIdx )
 {
-  Int   iRun  = 0;
-  Bool  bSig  = false;
+  Int     iRun            = 0;
+  Bool    bSig            = false;
+  UInt    auiBlockIdx[4]  =
+  {
+    ( uiMbY*4 + cIdx.y()     ) * 4 * m_uiWidthInMB + ( uiMbX*4 + cIdx.x()     ),
+    ( uiMbY*4 + cIdx.y()     ) * 4 * m_uiWidthInMB + ( uiMbX*4 + cIdx.x() + 1 ),
+    ( uiMbY*4 + cIdx.y() + 1 ) * 4 * m_uiWidthInMB + ( uiMbX*4 + cIdx.x()     ),
+    ( uiMbY*4 + cIdx.y() + 1 ) * 4 * m_uiWidthInMB + ( uiMbX*4 + cIdx.x() + 1 )
+  };
 
   for( Int iPos = 0; iPos < 64; iPos++ )
   {
-    Int iIndex      = g_aucFrameScan64[iPos];
-    Int iBaseLevel  = piCoeffBase     [iIndex];
-    Int iLevel      = piCoeff         [iIndex];
+    Int iIndex = g_aucFrameScan64[iPos];
+    Int iLevel = piCoeff         [iIndex];
 
-    if( iBaseLevel )
+    if( m_apaucLumaCoefMap[iPos/4][auiBlockIdx[iPos%4]] & SIGNIFICANT )
     {
       if( abs(iLevel) > 1 )
       {
@@ -564,8 +626,7 @@ RQFGSEncoder::xSetSymbols8x8( TCoeff*             piCoeff,
 
 ErrVal
 RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
-                                     MbDataAccess&    rcMbDataAccessBase,
-                                     IntYuvMbBuffer&  rcBLRecBuffer )
+                                     MbDataAccess&    rcMbDataAccessBase )
 {
 #define COEF_SKIP 1
 
@@ -597,8 +658,7 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
 	//--
 
   IntYuvMbBuffer  cMbBuffer;
-  cMbBuffer.loadBuffer( m_pcOrgResidual->getFullPelYuvBuffer() );
-  cMbBuffer.subtract  ( rcBLRecBuffer );
+  cMbBuffer      .loadBuffer( m_pcOrgResidual ->getFullPelYuvBuffer() );
 
   //===== luma =====
   if( b8x8 )
@@ -620,7 +680,7 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
       uiAbsSumMb += uiAbsSum8x8;
 
       RNOK( xSetSymbols8x8( rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx ),
-                            rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx ),
+                            uiMbX, uiMbY,
                             m_pcTransform->getLumaQp(),
                             uiCoeffCost8x8, uiCbp, c8x8Idx ) );
 
@@ -750,7 +810,6 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
   Bool  bSigAC_U      = false;
   Bool  bSigAC_V      = false;
 
-  cMbBuffer.set4x4Block( B4x4Idx(0) );
   RNOK( m_pcTransform->requantChroma( cMbBuffer,
                                       rcMbDataAccess    .getMbTCoeffs().get( CIdx(0) ),
                                       rcMbDataAccessBase.getMbTCoeffs().get( CIdx(0) ),
@@ -789,7 +848,6 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
     
     for( CIdx cIdxV(4); cIdxV.isLegal(8); cIdxV++ )
     {
-      UInt    ui8x8Idx    = ( 2*uiMbY + cIdxV.y() ) * 2 * m_uiWidthInMB + ( 2 * uiMbX + cIdxV.x() );
       RNOK( xSetSymbolsChroma( rcMbDataAccess    .getMbTCoeffs().get( cIdxV ),
                                uiMbX, uiMbY, 
                                m_pcTransform->getChromaQp(),
@@ -822,6 +880,93 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
 }
 
 
+ErrVal
+RQFGSEncoder::xMotionEstimation()
+{
+  RNOK( m_cMbDataCtrlEL    .clear     () );
+  RNOK( m_cMbDataCtrlEL    .reset     () );
+  RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, ENCODE_PROCESS, false, NULL ) );
+  RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS,    false, NULL ) );
+  ROTRS( m_eSliceType == I_SLICE, Err::m_nOK );
+
+  UInt            uiLayer             = m_pcSliceHeader->getSPS().getLayerId();
+  YuvBufferCtrl*  pcYuvFullBufferCtrl = m_papcYuvFullPelBufferCtrl[uiLayer];
+  YuvBufferCtrl*  pcYuvHalfBufferCtrl = m_papcYuvHalfPelBufferCtrl[uiLayer];
+
+  m_pcSliceHeader->setSliceType( m_eSliceType );
+  for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
+  for( UInt uiMbX = 0; uiMbX < m_uiWidthInMB;  uiMbX++ )
+  {
+    UInt          uiMbIndex           = uiMbY * m_uiWidthInMB + uiMbX;
+    MbDataAccess* pcMbDataAccessCurr  = 0;
+    MbDataAccess* pcMbDataAccessEL    = 0;
+
+    RNOK( m_pcCurrMbDataCtrl  ->initMb( pcMbDataAccessCurr, uiMbY, uiMbX ) );
+    RNOK( m_cMbDataCtrlEL      .initMb( pcMbDataAccessEL,   uiMbY, uiMbX ) );
+    RNOK( pcYuvFullBufferCtrl ->initMb(                     uiMbY, uiMbX ) );
+    RNOK( pcYuvHalfBufferCtrl ->initMb(                     uiMbY, uiMbX ) );
+    RNOK( m_pcMotionEstimation->initMb( uiMbY, uiMbX, *pcMbDataAccessEL  ) );
+
+    if( pcMbDataAccessCurr->getMbData().isIntra() || ! m_pcSliceHeader->getAdaptivePredictionFlag() )
+    {
+            pcMbDataAccessEL->getMbData().copyFrom  ( pcMbDataAccessCurr->getMbData() );
+      RNOK( pcMbDataAccessEL->getMbData().copyMotion( pcMbDataAccessCurr->getMbData() ) );
+      if( ! pcMbDataAccessCurr->getMbData().isIntra() )
+        pcMbDataAccessEL->getMbData().setBLSkipFlag( true );
+    }
+    else
+    {
+      //----- reconstruct base layer -----
+      IntYuvMbBuffer cBLRecBuffer;
+      RNOK( xReconstructMacroblock( *pcMbDataAccessCurr, cBLRecBuffer ) );
+      //----- get new motion data -----
+      RNOK( m_pcMbEncoder->encodeFGS( *pcMbDataAccessEL,
+                                      pcMbDataAccessCurr,
+                                      *m_pcRefFrameList0,
+                                      *m_pcRefFrameList1,
+                                      *m_pcOrgFrame,
+                                      m_pcPredSignal,
+                                      m_pcFGSPredFrame,
+                                      m_pcRefFrameListDiff,
+                                      this,
+                                      cBLRecBuffer,
+                                      m_uiNumMaxIter,
+                                      m_uiIterSearchRange,
+                                      m_dLambda,
+                                      m_iMaxQpDelta ) );
+
+      if( ! pcMbDataAccessEL->getMbData().getResidualPredFlag( PART_16x16 ) )
+      {
+        ROT( pcMbDataAccessEL->getMbData().getBLSkipFlag() );
+        //----- motion refinement without residual prediction ===> clear base layer coeffs -----
+        RNOK( xClearBaseCoeffs( *pcMbDataAccessEL, pcMbDataAccessCurr ) );
+      }
+    }
+  }
+  m_pcSliceHeader->setSliceType( F_SLICE );
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RQFGSEncoder::xEncodeMotionData( UInt uiMbYIdx, UInt uiMbXIdx )
+{
+  UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx;
+  MbDataAccess* pcMbDataAccessEL  = 0;
+  MbDataAccess* pcMbDataAccessBL  = 0;
+
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
+  RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
+  ROT ( pcMbDataAccessBL->getMbData().isIntra() );
+
+  ETRACE_NEWMB( uiMbIndex );
+  m_pcSliceHeader  ->setSliceType( m_eSliceType );
+  RNOK( m_pcMbCoder->encodeMotion( *pcMbDataAccessEL, pcMbDataAccessBL ) );
+  m_pcSliceHeader  ->setSliceType( F_SLICE );
+
+  return Err::m_nOK;
+}
 
 
 ErrVal
@@ -830,13 +975,10 @@ RQFGSEncoder::xResidualTransform( /*UInt uiBasePos*/ )
   UInt            uiLayer         = m_pcSliceHeader->getSPS().getLayerId();
   YuvBufferCtrl*  pcYuvBufferCtrl = m_papcYuvFullPelBufferCtrl[uiLayer];
   Bool            bLowPass        = m_pcSliceHeader->getTemporalLevel() == 0;
-  IntYuvMbBuffer  cBLRecBuffer;
 
-  RNOK( m_cMbDataCtrlEL.clear     () );
-  RNOK( m_cMbDataCtrlEL.reset     () );
-  
-  RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, ENCODE_PROCESS, false, NULL ) );
-  RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS,    false, NULL ) );
+  RNOK( m_pcOrgResidual->subtract( m_pcOrgFrame,    m_pcPredSignal   ) );
+  RNOK( m_pcOrgResidual->subtract( m_pcOrgResidual, m_pcBaseLayerSbb ) );
+  // Martin.Winken@hhi.fhg.de: clear, reset, initSlice now done in RQFGSEncoder::xMotionEstimation()
 
   for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
   for( UInt uiMbX = 0; uiMbX < m_uiWidthInMB;  uiMbX++ )
@@ -851,22 +993,34 @@ RQFGSEncoder::xResidualTransform( /*UInt uiBasePos*/ )
     if( pcMbDataAccessCurr->getMbData().isIntra16x16() ||
       ( m_pauiMacroblockMap[uiMbY * m_uiWidthInMB + uiMbX] & SIGNIFICANT ) != 0 )
     {
+      UInt uiMbIndex                = uiMbY * m_uiWidthInMB + uiMbX;
+      Bool bUseTransformSizeFromRDO = ! ( m_pauiMacroblockMap[uiMbIndex] & TRANSFORM_SPECIFIED ) && ! pcMbDataAccessCurr->getMbData().isIntra();
+      if( bUseTransformSizeFromRDO )
+      {
+        //----- set transform size from RDO (i.e., MbEncoder::encodeFGS()) if possible -----
+        pcMbDataAccessCurr->getMbData().setTransformSize8x8( pcMbDataAccessEL->getMbData().isTransformSize8x8() );
+      }
       //===== requantization =====
-      RNOK( xReconstructMacroblock( *pcMbDataAccessCurr, cBLRecBuffer ) );
-      RNOK( xRequantizeMacroblock ( *pcMbDataAccessEL,
-                                    *pcMbDataAccessCurr, cBLRecBuffer ) );
+      RNOK( xRequantizeMacroblock ( *pcMbDataAccessEL, *pcMbDataAccessCurr ) );
+      if( bUseTransformSizeFromRDO && ( pcMbDataAccessEL->getMbData().getMbCbp() & 0x0F ) == 0 )
+      {
+        //----- clear transform size flag if no luma samples coded -----
+        pcMbDataAccessCurr->getMbData().setTransformSize8x8( false );
+      }
     }
     else
     {
       //===== new encoding =====
       m_pcTransform->setClipMode( false );
       pcMbDataAccessEL->getMbData().setQp( m_pcSliceHeader->getPicQp() );
+      Bool bResidualPrediction = pcMbDataAccessEL->getMbData().getResidualPredFlag( PART_16x16 );
       RNOK( m_pcMbEncoder->encodeResidual( *pcMbDataAccessEL,
                                            *pcMbDataAccessCurr,
                                            m_pcOrgResidual,
                                            m_dLambda,
                                            bLowPass,
                                            m_iMaxQpDelta ) );
+      pcMbDataAccessEL->getMbData().setResidualPredFlag( bResidualPrediction, PART_16x16 );
       m_pcTransform->setClipMode( true );
     }
   }
@@ -1297,6 +1451,13 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         {
           for( UInt uiMbXIdx = m_uiMbXIdx; uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
           {
+            if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
+                ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
+                ( m_pauiMacroblockMap[uiMbYIdx * m_uiWidthInMB + uiMbXIdx] >> NUM_COEFF_SHIFT ) == 0 )
+            {
+              // ----- Write motion parameters the first time we visit each inter-coded macroblock -----
+              RNOK( xEncodeMotionData( uiMbYIdx, uiMbXIdx ) );
+            }
             if(!bFirstPass)
             {
               m_uiMbYIdx = uiMbYIdx;
@@ -1524,6 +1685,13 @@ RQFGSEncoder::xEncodingSubbandFGS(  Bool& rbFinished,
         for( UInt uiMbYIdx = uiFirstMbY; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
         for( UInt uiMbXIdx = ( uiMbYIdx == uiFirstMbY ? uiFirstMbX : 0 ); uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
         {
+          if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
+            ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
+            iLumaScanIdx == 0 )
+          {
+            // ----- Write motion parameters the first time we visit each inter-coded macroblock -----
+            RNOK( xEncodeMotionData( uiMbYIdx, uiMbXIdx ) );
+          }
           //===== LUMA =====
           for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
           for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
@@ -2572,138 +2740,6 @@ RQFGSEncoder::xEncodeCoefficientChromaACRef ( UInt  uiPlane,
   return Err::m_nOK;
 }
 
-
-
-
-
-
-UInt
-RQFGSEncoder::xGetSigCtxLuma( UInt  uiScanIdx,
-                              UInt  uiBlockY,
-                              UInt  uiBlockX )
-{
-  UInt  uiNumSigDiag  = 0;
-  UInt  uiNumSigNext  = 0;
-  if( uiBlockX > 0 && uiBlockY > 0 )
-  {
-    uiNumSigDiag += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY-1)*4*m_uiWidthInMB+(uiBlockX-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiBlockX > 0 && uiBlockY < 4*m_uiHeightInMB-1 )
-  {
-    uiNumSigDiag += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY+1)*4*m_uiWidthInMB+(uiBlockX-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiBlockX < 4*m_uiWidthInMB-1 && uiBlockY < 4*m_uiHeightInMB-1 )
-  {
-    uiNumSigDiag += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY+1)*4*m_uiWidthInMB+(uiBlockX+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiBlockX < 4*m_uiWidthInMB-1 && uiBlockY > 0 )
-  {
-    uiNumSigDiag += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY-1)*4*m_uiWidthInMB+(uiBlockX+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiBlockX > 0 )
-  {
-    uiNumSigNext += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY)*4*m_uiWidthInMB+(uiBlockX-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiBlockX < 4*m_uiWidthInMB-1 )
-  {
-    uiNumSigNext += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY)*4*m_uiWidthInMB+(uiBlockX+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiBlockY > 0 )
-  {
-    uiNumSigNext += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY-1)*4*m_uiWidthInMB+(uiBlockX)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiBlockY < 4*m_uiHeightInMB-1 )
-  {
-    uiNumSigNext += ( m_apaucLumaCoefMap[uiScanIdx][(uiBlockY+1)*4*m_uiWidthInMB+(uiBlockX)] & SIGNIFICANT ? 1 : 0 );
-  }
-  return ( 2*uiNumSigDiag + 3*uiNumSigNext + 9 ) / 10;
-}
- 
-UInt
-RQFGSEncoder::xGetSigCtxChromaDC( UInt  uiPlane,
-                                  UInt  uiScanIdx,
-                                  UInt  uiMbY,
-                                  UInt  uiMbX )
-{
-  UInt  uiNumSigDiag  = 0;
-  UInt  uiNumSigNext  = 0;
-  if( uiMbX > 0 && uiMbY > 0 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY-1)*m_uiWidthInMB+(uiMbX-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiMbX > 0 && uiMbY < m_uiHeightInMB-1 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY+1)*m_uiWidthInMB+(uiMbX-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiMbX < m_uiWidthInMB-1 && uiMbY < m_uiHeightInMB-1 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY+1)*m_uiWidthInMB+(uiMbX+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiMbX < m_uiWidthInMB-1 && uiMbY > 0 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY-1)*m_uiWidthInMB+(uiMbX+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiMbX > 0 )
-  {
-    uiNumSigNext += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY)*m_uiWidthInMB+(uiMbX-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiMbX < m_uiWidthInMB-1 )
-  {
-    uiNumSigNext += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY)*m_uiWidthInMB+(uiMbX+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiMbY > 0 )
-  {
-    uiNumSigNext += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY-1)*m_uiWidthInMB+(uiMbX)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiMbY < m_uiHeightInMB-1 )
-  {
-    uiNumSigNext += ( m_aapaucChromaDCCoefMap[uiPlane][uiScanIdx][(uiMbY+1)*m_uiWidthInMB+(uiMbX)] & SIGNIFICANT ? 1 : 0 );
-  }
-  return 3 + ( 2*uiNumSigDiag + 3*uiNumSigNext + 9 ) / 10;
-}
- 
-UInt
-RQFGSEncoder::xGetSigCtxChromaAC( UInt  uiPlane,
-                                  UInt  uiScanIdx,
-                                  UInt  uiB8Y,
-                                  UInt  uiB8X )
-{
-  UInt  uiNumSigDiag  = 0;
-  UInt  uiNumSigNext  = 0;
-  if( uiB8X > 0 && uiB8Y > 0 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y-1)*2*m_uiWidthInMB+(uiB8X-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiB8X > 0 && uiB8Y < 2*m_uiHeightInMB-1 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y+1)*2*m_uiWidthInMB+(uiB8X-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiB8X < 2*m_uiWidthInMB-1 && uiB8Y < 2*m_uiHeightInMB-1 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y+1)*2*m_uiWidthInMB+(uiB8X+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiB8X < 2*m_uiWidthInMB-1 && uiB8Y > 0 )
-  {
-    uiNumSigDiag += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y-1)*2*m_uiWidthInMB+(uiB8X+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiB8X > 0 )
-  {
-    uiNumSigNext += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y)*2*m_uiWidthInMB+(uiB8X-1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiB8X < 2*m_uiWidthInMB-1 )
-  {
-    uiNumSigNext += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y)*2*m_uiWidthInMB+(uiB8X+1)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiB8Y > 0 )
-  {
-    uiNumSigNext += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y-1)*2*m_uiWidthInMB+(uiB8X)] & SIGNIFICANT ? 1 : 0 );
-  }
-  if( uiB8Y < 2*m_uiHeightInMB-1 )
-  {
-    uiNumSigNext += ( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][(uiB8Y+1)*2*m_uiWidthInMB+(uiB8X)] & SIGNIFICANT ? 1 : 0 );
-  }
-  return 6 + ( 2*uiNumSigDiag + 3*uiNumSigNext + 9 ) / 10;
-}
 
 ErrVal
 RQFGSEncoder::xVLCParseLuma( UInt   uiBlockYIndex,

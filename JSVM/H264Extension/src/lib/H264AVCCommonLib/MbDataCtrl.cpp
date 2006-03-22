@@ -124,6 +124,8 @@ MbDataCtrl::MbDataCtrl():
   m_apcMbMvdData    [LIST_1]  = NULL;
   m_apcMbMotionData [LIST_0]  = NULL;
   m_apcMbMotionData [LIST_1]  = NULL;
+  m_apcMbMotionDataBase [LIST_0]  = NULL;
+  m_apcMbMotionDataBase [LIST_1]  = NULL;
 }
 
 MbDataCtrl::~MbDataCtrl()
@@ -139,6 +141,8 @@ ErrVal MbDataCtrl::xCreateData( UInt uiSize )
   ROT( NULL == ( m_pcMbTCoeffs         = new MbTransformCoeffs [ uiSize ] ) );
   ROT( NULL == ( m_apcMbMotionData[0]  = new MbMotionData      [ uiSize ] ) );
   ROT( NULL == ( m_apcMbMotionData[1]  = new MbMotionData      [ uiSize ] ) );
+  ROT( NULL == ( m_apcMbMotionDataBase[0]  = new MbMotionData      [ uiSize ] ) );
+  ROT( NULL == ( m_apcMbMotionDataBase[1]  = new MbMotionData      [ uiSize ] ) );
   ROT( NULL == ( m_apcMbMvdData[0]     = new MbMvData          [ uiSize ] ) );
   ROT( NULL == ( m_apcMbMvdData[1]     = new MbMvData          [ uiSize ] ) );
   ROT( NULL == ( m_pcMbData            = new MbData            [ uiSize ] ) );
@@ -149,7 +153,9 @@ ErrVal MbDataCtrl::xCreateData( UInt uiSize )
                               m_apcMbMvdData   [0] + uiIdx,
                               m_apcMbMvdData   [1] + uiIdx,
                               m_apcMbMotionData[0] + uiIdx,
-                              m_apcMbMotionData[1] + uiIdx );
+                              m_apcMbMotionData[1] + uiIdx,
+                              m_apcMbMotionDataBase[0] + uiIdx,
+                              m_apcMbMotionDataBase[1] + uiIdx );
   }
 
   // clear outside mb data
@@ -168,6 +174,8 @@ ErrVal MbDataCtrl::xDeleteData()
   H264AVC_DELETE( m_apcMbMvdData[0] );
   H264AVC_DELETE( m_apcMbMotionData[1] );
   H264AVC_DELETE( m_apcMbMotionData[0] );
+  H264AVC_DELETE( m_apcMbMotionDataBase[1] );
+  H264AVC_DELETE( m_apcMbMotionDataBase[0] );
   H264AVC_DELETE( m_pcMbData );
   m_uiSize          = 0;
   return Err::m_nOK;
@@ -199,6 +207,14 @@ ErrVal MbDataCtrl::xResetData()
   for( uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
   {
     m_apcMbMotionData[1][ uiIdx ].reset();
+  }
+  for( uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
+  {
+    m_apcMbMotionDataBase[0][ uiIdx ].reset();
+  }
+  for( uiIdx = 0; uiIdx < m_uiSize; uiIdx++ )
+  {
+    m_apcMbMotionDataBase[1][ uiIdx ].reset();
   }
   return Err::m_nOK;
 }
@@ -240,6 +256,15 @@ ErrVal MbDataCtrl::init( const SequenceParameterSet& rcSPS )
 
   m_bInitDone     = true;
 
+  return Err::m_nOK;
+}
+
+
+ErrVal
+MbDataCtrl::switchMotionRefinement()
+{
+  for( UInt n = 0; n < m_uiSize; n++ )
+    m_pcMbData[n].switchMotionRefinement();
   return Err::m_nOK;
 }
 
@@ -661,8 +686,11 @@ ControlData::ControlData()
 , m_pacBQMbQP           ( 0 )
 , m_pauiBQMbCbp         ( 0 )
 , m_pabBQ8x8Trafo       ( 0 )
+, m_paeBQMbMode         ( 0 )
+, m_pusBQFwdBwd         ( 0 )
 , m_bSpatialScalability ( false)//SSUN@SHARP
 {
+  m_paacBQMotionData[0] = m_paacBQMotionData[1] = 0;
 }
 
 ControlData::~ControlData()
@@ -732,6 +760,10 @@ ControlData::initBQData( UInt uiNumMb )
   ROFRS( ( m_pacBQMbQP      = new UChar [uiNumMb] ), Err::m_nERR );
   ROFRS( ( m_pauiBQMbCbp    = new UInt  [uiNumMb] ), Err::m_nERR );
   ROFRS( ( m_pabBQ8x8Trafo  = new Bool  [uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_paeBQMbMode    = new MbMode[uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_pusBQFwdBwd    = new UShort[uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_paacBQMotionData[0] = new MbMotionData[uiNumMb] ), Err::m_nERR );
+  ROFRS( ( m_paacBQMotionData[1] = new MbMotionData[uiNumMb] ), Err::m_nERR );
   return Err::m_nOK;
 }
 
@@ -741,9 +773,17 @@ ControlData::uninitBQData()
   delete [] m_pacBQMbQP;
   delete [] m_pauiBQMbCbp;
   delete [] m_pabBQ8x8Trafo;
+  delete [] m_paeBQMbMode;
+  delete [] m_pusBQFwdBwd;
+  delete [] m_paacBQMotionData[0];
+  delete [] m_paacBQMotionData[1];
   m_pacBQMbQP     = 0;
   m_pauiBQMbCbp   = 0;
   m_pabBQ8x8Trafo = 0;
+  m_paeBQMbMode   = 0;
+  m_pusBQFwdBwd   = 0;
+  m_paacBQMotionData[0] = 0;
+  m_paacBQMotionData[1] = 0;
   return Err::m_nOK;
 }
 
@@ -759,6 +799,10 @@ ControlData::storeBQLayerQpAndCbp()
     m_pacBQMbQP     [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
     m_pauiBQMbCbp   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
     m_pabBQ8x8Trafo [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
+    m_paeBQMbMode   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMode();
+    m_pusBQFwdBwd   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getFwdBwd();
+    m_paacBQMotionData[0][uiMbIndex].copyFrom( m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMotionData( ListIdx( 0 ) ) );
+    m_paacBQMotionData[1][uiMbIndex].copyFrom( m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMotionData( ListIdx( 1 ) ) );
   }
   return Err::m_nOK;
 }
@@ -782,6 +826,23 @@ ControlData::switchBQLayerQpAndCbp()
     m_pacBQMbQP     [uiMbIndex] = ucQP;
     m_pauiBQMbCbp   [uiMbIndex] = uiCbp;
     m_pabBQ8x8Trafo [uiMbIndex] = bT8x8;
+
+    MbMode       eMbMode  = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMode();
+    UShort       usFwdBwd = m_pcMbDataCtrl->getMbData( uiMbIndex ).getFwdBwd();
+
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbMode           ( m_paeBQMbMode [uiMbIndex] );
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setFwdBwd           ( m_pusBQFwdBwd [uiMbIndex] );
+
+    m_paeBQMbMode   [uiMbIndex] = eMbMode;
+    m_pusBQFwdBwd   [uiMbIndex] = usFwdBwd;
+
+    for( UInt ui = 0; ui < 2; ui++ )
+    {
+      MbMotionData cMbMotionData;
+      cMbMotionData.copyFrom( m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMotionData( ListIdx( ui ) ) );
+      m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).getMbMotionData( ListIdx( ui ) ).copyFrom( m_paacBQMotionData[ui][uiMbIndex] );
+      m_paacBQMotionData[ui][uiMbIndex].copyFrom( cMbMotionData );
+    }
   }
   return Err::m_nOK;
 }

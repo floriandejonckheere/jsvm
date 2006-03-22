@@ -209,6 +209,44 @@ MbData::upsampleMotion( MbData& rcMbData, Par8x8 ePar8x8, Bool bDirect8x8 )
   return Err::m_nOK;
 }
 
+
+Void
+MbData::switchMotionRefinement()
+{
+  ROFVS( m_bHasMotionRefinement );
+
+  // switch mb_type
+  MbMode  eMbModeTemp = m_eMbMode;
+  m_eMbMode = m_eMbModeBase;
+  m_eMbModeBase = eMbModeTemp;
+
+  // switch sub-mb_type
+  BlkMode aBlkModeTemp[4];  ::memcpy( aBlkModeTemp, m_aBlkMode, sizeof( m_aBlkMode ) );
+  ::memcpy( m_aBlkMode, m_aBlkModeBase, sizeof( m_aBlkMode ) );
+  ::memcpy( m_aBlkModeBase, aBlkModeTemp, sizeof( m_aBlkMode ) );
+
+  // switch motion vectors
+  for( UInt ui = 0; ui < 2; ui++ )
+  {
+    MbMotionData cMbMotionDataTemp;
+    cMbMotionDataTemp.copyFrom( *m_apcMbMotionData[ui] );
+    m_apcMbMotionData[ui]->copyFrom( *m_apcMbMotionDataBase[ui] );
+    m_apcMbMotionDataBase[ui]->copyFrom( cMbMotionDataTemp );
+  }
+}
+
+Void
+MbData::activateMotionRefinement()
+{
+  AOT( m_bHasMotionRefinement );
+  m_bHasMotionRefinement = true;
+  m_eMbModeBase          = m_eMbMode;
+  ::memcpy( m_aBlkModeBase, m_aBlkMode, sizeof( m_aBlkMode ) );
+  m_apcMbMotionDataBase[0]->copyFrom( *m_apcMbMotionData[0] );
+  m_apcMbMotionDataBase[1]->copyFrom( *m_apcMbMotionData[1] );
+}
+
+
 // TMM_ESS_UNIFIED {
 ErrVal
 MbData::noUpsampleMotion()

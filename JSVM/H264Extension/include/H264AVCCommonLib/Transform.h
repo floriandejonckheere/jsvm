@@ -130,11 +130,6 @@ public:
     xForTransformChromaDc( piCoeff );
   }
 
-  Void eForTransformLumaDc      ( TCoeff* piCoeff )
-  {
-    xForTransformLumaDc( piCoeff );
-  }
-
   Void e8x8Trafo                ( XPel*               pOrg, 
                                   Int                 iStride,
                                   TCoeff*             piCoeff )
@@ -171,7 +166,7 @@ public:
   ErrVal        invTransformChromaBlocks  ( Pel*  puc, Int iStride, TCoeff* piCoeff );
   
   ErrVal        invTransformDcCoeff       ( TCoeff* piCoeff, Int iQpScale );
-  static Void   invTransformChromaDc      ( TCoeff* piCoeff, const Int iQpScale, const Int iShift );
+  Void          invTransformChromaDc      ( TCoeff* piCoeff, Int iQpScale );
 
 
   ErrVal        transformMb               ( TCoeff*         piCoeff,

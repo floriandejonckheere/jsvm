@@ -144,7 +144,7 @@ public:
   static ErrVal create( LoopFilter*& rpcLoopFilter );
   ErrVal destroy();
 
-  ErrVal process        ( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer = NULL );
+  ErrVal process        ( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer = NULL, IntYuvPicBuffer* pcHighpassYuvBuffer = NULL );
   ErrVal process        ( SliceHeader&        rcSH,
                           IntFrame*           pcFrame,
                           MbDataCtrl*         pcMbDataCtrlMot,

@@ -86,6 +86,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "CabacReader.h"
 #include "UvlcReader.h"
 #include "BitReadBuffer.h"
+#include "MbParser.h"
+#include "MbDecoder.h"
 
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/IntFrame.h"
@@ -108,6 +110,8 @@ RQFGSDecoder::RQFGSDecoder()
 , m_pcUvlcReader              ( 0 )
 , m_pcCabacReader             ( 0 )
 , m_pcCurrSliceHeader         ( 0 )
+, m_pcMbParser                ( 0 )
+, m_pcMbDecoder               ( 0 )
 {
   ::memset( m_apaucLumaCoefMap,       0x00,   16*sizeof(UChar*) );
   ::memset( m_aapaucChromaDCCoefMap,  0x00, 2* 4*sizeof(UChar*) );
@@ -146,6 +150,8 @@ RQFGSDecoder::destroy()
 ErrVal
 RQFGSDecoder::init( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
                     Transform*      pcTransform,
+                    MbParser*       pcMbParser,
+                    MbDecoder*      pcMbDecoder,
                     UvlcReader*     pcUvlcReader,
                     CabacReader*    pcCabacReader )
 {
@@ -154,10 +160,14 @@ RQFGSDecoder::init( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
   ROF( pcTransform );
   ROF( pcUvlcReader );
   ROF( pcCabacReader );
+  ROF( pcMbParser );
+  ROF( pcMbDecoder );
 
   m_pcCabacReader             = pcCabacReader;
   m_bInit                     = true;
   m_pcUvlcReader              = pcUvlcReader;
+  m_pcMbParser                = pcMbParser;
+  m_pcMbDecoder               = pcMbDecoder;
 
   m_pcCurrSliceHeader         = 0;
   m_bPicChanged               = false;
@@ -177,6 +187,8 @@ RQFGSDecoder::uninit()
   
   xUninit();
 
+  m_pcMbParser                = 0;
+  m_pcMbDecoder               = 0;
   m_pcCabacReader             = 0;
   m_pcSymbolReader            = 0;
   m_pcUvlcReader              = 0;
@@ -211,6 +223,7 @@ RQFGSDecoder::initPicture( SliceHeader* pcSliceHeader,
   Bool bCabac         = pcSliceHeader->getPPS().getEntropyCodingModeFlag();
   m_pcSymbolReader    = ( bCabac ) ? (MbSymbolReadIf*)m_pcCabacReader : (MbSymbolReadIf*)m_pcUvlcReader;
 
+  RNOK( xInitBaseLayerSbb( m_pcCurrSliceHeader->getLayerId() ) );
   RNOK( xInitializeCodingPath() );
   RNOK( xScaleBaseLayerCoeffs() );
 
@@ -246,6 +259,7 @@ RQFGSDecoder::decodeNextLayer( SliceHeader* pcSliceHeader )
   m_pcCurrSliceHeader->setSliceHeaderQp ( pcSliceHeader->getPicQp()          );
   m_pcCurrSliceHeader->setFirstMbInSlice( pcSliceHeader->getFirstMbInSlice() );
   m_pcCurrSliceHeader->setNumMbsInSlice ( pcSliceHeader->getNumMbsInSlice () );
+  m_pcCurrSliceHeader->setAdaptivePredictionFlag( pcSliceHeader->getAdaptivePredictionFlag() );
   m_bPicChanged = true;
 
   if(pcSliceHeader->getFgsEntropyOrderFlag() == 0)
@@ -360,6 +374,13 @@ RQFGSDecoder::xDecodingFGS()
         for( UInt uiMbYIdx = uiFirstMbY; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
         for( UInt uiMbXIdx = ( uiMbYIdx == uiFirstMbY ? uiFirstMbX : 0 ); uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
         {
+          if( m_pcCurrSliceHeader->getAdaptivePredictionFlag() &&
+              ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
+              ( m_pauiMacroblockMap[uiMbYIdx * m_uiWidthInMB + uiMbXIdx] >> NUM_COEFF_SHIFT ) == 0 )
+          {
+            //----- Read motion parameters the first time we visit each inter-coded macroblock -----
+            RNOK( xDecodeMotionData( uiMbYIdx, uiMbXIdx ) );
+          }
           //===== Luma =====
           for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
           for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
@@ -490,6 +511,13 @@ RQFGSDecoder::xDecodingSubbandFGS()
         for( UInt uiMbYIdx = uiFirstMbY; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
         for( UInt uiMbXIdx = ( uiMbYIdx == uiFirstMbY ? uiFirstMbX : 0 ); uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
         {
+          if( m_pcCurrSliceHeader->getAdaptivePredictionFlag() &&
+            ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
+            iLumaScanIdx == 0 )
+          {
+            //----- Read motion parameters the first time we visit each inter-coded macroblock -----
+            RNOK( xDecodeMotionData( uiMbYIdx, uiMbXIdx ) );
+          }
           //===== Luma =====
           for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
           for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
@@ -626,6 +654,31 @@ RQFGSDecoder::xDecodingSubbandFGS()
 }
 
 
+ErrVal
+RQFGSDecoder::xDecodeMotionData( UInt uiMbYIdx, UInt uiMbXIdx )
+{
+  UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx;
+  MbDataAccess* pcMbDataAccessEL  = 0;
+  MbDataAccess* pcMbDataAccessBL  = 0;
+
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
+  RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
+  ROT ( pcMbDataAccessBL->getMbData().isIntra() );
+
+  DTRACE_NEWMB( uiMbIndex );
+  RNOK( m_pcMbParser ->readMotion( *pcMbDataAccessEL, pcMbDataAccessBL ) );
+  RNOK( m_pcMbDecoder->calcMv    ( *pcMbDataAccessEL, pcMbDataAccessBL ) );
+
+  if( ! pcMbDataAccessEL->getMbData().getBLSkipFlag() && ! pcMbDataAccessEL->getMbData().getResidualPredFlag( PART_16x16 ) )
+  {
+    //----- motion refinement without residual prediction ===> clear base layer coeffs -----
+    UInt            uiLayer         = m_pcCurrSliceHeader->getLayerId();
+    YuvBufferCtrl*  pcYuvBufferCtrl = m_papcYuvFullPelBufferCtrl[uiLayer];
+    RNOK( pcYuvBufferCtrl->initMb( uiMbYIdx, uiMbXIdx ) );
+    RNOK( xClearBaseCoeffs( *pcMbDataAccessEL, pcMbDataAccessBL ) );
+  }
+  return Err::m_nOK;
+}
 
 
 ErrVal
@@ -643,6 +696,9 @@ RQFGSDecoder::xInitializeMacroblockQPs()
     //===== set QP for enhancement layer =====
     Int iQpEL = max( 0, pcMbDataAccess->getMbData().getQp() - RQ_QP_DELTA );
     pcMbDataAccessEL->getMbData().setQp( iQpEL );
+    RNOK( pcMbDataAccessEL->getMbData().copyMotion( pcMbDataAccess->getMbData() ) );
+    if( ! m_pcCurrSliceHeader->getAdaptivePredictionFlag() && ! pcMbDataAccess->getMbData().isIntra() )
+      pcMbDataAccessEL->getMbData().setBLSkipFlag( true );
   }
 
   return Err::m_nOK;

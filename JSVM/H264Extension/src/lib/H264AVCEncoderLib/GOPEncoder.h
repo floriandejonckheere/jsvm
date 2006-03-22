@@ -403,6 +403,10 @@ protected:
                                           IntFrame*                   pcSubband,
                                           IntFrame*                   pcCLRec,
                                           UInt                        uiFrameIdInGOP,
+                                          IntFrame*                   pcOrgFrame,
+                                          IntFrame*                   pcHighPassPredSignal,
+                                          RefFrameList&               rcRefFrameList0,
+                                          RefFrameList&               rcRefFrameList1,
                                           UInt&                       ruiBits );
 
 
@@ -544,6 +548,8 @@ protected:
   Bool                          m_bSaveMotionInfo;                    // save motion data to file
   FILE*                         m_pMotionInfoFile;                    // motion data file
 
+  UInt                          m_uiFGSMotionMode;                    // 0: no FGS motion refinement, 1: only non-key framees, 2: for all frames
+
   //----- variable control parameters -----
   Bool                          m_bInitDone;                          // initilisation
   Bool                          m_bFirstGOPCoded;                     // true if first GOP of a sequence has been coded
@@ -557,6 +563,7 @@ protected:
   //----- frame memories -----
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
   IntFrame**                    m_papcFrame;                          // frame stores
+  IntFrame**                    m_papcOrgFrame;                       // original (highpass) frames
   IntFrame**                    m_papcBQFrame;                        // base quality frames
   IntFrame**                    m_papcCLRecFrame;                     // closed-loop rec. (needed when m_uiQualityLevelForPrediction < NumFGS)
   IntFrame**                    m_papcResidual;                       // frame stores for residual data

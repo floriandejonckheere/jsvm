@@ -144,6 +144,7 @@ public:
 
   MbData& getMbData( UInt uiMbX, UInt uiMbY )   { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
 
+  ErrVal        switchMotionRefinement();
 
   ErrVal        copyMotion    ( MbDataCtrl& rcMbDataCtrl );
 	// TMM_ESS {
@@ -185,6 +186,7 @@ protected:
   DynBuf<DFP*>        m_cpDFPBuffer;
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMotionData*       m_apcMbMotionData[2];
+  MbMotionData*       m_apcMbMotionDataBase[2];
   MbMvData*           m_apcMbMvdData[2];
   MbData*             m_pcMbData;
   MbDataAccess*       m_pcMbDataAccess;
@@ -335,6 +337,9 @@ private:
   UChar*        m_pacBQMbQP;
   UInt*         m_pauiBQMbCbp;
   Bool*         m_pabBQ8x8Trafo;
+  MbMode*       m_paeBQMbMode;
+  UShort*       m_pusBQFwdBwd;
+  MbMotionData* m_paacBQMotionData[2];
 
   RefFrameList  m_acPrdFrameList[2];
 

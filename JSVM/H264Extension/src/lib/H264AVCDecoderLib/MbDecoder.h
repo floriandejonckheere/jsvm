@@ -138,6 +138,7 @@ public:
                                   Bool          bReconstructAll );
   ErrVal calcMv                 ( MbDataAccess& rcMbDataAccess,
                                   MbDataAccess* pcMbDataAccessBaseMotion );
+  ErrVal compensatePrediction   ( MbDataAccess& rcMbDataAccess );
 
 protected:
 	ErrVal xDecodeMbPCM           ( MbDataAccess&     rcMbDataAccess,

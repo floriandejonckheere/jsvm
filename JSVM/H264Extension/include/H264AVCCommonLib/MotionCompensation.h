@@ -168,7 +168,7 @@ public:
   ErrVal initSlice( const SliceHeader& rcSH );
   ErrVal uninit();
 
-  ErrVal compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant);
+  ErrVal compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant, Bool bCalcMv = true );
   ErrVal calculateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant );
 
   ErrVal compensateMb     ( MbDataAccess&   rcMbDataAccess,
@@ -216,6 +216,16 @@ public:
                                         RefFrameList&   rcRefFrameList0, 
                                         RefFrameList&   rcRefFrameList1, 
                                         IntYuvMbBuffer* pcYuvMbBuffer);
+
+  ErrVal xAdjustMbResidual            ( IntYuvMbBuffer& rcMbBufferDiff,
+                                        MbDataAccess*   pcMbDataAccess,
+                                        FGSCoder*       pcFGSCoder,
+                                        SliceHeader*    pcSliceHeader );
+
+  ErrVal adaptiveMotionCompensationMb(  IntYuvMbBuffer* pcMbBufferMC,
+                                        RefFrameList*   pcRefFrameListDiff,
+                                        MbDataAccess*   pcMbDataAccessMotion,
+                                        FGSCoder*       pcFGSCoder );
 
   ErrVal xAdaptiveMotionCompensation  ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
                                         IntFrame*       pcMCFrame,
@@ -280,7 +290,7 @@ public:
   ErrVal calcMvMb   (                   MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
   ErrVal calcMvSubMb( B8x8Idx c8x8Idx,  MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
-  ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, Bool& rbValid, Bool bFaultTolerant );
+  ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, Bool& rbValid, Bool bFaultTolerant, Bool bCalcMv = true );
   ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, IntYuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 );
   ErrVal initMb( UInt uiMbY, UInt uiMbX, MbDataAccess& rcMbDataAccess );
 
