@@ -144,6 +144,11 @@ public:
 	UInt    getFrmHeight              ( UInt uiScalableLayer ) const { return m_auiFrmHeight[uiScalableLayer]; }
 	Double  getFrameRate              ( UInt uiScalableLayer ) const { return m_adFramerate[uiScalableLayer]; }
 	Bool    getBaseLayerModeAVC       ()                       const { return m_bAVCBaseLayer;                }
+#if 1 //BUG_FIX liuhui 0603
+  UInt    getStdAVCOffset           ()                       const { return m_uiStdAVCOffset;                }
+  UInt    getScalableLayer  ( UInt uiLayer, UInt uiTL, UInt uiQL ) 
+	                                            const { return m_aaauiScalableLayerId[uiLayer][uiTL][uiQL]; }
+#endif
 	Void    setBaseLayerMode          ( Bool bAVCCompatible  )       { m_bAVCBaseLayer = bAVCCompatible;      }
   UInt    getFrameWidth     ( UInt uiLayer )    const { return m_auiFrameWidth  [uiLayer]; }
   UInt    getFrameHeight    ( UInt uiLayer )    const { return m_auiFrameHeight [uiLayer]; }
@@ -181,6 +186,9 @@ private:
   UInt64  m_aaui64BaseLayerBytes[MAX_LAYERS][MAX_DSTAGES+1];
   UInt64  m_aaui64FGSLayerBytes [MAX_LAYERS][MAX_DSTAGES+1];
   UInt    m_aauiNumPictures     [MAX_LAYERS][MAX_DSTAGES+1];
+#if 1 //BUG_FIX liuhui 0603
+  UInt    m_uiStdAVCOffset;
+#endif
 
   UInt    m_uiScalableNumLayersMinus1;
   UInt    m_auiBitrate              [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
@@ -229,9 +237,15 @@ protected:
   ErrVal        xSetParameters      ();
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
+#if 1 //BUG_FIX liuhui 0603
+  Void          setBaseLayerAVCCompatible( Bool bAVCCompatible ) { m_bAVCCompatible = bAVCCompatible; }
+  Bool          getBaseLayerAVCCompatible() const { return m_bAVCCompatible; }
+  ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage,
+				  UInt uiKeepScalableLayer, UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, Double& dMaxFGSLayer, UInt uiMaxBitrate);
+#else
 	ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage, 
                   UInt uiKeepScalableLayer,UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, UInt& uiMaxFGSLayer, UInt uiMaxBitrate);
-
+#endif
   // HS: packet trace
   ErrVal        xReadLineExtractTrace ( Char*               pcFormatString,
                                         UInt*               puiStart,
@@ -304,6 +318,25 @@ protected:
   FILE*                         m_pcExtractionTraceFile;
   LargeFile                     m_cLargeFile;
   UInt                          m_uiMaxSize;
+
+#if 1 //BUG_FIX liuhui 0603
+  Void    xOutput          ( ScalableStreamDescription& rcScalableStreamDescription, FILE* pFile);
+  UInt    getScalableLayer ( UInt uiLayer, UInt uiTL, UInt uiQL ) const { return m_aaauiScalableLayerId[uiLayer][uiTL][uiQL]; }
+  Bool                          m_bAVCCompatible;
+  UInt                          m_uiScalableNumLayersMinus1;
+  UInt                          m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt                          m_auiDependencyId[MAX_SCALABLE_LAYERS];
+  UInt                          m_auiTempLevel[MAX_SCALABLE_LAYERS];
+  UInt                          m_auiQualityLevel[MAX_SCALABLE_LAYERS];
+  UInt                          m_auiFrmWidth[MAX_SCALABLE_LAYERS];
+  UInt                          m_auiFrmHeight[MAX_SCALABLE_LAYERS];
+  Double                        m_adFramerate[MAX_SCALABLE_LAYERS];
+  UInt                          m_auiDirDepLayer[MAX_SCALABLE_LAYERS];
+  Double                        m_adFrameRate[MAX_TEMP_LEVELS];
+  Double                        m_aadMinBitrate[MAX_LAYERS][MAX_TEMP_LEVELS]; 
+  Double                        m_aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  Double                        m_adTotalBitrate[MAX_SCALABLE_LAYERS];
+#endif
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)

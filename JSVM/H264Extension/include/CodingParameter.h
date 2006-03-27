@@ -221,6 +221,10 @@ public:
     , m_uiFgsEncStructureFlag             ( AR_FGS_DEFAULT_ENC_STRUCTURE )
     , m_bUseDiscardable                   (false) //JVT-P031
     , m_dPredFGSRate                      (0.0) //JVT-P031
+// JVT-Q065 EIDR{
+	, m_iIDRPeriod						  (0)
+	, m_bBLSkipEnable					  ( false )
+// JVT-Q065 EIDR}
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
   }
@@ -335,6 +339,13 @@ public:
   Void                setResizeParameters      (ResizeParameters *p) { memcpy(&m_ResizeParameter, p, sizeof(ResizeParameters)); }
   ResizeParameters*   getResizeParameters      () {return &m_ResizeParameter; }
 // TMM_ESS }
+
+// JVT-Q065 EIDR{
+  Int				  getIDRPeriod			   () { return m_iIDRPeriod; }
+  Bool				  getBLSkipEnable		   () { return m_bBLSkipEnable; }
+  Void				  setBLSkipEnable( Bool b )   { m_bBLSkipEnable = b; }
+// JVT-Q065 EIDR}
+
   //===== check =====
   ErrVal  check();
 
@@ -453,6 +464,11 @@ public:
   Double                    m_dPredFGSRate; //rate use for inter-layer prediction (after that rate, stream is discardable)
 
   UInt                      m_uiFGSMotionMode;
+
+// JVT-Q065 EIDR{
+  Int						m_iIDRPeriod;
+  Bool						m_bBLSkipEnable;
+// JVT-Q065 EIDR}
 };
 
 
@@ -535,6 +551,7 @@ public:
       , m_uiIPMode                       (0)
       , m_uiBMode                        (0)
 //TMM_WP
+	  , m_bNonRequiredEnable				( 0 ) //NonRequired JVT-Q066
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -754,6 +771,8 @@ protected:
 
   SampleWeightingParams m_cSampleWeightingParams[MAX_LAYERS];
 //TMM_WP
+
+  Int						m_bNonRequiredEnable; //NonRequired JVT-Q066
 };
 
 #if defined( MSYS_WIN32 )

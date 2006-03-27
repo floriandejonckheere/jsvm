@@ -174,8 +174,8 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 								                  UInt&             ruiNalUnitType,
 								                  UInt&             uiMbX,
 								                  UInt&             uiMbY,
-								                  UInt&             uiSize,
-								                  UInt&			  uiNonRequiredPic
+								                  UInt&             uiSize
+												  //,UInt&			  uiNonRequiredPic //NonRequired JVT-Q066
                                                   //JVT-P031
 								                  ,Bool             bPreParseHeader //FRAG_FIX
 								                  , Bool			bConcatenated //FRAG_FIX_3
@@ -191,8 +191,8 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 		                                      ruiNalUnitType,
 		                                      uiMbX,
 		                                      uiMbY,
-		                                      uiSize,
-		                                      uiNonRequiredPic
+											  uiSize
+											  //,uiNonRequiredPic  //NonRequired JVT-Q066
                                               //JVT-P031
 		                                      , bPreParseHeader //FRAG_FIX
 		                                      , bConcatenated //FRAG_FIX_3
@@ -239,6 +239,12 @@ CreaterH264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAcc
   return m_pcH264AVCDecoder->checkSliceLayerDependency( pcBinDataAccessor, bFinishChecking );
 }
 
+//NonRequired JVT-Q066
+UInt 
+CreaterH264AVCDecoder::isNonRequiredPic()
+{
+	return m_pcH264AVCDecoder->isNonRequiredPic(); 
+}
 
 ErrVal CreaterH264AVCDecoder::create( CreaterH264AVCDecoder*& rpcCreaterH264AVCDecoder )
 {
@@ -605,7 +611,11 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 					{
 						if( pcSEI->getDependencyId( uiIndex ) == 0 )
 						{
-							m_uiStdAVCOffset = pcSEI->getTemporalLevel( uiIndex ) - 1;
+// BUG_FIX liuhui{
+							m_uiStdAVCOffset = pcSEI->getTemporalLevel( uiIndex );
+							pcSEI->setStdAVCOffset( m_uiStdAVCOffset );
+							break;
+// BUG_FIX liuhui}
 						}
 						else
 							break;

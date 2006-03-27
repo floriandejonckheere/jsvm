@@ -186,6 +186,11 @@ public:
 	Double* dGetFramerate				()			 { return m_dFinalFramerate; }
 	Double* dGetBitrate					()			 { return m_dFinalBitrate; }
 	Double m_aaauidSeqBits [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+// BUG_FIX liuhui{
+	UInt   getScalableLayerId( UInt uiLayer, UInt uiTempLevel, UInt uiFGS ) const { return m_aaauiScalableLayerId[uiLayer][uiTempLevel][uiFGS]; }
+	Double m_aaadSingleLayerBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+	UInt   m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+// BUG_FIX liuhui}
 protected:
   ErrVal xInitParameterSets ();
   ErrVal xWriteScalableSEI  ( ExtBinDataAccessor*       pcExtBinDataAccessor );

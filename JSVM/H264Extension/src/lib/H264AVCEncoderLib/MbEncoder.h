@@ -202,6 +202,7 @@ public:
                                 UInt            uiNumMaxIter,
                                 UInt            uiIterSearchRange,
                                 UInt            uiIntraMode,
+								Bool			bBLSkipEnable, // JVT-Q065 EIDR
                                 Double          dLambda );
   ErrVal  encodeMacroblock    ( MbDataAccess&   rcMbDataAccess,
                                 IntFrame*       pcFrame,

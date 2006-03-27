@@ -100,6 +100,7 @@ IntFrame::IntFrame( YuvBufferCtrl& rcYuvFullPelBufferCtrl,
   m_bHalfPel              ( false ),
   m_bExtended             ( false ),
   m_pcDPBUnit             ( 0 )
+  , m_bUnusedForRef       ( false) // JVT-Q065 EIDR
 {
 }
 

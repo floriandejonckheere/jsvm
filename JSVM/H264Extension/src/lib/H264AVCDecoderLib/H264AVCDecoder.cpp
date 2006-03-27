@@ -582,8 +582,8 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 													  UInt&             ruiNalUnitType,
 														UInt&             ruiMbX,
 														UInt&             ruiMbY,
-														UInt&             ruiSize,
-														UInt&             ruiNonRequiredPic
+														UInt&             ruiSize
+														//,UInt&             ruiNonRequiredPic  //NonRequired JVT-Q066
 														//JVT-P031
 														, Bool            bPreParseHeader //FRAG_FIX
 														, Bool			      bConcatenated //FRAG_FIX_3
@@ -806,7 +806,10 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     return Err::m_nERR;
     break;
   }
-  ruiNonRequiredPic = 0;
+
+  m_uiNonRequiredPic = 0; //NonRequired JVT-Q066
+  //ruiNonRequiredPic = 0;
+
   if(m_pcSliceHeader)
   {
 	  m_uiCurrPicLayer = (m_pcSliceHeader->getLayerId() << 4) + m_pcSliceHeader->getQualityLevel();
@@ -833,7 +836,8 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 					  if(m_pcSliceHeader->getLayerId() == m_pcNonRequiredSei->getNonRequiredPicDependencyId(i,j) &&
 						  m_pcSliceHeader->getQualityLevel() == m_pcNonRequiredSei->getNonRequiredPicQulityLevel(i,j))  // it should be add something about FragmentFlag
 					  {
-						  ruiNonRequiredPic = 1;
+						  m_uiNonRequiredPic = 1;  //NonRequired JVT-Q066
+						//  ruiNonRequiredPic = 1;
 						  ROTRS( m_apcMCTFDecoder[m_pcSliceHeader->getLayerId()]->getWaitForIdr() && !m_pcSliceHeader->isIdrNalUnit(), Err::m_nOK );
 						  m_apcMCTFDecoder[m_pcSliceHeader->getLayerId()]->setWaitForIdr(false);
 						  return Err::m_nOK;
@@ -1491,6 +1495,13 @@ H264AVCDecoder::setDiffPrdRefLists( RefFrameList& diffPrdRefList,
     iRefPoc = rcBaseList.get(i).getFrame()->getPOC();
 
     FrameUnit* pcRefFrameUnit     = m_pcFrameMng->getReconstructedFrameUnit( iRefPoc );
+
+// JVT-Q065 EIDR{
+	if(!pcRefFrameUnit)
+	{
+		break;
+	}
+// JVT-Q065 EIDR}
 
     IntFrame* baseFrame = pcRefFrameUnit->getFGSReconstruction(0);
     IntFrame* enhFrame = pcRefFrameUnit->getFGSIntFrame();

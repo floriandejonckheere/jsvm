@@ -145,8 +145,8 @@ public:
 	                    UInt&             ruiNalUnitType,
 	                    UInt&             uiMbX,
 	                    UInt&             uiMbY,
-	                    UInt&             uiSize,
-	                    UInt&				uiNonRequiredPic
+	                    UInt&             uiSize
+						//,UInt&				uiNonRequiredPic //NonRequired JVT-Q066
                         //JVT-P031
 	                    ,Bool              bPreParseHeader //FRAG_FIX
 	                    , Bool			bConcatenated //FRAG_FIX_3
@@ -168,6 +168,8 @@ public:
 
   ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
                                       Bool&             bFinishChecking );
+
+  UInt isNonRequiredPic();	//NonRequired JVT-Q066	
 
 protected:
   ErrVal xCreateDecoder();

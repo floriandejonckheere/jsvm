@@ -902,7 +902,9 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
   UInt              uiMbX             = 0;
   UInt              uiMbY             = 0;
   UInt              uiSize            = 0;
-  UInt              uiNonRequiredPic  = 0;
+
+//  UInt              uiNonRequiredPic  = 0;  //NonRequired JVT-Q066
+
   UInt              uiLumOffset       = 0;
   UInt              uiCbOffset        = 0;
   UInt              uiCrOffset        = 0;
@@ -987,13 +989,20 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
       apcBinDataTmp[uiFragmentNumber]->setMemAccessor( acBinDataAccessorTmp[uiFragmentNumber] );
 
       RNOK( m_pcH264AVCDecoder->initPacket( &acBinDataAccessorTmp[uiFragmentNumber],
-                                            uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, false, //FRAG_FIX_3
+                                            uiNalUnitType, uiMbX, uiMbY, uiSize, 
+											//uiNonRequiredPic,  //NonRequired JVT-Q066
+											true, false, //FRAG_FIX_3
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
                                             bFragmented, bDiscardable ) );
-      if( uiNonRequiredPic )
-      {
-        continue;
-      }
+
+//NonRequired JVT-Q066
+	  /*
+	  if( uiNonRequiredPic )
+	  {
+		  continue;
+	  }
+*/
+//NonRequired JVT-Q066
 
       uiTotalLength += ( auiEndPos[uiFragmentNumber] - auiStartPos[uiFragmentNumber] );
 
@@ -1031,8 +1040,10 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
           {
             if( ( uiNalUnitType == 20 ) || ( uiNalUnitType == 21 ) || ( uiNalUnitType == 1 ) || ( uiNalUnitType == 5 ) )
             {
+
               RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType,
-                                                    uiMbX, uiMbY, uiSize, uiNonRequiredPic,
+                                                    uiMbX, uiMbY, uiSize, 
+													//uiNonRequiredPic, //NonRequired JVT-Q066
                                                     false, bConcatenated, bStart,
                                                     auiStartPos[uiFragmentNumber+1], auiEndPos[uiFragmentNumber+1],
                                                     bFragmented, bDiscardable ) );
@@ -1046,6 +1057,10 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
         }
       }
     }
+//NonRequired JVT-Q066{
+	if(m_pcH264AVCDecoder->isNonRequiredPic())
+		continue;
+//NonRequired JVT-Q066}
 
     if( bToDecode )
     {

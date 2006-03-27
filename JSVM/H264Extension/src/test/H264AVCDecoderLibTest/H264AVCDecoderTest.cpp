@@ -219,7 +219,7 @@ ErrVal H264AVCDecoderTest::go()
   UInt      uiMbY           = 0;
   UInt      uiNalUnitType   = 0;
   UInt      uiSize          = 0;
-  UInt      uiNonRequiredPic= 0;
+  //UInt      uiNonRequiredPic= 0; //NonRequired JVT-Q066
   UInt      uiLumOffset     = 0;
   UInt      uiCbOffset      = 0;
   UInt      uiCrOffset      = 0;
@@ -296,11 +296,20 @@ ErrVal H264AVCDecoderTest::go()
     
       pcBinDataTmp[uiFragNb]->setMemAccessor( cBinDataAccessorTmp[uiFragNb] );
       // open the NAL Unit, determine the type and if it's a slice get the frame size
-    RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, 
+
+//NonRequired JVT-Q066{
+	RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize,  true, 
 		false, //FRAG_FIX_3
 		bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
-    if(uiNonRequiredPic)
+/*
+	  RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, 
+		  false, //FRAG_FIX_3
+		  bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
+
+	if(uiNonRequiredPic)
 		continue;
+*/
+//NonRequired JVT-Q066}
       uiTotalLength += auiEndPos[uiFragNb] - auiStartPos[uiFragNb];
 
       if(!bStart)
@@ -334,7 +343,8 @@ ErrVal H264AVCDecoderTest::go()
               //FRAG_FIX
 			  if( (uiNalUnitType == 20) || (uiNalUnitType == 21) || (uiNalUnitType == 1) || (uiNalUnitType == 5) )
               {
-                RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic,
+                RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, 
+					//uiNonRequiredPic, //NonRequired JVT-Q066
                     false, bConcatenated, //FRAG_FIX_3
 					bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
                     bFragmented, bDiscardable) );
@@ -348,7 +358,11 @@ ErrVal H264AVCDecoderTest::go()
 
     }
     //~JVT-P031
-    
+//NonRequired JVT-Q066{
+	if(m_pcH264AVCDecoder->isNonRequiredPic())
+		continue;
+//NonRequired JVT-Q066}
+
   if(bToDecode)//JVT-P031
   {
     // get new picture buffer if required if coded Slice || coded IDR slice

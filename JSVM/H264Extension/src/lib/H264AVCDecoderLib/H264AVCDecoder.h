@@ -136,8 +136,8 @@ public:
 	                    UInt&             ruiNalUnitType,
 	                    UInt&             ruiMbX,
 	                    UInt&             ruiMbY,
-	                    UInt&             ruiSize,
-	                    UInt&				ruiNonRequiredPic
+	                    UInt&             ruiSize
+						//,UInt&				ruiNonRequiredPic  //NonRequired JVT-Q066
                         //JVT-P031
 	                      ,Bool              bPreParseHeader //FRAG_FIX
 		                  , Bool			bConcatenated //FRAG_FIX_3
@@ -189,6 +189,8 @@ public:
 #if MULTIPLE_LOOP_DECODING
   Void    setCompletelyDecodeLayer    ( Bool b )  { m_bCompletelyDecodeLayer = b; }
 #endif
+
+  UInt isNonRequiredPic()						  { return m_uiNonRequiredPic;  } //NonRequired JVT-Q066
 
 protected:
 
@@ -262,6 +264,7 @@ protected:
   SEI::NonRequiredSei*			m_pcNonRequiredSei;
   UInt							m_uiNonRequiredSeiReadFlag;
 	UInt							m_uiNonRequiredSeiRead;
+	UInt							m_uiNonRequiredPic;	//NonRequired JVT-Q066	
   UInt							m_uiPrevPicLayer;
   UInt							m_uiCurrPicLayer;
   //JVT-P031

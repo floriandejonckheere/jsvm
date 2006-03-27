@@ -224,6 +224,10 @@ MCTFEncoder::MCTFEncoder()
 , m_bUseDiscardableUnit             ( false )//JVT-P031
 , m_dPredFGSBitRateFactor               ( 0.0 )//JVT-P031
 , m_iPredLastFGSError                   ( 0 )//JVT-P031
+// JVT-Q065 EIDR{
+, m_iIDRPeriod						( 0 )
+, m_bBLSkipEnable					( false )
+// JVT-Q065 EIDR}
 {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -351,6 +355,11 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiLayerId               = pcLayerParameters->getLayerId                 ();
   m_uiBaseLayerId           = pcLayerParameters->getBaseLayerId             ();
   m_uiBaseQualityLevel      = pcLayerParameters->getBaseQualityLevel        ();
+
+// JVT-Q065 EIDR{
+  m_iIDRPeriod				= pcLayerParameters->getIDRPeriod				();
+  m_bBLSkipEnable			= pcLayerParameters->getBLSkipEnable			();
+// JVT-Q065 EIDR}
 
   m_bExtendedPriorityId     = pcCodingParameter->getExtendedPriorityId();
 
@@ -1290,22 +1299,21 @@ MCTFEncoder::xMotionEstimation( RefFrameList*    pcRefFrameList0,
       RNOK( m_pcYuvHalfPelBufferCtrl->initMb( uiMbY, uiMbX ) );
       RNOK( m_pcMotionEstimation    ->initMb( uiMbY, uiMbX, *pcMbDataAccess ) );
    
-      //===== estimate prediction data =====
-      RNOK( pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
-                                               pcMbDataAccessBase,
-                                               iSpatialScalabilityType,
-                                              *pcRefFrameList0,
-                                              *pcRefFrameList1,
-                                               pcBaseLayerFrame,
-                                               pcBaseLayerResidual,
-                                              *pcOrigFrame,
-                                              *pcIntraRecFrame,
-                                               bBiPredOnly,
-                                               uiNumMaxIter,
-                                               uiIterSearchRange,
-                                               uiIntraMode,
-                                               rcControlData.getLambda() ) );
-
+	  RNOK( pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
+												pcMbDataAccessBase,
+												iSpatialScalabilityType,
+												*pcRefFrameList0,
+												*pcRefFrameList1,
+												pcBaseLayerFrame,
+												pcBaseLayerResidual,
+												*pcOrigFrame,
+												*pcIntraRecFrame,
+												bBiPredOnly,
+												uiNumMaxIter,
+												uiIterSearchRange,
+												uiIntraMode,
+												m_bBLSkipEnable, //JVT-Q065 EIDR
+												rcControlData.getLambda() ) );
       if( m_bSaveMotionInfo )
       {
         //===== save prediction data =====
@@ -2141,23 +2149,27 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
       cDPCMRefFrameListBase.reset();
 
       IntFrame *pcBaseRefCopyFrm = m_apcFrameTemp[2];   // not used anywhere else
-      if( m_dNumFGSLayers > 0.0 && m_dLowPassEnhRef > 0 )
-      {
-        pcBaseRefCopyFrm->copy(m_pcLowPassBaseReconstruction);
-        m_pcLowPassBaseReconstruction->getFullPelYuvBuffer()->addWeighted
-          ( m_papcFrame[0]->getFullPelYuvBuffer(), m_dLowPassEnhRef );
 
-        RNOK( rcControlData.getPrdFrameList ( LIST_0 ).add  ( m_pcLowPassBaseReconstruction ) );
-        RNOK( xFillAndUpsampleFrame                         ( m_pcLowPassBaseReconstruction ) );
+	  if(!m_pcLowPassBaseReconstruction->getUnusedForRef())  // JVT-Q065 EIDR
+	  {
+		if( m_dNumFGSLayers > 0.0 && m_dLowPassEnhRef > 0 )
+		{
+			pcBaseRefCopyFrm->copy(m_pcLowPassBaseReconstruction);
+			m_pcLowPassBaseReconstruction->getFullPelYuvBuffer()->addWeighted
+			( m_papcFrame[0]->getFullPelYuvBuffer(), m_dLowPassEnhRef );
+			
+			RNOK( rcControlData.getPrdFrameList ( LIST_0 ).add  ( m_pcLowPassBaseReconstruction ) );
+			RNOK( xFillAndUpsampleFrame                         ( m_pcLowPassBaseReconstruction ) );
 
-        RNOK( cDPCMRefFrameListBase.add                     ( pcBaseRefCopyFrm ) );
-        RNOK( xFillAndUpsampleFrame                         ( pcBaseRefCopyFrm ) );
-      }
-      else
-      {
-        RNOK( rcControlData.getPrdFrameList ( LIST_0 ).add  ( m_pcLowPassBaseReconstruction ) );
-        RNOK( xFillAndUpsampleFrame                         ( m_pcLowPassBaseReconstruction ) );
-      }
+			RNOK( cDPCMRefFrameListBase.add                     ( pcBaseRefCopyFrm ) );
+			RNOK( xFillAndUpsampleFrame                         ( pcBaseRefCopyFrm ) );
+		}
+		else
+		{
+			RNOK( rcControlData.getPrdFrameList ( LIST_0 ).add  ( m_pcLowPassBaseReconstruction ) );
+			RNOK( xFillAndUpsampleFrame                         ( m_pcLowPassBaseReconstruction ) );
+		}
+	  }
 
       RNOK( m_pcSliceEncoder->encodeInterPictureP ( uiBits,
                                                     pcFrame,
@@ -2383,6 +2395,32 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
       RNOK( xInitSliceHeader( uiTemporalLevel, uiFrameId ) );
     }
   }
+
+// JVT-Q065 EIDR{
+  for( UInt uiTemporalLevel = 0; uiTemporalLevel <= m_uiDecompositionStages; uiTemporalLevel++ )
+  {
+	  UInt      uiStep    = ( 1 << ( m_uiDecompositionStages - uiTemporalLevel ) );
+	  for( UInt uiFrameId = uiStep; uiFrameId <= m_uiGOPSize; uiFrameId += ( uiStep << 1 ) )
+	  {
+		  SliceHeader* pcSliceHeader = m_pacControlData[uiFrameId].getSliceHeader();
+		  if(pcSliceHeader->isIdrNalUnit())
+		  {
+			  for(UInt uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++)
+			  {
+				  if(m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() < pcSliceHeader->getTemporalLevel() || (m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() == pcSliceHeader->getTemporalLevel()&& uiFrame < uiFrameId))
+				  {
+					  m_papcFrame[uiFrame]->setUnusedForRef(true);
+					  if(m_papcCLRecFrame)
+					  {
+						  m_papcCLRecFrame[uiFrame]->setUnusedForRef(true);
+					  }
+				  }
+			  }
+		  }
+	  }
+  }
+// JVT-Q065 EIDR}
+
   //===== RPLR and MMCO commands =====
   for( uiFrame = m_bFirstGOPCoded ? 1 : 0; uiFrame <= m_uiGOPSize; uiFrame++ )
   {
@@ -2745,6 +2783,13 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   NalUnitType   eNalUnitType    = ( m_bH264AVCCompatible
                                     ? ( uiFrameIdInGOP ? NAL_UNIT_CODED_SLICE          : NAL_UNIT_CODED_SLICE_IDR          )
                                     : ( uiFrameIdInGOP ? NAL_UNIT_CODED_SLICE_SCALABLE : NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) );
+// JVT-Q065 EIDR{
+  if( (m_papcFrame[uiFrameIdInGOP]->getPOC() == 0) || (m_iIDRPeriod != 0 && m_papcFrame[uiFrameIdInGOP]->getPOC() % m_iIDRPeriod == 0 ) )
+  {
+	  eNalUnitType = m_bH264AVCCompatible ? NAL_UNIT_CODED_SLICE_IDR : NAL_UNIT_CODED_SLICE_IDR_SCALABLE;
+  }
+// JVT-Q065 EIDR}
+
   SliceType     eSliceType      = ( auiPredListSize[1] ? B_SLICE : auiPredListSize[0] ? P_SLICE : I_SLICE );
   UInt          uiGOPSize       = uiFrameIdInGOP ? m_uiGOPSize             : 1;
   UInt          uiDecStages     = uiFrameIdInGOP ? m_uiDecompositionStages : 0;
@@ -3069,23 +3114,52 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
     for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+	  if(!pcFrame->getUnusedForRef())  // JVT-Q065 EIDR
+	  {
+		if( ! pcFrame->isExtended() )
+		{
+			if( bHalfPel )
+			{
+			RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+			}
+			else
+			{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+			}
+		}
 
-      if( ! pcFrame->isExtended() )
-      {
-        if( bHalfPel )
-        {
-          RNOK( xFillAndUpsampleFrame ( pcFrame ) );
-        }
-        else
-        {
-          RNOK( xFillAndExtendFrame   ( pcFrame ) );
-        }
-      }
-
-      RNOK( rcRefList0.add( pcFrame ) );
-      uiList0Size--;
+		RNOK( rcRefList0.add( pcFrame ) );
+		uiList0Size--;
+	  }
     }
-    ROT( uiList0Size );
+
+// JVT-Q065 EIDR{
+	for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	{
+		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+
+		//----- create half-pel buffer -----
+		if(!pcFrame->getUnusedForRef())
+		{
+			if( ! pcFrame->isExtended() )
+			{
+				if( bHalfPel )
+				{
+					RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+				}
+				else
+				{
+					RNOK( xFillAndExtendFrame   ( pcFrame ) );
+				}
+			}
+
+			RNOK( rcRefList0.add( pcFrame ) );
+			uiList0Size--;
+		}
+	}
+// JVT-Q065 EIDR}
+
+	ROT( uiList0Size );
   }
 
   //===== list 1 =====
@@ -3095,23 +3169,69 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
       IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
       //----- create half-pel buffer -----
-      if( ! pcFrame->isExtended() )
-      {
-        if( bHalfPel )
-        {
-          RNOK( xFillAndUpsampleFrame ( pcFrame ) );
-        }
-        else
-        {
-          RNOK( xFillAndExtendFrame   ( pcFrame ) );
-        }
-      }
+	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR{
+	  {
+		if( ! pcFrame->isExtended() )
+		{
+			if( bHalfPel )
+			{
+			RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+			}
+			else
+			{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+			}
+		}
 
-      RNOK( rcRefList1.add( pcFrame ) );
-      uiList1Size--;
+		RNOK( rcRefList1.add( pcFrame ) );
+		uiList1Size--;
+	  }
     }
-    ROT( uiList1Size );
+// JVT-Q065 EIDR{
+	for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
+	{
+		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+
+		if(!pcFrame->getUnusedForRef())
+		{
+			if( ! pcFrame->isExtended() )
+			{
+				if( bHalfPel )
+				{
+					RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+				}
+				else
+				{
+					RNOK( xFillAndExtendFrame   ( pcFrame ) );
+				}
+			}
+
+			RNOK( rcRefList1.add( pcFrame ) );
+			uiList1Size--;
+		}
+	}
+// JVT-Q065 EIDR}
+	ROT( uiList1Size );
   }
+
+// JVT-Q065 EIDR{
+  if( rcRefList1.getActive() >= 2 && rcRefList1.getActive() >= 1)
+  {
+	  Bool bSwitch = true;
+	  for( UInt uiPos = 0; uiPos < rcRefList0.getActive(); uiPos++ )
+	  {
+		  if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
+		  {
+			  bSwitch = false;
+			  break;
+		  }
+	  }
+	  if( bSwitch )
+	  {
+		  rcRefList1.switchFirst();
+	  }
+  }
+// JVT-Q065 EIDR}
 
   return Err::m_nOK;
 }
@@ -3136,11 +3256,29 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
     for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
-      RNOK( xFillAndExtendFrame   ( pcFrame ) );
 
-      RNOK( rcRefList0.add( pcFrame ) );
-      uiList0Size--;
+	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
+	  {
+		  RNOK( xFillAndExtendFrame   ( pcFrame ) );
+
+		  RNOK( rcRefList0.add( pcFrame ) );
+		  uiList0Size--;
+	  }
     }
+// JVT-Q065 EIDR{
+	for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	{
+		IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
+		if(!pcFrame->getUnusedForRef())
+		{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+
+			RNOK( rcRefList0.add( pcFrame ) );
+			uiList0Size--;
+		}
+	}
+// JVT-Q065 EIDR}
+
     ROT( uiList0Size );
   }
 
@@ -3149,14 +3287,50 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
     for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
-      RNOK( xFillAndExtendFrame   ( pcFrame ) );
+	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
+	  {
+		RNOK( xFillAndExtendFrame   ( pcFrame ) );
 
-      RNOK( rcRefList1.add( pcFrame ) );
-      uiList1Size--;
+		RNOK( rcRefList1.add( pcFrame ) );
+		uiList1Size--;
+	  }
     }
+
+// JVT-Q065 EIDR{
+	for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
+	{
+		IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
+		if(!pcFrame->getUnusedForRef())
+		{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+
+			RNOK( rcRefList1.add( pcFrame ) );
+			uiList1Size--;
+		}
+	}
+// JVT-Q065 EIDR}
+
     ROT( uiList1Size );
   }
 
+// JVT-Q065 EIDR{
+  if( rcRefList1.getActive() >= 2 && rcRefList1.getActive() >= 1)
+  {
+	  Bool bSwitch = true;
+	  for( UInt uiPos = 0; uiPos < rcRefList0.getActive(); uiPos++ )
+	  {
+		  if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
+		  {
+			  bSwitch = false;
+			  break;
+		  }
+	  }
+	  if( bSwitch )
+	  {
+		  rcRefList1.switchFirst();
+	  }
+  }
+// JVT-Q065 EIDR}
   return Err::m_nOK;
 }
 
@@ -3183,22 +3357,50 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 
-      if( ! pcFrame->isExtended() )
-      {
-        if( bHalfPel )
-        {
-          RNOK( xFillAndUpsampleFrame ( pcFrame ) );
-        }
-        else
-        {
-          RNOK( xFillAndExtendFrame   ( pcFrame ) );
-        }
-      }
+	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
+	  {
+		if( ! pcFrame->isExtended() )
+		{
+			if( bHalfPel )
+			{
+			RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+			}
+			else
+			{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+			}
+		}
 
-      RNOK( rcRefList0.add( pcFrame ) );
-      uiList0Size--;
+		RNOK( rcRefList0.add( pcFrame ) );
+		uiList0Size--;
+	  }
     }
-    ROT( uiList0Size );
+
+// JVT-Q065 EIDR{
+	for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	{
+		IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
+		if(!pcFrame->getUnusedForRef())
+		{
+			//----- create half-pel buffer -----
+			if( ! pcFrame->isExtended() )
+			{
+				if( bHalfPel )
+				{
+					RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+				}
+				else
+				{
+					RNOK( xFillAndExtendFrame   ( pcFrame ) );
+				}
+			}
+
+			RNOK( rcRefList0.add( pcFrame ) );
+			uiList0Size--;
+		}
+	}
+// JVT-Q065 EIDR}
+	ROT( uiList0Size );
   }
 
   //===== list 1 =====
@@ -3206,26 +3408,65 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
     for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
+	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
+	  {
+		//----- create half-pel buffer -----
+		if( ! pcFrame->isExtended() )
+		{
+			if( bHalfPel )
+			{
+			RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+			}
+			else
+			{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+			}
+		}
 
-      //----- create half-pel buffer -----
-      if( ! pcFrame->isExtended() )
-      {
-        if( bHalfPel )
-        {
-          RNOK( xFillAndUpsampleFrame ( pcFrame ) );
-        }
-        else
-        {
-          RNOK( xFillAndExtendFrame   ( pcFrame ) );
-        }
-      }
-
-      RNOK( rcRefList1.add( pcFrame ) );
-      uiList1Size--;
+		RNOK( rcRefList1.add( pcFrame ) );
+		uiList1Size--;
+	  }
     }
-    ROT( uiList1Size );
-  }
 
+// JVT-Q065 EIDR{
+	if( rcRefList1.getActive() >= 2 && rcRefList1.getActive() >= 1)
+	{
+		Bool bSwitch = true;
+		for( UInt uiPos = 0; uiPos < rcRefList0.getActive(); uiPos++ )
+		{
+			if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
+			{
+				bSwitch = false;
+				break;
+			}
+		}
+		if( bSwitch )
+		{
+			rcRefList1.switchFirst();
+		}
+	}
+// JVT-Q065 EIDR}
+
+	ROT( uiList1Size );
+  }
+// JVT-Q065 EIDR{
+  if( rcRefList1.getActive() >= 2 && rcRefList0.getActive() == rcRefList1.getActive() )
+  {
+	  Bool bSwitch = true;
+	  for( UInt uiPos = 0; uiPos < rcRefList1.getActive(); uiPos++ )
+	  {
+		  if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
+		  {
+			  bSwitch = false;
+			  break;
+		  }
+	  }
+	  if( bSwitch )
+	  {
+		  rcRefList1.switchFirst();
+	  }
+  }
+// JVT-Q065 EIDR}
   return Err::m_nOK;
 }
 
@@ -4017,6 +4258,8 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 
     AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
+
+	m_pcLowPassBaseReconstruction->setUnusedForRef(m_papcFrame[0]->getUnusedForRef());  // JVT-Q065 EIDR
 
     //===== initialize =====
     RNOK( xInitControlDataLowPass ( uiFrameIdInGOP, m_uiDecompositionStages-1,uiFrame ) );
@@ -5660,6 +5903,10 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   // uiMaxStage - 1 will result in a large number
   UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, (Int)uiMaxStage - 1 ) );
   Char  acResolution[10];
+// BUG_FIX liuhui{
+  static Bool stbBLAVCMode;
+  static UInt stuiBLMinStage;
+// BUG_FIX liuhui}
 
   sprintf( acResolution, "%dx%d", 16*m_uiFrameWidthInMb, 16*m_uiFrameHeightInMb );
 
@@ -5698,8 +5945,29 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 			{
 				if( m_uiBaseLayerId < MAX_LAYERS ) //not base layer
 				{
-					dBits = aaadCurrBits[m_uiBaseLayerId][uiLevel][MAX_QUALITY_LEVELS-1];
+// BUG_FIX liuhui{
+					if( uiFGS ) // D > 0, T = 0, Q != 0
+						dBits = aaadCurrBits[m_uiLayerId][uiLevel][uiFGS-1];
+					else // D > 0, T = 0, Q = 0
+					{
+					  dBits = aaadCurrBits[m_uiBaseLayerId][uiLevel][m_uiBaseQualityLevel];
+					  if( stbBLAVCMode ) //AVC-COMPATIBLE
+					  {
+					    for( UInt uiTempLevel = 1; uiTempLevel <= stuiBLMinStage; uiTempLevel++ )
+					    {
+						  dBits += m_aaauidSeqBits[m_uiBaseLayerId][uiTempLevel][uiFGS];
+					    }
+					  }
+					}
+// BUG_FIX liuhui}
 				}
+// BUG_FIX liuhui{
+				else if( uiFGS == 0 ) // D = 0, T = 0, Q = 0
+				{
+					stbBLAVCMode = m_bH264AVCCompatible;
+					stuiBLMinStage = uiMinStage;
+				}
+// BUG_FIX liuhui}
 				dBits += m_aaauidSeqBits[m_uiLayerId][uiLevel][uiFGS];
 				aaadCurrBits[m_uiLayerId][uiLevel][uiFGS] = dBits;
 			}
@@ -5711,7 +5979,12 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 				dBits = 0;
 				if( m_uiBaseLayerId < MAX_LAYERS ) //not base layer
 				{
-				  dBits = aaadCurrBits[m_uiBaseLayerId][uiLevel][MAX_QUALITY_LEVELS-1];
+// BUG_FIX liuhui{
+					dBits = aaadCurrBits[m_uiBaseLayerId][uiLevel][m_uiBaseQualityLevel];
+					if( stbBLAVCMode && uiFGS == 0 && stuiBLMinStage ) //AVC-COMPATIBLE
+						for( UInt uiTempLevel = uiLevel+1; uiTempLevel <= stuiBLMinStage; uiTempLevel++ )
+							dBits += m_aaauidSeqBits[m_uiBaseLayerId][uiTempLevel][uiFGS];
+// BUG_FIX liuhui}
 				}
 				for( UInt uiTIndex = 0; uiTIndex <= uiLevel; uiTIndex++ )
 				{
@@ -5725,12 +5998,14 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 		} 
 	}	
 
+// BUG_FIX liuhui{
 	if( m_uiLayerId == 0 )
 	{
 		printf( " \n\n\nSUMMARY:\n" );
-		printf( "                       " " SNR Level" " bitrate " "   Y-PSNR" "   U-PSNR" "   V-PSNR\n" );
-		printf( "                       " " ---------" " --------" " --------" " --------" " --------\n" );
+		printf( "                      " "  SNR Lv" "  bitrate " "   Min-bitr" "   Y-PSNR" "   U-PSNR" "   V-PSNR\n" );
+		printf( "                      " " -------" " ---------" " ----------" " --------" " --------" " --------\n" );
 	}
+// BUG_FIX liuhui}
   for( uiStage = uiMinStage; uiStage <= uiMaxStage; uiStage++ )
   {
     Double  dFps    = m_fOutputFrameRate / (Double)( 1 << ( uiMaxStage - uiStage ) );
@@ -5742,25 +6017,86 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 			rdOutputFramerate[ uiIndex ] = dFps;
 			rdOutputBitrate[ uiIndex ] = dBitrate;
 
-      if( uiFGS == m_dNumFGSLayers )
-      {
-			  printf( " %9s @ %7.4lf" " %10.4lf" " %10.4lf" " %8.4lf" " %8.4lf" " %8.4lf" "\n",
-				  acResolution,
-				  dFps,
-				  (Double)uiFGS,
-				  dBitrate,
-				  m_adPSNRSumY	[uiStage],
-				  m_adPSNRSumU	[uiStage],
-				  m_adPSNRSumV	[uiStage] );
-      }
-      else
-      {
-			  printf( " %9s @ %7.4lf" " %10.4lf" " %10.4lf" "\n",
-				  acResolution,
-				  dFps,
-				  (Double)uiFGS,
-				  dBitrate );
-      }
+// BUG_FIX liuhui{
+			static Double adMinBitrate[MAX_LAYERS][MAX_TEMP_LEVELS];
+			if( uiFGS == 0 ) // not FGS layer
+			{
+				if( m_uiLayerId == 0 )
+				{
+					adMinBitrate[m_uiLayerId][uiStage] = aaadCurrBits[m_uiLayerId][uiStage][0] * dScale;
+				}
+				else //D!=0
+				{
+				  if( adMinBitrate[m_uiBaseLayerId][uiStage] ) //base layer with the same TL exists
+			      {
+				    adMinBitrate[m_uiLayerId][uiStage] = adMinBitrate[m_uiBaseLayerId][uiStage];
+				    for(UInt uiTIndex = 0; uiTIndex <= uiStage; uiTIndex++)
+				    {  
+					  adMinBitrate[m_uiLayerId][uiStage] += m_aaauidSeqBits[m_uiLayerId][uiTIndex][0] * dScale;
+				    }			  
+			      }
+				  else // base layer non-exists
+			      {
+				    if(adMinBitrate[m_uiLayerId][0] == 0.0) // first time for layer, uiStage = 0
+				    {
+					  if( m_uiBaseLayerId == 0 && adMinBitrate[m_uiBaseLayerId][0] == 0.0 ) //AVC-COMPATIBLE
+					  {
+						  for( UInt uiTL = 0; uiTL < MAX_TEMP_LEVELS; uiTL++) //search minimum base layer bitrate
+							  if( adMinBitrate[m_uiBaseLayerId][uiTL] )
+								  break;
+						  adMinBitrate[m_uiLayerId][uiStage] = m_aaauidSeqBits[m_uiLayerId][uiStage][uiFGS]*dScale +
+							  ( adMinBitrate[m_uiBaseLayerId][uiTL]*m_auiNumFramesCoded[uiTL]/m_auiNumFramesCoded[uiStage] ) / ( 1 << ( uiTL - uiStage ) );
+					  }
+				  }
+				  else //high layer without corresponding TL in base layer
+				  {
+					  adMinBitrate[m_uiLayerId][uiStage] = m_aaauidSeqBits[m_uiLayerId][uiStage][0]*dScale + 
+						  adMinBitrate[m_uiLayerId][uiStage-1]*m_auiNumFramesCoded[uiStage-1]/m_auiNumFramesCoded[uiStage]*2;	
+				  }//if(adMinBitrate[m_uiBaseLayerId][uiStage]) //base layer exist for same TL
+			  }
+				}
+			} // if( uiFGS == 0 )
+			if( uiFGS == 0 && m_dNumFGSLayers != 0 )
+			{
+				printf( " %9s @ %7.4lf" " %8.2lf"" %10.4lf" " %10.4lf""\n",
+					acResolution,
+					dFps,
+					(Double)uiFGS,
+					dBitrate,
+					adMinBitrate[m_uiLayerId][uiStage] );
+			}
+			else if ( uiFGS == 0 && m_dNumFGSLayers == 0 )
+			{
+				printf( " %9s @ %7.4lf" " %8.2lf"" %10.4lf" " %10.4lf" " %8.4lf" " %8.4lf" " %8.4lf" "\n",
+					acResolution,
+					dFps,
+					(Double)uiFGS,
+					dBitrate,
+					adMinBitrate[m_uiLayerId][uiStage],
+					m_adPSNRSumY    [uiStage],
+					m_adPSNRSumU    [uiStage],
+					m_adPSNRSumV    [uiStage] );
+			}
+			else if( uiFGS == m_dNumFGSLayers )
+			{
+				printf( " %9s @ %7.4lf" " %8.2lf" " %10.4lf""           " " %8.4lf" " %8.4lf" " %8.4lf" "\n",
+					acResolution,
+					dFps,
+					(Double)uiFGS,
+					dBitrate,
+					m_adPSNRSumY	[uiStage],
+					m_adPSNRSumU	[uiStage],
+					m_adPSNRSumV	[uiStage] );
+			}
+			else //uiFGS != 0, != m_dNumFGSLayers
+			{
+				printf( " %9s @ %7.4lf" " %8.2lf" " %10.4lf""\n",
+					acResolution,
+					dFps,
+					(Double)uiFGS,
+					dBitrate );
+			}
+// BUG_FIX liuhui}
 		}
 	}
 
@@ -5771,6 +6107,39 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   return Err::m_nOK;
 }
 
+// BUG_FIX liuhui{
+ErrVal
+MCTFEncoder::SingleLayerFinish( Double aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
+							   Double aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
+{
+	ROFRS( m_auiNumFramesCoded[0], Err::m_nOK );
+	Double aaadCurrBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS]; 
+	for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+		for( UInt uiTempLevel = 0; uiTempLevel < MAX_TEMP_LEVELS; uiTempLevel++)
+			for( UInt uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel++ )
+				aaadCurrBits[uiLayer][uiTempLevel][uiQualityLevel] = aaadBits[uiLayer][uiTempLevel][uiQualityLevel];
+	UInt  uiStage;
+	UInt  uiMaxStage        = m_uiDecompositionStages - m_uiNotCodedMCTFStages;
+	UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, (Int)uiMaxStage - 1 ) );
+	if( m_bH264AVCCompatible && !m_bWriteSubSequenceSei ) //AVC-COMPATIBLE
+	{
+		for( UInt uiFGS = 0; uiFGS <= m_dNumFGSLayers; uiFGS++)
+			for( UInt uiTempLevel = 0; uiTempLevel < uiMinStage; uiTempLevel++)
+				aaadCurrBits[m_uiLayerId][uiMinStage][uiFGS] += aaadCurrBits[m_uiLayerId][uiTempLevel][uiFGS];
+	}
+	for( uiStage = uiMinStage; uiStage <= uiMaxStage; uiStage++ )
+	{
+		Double  dFps    = m_fOutputFrameRate / (Double)( 1 << ( uiMaxStage - uiStage ) );
+		Double  dScale  = dFps / 1000 / (Double)m_auiNumFramesCoded[uiStage];
+
+		for( UInt uiFGS = 0; uiFGS <= m_dNumFGSLayers; uiFGS++ )
+		{
+			aaadSingleBitrate[m_uiLayerId][uiStage][uiFGS] = aaadCurrBits[m_uiLayerId][uiStage][uiFGS] * dScale;
+		}
+	}
+	return Err::m_nOK;
+}
+// BUG_FIX liuhui}
 
 
 ErrVal
@@ -5996,7 +6365,7 @@ MCTFEncoder::xGetFrameNumList( SliceHeader& rcSH, UIntList& rcFrameNumList, List
   {
     for( Int i = (Int)uiCurrBasePos+1; i <= (Int)m_uiGOPSize; i++ )
     {
-      if( m_pacControlData[i].getSliceHeader()->getTemporalLevel() < uiLevel )
+	  if( m_pacControlData[i].getSliceHeader()->getTemporalLevel() < uiLevel && !m_papcFrame[i]->getUnusedForRef())  // JVT-Q065 EIDR
       {
         rcFrameNumList.push_back( m_pacControlData[i].getSliceHeader()->getFrameNum() );
         if( rcFrameNumList.size() == uiMaxSize )
@@ -6005,12 +6374,29 @@ MCTFEncoder::xGetFrameNumList( SliceHeader& rcSH, UIntList& rcFrameNumList, List
         }
       }
     }
+
+// JVT-Q065 EIDR{
+	if(rcFrameNumList.size() < uiMaxSize)
+	{
+		for( Int i = uiCurrBasePos-1; i >= 0; i-- )
+		{
+			if( m_pacControlData[i].getSliceHeader()->getTemporalLevel() < uiLevel && !m_papcFrame[i]->getUnusedForRef())
+			{
+				rcFrameNumList.push_back( m_pacControlData[i].getSliceHeader()->getFrameNum() );
+				if( rcFrameNumList.size() == uiMaxSize )
+				{
+					break;
+				}
+			}
+		}
+	}
+// JVT-Q065 EIDR}
   }
   else
   {
     for( Int i = uiCurrBasePos-1; i >= 0; i-- )
     {
-      if( m_pacControlData[i].getSliceHeader()->getTemporalLevel() < uiLevel )
+	  if( m_pacControlData[i].getSliceHeader()->getTemporalLevel() < uiLevel && !m_papcFrame[i]->getUnusedForRef()) // JVT-Q065 EIDR
       {
         rcFrameNumList.push_back( m_pacControlData[i].getSliceHeader()->getFrameNum() );
         if( rcFrameNumList.size() == uiMaxSize )
@@ -6019,6 +6405,22 @@ MCTFEncoder::xGetFrameNumList( SliceHeader& rcSH, UIntList& rcFrameNumList, List
         }
       }
     }
+// JVT-Q065 EIDR{
+	if(rcFrameNumList.size() < uiMaxSize)
+	{
+		for( Int i = (Int)uiCurrBasePos+1; i <= (Int)m_uiGOPSize; i++ )
+		{
+			if( m_pacControlData[i].getSliceHeader()->getTemporalLevel() < uiLevel && !m_papcFrame[i]->getUnusedForRef())
+			{
+				rcFrameNumList.push_back( m_pacControlData[i].getSliceHeader()->getFrameNum() );
+				if( rcFrameNumList.size() == uiMaxSize )
+				{
+					break;
+				}
+			}
+		}
+		}
+// JVT-Q065 EIDR}
   }
 
   ROF( rcFrameNumList.size() == uiMaxSize );

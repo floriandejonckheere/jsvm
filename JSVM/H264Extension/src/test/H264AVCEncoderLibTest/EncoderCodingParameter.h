@@ -551,7 +551,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedPrediction",         &m_uiIPMode,                                     0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedBiprediction",       &m_uiBMode,                                      0 );  
 //TMM_WP
-
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("NonRequiredEnable",			&m_bNonRequiredEnable,							 0 );  //NonRequired JVT-Q066
   std::string cInputFile, cReconFile;
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MVCMode",                 &m_uiMVCmode,                                          0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",               &cInputFile,                                           "in.yuv");
@@ -633,6 +633,13 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 // TMM_ESS {
     ResizeParameters * curr;
     curr = getResizeParameters(ui);
+
+// JVT-Q065 EIDR{
+	if(ui > 0 && getLayerParameters(ui-1).getIDRPeriod() == getLayerParameters(ui).getIDRPeriod())
+	{
+		getLayerParameters(ui).setBLSkipEnable(true);
+	}
+// JVT-Q065 EIDR}
 
     // HS: set base layer id
     UInt uiBaseLayerId = getLayerParameters(ui).getBaseLayerId();
@@ -750,7 +757,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgRtMus1",&(rcLayer.m_uiSliceGroupChangeRateMinus1),           85       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice),                     0       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSMotion",      &(rcLayer.m_uiFGSMotionMode), 0);
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSMotion",      &(rcLayer.m_uiFGSMotionMode),							0		);
+// JVT-Q065 EIDR{
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	  &(rcLayer.m_iIDRPeriod),								0		);
+// JVT-Q065 EIDR}
   m_pLayerLines[uiParLnCount] = NULL;
 
   while (!feof(f))

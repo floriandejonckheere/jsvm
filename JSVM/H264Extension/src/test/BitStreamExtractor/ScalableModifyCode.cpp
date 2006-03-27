@@ -440,6 +440,9 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayers( uiLayer ) );
 			for( UInt ui = 0; ui < pcScalableSei->getNumDirectlyDependentLayers( uiLayer ); ui++ )
 			{
+#if 1 //BUG_FIX liuhui 0603
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDelta(uiLayer, ui ) );
+#endif
 				//
 			}
 		}
@@ -450,11 +453,17 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
       UInt ui;
 			for( ui = 0; ui <= pcScalableSei->getNumInitSPSMinus1( uiLayer ); ui++ )
 			{
+#if 1 //BUG_FIX liuhui 0603
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getInitSPSIdDelta( uiLayer, ui ) );
+#endif
 				//
 			}
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumInitPPSMinus1( uiLayer ) );
 			for( ui = 0; ui <= pcScalableSei->getNumInitPPSMinus1( uiLayer ); ui++ )
 			{
+#if 1 //BUG_FIX liuhui 0603
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getInitPPSIdDelta( uiLayer, ui ) );
+#endif
 				//
 			}
 		}

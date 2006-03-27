@@ -178,6 +178,12 @@ public:
 
   ErrVal  copyAll     ( IntFrame* pcSrcFrame )
   {
+// JVT-Q065 EIDR{
+	  if(!m_bUnusedForRef)
+	  {
+		  m_bUnusedForRef = pcSrcFrame->getUnusedForRef();
+	  }
+// JVT-Q065 EIDR}
     m_iPOC        = pcSrcFrame->m_iPOC;
     RNOK( m_cFullPelYuvBuffer.copy( &pcSrcFrame->m_cFullPelYuvBuffer ) );
   
@@ -186,6 +192,8 @@ public:
 
   ErrVal  copy        ( IntFrame* pcSrcFrame )
   {
+	m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
+
     RNOK( getFullPelYuvBuffer()->copy( pcSrcFrame->getFullPelYuvBuffer()) );
     return Err::m_nOK;
   }
@@ -261,6 +269,11 @@ public:
   Int   getPOC()          const   { return m_iPOC; }
   Void  setPOC( Int iPoc)         { m_iPOC = iPoc; }
 
+// JVT-Q065 EIDR{
+  Bool	getUnusedForRef()			  { return m_bUnusedForRef; }
+  Void	setUnusedForRef( Bool b )	  { m_bUnusedForRef = b; }
+// JVT-Q065 EIDR}
+
   Bool  isHalfPel()   { return m_bHalfPel; }
 
   Bool  isExtended () { return m_bExtended; }
@@ -276,6 +289,8 @@ protected:
   Bool            m_bExtended;
 
   DPBUnit*        m_pcDPBUnit;
+
+  Bool			  m_bUnusedForRef; // JVT-Q065 EIDR
 };
 
 

@@ -461,7 +461,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
     {
       m_pcIntOrgMbPelData->subtract   ( cBaseLayerBuffer );
 
-      if( ! pcMbDataAccessBase->getMbData().isIntra() )
+	  if( ! pcMbDataAccessBase->getMbData().isIntra() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
       {
         //--- only if base layer is in inter mode ---
           
@@ -470,7 +470,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
 					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, iSpatialScalabilityType,  pcMbDataAccessBase, true ) );
       }
 
-      if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+	  if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
       {
         //--- only if adaptive inter-layer prediction ---
         RNOK( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, true ) );
@@ -501,8 +501,8 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
   if( rcMbDataAccess.getSH().getBaseLayerId           () == MSYS_UINT_MAX ||
       rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
   {
-    if( ( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isIntra() ) || rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
-    {
+	  if(( ( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isIntra() ) || rcMbDataAccess.getSH().getAdaptivePredictionFlag() ) && rcRefFrameList0.getActive() )  // JVT-Q065 EIDR
+	  {
       //--- only if base layer is in intra mode or adaptive prediction is enabled ---
       // TMM_ESS 
       if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
@@ -510,13 +510,16 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
     }
 
     // if 2 reference frames are supplied, do not evaluate the skip mode here
-    if( pcRefFrameList0Base == 0 )
-      RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1 ) );
-    RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
+	  if( rcRefFrameList0.getActive() )  // JVT-Q065 EIDR
+	  {
+		if( pcRefFrameList0Base == 0 )
+		RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1 ) );
+		RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, false, 0, 0, false,                        pcMbDataAccessBase, false ) );
+	  }
   }
 
   // motion estimation was made with the enhancement reference frame
@@ -1036,6 +1039,7 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
                                UInt            uiNumMaxIter,
                                UInt            uiIterSearchRange,
                                UInt            uiIntraMode,
+							   Bool				bBLSkipEnable, // JVT-Q065 EIDR
                                Double          dLambda )
 {
   ROF( bInitDone );
@@ -1068,20 +1072,21 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
     {
       m_pcIntOrgMbPelData->subtract   ( cBaseLayerBuffer );
 
-      if( ! pcMbDataAccessBase->getMbData().isIntra() )
+	  if( ! pcMbDataAccessBase->getMbData().isIntra() && bBLSkipEnable) // JVT-Q065 EIDR
       {
         //--- only if base layer is in intra mode ---
-          // TMM_ESS 
-	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
+          // TMM_ESS 	
+		  if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() )  
 					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, iSpatialScalabilityType,         pcMbDataAccessBase, true ) );
 
 				//-- JVT-R091
-	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) ) 
-					RNOK( xEstimateMbSR				( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerResidual, bBSlice, iSpatialScalabilityType,			pcMbDataAccessBase, true ) );
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) ) 				
+			  RNOK( xEstimateMbSR				( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerResidual, bBSlice, iSpatialScalabilityType,			pcMbDataAccessBase, true ) );
 				//--
+
       }
 
-      if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+	  if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
       {
         RNOK( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1,                                                       pcMbDataAccessBase, true ) );
         RNOK( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
@@ -1113,16 +1118,18 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
     if( ( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isIntra() ) || rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
     {
       // TMM_ESS 
-      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) 
+		if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && bBLSkipEnable) // JVT-Q065 EIDR
 				RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, iSpatialScalabilityType,         pcMbDataAccessBase, false ) );
     }
 
-    RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1,                                                       pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
-    RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
+	{
+		RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1,                                                       pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb8x16     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb8x8      ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
+		RNOK  ( xEstimateMb8x8Frext ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, false ) );
+	}
   }
   
 

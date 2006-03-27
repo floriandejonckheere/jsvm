@@ -742,9 +742,11 @@ DecodedPicBuffer::xStorePicture( DPBUnit*       pcDPBUnit,
   if( bTreatAsIdr )
   {
     //===== IDR pictures =====
-    Int iDummy;
+/* // JVT-Q065 EIDR
+	  Int iDummy;
     RNOK( xClearOutputAll( rcOutputList, rcUnusedList, iDummy ) ); // clear and output all pictures
-    m_cUsedDPBUnitList.push_back( pcDPBUnit );                                    // store current picture
+*/ 
+	m_cUsedDPBUnitList.push_back( pcDPBUnit );                                    // store current picture
   }
   else
   {
@@ -1051,8 +1053,9 @@ DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
   }
 
   //===== set final size =====
-  ROT( pcSliceHeader->getNumRefIdxActive( eListIdx ) > rcList.getActive() );
-  rcList.setActive( pcSliceHeader->getNumRefIdxActive( eListIdx ) );
+  //EIDR JVT-Q065
+ // ROT( pcSliceHeader->getNumRefIdxActive( eListIdx ) > rcList.getActive() );
+	rcList.setActive( pcSliceHeader->getNumRefIdxActive( eListIdx ) );
 
   return Err::m_nOK;
 }
@@ -1125,6 +1128,15 @@ DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
   m_pcCurrDPBUnit->getFrame()->setPOC       ( pcSliceHeader->getPoc() );
   m_pcCurrDPBUnit->getCtrlData().setSliceHeader( pcSliceHeader );
 
+// JVT-Q065 EIDR{
+  if( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isIdrNalUnit() )
+  {
+	  //===== IDR pictures =====
+	  Int iDummy;
+	  RNOK( xClearOutputAll( rcOutputList, rcUnusedList, iDummy ) ); // clear and output all pictures
+  }
+// JVT-Q065 EIDR}
+
   //===== set DPB unit =====
   rpcCurrDPBUnit = m_pcCurrDPBUnit;
   return Err::m_nOK;
@@ -1180,7 +1192,7 @@ DecodedPicBuffer::setPrdRefLists( DPBUnit* pcCurrDPBUnit )
 
   RefFrameList& rcList0 = m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_0 );
   RefFrameList& rcList1 = m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_1 );
-  
+
   rcList0.reset();
   rcList1.reset();
   ROTRS( m_pcCurrDPBUnit->getCtrlData().getSliceHeader()->isIntra(),   Err::m_nOK );

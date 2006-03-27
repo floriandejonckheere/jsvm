@@ -520,30 +520,30 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 		if ( m_layer_dependency_info_present_flag[i] )
 		{
 			RNOK	( pcWriteIf->writeUvlc ( m_num_directly_dependent_layers[i],			"ScalableSEI: num_directly_dependent_layers"					) );
-			for ( j = 0; j < MAX_SCALABLE_LAYERS; j++ )
-				m_directly_dependent_layer_id_delta[j] = new UInt [m_num_directly_dependent_layers[i]];
-			for ( j = 0; j < m_num_directly_dependent_layers[i]; j++ )
-			{
-				RNOK( pcWriteIf->writeUvlc (m_directly_dependent_layer_id_delta[i][j],"ScalableSEI: directly_dependent_layers_id_delta"		) );
-			}
+// BUG_FIX liuhui{
+		    for( j = 0; j < m_num_directly_dependent_layers[i]; j++ )
+		    {
+		      RNOK( pcWriteIf->writeUvlc (m_directly_dependent_layer_id_delta[i][j],      "ScalableSEI: directly_dependent_layers_id_delta"		) );
+		    }
+// BUG_FIX liuhui}
 		}
 
 		if ( m_init_parameter_sets_info_present_flag[i] ) 
 		{
 
+// BUG_FIX liuhui{
 			RNOK	( pcWriteIf->writeUvlc ( m_num_init_seq_parameter_set_minus1[i],	"ScalableSEI: num_init_seq_parameter_set_minus1"			) );
-			for ( j = 0; j < MAX_SCALABLE_LAYERS; j++ )
-				m_init_seq_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i]+1];
-			for ( j = 0; j <= m_num_init_seq_parameter_set_minus1[i]; j++ )
+			for( j = 0; j < m_num_init_seq_parameter_set_minus1[i]; j++ )
 			{
-				RNOK ( pcWriteIf->writeUvlc ( m_init_seq_parameter_set_id_delta[i][j],"ScalableSEI: init_seq_parameter_set_id_delta"				) );
+			  RNOK( pcWriteIf->writeUvlc( m_init_seq_parameter_set_id_delta[i][j],  "ScalableSEI: init_seq_parameter_set_id_delta"				    ) );
 			}
 
-			RNOK	( pcWriteIf->writeUvlc ( m_num_init_pic_parameter_set_minus1[i],	"ScalableSEI: num_init_pic_parameter_set_minus1"			) );
-			for ( j = 0; j < MAX_SCALABLE_LAYERS; j++ )
-				m_init_pic_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i]+1];
-			for ( j = 0; j <= m_num_init_pic_parameter_set_minus1[i]; j++ )
-				RNOK ( pcWriteIf->writeUvlc ( m_init_pic_parameter_set_id_delta[i][j],"ScalableSEI: init_pic_parameter_set_id_delta"				) );
+			RNOK    ( pcWriteIf->writeUvlc ( m_num_init_pic_parameter_set_minus1[i],	"ScalableSEI: num_init_pic_parameter_set_minus1"			) );
+			for( j = 0; j < m_num_init_pic_parameter_set_minus1[i]; j++ )
+			{
+			  RNOK ( pcWriteIf->writeUvlc ( m_init_pic_parameter_set_id_delta[i][j],"ScalableSEI: init_pic_parameter_set_id_delta"				    ) );
+			}
+// BUG_FIX liuhui}
 		}
 
 	}
@@ -625,27 +625,28 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 		if( m_layer_dependency_info_present_flag[i] )
 		{
 			RNOK	( pcReadIf->getUvlc( m_num_directly_dependent_layers[i],								""	) );
-			m_directly_dependent_layer_id_delta[i] = new UInt [ m_num_directly_dependent_layers[i] ];
-			for( j = 0; j < m_num_directly_dependent_layers[i]; j++)
+// BUG_FIX liuhui{
+			for( j = 0; j < m_num_directly_dependent_layers[i]; j++ )
 			{
-				RNOK	( pcReadIf->getUvlc( m_directly_dependent_layer_id_delta[i][j],				""  ) );
+				RNOK  ( pcReadIf->getUvlc( m_directly_dependent_layer_id_delta[i][j],				""  ) );
 			}
+// BUG_FIX liuhui}
 		}
 
 		if( m_init_parameter_sets_info_present_flag[i] )
 		{
-			RNOK	( pcReadIf->getUvlc( m_num_init_seq_parameter_set_minus1[i],						""  ) );
-			m_init_seq_parameter_set_id_delta[i] = new UInt [ m_num_init_seq_parameter_set_minus1[i] + 1 ];
+// BUG_FIX liuhui{
+			RNOK    ( pcReadIf->getUvlc( m_num_init_seq_parameter_set_minus1[i],                        ""  ) );
 			for( j = 0; j <= m_num_init_seq_parameter_set_minus1[i]; j++ )
 			{
-				RNOK	( pcReadIf->getUvlc( m_init_seq_parameter_set_id_delta[i][j],					""	) );
+			    RNOK	( pcReadIf->getUvlc( m_init_seq_parameter_set_id_delta[i][j],					""	) );
 			}
 			RNOK	( pcReadIf->getUvlc( m_num_init_pic_parameter_set_minus1[i],						""	) );
-			m_init_pic_parameter_set_id_delta[i] = new UInt [ m_num_init_pic_parameter_set_minus1[i] + 1 ];
 			for( j = 0; j <= m_num_init_pic_parameter_set_minus1[i]; j++ )
 			{
 				RNOK	( pcReadIf->getUvlc( m_init_pic_parameter_set_id_delta[i][j],					""	) );
 			}
+// BUG_FIX liuhui}
 		}
 	}	
 

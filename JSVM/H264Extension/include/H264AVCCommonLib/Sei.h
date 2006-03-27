@@ -249,6 +249,10 @@ public:
 		Void setInitSeqParameterSetIdDelta ( UInt uilayer, UInt uiSPS, UInt uiTar){ m_init_seq_parameter_set_id_delta				[uilayer][uiSPS] = uiTar;	}
 		Void setNumInitPicParameterSetMinus1 ( UInt uilayer, UInt uiNum )					{ m_num_init_pic_parameter_set_minus1			[uilayer] = uiNum; }
 		Void setInitPicParameterSetIdDelta ( UInt uilayer, UInt uiPPS, UInt uiTar){ m_init_pic_parameter_set_id_delta				[uilayer][uiPPS] = uiTar; }
+// BUG_FIX liuhui{
+		Void setStdAVCOffset( UInt uiOffset )                                     { m_std_AVC_Offset = uiOffset;}
+		UInt getStdAVCOffset()const { return m_std_AVC_Offset; }
+// BUG_FIX liuhui}
 
 		UInt getNumLayersMinus1() const {return m_num_layers_minus1;}
 		UInt getLayerId ( UInt uilayer ) const { return m_layer_id[uilayer]; }
@@ -285,11 +289,21 @@ public:
 		UInt getRegionWidth ( UInt uilayer ) const { return m_region_width[uilayer]; }
 		UInt getRegionHeight ( UInt uilayer ) const { return m_region_height[uilayer]; }
 		UInt getNumDirectlyDependentLayers ( UInt uilayer ) const { return m_num_directly_dependent_layers[uilayer]; }
+// BUG_FIX liuhui{
+		UInt getNumDirectlyDependentLayerIdDelta( UInt uilayer, UInt uiIndex ) const { return m_directly_dependent_layer_id_delta[uilayer][uiIndex]; }
+// BUG_FIX liuhui}
 		//
 		UInt getNumInitSPSMinus1 ( UInt uilayer ) const { return m_num_init_seq_parameter_set_minus1[uilayer]; }
 		UInt getNumInitPPSMinus1 ( UInt uilayer ) const { return m_num_init_pic_parameter_set_minus1[uilayer]; }
+// BUG_FIX liuhui{
+		UInt getInitSPSIdDelta ( UInt uilayer, UInt uiIndex ) const { return m_init_seq_parameter_set_id_delta[uilayer][uiIndex]; }
+		UInt getInitPPSIdDelta ( UInt uilayer, UInt uiIndex ) const { return m_init_pic_parameter_set_id_delta[uilayer][uiIndex]; }
+// BUG_FIX liuhui}
 
 	private:
+// BUG_FIX liuhui{
+		UInt m_std_AVC_Offset;
+// BUG_FIX liuhui}
 		UInt m_num_layers_minus1;
 		UInt m_layer_id[MAX_SCALABLE_LAYERS];
 		Bool m_fgs_layer_flag[MAX_SCALABLE_LAYERS];
@@ -331,15 +345,15 @@ public:
 		UInt m_region_height[MAX_SCALABLE_LAYERS];
 
 		//UInt m_roi_id[MAX_SCALABLE_LAYERS];
-
+// BUG_FIX liuhui{
 		UInt m_num_directly_dependent_layers[MAX_SCALABLE_LAYERS];
-		UInt *m_directly_dependent_layer_id_delta[MAX_SCALABLE_LAYERS];
+		UInt m_directly_dependent_layer_id_delta[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
 
 		UInt m_num_init_seq_parameter_set_minus1[MAX_SCALABLE_LAYERS];
-		UInt *m_init_seq_parameter_set_id_delta[MAX_SCALABLE_LAYERS];
+		UInt m_init_seq_parameter_set_id_delta[MAX_SCALABLE_LAYERS][32];
 		UInt m_num_init_pic_parameter_set_minus1[MAX_SCALABLE_LAYERS];
-		UInt *m_init_pic_parameter_set_id_delta[MAX_SCALABLE_LAYERS];
-
+		UInt m_init_pic_parameter_set_id_delta[MAX_SCALABLE_LAYERS][256];
+// BUG_FIX liuhui}
 	};
 
 	class H264AVCCOMMONLIB_API SubPicSei : public SEIMessage

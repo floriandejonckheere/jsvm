@@ -242,6 +242,10 @@ public:
                                       Double*                         rdOutputBitrate,
                                       Double                          aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 
+// BUG_FIX liuhui{
+  ErrVal        SingleLayerFinish(   Double                           aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
+                                     Double                           aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
+// BUG_FIX liuhui}
 
 
 
@@ -650,6 +654,11 @@ protected:
   Double                        m_dPredFGSBitRateFactor;
   Int                           m_iPredLastFGSError;
   Double                        m_dPredFGSRoundingOffset;
+
+// JVT-Q065 EIDR{
+  Int							m_iIDRPeriod;
+  Bool							m_bBLSkipEnable;
+// JVT-Q065 EIDR}
 
   enum RefListType
   {
