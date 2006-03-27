@@ -168,7 +168,7 @@
 				RelativePath="..\..\..\include\DownConvert.inl">
 			</File>
 			<File
-				RelativePath="..\..\..\include\DownConvertTmm.inl">
+				RelativePath="..\..\..\include\DownConvertTools.inl">
 			</File>
 		</Filter>
 		<Filter

@@ -105,7 +105,7 @@ SOURCE=..\..\..\include\DownConvert.inl
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\DownConvertTmm.inl
+SOURCE=..\..\..\include\DownConvertTools.inl
 # End Source File
 # End Group
 # Begin Group "Resource Files"

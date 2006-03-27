@@ -161,9 +161,6 @@
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl">
-			<File
-				RelativePath="..\..\..\include\DownConvert.h">
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

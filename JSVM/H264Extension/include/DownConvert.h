@@ -79,266 +79,211 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 ********************************************************************************
 */
 
-
-
-
-
 #ifndef _DOWN_CONVERT_
 #define _DOWN_CONVERT_
 
+#define DEFAULTY 0
+#define DEFAULTU 0
+#define DEFAULTV 0
 
-#define FILTER_UP   int piFilter[16] = {  0,  0,  1,  0, -5,  0, 20,   32,   20,    0, -5,  0,  1,  0,  0,   64 };
-#define FILTER_DOWN int piFilter[16] = {  0,  2,  0, -4, -3,  5, 19,   26,   19,    5, -3, -4,  0,  2,  0,   64 };
-
-
-#ifndef NO_MB_DATA_CTRL
+#ifndef DOWN_CONVERT_STATIC //TMM_JV
 #include "H264AVCCommonLib/MbDataCtrl.h"
-#endif
+
+#define RESIDUAL_B8_BASED 0   // 1: residual upsampling is 8x8 based; 0: transform-block based
+#endif // DOWN_CONVERT_STATIC
 
 #include "ResizeParameters.h"
-#define LANCZOS_OPTIM 1
-
 
 class DownConvert
 {
-public:
-  DownConvert ();
+ public:
+
+ DownConvert ();
   ~DownConvert();
   
   int   init                    ( int            iMaxWidth,
                                   int            iMaxHeight );
-  void  downsample              ( unsigned char* pucBufferY, int iStrideY,
-                                  unsigned char* pucBufferU, int iStrideU,
-                                  unsigned char* pucBufferV, int iStrideV,
-                                  int            iWidth,     int iHeight, int iStages = 1 );                // high-resolution
-  void  downsample              ( short*         psBufferY,  int iStrideY,
-                                  short*         psBufferU,  int iStrideU,
-                                  short*         psBufferV,  int iStrideV,
-                                  int            iWidth,     int iHeight, bool bClip, int iStages = 1 );    // high-resolution
-  void  upsample                ( unsigned char* pucBufferY, int iStrideY,
-                                  unsigned char* pucBufferU, int iStrideU,
-                                  unsigned char* pucBufferV, int iStrideV,
-                                  int            iWidth,     int iHeight, int iStages = 1 );                // low-resolution
-// TMM_ESS }
+  
+#ifndef DOWN_CONVERT_STATIC //TMM_JV
+//-------------------------------------------------
+//JSVM upsampling methods (encoder + decoder) only
+//-------------------------------------------------
+
   void  upsample                ( short*            psBufferY, int iStrideY,
                                   short*            psBufferU, int iStrideU,
                                   short*            psBufferV, int iStrideV,
                                   ResizeParameters* pcParameters,
                                   bool              bClip = true );
 
-  void  upsample                ( short*         psBufferY,  int iStrideY,
-                                  short*         psBufferU,  int iStrideU,
-                                  short*         psBufferV,  int iStrideV,
-                                  int            iWidth,     int iHeight, bool bClip, int iStages = 1 );    // low-resolution
-
-  // upsampling with given filter coefficients
-  void  upsample                ( unsigned char* pucBufferY, int iStrideY,
-                                  unsigned char* pucBufferU, int iStrideU,
-                                  unsigned char* pucBufferV, int iStrideV,
-                                  int            iWidth,     int iHeight, int* piFilter, int iStages = 1 );                // low-resolution
-  void  upsample                ( short*         psBufferY,  int iStrideY,
-                                  short*         psBufferU,  int iStrideU,
-                                  short*         psBufferV,  int iStrideV,
-                                  int            iWidth,     int iHeight, int* piFilter, bool bClip, int iStages = 1 );    // low-resolution
-
-#ifndef NO_MB_DATA_CTRL
-  // TMM_ESS 
   void upsampleResidual         ( short*            psBufferY,  int iStrideY,
                                   short*            psBufferU,  int iStrideU,
                                   short*            psBufferV,  int iStrideV,
                                   ResizeParameters* pcParameters,
                                   h264::MbDataCtrl* pcMbDataCtrl,
                                   bool              bClip );
+                                  
+#else // DOWN_CONVERT_STATIC is defined
+//------------------------
+//DownConvert Tool only
+//------------------------
 
-  void  upsampleResidual        ( short*         psBufferY,  int iStrideY,
-                                  short*         psBufferU,  int iStrideU,
-                                  short*         psBufferV,  int iStrideV,
-                                  int            iWidth,     int iHeight, 
-                                  h264::MbDataCtrl* pcMbDataCtrl, bool bClip, int iStages = 1 );    // low-resolution
-#endif
+  void upsample                 ( unsigned char* pucBufferY, int iStrideY,
+                                  unsigned char* pucBufferU, int iStrideU,
+                                  unsigned char* pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters, int iStages, int* piFilter);
+                                  
+  void upsample_non_dyadic      ( unsigned char* pucBufferY, int iStrideY,
+                                  unsigned char* pucBufferU, int iStrideU,
+                                  unsigned char* pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters, int type = 0);
   
+  void downsample               ( unsigned char* pucBufferY, int iStrideY,
+                                  unsigned char* pucBufferU, int iStrideU,
+                                  unsigned char* pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters, int iStages, int* piFilter);
+                                  
+  void downsample3              ( unsigned char* pucBufferY, int iStrideY,
+                                  unsigned char* pucBufferU, int iStrideU,
+                                  unsigned char* pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters);
+                                  
+  void   crop                  ( unsigned char*    pucBufferY, int iStrideY,
+                                  unsigned char*    pucBufferU, int iStrideU,
+                                  unsigned char*    pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters );
+#endif // DOWN_CONVERT_STATIC 
+
 private:
+ 
+  int   m_iImageStride;
+  int*  m_paiImageBuffer;
+  int*  m_paiTmp1dBuffer;
+ 
+#ifdef DOWN_CONVERT_STATIC //TMM_JV
+//------------------------
+//DownConvert Tool only
+//------------------------
+  long* m_padFilter;
+  int* m_aiTmp1dBufferInHalfpel;
+  int* m_aiTmp1dBufferInQ1pel;
+  int* m_aiTmp1dBufferInQ3pel;
+  int*  m_paiTmp1dBufferOut;
+#endif //DOWN_CONVERT_STATIC 
+  
+  void  xDestroy                ( );
   int   xClip                   ( int               iValue,
                                   int               imin,
                                   int               imax );
-  void  xDownsampling           ( int               iWidth,         // high-resolution width
-                                  int               iHeight,        // high-resolution height
-                                  int               aiFilter[] );   // downsampling filter [15coeff+sum]
-  void  xUpsampling             ( int               iWidth,         // low-resolution width
-                                  int               iHeight,        // low-resolution height
-                                  int               aiFilter[] );   // downsampling filter [15coeff+sum]
-  void  xCopyToImageBuffer      ( short*            psSrc,
-                                  int               iWidth,
-                                  int               iHeight,
-                                  int               iStride );
-  void  xCopyToImageBuffer      ( unsigned char*    pucSrc,
-                                  int               iWidth,
-                                  int               iHeight,
-                                  int               iStride );
-  void  xCopyFromImageBuffer    ( short*            psDes,
-                                  int               iWidth,
-                                  int               iHeight,
-                                  int               iStride,
-                                  int               imin,
-                                  int               imax );
-  void  xCopyFromImageBuffer    ( unsigned char*    pucDes,
-                                  int               iWidth,
-                                  int               iHeight,
-                                  int               iStride,
-                                  int               imin,
-                                  int               imax );
 
-#ifndef NO_MB_DATA_CTRL
-  void xUpsamplingSubMb         ( int*              piSrcBlock,     // low-resolution src-addr
-                                  int*              piDesBlock,     // high-resolution src-addr
-                                  h264::BlkMode     eBlkMode,
-                                  int               aiFilter[] );   // downsampling filter [15coeff+sum]
+  void   xUpsampling3           ( ResizeParameters* pcParameters,
+                                  bool bLuma );
+  
+  void   xUpsampling3           ( int input_width, int input_height,
+                                  int output_width, int output_height,
+                                  int crop_x0, int crop_y0, int crop_w, int crop_h,
+                                  int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y );
+                                  
+#ifndef DOWN_CONVERT_STATIC // TMM_JV
+//-------------------------------------------------
+//JSVM upsampling methods (encoder + decoder) only
+//-------------------------------------------------
+  
 
-  void  xCopyFromImageBuffer2   ( short*            psDes,
-                                  int               iWidth,
-                                  int               iHeight,
-                                  int               iStride,
-                                  int               imin,
-                                  int               imax );
-
-  void xUpsamplingBlock         ( int               iWidth,         // low-resolution width
-                                  int               iHeight,        // low-resolution height
-                                  int*              piSrcBlock,     // low-resolution src-addr
-                                  int*              piDesBlock,     // high-resolution src-addr
-                                  int               aiFilter[] );   // downsampling filter [15coeff+sum]
-
-  void xUpsamplingFrame         ( int               iWidth,         // low-resolution width
-                                  int               iHeight,        // low-resolution height
-                                  int*              piSrcBlock,     // low-resolution src-addr
-                                  int*              piDesBlock,     // high-resolution src-addr
-                                  bool              bLuma,
-                                  h264::MbDataCtrl* pcMbDataCtrl,
-                                  int               aiFilter[] );   // downsampling filter [15coeff+sum]
-
-#endif
-
-private:
-  int   m_iImageStride;
-  int*  m_paiImageBuffer;
-#ifndef NO_MB_DATA_CTRL
-  int*  m_paiImageBuffer2;
-#endif
-  int*  m_paiTmp1dBuffer;
-
-// TMM_ESS {
-
-// =================================================================================
-//   GENERAL
-// =================================================================================
-public:
-  void  upsample_tmm            ( unsigned char*    pucBufferY, int iStrideY,
-                                  unsigned char*    pucBufferU, int iStrideU,
-                                  unsigned char*    pucBufferV, int iStrideV,
-                                  ResizeParameters* pcParameters );
-
-private:
-  void   xInitFilterTmm         ( int iMaxDim );
-  void   xDestroyFilterTmm      ( );
-
-  void   xGenericUpsample       ( unsigned char*    pucBufferY, int iStrideY,
-                                  unsigned char*    pucBufferU, int iStrideU,
-                                  unsigned char*    pucBufferV, int iStrideV,
-                                  ResizeParameters* pcParameters );
-  // SSUN@SHARP
-  void   xGenericUpsampleEss    ( short*            psBufferY, int iStrideY,
-                                  short*            psBufferU, int iStrideU,
-                                  short*            psBufferV, int iStrideV,
-                                  ResizeParameters* pcParameters,
-                                  bool              bClip = true );
-  // end of SSUN@SHARP
-  void   xCrop                  ( unsigned char*    pucBufferY, int iStrideY,
-                                  unsigned char*    pucBufferU, int iStrideU,
-                                  unsigned char*    pucBufferV, int iStrideV,
-                                  ResizeParameters* pcParameters );
-  void   xGenericUpsample       ( short*            psBufferY, int iStrideY,
-                                  short*            psBufferU, int iStrideU,
-                                  short*            psBufferV, int iStrideV,
-                                  ResizeParameters* pcParameters,
-                                  bool              bClip = true );
-  void   xCrop                  ( short*            psBufferY, int iStrideY,
-                                  short*            psBufferU, int iStrideU,
-                                  short*            psBufferV, int iStrideV,
-                                  ResizeParameters* pcParameters,
-                                  bool              bClip = true );
-
-#ifndef NO_MB_DATA_CTRL
-  // SSUN@SHARP
   void   xGenericUpsampleEss    ( short*            psBufferY, int iStrideY,
                                   short*            psBufferU, int iStrideU,
                                   short*            psBufferV, int iStrideV,
                                   ResizeParameters* pcParameters,
                                   h264::MbDataCtrl* pcMbDataCtrl,
+                                  bool              bClip = true );
+  void   xGenericUpsampleEss    ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
                                   bool              bClip = true );
   void   xFilterResidualHor     ( short *buf_in, short *buf_out, 
                                   int width, int height, 
                                   int x, int y, int w, int h,  
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
-                                  bool chroma, int rounding_para,  // SSUN, 27Sept2005
+                                  bool chroma, int rounding_para,
                                   unsigned char *buf_blocksize );
   void   xFilterResidualVer     ( short *buf_in, short *buf_out, 
                                   int width, int height, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
-                                  bool chroma, int rounding_para,  // SSUN, 27Sept2005
+                                  bool chroma, int rounding_para,
                                   unsigned char *buf_blocksize );
-  // end of SSUN@SHARP
-  void xCopyBuffer		(int *pitmpDes,
-						           int *piDes,
-						           int ixlastsample,
-						           int iylastsample,
-						           int ixout,
-						           int iyout,
-						           int iSizeOut);
+ 						           
+  void   xCrop                  ( short*            psBufferY, int iStrideY,
+                                  short*            psBufferU, int iStrideU,
+                                  short*            psBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters,
+                                  bool              bClip = true );
+                                  
+  void  xCopyToImageBuffer      ( short*            psSrc,
+                                  int               iWidth,
+                                  int               iHeight,
+                                  int               iStride );
 
-#endif
-  
-  void   xSetValue              ( unsigned char* pucBuffer, int iStride,
-                                  int iWidth, int iHeight,
-                                  unsigned char value );
+  void  xCopyFromImageBuffer    ( short*            psDes,
+                                  int               iWidth,
+                                  int               iHeight,
+                                  int               iStride,
+                                  int               imin,
+                                  int               imax );
+
   void   xSetValue              ( short* psBuffer, int iStride,
                                   int iWidth, int iHeight,
                                   short value );
+                                  
+                                  
+#else // DOWN_CONVERT_STATIC is defined
+//------------------------
+//DownConvert Tool only
+//------------------------
+
+  void  xCopyToImageBuffer      ( unsigned char*    pucSrc,
+                                  int               iWidth,
+                                  int               iHeight,
+                                  int               iStride );
+
+  void  xCopyFromImageBuffer    ( unsigned char*    pucDes,
+                                  int               iWidth,
+                                  int               iHeight,
+                                  int               iStride,
+                                  int               imin,
+                                  int               imax );
+                                  
+  void   xSetValue              ( unsigned char* pucBuffer, int iStride,
+                                  int iWidth, int iHeight,
+                                  unsigned char value );
+                                  
+  void  xDownsampling           ( int               iWidth,         // high-resolution width
+                                  int               iHeight,        // high-resolution height
+                                  int               aiFilter[] );   // downsampling filter [15coeff+sum]
+
+  void  xUpsampling             ( int               iWidth,         // low-resolution width
+                                  int               iHeight,        // low-resolution height
+                                  int               aiFilter[] );   // downsampling filter [15coeff+sum]
+
   void   xUpsampling            ( ResizeParameters* pcParameters,
-                                  bool bLuma );
-  void   xComputeNumeratorDenominator ( int iInWidth , int iOutWidth ,
-                                        int* iNumerator, int *iDenominator);
+                                  bool bLuma, int type );
 
 // =================================================================================
 //   INTRA 1 Lanczos
 // =================================================================================
-private:
   void   xInitFilterTmm1        ( int iMaxDim );
   void   xDestroyFilterTmm1     ( );
   void   xUpsampling1           ( ResizeParameters* pcParameters,
                                   bool bLuma );
-#if LANCZOS_OPTIM
   void   xUpsamplingData1       ( int iInLength , int iOutLength , long spos );
   long   xGetFilter             ( long x );
-#else
-  void   xUpsamplingData1       ( int iInLength , int iOutLength , int iNumerator , int iDenominator );
-  double xGetFilter             ( double x );
-#endif
-
-private:
-#if LANCZOS_OPTIM
-  long* m_padFilter;
-#else
-  double* m_padFilter;
-#endif
-
-  
   
 // =================================================================================
 //   INTRA 2
 // =================================================================================
-private:
   void   xInitFilterTmm2        ( int iMaxDim );
   void   xDestroyFilterTmm2     ( );
   void   xUpsampling2           ( ResizeParameters* pcParameters,
@@ -346,65 +291,36 @@ private:
   void   xUpsamplingData2       ( int iInLength , int iOutLength , int iNumerator , int iDenominator );
 
 // =================================================================================
-  
-// INTRA 2 / INTER 2 
-private:
- 
-  int* m_aiTmp1dBufferInHalfpel;
-  int* m_aiTmp1dBufferInQ1pel;
-  int* m_aiTmp1dBufferInQ3pel;
-  
-  
-// =================================================================================
-  
-// INTRA 3
-public:
-  void upsample3            ( unsigned char* pucBufferY, unsigned char* pucBufferU, unsigned char* pucBufferV,
-                              int input_width, int input_height, int output_width, int output_height,
-                              int crop_x0, int crop_y0, int crop_w, int crop_h, 
-                              int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                              int output_chroma_phase_shift_x, int output_chroma_phase_shift_y);
-  
-  void downsample3          ( unsigned char* pucBufferY, unsigned char* pucBufferU, unsigned char* pucBufferV,
-                              int input_width, int input_height, int output_width, int output_height,
-                              int crop_x0, int crop_y0, int crop_w, int crop_h, 
-                              int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                              int output_chroma_phase_shift_x, int output_chroma_phase_shift_y );
 
-  void UnifiedOneForthPix ( unsigned char **out4Y, int img_width, int img_height );
+  void   xInitFilterTmm         ( int iMaxDim );
+  void   xDestroyFilterTmm      ( );
 
-  
-private:
-  void   xUpsampling3           ( ResizeParameters* pcParameters,
-                                  bool bLuma );
-  void   xUpsampling3           ( int input_width, int input_height,
-                                  int output_width, int output_height,
-                                  int crop_x0, int crop_y0, int crop_w, int crop_h,
-                                  int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y );
+
+  void   xCrop                  ( unsigned char*    pucBufferY, int iStrideY,
+                                  unsigned char*    pucBufferU, int iStrideU,
+                                  unsigned char*    pucBufferV, int iStrideV,
+                                  ResizeParameters* pcParameters );
+                                  
+  void   xComputeNumeratorDenominator ( int iInWidth , int iOutWidth ,
+                                        int* iNumerator, int *iDenominator);
+                                        
   void   xDownsampling3         ( int input_width, int input_height, int output_width, int output_height,
                                   int crop_x0, int crop_y0, int crop_w, int crop_h,
                                   int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flg );
+                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flg );  
 
+#endif //DOWN_CONVERT_STATIC 
 
-// =================================================================================
-// =================================================================================
-private:
-  int*  m_paiTmp1dBufferIn;
-  int*  m_paiTmp1dBufferOut;
-
-// TMM_ESS }
-  
 };
 
-
-
-
-
 #include "DownConvert.inl"
-#include "DownConvertTmm.inl"
 
+#ifdef DOWN_CONVERT_STATIC //TMM_JV
+#include "DownConvertTools.inl"
+#endif // DOWN_CONVERT_STATIC 
 
+#undef DEFAULTY
+#undef DEFAULTU
+#undef DEFAULTV
 
 #endif // _DOWN_CONVERT_

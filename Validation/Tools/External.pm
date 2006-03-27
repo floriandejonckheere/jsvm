@@ -6,7 +6,7 @@
 # File          : External.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.3
+# Version       : 0.0.4
 ################################################################################
 
 package External;
@@ -232,7 +232,7 @@ sub ComputePSNR($$$$$$$$$)
    my $framerate = shift;
    my $errname=shift;
    
-   my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 0 $extname $framerate 2> $errname";
+   my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 $extname $framerate 2> $errname";
    
    my $ret = run($cmd, $log,0);
   ($ret == 0) or die "problem while executing the command:\n$cmd \n $!";
@@ -271,37 +271,17 @@ sub Resize($$;@)
 	($win>=$wout) or die "The input width must be greater or equal to the output width $!";
 	($hin>=$hout) or die "The input height must be greater or equal to the output height $!";
 		
-	my $wratio=$win/$wout;
-	my $hratio=$hin/$hout;
-	
-	my $wres=GetPowerof2($wratio);
-	my $hres=GetPowerof2($hratio);
-	
 	if(defined $cropfile)
 	{
-		$cmd ="$bin$RESAMPLER  -ess $essopt $namein $win $hin $nameout $wout $hout -1 0 -1 0 $cropfile $temporatio 0 $nbfr 2> ${tmp}temporesize.txt";	
+    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr -crop 1 $cropfile";
 		$ret = run($cmd, $log,0);
 		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
 	}
 	else
 	{
-		if($essopt ==2)
-		{ die "Cropping file is needed!\n";}
-			
-		my $temporesize="${tmp}temporesize.txt";
-		$cropfile = "${tmp}tempocrop.txt";
-		my $f = new IO::File $cropfile , "w";
-		(defined $f) or die "- Failed to open the logfile $cropfile : $!";
-		print $f "0, 0,  $win, $hin ";
-		$f->close();
-			
-		$cmd ="$bin$RESAMPLER  -ess $essopt $namein $win $hin $nameout $wout $hout -1 0 -1 0 $cropfile $temporatio 0 $nbfr 2> $temporesize";
-		
+    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr";
 		$ret = run($cmd, $log,0);
 		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
-		(-f $cropfile) and (unlink $cropfile or die "Can not remove $cropfile $!");
-		
-		(-f $temporesize) and (unlink $temporesize or die" Can not remove $temporesize $!");
 	}  	   					         
 } 
 

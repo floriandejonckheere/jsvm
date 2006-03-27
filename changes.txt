@@ -1,5 +1,28 @@
+JSVM_4_7 -> JSVM_4_8
+====================
+
+Cleaning of DownConvert 
+
+Date: March 27, 2006
+Author: P. Dagois and J. Vieron
+
+Changes:
+
+1) main.cpp (DownConvert): Cleaning of DownConvert Tool to make it easier to use.
+2) DownConvert.h: Cleaning of unused functions + re-organization.
+3) Removal of "DownConvertTmm.inl" file
+4) Addition of a new file "DownConvertTools.inl"
+    This file contains all the functions that are only used in the DownConvert Tools.
+5) DownConvertStatic.vcproj: "DownConvertTmm.inl" is replaced by "DownConvertTools.inl"
+6) DownConvert.inl
+    DownConvert.inl contains now only the functions specific to the JSVM software (upsampling methods) 
+    as well as the common functions between the "DownConvert Tools" and the JSVM software.
+7) main.cpp (PSNR): Removal of "spatial resampling" (i.e. call to downconvert methods) in PSNR tool.
+8) PSNRStatic.vcproj: Removal of "DownConvert.h"
+9) Validation Script (New Version 0.0.4): Modified in order to use new tools. Re-indent with spaces.
+
 JSVM_4_6 -> JSVM_4_7
-=====================
+====================
 
 EIDR, 
 Non-required picture SEI message (Bug fix), 

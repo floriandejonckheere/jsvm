@@ -80,18 +80,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 */
 
 
-
-
-
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define NO_MB_DATA_CTRL
-#include "DownConvert.h"
-
-
 
 typedef struct
 {
@@ -113,7 +105,7 @@ void createColorComponent( ColorComponent* cc )
 {
   if( ! ( cc->data = new unsigned char[cc->width * cc->height]))
   {
-   fprintf(stderr, "\nERROR: memory allocation failed!\n\n");
+    fprintf(stderr, "\nERROR: memory allocation failed!\n\n");
     exit(1);
   }
 }
@@ -172,9 +164,9 @@ void writeColorComponent( ColorComponent* cc, FILE* file, int downScale )
   }
 }
 
-double psnr( ColorComponent& rec, ColorComponent& org, int rec_x, int rec_y )
+double psnr( ColorComponent& rec, ColorComponent& org)
 {
-  unsigned char*  pOrg  = org.data + (rec_y * org.width) + rec_x;
+  unsigned char*  pOrg  = org.data;
   unsigned char*  pRec  = rec.data;
   double          ssd   = 0;
   int             diff;
@@ -197,11 +189,11 @@ double psnr( ColorComponent& rec, ColorComponent& org, int rec_x, int rec_y )
   return ( 10.0 * log10( (double)rec.width * (double)rec.height * 65025.0 / ssd ) );
 }
 
-void getPSNR( double& psnrY, double& psnrU, double& psnrV, YuvFrame& rcFrameOrg, YuvFrame& rcFrameRec, int rec_x, int rec_y )
+void getPSNR( double& psnrY, double& psnrU, double& psnrV, YuvFrame& rcFrameOrg, YuvFrame& rcFrameRec )
 {
-  psnrY = psnr( rcFrameRec.lum, rcFrameOrg.lum, rec_x, rec_y );
-  psnrU = psnr( rcFrameRec.cb,  rcFrameOrg.cb,  rec_x, rec_y );
-  psnrV = psnr( rcFrameRec.cr,  rcFrameOrg.cr,  rec_x, rec_y );
+  psnrY = psnr( rcFrameRec.lum, rcFrameOrg.lum );
+  psnrU = psnr( rcFrameRec.cb,  rcFrameOrg.cb  );
+  psnrV = psnr( rcFrameRec.cr,  rcFrameOrg.cr  );
 }
 
 void readFrame( YuvFrame* f, FILE* file )
@@ -218,14 +210,6 @@ void writeFrame( YuvFrame* f, FILE* file, int downscale )
   writeColorComponent( &f->cr,  file, downscale );
 }
 
-void downsampleFrame( YuvFrame* pcFrame, DownConvert& rcDownConvert, int iStages )
-{
-  rcDownConvert.downsample( pcFrame->lum.data,  pcFrame->lum.width,
-                            pcFrame->cb .data,  pcFrame->cb .width,
-                            pcFrame->cr .data,  pcFrame->cr .width,
-                            pcFrame->lum.width, pcFrame->lum.height, iStages );
-}
-
 void print_usage_and_exit( int test, char* name, char* message = 0 )
 {
   if( test )
@@ -234,23 +218,19 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     {
       fprintf ( stderr, "\nERROR: %s\n", message );
     }
-    fprintf (   stderr, "\nUsage: %s <w> <h> <org> <rec> [<s> [<t> [<skip> [<strm> <fps>]]]]\n\n", name );
+    fprintf (   stderr, "\nUsage: %s <w> <h> <org> <rec> [<t> [<skip> [<strm> <fps>]]]\n\n", name );
     fprintf (   stderr, "\t    w: original width  (luma samples)\n" );
     fprintf (   stderr, "\t    h: original height (luma samples)\n" );
     fprintf (   stderr, "\t  org: original file\n" );
     fprintf (   stderr, "\t  rec: reconstructed file\n" );
-    fprintf (   stderr, "\t    s: number of spatial  downsampling stages (default: 0)\n" );
     fprintf (   stderr, "\t    t: number of temporal downsampling stages (default: 0)\n" );
     fprintf (   stderr, "\t skip: number of frames to skip at start      (default: 0)\n" );
     fprintf (   stderr, "\t strm: coded stream\n" );
-    fprintf (   stderr, "\t frms: frames per second\n" );
+    fprintf (   stderr, "\t fps: frames per second\n" );
     fprintf (   stderr, "\n" );
-    fprintf (   stderr, "\nUsage: %s -tmm <orig> <w_orig> <h_orig> <rec> <w_rec> <h_rec> <x_rec> <y_rec> [<t> [<skip> [<strm> <fps>]]]\n\n", name );
     exit    (   1 );
   }
 }
-
-
 
 
 
@@ -261,13 +241,8 @@ int main(int argc, char *argv[])
 
   //===== input parameters =====
   int           stream          = 0;
-  unsigned int  org_width       = 0;
-  unsigned int  org_height      = 0;
-  unsigned int  rec_width       = 0;
-  unsigned int  rec_height      = 0;
-  unsigned int  rec_x           = 0;
-  unsigned int  rec_y           = 0;
-  unsigned int  spatial_stages  = 0;
+  unsigned int  width           = 0;
+  unsigned int  height          = 0;
   unsigned int  temporal_stages = 0;
   unsigned int  skip_at_start   = 0;
   double        fps             = 0.0;
@@ -276,79 +251,39 @@ int main(int argc, char *argv[])
   FILE*         str_file        = 0;
 
   //===== variables =====
-  unsigned int  index, sidx, skip, skip_between, sequence_length;
+  unsigned int  index, skip, skip_between, sequence_length;
   int           py, pu, pv, br;
   double        bitrate = 0.0;
   double        psnrY, psnrU, psnrV;
   YuvFrame      cOrgFrame, cRecFrame;
-  DownConvert   cDownConvert;
   double        AveragePSNR_Y = 0.0;
   double        AveragePSNR_U = 0.0;
   double        AveragePSNR_V = 0.0;
 
 
   //===== read input parameters =====
-  print_usage_and_exit(argc < 5, argv[0]);
-  if( strcmp(argv[1], "-tmm") != 0 )
-    {
-      print_usage_and_exit      ( argc > 10 || argc == 9, argv[0] );
-      org_width         = atoi  ( argv[1] );
-      org_height        = atoi  ( argv[2] );
-      org_file          = fopen ( argv[3], "rb" );
-      rec_file          = fopen ( argv[4], "rb" );
-      if( argc >=  6 )
-        {
-          spatial_stages  = atoi  ( argv[5] );
-        }
-      if( argc >=  7 )
-        {
-          temporal_stages = atoi  ( argv[6] );
-        }
-      if( argc >=  8 )
-        {
-          skip_at_start   = atoi  ( argv[7] );
-        }
-      if( argc >= 10 )
-        {
-          str_file        = fopen ( argv[8], "rb" );
-          fps             = atof  ( argv[9] );
-          stream          = 1;
-        }
-      rec_width       = org_width  >> spatial_stages;
-      rec_height      = org_height >> spatial_stages;
-    }
- else
-   {
-      print_usage_and_exit      ( argc < 10, argv[0] );
-      int ind = 2;
-      org_file          = fopen ( argv[ind++], "rb" );
-      org_width         = atoi  ( argv[ind++] );
-      org_height        = atoi  ( argv[ind++] );
-      rec_file          = fopen ( argv[ind++], "rb" );
-      rec_width         = atoi  ( argv[ind++] );
-      rec_height        = atoi  ( argv[ind++] );
-      rec_x             = atoi  ( argv[ind++] );
-      rec_y             = atoi  ( argv[ind++] );
-      spatial_stages    = 0;
-      if( argc >=  11 )
-        {
-          temporal_stages = atoi  ( argv[ind++] );
-        }
-      if( argc >=  12 )
-        {
-          skip_at_start   = atoi  ( argv[ind++] );
-        }
-      if( argc >= 14 )
-        {
-          str_file        = fopen ( argv[ind++], "rb" );
-          fps             = atof  ( argv[ind++] );
-          stream          = 1;
-        }
-   }
+  print_usage_and_exit((argc < 5 || (argc > 9 || argc == 8)), argv[0]);
+  width             = atoi  ( argv[1] );
+  height            = atoi  ( argv[2] );
+  org_file          = fopen ( argv[3], "rb" );
+  rec_file          = fopen ( argv[4], "rb" );
+  if( argc >=  6 )
+  {
+    temporal_stages = atoi  ( argv[5] );
+  }
+  if( argc >=  7 )
+  {
+    skip_at_start   = atoi  ( argv[6] );
+  }
+  if( argc >= 9 )
+  {
+    str_file        = fopen ( argv[7], "rb" );
+    fps             = atof  ( argv[8] );
+    stream          = 1;
+  }
+
 
   //===== check input parameters =====
-  print_usage_and_exit  ( ! org_width  || (org_width %(2<<spatial_stages)), argv[0], "Unvalid input width or spatial stages!" );
-  print_usage_and_exit  ( ! org_height || (org_height%(2<<spatial_stages)), argv[0], "Unvalid input height or spatial stages!" );
   print_usage_and_exit  ( ! org_file,                                       argv[0], "Cannot open original file!" );
   print_usage_and_exit  ( ! rec_file,                                       argv[0], "Cannot open reconstructed file!" );
   print_usage_and_exit  ( ! str_file && stream,                             argv[0], "Cannot open stream!" );
@@ -362,9 +297,9 @@ int main(int argc, char *argv[])
   fseek(    rec_file, 0, SEEK_SET );
   fseek(    org_file, 0, SEEK_SET );
   if (rsize < osize)
-    sequence_length = rsize*4/(6*rec_width)/rec_height;
+    sequence_length = rsize*4/(6*width)/height;
   else
-    sequence_length = osize*4/(6*org_width)/org_height;
+    sequence_length = osize*4/(6*width)/height;
 
   if( stream )
   {
@@ -375,23 +310,18 @@ int main(int argc, char *argv[])
   skip_between    = ( 1 << temporal_stages ) - 1;
 
   //===== initialization ======
-  createFrame( &cOrgFrame, org_width, org_height );
-  createFrame( &cRecFrame, rec_width, rec_height );
-  cDownConvert.init(       org_width, org_height );
-
+  createFrame( &cOrgFrame, width, height );
+  createFrame( &cRecFrame, width, height );
 
   //===== loop over frames =====
   for( skip = skip_at_start, index = 0; index < sequence_length; index++, skip = skip_between )
   {
-    for( sidx = 0; sidx < skip; sidx++ )
-    {
-      readFrame     ( &cOrgFrame, org_file );
-    }
+    fseek( org_file, skip*width*height*3/2, SEEK_CUR);
+        
     readFrame       ( &cOrgFrame, org_file );
-    downsampleFrame ( &cOrgFrame, cDownConvert, spatial_stages );
     readFrame       ( &cRecFrame, rec_file );
 
-    getPSNR         ( psnrY, psnrU, psnrV, cOrgFrame, cRecFrame, rec_x, rec_y );
+    getPSNR         ( psnrY, psnrU, psnrV, cOrgFrame, cRecFrame);
     AveragePSNR_Y +=  psnrY;
     AveragePSNR_U +=  psnrU;
     AveragePSNR_V +=  psnrV;
@@ -417,17 +347,18 @@ int main(int argc, char *argv[])
     fprintf(stderr,"total\t"OUT"\t"OUT"\t"OUT"\n",py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
     fprintf(stdout,"total\t"OUT"\t"OUT"\t"OUT"\n",py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
   }
+
   fprintf(stdout, "\n");
 
 
   //===== finish =====
-  deleteFrame( &cOrgFrame  );
-  deleteFrame( &cRecFrame  );
-  fclose     ( org_file    );
-  fclose     ( rec_file    );
+  deleteFrame( &cOrgFrame );
+  deleteFrame( &cRecFrame );
+  fclose     ( org_file   );
+  fclose     ( rec_file   );
   if( stream )
   {
-    fclose   ( str_file    );
+    fclose   ( str_file   );
   }
 
   return 0;

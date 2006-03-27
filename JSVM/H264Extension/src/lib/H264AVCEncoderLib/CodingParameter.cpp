@@ -313,28 +313,11 @@ ErrVal CodingParameter::check()
                  resize->m_iGlobWidth, resize->m_iGlobHeight);
           printf("ExtendedSpatialScalability: %d    SpatialScalabilityType: %d\n",
             resize->m_iExtendedSpatialScalability,
-            resize->m_iSpatialScalabilityType
-            );
-
-          
-          if ( resize->m_iSpatialScalabilityType <= 1 ) {
-            printf("INTRA UPSAMPL - 1/2 FILTER INTERP\n");
-            printf("INTER UPSAMPL - BILINEAR\n");
-            printf("UPSAMPLE MOTION - AUTOMATIC\n");
-          }
-          else {
-            switch (resize->m_iIntraUpsamplingType)
-              {
-              case 1:  printf("INTRA UPSAMPL - LANCZOS\n"); break;
-              case 2:  printf("INTRA UPSAMPL - 1/2 FILTER INTERP + 1/4 PEL LINEAR INTERP + CHOICE AT 1/4 LEVEL\n"); break;
-              case 3:  printf("INTRA UPSAMPL - KAISER\n"); break;
-              default: printf("INTRA UPSAMPL - UNKNOWN ????????\n");
-              }
-            }
+                 resize->m_iSpatialScalabilityType);
         }
       else
         {
-          printf("\n\n*************************\n D_Upsampling - No_Crop\n");
+          printf("\n\n*************************\n No_Crop\n");
         }
 // TMM_ESS }
 
