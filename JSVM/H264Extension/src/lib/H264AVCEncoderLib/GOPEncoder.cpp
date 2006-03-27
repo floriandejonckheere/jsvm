@@ -6041,7 +6041,8 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 				    {
 					  if( m_uiBaseLayerId == 0 && adMinBitrate[m_uiBaseLayerId][0] == 0.0 ) //AVC-COMPATIBLE
 					  {
-						  for( UInt uiTL = 0; uiTL < MAX_TEMP_LEVELS; uiTL++) //search minimum base layer bitrate
+              UInt uiTL;
+						  for( uiTL = 0; uiTL < MAX_TEMP_LEVELS; uiTL++) //search minimum base layer bitrate
 							  if( adMinBitrate[m_uiBaseLayerId][uiTL] )
 								  break;
 						  adMinBitrate[m_uiLayerId][uiStage] = m_aaauidSeqBits[m_uiLayerId][uiStage][uiFGS]*dScale +

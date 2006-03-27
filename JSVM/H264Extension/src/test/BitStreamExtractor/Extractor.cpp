@@ -1129,7 +1129,8 @@ Extractor::xExtractPoints()
 	  if( uiTmpFGSValue == dWantedFGSLayer )
 	  {
 	    dWantedFGSLayer = m_aadTargetSNRLayer[iDependencyId][iTempLevel];
-		for( Int iFGSLayer = (Int)uiTmpFGSValue; iFGSLayer >= 0; iFGSLayer-- )
+		Int iFGSLayer;
+    for( iFGSLayer = (Int)uiTmpFGSValue; iFGSLayer >= 0; iFGSLayer-- )
 		{  //the FGS layer may not exist
 	      if( getScalableLayer(iDependencyId, iTempLevel, (UInt)iFGSLayer ) != MSYS_UINT_MAX )
 		    break;
@@ -1574,7 +1575,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage
 				}
 				else // D != 0, T = 0, Q = 0
 				{
-				  for( Int iFGS = (Int) uiOldQualityLevel; iFGS >=0; iFGS-- )
+          Int iFGS;
+				  for( iFGS = (Int) uiOldQualityLevel; iFGS >=0; iFGS-- )
 				  {
 				    if(tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][iFGS] != MSYS_UINT_MAX )
 				      break;
@@ -1595,7 +1597,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage
 			  {
 			    if( pcOldScalableSei->getQualityLevel(uiScalableLayer) ) // Q != 0, T != 0
 				{
-				  for( Int iFGS = (Int) uiOldQualityLevel; iFGS >= 0; iFGS-- )
+				  Int iFGS;
+          for( iFGS = (Int) uiOldQualityLevel; iFGS >= 0; iFGS-- )
 				  {
 				    if( tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][iFGS] != MSYS_UINT_MAX )
 					  break;
@@ -1605,7 +1608,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage
 				}
 				else if( pcOldScalableSei->getTemporalLevel( uiScalableLayer ) ) // D != 0, T != 0, Q = 0
 				{
-				  for( Int iFGS = (Int) uiOldQualityLevel; iFGS >= 0; iFGS-- )
+          Int iFGS;
+				  for( iFGS = (Int) uiOldQualityLevel; iFGS >= 0; iFGS-- )
 				  {
 				    if( tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][iFGS] != MSYS_UINT_MAX )
 					  break;
