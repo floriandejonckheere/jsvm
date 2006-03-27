@@ -790,7 +790,7 @@ Extractor::xAnalyse()
 				if( uiTempLevel <= uiBaseTL )
 				{
 				  for( UInt uiQIndex = 0; uiQIndex <= uiTmpDepQuality; uiQIndex++ )
-					m_adTotalBitrate[uiScalableLayerIdDes] += m_cScalableStreamDescription.getNALUBytes( uiTmpDepLayer, uiTempLevel, uiQIndex )
+					m_adTotalBitrate[uiScalableLayerIdDes] += (signed)m_cScalableStreamDescription.getNALUBytes( uiTmpDepLayer, uiTempLevel, uiQIndex )
 					*8.0/1000*m_cScalableStreamDescription.getFrameRate( uiDependencyId, uiTempLevel )
 					/m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel );
 				}
@@ -820,7 +820,7 @@ Extractor::xAnalyse()
 			    + m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS];
               m_adTotalBitrate[uiScalableLayerIdDes] = m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS];
 			  for( UInt uiTmpQL = 0; uiTmpQL <= uiDepQuality; uiTmpQL++ )
-			    m_adTotalBitrate[uiScalableLayerIdDes] += m_cScalableStreamDescription.getNALUBytes(uiDepLayer, uiTempLevel, uiTmpQL )
+			    m_adTotalBitrate[uiScalableLayerIdDes] += (signed)m_cScalableStreamDescription.getNALUBytes(uiDepLayer, uiTempLevel, uiTmpQL )
 				  *8.0/1000*m_cScalableStreamDescription.getFrameRate( uiDependencyId, uiTempLevel )
 				  /m_cScalableStreamDescription.getNumPictures( uiDependencyId, uiTempLevel );
 			}

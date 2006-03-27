@@ -2387,7 +2387,8 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
     //----- copy frame_num of anchor frame -> needed for RPLR command setting -----
     m_pacControlData[0].getSliceHeader()->setFrameNum( m_cLPFrameNumList.front()  );
   }
-  for( UInt uiTemporalLevel = 0; uiTemporalLevel <= m_uiDecompositionStages; uiTemporalLevel++ )
+  UInt uiTemporalLevel;
+  for( uiTemporalLevel = 0; uiTemporalLevel <= m_uiDecompositionStages; uiTemporalLevel++ )
   {
     UInt      uiStep    = ( 1 << ( m_uiDecompositionStages - uiTemporalLevel ) );
     for( UInt uiFrameId = uiStep; uiFrameId <= m_uiGOPSize; uiFrameId += ( uiStep << 1 ) )
@@ -2397,7 +2398,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   }
 
 // JVT-Q065 EIDR{
-  for( UInt uiTemporalLevel = 0; uiTemporalLevel <= m_uiDecompositionStages; uiTemporalLevel++ )
+ for( uiTemporalLevel = 0; uiTemporalLevel <= m_uiDecompositionStages; uiTemporalLevel++ )
   {
 	  UInt      uiStep    = ( 1 << ( m_uiDecompositionStages - uiTemporalLevel ) );
 	  for( UInt uiFrameId = uiStep; uiFrameId <= m_uiGOPSize; uiFrameId += ( uiStep << 1 ) )
@@ -3111,7 +3112,8 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 0 =====
   {
-    for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 	  if(!pcFrame->getUnusedForRef())  // JVT-Q065 EIDR
@@ -3134,7 +3136,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
     }
 
 // JVT-Q065 EIDR{
-	for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
 	{
 		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
@@ -3164,7 +3166,8 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 1 =====
   {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
@@ -3188,7 +3191,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 	  }
     }
 // JVT-Q065 EIDR{
-	for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
 	{
 		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
@@ -3253,7 +3256,8 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 0 =====
   {
-    for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 
@@ -3266,7 +3270,7 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 	  }
     }
 // JVT-Q065 EIDR{
-	for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
 	{
 		IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 		if(!pcFrame->getUnusedForRef())
@@ -3284,7 +3288,8 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 1 =====
   {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
@@ -3297,7 +3302,7 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
     }
 
 // JVT-Q065 EIDR{
-	for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
 	{
 		IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 		if(!pcFrame->getUnusedForRef())
@@ -3353,7 +3358,8 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 0 =====
   {
-    for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 
@@ -3377,7 +3383,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
     }
 
 // JVT-Q065 EIDR{
-	for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
 	{
 		IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 		if(!pcFrame->getUnusedForRef())
@@ -3405,7 +3411,8 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 
   //===== list 1 =====
   {
-    for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
