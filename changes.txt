@@ -1,3 +1,36 @@
+JSVM_4_6 -> JSVM_4_7
+====================
+
+EIDR, 
+Non-required picture SEI message (Bug fix), 
+Bitstream extractor bug fix
+
+Date: March 26, 2006
+Authors: Qiu Shenq, Hui Liu, Ye-Kui Wang, Houqiang L
+Contributions: JVT-R053 and JVT-Q066 
+
+Changes:
+
+1. EIDR (you can find these changes by search "EIDR JVT-Q065")
+1)	Delete the part of POC reset of IDR in PocCalculator::calculatePoc() / setPoc()
+2)	Set m_bUnusedForRef in IntFrame::copyAll() / copy()
+3)	Move xClearOutputAll() for IDR from DecodedPicBuffer::xStorePicture() to DecodedPicBuffer::initCurrDPBUnit()
+4)	Make a decision of whether add the picture to reference list in MCTFEncoder::xEncodeLowPassSignal()
+5)	Init m_bUnusedForRef of m_papcFrame in MCTFEncoder::xInitGOP()
+6)	Change the process of get reference list and reference picture number in 	Encoder::xGetPredictionLists() /  		xGetBQPredictionLists() / xGetCLRecPredictionLists	() / xGetFrameNumList()
+7)	Change the mode decision process according to the size of reference list and BLSkip mode enable flag in 			MbEncoder::encodeInterP() / estimatePrediction()
+8)	Decide whether BLSkip mode can be used in EncoderCodingParameter::xReadFromFile()
+
+2. NonRequired (you can find these changes by search "NonRequired JVT-Q066")
+1)	Add a parameter of m_uiNonRequiredPic in H264AVCDecoder::initPacket() / CreaterH264AVCDecoder::initPacket() 
+
+3. Bitstream Extractor(you can find these changes by searching "// BUG_FIX liuhui")
+1) Modify scalability SEI message information
+2) Add the minimum layer bitrate information in display
+3) Fix some potential bugs
+
+
+
 JSVM_4_5 -> JSVM_4_6
 ====================
 
