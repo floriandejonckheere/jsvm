@@ -1924,9 +1924,16 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
   ROF( pcSliceHeader == pcLastDPBUnit->getCtrlData().getSliceHeader() );
   IntFrame*     pcFrame         = pcLastDPBUnit->getFrame    ();
   ControlData&  rcControlData   = pcLastDPBUnit->getCtrlData ();
+#if SINGLE_MC_DECODING
+  Bool          bConstrainedIP  = pcSliceHeader   ->getPPS().getConstrainedIntraPredFlag();
+#endif
 
   //===== reconstruct FGS =====
+#if SINGLE_MC_DECODING
+  if( m_pcRQFGSDecoder->changed() || ! bKeyPicFlag && bConstrainedIP )
+#else
   if( m_pcRQFGSDecoder->changed() )
+#endif
   {
     RNOK( m_pcRQFGSDecoder->reconstruct( pcFrame ) );
     RNOK( m_pcResidual    ->copy       ( pcFrame ) )
@@ -2225,6 +2232,10 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   Bool          bReconstructAll = m_bCompletelyDecodeLayer || bReconstructionLayer || !bConstrainedIP;
 #else
   Bool          bReconstructAll = bReconstructionLayer || !bConstrainedIP;
+#endif
+#if SINGLE_MC_DECODING
+  //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
+  bReconstructAll = bReconstructAll && bKeyPicture || ! bConstrainedIP;
 #endif
   
   if(isNewPictureStart(rpcSliceHeader))

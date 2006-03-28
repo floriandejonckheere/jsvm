@@ -2325,6 +2325,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   if( m_bFirstGOPCoded )
   {
     m_papcFrame					[ uiFrame ]->copyAll( m_pcAnchorFrameOriginal );
+    m_papcOrgFrame      [ uiFrame ]->copyAll( m_pcAnchorFrameOriginal );
 		m_papcSmoothedFrame [ uiFrame ]->copyAll( m_pcAnchorFrameOriginal ); // JVT-R091
     uiFrame    ++;
   }
@@ -2336,6 +2337,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   {
     PicBuffer*  pcPicBuffer = *cInputIter;
     m_papcFrame					[ uiFrame ]->load         ( pcPicBuffer );
+    m_papcOrgFrame      [ uiFrame ]->load         ( pcPicBuffer );
 		m_papcSmoothedFrame	[ uiFrame ]->load         ( pcPicBuffer ); // JVT-R091
     m_papcFrame					[ uiFrame ]->setPOC       ( m_uiFrameCounter++ << m_uiTemporalResolution );
   }
@@ -2411,6 +2413,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
 				  if(m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() < pcSliceHeader->getTemporalLevel() || (m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() == pcSliceHeader->getTemporalLevel()&& uiFrame < uiFrameId))
 				  {
 					  m_papcFrame[uiFrame]->setUnusedForRef(true);
+            m_papcOrgFrame[uiFrame]->setUnusedForRef(true);
 					  if(m_papcCLRecFrame)
 					  {
 						  m_papcCLRecFrame[uiFrame]->setUnusedForRef(true);
@@ -3085,6 +3088,7 @@ MCTFEncoder::xClearBufferExtensions()
     {
       RNOK( m_papcCLRecFrame[uiFrame]->uninitHalfPel() );
     }
+    RNOK( m_papcOrgFrame[uiFrame]->uninitHalfPel() );
   }
 
   for( UInt uiLayerIdx = 0; uiLayerIdx < m_uiNumLayers[0]; uiLayerIdx ++ )
@@ -3415,6 +3419,143 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
+	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
+	  {
+		//----- create half-pel buffer -----
+		if( ! pcFrame->isExtended() )
+		{
+			if( bHalfPel )
+			{
+			RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+			}
+			else
+			{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+			}
+		}
+
+		RNOK( rcRefList1.add( pcFrame ) );
+		uiList1Size--;
+	  }
+    }
+
+// JVT-Q065 EIDR{
+	if( rcRefList1.getActive() >= 2 && rcRefList1.getActive() >= 1)
+	{
+		Bool bSwitch = true;
+		for( UInt uiPos = 0; uiPos < rcRefList0.getActive(); uiPos++ )
+		{
+			if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
+			{
+				bSwitch = false;
+				break;
+			}
+		}
+		if( bSwitch )
+		{
+			rcRefList1.switchFirst();
+		}
+	}
+// JVT-Q065 EIDR}
+
+	ROT( uiList1Size );
+  }
+// JVT-Q065 EIDR{
+  if( rcRefList1.getActive() >= 2 && rcRefList0.getActive() == rcRefList1.getActive() )
+  {
+	  Bool bSwitch = true;
+	  for( UInt uiPos = 0; uiPos < rcRefList1.getActive(); uiPos++ )
+	  {
+		  if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
+		  {
+			  bSwitch = false;
+			  break;
+		  }
+	  }
+	  if( bSwitch )
+	  {
+		  rcRefList1.switchFirst();
+	  }
+  }
+// JVT-Q065 EIDR}
+  return Err::m_nOK;
+}
+
+
+ErrVal
+MCTFEncoder::xGetOrgPredictionLists( RefFrameList& rcRefList0,
+                                     RefFrameList& rcRefList1,
+                                     UInt          uiBaseLevel,
+                                     UInt          uiFrame,
+                                     Bool          bHalfPel )
+{
+  rcRefList0.reset();
+  rcRefList1.reset();
+
+  UInt          uiFrameIdInGOP  = ( uiFrame << uiBaseLevel );
+  SliceHeader*  pcSliceHeader   = m_pacControlData[uiFrameIdInGOP].getSliceHeader();
+  UInt          uiList0Size     = pcSliceHeader->getNumRefIdxActive( LIST_0 );
+  UInt          uiList1Size     = pcSliceHeader->getNumRefIdxActive( LIST_1 );
+
+  //===== list 0 =====
+  {
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+    {
+      IntFrame* pcFrame = m_papcOrgFrame[ iFrameId << uiBaseLevel ];
+
+	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
+	  {
+		if( ! pcFrame->isExtended() )
+		{
+			if( bHalfPel )
+			{
+			RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+			}
+			else
+			{
+			RNOK( xFillAndExtendFrame   ( pcFrame ) );
+			}
+		}
+
+		RNOK( rcRefList0.add( pcFrame ) );
+		uiList0Size--;
+	  }
+    }
+
+// JVT-Q065 EIDR{
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	{
+		IntFrame* pcFrame = m_papcOrgFrame[ iFrameId << uiBaseLevel ];
+		if(!pcFrame->getUnusedForRef())
+		{
+			//----- create half-pel buffer -----
+			if( ! pcFrame->isExtended() )
+			{
+				if( bHalfPel )
+				{
+					RNOK( xFillAndUpsampleFrame ( pcFrame ) );
+				}
+				else
+				{
+					RNOK( xFillAndExtendFrame   ( pcFrame ) );
+				}
+			}
+
+			RNOK( rcRefList0.add( pcFrame ) );
+			uiList0Size--;
+		}
+	}
+// JVT-Q065 EIDR}
+	ROT( uiList0Size );
+  }
+
+  //===== list 1 =====
+  {
+    Int iFrameId;
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+    {
+      IntFrame* pcFrame = m_papcOrgFrame[ iFrameId << uiBaseLevel ];
 	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
 	  {
 		//----- create half-pel buffer -----
@@ -3861,7 +4002,6 @@ MCTFEncoder::xDecompositionStage( UInt uiBaseLevel )
     UInt          uiFrameIdInGOP  = uiFramePrd << uiBaseLevel;
     ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
     IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-    IntFrame*     pcOrgFrame      = m_papcOrgFrame  [uiFrameIdInGOP];
     IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
     IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
 
@@ -3897,7 +4037,6 @@ MCTFEncoder::xDecompositionStage( UInt uiBaseLevel )
       RNOK( pcBQFrame->prediction ( pcMCFrame, pcFrame ) );
     }
 
-    RNOK( pcOrgFrame->copyAll( pcFrame ) );
     //===== prediction =====
 
     RNOK( xMotionCompensation   ( pcMCFrame, &rcRefFrameList0, &rcRefFrameList1,
@@ -4649,26 +4788,46 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
       }
 
 #if 1 // FGS_MOTION
+      ROF( m_papcOrgFrame );
+      IntFrame*    pcOrgFrame           = m_papcOrgFrame[uiFrameIdInGOP];
+      IntFrame*    pcHighPassPredSignal = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                        *m_pcYuvFullPelBufferCtrl );
+      ROF ( pcHighPassPredSignal );
+      RNOK( pcHighPassPredSignal->init() );
+
       RefFrameList cRefFrameList0, cRefFrameList1;
       if( m_papcCLRecFrame )
       {
         RNOK( xGetCLRecPredictionLists( cRefFrameList0, cRefFrameList1, uiBaseLevel, uiFrame, true ) );
       }
-      else
+      else if( m_uiClosedLoopMode )
       {
         RNOK( xGetPredictionLists( cRefFrameList0, cRefFrameList1, uiBaseLevel, uiFrame, true ) );
       }
-      IntFrame*    pcHighPassPredSignal = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                        *m_pcYuvFullPelBufferCtrl );
-      ROF ( pcHighPassPredSignal );
-      RNOK( pcHighPassPredSignal->init() );
-      RNOK( xMotionCompensation( pcHighPassPredSignal, &cRefFrameList0, &cRefFrameList1,
-                                 rcControlData.getMbDataCtrl(), *pcSliceHeader ) );
-      RNOK( xFixMCPrediction   ( pcHighPassPredSignal, pcSRFrame, rcControlData ) );
+      else // open-loop coding
+      {
+        RNOK( xGetOrgPredictionLists( cRefFrameList0, cRefFrameList1, uiBaseLevel, uiFrame, true ) );
+      }
+
+      if( m_bUpdate )
+      {
+        //-- JVT-R091
+        // note: fix original residual wih considerations of smoothed reference
+        if ( rcControlData.getSliceHeader()->getBaseLayerId() != MSYS_UINT_MAX )
+        {
+          xFixOrgResidual( pcFrame, pcOrgPred, pcResidual, pcSRFrame, rcControlData );
+        }
+        //--
+        RNOK( pcHighPassPredSignal->subtract( pcOrgFrame, pcFrame ) );
+      }
+      else
+      {
+        RNOK( xMotionCompensation( pcHighPassPredSignal, &cRefFrameList0, &cRefFrameList1,
+                                   rcControlData.getMbDataCtrl(), *pcSliceHeader ) );
+        RNOK( xFixMCPrediction   ( pcHighPassPredSignal, pcSRFrame, rcControlData ) );
+      }
       RNOK( pcHighPassPredSignal->add( pcPredSignal ) ); // add  intra-prediction signal
 
-      ROF( m_papcOrgFrame );
-      IntFrame* pcOrgFrame = m_papcOrgFrame[uiFrameIdInGOP];
       RNOK( xEncodeFGSLayer ( rcOutputList,
                               rcControlData,
                               pcFrame,

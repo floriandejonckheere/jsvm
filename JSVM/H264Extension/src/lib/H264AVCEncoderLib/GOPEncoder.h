@@ -353,6 +353,11 @@ protected:
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bHalfPel = false );
+  ErrVal  xGetOrgPredictionLists        ( RefFrameList&               rcRefList0,
+                                          RefFrameList&               rcRefList1,
+                                          UInt                        uiBaseLevel,
+                                          UInt                        uiFrame,
+                                          Bool                        bHalfPel = false );
   ErrVal  xGetUpdateLists               ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
                                           CtrlDataList&               rcCtrlList0,

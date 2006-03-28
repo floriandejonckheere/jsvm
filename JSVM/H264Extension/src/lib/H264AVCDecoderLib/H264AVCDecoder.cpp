@@ -1235,6 +1235,10 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 #if MULTIPLE_LOOP_DECODING
   bReconstruct = ( bReconstruct || m_bCompletelyDecodeLayer );
 #endif
+#if SINGLE_MC_DECODING
+  //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
+  bReconstruct = bReconstruct && bKeyPicture || ! bConstrainedIP;
+#endif
   RNOK( m_pcControlMng  ->initSlice ( rcSH, DECODE_PROCESS ) );
   RNOK( m_pcSliceDecoder->process   ( rcSH, bReconstruct, uiMbRead ) );
 
@@ -1263,6 +1267,10 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 
     //===== init FGS decoder =====
     RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
+#if SINGLE_MC_DECODING
+    // hack for motion-compensated prediction in xReconstructLastFGS() if there was no PR slice
+    rcSH.setNumMbsInSlice( uiMbRead );
+#endif
   }
 
   if( m_bFrameDone )
@@ -1322,9 +1330,16 @@ H264AVCDecoder::xReconstructLastFGS()
   IntFrame*     pcILPredFrameSpatial= m_pcFrameMng    ->getRefinementIntFrame2();
   Bool          bReconstructFGS     = m_pcRQFGSDecoder->changed();
   Bool          bKeyPicFlag         = pcSliceHeader   ->getKeyPictureFlag(); // HS: fix by Nokia
+#if SINGLE_MC_DECODING
+  Bool          bConstrainedIP      = pcSliceHeader   ->getPPS().getConstrainedIntraPredFlag();
+#endif
 
   //===== reconstruct FGS =====
+#if SINGLE_MC_DECODING
+  if( bReconstructFGS || ! bKeyPicFlag && bConstrainedIP )
+#else
   if( bReconstructFGS )
+#endif
   {
     RNOK( m_pcRQFGSDecoder->reconstruct   ( pcRecFrame ) );
     RNOK( pcResidual      ->copy          ( pcRecFrame ) )
@@ -1379,6 +1394,12 @@ H264AVCDecoder::xReconstructLastFGS()
     m_pcFrameMng->storeFGSPicture( m_pcFGSPicBuffer );
     m_pcFGSPicBuffer = NULL;
   }
+#if SINGLE_MC_DECODING
+  else if( ! bKeyPicFlag && bConstrainedIP )
+  {
+    RNOK( m_pcFrameMng->storeFGSPicture( pcSliceHeader->getFrameUnit()->getPicBuffer() ) );
+  }
+#endif
 
 
   //===== loop-filter for spatial scalable coding =====
