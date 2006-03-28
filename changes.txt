@@ -1,3 +1,20 @@
+
+
+JSVM_4_8 -> JSVM_4_9
+====================
+
+Decoder-side improvement for FGS with motion refinement 
+
+Date: March 28, 2006
+Author: M. Winken
+
+Changes:
+
+1) only single-motion compensation at decoder side
+2) bug fix for open-loop coding
+
+
+
 JSVM_4_7 -> JSVM_4_8
 ====================
 
@@ -20,6 +37,8 @@ Changes:
 7) main.cpp (PSNR): Removal of "spatial resampling" (i.e. call to downconvert methods) in PSNR tool.
 8) PSNRStatic.vcproj: Removal of "DownConvert.h"
 9) Validation Script (New Version 0.0.4): Modified in order to use new tools. Re-indent with spaces.
+
+
 
 JSVM_4_6 -> JSVM_4_7
 ====================
