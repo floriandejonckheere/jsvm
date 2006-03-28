@@ -779,3 +779,6 @@ DownConvert::xSetValue ( short* psBuffer, int iStride, int iWidth, int iHeight, 
 }
 
 #endif // DOWN_CONVERT_STATIC 
+
+
+

@@ -1206,3 +1206,4 @@ DownConvert::xGetFilter ( long x )
 #undef MASKFACT
 #undef TMM_TABLE_SIZE
 #undef TMM_FILTER_WINDOW_SIZE
+
