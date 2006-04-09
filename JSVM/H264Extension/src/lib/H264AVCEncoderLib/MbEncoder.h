@@ -239,6 +239,37 @@ public:
 
 //TMM_WP
 
+
+
+  //JVT-R057 LA-RDO{
+  void setLARDOEnable( Bool bLARDO){ m_bLARDOEnable= bLARDO; }
+  void setLayerID (UInt uiLayer){ m_uiLayerID=uiLayer;}
+  void setPLR( UInt auiPLR[5]){ for(UInt i=0;i<5;i++) m_auiPLR[i] = auiPLR[i];}
+  void setRatio( double adRatio[5][2])
+  { 
+	  for(UInt i=0;i<5;i++)
+		  for(UInt j=0;j<2;j++)
+			  m_aadRatio[i][j] = adRatio[i][j];
+  }
+  void setMBSSD( UInt uiSSD) { m_uiMBSSD=uiSSD; }
+  Bool getLARDOEnable(){ return m_bLARDOEnable;}
+  void setFrameEcEp( IntFrame* p1){ m_pcFrameEcEp=p1; }
+  int  GetEC_REC(IntYuvPicBuffer* pPic1,IntYuvPicBuffer*pPic2,int blockX, int blockY);
+  void  getChannelDistortion( MbDataAccess&   rcMbDataAccess,
+	  IntFrame&       rcRefFrame,
+	  int             *distortion,
+	  int             iMvX,
+	  int             iMvY,
+	  int             startX,
+	  int             startY,
+	  int             blockX,
+	  int             blockY,
+	  bool            bSpatial=false);
+  Int getEpRef() { return m_iEpRef; }
+  void setEpRef(Int iRef) { m_iEpRef=iRef; }
+  void  getDistortion(Int iDList0, Int iDList1,SampleWeighting*pcSampleWeighting,MbDataAccess& rcMbDataAccess);
+  //JVT-R057 LA-RDO}
+
 protected:
 
   ErrVal  xScale4x4Block        ( TCoeff*            piCoeff,
@@ -576,6 +607,17 @@ protected:
   UInt m_uiMaxRefPics[2];
 
   BitWriteBufferIf* m_BitCounter;
+  //JVT-R057 LA-RDO{
+  Bool m_bLARDOEnable;
+  UInt m_uiLayerID;
+  UInt m_auiPLR[5];
+  double m_aadRatio[5][2];
+  UInt m_uiMBSSD;
+  IntFrame* m_pcFrameEcEp;
+  Int  m_iEpRef;
+  double m_dWr0;
+  double m_dWr1;
+  //JVT-R057 LA-RDO}
 };
 
 

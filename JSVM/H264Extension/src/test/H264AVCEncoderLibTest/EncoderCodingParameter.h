@@ -575,6 +575,11 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxRefIdxActiveBL0",      &m_uiMaxRefIdxActiveBL0,                               1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxRefIdxActiveBL1",      &m_uiMaxRefIdxActiveBL1,                               1 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxRefIdxActiveP",        &m_uiMaxRefIdxActiveP,                                 1 );
+
+  //JVT-R057 LA-RDO{
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LARDO",                   &m_uiLARDOEnable,                                      0 ); 
+  //JVT-R057 LA-RDO}
+
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))
@@ -761,6 +766,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 // JVT-Q065 EIDR{
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	  &(rcLayer.m_iIDRPeriod),								0		);
 // JVT-Q065 EIDR}
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	          &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
   m_pLayerLines[uiParLnCount] = NULL;
 
   while (!feof(f))

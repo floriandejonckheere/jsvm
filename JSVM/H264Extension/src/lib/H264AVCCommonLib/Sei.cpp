@@ -753,16 +753,29 @@ SEI::QualityLevelSEI::read ( HeaderSymbolReadIf* pcReadIf )
 
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+//NonRequired JVT-Q066 (06-04-08){{
+SEI::NonRequiredSei::NonRequiredSei	()
+: SEIMessage						( NON_REQUIRED_SEI )
+, m_uiNumInfoEntriesMinus1			(MSYS_UINT_MAX)
+{
+	::memset( m_uiEntryDependencyId,			MSYS_UINT_MAX, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
+	::memset( m_uiNumNonRequiredPicsMinus1,		MSYS_UINT_MAX, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
+	::memset( m_uiNonRequiredPicDependencyId,	MSYS_UINT_MAX, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+	::memset( m_uiNonRequiredPicQulityLevel,	MSYS_UINT_MAX, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+	::memset( m_uiNonRequiredPicFragmentOrder,  MSYS_UINT_MAX, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+}
+/*
 SEI::NonRequiredSei::NonRequiredSei	()
 : SEIMessage						( NON_REQUIRED_SEI )
 , m_uiNumInfoEntriesMinus1			(0)
 {
-	::memset( m_uiEntryDependencyId,			0x00, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
-	::memset( m_uiNumNonRequiredPicsMinus1,		0x00, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
-	::memset( m_uiNonRequiredPicDependencyId,	0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
-	::memset( m_uiNonRequiredPicQulityLevel,	0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
-	::memset( m_uiNonRequiredPicFragmentOrder,  0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
-}
+::memset( m_uiEntryDependencyId,			0x00, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
+::memset( m_uiNumNonRequiredPicsMinus1,		0x00, MAX_NUM_INFO_ENTRIES*sizeof(UInt) );
+::memset( m_uiNonRequiredPicDependencyId,	0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+::memset( m_uiNonRequiredPicQulityLevel,	0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+::memset( m_uiNonRequiredPicFragmentOrder,  0x00, MAX_NUM_INFO_ENTRIES*MAX_NUM_NON_REQUIRED_PICS*sizeof(UInt) );
+}*/
+//NonRequired JVT-Q066 (06-04-08)}}
 
 SEI::NonRequiredSei::~NonRequiredSei ()
 {

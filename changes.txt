@@ -1,4 +1,32 @@
 
+JSVM_4_9 -> JSVM_4_10
+====================
+
+Loss-aware rate-distortion optimization integration
+Improvement to the implementation of non-required picture SEI message
+
+Date: April 08, 2006
+Authors: Yi Guo, Qiu Shen
+Contributions: JVT-R057 and JVT-Q066
+
+Changes:
+
+1. LA-RDO (you can find these changes by search "JVT-R057 LA-RDO")
+   1) Add the channel propagation distortion to the RD-cost in the mode decision functions.
+   2) Add the calculation of the distortion map in the following functions: encodeIntra(),encodeInterP() 
+      and estimatePrediction().  
+   
+2. NonRequired (you can find these changes by search "JVT-Q066 (06-04-08)")
+   1) Change the uiLayer of NonRequired SEI in Extractor::xAnalyse().
+   2) Change the condition of set bkeep in Extractor::xExtractLayerLevel().
+   3) Change the initial value of NonRequired SEI in SEI::NonRequiredSei::NonRequiredSei().
+   4) Set and Write NonRequired SEI in MCTFEncoder::xEncodeLowPassPictures() and MCTFEncoder::xEncodeHighPassPictures().
+   5) Set the flag of Writting NonRequired SEI in H264AVCEncoder::xProcessGOP().
+   6) Add the m_pcNonRequiredSei to class H264AVCENCODERLIB_API AccessUnit.
+   7) Add "NonRequiredEnable" in encoder.cfg.
+   8) Add "IDRPeriod" which should be integral times of GOP size in layer0(1,2..).cfg.
+
+3. Bug-fix (You can find the changes by search "BUG_FIX Shenqiu (06-04-08)")
 
 JSVM_4_8 -> JSVM_4_9
 ====================
@@ -48,7 +76,7 @@ Non-required picture SEI message (Bug fix),
 Bitstream extractor bug fix
 
 Date: March 26, 2006
-Authors: Qiu Shenq, Hui Liu, Ye-Kui Wang, Houqiang L
+Authors: Qiu Shen, Hui Liu, Ye-Kui Wang, Houqiang Li
 Contributions: JVT-R053 and JVT-Q066 
 
 Changes:

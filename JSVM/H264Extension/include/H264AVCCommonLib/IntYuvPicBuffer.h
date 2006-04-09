@@ -204,7 +204,9 @@ public:
 	ErrVal				smoothMbTop							();
 	ErrVal				smoothMbLeft						();
 	//--
-  
+	// JVT-R057 LA-RDO{
+	YuvBufferCtrl& getYuvBufferCtrl(){ return m_rcYuvBufferCtrl;}
+	// JVT-R057 LA-RDO} 
 protected:
   Void xFillPlaneMargin     ( XPel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );
 

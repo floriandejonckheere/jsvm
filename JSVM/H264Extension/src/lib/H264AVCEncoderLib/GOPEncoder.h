@@ -96,6 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/TraceFile.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "DownConvert.h"
+#include "H264AVCCommonLib/Sei.h"  //NonRequired JVT-Q066 (06-04-08)
 
 #include <algorithm>
 #include <list>
@@ -141,15 +142,22 @@ typedef MyList<UInt>        UIntList;
 class H264AVCENCODERLIB_API AccessUnit
 {
 public:
-  AccessUnit  ( Int         iPoc )  : m_iPoc( iPoc )        {}
+  AccessUnit  ( Int         iPoc )  : m_iPoc( iPoc )   
+  , m_pcNonRequiredSei ( NULL )  //NonRequired JVT-Q066 (06-04-08)
+  {}
   ~AccessUnit ()                                            {}
 
   Int                     getPoc          () const          { return m_iPoc; }
   ExtBinDataAccessorList& getNalUnitList  ()                { return m_cNalUnitList; }
-  
+  //NonRequired JVT-Q066 (06-04-08){{
+  ErrVal				  CreatNonRequiredSei()				{ RNOK(SEI::NonRequiredSei::create( m_pcNonRequiredSei)) return Err::m_nOK;}
+  SEI::NonRequiredSei*	  getNonRequiredSei()				{ return m_pcNonRequiredSei; }
+  //NonRequired JVT-Q066 (06-04-08)}}
+
 private:
   Int                     m_iPoc;
   ExtBinDataAccessorList  m_cNalUnitList;
+  SEI::NonRequiredSei*	  m_pcNonRequiredSei; //NonRequired JVT-Q066 (06-04-08)
 };
 
 
@@ -290,6 +298,8 @@ public:
   //}}Adaptive GOP structure
   Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
   Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
+  Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
+
 protected:
   ErrVal  xProcessClosedLoop            ( AccessUnitList&             rcAccessUnitList,
                                           PicBufferList&              rcPicBufferInputList,
@@ -472,7 +482,11 @@ protected:
   ErrVal        xSetRplr            ( RplrBuffer& rcRplrBuffer, UIntList cFrameNumList, UInt uiCurrFrameNr );
   ErrVal        xSetRplrAndMmco     ( SliceHeader& rcSH );
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
-  ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit );  
+  //NonRequired JVT-Q066 (06-04-08){{
+  ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit ); 
+  ErrVal		xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
+  //ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit ); 
+  //NonRequired JVT-Q066 (06-04-08)}}
   ErrVal        xGetFrameNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
   MbDataCtrl*   xGetMbDataCtrlL1    ( SliceHeader& rcSH, UInt uiCurrBasePos );
   Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
@@ -664,7 +678,11 @@ protected:
   Int							m_iIDRPeriod;
   Bool							m_bBLSkipEnable;
 // JVT-Q065 EIDR}
+  //JVT-R057 LA-RDO{
+  Bool                          m_bLARDOEnable;     
+  //JVT-R057 LA-RD}
 
+  UInt							m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
   enum RefListType
   {
     REF_LIST_TYPE_FGS_0    = 0x00,     // base reconstructed as the reference

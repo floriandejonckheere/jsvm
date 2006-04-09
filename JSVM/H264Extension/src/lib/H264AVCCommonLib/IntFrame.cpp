@@ -101,6 +101,7 @@ IntFrame::IntFrame( YuvBufferCtrl& rcYuvFullPelBufferCtrl,
   m_bExtended             ( false ),
   m_pcDPBUnit             ( 0 )
   , m_bUnusedForRef       ( false) // JVT-Q065 EIDR
+  ,m_piChannelDistortion   ( 0 )     // JVT-R057 LA-RDO
 {
 }
 
@@ -190,6 +191,54 @@ ErrVal IntFrame::extendFrame( QuarterPelFilter* pcQuarterPelFilter )
 }
 
 
+// JVT-R057 LA-RDO}
+void IntFrame::initChannelDistortion()
+{
+	if(!m_piChannelDistortion)
+	{
+		UInt  uiMbY  = getFullPelYuvBuffer()->getLHeight()/4;
+		UInt  uiMbX  = getFullPelYuvBuffer()->getLWidth()/4;
+		UInt  uiSize = uiMbX*uiMbY;
+		m_piChannelDistortion= new UInt[uiSize];
+	}
+}
+
+
+
+
+
+void IntFrame::copyChannelDistortion(IntFrame*p1)
+{
+	XPel* temp=getFullPelYuvBuffer()->getMbLumAddr();
+
+	UInt  uiMbY  = getFullPelYuvBuffer()->getLHeight()/16;
+	UInt  uiMbX  = getFullPelYuvBuffer()->getLWidth()/16;
+	for(UInt y=0;y<uiMbY*4;y++)
+	{
+		for(UInt x=0;x<uiMbX*4;x++)
+		{ 
+			m_piChannelDistortion[y*(uiMbX*4)+x]=p1->m_piChannelDistortion[y*(uiMbX*4)+x];
+		}
+	}
+}
+
+
+
+
+void IntFrame::zeroChannelDistortion()
+{
+	UInt  uiMbY  = getFullPelYuvBuffer()->getLHeight()/16;
+	UInt  uiMbX  = getFullPelYuvBuffer()->getLWidth()/16;
+	for(UInt y=0;y<uiMbY*4;y++)
+	{
+		for(UInt x=0;x<uiMbX*4;x++)
+		{ 
+			m_piChannelDistortion[y*(uiMbX*4)+x]=0;
+		}
+	}
+}
+
+// JVT-R057 LA-RDO}
 
 H264AVC_NAMESPACE_END
 

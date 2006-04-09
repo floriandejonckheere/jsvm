@@ -228,6 +228,8 @@ MCTFEncoder::MCTFEncoder()
 , m_iIDRPeriod						( 0 )
 , m_bBLSkipEnable					( false )
 // JVT-Q065 EIDR}
+, m_bLARDOEnable                    ( false ) //JVT-R057 LA-RDO
+, m_uiNonRequiredWrite				( 0 )  //NonRequired JVT-Q066 (06-04-08)
 {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -394,6 +396,36 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_bAdaptiveQP             = pcLayerParameters->getAdaptiveQPSetting       ()  > 0;
   m_bForceReOrderingCommands= pcLayerParameters->getForceReorderingCommands ()  > 0;
   m_bWriteSubSequenceSei    = pcCodingParameter->getBaseLayerMode           ()  > 1 && m_uiLayerId == 0;
+
+
+
+  //JVT-R057 LA-RDO{
+  if(pcCodingParameter->getLARDOEnable()!=0)
+  {
+	  static UInt auiPLR[5];
+	  static UInt aauiSize[5][2];
+	  static Double dRatio[5][2];
+	  auiPLR[m_uiLayerId]      = pcLayerParameters->getPLR                     (); 
+	  UInt temp=auiPLR[0];
+	  m_bLARDOEnable            = pcCodingParameter->getLARDOEnable()==0? false:true;
+	  m_bLARDOEnable            = m_bLARDOEnable&&m_uiClosedLoopMode&&((Int)pcLayerParameters->getNumFGSLayers()==0);
+	  aauiSize[m_uiLayerId][0]  =pcLayerParameters->getFrameWidth();
+	  aauiSize[m_uiLayerId][1]  =pcLayerParameters->getFrameHeight();
+	  if(m_uiLayerId==0||pcLayerParameters->getBaseLayerId()==MSYS_UINT_MAX)
+	  {
+		  dRatio[m_uiLayerId][0]=1;
+		  dRatio[m_uiLayerId][1]=1;
+	  }
+	  else
+	  {
+		  dRatio[m_uiLayerId][0]=(double)aauiSize[m_uiLayerId][0]/aauiSize[pcLayerParameters->getBaseLayerId()][0];
+		  dRatio[m_uiLayerId][1]=(double)aauiSize[m_uiLayerId][1]/aauiSize[pcLayerParameters->getBaseLayerId()][1];
+	  }
+	  m_pcSliceEncoder->getMbEncoder()->setRatio(dRatio);
+	  m_pcSliceEncoder->getMbEncoder()->setPLR(auiPLR);
+	  pcLayerParameters->setContrainedIntraForLP();
+  }
+  //JVT-R057 LA-RDO}
 
 #if MULTIPLE_LOOP_DECODING
   m_bCompletelyDecodeLayer          = ( pcCodingParameter->getNumberOfLayers() > m_uiLayerId+1 &&
@@ -947,6 +979,10 @@ MCTFEncoder::xDeleteData()
     {
       if( m_papcFrame[ uiIndex ] )
       {
+		//JVT-R057 LA-RDO{
+		if(m_bLARDOEnable)
+			 m_papcFrame[uiIndex]->uninitChannelDistortion();
+		//JVT-R057 LA-RDO}  
         RNOK(   m_papcFrame[ uiIndex ]->uninit() );
         delete  m_papcFrame[ uiIndex ];
         m_papcFrame[ uiIndex ] = 0;
@@ -1090,6 +1126,10 @@ MCTFEncoder::xDeleteData()
 
   if( m_pcLowPassBaseReconstruction )
   {
+	// JVT-R057 LA-RDO{
+	if(m_bLARDOEnable)
+		m_pcLowPassBaseReconstruction->uninitChannelDistortion();
+	// JVT-R057 LA-RDO}
     RNOK(   m_pcLowPassBaseReconstruction->uninit() );
     delete  m_pcLowPassBaseReconstruction;
     m_pcLowPassBaseReconstruction = 0;
@@ -2541,6 +2581,10 @@ MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
   if( iSpatialScalability != SST_RATIO_1 )
   {
     RNOK( m_apcFrameTemp[0]->copy( pcFrame ) );
+	//JVT-R057 LA-RDO{
+	if(m_bLARDOEnable)
+		m_apcFrameTemp[0]->setChannelDistortion(pcFrame);
+	//JVT-R057 LA-RDO}
     pcFrame = m_apcFrameTemp[0];
 
 #if MULTIPLE_LOOP_DECODING
@@ -3793,6 +3837,10 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
   if( bBaseDataAvailable )
   {
     RNOK( m_pcBaseLayerFrame->copy( pcBaseFrame ) );
+	//JVT-R057 LA-RDO{
+	if(m_bLARDOEnable)
+		m_pcBaseLayerFrame->setChannelDistortion(pcBaseFrame);
+	//JVT-R057 LA-RDO}
     // TMM_ESS 
     m_pcBaseLayerFrame->upsample(m_cDownConvert, m_pcResizeParameters, true);
         
@@ -3969,7 +4017,13 @@ MCTFEncoder::xMotionEstimationStage( UInt uiBaseLevel )
         pcSliceHeader->setBasePredWeightTableFlag(false);
     }
 //TMM_WP
-
+	// JVT-R057 LA-RDO{ 
+	if(m_bLARDOEnable)
+	{
+		pcFrame->initChannelDistortion();
+		m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_papcFrame[(uiFrame-1)<<uiBaseLevel]);
+	}
+	// JVT-R057 LA-RDO}
     //===== motion estimation =====
     RNOK( xMotionEstimation     ( &rcRefFrameList0, &rcRefFrameList1,
                                   pcFrame, pcIntraRecFrame, rcControlData,
@@ -4186,6 +4240,15 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
     //----- store non-deblocked signal for inter-layer prediction -----
     RNOK( m_papcSubband[uiFrameIdInGOP]->copy( pcFrame ) );
 
+	// JVT-R057 LA-RDO{
+	if(m_bLARDOEnable)
+	{
+		m_papcSubband[uiFrameIdInGOP]->setChannelDistortion(pcFrame);
+		if(m_papcCLRecFrame)
+			m_papcCLRecFrame[uiFrameIdInGOP]->setChannelDistortion(pcFrame);
+	}
+	// JVT-R057 LA-RDO}
+
     //===== de-blocking =====
 #if MULTIPLE_LOOP_DECODING
     if( m_bCompletelyDecodeLayer )
@@ -4390,6 +4453,13 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     {
       //====== don't code first anchor picture if it was coded within the last GOP =====
       RNOK( m_papcFrame[ uiFrameIdInGOP ] ->copyAll( m_pcAnchorFrameReconstructed  ) );
+	  // JVT-R057 LA-RDO{
+	  if(m_bLARDOEnable)
+	  {
+		  m_papcFrame[uiFrameIdInGOP]->copyChannelDistortion(m_pcLowPassBaseReconstruction);
+		  m_papcSubband[uiFrameIdInGOP]->setChannelDistortion(m_papcFrame[uiFrameIdInGOP]);
+	  }
+	  // JVT-R057 LA-RDO}
       continue;
     }
 
@@ -4410,8 +4480,43 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     //===== initialize =====
     RNOK( xInitControlDataLowPass ( uiFrameIdInGOP, m_uiDecompositionStages-1,uiFrame ) );
 
+	//NonRequired JVT-Q066 (06-04-08){{
+	if(m_uiLayerId != 0 && m_uiNonRequiredWrite != 0)
+	{
+		if( pcSliceHeader->getBaseLayerId() == MSYS_UINT_MAX || m_uiLayerId - pcSliceHeader->getBaseLayerId() > 1 || pcSliceHeader->getBaseQualityLevel() != 3 )
+		{
+			rcAccessUnit.CreatNonRequiredSei();
+		}
+		xSetNonRequiredSEI(pcSliceHeader, rcAccessUnit.getNonRequiredSei()); 
+		if(m_uiNonRequiredWrite == 2 && rcAccessUnit.getNonRequiredSei() != NULL)
+		{
+			xWriteNonRequiredSEI(rcOutputList, rcAccessUnit.getNonRequiredSei(), uiBits);
+		}
+	}
+	//NonRequired JVT-Q066 (06-04-08)}}
+
     //===== base layer encoding =====
     RNOK( pcBLRecFrame->copy      ( pcFrame ) );
+
+	// JVT-R057 LA-RDO{ 
+	if(m_bLARDOEnable)
+	{
+		pcFrame->initChannelDistortion();
+		m_pcLowPassBaseReconstruction->initChannelDistortion();
+		if( uiFrame == 0 && m_uiGOPNumber==0 )
+		{
+			pcFrame->zeroChannelDistortion();
+			m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(NULL);
+		}
+		else
+		{
+			m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_pcLowPassBaseReconstruction);
+		}
+		pcBLRecFrame->setChannelDistortion(pcFrame);
+
+	}
+	// JVT-R057 LA-RDO}
+
 
     RNOK( xEncodeLowPassSignal    ( rcOutputList,
                                     rcControlData,
@@ -4419,6 +4524,16 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                     pcResidual,
                                     pcPredSignal,
                                     uiBits ) );
+
+
+	// JVT-R057 LA-RDO{
+	if(m_bLARDOEnable)
+	{
+		m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(NULL);
+		pcBLRecFrame->setChannelDistortion(NULL);
+	}
+	// JVT-R057 LA-RDO}
+
     //{{Adaptive GOP structure
     // --ETRI & KHU
     if (!m_uiUseAGS) 
@@ -4451,7 +4566,13 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 
     //----- store for inter-layer prediction (non-deblocked version) -----
     RNOK( m_papcSubband[uiFrameIdInGOP] ->copy( pcBLRecFrame ) );
-
+	// JVT-R057 LA-RDO{
+	if(m_bLARDOEnable)
+	{
+		m_pcLowPassBaseReconstruction->copyChannelDistortion(pcFrame);
+		m_papcSubband[uiFrameIdInGOP]->setChannelDistortion(pcFrame);
+	}
+	// JVT-R057 LA-RDO}
     //----- de-blocking -----
     m_pcLoopFilter->setHighpassFramePointer( pcResidual );
     RNOK( m_pcLoopFilter->process ( *pcSliceHeader,
@@ -4532,6 +4653,10 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       if( m_papcCLRecFrame )
       {
         RNOK( m_papcCLRecFrame[uiFrameIdInGOP]->copy( pcFrame ) );
+		// JVT-R057 LA-RDO{
+		if(m_bLARDOEnable&&m_papcCLRecFrame)
+			m_papcCLRecFrame[uiFrameIdInGOP]->setChannelDistortion(pcFrame);
+		// JVT-R057 LA-RDO}
       }
     }
     else
@@ -4662,10 +4787,29 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     
     RNOK( xInitControlDataHighPass( uiFrameIdInGOP,uiBaseLevel,uiFrame ) );
 
+	//NonRequired JVT-Q066 (06-04-08){{
+	if(m_uiLayerId != 0 && m_uiNonRequiredWrite != 0)
+	{
+		if( pcSliceHeader->getBaseLayerId() == MSYS_UINT_MAX || m_uiLayerId - pcSliceHeader->getBaseLayerId() > 1 || pcSliceHeader->getBaseQualityLevel() != 3 )
+		{
+			rcAccessUnit.CreatNonRequiredSei();
+		}
+		xSetNonRequiredSEI(pcSliceHeader, rcAccessUnit.getNonRequiredSei()); 
+		if(m_uiNonRequiredWrite == 2 && rcAccessUnit.getNonRequiredSei() != NULL)
+		{
+			xWriteNonRequiredSEI(rcOutputList, rcAccessUnit.getNonRequiredSei(), uiBits);
+		}
+	}
+	//NonRequired JVT-Q066 (06-04-08)}}
+
     //===== base layer encoding =====
     //--- closed-loop coding of base quality layer ---
     if( pcBQFrame )
     {
+		//JVT-R057 LA-RDO{
+		if(m_bLARDOEnable)
+			pcBQFrame->setChannelDistortion(pcFrame);
+		//JVT-R057 LA-RDO}
 			RNOK( pcSRFrame->subtract			( pcSRFrame, pcBQFrame ) ); // JVT-R091
 			RNOK( pcOrgPred->copy					( pcSRFrame						 ) );	// JVT-R091
       RNOK( xEncodeHighPassSignal   ( rcOutputList,
@@ -4682,7 +4826,11 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
       RNOK( pcBLRecFrame->copy      ( pcFrame ) );
 			RNOK( pcSRFrame		->subtract	( pcSRFrame, pcBLRecFrame ) );	// JVT-R091
 			RNOK( pcOrgPred->copy					( pcSRFrame								) );	// JVT-R091
-      RNOK( xEncodeHighPassSignal   ( rcOutputList,
+			//JVT-R057 LA-RDO{
+			if(m_bLARDOEnable)
+				pcBLRecFrame->setChannelDistortion(pcFrame);
+			//JVT-R057 LA-RDO}
+			RNOK( xEncodeHighPassSignal   ( rcOutputList,
                                       rcControlData,
                                       pcBLRecFrame,
                                       pcResidual,
@@ -4774,9 +4922,18 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 
       RNOK( m_papcSubband[uiFrameIdInGOP]->copy( pcFrame ) );
 
+	  // JVT-R057 LA-RDO{
+	  if(m_bLARDOEnable)
+		  m_papcSubband[uiFrameIdInGOP]->setChannelDistortion(pcFrame);
+	  // JVT-R057 LA-RDO}
+
       if( m_papcCLRecFrame )
       {
         RNOK( m_papcCLRecFrame[uiFrameIdInGOP]->copy( pcFrame ) );
+		// JVT-R057 LA-RDO{
+		if(m_bLARDOEnable)
+			m_papcCLRecFrame[uiFrameIdInGOP]->setChannelDistortion(pcFrame);
+		// JVT-R057 LA-RDO}
       }
     }
     else
@@ -4965,7 +5122,13 @@ MCTFEncoder::xProcessClosedLoop( AccessUnitList&  rcAccessUnitList,
   Int iLevel;
   g_nLayer = m_uiLayerId;
   ETRACE_LAYER(m_uiLayerId);
-
+  // JVT-R057 LA-RDO{
+  if(m_bLARDOEnable)
+  {
+	  m_pcSliceEncoder->getMbEncoder()->setLARDOEnable(m_bLARDOEnable);
+	  m_pcSliceEncoder->getMbEncoder()->setLayerID(m_uiLayerId);
+  }
+  // JVT-R057 LA-RDO}
   //===== init group of pictures =====
   RNOK( xInitGOP( rcPicBufferInputList ) );
 
@@ -6469,54 +6632,149 @@ MCTFEncoder::xWriteSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, Sli
   return Err::m_nOK;
 }
 
-ErrVal
-MCTFEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit )
+//NonRequired JVT-Q066 (06-04-08){{
+ErrVal 
+MCTFEncoder::xSetNonRequiredSEI(SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei)
 {
-	UInt uiBit = 0;
-	Bool m_bWriteSEI = true; 
-	UInt temp1, temp2;
-
-	if( m_bWriteSEI )
+	if( pcSliceHeader->getBaseLayerId() == MSYS_UINT_MAX || m_uiLayerId - pcSliceHeader->getBaseLayerId() > 1 )
 	{
-		RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
-		RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
+		if(pcNonRequiredSei->getNumInfoEntriesMinus1() != MSYS_UINT_MAX)
+			pcNonRequiredSei->setNumInfoEntriesMinus1(pcNonRequiredSei->getNumInfoEntriesMinus1()+1);
+		else
+			pcNonRequiredSei->setNumInfoEntriesMinus1(0);
+		pcNonRequiredSei->setEntryDependencyId(pcNonRequiredSei->getNumInfoEntriesMinus1(), m_uiLayerId);
 
-		SEI::MessageList cSEIMessageList;
-		SEI::NonRequiredSei* pcNonRequiredSei;
-		RNOK( SEI::NonRequiredSei::create( pcNonRequiredSei ) );
+		UInt temp = 0;
+		UInt i = pcNonRequiredSei->getNumInfoEntriesMinus1();
+		UInt j = 0;
 
-		cSEIMessageList.push_back( pcNonRequiredSei );
+		if(pcSliceHeader->getBaseLayerId() == MSYS_UINT_MAX)
+			temp = m_uiLayerId + 1;
+		else
+			temp = m_uiLayerId - pcSliceHeader->getBaseLayerId();
 
-
-		//----- set the non-required sei parameter -----
-		// these parameters should be write according to cfg file or the details of encoding
-		pcNonRequiredSei->setNumInfoEntriesMinus1(0);
-		temp1 = pcNonRequiredSei->getNumInfoEntriesMinus1() + 1;
-		for(UInt i = 0; i < temp1; i++)
+		while(temp > 1)
 		{
-			pcNonRequiredSei->setEntryDependencyId(i, 2);
-			pcNonRequiredSei->setNumNonRequiredPicsMinus1(i,0);
-			temp2 = pcNonRequiredSei->getNumNonRequiredPicsMinus1(i) + 1;
-			for(UInt j = 0; j < temp2; j++)
+			if(pcNonRequiredSei->getNumNonRequiredPicsMinus1(i) != MSYS_UINT_MAX)
+				pcNonRequiredSei->setNumNonRequiredPicsMinus1(i,pcNonRequiredSei->getNumNonRequiredPicsMinus1(i)+4);
+			else
+				pcNonRequiredSei->setNumNonRequiredPicsMinus1(i, 3);
+
+			for(UInt k = 0; j <= pcNonRequiredSei->getNumNonRequiredPicsMinus1(i) ; k++, j++)
 			{
-				pcNonRequiredSei->setNonNonRequiredPicDependencyId(i,j,1);
-				pcNonRequiredSei->setNonNonRequiredPicQulityLevel(i,j,1);
-				pcNonRequiredSei->setNonNonRequiredPicFragmentOrder(i,j,0);
+				pcNonRequiredSei->setNonNonRequiredPicDependencyId(i, j, m_uiLayerId + 1 - temp);
+				pcNonRequiredSei->setNonNonRequiredPicQulityLevel(i, j, k);
+				pcNonRequiredSei->setNonNonRequiredPicFragmentOrder(i, j, 0);
 			}
+			temp--;
 		}
-
-
-		RNOK( m_pcNalUnitEncoder->write( cSEIMessageList ) );
-
-		RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBit ) );
-		RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
-		uiBit += 4*8;
-		ruiBit += uiBit;
 	}
+	else if(pcSliceHeader->getBaseQualityLevel() != 3)
+	{
+		if(pcNonRequiredSei->getNumInfoEntriesMinus1() != MSYS_UINT_MAX)
+			pcNonRequiredSei->setNumInfoEntriesMinus1(pcNonRequiredSei->getNumInfoEntriesMinus1()+1);
+		else
+			pcNonRequiredSei->setNumInfoEntriesMinus1(0);
+		pcNonRequiredSei->setEntryDependencyId(pcNonRequiredSei->getNumInfoEntriesMinus1(), m_uiLayerId);
 
+		UInt i = pcNonRequiredSei->getNumInfoEntriesMinus1();
+
+		pcNonRequiredSei->setNumNonRequiredPicsMinus1(i, 3 - pcSliceHeader->getBaseQualityLevel() - 1);
+
+		for(UInt j = 0; j <= pcNonRequiredSei->getNumNonRequiredPicsMinus1(i) ; j++)
+		{
+			pcNonRequiredSei->setNonNonRequiredPicDependencyId(i, j, pcSliceHeader->getBaseLayerId());
+			pcNonRequiredSei->setNonNonRequiredPicQulityLevel(i, j, pcSliceHeader->getBaseQualityLevel() + j + 1);
+			pcNonRequiredSei->setNonNonRequiredPicFragmentOrder(i, j, 0);
+		}
+	}
 	return Err::m_nOK;
 }
 
+ErrVal
+MCTFEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit )
+{
+	UInt uiBit = 0;
+
+	RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
+	RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
+
+	SEI::MessageList cSEIMessageList;
+	cSEIMessageList.push_back( pcNonRequiredSei );
+
+	RNOK( m_pcNalUnitEncoder->write( cSEIMessageList ) );
+	RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBit ) );
+
+	ROF( &m_cExtBinDataAccessor );
+	ROF( m_cExtBinDataAccessor.data() );
+	UInt    uiNewSize     = m_cExtBinDataAccessor.size();
+	UChar*  pucNewBuffer  = new UChar [ uiNewSize ];
+	ROF( pucNewBuffer );
+	::memcpy( pucNewBuffer, m_cExtBinDataAccessor.data(), uiNewSize * sizeof( UChar ) );
+
+	ExtBinDataAccessor* pcNewExtBinDataAccessor = new ExtBinDataAccessor;
+	ROF( pcNewExtBinDataAccessor );
+	m_cBinData              .reset          ();
+	m_cBinData              .set            (  pucNewBuffer, uiNewSize );
+	m_cBinData              .setMemAccessor ( *pcNewExtBinDataAccessor );
+	rcOutExtBinDataAccessorList.push_front     (  pcNewExtBinDataAccessor );
+	m_cBinData              .reset          ();
+	m_cBinData              .setMemAccessor ( m_cExtBinDataAccessor );
+
+	uiBit += 4*8;
+	ruiBit += uiBit;
+
+	return Err::m_nOK;
+}
+/*
+ErrVal
+MCTFEncoder::xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit )
+{
+UInt uiBit = 0;
+Bool m_bWriteSEI = true; 
+UInt temp1, temp2;
+
+if( m_bWriteSEI )
+{
+RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
+RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
+
+SEI::MessageList cSEIMessageList;
+SEI::NonRequiredSei* pcNonRequiredSei;
+RNOK( SEI::NonRequiredSei::create( pcNonRequiredSei ) );
+
+cSEIMessageList.push_back( pcNonRequiredSei );
+
+
+//----- set the non-required sei parameter -----
+// these parameters should be write according to cfg file or the details of encoding
+pcNonRequiredSei->setNumInfoEntriesMinus1(0);
+temp1 = pcNonRequiredSei->getNumInfoEntriesMinus1() + 1;
+for(UInt i = 0; i < temp1; i++)
+{
+pcNonRequiredSei->setEntryDependencyId(i, 2);
+pcNonRequiredSei->setNumNonRequiredPicsMinus1(i,0);
+temp2 = pcNonRequiredSei->getNumNonRequiredPicsMinus1(i) + 1;
+for(UInt j = 0; j < temp2; j++)
+{
+pcNonRequiredSei->setNonNonRequiredPicDependencyId(i,j,1);
+pcNonRequiredSei->setNonNonRequiredPicQulityLevel(i,j,1);
+pcNonRequiredSei->setNonNonRequiredPicFragmentOrder(i,j,0);
+}
+}
+
+
+RNOK( m_pcNalUnitEncoder->write( cSEIMessageList ) );
+
+RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBit ) );
+RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+uiBit += 4*8;
+ruiBit += uiBit;
+}
+
+return Err::m_nOK;
+}*/
+//NonRequired JVT-Q066 (06-04-08)}}
 
 ErrVal
 MCTFEncoder::xGetFrameNumList( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos )

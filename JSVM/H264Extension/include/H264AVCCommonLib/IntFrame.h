@@ -280,6 +280,17 @@ public:
   Void  clearExtended() { m_bExtended = false; }
 
 
+  // JVT-R057 LA-RDO{
+  void   initChannelDistortion();
+  void   uninitChannelDistortion()  { 
+	  if(m_piChannelDistortion) 
+		  delete[] m_piChannelDistortion; 
+  }
+  UInt*   getChannelDistortion()   { return  m_piChannelDistortion;}
+  void   copyChannelDistortion(IntFrame*p1);
+  void   zeroChannelDistortion();
+  void   setChannelDistortion(IntFrame*p1) { if(p1) m_piChannelDistortion=p1->m_piChannelDistortion; else m_piChannelDistortion=NULL;}
+  // JVT-R057 LA-RDO}  
 protected:
   IntYuvPicBuffer m_cFullPelYuvBuffer;
   IntYuvPicBuffer m_cHalfPelYuvBuffer;
@@ -291,6 +302,9 @@ protected:
   DPBUnit*        m_pcDPBUnit;
 
   Bool			  m_bUnusedForRef; // JVT-Q065 EIDR
+  // JVT-R057 LA-RDO{
+  UInt*            m_piChannelDistortion;
+  // JVT-R057 LA-RDO}
 };
 
 

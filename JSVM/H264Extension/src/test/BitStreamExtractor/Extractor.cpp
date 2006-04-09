@@ -612,6 +612,12 @@ Extractor::xAnalyse()
 	}
 	if(cPacketDescription.ParameterSet || cPacketDescription.NalUnitType == NAL_UNIT_SEI )
 	{
+		//NonRequired JVT-Q066 (06-04-08){{
+		if(m_pcH264AVCPacketAnalyzer->getNonRequiredSeiFlag() == 1 )
+		{
+			uiLayer = uiMaxLayer;
+		}
+		//NonRequired JVT-Q066 (06-04-08)}}
 		uiNumFrame = auiNumImage[uiLayer];
 	}
 	else
@@ -1943,7 +1949,11 @@ Extractor::xExtractLayerLevel()
 		{
 			if(m_pcH264AVCPacketAnalyzer->getNonRequiredSeiFlag() == 1)
 				bKeep = 0;
-			if( m_uiExtractNonRequiredPics == 1 && pcNonRequiredDescription)
+			//NonRequired JVT-Q066 (06-04-08){{
+			if( m_uiExtractNonRequiredPics == 1 && pcNonRequiredDescription && cPacketDescription.NalUnitType != NAL_UNIT_PPS &&
+				cPacketDescription.NalUnitType != NAL_UNIT_SPS && cPacketDescription.NalUnitType != NAL_UNIT_SEI)
+			//if( m_uiExtractNonRequiredPics == 1 && pcNonRequiredDescription)
+			//NonRequired JVT-Q066 (06-04-08)}}
 			{
 				for(UInt i = 0; i <= pcNonRequiredDescription->getNumInfoEntriesMinus1(); i++)
 				{

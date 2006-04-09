@@ -118,8 +118,13 @@ H264AVCEncoder::H264AVCEncoder():
 	::memset( m_dFinalBitrate,	0x00, MAX_LAYERS*MAX_DSTAGES*MAX_QUALITY_LEVELS*sizeof(Double) );
 	for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
 	for( UInt uj = 0; uj < MAX_TEMP_LEVELS; uj++ )
-	for( UInt uk = 0; uk < MAX_QUALITY_LEVELS; uk++ )
-		m_aaauidSeqBits[ui][uj][uk] = 0;
+		for( UInt uk = 0; uk < MAX_QUALITY_LEVELS; uk++ ){
+
+		  m_aaauidSeqBits[ui][uj][uk] = 0;                   
+		  m_aaadSingleLayerBitrate[ui][uj][uk] = 0;            // BUG_FIX Shenqiu (06-04-08)
+		  m_aaauiScalableLayerId[ui][uj][uk] = MSYS_UINT_MAX;  // BUG_FIX Shenqiu (06-04-08)
+		}
+
 }
 
 H264AVCEncoder::~H264AVCEncoder()
@@ -1020,6 +1025,16 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
                              PicBufferList&           rcPicBufferOutputList,
                              PicBufferList&           rcPicBufferUnusedList )
 { 
+	//NonRequired JVT-Q066 (06-04-08){{
+	if(m_pcCodingParameter->getNonRequiredEnable())
+	{
+		if(uiLayer == m_pcCodingParameter->getNumberOfLayers() - 1)
+			m_apcMCTFEncoder[uiLayer]->setNonRequiredWrite(2);
+		else
+			m_apcMCTFEncoder[uiLayer]->setNonRequiredWrite(1);
+	}
+	//NonRequired JVT-Q066 (06-04-08)}}
+
   //{{Adaptive GOP structure
   // --ETRI & KHU
   if ( !m_pcCodingParameter->getUseAGS() ) {

@@ -346,6 +346,8 @@ public:
   Void				  setBLSkipEnable( Bool b )   { m_bBLSkipEnable = b; }
 // JVT-Q065 EIDR}
 
+  UInt                getPLR                   () { return m_uiPLR; } //JVT-R057 LA-RDO
+
   //===== check =====
   ErrVal  check();
 
@@ -469,6 +471,8 @@ public:
   Int						m_iIDRPeriod;
   Bool						m_bBLSkipEnable;
 // JVT-Q065 EIDR}
+
+  UInt               m_uiPLR; //JVT-R057 LA-RDO
 };
 
 
@@ -552,6 +556,7 @@ public:
       , m_uiBMode                        (0)
 //TMM_WP
 	  , m_bNonRequiredEnable				( 0 ) //NonRequired JVT-Q066
+	  , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -624,6 +629,9 @@ public:
   UInt                            getMaxRefIdxActiveP     ()              const   { return m_uiMaxRefIdxActiveP; }
 
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
+
+  UInt                            getLARDOEnable          ()              const   { return m_uiLARDOEnable;} //JVT-R057 LA-RDO
+
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
   Void                            setMaximumDelay         ( Double  d )   { m_dMaximumDelay         = d; }
   Void                            setTotalFrames          ( UInt    n )   { m_uiTotalFrames         = n; }
@@ -706,6 +714,8 @@ public:
   Void                            setLowPassFgsMcFilter   ( UInt ui )   { m_uiLowPassFgsMcFilter  = ui;   }
   UInt                            getLowPassFgsMcFilter   ()            { return m_uiLowPassFgsMcFilter;  }
 
+  Int							  getNonRequiredEnable    ()			{ return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
+
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -773,6 +783,7 @@ protected:
 //TMM_WP
 
   Int						m_bNonRequiredEnable; //NonRequired JVT-Q066
+  UInt                       m_uiLARDOEnable; //JVT-R057 LA-RDO
 };
 
 #if defined( MSYS_WIN32 )
