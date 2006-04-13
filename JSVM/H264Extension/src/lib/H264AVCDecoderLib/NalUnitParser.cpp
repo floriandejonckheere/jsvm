@@ -303,7 +303,8 @@ NalUnitParser::getBitsLeft()
 ErrVal
 NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag, 
                            UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
-                           Bool bPreParseHeader, Bool bConcatenated  ) //FRAG_FIX
+                           Bool bPreParseHeader, Bool bConcatenated, //FRAG_FIX
+													 Bool	bCheckGap) //TMM_EC
 {
   ROF( pcBinDataAccessor->size() );
   ROF( pcBinDataAccessor->data() );
@@ -320,42 +321,52 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
 	*KeyPicFlag = true;
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
   
-  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-      m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
-  {
-    ROF( pcBinDataAccessor->size() > 1 );
-
-    ucByte              = pcBinDataAccessor->data()[1];
-    //{{Variable Lengh NAL unit header data with priority and dead substream flag
-    //France Telecom R&D- (nathalie.cammas@francetelecom.com)
-    m_uiSimplePriorityId = ( ucByte >> 2);
-	  m_bDiscardableFlag	 = ( ucByte >> 1) & 1;
-	  m_bExtensionFlag     = ( ucByte     ) & 1;
-	  if(m_bExtensionFlag)
-	  {
+//	TMM_EC {{
+	if ( *(int*)(pcBinDataAccessor->data()+1) != 0xdeadface)
+	{
+		if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+				m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+		{
+		  ROF( pcBinDataAccessor->size() > 1 );
+	
+		  ucByte              = pcBinDataAccessor->data()[1];
+		  //{{Variable Lengh NAL unit header data with priority and dead substream flag
+		  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+		  m_uiSimplePriorityId = ( ucByte >> 2);
+			m_bDiscardableFlag	 = ( ucByte >> 1) & 1;
+			m_bExtensionFlag     = ( ucByte     ) & 1;
+			if(m_bExtensionFlag)
+		  {
 		    ucByte              = pcBinDataAccessor->data()[2];
 		    m_uiTemporalLevel   = ( ucByte >> 5 );
 		    m_uiLayerId         = ( ucByte >> 2 ) & 7;
 		    m_uiQualityLevel    = ( ucByte      ) & 3;
 		    uiHeaderLength      ++;
-	  }
-    else
-    {
+		  }
+			else
+			{
         // Look up simple priority ID in mapping table (J. Ridge, Y-K. Wang @ Nokia)
         m_uiTemporalLevel = m_uiTemporalLevelList[m_uiSimplePriorityId];
         m_uiLayerId       = m_uiDependencyIdList [m_uiSimplePriorityId];
         m_uiQualityLevel  = m_uiQualityLevelList [m_uiSimplePriorityId];
-	  }
+			}
     //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
-    uiHeaderLength      ++;
-  }
-  else
-  {
-    m_uiTemporalLevel = ( m_eNalRefIdc > 0 ? 0 : 1 );
-    m_uiLayerId       = 0;
-    m_uiQualityLevel  = 0;
-  }
+			uiHeaderLength      ++;
+		}
+		else
+		{
+			m_uiTemporalLevel = ( m_eNalRefIdc > 0 ? 0 : 1 );
+			m_uiLayerId       = 0;
+			m_uiQualityLevel  = 0;
+		}
+	}
+	else //TMM_EC
+	{
+		uiNumBytesRemoved	=	0;
+		m_pucBuffer         = pcBinDataAccessor->data() + uiHeaderLength;
+		return Err::m_nOK;
+	}
 
 
   //===== TRACE output =====
@@ -378,12 +389,19 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
          NAL_UNIT_END_OF_SEQUENCE == m_eNalUnitType,    Err::m_nOK );
 
   uiNumBytesRemoved = uiPacketLength;//FIX_FRAG_CAVLC
-  // Unit->RBSP
-  if(bPreParseHeader) //FRAG_FIX
-  {//FIX_FRAG_CAVLC
-      RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
-      uiNumBytesRemoved -= uiPacketLength; //FIX_FRAG_CAVLC
-  }//FIX_FRAG_CAVLC
+	if ( !bCheckGap)
+	{
+		// Unit->RBSP
+		if(bPreParseHeader) //FRAG_FIX
+		{//FIX_FRAG_CAVLC
+				RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
+				uiNumBytesRemoved -= uiPacketLength; //FIX_FRAG_CAVLC
+		}//FIX_FRAG_CAVLC
+	}
+	else //TMM_EC
+	{
+		uiNumBytesRemoved	=	0;
+	}
   UInt uiBitsInPacket;
   // RBSP->SODB
   RNOK( xConvertRBSPToSODB    ( uiPacketLength, uiBitsInPacket ) );

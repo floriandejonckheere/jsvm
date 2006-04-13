@@ -95,14 +95,34 @@ main( int argc, char** argv)
   printf("JSVM 2.0 Decoder\n\n\n");
 
   RNOKRS( cParameter.init( argc, argv ), -2 );
+//TMM_EC {{
+	UInt	nCount	=	1;
 
-  for( Int n = 0; n < 1; n++ )
+  WriteYuvIf*                 pcWriteYuv;
+	RNOKS( WriteYuvToFile::create( pcWriteYuv, cParameter.cYuvFile ) );
+
+  ReadBitstreamFile *pcReadBitstreamFile;
+  RNOKS( ReadBitstreamFile::create( pcReadBitstreamFile ) ); 
+  RNOKS( pcReadBitstreamFile->init( cParameter.cBitstreamFile ) );  
+//TMM_EC }}
+	for( UInt n = 0; n < nCount; n++ )
   {
     RNOKR( H264AVCDecoderTest::create   ( pcH264AVCDecoderTest ), -3 );
-    RNOKR( pcH264AVCDecoderTest->init   ( &cParameter ),          -4 );
+    RNOKR( pcH264AVCDecoderTest->init   ( &cParameter, (WriteYuvToFile*)pcWriteYuv, pcReadBitstreamFile ),          -4 );
     RNOKR( pcH264AVCDecoderTest->go     (),                       -5 );
     RNOKR( pcH264AVCDecoderTest->destroy(),                       -6 );
   }
+//TMM_EC {{
+	if( NULL != pcWriteYuv )              
+  {
+    RNOK( pcWriteYuv->destroy() );  
+  }
 
+  if( NULL != pcReadBitstreamFile )     
+  {
+    RNOK( pcReadBitstreamFile->uninit() );  
+    RNOK( pcReadBitstreamFile->destroy() );  
+  }
+//TMM_EC }}
   return 0;
 }

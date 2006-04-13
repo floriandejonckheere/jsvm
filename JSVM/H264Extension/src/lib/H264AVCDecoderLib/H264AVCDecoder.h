@@ -184,7 +184,30 @@ public:
                                         Int&              slicePoc  );
   ErrVal  checkSliceLayerDependency   ( BinDataAccessor*  pcBinDataAccessor,
                                         Bool&             bFinishChecking );
-
+//	TMM_EC {{
+	Bool		checkSEIForErrorConceal();
+  ErrVal  checkSliceGap   ( BinDataAccessor*  pcBinDataAccessor,
+                            MyList<BinData*>&	cVirtualSliceList );
+	ErrVal	setec( UInt uiErrorConceal) { m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal); if ( m_eErrorConceal == 0) m_bNotSupport = true; return	Err::m_nOK;}
+	UInt	m_uiNextFrameNum;
+	UInt	m_uiNextLayerId;
+	UInt	m_uiNextPoc;
+	UInt	m_uiNextTempLevel;
+	UInt	*m_pauiPocInGOP[MAX_LAYERS];
+	UInt	*m_pauiFrameNumInGOP[MAX_LAYERS];
+	UInt	*m_pauiTempLevelInGOP[MAX_LAYERS];
+	UInt	m_uiDecompositionStages[MAX_LAYERS];
+	UInt	m_uiNumLayers;
+	UInt	m_uiFrameIdx[MAX_LAYERS];
+	ERROR_CONCEAL	m_eErrorConceal;
+	UInt	m_uiDefNumLayers;
+	UInt	m_uiDefDecompositionStages[MAX_LAYERS];
+	UInt	m_uiMaxDecompositionStages;
+	UInt	m_uiMaxGopSize;
+	UInt	m_uiGopSize[MAX_LAYERS];
+	Bool	m_bNotSupport;
+	UInt	m_uiMaxLayerId;
+//  TMM_EC }}
   Void    setQualityLevelForPrediction( UInt ui ) { m_uiQualityLevelForPrediction = ui; }
 #if MULTIPLE_LOOP_DECODING
   Void    setCompletelyDecodeLayer    ( Bool b )  { m_bCompletelyDecodeLayer = b; }
@@ -195,7 +218,12 @@ public:
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
-  ErrVal  xStartSlice               ( Bool bPreParseHeader, Bool& bLastFragment); //FRAG_FIX
+  ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bLastFragment, Bool& bDiscardable); //FRAG_FIX //TMM_EC
+  // TMM_EC {{
+  ErrVal  xProcessSliceVirtual      ( SliceHeader&    rcSH,
+	                                    SliceHeader* pcPrevSH,
+									                    PicBuffer* &    rpcPicBuffer);
+  // TMM_EC }}
   ErrVal  xProcessSlice             ( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
                                       PicBuffer*&     rpcPicBuffer );

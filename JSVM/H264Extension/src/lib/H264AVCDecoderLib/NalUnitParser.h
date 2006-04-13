@@ -111,10 +111,15 @@ public:
   ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, Bool* KeyPicFlag, 
     UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
 	  Bool bPreParseHeader = true,
-    Bool bConcatenated = false); //FRAG_FIX
+    Bool bConcatenated = false, //FRAG_FIX
+		Bool bCheckGap = false); //TMM_EC
   ErrVal        closeNalUnit    ();
 
   NalUnitType   getNalUnitType  ()      { return m_eNalUnitType;    }
+//	TMM_EC {{
+	Bool          isTrueNalUnit   ()      { return *(int*)m_pucBuffer != 0xdeadface;    }
+  ErrVal	      setNalUnitType  (NalUnitType eNalRefUnitType)		{ m_eNalUnitType=eNalRefUnitType; return Err::m_nOK;}
+//	TMM_EC }}
   NalRefIdc     getNalRefIdc    ()      { return m_eNalRefIdc;      }
   UInt          getLayerId      ()      { return m_uiLayerId;       }
   UInt          getTemporalLevel()      { return m_uiTemporalLevel; }
@@ -151,7 +156,11 @@ protected:
 
 protected:
   BitReadBuffer *m_pcBitReadBuffer;
+//TMM_EC {{
+public:
   UChar         *m_pucBuffer;
+protected:
+//TMM_EC }}
   NalUnitType   m_eNalUnitType;
   NalRefIdc     m_eNalRefIdc;
   UInt          m_uiLayerId;

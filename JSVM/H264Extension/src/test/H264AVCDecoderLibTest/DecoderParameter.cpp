@@ -99,7 +99,7 @@ DecoderParameter::~DecoderParameter()
 
 ErrVal DecoderParameter::init(int argc, char** argv)
 {
-  if( argc < 3 || argc > 4 ) // HS: decoder robustness
+  if( argc < 3 || argc > 6 ) // HS: decoder robustness
   {
     RNOKS( xPrintUsage( argv ) );
   }
@@ -109,13 +109,56 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
   if( argc > 3 ) // HS: decoder robustness
   {
-    uiMaxPocDiff = atoi( argv[3] );
-    ROT( 0 == uiMaxPocDiff );
+		if ( 0 == stricmp( argv[3], "-ec"))
+		{
+			if ( argc != 5)
+			{
+		    RNOKS( xPrintUsage( argv ) );
+			}
+			else
+			{
+				uiErrorConceal	=	atoi( argv[4]);
+				if ( uiErrorConceal < 0 || uiErrorConceal > 5)
+				{
+					RNOKS( xPrintUsage( argv ) );
+				}
+		    uiMaxPocDiff = 1000; // should be large enough
+			}
+		}
+		else
+		{
+			uiMaxPocDiff = atoi( argv[3] );	
+	    ROT( 0 == uiMaxPocDiff );
+			if ( argc > 4)
+			{
+				if ( 0 == stricmp( argv[4], "-ec"))
+				{
+					if ( argc != 6)
+					{
+						RNOKS( xPrintUsage( argv ) );
+					}
+					else
+					{
+						uiErrorConceal	=	atoi( argv[5]);
+						if ( uiErrorConceal < 1 || uiErrorConceal > 5)
+						{
+							RNOKS( xPrintUsage( argv ) );
+						}
+						uiMaxPocDiff = 1000; // should be large enough
+					}
+				}
+			}
+			else
+			{
+				uiErrorConceal	=	0;
+			}
+		}
   }
   else
   {
     uiMaxPocDiff = 1000; // should be large enough
-  }
+		uiErrorConceal	=	0;
+	}
   return Err::m_nOK;
 }
 
@@ -123,7 +166,8 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
 ErrVal DecoderParameter::xPrintUsage(char **argv)
 {
-  printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff]\n\n", argv[0] );  // HS: decoder robustness
+	printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff] [-ec <1..5>]\n\n", argv[0] );  // HS: decoder robustness
+// (1: BLSKIP;  2: RU; 3: Frame copy; 4: Temporal Direct; 5: Frame Level Frame Copy ) {{TMM_EC}}
   //printf("usage: %s BitstreamFile YuvOutputFile\n\n", argv[0] );
   ROTS(1);
 }

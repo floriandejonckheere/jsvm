@@ -245,6 +245,19 @@ CreaterH264AVCDecoder::isNonRequiredPic()
 {
 	return m_pcH264AVCDecoder->isNonRequiredPic(); 
 }
+//TMM_EC {{
+ErrVal
+CreaterH264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
+                                      MyList<BinData*>&	cVirtualSliceList)
+{
+  return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList );
+}
+ErrVal
+CreaterH264AVCDecoder::setec( UInt uiErrorConceal)
+{
+  return m_pcH264AVCDecoder->setec( uiErrorConceal);
+}
+//TMM_EC }}
 
 ErrVal CreaterH264AVCDecoder::create( CreaterH264AVCDecoder*& rpcCreaterH264AVCDecoder )
 {

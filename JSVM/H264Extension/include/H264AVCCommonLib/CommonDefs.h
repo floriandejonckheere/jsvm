@@ -91,6 +91,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
+#define _JSVM_VERSION_ "4.11" //added by jerome.vieron@thomson.net
+
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
 
@@ -279,6 +281,7 @@ enum SearchMode
 H264AVC_NAMESPACE_END
 
 
+
 #define MIN_QP              0
 #define MAX_QP              51
 #define QP_BITS             15
@@ -338,5 +341,18 @@ H264AVC_NAMESPACE_END
 #define INFER_ELAYER_PRED_WEIGHTS                     0                   // (0:BL weights are not used, 1:infer enhancement layer prediction weights)
 
 #define SINGLE_MC_DECODING                            1                   // only relevant for non-key pictures (0:perform motion-compensated prediction after decoding of base quality layer, 1:do motion-compensated prediction only after last PR slice)
+
+//TMM_EC {{
+typedef	enum
+{
+	EC_NONE												=	100,
+  EC_BLSKIP,
+	EC_RECONSTRUCTION_UPSAMPLE,
+	EC_FRAME_COPY,
+	EC_TEMPORAL_DIRECT,
+	EC_INTRA_COPY
+}	ERROR_CONCEAL;
+//TMM_EC }}
+
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

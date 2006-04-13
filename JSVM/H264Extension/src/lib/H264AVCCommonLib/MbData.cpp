@@ -431,13 +431,7 @@ MbData::xInitESS(MbData* pcBaseMbData,
         m_aiMbBorder[uiDim]=CALC_COND(m_aiMbBorder[uiDim]);
         m_ai8x8Border[uiDim]=CALC_COND(m_ai8x8Border[uiDim]);
 
-        if((m_aiMbBorder[uiDim]<0)&&(m_ai8x8Border[uiDim]==0)) m_aiMbBorder[uiDim]*=-1;
-        else
-            if((m_aiMbBorder[uiDim]==0)&&(m_ai8x8Border[uiDim]<0)) m_ai8x8Border[uiDim]*=-1;
-
-        if (abs(m_aiMbBorder[uiDim]-m_ai8x8Border[uiDim]) == 20)
-            m_ai8x8Border[uiDim] -= sign(m_ai8x8Border[uiDim])*4;
-    }
+     }
 
     //--- MB Class derivation and Base MB association 
     ///////////////////////////////////////////////////

@@ -664,6 +664,26 @@ public:
   Bool                              getAdaptiveRefPicBufferingFlag()  const { return m_bAdaptiveRefPicBufferingModeFlag; }
   const MmcoBuffer&                 getMmcoBuffer                 ()  const { return m_cMmmcoBuffer; }
   MmcoBuffer&                       getMmcoBuffer                 ()        { return m_cMmmcoBuffer; }
+  //TMM_EC {{
+  Void								setDefualtMmcoBuffer(UInt uiDecompositionStages, Bool Number2)
+  {
+	Bool bCont = true;
+	m_cMmmcoBuffer.clear();
+
+	UInt uiCount=0;
+	UInt	uiGopSize	=	1 << uiDecompositionStages;
+	for( Int iIndex=uiGopSize/2-2;iIndex>=0;iIndex-- )
+	{
+		m_cMmmcoBuffer.set( uiCount++, Mmco(MMCO_SHORT_TERM_UNUSED,iIndex));
+	}
+	if(!Number2)m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_SHORT_TERM_UNUSED,uiGopSize/2));
+	else       m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_SHORT_TERM_UNUSED,uiGopSize-1));
+
+	m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_END));
+
+    return ;	  
+  }
+
   UInt                              getCabacInitIdc               ()  const { return m_uiCabacInitIdc; }
   Int                               getSliceQpDelta               ()  const { return m_iSliceQpDelta; }
   const DeblockingFilterParameter&  getDeblockingFilterParameter  ()  const { return m_cDeblockingFilterParameter; }
@@ -763,6 +783,12 @@ public:
 
   Void  setSliceGroupChangeCycle(UInt uiSliceGroupChangeCycle){m_uiSliceGroupChangeCycle = uiSliceGroupChangeCycle;};
   ErrVal FMOInit();
+//	TMM_EC {{
+	Bool	getTrueSlice()	const	{ return	m_bTrueSlice;}
+	Void	setTrueSlice( Bool bTrueSlice)	{ m_bTrueSlice = bTrueSlice;}
+	ERROR_CONCEAL	m_eErrorConceal;
+	Bool	m_bTrueSlice;
+//  TMM_EC }}
   
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );

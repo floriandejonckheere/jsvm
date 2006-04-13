@@ -116,6 +116,13 @@ public:
                             Bool&           rbEndOfSlice);
   ErrVal readMotion       ( MbDataAccess&  rcMbDataAccess,
                             MbDataAccess*  pcMbDataAccessBase );
+//	TMM_EC {{
+  ErrVal readVirtual      ( MbDataAccess&   rcMbDataAccess,
+                            MbDataAccess*   pcMbDataAccessBase,
+                            Int             iSpatialScalabilityType,
+                            Bool&           rbEndOfSlice,
+														ERROR_CONCEAL   e_ErrorConceal);
+//  TMM_EC }}
 
 protected:
   ErrVal xSkipMb                      ( MbDataAccess& rcMbDataAccess );

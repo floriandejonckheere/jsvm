@@ -127,12 +127,33 @@ public:
                             //~JVT-P031
                             );
 
+  //TMM_EC {{
+	ErrVal	readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
+		                              SliceHeader	*rpcVeryFirstSliceHeader,
+																	UInt	uiDecompositionStages,
+																	UInt	uiMaxDecompositionStages,
+																	UInt	uiGopSize,
+																	UInt	uiMaxGopSize,
+																	UInt	uiFrameNum,
+																	UInt	uiPocLsb,
+																	UInt	uiTemporalLevel,
+																	SliceHeader*& rpcSH);
+  //TMM_EC }}
   ErrVal  read           ( SliceHeader&   rcSH,
                            MbDataCtrl*    pcMbDataCtrl,
                            MbDataCtrl*    pcMbDataCtrlBase,
                            Int             iSpatialScalabilityType,
                            UInt           uiMbInRow,
                            UInt&          ruiMbRead );
+//	TMM_EC {{
+	ErrVal  readVirtual    ( SliceHeader&   rcSH,
+                           MbDataCtrl*    pcMbDataCtrl,
+                           MbDataCtrl*    pcMbDataCtrlRef,
+                           MbDataCtrl*    pcMbDataCtrlBase,
+                           Int             iSpatialScalabilityType,
+                           UInt           uiMbInRow,
+                           UInt&          ruiMbRead,
+													 ERROR_CONCEAL      m_eErrorConceal);
 
 protected:
   HeaderSymbolReadIf* m_pcHeaderReadIf;

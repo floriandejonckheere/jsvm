@@ -8683,13 +8683,14 @@ int MbEncoder::GetEC_REC(IntYuvPicBuffer* pPic1,IntYuvPicBuffer*pPic2, int block
 	Int   iStride = pPic1->getLStride();
 	Int uiDiff;
 	UInt uiSSD;
+  int j, i;
 
 	uiSSD=0;
 	pS1=pPic1->getMbLumAddr();
 	pS2=pPic2->getMbLumAddr();
-	for(int j=blockY*4;j<blockY*4+4;j++)
+	for(j=blockY*4;j<blockY*4+4;j++)
 	{
-		for(int i=blockX*4;i<blockX*4+4;i++)
+		for( i=blockX*4;i<blockX*4+4;i++)
 		{
 			uiDiff=pS1[j*iStride+i]-pS2[j*iStride+i];
 			uiSSD=uiSSD+uiDiff*uiDiff;
@@ -8697,9 +8698,9 @@ int MbEncoder::GetEC_REC(IntYuvPicBuffer* pPic1,IntYuvPicBuffer*pPic2, int block
 	}
 	pS1=pPic1->getMbCbAddr();
 	pS2=pPic2->getMbCbAddr();
-	for(int j=blockY*2;j<blockY*2+2;j++)
+	for( j=blockY*2;j<blockY*2+2;j++)
 	{
-		for(int i=blockX*2;i<blockX*2+2;i++)
+		for( i=blockX*2;i<blockX*2+2;i++)
 		{
 			uiDiff=pS1[j*(iStride/2)+i]-pS2[j*(iStride/2)+i];
 			uiSSD=uiSSD+uiDiff*uiDiff;
@@ -8707,9 +8708,9 @@ int MbEncoder::GetEC_REC(IntYuvPicBuffer* pPic1,IntYuvPicBuffer*pPic2, int block
 	}
 	pS1=pPic1->getMbCrAddr();
 	pS2=pPic2->getMbCrAddr();
-	for(int j=blockY*2;j<blockY*2+2;j++)
+	for( j=blockY*2;j<blockY*2+2;j++)
 	{
-		for(int i=blockX*2;i<blockX*2+2;i++)
+		for( i=blockX*2;i<blockX*2+2;i++)
 		{
 			uiDiff=pS1[j*(iStride/2)+i]-pS2[j*(iStride/2)+i];
 			uiSSD=uiSSD+uiDiff*uiDiff;

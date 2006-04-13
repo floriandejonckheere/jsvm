@@ -248,6 +248,176 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
 
 
 
+//TMM_EC {{
+ErrVal  SliceReader::readVirtual( SliceHeader&   rcSH,
+																	MbDataCtrl*    pcMbDataCtrl,
+																	MbDataCtrl*    pcMbDataCtrlRef,
+																	MbDataCtrl*    pcMbDataCtrlBase,
+																	Int            iSpatialScalabilityType,
+																	UInt           uiMbInRow,
+																	UInt&          ruiMbRead,
+																	ERROR_CONCEAL			m_eErrorConceal)
+{
+  ROF( m_bInitDone );
+
+  UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
+  UInt  uiNumMbInPic  = rcSH.getSPS().getMbInFrame();
+  Bool  bEndOfSlice   = false;
+
+  RNOK( pcMbDataCtrl->initSlice( rcSH, PARSE_PROCESS, true, NULL ) );
+
+  //===== loop over macroblocks =====
+	for( ruiMbRead = 0; ruiMbRead < uiNumMbInPic; uiMbAddress++ )
+  {
+    DTRACE_NEWMB( uiMbAddress );
+
+    UInt          uiMbY               = uiMbAddress / uiMbInRow;
+    UInt          uiMbX               = uiMbAddress % uiMbInRow;
+    MbDataAccess* pcMbDataAccess      = 0;
+    MbDataAccess* pcMbDataAccessBase  = 0;
+
+		if ( rcSH.getTrueSlice() || rcSH.m_eErrorConceal != EC_TEMPORAL_DIRECT)
+		{
+			RNOK( pcMbDataCtrl        ->initMb    ( pcMbDataAccess,     uiMbY, uiMbX ) );
+		}
+		else
+		{
+			RNOK( pcMbDataCtrl        ->initMbTDEnhance( pcMbDataAccess, pcMbDataCtrl, pcMbDataCtrlRef, uiMbY, uiMbX ) );
+		}
+    pcMbDataAccess->getMbData().deactivateMotionRefinement();
+		if  ( pcMbDataCtrlBase )
+    {
+      RNOK( pcMbDataCtrlBase  ->initMb    ( pcMbDataAccessBase, uiMbY, uiMbX ) );
+    }
+		RNOK( m_pcMbParser        ->readVirtual( *pcMbDataAccess,
+                                            pcMbDataAccessBase,
+                                            iSpatialScalabilityType,
+                                            bEndOfSlice,
+																						m_eErrorConceal) );
+		ruiMbRead++;
+  }
+  ROF( ruiMbRead == uiNumMbInPic );
+
+  return Err::m_nOK;
+}
+//TMM_EC }}
+//TMM_EC {{
+ErrVal 
+SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
+																			SliceHeader	*rpcVeryFirstSliceHeader,
+																			UInt	uiDecompositionStages,
+																			UInt  uiMaxDecompositionStages,
+																			UInt	uiGopSize,
+																			UInt	uiMaxGopSize,
+																			UInt	uiFrameNum,
+																			UInt	uiPoc,
+																			UInt	uiTemporalLevel,
+																			SliceHeader*& rpcSH)
+{
+  SequenceParameterSet* pcSPS;
+  PictureParameterSet*  pcPPS;
+
+	UInt	uiPPSId	=	rpcVeryFirstSliceHeader->getPPS().getPicParameterSetId();
+
+#if MULTIPLE_LOOP_DECODING
+//	if ( uiPoc % uiMaxGopSize != 0)
+//		uiPPSId--;
+#endif
+
+  RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
+  RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
+
+  rpcSH = new SliceHeader ( *pcSPS, *pcPPS );
+  ROF( rpcSH );
+
+  rpcSH->setNalUnitType   ( eNalUnitType    );
+
+  if(eNalUnitType==NAL_UNIT_CODED_SLICE_SCALABLE)
+  {
+		rpcSH->setLayerId       ( 1       );
+    rpcSH->setBaseLayerId(MSYS_UINT_MAX); // will be modified later
+  }
+  else
+  {
+    rpcSH->setLayerId(0);
+		rpcSH->setBaseLayerId   ( MSYS_UINT_MAX       );
+  }
+  rpcSH->setTemporalLevel ( uiTemporalLevel );
+  rpcSH->setQualityLevel  ( 0       );
+  rpcSH->setFirstMbInSlice( 0       );
+	rpcSH->setFragmentedFlag( false);
+
+	UInt	uiMaxPocLsb		=	1 << rpcSH->getSPS().getLog2MaxPicOrderCntLsb();
+	rpcSH->setFrameNum( uiFrameNum);
+	rpcSH->setPicOrderCntLsb( uiPoc % uiMaxPocLsb);
+	rpcSH->setPoc( uiPoc);
+	rpcSH->setAdaptivePredictionFlag(1);
+	rpcSH->setDirectSpatialMvPredFlag(false);
+	rpcSH->setNumRefIdxActiveOverrideFlag( true);
+	rpcSH->setNumRefIdxActive( LIST_0, 1);
+
+	if ( rpcSH->getPicOrderCntLsb() % uiMaxGopSize == 0 || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
+	{
+		rpcSH->setSliceType     ( P_SLICE );
+		if( rpcSH->getPicOrderCntLsb() % (1<<(uiMaxDecompositionStages-uiDecompositionStages+1)) == 0)
+			rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_HIGHEST);
+		else
+			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_HIGH);
+		rpcSH->setKeyPictureFlag( 1);
+	}
+  else
+	{
+		rpcSH->setSliceType     ( B_SLICE );
+		if( rpcSH->getPicOrderCntLsb() % (1<<(uiMaxDecompositionStages-uiDecompositionStages+1)) == 0)
+			rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_LOW);
+		else
+			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_LOWEST);
+		rpcSH->setNumRefIdxActive( LIST_1, 1);
+		rpcSH->setKeyPictureFlag( 0);
+	}
+  //if(eNalUnitType==NAL_UNIT_CODED_SLICE||)
+//key picture MMCO for base and enhancement layer
+  {
+		if(rpcSH->getPoc() % uiMaxGopSize == 0  || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
+	  {
+			UInt index=rpcSH->getPoc() / uiMaxGopSize;
+		  if( index>0 )rpcSH->setAdaptiveRefPicBufferingFlag(true);
+      else    	   rpcSH->setAdaptiveRefPicBufferingFlag(false);
+
+		  if(index>1)
+			{
+        Bool bNumber2Gop= index >2 ? true : false;
+				rpcSH->setDefualtMmcoBuffer(uiDecompositionStages,bNumber2Gop);
+		  }
+  	  rpcSH->setSliceType(P_SLICE);
+  	  rpcSH->setNalRefIdc(NAL_REF_IDC_PRIORITY_HIGHEST);
+	  }
+
+		if(rpcSH->getPoc() % uiMaxGopSize == 0  || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
+	  {
+			UInt index=rpcSH->getPoc() / uiMaxGopSize;
+		  if( index>1 )
+		  {
+				rpcSH->getRplrBuffer(LIST_0).setRefPicListReorderingFlag(true);
+				rpcSH->getRplrBuffer(LIST_0).clear();
+				rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,uiGopSize/2-1));
+		  }
+		  else 
+		  {
+			  rpcSH->getRplrBuffer(LIST_0).setRefPicListReorderingFlag(false);
+		  }
+  	
+	  }
+  }
+
+	//weighted prediction
+	RNOK( rpcSH->getPredWeightTable(LIST_0).init( 64 ) );
+  RNOK( rpcSH->getPredWeightTable(LIST_1).init( 64 ) );
+  
+  return Err::m_nOK;
+}
+//TMM_EC }}
+
 ErrVal
 SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
                               NalRefIdc     eNalRefIdc,

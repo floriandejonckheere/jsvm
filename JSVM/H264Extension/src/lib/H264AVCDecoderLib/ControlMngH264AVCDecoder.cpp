@@ -345,8 +345,9 @@ ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
     m_pcH264AVCDecoder->setReconstructionLayerId( uiLayer );
   }
 
-  if( rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_SCALABLE ||  
-      rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
+  if( (rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_SCALABLE ||  
+      rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE) &&
+			rcSH->getTrueSlice())//TMM_EC
   {
     m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
   }
@@ -429,7 +430,7 @@ ErrVal ControlMngH264AVCDecoder::initSlice( SliceHeader& rcSH, ProcessingState e
   RNOK( m_pcMbDataCtrl->initSlice( rcSH, eProcessingState, true, NULL ) );
   RNOK( m_pcSampleWeighting->initSlice( rcSH ) );
 
-  if( PARSE_PROCESS == eProcessingState )
+  if( PARSE_PROCESS == eProcessingState && rcSH.getTrueSlice())//TMM_EC
   {
     MbSymbolReadIf* pcMbSymbolReadIf;
     
@@ -451,7 +452,7 @@ ErrVal ControlMngH264AVCDecoder::initSlice( SliceHeader& rcSH, ProcessingState e
   {
     RNOK( m_pcMotionCompensation->initSlice( rcSH ) );
   }
-  
+
   return Err::m_nOK;
 }
 
@@ -472,7 +473,10 @@ ErrVal ControlMngH264AVCDecoder::initSliceForReading( const SliceHeader& rcSH )
     pcMbSymbolReadIf = m_pcUvlcReader;
   }
 
-  RNOK( pcMbSymbolReadIf->startSlice( rcSH ) );
+	if ( rcSH.getTrueSlice())
+	{
+		RNOK( pcMbSymbolReadIf->startSlice( rcSH ) );
+	}
   RNOK( m_pcMbParser->initSlice( pcMbSymbolReadIf ) );
 
   return Err::m_nOK;

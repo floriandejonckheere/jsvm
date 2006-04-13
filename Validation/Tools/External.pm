@@ -193,6 +193,7 @@ sub Decode($$;$)
 	my $display=1; 
 
 	my $cmd ="$bin$DECODER ". $test->{extractedname}." ".$test->{decodedname};
+	(defined $test->{errorconcealment}) and $cmd .= " -ec ".$test->{errorconcealment};
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
     	

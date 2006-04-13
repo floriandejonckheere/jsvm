@@ -138,8 +138,7 @@ public:
   const Int getCXMargin()   const { return m_rcYuvBufferCtrl.getXMargin()>>1; }
   const Int getCYMargin()   const { return m_rcYuvBufferCtrl.getYMargin()>>1; }
 
-  Void dump( FILE* hFile );
-
+  ErrVal loadBuffer( YuvPicBuffer *pcSrcYuvPicBuffer ); //TMM_EC
   ErrVal loadBuffer( YuvMbBuffer *pcYuvMbBuffer );
   ErrVal loadBuffer( IntYuvMbBuffer *pcYuvMbBuffer );
   ErrVal fillMargin();
@@ -161,7 +160,11 @@ protected:
 
 protected:
   const YuvBufferCtrl::YuvBufferParameter& m_rcBufferParam;
-  YuvBufferCtrl& m_rcYuvBufferCtrl;
+//TMM_EC {{
+public:
+	YuvBufferCtrl& m_rcYuvBufferCtrl;
+protected:	
+//TMM_EC }}
   Int  m_iStride;
   Pel* m_pPelCurr;
   Pel* m_pucYuvBuffer;

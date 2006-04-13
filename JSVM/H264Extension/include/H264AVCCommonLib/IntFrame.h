@@ -197,6 +197,13 @@ public:
     RNOK( getFullPelYuvBuffer()->copy( pcSrcFrame->getFullPelYuvBuffer()) );
     return Err::m_nOK;
   }
+//	TMM_EC {{
+	ErrVal  copy        ( Frame* pcSrcFrame )
+  {
+    RNOK( getFullPelYuvBuffer()->copy( pcSrcFrame->getFullPelYuvBuffer()) );
+    return Err::m_nOK;
+  }
+//TMM_EC }}  
   
   ErrVal  subtract    ( IntFrame* pcSrcFrame0, IntFrame* pcSrcFrame1 )
   {

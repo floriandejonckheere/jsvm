@@ -101,7 +101,7 @@ public:
   Int          nResult; 
   UInt         nFrames;
   UInt         uiMaxPocDiff; // HS: decoder robustness
-
+	UInt				 uiErrorConceal;
 protected:
   ErrVal xPrintUsage(char** argv);
 };

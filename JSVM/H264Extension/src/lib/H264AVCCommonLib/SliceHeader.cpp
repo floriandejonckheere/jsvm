@@ -205,7 +205,32 @@ SliceHeader::getDistScaleFactor( SChar sL0RefIdx,
   }
 }
 
+//TMM_EC {{
+Int
+SliceHeader::getDistScaleFactorVirtual( SChar sL0RefIdx,
+                                 SChar sL1RefIdx,
+																 RefFrameList& rcRefFrameListL0, 
+																 RefFrameList& rcRefFrameListL1 ) const
+{
+  const IntFrame*  pcFrameL0 = rcRefFrameListL0[sL0RefIdx];
 
+  const IntFrame*  pcFrameL1 = rcRefFrameListL1[sL1RefIdx];
+  Int           iDiffPocD = pcFrameL1->getPOC() - pcFrameL0->getPOC();
+  if( iDiffPocD == 0 )
+  {
+    return 1024;
+  }
+  else
+  {
+    Int iDiffPocB = getPoc() - pcFrameL0->getPOC();
+    Int iTDB      = gClipMinMax( iDiffPocB, -128, 127 );
+    Int iTDD      = gClipMinMax( iDiffPocD, -128, 127 );
+    Int iX        = (0x4000 + (iTDD>>1)) / iTDD;
+    Int iScale    = gClipMinMax( (iTDB * iX + 32) >> 6, -1024, 1023 );
+    return iScale;
+  }
+}
+//TMM_EC }}
 
 Int
 SliceHeader::getDistScaleFactorScal( SChar sL0RefIdx,

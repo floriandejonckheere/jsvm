@@ -171,6 +171,11 @@ public:
 
   UInt isNonRequiredPic();	//NonRequired JVT-Q066	
 
+//	TMM_EC {{
+  ErrVal  checkSliceGap ( BinDataAccessor*  pcBinDataAccessor,
+                          MyList<BinData*>&	cVirtualSliceList );
+	ErrVal	setec( UInt uiErrorConceal);
+//  TMM_EC }}                          
 protected:
   ErrVal xCreateDecoder();
 

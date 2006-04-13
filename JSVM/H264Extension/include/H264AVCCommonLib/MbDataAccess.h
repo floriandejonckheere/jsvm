@@ -299,7 +299,9 @@ public:
   Void  getMvPredictorSkipMode();
   Void  getMvPredictorSkipMode( Mv& cMvPred  );
   Bool  getMvPredictorDirect  ( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant );
-
+//	TMM_EC {{
+  Bool  getMvPredictorDirectVirtual ( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1  );
+//  TMM_EC }}
   const DFP& getDeblockingFilterParameter()     const { return m_rcDFP; }
 
   Void getMvSkipMode( Mv& rcMv )
@@ -358,6 +360,10 @@ protected:
   Bool xTemporalDirectMode( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant );
   Bool xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant );
   Bool xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar ascRefIdx[], ParIdx8x8 eParIdx, Bool bFaultTolerant );
+//	TMM_EC {{
+	Bool xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 );
+	Bool xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1);
+//  TMM_EC }}
 
   Bool  xIsAvailable     ( const MbData& rcMbData )  const
   {

@@ -283,5 +283,50 @@ Void YuvPicBuffer::xFillPlaneMargin( Pel *pucDest, Int iHeight, Int iWidth, Int 
 
 
 
+ErrVal YuvPicBuffer::loadBuffer( YuvPicBuffer *pcSrcYuvPicBuffer )
+{
+  pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb();
+  m_rcYuvBufferCtrl.initMb();
 
+  Pel   *pDes       = getMbLumAddr();
+  Pel   *pScr       = pcSrcYuvPicBuffer->getMbLumAddr();
+  Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+  Int   iDesStride  = getLStride();
+  UInt  uiHeight    = getLHeight();
+  UInt  uiSize      = getLWidth() * sizeof(Pel);
+  UInt  y;
+
+  for( y = 0; y < uiHeight; y++ )
+  {
+    ::memcpy( pDes, pScr, uiSize );
+    pDes += iDesStride,
+    pScr += iSrcStride;
+  }
+
+  iDesStride  >>= 1;
+  iSrcStride  >>= 1;
+  uiSize      >>= 1;
+  pScr = pcSrcYuvPicBuffer->getMbCbAddr();
+  pDes = getMbCbAddr();
+
+  for( y = 0; y < uiHeight; y+=2 )
+  {
+    ::memcpy( pDes, pScr, uiSize );
+    pDes += iDesStride,
+    pScr += iSrcStride;
+  }
+
+  pScr = pcSrcYuvPicBuffer->getMbCrAddr();
+  pDes = getMbCrAddr();
+
+  for( y = 0; y < uiHeight; y+=2 )
+  {
+    ::memcpy( pDes, pScr, uiSize );
+    pDes += iDesStride,
+    pScr += iSrcStride;
+  }
+
+  return Err::m_nOK;
+}
+//TMM_EC }}
 H264AVC_NAMESPACE_END

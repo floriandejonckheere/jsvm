@@ -425,6 +425,57 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
   return Err::m_nOK;
 }
 
+//	TMM_EC {{
+ErrVal MbParser::readVirtual( MbDataAccess&  rcMbDataAccess,
+                       MbDataAccess*  pcMbDataAccessBase,
+                       Int            iSpatialScalabilityType,
+                       Bool&          rbEndOfSlice,
+											 ERROR_CONCEAL      eErrorConceal)
+{
+  ROF( m_bInitDone );
+	switch ( eErrorConceal)
+	{
+	case	EC_TEMPORAL_DIRECT:
+		{
+			rcMbDataAccess.getMbData().setMbMode(MODE_SKIP);
+		}
+		break;
+	case	EC_FRAME_COPY:
+		rcMbDataAccess.getMbData().setMbMode(MODE_16x16);
+		rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setAllMv( Mv::ZeroMv(), PART_16x16 );
+		rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setRefIdx(1);
+		rcMbDataAccess.getMbData().getMbMvdData   (LIST_0).clear();
+		if(rcMbDataAccess.getSH().getSliceType()==B_SLICE)
+		{	
+		rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setAllMv( Mv::ZeroMv(), PART_16x16 );
+		rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setRefIdx(1);
+		rcMbDataAccess.getMbData().getMbMvdData   (LIST_1).clear();
+		}
+
+		break;
+	case	EC_BLSKIP:
+			//===== copy motion data from base layer ======
+		ROF( pcMbDataAccessBase );
+		rcMbDataAccess.getMbData().copyMotion( pcMbDataAccessBase->getMbData() );
+		//      rcMbDataAccess.getMbMvdData( LIST_0 ).clear();
+		//      rcMbDataAccess.getMbMvdData( LIST_1 ).clear();
+		rcMbDataAccess.getMbData().setBLSkipFlag( true  );
+		rcMbDataAccess.getMbData().setBLQRefFlag( false );
+
+		if( rcMbDataAccess.getMbData().isIntra() )
+		{
+			rcMbDataAccess.getMbData().setMbMode( INTRA_BL );
+		}
+		else
+		{
+		rcMbDataAccess.getMbData().setResidualPredFlag( true, PART_16x16);
+		}
+		break;
+	}
+
+  return Err::m_nOK;
+}
+//	TMM_EC }}
 
 
 ErrVal MbParser::readMotion(MbDataAccess&  rcMbDataAccess,

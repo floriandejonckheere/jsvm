@@ -114,6 +114,9 @@ public:
   ErrVal getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const ;
   ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
   ErrVal init( const SequenceParameterSet& rcSPS );
+//	TMM_EC {{
+  ErrVal initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrl, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
+//  TMM_EC }}
 
   ErrVal uninit();
   ErrVal reset();
@@ -143,6 +146,9 @@ public:
   ErrVal clear() { return xResetData(); }
 
   MbData& getMbData( UInt uiMbX, UInt uiMbY )   { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
+//	TMM_EC {{
+	MbData& getMbData( UInt uiMbX, UInt uiMbY ) const  { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
+//  TMM_EC }}
 
   ErrVal        switchMotionRefinement();
 

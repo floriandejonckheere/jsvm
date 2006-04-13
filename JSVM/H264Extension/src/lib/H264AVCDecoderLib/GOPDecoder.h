@@ -218,6 +218,9 @@ public:
   DPBUnit*            getLastUnit         ();
   DPBUnit*            getDPBUnit          ( Int                         iPoc );
   ErrVal              setPrdRefLists      ( DPBUnit*                    pcCurrDPBUnit );
+//TMM_EC {{
+  ErrVal							getPrdRefListsFromBase( DPBUnit*   pcCurrDPBUnit, SliceHeader* pBaseMbDataCtrl );
+//TMM_EC }}
   ErrVal              store               ( DPBUnit*&                   rpcDPBUnit,
                                             PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList,
@@ -328,8 +331,17 @@ class H264AVCDECODERLIB_API MCTFDecoder
     LOW_PASS_IDR  = 0x02
   };
 
-
-
+public:
+//TMM_EC {{
+	ErrVal			getECMethod( SliceHeader *rpcSliceHeader, ERROR_CONCEAL &m_eErrorConceal);
+	UInt	m_bBaseLayerLost;
+	SliceHeader	*m_pcVeryFirstSliceHeader;
+	FrameMng	*m_pcFrameMng;
+	ERROR_CONCEAL	m_eErrorConcealTemp;
+	UInt			m_uiDecompositionStages;
+	UInt			m_uiDecompositionStagesBase;
+	ERROR_CONCEAL	m_eErrorConceal;
+//TMM_EC }}
 protected:
 	MCTFDecoder         ();
 	virtual ~MCTFDecoder();
@@ -410,8 +422,8 @@ protected:
                                                 ControlData&                  rcCtrlData );
   ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
                                                 IntFrame*                     pcFrame );
-  ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData );
-
+//TMM_EC 
+  ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData, SliceHeader *&rcSliceHeaderBase);
   
   //===== decode pictures / subbands =====
   ErrVal      xDecodeBaseRepresentation       ( SliceHeader*&                 rpcSliceHeader,

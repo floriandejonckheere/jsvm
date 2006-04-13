@@ -168,6 +168,12 @@ public:
   
   Int             getDistScaleFactor    ( SChar   sL0RefIdx,
                                           SChar   sL1RefIdx ) const;
+//	TMM_EC {{
+  Int             getDistScaleFactorVirtual( SChar   sL0RefIdx,
+                                          SChar   sL1RefIdx,
+																					RefFrameList& rcRefFrameListL0, 
+																          RefFrameList& rcRefFrameListL1 ) const;
+//  TMM_EC }}
   Int             getDistScaleFactorScal( SChar   sL0RefIdx,
                                           SChar   sL1RefIdx ) const;
   Int             getDistScaleFactorWP  ( const Frame*    pcFrameL0, const Frame*     pcFrameL1 )  const;

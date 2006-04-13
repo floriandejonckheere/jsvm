@@ -587,6 +587,77 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
   return Err::m_nOK;
 }
 
+//TMM_EC {{
+ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrl, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp )
+{
+  ROF( m_bInitDone );
+
+  AOT_DBG( uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset >= m_uiSize );
+
+  Bool     bLf          = (m_eProcessingState == POST_PROCESS);
+  UInt     uiCurrIdx    = uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset;
+  MbData&  rcMbDataCurr = m_pcMbData[ uiCurrIdx ];
+
+
+  if( m_pcMbDataAccess )
+  {
+    m_ucLastMbQp = m_pcMbDataAccess->getMbData().getQp();
+  }
+
+  UInt uiSliceId = rcMbDataCurr.getSliceId();
+  if( PARSE_PROCESS == m_eProcessingState || ENCODE_PROCESS == m_eProcessingState)
+  {
+    if( 0 == uiSliceId )
+    {
+      uiSliceId = m_uiSliceId;
+      rcMbDataCurr.getMbTCoeffs().clear();
+      rcMbDataCurr.initMbData( m_ucLastMbQp, uiSliceId );
+      rcMbDataCurr.clear();
+      m_uiMbProcessed++;
+    }
+    else
+    {
+      //allready assigned;
+      if( ENCODE_PROCESS != m_eProcessingState )
+      {
+        AOT(1);
+      }
+      else
+      {
+        if( iForceQp != -1 )
+        {
+          m_ucLastMbQp = iForceQp;
+        }
+      }
+    }
+  }
+
+  Bool bColocatedField = ( m_pcMbDataCtrl0L1 == NULL) ? true : m_pcMbDataCtrl0L1->isPicCodedField();
+
+  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset);
+
+  m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess(
+                                       rcMbDataCurr,                                      // current
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left
+                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf ), // above right
+                                       xGetOutMbData(),                                   // unvalid
+																			 pcMbDataCtrlRef->getMbData( uiMbX, uiMbY),
+                                       *m_pcSliceHeader,
+                                       *m_cpDFPBuffer.get( uiSliceId ),
+                                       uiMbX,
+                                       uiMbY,
+                                       m_ucLastMbQp );
+
+
+  ROT( NULL == m_pcMbDataAccess );
+
+  rpcMbDataAccess = m_pcMbDataAccess;
+
+  return Err::m_nOK;
+}
+//TMM_EC }}
 
 ErrVal
 MbDataCtrl::storeFgsBQLayerQpAndCbp()

@@ -105,9 +105,10 @@ protected:
 
 public:
   static ErrVal create( H264AVCDecoderTest*& rpcH264AVCDecoderTest );
-  ErrVal init( DecoderParameter *pcDecoderParameter );
+  ErrVal init( DecoderParameter *pcDecoderParameter, WriteYuvToFile *pcWriteYuv, ReadBitstreamFile *pcReadBitstreamFile );//TMM_EC
   ErrVal go();
   ErrVal destroy();
+  ErrVal setec( UInt uiErrorConceal);//TMM_EC
 
 protected:
   ErrVal xGetNewPicBuffer ( PicBuffer*& rpcPicBuffer, UInt uiSize );

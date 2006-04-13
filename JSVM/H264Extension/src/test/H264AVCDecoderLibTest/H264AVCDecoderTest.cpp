@@ -87,8 +87,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVCDecoderTest::H264AVCDecoderTest() :
   m_pcH264AVCDecoder( NULL ),
-  m_pcReadBitstream( NULL ),
-  m_pcWriteYuv( NULL ),
+//TMM_EC  m_pcReadBitstream( NULL ),
+//TMM_EC  m_pcWriteYuv( NULL ),
   m_pcParameter( NULL ),
   m_cActivePicBufferList( ),
   m_cUnusedPicBufferList( )
@@ -109,26 +109,32 @@ ErrVal H264AVCDecoderTest::create( H264AVCDecoderTest*& rpcH264AVCDecoderTest )
 }
 
 
-ErrVal H264AVCDecoderTest::init( DecoderParameter *pcDecoderParameter )
+ErrVal H264AVCDecoderTest::init( DecoderParameter *pcDecoderParameter, WriteYuvToFile *pcWriterYuv, ReadBitstreamFile *pcReadBitstreamFile ) //TMM_EC
 {
   ROT( NULL == pcDecoderParameter );
 
   m_pcParameter = pcDecoderParameter;
   m_pcParameter->nResult = -1;
-
+/*TMM_EC
   RNOKS( WriteYuvToFile::create( m_pcWriteYuv, m_pcParameter->cYuvFile ) );
 
   ReadBitstreamFile *pcReadBitstreamFile;
   RNOKS( ReadBitstreamFile::create( pcReadBitstreamFile ) ); 
   RNOKS( pcReadBitstreamFile->init( m_pcParameter->cBitstreamFile ) );  
+//*///
+	m_pcWriteYuv	=	pcWriterYuv;
   m_pcReadBitstream = (ReadBitstreamIf*)pcReadBitstreamFile;
 
   RNOK( h264::CreaterH264AVCDecoder::create( m_pcH264AVCDecoder ) );
+	m_pcH264AVCDecoder->setec( m_pcParameter->uiErrorConceal);
 
   return Err::m_nOK;
 }
 
-
+ErrVal	H264AVCDecoderTest::setec( UInt uiErrorConceal)
+{
+	return	m_pcH264AVCDecoder->setec( uiErrorConceal);
+}
 
 ErrVal H264AVCDecoderTest::destroy()
 {
@@ -137,7 +143,7 @@ ErrVal H264AVCDecoderTest::destroy()
   {
     RNOK( m_pcH264AVCDecoder->destroy() );       
   }
-
+/*TMM_EC
   if( NULL != m_pcWriteYuv )              
   {
     RNOK( m_pcWriteYuv->destroy() );  
@@ -148,7 +154,7 @@ ErrVal H264AVCDecoderTest::destroy()
     RNOK( m_pcReadBitstream->uninit() );  
     RNOK( m_pcReadBitstream->destroy() );  
   }
-
+*/
   AOF( m_cActivePicBufferList.empty() );
   
   //===== delete picture buffer =====
@@ -232,6 +238,7 @@ ErrVal H264AVCDecoderTest::go()
   UInt   uiMaxPocDiff = m_pcParameter->uiMaxPocDiff;
   UInt   uiLastPoc    = MSYS_UINT_MAX;
   UChar* pcLastFrame  = 0;
+	UInt uiPreNalUnitType;
 
   cPicBufferOutputList.clear();
   cPicBufferUnusedList.clear();
@@ -253,7 +260,16 @@ ErrVal H264AVCDecoderTest::go()
     {
       // analyze the dependency information
       RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
-      
+//TMM_EC {{
+			if ( !bEOS && ((pcBinData->data())[0] & 0x1f) == 0x0b)
+			{
+				bEOS	=	true;
+        RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+        pcBinData	= new BinData;
+				UInt	uiTotalLength	=	0;
+        pcBinData->set( new UChar[uiTotalLength], uiTotalLength );
+			}
+//TMM_EC }}      
       pcBinData->setMemAccessor( cBinDataAccessor );
 
       // open the NAL Unit, determine the type and if it's a slice get the frame size
@@ -270,6 +286,204 @@ ErrVal H264AVCDecoderTest::go()
       RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
     } while( ! bFinishChecking );
 
+    RNOK( m_pcReadBitstream->setPosition(iPos) );
+
+//TMM_EC {{	check slice gap and process virtual slice
+
+    RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+    pcBinData->setMemAccessor( cBinDataAccessor );
+
+		if ( m_pcParameter->uiErrorConceal != 0)
+		{
+    do
+		{
+			BinDataAccessor	lcBinDataAccessor;
+			lcBinDataAccessor	=	cBinDataAccessor;
+
+			MyList<BinData*>	cVirtualSliceList;
+			while ( Err::m_nERR == m_pcH264AVCDecoder->checkSliceGap( &lcBinDataAccessor, cVirtualSliceList))
+			{
+	      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+		    RNOK( m_pcReadBitstream->getPosition(iPos) );
+				RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+				pcBinData->setMemAccessor( cBinDataAccessor );
+				lcBinDataAccessor	=	cBinDataAccessor;
+			}
+
+			if ( cVirtualSliceList.empty())
+			{
+	      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+				RNOK( m_pcReadBitstream->setPosition(iPos) );
+				break;
+			}
+
+			while( !cVirtualSliceList.empty())
+			{
+				//JVT-P031
+				Bool bFragmented = false;
+				Bool bDiscardable = false;
+				Bool bStart = false;
+				Bool bFirst = true;
+				UInt uiTotalLength = 0;
+#define MAX_FRAGMENTS 10 // hard-coded
+				BinData* pcBinDataTmp[MAX_FRAGMENTS];
+				BinDataAccessor cBinDataAccessorTmp[MAX_FRAGMENTS];
+				UInt uiFragNb, auiStartPos[MAX_FRAGMENTS], auiEndPos[MAX_FRAGMENTS];
+				Bool bConcatenated = false; //FRAG_FIX_3
+				uiFragNb = 0;
+				bEOS = false;
+				BinData	*pcBinData = 0;
+		    while(!bStart && !bEOS)
+    {
+      if(bFirst)
+      {
+          bFirst = false;
+      }
+
+			pcBinDataTmp[uiFragNb]	=	cVirtualSliceList.front();
+			cVirtualSliceList.pop_front();
+    
+      pcBinDataTmp[uiFragNb]->setMemAccessor( cBinDataAccessorTmp[uiFragNb] );
+      // open the NAL Unit, determine the type and if it's a slice get the frame size
+
+//NonRequired JVT-Q066{
+			RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize,  true, 
+				false, //FRAG_FIX_3
+				bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
+/*
+			RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessorTmp[uiFragNb], uiNalUnitType, uiMbX, uiMbY, uiSize, uiNonRequiredPic, true, 
+				false, //FRAG_FIX_3
+				bStart, auiStartPos[uiFragNb], auiEndPos[uiFragNb], bFragmented, bDiscardable ) );
+
+			if(uiNonRequiredPic)
+				continue;
+*/
+//NonRequired JVT-Q066}
+      uiTotalLength += auiEndPos[uiFragNb] - auiStartPos[uiFragNb];
+
+      if(!bStart)
+      {
+        uiFragNb++;
+      }
+      else
+      {
+        if(pcBinDataTmp[0]->size() != 0)
+        {
+          pcBinData = new BinData;
+          pcBinData->set( new UChar[uiTotalLength], uiTotalLength );
+          // append fragments
+          UInt uiOffset = 0;
+          for(UInt uiFrag = 0; uiFrag<uiFragNb+1; uiFrag++)
+          {
+              memcpy(pcBinData->data()+uiOffset, pcBinDataTmp[uiFrag]->data() + auiStartPos[uiFrag], auiEndPos[uiFrag]-auiStartPos[uiFrag]);
+              uiOffset += auiEndPos[uiFrag]-auiStartPos[uiFrag];
+              RNOK( m_pcReadBitstream->releasePacket( pcBinDataTmp[uiFrag] ) );
+              pcBinDataTmp[uiFrag] = NULL;
+              m_pcH264AVCDecoder->decreaseNumOfNALInAU();
+						//FRAG_FIX_3
+						if(uiFrag > 0) 
+							bConcatenated = true; //~FRAG_FIX_3
+          }
+          
+          pcBinData->setMemAccessor( lcBinDataAccessor );
+          bToDecode = false;
+          if((uiTotalLength != 0) && (!bDiscardable || bFragmented))
+          {
+              //FRAG_FIX
+					  if( (uiNalUnitType == 20) || (uiNalUnitType == 21) || (uiNalUnitType == 1) || (uiNalUnitType == 5) )
+            {
+							uiPreNalUnitType=uiNalUnitType;
+							RNOK( m_pcH264AVCDecoder->initPacket( &lcBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, 
+								//uiNonRequiredPic, //NonRequired JVT-Q066
+                false, bConcatenated, //FRAG_FIX_3
+								bStart, auiStartPos[uiFragNb+1], auiEndPos[uiFragNb+1], 
+                bFragmented, bDiscardable) );
+						}
+						else
+							m_pcH264AVCDecoder->initPacket( &cBinDataAccessor );
+						bToDecode = true;
+          }
+        }
+      }
+
+    }
+//~JVT-P031
+
+//NonRequired JVT-Q066{
+				if(m_pcH264AVCDecoder->isNonRequiredPic())
+					continue;
+//NonRequired JVT-Q066}
+				if(bToDecode)//JVT-P031
+				{
+					// get new picture buffer if required if coded Slice || coded IDR slice
+					pcPicBuffer = NULL;
+			    
+					if( uiNalUnitType == 1 || uiNalUnitType == 5 || uiNalUnitType == 20 || uiNalUnitType == 21)
+					{
+						RNOK( xGetNewPicBuffer( pcPicBuffer, uiSize ) );
+			      
+						if( ! bYuvDimSet )
+						{
+							UInt uiLumSize  = ((uiMbX<<3)+  YUV_X_MARGIN) * ((uiMbY<<3)    + YUV_Y_MARGIN ) * 4;
+							uiLumOffset     = ((uiMbX<<4)+2*YUV_X_MARGIN) * YUV_Y_MARGIN   + YUV_X_MARGIN;  
+							uiCbOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiLumSize; 
+							uiCrOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiLumSize/4;
+							bYuvDimSet = true;
+
+							// HS: decoder robustness
+							pcLastFrame = new UChar [uiSize];
+							ROF( pcLastFrame );
+						}
+					}
+		    
+					// decode the NAL unit
+					RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
+			    
+					// picture output
+					while( ! cPicBufferOutputList.empty() )
+					{
+						PicBuffer* pcPicBuffer = cPicBufferOutputList.front();
+						cPicBufferOutputList.pop_front();
+						if( pcPicBuffer != NULL )
+						{
+							// HS: decoder robustness
+							while( uiLastPoc + uiMaxPocDiff < (UInt)pcPicBuffer->getCts() )
+							{
+								RNOK( m_pcWriteYuv->writeFrame( pcLastFrame + uiLumOffset, 
+																								pcLastFrame + uiCbOffset, 
+																								pcLastFrame + uiCrOffset,
+																								uiMbY << 4,
+																								uiMbX << 4,
+																								(uiMbX << 4)+ YUV_X_MARGIN*2 ) );
+								printf("REPEAT FRAME\n");
+								uiFrame   ++;
+								uiLastPoc += uiMaxPocDiff;
+							}
+
+			        
+							RNOK( m_pcWriteYuv->writeFrame( *pcPicBuffer + uiLumOffset, 
+																							*pcPicBuffer + uiCbOffset, 
+																							*pcPicBuffer + uiCrOffset,
+																							uiMbY << 4,
+																							uiMbX << 4,
+																							(uiMbX << 4)+ YUV_X_MARGIN*2 ) );
+							uiFrame++;
+			      
+			    
+							// HS: decoder robustness
+							uiLastPoc = (Int) pcPicBuffer->getCts();
+							::memcpy( pcLastFrame, *pcPicBuffer+0, uiSize*sizeof(UChar) );
+						}
+					}
+			    
+					RNOK( xRemovePicBuffer( cPicBufferReleaseList ) );
+					RNOK( xRemovePicBuffer( cPicBufferUnusedList ) );
+					RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+				}
+			}
+		}	while( true);
+		}
+//TMM_EC }}
     //JVT-P031
     Bool bFragmented = false;
     Bool bDiscardable = false;
@@ -294,6 +508,18 @@ ErrVal H264AVCDecoderTest::go()
 
       RNOK( m_pcReadBitstream->extractPacket( pcBinDataTmp[uiFragNb], bEOS ) );
     
+//TMM_EC {{
+			if( !bEOS && ((pcBinDataTmp[uiFragNb]->data())[0] & 0x1f )== 0x0b)
+			{
+				printf("end of stream\n");
+				bEOS=true;
+				uiNalUnitType= uiPreNalUnitType;
+        RNOK( m_pcReadBitstream->releasePacket( pcBinDataTmp[uiFragNb] ) );
+        pcBinDataTmp[uiFragNb] = new BinData;
+				uiTotalLength	=	0;
+        pcBinDataTmp[uiFragNb]->set( new UChar[uiTotalLength], uiTotalLength );
+			}
+//TMM_EC }}
       pcBinDataTmp[uiFragNb]->setMemAccessor( cBinDataAccessorTmp[uiFragNb] );
       // open the NAL Unit, determine the type and if it's a slice get the frame size
 
@@ -343,6 +569,7 @@ ErrVal H264AVCDecoderTest::go()
               //FRAG_FIX
 			  if( (uiNalUnitType == 20) || (uiNalUnitType == 21) || (uiNalUnitType == 1) || (uiNalUnitType == 5) )
               {
+                uiPreNalUnitType=uiNalUnitType;
                 RNOK( m_pcH264AVCDecoder->initPacket( &cBinDataAccessor, uiNalUnitType, uiMbX, uiMbY, uiSize, 
 					//uiNonRequiredPic, //NonRequired JVT-Q066
                     false, bConcatenated, //FRAG_FIX_3

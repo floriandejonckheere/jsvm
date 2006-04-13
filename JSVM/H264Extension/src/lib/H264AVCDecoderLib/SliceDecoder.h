@@ -111,6 +111,11 @@ public:
                         Transform*          pcTransform );
   ErrVal uninit       ();
 
+//	TMM_EC {{
+	ErrVal processVirtual( const SliceHeader& rcSH,
+                         Bool                bReconstructAll,
+                         UInt uiMbRead );
+//	TMM_EC }}
   ErrVal process      ( const SliceHeader&  rcSH,
                         Bool                bReconstructAll,
                         UInt                uiMbRead );

@@ -154,7 +154,29 @@ SliceDecoder::uninit()
   return Err::m_nOK;
 }
 
+// TMM_EC {{
+ErrVal SliceDecoder::processVirtual(const SliceHeader& rcSH, Bool bReconstructAll, UInt uiMbRead)
+{
+ ROF( m_bInitDone );
 
+  //====== initialization ======
+  UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
+ 
+  //===== loop over macroblocks =====
+  for( ; uiMbRead; uiMbAddress++ )
+  {
+    MbDataAccess* pcMbDataAccess;
+		RNOK( m_pcControlMng->initMbForDecoding( pcMbDataAccess, uiMbAddress ) );
+
+	  pcMbDataAccess->getMbData().setMbMode(MODE_SKIP);
+    pcMbDataAccess->getMbData().deactivateMotionRefinement();
+  	RNOK( m_pcMbDecoder->process( *pcMbDataAccess, bReconstructAll ) );
+    uiMbRead--;
+  }
+
+  return Err::m_nOK;	
+}
+//TMM_EC }}
 
 ErrVal
 SliceDecoder::process( const SliceHeader& rcSH, Bool bReconstructAll, UInt uiMbRead )
@@ -232,11 +254,18 @@ SliceDecoder::decode( SliceHeader&   rcSH,
 
    uiMbRead--;
 
-   //--ICU/ETRI FMO Implementation
-	 uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
-
+//TMM_EC {{
+	 if ( rcSH.getTrueSlice())
+	 {
+//TMM_EC }}
+		//--ICU/ETRI FMO Implementation
+		 uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
+	 }
+	 else
+	 {
+		 uiMbAddress++;
+	 }
   }
-
   return Err::m_nOK;
 }
 

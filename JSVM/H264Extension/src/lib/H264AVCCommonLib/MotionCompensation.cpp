@@ -748,6 +748,15 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
 
   Int       iRefIdx0    = rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( ePar8x8 );
   Int       iRefIdx1    = rcMbDataAccess.getMbMotionData( LIST_1 ).getRefIdx( ePar8x8 );
+//TMM_EC {{
+	if( rcMbDataAccess.getSH().m_eErrorConceal == EC_TEMPORAL_DIRECT)
+	{
+		Bool bOneMv = false;
+		ROFRS( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, true, rcRefFrameListL0, rcRefFrameListL1 ), Err::m_nOK );
+		iRefIdx0    = rcMbDataAccess.getMbMotionData( LIST_0).getRefIdx( c8x8Idx.b8x8());
+		iRefIdx1    = rcMbDataAccess.getMbMotionData( LIST_1).getRefIdx( c8x8Idx.b8x8());
+	}
+//TMM_EC }}
   IntFrame* pcRefFrame0 = ( iRefIdx0 > 0 ? rcRefFrameListL0[ iRefIdx0 ] : NULL );
   IntFrame* pcRefFrame1 = ( iRefIdx1 > 0 ? rcRefFrameListL1[ iRefIdx1 ] : NULL );
 
@@ -1734,6 +1743,10 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
       }
       else
       {
+//	TMM_EC {{
+		if ( rcMbDataAccess.getSH().m_eErrorConceal == EC_TEMPORAL_DIRECT)
+			bCalcMv	=	true;
+//  TMM_EC }}
         if( bCalcMv )
         {
           Mv cMvPred;
