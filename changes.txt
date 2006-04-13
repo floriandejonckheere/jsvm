@@ -1,6 +1,73 @@
+JSVM_4_10 ->JSVM_4_11 
+===================== 
+
+SVC frame loss concealment
+
+Date: April 12, 2006
+Authors: Y. Chen, K. Xie, J. Boyce , J. Vieron
+Contribution: JVT-Q046
+  
+Changes: 
+
+1. Add argument [-ec n] in the decoder command line, enabling Error Concealment algorithm selection. The following values 
+are supported for n: 1: BLSKIP;  2: RU; 3: Frame copy; 4: Temporal Direct; 5: Frame Level Frame Copy 
+Only support AVC Compliant base layer (i.e. BaseLayerMode = 1 in encoder.cfg) 
+ 
+2. Temporal Direct Error Concealment mode  
+   1) Some methods in MbDataAccesss  
+   2) initMbTDEnhance() in MbDataCtrl 
+   3) getDistScaleFactorVirtual() in sliceheader 
+ 
+3. MMCO and RPLR 
+   1) setDefaultMmcoBuffer() in sliceheaderbase to generate MMCO commands for a missing slice 
+   2) readSliceHeaderVirtual() will use the above function and will also generate necessary RPLR 
+   commands for a missing slice.  
+ 
+4. Detect missing packets 
+   Currently we use the hierarchical B picture GOP Structure to do the packet loss detection 
+   and to generate some information for a virtual packet which was lost.  
+   Most of the work is done in checkSliceGap(). And other related process is in H264AVCDecoder 
+   and NALUnitParser. 
+   Do not support slice fragment currently   
+
+5. Virtual Packet decoding 
+  1) getTrueSlice() will be frequently used to separate processes between a correctly received 
+     packet and a virtual packet. 
+  2) getPrdRefListsFromBase() will get the base layer reference list sizes and RPLR commands for
+     enhancement layer.  
+  3) one of the error concealment methods will be invoked in xDecodeBaseRepresentation() for 
+     spatial scalable packet decoding 
+  4) xProcessSliceVirtual() corresponding to xProcessSlice() will give a virtual slice decoding
+     for a lost packet. 
+  5) A FGS packet will be handled as lost if its lower quality level packet is lost 
+  6) readSliceHeaderVirtual() will give almost all the slice header level syntax elements for a 
+     lost packet.  
+  7) readVirtual() in SliceReader will process a parser for all virtual MBs in a lost packet.  
+  8) readVirtual() in MbParser will handle the MB level error concealment process (A virtual parser
+     to set the modes etc)for TD, FC and BLSKIP methods. 
+  9) processVirtual() give base layer error concealment process for TD and FC (A virtual decoding 
+     process to get the reconstructed picture for a lost packet) 
+ 10) New function to support decoding bit-stream group. One bit-stream can be wrapped several 
+     times with an END_OF_STREAM NAL among them for the error resiliency tests. nCount in H264AVCDecoderLibTest.cpp 
+     should be adjusted. 
+
+Note: All the modifications above can be found by searching TMM_EC tag.
+
+
+6. Bug fix in Extractor.cpp (provided by S. Kamp [kamp@ient.rwth-aachen.de]) to enable a correct truncation of
+    the FGS packets.
+
+7. Bug fix in MbData.cpp (provided by J. Vieron [jerome.vieron@thomson.net]) on the ESS part.
+
+8. Add definition of _JSVM_VERSION_ (i.e. preprocessor command: #define _JSVM_VERSION "4.11") in CommonDefs.h. 
+   This define shall specify the current version of the JSVM software. The files BitstreamExtractor.cpp, H264AVCEncoderLibTest.cpp 
+   and H264AVCDecoderLibTest.cpp are modified accordingly.
+
+
+
 
 JSVM_4_9 -> JSVM_4_10
-====================
+=====================
 
 Loss-aware rate-distortion optimization integration
 Improvement to the implementation of non-required picture SEI message
@@ -49,7 +116,7 @@ JSVM_4_7 -> JSVM_4_8
 Cleaning of DownConvert 
 
 Date: March 27, 2006
-Author: P. Dagois and J. Vieron
+Authors: P. Dagois and J. Vieron
 
 Changes:
 
@@ -57,14 +124,13 @@ Changes:
 2) DownConvert.h: Cleaning of unused functions + re-organization.
 3) Removal of "DownConvertTmm.inl" file
 4) Addition of a new file "DownConvertTools.inl"
-    This file contains all the functions that are only used in the DownConvert Tools.
+    This file contains all the functions that are only used in the DownConvertStatic Tool .
 5) DownConvertStatic.vcproj: "DownConvertTmm.inl" is replaced by "DownConvertTools.inl"
-6) DownConvert.inl
-    DownConvert.inl contains now only the functions specific to the JSVM software (upsampling methods) 
-    as well as the common functions between the "DownConvert Tools" and the JSVM software.
+6) DownConvert.inl contains now only the functions specific to the JSVM software (upsampling methods) 
+    as well as the common functions between the DownConvertStatic Tool and the JSVM software.
 7) main.cpp (PSNR): Removal of "spatial resampling" (i.e. call to downconvert methods) in PSNR tool.
 8) PSNRStatic.vcproj: Removal of "DownConvert.h"
-9) Validation Script (New Version 0.0.4): Modified in order to use new tools. Re-indent with spaces.
+9) Validation scripts (New Version 0.0.4): Modified in order to use new tools. Re-indent with spaces.
 
 
 
