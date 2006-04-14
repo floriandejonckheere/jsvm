@@ -90,7 +90,7 @@ int main( int argc, char** argv)
   Extractor*          pcExtractor = NULL;
   ExtractorParameter  cParameter;
 
-  printf( "JSVM %s BitStream Extractor %s\n\n", _JSVM_VERSION_ );
+  printf( "JSVM %s BitStream Extractor \n\n", _JSVM_VERSION_ );
 
   RNOKRS( cParameter.init       ( argc, argv ),   -2 );
 
