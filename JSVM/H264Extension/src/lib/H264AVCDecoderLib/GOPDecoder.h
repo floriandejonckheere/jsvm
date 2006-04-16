@@ -322,7 +322,8 @@ class H264AVCDECODERLIB_API MCTFDecoder
 { 
   enum
   {
-    NUM_TMP_FRAMES = 3 // Hanke@RWTH
+    NUM_TMP_FRAMES = 5 // JVT-Q054 Red. Picture
+//    NUM_TMP_FRAMES = 3 // Hanke@RWTH
   };
   enum NextNalType
   {

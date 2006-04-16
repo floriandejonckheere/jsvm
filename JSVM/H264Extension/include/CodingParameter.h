@@ -221,6 +221,7 @@ public:
     , m_uiFgsEncStructureFlag             ( AR_FGS_DEFAULT_ENC_STRUCTURE )
     , m_bUseDiscardable                   (false) //JVT-P031
     , m_dPredFGSRate                      (0.0) //JVT-P031
+    , m_uiUseRedundantSlice               (0)   //JVT-Q054 Red. Picture
 // JVT-Q065 EIDR{
 	, m_iIDRPeriod						  (0)
 	, m_bBLSkipEnable					  ( false )
@@ -274,6 +275,7 @@ public:
 
   Bool                            getUseDiscardable                 () const {return m_bUseDiscardable;} //JVT-P031
   Double                          getPredFGSRate                    () const {return m_dPredFGSRate;} //JVT-P031
+  Bool                            getUseRedundantSliceFlag          () const {return m_uiUseRedundantSlice == 1; }  //JVT-Q054 Red. Picture
   
   //--ICU/ETRI FMO Implementation :  FMO start 
   UInt          getNumSliceGroupsMinus1() const {return m_uiNumSliceGroupsMinus1;}  //for test
@@ -389,6 +391,7 @@ public:
 
   UInt                            getFGSMotionMode() { return m_uiFGSMotionMode;  }
   Void                            setFGSMotionMode( UInt uiFGSMotionMode ) { m_uiFGSMotionMode = uiFGSMotionMode; }
+  Void                            setUseRedundantSliceFlag(Bool   b) { m_uiUseRedundantSlice = b; }  // JVT-Q054 Red. Picture
 
 public:
   UInt                      m_uiLayerId;
@@ -457,8 +460,8 @@ public:
   UInt         m_uiSliceMode;
   UInt         m_uiSliceArgument;
   std::string  m_cSliceGroupConfigFileName;
-  UInt         m_uiUseRedundantSlice;
   //--ICU/ETRI FMO Implementation : FMO end
+  UInt         m_uiUseRedundantSlice;   // JVT-Q054 Red. Picture
 
   //JVT-P031
   Bool                      m_bUseDiscardable; //indicate if discardable stream is coded for this layer 

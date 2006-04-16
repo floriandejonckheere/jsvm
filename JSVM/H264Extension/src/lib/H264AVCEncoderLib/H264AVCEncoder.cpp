@@ -1401,6 +1401,7 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setChomaQpIndexOffset                    ( 0 );
     pcPPSHP->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
     pcPPSHP->setConstrainedIntraPredFlag              ( true );
+    pcPPSHP->setRedundantPicCntPresentFlag            ( rcLayerParameters.getUseRedundantSliceFlag() ); // JVT-Q054 Red. Picture
     pcPPSHP->setTransform8x8ModeFlag                  ( rcLayerParameters.getAdaptiveTransform() > 0 );
     pcPPSHP->setPicScalingMatrixPresentFlag           ( false );
     pcPPSHP->set2ndChromaQpIndexOffset                ( 0 );
@@ -1436,6 +1437,7 @@ H264AVCEncoder::xInitParameterSets()
       pcPPSLP->setChomaQpIndexOffset                    ( pcPPSHP->getChomaQpIndexOffset                    ()  );
       pcPPSLP->setDeblockingFilterParametersPresentFlag ( pcPPSHP->getDeblockingFilterParametersPresentFlag ()  );
       pcPPSLP->setConstrainedIntraPredFlag              ( false                                                 );
+      pcPPSLP->setRedundantPicCntPresentFlag            ( pcPPSHP->getRedundantPicCntPresentFlag            ()  );  //JVT-Q054 Red. Picture
       pcPPSLP->setTransform8x8ModeFlag                  ( pcPPSHP->getTransform8x8ModeFlag                  ()  );
       pcPPSLP->setPicScalingMatrixPresentFlag           ( pcPPSHP->getPicScalingMatrixPresentFlag           ()  );
       pcPPSLP->set2ndChromaQpIndexOffset                ( pcPPSHP->get2ndChromaQpIndexOffset                ()  );

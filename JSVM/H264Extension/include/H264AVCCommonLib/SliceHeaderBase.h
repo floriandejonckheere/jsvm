@@ -734,6 +734,7 @@ public:
   Void                              setLastFragmentFlag            (Bool b)    {m_bLastFragmentFlag = b;}
   //~JVT-P031
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
+  UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
 
   //===== set parameters =====
   Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
@@ -789,6 +790,7 @@ public:
 	ERROR_CONCEAL	m_eErrorConceal;
 	Bool	m_bTrueSlice;
 //  TMM_EC }}
+  Void  setRedundantPicCnt            (UInt         ui )  { m_uiRedundantPicCnt                 = ui; }  // JVT-Q054 Red. Picture
   
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
@@ -856,6 +858,7 @@ protected:
   UInt                        m_uiFragmentOrder;
   Bool                        m_bLastFragmentFlag;
   //~JVT-P031
+  UInt                        m_uiRedundantPicCnt;  // JVT-Q054 Red. Picture
 
 // TMM_ESS {
 public:

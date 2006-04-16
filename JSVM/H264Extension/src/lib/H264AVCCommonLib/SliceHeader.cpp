@@ -289,4 +289,45 @@ SliceHeader::getDistScaleFactorWP( const IntFrame* pcFrameL0, const IntFrame* pc
 }
 
 
+// JVT-Q054 Red. Picture {
+ErrVal
+SliceHeader::compareRedPic( const SliceHeader* pcSH,
+                           Bool&              rbNewFrame ) const
+{
+  rbNewFrame = true;
+
+  ROTRS( NULL == pcSH,                                          Err::m_nOK );
+  ROTRS( getIdrPicId() != pcSH->getIdrPicId(),                  Err::m_nOK );
+  ROTRS( getFrameNum() != pcSH->getFrameNum(),                  Err::m_nOK );
+  ROTRS( getLayerId() != pcSH->getLayerId(),                    Err::m_nOK );
+  ROTRS( getQualityLevel() != pcSH->getQualityLevel(),          Err::m_nOK );
+  ROTRS( getFirstMbInSlice() != pcSH->getFirstMbInSlice(),      Err::m_nOK );
+  ROTRS( (getNalRefIdc() == 0 )&&(pcSH->getNalRefIdc() != 0),   Err::m_nOK );
+  ROTRS( (getNalRefIdc() != 0 )&&(pcSH->getNalRefIdc() == 0),   Err::m_nOK );
+  ROTRS( getPicOrderCntLsb() != pcSH->getPicOrderCntLsb(),      Err::m_nOK );
+
+  rbNewFrame = false;
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+SliceHeader::sliceHeaderBackup ( SliceHeader*                pcSH )
+{
+  pcSH->setIdrPicId       ( getIdrPicId()       );
+  pcSH->setFrameNum       ( getFrameNum()       );
+  pcSH->setLayerId        ( getLayerId()        );
+  pcSH->setQualityLevel   ( getQualityLevel()   );
+  pcSH->setFirstMbInSlice ( getFirstMbInSlice() );
+  pcSH->setNalRefIdc      ( getNalRefIdc()      );
+  pcSH->setPicOrderCntLsb ( getPicOrderCntLsb() );
+
+  return Err::m_nOK;
+}
+
+
+
+// JVT-Q054 Red. Picture }
+
 H264AVC_NAMESPACE_END

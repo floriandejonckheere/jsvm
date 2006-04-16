@@ -205,7 +205,8 @@ class H264AVCENCODERLIB_API MCTFEncoder
 {
   enum
   {
-		NUM_TMP_FRAMES  = 3
+    NUM_TMP_FRAMES  = 5 //JVT-Q054  Red. Picture
+//		NUM_TMP_FRAMES  = 3
   };
   enum
   {
@@ -299,7 +300,10 @@ public:
   Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
   Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
   Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
-
+  //Bug_Fix JVT-R057{
+  Bool              getLARDOEnable( ){ return m_bLARDOEnable; }
+  void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
+  //Bug_Fix JVT-R057{
 protected:
   ErrVal  xProcessClosedLoop            ( AccessUnitList&             rcAccessUnitList,
                                           PicBufferList&              rcPicBufferInputList,
@@ -506,7 +510,6 @@ protected:
                                           IntFrame*                   enhFrame,
                                           YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
   ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
-
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;

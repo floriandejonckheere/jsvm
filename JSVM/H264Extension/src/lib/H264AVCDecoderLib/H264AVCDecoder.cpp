@@ -115,6 +115,9 @@ H264AVCDecoder::H264AVCDecoder()
 , m_pcPocCalculator               ( NULL  )
 , m_pcSliceHeader                 ( NULL  )
 , m_pcPrevSliceHeader             ( NULL  )
+, m_pcSliceHeader_backup          ( NULL  ) // JVT-Q054 Red. Picture
+, m_bFirstSliceHeaderBackup       ( true  ) // JVT-Q054 Red. Picture
+, m_bRedundantPic                 ( false ) // JVT-Q054 Red. Picture
 , m_bInitDone                     ( false )
 , m_bLastFrame                    ( false )
 , m_bFrameDone                    ( true  )
@@ -295,8 +298,10 @@ ErrVal H264AVCDecoder::uninit()
 
   delete m_pcSliceHeader;
   delete m_pcPrevSliceHeader;
+  delete m_pcSliceHeader_backup;  // JVT-Q054 Red. Pic
   m_pcSliceHeader         = NULL;
   m_pcPrevSliceHeader     = NULL;
+  m_pcSliceHeader_backup  = NULL; // JVT-Q054 Red. Pic
 
   m_pcSliceReader         = NULL;
   m_pcSliceDecoder        = NULL;
@@ -1554,6 +1559,12 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
     {
       ROT( m_pcSliceHeader == NULL );
       m_uiLastLayerId = m_pcSliceHeader->getLayerId();
+// JVT-Q054 Red. Picture {
+      if ( NULL != m_pcSliceHeader_backup )
+      {
+        RNOK( m_pcSliceHeader->sliceHeaderBackup( m_pcSliceHeader_backup ) );
+      }
+// JVT-Q054 Red. Picture }
       
       PicBufferList   cDummyList;
       PicBufferList&  rcOutputList  = ( m_uiLastLayerId == m_uiRecLayerId ? rcPicBufferOutputList : cDummyList );
@@ -1583,6 +1594,12 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
       ROF( m_pcSliceHeader );
       ROF( m_pcSliceHeader->getLayerId() == 0 );
       m_uiLastLayerId    = m_pcSliceHeader->getLayerId();
+// JVT-Q054 Red. Picture {
+      if ( NULL != m_pcSliceHeader_backup )
+      {
+        RNOK( m_pcSliceHeader->sliceHeaderBackup( m_pcSliceHeader_backup ) );
+      }
+// JVT-Q054 Red. Picture }
 
 //	TMM EC {{
 //			UInt	uiGopSize	=	1 << m_uiDecompositionStages[m_uiLastLayerId];
@@ -1705,10 +1722,23 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bLastFragment, B
     {
       if(bPreParseHeader) //FRAG_FIX
       {
-		    delete m_pcPrevSliceHeader;
-        m_pcPrevSliceHeader = m_pcSliceHeader;
-        m_pcSliceHeader     = pSliceHeader;
+// JVT-Q054 Red. Picture {
+        if ( isRedundantPic() )
+        {
+          delete m_pcSliceHeader;
+          m_pcSliceHeader = pSliceHeader;
+        }
+        else
+        {
+          delete m_pcPrevSliceHeader;
+          m_pcPrevSliceHeader = m_pcSliceHeader;
+          m_pcSliceHeader     = pSliceHeader;
+        }
+        //		  delete m_pcPrevSliceHeader;
+        //      m_pcPrevSliceHeader = m_pcSliceHeader;
+        //      m_pcSliceHeader     = pSliceHeader;
         m_uiLastFragOrder = 0;
+// JVT-Q054 Red. Picture }
       } // FRAG_FIX
       else // memory leak fix provided by Nathalie
       {
@@ -2305,6 +2335,38 @@ H264AVCDecoder::freeDiffPrdRefLists( RefFrameList& diffPrdRefList)
   return Err::m_nOK;
 }
 
+// JVT-Q054 Red. Picture {
+ErrVal
+H264AVCDecoder::checkRedundantPic()
+{
+  m_bRedundantPic = false;
+  if ( m_bFirstSliceHeaderBackup && (NULL != m_pcSliceHeader) )
+  {
+    ROF( ( m_pcSliceHeader_backup = new SliceHeader ( m_pcSliceHeader->getSPS(), m_pcSliceHeader->getPPS()) ) );
+    m_bFirstSliceHeaderBackup = false;
+  }
+  else
+  {
+    if ( ( NULL != m_pcSliceHeader ) && ( NULL != m_pcSliceHeader_backup ) )
+    {
+      const NalUnitType eNalUnitType  = m_pcNalUnitParser->getNalUnitType();
+      if ( ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) || ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+        || ( eNalUnitType == NAL_UNIT_CODED_SLICE ) || ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ) )
+      {
+        Bool  bNewFrame  = true;
+        RNOK( m_pcSliceHeader->compareRedPic ( m_pcSliceHeader_backup, bNewFrame ) );
+        if (!bNewFrame)
+        {
+          m_bRedundantPic = true;
+        }
+      }
+    }
+  }
+  return Err::m_nOK;
+}
+
+
+// JVT-Q054 Red. Picture }
 
 H264AVC_NAMESPACE_END
 

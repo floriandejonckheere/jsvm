@@ -460,7 +460,27 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                            m_pcQuarterPelFilter,
                                            m_pcMotionEstimation ) );
   }
-
+  //Bug_Fix JVT-R057{
+  if(m_pcCodingParameter->getLARDOEnable())
+  {
+    Bool bFlag=false;
+	for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
+	{
+		if(!m_apcMCTFEncoder[uiLayer]->getLARDOEnable())
+		{
+		   bFlag=true;
+		   break;
+		}
+	}
+	if(bFlag)
+	{
+		for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
+		{ 
+            m_apcMCTFEncoder[uiLayer]->setLARDOEnable(false);
+		}
+	}
+  }
+  //Bug_Fix JVT-R057}
   return Err::m_nOK;
 }
 

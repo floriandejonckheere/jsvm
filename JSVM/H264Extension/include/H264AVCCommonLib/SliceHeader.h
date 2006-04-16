@@ -117,6 +117,11 @@ public:
 
   ErrVal  compare     ( const SliceHeader*          pcSH,
                         Bool&                       rbNewFrame ) const;
+// JVT-Q054 Red. Picture {
+  ErrVal  compareRedPic     ( const SliceHeader*          pcSH,
+                              Bool&                       rbNewFrame ) const;
+  ErrVal  sliceHeaderBackup ( SliceHeader*                pcSH       );
+// JVT-Q054 Red. Picture }
 
 
   Bool    isIntra     ()  const   { return m_eSliceType == I_SLICE; }

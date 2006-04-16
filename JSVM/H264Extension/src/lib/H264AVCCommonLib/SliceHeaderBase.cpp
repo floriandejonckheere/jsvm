@@ -286,6 +286,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
 , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
 , m_uiFragmentOrder                   ( 0 )
+, m_uiRedundantPicCnt                 ( 0 ) //JVT-Q054 Red. Picture
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -396,6 +397,15 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
   }
+  //JVT-Q054 Red. Picture {
+  if ( m_eSliceType != F_SLICE )
+  {
+    if ( getPPS().getRedundantPicCntPresentFlag() )
+    {
+      RNOK( pcWriteIf->writeUvlc( m_uiRedundantPicCnt,                          "SH: redundant_pic_cnt") );
+    }
+  }
+  //JVT-Q054 Red. Picture }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -579,6 +589,12 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
       RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
   }
+  //JVT-Q054 Red. Picture {
+  if ( getPPS().getRedundantPicCntPresentFlag() )
+  {
+    RNOK( pcWriteIf->writeUvlc( m_uiRedundantPicCnt,                            "SH: redundant_pic_cnt") );
+  }
+  //JVT-Q054 Red. Picture }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -716,6 +732,15 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
   }
+  //JVT-Q054 Red. Picture {
+  if ( m_eSliceType != F_SLICE )
+  {
+    if ( getPPS().getRedundantPicCntPresentFlag())
+    {
+      RNOK( pcReadIf->getUvlc( m_uiRedundantPicCnt,                            "SH: redundant_pic_cnt") );
+    }
+  }
+  //JVT-Q054 Red. Picture }
   
   if( m_eSliceType == B_SLICE )
   {
@@ -923,6 +948,12 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
       RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
   }
+  //JVT-Q054 Red. Picture {
+  if ( getPPS().getRedundantPicCntPresentFlag())
+  {
+    RNOK( pcReadIf->getUvlc( m_uiRedundantPicCnt,                            "SH: redundant_pic_cnt") );
+  }
+  //JVT-Q054 Red. Picture }
   
   if( m_eSliceType == B_SLICE )
   {

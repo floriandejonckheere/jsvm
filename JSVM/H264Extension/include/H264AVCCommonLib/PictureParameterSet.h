@@ -128,6 +128,7 @@ public:
   Int                   getChomaQpIndexOffset                   ()            const { return m_iChomaQpIndexOffset; }
   Bool                  getDeblockingFilterParametersPresentFlag()            const { return m_bDeblockingFilterParametersPresentFlag; }
   Bool                  getConstrainedIntraPredFlag             ()            const { return m_bConstrainedIntraPredFlag; }
+  Bool                  getRedundantPicCntPresentFlag           ()            const { return m_bRedundantPicCntPresentFlag; } //JVT-Q054 Red. Picture
   Bool                  getTransform8x8ModeFlag                 ()            const { return m_bTransform8x8ModeFlag; }
   Bool                  getPicScalingMatrixPresentFlag          ()            const { return m_bPicScalingMatrixPresentFlag; }
   const ScalingMatrix&  getPicScalingMatrix                     ()            const { return m_cPicScalingMatrix; }
@@ -167,6 +168,7 @@ public:
   Void  setChomaQpIndexOffset                   ( Int         i )           { m_iChomaQpIndexOffset                     = i; }
   Void  setDeblockingFilterParametersPresentFlag( Bool        b )           { m_bDeblockingFilterParametersPresentFlag  = b; }
   Void  setConstrainedIntraPredFlag             ( Bool        b )           { m_bConstrainedIntraPredFlag               = b; }
+  Void	setRedundantPicCntPresentFlag           ( Bool        b )           { m_bRedundantPicCntPresentFlag             = b; }  // JVT-Q054 Red. Picture
   Void  setTransform8x8ModeFlag                 ( Bool        b )           { m_bTransform8x8ModeFlag                   = b; }
   Void  setPicScalingMatrixPresentFlag          ( Bool        b )           { m_bPicScalingMatrixPresentFlag            = b; }
   Void  set2ndChromaQpIndexOffset               ( Int         i )           { m_iSecondChromaQpIndexOffset              = i; }
@@ -247,6 +249,7 @@ protected:
 	Bool          m_bPicScalingMatrixPresentFlag;
   ScalingMatrix m_cPicScalingMatrix;
   Int           m_iSecondChromaQpIndexOffset;
+  Bool          m_bRedundantPicCntPresentFlag;  //JVT-Q054 Red. Picture u(1)
 };
 
 

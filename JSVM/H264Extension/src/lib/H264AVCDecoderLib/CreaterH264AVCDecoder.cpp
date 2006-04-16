@@ -855,5 +855,21 @@ H264AVCPacketAnalyzer::uninit()
 }
 
 
+// JVT-Q054 Red. Picture {
+Bool
+CreaterH264AVCDecoder::isRedundantPic()
+{
+  return m_pcH264AVCDecoder->isRedundantPic();
+}
+
+
+ErrVal
+CreaterH264AVCDecoder::checkRedundantPic()
+{
+  return m_pcH264AVCDecoder->checkRedundantPic();
+}
+
+
+// JVT-Q054 Red. Picture }
 
 H264AVC_NAMESPACE_END

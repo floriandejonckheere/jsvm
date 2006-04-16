@@ -214,6 +214,8 @@ public:
 #endif
 
   UInt isNonRequiredPic()						  { return m_uiNonRequiredPic;  } //NonRequired JVT-Q066
+  Bool isRedundantPic()             { return m_bRedundantPic; }  // JVT-Q054 Red. Picture
+  ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
 
 protected:
 
@@ -251,6 +253,9 @@ protected:
   PocCalculator*                m_pcPocCalculator;
   SliceHeader*                  m_pcSliceHeader;
   SliceHeader*                  m_pcPrevSliceHeader;
+  SliceHeader*                  m_pcSliceHeader_backup; //JVT-Q054 Red. Picture
+  Bool                          m_bFirstSliceHeaderBackup;  //JVT-Q054 Red. Picture
+  Bool                          m_bRedundantPic;  // JVT-Q054 Red. Picture
   Bool                          m_bInitDone;
   Bool                          m_bLastFrame;
   Bool                          m_bFrameDone;

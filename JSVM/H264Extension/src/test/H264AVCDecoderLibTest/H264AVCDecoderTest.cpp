@@ -589,6 +589,11 @@ ErrVal H264AVCDecoderTest::go()
 	if(m_pcH264AVCDecoder->isNonRequiredPic())
 		continue;
 //NonRequired JVT-Q066}
+// JVT-Q054 Red. Picture {
+  RNOK( m_pcH264AVCDecoder->checkRedundantPic() );
+  if ( m_pcH264AVCDecoder->isRedundantPic() )
+    continue;
+// JVT-Q054 Red. Picture }
 
   if(bToDecode)//JVT-P031
   {

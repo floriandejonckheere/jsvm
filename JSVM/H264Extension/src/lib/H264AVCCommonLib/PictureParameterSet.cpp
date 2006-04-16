@@ -105,6 +105,7 @@ PictureParameterSet::PictureParameterSet()
 , m_iChomaQpIndexOffset                     ( 0 )
 , m_bDeblockingFilterParametersPresentFlag  ( false )
 , m_bConstrainedIntraPredFlag               ( false )
+, m_bRedundantPicCntPresentFlag             ( false )  // JVT-Q054, Red. Picture
 , m_bTransform8x8ModeFlag                   ( false )
 , m_bPicScalingMatrixPresentFlag            ( false )
 , m_iSecondChromaQpIndexOffset              ( 0 )
@@ -209,7 +210,7 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK( pcWriteIf->writeSvlc( getChomaQpIndexOffset(),                    "PPS: chroma_qp_index_offset" ) );
   RNOK( pcWriteIf->writeFlag( getDeblockingFilterParametersPresentFlag(), "PPS: deblocking_filter_parameters_present_flag" ) );
   RNOK( pcWriteIf->writeFlag( getConstrainedIntraPredFlag(),              "PPS: constrained_intra_pred_flag" ) );
-  RNOK( pcWriteIf->writeFlag( false,                                      "PPS: redundant_pic_cnt_present_flag" ) );
+  RNOK( pcWriteIf->writeFlag( getRedundantPicCntPresentFlag(),            "PPS: redundant_pic_cnt_present_flag" ) );  // JVT-Q054 Red. Picture
 
   if( getTransform8x8ModeFlag() || m_bPicScalingMatrixPresentFlag || m_iSecondChromaQpIndexOffset != m_iChomaQpIndexOffset )
   {
@@ -227,8 +228,6 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
   //===== NAL unit header =====
   setNalUnitType    ( eNalUnitType );
 
-
-  Bool  bTmp;
   UInt  uiTmp;
   Int   iTmp;
 
@@ -305,8 +304,7 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
   setChomaQpIndexOffset( iTmp );
   RNOK( pcReadIf->getFlag( m_bDeblockingFilterParametersPresentFlag,      "PPS: deblocking_filter_parameters_present_flag" ) );
   RNOK( pcReadIf->getFlag( m_bConstrainedIntraPredFlag,                   "PPS: constrained_intra_pred_flag" ) );
-  RNOK( pcReadIf->getFlag( bTmp,                                          "PPS: redundant_pic_cnt_present_flag" ) );
-  ROT ( bTmp );
+  RNOK( pcReadIf->getFlag( m_bRedundantPicCntPresentFlag,                 "PPS: redundant_pic_cnt_present_flag" ) );  // JVT-Q054 Red. Picture
   RNOK( xReadFrext( pcReadIf ) );
 
   return Err::m_nOK;

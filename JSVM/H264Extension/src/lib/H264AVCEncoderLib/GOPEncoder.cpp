@@ -2870,6 +2870,12 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   // Currently hard-coded
   pcSliceHeader->setNumMbsInSlice               ( m_uiMbNumber          );
   pcSliceHeader->setFragmentOrder               ( 0 );
+//JVT-Q054 Red. Picture {
+  if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag())
+  {
+    pcSliceHeader->setRedundantPicCnt( 0 );
+  }
+// JVT-Q054 Red. Picture }
 
   //===== set prediction and update list sizes =====
   {
@@ -4496,6 +4502,13 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 	//NonRequired JVT-Q066 (06-04-08)}}
 
     //===== base layer encoding =====
+// JVT-Q054 Red. Picture {
+  //===== primary picture coding =====
+  if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
+  {
+    pcSliceHeader->setRedundantPicCnt( 0 );	// set redundant_pic_cnt to 0 for primary coded picture
+  }
+// JVT-Q054 Red. Picture }
     RNOK( pcBLRecFrame->copy      ( pcFrame ) );
 
 	// JVT-R057 LA-RDO{ 
@@ -4524,6 +4537,27 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                     pcResidual,
                                     pcPredSignal,
                                     uiBits ) );
+// JVT-Q054 Red. Picture {
+    if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
+    {
+      // in current version, slice repetition is supported for each primary coded slice
+      UInt  uiRedundantPicNum = 1;  // number of redundant pictures for each primary coded picture
+      UInt  uiRedundantPicCnt = 0;
+      for ( uiRedundantPicCnt = 1; uiRedundantPicCnt <= uiRedundantPicNum; uiRedundantPicCnt++)
+      {
+        pcSliceHeader->setRedundantPicCnt( uiRedundantPicCnt );
+
+        RNOK( pcBLRecFrame->copy      ( pcFrame ) );
+        RNOK( xEncodeLowPassSignal    ( rcOutputList,
+          rcControlData,
+          pcBLRecFrame,
+          pcResidual,
+          pcPredSignal,
+          uiBits ) );
+      }
+      pcSliceHeader->setRedundantPicCnt( 0 );
+    }
+// JVT-Q054 Red. Picture }
 
 
 	// JVT-R057 LA-RDO{
@@ -4781,6 +4815,8 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
     SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
 		IntFrame*			pcOrgPred				= m_apcFrameTemp	[2];	// JVT-R091
+    IntFrame*     pcRedBQFrame    = m_apcFrameTemp  [3];  // JVT-Q054 Red. Picture
+    IntFrame*     pcRedSRFrame    = m_apcFrameTemp  [4];  // JVT-Q054 Red. Picture
 
     AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
@@ -4803,6 +4839,12 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 	//NonRequired JVT-Q066 (06-04-08)}}
 
     //===== base layer encoding =====
+// JVT-Q054 Red. Picture {
+  if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
+  {
+    pcSliceHeader->setRedundantPicCnt( 0 );	// set redundant_pic_cnt to 0 for primary coded picture
+  }
+// JVT-Q054 Red. Picture }
     //--- closed-loop coding of base quality layer ---
     if( pcBQFrame )
     {
@@ -4810,6 +4852,8 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 		if(m_bLARDOEnable)
 			pcBQFrame->setChannelDistortion(pcFrame);
 		//JVT-R057 LA-RDO}
+      RNOK( pcRedBQFrame->copy      ( pcBQFrame            ) ); // JVT-Q054 Red. Picture
+      RNOK( pcRedSRFrame->copy      ( pcSRFrame            ) ); // JVT-Q054 Red. Picture
 			RNOK( pcSRFrame->subtract			( pcSRFrame, pcBQFrame ) ); // JVT-R091
 			RNOK( pcOrgPred->copy					( pcSRFrame						 ) );	// JVT-R091
       RNOK( xEncodeHighPassSignal   ( rcOutputList,
@@ -4824,6 +4868,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     else
     {
       RNOK( pcBLRecFrame->copy      ( pcFrame ) );
+      RNOK( pcRedSRFrame->copy      ( pcSRFrame               ) ); // JVT-Q054 Red. Picture
 			RNOK( pcSRFrame		->subtract	( pcSRFrame, pcBLRecFrame ) );	// JVT-R091
 			RNOK( pcOrgPred->copy					( pcSRFrame								) );	// JVT-R091
 			//JVT-R057 LA-RDO{
@@ -4838,6 +4883,56 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 																			pcSRFrame, // JVT-R091
                                       uiBits, uiBitsRes ) );
     }
+//JVT-Q054 Red. Picture {
+    if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
+    {
+      // currently only slice repetition is supported for each primary coded slice
+      UInt  uiRedundantPicNum = 1;  // number of redundant picture for each primary coded picture
+      UInt  uiRedundantPicCnt = 0;
+      for ( uiRedundantPicCnt = 1; uiRedundantPicCnt <= uiRedundantPicNum; uiRedundantPicCnt++)
+      {
+        pcSliceHeader->setRedundantPicCnt( uiRedundantPicCnt );
+        if( pcBQFrame )
+        {
+          //JVT-R057 LA-RDO{
+          if(m_bLARDOEnable)
+            pcBQFrame->setChannelDistortion(pcFrame);
+          //JVT-R057 LA-RDO}
+          RNOK( pcSRFrame->copy					( pcRedSRFrame				 ) );	// JVT-Q054
+          RNOK( pcBQFrame->copy         ( pcRedBQFrame         ) ); // JVT-Q054
+          RNOK( pcSRFrame->subtract			( pcSRFrame, pcBQFrame ) ); // JVT-R091
+          RNOK( pcOrgPred->copy					( pcSRFrame						 ) );	// JVT-R091
+          RNOK( xEncodeHighPassSignal   ( rcOutputList,
+            rcControlData,
+            pcBQFrame,
+            pcResidual,
+            pcPredSignal,
+            pcSRFrame, // JVT-R091
+            uiBits, uiBitsRes ) );
+          RNOK( rcControlData.storeBQLayerQpAndCbp() );
+        }
+        else
+        {
+          RNOK( pcBLRecFrame->copy      ( pcFrame ) );
+          RNOK( pcSRFrame->copy					( pcRedSRFrame				    ) );	// JVT-Q054
+          RNOK( pcSRFrame->subtract	    ( pcSRFrame, pcBLRecFrame ) );	// JVT-R091
+          RNOK( pcOrgPred->copy					( pcSRFrame								) );	// JVT-R091
+          //JVT-R057 LA-RDO{
+          if(m_bLARDOEnable)
+            pcBLRecFrame->setChannelDistortion(pcFrame);
+          //JVT-R057 LA-RDO}
+          RNOK( xEncodeHighPassSignal   ( rcOutputList,
+            rcControlData,
+            pcBLRecFrame,
+            pcResidual,
+            pcPredSignal,
+            pcSRFrame, // JVT-R091
+            uiBits, uiBitsRes ) );
+        }
+      }
+      pcSliceHeader->setRedundantPicCnt( 0 );
+    }
+// JVT-Q054 Red. Picture }
 
     //{{Adaptive GOP structure
     // --ETRI & KHU
