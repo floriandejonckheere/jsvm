@@ -1,16 +1,40 @@
+
+JSVM_4_11 -> JSVM_4_12
+======================
+
+Redundant Pictures
+
+Date: April 14, 2006
+Authors: Jie Jia, HaeKwang Kim, HaeChul Choi, JaeGon Kim ( Sejong Univ. / ETRI )
+Contribution: JVT-Q054
+
+Changes:
+
+1) Add "UseRedundantSlc" in layer config file.
+2) With UseRedundantSlc = 1 in layer config file (enable coding redundant picture), one redundant picture will be encoded for each primary
+ coded picture without FGS picture.
+3) In the decoding process, detection of the redundant coded picture has been added. When the primary coded picture has been decoded
+ correctly, the redundant one will not be decoded, or else, the redundant one will be decoded.
+( The current redundant picture tool does not support multiple slices per picture for the time being. )
+
+Note: The changes can be found by searching JVT-Q054 tag. 
+
+4) Bug fixes related to LA-RDO (can be found by searching "Bug _Fix JVT-R057" in GopEncoder.h and CreaterH264AVCEncoder.cpp).
+
+
 JSVM_4_10 ->JSVM_4_11 
 ===================== 
 
 SVC frame loss concealment
 
 Date: April 12, 2006
-Authors: Y. Chen, K. Xie, J. Boyce , J. Vieron
+Authors: Y. Chen, K. Xie, J. Boyce , J. Vieron (Thomson)
 Contribution: JVT-Q046
   
 Changes: 
 
 1. Add argument [-ec n] in the decoder command line, enabling Error Concealment algorithm selection. The following values 
-are supported for n: 1: BLSKIP;  2: RU; 3: Frame copy; 4: Temporal Direct; 5: Frame Level Frame Copy 
+are supported for n: 1: BLSKIP;  2: RU; 3: Frame copy; 4: Temporal Direct; 5: Frame Level Frame Copy. 
 Only support AVC Compliant base layer (i.e. BaseLayerMode = 1 in encoder.cfg) 
  
 2. Temporal Direct Error Concealment mode  
@@ -72,7 +96,7 @@ JSVM_4_9 -> JSVM_4_10
 Loss-aware rate-distortion optimization integration
 Improvement to the implementation of non-required picture SEI message
 
-Date: April 08, 2006
+Date: April 08, 2006 
 Authors: Yi Guo, Qiu Shen
 Contributions: JVT-R057 and JVT-Q066
 
@@ -101,7 +125,7 @@ JSVM_4_8 -> JSVM_4_9
 Decoder-side improvement for FGS with motion refinement 
 
 Date: March 28, 2006
-Author: M. Winken
+Author: M. Winken (HHI)
 
 Changes:
 
@@ -116,7 +140,7 @@ JSVM_4_7 -> JSVM_4_8
 Cleaning of DownConvert 
 
 Date: March 27, 2006
-Authors: P. Dagois and J. Vieron
+Authors: P. Dagois and J. Vieron (Thomson)
 
 Changes:
 
