@@ -85,7 +85,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 int main(int argc, char **argv)
 {
-  printf( "JSVM Quality Assigner (v 0.1)\n\n" );
+  printf( "JSVM Quality Assigner\n\n" );
   printf( "Info: This tool relies on the scalable SEI message\n"
           "      This tool assumes a fixed GOP size (non-AGS) throughout a sequence\n\n\n" );
 
@@ -100,6 +100,9 @@ int main(int argc, char **argv)
   RNOKR( pcQualityLevelAssigner->go(),                            -4 );
   RNOKR( pcQualityLevelAssigner->destroy(),                       -5 );
 
+  //manu.mathew@samsung : memory leak fix
+  RNOKS( pcParameter->destroy() );
+  //--
   return 0;
 }
 

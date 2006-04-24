@@ -108,8 +108,6 @@ public:
 
   static  ErrVal create( RateDistortion *&rpcRateDistortion );
   virtual ErrVal destroy();
-  virtual ErrVal init( CodingParameter *pcCodingParameter );
-  virtual ErrVal uninit();
 
   Double  getCost( UInt uiBits, UInt uiDistortion );
   Double  getFCost( UInt uiBits, UInt uiDistortion );
@@ -118,7 +116,6 @@ public:
   ErrVal  fixMacroblockQP( MbDataAccess& rcMbDataAccess );
 
 protected:
-  CodingParameter* m_pcCodingParameter;
   Double m_dCost;
   Double m_dSqrtCost;
   UInt m_uiCostFactorMotionSAD;

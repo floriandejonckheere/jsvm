@@ -138,6 +138,27 @@ Package=<4>
 
 ###############################################################################
 
+Project: "MCTFPreProcessor"="..\..\src\test\MCTFPreProcessor\MCTFPreProcessor.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name H264AVCCommonLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCEncoderLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCVideoIoLibStatic
+    End Project Dependency
+}}}
+
+###############################################################################
+
 Project: "PSNRStatic"="..\..\src\tools\PSNR\PSNRStatic.dsp" - Package Owner=<4>
 
 Package=<5>

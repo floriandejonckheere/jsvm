@@ -633,6 +633,8 @@ ErrVal UvlcWriter::skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed )
     m_uiRun = 0;
   }
 
+  rcMbDataAccess.getMbData().setSkipFlag( m_uiRun > 0 );
+
   return Err::m_nOK;
 }
 
@@ -878,6 +880,13 @@ ErrVal UvlcWriter::cbp( MbDataAccess& rcMbDataAccess )
   AOT_DBG( 48 < uiCbp );
 
   UInt uiTemp = ( rcMbDataAccess.getMbData().isIntra() ) ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp];
+#if INDEPENDENT_PARSING
+  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+  {
+    Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && !rcMbDataAccess.getMbData().getBLQRefFlag() && rcMbDataAccess.getMbData().isIntra() );
+    uiTemp      = ( bIntra ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp] );
+  }
+#endif
 
   RNOK( xWriteUvlcCode( uiTemp ) );
 

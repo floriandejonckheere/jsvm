@@ -262,6 +262,11 @@ RQFGSDecoder::decodeNextLayer( SliceHeader* pcSliceHeader )
   m_pcCurrSliceHeader->setAdaptivePredictionFlag( pcSliceHeader->getAdaptivePredictionFlag() );
   m_bPicChanged = true;
 
+#if INDEPENDENT_PARSING
+  Bool bIndPar = m_pcCurrSliceHeader->getSPS().getIndependentParsing();
+  const_cast<SequenceParameterSet&>(m_pcCurrSliceHeader->getSPS()).setIndependentParsing( false );
+#endif
+
   if(pcSliceHeader->getFgsEntropyOrderFlag() == 0)
   {
     RNOK( xDecodingFGS() );
@@ -270,6 +275,11 @@ RQFGSDecoder::decodeNextLayer( SliceHeader* pcSliceHeader )
   {
     RNOK( xDecodingSubbandFGS() );
   }
+
+#if INDEPENDENT_PARSING
+  const_cast<SequenceParameterSet&>(m_pcCurrSliceHeader->getSPS()).setIndependentParsing( bIndPar );
+#endif
+
   return Err::m_nOK;
 }
 

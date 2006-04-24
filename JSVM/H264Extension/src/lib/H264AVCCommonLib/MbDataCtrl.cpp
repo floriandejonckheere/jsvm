@@ -476,6 +476,14 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
   {
     m_uiSliceId++;
 
+    //manu.mathew@samsung : memory leak fix
+    if( m_cpDFPBuffer.get( m_uiSliceId ) )
+    {
+      delete m_cpDFPBuffer.get( m_uiSliceId );
+      m_cpDFPBuffer.set( m_uiSliceId, NULL );
+    }
+    //--
+
     m_cpDFPBuffer.set( m_uiSliceId, rcSH.getDeblockingFilterParameter().getCopy() );
     m_bDirect8x8InferenceFlag = rcSH.getSPS().getDirect8x8InferenceFlag();
   }

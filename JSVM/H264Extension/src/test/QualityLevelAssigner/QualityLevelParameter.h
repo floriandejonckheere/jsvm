@@ -96,6 +96,9 @@ public:
   ~QualityLevelParameter();
 
   static ErrVal create( QualityLevelParameter*& rpcQualityLevelParameter );
+  //manu.mathew@samsung : memory leak fix
+  ErrVal        destroy();
+  //--
   ErrVal        init  ( Int argc, Char** argv );
 
   const std::string&  getInputBitStreamName   ()          const { return m_cInputBitStreamName;  }

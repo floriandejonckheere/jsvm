@@ -155,6 +155,9 @@ public:
 #if MULTIPLE_LOOP_DECODING
   Bool                  getAlwaysDecodeBaseLayer              ()          const { return m_bAlwaysDecodeBaseLayer; }
 #endif
+#if INDEPENDENT_PARSING
+  Bool                  getIndependentParsing                 ()          const { return m_bIndepedentParsing; }
+#endif
   UInt                  getNalUnitExtFlag                     ()          const { return m_bNalUnitExtFlag; }
   UInt                  getNumSimplePriIdVals                 ()          const { return m_uiNumSimplePriIdVals; }
   Void                  getSimplePriorityMap ( UInt uiSimplePri, UInt& uiTemporalLevel, UInt& uiLayer, UInt& uiQualityLevel ) const
@@ -190,6 +193,9 @@ public:
   Void  setInitState                          ( Bool        b  )          { m_bInitDone                             = b;  }
 #if MULTIPLE_LOOP_DECODING
   Void  setAlwaysDecodeBaseLayer              ( Bool        b  )          { m_bAlwaysDecodeBaseLayer                = b;  }
+#endif
+#if INDEPENDENT_PARSING
+  Void  setIndependentParsing                 ( Bool        b  )          { m_bIndepedentParsing                    = b;  }
 #endif
   Void  setNalUnitExtFlag                     ( Bool        b  )          { m_bNalUnitExtFlag                       = b;  }
   Void  setNumSimplePriIdVals                 ( UInt        ui )          { m_uiNumSimplePriIdVals                  = ui; }
@@ -267,6 +273,10 @@ protected:
 // VW {
 	UInt					m_auiNumRefIdxUpdateActiveDefault[2];
 // VW }
+
+#if INDEPENDENT_PARSING
+  Bool          m_bIndepedentParsing;
+#endif
 
 private:
   static const LevelLimit m_aLevelLimit[52];

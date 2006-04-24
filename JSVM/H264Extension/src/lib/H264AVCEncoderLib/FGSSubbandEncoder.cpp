@@ -354,6 +354,11 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   rbCorrupted = false;
   rbFinished  = false;
 
+#if INDEPENDENT_PARSING
+  Bool bIndPar = m_pcSliceHeader->getSPS().getIndependentParsing();
+  const_cast<SequenceParameterSet&>(m_pcSliceHeader->getSPS()).setIndependentParsing( false );
+#endif
+
   //JVT-P031
   if( ! uiFrac )
   {
@@ -368,6 +373,9 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   {
     RNOK ( xEncodingSubbandFGS( rbFinished, rbCorrupted, uiMaxBits, pFile ) );
   }
+#if INDEPENDENT_PARSING
+  const_cast<SequenceParameterSet&>(m_pcSliceHeader->getSPS()).setIndependentParsing( bIndPar );
+#endif
   ROTRS( rbFinished, Err::m_nOK );
 
   //FIX_FRAG_CAVLC

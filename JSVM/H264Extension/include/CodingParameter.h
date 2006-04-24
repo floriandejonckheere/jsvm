@@ -192,10 +192,7 @@ public:
     , m_cInputFilename                    ("none")
     , m_cOutputFilename                   ("none")
     , m_uiEntropyCodingModeFlag           (1)
-    , m_uiUpdateStep                      (0)
     , m_uiClosedLoop                      (0)
-    , m_uiAdaptiveQPSetting               (1)
-    , m_uiMCTFIntraMode                   (1)
     , m_uiAdaptiveTransform               (0)
     , m_uiMaxAbsDeltaQP                   (1)
     , m_dBaseQpResidual                   (26.0)
@@ -226,6 +223,9 @@ public:
 	, m_iIDRPeriod						  (0)
 	, m_bBLSkipEnable					  ( false )
 // JVT-Q065 EIDR}
+#if INDEPENDENT_PARSING
+    , m_uiIndependentParsing  ( 0 )
+#endif
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
   }
@@ -243,11 +243,8 @@ public:
   Double                          getOutputFrameRate                () const {return m_dOutputFrameRate; }
   const std::string&              getInputFilename                  () const {return m_cInputFilename; }
   const std::string&              getOutputFilename                 () const {return m_cOutputFilename; }
-  UInt                            getUpdateStep                     () const {return m_uiUpdateStep; }
   UInt                            getClosedLoop                     () const {return m_uiClosedLoop; }
   Bool                            getEntropyCodingModeFlag          () const {return m_uiEntropyCodingModeFlag == 1; }
-  UInt                            getAdaptiveQPSetting              () const {return m_uiAdaptiveQPSetting; }
-  UInt                            getMCTFIntraMode                  () const {return m_uiMCTFIntraMode; }
   UInt                            getAdaptiveTransform              () const {return m_uiAdaptiveTransform; }
   UInt                            getMaxAbsDeltaQP                  () const {return m_uiMaxAbsDeltaQP; }
   Double                          getBaseQpResidual                 () const {return m_dBaseQpResidual; }
@@ -294,6 +291,10 @@ public:
   UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
   //--ICU/ETRI FMO Implementation : FMO end
 
+#if INDEPENDENT_PARSING
+  UInt          getIndependentParsing() const { return m_uiIndependentParsing; }
+#endif
+
   //===== set =====
   Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
   Void setFrameWidth                      (UInt   p) { m_uiFrameWidth                     = p; }
@@ -302,11 +303,8 @@ public:
   Void setOutputFrameRate                 (Double p) { m_dOutputFrameRate                 = p; }
   Void setInputFilename                   (Char*  p) { m_cInputFilename                   = p; }
   Void setOutputFilename                  (Char*  p) { m_cOutputFilename                  = p; }
-  Void setUpdateStep                      (UInt   p) { m_uiUpdateStep                     = p; }
   Void setClosedLoop                      (UInt   p) { m_uiClosedLoop                     = p; }
   Void setEntropyCodingModeFlag           (Bool   p) { m_uiEntropyCodingModeFlag          = p; }
-  Void setAdaptiveQPSetting               (UInt   p) { m_uiAdaptiveQPSetting              = p; }
-  Void setMCTFIntraMode                   (UInt   p) { m_uiMCTFIntraMode                  = p; }
   Void setAdaptiveTransform               (UInt   p) { m_uiAdaptiveTransform              = p; }
   Void setMaxAbsDeltaQP                   (UInt   p) { m_uiMaxAbsDeltaQP                  = p; }
   Void setBaseQpResidual                  (Double p) { m_dBaseQpResidual                  = p; }
@@ -393,6 +391,10 @@ public:
   Void                            setFGSMotionMode( UInt uiFGSMotionMode ) { m_uiFGSMotionMode = uiFGSMotionMode; }
   Void                            setUseRedundantSliceFlag(Bool   b) { m_uiUseRedundantSlice = b; }  // JVT-Q054 Red. Picture
 
+#if INDEPENDENT_PARSING
+  Void                            setIndependentParsing( UInt ui ) { m_uiIndependentParsing = ui; }
+#endif
+
 public:
   UInt                      m_uiLayerId;
   UInt                      m_uiFrameWidth;
@@ -402,11 +404,8 @@ public:
   std::string               m_cInputFilename;
   std::string               m_cOutputFilename;
 
-  UInt                      m_uiUpdateStep;
   UInt                      m_uiClosedLoop;
   UInt                      m_uiEntropyCodingModeFlag;
-  UInt                      m_uiAdaptiveQPSetting;
-  UInt                      m_uiMCTFIntraMode;
   UInt                      m_uiAdaptiveTransform;
 
   UInt                      m_uiMaxAbsDeltaQP;
@@ -476,6 +475,10 @@ public:
 // JVT-Q065 EIDR}
 
   UInt               m_uiPLR; //JVT-R057 LA-RDO
+
+#if INDEPENDENT_PARSING
+  UInt         m_uiIndependentParsing;
+#endif
 };
 
 

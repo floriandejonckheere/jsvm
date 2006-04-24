@@ -299,25 +299,6 @@ private:
 
 
 
-
-
-
-
-
-
-
-
-
-
-enum
-{
-  LPS = 0x00,   // low pass signal
-  HPS = 0x01    // high pass signal
-};
-
-
-
-
 class H264AVCDECODERLIB_API MCTFDecoder
 { 
   enum
@@ -425,6 +406,10 @@ protected:
                                                 IntFrame*                     pcFrame );
 //TMM_EC 
   ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData, SliceHeader *&rcSliceHeaderBase);
+#if INDEPENDENT_PARSING
+  ErrVal      xInitESSandCroppingWindow       ( SliceHeader&                  rcSliceHeader,
+                                                MbDataCtrl&                   rcMbDataCtrl );
+#endif
   
   //===== decode pictures / subbands =====
   ErrVal      xDecodeBaseRepresentation       ( SliceHeader*&                 rpcSliceHeader,

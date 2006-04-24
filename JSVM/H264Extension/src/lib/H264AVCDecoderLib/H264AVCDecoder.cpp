@@ -469,6 +469,10 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
           // skipped, without looking further
           bFinishChecking = true;
 
+        //manu.mathew@samsung : memory leak fix
+        if( pcSliceHeader )
+          delete pcSliceHeader;
+        //--
         return Err::m_nOK;
       }
 
@@ -1830,7 +1834,7 @@ H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
     m_pcVeryFirstSliceHeader  = new SliceHeader( rcSH.getSPS(), rcSH.getPPS() );
   }
 
-  printf("  Frame %4d ( LId 0, TL X, QL 0, AVC-%c, BId-1, AP 0, QP%3d, V)\n",
+  printf("  Frame %4d ( LId 0, TL X, QL 0, AVC-%c, BId-1, AP 0, QP%3d, V )\n",
     rcSH.getPoc                    (),
     rcSH.getSliceType              () == B_SLICE ? 'B' : 
     rcSH.getSliceType              () == P_SLICE ? 'P' : 'I',

@@ -161,6 +161,95 @@ ErrVal MbDecoder::uninit()
   return Err::m_nOK;
 }
 
+#if INDEPENDENT_PARSING
+
+ErrVal
+MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
+                                     MbDataAccess*  pcMbDataAccessBase )
+{
+  MbData& rcMbData = rcMbDataAccess.getMbData();
+
+  if( rcMbData.getBLSkipFlag() || rcMbData.getBLQRefFlag() )
+  {
+    ROF( pcMbDataAccessBase );
+    Bool bBLSkipFlag  = rcMbData.getBLSkipFlag();
+    Bool bBLQRefFlag  = rcMbData.getBLQRefFlag();
+    rcMbData.copyMotion( pcMbDataAccessBase->getMbData() );
+    rcMbData.setBLSkipFlag( bBLSkipFlag );
+    rcMbData.setBLQRefFlag( bBLQRefFlag );
+    if( rcMbData.isIntra() )
+    {
+      ROT( rcMbData.getBLQRefFlag() );
+      rcMbData.setMbMode( INTRA_BL );
+    }
+  }
+  else
+  {
+    for( ListIdx eListIdx = LIST_0; eListIdx <= LIST_1; eListIdx = ListIdx( eListIdx + 1 ) )
+    {
+      MbMotionData& rcMbMotionData = rcMbData.getMbMotionData( eListIdx );
+
+      switch( rcMbData.getMbMode() )
+      {
+      case MODE_16x16:
+        {
+          if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag() )
+          {
+            ROF( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isBlockFwdBwd( B_8x8_0, eListIdx ) );
+            rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx() );
+          }
+        }
+        break;
+      case MODE_16x8:
+        {
+          if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_16x8_0 ) )
+          {
+            ROF( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isBlockFwdBwd( B_8x8_0, eListIdx ) );
+            rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_16x8_0 ), PART_16x8_0 );
+          }
+          if( rcMbData.isBlockFwdBwd( B_8x8_2, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_16x8_1 ) )
+          {
+            ROF( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isBlockFwdBwd( B_8x8_2, eListIdx ) );
+            rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_16x8_1 ), PART_16x8_1 );
+          }
+        }
+        break;
+      case MODE_8x16:
+        {
+          if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_8x16_0 ) )
+          {
+            ROF( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isBlockFwdBwd( B_8x8_0, eListIdx ) );
+            rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_8x16_0 ), PART_8x16_0 );
+          }
+          if( rcMbData.isBlockFwdBwd( B_8x8_1, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_8x16_1 ) )
+          {
+            ROF( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isBlockFwdBwd( B_8x8_1, eListIdx ) );
+            rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_8x16_1 ), PART_8x16_1 );
+          }
+        }
+        break;
+      case MODE_8x8:
+      case MODE_8x8ref0:
+        {
+          for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+          {
+            if( rcMbData.getBlkMode( c8x8Idx.b8x8Index() ) != BLK_SKIP  &&
+              rcMbData.isBlockFwdBwd( c8x8Idx.b8x8Index(), eListIdx ) && rcMbMotionData.getMotPredFlag( c8x8Idx.b8x8() ) )
+            {
+              ROF( pcMbDataAccessBase && pcMbDataAccessBase->getMbData().isBlockFwdBwd( c8x8Idx.b8x8Index(), eListIdx ) );
+              rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( c8x8Idx.b8x8() ), c8x8Idx.b8x8() );
+            }
+          }
+        }
+        break;
+      }
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+#endif
 
 
 ErrVal
@@ -176,6 +265,13 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
                    Bool           bReconstructAll )
 {
   ROF( m_bInitDone );
+
+#if INDEPENDENT_PARSING
+  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+  {
+    RNOK( xPredictionFromBaseLayer( rcMbDataAccess, pcMbDataAccessBase ) );
+  }
+#endif
 
   IntYuvMbBuffer  cPredBuffer;  cPredBuffer.setAllSamplesToZero();
 
@@ -734,6 +830,8 @@ ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
 
   for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
+    rcMbDataAccess.getMbData().intraPredMode( cIdx ) = rcMbDataAccess.decodeIntraPredMode( cIdx );
+
     XPel* puc = cYuvMbBuffer.getYBlk( cIdx );
 
     UInt uiPredMode = rcMbDataAccess.getMbData().intraPredMode( cIdx );
@@ -766,6 +864,14 @@ ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess&   rcMbDataAccess,
 
   for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
+    {
+      Int iPredMode = rcMbDataAccess.decodeIntraPredMode( cIdx );
+      for( S4x4Idx cIdx4x4( cIdx ); cIdx4x4.isLegal( cIdx ); cIdx4x4++ )
+      {
+        rcMbDataAccess.getMbData().intraPredMode( cIdx4x4 ) = iPredMode;
+      }
+    }
+
     XPel* puc = cYuvMbBuffer.getYBlk( cIdx );
 
     const UInt uiPredMode = rcMbDataAccess.getMbData().intraPredMode( cIdx );

@@ -145,6 +145,11 @@ protected:
                                         MbDataAccess* pcMbDataAccessBaseMotion,
                                         MbMode        eMbMode,
                                         ListIdx       eLstIdx );
+#if INDEPENDENT_PARSING
+  ErrVal xReadMotionPredFlags_Ind     ( MbDataAccess& rcMbDataAccess,
+                                        MbMode        eMbMode,
+                                        ListIdx       eLstIdx );
+#endif
 
 
   ErrVal xGet8x8BlockMv               ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );

@@ -267,7 +267,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
                                                 iSpatialScalabilityType,
                                                 (uiMbAddress == uiLastMbAddress) ) );
 
-    if( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
+    if( ! pcMbDataAccess->getMbData().isIntra() && pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
     {
       pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
     }

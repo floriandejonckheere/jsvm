@@ -161,15 +161,10 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 {
   ROF( m_bInitDone );
 
-  Bool  bIsCoded  = true;
-
   //===== skip flag =====
-  if( rcMbDataAccess.getSH().isH264AVCCompatible() )
-  {
-    bIsCoded  = ! rcMbDataAccess.isSkippedMb();
-    RNOK( m_pcMbSymbolWriteIf->skipFlag( rcMbDataAccess, false ) );
-  }
+  Bool  bIsCoded  = ! rcMbDataAccess.isSkippedMb();
 
+  RNOK( m_pcMbSymbolWriteIf->skipFlag( rcMbDataAccess, false ) );
 
   if( bIsCoded )
   {
@@ -182,6 +177,13 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 				{
 					RNOK  ( m_pcMbSymbolWriteIf->BLSkipFlag( rcMbDataAccess ) );
 
+#if INDEPENDENT_PARSING
+          if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+          {
+            ROT( rcMbDataAccess.getMbData().getBLQRefFlag() );
+          }
+          else
+#endif
 					if( ! rcMbDataAccess.getMbData().getBLSkipFlag() && (iSpatialScalabilityType != SST_RATIO_1) && ! pcMbDataAccessBase->getMbData().isIntra() )
 					{
 						RNOK( m_pcMbSymbolWriteIf->BLQRefFlag( rcMbDataAccess ) );
@@ -221,13 +223,53 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 
       if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX && eMbModeSet == INTRA_4X4 )
       {
-	    if( ( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) ) &&
-			pcMbDataAccessBase->getMbData().getInCropWindowFlag() ) {
+#if INDEPENDENT_PARSING
+        if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+        {
+#if MULTIPLE_LOOP_DECODING // only for multiple loop decoding
+          if( pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
+          {
+            RNOK( m_pcMbSymbolWriteIf->blFlag( rcMbDataAccess ) );    
+          }
+#endif
+        }
+        else
+#endif
+	      if( ( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) ) &&
+			        pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
+        {
           RNOK( m_pcMbSymbolWriteIf->blFlag( rcMbDataAccess ) );    
-		}
+		    }
       }
     }
 
+#if INDEPENDENT_PARSING
+    if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+    {
+      //--- reset motion pred flags ---
+      if( rcMbDataAccess.getMbData().getBLSkipFlag() || rcMbDataAccess.getMbData().getBLQRefFlag() || rcMbDataAccess.getMbData().isIntra() || rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP )
+      {
+        rcMbDataAccess.getMbMotionData( LIST_0 ).setMotPredFlag( false );
+        rcMbDataAccess.getMbMotionData( LIST_1 ).setMotPredFlag( false );
+      }
+      else if( rcMbDataAccess.getSH().isInterB() )
+      {
+        for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+        {
+          if( BLK_SKIP == rcMbDataAccess.getMbData().getBlkMode   ( c8x8Idx.b8x8Index() ) ||
+             !rcMbDataAccess            .getMbData().isBlockFwdBwd( c8x8Idx.b8x8Index(), LIST_0 ) )
+          {
+            rcMbDataAccess.getMbMotionData( LIST_0 ).setMotPredFlag( false, c8x8Idx );
+          }
+          if( BLK_SKIP == rcMbDataAccess.getMbData().getBlkMode   ( c8x8Idx.b8x8Index() ) ||
+             !rcMbDataAccess            .getMbData().isBlockFwdBwd( c8x8Idx.b8x8Index(), LIST_1 ) )
+          {
+            rcMbDataAccess.getMbMotionData( LIST_1 ).setMotPredFlag( false, c8x8Idx );
+          }
+        }
+      }
+    }
+#endif
 
     //===== prediction info =====
     if( ! rcMbDataAccess.getMbData().getBLSkipFlag() )
@@ -293,6 +335,16 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
       Bool bTrafo8x8Flag = ( rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() &&
                              rcMbDataAccess.getMbData().is8x8TrafoFlagPresent()        &&
                             !rcMbDataAccess.getMbData().isIntra4x4() );
+#if INDEPENDENT_PARSING
+      if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+      {
+        bTrafo8x8Flag = ( rcMbDataAccess.getSH().getPPS().getTransform8x8ModeFlag() &&
+                        ( rcMbDataAccess.getMbData().getBLSkipFlag() ||
+                          rcMbDataAccess.getMbData().getBLQRefFlag() ||
+                        ( rcMbDataAccess.getMbData().is8x8TrafoFlagPresent() &&
+                         !rcMbDataAccess.getMbData().isIntra4x4() ) ) );
+      }
+#endif
 			//-- JVT-R091
 			RNOK( xWriteTextureInfo( rcMbDataAccess, pcMbDataAccessBase, rcMbDataAccess.getMbTCoeffs(), bTrafo8x8Flag ) );
 			//--
@@ -445,6 +497,13 @@ MbCoder::xWriteMotionPredFlags( MbDataAccess&  rcMbDataAccess,
                                 MbMode         eMbMode,
                                 ListIdx        eLstIdx )
 {
+#if INDEPENDENT_PARSING
+  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+  {
+    return xWriteMotionPredFlags_Ind( rcMbDataAccess, eMbMode, eLstIdx );
+  }
+#endif
+
   AOT_DBG( rcMbDataAccess.getMbData().isIntra() );
 
   ROFRS  ( rcMbDataAccess.getSH().getAdaptivePredictionFlag (), Err::m_nOK );
@@ -525,7 +584,84 @@ MbCoder::xWriteMotionPredFlags( MbDataAccess&  rcMbDataAccess,
 }
 
 
+#if INDEPENDENT_PARSING
+ErrVal
+MbCoder::xWriteMotionPredFlags_Ind( MbDataAccess&  rcMbDataAccess,
+                                    MbMode         eMbMode,
+                                    ListIdx        eLstIdx )
+{ 
+  AOT_DBG( rcMbDataAccess.getMbData().isIntra() );
 
+  ROFRS  ( rcMbDataAccess.getSH().getAdaptivePredictionFlag (), Err::m_nOK );
+
+  switch( eMbMode )
+  {
+  case MODE_SKIP:
+    {
+      break;
+    }
+
+  case MODE_16x16:
+    {
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) )
+      {
+        RNOK( m_pcMbSymbolWriteIf->motionPredFlag( rcMbDataAccess, eLstIdx ) );
+      }
+      break;
+    }
+
+  case MODE_16x8:
+    {
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) )
+      {
+        RNOK( m_pcMbSymbolWriteIf->motionPredFlag( rcMbDataAccess, eLstIdx, PART_16x8_0 ) );
+      }
+
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_2, eLstIdx) )
+      {
+        RNOK( m_pcMbSymbolWriteIf->motionPredFlag( rcMbDataAccess, eLstIdx, PART_16x8_1 ) );
+      }
+      break;
+    }
+
+  case MODE_8x16:
+    {
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_0, eLstIdx) )
+      {
+        RNOK( m_pcMbSymbolWriteIf->motionPredFlag( rcMbDataAccess, eLstIdx, PART_8x16_0 ) );
+      }
+
+      if( rcMbDataAccess.getMbData().isBlockFwdBwd( B_8x8_1, eLstIdx) )
+      {
+        RNOK( m_pcMbSymbolWriteIf->motionPredFlag( rcMbDataAccess, eLstIdx, PART_8x16_1 ) );
+      }
+      break;
+    }
+
+  case MODE_8x8:
+  case MODE_8x8ref0:
+    {
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        if( BLK_SKIP != rcMbDataAccess.getMbData().getBlkMode   ( c8x8Idx.b8x8Index() ) &&
+           rcMbDataAccess             .getMbData().isBlockFwdBwd( c8x8Idx.b8x8Index(), eLstIdx) )
+        {
+          RNOK( m_pcMbSymbolWriteIf->motionPredFlag( rcMbDataAccess, eLstIdx, c8x8Idx.b8x8() ) );
+        }
+      }
+      break;
+    }
+
+  default:
+    {
+      AOT(1);
+      return Err::m_nERR;
+    }
+  }
+
+  return Err::m_nOK;
+}
+#endif
 
 ErrVal
 MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
@@ -787,12 +923,34 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
   }
 
   
+#if INDEPENDENT_PARSING
+  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+  {
+    if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
+        rcMbDataAccess.getMbData().getBLQRefFlag() ||
+       !rcMbDataAccess.getMbData().isIntra() )
+    {
+      if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+      {
+        if( ! rcMbDataAccess.getSH().isIntra() )
+        {
+          RNOK( m_pcMbSymbolWriteIf->resPredFlag( rcMbDataAccess ) );
+          if ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
+               rcMbDataAccess.getMbData().getBLSkipFlag() )
+          {
+            RNOK( m_pcMbSymbolWriteIf->smoothedRefFlag( rcMbDataAccess ) );
+          }
+        }
+      }
+    }
+  }
+  else
+#endif
   if( !rcMbDataAccess.getMbData().isIntra() )
   {
     if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
     {
        RNOK( m_pcMbSymbolWriteIf->resPredFlag( rcMbDataAccess ) );
-
 			 //-- JVT-R091
 			 if ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
 						rcMbDataAccess.getMbData().getBLSkipFlag() &&

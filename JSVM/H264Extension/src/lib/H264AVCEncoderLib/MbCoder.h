@@ -131,6 +131,11 @@ protected:
                                     MbDataAccess* pcMbDataAccessBase,
                                     MbMode        eMbMode,
                                     ListIdx       eLstIdx );
+#if INDEPENDENT_PARSING
+  ErrVal xWriteMotionPredFlags_Ind( MbDataAccess& rcMbDataAccess,
+                                    MbMode        eMbMode,
+                                    ListIdx       eLstIdx );
+#endif
   ErrVal xWriteReferenceFrames    ( MbDataAccess& rcMbDataAccess,
                                     MbMode        eMbMode,
                                     ListIdx       eLstIdx );

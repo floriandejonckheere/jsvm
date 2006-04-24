@@ -122,7 +122,6 @@ MbData::copyMotion( MbData& rcMbData,
                     UInt    uiSliceId )
 {
   m_uiSliceId   = ( uiSliceId != MSYS_UINT_MAX ? uiSliceId : m_uiSliceId );
-  m_bSkipFlag   = rcMbData.m_bSkipFlag;
   m_bBLSkipFlag = rcMbData.m_bBLSkipFlag;
   m_bBLQRefFlag = rcMbData.m_bBLQRefFlag;
   m_eMbMode     = rcMbData.m_eMbMode;

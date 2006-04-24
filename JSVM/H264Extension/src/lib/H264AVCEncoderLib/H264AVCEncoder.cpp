@@ -312,31 +312,6 @@ H264AVCEncoder::uninit()
 }
 
 
-ErrVal getRateSpecifiers( UInt&   ruiFrameRateUnitNom,
-                          UInt&   ruiFrameRateUnitDenom,
-                          Double  dFrameRate )
-{
-  ROT( dFrameRate <= 0.0 );
-
-  UInt  uiMaxDenom      = 30000;
-  ruiFrameRateUnitNom   = 0;
-
-  for( ruiFrameRateUnitDenom = 1; ruiFrameRateUnitDenom <= uiMaxDenom; ruiFrameRateUnitDenom++ )
-  {
-    Double  dNom = dFrameRate * (Double)ruiFrameRateUnitDenom;
-    Int     iL   = (Int)floor( dNom );
-    Int     iH   = (Int)ceil ( dNom );
-    
-    if( iL == iH )
-    {
-      ruiFrameRateUnitNom = iL;
-      break;
-    }
-  }
-  ROF( ruiFrameRateUnitNom );
-  
-  return Err::m_nOK;
-}
 
 //{{Quality level estimation and modified truncation- JVTO044 and m12007
 //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -1386,6 +1361,9 @@ H264AVCEncoder::xInitParameterSets()
 #if MULTIPLE_LOOP_DECODING
     pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
                                                     rcLayerParameters.getDecodingLoops() > 1 );
+#endif
+#if INDEPENDENT_PARSING
+    pcSPS->setIndependentParsing                  ( rcLayerParameters.getIndependentParsing() > 0 );
 #endif
 
     //===== set picture parameter set parameters =====

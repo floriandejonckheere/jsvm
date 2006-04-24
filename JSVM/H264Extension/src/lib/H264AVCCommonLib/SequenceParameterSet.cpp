@@ -183,6 +183,9 @@ SequenceParameterSet::SequenceParameterSet  ()
 #if MULTIPLE_LOOP_DECODING
 , m_bAlwaysDecodeBaseLayer                  ( false )
 #endif
+#if INDEPENDENT_PARSING
+, m_bIndepedentParsing                      ( false )
+#endif
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -307,6 +310,9 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 #if MULTIPLE_LOOP_DECODING
     RNOK( pcWriteIf->writeFlag( m_bAlwaysDecodeBaseLayer,                 "SPS: always_decode_base_layer" ) );
 #endif
+#if INDEPENDENT_PARSING
+    RNOK( pcWriteIf->writeFlag( m_bIndepedentParsing,                     "SPS: independent_parsing" ) );
+#endif
   }
   //--- fidelity range extension syntax ---
   RNOK  ( xWriteFrext( pcWriteIf ) );
@@ -410,6 +416,9 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
 
 #if MULTIPLE_LOOP_DECODING
     RNOK( pcReadIf->getFlag( m_bAlwaysDecodeBaseLayer,                    "SPS: always_decode_base_layer" ) );
+#endif
+#if INDEPENDENT_PARSING
+    RNOK( pcReadIf->getFlag( m_bIndepedentParsing,                        "SPS: independent_parsing" ) );
 #endif
   }
   //--- fidelity range extension syntax ---

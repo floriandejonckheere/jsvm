@@ -158,7 +158,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,         iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,         iQp ) );
     RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,         iQp ) );
-		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,         iQp ) );	// JVT-R091
+		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,         iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_I,           iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_I,          iQp ) );
@@ -181,6 +181,13 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cMvdCCModel.initBuffer(         (Short*)INIT_MV_RES_P         [iIndex], iQp ) );
     RNOK( m_cRefPicCCModel.initBuffer(      (Short*)INIT_REF_NO_P         [iIndex], iQp ) );
     RNOK( m_cBLPredFlagCCModel.initBuffer(  (Short*)INIT_BL_PRED_FLAG_P   [iIndex], iQp ) );
+#if INDEPENDENT_PARSING
+    if( rcSliceHeader.getSPS().getIndependentParsing() )
+    {
+      RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG_P_Ind  [iIndex], iQp ) );
+    }
+    else
+#endif
     RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG_P  [iIndex], iQp ) );
     RNOK( m_cDeltaQpCCModel.initBuffer(     (Short*)INIT_DELTA_QP_P       [iIndex], iQp ) );
     RNOK( m_cIntraPredCCModel.initBuffer(   (Short*)INIT_IPR_P            [iIndex], iQp ) );
@@ -188,7 +195,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,                   iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,                   iQp ) );
     RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,                   iQp ) );
-		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,                   iQp ) );	// JVT-R091
+		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,                   iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_P            [iIndex], iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_P           [iIndex], iQp ) );
@@ -527,7 +534,13 @@ ErrVal CabacWriter::BLQRefFlag( MbDataAccess& rcMbDataAccess )
 ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 {
   UInt  uiSymbol = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
-  UInt  uiCtx = rcMbDataAccess.getMbData().isBaseResidualAvailable();
+  UInt  uiCtx    = ( rcMbDataAccess.getMbData().isBaseResidualAvailable()         ? 1 : 0 );
+#if INDEPENDENT_PARSING
+  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+  {
+    uiCtx = ( rcMbDataAccess.getMbData().getBLSkipFlag() ? 0 : 1 );
+  }
+#endif
 
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
 
@@ -538,6 +551,7 @@ ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 
   return Err::m_nOK;
 }
+
 
 //-- JVT-R091
 ErrVal CabacWriter::smoothedRefFlag( MbDataAccess& rcMbDataAccess )

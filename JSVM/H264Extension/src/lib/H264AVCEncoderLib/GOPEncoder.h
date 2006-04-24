@@ -133,12 +133,6 @@ class RQFGSEncoder;
 typedef MyList<UInt>        UIntList;
 
 
-#define TARGET_MOTION_RATE_FACTOR   0.670
-#define MAX_MOTION_RATE_FACTOR      0.800
-#define MOTION_RATE_INC_FACTOR      1.500
-
-
-
 class H264AVCENCODERLIB_API AccessUnit
 {
 public:
@@ -205,13 +199,7 @@ class H264AVCENCODERLIB_API MCTFEncoder
 {
   enum
   {
-    NUM_TMP_FRAMES  = 5 //JVT-Q054  Red. Picture
-//		NUM_TMP_FRAMES  = 3
-  };
-  enum
-  {
-    LPS = 0x00,   // low pass signal
-    HPS = 0x01    // high pass signal
+    NUM_TMP_FRAMES  = 6
   };
 
 protected:
@@ -305,18 +293,12 @@ public:
   void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
   //Bug_Fix JVT-R057{
 protected:
-  ErrVal  xProcessClosedLoop            ( AccessUnitList&             rcAccessUnitList,
-                                          PicBufferList&              rcPicBufferInputList,
-                                          PicBufferList&              rcPicBufferOutputList,
-                                          PicBufferList&              rcPicBufferUnusedList,
-                                          Double                      m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
   ErrVal  xDeleteData                   ();
 
   
   ErrVal  xInitGOP                      ( PicBufferList&              rcPicBufferInputList );
-  ErrVal  xUpdateBitCounts              ();
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
                                           PicBufferList&              rcPicBufferUnusedList,
@@ -335,19 +317,16 @@ protected:
   ErrVal  xCompositionStage             ( UInt                        uiBaseLevel,
                                           PicBufferList&              rcPicBufferInputList );
   ErrVal  xStoreReconstruction          ( PicBufferList&              rcPicBufferOutputList );
-  ErrVal  xStoreOriginalPictures        ();
-  ErrVal  xSwitchOriginalPictures       ();
 
 
 
 
   //===== control data initialization =====
-  ErrVal  xSetScalingFactorsMCTF        ( UInt                        uiBaseLevel );
-  ErrVal  xSetScalingFactorsAVC         ();
+  ErrVal  xSetScalingFactors            ( UInt                        uiBaseLevel );
+  ErrVal  xSetScalingFactors            ();
   ErrVal  xGetListSizes                 ( UInt                        uiTemporalLevel,
                                           UInt                        uiFrameIdInGOP,
-                                          UInt                        auiPredListSize[2],
-                                          UInt                        aauiUpdListSize[MAX_DSTAGES][2] );
+                                          UInt                        auiPredListSize[2] );
   ErrVal  xSetBaseLayerData             ( UInt                        uiFrameIdInGOP );
   ErrVal  xInitReordering               ( UInt                        uiFrameIdInGOP );
   ErrVal  xInitSliceHeader              ( UInt                        uiTemporalLevel,
@@ -367,17 +346,6 @@ protected:
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bHalfPel = false );
-  ErrVal  xGetOrgPredictionLists        ( RefFrameList&               rcRefList0,
-                                          RefFrameList&               rcRefList1,
-                                          UInt                        uiBaseLevel,
-                                          UInt                        uiFrame,
-                                          Bool                        bHalfPel = false );
-  ErrVal  xGetUpdateLists               ( RefFrameList&               rcRefList0,
-                                          RefFrameList&               rcRefList1,
-                                          CtrlDataList&               rcCtrlList0,
-                                          CtrlDataList&               rcCtrlList1,
-                                          UInt                        uiBaseLevel,
-                                          UInt                        uiFrame );
   ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData, 
                                           UInt                        uiBaseLevel,  //TMM_ESS
                                           UInt                        uiFrame,      //TMM_ESS
@@ -391,8 +359,7 @@ protected:
   ErrVal  xInitControlDataHighPass      ( UInt                        uiFrameIdInGOP,
                                           UInt                        uiBaseLevel,   //TMM_ESS
                                           UInt                        uiFrame  );    //TMM_ESS
-  ErrVal  xGetConnections               ( ControlData&                rcControlData,
-                                          Double&                     rdL0Rate,
+  ErrVal  xGetConnections               ( Double&                     rdL0Rate,
                                           Double&                     rdL1Rate,
                                           Double&                     rdBiRate );
 
@@ -446,13 +413,7 @@ protected:
                                           ControlData&                rcControlData,
                                           Bool                        bBiPredOnly,
                                           UInt                        uiNumMaxIter,
-                                          UInt                        uiIterSearchRange,
-                                          UInt                        uiIntraMode );
-  ErrVal
-  MCTFEncoder::xUpdateCompensation( IntFrame*        pcMCFrame,
-                                    RefFrameList*    pcRefFrameList,
-                                    CtrlDataList*    pcCtrlDataList,
-                                    ListIdx          eListUpd);
+                                          UInt                        uiIterSearchRange );
 
 	//-- JVT-R091
   ErrVal  xFixMCPrediction							( IntFrame*                   pcMCFrame,
@@ -548,18 +509,15 @@ protected:
   UInt                          m_uiFrameDelay;                       // maximum possible delay in frames
   UInt                          m_uiMaxNumRefFrames;                  // maximum number of active reference pictures in a list
   UInt                          m_uiLowPassIntraPeriod;               // intra period for lowest temporal resolution
-  UInt                          m_uiIntraMode;                        // intra mode usage for MCTF
   UInt                          m_uiNumMaxIter;                       // maximum number of iteration for bi-directional search
   UInt                          m_uiIterSearchRange;                  // search range for iterative search
   UInt                          m_iMaxDeltaQp;                        // maximum QP changing
   UInt                          m_uiClosedLoopMode;                   // closed-loop coding mode (0:open-loop)
-  Bool                          m_bUpdate;                            // usage of update steps
   Bool                          m_bH264AVCCompatible;                 // H.264/AVC compatibility
   Bool                          m_bInterLayerPrediction;              // inter-layer prediction
   Bool                          m_bAdaptivePrediction;                // adaptive inter-layer prediction
   Bool                          m_bHaarFiltering;                     // haar-based decomposition
   Bool                          m_bBiPredOnly;                        // only bi-direktional prediction
-  Bool                          m_bAdaptiveQP;                        // QP's are set based on chosen modes
   Bool                          m_bForceReOrderingCommands;           // always write re-ordering commands (error robustness)
   Bool                          m_bWriteSubSequenceSei;               // Subsequence SEI message (H.264/AVC base layer)
   Double                        m_adBaseQpLambdaMotion[MAX_DSTAGES];  // base QP's for mode decision and motion estimation
@@ -594,7 +552,6 @@ protected:
   IntFrame**                    m_papcCLRecFrame;                     // closed-loop rec. (needed when m_uiQualityLevelForPrediction < NumFGS)
   IntFrame**                    m_papcResidual;                       // frame stores for residual data
   IntFrame**                    m_papcSubband;                        // reconstructed subband pictures
-  IntFrame*                     m_apcLowPassTmpOrg  [2];              // temporal storage for original low-pass pcitures
   IntFrame*                     m_pcLowPassBaseReconstruction;        // base reconstruction of last low-pass picture
 //TMM_WP
   Bool                          m_bBaseLayerWp;
@@ -607,7 +564,6 @@ protected:
 
   //----- control data arrays -----
   ControlData*                  m_pacControlData;                     // control data arrays
-  ControlData                   m_cControlDataUpd;                    // control data for update steps
   MbDataCtrl*                   m_pcBaseLayerCtrl;                    // macroblock data of the base layer pictures
 
   //----- auxiliary buffers -----
@@ -686,14 +642,6 @@ protected:
   //JVT-R057 LA-RD}
 
   UInt							m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
-  enum RefListType
-  {
-    REF_LIST_TYPE_FGS_0    = 0x00,     // base reconstructed as the reference
-    REF_LIST_TYPE_FGS_1    = 0x01,     // use the base reconstructed as the reference
-    REF_LIST_TYPE_FGS_2    = 0x02,     // use the base reconstructed as the reference
-    REF_LIST_TYPE_FGS_3    = 0x03,     // use the base reconstructed as the reference
-    REF_LIST_TYPE_NORMAL   = 0x04,     // either original in MCTF, or the upper-layer reconstructed in close-loop
-  };
 };
 
 #if defined( WIN32 )

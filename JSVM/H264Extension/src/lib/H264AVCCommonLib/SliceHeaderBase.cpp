@@ -296,8 +296,12 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 
 SliceHeaderBase::~SliceHeaderBase()
 {
-  if(m_pcFMO !=NULL)
-	  m_pcFMO->finit();
+  if(m_pcFMO)
+  //manu.mathew@samsung : memory leak fix
+  {
+    delete m_pcFMO; m_pcFMO = NULL;
+  }
+  //--
   ANOK( m_acPredWeightTable[LIST_0].uninit() );
   ANOK( m_acPredWeightTable[LIST_1].uninit() );
 }
@@ -1094,7 +1098,12 @@ SliceHeaderBase::FMOInit()
 		m_pcFMO = new FMO();
 	else
 	{
-		m_pcFMO->finit();
+    //manu.mathew@samsung : memory leak fix
+    if( m_pcFMO ) 
+    {
+      delete m_pcFMO; m_pcFMO = NULL; 
+    }
+    //--
 		m_pcFMO = new FMO();
 	}
 

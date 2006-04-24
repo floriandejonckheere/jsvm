@@ -8,6 +8,7 @@ all:
 	make -C test/BitStreamExtractor
 	make -C test/FixedQPEncoder
 	make -C test/QualityLevelAssigner
+	make -C test/MCTFPreProcessor
 	make -C tools/DownConvert
 	make -C tools/PSNR
 
@@ -22,6 +23,7 @@ debug:
 	make -C test/BitStreamExtractor debug
 	make -C test/FixedQPEncoder debug
 	make -C test/QualityLevelAssigner debug
+	make -C test/MCTFPreProcessor debug
 	make -C tools/DownConvert debug
 	make -C tools/PSNR debug
 
@@ -35,6 +37,7 @@ release:
 	make -C test/BitStreamExtractor release
 	make -C test/FixedQPEncoder release
 	make -C test/QualityLevelAssigner release
+	make -C test/MCTFPreProcessor release
 	make -C tools/DownConvert release
 	make -C tools/PSNR release
 
@@ -48,5 +51,6 @@ clean:
 	make -C test/BitStreamExtractor clean
 	make -C test/FixedQPEncoder clean
 	make -C test/QualityLevelAssigner clean
+	make -C test/MCTFPreProcessor clean
 	make -C tools/DownConvert clean
 	make -C tools/PSNR clean

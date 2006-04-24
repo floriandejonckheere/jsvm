@@ -1,4 +1,42 @@
 
+
+JSVM_5_0 -> JSVM_5_1
+====================
+
+Skip mode for SVC slice data
+Independent parsing (as option in software)
+MCTF pre-processing
+Remove MCTF and open-loop coding from encoder
+Software manual
+
+Data: April 24, 2006
+Author: Heiko Schwarz (Fraunhofer HHI)
+Contribution: JVT-S068, JVT-S069, JVT-S070, JVT group decision
+
+changes:
+- added skip mode for SVC NAL units
+- added independent parsing as software option
+  - it is disables by default
+  - can be enabled by the layer configuration parameter "IndependentParsing"
+    or by the command line parameters "-ipars" and "-aip"
+- removed MCTF and open-loop coding from encoder
+- added a MCTF pre-processing tool
+- added following command line parameters to the encoder:
+  "-org", "-rec", "-ec", "-vlc", "-cabac"
+- removed following parameters from layer configuration file
+  "UseIntra", "AdaptiveQP", "UpdateStep"
+- slightly redefined parameter "ClosedLoop"
+  -> value 0 now also specifies closed-loop coding
+
+
+
+JSVM_5_0 == JSVM_4_12
+=====================
+
+no changes
+
+
+
 JSVM_4_11 -> JSVM_4_12
 ======================
 

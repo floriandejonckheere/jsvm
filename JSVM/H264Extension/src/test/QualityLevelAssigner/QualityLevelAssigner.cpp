@@ -382,6 +382,10 @@ QualityLevelAssigner::xInitStreamParameters()
     RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
     if( bEOS )
     {
+      //manu.mathew@samsung : memory leak fix
+      RNOK( pcReadBitStream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+      //--
       break;
     }
 
@@ -679,6 +683,10 @@ QualityLevelAssigner::xInitRateValues()
     RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
     if( bEOS )
     {
+      //manu.mathew@samsung : memory leak fix
+      RNOK( pcReadBitStream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+      //--	  
       break;
     }
 
@@ -1055,6 +1063,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
             bToDecode = true;
           }
         }
+        //manu.mathew@samsung : memory leak fix
+        else
+        {
+          RNOK( pcReadBitStream->releasePacket( apcBinDataTmp[0] ) );
+          apcBinDataTmp[0] = NULL;
+        }
+        //--
       }
     }
 //NonRequired JVT-Q066{
@@ -1353,6 +1368,10 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
     RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
     if( bEOS )
     {
+      //manu.mathew@samsung : memory leak fix
+      RNOK( pcReadBitStream ->releasePacket ( pcBinData ) );
+      pcBinData = NULL;
+      //--
       break;
     }
 
@@ -1431,6 +1450,10 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
     RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
     if( bEOS )
     {
+      //manu.mathew@samsung : memory leak fix
+      RNOK( pcReadBitStream ->releasePacket ( pcBinData ) );
+      pcBinData = NULL;
+      //--
       break;
     }
 

@@ -56,6 +56,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "QualityLevelAssigner", "..\
 		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MCTFPreProcessor", "..\..\src\test\MCTFPreProcessor\MCTFPreProcessor.vcproj", "{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777} = {429A9314-F0A4-46E4-9B79-CF1FBEFBB777}
+		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SourceCodeControl) = preSolution
 		SccNumberOfProjects = 1
@@ -114,6 +121,10 @@ Global
 		{B4E46FE9-7ABF-468C-9FCD-49F4C9A98A05}.Debug.Build.0 = Debug|Win32
 		{B4E46FE9-7ABF-468C-9FCD-49F4C9A98A05}.Release.ActiveCfg = Release|Win32
 		{B4E46FE9-7ABF-468C-9FCD-49F4C9A98A05}.Release.Build.0 = Release|Win32
+		{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}.Debug.ActiveCfg = Debug|Win32
+		{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}.Debug.Build.0 = Debug|Win32
+		{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}.Release.ActiveCfg = Release|Win32
+		{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

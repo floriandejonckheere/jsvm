@@ -313,6 +313,23 @@ static const Short INIT_RES_PRED_FLAG_P[3][1][NUM_RES_PRED_FLAG_CTX][2] =
   }
 };
 
+#if INDEPENDENT_PARSING
+static const Short INIT_RES_PRED_FLAG_P_Ind[3][1][NUM_RES_PRED_FLAG_CTX][2] =
+{
+  //----- model 0 -----
+  {
+    {  { 0, 100 } ,  { 0, 80 } }
+  },
+    //----- model 1 -----
+  {
+    {  { 0, 100 } ,  { 0, 80 } }
+  },
+    //----- model 2 -----
+  {
+    {  { 0, 100 } ,  { 0, 80 } }
+  }
+};
+#endif
 
 static const Short INIT_DELTA_QP_I[1][1][4][2]=
 {
@@ -339,6 +356,14 @@ static const Short INIT_DELTA_QP_P[3][1][4][2]=
 
 
 static const Short INIT_BL_FLAG[1][1][1][2] =
+{
+  //----- model 0 -----
+  {
+    { { 0, 40 } }
+  }
+};
+
+static const Short INIT_SR_FLAG[1][1][1][2] =
 {
   //----- model 0 -----
   {

@@ -132,7 +132,6 @@ public:
                 MotionEstimation *pcMotionEstimation,
                 CodingParameter* pcCodingParameter,
                 RateDistortionIf* pcRateDistortionIf,
-                FrameMng* pcFrameMng,
                 XDistortion* pcXDistortion
                 );
 
@@ -201,7 +200,6 @@ public:
                                 Bool            bBiPredOnly,
                                 UInt            uiNumMaxIter,
                                 UInt            uiIterSearchRange,
-                                UInt            uiIntraMode,
 								Bool			bBLSkipEnable, // JVT-Q065 EIDR
                                 Double          dLambda );
   ErrVal  encodeMacroblock    ( MbDataAccess&   rcMbDataAccess,
@@ -600,8 +598,6 @@ protected:
   IntYuvMbBuffer  *m_pcIntOrgMbPelData;
   IntYuvPicBuffer *m_pcIntPicBuffer;
   IntYuvPicBuffer *m_pcIntraPredPicBuffer;
-
-  FrameMng* m_pcFrameMng;
 
   UInt m_uiMaxRefFrames[2];
   UInt m_uiMaxRefPics[2];

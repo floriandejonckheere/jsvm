@@ -149,7 +149,6 @@ ErrVal LayerParameters::check()
   ROTREPORT( getDecodingLoops           () > 1,         "Unsupported mode for decoding loops" );
 #endif
   ROTREPORT( getClosedLoop              () > 2,         "Unsupported closed-loop mode" );
-  ROTREPORT( getUpdateStep() && getClosedLoop(),        "Closed-loop coding for MCTF is not supported" );
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
 

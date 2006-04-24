@@ -90,7 +90,6 @@ H264AVC_NAMESPACE_BEGIN
 
 
 RateDistortion::RateDistortion():
-  m_pcCodingParameter( NULL ),
   m_uiCostFactorMotionSAD( 0 ),
   m_uiCostFactorMotionSSE( 0 )
 {
@@ -111,7 +110,7 @@ ErrVal RateDistortion::create( RateDistortion *&rpcRateDistortion )
 
 Double RateDistortion::getCost( UInt uiBits, UInt uiDistortion )
 {
-  Double d = ((Double)uiDistortion + (Double)uiBits * m_dCost+.5);
+  Double d = ((Double)uiDistortion + (Double)(Int)uiBits * m_dCost+.5);
   return (Double)(UInt)floor(d);
 }
 
@@ -125,22 +124,6 @@ Double RateDistortion::getFCost( UInt uiBits, UInt uiDistortion )
 ErrVal RateDistortion::destroy()
 {
   delete this;
-  return Err::m_nOK;
-}
-
-ErrVal RateDistortion::uninit()
-{
-  m_pcCodingParameter = NULL;
-  return Err::m_nOK;
-}
-
-
-ErrVal RateDistortion::init( CodingParameter *pcCodingParameter )
-{
-  ROT( NULL == pcCodingParameter );
-
-  m_pcCodingParameter = pcCodingParameter;
-
   return Err::m_nOK;
 }
 

@@ -414,6 +414,80 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       continue;
     }
 
+#if INDEPENDENT_PARSING
+    if( equals( pcCom, "-ipars", 6 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt uiLayer      = atoi( argv[n  ] );
+      UInt uiIndParsing = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setIndependentParsing( uiIndParsing );
+      continue;
+    }
+    if( equals( pcCom, "-aip", 4 ) )
+    {
+      n--;
+      ROTS( NULL == argv[n] );
+      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+      {
+        CodingParameter::getLayerParameters( uiLayer ).setIndependentParsing( true );
+      }
+      continue;
+    }
+#endif
+
+    if( equals( pcCom, "-org", 4 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      ROF(    uiLayer < MAX_LAYERS );
+      CodingParameter::getLayerParameters( uiLayer ).setInputFilename( argv[n+1] );
+      n += 1;
+      continue;      
+    }
+    if( equals( pcCom, "-rec", 4 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      ROF(    uiLayer < MAX_LAYERS );
+      CodingParameter::getLayerParameters( uiLayer ).setOutputFilename( argv[n+1] );
+      n += 1;
+      continue;      
+    }
+    if( equals( pcCom, "-ec", 3 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer  = atoi( argv[n  ] );
+      ROF(    uiLayer < MAX_LAYERS );
+      UInt    uiECmode = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setEntropyCodingModeFlag( uiECmode != 0 );
+      n += 1;
+      continue;      
+    }
+    if( equals( pcCom, "-vlc", 4 ) )
+    {
+      n--;
+      ROTS( NULL == argv[n] );
+      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+      {
+        CodingParameter::getLayerParameters( uiLayer ).setEntropyCodingModeFlag( false );
+      }
+      continue;
+    }
+    if( equals( pcCom, "-cabac", 6 ) )
+    {
+      n--;
+      ROTS( NULL == argv[n] );
+      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+      {
+        CodingParameter::getLayerParameters( uiLayer ).setEntropyCodingModeFlag( true );
+      }
+      continue;
+    }
+
     if( equals( pcCom, "-h", 2) )
     {
       printHelp();
@@ -446,6 +520,15 @@ Void EncoderCodingParameter::printHelp()
   printf("  -bf     BitStreamFile\n");
   printf("  -frms   Number of total frames\n");
   printf("  -numl   Number Of Layers\n");
+  printf("  -cabac  CABAC for all layers as entropy coding mode\n");
+  printf("  -vlc    VLC for all layers as entropy coding mode\n");
+#if INDEPENDENT_PARSING
+  printf("  -aip    independent parsing for all layers\n");
+  printf("  -ipars  (Layer) (Independent Parsing) [0: off, 1: on]\n");
+#endif
+  printf("  -org    (Layer) (original file)\n");
+  printf("  -rec    (Layer) (reconstructed file)\n");
+  printf("  -ec     (Layer) (entropy coding mode)\n");
   printf("  -rqp    (Layer) (ResidualQP)\n");
   printf("  -mqp    (Layer) (Stage) (MotionQP)\n");
   printf("  -lqp    (Layer) (ResidualAndMotionQP)\n");
@@ -719,10 +802,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",      &cInputFilename,                         "test.yuv");
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",      &cOutputFilename,                        "rec.yuv" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",     &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UpdateStep",     &(rcLayer.m_uiUpdateStep),               1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ClosedLoop",     &(rcLayer.m_uiClosedLoop),               0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("AdaptiveQP",     &(rcLayer.m_uiAdaptiveQPSetting),        1         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseIntra",       &(rcLayer.m_uiMCTFIntraMode),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",     &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",             &(rcLayer.m_dBaseQpResidual),            32.0      );
@@ -767,6 +847,9 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 // JVT-Q065 EIDR}
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	          &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice), 0   );  //JVT-Q054 Red. Picture
+#if INDEPENDENT_PARSING
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("IndependentParsing", &(rcLayer.m_uiIndependentParsing), 0 );
+#endif
   m_pLayerLines[uiParLnCount] = NULL;
 
   while (!feof(f))

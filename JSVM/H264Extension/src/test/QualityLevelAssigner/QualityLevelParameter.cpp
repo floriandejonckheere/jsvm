@@ -110,6 +110,14 @@ QualityLevelParameter::create( QualityLevelParameter*& rpcQualityLevelParameter 
   return Err::m_nOK;
 }
 
+//manu.mathew@samsung : memory leak fix
+ErrVal
+QualityLevelParameter::destroy()
+{
+  delete this;
+  return Err::m_nOK;
+}
+//--
 
 ErrVal
 QualityLevelParameter::init( Int argc, Char** argv )

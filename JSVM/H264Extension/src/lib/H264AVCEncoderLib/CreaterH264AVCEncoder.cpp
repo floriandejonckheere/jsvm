@@ -375,7 +375,6 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
   RNOK( m_pcReconstructionBypass    ->init() );
   RNOK( m_pcLoopFilter              ->init( m_pcControlMng,
                                             m_pcReconstructionBypass ) );
-  RNOK( m_pcRateDistortion          ->init( pcCodingParameter ) );
   RNOK( m_pcQuarterPelFilter        ->init() );
 
   RNOK( m_pcMbEncoder               ->init( m_pcTransform,
@@ -383,7 +382,6 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             m_pcMotionEstimation,
                                             m_pcCodingParameter,
                                             m_pcRateDistortion,
-                                            m_pcFrameMng,
                                             m_pcXDistortion ) );
   RNOK( m_pcMotionEstimation        ->init( m_pcXDistortion,
                                             m_pcCodingParameter,
@@ -511,11 +509,6 @@ CreaterH264AVCEncoder::uninit()
   RNOK( m_pcReconstructionBypass  ->uninit() );
   RNOK( m_pcRQFGSEncoder          ->uninit() );
   RNOK( m_pcPicEncoder            ->uninit() );
-
-  if( NULL != m_pcRateDistortion )
-  {
-    RNOK( m_pcRateDistortion      ->uninit() );
-  }
 
   for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {

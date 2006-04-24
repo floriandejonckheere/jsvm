@@ -711,6 +711,7 @@ ErrVal UvlcReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
+
 //-- JVT-R091
 ErrVal UvlcReader::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
 {
@@ -848,7 +849,6 @@ ErrVal UvlcReader::intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cIdx
   DTRACE_COUNT(m_uiBitCounter);
   DTRACE_CODE(rcMbDataAccess.getMbData().intraPredMode( cIdx ));
   DTRACE_N;
-  rcMbDataAccess.getMbData().intraPredMode( cIdx ) = rcMbDataAccess.decodeIntraPredMode( cIdx );
 
   return Err::m_nOK;
 }
@@ -881,15 +881,6 @@ ErrVal UvlcReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx c
   DTRACE_CODE(rcMbDataAccess.getMbData().intraPredMode( cIdx ));
   DTRACE_N;
   
-  const Int iPredMode = rcMbDataAccess.decodeIntraPredMode( cIdx );
-  {
-    S4x4Idx cIdx4x4(cIdx);
-    for( Int n = 0; n < 4; n++, cIdx4x4++ )
-    {
-      rcMbDataAccess.getMbData().intraPredMode( cIdx4x4 ) = iPredMode;
-    }
-  }
-
   return Err::m_nOK;
 }
 
@@ -901,6 +892,13 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess )
   RNOK( xGetUvlcCode( uiTemp ) );
 
   UInt uiCbp = ( rcMbDataAccess.getMbData().isIntra() ) ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp];
+#if INDEPENDENT_PARSING
+  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
+  {
+    Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && !rcMbDataAccess.getMbData().getBLQRefFlag() && rcMbDataAccess.getMbData().isIntra() );
+    uiCbp       = ( bIntra ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp] );
+  }
+#endif
   DTRACE_X ( uiCbp );
   DTRACE_N;
 

@@ -199,7 +199,9 @@ public:
     ROTRS( m_rcSliceHeader.isIntra(), false );
     if( m_rcSliceHeader.isInterB() )
     {
-      return (m_rcMbCurr.getMbMode() == MODE_SKIP) && (m_rcMbCurr.getMbCbp() == 0);
+      return (m_rcMbCurr.getMbMode() == MODE_SKIP) &&
+             (m_rcMbCurr.getMbCbp () == 0)         &&
+            !(m_rcMbCurr.getResidualPredFlag(PART_16x16));
     }
     return m_rcMbCurr.getMbMode() == MODE_SKIP;
   }
@@ -251,10 +253,9 @@ public:
   UInt getCtxBLSkipFlag     ()                  const;
   UInt getCtxBLQRefFlag     ()                  const;
   UInt getCtxDirectMbWoCoeff()                  const;
-  UInt getCtxMbIntra4x4     ()                  const;
   UInt getCtxCodedBlockBit  ( UInt uiBitPos )   const;
   UInt getCtxRefIdx         ( ListIdx eLstIdx, ParIdx8x8 eParIdx ) const;
-  UInt getCtxMotPredFlag    ( ListIdx eLstIdx, ParIdx8x8 eParIdx ) const;
+  UInt getCtxMbIntra4x4     ()                  const;
   UInt getCtxMbType         ()                  const;
   UInt getCtx8x8Flag        ()                  const;
 
@@ -345,10 +346,6 @@ protected:
   __inline UInt  xGetAboveCodedBlockBit   ( UInt uiBit   )  const;
   __inline SChar xGetRefIdxLeft ( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
   __inline SChar xGetRefIdxAbove( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
-
-  __inline Bool xGetMotPredFlagLeft ( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
-  __inline Bool xGetMotPredFlagAbove( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
-
   
   __inline Void          xGetColocatedMvRefIdx              ( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const;
   __inline const RefPic& xGetColocatedMvRefPic              ( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const;
@@ -498,6 +495,15 @@ __inline SChar MbDataAccess::xGetRefIdxLeft( ListIdx eListIdx, ParIdx8x8 eParIdx
   B4x4Idx       cIdx( eParIdx );
   const MbData& rcMbData  = xGetBlockLeft( cIdx );
 
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    if( rcMbData.getBLSkipFlag() || rcMbData.getBLQRefFlag() || rcMbData.getMbMotionData( eListIdx ).getMotPredFlag( ParIdx8x8( cIdx.b4x4() ) ) )
+    {
+      return BLOCK_NOT_AVAILABLE;
+    }
+  }
+#endif
   if( m_rcSliceHeader.isInterB() )
   {
     if( rcMbData.getMbMode() == MODE_SKIP || ( rcMbData.getMbMode() == MODE_8x8 && rcMbData.getBlkMode( Par8x8( 2*(cIdx.y()/2) + cIdx.x()/2 ) ) == BLK_SKIP ) )
@@ -513,6 +519,15 @@ __inline SChar MbDataAccess::xGetRefIdxAbove( ListIdx eListIdx, ParIdx8x8 eParId
   B4x4Idx       cIdx( eParIdx );
   const MbData& rcMbData  = xGetBlockAbove( cIdx );
 
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    if( rcMbData.getBLSkipFlag() || rcMbData.getBLQRefFlag() || rcMbData.getMbMotionData( eListIdx ).getMotPredFlag( ParIdx8x8( cIdx.b4x4() ) ) )
+    {
+      return BLOCK_NOT_AVAILABLE;
+    }
+  }
+#endif
   if( m_rcSliceHeader.isInterB() )
   {
     if( rcMbData.getMbMode() == MODE_SKIP || ( rcMbData.getMbMode() == MODE_8x8 && rcMbData.getBlkMode( Par8x8( 2*(cIdx.y()/2) + cIdx.x()/2 ) ) == BLK_SKIP ) )
@@ -521,29 +536,6 @@ __inline SChar MbDataAccess::xGetRefIdxAbove( ListIdx eListIdx, ParIdx8x8 eParId
 
   SChar  scRefIdx  = rcMbData.getMbMotionData( eListIdx ).getRefIdx( ParIdx8x8( cIdx.b4x4() ) );
   return scRefIdx;
-}
-
-
-
-__inline Bool MbDataAccess::xGetMotPredFlagLeft( ListIdx eListIdx, ParIdx8x8 eParIdx ) const
-{
-  B4x4Idx       cIdx( eParIdx );
-  const MbData& rcMbData  = xGetBlockLeft( cIdx );
-
-  Bool  bFlag  = rcMbData.getMbMotionData( eListIdx ).getMotPredFlag( ParIdx8x8( cIdx.b4x4() ) );
-
-  return bFlag;
-}
-
-
-__inline Bool MbDataAccess::xGetMotPredFlagAbove( ListIdx eListIdx, ParIdx8x8 eParIdx ) const
-{
-  B4x4Idx       cIdx( eParIdx );
-  const MbData& rcMbData  = xGetBlockAbove( cIdx );
-
-  Bool  bFlag  = rcMbData.getMbMotionData( eListIdx ).getMotPredFlag( ParIdx8x8( cIdx.b4x4() ) );
-
-  return bFlag;
 }
 
 
@@ -698,10 +690,20 @@ __inline Int MbDataAccess::decodeIntraPredMode( LumaIdx cIdx )
 
 __inline UInt MbDataAccess::getCtxMbType() const
 {
-   UInt uiCtx = ( xGetMbLeft ().isSkiped() ? 0 : 1);
-   uiCtx     += ( xGetMbAbove().isSkiped() ? 0 : 1);
-
-   return uiCtx;
+  UInt uiCtx = ( xGetMbLeft ().isSkiped() ? 0 : 1);
+  uiCtx     += ( xGetMbAbove().isSkiped() ? 0 : 1);
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    const MbData& rcMbLeft   = xGetMbLeft ();
+    const MbData& rcMbAbove  = xGetMbAbove();
+    Bool bSkippedLeft  = ( !rcMbLeft .getBLSkipFlag() && !rcMbLeft .getBLQRefFlag() && rcMbLeft .isSkiped() );
+    Bool bSkippedAbove = ( !rcMbAbove.getBLSkipFlag() && !rcMbAbove.getBLQRefFlag() && rcMbAbove.isSkiped() );
+    uiCtx              = ( bSkippedLeft  ? 0 : 1 );
+    uiCtx             += ( bSkippedAbove ? 0 : 1 );
+  }
+#endif
+  return uiCtx;
 }
 
 
@@ -764,6 +766,16 @@ __inline UInt MbDataAccess::getCtxMbIntra4x4() const
   uiCtx  = (( rcMbDataLeft.isIntra4x4() || ! xIsAvailable( rcMbDataLeft ) ) ? 0 : 1);
   uiCtx += ((rcMbDataAbove.isIntra4x4() || ! xIsAvailable( rcMbDataAbove ) ) ? 0 : 1);
 
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    Bool bIntraLeft  = ( !xIsAvailable( rcMbDataLeft  ) || ( !rcMbDataLeft .getBLSkipFlag() && !rcMbDataLeft .getBLQRefFlag() && rcMbDataLeft .isIntra4x4() ) );
+    Bool bIntraAbove = ( !xIsAvailable( rcMbDataAbove ) || ( !rcMbDataAbove.getBLSkipFlag() && !rcMbDataAbove.getBLQRefFlag() && rcMbDataAbove.isIntra4x4() ) );
+    uiCtx            = ( bIntraLeft  ? 0 : 1 );
+    uiCtx           += ( bIntraAbove ? 0 : 1 );
+  }
+#endif
+
   return uiCtx;
 }
 
@@ -778,18 +790,6 @@ __inline UInt MbDataAccess::getCtxRefIdx( ListIdx eLstIdx, ParIdx8x8 eParIdx ) c
 }
 
 
-__inline UInt MbDataAccess::getCtxMotPredFlag( ListIdx eLstIdx, ParIdx8x8 eParIdx ) const
-{
-  UInt uiCtx;
-
-  uiCtx  = ( xGetMotPredFlagAbove( eLstIdx, eParIdx ) ? 2 : 0 );
-  uiCtx += ( xGetMotPredFlagLeft ( eLstIdx, eParIdx ) ? 1 : 0 );
-
-  return uiCtx;
-}
-
-
-
 __inline UInt MbDataAccess::getLeftLumaCbp( LumaIdx cIdx )  const
 {
   const MbData& rcMbData = xGetBlockLeft( cIdx );
@@ -798,6 +798,16 @@ __inline UInt MbDataAccess::getLeftLumaCbp( LumaIdx cIdx )  const
   {
     return 1;
   }
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    if( !rcMbData.getBLSkipFlag() && !rcMbData.getBLQRefFlag() && rcMbData.isIntra16x16() )
+    {
+      return rcMbData.isAcCoded() ? 1 : 0;
+    }
+  }
+  else
+#endif
   if( rcMbData.isIntra16x16() )
   {
     return rcMbData.isAcCoded() ? 1 : 0;
@@ -813,6 +823,16 @@ __inline UInt MbDataAccess::getAboveLumaCbp( LumaIdx cIdx )  const
   {
     return 1;
   }
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    if( !rcMbData.getBLSkipFlag() && !rcMbData.getBLQRefFlag() && rcMbData.isIntra16x16() )
+    {
+      return rcMbData.isAcCoded() ? 1 : 0;
+    }
+  }
+  else
+#endif
   if( rcMbData.isIntra16x16() )
   {
     return rcMbData.isAcCoded() ? 1 : 0;
@@ -824,6 +844,16 @@ __inline UInt MbDataAccess::getLeftChromaCbp()  const
 {
   const MbData& rcMbData = xGetMbLeft();
 
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    if( !rcMbData.getBLSkipFlag() && !rcMbData.getBLQRefFlag() && rcMbData.isIntra16x16() )
+    {
+      return rcMbData.getCbpChroma16x16();
+    }
+  }
+  else
+#endif
   if( rcMbData.isIntra16x16() )
   {
     return rcMbData.getCbpChroma16x16();
@@ -835,6 +865,16 @@ __inline UInt MbDataAccess::getAboveChromaCbp()  const
 {
   const MbData& rcMbData = xGetMbAbove();
 
+#if INDEPENDENT_PARSING
+  if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+  {
+    if( !rcMbData.getBLSkipFlag() && !rcMbData.getBLQRefFlag() && rcMbData.isIntra16x16() )
+    {
+      return rcMbData.getCbpChroma16x16();
+    }
+  }
+  else
+#endif
   if( rcMbData.isIntra16x16() )
   {
     return rcMbData.getCbpChroma16x16();
@@ -902,6 +942,12 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
     const MbData& rcMbData  = xGetBlockLeft( cIdx );
     if( ! xIsAvailable( rcMbData ) )
     {
+#if INDEPENDENT_PARSING
+      if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+      {
+        return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+      }
+#endif
       return m_rcMbCurr.isIntra() ? 1 : 0;
     }
     return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
@@ -912,6 +958,12 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
     const MbData& rcMbData = xGetMbLeft();
     if( ! xIsAvailable( rcMbData ) )
     {
+#if INDEPENDENT_PARSING
+      if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+      {
+        return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+      }
+#endif
       return m_rcMbCurr.isIntra() ? 1 : 0;
     }
     return rcMbData.getBCBP( uiBit );
@@ -923,6 +975,12 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
     const MbData& rcMbData = xGetBlockLeft( cIdx );
     if( ! xIsAvailable( rcMbData ) )
     {
+#if INDEPENDENT_PARSING
+      if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+      {
+        return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+      }
+#endif
       return m_rcMbCurr.isIntra() ? 1 : 0;
     }
     return rcMbData.getBCBP( cIdx.b4x4() );
@@ -933,6 +991,12 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
   const MbData& rcMbData  = xGetBlockLeft( cIdx );
   if( ! xIsAvailable( rcMbData ) )
   {
+#if INDEPENDENT_PARSING
+    if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+    {
+      return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+    }
+#endif
     return m_rcMbCurr.isIntra() ? 1 : 0;
   }
   return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + iOffset );
@@ -947,6 +1011,12 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
     const MbData& rcMbData  = xGetBlockAbove( cIdx );
     if( ! xIsAvailable( rcMbData ) )
     {
+#if INDEPENDENT_PARSING
+      if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+      {
+        return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+      }
+#endif
       return m_rcMbCurr.isIntra() ? 1 : 0;
     }
     return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
@@ -957,6 +1027,12 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
     const MbData& rcMbData = xGetMbAbove();
     if( ! xIsAvailable( rcMbData ) )
     {
+#if INDEPENDENT_PARSING
+      if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+      {
+        return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+      }
+#endif
       return m_rcMbCurr.isIntra() ? 1 : 0;
     }
     return rcMbData.getBCBP( uiBit );
@@ -967,6 +1043,12 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
     const MbData& rcMbData = xGetBlockAbove( cIdx );
     if( ! xIsAvailable( rcMbData ) )
     {
+#if INDEPENDENT_PARSING
+      if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+      {
+        return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+      }
+#endif
       return m_rcMbCurr.isIntra() ? 1 : 0;
     }
     return rcMbData.getBCBP( cIdx.b4x4() );
@@ -977,6 +1059,12 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
   const MbData& rcMbData  = xGetBlockAbove( cIdx );
   if( ! xIsAvailable( rcMbData ) )
   {
+#if INDEPENDENT_PARSING
+    if( m_rcSliceHeader.getSPS().getIndependentParsing() )
+    {
+      return ( !m_rcMbCurr.getBLSkipFlag() && !m_rcMbCurr.getBLQRefFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+    }
+#endif
     return m_rcMbCurr.isIntra() ? 1 : 0;
   }
   return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + iOffset );
