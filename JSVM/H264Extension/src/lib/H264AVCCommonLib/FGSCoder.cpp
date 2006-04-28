@@ -714,14 +714,15 @@ ErrVal FGSCoder::xClearCodingPath()
           m_paucBlockMap[auiBlockIdx[3]] &= ~CODED;
 
           //===== set transform coefficients =====
-          for( UInt ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
+          UInt ui8x8ScanIndex;
+          for( ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
           {
             UInt  uiS = ui8x8ScanIndex/4;
             UInt  uiB = auiBlockIdx[ui8x8ScanIndex%4];
             m_apaucLumaCoefMap[uiS][uiB] &= ~CODED;
           }
           m_apaucScanPosMap[0][auiBlockIdx[0]] = 64;
-          for( UInt ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
+          for( ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
           {
             UInt  uiS = ui8x8ScanIndex/4;
             UInt  uiB = auiBlockIdx[ui8x8ScanIndex%4];
@@ -733,11 +734,12 @@ ErrVal FGSCoder::xClearCodingPath()
         {
           for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
           {
-            UInt    uiBlockIdx  = ( 4*uiMbY + cIdx.y() ) * 4 * m_uiWidthInMB + ( 4*uiMbX + cIdx.x() );
-            for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
+            UInt uiScanIndex;
+            UInt uiBlockIdx  = ( 4*uiMbY + cIdx.y() ) * 4 * m_uiWidthInMB + ( 4*uiMbX + cIdx.x() );
+            for( uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
               m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] &= ~CODED;
             m_apaucScanPosMap[0][uiBlockIdx] = 16;
-            for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
+            for( uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
               if( !( m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][uiBlockIdx] == 16 )
                 m_apaucScanPosMap[0][uiBlockIdx] = uiScanIndex;
 
@@ -750,10 +752,11 @@ ErrVal FGSCoder::xClearCodingPath()
       //--- CHROMA DC ---
       for( UInt uiPlane = 0; uiPlane < 2; uiPlane++ )
       {
-        for( UInt ui = 0; ui < 4; ui++ )
+        UInt ui;
+        for( ui = 0; ui < 4; ui++ )
           m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] &= ~CODED;
         m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = 4;
-        for( UInt ui = 0; ui < 4; ui++ )
+        for( ui = 0; ui < 4; ui++ )
           if( !( m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[uiPlane + 1][uiMbIndex] == 4 )
             m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = ui;
 
@@ -763,12 +766,13 @@ ErrVal FGSCoder::xClearCodingPath()
       //--- CHROMA AC ---
       for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
       {
-        UInt    ui8x8Idx    = ( 2*uiMbY + cCIdx.y() ) * 2 * m_uiWidthInMB + ( 2 * uiMbX + cCIdx.x() );
+        UInt  ui;
+        UInt  ui8x8Idx    = ( 2*uiMbY + cCIdx.y() ) * 2 * m_uiWidthInMB + ( 2 * uiMbX + cCIdx.x() );
 
-        for( UInt ui = 1; ui < 16; ui++ )
+        for( ui = 1; ui < 16; ui++ )
           m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] &= ~CODED;
         m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = 16;
-        for( UInt ui = 1; ui < 16; ui++ )
+        for( ui = 1; ui < 16; ui++ )
           if( !( m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] == 16 )
             m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = ui;
 

@@ -295,6 +295,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       UInt    uiStage = atoi( argv[n+1] );
       Double  dMotQp  = atof( argv[n+2] );
       CodingParameter::getLayerParameters( uiLayer ).setQpModeDecision( uiStage, dMotQp );
+      CodingParameter::getLayerParameters( uiLayer ).setQpModeDecisionLP( dMotQp );
       n += 2;
       continue;      
     }
@@ -309,6 +310,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       {
         CodingParameter::getLayerParameters( uiLayer ).setQpModeDecision( uiStage, dQp );
       }
+      CodingParameter::getLayerParameters( uiLayer ).setQpModeDecisionLP( dQp );
       n += 1;
       continue;      
     }
@@ -807,6 +809,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",     &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",             &(rcLayer.m_dBaseQpResidual),            32.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("NumFGSLayers",   &(rcLayer.m_dNumFGSLayers),              0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQPLP",         &(rcLayer.m_dQpModeDecisionLP),          -1.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP0",          &(rcLayer.m_adQpModeDecision[0]),        32.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP1",          &(rcLayer.m_adQpModeDecision[1]),        32.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP2",          &(rcLayer.m_adQpModeDecision[2]),        32.0      );

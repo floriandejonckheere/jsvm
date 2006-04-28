@@ -6,7 +6,7 @@
 # File          : run.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.4
+# Version       : 0.0.5
 ################################################################################
 
 
@@ -90,15 +90,17 @@ sub Usage (;$)
 {
   my $str = shift;
   (defined $str) and print "$str\n";
-  print "\n Usage: dump
-  [-c] : Copy streams and YUV sequences to appropriate simulations
-  directories
-  [-r] : Remove streams and YUV sequences
-  [-simu <name_simu1>...<name_simuN> ] : Name simus to copy/remove
-  [-data <yuv_streams_directory>]      : Name of directory containing
-  conformance streams/sequences
-  (default: ./DATA/)
-  [-u]                                 : Usage \n";
+  print "\nUSAGE:
+  ------ 
+ [-c] : to copy the \"conformance sequences and bitstreams\" in 
+        the corresponding simus directories.
+ [-r] : to remove the \"conformance sequences and bitstreams\" of
+        each simus directories.
+ [-simu <name_simu1>...<name_simuN> ] : name of the simulations to copy/remove.
+ [-data <yuv_streams_directory>]      : name of the directory containing the 
+                                        \"conformance sequences and bitstreams\".
+ [-which] : print the name of \"conformance sequences and bitstreams\" to be used.
+ [-u]     : Usage. \n";
 
   exit 1;
 }
@@ -115,6 +117,7 @@ my $orig;
 
 my $DoRemove;
 my @ListSimus;
+my $which=0;
 
 while (@ARGV)
 {
@@ -122,11 +125,17 @@ while (@ARGV)
 
   for($arg)
   {
-    if     (/-c/) {
+    if     (/-c/) 
+    {
       $DoRemove =0;
     }
-    elsif   (/-r/){
+    elsif   (/-r/)
+    {
       $DoRemove =1;
+    }
+    elsif   (/-which/)
+    {
+      $which =1;
     }
     elsif(/-simu/)
     {
@@ -145,9 +154,13 @@ while (@ARGV)
   }
 }
 
+($which) and $DoRemove=0;
+
 (defined $orig)      or $orig=$DEFAULT_DATA_DIR;
 (defined $DoRemove)  or Usage;
 (defined @ListSimus) or @ListSimus=grep ( $_ ne $DEFAULT_DATA_DIR ,GetDir("./"));
+
+
 
 foreach my $simuname (@ListSimus)
 {
@@ -190,26 +203,51 @@ foreach my $simuname (@ListSimus)
     my $hlogstr = new IO::File "$logstr", "r";
     (defined $hlogstr) or die "- Failed to open $logstr : $!";
 
+    print "$simuname:\n"; 
+    print "==========\n"; 
+    
+   print "Bitstreams:\n";
+   print "-----------\n"; 
     while (<$hlogstr>)
     {
+      
       #chomp;
       s/\s*[\n\r]+//g;
       unless (/^#/ or /^$/)
       {
-        (-f "$str/$_") and next;
-        print "copy {$orig/$_} to {$str} \n";
+       
+       if($which)
+       {
+        print "$_\n"; 
+        }
+       else
+       { 
+       (-f "$str/$_") and next;
+        print "copy $orig/$_ to $str \n";
         copy("$orig/$_","$str") or die "can not copy $_ $!";
+       }
+      
       }
     }
 
+    print "Sequences:\n";
+    print "-----------\n"; 
     while (<$hlogref>)
     {
       #chomp;
       s/\s*[\n\r]+//g;
       unless (/^#/ or /^$/)
       {
-        print "copy {$orig/$_} to {$ref} \n";
-        copy("$orig/$_","$ref") or die "can not copy $_ $!";
+        if($which)
+       {
+        print "$_\n"; 
+        }
+       else
+        {
+         (-f "$ref/$_") and next;
+          print "copy $orig/$_ to $ref \n";
+         copy("$orig/$_","$ref") or die "can not copy $_ $!";
+        }
       }
     }
 

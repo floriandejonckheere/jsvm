@@ -152,6 +152,11 @@ ErrVal LayerParameters::check()
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
 
+  if( m_dQpModeDecisionLP == -1.0 )
+  {
+    m_dQpModeDecisionLP = m_dBaseQpResidual;
+  }
+
   return Err::m_nOK;
 }
 

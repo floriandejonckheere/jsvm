@@ -521,6 +521,7 @@ protected:
   Bool                          m_bForceReOrderingCommands;           // always write re-ordering commands (error robustness)
   Bool                          m_bWriteSubSequenceSei;               // Subsequence SEI message (H.264/AVC base layer)
   Double                        m_adBaseQpLambdaMotion[MAX_DSTAGES];  // base QP's for mode decision and motion estimation
+  Double                        m_dBaseQpLambdaMotionLP;
   Double                        m_dBaseQPResidual;                    // base residual QP
   Double                        m_dNumFGSLayers;                      // number of FGS layers
 

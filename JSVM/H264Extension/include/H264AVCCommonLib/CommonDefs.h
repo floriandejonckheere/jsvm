@@ -340,8 +340,6 @@ H264AVC_NAMESPACE_END
 #define WEIGHTED_BIPRED_IDC                           0                   // (0:no weighted bi-prediction, 1:random weights, 2:implicit weights)
 #define INFER_ELAYER_PRED_WEIGHTS                     0                   // (0:BL weights are not used, 1:infer enhancement layer prediction weights)
 
-#define SINGLE_MC_DECODING                            1                   // only relevant for non-key pictures (0:perform motion-compensated prediction after decoding of base quality layer, 1:do motion-compensated prediction only after last PR slice)
-
 //TMM_EC {{
 typedef	enum
 {

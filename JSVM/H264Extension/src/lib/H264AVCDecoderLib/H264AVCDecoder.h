@@ -267,6 +267,7 @@ protected:
 
   Bool                          m_bEnhancementLayer;
   Bool                          m_bActive;
+  Bool                          m_bReconstruct;
   Bool                          m_bBaseLayerIsAVCCompatible;
 	Bool                          m_bNewSPS;
   UInt                          m_uiRecLayerId;

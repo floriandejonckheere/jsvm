@@ -6,13 +6,19 @@ It should copy (or remove) the sequences and bistreams at the right places.
 
 USAGE: dump.pm
 -------------- 
-	[-c] to copy "conformance sequences and bistreams" in the corresponding simus directories.
-	[-r] to remove "conformance sequences and bistreams of each simus directories.
-	[-simu <name_simu1>...<name_simuN> ] name of the simulations to copy/remove.
-	[-data <yuv_streams_directory>] name of the directory containing the bitstreams and YUV references sequences
-	[-u] Usage.
+	"\nUSAGE:
+  ------ 
+ [-c] : to copy the "conformance sequences and bitstreams" in the corresponding simus directories.
+ [-r] : to remove the "conformance sequences and bitstreams" of each simus directories.
+ [-simu <name_simu1>...<name_simuN> ] : name of the simulations to copy/remove.
+ [-data <yuv_streams_directory>]      : name of the directory containing the "conformance sequences and bitstreams".
+ [-which] : print the name of "conformance sequences and bitstreams" to be used.
+ [-u]     : Usage. ";
 	   
 
 NOTE:
 The numbering of the conformance tests corresponds to the classification of the conformance bit-streams in the ITU-T Recommendation H.264.1 "Conformance specification for H.264 advanced video coding".
 
+
+CAUTION: 
+So far, only tests "6.6.1", "6.6.11" and, "Hierarchical" need to be run!

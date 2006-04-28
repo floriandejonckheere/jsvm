@@ -6,7 +6,7 @@
 # File          : External.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.4
+# Version       : 0.0.5
 ################################################################################
 
 package External;
@@ -45,26 +45,42 @@ sub platformpath($)
 }
 
 ######################################################################################
-# Function         : run ($;$$)
+# Function         : run ($;$$$)
 ######################################################################################
-sub run ($;$$)
+sub run ($;$$$)
 {
-  my $exe 	= shift; #cmd line to execute
-  my $log 	= shift; #log filename
+  my $exe 	    = shift; #cmd line to execute
+  my $log 	    = shift; #log STDOUT filename
   my $dodisplay = shift; #display stdout or not 
+  my $logerr    = shift; #log STDERR filename
 
- $dodisplay = 1;
+ #$dodisplay = 1;
  
+  
   $exe = platformpath($exe);
   
   ::PrintLog("\n $exe\n", $log,$dodisplay);
  
+  #Catch STDERR
+  #------------ 
+  if(defined $logerr) 
+  {
+    open(mystderr,">&STDERR");
+    open(STDERR,">$logerr");
+  }
+ 
+  #Catch STDOUT
+  #----------- 
   my $hexe = new IO::File "$exe |";
   (defined $hexe) or die "- Failed to run $exe : $!";
  
   ::PrintLog($hexe, $log, $dodisplay);
 
   $hexe->close;
+	
+	if(defined $logerr) 
+	{open(STDERR,">&mystderr");}
+	
 	
   my $ret = $?;
 
@@ -233,14 +249,10 @@ sub ComputePSNR($$$$$$$$$)
    my $framerate = shift;
    my $errname=shift;
    
-   #my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 $extname $framerate 2> $errname";
-   my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 $extname $framerate";
+  my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 $extname $framerate";
    
-   open(ORIGSTDERR, ">&STDERR");
-   open(STDERR, ">$errname");
-   my $ret = run($cmd, $log,0);
-   open(STDERR, ">&ORIGSTDERR");
-   ($ret == 0) or die "problem while executing the command:\n$cmd \n $!";
+   my $ret = run($cmd, $log,0,$errname);
+  ($ret == 0) or die "problem while executing the command:\n$cmd \n $!";
 
    (-f $errname) or die "Problem the file $errname has not been created $!";
     my $PSNR = new IO::File $errname, "r";

@@ -1365,6 +1365,7 @@ MCTFDecoder::MCTFDecoder()
 , m_bInitDone                     ( false )
 , m_bCreateDone                   ( false )
 , m_bWaitForIdr                   ( true )
+, m_bReconstructAll               ( false )
 , m_uiFrameWidthInMb              ( 0 )
 , m_uiFrameHeightInMb             ( 0 )
 , m_uiMbNumber                    ( 0 )
@@ -1994,45 +1995,42 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
   ROF( pcSliceHeader == pcLastDPBUnit->getCtrlData().getSliceHeader() );
   IntFrame*     pcFrame         = pcLastDPBUnit->getFrame    ();
   ControlData&  rcControlData   = pcLastDPBUnit->getCtrlData ();
-#if SINGLE_MC_DECODING
   Bool          bConstrainedIP  = pcSliceHeader   ->getPPS().getConstrainedIntraPredFlag();
-#endif
 
   //===== reconstruct FGS =====
-#if SINGLE_MC_DECODING
   if( m_pcRQFGSDecoder->changed() || ! bKeyPicFlag && bConstrainedIP )
-#else
-  if( m_pcRQFGSDecoder->changed() )
-#endif
   {
     RNOK( m_pcRQFGSDecoder->reconstruct( pcFrame ) );
     RNOK( m_pcResidual    ->copy       ( pcFrame ) )
     RNOK( xZeroIntraMacroblocks        ( m_pcResidual, rcControlData ) );
 
-    if( bKeyPicFlag && pcSliceHeader->isInterP() )
+    if( m_bReconstructAll )
     {
-      RefFrameList  cRefListDiff;
+      if( bKeyPicFlag && pcSliceHeader->isInterP() )
+      {
+        RefFrameList  cRefListDiff;
 
-      setDiffPrdRefLists( cRefListDiff, m_pcYuvFullPelBufferCtrl );
+        setDiffPrdRefLists( cRefListDiff, m_pcYuvFullPelBufferCtrl );
 
-      //----- key frames: adaptive motion-compensated prediction -----
-      m_pcMotionCompensation->loadAdaptiveRefPredictors(
-        m_pcYuvFullPelBufferCtrl, m_pcPredSignal, 
-        m_pcPredSignal, &cRefListDiff, 
-        m_pcRQFGSDecoder->getMbDataCtrl(), m_pcRQFGSDecoder, 
-        m_pcRQFGSDecoder->getSliceHeader());
+        //----- key frames: adaptive motion-compensated prediction -----
+        m_pcMotionCompensation->loadAdaptiveRefPredictors(
+          m_pcYuvFullPelBufferCtrl, m_pcPredSignal, 
+          m_pcPredSignal, &cRefListDiff, 
+          m_pcRQFGSDecoder->getMbDataCtrl(), m_pcRQFGSDecoder, 
+          m_pcRQFGSDecoder->getSliceHeader());
 
-      freeDiffPrdRefLists(cRefListDiff);
-    }
-    else if( ! pcSliceHeader->isIntra() )
-    {
-      //----- "normal" motion-compensated prediction -----
-      RNOK( xMotionCompensation( m_pcPredSignal,
-                                 rcControlData.getPrdFrameList( LIST_0 ),
-                                 rcControlData.getPrdFrameList( LIST_1 ),
-                                 m_pcRQFGSDecoder->getMbDataCtrl(),
-                                 *pcSliceHeader ) );
-      RNOK( xFixMCPrediction   ( m_pcPredSignal, rcControlData ) );
+        freeDiffPrdRefLists(cRefListDiff);
+      }
+      else if( ! pcSliceHeader->isIntra() )
+      {
+        //----- "normal" motion-compensated prediction -----
+        RNOK( xMotionCompensation( m_pcPredSignal,
+                                  rcControlData.getPrdFrameList( LIST_0 ),
+                                  rcControlData.getPrdFrameList( LIST_1 ),
+                                  m_pcRQFGSDecoder->getMbDataCtrl(),
+                                  *pcSliceHeader ) );
+        RNOK( xFixMCPrediction   ( m_pcPredSignal, rcControlData ) );
+      }
     }
 
     //----- add prediction signal and clip -----
@@ -2440,12 +2438,20 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 #else
   Bool          bReconstructAll = bReconstructionLayer || !bConstrainedIP;
 #endif
-#if SINGLE_MC_DECODING
+  m_bReconstructAll             = bReconstructAll;
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
   bReconstructAll = bReconstructAll && bKeyPicture || ! bConstrainedIP;
-#endif
-	bReconstructAll	=	true;
-	if(isNewPictureStart(rpcSliceHeader))
+	
+  /* The following should not be required for single-loop decoding
+     This was introduced by Thomson (Chen Ying). Thomson was requested
+     to provide a work around. 
+     We have to really implement single-loop decoding - otherwise, we
+     cannot be sure that our standard works with it. 
+     */
+  bReconstructAll	=	true; 
+	
+  
+  if(isNewPictureStart(rpcSliceHeader))
     m_iMbProcessed =0;
 
 

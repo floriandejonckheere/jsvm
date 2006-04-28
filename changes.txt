@@ -15,6 +15,23 @@ Changes:
 - Added some checks to the FGS decoder to avoid "empty" cycles and unnecessary initMb calls
 
 
+
+Bug fixes & software manual improvements
+
+Data: April 28, 2006
+Author: Heiko Schwarz (in behalf of Martin Winken & Jerome Vieron)
+
+Changes:
+- bug-fix for real single-loop decoding at the decoder side (Martin Winken)
+- bug-fix for validation scripts (Jerome Vieron)
+- update of software manual regarding validation scripts (Jerome Vieron)
+- update of software manual regrading error concealment (Chen Ying)
+- re-implementing the packet trace option for the bit-stream extractor (Heiko Schwarz)
+- update of software manula regrading the packet trace option (Heiko Schwarz)
+- added parameter MeQPLP for controlling ME/MD of key pictures - no effect by default (Heiko Schwarz)
+
+
+
 JSVM_5_0 -> JSVM_5_1
 ====================
 

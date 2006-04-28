@@ -6,7 +6,7 @@
 # File          : run.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.4
+# Version       : 0.0.5
 ################################################################################
 
 
@@ -29,7 +29,7 @@ use Tools::DirTree;
 #-----------------------#
 # Local variables       #
 #-----------------------#
-my $VERSION    = "0.0.4";
+my $VERSION    = "0.0.5";
 my $GLOBAL_LOG = "../Global.log"; #=== Global Log file
 my $DO_DISPLAY = 1;            #=== Display on stdout or not
 
@@ -152,9 +152,9 @@ sub GetArg($)
 ###############################################################################
 sub Version ()
 {
-  print "-----------------------------------\n";
-  print "ValidationScripts version $VERSION \n";
-  print "-----------------------------------\n\n";
+  print "--------------------------------------\n";
+  print "Validation Scripts version $VERSION \n";
+  print "--------------------------------------\n\n";
 }
 ###############################################################################
 # Function         : Usage ([$])
@@ -164,11 +164,25 @@ sub Usage (;$)
   my $str = shift;
   Version;
   (defined $str) and print "$str\n";
-  print "\n Usage: run [-bin <bin_directory>]
-  [-seq <orig_directory>]
-  [-name_simuset  [ <name_simu1>...<name_simuN>] ]
-  [-v]                        : Version number
-  [-u]                        : Usage \n";
+print "\nUSAGE:
+------ 
+[-SimusetName  [<SimuName1>...<SimuNameN>]] 
+     : to specify that the  simulations-set called \"SimusetName\" 
+       must be run (default value: Short_term)
+     : \"SimusetName\" must be the name of a sub-directory of
+       the SimuDataBase directory     
+
+  NOTE 0: You can specify the name of the simulations
+          you want to run inside a given 
+          simulations-set by specifying <SimuName1>...<SimuNameN>.
+  NOTE 1: You can just specify a prefix of the SimusetName set.
+
+[-bin <bin_directory>]  : to specify the binaries directory location       
+                          (default value: ./bin)
+[-seq <orig_directory>] : to specify the sequences directory location
+                          (default value: ./orig)
+[-v]  : Version number
+[-u ] : Usage\n";
 
   exit 1;
 }
@@ -225,4 +239,3 @@ RunSimus(@ListSimus);
 
 1;
 __END__
-

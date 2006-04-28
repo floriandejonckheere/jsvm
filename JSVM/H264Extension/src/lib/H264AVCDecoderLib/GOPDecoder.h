@@ -456,6 +456,7 @@ protected:
   Bool                m_bInitDone;
   Bool                m_bCreateDone;
   Bool                m_bWaitForIdr;
+  Bool                m_bReconstructAll;
   UInt                m_uiFrameWidthInMb;
   UInt                m_uiFrameHeightInMb;
   UInt                m_uiMbNumber;

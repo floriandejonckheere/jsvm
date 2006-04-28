@@ -432,6 +432,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   {
     m_adBaseQpLambdaMotion[uiStage] = pcLayerParameters->getQpModeDecision( uiStage );
   }
+  m_dBaseQpLambdaMotionLP   = pcLayerParameters->getQpModeDecisionLP        ();
   m_dBaseQPResidual         = pcLayerParameters->getBaseQpResidual          ();
   m_dNumFGSLayers           = pcLayerParameters->getNumFGSLayers            ();
 
@@ -3575,8 +3576,9 @@ MCTFEncoder::xInitControlDataLowPass( UInt uiFrameIdInGOP,
   SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
   
   Double        dScalFactor     = rcControlData.getScalingFactor();
-  Double        dQP             = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
+  Double        dQP             = m_dBaseQpLambdaMotionLP - 6.0 * log10( dScalFactor ) / log10( 2.0 );
   Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
+  dQP                           = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
   Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
 
   pcSliceHeader->setSliceHeaderQp ( iQP );

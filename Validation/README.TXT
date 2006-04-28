@@ -5,7 +5,7 @@
 # File          : README.TXT
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.3
+# Version       : 0.0.5
 ################################################################################
 
 
@@ -18,10 +18,10 @@ Tools        : perl scripts and tools.
 
 SimuRun      : location where the "Simulations" will be run. (if not present, will be automatically created)
 
-[orig]         : contains the original YUV sequences (typically the 4CIF sequences) [OPTIONAL]
+[orig]       : contains the original YUV sequences (typically the 4CIF sequences) [OPTIONAL]
                 NOTE: The location of this directory (including its name) can be specifiede.
                
-[bin]          : contains the binaries of the encoder,decoder,extractor,downconvert and psnr tools;[OPTIONAL] 
+[bin]        : contains the binaries of the encoder,decoder,extractor,downconvert and psnr tools;[OPTIONAL] 
                 NOTE : The location of this directory (including its name) can be specified.
 
 
@@ -43,7 +43,7 @@ IMPORTANT NOTES:
 3) Before running AVC_Conformance simulation set, please read the README.TXT files located in the SimuDataBase/AVC_Conformance/ directory.
 You will have to download the conformance bistreams and YUV sequences available at "http://ftp3.itu.ch/av-arch/jvt-site/draft_conformance/".
 The numbering of the conformance tests corresponds to the classification of the conformance bit-streams in the ITU-T Recommendation H.264.1 "Conformance specification for H.264 advanced video coding".
-Please again, read the instructions...
+So far, only tests "6.6.1, 6.6.11 and, Hierachical" must be run. Please again, read the instructions...
 
 
 It contains also the file:
@@ -52,19 +52,21 @@ It contains also the file:
 "run.pm" which is the main Perl script to be run in order to validate/evaluate JSVM perfomances (mainly after integration phase).
 ---------
 
-Usage: run 
-[-bin <bin_directory>]   :to specify the bin directory location  (default value: ./bin)
-
-[-seq <orig_directory>]  :to specify the orig directory location (default value: ./orig)
-
+Usage:  
+------
 [-SimusetName  [ <SimuName1>...<SimuNameN>] ] 
-  	   		:  to specify that the "SimusetName" simulations set must be run (default value: Short)
+  	   		:  to specify that the  simulations set called ""SimusetName" must be run (default value: Short_term)
   	   	  : "SimusetName" must be the name of a sub-directory of the SimuDataBase directory     
   	    NOTE 0: You can specify the name of the "Simulations" you want to run inside a given simulations-set by specifying <SimuName1>...<SimuNameN>.
   	    NOTE 1: You can just specify a prefix of the "name_simuset" set.
 
-[-u ] : print the Usage;
-[-v]  : print the Version number; 
+[-bin <bin_directory>]   :to specify the bin directory location  (default value: ./bin)
+
+[-seq <orig_directory>]  :to specify the orig directory location (default value: ./orig)
+
+[-v]  : Version number; 
+[-u ] : Usage;
+
         
 
 

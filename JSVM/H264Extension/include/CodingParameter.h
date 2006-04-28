@@ -228,6 +228,7 @@ public:
 #if INDEPENDENT_PARSING
     , m_uiIndependentParsing  ( 0 )
 #endif
+    , m_dQpModeDecisionLP ( 0.00 )
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiPosVect, 0x00, 16*sizeof(UInt) );
@@ -253,6 +254,7 @@ public:
   Double                          getBaseQpResidual                 () const {return m_dBaseQpResidual; }
   Double                          getNumFGSLayers                   () const {return m_dNumFGSLayers; }
   Double                          getQpModeDecision          (UInt ui) const {return m_adQpModeDecision[ui]; }
+  Double                          getQpModeDecisionLP               () const {return m_dQpModeDecisionLP; }
   UInt                            getInterLayerPredictionMode       () const {return m_uiInterLayerPredictionMode; }
   UInt                            getBaseQualityLevel               () const {return m_uiBaseQualityLevel; }
   UInt                            getMotionInfoMode                 () const {return m_uiMotionInfoMode; }
@@ -317,6 +319,7 @@ public:
   Void setNumFGSLayers                    (Double p) { m_dNumFGSLayers                    = p; }
   Void setQpModeDecision                  (UInt   n,
                                            Double p) { m_adQpModeDecision             [n] = p; }
+  Void setQpModeDecisionLP                (Double p) { m_dQpModeDecisionLP                = p; }
   Void setInterLayerPredictionMode        (UInt   p) { m_uiInterLayerPredictionMode       = p; }
   Void setMotionInfoMode                  (UInt   p) { m_uiMotionInfoMode                 = p; }
   Void setMotionInfoFilename              (Char*  p) { m_cMotionInfoFilename              = p; }
@@ -422,6 +425,7 @@ public:
   Double                    m_dNumFGSLayers;
   
   Double                    m_adQpModeDecision[MAX_DSTAGES];
+  Double                    m_dQpModeDecisionLP;
   UInt                      m_uiInterLayerPredictionMode;
   UInt                      m_uiDecodingLoops;
   Bool                      m_bConstrainedIntraPredForLP;

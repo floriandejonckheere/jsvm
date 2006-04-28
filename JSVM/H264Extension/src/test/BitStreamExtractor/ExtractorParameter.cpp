@@ -195,6 +195,14 @@ ExtractorParameter::init( Int     argc,
   
 #define EXIT(x,m) {if(x){printf("\n%s\n",m);RNOKS(xPrintUsage(argv))}}
 
+  if( argc > 3 && equal( "-pt", argv[1] ) ) // HS: packet trace
+  {
+    m_cTraceFile  = argv[2];
+    m_bTraceFile  = true;
+    argv         += 2;
+    argc         -= 2;
+  }
+
   //===== get file names and set parameter "AnalysisOnly" =====
   EXIT( argc < 2, "No arguments specified" );
   m_iResult       = 0;
@@ -215,6 +223,7 @@ ExtractorParameter::init( Int     argc,
 			EXIT( bLevelSpecified,						"Option \"-sl\" used in connection with option \"-t\"" );
 			EXIT( bFGSSpecified,							"Option \"-sl\" used in connection with option \"-f\"" );
 			EXIT( bBitrateSpecified,					"Option \"-sl\" used in connection with option \"-b\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-sl\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiScalableLayer       = atoi( argv[ ++iArg ] );
       bScalableLayerSpecified = true;
       continue;
@@ -226,6 +235,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bExtractionPointSpecified,  "Option \"-l\" used in connection with option \"-e\"" );
 			EXIT( bScalableLayerSpecified,    "Option \"-l\" used in connection with option \"-sl\"" );
 			EXIT( bBitrateSpecified,					"Option \"-l\" used in connection with option \"-b\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-l\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiLayer       = atoi( argv[ ++iArg ] );
       bLayerSpecified = true;
       continue;
@@ -238,6 +248,7 @@ ExtractorParameter::init( Int     argc,
 			EXIT( bExtractionPointSpecified,  "Option \"-t\" used in connection with option \"-e\"" );
 			EXIT( bScalableLayerSpecified,    "Option \"-t\" used in connection with option \"-sl\"" ); 
 			EXIT( bBitrateSpecified,					"Option \"-t\" used in connection with option \"-b\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-t\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiLevel       = atoi( argv[ ++iArg ] );
       bLevelSpecified = true;
       continue;
@@ -250,6 +261,7 @@ ExtractorParameter::init( Int     argc,
 		  EXIT( bExtractionPointSpecified,  "Option \"-f\" used in connection with option \"-e\"" );
 			EXIT( bScalableLayerSpecified,    "Option \"-f\" used in connection with option \"-sl\"" );
 			EXIT( bBitrateSpecified,					"Option \"-f\" used in connection with option \"-b\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-f\" used in connection with option \"-et\"" ); // HS: packet trace
       m_dFGSLayer     = atof( argv[ ++iArg ] );
       bFGSSpecified   = true;
       continue;
@@ -264,6 +276,7 @@ ExtractorParameter::init( Int     argc,
 		  EXIT( bLayerSpecified,						"Option \"-b\" used in connection with option \"-l\"" );
 		  EXIT( bLevelSpecified,						"Option \"-b\" used in connection with option \"-t\"" );
 		  EXIT( bFGSSpecified,							"Option \"-b\" used in connection with option \"-f\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-b\" used in connection with option \"-et\"" ); // HS: packet trace
 			m_dBitrate				= atof( argv[ ++iArg ] );
 			bBitrateSpecified = true;
 			continue;
@@ -332,8 +345,9 @@ ExtractorParameter::init( Int     argc,
 ErrVal
 ExtractorParameter::xPrintUsage( Char **argv )
 {
-	printf("\nUsage: %s InputStream [OutputStream [-e] | [-sl] | [-l] [-t] [-f] | [-b]]", argv[0] ); //liuhui 0511
+	printf("\nUsage: %s [-pt trace] InputStream [OutputStream [-e] | [-sl] | [-l] [-t] [-f] | [-b] | [-et]]", argv[0] ); //liuhui 0511
   printf("\noptions:\n");
+  printf("\t-pt trace  -> generate a packet trace file \"trace\" from given stream\n"); // HS: packet trace
 	printf("\t-sl SL     -> extract the layer with layer id = SL and the dependent lower layers\n");
   printf("\t-l L       -> extract all layers with dependency_id  <= L\n");
   printf("\t-t T       -> extract all layers with temporal_level <= T\n");
@@ -344,9 +358,9 @@ ExtractorParameter::xPrintUsage( Char **argv )
   printf("\t               - B frame height [luma samples]\n");
   printf("\t               - C frame rate [Hz]\n");
   printf("\t               - D bit rate [kbit/s]\n");
+  printf("\t-et        -> extract packets as specified by given (modified) packet trace file\n"); // HS: packet trace
   printf("\nOptions \"-l\", \"-t\" and \"-f\" can be used in combination with each other.\n"
-		"Other options can only be used separately.\n" );
-
+	 	     "Other options can only be used separately.\n" );
 	printf("\n");
   ROTS(1);
 }
