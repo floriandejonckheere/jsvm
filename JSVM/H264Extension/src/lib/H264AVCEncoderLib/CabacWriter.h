@@ -167,8 +167,7 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
-                                     UInt            uiScanIndex,
-                                     UInt            uiNumSig );
+                                     UInt            uiScanIndex );
   ErrVal  RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
@@ -180,14 +179,14 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
-                                     UInt            uiScanIndex,
-                                     UInt            uiNumSig );
+                                     UInt            uiScanIndex );
   ErrVal  RQencodeCycleSymbol      ( UInt            uiCycle );
   Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   ErrVal  RQencodeEobOffsets_Luma  ( UInt* pauiSeq ) { return Err::m_nOK; };
   ErrVal  RQencodeEobOffsets_Chroma( UInt* pauiSeq ) { return Err::m_nOK; };
   ErrVal  RQencodeVlcTableMap      ( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV ) { return Err::m_nOK; };
   ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
+  ErrVal  RQvlcFlush               () { return Err::m_nOK; };
 
   ErrVal  blFlag    ( MbDataAccess& rcMbDataAccess );
   ErrVal  blockModes( MbDataAccess& rcMbDataAccess );

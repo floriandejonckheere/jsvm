@@ -230,43 +230,22 @@ private:
                                                     UInt                uiFracNb, 
                                                     FILE*               pFile ); //JVT-P031
 
-  ErrVal            xEncodingSubbandFGS           ( Bool& rbFinished,
-                                                    Bool& rbCorrupted,
-                                                    UInt  uiMaxBits,
-                                                    FILE* pFile );
-
-  ErrVal            xEncodeCoefficientLuma(         UInt   uiBlockYIndex,
-                                                    UInt   uiBlockXIndex,
-                                                    UInt   uiScanIndex,
-                                                    Int&   riLastQp );
-
-  ErrVal            xEncodeCoefficientChromaDC (  UInt    uiPlane,
-                                                  UInt    uiMbYIdx,
-                                                  UInt    uiMbXIdx,
-                                                  UInt    uiDCIdx,
-                                                  Int&    riLastQP );
-
-  ErrVal            xEncodeCoefficientChromaAC (  UInt    uiPlane,
-                                                  UInt    uiB8YIdx,
-                                                  UInt    uiB8XIdx,
-                                                  UInt    uiScanIdx,
-                                                  Int&    riLastQP );
-
+  ErrVal            xEncodeSigHeadersLuma         ( UInt                uiBlockYIndex,
+                                                    UInt                uiBlockXIndex,
+                                                    Int&                riLastQp );
 
   ErrVal            xEncodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
-                                                    UInt                uiBlockXIndex,
-                                                    UInt&               uiComplete,
-                                                    Int&                riLastQp );
+                                                    UInt                uiBlockXIndex );
   ErrVal            xEncodeNewCoefficientChromaDC ( UInt                uiPlane,
                                                     UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx,
-                                                    UInt&               uiComplete,
-                                                    Int&                riLastQP );
+                                                    Int&                riLastQp,
+                                                    UInt                uiChromaScanIndex );
   ErrVal            xEncodeNewCoefficientChromaAC ( UInt                uiPlane,
                                                     UInt                uiB8YIdx,
                                                     UInt                uiB8XIdx,
-                                                    UInt&               uiComplete,
-                                                    Int&                riLastQP );
+                                                    Int&                riLastQp,
+                                                    UInt                uiChromaScanIndex );
   
   ErrVal            xEncodeCoefficientLumaRef     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
@@ -284,13 +263,7 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt iChromaDCScanIdx,
                              UInt iChromaACScanIdx,
                              UInt iStartCycle,
-                             UInt iCompleteLuma,
-                             UInt iCompleteChromaDC,
-                             UInt iCompleteChromaAC,
                              UInt iCycle,
-                             UInt itCompleteLuma,
-                             UInt itCompleteChromaDC,
-                             UInt itCompleteChromaAC,
                              UInt bAllowChromaDC,
                              UInt bAllowChromaAC,
                              UInt uiMbYIdx,
@@ -309,13 +282,7 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt& riChromaDCScanIdx,
                              UInt& riChromaACScanIdx,
                              UInt& riStartCycle,
-                             UInt& riCompleteLuma,
-                             UInt& riCompleteChromaDC,
-                             UInt& riCompleteChromaAC,
                              UInt& riCycle,
-                             UInt& ritCompleteLuma,
-                             UInt& ritCompleteChromaDC,
-                             UInt& ritCompleteChromaAC,
                              UInt& rbAllowChromaDC,
                              UInt& rbAllowChromaAC,
                              UInt& ruiMbYIdx,
@@ -346,7 +313,8 @@ private:
   UInt              m_uiNumMbsInSlice;
 
   IntFrame*         m_pcOrgResidual;
-
+  UInt              m_auiScanPosVectLuma    [16];
+  UInt              m_auiScanPosVectChromaDC[ 4];
   
   Bool              m_bTraceEnable;
 
@@ -355,13 +323,7 @@ private:
   UInt               m_iChromaDCScanIdx;
   UInt               m_iChromaACScanIdx;
   UInt               m_iStartCycle;
-  UInt               m_iCompleteLuma;
-  UInt               m_iCompleteChromaDC;
-  UInt               m_iCompleteChromaAC;
   UInt               m_iCycle;
-  UInt              m_itCompleteLuma;
-  UInt              m_itCompleteChromaDC;
-  UInt              m_itCompleteChromaAC;
   UInt              m_bAllowChromaDC;
   UInt              m_bAllowChromaAC;
   UInt              m_uiMbYIdx;

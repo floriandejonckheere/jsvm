@@ -124,9 +124,8 @@ protected:
   ErrVal xRQencodeTCoeffsRef( TCoeff*       piCoeff,
                                   TCoeff*       piCoeffBase,
                                   const UChar*  pucScan,
-                                  UInt          uiScanIndex,
-                                  UInt          uiStop,
-                                  UInt          uiNumSig );
+                                  UInt          uiScanIndex );
+
   ErrVal xRQencodeSigMagGreater1( TCoeff* piCoeff, TCoeff* piCoeffBase, UInt uiBaseCode, UInt uiStart, UInt uiStop, UInt uiVlcTable, const UChar*  pucScan, UInt& ruiNumMagG1 );
   ErrVal xWriteS3Code ( UInt uiSymbol, UInt uiCutoff );
   ErrVal xWriteGolomb(UInt uiSymbol, UInt uiK);
@@ -138,7 +137,6 @@ protected:
   UInt m_uiCbpStats[3][2];
   UcBitGrpWriter* m_pBitGrpRef;
   UcBitGrpWriter* m_pBitGrpSgn;
-  UInt m_auiSigMap[16];
   UInt m_uiCbpStat4x4[2];
 
 public:
@@ -268,14 +266,12 @@ public:
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,
                                         LumaIdx         cIdx,
-                                        UInt            uiScanIndex,
-                                        UInt            uiNumSig );
+                                        UInt            uiScanIndex );
   ErrVal RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,
                                         ChromaIdx       cIdx,
-                                        UInt            uiScanIndex,
-                                        UInt            uiNumSig );
+                                        UInt            uiScanIndex );
   ErrVal RQencodeCycleSymbol( UInt uiCycle );
   ErrVal RQencodeTermBit ( UInt uiIsLast ) { return Err::m_nOK;}
   Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
@@ -283,6 +279,7 @@ public:
   ErrVal RQencodeEobOffsets_Chroma( UInt* auiSeq );
   ErrVal RQencodeVlcTableMap( UInt* auiTable, UInt uiMaxH, UInt uiMaxV );
   ErrVal RQupdateVlcTable         ();
+  ErrVal RQvlcFlush               ();
   static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
 private:
   __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );
@@ -307,13 +304,17 @@ public:
                   UInt uiInitTable   = 1,
                   UInt uiScaleFac    = 3,
                   UInt uiScaleLimit  = 512,
-                  UInt uiStabPerdiod = 8 );
+                  UInt uiStabPerdiod = 8,
+                  Bool bAligned      = false );
+
   ErrVal Init();
   ErrVal Flush();
   ErrVal Write( UChar ucBit );
   Bool   UpdateVlc();
 
 protected:
+  ErrVal xWriteBuffer();
+
   UInt m_auiSymCount[2];
   UInt m_uiScaleFac;
   UInt m_uiScaleLimit;
@@ -326,6 +327,7 @@ protected:
   UInt m_uiFlip;
   UInt m_uiStabPeriod;
   UInt m_uiCodedFlag;
+  Bool m_bAligned;
   UvlcWriter* m_pParent;
 };
 

@@ -1362,6 +1362,12 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
                                                     rcLayerParameters.getDecodingLoops() > 1 );
 #endif
+    pcSPS->setFGSCodingMode                       ( rcLayerParameters.getFGSCodingMode() );
+    pcSPS->setGroupingSize                        ( rcLayerParameters.getGroupingSize() );
+    for( UInt ui = 0; ui < 16; ui++ )
+    {
+      pcSPS->setPosVect                           ( ui, rcLayerParameters.getPosVect(ui) );
+    }
 #if INDEPENDENT_PARSING
     pcSPS->setIndependentParsing                  ( rcLayerParameters.getIndependentParsing() > 0 );
 #endif

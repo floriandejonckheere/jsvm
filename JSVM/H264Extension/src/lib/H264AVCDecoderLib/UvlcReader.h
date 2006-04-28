@@ -128,9 +128,7 @@ protected:
   ErrVal  xRQdecodeTCoeffsRef ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
                                 const UChar*  pucScan,
-                                UInt          uiScanIndex,
-                                UInt          uiStop,
-                                UInt          uiNumSig );
+                                UInt          uiScanIndex );
 
 public:
   static ErrVal create( UvlcReader*& rpcUvlcReader );
@@ -238,8 +236,7 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
-                                     UInt            uiScanIndex,
-                                     UInt            uiNumSig );
+                                     UInt            uiScanIndex );
   ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
@@ -251,13 +248,13 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
-                                     UInt            uiScanIndex,
-                                     UInt            uiNumSig );
+                                     UInt            uiScanIndex );
   ErrVal  RQdecodeEobOffsets_Luma  ();
   ErrVal  RQdecodeEobOffsets_Chroma();
   ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
                                      UInt            uiMaxV );
   ErrVal  RQupdateVlcTable         ();
+  ErrVal  RQvlcFlush               ();
   Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
 private:
   ErrVal xGetFlag     ( UInt& ruiCode );
@@ -307,7 +304,6 @@ protected:
   UInt m_uiCbp8x8;
   UcBitGrpReader* m_pBitGrpRef;
   UcBitGrpReader* m_pBitGrpSgn;
-  UInt m_auiSigMap[16];
   UInt m_uiCbpStat4x4[2];
   UInt m_uiCurrCbp4x4;
 };
@@ -319,9 +315,11 @@ public:
                   UInt uiInitTable   = 1,
                   UInt uiScaleFac    = 3,
                   UInt uiScaleLimit  = 512,
-                  UInt uiStabPerdiod = 8 );
+                  UInt uiStabPerdiod = 8,
+                  Bool bAligned      = false );
   ErrVal Init();
-  ErrVal Read( UChar& ucBit, UInt uiMaxSym );
+  ErrVal Read( UChar& ucBit, UInt uiMaxSym = 0 );
+  ErrVal Flush();
   Bool   UpdateVlc();
 
 protected:
@@ -338,6 +336,7 @@ protected:
   UInt m_uiFlip;
   UInt m_uiStabPeriod;
   UInt m_uiCodedFlag;
+  Bool m_bAligned;
   UvlcReader* m_pParent;
 };
 H264AVC_NAMESPACE_END

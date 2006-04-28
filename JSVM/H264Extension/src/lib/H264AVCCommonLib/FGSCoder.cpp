@@ -184,6 +184,7 @@ FGSCoder::xInit( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
   ::memset( m_aapaucChromaACCoefMap,  0x00, 2*16*sizeof(UChar*) );
   ::memset( m_apaucChromaDCBlockMap,  0x00,    2*sizeof(UChar*) );
   ::memset( m_apaucChromaACBlockMap,  0x00,    2*sizeof(UChar*) );
+  ::memset( m_apaucScanPosMap,        0x00,    5*sizeof(UChar*) );
   m_paucBlockMap        = 0;
   m_paucSubMbMap        = 0;
   m_pauiMacroblockMap   = 0;
@@ -223,6 +224,10 @@ FGSCoder::xInitSPS( const SequenceParameterSet& rcSPS )
       delete  [] m_aapaucChromaDCCoefMap[0][i];
       delete  [] m_aapaucChromaDCCoefMap[1][i];
     }
+    for( i = 0; i < 5; i++ ) 
+    {
+      delete  [] m_apaucScanPosMap[i];
+    }
     delete    [] m_apaucChromaDCBlockMap[0];
     delete    [] m_apaucChromaDCBlockMap[1];
     delete    [] m_apaucChromaACBlockMap[0];
@@ -230,7 +235,6 @@ FGSCoder::xInitSPS( const SequenceParameterSet& rcSPS )
     delete    [] m_paucBlockMap;
     delete    [] m_paucSubMbMap;
     delete    [] m_pauiMacroblockMap;
-
 
     for( i = 0; i < 16; i++ )
     {
@@ -242,6 +246,10 @@ FGSCoder::xInitSPS( const SequenceParameterSet& rcSPS )
     {
       ROFRS ( ( m_aapaucChromaDCCoefMap[0][i] = new UChar[uiSize   ] ), Err::m_nERR );
       ROFRS ( ( m_aapaucChromaDCCoefMap[1][i] = new UChar[uiSize   ] ), Err::m_nERR );
+    }
+    for( i = 0; i < 5; i++ )
+    {
+      ROFRS ( ( m_apaucScanPosMap[i]          = new UChar[uiSize*16] ), Err::m_nERR );
     }
     ROFRS   ( ( m_apaucChromaDCBlockMap[0]    = new UChar[uiSize   ] ), Err::m_nERR );
     ROFRS   ( ( m_apaucChromaDCBlockMap[1]    = new UChar[uiSize   ] ), Err::m_nERR );
@@ -338,6 +346,10 @@ FGSCoder::xUninit()
   {
     delete  [] m_aapaucChromaDCCoefMap[0][i];
     delete  [] m_aapaucChromaDCCoefMap[1][i];
+  }
+  for( i = 0; i < 5; i++ ) 
+  {
+    delete  [] m_apaucScanPosMap[i];
   }
   delete    [] m_apaucChromaDCBlockMap[0];
   delete    [] m_apaucChromaDCBlockMap[1];
@@ -514,6 +526,11 @@ FGSCoder::xInitializeCodingPath()
         TCoeff* piCoeff         = rcMbData.getMbTCoeffs().get8x8( c8x8Idx );
 
         //===== set block mode =====
+        m_apaucScanPosMap[0][auiBlockIdx[0]] = 64;
+        m_apaucScanPosMap[0][auiBlockIdx[1]] = 0;
+        m_apaucScanPosMap[0][auiBlockIdx[2]] = 0;
+        m_apaucScanPosMap[0][auiBlockIdx[3]] = 0;
+
         m_paucBlockMap[auiBlockIdx[0]] = m_paucSubMbMap[uiSubMbIndex];
         m_paucBlockMap[auiBlockIdx[1]] = m_paucSubMbMap[uiSubMbIndex];
         m_paucBlockMap[auiBlockIdx[2]] = m_paucSubMbMap[uiSubMbIndex];
@@ -531,6 +548,8 @@ FGSCoder::xInitializeCodingPath()
             if (piCoeff[g_aucFrameScan64[ui8x8ScanIndex]] < 0)
               m_apaucLumaCoefMap[uiS][uiB] |= BASE_SIGN;
           }
+          if( !( m_apaucLumaCoefMap[uiS][uiB] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][auiBlockIdx[0]] == 64 )
+            m_apaucScanPosMap[0][auiBlockIdx[0]] = ui8x8ScanIndex;
         }
       }
       else
@@ -540,6 +559,8 @@ FGSCoder::xInitializeCodingPath()
           UInt    uiBlockIdx  = ( 4*uiMbY + cIdx.y() ) * 4 * m_uiWidthInMB + ( 4*uiMbX + cIdx.x() );
           TCoeff* piCoeff     = rcMbData.getMbTCoeffs().get( cIdx );
           UChar   ucBlockSig  = CLEAR;
+
+          m_apaucScanPosMap[0][uiBlockIdx] = 16;
 
           //===== set transform coefficients =====
           for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
@@ -556,6 +577,8 @@ FGSCoder::xInitializeCodingPath()
             {
               m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] = CLEAR;
             }
+            if( !( m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][uiBlockIdx] == 16 )
+              m_apaucScanPosMap[0][uiBlockIdx] = uiScanIndex;
           }
 
           //===== set block mode =====
@@ -571,6 +594,7 @@ FGSCoder::xInitializeCodingPath()
       TCoeff* piCoeff     = rcMbData.getMbTCoeffs().get( CIdx(4*uiPlane) );
       UChar   ucBlockSig  = CLEAR;
 
+      m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = 4;
       for( UInt ui = 0; ui < 4; ui++ )
       {
         if( piCoeff[g_aucIndexChromaDCScan[ui]] )
@@ -585,6 +609,8 @@ FGSCoder::xInitializeCodingPath()
         {
           m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] = CLEAR;
         }
+        if( !( m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[uiPlane + 1][uiMbIndex] == 4 )
+          m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = ui;
       }
       m_apaucChromaDCBlockMap[uiPlane][uiMbIndex] = ucBlockSig;
     }
@@ -596,6 +622,7 @@ FGSCoder::xInitializeCodingPath()
       TCoeff* piCoeff     = rcMbData.getMbTCoeffs().get( cCIdx );
       UChar   ucBlockSig  = CLEAR;
 
+      m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = 16;
       for( UInt ui = 1; ui < 16; ui++ )
       {
         if( piCoeff[g_aucFrameScan[ui]] )
@@ -610,6 +637,8 @@ FGSCoder::xInitializeCodingPath()
         {
           m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx]  = CLEAR;
         }
+        if( !( m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] == 16 )
+          m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = ui;
       }
       m_apaucChromaACBlockMap[cCIdx.plane()][ui8x8Idx] = ucBlockSig;
     }
@@ -691,15 +720,26 @@ ErrVal FGSCoder::xClearCodingPath()
             UInt  uiB = auiBlockIdx[ui8x8ScanIndex%4];
             m_apaucLumaCoefMap[uiS][uiB] &= ~CODED;
           }
+          m_apaucScanPosMap[0][auiBlockIdx[0]] = 64;
+          for( UInt ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
+          {
+            UInt  uiS = ui8x8ScanIndex/4;
+            UInt  uiB = auiBlockIdx[ui8x8ScanIndex%4];
+            if( !( m_apaucLumaCoefMap[uiS][uiB] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][auiBlockIdx[0]] == 64 )
+              m_apaucScanPosMap[0][auiBlockIdx[0]] = ui8x8ScanIndex;
+          }
         }
         else
         {
           for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
           {
             UInt    uiBlockIdx  = ( 4*uiMbY + cIdx.y() ) * 4 * m_uiWidthInMB + ( 4*uiMbX + cIdx.x() );
-
             for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
               m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] &= ~CODED;
+            m_apaucScanPosMap[0][uiBlockIdx] = 16;
+            for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
+              if( !( m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][uiBlockIdx] == 16 )
+                m_apaucScanPosMap[0][uiBlockIdx] = uiScanIndex;
 
             m_paucBlockMap[uiBlockIdx] &= ~CODED;
           }
@@ -712,6 +752,10 @@ ErrVal FGSCoder::xClearCodingPath()
       {
         for( UInt ui = 0; ui < 4; ui++ )
           m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] &= ~CODED;
+        m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = 4;
+        for( UInt ui = 0; ui < 4; ui++ )
+          if( !( m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[uiPlane + 1][uiMbIndex] == 4 )
+            m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = ui;
 
         m_apaucChromaDCBlockMap[uiPlane][uiMbIndex] &= ~CODED;
       }
@@ -723,6 +767,10 @@ ErrVal FGSCoder::xClearCodingPath()
 
         for( UInt ui = 1; ui < 16; ui++ )
           m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] &= ~CODED;
+        m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = 16;
+        for( UInt ui = 1; ui < 16; ui++ )
+          if( !( m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] == 16 )
+            m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = ui;
 
         m_apaucChromaACBlockMap[cCIdx.plane()][ui8x8Idx] &= ~CODED;
       }

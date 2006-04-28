@@ -265,6 +265,7 @@ protected:
   UChar*            m_apaucChromaACBlockMap [2];
   UChar*            m_paucSubMbMap;
   UInt*             m_pauiMacroblockMap;
+  UChar*            m_apaucScanPosMap         [5];
 
   UChar*            m_apaucBQLumaCoefMap         [16];
   UChar*            m_aapaucBQChromaDCCoefMap [2][ 4];

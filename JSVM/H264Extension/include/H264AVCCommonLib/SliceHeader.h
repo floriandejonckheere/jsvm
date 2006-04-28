@@ -183,6 +183,12 @@ public:
                                           SChar   sL1RefIdx ) const;
   Int             getDistScaleFactorWP  ( const Frame*    pcFrameL0, const Frame*     pcFrameL1 )  const;
   Int             getDistScaleFactorWP  ( const IntFrame* pcFrameL0, const IntFrame*  pcFrameL1 )  const;
+  Void            setFGSCodingMode      ( Bool b  )            { m_bFGSCodingMode = b;     }
+  Void            setGroupingSize       ( UInt ui )            { m_uiGroupingSize = ui;    }
+  Void            setPosVect            ( UInt ui, UInt uiVal) { m_uiPosVect[ui]  = uiVal; }
+  Bool            getFGSCodingMode      ()                     { return m_bFGSCodingMode;  }
+  UInt            getGroupingSize       ()                     { return m_uiGroupingSize;  }
+  UInt            getPosVect            ( UInt ui )            { return m_uiPosVect[ui];   }
 
 protected:
   ErrVal          xInitScalingMatrix    ();
@@ -195,6 +201,9 @@ protected:
   FrameUnit*              m_pcFrameUnit;
   StatBuf<const UChar*,8> m_acScalingMatrix;
   RefFrameList*           m_apcRefFrameList[2];
+  Bool                    m_bFGSCodingMode;
+  UInt                    m_uiGroupingSize;
+  UInt                    m_uiPosVect[16];
 };
 
 

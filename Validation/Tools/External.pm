@@ -53,7 +53,7 @@ sub run ($;$$)
   my $log 	= shift; #log filename
   my $dodisplay = shift; #display stdout or not 
 
- #$dodisplay = 1;
+ $dodisplay = 1;
  
   $exe = platformpath($exe);
   
@@ -233,10 +233,14 @@ sub ComputePSNR($$$$$$$$$)
    my $framerate = shift;
    my $errname=shift;
    
-   my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 $extname $framerate 2> $errname";
+   #my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 $extname $framerate 2> $errname";
+   my $cmd = "${bin}$PSNR $width $height $refname $decname 0 0 $extname $framerate";
    
+   open(ORIGSTDERR, ">&STDERR");
+   open(STDERR, ">$errname");
    my $ret = run($cmd, $log,0);
-  ($ret == 0) or die "problem while executing the command:\n$cmd \n $!";
+   open(STDERR, ">&ORIGSTDERR");
+   ($ret == 0) or die "problem while executing the command:\n$cmd \n $!";
 
    (-f $errname) or die "Problem the file $errname has not been created $!";
     my $PSNR = new IO::File $errname, "r";

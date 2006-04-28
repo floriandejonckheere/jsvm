@@ -202,21 +202,20 @@ public:
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,
                                         LumaIdx         cIdx,
-                                        UInt            uiScanIndex,
-                                        UInt            uiNumSig ) = 0;
+                                        UInt            uiScanIndex ) = 0;
   virtual ErrVal RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,
                                         ChromaIdx       cIdx,
-                                        UInt            uiScanIndex,
-                                        UInt            uiNumSig ) = 0;
+                                        UInt            uiScanIndex ) = 0;
   virtual ErrVal RQencodeCycleSymbol( UInt uiCycle ) = 0;
   virtual ErrVal RQencodeTermBit ( UInt uiIsLast ) = 0;
   virtual Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx) = 0;
   virtual ErrVal RQencodeEobOffsets_Luma   ( UInt* pauiSeq ) = 0;
   virtual ErrVal RQencodeEobOffsets_Chroma ( UInt* pauiSeq ) = 0;
   virtual ErrVal RQencodeVlcTableMap       ( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV ) = 0;
-  virtual ErrVal  RQupdateVlcTable         () = 0;
+  virtual ErrVal RQupdateVlcTable          () = 0;
+  virtual ErrVal RQvlcFlush                () = 0;
 };
 
 

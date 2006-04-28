@@ -1877,9 +1877,7 @@ CabacWriter::RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
                                       MbDataAccess&   rcMbDataAccessBase,
                                       ResidualMode    eResidualMode,
                                       LumaIdx         cIdx,
-                                      UInt            uiScanIndex,
-                                      UInt            uiNumSig )
-
+                                      UInt            uiScanIndex )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
@@ -1932,8 +1930,7 @@ CabacWriter::RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,
                                         ChromaIdx       cIdx,
-                                        UInt            uiScanIndex,
-                                        UInt            uiNumSig )
+                                        UInt            uiScanIndex )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );

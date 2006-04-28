@@ -165,6 +165,9 @@ public:
                                                                             uiLayer         = m_uiDependencyIdList [uiSimplePri];
                                                                             uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
                                                                           }
+  Bool getFGSCodingMode                       ()                          const { return m_bFGSCodingMode;   }
+  UInt getGroupingSize                        ()                          const { return m_uiGroupingSize;   }
+  UInt getPosVect                             ( UInt uiNum )              const { return m_uiPosVect[uiNum]; } 
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
   Void  setLayerId                            ( UInt        ui )          { m_uiLayerId                             = ui; }
@@ -204,6 +207,9 @@ public:
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
+  Void setFGSCodingMode                       ( Bool        b  )          { m_bFGSCodingMode                        = b;      }
+  Void setGroupingSize                        ( UInt        ui )          { m_uiGroupingSize                        = ui;     }
+  Void setPosVect                             ( UInt uiNum, UInt uiVect)  { m_uiPosVect[uiNum]                      = uiVect; } 
 
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
@@ -274,6 +280,9 @@ protected:
 	UInt					m_auiNumRefIdxUpdateActiveDefault[2];
 // VW }
 
+  Bool          m_bFGSCodingMode;
+  UInt          m_uiGroupingSize;
+  UInt          m_uiPosVect[16];
 #if INDEPENDENT_PARSING
   Bool          m_bIndepedentParsing;
 #endif

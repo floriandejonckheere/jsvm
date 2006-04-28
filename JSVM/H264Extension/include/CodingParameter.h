@@ -223,11 +223,14 @@ public:
 	, m_iIDRPeriod						  (0)
 	, m_bBLSkipEnable					  ( false )
 // JVT-Q065 EIDR}
+ , m_bFGSCodingMode                       ( false )
+ , m_uiGroupingSize                       ( 1 )
 #if INDEPENDENT_PARSING
     , m_uiIndependentParsing  ( 0 )
 #endif
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
+    ::memset( m_uiPosVect, 0x00, 16*sizeof(UInt) );
   }
 
   virtual ~LayerParameters()
@@ -290,6 +293,9 @@ public:
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
   UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
   //--ICU/ETRI FMO Implementation : FMO end
+  Bool getFGSCodingMode                  ()    { return m_bFGSCodingMode; }
+  UInt getGroupingSize                   ()    { return m_uiGroupingSize; }
+  UInt getPosVect                        (UInt uiNum) {return m_uiPosVect[uiNum];} 
 
 #if INDEPENDENT_PARSING
   UInt          getIndependentParsing() const { return m_uiIndependentParsing; }
@@ -333,6 +339,9 @@ public:
 
   Void setUseDiscardable                 (Bool b)     {m_bUseDiscardable                  = b;} //JVT-P031
   Void setPredFGSRate                    (Double d)   {m_dPredFGSRate                     = d;} //JVT-P031
+  Void setFGSCodingMode                   ( Bool b )                 { m_bFGSCodingMode   = b;      }
+  Void setGroupingSize                    ( UInt ui )                { m_uiGroupingSize   = ui;     }
+  Void setPosVect                         ( UInt uiNum, UInt uiVect) { m_uiPosVect[uiNum] = uiVect; } 
 // TMM_ESS {
   int                 getExtendedSpatialScalability     () { return m_ResizeParameter.m_iExtendedSpatialScalability; }
   int                 getSpatialScalabilityType         () { return m_ResizeParameter.m_iSpatialScalabilityType; }
@@ -475,6 +484,9 @@ public:
 // JVT-Q065 EIDR}
 
   UInt               m_uiPLR; //JVT-R057 LA-RDO
+  Bool       m_bFGSCodingMode;
+  UInt       m_uiGroupingSize;
+  UInt       m_uiPosVect[16];
 
 #if INDEPENDENT_PARSING
   UInt         m_uiIndependentParsing;

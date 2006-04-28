@@ -148,43 +148,36 @@ public:
 private:
   ErrVal            xScaleBaseLayerCoeffs ();
   ErrVal            xDecodingFGS                  ();
-  ErrVal            xDecodingSubbandFGS           ();
-
-  
-  ErrVal            xDecodeCoefficientLuma(   UInt   uiBlockYIndex,
-                                              UInt   uiBlockXIndex,
-                                              UInt   uiScanIndex,
-                                              Int&   riLastQp );
-
-  ErrVal            xDecodeCoefficientChromaDC (  UInt    uiPlane,
-                                                  UInt    uiMbYIdx,
-                                                  UInt    uiMbXIdx,
-                                                  UInt    uiDCIdx,
-                                                  Int&    riLastQP );
-
-  ErrVal            xDecodeCoefficientChromaAC (  UInt    uiPlane,
-                                                  UInt    uiB8YIdx,
-                                                  UInt    uiB8XIdx,
-                                                  UInt    uiScanIdx,
-                                                  Int&    riLastQP );
 
   ErrVal            xDecodeMotionData             ( UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx );
 
-  ErrVal            xDecodeNewCoefficientLuma     ( UInt                uiBlockYIndex,
+  ErrVal            xDecodeNewCoefficientLumaMb   ( UInt                uiMbYIdx,
+                                                    UInt                uiMbXIdx,
+                                                    Int&                riLastQp,
+                                                    Int                 iLumaScanIdx,
+                                                    UInt                uiMaxPosLuma );
+
+  ErrVal            xDecodeSigHeadersLuma         ( MbDataAccess*       pcMbDataAccessBL,
+                                                    MbDataAccess*       pcMbDataAccessEL,
+                                                    UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
-                                                    UInt&               uiComplete,
                                                     Int&                riLastQp );
+
+  ErrVal            xDecodeNewCoefficientLuma     ( MbDataAccess*       pcMbDataAccessBL,
+                                                    MbDataAccess*       pcMbDataAccessEL,
+                                                    UInt                uiBlockYIndex,
+                                                    UInt                uiBlockXIndex );
   ErrVal            xDecodeNewCoefficientChromaDC ( UInt                uiPlane,
                                                     UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx,
-                                                    UInt&               uiComplete,
-                                                    Int&                riLastQP );
+                                                    Int&                riLastQP,
+                                                    UInt                uiChromaScanIndex );
   ErrVal            xDecodeNewCoefficientChromaAC ( UInt                uiPlane,
                                                     UInt                uiB8YIdx,
                                                     UInt                uiB8XIdx,
-                                                    UInt&               uiComplete,
-                                                    Int&                riLastQP );
+                                                    Int&                riLastQP,
+                                                    UInt                uiChromaScanIndex );
   
   ErrVal            xDecodeCoefficientLumaRef     ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
@@ -211,6 +204,8 @@ private:
   Bool              m_bPicFinished;
   SliceHeader*      m_pcCurrSliceHeader;
 
+  UInt              m_auiScanPosVectLuma    [16];
+  UInt              m_auiScanPosVectChromaDC[ 4];
 
 };
 

@@ -1,3 +1,18 @@
+JSVM_5_1 -> JSVM_5_2
+====================
+
+Unification of FGS
+
+Date: April 27, 2006
+Authors: Justin Ridge (Nokia), Nathalie Cammas (France Telecom R&D)
+Contribution: JVT-S077
+
+Changes:
+- Convert "regular" FGS to subband approach
+- Remove specific routines for AR-FGS ordering (now a single method)
+- Add "vector mode" coefficient ordering in FGS
+- Tidy-up: removed unused variables and parameters from FGS
+- Added some checks to the FGS decoder to avoid "empty" cycles and unnecessary initMb calls
 
 
 JSVM_5_0 -> JSVM_5_1

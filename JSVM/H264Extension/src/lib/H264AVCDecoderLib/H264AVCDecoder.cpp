@@ -153,8 +153,11 @@ H264AVCDecoder::H264AVCDecoder()
 , m_uiNumOfNALInAU                ( 0 )
 , m_iPrevPoc                      ( 0 )
 //~JVT-P031
+, m_bFGSCodingMode                ( false )
+, m_uiGroupingSize                ( 1 )
 {
   ::memset( m_apcMCTFDecoder, 0x00, MAX_LAYERS * sizeof( Void* ) );
+  ::memset( m_uiPosVect,      0x00, 16         * sizeof( UInt  ) ); 
   m_pcVeryFirstSliceHeader = NULL;
   //JVT-P031
   UInt uiLayer;
@@ -1100,6 +1103,13 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			  }
 		}
 //TMM_EC }}    
+    m_pcSliceHeader->setFGSCodingMode( m_bFGSCodingMode );
+    m_pcSliceHeader->setGroupingSize ( m_uiGroupingSize );
+    UInt ui;
+    for( ui = 0; ui < 16; ui++ )
+    {
+      m_pcSliceHeader->setPosVect( ui, m_uiPosVect[ui] );
+    }
 	}
 	break;
   case NAL_UNIT_SPS:
@@ -1170,6 +1180,14 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       ruiEndPos = pcBinDataAccessor->size(); //JVT-P031
       bDiscardable = false;//JVT-P031
       rbStartDecoding = true;//JVT-P031
+
+      m_bFGSCodingMode = pcSPS->getFGSCodingMode();
+      m_uiGroupingSize = pcSPS->getGroupingSize ();
+      UInt ui;
+      for(ui = 0; ui < 16; ui++)
+      {
+        m_uiPosVect[ui] = pcSPS->getPosVect(ui);
+      }
     }
     break;
 
@@ -1273,8 +1291,18 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			  }
 		  }
 //TMM_EC }}
+  if(m_pcSliceHeader)
+  {
+    m_pcSliceHeader->setFGSCodingMode( m_bFGSCodingMode );
+    m_pcSliceHeader->setGroupingSize ( m_uiGroupingSize );
+    UInt ui;
+    for(ui = 0; ui < 16; ui++)
+    {
+      m_pcSliceHeader->setPosVect( ui, m_uiPosVect[ui] );
     }
-    break;
+  }
+  }
+  break;
 
   case NAL_UNIT_SEI:
     {

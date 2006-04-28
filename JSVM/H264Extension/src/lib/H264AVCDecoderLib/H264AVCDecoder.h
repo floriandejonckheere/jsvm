@@ -294,6 +294,10 @@ protected:
   Bool                          m_abCompletlyDecodeBaseLayer[MAX_LAYERS];
 #endif
 
+  Bool                          m_bFGSCodingMode;
+  UInt                          m_uiGroupingSize;
+  UInt                          m_uiPosVect[16];
+
   SEI::NonRequiredSei*			m_pcNonRequiredSei;
   UInt							m_uiNonRequiredSeiReadFlag;
 	UInt							m_uiNonRequiredSeiRead;

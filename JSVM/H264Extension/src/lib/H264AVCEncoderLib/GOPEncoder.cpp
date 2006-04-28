@@ -1582,7 +1582,13 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 
   pcSliceHeader->setFirstMbInSlice(0);
   pcSliceHeader->setLastMbInSlice(pcSliceHeader->getMbInPic()-1);
-
+  pcSliceHeader->setFGSCodingMode( m_pcSPS->getFGSCodingMode() );
+  pcSliceHeader->setGroupingSize ( m_pcSPS->getGroupingSize () );
+  UInt ui = 0;
+  for(ui = 0; ui < 16; ui++)
+  {
+    pcSliceHeader->setPosVect( ui, m_pcSPS->getPosVect(ui) );
+  }
   // Martin.Winken@hhi.fhg.de: original residual now set in RQFGSEncoder::xResidualTranform()
 
   UInt uiTarget;
