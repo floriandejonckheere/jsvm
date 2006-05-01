@@ -223,7 +223,7 @@ public:
 	, m_iIDRPeriod						  (0)
 	, m_bBLSkipEnable					  ( false )
 // JVT-Q065 EIDR}
- , m_bFGSCodingMode                       ( false )
+ , m_uiFGSCodingMode                      ( 0 )
  , m_uiGroupingSize                       ( 1 )
 #if INDEPENDENT_PARSING
     , m_uiIndependentParsing  ( 0 )
@@ -295,7 +295,7 @@ public:
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
   UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
   //--ICU/ETRI FMO Implementation : FMO end
-  Bool getFGSCodingMode                  ()    { return m_bFGSCodingMode; }
+  UInt getFGSCodingMode                  ()    { return m_uiFGSCodingMode; }
   UInt getGroupingSize                   ()    { return m_uiGroupingSize; }
   UInt getPosVect                        (UInt uiNum) {return m_uiPosVect[uiNum];} 
 
@@ -342,7 +342,7 @@ public:
 
   Void setUseDiscardable                 (Bool b)     {m_bUseDiscardable                  = b;} //JVT-P031
   Void setPredFGSRate                    (Double d)   {m_dPredFGSRate                     = d;} //JVT-P031
-  Void setFGSCodingMode                   ( Bool b )                 { m_bFGSCodingMode   = b;      }
+  Void setFGSCodingMode                   ( UInt ui )                { m_uiFGSCodingMode  = ui;      }
   Void setGroupingSize                    ( UInt ui )                { m_uiGroupingSize   = ui;     }
   Void setPosVect                         ( UInt uiNum, UInt uiVect) { m_uiPosVect[uiNum] = uiVect; } 
 // TMM_ESS {
@@ -488,7 +488,7 @@ public:
 // JVT-Q065 EIDR}
 
   UInt               m_uiPLR; //JVT-R057 LA-RDO
-  Bool       m_bFGSCodingMode;
+  UInt       m_uiFGSCodingMode;
   UInt       m_uiGroupingSize;
   UInt       m_uiPosVect[16];
 

@@ -1348,12 +1348,21 @@ FGSCoder::xClearBaseCoeffs( MbDataAccess& rcMbDataAccess,
 
     for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
     {
+      UInt    uiScanIndex;
       UInt    uiBlockIdx  = ( 4*uiMbY + cIdx.y() ) * 4 * m_uiWidthInMB + ( 4*uiMbX + cIdx.x() );
 
       //===== set transform coefficients =====
-      for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
+      for( uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
       {
         m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] = CLEAR;
+      }
+      m_apaucScanPosMap[0][uiBlockIdx] = 16;
+      for( uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
+      {
+        if( !( m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][uiBlockIdx] == 16 )
+        {
+          m_apaucScanPosMap[0][uiBlockIdx] = uiScanIndex;
+        }
       }
 
       //===== set block mode =====
@@ -1364,9 +1373,18 @@ FGSCoder::xClearBaseCoeffs( MbDataAccess& rcMbDataAccess,
   //--- CHROMA DC ---
   for( UInt uiPlane = 0; uiPlane < 2; uiPlane++ )
   {
-    for( UInt ui = 0; ui < 4; ui++ )
+    UInt ui;
+    for( ui = 0; ui < 4; ui++ )
     {
       m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] = CLEAR;
+    }
+    m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = 4;
+    for( ui = 0; ui < 4; ui++ )
+    {
+      if( !( m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[uiPlane + 1][uiMbIndex] == 4 )
+      {
+        m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = ui;
+      }
     }
     m_apaucChromaDCBlockMap[uiPlane][uiMbIndex] = CLEAR;
   }
@@ -1374,11 +1392,20 @@ FGSCoder::xClearBaseCoeffs( MbDataAccess& rcMbDataAccess,
   //--- CHROMA AC ---
   for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
   {
+    UInt    ui;
     UInt    ui8x8Idx    = ( 2*uiMbY + cCIdx.y() ) * 2 * m_uiWidthInMB + ( 2 * uiMbX + cCIdx.x() );
 
-    for( UInt ui = 1; ui < 16; ui++ )
+    for( ui = 1; ui < 16; ui++ )
     {
       m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx]  = CLEAR;
+    }
+    m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = 16;
+    for( ui = 1; ui < 16; ui++ )
+    {
+      if( !( m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] == 16 )
+      {
+        m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = ui;
+      }
     }
     m_apaucChromaACBlockMap[cCIdx.plane()][ui8x8Idx] = CLEAR;
   }

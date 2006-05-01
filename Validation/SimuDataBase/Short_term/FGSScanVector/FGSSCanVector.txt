@@ -1,0 +1,76 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	=> "FGSScanVector",
+    original 	=> "CITY_352x288_30.yuv",
+    originalwidth  => 352,
+    originalheight => 288,
+    originalframerate => 30,
+    width      	=> 176,
+    height     	=> 144,
+    framerate 	=> 30,
+    nbframes	=> 40,
+    verbosemode => 1,
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 1,
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                      #----------#
+                      # Layer  0 #
+                      #----------#
+                       {
+		                   },
+		                  #----------#
+   		              ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+      bitratecheckrange  => 3,
+      psnrcheckrange     => 0,
+
+      tests      => [
+                      # Test   0 #
+                      #----------#
+                      {
+            		        name => "Basic",
+            		        mode => 1,
+				width => 176,
+				height => 144,
+            		        bitrate => 18,
+            		        psnr => 26.96,
+            		      },
+		                  #----------#
+                      # Test   1 #
+                      #----------#
+                      {
+            		        name => "Partial 1",
+            		        mode => 1,
+				width => 176,
+				height => 144,
+            		        bitrate => 45,
+            		        psnr => 29.60,
+            		      },
+			          #----------#
+                      # Test   2 #
+                      #----------#
+                      {
+            		        name => "Full",
+            		        mode => 1,
+				width => 176,
+				height => 144,
+            		        bitrate => 115,
+            		        psnr => 32.49,
+				encdecmatch => 1,
+            		      },
+		  ],
+}
+
+

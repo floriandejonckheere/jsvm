@@ -853,6 +853,24 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 #if INDEPENDENT_PARSING
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("IndependentParsing", &(rcLayer.m_uiIndependentParsing), 0 );
 #endif
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVectorMode", &(rcLayer.m_uiFGSCodingMode), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSGroupingSize", &(rcLayer.m_uiGroupingSize), 1 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector0", &(rcLayer.m_uiPosVect[0]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector1", &(rcLayer.m_uiPosVect[1]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector2", &(rcLayer.m_uiPosVect[2]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector3", &(rcLayer.m_uiPosVect[3]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector4", &(rcLayer.m_uiPosVect[4]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector5", &(rcLayer.m_uiPosVect[5]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector6", &(rcLayer.m_uiPosVect[6]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector7", &(rcLayer.m_uiPosVect[7]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector8", &(rcLayer.m_uiPosVect[8]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector9", &(rcLayer.m_uiPosVect[9]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector10", &(rcLayer.m_uiPosVect[10]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector11", &(rcLayer.m_uiPosVect[11]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector12", &(rcLayer.m_uiPosVect[12]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector13", &(rcLayer.m_uiPosVect[13]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector14", &(rcLayer.m_uiPosVect[14]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector15", &(rcLayer.m_uiPosVect[15]), 0 );
   m_pLayerLines[uiParLnCount] = NULL;
 
   while (!feof(f))

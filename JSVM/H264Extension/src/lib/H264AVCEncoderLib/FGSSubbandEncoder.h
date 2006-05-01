@@ -264,6 +264,7 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt iChromaACScanIdx,
                              UInt iStartCycle,
                              UInt iCycle,
+                             UInt uiPass,
                              UInt bAllowChromaDC,
                              UInt bAllowChromaAC,
                              UInt uiMbYIdx,
@@ -283,6 +284,7 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt& riChromaACScanIdx,
                              UInt& riStartCycle,
                              UInt& riCycle,
+                             UInt& ruiPass,
                              UInt& rbAllowChromaDC,
                              UInt& rbAllowChromaAC,
                              UInt& ruiMbYIdx,
@@ -324,6 +326,7 @@ private:
   UInt               m_iChromaACScanIdx;
   UInt               m_iStartCycle;
   UInt               m_iCycle;
+  UInt              m_uiPass;
   UInt              m_bAllowChromaDC;
   UInt              m_bAllowChromaAC;
   UInt              m_uiMbYIdx;

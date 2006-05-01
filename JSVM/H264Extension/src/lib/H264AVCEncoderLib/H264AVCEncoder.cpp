@@ -1362,7 +1362,14 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
                                                     rcLayerParameters.getDecodingLoops() > 1 );
 #endif
-    pcSPS->setFGSCodingMode                       ( rcLayerParameters.getFGSCodingMode() );
+    if(rcLayerParameters.getFGSCodingMode() == 0)
+    {
+      pcSPS->setFGSCodingMode                     ( false );
+    }
+    else
+    {
+      pcSPS->setFGSCodingMode                     ( true );
+    }
     pcSPS->setGroupingSize                        ( rcLayerParameters.getGroupingSize() );
     for( UInt ui = 0; ui < 16; ui++ )
     {
