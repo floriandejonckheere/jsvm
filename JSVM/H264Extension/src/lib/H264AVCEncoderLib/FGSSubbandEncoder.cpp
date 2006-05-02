@@ -1640,7 +1640,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                               RNOK( xEncodeNewCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, iLastQP, ui ) );
                             if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                             {
-                              xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, bAllowChromaDC, bAllowChromaAC, uiPass, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
+                              xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
                               throw WriteStop();
                             }
                           }
@@ -1650,7 +1650,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                               RNOK( xEncodeCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, ui ) );
                             if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                             {
-                              xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, bAllowChromaDC, bAllowChromaAC, uiPass, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
+                              xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
                               throw WriteStop();
                             }
                           }
