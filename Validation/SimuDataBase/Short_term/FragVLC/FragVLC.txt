@@ -59,7 +59,7 @@ tests              => [
                         height      => 144,
                         framerate   => 15,
                         bitrate     => 386,
-                        psnr        => 36.74,
+                        psnr        => 36.56,
                         encdecmatch => 0,
                        },
                        #----------#

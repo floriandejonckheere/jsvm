@@ -67,7 +67,7 @@
 				width => 176,
 				height => 144,
             		        bitrate => 80,
-            		        psnr => 31.77,
+            		        psnr => 31.76,
             		      },
 			                  #----------#
                       # Test   3 #
