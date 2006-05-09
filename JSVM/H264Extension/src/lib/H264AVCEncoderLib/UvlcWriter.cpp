@@ -291,6 +291,35 @@ const UInt g_auiISymLen[3][16] =
   { 1, 3, 3, 5, 4, 5, 6, 8, 4, 6, 7, 8, 7, 8, 9, 9}
 };
 
+#define CAVLC_SYMGRP_SIZE       3 
+
+const UInt g_auiRefSymCode[2][27] =
+{
+  { 
+    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5, 
+    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3, 
+    0x3, 0x3, 0x3, 0x3, 0x1, 0x2, 0x2, 0x1, 0x0
+  },
+  {
+    0x1, 0x7, 0x6, 0x7,	0x9, 0x8, 0x6, 0x7,	0x9,
+    0x5, 0x6,	0x5, 0x8,	0x7, 0x6,	0x7, 0x5,	0x4,
+    0x4, 0x4,	0x6, 0x5,	0x3, 0x2,	0x5, 0x1,	0x0
+  }
+};
+
+const UInt g_auiRefSymLen[2][27] =
+{
+  {
+    1, 4, 5, 3, 6, 8, 5, 7, 9,
+    3, 6, 8, 6, 9,10, 7,10,12,
+    5, 7, 9, 8,10,12, 9,12,12
+  },
+  {
+    1, 5, 5, 4, 7, 7, 4, 7, 6,
+    4, 7, 7, 6, 8, 8, 6, 8, 8,
+    4, 7, 6, 6, 8, 8, 5, 8, 8
+  }
+};
 
 UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
   m_pcBitWriteBufferIf( NULL ),
@@ -301,15 +330,13 @@ UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
   m_bRunLengthCoding( false ),
   m_uiRun( 0 )
 {
-  m_pBitGrpRef = new UcBitGrpWriter( this, 1, 15, 1024, 16, true );
-  m_pBitGrpSgn = new UcBitGrpWriter( this, 1, 15, 1024, 16, true );
+  m_pSymGrp    = new UcSymGrpWriter( this );
 }
 
 
 UvlcWriter::~UvlcWriter()
 {
-  delete m_pBitGrpRef;
-  delete m_pBitGrpSgn;
+  delete m_pSymGrp; 
 }
 
 
@@ -1173,6 +1200,8 @@ ErrVal UvlcWriter::finishSlice()
     ETRACE_N;
   }
 
+  m_pSymGrp->Flush();
+
   return Err::m_nOK;
 }
 
@@ -1634,87 +1663,6 @@ UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
                               B8x8Idx       c8x8Idx )
 {
   UInt uiSymbol  = ( ( rcMbDataAccess.getMbData().getMbCbp() >> c8x8Idx.b8x8Index() ) & 1 ? 1 : 0 );
-  UInt uiBaseCbp = rcMbDataAccessBase.getMbData().getMbCbp();
-  UInt uiCbp     = rcMbDataAccess.getMbData().getMbCbp();
-  B8x8Idx uiFirstCbp;
-  UInt ui, uiB;
-
-  if (uiFirstCbp == c8x8Idx) {
-    // Maintain stats; split CBP by base context
-    UInt uiCode[2] = {0,0};
-    UInt uiLen[2]  = {0,0};
-    UInt uiVlc[2]  = {0,0};
-    UInt uiBaseCtx;
-    UInt uiCBlk;
-    for (ui=0; ui<4; ui++)
-    {
-      uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
-      uiCBlk    = (uiCbp     & 0xf & (1<<ui)) ? 1 : 0;
-      uiLen[uiBaseCtx]++;
-      uiCode[uiBaseCtx] <<= 1;
-      uiCode[uiBaseCtx] |= uiCBlk;
-    }
-    // Determine optimal VLC for each context, and av symbol size
-    for (uiB=0; uiB<2; uiB++)
-    {
-      if ( uiLen[uiB] > 0 )
-      {
-        UInt uiFlip = (m_uiCbpStats[uiB][0] <= m_uiCbpStats[uiB][1]) ? 1 : 0;
-        if ( uiFlip )
-        {
-          uiCode[uiB] = uiCode[uiB] ^ ((1 << uiLen[uiB])-1);
-        }
-        if ( uiLen[uiB] <= 2 )
-        {
-          uiVlc[uiB] = 0;
-        } else if ( uiLen[uiB] == 3 )
-        {
-          uiVlc[uiB] = (m_uiCbpStats[uiB][uiFlip] < 2*m_uiCbpStats[uiB][1-uiFlip]) ? 0 : 1;
-        } else {
-          if (m_uiCbpStats[uiB][uiFlip] < 2*m_uiCbpStats[uiB][1-uiFlip])
-          {
-            uiVlc[uiB] = 0;
-          } else {
-            uiVlc[uiB] = 2;
-          }
-        }
-      }
-    }
-    // Decide on the optimal VLC
-    for (uiB=0; uiB<2; uiB++)
-    {
-      if ( uiLen[uiB] > 0 )
-      {
-        if ( uiVlc[uiB] == 0 )
-        {
-          ANOK( xWriteCode( uiCode[uiB], uiLen[uiB] ) );
-        } else {
-          ANOK( xWriteCode(g_auiISymCode[uiVlc[uiB]][uiCode[uiB]], g_auiISymLen[uiVlc[uiB]][uiCode[uiB]]) );
-        }
-      }
-    }
-    // Update stats
-    for (ui=0; ui<4; ui++)
-    {
-      uiBaseCtx = (uiBaseCbp & 0xf & (1<<ui)) ? 1 : 0;
-      uiCBlk    = (uiCbp     & 0xf & (1<<ui)) ? 1 : 0;
-      m_uiCbpStats[uiBaseCtx][uiCBlk]++;
-    }
-    // Scale counter if necessary
-    for (uiB = 0; uiB < 2; uiB++) {
-      if ( m_uiCbpStats[uiB][0] + m_uiCbpStats[uiB][1] > 512 )
-      {
-        m_uiCbpStats[uiB][0] >>= 4;
-        m_uiCbpStats[uiB][1] >>= 4;
-      }
-    }
-    ETRACE_T( "CBP_Luma" );
-    ETRACE_V( uiCode[0] );
-    ETRACE_N;
-    ETRACE_T( "CBP_Luma" );
-    ETRACE_V( uiCode[1] );
-    ETRACE_N;
-  }
 
   if( uiSymbol )
   {
@@ -1796,11 +1744,7 @@ UvlcWriter::RQencodeCBP_Chroma( MbDataAccess& rcMbDataAccess,
                                  MbDataAccess& rcMbDataAccessBase )
 {
   UInt  uiSymbol          = ( ( rcMbDataAccess.getMbData().getMbCbp() >> 4 ) ? 1 : 0 );
-  UInt  uiLeftChromaCbp   = rcMbDataAccessBase.getLeftChromaCbpFGS ();
-  UInt  uiAboveChromaCbp  = rcMbDataAccessBase.getAboveChromaCbpFGS();
-  UInt  uiCtx             = ( uiLeftChromaCbp > 0 ? 1 : 0 ) + ( uiAboveChromaCbp > 0 ? 2 : 0 );
 
-  ANOK( xWriteFlag( uiSymbol ) );
   ETRACE_T( "CBP_Chroma" );
   ETRACE_V( uiSymbol );
   ETRACE_N;
@@ -1874,7 +1818,7 @@ UvlcWriter::RQencodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess,
                                    MbDataAccess& rcMbDataAccessBase )
 {
   UInt  uiSymbol          = ( ( rcMbDataAccess.getMbData().getMbCbp() >> 5 ) ? 1 : 0 );
-  ANOK( xWriteFlag( uiSymbol ) );
+
   ETRACE_T( "CBP_ChromaAC" );
   ETRACE_V( uiSymbol );
   ETRACE_N;
@@ -2041,14 +1985,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
                                  UInt&         ruiNumCoefWritten )
 {
   UInt ui;
-  UInt uiBaseLast = 0;
-  for ( ui=0; ui<uiStop; ui++ )
-  {
-    if ( piCoeffBase[pucScan[ui]] )
-    {
-      uiBaseLast = ui;
-    }
-  }
+
   UInt uiCycle = 0;
   for ( ui=uiStart; ui<uiScanIndex; ui++ )
   {
@@ -2085,10 +2022,11 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
           uiLastPos = 1;
         }
       }
-      RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, uiLastPos, uiStart, uiStop, uiCycle*16+uiBaseLast, pucScan, uiCountMag2 ) );
+      RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, uiLastPos, uiStart, uiStop, uiCycle, pucScan, uiCountMag2 ) );
+
       if ( uiCountMag2 == 0 )
       {
-        RNOK( xWriteS3Code( min(pauiEobShift[uiCycle], uiLastPos), m_auiVlcTabMap[uiCycle*16 + uiBaseLast] ) );
+        RNOK( xWriteSigRunCode( min(pauiEobShift[uiCycle], uiLastPos), m_auiBestCodeTabMap[uiCycle] ) );
       }
     }
     ROTRS(rbLast, Err::m_nOK);
@@ -2123,7 +2061,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
   }
   while ( true );
   UInt uiSymbol = ruiNumCoefWritten - ((bSkipEob || ruiNumCoefWritten <= pauiEobShift[uiCycle]) ? 1 : 0);
-  RNOK( xWriteS3Code( uiSymbol, m_auiVlcTabMap[uiCycle*16+uiBaseLast] ) );
+  RNOK( xWriteSigRunCode( uiSymbol, m_auiBestCodeTabMap[uiCycle] ) );
   RNOK( xWriteFlag( piCoeff[pucScan[uiScanIndex]] < 0 ? 1 : 0 ) );
 
   // Check whether any more nonzero values
@@ -2137,10 +2075,10 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
   if( bFinished )
   {
     UInt uiCountMag2;
-    RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, 0, uiStart, uiStop, uiCycle*16+uiBaseLast, pucScan, uiCountMag2 ) );
+    RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, 0, uiStart, uiStop, uiCycle, pucScan, uiCountMag2 ) );
     if( uiCountMag2 == 0 )
     {
-      RNOK( xWriteS3Code( 0, m_auiVlcTabMap[uiCycle*16 + uiBaseLast] ) );
+      RNOK( xWriteSigRunCode( 0, m_auiBestCodeTabMap[uiCycle] ) );
     }
   }
   return Err::m_nOK;
@@ -2191,7 +2129,7 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
   } else {
     uiTermSym = uiCountMag1*(uiMaxMag-2) + ruiNumMagG1 - 1;
   }
-  RNOK( xWriteS3Code( uiBaseCode+uiTermSym+1, m_auiVlcTabMap[uiVlcTable] ) );
+  RNOK( xWriteSigRunCode( uiBaseCode+uiTermSym+1, m_auiBestCodeTabMap[uiVlcTable] ) );
 
   UInt uiFlip      = 0;
   UInt uiRemaining = ruiNumMagG1;
@@ -2256,19 +2194,7 @@ UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
   ETRACE_V( uiScanIndex );
   ETRACE_N;
 
-  UInt uiLen      = 0;
-  UInt uiFirstPos = 64;
-
-  UInt uiSigEL = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
-  RNOK( m_pBitGrpRef->Write( uiSigEL ));
-  if( uiSigEL )
-  {
-    UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
-    UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
-    UInt uiSymbol = ( uiSignBL ^ uiSignEL );
-    RNOK( m_pBitGrpRef->Write( uiSymbol ) );
-  }
-
+  RNOK( xRQencodeTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
   return Err::m_nOK;
 }
 
@@ -2299,15 +2225,18 @@ UvlcWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
                                  UInt          uiScanIndex )
 {
   UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
-  m_pBitGrpRef->Write( uiSig );
-  if( uiSig )
+  UInt uiSym = 0;
+
+  if(uiSig) 
   {
     UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
-    UInt uiSymbol = ( uiSignBL ^ uiSignEL );
-    RNOK( m_pBitGrpRef->Write( uiSymbol ) );
+    UInt uiSign = ( uiSignBL ^ uiSignEL );
+    
+    uiSym = (uiSign ? 2:1);
   }
 
+  RNOK( m_pSymGrp->Write( uiSym ) );
   return Err::m_nOK;
 }
 
@@ -2401,8 +2330,7 @@ UvlcWriter::peekGolomb(UInt uiSymbol, UInt uiK)
 ErrVal
 UvlcWriter::RQencodeEobOffsets_Luma( UInt* pauiSeq )
 {
-  m_pBitGrpRef    ->Init();
-  m_pBitGrpSgn    ->Init();
+  m_pSymGrp       ->Init();
   m_uiCbpStat4x4[0] = m_uiCbpStat4x4[1] = 0;
   m_uiCbpStats[0][0] = m_uiCbpStats[0][1] = m_uiCbpStats[1][0] = m_uiCbpStats[1][1] = 0;
 
@@ -2441,103 +2369,47 @@ UvlcWriter::xRQencodeEobOffsets( UInt* auiSeq, UInt uiMax )
   return Err::m_nOK;
 }
 
+UInt g_auiSigRunTabCode[] = {0x01, 0x01, 0x01, 0x01, 0x00};
+UInt g_auiSigRunTabCodeLen[] = {1, 2, 3, 4, 4};
+
 ErrVal
-UvlcWriter::RQencodeVlcTableMap( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV )
+UvlcWriter::RQencodeBestCodeTableMap( UInt* pauiTable, UInt uiMaxH )
 {
-  memcpy( m_auiVlcTabMap, pauiTable, sizeof(UInt)*uiMaxH*uiMaxV );
-  // Form vector for first column
-  RNOK( xWriteGolomb( pauiTable[0], 1 ) );
-  UInt* auiCol = new UInt[uiMaxV];
-  UInt* puiCurrVal = pauiTable;
-  UInt  uiV, uiH;
-  for (uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
+  memset( m_auiBestCodeTabMap, 0, sizeof(UInt)*uiMaxH );
+  Int uiW = uiMaxH-1;
+
+  for(uiW = uiMaxH-1; uiW >= 0; uiW--)
   {
-    auiCol[uiV] = 5 - *puiCurrVal;
-  }
-  for (uiV=uiMaxV-1; uiV>0; uiV--)
-  {
-    if (auiCol[uiV] == auiCol[uiV-1])
-    {
-      auiCol[uiV] = 0;
-    } else {
+    if(pauiTable[uiW] != 0)
       break;
-    }
   }
-  RNOK( xEncodeMonSeq( auiCol+1, auiCol[0], uiMaxV-1 ) );
-  // Get rid of EOB
-  for (uiV=1; uiV<uiMaxV; uiV++)
+
+  if(uiW < 0)
+    uiW = 0;
+  RNOK(xWriteCode(uiW, 4));
+
+  for(UInt uiH = 0; uiH <= (UInt)uiW; uiH++)
   {
-    if (auiCol[uiV] == 0)
-    {
-      auiCol[uiV] = auiCol[uiV-1];
-    }
+    m_auiBestCodeTabMap[uiH] = pauiTable[uiH];
+    RNOK(xWriteCode(g_auiSigRunTabCode[pauiTable[uiH]], g_auiSigRunTabCodeLen[pauiTable[uiH]]));
   }
-  puiCurrVal = pauiTable;
-  UInt* auiRow = new UInt[uiMaxH];
-  for (uiV=0; uiV<uiMaxV; uiV++,puiCurrVal+=uiMaxH)
-  {
-    auiRow[0] = auiCol[uiV];
-    for (uiH=1; uiH<uiMaxH; uiH++)
-    {
-      auiRow[uiH] = 5 - puiCurrVal[uiH];
-    }
-    for (uiH=uiMaxH-1; uiH>0; uiH--)
-    {
-      if (auiRow[uiH] == auiRow[uiH-1])
-      {
-        auiRow[uiH] = 0;
-      } else {
-        break;
-      }
-    }
-    RNOK( xEncodeMonSeq( auiRow+1, auiRow[0], uiMaxH-1 ) );
-  }
-  delete auiRow;
-  delete auiCol;
+
   return Err::m_nOK;
 }
 
 ErrVal
 UvlcWriter::RQvlcFlush()
 {
-  m_pBitGrpRef->Flush();
-  m_pBitGrpSgn->Flush();
   return Err::m_nOK;
 }
 
 ErrVal
 UvlcWriter::RQupdateVlcTable()
 {
-  if ( m_pBitGrpRef->UpdateVlc() ) {
-    m_pBitGrpSgn->UpdateVlc();
-  }
+  m_pSymGrp->UpdateVlc();
   return Err::m_nOK;
 }
 
-Bool
-UcBitGrpWriter::UpdateVlc()
-{
-
-  UInt uiFlag = m_uiCodedFlag;
-  uiFlag &= (m_uiLen == 0);
-
-  if (uiFlag) {
-    // updating
-    m_uiFlip  = ( m_auiSymCount[0] < m_auiSymCount[1] ) ? 1 : 0;
-    m_uiTable = (m_auiSymCount[m_uiFlip] < 2*m_auiSymCount[1-m_uiFlip]) ? 0
-                  : ((7*m_auiSymCount[1-m_uiFlip]<=m_auiSymCount[m_uiFlip]) ? 2 : 1);
-
-    // scaling
-    if ( m_auiSymCount[0] + m_auiSymCount[1] > m_uiScaleLimit )
-    {
-      m_auiSymCount[0] >>= m_uiScaleFac;
-      m_auiSymCount[1] >>= m_uiScaleFac;
-    }
-    m_uiCodedFlag = false;
-  }
-
-  return (uiFlag != 0);
-}
 
 ErrVal
 UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
@@ -2568,109 +2440,176 @@ UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
 }
 
 ErrVal
-UvlcWriter::xWriteS3Code ( UInt uiSymbol, UInt uiCutoff )
+UvlcWriter::xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx )
 {
-  if ( uiSymbol <= uiCutoff )
+
+  assert( uiTableIdx >= 0 && uiTableIdx <= 4 );
+  if(uiTableIdx == 0)
   {
-    RNOK( xWriteGolomb( uiSymbol, 1 ) );
+    // unary code 
+    RNOK ( xWriteUnaryCode (uiSymbol) );
   }
-  else
+  else if (uiTableIdx == 1)
   {
-    UInt uiLen = (uiSymbol - uiCutoff-1)/3 *2 + uiCutoff+1;
-    RNOK( xWriteCode( (1 << uiLen) - 1, uiLen ) );
-    RNOK( xWriteCode( (uiSymbol - uiCutoff-1)%3, 2) );
+    RNOK ( xWriteCodeCB1 (uiSymbol) );
   }
+  else if (uiTableIdx == 2)
+  {
+    RNOK ( xWriteCodeCB2 (uiSymbol) );
+  }
+  else if (uiTableIdx == 3)
+  {
+    if ( uiSymbol == 0 )
+    {
+      RNOK( xWriteFlag( 1 ) );
+    }
+    else
+    {
+      RNOK( xWriteFlag( 0 ) );
+      RNOK( xWriteCodeCB2 (uiSymbol-1) );
+    }
+  }
+  else // uiTableIdx == 4
+  {
+    if(uiSymbol == 0)
+    {
+      RNOK (xWriteFlag ( 1 ));
+    }
+    else
+    {  
+      RNOK (xWriteCodeCB1(uiSymbol+1));
+    }
+  }
+
   return Err::m_nOK;
 }
 
-UcBitGrpWriter::UcBitGrpWriter( UvlcWriter* pParent,
-                                UInt uiInitTable,
-                                UInt uiScaleFac,
-                                UInt uiScaleLimit,
-                                UInt uiStabPeriod,
-                                Bool bAligned )
+ErrVal 
+UvlcWriter::xWriteUnaryCode ( UInt uiSymbol )
+{
+  UInt uiStart = 0;
+  do 
+  {
+    if(uiSymbol == uiStart)
+    {
+      RNOK( xWriteFlag (1) );
+      break;
+    }
+    else 
+    {
+      RNOK( xWriteFlag (0) );
+      uiStart++;
+    }
+  }
+  while (true);
+  return Err::m_nOK;
+}
+
+ErrVal 
+UvlcWriter::xWriteCodeCB1 ( UInt uiSymbol )
+{
+  // this function writes codeword for the input symbol according to the {2, 2, 3, 3, 4, 4...} codebook
+  for(UInt ui = 0; ui < uiSymbol/2; ui ++)
+  {
+    RNOK (xWriteFlag (0));
+  }
+  
+  RNOK (xWriteCode((3-(uiSymbol%2)), 2)) ;
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xWriteCodeCB2 ( UInt uiSymbol )
+{
+  // this function writes codeword for the input symbol according to the {2, 2, 2, 4, 4, 4...} codebook
+  for(UInt ui = 0; ui < uiSymbol/3; ui ++)
+  {
+    RNOK(xWriteCode (0, 2));
+  }
+
+  RNOK (xWriteCode((3-(uiSymbol%3)), 2));
+
+  return Err::m_nOK;
+}
+
+UcSymGrpWriter::UcSymGrpWriter( UvlcWriter* pParent )
 {
   m_pParent      = pParent;
-  m_uiScaleFac   = uiScaleFac;
-  m_uiScaleLimit = uiScaleLimit;
-  m_uiInitTable  = uiInitTable;
-  m_uiStabPeriod = uiStabPeriod;
-  m_bAligned     = bAligned;
   Init();
 }
 
 ErrVal
-UcBitGrpWriter::Init()
+UcSymGrpWriter::Init()
 {
-  m_auiSymCount[0] = 0;
-  m_auiSymCount[1] = 0;
   m_uiCode         = 0;
   m_uiLen          = 0;
-  m_uiFlip         = 0;
-  m_uiTable        = m_uiInitTable;
+  m_auiSymCount[0] = m_auiSymCount[1] = m_auiSymCount[2] = 0;
+  m_uiTable = 0;
   m_uiCodedFlag    = false;
 
   return Err::m_nOK;
 }
 
 ErrVal
-UcBitGrpWriter::Write( UChar ucBit )
+UcSymGrpWriter::Write( UChar ucSym )
 {
-  AOF((ucBit & 0xfe) == 0);
+  // ucSym takes one of three values {0, 1, 2} 
+  AOF((ucSym & 0xfc) == 0);
 
-  m_auiSymCount[ucBit]++;
-  m_uiCodedFlag = true;
+  {
+    m_uiCode *= 3;
+    m_uiCode += ucSym;
+    m_auiSymCount[ucSym]++;
+    m_uiLen++;
 
-  UChar auiTabLen[3] = {1, 3, 4};
-
-  m_uiCode <<= 1;
-  m_uiCode += ucBit;
-  m_uiLen++;
-
-  AOT( m_uiLen > auiTabLen[m_uiTable] );
-
-  if ( m_uiLen == auiTabLen[m_uiTable] )
-    xWriteBuffer();
+    if ( m_uiLen == CAVLC_SYMGRP_SIZE )
+    {
+      m_uiCodedFlag = true;
+      RNOK( m_pParent->writeCode( g_auiRefSymCode[m_uiTable][m_uiCode], g_auiRefSymLen[m_uiTable][m_uiCode], "" ) );
+      m_uiCode   = 0;
+      m_uiLen    = 0;
+    }
+  }
 
   return Err::m_nOK;
 }
 
-ErrVal
-UcBitGrpWriter::xWriteBuffer()
+Bool
+UcSymGrpWriter::UpdateVlc()
 {
-  if ( m_uiFlip )
-  {
-    m_uiCode = m_uiCode ^ ((1 << m_uiLen) - 1);
+  UInt uiFlag = m_uiCodedFlag;
+  if (uiFlag && m_uiLen == 0) {
+    // updating
+    m_uiTable = 0;
+    if (m_auiSymCount[0] < 2 *(m_auiSymCount[1] + m_auiSymCount[2]) ||
+      m_auiSymCount[1] < 2 * m_auiSymCount[2]) {
+      m_uiTable = 1;
+    }
+
+    // scaling
+    m_auiSymCount[0] = (m_auiSymCount[0] >> 1);
+    m_auiSymCount[1] = (m_auiSymCount[1] >> 1);
+    m_auiSymCount[2] = (m_auiSymCount[2] >> 1);
+    m_uiCodedFlag = false;
   }
-  RNOK( m_pParent->writeCode( g_auiISymCode[m_uiTable][m_uiCode], g_auiISymLen[m_uiTable][m_uiCode], "" ) );
-  m_uiCode = 0;
-  m_uiLen  = 0;
-  return Err::m_nOK;
+  return (uiFlag != 0);
 }
 
 ErrVal
-UcBitGrpWriter::Flush()
+UcSymGrpWriter::Flush()
 {
-  if( m_bAligned )
-  {
-    while( m_uiLen != 0 )
-      RNOK( Write( m_uiFlip ) );
-    return Err::m_nOK;
-  }
-
   if ( m_uiLen == 0 )
     return Err::m_nOK;
 
-  if ( m_uiFlip )
   {
-    m_uiCode = m_uiCode ^ ((1 << m_uiLen) - 1);
+    UInt uiMulti = 1;
+    for(UInt ui = 0; ui < (CAVLC_SYMGRP_SIZE-m_uiLen); ui++)
+      uiMulti *= 3;
+    m_uiCode *= uiMulti; 
+    m_uiLen = 0;
   }
-  if ( m_uiLen <= 2 )
-  {
-    RNOK( m_pParent->writeCode( m_uiCode, m_uiLen, "" ) );
-  } else {
-    RNOK( m_pParent->writeCode( g_auiISymCode[1][m_uiCode], g_auiISymLen[1][m_uiCode], "" ) );
-  }
+  RNOK( m_pParent->writeCode( g_auiRefSymCode[m_uiTable][m_uiCode], g_auiRefSymLen[m_uiTable][m_uiCode], "" ) );
 
   m_uiCode = 0;
   m_uiLen  = 0;

@@ -96,8 +96,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 class BitReadBuffer;
-class UcBitGrpReader;
 
+#define CAVLC_SYMGRP_SIZE   3 
+
+class UcSymGrpReader; 
 
 class UvlcReader
 : public HeaderSymbolReadIf
@@ -251,11 +253,12 @@ public:
                                      UInt            uiScanIndex );
   ErrVal  RQdecodeEobOffsets_Luma  ();
   ErrVal  RQdecodeEobOffsets_Chroma();
-  ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
-                                     UInt            uiMaxV );
+  ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH );
   ErrVal  RQupdateVlcTable         ();
   ErrVal  RQvlcFlush               ();
   Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+  Bool m_bTruncated;
+
 private:
   ErrVal xGetFlag     ( UInt& ruiCode );
   ErrVal xGetCode     ( UInt& ruiCode, UInt uiLength );
@@ -280,7 +283,11 @@ private:
   ErrVal xGetTrailingOnes4( UInt& uiCoeffCount, UInt& uiTrailingOnes );
   ErrVal xRQdecodeEobOffsets       ( UInt* pauiShift, UInt            uiLen );
   ErrVal xGetGolomb(UInt& uiSymbol, UInt uiK);
-  ErrVal xGetS3Code( UInt& uiSymbol, UInt uiCutoff );
+  ErrVal xGetSigRunCode( UInt& uiSymbol, UInt uiTableIdx );
+  ErrVal xGetUnaryCode( UInt& uiSymbol );
+  ErrVal xGetCodeCB1( UInt& uiSymbol );
+  ErrVal xGetCodeCB2( UInt& uiSymbol );
+  ErrVal xGetSigRunTabCode(UInt& uiTab);
   ErrVal  xDecodeMonSeq           ( UInt*           auiSeq,
                                     UInt uiStart,
                                      UInt            uiLen );
@@ -299,46 +306,37 @@ protected:
   UInt            m_uiRun;
   UInt m_auiShiftLuma[16];
   UInt m_auiShiftChroma[16];
-  UInt m_auiVlc[16*16];
+  UInt m_auiBestCodeTab[16];
   UInt m_uiCbpStats[3][2];
   UInt m_uiCbp8x8;
-  UcBitGrpReader* m_pBitGrpRef;
-  UcBitGrpReader* m_pBitGrpSgn;
   UInt m_uiCbpStat4x4[2];
   UInt m_uiCurrCbp4x4;
+  UcSymGrpReader* m_pSymGrp; 
+  TCoeff *m_pRefCoeffPointer[CAVLC_SYMGRP_SIZE];
+  UInt m_auiBaseCoeffSign[CAVLC_SYMGRP_SIZE];
+  UInt m_uiRefSymCounter; 
 };
 
-class UcBitGrpReader
+
+class UcSymGrpReader
 {
 public:
-  UcBitGrpReader( UvlcReader* pParent,
-                  UInt uiInitTable   = 1,
-                  UInt uiScaleFac    = 3,
-                  UInt uiScaleLimit  = 512,
-                  UInt uiStabPerdiod = 8,
-                  Bool bAligned      = false );
+  UcSymGrpReader( UvlcReader* pParent );
   ErrVal Init();
-  ErrVal Read( UChar& ucBit, UInt uiMaxSym = 0 );
   ErrVal Flush();
+  ErrVal xFetchSymbol( UInt uiMaxSym );
   Bool   UpdateVlc();
+  UInt   GetCode()    { return m_uiCode;   }
 
 protected:
-  ErrVal xFetchSymbol( UInt uiMaxSym );
-  UInt m_auiSymCount[2];
-  UInt m_uiScaleFac;
-  UInt m_uiScaleLimit;
-  UInt m_uiGroupMin;
-  UInt m_uiGroupMax;
+  UvlcReader* m_pParent;
+  UInt m_auiSymCount[3];
+  UInt m_uiTable;
+  UInt m_uiCodedFlag;
   UInt m_uiCode;
   UInt m_uiLen;
-  UInt m_uiInitTable;
-  UInt m_uiTable;
-  UInt m_uiFlip;
-  UInt m_uiStabPeriod;
-  UInt m_uiCodedFlag;
-  Bool m_bAligned;
-  UvlcReader* m_pParent;
 };
+
 H264AVC_NAMESPACE_END
 
 #endif // !defined(AFX_UVLCREADER_H__EA98D347_89D5_4D2D_B6D5_FB3A374CD295__INCLUDED_)

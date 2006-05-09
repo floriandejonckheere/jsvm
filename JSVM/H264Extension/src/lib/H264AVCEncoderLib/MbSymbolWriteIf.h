@@ -213,7 +213,7 @@ public:
   virtual Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx) = 0;
   virtual ErrVal RQencodeEobOffsets_Luma   ( UInt* pauiSeq ) = 0;
   virtual ErrVal RQencodeEobOffsets_Chroma ( UInt* pauiSeq ) = 0;
-  virtual ErrVal RQencodeVlcTableMap       ( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV ) = 0;
+  virtual ErrVal RQencodeBestCodeTableMap ( UInt* pauiTable, UInt uiMaxH ) = 0;
   virtual ErrVal RQupdateVlcTable          () = 0;
   virtual ErrVal RQvlcFlush                () = 0;
 };

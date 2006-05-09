@@ -223,6 +223,33 @@ private:
   ErrVal            xMotionEstimation     ();
   ErrVal            xEncodeMotionData             ( UInt uiMbYIdx,
                                                     UInt uiMbXIdx );
+  ErrVal            xEncodeLumaCbpVlcStart( UInt&                       uiLumaNextMbX,
+                                            UInt&                       uiLumaNextMbY,
+                                            UInt&                       uiNext8x8Idx,
+                                            UInt                        uiLastMbX,
+                                            UInt                        uiLastMbY,
+                                            UInt&                       ruiLumaCbpBitCount);
+
+  ErrVal            xEncodeLumaCbpVlc     ( UInt                        uiCurrMbIdxX,
+                                            UInt                        uiCurrMbIdxY,
+                                            UInt&                       uiNextMbX,
+                                            UInt&                       uiNextMbY,
+                                            UInt&                       uiNext8x8Idx,
+                                            UInt                        uiLastMbX,
+                                            UInt                        uiLastMbY,
+                                            UInt&                       ruiCbpBitCount);
+
+  ErrVal            xEncodeChromaCbpVlcStart( UInt                      uiCurrMbIdxX,
+                                              UInt                      uiCurrMbIdxY,
+                                              UInt&                     ruiChromaCbpBitCount);
+
+  ErrVal            xEncodeChromaCbpVlc   ( UInt                        uiCurrMbIdxX,
+                                            UInt                        uiCurrMbIdxY,
+                                            UInt&                       uiChromaCbpNextMbX,
+                                            UInt&                       uiChromaCbpNextMbY,
+                                            UInt                        uiLastMbX,
+                                            UInt                        uiLastMbY,
+                                            UInt&                       ruiChromaCbpBitCount);
 
   ErrVal            xEncodingFGS                  ( Bool&               rbFinished, 
                                                     Bool&               rbCorrupted, 
@@ -305,6 +332,7 @@ private:
   MbSymbolWriteIf*  m_pcSymbolWriter;
   ControlMngH264AVCEncoder* m_pcControlMng;
   MbEncoder*        m_pcMbEncoder;
+  Bool              m_bChromaCbpTransition;
 
   Int               m_iRemainingTCoeff;
   Double            m_dLambda;

@@ -356,5 +356,4 @@ typedef	enum
 #define INDEPENDENT_PARSING                           1  // not adopted! -> only software support
                                                          // switchable via configuration parameters
 
-
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

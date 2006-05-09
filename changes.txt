@@ -1,3 +1,28 @@
+
+
+KNOWN BUGS:
+-----------
+- FGS vector scan (test FGSScanVector) does not work since JSVM_5_3
+- Yan Ye works on a bug fix
+
+
+
+JSVM_5_2 -> JSVM_5_3
+====================
+
+FGS improvements for VLC
+
+Date: May 09, 2006
+Authors: Yan Ye (Qualcomm)
+Contribution: JVT-S066/S058/S031
+
+Changes:
+- modified coding order (Justin Ridge, Nokia)
+- improvements to FGS for VLC (S066)
+- VLC selector for 4x4 transform blocks (S058)
+- Modified VLC for refinement pass (S031)
+
+
 JSVM_5_1 -> JSVM_5_2
 ====================
 

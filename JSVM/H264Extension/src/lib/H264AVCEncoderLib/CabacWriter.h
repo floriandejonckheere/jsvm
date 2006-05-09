@@ -184,7 +184,7 @@ public:
   Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   ErrVal  RQencodeEobOffsets_Luma  ( UInt* pauiSeq ) { return Err::m_nOK; };
   ErrVal  RQencodeEobOffsets_Chroma( UInt* pauiSeq ) { return Err::m_nOK; };
-  ErrVal  RQencodeVlcTableMap      ( UInt* pauiTable, UInt uiMaxH, UInt uiMaxV ) { return Err::m_nOK; };
+  ErrVal  RQencodeBestCodeTableMap ( UInt* pauiTable, UInt uiMaxH ) { return Err::m_nOK; };
   ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
 

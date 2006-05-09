@@ -146,6 +146,10 @@ public:
 
 
 private:
+  ErrVal            xDecodeLumaCbpVlc     ( UInt                        uiCurrMbIdxX,
+                                            UInt                        uiCurrMbIdxY );
+  ErrVal            xDecodeChromaCbpVlc   ( UInt                        uiCurrMbIdxX,
+                                            UInt                        uiCurrMbIdxY );
   ErrVal            xScaleBaseLayerCoeffs ();
   ErrVal            xDecodingFGS                  ();
 

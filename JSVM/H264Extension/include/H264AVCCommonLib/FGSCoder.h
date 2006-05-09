@@ -276,6 +276,16 @@ protected:
   UChar*            m_paucBQSubMbMap;
   UInt*             m_pauiBQMacroblockMap;
 
+  UInt              m_uiLumaCbpRun;
+  Bool              m_bLastLumaCbpFlag;
+  UInt              m_uiChromaCbpRun;
+  UInt              m_uiLastChromaCbp;
+  UInt              m_uiLumaCbpNextMbX;
+  UInt              m_uiLumaCbpNextMbY;
+  UInt              m_uiLumaCbpNext8x8Idx;
+  UInt              m_uiChromaCbpNextMbX;
+  UInt              m_uiChromaCbpNextMbY;
+
   IntFrame*         m_pcBaseLayerSbb;
 
 private:
@@ -320,6 +330,7 @@ private:
                                             Bool&                       bSigAC,
                                             Int                         iNumCoeff );
 };
+
 
 
 H264AVC_NAMESPACE_END

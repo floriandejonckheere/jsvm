@@ -214,8 +214,7 @@ public:
                                              UInt            uiScanIndex ) = 0;
   virtual ErrVal  RQdecodeEobOffsets_Luma  () = 0;
   virtual ErrVal  RQdecodeEobOffsets_Chroma() = 0;
-  virtual ErrVal  RQdecodeVlcTableMap      ( UInt            uiMaxH,
-                                             UInt            uiMaxV ) = 0;
+  virtual ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH ) = 0;
   virtual Bool RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx) = 0;
   virtual ErrVal  RQupdateVlcTable         () = 0;
   virtual ErrVal  RQvlcFlush               () = 0;

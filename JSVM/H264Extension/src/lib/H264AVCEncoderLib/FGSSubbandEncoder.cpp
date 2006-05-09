@@ -1213,6 +1213,275 @@ RQFGSEncoder::xRestoreFGSState(UInt& riLumaScanIdx,
 }
 //~JVT-P031
 
+UInt gauiB8x8Mapping[4] = { 0, 2, 3, 1 }; 
+
+static UInt UvlcCodeLength(UInt uiSymbol)
+{
+  UInt uiCodeLength = 1;
+
+  uiSymbol ++;
+  while( 1 != uiSymbol )
+  {
+    uiSymbol >>= 1;
+    uiCodeLength += 2;
+  }
+
+  return uiCodeLength;
+}
+
+ErrVal
+RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
+                                     UInt&  uiLumaCbpNextMbY,
+                                     UInt&  uiLumaCbpNext8x8Idx,
+                                     UInt   uiLastMbX,
+                                     UInt   uiLastMbY,
+                                     UInt&  ruiLumaCbpBitCount)
+{
+  UInt uiMbXIdx, uiMbYIdx, uiB8x8 = 0;
+  UInt uiLumaCbpBase, uiLumaCbp;
+  MbDataAccess *pcMbDataAccessEL, *pcMbDataAccessBL;
+  Bool bLumaCbpCodedFlag = false;
+
+  for( uiMbYIdx = uiLumaCbpNextMbY; uiMbYIdx < uiLastMbY;  uiMbYIdx ++ )
+  {
+    UInt uiRowFirstMbX  = ( uiMbYIdx == uiLumaCbpNextMbY ) ? uiLumaCbpNextMbX : 0;
+    UInt uiRowLastMbX   = ( uiMbYIdx == uiLastMbY ) ? uiLastMbX : m_uiWidthInMB;
+
+    for( uiMbXIdx = uiRowFirstMbX; uiMbXIdx < uiRowLastMbX; uiMbXIdx ++ )
+    {
+      RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
+      RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
+
+      uiLumaCbpBase = pcMbDataAccessBL->getMbData().getMbCbp() & 0x0F;
+      uiLumaCbp     = pcMbDataAccessEL->getMbData().getMbCbp() & 0x0F;
+
+      if( uiLumaCbpBase != 15 )
+      {
+        for( uiB8x8 = 0; uiB8x8 < 4; uiB8x8 ++ )
+        {
+          Bool bLumaCbpFlagBase = (uiLumaCbpBase >> gauiB8x8Mapping[uiB8x8]) & 1;
+          if( ! bLumaCbpFlagBase )
+          {
+            m_bLastLumaCbpFlag  = (uiLumaCbp     >> gauiB8x8Mapping[uiB8x8]) & 1;
+            break;
+          }
+        }
+        
+        bLumaCbpCodedFlag = true;
+        break;
+      }
+      else
+        pcMbDataAccessEL->getMbData().setMbCbp(pcMbDataAccessEL->getMbData().getMbCbp() | uiLumaCbpBase);
+    }
+
+    if( bLumaCbpCodedFlag )
+      break;
+  }
+
+  uiLumaCbpNextMbX       = uiMbXIdx;
+  uiLumaCbpNextMbY       = uiMbYIdx;
+  uiLumaCbpNext8x8Idx    = uiB8x8;
+  m_uiLumaCbpRun  = 0;
+
+  ((UvlcWriter *) m_pcSymbolWriter)->writeFlag(! m_bLastLumaCbpFlag, "Luma_CBP_first_flag");
+  ruiLumaCbpBitCount ++;
+
+  m_uiLumaCbpNextMbX = uiLumaCbpNextMbX;
+  m_uiLumaCbpNextMbY = uiLumaCbpNextMbY;
+  m_uiLumaCbpNext8x8Idx = uiLumaCbpNext8x8Idx;
+
+  return Err::m_nOK;
+}
+
+ErrVal
+RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
+                                UInt  uiCurrMbIdxY,
+                                UInt& uiLumaCbpNextMbX,
+                                UInt& uiLumaCbpNextMbY,
+                                UInt& uiLumaCbpNext8x8Idx,
+                                UInt  uiLastMbX,
+                                UInt  uiLastMbY,
+                                UInt& ruiCbpBitCount)
+{
+  Bool bFirstMb  = true;
+  MbDataAccess *pcMbDataAccessEL, *pcMbDataAccessBL;
+
+  if( uiCurrMbIdxX != uiLumaCbpNextMbX || uiCurrMbIdxY != uiLumaCbpNextMbY )
+    return Err::m_nOK;
+
+  for( UInt uiMbYIdx = uiLumaCbpNextMbY; uiMbYIdx < uiLastMbY;  uiMbYIdx ++ )
+  {
+    UInt uiRowFirstMbX  = ( uiMbYIdx == uiLumaCbpNextMbY ) ? uiLumaCbpNextMbX : 0;
+    UInt uiRowLastMbX   = ( uiMbYIdx == uiLastMbY ) ? uiLastMbX : m_uiWidthInMB;
+
+    for( UInt uiMbXIdx = uiRowFirstMbX; uiMbXIdx < uiRowLastMbX; uiMbXIdx ++ )
+    {
+      RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
+      RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
+
+      UInt uiLumaCbpBase = pcMbDataAccessBL->getMbData().getMbCbp() & 0x0F;
+      UInt uiLumaCbp     = pcMbDataAccessEL->getMbData().getMbCbp() & 0x0F;
+
+      for( UInt uiB8x8 = bFirstMb ? uiLumaCbpNext8x8Idx : 0; uiB8x8 < 4; uiB8x8 ++ )
+      {
+        Bool bLumaCbpFlagBase = (uiLumaCbpBase >> gauiB8x8Mapping[uiB8x8]) & 1;
+        Bool bLumaCbpFlag     = (uiLumaCbp     >> gauiB8x8Mapping[uiB8x8]) & 1;
+
+        if( ! bLumaCbpFlagBase )
+        {
+          if( bLumaCbpFlag == m_bLastLumaCbpFlag )
+            m_uiLumaCbpRun ++;
+          else
+          {
+            ((UvlcWriter *) m_pcSymbolWriter)->writeUvlc(m_uiLumaCbpRun - 1, "Luma_CBP_run");
+            ruiCbpBitCount += UvlcCodeLength(m_uiLumaCbpRun - 1);
+
+            m_bLastLumaCbpFlag = bLumaCbpFlag;
+
+            // is it in the next MB?
+            if( uiCurrMbIdxX == uiMbXIdx && uiCurrMbIdxY == uiMbYIdx )
+              m_uiLumaCbpRun  = 1;
+            else
+            {
+              uiLumaCbpNextMbX       = uiMbXIdx;
+              uiLumaCbpNextMbY       = uiMbYIdx;
+              uiLumaCbpNext8x8Idx    = uiB8x8;
+              m_uiLumaCbpRun  = 0;
+
+              m_uiLumaCbpNextMbX = uiLumaCbpNextMbX;
+              m_uiLumaCbpNextMbY = uiLumaCbpNextMbY;
+              m_uiLumaCbpNext8x8Idx = uiLumaCbpNext8x8Idx;
+
+              return Err::m_nOK;
+            }
+          }
+        }
+      }
+
+      pcMbDataAccessEL->getMbData().setMbCbp(pcMbDataAccessEL->getMbData().getMbCbp() | uiLumaCbpBase);
+
+      bFirstMb = false;
+    }
+  }
+
+  if( m_uiLumaCbpRun > 0 )
+  {
+    ((UvlcWriter *) m_pcSymbolWriter)->writeUvlc(m_uiLumaCbpRun - 1, "Luma_CBP_run");
+
+    ruiCbpBitCount += UvlcCodeLength(m_uiLumaCbpRun - 1);
+
+    m_uiLumaCbpRun = 0;
+
+    uiLumaCbpNextMbX = uiLastMbX;
+    uiLumaCbpNextMbY = uiLastMbY;
+
+    m_uiLumaCbpNextMbX = uiLumaCbpNextMbX;
+    m_uiLumaCbpNextMbY = uiLumaCbpNextMbY;
+  }
+
+  return Err::m_nOK;
+}
+
+Bool gaabTransitionFlag[3][3] = { { 0, 0, 1 }, { 1, 0, 0 }, { 0, 1, 0 } };
+
+
+ErrVal
+RQFGSEncoder::xEncodeChromaCbpVlcStart(UInt   uiCurrMbIdxX,
+                                       UInt   uiCurrMbIdxY,
+                                       UInt&  ruiChromaCbpBitCount)
+{
+  MbDataAccess *pcMbDataAccessEL;
+  UInt uiChromaCbp;
+  UInt uiInitialChromaCbp;
+
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiCurrMbIdxY, uiCurrMbIdxX ) );
+  uiChromaCbp = pcMbDataAccessEL->getMbData().getMbCbp() >> 4;
+
+  uiInitialChromaCbp = uiChromaCbp == 0 ? 1 : 0;
+  ((UvlcWriter *) m_pcSymbolWriter)->writeFlag(uiInitialChromaCbp != 0, "Chroma_CBP_first");
+  ruiChromaCbpBitCount ++;
+
+  m_bChromaCbpTransition = gaabTransitionFlag[uiInitialChromaCbp][uiChromaCbp];
+
+  m_uiLastChromaCbp = uiChromaCbp;
+  m_uiChromaCbpRun  = 0;
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RQFGSEncoder::xEncodeChromaCbpVlc(UInt  uiCurrMbIdxX,
+                                  UInt  uiCurrMbIdxY,
+                                  UInt& uiChromaCbpNextMbX,
+                                  UInt& uiChromaCbpNextMbY,
+                                  UInt  uiLastMbX,
+                                  UInt  uiLastMbY,
+                                  UInt& ruiChromaCbpBitCount)
+{
+  MbDataAccess *pcMbDataAccessEL;
+
+  if( uiCurrMbIdxX != uiChromaCbpNextMbX || uiCurrMbIdxY != uiChromaCbpNextMbY )
+    return Err::m_nOK;
+
+  for( UInt uiMbYIdx = uiChromaCbpNextMbY; uiMbYIdx < uiLastMbY;  uiMbYIdx ++ )
+  {
+    UInt uiRowFirstMbX  = ( uiMbYIdx == uiChromaCbpNextMbY ) ? uiChromaCbpNextMbX : 0;
+    UInt uiRowLastMbX   = ( uiMbYIdx == uiLastMbY ) ? uiLastMbX : m_uiWidthInMB;
+
+    for( UInt uiMbXIdx = uiRowFirstMbX; uiMbXIdx < uiRowLastMbX; uiMbXIdx ++ )
+    {
+      RNOK( m_cMbDataCtrlEL.initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
+      UInt uiChromaCbp = (pcMbDataAccessEL->getMbData().getMbCbp() >> 4);
+
+      if( uiChromaCbp == m_uiLastChromaCbp )
+        m_uiChromaCbpRun ++;
+      else
+      {
+        ((UvlcWriter *) m_pcSymbolWriter)->writeFlag(m_bChromaCbpTransition, "Chroma_CBP_transition");
+        ruiChromaCbpBitCount ++;
+
+        ((UvlcWriter *) m_pcSymbolWriter)->writeUvlc(m_uiChromaCbpRun - 1, "Chroma_CBP_run");
+        ruiChromaCbpBitCount += UvlcCodeLength(m_uiChromaCbpRun - 1);
+
+        m_uiChromaCbpRun = 0;
+
+        m_bChromaCbpTransition = gaabTransitionFlag[m_uiLastChromaCbp][uiChromaCbp];
+        m_uiLastChromaCbp   = uiChromaCbp;
+
+        uiChromaCbpNextMbX  = uiMbXIdx;
+        uiChromaCbpNextMbY  = uiMbYIdx;
+
+        m_uiChromaCbpNextMbX = uiChromaCbpNextMbX;
+        m_uiChromaCbpNextMbY = uiChromaCbpNextMbY;
+
+        return Err::m_nOK;
+      }
+    }
+  }
+
+  if( m_uiChromaCbpRun > 0 )
+  {
+    ((UvlcWriter *) m_pcSymbolWriter)->writeFlag(m_bChromaCbpTransition, "Chroma_CBP_transition");
+    ruiChromaCbpBitCount ++;
+
+    ((UvlcWriter *) m_pcSymbolWriter)->writeUvlc(m_uiChromaCbpRun - 1, "Chromama_CBP_run");
+    ruiChromaCbpBitCount += UvlcCodeLength(m_uiChromaCbpRun - 1);
+
+    m_uiChromaCbpRun = 0;
+
+    uiChromaCbpNextMbX = uiLastMbX;
+    uiChromaCbpNextMbY = uiLastMbY;
+
+    m_uiChromaCbpNextMbX = uiChromaCbpNextMbX;
+    m_uiChromaCbpNextMbY = uiChromaCbpNextMbY;
+  }
+
+  return Err::m_nOK;
+}
+
+
+
 ErrVal
 RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                             Bool& rbCorrupted,
@@ -1306,7 +1575,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       // Pre-scan frame to find VLC positions
       UInt  auiEobShift[16];
       UInt  auiHighMagHist[16];
-      UInt* pauiVlcTab      = new UInt[16*16   ];
+      UInt  auiBestCodeTabMap[16];
       UInt* pauiHistLuma    = new UInt[16*16*16];
       UInt* pauiHistChroma  = new UInt[16*16*16];
 
@@ -1361,39 +1630,111 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 
       RNOK( m_pcSymbolWriter->RQencodeEobOffsets_Luma( auiEobShift ) );
 
-      // VLC selection for sig coeffs
-      for (     uiScanPos=0; uiScanPos<16; uiScanPos++)
-      for (UInt uiBase   =0; uiBase   <16; uiBase++   )
       {
-        UInt uiCutoff;
-        UInt uiBestCost = UInt(-1);
-        for ( uiCutoff = 0; uiCutoff < 16; uiCutoff++ )
+        UInt uiTempCodeLenCycleBase[][16] = {
+        {1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,16}, // unary          0
+        {2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9}, // flat 2         1
+        {2, 2, 2, 4, 4, 4, 6, 6, 6, 8, 8, 8,10,10,10,11}, // flat 3         2
+        {1, 3, 3, 3, 5, 5, 5, 7, 7, 7, 9, 9, 9,11,11,11}, // S3 cutoff 0    3
+        {1, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8,9, 9, 9}}; //    
+        UInt *pauiHistLumaNoBase = new UInt[16*16];
+        UInt uiTotalNumCodeTable = 5;
+        UInt uiTotalRunCost = 0;
+        UInt uiCycle;
+
+        // tally histogram without LEBL index
+        memset(pauiHistLumaNoBase, 0, sizeof(UInt)*16*16);
+        for(uiCycle = 0; uiCycle < 16; uiCycle++)
         {
-          UInt uiCost = 0;
-          for (UInt uiHpos=0; uiHpos<16; uiHpos++)
-          {
-            UInt uiSymbol;
-            UInt uiCount;
-            if (uiHpos == 0)
+          for(UInt ui = 0; ui < 16; ui++)
+            for(UInt uiBase = 0; uiBase < 16; uiBase++)
             {
-              uiSymbol = auiEobShift[uiScanPos];
-              uiCount  = auiHighMagHist[uiScanPos];
-            } else {
-              uiSymbol = (uiHpos <= auiEobShift[uiScanPos]) ? uiHpos-1 : uiHpos;
-              uiCount  = pauiHistLuma[(uiScanPos*16+uiBase)*16+uiHpos];
+              pauiHistLumaNoBase[uiCycle*16+ui] += pauiHistLuma[(uiCycle*16+uiBase)*16+ui];
             }
-            uiCost += uiCount * (( uiSymbol <= uiCutoff ) ? uiSymbol + 1 : ((int)((uiSymbol-uiCutoff-1)/3)) * 2 + uiCutoff + 3);
-            if ( uiCost > uiBestCost )
-              break;
-          }
-          if ( uiCost < uiBestCost )
-            uiBestCost = uiCost;
-          else
-            break;
         }
-        pauiVlcTab[uiScanPos*16+uiBase] = max(uiCutoff - 1, (uiBase == 0) ? (uiScanPos == 0 ? 0 : pauiVlcTab[uiScanPos*16-16])
-                                                                         : pauiVlcTab[uiScanPos*16+uiBase-1] );
-        pauiVlcTab[uiScanPos*16+uiBase] = min(4, pauiVlcTab[uiScanPos*16+uiBase]);
+
+        {
+          UInt uiCycle = 0;
+
+          UInt uiBestTable; 
+          UInt uiCost[5], uiBestCost;
+          UInt uiTableIdx;
+
+          // find the cost of using each table 
+          for(uiTableIdx = 0; uiTableIdx < uiTotalNumCodeTable; uiTableIdx++)
+          {
+            UInt *uiTable = uiTempCodeLenCycleBase[uiTableIdx];
+
+            uiCost[uiTableIdx] = 0;
+            for(UInt ui = 1; ui < 16; ui++)
+            {
+              UInt uiCodeLen = uiTable[ui-1];
+
+              uiCost[uiTableIdx] += pauiHistLumaNoBase[ui]*uiCodeLen;
+            }
+          }
+
+          // find the best table with lowest cost 
+          uiBestTable = 0;
+          uiBestCost = uiCost[0];
+          for(uiTableIdx = 1; uiTableIdx < uiTotalNumCodeTable; uiTableIdx++)
+          {
+            if(uiCost[uiTableIdx] < uiBestCost)
+            {
+              uiBestTable = uiTableIdx;
+              uiBestCost = uiCost[uiTableIdx];
+            }
+          }
+
+          auiBestCodeTabMap[uiCycle] = uiBestTable;
+          uiTotalRunCost += uiBestCost;
+        }
+
+        for(uiCycle = 1; uiCycle < 16; uiCycle++)
+        {
+          UInt uiBestTable; 
+          UInt uiCost[5], uiBestCost;
+          UInt uiTableIdx;
+
+          // find the cost of using each table 
+          for( uiTableIdx = 0; uiTableIdx < uiTotalNumCodeTable; uiTableIdx++)
+          {
+            UInt *uiTable = uiTempCodeLenCycleBase[uiTableIdx];
+
+            uiCost[uiTableIdx] = 0;
+            for(UInt ui = 0; ui < 16; ui++)
+            {
+              UInt uiSymbol; 
+              if(ui == 0)
+              {
+                uiSymbol = auiEobShift[uiCycle];
+              }
+              else
+              {
+                uiSymbol = (ui <= auiEobShift[uiCycle])? ui-1:ui;
+              }
+              UInt uiCodeLen = uiTable[uiSymbol];
+              uiCost[uiTableIdx] += pauiHistLumaNoBase[(uiCycle*16)+ui]*uiCodeLen;
+            }
+          }
+
+          // find the best table with lowest cost 
+          uiBestTable = 0;
+          uiBestCost = uiCost[0];
+          for(uiTableIdx = 1; uiTableIdx < uiTotalNumCodeTable; uiTableIdx++)
+          {
+            if(uiCost[uiTableIdx] < uiBestCost)
+            {
+              uiBestTable = uiTableIdx;
+              uiBestCost = uiCost[uiTableIdx];
+            }
+          }
+
+          auiBestCodeTabMap[uiCycle] = uiBestTable;
+          uiTotalRunCost += uiBestCost;
+        }
+
+        delete pauiHistLumaNoBase;
       }
 
       // Tally over base pos to find EOB shift
@@ -1419,12 +1760,29 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 
       RNOK( m_pcSymbolWriter->RQencodeEobOffsets_Chroma( auiEobShift ) );
 
-      RNOK( m_pcSymbolWriter->RQencodeVlcTableMap( pauiVlcTab, 16, 16 ) );
-
-      delete pauiVlcTab;
+      RNOK( m_pcSymbolWriter->RQencodeBestCodeTableMap( auiBestCodeTabMap, 16 ) );
       delete pauiHistLuma;
       delete pauiHistChroma;
       } //FIX_FRAG_CAVLC
+
+      UInt uiLumaCbpBitCount    = 0;
+      UInt uiLumaCbpNextMbX     = uiFirstMbX;
+      UInt uiLumaCbpNextMbY     = uiFirstMbY;
+      UInt uiLumaCbpNext8x8Idx  = 0;
+
+      UInt uiChromaCbpBitCount  = 0;
+
+      UInt uiChromaCbpNextMbX   = uiFirstMbX;
+      UInt uiChromaCbpNextMbY   = uiFirstMbY;
+
+      if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() && !uiFracNb)
+      {
+        xEncodeLumaCbpVlcStart(
+          uiLumaCbpNextMbX, uiLumaCbpNextMbY, uiLumaCbpNext8x8Idx, 
+          uiLastMbX, uiLastMbY, uiLumaCbpBitCount);
+
+        xEncodeChromaCbpVlcStart(uiFirstMbX, uiFirstMbY, uiChromaCbpBitCount);
+      }
 
       while (iLumaScanIdx < 16 || iChromaDCScanIdx < 4 || iChromaACScanIdx < 16) {
         UInt bAllowChromaDC = (iCycle == 0) || ((iCycle >= iStartCycle) && ((iCycle-iStartCycle) % 2 == 0));
@@ -1454,6 +1812,12 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
             // restore status
             UInt uiUnused;
             xRestoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPassStart, bAllowChromaDC, bAllowChromaAC, uiUnused, uiUnused, uiUnused, uiUnused, uiUnused, uiUnused, iLastBitsLuma, /*uiBitsLast*/uiUnused, uiUnused, uiUnused, iLastQP);
+            // restore the cbp-related coding states 
+            uiLumaCbpNextMbX    = m_uiLumaCbpNextMbX;
+            uiLumaCbpNextMbY    = m_uiLumaCbpNextMbY;
+            uiLumaCbpNext8x8Idx = m_uiLumaCbpNext8x8Idx;
+            uiChromaCbpNextMbX  = m_uiChromaCbpNextMbX;
+            uiChromaCbpNextMbY  = m_uiChromaCbpNextMbY;
             bRestore = false;
           }
           else
@@ -1461,6 +1825,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
             uiPassStart = 0;
           }
         }
+        uiPass = uiPassStart; 
 
         UInt uiMaxPosLuma;
         UInt uiMaxPosChromaAC;
@@ -1485,15 +1850,12 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           uiMaxPosChromaDC = m_auiScanPosVectChromaDC[ui];
         }
 
-        for( uiPass=uiPassStart; uiPass<2; uiPass++ )
-        {
           for( UInt uiMbYIdx = m_uiMbYIdx; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
           {
             for( UInt uiMbXIdx = m_uiMbXIdx; uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
             {
               if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
                   ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
-                  uiPass == 0 &&
                   ( m_pauiMacroblockMap[uiMbYIdx * m_uiWidthInMB + uiMbXIdx] >> NUM_COEFF_SHIFT ) == 0 )
               {
                 // ----- Write motion parameters the first time we visit each inter-coded macroblock -----
@@ -1509,83 +1871,59 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
               //===== LUMA =====
               if( (m_uiFGSPart == 0) || (!bFirstPass) )
               {
-                if( uiPass == 0 )
-                for( UInt uiB8YIdx = m_uiB8YIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
+                if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )
                 {
-                  for( UInt uiB8XIdx = m_uiB8XIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
+                  if( iLumaScanIdx== 0 )
                   {
-                    if(!bFirstPass)
+                    xEncodeLumaCbpVlc(uiMbXIdx, uiMbYIdx, uiLumaCbpNextMbX, uiLumaCbpNextMbY, uiLumaCbpNext8x8Idx, uiLastMbX, uiLastMbY, uiLumaCbpBitCount);
+                    xEncodeChromaCbpVlc(uiMbXIdx, uiMbYIdx, uiChromaCbpNextMbX, uiChromaCbpNextMbY, uiLastMbX, uiLastMbY, uiChromaCbpBitCount);
+                  }
+                }
+              for( UInt uiB8YIdx = m_uiB8YIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
+              {
+                for( UInt uiB8XIdx = m_uiB8XIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
+                {
+                  if(!bFirstPass)
+                  {
+                    m_uiBlockYIdx = 2*uiB8YIdx;
+                    m_uiBlockXIdx = 2*uiB8XIdx;
+                  }
+                  else
+                  {
+                    bFirstPass = false;
+                  }
+                  UInt uiBaseBlock = m_uiBlockYIdx * 4 * m_uiWidthInMB + m_uiBlockXIdx;
+                  for( UInt uiBlockYIdx = m_uiBlockYIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ )
+                  {
+                    for( UInt uiBlockXIdx = m_uiBlockXIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ )
                     {
-                      m_uiBlockYIdx = 2*uiB8YIdx;
-                      m_uiBlockXIdx = 2*uiB8XIdx;
-                    }
-                    else
-                    {
-                      bFirstPass = false;
-                    }
-                    UInt uiBaseBlock = m_uiBlockYIdx * 4 * m_uiWidthInMB + m_uiBlockXIdx;
-                    for( UInt uiBlockYIdx = m_uiBlockYIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ )
-                    {
-                      for( UInt uiBlockXIdx = m_uiBlockXIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ )
+                      UInt uiBlockIdx = uiBlockYIdx * 4 * m_uiWidthInMB + uiBlockXIdx;
+                      iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
+                      if (iLumaScanIdx == 0)
+                        RNOK( xEncodeSigHeadersLuma( uiBlockYIdx, uiBlockXIdx, iLastQP ) );
+                      for( ui=iLumaScanIdx; ui<=uiMaxPosLuma; ui++ )
                       {
-                        if (iLumaScanIdx < 16) {
-                          UInt uiBlockIdx = uiBlockYIdx * 4 * m_uiWidthInMB + uiBlockXIdx;
-                          iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
-                          if (iLumaScanIdx == 0)
-                            RNOK( xEncodeSigHeadersLuma( uiBlockYIdx, uiBlockXIdx, iLastQP ) );
+                        if( ui < 16 ) {
                           Bool b8x8 = ( m_apaucScanPosMap[0][uiBaseBlock+1] == 64 );
-                          while( ( b8x8 && m_apaucScanPosMap[0][uiBaseBlock] <= uiMaxPosLuma*4+3) ||
-                                (!b8x8 && m_apaucScanPosMap[0][uiBlockIdx]  <= uiMaxPosLuma    ) ) 
-                              RNOK( xEncodeNewCoefficientLuma( uiBlockYIdx, uiBlockXIdx ) );
-                          if (iCycle == 0)
-                            iBitsLuma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsLuma;
-                          if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                          {
-                            xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx, uiBlockYIdx, uiBlockXIdx+1, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);
-                            throw WriteStop();
-                          }
+                          while( ( b8x8 && m_apaucScanPosMap[0][uiBaseBlock] <= ui*4+3) ||
+                                 (!b8x8 && m_apaucScanPosMap[0][uiBlockIdx]  <= ui    ) ) 
+                            RNOK( xEncodeNewCoefficientLuma( uiBlockYIdx, uiBlockXIdx ) );
+                          RNOK( xEncodeCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, ui ) );
                         }
-                      } // 4x4 block iteration
-                      m_uiBlockXIdx = 2 * uiB8XIdx;
-                    }
-                  } // 8x8 block iteration
-                  m_uiB8XIdx = 2 * uiMbXIdx;
-                }
-                if( uiPass == 1)
-                for( UInt uiB8YIdx = m_uiB8YIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
-                {
-                  for( UInt uiB8XIdx = m_uiB8XIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
-                  {
-                    if(!bFirstPass)
-                    {
-                      m_uiBlockYIdx = 2*uiB8YIdx;
-                      m_uiBlockXIdx = 2*uiB8XIdx;
-                    }
-                    else
-                    {
-                      bFirstPass = false;
-                    }
-                    for( UInt uiBlockYIdx = m_uiBlockYIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ )
-                    {
-                      for( UInt uiBlockXIdx = m_uiBlockXIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ )
+                      }
+                      if (iCycle == 0)
+                        iBitsLuma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsLuma;
+                      if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                       {
-                        UInt uiBlockIndex = uiBlockYIdx * 4 * m_uiWidthInMB + uiBlockXIdx;
-                        for( ui=iLumaScanIdx; ui<=uiMaxPosLuma; ui++ )
-                        {
-                          if( ui < 16 )
-                            RNOK( xEncodeCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, ui ) );
-                        }
-                        if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                        {
-                          xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx, uiBlockYIdx, uiBlockXIdx+1, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);
-                          throw WriteStop();
-                        }
-                      } // 4x4 block iteration
-                      m_uiBlockXIdx = 2 * uiB8XIdx;
-                    }
-                  } // 8x8 block iteration
-                  m_uiB8XIdx = 2 * uiMbXIdx;
-                }
+                        xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx, uiBlockYIdx, uiBlockXIdx+1, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);
+                        throw WriteStop();
+                      }
+                    } // 4x4 block iteration
+                    m_uiBlockXIdx = 2 * uiB8XIdx;
+                  }
+                } // 8x8 block iteration
+                m_uiB8XIdx = 2 * uiMbXIdx;
+              }
                 m_uiPlane = 0;
                 m_uiB8YIdx = 2 * uiMbYIdx;
                 m_uiB8XIdx = 2 * uiMbXIdx;
@@ -1598,20 +1936,16 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                   bFirstPass = false;
                   for( UInt uiPlane = m_uiPlane; uiPlane  < 2; uiPlane ++ ) {
                     iLastBitsChroma = m_pcSymbolWriter->getNumberOfWrittenBits();
-                    for( ui=iChromaDCScanIdx; ui<=uiMaxPosChromaDC && ui<4; ui++ )
-                    {
-                      if (uiPass == 0) {
-                        if( ui == 0 || ui == m_apaucScanPosMap[uiPlane+1][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] )
-                          RNOK( xEncodeNewCoefficientChromaDC( uiPlane, uiMbYIdx, uiMbXIdx, iLastQP, ui ) );
-                        if (iCycle == 0)
-                          iBitsChroma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsChroma;
-                      }
-                      if (uiPass == 1) {
-                        if( (m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] & SIGNIFICANT) &&
-                          !(m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] & CODED) )
-                          RNOK( xEncodeCoefficientChromaDCRef( uiPlane, uiMbYIdx, uiMbXIdx, ui ) );
-                      }
-                    }
+                  for( ui=iChromaDCScanIdx; ui<=uiMaxPosChromaDC && ui<4; ui++ )
+                  {
+                    if( ui == 0 || ui == m_apaucScanPosMap[uiPlane+1][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] )
+                      RNOK( xEncodeNewCoefficientChromaDC( uiPlane, uiMbYIdx, uiMbXIdx, iLastQP, ui ) );
+                    if (iCycle == 0)
+                      iBitsChroma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsChroma;
+                    if( (m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] & SIGNIFICANT) &&
+                      !(m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] & CODED) )
+                      RNOK( xEncodeCoefficientChromaDCRef( uiPlane, uiMbYIdx, uiMbXIdx, ui ) );
+                  }
                     if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                     {
                       xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, 2*uiMbYIdx, 2*uiMbXIdx, 4*uiMbYIdx, 4*uiMbXIdx, iLastBitsLuma, uiBitsLast, 1, uiPlane+1, iLastQP);
@@ -1632,29 +1966,19 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                   {
                     for( UInt uiB8YIdx = m_uiB8YIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ ) {
                       for( UInt uiB8XIdx = m_uiB8XIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ) {
-
-                        for( ui=iChromaACScanIdx; ui<=uiMaxPosChromaAC && ui<16; ui++ )
+                      for( ui=iChromaACScanIdx; ui<=uiMaxPosChromaAC && ui<16; ui++ )
+                      {
+                        if( ui == m_apaucScanPosMap[uiPlane+3][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] )
+                          RNOK( xEncodeNewCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, iLastQP, ui ) );
+                        if((m_aapaucChromaACCoefMap[uiPlane][ui][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] & SIGNIFICANT) &&
+                          !(m_aapaucChromaACCoefMap[uiPlane][ui][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] & CODED) )
+                          RNOK( xEncodeCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, ui ) );
+                        if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                         {
-                          if (uiPass == 0) {
-                            if( ui == m_apaucScanPosMap[uiPlane+3][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] )
-                              RNOK( xEncodeNewCoefficientChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, iLastQP, ui ) );
-                            if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                            {
-                              xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
-                              throw WriteStop();
-                            }
-                          }
-                          if (uiPass == 1) {
-                            if((m_aapaucChromaACCoefMap[uiPlane][ui][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] & SIGNIFICANT) &&
-                              !(m_aapaucChromaACCoefMap[uiPlane][ui][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] & CODED) )
-                              RNOK( xEncodeCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, ui ) );
-                            if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                            {
-                              xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
-                              throw WriteStop();
-                            }
-                          }
+                          xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle, iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx, uiB8YIdx, uiB8XIdx+1, 0, 0, iLastBitsLuma, uiBitsLast, 2, uiPlane, iLastQP);
+                          throw WriteStop();
                         }
+                      }
                       } // for
                       m_uiB8XIdx = 2 * uiMbXIdx;
                     }
@@ -1678,7 +2002,6 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           m_uiBlockYIdx = 2*m_uiB8YIdx;
           m_uiBlockXIdx = 2*m_uiB8XIdx;
 
-        }
         iLumaScanIdx = min(uiMaxPosLuma+1, 16);
         if (bAllowChromaDC)
           iChromaDCScanIdx = min(uiMaxPosChromaDC+1, 4);
@@ -1690,6 +2013,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           m_pcSymbolWriter->RQencodeCycleSymbol(iStartCycle-1);
         }
         iCycle++;
+
       } // while
     }
     UInt uiBitsPath = m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast;

@@ -99,7 +99,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-class UcBitGrpWriter;
+class UcSymGrpWriter; 
 
 class UvlcWriter :
 public MbSymbolWriteIf
@@ -127,16 +127,18 @@ protected:
                                   UInt          uiScanIndex );
 
   ErrVal xRQencodeSigMagGreater1( TCoeff* piCoeff, TCoeff* piCoeffBase, UInt uiBaseCode, UInt uiStart, UInt uiStop, UInt uiVlcTable, const UChar*  pucScan, UInt& ruiNumMagG1 );
-  ErrVal xWriteS3Code ( UInt uiSymbol, UInt uiCutoff );
+  ErrVal xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx );
+  ErrVal xWriteUnaryCode (UInt uiSymbol );
+  ErrVal xWriteCodeCB1 (UInt uiSymbol );
+  ErrVal xWriteCodeCB2 (UInt uiSymbol );
   ErrVal xWriteGolomb(UInt uiSymbol, UInt uiK);
   ErrVal xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen );
   ErrVal xRQencodeEobOffsets ( UInt* auiSeq, UInt uiLen );
   UInt m_auiShiftLuma[16];
   UInt m_auiShiftChroma[16];
-  UInt m_auiVlcTabMap[16*16];
+  UInt m_auiBestCodeTabMap[16];
   UInt m_uiCbpStats[3][2];
-  UcBitGrpWriter* m_pBitGrpRef;
-  UcBitGrpWriter* m_pBitGrpSgn;
+  UcSymGrpWriter* m_pSymGrp; 
   UInt m_uiCbpStat4x4[2];
 
 public:
@@ -277,7 +279,7 @@ public:
   Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   ErrVal RQencodeEobOffsets_Luma ( UInt* auiSeq );
   ErrVal RQencodeEobOffsets_Chroma( UInt* auiSeq );
-  ErrVal RQencodeVlcTableMap( UInt* auiTable, UInt uiMaxH, UInt uiMaxV );
+  ErrVal RQencodeBestCodeTableMap( UInt* auiTable, UInt uiMaxH );
   ErrVal RQupdateVlcTable         ();
   ErrVal RQvlcFlush               ();
   static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
@@ -297,39 +299,24 @@ protected:
   UInt m_uiRun;
 };
 
-class UcBitGrpWriter
+class UcSymGrpWriter
 {
 public:
-  UcBitGrpWriter( UvlcWriter* pParent,
-                  UInt uiInitTable   = 1,
-                  UInt uiScaleFac    = 3,
-                  UInt uiScaleLimit  = 512,
-                  UInt uiStabPerdiod = 8,
-                  Bool bAligned      = false );
-
+  UcSymGrpWriter( UvlcWriter* pParent );
   ErrVal Init();
   ErrVal Flush();
   ErrVal Write( UChar ucBit );
   Bool   UpdateVlc();
 
 protected:
-  ErrVal xWriteBuffer();
-
-  UInt m_auiSymCount[2];
-  UInt m_uiScaleFac;
-  UInt m_uiScaleLimit;
-  UInt m_uiGroupMin;
-  UInt m_uiGroupMax;
+  UvlcWriter* m_pParent;
+  UInt m_auiSymCount[3];
+  UInt m_uiTable;
+  UInt m_uiCodedFlag;
   UInt m_uiCode;
   UInt m_uiLen;
-  UInt m_uiInitTable;
-  UInt m_uiTable;
-  UInt m_uiFlip;
-  UInt m_uiStabPeriod;
-  UInt m_uiCodedFlag;
-  Bool m_bAligned;
-  UvlcWriter* m_pParent;
 };
+
 
 H264AVC_NAMESPACE_END
 
