@@ -1,3 +1,18 @@
+JSVM_5_3 -> JSVM_5_4
+====================
+
+Cleaning: mainly Memory leaks fixing + warnings removal
+
+Date: May 13, 2006
+Authors: J. Vieron (Thomson), S. Kamp (RWTH), B. Maschelein (IMEC)
+
+Changes:
+- Several Memory leaks fixing 
+- Uninitialized variables
+- Shadowing variables 
+- Removal of unused variables, methods
+
+
 JSVM_5_2 -> JSVM_5_3
 ====================
 
@@ -12,6 +27,7 @@ Changes:
 - improvements to FGS for VLC (S066)
 - VLC selector for 4x4 transform blocks (S058)
 - Modified VLC for refinement pass (S031)
+- FGS Scan Vector fixes (N. Cammas- France-Telecom)
 
 
 JSVM_5_1 -> JSVM_5_2
