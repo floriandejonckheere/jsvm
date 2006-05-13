@@ -67,7 +67,7 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 150,
+            		        bitrate => 116,
             		        psnr => 32.49,
 				                encdecmatch => 1,
             		      },

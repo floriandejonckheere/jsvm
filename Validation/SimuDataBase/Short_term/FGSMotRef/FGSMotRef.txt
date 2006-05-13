@@ -27,7 +27,7 @@
                       #----------#
                        {
 		                   },
-		                  #----------#
+		                  
    		              ],
    
 #==========================================================#
@@ -37,13 +37,14 @@
       psnrcheckrange     => 0,
 
       tests      => [
+                      #----------#
                       # Test   0 #
                       #----------#
                       {
             		        name => "Basic",
             		        mode => 1,
-				width => 176,
-				height => 144,
+				                width => 176,
+				                height => 144,
             		        bitrate => 18,
             		        psnr => 26.93,
             		      },
@@ -53,33 +54,33 @@
                       {
             		        name => "Partial 1",
             		        mode => 1,
-				width => 176,
-				height => 144,
+				                width => 176,
+				                height => 144,
             		        bitrate => 40,
-            		        psnr => 28.77,
+            		        psnr => 28.74,
             		      },
-			                  #----------#
+			                 #----------#
                       # Test   2 #
                       #----------#
                       {
             		        name => "Partial 2",
             		        mode => 1,
-				width => 176,
-				height => 144,
+                				width => 176,
+                				height => 144,
             		        bitrate => 80,
-            		        psnr => 31.75,
+            		        psnr => 31.73,
             		      },
-			                  #----------#
+			                 #----------#
                       # Test   3 #
                       #----------#
                       {
             		        name => "Full",
             		        mode => 1,
-				width => 176,
-				height => 144,
+                				width => 176,
+                				height => 144,
             		        bitrate => 117,
             		        psnr => 34.66,
-				encdecmatch => 1,
+				                encdecmatch => 1,
             		      },
 		  ],
 }
