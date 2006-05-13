@@ -455,7 +455,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
 
 ErrVal MotionEstimation::initMb( UInt uiMbPosY, UInt uiMbPosX, MbDataAccess& rcMbDataAccess )
 {
-  RNOK( MotionCompensation::initMb( uiMbPosY, uiMbPosX, rcMbDataAccess ) );
+  RNOK( MotionCompensation::initMb( uiMbPosY, uiMbPosX) );
 
   return Err::m_nOK;
 }

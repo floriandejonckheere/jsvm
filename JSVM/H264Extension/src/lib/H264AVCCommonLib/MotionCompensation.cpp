@@ -370,7 +370,7 @@ __inline Void MotionCompensation::xGetBlkPredData( MbDataAccess& rcMbDataAccess,
         break;
       default:
         {
-          AOT(1);
+          AF();
         }
       }
     }
@@ -459,7 +459,10 @@ Void MotionCompensation::xPredChroma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int 
 }
 
 
-ErrVal MotionCompensation::compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant, Bool bCalcMv )
+ErrVal MotionCompensation::compensateMb( MbDataAccess& rcMbDataAccess, 
+                                         YuvMbBuffer* pcRecBuffer, 
+                                         Bool bFaultTolerant, 
+                                         Bool bCalcMv )
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
 
@@ -555,7 +558,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuff
 }
 
 
-ErrVal MotionCompensation::calculateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant )
+ErrVal MotionCompensation::calculateMb( MbDataAccess& rcMbDataAccess, Bool bFaultTolerant )
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
 
@@ -683,7 +686,7 @@ Void MotionCompensation::xPredMb8x8Mode( MbDataAccess& rcMbDataAccess, YuvMbBuff
       }
       default:
       {
-        AOT(1);
+        AF();
         break;
       }
     }
@@ -793,7 +796,7 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
 
 
 
-ErrVal MotionCompensation::initMb( UInt uiMbY, UInt uiMbX, MbDataAccess& rcMbDataAccess )
+ErrVal MotionCompensation::initMb( UInt uiMbY, UInt uiMbX)
 {
   UInt uiMbInFrameY = m_uiMbInFrameY;
 
@@ -1072,7 +1075,7 @@ Void MotionCompensation::xUpdateMb8x8Mode(    B8x8Idx         c8x8Idx,
     }
     default:
     {
-      AOT(1);
+      AF();
       break;
     }
   }
@@ -1195,7 +1198,7 @@ ErrVal MotionCompensation::updateMb(MbDataAccess&   rcMbDataAccess,
   case MODE_8x8:
   case MODE_8x8ref0:
     printf("function not defined for the case\n");
-    ROT(1);
+    RERR();
     break;
 
   default:
@@ -1327,14 +1330,14 @@ Void MotionCompensation::updateBlkAdapt( IntYuvPicBuffer* pcSrcBuffer, IntYuvPic
 Void MotionCompensation::xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
                                     UInt uiSizeY, UInt uiSizeX, UShort weight, UShort wMax )
 {
-  int methodId;
+  Int methodId;
 
   Int interpBuf[BUF_W*BUF_H]; // interpolation buffer
   Int* pBuf = interpBuf;
 
-  XPel* pDest;
-  int updSizeX, updSizeY;
-  int bitShift;
+  XPel* pDest  = 0;
+  Int updSizeX = 0, updSizeY = 0;
+  Int bitShift = 0;
 
 
   if(weight > wMax/2)
@@ -1623,7 +1626,7 @@ Void MotionCompensation::xPredMb8x8Mode(       B8x8Idx         c8x8Idx,
     }
     default:
     {
-      AOT(1);
+      AF();
       break;
     }
   }
@@ -1638,8 +1641,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
                                          RefFrameList&    rcRefFrameList0,
                                          RefFrameList&    rcRefFrameList1,
                                          IntYuvMbBuffer*  pcRecBuffer,
-                                         Bool             bCalcMv,
-                                         Bool             bFaultTolerant )
+                                         Bool             bCalcMv)
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
 
@@ -1776,7 +1778,7 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
   case MODE_8x8:
   case MODE_8x8ref0:
     printf("function not defined for the case\n");
-    ROT(1);
+    RERR();
     break;
 
   default:
@@ -1899,7 +1901,7 @@ __inline Void MotionCompensation::xGetBlkPredData(       MbDataAccess& rcMbDataA
         break;
       default:
         {
-          AOT(1);
+          AF();
         }
       }
     }
@@ -2082,7 +2084,7 @@ MotionCompensation::xAdjustResidualRefBlk(XPel*     piResidualRef,
 }
 
 
-void 
+Void 
 MotionCompensation::xAdjustChromaResidualRefBlock(XPel*  piResidualRef,
                                                   Int    iStride,
                                                   UChar* pusSigMap,
@@ -2130,7 +2132,11 @@ MotionCompensation::xCompensateMbAllModes(MbDataAccess&       rcMbDataAccess,
   {
     //----- motion compensated prediction -----
     RNOK( compensateMb( rcMbDataAccess, 
-      rcRefFrameList0, rcRefFrameList1, pcYuvMbBuffer, false, false ) );
+                        rcRefFrameList0, 
+                        rcRefFrameList1, 
+                        pcYuvMbBuffer, 
+                        false
+                        ) );
   }
   return Err::m_nOK;
 }
@@ -2316,7 +2322,7 @@ MotionCompensation::xAdaptiveMotionCompensation(YuvBufferCtrl*  pcYuvFullPelBuff
 
     RNOK( pcMbDataCtrl          ->initMb( pcMbDataAccess, uiMbY, uiMbX                  ) );
     RNOK( pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
-    RNOK(                         initMb(                 uiMbY, uiMbX, *pcMbDataAccess ) );
+    RNOK(                         initMb(                 uiMbY, uiMbX) );
 
     if( ! pcMbDataAccess->getMbData().isIntra() )
     {

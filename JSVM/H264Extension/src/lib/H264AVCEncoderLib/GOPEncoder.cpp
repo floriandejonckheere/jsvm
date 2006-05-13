@@ -403,7 +403,6 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 	  static UInt aauiSize[5][2];
 	  static Double dRatio[5][2];
 	  auiPLR[m_uiLayerId]      = pcLayerParameters->getPLR                     (); 
-	  UInt temp=auiPLR[0];
 	  m_bLARDOEnable            = pcCodingParameter->getLARDOEnable()==0? false:true;
 	  m_bLARDOEnable            = m_bLARDOEnable&&((Int)pcLayerParameters->getNumFGSLayers()==0);
 	  aauiSize[m_uiLayerId][0]  =pcLayerParameters->getFrameWidth();
@@ -415,8 +414,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 	  }
 	  else
 	  {
-		  dRatio[m_uiLayerId][0]=(double)aauiSize[m_uiLayerId][0]/aauiSize[pcLayerParameters->getBaseLayerId()][0];
-		  dRatio[m_uiLayerId][1]=(double)aauiSize[m_uiLayerId][1]/aauiSize[pcLayerParameters->getBaseLayerId()][1];
+		  dRatio[m_uiLayerId][0]=(Double)aauiSize[m_uiLayerId][0]/aauiSize[pcLayerParameters->getBaseLayerId()][0];
+		  dRatio[m_uiLayerId][1]=(Double)aauiSize[m_uiLayerId][1]/aauiSize[pcLayerParameters->getBaseLayerId()][1];
 	  }
 	  m_pcSliceEncoder->getMbEncoder()->setRatio(dRatio);
 	  m_pcSliceEncoder->getMbEncoder()->setPLR(auiPLR);
@@ -687,7 +686,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 		  
       m_bFinish = 0;
 
-		  UInt temp;
+		  UInt temp=0;
 		  int i, j;
 		  int line = 0;
 		  char ch;
@@ -1594,7 +1593,6 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 {
   Bool          bFinished     = false;
   SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader();
-  MbDataCtrl*   pcMbDataCtrl  = rcControlData.getMbDataCtrl ();
   IntFrame*     pcOrgResidual = pcTempFrame;
   UInt          uiRealBLBits  = ruiBits;
   UInt          uiLastRecLayer = 0;
@@ -1621,11 +1619,10 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 
   // Martin.Winken@hhi.fhg.de: original residual now set in RQFGSEncoder::xResidualTranform()
 
-  UInt uiTarget;
+  UInt uiTarget                   =   0;
   UInt uiFGSMaxBits = 0;
   UInt uiBaseBits                 =   0;
   UInt uiEstimatedHeaderBits      =   0;
-  UInt uiFrameBits                =   0;
   UInt uiFGSBits [MAX_FGS_LAYERS] = { 0, 0, 0 };
   Double  dRealValuedFGSBits          = 0.0;
   //JVT-P031
@@ -1861,7 +1858,6 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
     }
 
     //JVT-P031
-    Bool bCorrupted = false;
     UInt uiFrac = 0;
     UInt uiFragmentBits;
 	// Currently, fragmented NAL units are only designed to truncate correctly the
@@ -2100,7 +2096,6 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
   UInt          uiBits              = 0;
   UInt          uiBitsSEI           = 0;
   IntFrame*     pcBaseLayerFrame    = rcControlData.getBaseLayerRec ();
-  IntFrame*     pcBaseLayerResidual = rcControlData.getBaseLayerSbb ();
   SliceHeader*  pcSliceHeader       = rcControlData.getSliceHeader  ();
     
   
@@ -2115,8 +2110,6 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
   
   for (UInt iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)  
   {
-    UInt          uiBits              = 0;
-
     pcSliceHeader->setFirstMbInSlice(pcFMO->getFirstMacroblockInSlice(iSliceGroupID));
     pcSliceHeader->setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
 
@@ -2237,10 +2230,7 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
                                     UInt&                    ruiBits,
                                     UInt&                    ruiBitsRes )
 {
-  UInt  uiMbCoded   = 0;
-  UInt  uiBits      = 0;
   UInt  uiBitsSEI   = 0;
-  UInt  uiBitsRes   = 0;
 
   //----- Subsequence SEI -----
   if( m_bWriteSubSequenceSei &&   m_bH264AVCCompatible )
@@ -2271,7 +2261,7 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
     RNOK( m_pcNalUnitEncoder->write( *rcControlData.getSliceHeader() ) );
 
     //----- write slice data -----
-    RNOK( m_pcSliceEncoder->encodeHighPassPicture ( uiMbCoded, uiBits, uiBitsRes,
+    RNOK( m_pcSliceEncoder->encodeHighPassPicture ( uiMbCoded, uiBits, 
                                                   *rcControlData.getSliceHeader            (),
                                                     pcFrame,
                                                     pcResidual,
@@ -2413,7 +2403,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
 		  SliceHeader* pcSliceHeader = m_pacControlData[uiFrameId].getSliceHeader();
 		  if(pcSliceHeader->isIdrNalUnit())
 		  {
-			  for(UInt uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++)
+			  for( uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++)
 			  {
 				  if(m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() < pcSliceHeader->getTemporalLevel() || (m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() == pcSliceHeader->getTemporalLevel()&& uiFrame < uiFrameId))
 				  {
@@ -2760,9 +2750,6 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 // JVT-Q065 EIDR}
 
   SliceType     eSliceType      = ( auiPredListSize[1] ? B_SLICE : auiPredListSize[0] ? P_SLICE : I_SLICE );
-  UInt          uiGOPSize       = uiFrameIdInGOP ? m_uiGOPSize             : 1;
-  UInt          uiDecStages     = uiFrameIdInGOP ? m_uiDecompositionStages : 0;
-
   Bool          bKeyPicture     = ( eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST ) ? 1 : 0;
 
   //===== set simple slice header parameters =====
@@ -2836,7 +2823,6 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
     if (m_uiLayerId > 0)
     {
         int index = pcSliceHeader->getPoc();
-        const PictureParameters* pc = m_pcResizeParameters->getCurrentPictureParameters (index);
         pcSliceHeader->setLeftOffset(m_pcResizeParameters->getLeftOffset(index));
         pcSliceHeader->setRightOffset(m_pcResizeParameters->getRightOffset(index));
         pcSliceHeader->setTopOffset(m_pcResizeParameters->getTopOffset(index));
@@ -3577,7 +3563,6 @@ MCTFEncoder::xInitControlDataMotion( UInt uiBaseLevel,
   MbDataCtrl*     pcMbDataCtrl      = rcControlData.getMbDataCtrl   ();
   MbDataCtrl*     pcMbDataCtrlL1    = xGetMbDataCtrlL1( *pcSliceHeader, uiFrameIdInGOP );
 
-  SliceType       eSliceType        = pcSliceHeader->getSliceType   ();
   Double          dScalFactor       = rcControlData.getScalingFactor();
   Double          dQpPredData       = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
   Double          dLambda           = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
@@ -3992,7 +3977,7 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
   }
   else 
   {
-    RNOK( xCalculateAndAddPSNR( rcPicBufferInputList, (UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - uiBaseLevel, uiBaseLevel == m_uiNotCodedMCTFStages ) );
+    RNOK( xCalculateAndAddPSNR( rcPicBufferInputList, (UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - uiBaseLevel, uiBaseLevel == m_uiNotCodedMCTFStages ) );
   }
   //}}Adaptive GOP structure
 
@@ -4250,8 +4235,8 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     }
     else
     {
-      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
-      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] ++;
+      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
+      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] ++;
     }
     //}}Adaptive GOP structure
 
@@ -4333,7 +4318,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 				  }
 				  pPelRec_rec  += iStride;
 			  }
-			  m_dMSETemp += (double)uiSSETemp/(double)(iHeight*iWidth);
+			  m_dMSETemp += (Double)uiSSETemp/(Double)(iHeight*iWidth);
 
         delete reconst_picbuf;
 			  delete pcOrgResidual;
@@ -4405,7 +4390,7 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
       }
       else
       {
-        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
+        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
       }
       //}}Adaptive GOP structure
       
@@ -4616,8 +4601,8 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     }
     else
     {
-      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() +((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
-      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() +((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] ++;
+      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() +((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
+      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() +((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] ++;
     }
     //}}Adaptive GOP structure
     
@@ -4663,7 +4648,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 				}
 				pPelRec_rec  += iStride;
 			}
-			m_dMSETemp += (double)uiSSETemp/(double)(iHeight*iWidth);
+			m_dMSETemp += (Double)uiSSETemp/(Double)(iHeight*iWidth);
 
 			delete reconst_picbuf;
 			delete pcOrgResidual;
@@ -4762,7 +4747,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
       }
       else
       {
-        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() +((UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages) ] += uiBits;    
+        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() +((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages) ] += uiBits;    
       }
       //}}Adaptive GOP structure
     }
@@ -5065,7 +5050,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			}				
 			m_dMSETemp = 0;
       process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[4][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
+      mse[4][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
       if (first == 1) 
         first = 0;
       rcAccessUnitList.clear();
@@ -5137,7 +5122,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			}				
 			m_dMSETemp = 0;
       process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[3][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
+      mse[3][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
       if (first == 1) 
         first = 0;
       rcAccessUnitList.clear();
@@ -5209,7 +5194,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			}				
 			m_dMSETemp = 0;
       process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[2][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
+      mse[2][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
       if (first == 1) 
         first = 0;
       rcAccessUnitList.clear();
@@ -5282,14 +5267,14 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 			}				
 			m_dMSETemp = 0;
       process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[1][i] = m_dMSETemp/((double)(1<<m_uiDecompositionStages)+(double)first);
+      mse[1][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
       if (first == 1) first = 0;
       rcAccessUnitList.clear();
 			rcPicBufferInputList.clear();
 			rcPicBufferOutputList.clear();
 		}
 		
-		xSelectGOPMode(mse, m_puiGOPMode, 0, GN, 0, 0);
+		xSelectGOPMode(mse, m_puiGOPMode, 0, GN);
 
 		fclose(m_pMotionInfoFile);
 		fclose(m_pFGSFile);
@@ -5451,9 +5436,7 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 UInt MCTFEncoder::xSelectGOPMode (Double** mse,
 									UInt* seltype,
 									UInt pos,
-									UInt gop_size,
-									UInt gn_pos,
-									UInt gn_1_pos)
+									UInt gop_size)
 {
 	int i;
 
@@ -5665,7 +5648,7 @@ MCTFEncoder::xCalculateAndAddPSNR( PicBufferList& rcPicBufferInputList,
   }
   else 
   {
-    ROT ( uiStage > (UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) )  );
+    ROT ( uiStage > (UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) )  );
   }
   //}}Adaptive GOP structure
 
@@ -5680,7 +5663,7 @@ MCTFEncoder::xCalculateAndAddPSNR( PicBufferList& rcPicBufferInputList,
   // --ETRI & KHU
   if (m_uiUseAGS) 
   {
-    uiSkip        = 1 << ( (UInt)( log10((double)m_uiMaxGOPSize)/log10(2.0) ) - uiStage );
+    uiSkip        = 1 << ( (UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - uiStage );
   }
   //}}Adaptive GOP structure
 
@@ -6078,23 +6061,23 @@ MCTFEncoder::xSetRplrAndMmco( SliceHeader& rcSH )
 
   // calculate number of mmco commands
   const UInt  uiMaxFrameNumber  = ( 1 << rcSH.getSPS().getLog2MaxFrameNum() );
-  const Int   iDiff             = m_cLPFrameNumList.front() - uiCurrFrameNr;
-  UInt        uiDiff            = ( uiMaxFrameNumber - iDiff ) % uiMaxFrameNumber;
+  const Int   iDiffA             = m_cLPFrameNumList.front() - uiCurrFrameNr;
+  UInt        uiDiffA            = ( uiMaxFrameNumber - iDiffA ) % uiMaxFrameNumber;
 
   // generate mmco commands for inter b frames
   UInt uiPos = 0;
-  while( --uiDiff )
+  while( --uiDiffA )
   {
-    rcSH.getMmcoBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, uiDiff-1 ) );
+    rcSH.getMmcoBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, uiDiffA-1 ) );
   }
 
   // generate mmco command for high-pass frame
   UInt uiNeedLowPassBefore = max( 1, rcSH.getNumRefIdxActive( LIST_0 ) );
   if( m_cLPFrameNumList.size() > uiNeedLowPassBefore )
   {
-    const Int iDiff   = m_cLPFrameNumList.popBack() - uiCurrFrameNr;
-    UInt      uiDiff  = ( uiMaxFrameNumber - iDiff ) % uiMaxFrameNumber;
-    rcSH.getMmcoBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, uiDiff-1 ) );
+    const Int iDiffB   = m_cLPFrameNumList.popBack() - uiCurrFrameNr;
+    UInt      uiDiffB  = ( uiMaxFrameNumber - iDiffB ) % uiMaxFrameNumber;
+    rcSH.getMmcoBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, uiDiffB-1 ) );
   }
 
   // end of command list

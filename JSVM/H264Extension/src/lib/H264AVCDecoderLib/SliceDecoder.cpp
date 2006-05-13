@@ -239,7 +239,7 @@ SliceDecoder::decode( SliceHeader&   rcSH,
     {
       RNOK( pcMbDataCtrlBase->initMb        (  pcMbDataAccessBase, uiMbY, uiMbX ) );
     }
-    RNOK( m_pcControlMng->initMbForDecoding ( *pcMbDataAccess, uiMbAddress  ) );
+    RNOK( m_pcControlMng->initMbForDecoding (  uiMbAddress  ) );
 
     RNOK( m_pcMbDecoder ->decode            ( *pcMbDataAccess,
                                               pcMbDataAccessBase,

@@ -577,6 +577,7 @@ H264AVCEncoderTest::ScalableDealing()
 	delete pvChar;
 	fclose(f);
 	fflush(f);
+//	ROF( remove( m_cWriteToBitFileTempName.c_str() ) ); //pbm to solve: jv
 	std::string cCommandLineString;
 #if WIN32
 	cCommandLineString += "del ";

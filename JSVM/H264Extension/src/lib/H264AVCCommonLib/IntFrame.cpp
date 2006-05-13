@@ -192,7 +192,7 @@ ErrVal IntFrame::extendFrame( QuarterPelFilter* pcQuarterPelFilter )
 
 
 // JVT-R057 LA-RDO}
-void IntFrame::initChannelDistortion()
+Void IntFrame::initChannelDistortion()
 {
 	if(!m_piChannelDistortion)
 	{
@@ -207,10 +207,8 @@ void IntFrame::initChannelDistortion()
 
 
 
-void IntFrame::copyChannelDistortion(IntFrame*p1)
+Void IntFrame::copyChannelDistortion(IntFrame*p1)
 {
-	XPel* temp=getFullPelYuvBuffer()->getMbLumAddr();
-
 	UInt  uiMbY  = getFullPelYuvBuffer()->getLHeight()/16;
 	UInt  uiMbX  = getFullPelYuvBuffer()->getLWidth()/16;
 	for(UInt y=0;y<uiMbY*4;y++)
@@ -225,7 +223,7 @@ void IntFrame::copyChannelDistortion(IntFrame*p1)
 
 
 
-void IntFrame::zeroChannelDistortion()
+Void IntFrame::zeroChannelDistortion()
 {
 	UInt  uiMbY  = getFullPelYuvBuffer()->getLHeight()/16;
 	UInt  uiMbX  = getFullPelYuvBuffer()->getLWidth()/16;

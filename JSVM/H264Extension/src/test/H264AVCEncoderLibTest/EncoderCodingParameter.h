@@ -118,7 +118,7 @@ public:
   {
     *m_pdPar = pdDefault;
   };
-  void setVar( std::string& pvValue )
+  Void setVar( std::string& pvValue )
   {
     *m_pdPar = atof( pvValue.c_str() );
   };
@@ -133,7 +133,7 @@ public:
   {
     *m_piPar = piDefault;
   };
-  void setVar( std::string& pvValue)
+  Void setVar( std::string& pvValue)
   {
     *m_piPar = atoi( pvValue.c_str() );
   };
@@ -148,7 +148,7 @@ public:
   {
     *m_puiPar = puiDefault;
   };
-  void setVar( std::string& pvValue)
+  Void setVar( std::string& pvValue)
   {
     *m_puiPar = atoi( pvValue.c_str() );
   };
@@ -163,7 +163,7 @@ public:
   {
     *m_pcPar = pcDefault;
   };
-  void setVar( std::string& pvValue )
+  Void setVar( std::string& pvValue )
   {
     *m_pcPar = (Char)atoi( pvValue.c_str() );
   };
@@ -596,7 +596,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 {
   std::string acLayerConfigName[MAX_LAYERS];
   std::string acTags[4];
-  UInt  ui;
   UInt        uiLayerCnt   = 0;
   UInt        uiParLnCount = 0;
 
@@ -716,7 +715,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
   fclose( f );
 
-  for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
+  for( UInt ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
     getLayerParameters(ui).setLayerId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
@@ -988,7 +987,7 @@ ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLay
 				// Assume that only frame mode(no interlaced mode) is available
 				// Assume that Frame cropping is not avaliable
 
-				int tmp;
+				Int tmp;
 
 				/*
 				frame_mb_only = !(input->getPicInterlace() || input->getMbInterlace());

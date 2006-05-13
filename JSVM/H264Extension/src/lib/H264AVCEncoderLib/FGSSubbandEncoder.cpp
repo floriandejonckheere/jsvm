@@ -439,7 +439,6 @@ ErrVal
 RQFGSEncoder::xSetSymbolsChroma( TCoeff*             piCoeff,
                                  UInt                uiMbX,
                                  UInt                uiMbY,
-                                 const QpParameter&  cQP,
                                  UInt&               uiCoeffCostDC,
                                  UInt&               uiCoeffCostAC,
                                  Bool&               bSigDC,
@@ -510,7 +509,6 @@ ErrVal
 RQFGSEncoder::xSetSymbols4x4( TCoeff*             piCoeff,
                               UInt                uiMbX,
                               UInt                uiMbY,
-                              const QpParameter&  cQP,
                               UInt&               uiCoeffCost,
                               UInt&               ruiCbp,
                               LumaIdx             cIdx,
@@ -568,7 +566,6 @@ ErrVal
 RQFGSEncoder::xSetSymbols8x8( TCoeff*             piCoeff,
                               UInt                uiMbX,
                               UInt                uiMbY,
-                              const QpParameter&  cQP,
                               UInt&               uiCoeffCost,
                               UInt&               ruiCbp,
                               LumaIdx             cIdx )
@@ -642,7 +639,6 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
   const UChar*  pucScaleV = rcMbDataAccessBase.getSH().getScalingMatrix( bIntra ? 2 : 5 );
   UInt          uiMbX     = rcMbDataAccess.getMbX();
   UInt          uiMbY     = rcMbDataAccess.getMbY();
-  UInt          uiMbIndex = uiMbY * m_uiWidthInMB + uiMbX;
 
   rcMbDataAccess.getMbData().setQp( iQp );
 
@@ -682,7 +678,6 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
 
       RNOK( xSetSymbols8x8( rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx ),
                             uiMbX, uiMbY,
-                            m_pcTransform->getLumaQp(),
                             uiCoeffCost8x8, uiCbp, c8x8Idx ) );
 
       if( uiCbp )
@@ -737,7 +732,6 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
 
         RNOK( xSetSymbols4x4( rcMbDataAccess    .getMbTCoeffs().get( cIdx ),
           uiMbX, uiMbY, 
-          m_pcTransform->getLumaQp(),
           uiCoeffCost8x8, uiCbp, cIdx, bIntra16x16 ) );
       }
       if( uiCbp )
@@ -824,7 +818,6 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
     {
       RNOK( xSetSymbolsChroma( rcMbDataAccess    .getMbTCoeffs().get( cIdxU ),
                                uiMbX, uiMbY, 
-                               m_pcTransform->getChromaQp(),
                                uiCoeffCostDC, uiCoeffCostAC_U, bSigDC, bSigAC_U, cIdxU ) );
     }
 #if COEF_SKIP
@@ -851,7 +844,6 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
     {
       RNOK( xSetSymbolsChroma( rcMbDataAccess    .getMbTCoeffs().get( cIdxV ),
                                uiMbX, uiMbY, 
-                               m_pcTransform->getChromaQp(),
                                uiCoeffCostDC, uiCoeffCostAC_V, bSigDC, bSigAC_V, cIdxV ) );
     }
 #if COEF_SKIP
@@ -898,7 +890,6 @@ RQFGSEncoder::xMotionEstimation()
   for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
   for( UInt uiMbX = 0; uiMbX < m_uiWidthInMB;  uiMbX++ )
   {
-    UInt          uiMbIndex           = uiMbY * m_uiWidthInMB + uiMbX;
     MbDataAccess* pcMbDataAccessCurr  = 0;
     MbDataAccess* pcMbDataAccessEL    = 0;
 
@@ -953,7 +944,7 @@ RQFGSEncoder::xMotionEstimation()
 ErrVal
 RQFGSEncoder::xEncodeMotionData( UInt uiMbYIdx, UInt uiMbXIdx )
 {
-  UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx;
+  ETRACE_DO( UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx );
   MbDataAccess* pcMbDataAccessEL  = 0;
   MbDataAccess* pcMbDataAccessBL  = 0;
 
@@ -1237,7 +1228,7 @@ RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
                                      UInt   uiLastMbY,
                                      UInt&  ruiLumaCbpBitCount)
 {
-  UInt uiMbXIdx, uiMbYIdx, uiB8x8 = 0;
+  UInt uiMbXIdx = 0, uiMbYIdx = 0, uiB8x8 = 0;
   UInt uiLumaCbpBase, uiLumaCbp;
   MbDataAccess *pcMbDataAccessEL, *pcMbDataAccessBL;
   Bool bLumaCbpCodedFlag = false;
@@ -1590,8 +1581,6 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
         for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ )
         {
-          UInt uiCbp = 0;
-          UInt uiNumCb = 0;
           for( UInt uiBlockYIdx = 2 * uiB8YIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ )
           for( UInt uiBlockXIdx = 2 * uiB8XIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ )
           {
@@ -2055,7 +2044,6 @@ RQFGSEncoder::xEncodeSigHeadersLuma( UInt   uiBlockYIndex,
                                      UInt   uiBlockXIndex,
                                      Int&   riLastQp )
 {
-  UInt    uiBlockIndex  =  uiBlockYIndex    * 4 * m_uiWidthInMB +  uiBlockXIndex;
   UInt    uiSubMbIndex  = (uiBlockYIndex/2) * 2 * m_uiWidthInMB + (uiBlockXIndex/2);
   UInt    uiMbIndex     = (uiBlockYIndex/4) * 1 * m_uiWidthInMB + (uiBlockXIndex/4);
   
@@ -2113,7 +2101,7 @@ RQFGSEncoder::xEncodeSigHeadersLuma( UInt   uiBlockYIndex,
       if( ! ( m_pauiMacroblockMap[uiMbIndex] & SIGNIFICANT ) )
       {
         pcMbDataAccessEL->setLastQp( riLastQp );
-        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
+        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL ) );
         riLastQp = pcMbDataAccessEL->getMbData().getQp();
 
         m_pauiMacroblockMap[uiMbIndex] |= SIGNIFICANT;
@@ -2141,8 +2129,8 @@ RQFGSEncoder::xEncodeSigHeadersLuma( UInt   uiBlockYIndex,
       for (UInt uiX=(uiBlockXIndex/2)*2; uiX<(uiBlockXIndex/2)*2+2; uiX++)
       {
         UInt uiBlk = uiY * 4 * m_uiWidthInMB + uiX;
-        UInt uiB4x4        =  (uiY%4)    * 4 +  (uiX%4);
-        B4x4Idx c4x4Tmp(uiB4x4);
+        UInt uiB4x4Tmp  =  (uiY%4)    * 4 +  (uiX%4);
+        B4x4Idx c4x4Tmp(uiB4x4Tmp);
         if( ! ( m_paucBlockMap[uiBlk] & CODED ) )
         {
           Bool bSigBCBP = m_pcSymbolWriter->RQencodeBCBP_4x4( *pcMbDataAccessEL, *pcMbDataAccessBL, c4x4Tmp );
@@ -2179,7 +2167,6 @@ RQFGSEncoder::xEncodeNewCoefficientLuma( UInt   uiBlockYIndex,
                                          UInt   uiBlockXIndex )
 {
   UInt    uiBlockIndex  =  uiBlockYIndex    * 4 * m_uiWidthInMB +  uiBlockXIndex;
-  UInt    uiSubMbIndex  = (uiBlockYIndex/2) * 2 * m_uiWidthInMB + (uiBlockXIndex/2);
   UInt    uiMbIndex     = (uiBlockYIndex/4) * 1 * m_uiWidthInMB + (uiBlockXIndex/4);
   
   UInt    uiB8x8        = ((uiBlockYIndex%4)/2) * 2 + ((uiBlockXIndex%4)/2);
@@ -2426,7 +2413,7 @@ RQFGSEncoder::xEncodeNewCoefficientChromaDC ( UInt    uiPlane,
       if( ! ( m_pauiMacroblockMap[uiMbIndex] & SIGNIFICANT ) )
       {
         pcMbDataAccessEL->setLastQp( riLastQP );
-        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
+        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL ) );
         riLastQP = pcMbDataAccessEL->getMbData().getQp();
 
         m_pauiMacroblockMap[uiMbIndex] |= SIGNIFICANT;
@@ -2589,7 +2576,7 @@ RQFGSEncoder::xEncodeNewCoefficientChromaAC ( UInt    uiPlane,
       if( ! ( m_pauiMacroblockMap[uiMbIndex] & SIGNIFICANT ) )
       {
         pcMbDataAccessEL->setLastQp( riLastQP );
-        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
+        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL ) );
         riLastQP = pcMbDataAccessEL->getMbData().getQp();
 
         m_pauiMacroblockMap[uiMbIndex] |= SIGNIFICANT;
@@ -2728,8 +2715,7 @@ RQFGSEncoder::xEncodeCoefficientLumaRef( UInt   uiBlockYIndex,
   }
   else
   {
-    RNOK( m_pcSymbolWriter->RQencodeTCoeffRef_Luma( *pcMbDataAccessEL, *pcMbDataAccessBL,
-                                                   LUMA_SCAN, c4x4Idx, uiScanIndex ) );
+    RNOK( m_pcSymbolWriter->RQencodeTCoeffRef_Luma( *pcMbDataAccessEL, *pcMbDataAccessBL, c4x4Idx, uiScanIndex ) );
   }
 
   m_apaucLumaCoefMap[uiScanIndex][uiBlockIndex] |= CODED;
@@ -2812,10 +2798,6 @@ RQFGSEncoder::xVLCParseLuma( UInt   uiBlockYIndex,
                              UInt*  pauiNumCoefHist,
                              UInt*  pauiHighMagHist)
 {
-  UInt    uiBlockIndex  =  uiBlockYIndex    * 4 * m_uiWidthInMB +  uiBlockXIndex;
-  UInt    uiSubMbIndex  = (uiBlockYIndex/2) * 2 * m_uiWidthInMB + (uiBlockXIndex/2);
-  UInt    uiMbIndex     = (uiBlockYIndex/4) * 1 * m_uiWidthInMB + (uiBlockXIndex/4);
-  
   UInt    uiB8x8        = ((uiBlockYIndex%4)/2) * 2 + ((uiBlockXIndex%4)/2);
   UInt    uiB4x4        =  (uiBlockYIndex%4)    * 4 +  (uiBlockXIndex%4);
   Par8x8  ePar8x8       = Par8x8(uiB8x8);
@@ -2884,8 +2866,6 @@ RQFGSEncoder::xVLCParseChromaAC( UInt   uiPlane,
                                  UInt   uiBlockXIndex,
                                  UInt*  pauiNumCoefHist)
 {
-  UInt    uiBlockIndex  =  uiBlockYIndex    * 2 * m_uiWidthInMB +  uiBlockXIndex;
-  UInt    uiMbIndex     = (uiBlockYIndex/2) * 1 * m_uiWidthInMB + (uiBlockXIndex/2);
   UInt    uiCIdx        = 4*uiPlane + 2*(uiBlockYIndex%2) + (uiBlockXIndex%2);
   CIdx cChromaIdx(uiCIdx);
   

@@ -35,11 +35,6 @@ public:
 	unsigned PicWidthInMbs;  
 	unsigned PicHeightInMapUnits;
 	int slice_group_change_cycle;
-
-	void SetImageParameters(unsigned PicSizeInMbs,	unsigned int field_pic_flag, 	unsigned PicWidthInMbs,unsigned PicHeightInMapUnits,	int slice_group_change_cycle)
-	{
-
-	}
 };
 
 
@@ -134,9 +129,9 @@ public :
 
 public:
 	
-	FMO():MbToSliceGroupMap_(0),MapUnitToSliceGroupMap_(0),numMbInSliceGroup_(0)	{	};	
+	FMO():MbToSliceGroupMap_(0),MapUnitToSliceGroupMap_(0),PicSizeInMapUnits_(0),numMbInSliceGroup_(0)	{	};	
 	~FMO(){	finit();};		
-	int initImageParameter (ImageParameter *img){return 1;};	
+
 	int init (FMO_PPS* Pps, FMO_SPS* Sps);
 	int finit (); //destroy
 	int getNumberOfSliceGroup();

@@ -135,10 +135,8 @@ public:
 
   virtual ErrVal initMbForCoding      ( MbDataAccess&               rcMbDataAccess,
                                         UInt                        uiMbIndex )         = 0;
-  virtual ErrVal initMbForDecoding    ( MbDataAccess&               rcMbDataAccess,
-                                        UInt                        uiMbIndex )         = 0;
-  virtual ErrVal initMbForFiltering   ( MbDataAccess&               rcMbDataAccess,
-                                        UInt                        uiMbIndex )         = 0;
+  virtual ErrVal initMbForDecoding    ( UInt                        uiMbIndex )         = 0;
+  virtual ErrVal initMbForFiltering   ( UInt                        uiMbIndex )         = 0;
 
 //TMM_WP
   virtual ErrVal initSliceForWeighting   ( const SliceHeader&          rcSH )           = 0;

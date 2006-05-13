@@ -873,7 +873,6 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
     {
       UInt uiPos = g_aucIndexChromaDCScan[uiDCIdx];
 
-      UInt  uiMbIndex  = uiMbY * m_uiWidthInMB + uiMbX;
       if( m_aapaucChromaDCCoefMap[uiPlane][uiDCIdx][uiMbIndex] & CODED)
       {
         xUpdateCoeffMap(piCoeffBL[uiPos], piCoeffEL[uiPos], m_aapaucChromaDCCoefMap[uiPlane][uiDCIdx][uiMbIndex]);
@@ -1056,7 +1055,6 @@ FGSCoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess,
   UInt  uiMbIndex = rcMbDataAccess.getMbY()*m_uiWidthInMB+rcMbDataAccess.getMbX();
   for( UInt uiPlane = 0; uiPlane < 2; uiPlane++ )
   {
-    const UChar* pucScaleUV = (uiPlane == 0) ? pucScaleU : pucScaleV;
     TCoeff*      piCoeff = rcMbDataAccess.getMbTCoeffs().get( CIdx(4*uiPlane) );
 
     iScale = g_aaiDequantCoef[cCQp.rem()][0] << cCQp.per();

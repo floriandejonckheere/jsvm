@@ -173,7 +173,7 @@ public:
   virtual Bool    RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, ChromaIdx cIdx ) = 0;
   virtual Bool    RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess, MbDataAccess&   rcMbDataAccessBase, ChromaIdx cIdx ) = 0;
   virtual Bool    RQencodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
-  virtual ErrVal  RQencodeDeltaQp( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
+  virtual ErrVal  RQencodeDeltaQp( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  RQencode8x8Flag( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
   virtual ErrVal  RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
                                       MbDataAccess&   rcMbDataAccessBase,
@@ -200,7 +200,6 @@ public:
                                       UInt            uiScanIndex ) = 0;
   virtual ErrVal RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
-                                        ResidualMode    eResidualMode,
                                         LumaIdx         cIdx,
                                         UInt            uiScanIndex ) = 0;
   virtual ErrVal RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,

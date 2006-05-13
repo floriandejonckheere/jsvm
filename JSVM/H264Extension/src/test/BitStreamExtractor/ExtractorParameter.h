@@ -115,9 +115,9 @@ public:
   Int                   getResult           ()            const { return m_iResult;         }
   Bool                  getAnalysisOnly     ()            const { return m_bAnalysisOnly;   }
   UInt                  getLayer            ()            const { return m_uiLayer;         }
-  void                  setLayer            (UInt layer)  { m_uiLayer = layer;        }
+  Void                  setLayer            (UInt layer)  { m_uiLayer = layer;        }
   UInt                  getLayerId            ()            const { return m_uiLayerId;         }
-  void                  setLayerId            (UInt layer)  { m_uiLayerId = layer;        }
+  Void                  setLayerId            (UInt layer)  { m_uiLayerId = layer;        }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
 	Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
@@ -125,7 +125,7 @@ public:
 	Void                  setBitrate          ( Double dBitrate  ) { m_dBitrate = dBitrate;   }
 	Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
 	std::string           getOutFileName      ()            const { return m_cOutFile;        } 
-	void					setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;		}
+	Void					setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;		}
   UInt					getMaxFGSLayerKept  ()			  { return m_uiMaxFGSLayerKept;		}
   Double                getBitrate          ()            const { return m_dBitrate;        }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }

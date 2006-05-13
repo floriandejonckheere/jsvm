@@ -954,8 +954,7 @@ Bool MbDataAccess::xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Boo
 					pcRefFrameList	=	&rcRefFrameListL0;
 				else
 					pcRefFrameList	=	&rcRefFrameListL1;
-        const IntFrame*  pcFrame           = (IntFrame*)( ascRefIdx[eListIdx] < 1 ? 0 : (*pcRefFrameList)[ascRefIdx[eListIdx]]);
-//        rcMbMotionDataLX.setRefPic( pcFrame,             eParIdx );
+   
       }
       rcMbMotionDataLX.setAllMv ( acMv     [eListIdx], eParIdx );
 			rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );

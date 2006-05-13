@@ -285,17 +285,17 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
                                       PicBufferList&                  rcPicBufferOutputList,
                                       PicBufferList&                  rcPicBufferUnusedList,
                                       Double                          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
-  UInt			getSelect(int gop, int index) {return m_uiSelect[gop][index];}
-  void			setSelect(int gop, int index, UInt p) {m_uiSelect[gop][index] = p;}
+  UInt			getSelect(Int gop, Int index) {return m_uiSelect[gop][index];}
+  Void			setSelect(Int gop, Int index, UInt p) {m_uiSelect[gop][index] = p;}
   UInt			getSelectPos() {return m_uiSelectPos;}
-  void			setSelectPos(UInt p) {m_uiSelectPos = p;}
+  Void			setSelectPos(UInt p) {m_uiSelectPos = p;}
   //}}Adaptive GOP structure
   Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
   Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
   Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
   //Bug_Fix JVT-R057{
   Bool              getLARDOEnable( ){ return m_bLARDOEnable; }
-  void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
+  Void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
   //Bug_Fix JVT-R057{
 protected:
   //===== data management =====
@@ -468,7 +468,7 @@ protected:
   //===== adaptive gop structure =====
   //{{Adaptive GOP structure
   // --ETRI & KHU  
-  UInt	xSelectGOPMode	(Double **mse, UInt *seltype, UInt pos, UInt gop_size, UInt gn_pos, UInt gn_1_pos);
+  UInt	xSelectGOPMode	(Double **mse, UInt *seltype, UInt pos, UInt gop_size);
   //}}Adaptive GOP structure
 
   ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,

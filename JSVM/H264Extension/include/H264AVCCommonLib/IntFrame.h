@@ -288,15 +288,15 @@ public:
 
 
   // JVT-R057 LA-RDO{
-  void   initChannelDistortion();
-  void   uninitChannelDistortion()  { 
+  Void   initChannelDistortion();
+  Void   uninitChannelDistortion()  { 
 	  if(m_piChannelDistortion) 
 		  delete[] m_piChannelDistortion; 
   }
   UInt*   getChannelDistortion()   { return  m_piChannelDistortion;}
-  void   copyChannelDistortion(IntFrame*p1);
-  void   zeroChannelDistortion();
-  void   setChannelDistortion(IntFrame*p1) { if(p1) m_piChannelDistortion=p1->m_piChannelDistortion; else m_piChannelDistortion=NULL;}
+  Void   copyChannelDistortion(IntFrame*p1);
+  Void   zeroChannelDistortion();
+  Void   setChannelDistortion(IntFrame*p1) { if(p1) m_piChannelDistortion=p1->m_piChannelDistortion; else m_piChannelDistortion=NULL;}
   // JVT-R057 LA-RDO}  
 protected:
   IntYuvPicBuffer m_cFullPelYuvBuffer;

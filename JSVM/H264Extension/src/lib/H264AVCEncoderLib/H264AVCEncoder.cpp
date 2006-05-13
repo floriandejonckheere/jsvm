@@ -372,8 +372,6 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	}
 	UInt uiTotalScalableLayer = 0;
 
-	//===== get bitrate information ====
-	Double *dBitrate = dGetBitrate();
 	//===== get framerate information ===
 	Double *dFramerate = dGetFramerate();
   
@@ -428,8 +426,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 				  {
 					  UInt uilayerProfileIdc = 0;	//may be changed
 					  Bool bLayerConstraintSet0Flag = false;	//may be changed
-					  Bool bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiCurrLayer == 0;
-					  Bool bLayerConstraintSet1Flag = ( bH264AVCCompatible ? 1 : 0 );	//may be changed
+					  Bool bH264AVCCompatibleTmp  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiCurrLayer == 0;
+					  Bool bLayerConstraintSet1Flag = ( bH264AVCCompatibleTmp ? 1 : 0 );	//may be changed
 					  Bool bLayerConstraintSet2Flag = false;	//may be changed
 					  Bool bLayerConstraintSet3Flag = false;	//may be changed
 					  UInt uiLayerLevelIdc = 0;		//may be changed
@@ -719,7 +717,7 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
     }
     else
     {
-      AOT(1);
+      AF();
       rbMoreSets = false;
       return Err::m_nERR;
     }
@@ -1294,7 +1292,6 @@ H264AVCEncoder::xInitParameterSets()
     Bool              bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiIndex == 0;
     UInt              uiMbY               = rcLayerParameters.getFrameHeight() / 16;
     UInt              uiMbX               = rcLayerParameters.getFrameWidth () / 16;
-    UInt              uiNumMb             = uiMbY * uiMbX;
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
 #if 1 // BUG_FIX
@@ -1463,11 +1460,7 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiNumMb             = uiMbY * uiMbX;
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
-#if 1 // BUG_FIX
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) ) 
-#else
-    UInt              uiDPBSize           = ( 1 << rcLayerParameters.getDecompositionStages() )
-#endif
 
 											                      //{{Adaptive GOP structure -- 10.18.2005
                                             // --ETRI & KHU

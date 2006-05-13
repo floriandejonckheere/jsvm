@@ -103,6 +103,7 @@ NalUnitParser::NalUnitParser()
 , m_uiQualityLevel      ( 0 )
 , m_bCheckAllNALUs      ( false ) //JVT-P031
 , m_uiDecodedLayer      ( 0 ) //JVT-P031
+, m_bDiscardableFlag    ( false ) 
 {
   for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
   {

@@ -141,7 +141,6 @@ public:
                                         );
   ErrVal      encodeHighPassPicture   ( UInt&         ruiMbCoded,
                                         UInt&         ruiBits,
-                                        UInt&         ruiBitsRes,
                                         SliceHeader&  rcSH,
                                         IntFrame*     pcFrame,
                                         IntFrame*     pcResidual,

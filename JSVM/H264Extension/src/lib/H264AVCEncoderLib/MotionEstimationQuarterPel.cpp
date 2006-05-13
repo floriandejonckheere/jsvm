@@ -197,8 +197,8 @@ Void MotionEstimationQuarterPel::xSubPelSearch( IntYuvPicBuffer*  pcPelData,
   UInt  uiBestHPelPos = MSYS_UINT_MAX;
 
   Int   n;
-  UInt  uiYSize;
-  UInt  uiXSize;
+  UInt  uiYSize = 0;
+  UInt  uiXSize = 0;
 
   if( bQPelOnly )
   {
@@ -390,8 +390,8 @@ Void MotionEstimationQuarterPel::xSubPelSearch( IntYuvPicBuffer*  pcPelData,
 
           rcMv = cMvBestMatch1;
 
-          XPel* pPel = pcPelData->getLumBlk();
-          Int iStride = pcPelData->getLStride();
+          pPel = pcPelData->getLumBlk();
+          iStride = pcPelData->getLStride();
           pPel += (cMvBestMatch1.getHor()>>1) + (cMvBestMatch1.getVer()>>1) * iStride;
 
           m_pcQuarterPelFilter->filterBlock( m_aXQPelSearch, pPel, iStride, uiXSize, uiYSize, g_aucFilter[m_uiBestMode]); //1/4 pel interp
@@ -552,8 +552,8 @@ ErrVal MotionEstimationQuarterPel::compensateBlock( IntYuvMbBuffer* pcRecPelData
     iAdd = 16;
   }
 
-  UInt uiXSize;
-  UInt uiYSize;
+  UInt uiXSize = 0;
+  UInt uiYSize = 0;
   xGetSizeFromMode( uiXSize, uiYSize, uiMode);
 
   if( pcRefPelData2 == NULL )

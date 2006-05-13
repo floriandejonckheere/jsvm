@@ -235,7 +235,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
         }
         else
 #endif
-	      if( ( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) ) &&
+	      if( ( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred(  ) ) &&
 			        pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
         {
           RNOK( m_pcMbSymbolWriteIf->blFlag( rcMbDataAccess ) );    
@@ -955,7 +955,7 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
 			 if ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
 						rcMbDataAccess.getMbData().getBLSkipFlag() &&
 						pcMbDataAccessBase &&
-						rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
+						rcMbDataAccess.isConstrainedInterLayerPred( ) )
 			 {
 					RNOK( m_pcMbSymbolWriteIf->smoothedRefFlag( rcMbDataAccess ) );
 			 }

@@ -357,7 +357,6 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
 
 ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                             UInt&         ruiBits,
-                                            UInt&         ruiBitsRes,
                                             SliceHeader&  rcSH,
                                             IntFrame*     pcFrame,
                                             IntFrame*     pcResidual,
@@ -403,7 +402,6 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
 
     MbDataAccess* pcMbDataAccessBase  = 0;
-    Bool          bWriteMotion        = rcSH.getBaseLayerId() == MSYS_UINT_MAX || rcSH.getAdaptivePredictionFlag();
 
     if( pcMbDataCtrlBaseMotion)
     {
@@ -429,7 +427,10 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       pcMbDataAccess->getMbData().setQp( iQPRes );
 
       m_pcTransform->setClipMode( false );
-      RNOK( m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseSubband,
+      RNOK( m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess, 
+                                               pcFrame, 
+                                               pcResidual, 
+                                               pcBaseSubband,
 																							 pcSRFrame, // JVT-R091
 																							 bCoded, dLambda, iMaxDeltaQp ) );
 

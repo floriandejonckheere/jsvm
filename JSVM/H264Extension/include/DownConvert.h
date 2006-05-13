@@ -194,25 +194,22 @@ private:
                                   short*            psBufferU, int iStrideU,
                                   short*            psBufferV, int iStrideV,
                                   ResizeParameters* pcParameters,
-                                  h264::MbDataCtrl* pcMbDataCtrl,
-                                  bool              bClip = true );
+                                  h264::MbDataCtrl* pcMbDataCtrl); 
   void   xGenericUpsampleEss    ( short*            psBufferY, int iStrideY,
                                   short*            psBufferU, int iStrideU,
                                   short*            psBufferV, int iStrideV,
                                   ResizeParameters* pcParameters,
                                   bool              bClip = true );
   void   xFilterResidualHor     ( short *buf_in, short *buf_out, 
-                                  int width, int height, 
-                                  int x, int y, int w, int h,  
+                                  int width, int x, int w,
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
                                   bool chroma, int rounding_para,
                                   unsigned char *buf_blocksize );
   void   xFilterResidualVer     ( short *buf_in, short *buf_out, 
-                                  int width, int height, 
+                                  int width, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
-                                  h264::MbDataCtrl*  pcMbDataCtrl, 
                                   bool chroma, int rounding_para,
                                   unsigned char *buf_blocksize );
  						           
@@ -274,7 +271,7 @@ private:
 // =================================================================================
 //   INTRA 1 Lanczos
 // =================================================================================
-  void   xInitFilterTmm1        ( int iMaxDim );
+  void   xInitFilterTmm1        ( /*int iMaxDim*/ );
   void   xDestroyFilterTmm1     ( );
   void   xUpsampling1           ( ResizeParameters* pcParameters,
                                   bool bLuma );
@@ -288,7 +285,7 @@ private:
   void   xDestroyFilterTmm2     ( );
   void   xUpsampling2           ( ResizeParameters* pcParameters,
                                   bool bLuma );
-  void   xUpsamplingData2       ( int iInLength , int iOutLength , int iNumerator , int iDenominator );
+  void   xUpsamplingData2       ( int iInLength , int iOutLength /*, int iNumerator , int iDenominator*/ );
 
 // =================================================================================
 
@@ -307,7 +304,7 @@ private:
   void   xDownsampling3         ( int input_width, int input_height, int output_width, int output_height,
                                   int crop_x0, int crop_y0, int crop_w, int crop_h,
                                   int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flg );  
+                                  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y );   
 
 #endif //DOWN_CONVERT_STATIC 
 

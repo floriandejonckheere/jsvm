@@ -212,8 +212,7 @@ private:
                                                   const LumaIdx       cPIdx,
                                                   const Short         sHorMvThr,
                                                   const Short         sVerMvThr,
-                                                  RefFrameList&       rcRefFrameList0,
-                                                  RefFrameList&       rcRefFrameList1 );
+                                                  RefFrameList&       rcRefFrameList0 );
   UChar           xCheckMvDataB_RefIdx          ( const MbData&       rcQMbData,
                                                   const LumaIdx       cQIdx,
                                                   const MbData&       rcPMbData,

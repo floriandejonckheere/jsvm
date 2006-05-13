@@ -112,19 +112,16 @@ public:
   ErrVal        destroy       ();
 
   ErrVal  startSlice          ( const SliceHeader& rcSliceHeader );
-  ErrVal  finishSlice         ( const SliceHeader& rcSliceHeader ) { return Err::m_nOK; }
+  ErrVal  finishSlice         ( ) { return Err::m_nOK; }
 
   ErrVal  init                ( BitReadBuffer* pcBitReadBuffer );
   ErrVal  uninit              ();
 
-  Bool    RQdecodeBCBP_4x4        ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
+  Bool    RQdecodeBCBP_4x4        ( MbDataAccess&   rcMbDataAccessBase,
                                     LumaIdx         cIdx );
-  Bool    RQdecodeBCBP_ChromaDC   ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
+  Bool    RQdecodeBCBP_ChromaDC   ( MbDataAccess&   rcMbDataAccessBase,
                                     ChromaIdx       cIdx );
-  Bool    RQdecodeBCBP_ChromaAC   ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
+  Bool    RQdecodeBCBP_ChromaAC   ( MbDataAccess&   rcMbDataAccessBase,
                                     ChromaIdx       cIdx );
   Bool    RQdecodeCBP_Chroma      ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase );
@@ -133,8 +130,7 @@ public:
   Bool    RQdecodeCBP_8x8         ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase,
                                     B8x8Idx         c8x8Idx );
-  ErrVal  RQdecodeDeltaQp         ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase );
+  ErrVal  RQdecodeDeltaQp         ( MbDataAccess&   rcMbDataAccess );
   ErrVal  RQdecode8x8Flag         ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase );
   ErrVal  RQdecodeTermBit         ( UInt&           ruiBit );
@@ -159,7 +155,6 @@ public:
                                      UInt&           ruiNumCoefRead );
   ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
-                                     ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex );
   ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
@@ -180,7 +175,7 @@ public:
   ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH ) { return Err::m_nOK; };
   ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
-  Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+  Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   
   ErrVal  blFlag              ( MbDataAccess& rcMbDataAccess );
   Bool    isEndOfSlice        ();
@@ -223,7 +218,7 @@ public:
   ErrVal  intraPredModeChroma ( MbDataAccess& rcMbDataAccess );
   ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess );
 
-  ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp);
+  ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx );
   ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx );
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
 
@@ -242,14 +237,14 @@ protected:
                                 const UChar*  pucScan,
                                 UInt          uiScanIndex );
 
-  ErrVal xGetMvdQPel( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cIdx, ListIdx eLstIdx );
-  ErrVal xGetMvdComponentQPel( Short& rsMvdComp, UInt uiAbsSum, UInt uiCtx );
+  ErrVal xGetMvdQPel( Mv& rcMv );
+  ErrVal xGetMvdComponentQPel( Short& rsMvdComp );
   ErrVal xGetMvd( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cIdx, ListIdx eLstIdx );
 
   ErrVal xInitContextModels( const SliceHeader& rcSliceHeader );
   ErrVal xGetMvdComponent( Short& rsMvdComp, UInt uiAbsSum, UInt uiCtx );
   ErrVal xRefFrame      ( MbDataAccess& rcMbDataAccess, UInt& ruiRefFrame, ListIdx eLstIdx, ParIdx8x8 eParIdx );
-  ErrVal xMotionPredFlag( MbDataAccess& rcMbDataAccess, Bool& bFlag,       ListIdx eLstIdx, ParIdx8x8 eParIdx );
+  ErrVal xMotionPredFlag( Bool& bFlag,       ListIdx eLstIdx );
 
   ErrVal xReadBCbp( MbDataAccess& rcMbDataAccess, Bool& rbCoded, ResidualMode eResidualMode, LumaIdx cIdx );
   ErrVal xReadBCbp( MbDataAccess& rcMbDataAccess, Bool& rbCoded, ResidualMode eResidualMode, ChromaIdx cIdx );

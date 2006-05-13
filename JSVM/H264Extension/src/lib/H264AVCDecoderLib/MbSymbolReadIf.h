@@ -152,24 +152,20 @@ public:
   virtual ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess ) = 0;
 
   virtual ErrVal  startSlice          ( const SliceHeader& rcSliceHeader ) = 0;
-  virtual ErrVal  finishSlice         ( const SliceHeader& rcSliceHeader ) = 0;
+  virtual ErrVal  finishSlice         ( ) = 0;
 
   virtual ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess) = 0;
-  virtual ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp) = 0;
+  virtual ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) = 0;
   virtual ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) = 0;
   virtual ErrVal  RQdecodeCycleSymbol ( UInt& uiCycle ) = 0;
-  virtual ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess,
-                                        MbDataAccess&   rcMbDataAccessBase ) = 0;
+  virtual ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess ) = 0;
   virtual ErrVal  RQdecode8x8Flag     ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase ) = 0;
-  virtual Bool    RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccess,
-                                         MbDataAccess&   rcMbDataAccessBase,
+  virtual Bool    RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccessBase,
                                          LumaIdx         cIdx ) = 0;
-  virtual Bool    RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
-                                         MbDataAccess&   rcMbDataAccessBase,
+  virtual Bool    RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccessBase,
                                          ChromaIdx       cIdx ) = 0;
-  virtual Bool    RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccess,
-                                         MbDataAccess&   rcMbDataAccessBase,
+  virtual Bool    RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccessBase,
                                          ChromaIdx       cIdx ) = 0;
   virtual Bool    RQdecodeCBP_Chroma   ( MbDataAccess&   rcMbDataAccess,
                                          MbDataAccess&   rcMbDataAccessBase ) = 0;
@@ -197,7 +193,6 @@ public:
                                              UInt&           ruiNumCoefRead ) = 0;
   virtual ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
                                              MbDataAccess&   rcMbDataAccessBase,
-                                             ResidualMode    eResidualMode,
                                              LumaIdx         cIdx,
                                              UInt            uiScanIndex ) = 0;
   virtual ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
@@ -215,7 +210,7 @@ public:
   virtual ErrVal  RQdecodeEobOffsets_Luma  () = 0;
   virtual ErrVal  RQdecodeEobOffsets_Chroma() = 0;
   virtual ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH ) = 0;
-  virtual Bool RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx) = 0;
+  virtual Bool RQpeekCbp4x4( MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx) = 0;
   virtual ErrVal  RQupdateVlcTable         () = 0;
   virtual ErrVal  RQvlcFlush               () = 0;
 };

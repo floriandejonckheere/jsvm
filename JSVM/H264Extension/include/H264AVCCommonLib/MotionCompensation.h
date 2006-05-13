@@ -169,14 +169,13 @@ public:
   ErrVal uninit();
 
   ErrVal compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant, Bool bCalcMv = true );
-  ErrVal calculateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant );
+  ErrVal calculateMb( MbDataAccess& rcMbDataAccess, Bool bFaultTolerant );
 
   ErrVal compensateMb     ( MbDataAccess&   rcMbDataAccess,
                             RefFrameList&   rcRefFrameList0,
                             RefFrameList&   rcRefFrameList1,
                             IntYuvMbBuffer* pcRecBuffer,
-                            Bool            bCalcMv,
-                            Bool            bFaultTolerant );
+                            Bool            bCalcMv );
   ErrVal compensateSubMb  ( B8x8Idx         c8x8Idx,
                             MbDataAccess&   rcMbDataAccess,
                             RefFrameList&   rcRefFrameList0,
@@ -207,7 +206,7 @@ public:
                                         UChar*          pucSigMap,
                                         UInt            uiWeightZeroCoeff);
 
-  void xAdjustChromaResidualRefBlock  ( XPel*           piResidualRef,
+  Void xAdjustChromaResidualRefBlock  ( XPel*           piResidualRef,
                                         Int             iStride,
                                         UChar*          pusSigMap,
                                         UInt            uiWeightZeroCoeff);
@@ -292,7 +291,7 @@ public:
 
   ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, Bool& rbValid, Bool bFaultTolerant, Bool bCalcMv = true );
   ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, IntYuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 );
-  ErrVal initMb( UInt uiMbY, UInt uiMbX, MbDataAccess& rcMbDataAccess );
+  ErrVal initMb( UInt uiMbY, UInt uiMbX);
 
 
 protected:

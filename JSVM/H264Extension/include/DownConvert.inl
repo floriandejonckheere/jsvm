@@ -381,8 +381,7 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
                           psBufferU, iStrideU,
                           psBufferV, iStrideV,
                           pcParameters,
-                          pcMbDataCtrl,
-                          bClip);
+                          pcMbDataCtrl); 
     }    
 
   //===== Cropping =====
@@ -403,8 +402,8 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
                                   short* psBufferU, int iStrideU,
                                   short* psBufferV, int iStrideV,
                                   ResizeParameters* pcParameters,
-                                  h264::MbDataCtrl*    pcMbDataCtrl,
-                                  bool bClip )
+                                  h264::MbDataCtrl*    pcMbDataCtrl
+                                 /* ,bool bClip*/ )
 {
   int iWidth=pcParameters->m_iInWidth;
   int iHeight=pcParameters->m_iInHeight;
@@ -436,13 +435,13 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr1+=iStrideY;
   }
   rounding_para = 2*(iWidth-w);
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 0, rounding_para, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 0, rounding_para, tmp_buf3); 
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideY;
   }
   rounding_para = 2*(iHeight-h);
-  xFilterResidualVer(tmp_buf2, buf2, iStrideY, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 0, rounding_para, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideY,  x, y, w, h, width, iHeight, 0, rounding_para, tmp_buf3); 
 
   // chroma
   width>>=1; height>>=1; x>>=1; y>>=1; w>>=1; h>>=1; iWidth>>=1; iHeight>>=1;
@@ -456,13 +455,13 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr1+=iStrideU;
   }
   rounding_para = (2+pcParameters->m_iChromaPhaseX)*iWidth - (2+pcParameters->m_iBaseChromaPhaseX)*w;
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w, iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3); 
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
   rounding_para = (2+pcParameters->m_iChromaPhaseY)*iHeight - (2+pcParameters->m_iBaseChromaPhaseY)*h;
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU,  x, y, w, h, width, iHeight, 1, rounding_para, tmp_buf3); 
 
   // V
   buf1=buf2=psBufferV;
@@ -474,13 +473,13 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr1+=iStrideV;
   }
   rounding_para = (2+pcParameters->m_iChromaPhaseX)*iWidth - (2+pcParameters->m_iBaseChromaPhaseX)*w;
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width, height, x, y, w, h, iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3); 
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
   rounding_para = (2+pcParameters->m_iChromaPhaseY)*iHeight - (2+pcParameters->m_iBaseChromaPhaseY)*h;
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU, height, x, y, w, h, width, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, /*height,*/ x, y, w, h, width, iHeight,  1, rounding_para, tmp_buf3); 
   
   delete [] tmp_buf1;
   delete [] tmp_buf2;
@@ -529,8 +528,8 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
 __inline
 void
 DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out, 
-                                  int width, int height, 
-                                  int x, int y, int w, int h, 
+                                  int width, 
+                                  int x, int w, 
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
                                   bool chroma, int rounding_para,
@@ -592,13 +591,13 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
         //else 
         if( rcMbData.isTransformSize8x8() ) block = 8;
         else block = 4;
-        ptr3[i] = block;
+        ptr3[i] = (unsigned char) block;
       }
 #endif
       p = p / block;
       p2 = ( i1 / block ) == p ? i1 : ( p * block );
       p3 = ( (i1+1) / block ) == p ? (i1+1) : ( p*block + (block-1) );
-      ptr2[i] = (16-k) * ptr1[p2] + k * ptr1[p3];
+      ptr2[i] = (short) ( (16-k) * ptr1[p2] + k * ptr1[p3]);
     }
   }
  
@@ -611,10 +610,9 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
 __inline
 void
 DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out, 
-                                  int width, int height, 
+                                  int width, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
-                                  h264::MbDataCtrl*  pcMbDataCtrl, 
                                   bool chroma, int rounding_para,
                                   unsigned char *buf_blocksize )
 {
@@ -673,7 +671,7 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
       p = p / block;
       p2 = ( j1/block ) == p ? j1 : ( p*block );
       p3 = ( (j1+1) / block ) == p ? (j1+1) : ( p*block + (block-1) );
-      ptr2[j*width] = ( (16-k) * ptr1[wsize_in*p2] + k * ptr1[wsize_in*p3] + 128 ) >> 8;
+      ptr2[j*width] = (Short) (( (16-k) * ptr1[wsize_in*p2] + k * ptr1[wsize_in*p3] + 128 ) >> 8);
     }
   }
   delete [] y16;

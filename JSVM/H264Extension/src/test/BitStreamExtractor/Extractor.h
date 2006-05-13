@@ -131,7 +131,7 @@ public:
                       UInt                    uiFGSLayer,
                       Bool                    bNewPicture );
   ErrVal  analyse   ();
-  Void    output    ( FILE*                   pFile );
+  Void    output    ( ); 
 
   UInt    getNumberOfLayers ()                  const { return m_uiNumLayers; }
   UInt    getNumOfScalableLayers()              const { return m_uiScalableNumLayersMinus1 + 1; }
@@ -260,12 +260,9 @@ protected:
                       UInt                    uiLevel,
 					  UInt					  uiNumImage);
   //intialize max rate for a frame from SEI dead substream information
-  Void setMaxRateDS(UInt                    uiNumBytes,
-						 UInt				  uiMaxRate,
+  Void setMaxRateDS(	UInt				  uiMaxRate,
                       UInt                    uiLayer,
-                      UInt                    uiFGSLayer,
-					  UInt					  uiNumImage,
-					  Bool					  bMaxRate );
+          					  UInt					  uiNumImage);
   //count size of packets for each frame
   Void addPacket(UInt                    uiLayer,
                       UInt                    uiLevel,
@@ -282,11 +279,11 @@ protected:
   //extract NALs given optimal quality
   ErrVal ExtractPointsFromRate();
   //get total rate for a given quality 
-  Double GetRateForQualityLevel(double QualityLevel, UInt uiMaxLayers, UInt uiExtLevel, UInt uiExtLayer);
+  Double GetRateForQualityLevel(Double QualityLevel, UInt uiMaxLayers, UInt uiExtLevel);
   //intialize R/D arrays from SEI information
   Void setQualityLevel();
   //get image rate for a given quality
-  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel,UInt uiExtLayer);
+  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel/*,UInt uiExtLayer*/);
   //Calculate max rate for each frame of a layer (in case of dead substreams use of SEI information
   // from dead substreams)
   Void CalculateMaxRate(UInt uiLayer);
@@ -296,7 +293,7 @@ protected:
   UInt addPIDToTable(UInt uiPID);
   Double GetTruncatedRate(Double dQL, UInt uilevel, UInt uiLayer);
   UInt GetNearestPIDForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel);
-  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel,UInt uiExtLayer,Double dRatio);
+  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel,Double dRatio); 
   Double Extractor::CalculateSizeOfIncludedLayers(UInt uiExtLayer, UInt uiExtLevel);
   Bool IsFrameToCut(UInt uiFrame);
   Void AllocateAndInitializeDatas();
@@ -320,7 +317,7 @@ protected:
   UInt                          m_uiMaxSize;
 
 #if 1 //BUG_FIX liuhui 0603
-  Void    xOutput          ( ScalableStreamDescription& rcScalableStreamDescription, FILE* pFile);
+  Void    xOutput          ( ); 
   UInt    getScalableLayer ( UInt uiLayer, UInt uiTL, UInt uiQL ) const { return m_aaauiScalableLayerId[uiLayer][uiTL][uiQL]; }
   Bool                          m_bAVCCompatible;
   UInt                          m_uiScalableNumLayersMinus1;

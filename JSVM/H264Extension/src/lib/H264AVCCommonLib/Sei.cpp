@@ -121,7 +121,7 @@ SEI::write( HeaderSymbolWriteIf*  pcWriteIf,
   ROT( NULL == rpcSEIMessageList);
 
   //===== NAL unit header =====
-  Bool m_bTraceEnable = true;
+  ETRACE_DO( Bool m_bTraceEnable = true );
   g_nLayer = 0;
   ETRACE_LAYER(0);
   ETRACE_HEADER( "SEI MESSAGE" );
@@ -144,8 +144,8 @@ ErrVal
 SEI::xRead( HeaderSymbolReadIf* pcReadIf,
             SEIMessage*&        rpcSEIMessage) 
 {
-  MessageType eMessageType;
-  UInt        uiSize;
+  MessageType eMessageType = RESERVED_SEI;
+  UInt        uiSize       = 0;
 
   RNOK( xReadPayloadHeader( pcReadIf, eMessageType, uiSize) );
 
@@ -283,7 +283,7 @@ SEI::ReservedSei::create( ReservedSei*& rpcReservedSei,
 ErrVal
 SEI::ReservedSei::write( HeaderSymbolWriteIf* pcWriteIf )
 {
-  AOT(1);
+  AF();
   return Err::m_nOK;
 }
 
@@ -291,7 +291,7 @@ SEI::ReservedSei::write( HeaderSymbolWriteIf* pcWriteIf )
 ErrVal
 SEI::ReservedSei::read( HeaderSymbolReadIf* pcReadIf )
 {
-  AOT(1);
+  AF();
   return Err::m_nOK;
 }
 

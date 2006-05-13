@@ -482,7 +482,6 @@ DecodedPicBuffer::xMMCO( SliceHeader* pcSliceHeader )
 
   while( MMCO_END != ( eMmcoOp = rcMmcoBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
   {
-    ErrVal nRet = Err::m_nOK;
 
     switch( eMmcoOp )
     {
@@ -496,7 +495,7 @@ DecodedPicBuffer::xMMCO( SliceHeader* pcSliceHeader )
     case MMCO_SET_LONG_TERM:
     default:
       fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
-      ROT(1);
+      RERR();
     }
   }
 
@@ -512,7 +511,6 @@ DecodedPicBuffer::xMarkShortTermUnused( DPBUnit* pcCurrentDPBUnit, UInt uiDiffOf
   UInt uiCurrPicNum = pcCurrentDPBUnit->getFrameNum();
   Int  iPicNumN     = (Int)uiCurrPicNum - (Int)uiDiffOfPicNums - 1;
 
-  DPBUnit*              pcDPBUnit = 0;
   DPBUnitList::iterator iter      = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end       = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
@@ -784,7 +782,7 @@ DecodedPicBuffer::xCheckMissingPics( SliceHeader*   pcSliceHeader,
   if( ! pcSliceHeader->getSPS().getRequiredFrameNumUpdateBehaviourFlag() )
   {
     printf("\nLOST PICTURES = %d\n", uiMissingFrames );
-    ROT(1);
+    RERR();
   }
   else
   {
@@ -972,7 +970,6 @@ DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
   if( rcRplrBuffer.getRefPicListReorderingFlag() )
   {
     Bool  bBaseRep          = pcSliceHeader->getKeyPictureFlag();
-    UInt  uiCurrentFrameNum = pcSliceHeader->getFrameNum();
     UInt  uiPicNumPred      = pcSliceHeader->getFrameNum();
     UInt  uiIndex           = 0;
     UInt  uiCommand         = 0;
@@ -985,7 +982,7 @@ DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
       if( uiCommand == RPLR_LONG )
       {
         //===== long term index =====
-        ROT(1); // long-term indices are currently not supported by the software
+        RERR(); // long-term indices are currently not supported by the software
       }
       else
       {
@@ -1032,7 +1029,7 @@ DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
         if( !pcFrame )
         {
           fprintf( stderr, "\nERROR: MISSING PICTURE !!!!\n\n");
-          ROT(1);
+          RERR();
         }
         //----- find picture in reference list -----
         UInt uiRemoveIndex = MSYS_UINT_MAX;
@@ -1082,12 +1079,7 @@ DecodedPicBuffer::xDumpRefList( ListIdx       eListIdx,
 
 
 ErrVal
-DecodedPicBuffer::initPicCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
-                                   PicBuffer*&    rpcPicBuffer,
-                                   Bool           bResidual,  //--TM this variable should be removed
-                                   SliceHeader*   pcSliceHeader,
-                                   PicBufferList& rcOutputList,
-                                   PicBufferList& rcUnusedList )
+DecodedPicBuffer::initPicCurrDPBUnit( PicBuffer*&    rpcPicBuffer )
 {
     ROF( m_bInitDone );
 
@@ -1107,7 +1099,6 @@ DecodedPicBuffer::initPicCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
 
 ErrVal
 DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
-                                   PicBuffer*&    rpcPicBuffer,
                                    SliceHeader*   pcSliceHeader,
                                    PicBufferList& rcOutputList,
                                    PicBufferList& rcUnusedList )
@@ -1722,7 +1713,6 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
 
 
   //========== CREATE UPDATE WEIGHTS ARRAY and WRITE BUFFER ==========
-  UInt  uiNum4x4Blocks        = m_uiFrameWidthInMb * m_uiFrameHeightInMb * 4 * 4;
   ROT ( m_cDownConvert    .init   ( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4 ) );
 
   return Err::m_nOK;
@@ -1913,7 +1903,7 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
 
     RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX                  ) );
     RNOK( m_pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
-    RNOK( m_pcMotionCompensation  ->initMb(                 uiMbY, uiMbX, *pcMbDataAccess ) );
+    RNOK( m_pcMotionCompensation  ->initMb(                 uiMbY, uiMbX ) );
 
     if( ! pcMbDataAccess->getMbData().isIntra() )
     {
@@ -2090,7 +2080,6 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
         rpcSliceHeader->getQualityLevel           (),
         rpcSliceHeader->getAdaptivePredictionFlag (),
         rpcSliceHeader->getPicQp                  () );
-      UInt uiRecLayer = rpcSliceHeader->getQualityLevel();
 
       if( m_pcRQFGSDecoder->getSliceHeader()->getTemporalLevel()  == 0      &&
         m_pcRQFGSDecoder->getSliceHeader()->isInterP())
@@ -2376,10 +2365,9 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 
   //===== init =====
   if(isNewPictureStart(rpcSliceHeader))
-    RNOK( m_pcDecodedPictureBuffer->initPicCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, 0, rpcSliceHeader,
-                                                     rcOutputList, rcUnusedList ) );
+    RNOK( m_pcDecodedPictureBuffer->initPicCurrDPBUnit( rpcPicBuffer) );
 
-  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, rpcPicBuffer, rpcSliceHeader,
+  RNOK( m_pcDecodedPictureBuffer->initCurrDPBUnit( m_pcCurrDPBUnit, rpcSliceHeader,
                                                    rcOutputList, rcUnusedList ) );
  
 //TMM_EC {{
@@ -2428,7 +2416,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
   UInt          uiMbRead        = 0;
 //	TMM_EC {{
-	MbDataCtrl		*pcMbDataCtrlRef;
+  MbDataCtrl*   pcMbDataCtrlRef = NULL;
 //TMM_EC }}
 
   Bool          bKeyPicture     = rpcSliceHeader->getKeyPictureFlag();
@@ -2511,6 +2499,8 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 
 			return Err::m_nOK;
 		}
+		break;
+	case	EC_NONE:
 		break;
 	}
 //TMM_EC }}

@@ -572,7 +572,7 @@ ErrVal UvlcReader::startSlice( const SliceHeader& rcSliceHeader )
 
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 {
-  UInt uiRefFrame;
+  UInt uiRefFrame = 0;
   RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame );
   return Err::m_nOK;
@@ -580,7 +580,7 @@ ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
 {
-  UInt uiRefFrame;
+  UInt uiRefFrame = 0;
   RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame, eParIdx );
   return Err::m_nOK;
@@ -588,7 +588,7 @@ ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParI
 
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
 {
-  UInt uiRefFrame;
+  UInt uiRefFrame = 0;
   RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame, eParIdx );
   return Err::m_nOK;
@@ -596,7 +596,7 @@ ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParI
 
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8 eParIdx  )
 {
-  UInt uiRefFrame;
+  UInt uiRefFrame = 0;
   RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame, eParIdx );
   return Err::m_nOK;
@@ -637,7 +637,7 @@ ErrVal UvlcReader::blockModes( MbDataAccess& rcMbDataAccess )
   {
     DTRACE_T( "BlockMode" );
 
-    UInt uiBlockMode;
+    UInt uiBlockMode = 0;
     RNOK( xGetUvlcCode( uiBlockMode ) );
 
     rcMbDataAccess.setConvertBlkMode( c8x8Idx.b8x8Index(), uiBlockMode );
@@ -711,7 +711,7 @@ Bool UvlcReader::isBLQRef( MbDataAccess& rcMbDataAccess )
 
 ErrVal UvlcReader::mbMode( MbDataAccess& rcMbDataAccess )
 {
-  UInt uiMbMode;
+  UInt uiMbMode = 0;
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
   rcMbDataAccess.getMbData().setBCBPAll( 0 );
 
@@ -808,28 +808,28 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8
 ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      )
 {
   Mv cMv;
-  RNOK( xGetMvdQPel( rcMbDataAccess, cMv ) );
+  RNOK( xGetMvdQPel( cMv ) ); 
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv );
   return Err::m_nOK;
 }
 ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
 {
   Mv cMv;
-  RNOK( xGetMvdQPel( rcMbDataAccess, cMv ) );
+  RNOK( xGetMvdQPel( cMv ) ); 
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
   return Err::m_nOK;
 }
 ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
 {
   Mv cMv;
-  RNOK( xGetMvdQPel( rcMbDataAccess, cMv ) );
+  RNOK( xGetMvdQPel( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
   return Err::m_nOK;
 }
 ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  )
 {
   Mv cMv;
-  RNOK( xGetMvdQPel( rcMbDataAccess, cMv ) );
+  RNOK( xGetMvdQPel( cMv ) ); 
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
   return Err::m_nOK;
 }
@@ -838,7 +838,7 @@ ErrVal UvlcReader::intraPredModeChroma( MbDataAccess& rcMbDataAccess )
 {
   DTRACE_T( "IntraPredModeChroma" );
 
-  UInt uiCode;
+  UInt uiCode = 0;
   RNOK( xGetUvlcCode( uiCode ) );
   rcMbDataAccess.getMbData().setChromaPredMode( uiCode );
 
@@ -911,7 +911,7 @@ ErrVal UvlcReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx c
 
 ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess )
 {
-  UInt uiTemp;
+  UInt uiTemp = 0;
   DTRACE_T( "Cbp: " );
   RNOK( xGetUvlcCode( uiTemp ) );
 
@@ -935,7 +935,7 @@ ErrVal UvlcReader::deltaQp( MbDataAccess& rcMbDataAccess )
 {
   DTRACE_T ("DQp");
 
-  Int uiCode;
+  Int uiCode = 0;
   RNOK( xGetSvlcCode( uiCode ) );
   rcMbDataAccess.addDeltaQp( uiCode );
 
@@ -974,7 +974,6 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
   const UChar*  pucScan;
   TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
 
-  Int   iRun      = 0;
   UInt  uiPos;
   UInt  uiMaxPos  = 16;
   Int   aiLevelRun[32];
@@ -1051,7 +1050,6 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
 {
   TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan;
-  Int           iRun = 0;
   UInt          uiPos, uiMaxPos;
   Int aiLevelRun[32];
 
@@ -1158,7 +1156,7 @@ ErrVal UvlcReader::xGetMvd( Mv& cMv )
 {
   DTRACE_T( "Mvd: x" );
 
-  UInt  uiTemp;
+  UInt  uiTemp = 0;
 
   RNOK( xGetUvlcCode( uiTemp ) );
 
@@ -1183,10 +1181,10 @@ ErrVal UvlcReader::xGetMvd( Mv& cMv )
   return Err::m_nOK;
 }
 
-ErrVal UvlcReader::xGetMvdQPel( MbDataAccess& rcMbDataAccess, Mv& cMv )
+ErrVal UvlcReader::xGetMvdQPel( Mv& cMv )
 {
-  Short sHor;
-  Short sVer;
+  Short sHor = 0;
+  Short sVer = 0;
 
   RNOK( xGetMvdComponentQPel( sHor ) );
   RNOK( xGetMvdComponentQPel( sVer ) );
@@ -1281,7 +1279,6 @@ ErrVal UvlcReader::xCodeFromBitstream2D( const UChar* aucCod, const UChar* aucLe
 {
   const UChar *paucLenTab;
   const UChar *paucCodTab;
-  Bool   bFound = false;
   UChar  uiLenRead = 0;
   UChar  uiCode    = 0;
   UChar  uiMaxLen  = 0;
@@ -1332,7 +1329,6 @@ ErrVal UvlcReader::xCodeFromBitstream2Di( const UInt* auiCod, const UInt* auiLen
 {
   const UInt *pauiLenTab;
   const UInt *pauiCodTab;
-  Bool   bFound = false;
   UChar  uiLenRead = 0;
   UInt   uiCode    = 0;
   UChar  uiMaxLen  = 0;
@@ -1465,7 +1461,7 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
     do
     {
       uiVlcTable = (( uiRunCount > RUNBEFORE_NUM) ? RUNBEFORE_NUM : uiRunCount) - 1;
-      UInt uiRun;
+      UInt uiRun = 0;
       
       xGetRun( uiVlcTable, uiRun );
       aiLevelRun[uiCoeffCnt+0x10] = uiRun;
@@ -1547,9 +1543,9 @@ ErrVal UvlcReader::xGetLevelVLC0( Int& iLevel )
 {
   UInt uiLength = 0;
   UInt uiCode   = 0;
-  UInt uiTemp;
-  UInt uiSign;
-  UInt uiLevel;
+  UInt uiTemp   = 0;
+  UInt uiSign   = 0;
+  UInt uiLevel  = 0;
 
   do
   {
@@ -1674,7 +1670,7 @@ Bool UvlcReader::isEndOfSlice()
   return (uiEOS == 1);
 }
 
-ErrVal UvlcReader::finishSlice( const SliceHeader& rcSliceHeader )
+ErrVal UvlcReader::finishSlice( )
 {
   if( m_bRunLengthCoding && m_uiRun )
   {
@@ -1715,20 +1711,15 @@ ErrVal UvlcReader::finishSlice( const SliceHeader& rcSliceHeader )
 }
 
 ErrVal UvlcReader::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
-                                     B8x8Idx        c8x8Idx,
-                                     ResidualMode   eResidualMode,
-                                     UInt& ruiMbExtCbp )
+                                     B8x8Idx        c8x8Idx )
 {
   const UChar*  pucScan = g_aucFrameScan64;
   TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get8x8( c8x8Idx );
 
   UInt  uiBlk;
-  Int   iOverallRun = 0;
   UInt  uiPos;
-  UInt  uiMaxPos    = 64;
 
   Int   aaiLevelRun     [4][32];
-  Int   aiRun           [4]     = { 0, 0, 0, 0 };
   UInt  auiTrailingOnes [4]     = { 0, 0, 0, 0 };
   UInt  auiTotalRun     [4]     = { 0, 0, 0, 0 };
   UInt  auiCoeffCnt     [4]     = { 0, 0, 0, 0 };
@@ -1781,10 +1772,9 @@ UvlcReader::RQdecodeCycleSymbol( UInt& uiCycle )
 }
 
 ErrVal
-UvlcReader::RQdecodeDeltaQp( MbDataAccess& rcMbDataAccess,
-                              MbDataAccess& rcMbDataAccessBase )
+UvlcReader::RQdecodeDeltaQp( MbDataAccess& rcMbDataAccess)
 {
-  Int   iDQp;
+  Int   iDQp = 0;
 
   DTRACE_T ("DQp");
 
@@ -1837,8 +1827,7 @@ UvlcReader::RQdecodeCBP_8x8( MbDataAccess& rcMbDataAccess,
 }
 
 Bool
-UvlcReader::RQpeekCbp4x4( MbDataAccess&  rcMbDataAccess,
-                               MbDataAccess&  rcMbDataAccessBase,
+UvlcReader::RQpeekCbp4x4(      MbDataAccess&  rcMbDataAccessBase,
                                LumaIdx        cIdx )
 {
   UInt    uiSymbol  = 0;
@@ -1849,8 +1838,7 @@ UvlcReader::RQpeekCbp4x4( MbDataAccess&  rcMbDataAccess,
 }
 
 Bool
-UvlcReader::RQdecodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
-                               MbDataAccess&  rcMbDataAccessBase,
+UvlcReader::RQdecodeBCBP_4x4(  MbDataAccess&  rcMbDataAccessBase,
                                LumaIdx        cIdx )
 {
   if ( (cIdx.x() %2) == 0 && (cIdx.y() %2) == 0)
@@ -1898,8 +1886,7 @@ UvlcReader::RQdecodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
 }
 
 Bool
-UvlcReader::RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
+UvlcReader::RQdecodeBCBP_ChromaDC(  MbDataAccess&   rcMbDataAccessBase,
                                     ChromaIdx       cIdx )
 {
   UInt    uiSymbol  = 0;
@@ -1915,8 +1902,7 @@ UvlcReader::RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
 }
 
 Bool
-UvlcReader::RQdecodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
-                                    MbDataAccess&  rcMbDataAccessBase,
+UvlcReader::RQdecodeBCBP_ChromaAC(  MbDataAccess&  rcMbDataAccessBase,
                                     ChromaIdx      cIdx )
 {
   UInt    uiSymbol  = 0;
@@ -1975,8 +1961,6 @@ UvlcReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
   const UChar*  pucScan     = g_aucFrameScan64;
-  const UInt    uiCtxOffset = 2;
-  UInt          uiStop      = 64;
 
   ROT( piCoeffBase[pucScan[uiScanIndex]] );
 
@@ -2005,10 +1989,6 @@ UvlcReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
 
   if( uiSig )
   {
-    UInt  uiCoeff = uiSig;
-    UInt  uiSign  = 0;
-    UInt  uiCtx   = 1;
-
     Int iCoeff;
     RNOK( xGetLevelVLC0( iCoeff ) );
 
@@ -2071,7 +2051,6 @@ UvlcReader::RQdecodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
 ErrVal
 UvlcReader::RQdecodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
-                                     ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex )
 {
@@ -2220,7 +2199,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
   }
   if( bFinished )
   {
-    UInt uiSymbol;
+    uiSymbol = 0;
     RNOK( xGetSigRunCode( uiSymbol, m_auiBestCodeTab[uiCycle] ) );
     if( uiSymbol > 0 )
     {
@@ -2262,9 +2241,7 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
   ::memset(auiRemMag, 0x0, 16*sizeof(UInt));
   UInt uiFlip      = 0;
   UInt uiRemaining = uiCountMag2;
-  UInt uiBegin     = 0;
   UInt uiEnd       = uiCountMag1;
-  UInt uiRemVal    = uiFlip;
   UInt uiCount     = 0;
   for (ui=uiStart; ui<uiStop; ui++)
   {

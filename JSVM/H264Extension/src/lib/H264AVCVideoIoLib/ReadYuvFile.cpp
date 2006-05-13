@@ -227,7 +227,7 @@ ErrVal ReadYuvFile::xReadPlane( UChar *pucDest, UInt uiBufHeight, UInt uiBufWidt
         }
         break;
         default:
-          AOT(1)
+          AF()
         break;
       }
     }

@@ -138,7 +138,7 @@ SliceHeader::xInitScalingMatrix()
       case 6 : puc = g_aucScalingMatrixDefault8x8Intra; break;
       case 7 : puc = g_aucScalingMatrixDefault8x8Inter; break;
       default:
-        AOT(1)
+        AF()
       }
     }
     m_acScalingMatrix.set( n, puc );

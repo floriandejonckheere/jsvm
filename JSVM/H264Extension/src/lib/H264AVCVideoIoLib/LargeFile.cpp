@@ -151,7 +151,7 @@ ErrVal LargeFile::open( const std::string& rcFilename, enum OpenMode eOpenMode, 
 	}
 	else
 	{
-		AOT( 1 );
+		AF();
 		return Err::m_nERR;
 	}
 

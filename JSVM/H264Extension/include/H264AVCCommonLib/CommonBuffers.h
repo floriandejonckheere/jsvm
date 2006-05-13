@@ -106,9 +106,13 @@ public:
 
   ErrVal uninit()
   {
+    if(NULL != m_pT )
+    {
     delete [] m_pT;
     m_pT = NULL;
+    }
     m_uiBufferSize = 0;
+    
     return Err::m_nOK;
   }
 

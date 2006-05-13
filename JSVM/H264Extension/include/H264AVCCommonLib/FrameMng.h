@@ -246,7 +246,7 @@ public:
   ErrVal  destroy                 ();
   ErrVal  init                    ( YuvBufferCtrl* pcYuvFullPelBufferCtrl, YuvBufferCtrl* pcYuvHalfPelBufferCtrl = NULL, QuarterPelFilter* pcQuarterPelFilter = NULL );
   ErrVal  uninit                  ();
-  ErrVal  setPicBufferLists       ( PicBufferList& rcPicBufferOutputList, PicBufferList& rcPicBufferUnusedList, Bool bForceIfLocked = false );
+  ErrVal  setPicBufferLists       ( PicBufferList& rcPicBufferOutputList, PicBufferList& rcPicBufferUnusedList );
   ErrVal  outputAll               ();
   ErrVal  getRecYuvBuffer         ( YuvPicBuffer*& rpcRecYuvBuffer );
 

@@ -424,7 +424,7 @@ ErrVal ControlMngH264AVCEncoder::initMbForFiltering( MbDataAccess*& rpcMbDataAcc
   return Err::m_nOK;
 }
 
-ErrVal ControlMngH264AVCEncoder::initMbForFiltering( MbDataAccess& rcMbDataAccess, UInt uiMbIndex )
+ErrVal ControlMngH264AVCEncoder::initMbForFiltering( UInt uiMbIndex )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
 

@@ -191,24 +191,20 @@ public:
   ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess );
 
   ErrVal  startSlice          ( const SliceHeader& rcSliceHeader );
-  ErrVal  finishSlice         ( const SliceHeader& rcSliceHeader );
+  ErrVal  finishSlice         ( );
   
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
-  ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp);
+  ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx );
   ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ); // HS: bug fix by Nokia
   ErrVal  RQdecodeCycleSymbol ( UInt& uiCycle );
-  ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess,
-                                MbDataAccess&   rcMbDataAccessBase );
+  ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess );
   ErrVal  RQdecode8x8Flag     ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess&   rcMbDataAccessBase );
-  Bool    RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
+  Bool    RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccessBase,
                                  LumaIdx         cIdx );
-  Bool    RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
+  Bool    RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccessBase,
                                  ChromaIdx       cIdx );
-  Bool    RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
+  Bool    RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccessBase,
                                  ChromaIdx       cIdx );
   Bool    RQdecodeCBP_Chroma   ( MbDataAccess&   rcMbDataAccess,
                                  MbDataAccess&   rcMbDataAccessBase );
@@ -236,7 +232,6 @@ public:
                                      UInt&           ruiNumCoefRead );
   ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
-                                     ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex );
   ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
@@ -256,7 +251,7 @@ public:
   ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH );
   ErrVal  RQupdateVlcTable         ();
   ErrVal  RQvlcFlush               ();
-  Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+  Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   Bool m_bTruncated;
 
 private:
@@ -267,7 +262,7 @@ private:
   ErrVal xGetRefFrame ( Bool bWriteBit, UInt& uiRefFrame );
   ErrVal xGetMotionPredFlag( Bool& rbFlag );
   ErrVal xGetMvd      ( Mv& cMv );
-  ErrVal xGetMvdQPel  ( MbDataAccess& rcMbDataAccess, Mv& cMv );
+  ErrVal xGetMvdQPel  ( Mv& cMv ); 
   ErrVal xGetMvdComponentQPel( Short& sMvdComp );
   ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
   ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );

@@ -288,7 +288,6 @@ ErrVal CodingParameter::check()
       ROTREPORT( pcLayer->getFrameWidth ()  < pcBaseLayer->getFrameWidth (), "Frame width  less than base layer frame width" );
       ROTREPORT( pcLayer->getFrameHeight()  < pcBaseLayer->getFrameHeight(), "Frame height less than base layer frame height" );
       UInt uiLogFactorWidth  = getLogFactor( pcBaseLayer->getFrameWidth (), pcLayer->getFrameWidth () );
-      UInt uiLogFactorHeight = getLogFactor( pcBaseLayer->getFrameHeight(), pcLayer->getFrameHeight() );
      
       pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
 			

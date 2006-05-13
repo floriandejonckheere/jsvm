@@ -264,14 +264,14 @@ ErrVal ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess*& rpcMbDataAcce
 
   RNOK( m_pcMbDataCtrl                          ->initMb( rpcMbDataAccess, uiMbY, uiMbX                   ) );
   RNOK( m_apcYuvFullPelBufferCtrl[m_uiCurrLayer]->initMb(                  uiMbY, uiMbX ) );
-  RNOK( m_pcMotionCompensation                  ->initMb(                  uiMbY, uiMbX, *rpcMbDataAccess ) ) ;
+  RNOK( m_pcMotionCompensation                  ->initMb(                  uiMbY, uiMbX ) ) ;
 
   return Err::m_nOK;
 }
 
 
 
-ErrVal ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess& rcMbDataAccess, UInt uiMbIndex )
+ErrVal ControlMngH264AVCDecoder::initMbForDecoding( UInt uiMbIndex )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
   
@@ -281,7 +281,7 @@ ErrVal ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess& rcMbDataAccess
   uiMbX = uiMbIndex - uiMbY * m_auiMbXinFrame[m_uiCurrLayer];
 
   RNOK( m_apcYuvFullPelBufferCtrl[m_uiCurrLayer]->initMb( uiMbY, uiMbX ) );
-  RNOK( m_pcMotionCompensation                  ->initMb( uiMbY, uiMbX, rcMbDataAccess ) ) ;
+  RNOK( m_pcMotionCompensation                  ->initMb( uiMbY, uiMbX ) ) ;
 
   return Err::m_nOK;
 }
@@ -304,7 +304,7 @@ ErrVal ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess*& rpcMbDataAcc
 
 
 
-ErrVal ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess& rcMbDataAccess, UInt uiMbIndex )
+ErrVal ControlMngH264AVCDecoder::initMbForFiltering( UInt uiMbIndex )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
   

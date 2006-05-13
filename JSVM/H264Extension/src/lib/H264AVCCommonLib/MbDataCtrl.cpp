@@ -462,7 +462,6 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
       AOF_DBG( rcRefPic0L1.isAvailable() );
       const FrameUnit* pcFU = rcRefPic0L1.getPic().getFrameUnit();
 
-      Int iCurrPoc      = rcSH.getPoc();
       m_pcMbDataCtrl0L1 = pcFU->getMbDataCtrl();
     }
 
@@ -569,8 +568,6 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
     }
   }
 
-  Bool bColocatedField = ( m_pcMbDataCtrl0L1 == NULL) ? true : m_pcMbDataCtrl0L1->isPicCodedField();
-
   Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset);
 
   m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess(
@@ -639,8 +636,6 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
       }
     }
   }
-
-  Bool bColocatedField = ( m_pcMbDataCtrl0L1 == NULL) ? true : m_pcMbDataCtrl0L1->isPicCodedField();
 
   Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset);
 
@@ -767,6 +762,7 @@ ControlData::ControlData()
 , m_pabBQ8x8Trafo       ( 0 )
 , m_paeBQMbMode         ( 0 )
 , m_pusBQFwdBwd         ( 0 )
+, m_iSpatialScalabilityType ( 0 ) 
 , m_bSpatialScalability ( false)//SSUN@SHARP
 {
   m_paacBQMotionData[0] = m_paacBQMotionData[1] = 0;
@@ -1017,8 +1013,10 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
 
   if( bTopAvailable )
   {
+    {
     Int iIndex = uiCurrIdx - m_uiMbStride;
     ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x01 :0;
+    }
 
     if( bLeftAvailable )
     {
@@ -1035,8 +1033,10 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
 
   if( bBottomAvailable )
   {
+    {
     Int iIndex = uiCurrIdx + m_uiMbStride;
     ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x10 :0;
+    }
 
     if( bLeftAvailable )
     {

@@ -149,8 +149,7 @@ public:
                                                 String&         rcRplrStringL0,
                                                 String&         rcRplrStringL1 );
   static  ErrVal  extractRplr                 ( const String&   rcString,
-                                                RplrBuffer&     rcRplrBuf,
-                                                ListIdx         eLstIdx );
+                                                RplrBuffer&     rcRplrBuf); 
   static  ErrVal  extractMmco                 ( const String&   rcString,
                                                 MmcoBuffer&     rcMmcoBuf );
   static  ErrVal  extractSingleRplrCommand   ( const String&   rcString,

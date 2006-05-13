@@ -764,7 +764,7 @@ RecPicBuffer::xMMCO( SliceHeader* pcSliceHeader )
     case MMCO_LONG_TERM_UNUSED:
     case MMCO_SET_LONG_TERM:
     default:
-      ROT(1);
+      RERR();
     }
   }
   return Err::m_nOK;
@@ -780,7 +780,6 @@ RecPicBuffer::xMarkShortTermUnused( RecPicBufUnit*  pcCurrentRecPicBufUnit,
   UInt  uiCurrPicNum  = pcCurrentRecPicBufUnit->getFrameNum();
   Int   iPicNumN      = (Int)uiCurrPicNum - (Int)uiDiffOfPicNums - 1;
 
-  RecPicBufUnit*              pcRecPicBufUnit = 0;
   RecPicBufUnitList::iterator iter            = m_cUsedRecPicBufUnitList.begin();
   RecPicBufUnitList::iterator end             = m_cUsedRecPicBufUnitList.end  ();
   for( ; iter != end; iter++ )
@@ -791,8 +790,7 @@ RecPicBuffer::xMarkShortTermUnused( RecPicBufUnit*  pcCurrentRecPicBufUnit,
       return Err::m_nOK;
     }
   }
-  ROT(1);
-  return Err::m_nOK;
+  RERR();
 }
 
 
@@ -1006,7 +1004,6 @@ RecPicBuffer::xRefListRemapping( RefFrameList&  rcList,
   //===== re-ordering ======
   if( rcRplrBuffer.getRefPicListReorderingFlag() )
   {
-    UInt  uiCurrFrameNum  = pcSliceHeader->getFrameNum();
     UInt  uiPicNumPred    = pcSliceHeader->getFrameNum();
     UInt  uiIndex         = 0;
     UInt  uiCommand       = 0;
@@ -1019,7 +1016,7 @@ RecPicBuffer::xRefListRemapping( RefFrameList&  rcList,
       if( uiCommand == RPLR_LONG )
       {
         //===== long-term index =====
-        ROT(1); // long-term not supported
+        RERR(); // long-term not supported
       }
       else
       {
@@ -1066,7 +1063,7 @@ RecPicBuffer::xRefListRemapping( RefFrameList&  rcList,
         if( ! pcFrame )
         {
           fprintf( stderr, "\nERROR: MISSING PICTURE for RPLR\n\n" );
-          ROT(1);
+          RERR(); 
         }
         //----- find picture in reference list -----
         UInt uiRemoveIndex = MSYS_UINT_MAX;

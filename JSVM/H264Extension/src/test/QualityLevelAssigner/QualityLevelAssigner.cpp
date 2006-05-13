@@ -904,7 +904,6 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 #endif
   Bool              bEOS              = false;
   Bool              bToDecode         = false;
-  SEI::SEIMessage*  pcScalableSEI     = 0;
   UInt              uiFrame           = 0;
   UInt              uiNalUnitType     = 0;
   UInt              uiMbX             = 0;
@@ -1119,16 +1118,16 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
       //----- determine distortion (and output for debugging) -----
       while( ! cPicBufferOutputList.empty() )
       {
-        PicBuffer* pcPicBuffer = cPicBufferOutputList.front();
+        PicBuffer* pcPicBufferTmp = cPicBufferOutputList.front();
         cPicBufferOutputList.pop_front();
-        if( pcPicBuffer )
+        if( pcPicBufferTmp )
         {
           //----- output (for debugging) -----
           if( pcWriteYuv )
           {
-            RNOK( pcWriteYuv->writeFrame( *pcPicBuffer + uiLumOffset,
-                                          *pcPicBuffer + uiCbOffset,
-                                          *pcPicBuffer + uiCrOffset,
+            RNOK( pcWriteYuv->writeFrame( *pcPicBufferTmp + uiLumOffset,
+                                          *pcPicBufferTmp + uiCbOffset,
+                                          *pcPicBufferTmp + uiCrOffset,
                                            uiMbY << 4,
                                            uiMbX << 4,
                                           (uiMbX << 4) + YUV_X_MARGIN*2 ) );
@@ -1144,7 +1143,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
           //----- get distortion -----
           RNOK( xGetDistortion          (  auiDistortion[uiFrame],
-                                          *pcPicBuffer     + uiLumOffset,
+                                          *pcPicBufferTmp  + uiLumOffset,
                                           *pcPicBufferOrig + uiLumOffset,
                                            uiMbY << 4,
                                            uiMbX << 4,

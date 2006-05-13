@@ -638,8 +638,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			}
       case SEI::SUB_PIC_SEI:
 			{
-				SEI::SubPicSei* pcSEI		= (SEI::SubPicSei*)pcSEIMessage;
-				UInt uiScalableLayerId	= pcSEI->getLayerId();
         bApplyToNext  = true;
           break;
         }
@@ -707,10 +705,10 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       {
         for ( UInt uiPriId = 0; uiPriId < pcSPS->getNumSimplePriIdVals(); uiPriId++)
         {
-            UInt uiLayer, uiTempLevel, uiQualLevel;
-            pcSPS->getSimplePriorityMap( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
+            UInt uiDependencyId, uiTempLevel, uiQualLevel;
+            pcSPS->getSimplePriorityMap( uiPriId, uiTempLevel, uiDependencyId, uiQualLevel );
             m_uiTemporalLevelList[uiPriId] = uiTempLevel;
-            m_uiDependencyIdList [uiPriId] = uiLayer;
+            m_uiDependencyIdList [uiPriId] = uiDependencyId;
             m_uiQualityLevelList [uiPriId] = uiQualLevel;
         }
       }

@@ -260,7 +260,7 @@ public:
   Bool isLegal()                                              const { return m_iSIdx <16; }
   Bool isLegal( B8x8Idx& rcB8x8Idx )                          const { return m_iSIdx <(4+rcB8x8Idx.xxxgetSIdx()); }
 protected:
-  void convert()                                                    { m_iIdx = g_aucConvertBlockOrder[m_iSIdx]; }
+  Void convert()                                                    { m_iIdx = g_aucConvertBlockOrder[m_iSIdx]; }
 
 protected:
   Int m_iSIdx;

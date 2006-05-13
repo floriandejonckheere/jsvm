@@ -103,12 +103,17 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define ERR_VAL   ErrVal
 
 
+#define RERR( )               \
+{                             \
+    ASSERT( 0 );              \
+    return ERR_CLASS::m_nERR; \
+}
+
 #define ROF( exp )            \
 {                             \
   if( !( exp ) )              \
   {                           \
-    ASSERT( 0 );              \
-    return ERR_CLASS::m_nERR; \
+    RERR();                   \
   }                           \
 }
 
@@ -116,8 +121,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 {                             \
   if( ( exp ) )               \
   {                           \
-    ASSERT( 0 );              \
-    return ERR_CLASS::m_nERR; \
+   RERR();                    \
   }                           \
 }
 
@@ -137,21 +141,28 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   }                           \
 }
 
+
+#define RVAL( retVal )        \
+{                             \
+    ASSERT( 0 );              \
+    return retVal;            \
+}
+
+
 #define ROFR( exp, retVal )   \
 {                             \
   if( !( exp ) )              \
   {                           \
-    ASSERT( 0 );              \
-    return retVal;            \
+    RVAL( retVal );           \
   }                           \
 }
+
 
 #define ROTR( exp, retVal )   \
 {                             \
   if( ( exp ) )               \
   {                           \
-    ASSERT( 0 );              \
-    return retVal;            \
+    RVAL( retVal );             \
   }                           \
 }
 
@@ -258,6 +269,13 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   }                                 \
 }
 
+
+#define AF( )                 \
+{                             \
+    ASSERT( 0 );              \
+}
+
+
 #define ANOK( exp )                 \
 {                                   \
   if( ERR_CLASS::m_nOK != ( exp ) ) \
@@ -281,6 +299,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
     ASSERT( 0 );              \
   }                           \
 }
+
+
 
 
 

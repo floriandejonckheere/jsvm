@@ -170,17 +170,14 @@ public:
 
   ErrVal initSlice            ( SliceHeader& rcSH, ProcessingState eProcessingState );
   ErrVal finishSlice          ( const SliceHeader& rcSH, Bool& rbPicDone, Bool& rbFrameDone );
-  ErrVal initMbForEncoding    ( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex, const Bool bFieldFlag = false, const Int iForceQp = -1 ) { return Err::m_nERR; }
-
-  
   ErrVal initSliceForCoding   ( const SliceHeader& rcSH ) { return Err::m_nERR; }
   ErrVal initSliceForReading  ( const SliceHeader& rcSH );
   ErrVal initSliceForDecoding ( const SliceHeader& rcSH );
   ErrVal initSliceForFiltering( const SliceHeader& rcSH );
 
   ErrVal initMbForCoding      ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex ) { return Err::m_nERR; }
-  ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
-  ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
+  ErrVal initMbForDecoding    ( UInt uiMbIndex );
+  ErrVal initMbForFiltering   ( UInt uiMbIndex );
 
   UvlcReader*  getUvlcReader()  { return m_pcUvlcReader;  };
   CabacReader* getCabacReader() { return m_pcCabacReader; };

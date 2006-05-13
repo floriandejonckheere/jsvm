@@ -95,7 +95,7 @@ DownConvert::xInitFilterTmm (int iMaxDim)
  xDestroyFilterTmm ( );
  
  m_paiTmp1dBufferOut = new int [ iMaxDim  ];
- xInitFilterTmm1(iMaxDim);
+ xInitFilterTmm1(); 
  xInitFilterTmm2(iMaxDim);
 }
 
@@ -230,7 +230,7 @@ DownConvert::downsample3              ( unsigned char* pucBufferY, int iStrideY,
   
   xCopyToImageBuffer  ( pucBufferY, input_width,   input_height,   iStrideY );
   xDownsampling3      ( input_width, input_height, output_width, output_height,
-                        crop_x0, crop_y0, crop_w, crop_h, 0, 0, 0, 0, 0 );
+                        crop_x0, crop_y0, crop_w, crop_h, 0, 0, 0, 0);
   xCopyFromImageBuffer( pucBufferY, output_width, output_height, iStrideY, 0, 255 );
   
   input_width >>= 1;
@@ -245,14 +245,14 @@ DownConvert::downsample3              ( unsigned char* pucBufferY, int iStrideY,
   xDownsampling3      ( input_width, input_height, output_width, output_height,
                         crop_x0, crop_y0, crop_w, crop_h, 
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                        output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
+                        output_chroma_phase_shift_x, output_chroma_phase_shift_y); 
   xCopyFromImageBuffer( pucBufferU, output_width, output_height, iStrideU, 0, 255 );
   
   xCopyToImageBuffer  ( pucBufferV, input_width, input_height, iStrideV );
   xDownsampling3      ( input_width, input_height, output_width, output_height,
                         crop_x0, crop_y0, crop_w, crop_h, 
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                        output_chroma_phase_shift_x, output_chroma_phase_shift_y, 1 );
+                        output_chroma_phase_shift_x, output_chroma_phase_shift_y); 
   xCopyFromImageBuffer( pucBufferV, output_width, output_height, iStrideV, 0, 255 );
   
 }
@@ -586,7 +586,7 @@ void
 DownConvert::xDownsampling3( int input_width, int input_height, int output_width, int output_height,
                              int crop_x0, int crop_y0, int crop_w, int crop_h,
                              int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                             int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flg )
+                             int output_chroma_phase_shift_x, int output_chroma_phase_shift_y ) 
 {
   const int filter16[8][16][12] = {   // sine, N = 3
                                     { // D = 1
@@ -919,32 +919,27 @@ DownConvert::xUpsampling2( ResizeParameters* pcParameters, bool bLuma)
     iOutHeight  >>= 1;
   }
 
-  int iNumerator = 1;
-  int iDenominator = 1;
-
   // ===== vertical upsampling =====
-  xComputeNumeratorDenominator(iInHeight,iOutHeight,&iNumerator,&iDenominator);
   for (int xin=0; xin<iInWidth; xin++)
     {
       int* piSrc = &m_paiImageBuffer[xin];
       for (int yin=0; yin<iInHeight; yin++)
         m_paiTmp1dBuffer[yin] = piSrc[yin * m_iImageStride];
 
-      xUpsamplingData2(iInHeight, iOutHeight, iNumerator , iDenominator);
+      xUpsamplingData2(iInHeight, iOutHeight); 
       
       for(int yout = 0; yout < iOutHeight; yout++ )
         piSrc[yout*m_iImageStride] = m_paiTmp1dBufferOut[yout];
     }
   
   // ===== horizontal upsampling =====
-  xComputeNumeratorDenominator(iInWidth, iOutWidth, &iNumerator, &iDenominator);
   for (int yout=0; yout<iOutHeight; yout++)
     {
       int* piSrc = &m_paiImageBuffer[yout * m_iImageStride];
       for (int xin=0; xin<iInWidth; xin++)
         m_paiTmp1dBuffer[xin] = piSrc[xin];
 
-      xUpsamplingData2(iInWidth, iOutWidth, iNumerator , iDenominator);
+      xUpsamplingData2(iInWidth, iOutWidth);
 
       for( int i = 0; i < iOutWidth; i++ )
         piSrc[i] = ( m_paiTmp1dBufferOut[i] + 512 ) >> 10;
@@ -953,7 +948,7 @@ DownConvert::xUpsampling2( ResizeParameters* pcParameters, bool bLuma)
 
 __inline
 void
-DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator , int iDenominator )
+DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength /*, int iNumerator , int iDenominator*/ )
 {
   int  *Tmp1dBufferInHalfpel = m_aiTmp1dBufferInHalfpel;
   int  *Tmp1dBufferInQ1pel = m_aiTmp1dBufferInQ1pel;
@@ -1046,7 +1041,7 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength , int iNumerator 
 // lanczos filter coeffs computation
 __inline
 void
-DownConvert::xInitFilterTmm1 (int iMaxDim )
+DownConvert::xInitFilterTmm1 (/*int iMaxDim*/ )
 {  
   xDestroyFilterTmm1();
 

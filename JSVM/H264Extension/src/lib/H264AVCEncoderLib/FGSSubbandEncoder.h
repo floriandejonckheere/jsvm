@@ -191,7 +191,6 @@ private:
   ErrVal            xSetSymbolsChroma     ( TCoeff*                     piCoeff,
                                             UInt                        uiMbX,
                                             UInt                        uiMbY,
-                                            const QpParameter&          cQP,
                                             UInt&                       uiCoeffCostDC,
                                             UInt&                       uiCoeffCostAC,
                                             Bool&                       bSigDC,
@@ -200,7 +199,6 @@ private:
   ErrVal            xSetSymbols4x4        ( TCoeff*                     piCoeff,
                                             UInt                        uiMbX,
                                             UInt                        uiMbY,
-                                            const QpParameter&          cQP,
                                             UInt&                       uiCoeffCost,
                                             UInt&                       ruiCbp,
                                             LumaIdx                     cIdx,
@@ -208,7 +206,6 @@ private:
   ErrVal            xSetSymbols8x8        ( TCoeff*                     piCoeff,
                                             UInt                        uiMbX,
                                             UInt                        uiMbY,
-                                            const QpParameter&          cQP,
                                             UInt&                       uiCoeffCost,
                                             UInt&                       ruiCbp,
                                             LumaIdx                     cIdx );

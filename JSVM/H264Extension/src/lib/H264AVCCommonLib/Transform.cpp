@@ -364,9 +364,9 @@ Void Transform::xQuantDequantNonUniformLuma( TCoeff* piQCoeff, TCoeff* piCoeff, 
     
 
   UInt uiAcAbs = 0;
-  for( int n = 1; n < 16; n++ )
+  for( Int n = 1; n < 16; n++ )
   {
-    Int iLevel  = piCoeff[n];
+    iLevel      = piCoeff[n];
     Int iSign   = iLevel;
 
     iLevel      = abs( iLevel ) * g_aaiQuantCoef[rcQp.rem()][n];
@@ -588,7 +588,7 @@ Void Transform::xRequantNonUniformChroma( TCoeff*             piCoeff,
   UInt uiAcAbs = 0;
   for( int n = 1; n < 16; n++ )
   {
-    Int iLevel  = piCoeff[n];
+    iLevel      = piCoeff[n];
     Int iSign   = iLevel;
     iLevel     -= ( normAdjust[n/4] * normAdjust[n%4] * (Int)piCoeffBase[n] + ( 1 << 5 ) ) >> 6;
     iSign       = iLevel;
@@ -662,7 +662,7 @@ Transform::requant4x4Block( IntYuvMbBuffer& rcResData,
                             Bool            bFirstIsDc,
                             UInt&           ruiAbsSum )
 {
-  Int iDcCoeff;
+  Int iDcCoeff = 0;
 
   //===== trafo =====
   x4x4Trafo( rcResData.getLumBlk (), rcResData.getLStride(), piCoeff );

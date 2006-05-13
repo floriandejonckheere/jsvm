@@ -290,7 +290,7 @@ protected:
 
 private:
 
-  void xUpdateCoeffMap(TCoeff& cBL, TCoeff cEL, UChar& sm)  
+  Void xUpdateCoeffMap(TCoeff& cBL, TCoeff cEL, UChar& sm)  
   {
     if ((cEL))                                                
     {

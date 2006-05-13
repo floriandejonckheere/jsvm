@@ -772,7 +772,6 @@ MbData::xMergeBl8x8MvAndRef(const UInt uiBlIdx)
 
      for(uiList=0 ; uiList < 2 ; uiList++)
     {
-        SChar* pscBlkRefIdx=&(m_ascBl4x4RefIdx[uiList][*pucWhich]);
         pucMap=pucWhich;
 
         for(Bl4x4Idx=0;Bl4x4Idx<uiNbBl4x4;Bl4x4Idx++,pucMap+=uiIdxstride)

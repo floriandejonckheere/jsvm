@@ -109,6 +109,10 @@ PictureParameterSet::PictureParameterSet()
 , m_bTransform8x8ModeFlag                   ( false )
 , m_bPicScalingMatrixPresentFlag            ( false )
 , m_iSecondChromaQpIndexOffset              ( 0 )
+, m_uiSliceGroupMapType                     ( 0 )      
+, m_bSliceGroupChangeDirection_flag         ( false )  
+, m_uiSliceGroupChangeRateMinus1            ( 0 )      
+, m_uiNumSliceGroupMapUnitsMinus1           ( 0 )      
 {
   m_auiNumRefIdxActive[LIST_0] = 0;
   m_auiNumRefIdxActive[LIST_1] = 0;
@@ -141,7 +145,7 @@ ErrVal
 PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
-  Bool m_bTraceEnable = true;
+  ETRACE_DO( Bool m_bTraceEnable = true );
   g_nLayer = m_uiLayerId;
   ETRACE_LAYER(m_uiLayerId);
   ETRACE_HEADER( "PICTURE PARAMETER SET" );

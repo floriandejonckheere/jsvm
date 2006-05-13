@@ -517,7 +517,7 @@ ErrVal FrameMng::xCheckMissingFrameNums( SliceHeader& rcSH )
     else
     {
       printf("\n  LOST PICTURES: %d\n", uiNumMissingPictures );
-      AOT(1);
+      AF();
     }
 
     m_uiPrecedingRefFrameNum = ( m_uiPrecedingRefFrameNum + uiNumMissingPictures ) % m_uiMaxFrameNumCurr;
@@ -527,7 +527,7 @@ ErrVal FrameMng::xCheckMissingFrameNums( SliceHeader& rcSH )
 
 
 
-ErrVal FrameMng::setPicBufferLists( PicBufferList& rcPicBufferOutputList, PicBufferList& rcPicBufferUnusedList, Bool bForceIfLocked )
+ErrVal FrameMng::setPicBufferLists( PicBufferList& rcPicBufferOutputList, PicBufferList& rcPicBufferUnusedList )
 {
   rcPicBufferUnusedList += m_cPicBufferUnusedList;
   m_cPicBufferUnusedList.clear();
@@ -911,7 +911,6 @@ ErrVal FrameMng::xManageMemory( const SliceHeader& rcSH )
   Int iIndex = 0;
   while( MMCO_END != (eMmcoOp = rcMmcoBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2)) )
   {
-    ErrVal nRet = Err::m_nOK;
 
     switch (eMmcoOp)
     {
@@ -923,7 +922,7 @@ ErrVal FrameMng::xManageMemory( const SliceHeader& rcSH )
     case MMCO_ASSIGN_LONG_TERM:
     case MMCO_LONG_TERM_UNUSED:
     case MMCO_SET_LONG_TERM:
-    default:AOT(1);
+    default:AF();
       break;
     }
     
@@ -1001,7 +1000,7 @@ ErrVal FrameMng::xReferenceListRemapping( SliceHeader& rcSH, ListIdx eListIdx )
     if( uiCommand == RPLR_LONG )
     //===== LONG TERM INDEX =====
     {
-      AOT(1);
+      AF();
     }
     else
     //===== SHORT TERM INDEX =====

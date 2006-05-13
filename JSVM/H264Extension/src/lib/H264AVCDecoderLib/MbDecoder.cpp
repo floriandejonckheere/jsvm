@@ -242,6 +242,8 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
           }
         }
         break;
+      default:
+        AF();
       }
     }
   }
@@ -582,7 +584,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
 
   if( ! bReconstruct )
   {
-    RNOK( m_pcMotionCompensation->calculateMb ( rcMbDataAccess, &rcRecYuvBuffer, true ) );
+    RNOK( m_pcMotionCompensation->calculateMb ( rcMbDataAccess, true ) );
     rcRecYuvBuffer.setZero();
   }
   else
@@ -672,8 +674,11 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
     else
     {
       //----- motion compensated prediction -----
-      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                        &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
+      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess, 
+                                                        rcRefFrameList0, 
+                                                        rcRefFrameList1,
+                                                        &cYuvMbBuffer, 
+                                                        bCalcMv ) );
     }
 
     rcPredBuffer.loadLuma   ( cYuvMbBuffer );
@@ -902,7 +907,6 @@ ErrVal MbDecoder::xDecodeMbIntraBL( MbDataAccess&     rcMbDataAccess,
 {
   IntYuvMbBuffer      cYuvMbBuffer;
   MbTransformCoeffs&  rcCoeffs = m_cTCoeffs;
-  Int                 iStride  = cYuvMbBuffer.getLStride();
 
   cYuvMbBuffer.loadBuffer ( pcBaseYuvBuffer );
   rcPredBuffer.loadLuma   ( cYuvMbBuffer );
@@ -1078,7 +1082,6 @@ MbDecoder::xScale8x8Block( TCoeff*            piCoeff,
 ErrVal
 MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
 {
-  const Int aaiDequantDcCoef[6] = {  10, 11, 13, 14, 16, 18 };
   Quantizer cQuantizer;
   cQuantizer.setQp( rcMbDataAccess, false );
   

@@ -237,12 +237,12 @@ Void QuarterPelFilter::predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuf
 
     if( iDx == 2 )
     {
-      xPredDy0Dx2( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX );
+      xPredDy0Dx2( pucDes, pucSrc, iDesStride, iSrcStride, iSizeY, iSizeX );
       return;
     }
 
     // if( iDx == 1 || iDx == 3)
-    xPredDy0Dx13( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX );
+    xPredDy0Dx13( pucDes, pucSrc, iDesStride, iSrcStride, iDx,  iSizeY, iSizeX );
     return;
   }
 
@@ -251,7 +251,7 @@ Void QuarterPelFilter::predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuf
   {
     if( iDy == 2 )
     {
-      xPredDx0Dy2( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX );
+      xPredDx0Dy2( pucDes, pucSrc, iDesStride, iSrcStride, iSizeY, iSizeX );
       return;
     }
 
@@ -291,7 +291,7 @@ Void QuarterPelFilter::predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuf
 
 
 
-Void QuarterPelFilter::xPredDy0Dx2( Pel* pucDest, Pel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
+Void QuarterPelFilter::xPredDy0Dx2( Pel* pucDest, Pel* pucSrc, Int iDestStride, Int iSrcStride, UInt uiSizeY, UInt uiSizeX )
 {
   for( UInt y = 0; y < uiSizeY; y++)
   {
@@ -313,7 +313,7 @@ Void QuarterPelFilter::xPredDy0Dx2( Pel* pucDest, Pel* pucSrc, Int iDestStride, 
   }
 }
 
-Void QuarterPelFilter::xPredDy0Dx13( Pel* pucDest, Pel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
+Void QuarterPelFilter::xPredDy0Dx13( Pel* pucDest, Pel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, UInt uiSizeY, UInt uiSizeX )
 {
 
   iDx >>= 1;
@@ -339,7 +339,7 @@ Void QuarterPelFilter::xPredDy0Dx13( Pel* pucDest, Pel* pucSrc, Int iDestStride,
 }
 
 
-Void QuarterPelFilter::xPredDx0Dy2( Pel* pucDest, Pel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
+Void QuarterPelFilter::xPredDx0Dy2( Pel* pucDest, Pel* pucSrc, Int iDestStride, Int iSrcStride,  UInt uiSizeY, UInt uiSizeX )
 {
   for( UInt y = 0; y < uiSizeY; y++)
   {
@@ -1009,12 +1009,12 @@ Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pc
 
     if( iDx == 2 )
     {
-      xPredDy0Dx2( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX );
+      xPredDy0Dx2( pucDes, pucSrc, iDesStride, iSrcStride, iSizeY, iSizeX );
       return;
     }
 
     // if( iDx == 1 || iDx == 3)
-    xPredDy0Dx13( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX );
+    xPredDy0Dx13( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iSizeY, iSizeX );
     return;
   }
 
@@ -1023,7 +1023,7 @@ Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pc
   {
     if( iDy == 2 )
     {
-      xPredDx0Dy2( pucDes, pucSrc, iDesStride, iSrcStride, iDx, iDy, iSizeY, iSizeX );
+      xPredDx0Dy2( pucDes, pucSrc, iDesStride, iSrcStride, iSizeY, iSizeX );
       return;
     }
 
@@ -1064,7 +1064,7 @@ Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pc
 
 
 
-Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
+Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride,  UInt uiSizeY, UInt uiSizeX )
 {
   for( UInt y = 0; y < uiSizeY; y++)
   {
@@ -1092,7 +1092,7 @@ Void QuarterPelFilter::xPredDy0Dx2( XPel* pucDest, XPel* pucSrc, Int iDestStride
 }
 
 
-Void QuarterPelFilter::xPredDy0Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
+Void QuarterPelFilter::xPredDy0Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, UInt uiSizeY, UInt uiSizeX )
 {
 
   iDx >>= 1;
@@ -1132,7 +1132,7 @@ Void QuarterPelFilter::xPredDy0Dx13( XPel* pucDest, XPel* pucSrc, Int iDestStrid
 }
 
 
-Void QuarterPelFilter::xPredDx0Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX )
+Void QuarterPelFilter::xPredDx0Dy2( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, UInt uiSizeY, UInt uiSizeX )
 {
   for( UInt y = 0; y < uiSizeY; y++)
   {

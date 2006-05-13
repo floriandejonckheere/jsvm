@@ -216,7 +216,7 @@ ErrVal ParameterSetMng::store( PictureParameterSet* pcPPS )
 
 ErrVal ParameterSetMng::xDestroyPPS(UInt uiPPSId)
 {
-  PictureParameterSet* pcPPS;
+  PictureParameterSet* pcPPS = 0;
 
   RNOK( m_cPPSBuf.get( pcPPS, uiPPSId ) );
 

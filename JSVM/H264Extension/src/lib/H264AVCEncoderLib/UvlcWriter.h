@@ -109,8 +109,8 @@ public MbSymbolWriteIf
 protected:
 	UvlcWriter( Bool bTraceEnable = false );
 	virtual ~UvlcWriter();
-  ErrVal xWriteMvdComponentQPel ( Short sMvdComp, UInt uiAbsSum, UInt uiCtx );
-  ErrVal xWriteMvdQPel          ( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx );
+  ErrVal xWriteMvdComponentQPel ( Short sMvdComp );
+  ErrVal xWriteMvdQPel          ( Mv cMv );
   ErrVal xRQencodeNewTCoeffs( TCoeff*       piCoeff,
                                     TCoeff*       piCoeffBase,
                                     UInt          uiStart,
@@ -239,7 +239,7 @@ public:
   Bool    RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, ChromaIdx cIdx );
   Bool    RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess, MbDataAccess&   rcMbDataAccessBase, ChromaIdx cIdx );
   Bool    RQencodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
-  ErrVal  RQencodeDeltaQp( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
+  ErrVal  RQencodeDeltaQp( MbDataAccess& rcMbDataAccess );
   ErrVal  RQencode8x8Flag( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
   ErrVal  RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
                                       MbDataAccess&   rcMbDataAccessBase,
@@ -266,7 +266,6 @@ public:
                                       UInt            uiScanIndex );
   ErrVal RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
-                                        ResidualMode    eResidualMode,
                                         LumaIdx         cIdx,
                                         UInt            uiScanIndex );
   ErrVal RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,

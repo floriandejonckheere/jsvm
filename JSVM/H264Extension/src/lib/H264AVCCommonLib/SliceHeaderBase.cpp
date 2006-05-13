@@ -287,6 +287,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
 , m_uiFragmentOrder                   ( 0 )
 , m_uiRedundantPicCnt                 ( 0 ) //JVT-Q054 Red. Picture
+, m_uiSliceGroupChangeCycle           ( 0 ) 
+, m_eErrorConceal                     ( EC_NONE ) 
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -319,7 +321,6 @@ SliceHeaderBase::write( HeaderSymbolWriteIf* pcWriteIf ) const
   {
     return xWriteH264AVCCompatible( pcWriteIf );
   }
-  return Err::m_nERR;
 }
 
 
@@ -328,7 +329,7 @@ ErrVal
 SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
-  Bool m_bTraceEnable = true;
+  ETRACE_DO( Bool m_bTraceEnable = true );
   RNOK  ( pcWriteIf->writeFlag( 0,                                              "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalRefIdc,   2,                              "NALU HEADER: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                              "NALU HEADER: nal_unit_type" ) );
@@ -511,7 +512,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 // TMM_ESS {
   if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
   {
-    if ( 1 /* chroma_format_idc */ > 0 )
+    //if ( 1 /* chroma_format_idc */ > 0 )
     {
       RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
       RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
@@ -559,7 +560,7 @@ ErrVal
 SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
-  Bool m_bTraceEnable = true;
+  ETRACE_DO( Bool m_bTraceEnable = true );
   RNOK  ( pcWriteIf->writeFlag( 0,                                              "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalRefIdc,   2,                              "NALU HEADER: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                              "NALU HEADER: nal_unit_type" ) );
@@ -696,7 +697,6 @@ SliceHeaderBase::read( HeaderSymbolReadIf* pcReadIf )
   {
     return xReadH264AVCCompatible ( pcReadIf );
   }
-  return Err::m_nERR;
 }
 
 
@@ -877,7 +877,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 // TMM_ESS {
   if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
   {
-    if ( 1 /* chroma_format_idc */ > 0 )
+    //if ( 1 /* chroma_format_idc */ > 0 )
     {
       RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 2,                 "SH: BaseChromaPhaseXPlus1" ) );
       RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,                 "SH: BaseChromaPhaseYPlus1" ) );
@@ -1155,13 +1155,6 @@ ErrVal SliceHeaderBase::PredWeight::setPredWeightsAndFlags( const Int iLumaScale
   const Double *pW = pfWeight;
   const Int iLScale = iLumaScale;
   const Int iCScale = iChromaScale;
-  const Double fMin = fDiscardThr;
-  const Double fMax = 1/fDiscardThr;
-
-//  const Int iLumW = max(min(((fMin<pW[0])&&(fMax>pW[0])) ? iLScale : (Int)(0.5 + pW[0] * iLScale), 127),-128);
-//  const Int iCbW  = max(min(((fMin<pW[1])&&(fMax>pW[1])) ? iCScale : (Int)(0.5 + pW[1] * iCScale), 127),-128);
-//  const Int iCrW  = max(min(((fMin<pW[2])&&(fMax>pW[2])) ? iCScale : (Int)(0.5 + pW[2] * iCScale), 127),-128);
-
   const Int iLumW = (Int)pW[0];
   const Int iCbW = (Int)pW[1];
   const Int iCrW = (Int)pW[2];

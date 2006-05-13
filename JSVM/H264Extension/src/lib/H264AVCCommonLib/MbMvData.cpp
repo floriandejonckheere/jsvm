@@ -224,11 +224,11 @@ MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , Re
   
 #if DO_QDIV
   // operator // for equations p.87
-  int divShiftW = (int) ( floor( log( (double)iBaseWidth ) / log(2.) ) + 15 );
-  int divScaleW = ( (1<<divShiftW) + iBaseWidth/2 ) / iBaseWidth;
-  int divShiftH = (int) ( floor( log( (double)iBaseHeight ) / log(2.) ) + 15 );
-  int divScaleH = ( (1<<divShiftH) + iBaseHeight/2 ) / iBaseHeight;
-  int num;
+  Int divShiftW = (Int) ( floor( log( (Double)iBaseWidth ) / log(2.) ) + 15 );
+  Int divScaleW = ( (1<<divShiftW) + iBaseWidth/2 ) / iBaseWidth;
+  Int divShiftH = (Int) ( floor( log( (Double)iBaseHeight ) / log(2.) ) + 15 );
+  Int divScaleH = ( (1<<divShiftH) + iBaseHeight/2 ) / iBaseHeight;
+  Int num;
 #endif
 
    for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)

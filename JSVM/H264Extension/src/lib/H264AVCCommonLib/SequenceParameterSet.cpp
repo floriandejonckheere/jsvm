@@ -227,7 +227,7 @@ SequenceParameterSet::destroy()
 UInt
 SequenceParameterSet::getMaxDPBSize() const
 {
-  const LevelLimit* pcLevelLimit;
+  const LevelLimit* pcLevelLimit = 0;
   UInt              uiFrameSize = 384*getMbInFrame();
   ANOK( xGetLevelLimit( pcLevelLimit, getLevelIdc() ) );
   return pcLevelLimit->uiMaxDPBSizeX2 / ( 2*uiFrameSize );
@@ -277,7 +277,7 @@ ErrVal
 SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
-  Bool m_bTraceEnable = true;
+  ETRACE_DO( Bool m_bTraceEnable = true );
   g_nLayer = m_uiLayerId;
   ETRACE_LAYER(m_uiLayerId);
   ETRACE_HEADER( "SEQUENCE PARAMETER SET" );
@@ -311,7 +311,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
     }
 
     RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,       "SPS: ExtendedSpatialScalability" ) );
-    if ( 1 /* chroma_format_idc */ > 0 )
+//    if ( 1 /* chroma_format_idc */ > 0 )
     {
       RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: ChromaPhaseXPlus1" ) );
       RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: ChromaPhaseYPlus1" ) );
@@ -439,7 +439,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     }
 
     RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: ExtendedSpatialScalability" ) );
-    if ( 1 /* chroma_format_idc */ > 0 )
+//    if ( 1 /* chroma_format_idc */ > 0 )
     {
       RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                  "SPS: ChromaPhaseXPlus1" ) );
       RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: ChromaPhaseYPlus1" ) );

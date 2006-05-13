@@ -211,7 +211,6 @@ public:
 
 
   ErrVal              initCurrDPBUnit     ( DPBUnit*&                   rpcCurrDPBUnit,
-                                            PicBuffer*&                 rpcPicBuffer,
                                             SliceHeader*                pcSliceHeader,
                                             PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList );
@@ -233,12 +232,7 @@ public:
   
   DPBUnit*            getCurrDPBUnit(){return        m_pcCurrDPBUnit;};
   ErrVal                 initPicBuffer(PicBuffer*&    rpcPicBuffer);
-  ErrVal              initPicCurrDPBUnit( DPBUnit*&                   rpcCurrDPBUnit,
-                                          PicBuffer*&                 rpcPicBuffer,
-                                          Bool                        bResidual,
-                                          SliceHeader*                pcSliceHeader,
-                                          PicBufferList&              rcOutputList,
-                                          PicBufferList&              rcUnusedList );
+  ErrVal              initPicCurrDPBUnit( PicBuffer*&                 rpcPicBuffer);
 
 protected:
   ErrVal              xCreateData         ( UInt                        uiMaxPicsInDPB,
@@ -387,7 +381,7 @@ public:
   ResizeParameters* getResizeParameters ()                           { return m_pcResizeParameter; }
   Int               getSpatialScalabilityType()                      { return m_pcResizeParameter->m_iSpatialScalabilityType; }
 // TMM_ESS }
-  void				setWaitForIdr(Bool b)	{ m_bWaitForIdr = b;}
+  Void				setWaitForIdr(Bool b)	{ m_bWaitForIdr = b;}
   Bool				getWaitForIdr()			{ return m_bWaitForIdr;}
 
   ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,

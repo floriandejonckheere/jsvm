@@ -598,7 +598,7 @@ RQFGSDecoder::xDecodingFGS()
     m_pcUvlcReader->m_bTruncated = m_bPicFinished;
   }
 
-  RNOK( m_pcSymbolReader->finishSlice( *m_pcCurrSliceHeader ) );
+  RNOK( m_pcSymbolReader->finishSlice( ) );
 
   if( ! m_bPicFinished )
   {
@@ -616,7 +616,7 @@ RQFGSDecoder::xDecodingFGS()
 ErrVal
 RQFGSDecoder::xDecodeMotionData( UInt uiMbYIdx, UInt uiMbXIdx )
 {
-  UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx;
+  DTRACE_DO( UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx );
   MbDataAccess* pcMbDataAccessEL  = 0;
   MbDataAccess* pcMbDataAccessBL  = 0;
 
@@ -770,7 +770,7 @@ RQFGSDecoder::xDecodeSigHeadersLuma( MbDataAccess* pcMbDataAccessBL,
       if( ! ( m_pauiMacroblockMap[uiMbIndex] & SIGNIFICANT ) )
       {
         pcMbDataAccessEL->setLastQp( riLastQp );
-        RNOK( m_pcSymbolReader->RQdecodeDeltaQp( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
+        RNOK( m_pcSymbolReader->RQdecodeDeltaQp( *pcMbDataAccessEL ) );
         riLastQp = pcMbDataAccessEL->getMbData().getQp();
 
         m_pauiMacroblockMap[uiMbIndex] |= SIGNIFICANT;
@@ -802,7 +802,7 @@ RQFGSDecoder::xDecodeSigHeadersLuma( MbDataAccess* pcMbDataAccessBL,
         B4x4Idx c4x4Tmp(uiB4x4);
         if( ! ( m_paucBlockMap[uiBlk] & CODED ) )
         {
-          Bool bSigBCBP = m_pcSymbolReader->RQdecodeBCBP_4x4( *pcMbDataAccessEL, *pcMbDataAccessBL, c4x4Tmp );
+          Bool bSigBCBP = m_pcSymbolReader->RQdecodeBCBP_4x4( *pcMbDataAccessBL, c4x4Tmp );
           m_paucBlockMap[uiBlk] |= CODED;
           if(  bSigBCBP )
           {
@@ -837,7 +837,6 @@ RQFGSDecoder::xDecodeNewCoefficientLuma( MbDataAccess* pcMbDataAccessBL,
                                          UInt          uiBlockXIndex )
 {
   UInt    uiBlockIndex  =  uiBlockYIndex    * 4 * m_uiWidthInMB +  uiBlockXIndex;
-  UInt    uiSubMbIndex  = (uiBlockYIndex/2) * 2 * m_uiWidthInMB + (uiBlockXIndex/2);
   UInt    uiMbIndex     = (uiBlockYIndex/4) * 1 * m_uiWidthInMB + (uiBlockXIndex/4);
   
   UInt    uiB8x8        = ((uiBlockYIndex%4)/2) * 2 + ((uiBlockXIndex%4)/2);
@@ -929,7 +928,7 @@ RQFGSDecoder::xDecodeNewCoefficientLuma( MbDataAccess* pcMbDataAccessBL,
   }
   else
   {
-    if (! m_pcSymbolReader->RQpeekCbp4x4( *pcMbDataAccessEL, *pcMbDataAccessBL, c4x4Idx ) )
+    if (! m_pcSymbolReader->RQpeekCbp4x4( *pcMbDataAccessBL, c4x4Idx ) )
     {
       return Err::m_nOK;
     }
@@ -1067,7 +1066,7 @@ RQFGSDecoder::xDecodeNewCoefficientChromaDC ( UInt    uiPlane,
       if( ! ( m_pauiMacroblockMap[uiMbIndex] & SIGNIFICANT ) )
       {
         pcMbDataAccessEL->setLastQp( riLastQP );
-        RNOK( m_pcSymbolReader->RQdecodeDeltaQp( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
+        RNOK( m_pcSymbolReader->RQdecodeDeltaQp( *pcMbDataAccessEL ) );
         riLastQP = pcMbDataAccessEL->getMbData().getQp();
 
         m_pauiMacroblockMap[uiMbIndex] |= SIGNIFICANT;
@@ -1079,7 +1078,7 @@ RQFGSDecoder::xDecodeNewCoefficientChromaDC ( UInt    uiPlane,
 
   if( ! ( m_apaucChromaDCBlockMap[uiPlane][uiMbIndex] & CODED ) )
   {
-    Bool bSigBCBP = m_pcSymbolReader->RQdecodeBCBP_ChromaDC( *pcMbDataAccessEL, *pcMbDataAccessBL, CIdx(4*uiPlane) );
+    Bool bSigBCBP = m_pcSymbolReader->RQdecodeBCBP_ChromaDC( *pcMbDataAccessBL, CIdx(4*uiPlane) );
     m_apaucChromaDCBlockMap[uiPlane][uiMbIndex] |= CODED;
     if(  bSigBCBP )
     {
@@ -1226,7 +1225,7 @@ RQFGSDecoder::xDecodeNewCoefficientChromaAC ( UInt    uiPlane,
       if( ! ( m_pauiMacroblockMap[uiMbIndex] & SIGNIFICANT ) )
       {
         pcMbDataAccessEL->setLastQp( riLastQP );
-        RNOK( m_pcSymbolReader->RQdecodeDeltaQp( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
+        RNOK( m_pcSymbolReader->RQdecodeDeltaQp( *pcMbDataAccessEL ) );
         riLastQP = pcMbDataAccessEL->getMbData().getQp();
 
         m_pauiMacroblockMap[uiMbIndex] |= SIGNIFICANT;
@@ -1271,7 +1270,7 @@ RQFGSDecoder::xDecodeNewCoefficientChromaAC ( UInt    uiPlane,
 
   if( ! ( m_apaucChromaACBlockMap[uiPlane][uiB8Index] & CODED ) )
   {
-    Bool bSigBCBP = m_pcSymbolReader->RQdecodeBCBP_ChromaAC( *pcMbDataAccessEL, *pcMbDataAccessBL, cChromaIdx );
+    Bool bSigBCBP = m_pcSymbolReader->RQdecodeBCBP_ChromaAC( *pcMbDataAccessBL, cChromaIdx );
     m_apaucChromaACBlockMap[uiPlane][uiB8Index] |= CODED;
     if(  bSigBCBP )
     {
@@ -1358,8 +1357,7 @@ RQFGSDecoder::xDecodeCoefficientLumaRef( UInt   uiBlockYIndex,
   }
   else
   {
-    RNOK( m_pcSymbolReader->RQdecodeTCoeffRef_Luma( *pcMbDataAccessEL, *pcMbDataAccessBL,
-                                                   LUMA_SCAN, c4x4Idx, uiScanIndex ) );
+    RNOK( m_pcSymbolReader->RQdecodeTCoeffRef_Luma( *pcMbDataAccessEL, *pcMbDataAccessBL, c4x4Idx, uiScanIndex ) );
   }
 
   m_apaucLumaCoefMap[uiScanIndex][uiBlockIndex] |= CODED;

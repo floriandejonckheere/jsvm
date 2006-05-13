@@ -109,8 +109,9 @@ protected:
   EncoderConfigLineBase(Char* pcTag, UInt uiType ) : m_cTag( pcTag ), m_uiType( uiType ) {}
   EncoderConfigLineBase() {}
 public:
+  virtual ~EncoderConfigLineBase() {}
   std::string&  getTag () { return m_cTag; }
-  virtual void  setVar ( std::string& rcValue ) = 0;
+  virtual Void  setVar ( std::string& rcValue ) = 0;
 protected:
   std::string m_cTag;
   UInt m_uiType;
@@ -229,6 +230,7 @@ public:
     , m_uiIndependentParsing  ( 0 )
 #endif
     , m_dQpModeDecisionLP ( 0.00 )
+    , m_uiNumSliceGroupMapUnitsMinus1 ( 0 ) 
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiPosVect, 0x00, 16*sizeof(UInt) );

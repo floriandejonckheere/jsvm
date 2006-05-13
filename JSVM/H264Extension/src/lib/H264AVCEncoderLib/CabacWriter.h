@@ -140,8 +140,7 @@ public:
                                     B8x8Idx         c8x8Idx );
 
   //===== Delta QP and transform size =====
-  ErrVal  RQencodeDeltaQp         ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase );
+  ErrVal  RQencodeDeltaQp         ( MbDataAccess&   rcMbDataAccess );
   ErrVal  RQencode8x8Flag         ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase );
   ErrVal  RQencodeTermBit         ( UInt            uiBit );
@@ -165,7 +164,6 @@ public:
                                      UInt&           ruiNumCoefWritten );
   ErrVal  RQencodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
-                                     ResidualMode    eResidualMode,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex );
   ErrVal  RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
@@ -253,13 +251,13 @@ protected:
                                 UInt          uiScanIndex );
   
 
-  ErrVal xWriteMvdComponentQPel ( Short sMvdComp, UInt uiAbsSum, UInt uiCtx );
-  ErrVal xWriteMvdQPel          ( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx );
+  ErrVal xWriteMvdComponentQPel ( Short sMvdComp );
+  ErrVal xWriteMvdQPel          ( Mv cMv );
 
   ErrVal xWriteMvdComponent( Short sMvdComp, UInt uiAbsSum, UInt uiCtx );
   ErrVal xWriteMvd( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx );
   ErrVal xRefFrame      ( MbDataAccess& rcMbDataAccess, UInt uiRefFrame, ListIdx eLstIdx, ParIdx8x8 eParIdx );
-  ErrVal xMotionPredFlag( MbDataAccess& rcMbDataAccess, Bool bFlag,      ListIdx eLstIdx, ParIdx8x8 eParIdx );
+  ErrVal xMotionPredFlag( Bool bFlag,      ListIdx eLstIdx );
 
   ErrVal xWriteBCbp( MbDataAccess& rcMbDataAccess, UInt uiNumSig, ResidualMode eResidualMode, LumaIdx cIdx );
   ErrVal xWriteBCbp( MbDataAccess& rcMbDataAccess, UInt uiNumSig, ResidualMode eResidualMode, ChromaIdx cIdx );

@@ -215,7 +215,7 @@ ScalingMatrix::ScalingList<uiBufSize>::write( HeaderSymbolWriteIf*  pcWriteIf,
   Int  iLast = 8;
   for( Int n = 0; n < iLastDiff+2; n++ )
   {
-    AOT(1); // check modulo
+    AF(); // check modulo
     Int iDeltaScale = this->get( pucScan[n] ) - iLast;
     iDeltaScale     = ( ( iDeltaScale << 24 ) >> 24 );
    	RNOK( pcWriteIf->writeSvlc( iDeltaScale, "SCALING: delta_scale" ) );

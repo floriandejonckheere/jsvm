@@ -109,7 +109,7 @@ private:
   };
 
 public:
-   void *operator new( size_t stAllocateBlock, Void* pv )
+   Void *operator new( size_t stAllocateBlock, Void* pv )
    {
      return ( NULL == pv ) ? (::operator new( stAllocateBlock )) : pv;
    }
@@ -143,7 +143,7 @@ public:
                 const MbData&    rcMbAboveLeft,
                 const MbData&    rcMbAboveRight,
                 const MbData&    rcMbUnavailable,
-                const MbData&    m_rcMbColocated,
+                const MbData&    rcMbColocated,
                 SliceHeader&     rcSliceHeader,
                 const DFP&       rcDFP,
                 UInt             uiPosX,
@@ -155,7 +155,7 @@ public:
                   m_rcMbAboveLeft               ( rcMbAboveLeft           ),
                   m_rcMbAboveRight              ( rcMbAboveRight          ),
                   m_rcMbUnavailable             ( rcMbUnavailable         ),
-                  m_rcMbColocated               ( m_rcMbColocated         ),
+                  m_rcMbColocated               ( rcMbColocated         ),
                   m_rcSliceHeader               ( rcSliceHeader           ),
                   m_rcDFP                       ( rcDFP                   ),
                   m_cMv3D_A                     ( 0, 0, 0                 ),
@@ -234,7 +234,7 @@ public:
   Bool  isLeftMbExisting  () const { return m_uiPosX != 0; }
   Bool  isAboveMbExisting () const { return ( ! ( m_uiPosY == 0 ) ); }
 
-  Bool isConstrainedInterLayerPred( MbDataAccess* pcMbDataAccessBase )
+  Bool isConstrainedInterLayerPred( )
   {
 #if MULTIPLE_LOOP_DECODING
     if( getSH().getSPS().getAlwaysDecodeBaseLayer() )

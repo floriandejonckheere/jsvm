@@ -188,7 +188,7 @@ FrameSpec::init( UChar        ucType,
     }
     break;
   default:
-    ROT(1);
+    RERR(); 
     break;
   }
 
@@ -355,13 +355,13 @@ SequenceStructure::FrameDescriptor::init( const String& rcString,
   if( ! cRplrStringL0.empty() )
   {
     ROT( NULL == ( m_apcRplrBuf[LIST_0] = new RplrBuffer ) );
-    RNOK( FormattedStringParser::extractRplr( cRplrStringL0, *m_apcRplrBuf[LIST_0], LIST_0 ) );
+    RNOK( FormattedStringParser::extractRplr( cRplrStringL0, *m_apcRplrBuf[LIST_0] ) ); 
   }
 
   if( ! cRplrStringL1.empty() )
   {
     ROT( NULL == ( m_apcRplrBuf[LIST_1] = new RplrBuffer ) );
-    RNOK( FormattedStringParser::extractRplr( cRplrStringL1, *m_apcRplrBuf[LIST_1], LIST_1 ) );
+    RNOK( FormattedStringParser::extractRplr( cRplrStringL1, *m_apcRplrBuf[LIST_1] ) ); 
   }
 
   m_bInit = true;
@@ -1080,7 +1080,7 @@ SequenceStructure::debugOutput( const String&  rcString,
     }
     else
     {
-      AOT(1);
+     AF();
     }
 
     if( cFSpec.getNalRefIdc() == NAL_REF_IDC_PRIORITY_LOWEST )
@@ -1513,8 +1513,7 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
 
 ErrVal
 FormattedStringParser::extractRplr( const String& rcString,
-                                    RplrBuffer&   rcRplrBuf,
-                                    ListIdx       eLstIdx )
+                                    RplrBuffer&   rcRplrBuf)
 {
   //--- check if string is correct ---
   ROFS( rcString.find_first_of( "R" ) == 0 );
@@ -1584,7 +1583,7 @@ FormattedStringParser::extractSingleRplrCommand( const String&  rcString,
     return Err::m_nOK;
   }
 
-  AOT(1);
+  AF();
   return Err::m_nERR;
 }
 
@@ -1637,7 +1636,7 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
     }
     else
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -1655,7 +1654,7 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
     return Err::m_nOK;
   }
 
-  AOT(1);
+  AF();
   return Err::m_nERR;
 }
 

@@ -176,7 +176,7 @@ public:
         RNOK( pcWriteIf->writeUvlc( m_uiVal,  "RPLR: long_term_pic_num" ) );
         break;
       default:
-        ROT(1);
+        RERR(); 
       }
     }
     return Err::m_nOK;
@@ -203,7 +203,7 @@ public:
         RNOK( pcReadIf->getUvlc( m_uiVal, "RPLR: long_term_pic_num" ) );
         break;
       default:
-        ROTR(1, Err::m_nInvalidParameter );
+        RVAL( Err::m_nInvalidParameter ); 
       }
 
     }
@@ -667,7 +667,6 @@ public:
   //TMM_EC {{
   Void								setDefualtMmcoBuffer(UInt uiDecompositionStages, Bool Number2)
   {
-	Bool bCont = true;
 	m_cMmmcoBuffer.clear();
 
 	UInt uiCount=0;

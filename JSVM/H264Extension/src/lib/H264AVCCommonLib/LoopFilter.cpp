@@ -932,7 +932,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
       RNOK( pcMbDataCtrlMot ->initMb            (  pcMbDataAccessMot, uiMbY, uiMbX ) );
     }
     RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
-    RNOK(   m_pcControlMngIf->initMbForFiltering( *pcMbDataAccessRes, uiMbAddress ) );
+    RNOK(   m_pcControlMngIf->initMbForFiltering(  uiMbAddress ) );
 
     // Hanke@RWTH
     if( m_pcHighpassFrame ) {
@@ -1140,7 +1140,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
     {
       return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_LEFT_NEIGHBOUR,
                                    sHorMvThr, sVerMvThr,
-                                   *pcRefFrameList0, *pcRefFrameList1 );
+                                   *pcRefFrameList0 );
     }
     return   xCheckMvDataB_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_LEFT_NEIGHBOUR,
                                    sHorMvThr, sVerMvThr,
@@ -1176,7 +1176,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
   {
     return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataLeftMot, cIdx + LEFT_MB_LEFT_NEIGHBOUR,
                                  sHorMvThr, sVerMvThr,
-                                 *pcRefFrameList0, *pcRefFrameList1 );
+                                 *pcRefFrameList0);
   }
   return   xCheckMvDataB_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataLeftMot, cIdx + LEFT_MB_LEFT_NEIGHBOUR,
                                  sHorMvThr, sVerMvThr,
@@ -1285,7 +1285,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
     {
       return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_ABOVE_NEIGHBOUR,
                                    sHorMvThr, sVerMvThr,
-                                   *pcRefFrameList0, *pcRefFrameList1 );
+                                   *pcRefFrameList0 );
     }
     return   xCheckMvDataB_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_ABOVE_NEIGHBOUR,
                                    sHorMvThr, sVerMvThr,
@@ -1320,7 +1320,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
   {
     return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataAboveMot, cIdx + ABOVE_MB_ABOVE_NEIGHBOUR,
                                  sHorMvThr, sVerMvThr,
-                                 *pcRefFrameList0, *pcRefFrameList1 );
+                                 *pcRefFrameList0 );
   }
   return   xCheckMvDataB_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataAboveMot, cIdx + ABOVE_MB_ABOVE_NEIGHBOUR,
                                  sHorMvThr, sVerMvThr,
@@ -1342,8 +1342,7 @@ UChar LoopFilter::xCheckMvDataP_RefIdx( const MbData& rcQMbData,
                                         const LumaIdx cPIdx,
                                         const Short   sHorMvThr,
                                         const Short   sVerMvThr,
-                                        RefFrameList& rcRefFrameList0,
-                                        RefFrameList& rcRefFrameList1 )
+                                        RefFrameList& rcRefFrameList0 )
 {
   const MbMotionData& rcMbMotionDataL0Q = rcQMbData.getMbMotionData( LIST_0 );
   const MbMotionData& rcMbMotionDataL0P = rcPMbData.getMbMotionData( LIST_0 );

@@ -327,7 +327,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
         }
         else
 #endif
-	      if( ( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) ) &&
+	      if( ( pcMbDataAccessBase->getMbData().isIntra() || !rcMbDataAccess.isConstrainedInterLayerPred(  ) ) &&
 	            pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
           DECRNOK( m_pcMbSymbolReadIf->blFlag( rcMbDataAccess ) );
       }
@@ -556,6 +556,8 @@ ErrVal MbParser::readVirtual( MbDataAccess&  rcMbDataAccess,
 		rcMbDataAccess.getMbData().setResidualPredFlag( true, PART_16x16);
 		}
 		break;
+	default:
+		AF( );
 	}
 
   return Err::m_nOK;
@@ -1613,7 +1615,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
 			if ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
 					 rcMbDataAccess.getMbData().getBLSkipFlag() &&
 					 pcMbDataAccessBase &&
-					 rcMbDataAccess.isConstrainedInterLayerPred( pcMbDataAccessBase ) )
+					 rcMbDataAccess.isConstrainedInterLayerPred(  ) )
 			{
 				DECRNOK( m_pcMbSymbolReadIf->smoothedRefFlag( rcMbDataAccess ) );
 			}
@@ -1664,7 +1666,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
     {
       if( uiMbExtCbp & ( 1 << c8x8Idx.b4x4() ) )
       {
-        DECRNOK( m_pcMbSymbolReadIf->residualBlock8x8( rcMbDataAccess, c8x8Idx, LUMA_8X8, uiMbExtCbp ) );
+        DECRNOK( m_pcMbSymbolReadIf->residualBlock8x8( rcMbDataAccess, c8x8Idx ) );
       }
     }
   }

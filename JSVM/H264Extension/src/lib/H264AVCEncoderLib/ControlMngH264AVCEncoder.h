@@ -187,8 +187,8 @@ public:
   ErrVal initSliceForFiltering( const SliceHeader& rcSH );
 
   ErrVal initMbForCoding      ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
-  ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex ) { return Err::m_nERR; };
-  ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
+  ErrVal initMbForDecoding    ( UInt uiMbIndex ) { return Err::m_nERR; };
+  ErrVal initMbForFiltering   ( UInt uiMbIndex );
 
   UvlcWriter*  getUvlcWriter()  { return m_pcUvlcWriter;  };
   CabacWriter* getCabacWriter() { return m_pcCabacWriter; };

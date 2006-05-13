@@ -810,40 +810,40 @@ ErrVal UvlcWriter::xWriteMvd( Mv cMv )
 ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      )
 {
   Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv();
-  RNOK( xWriteMvdQPel( rcMbDataAccess, cMv, B4x4Idx(0), eLstIdx ) );
+  RNOK( xWriteMvdQPel( cMv ) );
   return Err::m_nOK;
 }
 ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
 {
   Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( rcMbDataAccess, cMv, B4x4Idx(eParIdx), eLstIdx ) );
+  RNOK( xWriteMvdQPel( cMv ) );
   return Err::m_nOK;
 }
 ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
 {
   Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( rcMbDataAccess, cMv, B4x4Idx(eParIdx), eLstIdx ) );
+  RNOK( xWriteMvdQPel( cMv ) );
   return Err::m_nOK;
 }
 ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  )
 {
   Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( rcMbDataAccess, cMv, B4x4Idx(eParIdx), eLstIdx ) );
+  RNOK( xWriteMvdQPel( cMv ) );
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::xWriteMvdQPel( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx )
+ErrVal UvlcWriter::xWriteMvdQPel( Mv cMv)
 {
   Short sHor = cMv.getHor();
   Short sVer = cMv.getVer();
 
-  RNOK( xWriteMvdComponentQPel( sHor, 0, 0 ) );
-  RNOK( xWriteMvdComponentQPel( sVer, 0, 0 ) );
+  RNOK( xWriteMvdComponentQPel( sHor ) );
+  RNOK( xWriteMvdComponentQPel( sVer ) );
 
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::xWriteMvdComponentQPel( Short sMvdComp, UInt uiAbsSum, UInt uiCtx )
+ErrVal UvlcWriter::xWriteMvdComponentQPel( Short sMvdComp )
 {
   UInt  uiSymbol  = ( sMvdComp == 0 ? 0 : 1 );
   RNOK( xWriteFlag( uiSymbol ) );
@@ -1831,8 +1831,7 @@ UvlcWriter::RQencodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess,
 }
 
 ErrVal
-UvlcWriter::RQencodeDeltaQp( MbDataAccess& rcMbDataAccess,
-                              MbDataAccess& rcMbDataAccessBase )
+UvlcWriter::RQencodeDeltaQp( MbDataAccess& rcMbDataAccess )
 {
   ETRACE_T ("DQp");
 
@@ -1870,8 +1869,6 @@ UvlcWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
   const UChar*  pucScan     = g_aucFrameScan64;
-  const UInt    uiCtxOffset = 2;
-  UInt          uiStop      = 64;
 
   ROT( piCoeffBase[pucScan[uiScanIndex]] );
 
@@ -1910,9 +1907,6 @@ UvlcWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
   
   if( uiSig )
   {
-    UInt  uiAbs     = ( piCoeff[pucScan[uiScanIndex]] > 0 ? piCoeff[pucScan[uiScanIndex]] : -piCoeff[pucScan[uiScanIndex]] );
-    UInt  uiSign    = ( piCoeff[pucScan[uiScanIndex]] > 0 ?                             0 :                              1 );
-
     xWriteLevelVLC0( piCoeff[pucScan[uiScanIndex]] );
   }
 
@@ -2201,7 +2195,6 @@ UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
 ErrVal
 UvlcWriter::RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
                                       MbDataAccess&   rcMbDataAccessBase,
-                                      ResidualMode    eResidualMode,
                                       LumaIdx         cIdx,
                                       UInt            uiScanIndex )
 {

@@ -303,8 +303,6 @@ int main(int argc, char *argv[])
   FILE* input_file          = 0;
   FILE* output_file         = 0;
   FILE* crop_file           = 0;
-  int   aiFilter[16]        = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}; 
-  int*  piFilter            = 0;
   int   method              = 0;
   bool  resample            = false;
   bool  upsample            = false;

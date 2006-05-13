@@ -556,8 +556,6 @@ MCTF::xInitSliceHeader( UInt uiTemporalLevel,
 
   //===== get slice header parameters =====
   SliceType     eSliceType      = ( auiPredListSize[1] ? B_SLICE : auiPredListSize[0] ? P_SLICE : I_SLICE );
-  UInt          uiGOPSize       = uiFrameIdInGOP ? m_uiGOPSize             : 1;
-  UInt          uiDecStages     = uiFrameIdInGOP ? m_uiDecompositionStages : 0;
 
   //===== set simple slice header parameters =====
   pcSliceHeader->setNalUnitType                 ( NAL_UNIT_CODED_SLICE_SCALABLE );

@@ -142,7 +142,7 @@ int FMO::GenerateMbToSliceGroupMap()
  *    Sequence Parameter set to be used for map generation
  ************************************************************************
  */
-void FMO::printFmoMaps()
+Void FMO::printFmoMaps()
 {
 #if 1 // debug
   return;
@@ -177,8 +177,16 @@ void FMO::printFmoMaps()
 
 int FMO::init(FMO_PPS* pps, FMO_SPS* sps)
 {
+  if(MbToSliceGroupMap_)
+  { 
+    delete[] MbToSliceGroupMap_;
   MbToSliceGroupMap_ = NULL;
+  }
+  if (MapUnitToSliceGroupMap_)
+  {
+    delete[] MapUnitToSliceGroupMap_;
   MapUnitToSliceGroupMap_ = NULL; 
+  }
 
   InitFirstMBsInSlices();
   
@@ -217,7 +225,8 @@ int FMO::finit()
   if( numMbInSliceGroup_ )        // fix HS
   {                               // fix HS
     delete[] numMbInSliceGroup_;  // fix HS
-  }                               // fix HS
+    numMbInSliceGroup_ = NULL;
+  }                        
 
   return 0;
 }
@@ -294,10 +303,8 @@ int FMO::getSliceGroupId (int mb)
 
 
 
-void FMO::calcMbNumInSliceGroup()
+Void FMO::calcMbNumInSliceGroup()
 {
-	int SliceID = 0;
-	
 	if( numMbInSliceGroup_ != NULL)
 		delete[] numMbInSliceGroup_;
 	
@@ -349,7 +356,7 @@ int FMO::getNextMBNr (int CurrentMbNr)
  *
  ************************************************************************
  */
-void FMO::GenerateType0MapUnitMap ()
+Void FMO::GenerateType0MapUnitMap ()
 {
 
   unsigned iGroup, j;
@@ -375,7 +382,7 @@ void FMO::GenerateType0MapUnitMap ()
  *
  ************************************************************************
  */
-void FMO::GenerateType1MapUnitMap()
+Void FMO::GenerateType1MapUnitMap()
 {
 
   unsigned i;
@@ -393,7 +400,7 @@ void FMO::GenerateType1MapUnitMap()
  *
  ************************************************************************
  */
-void FMO::GenerateType2MapUnitMap ()
+Void FMO::GenerateType2MapUnitMap ()
 {
  
   int iGroup;
@@ -429,7 +436,7 @@ void FMO::GenerateType2MapUnitMap ()
  *
  ************************************************************************
  */
-void FMO::GenerateType3MapUnitMap()
+Void FMO::GenerateType3MapUnitMap()
 {
  
   unsigned i, k;
@@ -506,7 +513,7 @@ void FMO::GenerateType3MapUnitMap()
  *
  ************************************************************************
  */
-void FMO::GenerateType4MapUnitMap()
+Void FMO::GenerateType4MapUnitMap()
 {
   
   unsigned mapUnitsInSliceGroup0 = min((pps_.slice_group_change_rate_minus1 + 1) * img_.slice_group_change_cycle, PicSizeInMapUnits_);
@@ -529,7 +536,7 @@ void FMO::GenerateType4MapUnitMap()
  *
  ************************************************************************
  */
-void FMO::GenerateType5MapUnitMap ()
+Void FMO::GenerateType5MapUnitMap ()
 {
   
   unsigned mapUnitsInSliceGroup0 = min((pps_.slice_group_change_rate_minus1 + 1) * img_.slice_group_change_cycle, PicSizeInMapUnits_);
@@ -553,7 +560,7 @@ void FMO::GenerateType5MapUnitMap ()
  *
  ************************************************************************
  */
-void FMO::GenerateType6MapUnitMap()
+Void FMO::GenerateType6MapUnitMap()
 {
   unsigned i;
   for (i=0; i<PicSizeInMapUnits_; i++)
@@ -562,7 +569,7 @@ void FMO::GenerateType6MapUnitMap()
   }
 }
 
-void FMO::mallocMbToSliceGroupMap()
+Void FMO::mallocMbToSliceGroupMap()
 {
 	if (MbToSliceGroupMap_ != NULL)
 		delete[] MbToSliceGroupMap_;
@@ -571,7 +578,7 @@ void FMO::mallocMbToSliceGroupMap()
 
 	if (MbToSliceGroupMap_ == NULL)
 	{
-		printf ("cannot allocated %d bytes for MbToSliceGroupMap_, exit\n", (img_.PicSizeInMbs) * sizeof (int));
+		printf ("cannot allocated %u bytes for MbToSliceGroupMap_, exit\n", static_cast<unsigned int>((img_.PicSizeInMbs) * sizeof(int)) );
 		exit (-1);
 	}
 
@@ -584,7 +591,7 @@ int FMO::initMapUnitToSliceGroupMap()
 		delete[] MapUnitToSliceGroupMap_;
 	if ((MapUnitToSliceGroupMap_ = new int[GetNumSliceGroupMapUnits()]) == NULL)
 	{
-		printf ("cannot allocated %d bytes for MapUnitToSliceGroupMap, exit\n", (pps_.num_slice_group_map_units_minus1+1) * sizeof (int));
+		printf ("cannot allocated %u bytes for MapUnitToSliceGroupMap, exit\n", static_cast<unsigned int>((pps_.num_slice_group_map_units_minus1+1) * sizeof (int)) );
 		exit (-1);
 	}
 
@@ -744,7 +751,7 @@ int FMO::getLastCodedMBOfSliceGroup (int SliceGroupID)
 }
 
 
-void FMO::setLastMacroblockInSlice ( int mb)
+Void FMO::setLastMacroblockInSlice ( int mb)
 {
   // called by terminate_slice(), writes the last processed MB into the
   // FirstMBInSlice[MAXnum_slice_groups_minus1] array.  FmoGetFirstMacroblockInSlice()
@@ -772,7 +779,7 @@ int FMO::SliceGroupCompletelyCoded( int SliceGroupID)
     return 0;//FALSE;
 }
 
-void FMO::InitFirstMBsInSlices()
+Void FMO::InitFirstMBsInSlices()
 {
 
 	int k;

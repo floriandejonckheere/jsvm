@@ -216,7 +216,7 @@ SampleWeighting::initSlice( const SliceHeader& rcSliceHeader )
       break;
     default:
       {
-        AOT(1);
+        AF();
       }
       break;
     }
@@ -896,7 +896,7 @@ ErrVal SampleWeighting::initSliceForWeighting( const SliceHeader& rcSliceHeader)
       break;
     default:
       {
-        AOT(1);
+        AF();
       }
       break;
     }

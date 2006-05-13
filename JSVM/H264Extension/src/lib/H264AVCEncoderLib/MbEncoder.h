@@ -148,7 +148,6 @@ public:
                                 IntFrame*       pcPredSignal,
                                 Double          dLambda );
   ErrVal  encodeResidual      ( MbDataAccess&   rcMbDataAccess, 
-                                MbDataAccess*   pcMbDataAccessMot,
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcResidual,
                                 IntFrame*       pcBaseSubband,
@@ -240,32 +239,48 @@ public:
 
 
   //JVT-R057 LA-RDO{
-  void setLARDOEnable( Bool bLARDO){ m_bLARDOEnable= bLARDO; }
-  void setLayerID (UInt uiLayer){ m_uiLayerID=uiLayer;}
-  void setPLR( UInt auiPLR[5]){ for(UInt i=0;i<5;i++) m_auiPLR[i] = auiPLR[i];}
-  void setRatio( double adRatio[5][2])
+  Void setLARDOEnable( Bool bLARDO)  { m_bLARDOEnable= bLARDO; }
+ 
+  Void setLayerID (UInt uiLayer)     { m_uiLayerID=uiLayer;}
+ 
+  Void setPLR( UInt auiPLR[5])       { for(UInt i=0;i<5;i++) m_auiPLR[i] = auiPLR[i];}
+
+  Void setRatio( Double adRatio[5][2])
   { 
 	  for(UInt i=0;i<5;i++)
 		  for(UInt j=0;j<2;j++)
 			  m_aadRatio[i][j] = adRatio[i][j];
   }
-  void setMBSSD( UInt uiSSD) { m_uiMBSSD=uiSSD; }
+ Void setMBSSD      ( UInt uiSSD)      { m_uiMBSSD=uiSSD; }
+ 
   Bool getLARDOEnable(){ return m_bLARDOEnable;}
-  void setFrameEcEp( IntFrame* p1){ m_pcFrameEcEp=p1; }
-  int  GetEC_REC(IntYuvPicBuffer* pPic1,IntYuvPicBuffer*pPic2,int blockX, int blockY);
-  void  getChannelDistortion( MbDataAccess&   rcMbDataAccess,
+ 
+ Void setFrameEcEp  ( IntFrame* p1)    { m_pcFrameEcEp=p1; }
+
+  Int  GetEC_REC            ( IntYuvPicBuffer* pPic1,
+                              IntYuvPicBuffer* pPic2,
+                              Int              blockX, 
+                              Int              blockY);
+
+  Void  getChannelDistortion( MbDataAccess&    rcMbDataAccess,
 	  IntFrame&       rcRefFrame,
-	  int             *distortion,
-	  int             iMvX,
-	  int             iMvY,
-	  int             startX,
-	  int             startY,
-	  int             blockX,
-	  int             blockY,
-	  bool            bSpatial=false);
+	                            Int              *distortion,
+	                            Int              iMvX,
+	                            Int              iMvY,
+	                            Int              startX,
+	                            Int              startY,
+	                            Int              blockX,
+	                            Int              blockY,
+	                            Bool             bSpatial=false);
+  
   Int getEpRef() { return m_iEpRef; }
-  void setEpRef(Int iRef) { m_iEpRef=iRef; }
-  void  getDistortion(Int iDList0, Int iDList1,SampleWeighting*pcSampleWeighting,MbDataAccess& rcMbDataAccess);
+
+  Void setEpRef(Int iRef)   { m_iEpRef=iRef; }
+  
+  Void  getDistortion       (Int              iDList0, 
+                             Int              iDList1,
+                             SampleWeighting* pcSampleWeighting,
+                             MbDataAccess&    rcMbDataAccess);
   //JVT-R057 LA-RDO}
 
 protected:
@@ -274,6 +289,7 @@ protected:
                                   const UChar*       pucScale,
                                   UInt               uiStart,
                                   const QpParameter& rcQP );
+ 
   ErrVal  xScale8x8Block        ( TCoeff*            piCoeff,
                                   const UChar*       pucScale,
                                   const QpParameter& rcQP );
@@ -284,6 +300,7 @@ protected:
                                   UInt              uiCoeffBits,
                                   Bool              bBSlice,
                                   Bool              bBLSkip );
+  
   ErrVal  xSetRdCostInterMb     ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBase,
                                   RefFrameList&     rcRefFrameList0,
@@ -402,8 +419,6 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   const IntFrame*   pcBaseLayerSbb,
-                                  Bool              bBSlice,
-                                  Int				iSpatialScalabilityType,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   Bool              bResidualPred );
 	//--
@@ -572,7 +587,6 @@ protected:
 
 
   UInt  xCalcMbCbp    ( UInt uiExtCbp );
-  Void  xSetMaxRefPics( MbDataAccess& rcMbDataAccess );
 
 private:
   UChar xGetFrameBits ( ListIdx eLstIdx, Int iRefPic );
@@ -607,12 +621,12 @@ protected:
   Bool m_bLARDOEnable;
   UInt m_uiLayerID;
   UInt m_auiPLR[5];
-  double m_aadRatio[5][2];
+  Double m_aadRatio[5][2];
   UInt m_uiMBSSD;
   IntFrame* m_pcFrameEcEp;
   Int  m_iEpRef;
-  double m_dWr0;
-  double m_dWr1;
+  Double m_dWr0;
+  Double m_dWr1;
   //JVT-R057 LA-RDO}
 };
 
