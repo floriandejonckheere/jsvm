@@ -169,6 +169,10 @@ public:
                             const PictureParameterSet&  rcPPSLP,
                             const PictureParameterSet&  rcPPSHP );
 
+  ErrVal initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
+                            const PictureParameterSet&  rcPPSLP,
+                            const PictureParameterSet&  rcPPSHP );
+
   ErrVal initMbForFiltering( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex );
 
   ErrVal initSlice( SliceHeader& rcSH, ProcessingState eProcessingState );

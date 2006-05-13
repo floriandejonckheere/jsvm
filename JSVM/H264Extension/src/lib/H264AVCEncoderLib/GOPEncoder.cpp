@@ -133,6 +133,9 @@ MCTFEncoder::MCTFEncoder()
 : m_pcSPS                           ( 0 )
 , m_pcPPSLP                         ( 0 )
 , m_pcPPSHP                         ( 0 )
+, m_pcSPS_FGS                           ( 0 )
+, m_pcPPSLP_FGS                         ( 0 )
+, m_pcPPSHP_FGS                         ( 0 )
 , m_pcYuvFullPelBufferCtrl          ( 0 )
 , m_pcYuvHalfPelBufferCtrl          ( 0 )
 , m_pcPocCalculator                 ( 0 )
@@ -331,6 +334,9 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_pcSPS                   = 0;
   m_pcPPSLP                 = 0;
   m_pcPPSHP                 = 0;
+  m_pcSPS_FGS                  = 0;
+  m_pcPPSLP_FGS                = 0;
+  m_pcPPSHP_FGS                = 0;
   m_pcYuvFullPelBufferCtrl  = pcYuvFullPelBufferCtrl;
   m_pcYuvHalfPelBufferCtrl  = pcYuvHalfPelBufferCtrl;
   m_pcPocCalculator         = pcPocCalculator;
@@ -738,6 +744,17 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 __inline UInt downround2powerof2( UInt i ) { UInt r = 1; for( ; (UInt)( 1 << r ) <= i; r++ ); return ( 1 << ( r - 1 ) ); }
 
 ErrVal
+MCTFEncoder::initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
+                                const PictureParameterSet&  rcPPSLP,
+                                const PictureParameterSet&  rcPPSHP )
+{
+  m_pcSPS_FGS                 = &rcSPS;
+  m_pcPPSLP_FGS               = &rcPPSLP;
+  m_pcPPSHP_FGS               = &rcPPSHP;
+  return Err::m_nOK;
+}
+
+ErrVal
 MCTFEncoder::initParameterSets( const SequenceParameterSet& rcSPS,
                                 const PictureParameterSet&  rcPPSLP,
                                 const PictureParameterSet&  rcPPSHP )
@@ -746,6 +763,11 @@ MCTFEncoder::initParameterSets( const SequenceParameterSet& rcSPS,
   m_pcSPS                 = &rcSPS;
   m_pcPPSLP               = &rcPPSLP;
   m_pcPPSHP               = &rcPPSHP;
+
+  m_pcSPS_FGS                 = &rcSPS;
+  m_pcPPSLP_FGS               = &rcPPSLP;
+  m_pcPPSHP_FGS               = &rcPPSHP;
+
 
   //===== get and set relevant parameters =====
   UInt  uiMaxDPBSize      = rcSPS.getMaxDPBSize       ();
@@ -1583,13 +1605,20 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 
   pcSliceHeader->setFirstMbInSlice(0);
   pcSliceHeader->setLastMbInSlice(pcSliceHeader->getMbInPic()-1);
-  pcSliceHeader->setFGSCodingMode( m_pcSPS->getFGSCodingMode() );
-  pcSliceHeader->setGroupingSize ( m_pcSPS->getGroupingSize () );
+
+  pcSliceHeader->setFGSCodingMode( m_pcSPS_FGS->getFGSCodingMode() );
+  pcSliceHeader->setGroupingSize ( m_pcSPS_FGS->getGroupingSize () );
   UInt ui = 0;
   for(ui = 0; ui < 16; ui++)
   {
-    pcSliceHeader->setPosVect( ui, m_pcSPS->getPosVect(ui) );
+    pcSliceHeader->setPosVect( ui, m_pcSPS_FGS->getPosVect(ui) );
   }
+  //save PPSId
+  UInt uiPPSId = pcSliceHeader->getPicParameterSetId();
+  Bool bKeyPicture = pcSliceHeader->getKeyPictureFlag();
+  //update PPSId for enhancement FGS nal unit
+  pcSliceHeader->setPicParameterSetId(bKeyPicture ? m_pcPPSLP_FGS->getPicParameterSetId() : m_pcPPSHP_FGS->getPicParameterSetId());
+
   // Martin.Winken@hhi.fhg.de: original residual now set in RQFGSEncoder::xResidualTranform()
 
   UInt uiTarget;
@@ -2051,6 +2080,8 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 
   RNOK( m_pcRQFGSEncoder->finishPicture () );
 
+  //restore PPSId
+  pcSliceHeader->setPicParameterSetId(uiPPSId);
 
   return Err::m_nOK;
 }

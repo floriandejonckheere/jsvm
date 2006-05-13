@@ -1,12 +1,3 @@
-
-
-KNOWN BUGS:
------------
-- FGS vector scan (test FGSScanVector) does not work since JSVM_5_3
-- Yan Ye works on a bug fix
-
-
-
 JSVM_5_2 -> JSVM_5_3
 ====================
 

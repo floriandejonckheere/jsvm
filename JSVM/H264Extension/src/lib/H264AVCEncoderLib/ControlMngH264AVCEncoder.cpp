@@ -126,6 +126,18 @@ ControlMngH264AVCEncoder::~ControlMngH264AVCEncoder()
 }
 
 
+ErrVal
+ControlMngH264AVCEncoder::initParameterSetsForFGS( const SequenceParameterSet&  rcSPS,
+                                             const PictureParameterSet&   rcPPSLP,
+                                             const PictureParameterSet&   rcPPSHP )
+{
+  UInt  uiLayer             = rcSPS.getLayerId          ();
+  if( ! m_bMVCMode )
+  {
+    RNOK( m_apcMCTFEncoder[uiLayer]->initParameterSetsForFGS( rcSPS, rcPPSLP, rcPPSHP ) );
+  }
+  return Err::m_nOK;
+}
 
 ErrVal
 ControlMngH264AVCEncoder::initParameterSets( const SequenceParameterSet&  rcSPS,

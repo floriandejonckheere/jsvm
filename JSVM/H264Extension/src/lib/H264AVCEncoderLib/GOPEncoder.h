@@ -224,6 +224,11 @@ public:
   ErrVal        initParameterSets   ( const SequenceParameterSet&     rcSPS,
                                       const PictureParameterSet&      rcPPSLP,
                                       const PictureParameterSet&      rcPPSHP );
+
+ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
+                                          const PictureParameterSet&  rcPPSLP,
+                                          const PictureParameterSet&  rcPPSHP );
+
   ErrVal        uninit              ();
  
   ErrVal        addParameterSetBits ( UInt                            uiParameterSetBits );
@@ -481,6 +486,11 @@ protected:
   const SequenceParameterSet*   m_pcSPS;
   const PictureParameterSet*    m_pcPPSLP;
   const PictureParameterSet*    m_pcPPSHP;
+
+  const SequenceParameterSet*   m_pcSPS_FGS;
+  const PictureParameterSet*    m_pcPPSLP_FGS;
+  const PictureParameterSet*    m_pcPPSHP_FGS;
+
   YuvBufferCtrl*                m_pcYuvFullPelBufferCtrl;
   YuvBufferCtrl*                m_pcYuvHalfPelBufferCtrl;
   PocCalculator*                m_pcPocCalculator;

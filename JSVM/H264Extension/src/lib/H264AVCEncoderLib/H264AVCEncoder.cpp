@@ -1453,6 +1453,171 @@ H264AVCEncoder::xInitParameterSets()
   }
 
 
+  uiIndex = 0;
+  LayerParameters&  rcLayerParameters   = m_pcCodingParameter->getLayerParameters( uiIndex );
+  Bool              bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiIndex == 0;
+  if(bH264AVCCompatible && m_pcCodingParameter->getNumberOfLayers() == 1 && rcLayerParameters.getNumFGSLayers() > 0)
+  {
+    UInt              uiMbY               = rcLayerParameters.getFrameHeight() / 16;
+    UInt              uiMbX               = rcLayerParameters.getFrameWidth () / 16;
+    UInt              uiNumMb             = uiMbY * uiMbX;
+    UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
+    UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
+#if 1 // BUG_FIX
+    UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) ) 
+#else
+    UInt              uiDPBSize           = ( 1 << rcLayerParameters.getDecompositionStages() )
+#endif
+
+											                      //{{Adaptive GOP structure -- 10.18.2005
+                                            // --ETRI & KHU
+                                            + (m_pcCodingParameter->getUseAGS() && !bH264AVCCompatible? 20: 0);
+                                            //}}Adaptive GOP structure -- 10.18.2005
+    UInt              uiNumRefPic         = uiDPBSize; 
+    UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
+    ROT( bH264AVCCompatible && uiDPBSize > 16 );
+    ROT( uiLevelIdc == MSYS_UINT_MAX );
+
+    
+    //===== create parameter sets, set Id's, and store =====
+    SequenceParameterSet* pcSPS;
+    PictureParameterSet*  pcPPSLP;
+    PictureParameterSet*  pcPPSHP;
+    
+    RNOK( SequenceParameterSet::create( pcSPS   ) );
+    RNOK( PictureParameterSet ::create( pcPPSHP ) );
+    pcPPSHP->setPicParameterSetId( uiPPSId++ );
+    pcPPSHP->setSeqParameterSetId( uiSPSId   );
+    RNOK( m_pcParameterSetMng->store( pcPPSHP ) );
+    if( rcLayerParameters.getContrainedIntraForLP() )
+    {
+      pcPPSLP = pcPPSHP;
+    }
+    else
+    {
+      RNOK( PictureParameterSet ::create( pcPPSLP ) );
+      pcPPSLP->setPicParameterSetId( uiPPSId++ );
+      pcPPSLP->setSeqParameterSetId( uiSPSId   );
+      RNOK( m_pcParameterSetMng->store( pcPPSLP ) );
+    }
+    pcSPS->setSeqParameterSetId( uiSPSId++ );
+    RNOK( m_pcParameterSetMng->store( pcSPS   ) );
+
+
+    //===== set sequence parameter set parameters =====
+    pcSPS->setNalUnitType                         ( NAL_UNIT_SPS );
+    pcSPS->setLayerId                             ( rcLayerParameters.getLayerId() );
+    pcSPS->setProfileIdc                          ( SCALABLE_PROFILE );
+    pcSPS->setConstrainedSet0Flag                 ( false );
+    pcSPS->setConstrainedSet1Flag                 ( bH264AVCCompatible ? 1 : 0 );
+    pcSPS->setConstrainedSet2Flag                 ( false );
+    pcSPS->setConstrainedSet3Flag                 ( false );
+    pcSPS->setLevelIdc                            ( uiLevelIdc );
+    pcSPS->setSeqScalingMatrixPresentFlag         ( rcLayerParameters.getAdaptiveTransform() > 1 );
+    pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 );
+    pcSPS->setLog2MaxPicOrderCntLsb               ( min( 15, uiRequiredPocBits + 2 ) );  // HS: decoder robustness -> value increased by 2
+    pcSPS->setNumRefFrames                        ( uiNumRefPic );
+    pcSPS->setRequiredFrameNumUpdateBehaviourFlag ( true );
+    pcSPS->setFrameWidthInMbs                     ( uiMbX );
+    pcSPS->setFrameHeightInMbs                    ( uiMbY );
+    pcSPS->setDirect8x8InferenceFlag              ( true  );
+    // TMM_ESS 
+    pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
+
+#if MULTIPLE_LOOP_DECODING
+    pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
+                                                    rcLayerParameters.getDecodingLoops() > 1 );
+#endif
+    if(rcLayerParameters.getFGSCodingMode() == 0)
+    {
+      pcSPS->setFGSCodingMode                     ( false );
+    }
+    else
+    {
+      pcSPS->setFGSCodingMode                     ( true );
+    }
+    pcSPS->setGroupingSize                        ( rcLayerParameters.getGroupingSize() );
+    for( UInt ui = 0; ui < 16; ui++ )
+    {
+      pcSPS->setPosVect                           ( ui, rcLayerParameters.getPosVect(ui) );
+    }
+#if INDEPENDENT_PARSING
+    pcSPS->setIndependentParsing                  ( rcLayerParameters.getIndependentParsing() > 0 );
+#endif
+
+    //===== set picture parameter set parameters =====
+    pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
+    pcPPSHP->setLayerId                               ( rcLayerParameters.getLayerId() );
+    pcPPSHP->setEntropyCodingModeFlag                 ( rcLayerParameters.getEntropyCodingModeFlag() );
+    pcPPSHP->setPicOrderPresentFlag                   ( true );
+    pcPPSHP->setNumRefIdxActive( LIST_0               , m_pcCodingParameter->getNumRefFrames() );
+    pcPPSHP->setNumRefIdxActive( LIST_1               , m_pcCodingParameter->getNumRefFrames() );
+    // heiko.schwarz@hhi.fhg.de: ensures that the PPS QP will be in the valid range (specified QP can be outside that range to force smaller/higher lambdas)
+    //pcPPSHP->setPicInitQp                             ( (Int)rcLayerParameters.getBaseQpResidual() );
+    pcPPSHP->setPicInitQp                             ( min( 51, max( 0, (Int)rcLayerParameters.getBaseQpResidual() ) ) );
+    pcPPSHP->setChomaQpIndexOffset                    ( 0 );
+    pcPPSHP->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
+    pcPPSHP->setConstrainedIntraPredFlag              ( true );
+    pcPPSHP->setRedundantPicCntPresentFlag            ( rcLayerParameters.getUseRedundantSliceFlag() ); // JVT-Q054 Red. Picture
+    pcPPSHP->setTransform8x8ModeFlag                  ( rcLayerParameters.getAdaptiveTransform() > 0 );
+    pcPPSHP->setPicScalingMatrixPresentFlag           ( false );
+    pcPPSHP->set2ndChromaQpIndexOffset                ( 0 );
+
+    pcPPSHP->setWeightedPredFlag                      ( WEIGHTED_PRED_FLAG );
+    pcPPSHP->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
+//TMM_WP
+    pcPPSHP->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode()!=0);
+    pcPPSHP->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());  
+//TMM_WP
+
+	  //--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSHP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSHP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSHP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSHP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSHP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSHP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSHP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSHP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSHP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
+
+    if( ! rcLayerParameters.getContrainedIntraForLP() )
+    {
+      pcPPSLP->setNalUnitType                           ( pcPPSHP->getNalUnitType                           ()  );
+      pcPPSLP->setLayerId                               ( pcPPSHP->getLayerId                               ()  );
+      pcPPSLP->setEntropyCodingModeFlag                 ( pcPPSHP->getEntropyCodingModeFlag                 ()  );
+      pcPPSLP->setPicOrderPresentFlag                   ( pcPPSHP->getPicOrderPresentFlag                   ()  );
+      pcPPSLP->setNumRefIdxActive( LIST_0               , pcPPSHP->getNumRefIdxActive               ( LIST_0 )  );
+      pcPPSLP->setNumRefIdxActive( LIST_1               , pcPPSHP->getNumRefIdxActive               ( LIST_1 )  );
+      pcPPSLP->setPicInitQp                             ( pcPPSHP->getPicInitQp                             ()  );
+      pcPPSLP->setChomaQpIndexOffset                    ( pcPPSHP->getChomaQpIndexOffset                    ()  );
+      pcPPSLP->setDeblockingFilterParametersPresentFlag ( pcPPSHP->getDeblockingFilterParametersPresentFlag ()  );
+      pcPPSLP->setConstrainedIntraPredFlag              ( false                                                 );
+      pcPPSLP->setRedundantPicCntPresentFlag            ( pcPPSHP->getRedundantPicCntPresentFlag            ()  );  //JVT-Q054 Red. Picture
+      pcPPSLP->setTransform8x8ModeFlag                  ( pcPPSHP->getTransform8x8ModeFlag                  ()  );
+      pcPPSLP->setPicScalingMatrixPresentFlag           ( pcPPSHP->getPicScalingMatrixPresentFlag           ()  );
+      pcPPSLP->set2ndChromaQpIndexOffset                ( pcPPSHP->get2ndChromaQpIndexOffset                ()  );
+      pcPPSLP->setWeightedPredFlag                      ( pcPPSHP->getWeightedPredFlag                      ()  );
+      pcPPSLP->setWeightedBiPredIdc                     ( pcPPSHP->getWeightedBiPredIdc                     ()  );
+    }
+
+  	//--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSLP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSLP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSLP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSLP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSLP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSLP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSLP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSLP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSLP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
+
+    //===== initialization using parameter sets =====
+    RNOK( m_pcControlMng->initParameterSetsForFGS( *pcSPS, *pcPPSLP, *pcPPSHP ) );
+  }
+
   //===== set unwritten parameter lists =====
   RNOK( m_pcParameterSetMng->setParamterSetList( m_cUnWrittenSPS, m_cUnWrittenPPS ) );
 

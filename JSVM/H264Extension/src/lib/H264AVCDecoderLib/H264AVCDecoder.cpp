@@ -596,28 +596,29 @@ Void H264AVCDecoder::getDecodedResolution(UInt &uiLayerId)
 {
  UInt uiSPSId, uiX, uiY, uiMBX,uiMBY = 0;
  SequenceParameterSet *rcSPS;
- for(uiSPSId = 0; uiSPSId < m_uiNumberOfSPS; uiSPSId++)
+
+ uiSPSId = 0;
+ uiMBX = 0;
+ uiMBY = 0;
+ UInt uiSPS = 0;
+ while(uiSPS < m_uiNumberOfSPS)
  {
-    if(uiSPSId == 0)
+   if(m_pcParameterSetMng->isValidSPS(uiSPSId))
+   {
+    m_pcParameterSetMng->get(rcSPS,uiSPSId);
+    uiX = rcSPS->getFrameWidthInMbs();
+    uiY = rcSPS->getFrameHeightInMbs();
+    if(uiX >= uiMBX && uiY >= uiMBY) //FIX_FRAG_CAVLC
     {
-        m_pcParameterSetMng->get(rcSPS,uiSPSId);
-        uiMBX = rcSPS->getFrameWidthInMbs();
-        uiMBY = rcSPS->getFrameHeightInMbs();
-        uiLayerId = uiSPSId;
+       uiMBX = uiX;
+       uiMBY = uiY;
+       uiLayerId = rcSPS->getLayerId();
     }
-    else
-    {
-        m_pcParameterSetMng->get(rcSPS,uiSPSId);
-        uiX = rcSPS->getFrameWidthInMbs();
-        uiY = rcSPS->getFrameHeightInMbs();
-        if(uiX >= uiMBX && uiY >= uiMBY) //FIX_FRAG_CAVLC
-        {
-            uiMBX = uiX;
-            uiMBY = uiY;
-            uiLayerId = uiSPSId;
-        }
-    }
+    uiSPS++;
+   }
+   uiSPSId++;
  }
+
 }
 //~JVT-P031
 //TMM_EC{{
@@ -1651,7 +1652,9 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 //TMM_EC }}
 
       PicBufferList   cDummyList;
-      PicBufferList&  rcOutputList  = ( !m_bEnhancementLayer ? rcPicBufferOutputList : cDummyList );
+
+      PicBufferList&  rcOutputList  = ( m_uiRecLayerId == 0 ? rcPicBufferOutputList : cDummyList );
+
       RNOK( m_pcFrameMng->setPicBufferLists( rcOutputList, rcPicBufferReleaseList ) );
     }
     break;
@@ -1904,7 +1907,9 @@ H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
   //===== decode slice =====
   Bool  bKeyPicture     = rcSH.getKeyPictureFlag();
   Bool  bConstrainedIP  = rcSH.getPPS().getConstrainedIntraPredFlag();
-  Bool  bReconstruct    = !m_bEnhancementLayer || ! bConstrainedIP;
+
+  Bool  bReconstruct    = (m_uiRecLayerId == 0) || ! bConstrainedIP;
+
 #if MULTIPLE_LOOP_DECODING
   bReconstruct   = ( bReconstruct || m_bCompletelyDecodeLayer );
 #endif
@@ -2039,7 +2044,9 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
   //===== decode slice =====
   Bool  bKeyPicture     = rcSH.getKeyPictureFlag();
   Bool  bConstrainedIP  = rcSH.getPPS().getConstrainedIntraPredFlag();
-  Bool  bReconstruct    = !m_bEnhancementLayer || ! bConstrainedIP;
+
+  Bool  bReconstruct    = (m_uiRecLayerId == 0) || ! bConstrainedIP;
+
 #if MULTIPLE_LOOP_DECODING
   bReconstruct    = ( bReconstruct || m_bCompletelyDecodeLayer );
 #endif
@@ -2184,11 +2191,13 @@ H264AVCDecoder::xReconstructLastFGS()
   if ( pcSliceHeader->getTrueSlice())
   {
   //===== loop filter =====
+
 #if MULTIPLE_LOOP_DECODING
-  if( !m_bEnhancementLayer || bKeyPicFlag || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ ) // HS: fix by Nokia
+  if( (m_uiRecLayerId == 0) || bKeyPicFlag || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ ) // HS: fix by Nokia
 #else
-  if( !m_bEnhancementLayer || bKeyPicFlag ) // HS: fix by Nokia
+  if( (m_uiRecLayerId == 0) || bKeyPicFlag ) // HS: fix by Nokia
 #endif
+
   {
     RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcRecFrame->getFullPelYuvBuffer() ) );
   }
