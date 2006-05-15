@@ -133,7 +133,7 @@
             		        height => 256,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 29.13,
+            		        psnr => 29.12,
           		      },	
               		    #----------#
                       # Test   6 #
@@ -145,7 +145,7 @@
             		        height => 256,
             		        framerate => 7.5,
             		        bitrate => 0,
-            		        psnr => 29.89,
+            		        psnr => 29.86,
         		         },
         		          #----------#
                       # Test   7 #
@@ -157,7 +157,7 @@
             		        height => 256,
             		        framerate => 30/8,
             		        bitrate => 0,
-            		        psnr => 30.95,
+            		        psnr => 30.91,
             		      },	
 		                  #----------#
                       # Test   8 #
@@ -169,7 +169,7 @@
             		        height => 256,
             		        framerate => 30/16,
             		        bitrate => 0,
-            		        psnr => 31.84,
+            		        psnr => 31.80,
             		      },	
             		      #----------#
                       # Test   9 #
@@ -181,7 +181,7 @@
             		        height => 128,
             		        framerate => 15,
             		        bitrate => 384*0.8,
-            		        psnr => 36.13,
+            		        psnr => 36.12,
             		      },
             		      #----------#
                       # Test  10 #
@@ -193,7 +193,7 @@
             		        height => 128,
             		        framerate => 7.5,
             		        bitrate => 384*0.3,
-            		        psnr => 30.75,
+            		        psnr => 30.72,
             		      },
             		      #----------#
                       # Test  11 #
@@ -325,7 +325,7 @@
             		        height => 128,
             		        framerate => 7.5,
             		        bitrate => 384*0.4,
-            		        psnr => 33.40,
+            		        psnr => 33.39,
             		      },
 		],
 }
