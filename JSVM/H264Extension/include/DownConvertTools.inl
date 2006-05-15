@@ -129,14 +129,28 @@ DownConvert::upsample                 ( unsigned char* pucBufferY, int iStrideY,
     xCopyToImageBuffer  ( pucBufferY, iWidth,   iHeight,   iStrideY );
     xUpsampling         (             iWidth,   iHeight,   piFilter );
     xCopyFromImageBuffer( pucBufferY, iWidth*2, iHeight*2, iStrideY, 0, 255 );
-    //===== chroma cb =====
-    xCopyToImageBuffer  ( pucBufferU, iWidth/2, iHeight/2, iStrideU );
-    xUpsampling         (             iWidth/2, iHeight/2, piFilter );
-    xCopyFromImageBuffer( pucBufferU, iWidth,   iHeight,   iStrideU, 0, 255 );
-    //===== chroma cr =====
-    xCopyToImageBuffer  ( pucBufferV, iWidth/2, iHeight/2, iStrideV );
-    xUpsampling         (             iWidth/2, iHeight/2, piFilter );
-    xCopyFromImageBuffer( pucBufferV, iWidth,   iHeight,   iStrideV, 0, 255 );
+
+	//cixunzhang add
+	FILTER_UP_CHROMA
+
+    ////===== chroma cb =====
+    //xCopyToImageBuffer  ( pucBufferU, iWidth/2, iHeight/2, iStrideU );
+    //xUpsampling         (             iWidth/2, iHeight/2, piFilter );
+    //xCopyFromImageBuffer( pucBufferU, iWidth,   iHeight,   iStrideU, 0, 255 );
+    ////===== chroma cr =====
+    //xCopyToImageBuffer  ( pucBufferV, iWidth/2, iHeight/2, iStrideV );
+    //xUpsampling         (             iWidth/2, iHeight/2, piFilter );
+    //xCopyFromImageBuffer( pucBufferV, iWidth,   iHeight,   iStrideV, 0, 255 );
+
+	//===== chroma cb =====
+	xCopyToImageBuffer  ( pucBufferU, iWidth/2, iHeight/2, iStrideU );
+	xUpsampling         (             iWidth/2, iHeight/2, piFilter_chroma );
+	xCopyFromImageBuffer( pucBufferU, iWidth,   iHeight,   iStrideU, 0, 255 );
+	//===== chroma cr =====
+	xCopyToImageBuffer  ( pucBufferV, iWidth/2, iHeight/2, iStrideV );
+	xUpsampling         (             iWidth/2, iHeight/2, piFilter_chroma );
+	xCopyFromImageBuffer( pucBufferV, iWidth,   iHeight,   iStrideV, 0, 255 );
+
 
     iWidth  <<=1;
     iHeight <<=1;

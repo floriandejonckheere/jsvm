@@ -889,18 +889,19 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 					}
 					m_uiGopSize[uiLayerId]	=	ui - 1;
 				}
-//	calculate the gop size of other layers
-				for ( UInt ui=0; ui<uiLayerId; ui++)
+        //	calculate the gop size of other layers
+        UInt  ui=0; 
+				for ( ui=0; ui<uiLayerId; ui++)
 				{
 					m_uiGopSize[ui]	=	m_uiGopSize[uiLayerId] >> (m_uiDecompositionStages[uiLayerId] - m_uiDecompositionStages[ui]);
 				}
-				for ( UInt ui=uiLayerId+1; ui<m_uiNumLayers; ui++)
+				for ( ui=uiLayerId+1; ui<m_uiNumLayers; ui++)
 				{
 					m_uiGopSize[ui]	=	( m_uiGopSize[uiLayerId] << (m_uiDecompositionStages[ui] - m_uiDecompositionStages[uiLayerId])) + ((1<<(m_uiDecompositionStages[ui] - m_uiDecompositionStages[uiLayerId])) -1);
 				}
 //	calculate the correct frame_num and poc of every packet in this uncompleted gop each layer
 				m_uiFrameIdx[m_uiNextLayerId]--;
-				for ( UInt ui=0; ui<m_uiNumLayers; ui++)
+				for ( ui=0; ui<m_uiNumLayers; ui++)
 				{
 					uiFrameIdx      	=	0;
 					UInt	uiFrameNum	=	m_pauiFrameNumInGOP[ui][0];

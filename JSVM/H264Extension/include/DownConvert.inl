@@ -171,39 +171,101 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
     output_chroma_phase_shift_y = pcParameters->m_iChromaPhaseY;
   }
 
+  //cixunzhang
+  //xUpsampling3(input_width, input_height,
+  //  output_width, output_height,
+  //  crop_x0, crop_y0, crop_w, crop_h,
+  //  input_chroma_phase_shift_x, input_chroma_phase_shift_y,
+  //  output_chroma_phase_shift_x, output_chroma_phase_shift_y );
   xUpsampling3(input_width, input_height,
-    output_width, output_height,
-    crop_x0, crop_y0, crop_w, crop_h,
-    input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-    output_chroma_phase_shift_x, output_chroma_phase_shift_y );
+	  output_width, output_height,
+	  crop_x0, crop_y0, crop_w, crop_h,
+	  input_chroma_phase_shift_x, input_chroma_phase_shift_y,
+	  output_chroma_phase_shift_x, output_chroma_phase_shift_y, !bLuma );
+  //end
+
 }
 
 
 __inline
 void
-DownConvert::xUpsampling3( int input_width, int input_height, int output_width, int output_height,
-                           int crop_x0, int crop_y0, int crop_w, int crop_h,
-                           int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                           int output_chroma_phase_shift_x, int output_chroma_phase_shift_y )
+//cixunzhang
+//DownConvert::xUpsampling3( int input_width, int input_height, int output_width, int output_height,
+//                           int crop_x0, int crop_y0, int crop_w, int crop_h,
+//                           int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+//                           int output_chroma_phase_shift_x, int output_chroma_phase_shift_y )
+DownConvert::xUpsampling3  ( int input_width, int input_height,
+							   int output_width, int output_height,
+							   int crop_x0, int crop_y0, int crop_w, int crop_h,
+							   int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+							   int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag )
+
 {
-  const int filter16[16][6] = { // Lanczos3
-                                {0,0,32,0,0,0},
-                                {0,-2,32,2,0,0},
-                                {1,-3,31,4,-1,0},
-                                {1,-4,30,6,-1,0},
-                                {1,-4,28,9,-2,0},
-                                {1,-4,27,11,-3,0},
-                                {1,-5,25,14,-3,0},
-                                {1,-5,22,17,-4,1},
-                                {1,-5,20,20,-5,1},
-                                {1,-4,17,22,-5,1},
-                                {0,-3,14,25,-5,1},
-                                {0,-3,11,27,-4,1},
-                                {0,-2,9,28,-4,1},
-                                {0,-1,6,30,-4,1},
-                                {0,-1,4,31,-3,1},
-                                {0,0,2,32,-2,0}
-                              };
+  //const int filter16[16][6] = { // Lanczos3
+  //                              {0,0,32,0,0,0},
+  //                              {0,-2,32,2,0,0},
+  //                              {1,-3,31,4,-1,0},
+  //                              {1,-4,30,6,-1,0},
+  //                              {1,-4,28,9,-2,0},
+  //                              {1,-4,27,11,-3,0},
+  //                              {1,-5,25,14,-3,0},
+  //                              {1,-5,22,17,-4,1},
+  //                              {1,-5,20,20,-5,1},
+  //                              {1,-4,17,22,-5,1},
+  //                              {0,-3,14,25,-5,1},
+  //                              {0,-3,11,27,-4,1},
+  //                              {0,-2,9,28,-4,1},
+  //                              {0,-1,6,30,-4,1},
+  //                              {0,-1,4,31,-3,1},
+  //                              {0,0,2,32,-2,0}
+  //                            };
+	//cixunzhang add
+	int filter16[16][6] = { // Lanczos3
+		{0,0,32,0,0,0},
+		{0,-2,32,2,0,0},
+		{1,-3,31,4,-1,0},
+		{1,-4,30,6,-1,0},
+		{1,-4,28,9,-2,0},
+		{1,-4,27,11,-3,0},
+		{1,-5,25,14,-3,0},
+		{1,-5,22,17,-4,1},
+		{1,-5,20,20,-5,1},
+		{1,-4,17,22,-5,1},
+		{0,-3,14,25,-5,1},
+		{0,-3,11,27,-4,1},
+		{0,-2,9,28,-4,1},
+		{0,-1,6,30,-4,1},
+		{0,-1,4,31,-3,1},
+		{0,0,2,32,-2,0}
+	};
+	int filter16_chroma[16][6] = { // bilinear
+		{0,0,32,0,0,0},
+		{0,0,30,2,0,0},
+		{0,0,28,4,0,0},
+		{0,0,26,6,0,0},
+		{0,0,24,8,0,0},
+		{0,0,22,10,0,0},
+		{0,0,20,12,0,0},
+		{0,0,18,14,0,0},
+		{0,0,16,16,0,0},
+		{0,0,14,18,0,0},
+		{0,0,12,20,0,0},
+		{0,0,10,22,0,0},
+		{0,0,8,24,0,0},
+		{0,0,6,26,0,0},
+		{0,0,4,28,0,0},
+		{0,0,2,30,0,0}
+	};
+
+	if(uv_flag)
+	{
+		for (int i=0; i<16; i++)
+			for (int j=0; j<6; j++)
+				filter16[i][j] = filter16_chroma[i][j];
+	}
+
+	//end
+
   int i, j, k, *px, *py, div_scale, div_shift, ks;
   int up_res = 16;
   int x16, y16, x, y, m;

@@ -1,56 +1,56 @@
 all:
-	make -C lib/H264AVCVideoIoLib
-	make -C lib/H264AVCCommonLib
-	make -C lib/H264AVCDecoderLib
-	make -C lib/H264AVCEncoderLib
-	make -C test/H264AVCDecoderLibTest
-	make -C test/H264AVCEncoderLibTest
-	make -C test/BitStreamExtractor
-	make -C test/FixedQPEncoder
-	make -C test/QualityLevelAssigner
-	make -C test/MCTFPreProcessor
-	make -C tools/DownConvert
-	make -C tools/PSNR
+	$(MAKE) -C lib/H264AVCVideoIoLib
+	$(MAKE) -C lib/H264AVCCommonLib
+	$(MAKE) -C lib/H264AVCDecoderLib
+	$(MAKE) -C lib/H264AVCEncoderLib
+	$(MAKE) -C test/H264AVCDecoderLibTest
+	$(MAKE) -C test/H264AVCEncoderLibTest
+	$(MAKE) -C test/BitStreamExtractor
+	$(MAKE) -C test/FixedQPEncoder
+	$(MAKE) -C test/QualityLevelAssigner
+	$(MAKE) -C test/MCTFPreProcessor
+	$(MAKE) -C tools/DownConvert
+	$(MAKE) -C tools/PSNR
 
 
 debug:
-	make -C lib/H264AVCVideoIoLib debug
-	make -C lib/H264AVCCommonLib debug
-	make -C lib/H264AVCDecoderLib debug
-	make -C lib/H264AVCEncoderLib debug
-	make -C test/H264AVCDecoderLibTest debug
-	make -C test/H264AVCEncoderLibTest debug
-	make -C test/BitStreamExtractor debug
-	make -C test/FixedQPEncoder debug
-	make -C test/QualityLevelAssigner debug
-	make -C test/MCTFPreProcessor debug
-	make -C tools/DownConvert debug
-	make -C tools/PSNR debug
+	$(MAKE) -C lib/H264AVCVideoIoLib debug
+	$(MAKE) -C lib/H264AVCCommonLib debug
+	$(MAKE) -C lib/H264AVCDecoderLib debug
+	$(MAKE) -C lib/H264AVCEncoderLib debug
+	$(MAKE) -C test/H264AVCDecoderLibTest debug
+	$(MAKE) -C test/H264AVCEncoderLibTest debug
+	$(MAKE) -C test/BitStreamExtractor debug
+	$(MAKE) -C test/FixedQPEncoder debug
+	$(MAKE) -C test/QualityLevelAssigner debug
+	$(MAKE) -C test/MCTFPreProcessor debug
+	$(MAKE) -C tools/DownConvert debug
+	$(MAKE) -C tools/PSNR debug
 
 release:
-	make -C lib/H264AVCVideoIoLib release
-	make -C lib/H264AVCCommonLib release
-	make -C lib/H264AVCDecoderLib release
-	make -C lib/H264AVCEncoderLib release
-	make -C test/H264AVCDecoderLibTest release
-	make -C test/H264AVCEncoderLibTest release
-	make -C test/BitStreamExtractor release
-	make -C test/FixedQPEncoder release
-	make -C test/QualityLevelAssigner release
-	make -C test/MCTFPreProcessor release
-	make -C tools/DownConvert release
-	make -C tools/PSNR release
+	$(MAKE) -C lib/H264AVCVideoIoLib release
+	$(MAKE) -C lib/H264AVCCommonLib release
+	$(MAKE) -C lib/H264AVCDecoderLib release
+	$(MAKE) -C lib/H264AVCEncoderLib release
+	$(MAKE) -C test/H264AVCDecoderLibTest release
+	$(MAKE) -C test/H264AVCEncoderLibTest release
+	$(MAKE) -C test/BitStreamExtractor release
+	$(MAKE) -C test/FixedQPEncoder release
+	$(MAKE) -C test/QualityLevelAssigner release
+	$(MAKE) -C test/MCTFPreProcessor release
+	$(MAKE) -C tools/DownConvert release
+	$(MAKE) -C tools/PSNR release
 
 clean:
-	make -C lib/H264AVCVideoIoLib clean
-	make -C lib/H264AVCCommonLib clean
-	make -C lib/H264AVCDecoderLib clean
-	make -C lib/H264AVCEncoderLib clean
-	make -C test/H264AVCDecoderLibTest clean
-	make -C test/H264AVCEncoderLibTest clean
-	make -C test/BitStreamExtractor clean
-	make -C test/FixedQPEncoder clean
-	make -C test/QualityLevelAssigner clean
-	make -C test/MCTFPreProcessor clean
-	make -C tools/DownConvert clean
-	make -C tools/PSNR clean
+	$(MAKE) -C lib/H264AVCVideoIoLib clean
+	$(MAKE) -C lib/H264AVCCommonLib clean
+	$(MAKE) -C lib/H264AVCDecoderLib clean
+	$(MAKE) -C lib/H264AVCEncoderLib clean
+	$(MAKE) -C test/H264AVCDecoderLibTest clean
+	$(MAKE) -C test/H264AVCEncoderLibTest clean
+	$(MAKE) -C test/BitStreamExtractor clean
+	$(MAKE) -C test/FixedQPEncoder clean
+	$(MAKE) -C test/QualityLevelAssigner clean
+	$(MAKE) -C test/MCTFPreProcessor clean
+	$(MAKE) -C tools/DownConvert clean
+	$(MAKE) -C tools/PSNR clean

@@ -85,7 +85,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCEncoderLibTest.h"
 #include "H264AVCEncoderTest.h"
 #include "EncoderCodingParameter.h"
-
+#include <cstdio>
 
 
 H264AVCEncoderTest::H264AVCEncoderTest() :
@@ -577,23 +577,7 @@ H264AVCEncoderTest::ScalableDealing()
 	delete pvChar;
 	fclose(f);
 	fflush(f);
-//	ROF( remove( m_cWriteToBitFileTempName.c_str() ) ); //pbm to solve: jv
-	std::string cCommandLineString;
-#if WIN32
-	cCommandLineString += "del ";
-#else
-  cCommandLineString += "rm ";
-#endif
-#if WIN32
-  for( UInt uiPos = 0; uiPos < m_cWriteToBitFileTempName.size(); uiPos++ )
-  {
-    if( m_cWriteToBitFileTempName[uiPos] == '/' )
-    {
-      m_cWriteToBitFileTempName[uiPos] = '\\';
-    }
-  }
-#endif
-	cCommandLineString += m_cWriteToBitFileTempName;
-	int iResult = system( cCommandLineString.c_str() );
+	ROT( remove( m_cWriteToBitFileTempName.c_str() ) ); 
+
 	return Err::m_nOK;
 }
