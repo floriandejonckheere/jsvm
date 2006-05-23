@@ -1,3 +1,25 @@
+JSVM_5_5 -> JSVM_5_6
+====================
+
+High-level syntax change & scalability info SEI plus
+
+Date: May 22, 2006
+Authors: Shujie Liu, Qiu Shen, Hui Liu (USTC)
+Contributions: JVT-S035/S036/S038/S040
+
+Changes: 
+
+- Added "MMCOBaseEnable" and "SuffixUnitEnable" in encoder.cfg
+- Syntax changes in nal_unit_header_svc_extension header and slice header
+- Added detection of suffix nal unit in the decoder
+- Added MMCO & sliding window operation for base representations
+- Some syntax changes of scalability info SEI message
+
+Note: The changes above can be found by searching "JVT-RS036 lsj". 
+ 
+- Minor Bug fixes (QLAssigner + Encoder Trace)
+
+
 JSVM_5_4 -> JSVM_5_5
 ====================
 
