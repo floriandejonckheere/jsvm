@@ -202,8 +202,31 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
                                               bFragmented,
                                               bDiscardable
                                               //~JVT-P031
+											  ,UnitAVCFlag  //JVT-S036 lsj 
                                                );
 }
+
+//JVT-S036 lsj start
+ErrVal
+CreaterH264AVCDecoder::initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
+								                  UInt&             ruiNalUnitType,
+								         		  Bool             bPreParseHeader, //FRAG_FIX
+								                  Bool			bConcatenated, //FRAG_FIX_3
+												  Bool&			 rbStarDecoding
+											      ,CreaterH264AVCDecoder* pcH264AVCDecoder
+												  ,Bool&		SuffixEnable
+                                  		) 
+{
+	return m_pcH264AVCDecoder->initPacketSuffix( pcBinDataAccessor,
+		                                      ruiNalUnitType
+		                                      , bPreParseHeader //FRAG_FIX
+		                                      , bConcatenated,//FRAG_FIX_3
+                                              rbStarDecoding
+											  ,pcH264AVCDecoder->getH264AVCDecoder()->getSliceHeader()
+											  ,SuffixEnable
+                                                );
+}
+//JVT-S036 lsj end
 
 //JVT-P031
 ErrVal
@@ -236,7 +259,9 @@ ErrVal
 CreaterH264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
                                                   Bool&             bFinishChecking )
 {
-  return m_pcH264AVCDecoder->checkSliceLayerDependency( pcBinDataAccessor, bFinishChecking );
+	return m_pcH264AVCDecoder->checkSliceLayerDependency( pcBinDataAccessor, bFinishChecking
+														 ,UnitAVCFlag   //JVT-S036 lsj
+													    );
 }
 
 //NonRequired JVT-Q066
@@ -246,11 +271,13 @@ CreaterH264AVCDecoder::isNonRequiredPic()
 	return m_pcH264AVCDecoder->isNonRequiredPic(); 
 }
 //TMM_EC {{
-ErrVal
+ErrVal 
 CreaterH264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
                                       MyList<BinData*>&	cVirtualSliceList)
 {
-  return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList );
+  return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList 
+											,UnitAVCFlag			//JVT-S036 lsj
+										   );
 }
 ErrVal
 CreaterH264AVCDecoder::setec( UInt uiErrorConceal)
@@ -347,6 +374,8 @@ ErrVal CreaterH264AVCDecoder::init()
   INIT_DTRACE;
   OPEN_DTRACE;
   
+  UnitAVCFlag = false;   //JVT-S036 lsj
+
   RNOK( m_pcBitReadBuffer         ->init() );
   RNOK( m_pcNalUnitParser         ->init( m_pcBitReadBuffer ));
   RNOK( m_pcUvlcReader            ->init( m_pcBitReadBuffer ) );
@@ -529,7 +558,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   UInt		  uiSimplePriorityId = 0;
   Bool		  bDiscardableFlag = false;
-  Bool		  bExtensionFlag = false;
+  Bool		  bReservedZeroBit = false; //JVT-S036 lsj
   Bool bFragmentedFlag = false; //JVT-P031
   UInt uiFragmentOrder = 0; //JVT-P031
   Bool bLastFragmentFlag = false; //JVT-P031
@@ -556,21 +585,22 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     ucByte             = (pcBinData->data())[1];
 	  uiSimplePriorityId = ( ucByte >> 2);
 	  bDiscardableFlag	 = ( ucByte >> 1) & 1;
-	  bExtensionFlag     = ( ucByte     ) & 1;
-	  if(bExtensionFlag)
-	  {
+ //JVT-S036 lsj start
+	  bReservedZeroBit   = ( ucByte     ) & 1; 
+	 
 		    ucByte      = pcBinData->data()[2];
 		    uiLevel     = ( ucByte >> 5 );
 		    uiLayer     = ( ucByte >> 2 ) & 7;
 		    uiFGSLayer  = ( ucByte      ) & 3;
-	  }
+	 /* }
 	  else
 	  {
         // Look up simple priority ID in mapping table (J. Ridge, Y-K. Wang @ Nokia)
         uiLevel    = m_uiTemporalLevelList[uiSimplePriorityId];
         uiLayer    = m_uiDependencyIdList [uiSimplePriorityId];
         uiFGSLayer = m_uiQualityLevelList [uiSimplePriorityId];
-	  }
+	  }*/
+//JVT-S036 lsj end
     //}}Variable Lengh NAL unit header data with priority and dead substream flag
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||
@@ -701,7 +731,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       RNOK( SequenceParameterSet::create  ( pcSPS   ) );
       RNOK( pcSPS->read( m_pcUvlcReader, eNalUnitType ) );
       // Copy simple priority ID mapping from SPS
-      if ( !pcSPS->getNalUnitExtFlag()  && (pcSPS->getProfileIdc() == SCALABLE_PROFILE) ) // bugfix mwi 050727
+ /*     if ( !pcSPS->getNalUnitExtFlag()  && (pcSPS->getProfileIdc() == SCALABLE_PROFILE) ) // bugfix mwi 050727
       {
         for ( UInt uiPriId = 0; uiPriId < pcSPS->getNumSimplePriIdVals(); uiPriId++)
         {
@@ -712,6 +742,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
             m_uiQualityLevelList [uiPriId] = uiQualLevel;
         }
       }
+ JVT-S036 lsj */
       uiSPSid = pcSPS->getSeqParameterSetId();
       pcSPS->destroy();
     }

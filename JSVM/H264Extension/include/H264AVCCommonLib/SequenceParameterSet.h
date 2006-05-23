@@ -158,13 +158,14 @@ public:
 #if INDEPENDENT_PARSING
   Bool                  getIndependentParsing                 ()          const { return m_bIndepedentParsing; }
 #endif
-  UInt                  getNalUnitExtFlag                     ()          const { return m_bNalUnitExtFlag; }
+ /* UInt                  getNalUnitExtFlag                     ()          const { return m_bNalUnitExtFlag; }
   UInt                  getNumSimplePriIdVals                 ()          const { return m_uiNumSimplePriIdVals; }
   Void                  getSimplePriorityMap ( UInt uiSimplePri, UInt& uiTemporalLevel, UInt& uiLayer, UInt& uiQualityLevel ) const
                                                                           { uiTemporalLevel = m_uiTemporalLevelList[uiSimplePri];
                                                                             uiLayer         = m_uiDependencyIdList [uiSimplePri];
                                                                             uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
                                                                           }
+JVT-S036 lsj */
   Bool getFGSCodingMode                       ()                          const { return m_bFGSCodingMode;   }
   UInt getGroupingSize                        ()                          const { return m_uiGroupingSize;   }
   UInt getPosVect                             ( UInt uiNum )              const { return m_uiPosVect[uiNum]; } 
@@ -200,13 +201,14 @@ public:
 #if INDEPENDENT_PARSING
   Void  setIndependentParsing                 ( Bool        b  )          { m_bIndepedentParsing                    = b;  }
 #endif
-  Void  setNalUnitExtFlag                     ( Bool        b  )          { m_bNalUnitExtFlag                       = b;  }
+ /* Void  setNalUnitExtFlag                     ( Bool        b  )          { m_bNalUnitExtFlag                       = b;  }
   Void  setNumSimplePriIdVals                 ( UInt        ui )          { m_uiNumSimplePriIdVals                  = ui; }
   Void  setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
                                                                           { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
+JVT-S036 lsj */
   Void setFGSCodingMode                       ( Bool        b  )          { m_bFGSCodingMode                        = b;      }
   Void setGroupingSize                        ( UInt        ui )          { m_uiGroupingSize                        = ui;     }
   Void setPosVect                             ( UInt uiNum, UInt uiVect)  { m_uiPosVect[uiNum]                      = uiVect; } 
@@ -257,11 +259,13 @@ protected:
   UInt          m_uiFrameWidthInMbs;
   UInt          m_uiFrameHeightInMbs;
   Bool          m_bDirect8x8InferenceFlag;
-  Bool          m_bNalUnitExtFlag;
+
+/*  Bool          m_bNalUnitExtFlag;
   UInt          m_uiNumSimplePriIdVals;
   UInt          m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt          m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt          m_uiQualityLevelList [1 << PRI_ID_BITS];
+ JVT-S036 lsj */
 #if MULTIPLE_LOOP_DECODING
   Bool          m_bAlwaysDecodeBaseLayer;
 #endif

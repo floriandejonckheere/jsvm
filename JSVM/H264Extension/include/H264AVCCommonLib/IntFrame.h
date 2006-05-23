@@ -176,6 +176,7 @@ public:
   }
 
 
+
   ErrVal  copyAll     ( IntFrame* pcSrcFrame )
   {
 // JVT-Q065 EIDR{
@@ -276,6 +277,11 @@ public:
   Int   getPOC()          const   { return m_iPOC; }
   Void  setPOC( Int iPoc)         { m_iPOC = iPoc; }
 
+//JVT-S036 lsj{
+  Int	getFrameNum()	  const		{ return m_iFrameNum; }
+  Void  setFrameNum( Int iNum )		{ m_iFrameNum = iNum; }
+//JVT-S036 lsj}
+
 // JVT-Q065 EIDR{
   Bool	getUnusedForRef()			  { return m_bUnusedForRef; }
   Void	setUnusedForRef( Bool b )	  { m_bUnusedForRef = b; }
@@ -312,6 +318,8 @@ protected:
   // JVT-R057 LA-RDO{
   UInt*            m_piChannelDistortion;
   // JVT-R057 LA-RDO}
+
+    Int			  m_iFrameNum; //JVT-S036 lsj
 };
 
 

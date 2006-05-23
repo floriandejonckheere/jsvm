@@ -116,6 +116,7 @@ protected:
 
 protected:
   h264::CreaterH264AVCDecoder*   m_pcH264AVCDecoder;
+  h264::CreaterH264AVCDecoder*   m_pcH264AVCDecoderSuffix; //JVT-S036 lsj
   ReadBitstreamIf*            m_pcReadBitstream;
   WriteYuvIf*                 m_pcWriteYuv;
   DecoderParameter*           m_pcParameter;

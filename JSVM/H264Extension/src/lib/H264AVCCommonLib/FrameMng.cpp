@@ -299,6 +299,7 @@ ErrVal FrameMng::init( YuvBufferCtrl* pcYuvFullPelBufferCtrl, YuvBufferCtrl* pcY
   m_pcQuarterPelFilter      = NULL;
   m_pcOriginalFrameUnit     = NULL;
   m_pcCurrentFrameUnit      = NULL;
+  m_pcCurrentFrameUnitBase  = NULL; //JVT-S036 lsj
 
 
   m_pcQuarterPelFilter = pcQuarterPelFilter;
@@ -367,6 +368,7 @@ ErrVal FrameMng::uninit()
   m_pcQuarterPelFilter      = NULL;
   m_pcOriginalFrameUnit     = NULL;
   m_pcCurrentFrameUnit      = NULL;
+  m_pcCurrentFrameUnitBase  = NULL; //JVT-S036 lsj
 
 
   AOT( ! m_cShortTermList.empty() );
@@ -383,6 +385,25 @@ ErrVal FrameMng::uninit()
 
   return Err::m_nOK;
 }
+
+//JVT-S036 lsj{
+ErrVal FrameMng::RefreshOrederedPOCList()
+{
+  //===== store reference in ordered POC List =====
+  FUIter  iter;
+  for( iter = m_cOrderedPOCList.begin(); iter != m_cOrderedPOCList.end(); iter++ )
+  {
+    if( (*iter)->getMaxPOC() == m_pcCurrentFrameUnit->getMaxPOC() )
+    {
+      break;
+    }
+  }
+
+  (*iter) = m_pcCurrentFrameUnit;
+
+	return Err::m_nOK;
+}
+//JVT-S036 lsj}
 
 
 ErrVal FrameMng::initSlice( SliceHeader *rcSH )
@@ -504,14 +525,43 @@ ErrVal FrameMng::xCheckMissingFrameNums( SliceHeader& rcSH )
         UInt        uiFrameNum  = ( m_uiPrecedingRefFrameNum + uiIndex ) % m_uiMaxFrameNumCurr;
         FrameUnit*  pcFrameUnit = 0;
         RNOK( m_cFrameUnitBuffer.getFrameUnit( pcFrameUnit ) );
-
-        RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) ); // HS: decoder robustness
+		//JVT-S036 lsj{
+		if( !m_pcCurrentFrameUnit->getBaseRep() )
+		{
+			FUList::iterator iter = m_cShortTermList.begin();
+			FUList::iterator end  = m_cShortTermList.end();
+			Bool bFlag = false;
+			for( ; iter != m_cShortTermList.end(); iter++ )
+			{
+				if( (*iter)->getBaseRep() && (*iter)->getFrameNumber() == m_pcCurrentFrameUnit->getFrameNumber())
+				{
+				    bFlag = true;
+					break;
+				}
+			}
+			if( bFlag )
+			{
+					FrameUnit* pcFrameUnitTemp = (*iter);
+					RNOK(pcFrameUnit->init( rcSH, *pcFrameUnitTemp ));
+			}
+			else
+			{
+				RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) );
+			}
+			
+		}
+		else
+		//JVT-S036 lsj}
+		{
+			RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) ); // HS: decoder robustness
+		}
 
         pcFrameUnit->setFrameNumber( uiFrameNum );
         m_cShortTermList.push_front( pcFrameUnit );
         m_iEntriesInDPB++;
 
-        RNOK( xSlidingWindowUpdate() );
+		RNOK( xSlidingWindowUpdate() );
+
       }
     }
     else
@@ -707,7 +757,7 @@ ErrVal FrameMng::xClearListsIDR( const SliceHeader& rcSH  )
         (*iter)->getFGSPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getFGSPicBuffer() );
       }
-      else
+      else if ((*iter)->getPicBuffer() )  //JVT-S036 lsj
       {
         (*iter)->getPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getPicBuffer() );
@@ -745,7 +795,7 @@ ErrVal FrameMng::outputAll()
       (*iter)->getFGSPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
       m_cPicBufferOutputList.push_back( (*iter)->getFGSPicBuffer() );
     }
-    else
+    else if ((*iter)->getPicBuffer() )  //JVT-S036 lsj
     {
       (*iter)->getPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
       m_cPicBufferOutputList.push_back( (*iter)->getPicBuffer() );
@@ -788,7 +838,7 @@ ErrVal FrameMng::xSetOutputList( FrameUnit* pcFrameUnit )
         (*iter)->getFGSPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getFGSPicBuffer() );
       }
-      else
+      else if ((*iter)->getPicBuffer() )  //JVT-S036 lsj
       {
         (*iter)->getPicBuffer()->setCts( (UInt64)((*iter)->getMaxPOC()) ); // HS: decoder robustness
         m_cPicBufferOutputList.push_back( (*iter)->getPicBuffer() );
@@ -844,6 +894,17 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
 
     m_cShortTermList.push_front( m_pcCurrentFrameUnit );
     m_iEntriesInDPB++;
+
+//JVT-S036 lsj start
+	if( rcSH.getKeyPicFlagScalable() )
+	{
+		RNOK( m_cFrameUnitBuffer.getFrameUnit( m_pcCurrentFrameUnitBase ) );
+		RNOK( m_pcCurrentFrameUnitBase->copyBase( rcSH, *m_pcCurrentFrameUnit ) );
+		m_pcCurrentFrameUnitBase->setBaseRep( true );
+		m_cShortTermList.push_front( m_pcCurrentFrameUnitBase );
+		m_iEntriesInDPB++; 
+	}
+//JVT-S036 lsj end
   }
   else
   {
@@ -862,7 +923,14 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
     }
   }
 
-  m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnit );
+  if( rcSH.getKeyPicFlagScalable() ) //JVT-S036 lsj
+  {
+	m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnitBase );
+  }
+  else
+  {
+	  m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnit );
+  }
 
   return Err::m_nOK;
 }
@@ -893,6 +961,34 @@ ErrVal FrameMng::xMmcoMarkShortTermAsUnused( const FrameUnit* pcCurrFrameUnit, U
   return Err::m_nOK;
 }
 
+//JVT-S036 lsj start
+ErrVal FrameMng::xMmcoMarkShortTermAsUnusedBase( const FrameUnit* pcCurrFrameUnit, UInt uiDiffOfPicNums )
+{
+  UInt  uiCurrPicNum  = pcCurrFrameUnit->getFrameNumber();
+  UInt  uiPicNumN     = uiCurrPicNum - uiDiffOfPicNums - 1;
+
+  if( uiCurrPicNum <= uiDiffOfPicNums )
+  {
+    uiPicNumN += m_uiMaxFrameNumPrev;
+  }
+
+  FUIter iter = m_cShortTermList.findShortTerm( uiPicNumN );
+  if( iter == m_cShortTermList.end() )
+  {
+    printf("\nMMCO not possible\n" );
+    return Err::m_nOK; // HS: decoder robustness
+  }
+
+  FrameUnit* pcFrameUnit = (*iter);
+  if(pcFrameUnit->getBaseRep() )
+  {
+	  pcFrameUnit->setUnused();
+	  RNOK( xRemoveFromRefList( m_cShortTermList, iter ) );
+  }
+  
+  return Err::m_nOK;
+}
+//JVT-S036 lsj end
 
 ErrVal FrameMng::xManageMemory( const SliceHeader& rcSH )
 {
@@ -941,15 +1037,68 @@ ErrVal FrameMng::xSlidingWindowUpdate()
   //ROT( uiS > m_uiNumRefFrames );
   //if( uiS == m_uiNumRefFrames )
   while( uiS >= m_uiNumRefFrames ) // HS: decoder robustness
-  {
-    RNOK( xRemove( m_cShortTermList.popBack() ) );
-    uiS--; // HS: decoder robustness
+  {  
+	  RNOK( xRemove( m_cShortTermList.popBack() ) );
+	uiS--; // HS: decoder robustness
   }
-
   return Err::m_nOK;
 }
 
+//JVT-S036 lsj start
+ErrVal FrameMng::xSlidingWindowUpdateBase( UInt mCurrFrameNum )  
+{
+	FUList::iterator iter = m_cShortTermList.begin();
+	FUList::iterator end  = m_cShortTermList.end();
+	FUList::iterator iiter;
 
+	for( ; iter != m_cShortTermList.end(); iter++ )
+   {
+	   if( (*iter)->getBaseRep() && (*iter)->getFrameNumber() != mCurrFrameNum )
+    {
+		for( iiter = m_cShortTermList.begin(); iiter != m_cShortTermList.end(); iiter++ )
+		{
+			if ( (*iiter)->getFrameNumber() == (*iter)->getFrameNumber() && !(*iiter)->getBaseRep() )
+			{
+				(*iter)->setUnused();
+				RNOK( xRemoveFromRefList( m_cShortTermList, iter ) );
+				return Err::m_nOK;
+			}
+		}
+    }
+  }
+   return Err::m_nOK;
+}
+
+ErrVal FrameMng::xMMCOUpdateBase( SliceHeader* rcSH )
+{
+
+  MmcoOp            eMmcoOp;
+  const MmcoBuffer& rcMmcoBaseBuffer = rcSH->getMmcoBaseBuffer();
+  Int               iIndex        = 0;
+  UInt              uiVal1, uiVal2;
+
+  while( MMCO_END != (eMmcoOp = rcMmcoBaseBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
+ {
+	ErrVal nRet = Err::m_nOK;
+
+		switch( eMmcoOp )
+		{
+		case MMCO_SHORT_TERM_UNUSED:
+			RNOK( xMmcoMarkShortTermAsUnusedBase( m_pcCurrentFrameUnit, uiVal1 ) );
+		break;
+		case MMCO_RESET:
+		case MMCO_MAX_LONG_TERM_IDX:
+		case MMCO_ASSIGN_LONG_TERM:
+		case MMCO_LONG_TERM_UNUSED:
+		case MMCO_SET_LONG_TERM:
+		default:
+			fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
+		ROT(1);
+		}
+ }
+	return Err::m_nOK;
+}
+//JVT-S036 lsj end
 
 ErrVal FrameMng::getRecYuvBuffer( YuvPicBuffer*& rpcRecYuvBuffer )
 {
@@ -1043,19 +1192,24 @@ ErrVal FrameMng::xReferenceListRemapping( SliceHeader& rcSH, ListIdx eListIdx )
         //---- set frame ----
         if( ! rcSH.getKeyPictureFlag() ) 
         {
-          if( (*iter)->getFGSPicBuffer() )
-          {
-            pcFrame = &( (*iter)->getFGSFrame() );
-          }
-          else
-          {
-            pcFrame = &( (*iter)->getFrame() );
-          }
-        }
-        else
-        {
-          pcFrame = &((*iter)->getFrame() );
-        }
+			if((*iter)->getBaseRep()) //JVT-S036 lsj
+			{
+				iter++;
+			}
+
+			if( (*iter)->getFGSPicBuffer() )
+			{
+				pcFrame = &( (*iter)->getFGSFrame() );
+			}
+			else
+			{
+				pcFrame = &( (*iter)->getFrame() );
+			}
+			}
+			else
+			{
+				pcFrame = &((*iter)->getFrame() );
+			}
       }
     }
 

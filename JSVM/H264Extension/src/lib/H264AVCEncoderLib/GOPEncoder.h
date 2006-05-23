@@ -452,6 +452,8 @@ protected:
   ErrVal        xSetRplr            ( RplrBuffer& rcRplrBuffer, UIntList cFrameNumList, UInt uiCurrFrameNr );
   ErrVal        xSetRplrAndMmco     ( SliceHeader& rcSH );
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
+  ErrVal		xWriteSuffixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//JVT-S036 lsj
+  ErrVal		xSetMmcoBase		( SliceHeader& rcSH, UInt iNum ); //JVT-S036 lsj
   //NonRequired JVT-Q066 (06-04-08){{
   ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit ); 
   ErrVal		xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
@@ -476,6 +478,10 @@ protected:
                                           IntFrame*                   enhFrame,
                                           YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
   ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
+
+  UInt				getSuffixUnitEnable()	{return m_uiSuffixUnitEnable;} //JVT-S036 lsj
+   UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;
@@ -653,6 +659,9 @@ protected:
   //JVT-R057 LA-RD}
 
   UInt							m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
+
+  UInt							m_uiSuffixUnitEnable; //JVT-S036 lsj
+  UInt							m_uiMMCOBaseEnable;  //JVT-S036 lsj
 };
 
 #if defined( WIN32 )

@@ -97,6 +97,7 @@ FrameUnit::FrameUnit( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYu
  , m_bOriginal      ( bOriginal )
  , m_bInitDone      ( false )
  , m_cResidual     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
+ , m_BaseRepresentation ( false )   //JVT-S036 lsj
  , m_cFGSFrame      ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
  , m_cFGSIntFrame   ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
  , m_pcFGSPicBuffer ( NULL)
@@ -208,6 +209,49 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
   return Err::m_nOK;
 }
 
+//JVT-S036 lsj start
+ErrVal FrameUnit::copyBase( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
+{
+  ROT( NULL != m_pcPicBuffer );
+
+  m_uiFrameNumber = rcSH.getFrameNum();
+
+  RNOK( m_cFrame.   init( NULL, this ) );
+  m_cFrame.getFullPelYuvBuffer()->copy( rcFrameUnit.getFrame().getFullPelYuvBuffer() );
+  m_cFrame.getFullPelYuvBuffer()->fillMargin();
+  
+  RNOK( m_cMbDataCtrl.init( rcSH.getSPS() ) );
+
+  m_iMaxPOC = rcFrameUnit.getMaxPOC();
+  m_uiStatus = rcFrameUnit.getStatus();  //JVT-S036 lsj
+
+  UInt uiStamp = m_cFrame.stamp() + 1;
+  m_cFrame.   stamp() = uiStamp;
+  m_cFrame.setPOC(rcFrameUnit.getFrame().getPOC());//JVT-S036 lsj
+
+  m_pcPicBuffer = rcFrameUnit.getPicBuffer();
+  m_pcPicBuffer->setUsed(); //JVT-S036 lsj
+
+  m_cResidual.init( false );
+  m_cResidual.getFullPelYuvBuffer()->clear();
+  m_bInitDone = true;
+  
+  m_cFGSIntFrame.init( false);
+  m_pcFGSPicBuffer = NULL;
+
+  m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
+
+  return Err::m_nOK;
+}
+ErrVal FrameUnit::uninitBase()  
+{ 
+	m_cFrame.uninit();
+	m_pcPicBuffer->setUnused();
+	m_pcPicBuffer = NULL;
+	
+	return Err::m_nOK;
+}
+//JVT-S036 lsj end
 
 Void FrameUnit::setPoc( Int iPoc )
 {

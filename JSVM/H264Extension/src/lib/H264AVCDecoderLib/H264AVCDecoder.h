@@ -131,7 +131,17 @@ public:
                   PocCalculator*      pcPocCalculator,
                   MotionCompensation* pcMotionCompensation );
   ErrVal uninit ();
-
+//JVT-S036 lsj start
+  SliceHeader *getSliceHeader() const { return m_pcSliceHeader ; }
+  ErrVal  initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
+											UInt&             ruiNalUnitType
+											, Bool            bPreParseHeader //FRAG_FIX
+											, Bool			      bConcatenated //FRAG_FIX_3
+											, Bool&           rbStartDecoding
+										    ,SliceHeader *   pcSliceHeader
+											, Bool&			 SuffixEnable
+								);
+//JVT-S036 lsj end
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
 	                    UInt&             ruiNalUnitType,
 	                    UInt&             ruiMbX,
@@ -147,6 +157,7 @@ public:
                         Bool&             bFragmented,
                         Bool&             bDiscardable
                         //~JVT-P031
+						,Bool&			  UnitAVCFlag	//JVT-S036 lsj
                         ); 
   //JVT-P031
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor);
@@ -183,11 +194,15 @@ public:
                                         SliceHeader&      rcSliceHeader,
                                         Int&              slicePoc  );
   ErrVal  checkSliceLayerDependency   ( BinDataAccessor*  pcBinDataAccessor,
-                                        Bool&             bFinishChecking );
+                                        Bool&             bFinishChecking 
+									    ,Bool&			  UnitAVCFlag    //JVT-S036 lsj	
+									   );
 //	TMM_EC {{
 	Bool		checkSEIForErrorConceal();
   ErrVal  checkSliceGap   ( BinDataAccessor*  pcBinDataAccessor,
-                            MyList<BinData*>&	cVirtualSliceList );
+                            MyList<BinData*>&	cVirtualSliceList 
+							,Bool&			  UnitAVCFlag		//JVT-S036 lsj
+						   );
 	ErrVal	setec( UInt uiErrorConceal) { m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal); if ( m_eErrorConceal == 0) m_bNotSupport = true; return	Err::m_nOK;}
 	UInt	m_uiNextFrameNum;
 	UInt	m_uiNextLayerId;
@@ -220,7 +235,7 @@ public:
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
-  ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bLastFragment, Bool& bDiscardable); //FRAG_FIX //TMM_EC
+  ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bLastFragment, Bool& bDiscardable, Bool UnitAVCFlag); //FRAG_FIX //TMM_EC//JVT-S036 lsj
   // TMM_EC {{
   ErrVal  xProcessSliceVirtual      ( SliceHeader&    rcSH,
 	                                    SliceHeader* pcPrevSH,

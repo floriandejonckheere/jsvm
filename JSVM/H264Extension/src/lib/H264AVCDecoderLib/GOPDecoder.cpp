@@ -502,6 +502,68 @@ DecodedPicBuffer::xMMCO( SliceHeader* pcSliceHeader )
   return Err::m_nOK;
 }
 
+//JVT-S036 lsj start
+ErrVal
+DecodedPicBuffer::xMMCOBase( SliceHeader* pcSliceHeader, UInt mCurrFrameNum ) 
+{
+	ROF( pcSliceHeader );
+
+  MmcoOp            eMmcoOp;
+  const MmcoBuffer& rcMmcoBaseBuffer = pcSliceHeader->getMmcoBaseBuffer();
+  Int               iIndex        = 0;
+  UInt              uiVal1, uiVal2;
+
+  while( MMCO_END != (eMmcoOp = rcMmcoBaseBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
+ {
+	ErrVal nRet = Err::m_nOK;
+
+		switch( eMmcoOp )
+		{
+		case MMCO_SHORT_TERM_UNUSED:
+			RNOK( xMarkShortTermUnusedBase( mCurrFrameNum, uiVal1 ) );
+		break;
+		case MMCO_RESET:
+		case MMCO_MAX_LONG_TERM_IDX:
+		case MMCO_ASSIGN_LONG_TERM:
+		case MMCO_LONG_TERM_UNUSED:
+		case MMCO_SET_LONG_TERM:
+		default:
+			fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
+		ROT(1);
+		}
+ }
+  return Err::m_nOK;
+}
+ErrVal
+DecodedPicBuffer::xMarkShortTermUnusedBase( UInt mCurrFrameNum, UInt uiDiffOfPicNums ) 
+{
+//  ROF( pcCurrentDPBUnit );
+
+  //UInt uiCurrPicNum = pcCurrentDPBUnit->getFrameNum();
+  Int  iPicNumN     = (Int)mCurrFrameNum - (Int)uiDiffOfPicNums - 1;
+
+  DPBUnit*              pcDPBUnit = 0;
+  DPBUnitList::iterator iter      = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end       = m_cUsedDPBUnitList.end  ();
+  for( ; iter != end; iter++ )
+  {
+	  if( (*iter)->isNeededForRef() && (*iter)->getFrameNum() == iPicNumN && (*iter)->isBaseRep() ) 
+    {
+      (*iter)->markNonRef();
+#if 1 // BUG_FIX -> also mark "base representation as unused for ref."
+#else
+      return Err::m_nOK;
+#endif
+    }
+  }
+#if 1 // BUG_FIX
+#else
+  ROT(1);
+#endif
+  return Err::m_nOK;
+}
+
+//JVT-S036 lsj end
 
 ErrVal
 DecodedPicBuffer::xMarkShortTermUnused( DPBUnit* pcCurrentDPBUnit, UInt uiDiffOfPicNums )
@@ -579,6 +641,35 @@ DecodedPicBuffer::xSlidingWindow()
 }
 
 
+//JVT-S036 lsj start
+ErrVal
+DecodedPicBuffer::xSlidingWindowBase( UInt mCurrFrameNum ) 
+{
+  //===== get number of reference frames =====
+  UInt uiCurrNumRefFrames     = 0;
+  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+  DPBUnitList::iterator iiter;
+  for( ; iter != end; iter++ )
+  {
+	  if( (*iter)->isBaseRep() && (*iter)->getFrameNum() != mCurrFrameNum )
+    {
+		for( iiter = m_cUsedDPBUnitList.begin(); iiter != end; iiter++ )
+		{
+			if ( (*iiter)->getFrameNum() == (*iter)->getFrameNum() && !(*iiter)->isBaseRep() )
+			{
+				if((*iter)->isNeededForRef())  
+				{
+					RNOK( (*iter)->markNonRef() );
+				}
+			}
+		}
+    }
+  }
+  
+  return Err::m_nOK;
+}
+//JVT-S036 lsj end 
 
 ErrVal
 DecodedPicBuffer::xOutput( PicBufferList&   rcOutputList,
@@ -1878,7 +1969,9 @@ MCTFDecoder::initSlice( SliceHeader* pcSliceHeader, UInt uiLastLayer )
       pcSliceHeader->getPoc           () != m_pcRQFGSDecoder->getSliceHeader()->getPoc          ()        ) )
   {
     Bool bHighestLayer = ( uiLastLayer == m_uiLayerId );
-    RNOK( xReconstructLastFGS( bHighestLayer ) );
+
+	RNOK( xReconstructLastFGS( bHighestLayer ) );
+    
   }
 
   return Err::m_nOK;
@@ -2027,6 +2120,21 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer )
     RNOK( pcFrame         ->add        ( m_pcPredSignal ) );
     RNOK( pcFrame         ->clip       () );
   }
+//JVT-S036 lsj start 
+
+  if ( pcSliceHeader->getKeyPicFlagScalable()  )
+	{
+		if( pcSliceHeader->getAdaptiveRefPicMarkingFlag() )
+		{
+			RNOK(m_pcDecodedPictureBuffer->xMMCOBase(pcSliceHeader, pcSliceHeader->getFrameNum()));
+		}
+		else
+		{
+			RNOK(m_pcDecodedPictureBuffer->xSlidingWindowBase( pcSliceHeader->getFrameNum() ));
+		}
+	}
+//JVT-S036 lsj end
+
   RNOK( m_pcRQFGSDecoder->finishPicture () );
 
   //===== store intra signal for inter-layer prediction =====
@@ -2294,7 +2402,18 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSlic
 }
 
 
+//JVT-S036 lsj start
+ErrVal
+MCTFDecoder::xDecodeSuffixUnit( SliceHeader*&  rpcSliceHeader,
+                                        PicBuffer*&    rpcPicBuffer,
+                                        PicBufferList& rcOutputList,
+                                        PicBufferList& rcUnusedList,
+                                        Bool           bReconstructionLayer )
+{
 
+	return Err::m_nOK;
+}
+//JVT-S036 lsj end
 
 
 ErrVal

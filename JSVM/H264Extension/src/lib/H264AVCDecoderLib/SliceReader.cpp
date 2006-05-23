@@ -437,6 +437,7 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
                               ,UInt         uiFirstFragNumMbsInSlice
                               ,Bool         bFirstFragFGSCompSep
                               //~JVT-P031
+							  ,Bool			UnitAVCFlag    //JVT-S036 lsj
                               )
 {
   Bool                  bScalable         = ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
@@ -456,10 +457,54 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
   UInt uiNumMbsInSlice = 0;
   Bool bFGSCompSep = false;
 
+//JVT-S036 lsj start
+  Bool KeyPicFlag = false;
+  Bool eAdaptiveRefPicMarkingModeFlag = false;
+  UInt eMemoryManagementControlOperation = 0;
+  UInt eDifferenceOfPicNumsMinus1 = 0;
+  UInt eLongTermPicNum = 0;
+  MmcoBuffer eMmcoBaseBuffer;
+//JVT-S036 lsj end
 
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
       eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
   {
+	 //JVT-S036 lsj start
+	 if( uiLayerId == 0 && uiQualityLevel == 0 && UnitAVCFlag )
+     {
+		 RNOK( m_pcParameterSetMng ->get    ( pcPPS, PPSId_AVC ) );
+         RNOK( m_pcParameterSetMng ->get    ( pcSPS, SPSId_AVC ) );
+
+		 rpcSH = new SliceHeader ( *pcSPS, *pcPPS );
+   		 ROF( rpcSH );
+
+		 if( eNalRefIdc != 0)
+		 {
+			 RNOK( m_pcHeaderReadIf->getFlag( KeyPicFlag,                        "SH: key_pic_flag"));
+			 if( KeyPicFlag && eNalUnitType != 21)
+			 {
+				 RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
+				 if( eAdaptiveRefPicMarkingModeFlag )
+				 {  
+					 RNOK( rpcSH->getMmcoBaseBuffer().read( m_pcHeaderReadIf ) );
+				 }		
+			 }
+		 }
+		 rpcSH->setNalUnitType   ( eNalUnitType    );
+		 rpcSH->setNalRefIdc     ( eNalRefIdc      );
+		 rpcSH->setLayerId       ( uiLayerId       );
+		 rpcSH->setTemporalLevel ( uiTemporalLevel );
+		 rpcSH->setQualityLevel  ( uiQualityLevel  );
+		 rpcSH->setKeyPicFlagScalable( KeyPicFlag      );
+		 rpcSH->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag ); 
+		 rpcSH->setPicOrderCntLsb( POC_AVC );
+//		 UnitAVCFlag = false;
+
+		 return Err::m_nOK;
+	 }
+	 else
+	 {
+//JVT-S036 lsj end
       RNOK( m_pcHeaderReadIf    ->getUvlc( uiFirstMbInSlice,  "SH: first_mb_in_slice" ) );
       RNOK( m_pcHeaderReadIf    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
       if( uiSliceType > 4 && ! bScalable )
@@ -496,6 +541,7 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
       }
       RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
       RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
+	 }//JVT-S036 lsj  
   }
   else
   {
@@ -530,7 +576,25 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
  
   //===== read remaining parameters =====
   if(uiFragOrder == 0) //JVT-P031
-      RNOK( rpcSH->read( m_pcHeaderReadIf ) );    
+  {
+      RNOK( rpcSH->read( m_pcHeaderReadIf ) ); 
+  }
+//JVT-S036 lsj start
+  else
+  {
+	  RNOK( m_pcHeaderReadIf->getFlag( KeyPicFlag,                        "SH: key_pic_flag"));
+	  rpcSH->setKeyPicFlagScalable( KeyPicFlag );  //JVT-S036 lsj
+  }
+
+  if ( eNalUnitType == NAL_UNIT_CODED_SLICE ||
+	   eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+  {
+	  UnitAVCFlag = true;
+	  PPSId_AVC = uiPPSId;
+	  SPSId_AVC = pcPPS->getSeqParameterSetId();
+	  POC_AVC = rpcSH->getPicOrderCntLsb();
+  }
+//JVT-S036 lsj end
 
   //--ICU/ETRI FMO Implementation 
   rpcSH->FMOInit();
@@ -540,5 +604,57 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
 }
 
 
+//JVT-S036 lsj start
+ErrVal
+SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
+									NalRefIdc     eNalRefIdc,
+									UInt		  uiLayerId,
+									UInt		  uiQualityLevel,
+									SliceHeader*  pcSliceHeader
+								  )
+{
+  
+  //===== read first parameters =====
+  
+  Bool eAdaptiveRefPicMarkingModeFlag = false;
+  Bool KeyPicFlag = false;
+  UInt eMemoryManagementControlOperation = 0;
+  UInt eDifferenceOfPicNumsMinus1 = 0;
+  UInt eLongTermPicNum = 0;
+
+
+
+  if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
+      eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
+  {
+	  
+	 if( uiLayerId == 0 && uiQualityLevel == 0 ) 
+     {
+
+		 if( eNalRefIdc != 0)
+		 {
+			 RNOK( m_pcHeaderReadIf->getFlag( KeyPicFlag,                        "SH: key_pic_flag"));
+			 if( KeyPicFlag && eNalUnitType != 21)
+			 {
+				 RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
+				 if( eAdaptiveRefPicMarkingModeFlag )
+				 {  
+					 RNOK( pcSliceHeader->getMmcoBaseBuffer().read( m_pcHeaderReadIf ) );
+				 }		
+			 }
+		 }
+
+		 pcSliceHeader->setKeyPicFlagScalable( KeyPicFlag ); //JVT-S036 lsj
+		 pcSliceHeader->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag );
+
+		 return Err::m_nOK;
+	 }
+	 else
+		 return Err::m_nERR;
+  }
+  else
+	  return Err::m_nERR;
+}
+//JVT-S036 lsj end
 
 H264AVC_NAMESPACE_END

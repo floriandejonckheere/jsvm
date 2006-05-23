@@ -944,7 +944,7 @@ RQFGSEncoder::xMotionEstimation()
 ErrVal
 RQFGSEncoder::xEncodeMotionData( UInt uiMbYIdx, UInt uiMbXIdx )
 {
-  ETRACE_DO( UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx );
+  ETRACE_DECLARE( UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx );
   MbDataAccess* pcMbDataAccessEL  = 0;
   MbDataAccess* pcMbDataAccessBL  = 0;
 

@@ -539,7 +539,8 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   rpcSliceHeader->setKeyPictureFlag                     ( rcFrameSpec.getTemporalLayer() == 0 );
   rpcSliceHeader->setSimplePriorityId                   ( 0 );
   rpcSliceHeader->setDiscardableFlag                    ( false );
-  rpcSliceHeader->setExtensionFlag                      ( false );
+  rpcSliceHeader->setReservedZeroBit                   ( false ); //JVT-S036 lsj//rpcSliceHeader->setExtensionFlag  ( false );
+
 
   //===== set general parameters =====
   rpcSliceHeader->setFirstMbInSlice                     ( 0 );

@@ -121,14 +121,26 @@ class H264AVCCOMMONLIB_API FrameMng
     FrameUnit* popBack()  { FrameUnit* pcFU = back();   pop_back();   return pcFU; }
     FrameUnit* popFront() { FrameUnit* pcFU = front();  pop_front();  return pcFU; }
 
-    Void setRefPicListFGS( RefPicList<RefPic>& rcRefPicList )
+        Void setRefPicListFGS( RefPicList<RefPic>& rcRefPicList )
     {
       for( iterator iter = begin(); iter != end(); iter++ )
       {
         FrameUnit* pcFU = (*iter);
-        if( pcFU->isUsed() )
+		if( pcFU->isUsed() && !pcFU->getBaseRep() ) //JVT-S036 lsj
         {
-          rcRefPicList.next().setFrame(  &( pcFU->getFGSPicBuffer() ? pcFU->getFGSFrame() : pcFU->getFrame() ) );
+			if(pcFU->getFGSPicBuffer() || pcFU->getPicBuffer()) //JVT-S036 lsj
+			{
+				rcRefPicList.next().setFrame(  &( pcFU->getFGSPicBuffer() ? pcFU->getFGSFrame() : pcFU->getFrame() ) );
+			}
+			else //JVT-S036 lsj
+			{
+				iter--;
+				if((*iter)->getBaseRep())
+				{
+					rcRefPicList.next().setFrame( &( (*iter)->getFrame() ) );
+				}
+				iter++;
+			}
         }
       }
     }
@@ -138,9 +150,21 @@ class H264AVCCOMMONLIB_API FrameMng
       for( iterator iter = begin(); iter != end(); iter++ )
       {
         FrameUnit* pcFU = (*iter);
-        if( pcFU->isUsed() )
+        if( pcFU->isUsed() && !pcFU->getBaseRep() ) //JVT-S036 lsj 
         {
-          rcRefFrameList.add(  &( pcFU->getFGSPicBuffer() ? pcFU->getFGSFrame() : pcFU->getFrame() ) );
+			if(pcFU->getFGSPicBuffer() || pcFU->getPicBuffer()) //JVT-S036 lsj
+			{
+				rcRefFrameList.add(  &( pcFU->getFGSPicBuffer() ? pcFU->getFGSFrame() : pcFU->getFrame() ) );
+			}
+			else //JVT-S036 lsj
+			{
+				iter--;
+				if((*iter)->getBaseRep())
+				{
+					rcRefFrameList.add( &( (*iter)->getFrame() ) );
+				}
+				iter++;
+			}
         }
       }
     }
@@ -149,7 +173,7 @@ class H264AVCCOMMONLIB_API FrameMng
     {
       for( iterator iter = begin(); iter != end(); iter++ )
       {
-        if( (*iter)->isUsed() )
+		  if( (*iter)->isUsed() && (*iter)->getPicBuffer() )  //JVT-S036 lsj
         {
           rcRefPicList.next().setFrame( &( (*iter)->getFrame() ) );
         }
@@ -160,7 +184,7 @@ class H264AVCCOMMONLIB_API FrameMng
     {
       for( iterator iter = begin(); iter != end(); iter++ )
       {
-        if( (*iter)->isUsed() )
+		  if( (*iter)->isUsed() && (*iter)->getPicBuffer() )  //JVT-S036 lsj
         {
           rcRefFrameList.add( &( (*iter)->getFrame() ) );
         }
@@ -230,6 +254,8 @@ public:
   IntFrame*   getRefinementIntFrame2() { return m_pcRefinementIntFrameSpatial; }
   IntFrame*   getPredictionIntFrame()  { return m_pcPredictionIntFrame; }
 
+  ErrVal			xSlidingWindowUpdateBase    ( UInt mCurrFrameNum); //JVT-S036 lsj
+  ErrVal			xMMCOUpdateBase				( SliceHeader* rcSH ); //JVT-S036 lsj
 
   ErrVal initSlice( SliceHeader *rcSH );
   ErrVal initSPS( const SequenceParameterSet& rcSPS );
@@ -246,6 +272,7 @@ public:
   ErrVal  destroy                 ();
   ErrVal  init                    ( YuvBufferCtrl* pcYuvFullPelBufferCtrl, YuvBufferCtrl* pcYuvHalfPelBufferCtrl = NULL, QuarterPelFilter* pcQuarterPelFilter = NULL );
   ErrVal  uninit                  ();
+  ErrVal  RefreshOrederedPOCList  (); //JVT-S036 lsj
   ErrVal  setPicBufferLists       ( PicBufferList& rcPicBufferOutputList, PicBufferList& rcPicBufferUnusedList );
   ErrVal  outputAll               ();
   ErrVal  getRecYuvBuffer         ( YuvPicBuffer*& rpcRecYuvBuffer );
@@ -265,6 +292,7 @@ protected:
   ErrVal            xStoreCurrentPicture        ( const SliceHeader& rcSH );                // MMCO 6
   ErrVal            xReferenceListRemapping     ( SliceHeader& rcSH, ListIdx eListIdx );
   ErrVal            xMmcoMarkShortTermAsUnused( const FrameUnit* pcCurrFrameUnit, UInt uiDiffOfPicNums );
+  ErrVal            xMmcoMarkShortTermAsUnusedBase( const FrameUnit* pcCurrFrameUnit, UInt uiDiffOfPicNums ); //JVT-S036 lsj
 
 private:
   UInt              xSortPocOrderedList                 ();
@@ -287,6 +315,7 @@ private:
   PicBufferList     m_cPicBufferUnusedList;
   FrameUnit*        m_pcOriginalFrameUnit;
   FrameUnit*        m_pcCurrentFrameUnit;
+  FrameUnit*		m_pcCurrentFrameUnitBase; //JVT-S036 lsj
 
   RefPicList<Frame*>     m_cPocOrderedFrameList;
 

@@ -230,7 +230,9 @@ MCTFEncoder::MCTFEncoder()
 // JVT-Q065 EIDR}
 , m_bLARDOEnable                    ( false ) //JVT-R057 LA-RDO
 , m_uiNonRequiredWrite				( 0 )  //NonRequired JVT-Q066 (06-04-08)
-{
+, m_uiSuffixUnitEnable				( 0 ) //JVT-S036 lsj
+, m_uiMMCOBaseEnable						( 0 ) //JVT-S036 lsj
+ {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
 
@@ -422,6 +424,9 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 	  pcLayerParameters->setContrainedIntraForLP();
   }
   //JVT-R057 LA-RDO}
+
+  m_uiSuffixUnitEnable = pcCodingParameter->getSuffixUnitEnable();//JVT-S036 lsj
+  m_uiMMCOBaseEnable   = pcCodingParameter->getMMCOBaseEnable();  //JVT-S036 lsj
 
 #if MULTIPLE_LOOP_DECODING
   m_bCompletelyDecodeLayer          = ( pcCodingParameter->getNumberOfLayers() > m_uiLayerId+1 &&
@@ -2113,6 +2118,12 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
     pcSliceHeader->setFirstMbInSlice(pcFMO->getFirstMacroblockInSlice(iSliceGroupID));
     pcSliceHeader->setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
 
+	if(m_uiMMCOBaseEnable)  
+	{//JVT-S036 lsj
+		UInt iFrameNum =  m_pcLowPassBaseReconstruction->getFrameNum(); 
+		RNOK( xSetMmcoBase( *pcSliceHeader, iFrameNum ) );  
+	}
+
     //----- init NAL UNIT -----
     RNOK( xInitExtBinDataAccessor                 (  m_cExtBinDataAccessor ) );
     RNOK( m_pcNalUnitEncoder->initNalUnit         ( &m_cExtBinDataAccessor ) );
@@ -2120,6 +2131,9 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
     //---- write Slice Header -----
     ETRACE_NEWSLICE;
     xAssignSimplePriorityId( pcSliceHeader );
+
+	pcSliceHeader->setAVCCompatible( m_bH264AVCCompatible ); //JVT-S036 lsj
+
     RNOK( m_pcNalUnitEncoder->write               ( *pcSliceHeader ) );
 
     rcControlData.getPrdFrameList( LIST_0 ).reset();
@@ -2193,6 +2207,16 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
   RNOK( xAppendNewExtBinDataAccessor            ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
   uiBits += 4*8;
 
+//JVT-S036 lsj start
+  if( m_uiSuffixUnitEnable )
+  {
+	  if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
+	  {
+		  RNOK( xWriteSuffixUnit( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBits ) );
+	  }
+  }
+//JVT-S036 lsj end
+
   printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d ) %10d bits\n",
     pcSliceHeader->getPoc                    (),
     pcSliceHeader->getLayerId                (),
@@ -2251,6 +2275,8 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
     rcControlData.getSliceHeader()->setFirstMbInSlice(pcFMO->getFirstMacroblockInSlice(iSliceGroupID));
     rcControlData.getSliceHeader()->setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
 
+	rcControlData.getSliceHeader()->setAdaptiveRefPicMarkingFlag( false );  //JVT-S036 lsj
+
     //----- init NAL UNIT -----
     RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
     RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
@@ -2258,6 +2284,7 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
     //---- write Slice Header -----
     ETRACE_NEWSLICE;
     xAssignSimplePriorityId( rcControlData.getSliceHeader() );
+	rcControlData.getSliceHeader()->setAVCCompatible( m_bH264AVCCompatible );  //JVT-S036 lsj
     RNOK( m_pcNalUnitEncoder->write( *rcControlData.getSliceHeader() ) );
 
     //----- write slice data -----
@@ -2281,7 +2308,15 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
     //----- update -----
     RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
     uiBits += 4*8;
-
+//JVT-S036 lsj start
+	if( m_uiSuffixUnitEnable )
+	{
+		if ( rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE|| rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
+		{
+			RNOK( xWriteSuffixUnit( rcOutExtBinDataAccessorList, *rcControlData.getSliceHeader(), uiBits ) );
+		}
+	}
+//JVT-S036 lsj end
 
     printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d ) %10d bits\n",
       rcControlData.getSliceHeader()->getPoc                    (),
@@ -2761,7 +2796,8 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   //{{Variable Lengh NAL unit header data with priority and dead substream flag
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   pcSliceHeader->setDiscardableFlag             ( false                 );
-  pcSliceHeader->setExtensionFlag	              ( m_bExtendedPriorityId );
+  pcSliceHeader->setReservedZeroBit	            ( false                 );  //JVT-S036 lsj
+						//pcSliceHeader->setExtensionFlag	              ( m_bExtendedPriorityId );
   pcSliceHeader->setSimplePriorityId            ( 0	                    );
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
@@ -2772,6 +2808,7 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setIdrPicId                    ( 0                     );
   pcSliceHeader->setDirectSpatialMvPredFlag     ( true                  );
   pcSliceHeader->setKeyPictureFlag              ( bKeyPicture           );
+  pcSliceHeader->setKeyPicFlagScalable          ( false					); //JVT-S036 lsj
   pcSliceHeader->setNumRefIdxActiveOverrideFlag ( false                 );
   pcSliceHeader->setCabacInitIdc                ( 0                     );
   pcSliceHeader->setSliceHeaderQp               ( 0                     );
@@ -4283,6 +4320,8 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 
     //----- store for prediction of following low-pass pictures -----
     RNOK( m_pcLowPassBaseReconstruction ->copy( pcBLRecFrame ) );
+
+	m_pcLowPassBaseReconstruction->setFrameNum(pcSliceHeader->getFrameNum());  //JVT-S036 lsj
 
     // at least the same as the base layer
     RNOK( rcControlData.saveMbDataQpAndCbp() );
@@ -6151,7 +6190,39 @@ MCTFEncoder::xSetRplr( RplrBuffer&  rcRplrBuffer,
 }
 
 
+//JVT-S036 lsj start
+ErrVal
+MCTFEncoder::xSetMmcoBase( SliceHeader& pcSliceHeader, UInt iNum )
+{
+	SliceHeader& rcSH = pcSliceHeader;
+	rcSH.getMmcoBaseBuffer().clear();
+	rcSH.setAdaptiveRefPicMarkingFlag( false );
+	UInt uiCurrFrameNr = rcSH.getFrameNum();
 
+	  
+	// leave if idr
+    if( rcSH.isIdrNalUnit() )
+	{
+		return Err::m_nOK;
+	}
+	//generate mmco commands
+	if( rcSH.getKeyPictureFlag() )
+	{
+		UInt uiPos = 0;
+		const UInt  uiMaxFrameNumber  = ( 1 << rcSH.getSPS().getLog2MaxFrameNum() );
+		const Int   iDiff             =  rcSH.getFrameNum() - iNum;
+		//UInt        uiDiff            = ( uiMaxFrameNumber - iDiff ) % uiMaxFrameNumber;
+
+		rcSH.getMmcoBaseBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, iDiff-1 ) );
+		
+		rcSH.getMmcoBaseBuffer().set( uiPos, Mmco( MMCO_END) );
+		rcSH.setAdaptiveRefPicMarkingFlag( true );
+
+	}
+	
+	return Err::m_nOK;
+}
+//JVT-S036 lsj end
 
 
 ErrVal
@@ -6187,6 +6258,57 @@ MCTFEncoder::xWriteSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, Sli
 
   return Err::m_nOK;
 }
+
+//JVT-S036 lsj start
+ErrVal
+MCTFEncoder::xWriteSuffixUnit( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit )
+{
+  UInt uiBit = 0;
+  Bool m_bWriteSuffixUnit = true; 
+  if( m_bWriteSuffixUnit )
+  {
+    RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
+    RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
+
+	NalUnitType eNalUnitType = rcSH.getNalUnitType();
+	UInt eLayerId = rcSH.getLayerId();
+	UInt eQualityLevel = rcSH.getQualityLevel();
+
+    
+	rcSH.setLayerId( 0 );
+	rcSH.setQualityLevel( 0 );
+
+	rcSH.setAVCCompatible( true ); 
+
+	if( eNalUnitType == NAL_UNIT_CODED_SLICE )
+	{
+		rcSH.setNalUnitType( NAL_UNIT_CODED_SLICE_SCALABLE );
+	}
+	else if ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+	{
+		rcSH.setNalUnitType( NAL_UNIT_CODED_SLICE_IDR_SCALABLE );
+	}
+	else
+	{
+		return Err::m_nERR;
+	}
+
+    RNOK( m_pcNalUnitEncoder->write( rcSH ) ); 
+
+    RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBit ) );
+    RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+    uiBit += 4*8;
+    ruiBit += uiBit;
+
+	rcSH.setNalUnitType( eNalUnitType );
+	rcSH.setLayerId( eLayerId );
+	rcSH.setQualityLevel( eQualityLevel );
+  }
+
+  return Err::m_nOK;
+}
+
+//JVT-S036 lsj end
 
 //NonRequired JVT-Q066 (06-04-08){{
 ErrVal 
@@ -6431,17 +6553,19 @@ MCTFEncoder::xAssignSimplePriorityId( SliceHeader* pcSliceHeader )
 {
     // Lookup simple priority ID from mapping table (J. Ridge, Y-K. Wang @ Nokia)
     Bool bFound = false;
-    for ( UInt uiSimplePriId = 0; uiSimplePriId < (1 << PRI_ID_BITS); uiSimplePriId++ )
-    {
-        UInt uiLayer, uiTempLevel, uiQualLevel;
-        m_pcSPS->getSimplePriorityMap( uiSimplePriId, uiTempLevel, uiLayer, uiQualLevel );
-        if ( pcSliceHeader->getTemporalLevel() == uiTempLevel && m_uiLayerId == uiLayer && pcSliceHeader->getQualityLevel() == uiQualLevel )
-        {
-            pcSliceHeader->setSimplePriorityId ( uiSimplePriId );
+//JVT-S036 lsj start
+ //   for ( UInt uiSimplePriId = 0; uiSimplePriId < (1 << PRI_ID_BITS); uiSimplePriId++ )
+  //  {
+   //     UInt uiLayer, uiTempLevel, uiQualLevel;
+   //     m_pcSPS->getSimplePriorityMap( uiSimplePriId, uiTempLevel, uiLayer, uiQualLevel );
+  //      if ( pcSliceHeader->getTemporalLevel() == uiTempLevel && m_uiLayerId == uiLayer && pcSliceHeader->getQualityLevel() == uiQualLevel )
+    //    {
+            pcSliceHeader->setSimplePriorityId ( 0 ); //lsj The syntax element is not used by the decoding process specified in this Recommendation
             bFound = true;
-            break;
-        }
-    }
+      //      break;
+    //    }
+   // }
+//JVT-S036 lsj end
     //AOF( bFound );
 }
 

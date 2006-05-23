@@ -212,43 +212,74 @@ public:
 
 		Void setNumLayersMinus1( UInt ui )																				{ m_num_layers_minus1 = ui;	}
 		Void setLayerId ( UInt uilayer, UInt uiId )																{ m_layer_id															[uilayer] = uiId; }
-		Void setFGSlayerFlag ( UInt uilayer, Bool bFlag )													{ m_fgs_layer_flag												[uilayer] = bFlag; }
+	//JVT-S036 lsj start
+//		Void setFGSlayerFlag ( UInt uilayer, Bool bFlag )													{ m_fgs_layer_flag												[uilayer] = bFlag; }   
+		Void setSimplePriorityId ( UInt uilayer, UInt uiLevel )										{ m_simple_priority_id										[uilayer] = uiLevel; }
+		Void setDiscardableFlag	(UInt uilayer, Bool bFlag)												{ m_discardable_flag											[uilayer] = bFlag; }
+		Void setTemporalLevel ( UInt uilayer, UInt uiLevel )											{ m_temporal_level												[uilayer] = uiLevel; }
+		Void setDependencyId ( UInt uilayer, UInt uiId )													{ m_dependency_id													[uilayer] = uiId; }
+		Void setQualityLevel ( UInt uilayer, UInt uiLevel )												{ m_quality_level													[uilayer] = uiLevel; }
+	
 		Void setSubPicLayerFlag ( UInt uilayer, Bool bFlag)												{ m_sub_pic_layer_flag[uilayer] = bFlag; }
 		Void setSubRegionLayerFlag ( UInt uilayer, Bool bFlag)										{ m_sub_region_layer_flag									[uilayer] = bFlag; }
+		Void setIroiSliceDivisionInfoPresentFlag ( UInt uilayer, Bool bFlag )				{ m_iroi_slice_division_info_present_flag		[uilayer] = bFlag; } 
 		Void setProfileLevelInfoPresentFlag ( UInt uilayer, Bool bFlag)						{ m_profile_level_info_present_flag				[uilayer] = bFlag; }
-		Void setDecodingDependencyInfoPresentFlag ( UInt uilayer, Bool bFlag )		{ m_decoding_dependency_info_present_flag	[uilayer] = bFlag; }
+	//JVT-S036 lsj end
 		Void setBitrateInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_bitrate_info_present_flag							[uilayer] = bFlag; }
 		Void setFrmRateInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_frm_rate_info_present_flag						[uilayer] = bFlag; }
 		Void setFrmSizeInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_frm_size_info_present_flag						[uilayer] = bFlag; }
 		Void setLayerDependencyInfoPresentFlag ( UInt uilayer, Bool bFlag )				{ m_layer_dependency_info_present_flag		[uilayer] = bFlag; }
 		Void setInitParameterSetsInfoPresentFlag ( UInt uilayer, Bool bFlag )			{ m_init_parameter_sets_info_present_flag	[uilayer] = bFlag; }
+		Void setExactInterlayerPredFlag ( UInt uilayer, Bool bFlag )			{ m_exact_interlayer_pred_flag  [uilayer] = bFlag; }				//JVT-S036 lsj
 		Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )											{ m_layer_profile_idc											[uilayer] = uiIdc; }
 		Void setLayerConstraintSet0Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set0_flag						[uilayer] = bFlag; }
 		Void setLayerConstraintSet1Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set1_flag						[uilayer] = bFlag; }
 		Void setLayerConstraintSet2Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set2_flag						[uilayer] = bFlag; }
 		Void setLayerConstraintSet3Flag ( UInt uilayer, Bool bFlag )							{ m_layer_constraint_set3_flag						[uilayer] = bFlag; }
 		Void setLayerLevelIdc ( UInt uilayer, UInt uiIdc )												{ m_layer_level_idc												[uilayer] = uiIdc; }
-		Void setTemporalLevel ( UInt uilayer, UInt uiLevel )											{ m_temporal_level												[uilayer] = uiLevel; }
-		Void setDependencyId ( UInt uilayer, UInt uiId )													{ m_dependency_id													[uilayer] = uiId; }
-		Void setQualityLevel ( UInt uilayer, UInt uiLevel )												{ m_quality_level													[uilayer] = uiLevel; }
-		Void setAvgBitrate ( UInt uilayer, UInt uiBitrate )												{ m_avg_bitrate														[uilayer] = uiBitrate; }
-		Void setMaxBitrate ( UInt uilayer, UInt uiBitrate )												{ m_max_bitrate														[uilayer] = uiBitrate; }
+		
+	//JVT-S036 lsj start
+		Void setProfileLevelInfoSrcLayerIdDelta ( UInt uilayer, UInt uiIdc ) { m_profile_level_info_src_layer_id_delta [uilayer] = uiIdc; } 
+	
+		Void setAvgBitrate ( UInt uilayer, UInt uiBitrate )												{ m_avg_bitrate										[uilayer] = uiBitrate; }
+		Void setMaxBitrateLayer ( UInt uilayer, UInt uiBitrate )										{ m_max_bitrate_layer								[uilayer] = uiBitrate; }
+		Void setMaxBitrateDecodedPicture ( UInt uilayer, UInt uiBitrate )								{ m_max_bitrate_decoded_picture						[uilayer] = uiBitrate; }		
+		Void setMaxBitrateCalcWindow ( UInt uilayer, UInt uiBitrate )									{ m_max_bitrate_calc_window							[uilayer] = uiBitrate; }
+	//JVT-S036 lsj end
+		
+		
 		Void setConstantFrmRateIdc ( UInt uilayer, UInt uiFrmrate )								{ m_constant_frm_rate_idc									[uilayer] = uiFrmrate; }
 		Void setAvgFrmRate ( UInt uilayer, UInt uiFrmrate )												{ m_avg_frm_rate													[uilayer] = uiFrmrate; }
+		Void setFrmRateInfoSrcLayerIdDelta( UInt uilayer, UInt uiFrmrate)					{ m_frm_rate_info_src_layer_id_delta			[uilayer] = uiFrmrate; } //JVT-S036 lsj
 		Void setFrmWidthInMbsMinus1 ( UInt uilayer, UInt uiWidth )								{ m_frm_width_in_mbs_minus1								[uilayer] = uiWidth; }
 		Void setFrmHeightInMbsMinus1 ( UInt uilayer, UInt uiHeight )							{ m_frm_height_in_mbs_minus1							[uilayer] = uiHeight; }
+		Void setFrmSizeInfoSrcLayerIdDelta ( UInt uilayer, UInt uiFrmsize)					{ m_frm_size_info_src_layer_id_delta			[uilayer] = uiFrmsize; } //JVT-S036 lsj
 		Void setBaseRegionLayerId ( UInt uilayer, UInt uiId )											{ m_base_region_layer_id									[uilayer] = uiId; }
 		Void setDynamicRectFlag ( UInt uilayer, Bool bFlag )											{ m_dynamic_rect_flag											[uilayer] = bFlag; }
 		Void setHorizontalOffset ( UInt uilayer, UInt uiOffset )									{ m_horizontal_offset											[uilayer] = uiOffset; }
 		Void setVerticalOffset ( UInt uilayer, UInt uiOffset )										{ m_vertical_offset												[uilayer] = uiOffset; }
 		Void setRegionWidth ( UInt uilayer, UInt uiWidth )												{ m_region_width													[uilayer] = uiWidth; }
 		Void setRegionHeight ( UInt uilayer, UInt uiHeight )											{ m_region_height													[uilayer] = uiHeight; }
+		Void setSubRegionInfoSrcLayerIdDelta ( UInt uilayer, UInt uiSubRegion )					{ m_sub_region_info_src_layer_id_delta						[uilayer] = uiSubRegion; } //JVT-S036 lsj
+	//JVT-S036 lsj start
+		Void setRoiId ( UInt uilayer, UInt RoiId )												{ m_roi_id[uilayer]	= RoiId; } 
+		Void setIroiSliceDivisionType ( UInt uilayer, UInt bType )								{ m_iroi_slice_division_type[uilayer] = bType; }
+		Void setGridSliceWidthInMbsMinus1 ( UInt uilayer, UInt bWidth )							{ m_grid_slice_width_in_mbs_minus1[uilayer] = bWidth; }
+		Void setGridSliceHeightInMbsMinus1 ( UInt uilayer, UInt bHeight )						{ m_grid_slice_height_in_mbs_minus1[uilayer] = bHeight; }
+		Void setNumSliceMinus1 ( UInt uilayer, UInt bNum ) 										{ m_num_slice_minus1[uilayer] = bNum; }
+		Void setFirstMbInSlice ( UInt uilayer, UInt uiTar, UInt bNum )							{ m_first_mb_in_slice[uilayer][uiTar] = bNum; }
+		Void setSliceWidthInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bWidth )					{ m_slice_width_in_mbs_minus1[uilayer][uiTar] = bWidth; }
+		Void setSliceHeightInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bHeight )				{ m_slice_height_in_mbs_minus1[uilayer][uiTar] = bHeight; }
+		Void setSliceId ( UInt uilayer, UInt uiTar, UInt bId )									{ m_slice_id[uilayer][uiTar] = bId; }
+    //JVT-S036 lsj end	
 		Void setNumDirectlyDependentLayers ( UInt uilayer, UInt uiNum )						{ m_num_directly_dependent_layers					[uilayer] = uiNum; }
-		Void setDirectlyDependentLayerIdDelta( UInt uilayer, UInt uiTar, UInt uiDelta ){ m_directly_dependent_layer_id_delta[uilayer][uiTar] = uiDelta;	}
+		Void setDirectlyDependentLayerIdDeltaMinus1( UInt uilayer, UInt uiTar, UInt uiDelta ) { m_directly_dependent_layer_id_delta_minus1[uilayer][uiTar] = uiDelta;} ///JVT-S036 lsj
+		Void setLayerDependencyInfoSrcLayerIdDelta( UInt uilayer, UInt uiDelta )		  { m_layer_dependency_info_src_layer_id_delta	    [uilayer] = uiDelta;} //JVT-S036 lsj
 		Void setNumInitSeqParameterSetMinus1 ( UInt uilayer, UInt uiNum )					{ m_num_init_seq_parameter_set_minus1			[uilayer] = uiNum; }
 		Void setInitSeqParameterSetIdDelta ( UInt uilayer, UInt uiSPS, UInt uiTar){ m_init_seq_parameter_set_id_delta				[uilayer][uiSPS] = uiTar;	}
 		Void setNumInitPicParameterSetMinus1 ( UInt uilayer, UInt uiNum )					{ m_num_init_pic_parameter_set_minus1			[uilayer] = uiNum; }
 		Void setInitPicParameterSetIdDelta ( UInt uilayer, UInt uiPPS, UInt uiTar){ m_init_pic_parameter_set_id_delta				[uilayer][uiPPS] = uiTar; }
+		Void setInitParameterSetsInfoSrcLayerIdDelta (UInt uilayer, UInt uiDelta)	{ m_init_parameter_sets_info_src_layer_id_delta[uilayer] = uiDelta; } //JVT-S036 lsj
 // BUG_FIX liuhui{
 		Void setStdAVCOffset( UInt uiOffset )                                     { m_std_AVC_Offset = uiOffset;}
 		UInt getStdAVCOffset()const { return m_std_AVC_Offset; }
@@ -256,16 +287,26 @@ public:
 
 		UInt getNumLayersMinus1() const {return m_num_layers_minus1;}
 		UInt getLayerId ( UInt uilayer ) const { return m_layer_id[uilayer]; }
-		Bool getFGSLayerFlag ( UInt uilayer ) const { return m_fgs_layer_flag[uilayer]; }
+	 //JVT-S036 lsj start
+//		Bool getFGSLayerFlag ( UInt uilayer ) const { return m_fgs_layer_flag[uilayer]; } 
+		UInt getSimplePriorityId ( UInt uilayer ) const { return  m_simple_priority_id [uilayer]; }
+		Bool getDiscardableFlag	(UInt uilayer) const { return  m_discardable_flag [uilayer]; }
+		UInt getTemporalLevel ( UInt uilayer ) const { return m_temporal_level[uilayer]; }
+		UInt getDependencyId ( UInt uilayer ) const { return m_dependency_id[uilayer]; }
+		UInt getQualityLevel ( UInt uilayer ) const { return m_quality_level[uilayer]; }
+	
 		Bool getSubPicLayerFlag ( UInt uilayer ) { return m_sub_pic_layer_flag[uilayer]; }
 		Bool getSubRegionLayerFlag ( UInt uilayer ) const { return m_sub_region_layer_flag[uilayer]; }
+		Bool getIroiSliceDivisionInfoPresentFlag ( UInt uilayer ) const { return m_iroi_slice_division_info_present_flag[uilayer]; } 
 		Bool getProfileLevelInfoPresentFlag ( UInt uilayer ) const { return m_profile_level_info_present_flag[uilayer]; }
-		Bool getDecodingDependencyInfoPresentFlag ( UInt uilayer ) const { return m_decoding_dependency_info_present_flag[uilayer]; }
+   //JVT-S036 lsj end
 		Bool getBitrateInfoPresentFlag ( UInt uilayer ) const { return m_bitrate_info_present_flag[uilayer]; }
 		Bool getFrmRateInfoPresentFlag ( UInt uilayer ) const { return m_frm_rate_info_present_flag[uilayer]; }
 		Bool getFrmSizeInfoPresentFlag ( UInt uilayer ) const { return m_frm_size_info_present_flag[uilayer]; }
 		Bool getLayerDependencyInfoPresentFlag ( UInt uilayer ) const { return m_layer_dependency_info_present_flag[uilayer]; }
 		Bool getInitParameterSetsInfoPresentFlag ( UInt uilayer ) const { return m_init_parameter_sets_info_present_flag[uilayer]; }
+
+		Bool getExactInterlayerPredFlag ( UInt uilayer )	const { return m_exact_interlayer_pred_flag  [uilayer]; }				//JVT-S036 lsj
 
 		UInt getLayerProfileIdc ( UInt uilayer ) const { return m_layer_profile_idc[uilayer]; }
 		Bool getLayerConstraintSet0Flag ( UInt uilayer ) const { return m_layer_constraint_set0_flag[uilayer]; }
@@ -273,25 +314,47 @@ public:
 		Bool getLayerConstraintSet2Flag ( UInt uilayer ) const { return m_layer_constraint_set2_flag[uilayer]; }
 		Bool getLayerConstraintSet3Flag ( UInt uilayer ) const { return m_layer_constraint_set3_flag[uilayer]; }
 		UInt getLayerLevelIdc ( UInt uilayer ) const { return m_layer_level_idc[uilayer]; }
-		UInt getTemporalLevel ( UInt uilayer ) const { return m_temporal_level[uilayer]; }
-		UInt getDependencyId ( UInt uilayer ) const { return m_dependency_id[uilayer]; }
-		UInt getQualityLevel ( UInt uilayer ) const { return m_quality_level[uilayer]; }
+
+	//JVT-S036 lsj start
+		UInt getProfileLevelInfoSrcLayerIdDelta ( UInt uilayer) const { return m_profile_level_info_src_layer_id_delta [uilayer];} 
+		
 		UInt getAvgBitrate ( UInt uilayer ) const { return m_avg_bitrate[uilayer]; }
-		UInt getMaxBitrate ( UInt uilayer ) const { return m_max_bitrate[uilayer]; }
+		UInt getMaxBitrateLayer ( UInt uilayer ) const { return m_max_bitrate_layer[uilayer]; }
+		UInt getMaxBitrateDecodedPicture ( UInt uilayer ) const { return m_max_bitrate_decoded_picture[uilayer]; }		
+		UInt getMaxBitrateCalcWindow ( UInt uilayer ) const { return m_max_bitrate_calc_window[uilayer]; }
+	//JVT-S036 lsj end
+
+		
 		UInt getConstantFrmRateIdc ( UInt uilayer ) const { return m_constant_frm_rate_idc[uilayer]; }
 		UInt getAvgFrmRate ( UInt uilayer ) const { return m_avg_frm_rate[uilayer]; }
+		UInt getFrmRateInfoSrcLayerIdDelta ( UInt uilayer ) const { return m_frm_rate_info_src_layer_id_delta[uilayer]; } //JVT-S036 lsj
 		UInt getFrmWidthInMbsMinus1 ( UInt uilayer ) const { return m_frm_width_in_mbs_minus1[uilayer]; }
 		UInt getFrmHeightInMbsMinus1 ( UInt uilayer ) const { return m_frm_height_in_mbs_minus1[uilayer]; }
+		UInt getFrmSizeInfoSrcLayerIdDelta ( UInt uilayer ) const { return m_frm_size_info_src_layer_id_delta[uilayer]; } //JVT-S036 lsj
 		UInt getBaseRegionLayerId ( UInt uilayer ) const { return m_base_region_layer_id[uilayer]; }
 		Bool getDynamicRectFlag ( UInt uilayer ) const { return m_dynamic_rect_flag[uilayer]; }
 		UInt getHorizontalOffset ( UInt uilayer ) const { return m_horizontal_offset[uilayer]; }
 		UInt getVerticalOffset ( UInt uilayer ) const { return m_vertical_offset[uilayer]; }
 		UInt getRegionWidth ( UInt uilayer ) const { return m_region_width[uilayer]; }
 		UInt getRegionHeight ( UInt uilayer ) const { return m_region_height[uilayer]; }
+		UInt getSubRegionInfoSrcLayerIdDelta ( UInt uilayer ) const { return m_sub_region_info_src_layer_id_delta[uilayer]; } ///JVT-S036 lsj
+	//JVT-S036 lsj start
+		UInt getRoiId ( UInt uilayer ) const { return m_roi_id[uilayer]; } 
+		UInt getIroiSliceDivisionType ( UInt uilayer ) const { return m_iroi_slice_division_type[uilayer]; }
+		UInt getGridSliceWidthInMbsMinus1 ( UInt uilayer ) const { return m_grid_slice_width_in_mbs_minus1[uilayer]; }
+		UInt getGridSliceHeightInMbsMinus1 ( UInt uilayer ) const { return m_grid_slice_height_in_mbs_minus1[uilayer]; }
+		UInt getNumSliceMinus1 ( UInt uilayer ) const { return m_num_slice_minus1[uilayer]; }
+		UInt getFirstMbInSlice ( UInt uilayer, UInt uiTar )	const { return m_first_mb_in_slice[uilayer][uiTar]; }
+		UInt getSliceWidthInMbsMinus1 ( UInt uilayer, UInt uiTar ) const { return m_slice_width_in_mbs_minus1[uilayer][uiTar]; }
+		UInt getSliceHeightInMbsMinus1 ( UInt uilayer, UInt uiTar ) const { return m_slice_height_in_mbs_minus1[uilayer][uiTar]; }
+		UInt getSliceId ( UInt uilayer, UInt uiTar ) const { return m_slice_id[uilayer][uiTar]; }
+	//JVT-S036 lsj end
+
 		UInt getNumDirectlyDependentLayers ( UInt uilayer ) const { return m_num_directly_dependent_layers[uilayer]; }
 // BUG_FIX liuhui{
-		UInt getNumDirectlyDependentLayerIdDelta( UInt uilayer, UInt uiIndex ) const { return m_directly_dependent_layer_id_delta[uilayer][uiIndex]; }
+		UInt getNumDirectlyDependentLayerIdDeltaMinus1( UInt uilayer, UInt uiIndex ) const { return m_directly_dependent_layer_id_delta_minus1[uilayer][uiIndex]; } //JVT-S036 lsj
 // BUG_FIX liuhui}
+		UInt getLayerDependencyInfoSrcLayerIdDelta( UInt uilayer ) const { return m_layer_dependency_info_src_layer_id_delta[uilayer];} //JVT-S036 lsj
 		//
 		UInt getNumInitSPSMinus1 ( UInt uilayer ) const { return m_num_init_seq_parameter_set_minus1[uilayer]; }
 		UInt getNumInitPPSMinus1 ( UInt uilayer ) const { return m_num_init_pic_parameter_set_minus1[uilayer]; }
@@ -299,6 +362,7 @@ public:
 		UInt getInitSPSIdDelta ( UInt uilayer, UInt uiIndex ) const { return m_init_seq_parameter_set_id_delta[uilayer][uiIndex]; }
 		UInt getInitPPSIdDelta ( UInt uilayer, UInt uiIndex ) const { return m_init_pic_parameter_set_id_delta[uilayer][uiIndex]; }
 // BUG_FIX liuhui}
+		UInt getInitParameterSetsInfoSrcLayerIdDelta ( UInt uilayer ) const { return m_init_parameter_sets_info_src_layer_id_delta[uilayer]; } //JVT-S036 lsj
 
 	private:
 // BUG_FIX liuhui{
@@ -306,16 +370,26 @@ public:
 // BUG_FIX liuhui}
 		UInt m_num_layers_minus1;
 		UInt m_layer_id[MAX_SCALABLE_LAYERS];
-		Bool m_fgs_layer_flag[MAX_SCALABLE_LAYERS];
+	//JVT-S036 lsj start
+		//Bool m_fgs_layer_flag[MAX_SCALABLE_LAYERS];  
+		UInt m_simple_priority_id[MAX_SCALABLE_LAYERS];  
+		Bool m_discardable_flag[MAX_SCALABLE_LAYERS];
+		UInt m_temporal_level[MAX_SCALABLE_LAYERS];
+		UInt m_dependency_id[MAX_SCALABLE_LAYERS];
+		UInt m_quality_level[MAX_SCALABLE_LAYERS];
+
 		Bool m_sub_pic_layer_flag[MAX_SCALABLE_LAYERS];
 		Bool m_sub_region_layer_flag[MAX_SCALABLE_LAYERS];
+		Bool m_iroi_slice_division_info_present_flag[MAX_SCALABLE_LAYERS]; 
 		Bool m_profile_level_info_present_flag[MAX_SCALABLE_LAYERS];
-		Bool m_decoding_dependency_info_present_flag[MAX_SCALABLE_LAYERS];
+	//JVT-S036 lsj end
 		Bool m_bitrate_info_present_flag[MAX_SCALABLE_LAYERS];
 		Bool m_frm_rate_info_present_flag[MAX_SCALABLE_LAYERS];
 		Bool m_frm_size_info_present_flag[MAX_SCALABLE_LAYERS];
 		Bool m_layer_dependency_info_present_flag[MAX_SCALABLE_LAYERS];
 		Bool m_init_parameter_sets_info_present_flag[MAX_SCALABLE_LAYERS];
+
+		Bool m_exact_interlayer_pred_flag[MAX_SCALABLE_LAYERS];  //JVT-S036 lsj
 
 		UInt m_layer_profile_idc[MAX_SCALABLE_LAYERS];
 		Bool m_layer_constraint_set0_flag[MAX_SCALABLE_LAYERS];
@@ -323,19 +397,26 @@ public:
 		Bool m_layer_constraint_set2_flag[MAX_SCALABLE_LAYERS];
 		Bool m_layer_constraint_set3_flag[MAX_SCALABLE_LAYERS];
 		UInt m_layer_level_idc[MAX_SCALABLE_LAYERS];
+        
+	//JVT-S036 lsj start
+		UInt m_profile_level_info_src_layer_id_delta[MAX_SCALABLE_LAYERS]; //
+	
 
-		UInt m_temporal_level[MAX_SCALABLE_LAYERS];
-		UInt m_dependency_id[MAX_SCALABLE_LAYERS];
-		UInt m_quality_level[MAX_SCALABLE_LAYERS];
 
 		UInt m_avg_bitrate[MAX_SCALABLE_LAYERS];
-		UInt m_max_bitrate[MAX_SCALABLE_LAYERS];
+		UInt m_max_bitrate_layer[MAX_SCALABLE_LAYERS];//
+		UInt m_max_bitrate_decoded_picture[MAX_SCALABLE_LAYERS];//
+		UInt m_max_bitrate_calc_window[MAX_SCALABLE_LAYERS];//
 
 		UInt m_constant_frm_rate_idc[MAX_SCALABLE_LAYERS];
 		UInt m_avg_frm_rate[MAX_SCALABLE_LAYERS];
 
+		UInt m_frm_rate_info_src_layer_id_delta[MAX_SCALABLE_LAYERS];//
+	
 		UInt m_frm_width_in_mbs_minus1[MAX_SCALABLE_LAYERS];
 		UInt m_frm_height_in_mbs_minus1[MAX_SCALABLE_LAYERS];
+
+		UInt m_frm_size_info_src_layer_id_delta[MAX_SCALABLE_LAYERS];//
 
 		UInt m_base_region_layer_id[MAX_SCALABLE_LAYERS];
 		Bool m_dynamic_rect_flag[MAX_SCALABLE_LAYERS];
@@ -344,16 +425,31 @@ public:
 		UInt m_region_width[MAX_SCALABLE_LAYERS];
 		UInt m_region_height[MAX_SCALABLE_LAYERS];
 
-		//UInt m_roi_id[MAX_SCALABLE_LAYERS];
+		UInt m_sub_region_info_src_layer_id_delta[MAX_SCALABLE_LAYERS];//
+
+		UInt m_roi_id[MAX_SCALABLE_LAYERS]; //
+
+		UInt m_iroi_slice_division_type[MAX_SCALABLE_LAYERS]; //
+		UInt m_grid_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
+		UInt m_grid_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
+		UInt m_num_slice_minus1[MAX_SCALABLE_LAYERS];//
+		UInt m_first_mb_in_slice[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+		UInt m_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+		UInt m_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+		UInt m_slice_id[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
 // BUG_FIX liuhui{
 		UInt m_num_directly_dependent_layers[MAX_SCALABLE_LAYERS];
-		UInt m_directly_dependent_layer_id_delta[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
+		UInt m_directly_dependent_layer_id_delta_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+
+		UInt m_layer_dependency_info_src_layer_id_delta[MAX_SCALABLE_LAYERS];//
 
 		UInt m_num_init_seq_parameter_set_minus1[MAX_SCALABLE_LAYERS];
 		UInt m_init_seq_parameter_set_id_delta[MAX_SCALABLE_LAYERS][32];
 		UInt m_num_init_pic_parameter_set_minus1[MAX_SCALABLE_LAYERS];
 		UInt m_init_pic_parameter_set_id_delta[MAX_SCALABLE_LAYERS][256];
 // BUG_FIX liuhui}
+		UInt m_init_parameter_sets_info_src_layer_id_delta[MAX_SCALABLE_LAYERS];//
+	//JVT-S036 lsj end
 	};
 
 	class H264AVCCOMMONLIB_API SubPicSei : public SEIMessage

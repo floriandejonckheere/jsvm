@@ -229,6 +229,8 @@ public:
                                             PicBufferList&              rcUnusedList,
                                             Int&                        riMaxPoc );
 
+  ErrVal              xSlidingWindowBase  ( UInt mCurrFrameNum ); //JVT-S036 lsj 
+  ErrVal              xMMCOBase           ( SliceHeader* pcSliceHeader, UInt mCurrFrameNum );//JVT-S036 lsj
   
   DPBUnit*            getCurrDPBUnit(){return        m_pcCurrDPBUnit;};
   ErrVal                 initPicBuffer(PicBuffer*&    rpcPicBuffer);
@@ -244,6 +246,9 @@ protected:
   ErrVal              xUpdateMemory       ( SliceHeader*                pcSliceHeader );
   ErrVal              xSlidingWindow      ();
   ErrVal              xMMCO               ( SliceHeader*                pcSliceHeader );
+
+  ErrVal              xMarkShortTermUnusedBase( UInt						mCurrFrameNum,  
+                                                UInt                        uiDiffOfPicNums );//JVT-S036 lsj
   ErrVal              xMarkShortTermUnused( DPBUnit*                    pcCurrentDPBUnit,
                                             UInt                        uiDiffOfPicNums );
   
@@ -406,6 +411,11 @@ protected:
 #endif
   
   //===== decode pictures / subbands =====
+  ErrVal      xDecodeSuffixUnit               ( SliceHeader*&                 rpcSliceHeader,
+                                                PicBuffer*&                   rpcPicBuffer,
+                                                PicBufferList&                rcOutputList,
+                                                PicBufferList&                rcUnusedList,
+                                                Bool                          bReconstructionLayer );   //JVT-S036 lsj
   ErrVal      xDecodeBaseRepresentation       ( SliceHeader*&                 rpcSliceHeader,
                                                 PicBuffer*&                   rpcPicBuffer,
                                                 PicBufferList&                rcOutputList,

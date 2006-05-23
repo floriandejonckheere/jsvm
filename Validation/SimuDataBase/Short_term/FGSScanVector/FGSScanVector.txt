@@ -45,7 +45,7 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 18,
+            		        bitrate => 18.57,
             		        psnr => 26.96,
             		      },
 		                  #----------#

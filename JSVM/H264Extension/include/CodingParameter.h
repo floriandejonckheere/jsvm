@@ -581,17 +581,20 @@ public:
 //TMM_WP
 	  , m_bNonRequiredEnable				( 0 ) //NonRequired JVT-Q066
 	  , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
+	  , m_uiSuffixUnitEnable			  (0)  //JVT-S036 lsj
+	  , m_uiMMCOBaseEnable					  ( 0 ) //JVT-S036 lsj
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
       m_adDeltaQpLayer[uiLayer] = 0;
     }
-      for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
+ /*     for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
       {
         m_uiTemporalLevelList[uiLoop] = 0;
         m_uiDependencyIdList [uiLoop] = 0;
         m_uiQualityLevelList [uiLoop] = 0;
       }
+ JVT-S036 lsj */
   }
 	virtual ~CodingParameter()
   {
@@ -625,12 +628,12 @@ public:
   UInt                            getNumberOfLayers       ()              const   { return m_uiNumberOfLayers; }
   Bool                            getExtendedPriorityId   ()              const   { return m_bExtendedPriorityId; }
   UInt                            getNumSimplePris        ()              const   { return m_uiNumSimplePris; }
-  Void                            getSimplePriorityMap    ( UInt uiSimplePri, UInt& uiTemporalLevel, UInt& uiLayer, UInt& uiQualityLevel )
+/*  Void                            getSimplePriorityMap    ( UInt uiSimplePri, UInt& uiTemporalLevel, UInt& uiLayer, UInt& uiQualityLevel )
                                                                           { uiTemporalLevel = m_uiTemporalLevelList[uiSimplePri];
                                                                             uiLayer         = m_uiDependencyIdList [uiSimplePri];
                                                                             uiQualityLevel  = m_uiQualityLevelList [uiSimplePri];
                                                                           }
-
+ JVT-S036 lsj */
 //TMM_WP
   UInt getIPMode()                  const { return m_uiIPMode; }
   UInt getBMode()                   const { return m_uiBMode; }
@@ -655,6 +658,8 @@ public:
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
 
   UInt                            getLARDOEnable          ()              const   { return m_uiLARDOEnable;} //JVT-R057 LA-RDO
+  UInt							  getSuffixUnitEnable	  ()		      const	  { return m_uiSuffixUnitEnable;} //JVT-S036 lsj
+  UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
 
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
   Void                            setMaximumDelay         ( Double  d )   { m_dMaximumDelay         = d; }
@@ -668,12 +673,12 @@ public:
   Void                            setNumberOfLayers       ( UInt    n )   { m_uiNumberOfLayers      = n; }
   Void                            setExtendedPriorityId   ( Bool    b )   { m_bExtendedPriorityId   = b; }
   Void                            setNumSimplePris        ( UInt    n )   { m_uiNumSimplePris       = n; }
-  Void                            setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
+ /* Void                            setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
                                                                           { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
-
+ JVT-S036 lsj */
   Void                            setMVCmode              ( UInt    p )   { m_uiMVCmode             = p; }
   Void                            setFrameWidth           ( UInt    p )   { m_uiFrameWidth          = p; }
   Void                            setFrameHeight          ( UInt    p )   { m_uiFrameHeight         = p; }
@@ -765,9 +770,10 @@ protected:
   LayerParameters           m_acLayerParameters[MAX_LAYERS];
   Bool                      m_bExtendedPriorityId;
   UInt                      m_uiNumSimplePris;
-  UInt                      m_uiTemporalLevelList[1 << PRI_ID_BITS];
+/*  UInt                      m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt                      m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt                      m_uiQualityLevelList [1 << PRI_ID_BITS];
+ JVT-S036 lsj */
   EncoderConfigLineBase*    m_pEncoderLines[MAX_CONFIG_PARAMS];
   EncoderConfigLineBase*    m_pLayerLines  [MAX_CONFIG_PARAMS];
 
@@ -808,6 +814,9 @@ protected:
 
   Int						m_bNonRequiredEnable; //NonRequired JVT-Q066
   UInt                       m_uiLARDOEnable; //JVT-R057 LA-RDO
+
+  UInt						m_uiSuffixUnitEnable; //JVT-S036 lsj
+  UInt						m_uiMMCOBaseEnable;  //JVT-S036 lsj
 };
 
 #if defined( MSYS_WIN32 )

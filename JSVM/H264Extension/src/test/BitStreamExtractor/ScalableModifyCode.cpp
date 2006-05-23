@@ -375,16 +375,25 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
 	for( UInt uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
 	{
 		pcScalableModifyCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
-		pcScalableModifyCode->WriteFlag( pcScalableSei->getFGSLayerFlag( uiLayer ) );
+//JVT-S036 lsj start
+//		pcScalableModifyCode->WriteFlag( pcScalableSei->getFGSLayerFlag( uiLayer ) ); 
+	
+		pcScalableModifyCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 ); 
+		pcScalableModifyCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) ); 
+		pcScalableModifyCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
+		pcScalableModifyCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
+		pcScalableModifyCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getSubPicLayerFlag( uiLayer ) );
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getSubRegionLayerFlag( uiLayer ) );
+		pcScalableModifyCode->WriteFlag( pcScalableSei->getIroiSliceDivisionInfoPresentFlag ( uiLayer ) ); 
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) );
-		pcScalableModifyCode->WriteFlag( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) );
+//JVT-S036 lsj end
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) );
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) );
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) );
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) );
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) );
+		pcScalableModifyCode->WriteFlag( pcScalableSei->getExactInterlayerPredFlag( uiLayer ) ); //JVT-S036 lsj
 
 		if( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) )
 		{
@@ -396,18 +405,30 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
 			pcScalableModifyCode->WriteCode( 0, 4 );
 			pcScalableModifyCode->WriteCode( pcScalableSei->getLayerLevelIdc( uiLayer ), 8 );
 		}
+		else
+		{//JVT-S036 lsj
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getProfileLevelInfoSrcLayerIdDelta( uiLayer ) );
+		}
 
-		if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) )
+	/*	if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) )
 		{
+			
+			pcScalableModifyCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 );
+			pcScalableModifyCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );
+			
 			pcScalableModifyCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
 			pcScalableModifyCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
 			pcScalableModifyCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
 		}
-
+JVT-S036 lsj*/
 		if( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) )
 		{
 			pcScalableModifyCode->WriteCode( pcScalableSei->getAvgBitrate( uiLayer ), 16 );
-			pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrate( uiLayer ), 16 );
+		//JVT-S036 lsj start
+			pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateLayer( uiLayer ), 16 );
+			pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateDecodedPicture( uiLayer ), 16 );
+			pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateCalcWindow( uiLayer ), 16 );
+		//JVT-S036 lsj end
 		}
 
 		if( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) )
@@ -415,11 +436,19 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
 			pcScalableModifyCode->WriteCode( pcScalableSei->getConstantFrmRateIdc( uiLayer ), 2 );
 			pcScalableModifyCode->WriteCode( pcScalableSei->getAvgFrmRate( uiLayer ), 16 );
 		}
+		else
+		{//JVT-S036 lsj
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getFrmRateInfoSrcLayerIdDelta( uiLayer ) );
+		}
 
 		if( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) )
 		{
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) );
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) );
+		}
+		else
+		{//JVT-S036 lsj
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getFrmSizeInfoSrcLayerIdDelta( uiLayer ) );
 		}
 
 		if( pcScalableSei->getSubRegionLayerFlag( uiLayer ) )
@@ -434,6 +463,47 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
 				pcScalableModifyCode->WriteCode( pcScalableSei->getRegionHeight( uiLayer ), 16 );
 			}
 		}
+		else
+		{//JVT-S036 lsj
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getSubRegionInfoSrcLayerIdDelta( uiLayer ) );
+		}
+
+	//JVT-S036 lsj start
+		if( pcScalableSei->getSubPicLayerFlag( uiLayer ) )
+		{
+			pcScalableModifyCode->WriteCode( pcScalableSei->getRoiId( uiLayer ), 3 );
+		}
+		if( pcScalableSei->getIroiSliceDivisionInfoPresentFlag( uiLayer ) )
+		{
+			pcScalableModifyCode->WriteCode( pcScalableSei->getIroiSliceDivisionType( uiLayer ) , 2 );
+			if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 0 )
+			{
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getGridSliceWidthInMbsMinus1( uiLayer ) );
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getGridSliceHeightInMbsMinus1( uiLayer ) );
+			}
+			else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 1 )
+			{
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+				for (UInt nslice = 0; nslice <= pcScalableSei->getNumSliceMinus1( uiLayer ) ; nslice ++ )
+				{
+					pcScalableModifyCode->WriteUVLC( pcScalableSei->getFirstMbInSlice( uiLayer, nslice ) );
+					pcScalableModifyCode->WriteUVLC( pcScalableSei->getSliceWidthInMbsMinus1( uiLayer, nslice ) );
+					pcScalableModifyCode->WriteUVLC( pcScalableSei->getSliceHeightInMbsMinus1( uiLayer, nslice ) ); 
+				}
+			}
+			else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 2 )
+			{
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+				UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
+				UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
+				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+				for( UInt j = 0; j < uiPicSizeInMbs; j++ )
+				{
+					pcScalableModifyCode->WriteUVLC( pcScalableSei->getSliceId( uiLayer, j ) );
+				}
+			}
+		}
+	//JVT-S036 lsj end
 
 		if( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) )
 		{
@@ -441,10 +511,14 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
 			for( UInt ui = 0; ui < pcScalableSei->getNumDirectlyDependentLayers( uiLayer ); ui++ )
 			{
 #if 1 //BUG_FIX liuhui 0603
-				pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDelta(uiLayer, ui ) );
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiLayer, ui ) ); //JVT-S036 lsj
 #endif
 				//
 			}
+		}
+		else
+		{//JVT-S036 lsj
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getLayerDependencyInfoSrcLayerIdDelta( uiLayer ) );
 		}
 
 		if( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) )
@@ -467,12 +541,15 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
 				//
 			}
 		}
+		else
+		{//JVT-S036 lsj
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getInitParameterSetsInfoSrcLayerIdDelta( uiLayer ) );
+		}
 
 	}// for
 
 	return Err::m_nOK;
 }
-
 //ErrVal
 //ScalableModifyCode::Create( ScalableModifyCode* pcScalableModifyCode )
 //{

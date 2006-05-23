@@ -105,12 +105,13 @@ NalUnitParser::NalUnitParser()
 , m_uiDecodedLayer      ( 0 ) //JVT-P031
 , m_bDiscardableFlag    ( false ) 
 {
-  for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
+  /*for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
   {
     m_uiTemporalLevelList[uiLoop] = 0;
     m_uiDependencyIdList [uiLoop] = 0;
     m_uiQualityLevelList [uiLoop] = 0;
   }
+ JVT-S036 lsj */
 }
 
 
@@ -243,7 +244,7 @@ NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor )
 
   NalUnitType   eNalUnitType;
   NalRefIdc     eNalRefIdc;
-  Bool			bExtensionFlag;
+  Bool			bReservedZeroBit;//JVT-S036 lsj
 
   UInt  uiHeaderLength  = 1;
   UChar ucByte          = pcBinDataAccessor->data()[0];
@@ -265,12 +266,12 @@ NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor )
     ROF( pcBinDataAccessor->size() > 1 );
 
     ucByte              = pcBinDataAccessor->data()[1];
-	bExtensionFlag     = ( ucByte     ) & 1;
-	if(bExtensionFlag)
-	{
-	  uiHeaderLength      ++;
-	}
-    uiHeaderLength      ++;
+
+	//JVT-S036 lsj start
+	bReservedZeroBit     = ( ucByte     ) & 1;
+	
+    uiHeaderLength      += 2;
+	//JVT-S036 lsj end
   }
 
   return uiHeaderLength;
@@ -335,25 +336,26 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
 		  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
 		  m_uiSimplePriorityId = ( ucByte >> 2);
 			m_bDiscardableFlag	 = ( ucByte >> 1) & 1;
-			m_bExtensionFlag     = ( ucByte     ) & 1;
-			if(m_bExtensionFlag)
-		  {
+	//JVT-S036 lsj start
+			m_bReservedZeroBit   = ( ucByte     ) & 1;
+			
 		    ucByte              = pcBinDataAccessor->data()[2];
 		    m_uiTemporalLevel   = ( ucByte >> 5 );
 		    m_uiLayerId         = ( ucByte >> 2 ) & 7;
 		    m_uiQualityLevel    = ( ucByte      ) & 3;
-		    uiHeaderLength      ++;
-		  }
+		    //uiHeaderLength      ++;
+		 /* }
 			else
 			{
         // Look up simple priority ID in mapping table (J. Ridge, Y-K. Wang @ Nokia)
         m_uiTemporalLevel = m_uiTemporalLevelList[m_uiSimplePriorityId];
         m_uiLayerId       = m_uiDependencyIdList [m_uiSimplePriorityId];
         m_uiQualityLevel  = m_uiQualityLevelList [m_uiSimplePriorityId];
-			}
+			}*/
     //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
-			uiHeaderLength      ++;
+			uiHeaderLength    +=  2;
+	//JVT-S036 lsj end
 		}
 		else
 		{

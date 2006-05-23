@@ -572,7 +572,7 @@ ErrVal CabacWriter::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
 ErrVal CabacWriter::mbMode( MbDataAccess& rcMbDataAccess )
 {
   UInt uiMbMode     = rcMbDataAccess.getConvertMbType();
-  ETRACE_DO( UInt uiOrigMbMode = uiMbMode );
+  ETRACE_DECLARE( UInt uiOrigMbMode = uiMbMode );
 
   if( m_pcSliceHeader->isIntra() )
   {

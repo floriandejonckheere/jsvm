@@ -87,6 +87,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVCDecoderTest::H264AVCDecoderTest() :
   m_pcH264AVCDecoder( NULL ),
+  m_pcH264AVCDecoderSuffix( NULL ), //JVT-S036 lsj
 //TMM_EC  m_pcReadBitstream( NULL ),
 //TMM_EC  m_pcWriteYuv( NULL ),
   m_pcParameter( NULL ),
@@ -128,6 +129,7 @@ ErrVal H264AVCDecoderTest::init( DecoderParameter *pcDecoderParameter, WriteYuvT
   RNOK( h264::CreaterH264AVCDecoder::create( m_pcH264AVCDecoder ) );
 	m_pcH264AVCDecoder->setec( m_pcParameter->uiErrorConceal);
 
+	RNOK( h264::CreaterH264AVCDecoder::create( m_pcH264AVCDecoderSuffix ) );  //JVT-S036 lsj
   return Err::m_nOK;
 }
 
@@ -142,6 +144,11 @@ ErrVal H264AVCDecoderTest::destroy()
   if( NULL != m_pcH264AVCDecoder )       
   {
     RNOK( m_pcH264AVCDecoder->destroy() );       
+  }
+
+  if( NULL != m_pcH264AVCDecoderSuffix )       
+  {//JVT-S036 lsj
+    RNOK( m_pcH264AVCDecoderSuffix->destroy() );       
   }
 /*TMM_EC
   if( NULL != m_pcWriteYuv )              
@@ -233,6 +240,8 @@ ErrVal H264AVCDecoderTest::go()
   
   Bool      bEOS            = false;
   Bool      bYuvDimSet      = false;
+
+  Bool		SuffixEnable;  //JVT-S036 lsj 
 
   // HS: packet trace
   UInt   uiMaxPocDiff = m_pcParameter->uiMaxPocDiff;
@@ -437,6 +446,30 @@ ErrVal H264AVCDecoderTest::go()
 							ROF( pcLastFrame );
 						}
 					}
+
+				//JVT-S036 lsj start
+					if(uiNalUnitType == 1 || uiNalUnitType == 5)
+					{
+						SuffixEnable = true;
+						RNOK(m_pcH264AVCDecoderSuffix->init());
+						RNOK( m_pcReadBitstream->getPosition( iPos ) );
+						RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+						pcBinData->setMemAccessor( cBinDataAccessor );
+						m_pcH264AVCDecoderSuffix->setAVCFlag( true );
+						RNOK( m_pcH264AVCDecoderSuffix->initPacketSuffix( &cBinDataAccessor, uiNalUnitType, true, 
+								false, //FRAG_FIX_3
+								bStart, m_pcH264AVCDecoder,SuffixEnable
+								)
+							);
+
+						RNOK( m_pcH264AVCDecoderSuffix->uninit());
+
+						if( !SuffixEnable )
+						{
+							RNOK( m_pcReadBitstream->setPosition( iPos ) );
+						}
+					}
+				//JVT-S036 lsj end
 		    
 					// decode the NAL unit
 					RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
@@ -621,6 +654,31 @@ ErrVal H264AVCDecoderTest::go()
       }
     }
     
+//JVT-S036 lsj start
+	if((uiNalUnitType == 1 || uiNalUnitType == 5) && !bEOS) 
+	{
+		SuffixEnable = true;
+		RNOK(m_pcH264AVCDecoderSuffix->init());
+		RNOK( m_pcReadBitstream->getPosition( iPos ) );
+		RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+		pcBinData->setMemAccessor( cBinDataAccessor );
+		m_pcH264AVCDecoderSuffix->setAVCFlag( true );
+		RNOK( m_pcH264AVCDecoderSuffix->initPacketSuffix( &cBinDataAccessor, uiNalUnitType, true, 
+				false, //FRAG_FIX_3
+				bStart, m_pcH264AVCDecoder,SuffixEnable
+				)
+			);
+
+		RNOK( m_pcH264AVCDecoderSuffix->uninit());
+
+		if( !SuffixEnable )
+		{
+			RNOK( m_pcReadBitstream->setPosition( iPos ) );
+			bEOS = false; 
+		}
+	}
+//JVT-S036 lsj end
+
     // decode the NAL unit
     RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
     

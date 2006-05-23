@@ -401,7 +401,7 @@ QualityLevelAssigner::xInitStreamParameters()
 
       for( UInt ui = 0; ui < uiNumLayersInSEI; ui++ )
       {
-        if( ! pcScalSEI->getDecodingDependencyInfoPresentFlag ( ui ) ||
+        if(// ! pcScalSEI->getDecodingDependencyInfoPresentFlag ( ui ) ||  //JVT-S036 lsj
             ! pcScalSEI->getFrmSizeInfoPresentFlag            ( ui )   )
         {
           bUncompleteInfo = true;
@@ -442,6 +442,8 @@ QualityLevelAssigner::xInitStreamParameters()
       {
         m_auiNumFGSLayers[cPacketDescription.Layer] = cPacketDescription.FGSLayer;
       }
+      m_auiSPSRequired[cPacketDescription.SPSid] |= (1 << cPacketDescription.Layer);
+      m_auiPPSRequired[cPacketDescription.PPSid] |= (1 << cPacketDescription.Layer);
     }
     else if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
              ! cPacketDescription.FGSLayer )

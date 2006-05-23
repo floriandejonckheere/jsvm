@@ -145,7 +145,7 @@ ErrVal
 PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
-  ETRACE_DO( Bool m_bTraceEnable = true );
+  ETRACE_DECLARE( Bool m_bTraceEnable = true );
   g_nLayer = m_uiLayerId;
   ETRACE_LAYER(m_uiLayerId);
   ETRACE_HEADER( "PICTURE PARAMETER SET" );

@@ -134,6 +134,7 @@ protected:
 public:
   static ErrVal create( CreaterH264AVCDecoder*& rpcCreaterH264AVCDecoder );
 
+  H264AVCDecoder *getH264AVCDecoder() const { return m_pcH264AVCDecoder; } //JVT-S036 lsj
   ErrVal destroy    ();
   ErrVal init       ();
   ErrVal uninit     ();
@@ -157,6 +158,16 @@ public:
                       Bool&              bDiscardable
                       //~JVT-P031
                       ); 
+//JVT-S036 lsj start
+  ErrVal initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
+								                  UInt&             ruiNalUnitType,
+								         		  Bool             bPreParseHeader, 
+								                  Bool			bConcatenated, 
+												  Bool&			 rbStarDecoding
+												  ,CreaterH264AVCDecoder*   pcH264AVCDecoder
+												  ,Bool&		SuffixEnable
+						 ); 
+//JVT-S036 lsj end
 
   //JVT-P031
   ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor);
@@ -177,7 +188,9 @@ public:
   ErrVal  checkSliceGap ( BinDataAccessor*  pcBinDataAccessor,
                           MyList<BinData*>&	cVirtualSliceList );
 	ErrVal	setec( UInt uiErrorConceal);
-//  TMM_EC }}                          
+//  TMM_EC }}
+
+	Void setAVCFlag ( Bool aFlag ) { UnitAVCFlag = aFlag; } //JVT-S036 lsj
 protected:
   ErrVal xCreateDecoder();
 
@@ -206,6 +219,8 @@ protected:
   CabacReader*            m_pcCabacReader;
   SampleWeighting*        m_pcSampleWeighting;
   ReconstructionBypass*   m_pcReconstructionBypass;
+
+  Bool					  UnitAVCFlag;    //JVT-S036 lsj
 };
 
 
@@ -267,9 +282,10 @@ protected:
   UInt              m_auiDecompositionStages[MAX_LAYERS];
   UInt              m_uiStdAVCOffset;
 
-  UInt              m_uiTemporalLevelList[1 << PRI_ID_BITS];
+/*  UInt              m_uiTemporalLevelList[1 << PRI_ID_BITS];
   UInt              m_uiDependencyIdList [1 << PRI_ID_BITS];
   UInt              m_uiQualityLevelList [1 << PRI_ID_BITS];
+JVT-S036 lsj */
   SEI::NonRequiredSei*  m_pcNonRequiredSEI;
   UInt					m_uiNonRequiredSeiFlag;
   UInt					m_uiPrevPicLayer;

@@ -112,6 +112,7 @@ protected:
 public:
   ErrVal init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer );
   ErrVal init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit ); // HS: decoder robustness
+  ErrVal copyBase( const SliceHeader& rcSH, FrameUnit& rcFrameUnit ); //JVT-S036 lsj
   ErrVal uninit();
 
   static ErrVal create( FrameUnit*& rpcFrameUnit, YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, Bool bOriginal = false );
@@ -122,6 +123,10 @@ public:
 
   Void  setFrameNumber( UInt  uiFN  )           { m_uiFrameNumber = uiFN; }
   UInt  getFrameNumber()                  const { return m_uiFrameNumber; }
+
+  Void  setBaseRep    ( Bool  bFlag )			{ m_BaseRepresentation = bFlag; } //JVT-S036 lsj
+  UInt  getBaseRep	  ()				  const { return m_BaseRepresentation;  } //JVT-S036 lsj
+  UChar getStatus	  ()				  const { return m_uiStatus;			} //JVT-S036 lsj
 
   Void  setOutputDone ()                        { m_uiStatus |= IS_OUTPUTTED; }
   Bool  isOutputDone  ()                  const { return ( m_uiStatus & IS_OUTPUTTED ? true : false ); }
@@ -160,6 +165,8 @@ public:
   UInt getFGSReconCount()                     { return m_uiFGSReconCount;  }
   Void decFGSReconCount()                     { m_uiFGSReconCount -= (m_uiFGSReconCount > 1) ? 1 : 0;  }
 
+   ErrVal uninitBase(); //JVT-S036 lsj
+
 private:
   Frame         m_cFrame;
   MbDataCtrl    m_cMbDataCtrl;
@@ -170,6 +177,7 @@ private:
   Bool          m_bOriginal;
   Bool          m_bInitDone;
   IntFrame      m_cResidual;
+  Bool			m_BaseRepresentation; //JVT-S036 lsj
 
   IntFrame      m_cFGSIntFrame;
   PicBuffer*    m_pcFGSPicBuffer;

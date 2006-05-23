@@ -162,7 +162,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bConstrainedSet3Flag                    ( false )
 , m_uiLevelIdc                              ( 0 )
 , m_uiSeqParameterSetId                     ( MSYS_UINT_MAX )
-, m_bNalUnitExtFlag                         ( true  )
+//, m_bNalUnitExtFlag                         ( true  )  //JVT-S036 lsj
 , m_bSeqScalingMatrixPresentFlag            ( false )
 , m_uiLog2MaxFrameNum                       ( 0 )
 , m_uiPicOrderCntType                       ( 0 )
@@ -179,7 +179,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
 ,m_uiChromaPhaseXPlus1                      ( 0 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
-, m_uiNumSimplePriIdVals                    ( 0 ) 
+//, m_uiNumSimplePriIdVals                    ( 0 )   //JVT-S036 lsj
 #if MULTIPLE_LOOP_DECODING
 , m_bAlwaysDecodeBaseLayer                  ( false )
 #endif
@@ -191,12 +191,13 @@ SequenceParameterSet::SequenceParameterSet  ()
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
-  for ( UInt uiPriId = 0; uiPriId < (1 << PRI_ID_BITS); uiPriId++ )
+  /*for ( UInt uiPriId = 0; uiPriId < (1 << PRI_ID_BITS); uiPriId++ )
   {
       m_uiTemporalLevelList[uiPriId] = 0;
       m_uiDependencyIdList [uiPriId] = 0;
       m_uiQualityLevelList [uiPriId] = 0;
   }
+ JVT-S036 lsj */
   ::memset( m_aiOffsetForRefFrame, 0x00, 64*sizeof(Int) );
   ::memset( m_uiPosVect,           0x00, 16*sizeof(UInt));
 }
@@ -277,8 +278,8 @@ ErrVal
 SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
-  ETRACE_DO( Bool m_bTraceEnable = true );
-  g_nLayer = m_uiLayerId;
+  ETRACE_DECLARE( Bool m_bTraceEnable = true );
+	g_nLayer = m_uiLayerId;
   ETRACE_LAYER(m_uiLayerId);
   ETRACE_HEADER( "SEQUENCE PARAMETER SET" );
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
@@ -297,7 +298,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
-    RNOK( pcWriteIf->writeFlag( m_bNalUnitExtFlag,                        "SPS: nal_unit_extension_flag" ) );
+    /*RNOK( pcWriteIf->writeFlag( m_bNalUnitExtFlag,                        "SPS: nal_unit_extension_flag" ) );
     if ( m_bNalUnitExtFlag == 0 )
     {
         RNOK ( pcWriteIf->writeUvlc( m_uiNumSimplePriIdVals - 1,          "SPS: number_of_simple_priority_id_values_minus1" ) );
@@ -309,6 +310,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
             RNOK ( pcWriteIf->writeCode( m_uiQualityLevelList [uiPriCount], 2, "SPS: quality_level_list[priority_id]" ) );
         }
     }
+ JVT-S036 lsj */
 
     RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,       "SPS: ExtendedSpatialScalability" ) );
 //    if ( 1 /* chroma_format_idc */ > 0 )
@@ -424,7 +426,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
 
-    RNOK( pcReadIf->getFlag( m_bNalUnitExtFlag,                           "SPS: nal_unit_extension_flag" ) );
+   /* RNOK( pcReadIf->getFlag( m_bNalUnitExtFlag,                           "SPS: nal_unit_extension_flag" ) );
     if ( m_bNalUnitExtFlag == 0 )
     {
         RNOK ( pcReadIf->getUvlc( m_uiNumSimplePriIdVals,                 "SPS: number_of_simple_priority_id_values_minus1" ) );
@@ -437,6 +439,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
             RNOK ( pcReadIf->getCode( m_uiQualityLevelList [uiTmp], 2,    "SPS: quality_level_list[priority_id]" ) );
         }
     }
+ JVT-S036 lsj */
 
     RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: ExtendedSpatialScalability" ) );
 //    if ( 1 /* chroma_format_idc */ > 0 )

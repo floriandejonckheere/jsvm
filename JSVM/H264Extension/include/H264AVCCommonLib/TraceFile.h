@@ -181,6 +181,7 @@ H264AVC_NAMESPACE_END
 
   #define ETRACE_N         if( m_bTraceEnable ) TraceFile::newLine     ()
   #define ETRACE_DO(x)     if( m_bTraceEnable ) x
+  #define ETRACE_DECLARE(x) x
 #else
 
   #define OPEN_ETRACE
@@ -207,6 +208,7 @@ H264AVC_NAMESPACE_END
 
   #define ETRACE_N
   #define ETRACE_DO(x)
+  #define ETRACE_DECLARE(x) 
 #endif
 
 #if DECODER_TRACE

@@ -651,6 +651,7 @@ public:
 
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
   Bool                              getKeyPictureFlag             ()  const { return m_bKeyPictureFlag; }
+  Bool                              getKeyPicFlagScalable         ()  const { return m_bKeyPicFlagScalable; } //JVT-S036 lsj
   UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
@@ -662,8 +663,13 @@ public:
                                                          ListIdx e )  const { return m_aauiNumRefIdxActiveUpdate[ui][e]; }
   Bool                              getNoOutputOfPriorPicsFlag    ()  const { return m_bNoOutputOfPriorPicsFlag; }
   Bool                              getAdaptiveRefPicBufferingFlag()  const { return m_bAdaptiveRefPicBufferingModeFlag; }
+  Bool								getAdaptiveRefPicMarkingFlag  ()  const { return m_bAdaptiveRefPicMarkingModeFlag; } //JVT-S036 lsj
   const MmcoBuffer&                 getMmcoBuffer                 ()  const { return m_cMmmcoBuffer; }
   MmcoBuffer&                       getMmcoBuffer                 ()        { return m_cMmmcoBuffer; }
+//JVT-S036 lsj start
+  const MmcoBuffer&                 getMmcoBaseBuffer             ()  const { return m_cMmmcoBaseBuffer; }
+  MmcoBuffer&                       getMmcoBaseBuffer             ()        { return m_cMmmcoBaseBuffer; }
+//JVT-S036 lsj end
   //TMM_EC {{
   Void								setDefualtMmcoBuffer(UInt uiDecompositionStages, Bool Number2)
   {
@@ -721,7 +727,7 @@ public:
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   UInt                              getSimplePriorityId			  ()	    { return m_uiSimplePriorityId;}
   Bool                              getDiscardableFlag			  ()		{ return m_bDiscardableFlag;}
-  Bool                              getExtensionFlag              ()    	{ return m_bExtensionFlag;}
+  Bool                              getReservedZeroBit            ()    	{ return m_bReservedZeroBit;} //JVT-S036 lsj
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
   //JVT-P031
@@ -736,6 +742,7 @@ public:
   UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
 
   //===== set parameters =====
+  Void  setAVCCompatible              ( Bool     Flag  )  { m_eAVCCompatible                    = Flag;}  //JVT-S036 lsj
   Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
   Void  setNalUnitType                ( NalUnitType e  )  { m_eNalUnitType                      = e;  }
   Void  setLayerId                    ( UInt        ui )  { m_uiLayerId                         = ui; }
@@ -757,6 +764,7 @@ public:
   Void  setChromaLog2WeightDenom      ( UInt        ui )  { m_uiChromaLog2WeightDenom           = ui; }
   Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
   Void  setKeyPictureFlag             ( Bool        b  )  { m_bKeyPictureFlag                   = b;  }
+  Void  setKeyPicFlagScalable         ( Bool        b  )  { m_bKeyPicFlagScalable               = b;  }  //JVT-S036 lsj
   Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; }
   Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
@@ -768,6 +776,7 @@ public:
                                         UInt        p  )  { m_aauiNumRefIdxActiveUpdate[ui][e]  = p;  }
   Void  setNoOutputOfPriorPicsFlag    ( Bool        b  )  { m_bNoOutputOfPriorPicsFlag          = b;  }
   Void  setAdaptiveRefPicBufferingFlag( Bool        b  )  { m_bAdaptiveRefPicBufferingModeFlag  = b;  }
+  Void  setAdaptiveRefPicMarkingFlag  (Bool  		b  )  { m_bAdaptiveRefPicMarkingModeFlag    = b;  }//JVT-S036 lsj
   Void  setCabacInitIdc               ( UInt        ui )  { m_uiCabacInitIdc                    = ui; }
   Void  setSliceQpDelta               ( Int         i  )  { m_iSliceQpDelta                     = i;  }
   Void  setSliceHeaderQp              ( Int         i  )  { setSliceQpDelta( i - m_rcPPS.getPicInitQp() );  }
@@ -776,7 +785,7 @@ public:
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   Void setSimplePriorityId			  (UInt			ui)	   { m_uiSimplePriorityId = ui;}
   Void setDiscardableFlag			  (Bool			b)	   { m_bDiscardableFlag = b;}
-  Void setExtensionFlag				  (Bool         b)	   { m_bExtensionFlag = b;}
+  Void setReservedZeroBit    		  (Bool         b)	   { m_bReservedZeroBit = b;}  //JVT-S036 lsj
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
   Void setBaseLayerUsesConstrainedIntraPred( Bool b ) { m_bBaseLayerUsesConstrainedIntraPred = b; }
@@ -802,6 +811,7 @@ protected:
   const PictureParameterSet&  m_rcPPS;
   const SequenceParameterSet& m_rcSPS;
 
+  Bool						  m_eAVCCompatible;	//JVT-S036 lsj
   NalRefIdc                   m_eNalRefIdc;
   NalUnitType                 m_eNalUnitType;
   UInt                        m_uiLayerId;
@@ -825,6 +835,7 @@ protected:
   Bool                        m_bDirectSpatialMvPredFlag;
 
   Bool                        m_bKeyPictureFlag;
+  Bool						  m_bKeyPicFlagScalable;   //JVT-S036 lsj
   UInt                        m_uiBaseLayerId;
   UInt                        m_uiBaseQualityLevel;
   UInt						            m_uiBaseFragmentOrder;
@@ -835,6 +846,13 @@ protected:
   UInt                        m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2];
   Bool                        m_bNoOutputOfPriorPicsFlag;
   Bool                        m_bAdaptiveRefPicBufferingModeFlag;
+//JVT-S036 lsj start 
+  Bool						  m_bAdaptiveRefPicMarkingModeFlag;
+  UInt						  m_bMemoryManagementControlOperation;
+  UInt						  m_bDifferenceOfPicNumsMinus1;
+  UInt						  m_bLongTermPicNum;
+  MmcoBuffer				  m_cMmmcoBaseBuffer; 
+//JVT-S036 lsj end
   MmcoBuffer                  m_cMmmcoBuffer;
   UInt                        m_uiCabacInitIdc;
   Int                         m_iSliceQpDelta;
@@ -849,7 +867,7 @@ protected:
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   UInt						            m_uiSimplePriorityId;
   Bool					              m_bDiscardableFlag;
-  Bool                        m_bExtensionFlag;
+  Bool                        m_bReservedZeroBit;  //JVT-S036 lsj
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
   
   //JVT-P031

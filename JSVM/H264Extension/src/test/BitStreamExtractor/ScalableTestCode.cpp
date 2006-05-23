@@ -194,16 +194,26 @@ ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCo
 	for( UInt uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
 	{
 		pcScalableTestCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getFGSLayerFlag( uiLayer ) );
+//JVT-S036 lsj start
+//		pcScalableTestCode->WriteFlag( pcScalableSei->getFGSLayerFlag( uiLayer ) ); 
+	
+		pcScalableTestCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 ); 
+		pcScalableTestCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) ); 
+		pcScalableTestCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
+		pcScalableTestCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
+		pcScalableTestCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
+
 		pcScalableTestCode->WriteFlag( pcScalableSei->getSubPicLayerFlag( uiLayer ) );
 		pcScalableTestCode->WriteFlag( pcScalableSei->getSubRegionLayerFlag( uiLayer ) );
+		pcScalableTestCode->WriteFlag( pcScalableSei->getIroiSliceDivisionInfoPresentFlag ( uiLayer ) ); 
 		pcScalableTestCode->WriteFlag( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) );
+//JVT-S036 lsj end
 		pcScalableTestCode->WriteFlag( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) );
 		pcScalableTestCode->WriteFlag( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) );
 		pcScalableTestCode->WriteFlag( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) );
 		pcScalableTestCode->WriteFlag( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) );
 		pcScalableTestCode->WriteFlag( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) );
+		pcScalableTestCode->WriteFlag( pcScalableSei->getExactInterlayerPredFlag( uiLayer ) ); //JVT-S036 lsj
 
 		if( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) )
 		{
@@ -215,18 +225,28 @@ ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCo
 			pcScalableTestCode->WriteCode( 0, 4 );
 			pcScalableTestCode->WriteCode( pcScalableSei->getLayerLevelIdc( uiLayer ), 8 );
 		}
+		else
+		{//JVT-S036 lsj
+			pcScalableTestCode->WriteUVLC( pcScalableSei->getProfileLevelInfoSrcLayerIdDelta( uiLayer ) );
+		}
 
-		if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) )
+/*		if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) )
 		{
+			pcScalableTestCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 ); 
+			pcScalableTestCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) ); 
 			pcScalableTestCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
 			pcScalableTestCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
 			pcScalableTestCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
 		}
-
+JVT-S036 lsj*/
 		if( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) )
 		{
 			pcScalableTestCode->WriteCode( pcScalableSei->getAvgBitrate( uiLayer ), 16 );
-			pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrate( uiLayer ), 16 );
+		//JVT-S036 lsj start
+			pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateLayer( uiLayer ), 16 );
+			pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateDecodedPicture( uiLayer ), 16 );
+			pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateCalcWindow( uiLayer ), 16 );
+		//JVT-S036 lsj end
 		}
 
 		if( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) )
@@ -234,11 +254,19 @@ ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCo
 			pcScalableTestCode->WriteCode( pcScalableSei->getConstantFrmRateIdc( uiLayer ), 2 );
 			pcScalableTestCode->WriteCode( pcScalableSei->getAvgFrmRate( uiLayer ), 16 );
 		}
+		else
+		{//JVT-S036 lsj 
+			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmRateInfoSrcLayerIdDelta( uiLayer ) );
+		}
 
 		if( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) )
 		{
 			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) );
 			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) );
+		}
+		else
+		{//JVT-S036 lsj
+			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmSizeInfoSrcLayerIdDelta( uiLayer ) );
 		}
 
 		if( pcScalableSei->getSubRegionLayerFlag( uiLayer ) )
@@ -253,6 +281,47 @@ ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCo
 				pcScalableTestCode->WriteCode( pcScalableSei->getRegionHeight( uiLayer ), 16 );
 			}
 		}
+		else
+		{//JVT-S036 lsj
+			pcScalableTestCode->WriteUVLC( pcScalableSei->getSubRegionInfoSrcLayerIdDelta( uiLayer ) );
+		}
+
+	//JVT-S036 lsj start
+		if( pcScalableSei->getSubPicLayerFlag( uiLayer ) )
+		{
+			pcScalableTestCode->WriteCode( pcScalableSei->getRoiId( uiLayer ), 3 );
+		}
+		if( pcScalableSei->getIroiSliceDivisionInfoPresentFlag( uiLayer ) )
+		{
+			pcScalableTestCode->WriteCode( pcScalableSei->getIroiSliceDivisionType( uiLayer ) , 2 );
+			if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 0 )
+			{
+				pcScalableTestCode->WriteUVLC( pcScalableSei->getGridSliceWidthInMbsMinus1( uiLayer ) );
+				pcScalableTestCode->WriteUVLC( pcScalableSei->getGridSliceHeightInMbsMinus1( uiLayer ) );
+			}
+			else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 1 )
+			{
+				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+				for (UInt nslice = 0; nslice <= pcScalableSei->getNumSliceMinus1( uiLayer ) ; nslice ++ )
+				{
+					pcScalableTestCode->WriteUVLC( pcScalableSei->getFirstMbInSlice( uiLayer, nslice ) );
+					pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceWidthInMbsMinus1( uiLayer, nslice ) );
+					pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceHeightInMbsMinus1( uiLayer, nslice ) ); 
+				}
+			}
+			else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 2 )
+			{
+				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+				UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
+				UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
+				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+				for( UInt j = 0; j < uiPicSizeInMbs; j++ )
+				{
+					pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceId( uiLayer, j ) );
+				}
+			}
+		}
+	//JVT-S036 lsj end
 
 		if( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) )
 		{
@@ -260,10 +329,14 @@ ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCo
 			for( UInt ui = 0; ui < pcScalableSei->getNumDirectlyDependentLayers( uiLayer ); ui++ )
 			{
 #if 1 //BUG_FIX liuhui 0603
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDelta(uiLayer, ui ) );
+				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiLayer, ui ) ); //JVT-S036 lsj
 #endif
 				//
 			}
+		}
+		else
+		{//JVT-S036 lsj
+			pcScalableTestCode->WriteUVLC( pcScalableSei->getLayerDependencyInfoSrcLayerIdDelta( uiLayer ) );
 		}
 
 		if( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) )
@@ -285,6 +358,10 @@ ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCo
 #endif
 				//
 			}
+		}
+		else
+		{//JVT-S036 lsj
+			pcScalableTestCode->WriteUVLC( pcScalableSei->getInitParameterSetsInfoSrcLayerIdDelta( uiLayer ) );
 		}
 
 	}// for

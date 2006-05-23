@@ -200,7 +200,7 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
             uiBitplanes++;
           }
         }
-        for ( UInt uiTempLevel = 0; uiTempLevel <= m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getDecompositionStages(); uiTempLevel++ )
+ /*       for ( UInt uiTempLevel = 0; uiTempLevel <= m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getDecompositionStages(); uiTempLevel++ )
         {
             for ( UInt uiQualLevel = 0; uiQualLevel <= uiBitplanes; uiQualLevel++ )
             {
@@ -208,7 +208,9 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
                 AOF( uiPriorityId > ( 1 << PRI_ID_BITS ) );
             }
         }
+ JVT-S036 lsj */
     }
+
     m_pcEncoderCodingParameter->setNumSimplePris( uiPriorityId );
   }
 
@@ -577,7 +579,7 @@ H264AVCEncoderTest::ScalableDealing()
 	delete pvChar;
 	fclose(f);
 	fflush(f);
-	ROT( remove( m_cWriteToBitFileTempName.c_str() ) ); 
+	RNOK( remove( m_cWriteToBitFileTempName.c_str() ) ); 
 
 	return Err::m_nOK;
 }

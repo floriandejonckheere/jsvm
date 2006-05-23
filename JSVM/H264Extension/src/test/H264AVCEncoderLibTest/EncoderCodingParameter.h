@@ -664,6 +664,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LARDO",                   &m_uiLARDOEnable,                                      0 ); 
   //JVT-R057 LA-RDO}
 
+//JVT-S036 lsj start
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SuffixUnitEnable",                   &m_uiSuffixUnitEnable,                                      0 ); 
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",						&m_uiMMCOBaseEnable,                                      0 ); 
+//JVT-S036 lsj end
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))

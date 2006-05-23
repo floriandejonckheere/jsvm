@@ -125,7 +125,15 @@ public:
                             ,UInt         uiFirstFragNumMbsInSlice
                             ,Bool         bFirstFragFGSCompSep
                             //~JVT-P031
+							,Bool		  UnitAVCFlag	//JVT-S036 lsj
                             );
+    
+  ErrVal readSliceHeaderSuffix( NalUnitType   eNalUnitType,
+								NalRefIdc     eNalRefIdc,
+								UInt		  uiLayerId,
+								UInt		  uiQualityLevel,
+								SliceHeader*  pcSliceHeader
+							  );					//JVT-S036 lsj
 
   //TMM_EC {{
 	ErrVal	readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
@@ -161,6 +169,14 @@ protected:
   MbParser* m_pcMbParser;
   ControlMngIf* m_pcControlMng;
   Bool m_bInitDone;
+//JVT-S036 lsj start
+  UInt KeyPictureFlag;
+  Bool uiAdaptiveRefPicMarkingModeFlag;
+  MmcoBuffer m_cMmmcoBufferSuffix; 
+	UInt PPSId_AVC, SPSId_AVC;
+	UInt POC_AVC;
+//JVT-S036 lsj end 
+
 };
 
 H264AVC_NAMESPACE_END

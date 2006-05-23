@@ -129,18 +129,20 @@ public:
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   Bool			getDiscardableFlag ()	{ return m_bDiscardableFlag;}
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
-  Void  setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
+  /*Void  setSimplePriorityMap ( UInt uiSimplePri, UInt uiTemporalLevel, UInt uiLayer, UInt uiQualityLevel )
                                                                           { m_uiTemporalLevelList[uiSimplePri] = uiTemporalLevel;
                                                                             m_uiDependencyIdList [uiSimplePri] = uiLayer;
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
+JVT-S036 lsj */
   //JVT-P031
   UInt getBytesLeft();
   UInt getBitsLeft();
   ErrVal initSODBNalUnit( BinDataAccessor* pcBinDataAccessor );
   UInt getNalHeaderSize( BinDataAccessor* pcBinDataAccessor );
   Bool getFragmentedFlag() { return m_bFragmentedFlag;}
-  Bool  getExtensionFlag() { return m_bExtensionFlag;} //BUG_FIX_FT_01_2006_2
+  //Bool  getExtensionFlag() { return m_bExtensionFlag;} //BUG_FIX_FT_01_2006_2  //JVT-S036 lsj
+    Bool  getReservedZeroBit() { return m_bReservedZeroBit;} //JVT-S036 lsj
   Void setCheckAllNALUs(Bool b) { m_bCheckAllNALUs = b;}
   Void setDecodedLayer( UInt uiLayer) { m_uiDecodedLayer = uiLayer;}
   //~JVT-P031
@@ -171,11 +173,14 @@ protected:
   //France Telecom R&D- (nathalie.cammas@francetelecom.com)
   UInt			m_uiSimplePriorityId;
   Bool			m_bDiscardableFlag;
-  Bool			m_bExtensionFlag;
+//JVT-S036 lsj start
+  Bool			m_bReservedZeroBit;
+  //Bool			m_bExtensionFlag;
   //}}Variable Lengh NAL unit header data with priority and dead substream flag
-  UInt          m_uiTemporalLevelList[1 << PRI_ID_BITS];
-  UInt          m_uiDependencyIdList [1 << PRI_ID_BITS];
-  UInt          m_uiQualityLevelList [1 << PRI_ID_BITS];
+ // UInt          m_uiTemporalLevelList[1 << PRI_ID_BITS];
+ // UInt          m_uiDependencyIdList [1 << PRI_ID_BITS];
+ //UInt          m_uiQualityLevelList [1 << PRI_ID_BITS];
+//JVT-S036 lsj end
   //JVT-P031
   Bool          m_bFragmentedFlag;
   Bool          m_bCheckAllNALUs;
