@@ -1,3 +1,17 @@
+JSVM_5_4 -> JSVM_5_5
+====================
+
+Simplification of Up-sampling process of IntraBL Mode
+
+Date: May 15, 2006
+Authors: C. Zhang (Zhejiang Univ.)
+Contribution: JVT-S055
+
+Changes:
+
+Use 2-tap bilinear up-sampling filters for chroma.
+
+
 JSVM_5_3 -> JSVM_5_4
 ====================
 
@@ -23,6 +37,7 @@ Authors: Yan Ye (Qualcomm)
 Contribution: JVT-S066/S058/S031
 
 Changes:
+
 - modified coding order (Justin Ridge, Nokia)
 - improvements to FGS for VLC (S066)
 - VLC selector for 4x4 transform blocks (S058)
@@ -40,6 +55,7 @@ Authors: Justin Ridge (Nokia), Nathalie Cammas (France Telecom R&D)
 Contribution: JVT-S077
 
 Changes:
+
 - Convert "regular" FGS to subband approach
 - Remove specific routines for AR-FGS ordering (now a single method)
 - Add "vector mode" coefficient ordering in FGS
@@ -50,10 +66,11 @@ Changes:
 
 Bug fixes & software manual improvements
 
-Data: April 28, 2006
+Date: April 28, 2006
 Author: Heiko Schwarz (in behalf of Martin Winken & Jerome Vieron)
 
 Changes:
+
 - bug-fix for real single-loop decoding at the decoder side (Martin Winken)
 - bug-fix for validation scripts (Jerome Vieron)
 - update of software manual regarding validation scripts (Jerome Vieron)
@@ -73,11 +90,12 @@ MCTF pre-processing
 Remove MCTF and open-loop coding from encoder
 Software manual
 
-Data: April 24, 2006
+Date: April 24, 2006
 Author: Heiko Schwarz (Fraunhofer HHI)
 Contribution: JVT-S068, JVT-S069, JVT-S070, JVT group decision
 
-changes:
+Changes:
+
 - added skip mode for SVC NAL units
 - added independent parsing as software option
   - it is disables by default
