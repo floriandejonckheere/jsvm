@@ -395,7 +395,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
         }
         break;
       default:
-        ROT(1);
+        RERR();
         break;
       }
     }
@@ -1009,7 +1009,7 @@ Void MotionEstimation::xTZ2PointSearch( IntTZSearchStrukt& rcStrukt, SearchRect 
     break;
   default:
     {
-      AOT(1);
+      AF();
     }
     break;
   } // switch( rcStrukt.ucPointNr )

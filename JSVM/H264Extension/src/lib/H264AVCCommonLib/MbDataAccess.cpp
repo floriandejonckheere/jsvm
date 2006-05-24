@@ -466,7 +466,7 @@ UInt MbDataAccess::getConvertBlkMode( Par8x8 ePar8x8 )
     }
   default:
     {
-      AOT(1);
+      AF();
       return MSYS_UINT_MAX;
     }
   }
@@ -553,7 +553,7 @@ UInt MbDataAccess::getConvertMbType()
     return uiMbType;
   }
 
-  AOT(1);
+  AF();
   return MSYS_UINT_MAX;
 }
 

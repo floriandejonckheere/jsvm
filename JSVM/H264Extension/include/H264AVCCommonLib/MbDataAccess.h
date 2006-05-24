@@ -280,11 +280,7 @@ public:
   Void  getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx8x4 eSParIdx );
   Void  getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx4x8 eSParIdx );
   Void  getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx );
-  Void  getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx, ParIdx16x16 eParIdx );
-  Void  getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx8x8 eSParIdx );
-
-
-
+  
   Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx );
   Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx16x8 eParIdx );
   Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx8x16 eParIdx );
@@ -292,8 +288,6 @@ public:
   Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx8x4 eSParIdx );
   Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx4x8 eSParIdx );
   Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx );
-  Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx16x16 eParIdx );
-  Void  setMvPredictorsBL( const Mv& rcMvBL, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx8x8 eSParIdx );
 
 
   Void  getMvPredictors       ( Mv* pcMv     ) const;
@@ -407,14 +401,6 @@ public:
   MbDataAccess* m_pcMbDataAccessBase;
 };
 
-__inline Void MbDataAccess::getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx, ParIdx16x16 eParIdx )
-{
-  xGetMvPredictor( rcMv, scRef, eListIdx, MEDIAN, B4x4Idx( 0 ), B4x4Idx( 3 ) );
-}
-__inline Void MbDataAccess::getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx8x8 eSParIdx )
-{
-  xGetMvPredictor( rcMv, scRef, eListIdx, MEDIAN, B4x4Idx( eParIdx ), B4x4Idx( eParIdx+1 ) );
-}
 __inline Void MbDataAccess::getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eListIdx )
 {
   xGetMvPredictor( rcMv, scRef, eListIdx, MEDIAN, B4x4Idx( 0 ), B4x4Idx( 3 ) );
@@ -447,17 +433,6 @@ __inline Void MbDataAccess::getMvPredictor( Mv& rcMv, SChar scRef, ListIdx eList
 }
 
 
-
-
-
-__inline Void MbDataAccess::setMvPredictorsBL( const Mv& rcMv, ListIdx eListIdx, ParIdx16x16 eParIdx )
-{
-  xSetMvPredictorsBL( rcMv, eListIdx, B4x4Idx( 0 ), B4x4Idx( 3 ) );
-}
-__inline Void MbDataAccess::setMvPredictorsBL( const Mv& rcMv, ListIdx eListIdx, ParIdx8x8  eParIdx, SParIdx8x8 eSParIdx )
-{
-  xSetMvPredictorsBL( rcMv, eListIdx, B4x4Idx( eParIdx ), B4x4Idx( eParIdx+1 ) );
-}
 __inline Void MbDataAccess::setMvPredictorsBL( const Mv& rcMv, ListIdx eListIdx )
 {
   xSetMvPredictorsBL( rcMv, eListIdx, B4x4Idx( 0 ), B4x4Idx( 3 ) );

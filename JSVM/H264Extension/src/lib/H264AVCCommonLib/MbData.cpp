@@ -642,7 +642,7 @@ MbData::xInherit8x8MotionData(  const Bool       abBaseMbIntra[4] ,
          UInt uiB8x8;
          for(uiB8x8=0 ; uiB8x8<4 ; uiB8x8++)
          {
-             Char cSuffixX,cSuffixY;
+             Char cSuffixX,cSuffixY=-1;
              cSuffixX=xComputeSubMbModeSize(uiB8x8,0,abBaseMbIntra,aeMbMode,aeBlkMode,aeBorder,auiMbIdx,aui4x4Idx);
              if(cSuffixX>0)
                  cSuffixY=xComputeSubMbModeSize(uiB8x8,1,abBaseMbIntra,aeMbMode,aeBlkMode,aeBorder,auiMbIdx,aui4x4Idx);  

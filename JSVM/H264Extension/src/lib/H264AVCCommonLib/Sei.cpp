@@ -230,7 +230,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
   	case NON_REQUIRED_SEI: return NonRequiredSei::create((NonRequiredSei*&) rpcSEIMessage); 
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
-  return Err::m_nOK;
+  //return Err::m_nOK;
 }
 
 
@@ -480,7 +480,7 @@ SEI::ScalableSei::create( ScalableSei*& rpcSeiMessage )
 ErrVal
 SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
-  UInt i, j;
+  UInt i=0, j=0;
 
 	ROF( m_num_layers_minus1+1 );
 	RNOK		( pcWriteIf->writeUvlc(m_num_layers_minus1,													"ScalableSEI: num_layers_minus1"											) );
@@ -659,7 +659,7 @@ JVT-S036 lsj */
 ErrVal
 SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 {
-   UInt i, j;
+   UInt i, j=0;
   UInt rl;//JVT-S036 lsj 
 
 	RNOK	( pcReadIf->getUvlc( m_num_layers_minus1 ,																""	) );

@@ -337,10 +337,18 @@ ErrVal CodingParameter::check()
       pcLayer->setBaseQualityLevel(0);
 
     // pass parameters from command line to layer configurations
-    // take effect only if they are not provided in layer configuration files
-    pcLayer->setLowPassEnhRef( m_dLowPassEnhRef );
-    pcLayer->setAdaptiveRefFGSWeights( m_uiBaseWeightZeroBaseBlock, m_uiBaseWeightZeroBaseCoeff );
-    pcLayer->setFgsEncStructureFlag( m_uiFgsEncStructureFlag );
+     if( m_dLowPassEnhRef >= 0 )
+    {
+      pcLayer->setLowPassEnhRef( m_dLowPassEnhRef );
+    }
+    if( m_uiBaseWeightZeroBaseBlock <= AR_FGS_MAX_BASE_WEIGHT || m_uiBaseWeightZeroBaseCoeff <= AR_FGS_MAX_BASE_WEIGHT )
+    {
+      pcLayer->setAdaptiveRefFGSWeights( m_uiBaseWeightZeroBaseBlock, m_uiBaseWeightZeroBaseCoeff );
+    }
+    if( m_uiFgsEncStructureFlag < MSYS_UINT_MAX )
+    {
+      pcLayer->setFgsEncStructureFlag( m_uiFgsEncStructureFlag );
+    }
   }
 
  return Err::m_nOK;

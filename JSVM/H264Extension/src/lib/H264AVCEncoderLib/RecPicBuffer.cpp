@@ -975,7 +975,7 @@ RecPicBuffer::xInitRefListsBSlice( RefFrameList&  rcList0,
   if( rcList1.getActive() >= 2 && rcList0.getActive() == rcList1.getActive() )
   {
     Bool bSwitch = true;
-    for( UInt uiPos = 0; uiPos < rcList1.getActive(); uiPos++ )
+    for( uiPos = 0; uiPos < rcList1.getActive(); uiPos++ )
     {
       if( rcList0.getEntry( uiPos ) != rcList1.getEntry( uiPos ) )
       {

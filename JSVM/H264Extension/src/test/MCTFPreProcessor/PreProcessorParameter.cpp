@@ -249,6 +249,6 @@ PreProcessorParameter::xPrintUsage( Char** argv )
   printf("  -gop GOPSize - GOP size for MCTF (2,4,8,16,32,64, default: 16)\n");
   printf("  -qp  QP      - QP for motion estimation and mode decision\n"
          "                 (>0, default: 26)\n\n");
-  ROTS(1);
+  RERRS();
 }
 

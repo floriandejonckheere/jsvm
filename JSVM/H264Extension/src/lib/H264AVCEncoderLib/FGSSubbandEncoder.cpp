@@ -1012,7 +1012,7 @@ RQFGSEncoder::xResidualTransform( /*UInt uiBasePos*/ )
                                            m_dLambda,
                                            bLowPass,
                                            m_iMaxQpDelta ) );
-      pcMbDataAccessEL->getMbData().setResidualPredFlag( bResidualPrediction, PART_16x16 );
+      pcMbDataAccessEL->getMbData().setResidualPredFlag( bResidualPrediction );
       m_pcTransform->setClipMode( true );
     }
   }
@@ -1482,6 +1482,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 {
   Bool bRestore = true;
   Bool bFirstPass = true;
+  UInt ui;
 
   RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
@@ -1515,7 +1516,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   }
   //~FIX_FRAG_CAVLC
   //positions vector for luma (and chromaAC) and chroma DC
-  UInt ui;
+
   for(ui = 0; ui < 4; ui++)
   {
     m_auiScanPosVectChromaDC[ui] = ui;
@@ -1604,7 +1605,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         auiEobShift[uiScanPos] = 0;
         for (UInt uiHpos=1; uiHpos<16; uiHpos++) {
           UInt uiTotal = 0;
-          for (int uiBase=0; uiBase<16; uiBase++)
+          for (UInt uiBase=0; uiBase<16; uiBase++)
             uiTotal += pauiHistLuma[(uiScanPos*16+uiBase)*16+uiHpos];
           if (uiTotal < auiHighMagHist[uiScanPos])
             break;
@@ -1629,13 +1630,13 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         UInt *pauiHistLumaNoBase = new UInt[16*16];
         UInt uiTotalNumCodeTable = 5;
         UInt uiTotalRunCost = 0;
-        UInt uiCycle;
+        UInt uiCycle=0;
 
         // tally histogram without LEBL index
         memset(pauiHistLumaNoBase, 0, sizeof(UInt)*16*16);
         for(uiCycle = 0; uiCycle < 16; uiCycle++)
         {
-          for(UInt ui = 0; ui < 16; ui++)
+          for(ui = 0; ui < 16; ui++)
             for(UInt uiBase = 0; uiBase < 16; uiBase++)
             {
               pauiHistLumaNoBase[uiCycle*16+ui] += pauiHistLuma[(uiCycle*16+uiBase)*16+ui];
@@ -1643,8 +1644,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         }
 
         {
-          UInt uiCycle = 0;
-
+          uiCycle = 0;
           UInt uiBestTable; 
           UInt uiCost[5], uiBestCost;
           UInt uiTableIdx;
@@ -1655,7 +1655,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
             UInt *uiTable = uiTempCodeLenCycleBase[uiTableIdx];
 
             uiCost[uiTableIdx] = 0;
-            for(UInt ui = 1; ui < 16; ui++)
+            for(ui = 1; ui < 16; ui++)
             {
               UInt uiCodeLen = uiTable[ui-1];
 
@@ -1691,7 +1691,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
             UInt *uiTable = uiTempCodeLenCycleBase[uiTableIdx];
 
             uiCost[uiTableIdx] = 0;
-            for(UInt ui = 0; ui < 16; ui++)
+            for(ui = 0; ui < 16; ui++)
             {
               UInt uiSymbol; 
               if(ui == 0)

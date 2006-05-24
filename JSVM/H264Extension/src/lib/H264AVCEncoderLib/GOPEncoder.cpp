@@ -351,7 +351,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_pcRQFGSEncoder          = pcRQFGSEncoder;
 
   //----- fixed control parameters -----
-  m_dLowPassEnhRef          = pcCodingParameter->getLowPassEnhRef();
+  m_dLowPassEnhRef          = pcLayerParameters->getLowPassEnhRef();
   m_uiLowPassFgsMcFilter    = pcCodingParameter->getLowPassFgsMcFilter();
 
   pcLayerParameters->getAdaptiveRefFGSWeights(
@@ -815,53 +815,53 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
 
 
   //========== CREATE FRAME MEMORIES ==========
-  ROFRS   ( ( m_papcFrame                     = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
-  ROFRS   ( ( m_papcOrgFrame                  = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
+  ROFS   ( ( m_papcFrame                     = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
+  ROFS   ( ( m_papcOrgFrame                  = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
   if( m_uiClosedLoopMode == 2 )
   {
-    ROFRS ( ( m_papcBQFrame                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
+    ROFS ( ( m_papcBQFrame                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
   }
 
   if( m_uiQualityLevelForPrediction < 3 || m_bUseDiscardableUnit) //JVT-P031
   {
-    ROFRS ( ( m_papcCLRecFrame                = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
+    ROFS ( ( m_papcCLRecFrame                = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
   }
-  ROFRS   ( ( m_papcResidual                  = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
-  ROFRS   ( ( m_papcSubband                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
+  ROFS   ( ( m_papcResidual                  = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
+  ROFS   ( ( m_papcSubband                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
 
 	//-- JVT-R091
-	ROFRS   ( ( m_papcSmoothedFrame							= new IntFrame* [ m_uiMaxGOPSize + 1 ]      ), Err::m_nERR );
+	ROFS   ( ( m_papcSmoothedFrame							= new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
 	//--
   
   for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
   {
-    ROFRS ( ( m_papcFrame         [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
-    ROFRS ( ( m_papcOrgFrame      [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+    ROFS ( ( m_papcFrame         [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
+    ROFS ( ( m_papcOrgFrame      [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvFullPelBufferCtrl ) ) );
     if( m_papcBQFrame )
     {
-      ROFRS(( m_papcBQFrame       [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+      ROFS(( m_papcBQFrame       [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvFullPelBufferCtrl ) ) );
     }
     if( m_papcCLRecFrame )
     {
-      ROFRS(( m_papcCLRecFrame    [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+      ROFS(( m_papcCLRecFrame    [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
     }
 
 		//-- JVT-R091
 		if ( m_papcSmoothedFrame )
 		{
-      ROFRS(( m_papcSmoothedFrame	[ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-																															*m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+      ROFS(( m_papcSmoothedFrame	[ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+																															*m_pcYuvHalfPelBufferCtrl ) ) );
 		}
 		//--
 
-    ROFRS ( ( m_papcResidual      [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
-    ROFRS ( ( m_papcSubband       [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+    ROFS ( ( m_papcResidual      [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
+    ROFS ( ( m_papcSubband       [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
     RNOK  (   m_papcFrame         [ uiIndex ] ->init        () );
     RNOK  (   m_papcOrgFrame      [ uiIndex ] ->init        () );
     if( m_papcBQFrame )
@@ -886,8 +886,8 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   
   for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES;  uiIndex++ )
   {
-    ROFRS ( ( m_apcFrameTemp      [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+    ROFS ( ( m_apcFrameTemp      [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
     RNOK  (   m_apcFrameTemp      [ uiIndex ] ->init        () );
   }
   
@@ -895,52 +895,52 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   {
     for( UInt uiLayerIdx = 0; uiLayerIdx < 4; uiLayerIdx ++ )
     {
-      ROFRS   ( ( m_aapcFGSRecon[uiIndex][uiLayerIdx]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+      ROFS   ( ( m_aapcFGSRecon[uiIndex][uiLayerIdx]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
       RNOK    (   m_aapcFGSRecon[uiIndex][uiLayerIdx]   ->init        () );
     }
   }
 
-  ROFRS   ( ( m_aapcFGSPredFrame   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                          *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_aapcFGSPredFrame   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                          *m_pcYuvHalfPelBufferCtrl ) ) );
   RNOK    (   m_aapcFGSPredFrame   ->init        () );
 
-  ROFRS   ( ( m_pcLowPassBaseReconstruction   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcLowPassBaseReconstruction   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
   RNOK    (   m_pcLowPassBaseReconstruction   ->init        () );
     
-  ROFRS   ( ( m_pcAnchorFrameOriginal         = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcAnchorFrameOriginal         = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
   RNOK    (   m_pcAnchorFrameOriginal         ->init        () );
   
-  ROFRS   ( ( m_pcAnchorFrameReconstructed    = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcAnchorFrameReconstructed    = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
   RNOK    (   m_pcAnchorFrameReconstructed    ->init        () );
   
-  ROFRS   ( ( m_pcBaseLayerFrame              = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcBaseLayerFrame              = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
   RNOK    (   m_pcBaseLayerFrame              ->init        () );
   
-  ROFRS   ( ( m_pcBaseLayerResidual           = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcBaseLayerResidual           = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
   RNOK    (   m_pcBaseLayerResidual           ->init        () );
 
 
 
   //========== CREATE MACROBLOCK DATA MEMORIES ==========
-  ROFRS   ( ( m_pacControlData  = new ControlData[ m_uiMaxGOPSize + 1 ] ), Err::m_nERR );
+  ROFS   ( ( m_pacControlData  = new ControlData[ m_uiMaxGOPSize + 1 ] ) );
 
   for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
   {
     MbDataCtrl*   pcMbDataCtrl                = 0;
-    ROFRS ( (     pcMbDataCtrl                = new MbDataCtrl  () ), Err::m_nERR );
+    ROFS ( (     pcMbDataCtrl                = new MbDataCtrl  () ) );
     RNOK  (       pcMbDataCtrl                ->init            ( rcSPS ) );
     RNOK  (       m_pacControlData[ uiIndex ] . setMbDataCtrl   ( pcMbDataCtrl ) );
     RNOK  (       m_pacControlData[ uiIndex ] .initFGSData      ( m_uiFrameWidthInMb * m_uiFrameHeightInMb ) );
 
     Bool          bLowPass                    = ( ( uiIndex % ( 1 << m_uiDecompositionStages ) ) == 0 );
     SliceHeader*  pcSliceHeader               = 0;
-    ROFRS ( (     pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ), Err::m_nERR );
+    ROFS ( (     pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ) );
     RNOK  (       m_pacControlData[ uiIndex ] . setSliceHeader  (  pcSliceHeader ) );
 
     if( m_uiClosedLoopMode == 2 )
@@ -951,7 +951,7 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     m_pacControlData[ uiIndex ].getMbDataCtrl()->initFgsBQData(m_uiFrameWidthInMb * m_uiFrameHeightInMb);
   }
   
-  ROFRS   ( ( m_pcBaseLayerCtrl = new MbDataCtrl() ), Err::m_nERR );
+  ROFS   ( ( m_pcBaseLayerCtrl = new MbDataCtrl() ) );
   RNOK    (   m_pcBaseLayerCtrl ->init          ( rcSPS ) );
 
 
@@ -959,7 +959,7 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   //========== CREATE UPDATE WEIGHTS ARRAY and WRITE BUFFER ==========
   UInt  uiNum4x4Blocks        = m_uiFrameWidthInMb * m_uiFrameHeightInMb * 4 * 4;
   m_uiWriteBufferSize         = 3 * ( uiNum4x4Blocks * 4 * 4 );
-  ROFRS( ( m_pucWriteBuffer   = new UChar [ m_uiWriteBufferSize ] ), Err::m_nERR );
+  ROFS( ( m_pucWriteBuffer   = new UChar [ m_uiWriteBufferSize ] ) );
   ROT ( m_cDownConvert    .init   ( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4 ) );
   RNOK( m_pcRQFGSEncoder ->initSPS( rcSPS ) );
 
@@ -6197,8 +6197,6 @@ MCTFEncoder::xSetMmcoBase( SliceHeader& pcSliceHeader, UInt iNum )
 	SliceHeader& rcSH = pcSliceHeader;
 	rcSH.getMmcoBaseBuffer().clear();
 	rcSH.setAdaptiveRefPicMarkingFlag( false );
-	UInt uiCurrFrameNr = rcSH.getFrameNum();
-
 	  
 	// leave if idr
     if( rcSH.isIdrNalUnit() )
@@ -6209,7 +6207,6 @@ MCTFEncoder::xSetMmcoBase( SliceHeader& pcSliceHeader, UInt iNum )
 	if( rcSH.getKeyPictureFlag() )
 	{
 		UInt uiPos = 0;
-		const UInt  uiMaxFrameNumber  = ( 1 << rcSH.getSPS().getLog2MaxFrameNum() );
 		const Int   iDiff             =  rcSH.getFrameNum() - iNum;
 		//UInt        uiDiff            = ( uiMaxFrameNumber - iDiff ) % uiMaxFrameNumber;
 

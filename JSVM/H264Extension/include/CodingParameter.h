@@ -213,7 +213,7 @@ public:
     , m_bConstrainedIntraPredForLP        (false)
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
-    , m_dLowPassEnhRef                    ( -1.0 )
+    , m_dLowPassEnhRef                    ( AR_FGS_DEFAULT_LOW_PASS_ENH_REF )
     , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
     , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
     , m_uiFgsEncStructureFlag             ( AR_FGS_DEFAULT_ENC_STRUCTURE )
@@ -370,9 +370,7 @@ public:
 
   Void                            setLowPassEnhRef        ( Double d )   
   {
-    if( m_dLowPassEnhRef < 0 )
       m_dLowPassEnhRef = ( d < 0.0 ) ? 0.0 : ( ( d > 1.0 ) ? 1.0 : d );
-    // else it has already been set up properly 
   }
 
   Double                          getLowPassEnhRef        ()            { return m_dLowPassEnhRef;        }
@@ -556,10 +554,10 @@ public:
     , m_uiUseAGS                          (0)
     , m_uiWriteGOPMode                    (0)
     //}}Adaptive GOP structure
-    , m_dLowPassEnhRef                    ( AR_FGS_DEFAULT_LOW_PASS_ENH_REF )
-    , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
-    , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
-    , m_uiFgsEncStructureFlag             ( AR_FGS_DEFAULT_ENC_STRUCTURE )
+    , m_dLowPassEnhRef                    ( -1.0 )
+    , m_uiBaseWeightZeroBaseBlock         ( MSYS_UINT_MAX )
+    , m_uiBaseWeightZeroBaseCoeff         ( MSYS_UINT_MAX )
+    , m_uiFgsEncStructureFlag             ( MSYS_UINT_MAX )
     , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
     , m_uiMVCmode                         ( 0 )
     , m_uiFrameWidth                      ( 0 )

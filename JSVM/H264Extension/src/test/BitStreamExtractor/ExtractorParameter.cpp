@@ -362,5 +362,5 @@ ExtractorParameter::xPrintUsage( Char **argv )
   printf("\nOptions \"-l\", \"-t\" and \"-f\" can be used in combination with each other.\n"
 	 	     "Other options can only be used separately.\n" );
 	printf("\n");
-  ROTS(1);
+  RERRS();
 }

@@ -142,8 +142,6 @@ public:
   Void  setFirstMv( const Mv& rcMv, ParIdx8x8  eParIdx, SParIdx4x8 eSParIdx ) { m_acMv[ eParIdx+eSParIdx ] = rcMv; }
   Void  setFirstMv( const Mv& rcMv, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx ) { m_acMv[ eParIdx+eSParIdx ] = rcMv; }
 
-  Void  setAllMv( const Mv& rcMv, ParIdx16x16 eParIdx  );
-  Void  setAllMv( const Mv& rcMv, ParIdx8x8  eParIdx, SParIdx8x8 eSParIdx );
   Void  setAllMv( const Mv& rcMv );
   Void  setAllMv( const Mv& rcMv, ParIdx16x8 eParIdx  );
   Void  setAllMv( const Mv& rcMv, ParIdx8x16 eParIdx  );
@@ -222,8 +220,7 @@ public:
   Void  setRefIdx( SChar scRefIdx, ParIdx16x8 eParIdx  );
   Void  setRefIdx( SChar scRefIdx, ParIdx8x16 eParIdx  );
   Void  setRefIdx( SChar scRefIdx, ParIdx8x8  eParIdx  );
-  Void  setRefIdx( SChar scRefIdx, ParIdx16x16 eParIdx  );
-
+  
   SChar getRefIdx()                      const  { return m_ascRefIdx[ 0         ]; }
   SChar getRefIdx( ParIdx16x8 eParIdx  ) const  { return m_ascRefIdx[ m_auiBlk2Part[ eParIdx ] ]; }
   SChar getRefIdx( ParIdx8x16 eParIdx  ) const  { return m_ascRefIdx[ m_auiBlk2Part[ eParIdx ] ]; }
@@ -270,14 +267,6 @@ public:
     m_acRefPic[ m_auiBlk2Part[ eParIdx ] ].setFrame( pcRefFrame );
   }
 
-  Void  setRefPic( const Frame* pcRefFrame, ParIdx16x16  eParIdx  )
-  {
-    m_acRefPic[ 0 ].setFrame( pcRefFrame );
-    m_acRefPic[ 1 ].setFrame( pcRefFrame );
-    m_acRefPic[ 2 ].setFrame( pcRefFrame );
-    m_acRefPic[ 3 ].setFrame( pcRefFrame );
-  }
-  
   const RefPic& getRefPic( ParIdx8x8 eParIdx )        const { return m_acRefPic[ m_auiBlk2Part[ eParIdx ] ];  }
   const RefPic& getRefPic( LumaIdx cIdx )             const { return m_acRefPic[ m_auiBlk2Part[ cIdx.b4x4() ] ];  }
 
@@ -351,47 +340,11 @@ Void MbMotionData::setRefIdx( SChar scRefIdx, ParIdx8x16 eParIdx )
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]+2 ] = scRefIdx;
 }
 
-__inline 
-Void  MbMotionData::setRefIdx( SChar scRefIdx, ParIdx16x16 eParIdx )
-{
-  m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = scRefIdx;
-}
-
 __inline Void MbMotionData::setRefIdx( SChar scRefIdx, ParIdx8x8 eParIdx )
 {
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]   ] = scRefIdx;
 }
 
-__inline Void MbMvData::setAllMv( const Mv& rcMv, ParIdx8x8  eParIdx, SParIdx8x8 eSParIdx )
-{
-  Mv* pcMv = m_acMv + eParIdx;
-  const register Mv cMv = rcMv;
-  pcMv[ 0 ] = cMv;
-  pcMv[ 1 ] = cMv;
-  pcMv[ 4 ] = cMv;
-  pcMv[ 5 ] = cMv;
-}
-
-__inline Void MbMvData::setAllMv( const Mv& rcMv, ParIdx16x16 eParIdx )
-{
-  const register Mv cMv = rcMv;
-  m_acMv[ 0 ] = cMv;
-  m_acMv[ 1 ] = cMv;
-  m_acMv[ 2 ] = cMv;
-  m_acMv[ 3 ] = cMv;
-  m_acMv[ 4 ] = cMv;
-  m_acMv[ 5 ] = cMv;
-  m_acMv[ 6 ] = cMv;
-  m_acMv[ 7 ] = cMv;
-  m_acMv[ 8 ] = cMv;
-  m_acMv[ 9 ] = cMv;
-  m_acMv[ 10 ] = cMv;
-  m_acMv[ 11 ] = cMv;
-  m_acMv[ 12 ] = cMv;
-  m_acMv[ 13 ] = cMv;
-  m_acMv[ 14 ] = cMv;
-  m_acMv[ 15 ] = cMv;
-}
 
 __inline Void MbMvData::setAllMv( const Mv& rcMv )
 {

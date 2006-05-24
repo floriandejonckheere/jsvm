@@ -535,7 +535,7 @@ ErrVal CabacReader::resPredFlag( MbDataAccess& rcMbDataAccess )
 #endif
 
   RNOK( CabaDecoder::getSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
-  rcMbDataAccess.getMbData().setResidualPredFlag( (uiSymbol!=0), PART_16x16 );
+  rcMbDataAccess.getMbData().setResidualPredFlag( (uiSymbol!=0) );
 
   DTRACE_T( "ResidualPredFlag" );
   DTRACE_TY( "ae(v)" );

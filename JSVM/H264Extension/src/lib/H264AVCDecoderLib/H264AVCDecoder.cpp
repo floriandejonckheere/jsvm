@@ -1501,7 +1501,6 @@ H264AVCDecoder::initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
   //~JVT-P031
   UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
   RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
-  UInt uiBitsLeft = m_pcNalUnitParser->getBitsLeft(); //JVT-P031
 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();
   
@@ -2396,8 +2395,8 @@ H264AVCDecoder::xReconstructLastFGS()
 ErrVal
 H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& rpcPicBuffer )
 {
-//  ROFRS( m_pcRQFGSDecoder->isInitialized(), Err::m_nOK );
-  ROFRS( m_pcRQFGSDecoder->isInitialized(), Err::m_nERR );//TMM_EC
+
+  ROFS( m_pcRQFGSDecoder->isInitialized() );
 
   //===== check slice header =====
   if(!m_pcRQFGSDecoder->isFinished    ()                                                                 &&
@@ -2469,8 +2468,8 @@ H264AVCDecoder::setDiffPrdRefLists( RefFrameList& diffPrdRefList,
     Int iRefPoc;
 
     IntFrame* pcDiffFrame;
-    ROFRS   ( ( pcDiffFrame                  = new IntFrame( *pcYuvFullPelBufferCtrl,
-                                                           *pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+    ROFS   ( ( pcDiffFrame                  = new IntFrame( *pcYuvFullPelBufferCtrl,
+                                                           *pcYuvFullPelBufferCtrl ) ) );
     pcDiffFrame->init();
 
     iRefPoc = rcBaseList.get(i).getFrame()->getPOC();

@@ -460,9 +460,6 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
 //JVT-S036 lsj start
   Bool KeyPicFlag = false;
   Bool eAdaptiveRefPicMarkingModeFlag = false;
-  UInt eMemoryManagementControlOperation = 0;
-  UInt eDifferenceOfPicNumsMinus1 = 0;
-  UInt eLongTermPicNum = 0;
   MmcoBuffer eMmcoBaseBuffer;
 //JVT-S036 lsj end
 
@@ -618,12 +615,7 @@ SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
   
   Bool eAdaptiveRefPicMarkingModeFlag = false;
   Bool KeyPicFlag = false;
-  UInt eMemoryManagementControlOperation = 0;
-  UInt eDifferenceOfPicNumsMinus1 = 0;
-  UInt eLongTermPicNum = 0;
-
-
-
+ 
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
       eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
   {

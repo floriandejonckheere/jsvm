@@ -481,7 +481,7 @@ ErrVal MbCoder::xWriteBlockMv( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, Li
     }
     default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -575,7 +575,7 @@ MbCoder::xWriteMotionPredFlags( MbDataAccess&  rcMbDataAccess,
     
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -654,7 +654,7 @@ MbCoder::xWriteMotionPredFlags_Ind( MbDataAccess&  rcMbDataAccess,
 
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -738,7 +738,7 @@ MbCoder::xWriteReferenceFrames( MbDataAccess& rcMbDataAccess,
     
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -815,7 +815,7 @@ MbCoder::xWriteMotionVectors( MbDataAccess& rcMbDataAccess,
    
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -881,7 +881,7 @@ ErrVal MbCoder::xWriteMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx e
     }
     default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }

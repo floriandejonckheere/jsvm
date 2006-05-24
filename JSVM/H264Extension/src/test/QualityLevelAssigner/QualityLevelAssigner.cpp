@@ -169,9 +169,9 @@ QualityLevelAssigner::init( QualityLevelParameter* pcParameter )
   for( UInt uiFGS   = 0; uiFGS   <= m_auiNumFGSLayers[uiLayer]; uiFGS  ++ )
   {
     ROF( m_auiNumFrames[uiLayer] );
-    ROFRS( ( m_aaadDeltaDist  [uiLayer][uiFGS] = new Double[m_auiNumFrames[uiLayer]] ), Err::m_nERR );
-    ROFRS( ( m_aaauiPacketSize[uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ), Err::m_nERR );
-    ROFRS( ( m_aaauiQualityID [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ), Err::m_nERR );
+    ROFS( ( m_aaadDeltaDist  [uiLayer][uiFGS] = new Double[m_auiNumFrames[uiLayer]] ) );
+    ROFS( ( m_aaauiPacketSize[uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
+    ROFS( ( m_aaauiQualityID [uiLayer][uiFGS] = new UInt  [m_auiNumFrames[uiLayer]] ) );
   }
 
   //--- init start code ----

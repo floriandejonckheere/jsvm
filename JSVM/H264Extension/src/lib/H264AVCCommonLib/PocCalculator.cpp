@@ -252,7 +252,7 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
     }
     break;
   default:
-    ROT(1);
+    RERR();
     break;
   }
   return Err::m_nOK;
@@ -287,7 +287,7 @@ PocCalculator::xInitSPS( const SequenceParameterSet& rcSPS )
     }
     break;
   default:
-    ROT(1);
+    RERR();
     break;
   }
   return Err::m_nOK;

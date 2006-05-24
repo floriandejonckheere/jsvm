@@ -235,7 +235,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
     RNOK( xSkipMb( rcMbDataAccess ) );
     rcMbDataAccess.getMbData().setBLSkipFlag( false );
     rcMbDataAccess.getMbData().setBLQRefFlag( false );
-    rcMbDataAccess.getMbData().setResidualPredFlag( false, PART_16x16 );
+    rcMbDataAccess.getMbData().setResidualPredFlag( false );
     rcMbDataAccess.getMbData().setSmoothedRefFlag ( false );
     if( rcMbDataAccess.getSH().isInterB() )
     {
@@ -364,7 +364,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
 #if INDEPENDENT_PARSING
       if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
       {
-        AOT(1);
+        AF();
       }
 #endif
       rcMbDataAccess.getMbData().copyMotion( pcMbDataAccessBase->getMbData() );
@@ -527,12 +527,12 @@ ErrVal MbParser::readVirtual( MbDataAccess&  rcMbDataAccess,
 		break;
 	case	EC_FRAME_COPY:
 		rcMbDataAccess.getMbData().setMbMode(MODE_16x16);
-		rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setAllMv( Mv::ZeroMv(), PART_16x16 );
+		rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setAllMv( Mv::ZeroMv());
 		rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setRefIdx(1);
 		rcMbDataAccess.getMbData().getMbMvdData   (LIST_0).clear();
 		if(rcMbDataAccess.getSH().getSliceType()==B_SLICE)
 		{	
-		rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setAllMv( Mv::ZeroMv(), PART_16x16 );
+		rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setAllMv( Mv::ZeroMv());
 		rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setRefIdx(1);
 		rcMbDataAccess.getMbData().getMbMvdData   (LIST_1).clear();
 		}
@@ -553,7 +553,7 @@ ErrVal MbParser::readVirtual( MbDataAccess&  rcMbDataAccess,
 		}
 		else
 		{
-		rcMbDataAccess.getMbData().setResidualPredFlag( true, PART_16x16);
+		rcMbDataAccess.getMbData().setResidualPredFlag( true );
 		}
 		break;
 	default:
@@ -1007,7 +1007,7 @@ ErrVal MbParser::xReadReferenceFrames( MbDataAccess& rcMbDataAccess, MbMode eMbM
       }
     default:
       {
-        AOT(1);
+        AF();
         return Err::m_nERR;
       }
   }
@@ -1172,7 +1172,7 @@ ErrVal MbParser::xReadReferenceFramesNoRefPic( MbDataAccess& rcMbDataAccess, MbM
       }
     default:
       {
-        AOT(1);
+        AF();
         return Err::m_nERR;
       }
   }
@@ -1301,7 +1301,7 @@ ErrVal MbParser::xReadMotionPredFlags( MbDataAccess&  rcMbDataAccess,
       }
     default:
       {
-        AOT(1);
+        AF();
         return Err::m_nERR;
       }
   }
@@ -1382,7 +1382,7 @@ ErrVal MbParser::xReadMotionPredFlags_Ind( MbDataAccess&  rcMbDataAccess,
     }
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -1451,7 +1451,7 @@ ErrVal MbParser::xReadMotionVectors( MbDataAccess& rcMbDataAccess, MbMode eMbMod
     }
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -1517,7 +1517,7 @@ ErrVal MbParser::xReadMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx e
     }
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }
@@ -1599,7 +1599,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
       }
       else if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
       {
-        rcMbDataAccess.getMbData().setResidualPredFlag( true, PART_16x16 );
+        rcMbDataAccess.getMbData().setResidualPredFlag( true );
         rcMbDataAccess.getMbData().setSmoothedRefFlag( false );	// JVT-R091
       }
     }
@@ -1623,7 +1623,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
     }
     else if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
     {
-      rcMbDataAccess.getMbData().setResidualPredFlag( true, PART_16x16 );
+      rcMbDataAccess.getMbData().setResidualPredFlag( true );
 			rcMbDataAccess.getMbData().setSmoothedRefFlag( false );	// JVT-R091
     }
   }

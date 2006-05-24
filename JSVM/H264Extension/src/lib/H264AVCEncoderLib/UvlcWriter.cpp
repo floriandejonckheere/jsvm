@@ -1074,7 +1074,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
     }
   default:
     {
-      AOT(1);
+      AF();
     }
   }
 
@@ -1171,7 +1171,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
     }
   default:
     {
-      AOT(1);
+      AF();
     }
   }
 

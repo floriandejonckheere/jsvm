@@ -163,7 +163,7 @@ ErrVal IntraPredictionSearch::predictSLumaMb( IntYuvMbBuffer *pcYuvBuffer, UInt 
     }
   default:
     {
-      AOT(1);
+      AF();
       return Err::m_nERR;
     }
   }

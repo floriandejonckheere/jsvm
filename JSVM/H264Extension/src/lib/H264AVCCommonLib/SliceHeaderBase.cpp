@@ -410,7 +410,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	{
 	RNOK(     pcWriteIf->writeCode( m_uiPicOrderCntLsb,
 									getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-		if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+		if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
 		{
 		RNOK( pcWriteIf->writeSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
 		}
@@ -418,7 +418,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
 	{
 		RNOK(   pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-		if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+		if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
 		{
 		RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
 		}
@@ -621,7 +621,7 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
   {
   RNOK(     pcWriteIf->writeCode( m_uiPicOrderCntLsb,
                                   getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
     {
       RNOK( pcWriteIf->writeSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
     }
@@ -629,7 +629,7 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
   if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
   {
     RNOK(   pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
     {
       RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
@@ -763,7 +763,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   {
   RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
                                getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
     {
       RNOK( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
     }
@@ -771,7 +771,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
   {
     RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() /*&& true ! field_pic_flag */ )
     {
       RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
@@ -995,7 +995,7 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
   {
   RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
                                getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
     {
       RNOK( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
     }
@@ -1003,7 +1003,7 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
   if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
   {
     RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-    if( getPPS().getPicOrderPresentFlag() && true /* ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() /*&& true ! field_pic_flag */ )
   {
       RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }

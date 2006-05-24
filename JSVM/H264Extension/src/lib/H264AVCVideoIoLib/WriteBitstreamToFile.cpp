@@ -159,7 +159,7 @@ ErrVal WriteBitstreamToFile::writePacket( BinDataAccessor* pcBinDataAccessor, Bo
     }
 #else
    std::cerr << "multiple output bitstreams only supported in Win32";
-   AOT(1);
+   AF();
 #endif
   }
 

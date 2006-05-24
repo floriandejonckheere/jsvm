@@ -155,8 +155,8 @@ DPBUnit::create( DPBUnit*&                    rpcDPBUnit,
   ROF( rpcDPBUnit );
 
   MbDataCtrl* pcMbDataCtrl = 0;
-  ROFRS( ( rpcDPBUnit->m_pcFrame    = new IntFrame  ( rcYuvBufferCtrl, rcYuvBufferCtrl ) ), Err::m_nERR );
-  ROFRS( ( pcMbDataCtrl             = new MbDataCtrl()                                   ), Err::m_nERR );
+  ROFS( ( rpcDPBUnit->m_pcFrame    = new IntFrame  ( rcYuvBufferCtrl, rcYuvBufferCtrl ) ) );
+  ROFS( ( pcMbDataCtrl             = new MbDataCtrl()                                   ) );
   RNOK (   rpcDPBUnit->m_pcFrame    ->init          ()               );
            rpcDPBUnit->m_pcFrame    ->setDPBUnit    ( rpcDPBUnit   );
   RNOK (   pcMbDataCtrl             ->init          ( rcSPS        ) );
@@ -515,8 +515,6 @@ DecodedPicBuffer::xMMCOBase( SliceHeader* pcSliceHeader, UInt mCurrFrameNum )
 
   while( MMCO_END != (eMmcoOp = rcMmcoBaseBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
  {
-	ErrVal nRet = Err::m_nOK;
-
 		switch( eMmcoOp )
 		{
 		case MMCO_SHORT_TERM_UNUSED:
@@ -529,7 +527,7 @@ DecodedPicBuffer::xMMCOBase( SliceHeader* pcSliceHeader, UInt mCurrFrameNum )
 		case MMCO_SET_LONG_TERM:
 		default:
 			fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
-		ROT(1);
+		RERR();
 		}
  }
   return Err::m_nOK;
@@ -542,7 +540,6 @@ DecodedPicBuffer::xMarkShortTermUnusedBase( UInt mCurrFrameNum, UInt uiDiffOfPic
   //UInt uiCurrPicNum = pcCurrentDPBUnit->getFrameNum();
   Int  iPicNumN     = (Int)mCurrFrameNum - (Int)uiDiffOfPicNums - 1;
 
-  DPBUnit*              pcDPBUnit = 0;
   DPBUnitList::iterator iter      = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end       = m_cUsedDPBUnitList.end  ();
   for( ; iter != end; iter++ )
@@ -550,16 +547,8 @@ DecodedPicBuffer::xMarkShortTermUnusedBase( UInt mCurrFrameNum, UInt uiDiffOfPic
 	  if( (*iter)->isNeededForRef() && (*iter)->getFrameNum() == iPicNumN && (*iter)->isBaseRep() ) 
     {
       (*iter)->markNonRef();
-#if 1 // BUG_FIX -> also mark "base representation as unused for ref."
-#else
-      return Err::m_nOK;
-#endif
     }
   }
-#if 1 // BUG_FIX
-#else
-  ROT(1);
-#endif
   return Err::m_nOK;
 }
 
@@ -580,16 +569,8 @@ DecodedPicBuffer::xMarkShortTermUnused( DPBUnit* pcCurrentDPBUnit, UInt uiDiffOf
     if( (*iter)->isNeededForRef() && (*iter)->getPicNum(uiCurrPicNum,m_uiMaxFrameNum) == iPicNumN )
     {
       (*iter)->markNonRef();
-#if 1 // BUG_FIX -> also mark "base representation as unused for ref."
-#else
-      return Err::m_nOK;
-#endif
     }
   }
-#if 1 // BUG_FIX
-#else
-  ROT(1);
-#endif
   return Err::m_nOK;
 }
 
@@ -646,7 +627,6 @@ ErrVal
 DecodedPicBuffer::xSlidingWindowBase( UInt mCurrFrameNum ) 
 {
   //===== get number of reference frames =====
-  UInt uiCurrNumRefFrames     = 0;
   DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
   DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
   DPBUnitList::iterator iiter;
@@ -1030,7 +1010,7 @@ DecodedPicBuffer::xInitPrdListsBSlice( RefFrameList&  rcList0,
   if( rcList1.getActive() >= 2 && rcList0.getActive() == rcList1.getActive() )
   {
     Bool bSwitch = true;
-    for( UInt uiPos = 0; uiPos < rcList1.getActive(); uiPos++ )
+    for( uiPos = 0; uiPos < rcList1.getActive(); uiPos++ )
     {
       if( rcList0.getEntry(uiPos) != rcList1.getEntry(uiPos) )
       {
@@ -1770,35 +1750,35 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
   //========== CREATE FRAME MEMORIES ==========
   for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES;  uiIndex++ )
   {
-    ROFRS ( ( m_apcFrameTemp  [ uiIndex ]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+    ROFS ( ( m_apcFrameTemp  [ uiIndex ]   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                            *m_pcYuvFullPelBufferCtrl ) ) );
     RNOK  (   m_apcFrameTemp  [ uiIndex ]   ->init        () );
   }
 
-  ROFRS   ( ( m_pcResidual                  = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcResidual                  = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                            *m_pcYuvFullPelBufferCtrl ) ) );
   RNOK    (   m_pcResidual                  ->init        () );
   
-  ROFRS   ( ( m_pcILPrediction              = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcILPrediction              = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                            *m_pcYuvFullPelBufferCtrl ) ) );
   RNOK    (   m_pcILPrediction              ->init        () );
   
-  ROFRS   ( ( m_pcPredSignal                = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcPredSignal                = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                            *m_pcYuvFullPelBufferCtrl ) ) );
   RNOK    (   m_pcPredSignal                ->init        () );
   
-  ROFRS   ( ( m_pcBaseLayerFrame            = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcBaseLayerFrame            = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                            *m_pcYuvFullPelBufferCtrl ) ) );
   RNOK    (   m_pcBaseLayerFrame            ->init        () );
   
-  ROFRS   ( ( m_pcBaseLayerResidual         = new IntFrame( *m_pcYuvFullPelBufferCtrl,
-                                                            *m_pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+  ROFS   ( ( m_pcBaseLayerResidual         = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+                                                            *m_pcYuvFullPelBufferCtrl ) ) );
   RNOK    (   m_pcBaseLayerResidual         ->init        () );
 
 
 
   //========== CREATE MACROBLOCK DATA MEMORIES ==========
-  ROFRS   ( ( m_pcBaseLayerCtrl = new MbDataCtrl() ), Err::m_nERR );
+  ROFS   ( ( m_pcBaseLayerCtrl = new MbDataCtrl() ) );
   RNOK    (   m_pcBaseLayerCtrl ->init          ( rcSPS ) );
 
 
@@ -2759,8 +2739,8 @@ MCTFDecoder::setDiffPrdRefLists( RefFrameList& diffPrdRefList,
     IntFrame  *pcDiffFrame, *enhFrame;
     Int iPoc;
 
-    ROFRS   ( ( pcDiffFrame                  = new IntFrame( *pcYuvFullPelBufferCtrl,
-                                                           *pcYuvFullPelBufferCtrl ) ), Err::m_nERR );
+    ROFS   ( ( pcDiffFrame                  = new IntFrame( *pcYuvFullPelBufferCtrl,
+                                                           *pcYuvFullPelBufferCtrl ) ) );
     pcDiffFrame->init();
 
     iPoc = rcBaseList.getEntry(i)->getPOC();

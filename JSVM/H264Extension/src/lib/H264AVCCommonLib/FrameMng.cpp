@@ -1079,8 +1079,6 @@ ErrVal FrameMng::xMMCOUpdateBase( SliceHeader* rcSH )
 
   while( MMCO_END != (eMmcoOp = rcMmcoBaseBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
  {
-	ErrVal nRet = Err::m_nOK;
-
 		switch( eMmcoOp )
 		{
 		case MMCO_SHORT_TERM_UNUSED:
@@ -1093,7 +1091,7 @@ ErrVal FrameMng::xMMCOUpdateBase( SliceHeader* rcSH )
 		case MMCO_SET_LONG_TERM:
 		default:
 			fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
-		ROT(1);
+		RERR();
 		}
  }
 	return Err::m_nOK;

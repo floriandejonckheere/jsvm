@@ -490,7 +490,7 @@ PicEncoder::xCreateData()
   //===== write buffer =====
   UInt  uiNum4x4Blocks        = m_uiFrameWidthInMb * m_uiFrameHeightInMb * 4 * 4;
   m_uiWriteBufferSize         = 3 * ( uiNum4x4Blocks * 4 * 4 );
-  ROFRS( ( m_pucWriteBuffer   = new UChar [ m_uiWriteBufferSize ] ), Err::m_nERR );
+  ROFS( ( m_pucWriteBuffer   = new UChar [ m_uiWriteBufferSize ] ) );
 
   return Err::m_nOK;
 }

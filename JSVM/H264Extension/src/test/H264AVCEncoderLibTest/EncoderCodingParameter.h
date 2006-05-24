@@ -565,7 +565,7 @@ ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, std::string* pacTag )
 
   for( n = 0; ; n++ )
     {
-      Char cChar = fgetc( hFile );
+      Char cChar = (Char) fgetc( hFile );
     ROTRS( cChar == '\n' || feof( hFile ), Err::m_nOK );  // end of line
     if   ( cChar == '#' )
       {
@@ -589,8 +589,7 @@ ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, std::string* pacTag )
 }
   }
 
-  return Err::m_nERR;
-}
+ }
 
 ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::string& rcBitstreamFile )
 {
@@ -714,7 +713,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   if ( uiLayerCnt != m_uiNumberOfLayers )
   {
     fprintf(stderr, "Could not locate all layer config files: check config file syntax\n");
-    AOT(1);
+    AF();
   }
 
   fclose( f );
@@ -798,7 +797,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   } 
 
   //--ICU/ETRI FMO Implementation
-  UInt bSliceGroupChangeDirection_flag;
+  UInt bSliceGroupChangeDirection_flag=0;
 
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceWidth",    &(rcLayer.m_uiFrameWidth),               176       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",   &(rcLayer.m_uiFrameHeight),              352       );

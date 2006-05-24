@@ -730,7 +730,7 @@ ErrVal UvlcReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   DTRACE_T( "ResidualPredFlag" );
   RNOK( xGetFlag( uiCode ) );
   DTRACE_N;
-  rcMbDataAccess.getMbData().setResidualPredFlag( uiCode?true:false, PART_16x16 );
+  rcMbDataAccess.getMbData().setResidualPredFlag( uiCode?true:false );
 
   return Err::m_nOK;
 }
@@ -2128,7 +2128,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
                                   Bool&         rbLast,
                                   UInt&         ruiNumCoefRead )
 {
-  UInt ui;
+  UInt ui=0;
 
   UInt uiCycle = 0;
   for (ui=uiStart; ui<uiScanIndex; ui++ )
@@ -2151,7 +2151,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
   {
     // Determine "overshoot" symbol
     UInt uiOvershoot = 1;
-    for( UInt ui = uiScanIndex; ui < uiStop; ui++ )
+    for( ui = uiScanIndex; ui < uiStop; ui++ )
     {
       if ( ! piCoeffBase[pucScan[ui]] )
       {

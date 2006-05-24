@@ -556,7 +556,7 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
       //allready assigned;
       if( ENCODE_PROCESS != m_eProcessingState )
       {
-        AOT(1);
+       AF();
       }
       else
       {
@@ -625,7 +625,7 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
       //allready assigned;
       if( ENCODE_PROCESS != m_eProcessingState )
       {
-        AOT(1);
+        AF();
       }
       else
       {
@@ -714,10 +714,10 @@ MbDataCtrl::initFgsBQData( UInt uiNumMb )
   ROT( m_pauiFgsBQMbCbp );
   ROT( m_pauiFgsBQBCBP );
   ROT( m_pabFgsBQ8x8Trafo );
-  ROFRS( ( m_pacFgsBQMbQP      = new UChar [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pauiFgsBQMbCbp    = new UInt  [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pauiFgsBQBCBP     = new UInt  [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pabFgsBQ8x8Trafo  = new Bool  [uiNumMb] ), Err::m_nERR );
+  ROFS( ( m_pacFgsBQMbQP      = new UChar [uiNumMb] ) );
+  ROFS( ( m_pauiFgsBQMbCbp    = new UInt  [uiNumMb] ) );
+  ROFS( ( m_pauiFgsBQBCBP     = new UInt  [uiNumMb] ) );
+  ROFS( ( m_pabFgsBQ8x8Trafo  = new Bool  [uiNumMb] ) );
   return Err::m_nOK;
 }
 
@@ -832,13 +832,13 @@ ControlData::initBQData( UInt uiNumMb )
   ROT( m_pacBQMbQP );
   ROT( m_pauiBQMbCbp );
   ROT( m_pabBQ8x8Trafo );
-  ROFRS( ( m_pacBQMbQP      = new UChar [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pauiBQMbCbp    = new UInt  [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pabBQ8x8Trafo  = new Bool  [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_paeBQMbMode    = new MbMode[uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pusBQFwdBwd    = new UShort[uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_paacBQMotionData[0] = new MbMotionData[uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_paacBQMotionData[1] = new MbMotionData[uiNumMb] ), Err::m_nERR );
+  ROFS( ( m_pacBQMbQP      = new UChar [uiNumMb] ) );
+  ROFS( ( m_pauiBQMbCbp    = new UInt  [uiNumMb] ) );
+  ROFS( ( m_pabBQ8x8Trafo  = new Bool  [uiNumMb] ) );
+  ROFS( ( m_paeBQMbMode    = new MbMode[uiNumMb] ) );
+  ROFS( ( m_pusBQFwdBwd    = new UShort[uiNumMb] ) );
+  ROFS( ( m_paacBQMotionData[0] = new MbMotionData[uiNumMb] ) );
+  ROFS( ( m_paacBQMotionData[1] = new MbMotionData[uiNumMb] ) );
   return Err::m_nOK;
 }
 
@@ -931,9 +931,9 @@ ControlData::initFGSData( UInt uiNumMb )
   ROT( m_pacFGSMbQP );
   ROT( m_pauiFGSMbCbp );
   ROT( m_pabFGS8x8Trafo );
-  ROFRS( ( m_pacFGSMbQP      = new UChar [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pauiFGSMbCbp    = new UInt  [uiNumMb] ), Err::m_nERR );
-  ROFRS( ( m_pabFGS8x8Trafo  = new Bool  [uiNumMb] ), Err::m_nERR );
+  ROFS( ( m_pacFGSMbQP      = new UChar [uiNumMb] ) );
+  ROFS( ( m_pauiFGSMbCbp    = new UInt  [uiNumMb] ) );
+  ROFS( ( m_pabFGS8x8Trafo  = new Bool  [uiNumMb] ) );
   return Err::m_nOK;
 }
 

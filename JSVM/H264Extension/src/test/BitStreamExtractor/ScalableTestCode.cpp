@@ -328,10 +328,9 @@ JVT-S036 lsj*/
 			pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayers( uiLayer ) );
 			for( UInt ui = 0; ui < pcScalableSei->getNumDirectlyDependentLayers( uiLayer ); ui++ )
 			{
-#if 1 //BUG_FIX liuhui 0603
+      //BUG_FIX liuhui 0603
 				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiLayer, ui ) ); //JVT-S036 lsj
-#endif
-				//
+			//
 			}
 		}
 		else
@@ -345,18 +344,16 @@ JVT-S036 lsj*/
       UInt ui;
 			for( ui = 0; ui <= pcScalableSei->getNumInitSPSMinus1( uiLayer ); ui++ )
 			{
-#if 1 //BUG_FIX liuhui 0603
+       //BUG_FIX liuhui 0603
 				pcScalableTestCode->WriteUVLC( pcScalableSei->getInitSPSIdDelta( uiLayer, ui ) );
-#endif
-				//
+			//
 			}
 			pcScalableTestCode->WriteUVLC( pcScalableSei->getNumInitPPSMinus1( uiLayer ) );
 			for( ui = 0; ui <= pcScalableSei->getNumInitPPSMinus1( uiLayer ); ui++ )
 			{
-#if 1 //BUG_FIX liuhui 0603
+      //BUG_FIX liuhui 0603
 				pcScalableTestCode->WriteUVLC( pcScalableSei->getInitPPSIdDelta( uiLayer, ui ) );
-#endif
-				//
+			//
 			}
 		}
 		else

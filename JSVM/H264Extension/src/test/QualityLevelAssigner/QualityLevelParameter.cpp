@@ -257,6 +257,6 @@ QualityLevelParameter::xPrintUsage( Char** argv )
          "                    (speed-up by factor of 2, slight coding eff. losses)\n");
   printf("  -ind            - determine only independent distortions\n"
          "                    (speed-up by factor of 2, slight coding eff. losses)\n\n");
-  ROTS(1);
+  RERRS();
 }
 

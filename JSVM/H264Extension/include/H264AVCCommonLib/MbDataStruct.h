@@ -191,8 +191,8 @@ public:
   Void    setResidualPredFlags  ( UShort      usFlags   )       { m_usResidualPredFlags = usFlags; } 
   Void    setResidualPredFlag   ( Bool        bFlag,
                                   LumaIdx     cIdx      );
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  ParIdx16x16 eParIdx   );
+  Void    setResidualPredFlag   ( Bool        bFlag/*,
+                                  ParIdx16x16 eParIdx*/   );
   Void    setResidualPredFlag   ( Bool        bFlag,
                                   ParIdx16x8  eParIdx   );
   Void    setResidualPredFlag   ( Bool        bFlag,
@@ -281,7 +281,7 @@ MbDataStruct::setResidualPredFlag( Bool bFlag, LumaIdx cIdx )
 
 __inline
 Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx16x16 eParIdx )
+MbDataStruct::setResidualPredFlag( Bool bFlag/*, ParIdx16x16 eParIdx*/ )
 {
   setResidualPredFlag( bFlag, B4x4Idx( 0) );  
   setResidualPredFlag( bFlag, B4x4Idx( 1) );  

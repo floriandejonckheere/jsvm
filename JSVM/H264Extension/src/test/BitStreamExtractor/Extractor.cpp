@@ -1765,8 +1765,6 @@ JVT-S036 lsj */
 
 		if(pcNewScalableSei->getInitParameterSetsInfoPresentFlag(uiNumScalableLayer))
 		{
-			UInt uiNumInitSPSMinus1 = 0;	//should be changed
-			UInt uiNumInitPPSMinus1 = 0;	//should be changed
 			pcNewScalableSei->setNumInitSeqParameterSetMinus1(uiNumScalableLayer, pcOldScalableSei->getNumInitSPSMinus1( uiScalableLayer ) );
 			pcNewScalableSei->setNumInitPicParameterSetMinus1(uiNumScalableLayer, pcOldScalableSei->getNumInitPPSMinus1( uiScalableLayer ) );
       UInt j;
@@ -2167,7 +2165,7 @@ Extractor::xExtractLayerLevel()
 				{
   				  Double dWeight    = uiMaxFGSLayer - dMaxFGSLayer;
   					UInt uiShrinkSize = (UInt)ceil( (pcBinData->size()+4 ) * dWeight );
-            uiShrinkSize      = ( pcBinData->size() - uiShrinkSize > 25 ) ? uiShrinkSize : ( pcBinData->size() - 25 ); // 25 bytes should be enough for the slice headers
+            uiShrinkSize      = ( pcBinData->size() > 25 + uiShrinkSize) ? uiShrinkSize : max( 0,(Int) pcBinData->size() - 25 ); // 25 bytes should be enough for the slice headers
             RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
             pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
             uiCropped++;

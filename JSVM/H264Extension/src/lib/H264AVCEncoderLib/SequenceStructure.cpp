@@ -386,7 +386,7 @@ SequenceStructure::FrameDescriptor::check() const
 {
   ROFS( m_bInit );
 
-#if 1 // limited version, since encoder support is limited
+ // limited version, since encoder support is limited
   ROTS( m_ucType == 's' || m_ucType == 'S' );
 
   if( m_pcMmcoBuf )
@@ -419,7 +419,7 @@ SequenceStructure::FrameDescriptor::check() const
       }
     }
   }
-#endif
+
 
   return Err::m_nOK;
 }
@@ -542,7 +542,7 @@ SequenceStructure::FrameSequencePart::init( const String& rcString )
   ROFS ( m_uiNumberOfFrames      );
 
   //----- create array -----
-  ROFRS( ( m_pacFrameDescriptor = new FrameDescriptor [ m_uiNumberOfFrames ] ), Err::m_nERR );
+  ROFS( ( m_pacFrameDescriptor = new FrameDescriptor [ m_uiNumberOfFrames ] ) );
 
   //----- initialize array -----
   UInt uiPos, uiIndex, uiLastAnchorFrameNumIncrement = MSYS_UINT_MAX;
@@ -582,7 +582,7 @@ SequenceStructure::FrameSequencePart::init( const String& rcString )
 
   //----- get minimum required DPB sizes -----
   UInt*   pauiStored;
-  ROFRS( ( pauiStored = new UInt [ m_uiNumberOfFrames ] ), Err::m_nERR );
+  ROFS( ( pauiStored = new UInt [ m_uiNumberOfFrames ] ) );
   ::memset( pauiStored, 0x00, m_uiNumberOfFrames*sizeof(UInt) );
   m_uiMinDPBSizeRef       = 0;
   m_uiMinDPBSizeNonRef    = 0;
@@ -664,7 +664,7 @@ SequenceStructure::FrameSequencePart::check()
 
   Bool*   pabCovered;
   UInt    uiIndex;
-  ROFRS( ( pabCovered = new Bool [ m_uiNumberOfFrames ] ), Err::m_nERR );
+  ROFS( ( pabCovered = new Bool [ m_uiNumberOfFrames ] ) );
   for( uiIndex = 0; uiIndex < m_uiNumberOfFrames; uiIndex++ )
   {
     pabCovered[uiIndex] = false;
@@ -784,7 +784,7 @@ SequenceStructure::GeneralSequencePart::init( const String& rcString )
   ROFS ( m_uiNumberOfParts       );
 
   //----- create array -----
-  ROFRS( ( m_papcSequencePart = new SequencePart* [ m_uiNumberOfParts ] ), Err::m_nERR );
+  ROFS( ( m_papcSequencePart = new SequencePart* [ m_uiNumberOfParts ] ) );
 
   //----- initialize array -----
   UInt uiPos, uiIndex;
@@ -795,11 +795,11 @@ SequenceStructure::GeneralSequencePart::init( const String& rcString )
 
     if( FormattedStringParser::isFrameSequencePart( cPartString ) )
     {
-      ROFRS( ( m_papcSequencePart[uiIndex] = new FrameSequencePart  () ), Err::m_nERR );
+      ROFS( ( m_papcSequencePart[uiIndex] = new FrameSequencePart  () ) );
     }
     else
     {
-      ROFRS( ( m_papcSequencePart[uiIndex] = new GeneralSequencePart() ), Err::m_nERR );
+      ROFS( ( m_papcSequencePart[uiIndex] = new GeneralSequencePart() ) );
     }
 
     m_papcSequencePart[uiIndex]->init( cPartString );
@@ -961,12 +961,12 @@ SequenceStructure::init( const String& rcString,
 
   if( FormattedStringParser::isFrameSequencePart( rcString ) )
   {
-    ROFRS( ( m_pcSequencePart = new FrameSequencePart   () ), Err::m_nERR );
+    ROFS( ( m_pcSequencePart = new FrameSequencePart   () ) );
     RNOKS(   m_pcSequencePart->init( rcString ) );
   }
   else
   {
-    ROFRS( ( m_pcSequencePart = new GeneralSequencePart () ), Err::m_nERR );
+    ROFS( ( m_pcSequencePart = new GeneralSequencePart () ) );
     String cString = "*n{" + rcString + "}";   // to be on the safe side
     RNOKS(   m_pcSequencePart->init( cString ) );
   }

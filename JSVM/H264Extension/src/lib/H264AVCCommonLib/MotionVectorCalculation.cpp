@@ -478,7 +478,7 @@ Void MotionVectorCalculation::xCalc8x8( B8x8Idx       c8x8Idx,
     }
     default:
     {
-      AOT(1);
+      AF();
       break;
     }
   }
@@ -670,7 +670,7 @@ Void MotionVectorCalculation::xCalc8x8( MbDataAccess& rcMbDataAccess,
       }
       default:
       {
-        AOT(1);
+        AF();
         break;
       }
     }

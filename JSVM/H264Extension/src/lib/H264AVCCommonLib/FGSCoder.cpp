@@ -238,26 +238,26 @@ FGSCoder::xInitSPS( const SequenceParameterSet& rcSPS )
 
     for( i = 0; i < 16; i++ )
     {
-      ROFRS ( ( m_apaucLumaCoefMap        [i] = new UChar[uiSize*16] ), Err::m_nERR );
-      ROFRS ( ( m_aapaucChromaACCoefMap[0][i] = new UChar[uiSize*4 ] ), Err::m_nERR );
-      ROFRS ( ( m_aapaucChromaACCoefMap[1][i] = new UChar[uiSize*4 ] ), Err::m_nERR );
+      ROFS ( ( m_apaucLumaCoefMap        [i] = new UChar[uiSize*16] ) );
+      ROFS ( ( m_aapaucChromaACCoefMap[0][i] = new UChar[uiSize*4 ] ) );
+      ROFS ( ( m_aapaucChromaACCoefMap[1][i] = new UChar[uiSize*4 ] ) );
     }
     for( i = 0; i < 4; i++ )
     {
-      ROFRS ( ( m_aapaucChromaDCCoefMap[0][i] = new UChar[uiSize   ] ), Err::m_nERR );
-      ROFRS ( ( m_aapaucChromaDCCoefMap[1][i] = new UChar[uiSize   ] ), Err::m_nERR );
+      ROFS ( ( m_aapaucChromaDCCoefMap[0][i] = new UChar[uiSize   ] ) );
+      ROFS ( ( m_aapaucChromaDCCoefMap[1][i] = new UChar[uiSize   ] ) );
     }
     for( i = 0; i < 5; i++ )
     {
-      ROFRS ( ( m_apaucScanPosMap[i]          = new UChar[uiSize*16] ), Err::m_nERR );
+      ROFS ( ( m_apaucScanPosMap[i]          = new UChar[uiSize*16] ) );
     }
-    ROFRS   ( ( m_apaucChromaDCBlockMap[0]    = new UChar[uiSize   ] ), Err::m_nERR );
-    ROFRS   ( ( m_apaucChromaDCBlockMap[1]    = new UChar[uiSize   ] ), Err::m_nERR );
-    ROFRS   ( ( m_apaucChromaACBlockMap[0]    = new UChar[uiSize*4 ] ), Err::m_nERR );
-    ROFRS   ( ( m_apaucChromaACBlockMap[1]    = new UChar[uiSize*4 ] ), Err::m_nERR );
-    ROFRS   ( ( m_paucBlockMap                = new UChar[uiSize*16] ), Err::m_nERR );
-    ROFRS   ( ( m_paucSubMbMap                = new UChar[uiSize*4 ] ), Err::m_nERR );
-    ROFRS   ( ( m_pauiMacroblockMap           = new UInt [uiSize   ] ), Err::m_nERR );
+    ROFS   ( ( m_apaucChromaDCBlockMap[0]    = new UChar[uiSize   ] ) );
+    ROFS   ( ( m_apaucChromaDCBlockMap[1]    = new UChar[uiSize   ] ) );
+    ROFS   ( ( m_apaucChromaACBlockMap[0]    = new UChar[uiSize*4 ] ) );
+    ROFS   ( ( m_apaucChromaACBlockMap[1]    = new UChar[uiSize*4 ] ) );
+    ROFS   ( ( m_paucBlockMap                = new UChar[uiSize*16] ) );
+    ROFS   ( ( m_paucSubMbMap                = new UChar[uiSize*4 ] ) );
+    ROFS   ( ( m_pauiMacroblockMap           = new UInt [uiSize   ] ) );
 
     for( i = 0; i < 16; i++ ) 
     {
@@ -280,22 +280,22 @@ FGSCoder::xInitSPS( const SequenceParameterSet& rcSPS )
 
     for( i = 0; i < 16; i++ )
     {
-      ROFRS ( ( m_apaucBQLumaCoefMap        [i] = new UChar[uiSize*16] ), Err::m_nERR );
-      ROFRS ( ( m_aapaucBQChromaACCoefMap[0][i] = new UChar[uiSize*4 ] ), Err::m_nERR );
-      ROFRS ( ( m_aapaucBQChromaACCoefMap[1][i] = new UChar[uiSize*4 ] ), Err::m_nERR );
+      ROFS ( ( m_apaucBQLumaCoefMap        [i] = new UChar[uiSize*16] ) );
+      ROFS ( ( m_aapaucBQChromaACCoefMap[0][i] = new UChar[uiSize*4 ] ) );
+      ROFS ( ( m_aapaucBQChromaACCoefMap[1][i] = new UChar[uiSize*4 ] ) );
     }
     for( i = 0; i < 4; i++ )
     {
-      ROFRS ( ( m_aapaucBQChromaDCCoefMap[0][i] = new UChar[uiSize   ] ), Err::m_nERR );
-      ROFRS ( ( m_aapaucBQChromaDCCoefMap[1][i] = new UChar[uiSize   ] ), Err::m_nERR );
+      ROFS ( ( m_aapaucBQChromaDCCoefMap[0][i] = new UChar[uiSize   ] ) );
+      ROFS ( ( m_aapaucBQChromaDCCoefMap[1][i] = new UChar[uiSize   ] ) );
     }
-    ROFRS   ( ( m_apaucBQChromaDCBlockMap[0]    = new UChar[uiSize   ] ), Err::m_nERR );
-    ROFRS   ( ( m_apaucBQChromaDCBlockMap[1]    = new UChar[uiSize   ] ), Err::m_nERR );
-    ROFRS   ( ( m_apaucBQChromaACBlockMap[0]    = new UChar[uiSize*4 ] ), Err::m_nERR );
-    ROFRS   ( ( m_apaucBQChromaACBlockMap[1]    = new UChar[uiSize*4 ] ), Err::m_nERR );
-    ROFRS   ( ( m_paucBQBlockMap                = new UChar[uiSize*16] ), Err::m_nERR );
-    ROFRS   ( ( m_paucBQSubMbMap                = new UChar[uiSize*4 ] ), Err::m_nERR );
-    ROFRS   ( ( m_pauiBQMacroblockMap           = new UInt [uiSize   ] ), Err::m_nERR );
+    ROFS   ( ( m_apaucBQChromaDCBlockMap[0]    = new UChar[uiSize   ] ) );
+    ROFS   ( ( m_apaucBQChromaDCBlockMap[1]    = new UChar[uiSize   ] ) );
+    ROFS   ( ( m_apaucBQChromaACBlockMap[0]    = new UChar[uiSize*4 ] ) );
+    ROFS   ( ( m_apaucBQChromaACBlockMap[1]    = new UChar[uiSize*4 ] ) );
+    ROFS   ( ( m_paucBQBlockMap                = new UChar[uiSize*16] ) );
+    ROFS   ( ( m_paucBQSubMbMap                = new UChar[uiSize*4 ] ) );
+    ROFS   ( ( m_pauiBQMacroblockMap           = new UInt [uiSize   ] ) );
   }
 
   return Err::m_nOK;
@@ -312,7 +312,7 @@ FGSCoder::xInitBaseLayerSbb( UInt uiLayerId )
     RNOK( m_pcBaseLayerSbb->uninit() );
     delete m_pcBaseLayerSbb;
   }
-  ROFRS( ( m_pcBaseLayerSbb = new IntFrame( *pcYuvBufferCtrl, *pcYuvBufferCtrl ) ), Err::m_nERR );
+  ROFS( ( m_pcBaseLayerSbb = new IntFrame( *pcYuvBufferCtrl, *pcYuvBufferCtrl ) ) );
   RNOK( m_pcBaseLayerSbb->init() );
   RNOK( m_pcBaseLayerSbb->setZero() );
 
@@ -422,7 +422,7 @@ FGSCoder::xSwitchBQLayerSigMap()
   int i, uiSize = m_uiWidthInMB * m_uiHeightInMB;
   UChar* tmpBuf;
   
-  ROFRS( (tmpBuf = new UChar[uiSize*16] ), Err::m_nERR); 
+  ROFS( (tmpBuf = new UChar[uiSize*16] )); 
 
   for( i = 0; i < 16; i++ )
   {

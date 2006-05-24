@@ -125,11 +125,17 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   }                           \
 }
 
+#define RERRS( )               \
+{                             \
+return ERR_CLASS::m_nERR;     \
+}
+
+
 #define ROFS( exp )           \
 {                             \
   if( !( exp ) )              \
   {                           \
-    return ERR_CLASS::m_nERR; \
+    RERRS();                  \
   }                           \
 }
 
@@ -137,7 +143,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 {                             \
   if( ( exp ) )               \
   {                           \
-    return ERR_CLASS::m_nERR; \
+    RERRS();                  \
   }                           \
 }
 
@@ -165,6 +171,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
     RVAL( retVal );             \
   }                           \
 }
+
+
 
 #define ROFRS( exp, retVal )  \
 {                             \
