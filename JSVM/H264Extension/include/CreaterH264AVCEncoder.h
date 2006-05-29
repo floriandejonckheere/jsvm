@@ -171,7 +171,11 @@ public:
 
   Bool getScalableSeiMessage ( Void );
 	Void SetVeryFirstCall ( Void );
-
+  // JVT-S080 LMI {
+  ErrVal xWriteScalableSEILayersNotPresent( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiInputLayers, UInt* m_layer_id);
+  ErrVal xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag, 
+												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1);
+  // JVT-S080 LMI }
 protected:
   ErrVal xCreateEncoder();
 
@@ -210,7 +214,6 @@ protected:
   PicEncoder*               m_pcPicEncoder;
   Bool                      m_bTraceEnable;
 };
-
 
 H264AVC_NAMESPACE_END
 

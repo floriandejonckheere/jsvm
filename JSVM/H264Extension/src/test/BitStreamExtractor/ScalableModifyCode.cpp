@@ -557,3 +557,39 @@ JVT-S036 lsj*/
 //	return Err::m_nOK;
 //}
 
+//JVT-S080 LMI {
+ErrVal
+ScalableModifyCode::SEICode( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableModifyCode *pcScalableModifyCode )
+{
+	UInt uiNumScalableLayers = pcScalableSeiLayersNotPresent->getNumLayers();
+	UInt uiLayer;
+	pcScalableModifyCode->WriteUVLC( uiNumScalableLayers );
+	for( uiLayer = 0; uiLayer < uiNumScalableLayers; uiLayer++ )
+	{
+		pcScalableModifyCode->WriteCode( pcScalableSeiLayersNotPresent->getLayerId( uiLayer ), 8);
+	}
+	return Err::m_nOK;
+}
+
+ErrVal
+ScalableModifyCode::SEICode	( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableModifyCode *pcScalableModifyCode )
+{
+	UInt uiNumScalableLayersMinus1 = pcScalableSeiDependencyChange->getNumLayersMinus1();
+   	UInt uiLayer, uiDirectLayer;
+	pcScalableModifyCode->WriteUVLC( uiNumScalableLayersMinus1 );
+	for( uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
+	{
+		pcScalableModifyCode->WriteCode( pcScalableSeiDependencyChange->getLayerId( uiLayer ), 8);
+		pcScalableModifyCode->WriteFlag( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) );
+		if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
+		{
+          pcScalableModifyCode->WriteUVLC( pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ) );
+		  for ( uiDirectLayer = 0; uiDirectLayer < pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ); uiDirectLayer++)
+              pcScalableModifyCode->WriteUVLC(pcScalableSeiDependencyChange->getDirectDependentLayerIdDeltaMinus1( uiLayer, uiDirectLayer ));
+		}
+		else
+             pcScalableModifyCode->WriteUVLC(pcScalableSeiDependencyChange->getLayerDependencyInfoSrcLayerIdDeltaMinus1( uiLayer ) );
+	}
+	return Err::m_nOK;
+}
+//JVT-S080 LMI }

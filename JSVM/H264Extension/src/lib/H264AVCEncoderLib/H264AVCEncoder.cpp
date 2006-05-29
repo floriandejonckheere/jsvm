@@ -751,6 +751,63 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	return Err::m_nOK;
 
 }
+
+// JVT-S080 LMI {
+ErrVal
+H264AVCEncoder::xWriteScalableSEILayersNotPresent( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId)
+{
+	UInt i, uiBits = 0;
+	SEI::MessageList  cSEIMessageList;
+	SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent;
+	RNOK(SEI::ScalableSeiLayersNotPresent::create(pcScalableSeiLayersNotPresent) );
+	pcScalableSeiLayersNotPresent->setNumLayers( uiNumLayers );
+	for (i=0; i < uiNumLayers; i++)
+	pcScalableSeiLayersNotPresent->setLayerId( i, uiLayerId[i] );
+	cSEIMessageList.push_back                       ( pcScalableSeiLayersNotPresent );
+	RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+	RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+	RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+	RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+
+	return Err::m_nOK;
+}
+
+ErrVal
+H264AVCEncoder::xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag, 
+												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1)
+{
+	UInt uiBits = 0;
+	SEI::MessageList  cSEIMessageList;
+	SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange;
+	RNOK(SEI::ScalableSeiDependencyChange::create(pcScalableSeiDependencyChange) );
+	pcScalableSeiDependencyChange->setNumLayersMinus1(uiNumLayers-1);
+    UInt uiLayer, uiDirectLayer;
+
+	for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
+	{
+		pcScalableSeiDependencyChange->setLayerId( uiLayer, uiLayerId[uiLayer]);
+		pcScalableSeiDependencyChange->setLayerDependencyInfoPresentFlag( uiLayer, pbLayerDependencyInfoPresentFlag[uiLayer] );
+		if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
+		{
+          pcScalableSeiDependencyChange->setNumDirectDependentLayers( uiLayer, uiNumDirectDependentLayers[uiLayer] );
+		  for ( uiDirectLayer = 0; uiDirectLayer < pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ); uiDirectLayer++)
+              pcScalableSeiDependencyChange->setDirectDependentLayerIdDeltaMinus1( uiLayer, uiDirectLayer,  puiDirectDependentLayerIdDeltaMinus1[uiLayer][uiDirectLayer] );
+		}
+		else
+            pcScalableSeiDependencyChange->setLayerDependencyInfoSrcLayerIdDeltaMinus1( uiLayer, puiLayerDependencyInfoSrcLayerIdDeltaMinus1[uiLayer] );
+	}
+
+
+	cSEIMessageList.push_back                       ( pcScalableSeiDependencyChange );
+	RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+	RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+	RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+	RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+
+	return Err::m_nOK;
+}
+//  JVT-S080 LMI }
+
 ErrVal
 H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor )
 {

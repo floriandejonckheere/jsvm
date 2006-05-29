@@ -190,6 +190,10 @@ public:
 	ErrVal WriteFlag( Bool bFlag );
 	ErrVal WriteCode( UInt uiValue, UInt uiLength );
 	ErrVal SEICode	( h264::SEI::ScalableSei* pcScalableSei, ScalableModifyCode *pcScalableModifyCode );
+	// JVT-S080 LMI {
+	ErrVal SEICode	( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableModifyCode *pcScalableModifyCode );
+	ErrVal SEICode	( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableModifyCode *pcScalableModifyCode );
+	// JVT-S080 LMI }
 	UInt	 getNumberOfWrittenBits() { return m_uiBitsWritten; }
 	ErrVal Write		( UInt uiBits, UInt uiNumberOfBits );
 	ErrVal WritePayloadHeader ( enum h264::SEI::MessageType eType, UInt uiSize );
@@ -197,7 +201,7 @@ public:
 	ErrVal WriteAlignZero ();
 	ErrVal flushBuffer();
 	ErrVal ConvertRBSPToPayload( UChar* m_pucBuffer, UChar pucStreamPacket[], UInt& uiBits, UInt uiHeaderBytes );
-
+   
 protected:
 	ULong  xSwap( ULong ul )
 	{

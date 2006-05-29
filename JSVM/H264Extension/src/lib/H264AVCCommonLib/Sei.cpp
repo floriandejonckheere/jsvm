@@ -228,6 +228,10 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case QUALITYLEVEL_SEI: return QualityLevelSEI::create((QualityLevelSEI*&) rpcSEIMessage);
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
   	case NON_REQUIRED_SEI: return NonRequiredSei::create((NonRequiredSei*&) rpcSEIMessage); 
+	// JVT-S080 LMI {
+    case SCALABLE_SEI_LAYERS_NOT_PRESENT:  return ScalableSeiLayersNotPresent::create( (ScalableSeiLayersNotPresent*&) rpcSEIMessage );
+	case SCALABLE_SEI_DEPENDENCY_CHANGE:   return ScalableSeiDependencyChange::create( (ScalableSeiDependencyChange*&) rpcSEIMessage );
+	// JVT-S080 LMI }
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
   //return Err::m_nOK;
@@ -1054,5 +1058,122 @@ SEI::NonRequiredSei::read( HeaderSymbolReadIf* pcReadIf )
 	}
 	return Err::m_nOK;
 }
+// JVT-S080 LMI {
+//////////////////////////////////////////////////////////////////////////
+//
+//			SCALABLE SEI LAYERS NOT PRESENT
+//
+//////////////////////////////////////////////////////////////////////////
 
+UInt SEI::ScalableSeiLayersNotPresent::m_uiLeftNumLayers = 0;
+UInt SEI::ScalableSeiLayersNotPresent::m_auiLeftLayerId[MAX_SCALABLE_LAYERS];
+
+SEI::ScalableSeiLayersNotPresent::ScalableSeiLayersNotPresent (): SEIMessage		( SCALABLE_SEI_LAYERS_NOT_PRESENT )
+{
+}
+
+SEI::ScalableSeiLayersNotPresent::~ScalableSeiLayersNotPresent ()
+{
+}
+
+ErrVal
+SEI::ScalableSeiLayersNotPresent::create( ScalableSeiLayersNotPresent*& rpcSeiMessage )
+{
+	rpcSeiMessage = new ScalableSeiLayersNotPresent();
+	ROT( NULL == rpcSeiMessage )
+		return Err::m_nOK;
+}
+
+ErrVal
+SEI::ScalableSeiLayersNotPresent::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+  UInt i;
+
+	RNOK ( pcWriteIf->writeUvlc(m_uiNumLayers,													"ScalableSEILayersNotPresent: num_layers"											) );
+	for( i = 0; i < m_uiNumLayers; i++ )
+	{
+		RNOK ( pcWriteIf->writeCode( m_auiLayerId[i],												8,		"ScalableSEILayersNotPresent: layer_id"															) );
+	}
+	return Err::m_nOK;
+}
+
+ErrVal
+SEI::ScalableSeiLayersNotPresent::read ( HeaderSymbolReadIf *pcReadIf )
+{
+	UInt i;
+	RNOK ( pcReadIf->getUvlc( m_uiNumLayers ,																"ScalableSEILayersNotPresent: num_layers"	) );
+	for ( i = 0; i < m_uiNumLayers; i++ )
+	{
+		RNOK ( pcReadIf->getCode( m_auiLayerId[i],																	8,			"ScalableSEILayersNotPresent: layer_id"	) );
+	}
+	return Err::m_nOK;
+}
+
+//////////////////////////////////////////////////////////////////////////
+//
+//			SCALABLE SEI DEPENDENCY CHANGE
+//
+//////////////////////////////////////////////////////////////////////////
+
+SEI::ScalableSeiDependencyChange::ScalableSeiDependencyChange (): SEIMessage		( SCALABLE_SEI_DEPENDENCY_CHANGE )
+{
+}
+
+SEI::ScalableSeiDependencyChange::~ScalableSeiDependencyChange ()
+{
+}
+
+ErrVal
+SEI::ScalableSeiDependencyChange::create( ScalableSeiDependencyChange*& rpcSeiMessage )
+{
+	rpcSeiMessage = new ScalableSeiDependencyChange();
+	ROT( NULL == rpcSeiMessage )
+		return Err::m_nOK;
+}
+
+ErrVal
+SEI::ScalableSeiDependencyChange::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+  UInt i, j;
+
+	ROF( m_uiNumLayersMinus1+1 );
+	RNOK		( pcWriteIf->writeUvlc(m_uiNumLayersMinus1,													"ScalableSeiDependencyChange: num_layers_minus1"											) );
+	for( i = 0; i <= m_uiNumLayersMinus1; i++ )
+	{
+		RNOK	( pcWriteIf->writeCode( m_auiLayerId[i],												8,		"ScalableSeiDependencyChange: layer_id"															) );
+		RNOK	( pcWriteIf->writeFlag( m_abLayerDependencyInfoPresentFlag[i],		"ScalableSeiDependencyChange: layer_dependency_info_present_flag"															) );		
+		if( m_abLayerDependencyInfoPresentFlag[i] )
+		{
+	       RNOK		( pcWriteIf->writeUvlc(m_auiNumDirectDependentLayers[i],													"ScalableSeiDependencyChange: num_directly_dependent_layers"											) );
+	       for ( j = 0; j < m_auiNumDirectDependentLayers[i]; j++)
+	            RNOK( pcWriteIf->writeUvlc(m_auiDirectDependentLayerIdDeltaMinus1[i][j],													"ScalableSeiDependencyChange: directly_dependent_layer_id_delta_minus1"											) );
+		}
+		else
+	            RNOK	( pcWriteIf->writeUvlc(m_auiLayerDependencyInfoSrcLayerIdDeltaMinus1[i],													"ScalableSeiDependencyChange: layer_dependency_info_src_layer_id_delta_minus1"											) );
+	}
+	return Err::m_nOK;
+}
+
+ErrVal
+SEI::ScalableSeiDependencyChange::read ( HeaderSymbolReadIf *pcReadIf )
+{
+  UInt i, j;
+
+	RNOK		( pcReadIf->getUvlc(m_uiNumLayersMinus1,													"ScalableSeiDependencyChange: num_layers_minus1"											) );
+	for( i = 0; i <= m_uiNumLayersMinus1; i++ )
+	{
+		RNOK	( pcReadIf->getCode( m_auiLayerId[i],												8,		"ScalableSeiDependencyChange: layer_id"															) );
+		RNOK	( pcReadIf->getFlag( m_abLayerDependencyInfoPresentFlag[i],		"ScalableSeiDependencyChange: layer_dependency_info_present_flag"															) );		
+		if( m_abLayerDependencyInfoPresentFlag[i] )
+		{
+	       RNOK		( pcReadIf->getUvlc(m_auiNumDirectDependentLayers[i],													"ScalableSeiDependencyChange: num_directly_dependent_layers"											) );
+	       for ( j = 0; j < m_auiNumDirectDependentLayers[i]; j++)
+	            RNOK		( pcReadIf->getUvlc(m_auiDirectDependentLayerIdDeltaMinus1[i][j],													"ScalableSeiDependencyChange: directly_dependent_layer_id_delta_minus1"											) );
+		}
+		else
+	            RNOK		( pcReadIf->getUvlc(m_auiLayerDependencyInfoSrcLayerIdDeltaMinus1[i],													"ScalableSeiDependencyChange: layer_dependency_info_src_layer_id_delta_minus1"											) );
+	}
+	return Err::m_nOK;
+}
+// JVT-S080 LMI }
 H264AVC_NAMESPACE_END

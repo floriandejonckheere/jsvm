@@ -1,3 +1,24 @@
+JSVM_5_6_1 -> JSVM_5_7
+======================
+
+Improved Management of Scalability Information using Control Operations 
+
+Date: May 28, 2006
+Authors: Hao Zhang, Alex Eleftheriadis (Layered Media, Inc.)
+Contribution: JVT-S080
+
+Changes:
+
+- Added "scalability_info_layers_not_present" and "scalability_info_dependency_change" SEI messages.
+- Enabled transmission of these two messages when layers are extracted in the bitstream extrator. 
+  The default behavior, however, of transmitting a modified scalability_info SEI message has been 
+  retained, rather than transmitting the original scalability_info followed by a scalability_info_layers_not_present
+  message. This alternative behavior can be enabled by setting the compile-time flag UPDATE_SEI_MESSAGE
+  to 0 in Extractor.h. 
+
+Note: The changes above can be found by searching "JVT-S080 LMI". 
+
+
 JSVM_5_6 -> JSVM_5_6_1
 ======================
 

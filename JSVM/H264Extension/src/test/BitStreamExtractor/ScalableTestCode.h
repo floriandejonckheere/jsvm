@@ -175,6 +175,10 @@ public:
 	ErrVal init() { m_uiBitCounter = 0; return Err::m_nOK; }
 	ErrVal Uninit()	{ m_uiBitCounter = 0; return Err::m_nOK; }
 	ErrVal SEICode	( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCode *pcScalableTestCode );
+	//JVT-S080 LMI {
+	ErrVal SEICode	( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableTestCode *pcScalableTestCode );
+	ErrVal SEICode	( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableTestCode *pcScalableTestCode );
+    //JVT-S080 LMI }
 	ErrVal WriteUVLC( UInt uiValue );
 	ErrVal WriteFlag( Bool bFlag ) { m_uiBitCounter++; return Err::m_nOK; }
 	ErrVal WriteCode( UInt uiValue, UInt uiLength ) { m_uiBitCounter += uiLength; return Err::m_nOK; }

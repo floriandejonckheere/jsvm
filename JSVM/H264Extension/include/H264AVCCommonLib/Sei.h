@@ -122,7 +122,11 @@ public:
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     QUALITYLEVEL_SEI                      = 25,
 	//}}Quality level estimation and modified truncation- JVTO044 and m12007
-	  RESERVED_SEI                          = 26,
+	// JVT-S080 LMI {
+	SCALABLE_SEI_LAYERS_NOT_PRESENT       = 26,
+    SCALABLE_SEI_DEPENDENCY_CHANGE        = 27,
+    RESERVED_SEI                          = 28,
+	// JVT-S080 LMI }
   	NON_REQUIRED_SEI					            = 24
   };
 
@@ -537,6 +541,72 @@ public:
 	  UInt		m_uiNonRequiredPicQulityLevel[MAX_NUM_INFO_ENTRIES][MAX_NUM_NON_REQUIRED_PICS];
 	  UInt		m_uiNonRequiredPicFragmentOrder[MAX_NUM_INFO_ENTRIES][MAX_NUM_NON_REQUIRED_PICS];
   };//shenqiu 05-09-15
+
+  // JVT-S080 LMI {
+  class H264AVCCOMMONLIB_API ScalableSeiLayersNotPresent: public SEIMessage
+  {
+  protected:
+      ScalableSeiLayersNotPresent ();
+	 ~ScalableSeiLayersNotPresent();
+
+  public:
+      static ErrVal create ( ScalableSeiLayersNotPresent*&			rpcSeiMessage);
+      ErrVal write				 ( HeaderSymbolWriteIf	*pcWriteIf);
+      ErrVal read					 ( HeaderSymbolReadIf		*pcReadIf);
+      Void setNumLayers( UInt ui )																				{ m_uiNumLayers = ui;	}
+      Void setLayerId ( UInt uiLayer, UInt uiId )																{ m_auiLayerId															[uiLayer] = uiId; }
+	  Void setOutputFlag ( Bool bFlag )  { m_bOutputFlag = bFlag; }
+
+      UInt getNumLayers() const {return m_uiNumLayers;}
+      UInt getLayerId ( UInt uiLayer ) const { return m_auiLayerId[uiLayer]; }
+	  Bool getOutputFlag ( ) const { return m_bOutputFlag; }
+      static UInt m_uiLeftNumLayers;
+      static UInt m_auiLeftLayerId[MAX_SCALABLE_LAYERS];
+
+  private:
+      UInt m_uiNumLayers;
+      UInt m_auiLayerId[MAX_SCALABLE_LAYERS];
+	  Bool m_bOutputFlag;
+
+	};
+
+  class H264AVCCOMMONLIB_API ScalableSeiDependencyChange: public SEIMessage
+  {
+  protected:
+      ScalableSeiDependencyChange ();
+	 ~ScalableSeiDependencyChange();
+
+  public:
+      static ErrVal create ( ScalableSeiDependencyChange*&			rpcSeiMessage);
+      ErrVal write				 ( HeaderSymbolWriteIf	*pcWriteIf);
+      ErrVal read					 ( HeaderSymbolReadIf		*pcReadIf);
+      Void setNumLayersMinus1( UInt ui )																				{ m_uiNumLayersMinus1 = ui;	}
+      Void setLayerId ( UInt uiLayer, UInt uiId )																{ m_auiLayerId															[uiLayer] = uiId; }
+	  Void setLayerDependencyInfoPresentFlag ( UInt uiLayer, Bool bFlag ) { m_abLayerDependencyInfoPresentFlag[uiLayer] = bFlag; }
+      Void setNumDirectDependentLayers ( UInt uiLayer, UInt ui ) { m_auiNumDirectDependentLayers[uiLayer] = ui; }
+	  Void setDirectDependentLayerIdDeltaMinus1( UInt uiLayer, UInt uiDirectLayer, UInt uiIdDeltaMinus1 )  { m_auiDirectDependentLayerIdDeltaMinus1[uiLayer][uiDirectLayer] = uiIdDeltaMinus1; }
+	  Void setLayerDependencyInfoSrcLayerIdDeltaMinus1 ( UInt uiLayer, UInt uiIdDeltaMinus1 ) { m_auiLayerDependencyInfoSrcLayerIdDeltaMinus1[uiLayer] = uiIdDeltaMinus1; }
+	  Void setOutputFlag ( Bool bFlag )  { m_bOutputFlag = bFlag; }
+
+      UInt getNumLayersMinus1() const {return m_uiNumLayersMinus1;}
+      UInt getLayerId ( UInt uiLayer ) const { return m_auiLayerId[uiLayer]; }
+      UInt getNumDirectDependentLayers ( UInt uiLayer ) const { return m_auiNumDirectDependentLayers[uiLayer]; }
+	  UInt getDirectDependentLayerIdDeltaMinus1( UInt uiLayer, UInt uiDirectLayer ) const { return m_auiDirectDependentLayerIdDeltaMinus1[uiLayer][uiDirectLayer]; }
+	  UInt getLayerDependencyInfoSrcLayerIdDeltaMinus1 ( UInt uiLayer ) const { return m_auiLayerDependencyInfoSrcLayerIdDeltaMinus1[uiLayer]; }
+	  Bool getLayerDependencyInfoPresentFlag ( UInt uiLayer ) const { return m_abLayerDependencyInfoPresentFlag[uiLayer]; }
+	  Bool getOutputFlag ( ) const { return m_bOutputFlag; }
+
+  private:
+      UInt m_uiNumLayersMinus1;
+      UInt m_auiLayerId[MAX_SCALABLE_LAYERS];
+      UInt m_auiNumDirectDependentLayers[MAX_SCALABLE_LAYERS];
+      UInt m_auiDirectDependentLayerIdDeltaMinus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
+      UInt m_auiLayerDependencyInfoSrcLayerIdDeltaMinus1[MAX_SCALABLE_LAYERS];
+	  Bool m_abLayerDependencyInfoPresentFlag[MAX_SCALABLE_LAYERS];
+	  Bool m_bOutputFlag;
+	};
+
+  // JVT-S080 LMI }
 
   typedef MyList<SEIMessage*> MessageList;
   

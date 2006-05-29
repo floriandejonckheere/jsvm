@@ -338,11 +338,12 @@ Extractor::xPrimaryAnalyse()
         delete pcScalableSei;
         bFirstPacket = false;
     }
+/* JVT-S080 LMI { 
     else
     {
         ROT ( pcScalableSei );
     }
-
+ JVT-S080 LMI } */
     //===== set packet length =====
     while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
     {
@@ -558,8 +559,11 @@ Extractor::xAnalyse()
 
     //===== get packet description =====
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
-    ROT ( pcScalableSei );
-
+	// JVT-S080 LMI {
+    //ROT ( pcScalableSei );
+        delete pcScalableSei;
+	    pcScalableSei = NULL;
+	// JVT-S080 LMI }
     // HS: packet trace
     if( ! cPacketDescription.ApplyToNext )
     {
@@ -1198,6 +1202,13 @@ Extractor::xExtractPoints()
   {
     //=========== get packet ===========
     BinData*  pcBinData;
+// JVT-S080 LMI {
+    BinData * pcBinDataSEILysNotPreDepChange;
+    ROT( NULL == ( pcBinDataSEILysNotPreDepChange = new BinData ) ); 
+    Bool bWriteBinDataSEILysNotPreDepChange = false;
+	Bool bWriteBinData = true;
+// JVT-S080 LMI }
+
     RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
     if( bEOS )
     {
@@ -1213,17 +1224,43 @@ Extractor::xExtractPoints()
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
 		if( pcScalableSEIMessage )
 		{
-			if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI )
+// JVT-S080 LMI {
+			if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI || pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_LAYERS_NOT_PRESENT || pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_DEPENDENCY_CHANGE ) 
+//			if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI )
 			{
-// BUG_FIX liuhui{
-              RNOK( xChangeScalableSEIMesssage( pcBinData, pcScalableSEIMessage, MSYS_UINT_MAX,//uiKeepScalableLayer, 
+// BUG_FIX liuhui
+			  if( pcScalableSEIMessage->getMessageType() != h264::SEI::SCALABLE_SEI )
+			      bWriteBinData = false;
+              RNOK( xChangeScalableSEIMesssage( pcBinData, pcBinDataSEILysNotPreDepChange, pcScalableSEIMessage, MSYS_UINT_MAX,//uiKeepScalableLayer, 
 				  uiWantedScalableLayer, uiWantedLayer, uiWantedLevel, dWantedFGSLayer , MSYS_UINT_MAX ) );				
+
+		      if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI ) 
+			  {
+	                h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent = ( h264::SEI::ScalableSeiLayersNotPresent*) pcScalableSEIMessage;
+					bWriteBinDataSEILysNotPreDepChange = pcScalableSeiLayersNotPresent->getOutputFlag();
+			  }
+			  if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_LAYERS_NOT_PRESENT ) 
+			  {
+	              h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent = ( h264::SEI::ScalableSeiLayersNotPresent*) pcScalableSEIMessage;
+			  	  bWriteBinDataSEILysNotPreDepChange = pcScalableSeiLayersNotPresent->getOutputFlag();
+			  }
+
+			  if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_DEPENDENCY_CHANGE ) 
+			  {
+	              h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDepChange = ( h264::SEI::ScalableSeiDependencyChange*) pcScalableSEIMessage;
+			      bWriteBinDataSEILysNotPreDepChange = pcScalableSeiDepChange->getOutputFlag();
+			  }
+
+// JVT-S080 LMI }
 
 // BUG_FIX liuhui}
 			}
 		}
 		delete pcScalableSEIMessage;
-
+// JVT-S080 LMI {
+  if( bWriteBinData ) 			
+  {
+// JVT-S080 LMI }
     //============ get packet size ===========
     while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
     {
@@ -1315,8 +1352,26 @@ Extractor::xExtractPoints()
       RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
       RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
     }
+  }
     RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
     pcBinData = NULL;
+// JVT-S080 LMI {
+	if ( bWriteBinDataSEILysNotPreDepChange ) 
+	{
+       while( pcBinDataSEILysNotPreDepChange->data()[ pcBinDataSEILysNotPreDepChange->size() - 1 ] == 0x00 )
+       {
+         RNOK( pcBinDataSEILysNotPreDepChange->decreaseEndPos( 1 ) ); // remove zero at end
+       }
+       uiPacketSize  = 4 + pcBinDataSEILysNotPreDepChange->size();
+
+       RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+	   RNOK( m_pcWriteBitstream->writePacket( pcBinDataSEILysNotPreDepChange ) );
+	}
+		RNOK( m_pcReadBitstream->releasePacket( pcBinDataSEILysNotPreDepChange ) );
+        pcBinDataSEILysNotPreDepChange = NULL;
+
+// JVT-S080 LMI }
+
   }
 
   RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
@@ -1326,7 +1381,7 @@ Extractor::xExtractPoints()
   return Err::m_nOK;
 }
 
-ErrVal
+ErrVal 
 Extractor::xWriteScalableSEIToBuffer(h264::SEI::ScalableSei* pcScalableSei, BinData* pcBinData )
 {
 	const UInt uiSEILength = 1000;
@@ -1365,13 +1420,103 @@ Extractor::xWriteScalableSEIToBuffer(h264::SEI::ScalableSei* pcScalableSei, BinD
 	return Err::m_nOK;
 }
 
+//JVT-S080 LMI {
+ErrVal 
+Extractor::xWriteScalableSEILyrsNotPreToBuffer(h264::SEI::ScalableSeiLayersNotPresent* pcScalableSei, BinData* pcBinData )
+{
+	const UInt uiSEILength = 1000;
+	UChar		pulStreamPacket[uiSEILength];
+	pcBinData->reset();
+	pcBinData->set( new UChar[uiSEILength], uiSEILength );
+
+	UChar *m_pucBuffer = pcBinData->data();
+
+	ScalableModifyCode cScalableModifyCode;
+	ScalableTestCode cScalableTestCode;
+	RNOK( cScalableTestCode.init() );
+	RNOK( cScalableModifyCode.init( (ULong*) pulStreamPacket ) );
+	RNOK( cScalableTestCode.SEICode( pcScalableSei, &cScalableTestCode ) );
+	UInt uiBits = cScalableTestCode.getNumberOfWrittenBits();
+	UInt uiSize = (uiBits+7)/8;
+	RNOK( cScalableModifyCode.WriteFlag( 0 ) );
+	RNOK( cScalableModifyCode.WriteCode( 0 ,2 ) );
+	RNOK( cScalableModifyCode.WriteCode( NAL_UNIT_SEI, 5 ) );
+	RNOK( cScalableModifyCode.WritePayloadHeader( pcScalableSei->getMessageType(), uiSize ) );
+	RNOK( cScalableModifyCode.SEICode( pcScalableSei, &cScalableModifyCode ) );
+	uiBits = cScalableModifyCode.getNumberOfWrittenBits();
+	uiSize = (uiBits+7)/8;
+	UInt uiAlignedBits = 8 - (uiBits&7);
+	if( uiAlignedBits != 0 && uiAlignedBits != 8 )
+	{
+		RNOK( cScalableModifyCode.WriteCode( 1 << (uiAlignedBits-1), uiAlignedBits ) );
+	}
+	RNOK ( cScalableModifyCode.WriteTrailingBits() );
+	RNOK ( cScalableModifyCode.flushBuffer() );
+	uiBits = cScalableModifyCode.getNumberOfWrittenBits();
+	uiBits              = ( uiBits >> 3 ) + ( 0 != ( uiBits & 0x07 ) );
+	uiSize = uiBits;
+	RNOK( cScalableModifyCode.ConvertRBSPToPayload( m_pucBuffer, pulStreamPacket, uiSize, 2 ) );
+	pcBinData->decreaseEndPos( uiSEILength - uiSize );
+	return Err::m_nOK;
+}
+
+ErrVal 
+Extractor::xWriteScalableSEIDepChangeToBuffer(h264::SEI::ScalableSeiDependencyChange* pcScalableSei, BinData* pcBinData )
+{
+	const UInt uiSEILength = 1000;
+	UChar		pulStreamPacket[uiSEILength];
+	pcBinData->reset();
+	pcBinData->set( new UChar[uiSEILength], uiSEILength );
+
+	UChar *m_pucBuffer = pcBinData->data();
+
+	ScalableModifyCode cScalableModifyCode;
+	ScalableTestCode cScalableTestCode;
+	RNOK( cScalableTestCode.init() );
+	RNOK( cScalableModifyCode.init( (ULong*) pulStreamPacket ) );
+	RNOK( cScalableTestCode.SEICode( pcScalableSei, &cScalableTestCode ) );
+	UInt uiBits = cScalableTestCode.getNumberOfWrittenBits();
+	UInt uiSize = (uiBits+7)/8;
+	RNOK( cScalableModifyCode.WriteFlag( 0 ) );
+	RNOK( cScalableModifyCode.WriteCode( 0 ,2 ) );
+	RNOK( cScalableModifyCode.WriteCode( NAL_UNIT_SEI, 5 ) );
+	RNOK( cScalableModifyCode.WritePayloadHeader( pcScalableSei->getMessageType(), uiSize ) );
+	RNOK( cScalableModifyCode.SEICode( pcScalableSei, &cScalableModifyCode ) );
+	uiBits = cScalableModifyCode.getNumberOfWrittenBits();
+	uiSize = (uiBits+7)/8;
+	UInt uiAlignedBits = 8 - (uiBits&7);
+	if( uiAlignedBits != 0 && uiAlignedBits != 8 )
+	{
+		RNOK( cScalableModifyCode.WriteCode( 1 << (uiAlignedBits-1), uiAlignedBits ) );
+	}
+	RNOK ( cScalableModifyCode.WriteTrailingBits() );
+	RNOK ( cScalableModifyCode.flushBuffer() );
+	uiBits = cScalableModifyCode.getNumberOfWrittenBits();
+	uiBits              = ( uiBits >> 3 ) + ( 0 != ( uiBits & 0x07 ) );
+	uiSize = uiBits;
+	RNOK( cScalableModifyCode.ConvertRBSPToPayload( m_pucBuffer, pulStreamPacket, uiSize, 2 ) );
+	pcBinData->decreaseEndPos( uiSEILength - uiSize );
+	return Err::m_nOK;
+}
+// JVT-S080 LMI }
+
+// JVT-S080 LMI {
 // BUG_FIX liuhui{
 ErrVal
-Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage,
+Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEILysNotPreDepChange, h264::SEI::SEIMessage* pcScalableSEIMessage,
 						UInt uiKeepScalableLayer, UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, Double& dMaxFGSLayer, UInt uiMaxBitrate)
 
 // BUG_FIX liuhui}
 {
+	Bool bLayerNotPresent[MAX_SCALABLE_LAYERS];
+	h264::SEI::ScalableSeiLayersNotPresent* pcNewScalableSeiLayersNotPresent;
+	RNOK( h264::SEI::ScalableSeiLayersNotPresent::create(pcNewScalableSeiLayersNotPresent) );
+	h264::SEI::ScalableSeiLayersNotPresent* pcOldScalableSeiLayersNotPresent = (h264::SEI::ScalableSeiLayersNotPresent* ) pcScalableSEIMessage;	
+
+    if(pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI)
+	{
+	::memset( bLayerNotPresent, 1, MAX_SCALABLE_LAYERS*sizeof(Bool));
+// JVT-S080 LMI }
 	h264::SEI::ScalableSei* pcNewScalableSei;
 	RNOK( h264::SEI::ScalableSei::create(pcNewScalableSei) );
 
@@ -1506,6 +1651,9 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage
 
 // BUG_FIX liuhui}
 		pcNewScalableSei->setLayerId( uiNumScalableLayer, uiNumScalableLayer );
+// JVT S080 LMI {
+		bLayerNotPresent[uiScalableLayer] = false;
+// JVT S080 LMI }
 //JVT-S036 lsj start
 //		pcNewScalableSei->setFGSlayerFlag( uiNumScalableLayer, pcOldScalableSei->getFGSLayerFlag( uiScalableLayer ) ); 
 
@@ -1794,11 +1942,141 @@ JVT-S036 lsj */
 // BUG_FIX liuhui{
     pcNewScalableSei->setNumLayersMinus1( uiNumScalableLayer-1);
 // BUG_FIX liuhui}
+
+// JVT-S080 LMI {
+
+	UInt i, uiNumLayersNotPresent = 0;
+
+	for( i = 0; i <= pcOldScalableSei->getNumLayersMinus1(); i++ )
+	{
+		if (bLayerNotPresent[pcOldScalableSei->getLayerId(i)]) {
+			pcNewScalableSeiLayersNotPresent->setLayerId(uiNumLayersNotPresent, pcOldScalableSei->getLayerId(i) );
+			uiNumLayersNotPresent++;
+		}
+	}
+	pcNewScalableSeiLayersNotPresent->setNumLayers(uiNumLayersNotPresent);
+
+	h264::SEI::ScalableSeiLayersNotPresent::m_uiLeftNumLayers = pcNewScalableSeiLayersNotPresent->getNumLayers();
+
+	for ( i = 0; i < pcNewScalableSeiLayersNotPresent->getNumLayers(); i++)
+		h264::SEI::ScalableSeiLayersNotPresent::m_auiLeftLayerId[i] = pcNewScalableSeiLayersNotPresent->getLayerId(i);
+
+
+#if UPDATE_SCALABLE_SEI
 	RNOK( xWriteScalableSEIToBuffer( pcNewScalableSei, pcBinData ) );
 	// write pcNewScalableSei into bitstream pcBinData
+#else
+   // write the original SSEI followed by a layers_not_present SSEI message
+	RNOK( xWriteScalableSEIToBuffer( pcOldScalableSei, pcBinData ) );
+	   if ( uiNumLayersNotPresent > 0 )
+	   {         
+          pcOldScalableSeiLayersNotPresent->setOutputFlag ( true );
+          RNOK( xWriteScalableSEILyrsNotPreToBuffer( pcNewScalableSeiLayersNotPresent, pcBinDataSEILysNotPreDepChange ) );
+	   }
+	   else
+          pcOldScalableSeiLayersNotPresent->setOutputFlag ( false );
+#endif 
+	}
+
+    // now deal with the layers_not_present SSEI message sent by the encoder
+	if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_LAYERS_NOT_PRESENT ) 
+	{
+	   UInt i, j, uiScalableLayer, uiNumLayersNotPresent = 0;
+       Bool bLayerNotPresentUpdate[MAX_SCALABLE_LAYERS];
+	   UInt uiOldNewLayerIdMap[MAX_SCALABLE_LAYERS];
+	   ::memset( bLayerNotPresent, 0, MAX_SCALABLE_LAYERS*sizeof(Bool));
+	   ::memset( bLayerNotPresentUpdate, 0, MAX_SCALABLE_LAYERS*sizeof(Bool));
+
+	   for( i = 0; i < h264::SEI::ScalableSeiLayersNotPresent::m_uiLeftNumLayers; i++ )
+            bLayerNotPresent[h264::SEI::ScalableSeiLayersNotPresent::m_auiLeftLayerId[i]] = true;
+
+       j = 0;
+	   for( i = 0; i < MAX_SCALABLE_LAYERS; i++ )
+		   if( !bLayerNotPresent[i] ) 
+			   uiOldNewLayerIdMap[i] = j++;
+
+	   for( i = 0; i < pcOldScalableSeiLayersNotPresent->getNumLayers(); i++ )
+	   {
+         #if UPDATE_SCALABLE_SEI
+		   uiScalableLayer = pcOldScalableSeiLayersNotPresent->getLayerId(i);
+	       if( !bLayerNotPresent[uiScalableLayer] )
+               bLayerNotPresentUpdate[uiOldNewLayerIdMap[uiScalableLayer]] = true ;		
+         #else
+            bLayerNotPresent[pcOldScalableSeiLayersNotPresent->getLayerId(i)] = true;		
+         #endif
+	   }
+
+	   for( uiScalableLayer = 0; uiScalableLayer < MAX_SCALABLE_LAYERS; uiScalableLayer++ )
+       #if UPDATE_SCALABLE_SEI
+		    if ( bLayerNotPresentUpdate[uiScalableLayer] ) 
+       #else
+		    if ( bLayerNotPresent[uiScalableLayer] ) 
+       #endif
+		    {
+			    pcNewScalableSeiLayersNotPresent->setLayerId(uiNumLayersNotPresent,uiScalableLayer);
+			    uiNumLayersNotPresent++;
+		    }
+
+	   pcNewScalableSeiLayersNotPresent->setNumLayers(uiNumLayersNotPresent);
+
+	   if ( uiNumLayersNotPresent > 0 )
+	   {         
+          pcOldScalableSeiLayersNotPresent->setOutputFlag ( true );
+          RNOK( xWriteScalableSEILyrsNotPreToBuffer( pcNewScalableSeiLayersNotPresent, pcBinDataSEILysNotPreDepChange ) );
+	   }
+	   else
+          pcOldScalableSeiLayersNotPresent->setOutputFlag ( false );
+	}
+
+    // now we deal with the dependency change SSEI
+	if(pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_DEPENDENCY_CHANGE) 
+	{
+		UInt i, j, k, uiNumDireDepLyrs, uiLid;
+		h264::SEI::ScalableSeiDependencyChange* pcNewScalableSeiDepChange;
+		h264::SEI::ScalableSeiDependencyChange* pcOldScalableSeiDepChange = ( h264::SEI::ScalableSeiDependencyChange* ) pcScalableSEIMessage;
+		RNOK( h264::SEI::ScalableSeiDependencyChange::create(pcNewScalableSeiDepChange) );
+		::memset( bLayerNotPresent, 0, MAX_SCALABLE_LAYERS*sizeof(Bool));
+
+		for( i = 0; i < h264::SEI::ScalableSeiLayersNotPresent::m_uiLeftNumLayers; i++ )
+		     bLayerNotPresent[h264::SEI::ScalableSeiLayersNotPresent::m_auiLeftLayerId[i]] = true;
+
+		j = 0;
+		for( i = 0; i <= pcOldScalableSeiDepChange->getNumLayersMinus1(); i++ )
+		{
+			uiLid = pcOldScalableSeiDepChange->getLayerId( i );
+			if( ! bLayerNotPresent[uiLid] )
+			{
+			    pcNewScalableSeiDepChange->setLayerId( j, uiLid );
+				pcNewScalableSeiDepChange->setLayerDependencyInfoPresentFlag( j, pcOldScalableSeiDepChange->getLayerDependencyInfoPresentFlag(i) );
+				if( pcOldScalableSeiDepChange->getLayerDependencyInfoPresentFlag(i) )
+				{
+					uiNumDireDepLyrs = pcOldScalableSeiDepChange->getNumDirectDependentLayers(i);
+					pcNewScalableSeiDepChange->setNumDirectDependentLayers( j, uiNumDireDepLyrs );
+					for ( k = 0; k < uiNumDireDepLyrs; k++)
+						pcNewScalableSeiDepChange->setDirectDependentLayerIdDeltaMinus1(j, k, pcOldScalableSeiDepChange->getDirectDependentLayerIdDeltaMinus1(i, k) );
+				}
+				else
+					pcNewScalableSeiDepChange->setLayerDependencyInfoSrcLayerIdDeltaMinus1(j, pcOldScalableSeiDepChange->getLayerDependencyInfoSrcLayerIdDeltaMinus1(i));
+
+				j++;
+			}
+		}
+
+        if ( j > 0 ) 
+		{
+            pcOldScalableSeiDepChange->setOutputFlag ( true );
+            pcNewScalableSeiDepChange->setNumLayersMinus1( j - 1 );
+            RNOK( xWriteScalableSEIDepChangeToBuffer( pcNewScalableSeiDepChange, pcBinDataSEILysNotPreDepChange ) );
+		}
+		else
+            pcOldScalableSeiDepChange->setOutputFlag ( false );
+
+	}
+
+
+// JVT-S080 LMI }
 	return Err::m_nOK;
 }
-
 
 ErrVal
 Extractor::xExtractLayerLevel()
@@ -1820,7 +2098,6 @@ Extractor::xExtractLayerLevel()
 // BUG_FIX liuhui}
 
 	h264::SEI::NonRequiredSei* pcNonRequiredDescription = NULL;  
-
 	if( uiMaxLayer != MSYS_UINT_MAX || uiMaxFGSLayer != 10 || uiMaxTempLevel != MSYS_UINT_MAX )
 	{	
 		//TL or QL
@@ -1986,6 +2263,13 @@ Extractor::xExtractLayerLevel()
 		UInt uiScalableLayer = 0;
 		//========== get packet ==============
 		BinData * pcBinData;
+// JVT-S080 LMI {
+		BinData * pcBinDataSEILysNotPreDepChange;
+        ROT( NULL == ( pcBinDataSEILysNotPreDepChange = new BinData ) ); 
+		Bool bWriteBinDataSEILysNotPreDepChange = false;
+		Bool bWriteBinData = true;
+// JVT-S080 LMI }
+
 		RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
 		if( bEOS )
 		{
@@ -1999,12 +2283,33 @@ Extractor::xExtractLayerLevel()
 		RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
 		if( pcScalableSEIMessage )
 		{
-			if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI )
+// JVT-S080 LMI {
+			if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI || pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_LAYERS_NOT_PRESENT || pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_DEPENDENCY_CHANGE ) 
 			{
+				if( pcScalableSEIMessage->getMessageType() != h264::SEI::SCALABLE_SEI )
+				   bWriteBinData = false;
 // BUG_FIX liuhui{
-				  RNOK( xChangeScalableSEIMesssage( pcBinData, pcScalableSEIMessage, uiKeepScalableLayer, uiWantedScalableLayer,
-					  uiMaxLayer, uiMaxTempLevel, dMaxFGSLayer, uiMaxBitrate ) );				
+				  RNOK( xChangeScalableSEIMesssage( pcBinData, pcBinDataSEILysNotPreDepChange, pcScalableSEIMessage, uiKeepScalableLayer, uiWantedScalableLayer,
+					  uiMaxLayer, uiMaxTempLevel, dMaxFGSLayer, uiMaxBitrate ) );	
 
+				if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI ) 
+				{
+	                h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent = ( h264::SEI::ScalableSeiLayersNotPresent*) pcScalableSEIMessage;
+					bWriteBinDataSEILysNotPreDepChange = pcScalableSeiLayersNotPresent->getOutputFlag();
+				}
+				if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_LAYERS_NOT_PRESENT ) 
+				{
+	                h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent = ( h264::SEI::ScalableSeiLayersNotPresent*) pcScalableSEIMessage;
+					bWriteBinDataSEILysNotPreDepChange = pcScalableSeiLayersNotPresent->getOutputFlag();
+				}
+
+				if( pcScalableSEIMessage->getMessageType() == h264::SEI::SCALABLE_SEI_DEPENDENCY_CHANGE ) 
+				{
+	                h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDepChange = ( h264::SEI::ScalableSeiDependencyChange*) pcScalableSEIMessage;
+					bWriteBinDataSEILysNotPreDepChange = pcScalableSeiDepChange->getOutputFlag();
+				}
+
+// JVT-S080 LMI }
 				if( uiWantedScalableLayer != MSYS_UINT_MAX ) // -sl, -b
 				{
 				  uiMaxLayer	 = m_cScalableStreamDescription.getDependencyId( uiWantedScalableLayer );
@@ -2017,7 +2322,10 @@ Extractor::xExtractLayerLevel()
 
 		pcNonRequiredDescription = m_pcH264AVCPacketAnalyzer->getNonRequiredSEI();
 		delete pcScalableSEIMessage;
-
+// JVT-S080 LMI {
+  if( bWriteBinData ) 			
+  {
+// JVT-S080 LMI }
 		//============ get packet size ===========
 		while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
 		{
@@ -2170,13 +2478,33 @@ Extractor::xExtractLayerLevel()
             pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
             uiCropped++;
   				}
-			
-        RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
-			RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
-			uiPacketSize  += 4 + pcBinData->size();
+
+			RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+				RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
+				uiPacketSize  += 4 + pcBinData->size();
+
 		}
+  }
 		RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
     pcBinData = NULL;
+
+// JVT-S080 LMI {
+	if ( bWriteBinDataSEILysNotPreDepChange ) 
+	{
+       while( pcBinDataSEILysNotPreDepChange->data()[ pcBinDataSEILysNotPreDepChange->size() - 1 ] == 0x00 )
+       {
+         RNOK( pcBinDataSEILysNotPreDepChange->decreaseEndPos( 1 ) ); // remove zero at end
+       }
+       uiPacketSize  = 4 + pcBinDataSEILysNotPreDepChange->size();
+
+       RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+	   RNOK( m_pcWriteBitstream->writePacket( pcBinDataSEILysNotPreDepChange ) );
+	}
+	   RNOK( m_pcReadBitstream->releasePacket( pcBinDataSEILysNotPreDepChange ) );
+       pcBinDataSEILysNotPreDepChange = NULL;
+
+// JVT-S080 LMI }
+
 	}
 
 // BUG_FIX liuhui{ //delete

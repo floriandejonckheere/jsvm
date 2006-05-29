@@ -87,8 +87,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #define MAX_PACKET_SIZE 1000000
-
-
+// JVT-S080 LMI
+// If defined to 1, the initial scalability_info SEI should be updated after an extraction;
+// Otherwise, it's unchanged and followed by a layers_not_present scalable SEI. 
+#define UPDATE_SCALABLE_SEI 1
 #include "H264AVCCommonLib/Sei.h"
 
 #include "ReadBitstreamFile.h"
@@ -216,8 +218,11 @@ public:
   ErrVal        init                ( ExtractorParameter* pcExtractorParameter );
   ErrVal        go                  ();
   ErrVal        destroy             ();
+ //JVT-S080 LMI {
   ErrVal        xWriteScalableSEIToBuffer( h264::SEI::ScalableSei* pcScalableSei, BinData* pcBinData );
-
+  ErrVal        xWriteScalableSEILyrsNotPreToBuffer( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSei, BinData* pcBinData );
+  ErrVal        xWriteScalableSEIDepChangeToBuffer( h264::SEI::ScalableSeiDependencyChange* pcScalableSei, BinData* pcBinData );
+ //JVT-S080 LMI }
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
   //if there is dead substream in the input bitstream but no R/D information
@@ -234,9 +239,14 @@ protected:
   ErrVal        xExtractLayerLevel  ();
   Void          setBaseLayerAVCCompatible( Bool bAVCCompatible ) { m_bAVCCompatible = bAVCCompatible; }
   Bool          getBaseLayerAVCCompatible() const { return m_bAVCCompatible; }
+  // JVT-S080 LMI {
+  ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI, h264::SEI::SEIMessage* pcScalableSEIMessage,
+				  UInt uiKeepScalableLayer, UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, Double& dMaxFGSLayer, UInt uiMaxBitrate);
+  /*
   ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage,
 				  UInt uiKeepScalableLayer, UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, Double& dMaxFGSLayer, UInt uiMaxBitrate);
-
+  */
+  // JVT-S080 LMI }
   // HS: packet trace
   ErrVal        xReadLineExtractTrace ( Char*               pcFormatString,
                                         UInt*               puiStart,

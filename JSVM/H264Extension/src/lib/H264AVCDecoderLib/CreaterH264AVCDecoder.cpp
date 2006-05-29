@@ -666,6 +666,14 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 				}
 				break;
 			}
+// JVT-S080 LMI {
+	  case SEI::SCALABLE_SEI_LAYERS_NOT_PRESENT:
+      case SEI::SCALABLE_SEI_DEPENDENCY_CHANGE:
+		  {
+			  pcScalableSEIMessage = pcSEIMessage;
+			  break;
+		  }
+// JVT-S080 LMI }
       case SEI::SUB_PIC_SEI:
 			{
         bApplyToNext  = true;
