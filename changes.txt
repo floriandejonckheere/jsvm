@@ -1,3 +1,18 @@
+JSVM_5_6 -> JSVM_5_6_1
+======================
+
+Cleaning: Bug fixing and warnings removal
+
+Date: May 23, 2006
+Author: J. Vieron (on behalf of S. Kamp and H. Kirchoffer)
+
+Changes:
+- Unused/Uninitialized variables methods
+- Shadowing variables 
+- Bug fixes for the handling of the AR-FGS parameters 
+- Bug fix in Extractor.cpp regarding the assignment of uiShrinkSize  
+
+
 JSVM_5_5 -> JSVM_5_6
 ====================
 
@@ -43,6 +58,7 @@ Date: May 13, 2006
 Authors: J. Vieron (Thomson), S. Kamp (RWTH), B. Maschelein (IMEC)
 
 Changes:
+
 - Several Memory leaks fixing 
 - Uninitialized variables
 - Shadowing variables 
