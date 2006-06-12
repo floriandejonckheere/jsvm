@@ -418,7 +418,11 @@ protected:
                                           ControlData&                rcControlData,
                                           Bool                        bBiPredOnly,
                                           UInt                        uiNumMaxIter,
-                                          UInt                        uiIterSearchRange );
+                                          // JVT-S054 (REPLACE) ->
+                                          //UInt                        uiIterSearchRange );
+                                          UInt                        uiIterSearchRange,
+                                          UInt                        uiFrameIdInGOP );
+                                          // JVT-S054 (REPLACE) <-
 
 	//-- JVT-R091
   ErrVal  xFixMCPrediction							( IntFrame*                   pcMCFrame,
@@ -662,6 +666,13 @@ protected:
 
   UInt							m_uiSuffixUnitEnable; //JVT-S036 lsj
   UInt							m_uiMMCOBaseEnable;  //JVT-S036 lsj
+
+  // JVT-S054 (ADD) ->
+  Bool         m_bIroiSliceDivisionFlag;
+  UInt         m_uiNumSliceMinus1;
+  UInt*        m_puiFirstMbInSlice;
+  UInt*        m_puiLastMbInSlice;
+  // JVT-S054 (ADD) <-
 };
 
 #if defined( WIN32 )

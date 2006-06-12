@@ -1757,7 +1757,13 @@ CabacReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
 
   //===== SIGNIFICANCE BIT =====
   UInt uiSig = 0;
-  RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get( uiCtxOffset, pos2ctx_map8x8[uiScanIndex] ) ) );
+  UInt uiLastScanPosition = uiScanIndex + 1;
+  while (uiLastScanPosition < 64 && piCoeffBase[pucScan[uiLastScanPosition]]) uiLastScanPosition ++;
+  if( uiLastScanPosition < 64 )
+  {
+  RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get(uiCtxOffset, pos2ctx_map8x8[uiScanIndex] ) ) );
+  }
+  else uiSig = 1;
 
   if( uiSig )
   {

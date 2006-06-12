@@ -1,3 +1,22 @@
+JSVM_5_7 -> JSVM_5_8
+====================
+
+IROI signaling in Scalable Info SEI 
+
+Date: June 1, 2006
+Author: M.H. Lee
+Contribution: JVT-S054
+
+Changes:
+
+- Read IROI parameters in cfg files
+- writing and reading  of IROI slice division info in Scalable Info SEI
+- Coding of multiple slices according to IROI slice division info
+
+Note: The changes above can be found by searching "JVT-S054".
+
+
+
 JSVM_5_6_1 -> JSVM_5_7
 ======================
 

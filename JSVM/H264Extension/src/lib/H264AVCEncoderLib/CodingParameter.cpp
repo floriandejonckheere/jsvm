@@ -157,6 +157,127 @@ ErrVal LayerParameters::check()
     m_dQpModeDecisionLP = m_dBaseQpResidual;
   }
 
+  // JVT-S054 (ADD) ->
+  if ( m_uiNumSliceGroupsMinus1 > 0 && m_uiSliceGroupMapType == 0 && m_uiSliceMode == 4)
+  {
+    UInt i, j, uiSliceId, uiTotalRun, uiNumSlicePerHeight, uiMBAddr, uiMBCount, uiFrameWidthInMbs, uiFrameHeightInMbs, uiFrameSizeInMbs;
+
+    m_bSliceDivisionFlag = true;
+    m_uiSliceDivisionType = 0;  // rectangular grid slice of constant size
+    uiTotalRun = m_uiRunLengthMinus1[0] + 1;
+    for (i=1; i<m_uiNumSliceGroupsMinus1; i++)
+    {
+      uiTotalRun += m_uiRunLengthMinus1[i] + 1;
+      if ( m_uiRunLengthMinus1[i] != m_uiRunLengthMinus1[0] )
+        m_uiSliceDivisionType = 1;
+    }
+    uiTotalRun += m_uiRunLengthMinus1[m_uiNumSliceGroupsMinus1] + 1;
+    if ( m_uiRunLengthMinus1[m_uiNumSliceGroupsMinus1] > m_uiRunLengthMinus1[0] )
+    {
+      m_uiSliceDivisionType = 1;
+    }
+
+    if ( (uiTotalRun<<4) != m_uiFrameWidth )
+    {
+      printf("Unsupported IROI mode\n");
+      m_bSliceDivisionFlag = false;
+      return Err::m_nOK;
+    }
+
+    uiFrameWidthInMbs = m_uiFrameWidth>>4;
+    uiFrameHeightInMbs = m_uiFrameHeight>>4;
+    uiFrameSizeInMbs = uiFrameWidthInMbs*uiFrameHeightInMbs;
+    uiNumSlicePerHeight = (uiFrameHeightInMbs+m_uiSliceArgument-1)/m_uiSliceArgument;
+    m_uiNumSliceMinus1 = ((m_uiNumSliceGroupsMinus1+1) * uiNumSlicePerHeight) - 1;
+
+    // Allocate memory for slice division info
+    if (m_puiGridSliceWidthInMbsMinus1 != NULL)
+      free(m_puiGridSliceWidthInMbsMinus1);
+    m_puiGridSliceWidthInMbsMinus1 = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+
+    if (m_puiGridSliceHeightInMbsMinus1 != NULL)
+      free(m_puiGridSliceHeightInMbsMinus1);
+    m_puiGridSliceHeightInMbsMinus1 = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+
+    if (m_puiFirstMbInSlice != NULL)
+      free(m_puiFirstMbInSlice);
+    m_puiFirstMbInSlice = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+
+    if (m_puiLastMbInSlice != NULL)
+      free(m_puiLastMbInSlice);
+    m_puiLastMbInSlice = (UInt*)malloc((m_uiNumSliceMinus1+1)*sizeof(UInt));
+
+    if (m_puiSliceId != NULL)
+      free(m_puiSliceId);
+    m_puiSliceId = (UInt*)malloc(uiFrameSizeInMbs*sizeof(UInt));
+
+    // Initialize slice division info
+    uiSliceId=0;
+    m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_uiRunLengthMinus1[0];
+    m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
+    m_puiFirstMbInSlice[uiSliceId] = 0;
+    m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*(m_uiFrameWidth>>4) + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
+    uiSliceId += uiNumSlicePerHeight;
+    for (i=1; i<=m_uiNumSliceGroupsMinus1; i++)
+    {
+      m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_uiRunLengthMinus1[i];
+      m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
+      m_puiFirstMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId-uiNumSlicePerHeight] + m_uiRunLengthMinus1[i-1] + 1;
+      m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*(m_uiFrameWidth>>4) + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
+      uiSliceId += uiNumSlicePerHeight;
+    }
+    uiSliceId = 0;
+    for (i=0; i<=m_uiNumSliceGroupsMinus1; i++)
+    {
+      uiSliceId++;
+      for (j=1; j<uiNumSlicePerHeight; j++, uiSliceId++)
+      {
+        m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_puiGridSliceWidthInMbsMinus1[uiSliceId-1];
+        m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
+        if ( j == (uiNumSlicePerHeight-1) )
+          m_puiGridSliceHeightInMbsMinus1[uiSliceId] = (m_uiFrameHeight>>4) - (j*m_uiSliceArgument) - 1;
+
+        m_puiFirstMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId-1] + m_uiSliceArgument*(m_uiFrameWidth>>4);
+        m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*(m_uiFrameWidth>>4) + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
+      }
+    }
+    // Debug
+    if (uiSliceId != (m_uiNumSliceMinus1+1))
+    {
+      printf("IROI error\n");
+      m_bSliceDivisionFlag = false;
+      return Err::m_nOK;
+    }
+
+    uiMBCount = 0;
+    for (uiSliceId = 0; uiSliceId <= m_uiNumSliceMinus1; uiSliceId++)
+    {
+      uiMBAddr = m_puiFirstMbInSlice[uiSliceId];
+      for (i = 0; i <= m_puiGridSliceHeightInMbsMinus1[uiSliceId]; i++, uiMBAddr+=uiFrameWidthInMbs)
+      {
+        for (j = 0; j <= m_puiGridSliceWidthInMbsMinus1[uiSliceId]; j++, uiMBCount++)
+        {
+          m_puiSliceId[uiMBAddr+j] = uiSliceId;
+        }
+      }
+    }
+    // Debug
+    if (uiMBCount != uiFrameSizeInMbs)
+    {
+      printf("IROI error\n");
+      m_bSliceDivisionFlag = false;
+      return Err::m_nOK;
+    }
+
+    // Display slice division info.
+    printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);
+    //for (i=0; i<=m_uiNumSliceMinus1; i++)
+    //{
+    //  printf("(%d, %d, %d, %d, %d)\n", i, m_puiGridSliceWidthInMbsMinus1[i], m_puiGridSliceHeightInMbsMinus1[i], m_puiFirstMbInSlice[i], m_puiLastMbInSlice[i]);
+    //}
+  }
+  // JVT-S054 (ADD) <-
+
   return Err::m_nOK;
 }
 

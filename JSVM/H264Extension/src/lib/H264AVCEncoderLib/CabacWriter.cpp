@@ -1778,9 +1778,17 @@ CabacWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
   }
 
   //===== SIGNIFICANCE BIT =====
-  UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
-  RNOK( CabaEncoder::writeSymbol( uiSig, m_cMapCCModel.get( uiCtxOffset, pos2ctx_map8x8[uiScanIndex] ) ) );
-  //RNOK( CabaEncoder::writeSymbol( uiSig, m_cSigCCModel.get( 0, uiSigCtx ) ) );
+  UInt uiLastScanPosition = uiScanIndex + 1;
+  while( uiLastScanPosition < 64 && piCoeffBase[pucScan[uiLastScanPosition]] )
+  uiLastScanPosition ++;
+  UInt uiSig;
+  if( uiLastScanPosition < 64 )
+  {
+    uiSig = piCoeff[pucScan[uiScanIndex] ] ? 1 : 0;
+    RNOK( CabaEncoder::writeSymbol( uiSig, m_cMapCCModel.get(uiCtxOffset, pos2ctx_map8x8[uiScanIndex] ) ) );
+  }
+  else uiSig = 1;
+
 
   if( uiSig )
   {

@@ -231,6 +231,16 @@ public:
 #endif
     , m_dQpModeDecisionLP ( 0.00 )
     , m_uiNumSliceGroupMapUnitsMinus1 ( 0 ) 
+    // JVT-S054 (ADD) ->
+    , m_uiNumSliceMinus1 (0)
+    , m_bSliceDivisionFlag (false)
+    , m_uiSliceDivisionType (0)
+    , m_puiGridSliceWidthInMbsMinus1 (0)
+    , m_puiGridSliceHeightInMbsMinus1 (0)
+    , m_puiFirstMbInSlice (0)
+    , m_puiLastMbInSlice (0)
+    , m_puiSliceId (0)
+    // JVT-S054 (ADD) <-
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiPosVect, 0x00, 16*sizeof(UInt) );
@@ -238,6 +248,33 @@ public:
 
   virtual ~LayerParameters()
   {
+    // JVT-S054 (ADD) ->
+    if (m_puiGridSliceWidthInMbsMinus1 != NULL)
+    {
+      free(m_puiGridSliceWidthInMbsMinus1);
+      m_puiGridSliceWidthInMbsMinus1 = NULL;
+    }
+    if (m_puiGridSliceHeightInMbsMinus1 != NULL)
+    {
+      free(m_puiGridSliceHeightInMbsMinus1);
+      m_puiGridSliceHeightInMbsMinus1 = NULL;
+    }
+    if (m_puiFirstMbInSlice != NULL)
+    {
+      free(m_puiFirstMbInSlice);
+      m_puiFirstMbInSlice = NULL;
+    }
+    if (m_puiLastMbInSlice != NULL)
+    {
+      free(m_puiLastMbInSlice);
+      m_puiLastMbInSlice = NULL;
+    }
+    if (m_puiSliceId != NULL)
+    {
+      free(m_puiSliceId);
+      m_puiSliceId = NULL;
+    }
+    // JVT-S054 (ADD) <-
   }
 
 
@@ -474,6 +511,17 @@ public:
   std::string  m_cSliceGroupConfigFileName;
   //--ICU/ETRI FMO Implementation : FMO end
   UInt         m_uiUseRedundantSlice;   // JVT-Q054 Red. Picture
+
+  // JVT-S054 (ADD) ->
+  Bool         m_bSliceDivisionFlag;
+  UInt         m_uiNumSliceMinus1;
+  UInt         m_uiSliceDivisionType;
+  UInt*        m_puiGridSliceWidthInMbsMinus1;
+  UInt*        m_puiGridSliceHeightInMbsMinus1;
+  UInt*        m_puiFirstMbInSlice;
+  UInt*        m_puiLastMbInSlice;
+  UInt*        m_puiSliceId;
+  // JVT-S054 (ADD) <-
 
   //JVT-P031
   Bool                      m_bUseDiscardable; //indicate if discardable stream is coded for this layer 

@@ -470,6 +470,32 @@ SEI::ScalableSei::ScalableSei	()
 
 SEI::ScalableSei::~ScalableSei()
 {
+	// JVT-S054 (ADD) ->
+	UInt i;
+	for( i = 0; i < MAX_SCALABLE_LAYERS; i++ )
+	{
+		if ( m_first_mb_in_slice[i] != NULL )
+		{
+			free( m_first_mb_in_slice[i] );
+			m_first_mb_in_slice[i] = NULL;
+		}
+		if ( m_slice_width_in_mbs_minus1[i] != NULL )
+		{
+			free( m_slice_width_in_mbs_minus1[i] );
+			m_slice_width_in_mbs_minus1[i] = NULL;
+		}
+		if ( m_slice_height_in_mbs_minus1[i] != NULL )
+		{
+			free( m_slice_height_in_mbs_minus1[i] );
+			m_slice_height_in_mbs_minus1[i] = NULL;
+		}
+		if ( m_slice_id[i] != NULL )
+		{
+			free( m_slice_id[i] );
+			m_slice_id[i] = NULL;
+		}
+	}
+	// JVT-S054 (ADD) <-
 }
 
 ErrVal
@@ -607,9 +633,13 @@ JVT-S036 lsj */
 					RNOK	( pcWriteIf->writeUvlc( m_slice_height_in_mbs_minus1[i][j],		"ScalableSEI:slice_height_in_mbs_minus1" ) );
 				}
 			}
-			else if ( m_iroi_slice_division_type[1] == 2 )
+      // JVT-S054 (REPLACE): Typo error
+			//else if ( m_iroi_slice_division_type[1] == 2 )
+			else if ( m_iroi_slice_division_type[i] == 2 )
 			{
 				RNOK	( pcWriteIf->writeUvlc( m_num_slice_minus1[i],		"ScalableSEI:num_slice_minus1" ) );
+    		// JVT-S054 (REPLACE) ->
+        /*
 				UInt uiFrameHeightInMb = m_slice_height_in_mbs_minus1[i][j] + 1;
 				UInt uiFrameWidthInMb  = m_slice_width_in_mbs_minus1[i][j] + 1;
 				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
@@ -617,6 +647,18 @@ JVT-S036 lsj */
 				{
 					RNOK	( pcWriteIf->writeUvlc( m_slice_id[i][j],		"ScalableSEI:slice_id"		   ) );
 				}
+        */
+				UInt uiFrameHeightInMb = m_slice_height_in_mbs_minus1[i][j] + 1;
+				UInt uiFrameWidthInMb  = m_slice_width_in_mbs_minus1[i][j] + 1;
+				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+			  UInt uiWriteBits = (UInt) ceil( log( (double) (m_num_slice_minus1[i] + 1) ) / log(2.) );
+				if (uiWriteBits == 0)
+					uiWriteBits = 1;
+				for ( j = 0; j < uiPicSizeInMbs; j++ )
+				{
+					RNOK	( pcWriteIf->writeCode ( m_slice_id[i][j],	uiWriteBits,		"ScalableSEI: slice_id") );
+				}
+    		// JVT-S054 (REPLACE) <-
 			}
 		}
 	//JVT-S036 lsj end
@@ -663,7 +705,7 @@ JVT-S036 lsj */
 ErrVal
 SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 {
-   UInt i, j=0;
+  UInt i, j=0;
   UInt rl;//JVT-S036 lsj 
 
 	RNOK	( pcReadIf->getUvlc( m_num_layers_minus1 ,																""	) );
@@ -803,6 +845,17 @@ JVT-S036 lsj */
 			else if( m_iroi_slice_division_type[i] == 1 )
 			{
 				RNOK	( pcReadIf->getUvlc( m_num_slice_minus1[i],		"ScalableSEI:num_slice_minus1" ) );
+    		// JVT-S054 (ADD) ->
+				if ( m_first_mb_in_slice[i] != NULL )
+					free( m_first_mb_in_slice[i] );
+				m_first_mb_in_slice[i] = (UInt*)malloc( m_num_slice_minus1[i]*sizeof(UInt) );
+				if ( m_slice_width_in_mbs_minus1[i] != NULL )
+					free( m_slice_width_in_mbs_minus1[i] );
+				m_slice_width_in_mbs_minus1[i] = (UInt*)malloc( m_num_slice_minus1[i]*sizeof(UInt) );
+				if ( m_slice_height_in_mbs_minus1[i] != NULL )
+					free( m_slice_height_in_mbs_minus1[i] );
+				m_slice_height_in_mbs_minus1[i] = (UInt*)malloc( m_num_slice_minus1[i]*sizeof(UInt) );
+    		// JVT-S054 (ADD) <-
 				for ( j = 0; j <= m_num_slice_minus1[i]; j++ )
 				{
 					RNOK	( pcReadIf->getUvlc( m_first_mb_in_slice[i][j],				"ScalableSEI: first_mb_in_slice" ) );
@@ -812,7 +865,9 @@ JVT-S036 lsj */
 			}
 			else if ( m_iroi_slice_division_type[i] == 2 )
 			{
+    		// JVT-S054 (REPLACE) ->
 				RNOK	( pcReadIf->getUvlc( m_num_slice_minus1[i],		"ScalableSEI:num_slice_minus1" ) );
+        /*
 				UInt uiFrameHeightInMb = m_slice_height_in_mbs_minus1[i][j] + 1;
 				UInt uiFrameWidthInMb  = m_slice_width_in_mbs_minus1[i][j] + 1;
 				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
@@ -820,6 +875,21 @@ JVT-S036 lsj */
 				{
 					RNOK	( pcReadIf->getUvlc( m_slice_id[i][j],		"ScalableSEI:slice_id"		   ) );
 				}
+        */
+				UInt uiFrameHeightInMb = m_slice_height_in_mbs_minus1[i][j] + 1;
+				UInt uiFrameWidthInMb  = m_slice_width_in_mbs_minus1[i][j] + 1;
+				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+			  UInt uiReadBits = (UInt)ceil( log( (double) (m_num_slice_minus1[i] + 1) ) / log(2.) );
+				if (uiReadBits == 0)
+					uiReadBits = 1;
+				if ( m_slice_id[i] != NULL )
+					free( m_slice_id[i] );
+				m_slice_id[i] = (UInt*)malloc( uiPicSizeInMbs*sizeof(UInt) );
+				for ( j = 0; j < uiPicSizeInMbs; j++ )
+				{
+					RNOK	( pcReadIf->getCode( m_slice_id[i][j],	uiReadBits,		""	) );
+				}
+    		// JVT-S054 (REPLACE) <-
 			}
 		}
    //JVT-S036 lsj end

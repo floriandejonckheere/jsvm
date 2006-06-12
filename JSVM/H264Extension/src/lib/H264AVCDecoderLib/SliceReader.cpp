@@ -247,7 +247,8 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
   }
 
   //--ICU/ETRI FMO Implementation
-  ROF( ruiMbRead == rcSH.getNumMbInSlice());
+  // JVT-S054 (REMOVE)
+  //ROF( ruiMbRead == rcSH.getNumMbInSlice());
 
   return Err::m_nOK;
 }

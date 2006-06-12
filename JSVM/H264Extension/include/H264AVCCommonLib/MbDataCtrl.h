@@ -172,6 +172,9 @@ public:
   SliceHeader*  getSliceHeader      ()  { return  m_pcSliceHeader;      }
 //TMM_WP
 
+  // JVT-S054 (ADD)
+  UInt getSliceId() const { return m_uiSliceId;}
+
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
   const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter ); 

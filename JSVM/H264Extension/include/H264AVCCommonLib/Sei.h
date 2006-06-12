@@ -229,6 +229,7 @@ public:
 		Void setIroiSliceDivisionInfoPresentFlag ( UInt uilayer, Bool bFlag )				{ m_iroi_slice_division_info_present_flag		[uilayer] = bFlag; } 
 		Void setProfileLevelInfoPresentFlag ( UInt uilayer, Bool bFlag)						{ m_profile_level_info_present_flag				[uilayer] = bFlag; }
 	//JVT-S036 lsj end
+
 		Void setBitrateInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_bitrate_info_present_flag							[uilayer] = bFlag; }
 		Void setFrmRateInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_frm_rate_info_present_flag						[uilayer] = bFlag; }
 		Void setFrmSizeInfoPresentFlag ( UInt uilayer, Bool bFlag )								{ m_frm_size_info_present_flag						[uilayer] = bFlag; }
@@ -270,7 +271,50 @@ public:
 		Void setIroiSliceDivisionType ( UInt uilayer, UInt bType )								{ m_iroi_slice_division_type[uilayer] = bType; }
 		Void setGridSliceWidthInMbsMinus1 ( UInt uilayer, UInt bWidth )							{ m_grid_slice_width_in_mbs_minus1[uilayer] = bWidth; }
 		Void setGridSliceHeightInMbsMinus1 ( UInt uilayer, UInt bHeight )						{ m_grid_slice_height_in_mbs_minus1[uilayer] = bHeight; }
-		Void setNumSliceMinus1 ( UInt uilayer, UInt bNum ) 										{ m_num_slice_minus1[uilayer] = bNum; }
+		// JVT-S054 (REPLACE) ->
+		//Void setNumSliceMinus1 ( UInt uilayer, UInt bNum ) 										{ m_num_slice_minus1[uilayer] = bNum; }
+    Void setNumSliceMinus1 ( UInt uilayer, UInt bNum )
+    {
+      if ( m_num_slice_minus1[uilayer] != bNum )
+      {
+        if ( m_first_mb_in_slice[uilayer] != NULL )
+        {
+          free(m_first_mb_in_slice[uilayer]);
+          m_first_mb_in_slice[uilayer] = NULL;
+        }
+        if ( m_slice_width_in_mbs_minus1[uilayer] != NULL )
+        {
+          free(m_slice_width_in_mbs_minus1[uilayer]);
+          m_slice_width_in_mbs_minus1[uilayer] = NULL;
+        }
+        if ( m_slice_height_in_mbs_minus1[uilayer] != NULL )
+        {
+          free(m_slice_height_in_mbs_minus1[uilayer]);
+          m_slice_height_in_mbs_minus1[uilayer] = NULL;
+        }
+      }
+
+      m_num_slice_minus1[uilayer] = bNum;
+
+      if ( m_first_mb_in_slice[uilayer] == NULL )
+        m_first_mb_in_slice[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
+
+      if ( m_slice_width_in_mbs_minus1[uilayer] == NULL )
+        m_slice_width_in_mbs_minus1[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
+
+      if ( m_slice_height_in_mbs_minus1[uilayer] == NULL )
+        m_slice_height_in_mbs_minus1[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
+
+      if ( sizeof(m_slice_id[uilayer]) != (m_frm_width_in_mbs_minus1[uilayer]+1)*(m_frm_height_in_mbs_minus1[uilayer]+1)*sizeof(UInt) )
+      {
+        free(m_slice_id[uilayer]);
+        m_slice_id[uilayer] = NULL;
+      }
+      if ( m_slice_id[uilayer] == NULL )
+        m_slice_id[uilayer] = (UInt*)malloc((m_frm_width_in_mbs_minus1[uilayer]+1)*(m_frm_height_in_mbs_minus1[uilayer]+1)*sizeof(UInt));
+    }
+		// JVT-S054 (REPLACE) <-
+
 		Void setFirstMbInSlice ( UInt uilayer, UInt uiTar, UInt bNum )							{ m_first_mb_in_slice[uilayer][uiTar] = bNum; }
 		Void setSliceWidthInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bWidth )					{ m_slice_width_in_mbs_minus1[uilayer][uiTar] = bWidth; }
 		Void setSliceHeightInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bHeight )				{ m_slice_height_in_mbs_minus1[uilayer][uiTar] = bHeight; }
@@ -437,10 +481,18 @@ public:
 		UInt m_grid_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
 		UInt m_grid_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
 		UInt m_num_slice_minus1[MAX_SCALABLE_LAYERS];//
+		// JVT-S054 (REPLACE) ->
+    /*
 		UInt m_first_mb_in_slice[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
 		UInt m_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
 		UInt m_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
 		UInt m_slice_id[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+    */
+		UInt* m_first_mb_in_slice[MAX_SCALABLE_LAYERS];//
+		UInt* m_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
+		UInt* m_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
+		UInt* m_slice_id[MAX_SCALABLE_LAYERS];//
+		// JVT-S054 (REPLACE) <-
 // BUG_FIX liuhui{
 		UInt m_num_directly_dependent_layers[MAX_SCALABLE_LAYERS];
 		UInt m_directly_dependent_layer_id_delta_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//

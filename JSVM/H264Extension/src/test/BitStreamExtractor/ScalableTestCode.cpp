@@ -311,6 +311,8 @@ JVT-S036 lsj*/
 			}
 			else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 2 )
 			{
+    		// JVT-S054 (REPLACE) ->
+        /*
 				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
 				UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
 				UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
@@ -319,6 +321,19 @@ JVT-S036 lsj*/
 				{
 					pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceId( uiLayer, j ) );
 				}
+        */
+				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+				UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
+				UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
+				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+        UInt uiWriteBits = (UInt) ceil( log( (Double) (pcScalableSei->getNumSliceMinus1( uiLayer ) + 1) ) / log(2.) );
+        if (uiWriteBits == 0)
+          uiWriteBits = 1;
+				for( UInt j = 0; j < uiPicSizeInMbs; j++ )
+				{
+					pcScalableTestCode->WriteCode( pcScalableSei->getSliceId( uiLayer, j ), uiWriteBits );
+				}
+    		// JVT-S054 (REPLACE) <-
 			}
 		}
 	//JVT-S036 lsj end
