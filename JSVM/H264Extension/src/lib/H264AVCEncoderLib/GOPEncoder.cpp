@@ -4080,9 +4080,6 @@ MCTFEncoder::xInitControlDataMotion( UInt uiBaseLevel,
   UInt            uiFrameIdInGOP    = uiFrame << uiBaseLevel;
   ControlData&    rcControlData     = m_pacControlData[uiFrameIdInGOP];
   SliceHeader*    pcSliceHeader     = rcControlData.getSliceHeader  ();
-  MbDataCtrl*     pcMbDataCtrl      = rcControlData.getMbDataCtrl   ();
-  MbDataCtrl*     pcMbDataCtrlL1    = xGetMbDataCtrlL1( *pcSliceHeader, uiFrameIdInGOP );
-
   Double          dScalFactor       = rcControlData.getScalingFactor();
   Double          dQpPredData       = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
   Double          dLambda           = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
@@ -4095,9 +4092,6 @@ MCTFEncoder::xInitControlDataMotion( UInt uiBaseLevel,
   {
     //TMM_ESS
     RNOK( xInitBaseLayerData( rcControlData,uiBaseLevel, uiFrame,true ) ); 
-
-    // JVT-S054 (REMOVE)
-    //RNOK( pcMbDataCtrl->initSlice( *pcSliceHeader, ENCODE_PROCESS, false, pcMbDataCtrlL1 ) );
   }
 
   return Err::m_nOK;
@@ -5809,17 +5803,13 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pMotionInfoFile = pMotionInfoFile;
 		m_pFGSFile = pFGSFile;
 		
-		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	
-    {
-			m_apcFrameTemp[uiIndex]->setZero();
-			m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);
-		}
-		for( uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ ) 
-    {
-			m_auiNumFramesCoded[uiStage] = auiNumFramesCoded[uiStage];
-			m_auiCurrGOPBitsBase[uiStage] = auiCurrGOPBitsBase[uiStage];
-			m_auiCurrGOPBitsFGS[uiStage] = auiCurrGOPBitsFGS[uiStage];
-			m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
+		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	{ 
+		m_apcFrameTemp[uiIndex]->setZero(); m_apcFrameTemp[uiIndex]-
+		>copyAll(apcFrameTemp_save[uiIndex]); } for( uiStage = 0; uiStage <= 
+		MAX_DSTAGES; uiStage++ ) { m_auiNumFramesCoded[uiStage] = 
+		auiNumFramesCoded[uiStage]; m_auiCurrGOPBitsBase[uiStage] = 
+		auiCurrGOPBitsBase[uiStage]; m_auiCurrGOPBitsFGS[uiStage] = 
+		auiCurrGOPBitsFGS[uiStage]; m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
 			m_adSeqBitsFGS[uiStage] = adSeqBitsFGS[uiStage];
 			m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
 			m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
