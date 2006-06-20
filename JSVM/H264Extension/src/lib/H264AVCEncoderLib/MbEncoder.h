@@ -283,6 +283,10 @@ public:
                              MbDataAccess&    rcMbDataAccess);
   //JVT-R057 LA-RDO}
 
+  //S051{
+  Void		setUseBDir	( Bool bUse){ m_bUseBDir = bUse;}
+  //S051}
+  
 protected:
 
   ErrVal  xScale4x4Block        ( TCoeff*            piCoeff,
@@ -628,6 +632,11 @@ protected:
   Double m_dWr0;
   Double m_dWr1;
   //JVT-R057 LA-RDO}
+
+  //S051{
+  Bool		m_bUseBDir;
+  //S051}
+
 };
 
 

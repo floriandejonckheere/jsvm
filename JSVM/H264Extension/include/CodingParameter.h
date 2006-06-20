@@ -241,6 +241,13 @@ public:
     , m_puiLastMbInSlice (0)
     , m_puiSliceId (0)
     // JVT-S054 (ADD) <-
+
+	//S051{
+	, m_cOutSIPFileName					("none")
+	, m_cInSIPFileName					("none")
+	, m_uiAnaSIP						(0)
+	, m_bEncSIP							(false)
+	//S051}
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiPosVect, 0x00, 16*sizeof(UInt) );
@@ -444,6 +451,17 @@ public:
   Void                            setIndependentParsing( UInt ui ) { m_uiIndependentParsing = ui; }
 #endif
 
+  //S051{
+  const std::string&              getInSIPFileName             () const { return m_cInSIPFileName; }
+  const std::string&              getOutSIPFileName            () const { return m_cOutSIPFileName; }
+  Void							  setInSIPFileName			   (Char* p) { m_cInSIPFileName=p; }
+  Void							  setOutSIPFileName			   (Char* p) { m_cOutSIPFileName=p; }
+  Void							  setAnaSIP					   (UInt	uiAnaSIP){ m_uiAnaSIP = uiAnaSIP;}
+  Void						      setEncSIP					   (Bool	bEncSIP){ m_bEncSIP = bEncSIP;}
+  UInt							  getAnaSIP					   (){ return m_uiAnaSIP; }
+  Bool							  getEncSIP					   (){ return m_bEncSIP; }
+  //S051}
+
 public:
   UInt                      m_uiLayerId;
   UInt                      m_uiFrameWidth;
@@ -543,6 +561,13 @@ public:
 #if INDEPENDENT_PARSING
   UInt         m_uiIndependentParsing;
 #endif
+
+  //S051{
+  std::string    m_cOutSIPFileName;
+  std::string	 m_cInSIPFileName;
+  UInt			 m_uiAnaSIP;
+  Bool			 m_bEncSIP;
+  //S051}
 };
 
 

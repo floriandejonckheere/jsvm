@@ -101,7 +101,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include <algorithm>
 #include <list>
 
-
 #if defined( WIN32 )
 # pragma warning( disable: 4251 )
 #endif
@@ -484,7 +483,12 @@ protected:
   ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
 
   UInt				getSuffixUnitEnable()	{return m_uiSuffixUnitEnable;} //JVT-S036 lsj
-   UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+
+  //S051{
+  Bool	xSIPCheck	(UInt POC);
+  int	xGetMbDataCtrlL1Pos( const SliceHeader& rcSH, UInt uiCurrBasePos );
+  //S051}
 
 protected:
   //----- instances -----
@@ -667,12 +671,24 @@ protected:
   UInt							m_uiSuffixUnitEnable; //JVT-S036 lsj
   UInt							m_uiMMCOBaseEnable;  //JVT-S036 lsj
 
+  //S051{
+  UInt							m_uiTotalFrame;
+  UInt*							m_auiFrameBits;
+  UIntList						m_cPOCList;
+  UInt							m_uiAnaSIP;
+  Bool							m_bEncSIP;
+  std::string					m_cInSIPFileName;
+  std::string					m_cOutSIPFileName;
+  //S051}
+
   // JVT-S054 (ADD) ->
   Bool         m_bIroiSliceDivisionFlag;
   UInt         m_uiNumSliceMinus1;
   UInt*        m_puiFirstMbInSlice;
   UInt*        m_puiLastMbInSlice;
   // JVT-S054 (ADD) <-
+
+
 };
 
 #if defined( WIN32 )

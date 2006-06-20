@@ -290,6 +290,8 @@ JVT-S036 lsj */
   UInt					m_uiNonRequiredSeiFlag;
   UInt					m_uiPrevPicLayer;
   UInt					m_uiCurrPicLayer;
+
+  Bool					m_bAVCCompatible;//BUG FIX Kai Zhang
 };
 
 

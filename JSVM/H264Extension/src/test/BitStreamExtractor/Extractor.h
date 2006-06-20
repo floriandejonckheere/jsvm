@@ -132,6 +132,18 @@ public:
                       UInt                    uiLevel,
                       UInt                    uiFGSLayer,
                       Bool                    bNewPicture );
+  //S051{
+  ErrVal  addPacketNoUse (	UInt                    uiNumBytes,
+							UInt                    uiLayer,
+							UInt                    uiLevel,
+							UInt                    uiFGSLayer,
+							Bool                    bNewPicture );
+  UInt64  getNALUBytesNoUse (	UInt uiLayer,
+							UInt uiLevel,
+							UInt uiFGS   )    const { return m_aaaui64NumNALUBytesNoUse[uiLayer][uiLevel][uiFGS]; }
+
+  //S051}
+  
   ErrVal  analyse   ();
   Void    output    ( ); 
 
@@ -182,6 +194,10 @@ private:
   UInt    m_auiFrameHeight      [MAX_LAYERS];
   UInt    m_auiDecStages        [MAX_LAYERS];
 
+  //S051{
+  UInt64  m_aaaui64NumNALUBytesNoUse [MAX_LAYERS][MAX_DSTAGES+1][MAX_QUALITY_LEVELS];
+  //S051}
+  
   UInt64  m_aaaui64NumNALUBytes [MAX_LAYERS][MAX_DSTAGES+1][MAX_QUALITY_LEVELS];
   UInt64  m_aaui64BaseLayerBytes[MAX_LAYERS][MAX_DSTAGES+1];
   UInt64  m_aaui64FGSLayerBytes [MAX_LAYERS][MAX_DSTAGES+1];
@@ -230,6 +246,10 @@ public:
   //if there is R/D information (with or without Dead substreams)
   ErrVal        go_QL                  ();
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
+  //S051{
+  ErrVal		go_SIP();
+  //S051}
 
 protected:
   ErrVal        xAnalyse            ();
@@ -299,6 +319,11 @@ protected:
   Bool IsFrameToCut(UInt uiFrame);
   Void AllocateAndInitializeDatas();
 
+  //S051{
+  ErrVal        xSetParameters_SIP      ();
+  ErrVal        xExtractPoints_SIP      ();	
+  //S051}
+
 protected:
   ReadBitstreamIf*              m_pcReadBitstream;
   WriteBitstreamIf*             m_pcWriteBitstream;
@@ -357,6 +382,12 @@ protected:
   UInt m_auiPID[64];
   UInt m_uiNbPID;
   Bool m_bQualityLevelInSEI; //indicates if QualityLayers are in SEI messages
+
+  //S051{
+  Bool							m_bUseSIP;
+  Double						m_aadTargetSNRLayerNoUse[MAX_LAYERS][MAX_DSTAGES+1];
+  UInt							m_uiSuffixUnitEnable;
+  //S051}
 };
 class ExtractStop{};
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

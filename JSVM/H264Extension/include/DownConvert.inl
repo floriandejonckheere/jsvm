@@ -266,71 +266,108 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
 
 	//end
 
-  int i, j, k, *px, *py, div_scale, div_shift, ks;
-  int up_res = 16;
+//JVT-S067
+  int i, j, k, *px, *py;
+//  int up_res = 16; // variable not used. mwi060619
   int x16, y16, x, y, m;
   bool ratio1_flag = ( input_width == crop_w );
-  bool ratio2_flag = ( (input_width*2) == crop_w );
+//  bool ratio2_flag = ( (input_width*2) == crop_w ); // variable not used. mwi060619
 
   // initialization
   px = new int[output_width];
   py = new int[output_height];
 
+  int F, G, J, M, S;
+  unsigned short C, C1, D1;
+  int D, E, q, w;
 
-  div_shift = 0;
-  while( (1<<(div_shift+1)) < crop_w ) div_shift++;
-  div_shift += 30;
-  k = ( 1<< (div_shift-16) ) / crop_w;
-  div_scale = (k<<16) + ((( (1<< (div_shift-16)) - k*crop_w ) << 16 ) + crop_w/2) / crop_w;
-  for( i = 0; i < output_width; i++ )
+  for(i=0; i<crop_x0; i++)
+	  px[i] = -128;
+  for(i=crop_x0+crop_w; i<output_width; i++)
+	  px[i] = -128;
+  if(ratio1_flag)
   {
-    if( i<crop_x0 || i>=(crop_x0+crop_w) )
-      px[i]=-128;
-    else
+	  for(i = 0; i < crop_w; i++)
+	  {
+        px[i+crop_x0] = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
+	  }
+  }
+  else
+  {
+    F = 4; G = 2; J = 1; M = 13; S = 12;
+    if(output_chroma_phase_shift_x)
     {
-      if(ratio1_flag)
-        px[i] = (i-crop_x0)*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
-      else if(ratio2_flag){
-        px[i] = (i-crop_x0)*up_res/2 + up_res/8*(2+output_chroma_phase_shift_x) - up_res/4*(2+input_chroma_phase_shift_x);
-      }
-      else{
-        k = (i-crop_x0)*input_width*up_res + up_res/4*(2+output_chroma_phase_shift_x)*input_width - up_res/4*(2+input_chroma_phase_shift_x)*crop_w;
-        ks = 1 - 2*(k<0);
-        k *= ks;
-        k = (k>>15)*(div_scale>>15)+(((k&0x7fff)*(div_scale>>15)+(k>>15)*(div_scale&0x7fff)+(((k&0x7fff)*(div_scale&0x7fff))>>15))>>15);
-        px[i] = (k+(1<<(div_shift-31)))>>(div_shift-30);
-        px[i] *= ks;
-      }
+	    J ++;
+	    M --;
+    };
+    S = M + G +  J  - F;
+
+    C = ((1<<(M+G))*input_width + (crop_w>>1))/crop_w;
+    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
+
+    C1 = C<<J;
+    E = 0;
+
+    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_x;
+    w = q>>S;
+    D1 = q - (w<<S);
+    E += w;
+    px[0+crop_x0] = E;
+  
+    for(i = 1; i < crop_w; i++)
+    {
+	  q = C1 + D1;
+	  w = q>>S;
+	  D1 = q - (w<<S);
+	  E += w;	  
+	  px[i+crop_x0] = E;
     }
   }
-  div_shift = 0;
-  while( (1<<(div_shift+1)) < crop_h ) div_shift++;
-  div_shift += 30;
-  k = ( 1<< (div_shift-16) ) / crop_h;
-  div_scale = (k<<16) + ((( (1<< (div_shift-16)) - k*crop_h ) << 16 ) + crop_h/2) / crop_h;
+
   ratio1_flag = ( input_height == crop_h );
-  ratio2_flag = ( (input_height*2) == crop_h );
-  for( j = 0; j < output_height; j++ )
+  for(j=0; j<crop_y0; j++)
+	  py[j] = -128;
+  for(j=crop_y0+crop_h; j<output_height; j++)
+	  py[j] = -128;
+  if(ratio1_flag)
   {
-    if( j<crop_y0 || j>=(crop_y0+crop_h) )
-      py[j]=-128;
-    else
+	  for(j = 0; j < crop_h; j++)
+	  {
+        py[j+crop_y0] = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
+	  }
+  }
+  else
+  {
+    F = 4; G = 2; J = 1; M = 13; S = 12;
+    if(output_chroma_phase_shift_y)
     {
-      if(ratio1_flag)
-        py[j] = (j-crop_y0)*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
-      else if(ratio2_flag){
-        py[j] = (j-crop_y0)*up_res/2 + up_res/8*(2+output_chroma_phase_shift_y) - up_res/4*(2+input_chroma_phase_shift_y);
-      }
-      else{
-        k = (j-crop_y0)*input_height*up_res + up_res/4*(2+output_chroma_phase_shift_y)*input_height - up_res/4*(2+input_chroma_phase_shift_y)*crop_h;
-        ks = 1 - 2*(k<0);
-        k *= ks;
-        k = (k>>15)*(div_scale>>15)+(((k&0x7fff)*(div_scale>>15)+(k>>15)*(div_scale&0x7fff)+(((k&0x7fff)*(div_scale&0x7fff))>>15))>>15);
-        py[j] = (k+(1<<(div_shift-31)))>>(div_shift-30);
-        py[j] *= ks;
-      }
+	    J ++;
+	    M --;
+    };
+    S = M + G +  J  - F;
+
+    C = ((1<<(M+G))*input_height + (crop_h>>1))/crop_h;
+    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
+
+    C1 = C<<J;
+    E = 0;
+
+    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_y;
+    w = q>>S;
+    D1 = q - (w<<S);
+    E += w;
+    py[0+crop_y0] = E;
+  
+    for(j = 1; j < crop_h; j++)
+    {
+      q = C1 + D1;
+	  w = q>>S;
+	  D1 = q - (w<<S);
+	  E += w;	  
+	  py[j+crop_y0] = E;
     }
   }
+
   //========== horizontal upsampling ===========
   for( j = 0; j < input_height; j++ ) 
   {
@@ -474,7 +511,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   int x, y, w, h, j, i;
   short *buf1, *ptr1, *buf2, *ptr2, *tmp_buf1, *tmp_buf2;
   unsigned char *tmp_buf3;
-  int rounding_para;
+//  int rounding_para;
 
   tmp_buf1=new short[iWidth*iHeight];
   tmp_buf2=new short[width*iHeight];
@@ -496,14 +533,13 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideY;
   }
-  rounding_para = 2*(iWidth-w);
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 0, rounding_para, tmp_buf3); 
+  
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 0, 0, 0, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideY;
   }
-  rounding_para = 2*(iHeight-h);
-  xFilterResidualVer(tmp_buf2, buf2, iStrideY,  x, y, w, h, width, iHeight, 0, rounding_para, tmp_buf3); 
+  xFilterResidualVer(tmp_buf2, buf2, iStrideY,  x, y, w, h, width, iHeight, 0, 0, 0, tmp_buf3);
 
   // chroma
   width>>=1; height>>=1; x>>=1; y>>=1; w>>=1; h>>=1; iWidth>>=1; iHeight>>=1;
@@ -516,14 +552,12 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideU;
   }
-  rounding_para = (2+pcParameters->m_iChromaPhaseX)*iWidth - (2+pcParameters->m_iBaseChromaPhaseX)*w;
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w, iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3); 
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w, iWidth, iHeight, pcMbDataCtrl, 1, pcParameters->m_iChromaPhaseX, pcParameters->m_iBaseChromaPhaseX, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
-  rounding_para = (2+pcParameters->m_iChromaPhaseY)*iHeight - (2+pcParameters->m_iBaseChromaPhaseY)*h;
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU,  x, y, w, h, width, iHeight, 1, rounding_para, tmp_buf3); 
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU,  x, y, w, h, width, iHeight, 1, pcParameters->m_iChromaPhaseY, pcParameters->m_iBaseChromaPhaseY, tmp_buf3);
 
   // V
   buf1=buf2=psBufferV;
@@ -534,14 +568,12 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideV;
   }
-  rounding_para = (2+pcParameters->m_iChromaPhaseX)*iWidth - (2+pcParameters->m_iBaseChromaPhaseX)*w;
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 1, rounding_para, tmp_buf3); 
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 1, pcParameters->m_iChromaPhaseX, pcParameters->m_iBaseChromaPhaseX, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
-  rounding_para = (2+pcParameters->m_iChromaPhaseY)*iHeight - (2+pcParameters->m_iBaseChromaPhaseY)*h;
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU, /*height,*/ x, y, w, h, width, iHeight,  1, rounding_para, tmp_buf3); 
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, /*height,*/ x, y, w, h, width, iHeight,  1, pcParameters->m_iChromaPhaseY, pcParameters->m_iBaseChromaPhaseY, tmp_buf3);
   
   delete [] tmp_buf1;
   delete [] tmp_buf2;
@@ -587,6 +619,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   xCopyFromImageBuffer( psBufferV, iGlobWidth, iGlobHeight, iStrideV, min, max ); 
 } 
 
+//JVT-S067
 __inline
 void
 DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out, 
@@ -594,47 +627,79 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
                                   int x, int w, 
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
-                                  bool chroma, int rounding_para,
+                                  bool chroma, int output_chroma_phase_shift_x, int input_chroma_phase_shift_x,
                                   unsigned char *buf_blocksize )
 {
-  int j, i, k, i1, ii;
+  int j, i, k, i1;
   short *ptr1, *ptr2;
   unsigned char *ptr3;
   int p, p2, p3, block = 8;
   int iMbPerRow = wsize_in >> 4;
-  int new_div[2];  // for the simplified division operation
-   bool ratio1_2_flag = ( wsize_in == w || (wsize_in*2) == w );
 
   int *x16 = new int[w]; 
   int* k16 = new int[w]; // for relative phase shift in unit of 1/16 sample
   int* p16 = new int[w];
 
-  // initialize the simplified division operator
-  new_div[0] = 0;
-  while( (1<<( new_div[0] + 1 )) < w ) new_div[0] += 1;
-  new_div[0] += 30;
-  k = ( 1<< (new_div[0]-16) ) / w;
-  new_div[1] = (k<<16) + ((( (1<< (new_div[0]-16)) - k*w ) << 16 ) + w/2) / w;
-
-  for( i = 0; i < w; i++ ) 
+  if(w == wsize_in)
   {
-    ii = i * wsize_in *4 + rounding_para;
-    if( ii < 0 ) ii = 0;
-    if(ratio1_2_flag){
-      i1 = ii*4 / w;
-      k = i1 & 0xf;
-      i1 >>= 4;
-    }
-    else{
-      ii <<= 2;
-      k = (ii>>15)*(new_div[1]>>15)+(((ii&0x7fff)*(new_div[1]>>15)+(ii>>15)*(new_div[1]&0x7fff)+(((ii&0x7fff)*(new_div[1]&0x7fff))>>15) )>>15);
-      k = (k+(1<<(new_div[0]-31)))>>(new_div[0]-30);
-      i1 = k >> 4;
-      k -= i1 * 16;
-    }
+	  for(i = 0; i < w; i++)
+	  {
+		  k = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
+		  if(k<0)
+		    k = 0;
+		  i1 = k >> 4;
+	      k -= i1 * 16;
+	      p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+	      p = p < 0 ? 0 : p;
+		  x16[i] = i1; k16[i] = k; p16[i] = p;
+	  }
+  }
+  else
+  {
+    int F = 4, G = 2, J = 1, M = 13, S = 12;
+    if(output_chroma_phase_shift_x)
+    {
+  	  J ++;
+  	  M --;
+    };
+    S = M + G +  J  - F;
+    unsigned short C, C1, D1;
+    int D, E, q, w1;
+
+    C = ((1<<(M+G))*wsize_in + (w>>1))/w;
+    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
+
+    C1 = C<<J;
+    E = 0;
+
+    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_x;
+    w1 = q>>S;
+    D1 = q - (w1<<S);
+    E += w1;
+    k = E;
+    if(k<0)
+	    k = 0;
+    i1 = k >> 4;
+    k -= i1 * 16;
     p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
     p = p < 0 ? 0 : p;
-    x16[i] = i1; k16[i] = k; p16[i] = p;
+    x16[0] = i1; k16[0] = k; p16[0] = p;
+  
+    for(i = 1; i < w; i++)
+    {
+	  q = C1 + D1;
+	  w1 = q>>S;
+	  D1 = q - (w1<<S);
+	  E += w1;
+	  k = E;
+	  if(k<0)
+		k = 0;
+	  i1 = k >> 4;
+	  k -= i1 * 16;
+	  p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+	  p = p < 0 ? 0 : p;
+	  x16[i] = i1; k16[i] = k; p16[i] = p;
+    }
   }
 
   for( j = 0; j < hsize_in; j++ )
@@ -669,52 +734,85 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
 
 }
 
+//JVT-S067
 __inline
 void
 DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out, 
                                   int width, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
-                                  bool chroma, int rounding_para,
+                                  bool chroma, int output_chroma_phase_shift_y, int input_chroma_phase_shift_y,
                                   unsigned char *buf_blocksize )
 {
-  int j, i, k, j1, jj;
+  int j, i, k, j1;
   short *ptr1, *ptr2;
   unsigned char *ptr3;
   int p, p2, p3, block = 8;
-  int new_div[2];  // for the simplified division operation
-  bool ratio1_2_flag = ( hsize_in == h || (hsize_in*2) == h );
 
   int* y16 = new int[h]; 
   int* k16 = new int[h]; // for relative phase shift in unit of 1/16 sample
   int* p16 = new int[h];
 
-  // initialize the simplified division operator
-  new_div[0] = 0;
-  while( (1<<( new_div[0] + 1 )) < h ) new_div[0] += 1;
-  new_div[0] += 30;
-  k = ( 1<< (new_div[0]-16) ) / h;
-  new_div[1] = (k<<16) + ((( (1<< (new_div[0]-16)) - k*h ) << 16 ) + h/2) / h;
-
-  for( j = 0; j < h; j++ )
+  if(h == hsize_in)
   {
-    jj = j * hsize_in * 4 + rounding_para;
-    if( jj < 0 ) jj = 0;
-    if (ratio1_2_flag){
-      j1 = jj*4 / h;
-      k = j1 & 0xf;
-      j1 >>= 4;
-    }
-    else{
-      jj <<= 2;
-      k = (jj>>15)*(new_div[1]>>15)+(((jj&0x7fff)*(new_div[1]>>15)+(jj>>15)*(new_div[1]&0x7fff)+(((jj&0x7fff)*(new_div[1]&0x7fff))>>15))>>15);
-      k = (k+(1<<(new_div[0]-31)))>>(new_div[0]-30);
-      j1 = k >> 4;
-      k -= j1 * 16;
-    }
+	  for(j = 0; j < h; j++)
+	  {
+		  k = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
+		  if(k<0)
+		    k = 0;
+	      j1 = k >> 4;
+	      k -= j1 * 16;
+	      p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+    	  p = p < 0 ? 0 : p;
+	      y16[j] = j1; k16[j] = k; p16[j] = p;
+	  }
+  }
+  else
+  {
+    int F = 4, G = 2, J = 1, M = 13, S = 12;
+    if(output_chroma_phase_shift_y)
+    {
+	  J ++;
+	  M --;
+    };
+    S = M + G + J - F;
+    unsigned short C, C1, D1;
+    int D, E, q, w1;
+
+    C = ((1<<(M+G))*hsize_in + (h>>1))/h;
+    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
+
+    C1 = C<<J;
+    E = 0;
+
+    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_y;
+    w1 = q>>S;
+    D1 = q - (w1<<S);
+    E += w1;
+    k = E;
+    if(k<0)
+	  k = 0;
+    j1 = k >> 4;
+    k -= j1 * 16;
     p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
     p = p < 0 ? 0 : p;
-    y16[j] = j1; k16[j] = k; p16[j] = p;
+    y16[0] = j1; k16[0] = k; p16[0] = p;
+  
+    for(j = 1; j < h; j++)
+    {
+	  q = C1 + D1;
+	  w1 = q>>S;
+	  D1 = q - (w1<<S);
+	  E += w1;
+	  k = E;
+	  if(k<0)
+		k = 0;
+	  j1 = k >> 4;
+	  k -= j1 * 16;
+	  p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+	  p = p < 0 ? 0 : p;
+	  y16[j] = j1; k16[j] = k; p16[j] = p;
+    }
   }
 
   for( i = 0; i < w; i++ )

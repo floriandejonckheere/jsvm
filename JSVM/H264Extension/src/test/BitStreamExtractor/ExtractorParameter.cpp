@@ -110,6 +110,12 @@ ExtractorParameter::ExtractorParameter()
 , m_bTraceExtract ( false )
 , m_cTraceFile    ()
 , m_cExtractTrace ()
+
+//S051{
+, m_bUseSIP(false)
+, m_uiSuffixUnitEnable(0)
+//S051}
+
 {
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -190,6 +196,10 @@ ExtractorParameter::init( Int     argc,
   Bool  bFGSSpecified             = false;
   Bool	bBitrateSpecified					= false;
   Point cPoint;
+
+  //S051{
+  Bool	bDSSpecified=false;
+  //S051}
 
   m_bExtractUsingQL = false;
   
@@ -324,6 +334,12 @@ ExtractorParameter::init( Int     argc,
 	  if(equal( "-ds",argv[iArg] ))
 	  {
   	   EXIT( iArg + 1 == argc,           "Option \"-ds\" without argument specified" );
+
+	   //S051{
+	   bDSSpecified=true;
+       EXIT( m_bUseSIP,"Option \"-ds\" used in connection with option \"-sip\"");			
+	   //S051}
+
        UInt uiLayer = atoi(argv[++iArg]);
 	     m_bExtractDeadSubstream[uiLayer] = true;
 	     continue;
@@ -334,6 +350,22 @@ ExtractorParameter::init( Int     argc,
         m_bExtractUsingQL = true;
         continue;
     }
+	
+	//S051{
+	if( equal( "-sip", argv[iArg] ) )
+	{
+		EXIT( !bExtractionPointSpecified, "Option \"-sip\" must follow option \"-e\"" );
+		EXIT( bDSSpecified,"Option \"-sip\" used in connection with option \"-ds\"");
+		m_bUseSIP = true;
+		continue;
+	}
+
+	if(equal("-suf",argv[iArg]))
+	{
+		m_uiSuffixUnitEnable=1;
+		continue;
+	}
+	//S051}
 
     EXIT( true, "Unknown option specified" );
   }
@@ -345,20 +377,23 @@ ExtractorParameter::init( Int     argc,
 ErrVal
 ExtractorParameter::xPrintUsage( Char **argv )
 {
-	printf("\nUsage: %s [-pt trace] InputStream [OutputStream [-e] | [-sl] | [-l] [-t] [-f] | [-b] | [-et]]", argv[0] ); //liuhui 0511
+  printf("\nUsage: %s [-pt trace] InputStream [OutputStream [-e] | [-sl] | [-l] [-t] [-f] | [-b] | [-et]]", argv[0] ); //liuhui 0511
   printf("\noptions:\n");
   printf("\t-pt trace  -> generate a packet trace file \"trace\" from given stream\n"); // HS: packet trace
-	printf("\t-sl SL     -> extract the layer with layer id = SL and the dependent lower layers\n");
+  printf("\t-sl SL     -> extract the layer with layer id = SL and the dependent lower layers\n");
   printf("\t-l L       -> extract all layers with dependency_id  <= L\n");
   printf("\t-t T       -> extract all layers with temporal_level <= T\n");
   printf("\t-f F       -> extract all layers with quality_level  <= F\n");
   printf("\t-b B       -> extract a layer (possibly truncated) with the target bitrate = B\n\n");
-	printf("\t-e AxB@C:D -> extract a layer (possibly truncated) with\n" );
+  printf("\t-e AxB@C:D -> extract a layer (possibly truncated) with\n" );
   printf("\t               - A frame width [luma samples]\n");
   printf("\t               - B frame height [luma samples]\n");
   printf("\t               - C frame rate [Hz]\n");
   printf("\t               - D bit rate [kbit/s]\n");
   printf("\t-et        -> extract packets as specified by given (modified) packet trace file\n"); // HS: packet trace
+  //S051{
+  printf("\t-sip       -> extract using SIP algorithm \n");
+  //S051}
   printf("\nOptions \"-l\", \"-t\" and \"-f\" can be used in combination with each other.\n"
 	 	     "Other options can only be used separately.\n" );
 	printf("\n");

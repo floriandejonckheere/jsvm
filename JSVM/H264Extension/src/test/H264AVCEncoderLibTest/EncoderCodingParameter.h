@@ -405,6 +405,39 @@ ErrVal EncoderCodingParameter::init( Int     argc,
      continue;
     }
     //~JVT-P031
+	
+	//S051{
+	if( equals( pcCom, "-encsip", 7 ) )
+    {
+		ROTS( NULL == argv[n  ] );
+		ROTS( NULL == argv[n+1] );
+		
+		UInt    uiLayer = atoi( argv[n  ] );
+		CodingParameter::getLayerParameters( uiLayer ).setEncSIP(true);
+		CodingParameter::getLayerParameters( uiLayer ).setInSIPFileName(argv[n+1]);
+		n += 1;
+		continue;
+    }
+	if( equals( pcCom, "-anasip", 7 ) )
+    {
+		ROTS( NULL == argv[n  ] );
+		ROTS( NULL == argv[n+1] );
+		ROTS( NULL == argv[n+2] );
+		
+		UInt    uiLayer = atoi( argv[n  ] );
+		UInt	uiMode = atoi( argv[n+1] );
+		
+		if(uiMode!=0)
+			CodingParameter::getLayerParameters( uiLayer ).setAnaSIP(2);
+		else
+			CodingParameter::getLayerParameters( uiLayer ).setAnaSIP(1);
+		
+		CodingParameter::getLayerParameters( uiLayer ).setOutSIPFileName(argv[n+2]);
+		n += 2;
+		continue;
+    }
+	//S051}
+	
     if( equals( pcCom, "-fgsmot", 7 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -544,6 +577,10 @@ Void EncoderCodingParameter::printHelp()
   printf("  -lcupd  Update method [0 - original, 1 - low-complexity (default)]\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   printf("  -anaags  [1 - mode decision for Adaptive GOP Structure]\n");
+  //S051{
+  printf("  -anasip (Layer) (SIP Analysis Mode)[0: persists all inter-predictions, 1: forbids all inter-prediction.] (File for storing bits information)\n");
+  printf("  -encsip (Layer) (File with stored SIP information)\n");
+  //S051}
   printf("  -h      Print Option List \n");
   printf("\n");
 }
@@ -787,6 +824,11 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 {
   std::string acTags[4];
   std::string cInputFilename, cOutputFilename, cMotionFilename, cESSFilename;
+
+  //S051{
+  std::string cEncSIPFilename;
+  //S051}
+  
   UInt        uiParLnCount = 0;
   
   FILE *f = fopen( rcFilename.c_str(), "r");
@@ -855,6 +897,11 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 #if INDEPENDENT_PARSING
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("IndependentParsing", &(rcLayer.m_uiIndependentParsing), 0 );
 #endif
+  
+  //S051{
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, ""); 
+  //S051}
+
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVectorMode", &(rcLayer.m_uiFGSCodingMode), 0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSGroupingSize", &(rcLayer.m_uiGroupingSize), 1 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector0", &(rcLayer.m_uiPosVect[0]), 0 );
@@ -891,6 +938,15 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
       }
     }
   }
+
+  //S051{
+        if(cEncSIPFilename.length())
+        {
+      	  rcLayer.setEncSIP(true);
+      	  rcLayer.setInSIPFileName( (char*) cEncSIPFilename.c_str());
+        }  
+  //S051}
+
   rcLayer.setInputFilename     ( (Char*)cInputFilename.c_str() );
   rcLayer.setOutputFilename    ( (Char*)cOutputFilename.c_str() );
   rcLayer.setMotionInfoFilename( (Char*)cMotionFilename.c_str() );

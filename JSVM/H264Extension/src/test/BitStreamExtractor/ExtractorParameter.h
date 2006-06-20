@@ -151,6 +151,11 @@ public:
   UInt	getExtractNonRequiredPics()	{ return	m_uiExtractNonRequiredPics;}
   Bool getExtractUsingQL() { return m_bExtractUsingQL;}
 
+  //S051{
+  Bool getUseSIP(){return m_bUseSIP;}
+  UInt getSuffixUnitEnable(){return m_uiSuffixUnitEnable;}
+  //S051}
+
 protected:
   ErrVal  xPrintUsage         ( Char**  argv );
   ErrVal  xParseFormatString  ( Char*   pFormatString,
@@ -185,6 +190,11 @@ protected:
   UInt			 m_uiExtractNonRequiredPics;
 
   Bool           m_bExtractUsingQL;
+
+  //S051{
+  Bool			 m_bUseSIP;
+   UInt			 m_uiSuffixUnitEnable;
+  //S051}
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

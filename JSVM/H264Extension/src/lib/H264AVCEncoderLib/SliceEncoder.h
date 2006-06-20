@@ -175,6 +175,10 @@ public:
                              UInt uiChromaWeightDenom);
 //TMM_WP
 
+  //S051{
+  Void		setUseBDir			(Bool b){m_pcMbEncoder->setUseBDir(b);}
+  //S051}
+
 protected:
   MbEncoder* m_pcMbEncoder;
   MbCoder* m_pcMbCoder;

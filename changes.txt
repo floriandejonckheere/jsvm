@@ -1,3 +1,19 @@
+JSVM_5_8 -> JSVM_5_9
+====================
+
+Changes:
+- Implementing the SIP dynamic programming algorithm (JVT-S051) as an new project: SIPAnalyser.
+- Added "EncSIPFile" in encoder.cfg. The encoder can encode consulting to the SIP decision results file.
+- The encoder can output bits information used by SIPAnalyser.
+- The extractor can discard packets selectively by setting the additional option "-sip".
+- Implementing JVT-S067
+
+Note: The changes above can be found by searching "JVT-S051".
+
+-Bug fixes. (Can be found by searching "BUG FIX Kai Zhang")
+
+
+
 JSVM_5_7 -> JSVM_5_8
 ====================
 

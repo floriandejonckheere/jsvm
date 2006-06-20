@@ -63,6 +63,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MCTFPreProcessor", "..\..\s
 		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SIPAnalyser", "..\..\src\test\SIPAnalyser\SIPAnalyser.vcproj", "{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SourceCodeControl) = preSolution
 		SccNumberOfProjects = 1
@@ -125,6 +130,10 @@ Global
 		{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}.Debug.Build.0 = Debug|Win32
 		{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}.Release.ActiveCfg = Release|Win32
 		{B4E46FE9-7ABF-468C-9FCD-49F4C9081505}.Release.Build.0 = Release|Win32
+		{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}.Debug.ActiveCfg = Debug|Win32
+		{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}.Debug.Build.0 = Debug|Win32
+		{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}.Release.ActiveCfg = Release|Win32
+		{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

@@ -190,7 +190,9 @@ sub Extract($$;$)
 
   my $cmd = "$bin$EXTRACTOR ".$test->{bitstreamname}." ".$test->{extractedname}." -e ".$test->{extractoption}; 
  ($cmd .= " -ql") if($test->{useql});
-	
+ ($cmd .= " -sip") if($test->{usesip}==1);
+ ($cmd .= " -sip -suf") if($test->{usesip}>1); 
+ 
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n";
 }

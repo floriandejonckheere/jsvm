@@ -278,6 +278,10 @@ ErrVal LayerParameters::check()
   }
   // JVT-S054 (ADD) <-
 
+  //S051{
+  ROTREPORT( getAnaSIP	()>0 && getEncSIP(),			"Unsupported SIP mode\n"); 
+  //S051}
+
   return Err::m_nOK;
 }
 

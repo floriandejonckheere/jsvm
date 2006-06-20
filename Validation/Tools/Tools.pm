@@ -171,6 +171,8 @@ sub InitSimu($;$)
 
     (defined $test->{framerate}) or ($test->{framerate} = $simu->{framerate});
     (defined $test->{useql})     or ($test->{useql}=0);
+    (defined $test->{usesip})     or ($test->{usesip}=0);
+    
     $test->{basestream}    = $simu->{name}."_".$test->{width}."x".$test->{height}."_".$test->{framerate};
     ($test->{useql}) and  $test->{basestream}.="_ql";
 

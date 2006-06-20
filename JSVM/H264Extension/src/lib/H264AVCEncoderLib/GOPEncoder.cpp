@@ -100,7 +100,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include <string.h>
 #include <stdlib.h>
 
-
 #include "H264AVCCommonLib/CFMO.h"
 
 
@@ -238,6 +237,14 @@ MCTFEncoder::MCTFEncoder()
 , m_puiFirstMbInSlice      ( 0 )
 , m_puiLastMbInSlice       ( 0 )
 // JVT-S054 (ADD) <-
+//S051{
+, m_uiTotalFrame					( 0 )
+, m_auiFrameBits					( NULL )
+, m_uiAnaSIP						( 0 )
+, m_bEncSIP							( false )
+, m_cInSIPFileName					( "none" )
+, m_cOutSIPFileName					( "none" )
+//S051}
  {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -763,6 +770,22 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   }
   // JVT-S054 (ADD) <-
 
+  //S051{
+  m_uiTotalFrame	= pcCodingParameter->getTotalFrames();
+  m_uiAnaSIP		= pcLayerParameters->getAnaSIP();
+  m_cOutSIPFileName	= pcLayerParameters->getOutSIPFileName();
+  if(m_uiAnaSIP==1)
+	  m_bInterLayerPrediction=true;
+  if(m_uiAnaSIP==2)
+	  m_bInterLayerPrediction=m_bAdaptivePrediction=false;
+
+  if(pcCodingParameter->getNumberOfLayers() > m_uiLayerId+1)
+  {
+	  m_bEncSIP			= pcCodingParameter->getLayerParameters( m_uiLayerId+1).getEncSIP();
+	  m_cInSIPFileName	= pcCodingParameter->getLayerParameters( m_uiLayerId+1).getInSIPFileName();
+  }
+  //S051}
+  
   return Err::m_nOK;
 }
 
@@ -985,6 +1008,27 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   ROFS( ( m_pucWriteBuffer   = new UChar [ m_uiWriteBufferSize ] ) );
   ROT ( m_cDownConvert    .init   ( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4 ) );
   RNOK( m_pcRQFGSEncoder ->initSPS( rcSPS ) );
+
+  //S051{
+  ROFRS( m_auiFrameBits	=	new UInt[m_uiTotalFrame], Err::m_nERR );
+  memset( m_auiFrameBits,0,sizeof(UInt)*m_uiTotalFrame);
+  if(m_bEncSIP)
+  {
+    FILE* file=fopen(m_cInSIPFileName.c_str(),"rt");
+    if(file==NULL)
+    {
+      printf("\nCan't open SIP file %s",m_cInSIPFileName.c_str());
+      return Err::m_nOK;
+    }
+    while(!feof(file))
+	{
+	  UInt tmp;
+	  fscanf(file,"%d",&tmp);
+	  m_cPOCList.push_back(tmp);
+	}
+    fclose(file);	  
+  }
+  //S051}
 
   return Err::m_nOK;
 }
@@ -1217,7 +1261,10 @@ MCTFEncoder::xDeleteData()
   m_pucWriteBuffer    = 0;
   m_uiWriteBufferSize = 0;
 
-
+  //S051{
+  delete[]	m_auiFrameBits;
+  //S051}
+  
   return Err::m_nOK;
 }
 
@@ -2308,6 +2355,11 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
       rcControlData.getSliceHeader()->getAdaptivePredictionFlag (),
       iQp, uiPacketBits );
 
+	  //S051{
+	  if(m_uiAnaSIP>0)
+		  m_auiFrameBits[rcControlData.getSliceHeader()->getPoc()]+=uiPacketBits;
+	  //S051}
+
       if(!bFragmented)
           break;         
     }
@@ -2495,7 +2547,7 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
         }
       }
       //JVT-S036 lsj end
-
+	  
       printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d ) %10d bits\n",
                 pcSliceHeader->getPoc                    (),
                 pcSliceHeader->getLayerId                (),
@@ -2507,6 +2559,10 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
                 pcSliceHeader->getAdaptivePredictionFlag () ? 1 : 0,
                 pcSliceHeader->getPicQp                  (),
                 uiBits + uiBitsSEI );
+	//S051{
+	if(m_uiAnaSIP>0)
+		m_auiFrameBits[rcControlData.getSliceHeader()->getPoc()]=uiBits+uiBitsSEI;
+	//S051}
 
       ETRACE_NEWFRAME;
 
@@ -2738,6 +2794,10 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
                 rcControlData.getSliceHeader()->getPicQp                  (),
                 uiBits + uiBitsSEI );
 
+	  //S051{
+	  if(m_uiAnaSIP>0)
+		m_auiFrameBits[rcControlData.getSliceHeader()->getPoc()]=uiBits+uiBitsSEI;
+	  //S051}
       ruiBits     += uiBits+uiBitsSEI;
       ruiBitsRes  += uiBitsRes;
       uiBitsSEI =0;
@@ -3000,6 +3060,17 @@ MCTFEncoder::getBaseLayerStatus( Bool& bExists,
     }
   }
 
+  //S051{
+  if(m_bEncSIP)
+  {
+	  if(xSIPCheck(iPoc))
+	  {
+		  bExists = false;
+		  bMotion = bExists || !m_bH264AVCCompatible;
+	  }
+  }
+  //S051}
+  
   return Err::m_nOK;
 }
 
@@ -3361,6 +3432,14 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setSliceGroupChangeCycle(1);
   pcSliceHeader->FMOInit();
 
+  //S051{
+  if(m_bEncSIP)
+  {
+	  if(xSIPCheck(pcSliceHeader->getPoc()))
+		  pcSliceHeader->setDiscardableFlag( true );
+  }
+  //S051}
+  
   return Err::m_nOK;
 }
 
@@ -4204,6 +4283,23 @@ MCTFEncoder::xMotionEstimationStage( UInt uiBaseLevel )
     //===== set lambda and QP =====
     RNOK( xInitControlDataMotion( uiBaseLevel, uiFrame, true ) );
 
+	//S051{
+	m_pcSliceEncoder->setUseBDir(true);
+	if(m_bEncSIP)
+	{
+		if(m_bH264AVCCompatible||!rcControlData.getSliceHeader()->getDirectSpatialMvPredFlag())
+		{
+			int				pos				  = xGetMbDataCtrlL1Pos( *rcControlData.getSliceHeader(), uiFrameIdInGOP );
+			if(pos!=-1)
+			{
+				SliceHeader* pcSliceHeader     = m_pacControlData[pos].getSliceHeader  ();
+				if(xSIPCheck(pcSliceHeader->getPoc()))
+					m_pcSliceEncoder->setUseBDir(false);
+			}
+		}
+	}
+	//S051}
+	
 //TMM_WP    
     SliceHeader*  pcSliceHeader       = rcControlData.getSliceHeader  ();
 
@@ -5804,9 +5900,8 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pFGSFile = pFGSFile;
 		
 		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	{ 
-		m_apcFrameTemp[uiIndex]->setZero(); m_apcFrameTemp[uiIndex]-
-		>copyAll(apcFrameTemp_save[uiIndex]); } for( uiStage = 0; uiStage <= 
-		MAX_DSTAGES; uiStage++ ) { m_auiNumFramesCoded[uiStage] = 
+		m_apcFrameTemp[uiIndex]->setZero(); m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);}
+		for( uiStage = 0; uiStage <=MAX_DSTAGES; uiStage++ ) { m_auiNumFramesCoded[uiStage] = 
 		auiNumFramesCoded[uiStage]; m_auiCurrGOPBitsBase[uiStage] = 
 		auiCurrGOPBitsBase[uiStage]; m_auiCurrGOPBitsFGS[uiStage] = 
 		auiCurrGOPBitsFGS[uiStage]; m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
@@ -6504,7 +6599,23 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   ruiNumCodedFrames = m_auiNumFramesCoded[uiMaxStage];
   rdOutputRate      = m_fOutputFrameRate;
 
+  //S051{
+  if(m_uiAnaSIP>0&&m_cOutSIPFileName.length())
+  { 
+	  FILE* file=fopen(m_cOutSIPFileName.c_str(),"wt");
+	  
+	  if(file==NULL)
+		  return Err::m_nOK;
 
+	  for(UInt poc=0;poc<m_uiTotalFrame;poc++)
+	  {
+		  if(m_auiFrameBits[poc]!=0)
+			  fprintf(file,"%d ",m_auiFrameBits[poc]);
+	  }
+	  fclose(file);
+  }
+  //S051}
+  
   return Err::m_nOK;
 }
 
@@ -7108,6 +7219,29 @@ MCTFEncoder::freeDiffPrdRefLists( RefFrameList& diffPrdRefList)
   return Err::m_nOK;
 }
 
+//S051{
+Bool MCTFEncoder:: xSIPCheck	(UInt POC)
+{
+  if(POC==0)               //There seems to be  a bug in decoder if we can 
+    return false;        //discard picture with POC=0. So here I forbid POC=0 
+  if(std::find(m_cPOCList.begin(),m_cPOCList.end(),POC)!=m_cPOCList.end())
+    return true;				
+  return false;
+}
+
+int MCTFEncoder::xGetMbDataCtrlL1Pos( const SliceHeader& rcSH, UInt uiCurrBasePos )
+{
+  const UInt uiLevel   = rcSH.getTemporalLevel();
+  for( UInt i = uiCurrBasePos+1; i <= m_uiGOPSize; i++ )
+  {
+    if( m_pacControlData[i].getSliceHeader() && uiLevel > m_pacControlData[i].getSliceHeader()->getTemporalLevel() )
+    {
+		return i;
+    }
+  }
+  return -1;
+}
+//S051}
 
 
 H264AVC_NAMESPACE_END

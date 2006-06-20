@@ -9,9 +9,9 @@ all:
 	$(MAKE) -C test/FixedQPEncoder
 	$(MAKE) -C test/QualityLevelAssigner
 	$(MAKE) -C test/MCTFPreProcessor
+	$(MAKE) -C test/SIPAnalyser
 	$(MAKE) -C tools/DownConvert
 	$(MAKE) -C tools/PSNR
-
 
 debug:
 	$(MAKE) -C lib/H264AVCVideoIoLib debug
@@ -24,6 +24,7 @@ debug:
 	$(MAKE) -C test/FixedQPEncoder debug
 	$(MAKE) -C test/QualityLevelAssigner debug
 	$(MAKE) -C test/MCTFPreProcessor debug
+	$(MAKE) -C test/SIPAnalyser debug
 	$(MAKE) -C tools/DownConvert debug
 	$(MAKE) -C tools/PSNR debug
 
@@ -38,6 +39,7 @@ release:
 	$(MAKE) -C test/FixedQPEncoder release
 	$(MAKE) -C test/QualityLevelAssigner release
 	$(MAKE) -C test/MCTFPreProcessor release
+	$(MAKE) -C test/SIPAnalyser release
 	$(MAKE) -C tools/DownConvert release
 	$(MAKE) -C tools/PSNR release
 
@@ -52,5 +54,6 @@ clean:
 	$(MAKE) -C test/FixedQPEncoder clean
 	$(MAKE) -C test/QualityLevelAssigner clean
 	$(MAKE) -C test/MCTFPreProcessor clean
+	$(MAKE) -C test/SIPAnalyser clean
 	$(MAKE) -C tools/DownConvert clean
 	$(MAKE) -C tools/PSNR clean

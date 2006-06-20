@@ -147,6 +147,9 @@ MbEncoder::MbEncoder():
   m_iEpRef ( 0 ),           //JVT-R057 LA-RDO
   m_dWr0 ( 0.5 ),           //JVT-R057 LA-RDO
   m_dWr1 ( 0.5 )            //JVT-R057 LA-RDO
+  //S051{
+  ,m_bUseBDir(true)
+  //S051}
 {
   m_uiMaxRefFrames[LIST_0] = m_uiMaxRefFrames[LIST_1] = 0;
   m_uiMaxRefPics  [LIST_0] = m_uiMaxRefPics  [LIST_1] = 0;
@@ -1325,6 +1328,9 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 
 	  if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
       {
+		//S051{
+		if(m_bUseBDir)
+		//S051}
         RNOK( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1,                                                       pcMbDataAccessBase, true ) );
         RNOK( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
         RNOK( xEstimateMb16x8     ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, true ) );
@@ -1360,6 +1366,9 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
     }
 
 	{
+	//S051{
+	if(m_bUseBDir)
+	//S051}
     RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1,                                                       pcMbDataAccessBase, bDefaultResPredFlag ) );
     RNOK  ( xEstimateMbDirect   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1,                                                       pcMbDataAccessBase, false ) ); // skip mode
     RNOK  ( xEstimateMb16x16    ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, false,  pcMbDataAccessBase, bDefaultResPredFlag ) );
@@ -5670,6 +5679,9 @@ MbEncoder::xEstimateMb8x8 ( IntMbTempData*&   rpcMbTempData,
     ParIdx8x8 eParIdx8x8      = aeParIdx8x8[ ePar8x8 ];
 
     m_pcIntMbBest8x8Data->clear ();
+	//S051{
+	if(m_bUseBDir)
+	//S051}
     RNOK( xEstimateSubMbDirect  ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, false,                                               uiBits,                      pcMbDataAccessBase ) );
     RNOK( xEstimateSubMb8x8     ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, false, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
     RNOK( xEstimateSubMb8x4     ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1,        bBiPredOnly, uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
@@ -5772,6 +5784,9 @@ MbEncoder::xEstimateMb8x8Frext( IntMbTempData*&   rpcMbTempData,
     ParIdx8x8 eParIdx8x8      = aeParIdx8x8[ ePar8x8 ];
 
     m_pcIntMbBest8x8Data->clear ();
+	//S051{
+	if(m_bUseBDir)
+	//S051}
     RNOK( xEstimateSubMbDirect  ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, true,                                               uiBits,                      pcMbDataAccessBase ) );
     RNOK( xEstimateSubMb8x8     ( ePar8x8, m_pcIntMbTemp8x8Data, m_pcIntMbBest8x8Data, rcRefFrameList0, rcRefFrameList1, true, bBiPredOnly, uiNumMaxIter, uiIterSearchRange, uiBits, bQPelRefinementOnly, pcMbDataAccessBase ) );
 

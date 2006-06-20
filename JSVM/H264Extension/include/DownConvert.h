@@ -209,17 +209,18 @@ private:
                                   short*            psBufferV, int iStrideV,
                                   ResizeParameters* pcParameters,
                                   bool              bClip = true );
+  //jzxu
   void   xFilterResidualHor     ( short *buf_in, short *buf_out, 
                                   int width, int x, int w,
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
-                                  bool chroma, int rounding_para,
+                                  bool chroma, int output_chroma_phase_shift_x, int input_chroma_phase_shift_x,
                                   unsigned char *buf_blocksize );
   void   xFilterResidualVer     ( short *buf_in, short *buf_out, 
                                   int width, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
-                                  bool chroma, int rounding_para,
+                                  bool chroma, int output_chroma_phase_shift_y, int input_chroma_phase_shift_y,
                                   unsigned char *buf_blocksize );
  						           
   void   xCrop                  ( short*            psBufferY, int iStrideY,

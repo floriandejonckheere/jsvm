@@ -530,6 +530,7 @@ H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 , m_pcNalUnitParser       ( NULL )
 , m_pcNonRequiredSEI	  ( NULL )
 , m_uiStdAVCOffset         ( 0 )
+, m_bAVCCompatible			(false)//BUG FIX Kai Zhang
 {
 }
 
@@ -607,6 +608,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
            eNalUnitType == NAL_UNIT_CODED_SLICE_IDR   )
   {
     uiLevel     = ( eNalRefIdc > 0 ? 0 : 1+m_uiStdAVCOffset);
+	m_bAVCCompatible=true;//BUG FIX Kai Zhang
   }
   else if( eNalUnitType == NAL_UNIT_SEI )
   {
@@ -771,11 +773,16 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
     {
+//BUG FIX Kai Zhang{
+	if(!(uiLayer == 0 && uiFGSLayer == 0 && m_bAVCCompatible&&
+			(eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE||eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE))){
       UInt uiTemp;
 	    Bool bTemp;
       //JVT-P031
+
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: first_mb_in_slice" ) );
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
+		
     if(uiTemp == F_SLICE)
     {
        RNOK( m_pcUvlcReader->getFlag( bFragmentedFlag,  "SH: fragmented_flag" ) );
@@ -799,6 +806,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
         uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
     }     
+		
     //~JVT-P031
 		m_uiCurrPicLayer = (uiLayer << 4) + uiFGSLayer;
 	  if(m_uiCurrPicLayer <= m_uiPrevPicLayer && m_uiNonRequiredSeiFlag != 1)
@@ -808,6 +816,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 	  }          
 	  m_uiNonRequiredSeiFlag = 0;
 	  m_uiPrevPicLayer = m_uiCurrPicLayer;
+		}
+//BUG_FIX Kai Zhang}
     }
     m_pcNalUnitParser->closeNalUnit();
   }
