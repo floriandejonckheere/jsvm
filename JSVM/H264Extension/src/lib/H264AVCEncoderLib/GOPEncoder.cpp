@@ -5900,18 +5900,20 @@ MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
 		m_pFGSFile = pFGSFile;
 		
 		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	{ 
-		m_apcFrameTemp[uiIndex]->setZero(); m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);}
-		for( uiStage = 0; uiStage <=MAX_DSTAGES; uiStage++ ) { m_auiNumFramesCoded[uiStage] = 
-		auiNumFramesCoded[uiStage]; m_auiCurrGOPBitsBase[uiStage] = 
-		auiCurrGOPBitsBase[uiStage]; m_auiCurrGOPBitsFGS[uiStage] = 
-		auiCurrGOPBitsFGS[uiStage]; m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
-			m_adSeqBitsFGS[uiStage] = adSeqBitsFGS[uiStage];
-			m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
-			m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
-			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
-			if (uiStage != MAX_DSTAGES)
-				m_abIsRef[uiStage] = abIsRef[uiStage];
-		}
+      m_apcFrameTemp[uiIndex]->setZero(); m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);
+    }
+    for( uiStage = 0; uiStage <=MAX_DSTAGES; uiStage++ ) { 
+      m_auiNumFramesCoded[uiStage]  = auiNumFramesCoded[uiStage]; 
+      m_auiCurrGOPBitsBase[uiStage] = auiCurrGOPBitsBase[uiStage]; 
+      m_auiCurrGOPBitsFGS[uiStage]  = auiCurrGOPBitsFGS[uiStage]; 
+      m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
+      m_adSeqBitsFGS[uiStage]  = adSeqBitsFGS[uiStage];
+      m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
+      m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
+      m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
+      if (uiStage != MAX_DSTAGES)
+        m_abIsRef[uiStage] = abIsRef[uiStage];
+    }
 	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
 		{
 			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
