@@ -28,7 +28,8 @@
     runencode        => 1,                  # 0: no encoding 1: encoding [OPTIONAL] (default value:1)
     singleloopflag   => "-bcip",            # The well known command option for the singleloop call.
     nbfgslayer	     => 2,                  # Number of FGS layer (one parameter for all the layers) [OPTIONAL]	(default value:2)
-    qualitylayer     => 1,                  # 0: no quality layer 1: quality layers in PID NAL 2: quality layers in SEI messages            
+    qualitylayer     => 1,                  # 0: no quality layer 1: quality layers in PID NAL 2: quality layers in SEI messages
+											# 3: Multi layer quality Layers(MLQL) in PID NAL, 4: Multi layer quality layers(MLQL) quality Layers in SEI            
        
 #=======================#
 # Layers  parameters    
@@ -79,7 +80,7 @@
             		        width         => 320,      # Width of the sequence to Extract or/and Decode
             		        height        => 256,      # Height of the sequence to Extract or/and Decode
             		        framerate     => 30,       # Frame Rate of the sequence to Extract or/and Decode
-            		        useql         => 1         # 0: no use of quality layer 1: use quality layers for extraction  [OPTIONAL] (default value 0)
+            		        useql         => 1         # 0: no use of quality layer 1: use quality layers for extraction  [OPTIONAL] 2: use ordered quality layers for extraction  [OPTIONAL] (default value 0)
             		        bitrate       => 0,        # Expected Bitrate [OPTIONAL] (default value 0: means that no bitrate constraints -> actually a constraint of 50000 kbps will be considered)
             		        psnr          => 28,	     # Expected PSNR    [OPTIONAL] (default value 0: means that psnr reults will not be checked)
             		     	  encdecmatch   => 1,        # 0: no check 1: check encoder/decoder perfect matching  [OPTIONAL] (default value 0) 

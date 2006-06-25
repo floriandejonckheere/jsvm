@@ -252,8 +252,11 @@ QualityLevelAssigner::go()
   }
   else
   {
-    RNOK( xInitRateAndDistortion() );
-
+    //JVT-S043
+    Bool bMultiLayer = (m_pcParameter->getQLAssignerMode()==QLASSIGNERMODE_MLQL? true : false);
+    
+    RNOK( xInitRateAndDistortion(bMultiLayer) );
+    
     if( m_pcParameter->writeDataFile() )
     {
       RNOK( xWriteDataFile( m_pcParameter->getDataFileName() ) );
@@ -263,8 +266,17 @@ QualityLevelAssigner::go()
   if( ! m_pcParameter->getOutputBitStreamName().empty() )
   {
     //===== determine quality levels =====
-    RNOK( xDetermineQualityIDs() );
-
+    if( m_pcParameter->getQLAssignerMode()==QLASSIGNERMODE_QL )
+    {
+        RNOK( xDetermineQualityIDs() );
+    }
+    //JVT-S043
+    else if( m_pcParameter->getQLAssignerMode()==QLASSIGNERMODE_MLQL )
+    {
+       RNOK( xDetermineMultiLayerQualityIDs() );
+    }
+    
+    
     //===== write output stream with quality levels =====
     if( m_pcParameter->writeQualityLayerSEI() )
     {
@@ -469,8 +481,9 @@ QualityLevelAssigner::xInitStreamParameters()
 }
 
 
+
 ErrVal
-QualityLevelAssigner::xInitRateAndDistortion()
+QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
 {
   RNOK( xInitRateValues() );
 
@@ -479,11 +492,16 @@ QualityLevelAssigner::xInitRateAndDistortion()
   UInt* aaaauiDistortionDep[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_DSTAGES+1];
   UInt* aaaauiDistortionInd[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_DSTAGES+1];
   for( uiLayer  = 0;  uiLayer   <  m_uiNumLayers;              uiLayer  ++ )
-  for( uiFGS    = 0;  uiFGS     <= m_auiNumFGSLayers[uiLayer]; uiFGS    ++ )
-  for( uiTLevel = 0;  uiTLevel  <= m_auiNumTempLevel[uiLayer]; uiTLevel ++ )
   {
-    ROFRS( ( aaaauiDistortionDep[uiLayer][uiFGS][uiTLevel] = new UInt [m_auiNumFrames[uiLayer]] ), Err::m_nOK );
-    ROFRS( ( aaaauiDistortionInd[uiLayer][uiFGS][uiTLevel] = new UInt [m_auiNumFrames[uiLayer]] ), Err::m_nOK );
+    //JVT-S043
+    UInt uiTopLayer = (bMultiLayer? m_uiNumLayers-1 : uiLayer);
+
+    for( uiFGS    = 0;  uiFGS     <= m_auiNumFGSLayers[uiLayer]; uiFGS    ++ )
+    for( uiTLevel = 0;  uiTLevel  <= m_auiNumTempLevel[uiLayer]; uiTLevel ++ )
+    {
+      ROFRS( ( aaaauiDistortionDep[uiLayer][uiFGS][uiTLevel] = new UInt [m_auiNumFrames[uiTopLayer]] ), Err::m_nOK );
+      ROFRS( ( aaaauiDistortionInd[uiLayer][uiFGS][uiTLevel] = new UInt [m_auiNumFrames[uiTopLayer]] ), Err::m_nOK );
+    }
   }
   for( uiLayer  = 0;  uiLayer   <  m_uiNumLayers;              uiLayer  ++ )
   for( uiFrame  = 0;  uiFrame   <  m_auiNumFrames[uiLayer];    uiFrame  ++ )
@@ -500,13 +518,17 @@ QualityLevelAssigner::xInitRateAndDistortion()
   //----- determine picture distortions -----
   for( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
+    //JVT-S043
+    UInt uiTopLayer = (bMultiLayer? m_uiNumLayers-1 : uiLayer);
+
     //----- get base layer distortion -----
-    RNOK( xInitDistortion( aaaauiDistortionDep[uiLayer][0][0], uiLayer, 0 ) );
-    ::memcpy(              aaaauiDistortionInd[uiLayer][0][0], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiLayer]*sizeof(UInt) );
+    RNOK( xInitDistortion( aaaauiDistortionDep[uiLayer][0][0], uiTopLayer, uiLayer, 0 ) );
+
+    ::memcpy(              aaaauiDistortionInd[uiLayer][0][0], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
     for( uiTLevel = 1; uiTLevel <= m_auiNumTempLevel[uiLayer]; uiTLevel++ )
     {
-      ::memcpy(     aaaauiDistortionDep[uiLayer][0][uiTLevel], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiLayer]*sizeof(UInt) );
-      ::memcpy(     aaaauiDistortionInd[uiLayer][0][uiTLevel], aaaauiDistortionInd[uiLayer][0][0], m_auiNumFrames[uiLayer]*sizeof(UInt) );
+      ::memcpy(     aaaauiDistortionDep[uiLayer][0][uiTLevel], aaaauiDistortionDep[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
+      ::memcpy(     aaaauiDistortionInd[uiLayer][0][uiTLevel], aaaauiDistortionInd[uiLayer][0][0], m_auiNumFrames[uiTopLayer]*sizeof(UInt) );
     }
     //----- get enhancement distortions -----
     for( uiFGS    = 1; uiFGS    <= m_auiNumFGSLayers[uiLayer]; uiFGS   ++ )
@@ -514,11 +536,11 @@ QualityLevelAssigner::xInitRateAndDistortion()
     {
       if( bDep )
       {
-        RNOK( xInitDistortion( aaaauiDistortionDep[uiLayer][uiFGS][uiTLevel], uiLayer, uiFGS, uiTLevel, false ) );
+        RNOK( xInitDistortion( aaaauiDistortionDep[uiLayer][uiFGS][uiTLevel], uiTopLayer, uiLayer, uiFGS, uiTLevel, false ) );
       }
       if( bInd )
       {
-        RNOK( xInitDistortion( aaaauiDistortionInd[uiLayer][uiFGS][uiTLevel], uiLayer, uiFGS, uiTLevel, true  ) );
+        RNOK( xInitDistortion( aaaauiDistortionInd[uiLayer][uiFGS][uiTLevel], uiTopLayer, uiLayer, uiFGS, uiTLevel, true  ) );
       }
     }
     RNOK( xClearPicBufferLists() ); // spatial resolution can be changed
@@ -529,6 +551,9 @@ QualityLevelAssigner::xInitRateAndDistortion()
   printf( "determine delta distortions ..." );
   for( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
+    //JVT-S043
+    UInt uiTopLayer = (bMultiLayer? m_uiNumLayers-1 : uiLayer);
+
     //----- create arrays for pic number to frame number mapping -----
     UInt* puiPic2FNum = new UInt[ m_auiNumFrames[uiLayer] ];
     ROF(  puiPic2FNum);
@@ -554,6 +579,7 @@ QualityLevelAssigner::xInitRateAndDistortion()
       }
     }
   
+   
     //----- determine delta distortions -----
     for( uiFGS = 1; uiFGS <= m_auiNumFGSLayers[uiLayer]; uiFGS++ )
     {
@@ -568,20 +594,24 @@ QualityLevelAssigner::xInitRateAndDistortion()
           Double dDistortionEnhDep   = 0;
           Double dDistortionEnhInd   = 0;
           bLastKeyPicture         = ( ( ( m_auiNumFrames[uiLayer] - 1 ) / m_auiGOPSize[uiLayer] ) == uiKeyPicCount );
+          
           UInt   uiPicNum         = uiKeyPicCount * m_auiGOPSize[uiLayer];
-          UInt   uiStepSize2      = m_auiGOPSize[uiLayer] >> 1;
+          UInt   uiTopLayerPicNum = uiKeyPicCount * m_auiGOPSize[uiTopLayer];
+          // UInt   uiStepSize2      = m_auiGOPSize[uiLayer] >> 1;  // unused variable mwi060625
+          UInt   uiTopLayerStepSize2 = m_auiGOPSize[uiTopLayer] >> 1;
+          
           //---- preceding level 1 picture -----
           if( uiKeyPicCount )
           {
-            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiPicNum-uiStepSize2] ) / 2;
-            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiPicNum-uiStepSize2] ) / 2;
+            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
 
-            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiPicNum-uiStepSize2] ) / 2;
-            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiPicNum-uiStepSize2] ) / 2;
+            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
           }
           //---- normal pictures -----
-          UInt uiStartPicNum  = ( uiKeyPicCount   ?  uiPicNum - uiStepSize2 + 1 : 0 );
-          UInt uiEndPicNum    = ( bLastKeyPicture ? m_auiNumFrames[uiLayer] - 1 : uiPicNum + uiStepSize2 - 1 );
+          UInt uiStartPicNum  = ( uiKeyPicCount   ?  uiTopLayerPicNum - uiTopLayerStepSize2 + 1 : 0 );
+          UInt uiEndPicNum    = ( bLastKeyPicture ? m_auiNumFrames[uiTopLayer] - 1 : uiTopLayerPicNum + uiTopLayerStepSize2 - 1 );
           for( UInt uiCheckPicNum = uiStartPicNum; uiCheckPicNum <= uiEndPicNum; uiCheckPicNum++ )
           {
             dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiCheckPicNum] );
@@ -593,12 +623,13 @@ QualityLevelAssigner::xInitRateAndDistortion()
           //---- following level 1 picture -----
           if( ! bLastKeyPicture )
           {
-            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiPicNum+uiStepSize2] ) / 2;
-            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiPicNum+uiStepSize2] ) / 2;
+            dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
 
-            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiPicNum+uiStepSize2] ) / 2;
-            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiPicNum+uiStepSize2] ) / 2;
+            dDistortionBaseInd += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS-1][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
+            dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
           }
+
           m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]] = 0;
           m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]]+= ( bDep ? dDistortionBaseDep - dDistortionEnhDep : 0 );
           m_aaadDeltaDist[uiLayer][uiFGS][puiPic2FNum[uiPicNum]]+= ( bInd ? dDistortionBaseInd - dDistortionEnhInd : 0 );
@@ -606,17 +637,23 @@ QualityLevelAssigner::xInitRateAndDistortion()
       }
 
       //----- non-key pictures -----
+      UInt uiTemporalScaleFactor = m_auiGOPSize[uiTopLayer] / m_auiGOPSize[uiLayer];
+
       for( uiTLevel = 1; uiTLevel <= m_auiNumTempLevel[uiLayer]; uiTLevel++ )
       {
         UInt uiStepSize2   = ( 1 << ( m_auiNumTempLevel[uiLayer] - uiTLevel ) );
+        UInt uiTopLayerStepSize2   = ( 1 << ( m_auiNumTempLevel[uiTopLayer] - uiTLevel ) );
+
         for( UInt uiPicNum = uiStepSize2; uiPicNum < m_auiNumFrames[uiLayer]; uiPicNum += (uiStepSize2<<1) )
         {
+          UInt uiTopLayerPicNum = uiPicNum * uiTemporalScaleFactor;
+
           Double dDistortionBaseDep  = 0;
           Double dDistortionBaseInd  = 0;
           Double dDistortionEnhDep   = 0;
           Double dDistortionEnhInd   = 0;
-          UInt    uiStartPicNum   = uiPicNum - uiStepSize2 + 1;
-          UInt    uiEndPicNum     = min( uiPicNum + uiStepSize2, m_auiNumFrames[uiLayer] ) - 1;
+          UInt    uiStartPicNum   = uiTopLayerPicNum - uiTopLayerStepSize2 + 1;
+          UInt    uiEndPicNum     = min( uiTopLayerPicNum + uiTopLayerStepSize2, m_auiNumFrames[uiTopLayer] ) - 1;
           for( UInt uiCheckPicNum = uiStartPicNum; uiCheckPicNum <= uiEndPicNum; uiCheckPicNum++ )
           {
             dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][uiTLevel-1][uiCheckPicNum] );
@@ -631,7 +668,7 @@ QualityLevelAssigner::xInitRateAndDistortion()
         }
       }
     }
-
+ 
     //----- delete auxiliary array -----
     delete [] puiPic2FNum;
   }
@@ -649,6 +686,7 @@ QualityLevelAssigner::xInitRateAndDistortion()
 
   return Err::m_nOK;
 }
+
 
 
 ErrVal
@@ -726,9 +764,11 @@ QualityLevelAssigner::xInitRateValues()
 }
 
 
+
 ErrVal
 QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
                                            ReadBitstreamFile* pcReadBitStream,
+                                           UInt               uiTopLayer,
                                            UInt               uiLayer,
                                            UInt               uiFGSLayer,
                                            UInt               uiLevel,
@@ -762,7 +802,7 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     else if( cPacketDescription.NalUnitType == NAL_UNIT_SPS )
     {
       bValid      = false;
-      for( UInt ui = 0; ui <= uiLayer; ui++ )
+      for( UInt ui = 0; ui <= uiTopLayer; ui++ )
       {
         if( m_auiSPSRequired[cPacketDescription.SPSid] & (1<<ui) )
         {
@@ -774,7 +814,7 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     else if( cPacketDescription.NalUnitType == NAL_UNIT_PPS )
     {
       bValid      = false;
-      for( UInt ui = 0; ui <= uiLayer; ui++ )
+      for( UInt ui = 0; ui <= uiTopLayer; ui++ )
       {
         if( m_auiPPSRequired[cPacketDescription.PPSid] & (1<<ui) )
         {
@@ -829,9 +869,16 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
       }
 
       //===== get valid status =====
+      //JVT-S043
+      //For cPacketDescription.Layer > uiLayer,  only Base Quality Level(Discrete layer) is selected!
+      //For cPacketDescription.Layer <= uiLayer, the algorithm selects the required FGS layers and Temporal Levels.  
+      //--
       if( bIndependent )
       {
-        bValid      = ( cPacketDescription.Layer    <= uiLayer );
+        bValid      = ( cPacketDescription.Layer    <= uiLayer
+                      //JVT-S043
+                      || ( cPacketDescription.Layer  <= uiTopLayer && cPacketDescription.FGSLayer == 0 )
+                      );
         if( cPacketDescription.Layer == uiLayer )
         {
           bValid    = ( cPacketDescription.Level    == uiLevel &&
@@ -840,7 +887,10 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
       }
       else
       {
-        bValid      = ( cPacketDescription.Layer <= uiLayer );
+        bValid      = ( cPacketDescription.Layer <= uiLayer 
+                      //JVT-S043
+                      || ( cPacketDescription.Layer  <= uiTopLayer && cPacketDescription.FGSLayer == 0 )          
+                      );
         if( cPacketDescription.Layer == uiLayer )
         {
           bValid    = ( cPacketDescription.FGSLayer <= uiFGSLayer );
@@ -850,6 +900,7 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
           }
         }
       }
+
     }
 
     if( !bValid )
@@ -860,8 +911,6 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
 
   return Err::m_nOK;
 }
-
-
 
 ErrVal
 QualityLevelAssigner::xGetDistortion( UInt&         ruiDistortion,
@@ -887,14 +936,17 @@ QualityLevelAssigner::xGetDistortion( UInt&         ruiDistortion,
 
 
 
+
+
 ErrVal
 QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
+                                       UInt   uiTopLayer, 
                                        UInt   uiLayer,
                                        UInt   uiFGSLayer,
                                        UInt   uiLevel,
                                        Bool   bIndependent )
 {
-  ROT( m_pcParameter->getOriginalFileName( uiLayer ).empty() );
+  ROT( m_pcParameter->getOriginalFileName( uiTopLayer ).empty() );
 
   if( uiLevel == MSYS_UINT_MAX )
     printf( "determine distortion (layer %d - FGS %d - base layer  ) ...", uiLayer, uiFGSLayer );
@@ -935,7 +987,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
   RNOK( ReadBitstreamFile ::create( pcReadBitStream ) );
   RNOK( ReadYuvFile       ::create( pcReadYuv       ) );
   RNOK( pcReadBitStream ->init( m_pcParameter->getInputBitStreamName() ) );
-  RNOK( pcReadYuv       ->init( m_pcParameter->getOriginalFileName  ( uiLayer ), m_auiFrameHeight[uiLayer], m_auiFrameWidth[uiLayer] ) );
+  RNOK( pcReadYuv       ->init( m_pcParameter->getOriginalFileName  ( uiTopLayer ), m_auiFrameHeight[uiTopLayer], m_auiFrameWidth[uiTopLayer] ) );
 
   if( m_bOutputReconstructions )
   {
@@ -957,7 +1009,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
     RNOK( pcReadBitStream->getPosition( iPos ) );
     do
     {
-      RNOK( xGetNextValidPacket( pcBinData, pcReadBitStream, uiLayer, uiFGSLayer, uiLevel, bIndependent, bEOS, auiFrameNumAnalysis ) );
+      RNOK( xGetNextValidPacket( pcBinData, pcReadBitStream, uiTopLayer, uiLayer, uiFGSLayer, uiLevel, bIndependent, bEOS, auiFrameNumAnalysis ) );
       pcBinData->setMemAccessor( cBinDataAccessor );
 
       bFinishChecking = false;
@@ -993,7 +1045,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
         RNOK( pcReadBitStream->setPosition( iPos ) );
         bFirst = false;
       }
-      RNOK( xGetNextValidPacket( apcBinDataTmp[uiFragmentNumber], pcReadBitStream, uiLayer, uiFGSLayer, uiLevel, bIndependent, bEOS, auiFrameNumDecoding ) );
+      RNOK( xGetNextValidPacket( apcBinDataTmp[uiFragmentNumber], pcReadBitStream, uiTopLayer, uiLayer, uiFGSLayer, uiLevel, bIndependent, bEOS, auiFrameNumDecoding ) );
       ::memcpy( auiFrameNumAnalysis, auiFrameNumDecoding, MAX_LAYERS*sizeof(UInt) );
       apcBinDataTmp[uiFragmentNumber]->setMemAccessor( acBinDataAccessorTmp[uiFragmentNumber] );
 
@@ -1064,13 +1116,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
             bToDecode = true;
           }
         }
-        //manu.mathew@samsung : memory leak fix
+       //manu.mathew@samsung : memory leak fix
         else
         {
-          RNOK( pcReadBitStream->releasePacket( apcBinDataTmp[0] ) );
+            RNOK( pcReadBitStream->releasePacket( apcBinDataTmp[0] ) );
           apcBinDataTmp[0] = NULL;
         }
-        //--
+       //--
       }
     }
 //NonRequired JVT-Q066{
@@ -1287,6 +1339,7 @@ QualityLevelAssigner::xReadDataFile( const std::string&  cFileName )
 }
 
 
+
 ErrVal
 QualityLevelAssigner::xDetermineQualityIDs()
 {
@@ -1310,28 +1363,28 @@ QualityLevelAssigner::xDetermineQualityIDs()
   {
     //----- create quality estimation object -----
     QualityLevelEstimation  cQualityLevelEstimation;
-    RNOK( cQualityLevelEstimation.init( m_auiNumFGSLayers[uiLayer], m_auiNumFrames[uiLayer] ) );
+    RNOK( cQualityLevelEstimation.init( m_uiNumLayers, m_auiNumFGSLayers, m_auiNumFrames ) );
 
     //----- initialize with packets -----
     {
       for( UInt uiFGSLayer = 1; uiFGSLayer <= m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
       for( UInt uiFrame    = 0; uiFrame    <  m_auiNumFrames   [uiLayer]; uiFrame   ++ )
       {
-        RNOK( cQualityLevelEstimation.addPacket( uiFGSLayer, uiFrame,
+        RNOK( cQualityLevelEstimation.addPacket( uiLayer, uiFGSLayer, uiFrame,
                                                  m_aaauiPacketSize [uiLayer][uiFGSLayer][uiFrame],
                                                  m_aaadDeltaDist   [uiLayer][uiFGSLayer][uiFrame] ) );
       }
     }
 
     //----- determine quality levels -----
-    RNOK( cQualityLevelEstimation.optimizeQualityLevel( auiMinQualityLevel[uiLayer], auiMaxQualityLevel[uiLayer] ) );
+    RNOK( cQualityLevelEstimation.optimizeQualityLevel( uiLayer, uiLayer, auiMinQualityLevel[uiLayer], auiMaxQualityLevel[uiLayer] ) );
 
     //----- assign quality levels -----
     {
       for( UInt uiFGSLayer = 0; uiFGSLayer <= m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
       for( UInt uiFrame    = 0; uiFrame    <  m_auiNumFrames   [uiLayer]; uiFrame   ++ )
       {
-        m_aaauiQualityID[uiLayer][uiFGSLayer][uiFrame] = ( uiFGSLayer ? cQualityLevelEstimation.getQualityLevel( uiFGSLayer, uiFrame ) : 63 );
+        m_aaauiQualityID[uiLayer][uiFGSLayer][uiFrame] = ( uiFGSLayer ? cQualityLevelEstimation.getQualityLevel( uiLayer, uiFGSLayer, uiFrame ) : 63 );
       }
     }
   }
@@ -1340,6 +1393,54 @@ QualityLevelAssigner::xDetermineQualityIDs()
   return Err::m_nOK;
 }
 
+//JVT-S043
+ErrVal
+QualityLevelAssigner::xDetermineMultiLayerQualityIDs()
+{
+  printf( "determine ML quality levels ..." );
+
+  //===== determine minimum and maximum quality level id's =====
+  UInt  uiMinQualityLevel = 0;
+  UInt  uiMaxQualityLevel = 62;
+
+ //----- create quality estimation object -----
+  QualityLevelEstimation  cQualityLevelEstimation;
+  RNOK( cQualityLevelEstimation.init( m_uiNumLayers, m_auiNumFGSLayers, m_auiNumFrames ) );
+
+  //===== determine optimized quality levels per layer =====
+  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
+  {
+    //----- initialize with packets -----
+    {
+      for( UInt uiFGSLayer = 1; uiFGSLayer <= m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
+      for( UInt uiFrame    = 0; uiFrame    <  m_auiNumFrames   [uiLayer]; uiFrame   ++ )
+      {
+        RNOK( cQualityLevelEstimation.addPacket( uiLayer, uiFGSLayer, uiFrame,
+                                                 m_aaauiPacketSize [uiLayer][uiFGSLayer][uiFrame],
+                                                 m_aaadDeltaDist   [uiLayer][uiFGSLayer][uiFrame] ) );
+      }
+    }
+  }
+
+
+  //----- determine quality levels -----
+  RNOK( cQualityLevelEstimation.optimizeQualityLevel( m_uiNumLayers-1, 0, uiMinQualityLevel, uiMaxQualityLevel ) );
+  
+  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
+  {
+    //----- assign quality levels -----
+    {
+      for( UInt uiFGSLayer = 0; uiFGSLayer <= m_auiNumFGSLayers[uiLayer]; uiFGSLayer++ )
+      for( UInt uiFrame    = 0; uiFrame    <  m_auiNumFrames   [uiLayer]; uiFrame   ++ )
+      {
+        m_aaauiQualityID[uiLayer][uiFGSLayer][uiFrame] = ( uiFGSLayer ? cQualityLevelEstimation.getQualityLevel( uiLayer, uiFGSLayer, uiFrame ) : 63 );
+      }
+    }
+  }
+
+  printf("\n");
+  return Err::m_nOK;
+}
 
 ErrVal
 QualityLevelAssigner::xWriteQualityLayerStreamPID()

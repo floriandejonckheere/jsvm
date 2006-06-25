@@ -172,7 +172,9 @@ sub QLAssigner($$)
 	
 	my $cmd = "$bin$QLASSIGNER -in ".$simu->{bitstreamname}." $cmdLayer -out ".$simu->{bitstreamQLname}; 
  ($cmd .= " -sei") if($simu->{qualitylayer}==2);
-	
+ ($cmd .= " -mlql") if($simu->{qualitylayer}==3);
+ ($cmd .= " -mlql -sei") if($simu->{qualitylayer}==4);
+  	
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n";
 }
@@ -189,7 +191,8 @@ sub Extract($$;$)
 	my $display=1; 
 
   my $cmd = "$bin$EXTRACTOR ".$test->{bitstreamname}." ".$test->{extractedname}." -e ".$test->{extractoption}; 
- ($cmd .= " -ql") if($test->{useql});
+ ($cmd .= " -ql") if($test->{useql}==1);
+ ($cmd .= " -qlord") if($test->{useql}==2);
  ($cmd .= " -sip") if($test->{usesip}==1);
  ($cmd .= " -sip -suf") if($test->{usesip}>1); 
  

@@ -124,6 +124,7 @@ protected:
   ErrVal          xClearPicBufferLists        ();
   ErrVal          xGetNextValidPacket         ( BinData*&             rpcBinData,
                                                 ReadBitstreamFile*    pcReadBitStream,
+                                                UInt                  uiTopLayer,
                                                 UInt                  uiLayer,
                                                 UInt                  uiFGSLayer,
                                                 UInt                  uiLevel,
@@ -132,9 +133,10 @@ protected:
                                                 UInt*                 auiFrameNum );
 
   //====== get rate and distortion ======
-  ErrVal          xInitRateAndDistortion      ();
+  ErrVal          xInitRateAndDistortion      (Bool bMultiLayer);
   ErrVal          xInitRateValues             ();
   ErrVal          xInitDistortion             ( UInt*                 auiDistortion,
+                                                UInt                  uiTopLayer,
                                                 UInt                  uiLayer,
                                                 UInt                  uiFGSLayer,
                                                 UInt                  uiLevel      = MSYS_UINT_MAX,
@@ -157,7 +159,11 @@ protected:
   ErrVal          xInsertQualityLayerSEI      ( WriteBitstreamToFile* pcWriteBitStream,
                                                 UInt                  uiLayer,
                                                 UInt                  uiFrameNum );
-
+  //JVT-S043
+  ErrVal          xDetermineMultiLayerQualityIDs        ();
+  ErrVal          xInsertMultiLayerQualityLayerSEI ( WriteBitstreamToFile* pcWriteBitStream,
+                                                     UInt                  uiLayer,
+                                                     UInt                  uiFrameNum );
 
 private:
   QualityLevelParameter*        m_pcParameter;

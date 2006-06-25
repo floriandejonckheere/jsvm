@@ -93,6 +93,7 @@ QualityLevelParameter::QualityLevelParameter()
 : m_uiDataFileMode              ( 0 )
 , m_uiDistortionEstimationMode  ( 3 )
 , m_bQualityLayerSEI            ( false )
+, m_eQLAssignerMode             ( QLASSIGNERMODE_QL )
 {
 }
 
@@ -201,6 +202,11 @@ QualityLevelParameter::init( Int argc, Char** argv )
     {
       m_bQualityLayerSEI = true;
     }
+    //JVT-S043
+    else if( !strcmp( argv[iArg], "-mlql" ) )
+    {
+      m_eQLAssignerMode   = QLASSIGNERMODE_MLQL;
+    }
     else
     {
       bError = true;
@@ -244,7 +250,7 @@ ErrVal
 QualityLevelParameter::xPrintUsage( Char** argv )
 {
   printf("Usage: QualityLevelAssigner -in Input -org L Original [-org L Original]\n"
-         "                           [-out Output [-sei] | -wp DatFile] [-dep | -ind]\n" );
+         "                           [-out Output [-sei] | -wp DatFile] [-dep | -ind] [-mlql]\n" );
   printf("or     QualityLevelAssigner -in Input -out Output -rp DatFile [-sei]\n\n" );
   printf("  -in  Input      - input bit-stream\n");
   printf("  -out Output     - output bit-stream with determined quality layer id's\n");
@@ -257,6 +263,8 @@ QualityLevelParameter::xPrintUsage( Char** argv )
          "                    (speed-up by factor of 2, slight coding eff. losses)\n");
   printf("  -ind            - determine only independent distortions\n"
          "                    (speed-up by factor of 2, slight coding eff. losses)\n\n");
+  //JVT-S043
+  printf("  -mlql           - determine Multi Layer quality layer id's\n");
   RERRS();
 }
 

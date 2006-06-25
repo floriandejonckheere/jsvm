@@ -296,15 +296,19 @@ protected:
   //determine layer, level and target rate for output stream
   Void GetExtParameters();
   //search optimal quality for target rate
-  ErrVal QualityLevelSearch();
+  ErrVal QualityLevelSearch(Bool bOrderedTopLayerTrunc);
   //extract NALs given optimal quality
   ErrVal ExtractPointsFromRate();
+
+  //JVT-S043 : Added the parameters uiMinTruncLayer & uiMaxTruncLayer.
   //get total rate for a given quality 
-  Double GetRateForQualityLevel(Double QualityLevel, UInt uiMaxLayers, UInt uiExtLevel);
+  Double GetTotalRateForQualityLevel(Double QualityLevel, UInt uiExtLevel, UInt uiExtLayer, 
+                                     UInt uiMinTruncLayer, UInt uiMaxTruncLayer);
   //intialize R/D arrays from SEI information
   Void setQualityLevel();
   //get image rate for a given quality
-  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel/*,UInt uiExtLayer*/);
+  Double GetImageRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel, 
+                                     UInt uiMinTruncLayer, UInt uiMaxTruncLayer);
   //Calculate max rate for each frame of a layer (in case of dead substreams use of SEI information
   // from dead substreams)
   Void CalculateMaxRate(UInt uiLayer);
@@ -312,10 +316,15 @@ protected:
 
   UInt getPIDIndex(UInt uiPID);
   UInt addPIDToTable(UInt uiPID);
-  Double GetTruncatedRate(Double dQL, UInt uilevel, UInt uiLayer);
+  Double GetTruncatedRate(Double dQL, UInt uiExtLevel,  UInt uiExtLayer, 
+                          UInt uiMinTruncLayer, UInt uiMaxTruncLayer);
   UInt GetNearestPIDForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel);
-  Double GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel,Double dRatio); 
-  Double Extractor::CalculateSizeOfIncludedLayers(UInt uiExtLayer, UInt uiExtLevel);
+  Double GetImageRateForQualityLevelActual(UInt uiLayer, UInt uiNumImage, Double QualityLevel, Double dRatio, 
+                                           UInt uiMinTruncLayer, UInt uiMaxTruncLayer);
+  Double CalculateSizeOfIncludedLayers(UInt uiExtLevel, UInt uiExtLayer);
+  Double CalculateSizeOfBQLayers(UInt uiExtLevel, UInt uiExtLayer);
+  Double CalculateSizeOfMaxQuality(UInt uiExtLevel, UInt uiExtLayer);
+
   Bool IsFrameToCut(UInt uiFrame);
   Void AllocateAndInitializeDatas();
 

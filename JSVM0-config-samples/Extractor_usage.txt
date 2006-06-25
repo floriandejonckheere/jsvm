@@ -27,6 +27,10 @@ options:
                        - D bit rate [kbit/s]
         -b B       -> extract a layer (possibly truncated) with the target bitrate = B
         -sl SL     -> extract the layer with layer id = SL and the dependent lower layers
+        -ql        -> information about quality layers are used during extraction
+        -qlord     -> ordered/toplayer quality layer extraction
+  			- simulates truncation using normal ql even if MLQL assigner was used.
+
 
 2. To extract according to temporal level (-t)
 -------------------------------------------------------------------------------------------------

@@ -106,6 +106,13 @@ public:
     Double  dBitRate;
   };
 
+  //JVT-S043
+  enum QLExtractionMode
+  {
+    QL_EXTRACTOR_MODE_ORDERED=0,
+    QL_EXTRACTOR_MODE_JOINT
+  };
+
 public:
 	ExtractorParameter          ();
 	virtual ~ExtractorParameter ();
@@ -156,6 +163,8 @@ public:
   UInt getSuffixUnitEnable(){return m_uiSuffixUnitEnable;}
   //S051}
 
+  QLExtractionMode getQLExtractionMode() { return m_eQLExtractionMode; }
+
 protected:
   ErrVal  xPrintUsage         ( Char**  argv );
   ErrVal  xParseFormatString  ( Char*   pFormatString,
@@ -195,6 +204,9 @@ protected:
   Bool			 m_bUseSIP;
    UInt			 m_uiSuffixUnitEnable;
   //S051}
+
+  //JVT-S043
+  QLExtractionMode m_eQLExtractionMode;
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

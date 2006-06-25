@@ -116,6 +116,9 @@ ExtractorParameter::ExtractorParameter()
 , m_uiSuffixUnitEnable(0)
 //S051}
 
+//JVT-S043
+, m_eQLExtractionMode(QL_EXTRACTOR_MODE_JOINT)
+
 {
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -202,6 +205,8 @@ ExtractorParameter::init( Int     argc,
   //S051}
 
   m_bExtractUsingQL = false;
+
+  m_eQLExtractionMode = QL_EXTRACTOR_MODE_JOINT;
   
 #define EXIT(x,m) {if(x){printf("\n%s\n",m);RNOKS(xPrintUsage(argv))}}
 
@@ -348,6 +353,15 @@ ExtractorParameter::init( Int     argc,
     if(equal( "-ql", argv[iArg] ))
     {
         m_bExtractUsingQL = true;
+        m_eQLExtractionMode = QL_EXTRACTOR_MODE_JOINT;
+        continue;
+    }
+
+    //JVT-S043
+    if(equal( "-qlord", argv[iArg] ))
+    {
+        m_bExtractUsingQL = true;
+        m_eQLExtractionMode = QL_EXTRACTOR_MODE_ORDERED;
         continue;
     }
 	
@@ -394,6 +408,12 @@ ExtractorParameter::xPrintUsage( Char **argv )
   //S051{
   printf("\t-sip       -> extract using SIP algorithm \n");
   //S051}
+  printf("\t-ql        -> information about quality layers are used during extraction\n" );
+
+  //JVT-S043
+  printf("\t-qlord     -> ordered/toplayer quality layer extraction\n" );
+  printf("\t               - simulates truncation using normal ql even if MLQL assigner was used\n" );
+
   printf("\nOptions \"-l\", \"-t\" and \"-f\" can be used in combination with each other.\n"
 	 	     "Other options can only be used separately.\n" );
 	printf("\n");

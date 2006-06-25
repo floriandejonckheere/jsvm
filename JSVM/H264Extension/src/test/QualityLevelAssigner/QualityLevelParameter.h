@@ -87,7 +87,12 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "string.h" 
 #include "H264AVCCommonLib.h"
 
-
+//JVT-S043
+enum QLAssignerMode
+{
+  QLASSIGNERMODE_QL=0,
+  QLASSIGNERMODE_MLQL=1
+};
 
 class QualityLevelParameter
 {
@@ -111,6 +116,7 @@ public:
   Bool                useDependentDistCalc    ()          const { return ( m_uiDistortionEstimationMode & 2) == 2; }
   Bool                writeQualityLayerSEI    ()          const { return m_bQualityLayerSEI; }
 
+  QLAssignerMode      getQLAssignerMode       ()          const { return m_eQLAssignerMode; }
 protected:
   ErrVal              xPrintUsage             ( Char** argv );
   
@@ -123,6 +129,8 @@ private:
   UInt          m_uiDataFileMode;
   UInt          m_uiDistortionEstimationMode;
   Bool          m_bQualityLayerSEI;
+  //JVT-S043
+  QLAssignerMode  m_eQLAssignerMode;
 };
 
 

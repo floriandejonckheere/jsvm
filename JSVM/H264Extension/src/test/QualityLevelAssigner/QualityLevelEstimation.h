@@ -110,7 +110,8 @@ public:
   ~FGSPacketEntry();
 
   Void    setQualityLevel ( UInt    uiQualityLevel );
-  ErrVal  init            ( UInt    uiFrameID,
+  ErrVal  init            ( UInt    uiLayer, 
+                            UInt    uiFrameID,
                             UInt    uiFGSLayer,
                             UInt    uiPacketRate,
                             Double  dDeltaDistortion );
@@ -120,6 +121,7 @@ public:
   UInt    getQualityLevel () const  { return m_uiQualityLevel; }
   UInt    getFGSLayer     () const  { return m_uiFGSLayer; }
   UInt    getFrameID      () const  { return m_uiFrameID; }
+  UInt    getLayer        () const  { return m_uiLayer; };      
 
 protected:
   UInt    m_uiFrameID;
@@ -127,6 +129,8 @@ protected:
   UInt    m_uiRate;
   Double  m_dDeltaDistortion;
   UInt    m_uiQualityLevel;
+  //JVT-S043
+  UInt    m_uiLayer;
 };
 
 
@@ -175,23 +179,31 @@ public:
   QualityLevelEstimation  ();
   ~QualityLevelEstimation ();
 
-  ErrVal  init                  ( UInt    uiNumFGSLayers,
-                                  UInt    uiNumFrames );
+  ErrVal  init                  ( UInt    uiNumLayers, 
+                                  UInt    pauiNumFGSLayers[],
+                                  UInt    pauiNumFrames[] );
   ErrVal  uninit                ();
 
-  ErrVal  addPacket             ( UInt    uiFGSLayer,
+  ErrVal  addPacket             ( UInt    uiLayer,
+                                  UInt    uiFGSLayer,
                                   UInt    uiFrameNumInCodingOrder,
                                   UInt    uiPacketSize,
                                   Double  dDeltaDistortion );
-  ErrVal  optimizeQualityLevel  ( UInt    uiMinLevel,
+
+  ErrVal  optimizeQualityLevel  ( UInt    uiTopLayer,
+                                  UInt    uiMinLayer,
+                                  UInt    uiMinLevel,
                                   UInt    uiMaxLevel );
-  UInt    getQualityLevel       ( UInt    uiFGSLayer,
+
+  UInt    getQualityLevel       ( UInt    uiLayer, 
+                                  UInt    uiFGSLayer,
                                   UInt    uiFrameNumInCodingOrder ) const;
 
 private:
-  UInt              m_uiNumFGSPackets;
-  UInt              m_uiNumFrames;
-  FGSPacketEntry*   m_aacFGSPacketEntry[MAX_QUALITY_LEVELS];
+  UInt              m_uiNumLayers;
+  UInt              m_auiNumFGSPackets[MAX_LAYERS];
+  UInt              m_auiNumFrames[MAX_LAYERS];
+  FGSPacketEntry*   m_aaacFGSPacketEntry[MAX_LAYERS][MAX_QUALITY_LEVELS];
 };
 
 

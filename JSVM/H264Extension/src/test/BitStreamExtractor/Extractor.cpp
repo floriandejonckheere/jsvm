@@ -2799,8 +2799,11 @@ Extractor::go_QL()
   //determine layer, level and rateTarget for output stream
   GetExtParameters();
 
+  //JVT-S043
+  Bool bOrderedTopLayerTruncation = ( m_pcExtractorParameter->getQLExtractionMode()==ExtractorParameter::QL_EXTRACTOR_MODE_ORDERED? true : false );
+
   //search optimal quality for target rate
-  QualityLevelSearch();
+  QualityLevelSearch(bOrderedTopLayerTruncation);
   
   //extract NALs for optimal quality
   RNOK(ExtractPointsFromRate());
@@ -2932,15 +2935,14 @@ Void Extractor::GetExtParameters()
   m_pcExtractorParameter->setTargetRate(dTargetNumExtBytes);
 }
 
-ErrVal Extractor::QualityLevelSearch()
+
+ErrVal Extractor::QualityLevelSearch(Bool bOrderedTopLayerTrunc)
 {
   UInt uiNFrames;
   UInt uiNumPictures;
   UInt uiLayer;
-  UInt uiLevel;
-  UInt uiFGSLayer;
   Double rate; 
-
+  
   UInt uiExtLayer = m_pcExtractorParameter->getLayer();
   UInt uiExtLevel = m_pcExtractorParameter->getLevel();
   Double dRateConstraint = m_pcExtractorParameter->getTargetRate();
@@ -2949,292 +2951,403 @@ ErrVal Extractor::QualityLevelSearch()
   // Getting min and max QualityLevel
   Double QualityLevelMin = 0;
   Double QualityLevelMax = 63;
- 
-  printf("---------Rate target: %f \n", dRateConstraint);
-
-  Double minRate = 0;
-
- Double dInclLayersRate = CalculateSizeOfIncludedLayers(uiExtLayer,uiExtLevel);
-  printf ("dInclLayersRate %f  dRateConstraint %f \n", dInclLayersRate,dRateConstraint);
-  if(dInclLayersRate < dRateConstraint || uiExtLayer == 0)
-  {
-
-  minRate= GetRateForQualityLevel(QualityLevelMax, uiMaxLayers, uiExtLevel); 
-  Double maxRate = GetRateForQualityLevel(QualityLevelMin, uiMaxLayers, uiExtLevel);
-
-
-  // iteration loop
-  Int iter;
-  Int iterMax = 10;
-  Double midQualityLevel;
-  Double midRate;
-  for(iter=0; iter<iterMax; iter++)
-  {  
-    midQualityLevel = (QualityLevelMin+QualityLevelMax)/2;
-    midRate = GetRateForQualityLevel(midQualityLevel, uiMaxLayers, uiExtLevel);  
-    if (midRate > dRateConstraint)
-    {
-      QualityLevelMin = midQualityLevel;
-      maxRate = midRate;
-    }
-    else
-    {
-      QualityLevelMax = midQualityLevel;
-      minRate = midRate;
-    }
-  }
-  printf("---------Rate generated: %f (target=%f) QualityLevel %f\n", minRate, dRateConstraint, QualityLevelMax);
   
-  //truncation of NAL with prevPID > midQualityLevel > PID
-  Double dTruncRate = GetTruncatedRate(QualityLevelMax,uiExtLevel, uiExtLayer);
-  printf("trunc rate %f \n",dTruncRate);
-  Double dRatio = (dRateConstraint - minRate)/dTruncRate;
-  printf("dRatio %f \n", dRatio);
+  printf("Rate target: %.2lf\n", dRateConstraint);
 
-  Double totalRate = 0.0;
-  // set the rate for each frames
-  for(uiLayer = 0; uiLayer < uiMaxLayers; uiLayer++)
+  Double dInclLayersRate = CalculateSizeOfIncludedLayers(uiExtLevel, uiExtLayer);  
+  Double dTotBQRate = CalculateSizeOfBQLayers(uiExtLevel, uiExtLayer);
+  Double dTotalRate = CalculateSizeOfMaxQuality(uiExtLevel, uiExtLayer);
+
+  printf ("  - BQ Rate(of all Layers): %.2lf   Total Rate(of all Layers): %.2lf\n", dTotBQRate, dTotalRate);
+  
+  if( dRateConstraint <= dTotBQRate )
   {
-	uiNumPictures = m_auiNbImages[uiLayer];	
-    for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+    //Target rate <= BQ rate. We can't do any truncation!
+    for( uiLayer = 0; uiLayer <=  uiExtLayer; uiLayer++ )
     {
-	    if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+      uiNumPictures = m_auiNbImages[uiLayer];	
+      for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+      {
+        if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
         {
-		    rate = GetRateForQualityLevel(uiLayer, uiNFrames,QualityLevelMax, dRatio);
-            totalRate += rate;
-	        m_aadTargetByteForFrame[uiLayer][uiNFrames] = rate;		  
-	    }
+          m_aadTargetByteForFrame[uiLayer][uiNFrames] = m_aaauiBytesForQualityLevel[uiLayer][0][uiNFrames];
+        }
+      }
     }
   }
-
-  m_uiQualityLevel = (UInt)QualityLevelMax;
+  else if( dRateConstraint >= dTotalRate )
+  {
+    //Target rate >= Maximum rate. We can't do any truncation!
+    for( uiLayer = 0; uiLayer <=  uiExtLayer; uiLayer++ )
+    {
+      uiNumPictures = m_auiNbImages[uiLayer];	
+      for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+      {
+        if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+        {
+          m_aadTargetByteForFrame[uiLayer][uiNFrames] = m_aaauiBytesForQualityLevel[uiLayer][ m_aaiNumLevels[uiLayer][uiNFrames]-1 ][uiNFrames];
+        }
+      }
+    }
   }
+  //Low Bitrate truncation performance seems to be poor!
+  //Restrict the QL truncation to BR > BQ&Included layers
+  else if(dInclLayersRate < dRateConstraint || uiExtLayer == 0) 
+  {  
+
+    //By default, consider all Quality levels of layers for truncation.
+    UInt uiMinTruncLayer=0, uiMaxTruncLayer=uiExtLayer;
+
+    //JVT-S043
+    //If ordered truncation is being used, find the layer to be truncated. 
+    //FGS packets of layers above this are discarded. FGS packets of layers below this layer are kept.      
+    if(bOrderedTopLayerTrunc)
+    {
+      Double dMinRate = 0;
+      Double dMaxRate = 0;
+      UInt uiTruncLayer=0;
+      for(uiTruncLayer = 0; uiTruncLayer<=uiExtLayer; uiTruncLayer++)
+      {
+        dMinRate = GetTotalRateForQualityLevel(QualityLevelMax, uiExtLevel, uiExtLayer, uiTruncLayer, uiTruncLayer);
+        dMaxRate = GetTotalRateForQualityLevel(QualityLevelMin, uiExtLevel, uiExtLayer, uiTruncLayer, uiTruncLayer);
+
+        if( dMinRate <= dRateConstraint && dMaxRate >= dRateConstraint )
+        {
+          break;
+        }
+      }
+      uiMinTruncLayer = uiMaxTruncLayer = uiTruncLayer;
+
+      printf ("  - Truncating FGS packets in Layer %d\n", uiMinTruncLayer);
+      printf ("  - Min Rate of the Layer: %.2lf   Max Rate of the Layer: %.2lf\n", dMinRate, dMaxRate);
+    }
+    
+
+    Double minRate = GetTotalRateForQualityLevel(QualityLevelMax, uiExtLevel, uiExtLayer, uiMinTruncLayer, uiMaxTruncLayer);
+    Double maxRate = GetTotalRateForQualityLevel(QualityLevelMin, uiExtLevel, uiExtLayer, uiMinTruncLayer, uiMaxTruncLayer);
+    
+    // iteration loop
+    Int iter;
+    Int iterMax = 10;
+    Double midQualityLevel;
+    Double midRate;
+    for(iter=0; iter<iterMax; iter++)
+    {  
+      midQualityLevel = (QualityLevelMin+QualityLevelMax)/2;
+      midRate = GetTotalRateForQualityLevel(midQualityLevel, uiExtLevel, uiExtLayer, uiMinTruncLayer, uiMaxTruncLayer);  
+      if (midRate > dRateConstraint)
+      {
+        QualityLevelMin = midQualityLevel;
+        maxRate = midRate;
+      }
+      else
+      {
+        QualityLevelMax = midQualityLevel;
+        minRate = midRate;
+      }
+    }    
+
+    printf("  - Rate generated: %.2lf   QualityLevel: %.2lf\n", minRate, QualityLevelMax);
+    
+    //truncation of NAL with prevPID > midQualityLevel > PID
+    Double dTruncRate = GetTruncatedRate(QualityLevelMax, uiExtLevel, uiExtLayer, uiMinTruncLayer, uiMaxTruncLayer);
+    Double dRatio = 1.0;
+    if(dTruncRate) dRatio = (dRateConstraint - minRate)/(dTruncRate);
+    printf("  - Trunc rate: %.2lf   Ratio: %.2lf\n",dTruncRate, dRatio);
+
+    Double totalRate = 0.0;
+    // set the rate for each frames
+    for(uiLayer = 0; uiLayer < uiMaxLayers; uiLayer++)
+    {
+      uiNumPictures = m_auiNbImages[uiLayer];	
+      for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+      {
+        if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+        {
+          rate = GetImageRateForQualityLevelActual(uiLayer, uiNFrames,QualityLevelMax, dRatio, uiMinTruncLayer, uiMaxTruncLayer);
+          totalRate += rate;
+          m_aadTargetByteForFrame[uiLayer][uiNFrames] = rate;		  
+        }
+      }
+    }
+    
+    m_uiQualityLevel = (UInt)QualityLevelMax;
+
+    printf("  - Actual Rate generated: %.2lf   QualityLevel: %d\n", totalRate, m_uiQualityLevel);
+  }
+  //Do a temporal level based truncation for low bitrates.
   else
   {
-      //Calculate sum of level
-	Double uiBytesOfLevelPerFGS[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_FGS_LAYERS];
-	Double uiSumBytesOfLevelPerFGS[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_FGS_LAYERS];
+    UInt uiLevel;
+    UInt uiFGSLayer;
+
+    //Calculate sum of level
+    Double uiBytesOfLevelPerFGS[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_FGS_LAYERS];
+    Double uiSumBytesOfLevelPerFGS[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_FGS_LAYERS];
     for( uiLayer = 0; uiLayer <  MAX_LAYERS; uiLayer++ )
     { 
-		for( uiLevel = 0; uiLevel < MAX_TEMP_LEVELS; uiLevel++ )
-		{
-            for( uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
-			{
-                uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
-                uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
-            }
+      for( uiLevel = 0; uiLevel < MAX_TEMP_LEVELS; uiLevel++ )
+      {
+        for( uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+        {
+          uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
+          uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
         }
+      }
     }
-
+    
     for( uiLayer = 0; uiLayer <  uiExtLayer; uiLayer++ )
     { 
-       uiNumPictures = m_auiNbImages[uiLayer];	
-		for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
-		{
-            for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
-			{
-                uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
-				uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
-				for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
-				{
-                   if(m_aaiLevelForFrame[uiLayer][uiNFrames] == (Int)uiLevel)
-					{
-                        Double uiRate = m_aaadBytesForFrameFGS[uiLayer][uiFGSLayer][uiNFrames];
-						uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer]+=uiRate;
-						uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] += m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer][uiNFrames];
-                    }
-                }
-            }
-        }
-    }
-
-    
-	Double dRemainingBytes = dRateConstraint;
-	for( uiLayer = 0; uiLayer <=  uiExtLayer; uiLayer++ )
-	{
-	uiNumPictures = m_auiNbImages[uiLayer];	
-	for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
-	{
-		if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
-		{
-			m_aadTargetByteForFrame[uiLayer][uiNFrames] = m_aaauiBytesForQualityLevel[uiLayer][0][uiNFrames];
-			dRemainingBytes -= m_aaauiBytesForQualityLevel[uiLayer][0][uiNFrames];
-		}
-	}
-	}
-   if(dRemainingBytes > 0)
-   {
-	try{
-
-	for( uiLayer = 0; uiLayer <  uiExtLayer; uiLayer++ )
-	{
-		uiNumPictures = m_auiNbImages[uiLayer];	
-		for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
-		{
-			for( uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
-			{
-				Int64 i64NALUBytes = (Int64)uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer];
-                
-				if(i64NALUBytes > 0)
-				{
-				if( (Double)i64NALUBytes <= dRemainingBytes)
-				{
-					dRemainingBytes                      -= (Double)i64NALUBytes;
-					for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
-					{
-						if(m_aaiLevelForFrame[uiLayer][uiNFrames] == (Int)uiLevel)
-						{
-							rate = m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer][uiNFrames];
-							if(rate != 0)
-                                m_aadTargetByteForFrame[uiLayer][uiNFrames] = rate;	
-                            printf("Layer %d Frame %d Level %d Rate %f \n",uiLayer,uiNFrames,uiLevel,m_aadTargetByteForFrame[uiLayer][uiNFrames]);
-						}
-					}
-				}
-				else
-				{
-					Double  dFGSLayer = dRemainingBytes / (Double)uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer];
-					for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
-					{
-						if(m_aaiLevelForFrame[uiLayer][uiNFrames] == (Int)uiLevel)
-						{
-							rate = m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer-1][uiNFrames];
-							UInt uiTempRate = m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer][uiNFrames] - m_aaauiBytesForQualityLevel[uiLayer][uiNFrames][uiFGSLayer-1];
-							rate += dFGSLayer*uiTempRate;
-							m_aadTargetByteForFrame[uiLayer][uiNFrames] = rate;	
-                            printf("Layer %d Frame %d Level %d Rate %f \n",uiLayer,uiNFrames,uiLevel,rate);
-						}
-					}
-					throw ExtractStop();
-					
-				}
-				}
-			}
-		}
-	}
-
-    }
-	catch( ExtractStop ){}
-   }
-  }
-  return Err::m_nOK;
-
-}
-
-Double Extractor::CalculateSizeOfIncludedLayers(UInt uiExtLayer, UInt uiExtLevel)
-{
-    Double dRate = 0;
-    UInt uiLayer,uiNumPictures,uiNFrames;
-
-    for(uiLayer = 0; uiLayer < uiExtLayer; uiLayer++)
-    {
-        uiNumPictures = m_auiNbImages[uiLayer];
-        for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+      uiNumPictures = m_auiNbImages[uiLayer];	
+      for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+      {
+        for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
         {
-	        if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
-	        {
-                dRate += m_aaauiBytesForQualityLevel[uiLayer][m_aaiNumLevels[uiLayer][uiNFrames]-1][uiNFrames];
+          uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
+          uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
+          for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+          {
+            if(m_aaiLevelForFrame[uiLayer][uiNFrames] == (Int)uiLevel)
+            {
+              Double uiRate = m_aaadBytesForFrameFGS[uiLayer][uiFGSLayer][uiNFrames];
+              uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer]+=uiRate;
+              uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] += m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer][uiNFrames];
             }
+          }
         }
+      }
     }
     
-    uiNumPictures = m_auiNbImages[uiExtLayer];
-        for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
-        {
-	        if(m_aaiLevelForFrame[uiExtLayer][uiNFrames] <= (Int)uiExtLevel)
-	        {
-                dRate += m_aaauiBytesForQualityLevel[uiExtLayer][0][uiNFrames];
-            }
-        }
-
-    return dRate;
-}
-
-Double Extractor::GetTruncatedRate(Double dQuality, UInt uiExtLevel, UInt uiExtLayer)
-{
-    UInt uiNFrames;
-    UInt uiNumPictures;
-    UInt uiLayer;
-    Double dRate = 0;
-    UInt uiPID, uiPrevPID;
-    UInt uiPIDIndexInFrame;
-    //calculate rate of nal with prevPID > quality > pid
-    for(uiLayer = 0; uiLayer <= uiExtLayer; uiLayer++)
+    
+    Double dRemainingBytes = dRateConstraint;
+    for( uiLayer = 0; uiLayer <=  uiExtLayer; uiLayer++ )
     {
-        uiNumPictures = m_auiNbImages[uiLayer];
-        for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+      uiNumPictures = m_auiNbImages[uiLayer];	
+      for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+      {
+        if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
         {
-	        if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
-	        {
-                uiPIDIndexInFrame = GetNearestPIDForQualityLevel(uiLayer,uiNFrames,dQuality);
-                uiPID = (UInt)m_aaadQualityLevel[uiLayer][uiPIDIndexInFrame][uiNFrames];
-                UInt uiIndex = getPIDIndex(uiPID);
-                if(uiIndex >0 && uiPIDIndexInFrame > 0)
+          m_aadTargetByteForFrame[uiLayer][uiNFrames] = m_aaauiBytesForQualityLevel[uiLayer][0][uiNFrames];
+          dRemainingBytes -= m_aaauiBytesForQualityLevel[uiLayer][0][uiNFrames];
+        }
+      }
+    }
+    if(dRemainingBytes > 0)
+    {
+      try{
+        
+        for( uiLayer = 0; uiLayer <  uiExtLayer; uiLayer++ )
+        {
+          uiNumPictures = m_auiNbImages[uiLayer];	
+          for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+          {
+            for( uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
+            {
+              Int64 i64NALUBytes = (Int64)uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer];
+              
+              if(i64NALUBytes > 0)
+              {
+                if( (Double)i64NALUBytes <= dRemainingBytes)
                 {
-                    uiPrevPID = m_auiPID[uiIndex-1];
-                    if(uiPrevPID > dQuality && uiPID < dQuality)
+                  dRemainingBytes                      -= (Double)i64NALUBytes;
+                  for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+                  {
+                    if(m_aaiLevelForFrame[uiLayer][uiNFrames] == (Int)uiLevel)
                     {
-                        dRate += (m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame][uiNFrames] - 
-                            m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNFrames]); 
+                      rate = m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer][uiNFrames];
+                      if(rate != 0)
+                        m_aadTargetByteForFrame[uiLayer][uiNFrames] = rate;	
+                      printf("  - Layer %d   Frame %d   Level %d   Rate %.2lf \n",uiLayer,uiNFrames,uiLevel,m_aadTargetByteForFrame[uiLayer][uiNFrames]);
                     }
+                  }
                 }
+                else
+                {
+                  Double  dFGSLayer = dRemainingBytes / (Double)uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer];
+                  for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+                  {
+                    if(m_aaiLevelForFrame[uiLayer][uiNFrames] == (Int)uiLevel)
+                    {
+                      rate = m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer-1][uiNFrames];
+                      UInt uiTempRate = m_aaauiBytesForQualityLevel[uiLayer][uiFGSLayer][uiNFrames] - m_aaauiBytesForQualityLevel[uiLayer][uiNFrames][uiFGSLayer-1];
+                      rate += dFGSLayer*uiTempRate;
+                      m_aadTargetByteForFrame[uiLayer][uiNFrames] = rate;	
+                      printf("  - Layer %d   Frame %d   Level %d   Rate %.2lf \n",uiLayer,uiNFrames,uiLevel,rate);
+                    }
+                  }
+                  throw ExtractStop();
+                  
+                }
+              }
             }
+          }
         }
+        
+      }
+      catch( ExtractStop ){}
     }
+  }
 
-    return dRate;
+  return Err::m_nOK;
 }
 
-Double Extractor::GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel, 
-                                          Double dRatio)
+Double Extractor::CalculateSizeOfBQLayers(UInt uiExtLevel, UInt uiExtLayer)
 {
-   Double dRate = 0;
-   UInt uiPID, uiPrevPID;
-   UInt uiPIDIndexInFrame;
+  Double dRate = 0;
+  UInt uiLayer,uiNumPictures,uiNFrames;
+  UInt uiQualityLevel = 0;
 
-   dRate = GetRateForQualityLevel(uiLayer,uiNumImage,QualityLevel); 
-
-   {
-   uiPIDIndexInFrame = GetNearestPIDForQualityLevel(uiLayer,uiNumImage,QualityLevel);
-   uiPID = (UInt)m_aaadQualityLevel[uiLayer][uiPIDIndexInFrame][uiNumImage];
-   UInt uiIndex = getPIDIndex(uiPID);
-   if(uiIndex >0 && uiPIDIndexInFrame > 0)
-    {
-        uiPrevPID = m_auiPID[uiIndex-1];
-        if(uiPrevPID > QualityLevel && uiPID < QualityLevel)
-         {
-             dRate = m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNumImage];
-             dRate += dRatio*(m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame][uiNumImage] - 
-                 m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNumImage]);
-         }
-    }
-   }
-
-    return dRate;
-}
-
-Double Extractor::GetRateForQualityLevel(Double QualityLevel, 
-                                         UInt   uiMaxLayers, 
-                                         UInt   uiExtLevel)
-{
-  UInt uiNFrames;
-  UInt uiNumPictures;
-  UInt uiLayer;
-
-  Double sum=0;
-  for(uiLayer = 0; uiLayer < uiMaxLayers; uiLayer++)
+  for(uiLayer = 0; uiLayer <= uiExtLayer; uiLayer++)
   {
     uiNumPictures = m_auiNbImages[uiLayer];
     for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
     {
-	 if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
-	 {
-            sum += GetRateForQualityLevel(uiLayer, uiNFrames,QualityLevel); 
-	  }
+	    if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+	    {
+        dRate += m_aaauiBytesForQualityLevel[uiLayer][uiQualityLevel][uiNFrames];
+      }
     }
   }
+  return dRate;
+}
+Double Extractor::CalculateSizeOfMaxQuality(UInt uiExtLevel, UInt uiExtLayer)
+{
+  Double dRate = 0;
+  UInt uiLayer,uiNumPictures,uiNFrames;
+  UInt uiQualityLevel = 0;
+
+  for(uiLayer = 0; uiLayer <= uiExtLayer; uiLayer++)
+  {
+    uiNumPictures = m_auiNbImages[uiLayer];
+    for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+    {
+      uiQualityLevel = m_aaiNumLevels[uiLayer][uiNFrames]-1;
+
+	    if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+	    {
+        dRate += m_aaauiBytesForQualityLevel[uiLayer][uiQualityLevel][uiNFrames];
+      }
+    }
+  }
+  return dRate;
+}
+Double Extractor::CalculateSizeOfIncludedLayers(UInt uiExtLevel, UInt uiExtLayer)
+{
+  Double dRate = 0;
+  UInt uiLayer,uiNumPictures,uiNFrames;
+  UInt uiQualityLevel = 0;
+
+  for(uiLayer = 0; uiLayer <= uiExtLayer; uiLayer++)
+  {
+    uiNumPictures = m_auiNbImages[uiLayer];
+    for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+    {
+      if(uiLayer < uiExtLayer) uiQualityLevel = m_aaiNumLevels[uiLayer][uiNFrames]-1;
+      else                     uiQualityLevel = 0;
+
+	    if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+	    {
+        dRate += m_aaauiBytesForQualityLevel[uiLayer][uiQualityLevel][uiNFrames];
+      }
+    }
+  }
+  return dRate;
+}
+
+Double Extractor::GetTruncatedRate(Double dQuality, UInt uiExtLevel, UInt uiExtLayer, UInt uiMinTruncLayer, UInt uiMaxTruncLayer)
+{
+  UInt uiNFrames;
+  UInt uiNumPictures;
+  UInt uiLayer;
+  Double dRate = 0;
+  UInt uiPID, uiPrevPID;
+  UInt uiPIDIndexInFrame;
+  //calculate rate of nal with prevPID > quality > pid
+
+  for(uiLayer = uiMinTruncLayer; uiLayer <= uiMaxTruncLayer; uiLayer++)
+  {
+    uiNumPictures = m_auiNbImages[uiLayer];
+    for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+    {
+      if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+      {
+        uiPIDIndexInFrame = GetNearestPIDForQualityLevel(uiLayer,uiNFrames,dQuality);
+        uiPID = (UInt)m_aaadQualityLevel[uiLayer][uiPIDIndexInFrame][uiNFrames];
+        UInt uiIndex = getPIDIndex(uiPID);
+        if(uiIndex >0 && uiPIDIndexInFrame > 0)
+        {
+          uiPrevPID = m_auiPID[uiIndex-1];
+          if(uiPrevPID > dQuality && uiPID < dQuality)
+          {
+            dRate += (m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame][uiNFrames] - 
+              m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNFrames]); 
+          }
+        }
+      }
+    }
+  }
+  
+  return dRate;
+}
+
+
+Double Extractor::GetImageRateForQualityLevelActual(UInt uiLayer, UInt uiNumImage, Double QualityLevel, 
+                                                     Double dRatio,
+                                                     UInt uiMinTruncLayer, UInt uiMaxTruncLayer)
+{
+  Double dRate = 0;
+  UInt uiPID, uiPrevPID;
+  UInt uiPIDIndexInFrame;
+  
+  dRate = GetImageRateForQualityLevel(uiLayer,uiNumImage,QualityLevel, 
+                                      uiMinTruncLayer, uiMaxTruncLayer);
+  
+  if(uiLayer >= uiMinTruncLayer && uiLayer<=uiMaxTruncLayer)
+  {
+    uiPIDIndexInFrame = GetNearestPIDForQualityLevel(uiLayer,uiNumImage,QualityLevel);
+    uiPID = (UInt)m_aaadQualityLevel[uiLayer][uiPIDIndexInFrame][uiNumImage];
+    UInt uiIndex = getPIDIndex(uiPID);
+    if(uiIndex >0 && uiPIDIndexInFrame > 0)
+    {
+      uiPrevPID = m_auiPID[uiIndex-1];
+      if(uiPrevPID > QualityLevel && uiPID < QualityLevel)
+      {
+        dRate = m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNumImage];
+        dRate += dRatio*(m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame][uiNumImage] - 
+          m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNumImage]);
+      }
+    }
+  }
+  
+  return dRate;
+}
+
+
+Double Extractor::GetTotalRateForQualityLevel(double QualityLevel, UInt uiExtLevel, UInt uiExtLayer,
+                                                     UInt uiMinTruncLayer, UInt uiMaxTruncLayer)
+{
+  UInt uiNFrames;
+  UInt uiNumPictures;
+  UInt uiLayer;
+  
+  Double sum=0;
+
+  for(uiLayer = 0; uiLayer <= uiExtLayer; uiLayer++)
+  {
+    uiNumPictures = m_auiNbImages[uiLayer];
+    for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
+    {
+      if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
+      {
+        sum += GetImageRateForQualityLevel(uiLayer, uiNFrames, QualityLevel,
+                                           uiMinTruncLayer, uiMaxTruncLayer);
+      }
+    }
+  }
+
   return sum;
 }
+
 
 UInt Extractor::GetNearestPIDForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel)
 {
@@ -3250,8 +3363,15 @@ UInt Extractor::GetNearestPIDForQualityLevel(UInt uiLayer, UInt uiNumImage, Doub
     return i;
 }
 
-Double Extractor::GetRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel)
+
+Double Extractor::GetImageRateForQualityLevel(UInt uiLayer, UInt uiNumImage, Double QualityLevel,
+                                              UInt uiMinTruncLayer, UInt uiMaxTruncLayer)
 {
+  //JVT-S043
+  if( uiLayer < uiMinTruncLayer ) QualityLevel = 0;      //Total bitrate for layers < uiMinTruncLayer
+  else if( uiLayer > uiMaxTruncLayer ) QualityLevel = 63;//Bitrate corresponding to Base Quality (BQ) Level for Layer > uiMaxTruncLayer
+  //else                                                 //Bitrate corresponding to the QualityLevel
+
 	Int i = 0;
 	//minimal rate for the frame (BL)
 	Double rate = m_aaauiBytesForQualityLevel[uiLayer][0][uiNumImage];
@@ -3552,11 +3672,11 @@ Extractor::ExtractPointsFromRate()
 
   RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
 	
-  printf(" totalPackets %4lf \n ", totalPackets);
+  printf("TotalPackets %.2lf \n ", totalPackets);
 
   printf("\n\nNumber of input packets:  %d\nNumber of output packets: %d (cropped: %d)\n\n", uiNumInput, uiNumKept, uiNumCropped );
   
-  printf("total SEI in bitstream: %d \n ",uiTotalSEI);
+  printf("Total SEI in bitstream: %d \n ",uiTotalSEI);
 
   return Err::m_nOK;
 }
@@ -4832,4 +4952,3 @@ for ( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; 
 	}
 	printf( "\n\n" );
 }
-

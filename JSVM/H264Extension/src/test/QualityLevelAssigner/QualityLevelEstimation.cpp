@@ -102,6 +102,7 @@ FGSPacketEntry::FGSPacketEntry()
 , m_uiRate            ( MSYS_UINT_MAX )
 , m_dDeltaDistortion  ( forbiddenDist )
 , m_uiQualityLevel    ( MSYS_UINT_MAX )
+, m_uiLayer           ( MSYS_UINT_MAX )
 {
 }
 
@@ -119,7 +120,8 @@ FGSPacketEntry::setQualityLevel( UInt uiQualityLevel )
 
 
 ErrVal
-FGSPacketEntry::init( UInt   uiFrameID,
+FGSPacketEntry::init( UInt   uiLayer,
+                      UInt   uiFrameID,
                       UInt   uiFGSLayer,
                       UInt   uiPacketRate,
                       Double dDeltaDistortion )
@@ -127,6 +129,7 @@ FGSPacketEntry::init( UInt   uiFrameID,
   ROF( m_uiFrameID == MSYS_UINT_MAX );
   if( uiPacketRate )
   {
+    m_uiLayer           = uiLayer;
     m_uiFrameID         = uiFrameID;
     m_uiFGSLayer        = uiFGSLayer;
     m_uiRate            = uiPacketRate;
@@ -145,6 +148,7 @@ FGSPacketEntry::uninit()
   m_uiRate            = MSYS_UINT_MAX;
   m_dDeltaDistortion  = forbiddenDist;
   m_uiQualityLevel    = MSYS_UINT_MAX;
+  m_uiLayer           = MSYS_UINT_MAX;
   return Err::m_nOK;
 }
 
@@ -156,6 +160,7 @@ FGSPacketEntry::isValid() const
   ROTRS( m_uiFGSLayer       == MSYS_UINT_MAX, false );
   ROTRS( m_uiRate           == MSYS_UINT_MAX, false );
   ROTRS( m_dDeltaDistortion == forbiddenDist, false );
+  ROTRS( m_uiLayer          == MSYS_UINT_MAX, false );
   return true;
 }
 
@@ -289,13 +294,17 @@ QualityLayer::conditionedMerge( QualityLayer& rcQualityLayer )
   {
     UInt  uiFGSLayer  = (*iter)->getFGSLayer() - 1;
     UInt  uiFrameID   = (*iter)->getFrameID ();
+    UInt  uiLayer     = (*iter)->getLayer();
     Bool  bOK         = ( uiFGSLayer == 0 );
     if( ! bOK )
     {
       bOK = true;
       for( FGSPacketList::iterator baseIter = m_cFGSPacketList.begin(); baseIter != m_cFGSPacketList.end(); baseIter++ )
       {
-        if( (*baseIter)->getFrameID() == uiFrameID && (*baseIter)->getFGSLayer() == uiFGSLayer )
+        if( (*baseIter)->getFrameID() == uiFrameID && (*baseIter)->getFGSLayer() == uiFGSLayer
+	        //JVT-S043
+            && (*baseIter)->getLayer() == uiLayer          
+          )
         {
           bOK = false;
           break;
@@ -328,13 +337,17 @@ QualityLayer::isMergingPossible( QualityLayer&  rcQualityLayer,
   {
     UInt  uiFGSLayer  = (*iter)->getFGSLayer() - 1;
     UInt  uiFrameID   = (*iter)->getFrameID ();
+    UInt  uiLayer     = (*iter)->getLayer();
     Bool  bOK         = ( uiFGSLayer == 0 );
     if( ! bOK )
     {
       bOK = true;
       for( FGSPacketList::iterator baseIter = m_cFGSPacketList.begin(); baseIter != m_cFGSPacketList.end(); baseIter++ )
       {
-        if( (*baseIter)->getFrameID() == uiFrameID && (*baseIter)->getFGSLayer() == uiFGSLayer )
+        if( (*baseIter)->getFrameID() == uiFrameID && (*baseIter)->getFGSLayer() == uiFGSLayer
+			//JVT-S043
+            && (*baseIter)->getLayer() == uiLayer
+          )
         {
           bOK = false;
           break;
@@ -389,10 +402,11 @@ QualityLayer::isMergingPossible( QualityLayer&  rcQualityLayer,
 
 
 QualityLevelEstimation::QualityLevelEstimation()
-: m_uiNumFGSPackets ( 0 )
-, m_uiNumFrames     ( 0 ) 
+: m_uiNumLayers       ( 0 )
 {
-  ::memset( m_aacFGSPacketEntry, 0x00, MAX_QUALITY_LEVELS*sizeof(Void*) );
+  ::memset( m_auiNumFGSPackets, 0x00, MAX_LAYERS*sizeof(UInt) );
+  ::memset( m_auiNumFrames, 0x00, MAX_LAYERS*sizeof(UInt) );
+  ::memset( m_aaacFGSPacketEntry, 0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Void*) );
 }
 
 
@@ -403,14 +417,21 @@ QualityLevelEstimation::~QualityLevelEstimation()
 
 
 ErrVal
-QualityLevelEstimation::init( UInt uiNumFGSLayers,
-                              UInt uiNumFrames )
+QualityLevelEstimation::init( UInt uiNumLayers, 
+                              UInt pauiNumFGSLayers[],
+                              UInt pauiNumFrames[] )
 {
-  m_uiNumFGSPackets = uiNumFGSLayers;
-  m_uiNumFrames     = uiNumFrames;
-  for( UInt uiFGSLayer = 1; uiFGSLayer <= m_uiNumFGSPackets; uiFGSLayer++ )
+  m_uiNumLayers = uiNumLayers;
+
+  for( UInt uiLayer = 0; uiLayer <= m_uiNumLayers; uiLayer++ )
   {
-    ROFRS( ( m_aacFGSPacketEntry[uiFGSLayer] = new FGSPacketEntry [m_uiNumFrames] ), Err::m_nOK );
+    m_auiNumFGSPackets[uiLayer] = pauiNumFGSLayers[uiLayer];
+    m_auiNumFrames[uiLayer]     = pauiNumFrames[uiLayer];
+
+    for( UInt uiFGSLayer = 1; uiFGSLayer <= m_auiNumFGSPackets[uiLayer]; uiFGSLayer++ )
+    {
+      ROFRS( ( m_aaacFGSPacketEntry[uiLayer][uiFGSLayer] = new FGSPacketEntry [m_auiNumFrames[uiLayer]] ), Err::m_nOK );
+    }
   }
   return Err::m_nOK;
 }
@@ -419,26 +440,32 @@ QualityLevelEstimation::init( UInt uiNumFGSLayers,
 ErrVal
 QualityLevelEstimation::uninit()
 {
+  for( UInt uiLayer = 0; uiLayer <= m_uiNumLayers; uiLayer++ )
   for( UInt uiFGSLayer = 0; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
   {
-    delete [] m_aacFGSPacketEntry[uiFGSLayer];  m_aacFGSPacketEntry[uiFGSLayer] = 0;
+    delete [] m_aaacFGSPacketEntry[uiLayer][uiFGSLayer];  m_aaacFGSPacketEntry[uiLayer][uiFGSLayer] = 0;
   }
-  m_uiNumFGSPackets = 0;
-  m_uiNumFrames     = 0;
+  m_uiNumLayers = 0;
+  ::memset( m_auiNumFGSPackets, 0x00, MAX_LAYERS*sizeof(UInt) );
+  ::memset( m_auiNumFrames, 0x00, MAX_LAYERS*sizeof(UInt) );
   return Err::m_nOK;
 }
 
 
 ErrVal
-QualityLevelEstimation::addPacket( UInt    uiFGSLayer,
+QualityLevelEstimation::addPacket( UInt    uiLayer,
+                                   UInt    uiFGSLayer,
                                    UInt    uiFrameNumInCodingOrder,
                                    UInt    uiPacketSize,
                                    Double  dDeltaDistortion )
 {
-  ROF( uiFGSLayer              <= m_uiNumFGSPackets );
-  ROF( uiFrameNumInCodingOrder <  m_uiNumFrames     );
+  ROF( uiLayer                 < m_uiNumLayers );
+  ROF( uiFGSLayer              <= m_auiNumFGSPackets[uiLayer] );
+  ROF( uiFrameNumInCodingOrder <  m_auiNumFrames[uiLayer]     );
 
-  RNOK( m_aacFGSPacketEntry[uiFGSLayer][uiFrameNumInCodingOrder].init( uiFrameNumInCodingOrder,
+  RNOK( m_aaacFGSPacketEntry[uiLayer][uiFGSLayer][uiFrameNumInCodingOrder].init( 
+                                                                       uiLayer,
+                                                                       uiFrameNumInCodingOrder,
                                                                        uiFGSLayer,
                                                                        uiPacketSize,
                                                                        dDeltaDistortion ) );
@@ -447,7 +474,9 @@ QualityLevelEstimation::addPacket( UInt    uiFGSLayer,
 
 
 ErrVal
-QualityLevelEstimation::optimizeQualityLevel( UInt uiMinLevel,
+QualityLevelEstimation::optimizeQualityLevel( UInt uiTopLayer,
+                                              UInt uiMinLayer,
+                                              UInt uiMinLevel,
                                               UInt uiMaxLevel )
 {
   ROT( uiMaxLevel - uiMinLevel + 1 < 3 );
@@ -458,12 +487,13 @@ QualityLevelEstimation::optimizeQualityLevel( UInt uiMinLevel,
   //===== get initial quality layer list =====
   {
     //----- put all valid packets into list -----
-    for( UInt uiFGSLayer  = 1; uiFGSLayer <= m_uiNumFGSPackets; uiFGSLayer ++ )
-    for( UInt uiFrame     = 0; uiFrame    <  m_uiNumFrames;     uiFrame    ++ )
+    for( UInt uiLayer = uiMinLayer; uiLayer <= uiTopLayer; uiLayer++ )//manu.mathew@samsung : JVT-S043
+    for( UInt uiFGSLayer  = 1; uiFGSLayer <= m_auiNumFGSPackets[uiLayer]; uiFGSLayer ++ )
+    for( UInt uiFrame     = 0; uiFrame    <  m_auiNumFrames[uiLayer];     uiFrame    ++ )
     {
-      if( m_aacFGSPacketEntry[uiFGSLayer][uiFrame].isValid() )
+      if( m_aaacFGSPacketEntry[uiLayer][uiFGSLayer][uiFrame].isValid() )
       {
-        cQualityLayerList.push_back( m_aacFGSPacketEntry[uiFGSLayer][uiFrame] );
+        cQualityLayerList.push_back( m_aaacFGSPacketEntry[uiLayer][uiFGSLayer][uiFrame] );
       }
     }
   }
@@ -471,19 +501,22 @@ QualityLevelEstimation::optimizeQualityLevel( UInt uiMinLevel,
   cQualityLayerList.sort( std::greater<QualityLayer>() );
   //----- make sure that FGSLayers are in the right order -----
   {
-    for( UInt uiFGSLayer = 2; uiFGSLayer <= m_uiNumFGSPackets; uiFGSLayer++ )
+    for( UInt uiLayer = uiMinLayer; uiLayer <= uiTopLayer; uiLayer++ )//JVT-S043
+    for( UInt uiFGSLayer = 2; uiFGSLayer <= m_auiNumFGSPackets[uiLayer]; uiFGSLayer++ )
     {
       QualityLayerList::iterator  iter  = cQualityLayerList.begin ();
       QualityLayerList::iterator  iend  = cQualityLayerList.end   ();
       for( ; iter != iend; )
       {
-        if( (*(iter->getFGSPacketList().begin()))->getFGSLayer() == uiFGSLayer )
+        if( (*(iter->getFGSPacketList().begin()))->getLayer() == uiLayer && 
+            (*(iter->getFGSPacketList().begin()))->getFGSLayer() == uiFGSLayer )
         {
           UInt  uiFrame = (*(iter->getFGSPacketList().begin()))->getFrameID();
           QualityLayerList::iterator  iterParent = iter;
           for( iterParent++; iterParent != iend; iterParent++ )
           {
-            if( (*(iterParent->getFGSPacketList().begin()))->getFrameID () == uiFrame &&
+            if( (*(iterParent->getFGSPacketList().begin()))->getLayer() == uiLayer &&
+                (*(iterParent->getFGSPacketList().begin()))->getFrameID () == uiFrame &&
                 (*(iterParent->getFGSPacketList().begin()))->getFGSLayer() == uiFGSLayer - 1 )
             {
               break;
@@ -562,12 +595,13 @@ QualityLevelEstimation::optimizeQualityLevel( UInt uiMinLevel,
 
 
 UInt
-QualityLevelEstimation::getQualityLevel( UInt uiFGSLayer,
+QualityLevelEstimation::getQualityLevel( UInt uiLayer,
+                                         UInt uiFGSLayer,
                                          UInt uiFrameNumInCodingOrder ) const
 {
-  ROF( uiFGSLayer              <= m_uiNumFGSPackets );
-  ROF( uiFrameNumInCodingOrder <  m_uiNumFrames     );
+  ROF( uiFGSLayer              <= m_auiNumFGSPackets[uiLayer] );
+  ROF( uiFrameNumInCodingOrder <  m_auiNumFrames[uiLayer]     );
 
-  return m_aacFGSPacketEntry[uiFGSLayer][uiFrameNumInCodingOrder].getQualityLevel();
+  return m_aaacFGSPacketEntry[uiLayer][uiFGSLayer][uiFrameNumInCodingOrder].getQualityLevel();
 }
 
