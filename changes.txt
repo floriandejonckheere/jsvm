@@ -1,3 +1,26 @@
+JSVM_5_9 -> JSVM_5_10
+====================
+Multi Layer Quality Layers
+Date         : June 24, 2006.
+Author       : Manu Mathew <manu.mathew@samsung.com>
+Contribution : JVT-S043
+
+Changes:
+- Added the parameter "-mlql" to Quality Level Assigner. If this parameter is used, 
+  the quality level assigner will estimate quality layer Ids that are optimal for the top layer.
+  This may improve the top layer(dependency_id) PSNR when the extractor truncates the bitstream using the option "-ql".
+
+Note: If Quality level assigner uses the option -mlql, bitstream extraction using "-ql" may 
+  result in the removal/truncation of some of the lower layer's(dependency_id's) FGS layers 
+  even before all the FGS layers of a higher layer(dependency_id) are completely removed.
+
+- Added the parameter "-qlord" to Bitstream Extractor. This parameter can be used to 
+  simulate normal(ordered) quality layer extraction even if multi layer quality layer assignment was done.
+  With this option, a lower layer's(dependency_id's) FGS packets are removed only aftre all the upper layer's
+  FGS packets have been removed.
+
+- The main changes can be found by searching for JVT-S043.
+
 JSVM_5_8 -> JSVM_5_9
 ====================
 
