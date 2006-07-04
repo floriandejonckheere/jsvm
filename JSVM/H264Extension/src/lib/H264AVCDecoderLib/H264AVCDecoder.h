@@ -172,6 +172,18 @@ public:
                       PicBufferList&    rcPicBufferUnusedList,
                       PicBufferList&    rcPicBufferReleaseList );
 
+  // ROI DECODE Init ICU/ETRI
+  Void	  RoiDecodeInit() 
+  {
+	    m_bCurNalIsEndOfPic		= false;
+		m_iCurNalSpatialLayer 	= -1;
+		m_iNextNalSpatialLayer  = -1;
+		m_iCurNalPOC			= -1;
+		m_iNextNalPOC			= -1;
+		m_iCurNalFirstMb		= -1;
+  }
+
+  Bool	  IsSliceEndOfPic()				{ return m_bCurNalIsEndOfPic;  }
 
   ErrVal  getBaseLayerData              ( IntFrame*&      pcFrame,
                                           IntFrame*&      pcResidual,
@@ -335,6 +347,17 @@ protected:
   //~JVT-P031
 
   SliceHeader::PredWeightTable  m_acLastPredWeightTable[2];
+
+  // ROI DECODE ICU/ETRI
+  int	m_iCurNalSpatialLayer;
+  int	m_iNextNalSpatialLayer;
+			   
+  int	m_iCurNalPOC;
+  int	m_iNextNalPOC;
+  int   m_iCurNalFirstMb;
+
+  bool	m_bCurNalIsEndOfPic;
+  bool	m_bFirstFGS;
 };
 
 H264AVC_NAMESPACE_END

@@ -37,6 +37,10 @@ H264AVC_NAMESPACE_BEGIN
 //#define PRINT_FMO_MAPS
 
 
+Bool FMO::m_siSGId[Max_Num_Slice_Groups];
+int FMO::m_iPOC = -1;
+int FMO::m_iFrame = -1;
+
 /*!
  ************************************************************************
  * \brief
@@ -787,5 +791,33 @@ Void FMO::InitFirstMBsInSlices()
 		FirstMBInSlice[k] = -1;
 }
 
+// JVT-S054 (2) (ADD) ->
+UInt FMO::getNumMbsInSlice(UInt uiFirstMbInSlice, UInt uiLastMbInSlice)
+{
+  UInt uiNumMBsInSlice = 0;
+  UInt uiMbAddress = uiFirstMbInSlice;
+  while (uiMbAddress <= uiLastMbInSlice)
+	{
+    uiNumMBsInSlice++;
+    uiMbAddress = getNextMBNr(uiMbAddress );
+  }
+  return uiNumMBsInSlice;
+}
+
+int FMO::getLastMbInSlice(UInt uiFirstMbInSlice, UInt uiNumMbsInSlice)
+{
+  int iCurrMb, iNextMb;
+  iCurrMb = uiFirstMbInSlice;
+  iNextMb = uiFirstMbInSlice;
+  for (UInt uiMBCount = 0; uiMBCount < uiNumMbsInSlice; uiMBCount++)
+  {
+    iCurrMb = iNextMb;
+    iNextMb = getNextMBNr(iCurrMb);
+    if (iNextMb == -1)
+      break;
+  }
+  return iCurrMb;
+}
+// JVT-S054 (2) (ADD) <-
 
 H264AVC_NAMESPACE_END

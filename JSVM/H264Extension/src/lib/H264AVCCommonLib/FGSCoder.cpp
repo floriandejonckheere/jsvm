@@ -162,6 +162,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/FGSCoder.h"
 #include "H264AVCCommonLib/IntFrame.h"
 
+#include "H264AVCCommonLib/CFMO.h"
+
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -477,6 +479,258 @@ FGSCoder::xSwitchBQLayerSigMap()
   memcpy   ( m_pauiBQMacroblockMap, tmpBuf,  uiSize*sizeof(UInt) );
 
   delete [] tmpBuf;
+
+  return Err::m_nOK;
+}
+
+
+//--ICU/ETRI FMO 1206
+ErrVal
+FGSCoder::xInitializeCodingPath(SliceHeader* pcSliceHeader)
+{
+	//--ICU/ETRI FMO Implementation 1206
+  UInt uiFirstMbInSlice;
+  UInt uiLastMbInSlice;
+
+  if(pcSliceHeader !=NULL)
+  {
+    uiFirstMbInSlice  = pcSliceHeader->getFirstMbInSlice();
+    uiLastMbInSlice  = pcSliceHeader->getLastMbInSlice();  
+  }
+  else
+  {
+    uiFirstMbInSlice =0;
+    uiLastMbInSlice  = (m_uiWidthInMB*m_uiHeightInMB) -1;
+
+  }
+
+
+  FMO* pcFMO = pcSliceHeader->getFMO();
+ for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)  
+ {
+	 if (false == pcFMO->isCodedSG(iSliceGroupID))
+	 {
+		 continue;
+	 }
+
+	 uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+	 uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+
+  for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+  {
+	UInt uiMbY  = uiMbAddress / m_uiWidthInMB;
+    UInt uiMbX  = uiMbAddress % m_uiWidthInMB;
+  
+    MbDataAccess* pcMbDataAccess = 0;
+    RNOK( m_pcCurrMbDataCtrl->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
+    
+    MbData& rcMbData        = pcMbDataAccess->getMbData();
+    UInt    uiMbIndex       = uiMbY * m_uiWidthInMB + uiMbX;
+    Bool    bIntra4x4       =     rcMbData.isIntra4x4   ();
+    Bool    bIntra16x16     =     rcMbData.isIntra16x16 ();
+    Bool    bIsSignificant  = (   rcMbData.getMbCbp()          > 0 );
+    Bool    bIsSigLuma      = ( ( rcMbData.getMbCbp() & 0x0F ) > 0 );
+    Bool    b8x8Present     = (   pcMbDataAccess->getSH().getPPS().getTransform8x8ModeFlag() &&
+                                  rcMbData.is8x8TrafoFlagPresent() );
+    Bool    b8x8Transform   = ( b8x8Present && ( bIsSigLuma || bIntra4x4 ) && rcMbData.isTransformSize8x8() );
+    UInt    uiMbCbp         = pcMbDataAccess->getAutoCbp();
+
+    if( ! pcMbDataAccess->getMbData().isIntra() )
+      pcMbDataAccess->getMbData().activateMotionRefinement();
+    //===== set macroblock mode =====
+    m_pauiMacroblockMap[uiMbIndex] =  ( bIntra16x16 || bIsSignificant                           ? SIGNIFICANT         : CLEAR )
+                                   +  ( bIntra16x16 || bIntra4x4 || bIsSigLuma || !b8x8Present  ? TRANSFORM_SPECIFIED : CLEAR );
+    
+    //--- LUMA ---
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    {
+      UInt uiSubMbIndex = ( 2*uiMbY + c8x8Idx.y()/2 ) * 2 * m_uiWidthInMB + ( 2*uiMbX + c8x8Idx.x() / 2 );
+
+      //===== set sub-macroblock mode =====
+      m_paucSubMbMap[uiSubMbIndex] = ( ( uiMbCbp & ( 1 << c8x8Idx.b8x8Index() ) ) > 0 ? SIGNIFICANT : CLEAR );
+
+      if( b8x8Transform )
+      {
+        UInt    auiBlockIdx[4]  = { ( 4*uiMbY + c8x8Idx.y()     ) * 4 * m_uiWidthInMB + ( 4*uiMbX + c8x8Idx.x()     ),
+                                    ( 4*uiMbY + c8x8Idx.y()     ) * 4 * m_uiWidthInMB + ( 4*uiMbX + c8x8Idx.x() + 1 ),
+                                    ( 4*uiMbY + c8x8Idx.y() + 1 ) * 4 * m_uiWidthInMB + ( 4*uiMbX + c8x8Idx.x()     ),
+                                    ( 4*uiMbY + c8x8Idx.y() + 1 ) * 4 * m_uiWidthInMB + ( 4*uiMbX + c8x8Idx.x() + 1 ) };
+        TCoeff* piCoeff         = rcMbData.getMbTCoeffs().get8x8( c8x8Idx );
+
+        //===== set block mode =====
+        m_apaucScanPosMap[0][auiBlockIdx[0]] = 64;
+        m_apaucScanPosMap[0][auiBlockIdx[1]] = 0;
+        m_apaucScanPosMap[0][auiBlockIdx[2]] = 0;
+        m_apaucScanPosMap[0][auiBlockIdx[3]] = 0;
+
+        m_paucBlockMap[auiBlockIdx[0]] = m_paucSubMbMap[uiSubMbIndex];
+        m_paucBlockMap[auiBlockIdx[1]] = m_paucSubMbMap[uiSubMbIndex];
+        m_paucBlockMap[auiBlockIdx[2]] = m_paucSubMbMap[uiSubMbIndex];
+        m_paucBlockMap[auiBlockIdx[3]] = m_paucSubMbMap[uiSubMbIndex];
+
+        //===== set transform coefficients =====
+        for( UInt ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
+        {
+          UInt  uiS = ui8x8ScanIndex/4;
+          UInt  uiB = auiBlockIdx[ui8x8ScanIndex%4];
+          m_apaucLumaCoefMap[uiS][uiB] = ( piCoeff[g_aucFrameScan64[ui8x8ScanIndex]] ? SIGNIFICANT : CLEAR );
+
+          if (m_apaucLumaCoefMap[uiS][uiB] & SIGNIFICANT)
+          {
+            if (piCoeff[g_aucFrameScan64[ui8x8ScanIndex]] < 0)
+              m_apaucLumaCoefMap[uiS][uiB] |= BASE_SIGN;
+          }
+          if( !( m_apaucLumaCoefMap[uiS][uiB] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][auiBlockIdx[0]] == 64 )
+            m_apaucScanPosMap[0][auiBlockIdx[0]] = ui8x8ScanIndex;
+        }
+      }
+      else
+      {
+        for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+        {
+          UInt    uiBlockIdx  = ( 4*uiMbY + cIdx.y() ) * 4 * m_uiWidthInMB + ( 4*uiMbX + cIdx.x() );
+          TCoeff* piCoeff     = rcMbData.getMbTCoeffs().get( cIdx );
+          UChar   ucBlockSig  = CLEAR;
+
+          m_apaucScanPosMap[0][uiBlockIdx] = 16;
+
+          //===== set transform coefficients =====
+          for( UInt uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
+          {
+            if( piCoeff[g_aucFrameScan[uiScanIndex]] )
+            {
+              m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] = SIGNIFICANT;
+              ucBlockSig                                  = SIGNIFICANT;
+
+              if (piCoeff[g_aucFrameScan[uiScanIndex]] < 0)
+                m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] |= BASE_SIGN;
+            }
+            else
+            {
+              m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] = CLEAR;
+            }
+            if( !( m_apaucLumaCoefMap[uiScanIndex][uiBlockIdx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[0][uiBlockIdx] == 16 )
+              m_apaucScanPosMap[0][uiBlockIdx] = uiScanIndex;
+          }
+
+          //===== set block mode =====
+          m_paucBlockMap[uiBlockIdx] = ucBlockSig;
+        }
+      }
+    }
+
+
+    //--- CHROMA DC ---
+    for( UInt uiPlane = 0; uiPlane < 2; uiPlane++ )
+    {
+      TCoeff* piCoeff     = rcMbData.getMbTCoeffs().get( CIdx(4*uiPlane) );
+      UChar   ucBlockSig  = CLEAR;
+
+      m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = 4;
+      for( UInt ui = 0; ui < 4; ui++ )
+      {
+        if( piCoeff[g_aucIndexChromaDCScan[ui]] )
+        {
+          m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] = SIGNIFICANT;
+          ucBlockSig                                      = SIGNIFICANT;
+
+          if (piCoeff[g_aucIndexChromaDCScan[ui]] < 0)
+            m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] |= BASE_SIGN;
+        }
+        else
+        {
+          m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] = CLEAR;
+        }
+        if( !( m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbIndex] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[uiPlane + 1][uiMbIndex] == 4 )
+          m_apaucScanPosMap[uiPlane + 1][uiMbIndex] = ui;
+      }
+      m_apaucChromaDCBlockMap[uiPlane][uiMbIndex] = ucBlockSig;
+    }
+
+    //--- CHROMA AC ---
+    for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
+    {
+      UInt    ui8x8Idx    = ( 2*uiMbY + cCIdx.y() ) * 2 * m_uiWidthInMB + ( 2 * uiMbX + cCIdx.x() );
+      TCoeff* piCoeff     = rcMbData.getMbTCoeffs().get( cCIdx );
+      UChar   ucBlockSig  = CLEAR;
+
+      m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = 16;
+      for( UInt ui = 1; ui < 16; ui++ )
+      {
+        if( piCoeff[g_aucFrameScan[ui]] )
+        {
+          m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx]  = SIGNIFICANT;
+          ucBlockSig                                            = SIGNIFICANT;
+
+          if (piCoeff[g_aucFrameScan[ui]] < 0)
+            m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] |= BASE_SIGN;
+        }
+        else
+        {
+          m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx]  = CLEAR;
+        }
+        if( !( m_aapaucChromaACCoefMap[cCIdx.plane()][ui][ui8x8Idx] & (SIGNIFICANT|CODED) ) && m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] == 16 )
+          m_apaucScanPosMap[cCIdx.plane() + 3][ui8x8Idx] = ui;
+      }
+      m_apaucChromaACBlockMap[cCIdx.plane()][ui8x8Idx] = ucBlockSig;
+    }
+
+	//--ICU/ETRI FMO Implementation
+    if(pcSliceHeader !=NULL)
+      uiMbAddress = pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+    else
+      uiMbAddress ++;
+  }
+  }
+
+  return Err::m_nOK;
+}
+
+
+// FGS FMO ICU/ETRI
+ErrVal
+FGSCoder::xUpdateCodingPath(SliceHeader* pcSliceHeader)
+{
+  //--ICU/ETRI FMO Implementation 1206
+  UInt uiFirstMbInSlice;
+  UInt uiLastMbInSlice;
+
+  if(pcSliceHeader !=NULL)
+  {
+    uiFirstMbInSlice  = pcSliceHeader->getFirstMbInSlice();
+    uiLastMbInSlice  = pcSliceHeader->getLastMbInSlice();  
+  }
+  else
+  {
+    uiFirstMbInSlice =0;
+    uiLastMbInSlice  = (m_uiWidthInMB*m_uiHeightInMB) -1;
+
+  }
+
+  for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+  {
+    UInt uiMbY  = uiMbAddress / m_uiWidthInMB;
+    UInt uiMbX  = uiMbAddress % m_uiWidthInMB;
+
+    MbDataAccess* pcMbDataAccessBL = 0;
+    MbDataAccess* pcMbDataAccessEL = 0;
+    RNOK( m_pcCurrMbDataCtrl->initMb( pcMbDataAccessBL, uiMbY, uiMbX ) );
+    RNOK( m_cMbDataCtrlEL    .initMb( pcMbDataAccessEL, uiMbY, uiMbX ) );
+
+    //===== scale enhancement layer coefficients =====
+    pcMbDataAccessEL->getMbData().setTransformSize8x8( pcMbDataAccessBL->getMbData().isTransformSize8x8() );    
+    RNOK( xScaleTCoeffs( *pcMbDataAccessEL, false ) );
+  
+    //===== update coefficients, CBP, QP =====
+    RNOK( xUpdateMacroblock( *pcMbDataAccessBL, *pcMbDataAccessEL, uiMbY, uiMbX ) );
+
+    //--ICU/ETRI FMO Implementation
+    if(pcSliceHeader !=NULL)
+      uiMbAddress = pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+    else
+      uiMbAddress ++;
+
+  }
 
   return Err::m_nOK;
 }

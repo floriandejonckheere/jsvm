@@ -422,6 +422,7 @@ protected:
                                                 PicBufferList&                rcUnusedList,
                                                 Bool                          bReconstructionLayer );
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
+
   ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer );
 
   ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,
@@ -491,7 +492,9 @@ protected:
   Bool                m_bCompletelyDecodeLayer;
 #endif
   
+  // ROI DECODE ICU/ETRI
   Int m_iMbProcessed;
+  Bool m_bIsNewPic;
 };
 
 H264AVC_NAMESPACE_END

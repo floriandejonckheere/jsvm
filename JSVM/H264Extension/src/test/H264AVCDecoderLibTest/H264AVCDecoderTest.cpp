@@ -473,6 +473,9 @@ ErrVal H264AVCDecoderTest::go()
 		    
 					// decode the NAL unit
 					RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
+
+					// ROI DECODE ICU/ETRI
+					m_pcH264AVCDecoder->RoiDecodeInit();
 			    
 					// picture output
 					while( ! cPicBufferOutputList.empty() )
@@ -681,6 +684,9 @@ ErrVal H264AVCDecoderTest::go()
 
     // decode the NAL unit
     RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
+
+	// ROI DECODE ICU/ETRI
+	m_pcH264AVCDecoder->RoiDecodeInit();
     
     // picture output
     while( ! cPicBufferOutputList.empty() )

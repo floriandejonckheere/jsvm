@@ -121,10 +121,27 @@ class FMO
 	//enc
 	int FirstMBInSlice[Max_Num_Slice_Groups];
 
+	static Bool m_siSGId[Max_Num_Slice_Groups];
+	static int  m_iPOC, m_iFrame;
+
 public :
 	ImageParameter img_;         //!< image parameters
 	FMO_PPS pps_;
 	FMO_SPS sps_;
+
+	Void setCodedSG(int sgID, int POC)//, int frame) 
+	{ 		
+		if (POC != m_iPOC)// || frame != m_iFrame)
+		{
+			m_iPOC = POC;
+		//	m_iFrame = frame;
+			initCodedSG();
+		}
+		m_siSGId[sgID] = true;	
+	}
+	Void setCodedSG(int sgId) { m_siSGId[sgId] = true; }
+	Bool isCodedSG(int sgId) { return m_siSGId[sgId]; }
+	Void initCodedSG() { for (int i = 0; i < 8; i++) m_siSGId[i] = false; }
 
 
 public:
@@ -161,6 +178,10 @@ public:
 	unsigned int GetYBottomRight(int iGroup);
 	unsigned int GetXBottomRight(int iGroup);
 
+  // JVT-S054 (2) (ADD) ->
+  UInt getNumMbsInSlice(UInt uiFirstMbInSlice, UInt uiLastMbInSlice);
+  int getLastMbInSlice(UInt uiFirstMbInSlice, UInt uiNumMbsInSlice);
+  // JVT-S054 (2) (ADD) <-
 
 private:
 	void GenerateType0MapUnitMap ();

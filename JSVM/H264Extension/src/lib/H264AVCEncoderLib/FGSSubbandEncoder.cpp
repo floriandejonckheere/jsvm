@@ -94,6 +94,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/TraceFile.h"
 
 
+#include "H264AVCCommonLib/CFMO.h"
+
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -359,32 +361,74 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   const_cast<SequenceParameterSet&>(m_pcSliceHeader->getSPS()).setIndependentParsing( false );
 #endif
 
-  //JVT-P031
-  if( ! uiFrac )
-  {
-    RNOK ( xMotionEstimation() );
-    RNOK ( xResidualTransform() );
-  }
+
   RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, uiFrac, pFile ) );
 #if INDEPENDENT_PARSING
   const_cast<SequenceParameterSet&>(m_pcSliceHeader->getSPS()).setIndependentParsing( bIndPar );
 #endif
   ROTRS( rbFinished, Err::m_nOK );
 
-  //FIX_FRAG_CAVLC
-  if((bFragmented && (uiFrac != 0 || !rbCorrupted) ) || !bFragmented)
-  {
-    //~FIX_FRAG_CAVLC
-  Int iOldSliceQP     = m_pcSliceHeader->getPicQp();
-  Int iNewSliceQP     = max( 0, iOldSliceQP - RQ_QP_DELTA );
-  rbFinished          = ( iNewSliceQP == iOldSliceQP );
-  if((bFragmented && uiFrac != 0) || !bFragmented)
-      m_pcSliceHeader->setQualityLevel ( m_pcSliceHeader->getQualityLevel() + 1 );
-  m_pcSliceHeader->setSliceHeaderQp       ( iNewSliceQP );
-  m_dLambda          /= pow( 2.0, (Double)(iOldSliceQP-iNewSliceQP) / 3.0 );
-   } //FIX_FRAG_CAVLC
+
   //~JVT-P031
   return Err::m_nOK;
+}
+
+
+// FGS FMO ICU/ETRI
+ErrVal
+RQFGSEncoder::updateQP(Bool&  rbCorrupted, Bool& rbFinished, Bool bFragmented, UInt uiFrac,Bool isLastSlice)
+{
+	
+  if(isLastSlice == false)
+	  return Err::m_nOK;
+
+	//FIX_FRAG_CAVLC
+  if((bFragmented && (uiFrac != 0 || !rbCorrupted) ) || !bFragmented)
+  {
+	  Int iOldSliceQP     = m_pcSliceHeader->getPicQp();
+	  Int iNewSliceQP     = max( 0, iOldSliceQP - RQ_QP_DELTA );
+	  rbFinished          = ( iNewSliceQP == iOldSliceQP );
+
+	  if((bFragmented && uiFrac != 0) || !bFragmented)
+		  m_pcSliceHeader->setQualityLevel ( m_pcSliceHeader->getQualityLevel() + 1 );
+  
+	  m_pcSliceHeader->setSliceHeaderQp       ( iNewSliceQP );
+	  m_dLambda          /= pow( 2.0, (Double)(iOldSliceQP-iNewSliceQP) / 3.0 );
+  }  //FIX_FRAG_CAVLC
+ 
+
+
+  return Err::m_nOK;
+}
+
+// FGS FMO ICU/ETRI
+ErrVal
+RQFGSEncoder::setSliceGroup(Int iSliceGroupID)
+{
+  FMO* pcFMO = m_pcSliceHeader->getFMO();
+  m_pcSliceHeader->setFirstMbInSlice(pcFMO->getFirstMacroblockInSlice(iSliceGroupID));
+  m_pcSliceHeader->setLastMbInSlice(pcFMO->getLastMBInSliceGroup(iSliceGroupID));
+  // JVT-S054 (2) (ADD)
+  m_pcSliceHeader->setNumMbsInSlice(pcFMO->getNumMbsInSlice(m_pcSliceHeader->getFirstMbInSlice(), m_pcSliceHeader->getLastMbInSlice()));
+  return Err::m_nOK;
+}
+
+
+// FGS FMO ICU/ETRI
+ErrVal
+RQFGSEncoder::prepareEncode(UInt uiFrac, UInt uiFracNb)
+{
+	if( ! uiFrac )
+	{
+		RNOK ( xMotionEstimation() );
+		RNOK ( xResidualTransform() );
+	}
+	
+	if( uiFracNb )
+	{
+		RNOK( xRestoreCodingPath() );
+	}
+	return Err::m_nOK;
 }
 
 
@@ -1084,9 +1128,29 @@ ErrVal RQFGSEncoder::xSaveCodingPath()
 
 ErrVal RQFGSEncoder::xRestoreCodingPath()
 {
-    for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
+	//--ICU/ETRI FMO
+	UInt uiFirstMbInSlice;
+	UInt uiLastMbInSlice;
+	
+	if(m_pcSliceHeader !=NULL)
+	{
+		uiFirstMbInSlice  = m_pcSliceHeader->getFirstMbInSlice();
+		uiLastMbInSlice  = m_pcSliceHeader->getLastMbInSlice();  
+	}
+	else
+	{
+		uiFirstMbInSlice =0;
+		uiLastMbInSlice  = (m_uiWidthInMB*m_uiHeightInMB) -1;
+		
+	}
+
+	for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+	{
+    UInt uiMbY  = uiMbAddress / m_uiWidthInMB;
+    UInt uiMbX  = uiMbAddress % m_uiWidthInMB;
+
+
   {
-    for( UInt uiMbX = 0; uiMbX < m_uiWidthInMB;  uiMbX++ )
     {
       //-------------------------------------------------------
       //--- Get MbData for BL and EL
@@ -1104,8 +1168,15 @@ ErrVal RQFGSEncoder::xRestoreCodingPath()
       m_cMbDataCtrlEL.getMbData(uiMbX,uiMbY).getMbTCoeffs().copyFrom(*m_aMyELTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB]);
       m_pcCurrMbDataCtrl->getMbData(uiMbX,uiMbY).getMbTCoeffs().copyFrom(*m_aMyBLTransformCoefs[uiMbY+uiMbX*m_uiHeightInMB]);
       pcMbDataAccessEL->getMbData().setTransformSize8x8( m_abELtransform8x8[uiMbY+uiMbX*m_uiHeightInMB] );
+
+			//--ICU/ETRI FMO Implementation
+	  if(m_pcSliceHeader !=NULL)
+	    uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+	  else
+	   uiMbAddress ++;
     }
   }
+	}	
     delete []m_aMyELTransformCoefs;
     delete []m_aMyBLTransformCoefs;
     delete []m_auiMbCbpStored;
@@ -1233,13 +1304,14 @@ RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
   MbDataAccess *pcMbDataAccessEL, *pcMbDataAccessBL;
   Bool bLumaCbpCodedFlag = false;
 
-  for( uiMbYIdx = uiLumaCbpNextMbY; uiMbYIdx < uiLastMbY;  uiMbYIdx ++ )
-  {
-    UInt uiRowFirstMbX  = ( uiMbYIdx == uiLumaCbpNextMbY ) ? uiLumaCbpNextMbX : 0;
-    UInt uiRowLastMbX   = ( uiMbYIdx == uiLastMbY ) ? uiLastMbX : m_uiWidthInMB;
+  UInt uiFirstMbInSlice  = uiLumaCbpNextMbY*m_uiWidthInMB+uiLumaCbpNextMbX ;
+  UInt uiLastMbInSlice   = uiLastMbY*m_uiWidthInMB+uiLastMbX ;
 
-    for( uiMbXIdx = uiRowFirstMbX; uiMbXIdx < uiRowLastMbX; uiMbXIdx ++ )
-    {
+  for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+  {
+        uiMbYIdx = uiMbAddress / m_uiWidthInMB;
+        uiMbXIdx = uiMbAddress % m_uiWidthInMB;		
+    
       RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
       RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
 
@@ -1263,11 +1335,14 @@ RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
       }
       else
         pcMbDataAccessEL->getMbData().setMbCbp(pcMbDataAccessEL->getMbData().getMbCbp() | uiLumaCbpBase);
-    }
+    
 
     if( bLumaCbpCodedFlag )
       break;
-  }
+  
+		//--ICU/ETRI FMO Implementation
+    uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+  }	
 
   uiLumaCbpNextMbX       = uiMbXIdx;
   uiLumaCbpNextMbY       = uiMbYIdx;
@@ -1300,12 +1375,14 @@ RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
   if( uiCurrMbIdxX != uiLumaCbpNextMbX || uiCurrMbIdxY != uiLumaCbpNextMbY )
     return Err::m_nOK;
 
-  for( UInt uiMbYIdx = uiLumaCbpNextMbY; uiMbYIdx < uiLastMbY;  uiMbYIdx ++ )
-  {
-    UInt uiRowFirstMbX  = ( uiMbYIdx == uiLumaCbpNextMbY ) ? uiLumaCbpNextMbX : 0;
-    UInt uiRowLastMbX   = ( uiMbYIdx == uiLastMbY ) ? uiLastMbX : m_uiWidthInMB;
+  UInt uiFirstMbInSlice  = uiLumaCbpNextMbY*m_uiWidthInMB+uiLumaCbpNextMbX ;
+  UInt uiLastMbInSlice   = uiLastMbY*m_uiWidthInMB+uiLastMbX ;
 
-    for( UInt uiMbXIdx = uiRowFirstMbX; uiMbXIdx < uiRowLastMbX; uiMbXIdx ++ )
+  for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+  {
+        UInt uiMbYIdx = uiMbAddress / m_uiWidthInMB;
+        UInt uiMbXIdx = uiMbAddress % m_uiWidthInMB;
+  {
     {
       RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
       RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
@@ -1354,6 +1431,10 @@ RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
       bFirstMb = false;
     }
   }
+
+  uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+
+  } // end for FGS ROI 1
 
   if( m_uiLumaCbpRun > 0 )
   {
@@ -1415,12 +1496,15 @@ RQFGSEncoder::xEncodeChromaCbpVlc(UInt  uiCurrMbIdxX,
   if( uiCurrMbIdxX != uiChromaCbpNextMbX || uiCurrMbIdxY != uiChromaCbpNextMbY )
     return Err::m_nOK;
 
-  for( UInt uiMbYIdx = uiChromaCbpNextMbY; uiMbYIdx < uiLastMbY;  uiMbYIdx ++ )
-  {
-    UInt uiRowFirstMbX  = ( uiMbYIdx == uiChromaCbpNextMbY ) ? uiChromaCbpNextMbX : 0;
-    UInt uiRowLastMbX   = ( uiMbYIdx == uiLastMbY ) ? uiLastMbX : m_uiWidthInMB;
+  UInt uiFirstMbInSlice  = uiChromaCbpNextMbY*m_uiWidthInMB+uiChromaCbpNextMbX ;
+  UInt uiLastMbInSlice   = uiLastMbY*m_uiWidthInMB+uiLastMbX ;
 
-    for( UInt uiMbXIdx = uiRowFirstMbX; uiMbXIdx < uiRowLastMbX; uiMbXIdx ++ )
+
+  for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+  {
+	UInt uiMbYIdx = uiMbAddress / m_uiWidthInMB;
+    UInt uiMbXIdx = uiMbAddress % m_uiWidthInMB;
+	{
     {
       RNOK( m_cMbDataCtrlEL.initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
       UInt uiChromaCbp = (pcMbDataAccessEL->getMbData().getMbCbp() >> 4);
@@ -1450,6 +1534,9 @@ RQFGSEncoder::xEncodeChromaCbpVlc(UInt  uiCurrMbIdxX,
       }
     }
   }
+
+  uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+  }	
 
   if( m_uiChromaCbpRun > 0 )
   {
@@ -1498,11 +1585,6 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 
   AOT( m_pcSymbolWriter == 0);
   m_pcSliceHeader->setSliceType( F_SLICE );
-
-  if( uiFracNb )
-  {
-    RNOK( xRestoreCodingPath() );
-  }
   
   rbCorrupted = false;
   Int iLastQP = m_pcSliceHeader->getPicQp();
@@ -1558,10 +1640,17 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       UInt iChromaACScanIdx = 1;
       UInt uiPass;
       UInt uiPassStart;
+
+	  m_uiFirstMbInSlice  = m_pcSliceHeader->getFirstMbInSlice();
+      UInt uiLastMbInSlice  = m_pcSliceHeader->getLastMbInSlice();        
+
+	  //--ICU/ETRI FMO Implementation : start            
       UInt uiFirstMbY = (UInt) ( m_uiFirstMbInSlice / m_uiWidthInMB );
       UInt uiFirstMbX = m_uiFirstMbInSlice % m_uiWidthInMB;
-      UInt uiLastMbY  = (UInt) ( ( m_uiFirstMbInSlice + m_uiNumMbsInSlice ) / m_uiWidthInMB );
-      UInt uiLastMbX  = ( m_uiFirstMbInSlice + m_uiNumMbsInSlice ) % m_uiWidthInMB;
+      UInt uiLastMbY  = (UInt) ( ( uiLastMbInSlice+1) / m_uiWidthInMB );
+      UInt uiLastMbX  = ( uiLastMbInSlice+1) % m_uiWidthInMB;
+
+
       if(!uiFracNb) //FIX_FRAG_CAVLC
       {
       // Pre-scan frame to find VLC positions
@@ -1574,9 +1663,11 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       ::memset(pauiHistLuma  , 0x00, 16*16*16*sizeof(UInt));
       ::memset(pauiHistChroma, 0x00, 16*16*16*sizeof(UInt));
       ::memset(auiHighMagHist, 0x00,       16*sizeof(UInt));
-      
-      for( UInt uiMbYIdx = uiFirstMbY; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
-      for( UInt uiMbXIdx = ( uiMbYIdx == uiFirstMbY ? uiFirstMbX : 0 ); uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
+
+      for(UInt uiMbAddress=m_uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+	  {
+        UInt uiMbYIdx = uiMbAddress / m_uiWidthInMB;
+        UInt uiMbXIdx = uiMbAddress % m_uiWidthInMB;
       {
         //===== LUMA =====
         for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
@@ -1593,8 +1684,12 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ )
         for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ) {
             RNOK( xVLCParseChromaAC( uiPlane, uiB8YIdx, uiB8XIdx, pauiHistChroma ) );
-        } // for
+        } 
       } // macroblock iteration
+
+		//--ICU/ETRI FMO Implementation
+        uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+	  }
       
       RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
       RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
@@ -1839,9 +1934,11 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           uiMaxPosChromaDC = m_auiScanPosVectChromaDC[ui];
         }
 
-          for( UInt uiMbYIdx = m_uiMbYIdx; uiMbYIdx < uiLastMbY; uiMbYIdx++ )
-          {
-            for( UInt uiMbXIdx = m_uiMbXIdx; uiMbXIdx < ( uiMbYIdx == uiLastMbY ? uiLastMbX : m_uiWidthInMB );  uiMbXIdx++ )
+		for(UInt uiMbAddress=m_uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice;)
+		{
+			UInt uiMbYIdx = uiMbAddress / m_uiWidthInMB;
+			UInt uiMbXIdx = uiMbAddress % m_uiWidthInMB;			
+			{
             {
               if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
                   ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
@@ -1980,8 +2077,12 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
               RNOK( m_pcSymbolWriter->RQupdateVlcTable() );
 
             } // macroblock iteration
-            m_uiMbXIdx = 0;
           }
+
+		  //--ICU/ETRI FMO Implementation
+		  uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+		  }	
+
           RNOK( m_pcSymbolWriter->RQvlcFlush() );
 
           m_uiMbYIdx = uiFirstMbY;
@@ -2030,8 +2131,7 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   rbFinished      = rbCorrupted || ( m_iRemainingTCoeff == 0 );
   RNOK( m_pcSymbolWriter->finishSlice() );
 
-
-  RNOK( xUpdateCodingPath() );
+  RNOK( xUpdateCodingPath(m_pcSliceHeader) );
 
   RNOK( xClearCodingPath() );
 

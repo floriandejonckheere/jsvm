@@ -177,6 +177,11 @@ public:
 
     return Err::m_nOK;
   }
+
+  //-- ICU/ETRI FMO Implementation 1206
+  ErrVal            updateQP(Bool&  rbCorrupted, Bool& rbFinished, Bool bFragmented, UInt uiFrac, Bool isLastSlice);
+  ErrVal            setSliceGroup(Int iSliceGroupID);
+  ErrVal            prepareEncode(UInt uiFrac, UInt uiFracNb);
   
 private:
   ErrVal            xVLCParseLuma         ( UInt   uiBlockYIndex,

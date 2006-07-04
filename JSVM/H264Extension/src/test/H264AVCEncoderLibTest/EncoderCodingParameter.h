@@ -199,6 +199,7 @@ protected:
   ErrVal  xReadLine          ( FILE*                   hFile,
                                std::string*            pacTag );
   ErrVal xReadSliceGroupCfg(h264::LayerParameters&  rcLayer );
+  ErrVal xReadROICfg(h264::LayerParameters&  rcLayer );
 };
 
 
@@ -888,6 +889,8 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgDrFlag",&(bSliceGroupChangeDirection_flag),         0       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgRtMus1",&(rcLayer.m_uiSliceGroupChangeRateMinus1),           85       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumROI", &(rcLayer.m_uiNumROI),                  0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ROICfgFileNm",&rcLayer.m_cROIConfigFileName,             "roicfg.cfg" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSMotion",      &(rcLayer.m_uiFGSMotionMode),							0		);
 // JVT-Q065 EIDR{
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	  &(rcLayer.m_iIDRPeriod),								0		);
@@ -995,6 +998,9 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   RNOK( xReadSliceGroupCfg( rcLayer)); //Slice group configuration file
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
+  // ROI Config ICU/ETRI
+  RNOK( xReadROICfg( rcLayer)); 
+
   ::fclose(f);
 
   return Err::m_nOK;
@@ -1078,6 +1084,43 @@ ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLay
 	}
 	return Err::m_nOK;
 
+}
+
+
+// ROI Config Read ICU/ETRI
+ErrVal EncoderCodingParameter::xReadROICfg( h264::LayerParameters&  rcLayer )
+{
+	UInt i;
+ 	FILE* roifile=NULL;
+
+	if ( (0 < rcLayer.getNumROI()) )
+	{
+		if ( ! rcLayer.getROIConfigFileName().empty() &&
+         ( roifile = fopen( rcLayer.getROIConfigFileName().c_str(), "r" ) ) == NULL )
+		{
+			printf("Error open file %s", rcLayer.getROIConfigFileName().c_str() );
+		}
+
+		else
+		{
+			// every two lines contain 'top_left' and 'bottom_right' value
+			for(i=0;i<rcLayer.getNumROI(); i++)
+			{
+				fscanf(roifile, "%d",(rcLayer.getROIID()+i));
+				fscanf(roifile, "%*[^\n]");
+				fscanf(roifile, "%d",(rcLayer.getSGID()+i));
+				fscanf(roifile, "%*[^\n]");
+				fscanf(roifile, "%d",(rcLayer.getSLID()+i));
+				fscanf(roifile, "%*[^\n]");
+			}
+
+			fclose(roifile);
+		}
+
+	}
+	
+	
+	return Err::m_nOK;
 }
 
 #endif // !defined(AFX_ENCODERCODINGPARAMETER_H__145580A5_E0D6_4E9C_820F_EA4EF1E1B793__INCLUDED_)

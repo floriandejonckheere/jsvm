@@ -116,6 +116,10 @@ ExtractorParameter::ExtractorParameter()
 , m_uiSuffixUnitEnable(0)
 //S051}
 
+
+// Test DJ
+, m_bROIFlag (false)
+
 //JVT-S043
 , m_eQLExtractionMode(QL_EXTRACTOR_MODE_JOINT)
 
@@ -357,6 +361,14 @@ ExtractorParameter::init( Int     argc,
         continue;
     }
 
+	//--TEST DJ 0602
+	//--DY 1009
+	if( equal( "-r", argv[iArg] ) )
+    {
+       ErrVal errVal  = xParseFormatStringROI_Only( argv[++iArg], cPoint );
+       continue;
+    }
+
     //JVT-S043
     if(equal( "-qlord", argv[iArg] ))
     {
@@ -418,4 +430,48 @@ ExtractorParameter::xPrintUsage( Char **argv )
 	 	     "Other options can only be used separately.\n" );
 	printf("\n");
   RERRS();
+}
+
+
+
+//--TEST DJ 0602
+ErrVal
+ExtractorParameter::xParseFormatStringROI_Only( Char*   pFormatString, Point&  rcPoint  )
+{
+	std::string inputpara = pFormatString;
+	int iParaLength = inputpara.length();
+
+	iExtractedNumROI = ( iParaLength + 1 )/2;
+
+	Char  acSearch  [5] = "////";
+	Char* pSubString[5] = { 0, 0, 0, 0, 0 };
+	UInt  uiPos         = 0;
+	UInt  uiIndex = 0;
+	//===== set sub-strings =====
+	for( uiIndex = 0; uiIndex < 7; uiIndex++ )
+	{
+		while( pFormatString[uiPos] != '\0' )
+		{
+			if ( pFormatString[uiPos++] == acSearch[uiIndex] )
+			{
+				pFormatString [uiPos-1] =	'\0';
+				pSubString    [uiIndex] =	pFormatString;
+				pFormatString           =	&pFormatString[uiPos];
+				uiPos                   =	0;
+				break;
+			}
+		}
+	}
+
+	uiIndex = iExtractedNumROI;
+	pSubString[uiIndex-1] = pFormatString;
+
+	for(int i=0;i<uiIndex; i++)
+	{
+		ROFS( pSubString[i] );
+		rcPoint.uiROI[i]    = atoi( pSubString[i] );
+	}
+
+	m_bROIFlag = true;
+	return Err::m_nOK;
 }

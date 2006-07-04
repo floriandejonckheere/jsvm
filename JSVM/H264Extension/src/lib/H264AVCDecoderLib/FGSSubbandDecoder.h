@@ -144,6 +144,8 @@ public:
   Bool              changed               ()    { return m_bPicChanged; }
   SliceHeader*      getSliceHeader        ()    { return m_pcCurrSliceHeader; }
 
+  Bool				isFirstFGS			()		{ return m_bFirstFGS; }
+  Void				SetIsFirstFGS		(Bool b) { m_bFirstFGS = b; }
 
 private:
   ErrVal            xDecodeLumaCbpVlc     ( UInt                        uiCurrMbIdxX,
@@ -152,6 +154,7 @@ private:
                                             UInt                        uiCurrMbIdxY );
   ErrVal            xScaleBaseLayerCoeffs ();
   ErrVal            xDecodingFGS                  ();
+  ErrVal			xDecodingFGS		( SliceHeader*                pcSliceHeader 	);
 
   ErrVal            xDecodeMotionData             ( UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx );
@@ -211,6 +214,7 @@ private:
   UInt              m_auiScanPosVectLuma    [16];
   UInt              m_auiScanPosVectChromaDC[ 4];
 
+  Bool				m_bFirstFGS;
 };
 
 

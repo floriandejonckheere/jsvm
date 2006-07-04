@@ -370,6 +370,11 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 		UInt uiActTempLevel   = uiTotalTempLevel - uiMinTempLevel + 1;
 		UInt uiTotalFGSLevel  = (UInt)rcLayer.getNumFGSLayers () + 1;
 		uiLayerNum += uiActTempLevel * uiTotalFGSLevel;
+
+		pcScalableSEI->setROINum ( i, rcLayer.getNumROI() );
+		pcScalableSEI->setROIID  ( i, rcLayer.getROIID() );
+		pcScalableSEI->setSGID  ( i, rcLayer.getSGID() );
+		pcScalableSEI->setSLID  ( i, rcLayer.getSLID() );
 	}
 	UInt uiTotalScalableLayer = 0;
 
@@ -379,6 +384,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	UInt uiNumLayersMinus1 = uiLayerNum - 1;
 
 	pcScalableSEI->setNumLayersMinus1 ( uiNumLayersMinus1 );
+
 
 	UInt uiNumScalableLayer = 0;
 	for ( UInt uiCurrLayer = 0; uiCurrLayer < uiInputLayers; uiCurrLayer++)
@@ -863,6 +869,53 @@ H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor )
 	return Err::m_nOK;
 }
 
+
+ErrVal
+H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt layer_id )
+{
+	SEI::SubPicSei* pcSubPicSEI;
+	RNOK( SEI::SubPicSei::create( pcSubPicSEI ) );
+
+  //===== set message =====
+	pcSubPicSEI->setLayerId( layer_id );
+  
+	//===== write message =====
+  UInt              uiBits = 0;
+  SEI::MessageList  cSEIMessageList;
+  cSEIMessageList.push_back                       ( pcSubPicSEI );
+  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+
+	return Err::m_nOK;
+}
+
+// Scalable SEI for ROI ICU/ETRI
+ErrVal
+H264AVCEncoder::xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id ) 
+{
+  //===== create message =====
+  SEI::MotionSEI* pcMotionSEI;
+  RNOK( SEI::MotionSEI::create( pcMotionSEI) );
+
+  pcMotionSEI->setSliceGroupId(sg_id);
+
+
+  //===== write message =====
+  UInt              uiBits = 0;
+  SEI::MessageList  cSEIMessageList;
+  cSEIMessageList.push_back                       ( pcMotionSEI);
+  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+
+  return Err::m_nOK;
+}
+
+Bool    m_bWrteROISEI = true;
+UInt    m_loop_roi_sei=0;
+
+
 ErrVal
 H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bool &rbMoreSets )
 {
@@ -874,10 +927,39 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
     if( m_bScalableSeiMessage )
     RNOK( xWriteScalableSEI( pcExtBinDataAccessor ) );
 
+	LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( 0 );
+	if (0 < rcLayer.getNumROI())
+		m_bWrteROISEI = true;
+	else
+		m_bWrteROISEI = false;
+    m_loop_roi_sei=0;
+
     return Err::m_nOK;
   }
   else
     m_bScalableSeiMessage = true;
+
+  UInt uiNumLayer = m_pcCodingParameter->getNumberOfLayers();
+	
+  if(m_bWrteROISEI)
+  {
+	LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( m_loop_roi_sei/2 );
+	{
+	  if(((m_loop_roi_sei+1)/2) >= uiNumLayer )
+	  {
+		m_bWrteROISEI = false;
+	  }
+
+	  if(m_loop_roi_sei%2)
+	  {			
+		RNOK( xWriteMotionSEI( pcExtBinDataAccessor,rcLayer.getSGID()[0] ) );    m_loop_roi_sei++; return Err::m_nOK;
+	  }
+	  else
+	  {
+	    RNOK( xWriteSubPicSEI( pcExtBinDataAccessor, rcLayer.getSLID()[0] ) );    m_loop_roi_sei++; return Err::m_nOK;
+	  }
+    }		
+  }
     
   UInt uiBits;
 
@@ -885,16 +967,6 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
   {
     RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
     SequenceParameterSet& rcSPS = *m_cUnWrittenSPS.front();
-    // Copy simple priority ID mapping into SPS
-   /* rcSPS.setNalUnitExtFlag ( m_pcCodingParameter->getExtendedPriorityId() );
-    for ( UInt uiPriId = 0; uiPriId < m_pcCodingParameter->getNumSimplePris(); uiPriId++)
-    {
-        UInt uiTempLevel, uiLayer, uiQualLevel;
-        m_pcCodingParameter->getSimplePriorityMap ( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
-        rcSPS.setSimplePriorityMap( uiPriId, uiTempLevel, uiLayer, uiQualLevel );
-    }
-    rcSPS.setNumSimplePriIdVals( m_pcCodingParameter->getNumSimplePris() );
- JVT-S036 lsj */
     RNOK( m_pcNalUnitEncoder->write( rcSPS ) );
     RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
 

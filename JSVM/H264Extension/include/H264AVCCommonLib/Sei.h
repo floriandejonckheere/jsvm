@@ -95,6 +95,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/HeaderSymbolWriteIf.h"
 #include <list>
 
+#define MAX_NUM_LAYER 6
+
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -116,6 +118,7 @@ public:
   enum MessageType
   {
     SUB_SEQ_INFO                          = 10,
+	MOTION_SEI                            = 18,
     SCALABLE_SEI                          = 22,
 		SUB_PIC_SEI														= 23,
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
@@ -271,6 +274,30 @@ public:
 		Void setIroiSliceDivisionType ( UInt uilayer, UInt bType )								{ m_iroi_slice_division_type[uilayer] = bType; }
 		Void setGridSliceWidthInMbsMinus1 ( UInt uilayer, UInt bWidth )							{ m_grid_slice_width_in_mbs_minus1[uilayer] = bWidth; }
 		Void setGridSliceHeightInMbsMinus1 ( UInt uilayer, UInt bHeight )						{ m_grid_slice_height_in_mbs_minus1[uilayer] = bHeight; }
+
+		Void setROINum(UInt iDependencyId, UInt iNumROI)  		{ m_aiNumRoi[iDependencyId] = iNumROI; }
+		Void setROIID(UInt iDependencyId, UInt* iROIId)
+		{
+			for (UInt i =0; i < m_aiNumRoi[iDependencyId]; ++i)
+			{
+				m_aaiRoiID[iDependencyId][i] = iROIId[i];
+			}
+		}
+		Void setSGID(UInt iDependencyId, UInt* iSGId)
+		{
+			for (UInt i =0; i < m_aiNumRoi[iDependencyId]; ++i)
+			{
+				m_aaiSGID[iDependencyId][i] = iSGId[i];
+			}
+		}
+		Void setSLID(UInt iDependencyId, UInt* iSGId)
+		{
+			for (UInt i =0; i < m_aiNumRoi[iDependencyId]; ++i)
+			{
+				m_aaiSLID[iDependencyId][i] = iSGId[i];
+			}
+		}
+
 		// JVT-S054 (REPLACE) ->
 		//Void setNumSliceMinus1 ( UInt uilayer, UInt bNum ) 										{ m_num_slice_minus1[uilayer] = bNum; }
     Void setNumSliceMinus1 ( UInt uilayer, UInt bNum )
@@ -506,6 +533,11 @@ public:
 // BUG_FIX liuhui}
 		UInt m_init_parameter_sets_info_src_layer_id_delta[MAX_SCALABLE_LAYERS];//
 	//JVT-S036 lsj end
+
+		UInt m_aiNumRoi[MAX_SCALABLE_LAYERS];
+		UInt m_aaiRoiID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
+		UInt m_aaiSGID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
+		UInt m_aaiSLID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
 	};
 
 	class H264AVCCOMMONLIB_API SubPicSei : public SEIMessage
@@ -525,6 +557,27 @@ public:
 	private:
 		UInt m_uiLayerId;
 	};
+
+  class H264AVCCOMMONLIB_API MotionSEI : public SEIMessage
+  {
+
+  protected:
+    MotionSEI();
+    ~MotionSEI();
+
+  public:
+
+    UInt m_num_slice_groups_in_set_minus1;
+    UInt m_slice_group_id[8];
+    Bool m_exact_sample_value_match_flag;
+    Bool m_pan_scan_rect_flag;
+
+    static ErrVal create  ( MotionSEI*&         rpcSeiMessage );
+    ErrVal        write   ( HeaderSymbolWriteIf*  pcWriteIf );
+    ErrVal        read    ( HeaderSymbolReadIf*   pcReadIf );
+    ErrVal        setSliceGroupId(UInt id);
+	UInt          getSliceGroupId(){return m_slice_group_id[0];}
+  };
   
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)

@@ -95,7 +95,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/ReconstructionBypass.h"
 #include "H264AVCCommonLib/IntYuvMbBuffer.h"
 
-
+#include "H264AVCCommonLib/CFMO.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -233,8 +233,8 @@ ErrVal LoopFilter::uninit()
   return Err::m_nOK;
 }
 
-
-ErrVal LoopFilter::process( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer, IntYuvPicBuffer* pcHighpassYuvBuffer )
+ErrVal LoopFilter::process( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer, IntYuvPicBuffer* pcHighpassYuvBuffer
+							, bool  bAllSliceDone)
 {
   // Hanke@RWTH // switch off filter modifications
   setHighpassFramePointer();
@@ -244,24 +244,42 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffe
   ROT( NULL == m_pcControlMngIf );
 
   m_pcRecFrameUnit = const_cast<SliceHeader&>(rcSH).getFrameUnit();
-  const UInt uiMaxMbAddress = rcSH.getMbInPic();
 
-  RNOK( m_pcControlMngIf->initSlice( rcSH, POST_PROCESS ) );
+  RNOK( m_pcControlMngIf->initSlice( rcSH, POST_PROCESS ) );  
 
-  //===== loop over macroblocks use raster scan =====
-  for( UInt uiMbAddress = 0; uiMbAddress < uiMaxMbAddress; uiMbAddress++ )
+  //-> ICU/ETRI DS FMO Process
+  UInt uiFirstMbInSlice;
+  UInt uiLastMbInSlice;
+
+  FMO* pcFMO = rcSH.getFMO();  
+
+  for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)   
   {
-    MbDataAccess* pcMbDataAccess;
-    RNOK( m_pcControlMngIf->initMbForFiltering( pcMbDataAccess, uiMbAddress ) );
+	if (false == pcFMO->isCodedSG(iSliceGroupID) && false == bAllSliceDone)
+	{
+	  continue;
+	}
 
-    RNOK( xFilterMb( *pcMbDataAccess ) );
+	uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+	uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+
+    //===== loop over macroblocks use raster scan =====  
+    for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)    
+	{
+      MbDataAccess* pcMbDataAccess;
+      RNOK( m_pcControlMngIf->initMbForFiltering( pcMbDataAccess, uiMbAddress ) );
+
+	  RNOK( xFilterMb( *pcMbDataAccess ) );	
+
+	  uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );    
+	}  
   }
+  //<- ICU/ETRI DS
 
   m_pcHighpassYuvBuffer = NULL;
   m_pcIntYuvBuffer = NULL;
   return Err::m_nOK;
 }
-
 
 
 __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess& rcMbDataAccess )
@@ -895,87 +913,104 @@ __inline UInt LoopFilter::xGetHorFilterStrength( const MbDataAccess&  rcMbDataAc
 
 
 
-
-
-
-
 ErrVal LoopFilter::process( SliceHeader&  rcSH,
                             IntFrame*     pcFrame,
                             MbDataCtrl*   pcMbDataCtrlMot, // if NULL -> all intra
                             MbDataCtrl*   pcMbDataCtrlRes,
                             UInt          uiMbInRow,
                             RefFrameList* pcRefFrameList0,
-                            RefFrameList* pcRefFrameList1,
+                            RefFrameList* pcRefFrameList1,			
+							bool		  bAllSliceDone, 
                             bool          spatial_scalable_flg)  // SSUN@SHARP
 {
   ROT( NULL == m_pcControlMngIf );
-
-  const UInt uiMaxMbAddress = rcSH.getMbInPic();
 
   RNOK(   m_pcControlMngIf->initSliceForFiltering ( rcSH               ) );
   RNOK(   pcMbDataCtrlRes ->initSlice             ( rcSH, POST_PROCESS, false, NULL ) );
   if( pcMbDataCtrlMot )
   {
     RNOK( pcMbDataCtrlMot ->initSlice             ( rcSH, POST_PROCESS, false, NULL ) );
-  }
+  }    
 
-  //===== loop over macroblocks use raster scan =====
-  for( UInt uiMbAddress = 0; uiMbAddress < uiMaxMbAddress; uiMbAddress++ )
+  //-> ICU/ETRI DS FMO Process
+  UInt uiFirstMbInSlice;
+  UInt uiLastMbInSlice;
+
+  FMO* pcFMO = rcSH.getFMO();  
+
+  for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)   
   {
-    UInt          uiMbY             = uiMbAddress / uiMbInRow;
-    UInt          uiMbX             = uiMbAddress % uiMbInRow;
-    MbDataAccess* pcMbDataAccessMot = 0;
-    MbDataAccess* pcMbDataAccessRes = 0;
+	 if (false == pcFMO->isCodedSG(iSliceGroupID) && false == bAllSliceDone)	 
+	 {
+		 continue;
+	 }
 
-    if( pcMbDataCtrlMot )
-    {
-      RNOK( pcMbDataCtrlMot ->initMb            (  pcMbDataAccessMot, uiMbY, uiMbX ) );
-    }
-    RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
-    RNOK(   m_pcControlMngIf->initMbForFiltering(  uiMbAddress ) );
+	 uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+	 uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
 
-    // Hanke@RWTH
-    if( m_pcHighpassFrame ) {
-      m_pcHighpassYuvBuffer = m_pcHighpassFrame->getFullPelYuvBuffer();
-    }else{
-      m_pcHighpassYuvBuffer = NULL;
-    }
+    for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
+    //===== loop over macroblocks use raster scan =====  
+	{
+      UInt          uiMbY             = uiMbAddress / uiMbInRow;
+      UInt          uiMbX             = uiMbAddress % uiMbInRow;
+      MbDataAccess* pcMbDataAccessMot = 0;
+      MbDataAccess* pcMbDataAccessRes = 0;
 
-    if( 0 == (m_eLFMode & LFM_NO_FILTER) )
-    {
-      RNOK( xFilterMb( pcMbDataAccessMot,
+      if( pcMbDataCtrlMot )
+	  {
+        RNOK( pcMbDataCtrlMot ->initMb            (  pcMbDataAccessMot, uiMbY, uiMbX ) );
+	  }
+      RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
+      RNOK(   m_pcControlMngIf->initMbForFiltering(  uiMbAddress ) );
+
+      // Hanke@RWTH
+      if( m_pcHighpassFrame ) {
+        m_pcHighpassYuvBuffer = m_pcHighpassFrame->getFullPelYuvBuffer();
+	  }else{
+        m_pcHighpassYuvBuffer = NULL;
+	  }
+
+	
+      if( 0 == (m_eLFMode & LFM_NO_FILTER))
+	  {				
+		RNOK( xFilterMb( pcMbDataAccessMot,
                        pcMbDataAccessRes,
                        pcFrame->getFullPelYuvBuffer(),
                        pcRefFrameList0,
                        pcRefFrameList1,
-                       spatial_scalable_flg ) );  // SSUN@SHARP
-    }
+                       spatial_scalable_flg ) );  // SSUN@SHARP	  
+		//*/
+	  }
 
-    if( m_eLFMode & LFM_EXTEND_INTRA_SUR )
-    {
-      UInt uiMask = 0;
+      if( m_eLFMode & LFM_EXTEND_INTRA_SUR )
+	  {
+        UInt uiMask = 0;
 
-      RNOK( pcMbDataCtrlRes->getBoundaryMask( uiMbY, uiMbX, uiMask ) );
+        RNOK( pcMbDataCtrlRes->getBoundaryMask( uiMbY, uiMbX, uiMask ) );
 
-      if( uiMask )
-      {
-        IntYuvMbBufferExtension cBuffer;
-        cBuffer.setAllSamplesToZero();
+        if( uiMask )
+		{
+          IntYuvMbBufferExtension cBuffer;
+          cBuffer.setAllSamplesToZero();
 
-        cBuffer.loadSurrounding( pcFrame->getFullPelYuvBuffer() );
+          cBuffer.loadSurrounding( pcFrame->getFullPelYuvBuffer() );
 
-        RNOK( m_pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
-  	    pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
-      }
-    }
-
+          RNOK( m_pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
+  	      pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
+		}
+	  }
+	
+      uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );    
+	}
   }
+  //<- ICU/ETRI DS
 
   // Hanke@RWTH: Reset pointer
   setHighpassFramePointer();
 
   return Err::m_nOK;
 }
+
 
 
 

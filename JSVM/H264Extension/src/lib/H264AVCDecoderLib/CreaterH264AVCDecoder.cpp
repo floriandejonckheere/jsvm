@@ -286,6 +286,14 @@ CreaterH264AVCDecoder::setec( UInt uiErrorConceal)
 }
 //TMM_EC }}
 
+
+// FMO DECODE Init ICU/ETRI DS
+Void	  
+CreaterH264AVCDecoder::RoiDecodeInit() 
+{
+	m_pcH264AVCDecoder->RoiDecodeInit();
+}
+
 ErrVal CreaterH264AVCDecoder::create( CreaterH264AVCDecoder*& rpcCreaterH264AVCDecoder )
 {
   rpcCreaterH264AVCDecoder = new CreaterH264AVCDecoder;
@@ -532,6 +540,10 @@ H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 , m_uiStdAVCOffset         ( 0 )
 , m_bAVCCompatible			(false)//BUG FIX Kai Zhang
 {
+	for(int iLayer=0;iLayer<MAX_SCALABLE_LAYERS;iLayer++)
+	{
+		m_silceIDOfSubPicLayer[iLayer] = -1;
+	}
 }
 
 
@@ -666,8 +678,25 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 							break;
 					}
 				}
+
+			    SEI::ScalableSei* pcSEI		= (SEI::ScalableSei*)pcSEIMessage;
+			    m_uiNum_layers = pcSEI->getNumLayersMinus1() + 1;   		
+			    for(int i=0; i< m_uiNum_layers; i++)
+				{				  
+				  m_ID_ROI[i] = pcSEI->getRoiId(i);
+				  m_ID_Dependency[i] = pcSEI->getDependencyId(i);
+				}
 				break;
 			}
+
+		case SEI::MOTION_SEI:
+		  {
+			  SEI::MotionSEI* pcSEI           = (SEI::MotionSEI*)pcSEIMessage;
+
+			  m_silceIDOfSubPicLayer[m_layer_id] = pcSEI->m_slice_group_id[0];
+			  break;
+		  }
+
 // JVT-S080 LMI {
 	  case SEI::SCALABLE_SEI_LAYERS_NOT_PRESENT:
       case SEI::SCALABLE_SEI_DEPENDENCY_CHANGE:
@@ -677,10 +706,12 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 		  }
 // JVT-S080 LMI }
       case SEI::SUB_PIC_SEI:
-			{
-        bApplyToNext  = true;
-          break;
-        }
+		  {
+			  SEI::SubPicSei* pcSEI    = (SEI::SubPicSei*)pcSEIMessage;
+			  m_layer_id					= pcSEI->getLayerId();
+			  bApplyToNext  = true;
+              break;
+		  }
       //{{Quality level estimation and modified truncation- JVTO044 and m12007
       //France Telecom R&D-(nathalie.cammas@francetelecom.com)
       case SEI::QUALITYLEVEL_SEI:
@@ -764,6 +795,16 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       RNOK( pcPPS->read( m_pcUvlcReader, eNalUnitType ) );
       uiPPSid = pcPPS->getPicParameterSetId();
       uiSPSid = pcPPS->getSeqParameterSetId();
+
+	  // FMO ROI ICU/ETRI
+	  m_uiNumSliceGroupsMinus1 = pcPPS->getNumSliceGroupsMinus1();
+   
+	  for(UInt i=0; i<=m_uiNumSliceGroupsMinus1; i++)
+	  {
+		 uiaAddrFirstMBofROIs[uiPPSid ][i] = pcPPS->getTopLeft (i);
+		 uiaAddrLastMBofROIs[uiPPSid ][i]  = pcPPS->getBottomRight (i);
+	  }
+
       pcPPS->destroy();
       rcPacketDescription.SPSidRefByPPS[uiPPSid] = uiSPSid;
     }
@@ -781,6 +822,11 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       //JVT-P031
 
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: first_mb_in_slice" ) );
+
+	// FMO ROI ICU/ETRI
+	rcPacketDescription.uiFirstMb = uiTemp;
+
+
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
 		
     if(uiTemp == F_SLICE)

@@ -6,8 +6,8 @@ name        => "FMO",
 original    => "BUS_352x288_30.yuv",
 width       => 352,
 height      => 288,
-framerate   => 30,
-nbframes    => 15,
+framerate   => 15,
+nbframes    => 30,
 verbosemode => 1,	
 
 #==========================================================#
@@ -33,7 +33,7 @@ layers      => [
                 {
                  width        => 352,
                  height       => 288,
-                 framerate    =>  30,
+                 framerate    =>  15,
                 },
                ],
    
@@ -53,9 +53,9 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                  			bitrate     => 248,
-                  			psnr        => 34.30,
-                        encdecmatch => 1,
+                        bitrate     => 1013,
+                        psnr        => 48.38,
+                        encdecmatch => 0,
                        },
                        #----------#
                        # Test   1 #
@@ -65,10 +65,10 @@ tests              => [
                         mode        => 1,
                         width       => 352,
                         height      => 288,
-                        framerate   => 30,
-                  			bitrate     => 1255,
-                  			psnr        => 34.03,
-                        encdecmatch => 1,
+                        framerate   => 15,
+                        bitrate     => 4564,
+                        psnr        => 46.87,
+                        encdecmatch => 0,
                        },
                       ],
 }

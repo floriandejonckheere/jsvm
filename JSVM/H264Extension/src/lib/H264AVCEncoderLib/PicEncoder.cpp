@@ -850,6 +850,7 @@ PicEncoder::xFinishPicture( RecPicBufUnit&  rcRecPicBufUnit,
                                  m_uiFrameWidthInMb,
                                  &rcList0,
                                  &rcList1,
+								 true,
                                  false ) );
 
   //===== get PSNR =====

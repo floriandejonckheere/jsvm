@@ -144,7 +144,8 @@ public:
   static ErrVal create( LoopFilter*& rpcLoopFilter );
   ErrVal destroy();
 
-  ErrVal process        ( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer = NULL, IntYuvPicBuffer* pcHighpassYuvBuffer = NULL );
+  ErrVal process        ( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer = NULL, IntYuvPicBuffer* pcHighpassYuvBuffer = NULL
+							, bool bAllSliceDone = false);
   ErrVal process        ( SliceHeader&        rcSH,
                           IntFrame*           pcFrame,
                           MbDataCtrl*         pcMbDataCtrlMot,
@@ -152,6 +153,7 @@ public:
                           UInt                uiMbInRow,
                           RefFrameList*       pcRefFrameList0,
                           RefFrameList*       pcRefFrameList1,
+						  bool				  bAllSliceDone,
                           bool                spatial_scalable_flg);  // SSUN@SHARP
 
   ErrVal init( ControlMngIf*          pcControlMngIf,

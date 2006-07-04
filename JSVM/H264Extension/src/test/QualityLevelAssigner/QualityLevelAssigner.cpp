@@ -1402,13 +1402,15 @@ QualityLevelAssigner::xDetermineMultiLayerQualityIDs()
   //===== determine minimum and maximum quality level id's =====
   UInt  uiMinQualityLevel = 0;
   UInt  uiMaxQualityLevel = 62;
+  
+  UInt uiLayer;
 
  //----- create quality estimation object -----
   QualityLevelEstimation  cQualityLevelEstimation;
   RNOK( cQualityLevelEstimation.init( m_uiNumLayers, m_auiNumFGSLayers, m_auiNumFrames ) );
 
   //===== determine optimized quality levels per layer =====
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
+  for( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
     //----- initialize with packets -----
     {
@@ -1425,8 +1427,8 @@ QualityLevelAssigner::xDetermineMultiLayerQualityIDs()
 
   //----- determine quality levels -----
   RNOK( cQualityLevelEstimation.optimizeQualityLevel( m_uiNumLayers-1, 0, uiMinQualityLevel, uiMaxQualityLevel ) );
-  
-  for( UInt uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
+
+  for( uiLayer = 0; uiLayer < m_uiNumLayers; uiLayer++ )
   {
     //----- assign quality levels -----
     {

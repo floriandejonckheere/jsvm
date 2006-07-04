@@ -91,6 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/Sei.h"
 
+#define MAX_ROI_NUM	5
 
 class H264AVCDecoder;
 class ControlMngH264AVCDecoder;
@@ -191,6 +192,9 @@ public:
 //  TMM_EC }}
 
 	Void setAVCFlag ( Bool aFlag ) { UnitAVCFlag = aFlag; } //JVT-S036 lsj
+
+  Void	  RoiDecodeInit();
+
 protected:
   ErrVal xCreateDecoder();
 
@@ -251,6 +255,9 @@ struct PacketDescription
   Bool bDiscardable;//JVT-P031
   Bool bFragmentedFlag;//JVT-P031
   UInt NalRefIdc;
+
+  //-- 2006.0604
+  UInt uiFirstMb;
 };
 
 
@@ -271,6 +278,21 @@ public:
                           SEI::SEIMessage*&     pcScalableSEIMessage );
   SEI::NonRequiredSei*	getNonRequiredSEI()	{return m_pcNonRequiredSEI;}
   UInt					getNonRequiredSeiFlag() { return m_uiNonRequiredSeiFlag;}
+
+  int m_uiNum_layers; //
+  int m_ID_ROI[MAX_SCALABLE_LAYERS];
+  int m_ID_Dependency[MAX_SCALABLE_LAYERS];
+  int m_silceIDOfSubPicLayer[MAX_SCALABLE_LAYERS];
+  int m_layer_id;//
+
+
+  // ROI ICU/ETRI DS
+  UInt Num_Related_ROI[MAX_NUM_LAYER]; 
+  UInt m_uiNumSliceGroupsMinus1;
+  UInt addrFirstMB;
+  UInt uiaAddrFirstMBofROIs[256][MAX_ROI_NUM];  
+  UInt uiaAddrLastMBofROIs[256][MAX_ROI_NUM];  
+
 
 protected:
   ErrVal        xCreate ();

@@ -349,6 +349,8 @@ ErrVal ControlMngH264AVCEncoder::initSliceForCoding( const SliceHeader& rcSH )
   RNOK( m_pcMotionEstimation  ->initSlice ( rcSH ) );
   RNOK( m_pcSampleWeighting   ->initSlice ( rcSH ) );
 
+  setFMO( rcSH.getFMO());
+
   return Err::m_nOK;
 }
 

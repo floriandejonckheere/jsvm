@@ -598,6 +598,25 @@ Extractor::xAnalyse()
 	}	   
 	//S051}
 
+
+      //-- ROI Extraction ICU/ETRI
+      const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
+      ROT( rcExtList.size() != 1 );
+      MyList<ExtractorParameter::Point>::const_iterator cIter       = rcExtList.begin ();
+      MyList<ExtractorParameter::Point>::const_iterator cEnd        = rcExtList.end   ();
+      const ExtractorParameter::Point&                  rcExtPoint  = *cIter;
+
+      if (false == CurNalKeepingNeed(cPacketDescription, rcExtPoint))
+      {
+        if(pcBinData)
+        {
+          RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+          pcBinData = NULL;
+        }		
+        continue;	
+      }
+
+
 	// JVT-S080 LMI {
     //ROT ( pcScalableSei );
         delete pcScalableSei;
@@ -1048,7 +1067,18 @@ Extractor::xSetParameters()
   ERROR( uiExtLevel>m_cScalableStreamDescription.getMaxLevel(uiExtLayer), "Spatio-temporal resolution of extraction/inclusion point not supported" );
   //--- target number of bytes -----
   //Double  dTargetNumExtBytes  = rcExtPoint.dBitRate / 8.0 * 1000.0 / ((Double)(1<<uiExtLevel)*m_cScalableStreamDescription.getFrameRateUnit() ) * (Double)m_cScalableStreamDescription.getNumPictures(uiExtLayer,uiExtLevel);
+
+  // Calculate TartgetNumExtBytes consider ROI ICU/ETRI DS
+  Double RoiNum;
+  if (m_pcExtractorParameter->getROIFlag())
+	  RoiNum = 1.0;
+  else
+	  RoiNum = m_pcH264AVCPacketAnalyzer->m_uiNumSliceGroupsMinus1 + 1.0;
+
+
   Double  dTargetNumExtBytes  = rcExtPoint.dBitRate / 8.0 * 1000.0 / m_cScalableStreamDescription.getFrameRate(uiExtLayer,uiExtLevel)  * (Double)m_cScalableStreamDescription.getNumPictures(uiExtLayer,uiExtLevel);
+  dTargetNumExtBytes /= RoiNum;
+
   m_pcExtractorParameter->setTargetRate(dTargetNumExtBytes);
   //===== get and set required base layer packets ======
   Double  dRemainingBytes     = dTargetNumExtBytes;
@@ -1160,6 +1190,10 @@ Extractor::go()
   //~JVT-P031
 
   RNOK ( xPrimaryAnalyse());
+
+  // ROI ICU/ETRI DS
+  xSetROIParameters();
+
   AllocateAndInitializeDatas();
   RNOK ( xAnalyse() );
   ROTRS( m_pcExtractorParameter->getAnalysisOnly(), Err::m_nOK );
@@ -1208,6 +1242,55 @@ Extractor::go()
   return Err::m_nOK;
 }
 
+
+// Keep ROI NAL ICU/ETRI DS
+Int Extractor::CurNalKeepingNeed(h264::PacketDescription cPacketDescription
+								 , const ExtractorParameter::Point& rcExtPoint)
+{	
+	Bool bIsDataNal = false;
+	if (
+		(1 <= cPacketDescription.NalUnitType && cPacketDescription.NalUnitType <= 5)
+		|| (cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21)	
+		)
+	{
+		bIsDataNal		= true;		
+	}
+
+
+	Int iExtactionROINum		=   m_pcExtractorParameter->getExtractedNumROI();
+	Bool      bROIFlag			=   m_pcExtractorParameter->getROIFlag();
+
+	int keepingNAL = -1;
+	if( bROIFlag == true && bIsDataNal == true )
+	{				
+		for(int i=0; i<iExtactionROINum; i++)
+		{				
+			Int SG_ID =-1;
+			for(int sg_id=0;sg_id<8;sg_id++)
+			{
+				if(cPacketDescription.uiFirstMb == m_pcH264AVCPacketAnalyzer->uiaAddrFirstMBofROIs[cPacketDescription.PPSid][sg_id])
+				{
+					SG_ID=sg_id;
+					break;
+				}
+			} // end for check sg (until 8)
+			
+			Int ROI_ID = getROI_ID(cPacketDescription.Layer,SG_ID);
+			if(ROI_ID !=-1 &&rcExtPoint.uiROI[i] ==ROI_ID )
+			{
+				keepingNAL = 1;				
+			}
+			if( keepingNAL == 1 )
+				break;
+		}	// end for 		
+	}	// end if (bROIFlag == true.. )
+
+	else 
+		return true;
+	
+
+	return (keepingNAL == 1);	
+}
 
 
 
@@ -1279,6 +1362,23 @@ Extractor::xExtractPoints()
   }
   //~JVT-P031
 
+RNOK( m_pcH264AVCPacketAnalyzer->init() );
+
+  // consider ROI ICU/ETRI DS
+  const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
+  ROT( rcExtList.size() != 1 );
+  MyList<ExtractorParameter::Point>::const_iterator cIter       = rcExtList.begin ();
+  MyList<ExtractorParameter::Point>::const_iterator cEnd        = rcExtList.end   ();
+  const ExtractorParameter::Point&                  rcExtPoint  = *cIter;
+
+  Int		Count = 0;
+
+
+  printf("\n\n============Extraction Information======");
+  printf("\nExtracted spatail layer  : %dx%d",   rcExtPoint.uiWidth, rcExtPoint.uiHeight);
+  printf("\nExtracted temporal rate  : %2.0ff/s",   rcExtPoint.dFrameRate);
+
+
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
   while( ! bEOS )
@@ -1332,7 +1432,7 @@ Extractor::xExtractPoints()
 			  {
 	              h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDepChange = ( h264::SEI::ScalableSeiDependencyChange*) pcScalableSEIMessage;
 			      bWriteBinDataSEILysNotPreDepChange = pcScalableSeiDepChange->getOutputFlag();
-			  }
+			  }			 
 
 // JVT-S080 LMI }
 
@@ -1340,6 +1440,16 @@ Extractor::xExtractPoints()
 			}
 		}
 		delete pcScalableSEIMessage;
+
+	// consider ROI Extraction ICU/ETRI DS
+	if (false == CurNalKeepingNeed(cPacketDescription, rcExtPoint))
+	{
+		uiNumInput++;
+		Count++;
+		continue;
+	}
+
+
 // JVT-S080 LMI {
   if( bWriteBinData ) 			
   {
@@ -1438,6 +1548,11 @@ Extractor::xExtractPoints()
   }
     RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
     pcBinData = NULL;
+
+	// consider ROI Extraction ICU/ETRI DS
+	Count++;
+
+
 // JVT-S080 LMI {
 	if ( bWriteBinDataSEILysNotPreDepChange ) 
 	{
@@ -4952,3 +5067,27 @@ for ( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; 
 	}
 	printf( "\n\n" );
 }
+
+//<-- Set ROI Parameters to extract ROI
+void
+Extractor::xSetROIParameters()
+{
+		
+	init_ROI_ID();		
+	UInt m_uiNum_layers = m_pcH264AVCPacketAnalyzer->m_uiNum_layers;
+
+
+
+	for(UInt ui=0; ui< m_uiNum_layers; ui++)
+	{
+		Int roi_id = m_pcH264AVCPacketAnalyzer->m_ID_ROI[ui];
+		UInt dependency_Id = m_pcH264AVCPacketAnalyzer->m_ID_Dependency[ui];
+		
+		Int m_slice_group_id = m_pcH264AVCPacketAnalyzer->m_silceIDOfSubPicLayer[ui];
+
+		if(m_slice_group_id !=-1)
+			setROI_ID(dependency_Id,m_slice_group_id,roi_id );  
+	}
+}
+//-->
+

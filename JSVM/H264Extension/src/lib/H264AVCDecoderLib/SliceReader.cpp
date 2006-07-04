@@ -164,8 +164,14 @@ ErrVal SliceReader::uninit()
 }
 
 
-ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
+// JVT-S054 (2) (REPLACE)
+//ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
+ErrVal SliceReader::process( SliceHeader& rcSH, UInt& ruiMbRead )
 {
+  int sgId = rcSH.getFMO()->getSliceGroupId(rcSH.getFirstMbInSlice());  
+  int pocOrder = rcSH.getPicOrderCntLsb();
+  rcSH.getFMO()->setCodedSG(sgId, pocOrder);  
+
   ROF( m_bInitDone );
 
   //====== initialization ======
@@ -183,10 +189,14 @@ ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
 
     DECRNOK( m_pcMbParser->process( *pcMbDataAccess, bEndOfSlice) );
 
+    // JVT-S054 (2) (ADD)
+    rcSH.setLastMbInSlice(uiMbAddress);
     //--ICU/ETRI FMO Implementation
     uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
 
   }
+  // JVT-S054 (2) (ADD)
+  rcSH.setNumMbsInSlice(ruiMbRead);
 
   return Err::m_nOK;
 }
@@ -204,6 +214,7 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
                            UInt           uiMbInRow,
                            UInt&          ruiMbRead )
 {
+	printf("In Read\n");
   ROF( m_bInitDone );
 
   UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
@@ -240,11 +251,22 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
                                             iSpatialScalabilityType,
                                             bEndOfSlice  ) );
     ruiMbRead++;
-	if(ruiMbRead == uiNumMbInPic) bEndOfSlice = true; //FRAG_FIX
+	  if(ruiMbRead == uiNumMbInPic) bEndOfSlice = true; //FRAG_FIX
+    // JVT-S054 (2) (ADD)
+    rcSH.setLastMbInSlice(uiMbAddress);
     //--ICU/ETRI FMO Implementation
     uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
 
   }
+
+  // JVT-S054 (2) (ADD)
+  rcSH.setNumMbsInSlice(ruiMbRead);
+
+  //ICU/ETRI FGS FMO
+  int sgId = rcSH.getFMO()->getSliceGroupId(rcSH.getFirstMbInSlice());  
+  int pocOrder = rcSH.getPicOrderCntLsb();
+
+  rcSH.getFMO()->setCodedSG(sgId, pocOrder);  
 
   //--ICU/ETRI FMO Implementation
   // JVT-S054 (REMOVE)
@@ -596,7 +618,12 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
 
   //--ICU/ETRI FMO Implementation 
   rpcSH->FMOInit();
-  rpcSH->setLastMbInSlice(rpcSH->getFMO()->getLastMBInSliceGroup(rpcSH->getFMO()->getSliceGroupId(uiFirstMbInSlice)));
+  // JVT-S054 (2) (ADD) ->
+  if (uiNumMbsInSlice != 0)
+    rpcSH->setLastMbInSlice(rpcSH->getFMO()->getLastMbInSlice(uiFirstMbInSlice, uiNumMbsInSlice));
+  else
+  // JVT-S054 (2) (ADD) <-
+    rpcSH->setLastMbInSlice(rpcSH->getFMO()->getLastMBInSliceGroup(rpcSH->getFMO()->getSliceGroupId(uiFirstMbInSlice)));
 
   return Err::m_nOK;
 }

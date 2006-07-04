@@ -269,7 +269,7 @@ SliceDecoder::decode( SliceHeader&   rcSH,
   return Err::m_nOK;
 }
 
-
+/*
 ErrVal
 SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
 {
@@ -289,7 +289,40 @@ SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
   }
   return Err::m_nOK;
 }
+*/
+ErrVal
+SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
+{
+  ROF( m_bInitDone );
 
+  //====== initialization ======
+  RNOK( m_pcControlMng->initSlice( rcSH, DECODE_PROCESS ) );
+
+  UInt uiFirstMbInSlice;
+  UInt uiLastMbInSlice;
+  FMO* pcFMO = rcSH.getFMO();  
+
+  for(Int iSliceGroupID=0; !pcFMO->SliceGroupCompletelyCoded(iSliceGroupID); iSliceGroupID++)   
+  {
+  	if (false == pcFMO->isCodedSG(iSliceGroupID))
+	  {
+	    continue;
+	  }
+
+  	uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+	  uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+    //===== loop over macroblocks =====
+    for(UInt uiMbIndex = uiFirstMbInSlice; uiMbIndex<=uiLastMbInSlice;)
+    {
+      MbDataAccess* pcMbDataAccess  = 0;
+      RNOK( m_pcControlMng->initMbForDecoding   (  pcMbDataAccess, uiMbIndex ) );
+      RNOK( m_pcMbDecoder ->compensatePrediction( *pcMbDataAccess            ) );
+
+  	  uiMbIndex = rcSH.getFMO()->getNextMBNr(uiMbIndex);    
+    }
+  }
+  return Err::m_nOK;
+}
 
 
 H264AVC_NAMESPACE_END

@@ -341,6 +341,16 @@ public:
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
   UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
   //--ICU/ETRI FMO Implementation : FMO end
+
+  //<-- consider ROI Extraction ICU/ETRI DS
+  const std::string&   getROIConfigFileName() const{ return m_cROIConfigFileName;}
+  UInt          getNumROI() const {return m_uiNumROI;}  //for test
+
+  UInt*         getROIID () const {return (UInt*)m_uiROIID;}
+  UInt*         getSGID () const {return (UInt*)m_uiSGID;}
+  UInt*         getSLID () const {return (UInt*)m_uiSLID;}
+  //--> consider ROI Extraction ICU/ETRI DS
+  
   UInt getFGSCodingMode                  ()    { return m_uiFGSCodingMode; }
   UInt getGroupingSize                   ()    { return m_uiGroupingSize; }
   UInt getPosVect                        (UInt uiNum) {return m_uiPosVect[uiNum];} 
@@ -527,6 +537,13 @@ public:
   UInt         m_uiSliceMode;
   UInt         m_uiSliceArgument;
   std::string  m_cSliceGroupConfigFileName;
+
+  std::string  m_cROIConfigFileName;
+  UInt		   m_uiNumROI;
+  UInt		   m_uiROIID[CodParMAXNumSliceGroupsMinus1];
+  UInt		   m_uiSGID[CodParMAXNumSliceGroupsMinus1];
+  UInt		   m_uiSLID[CodParMAXNumSliceGroupsMinus1];
+
   //--ICU/ETRI FMO Implementation : FMO end
   UInt         m_uiUseRedundantSlice;   // JVT-Q054 Red. Picture
 

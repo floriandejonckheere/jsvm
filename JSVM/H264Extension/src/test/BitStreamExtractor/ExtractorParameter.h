@@ -104,6 +104,9 @@ public:
     UInt    uiHeight;
     Double  dFrameRate;
     Double  dBitRate;
+
+//--TEST DJ 0602
+		UInt            uiROI[5];
   };
 
   //JVT-S043
@@ -157,6 +160,18 @@ public:
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   UInt	getExtractNonRequiredPics()	{ return	m_uiExtractNonRequiredPics;}
   Bool getExtractUsingQL() { return m_bExtractUsingQL;}
+
+
+  //--TEST DJ 0602
+  Bool	  getROIFlag		  ()  { return m_bROIFlag; };
+  int     getExtractedNumROI  ()  { return iExtractedNumROI; };
+
+//--TEST DJ 0602
+   ErrVal  xParseFormatStringROI_Only	( Char*   pFormatString, Point&  rcSpatTempSNRPoint );
+
+  //--TEST DJ 0602
+  Bool  m_bROIFlag;
+  int   iExtractedNumROI;
 
   //S051{
   Bool getUseSIP(){return m_bUseSIP;}

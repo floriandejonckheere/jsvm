@@ -97,6 +97,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "WriteBitstreamToFile.h"
 #include "ExtractorParameter.h"
 
+#define MAX_ROIS			5
+
 
 enum NalUnitType
 {
@@ -234,6 +236,20 @@ public:
   ErrVal        init                ( ExtractorParameter* pcExtractorParameter );
   ErrVal        go                  ();
   ErrVal        destroy             ();
+
+  // ROI ICU/ETRI
+  Int		ROI_ID[8][8];
+  void		setROI_ID(UInt did, UInt sg_id,Int value){ROI_ID[did][sg_id]=value;};
+  Int		getROI_ID(UInt did, UInt sg_id){if(sg_id ==-1) return -1;  return ROI_ID[did][sg_id];};
+  void		init_ROI_ID()
+  { 
+    for(int i=0;i<8;i++)
+	for(int j=0;j<8;j++)
+		ROI_ID[i][j]= -1;
+  } 
+  Int			getNumSlice			()		const { return 	m_iNumSlice; };   
+
+
  //JVT-S080 LMI {
   ErrVal        xWriteScalableSEIToBuffer( h264::SEI::ScalableSei* pcScalableSei, BinData* pcBinData );
   ErrVal        xWriteScalableSEILyrsNotPreToBuffer( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSei, BinData* pcBinData );
@@ -257,6 +273,15 @@ protected:
   ErrVal        xSetParameters      ();
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
+
+
+  // ROI ICU/ETRI
+  Int CurNalKeepingNeed(h264::PacketDescription cPacketDescription
+								 , const ExtractorParameter::Point& rcExtPoint);
+
+  void			xSetROIParameters	();
+
+
   Void          setBaseLayerAVCCompatible( Bool bAVCCompatible ) { m_bAVCCompatible = bAVCCompatible; }
   Bool          getBaseLayerAVCCompatible() const { return m_bAVCCompatible; }
   // JVT-S080 LMI {
@@ -397,6 +422,19 @@ protected:
   Double						m_aadTargetSNRLayerNoUse[MAX_LAYERS][MAX_DSTAGES+1];
   UInt							m_uiSuffixUnitEnable;
   //S051}
+
+  //-- ICU/ETRI ROI
+  int							m_iNumSlice;
+  int							m_aiSilceIDOfSubPicLayer[MAX_SCALABLE_LAYERS];
+  int							m_aaiRelatedROIofSubPicLayer[MAX_SCALABLE_LAYERS][MAX_ROIS];
+  int							m_aiDepIDOfSubPicLayer[MAX_SCALABLE_LAYERS];
+  UInt							m_auiXinFirstMB[MAX_LAYERS][MAX_ROI_NUM];
+  UInt							m_auiYinFirstMB[MAX_LAYERS][MAX_ROI_NUM];
+  UInt							m_auiXinLastMB[MAX_LAYERS][MAX_ROI_NUM];
+  UInt							m_auiYinLastMB[MAX_LAYERS][MAX_ROI_NUM];
+  UInt							m_auiAddrFirstMBofROIs[MAX_LAYERS][MAX_ROI_NUM];
+  UInt							m_auiAddrLastMBofROIs[MAX_LAYERS][MAX_ROI_NUM];
+
 };
 class ExtractStop{};
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

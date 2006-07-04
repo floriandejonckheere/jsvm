@@ -112,7 +112,9 @@ public:
                 ControlMngIf* pcControlMng );
   ErrVal uninit();
 
-  ErrVal process( const SliceHeader& rcSH, UInt& ruiMbRead );
+  // JVT-S054 (2) (REPLACE)
+  //ErrVal process( const SliceHeader& rcSH, UInt& ruiMbRead );
+  ErrVal process( SliceHeader& rcSH, UInt& ruiMbRead );
   
   ErrVal readSliceHeader  ( NalUnitType   eNalUnitType,
                             NalRefIdc     eNalRefIdc,

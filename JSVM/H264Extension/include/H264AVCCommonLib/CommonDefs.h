@@ -91,7 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-#define _JSVM_VERSION_ "5.9" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "5.11" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -355,5 +355,7 @@ typedef	enum
 
 #define INDEPENDENT_PARSING                           1  // not adopted! -> only software support
                                                          // switchable via configuration parameters
+
+
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

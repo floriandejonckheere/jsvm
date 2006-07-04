@@ -688,7 +688,6 @@ protected:
   UInt*        m_puiLastMbInSlice;
   // JVT-S054 (ADD) <-
 
-
 };
 
 #if defined( WIN32 )

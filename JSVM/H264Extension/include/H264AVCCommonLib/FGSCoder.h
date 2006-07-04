@@ -234,6 +234,10 @@ protected:
   ErrVal            xReconstructMacroblock( MbDataAccess&               rcMbDataAccess,
                                             IntYuvMbBuffer&             rcMbBuffer );
 
+  // FMO FGS ICU/ETRI
+  ErrVal            xInitializeCodingPath         (SliceHeader* pcSliceHeader);
+  ErrVal            xUpdateCodingPath             (SliceHeader* pcSliceHeader);
+
   ErrVal            xInitializeCodingPath         ();
   ErrVal            xUpdateCodingPath             ();
   ErrVal            xClearCodingPath              ();

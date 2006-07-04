@@ -223,6 +223,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case SUB_SEQ_INFO:  return SubSeqInfo ::create( (SubSeqInfo*&)  rpcSEIMessage );
     case SCALABLE_SEI:  return ScalableSei::create( (ScalableSei*&) rpcSEIMessage );
     case SUB_PIC_SEI:   return SubPicSei::create	( (SubPicSei*&)		rpcSEIMessage );
+	case MOTION_SEI:	return MotionSEI::create( (MotionSEI*&) rpcSEIMessage );
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     case QUALITYLEVEL_SEI: return QualityLevelSEI::create((QualityLevelSEI*&) rpcSEIMessage);
@@ -514,8 +515,15 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 
 	ROF( m_num_layers_minus1+1 );
 	RNOK		( pcWriteIf->writeUvlc(m_num_layers_minus1,													"ScalableSEI: num_layers_minus1"											) );
+
 	for( i = 0; i <= m_num_layers_minus1; i++ )
 	{
+		if (0 < m_aiNumRoi[m_dependency_id[i]])
+		{
+			m_sub_pic_layer_flag[i] = true;
+			m_roi_id[i]				= m_aaiRoiID[m_dependency_id[i]][0];
+		}		
+
 		RNOK	( pcWriteIf->writeCode( m_layer_id[i],												8,		"ScalableSEI: layer_id"															) );
 	//JVT-S036 lsj start
 		//RNOK	( pcWriteIf->writeFlag( m_fgs_layer_flag[i],												"ScalableSEI: fgs_layer_flag"												) );
@@ -987,6 +995,79 @@ SEI::SubPicSei::read( HeaderSymbolReadIf *pcReadIf )
 	RNOK	( pcReadIf->getUvlc( m_uiLayerId, "Sub-picture scalable SEI: m_uiLayerd" ) );
 	return Err::m_nOK;
 }
+
+
+
+//////////////////////////////////////////////////////////////////////////
+// 
+//      MOTION     S E I  FOR  ROI
+//
+//////////////////////////////////////////////////////////////////////////
+
+SEI::MotionSEI::MotionSEI     ()
+ : SEIMessage                     ( MOTION_SEI ),
+ m_num_slice_groups_in_set_minus1(0),
+ m_exact_sample_value_match_flag(true),
+ m_pan_scan_rect_flag(false)
+{
+}
+
+SEI::MotionSEI::~MotionSEI()
+{
+}
+
+ErrVal
+SEI::MotionSEI::create( MotionSEI*& rpcSeiMessage )
+{
+  rpcSeiMessage = new MotionSEI();
+  ROT( NULL == rpcSeiMessage )
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::MotionSEI::write( HeaderSymbolWriteIf* pcWriteIf )
+{
+
+  RNOK  ( pcWriteIf->writeUvlc( m_num_slice_groups_in_set_minus1,               "Motion Constrainted SEI: Num_slice_groups_in_set_minus1"   ) );
+
+  for(UInt i = 0; i <= m_num_slice_groups_in_set_minus1; i++)
+  {    
+    RNOK  ( pcWriteIf->writeUvlc( m_slice_group_id[ i ],               "Motion Constrainted SEI: slice_group_id[ i ]"   ) );
+  }
+  
+    
+  RNOK  ( pcWriteIf->writeFlag(m_exact_sample_value_match_flag           ,     "Motion Constrainted SEI: exact_sample_value_match_flag"            ) );
+  RNOK  ( pcWriteIf->writeFlag(m_pan_scan_rect_flag                      ,     "Motion Constrainted SEI: frm_rate_info_present_flag"           ) );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::MotionSEI::read ( HeaderSymbolReadIf* pcReadIf )
+{
+  RNOK  ( pcReadIf->getUvlc( m_num_slice_groups_in_set_minus1,               "Motion Constrainted SEI: Num_slice_groups_in_set_minus1"   ) );
+
+  for(UInt i = 0; i <= m_num_slice_groups_in_set_minus1; i++)
+  {    
+    RNOK  ( pcReadIf->getUvlc( m_slice_group_id[ i ],               "Motion Constrainted SEI: slice_group_id[ i ]"   ) );
+  }
+    
+  RNOK  ( pcReadIf->getFlag(m_exact_sample_value_match_flag           ,     "Motion Constrainted SEI: exact_sample_value_match_flag"            ) );
+  RNOK  ( pcReadIf->getFlag(m_pan_scan_rect_flag                      ,     "Motion Constrainted SEI: frm_rate_info_present_flag"           ) );
+
+  assert(m_exact_sample_value_match_flag==true);
+  assert(m_pan_scan_rect_flag ==false);
+
+  return Err::m_nOK;
+}
+
+ErrVal        
+SEI::MotionSEI::setSliceGroupId(UInt id)
+{
+  m_slice_group_id[0] = id;    
+  return Err::m_nOK;
+};
+
 
 //{{Quality level estimation and modified truncation- JVTO044 and m12007
 //France Telecom R&D-(nathalie.cammas@francetelecom.com)

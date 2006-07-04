@@ -119,6 +119,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "RateDistortion.h"
 #include "GOPEncoder.h"
 
+#include "H264AVCCommonLib/CFMO.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -197,6 +198,10 @@ public:
   ErrVal initSliceForWeighting ( const SliceHeader& rcSH);
 //TMM_WP
 
+  //--TM 0109.2006
+  FMO* getFMO(){return m_pcFMO;}
+  Void setFMO(FMO* fmo){m_pcFMO = fmo;}
+
 protected:
   FrameMng*               m_pcFrameMng;
   MCTFEncoder*            m_apcMCTFEncoder          [MAX_LAYERS];
@@ -231,6 +236,8 @@ protected:
   UInt                    m_uiCurrLayer;
   Bool                    m_bLayer0IsAVC;
   Bool                    m_bMVCMode;
+
+  FMO* m_pcFMO;
 };
 
 
