@@ -1,11 +1,52 @@
+JSVM_5_10 -> JSVM_5_11
+======================
+
+ROI Extraction & FMO in Progressive Refinement Slice
+
+Date         : July 04, 2006
+Author       : Tae Meon Bae 
+Contribution : JVT-Q077, JVT-P113
+
+Changes:
+
+- FMO in FGS for  encoder/decoder
+- Bitstream extraction with roi_id
+- Bitstream extraction with FMO
+ 
+Note:
+- Added the parameter "-r" to Bitstream extraction to extract ROI in the bitstream.
+  
+- FMO is working with FGS layer. the "macroblock to slice group map" is same for FGS and base quality layer.
+  Decoder can handle a drop of a slice group when FMO enabled bitstream is decoded.
+  Bitstream extractor is modified to handle FMO enabled bitstream. But bitstream guarantees correct bitrate control when the numbers of slice group of each layer is the same.
+
+===================================
+IROI signaling in Scalable Info SEI 
+
+Date: July 01, 2006
+Author: M.H. Lee
+Contribution: JVT-S054
+
+Changes:
+
+- Support IROI coding in Progressive Refinement Slice
+
+Note: The changes above can be found by searching "JVT-S054 (2)".
+
+
+
+
 JSVM_5_9 -> JSVM_5_10
-====================
+=====================
+
 Multi Layer Quality Layers
+
 Date         : June 24, 2006.
 Author       : Manu Mathew <manu.mathew@samsung.com>
 Contribution : JVT-S043
 
 Changes:
+
 - Added the parameter "-mlql" to Quality Level Assigner. If this parameter is used, 
   the quality level assigner will estimate quality layer Ids that are optimal for the top layer.
   This may improve the top layer(dependency_id) PSNR when the extractor truncates the bitstream using the option "-ql".
@@ -21,10 +62,18 @@ Note: If Quality level assigner uses the option -mlql, bitstream extraction usin
 
 - The main changes can be found by searching for JVT-S043.
 
+
 JSVM_5_8 -> JSVM_5_9
 ====================
 
+Position calculation for SVC upsampling & Frame-based selected inter-layer pred
+
+Date          : June 20, 2006
+Authors       : Ji-Zheng Xu   Khai Zhang
+Contributions : JVT-S067 and JVT-S051 
+
 Changes:
+
 - Implementing the SIP dynamic programming algorithm (JVT-S051) as an new project: SIPAnalyser.
 - Added "EncSIPFile" in encoder.cfg. The encoder can encode consulting to the SIP decision results file.
 - The encoder can output bits information used by SIPAnalyser.
@@ -86,6 +135,7 @@ Date: May 23, 2006
 Author: J. Vieron (on behalf of S. Kamp and H. Kirchoffer)
 
 Changes:
+
 - Unused/Uninitialized variables methods
 - Shadowing variables 
 - Bug fixes for the handling of the AR-FGS parameters 
