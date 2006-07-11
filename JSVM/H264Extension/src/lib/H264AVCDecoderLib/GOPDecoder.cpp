@@ -2349,14 +2349,8 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSlic
     RNOK( m_pcBaseLayerCtrl->initSlice( *rcControlData.getSliceHeader(), PRE_PROCESS, false, NULL ) );
 
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
-    // TMM_ESS {
-    if (m_pcResizeParameter->m_iSpatialScalabilityType == SST_RATIO_1) 
-    {
-      RNOK( m_pcBaseLayerCtrl->copyMotionBL  ( *pcBaseDataCtrl, m_pcResizeParameter ) );
-    }
-    else
-    {
-      if(m_pcResizeParameter->m_iExtendedSpatialScalability == ESS_PICT ) 
+   
+    if(m_pcResizeParameter->m_iExtendedSpatialScalability == ESS_PICT ) 
       {
         // BUGFIX_JV{
         RefFrameList& rcList0=rcControlData.getPrdFrameList( LIST_0 );
@@ -2369,8 +2363,8 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSlic
         m_pcResizeParameter->m_aiRefListPoc[1][uiIndex-1]=rcList1[uiIndex]->getPOC() ;
         // BUGFIX_JV }
       }
-      RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameter) );
-    }
+    RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameter) );
+
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
 
     rcControlData.getMbDataCtrl()->copyBaseResidualAvailFlags( *m_pcBaseLayerCtrl );

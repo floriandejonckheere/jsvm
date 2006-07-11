@@ -390,10 +390,7 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
     else if ((curr->m_iInWidth*2 == curr->m_iOutWidth) && (curr->m_iInHeight*2 == curr->m_iOutHeight) &&
              is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
       curr->m_iSpatialScalabilityType = SST_RATIO_2;
-    else if ((curr->m_iInWidth*3 == curr->m_iOutWidth*2) && (curr->m_iInHeight*3 == curr->m_iOutHeight*2) &&
-             is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-      curr->m_iSpatialScalabilityType = SST_RATIO_3_2;
-    else
+    else 
       curr->m_iSpatialScalabilityType = SST_RATIO_X;
 
     if ( curr->m_iExtendedSpatialScalability == ESS_NONE && curr->m_iSpatialScalabilityType > SST_RATIO_2 )

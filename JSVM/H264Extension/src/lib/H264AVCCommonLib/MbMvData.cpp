@@ -222,20 +222,11 @@ MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , Re
   int iBaseWidth        = pcParameters->m_iInWidth;
   int iBaseHeight       = pcParameters->m_iInHeight;
   
-#if DO_QDIV
-  // operator // for equations p.87
-  Int divShiftW = (Int) ( floor( log( (Double)iBaseWidth ) / log(2.) ) + 15 );
-  Int divScaleW = ( (1<<divShiftW) + iBaseWidth/2 ) / iBaseWidth;
-  Int divShiftH = (Int) ( floor( log( (Double)iBaseHeight ) / log(2.) ) + 15 );
-  Int divScaleH = ( (1<<divShiftH) + iBaseHeight/2 ) / iBaseHeight;
-  Int num;
-#endif
-
-   for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
+  for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
   {	
 	m_acRefPic[uiB8x8Idx].setFrame(NULL);
 	m_ascRefIdx[uiB8x8Idx] = pscBl4x4RefIdx[g_aucConvertTo4x4Idx[uiB8x8Idx]];
-	m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?-1:m_ascRefIdx[uiB8x8Idx]); 
+	m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?BLOCK_NOT_PREDICTED:m_ascRefIdx[uiB8x8Idx]); 
   }
 
   Int   dx , dy;
@@ -247,23 +238,11 @@ MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , Re
     dx = (Int) m_acMv[iB4x4Idx].getHor();
     dy = (Int) m_acMv[iB4x4Idx].getVer();
 
-    
-#if DO_QDIV
-    // operator // for equations p.87
-    num = ((dx>0)?dx:(-dx)) * iScaledBaseWidth + iBaseWidth/2;
-     //dx = ((dx>0)?1:(-1)) * ( ( ( ( (num&0xffff) * divScaleW ) >> 16 ) + (num>>16)*divScaleW ) >> (divShiftW-16) );
-	dx=((dx>0)?1:(-1)) * ((num*divScaleW)>>divShiftW);
-
-    num = ((dy>0)?dy:(-dy)) * iScaledBaseHeight + iBaseHeight/2;
-	//    dy = ((dy>0)?1:(-1)) * ( ( ( ( (num&0xffff) * divScaleH ) >> 16 ) + (num>>16)*divScaleH ) >> (divShiftH-16) );
-	dy=((dy>0)?1:(-1)) * ((num*divScaleH)>>divShiftH);
-#else
     Int sign;
     sign = (dx>0) ? 1 : (-1);
     dx = sign * (sign * dx * iScaledBaseWidth + iBaseWidth/2 ) / iBaseWidth;
     sign = (dy>0)?1:(-1);
     dy = sign * (sign * dy * iScaledBaseHeight + iBaseHeight/2) / iBaseHeight;
-#endif
 
     m_acMv[iB4x4Idx].set( dx , dy );
   }

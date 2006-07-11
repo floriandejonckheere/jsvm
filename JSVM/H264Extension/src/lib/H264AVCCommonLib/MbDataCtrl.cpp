@@ -367,12 +367,10 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* p
       {
           aiPelOrig[0]=(Int)16*iMbX-iScaledBaseOrigX;
           aiPelOrig[1]=(Int)16*iMbY-iScaledBaseOrigY;
-          RNOK(rcMbDes.upsampleMotionESS(
-                                        rcBaseMbDataCtrl.m_pcMbData,
-                                         
-                                        rcBaseMbDataCtrl.m_uiMbStride,
+          RNOK(rcMbDes.upsampleMotionESS(rcBaseMbDataCtrl.m_pcMbData, 
+                                         rcBaseMbDataCtrl.m_uiMbStride,
                                          aiPelOrig,
-										 bDirect8x8,
+										                     bDirect8x8,
                                          pcParameters));
            rcMbDes.setInCropWindowFlag( true );
 		  }
@@ -388,19 +386,13 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* p
 ErrVal
 MbDataCtrl::upsampleMotion( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
 {
-	switch (pcParameters->m_iSpatialScalabilityType)
-	{
-  case SST_RATIO_1:
-		return copyMotionBL(rcBaseMbDataCtrl, pcParameters);
-    break;
-	case SST_RATIO_2:
-    return xUpsampleMotionDyad(rcBaseMbDataCtrl, pcParameters);
-		break;
-	default:
-		return xUpsampleMotionESS(rcBaseMbDataCtrl, pcParameters);
-		break;
-	}
-	return Err::m_nOK;
+  if(NULL==pcParameters) 
+  return copyMotion(rcBaseMbDataCtrl);
+
+	if(pcParameters->m_iSpatialScalabilityType==SST_RATIO_1)
+  return copyMotionBL(rcBaseMbDataCtrl, pcParameters);
+  
+  return xUpsampleMotionESS(rcBaseMbDataCtrl, pcParameters);
 }
 // TMM_ESS_UNIFIED }
 

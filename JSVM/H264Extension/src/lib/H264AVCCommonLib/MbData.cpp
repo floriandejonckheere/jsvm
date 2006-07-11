@@ -245,8 +245,6 @@ MbData::activateMotionRefinement()
   m_apcMbMotionDataBase[1]->copyFrom( *m_apcMbMotionData[1] );
 }
 
-
-// TMM_ESS_UNIFIED {
 ErrVal
 MbData::noUpsampleMotion()
 {
@@ -257,44 +255,46 @@ MbData::noUpsampleMotion()
     return Err::m_nOK;      
 }
 
-#define sign(x) (((x)>0)?1:-1)
-#define CALC_COND(a) ( sign(a) * (( (abs(a)+2) >> 2 )) << 2 )
-#define MINBLOCKSIZE(c1,c2)((c1<=0)? c2:((c2<=0)?c1: min(c1,c2)))
 
 const UChar MbData::m_aucPredictor[2][4]= {{1,0,3,2},{2,3,0,1}};
-const Char MbData::m_acSuffixMbMode[2][7]={{8,16,16,8,8,0,-1},{8,16,8,16,8,0,-1}};
-const Char MbData::m_acSuffixBlkMode[2][4]={{8,8,4,4},{8,4,8,4}};
-const MbMode MbData::m_aeBuildMbMode[2][2]={{MODE_8x8,MODE_8x16},{MODE_16x8,MODE_16x16}};
-const BlkMode MbData::m_aeBuildBlkMode[2][2]={{BLK_4x4,BLK_4x8},{BLK_8x4,BLK_8x8}};
-const Char MbData::m_acComputeMbSize[2][5]={{ 8, 4,16, 4, 8},{16,16,16,16,16}};
-
-
-ErrVal
-MbData::xInitInfoBaseDim(InfoBaseDim * pInf, const UChar ucDim)
-{
-    Int		ib4Bord0 = (m_aiMbBorder[ucDim]  + m_ai8x8Border[ucDim]) / 2;
-    Int		ib4Bord1 = (3*m_aiMbBorder[ucDim]- m_ai8x8Border[ucDim]) / 2;
-    Int	    ib4Bord2 = (-m_aiMbBorder[ucDim] + 3*m_ai8x8Border[ucDim]) / 2;
-
-    pInf->aeBorderType[0] = (m_aiMbBorder[ucDim]==-4)? MB_Border   :
-                                (m_ai8x8Border[ucDim]==-4)? B8x8_Border :
-                                    (ib4Bord0==-4 || ib4Bord1==-4 || ib4Bord2==-4) ? B4x4_Border : NO_Border;
-
-    pInf->aeBorderType[1] = (m_aiMbBorder[ucDim]==4) ? MB_Border   :
-                                (m_ai8x8Border[ucDim]==4)? B8x8_Border :
-                                    (ib4Bord0==4 || ib4Bord1==4 || ib4Bord2==4) ? B4x4_Border : NO_Border;
-
-    UChar  aucBlkShift[4]={12,13,12,13};
-    UInt   uiRange =abs(m_ai8x8Border[ucDim] - m_aiMbBorder[ucDim]);
-    UInt   ioffset = (m_aiMbBorder[ucDim]<=-8) ? (- 2*m_aiMbBorder[ucDim]) : (4*uiRange - 2*m_aiMbBorder[ucDim]);
-
-    UInt uiBlk=0;
-    for (UInt uiBlk8=0; uiBlk8<2; uiBlk8++)
-     for (UInt uiBlk4=0; uiBlk4<2; uiBlk4++, uiBlk++)
-     pInf->ucIdx4x4Base[uiBlk8][uiBlk4] = (UChar)( (ioffset + 8*uiBlk - aucBlkShift[uiBlk]) / uiRange );
-
-    return Err::m_nOK;
-}
+//Indexes: MBMode Mode8x8%8 b4x4idx
+const Char MbData::aaacGetPartInfo[7][4][16]={
+  //MODE_SKIP 
+  {{0,0,4,4,0,0,4,4,8,8,12,12,8,8,12,12},//BLK_8x8
+  {0,0,4,4,1,1,5,5,8,8,12,12,9,9,13,13},//BLK_8x4
+  {0,1,4,5,0,1,4,5,8,9,12,13,8,9,12,13},//BLK_4x8
+  {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}},//BLK_4x4
+  //MODE_16x16
+  {{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},//BLK_8x8
+  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},//BLK_8x4
+  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},//BLK_4x8
+  {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}},//BLK_4x4
+  //MODE_16x8
+  {{0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4},//BLK_8x8
+  {0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4},//BLK_8x4
+  {0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4},//BLK_4x8
+  {0,0,0,0,0,0,0,0,4,4,4,4,4,4,4,4}},//BLK_4x4
+  //MODE_8x16
+  {{0,0,4,4,0,0,4,4,0,0,4,4,0,0,4,4},//BLK_8x8
+  {0,0,4,4,0,0,4,4,0,0,4,4,0,0,4,4}, //BLK_8x4
+  {0,0,4,4,0,0,4,4,0,0,4,4,0,0,4,4}, //BLK_4x8
+  {0,0,4,4,0,0,4,4,0,0,4,4,0,0,4,4}},//BLK_4x4
+  //MODE_8x8
+  {{0,0,4,4,0,0,4,4,8,8,12,12,8,8,12,12},//BLK_8x8
+   {0,0,4,4,1,1,5,5,8,8,12,12,9,9,13,13},//BLK_8x4
+   {0,1,4,5,0,1,4,5,8,9,12,13,8,9,12,13},//BLK_4x8
+   {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}},//BLK_4x4
+  //MODE_8x8ref0
+  {{0,0,4,4,0,0,4,4,8,8,12,12,8,8,12,12},//BLK_8x8
+   {0,0,4,4,1,1,5,5,8,8,12,12,9,9,13,13},//BLK_8x4
+   {0,1,4,5,0,1,4,5,8,9,12,13,8,9,12,13},//BLK_4x8
+   {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15}},//BLK_4x4
+  //INTRA_4X4_
+  {{-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1}} 
+};
 
 ErrVal
 MbData::upsampleMotionESS (MbData* pcBaseMbData,
@@ -303,58 +303,87 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
                            const Bool bDirect8x8,
                            ResizeParameters* pcParameters)
 {
-    Bool        abBaseMbIntra [4];  // flag indicating if base MB is Intra or not
-    MbMode      aeMbMode      [4];
-    BlkMode     aeBlkMode    [4][4];  
-    BorderType  aeBorder	  [4][2]; //NO_BORDER MB_BORDER 8x8_BORDER 4x4_BORDER
-    UInt        auiMbIdx	  [4][4]; 
-    UInt        aui4x4Idx	  [4][4];
-
+    Bool        abBl8x8Intra  [4]= {false,false,false,false}; 
+    MbMode      aeMbMode      [4]= {MODE_16x16,MODE_16x16,MODE_16x16,MODE_16x16};
+    BlkMode     aeBlkMode     [4][4];  
+    UInt        auiMbIdx	    [4][4]; 
+    UInt        aui4x4Idx	    [4][4];
+    Int         aaiPartInfo   [4][4];
+    UInt        uiMbBaseOrigX = 0, uiMbBaseOrigY = 0;    
+  
     // initializing
     //-------------
-    xInitESS(pcBaseMbData,
-            uiBaseMbStride,
-            aiPelOrig,
-            bDirect8x8,
-            pcParameters,
-            abBaseMbIntra,
-            aeMbMode,
-            aeBlkMode);
+     xInitESS();
+    // Fill Base idx
+    //-----------------
+    xFillBaseMbData(pcBaseMbData, 
+                    uiBaseMbStride,
+                    aiPelOrig, 
+                    bDirect8x8, 
+                    pcParameters, 
+                    aeMbMode,
+                    aeBlkMode,
+                    uiMbBaseOrigX,
+                    uiMbBaseOrigY);
 
-    // macroblock mode choice
-    //-----------------------
-    xInheritMbMotionData (abBaseMbIntra ,aeMbMode,aeBlkMode,aeBorder,auiMbIdx,aui4x4Idx);
+  if( m_eMbMode!=INTRA_4X4)
+  {
+    // Build PartInfo and inherited base idx filling
+    //----------------------------------------------
+    xBuildPartInfo(aiPelOrig, 
+                  pcParameters,
+                  aeMbMode,
+                  aeBlkMode,  
+                  aui4x4Idx, 
+                  auiMbIdx,
+                  aaiPartInfo,
+                  abBl8x8Intra,
+                  uiMbBaseOrigX,
+                  uiMbBaseOrigY);
+
+    //--- Remove 4x4 INTRA blocks
+    //--------------------------
+    UInt uiB8x8=0,uiB4x4=0;
+    for ( uiB8x8=0 ; uiB8x8<4 ; uiB8x8++)
+      if(!abBl8x8Intra[uiB8x8]) 
+      {
+        for (uiB4x4=0 ; uiB4x4<4 ; uiB4x4++)
+          if(aaiPartInfo[uiB8x8][uiB4x4]==-1) xRemoveIntra4x4(uiB4x4,aui4x4Idx[uiB8x8],auiMbIdx[uiB8x8],aaiPartInfo[uiB8x8]);
+      }
+      
+    //--- Remove 8x8 INTRA blocks
+    //----------------------------    
+      for ( uiB8x8=0 ; uiB8x8<4 ; uiB8x8++) 
+        if(abBl8x8Intra[uiB8x8]) xRemoveIntra8x8(uiB8x8,abBl8x8Intra,aui4x4Idx,auiMbIdx,aaiPartInfo);
 
     // 8x8 blocks partitioning
     //------------------------
-    xInherit8x8MotionData (abBaseMbIntra ,aeMbMode,aeBlkMode,  aeBorder,auiMbIdx,aui4x4Idx);
+    xInherit8x8MotionData (aui4x4Idx,auiMbIdx,aaiPartInfo);
 
-    // Transfer in MB structure
-    //-------------------------
-    RNOK( xFillMbMvData(pcParameters ) );
+    // macroblock mode choice
+    //-----------------------
+    xInheritMbMotionData (aaiPartInfo);
+  }
 
-    //--- Set fwd/bwd 
-    UInt uiFwdBwd = 0;
-    for( Int n = 3; n >= 0; n--)
-    {
-        uiFwdBwd <<= 4;
-        uiFwdBwd += (0 < m_apcMbMotionData[0]->getRefIdx( Par8x8(n) )) ? 1:0;
-        uiFwdBwd += (0 < m_apcMbMotionData[1]->getRefIdx( Par8x8(n) )) ? 2:0;
-    }
-    m_usFwdBwd = uiFwdBwd;
+  // Transfer in MB structure
+  //-------------------------
+  RNOK( xFillMbMvData(pcParameters ) );
 
-    return Err::m_nOK;
+  //--- Set fwd/bwd 
+  UInt uiFwdBwd = 0;
+  for( Int n = 3; n >= 0; n--)
+  {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += (0 < m_apcMbMotionData[0]->getRefIdx( Par8x8(n) )) ? 1:0;
+      uiFwdBwd += (0 < m_apcMbMotionData[1]->getRefIdx( Par8x8(n) )) ? 2:0;
+  }
+   m_usFwdBwd = uiFwdBwd;
+
+   return Err::m_nOK;
 }
 
 ErrVal
-MbData::xInitESS(MbData* pcBaseMbData,
-                 const UInt uiBaseMbStride,
-                 const Int aiPelOrig[2],
-                 const Bool bDirect8x8,
-                 ResizeParameters* pcParameters,
-                 Bool        abBaseMbIntra[4],  
-                 MbMode      aeMbMode	  [4],
-                 BlkMode     aeBlkMode	  [4][4])
+MbData::xInitESS()
 {
     //--- Initialisation
     ///////////////////////
@@ -362,7 +391,7 @@ MbData::xInitESS(MbData* pcBaseMbData,
     m_bBLQRefFlag = false; 
 
     m_uiMbCbp = 0;
-    m_eMbMode =   INTRA_4X4;
+    m_eMbMode = MODE_16x16;
     m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] =BLK_8x8;
 
     Mv* pcMv0=m_acBl4x4Mv[0];
@@ -373,398 +402,229 @@ MbData::xInitESS(MbData* pcBaseMbData,
     {
         pcMv0->setZero();
         pcMv1->setZero();
-        *pscRefIdx0=*pscRefIdx1=-1;
-    }
-
-    abBaseMbIntra[0]=abBaseMbIntra[1]=abBaseMbIntra[2]=abBaseMbIntra[3]=false;
-
-    //---- Set ResidualAvailFlagsBase  
-    ///////////////////////////////////
-    //added by Samsung B.K. LEE  from JVT-P089 (adapted by jerome.vieron@thomson.net)
-    const Int iBaseX0 = (aiPelOrig[0]*pcParameters->m_iInWidth + pcParameters->m_iInWidth/2) / pcParameters->m_iOutWidth; 
-    const Int iBaseY0 = (aiPelOrig[1]*pcParameters->m_iInHeight + pcParameters->m_iInHeight/2) / pcParameters->m_iOutHeight; 
-    const Int iBaseX1 = ((aiPelOrig[0]+15)*pcParameters->m_iInWidth  + pcParameters->m_iInWidth /2) / pcParameters->m_iOutWidth; 
-    const Int iBaseY1 = ((aiPelOrig[1]+15)*pcParameters->m_iInHeight + pcParameters->m_iInHeight/2) / pcParameters->m_iOutHeight; 
-
-    const MbData* pcBaseMb0 = & (pcBaseMbData[(iBaseY0>>4) * uiBaseMbStride + (iBaseX0>>4)]); ;
-    const Int iSMbWidth   = ( iBaseX1>>4 > iBaseX0>>4 ) ? 2 : 1;
-    const Int iSMbHeight  = ( iBaseY1>>4 > iBaseY0>>4 ) ? 2 : 1;
-
-    UShort usResidualAvailFlagsBase = 0;
-    for( Int iBaseMbY = 0; iBaseMbY < iSMbHeight; iBaseMbY ++)
-        for( Int iBaseMbX = 0; iBaseMbX < iSMbWidth; iBaseMbX ++)
-        {  
-            const MbData* pcBaseMb = pcBaseMb0+iBaseMbY * uiBaseMbStride + iBaseMbX; //bug fixes
-            usResidualAvailFlagsBase |= pcBaseMb->isLumaResidualAvailable()   ? 15 : 0;
-            usResidualAvailFlagsBase |= pcBaseMb->isChromaResidualAvailable() ? (1 << 4) : 0;
-        }
-    setResidualAvailFlagsBase( usResidualAvailFlagsBase );
-
-    //--- MB_Border 8x8Border distances derivation
-    //////////////////////////////////////////////////
-    Int aiBaseMb[2],aiBaseCenter[2],aidBorder[2],aidBorderplus1[2];
-
-    aiBaseCenter[0]  = ((aiPelOrig[0]+8)*pcParameters->m_iInWidth + pcParameters->m_iOutWidth/2) / pcParameters->m_iOutWidth;
-    aidBorder[0]     = ( (8*(aiBaseCenter[0]>>3)-aiBaseCenter[0])*pcParameters->m_iOutWidth + pcParameters->m_iInWidth/2 ) / pcParameters->m_iInWidth;
-    aidBorderplus1[0]= ( (8+8*(aiBaseCenter[0]>>3)-aiBaseCenter[0])*pcParameters->m_iOutWidth + pcParameters->m_iInWidth/2 ) / pcParameters->m_iInWidth;
-
-    aiBaseCenter[1]  = ((aiPelOrig[1]+8)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight; 
-    aidBorder[1]     = ( (8*(aiBaseCenter[1]>>3)-aiBaseCenter[1])*pcParameters->m_iOutHeight + pcParameters->m_iInHeight/2 ) / pcParameters->m_iInHeight;
-    aidBorderplus1[1]= ( (8+8*(aiBaseCenter[1]>>3)-aiBaseCenter[1])*pcParameters->m_iOutHeight + pcParameters->m_iInHeight/2 ) / pcParameters->m_iInHeight;
-
-    for(UInt uiDim=0; uiDim<2; uiDim++)
-    {
-        if(((((aiBaseCenter[uiDim])>>3)<<3)%16)==0)
-        {
-            m_aiMbBorder[uiDim] = aidBorder[uiDim];
-            m_ai8x8Border[uiDim] = aidBorderplus1[uiDim];
-        }
-        else
-        {
-            m_aiMbBorder[uiDim] = aidBorderplus1[uiDim];
-            m_ai8x8Border[uiDim] = aidBorder[uiDim];
-        }
-
-        aiBaseMb[uiDim]   = aiBaseCenter[uiDim] - 16*((m_aiMbBorder[uiDim]>-6)&&(m_aiMbBorder[uiDim]<=0)); // -6 because after quantiz,-6 gives -8
-
-        m_aiMbBorder[uiDim]=CALC_COND(m_aiMbBorder[uiDim]);
-        m_ai8x8Border[uiDim]=CALC_COND(m_ai8x8Border[uiDim]);
-
-     }
-
-    //--- MB Class derivation and Base MB association 
-    ///////////////////////////////////////////////////
-    Int iMbBaseIdx =(aiBaseMb[1]>>4)*uiBaseMbStride + (aiBaseMb[0]>>4);
-    m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;   
-
-    m_apcMbData[0]= &(pcBaseMbData[iMbBaseIdx]);
-    if(abs(m_aiMbBorder[0])>=8)
-    {
-        if(abs(m_aiMbBorder[1])>=8) 
-        {
-            m_eClass = Corner;
-        }
-        else 
-        {
-            m_eClass = Hori;
-            m_apcMbData[2]= &(pcBaseMbData[iMbBaseIdx+uiBaseMbStride]);
-        }
-    }
-    else
-    {
-        if(abs(m_aiMbBorder[1])>=8) 
-        {
-            m_eClass = Vert;
-            m_apcMbData[1]= &(pcBaseMbData[iMbBaseIdx+1]);
-        }
-        else 
-        {
-            m_eClass = Center;
-            m_apcMbData[1]= &(pcBaseMbData[iMbBaseIdx+1]);
-            m_apcMbData[2]= &(pcBaseMbData[iMbBaseIdx+uiBaseMbStride]);
-            m_apcMbData[3]= &(pcBaseMbData[iMbBaseIdx+uiBaseMbStride+1]);
-        }
-    }
-
-    //Fill in array of Base MbMode
-    ///////////////////////////////
-    UInt uiNbBaseMb=m_eClass>>1;
-    for(UInt uiNbMb=0 ; uiNbMb < uiNbBaseMb ; uiNbMb++)
-    {
-        UInt uiIdxMb=uiNbMb<<(m_eClass%2);
-        MbMode eMbMode= m_apcMbData[uiIdxMb]->m_eMbMode;  
-        if(eMbMode>=INTRA_4X4 )  
-        {
-            abBaseMbIntra[uiIdxMb]=true;
-            eMbMode=MODE_16x16;
-           aeBlkMode[uiIdxMb][0]=aeBlkMode[uiIdxMb][1]=aeBlkMode[uiIdxMb][2]=aeBlkMode[uiIdxMb][3]=BLK_8x8; //bug fix jerome.vieron@thomson.net
-        }
-        else
-        {
-            if(eMbMode==MODE_SKIP) eMbMode = MODE_8x8;
-            for(UInt uiB8x8Idx=0;uiB8x8Idx<4;uiB8x8Idx++)
-            {
-                BlkMode eBlkMode=m_apcMbData[uiIdxMb]->m_aBlkMode[uiB8x8Idx];
-                if (eBlkMode == BLK_SKIP)
-                    eBlkMode = (bDirect8x8) ? BLK_8x8 : BLK_4x4;
-
-                aeBlkMode[uiIdxMb][uiB8x8Idx]=eBlkMode;
-            }
-        }
-
-        aeMbMode[uiIdxMb]= eMbMode;
+        *pscRefIdx0=*pscRefIdx1=BLOCK_NOT_PREDICTED;
     }
 
     return Err::m_nOK;   
 }
 
 ErrVal
-MbData::xInitUpsampleInfo(BorderType   aeBorder [4][2],
-                          UInt          auiMbIdx [4][4]	 , 
-                          UInt          aui4x4Idx[4][4]		)
+MbData::xFillBaseMbData(  MbData* pcBaseMbData,
+                          const UInt uiBaseMbStride,
+                          const Int aiPelOrig[2],
+                          const Bool bDirect8x8,
+                          ResizeParameters* pcParameters,
+                          MbMode      aeMbMode	  [4],
+                          BlkMode     aeBlkMode	  [4][4],
+                          UInt&       uiMbBaseOrigX,
+                          UInt&       uiMbBaseOrigY)
 {
-   InfoBaseDim rInfX , rInfY;
-   xInitInfoBaseDim(&rInfX, 0);
-   xInitInfoBaseDim(&rInfY, 1);
+    //--- Base MB association + Fill in Base MbMode + aeBlkMode
+    ///////////////////////////////////////////////////////////
+    const Int iBaseX0 = ((aiPelOrig[0]+1)*pcParameters->m_iInWidth + pcParameters->m_iOutWidth/2) / pcParameters->m_iOutWidth; 
+    const Int iBaseY0 = ((aiPelOrig[1]+1)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight; 
+    const Int iBaseX1 = ((aiPelOrig[0]+13)*pcParameters->m_iInWidth  + pcParameters->m_iOutWidth /2) / pcParameters->m_iOutWidth; 
+    const Int iBaseY1 = ((aiPelOrig[1]+13)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight; 
 
-    UInt uiB8x8Idx;
-    for( Int x=0;x<2;x++)
-    {
-        for( Int y=0;y<2;y++)
-        {
-            uiB8x8Idx=(y<<1) + x;
+    uiMbBaseOrigX=(iBaseX0>>4);
+    uiMbBaseOrigY=(iBaseY0>>4);
 
-            UInt uidxbaseX0=rInfX.ucIdx4x4Base[x][0];
-            UInt uidxbaseX1=rInfX.ucIdx4x4Base[x][1];
-            UInt uidxbaseY0=rInfY.ucIdx4x4Base[y][0];
-            UInt uidxbaseY1=rInfY.ucIdx4x4Base[y][1];
+    Int iMbBaseIdx =uiMbBaseOrigY*uiBaseMbStride + uiMbBaseOrigX;
+    MbData* pcBaseMb0 = &(pcBaseMbData[iMbBaseIdx]);
 
-            aui4x4Idx[uiB8x8Idx][0]=((uidxbaseY0%4)<<2)|(uidxbaseX0%4);
-            aui4x4Idx[uiB8x8Idx][1]=((uidxbaseY0%4)<<2)|(uidxbaseX1%4);
-            aui4x4Idx[uiB8x8Idx][2]=((uidxbaseY1%4)<<2)|(uidxbaseX0%4);
-            aui4x4Idx[uiB8x8Idx][3]=((uidxbaseY1%4)<<2)|(uidxbaseX1%4);
+    const Int iSMbWidth   = ( iBaseX1>>4 > iBaseX0>>4 ) ? 2 : 1;
+    const Int iSMbHeight  = ( iBaseY1>>4 > iBaseY0>>4 ) ? 2 : 1;
+    UShort usResidualAvailFlagsBase = 0;
+    
+    Bool bIsMbIntra=true;
+    m_apcMbData[0]=m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;
 
-            auiMbIdx[uiB8x8Idx][0]=((uidxbaseY0>>2)<<1)|(uidxbaseX0>>2);
-            auiMbIdx[uiB8x8Idx][1]=((uidxbaseY0>>2)<<1)|(uidxbaseX1>>2);
-            auiMbIdx[uiB8x8Idx][2]=((uidxbaseY1>>2)<<1)|(uidxbaseX0>>2);
-            auiMbIdx[uiB8x8Idx][3]=((uidxbaseY1>>2)<<1)|(uidxbaseX1>>2);
+    for( Int iBaseMbY = 0; iBaseMbY < iSMbHeight; iBaseMbY ++)
+        for( Int iBaseMbX = 0; iBaseMbX < iSMbWidth; iBaseMbX ++)
+        {  
+            UInt uiIdxMb=(iBaseMbY<<1) + iBaseMbX;
+            const MbData* pcBaseMb = m_apcMbData[uiIdxMb]= pcBaseMb0 + iBaseMbY * uiBaseMbStride + iBaseMbX; 
+          
+            MbMode eMbMode= m_apcMbData[uiIdxMb]->m_eMbMode;  
+             if(eMbMode>=INTRA_4X4 )  
+             {
+               eMbMode=INTRA_4X4;
+               aeBlkMode[uiIdxMb][0]=aeBlkMode[uiIdxMb][1]=aeBlkMode[uiIdxMb][2]=aeBlkMode[uiIdxMb][3]=BLK_8x8; //bug fix jerome.vieron@thomson.net
+             }
+             else
+             {
+               if(eMbMode==MODE_SKIP) eMbMode = MODE_8x8;
+               for(UInt uiB8x8Idx=0;uiB8x8Idx<4;uiB8x8Idx++)
+               {
+                 BlkMode eBlkMode=m_apcMbData[uiIdxMb]->m_aBlkMode[uiB8x8Idx];
+                 if (eBlkMode == BLK_SKIP)
+                   eBlkMode = (bDirect8x8) ? BLK_8x8 : BLK_4x4;
 
-            aeBorder[uiB8x8Idx][0]=rInfX.aeBorderType[x];
-            aeBorder[uiB8x8Idx][1]=rInfY.aeBorderType[y];
+                 aeBlkMode[uiIdxMb][uiB8x8Idx]=eBlkMode;
+               }
+             }
+
+             aeMbMode[uiIdxMb]= eMbMode;
+
+             bIsMbIntra &= (eMbMode==INTRA_4X4);
+                   
+            usResidualAvailFlagsBase |= pcBaseMb->isLumaResidualAvailable()   ? 15 : 0;
+            usResidualAvailFlagsBase |= pcBaseMb->isChromaResidualAvailable() ? (1 << 4) : 0;
         }
-    }
-    return Err::m_nOK;
+
+    setResidualAvailFlagsBase( usResidualAvailFlagsBase );
+    
+    if(bIsMbIntra) m_eMbMode=INTRA_4X4;
+
+    return Err::m_nOK;   
 }
 
 
 ErrVal
-MbData::xInheritMbMotionData(const Bool       abBaseMbIntra[4] ,
-							   const MbMode     aeMbMode     [4],
-                               const BlkMode    aeBlkMode    [4][4],
-                               BorderType	aeBorder     [4][2],
-							   UInt       auiMbIdx     [4][4]	, 
-                               UInt		aui4x4Idx    [4][4])
+MbData::xBuildPartInfo(const Int         aiPelOrig[2],
+                       ResizeParameters* pcParameters,
+                       const MbMode      aeMbMode[4],
+                       const  BlkMode    aeBlkMode[4][4],  
+                       UInt              aui4x4Idx[4][4],
+                       UInt              auiMbIdx [4][4], 
+                       Int              aaiPartInfo[4][4],
+                       Bool              abBl8x8Intra[4],
+                       const UInt        uiMbBaseOrigX,
+                       const UInt        uiMbBaseOrigY )
 {
-   UInt uiNbBaseMb=m_eClass>>1;
-   Bool bIsIntra=true;
-   for(UInt uiNbMb=0 ; uiNbMb < uiNbBaseMb ; uiNbMb++) 
-     bIsIntra&=abBaseMbIntra[uiNbMb<<(m_eClass%2)]; 
+   for( Int x=0;x<2;x++)
+    {
+        for( Int y=0;y<2;y++)
+        {
+            UInt uiB8x8Idx=(y<<1) + x;
 
-   if(bIsIntra) m_eMbMode = INTRA_4X4;
-   else
-	{
-		//Remplissage des idx des blocks de base
-		xInitUpsampleInfo(aeBorder,auiMbIdx,aui4x4Idx);
+            UInt uiBaseX0=((aiPelOrig[0]+x*8+1)*pcParameters->m_iInWidth  + pcParameters->m_iOutWidth/2)  / pcParameters->m_iOutWidth ;
+            UInt uiBaseX1=((aiPelOrig[0]+x*8+5)*pcParameters->m_iInWidth  + pcParameters->m_iOutWidth/2)  / pcParameters->m_iOutWidth ;
+            UInt uiBaseY0=((aiPelOrig[1]+y*8+1)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
+            UInt uiBaseY1=((aiPelOrig[1]+y*8+5)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
+            
+            uiBaseX0 -= (uiMbBaseOrigX<<4);
+            uiBaseX1 -= (uiMbBaseOrigX<<4);
+            uiBaseY0 -= (uiMbBaseOrigY<<4);
+            uiBaseY1 -= (uiMbBaseOrigY<<4);
 
-		if( m_eClass == Center) m_eMbMode = MODE_8x8;
-		else 
-		{
-			Bool bIsBase8x8=false;
-			Char cSuffix[2]; 
-			MbMode eMbMode;
+            //Set Base Indexes
+            ///////////////////
+            aui4x4Idx[uiB8x8Idx][0]=(((uiBaseY0>>2)%4)<<2)+((uiBaseX0>>2)%4);
+            aui4x4Idx[uiB8x8Idx][1]=(((uiBaseY0>>2)%4)<<2)+((uiBaseX1>>2)%4);
+            aui4x4Idx[uiB8x8Idx][2]=(((uiBaseY1>>2)%4)<<2)+((uiBaseX0>>2)%4);
+            aui4x4Idx[uiB8x8Idx][3]=(((uiBaseY1>>2)%4)<<2)+((uiBaseX1>>2)%4);
 
-			if( m_eClass == Corner) 
-			{
-				eMbMode= aeMbMode[0];
-				bIsBase8x8 =( eMbMode==MODE_8x8);
-				cSuffix[0] =  m_acSuffixMbMode[0][eMbMode];  
-				cSuffix[1] =  m_acSuffixMbMode[1][eMbMode]; 
-				xComputeMbModeSize(cSuffix[0],0,bIsBase8x8,aeBlkMode,auiMbIdx,aui4x4Idx);
-				xComputeMbModeSize(cSuffix[1],1,bIsBase8x8,aeBlkMode,auiMbIdx,aui4x4Idx);
-			}
-			else
-			{
-				UChar ucDim = ( m_eClass == Vert );
-				cSuffix[ucDim] = 16;
+            auiMbIdx[uiB8x8Idx][0]=((uiBaseY0>>4)<<1)+(uiBaseX0>>4);
+            auiMbIdx[uiB8x8Idx][1]=((uiBaseY0>>4)<<1)+(uiBaseX1>>4);
+            auiMbIdx[uiB8x8Idx][2]=((uiBaseY1>>4)<<1)+(uiBaseX0>>4);
+            auiMbIdx[uiB8x8Idx][3]=((uiBaseY1>>4)<<1)+(uiBaseX1>>4);
+          
+          //Set PartInfo
+          /////////////// 
+          aaiPartInfo[uiB8x8Idx][0]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][0]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][0]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][0]]])%8 ] [aui4x4Idx[uiB8x8Idx][0]];
+          aaiPartInfo[uiB8x8Idx][1]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][1]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][1]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][1]]])%8 ] [aui4x4Idx[uiB8x8Idx][1]];
+          aaiPartInfo[uiB8x8Idx][2]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][2]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][2]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][2]]])%8 ] [aui4x4Idx[uiB8x8Idx][2]];
+          aaiPartInfo[uiB8x8Idx][3]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][3]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][3]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][3]]])%8 ] [aui4x4Idx[uiB8x8Idx][3]];
+         
+          aaiPartInfo[uiB8x8Idx][0]+=  (aaiPartInfo[uiB8x8Idx][0]==-1? 0:auiMbIdx[uiB8x8Idx][0]<<4);
+          aaiPartInfo[uiB8x8Idx][1]+=  (aaiPartInfo[uiB8x8Idx][1]==-1? 0:auiMbIdx[uiB8x8Idx][1]<<4);
+          aaiPartInfo[uiB8x8Idx][2]+=  (aaiPartInfo[uiB8x8Idx][2]==-1? 0:auiMbIdx[uiB8x8Idx][2]<<4);
+          aaiPartInfo[uiB8x8Idx][3]+=  (aaiPartInfo[uiB8x8Idx][3]==-1? 0:auiMbIdx[uiB8x8Idx][3]<<4);
+            
+          abBl8x8Intra[uiB8x8Idx]=(aaiPartInfo[uiB8x8Idx][0]==-1)&&(aaiPartInfo[uiB8x8Idx][1]==-1)&&(aaiPartInfo[uiB8x8Idx][2]==-1)&&(aaiPartInfo[uiB8x8Idx][3]==-1);
+        }
+    }     
 
-                for(UInt uiNbMb=0 ; uiNbMb < uiNbBaseMb ; uiNbMb++)
-				{
-					UInt uiIdxMb=uiNbMb<<(m_eClass%2);
-                    eMbMode=aeMbMode[uiIdxMb];
-					bIsBase8x8 |=( eMbMode==MODE_8x8);
-					cSuffix[ucDim] = min( cSuffix[ucDim], m_acSuffixMbMode[ucDim][eMbMode]); 
-				}
-
-				xComputeMbModeSize(cSuffix[ucDim],ucDim,bIsBase8x8,aeBlkMode,auiMbIdx,aui4x4Idx);
-           		cSuffix[1-ucDim]=((abs(m_aiMbBorder[1-ucDim])==4)?4:8);
-			}
-			if ((cSuffix[0]==4)||(cSuffix[1]==4)) m_eMbMode = MODE_8x8;
-			else  m_eMbMode=m_aeBuildMbMode[(cSuffix[0]>>3) -1 ][(cSuffix[1]>>3) -1];
-		}
-	}
- return Err::m_nOK;
+    return Err::m_nOK;
 }
 
-Void
-MbData::xComputeMbModeSize(Char& cSuffix, 
-							 const UChar ucDim, 
-                           const Bool bIsBase8x8,
-                          const BlkMode    aeBlkMode    [4][4], 
-                          const UInt       auiMbIdx     [4][4] , 
-                          const UInt		aui4x4Idx    [4][4])
-                           
+        
+ErrVal 
+MbData::xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
+                               const UInt        auiMbIdx	  [4][4], 
+                               const Int         aaiPartInfo[4][4])
  {
-	 if(cSuffix!=16)
-	 {
-		 cSuffix = m_acComputeMbSize[(cSuffix>>3) -1][abs(m_ai8x8Border[ucDim])>>2];
-		 if((cSuffix==16)&&(bIsBase8x8)&&(abs(m_ai8x8Border[ucDim])==8)&&(abs(m_aiMbBorder[ucDim])==8))
-		 {
-             BlkMode eBlkMode=aeBlkMode[auiMbIdx[0][0]][g_aucConvertTo8x8Idx[aui4x4Idx[0][0]]];
-             Char cSubsizeb8x8idx0= m_acSuffixBlkMode[ucDim][eBlkMode%8];
+   UInt uiB8x8Idx=0;
+   for(uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
+   {
+     //Compute  m_aBlkMode
+     //-------------------
+     Bool bR1 = aaiPartInfo[uiB8x8Idx][0]==aaiPartInfo[uiB8x8Idx][1];
+     Bool bR2 = aaiPartInfo[uiB8x8Idx][2]==aaiPartInfo[uiB8x8Idx][3];
+     Bool bC1 = aaiPartInfo[uiB8x8Idx][0]==aaiPartInfo[uiB8x8Idx][2];
+     Bool bC2 = aaiPartInfo[uiB8x8Idx][1]==aaiPartInfo[uiB8x8Idx][3];
 
-             eBlkMode=aeBlkMode[auiMbIdx[3][0]][g_aucConvertTo8x8Idx[aui4x4Idx[3][0]]];
-             Char cSubsizeb8x8idx3= m_acSuffixBlkMode[ucDim][eBlkMode%8];
+     //We assume that m_aBlkMode[uiB8x8Idx]has been initialized with BLK_8x8
+     if( ! bC1 || ! bC2 )
+     {
+       m_aBlkMode[uiB8x8Idx]= BLK_8x4 ;
+     }
+     if( ! bR1 || ! bR2 )
+     {
+       m_aBlkMode[uiB8x8Idx]= ( m_aBlkMode[uiB8x8Idx] == BLK_8x8 ) ? BLK_4x8  : BLK_4x4;
+     }
+   
+    // Inherit from base mv and RefIdx
+    //---------------------------------
+     const UInt*  pucMbIdx =auiMbIdx[uiB8x8Idx];
+     const UInt*  puc4x4Idx=aui4x4Idx[uiB8x8Idx];
+     const UChar* pucBlockOrder=&(g_aucConvertBlockOrder[uiB8x8Idx<<2]);
 
-			 cSuffix=min(cSuffix,2*min(cSubsizeb8x8idx0,cSubsizeb8x8idx3));             
-		 }
-	}
-}          
+     for(UInt uiBl4x4Idx=0;uiBl4x4Idx<4;uiBl4x4Idx++,puc4x4Idx++,pucMbIdx++,pucBlockOrder++)
+     {
+       MbMotionData* pcmbMd0=m_apcMbData[*pucMbIdx]->m_apcMbMotionData[0];
+       MbMotionData* pcmbMd1=m_apcMbData[*pucMbIdx]->m_apcMbMotionData[1];
 
+       const UChar ucMapIdx=*puc4x4Idx;
+       const UChar uc8x8Idx=g_aucConvertTo8x8Idx[ucMapIdx];
+       m_acBl4x4Mv[0][*pucBlockOrder]     =pcmbMd0->getMv(B4x4Idx(ucMapIdx));
+       m_ascBl4x4RefIdx[0][*pucBlockOrder]=pcmbMd0->getRefIdx(Par8x8(uc8x8Idx));	
+       m_acBl4x4Mv[1][*pucBlockOrder]     =pcmbMd1->getMv(B4x4Idx(ucMapIdx));
+       m_ascBl4x4RefIdx[1][*pucBlockOrder]=pcmbMd1->getRefIdx(Par8x8(uc8x8Idx));
+
+       //fill cbp
+       ///////////
+       if((m_apcMbData[*pucMbIdx]->getMbExtCbp()>>ucMapIdx)&1)
+         m_uiMbCbp|=(1<<(*pucBlockOrder));
+     }
+   }
+
+   //Homogenization step
+   ////////////////////////////////
+   //--- Merge Ref Indexes and Mvs inside a given 8x8 block  
+   for ( uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++) 
+     if(m_aBlkMode[uiB8x8Idx]!= BLK_8x8) xMergeBl8x8MvAndRef(uiB8x8Idx);
+
+   return Err::m_nOK;
+ }
 
 ErrVal 
-MbData::xInherit8x8MotionData(  const Bool       abBaseMbIntra[4] ,
-                                const MbMode     aeMbMode     [4],
-                                const BlkMode    aeBlkMode    [4][4],
-                                const BorderType	aeBorder     [4][2],
-                                const UInt       auiMbIdx     [4][4]	, 
-                                const UInt		aui4x4Idx    [4][4])
+MbData::xInheritMbMotionData(const Int aaiPartInfo[4][4])
  {
-     Bool abBl8x8Intra [4];
-     abBl8x8Intra[0]=abBl8x8Intra[1]=abBl8x8Intra[2]=abBl8x8Intra[3]=false;
+     Bool bR1 = (m_aBlkMode[0]==m_aBlkMode[1]) && (m_aBlkMode[0]==BLK_8x8) && (aaiPartInfo[0][0]==aaiPartInfo[1][0]);
+     Bool bR2 = (m_aBlkMode[2]==m_aBlkMode[3]) && (m_aBlkMode[2]==BLK_8x8) && (aaiPartInfo[2][0]==aaiPartInfo[3][0]);
+     Bool bC1 = (m_aBlkMode[0]==m_aBlkMode[2]) && (m_aBlkMode[0]==BLK_8x8) && (aaiPartInfo[0][0]==aaiPartInfo[2][0]);
+     Bool bC2 = (m_aBlkMode[1]==m_aBlkMode[3]) && (m_aBlkMode[1]==BLK_8x8) && (aaiPartInfo[1][0]==aaiPartInfo[3][0]);
 
-     if(m_eMbMode>=INTRA_4X4)
+      //We assume that m_eMbMode has been initialized with MODE_16x16
+     if( ! bC1 || ! bC2 )
      {
-         m_aBlkMode[0]= m_aBlkMode[1]= m_aBlkMode[2]= m_aBlkMode[3]=BLK_8x8; 
-         abBl8x8Intra[0]=abBl8x8Intra[1]=abBl8x8Intra[2]=abBl8x8Intra[3]=true;
+       m_eMbMode = MODE_16x8 ;
      }
-     else
+     if( ! bR1 || ! bR2 )
      {
-         UInt uiB8x8;
-         for(uiB8x8=0 ; uiB8x8<4 ; uiB8x8++)
-         {
-             Char cSuffixX,cSuffixY=-1;
-             cSuffixX=xComputeSubMbModeSize(uiB8x8,0,abBaseMbIntra,aeMbMode,aeBlkMode,aeBorder,auiMbIdx,aui4x4Idx);
-             if(cSuffixX>0)
-                 cSuffixY=xComputeSubMbModeSize(uiB8x8,1,abBaseMbIntra,aeMbMode,aeBlkMode,aeBorder,auiMbIdx,aui4x4Idx);  
-
-             if((cSuffixX <=0)||(cSuffixY <=0))
-             {
-                 m_aBlkMode[uiB8x8]=BLK_8x8; 
-                 abBl8x8Intra[uiB8x8]=true;
-             }   
-             else
-             {   
-                 m_aBlkMode[uiB8x8]=m_aeBuildBlkMode[(cSuffixX>>2)-1][(cSuffixY>>2)-1];
-
-                 const UInt* pucMbIdx =auiMbIdx[uiB8x8];
-                 const UInt* puc4x4Idx=aui4x4Idx[uiB8x8];
-                 const UChar *pucBlockOrder=&(g_aucConvertBlockOrder[uiB8x8<<2]);
-
-                 for(UInt uiBl4x4Idx=0;uiBl4x4Idx<4;uiBl4x4Idx++,puc4x4Idx++,pucMbIdx++,pucBlockOrder++)
-                 {
-                     MbMotionData* pcmbMd0=m_apcMbData[*pucMbIdx]->m_apcMbMotionData[0];
-                     MbMotionData* pcmbMd1=m_apcMbData[*pucMbIdx]->m_apcMbMotionData[1];
-
-                     const UChar ucMapIdx=*puc4x4Idx;
-                     const UChar uc8x8Idx=g_aucConvertTo8x8Idx[ucMapIdx];
-                     m_acBl4x4Mv[0][*pucBlockOrder]     =pcmbMd0->getMv(B4x4Idx(ucMapIdx));
-                     m_ascBl4x4RefIdx[0][*pucBlockOrder]=pcmbMd0->getRefIdx(Par8x8(uc8x8Idx));	
-                     m_acBl4x4Mv[1][*pucBlockOrder]     =pcmbMd1->getMv(B4x4Idx(ucMapIdx));
-                     m_ascBl4x4RefIdx[1][*pucBlockOrder]=pcmbMd1->getRefIdx(Par8x8(uc8x8Idx));
-
-                     //fill cbp
-                     ///////////
-                     if((m_apcMbData[*pucMbIdx]->getMbExtCbp()>>ucMapIdx)&1)
-                         m_uiMbCbp|=(1<<(*pucBlockOrder));
-                 }
-             }
-         }    
-
-         //Homogenization step
-         ////////////////////////////////
-         //--- Merge Ref Indexes and Mvs inside a given 8x8 block  
-         for ( uiB8x8=0 ; uiB8x8<4 ; uiB8x8++) 
-             if(m_aBlkMode[uiB8x8]!= BLK_8x8) xMergeBl8x8MvAndRef(uiB8x8);
-
-         //--- Remove 8x8 INTRA blocks
-         for ( uiB8x8=0 ; uiB8x8<4 ; uiB8x8++) 
-             if(abBl8x8Intra[uiB8x8]) xRemoveIntra(uiB8x8,abBl8x8Intra);
+        m_eMbMode = ( m_eMbMode == MODE_16x16 ) ? MODE_8x16  : MODE_8x8;
      }
 
      return Err::m_nOK;
  }
 
- Char
-MbData::xGetMbModeSize(const UInt uiB8x8Idx , 
-                             const UChar ucDim,
-                             const MbMode     aeMbMode     [4],   
-                             const UInt       auiMbIdx     [4][4]	)
-{
-    UInt idx0=auiMbIdx[uiB8x8Idx][0];
-    UInt idx3=auiMbIdx[uiB8x8Idx][3];
-
-    const Char SuffixDim0=m_acSuffixMbMode[ucDim][aeMbMode[idx0]];
-    const Char SuffixDim3=m_acSuffixMbMode[ucDim][aeMbMode[idx3]];
-
-    return MINBLOCKSIZE(SuffixDim0,SuffixDim3);
-}
-
-Char
-MbData::xGetSubMbModeSize(const UInt uiB8x8Idx , 
-							  const UChar ucDim,
-							  const BlkMode    aeBlkMode    [4][4], 
-							  const UInt       auiMbIdx     [4][4] , 
-							const UInt		aui4x4Idx    [4][4])
-{
-    UInt idx0=auiMbIdx[uiB8x8Idx][0];
-    UInt idx3=auiMbIdx[uiB8x8Idx][3];
-
-     BlkMode eBlkMode=aeBlkMode[idx0][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][0]]];
-     const Char SuffixDim0= m_acSuffixBlkMode[ucDim][eBlkMode%8];
-
-     eBlkMode=aeBlkMode[idx3][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][3]]];
-     const Char SuffixDim3= m_acSuffixBlkMode[ucDim][eBlkMode%8];
-
-    return MINBLOCKSIZE(SuffixDim0,SuffixDim3);
-}
-
-Char
-MbData::xComputeSubMbModeSize(const UInt       uiB8x8Idx , 
-                              const UChar      ucDim, 
-                               const Bool       abBaseMbIntra[4] ,
-							   const MbMode     aeMbMode     [4],
-                               const BlkMode    aeBlkMode    [4][4],
-                               const BorderType	aeBorder     [4][2],
-							   const UInt       auiMbIdx     [4][4]	, 
-                               const UInt		aui4x4Idx    [4][4])
-{
-    Bool bIsMbIntra;
-
-    if((aeBorder[uiB8x8Idx][0]==MB_Border)&&(aeBorder[uiB8x8Idx][1]==MB_Border))
-        bIsMbIntra=(abBaseMbIntra[0]&&abBaseMbIntra[1]&&abBaseMbIntra[2]&&abBaseMbIntra[3]);
-    else
-        bIsMbIntra=(abBaseMbIntra[auiMbIdx[uiB8x8Idx][0]]&&abBaseMbIntra[auiMbIdx[uiB8x8Idx][3]]);   
-
-    if (bIsMbIntra) return -1;
-    else
-    {
-        BorderType cBorder = aeBorder[uiB8x8Idx][ucDim];
-        if(cBorder == MB_Border) return 4;
-        else 
-            if(cBorder == B8x8_Border)  return (xGetMbModeSize(uiB8x8Idx,ucDim,aeMbMode,auiMbIdx)/2);
-            else
-                if(cBorder == B4x4_Border) 	return xGetSubMbModeSize(uiB8x8Idx,ucDim,aeBlkMode,auiMbIdx,aui4x4Idx); 
-    }
-
-    return 8;
-}
-
-
 ErrVal
 MbData::xMergeBl8x8MvAndRef(const UInt uiBlIdx)
 {
-    const UChar* pucWhich=&(g_aucConvertBlockOrder[uiBlIdx*4]);
-    SChar ascChosenRefIdx[2]={MSYS_INT8_MAX,MSYS_INT8_MAX};
+  const UChar* pucWhich=&(g_aucConvertBlockOrder[uiBlIdx*4]);
+  SChar ascChosenRefIdx[2]={MSYS_INT8_MAX,MSYS_INT8_MAX};
 	UInt uiIdxstride=((m_aBlkMode[uiBlIdx]==BLK_8x4)?2:1);
 	const UInt uiNbBl4x4=((m_aBlkMode[uiBlIdx]==BLK_4x4)?4:2);
 	const UChar* pucMap=0;
@@ -812,10 +672,6 @@ MbData::xMergeBl8x8MvAndRef(const UInt uiBlIdx)
     return Err::m_nOK;
 }
 
-
-
-
-
 ErrVal
 MbData::xFillMvandRefBl4x4(const UInt uiBlIdx,const UChar* pucWhich,const UInt uiList,const SChar* psChosenRefIdx)
 {	
@@ -838,43 +694,68 @@ MbData::xFillMvandRefBl4x4(const UInt uiBlIdx,const UChar* pucWhich,const UInt u
     return Err::m_nOK;
 }
 
-
 ErrVal
-MbData::xRemoveIntra(const UInt uiBlIdx, const Bool* abBl8x8Intra)
+MbData::xRemoveIntra8x8(const UInt uiBlIdx, 
+                        const Bool* abBl8x8Intra,
+                        UInt  aui4x4Idx[4][4],
+                        UInt  auiMbIdx[4][4],
+                        Int  aaiPartInfo[4][4])
+                        
 {	
     UChar ucPredIdx=m_aucPredictor[0][uiBlIdx] ;
     if(abBl8x8Intra[ucPredIdx])
     {
         ucPredIdx=m_aucPredictor[1][uiBlIdx] ;
         if(abBl8x8Intra[ucPredIdx])
-            xRemoveIntra(ucPredIdx,abBl8x8Intra);
+            xRemoveIntra8x8(ucPredIdx,abBl8x8Intra,aui4x4Idx,auiMbIdx,aaiPartInfo);
     }
-    xCopyBl8x8(ucPredIdx,uiBlIdx);
+    xCopyBl8x8(ucPredIdx,uiBlIdx,aui4x4Idx,auiMbIdx,aaiPartInfo);
 
     return Err::m_nOK;
 }
 
 ErrVal
-MbData::xCopyBl8x8(const UInt uiBlIdx,const UInt uiBlIdxCopy)
+MbData::xCopyBl8x8(const UInt uiBlIdx,
+                   const UInt uiBlIdxCopy,
+                   UInt  aui4x4Idx[4][4],
+                   UInt  auiMbIdx[4][4],
+                   Int  aaiPartInfo[4][4])
 {
-    const UChar ucB4x4Idx=g_aucConvertTo4x4Idx[uiBlIdx];
-    const UChar ucB4x4IdxCopy=g_aucConvertTo4x4Idx[uiBlIdxCopy];
-
-    for( UInt uiList=0 ; uiList < 2 ; uiList++)
+    for( UInt uiB4x4Idx=0;uiB4x4Idx<4;uiB4x4Idx++)
     {
-        Mv* pcblkMv      =&(m_acBl4x4Mv[uiList][ucB4x4Idx]);
-        SChar* pscBlkRefIdx=&(m_ascBl4x4RefIdx[uiList][ucB4x4Idx]);
-        Mv* pcblkMvCopy   =&(m_acBl4x4Mv[uiList][ucB4x4IdxCopy]);
-        SChar* pscBlkRefIdxCopy=&(m_ascBl4x4RefIdx[uiList][ucB4x4IdxCopy]);
-
-        pcblkMvCopy[0]=pcblkMv[0];pcblkMvCopy[1]=pcblkMv[1];pcblkMvCopy[4]=pcblkMv[4];pcblkMvCopy[5]=pcblkMv[5];
-        pscBlkRefIdxCopy[0]=pscBlkRefIdx[0]; pscBlkRefIdxCopy[1]=pscBlkRefIdx[1]; pscBlkRefIdxCopy[4]=pscBlkRefIdx[4]; pscBlkRefIdxCopy[5]=pscBlkRefIdx[5];
+      aui4x4Idx[uiBlIdxCopy][uiB4x4Idx]=aui4x4Idx[uiBlIdx][uiB4x4Idx];
+      auiMbIdx [uiBlIdxCopy][uiB4x4Idx]=auiMbIdx[uiBlIdx][uiB4x4Idx];
+      aaiPartInfo[uiBlIdxCopy][uiB4x4Idx]=aaiPartInfo[uiBlIdx][uiB4x4Idx];
     }
+    return Err::m_nOK;
+}
 
-    m_aBlkMode[uiBlIdxCopy]=m_aBlkMode[uiBlIdx];
+ 
+         
+
+ErrVal
+MbData::xRemoveIntra4x4(const UInt uiBlIdx,
+                        UInt  aui4x4Idx[4],
+                        UInt  auiMbIdx[4],
+                        Int  aaiPartInfo[4])
+{	  
+    UChar ucPredIdx=m_aucPredictor[0][uiBlIdx] ;
+    
+    if(aaiPartInfo[ucPredIdx]==-1)
+    {
+        ucPredIdx=m_aucPredictor[1][uiBlIdx] ;
+        if(aaiPartInfo[ucPredIdx]==-1)
+            xRemoveIntra4x4(ucPredIdx,aui4x4Idx,auiMbIdx,aaiPartInfo);
+    }
+    aui4x4Idx[uiBlIdx]  = aui4x4Idx[ucPredIdx];
+    auiMbIdx[uiBlIdx]   = auiMbIdx [ucPredIdx];
+    aaiPartInfo[uiBlIdx]= aaiPartInfo[ucPredIdx];
 
     return Err::m_nOK;
 }
+
+
+
 
 ErrVal
 MbData::xFillMbMvData(ResizeParameters* pcParameters )
@@ -912,10 +793,5 @@ MbData::xFillMbMvData(ResizeParameters* pcParameters )
 
     return Err::m_nOK;   
 }
-
-// TMM_ESS_UNIFIED }
-
-
-
 
 H264AVC_NAMESPACE_END

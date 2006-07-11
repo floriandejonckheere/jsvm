@@ -466,7 +466,7 @@ ExtractorParameter::xParseFormatStringROI_Only( Char*   pFormatString, Point&  r
 	uiIndex = iExtractedNumROI;
 	pSubString[uiIndex-1] = pFormatString;
 
-	for(int i=0;i<uiIndex; i++)
+	for(UInt i=0;i<uiIndex; i++)
 	{
 		ROFS( pSubString[i] );
 		rcPoint.uiROI[i]    = atoi( pSubString[i] );

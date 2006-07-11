@@ -4160,30 +4160,13 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
   {
     RNOK( m_pcBaseLayerCtrl->initSlice( *rcControlData.getSliceHeader(), PRE_PROCESS, false, NULL ) );
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
-    // TMM_ESS {
-    if (m_pcResizeParameters->m_iSpatialScalabilityType == SST_RATIO_1)
-    {
-      if( bForCopyOnly )    
-      {
-        RNOK( m_pcBaseLayerCtrl->copyMotion  ( *pcBaseDataCtrl ) );
-      }
-      else
-      {
-        RNOK( m_pcBaseLayerCtrl->copyMotionBL( *pcBaseDataCtrl, m_pcResizeParameters ) );  
-      }
-    }
-    else
-    {
-      ROT( bForCopyOnly );
-
-      if( m_pcResizeParameters->m_iExtendedSpatialScalability == ESS_PICT ) 
+    
+    if( m_pcResizeParameters->m_iExtendedSpatialScalability == ESS_PICT ) 
       {
         RNOK( xFillPredictionLists_ESS( uiBaseLevel, uiFrame) );
       }
-
-      RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameters) );
-    }
-    // TMM_ESS }
+    RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
+  
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
 
     rcControlData.getMbDataCtrl()->copyBaseResidualAvailFlags( *m_pcBaseLayerCtrl );
