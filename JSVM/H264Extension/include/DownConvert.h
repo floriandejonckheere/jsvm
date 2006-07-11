@@ -130,7 +130,7 @@ class DownConvert
   void upsample                 ( unsigned char* pucBufferY, int iStrideY,
                                   unsigned char* pucBufferU, int iStrideU,
                                   unsigned char* pucBufferV, int iStrideV,
-                                  ResizeParameters* pcParameters, int iStages, int* piFilter);
+                                  ResizeParameters* pcParameters, int iStages, int* piFilter, int* piFilter_chroma);
                                   
   void upsample_non_dyadic      ( unsigned char* pucBufferY, int iStrideY,
                                   unsigned char* pucBufferU, int iStrideU,
@@ -184,13 +184,12 @@ private:
                                   int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
                                   int output_chroma_phase_shift_x, int output_chroma_phase_shift_y );
 
-  //cixunzhang add
+  //cixunzhang
   void   xUpsampling3           ( int input_width, int input_height,
-	  int output_width, int output_height,
-	  int crop_x0, int crop_y0, int crop_w, int crop_h,
-	  int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-	  int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag );
-  //end
+	                                int output_width, int output_height,
+	                                int crop_x0, int crop_y0, int crop_w, int crop_h,
+	                                int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
+	                                int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag );
 
                                   
 #ifndef DOWN_CONVERT_STATIC // TMM_JV
@@ -281,7 +280,7 @@ private:
 // =================================================================================
 //   INTRA 1 Lanczos
 // =================================================================================
-  void   xInitFilterTmm1        ( /*int iMaxDim*/ );
+  void   xInitFilterTmm1        ( );
   void   xDestroyFilterTmm1     ( );
   void   xUpsampling1           ( ResizeParameters* pcParameters,
                                   bool bLuma );
@@ -295,7 +294,7 @@ private:
   void   xDestroyFilterTmm2     ( );
   void   xUpsampling2           ( ResizeParameters* pcParameters,
                                   bool bLuma );
-  void   xUpsamplingData2       ( int iInLength , int iOutLength /*, int iNumerator , int iDenominator*/ );
+  void   xUpsamplingData2       ( int iInLength , int iOutLength );
 
 // =================================================================================
 

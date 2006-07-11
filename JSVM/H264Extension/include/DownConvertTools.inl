@@ -118,7 +118,10 @@ void
 DownConvert::upsample                 ( unsigned char* pucBufferY, int iStrideY,
                                         unsigned char* pucBufferU, int iStrideU,
                                         unsigned char* pucBufferV, int iStrideV,
-                                        ResizeParameters* pcParameters, int iStages, int* piFilter)
+                                        ResizeParameters* pcParameters, 
+                                        int iStages, 
+                                        int* piFilter,
+                                        int* piFilter_chroma)
 {
   int iWidth = pcParameters->m_iInWidth;
   int iHeight = pcParameters->m_iInHeight;
@@ -129,18 +132,6 @@ DownConvert::upsample                 ( unsigned char* pucBufferY, int iStrideY,
     xCopyToImageBuffer  ( pucBufferY, iWidth,   iHeight,   iStrideY );
     xUpsampling         (             iWidth,   iHeight,   piFilter );
     xCopyFromImageBuffer( pucBufferY, iWidth*2, iHeight*2, iStrideY, 0, 255 );
-
-	//cixunzhang add
-	FILTER_UP_CHROMA
-
-    ////===== chroma cb =====
-    //xCopyToImageBuffer  ( pucBufferU, iWidth/2, iHeight/2, iStrideU );
-    //xUpsampling         (             iWidth/2, iHeight/2, piFilter );
-    //xCopyFromImageBuffer( pucBufferU, iWidth,   iHeight,   iStrideU, 0, 255 );
-    ////===== chroma cr =====
-    //xCopyToImageBuffer  ( pucBufferV, iWidth/2, iHeight/2, iStrideV );
-    //xUpsampling         (             iWidth/2, iHeight/2, piFilter );
-    //xCopyFromImageBuffer( pucBufferV, iWidth,   iHeight,   iStrideV, 0, 255 );
 
 	//===== chroma cb =====
 	xCopyToImageBuffer  ( pucBufferU, iWidth/2, iHeight/2, iStrideU );
@@ -962,7 +953,7 @@ DownConvert::xUpsampling2( ResizeParameters* pcParameters, bool bLuma)
 
 __inline
 void
-DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength /*, int iNumerator , int iDenominator*/ )
+DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength )
 {
   int  *Tmp1dBufferInHalfpel = m_aiTmp1dBufferInHalfpel;
   int  *Tmp1dBufferInQ1pel = m_aiTmp1dBufferInQ1pel;
@@ -1055,7 +1046,7 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength /*, int iNumerato
 // lanczos filter coeffs computation
 __inline
 void
-DownConvert::xInitFilterTmm1 (/*int iMaxDim*/ )
+DownConvert::xInitFilterTmm1 ()
 {  
   xDestroyFilterTmm1();
 
@@ -1153,7 +1144,7 @@ DownConvert::xUpsamplingData1 ( int iInLength , int iOutLength , long spos )
   for (int iout=0; iout<iOutLength; iout++)
     {
       dpos0 += spos;
-      //long dpos0 = (iout<<NFACT) * iDenominator / iNumerator;
+    
       long rpos0 = dpos0 & MASKFACT;
       int ipos0 = dpos0 >> NFACT;
       if (rpos0 == 0) {

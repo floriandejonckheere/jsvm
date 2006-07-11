@@ -1,3 +1,20 @@
+JSVM_5_11 -> JSVM_5_12
+======================
+
+Extended Spatial Scalability (new implementation)
+
+Date         : July 10, 2006   
+Author       : J. Vieron
+Contribution : JD6
+
+Changes:
+
+- File MbData.cpp was rewritten to support the new way of achieving ESS (i.e. inter-layer motion prediction)
+- Minor changes in downconvert*.* files
+
+
+
+
 JSVM_5_10 -> JSVM_5_11
 ======================
 

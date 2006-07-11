@@ -172,11 +172,6 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
   }
 
   //cixunzhang
-  //xUpsampling3(input_width, input_height,
-  //  output_width, output_height,
-  //  crop_x0, crop_y0, crop_w, crop_h,
-  //  input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-  //  output_chroma_phase_shift_x, output_chroma_phase_shift_y );
   xUpsampling3(input_width, input_height,
 	  output_width, output_height,
 	  crop_x0, crop_y0, crop_w, crop_h,
@@ -186,14 +181,9 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
 
 }
 
-
+//cixunzhang
 __inline
 void
-//cixunzhang
-//DownConvert::xUpsampling3( int input_width, int input_height, int output_width, int output_height,
-//                           int crop_x0, int crop_y0, int crop_w, int crop_h,
-//                           int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-//                           int output_chroma_phase_shift_x, int output_chroma_phase_shift_y )
 DownConvert::xUpsampling3  ( int input_width, int input_height,
 							   int output_width, int output_height,
 							   int crop_x0, int crop_y0, int crop_w, int crop_h,
@@ -201,25 +191,6 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
 							   int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag )
 
 {
-  //const int filter16[16][6] = { // Lanczos3
-  //                              {0,0,32,0,0,0},
-  //                              {0,-2,32,2,0,0},
-  //                              {1,-3,31,4,-1,0},
-  //                              {1,-4,30,6,-1,0},
-  //                              {1,-4,28,9,-2,0},
-  //                              {1,-4,27,11,-3,0},
-  //                              {1,-5,25,14,-3,0},
-  //                              {1,-5,22,17,-4,1},
-  //                              {1,-5,20,20,-5,1},
-  //                              {1,-4,17,22,-5,1},
-  //                              {0,-3,14,25,-5,1},
-  //                              {0,-3,11,27,-4,1},
-  //                              {0,-2,9,28,-4,1},
-  //                              {0,-1,6,30,-4,1},
-  //                              {0,-1,4,31,-3,1},
-  //                              {0,0,2,32,-2,0}
-  //                            };
-	//cixunzhang add
 	int filter16[16][6] = { // Lanczos3
 		{0,0,32,0,0,0},
 		{0,-2,32,2,0,0},
@@ -268,23 +239,22 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
 
 //JVT-S067
   int i, j, k, *px, *py;
-//  int up_res = 16; // variable not used. mwi060619
   int x16, y16, x, y, m;
   bool ratio1_flag = ( input_width == crop_w );
-//  bool ratio2_flag = ( (input_width*2) == crop_w ); // variable not used. mwi060619
 
   // initialization
   px = new int[output_width];
   py = new int[output_height];
 
-  int F, G, J, M, S;
+  //int F=4; 
+  int G = 2, J, M, S = 12;
   unsigned short C, C1, D1;
   int D, E, q, w;
 
-  for(i=0; i<crop_x0; i++)
-	  px[i] = -128;
-  for(i=crop_x0+crop_w; i<output_width; i++)
-	  px[i] = -128;
+  for(i=0; i<crop_x0; i++)  px[i] = -128;
+  
+  for(i=crop_x0+crop_w; i<output_width; i++)  px[i] = -128;
+
   if(ratio1_flag)
   {
 	  for(i = 0; i < crop_w; i++)
@@ -294,16 +264,18 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
   else
   {
-    F = 4; G = 2; J = 1; M = 13; S = 12;
+    J = 1; M = 13; 
     if(output_chroma_phase_shift_x)
     {
 	    J ++;
 	    M --;
     };
-    S = M + G +  J  - F;
+   
+    // S = M + G +  J  - F;
 
     C = ((1<<(M+G))*input_width + (crop_w>>1))/crop_w;
-    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
+    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
+    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_x<<14);
 
     C1 = C<<J;
     E = 0;
@@ -325,10 +297,11 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
 
   ratio1_flag = ( input_height == crop_h );
-  for(j=0; j<crop_y0; j++)
-	  py[j] = -128;
-  for(j=crop_y0+crop_h; j<output_height; j++)
-	  py[j] = -128;
+
+  for(j=0; j<crop_y0; j++)   py[j] = -128;
+  
+  for(j=crop_y0+crop_h; j<output_height; j++)  py[j] = -128;
+  
   if(ratio1_flag)
   {
 	  for(j = 0; j < crop_h; j++)
@@ -338,16 +311,17 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
   else
   {
-    F = 4; G = 2; J = 1; M = 13; S = 12;
+    J = 1; M = 13; 
     if(output_chroma_phase_shift_y)
     {
 	    J ++;
 	    M --;
     };
-    S = M + G +  J  - F;
+   // S = M + G +  J  - F;
 
     C = ((1<<(M+G))*input_height + (crop_h>>1))/crop_h;
-    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
+    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
+    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_y<<14);
 
     C1 = C<<J;
     E = 0;
@@ -501,8 +475,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
                                   short* psBufferU, int iStrideU,
                                   short* psBufferV, int iStrideV,
                                   ResizeParameters* pcParameters,
-                                  h264::MbDataCtrl*    pcMbDataCtrl
-                                 /* ,bool bClip*/ )
+                                  h264::MbDataCtrl*    pcMbDataCtrl)
 {
   int iWidth=pcParameters->m_iInWidth;
   int iHeight=pcParameters->m_iInHeight;
@@ -511,7 +484,6 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   int x, y, w, h, j, i;
   short *buf1, *ptr1, *buf2, *ptr2, *tmp_buf1, *tmp_buf2;
   unsigned char *tmp_buf3;
-//  int rounding_para;
 
   tmp_buf1=new short[iWidth*iHeight];
   tmp_buf2=new short[width*iHeight];
@@ -573,7 +545,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU, /*height,*/ x, y, w, h, width, iHeight,  1, pcParameters->m_iChromaPhaseY, pcParameters->m_iBaseChromaPhaseY, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU,  x, y, w, h, width, iHeight,  1, pcParameters->m_iChromaPhaseY, pcParameters->m_iBaseChromaPhaseY, tmp_buf3);
   
   delete [] tmp_buf1;
   delete [] tmp_buf2;
@@ -656,18 +628,20 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   }
   else
   {
-    int F = 4, G = 2, J = 1, M = 13, S = 12;
+    //int F = 4; 
+    int G = 2, J = 1, M = 13, S = 12;
     if(output_chroma_phase_shift_x)
     {
   	  J ++;
   	  M --;
     };
-    S = M + G +  J  - F;
+    //S = M + G +  J  - F;
     unsigned short C, C1, D1;
     int D, E, q, w1;
 
     C = ((1<<(M+G))*wsize_in + (w>>1))/w;
-    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
+    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
+    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_x<<14);
 
     C1 = C<<J;
     E = 0;
@@ -769,18 +743,20 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
   }
   else
   {
-    int F = 4, G = 2, J = 1, M = 13, S = 12;
+    //int F = 4;
+    int G = 2, J = 1, M = 13, S = 12;
     if(output_chroma_phase_shift_y)
     {
 	  J ++;
 	  M --;
     };
-    S = M + G + J - F;
+    //S = M + G + J - F;
     unsigned short C, C1, D1;
     int D, E, q, w1;
 
     C = ((1<<(M+G))*hsize_in + (h>>1))/h;
-    D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
+    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
+    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_y<<14);
 
     C1 = C<<J;
     E = 0;
