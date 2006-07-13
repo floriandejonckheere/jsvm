@@ -599,6 +599,9 @@ Extractor::xAnalyse()
 	//S051}
 
 
+  // *LMH (ADD) ->
+  if ( m_pcExtractorParameter->getROIFlag() )
+  {
       //-- ROI Extraction ICU/ETRI
       const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
       ROT( rcExtList.size() != 1 );
@@ -615,7 +618,8 @@ Extractor::xAnalyse()
         }		
         continue;	
       }
-
+  }
+  // *LMH (ADD) <-
 
 	// JVT-S080 LMI {
     //ROT ( pcScalableSei );
