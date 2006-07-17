@@ -347,6 +347,14 @@ RQFGSDecoder::xDecodeLumaCbpVlc(UInt  uiCurrMbIdxX,
   RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiCurrMbIdxY, uiCurrMbIdxX ) );
 
   uiLumaCbpBase = pcMbDataAccessBL->getMbData().getMbCbp() & 0x0F;
+
+  if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+    uiLumaCbpBase = 0;
+
+  // this should neven happen
+  if( uiLumaCbpBase != 0 && pcMbDataAccessEL->getMbData().isTransformSize8x8() )
+    return Err::m_nERR;
+
   uiLumaCbp     = uiLumaCbpBase;
 
   for( UInt uiB8x8 = 0; uiB8x8 < 4; uiB8x8 ++ )

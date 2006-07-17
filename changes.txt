@@ -1,3 +1,17 @@
+JSVM_5_12 -> JSVM_5_12_1
+========================
+
+Bug fixes
+
+Date        : July 17, 2006
+Author      : J. Vieron (on behalf of S. Kamp, Y.Bao and H. Shwarz)
+
+- FGS (CBP 8x8) bug fixes 
+- ARFGS bug fixes
+- QP setting fix ("-mqp" command line parameter)  
+
+
+
 JSVM_5_11 -> JSVM_5_12
 ======================
 

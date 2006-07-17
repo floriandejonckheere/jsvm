@@ -1316,6 +1316,14 @@ RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
       RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
 
       uiLumaCbpBase = pcMbDataAccessBL->getMbData().getMbCbp() & 0x0F;
+
+      if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+        uiLumaCbpBase = 0;
+
+      // this should neven happen
+      if( uiLumaCbpBase != 0 && pcMbDataAccessEL->getMbData().isTransformSize8x8() )
+        return Err::m_nERR;
+
       uiLumaCbp     = pcMbDataAccessEL->getMbData().getMbCbp() & 0x0F;
 
       if( uiLumaCbpBase != 15 )
@@ -1388,6 +1396,14 @@ RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
       RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
 
       UInt uiLumaCbpBase = pcMbDataAccessBL->getMbData().getMbCbp() & 0x0F;
+
+      if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+        uiLumaCbpBase = 0;
+
+      // this should neven happen
+      if( uiLumaCbpBase != 0 && pcMbDataAccessEL->getMbData().isTransformSize8x8() )
+        return Err::m_nERR;
+
       UInt uiLumaCbp     = pcMbDataAccessEL->getMbData().getMbCbp() & 0x0F;
 
       for( UInt uiB8x8 = bFirstMb ? uiLumaCbpNext8x8Idx : 0; uiB8x8 < 4; uiB8x8 ++ )

@@ -1950,7 +1950,7 @@ Void inverseTransformChroma8x8(Transform* pcTransform,
 
 
 // scaled by 10-bits
-UInt auiNormMatrix4x4[16]=
+TCoeff aiNormMatrix4x4[16]=
 {
   512, 410, 512, 410,
   410, 328, 410, 328,
@@ -1959,7 +1959,7 @@ UInt auiNormMatrix4x4[16]=
 };
 
 
-UInt auiNormMatrix8x8[64] =
+TCoeff aiNormMatrix8x8[64] =
 {
 	512, 454, 819, 454, 512, 454, 819, 454,
 	454, 402, 726, 402, 454, 402, 726, 402,
@@ -2029,9 +2029,9 @@ MotionCompensation::xAdjustResidualRefBlkFrequency(XPel*     piResidualRef,
       for( i = 0; i < 16; i ++ )
       {
         aiCoeffResidualRef[i] = (pucSigMap[i] != 0 ) ?
-          0 : ( ( aiCoeffResidualRef[i] * ( AR_FGS_MAX_BASE_WEIGHT - uiWeight ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
-
-        aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * auiNormMatrix4x4[i] + 64 ) >> 7;
+        0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( AR_FGS_MAX_BASE_WEIGHT - uiWeight ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
+  
+        aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i] + 64 ) >> 7;
       }
 
       // inverse transform
@@ -2046,9 +2046,9 @@ MotionCompensation::xAdjustResidualRefBlkFrequency(XPel*     piResidualRef,
     for( i = 0; i < 64; i ++ )
     {
       aiCoeffResidualRef[i] = (pucSigMap[i] != 0 ) ? 
-        0 : ( ( aiCoeffResidualRef[i] * ( AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS ) ;
-
-      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * auiNormMatrix8x8[i] + 256 ) >> 9;
+      0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS ) ;
+  
+      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix8x8[i] + 256 ) >> 9;
     }
 
     // inverse transform
@@ -2098,12 +2098,12 @@ MotionCompensation::xAdjustChromaResidualRefBlock(XPel*  piResidualRef,
   for( i = 0; i < 64; i ++ )
   {
     aiCoeffResidualRef[i] = (pusSigMap[i] != 0) ?
-      0 : ( ( aiCoeffResidualRef[i] * ( AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1)) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS);
-
+    0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1)) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS);
+  
     if( (i % 16) == 0 )
-      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * auiNormMatrix4x4[i % 16] + 128 ) >> 8;
+      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i % 16] + 128 ) >> 8;
     else
-      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * auiNormMatrix4x4[i % 16] + 64 ) >> 7;
+      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i % 16] + 64 ) >> 7;
   }
 
   // inverse transform

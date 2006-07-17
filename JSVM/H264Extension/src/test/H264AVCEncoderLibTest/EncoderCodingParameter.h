@@ -296,7 +296,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       UInt    uiStage = atoi( argv[n+1] );
       Double  dMotQp  = atof( argv[n+2] );
       CodingParameter::getLayerParameters( uiLayer ).setQpModeDecision( uiStage, dMotQp );
-      CodingParameter::getLayerParameters( uiLayer ).setQpModeDecisionLP( dMotQp );
       n += 2;
       continue;      
     }
