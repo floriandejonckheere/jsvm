@@ -214,7 +214,6 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
                            UInt           uiMbInRow,
                            UInt&          ruiMbRead )
 {
-	printf("In Read\n");
   ROF( m_bInitDone );
 
   UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
