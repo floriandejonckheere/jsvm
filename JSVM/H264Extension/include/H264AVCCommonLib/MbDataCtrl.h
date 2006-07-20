@@ -161,7 +161,7 @@ public:
   ErrVal        copyBaseResidualAvailFlags( MbDataCtrl& rcSrcMbDataCtrl );
 
   //--ICU/ETRI FMO Implementation
-  const Int MbDataCtrl::getSliceGroupIDofMb(Int mb);
+  const Int getSliceGroupIDofMb(Int mb);
 
   ErrVal        initFgsBQData             ( UInt uiNumMb );
   ErrVal        uninitFgsBQData           ();
