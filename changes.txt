@@ -7,6 +7,7 @@ Independent Parsing + Removal of AGS
 
 Date        : July 24, 2006
 Author      : H. Schwarz
+Contribution: JVT-T079
 
 - independent parsing as only possibility
 - removal of AGS
