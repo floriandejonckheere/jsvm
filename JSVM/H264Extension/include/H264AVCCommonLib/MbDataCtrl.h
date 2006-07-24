@@ -158,8 +158,6 @@ public:
   ErrVal        upsampleMotion ( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
 	// TMM_ESS }
 
-  ErrVal        copyBaseResidualAvailFlags( MbDataCtrl& rcSrcMbDataCtrl );
-
   //--ICU/ETRI FMO Implementation
   const Int getSliceGroupIDofMb(Int mb);
 

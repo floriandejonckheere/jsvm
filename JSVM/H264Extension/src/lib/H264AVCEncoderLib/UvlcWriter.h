@@ -109,8 +109,6 @@ public MbSymbolWriteIf
 protected:
 	UvlcWriter( Bool bTraceEnable = false );
 	virtual ~UvlcWriter();
-  ErrVal xWriteMvdComponentQPel ( Short sMvdComp );
-  ErrVal xWriteMvdQPel          ( Mv cMv );
   ErrVal xRQencodeNewTCoeffs( TCoeff*       piCoeff,
                                     TCoeff*       piCoeffBase,
                                     UInt          uiStart,
@@ -156,16 +154,11 @@ public:
 
   ErrVal closeSlice();
 
-  ErrVal  blFlag    ( MbDataAccess& rcMbDataAccess );
   ErrVal  blockModes( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode( MbDataAccess& rcMbDataAccess/*, Bool bBLQRefFlag*/ );
   ErrVal  resPredFlag( MbDataAccess& rcMbDataAccess );
+  ErrVal  resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
 	ErrVal  smoothedRefFlag( MbDataAccess& rcMbDataAccess );	// JVT-R091
-
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      );
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -198,7 +191,6 @@ public:
   ErrVal  samplesPCM( MbDataAccess& rcMbDataAccess );
   ErrVal  skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed );
   ErrVal  BLSkipFlag( MbDataAccess& rcMbDataAccess );
-  ErrVal  BLQRefFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  terminatingBit ( UInt uiIsLast ) { return Err::m_nOK;}
 
   ErrVal writeUvlc( UInt uiCode, Char* pcTraceString );

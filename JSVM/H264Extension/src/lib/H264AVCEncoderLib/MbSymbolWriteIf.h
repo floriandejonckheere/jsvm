@@ -115,16 +115,11 @@ protected:
 	virtual ~MbSymbolWriteIf() {}
 
 public:
-  virtual ErrVal  blFlag              ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  blockModes          ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess /*, Bool bBLQRefFlag*/ ) = 0;
   virtual ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess ) = 0;
+  virtual ErrVal  resPredFlag_FGS     ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff ) = 0;
 	virtual ErrVal  smoothedRefFlag     ( MbDataAccess& rcMbDataAccess ) = 0;	// JVT-R091
-
-  virtual ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      ) = 0;
-  virtual ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) = 0;
-  virtual ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  ) = 0;
-  virtual ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  ) = 0;
 
   virtual ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx ) = 0;
   virtual ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) = 0;
@@ -157,7 +152,6 @@ public:
   virtual ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  skipFlag            ( MbDataAccess& rcMbDataAccess, Bool bNotAllowed ) = 0;
   virtual ErrVal  BLSkipFlag          ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual ErrVal  BLQRefFlag          ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  terminatingBit      ( UInt uiIsLast ) = 0;
   virtual UInt    getNumberOfWrittenBits() = 0;
 

@@ -449,28 +449,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       continue;
     }
 
-#if INDEPENDENT_PARSING
-    if( equals( pcCom, "-ipars", 6 ) )
-    {
-      ROTS( NULL == argv[n  ] );
-      ROTS( NULL == argv[n+1] );
-      UInt uiLayer      = atoi( argv[n  ] );
-      UInt uiIndParsing = atoi( argv[n+1] );
-      CodingParameter::getLayerParameters( uiLayer ).setIndependentParsing( uiIndParsing );
-      continue;
-    }
-    if( equals( pcCom, "-aip", 4 ) )
-    {
-      n--;
-      ROTS( NULL == argv[n] );
-      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
-      {
-        CodingParameter::getLayerParameters( uiLayer ).setIndependentParsing( true );
-      }
-      continue;
-    }
-#endif
-
     if( equals( pcCom, "-org", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -528,14 +506,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       printHelp();
       return Err::m_nOK;
     }
-    //{{Adaptive GOP structure
-	  // --ETRI & KHU
-	  if (equals( pcCom, "-anaags", 7) )
-	  {
-	    m_uiWriteGOPMode	= atoi( argv[n] );
-        continue;
-	  }
-	  //}}Adaptive GOP structure
 
     return Err::m_nERR;
   }
@@ -557,10 +527,6 @@ Void EncoderCodingParameter::printHelp()
   printf("  -numl   Number Of Layers\n");
   printf("  -cabac  CABAC for all layers as entropy coding mode\n");
   printf("  -vlc    VLC for all layers as entropy coding mode\n");
-#if INDEPENDENT_PARSING
-  printf("  -aip    independent parsing for all layers\n");
-  printf("  -ipars  (Layer) (Independent Parsing) [0: off, 1: on]\n");
-#endif
   printf("  -org    (Layer) (original file)\n");
   printf("  -rec    (Layer) (reconstructed file)\n");
   printf("  -ec     (Layer) (entropy coding mode)\n");
@@ -576,7 +542,6 @@ Void EncoderCodingParameter::printHelp()
   printf("  -fgsmot (Layer) (FGSMotionRefinementMode) [0: no, 1: HP only, 2: all]\n");
   printf("  -lcupd  Update method [0 - original, 1 - low-complexity (default)]\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
-  printf("  -anaags  [1 - mode decision for Adaptive GOP Structure]\n");
   //S051{
   printf("  -anasip (Layer) (SIP Analysis Mode)[0: persists all inter-predictions, 1: forbids all inter-prediction.] (File for storing bits information)\n");
   printf("  -encsip (Layer) (File with stored SIP information)\n");
@@ -660,12 +625,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("SearchMode",              (Int*)&(m_cMotionVectorSearchParams.m_eSearchMode),    0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("SearchFuncFullPel",       (Int*)&(m_cMotionVectorSearchParams.m_eFullPelDFunc),  0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("SearchFuncSubPel",        (Int*)&(m_cMotionVectorSearchParams.m_eSubPelDFunc),   0 );
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("UseAdaptiveGOP",          &m_uiUseAGS,                                           0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("AGSModeDecision",         &m_uiWriteGOPMode,                                     0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("AGSGOPModeFile",          &m_cGOPModeFilename,                           "ags.dat" );
-  //}}Adaptive GOP structure
 
 //TMM_WP
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedPrediction",         &m_uiIPMode,                                     0 );
@@ -855,7 +814,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP5",          &(rcLayer.m_adQpModeDecision[5]),        32.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("InterLayerPred", &(rcLayer.m_uiInterLayerPredictionMode), 0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",    &(rcLayer.m_uiBaseQualityLevel),         3         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("DecodeLoops",    &(rcLayer.m_uiDecodingLoops),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MotionInfoMode", &(rcLayer.m_uiMotionInfoMode),           0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("MotionInfoFile", &cMotionFilename,                        "test.mot");
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("UseESS",         &(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability), 0         );
@@ -889,9 +847,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 // JVT-Q065 EIDR}
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	          &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice), 0   );  //JVT-Q054 Red. Picture
-#if INDEPENDENT_PARSING
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("IndependentParsing", &(rcLayer.m_uiIndependentParsing), 0 );
-#endif
   
   //S051{
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, ""); 

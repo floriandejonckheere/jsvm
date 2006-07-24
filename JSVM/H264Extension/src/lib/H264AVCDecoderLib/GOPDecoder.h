@@ -376,9 +376,6 @@ public:
                                                   Int                            iPoc );
 
   Void            setQualityLevelForPrediction  ( UInt ui )         { m_uiQualityLevelForPrediction = ui; }
-#if MULTIPLE_LOOP_DECODING
-  Void            setCompletelyDecodeLayer      ( Bool b )          { m_bCompletelyDecodeLayer = b; }
-#endif
   PocCalculator*  getPocCalculator              ()                  { return m_pcPocCalculator; }
 
 // TMM_ESS {
@@ -405,10 +402,8 @@ protected:
                                                 IntFrame*                     pcFrame );
 //TMM_EC 
   ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData, SliceHeader *&rcSliceHeaderBase);
-#if INDEPENDENT_PARSING
   ErrVal      xInitESSandCroppingWindow       ( SliceHeader&                  rcSliceHeader,
                                                 MbDataCtrl&                   rcMbDataCtrl );
-#endif
   
   //===== decode pictures / subbands =====
   ErrVal      xDecodeSuffixUnit               ( SliceHeader*&                 rpcSliceHeader,
@@ -488,9 +483,6 @@ protected:
  
   // should this layer be decoded at all, and up to which FGS layer should be decoded
   Int                 m_uiQualityLevelForPrediction;
-#if MULTIPLE_LOOP_DECODING
-  Bool                m_bCompletelyDecodeLayer;
-#endif
   
   // ROI DECODE ICU/ETRI
   Int m_iMbProcessed;

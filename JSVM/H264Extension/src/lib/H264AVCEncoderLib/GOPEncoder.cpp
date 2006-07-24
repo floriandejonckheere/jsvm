@@ -441,13 +441,6 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiSuffixUnitEnable = pcCodingParameter->getSuffixUnitEnable();//JVT-S036 lsj
   m_uiMMCOBaseEnable   = pcCodingParameter->getMMCOBaseEnable();  //JVT-S036 lsj
 
-#if MULTIPLE_LOOP_DECODING
-  m_bCompletelyDecodeLayer          = ( pcCodingParameter->getNumberOfLayers() > m_uiLayerId+1 &&
-                                        pcCodingParameter->getLayerParameters( m_uiLayerId+1).getInterLayerPredictionMode() > 0 &&
-                                        pcCodingParameter->getLayerParameters( m_uiLayerId+1).getDecodingLoops() > 1 );
-  m_bHighestLayer                   = ( pcCodingParameter->getNumberOfLayers() == m_uiLayerId + 1 );
-#endif
-
   // TMM_ESS 
   m_pcResizeParameters = pcLayerParameters->getResizeParameters();
 
@@ -673,85 +666,6 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     ::fseek( m_pFGSFile, 0, SEEK_SET );
   }
   
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  m_uiUseAGS = pcCodingParameter->getUseAGS();
-  m_uiMaxDecStages = m_uiDecompositionStages; // -- 10.18.2005
-  if (m_uiUseAGS) 
-  {
-	  m_uiWriteGOPMode = pcCodingParameter->getWriteGOPMode();
-
-	  if ( m_uiWriteGOPMode ) 
-    {
-		  FILE* d_gop;
-		  m_cGOPModeFilename = pcCodingParameter->getGOPModeFile();
-		  d_gop = fopen(pcCodingParameter->getGOPModeFile().c_str(), "w");
-		  fclose(d_gop);
-		  m_uiSelect = NULL;
-		  m_dMSETemp = 0;
-		  m_uiSelectPos = 0;
-	  }
-	  else 
-    {
-		  FILE* d_gop;
-      d_gop = fopen(pcCodingParameter->getGOPModeFile().c_str(), "rt");
-//      ROTREPORT( d_gop == NULL, "need \"gop mode\" file\n");
-		  if (d_gop == NULL) 
-      {
-			  printf("need \"gop mode\" file\n");
-			  exit(0);
-		  }
-		  
-      m_bFinish = 0;
-
-		  UInt temp=0;
-		  int i, j;
-		  int line = 0;
-		  char ch;
-		  while(EOF != (ch = fgetc(d_gop))) 
-      {
-			if (ch == '\n')
-				line++;
-		  }
-
-		  m_uiSelect = new UInt*[line];
-		  
-		  for(j = 0; j < line + 1; j++) 
-      { 
-			  m_uiSelect[j] = new UInt[8];
-			  for (i = 0; i < 8; i++) {
-				  m_uiSelect[j][i] = 0;
-			  }
-		  }
-		  fseek(d_gop, 0, SEEK_SET);
-		  
-		  for(j = 0; j < line; j++) 
-      {
-			  UInt sum = 0;
-        for(i = 0;sum < (UInt)(1<<(pcLayerParameters->getDecompositionStages())); i++)
-        {
-				  fscanf(d_gop, "%d ", &temp);
-				  if (temp > 6)
-					  break;
-				  //m_uiSelect[j][i] = temp + m_uiLayerId;
-          m_uiSelect[j][i] = temp + (pcLayerParameters->getDecompositionStages() 
-                                      - pcCodingParameter->getLayerParameters(0).getDecompositionStages());
-				  sum += (1<<m_uiSelect[j][i]);
-			  }
-			  if (temp > 6)
-				  break;
-		  }
-
-		  if (m_uiSelect[0][0] == 0) 
-      {
-			  printf("\"gop mode\" file is empty\n");
-			  exit(0);		
-		  }
-		  
-		  fclose(d_gop);
-	  }
-  }
-  //}}Adaptive GOP structure
 
   // JVT-S054 (ADD) ->
   m_bIroiSliceDivisionFlag = pcLayerParameters->m_bSliceDivisionFlag;
@@ -3213,11 +3127,7 @@ MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
 	//JVT-R057 LA-RDO}
     pcFrame = m_apcFrameTemp[0];
 
-#if MULTIPLE_LOOP_DECODING
-    if ( m_pacControlData[uiPos].getSliceHeader()->getPPS().getConstrainedIntraPredFlag() && !m_bCompletelyDecodeLayer )
-#else
     if ( m_pacControlData[uiPos].getSliceHeader()->getPPS().getConstrainedIntraPredFlag() )
-#endif
     {
       m_pcLoopFilter->setFilterMode( LoopFilter::LFMode( LoopFilter::LFM_NO_INTER_FILTER + LoopFilter::LFM_EXTEND_INTRA_SUR ) );
 
@@ -3328,11 +3238,6 @@ MCTFEncoder::xGetListSizes( UInt  uiTemporalLevel,
   //----- check intra -----
   if( m_uiLowPassIntraPeriod != MSYS_UINT_MAX )
   {
-	//{{Adaptive GOP structure -- 10.18.2005
-    // --ETRI & KHU
-    if (!m_uiUseAGS) {
-    //}}Adaptive GOP structure -- 10.18.2005
-
 		UInt  uiCurrFrame   = (   m_uiGOPNumber                << m_uiDecompositionStages ) + uiFrameIdInGOP;
 		UInt  uiIntraPeriod = ( ( m_uiLowPassIntraPeriod + 1 ) << m_uiDecompositionStages );
 		if( ( uiCurrFrame % uiIntraPeriod ) == 0 )
@@ -3340,19 +3245,6 @@ MCTFEncoder::xGetListSizes( UInt  uiTemporalLevel,
 		  auiPredListSize[0] = 0;
 		  auiPredListSize[1] = 0;
 		}
-	//{{Adaptive GOP structure -- 10.18.2005
-    // --ETRI & KHU
-    }
-    else {
-      UInt  uiCurrFrame   = m_uiFrameCounter - 1 - m_uiGOPSize + uiFrameIdInGOP;
-	    UInt  uiIntraPeriod = ( ( m_uiLowPassIntraPeriod + 1 ) << m_uiMaxDecStages );
-      if( ( uiCurrFrame % uiIntraPeriod ) == 0 )
-      {
-        auiPredListSize[0] = 0;
-        auiPredListSize[1] = 0;
-      }
-    }
-    //}}Adaptive GOP structure -- 10.18.2005
   }
 
   return Err::m_nOK;
@@ -4169,7 +4061,6 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
   
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
 
-    rcControlData.getMbDataCtrl()->copyBaseResidualAvailFlags( *m_pcBaseLayerCtrl );
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
     rcControlData.getSliceHeader()->setBaseLayerUsesConstrainedIntraPred( bConstrainedIPredBL );
@@ -4600,10 +4491,6 @@ MCTFEncoder::xCompositionStage( UInt uiBaseLevel, PicBufferList& rcPicBufferInpu
 	// JVT-R057 LA-RDO}
 
     //===== de-blocking =====
-#if MULTIPLE_LOOP_DECODING
-    if( m_bCompletelyDecodeLayer )
-      rcControlData.activateMbDataCtrlForQpAndCbp( false );
-#endif
     // Hanke@RWTH: set pointer to current residual frame
     m_pcLoopFilter->setHighpassFramePointer( pcResidual ); 
 RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
@@ -4616,10 +4503,6 @@ RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
 										 true, 
                                          rcControlData.getSpatialScalability()) );  // SSUN@SHARP
 
-#if MULTIPLE_LOOP_DECODING
-    if( m_bCompletelyDecodeLayer )
-      rcControlData.activateMbDataCtrlForQpAndCbp( true );
-#endif
 
     //--- highest FGS reference for closed-loop coding ---
     if( pcCLRecFrame )
@@ -4661,22 +4544,7 @@ RNOK( m_pcLoopFilter->process     ( *rcControlData.getSliceHeader(),
 
   //===== clear half-pel buffers and buffer extension status =====
   RNOK( xClearBufferExtensions() );
-
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  if (!m_uiUseAGS) 
-  {
-    //}}Adaptive GOP structure
-    RNOK( xCalculateAndAddPSNR( rcPicBufferInputList, m_uiDecompositionStages - uiBaseLevel, uiBaseLevel == m_uiNotCodedMCTFStages ) );
-    //{{Adaptive GOP structure
-    // --ETRI & KHU
-  }
-  else 
-  {
-    RNOK( xCalculateAndAddPSNR( rcPicBufferInputList, (UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - uiBaseLevel, uiBaseLevel == m_uiNotCodedMCTFStages ) );
-  }
-  //}}Adaptive GOP structure
-
+  RNOK( xCalculateAndAddPSNR  ( rcPicBufferInputList, m_uiDecompositionStages - uiBaseLevel, uiBaseLevel == m_uiNotCodedMCTFStages ) );
 
   return Err::m_nOK;
 }
@@ -4918,39 +4786,26 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
 	}
 	// JVT-R057 LA-RDO}
 
-    //{{Adaptive GOP structure
-    // --ETRI & KHU
-    if (!m_uiUseAGS) 
-    {
-      //}}Adaptive GOP structure
-      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
-      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
-      m_auiCurrGOPBits	  [ m_uiScalableLayerId ] += uiBits;
-      //{{Adaptive GOP structure
-      // --ETRI & KHU
-    }
-    else
-    {
-      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
-      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] ++;
-    }
-    //}}Adaptive GOP structure
+  m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
+  m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
+  m_auiCurrGOPBits	  [ m_uiScalableLayerId ] += uiBits;
 
-    //===== write FGS info to file =====
-    if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC
-    {
-      fprintf( m_pFGSFile, "%d", uiBits + m_uiNotYetConsideredBaseLayerBits );
-      m_uiNotYetConsideredBaseLayerBits = 0;
-    }
+  //===== write FGS info to file =====
+  if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC
+  {
+    fprintf( m_pFGSFile, "%d", uiBits + m_uiNotYetConsideredBaseLayerBits );
+    m_uiNotYetConsideredBaseLayerBits = 0;
+  }
 
 
-    //===== deblock and store picture for prediction of following low-pass frames =====
-    ROF( pcSliceHeader->getNumRefIdxActive( LIST_0 ) == ( pcSliceHeader->isIntra() ? 0 : 1 ) );
-    ROF( pcSliceHeader->getNumRefIdxActive( LIST_1 ) == 0 );
+  //===== deblock and store picture for prediction of following low-pass frames =====
+  ROF( pcSliceHeader->getNumRefIdxActive( LIST_0 ) == ( pcSliceHeader->isIntra() ? 0 : 1 ) );
+  ROF( pcSliceHeader->getNumRefIdxActive( LIST_1 ) == 0 );
 
-    //----- store for inter-layer prediction (non-deblocked version) -----
-    RNOK( m_papcSubband[uiFrameIdInGOP] ->copy( pcBLRecFrame ) );
-	// JVT-R057 LA-RDO{
+  //----- store for inter-layer prediction (non-deblocked version) -----
+  RNOK( m_papcSubband[uiFrameIdInGOP] ->copy( pcBLRecFrame ) );
+
+  // JVT-R057 LA-RDO{
 	if(m_bLARDOEnable)
 	{
 		m_pcLowPassBaseReconstruction->copyChannelDistortion(pcFrame);
@@ -4982,50 +4837,10 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     //----- store for prediction of following low-pass pictures -----
     RNOK( m_pcLowPassBaseReconstruction ->copy( pcBLRecFrame ) );
 
-	m_pcLowPassBaseReconstruction->setFrameNum(pcSliceHeader->getFrameNum());  //JVT-S036 lsj
+	  m_pcLowPassBaseReconstruction->setFrameNum(pcSliceHeader->getFrameNum());  //JVT-S036 lsj
 
     // at least the same as the base layer
     RNOK( rcControlData.saveMbDataQpAndCbp() );
-
-	  //{{Adaptive GOP structure
-    // --ETRI & KHU
-	  if (m_uiUseAGS) {
-		  if (m_uiWriteGOPMode) {
-			  const YuvBufferCtrl::YuvBufferParameter& cBufferParam = m_pcYuvFullPelBufferCtrl->getBufferParameter();
-			  UInt usize = (cBufferParam.getWidth ()+2*32) * (cBufferParam.getHeight()+2*64) * 3/2;
-			  PicBuffer *reconst_picbuf = new PicBuffer(new UChar[ usize ]);
-			  IntFrame*     pcOrgResidual = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-			  pcOrgResidual->init(false);
-			  pcOrgResidual->setZero();
-			  pcOrgResidual->subtract( pcFrame, pcBLRecFrame );
-
-			  xAddBaseLayerResidual( rcControlData, pcOrgResidual, true );
-			  pcOrgResidual->store(reconst_picbuf);
-
-			  Pel*  pPelRec_rec   = reconst_picbuf ->getBuffer() + cBufferParam.getMbLum();
-			  Int   iStride   = cBufferParam.getStride();
-			  Int   iWidth    = cBufferParam.getWidth ();
-			  Int   iHeight   = cBufferParam.getHeight();
-
-			  UInt uiSSETemp = 0;
-
-			  for(int y = 0; y < iHeight; y++ )
-			  {
-				  for(int x = 0; x < iWidth; x++ )
-				  {
-					  Int iDiff = (Int)pPelRec_rec[x];
-					  uiSSETemp += iDiff * iDiff;
-				  }
-				  pPelRec_rec  += iStride;
-			  }
-			  m_dMSETemp += (Double)uiSSETemp/(Double)(iHeight*iWidth);
-
-        delete reconst_picbuf;
-			  delete pcOrgResidual;
-		  }
-	  }
-	  //}}Adaptive GOP structure
-
 
     //--- closed-loop coding of base quality layer ---
     if( m_papcBQFrame )
@@ -5077,31 +4892,9 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                               cRefFrameListDummy,
                               // } FGS_MOTION
                               uiBits ) );
-      //{{Adaptive GOP structure
-      // --ETRI & KHU
-      if (!m_uiUseAGS) 
-      {
-      //}}Adaptive GOP structure
-
-        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() ] += uiBits;
-    
-      //{{Adaptive GOP structure
-      // --ETRI & KHU
-      }
-      else
-      {
-        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() + ((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
-      }
-      //}}Adaptive GOP structure
-      
-
-      //----- store for inter-layer prediction (non-deblocked version) -----
+      m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() ] += uiBits;
 
       //----- de-blocking -----
-#if MULTIPLE_LOOP_DECODING
-      if( m_bCompletelyDecodeLayer )
-        rcControlData.activateMbDataCtrlForQpAndCbp( false );
-#endif
       m_pcLoopFilter->setHighpassFramePointer( pcResidual );
 
       RNOK( m_pcLoopFilter->process ( *pcSliceHeader,
@@ -5115,10 +4908,6 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
                                       rcControlData.getSpatialScalability()) );  // SSUN@SHARP
 
       RNOK( m_aapcFGSRecon[1][m_uiNumLayers[1] - 1]->copy( pcFrame ) );
-#if MULTIPLE_LOOP_DECODING
-      if( m_bCompletelyDecodeLayer )
-        rcControlData.activateMbDataCtrlForQpAndCbp( true );
-#endif
 
       if( m_papcCLRecFrame )
       {
@@ -5293,23 +5082,9 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     }
 // JVT-Q054 Red. Picture }
 
-    //{{Adaptive GOP structure
-    // --ETRI & KHU
-    if (!m_uiUseAGS) 
-    {
-      //}}Adaptive GOP structure
-      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
-      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
-      m_auiCurrGOPBits		[ m_uiScalableLayerId ] += uiBits;
-      //{{Adaptive GOP structure
-      // --ETRI & KHU
-    }
-    else
-    {
-      m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() +((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] += uiBits;
-      m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() +((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages)] ++;
-    }
-    //}}Adaptive GOP structure
+    m_auiCurrGOPBitsBase[ pcSliceHeader->getTemporalLevel() ] += uiBits;
+    m_auiNumFramesCoded [ pcSliceHeader->getTemporalLevel() ] ++;
+    m_auiCurrGOPBits		[ m_uiScalableLayerId ] += uiBits;
     
     //===== save FGS info =====
     if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC)
@@ -5321,45 +5096,6 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     // at least the same as the base layer
     RNOK( rcControlData.saveMbDataQpAndCbp() );
 
-	//{{Adaptive GOP structure
-  // --ETRI & KHU
-	if (m_uiUseAGS) 
-	{
-		if (m_uiWriteGOPMode) 
-		{
-			const YuvBufferCtrl::YuvBufferParameter& cBufferParam = m_pcYuvFullPelBufferCtrl->getBufferParameter();
-			UInt usize = (cBufferParam.getWidth ()+2*32) * (cBufferParam.getHeight()+2*64) * 3/2;
-			PicBuffer *reconst_picbuf = new PicBuffer(new UChar[ usize ]);
-			IntFrame*     pcOrgResidual = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-			pcOrgResidual->init(false);
-			pcOrgResidual->setZero();
-			pcOrgResidual->subtract( pcFrame, pcBLRecFrame );
-
-			xAddBaseLayerResidual( rcControlData, pcOrgResidual, true );
-			pcOrgResidual->store(reconst_picbuf);
-
-			Pel*  pPelRec_rec   = reconst_picbuf ->getBuffer() + cBufferParam.getMbLum();
-			Int   iStride   = cBufferParam.getStride();
-			Int   iWidth    = cBufferParam.getWidth ();
-			Int   iHeight   = cBufferParam.getHeight();
-
-			UInt uiSSETemp = 0;
-			for(int y = 0; y < iHeight; y++ )
-			{
-				for(int x = 0; x < iWidth; x++ )
-				{
-					Int iDiff = (Int)pPelRec_rec[x];
-					uiSSETemp += iDiff * iDiff;
-				}
-				pPelRec_rec  += iStride;
-			}
-			m_dMSETemp += (Double)uiSSETemp/(Double)(iHeight*iWidth);
-
-			delete reconst_picbuf;
-			delete pcOrgResidual;
-		}
-	}
-	//}}Adaptive GOP structure
 
     //===== FGS enhancement ====
     if( m_dNumFGSLayers == 0.0 )
@@ -5439,22 +5175,7 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
       RNOK( pcHighPassPredSignal->uninit() );
       delete pcHighPassPredSignal; pcHighPassPredSignal = 0;
 
-      //{{Adaptive GOP structure
-      // --ETRI & KHU
-      if (!m_uiUseAGS) 
-      {
-      //}}Adaptive GOP structure
-
-        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() ] += uiBits;    
-
-      //{{Adaptive GOP structure
-      // --ETRI & KHU
-      }
-      else
-      {
-        m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() +((UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - m_uiDecompositionStages) ] += uiBits;    
-      }
-      //}}Adaptive GOP structure
+      m_auiCurrGOPBitsFGS[ pcSliceHeader->getTemporalLevel() ] += uiBits;    
     }
 
 
@@ -5559,718 +5280,6 @@ MCTFEncoder::process( AccessUnitList&  rcAccessUnitList,
 
 
 
-
-
-
-//{{Adaptive GOP structure
-// --ETRI & KHU
-ErrVal
-MCTFEncoder::process_ags ( AccessUnitList&   rcAccessUnitList,
-                      PicBufferList&    rcPicBufferInputList,
-                      PicBufferList&    rcPicBufferOutputList,
-                      PicBufferList&    rcPicBufferUnusedList,
-                      Double            m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
-{
-	int i, j;
-	
-	UInt	GN = m_uiDecompositionStages;
-	UInt	first = (m_bFirstGOPCoded == 0);
-	UInt	tmp_first = first;
-
-	UInt uiStage;
-	
-  AccessUnitList rcAccessUnitList_tmp;
-  rcAccessUnitList_tmp.clear();
-	PicBufferList	rcPicBufferOutputList_gop;
-	rcPicBufferOutputList_gop.clear();
-	PicBufferList	rcPicBufferInputList_save;
-	rcPicBufferInputList_save.clear();
-	rcPicBufferInputList_save += rcPicBufferInputList;
-	PicBufferList	rcPicBufferOutputList_save;
-	rcPicBufferOutputList_save.clear();
-	rcPicBufferOutputList_save += rcPicBufferOutputList;
-	PicBufferList	rcPicBufferInputList_temp;
-	rcPicBufferInputList_temp.clear();
-	rcPicBufferInputList_temp += rcPicBufferInputList;
-	PicBufferList	rcPicBufferOutputList_temp;
-	rcPicBufferOutputList_temp.clear();
-	rcPicBufferOutputList_temp += rcPicBufferOutputList;
-	m_puiGOPMode = new UInt[(1<<GN)/2];
-	for (i = 0; i < (1<<GN)/2; i++)
-		m_puiGOPMode[i] = 0;
-
-	if (m_uiWriteGOPMode) // for Mode Decision
-  {
-		UInt                          auiNumFramesCoded [MAX_DSTAGES+1];
-		UInt                          auiCurrGOPBitsBase[MAX_DSTAGES+1];
-		UInt                          auiCurrGOPBitsFGS [MAX_DSTAGES+1];
-    UInt                          auiCurrGOPBits    [MAX_DSTAGES * MAX_QUALITY_LEVELS];
-		Double                        adSeqBitsBase     [MAX_DSTAGES+1];
-		Double                        adSeqBitsFGS      [MAX_DSTAGES+1];
-    Double                        adSeqBits         [MAX_DSTAGES * MAX_QUALITY_LEVELS];
-		Double                        adPSNRSumY        [MAX_DSTAGES+1];
-		Double                        adPSNRSumU        [MAX_DSTAGES+1];
-		Double                        adPSNRSumV        [MAX_DSTAGES+1];
-		Bool                          abIsRef[MAX_DSTAGES];
-
-		for( uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ ) 
-    {
-			auiNumFramesCoded[uiStage] = m_auiNumFramesCoded[uiStage];
-			auiCurrGOPBitsBase[uiStage] = m_auiCurrGOPBitsBase[uiStage];
-			auiCurrGOPBitsFGS[uiStage] = m_auiCurrGOPBitsFGS[uiStage];
-			adSeqBitsBase[uiStage] = m_adSeqBitsBase[uiStage];
-			adSeqBitsFGS[uiStage] = m_adSeqBitsFGS[uiStage];
-			adPSNRSumY[uiStage] = m_adPSNRSumY[uiStage];
-			adPSNRSumU[uiStage] = m_adPSNRSumU[uiStage];
-			adPSNRSumV[uiStage] = m_adPSNRSumV[uiStage];
-      if (uiStage != MAX_DSTAGES)
-				abIsRef[uiStage] = m_abIsRef[uiStage];
-		}
-	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-		{
-			auiCurrGOPBits[uiStage] = m_auiCurrGOPBits[uiStage];
-			adSeqBits			[uiStage] = m_adSeqBits			[uiStage];
-		}
-		Bool bFirstGOPCoded_save = m_bFirstGOPCoded;
-		UInt uiFrameNum_save = m_uiFrameNum;
-		UIntList cLPFrameNumList_save;
-		cLPFrameNumList_save += m_cLPFrameNumList;
-		UInt uiParameterSetBits_save = m_uiParameterSetBits;
-		UInt uiFrameCounter_save = m_uiFrameCounter;
-		UInt uiGOPNumber_save = m_uiGOPNumber;
-		UInt uiDecompositionStages_save = m_uiDecompositionStages;
-		IntFrame* pcBaseLayerRecFrame_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-		IntFrame* pcBaseLayerResidual_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-		IntFrame* pcRecAnchorFrame_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-		IntFrame* pcOrgAnchorFrame_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-		IntFrame* pcLowPassBaseReconstruction_save = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-		pcLowPassBaseReconstruction_save->uninit();
-		pcLowPassBaseReconstruction_save->init(false);
-		pcLowPassBaseReconstruction_save->setZero();
-		pcLowPassBaseReconstruction_save->copyAll(m_pcLowPassBaseReconstruction);
-		pcBaseLayerRecFrame_save->uninit();
-		pcBaseLayerRecFrame_save->init(false);
-		pcBaseLayerRecFrame_save->setZero();
-		pcBaseLayerRecFrame_save->copyAll(m_pcBaseLayerFrame);
-		pcBaseLayerResidual_save->uninit();
-		pcBaseLayerResidual_save->init(false);
-		pcBaseLayerResidual_save->setZero();
-		pcBaseLayerResidual_save->copyAll(m_pcBaseLayerResidual);
-		pcRecAnchorFrame_save->uninit();
-		pcRecAnchorFrame_save->init(false);
-		pcRecAnchorFrame_save->setZero();
-		pcRecAnchorFrame_save->copyAll(m_pcAnchorFrameReconstructed);
-		pcOrgAnchorFrame_save->uninit();
-		pcOrgAnchorFrame_save->init(false);
-		pcOrgAnchorFrame_save->setZero();
-		pcOrgAnchorFrame_save->copyAll(m_pcAnchorFrameOriginal);
-
-		UInt uiIndex;
-		IntFrame*               apcFrameTemp_save    [NUM_TMP_FRAMES];
-	
-		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )
-		{
-			apcFrameTemp_save      [uiIndex] = new IntFrame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvFullPelBufferCtrl );
-			apcFrameTemp_save[uiIndex]->uninit();
-			apcFrameTemp_save[uiIndex]->init(false);
-			apcFrameTemp_save[uiIndex]->setZero();
-			apcFrameTemp_save[uiIndex]->copyAll(m_apcFrameTemp[uiIndex]);
-		}
-		
-		FILE* pMotionInfoFile = m_pMotionInfoFile;
-		FILE* pFGSFile = m_pFGSFile;
-		
-		m_pMotionInfoFile = fopen("tmp/tmp_motion.dat", "wb");
-		m_pFGSFile = fopen("tmp/tmp_fgs.dat", "wt");
-		
-		Double	**mse = new Double*[6];
-		
-		for (i = 0; i < 6; i++) {
-			mse[i] = new Double[(1<<6)-i];
-			for (j = 0; j < (1<<6)-i; j++)
-				mse[i][j] = 0;
-		}
-		
-    // GOP=2^N
-		first = tmp_first;
-		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	
-    {
-			m_apcFrameTemp[uiIndex]->setZero();
-			m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);
-		}
-		m_uiDecompositionStages = GN;
-		m_uiGOPNumber = uiGOPNumber_save;
-		m_bFirstGOPCoded = bFirstGOPCoded_save;
-		m_uiFrameNum = uiFrameNum_save;
-		for( uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ ) 
-    {
-			m_auiNumFramesCoded[uiStage] = auiNumFramesCoded[uiStage];
-			m_auiCurrGOPBitsBase[uiStage] = auiCurrGOPBitsBase[uiStage];
-			m_auiCurrGOPBitsFGS[uiStage] = auiCurrGOPBitsFGS[uiStage];
-			m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
-			m_adSeqBitsFGS[uiStage] = adSeqBitsFGS[uiStage];
-			m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
-			m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
-			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
-			if (uiStage != MAX_DSTAGES)
-				m_abIsRef[uiStage] = abIsRef[uiStage];
-		}
-	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-		{
-			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
-			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
-		}
-		m_uiFrameCounter = uiFrameCounter_save;
-		m_uiParameterSetBits = uiParameterSetBits_save;
-		m_pcAnchorFrameReconstructed->setZero();
-		m_pcAnchorFrameReconstructed->copyAll(pcRecAnchorFrame_save);
-		m_pcAnchorFrameOriginal->setZero();
-		m_pcAnchorFrameOriginal->copyAll(pcOrgAnchorFrame_save);
-		m_pcBaseLayerFrame->setZero();
-		m_pcBaseLayerFrame->copyAll(pcBaseLayerRecFrame_save);
-		m_pcBaseLayerResidual->setZero();
-		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);
-		m_pcLowPassBaseReconstruction->setZero();
-		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
-		m_cLPFrameNumList.clear();
-		m_cLPFrameNumList += cLPFrameNumList_save;
-		rcPicBufferInputList.clear();
-		rcPicBufferOutputList.clear();
-    rcAccessUnitList.clear();
-		rcPicBufferInputList_temp.clear();
-		rcPicBufferInputList_temp += rcPicBufferInputList_save;
-		rcPicBufferOutputList_temp.clear();
-		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;
-
-    for(i = 0; i < (Int)(1<<(GN - m_uiDecompositionStages)); i++) 
-    {
-			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
-      {
-				if (rcPicBufferInputList_temp.size() == 0) break;
-				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
-				rcPicBufferInputList_temp.pop_front();
-				rcPicBufferOutputList.push_back(rcPicBufferOutputList_temp.front());
-				rcPicBufferOutputList_temp.pop_front();
-			}				
-			m_dMSETemp = 0;
-      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[4][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
-      if (first == 1) 
-        first = 0;
-      rcAccessUnitList.clear();
-			rcPicBufferInputList.clear();
-			rcPicBufferOutputList.clear();
-		}
-		
-    // GOP=2^N-1
-		first = tmp_first;
-		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	
-    {
-			m_apcFrameTemp[uiIndex]->setZero();
-			m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);
-		}		
-		m_uiDecompositionStages = GN-1;
-		m_uiGOPNumber = uiGOPNumber_save;
-		m_bFirstGOPCoded = bFirstGOPCoded_save;
-		m_uiFrameNum = uiFrameNum_save;
-		for( uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ ) 
-    {
-			m_auiNumFramesCoded[uiStage] = auiNumFramesCoded[uiStage];
-			m_auiCurrGOPBitsBase[uiStage] = auiCurrGOPBitsBase[uiStage];
-			m_auiCurrGOPBitsFGS[uiStage] = auiCurrGOPBitsFGS[uiStage];
-			m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
-			m_adSeqBitsFGS[uiStage] = adSeqBitsFGS[uiStage];
-			m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
-			m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
-			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
-			if (uiStage != MAX_DSTAGES)
-				m_abIsRef[uiStage] = abIsRef[uiStage];
-		}			
-	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-		{
-			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
-			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
-		}
-		m_uiFrameCounter = uiFrameCounter_save;
-		m_uiParameterSetBits = uiParameterSetBits_save;
-		m_pcAnchorFrameReconstructed->setZero();
-		m_pcAnchorFrameReconstructed->copyAll(pcRecAnchorFrame_save);
-		m_pcAnchorFrameOriginal->setZero();
-		m_pcAnchorFrameOriginal->copyAll(pcOrgAnchorFrame_save);
-		m_pcBaseLayerFrame->setZero();
-		m_pcBaseLayerFrame->copyAll(pcBaseLayerRecFrame_save);
-		m_pcBaseLayerResidual->setZero();
-		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);			
-		m_pcLowPassBaseReconstruction->setZero();
-		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
-		m_cLPFrameNumList.clear();
-		m_cLPFrameNumList += cLPFrameNumList_save;
-		rcPicBufferInputList.clear();
-		rcPicBufferOutputList.clear();
-    rcAccessUnitList.clear();			
-		rcPicBufferInputList_temp.clear();
-		rcPicBufferInputList_temp += rcPicBufferInputList_save;			
-		rcPicBufferOutputList_temp.clear();
-		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;
-		
-    for(i = 0; i < (Int)(1<<(GN-m_uiDecompositionStages)); i++) 
-    {
-			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
-      {
-				if (rcPicBufferInputList_temp.size() == 0) break;
-				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
-				rcPicBufferInputList_temp.pop_front();					
-				rcPicBufferOutputList.push_back(rcPicBufferOutputList_temp.front());
-				rcPicBufferOutputList_temp.pop_front();
-			}				
-			m_dMSETemp = 0;
-      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[3][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
-      if (first == 1) 
-        first = 0;
-      rcAccessUnitList.clear();
-			rcPicBufferInputList.clear();
-			rcPicBufferOutputList.clear();
-		}
-
-    // GOP=2^N-2
-		first = tmp_first;
-		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	
-    {
-			m_apcFrameTemp[uiIndex]->setZero();
-			m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);
-		}
-    m_uiDecompositionStages = GN-2;
-		m_uiGOPNumber = uiGOPNumber_save;
-		m_bFirstGOPCoded = bFirstGOPCoded_save;
-		m_uiFrameNum = uiFrameNum_save;
-		for( uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ ) 
-    {
-			m_auiNumFramesCoded[uiStage] = auiNumFramesCoded[uiStage];
-			m_auiCurrGOPBitsBase[uiStage] = auiCurrGOPBitsBase[uiStage];
-			m_auiCurrGOPBitsFGS[uiStage] = auiCurrGOPBitsFGS[uiStage];
-			m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
-			m_adSeqBitsFGS[uiStage] = adSeqBitsFGS[uiStage];
-			m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
-			m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
-			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
-			if (uiStage != MAX_DSTAGES)
-				m_abIsRef[uiStage] = abIsRef[uiStage];
-		}
-	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-		{
-			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
-			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
-		}
-		m_uiFrameCounter = uiFrameCounter_save;
-		m_uiParameterSetBits = uiParameterSetBits_save;
-		m_pcAnchorFrameReconstructed->setZero();
-		m_pcAnchorFrameReconstructed->copyAll(pcRecAnchorFrame_save);
-		m_pcAnchorFrameOriginal->setZero();
-		m_pcAnchorFrameOriginal->copyAll(pcOrgAnchorFrame_save);
-		m_pcBaseLayerFrame->setZero();
-		m_pcBaseLayerFrame->copyAll(pcBaseLayerRecFrame_save);
-		m_pcBaseLayerResidual->setZero();
-		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);			
-		m_pcLowPassBaseReconstruction->setZero();
-		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
-		m_cLPFrameNumList.clear();
-		m_cLPFrameNumList += cLPFrameNumList_save;
-		rcPicBufferInputList.clear();
-		rcPicBufferOutputList.clear();
-    rcAccessUnitList.clear();			
-		rcPicBufferInputList_temp.clear();
-		rcPicBufferInputList_temp += rcPicBufferInputList_save;			
-		rcPicBufferOutputList_temp.clear();
-		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;			
-
-    for(i = 0; i < (Int)(1<<(GN-m_uiDecompositionStages)); i++) 
-    {
-			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
-      {
-				if (rcPicBufferInputList_temp.size() == 0) break;
-				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
-				rcPicBufferInputList_temp.pop_front();					
-				rcPicBufferOutputList.push_back(rcPicBufferOutputList_temp.front());
-				rcPicBufferOutputList_temp.pop_front();
-			}				
-			m_dMSETemp = 0;
-      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[2][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
-      if (first == 1) 
-        first = 0;
-      rcAccessUnitList.clear();
-			rcPicBufferInputList.clear();
-			rcPicBufferOutputList.clear();
-		}
-
-    // GOP=2^N-3
-		first = tmp_first;
-		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	
-    {
-			m_apcFrameTemp[uiIndex]->setZero();
-			m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);
-		}				
-    m_uiDecompositionStages = GN-3;
-		m_uiGOPNumber = uiGOPNumber_save;
-		m_bFirstGOPCoded = bFirstGOPCoded_save;
-		m_uiFrameNum = uiFrameNum_save;
-		for( uiStage = 0; uiStage <= MAX_DSTAGES; uiStage++ ) 
-    {
-			m_auiNumFramesCoded[uiStage] = auiNumFramesCoded[uiStage];
-			m_auiCurrGOPBitsBase[uiStage] = auiCurrGOPBitsBase[uiStage];
-			m_auiCurrGOPBitsFGS[uiStage] = auiCurrGOPBitsFGS[uiStage];
-			m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
-			m_adSeqBitsFGS[uiStage] = adSeqBitsFGS[uiStage];
-			m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
-			m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
-			m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
-			if (uiStage != MAX_DSTAGES)
-				m_abIsRef[uiStage] = abIsRef[uiStage];
-		}
-	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-		{
-			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
-			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
-		}
-		m_uiFrameCounter = uiFrameCounter_save;
-		m_uiParameterSetBits = uiParameterSetBits_save;
-		m_pcAnchorFrameReconstructed->setZero();
-		m_pcAnchorFrameReconstructed->copyAll(pcRecAnchorFrame_save);
-		m_pcAnchorFrameOriginal->setZero();
-		m_pcAnchorFrameOriginal->copyAll(pcOrgAnchorFrame_save);
-		m_pcBaseLayerFrame->setZero();
-		m_pcBaseLayerFrame->copyAll(pcBaseLayerRecFrame_save);
-		m_pcBaseLayerResidual->setZero();
-		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);			
-		m_pcLowPassBaseReconstruction->setZero();
-		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
-		m_cLPFrameNumList.clear();
-		m_cLPFrameNumList += cLPFrameNumList_save;
-		rcPicBufferInputList.clear();
-		rcPicBufferOutputList.clear();
-    rcAccessUnitList.clear();			
-		rcPicBufferInputList_temp.clear();
-		rcPicBufferInputList_temp += rcPicBufferInputList_save;			
-		rcPicBufferOutputList_temp.clear();
-		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;			
-
-    for(i = 0; i < (Int)(1<<(GN-m_uiDecompositionStages)); i++) 
-    {
-			if (rcPicBufferInputList_temp.size() == 0) break;
-      for(j = 0; j < (Int)(1<<m_uiDecompositionStages) + (Int)first; j++) 
-      {
-				if (rcPicBufferInputList_temp.size() == 0) break;
-				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
-				rcPicBufferInputList_temp.pop_front();
-				
-				rcPicBufferOutputList.push_back(rcPicBufferOutputList_temp.front());
-				rcPicBufferOutputList_temp.pop_front();
-			}				
-			m_dMSETemp = 0;
-      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-      mse[1][i] = m_dMSETemp/((Double)(1<<m_uiDecompositionStages)+(Double)first);
-      if (first == 1) first = 0;
-      rcAccessUnitList.clear();
-			rcPicBufferInputList.clear();
-			rcPicBufferOutputList.clear();
-		}
-		
-		xSelectGOPMode(mse, m_puiGOPMode, 0, GN);
-
-		fclose(m_pMotionInfoFile);
-		fclose(m_pFGSFile);
-		for (i = 0; i < (Int)GN+1; i++)
-			delete mse[i];
-		delete mse;
-		m_pMotionInfoFile = pMotionInfoFile;
-		m_pFGSFile = pFGSFile;
-		
-		for( uiIndex = 0; uiIndex < NUM_TMP_FRAMES; uiIndex++ )	{ 
-      m_apcFrameTemp[uiIndex]->setZero(); m_apcFrameTemp[uiIndex]->copyAll(apcFrameTemp_save[uiIndex]);
-    }
-    for( uiStage = 0; uiStage <=MAX_DSTAGES; uiStage++ ) { 
-      m_auiNumFramesCoded[uiStage]  = auiNumFramesCoded[uiStage]; 
-      m_auiCurrGOPBitsBase[uiStage] = auiCurrGOPBitsBase[uiStage]; 
-      m_auiCurrGOPBitsFGS[uiStage]  = auiCurrGOPBitsFGS[uiStage]; 
-      m_adSeqBitsBase[uiStage] = adSeqBitsBase[uiStage];
-      m_adSeqBitsFGS[uiStage]  = adSeqBitsFGS[uiStage];
-      m_adPSNRSumY[uiStage] = adPSNRSumY[uiStage];
-      m_adPSNRSumU[uiStage] = adPSNRSumU[uiStage];
-      m_adPSNRSumV[uiStage] = adPSNRSumV[uiStage];
-      if (uiStage != MAX_DSTAGES)
-        m_abIsRef[uiStage] = abIsRef[uiStage];
-    }
-	  for( uiStage = 0; uiStage < MAX_SCALABLE_LAYERS; uiStage++ )
-		{
-			m_auiCurrGOPBits	[uiStage] = auiCurrGOPBits	[uiStage];
-			m_adSeqBits				[uiStage] = adSeqBits				[uiStage];
-		}
-		m_uiFrameCounter = uiFrameCounter_save;
-		m_uiGOPNumber = uiGOPNumber_save;
-		m_bFirstGOPCoded = bFirstGOPCoded_save;
-		m_uiFrameNum = uiFrameNum_save;
-		m_uiDecompositionStages = uiDecompositionStages_save;
-		m_uiParameterSetBits = uiParameterSetBits_save;
-		m_pcAnchorFrameReconstructed->setZero();
-		m_pcAnchorFrameReconstructed->copyAll(pcRecAnchorFrame_save);
-		m_pcAnchorFrameOriginal->setZero();
-		m_pcAnchorFrameOriginal->copyAll(pcOrgAnchorFrame_save);
-		m_pcBaseLayerFrame->setZero();
-		m_pcBaseLayerFrame->copyAll(pcBaseLayerRecFrame_save);
-		m_pcBaseLayerResidual->setZero();
-		m_pcBaseLayerResidual->copyAll(pcBaseLayerResidual_save);		
-		m_pcLowPassBaseReconstruction->setZero();
-		m_pcLowPassBaseReconstruction->copyAll(pcLowPassBaseReconstruction_save);
-
-		FILE* d_gop; // write to file
-
-		d_gop = fopen(m_cGOPModeFilename.c_str(), "a");
-		for(i = 0; i < (1<<GN)/2; i++) 
-    {
-			if (m_puiGOPMode[i]) 
-      {
-				printf("%d ", m_puiGOPMode[i]);
-				fprintf(d_gop, "%d ", m_puiGOPMode[i]);
-			}
-		}
-		fprintf(d_gop, "\n");
-		fclose(d_gop);
-
-		m_cLPFrameNumList.clear();
-		m_cLPFrameNumList += cLPFrameNumList_save;
-		first = tmp_first;
-		rcPicBufferInputList.clear();
-		rcPicBufferOutputList.clear();
-    rcAccessUnitList.clear();
-		rcPicBufferInputList_temp.clear();
-		rcPicBufferInputList_temp += rcPicBufferInputList_save;
-		rcPicBufferOutputList_temp.clear();
-		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;
-		for(i = 0; (i < 8) &&  m_puiGOPMode[i]; i++) {
-			m_uiSelectPos = i;
-			if (rcPicBufferInputList_temp.size() == 0) break;
-			for(j = 0; j < (Int)(1<<m_puiGOPMode[i]) + (Int)first; j++) 
-      {
-				if (rcPicBufferInputList_temp.size() == 0) break;
-				rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
-				rcPicBufferInputList_temp.pop_front();
-				rcPicBufferOutputList.push_back(rcPicBufferOutputList_temp.front());
-				rcPicBufferOutputList_temp.pop_front();
-			}
-			if (first == 1) first = 0;
-			m_uiDecompositionStages = m_puiGOPMode[i];
-      process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-			rcPicBufferOutputList_gop += rcPicBufferOutputList;
-			rcPicBufferInputList.clear();
-			rcPicBufferOutputList.clear();
-		}
-		rcPicBufferOutputList += rcPicBufferOutputList_gop;
-		rcPicBufferInputList += rcPicBufferInputList_save;
-		m_uiDecompositionStages = GN;		
-	}
-
-  // AGS coding
-	else 
-  {
-		UInt order = m_uiFrameCounter/(1<<GN);
-		UInt pre_encoded = 0;
-		first = 0;
-		m_puiGOPMode[0] = m_uiSelect[order][m_uiSelectPos];	
-    
-		for(i = 0; i < (Int)m_uiSelectPos;i++) 
-    {
-			pre_encoded += 1 << m_uiSelect[order][i];
-		}
-
-		if (order == 0 && m_uiSelectPos == 0)
-			first = 1;
-		else if (order == 0 && m_uiSelectPos != 0)
-			pre_encoded++;
-		
-    if (m_bFinish)
-      return Err::m_nOK;
-
-    if ((Int)rcPicBufferInputList.size()-(Int)pre_encoded < (Int)m_uiSelect[order][m_uiSelectPos]) 
-    {
-      m_puiGOPMode[0] = rcPicBufferInputList.size() - (Int)pre_encoded;
-      m_bFinish = 1;
-    }
-
-		rcPicBufferInputList.clear();
-		rcPicBufferOutputList.clear();
-		rcPicBufferInputList_temp.clear();
-		rcPicBufferInputList_temp += rcPicBufferInputList_save;
-		rcPicBufferOutputList_temp.clear();
-		rcPicBufferOutputList_temp += rcPicBufferOutputList_save;
-		
-		for (i = 0; i < (Int)pre_encoded; i++) 
-    {
-			if (rcPicBufferInputList_temp.size() == 0) break;
-			rcPicBufferInputList_temp.pop_front();			
-			rcPicBufferUnusedList.push_back(rcPicBufferOutputList_temp.front());
-			rcPicBufferOutputList_temp.pop_front();
-		}
-		
-		for(j = 0; j < (Int)(1<<m_puiGOPMode[0]) + (Int)first; j++) 
-    {
-			if (rcPicBufferInputList_temp.size() == 0) break;
-			rcPicBufferInputList.push_back(rcPicBufferInputList_temp.front());
-			rcPicBufferInputList_temp.pop_front();			
-			rcPicBufferOutputList.push_back(rcPicBufferOutputList_temp.front());
-			rcPicBufferOutputList_temp.pop_front();
-		}
-		if (first == 1) first = 0;
-		m_uiDecompositionStages = m_puiGOPMode[0];
-    process (rcAccessUnitList, rcPicBufferInputList, rcPicBufferOutputList, rcPicBufferUnusedList, m_aaauidSeqBits );
-		
-		rcPicBufferInputList.clear();
-		rcPicBufferInputList += rcPicBufferInputList_save;
-		rcPicBufferUnusedList += rcPicBufferOutputList_temp;
-		m_uiDecompositionStages = GN;		
-	}
-  return Err::m_nOK;
-}
-
-UInt MCTFEncoder::xSelectGOPMode (Double** mse,
-									UInt* seltype,
-									UInt pos,
-									UInt gop_size)
-{
-	int i;
-
-	UInt mode = 0;
-	Double tmp_min = 0xffffffff;
-
-	Double tmp_mse[4];
-
-	// GOP 2^N size
-
-	tmp_mse[0] = mse[4][0];
-	tmp_mse[1] = (mse[3][0] + mse[3][1])/2.0;
-	tmp_mse[2] = (mse[2][0] + mse[2][1] + mse[2][2] + mse[2][3])/4.0;
-	tmp_mse[3] = (mse[1][0] + mse[1][1] + mse[1][2] + mse[1][3] + mse[1][4] + mse[1][5] + mse[1][6] + mse[1][7])/8.0;
-
-//	printf("%.6lf %.6lf %.6lf %.6lf \n\n", tmp_mse[0], tmp_mse[1], tmp_mse[2], tmp_mse[3]);
-
-	for(i = 0; i < 4; i++) {
-		if (tmp_mse[i] < tmp_min) {
-			mode = i;
-			tmp_min = tmp_mse[i];
-		}
-	}
-
-	if (mode == 0) {		// GOP == 2^N
-		seltype[pos++] = gop_size;
-		return pos;
-	}
-
-	// GOP 2^N-1 size (0)
-
-	tmp_mse[1] = mse[3][0];
-	tmp_mse[2] = (mse[2][0] + mse[2][1])/2.0;
-	tmp_mse[3] = (mse[1][0] + mse[1][1] + mse[1][2] + mse[1][3])/4.0;
-
-//	printf("%.6lf %.6lf %.6lf \n\n", tmp_mse[1], tmp_mse[2], tmp_mse[3]);
-
-	tmp_min = 0xffffffff;
-	for(i = 1; i < 4; i++) {
-		if (tmp_mse[i] < tmp_min) {
-			mode = i;
-			tmp_min = tmp_mse[i];
-		}
-	}
-
-	if (mode != 1) { // !=2^N-1
-
-		tmp_mse[2] = mse[2][0];
-		tmp_mse[3] = (mse[1][0] + mse[1][1])/2.0;
-
-//  printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
-
-		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
-			seltype[pos++] = gop_size-2;
-		}
-		else {							// GOP == 2^N-3			(4)
-			seltype[pos++] = gop_size-3;
-			seltype[pos++] = gop_size-3;
-		}
-
-		tmp_mse[2] = mse[2][1];
-		tmp_mse[3] = (mse[1][2] + mse[1][3])/2.0;
-
-//		printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
-
-
-		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
-			seltype[pos++] = gop_size-2;
-		}
-		else {							// GOP == 2^N-3			(4)
-
-			seltype[pos++] = gop_size-3;
-			seltype[pos++] = gop_size-3;
-		}
-	}
-	else {	// GOP == 2^N-1
-		seltype[pos++] = gop_size-1;				// GOP == 2^N-1			(8)
-	}
-
-
-	// GOP 2^N-1 size (1)
-	tmp_mse[1] = mse[3][1];
-	tmp_mse[2] = (mse[2][2] + mse[2][3])/2.0;
-	tmp_mse[3] = (mse[1][4] + mse[1][5] + mse[1][6] + mse[1][7])/4.0;
-
-//	printf("%.6lf %.6lf %.6lf \n\n", tmp_mse[1], tmp_mse[2], tmp_mse[3]);
-
-
-	tmp_min = 0xffffffff;
-	for(i = 1; i < 4; i++) {
-		if (tmp_mse[i] < tmp_min) {
-			mode = i;
-			tmp_min = tmp_mse[i];
-		}
-	}
-
-	if (mode != 1) { // !=2^N-1
-
-		tmp_mse[2] = mse[2][2];
-		tmp_mse[3] = (mse[1][4] + mse[1][5])/2.0;
-
-//		printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
-
-		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
-			seltype[pos++] = gop_size-2;
-		}
-		else {							// GOP == 2^N-3			(4)
-			seltype[pos++] = gop_size-3;
-			seltype[pos++] = gop_size-3;
-		}
-
-		tmp_mse[2] = mse[2][3];
-		tmp_mse[3] = (mse[1][6] + mse[1][7])/2.0;
-
-//		printf("%.6lf %.6lf \n\n", tmp_mse[2], tmp_mse[3]);
-
-		if (tmp_mse[2] <= tmp_mse[3]) {	// GOP == 2^N-2			(4)	(8)
-			seltype[pos++] = gop_size-2;
-		}
-		else {							// GOP == 2^N-3			(4)
-			seltype[pos++] = gop_size-3;
-			seltype[pos++] = gop_size-3;
-		}
-	}
-	else {
-		seltype[pos++] = gop_size-1;				// GOP == 2^N-3			(8)
-	}
-
-	return pos;
-}
-//}}Adaptive GOP structure
-
 ErrVal
 MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
                          PicBufferList& rcPicBufferOutputList,
@@ -6337,38 +5346,13 @@ MCTFEncoder::xCalculateAndAddPSNR( PicBufferList& rcPicBufferInputList,
                                    UInt           uiStage,
                                    Bool           bOutput )
 {
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  if (!m_uiUseAGS) 
-  {
-  //}}Adaptive GOP structure
-
   ROT ( uiStage > m_uiDecompositionStages  );
-  
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  }
-  else 
-  {
-    ROT ( uiStage > (UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) )  );
-  }
-  //}}Adaptive GOP structure
-
   RNOK( m_pcYuvFullPelBufferCtrl->initMb() );
 
   if( bOutput ) printf("\n");
 
   const YuvBufferCtrl::YuvBufferParameter&  cBufferParam  = m_pcYuvFullPelBufferCtrl->getBufferParameter();
   UInt                                      uiSkip        = 1 << ( m_uiDecompositionStages - uiStage );
-
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  if (m_uiUseAGS) 
-  {
-    uiSkip        = 1 << ( (UInt)( log10((Double)m_uiMaxGOPSize)/log10(2.0) ) - uiStage );
-  }
-  //}}Adaptive GOP structure
-
   UInt                                      uiIndex;
   PicBufferList::iterator                   cIter;
 

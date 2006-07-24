@@ -148,21 +148,15 @@ public:
 
   ErrVal  codeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 )
     {return xCodeFromBitstream2Di(auiCode, auiLen, uiWidth, uiHeight, uiVal1, uiVal2);};
-  ErrVal  blFlag      ( MbDataAccess& rcMbDataAccess );
   Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess );
   Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess );
-  Bool    isBLQRef    ( MbDataAccess& rcMbDataAccess );
   Bool    isEndOfSlice();
   ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess );
+  ErrVal  resPredFlag_FGS ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
 	ErrVal  smoothedRefFlag( MbDataAccess& rcMbDataAccess );	// JVT-R091
 
-  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      );
-  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
-  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
-  ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
-  
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
@@ -262,8 +256,6 @@ private:
   ErrVal xGetRefFrame ( Bool bWriteBit, UInt& uiRefFrame );
   ErrVal xGetMotionPredFlag( Bool& rbFlag );
   ErrVal xGetMvd      ( Mv& cMv );
-  ErrVal xGetMvdQPel  ( Mv& cMv ); 
-  ErrVal xGetMvdComponentQPel( Short& sMvdComp );
   ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
   ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
   ErrVal xGetTrailingOnes16( UInt uiLastCoeffCount, UInt& uiCoeffCount, UInt& uiTrailingOnes );

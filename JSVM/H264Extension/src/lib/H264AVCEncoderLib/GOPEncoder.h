@@ -277,18 +277,6 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   Int                     getSpatialScalabilityType() { return m_pcResizeParameters->m_iSpatialScalabilityType; }
   ResizeParameters*       getResizeParameters()       { return m_pcResizeParameters; }
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  ErrVal        process_ags         ( AccessUnitList&                 rcAccessUnitList,
-                                      PicBufferList&                  rcPicBufferInputList,
-                                      PicBufferList&                  rcPicBufferOutputList,
-                                      PicBufferList&                  rcPicBufferUnusedList,
-                                      Double                          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
-  UInt			getSelect(Int gop, Int index) {return m_uiSelect[gop][index];}
-  Void			setSelect(Int gop, Int index, UInt p) {m_uiSelect[gop][index] = p;}
-  UInt			getSelectPos() {return m_uiSelectPos;}
-  Void			setSelectPos(UInt p) {m_uiSelectPos = p;}
-  //}}Adaptive GOP structure
   Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
   Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
   Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
@@ -469,13 +457,6 @@ protected:
    //===== ESS =====
    ErrVal		xFillPredictionLists_ESS( UInt uiBaseLevel , UInt uiFrame );
 
-
-  //===== adaptive gop structure =====
-  //{{Adaptive GOP structure
-  // --ETRI & KHU  
-  UInt	xSelectGOPMode	(Double **mse, UInt *seltype, UInt pos, UInt gop_size);
-  //}}Adaptive GOP structure
-
   ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
                                           IntFrame*                   baseFrame,  
                                           IntFrame*                   enhFrame,
@@ -617,25 +598,6 @@ protected:
   Int                           m_iLastFGSError;
   UInt                          m_uiNotYetConsideredBaseLayerBits;
   Bool                          m_bExtendedPriorityId;
-
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  UInt			m_uiWriteGOPMode;
-  UInt			m_uiUseAGS;
-  UInt			m_uiSelectPos;
-  UInt*			m_puiGOPMode;
-  UInt**		m_uiSelect;
-  Double		m_dMSETemp;
-  Bool      m_bFinish;
-  std::string	m_cGOPModeFilename;
-
-  UInt      m_uiMaxDecStages; // -- // -- 10.18.2005
-  //}}Adaptive GOP structure
-
-#if MULTIPLE_LOOP_DECODING
-  Bool                          m_bCompletelyDecodeLayer;
-  Bool                          m_bHighestLayer;
-#endif
 
  //----- ESS -----
   ResizeParameters*				m_pcResizeParameters; 

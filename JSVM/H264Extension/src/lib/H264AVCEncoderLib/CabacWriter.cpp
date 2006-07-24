@@ -101,10 +101,8 @@ const int COUNT_THR[9] = { 3, 4, 4, 4, 3, 2, 2, 3, 3};
 
 
 CabacWriter::CabacWriter():
-  m_cBLFlagCCModel(1,1),
 	m_cSRFlagCCModel(1,1),	// JVT-R091
   m_cBLSkipCCModel(1,4),
-  m_cBLQRefCCModel(1,4),
   m_cBCbpCCModel( NUM_BLOCK_TYPES, NUM_BCBP_CTX ),
   m_cMapCCModel( NUM_BLOCK_TYPES, NUM_MAP_CTX ),
   m_cLastCCModel( NUM_BLOCK_TYPES, NUM_LAST_CTX ),
@@ -155,9 +153,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cDeltaQpCCModel.initBuffer(     (Short*)INIT_DELTA_QP_I,      iQp ) );
     RNOK( m_cIntraPredCCModel.initBuffer(   (Short*)INIT_IPR_I,           iQp ) );
     RNOK( m_cChromaPredCCModel.initBuffer(  (Short*)INIT_CIPR_I,          iQp ) );
-    RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,         iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,         iQp ) );
-    RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,         iQp ) );
 		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,         iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_I,           iQp ) );
@@ -181,20 +177,11 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cMvdCCModel.initBuffer(         (Short*)INIT_MV_RES_P         [iIndex], iQp ) );
     RNOK( m_cRefPicCCModel.initBuffer(      (Short*)INIT_REF_NO_P         [iIndex], iQp ) );
     RNOK( m_cBLPredFlagCCModel.initBuffer(  (Short*)INIT_BL_PRED_FLAG_P   [iIndex], iQp ) );
-#if INDEPENDENT_PARSING
-    if( rcSliceHeader.getSPS().getIndependentParsing() )
-    {
-      RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG_P_Ind  [iIndex], iQp ) );
-    }
-    else
-#endif
     RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG_P  [iIndex], iQp ) );
     RNOK( m_cDeltaQpCCModel.initBuffer(     (Short*)INIT_DELTA_QP_P       [iIndex], iQp ) );
     RNOK( m_cIntraPredCCModel.initBuffer(   (Short*)INIT_IPR_P            [iIndex], iQp ) );
     RNOK( m_cChromaPredCCModel.initBuffer(  (Short*)INIT_CIPR_P           [iIndex], iQp ) );
-    RNOK( m_cBLFlagCCModel.initBuffer(      (Short*)INIT_BL_FLAG,                   iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,                   iQp ) );
-    RNOK( m_cBLQRefCCModel.initBuffer(      (Short*)INIT_BL_QREF,                   iQp ) );
 		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,                   iQp ) );	// JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_P            [iIndex], iQp ) );
@@ -455,21 +442,6 @@ ErrVal CabacWriter::xWriteBlockMode( UInt uiBlockMode )
 
 
 
-ErrVal CabacWriter::blFlag( MbDataAccess& rcMbDataAccess )
-{
-  UInt uiSymbol = ( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL ? 1 : 0 );
-
-  RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cBLFlagCCModel.get( 0, 0 ) ) );
-
-  ETRACE_T( "BLFlag:" );
-  ETRACE_TY( "ae(v)" );
-  ETRACE_CODE( uiSymbol );
-  ETRACE_N;
-
-  return Err::m_nOK;
-}
-
-
 ErrVal CabacWriter::skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed )
 {
   ROTRS( m_pcSliceHeader->isIntra(), Err::m_nOK );
@@ -515,14 +487,14 @@ ErrVal CabacWriter::BLSkipFlag( MbDataAccess& rcMbDataAccess )
 }
 
 
-ErrVal CabacWriter::BLQRefFlag( MbDataAccess& rcMbDataAccess )
+ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 {
-  UInt uiSymbol = rcMbDataAccess.getMbData().getBLQRefFlag() ? 1 : 0;
-  UInt uiCtx    = 0;
+  UInt  uiSymbol = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
+  UInt  uiCtx    = ( rcMbDataAccess.getMbData().getBLSkipFlag() ? 0 : 1 );
 
-  RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cBLQRefCCModel.get( 0, uiCtx ) ) );
+  RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
 
-  ETRACE_T( "BLQRefFlag" );
+  ETRACE_T( "ResidualPredFlag " );
   ETRACE_TY( "ae(v)" );
   ETRACE_CODE( uiSymbol );
   ETRACE_N;
@@ -531,16 +503,10 @@ ErrVal CabacWriter::BLQRefFlag( MbDataAccess& rcMbDataAccess )
 }
 
 
-ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
+ErrVal CabacWriter::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff )
 {
   UInt  uiSymbol = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
-  UInt  uiCtx    = ( rcMbDataAccess.getMbData().isBaseResidualAvailable()         ? 1 : 0 );
-#if INDEPENDENT_PARSING
-  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
-  {
-    uiCtx = ( rcMbDataAccess.getMbData().getBLSkipFlag() ? 0 : 1 );
-  }
-#endif
+  UInt  uiCtx    = ( bBaseCoeff ? 2 : 3 );
 
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
 
@@ -827,60 +793,6 @@ ErrVal CabacWriter::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x
   RNOK( xWriteMvd( rcMbDataAccess, cMv, B4x4Idx(eParIdx+eSParIdx), eLstIdx ) );
   return Err::m_nOK;
 }
-
-
-ErrVal  CabacWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv();
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-ErrVal  CabacWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-ErrVal  CabacWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-ErrVal  CabacWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-
-
-ErrVal CabacWriter::xWriteMvdQPel(  Mv cMv)
-{
-  Short sHor = cMv.getHor();
-  Short sVer = cMv.getVer();
-
-  RNOK( xWriteMvdComponentQPel( sHor ) );
-  RNOK( xWriteMvdComponentQPel( sVer ) );
-
-  return Err::m_nOK;
-}
-
-
-ErrVal CabacWriter::xWriteMvdComponentQPel( Short sMvdComp )
-{
-  UInt  uiSymbol  = ( sMvdComp == 0 ? 0 : 1 );
-  RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cBLQRefCCModel.get( 0, 3 ) ) );
-  ROTRS( uiSymbol == 0 , Err::m_nOK );
-
-  uiSymbol = ( sMvdComp < 0 ? 0 : 1 );
-  RNOK( CabaEncoder::writeEPSymbol( uiSymbol ) );
-
-  return Err::m_nOK;
-}
-
-
-
 
 
 ErrVal CabacWriter::xWriteMvd( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx )

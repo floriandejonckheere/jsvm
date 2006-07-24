@@ -96,7 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #define NUM_BL_PRED_FLAG_CTX   4
 
-#define NUM_RES_PRED_FLAG_CTX   2
+#define NUM_RES_PRED_FLAG_CTX   4
 
 #define NUM_IPR_CTX    2
 #define NUM_CBP_CTX    4
@@ -294,42 +294,24 @@ static const Short INIT_RES_PRED_FLAG_I[1][1][NUM_RES_PRED_FLAG_CTX][2] =
 {
   //----- model 0 -----
   {
-    {  CTX_UNUSED ,  CTX_UNUSED }
+    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
   }
 };
 static const Short INIT_RES_PRED_FLAG_P[3][1][NUM_RES_PRED_FLAG_CTX][2] =
 {
   //----- model 0 -----
   {
-    {  { 0,  16 } ,  { 0, 80 } }
-  },
-  //----- model 1 -----
-  {
-    {  { 0,  16 } ,  { 0, 80 } }
-  },
-  //----- model 2 -----
-  {
-    {  { 0,  16 } ,  { 0, 80 } }
-  }
-};
-
-#if INDEPENDENT_PARSING
-static const Short INIT_RES_PRED_FLAG_P_Ind[3][1][NUM_RES_PRED_FLAG_CTX][2] =
-{
-  //----- model 0 -----
-  {
-    {  { 0, 100 } ,  { 0, 80 } }
+    {  { 0, 100 } ,  { 0,  80 } ,  { 0,  50 } ,  { 0,  50 } }
   },
     //----- model 1 -----
   {
-    {  { 0, 100 } ,  { 0, 80 } }
+    {  { 0, 100 } ,  { 0,  80 } ,  { 0,  50 } ,  { 0,  50 } }
   },
     //----- model 2 -----
   {
-    {  { 0, 100 } ,  { 0, 80 } }
+    {  { 0, 100 } ,  { 0,  80 } ,  { 0,  50 } ,  { 0,  50 } }
   }
 };
-#endif
 
 static const Short INIT_DELTA_QP_I[1][1][4][2]=
 {
@@ -355,14 +337,6 @@ static const Short INIT_DELTA_QP_P[3][1][4][2]=
 };
 
 
-static const Short INIT_BL_FLAG[1][1][1][2] =
-{
-  //----- model 0 -----
-  {
-    { { 0, 40 } }
-  }
-};
-
 static const Short INIT_SR_FLAG[1][1][1][2] =
 {
   //----- model 0 -----
@@ -372,13 +346,6 @@ static const Short INIT_SR_FLAG[1][1][1][2] =
 };
 
 static const Short INIT_BL_SKIP[1][1][4][2] =
-{
-  //----- model 0 -----
-  {
-    { { 0, 64 } , { 0, 64 } , { 0, 64 } , { 0, 64 } }
-  }
-};
-static const Short INIT_BL_QREF[1][1][4][2] =
 {
   //----- model 0 -----
   {

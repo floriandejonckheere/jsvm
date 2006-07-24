@@ -1441,9 +1441,6 @@ MCTFDecoder::MCTFDecoder()
 , m_uiLayerId                     ( 0 )
 , m_bActive                       ( false )
 , m_uiQualityLevelForPrediction   ( 3 )
-#if MULTIPLE_LOOP_DECODING
-, m_bCompletelyDecodeLayer        ( false )
-#endif
 , m_pcResizeParameter             ( 0 ) //TMM_ESS
 , m_iMbProcessed                           (-1) //--ICU/ETRI FMO Implementation
 , m_bIsNewPic						(true)
@@ -1707,11 +1704,7 @@ MCTFDecoder::getBaseLayerData ( IntFrame*&    pcFrame,
     RNOK( m_apcFrameTemp[0]->copy( pcFrame ) );
     pcFrame = m_apcFrameTemp[0];
 
-#if MULTIPLE_LOOP_DECODING
-    if( pcSliceHeader->getPPS().getConstrainedIntraPredFlag() && !m_bCompletelyDecodeLayer )
-#else
     if( pcSliceHeader->getPPS().getConstrainedIntraPredFlag() )
-#endif
     {
       m_pcLoopFilter->setFilterMode( LoopFilter::LFMode( LoopFilter::LFM_NO_INTER_FILTER + LoopFilter::LFM_EXTEND_INTRA_SUR ) );
 	  RNOK( m_pcLoopFilter->process(*pcSliceHeader,
@@ -2142,11 +2135,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer
   RNOK( m_pcILPrediction->copy( pcFrame ) );
 
   //===== loop filter =====
-#if MULTIPLE_LOOP_DECODING
-  if( bHighestLayer || bKeyPicFlag || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ ) // HS: fix by Nokia
-#else
   if( bHighestLayer || bKeyPicFlag ) // HS: fix by Nokia
-#endif
   {
     m_pcLoopFilter->setHighpassFramePointer( m_pcResidual );
     RNOK( m_pcLoopFilter->process( *pcSliceHeader,
@@ -2217,8 +2206,6 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
   return Err::m_nOK;
 }
 
-
-#if INDEPENDENT_PARSING
 
 ErrVal
 MCTFDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
@@ -2291,8 +2278,6 @@ MCTFDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
   return Err::m_nOK;
 }
 
-#endif
-
 
 
 //TMM_EC {{
@@ -2315,22 +2300,6 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSlic
 
   if( rcControlData.getSliceHeader()->getBaseLayerId() != MSYS_UINT_MAX )
   {
-#if INDEPENDENT_PARSING
-#else
-    //TMM_ESS { 
-    SliceHeader* pcSliceHeader = rcControlData.getSliceHeader();
-    Int          poc           = pcSliceHeader->getPoc();
-    m_pcResizeParameter->setPictureParametersByOffset( poc,
-                                                       pcSliceHeader->getLeftOffset(),
-                                                       pcSliceHeader->getRightOffset(),
-                                                       pcSliceHeader->getTopOffset(),
-                                                       pcSliceHeader->getBottomOffset(),
-                                                       pcSliceHeader->getBaseChromaPhaseX(),
-                                                       pcSliceHeader->getBaseChromaPhaseY() );
-    m_pcResizeParameter->setPOC( poc );
-    //TMM_ESS }   
-#endif
-      
     RNOK( m_pcH264AVCDecoder->getBaseLayerData( pcBaseFrame, pcBaseResidual, pcBaseDataCtrl, bConstrainedIPredBL, bSpatialScalability,
                                                 m_uiLayerId,
                                                 rcControlData.getSliceHeader()->getBaseLayerId(),
@@ -2367,7 +2336,6 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSlic
 
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
 
-    rcControlData.getMbDataCtrl()->copyBaseResidualAvailFlags( *m_pcBaseLayerCtrl );
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
     rcControlData.getSliceHeader()->setBaseLayerUsesConstrainedIntraPred( bConstrainedIPredBL );
@@ -2499,18 +2467,11 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   {
     RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );
   //TMM_ESS }
-#if INDEPENDENT_PARSING
     RNOK( xInitESSandCroppingWindow( *rpcSliceHeader, *m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl() ) );
 
-    if( rpcSliceHeader->getSPS().getIndependentParsing() )
-    {
-      m_pcCurrDPBUnit->getCtrlData().setBaseLayerRec ( 0 );
-      m_pcCurrDPBUnit->getCtrlData().setBaseLayerSbb ( 0 );
-      m_pcCurrDPBUnit->getCtrlData().setBaseLayerCtrl( 0 );
-    }
-    else
-#endif
-		RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(),pcSliceHeaderBase ) );
+    m_pcCurrDPBUnit->getCtrlData().setBaseLayerRec ( 0 );
+    m_pcCurrDPBUnit->getCtrlData().setBaseLayerSbb ( 0 );
+    m_pcCurrDPBUnit->getCtrlData().setBaseLayerCtrl( 0 );
   }
 //TMM_EC{{
   else
@@ -2539,11 +2500,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 
   Bool          bKeyPicture     = rpcSliceHeader->getKeyPictureFlag();
   Bool          bConstrainedIP  = rpcSliceHeader->getPPS().getConstrainedIntraPredFlag();
-#if MULTIPLE_LOOP_DECODING
-  Bool          bReconstructAll = m_bCompletelyDecodeLayer || bReconstructionLayer || !bConstrainedIP;
-#else
   Bool          bReconstructAll = bReconstructionLayer || !bConstrainedIP;
-#endif
   m_bReconstructAll             = bReconstructAll;
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
   bReconstructAll = bReconstructAll && bKeyPicture || ! bConstrainedIP;
@@ -2653,12 +2610,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   	}                                              
 //TMM_EC }}
 
-#if INDEPENDENT_PARSING
-  if( rpcSliceHeader->getSPS().getIndependentParsing() )
-  {
-    RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(), pcSliceHeaderBase ) );
-  }
-#endif
+  RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(), pcSliceHeaderBase ) );
 
   //----- decoding -----
   RNOK( m_pcControlMng  ->initSliceForDecoding( *rpcSliceHeader ) );

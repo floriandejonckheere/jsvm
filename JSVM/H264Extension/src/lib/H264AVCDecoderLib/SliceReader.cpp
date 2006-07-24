@@ -231,15 +231,11 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
     UInt          uiMbX               = uiMbAddress % uiMbInRow;
     MbDataAccess* pcMbDataAccess      = 0;
     MbDataAccess* pcMbDataAccessBase  = 0;
-#if INDEPENDENT_PARSING
     Bool          bCropWindowFlag     = pcMbDataCtrl->getMbData( uiMbX, uiMbY ).getInCropWindowFlag();
-#endif
 
     RNOK( pcMbDataCtrl        ->initMb    ( pcMbDataAccess,     uiMbY, uiMbX ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
-#if INDEPENDENT_PARSING
     pcMbDataAccess->getMbData().setInCropWindowFlag( bCropWindowFlag );
-#endif
 
     if  ( pcMbDataCtrlBase )
     {
@@ -347,11 +343,6 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
   PictureParameterSet*  pcPPS;
 
 	UInt	uiPPSId	=	rpcVeryFirstSliceHeader->getPPS().getPicParameterSetId();
-
-#if MULTIPLE_LOOP_DECODING
-//	if ( uiPoc % uiMaxGopSize != 0)
-//		uiPPSId--;
-#endif
 
   RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
   RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );

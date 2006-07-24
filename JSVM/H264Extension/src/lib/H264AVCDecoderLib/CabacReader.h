@@ -177,20 +177,14 @@ public:
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
   Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   
-  ErrVal  blFlag              ( MbDataAccess& rcMbDataAccess );
   Bool    isEndOfSlice        ();
   Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess );
   Bool    isBLSkipped         ( MbDataAccess& rcMbDataAccess );
-  Bool    isBLQRef            ( MbDataAccess& rcMbDataAccess );
   ErrVal  blockModes          ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess );
+  ErrVal  resPredFlag_FGS     ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
   ErrVal  smoothedRefFlag     ( MbDataAccess& rcMbDataAccess );	// JVT-R091
-
-  ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      );
-  ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
-  ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
-  ErrVal  mvdQPel             ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
 
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -237,8 +231,6 @@ protected:
                                 const UChar*  pucScan,
                                 UInt          uiScanIndex );
 
-  ErrVal xGetMvdQPel( Mv& rcMv );
-  ErrVal xGetMvdComponentQPel( Short& rsMvdComp );
   ErrVal xGetMvd( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cIdx, ListIdx eLstIdx );
 
   ErrVal xInitContextModels( const SliceHeader& rcSliceHeader );
@@ -263,9 +255,7 @@ protected:
   CabacContextModel2DBuffer m_cOneCCModel;
   CabacContextModel2DBuffer m_cAbsCCModel;
   CabacContextModel2DBuffer m_cChromaPredCCModel;
-  CabacContextModel2DBuffer m_cBLFlagCCModel;
   CabacContextModel2DBuffer m_cBLSkipCCModel;
-  CabacContextModel2DBuffer m_cBLQRefCCModel;
   CabacContextModel2DBuffer m_cMbTypeCCModel;
   CabacContextModel2DBuffer m_cBlockTypeCCModel;
   CabacContextModel2DBuffer m_cMvdCCModel;

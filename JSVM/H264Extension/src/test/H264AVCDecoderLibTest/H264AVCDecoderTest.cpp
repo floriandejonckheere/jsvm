@@ -251,8 +251,8 @@ ErrVal H264AVCDecoderTest::go()
 
   cPicBufferOutputList.clear();
   cPicBufferUnusedList.clear();
-  
-  RNOK( m_pcH264AVCDecoder->init() );
+
+  RNOK( m_pcH264AVCDecoder->init( true ) );
 
   Bool bToDecode = false; //JVT-P031
   for( uiFrame = 0; ( uiFrame <= MSYS_UINT_MAX && ! bEOS); )
@@ -451,7 +451,7 @@ ErrVal H264AVCDecoderTest::go()
 					if(uiNalUnitType == 1 || uiNalUnitType == 5)
 					{
 						SuffixEnable = true;
-						RNOK(m_pcH264AVCDecoderSuffix->init());
+						RNOK(m_pcH264AVCDecoderSuffix->init( false ));     // THAT'S REALLY BAD !!!
 						RNOK( m_pcReadBitstream->getPosition( iPos ) );
 						RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
 						pcBinData->setMemAccessor( cBinDataAccessor );
@@ -462,7 +462,7 @@ ErrVal H264AVCDecoderTest::go()
 								)
 							);
 
-						RNOK( m_pcH264AVCDecoderSuffix->uninit());
+						RNOK( m_pcH264AVCDecoderSuffix->uninit( false ));  // THAT'S REALLY BAD !!!
 
 						if( !SuffixEnable )
 						{
@@ -661,7 +661,7 @@ ErrVal H264AVCDecoderTest::go()
 	if((uiNalUnitType == 1 || uiNalUnitType == 5) && !bEOS) 
 	{
 		SuffixEnable = true;
-		RNOK(m_pcH264AVCDecoderSuffix->init());
+		RNOK(m_pcH264AVCDecoderSuffix->init( false ));   // THAT'S REALLY BAD !!!
 		RNOK( m_pcReadBitstream->getPosition( iPos ) );
 		RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
 		pcBinData->setMemAccessor( cBinDataAccessor );
@@ -672,7 +672,7 @@ ErrVal H264AVCDecoderTest::go()
 				)
 			);
 
-		RNOK( m_pcH264AVCDecoderSuffix->uninit());
+		RNOK( m_pcH264AVCDecoderSuffix->uninit( false ));  // THAT'S REALLY BAD !!!
 
 		if( !SuffixEnable )
 		{
@@ -737,7 +737,7 @@ ErrVal H264AVCDecoderTest::go()
 
   delete [] pcLastFrame; // HS: decoder robustness
   
-  RNOK( m_pcH264AVCDecoder->uninit() );
+  RNOK( m_pcH264AVCDecoder->uninit( true ) );
   
   m_pcParameter->nFrames  = uiFrame;
   m_pcParameter->nResult  = 0;

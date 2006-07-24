@@ -647,24 +647,6 @@ ErrVal UvlcReader::blockModes( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
-ErrVal UvlcReader::blFlag( MbDataAccess& rcMbDataAccess )
-{
-  UInt uiSymbol;
-  DECRNOK( xGetFlag( uiSymbol ) );
-
-  if( uiSymbol )
-  {
-    rcMbDataAccess.getMbData().setMbMode( INTRA_BL );
-  }
-
-  DTRACE_T( "BLFlag:" );
-  DTRACE_TY( "ae(v)" );
-  DTRACE_CODE( uiSymbol );
-  DTRACE_N;
-
-  return Err::m_nOK;
-}
-
 Bool UvlcReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
 {
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
@@ -700,15 +682,6 @@ Bool UvlcReader::isBLSkipped( MbDataAccess& rcMbDataAccess )
   return rcMbDataAccess.getMbData().getBLSkipFlag();
 }
 
-Bool UvlcReader::isBLQRef( MbDataAccess& rcMbDataAccess )
-{
-  UInt uiCode;
-  ANOK( xGetFlag( uiCode ) );
-
-  rcMbDataAccess.getMbData().setBLQRefFlag( ( uiCode != 0 ) );
-  return rcMbDataAccess.getMbData().getBLQRefFlag();
-}
-
 ErrVal UvlcReader::mbMode( MbDataAccess& rcMbDataAccess )
 {
   UInt uiMbMode = 0;
@@ -735,6 +708,16 @@ ErrVal UvlcReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
+ErrVal UvlcReader::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff )
+{
+  UInt uiCode;
+  DTRACE_T( "ResidualPredFlag" );
+  RNOK( xGetFlag( uiCode ) );
+  DTRACE_N;
+  rcMbDataAccess.getMbData().setResidualPredFlag( uiCode?true:false );
+
+  return Err::m_nOK;
+}
 
 //-- JVT-R091
 ErrVal UvlcReader::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
@@ -805,34 +788,6 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8
   return Err::m_nOK;
 }
 
-ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      )
-{
-  Mv cMv;
-  RNOK( xGetMvdQPel( cMv ) ); 
-  rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv );
-  return Err::m_nOK;
-}
-ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
-{
-  Mv cMv;
-  RNOK( xGetMvdQPel( cMv ) ); 
-  rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
-  return Err::m_nOK;
-}
-ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
-{
-  Mv cMv;
-  RNOK( xGetMvdQPel( cMv ) );
-  rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
-  return Err::m_nOK;
-}
-ErrVal  UvlcReader::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  )
-{
-  Mv cMv;
-  RNOK( xGetMvdQPel( cMv ) ); 
-  rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
-  return Err::m_nOK;
-}
 
 ErrVal UvlcReader::intraPredModeChroma( MbDataAccess& rcMbDataAccess )
 {
@@ -915,14 +870,8 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess )
   DTRACE_T( "Cbp: " );
   RNOK( xGetUvlcCode( uiTemp ) );
 
-  UInt uiCbp = ( rcMbDataAccess.getMbData().isIntra() ) ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp];
-#if INDEPENDENT_PARSING
-  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
-  {
-    Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && !rcMbDataAccess.getMbData().getBLQRefFlag() && rcMbDataAccess.getMbData().isIntra() );
-    uiCbp       = ( bIntra ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp] );
-  }
-#endif
+  Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.getMbData().isIntra() );
+  UInt uiCbp  = ( bIntra ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp] );
   DTRACE_X ( uiCbp );
   DTRACE_N;
 
@@ -1177,38 +1126,6 @@ ErrVal UvlcReader::xGetMvd( Mv& cMv )
 
   cMv.setHor( sHor );
   cMv.setVer( sVer );
-
-  return Err::m_nOK;
-}
-
-ErrVal UvlcReader::xGetMvdQPel( Mv& cMv )
-{
-  Short sHor = 0;
-  Short sVer = 0;
-
-  RNOK( xGetMvdComponentQPel( sHor ) );
-  RNOK( xGetMvdComponentQPel( sVer ) );
-
-  cMv.setHor( sHor );
-  cMv.setVer( sVer );
-
-  return Err::m_nOK;
-}
-
-ErrVal UvlcReader::xGetMvdComponentQPel( Short& sMvdComp )
-{
-  UInt  uiSymbol;
-  RNOK( xGetFlag( uiSymbol ) );
-
-  if ( uiSymbol == 0 )
-  {
-    sMvdComp = 0;
-  }
-  else
-  {
-    RNOK( xGetFlag( uiSymbol ) );
-    sMvdComp = ( uiSymbol == 0 ? -1 : 1 );
-  }
 
   return Err::m_nOK;
 }

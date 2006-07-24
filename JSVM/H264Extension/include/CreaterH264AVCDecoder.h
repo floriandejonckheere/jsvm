@@ -137,8 +137,8 @@ public:
 
   H264AVCDecoder *getH264AVCDecoder() const { return m_pcH264AVCDecoder; } //JVT-S036 lsj
   ErrVal destroy    ();
-  ErrVal init       ();
-  ErrVal uninit     ();
+  ErrVal init       ( Bool bOpenTrace );
+  ErrVal uninit     ( Bool bCloseTrace );
   ErrVal process    ( PicBuffer*        pcPicBuffer,
                       PicBufferList&    rcPicBufferOutputList,
                       PicBufferList&    rcPicBufferUnusedList,

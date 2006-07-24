@@ -91,7 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-#define _JSVM_VERSION_ "5.12.1" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "6.1" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -300,10 +300,6 @@ H264AVC_NAMESPACE_END
 #define PRI_ID_BITS         6
 #define MAX_SCALABLE_LAYERS MAX_LAYERS * MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS
 
-//===== special features for investigation =====
-#define MULTIPLE_LOOP_DECODING 1   // multiple-loop decoding (enables additional option,
-                                   // single-loop decoding is still possible, when the flag is set
-
 //{{Quality level estimation and modified truncation- JVTO044 and m12007
 //France Telecom R&D-(nathalie.cammas@francetelecom.com)
 #define MAX_NUM_RD_LEVELS      50
@@ -351,11 +347,6 @@ typedef	enum
 	EC_INTRA_COPY
 }	ERROR_CONCEAL;
 //TMM_EC }}
-
-
-#define INDEPENDENT_PARSING                           1  // not adopted! -> only software support
-                                                         // switchable via configuration parameters
-
 
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

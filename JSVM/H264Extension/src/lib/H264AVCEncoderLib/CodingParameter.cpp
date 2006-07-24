@@ -143,11 +143,6 @@ ErrVal LayerParameters::check()
   ROTREPORT( getNumFGSLayers            () > 3,         "Number of FGS layers not supported" );
   ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
   ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
-#if MULTIPLE_LOOP_DECODING
-  ROTREPORT( getDecodingLoops           () > 2,         "Unsupported mode for decoding loops" );
-#else
-  ROTREPORT( getDecodingLoops           () > 1,         "Unsupported mode for decoding loops" );
-#endif
   ROTREPORT( getClosedLoop              () > 2,         "Unsupported closed-loop mode" );
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
@@ -394,14 +389,6 @@ ErrVal CodingParameter::check()
     pcLayer->setDecompositionStages ( getDecompositionStages() - uiLogFactorMaxInRate );
     pcLayer->setFrameDelay          ( uiMaxFrameDelay  /  ( 1 << uiLogFactorMaxInRate ) );
 
-    //{{Adaptive GOP structure
-    // --ETRI & KHU
-    if ( getUseAGS() ) {
-      ROTREPORT( pcLayer->getInputFrameRate() > (1 << pcLayer->getDecompositionStages()), "AGS: GOP size must be greater than input frame rate" );
-      ROTREPORT( pcLayer->getDecompositionStages() < 3, "AGS: Decomposition Stages must be equal or greater than 3" );
-    }
-    //}}Adaptive GOP structure
-
     if( pcBaseLayer ) // for sub-sequence SEI
     {
       ROTREPORT( pcLayer->getInputFrameRate() < pcBaseLayer->getInputFrameRate(), "Input frame rate less than base layer output frame rate" );
@@ -449,10 +436,7 @@ ErrVal CodingParameter::check()
         }
 // TMM_ESS }
 
-      if( pcLayer->getDecodingLoops() == 0 ) // single-loop decoding also for low-pass
-      {
-        pcBaseLayer->setContrainedIntraForLP();
-      }
+      pcBaseLayer->setContrainedIntraForLP();
     }
 
     if( pcLayer->getBaseQualityLevel() > 3 )

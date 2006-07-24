@@ -173,17 +173,6 @@ public:
   Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
                                   SParIdx4x4  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
 
-  Bool    isBaseResidualAvailable   ()                    const { return m_usResidualAvailFlagsBase != 0; }
-
-  UShort  getResidualAvailFlags     ()                          { return m_usResidualAvailFlags; }
-  Void    updateResidualAvailFlags	();
-  UShort  getResidualAvailFlagsBase ()                    const { return m_usResidualAvailFlagsBase; }
-  Void    setResidualAvailFlagsBase ( UShort  usResAvailFlags ) { m_usResidualAvailFlagsBase = usResAvailFlags; }
-
-  Bool    isLumaResidualAvailable   ()                    const { return (m_usResidualAvailFlags & 15) != 0; }
-  Bool    isLumaResidualAvailable   ( Par8x8  ePar8x8  )  const { return ((m_usResidualAvailFlags >> ePar8x8) & 1) != 0; }
-  Bool    isChromaResidualAvailable ()                    const { return ((m_usResidualAvailFlags >> 4) & 1) != 0; }
-
 // TMM_ESS 
   Bool    getInCropWindowFlag   ()                        const { return   m_bInCropWindowFlag; }
 
@@ -221,9 +210,7 @@ public:
                               Par8x8              ePar8x8, Bool bDirect8x8 );
 
   Void    setBLSkipFlag         ( Bool b )  { m_bBLSkipFlag = b; }
-  Void    setBLQRefFlag         ( Bool b )  { m_bBLQRefFlag = b; }
   Bool    getBLSkipFlag         () const    { return m_bBLSkipFlag; }
-  Bool    getBLQRefFlag         () const    { return m_bBLQRefFlag; }
 
   Bool is8x8TrafoFlagPresent()                          const;
   Bool isTransformSize8x8   ()                          const     { return m_bTransformSize8x8; }
@@ -237,7 +224,6 @@ public:
 public:
   UInt    m_uiSliceId;
   Bool    m_bBLSkipFlag;
-  Bool    m_bBLQRefFlag;
   MbMode  m_eMbMode;
   UInt    m_uiMbCbp;
   UInt    m_uiBCBP;
@@ -248,9 +234,6 @@ public:
   UChar   m_ucQp;
 
   UShort  m_usResidualPredFlags;
-
-  UShort  m_usResidualAvailFlagsBase;
-  UShort  m_usResidualAvailFlags;
 
   Bool    m_bTransformSize8x8;
   Bool    m_bSkipFlag;

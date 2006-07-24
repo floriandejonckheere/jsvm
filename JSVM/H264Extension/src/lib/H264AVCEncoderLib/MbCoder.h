@@ -127,15 +127,13 @@ protected:
   
   
   
-  ErrVal xWriteMotionPredFlags    ( MbDataAccess& rcMbDataAccess,
+  ErrVal xWriteMotionPredFlags_FGS( MbDataAccess& rcMbDataAccess,
                                     MbDataAccess* pcMbDataAccessBase,
                                     MbMode        eMbMode,
                                     ListIdx       eLstIdx );
-#if INDEPENDENT_PARSING
-  ErrVal xWriteMotionPredFlags_Ind( MbDataAccess& rcMbDataAccess,
+  ErrVal xWriteMotionPredFlags    ( MbDataAccess& rcMbDataAccess,
                                     MbMode        eMbMode,
                                     ListIdx       eLstIdx );
-#endif
   ErrVal xWriteReferenceFrames    ( MbDataAccess& rcMbDataAccess,
                                     MbMode        eMbMode,
                                     ListIdx       eLstIdx );
@@ -147,8 +145,6 @@ protected:
   //-- JVT-R091
 	ErrVal xWriteTextureInfo    ( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase, const MbTransformCoeffs& rcMbTCoeff, Bool bTrafo8x8Flag );
 	//--
-
-  ErrVal xWriteMotionVectorsQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal xWriteBlockMv        ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );
 
 

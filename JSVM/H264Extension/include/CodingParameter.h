@@ -209,7 +209,6 @@ public:
     , m_uiTemporalResolution              (0)
     , m_uiFrameDelay                      (0)
     , m_uiBaseQualityLevel                (3)
-    , m_uiDecodingLoops                   (0)
     , m_bConstrainedIntraPredForLP        (false)
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
@@ -221,14 +220,11 @@ public:
     , m_dPredFGSRate                      (0.0) //JVT-P031
     , m_uiUseRedundantSlice               (0)   //JVT-Q054 Red. Picture
 // JVT-Q065 EIDR{
-	, m_iIDRPeriod						  (0)
-	, m_bBLSkipEnable					  ( false )
-// JVT-Q065 EIDR}
- , m_uiFGSCodingMode                      ( 0 )
- , m_uiGroupingSize                       ( 1 )
-#if INDEPENDENT_PARSING
-    , m_uiIndependentParsing  ( 0 )
-#endif
+	  , m_iIDRPeriod						  (0)
+	  , m_bBLSkipEnable					  ( false )
+  // JVT-Q065 EIDR}
+    , m_uiFGSCodingMode                      ( 0 )
+    , m_uiGroupingSize                       ( 1 )
     , m_dQpModeDecisionLP ( 0.00 )
     , m_uiNumSliceGroupMapUnitsMinus1 ( 0 ) 
     // JVT-S054 (ADD) ->
@@ -316,7 +312,6 @@ public:
 
   UInt                            getBaseLayerSpatRes               () const {return m_uiBaseLayerSpatRes; }
   UInt                            getBaseLayerTempRes               () const {return m_uiBaseLayerTempRes; }
-  UInt                            getDecodingLoops                  () const {return m_uiDecodingLoops; }
   Bool                            getContrainedIntraForLP           () const {return m_bConstrainedIntraPredForLP; }
   UInt                            getForceReorderingCommands        () const {return m_uiForceReorderingCommands; }
   UInt                            getBaseLayerId                    () const {return m_uiBaseLayerId; }
@@ -355,10 +350,6 @@ public:
   UInt getGroupingSize                   ()    { return m_uiGroupingSize; }
   UInt getPosVect                        (UInt uiNum) {return m_uiPosVect[uiNum];} 
 
-#if INDEPENDENT_PARSING
-  UInt          getIndependentParsing() const { return m_uiIndependentParsing; }
-#endif
-
   //===== set =====
   Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
   Void setFrameWidth                      (UInt   p) { m_uiFrameWidth                     = p; }
@@ -391,7 +382,6 @@ public:
   Void setBaseLayerSpatRes                (UInt   p) { m_uiBaseLayerSpatRes               = p; }
   Void setBaseLayerTempRes                (UInt   p) { m_uiBaseLayerTempRes               = p; }
   Void setBaseQualityLevel                (UInt   p) { m_uiBaseQualityLevel               = p; }
-  Void setDecodingLoops                   (UInt   p) { m_uiDecodingLoops                  = p; }
   Void setContrainedIntraForLP            ()         { m_bConstrainedIntraPredForLP       = true; }
   Void setForceReorderingCommands         (UInt   p) { m_uiForceReorderingCommands        = p; }
   Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
@@ -457,10 +447,6 @@ public:
   Void                            setFGSMotionMode( UInt uiFGSMotionMode ) { m_uiFGSMotionMode = uiFGSMotionMode; }
   Void                            setUseRedundantSliceFlag(Bool   b) { m_uiUseRedundantSlice = b; }  // JVT-Q054 Red. Picture
 
-#if INDEPENDENT_PARSING
-  Void                            setIndependentParsing( UInt ui ) { m_uiIndependentParsing = ui; }
-#endif
-
   //S051{
   const std::string&              getInSIPFileName             () const { return m_cInSIPFileName; }
   const std::string&              getOutSIPFileName            () const { return m_cOutSIPFileName; }
@@ -492,7 +478,6 @@ public:
   Double                    m_adQpModeDecision[MAX_DSTAGES];
   Double                    m_dQpModeDecisionLP;
   UInt                      m_uiInterLayerPredictionMode;
-  UInt                      m_uiDecodingLoops;
   Bool                      m_bConstrainedIntraPredForLP;
   UInt                      m_uiForceReorderingCommands;
   UInt                      m_uiBaseLayerId;
@@ -575,10 +560,6 @@ public:
   UInt       m_uiGroupingSize;
   UInt       m_uiPosVect[16];
 
-#if INDEPENDENT_PARSING
-  UInt         m_uiIndependentParsing;
-#endif
-
   //S051{
   std::string    m_cOutSIPFileName;
   std::string	 m_cInSIPFileName;
@@ -639,11 +620,6 @@ public:
     , m_uiNumberOfLayers                  ( 0 )
     , m_bExtendedPriorityId               ( 0 )
     , m_uiNumSimplePris                   (0)
-    //{{Adaptive GOP structure
-    // --ETRI & KHU
-    , m_uiUseAGS                          (0)
-    , m_uiWriteGOPMode                    (0)
-    //}}Adaptive GOP structure
     , m_dLowPassEnhRef                    ( -1.0 )
     , m_uiBaseWeightZeroBaseBlock         ( MSYS_UINT_MAX )
     , m_uiBaseWeightZeroBaseCoeff         ( MSYS_UINT_MAX )
@@ -676,13 +652,6 @@ public:
     {
       m_adDeltaQpLayer[uiLayer] = 0;
     }
- /*     for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
-      {
-        m_uiTemporalLevelList[uiLoop] = 0;
-        m_uiDependencyIdList [uiLoop] = 0;
-        m_uiQualityLevelList [uiLoop] = 0;
-      }
- JVT-S036 lsj */
   }
 	virtual ~CodingParameter()
   {
@@ -789,15 +758,6 @@ public:
   // TMM_ESS 
   ResizeParameters*               getResizeParameters  ( UInt    n )    { return m_acLayerParameters[n].getResizeParameters(); }
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  UInt getUseAGS () const { return m_uiUseAGS; }
-  Void setUseAGS (UInt p) { m_uiUseAGS = p; }
-  UInt getWriteGOPMode () const { return m_uiWriteGOPMode; }
-  Void setWriteGOPMode (UInt p) { m_uiWriteGOPMode = p; }
-  const std::string& getGOPModeFile () const { return m_cGOPModeFilename; }
-  Void setGOPModeFile (Char*   p) { m_cGOPModeFilename = p; }
-  //}}Adaptive GOP structure
   Void                            setLowPassEnhRef        ( Double d )   
   { 
     m_dLowPassEnhRef = ( d < 0.0 ) ? 0.0 : ( ( d > 1.0 ) ? 1.0 : d );
@@ -858,19 +818,10 @@ protected:
   LayerParameters           m_acLayerParameters[MAX_LAYERS];
   Bool                      m_bExtendedPriorityId;
   UInt                      m_uiNumSimplePris;
-/*  UInt                      m_uiTemporalLevelList[1 << PRI_ID_BITS];
-  UInt                      m_uiDependencyIdList [1 << PRI_ID_BITS];
-  UInt                      m_uiQualityLevelList [1 << PRI_ID_BITS];
- JVT-S036 lsj */
+
   EncoderConfigLineBase*    m_pEncoderLines[MAX_CONFIG_PARAMS];
   EncoderConfigLineBase*    m_pLayerLines  [MAX_CONFIG_PARAMS];
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  UInt	m_uiWriteGOPMode;
-  UInt	m_uiUseAGS;
-  std::string               m_cGOPModeFilename;
-  //}}Adaptive GOP structure
   Double                    m_dLowPassEnhRef;
   UInt                      m_uiBaseWeightZeroBaseBlock;
   UInt                      m_uiBaseWeightZeroBaseCoeff;

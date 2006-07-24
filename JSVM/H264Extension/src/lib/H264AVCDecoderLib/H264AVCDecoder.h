@@ -236,9 +236,6 @@ public:
 	UInt	m_uiMaxLayerId;
 //  TMM_EC }}
   Void    setQualityLevelForPrediction( UInt ui ) { m_uiQualityLevelForPrediction = ui; }
-#if MULTIPLE_LOOP_DECODING
-  Void    setCompletelyDecodeLayer    ( Bool b )  { m_bCompletelyDecodeLayer = b; }
-#endif
 
   UInt isNonRequiredPic()						  { return m_uiNonRequiredPic;  } //NonRequired JVT-Q066
   Bool isRedundantPic()             { return m_bRedundantPic; }  // JVT-Q054 Red. Picture
@@ -317,10 +314,6 @@ protected:
 
   // should this layer be decoded at all, and up to which FGS layer should be decoded
   UInt                          m_uiQualityLevelForPrediction;
-#if MULTIPLE_LOOP_DECODING
-  Bool                          m_bCompletelyDecodeLayer;
-  Bool                          m_abCompletlyDecodeBaseLayer[MAX_LAYERS];
-#endif
 
   Bool                          m_bFGSCodingMode;
   UInt                          m_uiGroupingSize;

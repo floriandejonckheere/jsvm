@@ -552,39 +552,6 @@ protected:
                                   Int               iYSize );
 
 
-  ErrVal  xQPelEstimateMb16x16  ( IntMbTempData*&   rpcMbTempData,
-                                  IntMbTempData*&   rpcMbBestData,
-                                  RefFrameList&     rcRefFrameList0,
-                                  RefFrameList&     rcRefFrameList1,
-                                  UInt              uiNumMaxIter,
-                                  Bool              bQPelOnly,
-                                  MbDataAccess*     pcMbDataAccessBaseMotion,
-                                  Bool              bResidualPred );
-  ErrVal  xQPelEstimateMb16x8   ( IntMbTempData*&   rpcMbTempData,
-                                  IntMbTempData*&   rpcMbBestData,
-                                  RefFrameList&     rcRefFrameList0,
-                                  RefFrameList&     rcRefFrameList1,
-                                  UInt              uiNumMaxIter,
-                                  Bool              bQPelOnly,
-                                  MbDataAccess*     pcMbDataAccessBaseMotion,
-                                  Bool              bResidualPred );
-  ErrVal  xQPelEstimateMb8x16   ( IntMbTempData*&   rpcMbTempData,
-                                  IntMbTempData*&   rpcMbBestData,
-                                  RefFrameList&     rcRefFrameList0,
-                                  RefFrameList&     rcRefFrameList1,
-                                  UInt              uiNumMaxIter,
-                                  Bool              bQPelOnly,
-                                  MbDataAccess*     pcMbDataAccessBaseMotion,
-                                  Bool              bResidualPred );
-  ErrVal  xQPelEstimateMb8x8    ( IntMbTempData*&   rpcMbTempData,
-                                  IntMbTempData*&   rpcMbBestData,
-                                  RefFrameList&     rcRefFrameList0,
-                                  RefFrameList&     rcRefFrameList1,
-                                  UInt              uiNumMaxIter,
-                                  Bool              bQPelOnly,
-                                  MbDataAccess*     pcMbDataAccessBaseMotion,
-                                  Bool              bResidualPred );
-
   ErrVal  xEncode16x16ResidualMB( IntMbTempData&    rcMbTempData,
                                   UInt&             ruiBits,
                                   UInt&             ruiExtCbp );

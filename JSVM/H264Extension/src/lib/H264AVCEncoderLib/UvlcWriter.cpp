@@ -626,20 +626,6 @@ ErrVal UvlcWriter::blockModes( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::blFlag( MbDataAccess& rcMbDataAccess )
-{
-  ETRACE_T( "BLFlag" );
-
-  UInt uiBit = ( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL ? 1 : 0 );
-
-  RNOK( xWriteFlag( uiBit ) );
-
-  ETRACE_N;
-
-  return Err::m_nOK;
-}
-
-
 ErrVal UvlcWriter::skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed )
 {
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
@@ -677,16 +663,6 @@ ErrVal UvlcWriter::BLSkipFlag( MbDataAccess& rcMbDataAccess )
 
   return Err::m_nOK;
 }
-ErrVal UvlcWriter::BLQRefFlag( MbDataAccess& rcMbDataAccess )
-{
-  UInt  uiCode = ( rcMbDataAccess.getMbData().getBLQRefFlag() ? 1 : 0 );
-
-  ETRACE_T( "BLQRefFlag" );
-  RNOK( xWriteFlag( uiCode ) );
-  ETRACE_N;
-
-  return Err::m_nOK;
-}
 
 
 ErrVal UvlcWriter::mbMode( MbDataAccess& rcMbDataAccess )
@@ -717,6 +693,18 @@ ErrVal UvlcWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 
   return Err::m_nOK;
 }
+
+ErrVal UvlcWriter::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff )
+{
+  UInt uiCode = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
+
+  ETRACE_T( "ResidualPredFlag" );
+  RNOK( xWriteFlag( uiCode ) );
+  ETRACE_N;
+
+  return Err::m_nOK;
+}
+
 
 //-- JVT-R091
 ErrVal UvlcWriter::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
@@ -807,55 +795,6 @@ ErrVal UvlcWriter::xWriteMvd( Mv cMv )
   return Err::m_nOK;
 }
 
-ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv();
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-ErrVal  UvlcWriter::mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  )
-{
-  Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv( eParIdx );
-  RNOK( xWriteMvdQPel( cMv ) );
-  return Err::m_nOK;
-}
-
-ErrVal UvlcWriter::xWriteMvdQPel( Mv cMv)
-{
-  Short sHor = cMv.getHor();
-  Short sVer = cMv.getVer();
-
-  RNOK( xWriteMvdComponentQPel( sHor ) );
-  RNOK( xWriteMvdComponentQPel( sVer ) );
-
-  return Err::m_nOK;
-}
-
-ErrVal UvlcWriter::xWriteMvdComponentQPel( Short sMvdComp )
-{
-  UInt  uiSymbol  = ( sMvdComp == 0 ? 0 : 1 );
-  RNOK( xWriteFlag( uiSymbol ) );
-  ROTRS( uiSymbol == 0 , Err::m_nOK );
-
-  uiSymbol = ( sMvdComp < 0 ? 0 : 1 );
-  RNOK( xWriteFlag( uiSymbol ) );
-
-  return Err::m_nOK;
-}
-
-
 ErrVal UvlcWriter::intraPredModeChroma( MbDataAccess& rcMbDataAccess )
 {
   ETRACE_T( "IntraPredModeChroma" );
@@ -905,14 +844,8 @@ ErrVal UvlcWriter::cbp( MbDataAccess& rcMbDataAccess )
 
   AOT_DBG( 48 < uiCbp );
 
-  UInt uiTemp = ( rcMbDataAccess.getMbData().isIntra() ) ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp];
-#if INDEPENDENT_PARSING
-  if( rcMbDataAccess.getSH().getSPS().getIndependentParsing() )
-  {
-    Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && !rcMbDataAccess.getMbData().getBLQRefFlag() && rcMbDataAccess.getMbData().isIntra() );
-    uiTemp      = ( bIntra ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp] );
-  }
-#endif
+  Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.getMbData().isIntra() );
+  UInt uiTemp = ( bIntra ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp] );
 
   RNOK( xWriteUvlcCode( uiTemp ) );
 

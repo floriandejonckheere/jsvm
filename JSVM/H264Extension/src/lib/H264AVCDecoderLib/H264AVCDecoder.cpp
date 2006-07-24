@@ -138,9 +138,6 @@ H264AVCDecoder::H264AVCDecoder()
 , m_bBaseLayerAvcCompliant        ( false )
 , m_bDependencyInitialized        ( false )
 , m_uiQualityLevelForPrediction   ( 3 )
-#if MULTIPLE_LOOP_DECODING
-, m_bCompletelyDecodeLayer        ( false )
-#endif
 , m_pcNonRequiredSei			  ( NULL )
 , m_uiNonRequiredSeiReadFlag	  ( 0 )
 , m_uiNonRequiredSeiRead    	  ( 0 )
@@ -200,10 +197,8 @@ H264AVCDecoder::H264AVCDecoder()
   m_eErrorConceal  =	EC_NONE;
 	m_bNotSupport	=	false;
   
-#if !MULTIPLE_LOOP_DECODING
   if(m_eErrorConceal==EC_RECONSTRUCTION_UPSAMPLE)
     m_eErrorConceal=EC_FRAME_COPY;
-#endif
 //  TMM_EC }}
 }
 
@@ -572,8 +567,6 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
         if( pcSliceHeader != NULL )
           delete pcSliceHeader;
 
-        printf("   >> same frame.\n");
-
         return Err::m_nOK;
       }
 
@@ -597,17 +590,11 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
         {
           m_auiBaseLayerId[m_iLastLayerIdx]      = MSYS_UINT_MAX;
           m_auiBaseQualityLevel[m_iLastLayerIdx] = 0;
-#if MULTIPLE_LOOP_DECODING
-          m_abCompletlyDecodeBaseLayer[m_iLastLayerIdx] = false;
-#endif
         }
         else
         {
           m_auiBaseLayerId[m_iLastLayerIdx]      = pcSliceHeader->getBaseLayerId();
           m_auiBaseQualityLevel[m_iLastLayerIdx] = pcSliceHeader->getBaseQualityLevel();
-#if MULTIPLE_LOOP_DECODING
-          m_abCompletlyDecodeBaseLayer[m_iLastLayerIdx] = pcSliceHeader->getSPS().getAlwaysDecodeBaseLayer();
-#endif
         }
       }
 
@@ -637,16 +624,10 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
         if( m_bBaseLayerAvcCompliant )
         {
           setQualityLevelForPrediction( m_auiBaseQualityLevel[1] );
-#if MULTIPLE_LOOP_DECODING
-          setCompletelyDecodeLayer( m_abCompletlyDecodeBaseLayer[1] );
-#endif
         }
         else
         {
           m_apcMCTFDecoder[0]->setQualityLevelForPrediction( m_auiBaseQualityLevel[1] );
-#if MULTIPLE_LOOP_DECODING
-          m_apcMCTFDecoder[0]->setCompletelyDecodeLayer( m_abCompletlyDecodeBaseLayer[1] );
-#endif
         }
       }
 
@@ -654,9 +635,6 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
         iLayer <= m_iLastLayerIdx - 1; iLayer ++ )
       {
         m_apcMCTFDecoder[iLayer]->setQualityLevelForPrediction( m_auiBaseQualityLevel[iLayer + 1] );
-#if MULTIPLE_LOOP_DECODING
-        m_apcMCTFDecoder[iLayer]->setCompletelyDecodeLayer( m_abCompletlyDecodeBaseLayer[iLayer + 1] );
-#endif
       }
     }
 
@@ -2102,9 +2080,6 @@ H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
 
   Bool  bReconstruct    = (m_uiRecLayerId == 0) || ! bConstrainedIP;
 
-#if MULTIPLE_LOOP_DECODING
-  bReconstruct   = ( bReconstruct || m_bCompletelyDecodeLayer );
-#endif
   m_bReconstruct = bReconstruct;
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
   bReconstruct   = bReconstruct && bKeyPicture || ! bConstrainedIP;
@@ -2239,9 +2214,6 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 
   Bool  bReconstruct    = (m_uiRecLayerId == 0) || ! bConstrainedIP;
 
-#if MULTIPLE_LOOP_DECODING
-  bReconstruct    = ( bReconstruct || m_bCompletelyDecodeLayer );
-#endif
   m_bReconstruct  = bReconstruct;
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
   bReconstruct    = bReconstruct && bKeyPicture || ! bConstrainedIP;
@@ -2414,12 +2386,7 @@ H264AVCDecoder::xReconstructLastFGS()
   {
   //===== loop filter =====
 
-#if MULTIPLE_LOOP_DECODING
-  if( (m_uiRecLayerId == 0) || bKeyPicFlag || m_bCompletelyDecodeLayer /* for in-layer mc prediction */ ) // HS: fix by Nokia
-#else
   if( (m_uiRecLayerId == 0) || bKeyPicFlag ) // HS: fix by Nokia
-#endif
-
   {
     RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcRecFrame->getFullPelYuvBuffer()) );
   }
@@ -2452,11 +2419,7 @@ H264AVCDecoder::xReconstructLastFGS()
 //TMM_EC {{
     if ( pcSliceHeader->getTrueSlice())
     {
-#if MULTIPLE_LOOP_DECODING
-    if( pcSliceHeader->getFrameUnit()->getContrainedIntraPred() && !m_bCompletelyDecodeLayer )
-#else
     if( pcSliceHeader->getFrameUnit()->getContrainedIntraPred() )
-#endif
     {
       m_pcLoopFilter->setFilterMode( LoopFilter::LFMode( LoopFilter::LFM_NO_INTER_FILTER + LoopFilter::LFM_EXTEND_INTRA_SUR ) );
       RNOK( m_pcLoopFilter->process( *m_pcVeryFirstSliceHeader,

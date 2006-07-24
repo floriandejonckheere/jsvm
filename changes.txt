@@ -1,10 +1,26 @@
+
+
+JSVM_5_12_1 -> JSVM_6_1
+=======================
+
+Independent Parsing + Removal of AGS
+
+Date        : July 24, 2006
+Author      : H. Schwarz
+
+- independent parsing as only possibility
+- removal of AGS
+- removal of multi-loop decoding mode
+
+
+
 JSVM_5_12 -> JSVM_5_12_1
 ========================
 
 Bug fixes
 
 Date        : July 17, 2006
-Author      : J. Vieron (on behalf of S. Kamp, Y.Bao and H. Shwarz)
+Author      : J. Vieron (on behalf of S. Kamp, Y.Bao and H. Schwarz)
 
 - FGS (CBP 8x8) bug fixes 
 - ARFGS bug fixes

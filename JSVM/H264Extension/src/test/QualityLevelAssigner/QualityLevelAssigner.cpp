@@ -981,7 +981,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
   //===== init =====
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
-  RNOK( m_pcH264AVCDecoder       ->init() );
+  RNOK( m_pcH264AVCDecoder       ->init( true ) );
   ReadBitstreamFile*  pcReadBitStream = 0;
   ReadYuvFile*        pcReadYuv       = 0;
   RNOK( ReadBitstreamFile ::create( pcReadBitStream ) );
@@ -1234,7 +1234,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
   //===== uninit =====
   RNOK( m_pcH264AVCPacketAnalyzer ->uninit  () );
-  RNOK( m_pcH264AVCDecoder        ->uninit  () );
+  RNOK( m_pcH264AVCDecoder        ->uninit  ( true ) );
   RNOK( pcReadBitStream           ->uninit  () );
   RNOK( pcReadYuv                 ->uninit  () );
   RNOK( pcReadBitStream           ->destroy () );

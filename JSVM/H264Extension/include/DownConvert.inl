@@ -605,7 +605,7 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   int j, i, k, i1;
   short *ptr1, *ptr2;
   unsigned char *ptr3;
-  int p, p2, p3, block = 8;
+  int p, p2, p3, block = ( chroma ? 4 : 8 );
   int iMbPerRow = wsize_in >> 4;
 
   int *x16 = new int[w]; 
@@ -721,7 +721,7 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
   int j, i, k, j1;
   short *ptr1, *ptr2;
   unsigned char *ptr3;
-  int p, p2, p3, block = 8;
+  int p, p2, p3, block = ( chroma ? 4 : 8 );
 
   int* y16 = new int[h]; 
   int* k16 = new int[h]; // for relative phase shift in unit of 1/16 sample

@@ -123,7 +123,6 @@ MbData::copyMotion( MbData& rcMbData,
 {
   m_uiSliceId   = ( uiSliceId != MSYS_UINT_MAX ? uiSliceId : m_uiSliceId );
   m_bBLSkipFlag = rcMbData.m_bBLSkipFlag;
-  m_bBLQRefFlag = rcMbData.m_bBLQRefFlag;
   m_eMbMode     = rcMbData.m_eMbMode;
   m_aBlkMode[0] = rcMbData.m_aBlkMode[0];
   m_aBlkMode[1] = rcMbData.m_aBlkMode[1];
@@ -148,7 +147,6 @@ MbData::copyMotionBL( MbData& rcMbData,
 {
   m_uiSliceId   = ( uiSliceId != MSYS_UINT_MAX ? uiSliceId : m_uiSliceId );
   m_bBLSkipFlag = false;
-  m_bBLQRefFlag = false;
   m_eMbMode     = ( rcMbData.m_eMbMode     == MODE_SKIP ? MODE_8x8   : rcMbData.m_eMbMode     );
   m_aBlkMode[0] = ( rcMbData.m_aBlkMode[0] == BLK_SKIP || rcMbData.m_eMbMode == MODE_SKIP ? ( bDirect8x8 ? BLK_8x8 : BLK_4x4 ) : rcMbData.m_aBlkMode[0] );
   m_aBlkMode[1] = ( rcMbData.m_aBlkMode[1] == BLK_SKIP || rcMbData.m_eMbMode == MODE_SKIP ? ( bDirect8x8 ? BLK_8x8 : BLK_4x4 ) : rcMbData.m_aBlkMode[1] );
@@ -177,8 +175,6 @@ MbData::copyMotionBL( MbData& rcMbData,
   m_apcMbMvdData[0]->copyFrom( *rcMbData.m_apcMbMvdData[0] );
   m_apcMbMvdData[1]->copyFrom( *rcMbData.m_apcMbMvdData[1] );
 
-  setResidualAvailFlagsBase( rcMbData.getResidualAvailFlags() );
-
   return Err::m_nOK;
 }
 
@@ -188,7 +184,6 @@ MbData::upsampleMotion( MbData& rcMbData, Par8x8 ePar8x8, Bool bDirect8x8 )
 {
   RNOK( MbDataStruct::upsampleMotion( rcMbData, ePar8x8, bDirect8x8 ) );
   m_bBLSkipFlag = false;
-  m_bBLQRefFlag = false;
   
   RNOK( m_apcMbMotionData[0]->upsampleMotion( *rcMbData.m_apcMbMotionData[0], ePar8x8 ) );
   RNOK( m_apcMbMotionData[1]->upsampleMotion( *rcMbData.m_apcMbMotionData[1], ePar8x8 ) );
@@ -197,13 +192,6 @@ MbData::upsampleMotion( MbData& rcMbData, Par8x8 ePar8x8, Bool bDirect8x8 )
   uiFwdBwd += (0 < m_apcMbMotionData[0]->getRefIdx( B_8x8_0 )) ? 1:0;
   uiFwdBwd += (0 < m_apcMbMotionData[1]->getRefIdx( B_8x8_0 )) ? 2:0;
   m_usFwdBwd = (uiFwdBwd<<12)|(uiFwdBwd<<8)|(uiFwdBwd<<4)|(uiFwdBwd);
-
-  UShort usResidualAvailFlagsBase;
-
-  usResidualAvailFlagsBase  = rcMbData.isLumaResidualAvailable(ePar8x8) ? 15 : 0;
-  usResidualAvailFlagsBase |= rcMbData.isChromaResidualAvailable() ? (1 << 4) : 0;
-  
-  setResidualAvailFlagsBase( usResidualAvailFlagsBase );
 
   return Err::m_nOK;
 }
@@ -249,7 +237,6 @@ ErrVal
 MbData::noUpsampleMotion()
 {
     clear();
-    setResidualAvailFlagsBase( 0 );
     m_apcMbMotionData[0]->clear(BLOCK_NOT_AVAILABLE) ;
     m_apcMbMotionData[1]->clear(BLOCK_NOT_AVAILABLE) ;
     return Err::m_nOK;      
@@ -388,7 +375,6 @@ MbData::xInitESS()
     //--- Initialisation
     ///////////////////////
     m_bBLSkipFlag = false;
-    m_bBLQRefFlag = false; 
 
     m_uiMbCbp = 0;
     m_eMbMode = MODE_16x16;
@@ -434,7 +420,6 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
 
     const Int iSMbWidth   = ( iBaseX1>>4 > iBaseX0>>4 ) ? 2 : 1;
     const Int iSMbHeight  = ( iBaseY1>>4 > iBaseY0>>4 ) ? 2 : 1;
-    UShort usResidualAvailFlagsBase = 0;
     
     Bool bIsMbIntra=true;
     m_apcMbData[0]=m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;
@@ -443,7 +428,6 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
         for( Int iBaseMbX = 0; iBaseMbX < iSMbWidth; iBaseMbX ++)
         {  
             UInt uiIdxMb=(iBaseMbY<<1) + iBaseMbX;
-            const MbData* pcBaseMb = m_apcMbData[uiIdxMb]= pcBaseMb0 + iBaseMbY * uiBaseMbStride + iBaseMbX; 
           
             MbMode eMbMode= m_apcMbData[uiIdxMb]->m_eMbMode;  
              if(eMbMode>=INTRA_4X4 )  
@@ -467,13 +451,9 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
              aeMbMode[uiIdxMb]= eMbMode;
 
              bIsMbIntra &= (eMbMode==INTRA_4X4);
-                   
-            usResidualAvailFlagsBase |= pcBaseMb->isLumaResidualAvailable()   ? 15 : 0;
-            usResidualAvailFlagsBase |= pcBaseMb->isChromaResidualAvailable() ? (1 << 4) : 0;
         }
 
-    setResidualAvailFlagsBase( usResidualAvailFlagsBase );
-    
+   
     if(bIsMbIntra) m_eMbMode=INTRA_4X4;
 
     return Err::m_nOK;   

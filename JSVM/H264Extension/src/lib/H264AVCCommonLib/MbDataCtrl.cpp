@@ -396,15 +396,6 @@ MbDataCtrl::upsampleMotion( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcPa
 }
 // TMM_ESS_UNIFIED }
 
-ErrVal
-MbDataCtrl::copyBaseResidualAvailFlags( MbDataCtrl& rcSrcMbDataCtrl )
-{
-  for( UInt uiMbIdx = 0 ; uiMbIdx < m_uiSize; uiMbIdx ++ )
-    m_pcMbData[uiMbIdx].setResidualAvailFlagsBase( rcSrcMbDataCtrl.m_pcMbData[uiMbIdx].getResidualAvailFlagsBase() );
-
-  return Err::m_nOK;
-}
-
 
 ErrVal MbDataCtrl::uninit()
 {

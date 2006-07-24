@@ -356,19 +356,8 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   rbCorrupted = false;
   rbFinished  = false;
 
-#if INDEPENDENT_PARSING
-  Bool bIndPar = m_pcSliceHeader->getSPS().getIndependentParsing();
-  const_cast<SequenceParameterSet&>(m_pcSliceHeader->getSPS()).setIndependentParsing( false );
-#endif
-
-
   RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, uiFrac, pFile ) );
-#if INDEPENDENT_PARSING
-  const_cast<SequenceParameterSet&>(m_pcSliceHeader->getSPS()).setIndependentParsing( bIndPar );
-#endif
   ROTRS( rbFinished, Err::m_nOK );
-
-
   //~JVT-P031
   return Err::m_nOK;
 }

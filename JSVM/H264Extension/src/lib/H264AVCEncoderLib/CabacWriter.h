@@ -186,16 +186,11 @@ public:
   ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
 
-  ErrVal  blFlag    ( MbDataAccess& rcMbDataAccess );
   ErrVal  blockModes( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode( MbDataAccess& rcMbDataAccess/*, Bool bBLQRefFlag*/ );
   ErrVal  resPredFlag( MbDataAccess& rcMbDataAccess );
+  ErrVal  resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
 	ErrVal  smoothedRefFlag( MbDataAccess& rcMbDataAccess );	// JVT-R091
-
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      );
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
-  ErrVal  mvdQPel ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -229,7 +224,6 @@ public:
   ErrVal  samplesPCM( MbDataAccess& rcMbDataAccess );
   ErrVal  skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed );
   ErrVal  BLSkipFlag( MbDataAccess& rcMbDataAccess );
-  ErrVal  BLQRefFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  terminatingBit ( UInt uiIsLast );
   UInt getNumberOfWrittenBits();
 
@@ -251,9 +245,6 @@ protected:
                                 UInt          uiScanIndex );
   
 
-  ErrVal xWriteMvdComponentQPel ( Short sMvdComp );
-  ErrVal xWriteMvdQPel          ( Mv cMv );
-
   ErrVal xWriteMvdComponent( Short sMvdComp, UInt uiAbsSum, UInt uiCtx );
   ErrVal xWriteMvd( MbDataAccess& rcMbDataAccess, Mv cMv, LumaIdx cIdx, ListIdx eLstIdx );
   ErrVal xRefFrame      ( MbDataAccess& rcMbDataAccess, UInt uiRefFrame, ListIdx eLstIdx, ParIdx8x8 eParIdx );
@@ -271,9 +262,7 @@ protected:
 
 
 protected:
-  CabacContextModel2DBuffer m_cBLFlagCCModel;
   CabacContextModel2DBuffer m_cBLSkipCCModel;
-  CabacContextModel2DBuffer m_cBLQRefCCModel;
 
   CabacContextModel2DBuffer m_cBCbpCCModel;
   CabacContextModel2DBuffer m_cMapCCModel;

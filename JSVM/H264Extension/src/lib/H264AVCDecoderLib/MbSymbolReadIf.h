@@ -109,21 +109,15 @@ protected:
 	virtual ~MbSymbolReadIf() {}
 
 public:
-  virtual ErrVal  blFlag      ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual Bool    isBLQRef    ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual Bool    isEndOfSlice() = 0;
   virtual ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess ) = 0;
+  virtual ErrVal  resPredFlag_FGS ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff ) = 0;
 	virtual ErrVal  smoothedRefFlag ( MbDataAccess& rcMbDataAccess ) = 0;	// JVT-R091
 
-  virtual ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx                      ) = 0;
-  virtual ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) = 0;
-  virtual ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  ) = 0;
-  virtual ErrVal  mvdQPel( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  ) = 0;
-  
   virtual ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx ) = 0;
   virtual ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) = 0;
   virtual ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  ) = 0;

@@ -377,10 +377,13 @@ ErrVal CreaterH264AVCDecoder::destroy()
 
 
 
-ErrVal CreaterH264AVCDecoder::init()
+ErrVal CreaterH264AVCDecoder::init( Bool bOpenTrace )
 {
-  INIT_DTRACE;
-  OPEN_DTRACE;
+  if( bOpenTrace )
+  {
+    INIT_DTRACE;
+    OPEN_DTRACE;
+  }
   
   UnitAVCFlag = false;   //JVT-S036 lsj
 
@@ -481,7 +484,7 @@ ErrVal CreaterH264AVCDecoder::init()
 
 
 
-ErrVal CreaterH264AVCDecoder::uninit()
+ErrVal CreaterH264AVCDecoder::uninit( Bool bCloseTrace )
 {
   RNOK( m_pcSampleWeighting       ->uninit() );
   RNOK( m_pcQuarterPelFilter      ->uninit() );
@@ -510,7 +513,11 @@ ErrVal CreaterH264AVCDecoder::uninit()
   }
 
 
-  CLOSE_DTRACE;
+  if( bCloseTrace )
+  {
+    CLOSE_DTRACE;
+  }
+
   return Err::m_nOK;
 }
 

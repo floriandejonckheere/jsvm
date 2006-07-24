@@ -126,7 +126,7 @@ public:
 
 protected:
   ErrVal xSkipMb                      ( MbDataAccess& rcMbDataAccess );
-  ErrVal xReadMbType                  ( MbDataAccess& rcMbDataAccess, Bool bBaseLayer );
+  ErrVal xReadMbType                  ( MbDataAccess& rcMbDataAccess );
   ErrVal xReadIntraPredModes          ( MbDataAccess& rcMbDataAccess );
 
 	//-- JVT-R091
@@ -136,21 +136,17 @@ protected:
   ErrVal xScanChromaBlocks            ( MbDataAccess& rcMbDataAccess, UInt uiChromCbp );
 
   ErrVal xReadMotionVectors           ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );
-  ErrVal xReadMotionVectorsQPel       ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal xReadReferenceFrames         ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );
 
   ErrVal xReadReferenceFramesNoRefPic ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );
 
-  ErrVal xReadMotionPredFlags         ( MbDataAccess& rcMbDataAccess,
+  ErrVal xReadMotionPredFlags_FGS     ( MbDataAccess& rcMbDataAccess,
                                         MbDataAccess* pcMbDataAccessBaseMotion,
                                         MbMode        eMbMode,
                                         ListIdx       eLstIdx );
-#if INDEPENDENT_PARSING
-  ErrVal xReadMotionPredFlags_Ind     ( MbDataAccess& rcMbDataAccess,
+  ErrVal xReadMotionPredFlags         ( MbDataAccess& rcMbDataAccess,
                                         MbMode        eMbMode,
                                         ListIdx       eLstIdx );
-#endif
-
 
   ErrVal xGet8x8BlockMv               ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );
 

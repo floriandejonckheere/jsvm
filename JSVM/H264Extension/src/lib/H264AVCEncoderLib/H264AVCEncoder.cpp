@@ -273,12 +273,6 @@ H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
 
   m_cAccessUnitList.clear();
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  m_uiGOPOrder = 0;
-  m_uiTarget = 0xffffffff;
-  //}}Adaptive GOP structure
-
   return Err::m_nOK;
 }
 
@@ -1026,11 +1020,6 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
 	UInt	uiScalableLayer = 0;
   UInt  uiNumLayers = m_pcCodingParameter->getNumberOfLayers();
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  if ( !m_pcCodingParameter->getUseAGS() ) {
-  //}}Adaptive GOP structure
-
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
     if( apcOriginalPicBuffer[uiLayer] )
@@ -1053,110 +1042,6 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
 
   m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  }
-  else 
-  {
-    if ( m_pcCodingParameter->getWriteGOPMode() ) 
-    {
-      m_uiGOPOrder = 0xffffffff;	
-      for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-      {
-        if( apcOriginalPicBuffer[uiLayer] )
-        {
-          RNOK( xProcessGOP( uiLayer,
-														 uiScalableLayer,
-                             apcOriginalPicBuffer   [uiLayer],
-                             apcReconstructPicBuffer[uiLayer],
-                             apcPicBufferOutputList [uiLayer],
-                             apcPicBufferUnusedList [uiLayer] ) );
-        }
-        else
-        {
-          if( apcReconstructPicBuffer[uiLayer] )
-          {
-            apcPicBufferUnusedList[uiLayer].push_back( apcReconstructPicBuffer[uiLayer] );
-          }
-        }
-      }
-
-      m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
-    }
-    else 
-    {
-      if ((1 == (m_uiTarget - m_acOrgPicBufferList[uiNumLayers-1].size()) 
-          && apcOriginalPicBuffer[uiNumLayers-1])|| (m_uiTarget == m_acOrgPicBufferList[uiNumLayers-1].size()))
-      {
-
-				int order = 0;
-				int i;
-
-				for (i = 0; i < 8 && (m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i ) ); i++) {
-					if ( m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i) )
-						order++;
-				}
-
-				m_bGOPDone = false;
-			
-			  for (i = 0; i < order; i++) 
-        {
-				
-					if (i == order-1 ) {
-						m_bGOPDone = true;
-					}
-					for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-          {
-            m_apcMCTFEncoder[uiLayer]->setSelectPos(i);
-            if( apcOriginalPicBuffer[uiLayer] )
-            {
-              RNOK( xProcessGOP( uiLayer,
- 																 uiScalableLayer,
-                                 apcOriginalPicBuffer   [uiLayer],
-                                 apcReconstructPicBuffer[uiLayer],
-                                 apcPicBufferOutputList [uiLayer],
-                                 apcPicBufferUnusedList [uiLayer] ) );
-            }
-            else
-            {
-              if( apcReconstructPicBuffer[uiLayer] )
-              {
-                apcPicBufferUnusedList[uiLayer].push_back( apcReconstructPicBuffer[uiLayer] );
-              }
-            }
-          }
-          m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList ); //!! ??
-				}
-			  m_uiTarget = 0xffffffff;
-				m_uiGOPOrder++;
-			}
-			else {
-        for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-        {
-          if( apcOriginalPicBuffer[uiLayer] )
-          {
-            RNOK( xProcessGOP( uiLayer,
-															 uiScalableLayer,
-                               apcOriginalPicBuffer   [uiLayer],
-                               apcReconstructPicBuffer[uiLayer],
-                               apcPicBufferOutputList [uiLayer],
-                               apcPicBufferUnusedList [uiLayer] ) );
-          }
-          else
-          {
-            if( apcReconstructPicBuffer[uiLayer] )
-            {
-              apcPicBufferUnusedList[uiLayer].push_back( apcReconstructPicBuffer[uiLayer] );
-            }
-          }
-        }
-        m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList ); //!! ??
-			}
-    }
-
-  }
-  //}}Adaptive GOP structure
-
   return Err::m_nOK;
 }
 
@@ -1171,11 +1056,6 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   UInt  uiLayer;
 	UInt	uiScalableLayer = 0;
   UInt  uiNumLayers = m_pcCodingParameter->getNumberOfLayers();
-
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  if ( !m_pcCodingParameter->getUseAGS() ) {
-  //}}Adaptive GOP structure
 
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
@@ -1199,78 +1079,6 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
  }
   printf("\n");
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  }
-  else
-  {
-    if (m_pcCodingParameter->getWriteGOPMode())
-    {
-      for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-      {
-        RNOK( xProcessGOP( uiLayer,
-													 uiScalableLayer,
-                           NULL,
-                           NULL,
-                           apcPicBufferOutputList[uiLayer],
-                           apcPicBufferUnusedList[uiLayer] ) );
-      }
-
-      m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
-  
-      for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
-      {
-        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate,
-																								 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
-// BUG_FIX liuhui{
-	    RNOK( m_apcMCTFEncoder[uiLayer]->SingleLayerFinish( m_aaauidSeqBits, m_aaadSingleLayerBitrate) );
-// BUG_FIX liuhui}
-      }
-      printf("\n");
-    }
-    else
-    {
-      int order = 0;
-		  int i;
-		  
-		  for (i = 0; i < 8 && (m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i ) ); i++) {
-			  if ( m_apcMCTFEncoder[0]->getSelect(m_uiGOPOrder,i) )
-				  order++;
-		  }
-
-		  m_bGOPDone = false;
-		  
-		  for (i = 0; i < order; i++) {
-			  
-			  if (i == order-1 ) {
-				  m_bGOPDone = true;
-			  }
-        for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-        {
-          m_apcMCTFEncoder[uiLayer]->setSelectPos(i);
-          RNOK( xProcessGOP( uiLayer,
- 														 uiScalableLayer,
-                             NULL,
-                             NULL,
-                             apcPicBufferOutputList[uiLayer],
-                             apcPicBufferUnusedList[uiLayer] ) );
-        }
-        
-        m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
-      }  
-      for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
-      {
-        RNOK( m_apcMCTFEncoder[uiLayer]->finish( ruiNumCodedFrames, rdHighestLayerOutputRate,
-																								 dGetFramerate(), dGetBitrate(), m_aaauidSeqBits ) );
-// BUG_FIX liuhui{
-	    RNOK( m_apcMCTFEncoder[uiLayer]->SingleLayerFinish( m_aaauidSeqBits, m_aaadSingleLayerBitrate) );
-// BUG_FIX liuhui}     
-     }
-      printf("\n");
-    }
-  }
-  //}}Adaptive GOP structure
-
   return Err::m_nOK;
 }
 
@@ -1293,11 +1101,6 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
 			m_apcMCTFEncoder[uiLayer]->setNonRequiredWrite(1);
 	}
 	//NonRequired JVT-Q066 (06-04-08)}}
-
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  if ( !m_pcCodingParameter->getUseAGS() ) {
-  //}}Adaptive GOP structure
 
   if( pcOriginalPicBuffer == NULL )
   {
@@ -1370,189 +1173,6 @@ H264AVCEncoder::xProcessGOP( UInt                     uiLayer,
     m_acRecPicBufferList[uiLayer].clear();
   }
 
-  //{{Adaptive GOP structure
-  // --ETRI & KHU
-  }
-  else
-  {
-		if( pcOriginalPicBuffer == NULL )
-		{
-			//===== FINISH ENCODING =====
-			if( pcReconstructPicBuffer )
-			{
-				rcPicBufferUnusedList.push_back( pcReconstructPicBuffer );
-			}
-
-      if ( m_pcCodingParameter->getWriteGOPMode() ) { // mode decision
-
-				if( m_acOrgPicBufferList[uiLayer].size() )
-				{
-					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
-                                                         m_acOrgPicBufferList[uiLayer],
-                                                         m_acRecPicBufferList[uiLayer],
-                                                         rcPicBufferUnusedList,
-																												 m_aaauidSeqBits ) );
-					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
-				}
-				
-				rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
-				rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
-				
-				m_acOrgPicBufferList[uiLayer].clear();
-				m_acRecPicBufferList[uiLayer].clear();
-			}
-			else {
-				if ( !m_bGOPDone ) 
-        {
-					PicBufferList templist;
-					templist +=	rcPicBufferUnusedList;
-					rcPicBufferUnusedList.clear();
-					
-					if( m_acOrgPicBufferList[uiLayer].size() ) { // !!!!!
-						RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
-                                                           m_acOrgPicBufferList[uiLayer],
-                                                           m_acRecPicBufferList[uiLayer],
-                                                           rcPicBufferUnusedList,
-																													 m_aaauidSeqBits ) );
-						rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
-				  }
-          m_acRecPicBufferList[uiLayer] += rcPicBufferUnusedList;
-				  rcPicBufferUnusedList.clear();
-					rcPicBufferUnusedList += templist;
-					
-				}
-				else 
-        {
-					PicBufferList templist;
-					PicBufferList templist2;
-					templist +=	rcPicBufferUnusedList;
-					rcPicBufferUnusedList.clear();
-
-					if( m_acOrgPicBufferList[uiLayer].size() ) {	// !!!!!
-					//===== ENCODE GROUP OF PICTURES =====
-						RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
-                                                           m_acOrgPicBufferList[uiLayer],
-                                                           m_acRecPicBufferList[uiLayer],
-                                                           rcPicBufferUnusedList,
-																													 m_aaauidSeqBits ) );
-						
-						//----- set output list -----
-						rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
-						templist2 += rcPicBufferUnusedList;
-						rcPicBufferUnusedList.clear();
-						rcPicBufferUnusedList += templist;
-						
-						
-					}
-          //----- update unused list -----
-          rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
-					rcPicBufferUnusedList += templist2;
-					rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
-					
-					//----- reset orig and reconstructed list -----
-					m_acOrgPicBufferList[uiLayer].clear();
-					m_acRecPicBufferList[uiLayer].clear();
-				}
-			}
-			
-			return Err::m_nOK;
-		}
-		
-		UInt  uiTargetBufferSize = ( 1 << m_pcCodingParameter->getLayerParameters(uiLayer).getDecompositionStages() );
-
-		if( ! m_apcMCTFEncoder[uiLayer]->firstGOPCoded() )
-		{
-			uiTargetBufferSize++;
-		}
-		
-		UInt add_size = 0;
-		if (!m_uiGOPOrder && !(uiTargetBufferSize%2))
-			add_size = 1;
-		
-		if (uiTargetBufferSize + add_size != m_acOrgPicBufferList[uiLayer].size()) {
-			//===== INSERT BUFFERS =====
-			m_acOrgPicBufferList[uiLayer].push_back( pcOriginalPicBuffer );
-			m_acRecPicBufferList[uiLayer].push_back( pcReconstructPicBuffer );
-		
-			ROT( m_acOrgPicBufferList[uiLayer].size() > uiTargetBufferSize );
-			
-			if (uiLayer == (m_pcCodingParameter->getNumberOfLayers()-1))
-				m_uiTarget = uiTargetBufferSize;
-		}
-
-		if( m_acOrgPicBufferList[uiLayer].size() == uiTargetBufferSize + add_size)
-		{
-			
-			if (m_pcCodingParameter->getWriteGOPMode()) {
-				
-				//===== ENCODE GROUP OF PICTURES =====
-				RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
-                                                       m_acOrgPicBufferList[uiLayer],
-                                                       m_acRecPicBufferList[uiLayer],
-                                                       rcPicBufferUnusedList,
-																											 m_aaauidSeqBits ) );
-				
-				//----- set output list -----
-				rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
-				
-				//----- update unused list -----
-				rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
-				rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
-				
-				//----- reset orig and reconstructed list -----
-				m_acOrgPicBufferList[uiLayer].clear();
-				m_acRecPicBufferList[uiLayer].clear();
-				
-				
-			}
-			else {
-				if ( !m_bGOPDone ) {
-					PicBufferList templist;
-					templist +=	rcPicBufferUnusedList;
-					rcPicBufferUnusedList.clear();
-					
-					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
-                                                         m_acOrgPicBufferList[uiLayer],
-                                                         m_acRecPicBufferList[uiLayer],
-                                                         rcPicBufferUnusedList,
-																												 m_aaauidSeqBits ) );
-					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
-					m_acRecPicBufferList[uiLayer] += rcPicBufferUnusedList;
-					rcPicBufferUnusedList.clear();
-					rcPicBufferUnusedList += templist;
-					
-				}
-				else {
-					PicBufferList templist;
-					PicBufferList templist2;
-					templist +=	rcPicBufferUnusedList;
-					rcPicBufferUnusedList.clear();
-					//===== ENCODE GROUP OF PICTURES =====
-					RNOK( m_apcMCTFEncoder[uiLayer]->process_ags ( m_cAccessUnitList,
-                                                         m_acOrgPicBufferList[uiLayer],
-                                                         m_acRecPicBufferList[uiLayer],
-                                                         rcPicBufferUnusedList,
-																												 m_aaauidSeqBits ) );
-					
-					//----- set output list -----
-					rcPicBufferOutputList += m_acRecPicBufferList[uiLayer];
-					templist2 += rcPicBufferUnusedList;
-					rcPicBufferUnusedList.clear();
-					rcPicBufferUnusedList += templist;
-					//----- update unused list -----
-					rcPicBufferUnusedList += m_acOrgPicBufferList[uiLayer];
-					rcPicBufferUnusedList += templist2;
-					rcPicBufferUnusedList += m_acRecPicBufferList[uiLayer];
-					
-					//----- reset orig and reconstructed list -----
-					m_acOrgPicBufferList[uiLayer].clear();
-					m_acRecPicBufferList[uiLayer].clear();
-				}
-			}
-		}
-  }
-  //}}Adaptive GOP structure
-
   return Err::m_nOK;
 }
 
@@ -1580,12 +1200,7 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiMbX               = rcLayerParameters.getFrameWidth () / 16;
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
-    UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) ) 
-
-											                      //{{Adaptive GOP structure -- 10.18.2005
-                                            // --ETRI & KHU
-                                            + (m_pcCodingParameter->getUseAGS() && !bH264AVCCompatible? 20: 0);
-                                            //}}Adaptive GOP structure -- 10.18.2005
+    UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
     UInt              uiNumRefPic         = uiDPBSize; 
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
     ROT( bH264AVCCompatible && uiDPBSize > 16 );
@@ -1637,10 +1252,6 @@ H264AVCEncoder::xInitParameterSets()
     // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
-#if MULTIPLE_LOOP_DECODING
-    pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
-                                                    rcLayerParameters.getDecodingLoops() > 1 );
-#endif
     if(rcLayerParameters.getFGSCodingMode() == 0)
     {
       pcSPS->setFGSCodingMode                     ( false );
@@ -1654,9 +1265,6 @@ H264AVCEncoder::xInitParameterSets()
     {
       pcSPS->setPosVect                           ( ui, rcLayerParameters.getPosVect(ui) );
     }
-#if INDEPENDENT_PARSING
-    pcSPS->setIndependentParsing                  ( rcLayerParameters.getIndependentParsing() > 0 );
-#endif
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
@@ -1741,12 +1349,7 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiMbX               = rcLayerParameters.getFrameWidth () / 16;
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
-    UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) ) 
-
-											                      //{{Adaptive GOP structure -- 10.18.2005
-                                            // --ETRI & KHU
-                                            + (m_pcCodingParameter->getUseAGS() && !bH264AVCCompatible? 20: 0);
-                                            //}}Adaptive GOP structure -- 10.18.2005
+    UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
     UInt              uiNumRefPic         = uiDPBSize; 
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
     ROT( bH264AVCCompatible && uiDPBSize > 16 );
@@ -1798,10 +1401,6 @@ H264AVCEncoder::xInitParameterSets()
     // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
-#if MULTIPLE_LOOP_DECODING
-    pcSPS->setAlwaysDecodeBaseLayer               ( rcLayerParameters.getInterLayerPredictionMode() > 0 && 
-                                                    rcLayerParameters.getDecodingLoops() > 1 );
-#endif
     if(rcLayerParameters.getFGSCodingMode() == 0)
     {
       pcSPS->setFGSCodingMode                     ( false );
@@ -1815,9 +1414,6 @@ H264AVCEncoder::xInitParameterSets()
     {
       pcSPS->setPosVect                           ( ui, rcLayerParameters.getPosVect(ui) );
     }
-#if INDEPENDENT_PARSING
-    pcSPS->setIndependentParsing                  ( rcLayerParameters.getIndependentParsing() > 0 );
-#endif
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );

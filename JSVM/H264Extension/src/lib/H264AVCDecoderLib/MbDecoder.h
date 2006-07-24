@@ -194,10 +194,8 @@ protected:
                                   const UChar*       pucScale,
                                   const QpParameter& rcQP );
 
-#if INDEPENDENT_PARSING
   ErrVal xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
                                    MbDataAccess*  pcMbDataAccessBase );
-#endif
 
 protected:
   MbTransformCoeffs   m_cTCoeffs;

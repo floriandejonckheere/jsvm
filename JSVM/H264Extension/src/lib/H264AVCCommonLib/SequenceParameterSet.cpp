@@ -179,25 +179,12 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
 ,m_uiChromaPhaseXPlus1                      ( 0 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
-//, m_uiNumSimplePriIdVals                    ( 0 )   //JVT-S036 lsj
-#if MULTIPLE_LOOP_DECODING
-, m_bAlwaysDecodeBaseLayer                  ( false )
-#endif
 , m_bFGSCodingMode                          ( false )
 , m_uiGroupingSize                          ( 1 )
-#if INDEPENDENT_PARSING
-, m_bIndepedentParsing                      ( false )
-#endif
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
-  /*for ( UInt uiPriId = 0; uiPriId < (1 << PRI_ID_BITS); uiPriId++ )
-  {
-      m_uiTemporalLevelList[uiPriId] = 0;
-      m_uiDependencyIdList [uiPriId] = 0;
-      m_uiQualityLevelList [uiPriId] = 0;
-  }
- JVT-S036 lsj */
+
   ::memset( m_aiOffsetForRefFrame, 0x00, 64*sizeof(Int) );
   ::memset( m_uiPosVect,           0x00, 16*sizeof(UInt));
 }
@@ -349,13 +336,6 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
         uiIndex++;
       }
     }
-
-#if MULTIPLE_LOOP_DECODING
-    RNOK( pcWriteIf->writeFlag( m_bAlwaysDecodeBaseLayer,                 "SPS: always_decode_base_layer" ) );
-#endif
-#if INDEPENDENT_PARSING
-    RNOK( pcWriteIf->writeFlag( m_bIndepedentParsing,                     "SPS: independent_parsing" ) );
-#endif
   }
   //--- fidelity range extension syntax ---
   RNOK  ( xWriteFrext( pcWriteIf ) );
@@ -479,13 +459,6 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
         uiIndex++;
       }
     }
-
-#if MULTIPLE_LOOP_DECODING
-    RNOK( pcReadIf->getFlag( m_bAlwaysDecodeBaseLayer,                    "SPS: always_decode_base_layer" ) );
-#endif
-#if INDEPENDENT_PARSING
-    RNOK( pcReadIf->getFlag( m_bIndepedentParsing,                        "SPS: independent_parsing" ) );
-#endif
   }
   //--- fidelity range extension syntax ---
   RNOK  ( xReadFrext( pcReadIf ) );

@@ -129,7 +129,6 @@ const UChar MbDataStruct::m_aucACTab[6] =
 MbDataStruct::MbDataStruct()
 : m_uiSliceId           ( 0 )
 , m_bBLSkipFlag         ( false )
-, m_bBLQRefFlag         ( false )
 , m_eMbMode             ( MODE_SKIP )
 , m_uiMbCbp             ( 0 )
 , m_uiBCBP              ( 0 )
@@ -137,8 +136,6 @@ MbDataStruct::MbDataStruct()
 , m_ucChromaPredMode    ( 0 )
 , m_ucQp                ( 0 )
 , m_usResidualPredFlags ( 0 )
-, m_usResidualAvailFlags    ( 0 )
-, m_usResidualAvailFlagsBase( 0 )
 , m_bTransformSize8x8   ( false )
 , m_bSkipFlag       ( true )
 , m_bInCropWindowFlag ( false ) //TMM_ESS	
@@ -155,14 +152,11 @@ Void MbDataStruct::reset()
   m_usFwdBwd            = 0;
   m_uiSliceId           = 0;
   m_bBLSkipFlag         = false;
-  m_bBLQRefFlag         = false;
   m_eMbMode             = MODE_SKIP;
   m_uiMbCbp             = 0;
   m_ucChromaPredMode    = 0;
   m_ucQp                = 0;
   m_usResidualPredFlags = 0;
-  m_usResidualAvailFlags      = 0;
-  m_usResidualAvailFlagsBase  = 0;
   m_bTransformSize8x8   = 0;
   m_bInCropWindowFlag   = false; //TMM_ESS	
 	m_bSmoothedRefFlag		= false; // JVT-R091
@@ -175,7 +169,6 @@ Void MbDataStruct::clear()
 {
   m_usFwdBwd            = 0;
   m_bBLSkipFlag         = false;
-  m_bBLQRefFlag         = false;
   m_eMbMode             = MODE_SKIP;
   m_uiMbCbp             = 0;
   m_ucChromaPredMode    = 0;
@@ -237,7 +230,6 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
   m_usFwdBwd            = rcMbDataStruct.m_usFwdBwd;
   m_uiSliceId           = rcMbDataStruct.m_uiSliceId;
   m_bBLSkipFlag         = rcMbDataStruct.m_bBLSkipFlag;
-  m_bBLQRefFlag         = rcMbDataStruct.m_bBLQRefFlag;
   m_eMbMode             = rcMbDataStruct.m_eMbMode;
   m_ucQp                = rcMbDataStruct.m_ucQp;
   m_uiMbCbp             = rcMbDataStruct.m_uiMbCbp;
@@ -320,19 +312,6 @@ MbDataStruct::is8x8TrafoFlagPresent() const // only for MCTF case (skip mode)
   }
 
   return true;
-}
-
-
-Void
-MbDataStruct::updateResidualAvailFlags()
-{
-  m_usResidualAvailFlags = 0;
-  if( ! isIntra() )
-  {
-    m_usResidualAvailFlags = (getMbCbp() & 15) | ((getMbCbp() >> 4) ? 16 : 0);
-    if( getResidualPredFlag( PART_16x16 ) )
-      m_usResidualAvailFlags |= m_usResidualAvailFlagsBase;
-  }
 }
 
 H264AVC_NAMESPACE_END
