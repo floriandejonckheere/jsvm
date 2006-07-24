@@ -428,6 +428,7 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
         for( Int iBaseMbX = 0; iBaseMbX < iSMbWidth; iBaseMbX ++)
         {  
             UInt uiIdxMb=(iBaseMbY<<1) + iBaseMbX;
+            m_apcMbData[uiIdxMb]= pcBaseMb0 + iBaseMbY * uiBaseMbStride + iBaseMbX; 
           
             MbMode eMbMode= m_apcMbData[uiIdxMb]->m_eMbMode;  
              if(eMbMode>=INTRA_4X4 )  
