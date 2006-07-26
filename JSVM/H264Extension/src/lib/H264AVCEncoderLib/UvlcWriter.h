@@ -99,6 +99,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+#define REFSYM_MB                                     384
+
 class UcSymGrpWriter; 
 
 class UvlcWriter :
@@ -223,6 +225,11 @@ public:
   ErrVal xWriteUvlcCode( UInt uiVal);
   ErrVal xWriteSvlcCode( Int iVal);
 
+  ErrVal xRQprescanTCoeffsRef( TCoeff*       piCoeff,
+                               TCoeff*       piCoeffBase,
+                               const UChar*  pucScan,
+                               UInt          uiScanIndex );
+
   UInt xConvertToUInt( Int iValue )  {  return ( iValue <= 0) ? -iValue<<1 : (iValue<<1)-1; }
 
   Bool    RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, B8x8Idx c8x8Idx );
@@ -274,6 +281,8 @@ public:
   ErrVal RQupdateVlcTable         ();
   ErrVal RQvlcFlush               ();
   static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
+  ErrVal RQcountFragmentedSymbols();
+  ErrVal resetFragmentedSymbols() {m_uiFragmentedSymbols = 0; return Err::m_nOK;}
 private:
   __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );
   __inline ErrVal xWriteFlag( UInt uiCode );
@@ -288,6 +297,11 @@ protected:
 
   Bool m_bRunLengthCoding;
   UInt m_uiRun;
+
+  UChar m_auiPrescannedSymbols[REFSYM_MB];
+  UInt  m_uiRefSymbols;
+  UInt  m_uiCodedSymbols;
+  UInt  m_uiFragmentedSymbols;
 };
 
 class UcSymGrpWriter
@@ -298,6 +312,9 @@ public:
   ErrVal Flush();
   ErrVal Write( UChar ucBit );
   Bool   UpdateVlc();
+  UInt   getTable()                   { return m_uiTable;       }
+  Void   setCodedFlag(UInt uiFlag)    { m_uiCodedFlag = uiFlag; }
+  Void   incrementCounter(UInt uiSym) { m_auiSymCount[uiSym]++; }
 
 protected:
   UvlcWriter* m_pParent;

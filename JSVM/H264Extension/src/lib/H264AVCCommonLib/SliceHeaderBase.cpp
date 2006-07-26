@@ -577,13 +577,11 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 		UInt uiWeight;
 
 		// AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
-		uiWeight = ( m_uiBaseWeightZeroBaseBlock >= AR_FGS_MAX_BASE_WEIGHT )
-			? ( AR_FGS_MAX_BASE_WEIGHT - 1 ) : m_uiBaseWeightZeroBaseBlock;
+		uiWeight = ( m_uiBaseWeightZeroBaseBlock <= 1 ) ? 0 : ( m_uiBaseWeightZeroBaseBlock - 1 );
 		RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: base_ref_weight_for_zero_base_block" ) );
 
 		// AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
-		uiWeight = ( m_uiBaseWeightZeroBaseCoeff >= AR_FGS_MAX_BASE_WEIGHT )
-			? ( AR_FGS_MAX_BASE_WEIGHT - 1 ) : m_uiBaseWeightZeroBaseCoeff;
+		uiWeight = ( m_uiBaseWeightZeroBaseCoeff <= 1 ) ? 0 : ( m_uiBaseWeightZeroBaseCoeff - 1 );
 		RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: base_ref_weight_for_zero_base_coeff" ) );
 
 		RNOK( pcWriteIf->writeFlag( m_bFgsEntropyOrderFlag,                               "SH: fgs_order_flag" ) );
@@ -956,19 +954,19 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     {
       // send other information conditionally
       RNOK( pcReadIf->getCode( m_uiBaseWeightZeroBaseBlock, 5,                "SH: base_ref_weight_for_zero_base_block" ) );
-      if( m_uiBaseWeightZeroBaseBlock == AR_FGS_MAX_BASE_WEIGHT - 1 )
-	      m_uiBaseWeightZeroBaseBlock = AR_FGS_MAX_BASE_WEIGHT;
+      if( m_uiBaseWeightZeroBaseBlock != 0 )
+        m_uiBaseWeightZeroBaseBlock += 1;
 
       RNOK( pcReadIf->getCode( m_uiBaseWeightZeroBaseCoeff, 5,                "SH: base_ref_weight_for_zero_base_coeff" ) );
-      if( m_uiBaseWeightZeroBaseCoeff == AR_FGS_MAX_BASE_WEIGHT - 1 )
-	      m_uiBaseWeightZeroBaseCoeff = AR_FGS_MAX_BASE_WEIGHT;
+      if( m_uiBaseWeightZeroBaseCoeff != 0 )
+        m_uiBaseWeightZeroBaseCoeff += 1;
 
       RNOK( pcReadIf->getFlag( m_bFgsEntropyOrderFlag,                               "SH: fgs_order_flag" ) );
     }
     else
     {
-      m_uiBaseWeightZeroBaseBlock = AR_FGS_MAX_BASE_WEIGHT;
-      m_uiBaseWeightZeroBaseCoeff = AR_FGS_MAX_BASE_WEIGHT;
+      m_uiBaseWeightZeroBaseBlock = AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK;
+      m_uiBaseWeightZeroBaseCoeff = AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF;
       m_bFgsEntropyOrderFlag = 0;
     }
     RNOK( pcReadIf->getFlag( m_bAdaptivePredictionFlag,                       "SH: motion_refinement_flag" ) );

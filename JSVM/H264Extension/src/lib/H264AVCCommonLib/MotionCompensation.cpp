@@ -1989,8 +1989,8 @@ MotionCompensation::xAdjustResidualRefBlkSpatial(XPel*     piResidualRef,
       Int iOrig = piResidualRef[i * iStride + j];
 
       piResidualRef[i * iStride + j] = ( iOrig >= 0 ) 
-        ?  ( (  iOrig * (AR_FGS_MAX_BASE_WEIGHT - (Int)uiWeightZeroBlk) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS )
-        : -( ( -iOrig * (AR_FGS_MAX_BASE_WEIGHT - (Int)uiWeightZeroBlk) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
+        ?  ( (  iOrig * (Int)uiWeightZeroBlk + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS )
+        : -( ( -iOrig * (Int)uiWeightZeroBlk + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
     }
   }
 }
@@ -2004,19 +2004,20 @@ MotionCompensation::xAdjustResidualRefBlkFrequency(XPel*     piResidualRef,
                                                    UChar*    pucSigMap,
                                                    UInt      uiWeightZeroCoeff)
 {
-  UInt   i, j, uiNumNonzero, uiWeight;
+  UInt   i, j;
+  Int iNumNonzero = 0;
   TCoeff aiCoeffResidualRef[64];
   
-  uiNumNonzero = 0;
   for( i = 0; i < uiBlkWidth * uiBlkHeight; i ++ )
-    uiNumNonzero += pucSigMap[i];
+    iNumNonzero += pucSigMap[i];
 
   if( uiBlkWidth == 4 && uiBlkHeight == 4 )
   {
-    uiNumNonzero = (uiNumNonzero < 1) ? 1 : ((uiNumNonzero >= 5) ? 5: uiNumNonzero);
-    uiWeight = uiWeightZeroCoeff + (((AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroCoeff) * (uiNumNonzero - 1) + 2)/4);
+    iNumNonzero = (iNumNonzero < 1) ? 1 : ((iNumNonzero >= 5) ? 5: iNumNonzero);
+    Int iWeight = static_cast<Int>(uiWeightZeroCoeff) - ((static_cast<Int>(uiWeightZeroCoeff) * (iNumNonzero - 1) + 2)/4);
+    iWeight = ( iWeight >= 0 ) ? iWeight : 0;
 
-    if( uiNumNonzero > 4 )
+    if( iNumNonzero > 4 )
     {
       for( i = 0; i < 4; i ++ )
         for( j = 0; j < 4; j ++ )
@@ -2029,7 +2030,7 @@ MotionCompensation::xAdjustResidualRefBlkFrequency(XPel*     piResidualRef,
       for( i = 0; i < 16; i ++ )
       {
         aiCoeffResidualRef[i] = (pucSigMap[i] != 0 ) ?
-        0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( AR_FGS_MAX_BASE_WEIGHT - uiWeight ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
+        0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( iWeight ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
   
         aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i] + 64 ) >> 7;
       }
@@ -2046,7 +2047,7 @@ MotionCompensation::xAdjustResidualRefBlkFrequency(XPel*     piResidualRef,
     for( i = 0; i < 64; i ++ )
     {
       aiCoeffResidualRef[i] = (pucSigMap[i] != 0 ) ? 
-      0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS ) ;
+      0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS ) ;
   
       aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix8x8[i] + 256 ) >> 9;
     }
@@ -2070,8 +2071,13 @@ MotionCompensation::xAdjustResidualRefBlk(XPel*     piResidualRef,
 {
   if( ! bNonzeroBaseBlock )
   {
-    uiWeightZeroBlk += iBcbpCtx ? 4 : 0;
-    uiWeightZeroBlk = ( uiWeightZeroBlk > AR_FGS_MAX_BASE_WEIGHT ) ? AR_FGS_MAX_BASE_WEIGHT : uiWeightZeroBlk;
+    if( iBcbpCtx )
+    {
+      if( uiWeightZeroBlk < 4 )
+        uiWeightZeroBlk  = 0;
+      else
+        uiWeightZeroBlk -= 4;
+    }
 
     xAdjustResidualRefBlkSpatial
       (piResidualRef, uiBlkWidth, uiBlkHeight, iStride, uiWeightZeroBlk);
@@ -2098,7 +2104,7 @@ MotionCompensation::xAdjustChromaResidualRefBlock(XPel*  piResidualRef,
   for( i = 0; i < 64; i ++ )
   {
     aiCoeffResidualRef[i] = (pusSigMap[i] != 0) ?
-    0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( AR_FGS_MAX_BASE_WEIGHT - uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1)) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS);
+    0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1)) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS);
   
     if( (i % 16) == 0 )
       aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i % 16] + 128 ) >> 8;

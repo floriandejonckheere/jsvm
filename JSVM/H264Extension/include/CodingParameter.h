@@ -420,13 +420,13 @@ public:
   Double                          getLowPassEnhRef        ()            { return m_dLowPassEnhRef;        }
   Void                            setAdaptiveRefFGSWeights( UInt  uiBlock, UInt  uiCoeff )
   {
-    // do not allow AR_FGS_MAX_BASE_WEIGHT - 1, to store it in 5-bit fixed-length
-    m_uiBaseWeightZeroBaseBlock = (uiBlock >= AR_FGS_MAX_BASE_WEIGHT - 1) 
-    ? AR_FGS_MAX_BASE_WEIGHT : uiBlock; 
+    // do not allow 1, to store it in 5-bit fixed-length
+    AOT( uiBlock > AR_FGS_MAX_BASE_WEIGHT );
+    m_uiBaseWeightZeroBaseBlock = (uiBlock <= 1) ? 0 : uiBlock; 
 
-    // do not allow AR_FGS_MAX_BASE_WEIGHT - 1, to store it in 5-bit fixed-length
-    m_uiBaseWeightZeroBaseCoeff = (uiCoeff >= AR_FGS_MAX_BASE_WEIGHT - 1) 
-    ? AR_FGS_MAX_BASE_WEIGHT : uiCoeff;
+    // do not allow 1, to store it in 5-bit fixed-length
+    AOT( uiCoeff > AR_FGS_MAX_BASE_WEIGHT );
+    m_uiBaseWeightZeroBaseCoeff = (uiCoeff <= 1) ? 0 : uiCoeff;
   }
   Void                            getAdaptiveRefFGSWeights( UInt& uiBlock, UInt& uiCoeff )
   { 
@@ -766,12 +766,12 @@ public:
   Double                          getLowPassEnhRef        ()            { return m_dLowPassEnhRef;        }
   Void                            setAdaptiveRefFGSWeights( UInt  uiBlock, UInt  uiCoeff )
   {
-    // do not allow AR_FGS_MAX_BASE_WEIGHT - 1, to store it in 5-bit fixed-length
-    m_uiBaseWeightZeroBaseBlock = (uiBlock >= AR_FGS_MAX_BASE_WEIGHT - 1) 
-      ? AR_FGS_MAX_BASE_WEIGHT : uiBlock; 
+    // do not allow 1, to store it in 5-bit fixed-length
+    AOT( uiBlock > AR_FGS_MAX_BASE_WEIGHT );
+    m_uiBaseWeightZeroBaseBlock = (uiBlock <= 1) ? 0 : uiBlock; 
 
-    m_uiBaseWeightZeroBaseCoeff = (uiCoeff >= AR_FGS_MAX_BASE_WEIGHT - 1) 
-      ? AR_FGS_MAX_BASE_WEIGHT : uiCoeff;
+    AOT( uiCoeff > AR_FGS_MAX_BASE_WEIGHT );
+    m_uiBaseWeightZeroBaseCoeff = (uiCoeff <= 1) ? 0 : uiCoeff;
   }
   Void                            getAdaptiveRefFGSWeights( UInt& uiBlock, UInt& uiCoeff )
   { 

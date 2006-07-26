@@ -299,8 +299,7 @@ protected:
   UInt m_uiCbpStat4x4[2];
   UInt m_uiCurrCbp4x4;
   UcSymGrpReader* m_pSymGrp; 
-  TCoeff *m_pRefCoeffPointer[CAVLC_SYMGRP_SIZE];
-  UInt m_auiBaseCoeffSign[CAVLC_SYMGRP_SIZE];
+  UInt m_auiSymbolBuf[CAVLC_SYMGRP_SIZE];
   UInt m_uiRefSymCounter; 
 };
 
@@ -314,6 +313,7 @@ public:
   ErrVal xFetchSymbol( UInt uiMaxSym );
   Bool   UpdateVlc();
   UInt   GetCode()    { return m_uiCode;   }
+  Void   setCodedFlag(UInt uiFlag)    { m_uiCodedFlag = uiFlag; }
 
 protected:
   UvlcReader* m_pParent;

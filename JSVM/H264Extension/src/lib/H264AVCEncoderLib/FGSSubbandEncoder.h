@@ -287,6 +287,18 @@ private:
                                                     UInt                uiB8YIdx,
                                                     UInt                uiB8XIdx,
                                                     UInt                uiScanIdx );
+  ErrVal            xPrescanCoefficientLumaRef    ( UInt                uiBlockYIndex,
+                                                    UInt                uiBlockXIndex,
+                                                    UInt                uiScanIndex );
+  ErrVal            xPrescanCoefficientChromaDCRef( UInt                uiPlane,
+                                                    UInt                uiMbYIdx,
+                                                    UInt                uiMbXIdx,
+                                                    UInt                uiDCIdx );
+  ErrVal            xPrescanCoefficientChromaACRef( UInt                uiPlane,
+                                                    UInt                uiB8YIdx,
+                                                    UInt                uiB8XIdx,
+                                                    UInt                uiScanIdx );
+
   //JVT-P031
 ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt iChromaDCScanIdx,

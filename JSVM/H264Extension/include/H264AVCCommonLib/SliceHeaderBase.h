@@ -704,13 +704,13 @@ public:
 
   Void  setBaseWeightZeroBaseBlock(UInt ui)
   { 
-    m_uiBaseWeightZeroBaseBlock = (ui >= AR_FGS_MAX_BASE_WEIGHT - 1) 
-      ? AR_FGS_MAX_BASE_WEIGHT : ui; 
+    AOT( ui > AR_FGS_MAX_BASE_WEIGHT );
+    m_uiBaseWeightZeroBaseBlock = (ui <= 1) ? 0 : ui; 
   }
   Void  setBaseWeightZeroBaseCoeff(UInt ui)
   {
-    m_uiBaseWeightZeroBaseCoeff = (ui >= AR_FGS_MAX_BASE_WEIGHT - 1) 
-      ? AR_FGS_MAX_BASE_WEIGHT : ui; 
+    AOT( ui > AR_FGS_MAX_BASE_WEIGHT );
+    m_uiBaseWeightZeroBaseCoeff = (ui <= 1) ? 0 : ui; 
   }
 
   Void  setArFgsUsageFlag               ( Bool b  )         { m_bArFgsUsageFlag       = b;  }

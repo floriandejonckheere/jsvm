@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
     name 	=> "FGSScanVector",
-    original 	=> "CITY_352x288_30.yuv",
+    original 	=> "BUS_352x288_30.yuv",
     originalwidth  => 352,
     originalheight => 288,
     originalframerate => 30,
@@ -45,8 +45,8 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 18.57,
-            		        psnr => 26.96,
+            		        bitrate => 48,
+            		        psnr => 25.23,
             		      },
 		                  #----------#
                       # Test   1 #
@@ -56,8 +56,8 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 45,
-            		        psnr => 29.60,
+            		        bitrate => 90,
+            		        psnr => 27.31,
             		      },
 			                #----------#
                       # Test   2 #
@@ -67,8 +67,8 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 116,
-            		        psnr => 32.49,
+            		        bitrate => 251,
+            		        psnr => 31.48,
 				                encdecmatch => 1,
             		      },
 		  ],

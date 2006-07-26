@@ -112,7 +112,7 @@
             		        height => 288,
             		        framerate => 30,
             		        bitrate => 364,
-            		        psnr => 27.35,
+            		        psnr => 27.34,
             		      },
             		      #----------#
                       # Test   5 #
@@ -124,7 +124,7 @@
             		        height => 144,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 34.24,
+            		        psnr => 34.21,
             		      },
             		      #----------#
                       # Test   6 #
@@ -172,7 +172,7 @@
             		        height => 288,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 33.84,
+            		        psnr => 33.83,
           		       },
 		  ],
 }

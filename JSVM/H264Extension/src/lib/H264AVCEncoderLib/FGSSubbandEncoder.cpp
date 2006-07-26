@@ -1939,11 +1939,92 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           uiMaxPosChromaDC = m_auiScanPosVectChromaDC[ui];
         }
 
-		for(UInt uiMbAddress=m_uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice;)
-		{
-			UInt uiMbYIdx = uiMbAddress / m_uiWidthInMB;
-			UInt uiMbXIdx = uiMbAddress % m_uiWidthInMB;			
-			{
+		    for(UInt uiMbAddress=m_uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice;)
+		    {
+			    UInt uiMbYIdx = uiMbAddress / m_uiWidthInMB;
+			    UInt uiMbXIdx = uiMbAddress % m_uiWidthInMB;			
+			    {
+            if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )
+            {
+              Bool bFirstPassPrescan = bFirstPass;
+              UInt uiB8YInit, uiB8XInit, uiBlockYInit, uiBlockXInit;
+              uiB8YInit = m_uiB8YIdx;
+              uiB8XInit = m_uiB8XIdx;
+              uiBlockYInit = 2*uiB8YInit;
+              uiBlockXInit = 2*uiB8XInit;
+              if(!bFirstPassPrescan) {
+                uiB8YInit = 2*uiMbYIdx;
+                uiB8XInit = 2*uiMbXIdx;
+              }
+
+              /* refinement coefficients pre-scan */
+              //===== LUMA =====
+              if( (m_uiFGSPart == 0) || (!bFirstPassPrescan) ){
+                for( UInt uiB8YIdx = uiB8YInit; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ ) {
+                  for( UInt uiB8XIdx = uiB8XInit; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ){
+                    if(!bFirstPassPrescan) {
+                      uiBlockYInit = 2*uiB8YIdx;
+                      uiBlockXInit = 2*uiB8XIdx;
+                    } else {
+                      bFirstPassPrescan = false;
+                    }
+                    for( UInt uiBlockYIdx = uiBlockYInit; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ ) {
+                      for( UInt uiBlockXIdx = uiBlockXInit; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ ) {
+                        for( ui=iLumaScanIdx; ui<=uiMaxPosLuma; ui++ ) {
+                          if( ui < 16 ) {
+                            RNOK( xPrescanCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, ui ) );
+                          }
+                        }
+                      } // 4x4 block iteration
+                      uiBlockXInit = 2 * uiB8XIdx;
+                    }
+                  } // 8x8 block iteration
+                  uiB8XInit = 2 * uiMbXIdx;
+                }
+                m_uiPlane = 0;
+                uiB8YInit = 2 * uiMbYIdx;
+                uiB8XInit = 2 * uiMbXIdx;
+              }
+
+              // ===== CHROMA DC =====
+              if( (m_uiFGSPart == 1) || (!bFirstPassPrescan) ) {
+                if( bAllowChromaDC && ( m_bFgsComponentSep == 0 || iLumaScanIdx == 16 ) ) {
+                  bFirstPassPrescan = false;
+                  for( UInt uiPlane = m_uiPlane; uiPlane  < 2; uiPlane ++ ) {
+                    for( ui=iChromaDCScanIdx; ui<=uiMaxPosChromaDC && ui<4; ui++ ) {
+                      if( (m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] & SIGNIFICANT) &&
+                        !(m_aapaucChromaDCCoefMap[uiPlane][ui][uiMbYIdx * m_uiWidthInMB + uiMbXIdx] & CODED) )
+                        RNOK( xPrescanCoefficientChromaDCRef( uiPlane, uiMbYIdx, uiMbXIdx, ui ) );
+                    }
+                  } // for
+                  m_uiPlane = 0;
+                } // if
+              }
+              m_uiFGSPart = 2;
+
+              // ===== CHROMA AC =====
+              if( (m_uiFGSPart == 2) || (!bFirstPassPrescan) ) {
+                if( bAllowChromaAC && ( m_bFgsComponentSep == 0 || iLumaScanIdx == 16 ) ) {
+                  bFirstPassPrescan = false;
+                  for( UInt uiPlane = m_uiPlane; uiPlane  < 2; uiPlane ++ ) {
+                    for( UInt uiB8YIdx = uiB8YInit; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ ) {
+                      for( UInt uiB8XIdx = uiB8XInit; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ) {
+                        for( ui=iChromaACScanIdx; ui<=uiMaxPosChromaAC && ui<16; ui++ ) {
+                          if((m_aapaucChromaACCoefMap[uiPlane][ui][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] & SIGNIFICANT) &&
+                            !(m_aapaucChromaACCoefMap[uiPlane][ui][uiB8YIdx*2 * m_uiWidthInMB + uiB8XIdx] & CODED) )
+                            RNOK( xPrescanCoefficientChromaACRef( uiPlane, uiB8YIdx, uiB8XIdx, ui ) );
+                        }
+                      } // for
+                      uiB8XInit = 2 * uiMbXIdx;
+                    }
+                    uiB8YInit = 2 * uiMbYIdx;
+                  }
+                  m_uiPlane = 0;
+                } // if
+              }
+              m_uiFGSPart = 0;
+            }
+
             {
               if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
                   ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
@@ -2130,6 +2211,9 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         //FIX_FRAG_CAVLC
         //save last written byte
         RNOK(m_pcSymbolWriter->getLastByte(m_ucLastByte, m_uiLastBitPos));
+        if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() ) {
+          RNOK(((UvlcWriter *)m_pcSymbolWriter)->RQcountFragmentedSymbols());
+        }
         return Err::m_nOK;
     }
   }
@@ -2896,6 +2980,107 @@ RQFGSEncoder::xEncodeCoefficientChromaACRef ( UInt  uiPlane,
   return Err::m_nOK;
 }
 
+ErrVal
+RQFGSEncoder::xPrescanCoefficientLumaRef( UInt   uiBlockYIndex,
+                                          UInt   uiBlockXIndex,
+                                          UInt   uiScanIndex )
+{
+  UInt    uiBlockIndex  =  uiBlockYIndex    * 4 * m_uiWidthInMB +  uiBlockXIndex;
+
+  UInt    uiB8x8        = ((uiBlockYIndex%4)/2) * 2 + ((uiBlockXIndex%4)/2);
+  UInt    uiB4x4        =  (uiBlockYIndex%4)    * 4 +  (uiBlockXIndex%4);
+  Par8x8  ePar8x8       = Par8x8(uiB8x8);
+  
+  B8x8Idx c8x8Idx(ePar8x8);
+  B4x4Idx c4x4Idx(uiB4x4);
+
+  //===== check if coefficient is not significant or was already coded =====
+  ROFRS( m_apaucLumaCoefMap[uiScanIndex][uiBlockIndex] & SIGNIFICANT, Err::m_nOK );
+  ROTRS( m_apaucLumaCoefMap[uiScanIndex][uiBlockIndex] & CODED,       Err::m_nOK );
+
+  MbDataAccess* pcMbDataAccessEL  = 0;
+  MbDataAccess* pcMbDataAccessBL  = 0;
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiBlockYIndex/4, uiBlockXIndex/4 ) );
+  RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiBlockYIndex/4, uiBlockXIndex/4 ) );
+  
+  if( pcMbDataAccessBL->getMbData().isTransformSize8x8() ) {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get8x8( c8x8Idx );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get8x8( c8x8Idx );
+    const UChar*  pucScan     = g_aucFrameScan64;
+    UInt  ui8x8ScanIndex  = 4*uiScanIndex + 2*( uiBlockYIndex % 2 ) + ( uiBlockXIndex % 2 );
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQprescanTCoeffsRef( piCoeff, piCoeffBase, pucScan, ui8x8ScanIndex ) );
+  } else {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get( c4x4Idx );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get( c4x4Idx );
+    const UChar*  pucScan     = g_aucFrameScan;
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQprescanTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RQFGSEncoder::xPrescanCoefficientChromaDCRef ( UInt  uiPlane,
+                                               UInt  uiMbYIdx,
+                                               UInt  uiMbXIdx,
+                                               UInt  uiDCIdx )
+{
+  UInt  uiMbIndex = uiMbYIdx * m_uiWidthInMB + uiMbXIdx;
+
+  //===== check if coefficient is not significant or was already coded =====
+  ROFRS( m_aapaucChromaDCCoefMap[uiPlane][uiDCIdx][uiMbIndex] & SIGNIFICANT, Err::m_nOK );
+  ROTRS( m_aapaucChromaDCCoefMap[uiPlane][uiDCIdx][uiMbIndex] & CODED,       Err::m_nOK );
+
+  MbDataAccess* pcMbDataAccessEL  = 0;
+  MbDataAccess* pcMbDataAccessBL  = 0;
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
+  RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
+  
+  {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get( CIdx(4*uiPlane) );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get( CIdx(4*uiPlane) );
+    const UChar*  pucScan     = g_aucIndexChromaDCScan;
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQprescanTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiDCIdx ) );
+  }
+
+  return Err::m_nOK;
+}
+ 
+
+ErrVal
+RQFGSEncoder::xPrescanCoefficientChromaACRef ( UInt  uiPlane,
+                                               UInt  uiB8YIdx,
+                                               UInt  uiB8XIdx,
+                                               UInt  uiScanIdx )
+{
+  UInt  uiB8Index   = (uiB8YIdx  ) * 2 * m_uiWidthInMB + (uiB8XIdx  );
+  UInt  uiChromaIdx = 4*uiPlane + 2*(uiB8YIdx%2) + (uiB8XIdx%2);
+  
+  CIdx  cChromaIdx(uiChromaIdx);
+
+  //===== check if coefficient is not significant or was already coded =====
+  ROFRS( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][uiB8Index] & SIGNIFICANT, Err::m_nOK );
+  ROTRS( m_aapaucChromaACCoefMap[uiPlane][uiScanIdx][uiB8Index] & CODED,       Err::m_nOK );
+
+  MbDataAccess* pcMbDataAccessEL  = 0;
+  MbDataAccess* pcMbDataAccessBL  = 0;
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiB8YIdx/2, uiB8XIdx/2 ) );
+  RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiB8YIdx/2, uiB8XIdx/2 ) );
+  
+  // Count number of remaining values
+  {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get( CIdx(cChromaIdx) );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get( CIdx(cChromaIdx) );
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQprescanTCoeffsRef( piCoeff, piCoeffBase, g_aucFrameScan, uiScanIdx ) );
+  }
+
+  return Err::m_nOK;
+}
 
 ErrVal
 RQFGSEncoder::xVLCParseLuma( UInt   uiBlockYIndex,

@@ -3,7 +3,7 @@
 #               General parameters                         #
 #==========================================================#
     name 	=> "FGSMotRef",
-    original 	=> "CITY_352x288_30.yuv",
+    original 	=> "BUS_352x288_30.yuv",
     originalwidth  => 352,
     originalheight => 288,
     originalframerate => 30,
@@ -45,8 +45,8 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 18,
-            		        psnr => 26.93,
+            		        bitrate => 48,
+            		        psnr => 25.19,
             		      },
 		                  #----------#
                       # Test   1 #
@@ -56,8 +56,8 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 40,
-            		        psnr => 28.72,
+            		        bitrate => 80,
+            		        psnr => 26.52,
             		      },
 			                 #----------#
                       # Test   2 #
@@ -67,8 +67,8 @@
             		        mode => 1,
                 				width => 176,
                 				height => 144,
-            		        bitrate => 80,
-            		        psnr => 31.72,
+            		        bitrate => 160,
+            		        psnr => 29.47,
             		      },
 			                 #----------#
                       # Test   3 #
@@ -78,8 +78,8 @@
             		        mode => 1,
                 				width => 176,
                 				height => 144,
-            		        bitrate => 117,
-            		        psnr => 34.65,
+            		        bitrate => 242,
+            		        psnr => 32.50,
 				                encdecmatch => 1,
             		      },
 		  ],

@@ -17,7 +17,7 @@ verbosemode       => 1,
 #               Encoding parameters                        #
 #==========================================================#
 runencode      => 1,
-singleloopflag => "-ref 0.5 -ar 2 14 -fs 0",   # enabling AR-FGS
+singleloopflag => "-ref 0.5 -ar 30 18 -fs 0",   # enabling AR-FGS
 
 #=======================#
 # Layers  parameters    #
@@ -58,7 +58,7 @@ tests              => [
                         height      => 144,
                         framerate   => 30,
                         bitrate     => 574,
-                        psnr        => 33.03,
+                        psnr        => 32.33,
                         encdecmatch => 0,
                        },
                        #----------#
@@ -71,7 +71,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
                         bitrate     => 2500,
-                        psnr        => 32.23,
+                        psnr        => 31.70,
                         encdecmatch => 0,
                        },                      
                        #----------#
@@ -83,8 +83,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                        bitrate     => 5522,
-                        psnr        => 38.56,
+                        bitrate     => 5741,
+                        psnr        => 38.51,
                         encdecmatch => 1,
                        },
                       ],

@@ -1133,8 +1133,6 @@ ErrVal UvlcWriter::finishSlice()
     ETRACE_N;
   }
 
-  m_pSymGrp->Flush();
-
   return Err::m_nOK;
 }
 
@@ -2150,19 +2148,48 @@ UvlcWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
                                  const UChar*  pucScan,
                                  UInt          uiScanIndex )
 {
-  UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
-  UInt uiSym = 0;
+  if (m_uiCodedSymbols % 3 == m_uiFragmentedSymbols) {
+    UInt uiCode = 0;
+    UInt uiTable = m_pSymGrp->getTable();
+
+    for (UInt ui = 0; ui < 3; ui++) {
+      UInt uiSymbol = m_auiPrescannedSymbols[m_uiCodedSymbols + ui];
+      m_pSymGrp->incrementCounter(uiSymbol);
+      uiCode *= 3;
+      uiCode += uiSymbol;
+    }
+
+    m_pSymGrp->setCodedFlag(true);
+    RNOK(writeCode( g_auiRefSymCode[uiTable][uiCode], g_auiRefSymLen[uiTable][uiCode], "" ) );
+  }
+  if (m_uiFragmentedSymbols) {
+    m_pSymGrp->setCodedFlag(true);
+  }
+  m_uiCodedSymbols++;
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xRQprescanTCoeffsRef( TCoeff*       piCoeff,
+                                  TCoeff*       piCoeffBase,
+                                  const UChar*  pucScan,
+                                  UInt          uiScanIndex)
+{
+  UInt  uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
+  UChar uiSym = 0;
 
   if(uiSig) 
   {
     UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSign = ( uiSignBL ^ uiSignEL );
-    
     uiSym = (uiSign ? 2:1);
   }
 
-  RNOK( m_pSymGrp->Write( uiSym ) );
+  m_auiPrescannedSymbols[m_uiRefSymbols] = uiSym;
+  m_uiRefSymbols++;
+
   return Err::m_nOK;
 }
 
@@ -2260,6 +2287,11 @@ UvlcWriter::RQencodeEobOffsets_Luma( UInt* pauiSeq )
   m_uiCbpStat4x4[0] = m_uiCbpStat4x4[1] = 0;
   m_uiCbpStats[0][0] = m_uiCbpStats[0][1] = m_uiCbpStats[1][0] = m_uiCbpStats[1][1] = 0;
 
+  m_uiRefSymbols   = 0;
+  m_uiCodedSymbols = 0;
+  memset(m_auiPrescannedSymbols, 0, sizeof(UChar) * REFSYM_MB);
+  m_uiFragmentedSymbols = 0;
+
   memcpy( m_auiShiftLuma, pauiSeq, sizeof(UInt)*16 );
   return xRQencodeEobOffsets(pauiSeq, 16);
 }
@@ -2333,9 +2365,25 @@ ErrVal
 UvlcWriter::RQupdateVlcTable()
 {
   m_pSymGrp->UpdateVlc();
+  m_uiRefSymbols   = 0;
+  m_uiCodedSymbols = 0;
+  memset(m_auiPrescannedSymbols, 0, sizeof(UChar) * REFSYM_MB);
   return Err::m_nOK;
 }
 
+ErrVal 
+UvlcWriter::RQcountFragmentedSymbols()
+{
+  if ((m_uiRefSymbols - m_uiCodedSymbols) > 0) {
+    m_pSymGrp->setCodedFlag(false);
+    switch (m_uiCodedSymbols%3) {
+    case 0: m_uiFragmentedSymbols = 0; break;
+    case 1: m_uiFragmentedSymbols = 2; break;
+    case 2: m_uiFragmentedSymbols = 1; break;
+    }
+  }
+  return Err::m_nOK;
+}
 
 ErrVal
 UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
@@ -2505,7 +2553,7 @@ Bool
 UcSymGrpWriter::UpdateVlc()
 {
   UInt uiFlag = m_uiCodedFlag;
-  if (uiFlag && m_uiLen == 0) {
+  if (uiFlag) {
     // updating
     m_uiTable = 0;
     if (m_auiSymCount[0] < 2 *(m_auiSymCount[1] + m_auiSymCount[2]) ||
@@ -2518,6 +2566,8 @@ UcSymGrpWriter::UpdateVlc()
     m_auiSymCount[1] = (m_auiSymCount[1] >> 1);
     m_auiSymCount[2] = (m_auiSymCount[2] >> 1);
     m_uiCodedFlag = false;
+
+    m_pParent->resetFragmentedSymbols();
   }
   return (uiFlag != 0);
 }

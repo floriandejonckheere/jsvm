@@ -1,3 +1,20 @@
+JSVM_6_1 -> JSVM_6_2
+====================
+
+Modification for grouping of refinement coefficients
+
+Date        : July 26, 2006
+Author      : M. Shima (TI)
+Contribution: JVT-T067
+
+changes:
+- Addition of refinement coefficients prescanning on encoder side
+- Removal of possible random memory access on decoder side
+- Minor modifications for "FragVLC" test
+
++ ARFGS fixes provided by Steffen Kamp (integrated by H.Schwarz)
++ removal of some Linux warnings (H. Schwarz)
+
 
 
 JSVM_5_12_1 -> JSVM_6_1

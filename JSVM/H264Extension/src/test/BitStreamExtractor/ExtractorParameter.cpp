@@ -365,7 +365,7 @@ ExtractorParameter::init( Int     argc,
 	//--DY 1009
 	if( equal( "-r", argv[iArg] ) )
     {
-       ErrVal errVal  = xParseFormatStringROI_Only( argv[++iArg], cPoint );
+       xParseFormatStringROI_Only( argv[++iArg], cPoint );
        continue;
     }
 

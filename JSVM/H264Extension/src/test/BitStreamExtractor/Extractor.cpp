@@ -1279,8 +1279,8 @@ Int Extractor::CurNalKeepingNeed(h264::PacketDescription cPacketDescription
 				}
 			} // end for check sg (until 8)
 			
-			Int ROI_ID = getROI_ID(cPacketDescription.Layer,SG_ID);
-			if(ROI_ID !=-1 &&rcExtPoint.uiROI[i] ==ROI_ID )
+			Int iROI_ID = getROI_ID(cPacketDescription.Layer,SG_ID);
+			if(iROI_ID !=-1 &&rcExtPoint.uiROI[i] ==iROI_ID )
 			{
 				keepingNAL = 1;				
 			}

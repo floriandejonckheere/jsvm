@@ -320,7 +320,7 @@ UvlcReader::UvlcReader() :
   m_uiRun( 0 )
 {
   m_pSymGrp        = new UcSymGrpReader( this );
-  m_uiRefSymCounter = 0;
+  m_uiRefSymCounter = CAVLC_SYMGRP_SIZE;
 }
 
 UvlcReader::~UvlcReader()
@@ -1596,33 +1596,8 @@ ErrVal UvlcReader::finishSlice( )
     DTRACE_N;
   }
 
-    if(!m_bTruncated && m_uiRefSymCounter)
-    {
-      UInt uiDenom = 9;
-
-      RNOK( m_pSymGrp->xFetchSymbol( CAVLC_SYMGRP_SIZE ) );
-
-      UInt uiCode = m_pSymGrp->GetCode();
-      for(UInt ui = 0; ui < m_uiRefSymCounter; ui++)
-      {
-        UChar ucSym;
-        ucSym = uiCode/uiDenom;
-
-        if(ucSym > 0)
-        {
-          UInt uiSignBL = ( m_auiBaseCoeffSign[ui] );
-          UInt uiSymbol = (ucSym == 2) ? 1 : 0;
-          UInt uiSignEL = ( uiSignBL ^ uiSymbol );
-
-          m_pRefCoeffPointer[ui][0] = ( uiSignEL ? -1 : 1 );
-        }
-        uiCode = (uiCode % uiDenom);
-        uiDenom /= 3;
-      }
-    }
-
-    m_pSymGrp->Flush();
-    m_uiRefSymCounter = 0;
+  m_pSymGrp->Flush();
+  m_uiRefSymCounter = CAVLC_SYMGRP_SIZE;
 
   return Err::m_nOK;
 }
@@ -2223,37 +2198,31 @@ UvlcReader::xRQdecodeTCoeffsRef( TCoeff*       piCoeff,
                                  const UChar*  pucScan,
                                  UInt          uiScanIndex )
 {
-  m_auiBaseCoeffSign[m_uiRefSymCounter] = (piCoeffBase[pucScan[uiScanIndex]] < 0) ? 1:0;
-  m_pRefCoeffPointer[m_uiRefSymCounter] = &piCoeff[pucScan[uiScanIndex]];
-  m_uiRefSymCounter++;
-  
   if(m_uiRefSymCounter == CAVLC_SYMGRP_SIZE)
   {
     UInt uiDenom = 9;
-
     RNOK( m_pSymGrp->xFetchSymbol( CAVLC_SYMGRP_SIZE ) );
-
     UInt uiCode = m_pSymGrp->GetCode();
 
     for(UInt ui = 0; ui < CAVLC_SYMGRP_SIZE; ui++)
     {
       UChar ucSym;
       ucSym = uiCode/uiDenom;
-      if(ucSym > 0)
-      {
-        UInt uiSignBL = ( m_auiBaseCoeffSign[ui] );
-        UInt uiSymbol = (ucSym == 2) ? 1 : 0;
-        UInt uiSignEL = ( uiSignBL ^ uiSymbol );
-
-        m_pRefCoeffPointer[ui][0] = ( uiSignEL ? -1 : 1 );
-      }
+      m_auiSymbolBuf[ui] = ucSym;
 
       uiCode = (uiCode % uiDenom);
       uiDenom /= 3;
     }
-
     m_uiRefSymCounter = 0;
   }
+
+  if (m_auiSymbolBuf[m_uiRefSymCounter] > 0) {
+    UInt uiSymbol = m_auiSymbolBuf[m_uiRefSymCounter] - 1;
+    UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
+    UInt uiSignEL = ( uiSignBL ^ uiSymbol );
+    piCoeff[pucScan[uiScanIndex]] = ( uiSignEL ? -1 : 1 );
+  }
+  m_uiRefSymCounter++;
 
   return Err::m_nOK;
 }
@@ -2385,10 +2354,8 @@ UvlcReader::RQvlcFlush()
 ErrVal
 UvlcReader::RQupdateVlcTable()
 {
-  if (m_uiRefSymCounter == 0) {
-    m_pSymGrp->UpdateVlc();
-  }
-
+  m_pSymGrp->UpdateVlc();
+  m_uiRefSymCounter = CAVLC_SYMGRP_SIZE;
   return Err::m_nOK;
 }
 
