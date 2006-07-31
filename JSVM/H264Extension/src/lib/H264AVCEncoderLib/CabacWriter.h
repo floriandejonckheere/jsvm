@@ -94,6 +94,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/CabacContextModel2DBuffer.h"
 #include "BitWriteBufferIf.h"
 #include "CabaEncoder.h"
+#include "H264AVCCommonLib/ContextTables.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -150,7 +151,9 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
                                      UInt            uiScanIndex,
-                                     UInt&           ruiLast );
+                                     Bool&           rbLast,
+                                     UInt&           ruiNumCoefWritten );
+  ErrVal  RQeo8b                   ( Bool&           bEob );
   ErrVal  RQencodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
@@ -232,13 +235,16 @@ protected:
 
   ErrVal  xRQencodeNewTCoeffs ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
-                                UInt          uiStart,
                                 UInt          uiStop,
-                                ResidualMode  eResidualMode,
+                                UInt          uiCtx1,
+                                UInt          uiCtx2,
                                 const UChar*  pucScan,
                                 UInt          uiScanIndex,
                                 Bool&         rbLast,
-                                UInt&         ruiNumCoefWritten );
+                                UInt&         ruiNumCoefWritten,
+                                const int*    paiCtxEobMap = pos2ctx_nomap,
+                                const int*    paiCtxSigMap = pos2ctx_nomap,
+                                UInt          uiStride = 1 );
   ErrVal  xRQencodeTCoeffsRef ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
                                 const UChar*  pucScan,

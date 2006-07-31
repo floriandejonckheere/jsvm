@@ -1614,9 +1614,12 @@ CabacReader::RQdecodeTermBit ( UInt& ruiBit )
 }
 
 
-
-
-
+ErrVal
+CabacReader::RQeo8b( Bool& bEob )
+{
+  bEob = false;
+  return Err::m_nOK;
+}
 
 
 ErrVal
@@ -1624,12 +1627,12 @@ CabacReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase,
                                     B8x8Idx         c8x8Idx,
                                     UInt            uiScanIndex,
-                                    Bool&           rbLast )
+                                    Bool&           rbLast,
+                                    UInt&           ruiNumCoefRead )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
   const UChar*  pucScan     = g_aucFrameScan64;
-  const UInt    uiCtxOffset = 2;
 
   ROT( piCoeffBase[pucScan[uiScanIndex]] );
 
@@ -1643,50 +1646,7 @@ CabacReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
   rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+4, 1 );
   rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+5, 1 );
 
-  //===== last symbol ====
-  if( rbLast )
-  {
-    UInt uiSymbol;
-    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cLastCCModel.get( uiCtxOffset, pos2ctx_last8x8[uiScanIndex-1] ) ) );
-    rbLast = (uiSymbol == 1);
-    ROTRS( rbLast, Err::m_nOK );
-  }
-
-  //===== SIGNIFICANCE BIT =====
-  UInt uiSig = 0;
-  UInt uiLastScanPosition = uiScanIndex + 1;
-  while (uiLastScanPosition < 64 && piCoeffBase[pucScan[uiLastScanPosition]]) uiLastScanPosition ++;
-  if( uiLastScanPosition < 64 )
-  {
-  RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get(uiCtxOffset, pos2ctx_map8x8[uiScanIndex] ) ) );
-  }
-  else uiSig = 1;
-
-  if( uiSig )
-  {
-    UInt  uiCoeff = uiSig;
-    UInt  uiSign  = 0;
-    UInt  uiCtx   = 1;
-
-    //===== SIGN =====
-    RNOK( CabaDecoder::getEpSymbol( uiSign ) );
-
-    //===== ABSOLUTE VALUE =====
-    RNOK( CabaDecoder::getSymbol  ( uiCoeff, m_cOneCCModel.get( uiCtxOffset, uiCtx ) ) );
-
-    if( uiCoeff )
-    {
-      uiCtx = 0;
-      RNOK( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( uiCtxOffset, uiCtx ) ) );
-      uiCoeff += 2;
-    }
-    else
-    {
-      uiCoeff++;
-    }
-
-    piCoeff[pucScan[uiScanIndex]] = ( uiSign ? -(Int)uiCoeff : (Int)uiCoeff );
-  }
+  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, 64, 2, 2, pucScan, uiScanIndex, rbLast, ruiNumCoefRead, pos2ctx_last8x8, pos2ctx_map8x8, 4 ) );
 
   return Err::m_nOK;
 }
@@ -1742,7 +1702,7 @@ CabacReader::RQdecodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = g_aucFrameScan;
-  UInt          uiStart     = 0;
+  //UInt          uiStart     = 0; // unused variable. mwi
   UInt          uiStop      = 16;
 
   ROT( piCoeffBase[pucScan[uiScanIndex]] );
@@ -1752,7 +1712,7 @@ CabacReader::RQdecodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
   DTRACE_V( uiScanIndex );
   DTRACE_N;
 
-  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, rbLast, ruiNumCoefRead ) );
+  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStop, type2ctx1[eResidualMode], type2ctx2[eResidualMode], pucScan, uiScanIndex, rbLast, ruiNumCoefRead ) );
 
   return Err::m_nOK;
 }
@@ -1795,7 +1755,7 @@ CabacReader::RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = ( eResidualMode == CHROMA_DC ? g_aucIndexChromaDCScan : g_aucFrameScan );
-  UInt          uiStart     = ( eResidualMode == CHROMA_AC ? 1 : 0  );
+  //UInt          uiStart     = ( eResidualMode == CHROMA_AC ? 1 : 0  ); // unused variable. mwi
   UInt          uiStop      = ( eResidualMode == CHROMA_DC ? 4 : 16 );
 
   ROT( piCoeffBase[pucScan[uiScanIndex]] );
@@ -1805,7 +1765,7 @@ CabacReader::RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
   DTRACE_V( uiScanIndex );
   DTRACE_N;
 
-  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, rbLast, ruiNumCoefRead ) );
+  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStop, type2ctx1[eResidualMode], type2ctx2[eResidualMode], pucScan, uiScanIndex, rbLast, ruiNumCoefRead ) );
 
   return Err::m_nOK;
 }
@@ -1838,23 +1798,25 @@ CabacReader::RQdecodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
 ErrVal
 CabacReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
                                   TCoeff*       piCoeffBase,
-                                  UInt          uiStart,
                                   UInt          uiStop,
-                                  ResidualMode  eResidualMode,
+                                  UInt          uiCtx1,
+                                  UInt          uiCtx2,
                                   const UChar*  pucScan,
                                   UInt          uiScanIndex,
                                   Bool&         rbLast,
-                                  UInt&         ruiNumCoefRead )
+                                  UInt&         ruiNumCoefRead,
+                                  const int*    paiCtxEobMap,
+                                  const int*    paiCtxSigMap,
+                                  UInt          uiStride )
 {
   ruiNumCoefRead = 0;
   if( rbLast )
   {
     UInt uiSymbol;
-    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cLastCCModel.get( type2ctx2 [eResidualMode], uiScanIndex-1 ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cLastCCModel.get( uiCtx2, paiCtxEobMap[uiScanIndex-1] ) ) );
     rbLast = (uiSymbol == 1);
     ROTRS(rbLast, Err::m_nOK);
-  } else
-    rbLast = false;
+  }
 
   //===== SIGNIFICANCE BIT ======
   UInt uiSig;
@@ -1862,13 +1824,13 @@ CabacReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
   {
     ruiNumCoefRead++;
 
-    UInt uiLastScanPosition = uiScanIndex + 1;
+    UInt uiLastScanPosition = uiScanIndex + uiStride;
     while (uiLastScanPosition < uiStop && piCoeffBase[pucScan[uiLastScanPosition]])
-      uiLastScanPosition ++;
+      uiLastScanPosition += uiStride;
   
     if (uiLastScanPosition < uiStop)
     {
-      RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get( type2ctx2[eResidualMode], uiScanIndex ) ) );
+      RNOK( CabaDecoder::getSymbol( uiSig, m_cMapCCModel.get( uiCtx2, paiCtxSigMap[uiScanIndex] ) ) );
     } else {
       uiSig = 1;
     }
@@ -1878,9 +1840,9 @@ CabacReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
       break;
     }
 
-    uiScanIndex++;
+    uiScanIndex += uiStride;
     while (uiScanIndex < uiStop && piCoeffBase[pucScan[uiScanIndex]])
-      uiScanIndex++;
+      uiScanIndex += uiStride;
   }
   while ( true );
     UInt  uiCoeff = uiSig;
@@ -1891,12 +1853,12 @@ CabacReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
     RNOK( CabaDecoder::getEpSymbol( uiSign ) );
 
     //===== ABSOLUTE VALUE =====
-    RNOK( CabaDecoder::getSymbol  ( uiCoeff, m_cOneCCModel.get( type2ctx1[eResidualMode], uiCtx ) ) );
+    RNOK( CabaDecoder::getSymbol  ( uiCoeff, m_cOneCCModel.get( uiCtx1, uiCtx ) ) );
 
     if( uiCoeff )
     {
       uiCtx = 0;
-      RNOK( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( type2ctx1 [eResidualMode], uiCtx ) ) );
+      RNOK( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( uiCtx1, uiCtx ) ) );
 
       uiCoeff += 2;
     }

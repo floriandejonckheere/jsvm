@@ -1,3 +1,18 @@
+JSVM_6_2 -> JSVM_6_3
+====================
+
+De-interleaving of 8x8 coefficients in FGS
+
+Date        : July 28, 2006
+Author      : J. Ridge (Nokia)
+Contribution: JVT-T089
+
+changes:
+- De-interleave 8x8 coefficients to be processed as 4 4x4's
+- Consolidation of significance pass routines in CABAC/CAVLC
+
++ DownConvert.inl fix provided by Shijun Sun (M. Wien)
+
 JSVM_6_1 -> JSVM_6_2
 ====================
 

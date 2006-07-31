@@ -408,6 +408,7 @@ private:
 
   UInt              m_uiNumMaxIter;
   UInt              m_uiIterSearchRange;
+  UInt              m_uiLastMbNum;
 };
 
 

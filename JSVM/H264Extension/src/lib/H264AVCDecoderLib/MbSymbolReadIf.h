@@ -173,7 +173,9 @@ public:
                                              MbDataAccess&   rcMbDataAccessBase,
                                              B8x8Idx         c8x8Idx,
                                              UInt            uiScanIndex,
-                                             Bool&           rbLast ) = 0;
+                                             Bool&           rbLast,
+                                             UInt&           ruiNumCoefRead ) = 0;
+  virtual ErrVal  RQeo8b( Bool& bEob ) = 0;
   virtual ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                              MbDataAccess&   rcMbDataAccessBase,
                                              B8x8Idx         c8x8Idx,

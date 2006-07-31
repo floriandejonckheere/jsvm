@@ -173,7 +173,9 @@ public:
                                       MbDataAccess&   rcMbDataAccessBase,
                                       B8x8Idx         c8x8Idx,
                                       UInt            uiScanIndex,
-                                      UInt&           ruiLast ) = 0;
+                                      Bool&           rbLast,
+                                      UInt&           ruiNumCoefWritten ) = 0;
+  virtual ErrVal  RQeo8b( Bool& bEob ) = 0;
   virtual ErrVal RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,

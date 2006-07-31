@@ -213,7 +213,7 @@ private:
 
   UInt              m_auiScanPosVectLuma    [16];
   UInt              m_auiScanPosVectChromaDC[ 4];
-
+  UInt              m_uiLastMbNum;
   Bool				m_bFirstFGS;
 };
 

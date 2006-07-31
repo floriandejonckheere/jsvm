@@ -121,7 +121,7 @@ protected:
                                 TCoeff*       piCoeffBase,
                                 UInt          uiStart,
                                 UInt          uiStop,
-                                ResidualMode  eResidualMode,
+                                UInt          uiStride,
                                 const UChar*  pucScan,
                                 UInt          uiScanIndex,
                                 UInt*         pauiEobShift,
@@ -212,7 +212,9 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
                                      UInt            uiScanIndex,
-                                     Bool&           rbLast );
+                                     Bool&           rbLast,
+                                     UInt&           ruiNumCoefRead );
+  ErrVal  RQeo8b                   ( Bool&           bEob );
   ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
@@ -283,7 +285,8 @@ private:
                                      const UChar* pucScan,
                                      UInt    uiTermSym,
                                      UInt    uiStart,
-                                     UInt    uiStop );
+                                     UInt    uiStop,
+                                     UInt    uiStride = 1 );
 
 protected:
   BitReadBuffer*  m_pcBitReadBuffer;

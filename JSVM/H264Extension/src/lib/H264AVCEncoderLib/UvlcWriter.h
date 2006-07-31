@@ -115,7 +115,7 @@ protected:
                                     TCoeff*       piCoeffBase,
                                     UInt          uiStart,
                                     UInt          uiStop,
-                                    ResidualMode  eResidualMode,
+                                    UInt          uiStride,
                                     const UChar*  pucScan,
                                     UInt          uiScanIndex,
                                     UInt*         pauiEobShift,
@@ -126,7 +126,7 @@ protected:
                                   const UChar*  pucScan,
                                   UInt          uiScanIndex );
 
-  ErrVal xRQencodeSigMagGreater1( TCoeff* piCoeff, TCoeff* piCoeffBase, UInt uiBaseCode, UInt uiStart, UInt uiStop, UInt uiVlcTable, const UChar*  pucScan, UInt& ruiNumMagG1 );
+  ErrVal xRQencodeSigMagGreater1( TCoeff* piCoeff, TCoeff* piCoeffBase, UInt uiBaseCode, UInt uiStart, UInt uiStop, UInt uiVlcTable, const UChar*  pucScan, UInt& ruiNumMagG1, UInt uiStride = 1 );
   ErrVal xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx );
   ErrVal xWriteUnaryCode (UInt uiSymbol );
   ErrVal xWriteCodeCB1 (UInt uiSymbol );
@@ -244,7 +244,9 @@ public:
                                       MbDataAccess&   rcMbDataAccessBase,
                                       B8x8Idx         c8x8Idx,
                                       UInt            uiScanIndex,
-                                      UInt&           ruiLast );
+                                      Bool&           rbLast,
+                                      UInt&           ruiNumCoefWritten );
+  ErrVal  RQeo8b                    ( Bool&           bEob );
   ErrVal RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,

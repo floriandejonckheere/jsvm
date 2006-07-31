@@ -1791,11 +1791,19 @@ UvlcWriter::RQencode8x8Flag( MbDataAccess& rcMbDataAccess,
 }
 
 ErrVal
+UvlcWriter::RQeo8b( Bool& bEob )
+{
+  RNOK( xWriteFlag( bEob ? 1 : 0 ) );
+  return Err::m_nOK;
+}
+
+ErrVal
 UvlcWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase,
                                     B8x8Idx         c8x8Idx,
                                     UInt            uiScanIndex,
-                                    UInt&           ruiLast )
+                                    Bool&           rbLast,
+                                    UInt&           ruiNumCoefWritten )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
@@ -1813,33 +1821,10 @@ UvlcWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
   rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+4, 1 );
   rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+5, 1 );
 
-  //===== end-of-block =====
-  if( ruiLast )
-  {
-    for( UInt ui = uiScanIndex; ui < 64; ui++ )
-    {
-      if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]] )
-      {
-        ruiLast = 0;
-        break;
-      }
-    }
-    RNOK( xWriteFlag( ruiLast ) );
-    ROTRS( ruiLast, Err::m_nOK );
-  }
-  else
-  {
-    ruiLast = 0;
-  }
+  UInt auiEobShift[16];
+  memset(auiEobShift, 0, sizeof(UInt)*16);
 
-  //===== SIGNIFICANCE BIT =====
-  UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
-  RNOK( xWriteFlag( uiSig ) );
-  
-  if( uiSig )
-  {
-    xWriteLevelVLC0( piCoeff[pucScan[uiScanIndex]] );
-  }
+  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiScanIndex%4, 64, 4, pucScan, uiScanIndex, auiEobShift, rbLast, ruiNumCoefWritten ) );
 
   return Err::m_nOK;
 }
@@ -1866,7 +1851,7 @@ UvlcWriter::RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
   ETRACE_V( uiScanIndex );
   ETRACE_N;
 
-  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, m_auiShiftLuma, rbLast, ruiNumCoefWritten ) );
+  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, 1, pucScan, uiScanIndex, m_auiShiftLuma, rbLast, ruiNumCoefWritten ) );
   return Err::m_nOK;
 }
 
@@ -1892,7 +1877,7 @@ UvlcWriter::RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
   ETRACE_V( uiScanIndex );
   ETRACE_N;
 
-  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, m_auiShiftChroma, rbLast, ruiNumCoefWritten ) );
+  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, 1, pucScan, uiScanIndex, m_auiShiftChroma, rbLast, ruiNumCoefWritten ) );
 
   return Err::m_nOK;
 }
@@ -1902,7 +1887,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
                                  TCoeff*       piCoeffBase,
                                  UInt          uiStart,
                                  UInt          uiStop,
-                                 ResidualMode  eResidualMode,
+                                 UInt          uiStride,
                                  const UChar*  pucScan,
                                  UInt          uiScanIndex,
                                  UInt*         pauiEobShift,
@@ -1912,11 +1897,11 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
   UInt ui;
 
   UInt uiCycle = 0;
-  for ( ui=uiStart; ui<uiScanIndex; ui++ )
+  for ( ui=uiStart; ui<uiScanIndex; ui+=uiStride )
   {
     if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
     {
-      uiCycle = ui + 1;
+      uiCycle = ui/uiStride + 1;
     }
   }
   AOF( uiCycle < uiStop );
@@ -1926,7 +1911,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
   if( rbLast )
   {
     rbLast = true;
-    for( ui = uiScanIndex; ui < uiStop; ui++ )
+    for( ui = uiScanIndex; ui < uiStop; ui+=uiStride )
     {
       if( piCoeff[pucScan[ui]] && !piCoeffBase[pucScan[ui]] )
       {
@@ -1937,8 +1922,8 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
     if (rbLast) {
 
       UInt uiCountMag2;
-      UInt uiLastPos = 0;
-      for( ui = uiStart; ui < uiStop; ui++ )
+      UInt uiLastPos = 1;
+      for( ui = uiStart; ui < uiStop; ui+=uiStride )
       {
         if ( ! piCoeffBase[pucScan[ui]] )
           uiLastPos++;
@@ -1947,7 +1932,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
           uiLastPos = 1;
         }
       }
-      RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, uiLastPos, uiStart, uiStop, uiCycle, pucScan, uiCountMag2 ) );
+      RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, uiLastPos, uiStart, uiStop, uiCycle, pucScan, uiCountMag2, uiStride ) );
 
       if ( uiCountMag2 == 0 )
       {
@@ -1964,10 +1949,10 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
   {
     ruiNumCoefWritten++;
 
-    UInt uiLastScanPosition = uiScanIndex + 1;
+    UInt uiLastScanPosition = uiScanIndex + uiStride;
     while (uiLastScanPosition < uiStop && piCoeffBase[pucScan[uiLastScanPosition]])
-      uiLastScanPosition ++;
-  
+      uiLastScanPosition += uiStride;
+
     if (uiLastScanPosition < uiStop)
     {
       uiSig = piCoeff[pucScan[uiScanIndex] ] ? 1 : 0;
@@ -1980,9 +1965,9 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
       break;
     }
 
-    uiScanIndex++;
+    uiScanIndex+=uiStride;
     while (uiScanIndex < uiStop && piCoeffBase[pucScan[uiScanIndex]])
-      uiScanIndex++;
+      uiScanIndex+=uiStride;
   }
   while ( true );
   UInt uiSymbol = ruiNumCoefWritten - ((bSkipEob || ruiNumCoefWritten <= pauiEobShift[uiCycle]) ? 1 : 0);
@@ -1991,7 +1976,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
 
   // Check whether any more nonzero values
   Bool bFinished = true;
-  for( ui=uiScanIndex+1; ui<uiStop; ui++ )
+  for( ui=uiScanIndex+uiStride; ui<uiStop; ui+=uiStride )
   {
     bFinished &= ( piCoeffBase[pucScan[ui]] != 0 );
     if( !bFinished )
@@ -2000,7 +1985,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
   if( bFinished )
   {
     UInt uiCountMag2;
-    RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, 0, uiStart, uiStop, uiCycle, pucScan, uiCountMag2 ) );
+    RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, 0, uiStart, uiStop, uiCycle, pucScan, uiCountMag2, uiStride ) );
     if( uiCountMag2 == 0 )
     {
       RNOK( xWriteSigRunCode( 0, m_auiBestCodeTabMap[uiCycle] ) );
@@ -2017,14 +2002,15 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
                                      UInt    uiStop,
                                      UInt    uiVlcTable,
                                      const UChar*  pucScan,
-                                     UInt&   ruiNumMagG1 )
+                                     UInt&   ruiNumMagG1,
+                                     UInt    uiStride )
 {
   // Any magnitudes greater than one?
   ruiNumMagG1      = 0;
   UInt uiCountMag1 = 0;
   UInt uiMaxMag    = 0;
   UInt ui;
-  for( ui = uiStart; ui < uiStop; ui++ )
+  for( ui = uiStart; ui < uiStop; ui+=uiStride )
   {
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
@@ -2061,7 +2047,7 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
   UInt uiBegin     = 0;
   UInt uiEnd       = uiCountMag1;
   UInt uiCount     = 0;
-  for( ui = uiStart; ui < uiStop; ui++ )
+  for( ui = uiStart; ui < uiStop; ui+=uiStride )
   {
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
@@ -2083,7 +2069,7 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
   }
   UInt uiOutstanding = ruiNumMagG1;
   Bool bSeenMaxMag   = false;
-  for( ui = uiStart; ui < uiStop; ui++ )
+  for( ui = uiStart; ui < uiStop; ui+=uiStride )
   {
     if( !bSeenMaxMag && uiOutstanding == 1 )
       break;

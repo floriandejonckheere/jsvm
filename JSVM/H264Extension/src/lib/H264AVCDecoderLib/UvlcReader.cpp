@@ -1844,11 +1844,21 @@ UvlcReader::RQdecodeCBP_ChromaAC( MbDataAccess& rcMbDataAccess,
 }
 
 ErrVal
+UvlcReader::RQeo8b( Bool& bEob )
+{
+  UInt uiFlag;
+  RNOK( xGetFlag( uiFlag ) );
+  bEob = (uiFlag == 1);
+  return Err::m_nOK;
+}
+
+ErrVal
 UvlcReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
                                    MbDataAccess&   rcMbDataAccessBase,
                                    B8x8Idx         c8x8Idx,
                                    UInt            uiScanIndex,
-                                   Bool&           rbLast )
+                                   Bool&           rbLast,
+                                   UInt&           ruiNumCoefRead )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
@@ -1866,26 +1876,10 @@ UvlcReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
   rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+4, 1 );
   rcMbDataAccessBase.getMbData().setBCBP( c8x8Idx.b4x4()+5, 1 );
 
-  //===== last symbol ====
-  if( rbLast )
-  {
-    UInt uiSymbol;
-    RNOK( xGetFlag( uiSymbol ) );
-    rbLast = (uiSymbol == 1);
-    ROTRS( rbLast, Err::m_nOK );
-  }
+  UInt auiEobShift[16];
+  memset(auiEobShift, 0, sizeof(UInt)*16);
 
-  //===== SIGNIFICANCE BIT =====
-  UInt uiSig = 0;
-  RNOK( xGetFlag( uiSig ) );
-
-  if( uiSig )
-  {
-    Int iCoeff;
-    RNOK( xGetLevelVLC0( iCoeff ) );
-
-    piCoeff[pucScan[uiScanIndex]] = iCoeff;
-  }
+  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiScanIndex%4, 64, 4, pucScan, uiScanIndex, auiEobShift, rbLast, ruiNumCoefRead ) );
 
   return Err::m_nOK;
 }
@@ -1933,7 +1927,7 @@ UvlcReader::RQdecodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
   DTRACE_V( uiScanIndex );
   DTRACE_N;
 
-  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, m_auiShiftLuma, rbLast, ruiNumCoefRead ) );
+  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, 1, pucScan, uiScanIndex, m_auiShiftLuma, rbLast, ruiNumCoefRead ) );
 
   return Err::m_nOK;
 }
@@ -1982,7 +1976,7 @@ UvlcReader::RQdecodeNewTCoeff_Chroma( MbDataAccess&   rcMbDataAccess,
   DTRACE_V( uiScanIndex );
   DTRACE_N;
 
-  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, eResidualMode, pucScan, uiScanIndex, m_auiShiftChroma, rbLast, ruiNumCoefRead ) );
+  RNOK( xRQdecodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, 1, pucScan, uiScanIndex, m_auiShiftChroma, rbLast, ruiNumCoefRead ) );
 
   return Err::m_nOK;
 }
@@ -2013,7 +2007,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
                                   TCoeff*       piCoeffBase,
                                   UInt          uiStart,
                                   UInt          uiStop,
-                                  ResidualMode  eResidualMode,
+                                  UInt          uiStride,
                                   const UChar*  pucScan,
                                   UInt          uiScanIndex,
                                   UInt*         pauiEobShift,
@@ -2023,11 +2017,11 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
   UInt ui=0;
 
   UInt uiCycle = 0;
-  for (ui=uiStart; ui<uiScanIndex; ui++ )
+  for (ui=uiStart; ui<uiScanIndex; ui+=uiStride )
   {
     if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
     {
-      uiCycle = ui + 1;
+      uiCycle = ui/uiStride + 1;
     }
   }
   AOF( uiCycle < uiStop );
@@ -2043,16 +2037,18 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
   {
     // Determine "overshoot" symbol
     UInt uiOvershoot = 1;
-    for( ui = uiScanIndex; ui < uiStop; ui++ )
+    for( ui = uiStart; ui < uiStop; ui+=uiStride )
     {
       if ( ! piCoeffBase[pucScan[ui]] )
-      {
         uiOvershoot++;
+      if( ui < uiScanIndex && piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
+      {
+        uiOvershoot = 1;
       }
     }
     if ( uiSymbol > uiOvershoot )
     {
-      RNOK( xRQdecodeSigMagGreater1( piCoeff, piCoeffBase, pucScan, uiSymbol-uiOvershoot-1, uiStart, uiStop ) );
+      RNOK( xRQdecodeSigMagGreater1( piCoeff, piCoeffBase, pucScan, uiSymbol-uiOvershoot-1, uiStart, uiStop, uiStride ) );
       rbLast = true;
     } else {
       rbLast = ( uiSymbol == pauiEobShift[uiCycle]) || ( uiSymbol == uiOvershoot );
@@ -2073,9 +2069,9 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
       break;
     }
 
-    uiScanIndex++;
+    uiScanIndex += uiStride;
     while (uiScanIndex < uiStop && piCoeffBase[pucScan[uiScanIndex]])
-      uiScanIndex++;
+      uiScanIndex += uiStride;
   }
   while ( true );
   RNOK( xGetFlag( uiSymbol ) );
@@ -2083,7 +2079,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
 
   // Check whether any more nonzero values
   Bool bFinished = true;
-  for( ui=uiScanIndex+1; ui<uiStop; ui++ )
+  for( ui=uiScanIndex+uiStride; ui<uiStop; ui+=uiStride )
   {
     bFinished &= ( piCoeffBase[pucScan[ui]] != 0 );
     if( !bFinished )
@@ -2095,7 +2091,7 @@ UvlcReader::xRQdecodeNewTCoeffs( TCoeff*       piCoeff,
     RNOK( xGetSigRunCode( uiSymbol, m_auiBestCodeTab[uiCycle] ) );
     if( uiSymbol > 0 )
     {
-      RNOK( xRQdecodeSigMagGreater1( piCoeff, piCoeffBase, pucScan, uiSymbol-1, uiStart, uiStop ) );
+      RNOK( xRQdecodeSigMagGreater1( piCoeff, piCoeffBase, pucScan, uiSymbol-1, uiStart, uiStop, uiStride ) );
     }
   }
   return Err::m_nOK;
@@ -2107,12 +2103,13 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
                                      const UChar* pucScan,
                                      UInt    uiTermSym,
                                      UInt    uiStart,
-                                     UInt    uiStop )
+                                     UInt    uiStop,
+                                     UInt    uiStride )
 {
   // Find optimal terminating code
   UInt ui;
   UInt uiCountMag1 = 0;
-  for (ui=uiStart; ui<uiStop; ui++ )
+  for (ui=uiStart; ui<uiStop; ui+=uiStride )
   {
     if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
     {
@@ -2135,17 +2132,17 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
   UInt uiRemaining = uiCountMag2;
   UInt uiEnd       = uiCountMag1;
   UInt uiCount     = 0;
-  for (ui=uiStart; ui<uiStop; ui++)
+  for (ui=uiStart; ui<uiStop; ui+=uiStride )
   {
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
       if( uiRemaining+uiCount == uiEnd )
       {
-        auiRemMag[ui] = 1-uiFlip;
+        auiRemMag[ui/uiStride] = 1-uiFlip;
         uiRemaining--;
       } else {
-        RNOK( xGetFlag( auiRemMag[ui] ) );
-        uiRemaining -= auiRemMag[ui] ? 1-uiFlip : uiFlip;
+        RNOK( xGetFlag( auiRemMag[ui/uiStride] ) );
+        uiRemaining -= auiRemMag[ui/uiStride] ? 1-uiFlip : uiFlip;
       }
       if( uiRemaining == 0 )
         break;
@@ -2155,17 +2152,17 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
 
   UInt uiOutstanding = uiCountMag2;
   Bool bSeenMaxMag   = false;
-  for(ui = uiStart; ui < uiStop; ui++ )
+  for(ui = uiStart; ui < uiStop; ui+=uiStride )
   {
     if( !bSeenMaxMag && uiOutstanding == 1 )
       break;
-    if( auiRemMag[ui] )
+    if( auiRemMag[ui/uiStride] )
     {
       UInt uiBit;
       UInt uiSymbol = 0;
       for ( UInt uiCutoff=1; uiCutoff<uiMaxMag; uiCutoff++ )
       {
-        auiRemMag[ui] = 0;
+        auiRemMag[ui/uiStride] = 0;
         RNOK( xGetFlag( uiBit ) );
         if( uiBit )
           uiSymbol++;
@@ -2180,9 +2177,9 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
         break;
     }
   }
-  for (ui=uiStart; ui<uiStop; ui++ )
+  for (ui=uiStart; ui<uiStop; ui+=uiStride )
   {
-    if ( auiRemMag[ui] )
+    if ( auiRemMag[ui/uiStride] )
     {
       piCoeff[pucScan[ui]] = ( piCoeff[pucScan[ui]] > 0 ) ? (Int)uiMaxMag : -(Int)uiMaxMag;
     }

@@ -265,7 +265,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   else
   {
     J = 1; M = 13; 
-    if(output_chroma_phase_shift_x)
+    if(uv_flag)
     {
 	    J ++;
 	    M --;
@@ -312,7 +312,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   else
   {
     J = 1; M = 13; 
-    if(output_chroma_phase_shift_y)
+    if(uv_flag)
     {
 	    J ++;
 	    M --;
@@ -630,7 +630,7 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   {
     //int F = 4; 
     int G = 2, J = 1, M = 13, S = 12;
-    if(output_chroma_phase_shift_x)
+    if(chroma)
     {
   	  J ++;
   	  M --;
@@ -745,7 +745,7 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
   {
     //int F = 4;
     int G = 2, J = 1, M = 13, S = 12;
-    if(output_chroma_phase_shift_y)
+    if(chroma)
     {
 	  J ++;
 	  M --;
