@@ -188,6 +188,7 @@ public:
   ErrVal  getBaseLayerData              ( IntFrame*&      pcFrame,
                                           IntFrame*&      pcResidual,
                                           MbDataCtrl*&    pcMbDataCtrl,
+																					MbDataCtrl*&    pcMbDataCtrlEL,
                                           Bool&           rbConstrainedIPred,
                                           Bool&           rbSpatialScalability,
                                           UInt            uiLayerId,
@@ -351,6 +352,9 @@ protected:
 
   bool	m_bCurNalIsEndOfPic;
   bool	m_bFirstFGS;
+
+public:
+  MbDataCtrl*         m_pcBaseLayerCtrlEL;
 };
 
 H264AVC_NAMESPACE_END

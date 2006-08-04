@@ -137,6 +137,7 @@ DPBUnit::~DPBUnit()
   }
   delete pcMbDataCtrl;
   delete pcSliceHeader;
+
   if( m_pcFrame )
   {
     m_pcFrame->uninit();
@@ -1438,6 +1439,7 @@ MCTFDecoder::MCTFDecoder()
 , m_pcBaseLayerFrame              ( 0 )
 , m_pcBaseLayerCtrl               ( 0 )
 , m_pcCurrDPBUnit                 ( 0 )
+, m_pcBaseLayerCtrlEL             ( 0 )	// ICU/ETRI FGS_MOT_USE
 , m_uiLayerId                     ( 0 )
 , m_bActive                       ( false )
 , m_uiQualityLevelForPrediction   ( 3 )
@@ -1543,6 +1545,7 @@ MCTFDecoder::init( H264AVCDecoder*      pcH264AVCDecoder,
   m_pcPredSignal                  = 0;
   m_pcBaseLayerCtrl               = 0;
   m_pcCurrDPBUnit                 = 0;
+  m_pcBaseLayerCtrlEL             = 0;
 
   m_uiLayerId                     = 0;
 
@@ -1682,6 +1685,7 @@ ErrVal
 MCTFDecoder::getBaseLayerData ( IntFrame*&    pcFrame,
                                 IntFrame*&    pcResidual,
                                 MbDataCtrl*&  pcMbDataCtrl,
+                                MbDataCtrl*&  pcMbDataCtrlEL,		// ICU/ETRI FGS_MOT_USE
                                 Bool&         rbConstrainedIPred,
                                 Bool          bSpatialScalability,
                                 Int           iPoc )
@@ -1689,6 +1693,8 @@ MCTFDecoder::getBaseLayerData ( IntFrame*&    pcFrame,
   pcFrame                     = 0;
   pcResidual                  = 0;
   pcMbDataCtrl                = 0;
+  pcMbDataCtrlEL              = 0;
+
   SliceHeader*  pcSliceHeader = 0;
   DPBUnit*      pcBaseDPBUnit = m_pcDecodedPictureBuffer->getDPBUnit( iPoc );
   ROF( pcBaseDPBUnit );
@@ -1696,6 +1702,8 @@ MCTFDecoder::getBaseLayerData ( IntFrame*&    pcFrame,
   pcFrame       = m_pcILPrediction;
   pcResidual    = m_pcResidual;
   pcMbDataCtrl  = pcBaseDPBUnit->getCtrlData().getMbDataCtrl  ();
+  pcMbDataCtrlEL  = m_pcBaseLayerCtrlEL;
+
   pcSliceHeader = pcBaseDPBUnit->getCtrlData().getSliceHeader ();
   rbConstrainedIPred = pcBaseDPBUnit->isConstrIPred();
 
@@ -1780,6 +1788,11 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
   ROFS   ( ( m_pcBaseLayerCtrl = new MbDataCtrl() ) );
   RNOK    (   m_pcBaseLayerCtrl ->init          ( rcSPS ) );
 
+  ROFS   ( ( m_pcBaseLayerCtrlEL = new MbDataCtrl() ) );
+  RNOK    (   m_pcBaseLayerCtrlEL ->init          ( rcSPS ) );
+
+  m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL = new MbDataCtrl();
+  m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL->init(rcSPS);
 
 
   //========== CREATE UPDATE WEIGHTS ARRAY and WRITE BUFFER ==========
@@ -1848,6 +1861,21 @@ MCTFDecoder::xDeleteData()
     RNOK( m_pcBaseLayerCtrl->uninit() );
     delete m_pcBaseLayerCtrl;
     m_pcBaseLayerCtrl = 0;
+  }
+
+  // ICU/ETRI FGS_MOT_USE
+  if( m_pcBaseLayerCtrlEL )
+  {
+    RNOK( m_pcBaseLayerCtrlEL->uninit() );
+    delete m_pcBaseLayerCtrlEL;
+    m_pcBaseLayerCtrlEL = 0;
+  }
+
+  if (m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL)
+  {
+		m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL->uninit();
+		delete m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL;
+		m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL = 0;
   }
 
   return Err::m_nOK;
@@ -2200,6 +2228,14 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
       }
 
       RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
+
+      // ICU/ETRI FGS_MOT_USE
+      if (!m_pcRQFGSDecoder->getSliceHeader()->isIntra())
+      {
+        m_pcBaseLayerCtrlEL->copyMotion(*(m_pcRQFGSDecoder->getMbDataCtrlEL()));
+        m_pcBaseLayerCtrlEL->SetMbStride(m_pcRQFGSDecoder->getMbDataCtrlEL()->GetMbStride());
+        m_pcBaseLayerCtrlEL->xSetDirect8x8InferenceFlag(m_pcRQFGSDecoder->getMbDataCtrlEL()->xGetDirect8x8InferenceFlagPublic());	
+      }
     }
   }
 
@@ -2283,7 +2319,8 @@ MCTFDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
 //TMM_EC {{
 
 ErrVal
-MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSliceHeaderBase )
+MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
+							SliceHeader *&rcSliceHeaderBase )
 {
   //===== init =====
   rcControlData.setBaseLayerRec ( 0 );
@@ -2294,13 +2331,15 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSlic
   IntFrame*   pcBaseFrame         = 0;
   IntFrame*   pcBaseResidual      = 0;
   MbDataCtrl* pcBaseDataCtrl      = 0;
+  MbDataCtrl* pcBaseDataCtrlEL      = 0;
+
   Bool        bConstrainedIPredBL = false;
   Bool        bSpatialScalability = false;
   Bool        bBaseDataAvailable  = false;
 
   if( rcControlData.getSliceHeader()->getBaseLayerId() != MSYS_UINT_MAX )
   {
-    RNOK( m_pcH264AVCDecoder->getBaseLayerData( pcBaseFrame, pcBaseResidual, pcBaseDataCtrl, bConstrainedIPredBL, bSpatialScalability,
+		RNOK( m_pcH264AVCDecoder->getBaseLayerData( pcBaseFrame, pcBaseResidual, pcBaseDataCtrl, pcBaseDataCtrlEL, bConstrainedIPredBL, bSpatialScalability,
                                                 m_uiLayerId,
                                                 rcControlData.getSliceHeader()->getBaseLayerId(),
                                                 rcControlData.getSliceHeader()->getPoc() ) );    
@@ -2332,7 +2371,18 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData, SliceHeader *&rcSlic
         m_pcResizeParameter->m_aiRefListPoc[1][uiIndex-1]=rcList1[uiIndex]->getPOC() ;
         // BUGFIX_JV }
       }
-    RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameter) );
+
+
+		if (!m_pcRQFGSDecoder->isUseFGSMotion(rcControlData.getSliceHeader()->getBaseLayerId()) 
+			|| rcControlData.getSliceHeader()->getSliceType() == I_SLICE)
+		{
+			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameter) );
+		}
+		else
+		{
+			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrlEL, m_pcResizeParameter) );
+		}
+
 
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
 
@@ -2475,8 +2525,8 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   }
 //TMM_EC{{
   else
-  { 
-    RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(),pcSliceHeaderBase) );
+  { 	
+		RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(),pcSliceHeaderBase ) );
 		if (pcSliceHeaderBase != NULL)
 		{
 			rpcSliceHeader->setNumRefIdxActive( LIST_0, pcSliceHeaderBase->getNumRefIdxActive(LIST_0));
@@ -2505,13 +2555,16 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
   bReconstructAll = bReconstructAll && bKeyPicture || ! bConstrainedIP;
 	
+#if 0  
   /* The following should not be required for single-loop decoding
      This was introduced by Thomson (Chen Ying). Thomson was requested
      to provide a work around. 
      We have to really implement single-loop decoding - otherwise, we
      cannot be sure that our standard works with it. 
      */
+  // note(mwi 060804): deactivated forced multi-loop as EC is broken anyway
   bReconstructAll	=	true; 
+#endif
 	
  if (m_bIsNewPic)
   {
@@ -2610,7 +2663,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   	}                                              
 //TMM_EC }}
 
-  RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(), pcSliceHeaderBase ) );
+	RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(), pcSliceHeaderBase ) );
 
   //----- decoding -----
   RNOK( m_pcControlMng  ->initSliceForDecoding( *rpcSliceHeader ) );

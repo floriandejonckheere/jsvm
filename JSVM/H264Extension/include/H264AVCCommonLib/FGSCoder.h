@@ -208,6 +208,7 @@ public:
 
   IntFrame*   getBaseLayerSbb()   { return m_pcBaseLayerSbb;   }
   MbDataCtrl* getMbDataCtrl()     { return m_pcCurrMbDataCtrl; }
+  MbDataCtrl* getMbDataCtrlEL()     { return &m_cMbDataCtrlEL; }
 
   enum
   {

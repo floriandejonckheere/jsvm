@@ -127,6 +127,7 @@ sub InitSimu($;$)
 
   (defined $simu->{cropfilename}) and $simu->{cropfilename}=ConcatPath($param->{path_crop},$simu->{cropfilename});
   (defined $simu->{verbosemode} ) or  $simu->{verbosemode}   = 1;
+  (defined $simu->{phaseemode}  ) or  $simu->{phaseemode}    = 0;
   (defined $simu->{runencode}   ) or  $simu->{runencode}     = 1;
   (defined $simu->{nbfgslayer}  ) or  $simu->{nbfgslayer}    = 2;
   (defined $simu->{qualitylayer}) or  $simu->{qualitylayer}  = 0; #0: off 1: PID NAL 2:SEI
@@ -273,6 +274,7 @@ sub CreateSequences($;$)
       $simu->{width},
       $simu->{height},
       $simu->{framerate},
+      $simu->{phasemode},
       $essopt,
       $nbfr,
       $simu->{cropfilename});
@@ -317,6 +319,7 @@ sub CreateSequences($;$)
       $layer->{width},
       $layer->{height},
       $layer->{framerate},
+      $simu->{phasemode},
       $essopt,
       $nbfr,
       $layer->{cropfilename});
@@ -353,6 +356,7 @@ sub CreateSequences($;$)
       $test->{width},
       $test->{height},
       $test->{framerate},
+      $simu->{phasemode},
       $essopt,
       $nbfr,
       $test->{cropfilename});

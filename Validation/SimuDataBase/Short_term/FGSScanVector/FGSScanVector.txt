@@ -12,6 +12,7 @@
     framerate 	=> 30,
     nbframes	=> 40,
     verbosemode => 1,
+    phasemode   => 1,
 
 #==========================================================#
 #               Encoding parameters                        #
@@ -57,7 +58,7 @@
 				                width => 176,
 				                height => 144,
             		        bitrate => 90,
-            		        psnr => 27.31,
+            		        psnr => 27.3066,
             		      },
 			                #----------#
                       # Test   2 #
@@ -67,8 +68,8 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 251,
-            		        psnr => 31.48,
+            		        bitrate => 252,
+            		        psnr => 31.4752,
 				                encdecmatch => 1,
             		      },
 		  ],

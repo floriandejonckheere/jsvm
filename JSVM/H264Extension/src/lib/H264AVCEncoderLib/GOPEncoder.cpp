@@ -206,6 +206,8 @@ MCTFEncoder::MCTFEncoder()
 //----- control data arrays -----
 , m_pacControlData                  ( 0 )
 , m_pcBaseLayerCtrl                 ( 0 )
+, m_pcBaseLayerCtrlEL				( 0 )
+, m_pacControlDataEL				( 0 )
 //----- auxiliary buffers -----
 , m_uiWriteBufferSize               ( 0 )
 , m_pucWriteBuffer                  ( 0 )
@@ -889,6 +891,7 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
 
   //========== CREATE MACROBLOCK DATA MEMORIES ==========
   ROFS   ( ( m_pacControlData  = new ControlData[ m_uiMaxGOPSize + 1 ] ) );
+  ROFS   ( ( m_pacControlDataEL  = new ControlData[ m_uiMaxGOPSize + 1 ] ) );
 
   for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
   {
@@ -898,21 +901,38 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     RNOK  (       m_pacControlData[ uiIndex ] . setMbDataCtrl   ( pcMbDataCtrl ) );
     RNOK  (       m_pacControlData[ uiIndex ] .initFGSData      ( m_uiFrameWidthInMb * m_uiFrameHeightInMb ) );
 
+  	MbDataCtrl*   pcMbDataCtrlEL                = 0;
+    ROFS ( (     pcMbDataCtrlEL                = new MbDataCtrl  () ) );
+    RNOK  (       pcMbDataCtrlEL                ->init            ( rcSPS ) );
+    RNOK  (       m_pacControlDataEL[ uiIndex ] . setMbDataCtrl   ( pcMbDataCtrlEL ) );
+	  RNOK  (       m_pacControlDataEL[ uiIndex ] .initFGSData      ( m_uiFrameWidthInMb * m_uiFrameHeightInMb ) );
+
     Bool          bLowPass                    = ( ( uiIndex % ( 1 << m_uiDecompositionStages ) ) == 0 );
     SliceHeader*  pcSliceHeader               = 0;
     ROFS ( (     pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ) );
     RNOK  (       m_pacControlData[ uiIndex ] . setSliceHeader  (  pcSliceHeader ) );
 
+  // ICU/ETRI FGS_MOT_USE
+	SliceHeader*  pcSliceHeaderEL               = 0;
+	ROFS ( (     pcSliceHeaderEL               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ) );
+	RNOK  (       m_pacControlDataEL[ uiIndex ] . setSliceHeader  (  pcSliceHeaderEL ) );
+
     if( m_uiClosedLoopMode == 2 )
     {
       RNOK(       m_pacControlData[ uiIndex ] .initBQData       ( m_uiFrameWidthInMb * m_uiFrameHeightInMb ) );
+			// ICU/ETRI FGS_MOT_USE
+	  RNOK(       m_pacControlDataEL[ uiIndex ] .initBQData       ( m_uiFrameWidthInMb * m_uiFrameHeightInMb ) );
     }
 
-    m_pacControlData[ uiIndex ].getMbDataCtrl()->initFgsBQData(m_uiFrameWidthInMb * m_uiFrameHeightInMb);
+    m_pacControlData[ uiIndex ].getMbDataCtrl()->initFgsBQData(m_uiFrameWidthInMb * m_uiFrameHeightInMb);		
+	  m_pacControlDataEL[ uiIndex ].getMbDataCtrl()->initFgsBQData(m_uiFrameWidthInMb * m_uiFrameHeightInMb);
   }
   
   ROFS   ( ( m_pcBaseLayerCtrl = new MbDataCtrl() ) );
   RNOK    (   m_pcBaseLayerCtrl ->init          ( rcSPS ) );
+
+  ROFS   ( ( m_pcBaseLayerCtrlEL = new MbDataCtrl() ) );
+  RNOK    (   m_pcBaseLayerCtrlEL ->init          ( rcSPS ) );
 
 
 
@@ -1161,12 +1181,43 @@ MCTFEncoder::xDeleteData()
     m_pacControlData = 0;
   }
 
+  // ICU/ETRI FGS_MOT_USE
+	if( m_pacControlDataEL )
+  {
+    for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
+    {
+      RNOK( m_pacControlDataEL[ uiIndex ].uninitBQData() );
+      RNOK( m_pacControlDataEL[ uiIndex ].uninitFGSData() );
+
+      RNOK( m_pacControlDataEL[ uiIndex ].getMbDataCtrl()->uninitFgsBQData() );
+
+      MbDataCtrl*   pcMbDataCtrlEL  = m_pacControlDataEL[ uiIndex ].getMbDataCtrl  ();
+      SliceHeader*  pcSliceHeaderEL = m_pacControlDataEL[ uiIndex ].getSliceHeader ();
+      if( pcMbDataCtrlEL )
+      {
+        RNOK( pcMbDataCtrlEL->uninit() );
+      }
+      delete pcMbDataCtrlEL;
+      delete pcSliceHeaderEL;
+    }
+    delete [] m_pacControlDataEL;
+    m_pacControlDataEL = 0;
+  }
+
 
   if( m_pcBaseLayerCtrl )
   {
     RNOK( m_pcBaseLayerCtrl->uninit() );
     delete m_pcBaseLayerCtrl;
     m_pcBaseLayerCtrl = 0;
+  }
+
+  // ICU/ETRI FGS_MOT_USE
+  if( m_pcBaseLayerCtrlEL )
+  {
+    RNOK( m_pcBaseLayerCtrlEL->uninit() );
+    delete m_pcBaseLayerCtrlEL;
+    m_pcBaseLayerCtrlEL = 0;
   }
   
 
@@ -2381,6 +2432,17 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
       RNOK( rcControlData.saveMbDataQpAndCbp() );
     }
   }
+
+  // ICU/ETRI FGS_MOT_USE
+	m_pacControlDataEL[uiFrameIdInGOP].getMbDataCtrl()
+		->copyMotion(*(m_pcRQFGSEncoder->getMbDataCtrlEL()));
+
+	m_pacControlDataEL[uiFrameIdInGOP].getMbDataCtrl()
+		->SetMbStride(m_pcRQFGSEncoder->getMbDataCtrlEL()->GetMbStride());
+
+	m_pacControlDataEL[uiFrameIdInGOP].getMbDataCtrl()
+		->xSetDirect8x8InferenceFlag(m_pcRQFGSEncoder
+		->getMbDataCtrlEL()->xGetDirect8x8InferenceFlagPublic());
   
   if(bAlreadyReconstructed)  // x. wang, Nokia
     pcFrame->copy(pcRecTemp);
@@ -3083,6 +3145,7 @@ ErrVal
 MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
                                IntFrame*&     pcResidual,
                                MbDataCtrl*&   pcMbDataCtrl,
+															 MbDataCtrl*& pcMbDataCtrlEL,		// ICU/ETRI FGS_MOT_USE
                                Bool&          bConstrainedIPredBL,
                                Bool&          bForCopyOnly,
                                Int            iSpatialScalability,
@@ -3094,6 +3157,7 @@ MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
   pcResidual    = 0;
   pcMbDataCtrl  = 0;
   bForCopyOnly  = 0;
+  pcMbDataCtrlEL = 0;
 
   for( UInt uiFrame = 0; uiFrame <= m_uiGOPSize; uiFrame++ )
   {
@@ -3108,6 +3172,10 @@ MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
         m_pacControlData[uiFrame].activateMbDataCtrlForQpAndCbp( false ); //    -> need correct CBP values for loop filter of next layer (residual prediction)
                                                                           //    -> it cannot be reset after this assignment !!!
         pcMbDataCtrl  = m_pacControlData[uiFrame].getMbDataCtrl();        //    -> it is reset in ControlData::clear at the beginning of the next GOP
+
+				// ICU/ETRI FGS_MOT_USE
+				pcMbDataCtrlEL  = m_pacControlDataEL[uiFrame].getMbDataCtrl();        //    -> it is reset in ControlData::clear at the beginning of the next GOP
+
         bForCopyOnly  = false;
 
         bConstrainedIPredBL = m_pacControlData[uiFrame].getSliceHeader()->getPPS().getConstrainedIntraPredFlag();
@@ -4017,7 +4085,8 @@ ErrVal
 MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData, 
                                  UInt          uiBaseLevel, //TMM_ESS
                                  UInt          uiFrame,     //TMM_ESS
-                                 Bool bMotion )
+                                 Bool bMotion 
+								 )
 {
   //===== init =====
   rcControlData.setBaseLayerRec ( 0 );
@@ -4028,21 +4097,25 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
   IntFrame*     pcBaseFrame         = 0;
   IntFrame*     pcBaseResidual      = 0;
   MbDataCtrl*   pcBaseDataCtrl      = 0;
+  MbDataCtrl*   pcBaseDataCtrlEL	  = 0;
+
   Bool          bConstrainedIPredBL = false;
   Bool          bForCopyOnly        = false;
   Bool          bBaseDataAvailable  = false;
 
   if( rcControlData.getBaseLayerIdMotion() != MSYS_UINT_MAX )
   {
-    RNOK( m_pcH264AVCEncoder->getBaseLayerData( pcBaseFrame,
+	  RNOK( m_pcH264AVCEncoder->getBaseLayerData( pcBaseFrame,
                                                 pcBaseResidual,
                                                 pcBaseDataCtrl,
+																								pcBaseDataCtrlEL,
                                                 bConstrainedIPredBL,
                                                 bForCopyOnly,
                                                 rcControlData.getSpatialScalabilityType (),
                                                 rcControlData.getBaseLayerIdMotion      (),
                                                 rcControlData.getSliceHeader()->getPoc  (), 
-                                                bMotion ) );
+                                                bMotion  ));
+
     bBaseDataAvailable = pcBaseFrame && pcBaseResidual && pcBaseDataCtrl;
   }
 
@@ -4057,8 +4130,17 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
       {
         RNOK( xFillPredictionLists_ESS( uiBaseLevel, uiFrame) );
       }
-    RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
-  
+
+		// ICU/ETRI FGS_MOT_USE
+		if (rcControlData.getSliceHeader()->getSliceType() == I_SLICE)
+		{
+			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
+		}
+		else
+		{
+			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrlEL, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
+		}
+		
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
 
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
@@ -4138,7 +4220,7 @@ MCTFEncoder::xInitControlDataMotion( UInt uiBaseLevel,
   if( bMotionEstimation )
   {
     //TMM_ESS
-    RNOK( xInitBaseLayerData( rcControlData,uiBaseLevel, uiFrame,true ) ); 
+    RNOK( xInitBaseLayerData( rcControlData,uiBaseLevel, uiFrame,true) ); 
   }
 
   return Err::m_nOK;

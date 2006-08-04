@@ -12,6 +12,7 @@
     framerate 	=> 30,
     nbframes	=> 40,
     verbosemode => 1,
+    phasemode   => 1,
 
 #==========================================================#
 #               Encoding parameters                        #

@@ -157,7 +157,6 @@ public:
   Bool          isConstrIPred ()  const { return m_bConstrainedIntraPred; }
   IntFrame*     getFrame      ()        { return m_pcFrame; }
   ControlData&  getCtrlData   ()        { return m_cControlData; }
-
   Int           getPicNum     ( UInt uiCurrFrameNum, 
                                 UInt uiMaxFrameNum ) const
   {
@@ -368,6 +367,7 @@ public:
   ErrVal          getBaseLayerData              ( IntFrame*&    pcFrame,
                                                   IntFrame*&    pcResidual,
                                                   MbDataCtrl*&  pcMbDataCtrl,
+																									MbDataCtrl*&  pcMbDataCtrlEL,
                                                   Bool&         rbConstrainedIPred,
                                                   Bool          bSpatialScalability,
                                                   Int           iPoc );
@@ -401,7 +401,8 @@ protected:
   ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
                                                 IntFrame*                     pcFrame );
 //TMM_EC 
-  ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData, SliceHeader *&rcSliceHeaderBase);
+  ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData,
+												SliceHeader *&rcSliceHeaderBase);
   ErrVal      xInitESSandCroppingWindow       ( SliceHeader&                  rcSliceHeader,
                                                 MbDataCtrl&                   rcMbDataCtrl );
   
@@ -474,6 +475,8 @@ protected:
   IntFrame*           m_pcBaseLayerResidual;
   MbDataCtrl*         m_pcBaseLayerCtrl;
   DPBUnit*            m_pcCurrDPBUnit;
+
+  MbDataCtrl*         m_pcBaseLayerCtrlEL;
 
   UInt                m_uiNumLayers[2];
   

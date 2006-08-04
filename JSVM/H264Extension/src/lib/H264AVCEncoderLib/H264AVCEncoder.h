@@ -158,6 +158,7 @@ public:
   ErrVal  getBaseLayerData    ( IntFrame*&    pcFrame,
                                 IntFrame*&    pcResidual,
                                 MbDataCtrl*&  pcMbDataCtrl,
+																MbDataCtrl*&  pcMbDataCtrlEL,
                                 Bool&         bConstrainedIPredBL,
                                 Bool&         bForCopyOnly,
                                 Int                             iSpatialScalability,

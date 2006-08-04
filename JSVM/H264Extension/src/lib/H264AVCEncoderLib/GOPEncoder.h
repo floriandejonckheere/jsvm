@@ -258,6 +258,7 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   ErrVal        getBaseLayerData    ( IntFrame*&                      pcFrame,
                                       IntFrame*&                      pcResidual,
                                       MbDataCtrl*&                    pcMbDataCtrl,
+																		  MbDataCtrl*&                    pcMbDataCtrlEL,			// ICU/ETRI FGS_MOT_USE
                                       Bool&                           bConstrainedIPredBL,
                                       Bool&                           bForCopyOnly,
                                       Int                             iSpatialScalability,
@@ -341,7 +342,7 @@ protected:
   ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData, 
                                           UInt                        uiBaseLevel,  //TMM_ESS
                                           UInt                        uiFrame,      //TMM_ESS
-                                          Bool                        bMotion = false ); 
+                                          Bool                        bMotion = false  ); 
   ErrVal  xInitControlDataMotion        ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bMotionEstimation );
@@ -571,6 +572,9 @@ protected:
   //----- control data arrays -----
   ControlData*                  m_pacControlData;                     // control data arrays
   MbDataCtrl*                   m_pcBaseLayerCtrl;                    // macroblock data of the base layer pictures
+
+	ControlData*                  m_pacControlDataEL;                     // control data arrays
+	MbDataCtrl*                   m_pcBaseLayerCtrlEL;                    // macroblock data of the base layer pictures
 
   //----- auxiliary buffers -----
   UInt                          m_uiWriteBufferSize;                  // size of temporary write buffer

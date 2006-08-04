@@ -9,6 +9,7 @@ height      => 288,
 framerate   => 30,
 nbframes    => 33,
 verbosemode => 1,	
+phasemode   => 1,
 
 #==========================================================#
 #               Encoding parameters                        #
@@ -51,7 +52,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
                         bitrate     => 656,
-                        psnr        => 28.9976,
+                        psnr        => 28.9882,
                         usesip      => 2,
                        },
                        #----------#

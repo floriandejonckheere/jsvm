@@ -187,6 +187,7 @@ ErrVal
 H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
                                   IntFrame*&    pcResidual,
                                   MbDataCtrl*&  pcMbDataCtrl,
+																	MbDataCtrl*&  pcMbDataCtrlEL,		// ICU/ETRI FGS_MOT_USE
                                   Bool&         bConstrainedIPredBL,
                                   Bool&         bForCopyOnly,
                                   Int           iSpatialScalability,
@@ -196,8 +197,17 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
 {
   ROF ( uiBaseLayerId < MAX_LAYERS );
 
-  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl, bConstrainedIPredBL,
-                                                           bForCopyOnly, iSpatialScalability, iPoc, bMotion ) );
+	// ICU/ETRI FGS_MOT_USE
+	RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl
+	  , pcMbDataCtrlEL, bConstrainedIPredBL, bForCopyOnly, iSpatialScalability, iPoc, bMotion ) );
+
+	LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
+    UInt uiFgsMotionMode = rcBaseLayer.getFGSMotionMode();
+
+  if (!uiFgsMotionMode)
+  {	
+		pcMbDataCtrlEL = pcMbDataCtrl;
+  }
 
   return Err::m_nOK;
 }

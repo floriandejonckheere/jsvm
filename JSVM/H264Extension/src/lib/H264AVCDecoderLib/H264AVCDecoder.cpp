@@ -155,7 +155,7 @@ H264AVCDecoder::H264AVCDecoder()
 //~JVT-P031
 , m_bFGSCodingMode                ( false )
 , m_uiGroupingSize                ( 1 )
-
+, m_pcBaseLayerCtrlEL						  ( 0 )		// ICU/ETRI FGS_MOT_USE
 , m_iCurNalSpatialLayer		(-1)
 , m_iNextNalSpatialLayer	(-1)			   
 , m_iCurNalPOC				(-1)
@@ -281,6 +281,8 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
   RNOK( m_acLastPredWeightTable[LIST_1].init( 64 ) );
 
   m_bInitDone = true;
+
+  m_pcBaseLayerCtrlEL               = 0;
 
   return Err::m_nOK;
 }
@@ -1621,6 +1623,7 @@ ErrVal
 H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
                                   IntFrame*&      pcResidual,
                                   MbDataCtrl*&    pcMbDataCtrl,
+																  MbDataCtrl*&    pcMbDataCtrlEL,
                                   Bool&           rbConstrainedIPred,
                                   Bool&           rbSpatialScalability,
                                   UInt            uiLayerId,
@@ -1644,7 +1647,7 @@ H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
 	  // TMM_ESS }
 
     //--- get data ---
-    RNOK( m_apcMCTFDecoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl, rbConstrainedIPred, rbSpatialScalability, iPoc ) );
+	RNOK( m_apcMCTFDecoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl, pcMbDataCtrlEL, rbConstrainedIPred, rbSpatialScalability, iPoc ) );
   }
   else
   {
@@ -1673,6 +1676,7 @@ H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
 //TMM_EC }}
     pcResidual          = pcFrameUnit ->getResidual();
     pcMbDataCtrl        = pcFrameUnit ->getMbDataCtrl();
+		pcMbDataCtrlEL      = m_pcBaseLayerCtrlEL;
     rbConstrainedIPred  = pcFrameUnit ->getContrainedIntraPred();
   }
 
@@ -2163,6 +2167,10 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
     m_pcVeryFirstSliceHeader->setSliceGroupChangeCycle( rcSH.getSliceGroupChangeCycle() ); // fix HS
     m_pcVeryFirstSliceHeader->FMOInit();  
     bVeryFirstSlice= true;
+
+		// ICU/ETRI FGS_MOT_USE
+    m_pcBaseLayerCtrlEL = new MbDataCtrl();
+    m_pcBaseLayerCtrlEL->init(rcSH.getSPS());
   }
 	else if ( m_bNewSPS && (rcSH.getSPS().getProfileIdc() != SCALABLE_PROFILE) )
 	{
@@ -2514,6 +2522,14 @@ H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& 
 
       RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
     }
+
+		// ICU/ETRI FGS_MOT_USE
+	  if (!m_pcRQFGSDecoder->getSliceHeader()->isIntra())
+	  {		  
+		  m_pcBaseLayerCtrlEL->copyMotion(*(m_pcRQFGSDecoder->getMbDataCtrlEL()));
+	    m_pcBaseLayerCtrlEL->SetMbStride(m_pcRQFGSDecoder->getMbDataCtrlEL()->GetMbStride());
+	    m_pcBaseLayerCtrlEL->xSetDirect8x8InferenceFlag(m_pcRQFGSDecoder->getMbDataCtrlEL()->xGetDirect8x8InferenceFlagPublic());	
+	  }
 
 
     //===== switch slice headers and update =====

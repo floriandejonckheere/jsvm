@@ -14,6 +14,7 @@
     nbframes		        => 97,
     cropfilename        => "crop.txt",
     verbosemode 	      => 1,	
+    phasemode           => 0,
 
 #==========================================================#
 #               Encoding parameters                        #

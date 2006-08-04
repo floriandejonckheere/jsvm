@@ -281,7 +281,7 @@ sub Resize($$;@)
 {
 	my $param=shift;
 	my $log=shift;
-	my ($namein,$win,$hin,$frin,$nameout,$wout,$hout,$frout,$essopt,$nbfr,$cropfile)=@_;
+	my ($namein,$win,$hin,$frin,$nameout,$wout,$hout,$frout,$phasemode,$essopt,$nbfr,$cropfile)=@_;
 	
 	my $display=1;
 	my $bin =$param->{path_bin};
@@ -295,13 +295,27 @@ sub Resize($$;@)
 		
 	if(defined $cropfile)
 	{
-    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr -crop 1 $cropfile";
+	  if($phasemode==1)
+	  {
+	    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr -crop 1 $cropfile -phase 0 0 0 0";
+	  }
+	  else
+	  {
+	    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr -crop 1 $cropfile";
+	  }
 		$ret = run($cmd, $log,0);
 		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
 	}
 	else
 	{
-    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr";
+	  if($phasemode==1)
+	  {
+	    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr -phase 0 0 0 0";
+	  }
+	  else
+	  {
+      $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr";
+    }
 		$ret = run($cmd, $log,0);
 		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
 	}  	   					         

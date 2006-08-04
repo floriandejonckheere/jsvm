@@ -10,6 +10,7 @@ height     	      => 288,
 framerate 	      => 30,
 nbframes	        => 9,
 verbosemode       => 1,
+phasemode         => 1,
 
 #==========================================================#
 #               Encoding parameters                        #

@@ -1,3 +1,19 @@
+JSVM_6_3 -> JSVM_6_4
+====================
+
+Date        : Aug. 4, 2006
+Author     : T. M. Bae (ICU)
+Contribution: JVT-T058
+
+changes:
+- Inter-layer motion prediction using FGS refined motion
+
+fixes:
+- remove forced multi-loop decoding flag in MCTFDecoder::xDecodeBaseRepresentation() (M. Wien, suggested by V. Bottreau)
+- updated Validation tests to use correct upsampling method (V. Bottreau)
+- updated Software Manual regarding dyadic downsampling with ESS and configuration (V. Bottreau, M. Wien)
+
+
 JSVM_6_2 -> JSVM_6_3
 ====================
 

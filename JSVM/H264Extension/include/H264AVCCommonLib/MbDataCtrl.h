@@ -170,6 +170,13 @@ public:
   SliceHeader*  getSliceHeader      ()  { return  m_pcSliceHeader;      }
 //TMM_WP
 
+  // ICU/ETRI FGS_MOT_USE
+	Bool xGetDirect8x8InferenceFlagPublic() { return m_bDirect8x8InferenceFlag; }
+  Void xSetDirect8x8InferenceFlag(Bool b) { m_bDirect8x8InferenceFlag = b; }
+
+  UInt GetMbStride() { return m_uiMbStride; }
+  Void SetMbStride(UInt Stride) { m_uiMbStride = Stride; }  
+
   // JVT-S054 (ADD)
   UInt getSliceId() const { return m_uiSliceId;}
 

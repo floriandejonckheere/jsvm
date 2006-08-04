@@ -125,6 +125,9 @@ RQFGSDecoder::RQFGSDecoder()
   m_paucBlockMap        = 0;
   m_paucSubMbMap        = 0;
   m_pauiMacroblockMap   = 0;
+
+	// ICU/ETRI FGS_MOT_USE
+  for (int i = 0; i < 8; ++i) m_bFGSMotionUse[i] = false;
 }
 
 
@@ -513,7 +516,7 @@ RQFGSDecoder::xDecodingFGS()
                 ! m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() &&
                 ( m_pauiMacroblockMap[uiMbYIdx * m_uiWidthInMB + uiMbXIdx] >> NUM_COEFF_SHIFT ) == 0 )
             {
-              //----- Read motion parameters the first time we visit each inter-coded macroblock -----
+              //----- Read motion parameters the first time we visit each inter-coded macroblock -----				
               RNOK( xDecodeMotionData( uiMbYIdx, uiMbXIdx ) );
             }
             //===== Luma =====
@@ -839,6 +842,9 @@ RQFGSDecoder::xDecodingFGS( SliceHeader*                pcSliceHeader 	)
 ErrVal
 RQFGSDecoder::xDecodeMotionData( UInt uiMbYIdx, UInt uiMbXIdx )
 {
+	// ICU/ETRI FGS_MOT_USE
+	m_bFGSMotionUse[m_pcCurrSliceHeader->getLayerId()] = true;
+
   DTRACE_DO( UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx );
   MbDataAccess* pcMbDataAccessEL  = 0;
   MbDataAccess* pcMbDataAccessBL  = 0;
