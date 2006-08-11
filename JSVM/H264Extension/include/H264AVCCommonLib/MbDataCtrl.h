@@ -157,7 +157,10 @@ public:
   ErrVal        copyMotionBL  ( MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters  );
   ErrVal        upsampleMotion ( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
 	// TMM_ESS }
-
+//JVT-T054{
+  ErrVal        copyMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+  ErrVal        initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+//JVT-T054}
   //--ICU/ETRI FMO Implementation
   const Int getSliceGroupIDofMb(Int mb);
 

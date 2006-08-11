@@ -178,6 +178,21 @@ MbData::copyMotionBL( MbData& rcMbData,
   return Err::m_nOK;
 }
 
+//JVT-T054{
+ErrVal
+MbData::copyMbCbp( MbData& rcMbData )
+{
+  m_uiMbCbp = rcMbData.m_uiMbCbp;
+  return Err::m_nOK;
+}
+ErrVal
+MbData::initMbCbp()
+{
+  m_uiMbCbp = 0;
+  return Err::m_nOK;
+}
+//JVT-T054}
+
 
 ErrVal
 MbData::upsampleMotion( MbData& rcMbData, Par8x8 ePar8x8, Bool bDirect8x8 )

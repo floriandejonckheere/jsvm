@@ -285,6 +285,16 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   Bool              getLARDOEnable( ){ return m_bLARDOEnable; }
   Void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
   //Bug_Fix JVT-R057{
+//JVT-T054{
+  Void          setLayerCGSSNR(UInt ui) { m_uiLayerCGSSNR = ui;}
+  Void          setQualityLevelCGSSNR(UInt ui) { m_uiQualityLevelCGSSNR = ui;}
+  UInt          getLayerCGSSNR() { return m_uiLayerCGSSNR;}
+  UInt          getQualityLevelCGSSNR() { return m_uiQualityLevelCGSSNR;}
+  Void          setBaseLayerCGSSNR(UInt ui) { m_uiBaseLayerCGSSNR = ui;}
+  Void          setBaseQualityLevelCGSSNR(UInt ui) { m_uiBaseQualityLevelCGSSNR = ui;}
+  UInt          getBaseLayerCGSSNR() { return m_uiBaseLayerCGSSNR;}
+  UInt          getBaseQualityLevelCGSSNR() { return m_uiBaseQualityLevelCGSSNR;}
+//JVT-T054}
 protected:
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
@@ -653,7 +663,12 @@ protected:
   UInt*        m_puiFirstMbInSlice;
   UInt*        m_puiLastMbInSlice;
   // JVT-S054 (ADD) <-
-
+//JVT-T054{
+  UInt                          m_uiLayerCGSSNR;
+  UInt                          m_uiQualityLevelCGSSNR;
+  UInt                          m_uiBaseLayerCGSSNR;
+  UInt                          m_uiBaseQualityLevelCGSSNR;
+//JVT-T054}
 };
 
 #if defined( WIN32 )

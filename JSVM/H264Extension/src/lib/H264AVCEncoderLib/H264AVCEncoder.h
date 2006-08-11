@@ -200,6 +200,7 @@ public:
 protected:
   ErrVal xInitParameterSets ();
   ErrVal xWriteScalableSEI  ( ExtBinDataAccessor*       pcExtBinDataAccessor );
+  ErrVal xWriteScalableSEICGSSNR  ( ExtBinDataAccessor*       pcExtBinDataAccessor ); //JVT-T054
 	ErrVal xWriteSubPicSEI		( ExtBinDataAccessor*				pcExtBinDataAccessor );
 	ErrVal xWriteSubPicSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt layer_id ) ;
 	ErrVal xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id ) ;

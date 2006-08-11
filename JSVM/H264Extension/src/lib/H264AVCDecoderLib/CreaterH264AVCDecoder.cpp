@@ -254,7 +254,13 @@ Void CreaterH264AVCDecoder::initNumberOfFragment()
     m_pcH264AVCDecoder->initNumberOfFragment();
 }
 //~JVT-P031
-
+//JVT-T054{
+Void
+CreaterH264AVCDecoder::setFGSRefInAU(Bool &b)
+{ 
+  m_pcH264AVCDecoder->setFGSRefInAU(b);
+}
+//JVT-T054}
 ErrVal
 CreaterH264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
                                                   Bool&             bFinishChecking )
@@ -835,9 +841,14 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
 
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
-		
+//JVT-T054{
+		rcPacketDescription.bEnableQLTruncation = false;
+//JVT-T054}
     if(uiTemp == F_SLICE)
     {
+//JVT-T054{
+      rcPacketDescription.bEnableQLTruncation = true;
+//JVT-T054}
        RNOK( m_pcUvlcReader->getFlag( bFragmentedFlag,  "SH: fragmented_flag" ) );
        if(bFragmentedFlag)
        {

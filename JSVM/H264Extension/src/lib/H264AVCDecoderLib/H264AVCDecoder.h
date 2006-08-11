@@ -184,16 +184,16 @@ public:
   }
 
   Bool	  IsSliceEndOfPic()				{ return m_bCurNalIsEndOfPic;  }
-
   ErrVal  getBaseLayerData              ( IntFrame*&      pcFrame,
                                           IntFrame*&      pcResidual,
                                           MbDataCtrl*&    pcMbDataCtrl,
-																					MbDataCtrl*&    pcMbDataCtrlEL,
+                                          MbDataCtrl*&    pcMbDataCtrlEL,
                                           Bool&           rbConstrainedIPred,
                                           Bool&           rbSpatialScalability,
                                           UInt            uiLayerId,
                                           UInt            uiBaseLayerId,
-                                          Int             iPoc );
+                                          Int             iPoc,
+                                          UInt            uiBaseQualityLevel); //JVT-T054
   ErrVal  getBaseLayerPWTable          ( SliceHeader::PredWeightTable*& rpcPredWeightTable,
                                          UInt                           uiBaseLayerId,
                                          ListIdx                        eListIdx,
@@ -241,7 +241,7 @@ public:
   UInt isNonRequiredPic()						  { return m_uiNonRequiredPic;  } //NonRequired JVT-Q066
   Bool isRedundantPic()             { return m_bRedundantPic; }  // JVT-Q054 Red. Picture
   ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
-
+  Void    setFGSRefInAU(Bool &b); //JVT-T054
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
@@ -253,8 +253,11 @@ protected:
   // TMM_EC }}
   ErrVal  xProcessSlice             ( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
-                                      PicBuffer*&     rpcPicBuffer );
-  ErrVal  xReconstructLastFGS       ();
+                                      PicBuffer*&     rpcPicBuffer,
+                                      PicBufferList&   rcPicBufferOutputList,
+                                      PicBufferList&   rcPicBufferUnusedList,
+                                      Bool            bHighestLayer); //JVT-T054
+  ErrVal  xReconstructLastFGS       (Bool bHighestLayer); //JVT-T054
   ErrVal  xDecodeFGSRefinement      ( SliceHeader*&   rpcSliceHeader,
                                       PicBuffer*&     rpcPicBuffer );
 
@@ -353,6 +356,13 @@ protected:
   bool	m_bCurNalIsEndOfPic;
   bool	m_bFirstFGS;
 
+//JVT-T054{
+  Bool                          m_bLastNalInAU;
+  Bool                          m_bFGSRefInAU;
+  Bool                          m_bAVCBased;
+  Bool                          m_bCGSSNRInAU;
+  Bool                          m_bOnlyAVCAtLayer;
+//JVT-T054}
 public:
   MbDataCtrl*         m_pcBaseLayerCtrlEL;
 };

@@ -179,7 +179,9 @@ public:
   //S051}
 
   QLExtractionMode getQLExtractionMode() { return m_eQLExtractionMode; }
-
+//JVT-T054{
+  Bool  getKeepfExtraction() { return m_bKeepfExtraction;}
+//JVT-T054}
 protected:
   ErrVal  xPrintUsage         ( Char**  argv );
   ErrVal  xParseFormatString  ( Char*   pFormatString,
@@ -222,6 +224,9 @@ protected:
 
   //JVT-S043
   QLExtractionMode m_eQLExtractionMode;
+//JVT-T054{
+  Bool      m_bKeepfExtraction; //used if extraction considering l AND f
+//JVT-T054}
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

@@ -209,7 +209,10 @@ public:
   IntFrame*   getBaseLayerSbb()   { return m_pcBaseLayerSbb;   }
   MbDataCtrl* getMbDataCtrl()     { return m_pcCurrMbDataCtrl; }
   MbDataCtrl* getMbDataCtrlEL()     { return &m_cMbDataCtrlEL; }
-
+//JVT-T054{
+  Void        setMbDataCtrl(MbDataCtrl* pcMbDataCtrl) { m_pcCurrMbDataCtrl = pcMbDataCtrl;}
+  Void        setBaseLayerSbb(IntFrame* pcBaseLayerSbb) { m_pcBaseLayerSbb = pcBaseLayerSbb; }
+//JVT-T054}
   enum
   {
     CLEAR               = 0x00,

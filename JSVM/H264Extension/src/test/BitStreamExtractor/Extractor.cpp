@@ -149,6 +149,15 @@ Extractor::Extractor()
 	  m_auiQualityLevel[uiScalableLayer] = 0;
   }
 // BUG_FIX liuhui}
+//JVT-T054{
+  for( uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
+	{
+    for(UInt uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+    {
+      m_bEnableQLTruncation[uiLayer][uiFGSLayer] = false;
+    }
+  }
+//}JVT_T054
 }
 
 
@@ -671,10 +680,13 @@ Extractor::xAnalyse()
       uiLevel     = cPacketDescription.Level;
       uiFGSLayer  = cPacketDescription.FGSLayer;
     }
+//JVT-T054{
+    if(uiFGSLayer > 0)
+      m_bEnableQLTruncation[uiLayer][uiFGSLayer-1] = cPacketDescription.bEnableQLTruncation;
+//JVT-T054}
     bApplyToNext  = cPacketDescription.ApplyToNext;
     bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext );
     uiPId = cPacketDescription.uiPId;
-
 	//S051{
 	if(!m_bUseSIP)
 	//S051}
@@ -1024,7 +1036,9 @@ ErrVal
 Extractor::xSetParameters()
 {
   UInt  uiLayer, uiLevel, uiFGSLayer;
-
+//JVT-T054{
+  Bool  bQuit = false;
+//JVT-T054}
   //=========== clear all ===========
   for( uiLayer = 0; uiLayer <  MAX_LAYERS;  uiLayer++ )
   for( uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
@@ -1126,21 +1140,42 @@ Extractor::xSetParameters()
         {
           dRemainingBytes                      -= (Double)i64NALUBytes;
           m_aadTargetSNRLayer[uiLayer][uiLevel] = (Double)uiFGSLayer;
-		  m_pcExtractorParameter->setMaxFGSLayerKept(uiFGSLayer);
+		      m_pcExtractorParameter->setMaxFGSLayerKept(uiFGSLayer);
         }
         else
         {
+//JVT-T054{
+          if(m_bEnableQLTruncation[uiLayer][uiFGSLayer-1])
+          {
+//JVT-T054}
           //====== set fractional FGS layer and exit =====
           Double  dFGSLayer = dRemainingBytes / (Double)i64NALUBytes;
           m_aadTargetSNRLayer[uiLayer][uiLevel] += dFGSLayer;
 		      m_pcExtractorParameter->setMaxFGSLayerKept(uiFGSLayer);
 			    m_pcExtractorParameter->setBitrate( rcExtPoint.dBitRate );
           return Err::m_nOK;
+//JVT-T054{
+          }
+          else
+          {
+              dRemainingBytes                      -= (Double)i64NALUBytes;
+              m_aadTargetSNRLayer[uiLayer][uiLevel] = (Double)uiFGSLayer;
+		          m_pcExtractorParameter->setMaxFGSLayerKept(uiFGSLayer);
+              bQuit = true;
+          }
+//JVT-T054}
         }
       }
     }
   }
 
+
+//JVT-T054{
+if(bQuit)
+{
+  return Err::m_nOK;
+}
+//JVT-T054}
 
   //===== set FGS layer for current layer =====
   for( uiFGSLayer = 1; uiFGSLayer < MAX_QUALITY_LEVELS; uiFGSLayer++ )
@@ -1161,16 +1196,40 @@ Extractor::xSetParameters()
     }
     else
     {
+//JVT-T054{
+      if(!m_bEnableQLTruncation[uiExtLayer][uiFGSLayer-1])
+      {
+        for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
+        {
+          i64FGSLayerBytes = m_cScalableStreamDescription.getNALUBytes( uiExtLayer, uiLevel, uiFGSLayer );
+          if( (Double)i64FGSLayerBytes <= dRemainingBytes )
+          {
+            dRemainingBytes -= (Double)i64FGSLayerBytes;
+            m_aadTargetSNRLayer[uiExtLayer][uiLevel] = (Double)uiFGSLayer;
+		        m_pcExtractorParameter->setMaxFGSLayerKept(uiFGSLayer);
+          }
+          else
+          {
+            return Err::m_nOK;
+          }
+        }
+      }
+      else
+      {
+//JVT-T054}
       Double dFGSLayer = dRemainingBytes / (Double)i64FGSLayerBytes;
       for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
       {
         m_aadTargetSNRLayer[uiExtLayer][uiLevel] += dFGSLayer;
-		m_pcExtractorParameter->setMaxFGSLayerKept(uiFGSLayer);
+		    m_pcExtractorParameter->setMaxFGSLayerKept(uiFGSLayer);
       }
 // BUG_FIX liuhui{
       m_pcExtractorParameter->setBitrate( rcExtPoint.dBitRate );
 // BUG_FIX liuhui}
       return Err::m_nOK;
+//JVT-T054{
+      }
+//JVT-T054}
     }
   }
   WARNING( dRemainingBytes>0.0, "Bit-rate underflow for extraction/inclusion point" );
@@ -1492,6 +1551,13 @@ RNOK( m_pcH264AVCPacketAnalyzer->init() );
     Double  dDownRound    = floor ( dSNRLayerDiff );
     bKeep                 =           ( dUpRound   >= 0.0 );
     bCrop                 = bKeep &&  ( dDownRound <  0.0 );
+//JVT-T054{
+    if(uiFGSLayer > 0 && bCrop && !m_bEnableQLTruncation[uiLayer][uiFGSLayer-1])
+    {
+      bCrop = false;
+      bKeep = false;
+    }
+//JVT-T054}
     if( bCrop && uiFGSLayer == 0 )
     {
       bKeep = bCrop = false;
@@ -2568,7 +2634,27 @@ Extractor::xExtractLayerLevel()
     //~add France Telecom
 
 		//============ check packet ===========
-		if( uiWantedScalableLayer == MSYS_UINT_MAX )	//input: -t,-f
+//JVT-T054{
+    if(m_pcExtractorParameter->getKeepfExtraction())
+    {
+      if( uiWantedScalableLayer == MSYS_UINT_MAX )	//input: -t,-f
+			bKeep = ( (uiLayer < uiMaxLayer || (uiLayer == uiMaxLayer && uiFGSLayer <= uiMaxFGSLayer)) && uiTempLevel <= uiMaxTempLevel );
+      else	//input: -sl,-b
+		{
+			if( uiTempLevel <= uiMaxTempLevel)
+			{
+			  if( uiLayer == uiMaxLayer && uiFGSLayer <= uiMaxFGSLayer || uiLayer < uiMaxLayer )
+					bKeep = true;
+				else
+					bKeep = false;
+			}
+			else
+				bKeep = false;
+		}
+    }
+    else
+    {
+      if( uiWantedScalableLayer == MSYS_UINT_MAX )	//input: -t,-f
 			bKeep = ( uiLayer <= uiMaxLayer && uiFGSLayer <= uiMaxFGSLayer && uiTempLevel <= uiMaxTempLevel );
 		else	//input: -sl,-b
 		{
@@ -2582,6 +2668,8 @@ Extractor::xExtractLayerLevel()
 			else
 				bKeep = false;
 		}
+    }
+//JVT-T054}
 		if(m_uiExtractNonRequiredPics != MSYS_UINT_MAX)
 		{
 			if(m_pcH264AVCPacketAnalyzer->getNonRequiredSeiFlag() == 1)
@@ -2649,6 +2737,13 @@ Extractor::xExtractLayerLevel()
 		//============ write and release packet ============
 		if( bKeep )
 		{
+//JVT-T054{
+    if(uiFGSLayer > 0 && bTruncated && !m_bEnableQLTruncation[uiLayer][uiFGSLayer-1])
+    {
+      bTruncated = false;
+      bKeep = false;
+    }
+//JVT-T054}
 			//first check if truncated FGS layer :liuhui 2005-10-12
 			if( cPacketDescription.NalUnitType != NAL_UNIT_PPS &&
 					cPacketDescription.NalUnitType != NAL_UNIT_SPS &&
@@ -4422,26 +4517,40 @@ Extractor::xExtractPoints_DS()
 			    if(m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame] != 0 && 
 				    m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame] < uiPacketSize)
 			    {
-				    //NAL is truncated
-				    uiShrinkSize        = uiPacketSize - (UInt)m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame]; //(UInt)ceil( (Double)uiPacketSize * dWeight );
-            m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame] = -1; //BUG_FIX_FT_01_2006
-				    if(uiPacketSize - uiShrinkSize > 25)
-				    {
-					    RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
-					    pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
-					    bKeep = true;
-					    bCrop = true;
-					    if(uiFGSLayer == 0 && bKeep && bCrop)
-					    {
-						    bKeep = true;
-						    bCrop = false;
-					    }
-				    }
-				    else
-				    {
-					    bKeep = false;
-					    bCrop = false;
-				    }
+//JVT-T054{
+              if(uiFGSLayer > 0 && !m_bEnableQLTruncation[uiLayer][uiFGSLayer-1])
+              {
+                 bCrop = false;
+                 bKeep = false;
+              }
+              else
+              {
+//JVT-T054}
+				        //NAL is truncated
+				        uiShrinkSize        = uiPacketSize - (UInt)m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame]; //(UInt)ceil( (Double)uiPacketSize * dWeight );
+                m_aaadTargetBytesFGS[uiLayer][uiFGSLayer][uiCurrFrame] = -1; //BUG_FIX_FT_01_2006
+				        if(uiPacketSize - uiShrinkSize > 25)
+				        {
+					        RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
+					        pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
+					        bKeep = true;
+					        bCrop = true;
+
+					        if(uiFGSLayer == 0 && bKeep && bCrop)
+					        {
+						        bKeep = true;
+						        bCrop = false;
+					        }
+				         }
+				         else
+				        {
+					        bKeep = false;
+					        bCrop = false;
+				        }
+//JVT-T054{
+              }
+//JVT-T054}
+
 			    }
           }
         }
@@ -4756,6 +4865,13 @@ Extractor::xExtractPoints_SIP()
     Double  dDownRound    = floor ( dSNRLayerDiff );
     bKeep                 =           ( dUpRound   >= 0.0 );
     bCrop                 = bKeep &&  ( dDownRound <  0.0 );
+//JVT-T054{
+    if(uiFGSLayer > 0 && bCrop && !m_bEnableQLTruncation[uiLayer][uiFGSLayer-1])
+    {
+      bCrop = false;
+      bKeep = false;
+    }
+//JVT-T054}
     if( bCrop && uiFGSLayer == 0 )
     {
       bKeep = bCrop = false;

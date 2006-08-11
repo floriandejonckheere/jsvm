@@ -289,6 +289,10 @@ ErrVal H264AVCDecoderTest::go()
       {
         m_pcH264AVCDecoder->setDependencyInitialized(false);
         m_pcH264AVCDecoder->initNumberOfFragment();
+//JVT-T054{
+        Bool bFalse = false;
+        m_pcH264AVCDecoder->setFGSRefInAU(bFalse);
+//JVT-T054}
       }
       //~JVT-P031
       RNOK( m_pcH264AVCDecoder->checkSliceLayerDependency( &cBinDataAccessor, bFinishChecking ) );
@@ -390,6 +394,7 @@ ErrVal H264AVCDecoderTest::go()
               uiOffset += auiEndPos[uiFrag]-auiStartPos[uiFrag];
               RNOK( m_pcReadBitstream->releasePacket( pcBinDataTmp[uiFrag] ) );
               pcBinDataTmp[uiFrag] = NULL;
+              if(uiNalUnitType != 6) //JVT-T054
               m_pcH264AVCDecoder->decreaseNumOfNALInAU();
 						//FRAG_FIX_3
 						if(uiFrag > 0) 
@@ -595,6 +600,7 @@ ErrVal H264AVCDecoderTest::go()
               uiOffset += auiEndPos[uiFrag]-auiStartPos[uiFrag];
               RNOK( m_pcReadBitstream->releasePacket( pcBinDataTmp[uiFrag] ) );
               pcBinDataTmp[uiFrag] = NULL;
+              if(uiNalUnitType != 6) //JVT-T054
               m_pcH264AVCDecoder->decreaseNumOfNALInAU();
 			  //FRAG_FIX_3
 			  if(uiFrag > 0) 

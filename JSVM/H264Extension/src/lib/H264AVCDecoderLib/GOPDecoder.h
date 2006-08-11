@@ -128,13 +128,13 @@ public:
                                 const SequenceParameterSet& rcSPS );
   ErrVal        destroy       ();
 
-
   ErrVal        init          ( Int       iPoc,
                                 UInt      uiFrameNum,
                                 UInt      uiTemporalLevel,
                                 Bool      bKeyPicture,
                                 Bool      bNeededForReference,
-                                Bool      bConstrainedIPred );
+                                Bool      bConstrainedIPred,
+                                UInt      uiQualityLevel); //JVT-T054
   ErrVal        initNonEx     ( Int       iPoc,
                                 UInt      uiFrameNum );
   ErrVal        initBase      ( DPBUnit&  rcDPBUnit,
@@ -166,7 +166,10 @@ public:
     }
     return (Int)m_uiFrameNum;
   }
-
+//JVT-T054{
+  UInt          getQualityLevel() const { return m_uiQualityLevel;}
+  Void          setMbDataCtrl(MbDataCtrl* pcMbDataCtrl) { m_cControlData.setMbDataCtrl(pcMbDataCtrl);}
+//JVT-T054}
 private:
   Int         m_iPoc;
   UInt        m_uiFrameNum;
@@ -179,6 +182,7 @@ private:
   IntFrame*   m_pcFrame;
   ControlData m_cControlData;
   Bool        m_bConstrainedIntraPred;
+  UInt        m_uiQualityLevel; //JVT-T054
 };
 
 typedef MyList<DPBUnit*>  DPBUnitList;
@@ -208,11 +212,11 @@ public:
   ErrVal              initSPS             ( const SequenceParameterSet& rcSPS );
   ErrVal              uninit              ();
 
-
   ErrVal              initCurrDPBUnit     ( DPBUnit*&                   rpcCurrDPBUnit,
                                             SliceHeader*                pcSliceHeader,
                                             PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList );
+                                            PicBufferList&              rcUnusedList,
+                                            Bool                        bRef = false); //JVT-T054
   DPBUnit*            getLastUnit         ();
   DPBUnit*            getDPBUnit          ( Int                         iPoc );
   ErrVal              setPrdRefLists      ( DPBUnit*                    pcCurrDPBUnit );
@@ -222,7 +226,9 @@ public:
   ErrVal              store               ( DPBUnit*&                   rpcDPBUnit,
                                             PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList,
-                                            IntFrame*                   pcFrameBaseRep = NULL );
+                                            IntFrame*                   pcFrameBaseRep = NULL,
+                                            UInt                        uiQualityLevel = 0,
+                                            Bool                        bRef = false); //JVT-T054
   ErrVal              update              ( DPBUnit*                    pcDPBUnit );
   ErrVal              clear               ( PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList,
@@ -230,10 +236,14 @@ public:
 
   ErrVal              xSlidingWindowBase  ( UInt mCurrFrameNum ); //JVT-S036 lsj 
   ErrVal              xMMCOBase           ( SliceHeader* pcSliceHeader, UInt mCurrFrameNum );//JVT-S036 lsj
-  
+//JVT-T054{
+ErrVal                CreateDPBUnit(DPBUnit *pcDPBUnit, const SequenceParameterSet&  rcSPS );
+Void                  setCurrDPBUnit(DPBUnit * pcDPBUnit) { m_pcCurrDPBUnit = pcDPBUnit;}
+//JVT-T054}
   DPBUnit*            getCurrDPBUnit(){return        m_pcCurrDPBUnit;};
   ErrVal                 initPicBuffer(PicBuffer*&    rpcPicBuffer);
-  ErrVal              initPicCurrDPBUnit( PicBuffer*&                 rpcPicBuffer);
+  ErrVal              initPicCurrDPBUnit( PicBuffer*&                 rpcPicBuffer,
+                                          Bool                        bRef = false); //JVT-T054
 
 protected:
   ErrVal              xCreateData         ( UInt                        uiMaxPicsInDPB,
@@ -257,11 +267,12 @@ protected:
                                             PicBufferList&              rcUnusedList,
                                             Int&                        riMaxPoc );
 
-  
   ErrVal              xStorePicture       ( DPBUnit*                    pcDPBUnit, // just for checking
                                             PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList,
-                                            Bool                        bTreatAsIdr );
+                                            Bool                        bTreatAsIdr,
+                                            UInt                        uiQualityLevel = 0,
+                                            Bool                        bRef = false); //JVT-T054
   ErrVal              xCheckMissingPics   ( SliceHeader*                pcSliceHeader,
                                             PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList );
@@ -273,7 +284,7 @@ protected:
   ErrVal              xPrdListRemapping   ( RefFrameList&               rcList,
                                             ListIdx                     eListIdx,
                                             SliceHeader*                pcSliceHeader );
-
+  ErrVal              xUpdateDPBUnitList  ( DPBUnit                     *pcDPBUNit  ); //JVT-T054
   //===== debugging ======
   ErrVal              xDumpDPB            ();
   ErrVal              xDumpRefList        ( ListIdx                     eListIdx,
@@ -347,7 +358,15 @@ public:
   ErrVal          uninit        ();
   ErrVal          initSlice0    ( SliceHeader*                pcSliceHeader );
   ErrVal          initSlice     ( SliceHeader*                pcSliceHeader,
-                                  UInt                        uiLastLayer );
+                                  UInt                        uiLastLayer,
+                                  Bool                        bLastNalInAU,
+                                  Bool                        bCGSSNRInAU); //JVT-T054
+ErrVal            StoreDecodedPicture( FrameUnit* pcFrameUnit, 
+                                 PicBuffer*&    rpcPicBuffer,
+                                 SliceHeader*   pcSliceHeader,
+                                 PicBufferList& rcOutputList,
+                                 PicBufferList& rcUnusedList,
+                                 IntFrame*      pcBaseRep = 0); //JVT-T054
   
   ErrVal          process       ( SliceHeader*&               rpcSliceHeader,
                                   PicBuffer*                  pcPicBuffer,
@@ -377,7 +396,10 @@ public:
 
   Void            setQualityLevelForPrediction  ( UInt ui )         { m_uiQualityLevelForPrediction = ui; }
   PocCalculator*  getPocCalculator              ()                  { return m_pcPocCalculator; }
-
+//JVT-T054{
+  Void              setResizeParametersCGSSNR ( UInt ui, ResizeParameters* params ) { m_pcResizeParameterCGSSNR[ui] = params; }
+  ResizeParameters* getResizeParametersCGSSNR (UInt ui)                           { return m_pcResizeParameterCGSSNR[ui]; }
+//JVT-T054}
 // TMM_ESS {
   Void              setResizeParameters ( ResizeParameters* params ) { m_pcResizeParameter = params; }
   ResizeParameters* getResizeParameters ()                           { return m_pcResizeParameter; }
@@ -389,7 +411,16 @@ public:
   ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
                                           YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
   ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
-
+//JVT-T054{
+  Void        setAVCBased(Bool b)   { m_bAVCBased = b;}
+  Bool        getAVCBased()         { return m_bAVCBased;}
+ErrVal        setILPrediction(IntFrame * pcFrame);
+ErrVal        ReconstructLastFGS             ( Bool                          bHighestLayer, Bool bCGSSNRInAU );
+DPBUnit*      getLastDPBUnit() { return m_pcDecodedPictureBuffer->getLastUnit();}
+RQFGSDecoder* getRQFGSDecoder() { return m_pcRQFGSDecoder; }
+Void          setRQFGSDecoder(RQFGSDecoder* pcRQFGSDecoder) { m_pcRQFGSDecoder = pcRQFGSDecoder;}
+IntFrame*     getPredSignal() {return m_pcPredSignal;}
+//JVT-T054}
 protected:
   //===== create and initialize data arrays =====
   ErrVal      xCreateData                     ( const SequenceParameterSet&   rcSPS );
@@ -405,7 +436,8 @@ protected:
 												SliceHeader *&rcSliceHeaderBase);
   ErrVal      xInitESSandCroppingWindow       ( SliceHeader&                  rcSliceHeader,
                                                 MbDataCtrl&                   rcMbDataCtrl );
-  
+  ErrVal      xInitESSandCroppingWindowCGSSNR       ( SliceHeader&                  rcSliceHeader,
+                                                MbDataCtrl&                   rcMbDataCtrl ); //JVT-T054
   //===== decode pictures / subbands =====
   ErrVal      xDecodeSuffixUnit               ( SliceHeader*&                 rpcSliceHeader,
                                                 PicBuffer*&                   rpcPicBuffer,
@@ -418,9 +450,7 @@ protected:
                                                 PicBufferList&                rcUnusedList,
                                                 Bool                          bReconstructionLayer );
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
-
-  ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer );
-
+  ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer, Bool bCGSSNRInAU ); //JVT-T054
   ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,
                                                 RefFrameList&                 rcRefFrameList0,
                                                 RefFrameList&                 rcRefFrameList1,
@@ -480,7 +510,10 @@ protected:
 
   UInt                m_uiNumLayers[2];
   
-
+//JVT-T054{
+  Bool                m_bAVCBased;
+  ResizeParameters*   m_pcResizeParameterCGSSNR[MAX_FGS_LAYERS];
+//JVT-T054}
   // TMM_ESS 
   ResizeParameters*   m_pcResizeParameter;
  

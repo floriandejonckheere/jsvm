@@ -177,7 +177,7 @@ public:
   UInt    getNumOfNALInAU();
   Void    initNumberOfFragment();
   //~JVT-P031
-
+  Void    setFGSRefInAU(Bool &b); //JVT-T054
   ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
                                       Bool&             bFinishChecking );
 
@@ -258,6 +258,7 @@ struct PacketDescription
 
   //-- 2006.0604
   UInt uiFirstMb;
+  Bool  bEnableQLTruncation; //JVT-T054
 };
 
 

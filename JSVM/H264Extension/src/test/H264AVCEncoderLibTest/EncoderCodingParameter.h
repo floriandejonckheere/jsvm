@@ -663,6 +663,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SuffixUnitEnable",                   &m_uiSuffixUnitEnable,                                      0 ); 
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",						&m_uiMMCOBaseEnable,                                      0 ); 
 //JVT-S036 lsj end
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                              0 );  //JVT-T054
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))
@@ -713,11 +714,84 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   }
 
   fclose( f );
-
+//JVT-T054{
+  UInt uiPrevLayer        = 0;
+  UInt uiPrevTemp         = 0;
+  UInt uiPrevWidth        = 0;
+  UInt uiPrevHeight       = 0;
+  UInt uiLayerTemp        = 0;
+  UInt uiQualityLevelTemp = 0;
+  UInt uiLastLayer        = 0;
+  UInt uiMaxLayer         = 0;
+  UInt uiMaxQualityLevel  = 0;
+//JVT-T054}
   for( UInt ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
     getLayerParameters(ui).setLayerId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
+//JVT-T054{
+    if(m_uiCGSSNRRefinementFlag)
+    {
+    if(ui == 0)
+    {
+      uiPrevLayer = ui;
+      uiPrevTemp = getLayerParameters(ui).getTemporalResolution();
+      uiPrevWidth = getLayerParameters(ui).getFrameWidth();
+      uiPrevHeight = getLayerParameters(ui).getFrameHeight();
+      getLayerParameters(ui).setLayerCGSSNR(ui);
+      getLayerParameters(ui).setQualityLevelCGSSNR(0);
+      uiLastLayer = uiPrevLayer;
+      
+      getLayerParameters(ui).setBaseLayerCGSSNR( MSYS_UINT_MAX );
+      getLayerParameters(ui).setBaseQualityLevelCGSSNR( 0 );
+    }
+    else
+    {
+      if(uiPrevTemp == getLayerParameters(ui).getTemporalResolution() && 
+        uiPrevWidth == getLayerParameters(ui).getFrameWidth() &&
+        uiPrevHeight == getLayerParameters(ui).getFrameHeight())
+      {
+        // layer can be considered as a CGS refinement
+        uiLayerTemp = getLayerParameters(ui-1).getLayerCGSSNR();
+        getLayerParameters(ui).setLayerCGSSNR(uiLayerTemp);
+        uiQualityLevelTemp = getLayerParameters(ui-1).getQualityLevelCGSSNR();
+        getLayerParameters(ui).setQualityLevelCGSSNR(uiQualityLevelTemp+1);
+        
+        getLayerParameters(ui).setBaseLayerCGSSNR( uiLayerTemp );
+        getLayerParameters(ui).setBaseQualityLevelCGSSNR( uiQualityLevelTemp );
+
+        if(uiMaxQualityLevel < uiQualityLevelTemp+1)
+          uiMaxQualityLevel = uiQualityLevelTemp+1;
+      }
+      else
+      {
+        //layer is not a refinement from previous CGS layer
+        uiLastLayer++;
+        uiPrevLayer = uiLastLayer;
+        uiPrevTemp = getLayerParameters(ui).getTemporalResolution();
+        uiPrevWidth = getLayerParameters(ui).getFrameWidth();
+        uiPrevHeight = getLayerParameters(ui).getFrameHeight();
+        getLayerParameters(ui).setLayerCGSSNR(uiLastLayer);
+        getLayerParameters(ui).setQualityLevelCGSSNR(0);
+
+        uiLayerTemp = getLayerParameters(ui-1).getLayerCGSSNR();
+        uiQualityLevelTemp = getLayerParameters(ui-1).getQualityLevelCGSSNR();
+        getLayerParameters(ui).setBaseLayerCGSSNR( uiLayerTemp );
+        getLayerParameters(ui).setBaseQualityLevelCGSSNR( uiQualityLevelTemp );
+
+        if(uiMaxLayer < uiLastLayer)
+          uiMaxLayer = uiLastLayer;
+      }
+    }
+    }
+    else
+    {
+        getLayerParameters(ui).setLayerCGSSNR(ui);
+        getLayerParameters(ui).setQualityLevelCGSSNR(0);
+    }
+    m_uiMaxLayerCGSSNR = uiMaxLayer;
+    m_uiMaxQualityLevelCGSSNR = uiMaxQualityLevel;
+//JVT-T054}
 // TMM_ESS {
     ResizeParameters * curr;
     curr = getResizeParameters(ui);

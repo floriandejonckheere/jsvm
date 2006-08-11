@@ -291,6 +291,12 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiRedundantPicCnt                 ( 0 ) //JVT-Q054 Red. Picture
 , m_uiSliceGroupChangeCycle           ( 0 ) 
 , m_eErrorConceal                     ( EC_NONE ) 
+//JVT-T054{
+, m_uiLayerCGSSNR                     ( 0 )
+, m_uiQualityLevelCGSSNR              ( 0 )
+, m_uiBaseLayerCGSSNR                 ( MSYS_UINT_MAX )
+, m_uiBaseQualityLevelCGSSNR          ( 0 )
+//JVT-T054}
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -345,8 +351,18 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	RNOK (pcWriteIf->writeFlag( m_bReservedZeroBit,                             "NALU HEADER: reserved_zero_bit"));
 
 	RNOK (pcWriteIf->writeCode( m_uiTemporalLevel,   3,                       "NALU HEADER: temporal_level"));
-    RNOK( pcWriteIf->writeCode( m_uiLayerId,         3,                       "NALU HEADER: dependency_id" ) );
-    RNOK( pcWriteIf->writeCode( m_uiQualityLevel,    2,                       "NALU HEADER: quality_level" ) );
+//JVT-T054{
+      if( m_eSliceType != F_SLICE )
+      {
+        RNOK( pcWriteIf->writeCode( m_uiLayerCGSSNR,         3,                       "NALU HEADER: dependency_id" ) );
+        RNOK( pcWriteIf->writeCode( m_uiQualityLevelCGSSNR,    2,                       "NALU HEADER: quality_level" ) );
+      }
+      else
+      {
+        RNOK( pcWriteIf->writeCode( m_uiLayerId,         3,                       "NALU HEADER: dependency_id" ) );
+        RNOK( pcWriteIf->writeCode( m_uiQualityLevel,    2,                       "NALU HEADER: quality_level" ) );
+      }
+//JVT-T054}
 //JVT-S036 lsj end
   }
 
@@ -453,8 +469,19 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 		if( m_uiBaseLayerId == MSYS_UINT_MAX )
 		uiBaseLayerIdPlus1 = 0;
 		else
-		// one example (m_uiBaseLayerId, m_uiBaseQualityLevel) -> uiBaseLayerIdPlus1 mapping
-		uiBaseLayerIdPlus1 = ( (m_uiBaseLayerId << 4) + (m_uiBaseQualityLevel << 2) + m_uiBaseFragmentOrder ) + 1;
+//JVT-T054{
+    {
+      if(m_uiQualityLevelCGSSNR != m_uiQualityLevel || m_uiLayerCGSSNR != m_uiLayerId)
+      {
+        uiBaseLayerIdPlus1 = ( (m_uiBaseLayerCGSSNR << 4) + ((m_uiBaseQualityLevelCGSSNR) << 2) + m_uiBaseFragmentOrder ) + 1;
+      }
+      else
+      {
+        // one example (m_uiBaseLayerId, m_uiBaseQualityLevel) -> uiBaseLayerIdPlus1 mapping
+	      uiBaseLayerIdPlus1 = ( (m_uiBaseLayerId << 4) + (m_uiBaseQualityLevel << 2) + m_uiBaseFragmentOrder ) + 1;
+      }
+    }
+//JVT-T054}
 		RNOK(   pcWriteIf->writeUvlc( uiBaseLayerIdPlus1,                           "SH: base_id_plus1" ) );
 		if( uiBaseLayerIdPlus1 )
 		{

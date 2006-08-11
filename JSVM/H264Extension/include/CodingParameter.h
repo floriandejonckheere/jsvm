@@ -244,6 +244,13 @@ public:
 	, m_uiAnaSIP						(0)
 	, m_bEncSIP							(false)
 	//S051}
+//JVT-T054{
+    , m_uiLayerCGSSNR         ( 0 )
+    , m_uiQualityLevelCGSSNR  ( 0 )
+    , m_uiBaseLayerCGSSNR     ( 0 )
+    , m_uiBaseQualityLevelCGSSNR ( 0 )
+    , m_bDiscardable          ( false )
+//JVT-T054}
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiPosVect, 0x00, 16*sizeof(UInt) );
@@ -457,7 +464,17 @@ public:
   UInt							  getAnaSIP					   (){ return m_uiAnaSIP; }
   Bool							  getEncSIP					   (){ return m_bEncSIP; }
   //S051}
-
+//JVT-T054{
+  UInt getLayerCGSSNR                    ()    { return m_uiLayerCGSSNR;}
+  UInt getQualityLevelCGSSNR             ()    { return m_uiQualityLevelCGSSNR;}
+  UInt getBaseLayerCGSSNR                    ()    { return m_uiBaseLayerCGSSNR;}
+  UInt getBaseQualityLevelCGSSNR             ()    { return m_uiBaseQualityLevelCGSSNR;}
+  Void setLayerCGSSNR                    (UInt ui)    { m_uiLayerCGSSNR                   = ui;}
+  Void setQualityLevelCGSSNR             (UInt ui)    { m_uiQualityLevelCGSSNR            = ui;}
+  Void setBaseLayerCGSSNR                    (UInt ui)    { m_uiBaseLayerCGSSNR                   = ui;}
+  Void setBaseQualityLevelCGSSNR             (UInt ui)    { m_uiBaseQualityLevelCGSSNR            = ui;}
+  Bool isDiscardable                      ()          { return m_bDiscardable;}
+//JVT-T054}
 public:
   UInt                      m_uiLayerId;
   UInt                      m_uiFrameWidth;
@@ -566,6 +583,13 @@ public:
   UInt			 m_uiAnaSIP;
   Bool			 m_bEncSIP;
   //S051}
+//JVT-T054{
+  UInt                      m_uiLayerCGSSNR;
+  UInt                      m_uiQualityLevelCGSSNR;
+  UInt                      m_uiBaseLayerCGSSNR;
+  UInt                      m_uiBaseQualityLevelCGSSNR;
+  Bool                      m_bDiscardable;
+//JVT-T054}
 };
 
 
@@ -647,6 +671,11 @@ public:
 	  , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
 	  , m_uiSuffixUnitEnable			  (0)  //JVT-S036 lsj
 	  , m_uiMMCOBaseEnable					  ( 0 ) //JVT-S036 lsj
+//JVT-T054{
+    , m_uiCGSSNRRefinementFlag             ( 0 )
+    , m_uiMaxLayerCGSSNR                ( 0 )
+    , m_uiMaxQualityLevelCGSSNR         ( 0 )
+//JVT-T054}
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -792,7 +821,14 @@ public:
   UInt                            getLowPassFgsMcFilter   ()            { return m_uiLowPassFgsMcFilter;  }
 
   Int							  getNonRequiredEnable    ()			{ return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
-
+//JVT-T054{
+  UInt                            getCGSSNRRefinement     ()              const   { return m_uiCGSSNRRefinementFlag;}
+  UInt                            getMaxLayerCGSSNR       ()              const   { return m_uiMaxLayerCGSSNR;}
+  UInt                            getMaxQualityLevelCGSSNR ()             const   { return m_uiMaxQualityLevelCGSSNR;}
+  Void                            setCGSSNRRefinement     ( UInt    b )   { m_uiCGSSNRRefinementFlag = b; }
+  Void                            setMaxLayerCGSSNR       ( UInt    ui )  { m_uiMaxLayerCGSSNR       = ui; }
+  Void                            setMaxQualityLevelCGSSNR( UInt    ui )  { m_uiMaxQualityLevelCGSSNR= ui; }
+//JVT-T054}
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -856,6 +892,11 @@ protected:
 
   UInt						m_uiSuffixUnitEnable; //JVT-S036 lsj
   UInt						m_uiMMCOBaseEnable;  //JVT-S036 lsj
+//JVT-T054{
+  UInt                      m_uiCGSSNRRefinementFlag;
+  UInt                      m_uiMaxLayerCGSSNR;
+  UInt                      m_uiMaxQualityLevelCGSSNR;
+//JVT-T054}
 };
 
 #if defined( MSYS_WIN32 )

@@ -1,3 +1,17 @@
+JSVM_6_4 -> JSVM_6_5
+====================
+
+Date	    : Aug. 11, 2006
+Author	    : N. Cammas (Orange-FT)
+Contribution: JVT-T054
+
+changes:
+- enable SNR enhancement coded using EI, EP or EB slices
+- add -keepf option to BitStreamExtractorStatic
+
+fixes: 
+- FragCABAC, FragVLC test configuration
+
 JSVM_6_3 -> JSVM_6_4
 ====================
 

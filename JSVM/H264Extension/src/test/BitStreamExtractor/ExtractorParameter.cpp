@@ -115,7 +115,9 @@ ExtractorParameter::ExtractorParameter()
 , m_bUseSIP(false)
 , m_uiSuffixUnitEnable(0)
 //S051}
-
+//JVT-T054{
+, m_bKeepfExtraction (false)
+//JVT-T054}
 
 // Test DJ
 , m_bROIFlag (false)
@@ -392,7 +394,13 @@ ExtractorParameter::init( Int     argc,
 		continue;
 	}
 	//S051}
-
+//JVT-T054{
+  if(equal("-keepf", argv[iArg]))
+  {
+    m_bKeepfExtraction  = true;
+    continue;
+  }
+//JVT-T054}
     EXIT( true, "Unknown option specified" );
   }
   return Err::m_nOK;
@@ -425,6 +433,8 @@ ExtractorParameter::xPrintUsage( Char **argv )
   //JVT-S043
   printf("\t-qlord     -> ordered/toplayer quality layer extraction\n" );
   printf("\t               - simulates truncation using normal ql even if MLQL assigner was used\n" );
+  //JVT-T054
+  printf("\t-keepf       -> use with \"-l\" and \"-f\" options: extract all included layers of the layer L specified with \"-l\" and all quality levels below quality level F specified wth \"-f\" of the layer L\n");
 
   printf("\nOptions \"-l\", \"-t\" and \"-f\" can be used in combination with each other.\n"
 	 	     "Other options can only be used separately.\n" );

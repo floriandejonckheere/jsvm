@@ -91,7 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-#define _JSVM_VERSION_ "6.4" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "6.5" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -305,7 +305,6 @@ H264AVC_NAMESPACE_END
 #define MAX_NUM_RD_LEVELS      50
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 #define MAX_SIZE_PID 64
-
 
 // heiko.schwarz@hhi.fhg.de: Hack for ensuring that the scaling factors
 // work with the closed-loop config files

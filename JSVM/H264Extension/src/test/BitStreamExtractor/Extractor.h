@@ -435,6 +435,10 @@ protected:
   UInt							m_auiAddrFirstMBofROIs[MAX_LAYERS][MAX_ROI_NUM];
   UInt							m_auiAddrLastMBofROIs[MAX_LAYERS][MAX_ROI_NUM];
 
+//JVT-T054{
+  Bool            m_bEnableQLTruncation[MAX_LAYERS][MAX_FGS_LAYERS];
+//JVT-T054}
+
 };
 class ExtractStop{};
 #endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

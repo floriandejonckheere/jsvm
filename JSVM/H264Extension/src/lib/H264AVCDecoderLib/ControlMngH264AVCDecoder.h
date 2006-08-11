@@ -185,7 +185,7 @@ public:
 //TMM_WP
   ErrVal initSliceForWeighting   ( const SliceHeader& rcSH ) {  return m_pcSampleWeighting->initSlice( rcSH ); }
 //TMM_WP
-
+  MbDataCtrl* getMbDataCtrl() { return m_pcMbDataCtrl;} //JVT-T054
 protected:
   ErrVal xInitESS             ( SliceHeader* pcSliceHeader );
 
@@ -220,6 +220,7 @@ protected:
   H264AVCDecoder*         m_pcH264AVCDecoder;
   Bool                    m_uiInitilized            [MAX_LAYERS];
   ResizeParameters        m_ResizeParameter[MAX_LAYERS]; // TMM_ESS
+  ResizeParameters        m_ResizeParameterCGSSNR[MAX_LAYERS][MAX_FGS_LAYERS]; // JVT-T054
 };
 
 H264AVC_NAMESPACE_END

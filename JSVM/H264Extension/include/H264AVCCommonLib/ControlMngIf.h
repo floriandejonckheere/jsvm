@@ -141,6 +141,10 @@ public:
 //TMM_WP
   virtual ErrVal initSliceForWeighting   ( const SliceHeader&          rcSH )           = 0;
 //TMM_WP
+
+//JVT-T054{
+  virtual MbDataCtrl* getMbDataCtrl() = 0;
+//JVT-T054}
 };
 
 

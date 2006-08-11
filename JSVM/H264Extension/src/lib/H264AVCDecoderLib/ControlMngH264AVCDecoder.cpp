@@ -322,6 +322,18 @@ ErrVal ControlMngH264AVCDecoder::initMbForFiltering( UInt uiMbIndex )
 ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
 {
   UInt  uiLayer             = rcSH->getLayerId                    ();
+//JVT-T054{
+  if(rcSH->getBaseLayerId() != MSYS_UINT_MAX && rcSH->getQualityLevel() != 0)
+  {
+    if( !m_apcMCTFDecoder[uiLayer]->isActive())
+    {
+      m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
+    }
+    //if(!m_apcMCTFDecoder[uiLayer]->getResizeParameters())
+      RNOK( xInitESS( rcSH ) );
+    return Err::m_nOK;
+  }
+//JVT-T054}
   ROTRS( m_uiInitilized[uiLayer], Err::m_nOK );
   m_auiMbXinFrame[uiLayer]  = rcSH->getSPS().getFrameWidthInMbs   ();
   m_auiMbYinFrame[uiLayer]  = rcSH->getSPS().getFrameHeightInMbs  ();
@@ -374,12 +386,29 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
 {
   UInt uiLayer = pcSliceHeader->getLayerId();
   UInt uiBaseLayer = pcSliceHeader->getBaseLayerId();
-
-  pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameter[uiLayer]);
-
+//JVT-T054{
+  if( pcSliceHeader->getQualityLevel() == 0)
+  {
+    pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameter[uiLayer]);
+  }
+  else
+  {
+    pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()]);
+  }
+//JVT-T054}
   if (uiBaseLayer != MSYS_UINT_MAX )
   {
-    ResizeParameters * curr = &m_ResizeParameter[uiLayer];
+//JVT-T054{
+    ResizeParameters * curr;
+    if(pcSliceHeader->getQualityLevel() == 0)
+    {
+      curr = &m_ResizeParameter[uiLayer];
+    }
+    else
+    {
+      curr = &m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()];
+    }
+//JVT-T054}
     curr->m_iInWidth  = m_auiMbXinFrame  [uiBaseLayer] << 4;
     curr->m_iInHeight = m_auiMbYinFrame  [uiBaseLayer] << 4;
 
@@ -399,9 +428,16 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
       return Err::m_nERR;
     }
     //end 
-
-    m_apcMCTFDecoder[uiLayer]->setResizeParameters(&m_ResizeParameter[uiLayer]);
-
+//JVT-T054{
+    if(pcSliceHeader->getQualityLevel() == 0)
+    {
+      m_apcMCTFDecoder[uiLayer]->setResizeParameters(&m_ResizeParameter[uiLayer]);
+    }
+    else
+    {
+      m_apcMCTFDecoder[uiLayer]->setResizeParametersCGSSNR(pcSliceHeader->getQualityLevel(), &m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()]);
+    }
+//JVT-T054}
     if (curr->m_iExtendedSpatialScalability == ESS_SEQ)
     {
       printf("Extended Spatial Scalability - crop win: origin=(%3d,%3d) - size=(%3d,%3d)\n\n",

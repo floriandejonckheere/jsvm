@@ -197,7 +197,7 @@ public:
 //TMM_WP
   ErrVal initSliceForWeighting ( const SliceHeader& rcSH);
 //TMM_WP
-
+  MbDataCtrl* getMbDataCtrl() { return m_pcMbDataCtrl;} //JVT-T054
   //--TM 0109.2006
   FMO* getFMO(){return m_pcFMO;}
   Void setFMO(FMO* fmo){m_pcFMO = fmo;}

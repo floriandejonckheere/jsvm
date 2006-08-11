@@ -1087,6 +1087,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
             RNOK( pcReadBitStream->releasePacket( apcBinDataTmp[uiFragment] ) );
             apcBinDataTmp[uiFragment] = 0;
+            if(uiNalUnitType != 6) //JVT-T054
             m_pcH264AVCDecoder->decreaseNumOfNALInAU();
 
             if( uiFragment > 0 )

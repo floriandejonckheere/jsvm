@@ -247,6 +247,12 @@ MCTFEncoder::MCTFEncoder()
 , m_cInSIPFileName					( "none" )
 , m_cOutSIPFileName					( "none" )
 //S051}
+//JVT-T054{
+, m_uiLayerCGSSNR                       ( 0 )
+, m_uiQualityLevelCGSSNR                ( 0 )
+, m_uiBaseLayerCGSSNR                       ( MSYS_UINT_MAX )
+, m_uiBaseQualityLevelCGSSNR                ( 0 )
+//JVT-T054}
  {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -2191,7 +2197,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
         pcSliceHeader->setFragmentedFlag(false);
         pcSliceHeader->setFragmentOrder(0);
         pcSliceHeader->setLastFragmentFlag(true);
-        if(m_bUseDiscardableUnit == true && bSetToDiscardable)
+         if(bSetToDiscardable) //JVT-T054
             pcSliceHeader->setDiscardableFlag(true);
       }
       //~JVT-P031
@@ -2428,7 +2434,9 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
       RNOK( xClipIntraMacroblocks           ( pcRecTemp, rcControlData, pcSliceHeader->getTemporalLevel() == 0 ) );
       RNOK( pcSubband       ->copy          ( pcRecTemp ) );
       bAlreadyReconstructed = true;
-
+//JVT-T054{
+     bSetToDiscardable = true;
+//JVT-T054}
       RNOK( rcControlData.saveMbDataQpAndCbp() );
     }
   }
@@ -2611,9 +2619,9 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
 	  
       printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d ) %10d bits\n",
                 pcSliceHeader->getPoc                    (),
-                pcSliceHeader->getLayerId                (),
+                pcSliceHeader->getLayerCGSSNR            (), //JVT-T054
                 pcSliceHeader->getTemporalLevel          (),
-                pcSliceHeader->getQualityLevel           (),
+                pcSliceHeader->getQualityLevelCGSSNR     (), //JVT-T054
                 pcSliceHeader->isH264AVCCompatible       () ? "AVC" : " LP",
                 pcSliceHeader->getSliceType              () == I_SLICE ? 'I' : 'P',
                 pcSliceHeader->getBaseLayerId            (),
@@ -2743,9 +2751,9 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
 
       printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d ) %10d bits\n",
                 pcSliceHeader->getPoc                    (),
-                pcSliceHeader->getLayerId                (),
+                pcSliceHeader->getLayerCGSSNR            (), //JVT-T054
                 pcSliceHeader->getTemporalLevel          (),
-                pcSliceHeader->getQualityLevel           (),
+                pcSliceHeader->getQualityLevelCGSSNR     (), //JVT-T054
                 pcSliceHeader->isH264AVCCompatible       () ? "AVC" : " LP",
                 pcSliceHeader->getSliceType              () == I_SLICE ? 'I' : 'P',
                 pcSliceHeader->getBaseLayerId            (),
@@ -2847,9 +2855,9 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
 
       printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d ) %10d bits\n",
                 rcControlData.getSliceHeader()->getPoc                    (),
-                rcControlData.getSliceHeader()->getLayerId                (),
+                rcControlData.getSliceHeader()->getLayerCGSSNR            (), //JVT-T054
                 rcControlData.getSliceHeader()->getTemporalLevel          (),
-                rcControlData.getSliceHeader()->getQualityLevel           (),
+                rcControlData.getSliceHeader()->getQualityLevelCGSSNR     (), //JVT-T054
                 // heiko.schwarz@hhi.fhg.de: corrected output
                 // rcControlData.getSliceHeader()->isH264AVCCompatible       () ? "AVC" : " LP",
                 rcControlData.getSliceHeader()->isH264AVCCompatible       () ? "AVC" : " HP",
@@ -2927,9 +2935,9 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
 
       printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d ) %10d bits\n",
                 rcControlData.getSliceHeader()->getPoc                    (),
-                rcControlData.getSliceHeader()->getLayerId                (),
+                rcControlData.getSliceHeader()->getLayerCGSSNR            (), //JVT-T054
                 rcControlData.getSliceHeader()->getTemporalLevel          (),
-                rcControlData.getSliceHeader()->getQualityLevel           (),
+                rcControlData.getSliceHeader()->getQualityLevelCGSSNR     (), //JVT-T054
                 // heiko.schwarz@hhi.fhg.de: corrected output
                 // rcControlData.getSliceHeader()->isH264AVCCompatible       () ? "AVC" : " LP",
                 rcControlData.getSliceHeader()->isH264AVCCompatible       () ? "AVC" : " HP",
@@ -3423,6 +3431,12 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   // Currently hard-coded
   pcSliceHeader->setNumMbsInSlice               ( m_uiMbNumber          );
   pcSliceHeader->setFragmentOrder               ( 0 );
+//JVT-T054{
+  pcSliceHeader->setLayerCGSSNR                 (m_uiLayerCGSSNR);
+  pcSliceHeader->setQualityLevelCGSSNR          (m_uiQualityLevelCGSSNR);
+  pcSliceHeader->setBaseLayerCGSSNR                 (m_uiBaseLayerCGSSNR);
+  pcSliceHeader->setBaseQualityLevelCGSSNR          (m_uiBaseQualityLevelCGSSNR);
+//JVT-T054}
 //JVT-Q054 Red. Picture {
   if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag())
   {
@@ -5555,6 +5569,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   // uiMaxStage is unsigned, it has a problem when uiMaxStage == 0,
   // uiMaxStage - 1 will result in a large number
   UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, (Int)uiMaxStage - 1 ) );
+
   Char  acResolution[10];
 // BUG_FIX liuhui{
   static Bool stbBLAVCMode;

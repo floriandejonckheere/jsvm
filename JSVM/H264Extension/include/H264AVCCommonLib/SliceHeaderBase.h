@@ -738,6 +738,9 @@ public:
   Void                              setFragmentOrder               (UInt ui)   {m_uiFragmentOrder = ui;}
   Void                              setLastFragmentFlag            (Bool b)    {m_bLastFragmentFlag = b;}
   //~JVT-P031
+//JVT-T054{
+  Void                              setBaseFragmentOrder          ( UInt        ui )  { m_uiBaseFragmentOrder               = ui; }           
+//JVT-T054}
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
   UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
 
@@ -799,7 +802,14 @@ public:
 	Bool	m_bTrueSlice;
 //  TMM_EC }}
   Void  setRedundantPicCnt            (UInt         ui )  { m_uiRedundantPicCnt                 = ui; }  // JVT-Q054 Red. Picture
-  
+//JVT-T054{
+  Void          setLayerCGSSNR(UInt ui) { m_uiLayerCGSSNR = ui;}
+  UInt          getLayerCGSSNR() { return m_uiLayerCGSSNR;}
+  Void          setQualityLevelCGSSNR(UInt ui) { m_uiQualityLevelCGSSNR = ui;}
+  UInt          getQualityLevelCGSSNR() { return m_uiQualityLevelCGSSNR;}
+  Void          setBaseLayerCGSSNR(UInt ui) { m_uiBaseLayerCGSSNR = ui;}
+  Void          setBaseQualityLevelCGSSNR(UInt ui) { m_uiBaseQualityLevelCGSSNR = ui;}
+//JVT-T054}
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
   ErrVal xReadScalable                ( HeaderSymbolReadIf*   pcReadIf );
@@ -876,7 +886,12 @@ protected:
   Bool                        m_bLastFragmentFlag;
   //~JVT-P031
   UInt                        m_uiRedundantPicCnt;  // JVT-Q054 Red. Picture
-
+//JVT-T054{
+  UInt                        m_uiLayerCGSSNR;
+  UInt                        m_uiQualityLevelCGSSNR;
+  UInt                        m_uiBaseLayerCGSSNR;
+  UInt                        m_uiBaseQualityLevelCGSSNR;
+//JVT-T054}
 // TMM_ESS {
 public:
   Int           getLeftOffset ()   const { return m_iScaledBaseLeftOffset; }

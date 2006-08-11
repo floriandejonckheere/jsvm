@@ -167,7 +167,10 @@ public:
                             ResizeParameters* pcParameters);
   ErrVal  noUpsampleMotion(); 
   // TMM_ESS }
-
+//JVT-T054{
+  ErrVal  copyMbCbp( MbData& rcMbData );
+  ErrVal  initMbCbp();
+//JVT-T054}
 protected:
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMvData*           m_apcMbMvdData[2];
