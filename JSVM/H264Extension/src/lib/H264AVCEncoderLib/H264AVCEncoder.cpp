@@ -415,9 +415,9 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	{
 //bug-fix suffix{{
 		//Bool bH264AVCCompatible = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
-		Bool bH264AVCCompatible = ( i == 0 );
+		//Bool bH264AVCCompatible = ( i == 0 );
 //bug-fix suffix}}
-		Bool bSubSeq            = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
+		//Bool bSubSeq            = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
 
 		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
 		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages();
@@ -452,9 +452,9 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 		//Bool bFGSLayerFlag = uiTotalFGSLevel > 1; //JVT-S036 lsj
 //bug-fix suffix{{
 //		Bool bH264AVCCompatible = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
-		Bool bH264AVCCompatible = ( uiCurrLayer == 0 );
+		//Bool bH264AVCCompatible = ( uiCurrLayer == 0 );
 //bug-fix suffix}}
-		Bool bSubSeq            = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
+		//Bool bSubSeq            = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
 		UInt uiMinTempLevel     = 0; //bugfix replace
 
 		for ( UInt uiCurrTempLevel = 0; uiCurrTempLevel < uiTotalTempLevel; uiCurrTempLevel++ )
@@ -844,9 +844,9 @@ H264AVCEncoder::xWriteScalableSEICGSSNR( ExtBinDataAccessor* pcExtBinDataAccesso
 	{
 //bug-fix suffix{{
 		//Bool bH264AVCCompatible = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
-		Bool bH264AVCCompatible = ( i == 0 );
+		//Bool bH264AVCCompatible = ( i == 0 );
 //bug-fix suffix}}
-		Bool bSubSeq            = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
+		//Bool bSubSeq            = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
 
 		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
 		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages();
@@ -878,9 +878,9 @@ H264AVCEncoder::xWriteScalableSEICGSSNR( ExtBinDataAccessor* pcExtBinDataAccesso
 		//UInt uiTotalFGSLevel = (UInt)rcLayer.getNumFGSLayers () + 1;//mwi. variable not used.
 //bug-fix suffix{{
 		//Bool bH264AVCCompatible = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
-		Bool bH264AVCCompatible = ( uiCurrLayer == 0 );
+		//Bool bH264AVCCompatible = ( uiCurrLayer == 0 );
 //bug-fix suffix}}
-		Bool bSubSeq            = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
+		//Bool bSubSeq            = ( uiCurrLayer == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
 		UInt uiMinTempLevel     = 0; //bugfix replace
 
 		for ( UInt uiCurrTempLevel = 0; uiCurrTempLevel < uiTotalTempLevel; uiCurrTempLevel++ )

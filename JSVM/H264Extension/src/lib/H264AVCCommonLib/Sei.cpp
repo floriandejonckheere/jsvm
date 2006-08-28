@@ -139,6 +139,7 @@ SEI::write( HeaderSymbolWriteIf*  pcWriteIf,
   return Err::m_nOK;
 }
 // JVT-T073 {
+ErrVal
 SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
                    HeaderSymbolWriteIf*  pcWriteTestIf,
                    MessageList*          rpcSEIMessageList )
@@ -244,6 +245,7 @@ SEI::xWrite( HeaderSymbolWriteIf* pcWriteIf,
 }
 
 // JVT-T073 {
+ErrVal
 SEI::xWriteNesting( HeaderSymbolWriteIf* pcWriteIf,
 				   HeaderSymbolWriteIf*  pcWriteTestIf,
 				   SEIMessage*           pcSEIMessage,
@@ -1424,19 +1426,21 @@ SEI::ScalableSeiDependencyChange::read ( HeaderSymbolReadIf *pcReadIf )
 //			SCALABLE NESTING SEI
 //
 //////////////////////////////////////////////////////////////////////////
-
+ErrVal
 SEI::ScalableNestingSei::create( ScalableNestingSei* &rpcSeiMessage )
 {
     rpcSeiMessage = new ScalableNestingSei();
 	ROT( NULL == rpcSeiMessage );
 	return Err::m_nOK;
 }
+ErrVal
 SEI::ScalableNestingSei::destroy()
 {
     delete this;
 	return Err::m_nOK;
 }
 
+ErrVal
 SEI::ScalableNestingSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
     UInt uiStartBits  = pcWriteIf->getNumberOfWrittenBits();
@@ -1465,9 +1469,9 @@ SEI::ScalableNestingSei::write( HeaderSymbolWriteIf *pcWriteIf )
 	return Err::m_nOK;
 }
 
+ErrVal
 SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 {
-	UInt uiBits = 0;
 	RNOK( pcReadIf->getFlag( m_bAllPicturesInAuFlag, " ScalableNestingSei:AllPicturesInAuFlag " ) );
 	if( m_bAllPicturesInAuFlag == 0 )
 	{
@@ -1516,6 +1520,7 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 }
 
 //Scene Info, simplified
+ErrVal
 SEI::SceneInfoSei::create( SceneInfoSei* &rpcSeiMessage )
 {
     rpcSeiMessage = new SceneInfoSei();
@@ -1523,11 +1528,14 @@ SEI::SceneInfoSei::create( SceneInfoSei* &rpcSeiMessage )
 	return Err::m_nOK;
 }
 
+ErrVal
 SEI::SceneInfoSei::destroy()
 {
     delete this;
 	return Err::m_nOK;
 }
+
+ErrVal
 SEI::SceneInfoSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
 	UInt uiStart = pcWriteIf->getNumberOfWrittenBits();
@@ -1548,6 +1556,7 @@ SEI::SceneInfoSei::write( HeaderSymbolWriteIf *pcWriteIf )
 	return Err::m_nOK;
 }
 
+ErrVal
 SEI::SceneInfoSei::read( HeaderSymbolReadIf *pcReadIf )
 {
 	RNOK( pcReadIf->getFlag( m_bSceneInfoPresentFlag, "SceneInfo: bSceneInfoPresentFlag" ) );

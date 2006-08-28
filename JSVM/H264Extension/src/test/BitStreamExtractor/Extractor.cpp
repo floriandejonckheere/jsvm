@@ -1886,8 +1886,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     Bool   bTruncate        = ( dUpRound > 0.0 ) && ( uiMaxFGSLayer < MAX_QUALITY_LEVELS ) || //-f
 		 ( uiWantedScalableLayer != MSYS_UINT_MAX && uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX ) ||//-e
          ( uiMaxBitrate != MSYS_UINT_MAX && dUpRound > 0.0 ); //-b
-	Bool   bAVCCompatible   = m_cScalableStreamDescription.getBaseLayerModeAVC();
-	UInt   uiStdAVCOffset   = m_cScalableStreamDescription.getStdAVCOffset();
+	//Bool   bAVCCompatible   = m_cScalableStreamDescription.getBaseLayerModeAVC();
+	//UInt   uiStdAVCOffset   = m_cScalableStreamDescription.getStdAVCOffset();
 // BUG_FIX liuhui}
 //JVT-S036 lsj start
 	Bool   bExactMatchFlag[MAX_LAYERS];
@@ -2402,7 +2402,7 @@ Extractor::xExtractLayerLevel()
 	UInt uiDecreaseBitrate = MSYS_UINT_MAX;
 // BUG_FIX liuhui{ the bAVCCompatible is copied from the lower part
 	Bool bAVCCompatible     = m_cScalableStreamDescription.getBaseLayerModeAVC();
-	UInt uiStdAVCOffset     = m_cScalableStreamDescription.getStdAVCOffset();
+	//UInt uiStdAVCOffset     = m_cScalableStreamDescription.getStdAVCOffset();
 // BUG_FIX liuhui}
 // JVT-T073 {
 	Bool bNextSuffix = false;
