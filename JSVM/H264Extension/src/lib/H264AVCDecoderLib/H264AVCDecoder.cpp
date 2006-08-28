@@ -413,7 +413,10 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
   if (m_bDependencyInitialized)
   {
 	  UInt uiNumBytesTemp; 
-	  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL, uiNumBytesTemp ) ); 
+//bug-fix suffix shenqiu{{
+  //RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL, uiNumBytesTemp ) ); 
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, uiNumBytesTemp ) ); 
+//bug-fix suffix shenqiu}} 
 	  
 	  eNalUnitType = m_pcNalUnitParser->getNalUnitType();
 
@@ -443,7 +446,12 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
     //m_uiNumOfNALInAU++;//JVT-P031
     m_pcNalUnitParser->setCheckAllNALUs(true);//JVT-P031
     UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-    RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+
+//bug-fix suffix shenqiu{{
+  //RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor,  uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu}
+
     m_pcNalUnitParser->setCheckAllNALUs(false);//JVT-P031
 
     eNalUnitType = m_pcNalUnitParser->getNalUnitType();
@@ -771,7 +779,10 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
   if( ! bEos )
   {
     UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-    RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL, uiNumBytesRemoved, true, false, true ) );
+//bug-fix suffix shenqiu{{
+  //RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, NULL, uiNumBytesRemoved, true, false, true ) );
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, uiNumBytesRemoved, true, false, true ) );
+//bug-fix suffix shenqiu}} 
 
     if ( m_pcNalUnitParser->getQualityLevel() != 0)
 		{
@@ -1129,7 +1140,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     return Err::m_nOK;
   }
 
-  Bool KeyPicFlag = false;
+//  Bool KeyPicFlag = false; //bug-fix suffix shenqiu
   static Bool bSuffixUnit = false;  //JVT-S036 lsj
   //JVT-P031
   Bool bLastFragment;
@@ -1140,7 +1151,10 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   ruiStartPos = 0; //FRAG_FIX
   //~JVT-P031
   UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu{{
+  //RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu}} 
   UInt uiBitsLeft = m_pcNalUnitParser->getBitsLeft(); //JVT-P031
 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();
@@ -1179,7 +1193,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   	ruiStartPos = 0; //FRAG_FIX
     //~JVT-P031
     RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
-    m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag);
+ //   m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag); //bug-fix suffix shenqiu
     m_bActive = true;
     rbStartDecoding = true; //JVT-P031
 	bSuffixUnit = true; //JVT-S036 lsj
@@ -1366,8 +1380,10 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       if(!bDiscardable)
       //~JVT-P031
       RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
-      if(m_pcSliceHeader) //JVT-P031
-	    m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag);
+//bug-fix suffix shenqiu{{  
+	 // if(m_pcSliceHeader) //JVT-P031
+	   // m_pcSliceHeader->setKeyPictureFlag (KeyPicFlag);
+//bug-fix suffix shenqiu
       //JVT-P031
       bFragmented = (!m_pcSliceHeader ? false : m_pcSliceHeader->getFragmentedFlag());
       if( (bLastFragment) || (!bFragmented) || 
@@ -1454,6 +1470,12 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 						for ( i=0; i< m_uiNumLayers; i++)
 						  m_uiGopSize[i]	=	1 << m_uiDecompositionStages[i];
 				  }
+// JVT-T073 {
+				  else if( pcSEIMessage->getMessageType() == SEI::SCALABLE_NESTING_SEI )
+				  {
+				      //do nothing, or add your code here
+				  }
+// JVT-T073 }
 			    delete pcSEIMessage;
 		}
       }
@@ -1583,13 +1605,15 @@ H264AVCDecoder::initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
 
 
   //JVT-P031
-  Bool KeyPicFlag = false;
+//  Bool KeyPicFlag = false; //bug-fix suffix shenqiu
   getDecodedResolution(m_uiDecodedLayer);
   m_pcNalUnitParser->setDecodedLayer(m_uiDecodedLayer);
   //~JVT-P031
   UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
-
+//bug-fix suffix shenqiu{{
+  //RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, &KeyPicFlag,uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
+  RNOK( m_pcNalUnitParser->initNalUnit( pcBinDataAccessor, uiNumBytesRemoved, bPreParseHeader , bConcatenated) ); //BUG_FIX_FT_01_2006_2 //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu}} 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();
   
   
@@ -2568,7 +2592,7 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer) //JVT-T054
   }
 //JVT-S036 lsj start
 
-  if ( pcSliceHeader->getKeyPicFlagScalable()  )
+  if( pcSliceHeader->getKeyPictureFlag() )  //bug-fix suffix shenqiu
 	{
 		if( pcSliceHeader->getAdaptiveRefPicMarkingFlag() )
 		{
@@ -2605,7 +2629,7 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer) //JVT-T054
     m_pcFrameMng->storeFGSPicture( m_pcFGSPicBuffer );
     m_pcFGSPicBuffer = NULL;
 //JVT-S036 lsj{
-	if(pcSliceHeader->getKeyPicFlagScalable() ) //Shujie Liu bug-fix
+	if( pcSliceHeader->getKeyPictureFlag() )  //bug-fix suffix shenqiu
 		m_pcFrameMng->getCurrentFrameUnit()->uninitBase();
 //JVT-S036 lsj}
   }

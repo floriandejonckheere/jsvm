@@ -128,8 +128,13 @@ public:
 	// JVT-S080 LMI {
 	SCALABLE_SEI_LAYERS_NOT_PRESENT       = 26,
     SCALABLE_SEI_DEPENDENCY_CHANGE        = 27,
-    RESERVED_SEI                          = 28,
+    // JVT-T073    RESERVED_SEI                          = 28,
 	// JVT-S080 LMI }
+    //  JVT-T073 {
+	SCENE_INFO_SEI                        = 9,
+	SCALABLE_NESTING_SEI                  = 28,   
+	RESERVED_SEI                          = 29,
+    //  JVT-T073 }
   	NON_REQUIRED_SEI					            = 24
   };
 
@@ -712,6 +717,73 @@ public:
 	};
 
   // JVT-S080 LMI }
+// JVT-T073 {
+#define MAX_PICTURES_IN_ACCESS_UNIT 50
+  class H264AVCCOMMONLIB_API ScalableNestingSei : public SEIMessage
+  {
+  protected:
+    ScalableNestingSei()
+      : SEIMessage(SCALABLE_NESTING_SEI)
+      , m_bAllPicturesInAuFlag  (0)
+	  , m_uiNumPictures         (0)
+	  , m_pcSEIMessage          (NULL)
+    {}
+
+  public:
+    static ErrVal create( ScalableNestingSei*&  rpcSEIMessage );
+	ErrVal		  destroy();  
+    ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf );
+    ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
+    ErrVal        init  ( Bool                  m_bAllPicturesInAuFlag,
+	                      UInt                  m_uiNumPictures,
+	                      UInt*                 m_auiDependencyId,
+	                      UInt*                 m_auiQualityLevel 
+						);
+
+    Bool getAllPicturesInAuFlag()  const { return m_bAllPicturesInAuFlag; }
+    UInt getNumPictures()          const { return m_uiNumPictures; }
+	UInt getDependencyId( UInt uiIndex ) { return m_auiDependencyId[uiIndex]; }
+	UInt getQualityLevel( UInt uiIndex ) { return m_auiQualityLevel[uiIndex]; }
+
+	Void setAllPicturesInAuFlag( Bool bFlag ) { m_bAllPicturesInAuFlag = bFlag; }
+	Void setNumPictures( UInt uiNum ) { m_uiNumPictures = uiNum; }
+	Void setDependencyId( UInt uiIndex, UInt uiValue ) { m_auiDependencyId[uiIndex] = uiValue; }
+	Void setQualityLevel( UInt uiIndex, UInt uiValue ) { m_auiQualityLevel[uiIndex] = uiValue; }
+
+  private:
+	  Bool  m_bAllPicturesInAuFlag;
+	  UInt  m_uiNumPictures;
+	  UInt  m_auiDependencyId[MAX_PICTURES_IN_ACCESS_UNIT];
+	  UInt  m_auiQualityLevel[MAX_PICTURES_IN_ACCESS_UNIT];
+	  SEIMessage *m_pcSEIMessage;
+  };
+  //scene_info is taken as en example
+  class H264AVCCOMMONLIB_API SceneInfoSei : public SEIMessage
+  {
+  protected:
+	  SceneInfoSei() : SEIMessage(SCENE_INFO_SEI)
+	  {}
+  public:
+	  static ErrVal create( SceneInfoSei*& rpcSceneInfoSei );
+	  ErrVal		destroy ();  
+	  ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf);
+      ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
+
+	  Bool getSceneInfoPresentFlag() const { return m_bSceneInfoPresentFlag; }
+	  UInt getSceneId()              const { return m_uiSceneId; }
+	  UInt getSceneTransitionType()  const { return m_uiSceneTransitionType; }
+	  UInt getSecondSceneId()        const { return m_uiSecondSceneId; }
+	  Void setSceneInfoPresentFlag( Bool bFlag )          { m_bSceneInfoPresentFlag = bFlag; }
+	  Void setSceneId( UInt uiSceneId )                   { m_uiSceneId = uiSceneId; }
+	  Void setSceneTransitionType( UInt uiTransitionType) { m_uiSceneTransitionType = uiTransitionType; }
+	  Void setSecondSceneId( UInt uiSecondId )            { m_uiSecondSceneId = uiSecondId; }
+  private:
+	  Bool m_bSceneInfoPresentFlag;
+	  UInt m_uiSceneId;
+	  UInt m_uiSceneTransitionType;
+	  UInt m_uiSecondSceneId;
+  };
+  // JVT-T073 }
 
   typedef MyList<SEIMessage*> MessageList;
   
@@ -720,6 +792,15 @@ public:
   static ErrVal write ( HeaderSymbolWriteIf*  pcWriteIf,
                         HeaderSymbolWriteIf*  pcWriteTestIf,
                         MessageList*          rpcSEIMessageList );
+  //JVT-T073 {
+  static ErrVal writeNesting        ( HeaderSymbolWriteIf*  pcWriteIf,
+                                      HeaderSymbolWriteIf*  pcWriteTestIf,
+                                      MessageList*          rpcSEIMessageList );
+  static ErrVal xWriteNesting       ( HeaderSymbolWriteIf*  pcWriteIf,
+                                      HeaderSymbolWriteIf*  pcWriteTestIf,
+                                      SEIMessage*           pcSEIMessage,
+									  UInt&                 uiBits );
+ //JVT-T073 }
 
 protected:
   static ErrVal xRead               ( HeaderSymbolReadIf*   pcReadIf,

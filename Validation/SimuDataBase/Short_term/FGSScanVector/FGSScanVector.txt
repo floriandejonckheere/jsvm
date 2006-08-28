@@ -46,7 +46,7 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 48,
+            		        bitrate => 50,
             		        psnr => 25.23,
             		      },
 		                  #----------#
@@ -57,7 +57,7 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 90,
+            		        bitrate => 92,
             		        psnr => 27.3066,
             		      },
 			                #----------#
@@ -68,7 +68,7 @@
             		        mode => 1,
 				                width => 176,
 				                height => 144,
-            		        bitrate => 252,
+            		        bitrate => 254,
             		        psnr => 31.4752,
 				                encdecmatch => 1,
             		      },

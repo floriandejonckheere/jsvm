@@ -651,7 +651,7 @@ public:
 
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
   Bool                              getKeyPictureFlag             ()  const { return m_bKeyPictureFlag; }
-  Bool                              getKeyPicFlagScalable         ()  const { return m_bKeyPicFlagScalable; } //JVT-S036 lsj
+//  Bool                              getKeyPicFlagScalable         ()  const { return m_bKeyPicFlagScalable; } //JVT-S036 lsj //bug-fix suffix shenqiu
   UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
@@ -767,7 +767,7 @@ public:
   Void  setChromaLog2WeightDenom      ( UInt        ui )  { m_uiChromaLog2WeightDenom           = ui; }
   Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
   Void  setKeyPictureFlag             ( Bool        b  )  { m_bKeyPictureFlag                   = b;  }
-  Void  setKeyPicFlagScalable         ( Bool        b  )  { m_bKeyPicFlagScalable               = b;  }  //JVT-S036 lsj
+ // Void  setKeyPicFlagScalable         ( Bool        b  )  { m_bKeyPicFlagScalable               = b;  }  //JVT-S036 lsj//bug-fix suffix shenqiu
   Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; }
   Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
@@ -845,7 +845,7 @@ protected:
   Bool                        m_bDirectSpatialMvPredFlag;
 
   Bool                        m_bKeyPictureFlag;
-  Bool						  m_bKeyPicFlagScalable;   //JVT-S036 lsj
+//  Bool						  m_bKeyPicFlagScalable;   //JVT-S036 lsj//bug-fix suffix shenqiu
   UInt                        m_uiBaseLayerId;
   UInt                        m_uiBaseQualityLevel;
   UInt						            m_uiBaseFragmentOrder;

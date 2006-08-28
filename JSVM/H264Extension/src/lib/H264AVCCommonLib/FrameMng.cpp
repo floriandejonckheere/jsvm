@@ -896,7 +896,7 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
     m_iEntriesInDPB++;
 
 //JVT-S036 lsj start
-	if( rcSH.getKeyPicFlagScalable() )
+	if( rcSH.getKeyPictureFlag() )  //bug-fix suffix shenqiu
 	{
 		RNOK( m_cFrameUnitBuffer.getFrameUnit( m_pcCurrentFrameUnitBase ) );
 		RNOK( m_pcCurrentFrameUnitBase->copyBase( rcSH, *m_pcCurrentFrameUnit ) );
@@ -923,7 +923,7 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
     }
   }
 
-  if( rcSH.getKeyPicFlagScalable() ) //JVT-S036 lsj
+  if( rcSH.getKeyPictureFlag() )  //bug-fix suffix shenqiu
   {
 	m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnitBase );
   }
@@ -1033,6 +1033,14 @@ ErrVal FrameMng::xManageMemory( const SliceHeader& rcSH )
 ErrVal FrameMng::xSlidingWindowUpdate()
 {
   UInt  uiS = m_cShortTermList.size();
+
+  //bug-fix suffix{{
+  FUList::iterator iter = m_cShortTermList.begin();
+  for( ; iter != m_cShortTermList.end(); iter++ )
+   {
+	   if( (*iter)->getBaseRep() ) uiS--;
+  }
+  //bug-fix suffix}}
 
   //ROT( uiS > m_uiNumRefFrames );
   //if( uiS == m_uiNumRefFrames )

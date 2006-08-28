@@ -472,6 +472,13 @@ ErrVal H264AVCDecoderTest::go()
 						if( !SuffixEnable )
 						{
 							RNOK( m_pcReadBitstream->setPosition( iPos ) );
+//bug-fix suffix{{
+							bEOS = false;
+						}
+						else
+						{
+							m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
+//bug-fix suffix}}
 						}
 					}
 				//JVT-S036 lsj end
@@ -637,7 +644,37 @@ ErrVal H264AVCDecoderTest::go()
 // JVT-Q054 Red. Picture {
   RNOK( m_pcH264AVCDecoder->checkRedundantPic() );
   if ( m_pcH264AVCDecoder->isRedundantPic() )
-    continue;
+//bug-fix suffix{{
+  {
+	if((uiNalUnitType == 1 || uiNalUnitType == 5) && !bEOS) 
+	{
+		SuffixEnable = true;
+		RNOK(m_pcH264AVCDecoderSuffix->init( false ));   // THAT'S REALLY BAD !!!
+		RNOK( m_pcReadBitstream->getPosition( iPos ) );
+		RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+		pcBinData->setMemAccessor( cBinDataAccessor );
+		m_pcH264AVCDecoderSuffix->setAVCFlag( true );
+		RNOK( m_pcH264AVCDecoderSuffix->initPacketSuffix( &cBinDataAccessor, uiNalUnitType, true, 
+				false, //FRAG_FIX_3
+				bStart, m_pcH264AVCDecoder,SuffixEnable
+				)
+			);
+
+		RNOK( m_pcH264AVCDecoderSuffix->uninit( false ));  // THAT'S REALLY BAD !!!
+
+		if( !SuffixEnable )
+		{
+			RNOK( m_pcReadBitstream->setPosition( iPos ) );
+			bEOS = false; 
+		}
+		else
+		{
+			m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
+		}
+	}
+	continue;
+  }
+//bug-fix suffix}}
 // JVT-Q054 Red. Picture }
 
   if(bToDecode)//JVT-P031
@@ -685,6 +722,12 @@ ErrVal H264AVCDecoderTest::go()
 			RNOK( m_pcReadBitstream->setPosition( iPos ) );
 			bEOS = false; 
 		}
+//bug-fix suffix{{
+		else
+		{
+			m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
+		}
+//bug-fix suffix}}
 	}
 //JVT-S036 lsj end
 

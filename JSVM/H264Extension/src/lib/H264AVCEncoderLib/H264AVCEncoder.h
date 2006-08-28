@@ -180,6 +180,9 @@ public:
                                     UInt                uiNumLevels, 
                                     UInt                uiLayer ) ;
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
+// JVT-T073 {
+  ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
+// JVT-T073 }
 
   Void setScalableSEIMessage  ()       { m_bScalableSeiMessage = true; }
 	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }

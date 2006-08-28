@@ -103,6 +103,7 @@ QualityLevelAssigner::QualityLevelAssigner()
 : m_pcParameter             ( 0 )
 , m_pcH264AVCPacketAnalyzer ( 0 )
 , m_pcH264AVCDecoder        ( 0 )
+, m_pcH264AVCDecoderSuffix( NULL )  //bug-fix suffix
 , m_pcBitCounter            ( 0 )
 , m_pcBitWriteBuffer        ( 0 )
 , m_pcUvlcWriter            ( 0 )
@@ -148,6 +149,7 @@ QualityLevelAssigner::init( QualityLevelParameter* pcParameter )
   //--- create objects ---
   RNOK( H264AVCPacketAnalyzer::create( m_pcH264AVCPacketAnalyzer ) );
   RNOK( CreaterH264AVCDecoder::create( m_pcH264AVCDecoder ) );
+  RNOK( CreaterH264AVCDecoder::create( m_pcH264AVCDecoderSuffix ) ); //bug-fix suffix
   RNOK( BitCounter           ::create( m_pcBitCounter ) );
   RNOK( BitWriteBuffer       ::create( m_pcBitWriteBuffer ) );
   RNOK( UvlcWriter           ::create( m_pcUvlcWriter ) );
@@ -199,6 +201,12 @@ QualityLevelAssigner::destroy()
   {
     RNOK( m_pcH264AVCDecoder->destroy() );
   }
+//bug-fix suffix{{
+   if( NULL != m_pcH264AVCDecoderSuffix )       
+  {
+    RNOK( m_pcH264AVCDecoderSuffix->destroy() );       
+  }
+//bug-fix suffix}}
   if( m_pcBitCounter )
   {
     RNOK( m_pcBitCounter->uninit  () );
@@ -365,6 +373,7 @@ QualityLevelAssigner::xInitStreamParameters()
   printf( "analyse stream content ..." );
 
   Bool              bFirstPacket  = true;
+  static Bool		bAVCComaptible = false;  //bug-fix suffix
   BinData*          pcBinData     = 0;
   SEI::SEIMessage*  pcScalableSEI = 0;
   PacketDescription cPacketDescription;
@@ -444,6 +453,16 @@ QualityLevelAssigner::xInitStreamParameters()
     }
 
     //----- analyse packets -----
+//bug-fix suffix{{
+	if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+	{
+		bAVCComaptible = true;
+	}
+	if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
+	{
+		continue;
+	}
+//bug-fix suffix}}
     if( cPacketDescription.FGSLayer )
     {
       if( cPacketDescription.Layer+1 > m_uiNumLayers)
@@ -699,6 +718,7 @@ QualityLevelAssigner::xInitRateValues()
   SEI::SEIMessage*  pcScalableSEI = 0;
   PacketDescription cPacketDescription;
   UInt              auiFrameNum[MAX_LAYERS] = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX };
+  static Bool		bAVCComaptible = false;  //bug-fix suffix
 
   //===== init =====
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
@@ -742,6 +762,17 @@ QualityLevelAssigner::xInitRateValues()
     //----- analyse packets -----
     if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI )
     {
+//bug-fix suffix{{
+		if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+		{
+			bAVCComaptible = true;
+		}																													 
+		if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
+		{
+			continue;
+		}
+//bug-fix suffix}}
+
       if( cPacketDescription.FGSLayer == 0 )
       {
         auiFrameNum[cPacketDescription.Layer]++;
@@ -777,6 +808,7 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
                                            UInt*              auiFrameNum )
 {
   Bool              bValid        = false;
+  static Bool		bAVCComaptible = false;  //bug-fix suffix
   SEI::SEIMessage*  pcScalableSEI = 0;
   PacketDescription cPacketDescription;
 
@@ -825,6 +857,16 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     }
     else // slice data
     {
+//bug-fix suffix{{
+		if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+		{
+			bAVCComaptible = true;
+		}																													 
+		if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
+		{
+			continue;
+		}
+//bug-fix suffix}}
       //===== update frame num =====
       if( ! cPacketDescription.FGSLayer )
       {
@@ -963,6 +1005,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
   UInt              uiMbX             = 0;
   UInt              uiMbY             = 0;
   UInt              uiSize            = 0;
+  Bool		SuffixEnable; //bug-fix suffix
 
 //  UInt              uiNonRequiredPic  = 0;  //NonRequired JVT-Q066
 
@@ -1156,6 +1199,34 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
         Int   orig_stdout     = _dup(1);
         FILE* stdout_copy     = freopen( tmp_file_name, "wt", stdout );
 #endif
+//bug-fix suffix{{
+		if(uiNalUnitType == 1 || uiNalUnitType == 5)
+		{
+			SuffixEnable = true;
+			RNOK(m_pcH264AVCDecoderSuffix->init( false ));    
+			RNOK( pcReadBitStream->getPosition( iPos ) );
+			RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
+			pcBinData->setMemAccessor( cBinDataAccessor );
+			m_pcH264AVCDecoderSuffix->setAVCFlag( true );
+			RNOK( m_pcH264AVCDecoderSuffix->initPacketSuffix( &cBinDataAccessor, uiNalUnitType, true, 
+					false, //FRAG_FIX_3
+					bStart, m_pcH264AVCDecoder,SuffixEnable
+					)
+				);
+
+			RNOK( m_pcH264AVCDecoderSuffix->uninit( false ));  
+
+			if( !SuffixEnable )
+			{
+				RNOK( pcReadBitStream->setPosition( iPos ) );
+				bEOS = false;
+			}
+			else
+			{
+				m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
+			}
+		}
+//bug-fix suffix}}
         //----- decode -----
         RNOK( m_pcH264AVCDecoder->process( pcPicBuffer,
                                            cPicBufferOutputList,
@@ -1453,6 +1524,7 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
   BinData*          pcBinData     = 0;
   SEI::SEIMessage*  pcScalableSEI = 0;
   PacketDescription cPacketDescription;
+  static Bool		bAVCComaptible = false;  //bug-fix suffix
   UInt              auiFrameNum[MAX_LAYERS] = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX };
 
   //===== init =====
@@ -1497,6 +1569,20 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
     }
     else
     {
+//bug-fix suffix{{
+		if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+		{
+			bAVCComaptible = true;
+		}																													 
+		if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
+		{
+            RNOK( pcWriteBitStream->writePacket   ( &m_cBinDataStartCode ) );
+            RNOK( pcWriteBitStream->writePacket   ( pcBinData ) );
+            RNOK( pcReadBitStream ->releasePacket ( pcBinData ) );
+			continue;
+		}
+//bug-fix suffix}}
+
       if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
           ! cPacketDescription.FGSLayer )
       {
@@ -1535,6 +1621,7 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
   BinData*          pcBinData         = 0;
   SEI::SEIMessage*  pcScalableSEI     = 0;
   PacketDescription cPacketDescription;
+  static Bool		bAVCComaptible = false;  //bug-fix suffix
   UInt              auiFrameNum[MAX_LAYERS] = { MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX, MSYS_UINT_MAX };
 
   //===== init =====
@@ -1577,6 +1664,16 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
                             !cPacketDescription.ApplyToNext                 &&
                              cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
                              cPacketDescription.FGSLayer    == 0U );
+//bug-fix suffix{{
+	if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+	{
+		bAVCComaptible = true;
+	}
+	if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
+	{
+		bNewAccessUnit = false;
+	}
+//bug-fix suffix}}
     if(  bNewAccessUnit )
     {
       bNewAccessUnit  =                   ( cPacketDescription.Layer == 0 );

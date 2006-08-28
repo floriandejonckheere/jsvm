@@ -52,7 +52,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
                         bitrate     => 656,
-                        psnr        => 28.9882,
+                        psnr        => 28.98,
                         usesip      => 2,
                        },
                        #----------#

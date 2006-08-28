@@ -122,6 +122,9 @@ public:
   ErrVal write            ( const PictureParameterSet&  rcPPS );
   ErrVal write            ( const SliceHeader&          rcSH  );
   ErrVal write            ( SEI::MessageList&           rcSEIMessageList );
+//JVT-T073 {
+  ErrVal writeNesting     ( SEI::MessageList&           rcSEIMessageList );
+//JVT-T073 }
 
 protected:
   ErrVal xConvertRBSPToPayload( UInt& ruiBytesWritten,

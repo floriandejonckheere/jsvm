@@ -2308,8 +2308,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
     RNOK( pcFrame         ->clip       () );
   }
 //JVT-S036 lsj start 
-
-  if ( pcSliceHeader->getKeyPicFlagScalable()  )
+  if( pcSliceHeader->getKeyPictureFlag() )  //bug-fix suffix shenqiu
 	{
 		if( pcSliceHeader->getAdaptiveRefPicMarkingFlag() )
 		{

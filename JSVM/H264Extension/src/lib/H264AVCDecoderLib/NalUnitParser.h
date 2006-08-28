@@ -108,7 +108,7 @@ public:
   ErrVal        init            ( BitReadBuffer*    pcBitReadBuffer   );
   ErrVal        destroy         ();
 
-  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, Bool* KeyPicFlag, 
+  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, // Bool* KeyPicFlag, //bug-fix suffix shenqiu
     UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
 	  Bool bPreParseHeader = true,
     Bool bConcatenated = false, //FRAG_FIX

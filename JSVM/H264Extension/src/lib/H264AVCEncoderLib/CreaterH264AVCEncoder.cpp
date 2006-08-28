@@ -194,6 +194,15 @@ ErrVal CreaterH264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcEx
 }
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+// JVT-T073 {
+ErrVal CreaterH264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor )
+{
+	RNOK( m_pcH264AVCEncoder->writeNestingSEIMessage( pcExtBinDataAccessor ) );
+	return Err::m_nOK;
+
+}
+// JVT-T073 }
+
 ErrVal
 CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
                                 PicBuffer*               apcOriginalPicBuffer     [MAX_LAYERS],

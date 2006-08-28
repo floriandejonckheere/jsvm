@@ -145,6 +145,9 @@ public:
   ErrVal  getSvlc     ( Int&  riCode,                 Char* pcTraceString );
   ErrVal  getFlag     ( Bool& rbFlag,                 Char* pcTraceString );
   ErrVal  readByteAlign();
+// JVT-T073 {
+  ErrVal  readZeroByteAlign();
+// JVT-T073 }
 
   ErrVal  codeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 )
     {return xCodeFromBitstream2Di(auiCode, auiLen, uiWidth, uiHeight, uiVal1, uiVal2);};

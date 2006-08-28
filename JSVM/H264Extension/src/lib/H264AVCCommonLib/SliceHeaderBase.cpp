@@ -263,7 +263,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiChromaLog2WeightDenom           ( 5 )
 , m_bDirectSpatialMvPredFlag          ( true )
 , m_bKeyPictureFlag                   ( false )
-, m_bKeyPicFlagScalable               ( false )  //JVT-S036 lsj
+//, m_bKeyPicFlagScalable               ( false )  //JVT-S036 lsj //bug-fix suffix shenqiu
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevel                ( 0 )
 , m_uiBaseFragmentOrder				        ( 0 )
@@ -804,7 +804,10 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 //JVT-S036 lsj start
   if( getNalRefIdc() )
   {
-	  RNOK( pcReadIf->getFlag( m_bKeyPicFlagScalable,							 "SH: key_pic_flag"));
+//bug-fix suffix shenqiu{{
+//	  RNOK( pcReadIf->getFlag( m_bKeyPicFlagScalable,							 "SH: key_pic_flag"));
+	  RNOK( pcReadIf->getFlag( m_bKeyPictureFlag,							 "SH: key_pic_flag"));
+//bug-fix suffix shenqiu}}
   }
 //JVT-S036 lsj end
   //JVT-Q054 Red. Picture {
@@ -922,7 +925,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
         }
       }
 	//JVT-S036 lsj start
-	  if( getKeyPicFlagScalable() && getNalUnitType() != 21)
+	  if( getKeyPictureFlag() && getNalUnitType() != 21)  //bug-fix suffix shenqiu
 	  {
 		  RNOK(pcReadIf->getFlag( m_bAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
 		  if(m_bAdaptiveRefPicMarkingModeFlag)

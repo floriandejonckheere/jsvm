@@ -561,6 +561,28 @@ ErrVal UvlcReader::readByteAlign()
   return Err::m_nOK;
 }
 
+//JVT-T073 {
+ErrVal UvlcReader::readZeroByteAlign()
+{
+  UInt uiCode;
+  UInt uiLength = m_pcBitReadBuffer->getBitsUntilByteAligned();
+
+  ROTRS( 0 == uiLength, Err::m_nOK );
+
+  DECRNOK( m_pcBitReadBuffer->get( uiCode, uiLength ) );
+
+
+  DTRACE_POS;
+  DTRACE_T( "NestingSEI: zero_alignment_bits" );
+  DTRACE_TY( " u(v)" );
+  DTRACE_CODE( uiCode );
+  DTRACE_BITS( uiCode, uiLength );
+  DTRACE_N;
+  DTRACE_COUNT( uiLength );
+
+  return Err::m_nOK;
+}
+//JVT-T073 }
 
 
 ErrVal UvlcReader::startSlice( const SliceHeader& rcSliceHeader )

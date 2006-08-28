@@ -169,6 +169,10 @@ public:
                                    UInt uiLayer);
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
+// JVT-T073 {
+  ErrVal CreaterH264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
+// JVT-T073 }
+
   Bool getScalableSeiMessage ( Void );
 	Void SetVeryFirstCall ( Void );
   // JVT-S080 LMI {

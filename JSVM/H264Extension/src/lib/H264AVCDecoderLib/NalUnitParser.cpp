@@ -303,7 +303,7 @@ NalUnitParser::getBitsLeft()
 //~JVT-P031
 
 ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag, 
+NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFlag, //bug-fix suffix shenqiu 
                            UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
                            Bool bPreParseHeader, Bool bConcatenated, //FRAG_FIX
 													 Bool	bCheckGap) //TMM_EC
@@ -319,8 +319,10 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, Bool* KeyPicFlag
   //===== NAL unit header =====
   ROT( ucByte & 0x80 );                                     // forbidden_zero_bit ( &10000000b)
   m_eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
-  if ( m_eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST && KeyPicFlag != NULL )
-	*KeyPicFlag = true;
+// bug-fix suffix shenqiu {{
+//if ( m_eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST && KeyPicFlag != NULL )
+//	*KeyPicFlag = true;
+//bug-fix suffix shenqiu}}
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
   
 //	TMM_EC {{

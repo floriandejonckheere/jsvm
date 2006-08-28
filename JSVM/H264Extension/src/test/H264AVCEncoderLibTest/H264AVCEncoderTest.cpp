@@ -419,6 +419,22 @@ H264AVCEncoderTest::go()
 		}
     cBinData.reset();
   }
+  // JVT-T073 {
+  if( m_pcEncoderCodingParameter->getNestingSEIEnable() && m_pcEncoderCodingParameter->getSceneInfoEnable() )
+  {
+      UChar aucParameterSetBuffer[1000];
+      BinData cBinData;
+      cBinData.reset();
+      cBinData.set( aucParameterSetBuffer, 1000 );
+      ExtBinDataAccessor cExtBinDataAccessor;
+      cBinData.setMemAccessor( cExtBinDataAccessor );
+	  RNOK( m_pcH264AVCEncoder ->writeNestingSEIMessage( &cExtBinDataAccessor ) );
+	  RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
+	  RNOK( m_pcWriteBitstreamToFile->writePacket( &cExtBinDataAccessor ) );
+	  uiWrittenBytes += 4 + cExtBinDataAccessor.size();
+	  cBinData.reset();
+  }
+  // JVT-T073 }
 
   //===== determine parameters for required frame buffers =====
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )

@@ -383,7 +383,7 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 			rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_HIGHEST);
 		else
 			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_HIGH);
-		rpcSH->setKeyPictureFlag( 1);
+	//	rpcSH->setKeyPictureFlag( 1);  //bug-fix suffix shenqiu
 	}
   else
 	{
@@ -393,7 +393,7 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 		else
 			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_LOWEST);
 		rpcSH->setNumRefIdxActive( LIST_1, 1);
-		rpcSH->setKeyPictureFlag( 0);
+	//	rpcSH->setKeyPictureFlag( 0); //bug-fix suffix shenqiu
 	}
   //if(eNalUnitType==NAL_UNIT_CODED_SLICE||)
 //key picture MMCO for base and enhancement layer
@@ -505,7 +505,7 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
 		 rpcSH->setLayerId       ( uiLayerId       );
 		 rpcSH->setTemporalLevel ( uiTemporalLevel );
 		 rpcSH->setQualityLevel  ( uiQualityLevel  );
-		 rpcSH->setKeyPicFlagScalable( KeyPicFlag      );
+		 rpcSH->setKeyPictureFlag( KeyPicFlag      );   //bug-fix suffix shenqiu
 		 rpcSH->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag ); 
 		 rpcSH->setPicOrderCntLsb( POC_AVC );
 //		 UnitAVCFlag = false;
@@ -593,7 +593,7 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
   else
   {
 	  RNOK( m_pcHeaderReadIf->getFlag( KeyPicFlag,                        "SH: key_pic_flag"));
-	  rpcSH->setKeyPicFlagScalable( KeyPicFlag );  //JVT-S036 lsj
+	  rpcSH->setKeyPictureFlag( KeyPicFlag      );   //bug-fix suffix shenqiu
   }
 
   if ( eNalUnitType == NAL_UNIT_CODED_SLICE ||
@@ -654,7 +654,7 @@ SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
 			 }
 		 }
 
-		 pcSliceHeader->setKeyPicFlagScalable( KeyPicFlag ); //JVT-S036 lsj
+		 pcSliceHeader->setKeyPictureFlag( KeyPicFlag      );   //bug-fix suffix shenqiu
 		 pcSliceHeader->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag );
 
 		 return Err::m_nOK;

@@ -671,6 +671,10 @@ public:
 	  , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
 	  , m_uiSuffixUnitEnable			  (0)  //JVT-S036 lsj
 	  , m_uiMMCOBaseEnable					  ( 0 ) //JVT-S036 lsj
+//JVT-T073 {
+	  , m_uiNestingSEIEnable              ( 0 ) 
+	  , m_uiSceneInfoEnable               ( 0 )
+//JVT-T073 }
 //JVT-T054{
     , m_uiCGSSNRRefinementFlag             ( 0 )
     , m_uiMaxLayerCGSSNR                ( 0 )
@@ -746,6 +750,10 @@ public:
   UInt                            getLARDOEnable          ()              const   { return m_uiLARDOEnable;} //JVT-R057 LA-RDO
   UInt							  getSuffixUnitEnable	  ()		      const	  { return m_uiSuffixUnitEnable;} //JVT-S036 lsj
   UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  // JVT-T073 {
+  UInt                            getNestingSEIEnable     ()              const   { return m_uiNestingSEIEnable; }
+  UInt                            getSceneInfoEnable      ()              const   { return m_uiSceneInfoEnable; }
+  // JVT-T073 }
 
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
   Void                            setMaximumDelay         ( Double  d )   { m_dMaximumDelay         = d; }
@@ -897,6 +905,10 @@ protected:
   UInt                      m_uiMaxLayerCGSSNR;
   UInt                      m_uiMaxQualityLevelCGSSNR;
 //JVT-T054}
+//JVT-T073 {
+  UInt                      m_uiNestingSEIEnable;
+  UInt                      m_uiSceneInfoEnable;
+//JVT-T073 }
 };
 
 #if defined( MSYS_WIN32 )

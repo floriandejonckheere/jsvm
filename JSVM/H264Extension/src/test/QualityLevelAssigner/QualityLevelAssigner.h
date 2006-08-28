@@ -86,6 +86,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "Typedefs.h"
 
+#include "ReadBitstreamFile.h"  //bug-fix suffix
 #include "H264AVCDecoderLib.h"
 #include "CreaterH264AVCDecoder.h"
 #include "H264AVCEncoderLib.h"
@@ -169,6 +170,10 @@ private:
   QualityLevelParameter*        m_pcParameter;
   h264::H264AVCPacketAnalyzer*  m_pcH264AVCPacketAnalyzer;
   h264::CreaterH264AVCDecoder*  m_pcH264AVCDecoder;
+    //bug-fix suffix{{
+  h264::CreaterH264AVCDecoder*	m_pcH264AVCDecoderSuffix; 
+  ReadBitstreamIf*            m_pcReadBitstream;
+  //bug-fix suffix}}
   // for SEI writing
   h264::BitCounter*             m_pcBitCounter;
   h264::BitWriteBuffer*         m_pcBitWriteBuffer;

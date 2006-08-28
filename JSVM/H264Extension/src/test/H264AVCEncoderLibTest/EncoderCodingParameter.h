@@ -658,11 +658,16 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   //JVT-R057 LA-RDO{
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LARDO",                   &m_uiLARDOEnable,                                      0 ); 
   //JVT-R057 LA-RDO}
+  //JVT-T073 {
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NestingSEI",              &m_uiNestingSEIEnable,                                 0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SceneInfo",               &m_uiSceneInfoEnable,                                        0 );
+  //JVT-T073 }
 
-//JVT-S036 lsj start
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SuffixUnitEnable",                   &m_uiSuffixUnitEnable,                                      0 ); 
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",						&m_uiMMCOBaseEnable,                                      0 ); 
-//JVT-S036 lsj end
+//JVT-S036 lsj start  //bug-fix suffix{{
+//SuffixUnitEnable shall always be on in SVC contexts (i.e. when there are FGS/CGS/spatial enhancement layers)
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SuffixUnitEnable",                   &m_uiSuffixUnitEnable,                                      1); 
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",						&m_uiMMCOBaseEnable,                                      1 ); 
+//JVT-S036 lsj end //bug-fix suffix}}
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                              0 );  //JVT-T054
   m_pEncoderLines[uiParLnCount] = NULL;
 

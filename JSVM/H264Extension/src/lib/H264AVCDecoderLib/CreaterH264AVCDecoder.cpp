@@ -648,7 +648,10 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     cBinData.setMemAccessor( cBinDataAccessor );
 
     UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-    RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu{{
+  //RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+  RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu}} 
     SEI::MessageList cMessageList;
     RNOK( SEI::read( m_pcUvlcReader, cMessageList ) );
 
@@ -683,8 +686,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 						{
 // BUG_FIX liuhui{
 							m_uiStdAVCOffset = pcSEI->getTemporalLevel( uiIndex );
-							pcSEI->setStdAVCOffset( m_uiStdAVCOffset );
-							break;
+							pcSEI->setStdAVCOffset( m_uiStdAVCOffset-1 ); //bugfix replace
+							//bugfix delete
 // BUG_FIX liuhui}
 						}
 						else
@@ -753,6 +756,34 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			  m_uiNonRequiredSeiFlag = 1;  
 			  break;
 		  }
+// JVT-T073 {
+	  case SEI::SCALABLE_NESTING_SEI:
+		  {
+			  Bool bAllPicturesInAuFlag;
+			  UInt uiNumPictures;
+			  UInt *puiDependencyId, *puiQualityLevel;
+			  SEI::ScalableNestingSei* pcSEI = (SEI::ScalableNestingSei*)pcSEIMessage;
+			  bAllPicturesInAuFlag = pcSEI->getAllPicturesInAuFlag();
+			  if( bAllPicturesInAuFlag == 0 )
+			  {
+				  uiNumPictures = pcSEI->getNumPictures();
+				  ROT( uiNumPictures == 0 );
+				  puiDependencyId = new UInt[uiNumPictures];
+				  puiQualityLevel = new UInt[uiNumPictures];
+				  for( UInt uiIndex = 0; uiIndex < uiNumPictures; uiIndex++ )
+				  {
+					  puiDependencyId[uiIndex] = pcSEI->getDependencyId(uiIndex);
+					  puiQualityLevel[uiIndex] = pcSEI->getQualityLevel(uiIndex);
+				  }
+				  //make use of dependency_id and quality_level here
+
+				  delete puiDependencyId;
+				  delete puiQualityLevel;
+			  }
+              bApplyToNext = true;
+			  break;
+		  }
+// JVT-T073 }
       default:
         {
           delete pcSEIMessage;
@@ -775,7 +806,10 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     cBinData.setMemAccessor( cBinDataAccessor );
     m_pcNalUnitParser->setCheckAllNALUs(true); //JVT-P031
 	  UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
-  	RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu{{
+  //RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, NULL, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+  RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
+//bug-fix suffix shenqiu}} 
     m_pcNalUnitParser->setCheckAllNALUs(false);//JVT-P031
   
     // get the SPSid

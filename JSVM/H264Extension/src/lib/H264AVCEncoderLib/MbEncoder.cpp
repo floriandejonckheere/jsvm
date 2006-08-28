@@ -316,7 +316,9 @@ MbEncoder::encodeIntra( MbDataAccess&  rcMbDataAccess,
 	  {
 		  for(UInt i=0;i<=m_uiLayerID;i++)
 		  {
-			  p=p*(100-m_auiPLR[m_uiLayerID]);
+			  //Bug_Fix JVT-R057 0806{
+			  p=p*(100-m_auiPLR[i]);
+			  //Bug_Fix JVT-R057 0806}
 		  }
 		  q=(UInt)pow(100,(m_uiLayerID+1));
 	  }
@@ -687,7 +689,10 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
 	  {
 		  for(UInt i=0;i<=m_uiLayerID;i++)
 		  {
-			  p=p*(100-m_auiPLR[m_uiLayerID]);
+			  //Bug_Fix JVT-R057 0806{
+			  //p=p*(100-m_auiPLR[m_uiLayerID]);
+			  p=p*(100-m_auiPLR[i]);
+			  //Bug_Fix JVT-R057 0806}
 		  }
 		  q=(UInt)pow(100,(m_uiLayerID+1));
 	  }
@@ -1401,7 +1406,10 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 	  {
 		  for(UInt i=0;i<=m_uiLayerID;i++)
 		  {
-			  p=p*(100-m_auiPLR[m_uiLayerID]);
+			  //Bug_Fix JVT-R057 0806{
+			  //p=p*(100-m_auiPLR[m_uiLayerID]);
+			  p=p*(100-m_auiPLR[i]);
+			  //Bug_Fix JVT-R057 0806}
 		  }
 		  q=(UInt)pow(100,(m_uiLayerID+1));
 	  }
@@ -4172,6 +4180,8 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
 	{
 		MbDataAccess&   rcMbDataAccess  = rpcIntMbTempData->getMbDataAccess();
 		Int distortion1=0,distortion2=0,distortion=0;
+		//Bug_Fix JVT-R057 0806{
+		/*
 		for( Int n = 0; n <1; n++)
 		{
 			Int iRefIdx[2];
@@ -4200,6 +4210,34 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
 			}
 			distortion+=distortion1;
 		}
+		*/
+		for( Int n = 0; n <16; n++)
+		{
+			Int iRefIdx[2];
+			iRefIdx [0]=rcMbDataAccess.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
+			iRefIdx [1]=rcMbDataAccess.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
+			IntFrame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
+			IntFrame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
+			Int iMvX;
+			Int iMvY;
+
+			if(pcRefFrame0)
+			{	 
+				iMvX=rcMbDataAccess.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getHor();
+				iMvY=rcMbDataAccess.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getVer();
+				getChannelDistortion(rcMbDataAccess,*pcRefFrame0,&distortion1,iMvX,iMvY,n%4,n/4,1,1);
+			}
+			if(pcRefFrame1)
+			{
+				iMvX=rcMbDataAccess.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getHor();
+				iMvY=rcMbDataAccess.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getVer();
+				getChannelDistortion(rcMbDataAccess,*pcRefFrame1,&distortion2,iMvX,iMvY,n%4,n/4,1,1);
+				distortion1=(Int)(m_dWr0*distortion1+m_dWr0*distortion2);
+			}
+			distortion+=distortion1;
+		}
+		//Bug_Fix JVT-R057 0806}
+
 		setEpRef(distortion);
 		rpcIntMbTempData->rdCost()+=distortion;
 	}
@@ -7962,10 +8000,13 @@ MbEncoder::getChannelDistortion(MbDataAccess&   rcMbDataAccess,
 
 					if (i2 >= picWidth) i2 = picWidth - 1;
 					if (j2 >= picHeight) j2 = picHeight - 1;
-					if(bSpatial)
-						mbIdxRef = (j2 / MBK_SIZE/2*4) * (mbkPerLine/2*4) + i2 / MBK_SIZE/2*4;
-					else
-						mbIdxRef  = (j2 / MBK_SIZE*4) * (mbkPerLine*4) + i2 / MBK_SIZE*4;
+					//Bug_Fix JVT-R057 0806{
+					//if(bSpatial)
+					//	mbIdxRef = (j2 / MBK_SIZE/2*4) * (mbkPerLine/2*4) + i2 / MBK_SIZE/2*4;
+					//else
+					//	mbIdxRef  = (j2 / MBK_SIZE*4) * (mbkPerLine*4) + i2 / MBK_SIZE*4;
+					mbIdxRef  = (j2 / 4) * (mbkPerLine*4) + i2 / 4;
+					//Bug_Fix JVT-R057 0806}
 					distortion[0] += pDistortion[mbIdxRef];  //  / 256.0
 				}
 			}

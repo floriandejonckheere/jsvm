@@ -1,3 +1,18 @@
+JSVM_6_5 -> JSVM_6_6
+====================
+
+Date	    : Aug. 28, 2006
+Author	    : Shenqiu, Liuhui, Guoyi (USTC)
+Contribution: JVT-T073
+
+changes(changes can be found by seaching the comments in brackets):
+- add nesting SEI message including scene information SEI message (JVT-T073)
+
+fixes:
+- LARDO bug fixes (//Bug_Fix JVT-R057 0806)
+- Suffix NAL unit bug fixes, and BaseLayerMode 0. A lot of test configurations updated. (//bug-fix suffix)
+- Use of temporal_level from suffix NAL units in bitstream extraction (bugfix)
+
 JSVM_6_4 -> JSVM_6_5
 ====================
 

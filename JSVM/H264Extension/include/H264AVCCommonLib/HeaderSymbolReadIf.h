@@ -105,6 +105,9 @@ public:
   virtual ErrVal  getCode     ( UInt& ruiCode, UInt uiLength, Char* pcTraceString ) = 0;
   virtual ErrVal  getFlag     ( Bool& rbFlag, Char* pcTraceString ) = 0;
   virtual ErrVal  readByteAlign() = 0;
+// JVT-T073 {
+  virtual ErrVal  readZeroByteAlign() = 0;
+// JVT-T073 }
   virtual Bool    moreRBSPData() = 0;
 };
 

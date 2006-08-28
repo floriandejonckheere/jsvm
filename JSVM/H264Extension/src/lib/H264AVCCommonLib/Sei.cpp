@@ -138,6 +138,70 @@ SEI::write( HeaderSymbolWriteIf*  pcWriteIf,
   }
   return Err::m_nOK;
 }
+// JVT-T073 {
+SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
+                   HeaderSymbolWriteIf*  pcWriteTestIf,
+                   MessageList*          rpcSEIMessageList )
+{
+    ROT( NULL == pcWriteIf);
+	ROT( NULL == pcWriteTestIf);
+	ROT( NULL == rpcSEIMessageList);
+    
+    SEIMessage* pcTop = rpcSEIMessageList->front();
+    rpcSEIMessageList->pop_front();
+	SEIMessage* pcBottom = rpcSEIMessageList->front();
+	rpcSEIMessageList->pop_front();
+
+	//===== NAL unit header =====
+	ETRACE_DECLARE( Bool m_bTraceEnable = true );
+	g_nLayer = 0;
+	ETRACE_LAYER(0);
+	ETRACE_HEADER( "SEI MESSAGE" );
+	RNOK  ( pcWriteIf->writeFlag( 0,                "NALU HEADER: forbidden_zero_bit"  ) );
+	RNOK  ( pcWriteIf->writeCode( 0, 2,             "NALU HEADER: nal_ref_idc" ) );
+	RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NALU HEADER: nal_unit_type" ) );
+
+	//first write testing SEI message to get payload size
+	UInt uiBits = 0;
+	UInt uiSecondSEILength = 0;
+	//take scene info as example, 	//can be changed here
+	switch( pcBottom->getMessageType() )
+	{
+		case SCENE_INFO_SEI:
+	    {
+			SEI::SceneInfoSei* pcSceneInfoSei = (SEI::SceneInfoSei*) pcBottom;
+			Bool bScenePresentFlag = 1;
+			UInt uiSceneId = 1;
+			UInt uiSceneTransitionType = 0;
+			pcSceneInfoSei->setSceneInfoPresentFlag( bScenePresentFlag );
+			pcSceneInfoSei->setSceneId( uiSceneId );
+			pcSceneInfoSei->setSceneTransitionType( uiSceneTransitionType );
+
+			RNOK( pcWriteTestIf->writeCode( SCENE_INFO_SEI, 8, "SEI type" ) );
+			RNOK( pcWriteTestIf->writeCode( 1, 8, "SEI payload size " ) ); //currently size equals to 1
+			RNOK( xWriteNesting( pcWriteIf, pcWriteTestIf, pcBottom, uiBits ) );
+			uiSecondSEILength = (uiBits-16+7)/8;
+			break;
+	    }
+		//more case: added here
+		default: break;
+	}
+    RNOK  ( xWriteNesting( pcWriteIf, pcWriteTestIf, pcTop, uiBits ) );
+
+	//Then write actual SEI message
+	UInt uiSize = (uiBits+7)/8;
+    RNOK( xWritePayloadHeader( pcWriteIf, SCALABLE_NESTING_SEI, uiSize ) );
+    RNOK( pcTop->write( pcWriteIf ) );
+	RNOK( xWritePayloadHeader( pcWriteIf, SCENE_INFO_SEI, uiSecondSEILength ) );
+	RNOK( pcBottom->write( pcWriteIf ) );
+    UInt uiAlignedBits = 8 - (uiBits&7);
+    if( uiAlignedBits != 0 && uiAlignedBits != 8)
+    {
+        RNOK( pcWriteIf->writeCode( 1<<(uiAlignedBits-1), uiAlignedBits, "SEI: alignment_bits" ) );
+    }
+  return Err::m_nOK;
+}
+// JVT-T073 }
 
 
 ErrVal
@@ -179,6 +243,30 @@ SEI::xWrite( HeaderSymbolWriteIf* pcWriteIf,
   return Err::m_nOK;
 }
 
+// JVT-T073 {
+SEI::xWriteNesting( HeaderSymbolWriteIf* pcWriteIf,
+				   HeaderSymbolWriteIf*  pcWriteTestIf,
+				   SEIMessage*           pcSEIMessage,
+				   UInt&                 uiBits )
+{
+	UInt uiStart = uiBits;
+	if( uiBits == 0 ) // write the following SEI message
+	{
+		uiBits += 16; //including SEI_type and SEI_payload_size bits, can be changed here for type>0xff
+		RNOK( pcSEIMessage->write( pcWriteTestIf ) );
+		uiBits = pcWriteTestIf->getNumberOfWrittenBits() - uiStart;
+		if( uiBits/8 >0xff )
+			uiBits += 8;
+		return Err::m_nOK;
+	}
+	else
+	{
+		RNOK( pcSEIMessage->write( pcWriteTestIf ) );
+		uiBits = pcWriteTestIf->getNumberOfWrittenBits();
+		return Err::m_nOK;
+	}
+}
+// JVT-T073 }
 
 
 ErrVal
@@ -233,6 +321,9 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case SCALABLE_SEI_LAYERS_NOT_PRESENT:  return ScalableSeiLayersNotPresent::create( (ScalableSeiLayersNotPresent*&) rpcSEIMessage );
 	case SCALABLE_SEI_DEPENDENCY_CHANGE:   return ScalableSeiDependencyChange::create( (ScalableSeiDependencyChange*&) rpcSEIMessage );
 	// JVT-S080 LMI }
+    // JVT-T073 {
+	case SCALABLE_NESTING_SEI: return ScalableNestingSei::create( (ScalableNestingSei*&) rpcSEIMessage );
+    // JVT-T073 }
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
   //return Err::m_nOK;
@@ -1327,4 +1418,149 @@ SEI::ScalableSeiDependencyChange::read ( HeaderSymbolReadIf *pcReadIf )
 	return Err::m_nOK;
 }
 // JVT-S080 LMI }
+// JVT-T073 {
+//////////////////////////////////////////////////////////////////////////
+//
+//			SCALABLE NESTING SEI
+//
+//////////////////////////////////////////////////////////////////////////
+
+SEI::ScalableNestingSei::create( ScalableNestingSei* &rpcSeiMessage )
+{
+    rpcSeiMessage = new ScalableNestingSei();
+	ROT( NULL == rpcSeiMessage );
+	return Err::m_nOK;
+}
+SEI::ScalableNestingSei::destroy()
+{
+    delete this;
+	return Err::m_nOK;
+}
+
+SEI::ScalableNestingSei::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+    UInt uiStartBits  = pcWriteIf->getNumberOfWrittenBits();
+	UInt uiPayloadSize = 0;
+	UInt uiIndex;
+	RNOK( pcWriteIf->writeFlag( m_bAllPicturesInAuFlag, " ScalableNestingSei:AllPicturesInAuFlag " ) );
+	if( m_bAllPicturesInAuFlag == 0 )
+	{
+		RNOK( pcWriteIf->writeUvlc( m_uiNumPictures, "ScalableNestingSei:NumPictures" ) );
+		ROT( m_uiNumPictures == 0 );
+		for( uiIndex = 0; uiIndex < m_uiNumPictures; uiIndex++ )
+		{
+			RNOK( pcWriteIf->writeCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
+			RNOK( pcWriteIf->writeCode( m_auiQualityLevel[uiIndex],2, " ScalableNestingSei:uiQualityLevel " ) );
+		}	    
+	}
+	UInt uiBits = pcWriteIf->getNumberOfWrittenBits()-uiStartBits;
+	UInt uiBitsMod8 = uiBits%8;
+	if( uiBitsMod8 )
+	{
+		RNOK( pcWriteIf->writeCode(0, 8-uiBitsMod8, "SeiNestingZeroBits" ) );
+	}
+	uiBits = pcWriteIf->getNumberOfWrittenBits();
+	uiPayloadSize = (uiBits+7)/8;
+
+	return Err::m_nOK;
+}
+
+SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
+{
+	UInt uiBits = 0;
+	RNOK( pcReadIf->getFlag( m_bAllPicturesInAuFlag, " ScalableNestingSei:AllPicturesInAuFlag " ) );
+	if( m_bAllPicturesInAuFlag == 0 )
+	{
+		RNOK( pcReadIf->getUvlc( m_uiNumPictures, "ScalableNestingSei:NumPictures" ) );
+		ROT( m_uiNumPictures == 0 );
+		for( UInt uiIndex = 0; uiIndex < m_uiNumPictures; uiIndex++ )
+		{
+			RNOK( pcReadIf->getCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
+			RNOK( pcReadIf->getCode( m_auiQualityLevel[uiIndex],2, " ScalableNestingSei:uiQualityLevel " ) );
+		}	  
+	}
+	RNOK( pcReadIf->readZeroByteAlign() ); //nesting_zero_bit
+
+	//Read the following SEI message
+	UInt uiType, uiPayloadSize;
+	while(1)
+	{
+		RNOK( pcReadIf->getCode( uiType, 8, " ScalableNestingSei:SEI type" ) );
+		if( uiType != 0xff )
+			break;
+	}
+	while(1)
+	{
+		RNOK( pcReadIf->getCode( uiPayloadSize, 8, " ScalableNestingSei:SEI payloadSize" ) );
+		if( uiPayloadSize != 0xff )
+			break;
+	}
+	switch( uiType )
+	{
+	case SCENE_INFO_SEI:
+		{
+			SEI::SceneInfoSei* pcSceneInfoSei;
+			RNOK( SEI::SceneInfoSei::create(pcSceneInfoSei) );
+			RNOK( pcSceneInfoSei->read(pcReadIf) );
+			//add some control
+
+			RNOK( pcSceneInfoSei->destroy() );  
+			break;
+		}
+	//more case can be added here
+	default:
+		break;
+	}
+
+	return Err::m_nOK;
+}
+
+//Scene Info, simplified
+SEI::SceneInfoSei::create( SceneInfoSei* &rpcSeiMessage )
+{
+    rpcSeiMessage = new SceneInfoSei();
+	ROT( NULL == rpcSeiMessage );
+	return Err::m_nOK;
+}
+
+SEI::SceneInfoSei::destroy()
+{
+    delete this;
+	return Err::m_nOK;
+}
+SEI::SceneInfoSei::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+	UInt uiStart = pcWriteIf->getNumberOfWrittenBits();
+	UInt uiPayloadSize = 0;
+	Bool bSceneInfoPresentFlag = getSceneInfoPresentFlag();
+	RNOK( pcWriteIf->writeFlag( bSceneInfoPresentFlag, "SceneInfo: SceneInfoPresentFlag" ) );
+	if( bSceneInfoPresentFlag )
+	{
+		RNOK( pcWriteIf->writeUvlc( getSceneId(), "SceneInfo: SceneId" ) );
+		RNOK( pcWriteIf->writeUvlc( getSceneTransitionType(), "SceneInfo: SceneTransitionType" ) );
+		if( getSceneTransitionType() > 3 )
+		{
+			RNOK( pcWriteIf->writeUvlc( getSecondSceneId(), "SceneInfo: SecondSceneId" ) );
+		}
+	}
+	uiPayloadSize = ( pcWriteIf->getNumberOfWrittenBits() - uiStart + 7 )/8;
+
+	return Err::m_nOK;
+}
+
+SEI::SceneInfoSei::read( HeaderSymbolReadIf *pcReadIf )
+{
+	RNOK( pcReadIf->getFlag( m_bSceneInfoPresentFlag, "SceneInfo: bSceneInfoPresentFlag" ) );
+	if( m_bSceneInfoPresentFlag )
+	{
+		RNOK( pcReadIf->getUvlc( m_uiSceneId,  "SceneInfo: SceneId" ) );
+		RNOK( pcReadIf->getUvlc( m_uiSceneTransitionType,  "SceneInfo: SceneTransitionType " ) );
+		if( m_uiSceneTransitionType > 3 )
+		{
+			RNOK( pcReadIf->getUvlc( m_uiSecondSceneId, "SceneInfo: SecondSceneId" ) );
+		}
+	}
+	return Err::m_nOK;
+}
+// JVT-T073 }
 H264AVC_NAMESPACE_END

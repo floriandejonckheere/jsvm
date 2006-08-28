@@ -409,7 +409,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_uiIterSearchRange       = pcCodingParameter->getMotionVectorSearchParams().getIterSearchRange ();
   m_iMaxDeltaQp             = pcLayerParameters->getMaxAbsDeltaQP           ();
   m_uiClosedLoopMode        = pcLayerParameters->getClosedLoop              ();
-  m_bH264AVCCompatible      = pcCodingParameter->getBaseLayerMode           ()  > 0 && m_uiLayerId == 0;
+//  m_bH264AVCCompatible      = pcCodingParameter->getBaseLayerMode           ()  > 0 && m_uiLayerId == 0;
+  m_bH264AVCCompatible      = m_uiLayerId == 0; //bug-fix suffix
   m_bInterLayerPrediction   = pcLayerParameters->getInterLayerPredictionMode()  > 0;
   m_bAdaptivePrediction     = pcLayerParameters->getInterLayerPredictionMode()  > 1;
   m_bHaarFiltering          = false;
@@ -2518,7 +2519,7 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
       // JVT-S054 (2) (ADD)
       pcSliceHeader->setNumMbsInSlice(pcSliceHeader->getFMO()->getNumMbsInSlice(pcSliceHeader->getFirstMbInSlice(), pcSliceHeader->getLastMbInSlice()));
 
-      if(m_uiMMCOBaseEnable)  
+      if(m_uiMMCOBaseEnable  && m_bH264AVCCompatible)  //bug-fix suffix  
       {//JVT-S036 lsj
         UInt iFrameNum =  m_pcLowPassBaseReconstruction->getFrameNum(); 
         RNOK( xSetMmcoBase( *pcSliceHeader, iFrameNum ) );  
@@ -2650,7 +2651,7 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
       // JVT-S054 (2) (ADD)
       pcSliceHeader->setNumMbsInSlice(pcFMO->getNumMbsInSlice(pcSliceHeader->getFirstMbInSlice(), pcSliceHeader->getLastMbInSlice()));
 
-      if(m_uiMMCOBaseEnable)  
+      if(m_uiMMCOBaseEnable  && m_bH264AVCCompatible)  //bug-fix suffix  
       {//JVT-S036 lsj
         UInt iFrameNum =  m_pcLowPassBaseReconstruction->getFrameNum(); 
         RNOK( xSetMmcoBase( *pcSliceHeader, iFrameNum ) );  
@@ -3424,7 +3425,7 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setIdrPicId                    ( 0                     );
   pcSliceHeader->setDirectSpatialMvPredFlag     ( true                  );
   pcSliceHeader->setKeyPictureFlag              ( bKeyPicture           );
-  pcSliceHeader->setKeyPicFlagScalable          ( false					); //JVT-S036 lsj
+//pcSliceHeader->setKeyPicFlagScalable          ( false					); //JVT-S036 lsj //bug-fix suffix shenqiu
   pcSliceHeader->setNumRefIdxActiveOverrideFlag ( false                 );
   pcSliceHeader->setCabacInitIdc                ( 0                     );
   pcSliceHeader->setSliceHeaderQp               ( 0                     );
@@ -4942,6 +4943,12 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     if( m_papcBQFrame )
     {
       RNOK( m_papcBQFrame[uiFrameIdInGOP]->copy( pcBLRecFrame ) ); // save base quality layer reconstruction
+	  //Bug_Fix JVT-R057 0806{
+	  if(m_bLARDOEnable)
+	  {
+		  m_papcBQFrame[uiFrameIdInGOP]->setChannelDistortion(pcFrame);
+	  }
+	  //Bug_Fix JVT-R057 0806}
     }
 
     //===== FGS enhancement layers =====
@@ -5093,8 +5100,13 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
     if( pcBQFrame )
     {
 		//JVT-R057 LA-RDO{
+		//Bug_Fix JVT-R057 0806{
 		if(m_bLARDOEnable)
+		{
 			pcBQFrame->setChannelDistortion(pcFrame);
+			m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_papcFrame[(uiFrame-1)<<uiBaseLevel]);
+		}
+		//Bug_Fix JVT-R057 0806}
 		//JVT-R057 LA-RDO}
       RNOK( pcRedBQFrame->copy      ( pcBQFrame            ) ); // JVT-Q054 Red. Picture
       RNOK( pcRedSRFrame->copy      ( pcSRFrame            ) ); // JVT-Q054 Red. Picture
@@ -5116,8 +5128,13 @@ MCTFEncoder::xEncodeHighPassPictures( AccessUnitList&   rcAccessUnitList,
 			RNOK( pcSRFrame		->subtract	( pcSRFrame, pcBLRecFrame ) );	// JVT-R091
 			RNOK( pcOrgPred->copy					( pcSRFrame								) );	// JVT-R091
 			//JVT-R057 LA-RDO{
+			//Bug_Fix JVT-R057 0806{
 			if(m_bLARDOEnable)
+			{
 				pcBLRecFrame->setChannelDistortion(pcFrame);
+				m_pcSliceEncoder->getMbEncoder()->setFrameEcEp(m_papcFrame[(uiFrame-1)<<uiBaseLevel]);
+			}
+			//Bug_Fix JVT-R057 0806}
 			//JVT-R057 LA-RDO}
 			RNOK( xEncodeHighPassSignal   ( rcOutputList,
                                       rcControlData,
@@ -5568,13 +5585,10 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
   // Bug fix: yiliang.bao@nokia.com
   // uiMaxStage is unsigned, it has a problem when uiMaxStage == 0,
   // uiMaxStage - 1 will result in a large number
-  UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, (Int)uiMaxStage - 1 ) );
+  UInt  uiMinStage        = 0; //bugfix replace
 
   Char  acResolution[10];
-// BUG_FIX liuhui{
-  static Bool stbBLAVCMode;
-  static UInt stuiBLMinStage;
-// BUG_FIX liuhui}
+//bugfix delete
 
   sprintf( acResolution, "%dx%d", 16*m_uiFrameWidthInMb, 16*m_uiFrameHeightInMb );
 
@@ -5619,23 +5633,11 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 					else // D > 0, T = 0, Q = 0
 					{
 					  dBits = aaadCurrBits[m_uiBaseLayerId][uiLevel][m_uiBaseQualityLevel];
-					  if( stbBLAVCMode ) //AVC-COMPATIBLE
-					  {
-					    for( UInt uiTempLevel = 1; uiTempLevel <= stuiBLMinStage; uiTempLevel++ )
-					    {
-						  dBits += m_aaauidSeqBits[m_uiBaseLayerId][uiTempLevel][uiFGS];
-					    }
-					  }
+//bugfix delete
 					}
 // BUG_FIX liuhui}
 				}
-// BUG_FIX liuhui{
-				else if( uiFGS == 0 ) // D = 0, T = 0, Q = 0
-				{
-					stbBLAVCMode = m_bH264AVCCompatible;
-					stuiBLMinStage = uiMinStage;
-				}
-// BUG_FIX liuhui}
+//bugfix delete
 				dBits += m_aaauidSeqBits[m_uiLayerId][uiLevel][uiFGS];
 				aaadCurrBits[m_uiLayerId][uiLevel][uiFGS] = dBits;
 			}
@@ -5649,9 +5651,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 				{
 // BUG_FIX liuhui{
 					dBits = aaadCurrBits[m_uiBaseLayerId][uiLevel][m_uiBaseQualityLevel];
-					if( stbBLAVCMode && uiFGS == 0 && stuiBLMinStage ) //AVC-COMPATIBLE
-						for( UInt uiTempLevel = uiLevel+1; uiTempLevel <= stuiBLMinStage; uiTempLevel++ )
-							dBits += m_aaauidSeqBits[m_uiBaseLayerId][uiTempLevel][uiFGS];
+//bugfix delete
 // BUG_FIX liuhui}
 				}
 				for( UInt uiTIndex = 0; uiTIndex <= uiLevel; uiTIndex++ )
@@ -5805,8 +5805,8 @@ MCTFEncoder::SingleLayerFinish( Double aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX
 				aaadCurrBits[uiLayer][uiTempLevel][uiQualityLevel] = aaadBits[uiLayer][uiTempLevel][uiQualityLevel];
 	UInt  uiStage;
 	UInt  uiMaxStage        = m_uiDecompositionStages - m_uiNotCodedMCTFStages;
-	UInt  uiMinStage        = ( !m_bH264AVCCompatible || m_bWriteSubSequenceSei ? 0 : max( 0, (Int)uiMaxStage - 1 ) );
-	if( m_bH264AVCCompatible && !m_bWriteSubSequenceSei ) //AVC-COMPATIBLE
+	UInt  uiMinStage        = 0; //bugfix replace
+	//bugfix delete
 	{
 		for( UInt uiFGS = 0; uiFGS <= m_dNumFGSLayers; uiFGS++)
 			for( UInt uiTempLevel = 0; uiTempLevel < uiMinStage; uiTempLevel++)
@@ -5967,7 +5967,8 @@ MCTFEncoder::xSetMmcoBase( SliceHeader& pcSliceHeader, UInt iNum )
 	if( rcSH.getKeyPictureFlag() )
 	{
 		UInt uiPos = 0;
-		const Int   iDiff             =  rcSH.getFrameNum() - iNum;
+		Int   iDiff             =  rcSH.getFrameNum() - iNum; //bug-fix suffix
+		//const Int   iDiff             =  rcSH.getFrameNum() - iNum;
 		//UInt        uiDiff            = ( uiMaxFrameNumber - iDiff ) % uiMaxFrameNumber;
 
 		rcSH.getMmcoBaseBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, iDiff-1 ) );

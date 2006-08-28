@@ -60,8 +60,8 @@ tests      => [
 		 height => 144,
 		 framerate => 15,
 		 useql     => 1,
-		 bitrate => 192,
-		 psnr => 32.8560
+		 bitrate => 194,
+		 psnr => 32.8273,
 		},
 		#----------#
     # Test   1 #
@@ -72,8 +72,8 @@ tests      => [
 		 width => 176,
 		 height => 144,
 		 framerate => 15,
-		 bitrate => 192,
-		 psnr => 32.8508,
+		 bitrate => 194,
+		 psnr => 32.827,
 		},
 		#----------#
     # Test   2 #
