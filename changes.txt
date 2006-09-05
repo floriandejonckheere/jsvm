@@ -1,3 +1,22 @@
+
+JSVM_6_6 -> JSVM_6_7
+====================
+
+Date	    : Sep. 05, 2006
+Author	    : Reichel, Julien (GE Security)
+Contribution: JVT-T083
+
+changes:
+- Modified Nal Header (3 bytes)
+- Modified Slice header
+- Removed the notion of KeyPicture, and replaced it by UseBasePrediction and StoreBaseRepresentation
+- Added additional controls for the inter-layer deblocking filter.
+
+fixes: 
+- Partial fixes for the trace files
+- Some test configurations had to be slightly modified
+
+
 JSVM_6_5 -> JSVM_6_6
 ====================
 
@@ -13,6 +32,7 @@ fixes:
 - Suffix NAL unit bug fixes, and BaseLayerMode 0. A lot of test configurations updated. (//bug-fix suffix)
 - Use of temporal_level from suffix NAL units in bitstream extraction (bugfix)
 
+
 JSVM_6_4 -> JSVM_6_5
 ====================
 
@@ -26,6 +46,7 @@ changes:
 
 fixes: 
 - FragCABAC, FragVLC test configuration
+
 
 JSVM_6_3 -> JSVM_6_4
 ====================
@@ -58,6 +79,7 @@ changes:
 
 + DownConvert.inl fix provided by Shijun Sun (M. Wien)
 
+
 JSVM_6_1 -> JSVM_6_2
 ====================
 
@@ -74,7 +96,6 @@ changes:
 
 + ARFGS fixes provided by Steffen Kamp (integrated by H.Schwarz)
 + removal of some Linux warnings (H. Schwarz)
-
 
 
 JSVM_5_12_1 -> JSVM_6_1
@@ -119,8 +140,6 @@ Changes:
 
 - File MbData.cpp was rewritten to support the new way of achieving ESS (i.e. inter-layer motion prediction)
 - Minor changes in downconvert*.* files
-
-
 
 
 JSVM_5_10 -> JSVM_5_11
