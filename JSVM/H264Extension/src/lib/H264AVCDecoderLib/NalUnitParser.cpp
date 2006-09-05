@@ -193,7 +193,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
 
   //===== nal ref idc =====
   DTRACE_TH   ( "NALU HEADER: nal_ref_idc" );
-  DTRACE_TY   ( " u(v)" );
+  DTRACE_TY   ( " u(2)" );
   DTRACE_POS;
   DTRACE_CODE ( m_eNalRefIdc );
   DTRACE_BITS ( m_eNalRefIdc, 2 );
@@ -202,7 +202,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
 
   //===== nal unit type =====
   DTRACE_TH   ( "NALU HEADER: nal_unit_type" );
-  DTRACE_TY   ( " u(v)" );
+  DTRACE_TY   ( " u(5)" );
   DTRACE_POS;
   DTRACE_CODE ( m_eNalUnitType );
   DTRACE_BITS ( m_eNalUnitType, 5 );
@@ -211,29 +211,105 @@ NalUnitParser::xTrace( Bool bDDIPresent )
 
   ROFVS( bDDIPresent );
 
-  //===== nal unit type =====
+  // ========= nal_unit_header_svc_extension( ) =========
+  DTRACE_TH   ( "NALU HEADER: reserved_zero_two_bits" );
+  DTRACE_TY   ( " u(2)" );
+  DTRACE_BITS ( 0, 2 );
+  DTRACE_POS;
+  DTRACE_CODE ( 0 );
+  DTRACE_COUNT( 2 );
+  DTRACE_N;
+
+  DTRACE_TH   ( "NALU HEADER: priority_id" );
+  DTRACE_TY   ( " u(6)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_uiPriorityId );
+  DTRACE_BITS ( m_uiPriorityId, 6 );
+  DTRACE_COUNT( 6 );
+  DTRACE_N;
+  
   DTRACE_TH   ( "NALU HEADER: temporal_level" );
-  DTRACE_TY   ( " u(v)" );
+  DTRACE_TY   ( " u(3)" );
   DTRACE_POS;
   DTRACE_CODE ( m_uiTemporalLevel );
   DTRACE_BITS ( m_uiTemporalLevel, 3 );
   DTRACE_COUNT( 3 );
   DTRACE_N;
+  
   DTRACE_TH   ( "NALU HEADER: dependency_id" );
-  DTRACE_TY   ( " u(v)" );
+  DTRACE_TY   ( " u(3)" );
   DTRACE_POS;
   DTRACE_CODE ( m_uiLayerId );
   DTRACE_BITS ( m_uiLayerId, 3 );
   DTRACE_COUNT( 3 );
   DTRACE_N;
+
   DTRACE_TH   ( "NALU HEADER: quality_level" );
-  DTRACE_TY   ( " u(v)" );
+  DTRACE_TY   ( " u(2)" );
   DTRACE_POS;
   DTRACE_CODE ( m_uiQualityLevel );
   DTRACE_BITS ( m_uiQualityLevel, 2 );
   DTRACE_COUNT( 2 );
   DTRACE_N;
+
+  DTRACE_TH   ( "NALU HEADER: reserved_zero_one_bit" );
+  DTRACE_TY   ( " u(1)" );
+  DTRACE_BITS ( 0, 1 );
+  DTRACE_POS;
+  DTRACE_CODE ( 0 );
+  DTRACE_COUNT( 1 );
+  DTRACE_N;
+
+  DTRACE_TH   ( "NALU HEADER: layer_base_flag" );
+  DTRACE_TY   ( " u(1)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_bLayerBaseFlag );
+  DTRACE_BITS ( m_bLayerBaseFlag, 1 );
+  DTRACE_COUNT( 1 );
+  DTRACE_N;
+
+  DTRACE_TH   ( "NALU HEADER: use_base_prediction_flag" );
+  DTRACE_TY   ( " u(1)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_bUseBasePredFlag );
+  DTRACE_BITS ( m_bUseBasePredFlag, 1 );
+  DTRACE_COUNT( 1 );
+  DTRACE_N;
+
+  DTRACE_TH   ( "NALU HEADER: discardable_flag" );
+  DTRACE_TY   ( " u(1)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_bDiscardableFlag );
+  DTRACE_BITS ( m_bDiscardableFlag, 1 );
+  DTRACE_COUNT( 1 );
+  DTRACE_N;
+
+  DTRACE_TH   ( "NALU HEADER: fgs_frag_flag" );
+  DTRACE_TY   ( " u(1)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_bFGSFragFlag );
+  DTRACE_BITS ( m_bFGSFragFlag, 1 );
+  DTRACE_COUNT( 1 );
+  DTRACE_N;
+
+  DTRACE_TH   ( "NALU HEADER: fgs_last_frag_flag" );
+  DTRACE_TY   ( " u(1)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_bFGSLastFragFlag );
+  DTRACE_BITS ( m_bFGSLastFragFlag, 1 );
+  DTRACE_COUNT( 1 );
+  DTRACE_N;
+  
+  DTRACE_TH   ( "NALU HEADER: fgs_frag_order" );
+  DTRACE_TY   ( " u(2)" );
+  DTRACE_POS;
+  DTRACE_CODE ( m_uiFGSFragOrder );
+  DTRACE_BITS ( m_uiFGSFragOrder, 2 );
+  DTRACE_COUNT( 2 );
+  DTRACE_N;
+  
 }
+
 
 //JVT-P031
 UInt
@@ -244,8 +320,7 @@ NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor )
 
   NalUnitType   eNalUnitType;
   NalRefIdc     eNalRefIdc;
-  Bool			bReservedZeroBit;//JVT-S036 lsj
-
+  
   UInt  uiHeaderLength  = 1;
   UChar ucByte          = pcBinDataAccessor->data()[0];
 
@@ -255,24 +330,12 @@ NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor )
   eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
   eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
   
-  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
-  m_bDiscardableFlag = false;
-  //}}Variable Lengh NAL unit header data with priority and dead substream flag
-
+  
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
-    ROF( pcBinDataAccessor->size() > 1 );
-
-    ucByte              = pcBinDataAccessor->data()[1];
-
-	//JVT-S036 lsj start
-	bReservedZeroBit     = ( ucByte     ) & 1;
-	
-    uiHeaderLength      += 2;
-	//JVT-S036 lsj end
-  }
+    uiHeaderLength      += NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
+	}
 
   return uiHeaderLength;
 }
@@ -319,11 +382,8 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFl
   //===== NAL unit header =====
   ROT( ucByte & 0x80 );                                     // forbidden_zero_bit ( &10000000b)
   m_eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
-// bug-fix suffix shenqiu {{
-//if ( m_eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST && KeyPicFlag != NULL )
-//	*KeyPicFlag = true;
-//bug-fix suffix shenqiu}}
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
+  
   
 //	TMM_EC {{
 	if ( *(int*)(pcBinDataAccessor->data()+1) != 0xdeadface)
@@ -331,39 +391,42 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFl
 		if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
 				m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
 		{
-		  ROF( pcBinDataAccessor->size() > 1 );
+      ROF( pcBinDataAccessor->size() > 3 );
 	
 		  ucByte              = pcBinDataAccessor->data()[1];
-		  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-		  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
-		  m_uiSimplePriorityId = ( ucByte >> 2);
-			m_bDiscardableFlag	 = ( ucByte >> 1) & 1;
-	//JVT-S036 lsj start
-			m_bReservedZeroBit   = ( ucByte     ) & 1;
-			
-		    ucByte              = pcBinDataAccessor->data()[2];
-		    m_uiTemporalLevel   = ( ucByte >> 5 );
-		    m_uiLayerId         = ( ucByte >> 2 ) & 7;
-		    m_uiQualityLevel    = ( ucByte      ) & 3;
-		    //uiHeaderLength      ++;
-		 /* }
-			else
-			{
-        // Look up simple priority ID in mapping table (J. Ridge, Y-K. Wang @ Nokia)
-        m_uiTemporalLevel = m_uiTemporalLevelList[m_uiSimplePriorityId];
-        m_uiLayerId       = m_uiDependencyIdList [m_uiSimplePriorityId];
-        m_uiQualityLevel  = m_uiQualityLevelList [m_uiSimplePriorityId];
-			}*/
-    //}}Variable Lengh NAL unit header data with priority and dead substream flag
+		  ROT( ucByte & 0xC0 );                                 // reserved_zero_two_bitst ( &11000000b)
+		  m_uiPriorityId        = ( ucByte >> 2);               // priority_id             ( &00111111b)
 
-			uiHeaderLength    +=  2;
-	//JVT-S036 lsj end
-		}
+      ucByte              = pcBinDataAccessor->data()[2];
+		  m_uiTemporalLevel   = ( ucByte >> 5 );               // temporal_level           ( &11100000b)
+		  m_uiLayerId         = ( ucByte >> 2 ) & 7;           // dependency_id            ( &00011100b)
+		  m_uiQualityLevel    = ( ucByte      ) & 3;           // quality_level            ( &00000011b)
+
+      ucByte              = pcBinDataAccessor->data()[3];
+      ROT( ucByte & 0x80 );                                // reserved_zero_one_bit    ( &10000000b)
+      m_bLayerBaseFlag  	  = ( ucByte >> 6) & 1;          // layer_base_flag          ( &01000000b)
+      m_bUseBasePredFlag	  = ( ucByte >> 5) & 1;          // use_base_prediction_flag ( &00100000b)
+      m_bDiscardableFlag	  = ( ucByte >> 4) & 1;          // discardable_flag         ( &00010000b)
+      m_bFGSFragFlag    	  = ( ucByte >> 3) & 1;          // fgs_frag_flag            ( &00001000b)
+      m_bFGSLastFragFlag	  = ( ucByte >> 2) & 1;          // fgs_last_frag_flag       ( &00000100b)
+      m_uiFGSFragOrder  	  = ( ucByte >> 0) & 3;          // fgs_frag_order           ( &00000011b)
+	
+			uiHeaderLength    +=  NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
+			}
 		else
 		{
-			m_uiTemporalLevel = ( m_eNalRefIdc > 0 ? 0 : 1 );
+			m_uiPriorityId    = 0;
+
+			m_uiTemporalLevel = 0;
 			m_uiLayerId       = 0;
 			m_uiQualityLevel  = 0;
+
+      m_bLayerBaseFlag  = 1; // m_bLayerBaseFlag indicate that the content of the NAL is compatible with NAL_UNIT_CODED_SLICE
+      m_bUseBasePredFlag= 0;
+      m_bDiscardableFlag= 0;
+      m_bFGSFragFlag    = 0;
+      m_bFGSLastFragFlag= 0;
+      m_uiFGSFragOrder  = 0;
 		}
 	}
 	else //TMM_EC

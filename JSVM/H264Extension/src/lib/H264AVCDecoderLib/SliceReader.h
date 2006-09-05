@@ -91,6 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/HeaderSymbolReadIf.h"
 #include "H264AVCCommonLib/ControlMngIf.h"
+#include "NalUnitParser.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -116,26 +117,20 @@ public:
   //ErrVal process( const SliceHeader& rcSH, UInt& ruiMbRead );
   ErrVal process( SliceHeader& rcSH, UInt& ruiMbRead );
   
-  ErrVal readSliceHeader  ( NalUnitType   eNalUnitType,
-                            NalRefIdc     eNalRefIdc,
-                            UInt          uiLayerId,
-                            UInt          uiTemporalLevel,
-                            UInt          uiQualityLevel,
-                            SliceHeader*& rpcSH
+  ErrVal readSliceHeader  ( NalUnitParser* pcNalUnitParser,
+                            SliceHeader*& rpcSH,
                             //JVT-P031
-                            ,UInt         uiFirstFragSHPPSId
-                            ,UInt         uiFirstFragNumMbsInSlice
-                            ,Bool         bFirstFragFGSCompSep
-                            //~JVT-P031
-							,Bool		  UnitAVCFlag	//JVT-S036 lsj
-                            );
+                            UInt         uiFirstFragNumMbsInSlice,
+                            Bool         bFirstFragFGSCompSep
+							              );
     
   ErrVal readSliceHeaderSuffix( NalUnitType   eNalUnitType,
-								NalRefIdc     eNalRefIdc,
-								UInt		  uiLayerId,
-								UInt		  uiQualityLevel,
-								SliceHeader*  pcSliceHeader
-							  );					//JVT-S036 lsj
+                                NalRefIdc     eNalRefIdc,
+                                UInt		      uiLayerId,
+                                UInt		      uiQualityLevel,
+                                Bool          bUseBasePredFlag,
+                                SliceHeader*  pcSliceHeader
+                                );					//JVT-S036 lsj
 
   //TMM_EC {{
 	ErrVal	readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
@@ -172,11 +167,10 @@ protected:
   ControlMngIf* m_pcControlMng;
   Bool m_bInitDone;
 //JVT-S036 lsj start
-  UInt KeyPictureFlag;
   Bool uiAdaptiveRefPicMarkingModeFlag;
   MmcoBuffer m_cMmmcoBufferSuffix; 
-	UInt PPSId_AVC, SPSId_AVC;
-	UInt POC_AVC;
+	UInt m_uiPPSId_AVC, m_uiSPSId_AVC;
+	UInt m_uiPOC_AVC;
 //JVT-S036 lsj end 
 
 };

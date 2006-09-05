@@ -131,7 +131,7 @@ public:
   ErrVal        init          ( Int       iPoc,
                                 UInt      uiFrameNum,
                                 UInt      uiTemporalLevel,
-                                Bool      bKeyPicture,
+                                Bool      bUseBasePred,
                                 Bool      bNeededForReference,
                                 Bool      bConstrainedIPred,
                                 UInt      uiQualityLevel); //JVT-T054
@@ -149,7 +149,7 @@ public:
   Int           getPoc        ()  const { return m_iPoc; }
   UInt          getFrameNum   ()  const { return m_uiFrameNum; }
   UInt          getTLevel     ()  const { return m_uiTemporalLevel; }
-  Bool          isKeyPic      ()  const { return m_bKeyPicture; }
+  Bool          useBasePred   ()  const { return m_bUseBasePred; }
   Bool          isExisting    ()  const { return m_bExisting; }
   Bool          isNeededForRef()  const { return m_bNeededForReference; }
   Bool          isOutputted   ()  const { return m_bOutputted; }
@@ -174,7 +174,7 @@ private:
   Int         m_iPoc;
   UInt        m_uiFrameNum;
   UInt        m_uiTemporalLevel;
-  Bool        m_bKeyPicture;
+  Bool        m_bUseBasePred;
   Bool        m_bExisting;
   Bool        m_bNeededForReference;
   Bool        m_bOutputted;

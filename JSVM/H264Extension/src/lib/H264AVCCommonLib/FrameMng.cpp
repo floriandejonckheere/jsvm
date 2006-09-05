@@ -635,7 +635,7 @@ ErrVal FrameMng::xSetInitialReferenceListPFrame( SliceHeader& rcSH )
 {
   RefPicList<RefPic>& rcList = rcSH.getRefPicList( LIST_0 );
 
-  if( ! rcSH.getKeyPictureFlag() ) 
+  if( ! rcSH.getUseBasePredictionFlag() ) 
     m_cShortTermList.setRefPicListFGS( rcList );
   else
     m_cShortTermList.setRefPicList( rcList );
@@ -652,7 +652,7 @@ ErrVal FrameMng::xSetInitialReferenceListBFrame( SliceHeader& rcSH )
 
   //====== set Poc ordered short-term list and get index with smallest Poc greater than current ======
   m_cPocOrderedFrameList.reset();
-  if( ! rcSH.getKeyPictureFlag() ) 
+  if( ! rcSH.getUseBasePredictionFlag() ) 
     m_cShortTermList.setRefFrameListFGS( m_cPocOrderedFrameList );
   else
     m_cShortTermList.setRefFrameList( m_cPocOrderedFrameList );
@@ -896,7 +896,7 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
     m_iEntriesInDPB++;
 
 //JVT-S036 lsj start
-	if( rcSH.getKeyPictureFlag() )  //bug-fix suffix shenqiu
+	if( rcSH.getUseBasePredictionFlag() )  //bug-fix suffix shenqiu
 	{
 		RNOK( m_cFrameUnitBuffer.getFrameUnit( m_pcCurrentFrameUnitBase ) );
 		RNOK( m_pcCurrentFrameUnitBase->copyBase( rcSH, *m_pcCurrentFrameUnit ) );
@@ -923,7 +923,7 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
     }
   }
 
-  if( rcSH.getKeyPictureFlag() )  //bug-fix suffix shenqiu
+  if( rcSH.getUseBasePredictionFlag() )  //bug-fix suffix shenqiu
   {
 	m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnitBase );
   }
@@ -1196,7 +1196,7 @@ ErrVal FrameMng::xReferenceListRemapping( SliceHeader& rcSH, ListIdx eListIdx )
       else
       { // everything is fine
         //---- set frame ----
-        if( ! rcSH.getKeyPictureFlag() ) 
+        if( ! rcSH.getUseBasePredictionFlag() ) 
         {
 			if((*iter)->getBaseRep()) //JVT-S036 lsj
 			{

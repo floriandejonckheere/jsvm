@@ -605,22 +605,22 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
       //----- key pictures (that's a bit tricky) -----
       {
         UInt  uiMaxTLevel     = m_auiNumTempLevel[uiLayer];
-        Bool  bLastKeyPicture = false;
-        for( UInt uiKeyPicCount = 0; ! bLastKeyPicture; uiKeyPicCount++ )
+        Bool  bLastBaseRep = false;
+        for( UInt uiBaseRepCount = 0; ! bLastBaseRep; uiBaseRepCount++ )
         {
           Double dDistortionBaseDep  = 0;
           Double dDistortionBaseInd  = 0;
           Double dDistortionEnhDep   = 0;
           Double dDistortionEnhInd   = 0;
-          bLastKeyPicture         = ( ( ( m_auiNumFrames[uiLayer] - 1 ) / m_auiGOPSize[uiLayer] ) == uiKeyPicCount );
+          bLastBaseRep         = ( ( ( m_auiNumFrames[uiLayer] - 1 ) / m_auiGOPSize[uiLayer] ) == uiBaseRepCount );
           
-          UInt   uiPicNum         = uiKeyPicCount * m_auiGOPSize[uiLayer];
-          UInt   uiTopLayerPicNum = uiKeyPicCount * m_auiGOPSize[uiTopLayer];
+          UInt   uiPicNum         = uiBaseRepCount * m_auiGOPSize[uiLayer];
+          UInt   uiTopLayerPicNum = uiBaseRepCount * m_auiGOPSize[uiTopLayer];
           // UInt   uiStepSize2      = m_auiGOPSize[uiLayer] >> 1;  // unused variable mwi060625
           UInt   uiTopLayerStepSize2 = m_auiGOPSize[uiTopLayer] >> 1;
           
           //---- preceding level 1 picture -----
-          if( uiKeyPicCount )
+          if( uiBaseRepCount )
           {
             dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
             dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
@@ -629,8 +629,8 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
             dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum-uiTopLayerStepSize2] ) / 2;
           }
           //---- normal pictures -----
-          UInt uiStartPicNum  = ( uiKeyPicCount   ?  uiTopLayerPicNum - uiTopLayerStepSize2 + 1 : 0 );
-          UInt uiEndPicNum    = ( bLastKeyPicture ? m_auiNumFrames[uiTopLayer] - 1 : uiTopLayerPicNum + uiTopLayerStepSize2 - 1 );
+          UInt uiStartPicNum  = ( uiBaseRepCount   ?  uiTopLayerPicNum - uiTopLayerStepSize2 + 1 : 0 );
+          UInt uiEndPicNum    = ( bLastBaseRep ? m_auiNumFrames[uiTopLayer] - 1 : uiTopLayerPicNum + uiTopLayerStepSize2 - 1 );
           for( UInt uiCheckPicNum = uiStartPicNum; uiCheckPicNum <= uiEndPicNum; uiCheckPicNum++ )
           {
             dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiCheckPicNum] );
@@ -640,7 +640,7 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
             dDistortionEnhInd  += log10( (Double)aaaauiDistortionInd[uiLayer][uiFGS  ][0          ][uiCheckPicNum] );
           }
           //---- following level 1 picture -----
-          if( ! bLastKeyPicture )
+          if( ! bLastBaseRep )
           {
             dDistortionBaseDep += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS-1][uiMaxTLevel][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
             dDistortionEnhDep  += log10( (Double)aaaauiDistortionDep[uiLayer][uiFGS  ][0          ][uiTopLayerPicNum+uiTopLayerStepSize2] ) / 2;
@@ -1565,22 +1565,26 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
     //----- analyse packets -----
     if( cPacketDescription.FGSLayer )
     {
-      pcBinData->data()[1] |= ( m_aaauiQualityID[cPacketDescription.Layer][cPacketDescription.FGSLayer][auiFrameNum[cPacketDescription.Layer]] << 2 );
+      // JVT-T083: modify the Position of SimplePriorityId
+      // clear previous value
+      pcBinData->data()[1] &= 0xC0;
+      // write new value of priority ID
+      pcBinData->data()[1] |= m_aaauiQualityID[cPacketDescription.Layer][cPacketDescription.FGSLayer][auiFrameNum[cPacketDescription.Layer]];
     }
     else
     {
 //bug-fix suffix{{
-		if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
-		{
-			bAVCComaptible = true;
-		}																													 
-		if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
-		{
-            RNOK( pcWriteBitStream->writePacket   ( &m_cBinDataStartCode ) );
-            RNOK( pcWriteBitStream->writePacket   ( pcBinData ) );
-            RNOK( pcReadBitStream ->releasePacket ( pcBinData ) );
-			continue;
-		}
+      if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+      {
+        bAVCComaptible = true;
+      }																													 
+      if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
+      {
+        RNOK( pcWriteBitStream->writePacket   ( &m_cBinDataStartCode ) );
+        RNOK( pcWriteBitStream->writePacket   ( pcBinData ) );
+        RNOK( pcReadBitStream ->releasePacket ( pcBinData ) );
+        continue;
+      }
 //bug-fix suffix}}
 
       if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
@@ -1662,18 +1666,19 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
     //----- detect first slice data of access unit -----
     Bool bNewAccessUnit = ( !cPacketDescription.ParameterSet                &&
                             !cPacketDescription.ApplyToNext                 &&
-                             cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
-                             cPacketDescription.FGSLayer    == 0U );
-//bug-fix suffix{{
-	if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
-	{
-		bAVCComaptible = true;
-	}
-	if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
-	{
-		bNewAccessUnit = false;
-	}
-//bug-fix suffix}}
+                            cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
+                            cPacketDescription.FGSLayer    == 0U );
+    //bug-fix suffix{{
+    if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
+    {
+      bAVCComaptible = true;
+    }
+    if((cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE) 
+      && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
+    {
+      bNewAccessUnit = false;
+    }
+    //bug-fix suffix}}
     if(  bNewAccessUnit )
     {
       bNewAccessUnit  =                   ( cPacketDescription.Layer == 0 );

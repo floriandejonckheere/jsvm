@@ -1921,9 +1921,9 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   }
   //save PPSId
   UInt uiPPSId = pcSliceHeader->getPicParameterSetId();
-  Bool bKeyPicture = pcSliceHeader->getKeyPictureFlag();
+  Bool bUseBaseRep = pcSliceHeader->getUseBasePredictionFlag();
   //update PPSId for enhancement FGS nal unit
-  pcSliceHeader->setPicParameterSetId(bKeyPicture ? m_pcPPSLP_FGS->getPicParameterSetId() : m_pcPPSHP_FGS->getPicParameterSetId());
+  pcSliceHeader->setPicParameterSetId(bUseBaseRep ? m_pcPPSLP_FGS->getPicParameterSetId() : m_pcPPSHP_FGS->getPicParameterSetId());
 
   // Martin.Winken@hhi.fhg.de: original residual now set in RQFGSEncoder::xResidualTranform()
 
@@ -2058,7 +2058,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   //===== initialize FGS encoder =====
   pcSliceHeader->setAdaptivePredictionFlag( ! pcSliceHeader->isIntra() &&
                                             ( m_uiFGSMotionMode >  1 ||
-                                              m_uiFGSMotionMode == 1 && ! pcSliceHeader->getKeyPictureFlag() ) );
+                                              m_uiFGSMotionMode == 1 && ! pcSliceHeader->getUseBasePredictionFlag() ) );
   RNOK( m_pcRQFGSEncoder->initPicture( rcControlData.getSliceHeader(),
                                        rcControlData.getMbDataCtrl(),
                                        pcOrgResidual,
@@ -2533,8 +2533,6 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
       ETRACE_NEWSLICE;
       xAssignSimplePriorityId( pcSliceHeader );
 
-      pcSliceHeader->setAVCCompatible( m_bH264AVCCompatible ); //JVT-S036 lsj
-
       RNOK( m_pcNalUnitEncoder->write               ( *pcSliceHeader ) );
 
       rcControlData.getPrdFrameList( LIST_0 ).reset();
@@ -2664,8 +2662,6 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
       //---- write Slice Header -----
       ETRACE_NEWSLICE;
       xAssignSimplePriorityId( pcSliceHeader );
-
-      pcSliceHeader->setAVCCompatible( m_bH264AVCCompatible ); //JVT-S036 lsj
 
       RNOK( m_pcNalUnitEncoder->write               ( *pcSliceHeader ) );
 
@@ -2820,7 +2816,7 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       //---- write Slice Header -----
       ETRACE_NEWSLICE;
       xAssignSimplePriorityId( rcControlData.getSliceHeader() );
-      rcControlData.getSliceHeader()->setAVCCompatible( m_bH264AVCCompatible );  //JVT-S036 lsj
+
       RNOK( m_pcNalUnitEncoder->write( *rcControlData.getSliceHeader() ) );
 
       //----- write slice data -----
@@ -2900,7 +2896,7 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       //---- write Slice Header -----
       ETRACE_NEWSLICE;
       xAssignSimplePriorityId( rcControlData.getSliceHeader() );
-      rcControlData.getSliceHeader()->setAVCCompatible( m_bH264AVCCompatible );  //JVT-S036 lsj
+      
       RNOK( m_pcNalUnitEncoder->write( *rcControlData.getSliceHeader() ) );
 
       //----- write slice data -----
@@ -3402,7 +3398,7 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 // JVT-Q065 EIDR}
 
   SliceType     eSliceType      = ( auiPredListSize[1] ? B_SLICE : auiPredListSize[0] ? P_SLICE : I_SLICE );
-  Bool          bKeyPicture     = ( eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST ) ? 1 : 0;
+  Bool          bUseBaseRep     = ( eNalRefIdc == NAL_REF_IDC_PRIORITY_HIGHEST ) ? 1 : 0;
 
   //===== set simple slice header parameters =====
   pcSliceHeader->setNalRefIdc                   ( eNalRefIdc            );
@@ -3410,13 +3406,13 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setLayerId                     ( m_uiLayerId           );
   pcSliceHeader->setTemporalLevel               ( uiTemporalLevel       );
   pcSliceHeader->setQualityLevel                ( 0                     );
-  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+  
+  
   pcSliceHeader->setDiscardableFlag             ( false                 );
-  pcSliceHeader->setReservedZeroBit	            ( false                 );  //JVT-S036 lsj
-						//pcSliceHeader->setExtensionFlag	              ( m_bExtendedPriorityId );
+
+  
   pcSliceHeader->setSimplePriorityId            ( 0	                    );
-  //}}Variable Lengh NAL unit header data with priority and dead substream flag
+  
 
   pcSliceHeader->setFirstMbInSlice              ( 0                     );
   pcSliceHeader->setLastMbInSlice               ( m_uiMbNumber - 1      );
@@ -3424,7 +3420,7 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setFrameNum                    ( m_uiFrameNum          );
   pcSliceHeader->setIdrPicId                    ( 0                     );
   pcSliceHeader->setDirectSpatialMvPredFlag     ( true                  );
-  pcSliceHeader->setKeyPictureFlag              ( bKeyPicture           );
+  pcSliceHeader->setUseBaseRepresentationFlag   ( bUseBaseRep           );
 //pcSliceHeader->setKeyPicFlagScalable          ( false					); //JVT-S036 lsj //bug-fix suffix shenqiu
   pcSliceHeader->setNumRefIdxActiveOverrideFlag ( false                 );
   pcSliceHeader->setCabacInitIdc                ( 0                     );
@@ -3468,9 +3464,9 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   //===== de-blocking filter parameters =====
   if( pcSliceHeader->getPPS().getDeblockingFilterParametersPresentFlag() )
   {
-    pcSliceHeader->getDeblockingFilterParameter().setDisableDeblockingFilterIdc ( m_uiFilterIdc       );
-    pcSliceHeader->getDeblockingFilterParameter().setSliceAlphaC0Offset         ( 2 * m_iAlphaOffset  );
-    pcSliceHeader->getDeblockingFilterParameter().setSliceBetaOffset            ( 2 * m_iBetaOffset   );
+    pcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setDisableDeblockingFilterIdc ( m_uiFilterIdc       );
+    pcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setSliceAlphaC0Offset         ( 2 * m_iAlphaOffset  );
+    pcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setSliceBetaOffset            ( 2 * m_iBetaOffset   );
   }
 
   //===== set remaining slice header parameters =====
@@ -5964,7 +5960,7 @@ MCTFEncoder::xSetMmcoBase( SliceHeader& pcSliceHeader, UInt iNum )
 		return Err::m_nOK;
 	}
 	//generate mmco commands
-	if( rcSH.getKeyPictureFlag() )
+	if( rcSH.getUseBasePredictionFlag() )
 	{
 		UInt uiPos = 0;
 		Int   iDiff             =  rcSH.getFrameNum() - iNum; //bug-fix suffix
@@ -6035,8 +6031,6 @@ MCTFEncoder::xWriteSuffixUnit( ExtBinDataAccessorList& rcOutExtBinDataAccessorLi
     
 	rcSH.setLayerId( 0 );
 	rcSH.setQualityLevel( 0 );
-
-	rcSH.setAVCCompatible( true ); 
 
 	if( eNalUnitType == NAL_UNIT_CODED_SLICE )
 	{

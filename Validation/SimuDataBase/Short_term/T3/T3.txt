@@ -122,7 +122,7 @@
             		        height => 64,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 36.0968,
+            		        psnr => 36.02,
           		        },
               		     #----------#
                       # Test   5 #
@@ -170,7 +170,7 @@
             		        height => 256,
             		        framerate => 30/16,
             		        bitrate => 0,
-            		        psnr => 31.63,
+            		        psnr => 31.628,
             		      },	
             		      #----------#
                       # Test   9 #
@@ -218,7 +218,7 @@
             		        height => 64,
             		        framerate => 30/4,
             		        bitrate => 64*0.6,
-            		        psnr => 33.8608,
+            		        psnr => 33.819,
             		      },	
             		      #----------#
                       # Test  13 #

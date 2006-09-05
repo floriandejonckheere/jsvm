@@ -96,6 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define DECODER_TRACE     0
 
 #define MAX_LINE_LENGTH 255
+#define MAX_BITS_LENGTH 64
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -146,7 +147,7 @@ protected:
   static Char  sm_acType      [9];
   static Char  sm_acPos       [9];
   static Char  sm_acCode      [6];
-  static Char  sm_acBits      [35];
+  static Char  sm_acBits      [MAX_BITS_LENGTH];
 };
 
 

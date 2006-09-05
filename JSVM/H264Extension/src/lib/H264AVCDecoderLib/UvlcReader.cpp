@@ -2319,6 +2319,7 @@ ErrVal
 UvlcReader::xRQdecodeEobOffsets( UInt* pauiShift, UInt uiMax )
 {
   UInt uiNumEnd = 1;
+  DTRACE_T("num_end_vals");
   for (UInt uiEc=0; uiEc<3; uiEc++)
   {
     UInt uiCode;
@@ -2330,6 +2331,9 @@ UvlcReader::xRQdecodeEobOffsets( UInt* pauiShift, UInt uiMax )
       break;
     }
   }
+  DTRACE_V(uiNumEnd-1);
+  DTRACE_N;
+
   if (uiNumEnd == 4)
   {
     uiNumEnd = 0;
@@ -2339,8 +2343,10 @@ UvlcReader::xRQdecodeEobOffsets( UInt* pauiShift, UInt uiMax )
     pauiShift[ui] = uiMax - 1;
   }
   UInt uiLevel;
+  DTRACE_T("eobShiftXXX[ num_end_vals ]");
   RNOK( xGetGolomb( uiLevel, 2 ) );
   pauiShift[uiNumEnd] = uiLevel;
+  
   RNOK( xDecodeMonSeq( pauiShift+uiNumEnd+1, uiLevel, uiMax-uiNumEnd-1 ) );
 
   return Err::m_nOK;
@@ -2354,12 +2360,17 @@ UvlcReader::RQdecodeBestCodeTableMap( UInt uiMaxH )
 
   memset(m_auiBestCodeTab, 0, sizeof(UInt)*uiMaxH);
 
+  DTRACE_T("num_sig_vlc_selectors");
   RNOK( xGetCode(uiW, 4) );
-
+  DTRACE_TY("u(4) ");
+  DTRACE_V(uiW);
+  DTRACE_N;
+  DTRACE_T("sig_vlc_selector[i]");
   for(UInt uiH = 0; uiH <= uiW; uiH++)
   {
     RNOK(xGetSigRunTabCode(m_auiBestCodeTab[uiH]));
   }
+  DTRACE_N;
 
   return Err::m_nOK;
 }
@@ -2387,6 +2398,7 @@ UvlcReader::xDecodeMonSeq ( UInt* auiSeq, UInt uiStart, UInt uiLen )
   while ( uiLevel > 0 && uiPos < uiLen )
   {
     UInt uiRun;
+    DTRACE_T("eob_run");
     RNOK( xGetGolomb( uiRun, 1 ) );
     for (UInt ui=0; ui<uiRun; ui++,uiPos++)
       auiSeq[uiPos] = uiLevel;
@@ -2396,7 +2408,7 @@ UvlcReader::xDecodeMonSeq ( UInt* auiSeq, UInt uiStart, UInt uiLen )
   {
     auiSeq[uiPos] = 0;
   }
-  DTRACE_N;
+  
   return Err::m_nOK;
 }
 

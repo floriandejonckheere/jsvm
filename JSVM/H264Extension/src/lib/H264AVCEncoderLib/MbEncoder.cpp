@@ -458,7 +458,7 @@ MbEncoder::encodeMacroblock( MbDataAccess&  rcMbDataAccess,
 
   m_pcIntPicBuffer = pcFrame->getFullPelYuvBuffer();
   m_pcXDistortion->loadOrgMbPelData( m_pcIntPicBuffer, m_pcIntOrgMbPelData );
-  m_pcTransform->setQp( rcMbDataAccess, rcMbDataAccess.getSH().getKeyPictureFlag() );
+  m_pcTransform->setQp( rcMbDataAccess, rcMbDataAccess.getSH().getUseBasePredictionFlag() );
 
   //====== evaluate macroblock modes ======
   if( rcMbDataAccess.getSH().isInterP() )

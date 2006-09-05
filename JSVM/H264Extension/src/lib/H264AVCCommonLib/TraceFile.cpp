@@ -115,7 +115,7 @@ Char  TraceFile::sm_acLine      [MAX_LINE_LENGTH] ;
 Char  TraceFile::sm_acType      [9];
 Char  TraceFile::sm_acPos       [9];
 Char  TraceFile::sm_acCode      [6];
-Char  TraceFile::sm_acBits      [35];
+Char  TraceFile::sm_acBits      [MAX_BITS_LENGTH];
 
 
 
@@ -325,8 +325,10 @@ TraceFile::addBits( UInt uiVal,
   {
     sm_acBits[i-1] = '\0';
   }
-  strncat( sm_acBits, acBuffer, 34 );
-  strncat( sm_acBits, "]",      34 );
+  sm_acBits[sizeof(sm_acBits)-1]='\0';
+  strncat( sm_acBits, acBuffer, sizeof(sm_acBits)-1-strlen( sm_acBits ) );
+  strncat( sm_acBits, "]",      sizeof(sm_acBits)-1-strlen( sm_acBits ) );
+
   return Err::m_nOK;
 }
 

@@ -2279,6 +2279,7 @@ UvlcWriter::RQencodeEobOffsets_Luma( UInt* pauiSeq )
   m_uiFragmentedSymbols = 0;
 
   memcpy( m_auiShiftLuma, pauiSeq, sizeof(UInt)*16 );
+  
   return xRQencodeEobOffsets(pauiSeq, 16);
 }
 
@@ -2301,15 +2302,19 @@ UvlcWriter::xRQencodeEobOffsets( UInt* auiSeq, UInt uiMax )
 
   if ( uiNumEnd )
   {
+    ETRACE_T("num_end_vals");
+    ETRACE_V(uiNumEnd-1);
     RNOK( xWriteGolomb( uiNumEnd-1, 1 ) );
   } else {
-    ETRACE_T("Eob");
+    ETRACE_T("num_end_vals");
+    ETRACE_V(3);
     RNOK( xWriteCode( 0x7, 3 ) );
     ETRACE_N;
   }
+  ETRACE_T("eobShiftXXX[ num_end_vals ]");
   RNOK( xWriteGolomb( auiSeq[uiNumEnd], 2 ) );
   RNOK( xEncodeMonSeq( auiSeq+uiNumEnd+1, auiSeq[uiNumEnd], uiMax-uiNumEnd-1 ) );
-  ETRACE_N;
+
   return Err::m_nOK;
 }
 
@@ -2330,13 +2335,19 @@ UvlcWriter::RQencodeBestCodeTableMap( UInt* pauiTable, UInt uiMaxH )
 
   if(uiW < 0)
     uiW = 0;
+  DTRACE_T("num_sig_vlc_selectors");
   RNOK(xWriteCode(uiW, 4));
+  ETRACE_TY("u(4) ");
+  ETRACE_V(uiW);
+  ETRACE_N;
 
+  ETRACE_T("sig_vlc_selector[i]");
   for(UInt uiH = 0; uiH <= (UInt)uiW; uiH++)
   {
     m_auiBestCodeTabMap[uiH] = pauiTable[uiH];
     RNOK(xWriteCode(g_auiSigRunTabCode[pauiTable[uiH]], g_auiSigRunTabCodeLen[pauiTable[uiH]]));
   }
+  ETRACE_N;
 
   return Err::m_nOK;
 }
@@ -2382,11 +2393,13 @@ UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
     {
       uiRun++;
     } else {
+      ETRACE_T("eob_run");
       RNOK( xWriteGolomb( uiRun, 1 ) );
       uiRun = 1;
       uiLevel--;
       while ( uiLevel > auiSeq[uiPos] )
       {
+        ETRACE_T("eob_run");
         RNOK( xWriteGolomb( 0, 1 ) );
         uiLevel--;
       }
@@ -2394,6 +2407,7 @@ UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
   }
   if (uiLevel > 0)
   {
+    ETRACE_T("eob_run");
     RNOK( xWriteGolomb( uiRun, 1 ) );
   }
   return Err::m_nOK;

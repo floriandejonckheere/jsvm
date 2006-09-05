@@ -181,6 +181,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
 , m_bFGSCodingMode                          ( false )
 , m_uiGroupingSize                          ( 1 )
+, m_bInterlayerDeblockingPresent            ( 0 )
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -285,38 +286,27 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
-    /*RNOK( pcWriteIf->writeFlag( m_bNalUnitExtFlag,                        "SPS: nal_unit_extension_flag" ) );
-    if ( m_bNalUnitExtFlag == 0 )
-    {
-        RNOK ( pcWriteIf->writeUvlc( m_uiNumSimplePriIdVals - 1,          "SPS: number_of_simple_priority_id_values_minus1" ) );
-        for ( UInt uiPriCount = 0; uiPriCount < m_uiNumSimplePriIdVals; uiPriCount++ )
-        {
-            RNOK ( pcWriteIf->writeCode( uiPriCount,              PRI_ID_BITS, "SPS: priority_id" ) );
-            RNOK ( pcWriteIf->writeCode( m_uiTemporalLevelList[uiPriCount], 3, "SPS: temporal_level_list[priority_id]" ) );
-            RNOK ( pcWriteIf->writeCode( m_uiDependencyIdList [uiPriCount], 3, "SPS: dependency_id_list[priority_id]" ) );
-            RNOK ( pcWriteIf->writeCode( m_uiQualityLevelList [uiPriCount], 2, "SPS: quality_level_list[priority_id]" ) );
-        }
-    }
- JVT-S036 lsj */
 
-    RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,       "SPS: ExtendedSpatialScalability" ) );
+    RNOK( pcWriteIf->writeFlag( getInterlayerDeblockingPresent(),       "SPS: interlayer_deblocking_filter_control_present_flag" ) );
+
+    RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,     "SPS: extended_spatial_scalability" ) );
 //    if ( 1 /* chroma_format_idc */ > 0 )
     {
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: ChromaPhaseXPlus1" ) );
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: ChromaPhaseYPlus1" ) );
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: chroma_phase_x_plus1" ) );
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
     }
     if (getExtendedSpatialScalability() == ESS_SEQ)
     {
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: ScaledBaseLeftOffset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: ScaledBaseTopOffset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: ScaledBaseRightOffset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: ScaledBaseBottomOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: scaled_base_left_offset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: scaled_base_top_offset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: scaled_base_right_offset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: scaled_base_bottom_offset" ) );
     }
 
-    RNOK  ( pcWriteIf->writeFlag( m_bFGSCodingMode,                       "SPS: FGSCodingMode") );
+    RNOK  ( pcWriteIf->writeFlag( m_bFGSCodingMode,                       "SPS: fgs_coding_mode") );
     if(m_bFGSCodingMode == false)
     {
-      RNOK  ( pcWriteIf->writeUvlc(m_uiGroupingSize-1,                    "SPS: GroupingSizeMinus1") );
+      RNOK  ( pcWriteIf->writeUvlc(m_uiGroupingSize-1,                    "SPS: groupingSizeMinus1") );
     }
     else
     {
@@ -326,11 +316,11 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       {
         if(uiIndex == 0)
         {
-          RNOK( pcWriteIf->writeUvlc(m_uiPosVect[uiIndex],               "SPS: PosVect[0]") );
+          RNOK( pcWriteIf->writeUvlc(m_uiPosVect[uiIndex],               "SPS: scanIndex0") );
         }
         else
         {
-          RNOK( pcWriteIf->writeUvlc(m_uiPosVect[uiIndex]-m_uiPosVect[uiIndex-1]-1, "SPS: PosVect") );
+          RNOK( pcWriteIf->writeUvlc(m_uiPosVect[uiIndex]-m_uiPosVect[uiIndex-1]-1, "SPS: deltaScanIndexMinus1[numPosVector]") );
         }
         uiNumPosVector = m_uiPosVect[uiIndex];
         uiIndex++;
@@ -406,35 +396,22 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
 
-   /* RNOK( pcReadIf->getFlag( m_bNalUnitExtFlag,                           "SPS: nal_unit_extension_flag" ) );
-    if ( m_bNalUnitExtFlag == 0 )
-    {
-        RNOK ( pcReadIf->getUvlc( m_uiNumSimplePriIdVals,                 "SPS: number_of_simple_priority_id_values_minus1" ) );
-        m_uiNumSimplePriIdVals++;
-        for ( UInt uiPriCount = 0; uiPriCount < m_uiNumSimplePriIdVals; uiPriCount++ )
-        {
-            RNOK ( pcReadIf->getCode( uiTmp,              PRI_ID_BITS,    "SPS: priority_id" ) );
-            RNOK ( pcReadIf->getCode( m_uiTemporalLevelList[uiTmp], 3,    "SPS: temporal_level_list[priority_id]" ) );
-            RNOK ( pcReadIf->getCode( m_uiDependencyIdList [uiTmp], 3,    "SPS: dependency_id_list[priority_id]" ) );
-            RNOK ( pcReadIf->getCode( m_uiQualityLevelList [uiTmp], 2,    "SPS: quality_level_list[priority_id]" ) );
-        }
-    }
- JVT-S036 lsj */
+    RNOK( pcReadIf->getFlag( m_bInterlayerDeblockingPresent,              "SPS: interlayer_deblocking_filter_control_present_flag" ) );
 
-    RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: ExtendedSpatialScalability" ) );
+    RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: extended_spatial_scalability" ) );
 //    if ( 1 /* chroma_format_idc */ > 0 )
     {
-      RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                  "SPS: ChromaPhaseXPlus1" ) );
-      RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: ChromaPhaseYPlus1" ) );
+      RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                  "SPS: chroma_phase_x_plus1" ) );
+      RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
     }
     if (m_uiExtendedSpatialScalability == ESS_SEQ)
     {
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: ScaledBaseLeftOffset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: ScaledBaseTopOffset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: ScaledBaseRightOffset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: ScaledBaseBottomOffset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: scaled_base_top_offset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
     }
-    RNOK  ( pcReadIf->getFlag( m_bFGSCodingMode,                            "SPS: FGSCodingMode") );
+    RNOK  ( pcReadIf->getFlag( m_bFGSCodingMode,                            "SPS: fgs_coding_mode") );
     if(m_bFGSCodingMode == false)
     {
       RNOK  ( pcReadIf->getUvlc(m_uiGroupingSize,                           "SPS: GroupingSizeMinus1") );
@@ -448,11 +425,11 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       {
         if(uiIndex == 0)
         {
-          RNOK( pcReadIf->getUvlc(m_uiPosVect[uiIndex],                     "SPS: PosVect[0]") );
+          RNOK( pcReadIf->getUvlc(m_uiPosVect[uiIndex],                     "SPS: scanIndex0") );
         }
         else
         {
-          RNOK( pcReadIf->getUvlc(m_uiPosVect[uiIndex], "SPS: PosVect") );
+          RNOK( pcReadIf->getUvlc(m_uiPosVect[uiIndex], "SPS: deltaScanIndexMinus1[numPosVector]") );
           m_uiPosVect[uiIndex] = m_uiPosVect[uiIndex] + m_uiPosVect[uiIndex-1] + 1;
         }
         uiNumPosVector = m_uiPosVect[uiIndex];

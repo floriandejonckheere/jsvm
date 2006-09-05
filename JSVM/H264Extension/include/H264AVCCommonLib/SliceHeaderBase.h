@@ -591,6 +591,38 @@ public:
     Int  m_iSliceBetaOffset;
   };
 
+  class H264AVCCOMMONLIB_API DeblockingFilterParameterScalable
+  {
+  public:
+    DeblockingFilterParameterScalable( )
+    {
+    }
+    DeblockingFilterParameterScalable( const DeblockingFilterParameter& cDeblockingFilterParameter, 
+                                       const DeblockingFilterParameter& cInterlayerDeblockingFilterParameter)
+    : m_cDeblockingFilterParameter              ( cDeblockingFilterParameter )
+    , m_cInterlayerDeblockingFilterParameter    ( cInterlayerDeblockingFilterParameter )
+    {
+    }
+    DeblockingFilterParameterScalable* getCopy()  const
+    {
+      return new DeblockingFilterParameterScalable( m_cDeblockingFilterParameter, m_cInterlayerDeblockingFilterParameter );
+    }
+    // Access to the parameters
+    DeblockingFilterParameter& getDeblockingFilterParameter       ()                 {return m_cDeblockingFilterParameter;}
+    const DeblockingFilterParameter& getDeblockingFilterParameter () const           {return m_cDeblockingFilterParameter;}
+    
+    DeblockingFilterParameter& getInterlayerDeblockingFilterParameter       ()       {return m_cInterlayerDeblockingFilterParameter;}
+    const DeblockingFilterParameter& getInterlayerDeblockingFilterParameter () const {return m_cInterlayerDeblockingFilterParameter;}
+
+    // Access to the "normal" parameters
+    UInt getDisableDeblockingFilterIdc()  const { return getDeblockingFilterParameter().getDisableDeblockingFilterIdc();}
+    Int  getSliceAlphaC0Offset()          const { return getDeblockingFilterParameter().getSliceAlphaC0Offset();}
+    Int  getSliceBetaOffset()             const { return getDeblockingFilterParameter().getSliceBetaOffset();}
+  private:
+    DeblockingFilterParameter m_cDeblockingFilterParameter;
+    DeblockingFilterParameter m_cInterlayerDeblockingFilterParameter;
+  };
+  
 
 
 protected:
@@ -650,9 +682,10 @@ public:
 //TMM_WP
 
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
-  Bool                              getKeyPictureFlag             ()  const { return m_bKeyPictureFlag; }
-//  Bool                              getKeyPicFlagScalable         ()  const { return m_bKeyPicFlagScalable; } //JVT-S036 lsj //bug-fix suffix shenqiu
-  UInt                              getBaseLayerId                ()  const { return m_uiBaseLayerId; }
+  Bool                              getUseBasePredictionFlag      ()  const { return m_bUseBasePredictionFlag; }
+  Bool                              getStoreBaseRepresentationFlag()  const { return m_bStoreBaseRepresentationFlag; }
+  UInt                              getBaseLayerId                ()  const { if (m_bLayerBaseFlag) return MSYS_UINT_MAX; 
+                                                                                               else return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
   Bool                              getNumRefIdxActiveOverrideFlag()  const { return m_bNumRefIdxActiveOverrideFlag; }
@@ -691,8 +724,8 @@ public:
 
   UInt                              getCabacInitIdc               ()  const { return m_uiCabacInitIdc; }
   Int                               getSliceQpDelta               ()  const { return m_iSliceQpDelta; }
-  const DeblockingFilterParameter&  getDeblockingFilterParameter  ()  const { return m_cDeblockingFilterParameter; }
-  DeblockingFilterParameter&        getDeblockingFilterParameter  ()        { return m_cDeblockingFilterParameter; }
+  const DeblockingFilterParameterScalable&  getDeblockingFilterParameterScalable  ()  const { return m_cDeblockingFilterParameterScalable; }
+  DeblockingFilterParameterScalable&        getDeblockingFilterParameterScalable  ()        { return m_cDeblockingFilterParameterScalable; }
 
   UInt  getLog2MaxSliceGroupChangeCycle(UInt uiPicSizeInMapUnits) const {return UInt(ceil( (log ( uiPicSizeInMapUnits*(getPPS().getSliceGroupChangeRateMinus1()+1.)+ 1. ))/log(2.) ));};
   UInt  getSliceGroupChangeCycle() const {return m_uiSliceGroupChangeCycle;}
@@ -723,12 +756,8 @@ public:
   UInt  getLowPassFgsMcFilter           ()                  { return m_uiLowPassFgsMcFilter;  }
   
 
-  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
-  UInt                              getSimplePriorityId			  ()	    { return m_uiSimplePriorityId;}
+  UInt                              getSimplePriorityId			  ()	    { return m_uiPriorityId;}
   Bool                              getDiscardableFlag			  ()		{ return m_bDiscardableFlag;}
-  Bool                              getReservedZeroBit            ()    	{ return m_bReservedZeroBit;} //JVT-S036 lsj
-  //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
   //JVT-P031
   Bool                              getFragmentedFlag              ()       {return m_bFragmentedFlag;}
@@ -745,7 +774,6 @@ public:
   UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
 
   //===== set parameters =====
-  Void  setAVCCompatible              ( Bool     Flag  )  { m_eAVCCompatible                    = Flag;}  //JVT-S036 lsj
   Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
   Void  setNalUnitType                ( NalUnitType e  )  { m_eNalUnitType                      = e;  }
   Void  setLayerId                    ( UInt        ui )  { m_uiLayerId                         = ui; }
@@ -766,9 +794,13 @@ public:
   Void  setLumaLog2WeightDenom        ( UInt        ui )  { m_uiLumaLog2WeightDenom             = ui; }
   Void  setChromaLog2WeightDenom      ( UInt        ui )  { m_uiChromaLog2WeightDenom           = ui; }
   Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
-  Void  setKeyPictureFlag             ( Bool        b  )  { m_bKeyPictureFlag                   = b;  }
- // Void  setKeyPicFlagScalable         ( Bool        b  )  { m_bKeyPicFlagScalable               = b;  }  //JVT-S036 lsj//bug-fix suffix shenqiu
-  Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; }
+  Void  setUseBaseRepresentationFlag  ( Bool        b  )  { m_bUseBasePredictionFlag            = b; 
+                                                            m_bStoreBaseRepresentationFlag      = b; }
+ 
+  Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; 
+                                                            m_bLayerBaseFlag                    = (m_uiBaseLayerId==MSYS_UINT_MAX);}
+  Void  setLayerBaseFlag              ( Bool        b  )  { m_bLayerBaseFlag = b; 
+                                                            if (m_bLayerBaseFlag) m_uiBaseLayerId=MSYS_UINT_MAX;}
   Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
   Void  setNumRefIdxActiveOverrideFlag( Bool        b  )  { m_bNumRefIdxActiveOverrideFlag      = b;  }
@@ -784,12 +816,8 @@ public:
   Void  setSliceQpDelta               ( Int         i  )  { m_iSliceQpDelta                     = i;  }
   Void  setSliceHeaderQp              ( Int         i  )  { setSliceQpDelta( i - m_rcPPS.getPicInitQp() );  }
   
-  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
-  Void setSimplePriorityId			  (UInt			ui)	   { m_uiSimplePriorityId = ui;}
+  Void setSimplePriorityId			  (UInt			ui)	   { m_uiPriorityId = ui;}
   Void setDiscardableFlag			  (Bool			b)	   { m_bDiscardableFlag = b;}
-  Void setReservedZeroBit    		  (Bool         b)	   { m_bReservedZeroBit = b;}  //JVT-S036 lsj
-  //}}Variable Lengh NAL unit header data with priority and dead substream flag
 
   Void setBaseLayerUsesConstrainedIntraPred( Bool b ) { m_bBaseLayerUsesConstrainedIntraPred = b; }
 
@@ -821,7 +849,6 @@ protected:
   const PictureParameterSet&  m_rcPPS;
   const SequenceParameterSet& m_rcSPS;
 
-  Bool						  m_eAVCCompatible;	//JVT-S036 lsj
   NalRefIdc                   m_eNalRefIdc;
   NalUnitType                 m_eNalUnitType;
   UInt                        m_uiLayerId;
@@ -844,8 +871,9 @@ protected:
 
   Bool                        m_bDirectSpatialMvPredFlag;
 
-  Bool                        m_bKeyPictureFlag;
-//  Bool						  m_bKeyPicFlagScalable;   //JVT-S036 lsj//bug-fix suffix shenqiu
+  Bool                        m_bUseBasePredictionFlag;
+  Bool                        m_bStoreBaseRepresentationFlag;
+  Bool                        m_bLayerBaseFlag;
   UInt                        m_uiBaseLayerId;
   UInt                        m_uiBaseQualityLevel;
   UInt						            m_uiBaseFragmentOrder;
@@ -866,19 +894,16 @@ protected:
   MmcoBuffer                  m_cMmmcoBuffer;
   UInt                        m_uiCabacInitIdc;
   Int                         m_iSliceQpDelta;
-  DeblockingFilterParameter   m_cDeblockingFilterParameter;
+  DeblockingFilterParameterScalable   m_cDeblockingFilterParameterScalable;
+  
 
   UInt                        m_uiSliceGroupChangeCycle;
   FMO*                        m_pcFMO;
 
   Bool                        m_bBaseLayerUsesConstrainedIntraPred;
 
-  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
-  UInt						            m_uiSimplePriorityId;
+  UInt						            m_uiPriorityId;
   Bool					              m_bDiscardableFlag;
-  Bool                        m_bReservedZeroBit;  //JVT-S036 lsj
-  //}}Variable Lengh NAL unit header data with priority and dead substream flag
   
   //JVT-P031
   Bool                        m_bFragmentedFlag;
@@ -924,8 +949,6 @@ protected:
   UInt          m_uiBaseWeightZeroBaseBlock;
   UInt          m_uiBaseWeightZeroBaseCoeff;
 };
-
-#define IS_KEY_PICTURE(pcSH)    ( (pcSH)->getKeyPictureFlag() )
 
 
 #if defined( WIN32 )

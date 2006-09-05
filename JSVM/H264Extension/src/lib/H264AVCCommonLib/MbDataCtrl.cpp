@@ -501,7 +501,8 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
     }
     //--
 
-    m_cpDFPBuffer.set( m_uiSliceId, rcSH.getDeblockingFilterParameter().getCopy() );
+    m_cpDFPBuffer.set( m_uiSliceId, rcSH.getDeblockingFilterParameterScalable().getCopy() );
+   
     m_bDirect8x8InferenceFlag = rcSH.getSPS().getDirect8x8InferenceFlag();
   }
   m_pcSliceHeader = &rcSH;

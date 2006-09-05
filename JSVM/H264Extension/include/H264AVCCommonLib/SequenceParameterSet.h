@@ -187,6 +187,10 @@ public:
   Void setGroupingSize                        ( UInt        ui )          { m_uiGroupingSize                        = ui;     }
   Void setPosVect                             ( UInt uiNum, UInt uiVect)  { m_uiPosVect[uiNum]                      = uiVect; } 
 
+  Void setInterlayerDeblockingPresent ( Bool b ) { m_bInterlayerDeblockingPresent = b ;}
+  Bool getInterlayerDeblockingPresent () const    { return m_bInterlayerDeblockingPresent; }
+
+
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
                 NalUnitType           eNalUnitType );
@@ -197,6 +201,8 @@ public:
 
   Void setExtendedSpatialScalability ( UInt ui ) { m_uiExtendedSpatialScalability = ui ;}
   UInt getExtendedSpatialScalability () const    { return m_uiExtendedSpatialScalability; }
+
+
 // TMM_ESS }
 
 protected:
@@ -243,6 +249,8 @@ protected:
   Int           m_iScaledBaseRightOffset;
   Int           m_iScaledBaseBottomOffset;
 // TMM_ESS }
+
+  Bool          m_bInterlayerDeblockingPresent;
 
 // VW {
 	UInt					m_auiNumRefIdxUpdateActiveDefault[2];

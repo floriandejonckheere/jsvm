@@ -113,7 +113,7 @@ DPBUnit::DPBUnit()
 : m_iPoc                ( MSYS_INT_MIN )
 , m_uiFrameNum          ( MSYS_UINT_MAX )
 , m_uiTemporalLevel     ( MSYS_UINT_MAX )
-, m_bKeyPicture         ( false )
+, m_bUseBasePred        ( false )
 , m_bExisting           ( false )
 , m_bNeededForReference ( false )
 , m_bOutputted          ( false )
@@ -187,7 +187,7 @@ ErrVal
 DPBUnit::init( Int  iPoc,
                UInt uiFrameNum,
                UInt uiTemporalLevel,
-               Bool bKeyPicture,
+               Bool bUseBasePred,
                Bool bNeededForReference,
                Bool bConstrainedIPred,
                UInt uiQualityLevel) //JVT-T054
@@ -195,7 +195,7 @@ DPBUnit::init( Int  iPoc,
   m_iPoc                = iPoc;
   m_uiFrameNum          = uiFrameNum;
   m_uiTemporalLevel     = uiTemporalLevel;
-  m_bKeyPicture         = bKeyPicture;
+  m_bUseBasePred        = bUseBasePred;
   m_bExisting           = true;
   m_bNeededForReference = bNeededForReference;
   m_bOutputted          = false;
@@ -216,7 +216,7 @@ DPBUnit::initNonEx( Int   iPoc,
   m_iPoc                = iPoc;
   m_uiFrameNum          = uiFrameNum;
   m_uiTemporalLevel     = MSYS_UINT_MAX;
-  m_bKeyPicture         = false;
+  m_bUseBasePred        = false;
   m_bExisting           = false;
   m_bNeededForReference = true;
   m_bOutputted          = false;
@@ -235,7 +235,7 @@ DPBUnit::initBase( DPBUnit&   rcDPBUnit,
   m_iPoc                = rcDPBUnit.m_iPoc;
   m_uiFrameNum          = rcDPBUnit.m_uiFrameNum;
   m_uiTemporalLevel     = rcDPBUnit.m_uiTemporalLevel;
-  m_bKeyPicture         = rcDPBUnit.m_bKeyPicture;
+  m_bUseBasePred        = rcDPBUnit.m_bUseBasePred;
   m_bExisting           = rcDPBUnit.m_bExisting;
   m_bNeededForReference = rcDPBUnit.m_bNeededForReference;
   m_bOutputted          = rcDPBUnit.m_bOutputted;
@@ -257,7 +257,7 @@ DPBUnit::uninit()
   m_iPoc                = MSYS_INT_MIN;
   m_uiFrameNum          = MSYS_UINT_MAX;
   m_uiTemporalLevel     = MSYS_UINT_MAX;
-  m_bKeyPicture         = false;
+  m_bUseBasePred        = false;
   m_bExisting           = false;
   m_bNeededForReference = false;
   m_bOutputted          = false;
@@ -970,7 +970,7 @@ DecodedPicBuffer::xDumpDPB()
 ErrVal
 DecodedPicBuffer::xInitPrdListPSlice( RefFrameList&  rcList )
 {
-  Bool  bBaseRep        = m_pcCurrDPBUnit->isKeyPic ();
+  Bool  bBaseRep        = m_pcCurrDPBUnit->useBasePred ();
   UInt  uiCurrFrameNum  = m_pcCurrDPBUnit->getFrameNum();
 
   //----- generate decreasing POC list -----
@@ -1008,7 +1008,7 @@ DecodedPicBuffer::xInitPrdListsBSlice( RefFrameList&  rcList0,
 {
   RefFrameList  cDecreasingPocList;
   RefFrameList  cIncreasingPocList;
-  Bool  bBaseRep    = m_pcCurrDPBUnit->isKeyPic ();
+  Bool  bBaseRep    = m_pcCurrDPBUnit->useBasePred();
   Int   iCurrPoc    = m_pcCurrDPBUnit->getPoc   ();
 
   //----- generate decreasing POC list -----
@@ -1107,7 +1107,7 @@ DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
   //===== re-odering =====
   if( rcRplrBuffer.getRefPicListReorderingFlag() )
   {
-    Bool  bBaseRep          = pcSliceHeader->getKeyPictureFlag();
+    Bool  bBaseRep          = pcSliceHeader->getUseBasePredictionFlag();
     UInt  uiPicNumPred      = pcSliceHeader->getFrameNum();
     UInt  uiIndex           = 0;
     UInt  uiCommand         = 0;
@@ -1251,12 +1251,12 @@ DecodedPicBuffer::initCurrDPBUnit( DPBUnit*&      rpcCurrDPBUnit,
   RNOK( m_pcCurrDPBUnit->init( pcSliceHeader->getPoc(),
                                pcSliceHeader->getFrameNum(),
                                pcSliceHeader->getTemporalLevel(),
-                               pcSliceHeader->getKeyPictureFlag(),
+                               pcSliceHeader->getUseBasePredictionFlag(),
                                pcSliceHeader->getNalRefIdc() > 0,
                                pcSliceHeader->getPPS().getConstrainedIntraPredFlag(),
                                pcSliceHeader->getQualityLevel()) ); //JVT-T054
 
-  ROT( pcSliceHeader->getKeyPictureFlag() && !pcSliceHeader->getNalRefIdc() ); // just a check
+  ROT( pcSliceHeader->getUseBasePredictionFlag() && !pcSliceHeader->getNalRefIdc() ); // just a check
   m_pcCurrDPBUnit->getFrame()->setPOC       ( pcSliceHeader->getPoc() );
   m_pcCurrDPBUnit->getCtrlData().setSliceHeader( pcSliceHeader );
 
@@ -1424,6 +1424,9 @@ DecodedPicBuffer::store( DPBUnit*&        rpcDPBUnit,
   }
   ROFRS( pcFrameBaseRep, Err::m_nOK );
 
+  // Do not store the base representation if not specified in the stream
+  ROFRS( rpcDPBUnit->getCtrlData().getSliceHeader()->getStoreBaseRepresentationFlag(), Err::m_nOK );
+
   //===== store base representation =====
   //--- get DPB unit ---
   if( m_cFreeDPBUnitList.empty() )
@@ -1438,23 +1441,23 @@ DecodedPicBuffer::store( DPBUnit*&        rpcDPBUnit,
   RNOK( pcBaseRep->getFrame()->extendFrame( NULL ) );
   if(!bRef) //JVT-T054
   {
-  //--- store just before normal representation of the same picture
-  DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
-  DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
-  for( ; iter != end; iter++ )
-  {
-    if( (*iter) == rpcDPBUnit )
+    //--- store just before normal representation of the same picture
+    DPBUnitList::iterator iter  = m_cUsedDPBUnitList.begin();
+    DPBUnitList::iterator end   = m_cUsedDPBUnitList.end  ();
+    for( ; iter != end; iter++ )
     {
-      break;
+      if( (*iter) == rpcDPBUnit )
+      {
+        break;
+      }
     }
-  }
-  ROT( iter == end );
-  m_cUsedDPBUnitList.insert( iter, pcBaseRep );
-  RNOK( xDumpDPB() );
+    ROT( iter == end );
+    m_cUsedDPBUnitList.insert( iter, pcBaseRep );
+    RNOK( xDumpDPB() );
 
-  //===== reset DPB unit =====
-  rpcDPBUnit = 0;
-//JVT-T054{
+    //===== reset DPB unit =====
+    rpcDPBUnit = 0;
+  //JVT-T054{
   } 
   else
   {
@@ -2253,7 +2256,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
   }
 //JVT-T054}
   SliceHeader*  pcSliceHeader   = m_pcRQFGSDecoder->getSliceHeader();
-  Bool          bKeyPicFlag     = pcSliceHeader   ->getKeyPictureFlag(); // HS: fix by Nokia
+  Bool          bUseBaseRepFlag     = pcSliceHeader   ->getUseBasePredictionFlag(); // HS: fix by Nokia
   ROF( pcLastDPBUnit );
 //JVT-T054{
   if(pcSliceHeader != pcLastDPBUnit->getCtrlData().getSliceHeader())
@@ -2268,7 +2271,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
   Bool          bConstrainedIP  = pcSliceHeader   ->getPPS().getConstrainedIntraPredFlag();
 
   //===== reconstruct FGS =====
-  if( m_pcRQFGSDecoder->changed() || ! bKeyPicFlag && bConstrainedIP )
+  if( m_pcRQFGSDecoder->changed() || ! bUseBaseRepFlag && bConstrainedIP )
   {
     RNOK( m_pcRQFGSDecoder->reconstruct( pcFrame ) );
     RNOK( m_pcResidual    ->copy       ( pcFrame ) )
@@ -2276,7 +2279,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
 
     if( m_bReconstructAll )
     {
-      if( bKeyPicFlag && pcSliceHeader->isInterP() )
+      if( bUseBaseRepFlag && pcSliceHeader->isInterP() )
       {
         RefFrameList  cRefListDiff;
 
@@ -2308,7 +2311,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
     RNOK( pcFrame         ->clip       () );
   }
 //JVT-S036 lsj start 
-  if( pcSliceHeader->getKeyPictureFlag() )  //bug-fix suffix shenqiu
+  if( pcSliceHeader->getStoreBaseRepresentationFlag() )  //bug-fix suffix shenqiu
 	{
 		if( pcSliceHeader->getAdaptiveRefPicMarkingFlag() )
 		{
@@ -2327,7 +2330,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
   RNOK( m_pcILPrediction->copy( pcFrame ) );
 
   //===== loop filter =====
-  if( bHighestLayer || bKeyPicFlag ) // HS: fix by Nokia
+  if( bHighestLayer || pcSliceHeader->getStoreBaseRepresentationFlag() ) // HS: fix by Nokia
   {
     m_pcLoopFilter->setHighpassFramePointer( m_pcResidual );
     RNOK( m_pcLoopFilter->process( *pcSliceHeader,
@@ -2849,12 +2852,12 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   MbDataCtrl*   pcMbDataCtrlRef = NULL;
 //TMM_EC }}
 
-  Bool          bKeyPicture     = rpcSliceHeader->getKeyPictureFlag();
+  Bool          bUseBaseRepresentation     = rpcSliceHeader->getUseBasePredictionFlag();
   Bool          bConstrainedIP  = rpcSliceHeader->getPPS().getConstrainedIntraPredFlag();
   Bool          bReconstructAll = bReconstructionLayer || !bConstrainedIP;
   m_bReconstructAll             = bReconstructAll;
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
-  bReconstructAll = bReconstructAll && bKeyPicture || ! bConstrainedIP;
+  bReconstructAll = bReconstructAll && bUseBaseRepresentation || ! bConstrainedIP;
 	
 #if 0  
   /* The following should not be required for single-loop decoding
@@ -2879,7 +2882,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 	case	EC_RECONSTRUCTION_UPSAMPLE:
 		{
 			pcFrame->copy(rcControlData.getBaseLayerRec());	
-			if ( bKeyPicture)
+			if ( bUseBaseRepresentation)
 			{
 				RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcFrame ) );
 			}
@@ -2916,7 +2919,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 		{
       IntFrame *IntFList_0= m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_0 )[1];
 			pcFrame->copy(IntFList_0);	
-			if ( bKeyPicture)
+			if ( bUseBaseRepresentation)
 			{
 				RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcFrame ) );
 			}
@@ -2971,7 +2974,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   RNOK( m_pcSliceDecoder->decode              ( *rpcSliceHeader,
                                                 pcMbDataCtrl,
                                                 rcControlData.getBaseLayerCtrl(),
-                                                bKeyPicture ? pcBaseRepFrame : pcFrame,
+                                                bUseBaseRepresentation ? pcBaseRepFrame : pcFrame,
                                                 pcResidual,
                                                 m_pcPredSignal,
                                                 rcControlData.getBaseLayerRec(),
@@ -2989,7 +2992,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 	m_bIsNewPic = true;
 
   //----- store in decoded picture buffer -----
-  if( bKeyPicture )
+  if( bUseBaseRepresentation )
   {
     //----- copy non-filtered frame -----
     RNOK( pcFrame->copy( pcBaseRepFrame ) );

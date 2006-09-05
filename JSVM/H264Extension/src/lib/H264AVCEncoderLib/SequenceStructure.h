@@ -105,7 +105,7 @@ public:
                                         UInt        uiContFrameNum,
                                         Bool        bAnchor,
                                         UInt        uiFramesSkipped,
-                                        Bool        bKeyPicture,
+                                        Bool        bUseBaseRep,
                                         UInt        uiLayer,
                                         MmcoBuffer* pcMmcoBuf,
                                         RplrBuffer* pcRplrBufL0,
@@ -117,7 +117,7 @@ public:
   NalUnitType       getNalUnitType    ()                  const;
   NalRefIdc         getNalRefIdc      ()                  const;
   Bool              isSkipped         ()                  const;
-  Bool              isKeyPicture      ()                  const;
+  Bool              isBaseRep         ()                  const;
   Bool              isAnchor          ()                  const;
   UInt              getFramesSkipped  ()                  const;
   UInt              getTemporalLayer  ()                  const;
@@ -130,7 +130,7 @@ private:
   SliceType     m_eSliceType;
   NalUnitType   m_eNalUnitType;
   NalRefIdc     m_eNalRefIdc;
-  Bool          m_bKeyPicture;
+  Bool          m_bUseBaseRep;
   Bool          m_bAnchor;
   UInt          m_uiFramesSkipped;
   UInt          m_uiTemporalLayer;
@@ -159,7 +159,7 @@ public:
   static  ErrVal  extractFrameDescription     ( const String&   rcString,
                                                 UChar&          rucType,
                                                 UInt&           ruiIncrement,
-                                                Bool&           rbKeyPicture,
+                                                Bool&           rbUseBaseRep,
                                                 UInt&           ruiLayer );
   static  Bool    isFrameSequencePart         ( const String&   rcString );
   static  ErrVal  extractRepetitions          ( const String&   rcString,
@@ -206,7 +206,7 @@ private:
     Bool    isCoded             ()  const;
     Bool    isReference         ()  const;
     Bool    isAnchor            ()  const;
-    Bool    isKeyPicture        ()  const;
+    Bool    isBaseRep           ()  const;
     UInt    getIncrement        ()  const;
     UInt    getFramesSkipped    ()  const;
 
@@ -219,7 +219,7 @@ private:
     UInt        m_uiFrameNumIncrement;
     Bool        m_bAnchor;
     UInt        m_uiFramesSkipped;
-    Bool        m_bKeyPicture;
+    Bool        m_bUseBaseRep;
     UInt        m_uiLayer;
     MmcoBuffer* m_pcMmcoBuf; 
     RplrBuffer* m_apcRplrBuf[2]; 

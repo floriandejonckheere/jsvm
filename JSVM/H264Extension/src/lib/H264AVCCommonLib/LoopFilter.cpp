@@ -284,12 +284,12 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffe
 
 __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess& rcMbDataAccess )
 {
-  const DFP& rcDFP      = rcMbDataAccess.getDeblockingFilterParameter();
-  const Int iFilterIdc  = rcDFP.getDisableDeblockingFilterIdc();
-
-  ROTRS( iFilterIdc == 1, Err::m_nOK );
+  const DFP& rcDFP      = rcMbDataAccess.getDeblockingFilterParameter( m_eLFMode & LFM_NO_INTER_FILTER );
+  Int iFilterIdc  = rcDFP.getDisableDeblockingFilterIdc();
 
   ROTRS( (m_eLFMode & LFM_NO_INTER_FILTER) && ! rcMbDataAccess.getMbData().isIntra(), Err::m_nOK );
+
+  ROTRS( iFilterIdc == 1, Err::m_nOK );
 
   Bool b8x8 = rcMbDataAccess.getMbData().isTransformSize8x8();
 
@@ -1021,12 +1021,13 @@ __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess*  pcMbDataAccessMot,
                                        RefFrameList*        pcRefFrameList1,
                                        bool                 spatial_scalable_flg)  // SSUN@SHARP
 {
-  const DFP& rcDFP      = pcMbDataAccessRes->getDeblockingFilterParameter();
+
+  const DFP& rcDFP      = pcMbDataAccessRes->getDeblockingFilterParameter(m_eLFMode & LFM_NO_INTER_FILTER);
   const Int iFilterIdc  = rcDFP.getDisableDeblockingFilterIdc();
 
-  ROTRS( iFilterIdc == 1, Err::m_nOK );
-
   ROTRS( (m_eLFMode & LFM_NO_INTER_FILTER) && ! pcMbDataAccessRes->getMbData().isIntra(), Err::m_nOK );
+
+  ROTRS( iFilterIdc == 1, Err::m_nOK );
 
   Bool b8x8 = pcMbDataAccessRes->getMbData().isTransformSize8x8();
 

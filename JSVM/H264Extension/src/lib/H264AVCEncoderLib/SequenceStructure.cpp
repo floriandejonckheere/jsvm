@@ -115,7 +115,7 @@ FrameSpec::init( UChar        ucType,
                  UInt         uiFrameNum,
                  Bool         bAnchor,
                  UInt         uiFramesSkipped,
-                 Bool         bKeyPicture,
+                 Bool         bUseBaseRep,
                  UInt         uiLayer,
                  MmcoBuffer*  pcMmcoBuf,
                  RplrBuffer*  pcRplrBufL0,
@@ -195,7 +195,7 @@ FrameSpec::init( UChar        ucType,
   //===== set remaining parameters =====
   m_bAnchor             = bAnchor;
   m_uiFramesSkipped     = uiFramesSkipped;
-  m_bKeyPicture         = bKeyPicture;
+  m_bUseBaseRep         = bUseBaseRep;
   m_uiTemporalLayer     = uiLayer;
   m_uiContFrameNumber   = uiFrameNum;
   m_pcMmcoBuf           = pcMmcoBuf;
@@ -249,10 +249,10 @@ FrameSpec::isSkipped() const
 }
 
 Bool
-FrameSpec::isKeyPicture() const
+FrameSpec::isBaseRep() const
 {
   AOF_DBG( m_bInit );
-  return m_bKeyPicture;
+  return m_bUseBaseRep;
 }
 
 Bool
@@ -341,7 +341,7 @@ SequenceStructure::FrameDescriptor::init( const String& rcString,
 
   //===== parse basic parameters =====
   RNOKS( FormattedStringParser::extractFrameDescription ( cFDString,
-                                                          m_ucType, m_uiFrameNumIncrement, m_bKeyPicture, m_uiLayer ) );
+                                                          m_ucType, m_uiFrameNumIncrement, m_bUseBaseRep, m_uiLayer ) );
   m_bAnchor         = ( m_uiFrameNumIncrement > uiLastAnchorFrameNumIncrement || uiLastAnchorFrameNumIncrement == MSYS_UINT_MAX );
   m_uiFramesSkipped = ( m_bAnchor ? m_uiFrameNumIncrement - uiLastAnchorFrameNumIncrement - 1 : 0 );
 
@@ -460,10 +460,10 @@ SequenceStructure::FrameDescriptor::isAnchor() const
 }
 
 Bool
-SequenceStructure::FrameDescriptor::isKeyPicture() const
+SequenceStructure::FrameDescriptor::isBaseRep() const
 {
   AOF_DBG( m_bInit );
-  return m_bKeyPicture;
+  return m_bUseBaseRep;
 }
 
 UInt
@@ -491,7 +491,7 @@ SequenceStructure::FrameDescriptor::setFrameSpec( FrameSpec&  rcFrameSpec,
                           m_uiFrameNumIncrement + uiFrameNumOffset,
                           m_bAnchor,
                           m_uiFramesSkipped,
-                          m_bKeyPicture,
+                          m_bUseBaseRep,
                           m_uiLayer,
                           m_pcMmcoBuf,
                           m_apcRplrBuf[LIST_0],
@@ -1092,9 +1092,9 @@ SequenceStructure::debugOutput( const String&  rcString,
       cStoreStr = " stored ";
     }
 
-    if( cFSpec.isKeyPicture() )
+    if( cFSpec.isBaseRep() )
     {
-      cKeyStr   = " key ";
+      cKeyStr   = " base ";
     }
     else
     {
@@ -1439,7 +1439,7 @@ ErrVal
 FormattedStringParser::extractFrameDescription( const String&  rcString,
                                                 UChar&         rucType,
                                                 UInt&          ruiIncrement,
-                                                Bool&          rbKeyPicture,
+                                                Bool&          rbUseBaseRep,
                                                 UInt&          ruiLayer)
 {
   UInt    uiKeyPos   = rcString.find_first_of( "K" );
@@ -1504,7 +1504,7 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
   //===== assign parameters =====
   rucType       = cFrameString[0];
   ruiIncrement  = atoi( cFrameString.c_str() + 1 );
-  rbKeyPicture  = ( ! cKeyString.empty() );
+  rbUseBaseRep  = ( ! cKeyString.empty() );
   ruiLayer      = ( cLayerString.empty() ? 0 : atoi( cLayerString.c_str() + 1 ) );
 
   return Err::m_nOK;

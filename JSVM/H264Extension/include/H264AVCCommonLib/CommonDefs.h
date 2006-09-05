@@ -222,6 +222,7 @@ enum NalUnitType
   NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
 };
 
+#define NAL_UNIT_HEADER_SVC_EXTENSION_BYTES      3
 
 enum MbMode
 {

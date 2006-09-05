@@ -383,7 +383,6 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 			rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_HIGHEST);
 		else
 			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_HIGH);
-	//	rpcSH->setKeyPictureFlag( 1);  //bug-fix suffix shenqiu
 	}
   else
 	{
@@ -393,7 +392,6 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 		else
 			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_LOWEST);
 		rpcSH->setNumRefIdxActive( LIST_1, 1);
-	//	rpcSH->setKeyPictureFlag( 0); //bug-fix suffix shenqiu
 	}
   //if(eNalUnitType==NAL_UNIT_CODED_SLICE||)
 //key picture MMCO for base and enhancement layer
@@ -439,20 +437,24 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 //TMM_EC }}
 
 ErrVal
-SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
-                              NalRefIdc     eNalRefIdc,
-                              UInt          uiLayerId,
-                              UInt          uiTemporalLevel,
-                              UInt          uiQualityLevel,
-                              SliceHeader*& rpcSH
+SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
+                              SliceHeader*& rpcSH,
                               //JVT-P031
-                              ,UInt         uiFirstFragSHPPSId
-                              ,UInt         uiFirstFragNumMbsInSlice
-                              ,Bool         bFirstFragFGSCompSep
+                              UInt         uiFirstFragNumMbsInSlice,
+                              Bool         bFirstFragFGSCompSep
                               //~JVT-P031
-							  ,Bool			UnitAVCFlag    //JVT-S036 lsj
-                              )
+							                )
 {
+  NalUnitType   eNalUnitType=pcNalUnitParser->getNalUnitType();
+  NalRefIdc     eNalRefIdc=pcNalUnitParser->getNalRefIdc();
+  UInt          uiLayerId=pcNalUnitParser->getLayerId();
+  UInt          uiTemporalLevel=pcNalUnitParser->getTemporalLevel();
+  UInt          uiQualityLevel=pcNalUnitParser->getQualityLevel();
+
+  Bool          bUseBasePredFlag=pcNalUnitParser->getUseBasePredFlag();
+
+  UInt          uiFragmentOrder=pcNalUnitParser->getFragmentOrder();
+  
   Bool                  bScalable         = ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
                                               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE );
   UInt                  uiFirstMbInSlice;
@@ -467,31 +469,24 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
   UInt uiFragOrder = 0;
   Bool bFragFlag = false;
   Bool bLastFragFlag = false;
-  UInt uiNumMbsInSlice = 0;
+ 
   Bool bFGSCompSep = false;
 
-//JVT-S036 lsj start
-  Bool KeyPicFlag = false;
-  Bool eAdaptiveRefPicMarkingModeFlag = false;
-  MmcoBuffer eMmcoBaseBuffer;
-//JVT-S036 lsj end
-
-  if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
-      eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
+  if(  uiLayerId == 0 && uiQualityLevel == 0 && 
+    (eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) )
   {
-	 //JVT-S036 lsj start
-	 if( uiLayerId == 0 && uiQualityLevel == 0 && UnitAVCFlag )
-     {
-		 RNOK( m_pcParameterSetMng ->get    ( pcPPS, PPSId_AVC ) );
-         RNOK( m_pcParameterSetMng ->get    ( pcSPS, SPSId_AVC ) );
+    Bool eAdaptiveRefPicMarkingModeFlag = false;
+    MmcoBuffer eMmcoBaseBuffer;
 
-		 rpcSH = new SliceHeader ( *pcSPS, *pcPPS );
-   		 ROF( rpcSH );
+    RNOK( m_pcParameterSetMng ->get    ( pcPPS, m_uiPPSId_AVC ) );
+    RNOK( m_pcParameterSetMng ->get    ( pcSPS, m_uiSPSId_AVC ) );
 
-		 if( eNalRefIdc != 0)
-		 {
-			 RNOK( m_pcHeaderReadIf->getFlag( KeyPicFlag,                        "SH: key_pic_flag"));
-			 if( KeyPicFlag && eNalUnitType != 21)
+    rpcSH = new SliceHeader ( *pcSPS, *pcPPS );
+    ROF( rpcSH );
+
+    if( eNalRefIdc != 0)
+    {
+			 if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
 			 {
 				 RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
 				 if( eAdaptiveRefPicMarkingModeFlag )
@@ -505,55 +500,22 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
 		 rpcSH->setLayerId       ( uiLayerId       );
 		 rpcSH->setTemporalLevel ( uiTemporalLevel );
 		 rpcSH->setQualityLevel  ( uiQualityLevel  );
-		 rpcSH->setKeyPictureFlag( KeyPicFlag      );   //bug-fix suffix shenqiu
+
+     rpcSH->setLayerBaseFlag    ( pcNalUnitParser->getLayerBaseFlag()     );
+     rpcSH->setDiscardableFlag  ( pcNalUnitParser->getDiscardableFlag()   );
+
+     rpcSH->setFragmentedFlag   ( pcNalUnitParser->getFragmentedFlag()    );
+     rpcSH->setLastFragmentFlag ( pcNalUnitParser->getLastFragmentFlag()  );
+     rpcSH->setFragmentOrder    ( pcNalUnitParser->getFragmentOrder()     );
+
+		 rpcSH->setUseBaseRepresentationFlag( bUseBasePredFlag      );   
 		 rpcSH->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag ); 
-		 rpcSH->setPicOrderCntLsb( POC_AVC );
-//		 UnitAVCFlag = false;
+		 rpcSH->setPicOrderCntLsb( m_uiPOC_AVC );
+
 
 		 return Err::m_nOK;
 	 }
-	 else
-	 {
-//JVT-S036 lsj end
-      RNOK( m_pcHeaderReadIf    ->getUvlc( uiFirstMbInSlice,  "SH: first_mb_in_slice" ) );
-      RNOK( m_pcHeaderReadIf    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
-      if( uiSliceType > 4 && ! bScalable )
-      {
-        uiSliceType -= 5;
-      }
-      if(uiSliceType == F_SLICE)
-      {
-        RNOK( m_pcHeaderReadIf    ->getFlag( bFragFlag,  "SH: fgs_frag_flag" ) );
-        if(bFragFlag)
-        {
-          RNOK( m_pcHeaderReadIf    ->getUvlc( uiFragOrder,  "SH: fgs_frag_order" ) );
-          if(uiFragOrder!=0)
-          {
-            RNOK( m_pcHeaderReadIf    ->getFlag( bLastFragFlag,  "SH: fgs_last_frag_flag" ) );
-          }
-       }
-		  if(uiFragOrder == 0 )
-		  {
-			  RNOK( m_pcHeaderReadIf    ->getUvlc( uiNumMbsInSlice,  "SH: num_mbs_in_slice" ) );
-			  RNOK( m_pcHeaderReadIf    ->getFlag( bFGSCompSep,  "SH: fgs_comp_sep" ) );
-		  }
-	  }
-	  if(uiFragOrder == 0)
-      {
-           RNOK( m_pcHeaderReadIf    ->getUvlc( uiPPSId,           "SH: pic_parameter_set_id" ) );
-      }
-      else
-      {
-          // Get PPS Id from first fragment 
-        uiPPSId = uiFirstFragSHPPSId;
-        uiNumMbsInSlice = uiFirstFragNumMbsInSlice;
-        bFGSCompSep = bFirstFragFGSCompSep;
-      }
-      RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
-      RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
-	 }//JVT-S036 lsj  
-  }
-  else
+	else
   {
       RNOK( m_pcHeaderReadIf    ->getUvlc( uiFirstMbInSlice,  "SH: first_mb_in_slice" ) );
       RNOK( m_pcHeaderReadIf    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
@@ -575,42 +537,42 @@ SliceReader::readSliceHeader( NalUnitType   eNalUnitType,
   rpcSH->setLayerId       ( uiLayerId       );
   rpcSH->setTemporalLevel ( uiTemporalLevel );
   rpcSH->setQualityLevel  ( uiQualityLevel  );
+
+  rpcSH->setLayerBaseFlag   ( pcNalUnitParser->getLayerBaseFlag()     );
+  rpcSH->setUseBaseRepresentationFlag  ( bUseBasePredFlag                        );
+  rpcSH->setDiscardableFlag ( pcNalUnitParser->getDiscardableFlag()     );
+
+  rpcSH->setFragmentedFlag  ( pcNalUnitParser->getFragmentedFlag()    );
+  rpcSH->setLastFragmentFlag( pcNalUnitParser->getLastFragmentFlag()  );
+  rpcSH->setFragmentOrder   ( pcNalUnitParser->getFragmentOrder()     );
+
   rpcSH->setFirstMbInSlice( uiFirstMbInSlice);
   rpcSH->setSliceType     ( SliceType( uiSliceType ) );
-  rpcSH->setFragmentedFlag( bFragFlag );
-  rpcSH->setFragmentOrder ( uiFragOrder );
-  rpcSH->setLastFragmentFlag( bLastFragFlag );
-  rpcSH->setFgsComponentSep(bFGSCompSep);
-  rpcSH->setNumMbsInSlice(uiNumMbsInSlice);
+  //JVT-P031
+  if ( uiFragmentOrder > 0 )
+  {
+    rpcSH->setFgsComponentSep(bFirstFragFGSCompSep);
+    rpcSH->setNumMbsInSlice(uiFirstFragNumMbsInSlice);
+  }
   //~JVT-P031
- 
+  
   //===== read remaining parameters =====
-  if(uiFragOrder == 0) //JVT-P031
-  {
-      RNOK( rpcSH->read( m_pcHeaderReadIf ) ); 
-  }
-//JVT-S036 lsj start
-  else
-  {
-	  RNOK( m_pcHeaderReadIf->getFlag( KeyPicFlag,                        "SH: key_pic_flag"));
-	  rpcSH->setKeyPictureFlag( KeyPicFlag      );   //bug-fix suffix shenqiu
-  }
+  RNOK( rpcSH->read( m_pcHeaderReadIf ) ); 
 
   if ( eNalUnitType == NAL_UNIT_CODED_SLICE ||
 	   eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
   {
-	  UnitAVCFlag = true;
-	  PPSId_AVC = uiPPSId;
-	  SPSId_AVC = pcPPS->getSeqParameterSetId();
-	  POC_AVC = rpcSH->getPicOrderCntLsb();
+	  m_uiPPSId_AVC = uiPPSId;
+	  m_uiSPSId_AVC = pcPPS->getSeqParameterSetId();
+	  m_uiPOC_AVC = rpcSH->getPicOrderCntLsb();
   }
 //JVT-S036 lsj end
 
   //--ICU/ETRI FMO Implementation 
   rpcSH->FMOInit();
   // JVT-S054 (2) (ADD) ->
-  if (uiNumMbsInSlice != 0)
-    rpcSH->setLastMbInSlice(rpcSH->getFMO()->getLastMbInSlice(uiFirstMbInSlice, uiNumMbsInSlice));
+  if (rpcSH->getNumMbsInSlice() != 0)
+    rpcSH->setLastMbInSlice(rpcSH->getFMO()->getLastMbInSlice(uiFirstMbInSlice, rpcSH->getNumMbsInSlice()));
   else
   // JVT-S054 (2) (ADD) <-
     rpcSH->setLastMbInSlice(rpcSH->getFMO()->getLastMBInSliceGroup(rpcSH->getFMO()->getSliceGroupId(uiFirstMbInSlice)));
@@ -625,6 +587,7 @@ SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
 									NalRefIdc     eNalRefIdc,
 									UInt		  uiLayerId,
 									UInt		  uiQualityLevel,
+                  Bool          bUseBasePredFlag,
 									SliceHeader*  pcSliceHeader
 								  )
 {
@@ -632,7 +595,6 @@ SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
   //===== read first parameters =====
   
   Bool eAdaptiveRefPicMarkingModeFlag = false;
-  Bool KeyPicFlag = false;
  
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
       eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
@@ -643,8 +605,7 @@ SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
 
 		 if( eNalRefIdc != 0)
 		 {
-			 RNOK( m_pcHeaderReadIf->getFlag( KeyPicFlag,                        "SH: key_pic_flag"));
-			 if( KeyPicFlag && eNalUnitType != 21)
+			 if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
 			 {
 				 RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
 				 if( eAdaptiveRefPicMarkingModeFlag )
@@ -654,7 +615,7 @@ SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
 			 }
 		 }
 
-		 pcSliceHeader->setKeyPictureFlag( KeyPicFlag      );   //bug-fix suffix shenqiu
+		 pcSliceHeader->setUseBaseRepresentationFlag( bUseBasePredFlag      );   //bug-fix suffix shenqiu
 		 pcSliceHeader->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag );
 
 		 return Err::m_nOK;

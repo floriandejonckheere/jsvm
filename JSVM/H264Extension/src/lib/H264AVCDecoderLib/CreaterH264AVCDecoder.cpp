@@ -580,9 +580,11 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   UInt        uiLevel       = 0;
   UInt        uiFGSLayer    = 0;
   Bool        bApplyToNext  = false;
-  //{{Variable Lengh NAL unit header data with priority and dead substream flag
-  //France Telecom R&D- (nathalie.cammas@francetelecom.com)
+
+
   UInt		  uiSimplePriorityId = 0;
+  Bool      bLayerBaseFlag=false;  
+  Bool      bUseBasePredFlag=false;
   Bool		  bDiscardableFlag = false;
   Bool		  bReservedZeroBit = false; //JVT-S036 lsj
   Bool bFragmentedFlag = false; //JVT-P031
@@ -606,28 +608,21 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
   {
-    //{{Variable Lengh NAL unit header data with priority and dead substream flag
-    //France Telecom R&D- (nathalie.cammas@francetelecom.com)
     ucByte             = (pcBinData->data())[1];
 	  uiSimplePriorityId = ( ucByte >> 2);
-	  bDiscardableFlag	 = ( ucByte >> 1) & 1;
- //JVT-S036 lsj start
-	  bReservedZeroBit   = ( ucByte     ) & 1; 
 	 
-		    ucByte      = pcBinData->data()[2];
+    ucByte              = (pcBinData->data())[2];
 		    uiLevel     = ( ucByte >> 5 );
 		    uiLayer     = ( ucByte >> 2 ) & 7;
 		    uiFGSLayer  = ( ucByte      ) & 3;
-	 /* }
-	  else
-	  {
-        // Look up simple priority ID in mapping table (J. Ridge, Y-K. Wang @ Nokia)
-        uiLevel    = m_uiTemporalLevelList[uiSimplePriorityId];
-        uiLayer    = m_uiDependencyIdList [uiSimplePriorityId];
-        uiFGSLayer = m_uiQualityLevelList [uiSimplePriorityId];
-	  }*/
-//JVT-S036 lsj end
-    //}}Variable Lengh NAL unit header data with priority and dead substream flag
+
+    ucByte              = (pcBinData->data())[3];
+    bLayerBaseFlag  	  = ( ucByte >> 6) & 1;          // layer_base_flag          ( &01000000b)
+    bUseBasePredFlag	  = ( ucByte >> 5) & 1;          // use_base_prediction_flag ( &00100000b)
+    bDiscardableFlag	  = ( ucByte >> 4) & 1;          // discardable_flag         ( &00010000b)
+    bFragmentedFlag 	  = ( ucByte >> 3) & 1;          // fgs_frag_flag            ( &00001000b)
+    bLastFragmentFlag	  = ( ucByte >> 2) & 1;          // fgs_last_frag_flag       ( &00000100b)
+    uiFragmentOrder  	  = ( ucByte >> 0) & 3;          // fgs_frag_order           ( &00000011b)
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||
            eNalUnitType == NAL_UNIT_CODED_SLICE_IDR   )
@@ -819,18 +814,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       RNOK( SequenceParameterSet::create  ( pcSPS   ) );
       RNOK( pcSPS->read( m_pcUvlcReader, eNalUnitType ) );
       // Copy simple priority ID mapping from SPS
- /*     if ( !pcSPS->getNalUnitExtFlag()  && (pcSPS->getProfileIdc() == SCALABLE_PROFILE) ) // bugfix mwi 050727
-      {
-        for ( UInt uiPriId = 0; uiPriId < pcSPS->getNumSimplePriIdVals(); uiPriId++)
-        {
-            UInt uiDependencyId, uiTempLevel, uiQualLevel;
-            pcSPS->getSimplePriorityMap( uiPriId, uiTempLevel, uiDependencyId, uiQualLevel );
-            m_uiTemporalLevelList[uiPriId] = uiTempLevel;
-            m_uiDependencyIdList [uiPriId] = uiDependencyId;
-            m_uiQualityLevelList [uiPriId] = uiQualLevel;
-        }
-      }
- JVT-S036 lsj */
+
       uiSPSid = pcSPS->getSeqParameterSetId();
       pcSPS->destroy();
     }
@@ -861,13 +845,14 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
     {
-//BUG FIX Kai Zhang{
-	if(!(uiLayer == 0 && uiFGSLayer == 0 && m_bAVCCompatible&&
-			(eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE||eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE))){
-      UInt uiTemp;
-	    Bool bTemp;
-      //JVT-P031
+      // fragmented flag means that FGS is used.
+      rcPacketDescription.bEnableQLTruncation = bFragmentedFlag;
 
+      if(!(uiLayer == 0 && uiFGSLayer == 0 &&
+			(eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE||eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE))){
+
+      UInt uiTemp;
+      //JVT-P031
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: first_mb_in_slice" ) );
 
 	// FMO ROI ICU/ETRI
@@ -875,35 +860,12 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
 
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
-//JVT-T054{
-		rcPacketDescription.bEnableQLTruncation = false;
-//JVT-T054}
+          // Normally the following test is not necessary because FGS slice shall be marked as Fragmented.
     if(uiTemp == F_SLICE)
-    {
-//JVT-T054{
       rcPacketDescription.bEnableQLTruncation = true;
-//JVT-T054}
-       RNOK( m_pcUvlcReader->getFlag( bFragmentedFlag,  "SH: fragmented_flag" ) );
-       if(bFragmentedFlag)
-       {
-            RNOK( m_pcUvlcReader->getUvlc(uiFragmentOrder,  "SH: fragment_order" ) );
-            if(uiFragmentOrder!=0)
-            {
-                RNOK( m_pcUvlcReader->getFlag( bLastFragmentFlag,  "SH: last_fragment_flag" ) );
-            }
-       }
-		  if(uiFragmentOrder == 0 )
-		  {
-			  RNOK( m_pcUvlcReader    ->getUvlc( uiTemp,  "SH: num_mbs_in_slice" ) );
-			  RNOK( m_pcUvlcReader    ->getFlag( bTemp,  "SH: fgs_comp_sep" ) );
-		  }
-    }
   
-    if(uiFragmentOrder == 0)
-    {
         RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
         uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
-    }     
 		
     //~JVT-P031
 		m_uiCurrPicLayer = (uiLayer << 4) + uiFGSLayer;

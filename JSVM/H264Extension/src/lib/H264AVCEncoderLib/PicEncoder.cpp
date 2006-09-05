@@ -536,10 +536,9 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   rpcSliceHeader->setLayerId                            ( 0 );
   rpcSliceHeader->setTemporalLevel                      ( rcFrameSpec.getTemporalLayer() );
   rpcSliceHeader->setQualityLevel                       ( 0 );
-  rpcSliceHeader->setKeyPictureFlag                     ( rcFrameSpec.getTemporalLayer() == 0 );
+  rpcSliceHeader->setUseBaseRepresentationFlag          ( rcFrameSpec.getTemporalLayer() == 0 );
   rpcSliceHeader->setSimplePriorityId                   ( 0 );
   rpcSliceHeader->setDiscardableFlag                    ( false );
-  rpcSliceHeader->setReservedZeroBit                   ( false ); //JVT-S036 lsj//rpcSliceHeader->setExtensionFlag  ( false );
 
 
   //===== set general parameters =====
@@ -570,9 +569,9 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   //===== set deblocking filter parameters =====
   if( rpcSliceHeader->getPPS().getDeblockingFilterParametersPresentFlag() )
   {
-    rpcSliceHeader->getDeblockingFilterParameter().setDisableDeblockingFilterIdc(   m_pcCodingParameter->getLoopFilterParams().getFilterIdc   () );
-    rpcSliceHeader->getDeblockingFilterParameter().setSliceAlphaC0Offset        ( 2*m_pcCodingParameter->getLoopFilterParams().getAlphaOffset () );
-    rpcSliceHeader->getDeblockingFilterParameter().setSliceBetaOffset           ( 2*m_pcCodingParameter->getLoopFilterParams().getBetaOffset  () );
+    rpcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setDisableDeblockingFilterIdc(   m_pcCodingParameter->getLoopFilterParams().getFilterIdc   () );
+    rpcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setSliceAlphaC0Offset        ( 2*m_pcCodingParameter->getLoopFilterParams().getAlphaOffset () );
+    rpcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setSliceBetaOffset           ( 2*m_pcCodingParameter->getLoopFilterParams().getBetaOffset  () );
   }
 
   //===== set picture order count =====

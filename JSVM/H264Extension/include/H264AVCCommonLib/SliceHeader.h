@@ -214,7 +214,7 @@ protected:
 
 
 typedef SliceHeader::DeblockingFilterParameter DFP;
-
+typedef SliceHeader::DeblockingFilterParameterScalable DFPScalable;
 
 
 H264AVC_NAMESPACE_END

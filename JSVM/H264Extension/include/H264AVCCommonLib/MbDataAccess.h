@@ -145,7 +145,7 @@ public:
                 const MbData&    rcMbUnavailable,
                 const MbData&    rcMbColocated,
                 SliceHeader&     rcSliceHeader,
-                const DFP&       rcDFP,
+                const DFPScalable& rcDFP,
                 UInt             uiPosX,
                 UInt             uiPosY,
                 SChar               ucLastMbQp )
@@ -289,7 +289,8 @@ public:
 //	TMM_EC {{
   Bool  getMvPredictorDirectVirtual ( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1  );
 //  TMM_EC }}
-  const DFP& getDeblockingFilterParameter()     const { return m_rcDFP; }
+  const DFP& getDeblockingFilterParameter(Bool bInterlayer=false)     const { if (bInterlayer) return m_rcDFP.getInterlayerDeblockingFilterParameter();
+                                                                                          else return m_rcDFP.getDeblockingFilterParameter();}
 
   Void getMvSkipMode( Mv& rcMv )
   {
@@ -379,7 +380,7 @@ public:
   const MbData&  m_rcMbColocated;
 
   SliceHeader&  m_rcSliceHeader;
-  const DFP&          m_rcDFP;
+  const DFPScalable&          m_rcDFP;
 
   Mv3D  m_cMv3D_A;
   Mv3D  m_cMv3D_B;

@@ -200,7 +200,7 @@ protected:
 // TMM_ESS_UNIFIED }
 
 protected:
-  DynBuf<DFP*>        m_cpDFPBuffer;
+  DynBuf<DFPScalable*>        m_cpDFPBuffer;
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMotionData*       m_apcMbMotionData[2];
   MbMotionData*       m_apcMbMotionDataBase[2];
