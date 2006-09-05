@@ -466,12 +466,6 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 
   //===== read first parameters =====
   //JVT-P031
-  UInt uiFragOrder = 0;
-  Bool bFragFlag = false;
-  Bool bLastFragFlag = false;
- 
-  Bool bFGSCompSep = false;
-
   if(  uiLayerId == 0 && uiQualityLevel == 0 && 
     (eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) )
   {

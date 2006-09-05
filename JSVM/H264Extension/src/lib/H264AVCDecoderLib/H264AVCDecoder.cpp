@@ -1993,7 +1993,6 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bLastFragment, B
   bLastFragment = false;
   if(m_pcNalUnitParser->getDiscardableFlag() == false || m_pcNalUnitParser->getLayerId() == m_uiDecodedLayer)
   {
-      UInt uiPPSId = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getPicParameterSetId() : 0;
       UInt uiNumMbsInSlice = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getNumMbsInSlice() : 0;
       Bool bFGSCompSep = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getFgsComponentSep() : 0;
 		if ( m_pcNalUnitParser->getNalUnitType()==NAL_UNIT_CODED_SLICE_SCALABLE && !m_pcNalUnitParser->isTrueNalUnit())

@@ -586,7 +586,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   Bool      bLayerBaseFlag=false;  
   Bool      bUseBasePredFlag=false;
   Bool		  bDiscardableFlag = false;
-  Bool		  bReservedZeroBit = false; //JVT-S036 lsj
   Bool bFragmentedFlag = false; //JVT-P031
   UInt uiFragmentOrder = 0; //JVT-P031
   Bool bLastFragmentFlag = false; //JVT-P031
