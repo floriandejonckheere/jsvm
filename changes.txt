@@ -1,4 +1,19 @@
 
+JSVM_6_7 -> JSVM_6_8
+====================
+
+Date	    : Sep. 11, 2006
+Author	    : Kai XIE (Thomson)
+
+changes:
+
+
+fixes: 
+- Bug fixes for error concealment
+- Bug fixes (very minor) related to the usage of FGS and FGS motion refinement (check consistency)
+
+
+
 JSVM_6_6 -> JSVM_6_7
 ====================
 

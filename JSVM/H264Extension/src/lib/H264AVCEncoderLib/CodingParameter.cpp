@@ -264,6 +264,11 @@ ErrVal LayerParameters::check()
       return Err::m_nOK;
     }
 
+    if( m_dNumFGSLayers == 0 )
+    {
+      m_uiFGSMotionMode = 0;
+    }
+
     // Display slice division info.
     printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);
     //for (i=0; i<=m_uiNumSliceMinus1; i++)

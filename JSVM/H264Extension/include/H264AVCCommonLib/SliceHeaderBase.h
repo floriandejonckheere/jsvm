@@ -710,6 +710,14 @@ public:
 
 	UInt uiCount=0;
 	UInt	uiGopSize	=	1 << uiDecompositionStages;
+// TMM_EC_FIX
+  if(uiGopSize==1)
+	{
+		m_cMmmcoBuffer.set(uiCount++, Mmco(MMCO_SHORT_TERM_UNUSED,1));
+		m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_END));
+		return ;
+	}
+
 	for( Int iIndex=uiGopSize/2-2;iIndex>=0;iIndex-- )
 	{
 		m_cMmmcoBuffer.set( uiCount++, Mmco(MMCO_SHORT_TERM_UNUSED,iIndex));

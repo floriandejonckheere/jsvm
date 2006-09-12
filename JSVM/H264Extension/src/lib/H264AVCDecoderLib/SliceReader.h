@@ -142,6 +142,7 @@ public:
 																	UInt	uiFrameNum,
 																	UInt	uiPocLsb,
 																	UInt	uiTemporalLevel,
+                                  UInt  uiLayerID      ,
 																	SliceHeader*& rpcSH);
   //TMM_EC }}
   ErrVal  read           ( SliceHeader&   rcSH,

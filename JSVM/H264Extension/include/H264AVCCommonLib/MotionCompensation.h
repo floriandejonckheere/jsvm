@@ -287,6 +287,9 @@ public:
   __inline Void xUpdateChromaPel( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX, UShort weight );
 
   ErrVal calcMvMb   (                   MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
+//TMM_EC {
+  ErrVal calcMvMbTD (                   MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1  );
+//TMM_EC }
   ErrVal calcMvSubMb( B8x8Idx c8x8Idx,  MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
   ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, Bool& rbValid, Bool bFaultTolerant, Bool bCalcMv = true );

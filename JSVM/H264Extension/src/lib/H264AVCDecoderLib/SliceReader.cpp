@@ -337,6 +337,7 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 																			UInt	uiFrameNum,
 																			UInt	uiPoc,
 																			UInt	uiTemporalLevel,
+                                      UInt  uiLayerID      ,
 																			SliceHeader*& rpcSH)
 {
   SequenceParameterSet* pcSPS;
@@ -352,7 +353,11 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 
   rpcSH->setNalUnitType   ( eNalUnitType    );
 
-  if(eNalUnitType==NAL_UNIT_CODED_SLICE_SCALABLE)
+	UInt m_uiNextLayerId = 0;
+	m_uiNextLayerId		=	uiLayerID;
+
+//  if(eNalUnitType==NAL_UNIT_CODED_SLICE_SCALABLE )
+  if(eNalUnitType==NAL_UNIT_CODED_SLICE_SCALABLE && m_uiNextLayerId != 0)
   {
 		rpcSH->setLayerId       ( 1       );
     rpcSH->setBaseLayerId(MSYS_UINT_MAX); // will be modified later
@@ -418,7 +423,11 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 		  {
 				rpcSH->getRplrBuffer(LIST_0).setRefPicListReorderingFlag(true);
 				rpcSH->getRplrBuffer(LIST_0).clear();
-				rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,uiGopSize/2-1));
+//TMM_EC		
+				if ( uiGopSize == 1)
+					rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,0));
+				else
+					rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,uiGopSize/2-1));
 		  }
 		  else 
 		  {

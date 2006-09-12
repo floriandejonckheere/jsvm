@@ -221,7 +221,7 @@ public:
   DPBUnit*            getDPBUnit          ( Int                         iPoc );
   ErrVal              setPrdRefLists      ( DPBUnit*                    pcCurrDPBUnit );
 //TMM_EC {{
-  ErrVal							getPrdRefListsFromBase( DPBUnit*   pcCurrDPBUnit, SliceHeader* pBaseMbDataCtrl );
+  ErrVal							getPrdRefListsFromBase( DPBUnit*   pcCurrDPBUnit, SliceHeader* pBaseMbDataCtrl , DPBUnit*    pcbaseDPBUnit);
 //TMM_EC }}
   ErrVal              store               ( DPBUnit*&                   rpcDPBUnit,
                                             PicBufferList&              rcOutputList,
@@ -325,6 +325,8 @@ class H264AVCDECODERLIB_API MCTFDecoder
 public:
 //TMM_EC {{
 	ErrVal			getECMethod( SliceHeader *rpcSliceHeader, ERROR_CONCEAL &m_eErrorConceal);
+  ErrVal              getBaseLayerUnit(Int iPoc, DPBUnit   *&pcBaseDPBUnit);
+  ErrVal              getBaseLayerDPB(ControlData&    rcControlData,  DPBUnit *&pcBaseDPBUnit);
 	UInt	m_bBaseLayerLost;
 	SliceHeader	*m_pcVeryFirstSliceHeader;
 	FrameMng	*m_pcFrameMng;
@@ -332,6 +334,7 @@ public:
 	UInt			m_uiDecompositionStages;
 	UInt			m_uiDecompositionStagesBase;
 	ERROR_CONCEAL	m_eErrorConceal;
+  Bool      m_bEnhanceAvailable;
 //TMM_EC }}
 protected:
 	MCTFDecoder         ();
@@ -449,6 +452,13 @@ protected:
                                                 PicBufferList&                rcOutputList,
                                                 PicBufferList&                rcUnusedList,
                                                 Bool                          bReconstructionLayer );
+//TMM_EC{{
+  ErrVal      xDecodeBaseRepresentationVirtual       ( SliceHeader*&                 rpcSliceHeader,
+	  PicBuffer*&                   rpcPicBuffer,
+	  PicBufferList&                rcOutputList,
+	  PicBufferList&                rcUnusedList,
+	  Bool                          bReconstructionLayer );
+//TMM_EC}}
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
   ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer, Bool bCGSSNRInAU ); //JVT-T054
   ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,

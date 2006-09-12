@@ -217,6 +217,9 @@ public:
 							,Bool&			  UnitAVCFlag		//JVT-S036 lsj
 						   );
 	ErrVal	setec( UInt uiErrorConceal) { m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal); if ( m_eErrorConceal == 0) m_bNotSupport = true; return	Err::m_nOK;}
+  ErrVal getBaseLayerUnit(UInt            uiBaseLayerId, 
+                          Int             iPoc,
+                          DPBUnit         *&pcBaseDPBUnit);
 	UInt	m_uiNextFrameNum;
 	UInt	m_uiNextLayerId;
 	UInt	m_uiNextPoc;
@@ -235,6 +238,7 @@ public:
 	UInt	m_uiGopSize[MAX_LAYERS];
 	Bool	m_bNotSupport;
 	UInt	m_uiMaxLayerId;
+	UInt  m_baseMode;
 //  TMM_EC }}
   Void    setQualityLevelForPrediction( UInt ui ) { m_uiQualityLevelForPrediction = ui; }
 

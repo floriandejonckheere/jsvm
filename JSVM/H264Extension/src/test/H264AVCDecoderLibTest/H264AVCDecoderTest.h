@@ -109,6 +109,7 @@ public:
   ErrVal go();
   ErrVal destroy();
   ErrVal setec( UInt uiErrorConceal);//TMM_EC
+  ErrVal removeRedundencySlice(BinDataAccessor*  pcBinDataAccessor, Bool& bFinishChecking ); //TMM_EC
 
 protected:
   ErrVal xGetNewPicBuffer ( PicBuffer*& rpcPicBuffer, UInt uiSize );

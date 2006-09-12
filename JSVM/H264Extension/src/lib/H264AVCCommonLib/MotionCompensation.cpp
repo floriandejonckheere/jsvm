@@ -1476,8 +1476,31 @@ __inline Void MotionCompensation::xUpdateChromaPel( XPel* pucDest, Int iDestStri
     pucDest += iDestStride;
   }
 }
+//TMM_EC{
+ErrVal MotionCompensation::calcMvMbTD(MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
+{
+  MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
+  if(rcMbDataAccess.getSH().getTrueSlice()||eMbMode!=MODE_SKIP)
+  {
+    return Err::m_nOK;
+  }
 
-
+	if( rcMbDataAccess.getSH().isInterB() )
+	{
+		B8x8Idx c8x8Idx;
+		Bool bOneMv;
+		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); c8x8Idx++;
+		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); c8x8Idx++;
+		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); c8x8Idx++;
+		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); 
+  }
+  else
+  {
+	  rcMbDataAccess.getMvPredictorSkipMode();
+  }
+ 	return Err::m_nOK;
+}
+////TMM_EC}
 ErrVal MotionCompensation::calcMvMb( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase )
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();

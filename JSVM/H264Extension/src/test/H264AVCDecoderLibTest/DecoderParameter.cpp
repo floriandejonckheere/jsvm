@@ -118,7 +118,7 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 			else
 			{
 				uiErrorConceal	=	atoi( argv[4]);
-				if ( uiErrorConceal < 0 || uiErrorConceal > 5)
+				if ( uiErrorConceal < 0 || uiErrorConceal > 3)
 				{
 					RNOKS( xPrintUsage( argv ) );
 				}
@@ -140,7 +140,7 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 					else
 					{
 						uiErrorConceal	=	atoi( argv[5]);
-						if ( uiErrorConceal < 1 || uiErrorConceal > 5)
+						if ( uiErrorConceal < 1 || uiErrorConceal > 3)
 						{
 							RNOKS( xPrintUsage( argv ) );
 						}
@@ -166,8 +166,8 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
 ErrVal DecoderParameter::xPrintUsage(char **argv)
 {
-	printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff] [-ec <1..5>]\n\n", argv[0] );  // HS: decoder robustness
-// (1: BLSKIP;  2: RU; 3: Frame copy; 4: Temporal Direct; 5: Frame Level Frame Copy ) {{TMM_EC}}
+	printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff] [-ec <1..3>]\n\n", argv[0] );  // HS: decoder robustness
+// (1: BLSKIP;  2: Frame copy; 3: Temporal Direct{{TMM_EC}}
   //printf("usage: %s BitstreamFile YuvOutputFile\n\n", argv[0] );
   RERRS();
 }
