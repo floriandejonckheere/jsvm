@@ -6,7 +6,7 @@
 # File          : External.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.5
+# Version       : 0.0.7
 ################################################################################
 
 package External;
@@ -28,6 +28,8 @@ my $RESAMPLER  = "DownConvertStatic";
 my $QLASSIGNER = "QualityLevelAssignerStatic";
 my $JMDECODER  = "ldecod";
 
+my $PACKETLOSSSIMULATOR= "PacketLossSimulator";
+
 #-----------------------#
 # Functions             #
 #-----------------------#
@@ -38,7 +40,7 @@ my $JMDECODER  = "ldecod";
 #check platform and substitute "/" by "\" if needed
 sub platformpath($)
 {
-	my $exe = shift;
+	my $exe = shift;  
 
 	$exe =~ s|/|\\|g if ($^O =~ /^MS/);
 	return $exe;
@@ -149,6 +151,51 @@ sub Encode($;$)
   	return 1;
 }
 
+
+######################################################################################
+# Function         : LossSimulator ($;$;$)
+######################################################################################
+sub LossSimulator($;$;$)
+{
+	my $simu=shift;
+	my $param=shift;
+	my $test =shift;
+	my $bin = $param->{path_bin};
+	my $dat = $param->{path_dat};
+		
+	
+	
+  my $inbitstreamname;
+ 	my $outbitstreamname;
+  my $cmd ;
+	my $ret;
+	my $cmdarg="";
+	
+	if (defined $test)
+	{
+	$inbitstreamname=  $test->{extractedname};
+ 	$outbitstreamname= $test->{errorbitstreamname};
+ 	$cmdarg = " ".$dat.$test->{packetlossrate}.".dat";
+  }
+  else
+  {
+  ::PrintLog(" LossSimulator                    .......... ");  
+  $inbitstreamname= ( (defined $simu->{bitstreamQLname})? $simu->{bitstreamQLname}:$simu->{bitstreamname});
+	$outbitstreamname= $simu->{errorbitstreamname};
+  $cmdarg = " ".$dat.$simu->{packetlossrate}.".dat";
+  }
+  
+	$cmd = "$bin$PACKETLOSSSIMULATOR ".$inbitstreamname." ".$outbitstreamname.$cmdarg;
+ 	$ret = run($cmd,$simu->{logname},0);
+  ($ret == 0) or die "problem while executing the command:\n$cmd\n";
+	
+ 	return 1;
+}
+
+
+
+
+
 ######################################################################################
 # Function         : QLAssigner ($;$)
 ######################################################################################
@@ -213,12 +260,14 @@ sub Decode($$;$)
 	my $tmp =$param->{path_tmp};
 	my $display=1; 
 
-	my $cmd ="$bin$DECODER ". $test->{extractedname}." ".$test->{decodedname};
+  my $inputname = (defined $test->{errorbitstreamname}? $test->{errorbitstreamname}:$test->{extractedname});
+
+	my $cmd ="$bin$DECODER ".$inputname." ".$test->{decodedname};
 	(defined $test->{errorconcealment}) and $cmd .= " -ec ".$test->{errorconcealment};
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
     	
-  	return ComputePSNR($bin,$simu->{logname},$test->{width},$test->{height},$test->{origname},$test->{decodedname},$test->{extractedname},$test->{framerate},"${tmp}psnr.dat");	
+  	return ComputePSNR($bin,$simu->{logname},$test->{width},$test->{height},$test->{origname},$test->{decodedname},$inputname,$test->{framerate},"${tmp}psnr.dat");	
  }
 
 ###############################################################################

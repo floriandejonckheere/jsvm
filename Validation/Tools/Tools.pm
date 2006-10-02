@@ -6,7 +6,7 @@
 # File          : Tools.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.4
+# Version       : 0.0.7
 ################################################################################
 
 package Tools;
@@ -122,6 +122,7 @@ sub InitSimu($;$)
 
   $simu->{configname}   = $param->{path_cfg}.$simu->{name}.".cfg";
   $simu->{bitstreamname}= $param->{path_str}.$simu->{name}.".264" ;
+   
   $simu->{logname}      = $param->{path_log}.$simu->{name}.".log";
   #$simu->{tempopsnrname}= $param->{path_tmp}."psnr.dat";
 
@@ -131,8 +132,9 @@ sub InitSimu($;$)
   (defined $simu->{runencode}   ) or  $simu->{runencode}     = 1;
   (defined $simu->{nbfgslayer}  ) or  $simu->{nbfgslayer}    = 2;
   (defined $simu->{qualitylayer}) or  $simu->{qualitylayer}  = 0; #0: off 1: PID NAL 2:SEI
-  $simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264"  if($simu->{qualitylayer});
-
+  #$simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264"  if($simu->{qualitylayer});
+  ($simu->{qualitylayer}) and $simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264";
+  
   if($simu->{runencode} == 0)
   {(defined $simu->{framerate})        or $simu->{framerate} = 30;}
 
@@ -144,6 +146,7 @@ sub InitSimu($;$)
   #--- Layers
   #---------------
   my $l = 0;
+  #$simu->{losssimulator}= 0;
   foreach my $layer (@{$simu->{layers}})
   {
     (defined $layer->{width})     or ($layer->{width}     = $simu->{width});
@@ -158,9 +161,19 @@ sub InitSimu($;$)
     $layer->{reconname}    = $param->{path_tmp}.$simu->{name}."_rec_L$l.yuv";
     $layer->{basestream}   = $simu->{name}."_".$layer->{width}."x".$layer->{height}."_".$layer->{framerate};
     $layer->{origname}     = $param->{path_orig}.$layer->{basestream}.".yuv";
+    #(defined $layer->{packetlossrate}) and $simu->{losssimulator}++;
     $l++;
   }
-
+  
+  #Global Packet Loss Rate 
+  if( (defined $simu->{packetlossrate}) and  ($simu->{packetlossrate}>0))  
+  {
+  $simu->{errorbitstreamname}= $param->{path_str}.$simu->{name}."_loss.264" ;
+  }
+  else
+  {
+  $simu->{packetlossrate}=0;
+  }
 
 
   #--- Tests
@@ -179,10 +192,36 @@ sub InitSimu($;$)
 
     unless (defined $test->{bitstreamname})
     {
-      if ($simu->{qualitylayer} and $test->{useql})
-      {$test->{bitstreamname}=((defined $tempstreamname)? $tempstreamname:$simu->{bitstreamQLname});}
+     
+      if(defined $tempstreamname)
+       {
+       $test->{bitstreamname}=$tempstreamname;       
+       } 
       else
-      {$test->{bitstreamname}=((defined $tempstreamname)? $tempstreamname:$simu->{bitstreamname});}
+      {
+         if($simu->{packetlossrate})   
+         {
+           $test->{bitstreamname}=$simu->{errorbitstreamname};
+         }
+         else
+         {
+           if ($simu->{qualitylayer} and $test->{useql})
+           {
+            $test->{bitstreamname}=$simu->{bitstreamQLname};
+           }
+           else
+           {
+            $test->{bitstreamname}=$simu->{bitstreamname};
+           }
+         }
+       }
+     
+     # if ($simu->{qualitylayer} and $test->{useql})
+     # {$test->{bitstreamname}=((defined $tempstreamname)? $tempstreamname:$simu->{bitstreamQLname});}
+     # else
+     # {$test->{bitstreamname}=((defined $tempstreamname)? $tempstreamname:$simu->{bitstreamname});}
+    
+    
     }
     else
     {
@@ -191,6 +230,15 @@ sub InitSimu($;$)
     undef $tempstreamname;
 
     $test->{extractedname} = (($test->{mode}==0)? $test->{bitstreamname}:$param->{path_str}."Ext_".$test->{basestream}."_$bitrate.264");
+    
+    
+    if(defined $test->{packetlossrate} and $test->{packetlossrate}) 
+     {
+     $test->{extractedname}    =~ s|(.).264$|$1|; #very dirty
+     $test->{errorbitstreamname} = $test->{extractedname}."_loss.264";
+     $test->{extractedname}    .= ".264";  #very dirty
+    } 
+    
     $test->{extractoption} = $test->{width}."x".$test->{height}."\@".$test->{framerate}.":$bitrate";
     ($test->{mode}==3) and $tempstreamname=$test->{extractedname};
 
@@ -483,18 +531,22 @@ sub ApplyTests ($;$)
     if ($test->{mode}==0) #decode only
     {
       #print Dumper($test);
+      ($test->{packetlossrate})  and External::LossSimulator($simu,$param,$test);
       ($res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr) = External::Decode($simu,$test,$param);
     }
     elsif ($test->{mode}==1) #extract+decode
     {
       External::Extract($simu,$test,$param);
+      ($test->{packetlossrate})  and External::LossSimulator($simu,$param,$test);
       ($res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr) = External::Decode($simu,$test,$param);
     }
     elsif ($test->{mode}==2) #doublecheck (extract+decode)
     {
       External::Extract($simu,$test,$param);
+      ($test->{packetlossrate})  and External::LossSimulator($simu,$param,$test);
       ($res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr) = External::Decode($simu,$test,$param);
       External::Extract($simu,$test,$param);
+      ($test->{packetlossrate})  and External::LossSimulator($simu,$param,$test);
       ($res_rate2, $res_psnrY2, $res_psnrCb2, $res_psnrCr2) = External::Decode($simu,$test,$param);
     }
     else #extract + utilisation pour le prochain test

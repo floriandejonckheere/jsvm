@@ -6,7 +6,7 @@
 # File          : run.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.5
+# Version       : 0.0.7
 ################################################################################
 
 
@@ -29,7 +29,7 @@ use Tools::DirTree;
 #-----------------------#
 # Local variables       #
 #-----------------------#
-my $VERSION    = "0.0.5";
+my $VERSION    = "0.0.7";
 my $GLOBAL_LOG = "../Global.log"; #=== Global Log file
 my $DO_DISPLAY = 1;            #=== Display on stdout or not
 
@@ -46,6 +46,7 @@ my $Param={
   path_fgs   => "fgs/",
   path_rec   => "rec/",
   path_crop  => "crop/",
+  path_dat   => "dat/",
   path_log   => "../",
   path_database  => "SimuDataBase/Short_term/",  #=== directory containing Simulations DataBase
   path_simu  => "SimuRun/",       #=== directory where running simulations
@@ -118,10 +119,10 @@ sub RunSimus
 
     Tools::CreateSequences($simu,$Param) and PrintLog("ok\n");
 
-    ($simu->{runencode}) and External::Encode($simu,$Param) and PrintLog("ok\n");
-
-    ($simu->{qualitylayer}) and External::QLAssigner($simu,$Param) and PrintLog("ok\n");
-
+    ($simu->{runencode})       and External::Encode($simu,$Param)        and PrintLog("ok\n");
+    ($simu->{qualitylayer})    and External::QLAssigner($simu,$Param)    and PrintLog("ok\n");
+    ($simu->{packetlossrate})  and External::LossSimulator($simu,$Param) and PrintLog("ok\n");
+     
     my $ret=Tools::ApplyTests ($simu,$Param) and PrintLog("ok\n");
 
     #print Dumper($simu);
@@ -236,6 +237,7 @@ while (@ARGV)
 
 # ===== Simulations ==================================================
 RunSimus(@ListSimus);
+
 
 1;
 __END__

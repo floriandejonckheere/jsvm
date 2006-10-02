@@ -5,7 +5,7 @@
 # File          : README.TXT
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.5
+# Version       : 0.0.7
 ################################################################################
 
 
@@ -18,11 +18,14 @@ Tools        : perl scripts and tools.
 
 SimuRun      : location where the "Simulations" will be run. (if not present, will be automatically created)
 
-[orig]       : contains the original YUV sequences (typically the 4CIF sequences) [OPTIONAL]
-                NOTE: The location of this directory (including its name) can be specifiede.
+PacketLossSimulator : contains the source code of a packet loss simulator tool to be used when running the Short-term simulations set.
+
+[orig]              : contains the original YUV sequences (typically the 4CIF sequences) [OPTIONAL]
+                      NOTE: The location of this directory (including its name) can be specified.
                
-[bin]        : contains the binaries of the encoder,decoder,extractor,downconvert and psnr tools;[OPTIONAL] 
-                NOTE : The location of this directory (including its name) can be specified.
+[bin]               : contains the binaries of the encoder,decoder,extractor,downconvert and psnr tools;[OPTIONAL] 
+                      NOTE : The location of this directory (including its name) can be specified.
+
 
 
 IMPORTANT NOTES:
@@ -39,6 +42,7 @@ IMPORTANT NOTES:
 - BitStreamExtractorStatic
 - PSNRStatic
 - QualityLevelAssignerStatic
+- PacketLossSimulatorStatic
 
 3) Before running AVC_Conformance simulation set, please read the README.TXT files located in the SimuDataBase/AVC_Conformance/ directory.
 You will have to download the conformance bistreams and YUV sequences available at "http://ftp3.itu.ch/av-arch/jvt-site/draft_conformance/".
