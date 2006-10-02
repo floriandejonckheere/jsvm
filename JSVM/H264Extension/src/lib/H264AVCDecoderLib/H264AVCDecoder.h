@@ -246,6 +246,15 @@ public:
   Bool isRedundantPic()             { return m_bRedundantPic; }  // JVT-Q054 Red. Picture
   ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
   Void    setFGSRefInAU(Bool &b); //JVT-T054
+  //JVT-T054_FIX{
+  ErrVal UpdateAVCList(SliceHeader *pcSliceHeader);
+  ErrVal getAVCFrame( IntFrame*&      pcFrame,
+                                  IntFrame*&      pcResidual,
+                                  MbDataCtrl*&    pcMbDataCtrl,
+                                  Int             iPoc);
+  MCTFDecoder *getMCTFDecoder(UInt uiLayer) { return m_apcMCTFDecoder[uiLayer];}
+  Bool   getBaseSVCActive() { return m_bBaseSVCActive;} //JVT-T054_FIX
+  //JVt-T054}
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
@@ -367,6 +376,8 @@ protected:
   Bool                          m_bCGSSNRInAU;
   Bool                          m_bOnlyAVCAtLayer;
 //JVT-T054}
+  Bool                          m_bBaseSVCActive; //JVT-T054_FIX
+  Bool                          m_bLastFrameReconstructed; //JVT-T054_FIX
 public:
   MbDataCtrl*         m_pcBaseLayerCtrlEL;
 };

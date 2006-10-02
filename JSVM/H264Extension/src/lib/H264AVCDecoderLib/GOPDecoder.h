@@ -364,13 +364,11 @@ public:
                                   UInt                        uiLastLayer,
                                   Bool                        bLastNalInAU,
                                   Bool                        bCGSSNRInAU); //JVT-T054
-ErrVal            StoreDecodedPicture( FrameUnit* pcFrameUnit, 
-                                 PicBuffer*&    rpcPicBuffer,
-                                 SliceHeader*   pcSliceHeader,
-                                 PicBufferList& rcOutputList,
-                                 PicBufferList& rcUnusedList,
-                                 IntFrame*      pcBaseRep = 0); //JVT-T054
-  
+
+  ErrVal        GetAVCFrameForDPB( SliceHeader*&  rpcSliceHeader,
+                                        PicBuffer*&    rpcPicBuffer,
+                                        PicBufferList& rcOutputList,
+                                        PicBufferList& rcUnusedList); //JVT-T054_FIX
   ErrVal          process       ( SliceHeader*&               rpcSliceHeader,
                                   PicBuffer*                  pcPicBuffer,
                                   PicBufferList&              rcPicBufferOutputList,
@@ -522,7 +520,7 @@ protected:
   
 //JVT-T054{
   Bool                m_bAVCBased;
-  ResizeParameters*   m_pcResizeParameterCGSSNR[MAX_FGS_LAYERS];
+  ResizeParameters*   m_pcResizeParameterCGSSNR[MAX_FGS_LAYERS+1];
 //JVT-T054}
   // TMM_ESS 
   ResizeParameters*   m_pcResizeParameter;

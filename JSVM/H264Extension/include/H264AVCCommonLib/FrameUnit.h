@@ -124,8 +124,8 @@ public:
   Void  setFrameNumber( UInt  uiFN  )           { m_uiFrameNumber = uiFN; }
   UInt  getFrameNumber()                  const { return m_uiFrameNumber; }
 
-  Void  setBaseRep    ( Bool  bFlag )			{ m_BaseRepresentation = bFlag; } //JVT-S036 lsj
-  UInt  getBaseRep	  ()				  const { return m_BaseRepresentation;  } //JVT-S036 lsj
+  Void  setBaseRep    ( Bool  bFlag )			{ m_bBaseRepresentation = bFlag; } //bug-fix base_rep
+  UInt  getBaseRep	  ()				  const { return m_bBaseRepresentation;  } //bug-fix base_rep
   UChar getStatus	  ()				  const { return m_uiStatus;			} //JVT-S036 lsj
 
   Void  setOutputDone ()                        { m_uiStatus |= IS_OUTPUTTED; }
@@ -177,7 +177,7 @@ private:
   Bool          m_bOriginal;
   Bool          m_bInitDone;
   IntFrame      m_cResidual;
-  Bool			m_BaseRepresentation; //JVT-S036 lsj
+  Bool			    m_bBaseRepresentation; //bug-fix base_rep
 
   IntFrame      m_cFGSIntFrame;
   PicBuffer*    m_pcFGSPicBuffer;

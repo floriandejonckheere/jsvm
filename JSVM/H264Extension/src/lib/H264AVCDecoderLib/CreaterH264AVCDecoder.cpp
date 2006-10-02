@@ -141,6 +141,7 @@ CreaterH264AVCDecoder::CreaterH264AVCDecoder():
   m_pcQuarterPelFilter    ( NULL ),
   m_pcCabacReader         ( NULL ),
   m_pcSampleWeighting     ( NULL )
+  , m_bBaseSVCActive        ( false ) //JVT-T054_FIX
 {
   ::memset( m_apcDecodedPicBuffer,     0x00, MAX_LAYERS * sizeof( Void* ) );
   ::memset( m_apcMCTFDecoder,          0x00, MAX_LAYERS * sizeof( Void* ) );
@@ -162,10 +163,14 @@ CreaterH264AVCDecoder::process( PicBuffer*     pcPicBuffer,
                              PicBufferList& rcPicBufferUnusedList,
                              PicBufferList& rcPicBufferReleaseList )
 {
-  return m_pcH264AVCDecoder->process( pcPicBuffer,
+  RNOK(m_pcH264AVCDecoder->process( pcPicBuffer,
                                    rcPicBufferOutputList,
                                    rcPicBufferUnusedList,
-                                   rcPicBufferReleaseList );
+                                   rcPicBufferReleaseList )); //JVT-T054_FIX
+  //JVT-T054_FIX{
+  m_bBaseSVCActive = m_pcH264AVCDecoder->getBaseSVCActive();
+  return Err::m_nOK;
+    //JVT-T054}
 }
 
 
@@ -860,6 +865,9 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
           // Normally the following test is not necessary because FGS slice shall be marked as Fragmented.
+    //JVT-T054_FIX{
+		rcPacketDescription.bEnableQLTruncation = false;
+    //JVT-T054}
     if(uiTemp == F_SLICE)
       rcPacketDescription.bEnableQLTruncation = true;
   

@@ -1,14 +1,29 @@
+JSVM_6_8 -> JSVM_6_8_1
+======================
+
+Date	    : Sep. 25, 2006
+Author	  : J. Vieron (on behalf of K. Xie, Shenqiu, N. Cammas, X. Wang, H. Schwarz and F. Leleannec)
+
+Changes:
+
+- Add 4 new validation scripts for error concealment + minor bug fixes 
++ add of a dummy PacketLossSimulator in the Validation directory. Please read the JSVM Software manual !! (K. Xie),
+- IDR option bug fixes (see //bug-fix shenqiu EIDR) (Shenqiu),
+- Bug fixes related to JVT-T054 (N. Cammas),
+- Bug fixes related to AR-FGS  (X. Wang).
+- Bug fix related to FGSMotion (H. Schwarz)  
+- Bug fix related to QualityLevelAssigner tool when GOP size is equal to 1 (F. Leleannec)
+
+
 
 JSVM_6_7 -> JSVM_6_8
 ====================
 
 Date	    : Sep. 11, 2006
-Author	    : Kai XIE (Thomson)
+Author	    : Kai Xie (Thomson)
 
-changes:
+Changes:
 
-
-fixes: 
 - Bug fixes for error concealment
 - Bug fixes (very minor) related to the usage of FGS and FGS motion refinement (check consistency)
 
@@ -21,13 +36,15 @@ Date	    : Sep. 05, 2006
 Author	    : Reichel, Julien (GE Security)
 Contribution: JVT-T083
 
-changes:
+Changes:
+
 - Modified Nal Header (3 bytes)
 - Modified Slice header
 - Removed the notion of KeyPicture, and replaced it by UseBasePrediction and StoreBaseRepresentation
 - Added additional controls for the inter-layer deblocking filter.
 
-fixes: 
+Fixes: 
+
 - Partial fixes for the trace files
 - Some test configurations had to be slightly modified
 
@@ -39,10 +56,12 @@ Date	    : Aug. 28, 2006
 Author	    : Shenqiu, Liuhui, Guoyi (USTC)
 Contribution: JVT-T073
 
-changes(changes can be found by seaching the comments in brackets):
+Changes(changes can be found by seaching the comments in brackets):
+
 - add nesting SEI message including scene information SEI message (JVT-T073)
 
-fixes:
+Fixes:
+
 - LARDO bug fixes (//Bug_Fix JVT-R057 0806)
 - Suffix NAL unit bug fixes, and BaseLayerMode 0. A lot of test configurations updated. (//bug-fix suffix)
 - Use of temporal_level from suffix NAL units in bitstream extraction (bugfix)
@@ -55,11 +74,13 @@ Date	    : Aug. 11, 2006
 Author	    : N. Cammas (Orange-FT)
 Contribution: JVT-T054
 
-changes:
+Changes:
+
 - enable SNR enhancement coded using EI, EP or EB slices
 - add -keepf option to BitStreamExtractorStatic
 
-fixes: 
+Fixes: 
+
 - FragCABAC, FragVLC test configuration
 
 
@@ -70,10 +91,12 @@ Date        : Aug. 4, 2006
 Author     : T. M. Bae (ICU)
 Contribution: JVT-T058
 
-changes:
+Changes:
+
 - Inter-layer motion prediction using FGS refined motion
 
-fixes:
+Fixes:
+
 - remove forced multi-loop decoding flag in MCTFDecoder::xDecodeBaseRepresentation() (M. Wien, suggested by V. Bottreau)
 - updated Validation tests to use correct upsampling method (V. Bottreau)
 - updated Software Manual regarding dyadic downsampling with ESS and configuration (V. Bottreau, M. Wien)
@@ -88,7 +111,8 @@ Date        : July 28, 2006
 Author      : J. Ridge (Nokia)
 Contribution: JVT-T089
 
-changes:
+Changes:
+
 - De-interleave 8x8 coefficients to be processed as 4 4x4's
 - Consolidation of significance pass routines in CABAC/CAVLC
 
@@ -104,7 +128,8 @@ Date        : July 26, 2006
 Author      : M. Shima (TI)
 Contribution: JVT-T067
 
-changes:
+Changes:
+
 - Addition of refinement coefficients prescanning on encoder side
 - Removal of possible random memory access on decoder side
 - Minor modifications for "FragVLC" test
@@ -122,6 +147,8 @@ Date        : July 24, 2006
 Author      : H. Schwarz
 Contribution: JVT-T079
 
+Changes:
+
 - independent parsing as only possibility
 - removal of AGS
 - removal of multi-loop decoding mode
@@ -135,6 +162,8 @@ Bug fixes
 
 Date        : July 17, 2006
 Author      : J. Vieron (on behalf of S. Kamp, Y.Bao and H. Schwarz)
+
+Changes:
 
 - FGS (CBP 8x8) bug fixes 
 - ARFGS bug fixes

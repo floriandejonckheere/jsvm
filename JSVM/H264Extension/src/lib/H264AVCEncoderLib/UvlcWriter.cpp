@@ -1003,6 +1003,8 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_N;
       xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes );
       xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 16, uiTotalRun );
+      // this is useful only in AR_FGS
+      rcMbDataAccess.getMbData().setBCBP( cIdx, uiCoeffCnt != 0, true);
       break;
     }
   default:
@@ -1091,6 +1093,8 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_N;
       xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes );
       xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 15, uiTotalRun );
+      // this is useful only in AR_FGS
+      rcMbDataAccess.getMbData().setBCBP( 16 + cIdx, uiCoeffCnt != 0, true);
       break;
     }
   case CHROMA_DC:
@@ -1100,6 +1104,8 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_N;
       xWriteTrailingOnes4( uiCoeffCnt, uiTrailingOnes );
       xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 4, uiTotalRun );
+      // this is useful only in AR_FGS
+      rcMbDataAccess.getMbData().setBCBP( 24 + cIdx.plane(), uiCoeffCnt != 0, true);
       break;
     }
   default:

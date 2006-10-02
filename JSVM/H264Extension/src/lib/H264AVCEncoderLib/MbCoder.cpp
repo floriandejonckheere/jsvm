@@ -161,6 +161,8 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 {
   ROF( m_bInitDone );
 
+  rcMbDataAccess.getMbData().setBCBP(0);
+  
   //===== skip flag =====
   Bool  bIsCoded  = ! rcMbDataAccess.isSkippedMb();
 

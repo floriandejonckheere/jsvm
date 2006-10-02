@@ -180,7 +180,7 @@ public:
   ErrVal  copyAll     ( IntFrame* pcSrcFrame )
   {
 // JVT-Q065 EIDR{
-	  if(!m_bUnusedForRef)
+	  //if(!m_bUnusedForRef) //bug-fix shenqiu EIDR
 	  {
 		  m_bUnusedForRef = pcSrcFrame->getUnusedForRef();
 	  }

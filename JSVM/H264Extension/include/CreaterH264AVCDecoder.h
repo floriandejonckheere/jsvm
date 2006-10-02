@@ -184,7 +184,7 @@ public:
   UInt isNonRequiredPic();	//NonRequired JVT-Q066	
   Bool isRedundantPic();  // JVT-Q054 Red. Picture
   ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
-
+  
 //	TMM_EC {{
   ErrVal  checkSliceGap ( BinDataAccessor*  pcBinDataAccessor,
                           MyList<BinData*>&	cVirtualSliceList );
@@ -194,6 +194,7 @@ public:
 	Void setAVCFlag ( Bool aFlag ) { UnitAVCFlag = aFlag; } //JVT-S036 lsj
 
   Void	  RoiDecodeInit();
+  Bool           getBaseSVCActive() { return m_bBaseSVCActive;} //JVT-T054_FIX
 
 protected:
   ErrVal xCreateDecoder();
@@ -225,6 +226,7 @@ protected:
   ReconstructionBypass*   m_pcReconstructionBypass;
 
   Bool					  UnitAVCFlag;    //JVT-S036 lsj
+  Bool                    m_bBaseSVCActive; //JVT-T054_FIX
 };
 
 

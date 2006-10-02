@@ -170,6 +170,8 @@ H264AVCDecoder::H264AVCDecoder()
 , m_bCGSSNRInAU                   ( false )
 , m_bOnlyAVCAtLayer               ( false )
 //JVT-T054}
+, m_bBaseSVCActive                ( false ) //JVT-T054_FIX
+, m_bLastFrameReconstructed       ( false ) //JVT-T054_FIX
 {
   ::memset( m_apcMCTFDecoder, 0x00, MAX_LAYERS * sizeof( Void* ) );
   ::memset( m_uiPosVect,      0x00, 16         * sizeof( UInt  ) ); 
@@ -794,8 +796,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
           || m_pcNalUnitParser->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
           && m_pcNalUnitParser->getLayerId() == 0)
 		{
-      //m_uiNumOfNALInAU--;
-			return  Err::m_nERR;
+   			return  Err::m_nERR;
 		}
 
 		if ( !checkSEIForErrorConceal())
@@ -956,7 +957,8 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 					*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
 					*(pcBinData->data()+pcBinData->size()-1)	=	0;
 					cVirtualSliceList.pushFront( pcBinData);
-				}
+
+        }
 				else
 				{
 					BinData	*pcBinData = new BinData;
@@ -969,6 +971,8 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 					*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
 					*(pcBinData->data()+pcBinData->size()-1)	=	0;
 					cVirtualSliceList.pushFront( pcBinData);
+
+          m_uiNumOfNALInAU++;  //TMM_EC
 				}
 			}
 			else
@@ -1086,7 +1090,8 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 						*(pcBinData->data()+9)	=	(UChar)m_uiNextTempLevel;
 						*(pcBinData->data()+pcBinData->size()-1)	=	0;
 						cVirtualSliceList.pushFront( pcBinData);
-					}
+
+        	}
 					else
 					{
 						BinData	*pcBinData = new BinData;
@@ -1099,6 +1104,8 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 						*(pcBinData->data()+9)	=	(UChar)m_uiNextTempLevel;
 						*(pcBinData->data()+pcBinData->size()-1)	=	0;
 						cVirtualSliceList.pushFront( pcBinData);
+
+            m_uiNumOfNALInAU++;  //TMM_EC
 					}
 				}
 			}
@@ -1788,7 +1795,30 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
  {
   ROF( m_bInitDone );
 
-  RNOK( xInitSlice( m_pcSliceHeader ) );
+  //JVT-T054_FIX{
+  if(m_bBaseSVCActive)
+  {
+    RNOK( xInitSlice( m_pcSliceHeader ) );
+    m_apcMCTFDecoder[0]->GetAVCFrameForDPB(m_pcSliceHeader,pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList);
+    m_bBaseSVCActive = false;
+    m_bLastFrameReconstructed = true;
+    return Err::m_nOK;
+  }
+  if(!m_bLastFrameReconstructed)
+  {
+   //JVT-T054}
+    RNOK( xInitSlice( m_pcSliceHeader ) );
+    //JVT-T054_FIX{
+  }
+  else
+  {
+    if( m_pcSliceHeader && m_pcSliceHeader->getLayerId() == 0 )
+    {
+      RNOK( m_pcPocCalculator->calculatePoc( *m_pcSliceHeader ) );
+    }
+  }
+
+  m_bLastFrameReconstructed = false; //JVT-T054}
 
 
   if( m_bLastFrame )
@@ -1909,23 +1939,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 //JVT-T054{
       if(m_bAVCBased && m_uiLastLayerId == 0 && m_pcSliceHeader->getQualityLevel() == 1)
       {
-        //store frame in m_apcMCTFDecoder[0]
-         FrameUnit * pcFrameUnit = m_pcFrameMng->getCurrentFrameUnit();
-         IntFrame* pcFrameBaseRep = m_pcFrameMng->getCurrentFrameUnit()->getFGSIntFrame();
-         if(m_pcPrevSliceHeader->getUseBasePredictionFlag())
-         {
-           pcFrameBaseRep->copyAll(m_pcFrameMng->getCurrentFrameUnit()->getFGSIntFrame());
-         }
-         else
-           pcFrameBaseRep = 0;
-
-         m_apcMCTFDecoder[m_uiLastLayerId]->StoreDecodedPicture(pcFrameUnit, 
-          pcPicBuffer, 
-          m_pcPrevSliceHeader, 
-          rcOutputList,
-          rcPicBufferUnusedList,
-          pcFrameBaseRep);
-
+        
          m_apcMCTFDecoder[m_uiLastLayerId]->setAVCBased(true);
          m_bOnlyAVCAtLayer = false;
       }
@@ -1989,9 +2003,17 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
       PicBufferList&  rcOutputList  = ( (m_uiRecLayerId == 0 && bHighestLayer) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
 
       RNOK( m_pcFrameMng->setPicBufferLists( rcOutputList, rcPicBufferReleaseList ) );
-//JVT-T054{
+//JVT-T054_FIX{
       m_apcMCTFDecoder[m_uiLastLayerId]->setAVCBased(true);
       m_bAVCBased = true;
+      if(bHighestLayer && m_apcMCTFDecoder[0]->isActive() )
+      {
+        m_bBaseSVCActive = true;
+      }
+      else
+      {
+        m_bBaseSVCActive = false;
+      }
 //JVT-T054}
     }
     break;
@@ -2153,6 +2175,22 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bLastFragment, B
   return Err::m_nOK;
 }
 
+//JVT-T054_FIX{
+ErrVal
+H264AVCDecoder::getAVCFrame( IntFrame*&      pcFrame,
+                                  IntFrame*&      pcResidual,
+                                  MbDataCtrl*&    pcMbDataCtrl,
+                                  Int             iPoc)
+{
+  FrameUnit*  pcFrameUnit = m_pcFrameMng->getReconstructedFrameUnit( iPoc );
+  ROF( pcFrameUnit );
+  pcFrame             = m_pcFrameMng->getRefinementIntFrame();
+  pcResidual          = pcFrameUnit ->getResidual();
+  pcMbDataCtrl        = m_pcRQFGSDecoder->getMbDataCtrl();
+  
+  return Err::m_nOK;
+}
+//JVT-T054}
 
 
 ErrVal
@@ -2206,8 +2244,8 @@ H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
   m_acLastPredWeightTable[LIST_0].copy( rcSH.getPredWeightTable( LIST_0 ) );
   m_acLastPredWeightTable[LIST_1].copy( rcSH.getPredWeightTable( LIST_1 ) );
 
-  m_uiNumOfNALInAU++;
-  
+  m_uiNumOfNALInAU++;  //TMM_EC
+ 
   //===== set some basic parameters =====
   if( NULL == m_pcVeryFirstSliceHeader )
   {
@@ -2253,7 +2291,8 @@ H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
   uiMbRead	=	rcSH.getMbInPic();
 
   //===== decode slice =====
-  Bool  bUseBaseRep     = rcSH.getUseBasePredictionFlag();
+//   Bool  bUseBaseRep     = rcSH.getUseBasePredictionFlag();
+  Bool  bUseBaseRep     = 1;
   Bool  bConstrainedIP  = rcSH.getPPS().getConstrainedIntraPredFlag();
 
   Bool  bReconstruct    = (m_uiRecLayerId == 0) || ! bConstrainedIP;
@@ -2371,10 +2410,9 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
   if( bNewFrame || m_bFrameDone )
   {
     RNOK( m_pcFrameMng->initFrame( rcSH, rpcPicBuffer ) );
-    if(!bHighestLayer || !m_apcMCTFDecoder[0]->isActive()) //JVT-T054
-    {
-      rpcPicBuffer = NULL;
-    }
+   
+    rpcPicBuffer = NULL;
+   
   }
   if( bNewPic )
   {
@@ -2432,43 +2470,7 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
     //===== init FGS decoder =====
     RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
 
-    //rcSH.getFMO()->initCodedSG();
-
-    // hack for motion-compensated prediction in xReconstructLastFGS() if there was no PR slice
-    //JVT-T054{
-    if(bHighestLayer && m_apcMCTFDecoder[0]->isActive())
-      {
-        //store frame in m_apcMCTFDecoder[0]
-         FrameUnit * pcFrameUnit = m_pcFrameMng->getCurrentFrameUnit();
-         IntFrame* pcFrameBaseRep = m_pcFrameMng->getCurrentFrameUnit()->getFGSIntFrame();
-         if(rcSH.getUseBasePredictionFlag())
-         {
-           pcFrameBaseRep->copyAll(m_pcFrameMng->getCurrentFrameUnit()->getFGSIntFrame());
-         }
-         else
-           pcFrameBaseRep = 0;
-         
-         rpcPicBuffer->setUsed();
-         m_apcMCTFDecoder[0]->StoreDecodedPicture(pcFrameUnit, 
-          rpcPicBuffer, 
-          &rcSH, 
-          rcPicBufferOutputList,
-          rcPicBufferUnusedList,
-          pcFrameBaseRep);
-
-        rpcPicBuffer = NULL;
-
-        //store DFP information
-        MbDataCtrl * pcMbDataCtrlSrc = m_pcControlMng->getMbDataCtrl();
-        //MbDataCtrl * pcMbDataCtrlDes = m_apcMCTFDecoder[0]->getLastDPBUnit()->getCtrlData().getMbDataCtrl(); // mwi. variable not used.
-        m_apcMCTFDecoder[0]->getLastDPBUnit()->setMbDataCtrl(pcMbDataCtrlSrc);
-        
-        m_apcMCTFDecoder[0]->setRQFGSDecoder(m_pcRQFGSDecoder);
-        m_apcMCTFDecoder[0]->getPredSignal()->copyAll(m_pcFrameMng->getPredictionIntFrame());
-        
-      }
-    //JVT-T054}
-  }
+   }
 
   if( m_bFrameDone )
   {
@@ -2534,8 +2536,8 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
 //JVT-T054{
     if(bHighestLayer && m_bCGSSNRInAU)
     {
-      RNOK( m_apcMCTFDecoder[0]->ReconstructLastFGS(bHighestLayer, m_bCGSSNRInAU ) );
-      m_apcMCTFDecoder[0]->getLastDPBUnit()->setMbDataCtrl(0);
+      //JVT-T054_FIX  
+      RNOK( xReconstructLastFGS(bHighestLayer) );
     }
     else
     {

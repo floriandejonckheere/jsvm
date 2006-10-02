@@ -990,6 +990,8 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
       DTRACE_N;
       xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes );
       xGetRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 16, uiTotalRun );
+      // this is useful only in AR_FGS
+      rcMbDataAccess.getMbData().setBCBP( cIdx, uiCoeffCnt != 0);
       break;
     }
   default:
@@ -1045,6 +1047,8 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
       DTRACE_N;
       xGetTrailingOnes4( uiCoeffCnt, uiTrailingOnes );
       xGetRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 4, uiTotalRun );
+      // this is useful only in AR_FGS
+      rcMbDataAccess.getMbData().setBCBP( 24 + cIdx.plane(), uiCoeffCnt != 0);
       break;
     }
   case CHROMA_AC:
@@ -1056,6 +1060,8 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
       DTRACE_N;
       xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes );
       xGetRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 15, uiTotalRun );
+      // this is useful only in AR_FGS
+      rcMbDataAccess.getMbData().setBCBP( 16 + cIdx, uiCoeffCnt != 0);
       break;
     }
   default:

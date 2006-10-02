@@ -220,7 +220,7 @@ protected:
   H264AVCDecoder*         m_pcH264AVCDecoder;
   Bool                    m_uiInitilized            [MAX_LAYERS];
   ResizeParameters        m_ResizeParameter[MAX_LAYERS]; // TMM_ESS
-  ResizeParameters        m_ResizeParameterCGSSNR[MAX_LAYERS][MAX_FGS_LAYERS]; // JVT-T054
+  ResizeParameters        m_ResizeParameterCGSSNR[MAX_LAYERS][MAX_FGS_LAYERS+1]; // JVT-T054
 };
 
 H264AVC_NAMESPACE_END

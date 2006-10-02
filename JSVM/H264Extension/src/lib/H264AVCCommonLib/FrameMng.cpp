@@ -253,7 +253,7 @@ __inline ErrVal FrameMng::xRemove( FrameUnit* pcFrameUnit )
 {
   pcFrameUnit->setUnused();
 
-  if( pcFrameUnit->isOutputDone() )
+  if( pcFrameUnit->isOutputDone() || pcFrameUnit->getBaseRep()) //bug-fix base_rep
   {
     RNOK( xAddToFreeList( pcFrameUnit ) );
     return Err::m_nOK;
@@ -385,6 +385,23 @@ ErrVal FrameMng::uninit()
 
   return Err::m_nOK;
 }
+
+//JVT-T054_FIX{
+ErrVal FrameMng::UpdateFrameunitFromShortTermList(FrameUnit* pcFrameUnit, Int iPoc)
+{
+  FUIter  iter;
+  for( iter = m_cShortTermList.begin(); iter != m_cShortTermList.end(); iter++ )
+  {
+    if( (*iter)->getMaxPOC() == iPoc )
+    {
+      break;
+    }
+  }
+
+  (*iter) = pcFrameUnit;
+  return Err::m_nOK;
+}
+//JVT-T054}
 
 //JVT-S036 lsj{
 ErrVal FrameMng::RefreshOrederedPOCList()
@@ -773,6 +790,9 @@ ErrVal FrameMng::xClearListsIDR( const SliceHeader& rcSH  )
     }
   }
   m_cOrderedPOCList.clear();
+  //bug-fix shenqiu EIDR{
+  RNOK(xAddToFreeList( m_cShortTermList ));
+  //bug-fix shenqiu EIDR}
   return Err::m_nOK;
 }
 

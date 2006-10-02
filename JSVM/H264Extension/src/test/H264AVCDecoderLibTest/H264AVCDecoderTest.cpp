@@ -263,7 +263,7 @@ ErrVal H264AVCDecoderTest::go()
     BinDataAccessor cBinDataAccessor;
 
     Int  iPos;
-    Bool bFinishChecking;
+    Bool bFinishChecking  = false;
 
     RNOK( m_pcReadBitstream->getPosition(iPos) );
 
@@ -668,6 +668,9 @@ ErrVal H264AVCDecoderTest::go()
       }
     }
 
+    //JVT-T054_FIX{
+    Bool bWasAVCNALUnit = (uiNalUnitType == 1 || uiNalUnitType == 5);
+    //JVT-T054}
     //~JVT-P031
 //NonRequired JVT-Q066{
 	if(m_pcH264AVCDecoder->isNonRequiredPic())
@@ -777,6 +780,27 @@ ErrVal H264AVCDecoderTest::go()
 
     // decode the NAL unit
     RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
+    //JVT-T054_FIX{
+   if(bWasAVCNALUnit && m_pcH264AVCDecoder->getBaseSVCActive())
+   {
+      RNOK( xGetNewPicBuffer( pcPicBuffer, uiSize ) );
+
+      if( ! bYuvDimSet )
+      {
+        UInt uiLumSize  = ((uiMbX<<3)+  YUV_X_MARGIN) * ((uiMbY<<3)    + YUV_Y_MARGIN ) * 4;
+        uiLumOffset     = ((uiMbX<<4)+2*YUV_X_MARGIN) * YUV_Y_MARGIN   + YUV_X_MARGIN;  
+        uiCbOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiLumSize; 
+        uiCrOffset      = ((uiMbX<<3)+  YUV_X_MARGIN) * YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiLumSize/4;
+        bYuvDimSet = true;
+
+        // HS: decoder robustness
+        pcLastFrame = new UChar [uiSize];
+        ROF( pcLastFrame );
+      }
+
+      RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
+   }
+    //JVT-T054}
 
 	// ROI DECODE ICU/ETRI
 	m_pcH264AVCDecoder->RoiDecodeInit();

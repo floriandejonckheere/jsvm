@@ -3056,6 +3056,12 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
 			  {
 				  if(m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() < pcSliceHeader->getTemporalLevel() || (m_pacControlData[uiFrame].getSliceHeader()->getTemporalLevel() == pcSliceHeader->getTemporalLevel()&& uiFrame < uiFrameId))
 				  {
+					  //bug-fix shenqiu EIDR{
+					  if(m_papcBQFrame)
+					  {
+						m_papcBQFrame[uiFrame]->setUnusedForRef(true);
+					  }
+					  //bug-fix shenqiu EIDR}
 					  m_papcFrame[uiFrame]->setUnusedForRef(true);
             m_papcOrgFrame[uiFrame]->setUnusedForRef(true);
 					  if(m_papcCLRecFrame)
@@ -3067,6 +3073,13 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
 		  }
 	  }
   }
+
+  //bug-fix shenqiu EIDR{
+  if((m_iIDRPeriod != 0) && (m_papcFrame[m_uiGOPSize]->getPOC() % m_iIDRPeriod >= (Int)m_uiGOPSize))
+  {
+	  m_bBLSkipEnable = true;
+  }
+  //bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 
   //===== RPLR and MMCO commands =====
@@ -3472,6 +3485,13 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   //===== set remaining slice header parameters =====
   RNOK( m_pcPocCalculator->setPoc( *pcSliceHeader, m_papcFrame[uiFrameIdInGOP]->getPOC() ) );
 
+  //bug-fix shenqiu EIDR{
+  if(m_papcBQFrame)
+  {
+	m_papcBQFrame[uiFrameIdInGOP]->setPOC(m_papcFrame[uiFrameIdInGOP]->getPOC());
+  }
+  //bug-fix shenqiu EIDR}
+
   //===== set base layer data =====
   RNOK( xSetBaseLayerData( uiFrameIdInGOP ) );
 
@@ -3725,7 +3745,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
   //===== list 0 =====
   {
     Int iFrameId;
-	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 	  if(!pcFrame->getUnusedForRef())  // JVT-Q065 EIDR
@@ -3743,12 +3763,22 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 		}
 
 		RNOK( rcRefList0.add( pcFrame ) );
+		//bug-fix shenqiu EIDR{
+		if(uiList0Size > 0)
+		{
 		uiList0Size--;
+	  }
+		else
+		{
+			rcRefList0.decActive();
+		}
+		//bug-fix shenqiu EIDR}
 	  }
     }
 
 // JVT-Q065 EIDR{
-	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	//bug-fix shenqiu EIDR{
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) ; iFrameId += 2 )
 	{
 		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
@@ -3768,9 +3798,18 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 			}
 
 			RNOK( rcRefList0.add( pcFrame ) );
+			
+			if(uiList0Size > 0)
+			{
 			uiList0Size--;
 		}
+			else
+			{
+				rcRefList0.decActive();
+			}
+		}
 	}
+	//bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 
 	ROT( uiList0Size );
@@ -3779,7 +3818,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
   //===== list 1 =====
   {
     Int iFrameId;
-	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
@@ -3799,11 +3838,21 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 		}
 
 		RNOK( rcRefList1.add( pcFrame ) );
+		//bug-fix shenqiu EIDR{
+		if(uiList1Size > 0)
+		{
 		uiList1Size--;
+	  }
+		else
+		{
+			rcRefList1.decActive();
+		}
+		//bug-fix shenqiu EIDR}
 	  }
     }
 // JVT-Q065 EIDR{
-	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
+	//bug-fix shenqiu EIDR{
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
 	{
 		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
 
@@ -3822,18 +3871,28 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 			}
 
 			RNOK( rcRefList1.add( pcFrame ) );
+
+			if(uiList1Size > 0)
+			{
 			uiList1Size--;
 		}
+			else
+			{
+				rcRefList1.decActive();
+			}
+		}
 	}
+	//bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 	ROT( uiList1Size );
   }
 
 // JVT-Q065 EIDR{
-  if( rcRefList1.getActive() >= 2 && rcRefList1.getActive() >= 1)
+  //bug-fix shenqiu EIDR{
+  if( rcRefList1.getSize() >= 2 && rcRefList0.getSize() == rcRefList1.getSize()) 
   {
 	  Bool bSwitch = true;
-	  for( UInt uiPos = 0; uiPos < rcRefList0.getActive(); uiPos++ )
+	  for( UInt uiPos = 0; uiPos < rcRefList0.getSize(); uiPos++ )
 	  {
 		  if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
 		  {
@@ -3846,6 +3905,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 		  rcRefList1.switchFirst();
 	  }
   }
+  //bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 
   return Err::m_nOK;
@@ -3869,7 +3929,7 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
   //===== list 0 =====
   {
     Int iFrameId;
-	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 
@@ -3878,11 +3938,21 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 		  RNOK( xFillAndExtendFrame   ( pcFrame ) );
 
 		  RNOK( rcRefList0.add( pcFrame ) );
+		  //bug-fix shenqiu EIDR{
+		  if(uiList0Size > 0)
+		  {
 		  uiList0Size--;
+	  }
+		  else
+		  {
+			  rcRefList0.decActive();
+		  }
+		  //bug-fix shenqiu EIDR}
 	  }
     }
 // JVT-Q065 EIDR{
-	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	//bug-fix shenqiu EIDR{
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
 	{
 		IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 		if(!pcFrame->getUnusedForRef())
@@ -3890,9 +3960,18 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 			RNOK( xFillAndExtendFrame   ( pcFrame ) );
 
 			RNOK( rcRefList0.add( pcFrame ) );
+
+			if(uiList0Size > 0)
+			{
 			uiList0Size--;
 		}
+			else
+			{
+				rcRefList0.decActive();
+			}
+		}
 	}
+	//bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 
     ROT( uiList0Size );
@@ -3901,7 +3980,7 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
   //===== list 1 =====
   {
     Int iFrameId;
-	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
@@ -3909,12 +3988,22 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 		RNOK( xFillAndExtendFrame   ( pcFrame ) );
 
 		RNOK( rcRefList1.add( pcFrame ) );
+		//bug-fix shenqiu EIDR{
+		if(uiList1Size > 0)
+		{
 		uiList1Size--;
+	  }
+		else
+		{
+			rcRefList1.decActive();
+		}
+		//bug-fix shenqiu EIDR}
 	  }
     }
 
 // JVT-Q065 EIDR{
-	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList1Size; iFrameId -= 2 )
+	//bug-fix shenqiu EIDR{
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
 	{
 		IntFrame* pcFrame = m_papcBQFrame[ iFrameId << uiBaseLevel ];
 		if(!pcFrame->getUnusedForRef())
@@ -3922,19 +4011,29 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 			RNOK( xFillAndExtendFrame   ( pcFrame ) );
 
 			RNOK( rcRefList1.add( pcFrame ) );
+
+			if(uiList1Size > 0)
+			{
 			uiList1Size--;
 		}
+			else
+			{
+				rcRefList1.decActive();
+			}
 	}
+	}
+	//bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 
     ROT( uiList1Size );
   }
 
 // JVT-Q065 EIDR{
-  if( rcRefList1.getActive() >= 2 && rcRefList1.getActive() >= 1)
+  //bug-fix shenqiu EIDR{
+  if( rcRefList1.getSize() >= 2 && rcRefList0.getSize() == rcRefList1.getSize())
   {
 	  Bool bSwitch = true;
-	  for( UInt uiPos = 0; uiPos < rcRefList0.getActive(); uiPos++ )
+	  for( UInt uiPos = 0; uiPos < rcRefList0.getSize(); uiPos++ )
 	  {
 		  if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
 		  {
@@ -3947,6 +4046,7 @@ MCTFEncoder::xGetBQPredictionLists( RefFrameList& rcRefList0,
 		  rcRefList1.switchFirst();
 	  }
   }
+  //bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
   return Err::m_nOK;
 }
@@ -3971,7 +4071,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
   //===== list 0 =====
   {
     Int iFrameId;
-	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 
@@ -3990,12 +4090,22 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 		}
 
 		RNOK( rcRefList0.add( pcFrame ) );
+		//bug-fix shenqiu EIDR{
+		if(uiList0Size > 0)
+		{
 		uiList0Size--;
+	  }
+		else
+		{
+			rcRefList0.decActive();
+		}
+		//bug-fix shenqiu EIDR}
 	  }
     }
 
 // JVT-Q065 EIDR{
-	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList0Size; iFrameId += 2 )
+	//bug-fix shenqiu EIDR{
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
 	{
 		IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 		if(!pcFrame->getUnusedForRef())
@@ -4014,9 +4124,17 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 			}
 
 			RNOK( rcRefList0.add( pcFrame ) );
+			if(uiList0Size > 0)
+			{
 			uiList0Size--;
 		}
+			else
+			{
+				rcRefList0.decActive();
+			}
+		}
 	}
+	//bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 	ROT( uiList0Size );
   }
@@ -4024,7 +4142,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
   //===== list 1 =====
   {
     Int iFrameId;
-	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
+	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
     {
       IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
 	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
@@ -4043,36 +4161,61 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 		}
 
 		RNOK( rcRefList1.add( pcFrame ) );
+		//bug-fix shenqiu EIDR{
+		if(uiList1Size > 0)
+		{
 		uiList1Size--;
+	  }
+		else
+		{
+			rcRefList1.decActive();
+		}
+		//bug-fix shenqiu EIDR}
 	  }
     }
 
 // JVT-Q065 EIDR{
-	if( rcRefList1.getActive() >= 2 && rcRefList1.getActive() >= 1)
+	//bug-fix shenqiu EIDR{
+	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
 	{
-		Bool bSwitch = true;
-		for( UInt uiPos = 0; uiPos < rcRefList0.getActive(); uiPos++ )
+		IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
+
+		if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
 		{
-			if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
+			if( ! pcFrame->isExtended() )
 			{
-				bSwitch = false;
-				break;
+				if( bHalfPel )
+				{
+				RNOK( xFillAndUpsampleFrame ( pcFrame ) );
 			}
+				else
+				{
+				RNOK( xFillAndExtendFrame   ( pcFrame ) );
+				}
 		}
-		if( bSwitch )
+
+			RNOK( rcRefList1.add( pcFrame ) );
+			if(uiList1Size > 0)
 		{
-			rcRefList1.switchFirst();
+				uiList1Size--;
 		}
+			else
+			{
+				rcRefList1.decActive();
+			}
 	}
+	}
+	//bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
 
 	ROT( uiList1Size );
   }
 // JVT-Q065 EIDR{
-  if( rcRefList1.getActive() >= 2 && rcRefList0.getActive() == rcRefList1.getActive() )
+  //bug-fix shenqiu EIDR{
+  if( rcRefList1.getSize() >= 2 && rcRefList0.getSize() == rcRefList1.getSize()) 
   {
 	  Bool bSwitch = true;
-	  for( UInt uiPos = 0; uiPos < rcRefList1.getActive(); uiPos++ )
+	  for( UInt uiPos = 0; uiPos < rcRefList0.getSize(); uiPos++ )
 	  {
 		  if( rcRefList0.getEntry(uiPos) != rcRefList1.getEntry(uiPos) )
 		  {
@@ -4085,6 +4228,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 		  rcRefList1.switchFirst();
 	  }
   }
+  //bug-fix shenqiu EIDR}
 // JVT-Q065 EIDR}
   return Err::m_nOK;
 }
@@ -4769,6 +4913,9 @@ MCTFEncoder::xEncodeLowPassPictures( AccessUnitList&  rcAccessUnitList )
     if( uiFrame == 0 && m_uiGOPNumber )
     {
       //====== don't code first anchor picture if it was coded within the last GOP =====
+	  //bug-fix shenqiu EIDR{
+	  m_pcAnchorFrameReconstructed->setUnusedForRef(m_papcFrame[ uiFrameIdInGOP ]->getUnusedForRef());
+	  //bug-fix shenqiu EIDR}
       RNOK( m_papcFrame[ uiFrameIdInGOP ] ->copyAll( m_pcAnchorFrameReconstructed  ) );
 	  // JVT-R057 LA-RDO{
 	  if(m_bLARDOEnable)

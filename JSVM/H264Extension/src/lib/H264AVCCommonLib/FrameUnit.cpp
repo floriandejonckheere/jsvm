@@ -97,7 +97,7 @@ FrameUnit::FrameUnit( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYu
  , m_bOriginal      ( bOriginal )
  , m_bInitDone      ( false )
  , m_cResidual     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
- , m_BaseRepresentation ( false )   //JVT-S036 lsj
+ , m_bBaseRepresentation ( false )   //bug-fix base_rep
  , m_cFGSFrame      ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
  , m_cFGSIntFrame   ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
  , m_pcFGSPicBuffer ( NULL)
@@ -266,7 +266,7 @@ Void FrameUnit::setPoc( Int iPoc )
 ErrVal FrameUnit::uninit()
 {
   m_uiStatus = 0;
-
+  m_bBaseRepresentation = false; //bug-fix base_rep
   m_pcPicBuffer = NULL;
   m_pcFGSPicBuffer = NULL;
   RNOK( m_cFGSFrame.uninit() );

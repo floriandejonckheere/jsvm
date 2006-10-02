@@ -152,7 +152,13 @@ public:
   Void addFwdBwd( Par8x8 ePar8x8, UInt uiFwdBwdBlk )            { m_usFwdBwd |= uiFwdBwdBlk<<(ePar8x8*4); }
   Void setBCBPAll( UInt uiBit )                                 { m_uiBCBP = (uiBit) ? 0xffff : 0; }
   UInt getBCBP( UInt uiPos )                              const { return ((m_uiBCBP >> uiPos) & 1); }
-  Void setBCBP( UInt uiPos, UInt uiBit )                        { m_uiBCBP |= (uiBit << uiPos); }
+  Void setBCBP( UInt uiPos, UInt uiBit, Bool bReset = false )
+  { 
+    if( bReset )
+      m_uiBCBP &= ~(1 << uiPos);
+
+    m_uiBCBP |= (uiBit << uiPos); 
+  }
   Void setBCBP( UInt uiBCBP )                                   { m_uiBCBP = uiBCBP; }
   UInt getBCBP()                                          const { return m_uiBCBP; }
   Bool getSkipFlag()                                      const { return m_bSkipFlag; }

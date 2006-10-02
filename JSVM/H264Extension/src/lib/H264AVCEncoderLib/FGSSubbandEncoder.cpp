@@ -1048,6 +1048,7 @@ RQFGSEncoder::xResidualTransform( /*UInt uiBasePos*/ )
       pcMbDataAccessEL->getMbData().setResidualPredFlag( bResidualPrediction );
       m_pcTransform->setClipMode( true );
     }
+   pcMbDataAccessEL->getMbData().setBCBP(0);
   }
 
  

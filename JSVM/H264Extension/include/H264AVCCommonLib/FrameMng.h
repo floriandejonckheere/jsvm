@@ -280,7 +280,9 @@ public:
   FrameUnit*        getReconstructedFrameUnit( Int iPoc );
 
   YuvBufferCtrl*    getYuvFullPelBufferCtrl() { return m_cFrameUnitBuffer.getYuvFullPelBufferCtrl();  }
-
+  //JVT-T054_FIX{
+  ErrVal      UpdateFrameunitFromShortTermList(FrameUnit* pcFrameUnit, Int iPoc);
+//JVT-T054}
 protected:
   ErrVal            xCheckMissingFrameNums( SliceHeader& rcSH );
 

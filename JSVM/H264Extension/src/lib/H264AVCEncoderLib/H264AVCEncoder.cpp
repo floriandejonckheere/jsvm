@@ -1088,7 +1088,8 @@ H264AVCEncoder::xWriteScalableSEICGSSNR( ExtBinDataAccessor* pcExtBinDataAccesso
 					  {
 //bug-fix suffix{{
 						 // if( rcLayer.getLayerCGSSNR() == 0 && m_pcCodingParameter->getBaseLayerMode() == 1 ) // AVC-COMPATIBLE
-						  if( rcLayer.getLayerCGSSNR() == 0 && m_pcCodingParameter->getBaseLayerMode() < 2 ) // AVC-COMPATIBLE
+              //JVT-T054_FIX to remove
+						 /* if( rcLayer.getLayerCGSSNR() == 0 && m_pcCodingParameter->getBaseLayerMode() < 2 ) // AVC-COMPATIBLE
 //bug-fix suffix}}
 						  {
                 LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( 0 );
@@ -1106,7 +1107,7 @@ H264AVCEncoder::xWriteScalableSEICGSSNR( ExtBinDataAccessor* pcExtBinDataAccesso
 						    pcScalableSEI->setNumDirectlyDependentLayers(uiNumScalableLayer, 1 );
               }
               }
-              else
+              else*/
               {
                 uiDelta = uiNumScalableLayer - getScalableLayerId( rcLayer.getLayerCGSSNR(), uiCurrTempLevel, rcLayer.getQualityLevelCGSSNR()-1 );
 						    pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 0, uiDelta );//JVT-S036 lsj

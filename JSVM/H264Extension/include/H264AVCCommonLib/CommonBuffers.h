@@ -294,8 +294,10 @@ XDataList<T>::add( T* pT )
   ROF( m_uiSize < X_DATA_LIST_SIZE );
 
   m_apT[ m_uiSize++ ] = pT;
-  m_uiActive          = m_uiSize;
-
+  //bug-fix shenqiu EIDR{
+  //m_uiActive          = m_uiSize;
+  m_uiActive++;
+  //bug-fix shenqiu EIDR}
   return Err::m_nOK;
 }
 
@@ -344,7 +346,10 @@ template< class T >
 T* 
 XDataList<T>::getEntry( UInt uiIndex ) const
 {
-  return ( uiIndex < m_uiActive ? m_apT[ uiIndex ] : 0 );
+	//bug-fix shenqiu EIDR{
+  //return ( uiIndex < m_uiActive ? m_apT[ uiIndex ] : 0 );
+	return ( uiIndex < m_uiSize ? m_apT[ uiIndex ] : 0 );
+	//bug-fix shenqiu EIDR}
 }
 
 template< class T >
