@@ -1,0 +1,95 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	=> "ERRORCON6",
+    original 	=> "HPCA_BRCM_C.yuv",
+width       => 352,
+height      => 288,
+framerate   => 15,
+nbframes    => 100,
+verbosemode => 1,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	=> 1,
+
+#==========================================================#
+#               ErrorEncode parameters                        #
+#==========================================================#
+    errorencode	=> 1,
+
+#=======================#
+# Layers  parameters    #
+#=======================#     
+layers      => [
+                #----------#
+                # Layer  0 #
+                #----------#
+                {
+                 width        => 176,
+                 height       => 144,
+                 framerate    =>  15,
+                 packetlossrate => 5,
+                },
+                #----------#
+                # Layer  1 #
+                #----------#
+                {
+                 width        => 352,
+                 height       => 288,
+                 framerate    =>  15,
+                 packetlossrate => 10,
+                },
+               ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+bitratecheckrange  => 5,
+psnrcheckrange     => 0,
+         
+tests              => [
+                       #----------#
+                       # Test   0 #
+                       #----------#
+                       {
+            		        name => "E1",
+                        mode        => 0,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 15,
+                  			bitrate     => 190.0776,
+                  			psnr        => 19.4543,
+                        errorconcealment => 1,
+                       },
+                       #----------#
+                       # Test   1 #
+                       #----------#
+                       {
+            		        name => "E2",
+                        mode        => 0,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 15,
+                  			bitrate     => 190.0776,
+                  			psnr        => 19.4543,
+                        errorconcealment => 2,
+                       },                       
+                       #----------#
+                       # Test   3 #
+                       #----------#
+                       {
+            		        name => "E3",
+                        mode        => 0,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 15,
+                  			bitrate     => 190.0776,
+                  			psnr        => 19.4543,
+                        errorconcealment => 3,
+                       },                                              
+                      ],
+}
+
