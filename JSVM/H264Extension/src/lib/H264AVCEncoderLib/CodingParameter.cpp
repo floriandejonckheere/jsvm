@@ -264,10 +264,7 @@ ErrVal LayerParameters::check()
       return Err::m_nOK;
     }
 
-    if( m_dNumFGSLayers == 0 )
-    {
-      m_uiFGSMotionMode = 0;
-    }
+   
 
     // Display slice division info.
     printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);
@@ -278,6 +275,11 @@ ErrVal LayerParameters::check()
   }
   // JVT-S054 (ADD) <-
 
+  if( m_dNumFGSLayers == 0 )
+    {
+      m_uiFGSMotionMode = 0;
+    }
+ 
   //S051{
   ROTREPORT( getAnaSIP	()>0 && getEncSIP(),			"Unsupported SIP mode\n"); 
   //S051}
