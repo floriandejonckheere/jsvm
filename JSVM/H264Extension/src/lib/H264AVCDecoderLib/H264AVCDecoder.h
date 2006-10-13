@@ -216,7 +216,12 @@ public:
                             MyList<BinData*>&	cVirtualSliceList 
 							,Bool&			  UnitAVCFlag		//JVT-S036 lsj
 						   );
-	ErrVal	setec( UInt uiErrorConceal) { m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal); if ( m_eErrorConceal == 0) m_bNotSupport = true; return	Err::m_nOK;}
+	ErrVal	setec( UInt uiErrorConceal) 
+  { 
+    m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal); 
+    if ( m_eErrorConceal == EC_NONE) m_bNotSupport = true; 
+   return	Err::m_nOK;
+  }
   ErrVal getBaseLayerUnit(UInt            uiBaseLayerId, 
                           Int             iPoc,
                           DPBUnit         *&pcBaseDPBUnit);

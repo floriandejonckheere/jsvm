@@ -1,8 +1,23 @@
+JSVM_6_8_1 -> JSVM_6_8_2
+========================
+
+Date	    : Oct. 12, 2006
+Author	  : J. Vieron (on behalf of Tae Meon Bae, Burak Gorkemli, Masschelein Bart and, Bottreau Vincent)
+
+Changes:
+
+-Bug fixes related error concealment parameters setting
+-Bug fix related to FGSMotion without FGS slices 
+-Bug fixes for gcc 4.1 compilation
+-FixedQPEncoder (if mode QP and residual QP are equal in the cfg, they evolves similarly for the first 5 iterations
+then it is fixed to the latest value, otherwise mode Qp value will not change during iterations)
+
+
 JSVM_6_8 -> JSVM_6_8_1
 ======================
 
 Date	    : Sep. 25, 2006
-Author	  : J. Vieron (on behalf of K. Xie, Shenqiu, N. Cammas, X. Wang, H. Schwarz and F. Leleannec)
+Author	  : J. Vieron (on behalf of K. Xie, Shen Qiu, N. Cammas, X. Wang, H. Schwarz and F. Leleannec)
 
 Changes:
 
@@ -10,8 +25,8 @@ Changes:
 + add of a dummy PacketLossSimulator in the Validation directory. Please read the JSVM Software manual !! (K. Xie),
 - IDR option bug fixes (see //bug-fix shenqiu EIDR) (Shenqiu),
 - Bug fixes related to JVT-T054 (N. Cammas),
-- Bug fixes related to AR-FGS  (X. Wang).
-- Bug fix related to FGSMotion (H. Schwarz)  
+- Bug fixes related to AR-FGS  (X. Wang),
+- Bug fix related to FGSMotion (H. Schwarz),  
 - Bug fix related to QualityLevelAssigner tool when GOP size is equal to 1 (F. Leleannec)
 
 
@@ -20,7 +35,7 @@ JSVM_6_7 -> JSVM_6_8
 ====================
 
 Date	    : Sep. 11, 2006
-Author	    : Kai Xie (Thomson)
+Author	  : Kai Xie (Thomson)
 
 Changes:
 
@@ -347,7 +362,7 @@ Changes:
 - Added MMCO & sliding window operation for base representations
 - Some syntax changes of scalability info SEI message
 
-Note: The changes above can be found by searching "JVT-RS036 lsj". 
+Note: The changes above can be found by searching "JVT-S036 lsj". 
  
 - Minor Bug fixes (QLAssigner + Encoder Trace)
 

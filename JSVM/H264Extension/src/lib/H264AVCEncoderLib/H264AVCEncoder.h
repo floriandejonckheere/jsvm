@@ -181,7 +181,7 @@ public:
                                     UInt                uiLayer ) ;
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 // JVT-T073 {
-  ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
+  ErrVal writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
 // JVT-T073 }
 
   Void setScalableSEIMessage  ()       { m_bScalableSeiMessage = true; }
@@ -235,6 +235,10 @@ protected:
 	Double														m_dFinalFramerate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
   MCTFEncoder*                      m_apcMCTFEncoder    [MAX_LAYERS];
   AccessUnitList                    m_cAccessUnitList;
+
+  // ICU / ETRI ROI 
+  Bool    m_bWrteROISEI;
+  UInt    m_loop_roi_sei;
 };
 
 

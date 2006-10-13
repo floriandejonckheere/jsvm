@@ -2443,6 +2443,11 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
   }
 
   // ICU/ETRI FGS_MOT_USE
+  // 2006.10.02 FGS_MOT_USE Bug Fix
+	if (uiLastRecLayer == m_uiQualityLevelForPrediction 
+		|| (m_dNumFGSLayers < m_uiQualityLevelForPrediction && uiLastRecLayer == m_dNumFGSLayers )
+	   )
+	{
 	m_pacControlDataEL[uiFrameIdInGOP].getMbDataCtrl()
 		->copyMotion(*(m_pcRQFGSEncoder->getMbDataCtrlEL()));
 
@@ -2452,6 +2457,8 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 	m_pacControlDataEL[uiFrameIdInGOP].getMbDataCtrl()
 		->xSetDirect8x8InferenceFlag(m_pcRQFGSEncoder
 		->getMbDataCtrlEL()->xGetDirect8x8InferenceFlagPublic());
+	}
+	
   
   if(bAlreadyReconstructed)  // x. wang, Nokia
     pcFrame->copy(pcRecTemp);

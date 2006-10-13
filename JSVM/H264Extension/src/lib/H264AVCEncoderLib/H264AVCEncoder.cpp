@@ -111,7 +111,9 @@ H264AVCEncoder::H264AVCEncoder():
   m_bVeryFirstCall    ( true ),
   m_bScalableSeiMessage( false ),
   m_bInitDone         ( false ),
-  m_bTraceEnable      ( false )  
+  m_bTraceEnable      ( false ),  
+  m_bWrteROISEI		  ( true ), 
+  m_loop_roi_sei	  ( 0 )
 {
   ::memset( m_apcMCTFEncoder, 0x00, MAX_LAYERS*sizeof(Void*) );
   ::memset( m_dFinalFramerate, 0x00,MAX_LAYERS*MAX_DSTAGES*MAX_QUALITY_LEVELS*sizeof(Double) );
@@ -202,9 +204,12 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
 	  , pcMbDataCtrlEL, bConstrainedIPredBL, bForCopyOnly, iSpatialScalability, iPoc, bMotion ) );
 
 	LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
-    UInt uiFgsMotionMode = rcBaseLayer.getFGSMotionMode();
 
-  if (!uiFgsMotionMode)
+    UInt uiFgsMotionMode = rcBaseLayer.getFGSMotionMode();
+	Double dNumFGSLayers = rcBaseLayer.getNumFGSLayers();
+
+	// ICU/ETRI FGS_MOT Bug Fix
+	if (0 == uiFgsMotionMode || 0 == dNumFGSLayers)
   {	
 		pcMbDataCtrlEL = pcMbDataCtrl;
   }
@@ -1369,9 +1374,6 @@ H264AVCEncoder::xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt 
   return Err::m_nOK;
 }
 
-Bool    m_bWrteROISEI = true;
-UInt    m_loop_roi_sei=0;
-
 
 ErrVal
 H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bool &rbMoreSets )
@@ -1692,7 +1694,7 @@ H264AVCEncoder::xInitParameterSets()
 	if(m_pcCodingParameter->getBaseLayerMode() > 0)
 //bug-fix suffix}}
 	{
-		ROT( bH264AVCCompatible && uiDPBSize > 16 );
+		//ROT( bH264AVCCompatible && uiDPBSize > 16 );
 	}
 	ROT( uiLevelIdc == MSYS_UINT_MAX );
 

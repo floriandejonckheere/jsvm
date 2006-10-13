@@ -94,13 +94,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define MAX_LAYERS  10
 #define USAGE(X)    {if(X) print_usage();}
 #define MIN_QP       0.0
-#define MAX_QP      80.0
-#define DELTA_QP     3.0
-
-
-#define AVC_HACK     1
-#define CLOSED_LOOP  1
-
+#define MAX_QP      51.0
+#define DELTA_QP     6.0
+#define MIN_DQP      1.0
+#define MAX_NUM_ITER  15
 
 void
 print_usage()
@@ -118,13 +115,17 @@ typedef struct
   double        dTargetRate;                      // set from config file (never changed)
   double        dMinMismatch;                     // set from config file (never changed)
   double        dMaxMismatch;                     // set from config file (never changed)
-  double        dStartQP;                         // set from config file (never changed)
+  double        dStartBaseQpResidual;             // set from config file (never changed)
+	double        dStartQpModeDecision;             // set from config file (never changed)
 
-  double        dResidualQP;                      // needed for encode
+	double        dQpModeDecision;                  // needed for encode
+  double        dBaseQpResidual;                  // needed for encode
   unsigned int  uiMotionFileMode;                 // needed for encode
   std::string   cMotionFile;                      // needed for encode
 
   double        dRate;
+
+  unsigned int  uiNumIter;
 }
 LayerParameters;
 
@@ -161,6 +162,7 @@ encode( EncoderParameters& rcEncoderParameters )
 {
   char        acTempString[1024];
   std::string cCommandLineString;
+	std::string cEchoLineString = "echo ";
 
   //----- general settings -----
   cCommandLineString    += rcEncoderParameters.cEncoderBinary;
@@ -175,17 +177,23 @@ encode( EncoderParameters& rcEncoderParameters )
   {
     cCommandLineString  += " -bcip";
   }
+	cCommandLineString    += " -frms ";
+	sprintf( acTempString, "%d", rcEncoderParameters.uiNumberOfFrames );
+	cCommandLineString    += acTempString;
 
   //----- layer settings -----
   for( unsigned int uiLayer = 0; uiLayer < rcEncoderParameters.uiNumberOfLayers; uiLayer++ )
   {
     LayerParameters& rcLayer = rcEncoderParameters.acLayerParameters[uiLayer];
-
-    sprintf( acTempString, " -rqp %d %lf -mfile %d %d %s ",
-      uiLayer, rcLayer.dResidualQP,
+    sprintf( acTempString, " -lqp %d %lf -rqp %d %lf -mfile %d %d %s ",
+      uiLayer, rcLayer.dQpModeDecision, uiLayer, rcLayer.dBaseQpResidual,
       uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str() );
     cCommandLineString  += acTempString;
   }
+
+	cEchoLineString += cCommandLineString;
+	cEchoLineString += "\n";
+	system( cEchoLineString.c_str() );
 
   //----- run encoder -----
   int iResult = system( cCommandLineString.c_str() );
@@ -210,11 +218,6 @@ encode( EncoderParameters& rcEncoderParameters )
   return uiFileSize;
 }
 
-
-
-
-
-
 //////////////////////////////////////////////////////////////////////////
 //
 //   encode layer until rate is reached and return file size
@@ -238,43 +241,42 @@ encode_layer( EncoderParameters& rcEncoderParameters )
   double            dMaxSizeQP       = -1000;
   int               iMinSizeQP       =  1000;
   int               iMaxSizeQP       = -1000;
-  double            dCurrQP          = rcLayer.dStartQP;
-  int               numitermot       = 0;
-  bool              motionestimation = true;
-
+  double            dCurrQP          = rcLayer.dStartBaseQpResidual;
  
   //----- run until rate matches -----
+	rcLayer.uiNumIter = 0;
+	rcLayer.dBaseQpResidual = rcLayer.dStartBaseQpResidual;
+	rcLayer.dQpModeDecision = rcLayer.dStartQpModeDecision;
   while( true )
   {
     //----- set parameters -----
-    unsigned int iCurrQP        = (int)floor( dCurrQP + 0.5 );
-    rcLayer.dResidualQP         = dCurrQP;
-    sprintf( acTempString, "%s\\%s_Layer%d.mot",
+    const int iCurrQP       = (int)floor( dCurrQP + 0.5 );
+    rcLayer.dBaseQpResidual = dCurrQP;
+		if( (rcLayer.dStartBaseQpResidual == rcLayer.dStartQpModeDecision) && (rcLayer.uiNumIter < 5) )
+		{
+			// update QpModeDecision
+			rcLayer.dQpModeDecision = rcLayer.dBaseQpResidual;
+		}
+
+		printf( "\n##################################" );
+		printf( "\n### Layer %u - iteration %u      ###", uiLayer, rcLayer.uiNumIter );
+		printf( "\n### BaseQpResidual = %lf ###", rcLayer.dBaseQpResidual );
+		printf( "\n### QpModeDecision = %lf ###", rcLayer.dQpModeDecision );
+		printf( "\n##################################\n" );
+
+		sprintf( acTempString, "%s\\%s_layer%d.mot",
       rcEncoderParameters.cMotionFolder.c_str(),
       rcEncoderParameters.cLabel.c_str(),
       uiLayer );
     rcLayer.cMotionFile         = acTempString;
-    rcLayer.uiMotionFileMode    = ( motionestimation ? 2 : 1 );
-    if( rcLayer.uiMotionFileMode == 1 )
-    {
-      numitermot++;
-    }
-#if AVC_HACK
-    if( uiLayer == 0 )
-    {
       rcLayer.uiMotionFileMode = 2;
-    }
-#endif
-#if CLOSED_LOOP
-    rcLayer.uiMotionFileMode = 2;
-#endif
+		rcLayer.uiNumIter++;
 
     //--- run ---
     unsigned int uiCurrSize = encode( rcEncoderParameters );
-	  motionestimation        = false;
 
     //--- check ---
-    if( ( uiCurrSize >= uiMinTarget && uiCurrSize <= uiMaxTarget ) || dCurrQP >= MAX_QP || dCurrQP <= MIN_QP || numitermot > 10 )
+    if( ( uiCurrSize >= uiMinTarget && uiCurrSize <= uiMaxTarget ) || dCurrQP >= MAX_QP || dCurrQP <= MIN_QP || rcLayer.uiNumIter >= MAX_NUM_ITER )
     {
       rcLayer.uiMotionFileMode  = 1;
       rcLayer.dRate             = (double)uiCurrSize / dSeqLength * 8.0 / 1000.0;
@@ -297,7 +299,7 @@ encode_layer( EncoderParameters& rcEncoderParameters )
       iMaxSizeQP  = iCurrQP;
     }
 
-    //--- get new QP ---
+    //--- get new BaseQpResidual ---
     if( dMinSizeQP != 1000.0 && dMaxSizeQP != -1000.0 )
     {
       //--- two borders ---
@@ -308,9 +310,9 @@ encode_layer( EncoderParameters& rcEncoderParameters )
     }
     else if( dMinSizeQP != 1000.0 )
     {
-      //--- lower border: decrease QP ---
-      double dDQP = dCurrQP - ( dMinSizeQP + 6.0 * log( (double)uiMinSize / (double)uiTargetSize ) );
-      dDQP        = ( dDQP < 1.0 ? 1.0 : dDQP );
+      //--- lower border: decrease BaseQpResidual ---
+      double dDQP = dCurrQP - ( dMinSizeQP + DELTA_QP * log( (double)uiMinSize / (double)uiTargetSize ) );
+      dDQP        = ( dDQP < MIN_DQP ? MIN_DQP : dDQP );
       dCurrQP    -= dDQP;
       if( dCurrQP < MIN_QP )
       {
@@ -319,9 +321,9 @@ encode_layer( EncoderParameters& rcEncoderParameters )
     }
     else
     {
-      //--- upper border: increase QP ---
-      double dDQP = ( dMaxSizeQP + 6.0 * log( (double)uiMaxSize / (double)uiTargetSize ) ) - dCurrQP;
-      dDQP        = ( dDQP < 1.0 ? 1.0 : dDQP );
+      //--- upper border: increase BaseQpResidual ---
+      double dDQP = ( dMaxSizeQP + DELTA_QP * log( (double)uiMaxSize / (double)uiTargetSize ) ) - dCurrQP;
+      dDQP        = ( dDQP < MIN_DQP ? MIN_DQP : dDQP );
       dCurrQP    += dDQP;
       if( dCurrQP > MAX_QP )
       {
@@ -330,8 +332,6 @@ encode_layer( EncoderParameters& rcEncoderParameters )
     }
   }
 }
-
-
 
 #define ROT(x)  {if(x) return 1;}
 #define ROF(x)  {if(!x)return 1;}
@@ -354,9 +354,6 @@ read_line( FILE* pFile, char* pcFormat, void* pPar )
   }
   return 1;
 }
-
-
-
 
 int
 read_config_file( EncoderParameters& cEncoderParameters, FILE* pFile )
@@ -391,15 +388,12 @@ read_config_file( EncoderParameters& cEncoderParameters, FILE* pFile )
     ROT( read_line( pFile, "%lf", &rcLayer.dTargetRate ) );
     ROT( read_line( pFile, "%lf", &rcLayer.dMinMismatch ) );
     ROT( read_line( pFile, "%lf", &rcLayer.dMaxMismatch ) );
-    ROT( read_line( pFile, "%lf", &rcLayer.dStartQP ) );
+    ROT( read_line( pFile, "%lf", &rcLayer.dStartBaseQpResidual ) );
+		ROT( read_line( pFile, "%lf", &rcLayer.dStartQpModeDecision ) );
   }
 
   return 0;
 }
-
-
-
-
 
 int main( int argc, char** argv)
 {
@@ -422,9 +416,6 @@ int main( int argc, char** argv)
     fclose( pFile );
   }
   
-
-
-
   //----- iterative encode -----
   unsigned int uiNumberOfLayers = cEncoderParameters.uiNumberOfLayers;
   for( unsigned int uiNumLayers = 1; uiNumLayers <= uiNumberOfLayers; uiNumLayers++ )
@@ -433,18 +424,19 @@ int main( int argc, char** argv)
     encode_layer( cEncoderParameters );
   }
 
-
   //----- output -----
-  printf("\n\n\n");
+  fprintf( stderr, "\n\n\n" );
   for( unsigned int uiLayer = 0; uiLayer < uiNumberOfLayers; uiLayer++ )
   {
-    printf("L%d:   QP = %8.4lf    RATE =%10.4lf [ %6.3lf %% ]\n",
+    fprintf( stderr, "L%d:   QP = %lf    MQP = %lf    RATE =%10.4lf [ %6.3lf %% ] (%u iterations)\n",
       uiLayer,
-        cEncoderParameters.acLayerParameters[uiLayer].dResidualQP,
+        cEncoderParameters.acLayerParameters[uiLayer].dBaseQpResidual,
+				cEncoderParameters.acLayerParameters[uiLayer].dQpModeDecision,
         cEncoderParameters.acLayerParameters[uiLayer].dRate,
       ( cEncoderParameters.acLayerParameters[uiLayer].dRate - 
         cEncoderParameters.acLayerParameters[uiLayer].dTargetRate ) /
-        cEncoderParameters.acLayerParameters[uiLayer].dTargetRate * 100.0 );
+        cEncoderParameters.acLayerParameters[uiLayer].dTargetRate * 100.0,
+				cEncoderParameters.acLayerParameters[uiLayer].uiNumIter );
   }
   printf("\n\n\n");
 

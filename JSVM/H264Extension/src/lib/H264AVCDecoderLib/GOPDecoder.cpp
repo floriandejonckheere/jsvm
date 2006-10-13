@@ -2440,7 +2440,8 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
       RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
 
       // ICU/ETRI FGS_MOT_USE
-      if (!m_pcRQFGSDecoder->getSliceHeader()->isIntra())
+      // 2006.10.02 ICU/ETRI FGS_MOT_USE Bug Fix
+      if (!m_pcRQFGSDecoder->getSliceHeader()->isIntra() && m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel() == m_uiQualityLevelForPrediction )
       {
         m_pcBaseLayerCtrlEL->copyMotion(*(m_pcRQFGSDecoder->getMbDataCtrlEL()));
         m_pcBaseLayerCtrlEL->SetMbStride(m_pcRQFGSDecoder->getMbDataCtrlEL()->GetMbStride());
