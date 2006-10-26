@@ -27,8 +27,7 @@ my $DECODER    = "H264AVCDecoderLibTestStatic";
 my $RESAMPLER  = "DownConvertStatic";
 my $QLASSIGNER = "QualityLevelAssignerStatic";
 my $JMDECODER  = "ldecod";
-
-my $PACKETLOSSSIMULATOR= "PacketLossSimulator";
+my $PACKETLOSSSIMULATOR= "PacketLossSimulatorStatic";
 
 #-----------------------#
 # Functions             #
