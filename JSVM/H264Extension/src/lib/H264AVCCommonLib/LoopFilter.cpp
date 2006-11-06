@@ -912,7 +912,6 @@ __inline UInt LoopFilter::xGetHorFilterStrength( const MbDataAccess&  rcMbDataAc
 
 
 
-
 ErrVal LoopFilter::process( SliceHeader&  rcSH,
                             IntFrame*     pcFrame,
                             MbDataCtrl*   pcMbDataCtrlMot, // if NULL -> all intra
@@ -920,7 +919,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
                             UInt          uiMbInRow,
                             RefFrameList* pcRefFrameList0,
                             RefFrameList* pcRefFrameList1,			
-							bool		  bAllSliceDone, 
+							              bool		  bAllSliceDone, 
                             bool          spatial_scalable_flg)  // SSUN@SHARP
 {
   ROT( NULL == m_pcControlMngIf );

@@ -153,7 +153,7 @@ Extractor::Extractor()
   for( uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
 	{
     for(UInt uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
-    {
+        {
       m_bEnableQLTruncation[uiLayer][uiFGSLayer] = false;
     }
   }
@@ -290,7 +290,8 @@ Extractor::destroy()
         delete []m_aaiLevelForFrame[uiLayer];
         delete []m_aadTargetByteForFrame[uiLayer];
         delete []m_aaiNumLevels[uiLayer];
-        for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+       // for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+       for(uiFGSLayer = 0; uiFGSLayer <= MAX_FGS_LAYERS; uiFGSLayer++) //bug fix JV 02/11/06
         {
             delete []m_aaadTargetBytesFGS[uiLayer][uiFGSLayer];
             delete []m_aaadBytesForFrameFGS[uiLayer][uiFGSLayer];
@@ -1443,7 +1444,8 @@ Extractor::xExtractPoints()
   for(uiLayer=0; uiLayer < MAX_LAYERS; uiLayer++)
   {
       uiNumFrame[uiLayer] = 0;
-      for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+      
+       for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
       {
               auiBytesPassed[uiLayer][uiFGSLayer] = new UInt[m_auiNbImages[uiLayer]];
               for(uiFrame = 0; uiFrame < m_auiNbImages[uiLayer]; uiFrame++)
@@ -3377,8 +3379,8 @@ ErrVal Extractor::QualityLevelSearch(Bool bOrderedTopLayerTrunc)
     { 
       for( uiLevel = 0; uiLevel < MAX_TEMP_LEVELS; uiLevel++ )
       {
-        for( uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
-        {
+       for( uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
+       {
           uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
           uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
         }
@@ -3391,7 +3393,7 @@ ErrVal Extractor::QualityLevelSearch(Bool bOrderedTopLayerTrunc)
       for( uiLevel = 0; uiLevel <= uiExtLevel; uiLevel++ )
       {
         for( uiFGSLayer = 1; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++ )
-        {
+         {
           uiBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
           uiSumBytesOfLevelPerFGS[uiLayer][uiLevel][uiFGSLayer] = 0;
           for(uiNFrames = 0; uiNFrames < uiNumPictures; uiNFrames++)
@@ -4054,8 +4056,8 @@ Void Extractor::CalculateMaxRate(UInt uiLayer)
     for(uiNumImage = 0; uiNumImage < m_auiNbImages[uiLayer]; uiNumImage++)
 	  {
 		  UInt maxRate = 0;
-		  for(ui = 0; ui < MAX_FGS_LAYERS; ui++)
-		  {
+		   for(ui = 0; ui <= MAX_FGS_LAYERS; ui++) //bug fix JV 02/11/06
+      {
 			  maxRate += (UInt)m_aaadBytesForFrameFGS[uiLayer][ui][uiNumImage];
 		  }
 		  
@@ -4192,7 +4194,9 @@ Extractor::xSetParameters_DS()
 		{
 			for(uiNFrames = 0; uiNFrames < m_auiNbImages[uiLayer]; uiNFrames ++)
 			{
-				for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+			
+         //for(uiFGSLayer = 0; uiFGSLayer < MAX_FGS_LAYERS; uiFGSLayer++)
+         for(uiFGSLayer = 0; uiFGSLayer <= MAX_FGS_LAYERS; uiFGSLayer++) //bug fix JV 02/11/06
 				{
 					if(m_aaiLevelForFrame[uiLayer][uiNFrames] <= (Int)uiExtLevel)
 						dMinOutputSize += m_aaadBytesForFrameFGS[uiLayer][uiFGSLayer][uiNFrames];
@@ -4488,8 +4492,9 @@ Void Extractor::CalculateSizeDeadSubstream()
 		sumMaxRate = 0.0;
 		for(UInt uiNFrames = 0; uiNFrames < m_auiNbImages[uiLayer]; uiNFrames++)
 		{
-            for(UInt uiFGS = 1; uiFGS < MAX_FGS_LAYERS; uiFGS++)
-			{	
+     // for(UInt uiFGS = 1; uiFGS < MAX_FGS_LAYERS; uiFGS++)
+			for(UInt uiFGS = 1; uiFGS <= MAX_FGS_LAYERS; uiFGS++) //bug fix JV 02/11/06
+      {	
 				sumFGS+= m_aaadBytesForFrameFGS[uiLayer][uiFGS][uiNFrames];
 			}
 			sumMaxRate += (m_aaadMaxRate[uiLayer][uiNFrames]-m_aaadBytesForFrameFGS[uiLayer][0][uiNFrames]);

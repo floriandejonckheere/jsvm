@@ -412,6 +412,23 @@ QualityLevelAssigner::xInitStreamParameters()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
+//{suffix TL read
+		if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
+			cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
+		{
+			h264::PacketDescription cPacketDescriptionTemp;
+			h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+			Int iFilePos = 0;
+			RNOK( pcReadBitStream->getPosition( iFilePos ) );
+			BinData *pcNextBinData;
+			Bool bEos;
+			RNOK( pcReadBitStream->extractPacket( pcNextBinData, bEos ) );
+			m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
+			if( cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
+				cPacketDescription.Level = cPacketDescriptionTemp.Level;
+			RNOK( pcReadBitStream->setPosition(iFilePos ) );
+		}
+//}suffix TL read
     ROT( bFirstPacket && !pcScalableSEI );
     if( pcScalableSEI )
     {
@@ -752,6 +769,23 @@ QualityLevelAssigner::xInitRateValues()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
+//{suffix TL read
+		if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
+			cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
+		{
+			h264::PacketDescription cPacketDescriptionTemp;
+			h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+			Int iFilePos = 0;
+			RNOK( pcReadBitStream->getPosition( iFilePos ) );
+			BinData *pcNextBinData;
+			Bool bEos;
+			RNOK( pcReadBitStream->extractPacket( pcNextBinData, bEos ) );
+			m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
+			if( cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
+				cPacketDescription.Level = cPacketDescriptionTemp.Level;
+			RNOK( pcReadBitStream->setPosition(iFilePos ) );
+		}
+//}suffix TL read
     delete pcScalableSEI; pcScalableSEI = 0;
 
     //----- get packet size -----
@@ -823,6 +857,23 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
 
     //===== analyze packet =====
     RNOK( m_pcH264AVCPacketAnalyzer->process( rpcBinData, cPacketDescription, pcScalableSEI ) );
+//{suffix TL read
+		if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
+			cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
+		{
+			h264::PacketDescription cPacketDescriptionTemp;
+			h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+			Int iFilePos = 0;
+			RNOK( pcReadBitStream->getPosition( iFilePos ) );
+			BinData *pcNextBinData;
+			Bool bEos;
+			RNOK( pcReadBitStream->extractPacket( pcNextBinData, bEos ) );
+			m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
+			if( cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
+				cPacketDescription.Level = cPacketDescriptionTemp.Level;
+			RNOK( pcReadBitStream->setPosition(iFilePos ) );
+		}
+//}suffix TL read
     delete pcScalableSEI; pcScalableSEI = 0;
 
 
@@ -1213,7 +1264,8 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 					bStart, m_pcH264AVCDecoder,SuffixEnable
 					)
 				);
-
+//lh1028
+//			printf("", m_pcH264AVCDecoder->getH264AVCDecoder() );
 			RNOK( m_pcH264AVCDecoderSuffix->uninit( false ));  
 
 			if( !SuffixEnable )
@@ -1223,7 +1275,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 			}
 			else
 			{
-				m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
+			//	m_pcH264AVCDecoder->decreaseNumOfNALInAU(); //{suffix TL read
 			}
 		}
 //bug-fix suffix}}
@@ -1554,6 +1606,23 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
+//{suffix TL read
+		if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
+			cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
+		{
+			h264::PacketDescription cPacketDescriptionTemp;
+			h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+			Int iFilePos = 0;
+			RNOK( pcReadBitStream->getPosition( iFilePos ) );
+			BinData *pcNextBinData;
+			Bool bEos;
+			RNOK( pcReadBitStream->extractPacket( pcNextBinData, bEos ) );
+			m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
+			if( cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
+				cPacketDescription.Level = cPacketDescriptionTemp.Level;
+			RNOK( pcReadBitStream->setPosition(iFilePos ) );
+		}
+//}suffix TL read
     delete pcScalableSEI; pcScalableSEI = 0;
 
     //----- set packet size -----
@@ -1655,7 +1724,24 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
 
     //----- get packet description -----
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEI ) );
-    delete pcScalableSEI; pcScalableSEI = 0;
+//{suffix TL read
+		if(cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE     ||
+			cPacketDescription.NalUnitType== NAL_UNIT_CODED_SLICE_IDR   )
+		{
+			h264::PacketDescription cPacketDescriptionTemp;
+			h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+			Int iFilePos = 0;
+			RNOK( pcReadBitStream->getPosition( iFilePos ) );
+			BinData *pcNextBinData;
+			Bool bEos;
+			RNOK( pcReadBitStream->extractPacket( pcNextBinData, bEos ) );
+			m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
+			if( cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
+				cPacketDescription.Level = cPacketDescriptionTemp.Level;
+			RNOK( pcReadBitStream->setPosition(iFilePos ) );
+		}
+//}suffix TL read
+		delete pcScalableSEI; pcScalableSEI = 0;
 
     //----- set packet size -----
     while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )

@@ -1,3 +1,16 @@
+JSVM_6_8_2 -> JSVM_7_0
+========================
+
+Date      : Nov. 6, 2006
+Author    : J. Vieron  (on behalf of Manu Mathew, Shen Qiu and, Liu Hui)
+
+Changes:
+
+-Bug fixes in QLAssigner: temporal level reading from suffix NAL unit missing (cf tag "//{suffix TL read"  in QLAssigner.cpp)
+-Bug fixes in Extractor:  loop on MAX_FGS_LAYERS (cf tag "//bug fix JV 02/11/06" in Extractor.cpp)
+-Fixes for Software manual regarding the -mqp, -rqp and -lqp command line parameters. lqp or rqp, and not mqp, specify the MeQPLP parameter.
+
+
 JSVM_6_8_1 -> JSVM_6_8_2
 ========================
 
@@ -67,11 +80,13 @@ Fixes:
 JSVM_6_5 -> JSVM_6_6
 ====================
 
+Nesting SEI message
+
 Date	    : Aug. 28, 2006
 Author	    : Shenqiu, Liuhui, Guoyi (USTC)
 Contribution: JVT-T073
 
-Changes(changes can be found by seaching the comments in brackets):
+Changes:
 
 - add nesting SEI message including scene information SEI message (JVT-T073)
 
@@ -85,7 +100,7 @@ Fixes:
 JSVM_6_4 -> JSVM_6_5
 ====================
 
-Date	    : Aug. 11, 2006
+Date	      : Aug. 11, 2006
 Author	    : N. Cammas (Orange-FT)
 Contribution: JVT-T054
 
@@ -103,7 +118,7 @@ JSVM_6_3 -> JSVM_6_4
 ====================
 
 Date        : Aug. 4, 2006
-Author     : T. M. Bae (ICU)
+Author      : T. M. Bae (ICU)
 Contribution: JVT-T058
 
 Changes:
