@@ -260,23 +260,6 @@ ErrVal MbDataCtrl::init( const SequenceParameterSet& rcSPS )
 }
 
 //JVT-T054{
-
-ErrVal
-MbDataCtrl::copyMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
-{
-  Int  iMbOrigX = pcParameters->m_iPosX/16;
-  Int  iMbOrigY = pcParameters->m_iPosY/16;
-  Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
-  Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
-
- for( Int iMbY = iMbOrigY ; iMbY < iMbEndY; iMbY++)
-  for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
-	 {
-    MbData& rcMbDes = m_pcMbData[iMbY*rcBaseMbDataCtrl.m_uiMbStride + iMbX];
-    RNOK( rcMbDes.copyMbCbp( rcBaseMbDataCtrl.m_pcMbData[(iMbY - iMbOrigY)*rcBaseMbDataCtrl.m_uiMbStride + (iMbX - iMbOrigX)]) );
-	 }
-  return Err::m_nOK;
-}
 ErrVal
 MbDataCtrl::initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
 {

@@ -157,7 +157,6 @@ public:
                         Bool&             bFragmented,
                         Bool&             bDiscardable
                         //~JVT-P031
-						,Bool&			  UnitAVCFlag	//JVT-S036 lsj
                         ); 
   //JVT-P031
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor);
@@ -207,15 +206,11 @@ public:
                                         SliceHeader&      rcSliceHeader,
                                         Int&              slicePoc  );
   ErrVal  checkSliceLayerDependency   ( BinDataAccessor*  pcBinDataAccessor,
-                                        Bool&             bFinishChecking 
-									    ,Bool&			  UnitAVCFlag    //JVT-S036 lsj	
-									   );
+                                        Bool&             bFinishChecking );
 //	TMM_EC {{
 	Bool		checkSEIForErrorConceal();
   ErrVal  checkSliceGap   ( BinDataAccessor*  pcBinDataAccessor,
-                            MyList<BinData*>&	cVirtualSliceList 
-							,Bool&			  UnitAVCFlag		//JVT-S036 lsj
-						   );
+                            MyList<BinData*>&	cVirtualSliceList );
 	ErrVal	setec( UInt uiErrorConceal) 
   { 
     m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal); 
@@ -263,7 +258,8 @@ public:
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
-  ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bLastFragment, Bool& bDiscardable, Bool UnitAVCFlag); //FRAG_FIX //TMM_EC//JVT-S036 lsj
+ ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bLastFragment, Bool& bDiscardable); //FRAG_FIX //TMM_EC//JVT-S036 lsj
+
   // TMM_EC {{
   ErrVal  xProcessSliceVirtual      ( SliceHeader&    rcSH,
 	                                    SliceHeader* pcPrevSH,
@@ -287,6 +283,7 @@ protected:
                                       YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
   ErrVal  freeDiffPrdRefLists       ( RefFrameList& diffPrdRefList);
 
+  ErrVal xInitParameters(SliceHeader* pcSliceHeader);
 protected:
   SliceReader*                  m_pcSliceReader;
   SliceDecoder*                 m_pcSliceDecoder;
@@ -358,8 +355,7 @@ protected:
   UInt                          m_uiDecodedLayer;
   UInt                          m_uiNumOfNALInAU;
   SliceHeader*                  m_pcSliceHeaderStored;
-  Int                           m_iPrevPoc;
-  //~JVT-P031
+   //~JVT-P031
 
   SliceHeader::PredWeightTable  m_acLastPredWeightTable[2];
 
@@ -377,9 +373,8 @@ protected:
 //JVT-T054{
   Bool                          m_bLastNalInAU;
   Bool                          m_bFGSRefInAU;
-  Bool                          m_bAVCBased;
+
   Bool                          m_bCGSSNRInAU;
-  Bool                          m_bOnlyAVCAtLayer;
 //JVT-T054}
   Bool                          m_bBaseSVCActive; //JVT-T054_FIX
   Bool                          m_bLastFrameReconstructed; //JVT-T054_FIX

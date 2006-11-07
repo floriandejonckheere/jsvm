@@ -284,6 +284,9 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeCode( getLevelIdc(),                    8,      "SPS: level_idc" ) );
   RNOK  ( pcWriteIf->writeUvlc( getSeqParameterSetId(),                   "SPS: seq_parameter_set_id" ) );
   
+  //--- fidelity range extension syntax ---
+  RNOK  ( xWriteFrext( pcWriteIf ) ); //bug fix JV 07/11/06
+  
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
 
@@ -327,8 +330,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       }
     }
   }
-  //--- fidelity range extension syntax ---
-  RNOK  ( xWriteFrext( pcWriteIf ) );
+  
   
   UInt    uiTmp = getLog2MaxFrameNum();
   ROF   ( uiTmp >= 4 );
@@ -393,6 +395,9 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK  ( pcReadIf->getCode( m_uiLevelIdc,                        8,      "SPS: level_idc" ) );
   RNOK  ( pcReadIf->getUvlc( m_uiSeqParameterSetId,                       "SPS: seq_parameter_set_id" ) );
 
+   //--- fidelity range extension syntax ---
+  RNOK  ( xReadFrext( pcReadIf ) );//bug fix JV 07/11/06
+
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
 
@@ -437,8 +442,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       }
     }
   }
-  //--- fidelity range extension syntax ---
-  RNOK  ( xReadFrext( pcReadIf ) );
+ 
 
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_frame_num_minus_4" ) );
   ROT   ( uiTmp > 12 );

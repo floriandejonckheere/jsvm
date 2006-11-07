@@ -1,7 +1,25 @@
-JSVM_6_8_2 -> JSVM_7_0
-========================
+JSVM_6_8_2 -> JSVM_7_1
+======================
 
-Date      : Nov. 6, 2006
+Cleaning + bug fixes
+
+Date      : Nov. 07, 2006
+Authors   : N. Cammas and J. Vieron
+Contrib   : JVT-T054
+
+Changes:
+
+-Removal of many duplicated methods related to JVT-T054.
+-Cleaning of various part related to JVT-T054 integration and to Fragment NAL part.
+-Bug fixes related to a mismatch between text and software in the SPS: parameters are written in a wrong order. 
+The calls to xWriteFrext()/xReadFrext() methods have just been displaced (cf //bug fix JV 07/11/06)
+
+
+
+JSVM_6_8_2 -> JSVM_7_0
+======================
+
+Date      : Nov. 06, 2006
 Author    : J. Vieron  (on behalf of Manu Mathew, Shen Qiu and, Liu Hui)
 
 Changes:

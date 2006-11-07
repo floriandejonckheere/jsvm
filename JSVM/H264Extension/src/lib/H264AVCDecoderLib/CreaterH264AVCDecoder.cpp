@@ -196,18 +196,16 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 		                                      ruiNalUnitType,
 		                                      uiMbX,
 		                                      uiMbY,
-											  uiSize
-											  //,uiNonRequiredPic  //NonRequired JVT-Q066
-                                              //JVT-P031
-		                                      , bPreParseHeader //FRAG_FIX
-		                                      , bConcatenated //FRAG_FIX_3
-                                              ,rbStartDecoding,
-                                              ruiStartPos,
-                                              ruiEndPos,
-                                              bFragmented,
-                                              bDiscardable
-                                              //~JVT-P031
-											  ,UnitAVCFlag  //JVT-S036 lsj 
+											                    uiSize,
+											                    //JVT-P031
+		                                      bPreParseHeader, //FRAG_FIX
+		                                      bConcatenated, //FRAG_FIX_3
+                                          rbStartDecoding,
+                                          ruiStartPos,
+                                          ruiEndPos,
+                                          bFragmented,
+                                          bDiscardable
+                                          //~JVT-P031
                                                );
 }
 
@@ -270,9 +268,7 @@ ErrVal
 CreaterH264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
                                                   Bool&             bFinishChecking )
 {
-	return m_pcH264AVCDecoder->checkSliceLayerDependency( pcBinDataAccessor, bFinishChecking
-														 ,UnitAVCFlag   //JVT-S036 lsj
-													    );
+	return m_pcH264AVCDecoder->checkSliceLayerDependency( pcBinDataAccessor, bFinishChecking);
 }
 
 //NonRequired JVT-Q066
@@ -286,9 +282,7 @@ ErrVal
 CreaterH264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
                                       MyList<BinData*>&	cVirtualSliceList)
 {
-  return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList 
-											,UnitAVCFlag			//JVT-S036 lsj
-										   );
+  return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList );
 }
 ErrVal
 CreaterH264AVCDecoder::setec( UInt uiErrorConceal)
@@ -395,9 +389,7 @@ ErrVal CreaterH264AVCDecoder::init( Bool bOpenTrace )
     INIT_DTRACE;
     OPEN_DTRACE;
   }
-  
-  UnitAVCFlag = false;   //JVT-S036 lsj
-
+ 
   RNOK( m_pcBitReadBuffer         ->init() );
   RNOK( m_pcNalUnitParser         ->init( m_pcBitReadBuffer ));
   RNOK( m_pcUvlcReader            ->init( m_pcBitReadBuffer ) );

@@ -1107,11 +1107,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
       pcBinData->setMemAccessor( cBinDataAccessor );
 
       bFinishChecking = false;
-      if( m_pcH264AVCDecoder->getNumOfNALInAU() == 0 )
-      {
-        m_pcH264AVCDecoder->setDependencyInitialized( false );
-        m_pcH264AVCDecoder->initNumberOfFragment    ();
-      }
+
       RNOK( m_pcH264AVCDecoder->checkSliceLayerDependency( &cBinDataAccessor, bFinishChecking ) );
       RNOK( pcReadBitStream->releasePacket( pcBinData ) );
 
@@ -1181,7 +1177,6 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
             RNOK( pcReadBitStream->releasePacket( apcBinDataTmp[uiFragment] ) );
             apcBinDataTmp[uiFragment] = 0;
-            if(uiNalUnitType != 6) //JVT-T054
             m_pcH264AVCDecoder->decreaseNumOfNALInAU();
 
             if( uiFragment > 0 )
@@ -1258,14 +1253,12 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 			RNOK( pcReadBitStream->getPosition( iPos ) );
 			RNOK( pcReadBitStream->extractPacket( pcBinData, bEOS ) );
 			pcBinData->setMemAccessor( cBinDataAccessor );
-			m_pcH264AVCDecoderSuffix->setAVCFlag( true );
 			RNOK( m_pcH264AVCDecoderSuffix->initPacketSuffix( &cBinDataAccessor, uiNalUnitType, true, 
 					false, //FRAG_FIX_3
 					bStart, m_pcH264AVCDecoder,SuffixEnable
 					)
 				);
-//lh1028
-//			printf("", m_pcH264AVCDecoder->getH264AVCDecoder() );
+
 			RNOK( m_pcH264AVCDecoderSuffix->uninit( false ));  
 
 			if( !SuffixEnable )

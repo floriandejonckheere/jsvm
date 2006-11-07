@@ -190,9 +190,6 @@ public:
                           MyList<BinData*>&	cVirtualSliceList );
 	ErrVal	setec( UInt uiErrorConceal);
 //  TMM_EC }}
-
-	Void setAVCFlag ( Bool aFlag ) { UnitAVCFlag = aFlag; } //JVT-S036 lsj
-
   Void	  RoiDecodeInit();
   Bool           getBaseSVCActive() { return m_bBaseSVCActive;} //JVT-T054_FIX
 
@@ -224,8 +221,6 @@ protected:
   CabacReader*            m_pcCabacReader;
   SampleWeighting*        m_pcSampleWeighting;
   ReconstructionBypass*   m_pcReconstructionBypass;
-
-  Bool					  UnitAVCFlag;    //JVT-S036 lsj
   Bool                    m_bBaseSVCActive; //JVT-T054_FIX
 };
 

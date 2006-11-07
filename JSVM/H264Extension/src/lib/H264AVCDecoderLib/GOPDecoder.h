@@ -437,8 +437,6 @@ protected:
 												SliceHeader *&rcSliceHeaderBase);
   ErrVal      xInitESSandCroppingWindow       ( SliceHeader&                  rcSliceHeader,
                                                 MbDataCtrl&                   rcMbDataCtrl );
-  ErrVal      xInitESSandCroppingWindowCGSSNR       ( SliceHeader&                  rcSliceHeader,
-                                                MbDataCtrl&                   rcMbDataCtrl ); //JVT-T054
   //===== decode pictures / subbands =====
   ErrVal      xDecodeSuffixUnit               ( SliceHeader*&                 rpcSliceHeader,
                                                 PicBuffer*&                   rpcPicBuffer,
