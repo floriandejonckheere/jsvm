@@ -237,19 +237,19 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
 
 	//end
 
-//JVT-S067
+//JVT-U067
   int i, j, k, *px, *py;
   int x16, y16, x, y, m;
   bool ratio1_flag = ( input_width == crop_w );
-
+  unsigned short deltaa, deltab;
   // initialization
   px = new int[output_width];
   py = new int[output_height];
 
   //int F=4; 
-  int G = 2, J, M, S = 12;
-  unsigned short C, C1, D1;
-  int D, E, q, w;
+//  int G = 2, J, M, S = 12;
+//  unsigned short C, C1, D1;
+//  int D, E, q, w;
 
   for(i=0; i<crop_x0; i++)  px[i] = -128;
   
@@ -264,36 +264,23 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
   else
   {
-    J = 1; M = 13; 
+    deltaa = ((input_width<<16) + (crop_w>>1))/crop_w;
     if(uv_flag)
     {
-	    J ++;
-	    M --;
-    };
-   
-    // S = M + G +  J  - F;
-
-    C = ((1<<(M+G))*input_width + (crop_w>>1))/crop_w;
-    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
-    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_x<<14);
-
-    C1 = C<<J;
-    E = 0;
-
-    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_x;
-    w = q>>S;
-    D1 = q - (w<<S);
-    E += w;
-    px[0+crop_x0] = E;
-  
-    for(i = 1; i < crop_w; i++)
-    {
-	  q = C1 + D1;
-	  w = q>>S;
-	  D1 = q - (w<<S);
-	  E += w;	  
-	  px[i+crop_x0] = E;
+      deltab = ((input_width<<14) + (crop_w>>1))/crop_w;
+      for(i = 0; i < crop_w; i++)
+      {
+        px[i+crop_x0] = ((i*deltaa + (2 + output_chroma_phase_shift_x)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_x);
+      }
     }
+    else
+    {
+      deltab = ((input_width<<15) + (crop_w>>1))/crop_w;
+      for(i = 0; i < crop_w; i++)
+      {
+        px[i+crop_x0] = (i*deltaa + deltab - 30720)>>12;
+      }
+	}
   }
 
   ratio1_flag = ( input_height == crop_h );
@@ -311,35 +298,23 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
   else
   {
-    J = 1; M = 13; 
+    deltaa = ((input_height<<16) + (crop_h>>1))/crop_h;
     if(uv_flag)
     {
-	    J ++;
-	    M --;
-    };
-   // S = M + G +  J  - F;
-
-    C = ((1<<(M+G))*input_height + (crop_h>>1))/crop_h;
-    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
-    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_y<<14);
-
-    C1 = C<<J;
-    E = 0;
-
-    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_y;
-    w = q>>S;
-    D1 = q - (w<<S);
-    E += w;
-    py[0+crop_y0] = E;
-  
-    for(j = 1; j < crop_h; j++)
-    {
-      q = C1 + D1;
-	  w = q>>S;
-	  D1 = q - (w<<S);
-	  E += w;	  
-	  py[j+crop_y0] = E;
+      deltab = ((input_height<<14) + (crop_h>>1))/crop_h;
+      for(j = 0; j < crop_h; j++)
+      {
+        py[j+crop_y0] = ((j*deltaa + (2 + output_chroma_phase_shift_y)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_y);
+      }
     }
+    else
+    {
+      deltab = ((input_height<<15) + (crop_h>>1))/crop_h;
+      for(j = 0; j < crop_h; j++)
+      {
+        py[j+crop_y0] = (j*deltaa + deltab - 30720)>>12;
+      }
+	}
   }
 
   //========== horizontal upsampling ===========
@@ -591,7 +566,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   xCopyFromImageBuffer( psBufferV, iGlobWidth, iGlobHeight, iStrideV, min, max ); 
 } 
 
-//JVT-S067
+//JVT-U067
 __inline
 void
 DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out, 
@@ -607,6 +582,7 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   unsigned char *ptr3;
   int p, p2, p3, block = ( chroma ? 4 : 8 );
   int iMbPerRow = wsize_in >> 4;
+  unsigned short deltaa, deltab;
 
   int *x16 = new int[w]; 
   int* k16 = new int[w]; // for relative phase shift in unit of 1/16 sample
@@ -614,66 +590,51 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
 
   if(w == wsize_in)
   {
-	  for(i = 0; i < w; i++)
-	  {
-		  k = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
-		  if(k<0)
-		    k = 0;
-		  i1 = k >> 4;
-	      k -= i1 * 16;
-	      p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
-	      p = p < 0 ? 0 : p;
-		  x16[i] = i1; k16[i] = k; p16[i] = p;
-	  }
+    for(i = 0; i < w; i++)
+    {
+      k = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
+      if(k<0)
+        k = 0;
+      i1 = k >> 4;
+      k -= i1 * 16;
+      p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+      p = p < 0 ? 0 : p;
+      x16[i] = i1; k16[i] = k; p16[i] = p;
+    }
   }
   else
   {
-    //int F = 4; 
-    int G = 2, J = 1, M = 13, S = 12;
+    deltaa = ((wsize_in<<16) + (w>>1))/w;
     if(chroma)
     {
-  	  J ++;
-  	  M --;
-    };
-    //S = M + G +  J  - F;
-    unsigned short C, C1, D1;
-    int D, E, q, w1;
-
-    C = ((1<<(M+G))*wsize_in + (w>>1))/w;
-    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_x<<(G-2+J+M));
-    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_x<<14);
-
-    C1 = C<<J;
-    E = 0;
-
-    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_x;
-    w1 = q>>S;
-    D1 = q - (w1<<S);
-    E += w1;
-    k = E;
-    if(k<0)
-	    k = 0;
-    i1 = k >> 4;
-    k -= i1 * 16;
-    p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
-    p = p < 0 ? 0 : p;
-    x16[0] = i1; k16[0] = k; p16[0] = p;
-  
-    for(i = 1; i < w; i++)
-    {
-	  q = C1 + D1;
-	  w1 = q>>S;
-	  D1 = q - (w1<<S);
-	  E += w1;
-	  k = E;
-	  if(k<0)
-		k = 0;
-	  i1 = k >> 4;
-	  k -= i1 * 16;
-	  p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
-	  p = p < 0 ? 0 : p;
-	  x16[i] = i1; k16[i] = k; p16[i] = p;
+      deltab = ((wsize_in<<14) + (w>>1))/w;
+      for(i = 0; i < w; i++)
+      {
+        k = ((i*deltaa + (2 + output_chroma_phase_shift_x)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_x);
+        if(k<0)
+          k = 0;
+        i1 = k >> 4;
+        k -= i1 * 16;
+        p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+        p = p < 0 ? 0 : p;
+        x16[i] = i1; k16[i] = k; p16[i] = p;
+      }
     }
+    else
+    {
+      deltab = ((wsize_in<<15) + (w>>1))/w;
+      for(i = 0; i < w; i++)
+      {
+        k = (i*deltaa + deltab - 30720)>>12;
+        if(k<0)
+          k = 0;
+        i1 = k >> 4;
+        k -= i1 * 16;
+        p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+        p = p < 0 ? 0 : p;
+        x16[i] = i1; k16[i] = k; p16[i] = p;
+      }
+	}
   }
 
   for( j = 0; j < hsize_in; j++ )
@@ -708,7 +669,7 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
 
 }
 
-//JVT-S067
+//JVT-U067
 __inline
 void
 DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out, 
@@ -722,6 +683,7 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
   short *ptr1, *ptr2;
   unsigned char *ptr3;
   int p, p2, p3, block = ( chroma ? 4 : 8 );
+  unsigned short deltaa, deltab;
 
   int* y16 = new int[h]; 
   int* k16 = new int[h]; // for relative phase shift in unit of 1/16 sample
@@ -729,66 +691,51 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
 
   if(h == hsize_in)
   {
-	  for(j = 0; j < h; j++)
-	  {
-		  k = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
-		  if(k<0)
-		    k = 0;
-	      j1 = k >> 4;
-	      k -= j1 * 16;
-	      p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
-    	  p = p < 0 ? 0 : p;
-	      y16[j] = j1; k16[j] = k; p16[j] = p;
-	  }
+    for(j = 0; j < h; j++)
+    {
+      k = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
+      if(k<0)
+        k = 0;
+      j1 = k >> 4;
+      k -= j1 * 16;
+      p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+      p = p < 0 ? 0 : p;
+      y16[j] = j1; k16[j] = k; p16[j] = p;
+    }
   }
   else
   {
-    //int F = 4;
-    int G = 2, J = 1, M = 13, S = 12;
+    deltaa = ((hsize_in<<16) + (h>>1))/h;
     if(chroma)
     {
-	  J ++;
-	  M --;
-    };
-    //S = M + G + J - F;
-    unsigned short C, C1, D1;
-    int D, E, q, w1;
-
-    C = ((1<<(M+G))*hsize_in + (h>>1))/h;
-    //D = ((-1)<<(G-1+J+M)) + (1<<(S-1)) - (input_chroma_phase_shift_y<<(G-2+J+M));
-    D = ((-1)<<15) + (1<<11) - (input_chroma_phase_shift_y<<14);
-
-    C1 = C<<J;
-    E = 0;
-
-    q = (C<<(J-1)) + D + (C<<(J-2))*output_chroma_phase_shift_y;
-    w1 = q>>S;
-    D1 = q - (w1<<S);
-    E += w1;
-    k = E;
-    if(k<0)
-	  k = 0;
-    j1 = k >> 4;
-    k -= j1 * 16;
-    p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
-    p = p < 0 ? 0 : p;
-    y16[0] = j1; k16[0] = k; p16[0] = p;
-  
-    for(j = 1; j < h; j++)
-    {
-	  q = C1 + D1;
-	  w1 = q>>S;
-	  D1 = q - (w1<<S);
-	  E += w1;
-	  k = E;
-	  if(k<0)
-		k = 0;
-	  j1 = k >> 4;
-	  k -= j1 * 16;
-	  p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
-	  p = p < 0 ? 0 : p;
-	  y16[j] = j1; k16[j] = k; p16[j] = p;
+      deltab = ((hsize_in<<14) + (h>>1))/h;
+      for(j = 0; j < h; j++)
+      {
+        k = ((j*deltaa + (2 + output_chroma_phase_shift_y)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_y);
+        if(k<0)
+          k = 0;
+        j1 = k >> 4;
+        k -= j1 * 16;
+        p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+        p = p < 0 ? 0 : p;
+        y16[j] = j1; k16[j] = k; p16[j] = p;
+      }
     }
+	else
+    {
+      deltab = ((hsize_in<<15) + (h>>1))/h;
+      for(j = 0; j < h; j++)
+      {
+        k = (j*deltaa + deltab - 30720)>>12;
+        if(k<0)
+          k = 0;
+        j1 = k >> 4;
+        k -= j1 * 16;
+        p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+        p = p < 0 ? 0 : p;
+        y16[j] = j1; k16[j] = k; p16[j] = p;
+      }
+	}
   }
 
   for( i = 0; i < w; i++ )

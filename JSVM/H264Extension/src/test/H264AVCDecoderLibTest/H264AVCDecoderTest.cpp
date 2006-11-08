@@ -348,7 +348,7 @@ ErrVal H264AVCDecoderTest::go()
   Bool bToDecode = false; //JVT-P031
   Bool bVirtual = false; //TMM_EC_FIX
 
-  Bool bFinishChecking  = false;
+  Bool bFinishChecking;
 
   for( uiFrame = 0; ( uiFrame <= MSYS_UINT_MAX && ! bEOS); )
   {
@@ -356,7 +356,7 @@ ErrVal H264AVCDecoderTest::go()
     BinDataAccessor cBinDataAccessor;
 
     Int  iPos;
-    Bool bFinishChecking  = false;
+    bFinishChecking  = false;
     RNOK( m_pcReadBitstream->getPosition(iPos) );
     do 
     {
