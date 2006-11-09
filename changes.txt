@@ -1,3 +1,16 @@
+JSVM_7_2 -> JSVM_7_3
+====================
+
+Date	  : Nov. 9, 2006
+Author	  : Seung-Wook Park (LG)
+Contrib   : JVT-U090
+
+Changes:
+
+- Modification of syntax structure for 'store_base_rep_flag' according to JVT-U090
+
+
+
 JSVM_7_1 -> JSVM_7_2
 ====================
 

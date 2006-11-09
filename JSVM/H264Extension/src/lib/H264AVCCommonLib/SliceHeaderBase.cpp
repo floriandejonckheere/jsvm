@@ -567,9 +567,9 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	{
       RNOK(   pcWriteIf->writeUvlc( m_uiNumMbsInSlice - 1,                          "SH: num_mbs_in_slice_minus1" ) );
       RNOK(   pcWriteIf->writeFlag( m_bFgsComponentSep,                             "SH: luma_chroma_sep_flag" ) );
-      RNOK(   pcWriteIf->writeFlag( m_bStoreBaseRepresentationFlag,                 "SH: store_base_rep_flag" ) );
       if ( m_bUseBasePredictionFlag )
       {
+        RNOK(   pcWriteIf->writeFlag( m_bStoreBaseRepresentationFlag,                 "SH: store_base_rep_flag" ) );
         RNOK( pcWriteIf->writeFlag( m_bArFgsUsageFlag,                                "SH: adaptive_ref_fgs_flag" ) );
 		if( m_bArFgsUsageFlag )
 		{
@@ -931,9 +931,9 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     RNOK( pcReadIf    ->getUvlc( m_uiNumMbsInSlice,                           "SH: num_mbs_in_slice_minus1" ) );
     m_uiNumMbsInSlice++;
     RNOK( pcReadIf    ->getFlag( m_bFgsComponentSep,                          "SH: luma_chroma_sep_flag" ) );
-	  RNOK( pcReadIf    ->getFlag( m_bStoreBaseRepresentationFlag,              "SH: store_base_rep_flag" ) );
     if ( m_bUseBasePredictionFlag )
     {
+	    RNOK( pcReadIf->getFlag( m_bStoreBaseRepresentationFlag,              "SH: store_base_rep_flag" ) );
       RNOK( pcReadIf->getFlag( m_bArFgsUsageFlag,                             "SH: adaptive_ref_fgs_flag" ) );
     if( m_bArFgsUsageFlag ) 
     {
