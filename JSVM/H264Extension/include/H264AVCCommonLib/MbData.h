@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -159,13 +159,13 @@ public:
   ErrVal  copyMotionBL  ( MbData& rcMbData, Bool bDirect8x8, UInt    uiSliceId = MSYS_UINT_MAX );
   ErrVal  upsampleMotion( MbData& rcMbData, Par8x8  ePar8x8, Bool bDirect8x8   );
 
-	// TMM_ESS {
+  // TMM_ESS {
   ErrVal upsampleMotionESS( MbData* pcBaseMbData,
                             const UInt uiBaseMbStride,
                             const Int aiPelOrig[2],
                             const Bool bDirect8x8,
                             ResizeParameters* pcParameters);
-  ErrVal  noUpsampleMotion(); 
+  ErrVal  noUpsampleMotion();
   // TMM_ESS }
   ErrVal  initMbCbp();
 
@@ -179,12 +179,12 @@ protected:
   MbMotionData*       m_apcMbMotionDataBase[2];
   Bool                m_bHasMotionRefinement;
 
-  static const UChar		    m_aucPredictor  [2][4];
+  static const UChar        m_aucPredictor  [2][4];
   static const Char         aaacGetPartInfo [7][4][16];
- 
+
   MbData*                   m_apcMbData     [4];
   SChar                     m_ascBl4x4RefIdx[2][16];// ref index of list_0/1 for each 4x4 blk
-  Mv                        m_acBl4x4Mv	    [2][16];// motion vectors of list_0/1 for each 4x4 blk
+  Mv                        m_acBl4x4Mv      [2][16];// motion vectors of list_0/1 for each 4x4 blk
 
   ErrVal xInitESS             ( );
 
@@ -197,31 +197,31 @@ protected:
                           BlkMode           aeBlkMode[4][4],
                           UInt&             uiMbBaseOrigX,
                           UInt&             uiMbBaseOrigY);
- 
+
  ErrVal xBuildPartInfo(   const Int aiPelOrig[2],
                           ResizeParameters* pcParameters,
                           const MbMode      aeMbMode[4],
-                          const  BlkMode     aeBlkMode[4][4],  
+                          const  BlkMode     aeBlkMode[4][4],
                           UInt          aui4x4Idx[4][4],
-                          UInt          auiMbIdx [4][4], 
+                          UInt          auiMbIdx [4][4],
                           Int          aaiPartInfo[4][4],
                           Bool          abBl8x8Intra[4],
                           const UInt    uiMbBaseOrigX,
                           const UInt    uiMbBaseOrigY );
 
-  ErrVal xInheritMbMotionData ( const Int        aaiPartInfo[4][4]	);
+  ErrVal xInheritMbMotionData ( const Int        aaiPartInfo[4][4]  );
 
   ErrVal xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
-                                const UInt        auiMbIdx	  [4][4], 
+                                const UInt        auiMbIdx    [4][4],
                                 const Int        aaiPartInfo[4][4]);
 
-  ErrVal xFillMbMvData		  ( ResizeParameters* pcParameters );
-							  
-  ErrVal xMergeBl8x8MvAndRef( const UInt uiBlIdx	);
+  ErrVal xFillMbMvData      ( ResizeParameters* pcParameters );
 
-  ErrVal xFillMvandRefBl4x4	( const UInt uiBlIdx, const UChar* pucWhich, const UInt uiList, const SChar* psChosenRefIdx );
+  ErrVal xMergeBl8x8MvAndRef( const UInt uiBlIdx  );
 
-  ErrVal xRemoveIntra8x8(const UInt uiBlIdx, 
+  ErrVal xFillMvandRefBl4x4  ( const UInt uiBlIdx, const UChar* pucWhich, const UInt uiList, const SChar* psChosenRefIdx );
+
+  ErrVal xRemoveIntra8x8(const UInt uiBlIdx,
                           const Bool* abBl8x8Intra,
                           UInt  aui4x4Idx[4][4],
                           UInt  auiMbIdx[4][4],

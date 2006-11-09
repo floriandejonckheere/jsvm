@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -120,7 +120,7 @@ ErrVal MbParser::init( Transform* pcTransform )
 {
   ROF( pcTransform );
   m_pcTransform = pcTransform;
-  
+
   return Err::m_nOK;
 }
 
@@ -203,8 +203,8 @@ ErrVal MbParser::process( MbDataAccess& rcMbDataAccess, Bool& rbEndOfSlice)
                              rcMbDataAccess.getMbData().is8x8TrafoFlagPresent()        &&
                             !rcMbDataAccess.getMbData().isIntra4x4() );
       //-- JVT-R091
-			DECRNOK( xReadTextureInfo( rcMbDataAccess, NULL, bTrafo8x8Flag ) );
-			//--
+      DECRNOK( xReadTextureInfo( rcMbDataAccess, NULL, bTrafo8x8Flag ) );
+      //--
     }
   }
   m_bPrevIsSkipped = ! bIsCoded;
@@ -248,7 +248,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
       rcMbDataAccess.getMbMotionData( LIST_0 ).clear( RefIdxValues(1) );
       rcMbDataAccess.getMbMvdData   ( LIST_0 ).clear();
     }
-    rcMbDataAccess.resetQp(); // set QP to that of the last macroblock 
+    rcMbDataAccess.resetQp(); // set QP to that of the last macroblock
   }
 
   if( bIsCoded )
@@ -258,14 +258,14 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
     {
       if ( rcMbDataAccess.getMbData().getInCropWindowFlag() == true )
       {
-			  if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
-			  {
+        if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+        {
           m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess );
-			  }
-			  else
-			  {
-				  rcMbDataAccess.getMbData().setBLSkipFlag( true  );
-			  }
+        }
+        else
+        {
+          rcMbDataAccess.getMbData().setBLSkipFlag( true  );
+        }
   // TMM_ESS {
       }
       else  // ( rcMbDataAccess.getMbData().getInCropWindowFlag() == false )
@@ -322,7 +322,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
 
         rcMbDataAccess.getMbData().setFwdBwd( uiFwdBwd );
       }
-      rcMbDataAccess.resetQp(); // set QP to that of the last macroblock 
+      rcMbDataAccess.resetQp(); // set QP to that of the last macroblock
 
 
       //===== MOTION DATA =====
@@ -396,8 +396,8 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
                               ( rcMbDataAccess.getMbData().is8x8TrafoFlagPresent() &&
                                !rcMbDataAccess.getMbData().isIntra4x4() ) ) );
       //-- JVT-R091
-		  DECRNOK( xReadTextureInfo( rcMbDataAccess, pcMbDataAccessBase, bTrafo8x8Flag ) );
-		  //--
+      DECRNOK( xReadTextureInfo( rcMbDataAccess, pcMbDataAccessBase, bTrafo8x8Flag ) );
+      //--
     }
 
   }
@@ -409,56 +409,56 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
   return Err::m_nOK;
 }
 
-//	TMM_EC {{
+//  TMM_EC {{
 ErrVal MbParser::readVirtual( MbDataAccess&  rcMbDataAccess,
                        MbDataAccess*  pcMbDataAccessBase,
                        Int            iSpatialScalabilityType,
                        Bool&          rbEndOfSlice,
-											 ERROR_CONCEAL      eErrorConceal)
+                       ERROR_CONCEAL      eErrorConceal)
 {
   ROF( m_bInitDone );
-	switch ( eErrorConceal)
-	{
-	case	EC_TEMPORAL_DIRECT:
-		{
-			rcMbDataAccess.getMbData().setMbMode(MODE_SKIP);
-		}
-		break;
-	case	EC_FRAME_COPY:
-		rcMbDataAccess.getMbData().setMbMode(MODE_16x16);
-		rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setAllMv( Mv::ZeroMv());
-		rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setRefIdx(1);
-		rcMbDataAccess.getMbData().getMbMvdData   (LIST_0).clear();
-		if(rcMbDataAccess.getSH().getSliceType()==B_SLICE)
-		{	
-		rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setAllMv( Mv::ZeroMv());
-		rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setRefIdx(1);
-		rcMbDataAccess.getMbData().getMbMvdData   (LIST_1).clear();
-		}
+  switch ( eErrorConceal)
+  {
+  case  EC_TEMPORAL_DIRECT:
+    {
+      rcMbDataAccess.getMbData().setMbMode(MODE_SKIP);
+    }
+    break;
+  case  EC_FRAME_COPY:
+    rcMbDataAccess.getMbData().setMbMode(MODE_16x16);
+    rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setAllMv( Mv::ZeroMv());
+    rcMbDataAccess.getMbData().getMbMotionData(LIST_0).setRefIdx(1);
+    rcMbDataAccess.getMbData().getMbMvdData   (LIST_0).clear();
+    if(rcMbDataAccess.getSH().getSliceType()==B_SLICE)
+    {
+    rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setAllMv( Mv::ZeroMv());
+    rcMbDataAccess.getMbData().getMbMotionData(LIST_1).setRefIdx(1);
+    rcMbDataAccess.getMbData().getMbMvdData   (LIST_1).clear();
+    }
 
-		break;
-	case	EC_BLSKIP:
-			//===== copy motion data from base layer ======
-		ROF( pcMbDataAccessBase );
-		rcMbDataAccess.getMbData().copyMotion( pcMbDataAccessBase->getMbData() );
-		rcMbDataAccess.getMbData().setBLSkipFlag( true  );
+    break;
+  case  EC_BLSKIP:
+      //===== copy motion data from base layer ======
+    ROF( pcMbDataAccessBase );
+    rcMbDataAccess.getMbData().copyMotion( pcMbDataAccessBase->getMbData() );
+    rcMbDataAccess.getMbData().setBLSkipFlag( true  );
 
-		if( rcMbDataAccess.getMbData().isIntra() )
-		{
-			rcMbDataAccess.getMbData().setMbMode( INTRA_BL );
-		}
-		else
-		{
-		rcMbDataAccess.getMbData().setResidualPredFlag( true );
-		}
-		break;
-	default:
-		AF( );
-	}
+    if( rcMbDataAccess.getMbData().isIntra() )
+    {
+      rcMbDataAccess.getMbData().setMbMode( INTRA_BL );
+    }
+    else
+    {
+    rcMbDataAccess.getMbData().setResidualPredFlag( true );
+    }
+    break;
+  default:
+    AF( );
+  }
 
   return Err::m_nOK;
 }
-//	TMM_EC }}
+//  TMM_EC }}
 
 
 ErrVal MbParser::readMotion(MbDataAccess&  rcMbDataAccess,
@@ -516,7 +516,7 @@ ErrVal MbParser::readMotion(MbDataAccess&  rcMbDataAccess,
           if( pcMbDataAccessBase->getMbData().getBlkMode( Par8x8(n) ) == BLK_SKIP )
           {
             uiFwdBwd += (0 < pcMbDataAccessBase->getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
-            if( pcMbDataAccessBase->getSH().isInterB() ) 
+            if( pcMbDataAccessBase->getSH().isInterB() )
               uiFwdBwd += (0 < pcMbDataAccessBase->getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) )) ? 2:0;
           }
         }
@@ -1345,20 +1345,20 @@ ErrVal MbParser::xReadMotionVectors( MbDataAccess& rcMbDataAccess, MbMode eMbMod
 
 ErrVal
 MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
-														MbDataAccess*		pcMbDataAccessBase,	// JVT-R091
-                            Bool						bTrafo8x8Flag
+                            MbDataAccess*    pcMbDataAccessBase,  // JVT-R091
+                            Bool            bTrafo8x8Flag
                            )
 {
   Bool bReadDQp = true;
 
-  if( rcMbDataAccess.getMbData().getBLSkipFlag() || 
+  if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
      !rcMbDataAccess.getMbData().isIntra16x16() )
   {
     DECRNOK( m_pcMbSymbolReadIf->cbp( rcMbDataAccess ) );
     bReadDQp = rcMbDataAccess.getMbData().getMbCbp() != 0;
   }
 
-  
+
   if( bTrafo8x8Flag && ( rcMbDataAccess.getMbData().getMbCbp() & 0x0F ) )
   {
     DECRNOK( m_pcMbSymbolReadIf->transformSize8x8Flag( rcMbDataAccess ) );
@@ -1384,7 +1384,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
       {
         DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
         //-- JVT-R091
-        if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
+        if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) &&
             rcMbDataAccess.getMbData().getBLSkipFlag() )
         {
           DECRNOK( m_pcMbSymbolReadIf->smoothedRefFlag( rcMbDataAccess ) );
@@ -1394,7 +1394,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
     else if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
     {
       rcMbDataAccess.getMbData().setResidualPredFlag( true );
-      rcMbDataAccess.getMbData().setSmoothedRefFlag( false );	// JVT-R091
+      rcMbDataAccess.getMbData().setSmoothedRefFlag( false );  // JVT-R091
     }
   }
 

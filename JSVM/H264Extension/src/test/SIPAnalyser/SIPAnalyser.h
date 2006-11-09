@@ -12,7 +12,7 @@
 #include "SIPParameters.h"
 
 
-class SIPAnalyser  
+class SIPAnalyser
 {
 protected:
   SIPAnalyser();
@@ -35,7 +35,7 @@ protected:
   SIPParameters*  m_pcSIPParameters;
   int***          m_aaaiFrameBits;//m_aaauiFrameBits[layer][POC][0/1 with/without interlayer prediction]
   int**           m_aaiSIPDecision;
-  int*            m_aiTotalBits;  
+  int*            m_aiTotalBits;
 };
 
 #endif // !defined(AFX_SIPANALYSER_H__A7CC9210_E601_446B_854A_49856C2A7A5E__INCLUDED_)

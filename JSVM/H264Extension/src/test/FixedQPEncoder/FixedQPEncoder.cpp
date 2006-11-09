@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -116,9 +116,9 @@ typedef struct
   double        dMinMismatch;                     // set from config file (never changed)
   double        dMaxMismatch;                     // set from config file (never changed)
   double        dStartBaseQpResidual;             // set from config file (never changed)
-	double        dStartQpModeDecision;             // set from config file (never changed)
+  double        dStartQpModeDecision;             // set from config file (never changed)
 
-	double        dQpModeDecision;                  // needed for encode
+  double        dQpModeDecision;                  // needed for encode
   double        dBaseQpResidual;                  // needed for encode
   unsigned int  uiMotionFileMode;                 // needed for encode
   std::string   cMotionFile;                      // needed for encode
@@ -162,7 +162,7 @@ encode( EncoderParameters& rcEncoderParameters )
 {
   char        acTempString[1024];
   std::string cCommandLineString;
-	std::string cEchoLineString = "echo ";
+  std::string cEchoLineString = "echo ";
 
   //----- general settings -----
   cCommandLineString    += rcEncoderParameters.cEncoderBinary;
@@ -177,9 +177,9 @@ encode( EncoderParameters& rcEncoderParameters )
   {
     cCommandLineString  += " -bcip";
   }
-	cCommandLineString    += " -frms ";
-	sprintf( acTempString, "%d", rcEncoderParameters.uiNumberOfFrames );
-	cCommandLineString    += acTempString;
+  cCommandLineString    += " -frms ";
+  sprintf( acTempString, "%d", rcEncoderParameters.uiNumberOfFrames );
+  cCommandLineString    += acTempString;
 
   //----- layer settings -----
   for( unsigned int uiLayer = 0; uiLayer < rcEncoderParameters.uiNumberOfLayers; uiLayer++ )
@@ -191,9 +191,9 @@ encode( EncoderParameters& rcEncoderParameters )
     cCommandLineString  += acTempString;
   }
 
-	cEchoLineString += cCommandLineString;
-	cEchoLineString += "\n";
-	system( cEchoLineString.c_str() );
+  cEchoLineString += cCommandLineString;
+  cEchoLineString += "\n";
+  system( cEchoLineString.c_str() );
 
   //----- run encoder -----
   int iResult = system( cCommandLineString.c_str() );
@@ -242,35 +242,35 @@ encode_layer( EncoderParameters& rcEncoderParameters )
   int               iMinSizeQP       =  1000;
   int               iMaxSizeQP       = -1000;
   double            dCurrQP          = rcLayer.dStartBaseQpResidual;
- 
+
   //----- run until rate matches -----
-	rcLayer.uiNumIter = 0;
-	rcLayer.dBaseQpResidual = rcLayer.dStartBaseQpResidual;
-	rcLayer.dQpModeDecision = rcLayer.dStartQpModeDecision;
+  rcLayer.uiNumIter = 0;
+  rcLayer.dBaseQpResidual = rcLayer.dStartBaseQpResidual;
+  rcLayer.dQpModeDecision = rcLayer.dStartQpModeDecision;
   while( true )
   {
     //----- set parameters -----
     const int iCurrQP       = (int)floor( dCurrQP + 0.5 );
     rcLayer.dBaseQpResidual = dCurrQP;
-		if( (rcLayer.dStartBaseQpResidual == rcLayer.dStartQpModeDecision) && (rcLayer.uiNumIter < 5) )
-		{
-			// update QpModeDecision
-			rcLayer.dQpModeDecision = rcLayer.dBaseQpResidual;
-		}
+    if( (rcLayer.dStartBaseQpResidual == rcLayer.dStartQpModeDecision) && (rcLayer.uiNumIter < 5) )
+    {
+      // update QpModeDecision
+      rcLayer.dQpModeDecision = rcLayer.dBaseQpResidual;
+    }
 
-		printf( "\n##################################" );
-		printf( "\n### Layer %u - iteration %u      ###", uiLayer, rcLayer.uiNumIter );
-		printf( "\n### BaseQpResidual = %lf ###", rcLayer.dBaseQpResidual );
-		printf( "\n### QpModeDecision = %lf ###", rcLayer.dQpModeDecision );
-		printf( "\n##################################\n" );
+    printf( "\n##################################" );
+    printf( "\n### Layer %u - iteration %u      ###", uiLayer, rcLayer.uiNumIter );
+    printf( "\n### BaseQpResidual = %lf ###", rcLayer.dBaseQpResidual );
+    printf( "\n### QpModeDecision = %lf ###", rcLayer.dQpModeDecision );
+    printf( "\n##################################\n" );
 
-		sprintf( acTempString, "%s\\%s_layer%d.mot",
+    sprintf( acTempString, "%s\\%s_layer%d.mot",
       rcEncoderParameters.cMotionFolder.c_str(),
       rcEncoderParameters.cLabel.c_str(),
       uiLayer );
     rcLayer.cMotionFile         = acTempString;
       rcLayer.uiMotionFileMode = 2;
-		rcLayer.uiNumIter++;
+    rcLayer.uiNumIter++;
 
     //--- run ---
     unsigned int uiCurrSize = encode( rcEncoderParameters );
@@ -389,7 +389,7 @@ read_config_file( EncoderParameters& cEncoderParameters, FILE* pFile )
     ROT( read_line( pFile, "%lf", &rcLayer.dMinMismatch ) );
     ROT( read_line( pFile, "%lf", &rcLayer.dMaxMismatch ) );
     ROT( read_line( pFile, "%lf", &rcLayer.dStartBaseQpResidual ) );
-		ROT( read_line( pFile, "%lf", &rcLayer.dStartQpModeDecision ) );
+    ROT( read_line( pFile, "%lf", &rcLayer.dStartQpModeDecision ) );
   }
 
   return 0;
@@ -398,7 +398,7 @@ read_config_file( EncoderParameters& cEncoderParameters, FILE* pFile )
 int main( int argc, char** argv)
 {
   EncoderParameters cEncoderParameters;
-  
+
   USAGE( argc < 2 );
   FILE* pFile = fopen( argv[1], "rt" );
   if( ! pFile )
@@ -415,7 +415,7 @@ int main( int argc, char** argv)
     }
     fclose( pFile );
   }
-  
+
   //----- iterative encode -----
   unsigned int uiNumberOfLayers = cEncoderParameters.uiNumberOfLayers;
   for( unsigned int uiNumLayers = 1; uiNumLayers <= uiNumberOfLayers; uiNumLayers++ )
@@ -431,12 +431,12 @@ int main( int argc, char** argv)
     fprintf( stderr, "L%d:   QP = %lf    MQP = %lf    RATE =%10.4lf [ %6.3lf %% ] (%u iterations)\n",
       uiLayer,
         cEncoderParameters.acLayerParameters[uiLayer].dBaseQpResidual,
-				cEncoderParameters.acLayerParameters[uiLayer].dQpModeDecision,
+        cEncoderParameters.acLayerParameters[uiLayer].dQpModeDecision,
         cEncoderParameters.acLayerParameters[uiLayer].dRate,
-      ( cEncoderParameters.acLayerParameters[uiLayer].dRate - 
+      ( cEncoderParameters.acLayerParameters[uiLayer].dRate -
         cEncoderParameters.acLayerParameters[uiLayer].dTargetRate ) /
         cEncoderParameters.acLayerParameters[uiLayer].dTargetRate * 100.0,
-				cEncoderParameters.acLayerParameters[uiLayer].uiNumIter );
+        cEncoderParameters.acLayerParameters[uiLayer].uiNumIter );
   }
   printf("\n\n\n");
 

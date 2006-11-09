@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -112,7 +112,7 @@ public:
     m_pT = NULL;
     }
     m_uiBufferSize = 0;
-    
+
     return Err::m_nOK;
   }
 
@@ -273,7 +273,7 @@ XDataList<T>::XDataList()
 , m_uiActive  ( 0 )
 {
 }
- 
+
 template< class T >
 XDataList<T>::~XDataList()
 {
@@ -286,7 +286,7 @@ XDataList<T>::reset()
   m_uiSize    = 0;
   m_uiActive  = 0;
 }
-  
+
 template< class T >
 ErrVal
 XDataList<T>::add( T* pT )
@@ -341,15 +341,15 @@ XDataList<T>::getActive() const
 {
   return m_uiActive;
 }
-  
+
 template< class T >
-T* 
+T*
 XDataList<T>::getEntry( UInt uiIndex ) const
 {
-	//bug-fix shenqiu EIDR{
+  //bug-fix shenqiu EIDR{
   //return ( uiIndex < m_uiActive ? m_apT[ uiIndex ] : 0 );
-	return ( uiIndex < m_uiSize ? m_apT[ uiIndex ] : 0 );
-	//bug-fix shenqiu EIDR}
+  return ( uiIndex < m_uiSize ? m_apT[ uiIndex ] : 0 );
+  //bug-fix shenqiu EIDR}
 }
 
 template< class T >
@@ -357,7 +357,7 @@ Void
 XDataList<T>::rightShift()
 {
   ROTVS( m_uiSize < 2 );
-  
+
   T* pLast = m_apT[ m_uiSize - 1 ];
   for( Int i = m_uiSize-1; i > 0; i-- )
   {
@@ -371,7 +371,7 @@ Void
 XDataList<T>::leftShift()
 {
   ROTVS( m_uiSize < 2 );
-  
+
   T* pFirst = m_apT[ 0 ];
   for( Int i = 1; i < m_uiSize; i++ )
   {

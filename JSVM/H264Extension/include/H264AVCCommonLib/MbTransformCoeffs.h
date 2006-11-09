@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -93,11 +93,12 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+class MbFGSCoefMap;
+
 class H264AVCCOMMONLIB_API MbTransformCoeffs
 {
 public:
   MbTransformCoeffs() ;
-  
   TCoeff*       get   ( LumaIdx   cLumaIdx )          { return &m_aaiLevel[cLumaIdx     ][0]; }
   const TCoeff* get   ( LumaIdx   cLumaIdx )    const { return &m_aaiLevel[cLumaIdx     ][0]; }
 
@@ -115,7 +116,6 @@ public:
   Void setCoeffCount( LumaIdx cLumaIdx, UInt uiCoeffCount )      { m_aaucCoeffCount[cLumaIdx] = uiCoeffCount; }
   Void setCoeffCount( ChromaIdx cChromaIdx, UInt uiCoeffCount )  { m_aaucCoeffCount[16+cChromaIdx] = uiCoeffCount; }
   Void clear();
-  Void clearAcBlk( ChromaIdx cChromaIdx );
   Void setAllCoeffCount( UChar ucCoeffCountValue = 0 );
   Void copyFrom( MbTransformCoeffs& rcMbTransformCoeffs );
   Void copyFrom( MbTransformCoeffs& rcMbTransformCoeffs, ChromaIdx cChromaIdx );
@@ -124,14 +124,14 @@ public:
   ErrVal  load( FILE* pFile );
   ErrVal  save( FILE* pFile );
 
-  Void  clearLumaLevels         ();
-  Void  clearLumaLevels8x8      ( B8x8Idx c8x8Idx );
-  Void  clearLumaLevels8x8Block ( B8x8Idx c8x8Idx );
-
-  Void  clearNewLumaLevels         (                        MbTransformCoeffs& rcBaseMbTCoeffs );
-  Void  clearNewLumaLevels8x8      ( B8x8Idx   c8x8Idx    , MbTransformCoeffs& rcBaseMbTCoeffs );
-  Void  clearNewLumaLevels8x8Block ( B8x8Idx   c8x8Idx    , MbTransformCoeffs& rcBaseMbTCoeffs );
-  Void  clearNewAcBlk              ( ChromaIdx cChromaIdx , MbTransformCoeffs& rcBaseMbTCoeffs );
+  Void  clearAcBlk                 ( ChromaIdx cChromaIdx, MbFGSCoefMap* pcMbFGSCoefMap );
+  Void  clearLumaLevels            ( MbFGSCoefMap* pcMbFGSCoefMap = NULL );
+  Void  clearLumaLevels8x8         ( B8x8Idx c8x8Idx, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
+  Void  clearLumaLevels8x8Block    ( B8x8Idx c8x8Idx, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
+  Void  clearNewLumaLevels         ( MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap = NULL, Bool bIsB8x8 = true );
+  Void  clearNewLumaLevels8x8      ( B8x8Idx c8x8Idx, MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
+  Void  clearNewLumaLevels8x8Block ( B8x8Idx c8x8Idx, MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
+  Void  clearNewAcBlk              ( ChromaIdx cChromaIdx, MbFGSCoefMap& rcMbFGSCoefMap, MbTransformCoeffs& rcBaseMbTCoeffs );
 
 protected:
   TCoeff m_aaiLevel[24][16];

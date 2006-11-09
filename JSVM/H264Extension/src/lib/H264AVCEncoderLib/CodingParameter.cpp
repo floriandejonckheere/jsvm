@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -136,7 +136,7 @@ ErrVal LayerParameters::check()
 {
   ROTREPORT( getFrameWidth              () % 16,        "Frame Width must be a multiple of 16" );
   ROTREPORT( getFrameHeight             () % 16,        "Frame Height must be a multiple of 16" );
-  ROTREPORT( getInputFrameRate          () < 
+  ROTREPORT( getInputFrameRate          () <
              getOutputFrameRate         (),             "Output frame rate must be less than or equal to input frame rate" );
   ROTREPORT( getAdaptiveTransform       () > 2,         "FRExt mode not supported" );
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
@@ -264,7 +264,7 @@ ErrVal LayerParameters::check()
       return Err::m_nOK;
     }
 
-   
+
 
     // Display slice division info.
     printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);
@@ -279,9 +279,9 @@ ErrVal LayerParameters::check()
     {
       m_uiFGSMotionMode = 0;
     }
- 
+
   //S051{
-  ROTREPORT( getAnaSIP	()>0 && getEncSIP(),			"Unsupported SIP mode\n"); 
+  ROTREPORT( getAnaSIP  ()>0 && getEncSIP(),      "Unsupported SIP mode\n");
   //S051}
 
   return Err::m_nOK;
@@ -310,7 +310,7 @@ ErrVal CodingParameter::check()
 
   if( getMVCmode() )
   {
-    Bool bStringNotOk = SequenceStructure::checkString( getSequenceFormatString() ); 
+    Bool bStringNotOk = SequenceStructure::checkString( getSequenceFormatString() );
 
     //===== coder is operated in MVC mode =====
     ROTREPORT( getFrameWidth        () <= 0 ||
@@ -376,7 +376,7 @@ ErrVal CodingParameter::check()
   {
     LayerParameters*  pcLayer               = &m_acLayerParameters[uiLayer];
 
-	  RNOK( pcLayer->check() );
+    RNOK( pcLayer->check() );
 
     UInt              uiBaseLayerId         = uiLayer && pcLayer->getBaseLayerId() != MSYS_UINT_MAX ? pcLayer->getBaseLayerId() : MSYS_UINT_MAX;
     LayerParameters*  pcBaseLayer           = uiBaseLayerId != MSYS_UINT_MAX ? &m_acLayerParameters[uiBaseLayerId] : 0;
@@ -407,9 +407,9 @@ ErrVal CodingParameter::check()
       ROTREPORT( pcLayer->getFrameWidth ()  < pcBaseLayer->getFrameWidth (), "Frame width  less than base layer frame width" );
       ROTREPORT( pcLayer->getFrameHeight()  < pcBaseLayer->getFrameHeight(), "Frame height less than base layer frame height" );
       UInt uiLogFactorWidth  = getLogFactor( pcBaseLayer->getFrameWidth (), pcLayer->getFrameWidth () );
-     
+
       pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
-			
+
 // TMM_ESS {
       ResizeParameters * resize = pcLayer->getResizeParameters();
       if (resize->m_iExtendedSpatialScalability != ESS_NONE)
@@ -419,7 +419,7 @@ ErrVal CodingParameter::check()
           if (resize->m_bCrop)
             {
               ROTREPORT( resize->m_iPosX % 2 , "Cropping Window must be even aligned" );
-              ROTREPORT( resize->m_iPosY % 2 , "Cropping Window must be even aligned" );  
+              ROTREPORT( resize->m_iPosY % 2 , "Cropping Window must be even aligned" );
               ROTREPORT(resize->m_iGlobWidth  % 16, "Enhancement layer width must be a multiple of 16" );
               ROTREPORT(resize->m_iGlobHeight % 16, "Enhancement layer height must be a multiple of 16" );
             }

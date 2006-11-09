@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -234,7 +234,7 @@ ErrVal LoopFilter::uninit()
 }
 
 ErrVal LoopFilter::process( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer, IntYuvPicBuffer* pcHighpassYuvBuffer
-							, bool  bAllSliceDone)
+              , bool  bAllSliceDone)
 {
   // Hanke@RWTH // switch off filter modifications
   setHighpassFramePointer();
@@ -245,34 +245,34 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffe
 
   m_pcRecFrameUnit = const_cast<SliceHeader&>(rcSH).getFrameUnit();
 
-  RNOK( m_pcControlMngIf->initSlice( rcSH, POST_PROCESS ) );  
+  RNOK( m_pcControlMngIf->initSlice( rcSH, POST_PROCESS ) );
 
   //-> ICU/ETRI DS FMO Process
   UInt uiFirstMbInSlice;
   UInt uiLastMbInSlice;
 
-  FMO* pcFMO = rcSH.getFMO();  
+  FMO* pcFMO = rcSH.getFMO();
 
-  for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)   
+  for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)
   {
-	if (false == pcFMO->isCodedSG(iSliceGroupID) && false == bAllSliceDone)
-	{
-	  continue;
-	}
+  if (false == pcFMO->isCodedSG(iSliceGroupID) && false == bAllSliceDone)
+  {
+    continue;
+  }
 
-	uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
-	uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+  uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+  uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
 
-    //===== loop over macroblocks use raster scan =====  
-    for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)    
-	{
+    //===== loop over macroblocks use raster scan =====
+    for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+  {
       MbDataAccess* pcMbDataAccess;
       RNOK( m_pcControlMngIf->initMbForFiltering( pcMbDataAccess, uiMbAddress ) );
 
-	  RNOK( xFilterMb( *pcMbDataAccess ) );	
+    RNOK( xFilterMb( *pcMbDataAccess ) );
 
-	  uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );    
-	}  
+    uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
+  }
   }
   //<- ICU/ETRI DS
 
@@ -804,7 +804,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAc
       ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
     }
     else
-    { 
+    {
       ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx                          ), 2 );
       ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
     }
@@ -918,8 +918,8 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
                             MbDataCtrl*   pcMbDataCtrlRes,
                             UInt          uiMbInRow,
                             RefFrameList* pcRefFrameList0,
-                            RefFrameList* pcRefFrameList1,			
-							              bool		  bAllSliceDone, 
+                            RefFrameList* pcRefFrameList1,
+                            bool      bAllSliceDone,
                             bool          spatial_scalable_flg)  // SSUN@SHARP
 {
   ROT( NULL == m_pcControlMngIf );
@@ -929,78 +929,78 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
   if( pcMbDataCtrlMot )
   {
     RNOK( pcMbDataCtrlMot ->initSlice             ( rcSH, POST_PROCESS, false, NULL ) );
-  }    
+  }
 
   //-> ICU/ETRI DS FMO Process
   UInt uiFirstMbInSlice;
   UInt uiLastMbInSlice;
 
-  FMO* pcFMO = rcSH.getFMO();  
+  FMO* pcFMO = rcSH.getFMO();
 
-  for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)   
+  for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)
   {
-	 if (false == pcFMO->isCodedSG(iSliceGroupID) && false == bAllSliceDone)	 
-	 {
-		 continue;
-	 }
+   if (false == pcFMO->isCodedSG(iSliceGroupID) && false == bAllSliceDone)
+   {
+     continue;
+   }
 
-	 uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
-	 uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+   uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+   uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
 
-    for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
-    //===== loop over macroblocks use raster scan =====  
-	{
+    for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+    //===== loop over macroblocks use raster scan =====
+  {
       UInt          uiMbY             = uiMbAddress / uiMbInRow;
       UInt          uiMbX             = uiMbAddress % uiMbInRow;
       MbDataAccess* pcMbDataAccessMot = 0;
       MbDataAccess* pcMbDataAccessRes = 0;
 
       if( pcMbDataCtrlMot )
-	  {
+    {
         RNOK( pcMbDataCtrlMot ->initMb            (  pcMbDataAccessMot, uiMbY, uiMbX ) );
-	  }
+    }
       RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
       RNOK(   m_pcControlMngIf->initMbForFiltering(  uiMbAddress ) );
 
       // Hanke@RWTH
       if( m_pcHighpassFrame ) {
         m_pcHighpassYuvBuffer = m_pcHighpassFrame->getFullPelYuvBuffer();
-	  }else{
+    }else{
         m_pcHighpassYuvBuffer = NULL;
-	  }
+    }
 
-	
+
       if( 0 == (m_eLFMode & LFM_NO_FILTER))
-	  {				
-		RNOK( xFilterMb( pcMbDataAccessMot,
+    {
+    RNOK( xFilterMb( pcMbDataAccessMot,
                        pcMbDataAccessRes,
                        pcFrame->getFullPelYuvBuffer(),
                        pcRefFrameList0,
                        pcRefFrameList1,
-                       spatial_scalable_flg ) );  // SSUN@SHARP	  
-		//*/
-	  }
+                       spatial_scalable_flg ) );  // SSUN@SHARP
+    //*/
+    }
 
       if( m_eLFMode & LFM_EXTEND_INTRA_SUR )
-	  {
+    {
         UInt uiMask = 0;
 
         RNOK( pcMbDataCtrlRes->getBoundaryMask( uiMbY, uiMbX, uiMask ) );
 
         if( uiMask )
-		{
+    {
           IntYuvMbBufferExtension cBuffer;
           cBuffer.setAllSamplesToZero();
 
           cBuffer.loadSurrounding( pcFrame->getFullPelYuvBuffer() );
 
           RNOK( m_pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
-  	      pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
-		}
-	  }
-	
-      uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );    
-	}
+          pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
+    }
+    }
+
+      uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
+  }
   }
   //<- ICU/ETRI DS
 
@@ -1083,7 +1083,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
 {
   // SSUN@SHARP JVT-P013r1
   if(spatial_scalable_flg)
-  { 
+  {
     if( cIdx.x() )
     {
       const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
@@ -1127,15 +1127,15 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
         return(1);
       }
     }
-  } 
+  }
   // SSUN@SHARP end of JVT-P013r1
-  else{  
+  else{
     //-- Samsung 2005.02.xx
     if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
     {
       if( cIdx.x() )
       {
-        return 1;		//	if not MB_boundary
+        return 1;    //  if not MB_boundary
       }
 
       // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
@@ -1166,11 +1166,11 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
       ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                          ), 2 );
       ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
       ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
-    }else{ 
+    }else{
       ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
       ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_LEFT_NEIGHBOUR ), 2 );
     }
-    
+
     if( rcMbDataCurrMot.isInterPMb() )
     {
       return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_LEFT_NEIGHBOUR,
@@ -1192,7 +1192,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
   const MbData& rcMbDataLeftRes = pcMbDataAccessRes->getMbDataLeft();
 
   ROTRS( LFM_DEFAULT_FILTER != m_eLFMode && rcMbDataCurrMot.isIntra() ^ rcMbDataLeftMot.isIntra(), 0 );
-  
+
   ROTRS( rcMbDataCurrMot.isIntra(), 4 );
   ROTRS( rcMbDataLeftMot.isIntra(), 4 );
 
@@ -1202,11 +1202,11 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
     ROTRS( m_pcHighpassYuvBuffer->isCurr4x4BlkNotZero ( cIdx                          ), 2 );
     ROTRS( rcMbDataLeftRes.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 ); // bugfix for FRExt-Mode, Hanke@RWTH
     ROTRS( m_pcHighpassYuvBuffer->isLeft4x4BlkNotZero ( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
-  }else{ 
+  }else{
     ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
     ROTRS( rcMbDataLeftRes.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR ), 2 );
   }
-  
+
   if( rcMbDataCurrMot.isInterPMb() && rcMbDataLeftMot.isInterPMb())
   {
     return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataLeftMot, cIdx + LEFT_MB_LEFT_NEIGHBOUR,
@@ -1229,7 +1229,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
                                                         bool                spatial_scalable_flg )  // SSUN@SHARP
 {
   // SSUN@SHARP JVT-P013r1
-  if(spatial_scalable_flg){  
+  if(spatial_scalable_flg){
     if( cIdx.y() )
     {
       const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
@@ -1275,13 +1275,13 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
     }
   }
   // SSUN@SHARP end of JVT-P013r1
-  else{  
+  else{
     //-- Samsung 2005.02.xx
     if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
     {
       if( cIdx.y() )
       {
-        return 1;		//	if not MB_boundary
+        return 1;    //  if not MB_boundary
       }
 
       // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
@@ -1315,7 +1315,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
       ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                           ), 2 );
       ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx + CURR_MB_ABOVE_NEIGHBOUR ), 2 );
     }
-    
+
     if( rcMbDataCurrMot.isInterPMb() )
     {
       return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataCurrMot, cIdx + CURR_MB_ABOVE_NEIGHBOUR,
@@ -1334,9 +1334,9 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
 
   const MbData& rcMbDataAboveMot = pcMbDataAccessMot->getMbDataAbove();
   const MbData& rcMbDataAboveRes = pcMbDataAccessRes->getMbDataAbove();
-  
+
   ROTRS( LFM_DEFAULT_FILTER != m_eLFMode && rcMbDataCurrMot.isIntra() ^ rcMbDataAboveMot.isIntra(), 0 );
-  
+
   ROTRS( rcMbDataCurrMot. isIntra(), 4 );
   ROTRS( rcMbDataAboveMot.isIntra(), 4 );
 
@@ -1350,7 +1350,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
     ROTRS( rcMbDataCurrRes. is4x4BlkCoded( cIdx                            ), 2 );
     ROTRS( rcMbDataAboveRes.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR ), 2 );
   }
-  
+
   if( rcMbDataCurrMot.isInterPMb() && rcMbDataAboveMot.isInterPMb())
   {
     return xCheckMvDataP_RefIdx( rcMbDataCurrMot, cIdx, rcMbDataAboveMot, cIdx + ABOVE_MB_ABOVE_NEIGHBOUR,
@@ -1394,7 +1394,7 @@ UChar LoopFilter::xCheckMvDataP_RefIdx( const MbData& rcQMbData,
 
   ROTRS( cMvP.getAbsHorDiff( cMvQ ) >= sHorMvThr, 1 );
   ROTRS( cMvP.getAbsVerDiff( cMvQ ) >= sVerMvThr, 1 );
-  
+
   return 0;
 }
 
@@ -1444,7 +1444,7 @@ UChar LoopFilter::xCheckMvDataB_RefIdx( const MbData& rcQMbData,
 
     ROTRS( cMvP.getAbsHorDiff( cMvQ ) >= sHorMvThr, 1 );
     ROTRS( cMvP.getAbsVerDiff( cMvQ ) >= sVerMvThr, 1 );
-    
+
     return 0;
   }
 
@@ -1487,10 +1487,10 @@ UChar LoopFilter::xCheckMvDataB_RefIdx( const MbData& rcQMbData,
     ROTRS( cMvP0.getAbsVerDiff( cMvQ0 ) >= sVerMvThr, 1 );
     ROTRS( cMvP1.getAbsHorDiff( cMvQ1 ) >= sHorMvThr, 1 );
     ROTRS( cMvP1.getAbsVerDiff( cMvQ1 ) >= sVerMvThr, 1 );
-    
+
     return 0;
   }
- 
+
   //  rcRefPicL1P == rcRefPicL0P
   ROTRS( pcRefPicL1Q != pcRefPicL0Q, 1 ) ;
   ROTRS( pcRefPicL0P != pcRefPicL0Q, 1 ) ;

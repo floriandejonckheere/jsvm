@@ -10,7 +10,7 @@ m_uiFrameNum(0),
 m_pcLayerParameters(NULL),
 m_uiInFps(0)
 {
-  //initialization 
+  //initialization
 }
 
 SIPParameters::~SIPParameters()
@@ -36,9 +36,9 @@ ErrVal SIPParameters::init  (Int argc,Char** argv )
     xPrintUsage();
     return Err::m_nInvalidParameter;
   }
-  
+
   FILE* pFile = fopen( argv[1], "rt" );
-  
+
   if( ! pFile )
   {
     printf("\n\nCannot open config file \"%s\"\n\n", argv[1] );
@@ -170,7 +170,7 @@ ErrVal SIPParameters::xCheck()
       printf("Invalidated tolerable ratio\n");
       return Err::m_nERR;
     }
-    
+
     if(i>0)
       if(m_pcLayerParameters[i].m_uiFps<m_pcLayerParameters[i-1].m_uiFps||
         m_pcLayerParameters[i].m_uiFps%m_pcLayerParameters[i-1].m_uiFps!=0)//not integer times

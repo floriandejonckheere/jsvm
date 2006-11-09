@@ -23,7 +23,7 @@ typedef struct LayerParameters
   std::string       m_strOutputFile;
 } * PLAYERPARAMETERS;
 
-class SIPParameters  
+class SIPParameters
 {
 protected:
   SIPParameters();

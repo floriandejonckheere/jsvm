@@ -1,4 +1,4 @@
-#include <stdio.h>	
+#include <stdio.h>
 #include "ResizeParameters.h"
 
 #define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
@@ -26,7 +26,7 @@ ResizeParameters::xCleanPictureParameters ( PictureParameters * pc )
   pc->m_iPosY = -1;
   pc->m_iOutWidth  = -1;
   pc->m_iOutHeight = -1;
-  pc->m_iBaseChromaPhaseX = -1;  
+  pc->m_iBaseChromaPhaseX = -1;
   pc->m_iBaseChromaPhaseY = 0;
 }
 
@@ -80,7 +80,7 @@ ResizeParameters::setPictureParametersByValue ( Int index, Int px, Int py, Int o
     m_iOutHeight  = oh;
   }
 
-  m_iBaseChromaPhaseX = bcpx;  
+  m_iBaseChromaPhaseX = bcpx;
   m_iBaseChromaPhaseY = bcpy;
 
   PictureParameters * pc = &m_acCurrentGop[index % MAX_PICT_PARAM_NB];
@@ -96,7 +96,7 @@ ResizeParameters::setPictureParametersByValue ( Int index, Int px, Int py, Int o
 ErrVal
 ResizeParameters::readPictureParameters ( Int index )
 {
-    Int iPosX, iPosY, iOutWidth, iOutHeight;  
+    Int iPosX, iPosY, iOutWidth, iOutHeight;
 
     if ( fscanf(m_pParamFile,"%d,%d,%d,%d\n",&iPosX,&iPosY,&iOutWidth,&iOutHeight) == 0 )
     {
@@ -105,18 +105,18 @@ ResizeParameters::readPictureParameters ( Int index )
     }
 
     ROTREPORT( iPosX % 2 , "Cropping Window must be even aligned" );
-    ROTREPORT( iPosY % 2 , "Cropping Window must be even aligned" );  
+    ROTREPORT( iPosY % 2 , "Cropping Window must be even aligned" );
 
-    setPictureParametersByValue(index, iPosX, iPosY, iOutWidth, iOutHeight, m_iBaseChromaPhaseX, m_iBaseChromaPhaseY );  
-      
+    setPictureParametersByValue(index, iPosX, iPosY, iOutWidth, iOutHeight, m_iBaseChromaPhaseX, m_iBaseChromaPhaseY );
+
     return Err::m_nOK;
 }
 
 Void
 ResizeParameters::initRefListPoc ()
 {
-	for (Int i=0; i<MAX_REFLIST_SIZE;i++)
-	  {m_aiRefListPoc[0][i]=-1;m_aiRefListPoc[1][i]=-1;}
+  for (Int i=0; i<MAX_REFLIST_SIZE;i++)
+    {m_aiRefListPoc[0][i]=-1;m_aiRefListPoc[1][i]=-1;}
 }
 
 Void

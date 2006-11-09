@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -183,8 +183,8 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiGroupingSize                          ( 1 )
 , m_bInterlayerDeblockingPresent            ( 0 )
 {
-	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
-	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
+  m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
+  m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
 
   ::memset( m_aiOffsetForRefFrame, 0x00, 64*sizeof(Int) );
   ::memset( m_uiPosVect,           0x00, 16*sizeof(UInt));
@@ -243,7 +243,7 @@ SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt 
   for( Int n = 0; n < 52; n++ )
   {
     const LevelLimit* pcLevelLimit;
-    
+
     if( Err::m_nOK == xGetLevelLimit( pcLevelLimit, n ) )
     {
       UInt  uiMbPerLine  = (UInt)sqrt( (Double) pcLevelLimit->uiMaxFrameSize * 8 );
@@ -267,7 +267,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
   ETRACE_DECLARE( Bool m_bTraceEnable = true );
-	g_nLayer = m_uiLayerId;
+  g_nLayer = m_uiLayerId;
   ETRACE_LAYER(m_uiLayerId);
   ETRACE_HEADER( "SEQUENCE PARAMETER SET" );
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
@@ -283,10 +283,10 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeCode( 0,                                4,      "SPS: reserved_zero_4bits" ) );
   RNOK  ( pcWriteIf->writeCode( getLevelIdc(),                    8,      "SPS: level_idc" ) );
   RNOK  ( pcWriteIf->writeUvlc( getSeqParameterSetId(),                   "SPS: seq_parameter_set_id" ) );
-  
+
   //--- fidelity range extension syntax ---
   RNOK  ( xWriteFrext( pcWriteIf ) ); //bug fix JV 07/11/06
-  
+
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
 
@@ -330,8 +330,8 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       }
     }
   }
-  
-  
+
+
   UInt    uiTmp = getLog2MaxFrameNum();
   ROF   ( uiTmp >= 4 );
   RNOK  ( pcWriteIf->writeUvlc( uiTmp - 4,                                "SPS: log2_max_frame_num_minus_4" ) );
@@ -442,7 +442,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       }
     }
   }
- 
+
 
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_frame_num_minus_4" ) );
   ROT   ( uiTmp > 12 );
@@ -475,7 +475,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK( pcReadIf->getFlag( m_bDirect8x8InferenceFlag,                     "SPS: direct_8x8_inference_flag" ) );
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: frame_cropping_flag" ) );
   ROT ( bTmp );
-  
+
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: vui_parameters_present_flag" ) );
   ROT ( bTmp );
 
@@ -498,7 +498,7 @@ SequenceParameterSet::xWriteFrext( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeUvlc( 0,                              "SPS: bit_depth_chroma_minus8" ) );
   RNOK  ( pcWriteIf->writeFlag( false,                          "SPS: qpprime_y_zero_transform_bypass_flag" ) );
   RNOK  ( pcWriteIf->writeFlag( m_bSeqScalingMatrixPresentFlag, "SPS: seq_scaling_matrix_present_flag"  ) );
-  
+
   ROTRS ( ! m_bSeqScalingMatrixPresentFlag, Err::m_nOK );
   RNOK  ( m_cSeqScalingMatrix.write( pcWriteIf, true ) );
 
@@ -527,7 +527,7 @@ SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
   RNOK( pcReadIf->getFlag( bTmp,                                "SPS: qpprime_y_zero_transform_bypass_flag" ) );
   ROT ( bTmp )
   RNOK( pcReadIf->getFlag( m_bSeqScalingMatrixPresentFlag,      "SPS: seq_scaling_matrix_present_flag") );
-  
+
   ROTRS ( ! m_bSeqScalingMatrixPresentFlag, Err::m_nOK );
   RNOK  ( m_cSeqScalingMatrix.read( pcReadIf, true ) );
 

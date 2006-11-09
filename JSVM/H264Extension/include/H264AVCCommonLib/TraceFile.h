@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -105,8 +105,8 @@ H264AVC_NAMESPACE_BEGIN
 class H264AVCCOMMONLIB_API TraceFile
 {
 public:
-	TraceFile         ();
-	virtual ~TraceFile();
+  TraceFile         ();
+  virtual ~TraceFile();
 
   static ErrVal initTrace   ();
   static ErrVal openTrace   ( Char* pucBaseFilename );
@@ -124,7 +124,7 @@ public:
   static ErrVal countBits   ( UInt  uiBitCount );
   static ErrVal printPos    ();
 
-  static ErrVal printString ( Char* pcString );
+  static ErrVal printString ( const Char* pcString );
   static ErrVal printVal    ( UInt  uiVal );
   static ErrVal printVal    ( Int   iVal );
   static ErrVal printXVal   ( UInt  uiVal );
@@ -161,8 +161,8 @@ H264AVC_NAMESPACE_END
   #define INIT_ETRACE      if( m_bTraceEnable ) TraceFile::initTrace   ()
   #define OPEN_ETRACE      if( m_bTraceEnable ) TraceFile::openTrace   ("TraceEncoder")
   #define CLOSE_ETRACE     if( m_bTraceEnable ) TraceFile::closeTrace  ()
-  
-  #define ETRACE_LAYER(x)  if( m_bTraceEnable ) TraceFile::setLayer    (x) 
+
+  #define ETRACE_LAYER(x)  if( m_bTraceEnable ) TraceFile::setLayer    (x)
   #define ETRACE_NEWFRAME  if( m_bTraceEnable ) TraceFile::startFrame  ()
   #define ETRACE_NEWSLICE  if( m_bTraceEnable ) TraceFile::startSlice  ()
   #define ETRACE_NEWMB(x)  if( m_bTraceEnable ) TraceFile::startMb     (x)
@@ -209,15 +209,15 @@ H264AVC_NAMESPACE_END
 
   #define ETRACE_N
   #define ETRACE_DO(x)
-  #define ETRACE_DECLARE(x) 
+  #define ETRACE_DECLARE(x)
 #endif
 
 #if DECODER_TRACE
   #define INIT_DTRACE      TraceFile::initTrace   ()
   #define OPEN_DTRACE      TraceFile::openTrace   ("TraceDecoder")
   #define CLOSE_DTRACE     TraceFile::closeTrace  ()
-  
-  #define DTRACE_LAYER(x)  TraceFile::setLayer    (x) 
+
+  #define DTRACE_LAYER(x)  TraceFile::setLayer    (x)
   #define DTRACE_NEWFRAME  TraceFile::startFrame  ()
   #define DTRACE_NEWSLICE  TraceFile::startSlice  ()
   #define DTRACE_NEWMB(x)  TraceFile::startMb     (x)

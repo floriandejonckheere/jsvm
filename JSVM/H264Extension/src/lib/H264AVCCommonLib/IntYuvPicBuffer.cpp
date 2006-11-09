@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -203,7 +203,7 @@ ErrVal IntYuvPicBuffer::getSSD( Double& dSSDY, Double& dSSDU, Double& dSSDV, Pic
   XPel*   pSrc    = getMbLumAddr();
   Pel*    pOrg    = pOrgBase + ( pSrc - pSrcBase );
   Double  dDiff;
-  
+
   dSSDY = 0;
   dSSDU = 0;
   dSSDV = 0;
@@ -627,7 +627,7 @@ ErrVal IntYuvPicBuffer::clip()
 
 
 
-ErrVal IntYuvPicBuffer::subtract( IntYuvPicBuffer*  pcSrcYuvPicBuffer0, 
+ErrVal IntYuvPicBuffer::subtract( IntYuvPicBuffer*  pcSrcYuvPicBuffer0,
                                   IntYuvPicBuffer*  pcSrcYuvPicBuffer1 )
 {
   pcSrcYuvPicBuffer0->m_rcYuvBufferCtrl.initMb();
@@ -758,7 +758,7 @@ ErrVal IntYuvPicBuffer::add( IntYuvPicBuffer*  pcSrcYuvPicBuffer )
 
 
 
-ErrVal IntYuvPicBuffer::addWeighted( IntYuvPicBuffer* pcSrcYuvPicBuffer, 
+ErrVal IntYuvPicBuffer::addWeighted( IntYuvPicBuffer* pcSrcYuvPicBuffer,
                                      Double           dWeight )
 {
   pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb();
@@ -1249,45 +1249,45 @@ ErrVal IntYuvPicBuffer::dumpHPS( FILE* pFile, MbDataCtrl* pcMbDataCtrl )
 // Hanke@RWTH
 Bool IntYuvPicBuffer::isCurr4x4BlkNotZero ( LumaIdx cIdx )
 {
-  XPel* pPel      = getMbLumAddr(); 
+  XPel* pPel      = getMbLumAddr();
   Int   iStride   = getLStride();
-   
+
   for( Int iY = 0; iY<4; ++iY ) {
     for( Int iX = 0; iX<4; ++iX )
     {
       if ( pPel [ (cIdx.y()*4+iY)*iStride + cIdx.x()*4+iX ] )
         return true;
-    } 
+    }
   }
   return false;
 }
 
 Bool IntYuvPicBuffer::isLeft4x4BlkNotZero ( LumaIdx cIdx )
 {
-  XPel* pPel      = getMbLumAddr(); 
+  XPel* pPel      = getMbLumAddr();
   Int   iStride   = getLStride();
-     
+
   for( Int iY = 0; iY<4; ++iY ) {
     for( Int iX = 0; iX<4; ++iX )
     {
       if ( pPel [ (cIdx.y()*4+iY)*iStride + cIdx.x()*4+iX - 16 ] )
         return true;
-    } 
+    }
   }
   return false;
 }
 
 Bool IntYuvPicBuffer::isAbove4x4BlkNotZero ( LumaIdx cIdx )
 {
-  XPel* pPel      = getMbLumAddr(); 
+  XPel* pPel      = getMbLumAddr();
   Int   iStride   = getLStride();
-   
+
   for( Int iY = 0; iY<4; ++iY ) {
     for( Int iX = 0; iX<4; ++iX )
     {
       if ( pPel [ (cIdx.y()*4+iY - 16 )*iStride + cIdx.x()*4+iX ] )
         return true;
-    } 
+    }
   }
   return false;
 }
@@ -1364,7 +1364,7 @@ ErrVal IntYuvPicBuffer::setNonZeroFlags( UShort* pusNonZeroFlags, UInt uiStride 
     pData += iDataStride;
   }
 
-  
+
   iDataStride >>= 1;
   uiHeight    >>= 1;
   uiWidth     >>= 1;
@@ -1462,9 +1462,9 @@ Void IntYuvPicBuffer::setZero()
   XPel*   p;
   m_rcYuvBufferCtrl.initMb();
 
-  for(n=0,p=getMbLumAddr();n<getLHeight();n++){::memset(p,0x00,getLWidth()*sizeof(XPel) );p+=getLStride();} 
-  for(n=0,p=getMbCbAddr ();n<getCHeight();n++){::memset(p,0x00,getCWidth()*sizeof(XPel) );p+=getCStride();} 
-  for(n=0,p=getMbCrAddr ();n<getCHeight();n++){::memset(p,0x00,getCWidth()*sizeof(XPel) );p+=getCStride();} 
+  for(n=0,p=getMbLumAddr();n<getLHeight();n++){::memset(p,0x00,getLWidth()*sizeof(XPel) );p+=getLStride();}
+  for(n=0,p=getMbCbAddr ();n<getCHeight();n++){::memset(p,0x00,getCWidth()*sizeof(XPel) );p+=getCStride();}
+  for(n=0,p=getMbCrAddr ();n<getCHeight();n++){::memset(p,0x00,getCWidth()*sizeof(XPel) );p+=getCStride();}
 }
 
 
@@ -1567,179 +1567,179 @@ ErrVal IntYuvPicBuffer::inverseUpdate( IntYuvPicBuffer*  pcSrcYuvPicBuffer,
                                        IntYuvPicBuffer*  pcMCPYuvPicBuffer1 )
 {
   pcSrcYuvPicBuffer ->m_rcYuvBufferCtrl.initMb();
-	if (pcMCPYuvPicBuffer0)
-		pcMCPYuvPicBuffer0->m_rcYuvBufferCtrl.initMb();
-	if (pcMCPYuvPicBuffer1)
-		pcMCPYuvPicBuffer1->m_rcYuvBufferCtrl.initMb();
+  if (pcMCPYuvPicBuffer0)
+    pcMCPYuvPicBuffer0->m_rcYuvBufferCtrl.initMb();
+  if (pcMCPYuvPicBuffer1)
+    pcMCPYuvPicBuffer1->m_rcYuvBufferCtrl.initMb();
   m_rcYuvBufferCtrl.initMb();
 
-	if (pcMCPYuvPicBuffer0 && pcMCPYuvPicBuffer1)
-	{
-		XPel* pSrcAnchor  = pcSrcYuvPicBuffer ->getMbLumAddr();
-		XPel* pMCP0Anchor = pcMCPYuvPicBuffer0->getMbLumAddr();
-		XPel* pMCP1Anchor = pcMCPYuvPicBuffer1->getMbLumAddr();
-		XPel* pDesAnchor  = getMbLumAddr();
-		Int   iSrcStride  = pcSrcYuvPicBuffer ->getLStride();
-		Int   iMCP0Stride = pcMCPYuvPicBuffer0->getLStride();
-		Int   iMCP1Stride = pcMCPYuvPicBuffer1->getLStride();
-		Int   iDesStride  = getLStride();
-		UInt  uiHeight    = getLHeight();
-		UInt  uiWidth     = getLWidth ();
-		UInt  y, x;
+  if (pcMCPYuvPicBuffer0 && pcMCPYuvPicBuffer1)
+  {
+    XPel* pSrcAnchor  = pcSrcYuvPicBuffer ->getMbLumAddr();
+    XPel* pMCP0Anchor = pcMCPYuvPicBuffer0->getMbLumAddr();
+    XPel* pMCP1Anchor = pcMCPYuvPicBuffer1->getMbLumAddr();
+    XPel* pDesAnchor  = getMbLumAddr();
+    Int   iSrcStride  = pcSrcYuvPicBuffer ->getLStride();
+    Int   iMCP0Stride = pcMCPYuvPicBuffer0->getLStride();
+    Int   iMCP1Stride = pcMCPYuvPicBuffer1->getLStride();
+    Int   iDesStride  = getLStride();
+    UInt  uiHeight    = getLHeight();
+    UInt  uiWidth     = getLWidth ();
+    UInt  y, x;
 
-		//===== luminance =====
-		for( y = 0; y < uiHeight; y++ )
-		{
-			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-			XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
-			XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
-			XPel* pDes  = pDesAnchor  + y * iDesStride;
+    //===== luminance =====
+    for( y = 0; y < uiHeight; y++ )
+    {
+      XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+      XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
+      XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
+      XPel* pDes  = pDesAnchor  + y * iDesStride;
 
-			for( x = 0; x < uiWidth; x++ )
-			{
-				pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
-			}
-		}
-
-
-		//===== chrominance U =====
-		iSrcStride  >>= 1;
-		iMCP0Stride >>= 1;
-		iMCP1Stride >>= 1;
-		iDesStride  >>= 1;
-		uiHeight    >>= 1;
-		uiWidth     >>= 1;
-		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCbAddr();
-		pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCbAddr();
-		pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCbAddr();
-		pDesAnchor    = getMbCbAddr();
-
-		for( y = 0; y < uiHeight; y++ )
-		{
-			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-			XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
-			XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
-			XPel* pDes  = pDesAnchor  + y * iDesStride;
-
-			for( x = 0; x < uiWidth; x++ )
-			{
-				pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
-			}
-		}
-
-		//===== chrominance V =====
-		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCrAddr();
-		pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCrAddr();
-		pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCrAddr();
-		pDesAnchor    = getMbCrAddr();
-
-		for( y = 0; y < uiHeight; y++ )
-		{
-			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-			XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
-			XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
-			XPel* pDes  = pDesAnchor  + y * iDesStride;
-
-			for( x = 0; x < uiWidth; x++ )
-			{
-				pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
-			}
-		}
-	}
-	else
-	{
-		XPel* pSrcAnchor  = pcSrcYuvPicBuffer ->getMbLumAddr();
-		XPel* pMCAnchor ;
-		XPel* pDesAnchor  = getMbLumAddr();
-
-		Int   iSrcStride  = pcSrcYuvPicBuffer ->getLStride();
-		Int   iMCStride;
-
-		Int   iDesStride  = getLStride();
-		UInt  uiHeight    = getLHeight();
-		UInt  uiWidth     = getLWidth ();
-		UInt  y, x;
-
-		if (pcMCPYuvPicBuffer0)
-		{
-			pMCAnchor = pcMCPYuvPicBuffer0->getMbLumAddr();
-			iMCStride = pcMCPYuvPicBuffer0->getLStride();
-		}
-		else
-		{
-			pMCAnchor = pcMCPYuvPicBuffer1->getMbLumAddr();
-			iMCStride = pcMCPYuvPicBuffer1->getLStride();
-		}
-		
-		
-
-		//===== luminance =====
-		for( y = 0; y < uiHeight; y++ )
-		{
-			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-			XPel* pMC		= pMCAnchor		+ y * iMCStride;
-			XPel* pDes  = pDesAnchor  + y * iDesStride;
-
-			for( x = 0; x < uiWidth; x++ )
-			{
-				pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
-			}
-		}
+      for( x = 0; x < uiWidth; x++ )
+      {
+        pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
+      }
+    }
 
 
-		//===== chrominance U =====
-		iSrcStride  >>= 1;
-		iMCStride >>= 1;
-		iDesStride  >>= 1;
-		uiHeight    >>= 1;
-		uiWidth     >>= 1;
-		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCbAddr();
-		if (pcMCPYuvPicBuffer0)
-		{
-			pMCAnchor = pcMCPYuvPicBuffer0->getMbCbAddr();
-		}
-		else
-		{
-			pMCAnchor = pcMCPYuvPicBuffer1->getMbCbAddr();
-		}
-		pDesAnchor    = getMbCbAddr();
+    //===== chrominance U =====
+    iSrcStride  >>= 1;
+    iMCP0Stride >>= 1;
+    iMCP1Stride >>= 1;
+    iDesStride  >>= 1;
+    uiHeight    >>= 1;
+    uiWidth     >>= 1;
+    pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCbAddr();
+    pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCbAddr();
+    pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCbAddr();
+    pDesAnchor    = getMbCbAddr();
 
-		for( y = 0; y < uiHeight; y++ )
-		{
-			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-			XPel* pMC		= pMCAnchor		+ y * iMCStride;
-			XPel* pDes  = pDesAnchor  + y * iDesStride;
+    for( y = 0; y < uiHeight; y++ )
+    {
+      XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+      XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
+      XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
+      XPel* pDes  = pDesAnchor  + y * iDesStride;
 
-			for( x = 0; x < uiWidth; x++ )
-			{
-				pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
-			}
-		}
+      for( x = 0; x < uiWidth; x++ )
+      {
+        pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
+      }
+    }
 
-		//===== chrominance V =====
-		pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCrAddr();
-		if (pcMCPYuvPicBuffer0)
-		{
-			pMCAnchor = pcMCPYuvPicBuffer0->getMbCbAddr();
-		}
-		else
-		{
-			pMCAnchor = pcMCPYuvPicBuffer1->getMbCbAddr();
-		}
-		pDesAnchor    = getMbCrAddr();
+    //===== chrominance V =====
+    pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCrAddr();
+    pMCP0Anchor   = pcMCPYuvPicBuffer0->getMbCrAddr();
+    pMCP1Anchor   = pcMCPYuvPicBuffer1->getMbCrAddr();
+    pDesAnchor    = getMbCrAddr();
 
-		for( y = 0; y < uiHeight; y++ )
-		{
-			XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
-			XPel* pMC		= pMCAnchor		+ y * iMCStride;
-			XPel* pDes  = pDesAnchor  + y * iDesStride;
+    for( y = 0; y < uiHeight; y++ )
+    {
+      XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+      XPel* pMCP0 = pMCP0Anchor + y * iMCP0Stride;
+      XPel* pMCP1 = pMCP1Anchor + y * iMCP1Stride;
+      XPel* pDes  = pDesAnchor  + y * iDesStride;
 
-			for( x = 0; x < uiWidth; x++ )
-			{
-				pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
-			}
-		}
-	}
+      for( x = 0; x < uiWidth; x++ )
+      {
+        pDes[x] = gClip( pSrc[x] - ( ( pMCP0[x] + pMCP1[x] + 1 ) >> 2 ) );
+      }
+    }
+  }
+  else
+  {
+    XPel* pSrcAnchor  = pcSrcYuvPicBuffer ->getMbLumAddr();
+    XPel* pMCAnchor ;
+    XPel* pDesAnchor  = getMbLumAddr();
+
+    Int   iSrcStride  = pcSrcYuvPicBuffer ->getLStride();
+    Int   iMCStride;
+
+    Int   iDesStride  = getLStride();
+    UInt  uiHeight    = getLHeight();
+    UInt  uiWidth     = getLWidth ();
+    UInt  y, x;
+
+    if (pcMCPYuvPicBuffer0)
+    {
+      pMCAnchor = pcMCPYuvPicBuffer0->getMbLumAddr();
+      iMCStride = pcMCPYuvPicBuffer0->getLStride();
+    }
+    else
+    {
+      pMCAnchor = pcMCPYuvPicBuffer1->getMbLumAddr();
+      iMCStride = pcMCPYuvPicBuffer1->getLStride();
+    }
+
+
+
+    //===== luminance =====
+    for( y = 0; y < uiHeight; y++ )
+    {
+      XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+      XPel* pMC    = pMCAnchor    + y * iMCStride;
+      XPel* pDes  = pDesAnchor  + y * iDesStride;
+
+      for( x = 0; x < uiWidth; x++ )
+      {
+        pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
+      }
+    }
+
+
+    //===== chrominance U =====
+    iSrcStride  >>= 1;
+    iMCStride >>= 1;
+    iDesStride  >>= 1;
+    uiHeight    >>= 1;
+    uiWidth     >>= 1;
+    pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCbAddr();
+    if (pcMCPYuvPicBuffer0)
+    {
+      pMCAnchor = pcMCPYuvPicBuffer0->getMbCbAddr();
+    }
+    else
+    {
+      pMCAnchor = pcMCPYuvPicBuffer1->getMbCbAddr();
+    }
+    pDesAnchor    = getMbCbAddr();
+
+    for( y = 0; y < uiHeight; y++ )
+    {
+      XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+      XPel* pMC    = pMCAnchor    + y * iMCStride;
+      XPel* pDes  = pDesAnchor  + y * iDesStride;
+
+      for( x = 0; x < uiWidth; x++ )
+      {
+        pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
+      }
+    }
+
+    //===== chrominance V =====
+    pSrcAnchor    = pcSrcYuvPicBuffer ->getMbCrAddr();
+    if (pcMCPYuvPicBuffer0)
+    {
+      pMCAnchor = pcMCPYuvPicBuffer0->getMbCbAddr();
+    }
+    else
+    {
+      pMCAnchor = pcMCPYuvPicBuffer1->getMbCbAddr();
+    }
+    pDesAnchor    = getMbCrAddr();
+
+    for( y = 0; y < uiHeight; y++ )
+    {
+      XPel* pSrc  = pSrcAnchor  + y * iSrcStride;
+      XPel* pMC    = pMCAnchor    + y * iMCStride;
+      XPel* pDes  = pDesAnchor  + y * iDesStride;
+
+      for( x = 0; x < uiWidth; x++ )
+      {
+        pDes[x] = gClip( pSrc[x] - ( ( pMC[x] + 1 ) >> 2 ) );
+      }
+    }
+  }
 
   return Err::m_nOK;
 }
@@ -1750,106 +1750,106 @@ ErrVal IntYuvPicBuffer::smoothMbInside()
   Int   y, x;
   Int   iStride;
   XPel* pDes;
-	XPel	iA;
-	XPel	pTmp[16];
+  XPel  iA;
+  XPel  pTmp[16];
 
-	// ------------------------------------------------------------------------
-	// Luma
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Luma
+  // ------------------------------------------------------------------------
 
-	iStride = getLStride	();
-	pDes		= getMbLumAddr();
+  iStride = getLStride  ();
+  pDes    = getMbLumAddr();
 
-	// Step #1: horizontal smoothing process
-	for( y = 0; y < 16; y++ )
-	{
-		for( x = 1; x < 15; x++ )
-		{
-			iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
-			pTmp[x] = iA;
-		}
-		for( x = 1; x < 15; x++ ) pDes[x] = pTmp[x];
-		pDes += iStride;
-	}
+  // Step #1: horizontal smoothing process
+  for( y = 0; y < 16; y++ )
+  {
+    for( x = 1; x < 15; x++ )
+    {
+      iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
+      pTmp[x] = iA;
+    }
+    for( x = 1; x < 15; x++ ) pDes[x] = pTmp[x];
+    pDes += iStride;
+  }
 
-	// Step #2: vertical smoothing process
-	pDes = getMbLumAddr() + iStride;
-	for( y = 1; y < 15; y++ )
-	{
-		for( x = 0; x < 16; x++ )
-		{
-			iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
-			pTmp[x] = iA;
-		}
-		for( x = 0; x < 16; x++ ) pDes[x] = pTmp[x];
-		pDes += iStride;
-	}
+  // Step #2: vertical smoothing process
+  pDes = getMbLumAddr() + iStride;
+  for( y = 1; y < 15; y++ )
+  {
+    for( x = 0; x < 16; x++ )
+    {
+      iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
+      pTmp[x] = iA;
+    }
+    for( x = 0; x < 16; x++ ) pDes[x] = pTmp[x];
+    pDes += iStride;
+  }
 
-	// ------------------------------------------------------------------------
-	// Chroma (Cb)
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Chroma (Cb)
+  // ------------------------------------------------------------------------
 
-	iStride = getCStride  ();
-	pDes		= getMbCbAddr	();
+  iStride = getCStride  ();
+  pDes    = getMbCbAddr  ();
 
-	// Step #1: horizontal smoothing process
-	for( y = 0; y < 8; y++ )
-	{
-		for( x = 1; x < 7; x++ )
-		{
-			iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
-			pTmp[x] = iA;
-		}
-		for( x = 1; x < 7; x++ ) pDes[x] = pTmp[x];
-		pDes += iStride;
-	}
+  // Step #1: horizontal smoothing process
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 1; x < 7; x++ )
+    {
+      iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
+      pTmp[x] = iA;
+    }
+    for( x = 1; x < 7; x++ ) pDes[x] = pTmp[x];
+    pDes += iStride;
+  }
 
-	// Step #2: vertical smoothing process
-	pDes = getMbCbAddr() + iStride;
-	for( y = 1; y < 7; y++ )
-	{
-		for( x = 0; x < 8; x++ )
-		{
-			iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
-			pTmp[x] = iA;
-		}
-		for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
-		pDes += iStride;
-	}
+  // Step #2: vertical smoothing process
+  pDes = getMbCbAddr() + iStride;
+  for( y = 1; y < 7; y++ )
+  {
+    for( x = 0; x < 8; x++ )
+    {
+      iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
+      pTmp[x] = iA;
+    }
+    for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+    pDes += iStride;
+  }
 
-	// ------------------------------------------------------------------------
-	// Chroma (Cr)
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Chroma (Cr)
+  // ------------------------------------------------------------------------
 
-	iStride = getCStride  ();
-	pDes		= getMbCrAddr	();
+  iStride = getCStride  ();
+  pDes    = getMbCrAddr  ();
 
-	// Step #1: horizontal smoothing process
-	for( y = 0; y < 8; y++ )
-	{
-		for( x = 1; x < 7; x++ )
-		{
-			iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
-			pTmp[x] = iA;
-		}
-		for( x = 1; x < 7; x++ ) pDes[x] = pTmp[x];
-		pDes += iStride;
-	}
+  // Step #1: horizontal smoothing process
+  for( y = 0; y < 8; y++ )
+  {
+    for( x = 1; x < 7; x++ )
+    {
+      iA = ( pDes[x-1]+pDes[x]*2+pDes[x+1]+2 ) >> 2;
+      pTmp[x] = iA;
+    }
+    for( x = 1; x < 7; x++ ) pDes[x] = pTmp[x];
+    pDes += iStride;
+  }
 
-	// Step #2: vertical smoothing process
-	pDes = getMbCrAddr() + iStride;
-	for( y = 1; y < 7; y++ )
-	{
-		for( x = 0; x < 8; x++ )
-		{
-			iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
-			pTmp[x] = iA;
-		}
-		for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
-		pDes += iStride;
-	}
+  // Step #2: vertical smoothing process
+  pDes = getMbCrAddr() + iStride;
+  for( y = 1; y < 7; y++ )
+  {
+    for( x = 0; x < 8; x++ )
+    {
+      iA = ( pDes[x-iStride]+pDes[x]*2+pDes[x+iStride]+2 ) >> 2;
+      pTmp[x] = iA;
+    }
+    for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+    pDes += iStride;
+  }
 
-	return Err::m_nOK;
+  return Err::m_nOK;
 }
 
 ErrVal IntYuvPicBuffer::smoothMbTop ()
@@ -1857,52 +1857,52 @@ ErrVal IntYuvPicBuffer::smoothMbTop ()
   Int   x;
   Int   iStride;
   XPel* pDes;
-	XPel  iA;
-	XPel	pTmp[16];
+  XPel  iA;
+  XPel  pTmp[16];
 
-	// disable smoothing across MB boundary due to FMO
-	return Err::m_nOK;
+  // disable smoothing across MB boundary due to FMO
+  return Err::m_nOK;
 
-	// ------------------------------------------------------------------------
-	// Luma
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Luma
+  // ------------------------------------------------------------------------
 
-	iStride = getLStride  ();
-	pDes		= getMbLumAddr();
-	for( x = 0; x < 16; x++ )
-	{
-		iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
-		pTmp[x] = iA;
-	}
-	for( x = 0; x < 16; x++ ) pDes[x] = pTmp[x];
+  iStride = getLStride  ();
+  pDes    = getMbLumAddr();
+  for( x = 0; x < 16; x++ )
+  {
+    iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
+    pTmp[x] = iA;
+  }
+  for( x = 0; x < 16; x++ ) pDes[x] = pTmp[x];
 
-	// ------------------------------------------------------------------------
-	// Chroma (Cb)
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Chroma (Cb)
+  // ------------------------------------------------------------------------
 
-	iStride = getCStride  ();
-	pDes		= getMbCbAddr();
-	for( x = 0; x < 8; x++ )
-	{
-		iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
-		pTmp[x] = iA;
-	}
-	for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+  iStride = getCStride  ();
+  pDes    = getMbCbAddr();
+  for( x = 0; x < 8; x++ )
+  {
+    iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
+    pTmp[x] = iA;
+  }
+  for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
 
-	// ------------------------------------------------------------------------
-	// Chroma (Cr)
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Chroma (Cr)
+  // ------------------------------------------------------------------------
 
-	iStride = getCStride  ();
-	pDes		= getMbCrAddr();
-	for( x = 0; x < 8; x++ )
-	{
-		iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
-		pTmp[x] = iA;
-	}
-	for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
+  iStride = getCStride  ();
+  pDes    = getMbCrAddr();
+  for( x = 0; x < 8; x++ )
+  {
+    iA = ( pDes[x-iStride]+pDes[x+iStride]*2+pDes[x+iStride]+2 ) >> 2;
+    pTmp[x] = iA;
+  }
+  for( x = 0; x < 8; x++ ) pDes[x] = pTmp[x];
 
-	return Err::m_nOK;
+  return Err::m_nOK;
 }
 
 ErrVal IntYuvPicBuffer::smoothMbLeft ()
@@ -1910,70 +1910,70 @@ ErrVal IntYuvPicBuffer::smoothMbLeft ()
   Int   y;
   Int   iStride;
   XPel* pDes;
-	XPel  iA;
-	XPel	pTmp[16];
+  XPel  iA;
+  XPel  pTmp[16];
 
-	// disable smoothing across MB boundary due to FMO
-	return Err::m_nOK;
+  // disable smoothing across MB boundary due to FMO
+  return Err::m_nOK;
 
-	// ------------------------------------------------------------------------
-	// Luma
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Luma
+  // ------------------------------------------------------------------------
 
-	iStride = getLStride();
-	pDes		= getMbLumAddr();
-	for( y = 0; y < 16; y++ )
-	{
-		iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
-		pTmp[y] = iA;
-		pDes += iStride;
-	}
-	pDes		= getMbLumAddr();
-	for( y = 0; y < 16; y++ )
-	{
-		pDes[0] = pTmp[y];
-		pDes += iStride;
-	}
+  iStride = getLStride();
+  pDes    = getMbLumAddr();
+  for( y = 0; y < 16; y++ )
+  {
+    iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
+    pTmp[y] = iA;
+    pDes += iStride;
+  }
+  pDes    = getMbLumAddr();
+  for( y = 0; y < 16; y++ )
+  {
+    pDes[0] = pTmp[y];
+    pDes += iStride;
+  }
 
-	// ------------------------------------------------------------------------
-	// Chroma (Cb)
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Chroma (Cb)
+  // ------------------------------------------------------------------------
 
-	iStride = getCStride();
-	pDes		= getMbCbAddr();
-	for( y = 0; y < 8; y++ )
-	{
-		iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
-		pTmp[y] = iA;
-		pDes += iStride;
-	}
-	pDes		= getMbCbAddr();
-	for( y = 0; y < 8; y++ )
-	{
-		pDes[0] = pTmp[y];
-		pDes += iStride;
-	}
+  iStride = getCStride();
+  pDes    = getMbCbAddr();
+  for( y = 0; y < 8; y++ )
+  {
+    iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
+    pTmp[y] = iA;
+    pDes += iStride;
+  }
+  pDes    = getMbCbAddr();
+  for( y = 0; y < 8; y++ )
+  {
+    pDes[0] = pTmp[y];
+    pDes += iStride;
+  }
 
-	// ------------------------------------------------------------------------
-	// Chroma (Cr)
-	// ------------------------------------------------------------------------
+  // ------------------------------------------------------------------------
+  // Chroma (Cr)
+  // ------------------------------------------------------------------------
 
-	iStride = getCStride();
-	pDes		= getMbCrAddr();
-	for( y = 0; y < 8; y++ )
-	{
-		iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
-		pTmp[y] = iA;
-		pDes += iStride;
-	}
-	pDes		= getMbCrAddr();
-	for( y = 0; y < 8; y++ )
-	{
-		pDes[0] = pTmp[y];
-		pDes += iStride;
-	}
+  iStride = getCStride();
+  pDes    = getMbCrAddr();
+  for( y = 0; y < 8; y++ )
+  {
+    iA = ( pDes[-1]+pDes[0]*2+pDes[1]+2 ) >> 2;
+    pTmp[y] = iA;
+    pDes += iStride;
+  }
+  pDes    = getMbCrAddr();
+  for( y = 0; y < 8; y++ )
+  {
+    pDes[0] = pTmp[y];
+    pDes += iStride;
+  }
 
-	return Err::m_nOK;
+  return Err::m_nOK;
 }
 //--
 

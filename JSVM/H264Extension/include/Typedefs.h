@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -237,7 +237,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   #if !(defined MSYS_NO_TYPE_INT64 )
     typedef MSYS_TYPE_INT64 Int64;
   #endif
-  
+
   #if !(defined MSYS_TYPE_UINT64)
     #define MSYS_TYPE_UINT64 unsigned __int64
   #endif
@@ -276,49 +276,49 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif
 
 
-#define MSYS_CHAR_BIT		      8
+#define MSYS_CHAR_BIT          8
 
-#define MSYS_SCHAR_MIN		    (-128)
-#define MSYS_SCHAR_MAX		    127
-#define MSYS_UCHAR_MAX		    0xFF
-#define MSYS_INT8_MIN		      MSYS_SCHAR_MIN
-#define MSYS_INT8_MAX		      MSYS_SCHAR_MAX
-#define MSYS_UINT8_MAX		    MSYS_UCHAR_MAX
+#define MSYS_SCHAR_MIN        (-128)
+#define MSYS_SCHAR_MAX        127
+#define MSYS_UCHAR_MAX        0xFF
+#define MSYS_INT8_MIN          MSYS_SCHAR_MIN
+#define MSYS_INT8_MAX          MSYS_SCHAR_MAX
+#define MSYS_UINT8_MAX        MSYS_UCHAR_MAX
 
 #if defined( MSYS_CHAR_UNSIGNED )
-#define MSYS_CHAR_MIN		      0
-#define MSYS_CHAR_MAX		      MSYS_UCHAR_MAX
+#define MSYS_CHAR_MIN          0
+#define MSYS_CHAR_MAX          MSYS_UCHAR_MAX
 #else
-#define MSYS_CHAR_MIN		      MSYS_SCHAR_MIN
-#define MSYS_CHAR_MAX		      MSYS_SCHAR_MAX
+#define MSYS_CHAR_MIN          MSYS_SCHAR_MIN
+#define MSYS_CHAR_MAX          MSYS_SCHAR_MAX
 #endif
 
-#define MSYS_SHORT_MIN		    (-32768)
-#define MSYS_SHORT_MAX		    32767
-#define MSYS_USHORT_MAX		    0xFFFF
-#define MSYS_INT16_MIN		    MSYS_SHORT_MIN
-#define MSYS_INT16_MAX		    MSYS_SHORT_MAX
-#define MSYS_UINT16_MAX		    MSYS_USHORT_MAX
+#define MSYS_SHORT_MIN        (-32768)
+#define MSYS_SHORT_MAX        32767
+#define MSYS_USHORT_MAX        0xFFFF
+#define MSYS_INT16_MIN        MSYS_SHORT_MIN
+#define MSYS_INT16_MAX        MSYS_SHORT_MAX
+#define MSYS_UINT16_MAX        MSYS_USHORT_MAX
 
-#define MSYS_INT_MIN		      (-2147483647 - 1)
-#define MSYS_INT_MAX		      2147483647
-#define MSYS_UINT_MAX		      0xFFFFFFFFU
-#define MSYS_INT32_MIN		    MSYS_INT_MIN
-#define MSYS_INT32_MAX		    MSYS_INT_MAX
-#define MSYS_UINT32_MAX		    MSYS_UINT_MAX
+#define MSYS_INT_MIN          (-2147483647 - 1)
+#define MSYS_INT_MAX          2147483647
+#define MSYS_UINT_MAX          0xFFFFFFFFU
+#define MSYS_INT32_MIN        MSYS_INT_MIN
+#define MSYS_INT32_MAX        MSYS_INT_MAX
+#define MSYS_UINT32_MAX        MSYS_UINT_MAX
 
-#define MSYS_LONG_MIN		      (-2147483647L - 1L)
-#define MSYS_LONG_MAX		      2147483647L
-#define MSYS_ULONG_MAX		    0xFFFFFFFFUL
+#define MSYS_LONG_MIN          (-2147483647L - 1L)
+#define MSYS_LONG_MAX          2147483647L
+#define MSYS_ULONG_MAX        0xFFFFFFFFUL
 
 #if defined( MSYS_WIN32 ) || defined( WIN32 )
-#define MSYS_INT64_MIN		    (-9223372036854775807i64 - 1i64)
-#define MSYS_INT64_MAX		    9223372036854775807i64
-#define MSYS_UINT64_MAX		    0xFFFFFFFFFFFFFFFFui64
+#define MSYS_INT64_MIN        (-9223372036854775807i64 - 1i64)
+#define MSYS_INT64_MAX        9223372036854775807i64
+#define MSYS_UINT64_MAX        0xFFFFFFFFFFFFFFFFui64
 #elif defined( MSYS_LINUX )
-#define MSYS_INT64_MIN		    (-9223372036854775807LL - 1LL)
-#define MSYS_INT64_MAX		    9223372036854775807LL
-#define MSYS_UINT64_MAX		    0xFFFFFFFFFFFFFFFFULL
+#define MSYS_INT64_MIN        (-9223372036854775807LL - 1LL)
+#define MSYS_INT64_MAX        9223372036854775807LL
+#define MSYS_UINT64_MAX        0xFFFFFFFFFFFFFFFFULL
 #endif
 
 
@@ -330,7 +330,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif
 
 
-// define status of lifecycle of an object instance 
+// define status of lifecycle of an object instance
 #define INST_STATE_UNINITIALIZED  (0)
 #define INST_STATE_INITIALIZING   (1)
 #define INST_STATE_INITIALIZED    (2)
@@ -343,5 +343,5 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
   typedef MSYS_TYPE_INSTSTATE InstState;
 #endif
 
-  
+
 #endif //__TYPEDEFS_H_D64BE9B4_A8DA_11D3_AFE7_005004464B79

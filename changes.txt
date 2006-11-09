@@ -1,7 +1,22 @@
+JSVM_7_3 -> JSVM_7_4
+====================
+
+Date      : Nov. 9, 2006
+Author	  : Heiner Kirchhoffer
+Contrib   : JVT-U082
+
+Changes:
+
+- Integration of JVT-U082 'Improved CABAC for PR slices'. New CABAC context models
+for the coding of refinement symbols in FGS were added and the derivation
+of the CABAC context models for the coding of refinement symbols was modified.
+
+
+
 JSVM_7_2 -> JSVM_7_3
 ====================
 
-Date	  : Nov. 9, 2006
+Date      : Nov. 9, 2006
 Author	  : Seung-Wook Park (LG)
 Contrib   : JVT-U090
 
@@ -14,7 +29,7 @@ Changes:
 JSVM_7_1 -> JSVM_7_2
 ====================
 
-Date	  : Nov. 8, 2006
+Date      : Nov. 8, 2006
 Author	  : Jizheng XU(Microsoft)
 Contrib   : JVT-U067
 

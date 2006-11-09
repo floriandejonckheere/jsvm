@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -196,7 +196,7 @@ ErrVal XDistortion::init()
   m_aaafpDistortionFunc[0][2][0x9] = XDistortion::xGetHAD8x;
   m_aaafpDistortionFunc[0][2][0xa] = XDistortion::xGetHAD4x;
   m_aaafpDistortionFunc[0][2][0xb] = XDistortion::xGetHAD4x;
-  
+
   m_aaafpDistortionFunc[0][3][0x0] = NULL;
   m_aaafpDistortionFunc[0][3][0x1] = XDistortion::xGetYuvSAD16x;
   m_aaafpDistortionFunc[0][3][0x2] = XDistortion::xGetYuvSAD16x;
@@ -1367,10 +1367,10 @@ UInt XDistortion::xGetBiHAD4x  ( XDistSearchStruct* pcDSS )
 
 //TMM_WP
 Void XDistortion::xGetWeight(XPel *pucRef, XPel *pucOrg, const UInt uiStride,
-                             const UInt uiHeight, const UInt uiWidth, 
+                             const UInt uiHeight, const UInt uiWidth,
                              Double &dDCOrg, Double &dDCRef)
 {
-    /* get dc of org & ref frame */    
+    /* get dc of org & ref frame */
     for (UInt y = 0; y < uiHeight; y++)
     {
         for (UInt x = 0; x < uiWidth; x++)
@@ -1386,7 +1386,7 @@ Void XDistortion::xGetWeight(XPel *pucRef, XPel *pucOrg, const UInt uiStride,
 
 
 
-ErrVal XDistortion::getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer, 
+ErrVal XDistortion::getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
                                    IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight,
                                    UInt uiLumaLog2WeightDenom)
 {
@@ -1409,17 +1409,17 @@ ErrVal XDistortion::getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
   if(dDCRef)
   {
       rfWeight = (Int) (rfWeight * dDCOrg / dDCRef + 0.5);
-      
+
       if(rfWeight < -64 || rfWeight > 127)
           rfWeight = 1 << uiLumaLog2WeightDenom;
   }
-  
+
   return Err::m_nOK;
 }
 
 
-ErrVal XDistortion::getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer, 
-                                     IntYuvPicBuffer* pcRefPicBuffer, 
+ErrVal XDistortion::getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
+                                     IntYuvPicBuffer* pcRefPicBuffer,
                                      Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb )
 {
   ROT( NULL == pcRefPicBuffer );
@@ -1431,7 +1431,7 @@ ErrVal XDistortion::getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
   return Err::m_nOK;
 }
 
-ErrVal XDistortion::getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, 
+ErrVal XDistortion::getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
                                     IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset )
 {
   ROT( NULL == pcRefPicBuffer );
@@ -1458,8 +1458,8 @@ ErrVal XDistortion::getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
 }
 
 
-ErrVal XDistortion::getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, 
-                                      IntYuvPicBuffer* pcRefPicBuffer, 
+ErrVal XDistortion::getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
+                                      IntYuvPicBuffer* pcRefPicBuffer,
                                       Double& rfOffset, Bool bCb )
 {
   ROT( NULL == pcRefPicBuffer );

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -226,13 +226,13 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     fprintf (   stderr, "  win     : input width  (luma samples)\n" );
     fprintf (   stderr, "  hin     : input height (luma samples)\n" );
     fprintf (   stderr, "  in      : input file\n" );
-	  fprintf (   stderr, "  wout    : output width  (luma samples)\n" );
+    fprintf (   stderr, "  wout    : output width  (luma samples)\n" );
     fprintf (   stderr, "  hout    : output height (luma samples)\n" );
     fprintf (   stderr, "  out     : output file\n" );
     fprintf (   stderr, "\n--------------------------- OPTIONAL ---------------------------\n\n" );
-	  fprintf (   stderr, "  method  : rescaling methods (default: 0)\n" );
-	  fprintf (   stderr, "            0: normative upsampling\n" );
- 	  fprintf (   stderr, "               non-normative downsampling (JVT-R006)\n" );
+    fprintf (   stderr, "  method  : rescaling methods (default: 0)\n" );
+    fprintf (   stderr, "            0: normative upsampling\n" );
+     fprintf (   stderr, "               non-normative downsampling (JVT-R006)\n" );
     fprintf (   stderr, "            1: dyadic upsampling (AVC 6-tap (1/2 pel) on odd samples\n" );
     fprintf (   stderr, "               dyadic downsampling (MPEG-4 downsampling filter)\n" );
     fprintf (   stderr, "            2: crop only\n" );
@@ -263,7 +263,7 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
 }
 
 
-   
+
 
 
 void updateCropParametersFromFile(ResizeParameters * rp, FILE * crop_file, int method, char* name)
@@ -279,7 +279,7 @@ void updateCropParametersFromFile(ResizeParameters * rp, FILE * crop_file, int m
     rp->m_iOutWidth  = crop_w;
     rp->m_iOutHeight = crop_h;
   }
-  
+
   print_usage_and_exit ((rp->m_iPosX&1||rp->m_iPosY&1||rp->m_iOutWidth&1||rp->m_iOutHeight&1), name, "Crop parameters must be event values");
   print_usage_and_exit (((method==2)&&((rp->m_iOutWidth != min(rp->m_iInWidth, rp->m_iGlobWidth))||(rp->m_iOutHeight != min(rp->m_iInHeight, rp->m_iGlobHeight)))), name, "Crop dimensions must be the same as the minimal dimensions");
   print_usage_and_exit ((rp->m_iOutWidth>max(rp->m_iInWidth,rp->m_iGlobWidth)||rp->m_iOutHeight>max(rp->m_iInHeight,rp->m_iGlobHeight)||rp->m_iOutWidth<min(rp->m_iInWidth,rp->m_iGlobWidth)||rp->m_iOutHeight<min(rp->m_iInHeight,rp->m_iGlobHeight)),name,"wrong crop window size");
@@ -291,7 +291,7 @@ int main(int argc, char *argv[])
 {
   DownConvert   cDownConvert;
   ResizeParameters * rp = new ResizeParameters;
-  
+
   rp->m_iInWidth                   = 0;
   rp->m_iInHeight                  = 0;
   rp->m_iGlobWidth                 = 0;
@@ -306,8 +306,8 @@ int main(int argc, char *argv[])
   rp->m_iOutHeight                 = 0;
   rp->m_iExtendedSpatialScalability= 0;
   rp->m_iPOC                       = 0;
-  rp->m_pParamFile                 = 0;  
-  
+  rp->m_pParamFile                 = 0;
+
   int   iStage              = 0;
   int   temporal_stages     = 0;
   int   skip_at_start       = 0;
@@ -327,10 +327,10 @@ int main(int argc, char *argv[])
   int   i;
   int   frame_width;
   int   frame_height;
-  
+
   int           written, skip;
   YuvFrame      cFrame;
-  
+
   print_usage_and_exit ((argc<7||argc>22), argv[0],"number of arguments");
   rp->m_iInWidth        = atoi  ( argv[1] );
   rp->m_iInHeight       = atoi  ( argv[2] );
@@ -338,14 +338,14 @@ int main(int argc, char *argv[])
   rp->m_iGlobWidth      = atoi  ( argv[4] );
   rp->m_iGlobHeight     = atoi  ( argv[5] );
   output_file           = fopen ( argv[6], "wb" );
-  
+
   print_usage_and_exit ((input_file == NULL||output_file == NULL),argv[0],"failed to open file");
   print_usage_and_exit(((rp->m_iInWidth>rp->m_iGlobWidth&&rp->m_iInHeight<rp->m_iGlobHeight)||(rp->m_iInWidth<rp->m_iGlobWidth&&rp->m_iInHeight>rp->m_iGlobHeight)),argv[0],"mixed Upsample and Downsample");
-  
+
   fseek(  input_file, 0, SEEK_END );
   sequence_length = (ftell(input_file)/(3*rp->m_iInWidth*rp->m_iInHeight/2));
   fseek(  input_file, 0, SEEK_SET );
-  
+
   i = 7;
   while (i<argc)
   {
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
     {
       print_usage_and_exit ((method == 1), argv[0], "No crop in Dyadic method");
       print_usage_and_exit (((method == 2)&&(rp->m_iInWidth<rp->m_iGlobWidth)), argv[0], "No crop only while upsampling");
-            
+
       print_usage_and_exit ((crop_init||argc<(i+3)||argc==(i+4)||argc==(i+5)),argv[0],"Error in crop parameters");
       crop_init = true;
       i++;
@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
     else if (strcmp(argv[i], "-phase")==0)
     {
       print_usage_and_exit ((method != 0), argv[0], "Phase only in normative resampling");
-           
+
       print_usage_and_exit ((phase_init||argc<(i+5)),argv[0],"wrong number of phase parameters");
       i++;
       phase_init = true;
@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
       print_usage_and_exit (true,argv[0]);
     }
   }
-  
+
   if (!method_init)
   {
     resample = true;
@@ -478,13 +478,13 @@ int main(int argc, char *argv[])
       upsample = true;
     }
   }
-  
+
   if (!crop_init)
   {
     rp->m_iOutWidth = max(rp->m_iInWidth,rp->m_iGlobWidth);
     rp->m_iOutHeight = max(rp->m_iInHeight,rp->m_iGlobHeight);
   }
-  
+
   if (method == 2)
   {
     if (!crop_init)
@@ -494,9 +494,9 @@ int main(int argc, char *argv[])
       fprintf( stderr, "\nCrop parameters set to default 0,0,min_width,min_height\n");
     }
   }
-  
+
   skip_between    = ( 1 << temporal_stages ) - 1;
-  
+
   if ( number_frames > ((sequence_length - skip_at_start+((1<<temporal_stages)-1))>>temporal_stages) )
   {
     if (number_frames != (1 << 30))
@@ -505,26 +505,26 @@ int main(int argc, char *argv[])
     }
     number_frames   = ((sequence_length - skip_at_start+((1<<temporal_stages)-1))>>temporal_stages);
   }
-    
+
   frame_width = (rp->m_iInWidth > rp->m_iGlobWidth) ? rp->m_iInWidth : rp->m_iGlobWidth;
-  frame_height = (rp->m_iInHeight > rp->m_iGlobHeight) ? rp->m_iInHeight : rp->m_iGlobHeight;  
-    
+  frame_height = (rp->m_iInHeight > rp->m_iGlobHeight) ? rp->m_iInHeight : rp->m_iGlobHeight;
+
   createFrame( &cFrame, frame_width, frame_height );
   cDownConvert.init( frame_width, frame_height );
-  
+
   long start_time = clock();
-  
+
   for( skip = skip_at_start, rp->m_iPOC = 0, written = 0; ((rp->m_iPOC < sequence_length)&&(written < number_frames)); rp->m_iPOC++, skip = skip_between )
   {
     fseek( input_file, skip*rp->m_iInWidth*rp->m_iInHeight*3/2, SEEK_CUR);
     rp->m_iPOC += skip;
-    
+
     if ((rp->m_iPOC < sequence_length)&&(written < number_frames))
     {
       clearFrame      ( &cFrame );
-      
-      readFrame       ( &cFrame, input_file, rp->m_iInWidth, rp->m_iInHeight );      
-      
+
+      readFrame       ( &cFrame, input_file, rp->m_iInWidth, rp->m_iInHeight );
+
       if (crop_file_init&&rp->m_iExtendedSpatialScalability==2)
       {
         updateCropParametersFromFile(rp, crop_file, method, argv[0]);
@@ -537,10 +537,10 @@ int main(int argc, char *argv[])
       {
         resample = true;
       }
-      
+
       if ((!resample) && (!upsample))
       {
-        cDownConvert.crop(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp);      
+        cDownConvert.crop(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp);
       }
       else
       {
@@ -599,16 +599,16 @@ int main(int argc, char *argv[])
     }
   }
   long end_time = clock();
-  
+
   deleteFrame( &cFrame     );
   fclose     ( input_file  );
   fclose     ( output_file );
-  
+
   if (crop_file_init)
   {
     fclose   ( crop_file   );
   }
-  
+
   fprintf(stderr, "\n" );
   double delta_in_s = (double)(end_time - start_time) / CLOCKS_PER_SEC;
   fprintf(stderr, "in %.2lf seconds => %.0lf ms/frame\n", delta_in_s, delta_in_s/written*1000);

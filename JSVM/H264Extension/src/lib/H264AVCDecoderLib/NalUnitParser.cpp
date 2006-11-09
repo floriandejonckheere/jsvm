@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -103,7 +103,7 @@ NalUnitParser::NalUnitParser()
 , m_uiQualityLevel      ( 0 )
 , m_bCheckAllNALUs      ( false ) //JVT-P031
 , m_uiDecodedLayer      ( 0 ) //JVT-P031
-, m_bDiscardableFlag    ( false ) 
+, m_bDiscardableFlag    ( false )
 {
   /*for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
   {
@@ -227,7 +227,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   DTRACE_BITS ( m_uiPriorityId, 6 );
   DTRACE_COUNT( 6 );
   DTRACE_N;
-  
+
   DTRACE_TH   ( "NALU HEADER: temporal_level" );
   DTRACE_TY   ( " u(3)" );
   DTRACE_POS;
@@ -235,7 +235,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   DTRACE_BITS ( m_uiTemporalLevel, 3 );
   DTRACE_COUNT( 3 );
   DTRACE_N;
-  
+
   DTRACE_TH   ( "NALU HEADER: dependency_id" );
   DTRACE_TY   ( " u(3)" );
   DTRACE_POS;
@@ -299,7 +299,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   DTRACE_BITS ( m_bFGSLastFragFlag, 1 );
   DTRACE_COUNT( 1 );
   DTRACE_N;
-  
+
   DTRACE_TH   ( "NALU HEADER: fgs_frag_order" );
   DTRACE_TY   ( " u(2)" );
   DTRACE_POS;
@@ -307,7 +307,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   DTRACE_BITS ( m_uiFGSFragOrder, 2 );
   DTRACE_COUNT( 2 );
   DTRACE_N;
-  
+
 }
 
 
@@ -320,7 +320,7 @@ NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor )
 
   NalUnitType   eNalUnitType;
   NalRefIdc     eNalRefIdc;
-  
+
   UInt  uiHeaderLength  = 1;
   UChar ucByte          = pcBinDataAccessor->data()[0];
 
@@ -329,13 +329,13 @@ NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor )
   ROT( ucByte & 0x80 );                                     // forbidden_zero_bit ( &10000000b)
   eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
   eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
-  
-  
+
+
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
     uiHeaderLength      += NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
-	}
+  }
 
   return uiHeaderLength;
 }
@@ -353,23 +353,23 @@ NalUnitParser::initSODBNalUnit( BinDataAccessor* pcBinDataAccessor )
 }
 
 UInt
-NalUnitParser::getBytesLeft()               
+NalUnitParser::getBytesLeft()
 {
   return(m_pcBitReadBuffer->getBytesLeft());
 }
 
 UInt
-NalUnitParser::getBitsLeft()               
+NalUnitParser::getBitsLeft()
 {
   return(m_pcBitReadBuffer->getBitsLeft());
 }
 //~JVT-P031
 
 ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFlag, //bug-fix suffix shenqiu 
+NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFlag, //bug-fix suffix shenqiu
                            UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
                            Bool bPreParseHeader, Bool bConcatenated, //FRAG_FIX
-													 Bool	bCheckGap) //TMM_EC
+                           Bool  bCheckGap) //TMM_EC
 {
   ROF( pcBinDataAccessor->size() );
   ROF( pcBinDataAccessor->data() );
@@ -383,43 +383,43 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFl
   ROT( ucByte & 0x80 );                                     // forbidden_zero_bit ( &10000000b)
   m_eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
   m_eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
-  
-  
-//	TMM_EC {{
-	if ( *(int*)(pcBinDataAccessor->data()+1) != 0xdeadface)
-	{
-		if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-				m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
-		{
+
+
+//  TMM_EC {{
+  if ( *(int*)(pcBinDataAccessor->data()+1) != 0xdeadface)
+  {
+    if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+        m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+    {
       ROF( pcBinDataAccessor->size() > 3 );
-	
-		  ucByte              = pcBinDataAccessor->data()[1];
-		  ROT( ucByte & 0xC0 );                                 // reserved_zero_two_bitst ( &11000000b)
-		  m_uiPriorityId        = ( ucByte >> 2);               // priority_id             ( &00111111b)
+
+      ucByte              = pcBinDataAccessor->data()[1];
+      ROT( ucByte & 0xC0 );                                 // reserved_zero_two_bitst ( &11000000b)
+      m_uiPriorityId        = ( ucByte >> 2);               // priority_id             ( &00111111b)
 
       ucByte              = pcBinDataAccessor->data()[2];
-		  m_uiTemporalLevel   = ( ucByte >> 5 );               // temporal_level           ( &11100000b)
-		  m_uiLayerId         = ( ucByte >> 2 ) & 7;           // dependency_id            ( &00011100b)
-		  m_uiQualityLevel    = ( ucByte      ) & 3;           // quality_level            ( &00000011b)
+      m_uiTemporalLevel   = ( ucByte >> 5 );               // temporal_level           ( &11100000b)
+      m_uiLayerId         = ( ucByte >> 2 ) & 7;           // dependency_id            ( &00011100b)
+      m_uiQualityLevel    = ( ucByte      ) & 3;           // quality_level            ( &00000011b)
 
       ucByte              = pcBinDataAccessor->data()[3];
       ROT( ucByte & 0x80 );                                // reserved_zero_one_bit    ( &10000000b)
-      m_bLayerBaseFlag  	  = ( ucByte >> 6) & 1;          // layer_base_flag          ( &01000000b)
-      m_bUseBasePredFlag	  = ( ucByte >> 5) & 1;          // use_base_prediction_flag ( &00100000b)
-      m_bDiscardableFlag	  = ( ucByte >> 4) & 1;          // discardable_flag         ( &00010000b)
-      m_bFGSFragFlag    	  = ( ucByte >> 3) & 1;          // fgs_frag_flag            ( &00001000b)
-      m_bFGSLastFragFlag	  = ( ucByte >> 2) & 1;          // fgs_last_frag_flag       ( &00000100b)
-      m_uiFGSFragOrder  	  = ( ucByte >> 0) & 3;          // fgs_frag_order           ( &00000011b)
-	
-			uiHeaderLength    +=  NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
-			}
-		else
-		{
-			m_uiPriorityId    = 0;
+      m_bLayerBaseFlag      = ( ucByte >> 6) & 1;          // layer_base_flag          ( &01000000b)
+      m_bUseBasePredFlag    = ( ucByte >> 5) & 1;          // use_base_prediction_flag ( &00100000b)
+      m_bDiscardableFlag    = ( ucByte >> 4) & 1;          // discardable_flag         ( &00010000b)
+      m_bFGSFragFlag        = ( ucByte >> 3) & 1;          // fgs_frag_flag            ( &00001000b)
+      m_bFGSLastFragFlag    = ( ucByte >> 2) & 1;          // fgs_last_frag_flag       ( &00000100b)
+      m_uiFGSFragOrder      = ( ucByte >> 0) & 3;          // fgs_frag_order           ( &00000011b)
 
-			m_uiTemporalLevel = 0;
-			m_uiLayerId       = 0;
-			m_uiQualityLevel  = 0;
+      uiHeaderLength    +=  NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
+      }
+    else
+    {
+      m_uiPriorityId    = 0;
+
+      m_uiTemporalLevel = 0;
+      m_uiLayerId       = 0;
+      m_uiQualityLevel  = 0;
 
       m_bLayerBaseFlag  = 1; // m_bLayerBaseFlag indicate that the content of the NAL is compatible with NAL_UNIT_CODED_SLICE
       m_bUseBasePredFlag= 0;
@@ -427,14 +427,14 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFl
       m_bFGSFragFlag    = 0;
       m_bFGSLastFragFlag= 0;
       m_uiFGSFragOrder  = 0;
-		}
-	}
-	else //TMM_EC
-	{
-		uiNumBytesRemoved	=	0;
-		m_pucBuffer         = pcBinDataAccessor->data() + uiHeaderLength;
-		return Err::m_nOK;
-	}
+    }
+  }
+  else //TMM_EC
+  {
+    uiNumBytesRemoved  =  0;
+    m_pucBuffer         = pcBinDataAccessor->data() + uiHeaderLength;
+    return Err::m_nOK;
+  }
 
 
   //===== TRACE output =====
@@ -447,7 +447,7 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFl
   //JVT-P031
   if(m_bDiscardableFlag == true && m_uiDecodedLayer > m_uiLayerId && !m_bCheckAllNALUs)
   {
-		//Nal unit or fragment must be discarded
+    //Nal unit or fragment must be discarded
         uiPacketLength = 0;
   }
   //~JVT-P031
@@ -457,19 +457,19 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFl
          NAL_UNIT_END_OF_SEQUENCE == m_eNalUnitType,    Err::m_nOK );
 
   uiNumBytesRemoved = uiPacketLength;//FIX_FRAG_CAVLC
-	if ( !bCheckGap)
-	{
-		// Unit->RBSP
-		if(bPreParseHeader) //FRAG_FIX
-		{//FIX_FRAG_CAVLC
-				RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
-				uiNumBytesRemoved -= uiPacketLength; //FIX_FRAG_CAVLC
-		}//FIX_FRAG_CAVLC
-	}
-	else //TMM_EC
-	{
-		uiNumBytesRemoved	=	0;
-	}
+  if ( !bCheckGap)
+  {
+    // Unit->RBSP
+    if(bPreParseHeader) //FRAG_FIX
+    {//FIX_FRAG_CAVLC
+        RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
+        uiNumBytesRemoved -= uiPacketLength; //FIX_FRAG_CAVLC
+    }//FIX_FRAG_CAVLC
+  }
+  else //TMM_EC
+  {
+    uiNumBytesRemoved  =  0;
+  }
   UInt uiBitsInPacket;
   // RBSP->SODB
   RNOK( xConvertRBSPToSODB    ( uiPacketLength, uiBitsInPacket ) );

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -101,12 +101,12 @@ const int COUNT_THR[9] = { 3, 4, 4, 4, 3, 2, 2, 3, 3};
 
 
 CabacWriter::CabacWriter():
-	m_cSRFlagCCModel(1,1),	// JVT-R091
+  m_cSRFlagCCModel(1,1),  // JVT-R091
   m_cBLSkipCCModel(1,4),
   m_cBCbpCCModel( NUM_BLOCK_TYPES, NUM_BCBP_CTX ),
   m_cMapCCModel( NUM_BLOCK_TYPES, NUM_MAP_CTX ),
   m_cLastCCModel( NUM_BLOCK_TYPES, NUM_LAST_CTX ),
-  m_cRefCCModel( 1, 10 ),
+  m_cRefCCModel( 1, NUM_FGS_REF_CTX ),
   m_cSigCCModel( 1, 10 ),
   m_cOneCCModel( NUM_BLOCK_TYPES, NUM_ABS_CTX ),
   m_cAbsCCModel( NUM_BLOCK_TYPES, NUM_ABS_CTX ),
@@ -154,7 +154,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cIntraPredCCModel.initBuffer(   (Short*)INIT_IPR_I,           iQp ) );
     RNOK( m_cChromaPredCCModel.initBuffer(  (Short*)INIT_CIPR_I,          iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,         iQp ) );
-		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,         iQp ) );	// JVT-R091
+    RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,         iQp ) );  // JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_I,           iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_I,          iQp ) );
@@ -182,7 +182,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cIntraPredCCModel.initBuffer(   (Short*)INIT_IPR_P            [iIndex], iQp ) );
     RNOK( m_cChromaPredCCModel.initBuffer(  (Short*)INIT_CIPR_P           [iIndex], iQp ) );
     RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,                   iQp ) );
-		RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,                   iQp ) );	// JVT-R091
+    RNOK( m_cSRFlagCCModel.initBuffer(      (Short*)INIT_SR_FLAG,                   iQp ) );  // JVT-R091
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_P            [iIndex], iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_P           [iIndex], iQp ) );
@@ -197,7 +197,7 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBCbpEnhanceCCModel.initBuffer( (Short*)INIT_BCBP_ENH_P       [iIndex], iQp ) );
 
     RNOK( m_cTransSizeCCModel.initBuffer(   (Short*)INIT_TRANSFORM_SIZE_P [iIndex], iQp ) );
-  }  
+  }
 
   return Err::m_nOK;
 }
@@ -1267,11 +1267,11 @@ UInt CabacWriter::getNumberOfWrittenBits()
 
 
 
-ErrVal CabacWriter::transformSize8x8Flag( MbDataAccess& rcMbDataAccess ) 
+ErrVal CabacWriter::transformSize8x8Flag( MbDataAccess& rcMbDataAccess )
 {
   UInt uiSymbol = rcMbDataAccess.getMbData().isTransformSize8x8() ? 1 : 0;
   UInt uiCtx = rcMbDataAccess.getCtx8x8Flag();
- 
+
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cTransSizeCCModel.get( 0, uiCtx ) ) );
 
   ETRACE_T( "transformSize8x8Flag:" );
@@ -1324,7 +1324,7 @@ ErrVal CabacWriter::residualBlock8x8( MbDataAccess& rcMbDataAccess,
   rcMbDataAccess.getMbData().setBCBP( uiBitPos+1, 1);
   rcMbDataAccess.getMbData().setBCBP( uiBitPos+4, 1);
   rcMbDataAccess.getMbData().setBCBP( uiBitPos+5, 1);
-  
+
   const UInt uiCtxOffset = 2;
   CabacContextModel2DBuffer&  rcMapCCModel  = m_cMapCCModel;
   CabacContextModel2DBuffer&  rcLastCCModel = m_cLastCCModel;
@@ -1408,7 +1408,7 @@ CabacWriter::RQpeekCbp4x4( MbDataAccess&  rcMbDataAccess,
   TCoeff* piCoeff   = rcMbDataAccess.    getMbTCoeffs().get( cIdx );
   TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
-  for( UInt ui = 0; ui < 16; ui++ )  
+  for( UInt ui = 0; ui < 16; ui++ )
   {
     if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
     {
@@ -1434,7 +1434,7 @@ CabacWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
   ETRACE_N;
 
   rcMbDataAccessBase.getMbData().setBCBP( cIdx, uiSymbol );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1451,7 +1451,7 @@ CabacWriter::RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
   // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
   TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
-  for( UInt ui = 0; ui < 4; ui++ )  
+  for( UInt ui = 0; ui < 4; ui++ )
   {
     // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
     //if( piCoeff[ g_aucIndexChromaDCScan[ui] ] )
@@ -1468,7 +1468,7 @@ CabacWriter::RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
   ETRACE_N;
 
   rcMbDataAccessBase.getMbData().setBCBP( 24 + cIdx.plane(), uiSymbol );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1484,7 +1484,7 @@ CabacWriter::RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
   // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
   TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
-  for( UInt ui = 1; ui < 16; ui++ )  
+  for( UInt ui = 1; ui < 16; ui++ )
   {
     // heiko.schwarz@hhi.de: take only new significants coefficient into account when determining the coded_block_flag
     //if( piCoeff[ g_aucFrameScan[ui] ] )
@@ -1501,7 +1501,7 @@ CabacWriter::RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
   ETRACE_N;
 
   rcMbDataAccessBase.getMbData().setBCBP( 16 + cIdx, uiSymbol );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1611,11 +1611,11 @@ CabacWriter::RQencodeDeltaQp( MbDataAccess& rcMbDataAccess)
 
 ErrVal
 CabacWriter::RQencode8x8Flag( MbDataAccess& rcMbDataAccess,
-                              MbDataAccess& rcMbDataAccessBase ) 
+                              MbDataAccess& rcMbDataAccessBase )
 {
   UInt uiSymbol = rcMbDataAccess.getMbData().isTransformSize8x8() ? 1 : 0;
   UInt uiCtx    = rcMbDataAccessBase.getCtx8x8Flag();
- 
+
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cTransSizeCCModel.get( 0, uiCtx ) ) );
   ETRACE_T( "TRAFO_8x8" );
   ETRACE_V( uiSymbol );
@@ -1680,9 +1680,10 @@ CabacWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
 
 ErrVal
 CabacWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    B8x8Idx         c8x8Idx,
-                                    UInt            uiScanIndex )
+                                   MbDataAccess&   rcMbDataAccessBase,
+                                   B8x8Idx         c8x8Idx,
+                                   UInt            uiScanIndex,
+                                   UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
@@ -1691,18 +1692,20 @@ CabacWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
   ETRACE_T( "LUMA_8x8_REF" );
   ETRACE_V( c8x8Idx.b8x8Index() );
   ETRACE_V( uiScanIndex );
+  ETRACE_V( uiCtx );
   ETRACE_N;
 
 
   UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
-  RNOK( CabaEncoder::writeSymbol( uiSig, m_cRefCCModel.get( 0, 0 ) ) );
+
+  RNOK( CabaEncoder::writeSymbol( uiSig, m_cRefCCModel.get( 0, 2 * uiCtx ) ) );
 
   if( uiSig )
   {
     UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSymbol = ( uiSignBL ^ uiSignEL );
-    RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cRefCCModel.get( 0, 1 ) ) );
+    RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cRefCCModel.get( 0, 1 + 2 * uiCtx ) ) );
   }
 
   return Err::m_nOK;
@@ -1745,7 +1748,8 @@ ErrVal
 CabacWriter::RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
                                       MbDataAccess&   rcMbDataAccessBase,
                                       LumaIdx         cIdx,
-                                      UInt            uiScanIndex )
+                                      UInt            uiScanIndex,
+                                      UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
@@ -1754,9 +1758,10 @@ CabacWriter::RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
   ETRACE_T( "LUMA_4x4_REF" );
   ETRACE_V( cIdx.b4x4() );
   ETRACE_V( uiScanIndex );
+  ETRACE_V( uiCtx );
   ETRACE_N;
 
-  RNOK( xRQencodeTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+  RNOK( xRQencodeTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex, uiCtx ) );
   return Err::m_nOK;
 }
 
@@ -1774,7 +1779,6 @@ CabacWriter::RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
   const UChar*  pucScan     = ( eResidualMode == CHROMA_DC ? g_aucIndexChromaDCScan : g_aucFrameScan );
-  //UInt          uiStart     = ( eResidualMode == CHROMA_AC ? 1 : 0  ); //unused variable. mwi
   UInt          uiStop      = ( eResidualMode == CHROMA_DC ? 4 : 16 );
 
   ROT( piCoeffBase[pucScan[uiScanIndex]] );
@@ -1790,13 +1794,13 @@ CabacWriter::RQencodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
 }
 
 
-
 ErrVal
 CabacWriter::RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
-                                        MbDataAccess&   rcMbDataAccessBase,
-                                        ResidualMode    eResidualMode,
-                                        ChromaIdx       cIdx,
-                                        UInt            uiScanIndex )
+                                       MbDataAccess&   rcMbDataAccessBase,
+                                       ResidualMode    eResidualMode,
+                                       ChromaIdx       cIdx,
+                                       UInt            uiScanIndex,
+                                       UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
@@ -1805,9 +1809,10 @@ CabacWriter::RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
   ETRACE_T( "CHROMA_4x4_REF" );
   ETRACE_V( cIdx );
   ETRACE_V( uiScanIndex );
+  ETRACE_V( uiCtx );
   ETRACE_N;
 
-  RNOK( xRQencodeTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+  RNOK( xRQencodeTCoeffsRef( piCoeff, piCoeffBase, pucScan, uiScanIndex, uiCtx ) );
   return Err::m_nOK;
 }
 
@@ -1878,7 +1883,7 @@ CabacWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
 
     //===== SIGN =====
     RNOK( CabaEncoder::writeEPSymbol( uiSign ) );
-    
+
     //===== ABSOLUTE VALUE =====
     UInt  uiCtx     = 1;
     UInt  uiSymbol  = ( uiAbs > 1 ? 1 : 0 );
@@ -1898,22 +1903,22 @@ CabacWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
 
 
 
-
 ErrVal
 CabacWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
                                   TCoeff*       piCoeffBase,
                                   const UChar*  pucScan,
-                                  UInt          uiScanIndex )
+                                  UInt          uiScanIndex,
+                                  UInt          uiCtx )
 {
   UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
-  RNOK( CabaEncoder::writeSymbol( uiSig, m_cRefCCModel.get( 0, 0 ) ) );
+  RNOK( CabaEncoder::writeSymbol( uiSig, m_cRefCCModel.get( 0, 2 * uiCtx ) ) );
 
   if( uiSig )
   {
     UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSymbol = ( uiSignBL ^ uiSignEL );
-    RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cRefCCModel.get( 0, 1 ) ) );
+    RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cRefCCModel.get( 0, 1 + 2 * uiCtx ) ) );
   }
 
   return Err::m_nOK;

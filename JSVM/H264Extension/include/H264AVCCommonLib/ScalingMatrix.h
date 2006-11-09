@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -123,7 +123,7 @@ public:
     ErrVal        write     ( HeaderSymbolWriteIf*  pcWriteIf,
                               const UChar*          pucScan )   const;
     const UChar*  getMatrix ()                                  const;
-  
+
   private:
     Bool                    m_bScalingListPresentFlag;
     Bool                    m_bUseDefaultScalingMatrixFlag;
@@ -167,15 +167,15 @@ ScalingMatrix::ScalingList<uiBufSize>::read( HeaderSymbolReadIf*  pcReadIf,
                                              Bool&                rbUseDefaultScalingMatrixFlag )
 {
   Int   iDeltaScale;
- 	RNOK( pcReadIf->getSvlc( iDeltaScale,     "SCALING: delta_scale" ) );
+   RNOK( pcReadIf->getSvlc( iDeltaScale,     "SCALING: delta_scale" ) );
   rbUseDefaultScalingMatrixFlag = ( iDeltaScale == -8 );
   ROTRS( rbUseDefaultScalingMatrixFlag, Err::m_nOK );
-  
+
   this->get(0)  = ( ( 8 + iDeltaScale ) & 0xff );
   UInt  n       = 1;
   for(; n < this->size(); n++ ) // leszek
   {
-   	RNOK( pcReadIf->getSvlc( iDeltaScale,   "SCALING: delta_scale" ) );
+     RNOK( pcReadIf->getSvlc( iDeltaScale,   "SCALING: delta_scale" ) );
     this->get( pucScan[n] ) = ( ( this->get( pucScan[n-1] ) + iDeltaScale ) & 0xff );
     if( 0 == this->get( pucScan[n] ) )
     {
@@ -186,7 +186,7 @@ ScalingMatrix::ScalingList<uiBufSize>::read( HeaderSymbolReadIf*  pcReadIf,
   {
     this->get( pucScan[n] ) = this->get( pucScan[n - 1] );
   }
-  
+
   return Err::m_nOK;
 }
 
@@ -199,13 +199,13 @@ ScalingMatrix::ScalingList<uiBufSize>::write( HeaderSymbolWriteIf*  pcWriteIf,
 {
   if( bUseDefaultScalingMatrixFlag )
   {
-   	RNOK( pcWriteIf->writeSvlc( -8,         "SCALING: delta_scale" ) );
+     RNOK( pcWriteIf->writeSvlc( -8,         "SCALING: delta_scale" ) );
     return Err::m_nOK;
   }
 
   const UChar ucLast    = this->get( pucScan[this->size()-1] ); // leszek
   Int         iLastDiff = this->size() - 2; // leszek
-  for( ; iLastDiff >= 0; iLastDiff-- ) 
+  for( ; iLastDiff >= 0; iLastDiff-- )
   {
     if( ucLast != this->get( pucScan[iLastDiff] ) )
     {
@@ -218,7 +218,7 @@ ScalingMatrix::ScalingList<uiBufSize>::write( HeaderSymbolWriteIf*  pcWriteIf,
     AF(); // check modulo
     Int iDeltaScale = this->get( pucScan[n] ) - iLast;
     iDeltaScale     = ( ( iDeltaScale << 24 ) >> 24 );
-   	RNOK( pcWriteIf->writeSvlc( iDeltaScale, "SCALING: delta_scale" ) );
+     RNOK( pcWriteIf->writeSvlc( iDeltaScale, "SCALING: delta_scale" ) );
     iLast           = this->get( pucScan[n] );
   }
 
@@ -249,11 +249,11 @@ ScalingMatrix::SeqScaling<uiBufSize>::read( HeaderSymbolReadIf* pcReadIf,
 {
   RNOK  ( pcReadIf->getFlag( m_bScalingListPresentFlag,     "SCALING: scaling_list_present_flag" ) );
   ROTRS ( ! m_bScalingListPresentFlag, Err::m_nOK );
-  
+
   RNOK  ( m_aiScalingList.read( pcReadIf, pucScan, m_bUseDefaultScalingMatrixFlag ) );
 
   m_bScalingListPresentFlag = ! m_bUseDefaultScalingMatrixFlag;
-  
+
   return Err::m_nOK;
 }
 

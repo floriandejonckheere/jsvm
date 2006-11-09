@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -139,22 +139,22 @@ ErrVal WriteYuvaToRgb::create( WriteYuvaToRgb*& rpcWriteYuvaToRgb )
   rpcWriteYuvaToRgb = new WriteYuvaToRgb;
 
   ROT( NULL == rpcWriteYuvaToRgb );
-  
+
   return Err::m_nOK;
 }
 
 ErrVal WriteYuvaToRgb::destroy()
-{ 
+{
   delete this;
 
-  return Err::m_nOK; 
+  return Err::m_nOK;
 }
 
 ErrVal WriteYuvaToRgb::setFrameDimension( UInt uiLumHeight, UInt uiLumWidth )
 {
-  m_uiHeight = uiLumHeight; 
+  m_uiHeight = uiLumHeight;
   m_uiWidth =  uiLumWidth;
-  return Err::m_nOK; 
+  return Err::m_nOK;
 }
 
 ErrVal WriteYuvaToRgb::writeFrameRGB( UChar *pucRGB,
@@ -172,12 +172,12 @@ ErrVal WriteYuvaToRgb::writeFrameRGB( UChar *pucRGB,
   CHECK( pCr );
 
 
-	const UChar *pu, *pv, *py;
+  const UChar *pu, *pv, *py;
   UInt  column, row;
-	Int   Y, U, V, R, G, B;
+  Int   Y, U, V, R, G, B;
   UInt  *argb;
   UChar *pucDest = pucRGB;
-  Int   iWidth = uiDestStride; 
+  Int   iWidth = uiDestStride;
 
   if( uiLumHeight > m_uiHeight)
   {
@@ -191,28 +191,28 @@ ErrVal WriteYuvaToRgb::writeFrameRGB( UChar *pucRGB,
 
 
   for( row = 0; row < uiLumHeight; row++)
-	{
-	  argb = (UInt*)pucDest;
+  {
+    argb = (UInt*)pucDest;
     pucDest += iWidth;
-		pu	 = pCb + (row>>1) * (uiLumStride >> 1);
-		pv	 = pCr + (row>>1) * (uiLumStride >> 1);
+    pu   = pCb + (row>>1) * (uiLumStride >> 1);
+    pv   = pCr + (row>>1) * (uiLumStride >> 1);
     py   = pLum +  row * uiLumStride;
 
-		for( column = 0; column < uiLumWidth; column+= 2)
-		{
-			Y = *py++;
-			U = *pu++;
-			V = *pv++;
+    for( column = 0; column < uiLumWidth; column+= 2)
+    {
+      Y = *py++;
+      U = *pu++;
+      V = *pv++;
 
-  		dematrix
+      dematrix
       *argb++ = pack32;
 
-			Y = *py++;
+      Y = *py++;
 
-			dematrix
-			*argb++ = pack32;
-		}
-	}
+      dematrix
+      *argb++ = pack32;
+    }
+  }
 
   return Err::m_nOK;
 }
@@ -235,7 +235,7 @@ ErrVal WriteYuvaToRgb::writeFrameYV12( UChar *pucDest,
 
   UInt *pDest = (UInt*)pucDest;
   UInt  row;
-  Int   iWidth = uiDestStride; 
+  Int   iWidth = uiDestStride;
 
   if( uiLumHeight > m_uiHeight)
   {
@@ -255,11 +255,11 @@ ErrVal WriteYuvaToRgb::writeFrameYV12( UChar *pucDest,
     const UChar* pSrc = pLum;
     UChar* pDes = (UChar*)pDest;
     for( row = 0; row < uiHeight; row++)
-	  {
+    {
       memcpy( pDes, pSrc, uiWidth);
       pSrc += uiStride;
       pDes += iWidth;
-	  }
+    }
   }
 
   uiStride >>= 1;
@@ -273,14 +273,14 @@ ErrVal WriteYuvaToRgb::writeFrameYV12( UChar *pucDest,
     memset( pDes, 0x80, 2*uiHeight * uiDestStride/2 );
 
     for( row = 0; row < uiHeight; row++)
-	  {
+    {
       memcpy( pDes, pSrc2, uiWidth);
       pDes += uiDestStride/2;
       pSrc2 += uiStride;
-	  }
+    }
 
     for( row = 0; row < uiHeight; row++)
-	  {
+    {
       memcpy( pDes, pSrc1, uiWidth);
       pDes += uiDestStride/2;
       pSrc1 += uiStride;
@@ -306,9 +306,9 @@ ErrVal WriteYuvaToRgb::writeFrameYUYV( UChar* pucYUYV,
 
 
   UChar *pucDest = pucYUYV;
-	const UChar *pu, *pv, *py;
+  const UChar *pu, *pv, *py;
   UInt  column, row;
-  Int   iWidth = uiDestStride; 
+  Int   iWidth = uiDestStride;
 
   if( uiLumHeight > m_uiHeight)
   {
@@ -321,22 +321,22 @@ ErrVal WriteYuvaToRgb::writeFrameYUYV( UChar* pucYUYV,
   }
 
   for( row = 0; row < uiLumHeight; row++)
-	{
+  {
     UChar* Yuvy = pucDest;
     pucDest += iWidth;
-		pu	 = pCb + (row>>1) * (uiLumStride >> 1);
-		pv	 = pCr + (row>>1) * (uiLumStride >> 1);
+    pu   = pCb + (row>>1) * (uiLumStride >> 1);
+    pv   = pCr + (row>>1) * (uiLumStride >> 1);
     py   = pLum +  row * uiLumStride;
 
-		for( column = 0; column < uiLumWidth; column+= 2)
-		{
+    for( column = 0; column < uiLumWidth; column+= 2)
+    {
       Yuvy[0] = *py++;
       Yuvy[2] = *py++;
-			Yuvy[1] = *pu++;
-			Yuvy[3] = *pv++;
+      Yuvy[1] = *pu++;
+      Yuvy[3] = *pv++;
       Yuvy += 4;
-		}
-	}
+    }
+  }
 
   return Err::m_nOK;
 }

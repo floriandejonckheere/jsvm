@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -98,12 +98,14 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 
+class MbFGSCoefMap;
+
 class H264AVCCOMMONLIB_API Transform :
 public Quantizer
 {
 protected:
-	Transform();
-	virtual ~Transform();
+  Transform();
+  virtual ~Transform();
 
 public:
   static ErrVal create( Transform*& rpcTransform );
@@ -130,14 +132,14 @@ public:
     xForTransformChromaDc( piCoeff );
   }
 
-  Void e8x8Trafo                ( XPel*               pOrg, 
+  Void e8x8Trafo                ( XPel*               pOrg,
                                   Int                 iStride,
                                   TCoeff*             piCoeff )
   {
     x8x8Trafo( pOrg, iStride, piCoeff );
   }
 
-  Void e8x8InverseTrafo         ( XPel*               pOrg, 
+  Void e8x8InverseTrafo         ( XPel*               pOrg,
                                   Int                 iStride,
                                   TCoeff*             piCoeff )
   {
@@ -153,76 +155,102 @@ public:
     invTransform8x8Blk( pOrg, iStride, piCoeff );
   }
 
-  ErrVal        transform8x8Blk           ( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiAbsSum );
-  ErrVal        transform4x4Blk           ( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiAbsSum );
-  ErrVal        transformMb16x16          ( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiDcAbs,  UInt& ruiAcAbs );
-  ErrVal        transformChromaBlocks     ( XPel* pucOrg, XPel* pucRec, Int iStride, TCoeff* piCoeff, TCoeff* piQuantCoeff, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs );
-
+  ErrVal        transform8x8Blk           ( IntYuvMbBuffer*       pcOrgData,
+                                            IntYuvMbBuffer*       pcPelData,
+                                            TCoeff*               piCoeff,
+                                            const UChar*          pucScale,
+                                            UInt&                 ruiAbsSum,
+                                            RefCtx*               pcRefCtx = NULL );
+  ErrVal        transform4x4Blk           ( IntYuvMbBuffer*       pcOrgData,
+                                            IntYuvMbBuffer*       pcPelData,
+                                            TCoeff*               piCoeff,
+                                            const UChar*          pucScale,
+                                            UInt&                 ruiAbsSum,
+                                            RefCtx*               pcRefCtx = NULL );
+  ErrVal        transformMb16x16          ( IntYuvMbBuffer*       pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiDcAbs,  UInt& ruiAcAbs );
+  ErrVal        transformChromaBlocks     ( XPel*                 pucOrg,
+                                            XPel*                 pucRec,
+                                            MbFGSCoefMap*         pcMbFGSCoefMap,
+                                            const CIdx            cCIdx,
+                                            Int                   iStride,
+                                            TCoeff*               piCoeff,
+                                            TCoeff*               piQuantCoeff,
+                                            const UChar*          pucScale,
+                                            UInt&                 ruiDcAbs,
+                                            UInt&                 ruiAcAbs );
   ErrVal        invTransform8x8Blk        ( XPel* puc, Int iStride, TCoeff* piCoeff );
   ErrVal        invTransform4x4Blk        ( XPel* puc, Int iStride, TCoeff* piCoeff );
   ErrVal        invTransformChromaBlocks  ( XPel* puc, Int iStride, TCoeff* piCoeff );
-  
+
   ErrVal        invTransform4x4Blk        ( Pel*  puc, Int iStride, TCoeff* piCoeff );
   ErrVal        invTransformChromaBlocks  ( Pel*  puc, Int iStride, TCoeff* piCoeff );
-  
+
   ErrVal        invTransformDcCoeff       ( TCoeff* piCoeff, Int iQpScale );
   Void          invTransformChromaDc      ( TCoeff* piCoeff, Int iQpScale );
 
-
-  ErrVal        transformMb               ( TCoeff*         piCoeff,
-                                            IntYuvMbBuffer& rcYuvMbBuffer,
-                                            Int             iQpLuma,
-                                            Int             iQpChroma,
-                                            Int             iQuantOffsetDiv );
-  ErrVal        inverseTransformMb        ( IntYuvMbBuffer& rcYuvMbBuffer,
-                                            TCoeff*         piCoeff,
-                                            Int             iQpLuma,
-                                            Int             iQpChroma );
-
-  ErrVal        requant4x4Block           ( IntYuvMbBuffer& rcResData,
-                                            TCoeff*         piCoeff,
-                                            TCoeff*         piCoeffBase,
-                                            const UChar*    pucScale,
-                                            Bool            bFirstIsDc,
-                                            UInt&           ruiAbsSum );
-  ErrVal        requantLumaDcCoeffs       ( TCoeff*         piCoeff,
-                                            TCoeff*         piCoeffBase,
-                                            const UChar*    pucScale,
-                                            UInt&           ruiAbsSum );
-  ErrVal        requant8x8Block           ( IntYuvMbBuffer& rcResData,
-                                            TCoeff*         piCoeff,
-                                            TCoeff*         piCoeffBase,
-                                            const UChar*    pucScale,
-                                            UInt&           ruiAbsSum );
-  ErrVal        requantChroma             ( IntYuvMbBuffer& rcResData,
-                                            TCoeff*         piCoeff,
-                                            TCoeff*         piCoeffBase,
-                                            const UChar*    pucScaleU,
-                                            const UChar*    pucScaleV,
-                                            UInt&           ruiDcAbs,
-                                            UInt&           ruiAcAbs );
-
+  ErrVal        requant4x4Block           ( IntYuvMbBuffer&    rcResData,
+                                            TCoeff*            piCoeff,
+                                            TCoeff*            piCoeffBase,
+                                            RefCtx*            pcRefCtx,
+                                            const UChar*       pucScale,
+                                            Bool               bFirstIsDc,
+                                            UInt&              ruiAbsSum );
+  ErrVal        requantLumaDcCoeffs       ( MbTransformCoeffs& rcMbTCoeff,
+                                            MbTransformCoeffs& rcMbTCoeffBase,
+                                            MbFGSCoefMap&      rcMbFGSCoefMap,
+                                            const UChar*       pucScale,
+                                            UInt&              ruiAbsSum );
+  ErrVal        requant8x8Block           ( IntYuvMbBuffer&    rcResData,
+                                            TCoeff*            piCoeff,
+                                            TCoeff*            piCoeffBase,
+                                            RefCtx*            pcRefCtx,
+                                            const UChar*       pucScale,
+                                            UInt&              ruiAbsSum );
+  ErrVal        requantChroma             ( IntYuvMbBuffer&    rcResData,
+                                            MbTransformCoeffs& rcTCoeffs,
+                                            MbTransformCoeffs& rcTCoeffsBase,
+                                            MbFGSCoefMap&      rcMbFGSCoefMap,
+                                            const UChar*       pucScaleU,
+                                            const UChar*       pucScaleV,
+                                            UInt&              ruiDcAbs,
+                                            UInt&              ruiAcAbs );
 
 private:
   Void xForTransform8x8Blk      ( XPel* pucOrg, XPel* pucRec, Int iStride, TCoeff* piPredCoeff );
   Void xForTransform4x4Blk      ( XPel* pucOrg, XPel* pucRec, Int iStride, TCoeff* piPredCoeff );
-  
+
   Void xInvTransform4x4Blk      ( XPel* puc, Int iStride, TCoeff* piCoeff );
   Void xInvTransform4x4Blk      ( Pel*  puc, Int iStride, TCoeff* piCoeff );
-  
+
   Void xInvTransform4x4BlkNoAc  ( XPel* puc, Int iStride, TCoeff* piCoeff );
   Void xInvTransform4x4BlkNoAc  ( Pel*  puc, Int iStride, TCoeff* piCoeff );
 
   Void xForTransformChromaDc    ( TCoeff* piCoeff );
   Void xForTransformLumaDc      ( TCoeff* piCoeff );
-  
+
   Int  xRound                   ( Int i     )             { return ((i)+(1<<5))>>6; }
   Int  xClip                    ( Int iPel  )             { return ( m_bClip ? gClip( iPel ) : iPel); }
 
-  Void xQuantDequantUniform8x8      ( TCoeff* piQCoeff, TCoeff* piCoeff, const QpParameter& rcQp, const UChar* pucScale, UInt& ruiAbsSum );
-  Void xQuantDequantUniform4x4      ( TCoeff* piQCoeff, TCoeff* piCoeff, const QpParameter& rcQp, const UChar* pucScale, UInt& ruiAbsSum );
-  Void xQuantDequantNonUniformLuma  ( TCoeff* piQCoeff, TCoeff* piCoeff, const QpParameter& rcQp, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs );
-  Void xQuantDequantNonUniformChroma( TCoeff* piQCoeff, TCoeff* piCoeff, const QpParameter& rcQp, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs );
+  Void xQuantDequantUniform8x8      ( TCoeff*                      piQCoeff,
+                                      TCoeff*                      piCoeff,
+                                      RefCtx*                      pcRefCtx,
+                                      const QpParameter&           rcQp,
+                                      const UChar*                 pucScale,
+                                      UInt&                        ruiAbsSum );
+  Void xQuantDequantUniform4x4      ( TCoeff*                      piQCoeff,
+                                      TCoeff*                      piCoeff,
+                                      RefCtx*                      pcRefCtx,
+                                      const QpParameter&           rcQp,
+                                      const UChar*                 pucScale,
+                                      UInt&                        ruiAbsSum );
+  Void xQuantDequantNonUniformLuma  ( TCoeff*                      piQCoeff, TCoeff* piCoeff, const QpParameter& rcQp, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs );
+  Void xQuantDequantNonUniformChroma( TCoeff*                      piQCoeff,
+                                      TCoeff*                      piCoeff,
+                                      RefCtx*                      pcRefCtx,
+                                      const QpParameter&           rcQp,
+                                      const UChar*                 pucScale,
+                                      UInt&                        ruiDcAbs,
+                                      UInt&                        ruiAcAbs );
 
   Void x4x4Trafo          ( XPel*               pOrg,
                             Int                 iStride,
@@ -237,25 +265,30 @@ private:
                             TCoeff*             piCoeff,
                             const QpParameter&  rcQp );
 
-  Void x8x8Trafo                ( XPel*               pOrg, 
+  Void x8x8Trafo                ( XPel*               pOrg,
                                   Int                 iStride,
                                   TCoeff*             piCoeff );
   Void xRequantUniform4x4       ( TCoeff*             piCoeff,
                                   TCoeff*             piCoeffBase,
+                                  RefCtx*             pcRefCtx,
+                                  Bool                bFirstIsDc,
                                   const QpParameter&  rcQp,
                                   const UChar*        pucScale,
                                   UInt&               ruiAbsSum );
   Void xRequantUniform8x8       ( TCoeff*             piCoeff,
                                   TCoeff*             piCoeffBase,
+                                  RefCtx*             pcRefCtx,
                                   const QpParameter&  rcQp,
                                   const UChar*        pucScale,
                                   UInt&               ruiAbsSum );
   Void xRequantNonUniformChroma ( TCoeff*             piCoeff,
                                   TCoeff*             piCoeffBase,
+                                  RefCtx*             pcRefCtx,
                                   const QpParameter&  rcQp,
                                   const UChar*        pucScale,
                                   UInt&               ruiDcAbs,
                                   UInt&               ruiAcAbs );
+
 
 protected:
   const SliceHeader*  m_pcSliceHeader;

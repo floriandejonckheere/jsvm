@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -107,9 +107,9 @@ class RecPicBufUnit;
 class H264AVCCOMMONLIB_API IntFrame
 {
 public:
-	IntFrame                ( YuvBufferCtrl&    rcYuvFullPelBufferCtrl,
+  IntFrame                ( YuvBufferCtrl&    rcYuvFullPelBufferCtrl,
                             YuvBufferCtrl&    rcYuvHalfPelBufferCtrl );
-	virtual ~IntFrame       ();
+  virtual ~IntFrame       ();
 
   ErrVal  init            ( Bool              bHalfPel = false );
   ErrVal  initHalfPel     ();
@@ -125,25 +125,25 @@ public:
 
   Void            setRecPicBufUnit( RecPicBufUnit* pcUnit ) { m_pcDPBUnit = (DPBUnit*)(Void*)pcUnit; }
   RecPicBufUnit*  getRecPicBufUnit()                        { return (RecPicBufUnit*)(Void*)m_pcDPBUnit; }
-  
+
   ErrVal clip()
   {
     RNOK( getFullPelYuvBuffer()->clip() );
     return Err::m_nOK;
   }
-  
+
   ErrVal prediction       ( IntFrame* pcMCPFrame, IntFrame* pcSrcFrame )
   {
     RNOK( getFullPelYuvBuffer()->prediction       ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame->getFullPelYuvBuffer() ) );
     return Err::m_nOK;
   }
-  
+
   ErrVal update           ( IntFrame* pcMCPFrame, IntFrame* pcSrcFrame, UInt uiShift )
   {
     RNOK( getFullPelYuvBuffer()->update           ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame->getFullPelYuvBuffer(), uiShift ) );
     return Err::m_nOK;
   }
-  
+
   ErrVal inverseUpdate    ( IntFrame* pcMCPFrame, IntFrame* pcSrcFrame, UInt uiShift )
   {
     RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame->getFullPelYuvBuffer(), uiShift ) );
@@ -156,16 +156,16 @@ public:
     RNOK( getFullPelYuvBuffer()->update           ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), pcMCPFrame1->getFullPelYuvBuffer() ) );
     return Err::m_nOK;
   }
-  
+
   ErrVal inverseUpdate    ( IntFrame* pcMCPFrame0, IntFrame* pcMCPFrame1, IntFrame* pcSrcFrame )
   {
-		if (pcMCPFrame0 && pcMCPFrame1){
-			RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), pcMCPFrame1->getFullPelYuvBuffer() ) );
-		}else if (pcMCPFrame0){
-			RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), (IntYuvPicBuffer*)NULL ) );
-		}else{
-			RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), (IntYuvPicBuffer*)NULL, pcMCPFrame1->getFullPelYuvBuffer() ) );
-		}
+    if (pcMCPFrame0 && pcMCPFrame1){
+      RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), pcMCPFrame1->getFullPelYuvBuffer() ) );
+    }else if (pcMCPFrame0){
+      RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), pcMCPFrame0->getFullPelYuvBuffer(), (IntYuvPicBuffer*)NULL ) );
+    }else{
+      RNOK( getFullPelYuvBuffer()->inverseUpdate    ( pcSrcFrame->getFullPelYuvBuffer(), (IntYuvPicBuffer*)NULL, pcMCPFrame1->getFullPelYuvBuffer() ) );
+    }
     return Err::m_nOK;
   }
 
@@ -180,44 +180,44 @@ public:
   ErrVal  copyAll     ( IntFrame* pcSrcFrame )
   {
 // JVT-Q065 EIDR{
-	  //if(!m_bUnusedForRef) //bug-fix shenqiu EIDR
-	  {
-		  m_bUnusedForRef = pcSrcFrame->getUnusedForRef();
-	  }
+    //if(!m_bUnusedForRef) //bug-fix shenqiu EIDR
+    {
+      m_bUnusedForRef = pcSrcFrame->getUnusedForRef();
+    }
 // JVT-Q065 EIDR}
     m_iPOC        = pcSrcFrame->m_iPOC;
     RNOK( m_cFullPelYuvBuffer.copy( &pcSrcFrame->m_cFullPelYuvBuffer ) );
-  
+
     return Err::m_nOK;
   }
 
   ErrVal  copy        ( IntFrame* pcSrcFrame )
   {
-	m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
+  m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
 
     RNOK( getFullPelYuvBuffer()->copy( pcSrcFrame->getFullPelYuvBuffer()) );
     return Err::m_nOK;
   }
-//	TMM_EC {{
-	ErrVal  copy        ( Frame* pcSrcFrame )
+//  TMM_EC {{
+  ErrVal  copy        ( Frame* pcSrcFrame )
   {
     RNOK( getFullPelYuvBuffer()->copy( pcSrcFrame->getFullPelYuvBuffer()) );
     return Err::m_nOK;
   }
-//TMM_EC }}  
-  
+//TMM_EC }}
+
   ErrVal  subtract    ( IntFrame* pcSrcFrame0, IntFrame* pcSrcFrame1 )
   {
     RNOK( getFullPelYuvBuffer()->subtract( pcSrcFrame0->getFullPelYuvBuffer(), pcSrcFrame1->getFullPelYuvBuffer() ) );
     return Err::m_nOK;
   }
-  
+
   ErrVal  add         ( IntFrame* pcSrcFrame )
   {
     RNOK( getFullPelYuvBuffer()->add ( pcSrcFrame->getFullPelYuvBuffer()) );
     return Err::m_nOK;
   }
-  
+
   ErrVal  setZero     ()
   {
     getFullPelYuvBuffer()->setZero();
@@ -257,7 +257,7 @@ public:
   }
 
 // TMM_ESS {
-	ErrVal upsample     ( DownConvert& rcDownConvert, ResizeParameters* pcParameters, Bool bClip )
+  ErrVal upsample     ( DownConvert& rcDownConvert, ResizeParameters* pcParameters, Bool bClip )
   {
     RNOK( getFullPelYuvBuffer()->upsample( rcDownConvert, pcParameters, bClip ) );
     return Err::m_nOK;
@@ -278,13 +278,13 @@ public:
   Void  setPOC( Int iPoc)         { m_iPOC = iPoc; }
 
 //JVT-S036 lsj{
-  Int	getFrameNum()	  const		{ return m_iFrameNum; }
-  Void  setFrameNum( Int iNum )		{ m_iFrameNum = iNum; }
+  Int  getFrameNum()    const    { return m_iFrameNum; }
+  Void  setFrameNum( Int iNum )    { m_iFrameNum = iNum; }
 //JVT-S036 lsj}
 
 // JVT-Q065 EIDR{
-  Bool	getUnusedForRef()			  { return m_bUnusedForRef; }
-  Void	setUnusedForRef( Bool b )	  { m_bUnusedForRef = b; }
+  Bool  getUnusedForRef()        { return m_bUnusedForRef; }
+  Void  setUnusedForRef( Bool b )    { m_bUnusedForRef = b; }
 // JVT-Q065 EIDR}
 
   Bool  isHalfPel()   { return m_bHalfPel; }
@@ -295,31 +295,31 @@ public:
 
   // JVT-R057 LA-RDO{
   Void   initChannelDistortion();
-  Void   uninitChannelDistortion()  { 
-	  if(m_piChannelDistortion) 
-		  delete[] m_piChannelDistortion; 
+  Void   uninitChannelDistortion()  {
+    if(m_piChannelDistortion)
+      delete[] m_piChannelDistortion;
   }
   UInt*   getChannelDistortion()   { return  m_piChannelDistortion;}
   Void   copyChannelDistortion(IntFrame*p1);
   Void   zeroChannelDistortion();
   Void   setChannelDistortion(IntFrame*p1) { if(p1) m_piChannelDistortion=p1->m_piChannelDistortion; else m_piChannelDistortion=NULL;}
-  // JVT-R057 LA-RDO}  
+  // JVT-R057 LA-RDO}
 protected:
   IntYuvPicBuffer m_cFullPelYuvBuffer;
   IntYuvPicBuffer m_cHalfPelYuvBuffer;
-  
+
   Int             m_iPOC;
   Bool            m_bHalfPel;
   Bool            m_bExtended;
 
   DPBUnit*        m_pcDPBUnit;
 
-  Bool			  m_bUnusedForRef; // JVT-Q065 EIDR
+  Bool        m_bUnusedForRef; // JVT-Q065 EIDR
   // JVT-R057 LA-RDO{
   UInt*            m_piChannelDistortion;
   // JVT-R057 LA-RDO}
 
-    Int			  m_iFrameNum; //JVT-S036 lsj
+    Int        m_iFrameNum; //JVT-S036 lsj
 };
 
 

@@ -42,7 +42,7 @@ ErrVal SIPAnalyser::init(SIPParameters *pcSIPParameters)
   ROF(pcSIPParameters);
 
   m_pcSIPParameters=pcSIPParameters;
-  
+
   RNOK(xInitData());
   RNOK(xReadData());
 
@@ -58,8 +58,8 @@ ErrVal SIPAnalyser::go()
     RNOK(xProcessLayer(i));
     RNOK(xDumpLayer(i));
   }
-  
-  return Err::m_nOK;  
+
+  return Err::m_nOK;
 }
 
 ErrVal SIPAnalyser::xInitData()
@@ -88,7 +88,7 @@ ErrVal SIPAnalyser::xInitData()
     ROF(m_aaiSIPDecision[i]=new Int[m_pcSIPParameters->getFrameNum()]);
     memset(m_aaiSIPDecision[i],0,sizeof(int)*m_pcSIPParameters->getFrameNum());
   }
-  
+
   return Err::m_nOK;
 }
 
@@ -99,7 +99,7 @@ ErrVal SIPAnalyser::xReadData()
 
   FILE *pFileWith,*pFileWithout;
   pFileWith=pFileWithout=NULL;
-  
+
   for(UInt i=0;i<m_pcSIPParameters->getLayerNum();i++)
   {
     pFileWith    =  fopen(m_pcSIPParameters->getLayerParameter(i)->m_strInputFileWithInterPred.c_str(),"rt");
@@ -124,12 +124,12 @@ ErrVal SIPAnalyser::xReadData()
         printf("\nError when reading input files\n");
         return Err::m_nERR;
       }
-      
+
       for(UInt k=i;k<m_pcSIPParameters->getLayerNum();k++)
           m_aiTotalBits[k]+=m_aaaiFrameBits[i][j][0];
     }
   }
-  
+
   fclose(pFileWith);
   fclose(pFileWithout);
 
@@ -144,7 +144,7 @@ ErrVal SIPAnalyser::xUninitData()
     {
       for(UInt j=0;j<m_pcSIPParameters->getFrameNum();j++)
         delete[] m_aaaiFrameBits[i][j];
-      
+
       delete[] m_aaaiFrameBits[i];
     }
     delete[] m_aaaiFrameBits;
@@ -156,10 +156,10 @@ ErrVal SIPAnalyser::xUninitData()
     delete[] m_aiTotalBits;
     m_aiTotalBits=NULL;
   }
-  
+
   if(m_aaiSIPDecision!=NULL)
   {
-    for(UInt i=0;i<m_pcSIPParameters->getLayerNum();i++)      
+    for(UInt i=0;i<m_pcSIPParameters->getLayerNum();i++)
       delete[] m_aaiSIPDecision[i];
     delete[] m_aaiSIPDecision;
     m_aaiSIPDecision=NULL;
@@ -180,14 +180,14 @@ ErrVal SIPAnalyser::xProcessKnapsack(int iNumber, int *piWeight, int *piPrice, i
     ppiM[i]=new int[iBagCubage+1];
     ROF(ppiM[i]);
   }
-  
+
   int iMax=min(piWeight[iNumber-1]-1,iBagCubage);
-  
+
   for(i=0;i<=iMax;i++)
     ppiM[iNumber-1][i]=0;
   for(i=piWeight[iNumber-1];i<=iBagCubage;i++)
     ppiM[iNumber-1][i]=piPrice[iNumber-1];
-  
+
   for(i=iNumber-2;i>0;i--)
   {
     iMax=min(piWeight[i]-1,iBagCubage);
@@ -197,11 +197,11 @@ ErrVal SIPAnalyser::xProcessKnapsack(int iNumber, int *piWeight, int *piPrice, i
     for(j=piWeight[i];j<=iBagCubage;j++)
       ppiM[i][j]=max(ppiM[i+1][j],ppiM[i+1][j-piWeight[i]]+piPrice[i]);
   }
-  
+
   ppiM[0][iBagCubage]=ppiM[1][iBagCubage];
   if(iBagCubage>=piWeight[0])
     ppiM[0][iBagCubage]=max(ppiM[0][iBagCubage],ppiM[1][iBagCubage-piWeight[0]]+piPrice[0]);
-  
+
   for(i=0;i<iNumber-1;i++)
   {
     if(ppiM[i][iBagCubage]==ppiM[i+1][iBagCubage])
@@ -212,13 +212,13 @@ ErrVal SIPAnalyser::xProcessKnapsack(int iNumber, int *piWeight, int *piPrice, i
       iBagCubage-=piWeight[i];
     }
   }
-  
+
   piDecision[iNumber-1]=ppiM[iNumber-1][iBagCubage]?1:0;
-  
+
   for(i=0;i<iNumber;i++)
-    delete [] ppiM[i];  
+    delete [] ppiM[i];
   delete[] ppiM;
-  
+
   return Err::m_nOK;
 }
 
@@ -237,7 +237,7 @@ ErrVal SIPAnalyser::xProcessLayer(int iLayer)
   memset(aiPrice,0,sizeof(int)*m_pcSIPParameters->getFrameNum());
   memset(aiPOCMap,0,sizeof(int)*m_pcSIPParameters->getFrameNum());
   memset(aiDecision,0,sizeof(int)*m_pcSIPParameters->getFrameNum());
-  
+
   int iLowStep  =  m_pcSIPParameters->getInFps()/m_pcSIPParameters->getLayerParameter(iLayer-1)->m_uiFps;
   int iHighStep  =  m_pcSIPParameters->getInFps()/m_pcSIPParameters->getLayerParameter(iLayer)->m_uiFps;
 
@@ -253,7 +253,7 @@ ErrVal SIPAnalyser::xProcessLayer(int iLayer)
     else
     {
       int  iDelta=m_aaaiFrameBits[iLayer][i][1]-m_aaaiFrameBits[iLayer][i][0];
-      
+
       if(iDelta<=0)//don't use interlayer prediction
       {
         m_aaiSIPDecision[iLayer][i]=1;
@@ -273,7 +273,7 @@ ErrVal SIPAnalyser::xProcessLayer(int iLayer)
       }
     }
   }
-  
+
   if(iTolerated<0)
   {
     printf("\n Warning : The constrain is too tight on layer %d\n",iLayer);
@@ -281,7 +281,7 @@ ErrVal SIPAnalyser::xProcessLayer(int iLayer)
   }
 
   //If the bag cubage is too big, the algorithm complexity will be too hard.
-  //So we cut down precision to decrease complexity.MAX_KNAPSACK should be set 
+  //So we cut down precision to decrease complexity.MAX_KNAPSACK should be set
   //according to the available computing capability.
   {
     int iShift=0;
@@ -310,14 +310,14 @@ ErrVal SIPAnalyser::xProcessLayer(int iLayer)
   {
     m_aaaiFrameBits[iLayer][i][1]=m_aaiSIPDecision[iLayer][i]*m_aaaiFrameBits[iLayer][i][1]+(1-m_aaiSIPDecision[iLayer][i])*m_aaaiFrameBits[iLayer][i][0];
     m_aaaiFrameBits[iLayer][i][0]=m_aaaiFrameBits[iLayer][i][1]+m_aaaiFrameBits[iLayer-1][i][0];
-    m_aaaiFrameBits[iLayer][i][1]=m_aaaiFrameBits[iLayer][i][1]+(1-m_aaiSIPDecision[iLayer][i])*m_aaaiFrameBits[iLayer-1][i][1];    
+    m_aaaiFrameBits[iLayer][i][1]=m_aaaiFrameBits[iLayer][i][1]+(1-m_aaiSIPDecision[iLayer][i])*m_aaaiFrameBits[iLayer-1][i][1];
   }
-  
+
   delete[]  aiWeight;
   delete[]  aiPrice;
   delete[]  aiPOCMap;
   delete[]  aiDecision;
-  
+
   return Err::m_nOK;
 }
 
@@ -325,7 +325,7 @@ ErrVal SIPAnalyser::xDumpLayer(int iLayer)
 {
   ROF(m_pcSIPParameters);
   ROFS(iLayer);
-  
+
   FILE* pFile    =  fopen(m_pcSIPParameters->getLayerParameter(iLayer)->m_strOutputFile.c_str(),"wt");
   if(!pFile)
   {
@@ -334,7 +334,7 @@ ErrVal SIPAnalyser::xDumpLayer(int iLayer)
   }
 
   int iLowStep  =  m_pcSIPParameters->getInFps()/m_pcSIPParameters->getLayerParameter(iLayer-1)->m_uiFps;
-  
+
   for(UInt i=0;i<m_pcSIPParameters->getFrameNum();i+=iLowStep)
     if(m_aaiSIPDecision[iLayer][i]==1)
       fprintf(pFile,"%d\n",i);
@@ -353,7 +353,7 @@ ErrVal SIPAnalyser::xPrintLayer(int iLayer)
 
   int iBitsWithMA=0;
   int iBitsWithoutMA=0;
-  
+
   int iLowStep  =  m_pcSIPParameters->getInFps()/m_pcSIPParameters->getLayerParameter(iLayer-1)->m_uiFps;
   int iHighStep  =  m_pcSIPParameters->getInFps()/m_pcSIPParameters->getLayerParameter(iLayer)->m_uiFps;
 
@@ -384,7 +384,7 @@ ErrVal SIPAnalyser::xPrintLayer(int iLayer)
     printf("\n");
     for(int i=0;i<60;i++)
       printf("#");
-    
+
     printf("\n Layer : %d\n",iLayer);
     printf(" Anchor bits : %d\n",m_aiTotalBits[iLayer]);
     printf(" Tolerated loss as requiring : %.2f%%\n",100*m_pcSIPParameters->getLayerParameter(iLayer)->m_fTolerableRatio);

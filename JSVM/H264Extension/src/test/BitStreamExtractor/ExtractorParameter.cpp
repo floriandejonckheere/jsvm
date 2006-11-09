@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -103,7 +103,7 @@ ExtractorParameter::ExtractorParameter()
 , m_uiLayer       ( MSYS_UINT_MAX )
 , m_uiLevel       ( MSYS_UINT_MAX )
 , m_dFGSLayer     ( 10.0 )
-, m_dBitrate			( MSYS_UINT_MAX )
+, m_dBitrate      ( MSYS_UINT_MAX )
 , m_bAnalysisOnly ( true )
 // HS: packet trace
 , m_bTraceFile    ( false )
@@ -130,7 +130,7 @@ ExtractorParameter::ExtractorParameter()
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     for(UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
     {
-	    m_bExtractDeadSubstream[uiLayer] = false;
+      m_bExtractDeadSubstream[uiLayer] = false;
     }
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 }
@@ -188,32 +188,32 @@ ExtractorParameter::xParseFormatString( Char*   pFormatString,
 
 ErrVal
 ExtractorParameter::init( Int     argc,
-                          Char**  argv )	
+                          Char**  argv )
 {
   m_cExtractionList.clear();
   m_uiLayer = MSYS_UINT_MAX;
   m_uiLevel = MSYS_UINT_MAX;
-	m_uiScalableLayer = MSYS_UINT_MAX; 
-	Bool  bScalableLayerSpecified   = false;
-	m_uiExtractNonRequiredPics = MSYS_UINT_MAX;
+  m_uiScalableLayer = MSYS_UINT_MAX;
+  Bool  bScalableLayerSpecified   = false;
+  m_uiExtractNonRequiredPics = MSYS_UINT_MAX;
 
   Bool  bTraceExtractionSpecified = false; // HS: packet trace
   Bool  bExtractionPointSpecified = false;
-  
+
   Bool  bLayerSpecified           = false;
   Bool  bLevelSpecified           = false;
   Bool  bFGSSpecified             = false;
-  Bool	bBitrateSpecified					= false;
+  Bool  bBitrateSpecified          = false;
   Point cPoint;
 
   //S051{
-  Bool	bDSSpecified=false;
+  Bool  bDSSpecified=false;
   //S051}
 
   m_bExtractUsingQL = false;
 
   m_eQLExtractionMode = QL_EXTRACTOR_MODE_JOINT;
-  
+
 #define EXIT(x,m) {if(x){printf("\n%s\n",m);RNOKS(xPrintUsage(argv))}}
 
   if( argc > 3 && equal( "-pt", argv[1] ) ) // HS: packet trace
@@ -237,25 +237,25 @@ ExtractorParameter::init( Int     argc,
   {
     if( equal( "-sl", argv[iArg] ) ) // -sl
     {
-			EXIT( iArg + 1 == argc,           "Option \"-sl\" without argument specified" );
+      EXIT( iArg + 1 == argc,           "Option \"-sl\" without argument specified" );
       EXIT( bScalableLayerSpecified,    "Multiple options \"-sl\"" );
       EXIT( bExtractionPointSpecified,  "Option \"-sl\" used in connection with option \"-e\"" );
-			EXIT( bLayerSpecified,            "Option \"-sl\" used in connection with option \"-l\"" );
-			EXIT( bLevelSpecified,						"Option \"-sl\" used in connection with option \"-t\"" );
-			EXIT( bFGSSpecified,							"Option \"-sl\" used in connection with option \"-f\"" );
-			EXIT( bBitrateSpecified,					"Option \"-sl\" used in connection with option \"-b\"" );
+      EXIT( bLayerSpecified,            "Option \"-sl\" used in connection with option \"-l\"" );
+      EXIT( bLevelSpecified,            "Option \"-sl\" used in connection with option \"-t\"" );
+      EXIT( bFGSSpecified,              "Option \"-sl\" used in connection with option \"-f\"" );
+      EXIT( bBitrateSpecified,          "Option \"-sl\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-sl\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiScalableLayer       = atoi( argv[ ++iArg ] );
       bScalableLayerSpecified = true;
       continue;
     }
-		if( equal( "-l", argv[iArg] ) )
+    if( equal( "-l", argv[iArg] ) )
     {
       EXIT( iArg + 1 == argc,           "Option \"-l\" without argument specified" );
       EXIT( bLayerSpecified,            "Multiple options \"-l\"" );
       EXIT( bExtractionPointSpecified,  "Option \"-l\" used in connection with option \"-e\"" );
-			EXIT( bScalableLayerSpecified,    "Option \"-l\" used in connection with option \"-sl\"" );
-			EXIT( bBitrateSpecified,					"Option \"-l\" used in connection with option \"-b\"" );
+      EXIT( bScalableLayerSpecified,    "Option \"-l\" used in connection with option \"-sl\"" );
+      EXIT( bBitrateSpecified,          "Option \"-l\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-l\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiLayer       = atoi( argv[ ++iArg ] );
       bLayerSpecified = true;
@@ -266,9 +266,9 @@ ExtractorParameter::init( Int     argc,
     {
       EXIT( iArg + 1 == argc,           "Option \"-t\" without argument specified" );
       EXIT( bLevelSpecified,            "Multiple options \"-t\"" );
-			EXIT( bExtractionPointSpecified,  "Option \"-t\" used in connection with option \"-e\"" );
-			EXIT( bScalableLayerSpecified,    "Option \"-t\" used in connection with option \"-sl\"" ); 
-			EXIT( bBitrateSpecified,					"Option \"-t\" used in connection with option \"-b\"" );
+      EXIT( bExtractionPointSpecified,  "Option \"-t\" used in connection with option \"-e\"" );
+      EXIT( bScalableLayerSpecified,    "Option \"-t\" used in connection with option \"-sl\"" );
+      EXIT( bBitrateSpecified,          "Option \"-t\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-t\" used in connection with option \"-et\"" ); // HS: packet trace
       m_uiLevel       = atoi( argv[ ++iArg ] );
       bLevelSpecified = true;
@@ -279,41 +279,41 @@ ExtractorParameter::init( Int     argc,
     {
       EXIT( iArg + 1 == argc,           "Option \"-f\" without argument specified" );
       EXIT( bFGSSpecified,              "Multiple options \"-f\"" );
-		  EXIT( bExtractionPointSpecified,  "Option \"-f\" used in connection with option \"-e\"" );
-			EXIT( bScalableLayerSpecified,    "Option \"-f\" used in connection with option \"-sl\"" );
-			EXIT( bBitrateSpecified,					"Option \"-f\" used in connection with option \"-b\"" );
+      EXIT( bExtractionPointSpecified,  "Option \"-f\" used in connection with option \"-e\"" );
+      EXIT( bScalableLayerSpecified,    "Option \"-f\" used in connection with option \"-sl\"" );
+      EXIT( bBitrateSpecified,          "Option \"-f\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-f\" used in connection with option \"-et\"" ); // HS: packet trace
       m_dFGSLayer     = atof( argv[ ++iArg ] );
       bFGSSpecified   = true;
       continue;
     }
 
-		if( equal( "-b", argv[iArg] ) )
-		{
-			EXIT( iArg + 1 == argc,						"Option \"-b\" without argument specified" );
-			EXIT( bBitrateSpecified,					"Multiple options \"-b\"" );
-			EXIT( bExtractionPointSpecified,  "Option \"-b\" used in connection with option \"-e\"" );
-		  EXIT( bScalableLayerSpecified,    "Option \"-b\" used in connection with option \"-sl\"" );
-		  EXIT( bLayerSpecified,						"Option \"-b\" used in connection with option \"-l\"" );
-		  EXIT( bLevelSpecified,						"Option \"-b\" used in connection with option \"-t\"" );
-		  EXIT( bFGSSpecified,							"Option \"-b\" used in connection with option \"-f\"" );
+    if( equal( "-b", argv[iArg] ) )
+    {
+      EXIT( iArg + 1 == argc,            "Option \"-b\" without argument specified" );
+      EXIT( bBitrateSpecified,          "Multiple options \"-b\"" );
+      EXIT( bExtractionPointSpecified,  "Option \"-b\" used in connection with option \"-e\"" );
+      EXIT( bScalableLayerSpecified,    "Option \"-b\" used in connection with option \"-sl\"" );
+      EXIT( bLayerSpecified,            "Option \"-b\" used in connection with option \"-l\"" );
+      EXIT( bLevelSpecified,            "Option \"-b\" used in connection with option \"-t\"" );
+      EXIT( bFGSSpecified,              "Option \"-b\" used in connection with option \"-f\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-b\" used in connection with option \"-et\"" ); // HS: packet trace
-			m_dBitrate				= atof( argv[ ++iArg ] );
-			bBitrateSpecified = true;
-			continue;
-		}
+      m_dBitrate        = atof( argv[ ++iArg ] );
+      bBitrateSpecified = true;
+      continue;
+    }
 
-		if (equal( "-enp",argv[iArg] ))  //extract non-required pictures 
-		{
-			EXIT( iArg + 1 == argc,			 "Option \"-enp\" without argument specified" );
-			m_uiExtractNonRequiredPics = atoi(argv[++iArg]);
-			continue;
-		}
+    if (equal( "-enp",argv[iArg] ))  //extract non-required pictures
+    {
+      EXIT( iArg + 1 == argc,       "Option \"-enp\" without argument specified" );
+      m_uiExtractNonRequiredPics = atoi(argv[++iArg]);
+      continue;
+    }
     if( equal( "-e", argv[iArg] ) )
     {
       EXIT( iArg + 1 == argc,           "Option \"-e\" without argument specified" );
       EXIT( bExtractionPointSpecified,  "Multiple options \"-e\"" );
-			EXIT( bScalableLayerSpecified,    "Option \"-e\" used in connection with option \"-sl\"" ); 
+      EXIT( bScalableLayerSpecified,    "Option \"-e\" used in connection with option \"-sl\"" );
       EXIT( bLayerSpecified,            "Option \"-e\" used in connection with option \"-l\"" );
       EXIT( bLevelSpecified,            "Option \"-e\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-e\" used in connection with option \"-f\"" );
@@ -329,7 +329,7 @@ ExtractorParameter::init( Int     argc,
     {
       EXIT( iArg + 1 == argc,           "Option \"-et\" without argument specified" );
       EXIT( bTraceExtractionSpecified,  "Multiple options \"-et\"" );
-			EXIT( bScalableLayerSpecified,    "Option \"-et\" used in connection with option \"-sl\"" ); 
+      EXIT( bScalableLayerSpecified,    "Option \"-et\" used in connection with option \"-sl\"" );
       EXIT( bLayerSpecified,            "Option \"-et\" used in connection with option \"-l\"" );
       EXIT( bLevelSpecified,            "Option \"-et\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-et\" used in connection with option \"-f\"" );
@@ -342,19 +342,19 @@ ExtractorParameter::init( Int     argc,
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     //option utilized to remove Dead Substream of uiLayer
-	  if(equal( "-ds",argv[iArg] ))
-	  {
-  	   EXIT( iArg + 1 == argc,           "Option \"-ds\" without argument specified" );
+    if(equal( "-ds",argv[iArg] ))
+    {
+       EXIT( iArg + 1 == argc,           "Option \"-ds\" without argument specified" );
 
-	   //S051{
-	   bDSSpecified=true;
-       EXIT( m_bUseSIP,"Option \"-ds\" used in connection with option \"-sip\"");			
-	   //S051}
+     //S051{
+     bDSSpecified=true;
+       EXIT( m_bUseSIP,"Option \"-ds\" used in connection with option \"-sip\"");
+     //S051}
 
        UInt uiLayer = atoi(argv[++iArg]);
-	     m_bExtractDeadSubstream[uiLayer] = true;
-	     continue;
-	  }
+       m_bExtractDeadSubstream[uiLayer] = true;
+       continue;
+    }
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
     if(equal( "-ql", argv[iArg] ))
     {
@@ -363,9 +363,9 @@ ExtractorParameter::init( Int     argc,
         continue;
     }
 
-	//--TEST DJ 0602
-	//--DY 1009
-	if( equal( "-r", argv[iArg] ) )
+  //--TEST DJ 0602
+  //--DY 1009
+  if( equal( "-r", argv[iArg] ) )
     {
        xParseFormatStringROI_Only( argv[++iArg], cPoint );
        continue;
@@ -378,22 +378,22 @@ ExtractorParameter::init( Int     argc,
         m_eQLExtractionMode = QL_EXTRACTOR_MODE_ORDERED;
         continue;
     }
-	
-	//S051{
-	if( equal( "-sip", argv[iArg] ) )
-	{
-		EXIT( !bExtractionPointSpecified, "Option \"-sip\" must follow option \"-e\"" );
-		EXIT( bDSSpecified,"Option \"-sip\" used in connection with option \"-ds\"");
-		m_bUseSIP = true;
-		continue;
-	}
 
-	if(equal("-suf",argv[iArg]))
-	{
-		m_uiSuffixUnitEnable=1;
-		continue;
-	}
-	//S051}
+  //S051{
+  if( equal( "-sip", argv[iArg] ) )
+  {
+    EXIT( !bExtractionPointSpecified, "Option \"-sip\" must follow option \"-e\"" );
+    EXIT( bDSSpecified,"Option \"-sip\" used in connection with option \"-ds\"");
+    m_bUseSIP = true;
+    continue;
+  }
+
+  if(equal("-suf",argv[iArg]))
+  {
+    m_uiSuffixUnitEnable=1;
+    continue;
+  }
+  //S051}
 //JVT-T054{
   if(equal("-keepf", argv[iArg]))
   {
@@ -437,8 +437,8 @@ ExtractorParameter::xPrintUsage( Char **argv )
   printf("\t-keepf       -> use with \"-l\" and \"-f\" options: extract all included layers of the layer L specified with \"-l\" and all quality levels below quality level F specified wth \"-f\" of the layer L\n");
 
   printf("\nOptions \"-l\", \"-t\" and \"-f\" can be used in combination with each other.\n"
-	 	     "Other options can only be used separately.\n" );
-	printf("\n");
+          "Other options can only be used separately.\n" );
+  printf("\n");
   RERRS();
 }
 
@@ -448,40 +448,40 @@ ExtractorParameter::xPrintUsage( Char **argv )
 ErrVal
 ExtractorParameter::xParseFormatStringROI_Only( Char*   pFormatString, Point&  rcPoint  )
 {
-	std::string inputpara = pFormatString;
-	int iParaLength = inputpara.length();
+  std::string inputpara = pFormatString;
+  int iParaLength = inputpara.length();
 
-	iExtractedNumROI = ( iParaLength + 1 )/2;
+  iExtractedNumROI = ( iParaLength + 1 )/2;
 
-	Char  acSearch  [5] = "////";
-	Char* pSubString[5] = { 0, 0, 0, 0, 0 };
-	UInt  uiPos         = 0;
-	UInt  uiIndex = 0;
-	//===== set sub-strings =====
-	for( uiIndex = 0; uiIndex < 7; uiIndex++ )
-	{
-		while( pFormatString[uiPos] != '\0' )
-		{
-			if ( pFormatString[uiPos++] == acSearch[uiIndex] )
-			{
-				pFormatString [uiPos-1] =	'\0';
-				pSubString    [uiIndex] =	pFormatString;
-				pFormatString           =	&pFormatString[uiPos];
-				uiPos                   =	0;
-				break;
-			}
-		}
-	}
+  Char  acSearch  [5] = "////";
+  Char* pSubString[5] = { 0, 0, 0, 0, 0 };
+  UInt  uiPos         = 0;
+  UInt  uiIndex = 0;
+  //===== set sub-strings =====
+  for( uiIndex = 0; uiIndex < 7; uiIndex++ )
+  {
+    while( pFormatString[uiPos] != '\0' )
+    {
+      if ( pFormatString[uiPos++] == acSearch[uiIndex] )
+      {
+        pFormatString [uiPos-1] =  '\0';
+        pSubString    [uiIndex] =  pFormatString;
+        pFormatString           =  &pFormatString[uiPos];
+        uiPos                   =  0;
+        break;
+      }
+    }
+  }
 
-	uiIndex = iExtractedNumROI;
-	pSubString[uiIndex-1] = pFormatString;
+  uiIndex = iExtractedNumROI;
+  pSubString[uiIndex-1] = pFormatString;
 
-	for(UInt i=0;i<uiIndex; i++)
-	{
-		ROFS( pSubString[i] );
-		rcPoint.uiROI[i]    = atoi( pSubString[i] );
-	}
+  for(UInt i=0;i<uiIndex; i++)
+  {
+    ROFS( pSubString[i] );
+    rcPoint.uiROI[i]    = atoi( pSubString[i] );
+  }
 
-	m_bROIFlag = true;
-	return Err::m_nOK;
+  m_bROIFlag = true;
+  return Err::m_nOK;
 }

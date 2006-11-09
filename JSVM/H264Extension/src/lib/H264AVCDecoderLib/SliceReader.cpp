@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -168,9 +168,9 @@ ErrVal SliceReader::uninit()
 //ErrVal SliceReader::process( const SliceHeader& rcSH, UInt& ruiMbRead )
 ErrVal SliceReader::process( SliceHeader& rcSH, UInt& ruiMbRead )
 {
-  int sgId = rcSH.getFMO()->getSliceGroupId(rcSH.getFirstMbInSlice());  
+  int sgId = rcSH.getFMO()->getSliceGroupId(rcSH.getFirstMbInSlice());
   int pocOrder = rcSH.getPicOrderCntLsb();
-  rcSH.getFMO()->setCodedSG(sgId, pocOrder);  
+  rcSH.getFMO()->setCodedSG(sgId, pocOrder);
 
   ROF( m_bInitDone );
 
@@ -192,7 +192,7 @@ ErrVal SliceReader::process( SliceHeader& rcSH, UInt& ruiMbRead )
     // JVT-S054 (2) (ADD)
     rcSH.setLastMbInSlice(uiMbAddress);
     //--ICU/ETRI FMO Implementation
-    uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
+    uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress );
 
   }
   // JVT-S054 (2) (ADD)
@@ -223,7 +223,7 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
   RNOK( pcMbDataCtrl->initSlice( rcSH, PARSE_PROCESS, true, NULL ) );
 
   //===== loop over macroblocks =====
-  for( ruiMbRead = 0; !bEndOfSlice; ) //--ICU/ETRI FMO Implementation  
+  for( ruiMbRead = 0; !bEndOfSlice; ) //--ICU/ETRI FMO Implementation
   {
     DTRACE_NEWMB( uiMbAddress );
 
@@ -246,11 +246,11 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
                                             iSpatialScalabilityType,
                                             bEndOfSlice  ) );
     ruiMbRead++;
-	  if(ruiMbRead == uiNumMbInPic) bEndOfSlice = true; //FRAG_FIX
+    if(ruiMbRead == uiNumMbInPic) bEndOfSlice = true; //FRAG_FIX
     // JVT-S054 (2) (ADD)
     rcSH.setLastMbInSlice(uiMbAddress);
     //--ICU/ETRI FMO Implementation
-    uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
+    uiMbAddress  = rcSH.getFMO()->getNextMBNr(uiMbAddress );
 
   }
 
@@ -258,10 +258,10 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
   rcSH.setNumMbsInSlice(ruiMbRead);
 
   //ICU/ETRI FGS FMO
-  int sgId = rcSH.getFMO()->getSliceGroupId(rcSH.getFirstMbInSlice());  
+  int sgId = rcSH.getFMO()->getSliceGroupId(rcSH.getFirstMbInSlice());
   int pocOrder = rcSH.getPicOrderCntLsb();
 
-  rcSH.getFMO()->setCodedSG(sgId, pocOrder);  
+  rcSH.getFMO()->setCodedSG(sgId, pocOrder);
 
   //--ICU/ETRI FMO Implementation
   // JVT-S054 (REMOVE)
@@ -275,13 +275,13 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
 
 //TMM_EC {{
 ErrVal  SliceReader::readVirtual( SliceHeader&   rcSH,
-																	MbDataCtrl*    pcMbDataCtrl,
-																	MbDataCtrl*    pcMbDataCtrlRef,
-																	MbDataCtrl*    pcMbDataCtrlBase,
-																	Int            iSpatialScalabilityType,
-																	UInt           uiMbInRow,
-																	UInt&          ruiMbRead,
-																	ERROR_CONCEAL			m_eErrorConceal)
+                                  MbDataCtrl*    pcMbDataCtrl,
+                                  MbDataCtrl*    pcMbDataCtrlRef,
+                                  MbDataCtrl*    pcMbDataCtrlBase,
+                                  Int            iSpatialScalabilityType,
+                                  UInt           uiMbInRow,
+                                  UInt&          ruiMbRead,
+                                  ERROR_CONCEAL      m_eErrorConceal)
 {
   ROF( m_bInitDone );
 
@@ -292,7 +292,7 @@ ErrVal  SliceReader::readVirtual( SliceHeader&   rcSH,
   RNOK( pcMbDataCtrl->initSlice( rcSH, PARSE_PROCESS, true, NULL ) );
 
   //===== loop over macroblocks =====
-	for( ruiMbRead = 0; ruiMbRead < uiNumMbInPic; uiMbAddress++ )
+  for( ruiMbRead = 0; ruiMbRead < uiNumMbInPic; uiMbAddress++ )
   {
     DTRACE_NEWMB( uiMbAddress );
 
@@ -301,25 +301,25 @@ ErrVal  SliceReader::readVirtual( SliceHeader&   rcSH,
     MbDataAccess* pcMbDataAccess      = 0;
     MbDataAccess* pcMbDataAccessBase  = 0;
 
-		if ( rcSH.getTrueSlice() || rcSH.m_eErrorConceal != EC_TEMPORAL_DIRECT)
-		{
-			RNOK( pcMbDataCtrl        ->initMb    ( pcMbDataAccess,     uiMbY, uiMbX ) );
-		}
-		else
-		{
-			RNOK( pcMbDataCtrl        ->initMbTDEnhance( pcMbDataAccess, pcMbDataCtrl, pcMbDataCtrlRef, uiMbY, uiMbX ) );
-		}
+    if ( rcSH.getTrueSlice() || rcSH.m_eErrorConceal != EC_TEMPORAL_DIRECT)
+    {
+      RNOK( pcMbDataCtrl        ->initMb    ( pcMbDataAccess,     uiMbY, uiMbX ) );
+    }
+    else
+    {
+      RNOK( pcMbDataCtrl        ->initMbTDEnhance( pcMbDataAccess, pcMbDataCtrl, pcMbDataCtrlRef, uiMbY, uiMbX ) );
+    }
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
-		if  ( pcMbDataCtrlBase )
+    if  ( pcMbDataCtrlBase )
     {
       RNOK( pcMbDataCtrlBase  ->initMb    ( pcMbDataAccessBase, uiMbY, uiMbX ) );
     }
-		RNOK( m_pcMbParser        ->readVirtual( *pcMbDataAccess,
+    RNOK( m_pcMbParser        ->readVirtual( *pcMbDataAccess,
                                             pcMbDataAccessBase,
                                             iSpatialScalabilityType,
                                             bEndOfSlice,
-																						m_eErrorConceal) );
-		ruiMbRead++;
+                                            m_eErrorConceal) );
+    ruiMbRead++;
   }
   ROF( ruiMbRead == uiNumMbInPic );
 
@@ -327,23 +327,23 @@ ErrVal  SliceReader::readVirtual( SliceHeader&   rcSH,
 }
 //TMM_EC }}
 //TMM_EC {{
-ErrVal 
-SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
-																			SliceHeader	*rpcVeryFirstSliceHeader,
-																			UInt	uiDecompositionStages,
-																			UInt  uiMaxDecompositionStages,
-																			UInt	uiGopSize,
-																			UInt	uiMaxGopSize,
-																			UInt	uiFrameNum,
-																			UInt	uiPoc,
-																			UInt	uiTemporalLevel,
+ErrVal
+SliceReader::readSliceHeaderVirtual(  NalUnitType   eNalUnitType,
+                                      SliceHeader  *rpcVeryFirstSliceHeader,
+                                      UInt  uiDecompositionStages,
+                                      UInt  uiMaxDecompositionStages,
+                                      UInt  uiGopSize,
+                                      UInt  uiMaxGopSize,
+                                      UInt  uiFrameNum,
+                                      UInt  uiPoc,
+                                      UInt  uiTemporalLevel,
                                       UInt  uiLayerID      ,
-																			SliceHeader*& rpcSH)
+                                      SliceHeader*& rpcSH)
 {
   SequenceParameterSet* pcSPS;
   PictureParameterSet*  pcPPS;
 
-	UInt	uiPPSId	=	rpcVeryFirstSliceHeader->getPPS().getPicParameterSetId();
+  UInt  uiPPSId  =  rpcVeryFirstSliceHeader->getPPS().getPicParameterSetId();
 
   RNOK( m_pcParameterSetMng ->get    ( pcPPS, uiPPSId) );
   RNOK( m_pcParameterSetMng ->get    ( pcSPS, pcPPS->getSeqParameterSetId() ) );
@@ -353,94 +353,94 @@ SliceReader::readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
 
   rpcSH->setNalUnitType   ( eNalUnitType    );
 
-	UInt m_uiNextLayerId = 0;
-	m_uiNextLayerId		=	uiLayerID;
+  UInt m_uiNextLayerId = 0;
+  m_uiNextLayerId    =  uiLayerID;
 
 //  if(eNalUnitType==NAL_UNIT_CODED_SLICE_SCALABLE )
   if(eNalUnitType==NAL_UNIT_CODED_SLICE_SCALABLE && m_uiNextLayerId != 0)
   {
-		rpcSH->setLayerId       ( 1       );
+    rpcSH->setLayerId       ( 1       );
     rpcSH->setBaseLayerId(MSYS_UINT_MAX); // will be modified later
   }
   else
   {
     rpcSH->setLayerId(0);
-		rpcSH->setBaseLayerId   ( MSYS_UINT_MAX       );
+    rpcSH->setBaseLayerId   ( MSYS_UINT_MAX       );
   }
   rpcSH->setTemporalLevel ( uiTemporalLevel );
   rpcSH->setQualityLevel  ( 0       );
   rpcSH->setFirstMbInSlice( 0       );
-	rpcSH->setFragmentedFlag( false);
+  rpcSH->setFragmentedFlag( false);
 
-	UInt	uiMaxPocLsb		=	1 << rpcSH->getSPS().getLog2MaxPicOrderCntLsb();
-	rpcSH->setFrameNum( uiFrameNum);
-	rpcSH->setPicOrderCntLsb( uiPoc % uiMaxPocLsb);
-	rpcSH->setPoc( uiPoc);
-	rpcSH->setAdaptivePredictionFlag(1);
-	rpcSH->setDirectSpatialMvPredFlag(false);
-	rpcSH->setNumRefIdxActiveOverrideFlag( true);
-	rpcSH->setNumRefIdxActive( LIST_0, 1);
+  UInt  uiMaxPocLsb    =  1 << rpcSH->getSPS().getLog2MaxPicOrderCntLsb();
+  rpcSH->setFrameNum( uiFrameNum);
+  rpcSH->setPicOrderCntLsb( uiPoc % uiMaxPocLsb);
+  rpcSH->setPoc( uiPoc);
+  rpcSH->setAdaptivePredictionFlag(1);
+  rpcSH->setDirectSpatialMvPredFlag(false);
+  rpcSH->setNumRefIdxActiveOverrideFlag( true);
+  rpcSH->setNumRefIdxActive( LIST_0, 1);
 
-	if ( rpcSH->getPicOrderCntLsb() % uiMaxGopSize == 0 || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
-	{
-		rpcSH->setSliceType     ( P_SLICE );
-		if( rpcSH->getPicOrderCntLsb() % (1<<(uiMaxDecompositionStages-uiDecompositionStages+1)) == 0)
-			rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_HIGHEST);
-		else
-			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_HIGH);
-	}
+  if ( rpcSH->getPicOrderCntLsb() % uiMaxGopSize == 0 || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
+  {
+    rpcSH->setSliceType     ( P_SLICE );
+    if( rpcSH->getPicOrderCntLsb() % (1<<(uiMaxDecompositionStages-uiDecompositionStages+1)) == 0)
+      rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_HIGHEST);
+    else
+      rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_HIGH);
+  }
   else
-	{
-		rpcSH->setSliceType     ( B_SLICE );
-		if( rpcSH->getPicOrderCntLsb() % (1<<(uiMaxDecompositionStages-uiDecompositionStages+1)) == 0)
-			rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_LOW);
-		else
-			rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_LOWEST);
-		rpcSH->setNumRefIdxActive( LIST_1, 1);
-	}
+  {
+    rpcSH->setSliceType     ( B_SLICE );
+    if( rpcSH->getPicOrderCntLsb() % (1<<(uiMaxDecompositionStages-uiDecompositionStages+1)) == 0)
+      rpcSH->setNalRefIdc   ( NAL_REF_IDC_PRIORITY_LOW);
+    else
+      rpcSH->setNalRefIdc     ( NAL_REF_IDC_PRIORITY_LOWEST);
+    rpcSH->setNumRefIdxActive( LIST_1, 1);
+  }
   //if(eNalUnitType==NAL_UNIT_CODED_SLICE||)
 //key picture MMCO for base and enhancement layer
   {
-		if(rpcSH->getPoc() % uiMaxGopSize == 0  || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
-	  {
-			UInt index=rpcSH->getPoc() / uiMaxGopSize;
-		  if( index>0 )rpcSH->setAdaptiveRefPicBufferingFlag(true);
-      else    	   rpcSH->setAdaptiveRefPicBufferingFlag(false);
+    if(rpcSH->getPoc() % uiMaxGopSize == 0  || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
+    {
+      UInt index=rpcSH->getPoc() / uiMaxGopSize;
+      if( index>0 )rpcSH->setAdaptiveRefPicBufferingFlag(true);
+      else         rpcSH->setAdaptiveRefPicBufferingFlag(false);
 
-		  if(index>1)
-			{
+      if(index>1)
+      {
         Bool bNumber2Gop= index >2 ? true : false;
-				rpcSH->setDefualtMmcoBuffer(uiDecompositionStages,bNumber2Gop);
-		  }
-  	  rpcSH->setSliceType(P_SLICE);
-  	  rpcSH->setNalRefIdc(NAL_REF_IDC_PRIORITY_HIGHEST);
-	  }
+        rpcSH->setDefualtMmcoBuffer(uiDecompositionStages,bNumber2Gop);
+      }
+      rpcSH->setSliceType(P_SLICE);
+      rpcSH->setNalRefIdc(NAL_REF_IDC_PRIORITY_HIGHEST);
+    }
 
-		if(rpcSH->getPoc() % uiMaxGopSize == 0  || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
-	  {
-			UInt index=rpcSH->getPoc() / uiMaxGopSize;
-		  if( index>1 )
-		  {
-				rpcSH->getRplrBuffer(LIST_0).setRefPicListReorderingFlag(true);
-				rpcSH->getRplrBuffer(LIST_0).clear();
-//TMM_EC		
-				if ( uiGopSize == 1)
-					rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,0));
-				else
-					rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,uiGopSize/2-1));
-		  }
-		  else 
-		  {
-			  rpcSH->getRplrBuffer(LIST_0).setRefPicListReorderingFlag(false);
-		  }
-  	
-	  }
+    if(rpcSH->getPoc() % uiMaxGopSize == 0  || (uiGopSize - ((rpcSH->getPicOrderCntLsb() % uiMaxGopSize) >> (uiMaxDecompositionStages-uiDecompositionStages)) < (unsigned)( 1<<(uiDecompositionStages-uiTemporalLevel) ) ) )
+    {
+      UInt index=rpcSH->getPoc() / uiMaxGopSize;
+      if( index>1 )
+      {
+        rpcSH->getRplrBuffer(LIST_0).setRefPicListReorderingFlag(true);
+        rpcSH->getRplrBuffer(LIST_0).clear();
+//TMM_EC
+        if ( uiGopSize == 1)
+          rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,0));
+        else
+          rpcSH->getRplrBuffer(LIST_0).set(0,Rplr(RPLR_NEG,uiGopSize/2-1));
+      }
+      else
+      {
+        rpcSH->getRplrBuffer(LIST_0).setRefPicListReorderingFlag(false);
+      }
+
+    }
   }
 
-	//weighted prediction
-	RNOK( rpcSH->getPredWeightTable(LIST_0).init( 64 ) );
+  //weighted prediction
+  RNOK( rpcSH->getPredWeightTable(LIST_0).init( 64 ) );
   RNOK( rpcSH->getPredWeightTable(LIST_1).init( 64 ) );
-  
+
   return Err::m_nOK;
 }
 //TMM_EC }}
@@ -452,7 +452,7 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
                               UInt         uiFirstFragNumMbsInSlice,
                               Bool         bFirstFragFGSCompSep
                               //~JVT-P031
-							                )
+                              )
 {
   NalUnitType   eNalUnitType=pcNalUnitParser->getNalUnitType();
   NalRefIdc     eNalRefIdc=pcNalUnitParser->getNalRefIdc();
@@ -463,7 +463,7 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
   Bool          bUseBasePredFlag=pcNalUnitParser->getUseBasePredFlag();
 
   UInt          uiFragmentOrder=pcNalUnitParser->getFragmentOrder();
-  
+
   Bool                  bScalable         = ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
                                               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE );
   UInt                  uiFirstMbInSlice;
@@ -475,7 +475,7 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 
   //===== read first parameters =====
   //JVT-P031
-  if(  uiLayerId == 0 && uiQualityLevel == 0 && 
+  if(  uiLayerId == 0 && uiQualityLevel == 0 &&
     (eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) )
   {
     Bool eAdaptiveRefPicMarkingModeFlag = false;
@@ -489,20 +489,20 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 
     if( eNalRefIdc != 0)
     {
-			 if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
-			 {
-				 RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
-				 if( eAdaptiveRefPicMarkingModeFlag )
-				 {  
-					 RNOK( rpcSH->getMmcoBaseBuffer().read( m_pcHeaderReadIf ) );
-				 }		
-			 }
-		 }
-		 rpcSH->setNalUnitType   ( eNalUnitType    );
-		 rpcSH->setNalRefIdc     ( eNalRefIdc      );
-		 rpcSH->setLayerId       ( uiLayerId       );
-		 rpcSH->setTemporalLevel ( uiTemporalLevel );
-		 rpcSH->setQualityLevel  ( uiQualityLevel  );
+       if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
+       {
+         RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,      "DRPM: adaptive_ref_pic_marking_mode_flag"));
+         if( eAdaptiveRefPicMarkingModeFlag )
+         {
+           RNOK( rpcSH->getMmcoBaseBuffer().read( m_pcHeaderReadIf ) );
+         }
+       }
+     }
+     rpcSH->setNalUnitType   ( eNalUnitType    );
+     rpcSH->setNalRefIdc     ( eNalRefIdc      );
+     rpcSH->setLayerId       ( uiLayerId       );
+     rpcSH->setTemporalLevel ( uiTemporalLevel );
+     rpcSH->setQualityLevel  ( uiQualityLevel  );
 
      rpcSH->setLayerBaseFlag    ( pcNalUnitParser->getLayerBaseFlag()     );
      rpcSH->setDiscardableFlag  ( pcNalUnitParser->getDiscardableFlag()   );
@@ -511,14 +511,14 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
      rpcSH->setLastFragmentFlag ( pcNalUnitParser->getLastFragmentFlag()  );
      rpcSH->setFragmentOrder    ( pcNalUnitParser->getFragmentOrder()     );
 
-		 rpcSH->setUseBaseRepresentationFlag( bUseBasePredFlag      );   
-		 rpcSH->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag ); 
-		 rpcSH->setPicOrderCntLsb( m_uiPOC_AVC );
+     rpcSH->setUseBaseRepresentationFlag( bUseBasePredFlag      );
+     rpcSH->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag );
+     rpcSH->setPicOrderCntLsb( m_uiPOC_AVC );
 
 
-		 return Err::m_nOK;
-	 }
-	else
+     return Err::m_nOK;
+   }
+  else
   {
       RNOK( m_pcHeaderReadIf    ->getUvlc( uiFirstMbInSlice,  "SH: first_mb_in_slice" ) );
       RNOK( m_pcHeaderReadIf    ->getUvlc( uiSliceType,       "SH: slice_type" ) );
@@ -558,20 +558,20 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
     rpcSH->setNumMbsInSlice(uiFirstFragNumMbsInSlice);
   }
   //~JVT-P031
-  
+
   //===== read remaining parameters =====
-  RNOK( rpcSH->read( m_pcHeaderReadIf ) ); 
+  RNOK( rpcSH->read( m_pcHeaderReadIf ) );
 
   if ( eNalUnitType == NAL_UNIT_CODED_SLICE ||
-	   eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+     eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
   {
-	  m_uiPPSId_AVC = uiPPSId;
-	  m_uiSPSId_AVC = pcPPS->getSeqParameterSetId();
-	  m_uiPOC_AVC = rpcSH->getPicOrderCntLsb();
+    m_uiPPSId_AVC = uiPPSId;
+    m_uiSPSId_AVC = pcPPS->getSeqParameterSetId();
+    m_uiPOC_AVC = rpcSH->getPicOrderCntLsb();
   }
 //JVT-S036 lsj end
 
-  //--ICU/ETRI FMO Implementation 
+  //--ICU/ETRI FMO Implementation
   rpcSH->FMOInit();
   // JVT-S054 (2) (ADD) ->
   if (rpcSH->getNumMbsInSlice() != 0)
@@ -587,47 +587,47 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 //JVT-S036 lsj start
 ErrVal
 SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
-									NalRefIdc     eNalRefIdc,
-									UInt		  uiLayerId,
-									UInt		  uiQualityLevel,
+                  NalRefIdc     eNalRefIdc,
+                  UInt      uiLayerId,
+                  UInt      uiQualityLevel,
                   Bool          bUseBasePredFlag,
-									SliceHeader*  pcSliceHeader
-								  )
+                  SliceHeader*  pcSliceHeader
+                  )
 {
-  
+
   //===== read first parameters =====
-  
+
   Bool eAdaptiveRefPicMarkingModeFlag = false;
- 
-  if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
+
+  if( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
   {
-	  
-	 if( uiLayerId == 0 && uiQualityLevel == 0 ) 
+
+   if( uiLayerId == 0 && uiQualityLevel == 0 )
      {
 
-		 if( eNalRefIdc != 0)
-		 {
-			 if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
-			 {
-				 RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
-				 if( eAdaptiveRefPicMarkingModeFlag )
-				 {  
-					 RNOK( pcSliceHeader->getMmcoBaseBuffer().read( m_pcHeaderReadIf ) );
-				 }		
-			 }
-		 }
+     if( eNalRefIdc != 0)
+     {
+       if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+       {
+         RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,      "DRPM: adaptive_ref_pic_marking_mode_flag"));
+         if( eAdaptiveRefPicMarkingModeFlag )
+         {
+           RNOK( pcSliceHeader->getMmcoBaseBuffer().read( m_pcHeaderReadIf ) );
+         }
+       }
+     }
 
-		 pcSliceHeader->setUseBaseRepresentationFlag( bUseBasePredFlag      );   //bug-fix suffix shenqiu
-		 pcSliceHeader->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag );
+     pcSliceHeader->setUseBaseRepresentationFlag( bUseBasePredFlag      );   //bug-fix suffix shenqiu
+     pcSliceHeader->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag );
 
-		 return Err::m_nOK;
-	 }
-	 else
-		 return Err::m_nERR;
+     return Err::m_nOK;
+   }
+   else
+     return Err::m_nERR;
   }
   else
-	  return Err::m_nERR;
+    return Err::m_nERR;
 }
 //JVT-S036 lsj end
 

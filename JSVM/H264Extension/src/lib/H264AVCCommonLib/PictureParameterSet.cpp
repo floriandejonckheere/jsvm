@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -109,10 +109,10 @@ PictureParameterSet::PictureParameterSet()
 , m_bTransform8x8ModeFlag                   ( false )
 , m_bPicScalingMatrixPresentFlag            ( false )
 , m_iSecondChromaQpIndexOffset              ( 0 )
-, m_uiSliceGroupMapType                     ( 0 )      
-, m_bSliceGroupChangeDirection_flag         ( false )  
-, m_uiSliceGroupChangeRateMinus1            ( 0 )      
-, m_uiNumSliceGroupMapUnitsMinus1           ( 0 )      
+, m_uiSliceGroupMapType                     ( 0 )
+, m_bSliceGroupChangeDirection_flag         ( false )
+, m_uiSliceGroupChangeRateMinus1            ( 0 )
+, m_uiNumSliceGroupMapUnitsMinus1           ( 0 )
 {
   m_auiNumRefIdxActive[LIST_0] = 0;
   m_auiNumRefIdxActive[LIST_1] = 0;
@@ -158,53 +158,53 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK( pcWriteIf->writeUvlc( getSeqParameterSetId(),                     "PPS: seq_parameter_set_id" ) );
   RNOK( pcWriteIf->writeFlag( getEntropyCodingModeFlag(),                 "PPS: entropy_coding_mode_flag" ) );
   RNOK( pcWriteIf->writeFlag( getPicOrderPresentFlag(),                   "PPS: pic_order_present_flag" ) );
-   
+
   //--ICU/ETRI FMO Implementation : FMO stuff start
   Int iNumberBitsPerSliceGroupId;
-  RNOK( pcWriteIf->writeUvlc( getNumSliceGroupsMinus1(),                         "PPS: num_slice_groups_minus1" ) );  
-    
+  RNOK( pcWriteIf->writeUvlc( getNumSliceGroupsMinus1(),                         "PPS: num_slice_groups_minus1" ) );
+
   if(getNumSliceGroupsMinus1() > 0)
-  {	  
-	  RNOK( pcWriteIf->writeUvlc( getSliceGroupMapType(),                             "PPS: slice_group_map_type" ) );
-	  if(getSliceGroupMapType() ==0)
-	  {
-		  for(UInt iSliceGroup=0;iSliceGroup<=getNumSliceGroupsMinus1();iSliceGroup++)
-		  {
-			  RNOK( pcWriteIf->writeUvlc( getRunLengthMinus1(iSliceGroup),                             "PPS: run_length_minus1 [iSliceGroup]" ) );
-		  }
-	  }
-	  else if (getSliceGroupMapType() ==2)
-	  {
-		  for(UInt iSliceGroup=0;iSliceGroup<getNumSliceGroupsMinus1();iSliceGroup++)
-		  {
-			  RNOK( pcWriteIf->writeUvlc( getTopLeft(iSliceGroup),                             "PPS: top_left [iSliceGroup]" ) );
-			  RNOK( pcWriteIf->writeUvlc( getBottomRight(iSliceGroup),                             "PPS: bottom_right [iSliceGroup]" ) );
-		  }
-	  }
-	  else if(getSliceGroupMapType() ==3 || 
-		  getSliceGroupMapType() ==4 || 
-		  getSliceGroupMapType() ==5)
-	  {
-		  RNOK( pcWriteIf->writeFlag( getSliceGroupChangeDirection_flag(),                      "PPS: slice_group_change_direction_flag" ) );
-		  RNOK( pcWriteIf->writeUvlc( getSliceGroupChangeRateMinus1(),                             "PPS: slice_group_change_rate_minus1" ) );
-	  }
-	  else if (getSliceGroupMapType() ==6)
-	  {
-		  if (getNumSliceGroupsMinus1()+1 >4)
-			  iNumberBitsPerSliceGroupId = 3;
-		  else if (getNumSliceGroupsMinus1() > 2)
-			  iNumberBitsPerSliceGroupId = 2;
-		  else
-			  iNumberBitsPerSliceGroupId = 1;
-		  //! JVT-F078, exlicitly signal number of MBs in the map
-		  RNOK( pcWriteIf->writeUvlc( getNumSliceGroupMapUnitsMinus1(),                             "PPS: num_slice_group_map_units_minus1" ) );
-		  for (UInt iSliceGroup=0; iSliceGroup<=getNumSliceGroupMapUnitsMinus1(); iSliceGroup++)
-			  RNOK( pcWriteIf->writeCode( getSliceGroupId(iSliceGroup), iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[iSliceGroup]" ) );
-	  }
-	  
+  {
+    RNOK( pcWriteIf->writeUvlc( getSliceGroupMapType(),                             "PPS: slice_group_map_type" ) );
+    if(getSliceGroupMapType() ==0)
+    {
+      for(UInt iSliceGroup=0;iSliceGroup<=getNumSliceGroupsMinus1();iSliceGroup++)
+      {
+        RNOK( pcWriteIf->writeUvlc( getRunLengthMinus1(iSliceGroup),                             "PPS: run_length_minus1 [iSliceGroup]" ) );
+      }
+    }
+    else if (getSliceGroupMapType() ==2)
+    {
+      for(UInt iSliceGroup=0;iSliceGroup<getNumSliceGroupsMinus1();iSliceGroup++)
+      {
+        RNOK( pcWriteIf->writeUvlc( getTopLeft(iSliceGroup),                             "PPS: top_left [iSliceGroup]" ) );
+        RNOK( pcWriteIf->writeUvlc( getBottomRight(iSliceGroup),                             "PPS: bottom_right [iSliceGroup]" ) );
+      }
+    }
+    else if(getSliceGroupMapType() ==3 ||
+      getSliceGroupMapType() ==4 ||
+      getSliceGroupMapType() ==5)
+    {
+      RNOK( pcWriteIf->writeFlag( getSliceGroupChangeDirection_flag(),                      "PPS: slice_group_change_direction_flag" ) );
+      RNOK( pcWriteIf->writeUvlc( getSliceGroupChangeRateMinus1(),                             "PPS: slice_group_change_rate_minus1" ) );
+    }
+    else if (getSliceGroupMapType() ==6)
+    {
+      if (getNumSliceGroupsMinus1()+1 >4)
+        iNumberBitsPerSliceGroupId = 3;
+      else if (getNumSliceGroupsMinus1() > 2)
+        iNumberBitsPerSliceGroupId = 2;
+      else
+        iNumberBitsPerSliceGroupId = 1;
+      //! JVT-F078, exlicitly signal number of MBs in the map
+      RNOK( pcWriteIf->writeUvlc( getNumSliceGroupMapUnitsMinus1(),                             "PPS: num_slice_group_map_units_minus1" ) );
+      for (UInt iSliceGroup=0; iSliceGroup<=getNumSliceGroupMapUnitsMinus1(); iSliceGroup++)
+        RNOK( pcWriteIf->writeCode( getSliceGroupId(iSliceGroup), iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[iSliceGroup]" ) );
+    }
+
   }
   //--ICU/ETRI FMO Implementation : FMO stuff end
-    
+
   RNOK( pcWriteIf->writeUvlc( getNumRefIdxActive(LIST_0)-1,               "PPS: num_ref_idx_l0_active_minus1" ) );
   RNOK( pcWriteIf->writeUvlc( getNumRefIdxActive(LIST_1)-1,               "PPS: num_ref_idx_l1_active_minus1" ) );
   RNOK( pcWriteIf->writeFlag( m_bWeightedPredFlag,                        "PPS: weighted_pred_flag" ) );
@@ -247,50 +247,50 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
   RNOK( pcReadIf->getFlag( m_bPicOrderPresentFlag,                        "PPS: pic_order_present_flag" ) );
 
   //--ICU/ETRI FMO Implementation : FMO stuff start
-  RNOK( pcReadIf->getUvlc( m_uiNumSliceGroupsMinus1,                         "PPS: num_slice_groups_minus1" ) );  
+  RNOK( pcReadIf->getUvlc( m_uiNumSliceGroupsMinus1,                         "PPS: num_slice_groups_minus1" ) );
   ROT ( m_uiNumSliceGroupsMinus1 > MAXNumSliceGroupsMinus1);
-  
+
   if(m_uiNumSliceGroupsMinus1 > 0)
-  {	  
-	  RNOK( pcReadIf->getUvlc( m_uiSliceGroupMapType,                             "PPS: slice_group_map_type" ) );
-	  if(m_uiSliceGroupMapType ==0)
-	  {
-		  for(UInt i=0;i<=m_uiNumSliceGroupsMinus1;i++)
-		  {
-			  RNOK( pcReadIf->getUvlc( m_uiRunLengthMinus1[i],                             "PPS: run_length_minus1 [i]" ) );
-		  }
-	  }
-	  else if (m_uiSliceGroupMapType ==2)
-	  {
-		  for(UInt i=0;i<m_uiNumSliceGroupsMinus1;i++)
-		  {
-			  RNOK( pcReadIf->getUvlc( m_uiTopLeft[i],                             "PPS: top_left [i]" ) );
-			  RNOK( pcReadIf->getUvlc( m_uiBottomRight[i],                             "PPS: bottom_right [i]" ) );
-		  }
-	  }
-	  else if(m_uiSliceGroupMapType ==3 || 
-		  m_uiSliceGroupMapType ==4 || 
-		  m_uiSliceGroupMapType ==5)
-	  {
-		  RNOK( pcReadIf->getFlag( m_bSliceGroupChangeDirection_flag,                      "PPS: slice_group_change_direction_flag" ) );
-		  RNOK( pcReadIf->getUvlc( m_uiSliceGroupChangeRateMinus1,                             "PPS: slice_group_change_rate_minus1" ) );
-	  }
-	  else if (m_uiSliceGroupMapType ==6)
-	  {
-		  if (m_uiNumSliceGroupsMinus1+1 >4)
-			  iNumberBitsPerSliceGroupId = 3;
-		  else if (m_uiNumSliceGroupsMinus1+1 > 2)
-			  iNumberBitsPerSliceGroupId = 2;
-		  else
-			  iNumberBitsPerSliceGroupId = 1;
-		  //! JVT-F078, exlicitly signal number of MBs in the map
-		  RNOK( pcReadIf->getUvlc( m_uiNumSliceGroupMapUnitsMinus1,                             "PPS: num_slice_group_map_units_minus1" ) );
-		  for (UInt i=0; i<=m_uiNumSliceGroupMapUnitsMinus1; i++)
-			  RNOK( pcReadIf->getCode( m_uiSliceGroupId[i], iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[i]" ) );
-	  }
-	  
+  {
+    RNOK( pcReadIf->getUvlc( m_uiSliceGroupMapType,                             "PPS: slice_group_map_type" ) );
+    if(m_uiSliceGroupMapType ==0)
+    {
+      for(UInt i=0;i<=m_uiNumSliceGroupsMinus1;i++)
+      {
+        RNOK( pcReadIf->getUvlc( m_uiRunLengthMinus1[i],                             "PPS: run_length_minus1 [i]" ) );
+      }
+    }
+    else if (m_uiSliceGroupMapType ==2)
+    {
+      for(UInt i=0;i<m_uiNumSliceGroupsMinus1;i++)
+      {
+        RNOK( pcReadIf->getUvlc( m_uiTopLeft[i],                             "PPS: top_left [i]" ) );
+        RNOK( pcReadIf->getUvlc( m_uiBottomRight[i],                             "PPS: bottom_right [i]" ) );
+      }
+    }
+    else if(m_uiSliceGroupMapType ==3 ||
+      m_uiSliceGroupMapType ==4 ||
+      m_uiSliceGroupMapType ==5)
+    {
+      RNOK( pcReadIf->getFlag( m_bSliceGroupChangeDirection_flag,                      "PPS: slice_group_change_direction_flag" ) );
+      RNOK( pcReadIf->getUvlc( m_uiSliceGroupChangeRateMinus1,                             "PPS: slice_group_change_rate_minus1" ) );
+    }
+    else if (m_uiSliceGroupMapType ==6)
+    {
+      if (m_uiNumSliceGroupsMinus1+1 >4)
+        iNumberBitsPerSliceGroupId = 3;
+      else if (m_uiNumSliceGroupsMinus1+1 > 2)
+        iNumberBitsPerSliceGroupId = 2;
+      else
+        iNumberBitsPerSliceGroupId = 1;
+      //! JVT-F078, exlicitly signal number of MBs in the map
+      RNOK( pcReadIf->getUvlc( m_uiNumSliceGroupMapUnitsMinus1,                             "PPS: num_slice_group_map_units_minus1" ) );
+      for (UInt i=0; i<=m_uiNumSliceGroupMapUnitsMinus1; i++)
+        RNOK( pcReadIf->getCode( m_uiSliceGroupId[i], iNumberBitsPerSliceGroupId ,                                    "PPS: slice_group_id[i]" ) );
+    }
+
   }
-  //--ICU/ETRI FMO Implementation : FMO stuff end  
+  //--ICU/ETRI FMO Implementation : FMO stuff end
 
 
   RNOK( pcReadIf->getUvlc( uiTmp,                                         "PPS: num_ref_idx_l0_active_minus1" ) );

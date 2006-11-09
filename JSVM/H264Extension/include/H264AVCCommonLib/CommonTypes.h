@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -166,7 +166,7 @@ const UChar g_aucConvertBlockOrder[17] =
 
 // TMM_ESS {
 const UChar g_aucConvertTo8x8Idx[16]=
-{		
+{
     0 ,0 ,1 , 1,
     0 ,0 ,1 , 1,
     2 ,2 ,3 , 3,
@@ -203,10 +203,6 @@ protected:
   ChromaIdx( Int iIdx = 0 ) : m_iIdx( iIdx )              {}
 public:
   operator Int()                                    const { return m_iIdx;        }
-  ChromaIdx   operator + ( Int i )                  const { return ChromaIdx( m_iIdx + i ); }
-  ChromaIdx   operator - ( Int i )                  const { return ChromaIdx( m_iIdx - i ); }
-  ChromaIdx&  operator+= ( Int i )                        { m_iIdx+=i; return *this; }
-  ChromaIdx&  operator-= ( Int i )                        { m_iIdx-=i; return *this; }
   Int x()                                           const { return m_iIdx&1;      }
   Int y()                                           const { return (m_iIdx>>1)&1; }
   Int plane()                                       const { return m_iIdx>>2;     }
@@ -214,7 +210,6 @@ public:
 protected:
   Int m_iIdx;
 };
-
 
 class B8x8Idx :
 public LumaIdx
@@ -230,7 +225,6 @@ public:
   const Int xxxgetSIdx()                            const { return m_iSIdx; }
   ParIdx8x8 b8x8()                                  const { return ParIdx8x8(m_iIdx); }
   Par8x8    b8x8Index()                             const { return Par8x8(m_iSIdx>>2); }
-
 protected:
   Int convert()                                           { return m_iIdx = g_aucConvertBlockOrder[m_iSIdx]; }
   B8x8Idx(Int i) : m_iSIdx( i<<2 )                        { convert(); }
@@ -253,12 +247,21 @@ public:
 class S4x4Idx :
 public LumaIdx
 {
+private:
+  S4x4Idx( UInt ui ) : m_iSIdx( ui )                                { convert(); }
+
 public:
-  S4x4Idx( B8x8Idx& rcB8x8Idx) : m_iSIdx( rcB8x8Idx.xxxgetSIdx() )  { convert(); }
+  S4x4Idx( const B8x8Idx& rcB8x8Idx ) : m_iSIdx( rcB8x8Idx.xxxgetSIdx() )  { convert(); }
   S4x4Idx()                    : m_iSIdx( 0 )                       { convert(); }
+
+  S4x4Idx operator+(Int i )                                   const { return S4x4Idx( m_iSIdx + i ); }
+  S4x4Idx operator+(UInt ui )                                 const { return S4x4Idx( m_iSIdx + ui ); }
+  Int s4x4()                                                  const { return m_iSIdx; } // this is for s-only-ordered buffers
+  Par8x8 getContainingPar8x8()                                const { return Par8x8(m_iSIdx>>2); }
+
   S4x4Idx& operator ++(Int)                                         { m_iSIdx++; convert(); return *this; }
   Bool isLegal()                                              const { return m_iSIdx <16; }
-  Bool isLegal( B8x8Idx& rcB8x8Idx )                          const { return m_iSIdx <(4+rcB8x8Idx.xxxgetSIdx()); }
+  Bool isLegal( const B8x8Idx& rcB8x8Idx )                    const { return m_iSIdx <(4+rcB8x8Idx.xxxgetSIdx()); }
 protected:
   Void convert()                                                    { m_iIdx = g_aucConvertBlockOrder[m_iSIdx]; }
 
@@ -266,17 +269,36 @@ protected:
   Int m_iSIdx;
 };
 
+class CPlaneIdx
+{
+public:
+  CPlaneIdx( UInt uiIdx = 0 ) : m_iIdx( uiIdx ) {}
+  CPlaneIdx& operator++()        { m_iIdx++; return *this; }
+  Bool       isLegal()     const { return m_iIdx < 2; }
+  operator   Int()         const { return m_iIdx;     }
+private:
+  UInt m_iIdx;
+};
+
 
 class CIdx :
 public ChromaIdx
 {
 public:
-  CIdx( UInt uiIdx = 0)     : ChromaIdx( uiIdx )      {}
+  CIdx( UInt uiIdx = 0)     : ChromaIdx( uiIdx )       {}
+
+  CIdx( const CPlaneIdx &rcCPlIdx )                 : ChromaIdx( rcCPlIdx<<2 )             {}
+  CIdx( const CPlaneIdx &rcCPlIdx, Par8x8 ePar8x8 ) : ChromaIdx( (rcCPlIdx<<2) + ePar8x8 ) {}
+
+  CIdx   operator+ ( UInt ui )                  const { return CIdx( m_iIdx + ui ); }
+  CIdx   operator+ ( Int  i  )                  const { return CIdx( m_iIdx + i  ); }
+
   CIdx& operator ++(Int)                              { m_iIdx++; return *this; }
   Bool isLegal()                                const { return m_iIdx < 8; }
+
+  Bool isLegal( CPlaneIdx cCPlIdx )             const { return m_iIdx < ( ( cCPlIdx + 1 ) << 2 ); }
   Bool isLegal( Int i)                          const { return m_iIdx < i; }
 };
-
 
 
 template< class T, UInt uiMemSize = 64 >

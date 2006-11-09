@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -189,8 +189,8 @@ Void predBlkBilinear( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaI
       {
         Int iTemp;
 
-        iTemp = 
-          (pucSrc[x]              * (4 - iDx) + pucSrc[x + 1]              * iDx) * (4 - iDy) + 
+        iTemp =
+          (pucSrc[x]              * (4 - iDx) + pucSrc[x + 1]              * iDx) * (4 - iDy) +
           (pucSrc[iSrcStride + x] * (4 - iDx) + pucSrc[iSrcStride + x + 1] * iDx) * iDy;
 
         pucDes[x] = (iTemp >= 0) ? ( (iTemp + 8) >> 4 ) : -( (-iTemp + 8) >> 4 );
@@ -904,8 +904,8 @@ Void QuarterPelFilter::predBlkBilinear( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBu
     {
       for( Int x = 0; x < iSizeX; x++ )
       {
-        Int iSum = 
-          (pucSrc[x]              * (4 - iDx) + pucSrc[x + 1]              * iDx) * (4 - iDy) + 
+        Int iSum =
+          (pucSrc[x]              * (4 - iDx) + pucSrc[x + 1]              * iDx) * (4 - iDy) +
           (pucSrc[iSrcStride + x] * (4 - iDx) + pucSrc[iSrcStride + x + 1] * iDx) * iDy;
 
         pucDes[x] = ( iSum >= 0 ) ? ( ( iSum + 8 ) >> 4 ) : -( ( -iSum + 8 ) >> 4 );
@@ -931,7 +931,7 @@ Void QuarterPelFilter::predBlk4Tap( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer
   Int iDx = cMv.getHor() & 3;
   Int iDy = cMv.getVer() & 3;
   static int f4tap[4][4] = {
-    { 0, 16,  0,  0}, 
+    { 0, 16,  0,  0},
     {-2, 14,  5, -1},
     {-2, 10, 10, -2},
     {-1,  5, 14, -2}
@@ -1412,16 +1412,16 @@ Void QuarterPelFilter::xPredElse( XPel* pucDest, XPel* pucSrc, Int iDestStride, 
 }
 
 
-Void QuarterPelFilter::xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
+Void QuarterPelFilter::xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy,
                                     UInt uiSizeY, UInt uiSizeX )
 {
   static int f2tap[4][2] = {
-    { 4,  0}, 
+    { 4,  0},
     { 3,  1},
     { 2,  2},
     { 1,  3}
   };
-  int sx1, sx2, sy1, sy2; 
+  int sx1, sx2, sy1, sy2;
   for( Int y = 0; y < (Int)uiSizeY + 1; y++)
   {
     for( Int x = 0; x < (Int)uiSizeX + 1; x++)
@@ -1436,7 +1436,7 @@ Void QuarterPelFilter::xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStrid
       for(i = sy1; i < sy2; i++)
       {
         iTemp1[i] = 0;
-       
+
         for(j = sx1; j < sx2; j++ )
           iTemp1[i] += pucSrc[x - i*iSrcStride - j] * f2tap[iDx][j];
       }
@@ -1448,22 +1448,22 @@ Void QuarterPelFilter::xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStrid
       pucDest[x] = iTemp2;
     }
     pucDest += iDestStride;
-    pucSrc += iSrcStride; 
+    pucSrc += iSrcStride;
   }
 }
 
 
-Void QuarterPelFilter::xUpdInterp4Tap(Int* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
+Void QuarterPelFilter::xUpdInterp4Tap(Int* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy,
                                     UInt uiSizeY, UInt uiSizeX )
 {
   static int f4tap[4][4] = {
-    { 0, 16,  0,  0}, 
+    { 0, 16,  0,  0},
     {-2, 14,  5, -1},
     {-2, 10, 10, -2},
     {-1,  5, 14, -2}
   };
 
-  int sx1, sx2, sy1, sy2; 
+  int sx1, sx2, sy1, sy2;
   for( Int y = 0; y < (Int)uiSizeY + 3; y++)
   {
     for( Int x = 0; x < (Int)uiSizeX + 3; x++)
@@ -1478,7 +1478,7 @@ Void QuarterPelFilter::xUpdInterp4Tap(Int* pucDest, XPel* pucSrc, Int iDestStrid
       for(i = sy1; i < sy2; i++)
       {
         iTemp1[i] = 0;
-       
+
         for(j = sx1; j < sx2; j++ )
           iTemp1[i] += pucSrc[x - i*iSrcStride - j] * f4tap[iDx][j];
       }
@@ -1490,7 +1490,7 @@ Void QuarterPelFilter::xUpdInterp4Tap(Int* pucDest, XPel* pucSrc, Int iDestStrid
       pucDest[x] = iTemp2;
     }
     pucDest += iDestStride;
-    pucSrc += iSrcStride; 
+    pucSrc += iSrcStride;
   }
 }
 
@@ -1500,16 +1500,16 @@ Void QuarterPelFilter::xUpdInterpChroma( Int* pucDest, Int iDestStride, XPel* pu
   Int iDy = (cMv.getVer() & 0x7);
 
   static int f2tapC[8][2] = {
-    { 8,  0}, 
+    { 8,  0},
     { 7,  1},
     { 6,  2},
     { 5,  3},
-    { 4,  4}, 
+    { 4,  4},
     { 3,  5},
     { 2,  6},
     { 1,  7}
   };
-  int sx1, sx2, sy1, sy2; 
+  int sx1, sx2, sy1, sy2;
   for( Int y = 0; y < iSizeY + 1; y++)
   {
     for( Int x = 0; x < iSizeX + 1; x++)
@@ -1524,7 +1524,7 @@ Void QuarterPelFilter::xUpdInterpChroma( Int* pucDest, Int iDestStride, XPel* pu
       for(i = sy1; i < sy2; i++)
       {
         iTemp1[i] = 0;
-       
+
         for(j = sx1; j < sx2; j++ )
           iTemp1[i] += pucSrc[x - i*iSrcStride - j] * f2tapC[iDx][j];
       }
@@ -1536,7 +1536,7 @@ Void QuarterPelFilter::xUpdInterpChroma( Int* pucDest, Int iDestStride, XPel* pu
       pucDest[x] = iTemp2;
     }
     pucDest += iDestStride;
-    pucSrc += iSrcStride; 
+    pucSrc += iSrcStride;
   }
 }
 

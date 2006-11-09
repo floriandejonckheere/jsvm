@@ -22,6 +22,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
+				ImproveFloatingPointConsistency="TRUE"
 				PreprocessorDefinitions="NDEBUG;WIN32;_CONSOLE"
 				StringPooling="TRUE"
 				RuntimeLibrary="2"
@@ -81,6 +82,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				ImproveFloatingPointConsistency="TRUE"
 				PreprocessorDefinitions="_DEBUG;WIN32;_CONSOLE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"

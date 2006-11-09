@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -288,7 +288,7 @@ PicEncoder::writeAndInitParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,
 
   return Err::m_nOK;
 }
- 
+
 
 ErrVal
 PicEncoder::process( PicBuffer*               pcInputPicBuffer,
@@ -361,7 +361,7 @@ PicEncoder::finish( PicBufferList&  rcOutputList,
     m_dSumVPSNR / (Double)m_uiCodedFrames,
     0.008*(Double)m_uiWrittenBytes/(Double)m_uiCodedFrames*m_pcCodingParameter->getMaximumFrameRate(),
     m_uiWrittenBytes,
-    (Double)m_uiCodedFrames/m_pcCodingParameter->getMaximumFrameRate() 
+    (Double)m_uiCodedFrames/m_pcCodingParameter->getMaximumFrameRate()
     );
 
   return Err::m_nOK;
@@ -446,7 +446,7 @@ PicEncoder::xInitPPS()
 
 //TMM_WP
     m_pcPPS->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode()!=0);
-    m_pcPPS->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());  
+    m_pcPPS->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());
 //TMM_WP
 
   return Err::m_nOK;
@@ -479,7 +479,7 @@ PicEncoder::xInitParameterSets()
   m_uiFrameNum            = 0;
   m_uiIdrPicId            = 0;
   m_bInitParameterSets    = true;
-  
+
   return Err::m_nOK;
 }
 
@@ -599,7 +599,7 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
 #if 0
   //===== initialize prediction weights =====
   RNOK( xInitPredWeights( *rpcSliceHeader ) );
-#endif 
+#endif
 
   //===== flexible macroblock ordering =====
   rpcSliceHeader->setSliceGroupChangeCycle( 1 );
@@ -709,16 +709,16 @@ PicEncoder::xEncodePicture( ExtBinDataAccessorList& rcExtBinDataAccessorList,
 
 //TMM_WP
   if(rcSliceHeader.getSliceType() == P_SLICE)
-      m_pcSliceEncoder->xSetPredWeights( rcSliceHeader, 
+      m_pcSliceEncoder->xSetPredWeights( rcSliceHeader,
                                          rcRecPicBufUnit.getRecFrame(),
                                          cList0,
                                          cList1);
   else if(rcSliceHeader.getSliceType() == B_SLICE)
-      m_pcSliceEncoder->xSetPredWeights( rcSliceHeader, 
+      m_pcSliceEncoder->xSetPredWeights( rcSliceHeader,
                                          rcRecPicBufUnit.getRecFrame(),
                                          cList0,
                                          cList1);
-      
+
 //TMM_WP
 
   //===== encoding of slice groups =====
@@ -773,7 +773,7 @@ PicEncoder::xStartPicture( RecPicBufUnit& rcRecPicBufUnit,
   RNOK( m_pcRecPicBuffer->getRefLists( rcList0, rcList1, rcSliceHeader ) );
 
   //===== init half-pel buffers =====
-  UInt uiPos;  
+  UInt uiPos;
   for( uiPos = 0; uiPos < rcList0.getActive(); uiPos++ )
   {
     IntFrame* pcRefFrame = rcList0.getEntry( uiPos );
@@ -849,7 +849,7 @@ PicEncoder::xFinishPicture( RecPicBufUnit&  rcRecPicBufUnit,
                                  m_uiFrameWidthInMb,
                                  &rcList0,
                                  &rcList1,
-								 true,
+                 true,
                                  false ) );
 
   //===== get PSNR =====
@@ -890,7 +890,7 @@ PicEncoder::xGetPSNR( RecPicBufUnit&  rcRecPicBufUnit,
   const YuvBufferCtrl::YuvBufferParameter&  cBufferParam  = m_pcYuvBufferCtrlFullPel->getBufferParameter();
   IntFrame*                                 pcFrame       = rcRecPicBufUnit.getRecFrame  ();
   PicBuffer*                                pcPicBuffer   = rcRecPicBufUnit.getPicBuffer ();
-  
+
   //===== calculate PSNR =====
   Pel*    pPelOrig  = pcPicBuffer->getBuffer() + cBufferParam.getMbLum();
   XPel*   pPelRec   = pcFrame->getFullPelYuvBuffer()->getMbLumAddr();

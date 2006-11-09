@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -89,6 +89,25 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+const UChar g_aucInvFrameScan[16] =
+{
+  0,  1,  5,  6,
+  2,  4,  7, 12,
+  3,  8, 11, 13,
+  9, 10, 14, 15
+};
+
+const UChar g_aucInvFrameScan64[64] =
+{
+   0,  1,  5,  6, 14, 15, 27, 28,
+   2,  4,  7, 13, 16, 26, 29, 42,
+   3,  8, 12, 17, 25, 30, 41, 43,
+   9, 11, 18, 24, 31, 40, 44, 53,
+  10, 19, 23, 32, 39, 45, 52, 54,
+  20, 22, 33, 38, 46, 51, 55, 60,
+  21, 34, 37, 47, 50, 56, 59, 61,
+  35, 36, 48, 49, 57, 58, 62, 63
+};
 
 const UChar g_aucFrameScan[16] =
 {
@@ -199,7 +218,7 @@ const UChar g_aucFrameScan64[64] =
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
-const Int g_aaiDequantCoef64[6][64] = 
+const Int g_aaiDequantCoef64[6][64] =
 {
   {
     20,  19, 25, 19, 20, 19, 25, 19,
@@ -264,7 +283,7 @@ const Int g_aaiDequantCoef64[6][64] =
 
 };
 
-const Int g_aaiQuantCoef64[6][64] = 
+const Int g_aaiQuantCoef64[6][64] =
 {
   {
     0x3333, 0x2fbe, 0x4189, 0x2fbe, 0x3333, 0x2fbe, 0x4189, 0x2fbe,
@@ -330,7 +349,7 @@ const Int g_aaiQuantCoef64[6][64] =
 
 
 
-const UChar g_aucScalingMatrixDefault4x4Intra[16] = 
+const UChar g_aucScalingMatrixDefault4x4Intra[16] =
 {
    6, 13, 20, 28,
   13, 20, 28, 32,
@@ -338,7 +357,7 @@ const UChar g_aucScalingMatrixDefault4x4Intra[16] =
   28, 32, 37, 42
 };
 
-const UChar g_aucScalingMatrixDefault4x4Inter[16] = 
+const UChar g_aucScalingMatrixDefault4x4Inter[16] =
 {
   10, 14, 20, 24,
   14, 20, 24, 27,
@@ -346,7 +365,7 @@ const UChar g_aucScalingMatrixDefault4x4Inter[16] =
   24, 27, 30, 34
 };
 
-const UChar g_aucScalingMatrixDefault8x8Intra[64] = 
+const UChar g_aucScalingMatrixDefault8x8Intra[64] =
 {
    6, 10, 13, 16, 18, 23, 25, 27,
   10, 11, 16, 18, 23, 25, 27, 29,
@@ -358,7 +377,7 @@ const UChar g_aucScalingMatrixDefault8x8Intra[64] =
   27, 29, 31, 33, 36, 38, 40, 42
 };
 
-const UChar g_aucScalingMatrixDefault8x8Inter[64] = 
+const UChar g_aucScalingMatrixDefault8x8Inter[64] =
 {
    9, 13, 15, 17, 19, 21, 22, 24,
   13, 13, 17, 19, 21, 22, 24, 25,

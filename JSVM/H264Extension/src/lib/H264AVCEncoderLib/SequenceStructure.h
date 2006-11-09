@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -88,7 +88,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-typedef std::string String;  
+typedef std::string String;
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -134,8 +134,8 @@ private:
   Bool          m_bAnchor;
   UInt          m_uiFramesSkipped;
   UInt          m_uiTemporalLayer;
-  MmcoBuffer*   m_pcMmcoBuf; 
-  RplrBuffer*   m_apcRplrBuf[2]; 
+  MmcoBuffer*   m_pcMmcoBuf;
+  RplrBuffer*   m_apcRplrBuf[2];
 };
 
 
@@ -143,13 +143,13 @@ private:
 class  FormattedStringParser
 {
 public:
-  static  ErrVal  separatString               ( const String&   rcString, 
-                                                String&         rcFDString, 
-                                                String&         rcMmcoString, 
+  static  ErrVal  separatString               ( const String&   rcString,
+                                                String&         rcFDString,
+                                                String&         rcMmcoString,
                                                 String&         rcRplrStringL0,
                                                 String&         rcRplrStringL1 );
   static  ErrVal  extractRplr                 ( const String&   rcString,
-                                                RplrBuffer&     rcRplrBuf); 
+                                                RplrBuffer&     rcRplrBuf);
   static  ErrVal  extractMmco                 ( const String&   rcString,
                                                 MmcoBuffer&     rcMmcoBuf );
   static  ErrVal  extractSingleRplrCommand   ( const String&   rcString,
@@ -185,7 +185,7 @@ private:
 
 
 
-class SequenceStructure  
+class SequenceStructure
 {
 private:
 
@@ -221,8 +221,8 @@ private:
     UInt        m_uiFramesSkipped;
     Bool        m_bUseBaseRep;
     UInt        m_uiLayer;
-    MmcoBuffer* m_pcMmcoBuf; 
-    RplrBuffer* m_apcRplrBuf[2]; 
+    MmcoBuffer* m_pcMmcoBuf;
+    RplrBuffer* m_apcRplrBuf[2];
   };
 
 
@@ -260,7 +260,7 @@ private:
     Bool    isFirstIDR            ()  const;
     UInt    getMinDPBSizeRef      ()  const;
     UInt    getMinDPBSizeNonRef   ()  const;
-    
+
     Bool    getNextFrameSpec      ( FrameSpec&    rcFrameSpec,
                                     UInt&         uiFrameNumPartOffset );
 
@@ -282,7 +282,7 @@ private:
     GeneralSequencePart           ();
     virtual ~GeneralSequencePart  ();
 
-    Void    uninit                ();    
+    Void    uninit                ();
     ErrVal  init                  ( const String& rcString );
     Void    reset                 ();
     ErrVal  check                 ();
@@ -321,7 +321,7 @@ public:
 
   const FrameSpec&  getFrameSpec    ();
   const FrameSpec&  getNextFrameSpec();
-  
+
   static  Bool      checkString     ( const String&       rcString );
   static  ErrVal    debugOutput     ( const String&       rcString,
                                       UInt                uiNumberOfFrames,

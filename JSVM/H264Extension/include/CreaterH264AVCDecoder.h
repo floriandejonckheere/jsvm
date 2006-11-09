@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -91,7 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/Sei.h"
 
-#define MAX_ROI_NUM	5
+#define MAX_ROI_NUM  5
 
 class H264AVCDecoder;
 class ControlMngH264AVCDecoder;
@@ -129,8 +129,8 @@ H264AVC_NAMESPACE_BEGIN
 class H264AVCDECODERLIB_API CreaterH264AVCDecoder
 {
 protected:
-	CreaterH264AVCDecoder();
-	virtual ~CreaterH264AVCDecoder();
+  CreaterH264AVCDecoder();
+  virtual ~CreaterH264AVCDecoder();
 
 public:
   static ErrVal create( CreaterH264AVCDecoder*& rpcCreaterH264AVCDecoder );
@@ -144,30 +144,30 @@ public:
                       PicBufferList&    rcPicBufferUnusedList,
                       PicBufferList&    rcPicBufferReleaseList );
   ErrVal initPacket ( BinDataAccessor*  pcBinDataAccessor,
-	                    UInt&             ruiNalUnitType,
-	                    UInt&             uiMbX,
-	                    UInt&             uiMbY,
-	                    UInt&             uiSize
-						//,UInt&				uiNonRequiredPic //NonRequired JVT-Q066
+                      UInt&             ruiNalUnitType,
+                      UInt&             uiMbX,
+                      UInt&             uiMbY,
+                      UInt&             uiSize
+            //,UInt&        uiNonRequiredPic //NonRequired JVT-Q066
                         //JVT-P031
-	                    ,Bool              bPreParseHeader //FRAG_FIX
-	                    , Bool			bConcatenated //FRAG_FIX_3
+                      ,Bool              bPreParseHeader //FRAG_FIX
+                      , Bool      bConcatenated //FRAG_FIX_3
                       ,Bool&             rbStartDecoding,
                       UInt&             ruiStartPos,
                       UInt&             ruiEndPos,
                       Bool&              bFragmented,
                       Bool&              bDiscardable
                       //~JVT-P031
-                      ); 
+                      );
 //JVT-S036 lsj start
   ErrVal initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
-								                  UInt&             ruiNalUnitType,
-								         		  Bool             bPreParseHeader, 
-								                  Bool			bConcatenated, 
-												  Bool&			 rbStarDecoding
-												  ,CreaterH264AVCDecoder*   pcH264AVCDecoder
-												  ,Bool&		SuffixEnable
-						 ); 
+                                  UInt&             ruiNalUnitType,
+                               Bool             bPreParseHeader,
+                                  Bool      bConcatenated,
+                          Bool&       rbStarDecoding
+                          ,CreaterH264AVCDecoder*   pcH264AVCDecoder
+                          ,Bool&    SuffixEnable
+             );
 //JVT-S036 lsj end
 
   //JVT-P031
@@ -181,16 +181,16 @@ public:
   ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
                                       Bool&             bFinishChecking );
 
-  UInt isNonRequiredPic();	//NonRequired JVT-Q066	
+  UInt isNonRequiredPic();  //NonRequired JVT-Q066
   Bool isRedundantPic();  // JVT-Q054 Red. Picture
   ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
-  
-//	TMM_EC {{
+
+//  TMM_EC {{
   ErrVal  checkSliceGap ( BinDataAccessor*  pcBinDataAccessor,
-                          MyList<BinData*>&	cVirtualSliceList );
-	ErrVal	setec( UInt uiErrorConceal);
+                          MyList<BinData*>&  cVirtualSliceList );
+  ErrVal  setec( UInt uiErrorConceal);
 //  TMM_EC }}
-  Void	  RoiDecodeInit();
+  Void    RoiDecodeInit();
   Bool           getBaseSVCActive() { return m_bBaseSVCActive;} //JVT-T054_FIX
 
 protected:
@@ -238,7 +238,7 @@ struct PacketDescription
   UInt  Level;
   UInt  FGSLayer;
   Bool  ApplyToNext;
-  UInt  NalUnitType; 
+  UInt  NalUnitType;
   UInt  SPSid;
   UInt  PPSid;
   UInt  SPSidRefByPPS[256];
@@ -263,8 +263,8 @@ struct PacketDescription
 class H264AVCDECODERLIB_API H264AVCPacketAnalyzer
 {
 protected:
-	H264AVCPacketAnalyzer();
-	virtual ~H264AVCPacketAnalyzer();
+  H264AVCPacketAnalyzer();
+  virtual ~H264AVCPacketAnalyzer();
 
 public:
   static ErrVal create  ( H264AVCPacketAnalyzer*&  rpcH264AVCPacketAnalyzer );
@@ -274,8 +274,8 @@ public:
   ErrVal        process ( BinData*              pcBinData,
                           PacketDescription&    rcPacketDescription,
                           SEI::SEIMessage*&     pcScalableSEIMessage );
-  SEI::NonRequiredSei*	getNonRequiredSEI()	{return m_pcNonRequiredSEI;}
-  UInt					getNonRequiredSeiFlag() { return m_uiNonRequiredSeiFlag;}
+  SEI::NonRequiredSei*  getNonRequiredSEI()  {return m_pcNonRequiredSEI;}
+  UInt          getNonRequiredSeiFlag() { return m_uiNonRequiredSeiFlag;}
 
   int m_uiNum_layers; //
   int m_ID_ROI[MAX_SCALABLE_LAYERS];
@@ -285,11 +285,11 @@ public:
 
 
   // ROI ICU/ETRI DS
-  UInt Num_Related_ROI[MAX_NUM_LAYER]; 
+  UInt Num_Related_ROI[MAX_NUM_LAYER];
   UInt m_uiNumSliceGroupsMinus1;
   UInt addrFirstMB;
-  UInt uiaAddrFirstMBofROIs[256][MAX_ROI_NUM];  
-  UInt uiaAddrLastMBofROIs[256][MAX_ROI_NUM];  
+  UInt uiaAddrFirstMBofROIs[256][MAX_ROI_NUM];
+  UInt uiaAddrLastMBofROIs[256][MAX_ROI_NUM];
 
 
 protected:
@@ -307,11 +307,11 @@ protected:
   UInt              m_uiQualityLevelList [1 << PRI_ID_BITS];
 JVT-S036 lsj */
   SEI::NonRequiredSei*  m_pcNonRequiredSEI;
-  UInt					m_uiNonRequiredSeiFlag;
-  UInt					m_uiPrevPicLayer;
-  UInt					m_uiCurrPicLayer;
+  UInt          m_uiNonRequiredSeiFlag;
+  UInt          m_uiPrevPicLayer;
+  UInt          m_uiCurrPicLayer;
 
-  Bool					m_bAVCCompatible;//BUG FIX Kai Zhang
+  Bool          m_bAVCCompatible;//BUG FIX Kai Zhang
 };
 
 

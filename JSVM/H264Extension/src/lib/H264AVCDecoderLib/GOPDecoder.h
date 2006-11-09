@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -92,7 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "DownConvert.h"
 
-// TMM_ESS 
+// TMM_ESS
 #include "ResizeParameters.h"
 
 H264AVC_NAMESPACE_BEGIN
@@ -108,11 +108,11 @@ class ParameterSetMng;
 class NalUnitParser;
 class ControlMngIf;
 class MotionCompensation;
-class IntFrame; 
+class IntFrame;
 class RQFGSDecoder;
 
 class ReconstructionBypass;
-class YuvBufferCtrl; 
+class YuvBufferCtrl;
 
 
 
@@ -157,7 +157,7 @@ public:
   Bool          isConstrIPred ()  const { return m_bConstrainedIntraPred; }
   IntFrame*     getFrame      ()        { return m_pcFrame; }
   ControlData&  getCtrlData   ()        { return m_cControlData; }
-  Int           getPicNum     ( UInt uiCurrFrameNum, 
+  Int           getPicNum     ( UInt uiCurrFrameNum,
                                 UInt uiMaxFrameNum ) const
   {
     if( m_uiFrameNum > uiCurrFrameNum )
@@ -191,9 +191,9 @@ typedef MyList<DPBUnit*>  DPBUnitList;
 
 /* HS:  This is a very first implementation of the DPB. It shall
         be extended in future in way that it performs exactly the
-        same operations as the DPB in standard AVC (including 
-        MMCO and RPLR commands). Currently, it simulates the 
-        operations of the previous JSVM software version. 
+        same operations as the DPB in standard AVC (including
+        MMCO and RPLR commands). Currently, it simulates the
+        operations of the previous JSVM software version.
         Furthermore, it is probably necessary that a single DPB is
         used for all "layers" (same dependency_id). With the
         current implementation, a DPB per "layer" is used.
@@ -221,7 +221,7 @@ public:
   DPBUnit*            getDPBUnit          ( Int                         iPoc );
   ErrVal              setPrdRefLists      ( DPBUnit*                    pcCurrDPBUnit );
 //TMM_EC {{
-  ErrVal							getPrdRefListsFromBase( DPBUnit*   pcCurrDPBUnit, SliceHeader* pBaseMbDataCtrl , DPBUnit*    pcbaseDPBUnit);
+  ErrVal              getPrdRefListsFromBase( DPBUnit*   pcCurrDPBUnit, SliceHeader* pBaseMbDataCtrl , DPBUnit*    pcbaseDPBUnit);
 //TMM_EC }}
   ErrVal              store               ( DPBUnit*&                   rpcDPBUnit,
                                             PicBufferList&              rcOutputList,
@@ -234,7 +234,7 @@ public:
                                             PicBufferList&              rcUnusedList,
                                             Int&                        riMaxPoc );
 
-  ErrVal              xSlidingWindowBase  ( UInt mCurrFrameNum ); //JVT-S036 lsj 
+  ErrVal              xSlidingWindowBase  ( UInt mCurrFrameNum ); //JVT-S036 lsj
   ErrVal              xMMCOBase           ( SliceHeader* pcSliceHeader, UInt mCurrFrameNum );//JVT-S036 lsj
 //JVT-T054{
 ErrVal                CreateDPBUnit(DPBUnit *pcDPBUnit, const SequenceParameterSet&  rcSPS );
@@ -249,18 +249,18 @@ protected:
   ErrVal              xCreateData         ( UInt                        uiMaxPicsInDPB,
                                             const SequenceParameterSet& rcSPS );
   ErrVal              xDeleteData         ();
-  
+
 
   ErrVal              xClearBuffer        (); // remove non-ref frames that are not output pictures
   ErrVal              xUpdateMemory       ( SliceHeader*                pcSliceHeader );
   ErrVal              xSlidingWindow      ();
   ErrVal              xMMCO               ( SliceHeader*                pcSliceHeader );
 
-  ErrVal              xMarkShortTermUnusedBase( UInt						mCurrFrameNum,  
+  ErrVal              xMarkShortTermUnusedBase( UInt            mCurrFrameNum,
                                                 UInt                        uiDiffOfPicNums );//JVT-S036 lsj
   ErrVal              xMarkShortTermUnused( DPBUnit*                    pcCurrentDPBUnit,
                                             UInt                        uiDiffOfPicNums );
-  
+
   ErrVal              xOutput             ( PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList );
   ErrVal              xClearOutputAll     ( PicBufferList&              rcOutputList,
@@ -309,7 +309,7 @@ private:
 
 
 class H264AVCDECODERLIB_API MCTFDecoder
-{ 
+{
   enum
   {
     NUM_TMP_FRAMES = 5 // JVT-Q054 Red. Picture
@@ -324,21 +324,21 @@ class H264AVCDECODERLIB_API MCTFDecoder
 
 public:
 //TMM_EC {{
-	ErrVal			getECMethod( SliceHeader *rpcSliceHeader, ERROR_CONCEAL &m_eErrorConceal);
+  ErrVal      getECMethod( SliceHeader *rpcSliceHeader, ERROR_CONCEAL &m_eErrorConceal);
   ErrVal              getBaseLayerUnit(Int iPoc, DPBUnit   *&pcBaseDPBUnit);
   ErrVal              getBaseLayerDPB(ControlData&    rcControlData,  DPBUnit *&pcBaseDPBUnit);
-	UInt	m_bBaseLayerLost;
-	SliceHeader	*m_pcVeryFirstSliceHeader;
-	FrameMng	*m_pcFrameMng;
-	ERROR_CONCEAL	m_eErrorConcealTemp;
-	UInt			m_uiDecompositionStages;
-	UInt			m_uiDecompositionStagesBase;
-	ERROR_CONCEAL	m_eErrorConceal;
+  UInt  m_bBaseLayerLost;
+  SliceHeader  *m_pcVeryFirstSliceHeader;
+  FrameMng  *m_pcFrameMng;
+  ERROR_CONCEAL  m_eErrorConcealTemp;
+  UInt      m_uiDecompositionStages;
+  UInt      m_uiDecompositionStagesBase;
+  ERROR_CONCEAL  m_eErrorConceal;
   Bool      m_bEnhanceAvailable;
 //TMM_EC }}
 protected:
-	MCTFDecoder         ();
-	virtual ~MCTFDecoder();
+  MCTFDecoder         ();
+  virtual ~MCTFDecoder();
 
 public:
   //===== general functions ======
@@ -387,7 +387,7 @@ public:
   ErrVal          getBaseLayerData              ( IntFrame*&    pcFrame,
                                                   IntFrame*&    pcResidual,
                                                   MbDataCtrl*&  pcMbDataCtrl,
-																									MbDataCtrl*&  pcMbDataCtrlEL,
+                                                  MbDataCtrl*&  pcMbDataCtrlEL,
                                                   Bool&         rbConstrainedIPred,
                                                   Bool          bSpatialScalability,
                                                   Int           iPoc );
@@ -406,8 +406,8 @@ public:
   ResizeParameters* getResizeParameters ()                           { return m_pcResizeParameter; }
   Int               getSpatialScalabilityType()                      { return m_pcResizeParameter->m_iSpatialScalabilityType; }
 // TMM_ESS }
-  Void				setWaitForIdr(Bool b)	{ m_bWaitForIdr = b;}
-  Bool				getWaitForIdr()			{ return m_bWaitForIdr;}
+  Void        setWaitForIdr(Bool b)  { m_bWaitForIdr = b;}
+  Bool        getWaitForIdr()      { return m_bWaitForIdr;}
 
   ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
                                           YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
@@ -432,9 +432,9 @@ protected:
                                                 ControlData&                  rcCtrlData );
   ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
                                                 IntFrame*                     pcFrame );
-//TMM_EC 
+//TMM_EC
   ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData,
-												SliceHeader *&rcSliceHeaderBase);
+                        SliceHeader *&rcSliceHeaderBase);
   ErrVal      xInitESSandCroppingWindow       ( SliceHeader&                  rcSliceHeader,
                                                 MbDataCtrl&                   rcMbDataCtrl );
   //===== decode pictures / subbands =====
@@ -450,10 +450,10 @@ protected:
                                                 Bool                          bReconstructionLayer );
 //TMM_EC{{
   ErrVal      xDecodeBaseRepresentationVirtual       ( SliceHeader*&                 rpcSliceHeader,
-	  PicBuffer*&                   rpcPicBuffer,
-	  PicBufferList&                rcOutputList,
-	  PicBufferList&                rcUnusedList,
-	  Bool                          bReconstructionLayer );
+    PicBuffer*&                   rpcPicBuffer,
+    PicBufferList&                rcOutputList,
+    PicBufferList&                rcUnusedList,
+    Bool                          bReconstructionLayer );
 //TMM_EC}}
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
   ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer, Bool bCGSSNRInAU ); //JVT-T054
@@ -464,7 +464,7 @@ protected:
                                                 SliceHeader&                  rcSH );
   ErrVal      xFixMCPrediction                ( IntFrame*                     pcMCFrame,
                                                 ControlData&                  rcControlData );
-                                                                             
+
 
   Bool isPictureDecComplete(SliceHeader* rpcSliceHeader);
   const Bool isNewPictureStart(SliceHeader* rpcSliceHeader);
@@ -500,7 +500,7 @@ protected:
 
   Bool                m_bActive;
   UInt                m_uiLayerId;
-  
+
 
   //----- frame memories and control data -----
   IntFrame*           m_apcFrameTemp    [NUM_TMP_FRAMES];
@@ -515,17 +515,17 @@ protected:
   MbDataCtrl*         m_pcBaseLayerCtrlEL;
 
   UInt                m_uiNumLayers[2];
-  
+
 //JVT-T054{
   Bool                m_bAVCBased;
   ResizeParameters*   m_pcResizeParameterCGSSNR[MAX_FGS_LAYERS+1];
 //JVT-T054}
-  // TMM_ESS 
+  // TMM_ESS
   ResizeParameters*   m_pcResizeParameter;
- 
+
   // should this layer be decoded at all, and up to which FGS layer should be decoded
   Int                 m_uiQualityLevelForPrediction;
-  
+
   // ROI DECODE ICU/ETRI
   Int m_iMbProcessed;
   Bool m_bIsNewPic;

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -162,9 +162,9 @@ const MbMode MbDataAccess::m_aausInterBMbType0[23] =
 const UShort MbDataAccess::m_aausInterBMbType1[23] =
 {
   0x0000, //0
-  0x1111,	//1
-  0x2222,	//2
-  0x3333,	//3
+  0x1111,  //1
+  0x2222,  //2
+  0x3333,  //3
   0x1111, //4
   0x1111, //5
   0x2222, //6
@@ -606,13 +606,13 @@ Bool MbDataAccess::getMvPredictorDirect( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool 
   return xTemporalDirectMode( eParIdx, rbOneMv, bFaultTolerant );
 }
 
-//	TMM_EC
+//  TMM_EC
 Bool MbDataAccess::getMvPredictorDirectVirtual( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
 {
   rbOneMv = getSH().getSPS().getDirect8x8InferenceFlag();
   return xTemporalDirectModeVirtual( eParIdx, rbOneMv, bFaultTolerant, rcRefFrameListL0, rcRefFrameListL1);
 }
-//	TMM_EC }}
+//  TMM_EC }}
 
 Void MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8 )
 {
@@ -739,14 +739,14 @@ Bool MbDataAccess::xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaI
   //----- get reference index for list 0 -----
   if( scRefIdxCol > 0 )
   {
-    if( rcRefPicCol.isAvailable() ) 
+    if( rcRefPicCol.isAvailable() )
     {
       const RefPic cRefPic  = rcRefPicCol;
 
       ascRefIdx[LIST_0] = getSH().getRefPicList( LIST_0 ).find( cRefPic );
 
        SChar sMaxRefIdx = getSH().getNumRefIdxActive(LIST_0);
-       
+
        if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > sMaxRefIdx)
        {
          ROFRS( bFaultTolerant, false ); // not allowed
@@ -773,7 +773,7 @@ Bool MbDataAccess::xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaI
   return true; // OK
 }
 
-//	TMM_EC {{
+//  TMM_EC {{
 Bool MbDataAccess::xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
 {
   SChar         scRefIdxCol;
@@ -783,14 +783,14 @@ Bool MbDataAccess::xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[]
   //----- get reference index for list 0 -----
   if( scRefIdxCol > 0 )
   {
-    if( rcRefPicCol.isAvailable() ) 
+    if( rcRefPicCol.isAvailable() )
     {
       const RefPic cRefPic  = rcRefPicCol;
 
       ascRefIdx[LIST_0] = getSH().getRefPicList( LIST_0 ).find( cRefPic );
 
        SChar sMaxRefIdx = getSH().getNumRefIdxActive(LIST_0);
-       
+
        if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > sMaxRefIdx)
        {
          ROFRS( bFaultTolerant, false ); // not allowed
@@ -802,20 +802,20 @@ Bool MbDataAccess::xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[]
       ROFRS( bFaultTolerant, false ); // not allowed
     }
   }
-	Int iScale = getSH().getDistScaleFactorVirtual( ascRefIdx[LIST_0], ascRefIdx[LIST_1], rcRefFrameListL0, rcRefFrameListL1  );
-	if( iScale == 1024 )
-	{
-		acMv[LIST_0]  = cMvCol;
-		acMv[LIST_1]  = Mv::ZeroMv();
-	}
-	else
-	{
-		acMv[LIST_0]  = cMvCol.scaleMv( iScale );
-		acMv[LIST_1]  = acMv[LIST_0] - cMvCol;
-	}
+  Int iScale = getSH().getDistScaleFactorVirtual( ascRefIdx[LIST_0], ascRefIdx[LIST_1], rcRefFrameListL0, rcRefFrameListL1  );
+  if( iScale == 1024 )
+  {
+    acMv[LIST_0]  = cMvCol;
+    acMv[LIST_1]  = Mv::ZeroMv();
+  }
+  else
+  {
+    acMv[LIST_0]  = cMvCol.scaleMv( iScale );
+    acMv[LIST_1]  = acMv[LIST_0] - cMvCol;
+  }
   return true; // OK
 }
-//	TMM_EC }}
+//  TMM_EC }}
 
 Bool MbDataAccess::xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar ascRefIdx[], ParIdx8x8 eParIdx, Bool bFaultTolerant )
 {
@@ -826,7 +826,7 @@ Bool MbDataAccess::xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar 
   //----- get reference index for list 0 -----
   if( scRefIdxCol > 0 )
   {
-    if( rcRefPicCol.isAvailable() ) 
+    if( rcRefPicCol.isAvailable() )
     {
       const RefPic cRefPic = rcRefPicCol;
 
@@ -947,17 +947,17 @@ Bool MbDataAccess::xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Boo
     {
       ListIdx       eListIdx          = ListIdx( uiLstIdx );
       MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
-			if( m_rcSliceHeader.getNumRefIdxActive( LIST_1) != 0)
+      if( m_rcSliceHeader.getNumRefIdxActive( LIST_1) != 0)
       {
-				RefFrameList *pcRefFrameList;
-				if ( eListIdx == LIST_0)
-					pcRefFrameList	=	&rcRefFrameListL0;
-				else
-					pcRefFrameList	=	&rcRefFrameListL1;
-   
+        RefFrameList *pcRefFrameList;
+        if ( eListIdx == LIST_0)
+          pcRefFrameList  =  &rcRefFrameListL0;
+        else
+          pcRefFrameList  =  &rcRefFrameListL1;
+
       }
       rcMbMotionDataLX.setAllMv ( acMv     [eListIdx], eParIdx );
-			rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
+      rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
     }
 
   }

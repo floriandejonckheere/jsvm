@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -98,7 +98,7 @@ H264AVC_NAMESPACE_BEGIN
 #define RUNBEFORE_NUM  7
 #define MAX_VALUE  0xdead
 #define TOTRUN_NUM    15
-const UInt g_auiIncVlc[] = {0,3,6,12,24,48,32768};	// maximum vlc = 6
+const UInt g_auiIncVlc[] = {0,3,6,12,24,48,32768};  // maximum vlc = 6
 
 const UChar COEFF_COST[16] =
 {
@@ -286,15 +286,15 @@ const UInt g_auiISymLen[3][16] =
 
 const UInt g_auiRefSymCode[2][27] =
 {
-  { 
-    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5, 
-    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3, 
+  {
+    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5,
+    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3,
     0x3, 0x3, 0x3, 0x3, 0x1, 0x2, 0x2, 0x1, 0x0
   },
   {
-    0x1, 0x7, 0x6, 0x7,	0x9, 0x8, 0x6, 0x7,	0x9,
-    0x5, 0x6,	0x5, 0x8,	0x7, 0x6,	0x7, 0x5,	0x4,
-    0x4, 0x4,	0x6, 0x5,	0x3, 0x2,	0x5, 0x1,	0x0
+    0x1, 0x7, 0x6, 0x7,  0x9, 0x8, 0x6, 0x7,  0x9,
+    0x5, 0x6,  0x5, 0x8,  0x7, 0x6,  0x7, 0x5,  0x4,
+    0x4, 0x4,  0x6, 0x5,  0x3, 0x2,  0x5, 0x1,  0x0
   }
 };
 
@@ -325,7 +325,7 @@ UvlcReader::UvlcReader() :
 
 UvlcReader::~UvlcReader()
 {
-  delete m_pSymGrp; 
+  delete m_pSymGrp;
 }
 
 
@@ -684,7 +684,7 @@ Bool UvlcReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
     DTRACE_N;
   }
   rcMbDataAccess.getMbData().setSkipFlag( m_uiRun != 0 );
-  
+
   return ( rcMbDataAccess.getMbData().getSkipFlag() );
 }
 
@@ -846,7 +846,7 @@ ErrVal UvlcReader::intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cIdx
   {
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = -1;
   }
-  
+
   DTRACE_COUNT(m_uiBitCounter);
   DTRACE_CODE(rcMbDataAccess.getMbData().intraPredMode( cIdx ));
   DTRACE_N;
@@ -877,11 +877,11 @@ ErrVal UvlcReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx c
   {
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = -1;
   }
-  
+
   DTRACE_COUNT(m_uiBitCounter);
   DTRACE_CODE(rcMbDataAccess.getMbData().intraPredMode( cIdx ));
   DTRACE_N;
-  
+
   return Err::m_nOK;
 }
 
@@ -1081,7 +1081,7 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
   return Err::m_nOK;
 }
 
-ErrVal UvlcReader::transformSize8x8Flag( MbDataAccess& rcMbDataAccess ) 
+ErrVal UvlcReader::transformSize8x8Flag( MbDataAccess& rcMbDataAccess )
 {
   DTRACE_T( "transformSize8x8Flag:" );
 
@@ -1352,17 +1352,17 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
 
     if( uiVlcTable == 0 )
     {
-	    xGetLevelVLC0( iLevel );
+      xGetLevelVLC0( iLevel );
     }
     else
     {
-	    xGetLevelVLCN( iLevel, uiVlcTable );
+      xGetLevelVLCN( iLevel, uiVlcTable );
     }
 
     if( uiHighLevel )
     {
       iLevel += ( iLevel > 0 ) ? 1 : -1;
-	    uiHighLevel = 0;
+      uiHighLevel = 0;
     }
     aiLevelRun[k] = iLevel;
 
@@ -1407,7 +1407,7 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
     {
       uiVlcTable = (( uiRunCount > RUNBEFORE_NUM) ? RUNBEFORE_NUM : uiRunCount) - 1;
       UInt uiRun = 0;
-      
+
       xGetRun( uiVlcTable, uiRun );
       aiLevelRun[uiCoeffCnt+0x10] = uiRun;
 
@@ -1538,7 +1538,7 @@ ErrVal UvlcReader::xGetLevelVLC0( Int& iLevel )
 }
 
 ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
-{  
+{
   UInt uiTemp;
   UInt uiLength;
   UInt uiCode;
@@ -1547,11 +1547,11 @@ ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
   UInt uiSign;
   UInt uiAddBit;
   UInt uiOffset;
-  
+
   UInt uiNumPrefix = 0;
   UInt uiShift     = uiVlcLength - 1;
   UInt uiEscape    = (15<<uiShift)+1;
-  
+
   // read pre zeros
   do
   {
@@ -1562,11 +1562,11 @@ ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
   uiLength = uiNumPrefix;
   uiCode   = 1;
   uiNumPrefix--;
-  
+
   if (uiNumPrefix < 15)
   {
     uiLevAbs = (uiNumPrefix<<uiShift) + 1;
-    
+
     if ( uiVlcLength-1 )
     {
       RNOK( m_pcBitReadBuffer->get( uiSb, uiVlcLength-1 ) );
@@ -1597,7 +1597,7 @@ ErrVal UvlcReader::xGetLevelVLCN( Int& iLevel, UInt uiVlcLength )
     uiCode = (uiCode << 1)| uiSign;
     uiLength++;
   }
-  
+
   iLevel = (uiSign) ? -(Int)uiLevAbs : (Int)uiLevAbs;
 
   DTRACE_POS;
@@ -1710,10 +1710,10 @@ UvlcReader::RQdecodeDeltaQp( MbDataAccess& rcMbDataAccess)
 
 ErrVal
 UvlcReader::RQdecode8x8Flag( MbDataAccess& rcMbDataAccess,
-                             MbDataAccess& rcMbDataAccessBase ) 
+                             MbDataAccess& rcMbDataAccessBase )
 {
   UInt uiSymbol = 0;
-  
+
   RNOK( xGetFlag( uiSymbol ) );
   DTRACE_T( "TRAFO_8x8" );
   DTRACE_V( uiSymbol );
@@ -1753,7 +1753,7 @@ UvlcReader::RQpeekCbp4x4(      MbDataAccess&  rcMbDataAccessBase,
   UInt    uiSymbol  = 0;
 
   uiSymbol = rcMbDataAccessBase.getMbData().getBCBP( cIdx );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1817,7 +1817,7 @@ UvlcReader::RQdecodeBCBP_ChromaDC(  MbDataAccess&   rcMbDataAccessBase,
   DTRACE_N;
 
   rcMbDataAccessBase.getMbData().setBCBP( 24 + cIdx.plane(), uiSymbol );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1833,7 +1833,7 @@ UvlcReader::RQdecodeBCBP_ChromaAC(  MbDataAccess&  rcMbDataAccessBase,
   DTRACE_N;
 
   rcMbDataAccessBase.getMbData().setBCBP( 16 + cIdx, uiSymbol );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1880,6 +1880,7 @@ UvlcReader::RQeo8b( Bool& bEob )
   return Err::m_nOK;
 }
 
+
 ErrVal
 UvlcReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
                                    MbDataAccess&   rcMbDataAccessBase,
@@ -1916,9 +1917,10 @@ UvlcReader::RQdecodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
 
 ErrVal
 UvlcReader::RQdecodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    B8x8Idx         c8x8Idx,
-                                    UInt            uiScanIndex )
+                                  MbDataAccess&   rcMbDataAccessBase,
+                                  B8x8Idx         c8x8Idx,
+                                  UInt            uiScanIndex,
+                                  UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
@@ -1961,12 +1963,12 @@ UvlcReader::RQdecodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
 }
 
 
-
 ErrVal
 UvlcReader::RQdecodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      LumaIdx         cIdx,
-                                     UInt            uiScanIndex )
+                                     UInt            uiScanIndex,
+                                     UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
@@ -2014,7 +2016,8 @@ UvlcReader::RQdecodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
                                        MbDataAccess&   rcMbDataAccessBase,
                                        ResidualMode    eResidualMode,
                                        ChromaIdx       cIdx,
-                                       UInt            uiScanIndex )
+                                       UInt            uiScanIndex,
+                                       UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
@@ -2352,7 +2355,7 @@ UvlcReader::xRQdecodeEobOffsets( UInt* pauiShift, UInt uiMax )
   DTRACE_T("eobShiftXXX[ num_end_vals ]");
   RNOK( xGetGolomb( uiLevel, 2 ) );
   pauiShift[uiNumEnd] = uiLevel;
-  
+
   RNOK( xDecodeMonSeq( pauiShift+uiNumEnd+1, uiLevel, uiMax-uiNumEnd-1 ) );
 
   return Err::m_nOK;
@@ -2414,11 +2417,11 @@ UvlcReader::xDecodeMonSeq ( UInt* auiSeq, UInt uiStart, UInt uiLen )
   {
     auiSeq[uiPos] = 0;
   }
-  
+
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcReader::xGetSigRunCode( UInt& uiVal, UInt uiCodeTab )
 {
   if( uiCodeTab == 0)
@@ -2435,7 +2438,7 @@ UvlcReader::xGetSigRunCode( UInt& uiVal, UInt uiCodeTab )
   }
   else if( uiCodeTab == 3)
   {
-    UInt uiCode; 
+    UInt uiCode;
 
     RNOK( xGetFlag( uiCode ) );
 
@@ -2451,7 +2454,7 @@ UvlcReader::xGetSigRunCode( UInt& uiVal, UInt uiCodeTab )
   }
   else
   {
-    UInt uiCode; 
+    UInt uiCode;
 
     RNOK( xGetFlag( uiCode ) );
 
@@ -2469,7 +2472,7 @@ UvlcReader::xGetSigRunCode( UInt& uiVal, UInt uiCodeTab )
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcReader::xGetCodeCB1 ( UInt& uiVal )
 {
   UInt uiPrefixLen = 0;
@@ -2482,12 +2485,12 @@ UvlcReader::xGetCodeCB1 ( UInt& uiVal )
   }
   while (uiFlag == 0);
   RNOK( xGetFlag( uiFlag) );
-  
+
   uiVal = (2*(uiPrefixLen-1))+(1-uiFlag);
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcReader::xGetCodeCB2( UInt& uiVal )
 {
   UInt uiPrefixLen = 0;
@@ -2504,7 +2507,7 @@ UvlcReader::xGetCodeCB2( UInt& uiVal )
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcReader::xGetUnaryCode( UInt& uiVal )
 {
   UInt uiCode;
@@ -2544,7 +2547,7 @@ UvlcReader::xGetSigRunTabCode(UInt &uiTab)
     {
       uiTab = 1;
     }
-    else 
+    else
     {
       RNOK(xGetFlag(uiFlag));
       if(uiFlag == 1)
@@ -2587,7 +2590,7 @@ UcSymGrpReader::xFetchSymbol( UInt uiMaxSym )
   {
     UInt uiTemp;
     m_uiLen = CAVLC_SYMGRP_SIZE;
-   
+
     m_uiCodedFlag = true;
     RNOK( m_pParent->codeFromBitstream2Di( g_auiRefSymCode[m_uiTable], g_auiRefSymLen[m_uiTable], 27, 1, m_uiCode, uiTemp ) );
 

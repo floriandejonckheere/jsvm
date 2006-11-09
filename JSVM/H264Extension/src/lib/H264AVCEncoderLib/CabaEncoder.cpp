@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -131,11 +131,11 @@ __inline ErrVal CabaEncoder::xWriteBitAndBitsToFollow( UInt uiBit)
   // invert bit
   uiBit = 1-uiBit;
 
-	while( m_uiBitsToFollow > 0)
-	{
-		m_uiBitsToFollow--;
+  while( m_uiBitsToFollow > 0)
+  {
+    m_uiBitsToFollow--;
     RNOK( xWriteBit( uiBit ) );
-	}
+  }
   return Err::m_nOK;
 }
 
@@ -338,9 +338,9 @@ ErrVal CabaEncoder::writeSymbol( UInt uiSymbol, CabacContextModel& rcCCModel )
   ETRACE_V (uiSymbol);
   ETRACE_N;
 
-	UInt uiLow    = m_uiLow;
-	UInt uiRange  = m_uiRange;
-	UInt uiLPS = g_aucLPSTable64x4[rcCCModel.getState()][(uiRange>>6) & 3];
+  UInt uiLow    = m_uiLow;
+  UInt uiRange  = m_uiRange;
+  UInt uiLPS = g_aucLPSTable64x4[rcCCModel.getState()][(uiRange>>6) & 3];
 
   AOT_DBG( 1 < uiSymbol );
 
@@ -363,20 +363,20 @@ ErrVal CabaEncoder::writeSymbol( UInt uiSymbol, CabacContextModel& rcCCModel )
     rcCCModel.setState( g_aucACNextStateMPS64[rcCCModel.getState()] );
   }
 
-	while( uiRange < QUARTER )
+  while( uiRange < QUARTER )
   {
-		if( uiLow >= HALF )
+    if( uiLow >= HALF )
     {
       RNOK( xWriteBitAndBitsToFollow( 1 ) );
       uiLow -= HALF;
-		}
+    }
     else if( uiLow < QUARTER )
     {
       RNOK( xWriteBitAndBitsToFollow( 0 ) );
     }
     else
     {
-			m_uiBitsToFollow++;
+      m_uiBitsToFollow++;
       uiLow -= QUARTER;
     }
     uiLow   <<= 1;
@@ -406,20 +406,20 @@ ErrVal CabaEncoder::writeEPSymbol( UInt uiSymbol )
     uiLow += m_uiRange;
   }
 
-	if (uiLow >= ONE)
-	{
+  if (uiLow >= ONE)
+  {
     RNOK( xWriteBitAndBitsToFollow( 1 ) );
     uiLow -= ONE;
-	}
-	else if (uiLow < HALF)
-	{
+  }
+  else if (uiLow < HALF)
+  {
     RNOK( xWriteBitAndBitsToFollow( 0 ) );
-	}
-	else
-	{
-		m_uiBitsToFollow++;
-		uiLow -= HALF;
-	}
+  }
+  else
+  {
+    m_uiBitsToFollow++;
+    uiLow -= HALF;
+  }
 
   m_uiLow = uiLow;
 
@@ -441,32 +441,32 @@ ErrVal CabaEncoder::writeTerminatingBit( UInt uiBit )
 
   if( uiBit )
   {
- 		uiLow += uiRange;
+     uiLow += uiRange;
     uiRange = 2;
   }
 
-	while( uiRange < QUARTER )
+  while( uiRange < QUARTER )
   {
-		if( uiLow >= HALF )
+    if( uiLow >= HALF )
     {
       RNOK( xWriteBitAndBitsToFollow( 1 ) );
       uiLow -= HALF;
-		}
+    }
     else if( uiLow < QUARTER )
-		{
+    {
       RNOK( xWriteBitAndBitsToFollow( 0 ) );
-		}
-		else
-		{
+    }
+    else
+    {
       m_uiBitsToFollow++;
-			uiLow -= QUARTER;
-		}
+      uiLow -= QUARTER;
+    }
     uiLow   <<= 1;
     uiRange <<= 1;
   }
 
   m_uiRange = uiRange;
-	m_uiLow   = uiLow;
+  m_uiLow   = uiLow;
 
   return Err::m_nOK;
 }

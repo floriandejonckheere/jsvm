@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -94,7 +94,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 // h264 namepace begin
 H264AVC_NAMESPACE_BEGIN
 
-const UInt g_auiIncVlc[] = {0,3,6,12,24,48,32768};	// maximum vlc = 6
+const UInt g_auiIncVlc[] = {0,3,6,12,24,48,32768};  // maximum vlc = 6
 
 const UChar g_aucLenTableTZ16[TOTRUN_NUM][16] =
 {
@@ -291,19 +291,19 @@ const UInt g_auiISymLen[3][16] =
   { 1, 3, 3, 5, 4, 5, 6, 8, 4, 6, 7, 8, 7, 8, 9, 9}
 };
 
-#define CAVLC_SYMGRP_SIZE       3 
+#define CAVLC_SYMGRP_SIZE       3
 
 const UInt g_auiRefSymCode[2][27] =
 {
-  { 
-    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5, 
-    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3, 
+  {
+    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5,
+    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3,
     0x3, 0x3, 0x3, 0x3, 0x1, 0x2, 0x2, 0x1, 0x0
   },
   {
-    0x1, 0x7, 0x6, 0x7,	0x9, 0x8, 0x6, 0x7,	0x9,
-    0x5, 0x6,	0x5, 0x8,	0x7, 0x6,	0x7, 0x5,	0x4,
-    0x4, 0x4,	0x6, 0x5,	0x3, 0x2,	0x5, 0x1,	0x0
+    0x1, 0x7, 0x6, 0x7,  0x9, 0x8, 0x6, 0x7,  0x9,
+    0x5, 0x6,  0x5, 0x8,  0x7, 0x6,  0x7, 0x5,  0x4,
+    0x4, 0x4,  0x6, 0x5,  0x3, 0x2,  0x5, 0x1,  0x0
   }
 };
 
@@ -336,7 +336,7 @@ UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
 
 UvlcWriter::~UvlcWriter()
 {
-  delete m_pSymGrp; 
+  delete m_pSymGrp;
 }
 
 
@@ -674,8 +674,8 @@ ErrVal UvlcWriter::mbMode( MbDataAccess& rcMbDataAccess )
     uiMbMode--;
   }
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
-	 
-	ETRACE_T( "MbMode" );
+
+  ETRACE_T( "MbMode" );
   RNOK( xWriteUvlcCode( uiMbMode ) );
   ETRACE_N;
 
@@ -1207,16 +1207,16 @@ ErrVal UvlcWriter::xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrai
     if( iHighLevel )
     {
       iLevel -= ( iLevel > 0 ) ? 1 : -1;
-	    iHighLevel = 0;
+      iHighLevel = 0;
     }
 
     if( iVlcTable == 0 )
     {
-	    xWriteLevelVLC0( iLevel );
+      xWriteLevelVLC0( iLevel );
     }
     else
     {
-	    xWriteLevelVLCN( iLevel, iVlcTable );
+      xWriteLevelVLCN( iLevel, iVlcTable );
     }
 
     // update VLC table
@@ -1427,14 +1427,14 @@ ErrVal UvlcWriter::xWriteLevelVLCN( Int iLevel, UInt uiVlcLength )
   if( uiLevel < uiEscapeCode )
   {
     uiLevel--;
-	  uiLength = (uiLevel>>uiShift) + uiVlcLength + 1;
+    uiLength = (uiLevel>>uiShift) + uiVlcLength + 1;
     uiLevel &= ~((0xffffffff)<<uiShift);
-	  uiBits   = (2<<uiShift) | 2*uiLevel | uiSign;
+    uiBits   = (2<<uiShift) | 2*uiLevel | uiSign;
   }
   else
   {
-	  uiLength = 28;
-	  uiBits   = 0x1000 + 2*(uiLevel-uiEscapeCode) + uiSign;
+    uiLength = 28;
+    uiBits   = 0x1000 + 2*(uiLevel-uiEscapeCode) + uiSign;
   }
 
 
@@ -1508,7 +1508,7 @@ ErrVal UvlcWriter::xWriteMotionPredFlag( Bool bFlag )
 }
 
 
-ErrVal UvlcWriter::transformSize8x8Flag( MbDataAccess& rcMbDataAccess ) 
+ErrVal UvlcWriter::transformSize8x8Flag( MbDataAccess& rcMbDataAccess )
 {
   ETRACE_T( "transformSize8x8Flag:" );
 
@@ -1618,7 +1618,7 @@ UvlcWriter::RQpeekCbp4x4( MbDataAccess&  rcMbDataAccess,
   TCoeff* piCoeff   = rcMbDataAccess.    getMbTCoeffs().get( cIdx );
   TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
-  for( UInt ui = 0; ui < 16; ui++ )  
+  for( UInt ui = 0; ui < 16; ui++ )
   {
     if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
     {
@@ -1702,7 +1702,7 @@ UvlcWriter::RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
   TCoeff* piCoeff   = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
-  for( UInt ui = 0; ui < 4; ui++ )  
+  for( UInt ui = 0; ui < 4; ui++ )
   {
     if( piCoeff[ g_aucIndexChromaDCScan[ui] ] && !piBCoeff[ g_aucIndexChromaDCScan[ui] ] )
     {
@@ -1717,7 +1717,7 @@ UvlcWriter::RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
   ETRACE_N;
 
   rcMbDataAccessBase.getMbData().setBCBP( 24 + cIdx.plane(), uiSymbol );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1731,7 +1731,7 @@ UvlcWriter::RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
   TCoeff* piCoeff   = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
 
-  for( UInt ui = 1; ui < 16; ui++ )  
+  for( UInt ui = 1; ui < 16; ui++ )
   {
     if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
     {
@@ -1746,7 +1746,7 @@ UvlcWriter::RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
   ETRACE_N;
 
   rcMbDataAccessBase.getMbData().setBCBP( 16 + cIdx, uiSymbol );
-  
+
   return ( uiSymbol == 1 );
 }
 
@@ -1782,10 +1782,10 @@ UvlcWriter::RQencodeDeltaQp( MbDataAccess& rcMbDataAccess )
 
 ErrVal
 UvlcWriter::RQencode8x8Flag( MbDataAccess& rcMbDataAccess,
-                              MbDataAccess& rcMbDataAccessBase ) 
+                              MbDataAccess& rcMbDataAccessBase )
 {
   UInt uiSymbol = rcMbDataAccess.getMbData().isTransformSize8x8() ? 1 : 0;
- 
+
   RNOK( xWriteFlag( uiSymbol ) );
   ETRACE_T( "TRAFO_8x8" );
   ETRACE_V( uiSymbol );
@@ -2098,9 +2098,10 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
 
 ErrVal
 UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase,
-                                    B8x8Idx         c8x8Idx,
-                                    UInt            uiScanIndex )
+                                   MbDataAccess&   rcMbDataAccessBase,
+                                   B8x8Idx         c8x8Idx,
+                                   UInt            uiScanIndex,
+                                   UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
@@ -2117,9 +2118,10 @@ UvlcWriter::RQencodeTCoeffRef_8x8( MbDataAccess&   rcMbDataAccess,
 
 ErrVal
 UvlcWriter::RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
-                                      MbDataAccess&   rcMbDataAccessBase,
-                                      LumaIdx         cIdx,
-                                      UInt            uiScanIndex )
+                                     MbDataAccess&   rcMbDataAccessBase,
+                                     LumaIdx         cIdx,
+                                     UInt            uiScanIndex,
+                                     UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
@@ -2171,7 +2173,7 @@ UvlcWriter::xRQprescanTCoeffsRef( TCoeff*       piCoeff,
   UInt  uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
   UChar uiSym = 0;
 
-  if(uiSig) 
+  if(uiSig)
   {
     UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
     UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
@@ -2187,10 +2189,11 @@ UvlcWriter::xRQprescanTCoeffsRef( TCoeff*       piCoeff,
 
 ErrVal
 UvlcWriter::RQencodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
-                                        MbDataAccess&   rcMbDataAccessBase,
-                                        ResidualMode    eResidualMode,
-                                        ChromaIdx       cIdx,
-                                        UInt            uiScanIndex )
+                                       MbDataAccess&   rcMbDataAccessBase,
+                                       ResidualMode    eResidualMode,
+                                       ChromaIdx       cIdx,
+                                       UInt            uiScanIndex,
+                                       UInt            uiCtx )
 {
   TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
   TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
@@ -2285,9 +2288,10 @@ UvlcWriter::RQencodeEobOffsets_Luma( UInt* pauiSeq )
   m_uiFragmentedSymbols = 0;
 
   memcpy( m_auiShiftLuma, pauiSeq, sizeof(UInt)*16 );
-  
+
   return xRQencodeEobOffsets(pauiSeq, 16);
 }
+
 
 ErrVal
 UvlcWriter::RQencodeEobOffsets_Chroma( UInt* auiSeq )
@@ -2374,7 +2378,7 @@ UvlcWriter::RQupdateVlcTable()
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcWriter::RQcountFragmentedSymbols()
 {
   if ((m_uiRefSymbols - m_uiCodedSymbols) > 0) {
@@ -2426,7 +2430,7 @@ UvlcWriter::xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx )
   assert( uiTableIdx >= 0 && uiTableIdx <= 4 );
   if(uiTableIdx == 0)
   {
-    // unary code 
+    // unary code
     RNOK ( xWriteUnaryCode (uiSymbol) );
   }
   else if (uiTableIdx == 1)
@@ -2456,7 +2460,7 @@ UvlcWriter::xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx )
       RNOK (xWriteFlag ( 1 ));
     }
     else
-    {  
+    {
       RNOK (xWriteCodeCB1(uiSymbol+1));
     }
   }
@@ -2464,18 +2468,18 @@ UvlcWriter::xWriteSigRunCode ( UInt uiSymbol, UInt uiTableIdx )
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcWriter::xWriteUnaryCode ( UInt uiSymbol )
 {
   UInt uiStart = 0;
-  do 
+  do
   {
     if(uiSymbol == uiStart)
     {
       RNOK( xWriteFlag (1) );
       break;
     }
-    else 
+    else
     {
       RNOK( xWriteFlag (0) );
       uiStart++;
@@ -2485,7 +2489,7 @@ UvlcWriter::xWriteUnaryCode ( UInt uiSymbol )
   return Err::m_nOK;
 }
 
-ErrVal 
+ErrVal
 UvlcWriter::xWriteCodeCB1 ( UInt uiSymbol )
 {
   // this function writes codeword for the input symbol according to the {2, 2, 3, 3, 4, 4...} codebook
@@ -2493,7 +2497,7 @@ UvlcWriter::xWriteCodeCB1 ( UInt uiSymbol )
   {
     RNOK (xWriteFlag (0));
   }
-  
+
   RNOK (xWriteCode((3-(uiSymbol%2)), 2)) ;
 
   return Err::m_nOK;
@@ -2534,7 +2538,7 @@ UcSymGrpWriter::Init()
 ErrVal
 UcSymGrpWriter::Write( UChar ucSym )
 {
-  // ucSym takes one of three values {0, 1, 2} 
+  // ucSym takes one of three values {0, 1, 2}
   AOF((ucSym & 0xfc) == 0);
 
   {
@@ -2588,7 +2592,7 @@ UcSymGrpWriter::Flush()
     UInt uiMulti = 1;
     for(UInt ui = 0; ui < (CAVLC_SYMGRP_SIZE-m_uiLen); ui++)
       uiMulti *= 3;
-    m_uiCode *= uiMulti; 
+    m_uiCode *= uiMulti;
     m_uiLen = 0;
   }
   RNOK( m_pParent->writeCode( g_auiRefSymCode[m_uiTable][m_uiCode], g_auiRefSymLen[m_uiTable][m_uiCode], "" ) );

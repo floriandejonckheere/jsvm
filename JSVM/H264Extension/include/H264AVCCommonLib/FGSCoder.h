@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -166,10 +166,66 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/Transform.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
 
+#include "H264AVCCommonLib/TraceFile.h"
+
 class IntFrame;
 
-
 H264AVC_NAMESPACE_BEGIN
+
+class H264AVCCOMMONLIB_API MbFGSCoefMap
+{
+public:
+
+  Void resetMbCoefMap() { ::memset( m_aacCoefMap, 0, sizeof( m_aacCoefMap ) ); }
+  Void resetMbRefCtx()  { ::memset( m_aacRefCtx,  0, sizeof( m_aacRefCtx  ) ); }
+  Void resetNumCoded()  { m_usNumCoded = 0; }
+
+  Void reset()
+  {
+    resetMbCoefMap();
+    resetMbRefCtx();
+    resetNumCoded();
+    m_uiMbMap = 0;
+  }
+
+  MbFGSCoefMap()  { reset(); }
+  CoefMap* getCoefMap( S4x4Idx   cS4x4Idx   )               { return &m_aacCoefMap[cS4x4Idx.s4x4()][0]; }
+  CoefMap* getCoefMap( B8x8Idx   c8x8Idx    )               { return &m_aacCoefMap[4*c8x8Idx.b8x8Index()][0]; }
+  CoefMap* getCoefMap( ChromaIdx cChromaIdx )               { return &m_aacCoefMap[16+cChromaIdx][0]; }
+
+  RefCtx*  getRefCtx( S4x4Idx   cS4x4Idx   )                { return &m_aacRefCtx[cS4x4Idx.s4x4()][0]; }
+  RefCtx*  getRefCtx( B8x8Idx   c8x8Idx    )                { return &m_aacRefCtx[4*c8x8Idx.b8x8Index()][0]; }
+  RefCtx*  getRefCtx( ChromaIdx cChromaIdx )                { return &m_aacRefCtx[16+cChromaIdx][0]; }
+
+  UInt&  getMbMap()                                         { return m_uiMbMap; }
+  UChar& getB8x8Map( const B8x8Idx &rcB8x8Idx )             { return m_aucB8x8Map[rcB8x8Idx.b8x8Index()]; }
+  UChar& getB4x4Map( const LumaIdx &rcLumaIdx )             { return m_aucB4x4Map[rcLumaIdx]; }
+  UChar& getChromaDCMbMap( const CPlaneIdx &rcCPlaneIdx )   { return m_aucChromaDCMbMap[rcCPlaneIdx]; }
+  UChar& getChromaACBlockMap( const CIdx &rcCIdx )          { return m_aucChromaACBlockMap[rcCIdx]; }
+
+  UChar& getLumaScanPos( const S4x4Idx &rcS4x4Idx )         { return m_aucLumaScanPosMap[rcS4x4Idx.s4x4()]; }
+  UChar& getChromaDCScanPos( const CPlaneIdx &rcCPlaneIdx ) { return m_aucChromaDCScanPosMap[rcCPlaneIdx]; }
+  UChar& getChromaACScanPos( const CIdx &rcCIdx )           { return m_aucChromaACScanPosMap[rcCIdx]; }
+
+  ErrVal increaseAndCheckNumCoded( UInt ui )                { return ( m_usNumCoded += ui ) > 384 ? Err::m_nERR : Err::m_nOK;  }
+  UShort getNumCoded()                                const { return m_usNumCoded; }
+
+private:
+  CoefMap m_aacCoefMap[24][16];
+  RefCtx  m_aacRefCtx[24][16];
+
+  UInt    m_uiMbMap;
+  UChar   m_aucB8x8Map[4];
+  UChar   m_aucB4x4Map[16];
+  UChar   m_aucChromaDCMbMap[2];
+  UChar   m_aucChromaACBlockMap[8];
+
+  UChar   m_aucLumaScanPosMap[16]; // s-ordered buffer (to be accessed with m_iSIdx of S4x4Idx )
+  UChar   m_aucChromaDCScanPosMap[2];
+  UChar   m_aucChromaACScanPosMap[8];
+
+  UShort  m_usNumCoded;
+};
 
 
 class FGSCoder
@@ -223,8 +279,6 @@ public:
     CHROMA_CBP_AC_CODED = 0x10,
     BASE_SIGN           = 0x20,
     NEWSIG              = 0x40, // new significant only during the current path
-
-    NUM_COEFF_SHIFT     = 16
   };
 
 protected:
@@ -241,7 +295,6 @@ protected:
   // FMO FGS ICU/ETRI
   ErrVal            xInitializeCodingPath         (SliceHeader* pcSliceHeader);
   ErrVal            xUpdateCodingPath             (SliceHeader* pcSliceHeader);
-
   ErrVal            xInitializeCodingPath         ();
   ErrVal            xUpdateCodingPath             ();
   ErrVal            xClearCodingPath              ();
@@ -264,25 +317,8 @@ protected:
   UInt              m_uiWidthInMB;
   UInt              m_uiHeightInMB;
   Bool              m_bFgsComponentSep;
-
-  UChar*            m_apaucLumaCoefMap         [16];
-  UChar*            m_aapaucChromaDCCoefMap [2][ 4];
-  UChar*            m_aapaucChromaACCoefMap [2][16];
-  UChar*            m_paucBlockMap;
-  UChar*            m_apaucChromaDCBlockMap [2];
-  UChar*            m_apaucChromaACBlockMap [2];
-  UChar*            m_paucSubMbMap;
-  UInt*             m_pauiMacroblockMap;
-  UChar*            m_apaucScanPosMap         [5];
-
-  UChar*            m_apaucBQLumaCoefMap         [16];
-  UChar*            m_aapaucBQChromaDCCoefMap [2][ 4];
-  UChar*            m_aapaucBQChromaACCoefMap [2][16];
-  UChar*            m_paucBQBlockMap;
-  UChar*            m_apaucBQChromaDCBlockMap [2];
-  UChar*            m_apaucBQChromaACBlockMap [2];
-  UChar*            m_paucBQSubMbMap;
-  UInt*             m_pauiBQMacroblockMap;
+  MbFGSCoefMap*    m_pcCoefMap;
+  MbFGSCoefMap*    m_pcBQCoefMap;
 
   UInt              m_uiLumaCbpRun;
   Bool              m_bLastLumaCbpFlag;
@@ -298,11 +334,11 @@ protected:
 
 private:
 
-  Void xUpdateCoeffMap(TCoeff& cBL, TCoeff cEL, UChar& sm)  
+  Void xUpdateCoefMap(TCoeff& cBL, TCoeff cEL, CoefMap& sm)
   {
-    if ((cEL))                                                
+    if ((cEL))
     {
-      if( sm | SIGNIFICANT && cEL < 0 ) // set sign only when base layer not significant
+      if( cEL < 0 ) // set sign only when base layer not significant
       {
         sm  |= BASE_SIGN;
       }

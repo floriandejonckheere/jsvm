@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -109,56 +109,56 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
   if( argc > 3 ) // HS: decoder robustness
   {
-		if ( 0 == stricmp( argv[3], "-ec"))
-		{
-			if ( argc != 5)
-			{
-		    RNOKS( xPrintUsage( argv ) );
-			}
-			else
-			{
-				uiErrorConceal	=	atoi( argv[4]);
-				if ( uiErrorConceal < 0 || uiErrorConceal > 3)
-				{
-					RNOKS( xPrintUsage( argv ) );
-				}
-		    uiMaxPocDiff = 1000; // should be large enough
-			}
-		}
-		else
-		{
-			uiMaxPocDiff = atoi( argv[3] );	
-	    ROT( 0 == uiMaxPocDiff );
-			if ( argc > 4)
-			{
-				if ( 0 == stricmp( argv[4], "-ec"))
-				{
-					if ( argc != 6)
-					{
-						RNOKS( xPrintUsage( argv ) );
-					}
-					else
-					{
-						uiErrorConceal	=	atoi( argv[5]);
-						if ( uiErrorConceal < 1 || uiErrorConceal > 3)
-						{
-							RNOKS( xPrintUsage( argv ) );
-						}
-						uiMaxPocDiff = 1000; // should be large enough
-					}
-				}
-			}
-			else
-			{
-				uiErrorConceal	=	0;
-			}
-		}
+    if ( 0 == stricmp( argv[3], "-ec"))
+    {
+      if ( argc != 5)
+      {
+        RNOKS( xPrintUsage( argv ) );
+      }
+      else
+      {
+        uiErrorConceal  =  atoi( argv[4]);
+        if ( uiErrorConceal < 0 || uiErrorConceal > 3)
+        {
+          RNOKS( xPrintUsage( argv ) );
+        }
+        uiMaxPocDiff = 1000; // should be large enough
+      }
+    }
+    else
+    {
+      uiMaxPocDiff = atoi( argv[3] );
+      ROT( 0 == uiMaxPocDiff );
+      if ( argc > 4)
+      {
+        if ( 0 == stricmp( argv[4], "-ec"))
+        {
+          if ( argc != 6)
+          {
+            RNOKS( xPrintUsage( argv ) );
+          }
+          else
+          {
+            uiErrorConceal  =  atoi( argv[5]);
+            if ( uiErrorConceal < 1 || uiErrorConceal > 3)
+            {
+              RNOKS( xPrintUsage( argv ) );
+            }
+            uiMaxPocDiff = 1000; // should be large enough
+          }
+        }
+      }
+      else
+      {
+        uiErrorConceal  =  0;
+      }
+    }
   }
   else
   {
     uiMaxPocDiff = 1000; // should be large enough
-		uiErrorConceal	=	0;
-	}
+    uiErrorConceal  =  0;
+  }
   return Err::m_nOK;
 }
 
@@ -166,7 +166,7 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
 ErrVal DecoderParameter::xPrintUsage(char **argv)
 {
-	printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff] [-ec <1..3>]\n\n", argv[0] );  // HS: decoder robustness
+  printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff] [-ec <1..3>]\n\n", argv[0] );  // HS: decoder robustness
 // (1: BLSKIP;  2: Frame copy; 3: Temporal Direct{{TMM_EC}}
   //printf("usage: %s BitstreamFile YuvOutputFile\n\n", argv[0] );
   RERRS();

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -418,7 +418,7 @@ ErrVal FrameMng::RefreshOrederedPOCList()
 
   (*iter) = m_pcCurrentFrameUnit;
 
-	return Err::m_nOK;
+  return Err::m_nOK;
 }
 //JVT-S036 lsj}
 
@@ -542,42 +542,42 @@ ErrVal FrameMng::xCheckMissingFrameNums( SliceHeader& rcSH )
         UInt        uiFrameNum  = ( m_uiPrecedingRefFrameNum + uiIndex ) % m_uiMaxFrameNumCurr;
         FrameUnit*  pcFrameUnit = 0;
         RNOK( m_cFrameUnitBuffer.getFrameUnit( pcFrameUnit ) );
-		//JVT-S036 lsj{
-		if( !m_pcCurrentFrameUnit->getBaseRep() )
-		{
-			FUList::iterator iter = m_cShortTermList.begin();
-			FUList::iterator end  = m_cShortTermList.end();
-			Bool bFlag = false;
-			for( ; iter != m_cShortTermList.end(); iter++ )
-			{
-				if( (*iter)->getBaseRep() && (*iter)->getFrameNumber() == m_pcCurrentFrameUnit->getFrameNumber())
-				{
-				    bFlag = true;
-					break;
-				}
-			}
-			if( bFlag )
-			{
-					FrameUnit* pcFrameUnitTemp = (*iter);
-					RNOK(pcFrameUnit->init( rcSH, *pcFrameUnitTemp ));
-			}
-			else
-			{
-				RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) );
-			}
-			
-		}
-		else
-		//JVT-S036 lsj}
-		{
-			RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) ); // HS: decoder robustness
-		}
+    //JVT-S036 lsj{
+    if( !m_pcCurrentFrameUnit->getBaseRep() )
+    {
+      FUList::iterator iter = m_cShortTermList.begin();
+      FUList::iterator end  = m_cShortTermList.end();
+      Bool bFlag = false;
+      for( ; iter != m_cShortTermList.end(); iter++ )
+      {
+        if( (*iter)->getBaseRep() && (*iter)->getFrameNumber() == m_pcCurrentFrameUnit->getFrameNumber())
+        {
+            bFlag = true;
+          break;
+        }
+      }
+      if( bFlag )
+      {
+          FrameUnit* pcFrameUnitTemp = (*iter);
+          RNOK(pcFrameUnit->init( rcSH, *pcFrameUnitTemp ));
+      }
+      else
+      {
+        RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) );
+      }
+
+    }
+    else
+    //JVT-S036 lsj}
+    {
+      RNOK( pcFrameUnit->init( rcSH, *m_pcCurrentFrameUnit ) ); // HS: decoder robustness
+    }
 
         pcFrameUnit->setFrameNumber( uiFrameNum );
         m_cShortTermList.push_front( pcFrameUnit );
         m_iEntriesInDPB++;
 
-		RNOK( xSlidingWindowUpdate() );
+    RNOK( xSlidingWindowUpdate() );
 
       }
     }
@@ -652,7 +652,7 @@ ErrVal FrameMng::xSetInitialReferenceListPFrame( SliceHeader& rcSH )
 {
   RefPicList<RefPic>& rcList = rcSH.getRefPicList( LIST_0 );
 
-  if( ! rcSH.getUseBasePredictionFlag() ) 
+  if( ! rcSH.getUseBasePredictionFlag() )
     m_cShortTermList.setRefPicListFGS( rcList );
   else
     m_cShortTermList.setRefPicList( rcList );
@@ -669,7 +669,7 @@ ErrVal FrameMng::xSetInitialReferenceListBFrame( SliceHeader& rcSH )
 
   //====== set Poc ordered short-term list and get index with smallest Poc greater than current ======
   m_cPocOrderedFrameList.reset();
-  if( ! rcSH.getUseBasePredictionFlag() ) 
+  if( ! rcSH.getUseBasePredictionFlag() )
     m_cShortTermList.setRefFrameListFGS( m_cPocOrderedFrameList );
   else
     m_cShortTermList.setRefFrameList( m_cPocOrderedFrameList );
@@ -890,7 +890,7 @@ ErrVal FrameMng::storeFGSPicture( PicBuffer* pcPicBuffer )
   m_pcCurrentFrameUnit->getFGSIntFrame()->store( pcPicBuffer );
 
   m_pcCurrentFrameUnit->getFGSFrame().extendFrame( m_pcQuarterPelFilter );
-  
+
   return Err::m_nOK;
 }
 
@@ -916,14 +916,14 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
     m_iEntriesInDPB++;
 
 //JVT-S036 lsj start
-	if( rcSH.getUseBasePredictionFlag() )  //bug-fix suffix shenqiu
-	{
-		RNOK( m_cFrameUnitBuffer.getFrameUnit( m_pcCurrentFrameUnitBase ) );
-		RNOK( m_pcCurrentFrameUnitBase->copyBase( rcSH, *m_pcCurrentFrameUnit ) );
-		m_pcCurrentFrameUnitBase->setBaseRep( true );
-		m_cShortTermList.push_front( m_pcCurrentFrameUnitBase );
-		m_iEntriesInDPB++; 
-	}
+  if( rcSH.getUseBasePredictionFlag() )  //bug-fix suffix shenqiu
+  {
+    RNOK( m_cFrameUnitBuffer.getFrameUnit( m_pcCurrentFrameUnitBase ) );
+    RNOK( m_pcCurrentFrameUnitBase->copyBase( rcSH, *m_pcCurrentFrameUnit ) );
+    m_pcCurrentFrameUnitBase->setBaseRep( true );
+    m_cShortTermList.push_front( m_pcCurrentFrameUnitBase );
+    m_iEntriesInDPB++;
+  }
 //JVT-S036 lsj end
   }
   else
@@ -945,11 +945,11 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
 
   if( rcSH.getUseBasePredictionFlag() )  //bug-fix suffix shenqiu
   {
-	m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnitBase );
+  m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnitBase );
   }
   else
   {
-	  m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnit );
+    m_cOrderedPOCList.insert( iter, m_pcCurrentFrameUnit );
   }
 
   return Err::m_nOK;
@@ -1002,10 +1002,10 @@ ErrVal FrameMng::xMmcoMarkShortTermAsUnusedBase( const FrameUnit* pcCurrFrameUni
   FrameUnit* pcFrameUnit = (*iter);
   if(pcFrameUnit->getBaseRep() )
   {
-	  pcFrameUnit->setUnused();
-	  RNOK( xRemoveFromRefList( m_cShortTermList, iter ) );
+    pcFrameUnit->setUnused();
+    RNOK( xRemoveFromRefList( m_cShortTermList, iter ) );
   }
-  
+
   return Err::m_nOK;
 }
 //JVT-S036 lsj end
@@ -1041,7 +1041,7 @@ ErrVal FrameMng::xManageMemory( const SliceHeader& rcSH )
     default:AF();
       break;
     }
-    
+
   }
 
 
@@ -1058,40 +1058,40 @@ ErrVal FrameMng::xSlidingWindowUpdate()
   FUList::iterator iter = m_cShortTermList.begin();
   for( ; iter != m_cShortTermList.end(); iter++ )
    {
-	   if( (*iter)->getBaseRep() ) uiS--;
+     if( (*iter)->getBaseRep() ) uiS--;
   }
   //bug-fix suffix}}
 
   //ROT( uiS > m_uiNumRefFrames );
   //if( uiS == m_uiNumRefFrames )
   while( uiS >= m_uiNumRefFrames ) // HS: decoder robustness
-  {  
-	  RNOK( xRemove( m_cShortTermList.popBack() ) );
-	uiS--; // HS: decoder robustness
+  {
+    RNOK( xRemove( m_cShortTermList.popBack() ) );
+  uiS--; // HS: decoder robustness
   }
   return Err::m_nOK;
 }
 
 //JVT-S036 lsj start
-ErrVal FrameMng::xSlidingWindowUpdateBase( UInt mCurrFrameNum )  
+ErrVal FrameMng::xSlidingWindowUpdateBase( UInt mCurrFrameNum )
 {
-	FUList::iterator iter = m_cShortTermList.begin();
-	FUList::iterator end  = m_cShortTermList.end();
-	FUList::iterator iiter;
+  FUList::iterator iter = m_cShortTermList.begin();
+  FUList::iterator end  = m_cShortTermList.end();
+  FUList::iterator iiter;
 
-	for( ; iter != m_cShortTermList.end(); iter++ )
+  for( ; iter != m_cShortTermList.end(); iter++ )
    {
-	   if( (*iter)->getBaseRep() && (*iter)->getFrameNumber() != mCurrFrameNum )
+     if( (*iter)->getBaseRep() && (*iter)->getFrameNumber() != mCurrFrameNum )
     {
-		for( iiter = m_cShortTermList.begin(); iiter != m_cShortTermList.end(); iiter++ )
-		{
-			if ( (*iiter)->getFrameNumber() == (*iter)->getFrameNumber() && !(*iiter)->getBaseRep() )
-			{
-				(*iter)->setUnused();
-				RNOK( xRemoveFromRefList( m_cShortTermList, iter ) );
-				return Err::m_nOK;
-			}
-		}
+    for( iiter = m_cShortTermList.begin(); iiter != m_cShortTermList.end(); iiter++ )
+    {
+      if ( (*iiter)->getFrameNumber() == (*iter)->getFrameNumber() && !(*iiter)->getBaseRep() )
+      {
+        (*iter)->setUnused();
+        RNOK( xRemoveFromRefList( m_cShortTermList, iter ) );
+        return Err::m_nOK;
+      }
+    }
     }
   }
    return Err::m_nOK;
@@ -1107,22 +1107,22 @@ ErrVal FrameMng::xMMCOUpdateBase( SliceHeader* rcSH )
 
   while( MMCO_END != (eMmcoOp = rcMmcoBaseBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2 ) ) )
  {
-		switch( eMmcoOp )
-		{
-		case MMCO_SHORT_TERM_UNUSED:
-			RNOK( xMmcoMarkShortTermAsUnusedBase( m_pcCurrentFrameUnit, uiVal1 ) );
-		break;
-		case MMCO_RESET:
-		case MMCO_MAX_LONG_TERM_IDX:
-		case MMCO_ASSIGN_LONG_TERM:
-		case MMCO_LONG_TERM_UNUSED:
-		case MMCO_SET_LONG_TERM:
-		default:
-			fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
-		RERR();
-		}
+    switch( eMmcoOp )
+    {
+    case MMCO_SHORT_TERM_UNUSED:
+      RNOK( xMmcoMarkShortTermAsUnusedBase( m_pcCurrentFrameUnit, uiVal1 ) );
+    break;
+    case MMCO_RESET:
+    case MMCO_MAX_LONG_TERM_IDX:
+    case MMCO_ASSIGN_LONG_TERM:
+    case MMCO_LONG_TERM_UNUSED:
+    case MMCO_SET_LONG_TERM:
+    default:
+      fprintf( stderr,"\nERROR: MMCO COMMAND currently not supported in the software\n\n" );
+    RERR();
+    }
  }
-	return Err::m_nOK;
+  return Err::m_nOK;
 }
 //JVT-S036 lsj end
 
@@ -1171,7 +1171,7 @@ ErrVal FrameMng::xReferenceListRemapping( SliceHeader& rcSH, ListIdx eListIdx )
   {
     FUIter    iter;
     const Frame* pcFrame = NULL;
-    
+
     if( uiCommand == RPLR_LONG )
     //===== LONG TERM INDEX =====
     {
@@ -1216,26 +1216,26 @@ ErrVal FrameMng::xReferenceListRemapping( SliceHeader& rcSH, ListIdx eListIdx )
       else
       { // everything is fine
         //---- set frame ----
-        if( ! rcSH.getUseBasePredictionFlag() ) 
+        if( ! rcSH.getUseBasePredictionFlag() )
         {
-			if((*iter)->getBaseRep()) //JVT-S036 lsj
-			{
-				iter++;
-			}
+      if((*iter)->getBaseRep()) //JVT-S036 lsj
+      {
+        iter++;
+      }
 
-			if( (*iter)->getFGSPicBuffer() )
-			{
-				pcFrame = &( (*iter)->getFGSFrame() );
-			}
-			else
-			{
-				pcFrame = &( (*iter)->getFrame() );
-			}
-			}
-			else
-			{
-				pcFrame = &((*iter)->getFrame() );
-			}
+      if( (*iter)->getFGSPicBuffer() )
+      {
+        pcFrame = &( (*iter)->getFGSFrame() );
+      }
+      else
+      {
+        pcFrame = &( (*iter)->getFrame() );
+      }
+      }
+      else
+      {
+        pcFrame = &((*iter)->getFrame() );
+      }
       }
     }
 

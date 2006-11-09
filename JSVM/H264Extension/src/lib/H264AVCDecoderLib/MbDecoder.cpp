@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -157,7 +157,7 @@ ErrVal MbDecoder::uninit()
   m_pcIntraPrediction     = NULL;
   m_pcMotionCompensation  = NULL;
   m_bInitDone             = false;
-  
+
   return Err::m_nOK;
 }
 
@@ -404,7 +404,7 @@ ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess,
     {
       m_pcIntraPrediction->setAvailableMaskMb( rcMbDataAccess.getAvailableMask() );
       cResIntYuvMbBuffer.loadIntraPredictors( pcRecYuvBuffer );
-  
+
       if( rcMbDataAccess.getMbData().isIntra4x4() )
       {
         if( rcMbDataAccess.getMbData().isTransformSize8x8() )
@@ -433,7 +433,7 @@ ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess,
   RNOK( m_pcFrameMng->getCurrentFrameUnit()->getFGSIntFrame()->getFullPelYuvBuffer()->loadBuffer( &cPredIntYuvMbBuffer ) );
 
   return Err::m_nOK;
-  
+
 }
 
 
@@ -559,11 +559,11 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
   }
 
   rcPredIntYuvMbBuffer.loadBuffer( &rcRecYuvBuffer );
-    
+
   MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
 
   m_pcTransform->setClipMode( false );
-  
+
   if( rcMbDataAccess.getMbData().isTransformSize8x8() )
   {
     for( B8x8Idx cIdx8x8; cIdx8x8.isLegal(); cIdx8x8++ )
@@ -594,7 +594,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
   RNOK( xDecodeChroma( rcMbDataAccess, rcResIntYuvMbBuffer, cPredBuffer, uiChromaCbp, false ) );
   m_pcTransform->setClipMode( true );
 
- 
+
   IntYuvMbBuffer  cIntYuvMbBuffer;
   cIntYuvMbBuffer. loadLuma      ( rcPredIntYuvMbBuffer );
   cIntYuvMbBuffer. loadChroma    ( rcPredIntYuvMbBuffer );
@@ -640,10 +640,10 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
     else
     {
       //----- motion compensated prediction -----
-      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess, 
-                                                        rcRefFrameList0, 
+      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess,
+                                                        rcRefFrameList0,
                                                         rcRefFrameList1,
-                                                        &cYuvMbBuffer, 
+                                                        &cYuvMbBuffer,
                                                         bCalcMv ) );
     }
 
@@ -690,39 +690,39 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
     IntYuvMbBuffer cBaseLayerBuffer;
     cBaseLayerBuffer.loadBuffer( pcBaseResidual->getFullPelYuvBuffer() );
 
-		//-- JVT-R091
-		if ( bReconstruct && rcMbDataAccess.getMbData().getSmoothedRefFlag() )
-		{
-			IntYuvMbBuffer cMbBuffer;
+    //-- JVT-R091
+    if ( bReconstruct && rcMbDataAccess.getMbData().getSmoothedRefFlag() )
+    {
+      IntYuvMbBuffer cMbBuffer;
 
-			// obtain P
-			cMbBuffer.loadLuma	( cYuvMbBuffer );
-			cMbBuffer.loadChroma( cYuvMbBuffer );
-			
-			// P+Rb
-			cMbBuffer.add( cBaseLayerBuffer );
+      // obtain P
+      cMbBuffer.loadLuma  ( cYuvMbBuffer );
+      cMbBuffer.loadChroma( cYuvMbBuffer );
 
-			// S(P+Rb)
-			pcRecYuvBuffer->loadBuffer( &cMbBuffer );
-			pcRecYuvBuffer->smoothMbInside();
-			if ( rcMbDataAccess.isAboveMbExisting() )
-			{
-				pcRecYuvBuffer->smoothMbTop();
-			}
-			if ( rcMbDataAccess.isLeftMbExisting() )
-			{
-				pcRecYuvBuffer->smoothMbLeft();
-			}
+      // P+Rb
+      cMbBuffer.add( cBaseLayerBuffer );
 
-			// store new prediction
-			cYuvMbBuffer.loadBuffer	( pcRecYuvBuffer		);
-			cYuvMbBuffer.subtract		( cBaseLayerBuffer	);
+      // S(P+Rb)
+      pcRecYuvBuffer->loadBuffer( &cMbBuffer );
+      pcRecYuvBuffer->smoothMbInside();
+      if ( rcMbDataAccess.isAboveMbExisting() )
+      {
+        pcRecYuvBuffer->smoothMbTop();
+      }
+      if ( rcMbDataAccess.isLeftMbExisting() )
+      {
+        pcRecYuvBuffer->smoothMbLeft();
+      }
 
-			// update rcPredBuffer
-			rcPredBuffer.loadLuma   ( cYuvMbBuffer			);
-			rcPredBuffer.loadChroma ( cYuvMbBuffer			);
-		}
-		//--
+      // store new prediction
+      cYuvMbBuffer.loadBuffer  ( pcRecYuvBuffer    );
+      cYuvMbBuffer.subtract    ( cBaseLayerBuffer  );
+
+      // update rcPredBuffer
+      rcPredBuffer.loadLuma   ( cYuvMbBuffer      );
+      rcPredBuffer.loadChroma ( cYuvMbBuffer      );
+    }
+    //--
 
     cYuvMbBufferResidual.add( cBaseLayerBuffer );
     //--- set CBP ---
@@ -779,7 +779,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
 
   // scaling has already been performed on DC coefficients
   iScale = ( pucScaleU ? pucScaleU[0] : 16 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );     
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );
   iScale = ( pucScaleV ? pucScaleV[0] : 16 );
   m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale );
 
@@ -791,7 +791,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
 
 
 
-ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess, 
+ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
                                      IntYuvMbBuffer& cYuvMbBuffer,
                                      IntYuvMbBuffer&  rcPredBuffer )
 {
@@ -969,7 +969,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
   }
 
   ROTRS( 0 == uiChromaCbp, Err::m_nOK );
-  
+
   Int                 iScale;
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
   UInt                uiUScalId = ( bIntra ? 1 : 4 );
@@ -979,7 +979,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
 
   // scaling has already been performed on DC coefficients
   iScale = ( pucScaleU ? pucScaleU[0] : 16 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );     
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );
   iScale = ( pucScaleV ? pucScaleV[0] : 16 );
   m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale );
 
@@ -1001,7 +1001,7 @@ MbDecoder::xScale4x4Block( TCoeff*            piCoeff,
   if( pucScale )
   {
     Int iAdd = ( rcQP.per() <= 3 ? ( 1 << ( 3 - rcQP.per() ) ) : 0 );
-    
+
     for( UInt ui = uiStart; ui < 16; ui++ )
     {
       piCoeff[ui] = ( ( piCoeff[ui] * g_aaiDequantCoef[rcQP.rem()][ui] * pucScale[ui] + iAdd ) << rcQP.per() ) >> 4;
@@ -1050,7 +1050,7 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
 {
   Quantizer cQuantizer;
   cQuantizer.setQp( rcMbDataAccess, false );
-  
+
   const QpParameter&  cLQp      = cQuantizer.getLumaQp  ();
   const QpParameter&  cCQp      = cQuantizer.getChromaQp();
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();

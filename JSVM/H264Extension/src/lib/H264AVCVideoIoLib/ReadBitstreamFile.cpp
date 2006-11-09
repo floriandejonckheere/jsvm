@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -93,7 +93,7 @@ ReadBitstreamFile::ReadBitstreamFile()
 
 ReadBitstreamFile::~ReadBitstreamFile()
 {
-} 
+}
 
 ErrVal ReadBitstreamFile::releasePacket( BinData* pcBinData )
 {
@@ -105,11 +105,11 @@ ErrVal ReadBitstreamFile::releasePacket( BinData* pcBinData )
 
 ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
 {
-	UInt	 dwBytesRead;
-	UInt	 dwLength = 0;
+  UInt   dwBytesRead;
+  UInt   dwLength = 0;
   Int64  iPos;
-	UInt	 n;
-	UChar  Buffer[0x400];
+  UInt   n;
+  UChar  Buffer[0x400];
   UChar  *puc = NULL;
   UInt   uiCond;
   UInt  uiZeros;
@@ -141,15 +141,15 @@ ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
   ROTS(uiZeros<2);
 
   // get the current position
-  iPos = m_cFile.tell(); 
+  iPos = m_cFile.tell();
 
- 	// read at first 0x400 bytes
+   // read at first 0x400 bytes
   m_cFile.read( Buffer, 0x400, dwBytesRead );
 
   ROFS( dwBytesRead );
 
-	do
-	{
+  do
+  {
     puc = Buffer;
     uiCond = 0;
 
@@ -162,13 +162,13 @@ ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
       }
     }
 
-		if( uiCond ) 
-		{
-			break;
-		}
+    if( uiCond )
+    {
+      break;
+    }
 
     // found no synch so go on
-		dwLength += dwBytesRead-2 ; 
+    dwLength += dwBytesRead-2 ;
     // step 3 bytes back in the stream
     RNOK( m_cFile.seek( -2, SEEK_CUR ) );
 
@@ -181,8 +181,8 @@ ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
       // end of stream cause we former stepped 4 bytes back
       break;      // this is the last pack
     }
-	}
-	while( true );
+  }
+  while( true );
 
   // calc the complete length
   dwLength += n;
@@ -195,7 +195,7 @@ ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
 
   rpcBinData->set( new UChar[dwLength], dwLength );
   ROT( NULL == rpcBinData->data() );
-  
+
   // seek the bitstream to the prev start position
   RNOK( m_cFile.seek( iPos, SEEK_SET ) );
 
@@ -208,7 +208,7 @@ ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
 
 ErrVal ReadBitstreamFile::init( const std::string& rcFileName )
 {
-	// try to open the bitstream binary
+  // try to open the bitstream binary
   if ( Err::m_nOK != m_cFile.open( rcFileName, LargeFile::OM_READONLY ) )
   {
     std::cerr << "failed to open input bitstream file " << rcFileName.data() << std::endl;
@@ -220,7 +220,7 @@ ErrVal ReadBitstreamFile::init( const std::string& rcFileName )
   RNOK( m_cFile.read( aucBuffer, 4, uiBytesRead ) );
 
   UInt uiStartPos = (aucBuffer[0] == 0 && aucBuffer[1] == 0 && aucBuffer[2] == 1) ? 1 : 0;
-  
+
   RNOK( m_cFile.seek( uiStartPos, SEEK_SET ) );
 
   return Err::m_nOK;
@@ -238,7 +238,7 @@ ErrVal ReadBitstreamFile::getPosition( Int& iPos )
 {
   ROFS( m_cFile.is_open());
 
-  iPos = (Int)m_cFile.tell(); 
+  iPos = (Int)m_cFile.tell();
 
   return Err::m_nOK;
 }
@@ -258,7 +258,7 @@ ErrVal ReadBitstreamFile::setPosition( Int  iPos )
 ErrVal ReadBitstreamFile::uninit()
 {
   if( m_cFile.is_open() )
-  { 
+  {
     RNOK( m_cFile.close() );
   }
   return Err::m_nOK;
@@ -269,7 +269,7 @@ ErrVal ReadBitstreamFile::destroy()
   AOT_DBG( m_cFile.is_open() );
 
   RNOK( uninit() );
-  
+
   delete this;
   return Err::m_nOK;
 }

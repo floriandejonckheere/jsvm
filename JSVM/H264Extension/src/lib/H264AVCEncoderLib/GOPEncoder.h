@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -135,7 +135,7 @@ typedef MyList<UInt>        UIntList;
 class H264AVCENCODERLIB_API AccessUnit
 {
 public:
-  AccessUnit  ( Int         iPoc )  : m_iPoc( iPoc )   
+  AccessUnit  ( Int         iPoc )  : m_iPoc( iPoc )
   , m_pcNonRequiredSei ( NULL )  //NonRequired JVT-Q066 (06-04-08)
   {}
   ~AccessUnit ()                                            {}
@@ -143,14 +143,14 @@ public:
   Int                     getPoc          () const          { return m_iPoc; }
   ExtBinDataAccessorList& getNalUnitList  ()                { return m_cNalUnitList; }
   //NonRequired JVT-Q066 (06-04-08){{
-  ErrVal				  CreatNonRequiredSei()				{ RNOK(SEI::NonRequiredSei::create( m_pcNonRequiredSei)) return Err::m_nOK;}
-  SEI::NonRequiredSei*	  getNonRequiredSei()				{ return m_pcNonRequiredSei; }
+  ErrVal          CreatNonRequiredSei()        { RNOK(SEI::NonRequiredSei::create( m_pcNonRequiredSei)) return Err::m_nOK;}
+  SEI::NonRequiredSei*    getNonRequiredSei()        { return m_pcNonRequiredSei; }
   //NonRequired JVT-Q066 (06-04-08)}}
 
 private:
   Int                     m_iPoc;
   ExtBinDataAccessorList  m_cNalUnitList;
-  SEI::NonRequiredSei*	  m_pcNonRequiredSei; //NonRequired JVT-Q066 (06-04-08)
+  SEI::NonRequiredSei*    m_pcNonRequiredSei; //NonRequired JVT-Q066 (06-04-08)
 };
 
 
@@ -202,8 +202,8 @@ class H264AVCENCODERLIB_API MCTFEncoder
   };
 
 protected:
-	MCTFEncoder          ();
-	virtual ~MCTFEncoder ();
+  MCTFEncoder          ();
+  virtual ~MCTFEncoder ();
 
 public:
   static ErrVal create              ( MCTFEncoder*&                   rpcMCTFEncoder );
@@ -229,7 +229,7 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
                                           const PictureParameterSet&  rcPPSHP );
 
   ErrVal        uninit              ();
- 
+
   ErrVal        addParameterSetBits ( UInt                            uiParameterSetBits );
   Bool          firstGOPCoded       ()                                { return m_bFirstGOPCoded; }
   ErrVal        process             ( AccessUnitList&                 rcAccessUnitList,
@@ -258,7 +258,7 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   ErrVal        getBaseLayerData    ( IntFrame*&                      pcFrame,
                                       IntFrame*&                      pcResidual,
                                       MbDataCtrl*&                    pcMbDataCtrl,
-																		  MbDataCtrl*&                    pcMbDataCtrlEL,			// ICU/ETRI FGS_MOT_USE
+                                      MbDataCtrl*&                    pcMbDataCtrlEL,      // ICU/ETRI FGS_MOT_USE
                                       Bool&                           bConstrainedIPredBL,
                                       Bool&                           bForCopyOnly,
                                       Int                             iSpatialScalability,
@@ -270,8 +270,8 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   UInt*         getGOPBitsBase      ()  { return m_auiCurrGOPBitsBase;  }
   UInt*         getGOPBitsFGS       ()  { return m_auiCurrGOPBitsFGS;   }
 
-  UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
-  Void          setScalableLayer    (UInt p)	{ m_uiScalableLayerId = p; }
+  UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;      }
+  Void          setScalableLayer    (UInt p)  { m_uiScalableLayerId = p; }
   UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
 
   //===== ESS =====
@@ -280,7 +280,7 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 
   Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
   Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
-  Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
+  Void      setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
   //Bug_Fix JVT-R057{
   Bool              getLARDOEnable( ){ return m_bLARDOEnable; }
   Void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
@@ -300,7 +300,7 @@ protected:
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
   ErrVal  xDeleteData                   ();
 
-  
+
   ErrVal  xInitGOP                      ( PicBufferList&              rcPicBufferInputList );
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
@@ -313,7 +313,7 @@ protected:
                                           Bool                        bModifyDataAccessor = true );
 
 
-  
+
   //===== decomposition / composition =====
   ErrVal  xMotionEstimationStage        ( UInt                        uiBaseLevel );
   ErrVal  xDecompositionStage           ( UInt                        uiBaseLevel );
@@ -349,10 +349,10 @@ protected:
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bHalfPel = false );
-  ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData, 
+  ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData,
                                           UInt                        uiBaseLevel,  //TMM_ESS
                                           UInt                        uiFrame,      //TMM_ESS
-                                          Bool                        bMotion = false  ); 
+                                          Bool                        bMotion = false  );
   ErrVal  xInitControlDataMotion        ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           Bool                        bMotionEstimation );
@@ -384,7 +384,7 @@ protected:
                                           IntFrame*                   pcFrame,
                                           IntFrame*                   pcResidual,
                                           IntFrame*                   pcPredSignal,
-																					IntFrame*										pcSRFrame, // JVT-R091
+                                          IntFrame*                    pcSRFrame, // JVT-R091
                                           UInt&                       ruiBits,
                                           UInt&                       ruiBitsRes );
   ErrVal  xEncodeFGSLayer               ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
@@ -422,16 +422,16 @@ protected:
                                           UInt                        uiFrameIdInGOP );
                                           // JVT-S054 (REPLACE) <-
 
-	//-- JVT-R091
-  ErrVal  xFixMCPrediction							( IntFrame*                   pcMCFrame,
-																					IntFrame*										pcBQFrame,
+  //-- JVT-R091
+  ErrVal  xFixMCPrediction              ( IntFrame*                   pcMCFrame,
+                                          IntFrame*                    pcBQFrame,
                                           ControlData&                pcCtrlData );
-  ErrVal  xFixOrgResidual								( IntFrame*                   pcFrame,
-																					IntFrame*										pcOrgPred,
-																					IntFrame*										pcResidual,
-																					IntFrame*										pcSRFrame,
+  ErrVal  xFixOrgResidual                ( IntFrame*                   pcFrame,
+                                          IntFrame*                    pcOrgPred,
+                                          IntFrame*                    pcResidual,
+                                          IntFrame*                    pcSRFrame,
                                           ControlData&                pcCtrlData );
-	//--
+  //--
 
   //===== auxiliary functions =====
   ErrVal  xCalculateAndAddPSNR          ( PicBufferList&              rcPicBufferInputList,
@@ -454,32 +454,32 @@ protected:
   ErrVal        xSetRplr            ( RplrBuffer& rcRplrBuffer, UIntList cFrameNumList, UInt uiCurrFrameNr );
   ErrVal        xSetRplrAndMmco     ( SliceHeader& rcSH );
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
-  ErrVal		xWriteSuffixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//JVT-S036 lsj
-  ErrVal		xSetMmcoBase		( SliceHeader& rcSH, UInt iNum ); //JVT-S036 lsj
+  ErrVal    xWriteSuffixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//JVT-S036 lsj
+  ErrVal    xSetMmcoBase    ( SliceHeader& rcSH, UInt iNum ); //JVT-S036 lsj
   //NonRequired JVT-Q066 (06-04-08){{
-  ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit ); 
-  ErrVal		xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
-  //ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit ); 
+  ErrVal    xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit );
+  ErrVal    xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
+  //ErrVal    xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit );
   //NonRequired JVT-Q066 (06-04-08)}}
   ErrVal        xGetFrameNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
   MbDataCtrl*   xGetMbDataCtrlL1    ( SliceHeader& rcSH, UInt uiCurrBasePos );
   Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
-  
+
    //===== ESS =====
-   ErrVal		xFillPredictionLists_ESS( UInt uiBaseLevel , UInt uiFrame );
+   ErrVal    xFillPredictionLists_ESS( UInt uiBaseLevel , UInt uiFrame );
 
   ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
-                                          IntFrame*                   baseFrame,  
+                                          IntFrame*                   baseFrame,
                                           IntFrame*                   enhFrame,
                                           YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
   ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
 
-  UInt				getSuffixUnitEnable()	{return m_uiSuffixUnitEnable;} //JVT-S036 lsj
-  UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  UInt        getSuffixUnitEnable()  {return m_uiSuffixUnitEnable;} //JVT-S036 lsj
+  UInt                getMMCOBaseEnable      ()        const    { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
 
   //S051{
-  Bool	xSIPCheck	(UInt POC);
-  int	xGetMbDataCtrlL1Pos( const SliceHeader& rcSH, UInt uiCurrBasePos );
+  Bool  xSIPCheck  (UInt POC);
+  int  xGetMbDataCtrlL1Pos( const SliceHeader& rcSH, UInt uiCurrBasePos );
   //S051}
 
 protected:
@@ -577,14 +577,14 @@ protected:
   IntFrame*                     m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
   IntFrame*                     m_pcBaseLayerFrame;                   // base layer frame
   IntFrame*                     m_pcBaseLayerResidual;                // base layer residual
-	IntFrame**                    m_papcSmoothedFrame;									// JVT-R091; smoothed reference frame
+  IntFrame**                    m_papcSmoothedFrame;                  // JVT-R091; smoothed reference frame
 
   //----- control data arrays -----
   ControlData*                  m_pacControlData;                     // control data arrays
   MbDataCtrl*                   m_pcBaseLayerCtrl;                    // macroblock data of the base layer pictures
 
-	ControlData*                  m_pacControlDataEL;                     // control data arrays
-	MbDataCtrl*                   m_pcBaseLayerCtrlEL;                    // macroblock data of the base layer pictures
+  ControlData*                  m_pacControlDataEL;                     // control data arrays
+  MbDataCtrl*                   m_pcBaseLayerCtrlEL;                    // macroblock data of the base layer pictures
 
   //----- auxiliary buffers -----
   UInt                          m_uiWriteBufferSize;                  // size of temporary write buffer
@@ -614,7 +614,7 @@ protected:
   Bool                          m_bExtendedPriorityId;
 
  //----- ESS -----
-  ResizeParameters*				m_pcResizeParameters; 
+  ResizeParameters*        m_pcResizeParameters;
 
   UInt                          m_uiBaseWeightZeroBaseBlock;
   UInt                          m_uiBaseWeightZeroBaseCoeff;
@@ -622,7 +622,7 @@ protected:
   UInt                          m_uiNumLayers[2];
   IntFrame*                     m_aapcFGSRecon[2][MAX_FGS_LAYERS+1];             // previous low-pass base layer reconstruction
 
-  IntFrame*                     m_aapcFGSPredFrame;     
+  IntFrame*                     m_aapcFGSPredFrame;
 
   Double                        m_dLowPassEnhRef;
   UInt                          m_uiLowPassFgsMcFilter;
@@ -635,26 +635,26 @@ protected:
   Double                        m_dPredFGSRoundingOffset;
 
 // JVT-Q065 EIDR{
-  Int							m_iIDRPeriod;
-  Bool							m_bBLSkipEnable;
+  Int              m_iIDRPeriod;
+  Bool              m_bBLSkipEnable;
 // JVT-Q065 EIDR}
   //JVT-R057 LA-RDO{
-  Bool                          m_bLARDOEnable;     
+  Bool                          m_bLARDOEnable;
   //JVT-R057 LA-RD}
 
-  UInt							m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
+  UInt              m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
 
-  UInt							m_uiSuffixUnitEnable; //JVT-S036 lsj
-  UInt							m_uiMMCOBaseEnable;  //JVT-S036 lsj
+  UInt              m_uiSuffixUnitEnable; //JVT-S036 lsj
+  UInt              m_uiMMCOBaseEnable;  //JVT-S036 lsj
 
   //S051{
-  UInt							m_uiTotalFrame;
-  UInt*							m_auiFrameBits;
-  UIntList						m_cPOCList;
-  UInt							m_uiAnaSIP;
-  Bool							m_bEncSIP;
-  std::string					m_cInSIPFileName;
-  std::string					m_cOutSIPFileName;
+  UInt              m_uiTotalFrame;
+  UInt*              m_auiFrameBits;
+  UIntList            m_cPOCList;
+  UInt              m_uiAnaSIP;
+  Bool              m_bEncSIP;
+  std::string          m_cInSIPFileName;
+  std::string          m_cOutSIPFileName;
   //S051}
 
   // JVT-S054 (ADD) ->

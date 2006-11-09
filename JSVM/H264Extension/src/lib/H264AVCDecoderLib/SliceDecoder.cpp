@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -161,20 +161,20 @@ ErrVal SliceDecoder::processVirtual(const SliceHeader& rcSH, Bool bReconstructAl
 
   //====== initialization ======
   UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
- 
+
   //===== loop over macroblocks =====
   for( ; uiMbRead; uiMbAddress++ )
   {
     MbDataAccess* pcMbDataAccess;
-		RNOK( m_pcControlMng->initMbForDecoding( pcMbDataAccess, uiMbAddress ) );
+    RNOK( m_pcControlMng->initMbForDecoding( pcMbDataAccess, uiMbAddress ) );
 
-	  pcMbDataAccess->getMbData().setMbMode(MODE_SKIP);
+    pcMbDataAccess->getMbData().setMbMode(MODE_SKIP);
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
-  	RNOK( m_pcMbDecoder->process( *pcMbDataAccess, bReconstructAll ) );
+    RNOK( m_pcMbDecoder->process( *pcMbDataAccess, bReconstructAll ) );
     uiMbRead--;
   }
 
-  return Err::m_nOK;	
+  return Err::m_nOK;
 }
 //TMM_EC }}
 
@@ -187,7 +187,7 @@ SliceDecoder::process( const SliceHeader& rcSH, Bool bReconstructAll, UInt uiMbR
   UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
 
   //===== loop over macroblocks =====
-  for( ; uiMbRead; uiMbRead--) //--ICU/ETRI FMO Implementation 
+  for( ; uiMbRead; uiMbRead--) //--ICU/ETRI FMO Implementation
   {
 
     MbDataAccess* pcMbDataAccess;
@@ -216,7 +216,7 @@ SliceDecoder::decode( SliceHeader&   rcSH,
                       RefFrameList*  pcRefFrameList0,
                       RefFrameList*  pcRefFrameList1,
                       Bool           bReconstructAll,
-                      UInt           uiMbInRow, 
+                      UInt           uiMbInRow,
                       UInt           uiMbRead )
 {
   ROF( m_bInitDone );
@@ -255,16 +255,16 @@ SliceDecoder::decode( SliceHeader&   rcSH,
    uiMbRead--;
 
 //TMM_EC {{
-	 if ( rcSH.getTrueSlice())
-	 {
+   if ( rcSH.getTrueSlice())
+   {
 //TMM_EC }}
-		//--ICU/ETRI FMO Implementation
-		 uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
-	 }
-	 else
-	 {
-		 uiMbAddress++;
-	 }
+    //--ICU/ETRI FMO Implementation
+     uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
+   }
+   else
+   {
+     uiMbAddress++;
+   }
   }
   return Err::m_nOK;
 }
@@ -300,17 +300,17 @@ SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
 
   UInt uiFirstMbInSlice;
   UInt uiLastMbInSlice;
-  FMO* pcFMO = rcSH.getFMO();  
+  FMO* pcFMO = rcSH.getFMO();
 
-  for(Int iSliceGroupID=0; !pcFMO->SliceGroupCompletelyCoded(iSliceGroupID); iSliceGroupID++)   
+  for(Int iSliceGroupID=0; !pcFMO->SliceGroupCompletelyCoded(iSliceGroupID); iSliceGroupID++)
   {
-  	if (false == pcFMO->isCodedSG(iSliceGroupID))
-	  {
-	    continue;
-	  }
+    if (false == pcFMO->isCodedSG(iSliceGroupID))
+    {
+      continue;
+    }
 
-  	uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
-	  uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+    uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+    uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
     //===== loop over macroblocks =====
     for(UInt uiMbIndex = uiFirstMbInSlice; uiMbIndex<=uiLastMbInSlice;)
     {
@@ -318,7 +318,7 @@ SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
       RNOK( m_pcControlMng->initMbForDecoding   (  pcMbDataAccess, uiMbIndex ) );
       RNOK( m_pcMbDecoder ->compensatePrediction( *pcMbDataAccess            ) );
 
-  	  uiMbIndex = rcSH.getFMO()->getNextMBNr(uiMbIndex);    
+      uiMbIndex = rcSH.getFMO()->getNextMBNr(uiMbIndex);
     }
   }
   return Err::m_nOK;

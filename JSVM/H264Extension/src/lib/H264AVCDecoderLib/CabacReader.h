@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -147,7 +147,8 @@ public:
   ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
-                                     UInt            uiScanIndex );
+                                     UInt            uiScanIndex,
+                                     UInt            uiCtx );
   ErrVal  RQdecodeNewTCoeff_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
@@ -158,7 +159,8 @@ public:
   ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      LumaIdx         cIdx,
-                                     UInt            uiScanIndex );
+                                     UInt            uiScanIndex,
+                                     UInt            uiCtx );
   ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
@@ -170,7 +172,8 @@ public:
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
                                      ChromaIdx       cIdx,
-                                     UInt            uiScanIndex );
+                                     UInt            uiScanIndex,
+                                     UInt            uiCtx );
   ErrVal  RQdecodeCycleSymbol      ( UInt&           uiCycle );
   ErrVal  RQdecodeEobOffsets_Luma  () { return Err::m_nOK; };
   ErrVal  RQdecodeEobOffsets_Chroma() { return Err::m_nOK; };
@@ -178,7 +181,7 @@ public:
   ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
   Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
-  
+
   Bool    isEndOfSlice        ();
   Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess );
   Bool    isBLSkipped         ( MbDataAccess& rcMbDataAccess );
@@ -186,7 +189,7 @@ public:
   ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag_FGS     ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
-  ErrVal  smoothedRefFlag     ( MbDataAccess& rcMbDataAccess );	// JVT-R091
+  ErrVal  smoothedRefFlag     ( MbDataAccess& rcMbDataAccess );  // JVT-R091
 
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -208,7 +211,7 @@ public:
 
   ErrVal  residualBlock       ( MbDataAccess& rcMbDataAccess, LumaIdx   cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp );
   ErrVal  residualBlock       ( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, ResidualMode eResidualMode );
-  
+
   ErrVal  deltaQp             ( MbDataAccess& rcMbDataAccess );
   ErrVal  intraPredModeLuma   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx );
   ErrVal  intraPredModeChroma ( MbDataAccess& rcMbDataAccess );
@@ -234,7 +237,8 @@ protected:
   ErrVal  xRQdecodeTCoeffsRef ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
                                 const UChar*  pucScan,
-                                UInt          uiScanIndex );
+                                UInt          uiScanIndex,
+                                UInt          uiCtx );
 
   ErrVal xGetMvd( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cIdx, ListIdx eLstIdx );
 
@@ -273,7 +277,7 @@ protected:
   CabacContextModel2DBuffer m_cBCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cTransSizeCCModel;
-	CabacContextModel2DBuffer m_cSRFlagCCModel;	// JVT-R091
+  CabacContextModel2DBuffer m_cSRFlagCCModel;  // JVT-R091
 
   UInt m_uiBitCounter;
   UInt m_uiPosCounter;

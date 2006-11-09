@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -97,11 +97,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "DecoderParameter.h"
 
 
-class H264AVCDecoderTest  
+class H264AVCDecoderTest
 {
 protected:
-	H264AVCDecoderTest();
-	virtual ~H264AVCDecoderTest();
+  H264AVCDecoderTest();
+  virtual ~H264AVCDecoderTest();
 
 public:
   static ErrVal create( H264AVCDecoderTest*& rpcH264AVCDecoderTest );
@@ -110,24 +110,24 @@ public:
   ErrVal destroy();
   ErrVal setec( UInt uiErrorConceal);//TMM_EC
   ErrVal removeRedundencySlice(BinDataAccessor*  pcBinDataAccessor, Bool& bFinishChecking ); //TMM_EC
-  ErrVal appendFragment(UInt uiTotalLength, 
-                        UInt uiNbFrag, 
-                        BinData* pcBinDataTmp[10], 
-                        UInt *auiStartPos, 
+  ErrVal appendFragment(UInt uiTotalLength,
+                        UInt uiNbFrag,
+                        BinData* pcBinDataTmp[10],
+                        UInt *auiStartPos,
                         UInt * auiEndPos,
-                        Bool &bConcatenated, 
+                        Bool &bConcatenated,
                         BinData* pcBinData);
-  ErrVal initPacketToDecode(Bool &bDecode, 
-                            BinData*& pcBinData, 
-                            BinDataAccessor* cBinDataAccessor, 
+  ErrVal initPacketToDecode(Bool &bDecode,
+                            BinData*& pcBinData,
+                            BinDataAccessor* cBinDataAccessor,
                             Bool &bEOS,
-                            UInt& uiNalUnitType, 
-                            UInt &uiMbX, 
-                            UInt &uiMbY, 
-                            UInt& uiSize, 
-                            UInt uiPreNalUnitType, 
-                            Int iPos, 
-                            MyList<BinData*>&	cVirtualSliceList, 
+                            UInt& uiNalUnitType,
+                            UInt &uiMbX,
+                            UInt &uiMbY,
+                            UInt& uiSize,
+                            UInt uiPreNalUnitType,
+                            Int iPos,
+                            MyList<BinData*>&  cVirtualSliceList,
                             Bool bVirtualSlice);
 
 
@@ -141,7 +141,7 @@ protected:
   ReadBitstreamIf*            m_pcReadBitstream;
   WriteYuvIf*                 m_pcWriteYuv;
   DecoderParameter*           m_pcParameter;
-	
+
   PicBufferList               m_cActivePicBufferList;
   PicBufferList               m_cUnusedPicBufferList;
 };

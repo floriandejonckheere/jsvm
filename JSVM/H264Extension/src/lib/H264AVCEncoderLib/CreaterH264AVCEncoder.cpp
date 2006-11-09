@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -122,7 +122,7 @@ H264AVC_NAMESPACE_BEGIN
 
 
 CreaterH264AVCEncoder::CreaterH264AVCEncoder():
-  m_pcH264AVCEncoder      ( NULL ), 
+  m_pcH264AVCEncoder      ( NULL ),
   m_pcFrameMng            ( NULL ),
   m_pcSliceEncoder        ( NULL ),
   m_pcControlMng          ( NULL ),
@@ -162,13 +162,13 @@ CreaterH264AVCEncoder::~CreaterH264AVCEncoder()
 Bool
 CreaterH264AVCEncoder::getScalableSeiMessage()
 {
-	return m_pcH264AVCEncoder->bGetScalableSeiMessage();
+  return m_pcH264AVCEncoder->bGetScalableSeiMessage();
 }
 
 Void
 CreaterH264AVCEncoder::SetVeryFirstCall()
-{ 
-	m_pcH264AVCEncoder->SetVeryFirstCall(); 
+{
+  m_pcH264AVCEncoder->SetVeryFirstCall();
 }
 
 ErrVal
@@ -189,7 +189,7 @@ CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAcces
 //France Telecom R&D-(nathalie.cammas@francetelecom.com)
 ErrVal CreaterH264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDataAccessor,UInt* uiaQualityLevel, UInt *uiaDelta,UInt uiNumLevels, UInt uiLayer)
 {
-	RNOK( m_pcH264AVCEncoder->writeQualityLevelInfosSEI( pcExtBinDataAccessor, uiaQualityLevel,uiaDelta, uiNumLevels, uiLayer ) );
+  RNOK( m_pcH264AVCEncoder->writeQualityLevelInfosSEI( pcExtBinDataAccessor, uiaQualityLevel,uiaDelta, uiNumLevels, uiLayer ) );
   return Err::m_nOK;
 }
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
@@ -197,14 +197,14 @@ ErrVal CreaterH264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcEx
 // JVT-T073 {
 ErrVal CreaterH264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor )
 {
-	RNOK( m_pcH264AVCEncoder->writeNestingSEIMessage( pcExtBinDataAccessor ) );
-	return Err::m_nOK;
+  RNOK( m_pcH264AVCEncoder->writeNestingSEIMessage( pcExtBinDataAccessor ) );
+  return Err::m_nOK;
 
 }
 // JVT-T073 }
 
 ErrVal
-CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
+CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                                 PicBuffer*               apcOriginalPicBuffer     [MAX_LAYERS],
                                 PicBuffer*               apcReconstructPicBuffer  [MAX_LAYERS],
                                 PicBufferList*           apcPicBufferOutputList,
@@ -220,17 +220,17 @@ CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorLis
     return Err::m_nOK;
   }
 
-  RNOK( m_pcH264AVCEncoder->process( rcExtBinDataAccessorList, 
-                                     apcOriginalPicBuffer, 
-                                     apcReconstructPicBuffer, 
-                                     apcPicBufferOutputList, 
+  RNOK( m_pcH264AVCEncoder->process( rcExtBinDataAccessorList,
+                                     apcOriginalPicBuffer,
+                                     apcReconstructPicBuffer,
+                                     apcPicBufferOutputList,
                                      apcPicBufferUnusedList ) );
   return Err::m_nOK;
 }
 
 
 ErrVal
-CreaterH264AVCEncoder::finish ( ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
+CreaterH264AVCEncoder::finish ( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                                 PicBufferList*           apcPicBufferOutputList,
                                 PicBufferList*           apcPicBufferUnusedList,
                                 UInt&                    ruiNumCodedFrames,
@@ -243,8 +243,8 @@ CreaterH264AVCEncoder::finish ( ExtBinDataAccessorList&  rcExtBinDataAccessorLis
     return Err::m_nOK;
   }
 
-  RNOK( m_pcH264AVCEncoder->finish( rcExtBinDataAccessorList, 
-                                    apcPicBufferOutputList, 
+  RNOK( m_pcH264AVCEncoder->finish( rcExtBinDataAccessorList,
+                                    apcPicBufferOutputList,
                                     apcPicBufferUnusedList,
                                     ruiNumCodedFrames,
                                     rdHighestLayerOutputRate ) );
@@ -424,7 +424,7 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             m_pcXDistortion,
                                             m_pcMotionEstimation,
                                             m_pcRateDistortion ) );
-  
+
   RNOK( m_pcPicEncoder              ->init( m_pcCodingParameter,
                                             m_pcControlMng,
                                             m_pcSliceEncoder,
@@ -471,21 +471,21 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
   if(m_pcCodingParameter->getLARDOEnable())
   {
     Bool bFlag=false;
-	for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
-	{
-		if(!m_apcMCTFEncoder[uiLayer]->getLARDOEnable())
-		{
-		   bFlag=true;
-		   break;
-		}
-	}
-	if(bFlag)
-	{
-		for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
-		{ 
+  for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
+  {
+    if(!m_apcMCTFEncoder[uiLayer]->getLARDOEnable())
+    {
+       bFlag=true;
+       break;
+    }
+  }
+  if(bFlag)
+  {
+    for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
+    {
             m_apcMCTFEncoder[uiLayer]->setLARDOEnable(false);
-		}
-	}
+    }
+  }
   }
   //Bug_Fix JVT-R057}
   return Err::m_nOK;

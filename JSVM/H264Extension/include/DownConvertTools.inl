@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -87,15 +87,15 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #define TAP_10_FLT 1          // 1: use a set of 10-tap filters for downsampling; 0: a set of 12-taps.
 #define KAISER_FLT 0          // 1: use Kaiser filter, 0: use sine-windowed filter
-                       
+
 __inline
 void
 DownConvert::xInitFilterTmm (int iMaxDim)
-{  
+{
  xDestroyFilterTmm ( );
- 
+
  m_paiTmp1dBufferOut = new int [ iMaxDim  ];
- xInitFilterTmm1(); 
+ xInitFilterTmm1();
  xInitFilterTmm2(iMaxDim);
 }
 
@@ -103,12 +103,12 @@ __inline
 void
 DownConvert::xDestroyFilterTmm ( )
 {
-  if (m_paiTmp1dBufferOut) 
+  if (m_paiTmp1dBufferOut)
   {
     delete [] m_paiTmp1dBufferOut;
     m_paiTmp1dBufferOut = NULL;
   }
-  
+
   xDestroyFilterTmm1();
   xDestroyFilterTmm2();
 }
@@ -118,14 +118,14 @@ void
 DownConvert::upsample                 ( unsigned char* pucBufferY, int iStrideY,
                                         unsigned char* pucBufferU, int iStrideU,
                                         unsigned char* pucBufferV, int iStrideV,
-                                        ResizeParameters* pcParameters, 
-                                        int iStages, 
+                                        ResizeParameters* pcParameters,
+                                        int iStages,
                                         int* piFilter,
                                         int* piFilter_chroma)
 {
   int iWidth = pcParameters->m_iInWidth;
   int iHeight = pcParameters->m_iInHeight;
-  
+
   for( int i = iStages; i > 0; i-- )
   {
     //===== luma =====
@@ -133,14 +133,14 @@ DownConvert::upsample                 ( unsigned char* pucBufferY, int iStrideY,
     xUpsampling         (             iWidth,   iHeight,   piFilter );
     xCopyFromImageBuffer( pucBufferY, iWidth*2, iHeight*2, iStrideY, 0, 255 );
 
-	//===== chroma cb =====
-	xCopyToImageBuffer  ( pucBufferU, iWidth/2, iHeight/2, iStrideU );
-	xUpsampling         (             iWidth/2, iHeight/2, piFilter_chroma );
-	xCopyFromImageBuffer( pucBufferU, iWidth,   iHeight,   iStrideU, 0, 255 );
-	//===== chroma cr =====
-	xCopyToImageBuffer  ( pucBufferV, iWidth/2, iHeight/2, iStrideV );
-	xUpsampling         (             iWidth/2, iHeight/2, piFilter_chroma );
-	xCopyFromImageBuffer( pucBufferV, iWidth,   iHeight,   iStrideV, 0, 255 );
+  //===== chroma cb =====
+  xCopyToImageBuffer  ( pucBufferU, iWidth/2, iHeight/2, iStrideU );
+  xUpsampling         (             iWidth/2, iHeight/2, piFilter_chroma );
+  xCopyFromImageBuffer( pucBufferU, iWidth,   iHeight,   iStrideU, 0, 255 );
+  //===== chroma cr =====
+  xCopyToImageBuffer  ( pucBufferV, iWidth/2, iHeight/2, iStrideV );
+  xUpsampling         (             iWidth/2, iHeight/2, piFilter_chroma );
+  xCopyFromImageBuffer( pucBufferV, iWidth,   iHeight,   iStrideV, 0, 255 );
 
 
     iWidth  <<=1;
@@ -159,7 +159,7 @@ DownConvert::upsample_non_dyadic      ( unsigned char* pucBufferY, int iStrideY,
   int iInHeight = pcParameters->m_iInHeight;
   int iGlobWidth = pcParameters->m_iGlobWidth;
   int iGlobHeight = pcParameters->m_iGlobHeight;
-  
+
   //===== luma =====
   xCopyToImageBuffer  ( pucBufferY, iInWidth,   iInHeight,   iStrideY );
   xUpsampling         ( pcParameters, true, type );
@@ -171,16 +171,16 @@ DownConvert::upsample_non_dyadic      ( unsigned char* pucBufferY, int iStrideY,
   iInHeight   >>= 1;
   iGlobWidth   >>= 1;
   iGlobHeight  >>= 1;
-  
+
   //===== chroma cb =====
   xCopyToImageBuffer  ( pucBufferU, iInWidth, iInHeight, iStrideU );
-  xUpsampling         ( pcParameters, false, type ); 
+  xUpsampling         ( pcParameters, false, type );
   xCopyFromImageBuffer( pucBufferU, iGlobWidth, iGlobHeight, iStrideU, 0, 255 );
 
   //===== chroma cr =====
   xCopyToImageBuffer  ( pucBufferV, iInWidth, iInHeight, iStrideV );
   xUpsampling         ( pcParameters, false, type );
-  xCopyFromImageBuffer( pucBufferV, iGlobWidth, iGlobHeight, iStrideV, 0, 255 ); 
+  xCopyFromImageBuffer( pucBufferV, iGlobWidth, iGlobHeight, iStrideV, 0, 255 );
 }
 
 __inline
@@ -192,7 +192,7 @@ DownConvert::downsample               ( unsigned char* pucBufferY, int iStrideY,
 {
   int iWidth = pcParameters->m_iInWidth;
   int iHeight = pcParameters->m_iInHeight;
-  
+
   for( int i = iStages; i > 0; i-- )
   {
     //===== luma =====
@@ -222,22 +222,22 @@ DownConvert::downsample3              ( unsigned char* pucBufferY, int iStrideY,
 {
   int input_width   = pcParameters->m_iInWidth;
   int input_height  = pcParameters->m_iInHeight;
-  int output_width  = pcParameters->m_iGlobWidth;  
+  int output_width  = pcParameters->m_iGlobWidth;
   int output_height = pcParameters->m_iGlobHeight;
   int crop_x0 = pcParameters->m_iPosX;
   int crop_y0 = pcParameters->m_iPosY;
   int crop_w = pcParameters->m_iOutWidth;
-  int crop_h = pcParameters->m_iOutHeight;  
+  int crop_h = pcParameters->m_iOutHeight;
   int input_chroma_phase_shift_x = pcParameters->m_iBaseChromaPhaseX;
   int input_chroma_phase_shift_y = pcParameters->m_iBaseChromaPhaseY;
   int output_chroma_phase_shift_x = pcParameters->m_iChromaPhaseX;
   int output_chroma_phase_shift_y = pcParameters->m_iChromaPhaseY;
-  
+
   xCopyToImageBuffer  ( pucBufferY, input_width,   input_height,   iStrideY );
   xDownsampling3      ( input_width, input_height, output_width, output_height,
                         crop_x0, crop_y0, crop_w, crop_h, 0, 0, 0, 0);
   xCopyFromImageBuffer( pucBufferY, output_width, output_height, iStrideY, 0, 255 );
-  
+
   input_width >>= 1;
   input_height >>= 1;
   output_width >>= 1;
@@ -248,18 +248,18 @@ DownConvert::downsample3              ( unsigned char* pucBufferY, int iStrideY,
   crop_h >>= 1;
   xCopyToImageBuffer  ( pucBufferU, input_width, input_height, iStrideU );
   xDownsampling3      ( input_width, input_height, output_width, output_height,
-                        crop_x0, crop_y0, crop_w, crop_h, 
+                        crop_x0, crop_y0, crop_w, crop_h,
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                        output_chroma_phase_shift_x, output_chroma_phase_shift_y); 
+                        output_chroma_phase_shift_x, output_chroma_phase_shift_y);
   xCopyFromImageBuffer( pucBufferU, output_width, output_height, iStrideU, 0, 255 );
-  
+
   xCopyToImageBuffer  ( pucBufferV, input_width, input_height, iStrideV );
   xDownsampling3      ( input_width, input_height, output_width, output_height,
-                        crop_x0, crop_y0, crop_w, crop_h, 
+                        crop_x0, crop_y0, crop_w, crop_h,
                         input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                        output_chroma_phase_shift_x, output_chroma_phase_shift_y); 
+                        output_chroma_phase_shift_x, output_chroma_phase_shift_y);
   xCopyFromImageBuffer( pucBufferV, output_width, output_height, iStrideV, 0, 255 );
-  
+
 }
 __inline
 void
@@ -342,7 +342,7 @@ DownConvert::xCrop ( unsigned char* pucBufferY, int iStrideY,
   iPosY       >>= 1;
   iGlobWidth  >>= 1;
   iGlobHeight >>= 1;
-  
+
   //===== chroma cb =====
   ptr = &pucBufferU[iPosY * iStrideU + iPosX];
   xCopyToImageBuffer  ( ptr, iOutWidth,  iOutHeight, iStrideU);
@@ -397,13 +397,13 @@ DownConvert::xDownsampling( int iWidth,       // high-resolution width
 
 
   //========== horizontal downsampling ===========
-  for( j = 0; j < iHeight; j++ ) 
+  for( j = 0; j < iHeight; j++ )
   {
     int*  piSrc = &m_paiImageBuffer[j*m_iImageStride];
     //----- down sample row -----
     for ( i = 0; i < iWidth/2; i++ )
     {
-    	k   = i*2;
+      k   = i*2;
       im7 = (k<       7) ? 0   : k     -7;
       im6 = (k<       6) ? 0   : k     -6;
       im5 = (k<       5) ? 0   : k     -5;
@@ -421,20 +421,20 @@ DownConvert::xDownsampling( int iWidth,       // high-resolution width
       ip7 = (k<iWidth-7) ? k+7 : iWidth-1;
 
       m_paiTmp1dBuffer[i] = aiFilter[ 0]*piSrc[im7]
-			                    + aiFilter[ 1]*piSrc[im6]
-			                    + aiFilter[ 2]*piSrc[im5]
-			                    + aiFilter[ 3]*piSrc[im4]
-			                    + aiFilter[ 4]*piSrc[im3]
-			                    + aiFilter[ 5]*piSrc[im2]
-			                    + aiFilter[ 6]*piSrc[im1]
-			                    + aiFilter[ 7]*piSrc[i0 ]
-			                    + aiFilter[ 8]*piSrc[ip1]
-			                    + aiFilter[ 9]*piSrc[ip2]
-			                    + aiFilter[10]*piSrc[ip3]
-			                    + aiFilter[11]*piSrc[ip4]
-			                    + aiFilter[12]*piSrc[ip5]
-			                    + aiFilter[13]*piSrc[ip6]				
-			                    + aiFilter[14]*piSrc[ip7];
+                          + aiFilter[ 1]*piSrc[im6]
+                          + aiFilter[ 2]*piSrc[im5]
+                          + aiFilter[ 3]*piSrc[im4]
+                          + aiFilter[ 4]*piSrc[im3]
+                          + aiFilter[ 5]*piSrc[im2]
+                          + aiFilter[ 6]*piSrc[im1]
+                          + aiFilter[ 7]*piSrc[i0 ]
+                          + aiFilter[ 8]*piSrc[ip1]
+                          + aiFilter[ 9]*piSrc[ip2]
+                          + aiFilter[10]*piSrc[ip3]
+                          + aiFilter[11]*piSrc[ip4]
+                          + aiFilter[12]*piSrc[ip5]
+                          + aiFilter[13]*piSrc[ip6]
+                          + aiFilter[14]*piSrc[ip7];
     }
     //----- copy row back to image buffer -----
     ::memcpy( piSrc, m_paiTmp1dBuffer, (iWidth/2)*sizeof(int) );
@@ -447,7 +447,7 @@ DownConvert::xDownsampling( int iWidth,       // high-resolution width
     //----- down sample column -----
     for( i = 0; i < iHeight/2; i++)
     {
-	    k   = i*2;         
+      k   = i*2;
       im7 = ( (k<        7) ? 0   : k      -7 ) * m_iImageStride;
       im6 = ( (k<        6) ? 0   : k      -6 ) * m_iImageStride;
       im5 = ( (k<        5) ? 0   : k      -5 ) * m_iImageStride;
@@ -455,7 +455,7 @@ DownConvert::xDownsampling( int iWidth,       // high-resolution width
       im3 = ( (k<        3) ? 0   : k      -3 ) * m_iImageStride;
       im2 = ( (k<        2) ? 0   : k      -2 ) * m_iImageStride;
       im1 = ( (k<        1) ? 0   : k      -1 ) * m_iImageStride;
-    	i0  = ( (k<iHeight  ) ? k   : iHeight-1 ) * m_iImageStride;
+      i0  = ( (k<iHeight  ) ? k   : iHeight-1 ) * m_iImageStride;
       ip1 = ( (k<iHeight-1) ? k+1 : iHeight-1 ) * m_iImageStride;
       ip2 = ( (k<iHeight-2) ? k+2 : iHeight-1 ) * m_iImageStride;
       ip3 = ( (k<iHeight-3) ? k+3 : iHeight-1 ) * m_iImageStride;
@@ -465,20 +465,20 @@ DownConvert::xDownsampling( int iWidth,       // high-resolution width
       ip7 = ( (k<iHeight-7) ? k+7 : iHeight-1 ) * m_iImageStride;
 
       m_paiTmp1dBuffer[i] = aiFilter[ 0]*piSrc[im7]
-			                    + aiFilter[ 1]*piSrc[im6]
-			                    + aiFilter[ 2]*piSrc[im5]
-			                    + aiFilter[ 3]*piSrc[im4]
-			                    + aiFilter[ 4]*piSrc[im3]
-			                    + aiFilter[ 5]*piSrc[im2]
-			                    + aiFilter[ 6]*piSrc[im1]
-			                    + aiFilter[ 7]*piSrc[i0 ]
-			                    + aiFilter[ 8]*piSrc[ip1]
-			                    + aiFilter[ 9]*piSrc[ip2]
-			                    + aiFilter[10]*piSrc[ip3]
-			                    + aiFilter[11]*piSrc[ip4]
-			                    + aiFilter[12]*piSrc[ip5]
-			                    + aiFilter[13]*piSrc[ip6]				
-			                    + aiFilter[14]*piSrc[ip7];
+                          + aiFilter[ 1]*piSrc[im6]
+                          + aiFilter[ 2]*piSrc[im5]
+                          + aiFilter[ 3]*piSrc[im4]
+                          + aiFilter[ 4]*piSrc[im3]
+                          + aiFilter[ 5]*piSrc[im2]
+                          + aiFilter[ 6]*piSrc[im1]
+                          + aiFilter[ 7]*piSrc[i0 ]
+                          + aiFilter[ 8]*piSrc[ip1]
+                          + aiFilter[ 9]*piSrc[ip2]
+                          + aiFilter[10]*piSrc[ip3]
+                          + aiFilter[11]*piSrc[ip4]
+                          + aiFilter[12]*piSrc[ip5]
+                          + aiFilter[13]*piSrc[ip6]
+                          + aiFilter[14]*piSrc[ip7];
     }
     //----- scale and copy back to image buffer -----
     for( i = 0; i < iHeight/2; i++ )
@@ -500,7 +500,7 @@ DownConvert::xUpsampling( int iWidth,       // low-resolution width
 
 
   //========== vertical upsampling ===========
-  for( j = 0; j < iWidth; j++ ) 
+  for( j = 0; j < iWidth; j++ )
   {
     int*  piSrc = &m_paiImageBuffer[j];
     //----- upsample column -----
@@ -509,7 +509,7 @@ DownConvert::xUpsampling( int iWidth,       // low-resolution width
       im3       = ( (i<        3) ? 0   : i      -3 ) * m_iImageStride;
       im2       = ( (i<        2) ? 0   : i      -2 ) * m_iImageStride;
       im1       = ( (i<        1) ? 0   : i      -1 ) * m_iImageStride;
-    	i0        = ( (i<iHeight  ) ? i   : iHeight-1 ) * m_iImageStride;
+      i0        = ( (i<iHeight  ) ? i   : iHeight-1 ) * m_iImageStride;
       ip1       = ( (i<iHeight-1) ? i+1 : iHeight-1 ) * m_iImageStride;
       ip2       = ( (i<iHeight-2) ? i+2 : iHeight-1 ) * m_iImageStride;
       ip3       = ( (i<iHeight-3) ? i+3 : iHeight-1 ) * m_iImageStride;
@@ -517,21 +517,21 @@ DownConvert::xUpsampling( int iWidth,       // low-resolution width
 
       //--- even sample ---
       m_paiTmp1dBuffer[2*i+0] = aiFilter[13]*piSrc[im3]
-			                        + aiFilter[11]*piSrc[im2]
-				                      + aiFilter[ 9]*piSrc[im1]		   
-				                      + aiFilter[ 7]*piSrc[i0 ]
-			                        + aiFilter[ 5]*piSrc[ip1]
-			                        + aiFilter[ 3]*piSrc[ip2]
-			                        + aiFilter[ 1]*piSrc[ip3];
+                              + aiFilter[11]*piSrc[im2]
+                              + aiFilter[ 9]*piSrc[im1]
+                              + aiFilter[ 7]*piSrc[i0 ]
+                              + aiFilter[ 5]*piSrc[ip1]
+                              + aiFilter[ 3]*piSrc[ip2]
+                              + aiFilter[ 1]*piSrc[ip3];
       //--- odd sample ---
       m_paiTmp1dBuffer[2*i+1] = aiFilter[14]*piSrc[im3]
-			                        + aiFilter[12]*piSrc[im2]
-				                      + aiFilter[10]*piSrc[im1]		   
-				                      + aiFilter[ 8]*piSrc[i0 ]
-			                        + aiFilter[ 6]*piSrc[ip1]
-			                        + aiFilter[ 4]*piSrc[ip2]
-			                        + aiFilter[ 2]*piSrc[ip3]
-			                        + aiFilter[ 0]*piSrc[ip4];
+                              + aiFilter[12]*piSrc[im2]
+                              + aiFilter[10]*piSrc[im1]
+                              + aiFilter[ 8]*piSrc[i0 ]
+                              + aiFilter[ 6]*piSrc[ip1]
+                              + aiFilter[ 4]*piSrc[ip2]
+                              + aiFilter[ 2]*piSrc[ip3]
+                              + aiFilter[ 0]*piSrc[ip4];
     }
     //----- copy back to image buffer -----
     for( i = 0; i < iHeight*2; i++ )
@@ -542,7 +542,7 @@ DownConvert::xUpsampling( int iWidth,       // low-resolution width
 
 
   //========== horizontal upsampling ==========
-  for( j = 0; j < iHeight*2; j++ ) 
+  for( j = 0; j < iHeight*2; j++ )
   {
     int*  piSrc = &m_paiImageBuffer[j*m_iImageStride];
     //----- upsample row -----
@@ -559,21 +559,21 @@ DownConvert::xUpsampling( int iWidth,       // low-resolution width
 
       //--- even sample ---
       m_paiTmp1dBuffer[2*i+0] = aiFilter[13]*piSrc[im3]
-			                        + aiFilter[11]*piSrc[im2]
-				                      + aiFilter[ 9]*piSrc[im1]		   
-				                      + aiFilter[ 7]*piSrc[i0 ]
-			                        + aiFilter[ 5]*piSrc[ip1]
-			                        + aiFilter[ 3]*piSrc[ip2]
-			                        + aiFilter[ 1]*piSrc[ip3];
+                              + aiFilter[11]*piSrc[im2]
+                              + aiFilter[ 9]*piSrc[im1]
+                              + aiFilter[ 7]*piSrc[i0 ]
+                              + aiFilter[ 5]*piSrc[ip1]
+                              + aiFilter[ 3]*piSrc[ip2]
+                              + aiFilter[ 1]*piSrc[ip3];
       //--- odd sample ---
       m_paiTmp1dBuffer[2*i+1] = aiFilter[14]*piSrc[im3]
-			                        + aiFilter[12]*piSrc[im2]
-				                      + aiFilter[10]*piSrc[im1]		   
-				                      + aiFilter[ 8]*piSrc[i0 ]
-			                        + aiFilter[ 6]*piSrc[ip1]
-			                        + aiFilter[ 4]*piSrc[ip2]
-			                        + aiFilter[ 2]*piSrc[ip3]
-			                        + aiFilter[ 0]*piSrc[ip4];
+                              + aiFilter[12]*piSrc[im2]
+                              + aiFilter[10]*piSrc[im1]
+                              + aiFilter[ 8]*piSrc[i0 ]
+                              + aiFilter[ 6]*piSrc[ip1]
+                              + aiFilter[ 4]*piSrc[ip2]
+                              + aiFilter[ 2]*piSrc[ip3]
+                              + aiFilter[ 0]*piSrc[ip4];
     }
     //----- scale and copy back to image buffer -----
     for( i = 0; i < iWidth*2; i++ )
@@ -591,7 +591,7 @@ void
 DownConvert::xDownsampling3( int input_width, int input_height, int output_width, int output_height,
                              int crop_x0, int crop_y0, int crop_w, int crop_h,
                              int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-                             int output_chroma_phase_shift_x, int output_chroma_phase_shift_y ) 
+                             int output_chroma_phase_shift_x, int output_chroma_phase_shift_y )
 {
   const int filter16[8][16][12] = {   // sine, N = 3
                                     { // D = 1
@@ -805,7 +805,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
 
   //========== horizontal downsampling ===========
  // if(crop_w*2 > 7*output_width) filter = 7;
-  //else 
+  //else
   if(crop_w*7 > 20*output_width) filter = 6;
   else if(crop_w*2 > 5*output_width) filter = 5;
   else if(crop_w*1 > 2*output_width) filter = 4;
@@ -818,7 +818,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
   {
     px[i] = 16*crop_x0 + ( i*crop_w*16 + 4*(2+output_chroma_phase_shift_x)*crop_w - 4*(2+input_chroma_phase_shift_x)*output_width + output_width/2) / output_width;
   }
-  for( j = 0; j < input_height; j++ ) 
+  for( j = 0; j < input_height; j++ )
   {
     int*  piSrc = &m_paiImageBuffer[j*m_iImageStride];
     for( i = 0; i < output_width; i++ ){
@@ -838,7 +838,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
 
   //========== vertical downsampling ===========
   //if     (crop_h*2 > 7*output_height) filter = 7;
-  //else 
+  //else
   if(crop_h*7 > 20*output_height) filter = 6;
   else if(crop_h*2 > 5*output_height) filter = 5;
   else if(crop_h*1 > 2*output_height) filter = 4;
@@ -851,7 +851,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
   {
     py[j] = 16*crop_y0 + ( j*crop_h*16 + 4*(2+output_chroma_phase_shift_y)*crop_h - 4*(2+input_chroma_phase_shift_y)*output_height + output_height/2 ) / output_height;
   }
-  for( i = 0; i < output_width; i++ ) 
+  for( i = 0; i < output_width; i++ )
   {
     int*  piSrc = &m_paiImageBuffer[i];
     for( j = 0; j < output_height; j++ ){
@@ -871,7 +871,7 @@ DownConvert::xDownsampling3( int input_width, int input_height, int output_width
       piSrc[j*m_iImageStride] = ( m_paiTmp1dBuffer[j] + (1<<13) ) / (1<<14);
     }
   }
-  
+
   // free memory
   delete [] px;
   delete [] py;
@@ -898,11 +898,11 @@ __inline
 void
 DownConvert::xDestroyFilterTmm2 ( )
 {
-  if  (NULL!=m_aiTmp1dBufferInHalfpel) 
+  if  (NULL!=m_aiTmp1dBufferInHalfpel)
   {
   delete [] m_aiTmp1dBufferInHalfpel; m_aiTmp1dBufferInHalfpel=NULL;
-  delete [] m_aiTmp1dBufferInQ1pel;	m_aiTmp1dBufferInQ1pel  =NULL;
-  delete [] m_aiTmp1dBufferInQ3pel;	m_aiTmp1dBufferInQ3pel  =NULL;
+  delete [] m_aiTmp1dBufferInQ1pel;  m_aiTmp1dBufferInQ1pel  =NULL;
+  delete [] m_aiTmp1dBufferInQ3pel;  m_aiTmp1dBufferInQ3pel  =NULL;
   }
 }
 //TMM_ESS_UNIFIED }
@@ -931,12 +931,12 @@ DownConvert::xUpsampling2( ResizeParameters* pcParameters, bool bLuma)
       for (int yin=0; yin<iInHeight; yin++)
         m_paiTmp1dBuffer[yin] = piSrc[yin * m_iImageStride];
 
-      xUpsamplingData2(iInHeight, iOutHeight); 
-      
+      xUpsamplingData2(iInHeight, iOutHeight);
+
       for(int yout = 0; yout < iOutHeight; yout++ )
         piSrc[yout*m_iImageStride] = m_paiTmp1dBufferOut[yout];
     }
-  
+
   // ===== horizontal upsampling =====
   for (int yout=0; yout<iOutHeight; yout++)
     {
@@ -1004,29 +1004,29 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength )
         case 0:
           m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBuffer[ipos0] << 5; // original pel value
           break;
-			
+
         case 1:
         case 2:
           m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ1pel[ipos0]; // 1/4 pel value
           break;
-			
+
         case 3:
         case 4:
           m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInHalfpel[ipos0]; // half pel value
           break;
-			
+
         case 5:
         case 6:
           m_paiTmp1dBufferOut[iout] =  Tmp1dBufferInQ3pel[ipos0]; // 1/4 pel value
           break;
-			
+
         case 7:
           int ipos1 = (ipos0+1 < iInLength) ? ipos0+1 : ipos0;
           m_paiTmp1dBufferOut[iout] =  m_paiTmp1dBuffer[ipos1] << 5; // original pel value
           break;
 
         }
-    }  
+    }
 }
 
 
@@ -1047,7 +1047,7 @@ DownConvert::xUpsamplingData2 ( int iInLength , int iOutLength )
 __inline
 void
 DownConvert::xInitFilterTmm1 ()
-{  
+{
   xDestroyFilterTmm1();
 
   const double pi = 3.14159265359;
@@ -1061,17 +1061,17 @@ DownConvert::xInitFilterTmm1 ()
       double pixw = pix/TMM_FILTER_WINDOW_SIZE;
 
       m_padFilter[i] = (long)(sin(pix)/pix * sin(pixw)/pixw * VALFACT);
-    } 
+    }
 }
 
  __inline
 void
 DownConvert::xDestroyFilterTmm1 ( )
 {
- if(m_padFilter) 
+ if(m_padFilter)
   {
   delete [] m_padFilter;
-  m_padFilter=NULL; 
+  m_padFilter=NULL;
 }
 }
 
@@ -1113,11 +1113,11 @@ DownConvert::xUpsampling1( ResizeParameters* pcParameters,
         m_paiTmp1dBuffer[yin] = piSrc[yin * m_iImageStride];
 
       xUpsamplingData1(iInHeight, iOutHeight, spos);
-      
+
       for(int yout = 0; yout < iOutHeight; yout++ )
         piSrc[yout*m_iImageStride] = m_paiTmp1dBufferOut[yout];
     }
-  
+
   // ===== horizontal upsampling =====
   xComputeNumeratorDenominator(iInWidth,iOutWidth,&iNumerator,&iDenominator);
 
@@ -1144,7 +1144,7 @@ DownConvert::xUpsamplingData1 ( int iInLength , int iOutLength , long spos )
   for (int iout=0; iout<iOutLength; iout++)
     {
       dpos0 += spos;
-    
+
       long rpos0 = dpos0 & MASKFACT;
       int ipos0 = dpos0 >> NFACT;
       if (rpos0 == 0) {
@@ -1177,14 +1177,14 @@ DownConvert::xComputeNumeratorDenominator ( int iInWidth , int iOutWidth ,
                                            int* iNumerator, int *iDenominator)
 {
   int iA = 1;
-	int iB = iOutWidth;
+  int iB = iOutWidth;
   int iC = iInWidth;
-	while (iC != 0)
-	{
-		iA = iB;
-		iB = iC;		
-		iC = iA % iB;
-	}
+  while (iC != 0)
+  {
+    iA = iB;
+    iB = iC;
+    iC = iA % iB;
+  }
 
   *iNumerator = iOutWidth / iB;
   *iDenominator = iInWidth / iB;

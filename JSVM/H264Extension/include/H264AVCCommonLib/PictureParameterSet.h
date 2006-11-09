@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -109,12 +109,12 @@ class H264AVCCOMMONLIB_API PictureParameterSet
 {
 protected:
   PictureParameterSet         ();
-	virtual ~PictureParameterSet();
+  virtual ~PictureParameterSet();
 
 public:
   static ErrVal create  ( PictureParameterSet*& rpcPPS );
   ErrVal        destroy ();
-  
+
   NalUnitType           getNalUnitType                          ()            const { return m_eNalUnitType; }
   UInt                  getLayerId                              ()            const { return m_uiLayerId; }
   UInt                  getPicParameterSetId                    ()            const { return m_uiPicParameterSetId; }
@@ -133,19 +133,19 @@ public:
   Bool                  getPicScalingMatrixPresentFlag          ()            const { return m_bPicScalingMatrixPresentFlag; }
   const ScalingMatrix&  getPicScalingMatrix                     ()            const { return m_cPicScalingMatrix; }
   Int                   get2ndChromaQpIndexOffset               ()            const { return m_iSecondChromaQpIndexOffset; }
-  
 
-  //--ICU/ETRI FMO Implementation : FMO stuff start 
+
+  //--ICU/ETRI FMO Implementation : FMO stuff start
   UInt          getNumSliceGroupsMinus1() const {return m_uiNumSliceGroupsMinus1;}
   UInt          getSliceGroupMapType() const {return  m_uiSliceGroupMapType;  }
-  UInt          getRunLengthMinus1 (Int i) const {return m_uiRunLengthMinus1[i];}  
+  UInt          getRunLengthMinus1 (Int i) const {return m_uiRunLengthMinus1[i];}
   UInt          getTopLeft (Int i) const {return m_uiTopLeft[i];}
   UInt          getBottomRight (Int i) const {return m_uiBottomRight[i];}
   Bool          getSliceGroupChangeDirection_flag () const {return m_bSliceGroupChangeDirection_flag;}
   UInt          getSliceGroupChangeRateMinus1 () const {return m_uiSliceGroupChangeRateMinus1;}
   UInt          getNumSliceGroupMapUnitsMinus1() const {return m_uiNumSliceGroupMapUnitsMinus1;}
   UInt          getSliceGroupId(Int i) const {return m_uiSliceGroupId[i];}
-  UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}  
+  UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}
   UInt*         getArrayTopLeft () const {return (UInt*)m_uiTopLeft;}
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
   UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
@@ -168,43 +168,43 @@ public:
   Void  setChomaQpIndexOffset                   ( Int         i )           { m_iChomaQpIndexOffset                     = i; }
   Void  setDeblockingFilterParametersPresentFlag( Bool        b )           { m_bDeblockingFilterParametersPresentFlag  = b; }
   Void  setConstrainedIntraPredFlag             ( Bool        b )           { m_bConstrainedIntraPredFlag               = b; }
-  Void	setRedundantPicCntPresentFlag           ( Bool        b )           { m_bRedundantPicCntPresentFlag             = b; }  // JVT-Q054 Red. Picture
+  Void  setRedundantPicCntPresentFlag           ( Bool        b )           { m_bRedundantPicCntPresentFlag             = b; }  // JVT-Q054 Red. Picture
   Void  setTransform8x8ModeFlag                 ( Bool        b )           { m_bTransform8x8ModeFlag                   = b; }
   Void  setPicScalingMatrixPresentFlag          ( Bool        b )           { m_bPicScalingMatrixPresentFlag            = b; }
   Void  set2ndChromaQpIndexOffset               ( Int         i )           { m_iSecondChromaQpIndexOffset              = i; }
 
 
   //--ICU/ETRI FMO Implementation : FMO stuff start
-  Void setNumSliceGroupsMinus1(UInt   uiNumSliceGroupsMinus1) {m_uiNumSliceGroupsMinus1 =uiNumSliceGroupsMinus1;}  
+  Void setNumSliceGroupsMinus1(UInt   uiNumSliceGroupsMinus1) {m_uiNumSliceGroupsMinus1 =uiNumSliceGroupsMinus1;}
   Void setSliceGroupMapType(UInt          uiSliceGroupMapType) {m_uiSliceGroupMapType =uiSliceGroupMapType;  }
-  Void setRunLengthMinus1 (UInt        uiRunLengthMinus1,  Int i) {m_uiRunLengthMinus1[i] = uiRunLengthMinus1;}  
+  Void setRunLengthMinus1 (UInt        uiRunLengthMinus1,  Int i) {m_uiRunLengthMinus1[i] = uiRunLengthMinus1;}
   Void setTopLeft (UInt          uiTopLeft, Int i) {m_uiTopLeft[i] = uiTopLeft;}
   Void setBottomRight (UInt          uiBottomRight, Int i){m_uiBottomRight[i] = uiBottomRight;}
   Void setSliceGroupChangeDirection_flag (Bool         SliceGroupChangeDirection_flag){m_bSliceGroupChangeDirection_flag = SliceGroupChangeDirection_flag;}
   Void setSliceGroupChangeRateMinus1 (UInt         SliceGroupChangeRateMinus1 ){m_uiSliceGroupChangeRateMinus1 = SliceGroupChangeRateMinus1;}
   Void setNumSliceGroupMapUnitsMinus1 (UInt         uiNumSliceGroupMapUnitsMinus1){ m_uiNumSliceGroupMapUnitsMinus1 = uiNumSliceGroupMapUnitsMinus1;}
   Void setSliceGroupId(UInt         uiSliceGroupId, Int i) {m_uiSliceGroupId[i] = uiSliceGroupId;}
-  Void setArrayRunLengthMinus1 (UInt*        uiRunLengthMinus1) 
-  { 
-	  for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
-		  m_uiRunLengthMinus1[i] = uiRunLengthMinus1[i];
-  }  
-  Void setArrayTopLeft (UInt*          uiTopLeft) 
+  Void setArrayRunLengthMinus1 (UInt*        uiRunLengthMinus1)
   {
-	  for(UInt i=0;i<getNumSliceGroupsMinus1();i++)
-		  m_uiTopLeft[i] = uiTopLeft[i];
+    for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
+      m_uiRunLengthMinus1[i] = uiRunLengthMinus1[i];
+  }
+  Void setArrayTopLeft (UInt*          uiTopLeft)
+  {
+    for(UInt i=0;i<getNumSliceGroupsMinus1();i++)
+      m_uiTopLeft[i] = uiTopLeft[i];
   }
   Void setArrayBottomRight (UInt*          uiBottomRight)
   {
-	  for(UInt i=0;i<getNumSliceGroupsMinus1();i++)
-		m_uiBottomRight[i] = uiBottomRight[i];
+    for(UInt i=0;i<getNumSliceGroupsMinus1();i++)
+    m_uiBottomRight[i] = uiBottomRight[i];
   }
-  Void setArraySliceGroupId(UInt*         uiSliceGroupId) 
+  Void setArraySliceGroupId(UInt*         uiSliceGroupId)
   {
-	  for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
-		m_uiSliceGroupId[i] = uiSliceGroupId[i];
+    for(UInt i=0;i<=getNumSliceGroupsMinus1();i++)
+    m_uiSliceGroupId[i] = uiSliceGroupId[i];
   }
-  Void setSliceGroupChangeCycle(UInt SliceGroupChangeCycle){ m_uiSliceGroupChangeCycle = SliceGroupChangeCycle;} 
+  Void setSliceGroupChangeCycle(UInt SliceGroupChangeCycle){ m_uiSliceGroupChangeCycle = SliceGroupChangeCycle;}
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
 
@@ -226,14 +226,14 @@ protected:
 
 
   //--ICU/ETRI FMO Implementation : FMO stuff start
-  UInt          m_uiNumSliceGroupsMinus1;  
-  UInt          m_uiSliceGroupMapType;  
-  UInt          m_uiRunLengthMinus1[MAXNumSliceGroupsMinus1];  
+  UInt          m_uiNumSliceGroupsMinus1;
+  UInt          m_uiSliceGroupMapType;
+  UInt          m_uiRunLengthMinus1[MAXNumSliceGroupsMinus1];
   UInt          m_uiTopLeft[MAXNumSliceGroupsMinus1];
   UInt          m_uiBottomRight[MAXNumSliceGroupsMinus1];
-  Bool			m_bSliceGroupChangeDirection_flag;
-  UInt			m_uiSliceGroupChangeRateMinus1;
-  UInt			m_uiNumSliceGroupMapUnitsMinus1;
+  Bool      m_bSliceGroupChangeDirection_flag;
+  UInt      m_uiSliceGroupChangeRateMinus1;
+  UInt      m_uiNumSliceGroupMapUnitsMinus1;
   UInt          m_uiSliceGroupId[MAXNumSliceGroupsMinus1];
   UInt          m_uiSliceGroupChangeCycle;
   //--ICU/ETRI FMO Implementation : FMO stuff end
@@ -245,8 +245,8 @@ protected:
   Int           m_iChomaQpIndexOffset;
   Bool          m_bDeblockingFilterParametersPresentFlag;
   Bool          m_bConstrainedIntraPredFlag;
-	Bool          m_bTransform8x8ModeFlag;
-	Bool          m_bPicScalingMatrixPresentFlag;
+  Bool          m_bTransform8x8ModeFlag;
+  Bool          m_bPicScalingMatrixPresentFlag;
   ScalingMatrix m_cPicScalingMatrix;
   Int           m_iSecondChromaQpIndexOffset;
   Bool          m_bRedundantPicCntPresentFlag;  //JVT-Q054 Red. Picture u(1)

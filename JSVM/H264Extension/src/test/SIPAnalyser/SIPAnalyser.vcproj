@@ -24,6 +24,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
+				ImproveFloatingPointConsistency="TRUE"
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;H264AVCCOMMONLIB_LIB"
 				StringPooling="TRUE"
@@ -85,6 +86,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				ImproveFloatingPointConsistency="TRUE"
 				AdditionalIncludeDirectories="..\..\..\include,."
 				PreprocessorDefinitions="_DEBUG;WIN32;_CONSOLE;H264AVCCOMMONLIB_LIB"
 				BasicRuntimeChecks="3"

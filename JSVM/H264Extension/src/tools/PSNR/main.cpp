@@ -317,7 +317,7 @@ int main(int argc, char *argv[])
   for( skip = skip_at_start, index = 0; index < sequence_length; index++, skip = skip_between )
   {
     fseek( org_file, skip*width*height*3/2, SEEK_CUR);
-        
+
     readFrame       ( &cOrgFrame, org_file );
     readFrame       ( &cRecFrame, rec_file );
 

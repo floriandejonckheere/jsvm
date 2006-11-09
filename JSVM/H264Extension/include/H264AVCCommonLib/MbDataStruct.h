@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -153,11 +153,11 @@ public:
   Void setBCBPAll( UInt uiBit )                                 { m_uiBCBP = (uiBit) ? 0xffff : 0; }
   UInt getBCBP( UInt uiPos )                              const { return ((m_uiBCBP >> uiPos) & 1); }
   Void setBCBP( UInt uiPos, UInt uiBit, Bool bReset = false )
-  { 
+  {
     if( bReset )
       m_uiBCBP &= ~(1 << uiPos);
 
-    m_uiBCBP |= (uiBit << uiPos); 
+    m_uiBCBP |= (uiBit << uiPos);
   }
   Void setBCBP( UInt uiBCBP )                                   { m_uiBCBP = uiBCBP; }
   UInt getBCBP()                                          const { return m_uiBCBP; }
@@ -179,11 +179,11 @@ public:
   Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
                                   SParIdx4x4  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
 
-// TMM_ESS 
+// TMM_ESS
   Bool    getInCropWindowFlag   ()                        const { return   m_bInCropWindowFlag; }
 
 
-  Void    setResidualPredFlags  ( UShort      usFlags   )       { m_usResidualPredFlags = usFlags; } 
+  Void    setResidualPredFlags  ( UShort      usFlags   )       { m_usResidualPredFlags = usFlags; }
   Void    setResidualPredFlag   ( Bool        bFlag,
                                   LumaIdx     cIdx      );
   Void    setResidualPredFlag   ( Bool        bFlag/*,
@@ -204,8 +204,8 @@ public:
   Void    setResidualPredFlag   ( Bool        bFlag,
                                   ParIdx8x8   eParIdx,
                                   SParIdx4x4  eSParIdx  );
-// TMM_ESS 
-  Void    setInCropWindowFlag   ( Bool        bFlag  )       { m_bInCropWindowFlag = bFlag; } 
+// TMM_ESS
+  Void    setInCropWindowFlag   ( Bool        bFlag  )       { m_bInCropWindowFlag = bFlag; }
 
 
   ErrVal  save( FILE* pFile );
@@ -222,10 +222,10 @@ public:
   Bool isTransformSize8x8   ()                          const     { return m_bTransformSize8x8; }
   Void setTransformSize8x8  ( Bool bTransformSize8x8)             { m_bTransformSize8x8 = bTransformSize8x8; }
 
-	//-- JVT-R091
-  Void    setSmoothedRefFlag    ( Bool b )  { m_bSmoothedRefFlag = b;			}
-  Bool    getSmoothedRefFlag    () const    { return m_bSmoothedRefFlag;	}
-	//--
+  //-- JVT-R091
+  Void    setSmoothedRefFlag    ( Bool b )  { m_bSmoothedRefFlag = b;      }
+  Bool    getSmoothedRefFlag    () const    { return m_bSmoothedRefFlag;  }
+  //--
 
 public:
   UInt    m_uiSliceId;
@@ -244,12 +244,12 @@ public:
   Bool    m_bTransformSize8x8;
   Bool    m_bSkipFlag;
 
-  // TMM_ESS 
+  // TMM_ESS
   Bool    m_bInCropWindowFlag;  // indicates if the scaled base layer MB is inside the cropping window
 
-	//-- JVT-R091
-	Bool		m_bSmoothedRefFlag;		// indicates if the smoothed reference mode is used
-	//--
+  //-- JVT-R091
+  Bool    m_bSmoothedRefFlag;    // indicates if the smoothed reference mode is used
+  //--
 
 public:
   static const UChar m_aucACTab[6];
@@ -272,22 +272,22 @@ __inline
 Void
 MbDataStruct::setResidualPredFlag( Bool bFlag/*, ParIdx16x16 eParIdx*/ )
 {
-  setResidualPredFlag( bFlag, B4x4Idx( 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 2) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 3) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 5) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 6) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 7) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 8) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 9) );  
-  setResidualPredFlag( bFlag, B4x4Idx(10) );  
-  setResidualPredFlag( bFlag, B4x4Idx(11) );  
-  setResidualPredFlag( bFlag, B4x4Idx(12) );  
-  setResidualPredFlag( bFlag, B4x4Idx(13) );  
-  setResidualPredFlag( bFlag, B4x4Idx(14) );  
-  setResidualPredFlag( bFlag, B4x4Idx(15) );  
+  setResidualPredFlag( bFlag, B4x4Idx( 0) );
+  setResidualPredFlag( bFlag, B4x4Idx( 1) );
+  setResidualPredFlag( bFlag, B4x4Idx( 2) );
+  setResidualPredFlag( bFlag, B4x4Idx( 3) );
+  setResidualPredFlag( bFlag, B4x4Idx( 4) );
+  setResidualPredFlag( bFlag, B4x4Idx( 5) );
+  setResidualPredFlag( bFlag, B4x4Idx( 6) );
+  setResidualPredFlag( bFlag, B4x4Idx( 7) );
+  setResidualPredFlag( bFlag, B4x4Idx( 8) );
+  setResidualPredFlag( bFlag, B4x4Idx( 9) );
+  setResidualPredFlag( bFlag, B4x4Idx(10) );
+  setResidualPredFlag( bFlag, B4x4Idx(11) );
+  setResidualPredFlag( bFlag, B4x4Idx(12) );
+  setResidualPredFlag( bFlag, B4x4Idx(13) );
+  setResidualPredFlag( bFlag, B4x4Idx(14) );
+  setResidualPredFlag( bFlag, B4x4Idx(15) );
 }
 
 __inline
@@ -296,14 +296,14 @@ MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx16x8 eParIdx )
 {
   UInt ui = eParIdx;
 
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 2) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 3) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 6) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 7) );  
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 2) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 3) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 6) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 7) );
 }
 
 __inline
@@ -312,14 +312,14 @@ MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x16 eParIdx )
 {
   UInt ui = eParIdx;
 
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 8) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 9) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+12) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+13) );  
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 8) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 9) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+12) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+13) );
 }
 
 __inline
@@ -328,10 +328,10 @@ MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx8x8 eSP
 {
   UInt ui = eParIdx+eSParIdx;
 
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );  
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );
 }
 
 __inline
@@ -340,8 +340,8 @@ MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx8x4 eSP
 {
   UInt ui = eParIdx+eSParIdx;
 
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );
 }
 
 __inline
@@ -350,8 +350,8 @@ MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx4x8 eSP
 {
   UInt ui = eParIdx+eSParIdx;
 
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );
 }
 
 __inline
@@ -360,7 +360,7 @@ MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx4x4 eSP
 {
   UInt ui = eParIdx+eSParIdx;
 
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
+  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );
 }
 
 

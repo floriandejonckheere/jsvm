@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -92,7 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "GOPDecoder.h"
-#include "H264AVCCommonLib/Sei.h" 
+#include "H264AVCCommonLib/Sei.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -110,9 +110,9 @@ class RQFGSDecoder;
 
 
 class H264AVCDECODERLIB_API H264AVCDecoder
-{ 
+{
 protected:
-	H264AVCDecoder         ();
+  H264AVCDecoder         ();
   virtual ~H264AVCDecoder();
 
 public:
@@ -134,30 +134,30 @@ public:
 //JVT-S036 lsj start
   SliceHeader *getSliceHeader() const { return m_pcSliceHeader ; }
   ErrVal  initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
-											UInt&             ruiNalUnitType
-											, Bool            bPreParseHeader //FRAG_FIX
-											, Bool			      bConcatenated //FRAG_FIX_3
-											, Bool&           rbStartDecoding
-										    ,SliceHeader *   pcSliceHeader
-											, Bool&			 SuffixEnable
-								);
+                      UInt&             ruiNalUnitType
+                      , Bool            bPreParseHeader //FRAG_FIX
+                      , Bool            bConcatenated //FRAG_FIX_3
+                      , Bool&           rbStartDecoding
+                        ,SliceHeader *   pcSliceHeader
+                      , Bool&       SuffixEnable
+                );
 //JVT-S036 lsj end
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor,
-	                    UInt&             ruiNalUnitType,
-	                    UInt&             ruiMbX,
-	                    UInt&             ruiMbY,
-	                    UInt&             ruiSize
-						//,UInt&				ruiNonRequiredPic  //NonRequired JVT-Q066
+                      UInt&             ruiNalUnitType,
+                      UInt&             ruiMbX,
+                      UInt&             ruiMbY,
+                      UInt&             ruiSize
+            //,UInt&        ruiNonRequiredPic  //NonRequired JVT-Q066
                         //JVT-P031
-	                      ,Bool              bPreParseHeader //FRAG_FIX
-		                  , Bool			bConcatenated //FRAG_FIX_3
+                        ,Bool              bPreParseHeader //FRAG_FIX
+                      , Bool      bConcatenated //FRAG_FIX_3
                         ,Bool&             rbStartDecoding,
                         UInt&             ruiStartPos,
                         UInt&             ruiEndPos,
                         Bool&             bFragmented,
                         Bool&             bDiscardable
                         //~JVT-P031
-                        ); 
+                        );
   //JVT-P031
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor);
   Void    getDecodedResolution(UInt &uiLayerId);
@@ -172,17 +172,17 @@ public:
                       PicBufferList&    rcPicBufferReleaseList );
 
   // ROI DECODE Init ICU/ETRI
-  Void	  RoiDecodeInit() 
+  Void    RoiDecodeInit()
   {
-	    m_bCurNalIsEndOfPic		= false;
-		m_iCurNalSpatialLayer 	= -1;
-		m_iNextNalSpatialLayer  = -1;
-		m_iCurNalPOC			= -1;
-		m_iNextNalPOC			= -1;
-		m_iCurNalFirstMb		= -1;
+      m_bCurNalIsEndOfPic    = false;
+    m_iCurNalSpatialLayer   = -1;
+    m_iNextNalSpatialLayer  = -1;
+    m_iCurNalPOC      = -1;
+    m_iNextNalPOC      = -1;
+    m_iCurNalFirstMb    = -1;
   }
 
-  Bool	  IsSliceEndOfPic()				{ return m_bCurNalIsEndOfPic;  }
+  Bool    IsSliceEndOfPic()        { return m_bCurNalIsEndOfPic;  }
   ErrVal  getBaseLayerData              ( IntFrame*&      pcFrame,
                                           IntFrame*&      pcResidual,
                                           MbDataCtrl*&    pcMbDataCtrl,
@@ -207,42 +207,42 @@ public:
                                         Int&              slicePoc  );
   ErrVal  checkSliceLayerDependency   ( BinDataAccessor*  pcBinDataAccessor,
                                         Bool&             bFinishChecking );
-//	TMM_EC {{
-	Bool		checkSEIForErrorConceal();
+//  TMM_EC {{
+  Bool    checkSEIForErrorConceal();
   ErrVal  checkSliceGap   ( BinDataAccessor*  pcBinDataAccessor,
-                            MyList<BinData*>&	cVirtualSliceList );
-	ErrVal	setec( UInt uiErrorConceal) 
-  { 
-    m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal); 
-    if ( m_eErrorConceal == EC_NONE) m_bNotSupport = true; 
-   return	Err::m_nOK;
+                            MyList<BinData*>&  cVirtualSliceList );
+  ErrVal  setec( UInt uiErrorConceal)
+  {
+    m_eErrorConceal = (ERROR_CONCEAL)(EC_NONE + uiErrorConceal);
+    if ( m_eErrorConceal == EC_NONE) m_bNotSupport = true;
+   return  Err::m_nOK;
   }
-  ErrVal getBaseLayerUnit(UInt            uiBaseLayerId, 
+  ErrVal getBaseLayerUnit(UInt            uiBaseLayerId,
                           Int             iPoc,
                           DPBUnit         *&pcBaseDPBUnit);
-	UInt	m_uiNextFrameNum;
-	UInt	m_uiNextLayerId;
-	UInt	m_uiNextPoc;
-	UInt	m_uiNextTempLevel;
-	UInt	*m_pauiPocInGOP[MAX_LAYERS];
-	UInt	*m_pauiFrameNumInGOP[MAX_LAYERS];
-	UInt	*m_pauiTempLevelInGOP[MAX_LAYERS];
-	UInt	m_uiDecompositionStages[MAX_LAYERS];
-	UInt	m_uiNumLayers;
-	UInt	m_uiFrameIdx[MAX_LAYERS];
-	ERROR_CONCEAL	m_eErrorConceal;
-	UInt	m_uiDefNumLayers;
-	UInt	m_uiDefDecompositionStages[MAX_LAYERS];
-	UInt	m_uiMaxDecompositionStages;
-	UInt	m_uiMaxGopSize;
-	UInt	m_uiGopSize[MAX_LAYERS];
-	Bool	m_bNotSupport;
-	UInt	m_uiMaxLayerId;
-	UInt  m_baseMode;
+  UInt  m_uiNextFrameNum;
+  UInt  m_uiNextLayerId;
+  UInt  m_uiNextPoc;
+  UInt  m_uiNextTempLevel;
+  UInt  *m_pauiPocInGOP[MAX_LAYERS];
+  UInt  *m_pauiFrameNumInGOP[MAX_LAYERS];
+  UInt  *m_pauiTempLevelInGOP[MAX_LAYERS];
+  UInt  m_uiDecompositionStages[MAX_LAYERS];
+  UInt  m_uiNumLayers;
+  UInt  m_uiFrameIdx[MAX_LAYERS];
+  ERROR_CONCEAL  m_eErrorConceal;
+  UInt  m_uiDefNumLayers;
+  UInt  m_uiDefDecompositionStages[MAX_LAYERS];
+  UInt  m_uiMaxDecompositionStages;
+  UInt  m_uiMaxGopSize;
+  UInt  m_uiGopSize[MAX_LAYERS];
+  Bool  m_bNotSupport;
+  UInt  m_uiMaxLayerId;
+  UInt  m_baseMode;
 //  TMM_EC }}
   Void    setQualityLevelForPrediction( UInt ui ) { m_uiQualityLevelForPrediction = ui; }
 
-  UInt isNonRequiredPic()						  { return m_uiNonRequiredPic;  } //NonRequired JVT-Q066
+  UInt isNonRequiredPic()              { return m_uiNonRequiredPic;  } //NonRequired JVT-Q066
   Bool isRedundantPic()             { return m_bRedundantPic; }  // JVT-Q054 Red. Picture
   ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
   Void    setFGSRefInAU(Bool &b); //JVT-T054
@@ -262,8 +262,8 @@ protected:
 
   // TMM_EC {{
   ErrVal  xProcessSliceVirtual      ( SliceHeader&    rcSH,
-	                                    SliceHeader* pcPrevSH,
-									                    PicBuffer* &    rpcPicBuffer);
+                                      SliceHeader* pcPrevSH,
+                                      PicBuffer* &    rpcPicBuffer);
   // TMM_EC }}
   ErrVal  xProcessSlice             ( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
@@ -312,7 +312,7 @@ protected:
   Bool                          m_bActive;
   Bool                          m_bReconstruct;
   Bool                          m_bBaseLayerIsAVCCompatible;
-	Bool                          m_bNewSPS;
+  Bool                          m_bNewSPS;
   UInt                          m_uiRecLayerId;
   UInt                          m_uiLastLayerId;
   const SequenceParameterSet*   m_pcVeryFirstSPS;
@@ -338,12 +338,12 @@ protected:
   UInt                          m_uiGroupingSize;
   UInt                          m_uiPosVect[16];
 
-  SEI::NonRequiredSei*			m_pcNonRequiredSei;
-  UInt							m_uiNonRequiredSeiReadFlag;
-	UInt							m_uiNonRequiredSeiRead;
-	UInt							m_uiNonRequiredPic;	//NonRequired JVT-Q066	
-  UInt							m_uiPrevPicLayer;
-  UInt							m_uiCurrPicLayer;
+  SEI::NonRequiredSei*      m_pcNonRequiredSei;
+  UInt              m_uiNonRequiredSeiReadFlag;
+  UInt              m_uiNonRequiredSeiRead;
+  UInt              m_uiNonRequiredPic;  //NonRequired JVT-Q066
+  UInt              m_uiPrevPicLayer;
+  UInt              m_uiCurrPicLayer;
   //JVT-P031
   UInt                          m_uiFirstFragmentPPSId;
   UInt                          m_uiFirstFragmentNumMbsInSlice;
@@ -360,15 +360,15 @@ protected:
   SliceHeader::PredWeightTable  m_acLastPredWeightTable[2];
 
   // ROI DECODE ICU/ETRI
-  int	m_iCurNalSpatialLayer;
-  int	m_iNextNalSpatialLayer;
-			   
-  int	m_iCurNalPOC;
-  int	m_iNextNalPOC;
+  int  m_iCurNalSpatialLayer;
+  int  m_iNextNalSpatialLayer;
+
+  int  m_iCurNalPOC;
+  int  m_iNextNalPOC;
   int   m_iCurNalFirstMb;
 
-  bool	m_bCurNalIsEndOfPic;
-  bool	m_bFirstFGS;
+  bool  m_bCurNalIsEndOfPic;
+  bool  m_bFirstFGS;
 
 //JVT-T054{
   Bool                          m_bLastNalInAU;

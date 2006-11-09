@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -84,6 +84,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/MbTransformCoeffs.h"
+#include "H264AVCCommonLib/FGSCoder.h"
 
 #include <stdio.h>
 
@@ -122,27 +123,52 @@ Void MbTransformCoeffs::clear()
 {
   for (Int i=0; i<24; i++)
     ::memset( &(m_aaiLevel[i][0]), 0, 16*sizeof(TCoeff) );
-  
+
   ::memset( m_aaiLevel, 0, sizeof( m_aaiLevel ) );
   ::memset( m_aaucCoeffCount, 0, sizeof(m_aaucCoeffCount));
 }
 
-Void MbTransformCoeffs::clearAcBlk( ChromaIdx cChromaIdx )
+Void MbTransformCoeffs::clearAcBlk( ChromaIdx cChromaIdx, MbFGSCoefMap* pcMbFGSCoefMap )
 {
+  if( pcMbFGSCoefMap )
+  {
+    RefCtx* pcRefCtx = pcMbFGSCoefMap->getRefCtx( cChromaIdx );
+    for( UInt ui = 1; ui < 16; ui++ )
+      pcRefCtx[ui] = 0;
+  }
+
   ::memset( &m_aaiLevel[16+cChromaIdx][1], 0, sizeof( TCoeff) * 15 );
 }
 
 
 
 Void
-MbTransformCoeffs::clearLumaLevels()
+MbTransformCoeffs::clearLumaLevels( MbFGSCoefMap* pcMbFGSCoefMap )
 {
+  if( pcMbFGSCoefMap )
+  {
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    {
+      RefCtx* pcRefCtx = pcMbFGSCoefMap->getRefCtx( c8x8Idx );
+      for( UInt ui = 0; ui < 64; ui++ )
+        pcRefCtx[ui] = 0;
+    }
+  }
   ::memset( &m_aaiLevel[0][0], 0, sizeof(TCoeff)*16*16 );
 }
 
 Void
-MbTransformCoeffs::clearLumaLevels8x8( B8x8Idx c8x8Idx )
+MbTransformCoeffs::clearLumaLevels8x8( B8x8Idx c8x8Idx, MbFGSCoefMap* pcMbFGSCoefMap )
 {
+  if( pcMbFGSCoefMap )
+  {
+    for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+    {
+      RefCtx* pcRefCtx = pcMbFGSCoefMap->getRefCtx( cIdx );
+      for( UInt ui = 0; ui < 16; ui++ )
+        pcRefCtx[ui] = 0;
+    }
+  }
   UInt uiIndex = c8x8Idx.b8x8();
   ::memset( &m_aaiLevel[uiIndex  ][0], 0, sizeof(TCoeff)*16 );
   ::memset( &m_aaiLevel[uiIndex+1][0], 0, sizeof(TCoeff)*16 );
@@ -151,9 +177,15 @@ MbTransformCoeffs::clearLumaLevels8x8( B8x8Idx c8x8Idx )
 }
 
 Void
-MbTransformCoeffs::clearLumaLevels8x8Block( B8x8Idx c8x8Idx )
+MbTransformCoeffs::clearLumaLevels8x8Block( B8x8Idx c8x8Idx, MbFGSCoefMap* pcMbFGSCoefMap )
 {
-  ::memset( &m_aaiLevel[4*c8x8Idx.b8x8Index()][0], 0, sizeof(TCoeff)*64 );
+  ::memset( get8x8( c8x8Idx ), 0, sizeof(TCoeff)*64 );
+  if( pcMbFGSCoefMap )
+  {
+    RefCtx* pcRefCtx = pcMbFGSCoefMap->getRefCtx( c8x8Idx );
+    for( UInt ui = 0; ui < 64; ui++ )
+      pcRefCtx[ui] = 0;
+  }
 }
 
 
@@ -172,9 +204,8 @@ Void MbTransformCoeffs::copyFrom( MbTransformCoeffs& rcMbTransformCoeffs )
 
 MbTransformCoeffs::MbTransformCoeffs()
 {
-  clear();  
+  clear();
 }
-
 
 
 
@@ -182,16 +213,19 @@ MbTransformCoeffs::MbTransformCoeffs()
 
 
 Void MbTransformCoeffs::clearNewAcBlk( ChromaIdx          cChromaIdx,
+                                       MbFGSCoefMap&      rcMbFGSCoefMap,
                                        MbTransformCoeffs& rcBaseMbTCoeffs )
 {
-  TCoeff* piCoeff     = m_aaiLevel[16+cChromaIdx];
-  TCoeff* piCoeffBase = rcBaseMbTCoeffs.m_aaiLevel[16+cChromaIdx];
+  TCoeff* piCoeff      = get( cChromaIdx );
+  TCoeff* piCoeffBase  = rcBaseMbTCoeffs.get( cChromaIdx );
+  RefCtx *pcRefCtx     = rcMbFGSCoefMap.getRefCtx( cChromaIdx );
 
   for( UInt ui = 1; ui < 16; ui++ )
   {
     if( ! piCoeffBase[ui] )
     {
       piCoeff[ui] = 0;
+      pcRefCtx[g_aucInvFrameScan[ui]] = 0;
     }
   }
 }
@@ -199,37 +233,37 @@ Void MbTransformCoeffs::clearNewAcBlk( ChromaIdx          cChromaIdx,
 
 
 Void
-MbTransformCoeffs::clearNewLumaLevels( MbTransformCoeffs& rcBaseMbTCoeffs )
+MbTransformCoeffs::clearNewLumaLevels( MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap, Bool bIsB8x8 )
 {
-  TCoeff* piCoeff     = m_aaiLevel[0];
-  TCoeff* piCoeffBase = rcBaseMbTCoeffs.m_aaiLevel[0];
-
-  for( UInt ui = 0; ui < 16*16; ui++ )
+  if( bIsB8x8 )
   {
-    if( ! piCoeffBase[ui] )
-    {
-      piCoeff[ui] = 0;
-    }
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      clearNewLumaLevels8x8Block( c8x8Idx, rcBaseMbTCoeffs, pcMbFGSCoefMap );
+  }
+  else
+  {
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      clearNewLumaLevels8x8( c8x8Idx, rcBaseMbTCoeffs, pcMbFGSCoefMap );
   }
 }
 
 Void
 MbTransformCoeffs::clearNewLumaLevels8x8( B8x8Idx             c8x8Idx,
-                                          MbTransformCoeffs&  rcBaseMbTCoeffs )
+                                          MbTransformCoeffs&  rcBaseMbTCoeffs,
+                                          MbFGSCoefMap*      pcMbFGSCoefMap )
 {
-  UInt auiOffset[4] = { 0, 1, 4, 5 };
-  UInt uiIndex      = c8x8Idx.b8x8();
-
-  for( UInt uiBlk = 0; uiBlk < 4; uiBlk++ )
+  for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
   {
-    TCoeff* piCoeff     = m_aaiLevel[uiIndex+auiOffset[uiBlk]];
-    TCoeff* piCoeffBase = rcBaseMbTCoeffs.m_aaiLevel[uiIndex+auiOffset[uiBlk]];
-
+    TCoeff* piCoeff     = get( cIdx );
+    TCoeff* piCoeffBase = rcBaseMbTCoeffs.get( cIdx );
+    RefCtx* pcRefCtx    = pcMbFGSCoefMap ? pcMbFGSCoefMap->getRefCtx( cIdx ) : NULL;
     for( UInt ui = 0; ui < 16; ui++ )
     {
       if( ! piCoeffBase[ui] )
       {
         piCoeff[ui] = 0;
+        if( pcRefCtx )
+          pcRefCtx[g_aucInvFrameScan[ui]] = 0;
       }
     }
   }
@@ -237,16 +271,19 @@ MbTransformCoeffs::clearNewLumaLevels8x8( B8x8Idx             c8x8Idx,
 
 Void
 MbTransformCoeffs::clearNewLumaLevels8x8Block( B8x8Idx            c8x8Idx,
-                                               MbTransformCoeffs& rcBaseMbTCoeffs )
+                                               MbTransformCoeffs& rcBaseMbTCoeffs,
+                                               MbFGSCoefMap*     pcMbFGSCoefMap )
 {
-  TCoeff* piCoeff     = m_aaiLevel[4*c8x8Idx.b8x8Index()];
-  TCoeff* piCoeffBase = rcBaseMbTCoeffs.m_aaiLevel[4*c8x8Idx.b8x8Index()];
-
+  TCoeff* piCoeff     = get8x8( c8x8Idx );
+  TCoeff* piCoeffBase = rcBaseMbTCoeffs.get8x8( c8x8Idx );
+  RefCtx* pcRefCtx    = pcMbFGSCoefMap ? pcMbFGSCoefMap->getRefCtx( c8x8Idx ) : NULL;
   for( UInt ui = 0; ui < 64; ui++ )
   {
     if( ! piCoeffBase[ui] )
     {
       piCoeff[ui] = 0;
+      if( pcRefCtx )
+        pcRefCtx[g_aucInvFrameScan64[ui]] = 0;
     }
   }
 }

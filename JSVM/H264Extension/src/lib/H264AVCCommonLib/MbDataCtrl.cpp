@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -270,10 +270,10 @@ MbDataCtrl::initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParamet
 
  for( Int iMbY = iMbOrigY ; iMbY < iMbEndY; iMbY++)
   for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
-	 {
+   {
     MbData& rcMbDes = m_pcMbData[iMbY*rcBaseMbDataCtrl.m_uiMbStride + iMbX];
     RNOK( rcMbDes.initMbCbp() );
-	 }
+   }
   return Err::m_nOK;
 }
 //JVT-T054}
@@ -311,11 +311,11 @@ MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcPara
 
  for( Int iMbY = iMbOrigY ; iMbY < iMbEndY; iMbY++)
   for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
-	 {
+   {
     MbData& rcMbDes = m_pcMbData[iMbY*rcBaseMbDataCtrl.m_uiMbStride + iMbX];
     RNOK( rcMbDes.copyMotionBL( rcBaseMbDataCtrl.m_pcMbData[(iMbY - iMbOrigY)*rcBaseMbDataCtrl.m_uiMbStride + (iMbX - iMbOrigX)], bDirect8x8, m_uiSliceId ) );
     rcMbDes.setInCropWindowFlag( true );
-	 }
+   }
   return Err::m_nOK;
 }
 
@@ -324,29 +324,29 @@ MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcPara
 ErrVal
 MbDataCtrl::xUpsampleMotionDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
 {
-	Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
-	Int  iMbX,iMbY,iBaseMbY,iBaseMbX,iPar;
-	UInt uiBaseMbStride=rcBaseMbDataCtrl.m_uiMbStride;
+  Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
+  Int  iMbX,iMbY,iBaseMbY,iBaseMbX,iPar;
+  UInt uiBaseMbStride=rcBaseMbDataCtrl.m_uiMbStride;
 
-	Int  iMbOrigX = pcParameters->m_iPosX/16;
-	Int  iMbOrigY = pcParameters->m_iPosY/16;
-	Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
-	Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
+  Int  iMbOrigX = pcParameters->m_iPosX/16;
+  Int  iMbOrigY = pcParameters->m_iPosY/16;
+  Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
+  Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
 
-	//loop on scaled base window MBs
-	for( iMbY = iMbOrigY,iBaseMbY = 0 ; iMbY < iMbEndY; iMbY+=2,iBaseMbY++)
-		for( iMbX = iMbOrigX,iBaseMbX = 0 ; iMbX < iMbEndX; iMbX+=2,iBaseMbX++)
-			for( iPar = 0; iPar < 4;              iPar++  )
-			{
-				MbData& rcMbDes = m_pcMbData[(iMbY+(iPar/2))*m_uiMbStride+(iMbX+(iPar%2))];
-				MbData& rcMbSrc = rcBaseMbDataCtrl.m_pcMbData[iBaseMbY*uiBaseMbStride+iBaseMbX];
+  //loop on scaled base window MBs
+  for( iMbY = iMbOrigY,iBaseMbY = 0 ; iMbY < iMbEndY; iMbY+=2,iBaseMbY++)
+    for( iMbX = iMbOrigX,iBaseMbX = 0 ; iMbX < iMbEndX; iMbX+=2,iBaseMbX++)
+      for( iPar = 0; iPar < 4;              iPar++  )
+      {
+        MbData& rcMbDes = m_pcMbData[(iMbY+(iPar/2))*m_uiMbStride+(iMbX+(iPar%2))];
+        MbData& rcMbSrc = rcBaseMbDataCtrl.m_pcMbData[iBaseMbY*uiBaseMbStride+iBaseMbX];
 
-				Par8x8  ePar    = Par8x8( iPar );
-				rcMbDes.setInCropWindowFlag( true );
-				RNOK( rcMbDes.upsampleMotion( rcMbSrc, ePar, bDirect8x8 ) );
-			}
+        Par8x8  ePar    = Par8x8( iPar );
+        rcMbDes.setInCropWindowFlag( true );
+        RNOK( rcMbDes.upsampleMotion( rcMbSrc, ePar, bDirect8x8 ) );
+      }
 
-			return Err::m_nOK;
+      return Err::m_nOK;
 }
 
 
@@ -355,7 +355,7 @@ ErrVal
 MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* pcParameters )
 {
   Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
-  
+
   if( pcParameters->m_iExtendedSpatialScalability == ESS_PICT )
   {
   Int index = m_pcSliceHeader->getPoc();
@@ -364,11 +364,11 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* p
   }
 
   Int     iScaledBaseOrigX = pcParameters->m_iPosX;
-  Int     iScaledBaseOrigY = pcParameters->m_iPosY; 
+  Int     iScaledBaseOrigY = pcParameters->m_iPosY;
   Int     iScaledBaseWidth = pcParameters->m_iOutWidth;
   Int     iScaledBaseHeight = pcParameters->m_iOutHeight;
 
-  Int  aiPelOrig[2];  
+  Int  aiPelOrig[2];
 
   // loop on MBs of high res picture
   //--------------------------------
@@ -385,18 +385,18 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* p
       {
           aiPelOrig[0]=(Int)16*iMbX-iScaledBaseOrigX;
           aiPelOrig[1]=(Int)16*iMbY-iScaledBaseOrigY;
-          RNOK(rcMbDes.upsampleMotionESS(rcBaseMbDataCtrl.m_pcMbData, 
+          RNOK(rcMbDes.upsampleMotionESS(rcBaseMbDataCtrl.m_pcMbData,
                                          rcBaseMbDataCtrl.m_uiMbStride,
                                          aiPelOrig,
-										                     bDirect8x8,
+                                         bDirect8x8,
                                          pcParameters));
            rcMbDes.setInCropWindowFlag( true );
-		  }
+      }
       else
       {
           rcMbDes.noUpsampleMotion();
       }
-	 } // end of for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
+   } // end of for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
   } // end of for( Int iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
 
   return Err::m_nOK;
@@ -404,12 +404,12 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* p
 ErrVal
 MbDataCtrl::upsampleMotion( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
 {
-  if(NULL==pcParameters) 
+  if(NULL==pcParameters)
   return copyMotion(rcBaseMbDataCtrl);
 
-	if(pcParameters->m_iSpatialScalabilityType==SST_RATIO_1)
+  if(pcParameters->m_iSpatialScalabilityType==SST_RATIO_1)
   return copyMotionBL(rcBaseMbDataCtrl, pcParameters);
-  
+
   return xUpsampleMotionESS(rcBaseMbDataCtrl, pcParameters);
 }
 // TMM_ESS_UNIFIED }
@@ -485,7 +485,7 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
     //--
 
     m_cpDFPBuffer.set( m_uiSliceId, rcSH.getDeblockingFilterParameterScalable().getCopy() );
-   
+
     m_bDirect8x8InferenceFlag = rcSH.getSPS().getDirect8x8InferenceFlag();
   }
   m_pcSliceHeader = &rcSH;
@@ -648,7 +648,7 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
                                        xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left
                                        xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf ), // above right
                                        xGetOutMbData(),                                   // unvalid
-																			 pcMbDataCtrlRef->getMbData( uiMbX, uiMbY),
+                                       pcMbDataCtrlRef->getMbData( uiMbX, uiMbY),
                                        *m_pcSliceHeader,
                                        *m_cpDFPBuffer.get( uiSliceId ),
                                        uiMbX,
@@ -677,7 +677,7 @@ MbDataCtrl::storeFgsBQLayerQpAndCbp()
     m_pauiFgsBQMbCbp   [uiMbIndex] = getMbData( uiMbIndex ).getMbExtCbp();
     m_pauiFgsBQBCBP    [uiMbIndex] = getMbData( uiMbIndex ).getBCBP();
     m_pabFgsBQ8x8Trafo [uiMbIndex] = getMbData( uiMbIndex ).isTransformSize8x8();
-    
+
   }
   return Err::m_nOK;
 }
@@ -764,7 +764,7 @@ ControlData::ControlData()
 , m_pabBQ8x8Trafo       ( 0 )
 , m_paeBQMbMode         ( 0 )
 , m_pusBQFwdBwd         ( 0 )
-, m_iSpatialScalabilityType ( 0 ) 
+, m_iSpatialScalabilityType ( 0 )
 , m_bSpatialScalability ( false)//SSUN@SHARP
 {
   m_paacBQMotionData[0] = m_paacBQMotionData[1] = 0;
@@ -803,7 +803,7 @@ ControlData::init( SliceHeader*  pcSliceHeader,
   m_pcSliceHeader = pcSliceHeader;
   m_pcMbDataCtrl  = pcMbDataCtrl;
   m_dLambda       = dLambda;
-  
+
   m_pcBaseLayerRec      = 0;
   m_pcBaseLayerSbb      = 0;
   m_pcBaseLayerCtrl     = 0;
@@ -819,7 +819,7 @@ ControlData::init( SliceHeader*  pcSliceHeader )
   ROF( m_pcMbDataCtrl  );
 
   m_pcSliceHeader = pcSliceHeader;
-  
+
   m_pcBaseLayerRec      = 0;
   m_pcBaseLayerSbb      = 0;
   m_pcBaseLayerCtrl     = 0;
@@ -999,7 +999,7 @@ ControlData::switchFGSLayerQpAndCbp()
 
 
 
-ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const 
+ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
 {
   UInt     uiCurrIdx    = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
   AOT( uiCurrIdx >= m_uiSize );
@@ -1071,9 +1071,9 @@ const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
 {
   Int iRefSliceID ;
   if(m_pcSliceHeader->getFMO() != NULL)
-	iRefSliceID =m_pcSliceHeader->getFMO()->getSliceGroupId(mb );
+  iRefSliceID =m_pcSliceHeader->getFMO()->getSliceGroupId(mb );
   else
-	iRefSliceID =-1;
+  iRefSliceID =-1;
 
   return iRefSliceID ;
 }

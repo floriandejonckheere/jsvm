@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -102,7 +102,7 @@ public:
 
   MbMvData()
   {
-    clear();  
+    clear();
   }
 
   Void clear()
@@ -191,9 +191,9 @@ public:
       m_usMotPredFlags( 0x0000 )
   {
     m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = BLOCK_NOT_AVAILABLE;
-    m_usMotPredFlags=0; 
-  
-    m_acRefPic[ 0 ].setFrame( NULL ); 
+    m_usMotPredFlags=0;
+
+    m_acRefPic[ 0 ].setFrame( NULL );
     m_acRefPic[ 1 ].setFrame( NULL );
     m_acRefPic[ 2 ].setFrame( NULL );
     m_acRefPic[ 3 ].setFrame( NULL );
@@ -220,7 +220,7 @@ public:
   Void  setRefIdx( SChar scRefIdx, ParIdx16x8 eParIdx  );
   Void  setRefIdx( SChar scRefIdx, ParIdx8x16 eParIdx  );
   Void  setRefIdx( SChar scRefIdx, ParIdx8x8  eParIdx  );
-  
+
   SChar getRefIdx()                      const  { return m_ascRefIdx[ 0         ]; }
   SChar getRefIdx( ParIdx16x8 eParIdx  ) const  { return m_ascRefIdx[ m_auiBlk2Part[ eParIdx ] ]; }
   SChar getRefIdx( ParIdx8x16 eParIdx  ) const  { return m_ascRefIdx[ m_auiBlk2Part[ eParIdx ] ]; }
@@ -278,12 +278,12 @@ public:
   ErrVal  save( FILE* pFile );
   ErrVal  load( FILE* pFile );
 
-  
+
   ErrVal  upsampleMotion( const MbMotionData& rcMbMvData, Par8x8 ePar8x8 );
 
 // TMM_ESS {
   ErrVal upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , ResizeParameters* pcParameters );
-  ErrVal upsampleMotionNonDyad( SChar* scBl8x8RefIdx , Mv* acBl4x4Mv , ResizeParameters* pcParameters , Mv deltaMv[4] ); 
+  ErrVal upsampleMotionNonDyad( SChar* scBl8x8RefIdx , Mv* acBl4x4Mv , ResizeParameters* pcParameters , Mv deltaMv[4] );
 // TMM_ESS }
 private:
   Bool  xGetMotPredFlag ( UInt  uiPos )  const
@@ -320,20 +320,20 @@ public:
 
 
 
-__inline 
+__inline
 Void MbMotionData::setRefIdx( SChar scRefIdx )
 {
   m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = scRefIdx;
 }
 
-__inline 
+__inline
 Void MbMotionData::setRefIdx( SChar scRefIdx, ParIdx16x8 eParIdx )
 {
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]   ] = scRefIdx;
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]+1 ] = scRefIdx;
 }
 
-__inline 
+__inline
 Void MbMotionData::setRefIdx( SChar scRefIdx, ParIdx8x16 eParIdx )
 {
   m_ascRefIdx[ m_auiBlk2Part[eParIdx]   ] = scRefIdx;

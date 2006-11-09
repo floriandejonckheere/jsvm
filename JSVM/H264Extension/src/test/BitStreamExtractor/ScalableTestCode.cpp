@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -169,251 +169,251 @@ ScalableTestCode::~ScalableTestCode()
 ErrVal
 ScalableTestCode::Destroy()
 {
-	delete this;
-	return Err::m_nOK;
+  delete this;
+  return Err::m_nOK;
 }
 ErrVal
 ScalableTestCode::WriteUVLC( UInt uiValue )
 {
-	UInt uiLength = 1;
-	UInt uiTemp = ++uiValue;
-	while( uiTemp != 1 )
-	{
-		uiTemp >>= 1;
-		uiLength += 2;
-	}
-	RNOK( WriteCode( uiValue, uiLength ) );
-	return Err::m_nOK;
+  UInt uiLength = 1;
+  UInt uiTemp = ++uiValue;
+  while( uiTemp != 1 )
+  {
+    uiTemp >>= 1;
+    uiLength += 2;
+  }
+  RNOK( WriteCode( uiValue, uiLength ) );
+  return Err::m_nOK;
 }
 
 ErrVal
 ScalableTestCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableTestCode *pcScalableTestCode )
 {
-	UInt uiNumScalableLayersMinus1 = pcScalableSei->getNumLayersMinus1();
-	pcScalableTestCode->WriteUVLC( uiNumScalableLayersMinus1 );
-	for( UInt uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
-	{
-		pcScalableTestCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
+  UInt uiNumScalableLayersMinus1 = pcScalableSei->getNumLayersMinus1();
+  pcScalableTestCode->WriteUVLC( uiNumScalableLayersMinus1 );
+  for( UInt uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
+  {
+    pcScalableTestCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
 //JVT-S036 lsj start
-//		pcScalableTestCode->WriteFlag( pcScalableSei->getFGSLayerFlag( uiLayer ) ); 
-	
-		pcScalableTestCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 ); 
-		pcScalableTestCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) ); 
-		pcScalableTestCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
-		pcScalableTestCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
-		pcScalableTestCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
+//    pcScalableTestCode->WriteFlag( pcScalableSei->getFGSLayerFlag( uiLayer ) );
 
-		pcScalableTestCode->WriteFlag( pcScalableSei->getSubPicLayerFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getSubRegionLayerFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getIroiSliceDivisionInfoPresentFlag ( uiLayer ) ); 
-		pcScalableTestCode->WriteFlag( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) );
+    pcScalableTestCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );
+    pcScalableTestCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
+    pcScalableTestCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
+    pcScalableTestCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
+
+    pcScalableTestCode->WriteFlag( pcScalableSei->getSubPicLayerFlag( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getSubRegionLayerFlag( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getIroiSliceDivisionInfoPresentFlag ( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) );
 //JVT-S036 lsj end
-		pcScalableTestCode->WriteFlag( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) );
-		pcScalableTestCode->WriteFlag( pcScalableSei->getExactInterlayerPredFlag( uiLayer ) ); //JVT-S036 lsj
+    pcScalableTestCode->WriteFlag( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) );
+    pcScalableTestCode->WriteFlag( pcScalableSei->getExactInterlayerPredFlag( uiLayer ) ); //JVT-S036 lsj
 
-		if( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteCode( pcScalableSei->getLayerProfileIdc( uiLayer ), 8 );
-			pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet0Flag( uiLayer ) );
-			pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet1Flag( uiLayer ) );
-			pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet2Flag( uiLayer ) );
-			pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet3Flag( uiLayer ) );
-			pcScalableTestCode->WriteCode( 0, 4 );
-			pcScalableTestCode->WriteCode( pcScalableSei->getLayerLevelIdc( uiLayer ), 8 );
-		}
-		else
-		{//JVT-S036 lsj
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getProfileLevelInfoSrcLayerIdDelta( uiLayer ) );
-		}
+    if( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteCode( pcScalableSei->getLayerProfileIdc( uiLayer ), 8 );
+      pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet0Flag( uiLayer ) );
+      pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet1Flag( uiLayer ) );
+      pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet2Flag( uiLayer ) );
+      pcScalableTestCode->WriteFlag( pcScalableSei->getLayerConstraintSet3Flag( uiLayer ) );
+      pcScalableTestCode->WriteCode( 0, 4 );
+      pcScalableTestCode->WriteCode( pcScalableSei->getLayerLevelIdc( uiLayer ), 8 );
+    }
+    else
+    {//JVT-S036 lsj
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getProfileLevelInfoSrcLayerIdDelta( uiLayer ) );
+    }
 
-/*		if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 ); 
-			pcScalableTestCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) ); 
-			pcScalableTestCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
-			pcScalableTestCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
-			pcScalableTestCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
-		}
+/*    if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 );
+      pcScalableTestCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );
+      pcScalableTestCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
+      pcScalableTestCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
+      pcScalableTestCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
+    }
 JVT-S036 lsj*/
-		if( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteCode( pcScalableSei->getAvgBitrate( uiLayer ), 16 );
-		//JVT-S036 lsj start
-			pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateLayer( uiLayer ), 16 );
-			pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateDecodedPicture( uiLayer ), 16 );
-			pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateCalcWindow( uiLayer ), 16 );
-		//JVT-S036 lsj end
-		}
+    if( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteCode( pcScalableSei->getAvgBitrate( uiLayer ), 16 );
+    //JVT-S036 lsj start
+      pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateLayer( uiLayer ), 16 );
+      pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateDecodedPicture( uiLayer ), 16 );
+      pcScalableTestCode->WriteCode( pcScalableSei->getMaxBitrateCalcWindow( uiLayer ), 16 );
+    //JVT-S036 lsj end
+    }
 
-		if( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteCode( pcScalableSei->getConstantFrmRateIdc( uiLayer ), 2 );
-			pcScalableTestCode->WriteCode( pcScalableSei->getAvgFrmRate( uiLayer ), 16 );
-		}
-		else
-		{//JVT-S036 lsj 
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmRateInfoSrcLayerIdDelta( uiLayer ) );
-		}
+    if( pcScalableSei->getFrmRateInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteCode( pcScalableSei->getConstantFrmRateIdc( uiLayer ), 2 );
+      pcScalableTestCode->WriteCode( pcScalableSei->getAvgFrmRate( uiLayer ), 16 );
+    }
+    else
+    {//JVT-S036 lsj
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmRateInfoSrcLayerIdDelta( uiLayer ) );
+    }
 
-		if( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) );
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) );
-		}
-		else
-		{//JVT-S036 lsj
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmSizeInfoSrcLayerIdDelta( uiLayer ) );
-		}
+    if( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) );
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) );
+    }
+    else
+    {//JVT-S036 lsj
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getFrmSizeInfoSrcLayerIdDelta( uiLayer ) );
+    }
 
-		if( pcScalableSei->getSubRegionLayerFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteCode( pcScalableSei->getBaseRegionLayerId( uiLayer ), 8 );
-			pcScalableTestCode->WriteFlag( pcScalableSei->getDynamicRectFlag( uiLayer ) );
-			if( pcScalableSei->getDynamicRectFlag( uiLayer ) )
-			{
-				pcScalableTestCode->WriteCode( pcScalableSei->getHorizontalOffset( uiLayer ), 16 );
-				pcScalableTestCode->WriteCode( pcScalableSei->getVerticalOffset( uiLayer ), 16 );
-				pcScalableTestCode->WriteCode( pcScalableSei->getRegionWidth( uiLayer ), 16 );
-				pcScalableTestCode->WriteCode( pcScalableSei->getRegionHeight( uiLayer ), 16 );
-			}
-		}
-		else
-		{//JVT-S036 lsj
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getSubRegionInfoSrcLayerIdDelta( uiLayer ) );
-		}
+    if( pcScalableSei->getSubRegionLayerFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteCode( pcScalableSei->getBaseRegionLayerId( uiLayer ), 8 );
+      pcScalableTestCode->WriteFlag( pcScalableSei->getDynamicRectFlag( uiLayer ) );
+      if( pcScalableSei->getDynamicRectFlag( uiLayer ) )
+      {
+        pcScalableTestCode->WriteCode( pcScalableSei->getHorizontalOffset( uiLayer ), 16 );
+        pcScalableTestCode->WriteCode( pcScalableSei->getVerticalOffset( uiLayer ), 16 );
+        pcScalableTestCode->WriteCode( pcScalableSei->getRegionWidth( uiLayer ), 16 );
+        pcScalableTestCode->WriteCode( pcScalableSei->getRegionHeight( uiLayer ), 16 );
+      }
+    }
+    else
+    {//JVT-S036 lsj
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getSubRegionInfoSrcLayerIdDelta( uiLayer ) );
+    }
 
-	//JVT-S036 lsj start
-		if( pcScalableSei->getSubPicLayerFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteCode( pcScalableSei->getRoiId( uiLayer ), 3 );
-		}
-		if( pcScalableSei->getIroiSliceDivisionInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteCode( pcScalableSei->getIroiSliceDivisionType( uiLayer ) , 2 );
-			if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 0 )
-			{
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getGridSliceWidthInMbsMinus1( uiLayer ) );
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getGridSliceHeightInMbsMinus1( uiLayer ) );
-			}
-			else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 1 )
-			{
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
-				for (UInt nslice = 0; nslice <= pcScalableSei->getNumSliceMinus1( uiLayer ) ; nslice ++ )
-				{
-					pcScalableTestCode->WriteUVLC( pcScalableSei->getFirstMbInSlice( uiLayer, nslice ) );
-					pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceWidthInMbsMinus1( uiLayer, nslice ) );
-					pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceHeightInMbsMinus1( uiLayer, nslice ) ); 
-				}
-			}
-			else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 2 )
-			{
-    		// JVT-S054 (REPLACE) ->
+  //JVT-S036 lsj start
+    if( pcScalableSei->getSubPicLayerFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteCode( pcScalableSei->getRoiId( uiLayer ), 3 );
+    }
+    if( pcScalableSei->getIroiSliceDivisionInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteCode( pcScalableSei->getIroiSliceDivisionType( uiLayer ) , 2 );
+      if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 0 )
+      {
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getGridSliceWidthInMbsMinus1( uiLayer ) );
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getGridSliceHeightInMbsMinus1( uiLayer ) );
+      }
+      else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 1 )
+      {
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+        for (UInt nslice = 0; nslice <= pcScalableSei->getNumSliceMinus1( uiLayer ) ; nslice ++ )
+        {
+          pcScalableTestCode->WriteUVLC( pcScalableSei->getFirstMbInSlice( uiLayer, nslice ) );
+          pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceWidthInMbsMinus1( uiLayer, nslice ) );
+          pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceHeightInMbsMinus1( uiLayer, nslice ) );
+        }
+      }
+      else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 2 )
+      {
+        // JVT-S054 (REPLACE) ->
         /*
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
-				UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
-				UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
-				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
-				for( UInt j = 0; j < uiPicSizeInMbs; j++ )
-				{
-					pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceId( uiLayer, j ) );
-				}
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+        UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
+        UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
+        UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+        for( UInt j = 0; j < uiPicSizeInMbs; j++ )
+        {
+          pcScalableTestCode->WriteUVLC( pcScalableSei->getSliceId( uiLayer, j ) );
+        }
         */
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
-				UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
-				UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
-				UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
+        UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
+        UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
+        UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
         UInt uiWriteBits = (UInt) ceil( log( (Double) (pcScalableSei->getNumSliceMinus1( uiLayer ) + 1) ) / log(2.) );
         if (uiWriteBits == 0)
           uiWriteBits = 1;
-				for( UInt j = 0; j < uiPicSizeInMbs; j++ )
-				{
-					pcScalableTestCode->WriteCode( pcScalableSei->getSliceId( uiLayer, j ), uiWriteBits );
-				}
-    		// JVT-S054 (REPLACE) <-
-			}
-		}
-	//JVT-S036 lsj end
+        for( UInt j = 0; j < uiPicSizeInMbs; j++ )
+        {
+          pcScalableTestCode->WriteCode( pcScalableSei->getSliceId( uiLayer, j ), uiWriteBits );
+        }
+        // JVT-S054 (REPLACE) <-
+      }
+    }
+  //JVT-S036 lsj end
 
-		if( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayers( uiLayer ) );
-			for( UInt ui = 0; ui < pcScalableSei->getNumDirectlyDependentLayers( uiLayer ); ui++ )
-			{
+    if( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayers( uiLayer ) );
+      for( UInt ui = 0; ui < pcScalableSei->getNumDirectlyDependentLayers( uiLayer ); ui++ )
+      {
       //BUG_FIX liuhui 0603
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiLayer, ui ) ); //JVT-S036 lsj
-			//
-			}
-		}
-		else
-		{//JVT-S036 lsj
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getLayerDependencyInfoSrcLayerIdDelta( uiLayer ) );
-		}
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiLayer, ui ) ); //JVT-S036 lsj
+      //
+      }
+    }
+    else
+    {//JVT-S036 lsj
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getLayerDependencyInfoSrcLayerIdDelta( uiLayer ) );
+    }
 
-		if( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) )
-		{
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getNumInitSPSMinus1( uiLayer ) );
+    if( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getNumInitSPSMinus1( uiLayer ) );
       UInt ui;
-			for( ui = 0; ui <= pcScalableSei->getNumInitSPSMinus1( uiLayer ); ui++ )
-			{
+      for( ui = 0; ui <= pcScalableSei->getNumInitSPSMinus1( uiLayer ); ui++ )
+      {
        //BUG_FIX liuhui 0603
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getInitSPSIdDelta( uiLayer, ui ) );
-			//
-			}
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getNumInitPPSMinus1( uiLayer ) );
-			for( ui = 0; ui <= pcScalableSei->getNumInitPPSMinus1( uiLayer ); ui++ )
-			{
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getInitSPSIdDelta( uiLayer, ui ) );
+      //
+      }
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getNumInitPPSMinus1( uiLayer ) );
+      for( ui = 0; ui <= pcScalableSei->getNumInitPPSMinus1( uiLayer ); ui++ )
+      {
       //BUG_FIX liuhui 0603
-				pcScalableTestCode->WriteUVLC( pcScalableSei->getInitPPSIdDelta( uiLayer, ui ) );
-			//
-			}
-		}
-		else
-		{//JVT-S036 lsj
-			pcScalableTestCode->WriteUVLC( pcScalableSei->getInitParameterSetsInfoSrcLayerIdDelta( uiLayer ) );
-		}
+        pcScalableTestCode->WriteUVLC( pcScalableSei->getInitPPSIdDelta( uiLayer, ui ) );
+      //
+      }
+    }
+    else
+    {//JVT-S036 lsj
+      pcScalableTestCode->WriteUVLC( pcScalableSei->getInitParameterSetsInfoSrcLayerIdDelta( uiLayer ) );
+    }
 
-	}// for
+  }// for
 
-	return Err::m_nOK;
+  return Err::m_nOK;
 }
 
 //JVT-S080 LMI {
 ErrVal
 ScalableTestCode::SEICode( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableTestCode *pcScalableTestCode )
 {
-	UInt uiNumScalableLayers = pcScalableSeiLayersNotPresent->getNumLayers();
-	pcScalableTestCode->WriteUVLC( uiNumScalableLayers );
-	for( UInt uiLayer = 0; uiLayer < uiNumScalableLayers; uiLayer++ )
-	{
-		pcScalableTestCode->WriteCode( pcScalableSeiLayersNotPresent->getLayerId( uiLayer ), 8);
-	}
-	return Err::m_nOK;
+  UInt uiNumScalableLayers = pcScalableSeiLayersNotPresent->getNumLayers();
+  pcScalableTestCode->WriteUVLC( uiNumScalableLayers );
+  for( UInt uiLayer = 0; uiLayer < uiNumScalableLayers; uiLayer++ )
+  {
+    pcScalableTestCode->WriteCode( pcScalableSeiLayersNotPresent->getLayerId( uiLayer ), 8);
+  }
+  return Err::m_nOK;
 }
 
 ErrVal
-ScalableTestCode::SEICode	( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableTestCode *pcScalableTestCode )
+ScalableTestCode::SEICode  ( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableTestCode *pcScalableTestCode )
 {
-	UInt uiNumScalableLayersMinus1 = pcScalableSeiDependencyChange->getNumLayersMinus1();
+  UInt uiNumScalableLayersMinus1 = pcScalableSeiDependencyChange->getNumLayersMinus1();
     UInt uiLayer, uiDirectLayer;
-	pcScalableTestCode->WriteUVLC( uiNumScalableLayersMinus1 );
-	for( uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
-	{
-		pcScalableTestCode->WriteCode( pcScalableSeiDependencyChange->getLayerId( uiLayer ), 8);
-		pcScalableTestCode->WriteFlag( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) );
-		if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
-		{
+  pcScalableTestCode->WriteUVLC( uiNumScalableLayersMinus1 );
+  for( uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
+  {
+    pcScalableTestCode->WriteCode( pcScalableSeiDependencyChange->getLayerId( uiLayer ), 8);
+    pcScalableTestCode->WriteFlag( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) );
+    if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
+    {
           pcScalableTestCode->WriteUVLC( pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ) );
-		  for ( uiDirectLayer = 0; uiDirectLayer < pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ); uiDirectLayer++)
+      for ( uiDirectLayer = 0; uiDirectLayer < pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ); uiDirectLayer++)
               pcScalableTestCode->WriteUVLC(pcScalableSeiDependencyChange->getDirectDependentLayerIdDeltaMinus1( uiLayer, uiDirectLayer ));
-		}
-		else
+    }
+    else
              pcScalableTestCode->WriteUVLC(pcScalableSeiDependencyChange->getLayerDependencyInfoSrcLayerIdDeltaMinus1( uiLayer ) );
-	}
-	return Err::m_nOK;
+  }
+  return Err::m_nOK;
 
 }
 //JVT-S080 LMI }

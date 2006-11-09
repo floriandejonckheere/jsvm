@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -121,8 +121,8 @@ class FrameMng;
 class H264AVCENCODERLIB_API H264AVCEncoder
 {
 protected:
-	H264AVCEncoder();
-	virtual ~H264AVCEncoder();
+  H264AVCEncoder();
+  virtual ~H264AVCEncoder();
 
 public:
   static  ErrVal create ( H264AVCEncoder*&  rpcH264AVCEncoder );
@@ -138,12 +138,12 @@ public:
 
   ErrVal writeParameterSets ( ExtBinDataAccessor*       pcExtBinDataAccessor,
                               Bool&                     rbMoreSets );
-  ErrVal process            ( ExtBinDataAccessorList&   rcExtBinDataAccessorList, 
+  ErrVal process            ( ExtBinDataAccessorList&   rcExtBinDataAccessorList,
                               PicBuffer*                apcOriginalPicBuffer   [MAX_LAYERS],
                               PicBuffer*                apcReconstructPicBuffer[MAX_LAYERS],
                               PicBufferList*            apcPicBufferOutputList,
                               PicBufferList*            apcPicBufferUnusedList );
-  ErrVal finish             ( ExtBinDataAccessorList&   rcExtBinDataAccessorList, 
+  ErrVal finish             ( ExtBinDataAccessorList&   rcExtBinDataAccessorList,
                               PicBufferList*            apcPicBufferOutputList,
                               PicBufferList*            apcPicBufferUnusedList,
                               UInt&                     ruiNumCodedFrames,
@@ -158,7 +158,7 @@ public:
   ErrVal  getBaseLayerData    ( IntFrame*&    pcFrame,
                                 IntFrame*&    pcResidual,
                                 MbDataCtrl*&  pcMbDataCtrl,
-																MbDataCtrl*&  pcMbDataCtrlEL,
+                                MbDataCtrl*&  pcMbDataCtrlEL,
                                 Bool&         bConstrainedIPredBL,
                                 Bool&         bForCopyOnly,
                                 Int                             iSpatialScalability,
@@ -170,14 +170,14 @@ public:
                                 Int           iPoc );
   UInt*   getGOPBitsBase      ( UInt          uiBaseLayerId );
   UInt*   getGOPBitsFGS       ( UInt          uiBaseLayerId );
-  UInt*   getGOPBits					( UInt					uiScalableLayerId );
+  UInt*   getGOPBits          ( UInt          uiScalableLayerId );
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  ErrVal writeQualityLevelInfosSEI( ExtBinDataAccessor* pcExtBinDataAccessor, 
-                                    UInt*               uiaQualityLevel, 
-                                    UInt *              uiaDelta, 
-                                    UInt                uiNumLevels, 
+  ErrVal writeQualityLevelInfosSEI( ExtBinDataAccessor* pcExtBinDataAccessor,
+                                    UInt*               uiaQualityLevel,
+                                    UInt *              uiaDelta,
+                                    UInt                uiNumLevels,
                                     UInt                uiLayer ) ;
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 // JVT-T073 {
@@ -185,33 +185,33 @@ public:
 // JVT-T073 }
 
   Void setScalableSEIMessage  ()       { m_bScalableSeiMessage = true; }
-	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
-	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }
-	Double* dGetFramerate				()			 { return m_dFinalFramerate; }
-	Double* dGetBitrate					()			 { return m_dFinalBitrate; }
-	Double m_aaauidSeqBits [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  Bool bGetScalableSeiMessage  () const { return m_bScalableSeiMessage; }
+  Void SetVeryFirstCall        ()       { m_bVeryFirstCall = true; }
+  Double* dGetFramerate        ()       { return m_dFinalFramerate; }
+  Double* dGetBitrate          ()       { return m_dFinalBitrate; }
+  Double m_aaauidSeqBits [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 // BUG_FIX liuhui{
-	UInt   getScalableLayerId( UInt uiLayer, UInt uiTempLevel, UInt uiFGS ) const { return m_aaauiScalableLayerId[uiLayer][uiTempLevel][uiFGS]; }
-	Double m_aaadSingleLayerBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
-	UInt   m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt   getScalableLayerId( UInt uiLayer, UInt uiTempLevel, UInt uiFGS ) const { return m_aaauiScalableLayerId[uiLayer][uiTempLevel][uiFGS]; }
+  Double m_aaadSingleLayerBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  UInt   m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 // BUG_FIX liuhui}
 // JVT-S080 LMI {
   ErrVal xWriteScalableSEILayersNotPresent( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiInputLayers, UInt* m_layer_id);
-  ErrVal xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag, 
-												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1);
+  ErrVal xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag,
+                          UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1);
 // JVT-S080 LMI }
 protected:
   ErrVal xInitParameterSets ();
   ErrVal xWriteScalableSEI  ( ExtBinDataAccessor*       pcExtBinDataAccessor );
-  ErrVal xWriteSubPicSEI		( ExtBinDataAccessor*				pcExtBinDataAccessor );
-	ErrVal xWriteSubPicSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt layer_id ) ;
-	ErrVal xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id ) ;
+  ErrVal xWriteSubPicSEI    ( ExtBinDataAccessor*        pcExtBinDataAccessor );
+  ErrVal xWriteSubPicSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt layer_id ) ;
+  ErrVal xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id ) ;
 
   ErrVal xProcessGOP        ( UInt                      uiLayer,
                               UInt&                     uiScalableLayer,
-                              PicBuffer*                pcOriginalPicBuffer, 
-                              PicBuffer*                pcReconstructPicBuffer, 
-                              PicBufferList&            rcPicBufferOutputList, 
+                              PicBuffer*                pcOriginalPicBuffer,
+                              PicBuffer*                pcReconstructPicBuffer,
+                              PicBufferList&            rcPicBufferOutputList,
                               PicBufferList&            rcPicBufferUnusedList );
 
 protected:
@@ -229,13 +229,13 @@ protected:
   Bool                              m_bInitDone;
   Bool                              m_bTraceEnable;
 
-	Bool															m_bScalableSeiMessage;
-  Double														m_dFinalBitrate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
-	Double														m_dFinalFramerate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
+  Bool                              m_bScalableSeiMessage;
+  Double                            m_dFinalBitrate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
+  Double                            m_dFinalFramerate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
   MCTFEncoder*                      m_apcMCTFEncoder    [MAX_LAYERS];
   AccessUnitList                    m_cAccessUnitList;
 
-  // ICU / ETRI ROI 
+  // ICU / ETRI ROI
   Bool    m_bWrteROISEI;
   UInt    m_loop_roi_sei;
 };

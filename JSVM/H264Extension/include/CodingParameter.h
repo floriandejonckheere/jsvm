@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -98,7 +98,7 @@ H264AVC_NAMESPACE_BEGIN
 # pragma warning( disable: 4275 )
 #endif
 
-// TMM_ESS 
+// TMM_ESS
 #include "ResizeParameters.h"
 
 #define MAX_CONFIG_PARAMS 256
@@ -220,13 +220,13 @@ public:
     , m_dPredFGSRate                      (0.0) //JVT-P031
     , m_uiUseRedundantSlice               (0)   //JVT-Q054 Red. Picture
 // JVT-Q065 EIDR{
-	  , m_iIDRPeriod						  (0)
-	  , m_bBLSkipEnable					  ( false )
+    , m_iIDRPeriod              (0)
+    , m_bBLSkipEnable            ( false )
   // JVT-Q065 EIDR}
     , m_uiFGSCodingMode                      ( 0 )
     , m_uiGroupingSize                       ( 1 )
     , m_dQpModeDecisionLP ( 0.00 )
-    , m_uiNumSliceGroupMapUnitsMinus1 ( 0 ) 
+    , m_uiNumSliceGroupMapUnitsMinus1 ( 0 )
     // JVT-S054 (ADD) ->
     , m_uiNumSliceMinus1 (0)
     , m_bSliceDivisionFlag (false)
@@ -238,12 +238,12 @@ public:
     , m_puiSliceId (0)
     // JVT-S054 (ADD) <-
 
-	//S051{
-	, m_cOutSIPFileName					("none")
-	, m_cInSIPFileName					("none")
-	, m_uiAnaSIP						(0)
-	, m_bEncSIP							(false)
-	//S051}
+  //S051{
+  , m_cOutSIPFileName          ("none")
+  , m_cInSIPFileName          ("none")
+  , m_uiAnaSIP            (0)
+  , m_bEncSIP              (false)
+  //S051}
 //JVT-T054{
     , m_uiLayerCGSSNR         ( 0 )
     , m_uiQualityLevelCGSSNR  ( 0 )
@@ -311,7 +311,7 @@ public:
   UInt                            getFGSMode                        () const {return m_uiFGSMode; }
   const std::string&              getFGSFilename                    () const {return m_cFGSRateFilename; }
   Double                          getFGSRate                        () const {return m_dFGSRate; }
-  
+
   UInt                            getDecompositionStages            () const {return m_uiDecompositionStages; }
   UInt                            getNotCodedMCTFStages             () const {return m_uiNotCodedMCTFStages; }
   UInt                            getTemporalResolution             () const {return m_uiTemporalResolution; }
@@ -326,8 +326,8 @@ public:
   Bool                            getUseDiscardable                 () const {return m_bUseDiscardable;} //JVT-P031
   Double                          getPredFGSRate                    () const {return m_dPredFGSRate;} //JVT-P031
   Bool                            getUseRedundantSliceFlag          () const {return m_uiUseRedundantSlice == 1; }  //JVT-Q054 Red. Picture
-  
-  //--ICU/ETRI FMO Implementation :  FMO start 
+
+  //--ICU/ETRI FMO Implementation :  FMO start
   UInt          getNumSliceGroupsMinus1() const {return m_uiNumSliceGroupsMinus1;}  //for test
   UInt          getSliceGroupMapType() const {return  m_uiSliceGroupMapType;  }
   Bool          getSliceGroupChangeDirection_flag () const {return m_bSliceGroupChangeDirection_flag;}
@@ -338,7 +338,7 @@ public:
   UInt          getSliceArgument() const { return m_uiSliceArgument ;}
   const std::string&   getSliceGroupConfigFileName() const{ return m_cSliceGroupConfigFileName;}
   UInt          getUseRedundantSlice() const { return m_uiUseRedundantSlice;}
-  UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}  
+  UInt*         getArrayRunLengthMinus1 () const {return (UInt*)m_uiRunLengthMinus1;}
   UInt*         getArrayTopLeft () const {return (UInt*)m_uiTopLeft;}
   UInt*         getArrayBottomRight () const {return (UInt*)m_uiBottomRight;}
   UInt*         getArraySliceGroupId() const {return (UInt*)m_uiSliceGroupId;}
@@ -352,10 +352,10 @@ public:
   UInt*         getSGID () const {return (UInt*)m_uiSGID;}
   UInt*         getSLID () const {return (UInt*)m_uiSLID;}
   //--> consider ROI Extraction ICU/ETRI DS
-  
+
   UInt getFGSCodingMode                  ()    { return m_uiFGSCodingMode; }
   UInt getGroupingSize                   ()    { return m_uiGroupingSize; }
-  UInt getPosVect                        (UInt uiNum) {return m_uiPosVect[uiNum];} 
+  UInt getPosVect                        (UInt uiNum) {return m_uiPosVect[uiNum];}
 
   //===== set =====
   Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
@@ -380,7 +380,7 @@ public:
   Void setFGSMode                         (UInt   p) { m_uiFGSMode                        = p; }
   Void setFGSFilename                     (Char*  p) { m_cFGSRateFilename                 = p; }
   Void setFGSRate                         (Double p) { m_dFGSRate                         = p; }
-  
+
   Void setDecompositionStages             (UInt   p) { m_uiDecompositionStages            = p; }
   Void setNotCodedMCTFStages              (UInt   p) { m_uiNotCodedMCTFStages             = p; }
   Void setTemporalResolution              (UInt   p) { m_uiTemporalResolution             = p; }
@@ -397,7 +397,7 @@ public:
   Void setPredFGSRate                    (Double d)   {m_dPredFGSRate                     = d;} //JVT-P031
   Void setFGSCodingMode                   ( UInt ui )                { m_uiFGSCodingMode  = ui;      }
   Void setGroupingSize                    ( UInt ui )                { m_uiGroupingSize   = ui;     }
-  Void setPosVect                         ( UInt uiNum, UInt uiVect) { m_uiPosVect[uiNum] = uiVect; } 
+  Void setPosVect                         ( UInt uiNum, UInt uiVect) { m_uiPosVect[uiNum] = uiVect; }
 // TMM_ESS {
   int                 getExtendedSpatialScalability     () { return m_ResizeParameter.m_iExtendedSpatialScalability; }
   int                 getSpatialScalabilityType         () { return m_ResizeParameter.m_iSpatialScalabilityType; }
@@ -406,9 +406,9 @@ public:
 // TMM_ESS }
 
 // JVT-Q065 EIDR{
-  Int				  getIDRPeriod			   () { return m_iIDRPeriod; }
-  Bool				  getBLSkipEnable		   () { return m_bBLSkipEnable; }
-  Void				  setBLSkipEnable( Bool b )   { m_bBLSkipEnable = b; }
+  Int          getIDRPeriod         () { return m_iIDRPeriod; }
+  Bool          getBLSkipEnable       () { return m_bBLSkipEnable; }
+  Void          setBLSkipEnable( Bool b )   { m_bBLSkipEnable = b; }
 // JVT-Q065 EIDR}
 
   UInt                getPLR                   () { return m_uiPLR; } //JVT-R057 LA-RDO
@@ -419,7 +419,7 @@ public:
 //--ICU/ETRI FMO Implementation
   Void setSliceGroupId(int i, UInt value) { m_uiSliceGroupId[i] = value;}
 
-  Void                            setLowPassEnhRef        ( Double d )   
+  Void                            setLowPassEnhRef        ( Double d )
   {
       m_dLowPassEnhRef = ( d < 0.0 ) ? 0.0 : ( ( d > 1.0 ) ? 1.0 : d );
   }
@@ -429,15 +429,15 @@ public:
   {
     // do not allow 1, to store it in 5-bit fixed-length
     AOT( uiBlock > AR_FGS_MAX_BASE_WEIGHT );
-    m_uiBaseWeightZeroBaseBlock = (uiBlock <= 1) ? 0 : uiBlock; 
+    m_uiBaseWeightZeroBaseBlock = (uiBlock <= 1) ? 0 : uiBlock;
 
     // do not allow 1, to store it in 5-bit fixed-length
     AOT( uiCoeff > AR_FGS_MAX_BASE_WEIGHT );
     m_uiBaseWeightZeroBaseCoeff = (uiCoeff <= 1) ? 0 : uiCoeff;
   }
   Void                            getAdaptiveRefFGSWeights( UInt& uiBlock, UInt& uiCoeff )
-  { 
-    uiBlock = m_uiBaseWeightZeroBaseBlock; 
+  {
+    uiBlock = m_uiBaseWeightZeroBaseBlock;
     uiCoeff = m_uiBaseWeightZeroBaseCoeff;
   }
 
@@ -446,8 +446,8 @@ public:
     m_uiFgsEncStructureFlag = flag;
   }
   UInt                            getFgsEncStructureFlag( )
-  { 
-    return m_uiFgsEncStructureFlag; 
+  {
+    return m_uiFgsEncStructureFlag;
   }
 
   UInt                            getFGSMotionMode() { return m_uiFGSMotionMode;  }
@@ -457,12 +457,12 @@ public:
   //S051{
   const std::string&              getInSIPFileName             () const { return m_cInSIPFileName; }
   const std::string&              getOutSIPFileName            () const { return m_cOutSIPFileName; }
-  Void							  setInSIPFileName			   (Char* p) { m_cInSIPFileName=p; }
-  Void							  setOutSIPFileName			   (Char* p) { m_cOutSIPFileName=p; }
-  Void							  setAnaSIP					   (UInt	uiAnaSIP){ m_uiAnaSIP = uiAnaSIP;}
-  Void						      setEncSIP					   (Bool	bEncSIP){ m_bEncSIP = bEncSIP;}
-  UInt							  getAnaSIP					   (){ return m_uiAnaSIP; }
-  Bool							  getEncSIP					   (){ return m_bEncSIP; }
+  Void                setInSIPFileName         (Char* p) { m_cInSIPFileName=p; }
+  Void                setOutSIPFileName         (Char* p) { m_cOutSIPFileName=p; }
+  Void                setAnaSIP             (UInt  uiAnaSIP){ m_uiAnaSIP = uiAnaSIP;}
+  Void                  setEncSIP             (Bool  bEncSIP){ m_bEncSIP = bEncSIP;}
+  UInt                getAnaSIP             (){ return m_uiAnaSIP; }
+  Bool                getEncSIP             (){ return m_bEncSIP; }
   //S051}
 //JVT-T054{
   UInt getLayerCGSSNR                    ()    { return m_uiLayerCGSSNR;}
@@ -475,6 +475,7 @@ public:
   Void setBaseQualityLevelCGSSNR             (UInt ui)    { m_uiBaseQualityLevelCGSSNR            = ui;}
   Bool isDiscardable                      ()          { return m_bDiscardable;}
 //JVT-T054}
+
 public:
   UInt                      m_uiLayerId;
   UInt                      m_uiFrameWidth;
@@ -491,7 +492,7 @@ public:
   UInt                      m_uiMaxAbsDeltaQP;
   Double                    m_dBaseQpResidual;
   Double                    m_dNumFGSLayers;
-  
+
   Double                    m_adQpModeDecision[MAX_DSTAGES];
   Double                    m_dQpModeDecisionLP;
   UInt                      m_uiInterLayerPredictionMode;
@@ -507,7 +508,7 @@ public:
   UInt                      m_uiFGSMode;
   std::string               m_cFGSRateFilename;
   Double                    m_dFGSRate;
-  
+
   //----- derived parameters -----
   UInt                      m_uiDecompositionStages;
   UInt                      m_uiNotCodedMCTFStages;
@@ -518,7 +519,7 @@ public:
   UInt                      m_uiBaseLayerSpatRes;
   UInt                      m_uiBaseLayerTempRes;
 
-  //----- ESS ---- 
+  //----- ESS ----
   ResizeParameters          m_ResizeParameter;
 
   Double                    m_dLowPassEnhRef;
@@ -527,9 +528,9 @@ public:
   UInt                      m_uiFgsEncStructureFlag;
 
   //--ICU/ETRI FMO Implementation : FMO start
-  UInt         m_uiNumSliceGroupsMinus1;  
-  UInt         m_uiSliceGroupMapType;  
-  UInt         m_uiRunLengthMinus1[CodParMAXNumSliceGroupsMinus1];  
+  UInt         m_uiNumSliceGroupsMinus1;
+  UInt         m_uiSliceGroupMapType;
+  UInt         m_uiRunLengthMinus1[CodParMAXNumSliceGroupsMinus1];
   UInt         m_uiTopLeft[CodParMAXNumSliceGroupsMinus1];
   UInt         m_uiBottomRight[CodParMAXNumSliceGroupsMinus1];
   Bool         m_bSliceGroupChangeDirection_flag;
@@ -541,10 +542,10 @@ public:
   std::string  m_cSliceGroupConfigFileName;
 
   std::string  m_cROIConfigFileName;
-  UInt		   m_uiNumROI;
-  UInt		   m_uiROIID[CodParMAXNumSliceGroupsMinus1];
-  UInt		   m_uiSGID[CodParMAXNumSliceGroupsMinus1];
-  UInt		   m_uiSLID[CodParMAXNumSliceGroupsMinus1];
+  UInt       m_uiNumROI;
+  UInt       m_uiROIID[CodParMAXNumSliceGroupsMinus1];
+  UInt       m_uiSGID[CodParMAXNumSliceGroupsMinus1];
+  UInt       m_uiSLID[CodParMAXNumSliceGroupsMinus1];
 
   //--ICU/ETRI FMO Implementation : FMO end
   UInt         m_uiUseRedundantSlice;   // JVT-Q054 Red. Picture
@@ -561,15 +562,15 @@ public:
   // JVT-S054 (ADD) <-
 
   //JVT-P031
-  Bool                      m_bUseDiscardable; //indicate if discardable stream is coded for this layer 
+  Bool                      m_bUseDiscardable; //indicate if discardable stream is coded for this layer
                                                 //discardable stream should not be used for inter-layer prediction
   Double                    m_dPredFGSRate; //rate use for inter-layer prediction (after that rate, stream is discardable)
 
   UInt                      m_uiFGSMotionMode;
 
 // JVT-Q065 EIDR{
-  Int						m_iIDRPeriod;
-  Bool						m_bBLSkipEnable;
+  Int            m_iIDRPeriod;
+  Bool            m_bBLSkipEnable;
 // JVT-Q065 EIDR}
 
   UInt               m_uiPLR; //JVT-R057 LA-RDO
@@ -579,9 +580,9 @@ public:
 
   //S051{
   std::string    m_cOutSIPFileName;
-  std::string	 m_cInSIPFileName;
-  UInt			 m_uiAnaSIP;
-  Bool			 m_bEncSIP;
+  std::string   m_cInSIPFileName;
+  UInt       m_uiAnaSIP;
+  Bool       m_bEncSIP;
   //S051}
 //JVT-T054{
   UInt                      m_uiLayerCGSSNR;
@@ -667,13 +668,13 @@ public:
       , m_uiIPMode                       (0)
       , m_uiBMode                        (0)
 //TMM_WP
-	  , m_bNonRequiredEnable				( 0 ) //NonRequired JVT-Q066
-	  , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
-	  , m_uiSuffixUnitEnable			  (0)  //JVT-S036 lsj
-	  , m_uiMMCOBaseEnable					  ( 0 ) //JVT-S036 lsj
+    , m_bNonRequiredEnable        ( 0 ) //NonRequired JVT-Q066
+    , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
+    , m_uiSuffixUnitEnable        (0)  //JVT-S036 lsj
+    , m_uiMMCOBaseEnable            ( 0 ) //JVT-S036 lsj
 //JVT-T073 {
-	  , m_uiNestingSEIEnable              ( 0 ) 
-	  , m_uiSceneInfoEnable               ( 0 )
+    , m_uiNestingSEIEnable              ( 0 )
+    , m_uiSceneInfoEnable               ( 0 )
 //JVT-T073 }
 //JVT-T054{
     , m_uiCGSSNRRefinementFlag             ( 0 )
@@ -686,7 +687,7 @@ public:
       m_adDeltaQpLayer[uiLayer] = 0;
     }
   }
-	virtual ~CodingParameter()
+  virtual ~CodingParameter()
   {
   }
 
@@ -703,13 +704,13 @@ public:
 //TMM_WP
   SampleWeightingParams&           getSampleWeightingParams(UInt uiLayerId)  {return m_cSampleWeightingParams[uiLayerId];}
 //TMM_WP
-  
-  
+
+
   const std::string&              getInputFile            ()              const   { return m_cInputFile; }
   Double                          getMaximumFrameRate     ()              const   { return m_dMaximumFrameRate; }
   Double                          getMaximumDelay         ()              const   { return m_dMaximumDelay; }
   UInt                            getTotalFrames          ()              const   { return m_uiTotalFrames; }
-  UInt                            getGOPSize              ()              const   { return m_uiGOPSize; }  
+  UInt                            getGOPSize              ()              const   { return m_uiGOPSize; }
   UInt                            getDecompositionStages  ()              const   { return m_uiDecompositionStages; }
   UInt                            getIntraPeriod          ()              const   { return m_uiIntraPeriod; }
   UInt                            getIntraPeriodLowPass   ()              const   { return m_uiIntraPeriodLowPass; }
@@ -748,8 +749,8 @@ public:
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
 
   UInt                            getLARDOEnable          ()              const   { return m_uiLARDOEnable;} //JVT-R057 LA-RDO
-  UInt							  getSuffixUnitEnable	  ()		      const	  { return m_uiSuffixUnitEnable;} //JVT-S036 lsj
-  UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  UInt                getSuffixUnitEnable    ()          const    { return m_uiSuffixUnitEnable;} //JVT-S036 lsj
+  UInt                getMMCOBaseEnable      ()        const    { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
   // JVT-T073 {
   UInt                            getNestingSEIEnable     ()              const   { return m_uiNestingSEIEnable; }
   UInt                            getSceneInfoEnable      ()              const   { return m_uiSceneInfoEnable; }
@@ -791,12 +792,12 @@ public:
   Void                            setMaxRefIdxActiveP     ( UInt    p )   { m_uiMaxRefIdxActiveP    = p; }
 
   ErrVal                          check                   ();
-  
-  // TMM_ESS 
+
+  // TMM_ESS
   ResizeParameters*               getResizeParameters  ( UInt    n )    { return m_acLayerParameters[n].getResizeParameters(); }
 
-  Void                            setLowPassEnhRef        ( Double d )   
-  { 
+  Void                            setLowPassEnhRef        ( Double d )
+  {
     m_dLowPassEnhRef = ( d < 0.0 ) ? 0.0 : ( ( d > 1.0 ) ? 1.0 : d );
   }
 
@@ -805,14 +806,14 @@ public:
   {
     // do not allow 1, to store it in 5-bit fixed-length
     AOT( uiBlock > AR_FGS_MAX_BASE_WEIGHT );
-    m_uiBaseWeightZeroBaseBlock = (uiBlock <= 1) ? 0 : uiBlock; 
+    m_uiBaseWeightZeroBaseBlock = (uiBlock <= 1) ? 0 : uiBlock;
 
     AOT( uiCoeff > AR_FGS_MAX_BASE_WEIGHT );
     m_uiBaseWeightZeroBaseCoeff = (uiCoeff <= 1) ? 0 : uiCoeff;
   }
   Void                            getAdaptiveRefFGSWeights( UInt& uiBlock, UInt& uiCoeff )
-  { 
-    uiBlock = m_uiBaseWeightZeroBaseBlock; 
+  {
+    uiBlock = m_uiBaseWeightZeroBaseBlock;
     uiCoeff = m_uiBaseWeightZeroBaseCoeff;
   }
 
@@ -821,14 +822,14 @@ public:
     m_uiFgsEncStructureFlag = flag;
   }
   UInt                            getFgsEncStructureFlag( )
-  { 
-    return m_uiFgsEncStructureFlag; 
+  {
+    return m_uiFgsEncStructureFlag;
   }
 
   Void                            setLowPassFgsMcFilter   ( UInt ui )   { m_uiLowPassFgsMcFilter  = ui;   }
   UInt                            getLowPassFgsMcFilter   ()            { return m_uiLowPassFgsMcFilter;  }
 
-  Int							  getNonRequiredEnable    ()			{ return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
+  Int                getNonRequiredEnable    ()      { return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
 //JVT-T054{
   UInt                            getCGSSNRRefinement     ()              const   { return m_uiCGSSNRRefinementFlag;}
   UInt                            getMaxLayerCGSSNR       ()              const   { return m_uiMaxLayerCGSSNR;}
@@ -895,11 +896,12 @@ protected:
   SampleWeightingParams m_cSampleWeightingParams[MAX_LAYERS];
 //TMM_WP
 
-  Int						m_bNonRequiredEnable; //NonRequired JVT-Q066
+  Int            m_bNonRequiredEnable; //NonRequired JVT-Q066
   UInt                       m_uiLARDOEnable; //JVT-R057 LA-RDO
 
-  UInt						m_uiSuffixUnitEnable; //JVT-S036 lsj
-  UInt						m_uiMMCOBaseEnable;  //JVT-S036 lsj
+  UInt            m_uiSuffixUnitEnable; //JVT-S036 lsj
+  UInt            m_uiMMCOBaseEnable;  //JVT-S036 lsj
+
 //JVT-T054{
   UInt                      m_uiCGSSNRRefinementFlag;
   UInt                      m_uiMaxLayerCGSSNR;

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -120,19 +120,19 @@ MCTFPreProcessorTest::create( MCTFPreProcessorTest*& rpcMCTFPreProcessorTest )
 ErrVal
 MCTFPreProcessorTest::destroy()
 {
-  if( m_pcMCTFPreProcessor )       
+  if( m_pcMCTFPreProcessor )
   {
-    RNOK( m_pcMCTFPreProcessor->uninit() );       
-    RNOK( m_pcMCTFPreProcessor->destroy() );       
+    RNOK( m_pcMCTFPreProcessor->uninit() );
+    RNOK( m_pcMCTFPreProcessor->destroy() );
   }
-  if( m_pcWriteYuv )              
+  if( m_pcWriteYuv )
   {
-    RNOK( m_pcWriteYuv->destroy() );  
+    RNOK( m_pcWriteYuv->destroy() );
   }
-  if( m_pcReadYuv )              
+  if( m_pcReadYuv )
   {
-    RNOK( m_pcReadYuv->uninit() );  
-    RNOK( m_pcReadYuv->destroy() );  
+    RNOK( m_pcReadYuv->uninit() );
+    RNOK( m_pcReadYuv->destroy() );
   }
 
   AOF( m_cActivePicBufferList.empty() );
@@ -166,21 +166,21 @@ MCTFPreProcessorTest::init( PreProcessorParameter* pcParameter )
 
   //----- init YUV reader and writer -----
   RNOKS( WriteYuvToFile::create( m_pcWriteYuv, m_pcParameter->getOutputFileName() ) );
-  RNOKS( ReadYuvFile   ::create( m_pcReadYuv  ) );  
+  RNOKS( ReadYuvFile   ::create( m_pcReadYuv  ) );
   RNOKS( m_pcReadYuv   ->init  ( m_pcParameter->getInputFileName(),
                                  m_pcParameter->getFrameHeight  (),
                                  m_pcParameter->getFrameWidth   () ) );
 
   //----- creater MCTF pre processor -----
   RNOK( MCTFPreProcessor::create( m_pcMCTFPreProcessor ) );
-  
+
   //----- set frame buffer parameters -----
   UInt  uiMbX     = m_pcParameter->getFrameWidth  () >> 4;
   UInt  uiMbY     = m_pcParameter->getFrameHeight () >> 4;
   UInt  uiSize    = ((uiMbY<<4)+2*YUV_Y_MARGIN)*((uiMbX<<4)+2*YUV_X_MARGIN);
   m_uiPicSize     = ((uiMbX<<4)+2*YUV_X_MARGIN)*((uiMbY<<4)+2*YUV_Y_MARGIN)*3/2;
-  m_uiLumOffset   = ((uiMbX<<4)+2*YUV_X_MARGIN)* YUV_Y_MARGIN   + YUV_X_MARGIN;  
-  m_uiCbOffset    = ((uiMbX<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiSize; 
+  m_uiLumOffset   = ((uiMbX<<4)+2*YUV_X_MARGIN)* YUV_Y_MARGIN   + YUV_X_MARGIN;
+  m_uiCbOffset    = ((uiMbX<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + uiSize;
   m_uiCrOffset    = ((uiMbX<<3)+  YUV_X_MARGIN)* YUV_Y_MARGIN/2 + YUV_X_MARGIN/2 + 5*uiSize/4;
   m_uiHeight      =   uiMbY<<4;
   m_uiWidth       =   uiMbX<<4;
@@ -200,7 +200,7 @@ MCTFPreProcessorTest::go()
   PicBufferList cPicBufferUnusedList;
 
   //===== initialization =====
-  RNOK( m_pcMCTFPreProcessor->init( m_pcParameter, &m_cCodingParameter ) ); 
+  RNOK( m_pcMCTFPreProcessor->init( m_pcParameter, &m_cCodingParameter ) );
 
   //===== loop over frames =====
   for( UInt uiFrame = 0; uiFrame < m_pcParameter->getNumFrames(); uiFrame++ )
@@ -218,7 +218,7 @@ MCTFPreProcessorTest::go()
                                          pcReconstructPicBuffer,
                                          cPicBufferOutputList,
                                          cPicBufferUnusedList ) );
- 
+
     RNOK( xWrite          ( cPicBufferOutputList ) );
     RNOK( xRemovePicBuffer( cPicBufferUnusedList ) );
   }
@@ -292,7 +292,7 @@ MCTFPreProcessorTest::xWrite( PicBufferList&  rcPicBufferList )
   {
     PicBuffer*  pcBuffer  = rcPicBufferList.popFront();
     Pel*        pcBuf     = pcBuffer->getBuffer();
-    RNOK( m_pcWriteYuv->writeFrame( pcBuf + m_uiLumOffset, 
+    RNOK( m_pcWriteYuv->writeFrame( pcBuf + m_uiLumOffset,
                                     pcBuf + m_uiCbOffset,
                                     pcBuf + m_uiCrOffset,
                                     m_uiHeight,

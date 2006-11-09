@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -90,7 +90,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include<stdio.h>
 
 H264AVC_NAMESPACE_BEGIN
- 
+
 const UInt MbMotionData::m_auiBlk2Part [16 ]  = { 0, 0, 1, 1,  0, 0, 1, 1,  2, 2, 3, 3,  2, 2, 3, 3 };  // XDIRECT
 
 
@@ -124,10 +124,10 @@ MbMotionData::save( FILE* pFile )
   ROF( pFile );
 
   RNOK( MbMvData::save( pFile ) );
-  
+
   UInt uiSave  = ::fwrite( &m_ascRefIdx[0],   sizeof(SChar),  4, pFile );
   uiSave      += ::fwrite( &m_usMotPredFlags, sizeof(UShort), 1, pFile );
-  
+
   ROF( uiSave == ( 4 + 1 ) );
 
   return Err::m_nOK;
@@ -140,10 +140,10 @@ MbMotionData::load( FILE* pFile )
   ROF( pFile );
 
   RNOK( MbMvData::load( pFile ) );
-  
+
   UInt uiRead  = ::fread( &m_ascRefIdx[0],   sizeof(SChar),  4, pFile );
   uiRead      += ::fread( &m_usMotPredFlags, sizeof(UShort), 1, pFile );
-  
+
   ROF( uiRead == ( 4 + 1 ) );
 
   return Err::m_nOK;
@@ -171,14 +171,14 @@ Void  MbMotionData::copyFrom( const MbMotionData& rcMbMotionData, const ParIdx8x
 
 
 Void MbMvData::copyFrom( const MbMvData& rcMbMvData )
-{ 
+{
   ::memcpy( m_acMv, rcMbMvData.m_acMv, sizeof(m_acMv) );
 }
 
 Void  MbMotionData::copyFrom( const MbMotionData& rcMbMotionData )
 {
   ::memcpy( m_acRefPic,   rcMbMotionData.m_acRefPic,  4 * sizeof(RefPic) );
-  ::memcpy( m_ascRefIdx,  rcMbMotionData.m_ascRefIdx, 4 * sizeof(SChar) ); 
+  ::memcpy( m_ascRefIdx,  rcMbMotionData.m_ascRefIdx, 4 * sizeof(SChar) );
   m_usMotPredFlags = rcMbMotionData.m_usMotPredFlags;
 
   MbMvData::copyFrom( rcMbMotionData );
@@ -202,7 +202,7 @@ ErrVal
 MbMotionData::upsampleMotion( const MbMotionData& rcMbMotionData, Par8x8 ePar8x8 )
 {
   m_ascRefIdx[0] = m_ascRefIdx[1] = m_ascRefIdx[2] = m_ascRefIdx[3] = rcMbMotionData.m_ascRefIdx[ePar8x8];
-  
+
   m_acRefPic [0].setFrame( NULL );
   m_acRefPic [1].setFrame( NULL );
   m_acRefPic [2].setFrame( NULL );
@@ -221,12 +221,12 @@ MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , Re
   int iScaledBaseHeight = pcParameters->m_iOutHeight;
   int iBaseWidth        = pcParameters->m_iInWidth;
   int iBaseHeight       = pcParameters->m_iInHeight;
-  
+
   for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
-  {	
-	m_acRefPic[uiB8x8Idx].setFrame(NULL);
-	m_ascRefIdx[uiB8x8Idx] = pscBl4x4RefIdx[g_aucConvertTo4x4Idx[uiB8x8Idx]];
-	m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?BLOCK_NOT_PREDICTED:m_ascRefIdx[uiB8x8Idx]); 
+  {
+  m_acRefPic[uiB8x8Idx].setFrame(NULL);
+  m_ascRefIdx[uiB8x8Idx] = pscBl4x4RefIdx[g_aucConvertTo4x4Idx[uiB8x8Idx]];
+  m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?BLOCK_NOT_PREDICTED:m_ascRefIdx[uiB8x8Idx]);
   }
 
   Int   dx , dy;
@@ -252,17 +252,17 @@ MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , Re
 
 
 ErrVal
-MbMotionData::upsampleMotionNonDyad(SChar*              scBl8x8RefIdx , 
-                                    Mv*                 acBl4x4Mv , 
-                                    ResizeParameters*   pcParameters , 
-                                    Mv                  deltaMv[4] ) 
+MbMotionData::upsampleMotionNonDyad(SChar*              scBl8x8RefIdx ,
+                                    Mv*                 acBl4x4Mv ,
+                                    ResizeParameters*   pcParameters ,
+                                    Mv                  deltaMv[4] )
 {
   upsampleMotionNonDyad( scBl8x8RefIdx , acBl4x4Mv , pcParameters );
 
-  // PICTURE LEVEL ESS 
+  // PICTURE LEVEL ESS
   for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
-  {	
-  	const UChar *b4Idx = &(g_aucConvertBlockOrder[uiB8x8Idx*4]);
+  {
+    const UChar *b4Idx = &(g_aucConvertBlockOrder[uiB8x8Idx*4]);
     if (m_ascRefIdx[uiB8x8Idx] > 0)
     {
       m_acMv[*(b4Idx++)] += deltaMv[uiB8x8Idx];

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -91,7 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-class ExtractorParameter  
+class ExtractorParameter
 {
 public:
   class Point
@@ -106,7 +106,7 @@ public:
     Double  dBitRate;
 
 //--TEST DJ 0602
-		UInt            uiROI[5];
+    UInt            uiROI[5];
   };
 
   //JVT-S043
@@ -117,8 +117,8 @@ public:
   };
 
 public:
-	ExtractorParameter          ();
-	virtual ~ExtractorParameter ();
+  ExtractorParameter          ();
+  virtual ~ExtractorParameter ();
 
   const std::string&    getInFile           ()            const { return m_cInFile;         }
   const std::string&    getOutFile          ()            const { return m_cOutFile;        }
@@ -130,13 +130,13 @@ public:
   Void                  setLayerId            (UInt layer)  { m_uiLayerId = layer;        }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
-	Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
-	UInt                  getScalableLayer    ()            const { return m_uiScalableLayer; }
-	Void                  setBitrate          ( Double dBitrate  ) { m_dBitrate = dBitrate;   }
-	Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
-	std::string           getOutFileName      ()            const { return m_cOutFile;        } 
-	Void					setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;		}
-  UInt					getMaxFGSLayerKept  ()			  { return m_uiMaxFGSLayerKept;		}
+  Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
+  UInt                  getScalableLayer    ()            const { return m_uiScalableLayer; }
+  Void                  setBitrate          ( Double dBitrate  ) { m_dBitrate = dBitrate;   }
+  Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
+  std::string           getOutFileName      ()            const { return m_cOutFile;        }
+  Void          setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;    }
+  UInt          getMaxFGSLayerKept  ()        { return m_uiMaxFGSLayerKept;    }
   Double                getBitrate          ()            const { return m_dBitrate;        }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }
   const MyList<UInt>&   getRemoveList       ()            const { return m_cRemoveList;     }
@@ -153,21 +153,21 @@ public:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool	getExtractDeadSubstream(UInt ui) { return m_bExtractDeadSubstream[ui];}
-  Void	setLevel( UInt &uiLevel) { m_uiLevel = uiLevel;}
+  Bool  getExtractDeadSubstream(UInt ui) { return m_bExtractDeadSubstream[ui];}
+  Void  setLevel( UInt &uiLevel) { m_uiLevel = uiLevel;}
   Void  setTargetRate(Double d) { m_dTargetRate = d;}
   Double getTargetRate() { return m_dTargetRate;}
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-  UInt	getExtractNonRequiredPics()	{ return	m_uiExtractNonRequiredPics;}
+  UInt  getExtractNonRequiredPics()  { return  m_uiExtractNonRequiredPics;}
   Bool getExtractUsingQL() { return m_bExtractUsingQL;}
 
 
   //--TEST DJ 0602
-  Bool	  getROIFlag		  ()  { return m_bROIFlag; };
+  Bool    getROIFlag      ()  { return m_bROIFlag; };
   int     getExtractedNumROI  ()  { return iExtractedNumROI; };
 
 //--TEST DJ 0602
-   ErrVal  xParseFormatStringROI_Only	( Char*   pFormatString, Point&  rcSpatTempSNRPoint );
+   ErrVal  xParseFormatStringROI_Only  ( Char*   pFormatString, Point&  rcSpatTempSNRPoint );
 
   //--TEST DJ 0602
   Bool  m_bROIFlag;
@@ -191,13 +191,13 @@ protected:
   std::string     m_cInFile;
   std::string     m_cOutFile;
   Int             m_iResult;
-	UInt            m_uiScalableLayer; 
-	UInt            m_uiLayer;
-  UInt			  m_uiLayerId;
+  UInt            m_uiScalableLayer;
+  UInt            m_uiLayer;
+  UInt        m_uiLayerId;
   UInt            m_uiLevel;
   Double          m_dFGSLayer;
-  UInt			  m_uiMaxFGSLayerKept;
-  Double		  m_dBitrate;
+  UInt        m_uiMaxFGSLayerKept;
+  Double      m_dBitrate;
   Bool            m_bAnalysisOnly;
   MyList<Point>   m_cExtractionList;
   MyList<UInt>    m_cRemoveList;
@@ -210,16 +210,16 @@ protected:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool			 m_bExtractDeadSubstream[MAX_LAYERS];
-  Double	     m_dTargetRate;
+  Bool       m_bExtractDeadSubstream[MAX_LAYERS];
+  Double       m_dTargetRate;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-  UInt			 m_uiExtractNonRequiredPics;
+  UInt       m_uiExtractNonRequiredPics;
 
   Bool           m_bExtractUsingQL;
 
   //S051{
-  Bool			 m_bUseSIP;
-   UInt			 m_uiSuffixUnitEnable;
+  Bool       m_bUseSIP;
+   UInt       m_uiSuffixUnitEnable;
   //S051}
 
   //JVT-S043

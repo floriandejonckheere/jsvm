@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -188,7 +188,7 @@ FrameSpec::init( UChar        ucType,
     }
     break;
   default:
-    RERR(); 
+    RERR();
     break;
   }
 
@@ -281,14 +281,14 @@ FrameSpec::getMmcoBuf() const
 {
   AOF_DBG( m_bInit );
   return m_pcMmcoBuf;
-} 
+}
 
 const RplrBuffer*
 FrameSpec::getRplrBuf( ListIdx eLstIdx) const
 {
   AOF_DBG( m_bInit );
   return m_apcRplrBuf[eLstIdx];
-} 
+}
 //================================= Frame Spec : end ===================================
 
 
@@ -313,9 +313,9 @@ SequenceStructure::FrameDescriptor::~FrameDescriptor()
 Void
 SequenceStructure::FrameDescriptor::uninit()
 {
-  delete m_pcMmcoBuf; 
-  delete m_apcRplrBuf[LIST_0]; 
-  delete m_apcRplrBuf[LIST_1]; 
+  delete m_pcMmcoBuf;
+  delete m_apcRplrBuf[LIST_0];
+  delete m_apcRplrBuf[LIST_1];
 
   m_pcMmcoBuf          = NULL;
   m_apcRplrBuf[LIST_0] = NULL;
@@ -355,13 +355,13 @@ SequenceStructure::FrameDescriptor::init( const String& rcString,
   if( ! cRplrStringL0.empty() )
   {
     ROT( NULL == ( m_apcRplrBuf[LIST_0] = new RplrBuffer ) );
-    RNOK( FormattedStringParser::extractRplr( cRplrStringL0, *m_apcRplrBuf[LIST_0] ) ); 
+    RNOK( FormattedStringParser::extractRplr( cRplrStringL0, *m_apcRplrBuf[LIST_0] ) );
   }
 
   if( ! cRplrStringL1.empty() )
   {
     ROT( NULL == ( m_apcRplrBuf[LIST_1] = new RplrBuffer ) );
-    RNOK( FormattedStringParser::extractRplr( cRplrStringL1, *m_apcRplrBuf[LIST_1] ) ); 
+    RNOK( FormattedStringParser::extractRplr( cRplrStringL1, *m_apcRplrBuf[LIST_1] ) );
   }
 
   m_bInit = true;
@@ -1034,7 +1034,7 @@ Bool
 SequenceStructure::checkString( const String&  rcString )
 {
   SequenceStructure cSStruct;
-  
+
   ROFRS( cSStruct.init        ( rcString, MSYS_UINT_MAX ) == Err::m_nOK, true );
   ROFRS( cSStruct.check       ()                          == Err::m_nOK, true );
   ROFRS( cSStruct.xIsFirstIDR (),                                        true );
@@ -1146,34 +1146,34 @@ SequenceStructure::debugOutput( const String&  rcString,
 UInt
 SequenceStructure::getNumberOfTotalFrames()  const
 {
-  AOF_DBG(m_bInit); 
+  AOF_DBG(m_bInit);
   return m_uiNumberOfTotalFrames;
 }
 
 UInt
-SequenceStructure::getNumberOfIDRFrames()  const 
+SequenceStructure::getNumberOfIDRFrames()  const
 {
-  AOF_DBG(m_bInit); 
-  return m_uiNumIDR; 
+  AOF_DBG(m_bInit);
+  return m_uiNumIDR;
 }
 
 UInt
-SequenceStructure::getNumberOfIntraFrames()  const 
+SequenceStructure::getNumberOfIntraFrames()  const
 {
-  AOF_DBG(m_bInit); 
-  return m_uiNumIntra; 
+  AOF_DBG(m_bInit);
+  return m_uiNumIntra;
 }
 
 UInt
 SequenceStructure::getNumberOfInterFrames()  const
 {
-  AOF_DBG(m_bInit); 
+  AOF_DBG(m_bInit);
   return m_uiNumCoded - m_uiNumIntra;
 }
 
 UInt
 SequenceStructure::getNumberOfRefFrames()  const
-{ 
+{
   AOF_DBG( m_bInit );
   return m_uiNumRef;
 }
@@ -1186,22 +1186,22 @@ SequenceStructure::getNumberOfCodedFrames()  const
 }
 
 UInt
-SequenceStructure::getMaxAbsFrameDiffRef()  const 
-{ 
-  AOF_DBG( m_bInit ); 
+SequenceStructure::getMaxAbsFrameDiffRef()  const
+{
+  AOF_DBG( m_bInit );
   return m_uiMaxAbsFrameDiffRef;
 }
 
 UInt
 SequenceStructure::getMinDelay()  const
-{ 
-  AOF_DBG( m_bInit ); 
+{
+  AOF_DBG( m_bInit );
   return m_uiMinDelay;
 }
 
 UInt
-SequenceStructure::getNumTemporalLayers()  const 
-{ 
+SequenceStructure::getNumTemporalLayers()  const
+{
   AOF_DBG( m_bInit );
   return m_uiMaxLayer + 1;
 }
@@ -1327,9 +1327,9 @@ const String FormattedStringParser::sm_cSetOfPartStart  ("AIPBSipbs*");
 
 
 ErrVal
-FormattedStringParser::separatString( const String& rcString, 
-                                      String&       rcFDString, 
-                                      String&       rcMmcoString, 
+FormattedStringParser::separatString( const String& rcString,
+                                      String&       rcFDString,
+                                      String&       rcMmcoString,
                                       String&       rcRplrStringL0,
                                       String&       rcRplrStringL1 )
 {
@@ -1341,7 +1341,7 @@ FormattedStringParser::separatString( const String& rcString,
   if( String::npos == uiMPos ) // MMCO commands are not present
   {
     rcMmcoString           = "";
-    
+
     if( String::npos == uiR1Pos )
     {
       rcFDString           = rcString;
@@ -1351,7 +1351,7 @@ FormattedStringParser::separatString( const String& rcString,
     else
     {
       rcFDString           = rcString.substr( 0,     uiR1Pos );
-      
+
       if( uiR1Pos == uiR2Pos )
       {
         rcRplrStringL0     = rcString.substr( uiR1Pos, uiSize - uiR1Pos );
@@ -1379,7 +1379,7 @@ FormattedStringParser::separatString( const String& rcString,
       {
         rcFDString         = rcString.substr( 0,       uiMPos );
         rcMmcoString       = rcString.substr( uiMPos,  uiR1Pos - uiMPos );
-        
+
         if( uiR1Pos == uiR2Pos )
         {
           rcRplrStringL0   = rcString.substr( uiR1Pos, uiSize - uiR1Pos );
@@ -1444,8 +1444,8 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
 {
   UInt    uiKeyPos   = rcString.find_first_of( "K" );
   UInt    uiLayerPos = rcString.find_first_of( "L" );
-  String  cKeyString; 
-  String  cLayerString; 
+  String  cKeyString;
+  String  cLayerString;
   String  cFrameString;
 
   //===== separate strings =====
@@ -1482,7 +1482,7 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
     cLayerString    = rcString.substr( uiLayerPos,  uiKeyPos        - uiLayerPos );
     cKeyString      = rcString.substr( uiKeyPos,    rcString.size() - uiKeyPos );
   }
-  
+
   //===== check frame string =====
   ROFS  ( cFrameString.find_first_of   ( sm_cSetOfTypes   ) == 0 );   // first character must be a type
   ROFS  ( cFrameString.find_first_of   ( sm_cSetOfDigits  ) == 1 );   // second character must be a digit
@@ -1494,13 +1494,13 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
     ROFS( cLayerString.find_first_of   ( sm_cSetOfDigits  ) == 1 );   // second character must be a digit
     ROFS( cLayerString.find_last_not_of( sm_cSetOfDigits  ) == 0 );   // all other characters must be digits
   }
-  
+
   //===== check key string =====
   if( ! cKeyString.empty() )
   {
     ROFS( cKeyString.size() == 1 ); // single character string
   }
-  
+
   //===== assign parameters =====
   rucType       = cFrameString[0];
   ruiIncrement  = atoi( cFrameString.c_str() + 1 );

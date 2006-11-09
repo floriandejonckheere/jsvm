@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -87,28 +87,25 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #if !defined(AFX_CONTEXTTABLES_H__CBFE313E_2382_4ECC_9D41_416668E3507D__INCLUDED_)
 #define AFX_CONTEXTTABLES_H__CBFE313E_2382_4ECC_9D41_416668E3507D__INCLUDED_
 
-#define NUM_ABT_MODE_CTX 3
-#define NUM_MB_TYPE_CTX  11
-#define NUM_B8_TYPE_CTX  9
-#define NUM_MV_RES_CTX   10
-#define NUM_REF_NO_CTX   6
-#define NUM_DELTA_QP_CTX 4
-
-#define NUM_BL_PRED_FLAG_CTX   4
-
-#define NUM_RES_PRED_FLAG_CTX   4
-
-#define NUM_IPR_CTX    2
-#define NUM_CBP_CTX    4
-#define NUM_BCBP_CTX   4
-#define NUM_MAP_CTX   16 // changed for EL
-#define NUM_LAST_CTX  15
-#define NUM_ONE_CTX    5
-#define NUM_ABS_CTX    5
-#define NUM_TRANSFORM_SIZE_CTX 3
+#define NUM_ABT_MODE_CTX         3
+#define NUM_MB_TYPE_CTX         11
+#define NUM_B8_TYPE_CTX          9
+#define NUM_MV_RES_CTX          10
+#define NUM_REF_NO_CTX           6
+#define NUM_DELTA_QP_CTX         4
+#define NUM_BL_PRED_FLAG_CTX     4
+#define NUM_RES_PRED_FLAG_CTX    4
+#define NUM_IPR_CTX              2
+#define NUM_CBP_CTX              4
+#define NUM_BCBP_CTX             4
+#define NUM_MAP_CTX             16
+#define NUM_LAST_CTX            15
+#define NUM_ONE_CTX              5
+#define NUM_ABS_CTX              5
+#define NUM_TRANSFORM_SIZE_CTX   3
+#define NUM_FGS_REF_CTX         22
 
 #define NUM_BLOCK_TYPES 8
-
 
 #define NUM_CTX_MODELS_I     1
 #define NUM_CTX_MODELS_P     3
@@ -125,7 +122,7 @@ static const int type2ctx2[] = { 0,  1,  5,  6,  7,  5,  6,  7 };
 static const int  pos2ctx_map8x8  []  = { 0,  1,  2,  3,  4,  5,  5,  4,  4,  3,  3,  4,  4,  4,  5,  5,
                                           4,  4,  4,  4,  3,  3,  6,  7,  7,  7,  8,  9, 10,  9,  8,  7,
                                           7,  6, 11, 12, 13, 11,  6,  7,  8,  9, 14, 10,  9,  8,  6, 11,
-                                         12, 13, 11,  6,  9, 14, 10,  9, 11, 12, 13, 11 ,14, 10, 12, 14}; 
+                                         12, 13, 11,  6,  9, 14, 10,  9, 11, 12, 13, 11 ,14, 10, 12, 14};
 static const int  pos2ctx_last8x8 []  = { 0,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,  1,
                                           2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,
                                           3,  3,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4,  4,  4,
@@ -149,8 +146,8 @@ static const Short INIT_MB_TYPE_P[3][3][11][2] =
   //----- model 0 -----
   {
     {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED },
-  	{ {  23,  33} , {  23,   2} , {  21,   0} ,  CTX_UNUSED , {   1,   9} , {   0,  49} , { -37, 118} , {   5,  57} , { -13,  78} , { -11,  65} , {   1,  62} },
-  	{ {  26,  67} , {  16,  90} , {   9, 104} ,  CTX_UNUSED , { -46, 127} , { -20, 104} , {   1,  67} , {  18,  64} , {   9,  43} , {  29,   0} ,  CTX_UNUSED }
+    { {  23,  33} , {  23,   2} , {  21,   0} ,  CTX_UNUSED , {   1,   9} , {   0,  49} , { -37, 118} , {   5,  57} , { -13,  78} , { -11,  65} , {   1,  62} },
+    { {  26,  67} , {  16,  90} , {   9, 104} ,  CTX_UNUSED , { -46, 127} , { -20, 104} , {   1,  67} , {  18,  64} , {   9,  43} , {  29,   0} ,  CTX_UNUSED }
   },
   //----- model 1 -----
   {
@@ -162,7 +159,7 @@ static const Short INIT_MB_TYPE_P[3][3][11][2] =
   {
     {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED },
     { {  29,  16} , {  25,   0} , {  14,   0} ,  CTX_UNUSED , { -10,  51} , {  -3,  62} , { -27,  99} , {  26,  16} , {  -4,  85} , { -24, 102} , {   5,  57} },
-  	{ {  54,   0} , {  37,  42} , {  12,  97} ,  CTX_UNUSED , { -32, 127} , { -22, 117} , {  -2,  74} , {  20,  40} , {  20,  10} , {  29,   0} ,  CTX_UNUSED }
+    { {  54,   0} , {  37,  42} , {  12,  97} ,  CTX_UNUSED , { -32, 127} , { -22, 117} , {  -2,  74} , {  20,  40} , {  20,  10} , {  29,   0} ,  CTX_UNUSED }
   }
 };
 
@@ -358,22 +355,22 @@ static const Short INIT_IPR_I[1][1][2][2] =
 {
   //----- model 0 -----
   {
-	  { { 13,  41} , {   3,  62} }
+    { { 13,  41} , {   3,  62} }
   }
 };
 static const Short INIT_IPR_P[3][1][2][2] =
 {
   //----- model 0 -----
   {
-	  { { 13,  41} , {   3,  62} }
+    { { 13,  41} , {   3,  62} }
   },
   //----- model 1 -----
   {
-	  { { 13,  41} , {   3,  62} }
+    { { 13,  41} , {   3,  62} }
   },
   //----- model 2 -----
   {
-	  { { 13,  41} , {   3,  62} }
+    { { 13,  41} , {   3,  62} }
   }
 };
 
@@ -828,13 +825,13 @@ static const Short INIT_TRANSFORM_SIZE_P[3][1][3][2]=
   }
 };
 
-
-static const Short INIT_REF[1][1][10][2] =
-{
-  {
-    { {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED }
+static const Short INIT_REF[1][1][NUM_FGS_REF_CTX][2] =
+{  // ctxIdxInc for coeff_refinement_flag and coeff_refinement_direction flag
+  {// 0       0       1       1       2       2                               3       3       4       4       5       5                               6       6       7       7       8       8
+    { {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64} }
   }
 };
+
 static const Short INIT_SIG[1][1][10][2] =
 {
   {
