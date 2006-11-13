@@ -1,8 +1,21 @@
+JSVM_7_4 -> JSVM_7_5
+====================
+
+Date      : Nov. 10, 2006
+Author	  : Andrew Segall
+Contrib   : JVT-U042 (Sharp)
+
+Changes:
+
+- Reduced filter length for luma upsampling (JVT-U042).
+
+
+
 JSVM_7_3 -> JSVM_7_4
 ====================
 
 Date      : Nov. 9, 2006
-Author	  : Heiner Kirchhoffer
+Author	  : Heiner Kirchhoffer (HHI)
 Contrib   : JVT-U082
 
 Changes:

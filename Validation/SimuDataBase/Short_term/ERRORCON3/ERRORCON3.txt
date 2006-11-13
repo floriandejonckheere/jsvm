@@ -56,7 +56,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
                   			bitrate     => 1073.2488,
-                  			psnr        => 16.8603,
+                  			psnr        => 16.8015,
                         packetlossrate => 5,
                         errorconcealment => 1,
                         
@@ -117,7 +117,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
                   			bitrate     => 1073.2488,
-                  			psnr        => 14.8299,
+                  			psnr        => 14.8272,
                   			packetlossrate => 5,
                         errorconcealment => 3,
                         
