@@ -1,9 +1,38 @@
+JSVM_7_5 -> JSVM_7_6
+====================
+
+Date      : Nov. 17, 2006
+Author    : Hao Zhang, Alex Eleftheriadis (Layered Media) and, Adrian Guede-Lewis (Simecom)
+Contrib   : JVT-U085, JVT-U116
+
+Changes:
+
+- Temporal level nesting flag was added into the scalability Information SEI message (JVT-U085). 
+The value is set via the -tlnest command line option, or the TLNestingFlag configuration file
+parameter. The default value is 1 (set).
+
+- extension_flag and extension byte for frame indices added in SVC NAL unit header, for suffix 
+NAL units (JVT-U116). The feature is enabled via the -tlidx command line option, or the
+TLFrameIdxEnable configuration file parameter. The default value is 0 (no extension).
+
+Note: The changes can be located by searching for "U085" and "U116".
+
+
+Bug fixes: 
+
+-Splitting the Loop filtering and the border extension processes. There was a msimatch 
+between the text and the software (In LoopFilter.cpp)
+- Bug fixes regarding the usage of not reconstructed neighboring Inter MBs in the filtering process (In LoopFilter.cpp)
+
+Note: These fixes can be found by searching  "agl@simecom".
+
+
 JSVM_7_4 -> JSVM_7_5
 ====================
 
 Date      : Nov. 10, 2006
-Author	  : Andrew Segall
-Contrib   : JVT-U042 (Sharp)
+Author	  : Andrew Segall (Sharp)
+Contrib   : JVT-U042 
 
 Changes:
 
