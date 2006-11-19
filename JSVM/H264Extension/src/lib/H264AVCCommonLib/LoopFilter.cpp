@@ -981,6 +981,21 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
     //*/
     }
 
+ //{ agl@simecom FIX ------------------
+      uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
+	}								
+ 
+	for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
+	{
+     UInt          uiMbY             = uiMbAddress / uiMbInRow;
+     UInt          uiMbX             = uiMbAddress % uiMbInRow;
+
+     MbDataAccess* pcMbDataAccessRes = 0;
+
+     RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
+     RNOK(   m_pcControlMngIf->initMbForFiltering(  uiMbAddress ) );
+ //-------------------------- agl@simecom FIX }
+
       if( m_eLFMode & LFM_EXTEND_INTRA_SUR )
     {
         UInt uiMask = 0;
@@ -1097,6 +1112,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
     else if(pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 )){
       const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
       const MbData& rcMbDataLeft = pcMbDataAccessRes->getMbDataLeft();
+      ROTRS( LFM_DEFAULT_FILTER != m_eLFMode && rcMbDataLeft.isIntra() ^ rcMbDataCurr.isIntra(), 0 );// bugfix, agl@simecom 
       if(rcMbDataCurr.isIntra_BL() && rcMbDataLeft.isIntra_BL()){
         ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 1 );
         ROTRS( rcMbDataLeft.is4x4BlkCoded( cIdx + LEFT_MB_LEFT_NEIGHBOUR), 1 );
@@ -1243,6 +1259,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
     else if(pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 )){
       const MbData& rcMbDataCurr = pcMbDataAccessRes->getMbDataCurr();
       const MbData& rcMbDataAbove = pcMbDataAccessRes->getMbDataAbove();
+      ROTRS( LFM_DEFAULT_FILTER != m_eLFMode && rcMbDataCurr.isIntra() ^ rcMbDataAbove.isIntra(), 0 ); // bugfix, agl@simecom 
       if(rcMbDataCurr.isIntra_BL() && rcMbDataAbove.isIntra_BL()){
         ROTRS( rcMbDataCurr.is4x4BlkCoded( cIdx ), 1 );
         ROTRS( rcMbDataAbove.is4x4BlkCoded( cIdx + ABOVE_MB_ABOVE_NEIGHBOUR), 1 );

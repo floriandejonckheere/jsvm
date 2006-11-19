@@ -253,6 +253,11 @@ MCTFEncoder::MCTFEncoder()
 , m_uiBaseLayerCGSSNR                       ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevelCGSSNR                ( 0 )
 //JVT-T054}
+// JVT-U085 LMI 
+, m_bTlevelNestingFlag  (true)
+// JVT-U116 LMI 
+, m_bExtensionFlag      (false)
+
  {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -387,6 +392,10 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_iIDRPeriod        = pcLayerParameters->getIDRPeriod        ();
   m_bBLSkipEnable      = pcLayerParameters->getBLSkipEnable      ();
 // JVT-Q065 EIDR}
+// JVT-U085 LMI
+  m_bTlevelNestingFlag      = pcCodingParameter->getTlevelNestingFlag();
+// JVT-U116 LMI
+  m_bExtensionFlag          = pcCodingParameter->getExtensionFlag();
 
   m_bExtendedPriorityId     = pcCodingParameter->getExtendedPriorityId();
 
@@ -3430,7 +3439,45 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 
   pcSliceHeader->setDiscardableFlag             ( false                 );
 
+  // JVT-U116 LMI {
+  pcSliceHeader->setExtensionFlag               ( m_bExtensionFlag      );
+  SliceHeader*  pcTl0SliceHeader;
+  pcTl0SliceHeader = m_pacControlData[ 0 ].getSliceHeader();
+  ROF( pcTl0SliceHeader );
+  UInt uiPrevTl0FrameIdx = pcTl0SliceHeader->getPrevTl0FrameIdx();
 
+  if ( pcSliceHeader->getLayerId() == 0 )
+  {
+    pcTl0SliceHeader->setNumTl0FrameIdxUpdate ( pcTl0SliceHeader->getNumTl0FrameIdxUpdate() + 1 );
+    if ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+    {
+      pcSliceHeader->setTl0FrameIdx        ( 0 );
+      if ( m_papcFrame[uiFrameIdInGOP]->getPOC() == 0 ) 
+      {
+        pcTl0SliceHeader->setPrevTl0FrameIdx    ( 0 );
+        pcTl0SliceHeader->setNumTl0FrameIdxUpdate ( 0 );
+        pcTl0SliceHeader->setTl0FrameIdxResetFlag ( false );
+      }
+      else
+        pcTl0SliceHeader->setTl0FrameIdxResetFlag ( true );
+    }
+    else if ( uiTemporalLevel == 0 ) 
+      pcSliceHeader->setTl0FrameIdx             ( (uiPrevTl0FrameIdx + 1) % 256 );
+    else 
+      pcSliceHeader->setTl0FrameIdx             ( uiPrevTl0FrameIdx );
+
+    if ( pcTl0SliceHeader->getNumTl0FrameIdxUpdate() == m_uiGOPSize )
+    {
+        pcTl0SliceHeader->setNumTl0FrameIdxUpdate ( 0 );
+        pcTl0SliceHeader->setPrevTl0FrameIdx( (uiPrevTl0FrameIdx + 1) % 256);
+        if ( pcTl0SliceHeader->getTl0FrameIdxResetFlag() )
+        {
+          pcTl0SliceHeader->setPrevTl0FrameIdx( 0 );
+          pcTl0SliceHeader->setTl0FrameIdxResetFlag( false );
+        }
+    }
+  }
+  // JVT-U116 LMI }
   pcSliceHeader->setSimplePriorityId            ( 0                      );
 
 

@@ -778,6 +778,19 @@ public:
 //JVT-T054{
   Void                              setBaseFragmentOrder          ( UInt        ui )  { m_uiBaseFragmentOrder               = ui; }
 //JVT-T054}
+// JVT-U116 LMI {
+  Bool                              getExtensionFlag              () const  { return m_bExtensionFlag; }
+  UInt                              getTl0FrameIdx                () const  { return m_uiTl0FrameIdx; }
+  Bool                              getTl0FrameIdxResetFlag       () const  { return m_bTl0FrameIdxResetFlag; }
+  UInt                              getPrevTl0FrameIdx            () const  { return m_uiPrevTl0FrameIdx; }
+  UInt                              getNumTl0FrameIdxUpdate       () const  { return m_uiNumTl0FrameIdxUpdate; }
+  Void                              setExtensionFlag              ( Bool b ){ m_bExtensionFlag = b; }
+  Void                              setTl0FrameIdx                ( UInt ui )  { m_uiTl0FrameIdx = ui; }           
+  Void                              setTl0FrameIdxResetFlag       ( Bool b )   { m_bTl0FrameIdxResetFlag = b; }
+  Void                              setPrevTl0FrameIdx            ( UInt ui )  { m_uiPrevTl0FrameIdx = ui; }
+  Void                              setNumTl0FrameIdxUpdate       ( UInt ui )   { m_uiNumTl0FrameIdxUpdate = ui; }
+
+// JVT-U116 LMI }
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
   UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
 
@@ -918,6 +931,13 @@ protected:
   UInt                        m_uiFragmentOrder;
   Bool                        m_bLastFragmentFlag;
   //~JVT-P031
+  // JVT-U116 LMI {
+  Bool                        m_bExtensionFlag;
+  UInt                        m_uiTl0FrameIdx;
+  UInt                        m_uiPrevTl0FrameIdx;
+  Bool                        m_bTl0FrameIdxResetFlag;
+  UInt                        m_uiNumTl0FrameIdxUpdate;
+  // JVT-U116 LMI }
   UInt                        m_uiRedundantPicCnt;  // JVT-Q054 Red. Picture
 //JVT-T054{
   UInt                        m_uiLayerCGSSNR;

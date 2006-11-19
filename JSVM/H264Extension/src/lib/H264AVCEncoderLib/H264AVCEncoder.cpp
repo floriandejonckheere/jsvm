@@ -446,6 +446,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   UInt uiNumLayersMinus1 = uiLayerNum - 1;
 
   pcScalableSEI->setNumLayersMinus1 ( uiNumLayersMinus1 );
+  // JVT-U085 LMI
+  pcScalableSEI->setTlevelNestingFlag( m_pcCodingParameter->getTlevelNestingFlag() );
 
 
   UInt uiNumScalableLayer = 0;

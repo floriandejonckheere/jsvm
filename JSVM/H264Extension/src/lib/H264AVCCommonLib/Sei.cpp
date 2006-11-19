@@ -479,6 +479,8 @@ SEI::SubSeqInfo::init( UInt  uiSubSeqLayerNum,
 
 SEI::ScalableSei::ScalableSei  ()
 : SEIMessage                  ( SCALABLE_SEI )
+// JVT-U085 LMI
+, m_temporal_level_nesting_flag( true )
 , m_num_layers_minus1          ( 0  )
 {
   ::memset( m_layer_id, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt) );
@@ -605,6 +607,8 @@ ErrVal
 SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
   UInt i=0, j=0;
+  // JVT-U085 LMI
+  RNOK    ( pcWriteIf->writeFlag( m_temporal_level_nesting_flag,                "ScalableSEI: temporal_level_nesting_flag"                      ) );
 
   ROF( m_num_layers_minus1+1 );
   RNOK    ( pcWriteIf->writeUvlc(m_num_layers_minus1,                          "ScalableSEI: num_layers_minus1"                      ) );
@@ -808,6 +812,8 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 {
   UInt i, j=0;
   UInt rl;//JVT-S036 lsj
+  // JVT-U085 LMI
+  RNOK  ( pcReadIf->getFlag( m_temporal_level_nesting_flag,                          "" ) );
 
   RNOK  ( pcReadIf->getUvlc( m_num_layers_minus1 ,                                ""  ) );
 

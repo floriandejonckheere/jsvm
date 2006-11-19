@@ -586,6 +586,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   Bool bFragmentedFlag = false; //JVT-P031
   UInt uiFragmentOrder = 0; //JVT-P031
   Bool bLastFragmentFlag = false; //JVT-P031
+  Bool bExtensionFlag = false; // JVT-U116 LMI
   rcPacketDescription.uiNumLevelsQL = 0;
   for(UInt ui = 0; ui < MAX_NUM_RD_LEVELS; ui++)
   {
@@ -613,12 +614,15 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         uiFGSLayer  = ( ucByte      ) & 3;
 
     ucByte              = (pcBinData->data())[3];
-    bLayerBaseFlag      = ( ucByte >> 6) & 1;          // layer_base_flag          ( &01000000b)
-    bUseBasePredFlag    = ( ucByte >> 5) & 1;          // use_base_prediction_flag ( &00100000b)
-    bDiscardableFlag    = ( ucByte >> 4) & 1;          // discardable_flag         ( &00010000b)
-    bFragmentedFlag     = ( ucByte >> 3) & 1;          // fgs_frag_flag            ( &00001000b)
-    bLastFragmentFlag    = ( ucByte >> 2) & 1;          // fgs_last_frag_flag       ( &00000100b)
-    uiFragmentOrder      = ( ucByte >> 0) & 3;          // fgs_frag_order           ( &00000011b)
+    // JVT-U116 LMI {
+    bLayerBaseFlag      = ( ucByte >> 7) & 1;          // layer_base_flag          ( &10000000b)
+    bUseBasePredFlag    = ( ucByte >> 6) & 1;          // use_base_prediction_flag ( &01000000b)
+    bDiscardableFlag    = ( ucByte >> 5) & 1;          // discardable_flag         ( &00100000b)
+    bFragmentedFlag     = ( ucByte >> 4) & 1;          // fgs_frag_flag            ( &00010000b)
+    bLastFragmentFlag   = ( ucByte >> 3) & 1;          // fgs_last_frag_flag      ( &00001000b)
+    uiFragmentOrder     = ( ucByte >> 1) & 3;          // fgs_frag_order          ( &00000110b)
+    bExtensionFlag      = ( ucByte >> 0) & 1;          // extension_flag           ( &00000001b)
+    // JVT-U116 LMI }
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||
            eNalUnitType == NAL_UNIT_CODED_SLICE_IDR   )

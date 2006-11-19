@@ -370,6 +370,8 @@ ScalableModifyCode::ConvertRBSPToPayload( UChar* m_pucBuffer,
 ErrVal
 ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModifyCode *pcScalableModifyCode )
 {
+  // JVT-U085 LMI
+  pcScalableModifyCode->WriteFlag( pcScalableSei->getTlevelNestingFlag() );
   UInt uiNumScalableLayersMinus1 = pcScalableSei->getNumLayersMinus1();
   pcScalableModifyCode->WriteUVLC( uiNumScalableLayersMinus1 );
   for( UInt uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )

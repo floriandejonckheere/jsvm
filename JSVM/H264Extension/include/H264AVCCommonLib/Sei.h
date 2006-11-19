@@ -222,6 +222,7 @@ public:
     ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
     ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
 
+    Void setTlevelNestingFlag( Bool bFlag )                                   { m_temporal_level_nesting_flag = bFlag; }
     Void setNumLayersMinus1( UInt ui )                                        { m_num_layers_minus1 = ui;  }
     Void setLayerId ( UInt uilayer, UInt uiId )                                { m_layer_id                              [uilayer] = uiId; }
   //JVT-S036 lsj start
@@ -365,6 +366,8 @@ public:
     UInt getStdAVCOffset()const { return m_std_AVC_Offset; }
 // BUG_FIX liuhui}
 
+    // JVT-U085 LMI
+    Bool getTlevelNestingFlag() const { return m_temporal_level_nesting_flag; }
     UInt getNumLayersMinus1() const {return m_num_layers_minus1;}
     UInt getLayerId ( UInt uilayer ) const { return m_layer_id[uilayer]; }
    //JVT-S036 lsj start
@@ -448,6 +451,8 @@ public:
 // BUG_FIX liuhui{
     UInt m_std_AVC_Offset;
 // BUG_FIX liuhui}
+    // JVT-U085 LMI
+    Bool m_temporal_level_nesting_flag;
     UInt m_num_layers_minus1;
     UInt m_layer_id[MAX_SCALABLE_LAYERS];
   //JVT-S036 lsj start

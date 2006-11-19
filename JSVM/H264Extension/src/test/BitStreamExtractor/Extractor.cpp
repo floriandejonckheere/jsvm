@@ -1877,6 +1877,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
   RNOK( h264::SEI::ScalableSei::create(pcNewScalableSei) );
 
   h264::SEI::ScalableSei* pcOldScalableSei = ( h264::SEI::ScalableSei*) pcScalableSEIMessage;
+// JVT-U085 LMI
+  pcNewScalableSei->setTlevelNestingFlag( pcOldScalableSei->getTlevelNestingFlag() );
   pcNewScalableSei->setNumLayersMinus1( uiKeepScalableLayer-1);
 
 // BUG_FIX liuhui{

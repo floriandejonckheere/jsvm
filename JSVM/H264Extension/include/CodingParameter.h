@@ -681,6 +681,11 @@ public:
     , m_uiMaxLayerCGSSNR                ( 0 )
     , m_uiMaxQualityLevelCGSSNR         ( 0 )
 //JVT-T054}
+// JVT-U085 LMI
+    , m_uiTlevelNestingFlag        ( 1 )
+// JVT-U116 LMI
+    , m_uiExtensionFlag        ( 0 )
+
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -838,6 +843,15 @@ public:
   Void                            setMaxLayerCGSSNR       ( UInt    ui )  { m_uiMaxLayerCGSSNR       = ui; }
   Void                            setMaxQualityLevelCGSSNR( UInt    ui )  { m_uiMaxQualityLevelCGSSNR= ui; }
 //JVT-T054}
+// JVT-U085 LMI {
+  Bool                            getTlevelNestingFlag    ()              const   { return m_uiTlevelNestingFlag > 0 ? true : false; }
+  Void                            setTlevelNestingFlag    ( UInt  ui )    { m_uiTlevelNestingFlag = ui; }
+// JVT-U085 LMI }
+// JVT-U116 LMI {
+  Bool                            getExtensionFlag        ()              const   { return m_uiExtensionFlag > 0 ? true : false; }
+  Void                            setExtensionFlag        ( UInt  ui )    { m_uiExtensionFlag = ui; }
+// JVT-U116 LMI }
+
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -911,6 +925,10 @@ protected:
   UInt                      m_uiNestingSEIEnable;
   UInt                      m_uiSceneInfoEnable;
 //JVT-T073 }
+// JVT-U085 LMI 
+  UInt                      m_uiTlevelNestingFlag;
+// JVT-U116 LMI 
+  UInt                      m_uiExtensionFlag;
 };
 
 #if defined( MSYS_WIN32 )

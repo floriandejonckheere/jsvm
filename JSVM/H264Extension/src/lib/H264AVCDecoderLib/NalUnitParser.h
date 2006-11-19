@@ -175,6 +175,8 @@ protected:
   Bool          m_bFGSFragFlag;
   Bool          m_bFGSLastFragFlag;
   UInt          m_uiFGSFragOrder;
+  Bool          m_bExtensionFlag;
+  UInt          m_uiTl0FrameIdx;
 
   Bool          m_bCheckAllNALUs;
   UInt          m_uiDecodedLayer;

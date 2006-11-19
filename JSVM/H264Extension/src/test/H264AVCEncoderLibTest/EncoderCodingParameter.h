@@ -437,6 +437,25 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     continue;
     }
   //S051}
+    // JVT-U116 LMI {
+    if( equals( pcCom, "-tlidx", 6 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt uiExtFlag = atoi( argv[n] );
+      CodingParameter::setExtensionFlag( uiExtFlag );
+      continue;
+    }
+    // JVT-U116 LMI }
+
+    // JVT-U085 LMI {
+    if( equals( pcCom, "-tlnest", 7 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt uiTlNestFlag = atoi( argv[n] );
+      CodingParameter::setTlevelNestingFlag( uiTlNestFlag );
+      continue;
+    }
+    // JVT-U085 LMI }
 
     if( equals( pcCom, "-fgsmot", 7 ) )
     {
@@ -546,6 +565,10 @@ Void EncoderCodingParameter::printHelp()
   printf("  -anasip (Layer) (SIP Analysis Mode)[0: persists all inter-predictions, 1: forbids all inter-prediction.] (File for storing bits information)\n");
   printf("  -encsip (Layer) (File with stored SIP information)\n");
   //S051}
+  //JVT-U085 LMI
+  printf("  -tlnest (TlevelNestingFlag)[0: temporal level nesting constraint is not applied, 1: the nesting constraint is applied.]\n");
+  //JVT-U116 LMI
+  printf("  -nalext (ExtensionFlag)[0: tl0_frame_idx is not present, 1: tl0_frame_idx is present.]\n");
   printf("  -h      Print Option List \n");
   printf("\n");
 }
@@ -669,6 +692,8 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",            &m_uiMMCOBaseEnable,                                      1 );
 //JVT-S036 lsj end //bug-fix suffix}}
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                              0 );  //JVT-T054
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",        &m_uiTlevelNestingFlag,                                   1 );  //JVT-U085
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLFrameIdxEnable",        &m_uiExtensionFlag,                                    0 );  //JVT-U116
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))

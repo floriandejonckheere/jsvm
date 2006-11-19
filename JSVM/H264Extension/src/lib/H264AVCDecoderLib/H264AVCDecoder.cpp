@@ -1314,6 +1314,12 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
         ruiEndPos = pcBinDataAccessor->size();
 
       uiHeaderBits = uiBitsLeft - m_pcNalUnitParser->getBitsLeft();
+      // JVT-U116 LMI {
+      UChar ucByte = pcBinDataAccessor->data()[3];
+      if ( ucByte & 1 )
+        uiHeaderBits += 8;
+      // JVT-U116 LMI }
+
       if( (bDiscardable) || (!bFragmented) || (bFragmented && m_pcNalUnitParser->getFragmentOrder()==0) )
       {
         ruiStartPos = 0;

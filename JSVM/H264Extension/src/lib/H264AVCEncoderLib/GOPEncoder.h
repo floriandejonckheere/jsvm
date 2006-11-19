@@ -669,6 +669,10 @@ protected:
   UInt                          m_uiBaseLayerCGSSNR;
   UInt                          m_uiBaseQualityLevelCGSSNR;
 //JVT-T054}
+// JVT-U085 LMI 
+  Bool         m_bTlevelNestingFlag;
+// JVT-U116 LMI 
+  Bool         m_bExtensionFlag;
 };
 
 #if defined( WIN32 )

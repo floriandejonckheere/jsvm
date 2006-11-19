@@ -814,8 +814,10 @@ H264AVCDecoderTest::removeRedundencySlice(BinDataAccessor*  pcBinDataAccessor,
       uiQualityLevel    = ( ucByte      ) & 3;
 
       ucByte              = pcBinDataAccessor->data()[3];
-      ROT( ucByte & 0x80 );
-      m_bFGSFragFlag        = ( ucByte >> 3) & 1;
+      // JVT-U116 LMI {
+      //ROT( ucByte & 0x80 );
+      m_bFGSFragFlag        = ( ucByte >> 4) & 1;
+      // JVT-U116 LMI {
     }
     else
     {

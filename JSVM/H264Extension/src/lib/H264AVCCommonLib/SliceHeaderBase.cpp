@@ -343,6 +343,8 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   UInt  uiQualityLevel = (m_eSliceType != F_SLICE)?m_uiQualityLevelCGSSNR:m_uiQualityLevel;
 
   Bool  bLayerBaseFlag = ( (m_uiBaseLayerId == MSYS_UINT_MAX) && (uiQualityLevel==0) );
+  // JVT-U116 LMI
+  Bool  bExtensionFlag =   (uiDependencyId == 0 && uiQualityLevel == 0) ? m_bExtensionFlag : false;
 
   //===== NAL unit header =====
   RNOK  ( pcWriteIf->writeFlag( 0,                                              "NALU HEADER: forbidden_zero_bit" ) );
@@ -358,8 +360,8 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK (pcWriteIf->writeCode( m_uiTemporalLevel,   3,                       "NALU HEADER: temporal_level"));
     RNOK( pcWriteIf->writeCode( uiDependencyId,         3,                      "NALU HEADER: dependency_id" ) );
     RNOK( pcWriteIf->writeCode( uiQualityLevel,    2,                           "NALU HEADER: quality_level" ) );
-
-    RNOK (pcWriteIf->writeFlag( 0,                                              "NALU HEADER: reserved_zero_one_bit"));
+    // JVT-U116 LMI
+    //RNOK (pcWriteIf->writeFlag( 0,                                              "NALU HEADER: reserved_zero_one_bit"));
     RNOK (pcWriteIf->writeFlag( bLayerBaseFlag,                                 "NALU HEADER: layer_base_flag"));
     RNOK (pcWriteIf->writeFlag( m_bUseBasePredictionFlag,                       "NALU HEADER: use_base_prediction_flag"));
     RNOK (pcWriteIf->writeFlag( m_bDiscardableFlag,                             "NALU HEADER: discardable_flag"));
@@ -376,6 +378,11 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       }
     RNOK( pcWriteIf->writeCode( uiFragmentOrder,  2,                            "NALU HEADER: fgs_frag_order" ) );
     //}}JVT-T083
+    // JVT-U116 LMI {
+    RNOK (pcWriteIf->writeFlag( bExtensionFlag,                                 "NALU HEADER: extension_flag"));
+    if ( bExtensionFlag )
+      RNOK( pcWriteIf->writeCode( m_uiTl0FrameIdx,    8,                        "NALU HEADER: tl0_frame_idx" ) );
+    // JVT-U116 LMI }
   }
 
 //JVT-S036 lsj start
