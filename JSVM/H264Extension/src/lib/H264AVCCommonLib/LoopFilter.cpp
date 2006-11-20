@@ -946,8 +946,8 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
 
    uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
    uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
-
-    for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+    UInt uiMbAddress;
+    for(uiMbAddress = uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
     //===== loop over macroblocks use raster scan =====
   {
       UInt          uiMbY             = uiMbAddress / uiMbInRow;
@@ -985,7 +985,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
       uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
 	}								
  
-	for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
+	for(uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
 	{
      UInt          uiMbY             = uiMbAddress / uiMbInRow;
      UInt          uiMbX             = uiMbAddress % uiMbInRow;
