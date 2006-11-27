@@ -86,7 +86,7 @@ tests      => [
 		 framerate => 30,
 		 useql     => 1,
 		 bitrate => 700,
-		 psnr => 30.9974,
+		 psnr => 30.9964,
 		},
 		#----------#
     # Test   3 #
