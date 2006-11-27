@@ -102,6 +102,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/CFMO.h"
 
+//JVT-U106 Behaviour at slice boundaries{
+#include "H264AVCCommonLib/ReconstructionBypass.h"
+//JVT-U106 Behaviour at slice boundaries}
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -257,7 +260,10 @@ MCTFEncoder::MCTFEncoder()
 , m_bTlevelNestingFlag  (true)
 // JVT-U116 LMI 
 , m_bExtensionFlag      (false)
-
+//JVT-U106 Behaviour at slice boundaries{
+, m_bCIUFlag      (false)
+, m_pbIntraBLFlag  ( NULL)
+//JVT-U106 Behaviour at slice boundaries}
  {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -343,7 +349,11 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
                    YuvBufferCtrl*     pcYuvFullPelBufferCtrl,
                    YuvBufferCtrl*     pcYuvHalfPelBufferCtrl,
                    QuarterPelFilter*  pcQuarterPelFilter,
-                   MotionEstimation*  pcMotionEstimation )
+                   MotionEstimation*  pcMotionEstimation
+				   //JVT-U106 Behaviour at slice boundaries{
+				   ,ReconstructionBypass* pcReconstructionBypass
+				   //JVT-U106 Behaviour at slice boundaries}
+				   )
 {
   ROF( pcCodingParameter );
   ROF( pcLayerParameters );
@@ -357,6 +367,9 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   ROF( pcYuvHalfPelBufferCtrl );
   ROF( pcQuarterPelFilter );
   ROF( pcMotionEstimation );
+  //JVT-U106 Behaviour at slice boundaries{
+  ROF( pcReconstructionBypass );
+  //JVT-U106 Behaviour at slice boundaries}
 
   //----- references -----
   m_pcSPS                   = 0;
@@ -375,7 +388,9 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_pcQuarterPelFilter      = pcQuarterPelFilter;
   m_pcMotionEstimation      = pcMotionEstimation;
   m_pcRQFGSEncoder          = pcRQFGSEncoder;
-
+  //JVT-U106 Behaviour at slice boundaries{
+  m_pcReconstructionBypass  = pcReconstructionBypass;
+  //JVT-U106 Behaviour at slice boundaries}
   //----- fixed control parameters -----
   m_dLowPassEnhRef          = pcLayerParameters->getLowPassEnhRef();
   m_uiLowPassFgsMcFilter    = pcCodingParameter->getLowPassFgsMcFilter();
@@ -718,6 +733,10 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   }
   //S051}
 
+  //JVT-U106 Behaviour at slice boundaries{
+  m_bCIUFlag=pcCodingParameter->getCIUFlag()!=0;
+  //JVT-U106 Behaviour at slice boundaries}
+  
   return Err::m_nOK;
 }
 
@@ -1283,6 +1302,13 @@ MCTFEncoder::uninit()
   }
   // JVT-S054 (ADD) <-
 
+  //JVT-U106 Behaviour at slice boundaries{
+  if(m_pbIntraBLFlag)
+  {
+	  delete[] m_pbIntraBLFlag;
+	  m_pbIntraBLFlag=NULL;
+  }
+  //JVT-U106 Behaviour at slice boundaries{
   return Err::m_nOK;
 }
 
@@ -1563,6 +1589,11 @@ MCTFEncoder::xMotionEstimation( RefFrameList*    pcRefFrameList0,
           RNOK( m_pcYuvFullPelBufferCtrl->initMb( uiMbY, uiMbX ) );
           RNOK( m_pcYuvHalfPelBufferCtrl->initMb( uiMbY, uiMbX ) );
           RNOK( m_pcMotionEstimation    ->initMb( uiMbY, uiMbX, *pcMbDataAccess ) );
+		  
+		  //JVT-U106 Behaviour at slice boundaries{
+          if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
+		        pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
+		  //JVT-U106 Behaviour at slice boundaries}
 
           RNOK( pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
                             pcMbDataAccessBase,
@@ -3508,6 +3539,10 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   }
 // JVT-Q054 Red. Picture }
 
+  //JVT-U106 Behaviour at slice boundaries{
+  pcSliceHeader->setCIUFlag(m_bCIUFlag);
+  //JVT-U106 Behaviour at slice boundaries{
+
   //===== set prediction and update list sizes =====
   {
     //--- prediction ---
@@ -4393,15 +4428,29 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
   //==== reconstructed (intra) data =====
   if( bBaseDataAvailable )
   {
-    RNOK( m_pcBaseLayerFrame->copy( pcBaseFrame ) );
-  //JVT-R057 LA-RDO{
-  if(m_bLARDOEnable)
-    m_pcBaseLayerFrame->setChannelDistortion(pcBaseFrame);
-  //JVT-R057 LA-RDO}
-    // TMM_ESS
-    m_pcBaseLayerFrame->upsample(m_cDownConvert, m_pcResizeParameters, true);
-
-    rcControlData.setBaseLayerRec( m_pcBaseLayerFrame );
+	  //JVT-U106 Behaviour at slice boundaries{
+	  if(!m_pbIntraBLFlag)
+		  m_pbIntraBLFlag=new Bool[rcControlData.getMbDataCtrl()->getSize()];
+	  for(UInt i=0;i<rcControlData.getMbDataCtrl()->getSize();i++)
+		  m_pbIntraBLFlag[i]=true;
+	  m_pcSliceEncoder->setIntraBLFlag(m_pbIntraBLFlag);
+	  if(m_bCIUFlag)
+	  {
+		  xConstrainedIntraUpsampling(pcBaseFrame,m_pcBaseLayerFrame,m_apcFrameTemp[0],pcBaseDataCtrl,m_pcReconstructionBypass,m_pcResizeParameters);
+	  }
+	  else
+	  {
+		  RNOK( m_pcBaseLayerFrame->copy( pcBaseFrame ) );
+		  // TMM_ESS
+		  m_pcBaseLayerFrame->upsample(m_cDownConvert, m_pcResizeParameters, true);
+	  }
+	  //JVT-U106 Behaviour at slice boundaries}
+	  
+      //JVT-R057 LA-RDO{
+	  if(m_bLARDOEnable)
+		  m_pcBaseLayerFrame->setChannelDistortion(pcBaseFrame);
+	  //JVT-R057 LA-RDO}
+	  rcControlData.setBaseLayerRec( m_pcBaseLayerFrame );
   }
 
 
@@ -6164,11 +6213,13 @@ MCTFEncoder::xSetMmcoBase( SliceHeader& pcSliceHeader, UInt iNum )
   if( rcSH.getUseBasePredictionFlag() )
   {
     UInt uiPos = 0;
-    Int   iDiff             =  rcSH.getFrameNum() - iNum; //bug-fix suffix
-    //const Int   iDiff             =  rcSH.getFrameNum() - iNum;
-    //UInt        uiDiff            = ( uiMaxFrameNumber - iDiff ) % uiMaxFrameNumber;
+	//bug-fix 11/16/06{{
+	Int   iDiff             =  iNum - rcSH.getFrameNum(); 
+	const UInt  uiMaxFrameNumber  = ( 1 << rcSH.getSPS().getLog2MaxFrameNum() );
+	UInt        uiDiff            = ( uiMaxFrameNumber - iDiff ) % uiMaxFrameNumber;
 
-    rcSH.getMmcoBaseBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, iDiff-1 ) );
+	rcSH.getMmcoBaseBuffer().set( uiPos++, Mmco( MMCO_SHORT_TERM_UNUSED, uiDiff-1 ) );
+	//bug-fix 11/16/06}}
 
     rcSH.getMmcoBaseBuffer().set( uiPos, Mmco( MMCO_END) );
     rcSH.setAdaptiveRefPicMarkingFlag( true );
@@ -6612,7 +6663,269 @@ int MCTFEncoder::xGetMbDataCtrlL1Pos( const SliceHeader& rcSH, UInt uiCurrBasePo
 }
 //S051}
 
+//JVT-U106 Behaviour at slice boundaries{
+ErrVal
+MCTFEncoder::xConstrainedIntraUpsampling(IntFrame* pcFrame,
+										 IntFrame* pcUpsampling, 
+										 IntFrame* pcTemp,
+										 MbDataCtrl* pcBaseDataCtrl,
+										 ReconstructionBypass* pcReconstructionBypass,
+										 ResizeParameters* pcResizeParameters)
+{
+	int input_width   = pcResizeParameters->m_iInWidth;
+	int output_width  = pcResizeParameters->m_iGlobWidth;  
+	int output_height = pcResizeParameters->m_iGlobHeight;
 
+	if(pcResizeParameters->m_iSpatialScalabilityType)
+	{
+		UInt uiMbInRow=input_width>>4;
+		Int** ppiMaskL,**ppiMaskC;
+		Int* piXL,*piXC,*piYL,*piYC;
+		Int  k,l,m,n;
+		UInt  uiSliceNbr=1;
+ 
+		ppiMaskL=new Int*[output_height];
+		for(k=0;k<output_height;k++)
+		{
+			ppiMaskL[k]=new Int[output_width];
+		}
+		ppiMaskC=new Int*[output_height/2];
+		for(k=0;k<output_height/2;k++)
+		{
+			ppiMaskC[k]=new Int[output_width/2];
+		}
+
+		piXL=new Int[output_width];
+		piXC=new Int[output_width/2];
+		piYL=new Int[output_height];
+		piYC=new Int[output_height/2];
+		xGetPosition(pcResizeParameters,piXL,piYL,false);
+		xGetPosition(pcResizeParameters,piXC,piYC,true);
+
+		//when enhancement layer macroblock covers more than one slice 
+		//in its base layer,it cannot be coded using Intra_BL
+		for(k=0;k<output_height/16;k++)
+		{
+			for(l=0;l<output_width/16;l++)
+			{
+				Bool bIntra=true;
+				UInt uiLastSliceID = MSYS_UINT_MAX;
+				UInt uiCurrSliceID;
+				for(m=0;m<16;m++)
+				{
+					for(n=0;n<16;n++)
+					{
+						if(piXL[l*16+n]!=-128&&piYL[k*16+m]!=-128)
+						{
+							Int  iMbX=piXL[l*16+n]>>4;
+							Int  iMbY=piYL[k*16+m]>>4;
+							uiCurrSliceID=pcBaseDataCtrl->getMbData(iMbX,iMbY).getSliceId();
+							if(uiLastSliceID==-1)
+							{
+                                 uiLastSliceID=uiCurrSliceID;
+								 continue;
+							}
+							else if(uiLastSliceID!=uiCurrSliceID)
+							     bIntra=false;
+							uiLastSliceID=uiCurrSliceID;
+						}
+					}
+				}
+				m_pbIntraBLFlag[k*uiMbInRow+l]=bIntra;
+			}          
+		}
+
+
+		m_apcFrameTemp[1]->setZero();
+		pcTemp->copy(pcFrame);
+
+		//Assume slice id is ordered from 1 2 3...
+		//Get number of slices in picture
+		for(UInt i=0;i<pcBaseDataCtrl->getSize();i++)
+		{
+			UInt          uiMbY             = i / uiMbInRow;
+			UInt          uiMbX             = i % uiMbInRow;
+			if(pcBaseDataCtrl->getMbData(uiMbX,uiMbY).getSliceId()>uiSliceNbr)
+				uiSliceNbr=pcBaseDataCtrl->getMbData(uiMbX,uiMbY).getSliceId();
+		}
+
+		//Upsampling slice by slice and copy to the dest buffer
+		for(UInt iSliceID=1;iSliceID<=uiSliceNbr;iSliceID++)
+		{
+			pcFrame->copyPortion(pcTemp);
+			for(UInt uiMbAddress= 0 ;uiMbAddress<pcBaseDataCtrl->getSize();uiMbAddress++)
+				//===== loop over macroblocks use raster scan =====
+			{
+				UInt          uiMbY             = uiMbAddress / uiMbInRow;
+				UInt          uiMbX             = uiMbAddress % uiMbInRow;
+				pcFrame->getFullPelYuvBuffer()->getYuvBufferCtrl().initMb(uiMbY, uiMbX);
+				UInt uiMask = 0;
+				RNOK( pcBaseDataCtrl->getBoundaryMaskCIU( uiMbY, uiMbX, uiMask, iSliceID ) );
+				if( uiMask )
+				{
+					IntYuvMbBufferExtension cBuffer;
+					cBuffer.setAllSamplesToZero();
+
+					cBuffer.loadSurrounding( pcFrame->getFullPelYuvBuffer() );
+
+					RNOK( pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
+					pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
+				}
+			}
+
+			RNOK( pcUpsampling->copy( pcFrame ) );
+
+			pcUpsampling->upsample(m_cDownConvert, pcResizeParameters, true);
+			for(k=0;k<output_height;k++)
+			{
+				for(l=0;l<output_width;l++)
+				{
+					if(piXL[l]==-128||piYL[k]==-128)
+						ppiMaskL[k][l]=0;
+					else
+					{
+						Int  iMbX=piXL[l]>>4;
+						Int  iMbY=piYL[k]>>4;
+						if(pcBaseDataCtrl->getMbData(iMbX,iMbY).isIntra()&&(pcBaseDataCtrl->getMbData(iMbX,iMbY).getSliceId()==iSliceID))
+							ppiMaskL[k][l]=1;
+						else
+							ppiMaskL[k][l]=0;
+					}
+				}          
+			}
+
+			for(k=0;k<output_height/2;k++)
+			{
+				for(l=0;l<output_width/2;l++)
+				{
+					if(piXC[l]==-128||piYC[k]==-128)
+						ppiMaskL[k][l]=0;
+					else
+					{
+						Int  iMbX=piXC[l]>>3;
+						Int  iMbY=piYC[k]>>3;
+						if(pcBaseDataCtrl->getMbData(iMbX,iMbY).isIntra()&&(pcBaseDataCtrl->getMbData(iMbX,iMbY).getSliceId()==iSliceID))
+							ppiMaskC[k][l]=1;
+						else
+							ppiMaskC[k][l]=0;
+					}
+				}          
+			}
+			m_apcFrameTemp[1]->copyMask(pcUpsampling,ppiMaskL,ppiMaskC);
+		}
+		pcUpsampling->copy(m_apcFrameTemp[1]);
+
+		//Memory free
+		delete[]piXL;
+		delete[]piYL;
+		delete[]piXC;
+		delete[]piYC;
+		for(k=0;k<output_height;k++)
+		{
+			delete[]ppiMaskL[k];
+		}
+		delete[] ppiMaskL;
+		for(k=0;k<output_height/2;k++)
+		{
+			delete[]ppiMaskC[k];
+		}
+		delete[] ppiMaskC;
+	}
+	return Err::m_nOK;
+}
+
+void MCTFEncoder::xGetPosition(ResizeParameters* pcResizeParameters,Int*px,Int*py,bool uv_flag)
+
+{
+	Int iratio=uv_flag?2:1;
+	int input_width   = pcResizeParameters->m_iInWidth/iratio;
+	int input_height  = pcResizeParameters->m_iInHeight/iratio;
+	int output_width  = pcResizeParameters->m_iGlobWidth/iratio;  
+	int output_height = pcResizeParameters->m_iGlobHeight/iratio;
+	int crop_x0 = pcResizeParameters->m_iPosX/iratio;
+	int crop_y0 = pcResizeParameters->m_iPosY/iratio;
+	int crop_w = pcResizeParameters->m_iOutWidth/iratio;
+	int crop_h = pcResizeParameters->m_iOutHeight/iratio;  
+	int input_chroma_phase_shift_x = pcResizeParameters->m_iBaseChromaPhaseX;
+	int input_chroma_phase_shift_y = pcResizeParameters->m_iBaseChromaPhaseY;
+	int output_chroma_phase_shift_x = pcResizeParameters->m_iChromaPhaseX;
+	int output_chroma_phase_shift_y = pcResizeParameters->m_iChromaPhaseY;
+
+	int i, j;
+	bool ratio1_flag = ( input_width == crop_w );
+	unsigned short deltaa, deltab;
+
+	for(i=0; i<crop_x0; i++)  px[i] = -128;
+
+	for(i=crop_x0+crop_w; i<output_width; i++)  px[i] = -128;
+
+	if(ratio1_flag)
+	{
+		for(i = 0; i < crop_w; i++)
+		{
+			px[i+crop_x0] = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
+		}
+	}
+	else
+	{
+		deltaa = ((input_width<<16) + (crop_w>>1))/crop_w;
+		if(uv_flag)
+		{
+			deltab = ((input_width<<14) + (crop_w>>1))/crop_w;
+			for(i = 0; i < crop_w; i++)
+			{
+				px[i+crop_x0] = ((i*deltaa + (2 + output_chroma_phase_shift_x)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_x);
+				px[i+crop_x0] =(Int)(px[i+crop_x0]/16.0+0.5);
+			}
+		}
+		else
+		{
+			deltab = ((input_width<<15) + (crop_w>>1))/crop_w;
+			for(i = 0; i < crop_w; i++)
+			{
+				px[i+crop_x0] = (i*deltaa + deltab - 30720)>>12;
+				px[i+crop_x0] =(Int)(px[i+crop_x0]/16.0+0.5);
+			}
+		}
+	}
+
+	ratio1_flag = ( input_height == crop_h );
+
+	for(j=0; j<crop_y0; j++)   py[j] = -128;
+
+	for(j=crop_y0+crop_h; j<output_height; j++)  py[j] = -128;
+
+	if(ratio1_flag)
+	{
+		for(j = 0; j < crop_h; j++)
+		{
+			py[j+crop_y0] = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
+		}
+	}
+	else
+	{
+		deltaa = ((input_height<<16) + (crop_h>>1))/crop_h;
+		if(uv_flag)
+		{
+			deltab = ((input_height<<14) + (crop_h>>1))/crop_h;
+			for(j = 0; j < crop_h; j++)
+			{
+				py[j+crop_y0] = ((j*deltaa + (2 + output_chroma_phase_shift_y)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_y);
+				py[j+crop_y0] =(Int)(py[j+crop_y0]/16.0+0.5);
+			}
+		}
+		else
+		{
+			deltab = ((input_height<<15) + (crop_h>>1))/crop_h;
+			for(j = 0; j < crop_h; j++)
+			{
+				py[j+crop_y0] = (j*deltaa + deltab - 30720)>>12;
+				py[j+crop_y0] =(Int)(py[j+crop_y0]/16.0+0.5);
+			}
+		}
+	}
+}
+//JVT-U106 Behaviour at slice boundaries}
 H264AVC_NAMESPACE_END
 
 

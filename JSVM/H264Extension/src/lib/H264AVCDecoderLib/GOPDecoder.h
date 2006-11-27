@@ -114,6 +114,9 @@ class RQFGSDecoder;
 class ReconstructionBypass;
 class YuvBufferCtrl;
 
+//JVT-U106 Behaviour at slice boundaries{
+class ReconstructionBypass;
+//JVT-U106 Behaviour at slice boundaries}
 
 
 class H264AVCDECODERLIB_API DPBUnit
@@ -357,7 +360,11 @@ public:
                                   YuvBufferCtrl*              pcYuvFullPelBufferCtrl,
                                   DecodedPicBuffer*           pcDecodedPictureBuffer,
                                   MotionCompensation*         pcMotionCompensation,
-                                  QuarterPelFilter*           pcQuarterPelFilter );
+                                  QuarterPelFilter*           pcQuarterPelFilter
+								  //JVT-U106 Behaviour at slice boundaries{
+								  ,ReconstructionBypass*      pcReconstructionBypass
+								  //JVT-U106 Behaviour at slice boundaries}
+								  );
   ErrVal          uninit        ();
   ErrVal          initSlice0    ( SliceHeader*                pcSliceHeader );
   ErrVal          initSlice     ( SliceHeader*                pcSliceHeader,
@@ -469,7 +476,15 @@ protected:
   Bool isPictureDecComplete(SliceHeader* rpcSliceHeader);
   const Bool isNewPictureStart(SliceHeader* rpcSliceHeader);
   ErrVal InitWhenNewPictureStart(SliceHeader* pcSliceHeader, MbDataCtrl*   pcMbDataCtrl);
-
+  //JVT-U106 Behaviour at slice boundaries{
+  ErrVal xConstrainedIntraUpsampling(IntFrame*pcFrame,
+									 IntFrame*pcUpsampling, 
+									 IntFrame*pcTemp,
+									 MbDataCtrl* pcBaseDataCtrl,
+									 ReconstructionBypass* pcReconstructionBypass,
+									 ResizeParameters* pcResizeParameters);
+  void   xGetPosition(ResizeParameters* pcResizeParameters,Int*px,Int*py,bool uv_flag);
+  //JVT-U106 Behaviour at slice boundaries}
 protected:
   //----- references -----
   H264AVCDecoder*     m_pcH264AVCDecoder;
@@ -529,6 +544,9 @@ protected:
   // ROI DECODE ICU/ETRI
   Int m_iMbProcessed;
   Bool m_bIsNewPic;
+  //JVT-U106 Behaviour at slice boundaries{
+  ReconstructionBypass* m_pcReconstructionBypass;
+  //JVT-U106 Behaviour at slice boundaries}
 };
 
 H264AVC_NAMESPACE_END

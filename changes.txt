@@ -1,3 +1,32 @@
+
+JSVM_7_6 -> JSVM_7_7
+=====================
+
+Date: Nov. 24, 2006 
+Authors: Yi Guo, Qiu Shen, Hui Liu (USTC)
+Contributions: JVT-U106, JVT-S035
+
+Changes:
+
+1. Integration of JVT-U106 "discardable data adaptation:
+   Behaviour at slice boundaries" (you can find these changes by searching "JVT-U106")
+   (a) Add function xConstrainedIntraUpsampling() in MCTFEncoder and MCTFDecoder
+       to treat slice boundaries as picture boundaries when processing upsampling
+       slice by slice.
+2. Bug-fix of JVT-S035 (You can find these changes by searching "bug-fix 11/16/06")
+   Changes: Do code cleaning of Scalability SEI message part
+
+3. Scalable SEI clean-up
+   (a) Delete Comments and unsued member functions and variables
+   (b) Merge some functions into fewer ones with similar parts.
+   (c) Delete 4 files ScalableModifyCode.cpp&.h, ScalableTestCode.cpp&.h
+       Add    2 files ScalableModifyCode.cpp&.h, into project BitstreamExtractor.
+
+4. Bug fixes:
+   -Modify some extracting functions considering affect with each other.
+   -Rewrite scalability SEI message in every method for further use.
+
+
 JSVM_7_5 -> JSVM_7_6
 ====================
 

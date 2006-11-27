@@ -852,6 +852,16 @@ public:
   Void                            setExtensionFlag        ( UInt  ui )    { m_uiExtensionFlag = ui; }
 // JVT-U116 LMI }
 
+  //JVT-U106 Behaviour at slice boundaries{
+  void   setCIUFlag(UInt  flag)
+  {
+	  m_uiCIUFlag=flag;
+  }
+  UInt   getCIUFlag()
+  {
+	  return m_uiCIUFlag;
+  }
+  //JVT-U106 Behaviour at slice boundaries}
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -929,6 +939,9 @@ protected:
   UInt                      m_uiTlevelNestingFlag;
 // JVT-U116 LMI 
   UInt                      m_uiExtensionFlag;
+  //JVT-U106 Behaviour at slice boundaries{
+  UInt                      m_uiCIUFlag;
+  //JVT-U106 Behaviour at slice boundaries}
 };
 
 #if defined( MSYS_WIN32 )

@@ -289,6 +289,9 @@ public:
   Void    setUseBDir  ( Bool bUse){ m_bUseBDir = bUse;}
   //S051}
 
+  //JVT-U106 Behaviour at slice boundaries{
+  void  setIntraBLFlag(Bool b){ m_bIntraBLFlag=b; }
+  //JVT-U106 Behaviour at slice boundaries}
 protected:
 
   ErrVal  xScale4x4Block        ( TCoeff*            piCoeff,
@@ -613,7 +616,9 @@ protected:
   //S051{
   Bool    m_bUseBDir;
   //S051}
-
+  //JVT-U106 Behaviour at slice boundaries{
+  Bool  m_bIntraBLFlag;
+  //JVT-U106 Behaviour at slice boundaries}
 };
 
 

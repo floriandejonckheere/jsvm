@@ -120,27 +120,30 @@ public:
   ExtractorParameter          ();
   virtual ~ExtractorParameter ();
 
+	Void                  setFrameWidth       (UInt uiWidth )     { m_uiFrameWidth = uiWidth; }
+	Void                  setFrameHeight      (UInt uiHeight)     { m_uiFrameHeight = uiHeight; }
+  Void                  setLayer            (UInt layer )       { m_uiLayer = layer;        }
+  Void                  setLayerId          (UInt layer )       { m_uiLayerId = layer;        }
+  Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
+  Void                  setBitrate          ( Double dBitrate ) { m_dBitrate = dBitrate;    }
+  Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
+  Void                  setMaxFGSLayerKept  (UInt fgs)           { m_uiMaxFGSLayerKept = fgs; }
   const std::string&    getInFile           ()            const { return m_cInFile;         }
   const std::string&    getOutFile          ()            const { return m_cOutFile;        }
   Int                   getResult           ()            const { return m_iResult;         }
   Bool                  getAnalysisOnly     ()            const { return m_bAnalysisOnly;   }
   UInt                  getLayer            ()            const { return m_uiLayer;         }
-  Void                  setLayer            (UInt layer)  { m_uiLayer = layer;        }
-  UInt                  getLayerId            ()            const { return m_uiLayerId;         }
-  Void                  setLayerId            (UInt layer)  { m_uiLayerId = layer;        }
-  UInt                  getLevel            ()            const { return m_uiLevel;         }
+  UInt                  getLayerId          ()            const { return m_uiLayerId;       }
   Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
-  Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
+  UInt                  getLevel            ()            const { return m_uiLevel;         }
+	UInt                  getFrameWidth       ()            const { return m_uiFrameWidth;    }
+	UInt                  getFrameHeight      ()            const { return m_uiFrameHeight;   }
   UInt                  getScalableLayer    ()            const { return m_uiScalableLayer; }
-  Void                  setBitrate          ( Double dBitrate  ) { m_dBitrate = dBitrate;   }
-  Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
   std::string           getOutFileName      ()            const { return m_cOutFile;        }
-  Void          setMaxFGSLayerKept  (UInt fgs)    { m_uiMaxFGSLayerKept = fgs;    }
-  UInt          getMaxFGSLayerKept  ()        { return m_uiMaxFGSLayerKept;    }
+  UInt                  getMaxFGSLayerKept  ()            const { return m_uiMaxFGSLayerKept; }
   Double                getBitrate          ()            const { return m_dBitrate;        }
   const MyList<Point>&  getExtractionList   ()            const { return m_cExtractionList; }
   const MyList<UInt>&   getRemoveList       ()            const { return m_cRemoveList;     }
-
   // HS: packet trace
   Bool                  getTraceEnabled     ()            const { return m_bTraceFile;      }
   Bool                  getExtractTrace     ()            const { return m_bTraceExtract;   }
@@ -153,21 +156,21 @@ public:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool  getExtractDeadSubstream(UInt ui) { return m_bExtractDeadSubstream[ui];}
-  Void  setLevel( UInt &uiLevel) { m_uiLevel = uiLevel;}
-  Void  setTargetRate(Double d) { m_dTargetRate = d;}
-  Double getTargetRate() { return m_dTargetRate;}
+  Bool  getExtractDeadSubstream(UInt ui) { return m_bExtractDeadSubstream[ui]; }
+  Void  setLevel( UInt &uiLevel)         { m_uiLevel = uiLevel; }
+  Void  setTargetRate(Double d)          { m_dTargetRate = d; }
+  Double getTargetRate()                 { return m_dTargetRate; }
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-  UInt  getExtractNonRequiredPics()  { return  m_uiExtractNonRequiredPics;}
-  Bool getExtractUsingQL() { return m_bExtractUsingQL;}
+  UInt  getExtractNonRequiredPics()      { return  m_uiExtractNonRequiredPics;}
+  Bool getExtractUsingQL()               { return m_bExtractUsingQL;}
 
 
   //--TEST DJ 0602
-  Bool    getROIFlag      ()  { return m_bROIFlag; };
-  int     getExtractedNumROI  ()  { return iExtractedNumROI; };
+  Bool    getROIFlag()                   { return m_bROIFlag; };
+  int     getExtractedNumROI ()          { return iExtractedNumROI; };
 
 //--TEST DJ 0602
-   ErrVal  xParseFormatStringROI_Only  ( Char*   pFormatString, Point&  rcSpatTempSNRPoint );
+  ErrVal  xParseFormatStringROI_Only  ( Char*   pFormatString, Point&  rcSpatTempSNRPoint );
 
   //--TEST DJ 0602
   Bool  m_bROIFlag;
@@ -193,11 +196,13 @@ protected:
   Int             m_iResult;
   UInt            m_uiScalableLayer;
   UInt            m_uiLayer;
-  UInt        m_uiLayerId;
+  UInt            m_uiLayerId;
   UInt            m_uiLevel;
   Double          m_dFGSLayer;
-  UInt        m_uiMaxFGSLayerKept;
-  Double      m_dBitrate;
+	UInt            m_uiFrameWidth;
+	UInt            m_uiFrameHeight;
+  UInt            m_uiMaxFGSLayerKept;
+  Double          m_dBitrate;
   Bool            m_bAnalysisOnly;
   MyList<Point>   m_cExtractionList;
   MyList<UInt>    m_cRemoveList;
@@ -210,22 +215,22 @@ protected:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool       m_bExtractDeadSubstream[MAX_LAYERS];
-  Double       m_dTargetRate;
+  Bool            m_bExtractDeadSubstream[MAX_LAYERS];
+  Double          m_dTargetRate;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
-  UInt       m_uiExtractNonRequiredPics;
+  UInt            m_uiExtractNonRequiredPics;
 
-  Bool           m_bExtractUsingQL;
+  Bool            m_bExtractUsingQL;
 
   //S051{
-  Bool       m_bUseSIP;
-   UInt       m_uiSuffixUnitEnable;
+  Bool            m_bUseSIP;
+  UInt            m_uiSuffixUnitEnable;
   //S051}
 
   //JVT-S043
   QLExtractionMode m_eQLExtractionMode;
 //JVT-T054{
-  Bool      m_bKeepfExtraction; //used if extraction considering l AND f
+  Bool            m_bKeepfExtraction; //used if extraction considering l AND f
 //JVT-T054}
 };
 

@@ -234,6 +234,11 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
 
+	//JVT-U106 Behaviour at slice boundaries{
+	if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
+	        m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
+	//JVT-U106 Behaviour at slice boundaries}
+
     if( rcRefFrameListBase.getSize() )
     {
       RNOK( m_pcMbEncoder     ->encodeInterP    ( *pcMbDataAccess,
@@ -305,7 +310,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
     RNOK( pcBaseLayerCtrl ->initSlice         ( rcSliceHeader, PRE_PROCESS,    false, NULL ) );
   }
   RNOK( m_pcControlMng    ->initSliceForCoding( rcSliceHeader ) );
-
+  
   //====== initialization ======
   UInt          uiMbAddress         = rcSliceHeader.getFirstMbInSlice ();
   UInt          uiLastMbAddress     = rcSliceHeader.getLastMbInSlice  ();
@@ -330,7 +335,10 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
     }
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
-
+	//JVT-U106 Behaviour at slice boundaries{
+    if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
+	     m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
+	//JVT-U106 Behaviour at slice boundaries}
     RNOK( m_pcMbEncoder     ->encodeIntra     ( *pcMbDataAccess,
                                                 pcMbDataAccessBase,
                                                 pcFrame,
@@ -410,6 +418,11 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
 
     if( pcMbDataAccess->getMbData().isIntra() )
     {
+	  //JVT-U106 Behaviour at slice boundaries{
+	  if( rcSH.getBaseLayerId() != MSYS_UINT_MAX )
+		    m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
+	  //JVT-U106 Behaviour at slice boundaries}
+
       pcMbDataAccess->getMbData().setQp( iQPIntra );
 
       RNOK( m_pcMbEncoder ->encodeIntra   ( *pcMbDataAccess, pcMbDataAccessBase, pcFrame, pcResidual, pcBaseLayer, pcPredSignal, dLambda ) );

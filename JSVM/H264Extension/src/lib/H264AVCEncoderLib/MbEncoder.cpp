@@ -150,6 +150,9 @@ MbEncoder::MbEncoder():
   //S051{
   ,m_bUseBDir(true)
   //S051}
+  //JVT-U106 Behaviour at slice boundaries{
+  ,m_bIntraBLFlag( true ) 
+  //JVT-U106 Behaviour at slice boundaries}
 {
   m_uiMaxRefFrames[LIST_0] = m_uiMaxRefFrames[LIST_1] = 0;
   m_uiMaxRefPics  [LIST_0] = m_uiMaxRefPics  [LIST_1] = 0;
@@ -1715,6 +1718,11 @@ MbEncoder::xEstimateMbIntraBL( IntMbTempData*&  rpcMbTempData,
                                MbDataAccess*    pcMbDataAccessBase )
 {
   ROF( pcBaseLayerRec );
+
+  //JVT-U106 Behaviour at slice boundaries{
+  if(!m_bIntraBLFlag)
+      return Err::m_nOK;
+  //JVT-U106 Behaviour at slice boundaries}
 
   Bool            bBLSkip           = pcMbDataAccessBase->getMbData().isIntra();
   UInt            uiCoeffBits       = 0;

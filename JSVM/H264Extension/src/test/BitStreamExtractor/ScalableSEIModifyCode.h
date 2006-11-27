@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -162,73 +162,60 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/Sei.h"
 
-//class ScalableCodeIf
-//{
-//protected:
-//  ScalableCodeIf()  {}
-//  virtual ~ScalableCodeIf()  {}
-//
-//public:
-//  virtual ErrVal WriteUVLC( UInt uiValue ) = 0;
-//  virtual ErrVal WriteFlag( Bool bFlag ) = 0;
-//  virtual ErrVal WriteCode( UInt uiValue, UInt uiLength ) = 0;
-//  virtual SEICode  ( h264::SEI::ScalableSei* pcScalableSei, ScalableCodeIf *pcScalableCodeIf ) = 0;
-//  virtual UInt   getNumberOfWrittenBits() = 0;
-//};
-
-class ScalableModifyCode// : public ScalableCodeIf
+class ScalableSEIModifyCode
 {
-public:
-  ScalableModifyCode();
-  virtual ~ScalableModifyCode();
+protected:
+	ScalableSEIModifyCode();
+	~ScalableSEIModifyCode()	{}
 
 public:
-  //static ErrVal Create( ScalableModifyCode* pcScalableModifyCode );
-  ErrVal Destroy( Void );
-  ErrVal init( ULong* pulStream );
-  ErrVal WriteUVLC( UInt uiValue );
-  ErrVal WriteFlag( Bool bFlag );
-  ErrVal WriteCode( UInt uiValue, UInt uiLength );
-  ErrVal SEICode  ( h264::SEI::ScalableSei* pcScalableSei, ScalableModifyCode *pcScalableModifyCode );
-  // JVT-S080 LMI {
-  ErrVal SEICode  ( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableModifyCode *pcScalableModifyCode );
-  ErrVal SEICode  ( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableModifyCode *pcScalableModifyCode );
-  // JVT-S080 LMI }
-  UInt   getNumberOfWrittenBits() { return m_uiBitsWritten; }
-  ErrVal Write    ( UInt uiBits, UInt uiNumberOfBits );
-  ErrVal WritePayloadHeader ( enum h264::SEI::MessageType eType, UInt uiSize );
-  ErrVal WriteTrailingBits ();
-  ErrVal WriteAlignZero ();
-  ErrVal flushBuffer();
-  ErrVal ConvertRBSPToPayload( UChar* m_pucBuffer, UChar pucStreamPacket[], UInt& uiBits, UInt uiHeaderBytes );
+  static ErrVal Create         ( ScalableSEIModifyCode*& rpcScalableSEIModifyCode );	
+	ErrVal Destroy               ();
+	ErrVal init                  ( ULong* pulStream );
+	ErrVal Uninit                ();
+  ErrVal Write                 ( UInt uiBits, UInt uiNumberOfBits );
+	ErrVal WriteUVLC             ( UInt uiValue );
+	ErrVal WriteFlag             ( Bool bFlag );
+	ErrVal WriteCode             ( UInt uiValue, UInt uiLength );
+	ErrVal WriteAlignZero        ();
+	ErrVal flushBuffer           ();
+	UInt	 getNumberOfWrittenBits() { return m_uiBitsWritten; }
+	ErrVal WritePayloadHeader    ( enum h264::SEI::MessageType eType, UInt uiSize );
+	ErrVal WriteTrailingBits     ();   
+	ErrVal ConvertRBSPToPayload  ( UChar* m_pucBuffer, UChar pucStreamPacket[], UInt& uiBits, UInt uiHeaderBytes );
+
+	ErrVal SEICode	( h264::SEI::ScalableSei* pcScalableSei, ScalableSEIModifyCode *pcScalableCodeIf );
+	ErrVal SEICode	( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableSEIModifyCode *pcScalableCodeIf );
+	ErrVal SEICode	( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableSEIModifyCode *pcScalableCodeIf );
 
 protected:
-  ULong  xSwap( ULong ul )
-  {
-    // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
+	ULong  xSwap( ULong ul )
+	{
+		// heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
 #ifdef MSYS_BIG_ENDIAN
-    return ul;
+		return ul;
 #else
-    UInt ul2;
+		UInt ul2;
 
-    ul2  = ul>>24;
-    ul2 |= (ul>>8) & 0x0000ff00;
-    ul2 |= (ul<<8) & 0x00ff0000;
-    ul2 |= ul<<24;
+		ul2  = ul>>24;
+		ul2 |= (ul>>8) & 0x0000ff00;
+		ul2 |= (ul<<8) & 0x00ff0000;
+		ul2 |= ul<<24;
 
-    return ul2;
+		return ul2;
 #endif
-  }
+	}
 
-  BinData *m_pcBinData;
-  ULong *m_pulStreamPacket;
-  UInt m_uiBitCounter;
-  UInt m_uiPosCounter;
-  UInt m_uiDWordsLeft;
-  UInt m_uiBitsWritten;
-  UInt m_iValidBits;
-  ULong m_ulCurrentBits;
-  UInt m_uiCoeffCost;
+private:
+	BinData *m_pcBinData;
+	ULong *m_pulStreamPacket;
+	UInt m_uiBitCounter;
+	UInt m_uiPosCounter;
+	UInt m_uiDWordsLeft;
+	UInt m_uiBitsWritten;
+	UInt m_iValidBits;
+	ULong m_ulCurrentBits;
+	UInt m_uiCoeffCost;
 };
 
 #endif

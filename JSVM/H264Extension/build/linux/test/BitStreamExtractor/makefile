@@ -29,8 +29,7 @@ OBJS          		= 	\
 					$(OBJ_DIR)/BitStreamExtractor.o \
 					$(OBJ_DIR)/Extractor.o \
 					$(OBJ_DIR)/ExtractorParameter.o \
-					$(OBJ_DIR)/ScalableTestCode.o \
-					$(OBJ_DIR)/ScalableModifyCode.o \
+					$(OBJ_DIR)/ScalableSEIModifyCode.o \
 
 # set libs to link with
 LIBS				= -ldl

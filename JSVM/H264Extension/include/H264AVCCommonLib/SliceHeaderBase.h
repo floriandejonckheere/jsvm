@@ -793,7 +793,10 @@ public:
 // JVT-U116 LMI }
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
   UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
-
+  //JVT-U106 Behaviour at slice boundaries{
+  Bool                              getCIUFlag()                  {   return m_bCIUFlag;}  
+  void                              setCIUFlag                    ( Bool b ) {   m_bCIUFlag=b;}
+  //JVT-U106 Behaviour at slice boundaries}
   //===== set parameters =====
   Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
   Void  setNalUnitType                ( NalUnitType e  )  { m_eNalUnitType                      = e;  }
@@ -945,6 +948,9 @@ protected:
   UInt                        m_uiBaseLayerCGSSNR;
   UInt                        m_uiBaseQualityLevelCGSSNR;
 //JVT-T054}
+  //JVT-U106 Behaviour at slice boundaries{
+  Bool                        m_bCIUFlag;
+  //JVT-U106 Behaviour at slice boundaries}
 // TMM_ESS {
 public:
   Int           getLeftOffset ()   const { return m_iScaledBaseLeftOffset; }

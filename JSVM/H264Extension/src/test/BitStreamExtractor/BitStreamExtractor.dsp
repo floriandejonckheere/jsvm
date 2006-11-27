@@ -103,11 +103,7 @@ SOURCE=.\ExtractorParameter.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\ScalableModifyCode.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\ScalableTestCode.cpp
+SOURCE=.\ScalableSEIModifyCode.cpp
 # End Source File
 # End Group
 # Begin Group "Header Files"
@@ -127,11 +123,7 @@ SOURCE=.\ExtractorParameter.h
 # End Source File
 # Begin Source File
 
-SOURCE=.\ScalableModifyCode.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\ScalableTestCode.h
+SOURCE=.\ScalableSEIModifyCode.h
 # End Source File
 # End Group
 # Begin Group "Resource Files"

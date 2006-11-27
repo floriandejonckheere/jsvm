@@ -205,7 +205,20 @@ public:
     return Err::m_nOK;
   }
 //TMM_EC }}
+  //JVT-U106 Behaviour at slice boundaries{
+  ErrVal  copyMask        ( IntFrame* pcSrcFrame,Int**ppiMaskL,Int**ppiMaskC )
+  {
+	  m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
 
+	  RNOK( getFullPelYuvBuffer()->copyMask( pcSrcFrame->getFullPelYuvBuffer(),ppiMaskL,ppiMaskC) );
+	  return Err::m_nOK;
+  }
+  ErrVal  copyPortion        ( IntFrame* pcSrcFrame )
+  {
+	  RNOK( getFullPelYuvBuffer()->copyPortion( pcSrcFrame->getFullPelYuvBuffer()) );
+	  return Err::m_nOK;
+  }
+  //JVT-U106 Behaviour at slice boundaries}
   ErrVal  subtract    ( IntFrame* pcSrcFrame0, IntFrame* pcSrcFrame1 )
   {
     RNOK( getFullPelYuvBuffer()->subtract( pcSrcFrame0->getFullPelYuvBuffer(), pcSrcFrame1->getFullPelYuvBuffer() ) );

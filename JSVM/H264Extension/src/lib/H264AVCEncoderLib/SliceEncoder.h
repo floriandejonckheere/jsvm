@@ -178,7 +178,9 @@ public:
   //S051{
   Void    setUseBDir      (Bool b){m_pcMbEncoder->setUseBDir(b);}
   //S051}
-
+  //JVT-U106 Behaviour at slice boundaries{
+  Void    setIntraBLFlag  (Bool* b){m_pbIntraBLFlag=b;}
+  //JVT-U106 Behaviour at slice boundaries}
 protected:
   MbEncoder* m_pcMbEncoder;
   MbCoder* m_pcMbCoder;
@@ -190,6 +192,9 @@ protected:
   UInt  m_uiFrameCount;
   SliceType m_eSliceType;
   Bool m_bTraceEnable;
+  //JVT-U106 Behaviour at slice boundaries{
+  Bool* m_pbIntraBLFlag;
+  //JVT-U106 Behaviour at slice boundaries}
 };
 
 

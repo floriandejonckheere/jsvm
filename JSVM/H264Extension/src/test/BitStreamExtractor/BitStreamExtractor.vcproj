@@ -210,44 +210,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="ScalableModifyCode.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="ScalableTestCode.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
+				RelativePath=".\ScalableSEIModifyCode.cpp">
 			</File>
 		</Filter>
 		<Filter
@@ -263,10 +226,7 @@
 				RelativePath="ExtractorParameter.h">
 			</File>
 			<File
-				RelativePath="ScalableModifyCode.h">
-			</File>
-			<File
-				RelativePath="ScalableTestCode.h">
+				RelativePath=".\ScalableSEIModifyCode.h">
 			</File>
 		</Filter>
 		<Filter

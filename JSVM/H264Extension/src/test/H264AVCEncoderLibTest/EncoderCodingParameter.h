@@ -519,7 +519,15 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       }
       continue;
     }
-
+	//JVT-U106 Behaviour at slice boundaries{
+	if( equals( pcCom, "-ciu", 3 ) )
+	{
+		ROTS( NULL == argv[n] );
+		UInt flag = atoi( argv[n] );
+		CodingParameter::setCIUFlag( flag );
+		continue;
+	}
+    //JVT-U106 Behaviour at slice boundaries}
     if( equals( pcCom, "-h", 2) )
     {
       printHelp();
@@ -569,6 +577,9 @@ Void EncoderCodingParameter::printHelp()
   printf("  -tlnest (TlevelNestingFlag)[0: temporal level nesting constraint is not applied, 1: the nesting constraint is applied.]\n");
   //JVT-U116 LMI
   printf("  -nalext (ExtensionFlag)[0: tl0_frame_idx is not present, 1: tl0_frame_idx is present.]\n");
+  //JVT-U106 Behaviour at slice boundaries{
+  printf("  -ciu    (Constrained intra upsampling)[0: no, 1: yes]\n");
+  //JVT-U106 Behaviour at slice boundaries}
   printf("  -h      Print Option List \n");
   printf("\n");
 }

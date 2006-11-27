@@ -441,7 +441,7 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             m_pcNalUnitEncoder,
                                             m_pcControlMng,
                                             pcCodingParameter,
-                                            m_pcFrameMng ) );
+                                            m_pcFrameMng) );
 
   RNOK( m_pcRQFGSEncoder            ->init( m_apcYuvFullPelBufferCtrl,
                                             m_apcYuvHalfPelBufferCtrl,
@@ -465,7 +465,11 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                            m_apcYuvFullPelBufferCtrl [uiLayer],
                                            m_apcYuvHalfPelBufferCtrl [uiLayer],
                                            m_pcQuarterPelFilter,
-                                           m_pcMotionEstimation ) );
+                                           m_pcMotionEstimation
+										   //JVT-U106 Behaviour at slice boundaries{
+										   ,m_pcReconstructionBypass
+										   //JVT-U106 Behaviour at slice boundaries}
+										   ) );
   }
   //Bug_Fix JVT-R057{
   if(m_pcCodingParameter->getLARDOEnable())

@@ -96,7 +96,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "ReadBitstreamFile.h"
 #include "WriteBitstreamToFile.h"
 #include "ExtractorParameter.h"
-
 #define MAX_ROIS      5
 
 
@@ -136,13 +135,13 @@ public:
                       Bool                    bNewPicture );
   //S051{
   ErrVal  addPacketNoUse (  UInt                    uiNumBytes,
-              UInt                    uiLayer,
-              UInt                    uiLevel,
-              UInt                    uiFGSLayer,
-              Bool                    bNewPicture );
+                            UInt                    uiLayer,
+                            UInt                    uiLevel,
+                            UInt                    uiFGSLayer,
+                            Bool                    bNewPicture );
   UInt64  getNALUBytesNoUse (  UInt uiLayer,
-              UInt uiLevel,
-              UInt uiFGS   )    const { return m_aaaui64NumNALUBytesNoUse[uiLayer][uiLevel][uiFGS]; }
+                               UInt uiLevel,
+                               UInt uiFGS   )    const { return m_aaaui64NumNALUBytesNoUse[uiLayer][uiLevel][uiFGS]; }
 
   //S051}
 
@@ -160,7 +159,6 @@ public:
   UInt    getFrmHeight              ( UInt uiScalableLayer ) const { return m_auiFrmHeight[uiScalableLayer]; }
   Double  getFrameRate              ( UInt uiScalableLayer ) const { return m_adFramerate[uiScalableLayer]; }
   Bool    getBaseLayerModeAVC       ()                       const { return m_bAVCBaseLayer;                }
-  UInt    getStdAVCOffset           ()                       const { return m_uiStdAVCOffset;                }
   UInt    getScalableLayer  ( UInt uiLayer, UInt uiTL, UInt uiQL )
                                               const { return m_aaauiScalableLayerId[uiLayer][uiTL][uiQL]; }
   Void    setBaseLayerMode  ( Bool bAVCCompatible  )       { m_bAVCBaseLayer = bAVCCompatible;      }
@@ -168,7 +166,6 @@ public:
   UInt    getFrameHeight    ( UInt uiLayer )    const { return m_auiFrameHeight [uiLayer]; }
 
   UInt    getMaxLevel       ( UInt uiLayer )    const { return m_auiDecStages   [uiLayer]; }
-  Double  getFrameRateUnit  ()                  const { return (Double)m_uiFrameRateUnitNom/(Double)m_uiFrameRateUnitDenom; }
   UInt    getNumPictures    ( UInt uiLayer,
                               UInt uiLevel )    const { return m_aauiNumPictures[uiLayer][uiLevel]; }
   UInt64  getNALUBytes      ( UInt uiLayer,
@@ -188,10 +185,7 @@ private:
 
   UInt    m_uiNumLayers;
   Bool    m_bAVCBaseLayer;
-  UInt    m_uiAVCTempResStages;
-  UInt    m_uiFrameRateUnitDenom;
-  UInt    m_uiFrameRateUnitNom;
-  UInt    m_uiMaxDecStages;
+	UInt    m_uiMaxDecStages;
   UInt    m_auiFrameWidth       [MAX_LAYERS];
   UInt    m_auiFrameHeight      [MAX_LAYERS];
   UInt    m_auiDecStages        [MAX_LAYERS];
@@ -204,8 +198,7 @@ private:
   UInt64  m_aaui64BaseLayerBytes[MAX_LAYERS][MAX_DSTAGES+1];
   UInt64  m_aaui64FGSLayerBytes [MAX_LAYERS][MAX_DSTAGES+1];
   UInt    m_aauiNumPictures     [MAX_LAYERS][MAX_DSTAGES+1];
-  UInt    m_uiStdAVCOffset;
-  UInt    m_uiScalableNumLayersMinus1;
+	UInt    m_uiScalableNumLayersMinus1;
   UInt    m_auiBitrate              [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
   UInt    m_auiTempLevel            [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
   UInt    m_auiDependencyId         [MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS];
@@ -238,22 +231,20 @@ public:
   ErrVal        destroy             ();
 
   // ROI ICU/ETRI
-  Int    ROI_ID[8][8];
+  Int     ROI_ID[8][8];
   void    setROI_ID(UInt did, UInt sg_id,Int value){ROI_ID[did][sg_id]=value;};
-  Int    getROI_ID(UInt did, UInt sg_id){if(sg_id ==-1) return -1;  return ROI_ID[did][sg_id];};
+  Int     getROI_ID(UInt did, UInt sg_id){if(sg_id ==-1) return -1;  return ROI_ID[did][sg_id];};
   void    init_ROI_ID()
   {
     for(int i=0;i<8;i++)
-  for(int j=0;j<8;j++)
-    ROI_ID[i][j]= -1;
+    for(int j=0;j<8;j++)
+      ROI_ID[i][j]= -1;
   }
   Int      getNumSlice      ()    const { return   m_iNumSlice; };
 
 
  //JVT-S080 LMI {
-  ErrVal        xWriteScalableSEIToBuffer( h264::SEI::ScalableSei* pcScalableSei, BinData* pcBinData );
-  ErrVal        xWriteScalableSEILyrsNotPreToBuffer( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSei, BinData* pcBinData );
-  ErrVal        xWriteScalableSEIDepChangeToBuffer( h264::SEI::ScalableSeiDependencyChange* pcScalableSei, BinData* pcBinData );
+  ErrVal        xWriteScalableSEIToBuffer( h264::SEI::SEIMessage* pcScalableSei, BinData* pcBinData );
  //JVT-S080 LMI }
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -269,7 +260,7 @@ public:
 
 protected:
   ErrVal        xAnalyse            ();
-  ErrVal        xPrimaryAnalyse            ();
+  ErrVal        xPrimaryAnalyse     ();
   ErrVal        xSetParameters      ();
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
@@ -279,18 +270,26 @@ protected:
   Int CurNalKeepingNeed(h264::PacketDescription cPacketDescription
                  , const ExtractorParameter::Point& rcExtPoint);
 
-  void      xSetROIParameters  ();
-
+  void          xSetROIParameters  ();
+  ErrVal        GetPictureDataKeepCrop( h264::PacketDescription* pcPacketDescription, 
+		                                    Double dRemainingBytes, 
+																				Double dCurrPacketBytes, 
+																				Bool& bKeep, 
+																				Bool& bCrop );
+	ErrVal        xResetSLFGSBitrate( UInt uiDependencyId, UInt uiTempLevel, UInt uiFGSLayer, Double dDecBitrate ); //cleaning
 
   Void          setBaseLayerAVCCompatible( Bool bAVCCompatible ) { m_bAVCCompatible = bAVCCompatible; }
   Bool          getBaseLayerAVCCompatible() const { return m_bAVCCompatible; }
   // JVT-S080 LMI {
-  ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI, h264::SEI::SEIMessage* pcScalableSEIMessage,
-          UInt uiKeepScalableLayer, UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, Double& dMaxFGSLayer, UInt uiMaxBitrate);
-  /*
-  ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, h264::SEI::SEIMessage* pcScalableSEIMessage,
-          UInt uiKeepScalableLayer, UInt& uiWantedScalableLayer, UInt& uiMaxLayer, UInt& uiMaxTempLevel, Double& dMaxFGSLayer, UInt uiMaxBitrate);
-  */
+  ErrVal        xChangeScalableSEIMesssage( BinData *pcBinData, 
+		                                        BinData *pcBinDataSEI, 
+																						h264::SEI::SEIMessage* pcScalableSEIMessage,
+                                            UInt uiKeepScalableLayer, 
+																						UInt& uiWantedScalableLayer, 
+																						UInt& uiMaxLayer, 
+																						UInt& uiMaxTempLevel, 
+																						Double& dMaxFGSLayer, 
+																						UInt uiMaxBitrate    );
   // JVT-S080 LMI }
   // HS: packet trace
   ErrVal        xReadLineExtractTrace ( Char*               pcFormatString,
@@ -302,28 +301,31 @@ protected:
   ErrVal        xSetParameters_DS      ();
   ErrVal        xExtractPoints_DS      ();
   //initialize temporal level of a frame
-  Void setLevel(UInt                    uiLayer,
-                      UInt                    uiLevel,
-            UInt            uiNumImage);
+  Void setLevel(      UInt          uiLayer,
+                      UInt          uiLevel,
+                      UInt          uiNumImage );
   //intialize max rate for a frame from SEI dead substream information
   Void setMaxRateDS(  UInt          uiMaxRate,
-                      UInt                    uiLayer,
-                      UInt            uiNumImage);
+                      UInt          uiLayer,
+                      UInt          uiNumImage );
   //count size of packets for each frame
-  Void addPacket(UInt                    uiLayer,
-                      UInt                    uiLevel,
-                      UInt                    uiFGSLayer,
-                      UInt                    uiNumBytes);
+  Void addPacket(     UInt          uiLayer,
+                      UInt          uiLevel,
+                      UInt          uiFGSLayer,
+                      UInt          uiNumBytes );
   //set if dead substream must be kept or thrown away (from command line argument)
   Void setExtractDeadSubstream(Bool b, UInt ui) { m_bExtractDeadSubstream[ui] = b;}
   //calculate the size of the dead substream
   Void CalculateSizeDeadSubstream();
   //determine layer, level and target rate for output stream
-  Void GetExtParameters();
+  ErrVal xGetExtParameters();
+  ErrVal CheckSuffixNalUnit( h264::PacketDescription* pcPacketDescription, Bool& bNextSuffix );
+	ErrVal GetAndCheckBaseLayerPackets( Double& dRemainingBytes );
+	UInt   GetWantedScalableLayer();
   //search optimal quality for target rate
   ErrVal QualityLevelSearch(Bool bOrderedTopLayerTrunc);
   //extract NALs given optimal quality
-  ErrVal ExtractPointsFromRate();
+  // ErrVal ExtractPointsFromRate();
 
   //JVT-S043 : Added the parameters uiMinTruncLayer & uiMaxTruncLayer.
   //get total rate for a given quality
@@ -355,8 +357,9 @@ protected:
 
   //S051{
   ErrVal        xSetParameters_SIP      ();
-  ErrVal        xExtractPoints_SIP      ();
+  //ErrVal        xExtractPoints_SIP      ();
   //S051}
+	ErrVal        xCalcSIPBitrate         (); //cleaning, add function
 
 protected:
   ReadBitstreamIf*              m_pcReadBitstream;
@@ -396,26 +399,30 @@ protected:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Double*            m_aaadMaxRate[MAX_LAYERS]; //size of each frame for each layer without deadsubstream
-  Double*                       m_aaadTargetBytesFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //bytes to be extracted for each FGS layer for each frame                                               // at each layer
+  Double*           m_aaadMaxRate[MAX_LAYERS]; //size of each frame for each layer without deadsubstream
+  Double*           m_aaadTargetBytesFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //bytes to be extracted for each FGS layer for each frame                                               // at each layer
   Int*              m_aaiLevelForFrame[MAX_LAYERS];//temporal level of each frame
-  Double*                       m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //size of each FGS layer for each frame at each layer
+  Double*           m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //size of each FGS layer for each frame at each layer
   Double            m_aaadMaxRateForLevel[MAX_LAYERS][MAX_DSTAGES+1]; //size of layer for each level without deadsubstream
   Bool              m_bExtractDeadSubstream[MAX_LAYERS]; //indicate if deadsubstream has to be removed (command line)
   UInt              m_aSizeDeadSubstream[MAX_LAYERS]; //size of deadsubstream for each layer
   Bool              m_bInInputStreamDS; //indicate if deadsubstream is in the input bitstream
   Bool              m_bInInputStreamQL;// indicate if RD informations are in the input bitstream
-  Double*                       m_aadTargetByteForFrame[MAX_LAYERS];
-  UInt*                         m_aaauiBytesForQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
-  Double*                       m_aaadQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
-  Int*                          m_aaiNumLevels[MAX_LAYERS];
-  UInt                          m_auiNbImages[MAX_LAYERS];
+  Double*           m_aadTargetByteForFrame[MAX_LAYERS];
+  UInt*             m_aaauiBytesForQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
+  Double*           m_aaadQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
+  Int*              m_aaiNumLevels[MAX_LAYERS];
+  UInt              m_auiNbImages[MAX_LAYERS];
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   UInt              m_uiExtractNonRequiredPics;
   UInt m_uiQualityLevel;
   UInt m_auiPID[64];
   UInt m_uiNbPID;
   Bool m_bQualityLevelInSEI; //indicates if QualityLayers are in SEI messages
+
+	UInt m_uiTruncateLayer;
+	UInt m_uiTruncateLevel;
+	UInt m_uiTruncateFGSLayer;
 
   //S051{
   Bool              m_bUseSIP;
@@ -424,10 +431,10 @@ protected:
   //S051}
 
   //-- ICU/ETRI ROI
-  int              m_iNumSlice;
-  int              m_aiSilceIDOfSubPicLayer[MAX_SCALABLE_LAYERS];
-  int              m_aaiRelatedROIofSubPicLayer[MAX_SCALABLE_LAYERS][MAX_ROIS];
-  int              m_aiDepIDOfSubPicLayer[MAX_SCALABLE_LAYERS];
+  int               m_iNumSlice;
+  int               m_aiSilceIDOfSubPicLayer[MAX_SCALABLE_LAYERS];
+  int               m_aaiRelatedROIofSubPicLayer[MAX_SCALABLE_LAYERS][MAX_ROIS];
+  int               m_aiDepIDOfSubPicLayer[MAX_SCALABLE_LAYERS];
   UInt              m_auiXinFirstMB[MAX_LAYERS][MAX_ROI_NUM];
   UInt              m_auiYinFirstMB[MAX_LAYERS][MAX_ROI_NUM];
   UInt              m_auiXinLastMB[MAX_LAYERS][MAX_ROI_NUM];

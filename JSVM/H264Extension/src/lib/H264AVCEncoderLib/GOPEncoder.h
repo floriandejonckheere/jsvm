@@ -126,7 +126,9 @@ class ControlMngH264AVCEncoder;
 class MotionEstimation;
 class IntFrame;
 class RQFGSEncoder;
-
+//JVT-U106 Behaviour at slice boundaries{
+class ReconstructionBypass;
+//JVT-U106 Behaviour at slice boundaries}
 
 
 typedef MyList<UInt>        UIntList;
@@ -219,7 +221,11 @@ public:
                                       YuvBufferCtrl*                  pcYuvFullPelBufferCtrl,
                                       YuvBufferCtrl*                  pcYuvHalfPelBufferCtrl,
                                       QuarterPelFilter*               pcQuarterPelFilter,
-                                      MotionEstimation*               pcMotionEstimation );
+                                      MotionEstimation*               pcMotionEstimation
+									  //JVT-U106 Behaviour at slice boundaries{
+                                      ,ReconstructionBypass*           pcReconstructionBypass
+									  //JVT-U106 Behaviour at slice boundaries}
+									  );
   ErrVal        initParameterSets   ( const SequenceParameterSet&     rcSPS,
                                       const PictureParameterSet&      rcPPSLP,
                                       const PictureParameterSet&      rcPPSHP );
@@ -481,7 +487,15 @@ protected:
   Bool  xSIPCheck  (UInt POC);
   int  xGetMbDataCtrlL1Pos( const SliceHeader& rcSH, UInt uiCurrBasePos );
   //S051}
-
+  //JVT-U106 Behaviour at slice boundaries{
+  ErrVal xConstrainedIntraUpsampling(IntFrame*pcFrame,
+									 IntFrame*pcUpsampling, 
+									 IntFrame*pcTemp,
+									 MbDataCtrl* pcBaseDataCtrl,
+									 ReconstructionBypass* pcReconstructionBypass,
+									 ResizeParameters* pcResizeParameters);
+  void  xGetPosition(ResizeParameters* pcResizeParameters,Int*px,Int*py,bool uv_flag);
+  //JVT-U106 Behaviour at slice boundaries{
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;
@@ -673,6 +687,11 @@ protected:
   Bool         m_bTlevelNestingFlag;
 // JVT-U116 LMI 
   Bool         m_bExtensionFlag;
+  //JVT-U106 Behaviour at slice boundaries{
+  Bool                          m_bCIUFlag;
+  ReconstructionBypass*         m_pcReconstructionBypass;
+  Bool*                         m_pbIntraBLFlag; 
+  //JVT-U106 Behaviour at slice boundaries}
 };
 
 #if defined( WIN32 )

@@ -1096,6 +1096,129 @@ ErrVal IntYuvPicBuffer::copy( YuvPicBuffer*  pcSrcYuvPicBuffer )
 
 //TMM_EC }}
 
+//JVT-U106 Behaviour at slice boundaries{
+ErrVal IntYuvPicBuffer::copyMask ( IntYuvPicBuffer*  pcSrcYuvPicBuffer,Int**ppiMaskL,Int**ppiMaskC )
+{
+	pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb();
+	m_rcYuvBufferCtrl.initMb();
+
+	XPel* pSrc        = pcSrcYuvPicBuffer->getMbLumAddr();
+	XPel* pDes        = getMbLumAddr();
+	Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+	Int   iDesStride  = getLStride();
+	UInt  uiHeight    = pcSrcYuvPicBuffer->getLHeight();
+	UInt  uiWidth     = pcSrcYuvPicBuffer->getLWidth ();
+	UInt  y, x;
+
+	//===== luminance =====
+	for( y = 0; y < uiHeight; y++ )
+	{
+		for( x = 0; x < uiWidth; x++ )
+		{
+			if(ppiMaskL[y][x]==1)
+				pDes[x] = pSrc[x];
+		}
+		pSrc  += iSrcStride;
+		pDes  += iDesStride;
+	}
+
+	//===== chrominance U =====
+	iSrcStride  >>= 1;
+	iDesStride  >>= 1;
+	uiHeight    >>= 1;
+	uiWidth     >>= 1;
+	pSrc          = pcSrcYuvPicBuffer->getMbCbAddr();
+	pDes          = getMbCbAddr();
+
+	for( y = 0; y < uiHeight; y++ )
+	{
+		for( x = 0; x < uiWidth; x++ )
+		{
+			if(ppiMaskC[y][x]==1)
+				pDes[x] = pSrc[x];
+		}
+		pSrc  += iSrcStride;
+		pDes  += iDesStride;
+	}
+
+	//===== chrominance V =====
+	pSrc          = pcSrcYuvPicBuffer->getMbCrAddr();
+	pDes          = getMbCrAddr();
+
+	for( y = 0; y < uiHeight; y++ )
+	{
+		for( x = 0; x < uiWidth; x++ )
+		{
+			if(ppiMaskC[y][x]==1)
+				pDes[x] = pSrc[x];
+		}
+		pSrc  += iSrcStride;
+		pDes  += iDesStride;
+	}
+
+	return Err::m_nOK;
+}
+
+ErrVal IntYuvPicBuffer::copyPortion( IntYuvPicBuffer*  pcSrcYuvPicBuffer )
+{
+	pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb();
+	m_rcYuvBufferCtrl.initMb();
+
+	XPel* pSrc        = pcSrcYuvPicBuffer->getMbLumAddr();
+	XPel* pDes        = getMbLumAddr();
+	Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+	Int   iDesStride  = getLStride();
+	UInt  uiHeight    = getLHeight();
+	UInt  uiWidth     = getLWidth ();
+	UInt  y, x;
+
+	//===== luminance =====
+	for( y = 0; y < uiHeight; y++ )
+	{
+		for( x = 0; x < uiWidth; x++ )
+		{
+			pDes[x] = pSrc[x];
+		}
+		pSrc  += iSrcStride;
+		pDes  += iDesStride;
+	}
+
+	//===== chrominance U =====
+	iSrcStride  >>= 1;
+	iDesStride  >>= 1;
+	uiHeight    >>= 1;
+	uiWidth     >>= 1;
+	pSrc          = pcSrcYuvPicBuffer->getMbCbAddr();
+	pDes          = getMbCbAddr();
+
+	for( y = 0; y < uiHeight; y++ )
+	{
+		for( x = 0; x < uiWidth; x++ )
+		{
+			pDes[x] = pSrc[x];
+		}
+		pSrc  += iSrcStride;
+		pDes  += iDesStride;
+	}
+
+	//===== chrominance V =====
+	pSrc          = pcSrcYuvPicBuffer->getMbCrAddr();
+	pDes          = getMbCrAddr();
+
+	for( y = 0; y < uiHeight; y++ )
+	{
+		for( x = 0; x < uiWidth; x++ )
+		{
+			pDes[x] = pSrc[x];
+		}
+		pSrc  += iSrcStride;
+		pDes  += iDesStride;
+	}
+
+	return Err::m_nOK;
+}
+//JVT-U106 Behaviour at slice boundaries}
+
 ErrVal IntYuvPicBuffer::dumpLPS( FILE* pFile )
 {
   UChar*  pChar     = new UChar [ getLWidth() ];

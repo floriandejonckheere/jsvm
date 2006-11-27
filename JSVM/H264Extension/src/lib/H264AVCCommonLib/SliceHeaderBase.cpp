@@ -297,6 +297,9 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiBaseLayerCGSSNR                 ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevelCGSSNR          ( 0 )
 //JVT-T054}
+//JVT-U106 Behaviour at slice boundaries{
+, m_bCIUFlag                          ( false )
+//JVT-U106 Behaviour at slice boundaries}
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -515,7 +518,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       }
     }
   //JVT-S036 lsj start
-        if( m_bUseBasePredictionFlag && m_eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
+    if( m_bUseBasePredictionFlag && m_eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
     {
       RNOK(pcWriteIf->writeFlag( m_bAdaptiveRefPicMarkingModeFlag,      "DRPM: adaptive_ref_pic_marking_mode_flag"));
       if(m_bAdaptiveRefPicMarkingModeFlag)
@@ -545,6 +548,9 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       {
         RNOK( getDeblockingFilterParameterScalable().getInterlayerDeblockingFilterParameter().write( pcWriteIf ) );
       }
+	  //JVT-U106 Behaviour at slice boundaries{
+	  RNOK (pcWriteIf->writeFlag( m_bCIUFlag, "SH: constrained_intra_upsampling_flag"));
+	  //JVT-U106 Behaviour at slice boundaries}
   }
   if(getPPS().getNumSliceGroupsMinus1()>0 && getPPS().getSliceGroupMapType() >=3 && getPPS().getSliceGroupMapType() <= 5)
   {
@@ -905,6 +911,9 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     {
       RNOK( getDeblockingFilterParameterScalable().getInterlayerDeblockingFilterParameter().read( pcReadIf ) );
     }
+	//JVT-U106 Behaviour at slice boundaries{
+	RNOK (pcReadIf->getFlag( m_bCIUFlag, "SH: constrained_intra_upsampling_flag"));
+	//JVT-U106 Behaviour at slice boundaries}
   }
   UInt uiSliceGroupChangeCycle;
   if( getPPS().getNumSliceGroupsMinus1()> 0  && getPPS().getSliceGroupMapType() >= 3  &&  getPPS().getSliceGroupMapType() <= 5)
@@ -964,7 +973,6 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     }
     RNOK( pcReadIf->getFlag( m_bAdaptivePredictionFlag,                       "SH: motion_refinement_flag" ) );
   }
-
   return Err::m_nOK;
 }
 

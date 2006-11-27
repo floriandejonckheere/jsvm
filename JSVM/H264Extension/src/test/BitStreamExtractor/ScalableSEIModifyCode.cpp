@@ -156,9 +156,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 ********************************************************************************
 */
 
-#include "ScalableModifyCode.h"
+#include "ScalableSEIModifyCode.h"
 
-ScalableModifyCode::ScalableModifyCode() :
+ScalableSEIModifyCode::ScalableSEIModifyCode() :
   m_pcBinData( NULL ),
   m_pulStreamPacket( NULL ),
   m_uiBitCounter( 0 ),
@@ -172,20 +172,23 @@ ScalableModifyCode::ScalableModifyCode() :
 
 }
 
-ScalableModifyCode::~ScalableModifyCode()
+ErrVal
+ScalableSEIModifyCode::Create(  ScalableSEIModifyCode*& rpcScalableSEIModifyCode )
 {
+  rpcScalableSEIModifyCode = new ScalableSEIModifyCode;
+	ROT( rpcScalableSEIModifyCode == NULL );
+	return Err::m_nOK;
 }
 
-
 ErrVal
-ScalableModifyCode::Destroy()
+ScalableSEIModifyCode::Destroy()
 {
   delete this;
   return Err::m_nOK;
 }
 
 ErrVal
-ScalableModifyCode::init( ULong* pulStream )
+ScalableSEIModifyCode::init( ULong* pulStream )
 {
   ROT( pulStream == NULL );
   m_pulStreamPacket = pulStream;
@@ -196,7 +199,22 @@ ScalableModifyCode::init( ULong* pulStream )
 }
 
 ErrVal
-ScalableModifyCode::WriteUVLC( UInt uiValue )
+ScalableSEIModifyCode::Uninit( )
+{
+  m_uiBitCounter  = 0;
+  m_uiPosCounter  = 0;
+  m_uiCoeffCost   = 0;
+  m_uiDWordsLeft  = 0; 
+  m_uiBitsWritten = 0; 
+  m_iValidBits    = 0;
+  m_ulCurrentBits = 0;
+	m_pulStreamPacket = NULL;
+
+	return Err::m_nOK;
+}
+
+ErrVal
+ScalableSEIModifyCode::WriteUVLC( UInt uiValue )
 {
   UInt uiLength = 1;
   UInt uiTemp = ++uiValue;
@@ -212,21 +230,21 @@ ScalableModifyCode::WriteUVLC( UInt uiValue )
 }
 
 ErrVal
-ScalableModifyCode::WriteCode( UInt uiValue, UInt uiLength )
+ScalableSEIModifyCode::WriteCode( UInt uiValue, UInt uiLength )
 {
   RNOK( Write( uiValue, uiLength ) );
   return Err::m_nOK;
 }
 
 ErrVal
-ScalableModifyCode::WriteFlag( Bool bFlag )
+ScalableSEIModifyCode::WriteFlag( Bool bFlag )
 {
   RNOK( Write( bFlag? 1 : 0 , 1) );
   return Err::m_nOK;
 }
 
 ErrVal
-ScalableModifyCode::Write( UInt uiBits, UInt uiNumberOfBits )
+ScalableSEIModifyCode::Write( UInt uiBits, UInt uiNumberOfBits )
 {
   m_uiBitsWritten += uiNumberOfBits;
 
@@ -264,7 +282,7 @@ ScalableModifyCode::Write( UInt uiBits, UInt uiNumberOfBits )
   return Err::m_nOK;
 }
 ErrVal
-ScalableModifyCode::WritePayloadHeader( enum h264::SEI::MessageType eType, UInt uiSize )
+ScalableSEIModifyCode::WritePayloadHeader( enum h264::SEI::MessageType eType, UInt uiSize )
 {
   //type
   {
@@ -294,13 +312,13 @@ ScalableModifyCode::WritePayloadHeader( enum h264::SEI::MessageType eType, UInt 
 }
 
 ErrVal
-ScalableModifyCode::WriteAlignZero()
+ScalableSEIModifyCode::WriteAlignZero()
 {
   return Write( 0, m_iValidBits & 0x7 );
 }
 
 ErrVal
-ScalableModifyCode::WriteTrailingBits()
+ScalableSEIModifyCode::WriteTrailingBits()
 {
   RNOK( WriteFlag( 1 ) );
   RNOK( WriteAlignZero() );
@@ -308,7 +326,7 @@ ScalableModifyCode::WriteTrailingBits()
 }
 
 ErrVal
-ScalableModifyCode::flushBuffer()
+ScalableSEIModifyCode::flushBuffer()
 {
   *m_pulStreamPacket = xSwap( m_ulCurrentBits );
 
@@ -320,7 +338,7 @@ ScalableModifyCode::flushBuffer()
 }
 
 ErrVal
-ScalableModifyCode::ConvertRBSPToPayload( UChar* m_pucBuffer,
+ScalableSEIModifyCode::ConvertRBSPToPayload( UChar* m_pucBuffer,
                                          UChar pulStreamPacket[],
                                       UInt& ruiBytesWritten,
                                       UInt  uiHeaderBytes )
@@ -368,7 +386,7 @@ ScalableModifyCode::ConvertRBSPToPayload( UChar* m_pucBuffer,
 
 
 ErrVal
-ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModifyCode *pcScalableModifyCode )
+ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableSEIModifyCode *pcScalableModifyCode )
 {
   // JVT-U085 LMI
   pcScalableModifyCode->WriteFlag( pcScalableSei->getTlevelNestingFlag() );
@@ -378,8 +396,6 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
   {
     pcScalableModifyCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
 //JVT-S036 lsj start
-//    pcScalableModifyCode->WriteFlag( pcScalableSei->getFGSLayerFlag( uiLayer ) );
-
     pcScalableModifyCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );
     pcScalableModifyCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
@@ -412,17 +428,7 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableModi
       pcScalableModifyCode->WriteUVLC( pcScalableSei->getProfileLevelInfoSrcLayerIdDelta( uiLayer ) );
     }
 
-  /*  if( pcScalableSei->getDecodingDependencyInfoPresentFlag( uiLayer ) )
-    {
-
-      pcScalableModifyCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 );
-      pcScalableModifyCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );
-
-      pcScalableModifyCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
-      pcScalableModifyCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
-      pcScalableModifyCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
-    }
-JVT-S036 lsj*/
+  // JVT-S036 lsj delete
     if( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) )
     {
       pcScalableModifyCode->WriteCode( pcScalableSei->getAvgBitrate( uiLayer ), 16 );
@@ -496,16 +502,6 @@ JVT-S036 lsj*/
       else if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 2 )
       {
         // JVT-S054 (REPLACE) ->
-        /*
-        pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
-        UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
-        UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
-        UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
-        for( UInt j = 0; j < uiPicSizeInMbs; j++ )
-        {
-          pcScalableModifyCode->WriteUVLC( pcScalableSei->getSliceId( uiLayer, j ) );
-        }
-        */
         pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumSliceMinus1( uiLayer ) );
         UInt uiFrameHeightInMb = pcScalableSei->getFrmHeightInMbsMinus1( uiLayer ) + 1;
         UInt uiFrameWidthInMb  = pcScalableSei->getFrmWidthInMbsMinus1( uiLayer ) + 1;
@@ -527,9 +523,7 @@ JVT-S036 lsj*/
       pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayers( uiLayer ) );
       for( UInt ui = 0; ui < pcScalableSei->getNumDirectlyDependentLayers( uiLayer ); ui++ )
       {
-       //BUG_FIX liuhui 0603
         pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiLayer, ui ) ); //JVT-S036 lsj
-        //
       }
     }
     else
@@ -543,16 +537,13 @@ JVT-S036 lsj*/
       UInt ui;
       for( ui = 0; ui <= pcScalableSei->getNumInitSPSMinus1( uiLayer ); ui++ )
       {
-     //BUG_FIX liuhui 0603
         pcScalableModifyCode->WriteUVLC( pcScalableSei->getInitSPSIdDelta( uiLayer, ui ) );
       //
       }
       pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumInitPPSMinus1( uiLayer ) );
       for( ui = 0; ui <= pcScalableSei->getNumInitPPSMinus1( uiLayer ); ui++ )
       {
-       //BUG_FIX liuhui 0603
         pcScalableModifyCode->WriteUVLC( pcScalableSei->getInitPPSIdDelta( uiLayer, ui ) );
-        //
       }
     }
     else
@@ -564,19 +555,10 @@ JVT-S036 lsj*/
 
   return Err::m_nOK;
 }
-//ErrVal
-//ScalableModifyCode::Create( ScalableModifyCode* pcScalableModifyCode )
-//{
-//  pcScalableModifyCode = new ScalableModifyCode;
-//
-//  ROT( pcScalableModifyCode == NULL );
-//
-//  return Err::m_nOK;
-//}
 
 //JVT-S080 LMI {
 ErrVal
-ScalableModifyCode::SEICode( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableModifyCode *pcScalableModifyCode )
+ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent, ScalableSEIModifyCode *pcScalableModifyCode )
 {
   UInt uiNumScalableLayers = pcScalableSeiLayersNotPresent->getNumLayers();
   UInt uiLayer;
@@ -589,7 +571,7 @@ ScalableModifyCode::SEICode( h264::SEI::ScalableSeiLayersNotPresent* pcScalableS
 }
 
 ErrVal
-ScalableModifyCode::SEICode  ( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableModifyCode *pcScalableModifyCode )
+ScalableSEIModifyCode::SEICode  ( h264::SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange, ScalableSEIModifyCode *pcScalableModifyCode )
 {
   UInt uiNumScalableLayersMinus1 = pcScalableSeiDependencyChange->getNumLayersMinus1();
      UInt uiLayer, uiDirectLayer;

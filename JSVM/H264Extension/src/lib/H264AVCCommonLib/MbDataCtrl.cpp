@@ -1078,5 +1078,75 @@ const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
   return iRefSliceID ;
 }
 
+//JVT-U106 Behaviour at slice boundaries{
+ErrVal MbDataCtrl::getBoundaryMaskCIU( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID )
+{
+	UInt     uiCurrIdx    = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
+	AOT( uiCurrIdx >= m_uiSize );
+
+	ruiMask               = 0;
+
+	ROTRS( m_pcMbData[uiCurrIdx].isIntra()&&(m_pcMbData[uiCurrIdx].getSliceId()==uiCurrentSliceID), Err::m_nOK );
+
+	Bool bLeftAvailable   = ( iMbX > 0 );
+	Bool bTopAvailable    = ( iMbY > 0 );
+	Bool bRightAvailable  = ( iMbX < m_iMbPerLine-1 );
+	Bool bBottomAvailable = ( iMbY < m_iMbPerColumn-1 );
+
+	if( bTopAvailable )
+	{
+		{
+			Int iIndex = uiCurrIdx - m_uiMbStride;
+			ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x01 :0;
+		}
+
+		if( bLeftAvailable )
+		{
+			Int iIndex = uiCurrIdx - m_uiMbStride - 1;
+			ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x80 :0;
+		}
+
+		if( bRightAvailable )
+		{
+			Int iIndex = uiCurrIdx - m_uiMbStride + 1;
+			ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x02 :0;
+		}
+	}
+
+	if( bBottomAvailable )
+	{
+		{
+			Int iIndex = uiCurrIdx + m_uiMbStride;
+			ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x10 :0;
+		}
+
+		if( bLeftAvailable )
+		{
+			Int iIndex = uiCurrIdx  + m_uiMbStride - 1;
+			ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x20 :0;
+		}
+
+		if( bRightAvailable )
+		{
+			Int iIndex = uiCurrIdx + m_uiMbStride + 1;
+			ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x08 :0;
+		}
+	}
+
+	if( bLeftAvailable )
+	{
+		Int iIndex = uiCurrIdx-1;
+		ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x40 :0;
+	}
+
+	if( bRightAvailable )
+	{
+		Int iIndex = uiCurrIdx + 1;
+		ruiMask |= (m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x04 :0;
+	}
+	return Err::m_nOK;
+}
+//JVT-U106 Behaviour at slice boundaries}
+
 H264AVC_NAMESPACE_END
 

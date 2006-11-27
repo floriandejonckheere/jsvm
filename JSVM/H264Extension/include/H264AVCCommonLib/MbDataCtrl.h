@@ -181,7 +181,9 @@ public:
 
   // JVT-S054 (ADD)
   UInt getSliceId() const { return m_uiSliceId;}
-
+  //JVT-U106 Behaviour at slice boundaries{
+  ErrVal        getBoundaryMaskCIU( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID );
+  //JVT-U106 Behaviour at slice boundaries}
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
   const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter );
@@ -322,7 +324,6 @@ public:
   ErrVal        uninitBQData          ();
   ErrVal        storeBQLayerQpAndCbp  ();
   ErrVal        switchBQLayerQpAndCbp ();
-
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
   SliceHeader*  m_pcSliceHeader;

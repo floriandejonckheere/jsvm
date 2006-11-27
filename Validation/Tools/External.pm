@@ -241,7 +241,8 @@ sub Extract($$;$)
  ($cmd .= " -qlord") if($test->{useql}==2);
  ($cmd .= " -sip") if($test->{usesip}==1);
  ($cmd .= " -sip -suf") if($test->{usesip}>1); 
- 
+ ($cmd = "$bin$EXTRACTOR ".$test->{bitstreamname}." ".$test->{extractedname}." -enp 0") if($test->{useenp0});
+ ($cmd = "$bin$EXTRACTOR ".$test->{bitstreamname}." ".$test->{extractedname}." -enp 1") if($test->{useenp1}); 
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n";
 }

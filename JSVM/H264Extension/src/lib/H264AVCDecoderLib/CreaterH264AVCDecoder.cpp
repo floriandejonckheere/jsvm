@@ -456,7 +456,11 @@ ErrVal CreaterH264AVCDecoder::init( Bool bOpenTrace )
                                                  m_apcYuvFullPelBufferCtrl [uiLayer],
                                                  m_apcDecodedPicBuffer     [uiLayer],
                                                  m_pcMotionCompensation,
-                                                 m_pcQuarterPelFilter ) );
+                                                 m_pcQuarterPelFilter
+												 //JVT-U106 Behaviour at slice boundaries{
+												 ,m_pcReconstructionBypass
+												 //JVT-U106 Behaviour at slice boundaries}
+												 ) );
   }
 
   RNOK( m_pcControlMng            ->init( m_pcFrameMng,
