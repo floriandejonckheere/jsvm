@@ -1,5 +1,33 @@
 
 
+JSVM_7_8 -> JSVM_7_9
+=====================
+
+Date: Nov. 28, 2006 
+Author: Heiko Schwarz (HHI)
+Contributions: Software re-structuring
+
+Main goal: Change the encoder structure from GOP-based
+           processing the AU-based processing, in order to
+  1) provide more logical coder structure
+  2) enable more flexible encoding structures (in future)
+  2) use enhancement layer refereneces for optimizing
+     base layer encoding (in future)
+
+Comments:
+  - only very high level changes
+  - only a first step for an improved encoder structure
+  - things that should be done in future
+    + combine function for encoding non-key pictures in
+      a single function (as for key pictures)
+    + single function for encoding both key and non-key
+      pictures
+    + remove all GOP-related processing in class
+      MCTFEncoder (rename that class!)
+    + use class similar to PicEncoder for encoding an
+      access unit (AU) of a picture
+
+
 JSVM_7_7 -> JSVM_7_8
 =====================
 

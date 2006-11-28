@@ -428,6 +428,7 @@ ErrVal CodingParameter::check()
               resize->m_iGlobWidth = resize->m_iOutWidth;
               resize->m_iGlobHeight = resize->m_iOutHeight;
             }
+            /*
           printf("\n\n*************************\n%dx%d  -> %dx%d %s -> %dx%d\n",
                  resize->m_iInWidth, resize->m_iInHeight,
                  resize->m_iOutWidth, resize->m_iOutHeight,
@@ -436,11 +437,14 @@ ErrVal CodingParameter::check()
           printf("ExtendedSpatialScalability: %d    SpatialScalabilityType: %d\n",
             resize->m_iExtendedSpatialScalability,
                  resize->m_iSpatialScalabilityType);
+                 */
         }
+        /*
       else
         {
           printf("\n\n*************************\n No_Crop\n");
         }
+        */
 // TMM_ESS }
 
       pcBaseLayer->setContrainedIntraForLP();

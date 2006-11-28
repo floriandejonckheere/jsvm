@@ -196,6 +196,27 @@ private:
 
 
 
+class PicOutputData
+{
+public:
+  Bool    FirstPicInAU;
+  Int     Poc;
+  Char    FrameType[3];
+  Int     DependencyId;
+  Int     QualityId;
+  Int     TemporalId;
+  Int     Qp;
+  Int     Bits;
+  Double  YPSNR;
+  Double  UPSNR;
+  Double  VPSNR;
+};
+
+typedef MyList<PicOutputData> PicOutputDataList;
+
+
+
+
 class H264AVCENCODERLIB_API MCTFEncoder
 {
   enum
@@ -238,7 +259,10 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 
   ErrVal        addParameterSetBits ( UInt                            uiParameterSetBits );
   Bool          firstGOPCoded       ()                                { return m_bFirstGOPCoded; }
-  ErrVal        process             ( AccessUnitList&                 rcAccessUnitList,
+  ErrVal        initGOP             ( AccessUnitList&                 rcAccessUnitList,
+                                      PicBufferList&                  rcPicBufferInputList );
+  ErrVal        process             ( UInt                            uiAUIndex,
+                                      AccessUnitList&                 rcAccessUnitList,
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
                                       PicBufferList&                  rcPicBufferUnusedList,
@@ -273,9 +297,7 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   ErrVal        getBaseLayerSH      ( SliceHeader*&                   rpcSliceHeader,
                                       Int                             iPoc );
 
-  UInt*         getGOPBitsBase      ()  { return m_auiCurrGOPBitsBase;  }
-  UInt*         getGOPBitsFGS       ()  { return m_auiCurrGOPBitsFGS;   }
-
+  UInt          getNewBits          ()  { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
   UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;      }
   Void          setScalableLayer    (UInt p)  { m_uiScalableLayerId = p; }
   UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
@@ -307,6 +329,7 @@ protected:
   ErrVal  xDeleteData                   ();
 
 
+  ErrVal  xInitBitCounts                ();
   ErrVal  xInitGOP                      ( PicBufferList&              rcPicBufferInputList );
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
@@ -321,9 +344,12 @@ protected:
 
 
   //===== decomposition / composition =====
-  ErrVal  xMotionEstimationStage        ( UInt                        uiBaseLevel );
-  ErrVal  xDecompositionStage           ( UInt                        uiBaseLevel );
-  ErrVal  xCompositionStage             ( UInt                        uiBaseLevel,
+  ErrVal  xMotionEstimationFrame        ( UInt                        uiBaseLevel,
+                                          UInt                        uiFrame );
+  ErrVal  xDecompositionFrame           ( UInt                        uiBaseLevel,
+                                          UInt                        uiFrame );
+  ErrVal  xCompositionFrame             ( UInt                        uiBaseLevel,
+                                          UInt                        uiFrame,
                                           PicBufferList&              rcPicBufferInputList );
   ErrVal  xStoreReconstruction          ( PicBufferList&              rcPicBufferOutputList );
 
@@ -374,9 +400,15 @@ protected:
 
 
   //===== stage encoding =====
-  ErrVal  xEncodeLowPassPictures        ( AccessUnitList&             rcAccessUnitList );
-  ErrVal  xEncodeHighPassPictures       ( AccessUnitList&             rcAccessUnitList,
-                                          UInt                        uiBaseLevel );
+  ErrVal  xEncodeKeyPicture             ( Bool&                       rbKeyPicCoded,                         
+                                          UInt                        uiFrame,
+                                          AccessUnitList&             rcAccessUnitList,
+                                          PicOutputDataList&          rcPicOutputDataList );
+  ErrVal  xEncodeNonKeyPicture          ( UInt                        uiBaseLevel,
+                                          UInt                        uiFrame,
+                                          AccessUnitList&             rcAccessUnitList,
+                                          PicOutputDataList&          rcPicOutputDataList );
+  ErrVal  xOutputPicData                ( PicOutputDataList&          rcPicOutputDataList );
 
   //===== basic encoding =====
   ErrVal  xEncodeLowPassSignal          ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
@@ -384,15 +416,17 @@ protected:
                                           IntFrame*                   pcFrame,
                                           IntFrame*                   pcRecSubband,
                                           IntFrame*                   pcPredSignal,
-                                          UInt&                       ruiBits);
+                                          UInt&                       ruiBits,
+                                          PicOutputDataList&          rcPicOutputDataList );
   ErrVal  xEncodeHighPassSignal         ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
                                           ControlData&                rcControlData,
                                           IntFrame*                   pcFrame,
                                           IntFrame*                   pcResidual,
                                           IntFrame*                   pcPredSignal,
-                                          IntFrame*                    pcSRFrame, // JVT-R091
+                                          IntFrame*                   pcSRFrame, // JVT-R091
                                           UInt&                       ruiBits,
-                                          UInt&                       ruiBitsRes );
+                                          UInt&                       ruiBitsRes,
+                                          PicOutputDataList&          rcPicOutputDataList );
   ErrVal  xEncodeFGSLayer               ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
                                           ControlData&                rcControlData,
                                           IntFrame*                   pcFrame,
@@ -406,7 +440,8 @@ protected:
                                           IntFrame*                   pcHighPassPredSignal,
                                           RefFrameList&               rcRefFrameList0,
                                           RefFrameList&               rcRefFrameList1,
-                                          UInt&                       ruiBits );
+                                          UInt&                       ruiBits,
+                                          PicOutputDataList&          rcPicOutputDataList );
 
 
   //===== motion estimation / compensation =====
@@ -440,9 +475,10 @@ protected:
   //--
 
   //===== auxiliary functions =====
-  ErrVal  xCalculateAndAddPSNR          ( PicBufferList&              rcPicBufferInputList,
-                                          UInt                        uiStage,
-                                          Bool                        bOutput );
+  ErrVal  xCalculateAndAddPSNR          ( UInt                        uiStage,
+                                          UInt                        uiFrame,
+                                          PicBufferList&              rcPicBufferInputList,
+                                          PicOutputDataList&          rcPicOutputDataList );
 
   ErrVal  xFillAndUpsampleFrame         ( IntFrame*                   rcFrame );
   ErrVal  xFillAndExtendFrame           ( IntFrame*                   rcFrame );
@@ -608,10 +644,7 @@ protected:
   Double                        m_fOutputFrameRate;
   UInt                          m_uiParameterSetBits;
   UInt                          m_auiNumFramesCoded [MAX_DSTAGES+1];
-  UInt                          m_auiCurrGOPBitsBase[MAX_DSTAGES+1];
-  UInt                          m_auiCurrGOPBitsFGS [MAX_DSTAGES+1];
-  Double                        m_adSeqBitsBase     [MAX_DSTAGES+1];
-  Double                        m_adSeqBitsFGS      [MAX_DSTAGES+1];
+  UInt                          m_uiNewlyCodedBits;
   Double                        m_adPSNRSumY        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumU        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumV        [MAX_DSTAGES+1];
@@ -692,6 +725,11 @@ protected:
   ReconstructionBypass*         m_pcReconstructionBypass;
   Bool*                         m_pbIntraBLFlag; 
   //JVT-U106 Behaviour at slice boundaries}
+
+
+  UInt    m_uiMinScalableLayer;
+  UInt    m_uiFramesInCompleteGOPsProcessed;
+  Bool    m_bGOPInitialized;
 };
 
 #if defined( WIN32 )

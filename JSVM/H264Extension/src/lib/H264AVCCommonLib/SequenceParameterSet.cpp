@@ -549,7 +549,7 @@ Void SequenceParameterSet::setResizeParameters ( const ResizeParameters * params
     m_iScaledBaseTopOffset    = params->m_iPosY /2;
     m_iScaledBaseRightOffset  = (params->m_iGlobWidth - params->m_iPosX - params->m_iOutWidth) /2;
     m_iScaledBaseBottomOffset = (params->m_iGlobHeight - params->m_iPosY - params->m_iOutHeight) /2;
-    printf("offset: %d,%d %d,%d\n", m_iScaledBaseLeftOffset<<1, m_iScaledBaseTopOffset<<1, m_iScaledBaseRightOffset<<1, m_iScaledBaseBottomOffset<<1);
+    //printf("offset: %d,%d %d,%d\n", m_iScaledBaseLeftOffset<<1, m_iScaledBaseTopOffset<<1, m_iScaledBaseRightOffset<<1, m_iScaledBaseBottomOffset<<1);
   }
   else
   {

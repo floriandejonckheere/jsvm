@@ -168,9 +168,7 @@ public:
   ErrVal  getBaseLayerSH      ( SliceHeader*& rpcSliceHeader,
                                 UInt          uiBaseLayerId,
                                 Int           iPoc );
-  UInt*   getGOPBitsBase      ( UInt          uiBaseLayerId );
-  UInt*   getGOPBitsFGS       ( UInt          uiBaseLayerId );
-  UInt*   getGOPBits          ( UInt          uiScalableLayerId );
+  UInt    getNewBits          ( UInt          uiBaseLayerId );
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -207,12 +205,8 @@ protected:
   ErrVal xWriteSubPicSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt layer_id ) ;
   ErrVal xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id ) ;
 
-  ErrVal xProcessGOP        ( UInt                      uiLayer,
-                              UInt&                     uiScalableLayer,
-                              PicBuffer*                pcOriginalPicBuffer,
-                              PicBuffer*                pcReconstructPicBuffer,
-                              PicBufferList&            rcPicBufferOutputList,
-                              PicBufferList&            rcPicBufferUnusedList );
+  ErrVal xProcessGOP        ( PicBufferList*            apcPicBufferOutputList, 
+                              PicBufferList*            apcPicBufferUnusedList );
 
 protected:
   std::list<SequenceParameterSet*>  m_cUnWrittenSPS;
