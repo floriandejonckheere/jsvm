@@ -13,7 +13,7 @@ SRC_DIR3		=
 SRC_DIR4		=
 
 USER_INC_DIRS	= -I$(SRC_DIR)
-USER_LIB_DIRS	= -L/usr/X11R6/lib
+USER_LIB_DIRS	=
 
 # intermediate directory for object files
 OBJ_DIR				= ./objects
@@ -37,7 +37,7 @@ LIBS				= -ldl
 DEBUG_LIBS			=
 RELEASE_LIBS		=
 
-STAT_LIBS			= -lpthread -lX11
+STAT_LIBS			= -lpthread
 DYN_LIBS			=
 
 

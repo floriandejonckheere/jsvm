@@ -2395,6 +2395,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
 
   //===== update picture in DPB =====
   RNOK( m_pcDecodedPictureBuffer->update( pcLastDPBUnit ) );
+  RNOK( m_pcH264AVCDecoder->replaceSNRCGSBaseFrame( pcLastDPBUnit->getFrame() ) ); // MGS fix by Heiko Schwarz
   return Err::m_nOK;
 }
 
@@ -2716,6 +2717,7 @@ MCTFDecoder::GetAVCFrameForDPB( SliceHeader*&  rpcSliceHeader,
   RNOK( m_pcH264AVCDecoder->getAVCFrame(pcFrame, pcResidual, pcMbDataCtrl, rpcSliceHeader->getPoc()));
   pcMbDataCtrl = rcControlData.getSliceHeader()->getFrameUnit()->getMbDataCtrl();
 
+  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->copyMotion(*pcMbDataCtrl); // MGS fix by Heiko Schwarz (moved from end of function)
   m_pcCurrDPBUnit->getFrame()->copyAll(pcFrame);
 
   m_bIsNewPic = true;
@@ -2723,9 +2725,9 @@ MCTFDecoder::GetAVCFrameForDPB( SliceHeader*&  rpcSliceHeader,
   if( bUseBaseRepresentation )
   {
     //----- copy non-filtered frame -----
-    RNOK( pcFrame->copy( pcBaseRepFrame ) );
+    //RNOK( pcFrame->copy( pcBaseRepFrame ) );  MGS fix by Heiko Schwarz
+    RNOK( pcBaseRepFrame->copy( pcFrame ) );  //MGS fix by Heiko Schwarz
     //----- store in DPB with base representation -----
-
     RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcBaseRepFrame, rpcSliceHeader->getQualityLevel(), bRef ) ); //JVT-T054
   }
   else
@@ -2733,8 +2735,6 @@ MCTFDecoder::GetAVCFrameForDPB( SliceHeader*&  rpcSliceHeader,
 
     RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, NULL, rpcSliceHeader->getQualityLevel(), bRef ) ); //JVT-T054
   }
-
-  m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl()->copyMotion(*pcMbDataCtrl);
 
   //----- set slice header to zero (slice header is stored in control data) -----
   rpcSliceHeader = 0;

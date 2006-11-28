@@ -185,8 +185,8 @@ encode( EncoderParameters& rcEncoderParameters )
   for( unsigned int uiLayer = 0; uiLayer < rcEncoderParameters.uiNumberOfLayers; uiLayer++ )
   {
     LayerParameters& rcLayer = rcEncoderParameters.acLayerParameters[uiLayer];
-    sprintf( acTempString, " -lqp %d %lf -rqp %d %lf -mfile %d %d %s ",
-      uiLayer, rcLayer.dQpModeDecision, uiLayer, rcLayer.dBaseQpResidual,
+    sprintf( acTempString, " -lqp %d %lf -rqp %d %lf -meqplp %d %lf -mfile %d %d %s ",
+      uiLayer, rcLayer.dQpModeDecision, uiLayer, rcLayer.dBaseQpResidual, uiLayer, rcLayer.dBaseQpResidual,
       uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str() );
     cCommandLineString  += acTempString;
   }
@@ -264,7 +264,7 @@ encode_layer( EncoderParameters& rcEncoderParameters )
     printf( "\n### QpModeDecision = %lf ###", rcLayer.dQpModeDecision );
     printf( "\n##################################\n" );
 
-    sprintf( acTempString, "%s\\%s_layer%d.mot",
+    sprintf( acTempString, "%s/%s_layer%d.mot",
       rcEncoderParameters.cMotionFolder.c_str(),
       rcEncoderParameters.cLabel.c_str(),
       uiLayer );

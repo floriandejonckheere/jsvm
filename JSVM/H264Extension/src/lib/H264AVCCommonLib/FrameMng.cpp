@@ -386,6 +386,56 @@ ErrVal FrameMng::uninit()
   return Err::m_nOK;
 }
 
+
+
+ErrVal  
+FrameMng::updateLastFrame( IntFrame* pcSrcFrame )  // MGS fix by Heiko Schwarz
+{
+  ROF   ( pcSrcFrame );
+  ROF   ( m_pcCurrentFrameUnit );
+  ROFRS ( m_pcCurrentFrameUnit->isUsed       (), Err::m_nOK );
+
+  ROF   ( m_pcCurrentFrameUnit->getMaxPOC    () == pcSrcFrame->getPOC() );
+  ROF   ( m_pcCurrentFrameUnit->getPicBuffer () );
+  ROT   ( m_pcCurrentFrameUnit->getBaseRep   () );
+
+  //===== normal frame =====
+  Frame*      pcDesFrame  = &const_cast<Frame&>(m_pcCurrentFrameUnit->getFrame());
+  PicBuffer*  pcPicBuffer = m_pcCurrentFrameUnit->getPicBuffer();
+  ROF ( pcDesFrame  );
+  ROF ( pcPicBuffer );
+  RNOK( pcSrcFrame->store       ( pcPicBuffer ) );
+  RNOK( pcDesFrame->extendFrame ( m_pcQuarterPelFilter ) );
+
+  //===== special frame =====
+  Frame*      pcDesFrame2   = NULL;
+  PicBuffer*  pcPicBuffer2  = NULL;
+  if( m_pcCurrentFrameUnit->getFGSPicBuffer() )
+  {
+    pcDesFrame2  = &const_cast<Frame&>(m_pcCurrentFrameUnit->getFGSFrame());
+    pcPicBuffer2 = m_pcCurrentFrameUnit->getFGSPicBuffer ();
+    ROF ( pcDesFrame2  );
+    ROF ( pcPicBuffer2 );
+  }
+  else if( m_pcCurrentFrameUnitBase && m_pcCurrentFrameUnitBase->getBaseRep() )
+  {
+    ROF( m_pcCurrentFrameUnitBase->getMaxPOC() == pcSrcFrame->getPOC() );
+    pcDesFrame2  = &const_cast<Frame&>(m_pcCurrentFrameUnitBase->getFrame());
+    pcPicBuffer2 = m_pcCurrentFrameUnitBase->getPicBuffer();
+    ROF ( pcDesFrame2  );
+    ROF ( pcPicBuffer2 );
+  }
+  if( pcDesFrame2 && pcPicBuffer2 != pcPicBuffer )
+  {
+    RNOK( pcSrcFrame ->store       ( pcPicBuffer2 ) );
+    RNOK( pcDesFrame2->extendFrame ( m_pcQuarterPelFilter ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+
 //JVT-T054_FIX{
 ErrVal FrameMng::UpdateFrameunitFromShortTermList(FrameUnit* pcFrameUnit, Int iPoc)
 {

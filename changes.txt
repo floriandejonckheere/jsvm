@@ -1,8 +1,31 @@
 
+
+JSVM_7_7 -> JSVM_7_8
+=====================
+
+Date: Nov. 28, 2006 
+Authors: Heiko Schwarz (HHI), Mathias Wien (RWTH Aachen)
+Contributions: Bug fixes
+
+1) remove X11 library from Linux makefiles
+2) add command line parameter "-meqplp" for adjusting lambda for key pictures
+3) correct usage of QP values in FixedQpEncoder
+4) changes "\" to "/" in specifying motion file path in FixedQpEncoder
+5) Corrected reading of priority_id in H264AVCPacketAnalyser::process()
+
+6) Decoder fixes for MGS, the old implementation has following problems
+   - it crashed when MGS enhancement layer were partially discarded
+   - wrong reference picture for motion compensation were used
+     for partially truncated MGS enhancement layers
+     (after first problem was fixed)
+7) Added two additional tests in MGS valaidation script for
+   partially truncated MGS layers
+
+
 JSVM_7_6 -> JSVM_7_7
 =====================
 
-Date: Nov. 24, 2006 
+Date: Nov. 27, 2006 
 Authors: Yi Guo, Qiu Shen, Hui Liu (USTC)
 Contributions: JVT-U106, JVT-S035
 

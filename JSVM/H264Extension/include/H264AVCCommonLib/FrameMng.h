@@ -249,6 +249,8 @@ protected:
   virtual ~FrameMng     ();
 
 public:
+  ErrVal      updateLastFrame( IntFrame* pcSrcFrame );       // MGS fix by Heiko Schwarz
+
   FrameUnit*  getCurrentFrameUnit   () { return m_pcCurrentFrameUnit; }
   IntFrame*   getRefinementIntFrame () { return m_pcRefinementIntFrame; }
   IntFrame*   getRefinementIntFrame2() { return m_pcRefinementIntFrameSpatial; }

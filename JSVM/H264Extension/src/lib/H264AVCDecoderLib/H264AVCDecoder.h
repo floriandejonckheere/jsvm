@@ -198,6 +198,7 @@ public:
                                          ListIdx                        eListIdx,
                                          Int                            iPoc );
 
+  ErrVal  replaceSNRCGSBaseFrame      ( IntFrame* pcELFrame );      // MGS fix by Heiko Schwarz
   Void    setBaseAVCCompatible        ( Bool                        bAVCCompatible )    { m_bBaseLayerIsAVCCompatible = bAVCCompatible; }
   Void    setReconstructionLayerId    ( UInt                        uiLayerId )         { m_uiRecLayerId = uiLayerId; }
   Void    setVeryFirstSPS             ( const SequenceParameterSet* pcSPS )             { m_pcVeryFirstSPS = pcSPS; }

@@ -264,16 +264,9 @@ FGSCoder::xStoreBQLayerSigMap()
 ErrVal
 FGSCoder::xSwitchBQLayerSigMap()
 {
-  UInt uiSize = m_uiWidthInMB * m_uiHeightInMB;
-  UChar* tmpBuf;
-
-  ROFS( (tmpBuf = new UChar[uiSize*16] ));
-
   MbFGSCoefMap *switch_temp = m_pcCoefMap;
   m_pcCoefMap = m_pcBQCoefMap;
   m_pcBQCoefMap = switch_temp;
-
-  delete [] tmpBuf;
 
   return Err::m_nOK;
 }

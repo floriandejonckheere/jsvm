@@ -610,7 +610,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
   {
     ucByte             = (pcBinData->data())[1];
-    uiSimplePriorityId = ( ucByte >> 2);
+    uiSimplePriorityId = ( ucByte & 63 );   // fix (Heiko Schwarz)
+    //uiSimplePriorityId = ( ucByte >> 2);  // fix (Heiko Schwarz)
 
     ucByte              = (pcBinData->data())[2];
         uiLevel     = ( ucByte >> 5 );

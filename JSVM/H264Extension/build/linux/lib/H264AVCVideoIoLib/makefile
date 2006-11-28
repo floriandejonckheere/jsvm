@@ -14,7 +14,7 @@ SRC_DIR4		=
 
 
 USER_INC_DIRS	= -I$(SRC_DIR)
-USER_LIB_DIRS	= -L/usr/X11R6/lib
+USER_LIB_DIRS	=
 
 # intermediate directory for object files
 OBJ_DIR			= ./objects
@@ -40,14 +40,13 @@ OBJS          	= \
 			$(OBJ_DIR)/WriteYuvToFile.o \
 						
 
-
 LIBS				= -lpthread 
 
 DEBUG_LIBS			=
 RELEASE_LIBS		=
 
 STAT_LIBS			=
-DYN_LIBS			= -ldl -lX11
+DYN_LIBS			=
 
 # the libraries to link with
 STAT_DEBUG_LIBS		= 

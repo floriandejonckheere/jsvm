@@ -314,6 +314,16 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       n += 1;
       continue;
     }
+    if( equals( pcCom, "-meqplp", 7 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      Double  dQp     = atof( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setQpModeDecisionLP( dQp );
+      n += 1;
+      continue;      
+    }
     if( equals( pcCom, "-ilpred", 7 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -560,6 +570,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -rqp    (Layer) (ResidualQP)\n");
   printf("  -mqp    (Layer) (Stage) (MotionQP)\n");
   printf("  -lqp    (Layer) (ResidualAndMotionQP)\n");
+  printf("  -meqplp (Layer) (MotionQPLowpass)\n");
   printf("  -ilpred (Layer) (InterLayerPredictionMode)\n");
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
   printf("  -anafgs (Layer) (NumFGSLayers) (File for storing FGS parameters)\n");

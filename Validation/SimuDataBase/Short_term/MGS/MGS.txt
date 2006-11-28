@@ -128,5 +128,29 @@
             		        encdecmatch => 1,
             		      },
     		              #----------#
+			# Test   4 #
+                      #----------#
+            		      {
+            		        name => "test4",
+            	          mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 15,
+            		        bitrate => 270,
+            		        psnr => 33.11,
+            		      },
+    		              #----------#
+			# Test   5 #
+                      #----------#
+            		      {
+            		        name => "test5",
+            	          mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 30,
+            		        bitrate => 595,
+            		        psnr => 28.16,
+            		      },
+    		              #----------#
 		  ],
 }

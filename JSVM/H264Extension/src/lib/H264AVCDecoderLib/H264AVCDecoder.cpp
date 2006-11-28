@@ -431,8 +431,8 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
     //new AU: initialization
     m_bDependencyInitialized = false;
     m_bFGSRefInAU = false;
-    if(!bEos)
-      m_bCGSSNRInAU = false;
+    //if(!bEos)                     MGS fix by Heiko Schwarz
+    //  m_bCGSSNRInAU = false;      MSG fix by Heiko Schwarz
     for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
     {
         m_uiNumberOfFragment[uiLayer] = 0;
@@ -2105,6 +2105,13 @@ H264AVCDecoder::getAVCFrame( IntFrame*&      pcFrame,
 }
 //JVT-T054}
 
+ErrVal  
+H264AVCDecoder::replaceSNRCGSBaseFrame( IntFrame* pcELFrame ) // MGS fix by Heiko Schwarz
+{
+  ROFRS ( m_bCGSSNRInAU, Err::m_nOK );
+  RNOK  ( m_pcFrameMng->updateLastFrame( pcELFrame ) );
+  return Err::m_nOK;
+}
 
 ErrVal
 H264AVCDecoder::xZeroIntraMacroblocks( IntFrame*    pcFrame,
