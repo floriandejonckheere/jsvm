@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "7.8" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "7.9" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
