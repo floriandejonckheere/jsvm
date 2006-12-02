@@ -419,6 +419,10 @@ public:
   ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
                                           YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
   ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
+
+  MbDataCtrl*   getBaseMbDataCtrl() {return m_pcBaseMbDataCtrl;}
+  Void          setBaseMbDataCtrl(MbDataCtrl* pcMbDataCtrl) {m_pcBaseMbDataCtrl = pcMbDataCtrl;}
+
 //JVT-T054{
   Void        setAVCBased(Bool b)   { m_bAVCBased = b;}
   Bool        getAVCBased()         { return m_bAVCBased;}
@@ -476,6 +480,7 @@ protected:
   Bool isPictureDecComplete(SliceHeader* rpcSliceHeader);
   const Bool isNewPictureStart(SliceHeader* rpcSliceHeader);
   ErrVal InitWhenNewPictureStart(SliceHeader* pcSliceHeader, MbDataCtrl*   pcMbDataCtrl);
+  Void setMCResizeParameters   (ResizeParameters*				resizeParameters);
   //JVT-U106 Behaviour at slice boundaries{
   ErrVal xConstrainedIntraUpsampling(IntFrame*pcFrame,
 									 IntFrame*pcUpsampling, 
@@ -544,6 +549,8 @@ protected:
   // ROI DECODE ICU/ETRI
   Int m_iMbProcessed;
   Bool m_bIsNewPic;
+  MbDataCtrl*  m_pcBaseMbDataCtrl;
+
   //JVT-U106 Behaviour at slice boundaries{
   ReconstructionBypass* m_pcReconstructionBypass;
   //JVT-U106 Behaviour at slice boundaries}

@@ -180,6 +180,7 @@ public:
   ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH ) { return Err::m_nOK; };
   ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
+  ErrVal  RQcompSepAlign           ();
   Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
 
   Bool    isEndOfSlice        ();

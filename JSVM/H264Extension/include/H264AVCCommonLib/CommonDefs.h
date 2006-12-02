@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "7.9" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "7.10" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -348,5 +348,6 @@ typedef  enum
   EC_INTRA_COPY                // =200
 }  ERROR_CONCEAL;
 //TMM_EC }}
+
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

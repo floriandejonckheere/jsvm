@@ -2214,20 +2214,29 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
   RNOK( pcMbDataCtrl          ->initSlice( rcSH, PRE_PROCESS, true, NULL ) );
   RNOK( m_pcMotionCompensation->initSlice( rcSH              ) );
 
+  MbDataCtrl*      pcBaseMbDataCtrl = getBaseMbDataCtrl();
+
   for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
   {
     UInt          uiMbY           = uiMbIndex / m_uiFrameWidthInMb;
     UInt          uiMbX           = uiMbIndex % m_uiFrameWidthInMb;
     MbDataAccess* pcMbDataAccess  = 0;
+    MbDataAccess* pcMbDataAccessBase  = 0;
+    if    ( pcBaseMbDataCtrl )
+    {
+      RNOK( pcBaseMbDataCtrl         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
+    }
 
     RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX                  ) );
     RNOK( m_pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
     RNOK( m_pcMotionCompensation  ->initMb(                 uiMbY, uiMbX ) );
+    pcMbDataAccess->setMbDataAccessBase(pcMbDataAccessBase);
 
     if( ! pcMbDataAccess->getMbData().isIntra() )
     {
       IntYuvMbBuffer cYuvMbBuffer;
       RNOK( m_pcMotionCompensation->xCompensateMbAllModes( *pcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer ) );
+      RNOK( m_pcMotionCompensation->compensateMbBLSkipIntra(*pcMbDataAccess, &cYuvMbBuffer, m_pcBaseLayerFrame));
       RNOK( pcMCFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
     }
   }
@@ -2345,6 +2354,8 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
       }
       else if( ! pcSliceHeader->isIntra() )
       {
+        setBaseMbDataCtrl(rcControlData.getBaseLayerCtrl());
+
         //----- "normal" motion-compensated prediction -----
         RNOK( xMotionCompensation( m_pcPredSignal,
                                   rcControlData.getPrdFrameList( LIST_0 ),
@@ -2655,9 +2666,15 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
   if(pcBaseDataCtrl==NULL)rcSliceHeaderBase=NULL;
   else rcSliceHeaderBase=pcBaseDataCtrl->getSliceHeader();
 
+  setMCResizeParameters(m_pcResizeParameter);
+
   return Err::m_nOK;
 }
 
+Void MCTFDecoder::setMCResizeParameters   (ResizeParameters*				resizeParameters)
+{
+  m_pcMotionCompensation->setResizeParameters(resizeParameters);
+} 
 
 
 //JVT-S036 lsj start

@@ -575,6 +575,10 @@ RQFGSDecoder::xDecodingFGS( SliceHeader*                pcSliceHeader   )
         RNOK( m_pcSymbolReader->RQvlcFlush() );
 
         iLumaScanIdx = min(uiMaxPosLuma+1, 16);
+        if( m_bFgsComponentSep && iLumaScanIdx == 16 )
+        {
+          RNOK( m_pcSymbolReader->RQcompSepAlign() );
+        }
         if (bAllowChromaDC)
           iChromaDCScanIdx = min(uiMaxPosChromaDC+1, 4);
         if (bAllowChromaAC)

@@ -2106,6 +2106,10 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       m_cIdx    = S4x4Idx();
 
       iLumaScanIdx = min(uiMaxPosLuma+1, 16);
+      if( m_bFgsComponentSep && iLumaScanIdx == 16 )
+      {
+        RNOK( m_pcSymbolWriter->RQcompSepAlign() );
+      }
       if (bAllowChromaDC)
         iChromaDCScanIdx = min(uiMaxPosChromaDC+1, 4);
       if (bAllowChromaAC)

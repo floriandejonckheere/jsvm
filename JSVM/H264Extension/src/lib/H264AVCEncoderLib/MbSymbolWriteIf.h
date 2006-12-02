@@ -215,6 +215,7 @@ public:
   virtual ErrVal RQencodeBestCodeTableMap ( UInt* pauiTable, UInt uiMaxH ) = 0;
   virtual ErrVal RQupdateVlcTable          () = 0;
   virtual ErrVal RQvlcFlush                () = 0;
+  virtual ErrVal RQcompSepAlign            () = 0;
 };
 
 

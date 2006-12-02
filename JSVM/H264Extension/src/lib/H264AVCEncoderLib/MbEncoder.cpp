@@ -396,7 +396,9 @@ MbEncoder::xCheckInterMbMode8x8( IntMbTempData*&   rpcMbTempData,
                                  IntMbTempData*    pcMbRefData,
                                  RefFrameList&     rcRefFrameList0,
                                  RefFrameList&     rcRefFrameList1,
-                                 MbDataAccess*     pcMbDataAccessBaseMotion )
+                                 MbDataAccess*     pcMbDataAccessBaseMotion,
+                                 IntFrame*         pcBaseLayerRec 
+                                 )
 {
   ROTRS( ! rpcMbTempData->getSH().getPPS().getTransform8x8ModeFlag(), Err::m_nOK );
   ROTRS( ! pcMbRefData->is8x8TrafoFlagPresent(),                      Err::m_nOK );
@@ -425,7 +427,8 @@ MbEncoder::xCheckInterMbMode8x8( IntMbTempData*&   rpcMbTempData,
     rpcMbTempData->getMbMvdData   ( LIST_1 ).copyFrom( pcMbRefData->getMbMvdData   ( LIST_1 ) );
   }
 
-  RNOK( xSetRdCost8x8InterMb( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefFrameList0, rcRefFrameList1 ) );
+  RNOK( xSetRdCost8x8InterMb( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefFrameList0, rcRefFrameList1, 
+                              false, 0, false, pcBaseLayerRec ) );
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
@@ -518,6 +521,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
   UInt  uiQp  = rcMbDataAccess.getMbData().getQp();
   RNOK( m_pcRateDistortionIf->setMbQpLambda( rcMbDataAccess, uiQp, dLambda ) )
 
+  rcMbDataAccess.setMbDataAccessBase(pcMbDataAccessBase);
   m_pcIntMbBestIntraChroma  = NULL;
   m_pcIntMbBestData   ->init( rcMbDataAccess );
   m_pcIntMbTempData   ->init( rcMbDataAccess );
@@ -1277,6 +1281,8 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 {
   ROF( bInitDone );
 
+  rcMbDataAccess.setMbDataAccessBase(pcMbDataAccessBase);
+
   Bool  bBSlice = rcMbDataAccess.getSH().getSliceType () == B_SLICE;
   UInt  uiQp    = rcMbDataAccess.getSH().getPicQp     ();
   RNOK( m_pcRateDistortionIf->setMbQpLambda( rcMbDataAccess, uiQp, dLambda ) )
@@ -1323,7 +1329,8 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 
         //-- JVT-R091
         if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) )
-        RNOK( xEstimateMbSR        ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerResidual, pcMbDataAccessBase, true ) );
+        RNOK( xEstimateMbSR        ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerResidual, pcMbDataAccessBase, true,
+                                    (IntFrame *)pcBaseLayerFrame) );
         //--
 
       }
@@ -1649,6 +1656,8 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
       RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv ) );
     }
   }
+
+  RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess, &cYuvMbBuffer, getBaseLayerRec()));
 
   //===== insert into frame =====
   RNOK( pcMCFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
@@ -3138,7 +3147,6 @@ MbEncoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess, MbTransformCoeffs& rcTCo
 }
 
 
-
 ErrVal
 MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
                               MbDataAccess*   pcMbDataAccessBase,
@@ -3146,7 +3154,9 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
                               RefFrameList&   rcRefFrameList1,
                               Bool            bBLSkip,
                               UInt            uiAdditionalBits,
-                              Bool            bSkipMCPrediction )
+                              Bool            bSkipMCPrediction,
+                              IntFrame*       pcBaseLayerRec 
+                              )
 {
   IntYuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
   IntYuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData  .getTempYuvMbBuffer ();
@@ -3207,6 +3217,10 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
     {
       RNOK  ( m_pcMotionEstimation->compensateMb  ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
                                                     &rcYuvMbBuffer, false) );
+    }
+    if(pcBaseLayerRec)
+    {
+      RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess,  &rcYuvMbBuffer, pcBaseLayerRec));
     }
   }
   rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
@@ -3359,15 +3373,18 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
   return Err::m_nOK;
 }
 
+
+
 //-- JVT-R091
 ErrVal
 MbEncoder::xSetRdCostInterMbSR( IntMbTempData&  rcMbTempData,
                                 MbDataAccess*   pcMbDataAccessBase,
                                 RefFrameList&   rcRefFrameList0,
                                 RefFrameList&   rcRefFrameList1,
-                                IntFrame*        pcBaseLayerSbb,
+                                IntFrame*       pcBaseLayerSbb,
                                 Bool            bBLSkip,
-                                UInt            uiAdditionalBits )
+                                UInt            uiAdditionalBits,
+                                IntFrame*       pcBaseLayerRec )
 {
   IntYuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
   IntYuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData  .getTempYuvMbBuffer ();
@@ -3431,6 +3448,11 @@ MbEncoder::xSetRdCostInterMbSR( IntMbTempData&  rcMbTempData,
 
   // recover buffer
   pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &cBaseResMbBuffer );
+
+  if(pcBaseLayerRec)
+  {
+    RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess, &rcYuvMbBuffer, pcBaseLayerRec));
+  }
 
   // load into prediction buffer
   rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
@@ -3535,7 +3557,8 @@ MbEncoder::xCheckInterMbMode8x8SR( IntMbTempData*&   rpcMbTempData,
                                    RefFrameList&     rcRefFrameList0,
                                    RefFrameList&     rcRefFrameList1,
                                    IntFrame*         pcBaseLayerSbb,
-                                   MbDataAccess*     pcMbDataAccessBaseMotion )
+                                   MbDataAccess*     pcMbDataAccessBaseMotion,
+                                   IntFrame*         pcBaseLayerRec )
 {
   ROTRS( ! rpcMbTempData->getSH().getPPS().getTransform8x8ModeFlag(), Err::m_nOK );
   ROTRS( ! pcMbRefData->is8x8TrafoFlagPresent(),                      Err::m_nOK );
@@ -3564,7 +3587,8 @@ MbEncoder::xCheckInterMbMode8x8SR( IntMbTempData*&   rpcMbTempData,
     rpcMbTempData->getMbMvdData   ( LIST_1 ).copyFrom( pcMbRefData->getMbMvdData   ( LIST_1 ) );
   }
 
-  RNOK( xSetRdCost8x8InterMbSR( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefFrameList0, rcRefFrameList1, pcBaseLayerSbb ) );
+  RNOK( xSetRdCost8x8InterMbSR( *rpcMbTempData, pcMbDataAccessBaseMotion, rcRefFrameList0, rcRefFrameList1, pcBaseLayerSbb,
+                                false, 0, pcBaseLayerRec) );
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
     rpcMbTempData->rdCost()+=getEpRef();
@@ -3579,9 +3603,11 @@ MbEncoder::xSetRdCost8x8InterMbSR ( IntMbTempData&  rcMbTempData,
                                     MbDataAccess*   pcMbDataAccessBaseMotion,
                                     RefFrameList&   rcRefFrameList0,
                                     RefFrameList&   rcRefFrameList1,
-                                    IntFrame*        pcBaseLayerSbb,
+                                    IntFrame*       pcBaseLayerSbb,
                                     Bool            bBLSkip,
-                                    UInt            uiAdditionalBits )
+                                    UInt            uiAdditionalBits,
+                                    IntFrame*       pcBaseLayerRec 
+                                    )
 {
   IntYuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
   IntYuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData.getTempYuvMbBuffer();
@@ -3654,6 +3680,11 @@ MbEncoder::xSetRdCost8x8InterMbSR ( IntMbTempData&  rcMbTempData,
 
   // recover buffer
   pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &cBaseResMbBuffer );
+
+  if(pcBaseLayerRec)
+  {
+    RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess, &rcYuvMbBuffer, pcBaseLayerRec));
+  }
 
   // load into prediction buffer
   rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
@@ -3764,7 +3795,9 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
                                   RefFrameList&   rcRefFrameList1,
                                   Bool            bBLSkip,
                                   UInt            uiAdditionalBits,
-                                  Bool            bSkipMCPrediction )
+                                  Bool            bSkipMCPrediction,
+                                  IntFrame*       pcBaseLayerRec 
+                                  )
 {
   IntYuvMbBuffer& rcYuvMbBuffer     = rcMbTempData;
   IntYuvMbBuffer& rcTempYuvMbBuffer = rcMbTempData.getTempYuvMbBuffer();
@@ -3834,6 +3867,10 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
     {
       RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
                                                 &rcYuvMbBuffer, false ) );
+    }
+    if(pcBaseLayerRec)
+    {
+      RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess, &rcYuvMbBuffer, pcBaseLayerRec));
     }
   }
   rcTempYuvMbBuffer.loadLuma  ( rcYuvMbBuffer );
@@ -4185,7 +4222,8 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
 
     IntMbTempData* pcMbRefData = rpcIntMbTempData;
 
-    RNOK( xSetRdCostInterMb   ( *rpcIntMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1, true ) );
+    RNOK( xSetRdCostInterMb   ( *rpcIntMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1, true, 
+                                  0, false, (IntFrame *)pcBaseLayerRec ) );
     RNOK( xCheckBestEstimation(  rpcIntMbTempData, rpcIntMbBestData ) );
 
 
@@ -4258,7 +4296,8 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
   }
   //JVT-R057 LA-RDO}
 
-    RNOK( xCheckInterMbMode8x8(  rpcIntMbTempData, rpcIntMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, pcMbDataAccessBase ) );
+    RNOK( xCheckInterMbMode8x8(  rpcIntMbTempData, rpcIntMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, pcMbDataAccessBase,
+                                (IntFrame *)pcBaseLayerRec) );
   }
   else
   {
@@ -4276,9 +4315,11 @@ MbEncoder::xEstimateMbSR( IntMbTempData*&   rpcIntMbTempData,
                           IntMbTempData*&   rpcIntMbBestData,
                           RefFrameList&     rcRefFrameList0,
                           RefFrameList&     rcRefFrameList1,
-                          const IntFrame*    pcBaseLayerSbb,
+                          const IntFrame*   pcBaseLayerSbb,
                           MbDataAccess*     pcMbDataAccessBase,
-                          Bool              bResidualPred )
+                          Bool              bResidualPred,
+                          IntFrame*         pcBaseLayerRec 
+                          )
 {
   ROF( pcMbDataAccessBase );
 
@@ -4299,7 +4340,8 @@ MbEncoder::xEstimateMbSR( IntMbTempData*&   rpcIntMbTempData,
     IntMbTempData* pcMbRefData = rpcIntMbTempData;
 
     IntFrame* pcTempFrame = (IntFrame*)pcBaseLayerSbb;
-    RNOK( xSetRdCostInterMbSR   ( *rpcIntMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1, pcTempFrame, true ) );
+    RNOK( xSetRdCostInterMbSR   ( *rpcIntMbTempData, pcMbDataAccessBase, rcRefFrameList0, rcRefFrameList1, pcTempFrame, true,
+                                  0, pcBaseLayerRec) );
 
 
   //JVT-R057 LA-RDO{
@@ -4338,7 +4380,8 @@ MbEncoder::xEstimateMbSR( IntMbTempData*&   rpcIntMbTempData,
   //JVT-R057 LA-RDO}
 
   RNOK( xCheckBestEstimation  (  rpcIntMbTempData, rpcIntMbBestData ) );
-    RNOK( xCheckInterMbMode8x8SR(  rpcIntMbTempData, rpcIntMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, pcTempFrame, pcMbDataAccessBase ) );
+  RNOK( xCheckInterMbMode8x8SR(  rpcIntMbTempData, rpcIntMbBestData, pcMbRefData, rcRefFrameList0, rcRefFrameList1, pcTempFrame, pcMbDataAccessBase,
+                                 pcBaseLayerRec) );
   }
 
   return Err::m_nOK;

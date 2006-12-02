@@ -1728,11 +1728,19 @@ MCTFEncoder::xMotionCompensation( IntFrame*        pcMCFrame,
   RNOK( pcMbDataCtrl        ->initSlice( rcSH, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcMotionEstimation->initSlice( rcSH              ) );
 
+  pcMbEncoder->setBaseLayerRec(m_pcBaseLayerFrame);
+  MbDataCtrl*      pcBaseMbDataCtrl = getBaseMbDataCtrl();
+
   for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
   {
     UInt          uiMbY           = uiMbIndex / m_uiFrameWidthInMb;
     UInt          uiMbX           = uiMbIndex % m_uiFrameWidthInMb;
     MbDataAccess* pcMbDataAccess  = 0;
+    MbDataAccess* pcMbDataAccessBase  = 0;
+    if    ( pcBaseMbDataCtrl )
+    {
+      RNOK( pcBaseMbDataCtrl         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
+    }
 
 
     RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX                  ) );
@@ -1740,6 +1748,7 @@ MCTFEncoder::xMotionCompensation( IntFrame*        pcMCFrame,
     RNOK( m_pcYuvHalfPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
     RNOK( m_pcMotionEstimation    ->initMb(                 uiMbY, uiMbX, *pcMbDataAccess ) );
 
+    pcMbDataAccess->setMbDataAccessBase(pcMbDataAccessBase);
     RNOK( pcMbEncoder->compensatePrediction( *pcMbDataAccess, pcMCFrame,
                                              *pcRefFrameList0, *pcRefFrameList1,
                                              bCalcMv, bFaultTolerant ) );
@@ -4481,10 +4490,15 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
 	  rcControlData.setBaseLayerRec( m_pcBaseLayerFrame );
   }
 
+  setMCResizeParameters(m_pcResizeParameters);
 
   return Err::m_nOK;
 }
 
+Void MCTFEncoder::setMCResizeParameters   (ResizeParameters*				resizeParameters)
+{
+  m_pcMotionEstimation->setResizeParameters(resizeParameters);
+} 
 
 
 ErrVal
@@ -4698,7 +4712,9 @@ MCTFEncoder::xDecompositionFrame( UInt uiBaseLevel, UInt uiFrame )
   }
 
   //===== set lambda and QP =====
-  RNOK( xInitControlDataMotion( uiBaseLevel, uiFrame, false ) );
+  RNOK( xInitControlDataMotion( uiBaseLevel, uiFrame, true ) );
+
+  setBaseMbDataCtrl(rcControlData.getBaseLayerCtrl());
 
   //--- closed-loop control for base quality layer ---
   if( pcBQFrame )
@@ -4739,6 +4755,8 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
     xInitBaseLayerData( rcControlData, uiBaseLevel, uiFrame, true );
   }
   //--
+
+  setBaseMbDataCtrl(rcControlData.getBaseLayerCtrl());
 
   //--- closed-loop coding of base quality layer ---
   IntFrame*     pcBQFrame       = 0;

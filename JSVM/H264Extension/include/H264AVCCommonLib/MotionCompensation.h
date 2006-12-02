@@ -171,6 +171,18 @@ public:
   ErrVal compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant, Bool bCalcMv = true );
   ErrVal calculateMb( MbDataAccess& rcMbDataAccess, Bool bFaultTolerant );
 
+  ErrVal compensateMbBLSkipIntra( MbDataAccess&      rcMbDataAccessBase,
+                                  IntYuvMbBuffer*    pcRecBuffer,
+                                  IntFrame*          pcBaseLayerRec );
+  ErrVal copyMbBuffer(  IntYuvMbBuffer*    pcMbBufSrc,
+                        IntYuvMbBuffer*    pcMbBufDes,
+                        Int sX, Int sY, Int eX, Int eY);
+
+  Void setResizeParameters   (ResizeParameters*				resizeParameters)
+  {
+    m_pcResizeParameters = resizeParameters;
+  }; 
+
   ErrVal compensateMb     ( MbDataAccess&   rcMbDataAccess,
                             RefFrameList&   rcRefFrameList0,
                             RefFrameList&   rcRefFrameList1,
@@ -340,6 +352,9 @@ protected:
   UInt m_uiMbInFrameX;
   int m_curMbX;
   int m_curMbY;
+
+  ResizeParameters*				m_pcResizeParameters; 
+
 };
 
 #if defined( WIN32 )

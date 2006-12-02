@@ -313,6 +313,8 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   Bool              getLARDOEnable( ){ return m_bLARDOEnable; }
   Void              setLARDOEnable(Bool bEnable){ m_bLARDOEnable= bEnable; }
   //Bug_Fix JVT-R057{
+  MbDataCtrl*   getBaseMbDataCtrl() {return m_pcBaseMbDataCtrl;}
+  Void          setBaseMbDataCtrl(MbDataCtrl* pcMbDataCtrl) {m_pcBaseMbDataCtrl = pcMbDataCtrl;}
 //JVT-T054{
   Void          setLayerCGSSNR(UInt ui) { m_uiLayerCGSSNR = ui;}
   Void          setQualityLevelCGSSNR(UInt ui) { m_uiQualityLevelCGSSNR = ui;}
@@ -523,6 +525,8 @@ protected:
   Bool  xSIPCheck  (UInt POC);
   int  xGetMbDataCtrlL1Pos( const SliceHeader& rcSH, UInt uiCurrBasePos );
   //S051}
+  Void setMCResizeParameters   (ResizeParameters*				resizeParameters);
+
   //JVT-U106 Behaviour at slice boundaries{
   ErrVal xConstrainedIntraUpsampling(IntFrame*pcFrame,
 									 IntFrame*pcUpsampling, 
@@ -730,6 +734,8 @@ protected:
   UInt    m_uiMinScalableLayer;
   UInt    m_uiFramesInCompleteGOPsProcessed;
   Bool    m_bGOPInitialized;
+  MbDataCtrl*  m_pcBaseMbDataCtrl;
+
 };
 
 #if defined( WIN32 )

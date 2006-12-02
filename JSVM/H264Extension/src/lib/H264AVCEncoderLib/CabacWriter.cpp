@@ -1936,5 +1936,13 @@ CabacWriter::RQencodeCycleSymbol( UInt uiCycle )
   return Err::m_nOK;
 }
 
+ErrVal
+CabacWriter::RQcompSepAlign()
+{
+  CabacWriter::finish();
+  // start() takes care of byte align
+  CabacWriter::start();
+  return Err::m_nOK;
+}
 
 H264AVC_NAMESPACE_END

@@ -1658,6 +1658,122 @@ Void MotionCompensation::xPredMb8x8Mode(       B8x8Idx         c8x8Idx,
   m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 }
 
+ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess&      rcMbDataAccess,
+                                                    IntYuvMbBuffer*    pcRecBuffer,
+                                                    IntFrame*          pcBaseLayerRec )
+{
+  if(!rcMbDataAccess.getMbData().getBLSkipFlag())
+    return Err::m_nOK;
+
+  MbDataAccess* pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
+  MbData&         rcMbData          = pcMbDataAccessBase->getMbData          ();
+  ResizeParameters*	 pcParameters   = m_pcResizeParameters;
+  IntYuvMbBuffer cBaseMbRec;
+
+  if(rcMbData.getBaseMbData(1)==0 && rcMbData.getBaseMbData(2)==0)
+    return Err::m_nOK;
+
+  Int iMbX = rcMbDataAccess.getMbX();
+  Int iMbY = rcMbDataAccess.getMbY();
+
+  Int iScaledBaseOrigX = pcParameters->m_iPosX;
+  Int iScaledBaseOrigY = pcParameters->m_iPosY; 
+
+  Int iInWidth = pcParameters->m_iInWidth;
+  Int iInHeight = pcParameters->m_iInHeight;
+  Int iOutWidth = pcParameters->m_iOutWidth;
+  Int iOutHeight = pcParameters->m_iOutHeight;
+
+  Int cX, cY;
+  Int cBaseX, cBaseY;
+
+  cBaseX = (((((16*iMbX-iScaledBaseOrigX+13)*iInWidth  + iOutWidth /2) / iOutWidth)>>4)<<4); 
+  cBaseY = (((((16*iMbY-iScaledBaseOrigY+13)*iInHeight + iOutHeight/2) / iOutHeight)>>4)<<4); 
+
+  cX = rcMbData.getBaseMbData(1)?((cBaseX*iOutWidth + iInWidth/2 )/iInWidth + iScaledBaseOrigX)%16:16;
+  cY = rcMbData.getBaseMbData(2)?((cBaseY*iOutHeight + iInHeight/2)/iInHeight + iScaledBaseOrigY)%16:16;
+
+  cBaseMbRec.loadBuffer(((IntFrame*)pcBaseLayerRec)->getFullPelYuvBuffer());
+
+  if(!rcMbData.getBaseMbData(0)->isIntra() || 
+     (cX<16 && !rcMbData.getBaseMbData(1)->isIntra()) ||
+     (cY<16 && !rcMbData.getBaseMbData(2)->isIntra()) ||
+     (cX<16 && cY<16 && !rcMbData.getBaseMbData(3)->isIntra())) // Otherwise, INTRA_BL, not handled here
+  {
+    if(rcMbData.getBaseMbData(0)->isIntra())
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, 0, cX, cY);
+    if(cX<16 && rcMbData.getBaseMbData(1)->isIntra())
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, 0, 16, cY);
+    if(cY<16 && rcMbData.getBaseMbData(2)->isIntra())
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, cY, cX, 16);
+    if(cX<16 && cY<16 && rcMbData.getBaseMbData(3)->isIntra())
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, cY, 16, 16);
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal MotionCompensation::copyMbBuffer(  IntYuvMbBuffer*    pcMbBufSrc,
+                                          IntYuvMbBuffer*    pcMbBufDes,
+                                          Int sX, Int sY, Int eX, Int eY)
+{
+  Int x,y;
+
+  XPel* pSrc;
+  XPel* pDes;
+  Int   iSrcStride;
+  Int   iDesStride;
+
+  if(sX == eX || sY == eY)
+    return Err::m_nOK;
+
+  pSrc = pcMbBufSrc->getMbLumAddr();
+  pDes = pcMbBufDes->getMbLumAddr();
+  iDesStride = pcMbBufDes->getLStride();
+  iSrcStride = pcMbBufSrc->getLStride();
+
+  pSrc += sY*iSrcStride;
+  pDes += sY*iDesStride;
+  for( y = sY; y < eY; y++ )
+  {
+    for( x = sX; x< eX; x++)
+    {
+      pDes[x] = pSrc[x];
+    }
+    pDes += iDesStride;
+    pSrc += iSrcStride;
+  }
+
+  pSrc = pcMbBufSrc->getMbCbAddr();
+  pDes = pcMbBufDes->getMbCbAddr();
+  iDesStride = pcMbBufDes->getCStride();
+  iSrcStride = pcMbBufSrc->getCStride();
+
+  pSrc += sY/2*iSrcStride;
+  pDes += sY/2*iDesStride;
+  for( y = sY/2; y < eY/2; y++ )
+  {
+    for( x = sX/2; x< eX/2; x++)
+      pDes[x] = pSrc[x];
+    pDes += iDesStride;
+    pSrc += iSrcStride;
+  }
+
+  pSrc = pcMbBufSrc->getMbCrAddr();
+  pDes = pcMbBufDes->getMbCrAddr();
+
+  pSrc += sY/2*iSrcStride;
+  pDes += sY/2*iDesStride;
+  for( y = sY/2; y < eY/2; y++ )
+  {
+    for( x = sX/2; x< eX/2; x++)
+      pDes[x] = pSrc[x];
+    pDes += iDesStride;
+    pSrc += iSrcStride;
+  }
+
+  return Err::m_nOK;
+}
 
 
 ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,

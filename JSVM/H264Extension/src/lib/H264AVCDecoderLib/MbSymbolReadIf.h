@@ -212,6 +212,7 @@ public:
   virtual Bool RQpeekCbp4x4( MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx) = 0;
   virtual ErrVal  RQupdateVlcTable         () = 0;
   virtual ErrVal  RQvlcFlush               () = 0;
+  virtual ErrVal  RQcompSepAlign           () = 0;
 };
 
 

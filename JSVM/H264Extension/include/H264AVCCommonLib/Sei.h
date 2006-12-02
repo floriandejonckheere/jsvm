@@ -133,7 +133,8 @@ public:
     //  JVT-T073 {
   SCENE_INFO_SEI                        = 9,
   SCALABLE_NESTING_SEI                  = 28,
-  RESERVED_SEI                          = 29,
+  PR_COMPONENT_INFO_SEI                 = 29,
+  RESERVED_SEI                          = 30,
     //  JVT-T073 }
     NON_REQUIRED_SEI                      = 24
   };
@@ -789,6 +790,34 @@ public:
     UInt m_uiSecondSceneId;
   };
   // JVT-T073 }
+
+  #define MAX_SLICE_NUM 4
+  class H264AVCCOMMONLIB_API PRComponentInfoSei : public SEIMessage
+  {
+  protected:
+    PRComponentInfoSei() : SEIMessage(PR_COMPONENT_INFO_SEI) {}
+
+  public:
+    static ErrVal create ( PRComponentInfoSei*& rpcSeiMessage);
+    ErrVal destroy       ();
+    ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
+    ErrVal read          ( HeaderSymbolReadIf   *pcReadIf);
+
+    Void setNumDependencyIdMinus1( UInt uiNum         ) { m_uiNumDependencyIdMinus1 = uiNum; }
+    Void setPrDependencyId       ( UInt* auiPrDepId   ) { memcpy( m_uiPrDependencyId,        auiPrDepId,   sizeof(UInt)*MAX_LAYERS                                  ); }
+    Void setNumQualLevelMinus1   ( UInt* auiNumQL     ) { memcpy( m_uiNumQualityLevelMinus1, auiNumQL,     sizeof(UInt)*MAX_LAYERS                                  ); }
+    Void setPrQualLevel          ( UInt* aauiQL       ) { memcpy( m_uiPrQualityLevel,        aauiQL,       sizeof(UInt)*MAX_LAYERS*MAX_QUALITY_LEVELS               ); }
+    Void setNumSlice             ( UInt* aauiNumSlice ) { memcpy( m_uiNumPrSliceMinus1,      aauiNumSlice, sizeof(UInt)*MAX_LAYERS*MAX_QUALITY_LEVELS               ); }
+    Void setChromaOffset         ( UInt* aaauiOffset  ) { memcpy( m_uiChromaOffset,          aaauiOffset,  sizeof(UInt)*MAX_LAYERS*MAX_QUALITY_LEVELS*MAX_SLICE_NUM ); }
+
+  private:
+    UInt m_uiNumDependencyIdMinus1;
+    UInt m_uiPrDependencyId       [MAX_LAYERS];
+    UInt m_uiNumQualityLevelMinus1[MAX_LAYERS];
+    UInt m_uiPrQualityLevel       [MAX_LAYERS][MAX_QUALITY_LEVELS];
+    UInt m_uiNumPrSliceMinus1     [MAX_LAYERS][MAX_QUALITY_LEVELS];
+    UInt m_uiChromaOffset         [MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_SLICE_NUM];
+  };
 
   typedef MyList<SEIMessage*> MessageList;
 

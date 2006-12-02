@@ -1,5 +1,20 @@
 
 
+JSVM_7_9 -> JSVM_7_10
+=====================
+
+Date: Dec. 2, 2006 
+Author: Xianglin Wang, Justin Ridge (Nokia)
+Contributions: JVT-U129, JVT-U130
+
+Changes:
+- Integration of JVT-U129,"Separation markers for FGS color 
+  components". Added corresponding SEI message.
+- Implemented the improved inter-layer prediction mechanism
+  for ESS according to JVT-U130.
+
+
+
 JSVM_7_8 -> JSVM_7_9
 =====================
 

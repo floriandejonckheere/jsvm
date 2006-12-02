@@ -2564,6 +2564,13 @@ UvlcReader::xGetSigRunTabCode(UInt &uiTab)
   return Err::m_nOK;
 }
 
+ErrVal
+UvlcReader::RQcompSepAlign()
+{
+  RNOK( m_pcBitReadBuffer->getBitsUntilByteAligned() );
+  return Err::m_nOK;
+}
+
 
 UcSymGrpReader::UcSymGrpReader( UvlcReader* pParent )
 {

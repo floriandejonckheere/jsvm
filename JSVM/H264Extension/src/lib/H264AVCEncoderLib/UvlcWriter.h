@@ -285,6 +285,7 @@ public:
   ErrVal RQencodeBestCodeTableMap( UInt* auiTable, UInt uiMaxH );
   ErrVal RQupdateVlcTable         ();
   ErrVal RQvlcFlush               ();
+  ErrVal RQcompSepAlign           ();
   static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
   ErrVal RQcountFragmentedSymbols();
   ErrVal resetFragmentedSymbols() {m_uiFragmentedSymbols = 0; return Err::m_nOK;}

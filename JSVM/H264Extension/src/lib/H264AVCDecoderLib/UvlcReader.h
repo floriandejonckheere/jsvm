@@ -254,6 +254,7 @@ public:
   ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH );
   ErrVal  RQupdateVlcTable         ();
   ErrVal  RQvlcFlush               ();
+  ErrVal  RQcompSepAlign           ();
   Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
   Bool m_bTruncated;
 

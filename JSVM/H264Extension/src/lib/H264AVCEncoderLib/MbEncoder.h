@@ -288,6 +288,8 @@ public:
   //S051{
   Void    setUseBDir  ( Bool bUse){ m_bUseBDir = bUse;}
   //S051}
+  Void          setBaseLayerRec     ( IntFrame*   pcBaseLayerRec  )   { m_pcBaseLayerFrame    = pcBaseLayerRec;   }
+  IntFrame*     getBaseLayerRec     ()  { return  m_pcBaseLayerFrame;     }
 
   //JVT-U106 Behaviour at slice boundaries{
   void  setIntraBLFlag(Bool b){ m_bIntraBLFlag=b; }
@@ -316,7 +318,9 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0,
-                                  Bool              bSkipMCPrediction = false );
+                                  Bool              bSkipMCPrediction = false,
+                                  IntFrame*         pcBaseLayerRec = 0 
+                                  );
   //-- JVT-R012
   ErrVal  xSetRdCostInterMbSR   ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBase,
@@ -324,7 +328,9 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   IntFrame*          pcBaseLayerSbb,
                                   Bool              bBLSkip          = false,
-                                  UInt              uiAdditionalBits = 0 );
+                                  UInt              uiAdditionalBits = 0,
+                                  IntFrame*         pcBaseLayerRec = 0 
+                                  );
   //--
   ErrVal  xSetRdCost8x8InterMb  ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
@@ -332,7 +338,9 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0,
-                                  Bool              bSkipMCPrediction = false );
+                                  Bool              bSkipMCPrediction = false,
+                                  IntFrame*         pcBaseLayerRec = 0 
+                                  );
   //-- JVT-R012
   ErrVal  xSetRdCost8x8InterMbSR( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
@@ -340,7 +348,9 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   IntFrame*          pcBaseLayerSbb,
                                   Bool              bBLSkip          = false,
-                                  UInt              uiAdditionalBits = 0 );
+                                  UInt              uiAdditionalBits = 0,
+                                  IntFrame*         pcBaseLayerRec = 0 
+                                  );
   //--
   ErrVal  xSetRdCostInterSubMb  ( IntMbTempData&    rcMbTempData,
                                   RefFrameList&     rcRefFrameList0,
@@ -373,7 +383,9 @@ protected:
                                   IntMbTempData*    pcMbRefData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  MbDataAccess*     pcMbDataAccessBaseMotion );
+                                  MbDataAccess*     pcMbDataAccessBaseMotion,
+                                  IntFrame*         pcBaseLayerRec = 0 
+                                  );
   //-- JVT-R012
   ErrVal  xCheckInterMbMode8x8SR( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
@@ -381,7 +393,9 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   IntFrame*          pcBaseLayerSbb,
-                                  MbDataAccess*     pcMbDataAccessBaseMotion );
+                                  MbDataAccess*     pcMbDataAccessBaseMotion,
+                                  IntFrame*         pcBaseLayerRec = 0 
+                                  );
   //--
 
   ErrVal  xEstimateMbIntraBL    ( IntMbTempData*&   rpcMbTempData,
@@ -437,7 +451,9 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   const IntFrame*   pcBaseLayerSbb,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
-                                  Bool              bResidualPred );
+                                  Bool              bResidualPred,
+                                  IntFrame*         pcBaseLayerRec = 0 
+                                  );
   //--
 
   ErrVal  xEstimateMbDirect     ( IntMbTempData*&   rpcMbTempData,
@@ -608,6 +624,7 @@ protected:
   Double m_aadRatio[5][2];
   UInt m_uiMBSSD;
   IntFrame* m_pcFrameEcEp;
+  IntFrame* m_pcBaseLayerFrame;
   Int  m_iEpRef;
   Double m_dWr0;
   Double m_dWr1;

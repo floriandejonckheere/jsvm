@@ -2517,6 +2517,13 @@ UvlcWriter::xWriteCodeCB2 ( UInt uiSymbol )
   return Err::m_nOK;
 }
 
+ErrVal
+UvlcWriter::RQcompSepAlign()
+{
+  RNOK( m_pcBitWriteBufferIf->writeAlignZero() );
+  return Err::m_nOK;
+}
+
 UcSymGrpWriter::UcSymGrpWriter( UvlcWriter* pParent )
 {
   m_pParent      = pParent;

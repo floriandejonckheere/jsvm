@@ -109,6 +109,7 @@ public:
     m_apcMbMvdData   [ LIST_1 ]  = NULL;
     m_apcMbMotionData[ LIST_0 ]  = NULL;
     m_apcMbMotionData[ LIST_1 ]  = NULL;
+    m_apcMbData[0]=m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;
   }
 
   ~MbData()
@@ -151,6 +152,7 @@ public:
 
   operator MbTransformCoeffs& ()                                        { return *m_pcMbTCoeffs; }
 
+  MbData* getBaseMbData(Int mbIdx){return m_apcMbData[mbIdx];}
 
   ErrVal  loadAll( FILE* pFile );
   ErrVal  saveAll( FILE* pFile );

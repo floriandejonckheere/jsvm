@@ -192,6 +192,7 @@ protected:
   UInt  m_uiFrameCount;
   SliceType m_eSliceType;
   Bool m_bTraceEnable;
+  ResizeParameters*				m_pcResizeParameters; 
   //JVT-U106 Behaviour at slice boundaries{
   Bool* m_pbIntraBLFlag;
   //JVT-U106 Behaviour at slice boundaries}

@@ -192,6 +192,7 @@ public:
   ErrVal  RQencodeBestCodeTableMap ( UInt* pauiTable, UInt uiMaxH ) { return Err::m_nOK; };
   ErrVal  RQupdateVlcTable         () { return Err::m_nOK; };
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
+  ErrVal  RQcompSepAlign           ();
 
   ErrVal  blockModes( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode( MbDataAccess& rcMbDataAccess/*, Bool bBLQRefFlag*/ );

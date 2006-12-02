@@ -257,6 +257,8 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
 
   RNOK( xPredictionFromBaseLayer( rcMbDataAccess, pcMbDataAccessBase ) );
 
+  rcMbDataAccess.setMbDataAccessBase(pcMbDataAccessBase);
+
   IntYuvMbBuffer  cPredBuffer;  cPredBuffer.setAllSamplesToZero();
 
   //===== scale coefficients =====
@@ -312,7 +314,7 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
     RNOK( xDecodeMbInter( rcMbDataAccess, pcMbDataAccessBase,
                           cPredBuffer, pcFrame->getFullPelYuvBuffer(),
                           pcResidual, pcBaseLayerResidual,
-                          *pcRefFrameList0, *pcRefFrameList1, bReconstructAll ) );
+                          *pcRefFrameList0, *pcRefFrameList1, bReconstructAll, pcBaseLayer ) );
   }
 
 
@@ -605,6 +607,8 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
 }
 
 
+
+
 ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
                                   MbDataAccess*     pcMbDataAccessBase,
                                   IntYuvMbBuffer&   rcPredBuffer,
@@ -613,7 +617,9 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
                                   IntFrame*         pcBaseResidual,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  Bool              bReconstruct )
+                                  Bool              bReconstruct,
+                                  IntFrame*         pcBaseLayerRec
+                                  )
 {
   IntYuvMbBuffer      cYuvMbBuffer;         cYuvMbBuffer        .setAllSamplesToZero();
   IntYuvMbBuffer      cYuvMbBufferResidual; cYuvMbBufferResidual.setAllSamplesToZero();
@@ -646,7 +652,10 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
                                                         &cYuvMbBuffer,
                                                         bCalcMv ) );
     }
-
+    if(pcBaseLayerRec)
+    {
+      RNOK(m_pcMotionCompensation->compensateMbBLSkipIntra(rcMbDataAccess, &cYuvMbBuffer, pcBaseLayerRec));
+    }
     rcPredBuffer.loadLuma   ( cYuvMbBuffer );
     rcPredBuffer.loadChroma ( cYuvMbBuffer );
   }

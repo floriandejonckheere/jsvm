@@ -313,19 +313,20 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case SUB_SEQ_INFO:  return SubSeqInfo ::create( (SubSeqInfo*&)  rpcSEIMessage );
     case SCALABLE_SEI:  return ScalableSei::create( (ScalableSei*&) rpcSEIMessage );
     case SUB_PIC_SEI:   return SubPicSei::create  ( (SubPicSei*&)    rpcSEIMessage );
-  case MOTION_SEI:  return MotionSEI::create( (MotionSEI*&) rpcSEIMessage );
+    case MOTION_SEI:  return MotionSEI::create( (MotionSEI*&) rpcSEIMessage );
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
     case QUALITYLEVEL_SEI: return QualityLevelSEI::create((QualityLevelSEI*&) rpcSEIMessage);
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
     case NON_REQUIRED_SEI: return NonRequiredSei::create((NonRequiredSei*&) rpcSEIMessage);
-  // JVT-S080 LMI {
+    // JVT-S080 LMI {
     case SCALABLE_SEI_LAYERS_NOT_PRESENT:  return ScalableSeiLayersNotPresent::create( (ScalableSeiLayersNotPresent*&) rpcSEIMessage );
-  case SCALABLE_SEI_DEPENDENCY_CHANGE:   return ScalableSeiDependencyChange::create( (ScalableSeiDependencyChange*&) rpcSEIMessage );
-  // JVT-S080 LMI }
+    case SCALABLE_SEI_DEPENDENCY_CHANGE:   return ScalableSeiDependencyChange::create( (ScalableSeiDependencyChange*&) rpcSEIMessage );
+    // JVT-S080 LMI }
     // JVT-T073 {
-  case SCALABLE_NESTING_SEI: return ScalableNestingSei::create( (ScalableNestingSei*&) rpcSEIMessage );
+    case SCALABLE_NESTING_SEI: return ScalableNestingSei::create( (ScalableNestingSei*&) rpcSEIMessage );
     // JVT-T073 }
+    case PR_COMPONENT_INFO_SEI: return PRComponentInfoSei::create( (PRComponentInfoSei*&) rpcSEIMessage );
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
   //return Err::m_nOK;
@@ -1578,4 +1579,68 @@ SEI::SceneInfoSei::read( HeaderSymbolReadIf *pcReadIf )
   return Err::m_nOK;
 }
 // JVT-T073 }
+
+// PR slice component info
+ErrVal
+SEI::PRComponentInfoSei::create( PRComponentInfoSei* &rpcSeiMessage )
+{
+  rpcSeiMessage = new PRComponentInfoSei();
+  ROT( NULL == rpcSeiMessage );
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::PRComponentInfoSei::destroy()
+{
+  delete this;
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::PRComponentInfoSei::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+  UInt ui_i, ui_j, ui_k;
+  UInt uiStart = pcWriteIf->getNumberOfWrittenBits();
+  UInt uiPayloadSize = 0;
+  RNOK( pcWriteIf->writeUvlc( m_uiNumDependencyIdMinus1, "PRComponentInfo: NumDependencyIdMinus1" ) );
+  for( ui_i=0; ui_i<=m_uiNumDependencyIdMinus1; ui_i++ )
+  {
+    RNOK( pcWriteIf->writeCode( m_uiPrDependencyId[ui_i], 3, "PRComponentInfo: PrDependencyId" ) );
+    RNOK( pcWriteIf->writeUvlc( m_uiNumQualityLevelMinus1[ui_i], "PRComponentInfo: NumQualityLevelsMinus1" ) );
+    for( ui_j=0; ui_j<=m_uiNumQualityLevelMinus1[ui_i]; ui_j++ )
+    {
+      RNOK( pcWriteIf->writeCode( m_uiPrQualityLevel[ui_i][ui_j], 2, "PRComponentInfo: PrQualityLevel" ) );
+      RNOK( pcWriteIf->writeUvlc( m_uiNumPrSliceMinus1[ui_i][ui_j], "PRComponentInfo: NumPrSliceMinus1" ) );
+      for( ui_k=0; ui_k<=m_uiNumPrSliceMinus1[ui_i][ui_j]; ui_k++ )
+      {
+        RNOK( pcWriteIf->writeUvlc( m_uiChromaOffset[ui_i][ui_j][ui_k], "PRComponentInfo: ChromaOffset" ) );
+      }
+    }
+  }
+  uiPayloadSize = ( pcWriteIf->getNumberOfWrittenBits() - uiStart + 7 )/8;
+
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::PRComponentInfoSei::read( HeaderSymbolReadIf *pcReadIf )
+{
+  UInt ui_i, ui_j, ui_k;
+  RNOK( pcReadIf->getUvlc( m_uiNumDependencyIdMinus1, "PRComponentInfo: NumDependencyIdMinus1" ) );
+  for( ui_i=0; ui_i<=m_uiNumDependencyIdMinus1; ui_i++ )
+  {
+    RNOK( pcReadIf->getCode( m_uiPrDependencyId[ui_i], 3, "PRComponentInfo: PrDependencyId" ) );
+    RNOK( pcReadIf->getUvlc( m_uiNumQualityLevelMinus1[ui_i], "PRComponentInfo: NumQualityLevelsMinus1" ) );
+    for( ui_j=0; ui_j<=m_uiNumQualityLevelMinus1[ui_i]; ui_j++ )
+    {
+      RNOK( pcReadIf->getCode( m_uiPrQualityLevel[ui_i][ui_j], 2, "PRComponentInfo: PrQualityLevel" ) );
+      RNOK( pcReadIf->getUvlc( m_uiNumPrSliceMinus1[ui_i][ui_j], "PRComponentInfo: NumPrSliceMinus1" ) );
+      for( ui_k=0; ui_k<=m_uiNumPrSliceMinus1[ui_i][ui_j]; ui_k++ )
+      {
+        RNOK( pcReadIf->getUvlc( m_uiChromaOffset[ui_i][ui_j][ui_k], "PRComponentInfo: ChromaOffset" ) );
+      }
+    }
+  }
+  return Err::m_nOK;
+}
 H264AVC_NAMESPACE_END

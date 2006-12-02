@@ -1915,6 +1915,14 @@ CabacReader::RQdecodeCycleSymbol( UInt& uiCycle )
 }
 // ==
 
+ErrVal
+CabacReader::RQcompSepAlign()
+{
+  CabacReader::finish();
+  // start() takes care of byte align
+  CabacReader::start();
+  return Err::m_nOK;
+}
 
 H264AVC_NAMESPACE_END
 
