@@ -13,6 +13,9 @@ Changes:
 - Implemented the improved inter-layer prediction mechanism
   for ESS according to JVT-U130.
 
++ bug fix for Intra_BL mode in CGS by H. Schwarz
+  (I_BL for CGS was broken since version JSVM_7_7)
+
 
 
 JSVM_7_8 -> JSVM_7_9

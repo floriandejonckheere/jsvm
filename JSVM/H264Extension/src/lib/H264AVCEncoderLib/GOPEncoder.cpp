@@ -6883,6 +6883,10 @@ MCTFEncoder::xConstrainedIntraUpsampling(IntFrame* pcFrame,
 		}
 		delete[] ppiMaskC;
 	}
+  else // fix by H. Schwarz
+  {
+    pcUpsampling->copy( pcFrame );
+  }
 	return Err::m_nOK;
 }
 
