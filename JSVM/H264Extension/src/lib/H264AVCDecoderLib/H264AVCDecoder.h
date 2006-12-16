@@ -157,6 +157,9 @@ public:
                         Bool&             bFragmented,
                         Bool&             bDiscardable
                         //~JVT-P031
+                        , Bool*           pbFgsParallelDecoding = 0
+                        , UInt*           puiNumFragments       = 0
+                        , UChar**         ppucFragBuffers       = 0 
                         );
   //JVT-P031
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor);
@@ -259,7 +262,7 @@ public:
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
- ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bLastFragment, Bool& bDiscardable); //FRAG_FIX //TMM_EC//JVT-S036 lsj
+  ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bFirstFragment, Bool& bLastFragment, Bool* pbFgsParallelDecoding, Bool& bDiscardable ); //FRAG_FIX //TMM_EC//JVT-S036 lsj
 
   // TMM_EC {{
   ErrVal  xProcessSliceVirtual      ( SliceHeader&    rcSH,
@@ -350,7 +353,7 @@ protected:
   UInt                          m_uiFirstFragmentNumMbsInSlice;
   Bool                          m_bFirstFragmentFGSCompSep;
   UInt                          m_uiLastFragOrder;
-  UInt                          m_uiNumberOfFragment[MAX_LAYERS];
+  UInt                          m_uiNumberOfFragment[MAX_LAYERS][MAX_QUALITY_LEVELS];
   UInt                          m_uiNumberOfSPS;
   UInt                          m_uiSPSId[MAX_LAYERS];
   UInt                          m_uiDecodedLayer;

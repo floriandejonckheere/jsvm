@@ -165,6 +165,8 @@ public:
   ErrVal            encodeNextLayer       ( Bool&                       rbFinished,
                                             Bool&                       rbCorrupted,
                                             UInt                        uiMaxBits,
+                                            UInt*                       puiPDFragBits,
+                                            UInt&                       ruiNumPDFrags,
                                             UInt                        uiFrac,
                                             Bool                        bFragmented,
                                             FILE*                       pFile ); //JVT-P031
@@ -255,14 +257,10 @@ private:
   ErrVal            xEncodingFGS                  ( Bool&               rbFinished,
                                                     Bool&               rbCorrupted,
                                                     UInt                uiMaxBits,
+                                                    UInt*               puiPDFragBits,
+                                                    UInt&               ruiNumPDFrags,
                                                     UInt                uiFracNb,
                                                     FILE*               pFile ); //JVT-P031
-  ErrVal            xEncodeSigHeadersLuma         ( MbDataAccess       *pcMbDataAccessBL,
-                                                    MbDataAccess       *pcMbDataAccessEL,
-                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    const B8x8Idx      &rc8x8Idx,
-                                                    Int&                riLastQp );
-
   ErrVal            xEncodeNewCoefficientLuma    ( MbDataAccess        *pcMbDataAccessBL,
                                                    MbDataAccess        *pcMbDataAccessEL,
                                                    MbFGSCoefMap        &rcMbFGSCoefMap,
@@ -314,8 +312,7 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt iStartCycle,
                              UInt iCycle,
                              UInt uiPass,
-                             UInt bAllowChromaDC,
-                             UInt bAllowChromaAC,
+                             UInt uiFragIdx,
                              UInt uiMbYIdx,
                              UInt uiMbXIdx,
                              B8x8Idx c8x8Idx,
@@ -332,8 +329,7 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                              UInt& riStartCycle,
                              UInt& riCycle,
                              UInt& ruiPass,
-                             UInt& rbAllowChromaDC,
-                             UInt& rbAllowChromaAC,
+                             UInt& ruiFragIdx,
 //                              UInt& ruiMbYIdx,
 //                              UInt& ruiMbXIdx,
 //                              UInt& ruiB8YIdx,
@@ -348,6 +344,11 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
   ErrVal        xSaveCodingPath();
   ErrVal        xRestoreCodingPath();
   //~JVT-P031
+  ErrVal            xEncodeMbHeader               ( MbDataAccess*       pcMbDataAccessBL,
+                                                    MbDataAccess*       pcMbDataAccessEL,
+                                                    MbFGSCoefMap        &rcMbFGSCoefMap,
+                                                    Int&                riLastQp );
+
 private:
   MbSymbolWriteIf*  m_pcSymbolWriter;
   ControlMngH264AVCEncoder* m_pcControlMng;
@@ -375,8 +376,7 @@ private:
   UInt               m_iStartCycle;
   UInt               m_iCycle;
   UInt              m_uiPass;
-  UInt              m_bAllowChromaDC;
-  UInt              m_bAllowChromaAC;
+  UInt              m_uiFragIdx;
   UInt              m_uiMbYIdx;
   UInt              m_uiMbXIdx;
   B8x8Idx           m_c8x8Idx;
@@ -413,6 +413,16 @@ private:
   UInt              m_uiNumMaxIter;
   UInt              m_uiIterSearchRange;
   UInt              m_uiLastMbNum;
+
+  UInt              uiLastMbX;
+  UInt              uiLastMbY;
+  UInt              uiLumaCbpBitCount;
+  UInt              uiLumaCbpNextMbX;
+  UInt              uiLumaCbpNextMbY;
+  UInt              uiLumaCbpNext8x8Idx;
+  UInt              uiChromaCbpBitCount;
+  UInt              uiChromaCbpNextMbX;
+  UInt              uiChromaCbpNextMbY;
 };
 
 

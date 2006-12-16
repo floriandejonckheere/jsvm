@@ -96,7 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define ROTRSCABAC( exp, err ) ROTVS(exp)
 #define ROFRSCABAC( exp, err ) ROFVS(exp)
 #else
-#define RNOKCABAC( exp )       RNOK(exp)
+#define RNOKCABAC( exp )       RNOKS(exp)
 #define ROTRSCABAC( exp, err ) ROTRS(exp,err)
 #define ROFRSCABAC( exp, err ) ROFRS(exp,err)
 #endif
@@ -130,19 +130,19 @@ ErrVal CabaDecoder::init( BitReadBuffer* pcBitReadBuffer )
 }
 
 
-
-__inline Void CabaDecoder::xReadBit( UInt& ruiValue )
+__inline ErrVal CabaDecoder::xReadBit( UInt& ruiValue )
 {
   if( 0 == m_uiBitsLeft-- )
   {
-    m_pcBitReadBuffer->get( m_uiWord, 8 );
+    RNOKS( m_pcBitReadBuffer->get( m_uiWord, 8 ) );
+
     m_uiBitsLeft = 7;
   }
   ruiValue += ruiValue + ((m_uiWord >> 7)&1);
   m_uiWord <<= 1;
+
+  return Err::m_nOK;
 }
-
-
 
 ErrVal CabaDecoder::finish()
 {
@@ -173,7 +173,7 @@ ErrVal CabaDecoder::start()
 
   for( UInt n = 0; n < B_BITS-1; n++ )
   {
-    xReadBit( m_uiValue );
+    RNOKS( xReadBit( m_uiValue ) );
   }
 
   return Err::m_nOK;
@@ -202,7 +202,7 @@ ErrVal CabaDecoder::getTerminateBufferBit( UInt& ruiBit )
     while( uiRange < QUARTER )
     {
       uiRange += uiRange;
-      xReadBit( uiValue );
+      RNOKS( xReadBit( uiValue ) );
     }
 
     m_uiRange = uiRange;
@@ -275,7 +275,7 @@ ErrVal CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
   while( uiRange < QUARTER )
   {
     uiRange += uiRange;
-    xReadBit( uiValue );
+    RNOKS( xReadBit( uiValue ) );
   }
 
   m_uiRange = uiRange;
@@ -293,7 +293,7 @@ ErrVal CabaDecoder::getEpSymbol( UInt& ruiSymbol )
 
   UInt uiValue = m_uiValue;
 
-  xReadBit( uiValue );
+  RNOKS( xReadBit( uiValue ) );
 
   if( uiValue >= m_uiRange )
   {

@@ -854,7 +854,14 @@ public:
   Bool  m_bTrueSlice;
 //  TMM_EC }}
   Void  setRedundantPicCnt            (UInt         ui )  { m_uiRedundantPicCnt                 = ui; }  // JVT-Q054 Red. Picture
-//JVT-T054{
+  Void            setFGSCycleAlignedFragment    ( Bool bFlag )  { m_bFGSCycleAlignedFragment = bFlag; }
+  Bool            getFGSCycleAlignedFragment    ()              { return m_bFGSCycleAlignedFragment;  }
+  Void            setFGSCodingMode      ( Bool b  )             { m_bFGSCodingMode = b;     }
+  Bool            getFGSCodingMode      ()                      { return m_bFGSCodingMode;  }
+  Void            setGroupingSize       ( UInt ui )             { m_uiGroupingSize = ui;    }
+  UInt            getGroupingSize       ()                      { return m_uiGroupingSize;  }
+
+  //JVT-T054{
   Void          setLayerCGSSNR(UInt ui) { m_uiLayerCGSSNR = ui;}
   UInt          getLayerCGSSNR() { return m_uiLayerCGSSNR;}
   Void          setQualityLevelCGSSNR(UInt ui) { m_uiQualityLevelCGSSNR = ui;}
@@ -982,6 +989,14 @@ protected:
   UInt          m_uiLowPassFgsMcFilter;
   UInt          m_uiBaseWeightZeroBaseBlock;
   UInt          m_uiBaseWeightZeroBaseCoeff;
+
+  UInt          m_uiVectorModeIndex; 
+  UInt          m_uiGroupingSize; 
+  Bool          m_bFGSCycleAlignedFragment; 
+  Bool          m_bFGSCodingMode;
+  UInt          m_uiNumPosVectors;
+  UInt          m_uiPosVect[16];
+  Bool          m_bFGSVectorModeOverrideFlag;
 };
 
 

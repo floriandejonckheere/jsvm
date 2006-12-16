@@ -172,7 +172,16 @@ Modify list:
   }                           \
 }
 
-
+#if JVT_U125
+#define DECRNOK( exp )            \
+{                                 \
+  const ERR_VAL nMSysRetVal = ( exp );   \
+  if( ERR_CLASS::m_nOK != nMSysRetVal )  \
+  {                               \
+    return nMSysRetVal;           \
+  }                               \
+}
+#else
 #define DECRNOK( exp )            \
 {                                 \
   const ERR_VAL nMSysRetVal = ( exp );   \
@@ -182,6 +191,7 @@ Modify list:
     return nMSysRetVal;           \
   }                               \
 }
+#endif
 
 #define DECRNOKR( exp, retVal )     \
 {                                   \

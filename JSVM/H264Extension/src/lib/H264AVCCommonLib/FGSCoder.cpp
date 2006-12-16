@@ -341,10 +341,21 @@ FGSCoder::xInitializeCodingPath(SliceHeader* pcSliceHeader)
         rcMbFGSCoefMap.getB8x8Map( c8x8Idx ) = ( ( uiMbCbp & ( 1 << c8x8Idx.b8x8Index() ) ) > 0 ? SIGNIFICANT : CLEAR );
         if( b8x8Transform )
         {
-          for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+          if( pcMbDataAccess->getSH().getPPS().getEntropyCodingModeFlag() )
           {
-            rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
-            rcMbFGSCoefMap.getB4x4Map( cIdx ) = rcMbFGSCoefMap.getB8x8Map( c8x8Idx );
+            for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+            {
+              rcMbFGSCoefMap.getLumaScanPos( cIdx ) =  ((cIdx.x()%2)==0 && (cIdx.y()%2) == 0) ? 64 : 0;
+              rcMbFGSCoefMap.getB4x4Map( cIdx ) = rcMbFGSCoefMap.getB8x8Map( c8x8Idx );
+            }
+          }
+          else
+          {
+            for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+            {
+              rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
+              rcMbFGSCoefMap.getB4x4Map( cIdx ) = rcMbFGSCoefMap.getB8x8Map( c8x8Idx );
+            }
           }
           //===== set transform coefficients =====
           CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap( c8x8Idx );
@@ -357,10 +368,18 @@ FGSCoder::xInitializeCodingPath(SliceHeader* pcSliceHeader)
               if (piCoeff[g_aucFrameScan64[ui8x8ScanIndex]] < 0)
                 pcCoefMap[ui8x8ScanIndex] |= BASE_SIGN;
             }
-
-            S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) + ( ui8x8ScanIndex & 3 );
-            if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 16 )
-              rcMbFGSCoefMap.getLumaScanPos( cIdx2  ) = ui8x8ScanIndex >> 2;
+            if( pcMbDataAccess->getSH().getPPS().getEntropyCodingModeFlag() )
+            {
+              S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) ;
+              if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 64 )
+                rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex;
+            }
+            else
+            {
+              S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) + (ui8x8ScanIndex & 3);
+              if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 16 )
+                rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex >> 2;
+            }
           }
         }
         else
@@ -542,10 +561,21 @@ FGSCoder::xInitializeCodingPath()
       {
         TCoeff* piCoeff = rcMbData.getMbTCoeffs().get8x8( c8x8Idx );
 
-        for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+        if( pcMbDataAccess->getSH().getPPS().getEntropyCodingModeFlag() )
         {
-          rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
-          rcMbFGSCoefMap.getB4x4Map( cIdx ) = rcMbFGSCoefMap.getB8x8Map( c8x8Idx );
+          for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+          {
+            rcMbFGSCoefMap.getLumaScanPos( cIdx ) =  ((cIdx.x()%2) == 0 && (cIdx.y()%2) == 0) ? 64 : 0;
+            rcMbFGSCoefMap.getB4x4Map( cIdx ) = rcMbFGSCoefMap.getB8x8Map( c8x8Idx );
+          }
+        }
+        else
+        {
+          for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+          {
+            rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
+            rcMbFGSCoefMap.getB4x4Map( cIdx ) = rcMbFGSCoefMap.getB8x8Map( c8x8Idx );
+          }
         }
 
         CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap(c8x8Idx);
@@ -559,9 +589,18 @@ FGSCoder::xInitializeCodingPath()
               pcCoefMap[ui8x8ScanIndex] |= BASE_SIGN;
           }
 
-          S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) + (ui8x8ScanIndex & 3);
-          if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 16 )
-            rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex >> 2;
+          if( pcMbDataAccess->getSH().getPPS().getEntropyCodingModeFlag() )
+          {
+            S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) ;
+            if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 64 )
+              rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex;
+          }
+          else
+          {
+            S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) + (ui8x8ScanIndex & 3);
+            if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 16 )
+              rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex >> 2;
+          }
         }
       }
       else
@@ -701,23 +740,44 @@ ErrVal FGSCoder::xClearCodingPath()
         rcMbFGSCoefMap.getB8x8Map( c8x8Idx ) = ( ( uiMbCbp & ( 1 << c8x8Idx.b8x8Index() ) ) > 0 ? SIGNIFICANT : CLEAR );
         if( b8x8Transform )
         {
+          if( pcMbDataAccess->getSH().getPPS().getEntropyCodingModeFlag() )
+          {
           for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
           {
-            rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
+            rcMbFGSCoefMap.getLumaScanPos( cIdx ) = ((cIdx.x()%2) == 0 && (cIdx.y()%2) == 0) ? 64:0;
             rcMbFGSCoefMap.getB4x4Map( cIdx ) &= ~CODED;
           }
+          }
+          else
+          {
+            for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+            {
+              rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
+              rcMbFGSCoefMap.getB4x4Map( cIdx ) &= ~CODED;
+            }
+          }
+
           //===== set transform coefficients =====
           UInt ui8x8ScanIndex;
           CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap( c8x8Idx );
           for( ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
           {
-            pcCoefMap[ui8x8ScanIndex] &= ~CODED;
+            pcCoefMap[ui8x8ScanIndex] &= ~CODED & ~NEWSIG;
           }
           for( ui8x8ScanIndex = 0; ui8x8ScanIndex < 64; ui8x8ScanIndex++ )
           {
-            S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) + (ui8x8ScanIndex & 3);
-            if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 16 )
-              rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex >> 2;
+            if( pcMbDataAccess->getSH().getPPS().getEntropyCodingModeFlag() )
+            {
+              S4x4Idx cIdx2 = S4x4Idx( c8x8Idx );
+              if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 64 )
+                rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex;
+            }
+            else
+            {
+              S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ) + (ui8x8ScanIndex & 3);
+              if( !( pcCoefMap[ui8x8ScanIndex] & (SIGNIFICANT|CODED) ) && rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == 16 )
+                rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex >> 2;
+            }
           }
         }
         else
@@ -727,7 +787,7 @@ ErrVal FGSCoder::xClearCodingPath()
             UInt uiScanIndex;
             CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap( cIdx );
             for( uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
-              pcCoefMap[uiScanIndex] &= ~CODED;
+              pcCoefMap[uiScanIndex] &= ~CODED & ~NEWSIG;
             UChar &rucScanPos = rcMbFGSCoefMap.getLumaScanPos( cIdx );
             rucScanPos = 16;
             for( uiScanIndex = 0; uiScanIndex < 16; uiScanIndex++ )
@@ -748,7 +808,7 @@ ErrVal FGSCoder::xClearCodingPath()
 
         for( CIdx cCIdx( cCPlaneIdx ); cCIdx.isLegal( cCPlaneIdx ); cCIdx++ )
         {
-          rcMbFGSCoefMap.getCoefMap( cCIdx )[0]  &= ~CODED;
+          rcMbFGSCoefMap.getCoefMap( cCIdx )[0]  &= ~CODED & ~NEWSIG;
           if( !( rcMbFGSCoefMap.getCoefMap( cCIdx )[0] & (SIGNIFICANT|CODED) ) && rucScanPos == 4 )
             rucScanPos = cCIdx&3;
         }
@@ -764,7 +824,7 @@ ErrVal FGSCoder::xClearCodingPath()
         CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap( cCIdx );
         for( ui = 1; ui < 16; ui++ )
         {
-          pcCoefMap[ui] &= ~CODED;
+          pcCoefMap[ui] &= ~CODED & ~NEWSIG;
           if( !( pcCoefMap[ui] & (SIGNIFICANT|CODED) ) && rucScanPos == 16 )
             rucScanPos = ui;
         }
@@ -805,7 +865,7 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
       for( UInt ui8x8ScanIdx = 0; ui8x8ScanIdx < 64; ui8x8ScanIdx++ )
       {
         UInt  uiPos         = g_aucFrameScan64[ui8x8ScanIdx];
-        if( pcCoefMap[ui8x8ScanIdx] & CODED )
+        if( m_bUpdateWithoutMap || ( pcCoefMap[ui8x8ScanIdx] & CODED ) )
         {
           xUpdateCoefMap(piCoeffBL[uiPos], piCoeffEL[uiPos], pcCoefMap[ui8x8ScanIdx] );
         }
@@ -832,7 +892,7 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
       {
         UInt  uiPos         = g_aucFrameScan[uiScanIdx];
 
-        if( pcCoefMap[uiScanIdx] & CODED )
+        if( m_bUpdateWithoutMap || pcCoefMap[uiScanIdx] & CODED )
         {
           xUpdateCoefMap(piCoeffBL[uiPos], piCoeffEL[uiPos], pcCoefMap[uiScanIdx] );
         }
@@ -856,7 +916,7 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
     CoefMap &rcCoefMap = rcMbFGSCoefMap.getCoefMap( cCIdx2)[0];
     TCoeff  &riCoeffBL = rcMbDataAccessBL.getMbTCoeffs().get( cCIdx2 )[0];
 
-    if( rcCoefMap & CODED )
+    if( m_bUpdateWithoutMap || rcCoefMap & CODED )
     {
       TCoeff  &riCoeffEL = rcMbDataAccessEL.getMbTCoeffs().get( cCIdx2 )[0];
       xUpdateCoefMap( riCoeffBL, riCoeffEL, rcCoefMap );
@@ -875,7 +935,7 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
     for( UInt uiScanIdx = 1; uiScanIdx < 16; uiScanIdx++ )
     {
       UInt  uiPos     = g_aucFrameScan[uiScanIdx];
-      if( piCoefMap[uiScanIdx] & CODED )
+      if( m_bUpdateWithoutMap || piCoefMap[uiScanIdx] & CODED )
         xUpdateCoefMap( piCoeffBL[uiPos], piCoeffEL[uiPos], piCoefMap[uiScanIdx] );
       if( piCoeffBL[uiPos] )
       {
@@ -1049,7 +1109,7 @@ FGSCoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess,
 
   for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
   {
-    if(! bBaseLayer && ! ( m_pcCoefMap[uiMbIndex].getCoefMap( cCIdx )[0] & CODED ) )
+    if(! bBaseLayer && ! ( m_pcCoefMap[uiMbIndex].getCoefMap( cCIdx )[0] & CODED ) && !m_bUpdateWithoutMap )
       // condition "! bBaseLayer" is needed. When "xScaleTCoeffs is called
       // before first FGS layer, m_aapaucChromaDCCoefMap is not initialized
       rcMbDataAccess.getMbTCoeffs().get( cCIdx )[0] = 0;
@@ -1352,6 +1412,201 @@ FGSCoder::xClearBaseCoeffs( MbDataAccess& rcMbDataAccess,
   RNOK( m_pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
 
   return Err::m_nOK;
+}
+
+ErrVal
+FGSCoder::xUpdateMbMaps ( MbDataAccess*      pcMbDataAccessBL,
+                          MbDataAccess*      pcMbDataAccessEL,
+                          MbFGSCoefMap       &rcMbFGSCoefMap,
+                          Int*               piRemainingTCoeff )
+{
+  UInt    uiMbX = pcMbDataAccessBL->getMbX();
+  UInt    uiMbY = pcMbDataAccessBL->getMbY();
+  UInt    uiMbIndex = uiMbY * m_uiWidthInMB + uiMbX;
+
+  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx ++ ) {
+    Bool bSigCBP = ( pcMbDataAccessEL->getMbData().getMbCbp() >> c8x8Idx.b8x8Index() ) & 1;
+
+    rcMbFGSCoefMap.getB8x8Map( c8x8Idx ) |= CODED; 
+    if( bSigCBP )
+      rcMbFGSCoefMap.getB8x8Map( c8x8Idx ) |= SIGNIFICANT; 
+
+    if( !bSigCBP ) {
+      //===== set coefficient and block map =====
+      for( S4x4Idx cIdx(c8x8Idx); cIdx.isLegal(c8x8Idx); cIdx++ ) {
+        CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap(cIdx);
+
+        rcMbFGSCoefMap.getB4x4Map( cIdx ) |= CODED;
+        rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 
+          (pcMbDataAccessEL->getMbData().isTransformSize8x8() && pcMbDataAccessEL->getSH().getPPS().getEntropyCodingModeFlag()) ? 64:16 ;
+
+        for( UInt ui = 0; ui < 16; ui++ ) {
+          if( ! ( pcCoefMap[ui] & SIGNIFICANT ) ) {
+            pcCoefMap[ui] |= CODED;
+            if( piRemainingTCoeff )
+              *piRemainingTCoeff -= 1;
+            rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ); 
+          }
+        }
+      }
+    }
+    else {
+      if( pcMbDataAccessBL->getMbData().isTransformSize8x8() && pcMbDataAccessBL->getSH().getPPS().getEntropyCodingModeFlag() )
+      {
+      }
+      else if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+      {
+        CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap(c8x8Idx);
+        for( S4x4Idx cIdx(c8x8Idx); cIdx.isLegal(c8x8Idx); cIdx++ ) {
+          UInt uiOffset = (cIdx.x() % 2) + (cIdx.y() %2) * 2;
+          rcMbFGSCoefMap.getB4x4Map( cIdx ) |= CODED;
+
+          // BCBP for the enhancement layer is set in pcMbDataAccessEL
+          if(  pcMbDataAccessEL->getMbData().getBCBP( cIdx.b4x4() ) )
+            rcMbFGSCoefMap.getB4x4Map( cIdx ) |= SIGNIFICANT;
+          else {
+            rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
+            for( UInt ui = 0; ui < 16; ui++ ) {
+              if( ! ( pcCoefMap[ui*4 + uiOffset] & SIGNIFICANT ) ) {
+                pcCoefMap[ui*4 + uiOffset] |= CODED;
+                if( piRemainingTCoeff )
+                  *piRemainingTCoeff -= 1;
+                rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ); 
+              }
+            }
+          }
+        }
+      }
+      else
+      {
+        for( S4x4Idx cIdx(c8x8Idx); cIdx.isLegal(c8x8Idx); cIdx++ ) {
+          CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap(cIdx);
+
+          rcMbFGSCoefMap.getB4x4Map( cIdx ) |= CODED;
+
+          // BCBP for the enhancement layer is set in pcMbDataAccessEL
+          if(  pcMbDataAccessEL->getMbData().getBCBP( cIdx.b4x4() ) )
+            rcMbFGSCoefMap.getB4x4Map( cIdx ) |= SIGNIFICANT;
+          else {
+            rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
+            for( UInt ui = 0; ui < 16; ui++ ) {
+              if( ! ( pcCoefMap[ui] & SIGNIFICANT ) ) {
+                pcCoefMap[ui] |= CODED;
+                if( piRemainingTCoeff )
+                  *piRemainingTCoeff -= 1;
+                rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ); 
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if( ( pcMbDataAccessEL->getMbData().getMbCbp() >> 4 ) <= 1 ) {
+    //----- chroma AC -----
+    for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ ) {
+      CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap( cCIdx );
+
+      rcMbFGSCoefMap.getChromaACBlockMap( cCIdx ) |= CODED; 
+      rcMbFGSCoefMap.getChromaACScanPos( cCIdx ) = 16; 
+
+      for( UInt ui = 1; ui < 16; ui++ ) {
+        if( ! ( pcCoefMap[ui] & SIGNIFICANT ) ) {
+          pcCoefMap[ui] |= CODED;
+          if( piRemainingTCoeff )
+            *piRemainingTCoeff -= 1;
+          rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ); 
+        }
+      }
+    }
+  }
+
+  if( ( pcMbDataAccessEL->getMbData().getMbCbp() >> 4 ) == 0 ) {
+    //----- chroma DC -----
+    for( CPlaneIdx cCPlaneIdx; cCPlaneIdx.isLegal(); ++cCPlaneIdx )
+    {
+      rcMbFGSCoefMap.getChromaDCMbMap( cCPlaneIdx ) |= CODED; 
+      rcMbFGSCoefMap.getChromaDCScanPos( cCPlaneIdx ) = 4;
+
+      for( UInt ui = 0; ui < 4; ui++ ) {
+        CoefMap cCoefMap = rcMbFGSCoefMap.getCoefMap( CIdx( cCPlaneIdx ) + ui )[0];
+        if( ! ( cCoefMap & SIGNIFICANT ) ) {
+          cCoefMap |= CODED;
+          if( piRemainingTCoeff )
+            *piRemainingTCoeff -= 1;
+          rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ); 
+        }
+      }
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+
+UInt 
+FGSCoder::xDeriveComponentPosVectors( UInt*  puiRefPosVect,
+                                      Int*   piMaxPosLuma,
+                                      Int*   piMaxPosChromaAC,
+                                      Int*   piMaxPosChromaDC,
+                                      UInt   uiChromaStartCycle )
+{
+  Bool bAllowChromaDC, bAllowChromaAC;
+  UInt uiCycle, uiNumFrags, uiFirstCycle, uiLastCycle;
+
+  uiNumFrags = uiFirstCycle = 0;
+  piMaxPosChromaAC[0] = 0;
+  piMaxPosChromaDC[0] = -1;
+  do {
+    piMaxPosLuma[uiNumFrags] = puiRefPosVect[uiNumFrags];
+    uiLastCycle = piMaxPosLuma[uiNumFrags];
+
+    if( uiNumFrags > 0 ) {
+      piMaxPosChromaAC[uiNumFrags] = piMaxPosChromaAC[uiNumFrags - 1];
+      piMaxPosChromaDC[uiNumFrags] = piMaxPosChromaDC[uiNumFrags - 1];
+    }
+
+    // find the max position for chroma AC
+    for( uiCycle = uiFirstCycle; uiCycle <= uiLastCycle; uiCycle ++ ) {
+      bAllowChromaDC = (uiCycle == 0) || ((uiCycle >= uiChromaStartCycle) && ((uiCycle-uiChromaStartCycle) % 2 == 0));
+      bAllowChromaAC = (uiCycle > 0) && ((uiCycle == uiChromaStartCycle) || ((uiCycle >= uiChromaStartCycle) && ((uiCycle-uiChromaStartCycle) % 3 == 1)));
+
+      piMaxPosChromaDC[uiNumFrags] += bAllowChromaDC;
+      if( piMaxPosChromaDC[uiNumFrags] > 3 )
+        piMaxPosChromaDC[uiNumFrags] = 3;
+      piMaxPosChromaAC[uiNumFrags] += bAllowChromaAC;
+      if( piMaxPosChromaAC[uiNumFrags] > 15 )
+        piMaxPosChromaAC[uiNumFrags] = 15;
+    }
+
+    uiFirstCycle = uiLastCycle + 1;
+    uiNumFrags ++;
+  } while( piMaxPosLuma[uiNumFrags - 1] < 15 );
+
+  // dirty fix
+  piMaxPosChromaDC[uiNumFrags - 1] = 3;
+  piMaxPosChromaAC[uiNumFrags - 1] = 15;
+
+  return uiNumFrags;
+}
+
+
+ErrVal
+FGSCoder::xSetNumCoefficients( UInt               uiMbX, 
+                               UInt               uiMbY,
+                               MbFGSCoefMap       &rcMbFGSCoefMap,
+                               UInt               uiMbCoeffsDecoded )
+{
+  UInt uiMbIndex  = uiMbY * m_uiWidthInMB + uiMbX;
+
+  // now partially it is set in xDecodeMbHeader, should be changed also
+  rcMbFGSCoefMap.resetNumCoded();
+  rcMbFGSCoefMap.increaseAndCheckNumCoded( uiMbCoeffsDecoded ); 
+  if( uiMbCoeffsDecoded > 384 )
+    return Err::m_nERR;
+  else
+    return Err::m_nOK;
 }
 
 

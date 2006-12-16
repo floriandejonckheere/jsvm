@@ -187,14 +187,16 @@ public:
                             RefFrameList&   rcRefFrameList0,
                             RefFrameList&   rcRefFrameList1,
                             IntYuvMbBuffer* pcRecBuffer,
-                            Bool            bCalcMv );
+                            Bool            bCalcMv,
+                            Bool            bSR = false );
   ErrVal compensateSubMb  ( B8x8Idx         c8x8Idx,
                             MbDataAccess&   rcMbDataAccess,
                             RefFrameList&   rcRefFrameList0,
                             RefFrameList&   rcRefFrameList1,
                             IntYuvMbBuffer* pcRecBuffer,
                             Bool            bCalcMv,
-                            Bool            bFaultTolerant );
+                            Bool            bFaultTolerant, 
+                            Bool            bSR = false );
   Void xAdjustResidualRefBlk          ( XPel*           piResidualRef,
                                         UInt            uiBlkWidth,
                                         UInt            uiBlkHeight,
@@ -226,7 +228,8 @@ public:
   ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess,
                                         RefFrameList&   rcRefFrameList0,
                                         RefFrameList&   rcRefFrameList1,
-                                        IntYuvMbBuffer* pcYuvMbBuffer);
+                                        IntYuvMbBuffer* pcYuvMbBuffer,
+                                        Bool            bSR = false );
 
   ErrVal xAdjustMbResidual            ( IntYuvMbBuffer& rcMbBufferDiff,
                                         MbDataAccess*   pcMbDataAccess,
@@ -305,13 +308,13 @@ public:
   ErrVal calcMvSubMb( B8x8Idx c8x8Idx,  MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
   ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, Bool& rbValid, Bool bFaultTolerant, Bool bCalcMv = true );
-  ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, IntYuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 );
+  ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, IntYuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1, Bool bSR = false );
   ErrVal initMb( UInt uiMbY, UInt uiMbX);
 
 
 protected:
   Void xPredMb8x8Mode( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer );
-  Void xPredMb8x8Mode( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntYuvMbBuffer* pcRecBuffer );
+  Void xPredMb8x8Mode( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntYuvMbBuffer* pcRecBuffer, Bool bSR = false );
 
   Void xPredLuma(   YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D );
   Void xPredChroma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D );
@@ -320,8 +323,8 @@ protected:
   Void xPredChroma( YuvMbBuffer* apcTarBuffer[2], Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
 
 
-  Void xPredLuma  ( IntYuvMbBuffer* pcRecBuffer,      Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D );
-  Void xPredLuma  ( IntYuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
+  Void xPredLuma  ( IntYuvMbBuffer* pcRecBuffer,      Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, Bool bSR = false );
+  Void xPredLuma  ( IntYuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, Bool bSR = false );
   Void xPredChroma( IntYuvMbBuffer* pcRecBuffer,      Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D );
   Void xPredChroma( IntYuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
 

@@ -155,19 +155,7 @@ public:
   virtual ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess ) = 0;
   virtual ErrVal  RQdecode8x8Flag     ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase ) = 0;
-  virtual Bool    RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccessBase,
-                                         LumaIdx         cIdx ) = 0;
-  virtual Bool    RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccessBase,
-                                         ChromaIdx       cIdx ) = 0;
-  virtual Bool    RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccessBase,
-                                         ChromaIdx       cIdx ) = 0;
-  virtual Bool    RQdecodeCBP_Chroma   ( MbDataAccess&   rcMbDataAccess,
-                                         MbDataAccess&   rcMbDataAccessBase ) = 0;
-  virtual Bool    RQdecodeCBP_ChromaAC ( MbDataAccess&   rcMbDataAccess,
-                                         MbDataAccess&   rcMbDataAccessBase ) = 0;
-  virtual Bool    RQdecodeCBP_8x8      ( MbDataAccess&   rcMbDataAccess,
-                                         MbDataAccess&   rcMbDataAccessBase,
-                                         B8x8Idx         c8x8Idx ) = 0;
+
   virtual ErrVal  RQdecodeTermBit      ( UInt&           ruiBit ) = 0;
   virtual ErrVal  RQdecodeNewTCoeff_8x8    ( MbDataAccess&   rcMbDataAccess,
                                              MbDataAccess&   rcMbDataAccessBase,
@@ -175,7 +163,6 @@ public:
                                              UInt            uiScanIndex,
                                              Bool&           rbLast,
                                              UInt&           ruiNumCoefRead ) = 0;
-  virtual ErrVal  RQeo8b( Bool& bEob ) = 0;
   virtual ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                              MbDataAccess&   rcMbDataAccessBase,
                                              B8x8Idx         c8x8Idx,
@@ -184,6 +171,7 @@ public:
   virtual ErrVal  RQdecodeNewTCoeff_Luma   ( MbDataAccess&   rcMbDataAccess,
                                              MbDataAccess&   rcMbDataAccessBase,
                                              ResidualMode    eResidualMode,
+                                             Bool            b8x8,
                                              LumaIdx         cIdx,
                                              UInt            uiScanIndex,
                                              Bool&           rbLast,
@@ -206,6 +194,29 @@ public:
                                              ChromaIdx       cIdx,
                                              UInt            uiScanIndex,
                                              UInt            uiCtx ) = 0;
+  virtual ErrVal  RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         Bool            b8x8,
+                                         LumaIdx         cIdx,
+                                         UInt&           ruiSymbol ) = 0;
+  virtual ErrVal  RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         ChromaIdx       cIdx,
+                                         UInt&           ruiSymbol ) = 0;
+  virtual ErrVal  RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         ChromaIdx       cIdx,
+                                         UInt&           ruiSymbol ) = 0;
+  virtual ErrVal  RQdecodeCBP_Chroma   ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase ,
+                                         UInt&           ruiSymbol) = 0;
+  virtual ErrVal  RQdecodeCBP_ChromaAC ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         UInt&           ruiSymbol ) = 0;
+  virtual ErrVal  RQdecodeCBP_8x8      ( MbDataAccess&   rcMbDataAccess,
+                                         MbDataAccess&   rcMbDataAccessBase,
+                                         B8x8Idx         c8x8Idx ) = 0;
+
   virtual ErrVal  RQdecodeEobOffsets_Luma  () = 0;
   virtual ErrVal  RQdecodeEobOffsets_Chroma() = 0;
   virtual ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH ) = 0;
@@ -213,6 +224,32 @@ public:
   virtual ErrVal  RQupdateVlcTable         () = 0;
   virtual ErrVal  RQvlcFlush               () = 0;
   virtual ErrVal  RQcompSepAlign           () = 0;
+
+  virtual Void    RQsetTruncatedFlag       ( Bool bTruncated ) = 0;
+  virtual ErrVal  RQreset                  ( const SliceHeader& rcSliceHeader ) = 0;
+
+  virtual ErrVal  RQdecodeTCoeffsRef       ( TCoeff*         piCoeff,
+                                             TCoeff*         piCoeffBase,
+                                             const UChar*    pucScan,
+                                             UInt            uiScanIndex,
+                                             UInt            uiCtx ) = 0;
+  virtual ErrVal  RQdecodeSigCoeff         ( TCoeff*         piCoeff,
+                                             TCoeff*         piCoeffBase,
+                                             ResidualMode    eResidualMode,
+                                             const UChar*    pucScan,
+                                             Bool            bFirstSigRunCode,
+                                             UInt            uiCycle,
+                                             UInt            uiStartScanIdx,
+                                             UInt            uiLastScanIdx,
+                                             Bool&           rbEndOfBlock,
+                                             TCoeff&         riCoeff,
+                                             UInt&           ruiRun ) = 0;
+  virtual ErrVal  RQupdateVlcTable         ( UInt            uiNumFrags  ) = 0;
+  virtual ErrVal  RQinitFragments          ( const SliceHeader&  rcSliceHeader,
+                                             UInt&               ruiNumFrags,
+                                             Bool                bCAF ) = 0;
+  virtual ErrVal  RQreleaseFragments       () = 0;
+  virtual MbSymbolReadIf* RQactivateFragment( UInt uiFragIdx ) = 0;
 };
 
 

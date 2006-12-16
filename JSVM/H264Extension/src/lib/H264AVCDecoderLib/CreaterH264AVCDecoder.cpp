@@ -190,6 +190,9 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
                                 Bool&              bFragmented,
                                 Bool&              bDiscardable
                                 //~JVT-P031
+                                , Bool*           pbFgsParallelDecoding
+                                , UInt*           puiNumFragments
+                                , UChar**         ppucFragBuffers 
                                 )
 {
   return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
@@ -206,7 +209,8 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
                                           bFragmented,
                                           bDiscardable
                                           //~JVT-P031
-                                               );
+                                          , pbFgsParallelDecoding, puiNumFragments, ppucFragBuffers
+                                         );
 }
 
 //JVT-S036 lsj start
@@ -903,6 +907,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   rcPacketDescription.uiPId         = uiSimplePriorityId;
   rcPacketDescription.bDiscardable  = bDiscardableFlag;//JVT-P031
   rcPacketDescription.bFragmentedFlag   = bFragmentedFlag;//JVT-P031
+  rcPacketDescription.uiFragmentOrder   = uiFragmentOrder;
+  rcPacketDescription.bLastFragmentFlag = bLastFragmentFlag;
   rcPacketDescription.NalRefIdc     = eNalRefIdc;
   return Err::m_nOK;
 }

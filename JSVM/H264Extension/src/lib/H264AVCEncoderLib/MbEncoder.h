@@ -149,6 +149,7 @@ public:
                                 IntFrame*       pcPredSignal,
                                 Double          dLambda );
   ErrVal  encodeResidual      ( MbDataAccess&   rcMbDataAccess,
+                                IntFrame*       pcOrgFrame, 
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcResidual,
                                 IntFrame*       pcBaseSubband,
@@ -180,7 +181,14 @@ public:
                                 RefFrameList&   rcRefFrameList0,
                                 RefFrameList&   rcRefFrameList1,
                                 Bool            bCalcMv,
-                                Bool            bFaultTolerant );
+                                Bool            bFaultTolerant, 
+                                Bool            bSR = false
+                                );
+  ErrVal  compensateMbSR       ( MbDataAccess&     rcMbDataAccess,
+                                 IntFrame*         pcSRFrame,
+                                 RefFrameList&     rcRefFrameList0,
+                                 RefFrameList&     rcRefFrameList1,
+                                 MbDataAccess*     pcBaseMbDataAccess );
 
   ErrVal  compensateUpdate(      MbDataAccess&   rcMbDataAccess,
                                  IntFrame*       pcMCFrame,

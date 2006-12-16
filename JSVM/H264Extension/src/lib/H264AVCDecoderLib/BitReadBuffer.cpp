@@ -89,6 +89,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+extern Bool gbParallelDecoding;
+
+
 BitReadBuffer::BitReadBuffer():
   m_uiDWordsLeft( 0 ),
   m_uiBitsLeft( 0 ),
@@ -97,6 +100,11 @@ BitReadBuffer::BitReadBuffer():
   m_uiNextBits( 0xdeaddead ),
   m_pulStreamPacket( 0 )
 {
+  m_uiNumFragments  = 0;
+  for( UInt ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ ) {
+    m_auiFragLengthInBytes[ui] = 0;
+    m_apucFragBuffers     [ui] = 0;
+  }
 }
 
 
@@ -124,9 +132,10 @@ ErrVal BitReadBuffer::destroy()
 }
 
 
-
-
-ErrVal BitReadBuffer::initPacket( ULong* puiBits, UInt uiBitsInPacket )
+ErrVal BitReadBuffer::initPacket( ULong*  puiBits, 
+                                  UInt    uiBitsInPacket, 
+                                  UInt*   puiNumFragments,
+                                  UChar** ppucFragBuffers )
 {
   // invalidate all members if something is wrong
   m_pulStreamPacket    = NULL;
@@ -136,9 +145,6 @@ ErrVal BitReadBuffer::initPacket( ULong* puiBits, UInt uiBitsInPacket )
   m_iValidBits         = 0;
   m_uiDWordsLeft     = 0;
 
-
-  // check the parameter
-  ROT( uiBitsInPacket < 1);
   ROT( NULL == puiBits );
 
   // now init the Bitstream object
@@ -153,10 +159,25 @@ ErrVal BitReadBuffer::initPacket( ULong* puiBits, UInt uiBitsInPacket )
   xReadNextWord();
   xReadNextWord();
 
+  // get the fragment buffers also
+  if( puiNumFragments != 0 ) {
+    m_uiNumFragments  = *puiNumFragments;
+    if( m_uiNumFragments > 1 )
+      m_uiNumFragments = m_uiNumFragments;
+    for( UInt ui = 0; ui < m_uiNumFragments; ui ++ ) {
+      m_apucFragBuffers     [ui] = ppucFragBuffers    [ui];
+      m_auiFragLengthInBytes[ui] = ppucFragBuffers[ui + 1] - ppucFragBuffers[ui];
+    }
+  }
+  else
+  {
+    m_uiNumFragments          = 1;
+    m_apucFragBuffers     [0] = (UChar *) puiBits;
+    m_auiFragLengthInBytes[0] = (uiBitsInPacket + 7) >> 3;
+  }
+
   return Err::m_nOK;
 }
-
-
 
 Void BitReadBuffer::show( UInt& ruiBits, UInt uiNumberOfBits  )
 {
@@ -221,7 +242,7 @@ ErrVal BitReadBuffer::get( UInt& ruiBits  )
 {
   if( 0 == m_uiBitsLeft )
   {
-    throw ReadStop();
+    return Err::m_nEndOfStream;
   }
 
   m_uiBitsLeft --;
@@ -251,7 +272,10 @@ ErrVal BitReadBuffer::get( UInt& ruiBits, UInt uiNumberOfBits  )
 
   if( uiNumberOfBits > m_uiBitsLeft )
   {
-    throw ReadStop();
+    if( gbParallelDecoding )
+      return Err::m_nEndOfStream;
+    else
+      throw ReadStop();
   }
 
   m_uiBitsLeft  -= uiNumberOfBits;
@@ -343,6 +367,82 @@ __inline Void BitReadBuffer::xReadNextWord()
       m_uiNextBits <<= (4-iBytesLeft)<<3;
     }
   }
+}
+
+
+static UInt numZeroLSBs( UChar uc )
+{
+  UInt ui;
+
+  for( ui = 0; ((uc & 1 ) == 0) && (ui < 7); ui ++ )
+    uc >>= 1;
+
+  return ui;
+}
+
+ErrVal
+BitReadBuffer::assignFragments(   UChar** ppucFragBuffers, 
+                                  UInt&   ruiNumFragments)
+{
+  UInt    ui;
+
+  ruiNumFragments = m_uiNumFragments;
+  if( m_uiNumFragments == 1 )
+    return Err::m_nOK;
+
+  for( ui = 0; ui < m_uiNumFragments; ui ++ )
+    ppucFragBuffers[ui] = m_apucFragBuffers[ui];
+
+  return Err::m_nOK;
+}
+
+ErrVal
+BitReadBuffer::separateFragments( UChar** ppucFragBuffers, 
+                                  UInt*   puiFragLengthInBits,
+                                  UInt&   ruiNumFragments,
+                                  UInt    uiMaxNumFragments )
+{
+  UInt ui; 
+  // find the exact amount of bits in each segment
+  if( ruiNumFragments >= 2) {
+    UInt    uiBitsRemoved, uiZeroLSBs;
+    UChar*  puc;
+    UChar*  pucEndOfLastFrag;
+
+    // shrink the first segment, by excluding other segments
+    pucEndOfLastFrag = m_apucFragBuffers[ruiNumFragments - 1] + m_auiFragLengthInBytes[ruiNumFragments - 1];
+
+    // ending zero bytes should have been removed
+    while( pucEndOfLastFrag[-1] == 0 ) {
+      pucEndOfLastFrag --;
+      m_auiFragLengthInBytes[ruiNumFragments - 1] --;
+    }
+
+    // ending zero bits in the last byte
+    uiZeroLSBs = numZeroLSBs( pucEndOfLastFrag[-1] );
+
+    // end of the first fragment
+    puc = m_apucFragBuffers[1];
+    do {
+      puc --;
+    } while( puc[0] == 0x00 );
+
+    uiBitsRemoved = 8 * (pucEndOfLastFrag - 1 - puc ) - uiZeroLSBs + numZeroLSBs( puc[0] );
+    m_uiBitsLeft -= uiBitsRemoved;
+
+    // count the exact bits of the other segment
+    for( ui = 1; ui < ruiNumFragments; ui ++ ) {
+      puc = m_apucFragBuffers[ui] + m_auiFragLengthInBytes[ui];
+
+      do {
+        puc --;
+      } while( puc[0] == 0x00 );
+
+      puiFragLengthInBits[ui] = 8 * (puc - ppucFragBuffers[ui]) + 8 - numZeroLSBs( puc[0] );
+    }
+  }
+
+  return Err::m_nOK;
 }
 
 

@@ -106,6 +106,7 @@ enum ResidualMode
   , LUMA_8X8
 };
 
+class BitWriteBufferIf;
 
 
 class MbSymbolWriteIf
@@ -155,6 +156,9 @@ public:
   virtual ErrVal  terminatingBit      ( UInt uiIsLast ) = 0;
   virtual UInt    getNumberOfWrittenBits() = 0;
 
+  virtual BitWriteBufferIf* getWriteBuffer() = 0;
+  virtual ErrVal  RQreset             ( const SliceHeader& rcSliceHeader ) = 0;
+
   virtual ErrVal  startSlice          ( const SliceHeader& rcSliceHeader ) = 0;
   virtual ErrVal  startFragment       () = 0; //JVT-P031
   virtual ErrVal  getLastByte         (UChar &uiLastByte, UInt &uiLastBitPos) = 0; //FIX_FRAG_CAVLC
@@ -162,7 +166,7 @@ public:
   virtual ErrVal  finishSlice         ( ) = 0;
   // FGS-related
   virtual Bool    RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, B8x8Idx c8x8Idx ) = 0;
-  virtual Bool    RQencodeBCBP_4x4( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx ) = 0;
+  virtual Bool    RQencodeBCBP_4x4( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, Bool b8x8, LumaIdx cIdx ) = 0;
   virtual Bool    RQencodeCBP_Chroma( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase ) = 0;
   virtual Bool    RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, ChromaIdx cIdx ) = 0;
   virtual Bool    RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess, MbDataAccess&   rcMbDataAccessBase, ChromaIdx cIdx ) = 0;
@@ -175,10 +179,10 @@ public:
                                       UInt            uiScanIndex,
                                       Bool&           rbLast,
                                       UInt&           ruiNumCoefWritten ) = 0;
-  virtual ErrVal  RQeo8b( Bool& bEob ) = 0;
   virtual ErrVal RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,
+                                        Bool            b8x8,
                                         LumaIdx         cIdx,
                                         UInt            uiScanIndex,
                                         Bool&           rbLast,
@@ -209,7 +213,8 @@ public:
 
   virtual ErrVal RQencodeCycleSymbol( UInt uiCycle ) = 0;
   virtual ErrVal RQencodeTermBit ( UInt uiIsLast ) = 0;
-  virtual Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx) = 0;
+  virtual Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, Bool b8x8, LumaIdx cIdx) = 0;
+
   virtual ErrVal RQencodeEobOffsets_Luma   ( UInt* pauiSeq ) = 0;
   virtual ErrVal RQencodeEobOffsets_Chroma ( UInt* pauiSeq ) = 0;
   virtual ErrVal RQencodeBestCodeTableMap ( UInt* pauiTable, UInt uiMaxH ) = 0;

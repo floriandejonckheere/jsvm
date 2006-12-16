@@ -123,6 +123,25 @@ public:
   ErrVal finish();
   UInt   getWrittenBits()  { return m_pcBitWriteBufferIf->getNumberOfWrittenBits() + 8 + m_uiBitsToFollow - m_uiBitsLeft + 1; } //JVT-P031
 
+  Void   setStates  (CabaEncoder* pcExtEncoder )
+  {
+    m_pcBitWriteBufferIf  = pcExtEncoder->m_pcBitWriteBufferIf;
+    m_uiRange             = pcExtEncoder->m_uiRange;
+    m_uiLow               = pcExtEncoder->m_uiLow;
+    m_uiByte              = pcExtEncoder->m_uiByte;
+    m_uiBitsLeft          = pcExtEncoder->m_uiBitsLeft;
+    m_uiBitsToFollow      = pcExtEncoder->m_uiBitsToFollow;
+  }
+  Void   getStates  (CabaEncoder* pcExtEncoder )
+  {
+    pcExtEncoder->m_pcBitWriteBufferIf  = m_pcBitWriteBufferIf;
+    pcExtEncoder->m_uiRange             = m_uiRange;
+    pcExtEncoder->m_uiLow               = m_uiLow;
+    pcExtEncoder->m_uiByte              = m_uiByte;
+    pcExtEncoder->m_uiBitsLeft          = m_uiBitsLeft;
+    pcExtEncoder->m_uiBitsToFollow      = m_uiBitsToFollow;
+  }
+
 private:
   __inline ErrVal xWriteBit( UInt uiBit);
   __inline ErrVal xWriteBitAndBitsToFollow( UInt uiBit);

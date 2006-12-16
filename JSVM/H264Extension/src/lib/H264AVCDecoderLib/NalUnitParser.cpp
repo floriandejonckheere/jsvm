@@ -395,11 +395,13 @@ NalUnitParser::getBitsLeft()
 }
 //~JVT-P031
 
-ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFlag, //bug-fix suffix shenqiu
-                           UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
-                           Bool bPreParseHeader, Bool bConcatenated, //FRAG_FIX
-                           Bool  bCheckGap) //TMM_EC
+NalUnitParser::initNalUnit( BinDataAccessor*  pcBinDataAccessor, 
+                            UInt&             uiNumBytesRemoved,  //FIX_FRAG_CAVLC
+                            Bool              bPreParseHeader, 
+                            Bool              bConcatenated,      //FRAG_FIX
+													  Bool	            bCheckGap,          //TMM_EC
+                            UInt*             puiNumFragments,
+                            UChar**           ppucFragBuffers ) 
 {
   ROF( pcBinDataAccessor->size() );
   ROF( pcBinDataAccessor->data() );
@@ -521,7 +523,7 @@ NalUnitParser::initNalUnit( BinDataAccessor* pcBinDataAccessor, //Bool* KeyPicFl
 
   if(!m_bDiscardableFlag || (m_bDiscardableFlag && m_uiDecodedLayer == m_uiLayerId) || m_bCheckAllNALUs) //JVT-P031
   {
-      RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBitsInPacket) );
+      RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBitsInPacket, puiNumFragments, ppucFragBuffers ) );
   }
   return Err::m_nOK;
 }

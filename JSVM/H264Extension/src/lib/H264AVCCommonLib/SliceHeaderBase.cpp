@@ -291,6 +291,9 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiRedundantPicCnt                 ( 0 ) //JVT-Q054 Red. Picture
 , m_uiSliceGroupChangeCycle           ( 0 )
 , m_eErrorConceal                     ( EC_NONE )
+, m_uiVectorModeIndex                 ( 0 )
+, m_uiNumPosVectors                   ( 0 )
+, m_bFGSVectorModeOverrideFlag        ( false )
 //JVT-T054{
 , m_uiLayerCGSSNR                     ( 0 )
 , m_uiQualityLevelCGSSNR              ( 0 )
@@ -972,6 +975,38 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     }
     }
     RNOK( pcReadIf->getFlag( m_bAdaptivePredictionFlag,                       "SH: motion_refinement_flag" ) );
+
+    m_uiVectorModeIndex = 0;
+    if( this->getSPS().getNumFGSVectModes() > 1 )
+    {
+      if( this->getSPS().getNumFGSVectModes() == 2)
+      {
+        Bool bTmp; 
+        RNOK ( pcReadIf->getFlag( bTmp,                                      "SH: vector_mode_index"     ) );
+        m_uiVectorModeIndex = 1-bTmp; 
+      }
+      else
+        RNOK ( pcReadIf->getUvlc( m_uiVectorModeIndex,                        "SH: vector_mode_index"     ) );
+    }
+
+    m_bFGSCycleAlignedFragment  = this->getSPS().getFGSCycleAlignedFragment(); 
+    m_bFGSCodingMode            = this->getSPS().getFGSCodingMode( m_uiVectorModeIndex );
+    if( m_bFGSCodingMode == false )
+    {
+      m_uiGroupingSize             = this->getSPS().getGroupingSize( m_uiVectorModeIndex );
+    }
+    else
+    {
+      m_uiGroupingSize            = 1; 
+
+      m_uiNumPosVectors           = this->getSPS().getNumPosVectors( m_uiVectorModeIndex ); 
+
+      UInt uiIndex; 
+      for( uiIndex = 0; uiIndex < m_uiNumPosVectors ; uiIndex ++ )
+      {
+          m_uiPosVect[uiIndex] = this->getSPS().getPosVect( m_uiVectorModeIndex, uiIndex ); 
+      }
+    }
   }
   return Err::m_nOK;
 }

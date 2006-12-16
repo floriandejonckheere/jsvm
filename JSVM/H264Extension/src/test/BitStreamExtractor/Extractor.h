@@ -194,6 +194,10 @@ private:
   UInt64  m_aaaui64NumNALUBytesNoUse [MAX_LAYERS][MAX_DSTAGES+1][MAX_QUALITY_LEVELS];
   //S051}
 
+  // for performing proportional extraction of FGS layer with fragments, a dirty solution
+  #define MAX_NUM_PICTURES          1200
+  UInt    m_aaaauiPictureNALUBytes  [MAX_NUM_PICTURES][MAX_LAYERS][MAX_QUALITY_LEVELS];
+
   UInt64  m_aaaui64NumNALUBytes [MAX_LAYERS][MAX_DSTAGES+1][MAX_QUALITY_LEVELS];
   UInt64  m_aaui64BaseLayerBytes[MAX_LAYERS][MAX_DSTAGES+1];
   UInt64  m_aaui64FGSLayerBytes [MAX_LAYERS][MAX_DSTAGES+1];

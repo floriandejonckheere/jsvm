@@ -116,8 +116,25 @@ public:
   ErrVal getUnaryMaxSymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset, UInt uiMaxSymbol );
   ErrVal getUnarySymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset );
 
+  Void   setStates  (CabaDecoder* pcExtDecoder )
+  {
+    m_pcBitReadBuffer = pcExtDecoder->m_pcBitReadBuffer;
+    m_uiRange         = pcExtDecoder->m_uiRange;
+    m_uiValue         = pcExtDecoder->m_uiValue;
+    m_uiWord          = pcExtDecoder->m_uiWord;
+    m_uiBitsLeft      = pcExtDecoder->m_uiBitsLeft;
+  }
+  Void   getStates  (CabaDecoder* pcExtDecoder )
+  {
+    pcExtDecoder->m_pcBitReadBuffer = m_pcBitReadBuffer;
+    pcExtDecoder->m_uiRange         = m_uiRange;
+    pcExtDecoder->m_uiValue         = m_uiValue;
+    pcExtDecoder->m_uiWord          = m_uiWord;
+    pcExtDecoder->m_uiBitsLeft      = m_uiBitsLeft;
+  }
+
 private:
-  __inline Void xReadBit( UInt& ruiValue );
+  __inline ErrVal xReadBit( UInt& ruiValue );
 
 protected:
   BitReadBuffer* m_pcBitReadBuffer;

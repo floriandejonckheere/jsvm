@@ -101,8 +101,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 
-
-
 RQFGSEncoder::RQFGSEncoder()
 : m_pcMbEncoder               ( 0 )
 , m_pcSymbolWriter            ( 0 )
@@ -340,6 +338,8 @@ ErrVal
 RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
                                Bool&  rbCorrupted,
                                UInt   uiMaxBits,
+                               UInt*  puiPDFragBits,
+                               UInt&  ruiNumPDFrags,
                                UInt uiFrac,
                                Bool bFragmented,
                                FILE*  pFile ) //JVT-P031
@@ -349,7 +349,7 @@ RQFGSEncoder::encodeNextLayer( Bool&  rbFinished,
   rbCorrupted = false;
   rbFinished  = false;
 
-  RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, uiFrac, pFile ) );
+  RNOK ( xEncodingFGS( rbFinished, rbCorrupted, uiMaxBits, puiPDFragBits, ruiNumPDFrags,uiFrac, pFile ) );
 
   return Err::m_nOK;
 }
@@ -370,7 +370,7 @@ RQFGSEncoder::updateQP(Bool&  rbCorrupted, Bool& rbFinished, Bool bFragmented, U
     Int iNewSliceQP     = max( 0, iOldSliceQP - RQ_QP_DELTA );
     rbFinished          = ( iNewSliceQP == iOldSliceQP );
 
-    if((bFragmented && uiFrac != 0) || !bFragmented)
+    if( m_pcSliceHeader->getFGSCycleAlignedFragment() || (bFragmented && uiFrac != 0) || !bFragmented)
       m_pcSliceHeader->setQualityLevel ( m_pcSliceHeader->getQualityLevel() + 1 );
 
     m_pcSliceHeader->setSliceHeaderQp       ( iNewSliceQP );
@@ -889,7 +889,8 @@ RQFGSEncoder::xMotionEstimation()
 
     if( pcMbDataAccessCurr->getMbData().isIntra() || ! m_pcSliceHeader->getAdaptivePredictionFlag() )
     {
-            pcMbDataAccessEL->getMbData().copyFrom  ( pcMbDataAccessCurr->getMbData() );
+      pcMbDataAccessEL->getMbData().copyFrom  ( pcMbDataAccessCurr->getMbData() );
+      pcMbDataAccessEL->getMbData().setBCBP   ( 0 );
       RNOK( pcMbDataAccessEL->getMbData().copyMotion( pcMbDataAccessCurr->getMbData() ) );
       if( ! pcMbDataAccessCurr->getMbData().isIntra() )
         pcMbDataAccessEL->getMbData().setBLSkipFlag( true );
@@ -1131,8 +1132,7 @@ RQFGSEncoder::xStoreFGSState(UInt iLumaScanIdx,
                              UInt iStartCycle,
                              UInt iCycle,
                              UInt uiPass,
-                             UInt bAllowChromaDC,
-                             UInt bAllowChromaAC,
+                             UInt uiFragIdx,
                              UInt uiMbYIdx,
                              UInt uiMbXIdx,
                              B8x8Idx c8x8Idx,
@@ -1149,8 +1149,7 @@ RQFGSEncoder::xStoreFGSState(UInt iLumaScanIdx,
   m_iStartCycle = iStartCycle;
   m_iCycle = iCycle;
   m_uiPass = uiPass;
-  m_bAllowChromaDC = bAllowChromaDC;
-  m_bAllowChromaAC = bAllowChromaAC;
+  m_uiFragIdx = uiFragIdx;
   m_uiMbYIdx = uiMbYIdx;
   m_uiMbXIdx = uiMbXIdx;
   m_c8x8Idx = c8x8Idx;
@@ -1171,8 +1170,7 @@ RQFGSEncoder::xRestoreFGSState(UInt& riLumaScanIdx,
                              UInt& riStartCycle,
                              UInt& riCycle,
                              UInt& ruiPass,
-                             UInt& rbAllowChromaDC,
-                             UInt& rbAllowChromaAC,
+                             UInt& ruiFragIdx,
 //                              UInt& ruiMbYIdx,
 //                              UInt& ruiMbXIdx,
 //                              UInt& ruiB8YIdx,
@@ -1191,8 +1189,7 @@ RQFGSEncoder::xRestoreFGSState(UInt& riLumaScanIdx,
   riStartCycle = m_iStartCycle;
   riCycle = m_iCycle;
   ruiPass = m_uiPass;
-  rbAllowChromaDC = m_bAllowChromaDC;
-  rbAllowChromaAC = m_bAllowChromaAC;
+  ruiFragIdx = m_uiFragIdx;
 //   ruiMbYIdx = m_uiMbYIdx;
 //   ruiMbXIdx = m_uiMbXIdx;
 //   ruiB8YIdx = m_uiB8YIdx;
@@ -1204,6 +1201,7 @@ RQFGSEncoder::xRestoreFGSState(UInt& riLumaScanIdx,
 //   ruiFGSPart = m_uiFGSPart;
 //   ruiPlane = m_uiPlane;
   riLastQP = m_iLastQP;
+
   return Err::m_nOK;
 }
 //~JVT-P031
@@ -1492,17 +1490,19 @@ RQFGSEncoder::xEncodeChromaCbpVlc(UInt  uiCurrMbIdxX,
 }
 
 
-
 ErrVal
 RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                             Bool& rbCorrupted,
                             UInt uiMaxBits,
+                            UInt* puiPDFragBits,
+                            UInt& ruiNumPDFrags,
                             UInt uiFracNb,
                             FILE* pFile ) //JVT-P031 (modified for fragments)
 {
   Bool bRestore = true;
   Bool bFirstPass = true;
   UInt ui;
+  UInt uiFragIdx;
 
   RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
@@ -1552,13 +1552,14 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   {
     //vector specified
     ui = 0;
-    m_auiScanPosVectLuma[ui] = m_pcSliceHeader->getPosVect(ui);
-    while( m_auiScanPosVectLuma[ui] != 15)
+    m_auiScanPosVectLuma[ui] = m_pcSliceHeader->getPosVect(ui) - 1;
+    while( m_auiScanPosVectLuma[ui] < 15)
     {
       ui++;
       m_auiScanPosVectLuma[ui] = m_auiScanPosVectLuma[ui-1] + m_pcSliceHeader->getPosVect(ui);
     }
   }
+
   try
   {
     UInt uiScanPos;
@@ -1579,8 +1580,8 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
     //--ICU/ETRI FMO Implementation : start
     UInt uiFirstMbY = (UInt) ( m_uiFirstMbInSlice / m_uiWidthInMB );
     UInt uiFirstMbX = m_uiFirstMbInSlice % m_uiWidthInMB;
-    UInt uiLastMbY  = (UInt) ( ( uiLastMbInSlice+1) / m_uiWidthInMB );
-    UInt uiLastMbX  = ( uiLastMbInSlice+1) % m_uiWidthInMB;
+    uiLastMbY  = (UInt) ( ( uiLastMbInSlice+1) / m_uiWidthInMB );
+    uiLastMbX  = ( uiLastMbInSlice+1) % m_uiWidthInMB;
 
 
     if(!uiFracNb) //FIX_FRAG_CAVLC
@@ -1771,15 +1772,13 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
     delete pauiHistChroma;
     } //FIX_FRAG_CAVLC
 
-    UInt uiLumaCbpBitCount    = 0;
-    UInt uiLumaCbpNextMbX     = uiFirstMbX;
-    UInt uiLumaCbpNextMbY     = uiFirstMbY;
-    UInt uiLumaCbpNext8x8Idx  = 0;
-
-    UInt uiChromaCbpBitCount  = 0;
-
-    UInt uiChromaCbpNextMbX   = uiFirstMbX;
-    UInt uiChromaCbpNextMbY   = uiFirstMbY;
+    uiLumaCbpBitCount    = 0;
+    uiLumaCbpNextMbX     = uiFirstMbX;
+    uiLumaCbpNextMbY     = uiFirstMbY;
+    uiLumaCbpNext8x8Idx  = 0;
+    uiChromaCbpBitCount  = 0;
+    uiChromaCbpNextMbX   = uiFirstMbX;
+    uiChromaCbpNextMbY   = uiFirstMbY;
 
     if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() && !uiFracNb)
     {
@@ -1789,14 +1788,33 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       xEncodeChromaCbpVlcStart(uiFirstMbX, uiFirstMbY, uiChromaCbpBitCount);
     }
 
+    ruiNumPDFrags     = 0;
+    puiPDFragBits[0]  = 0;
+
+    // chroma cycle frequency. 
+    // hard-coded for now, should this be moved to the slice header
+    iStartCycle = ( m_eSliceType == B_SLICE ) ? 2 : 3;
+    if( !uiFracNb )
+    {
+    m_pcSymbolWriter->RQencodeCycleSymbol( iStartCycle-1 );
+    }
+
+    UInt  uiNumFrags;
+    Int   aiMaxPosLuma[16], aiMaxPosChromaAC[16], aiMaxPosChromaDC[16];
+
+    uiFragIdx = 0;
+    uiNumFrags = xDeriveComponentPosVectors( m_auiScanPosVectLuma, 
+      aiMaxPosLuma, aiMaxPosChromaAC, aiMaxPosChromaDC, iStartCycle );
+
     while (iLumaScanIdx < 16 || iChromaDCScanIdx < 4 || iChromaACScanIdx < 16)
     {
-      UInt bAllowChromaDC = (iCycle == 0) || ((iCycle >= iStartCycle) && ((iCycle-iStartCycle) % 2 == 0));
-      UInt bAllowChromaAC = (iCycle > 0) && ((iCycle == iStartCycle) || ((iCycle >= iStartCycle) && ((iCycle-iStartCycle) % 3 == 1)));
+      UInt bAllowChromaDC, bAllowChromaAC;
 
-      //if(!uiFracNb) bCheck = true;
-      //m_uiMaxBits = 10000;
-      if(!uiFracNb)
+      UInt uiMaxPosLuma;
+      UInt uiMaxPosChromaAC;
+      UInt uiMaxPosChromaDC;
+
+       if(!uiFracNb)
       {
         // start values for loops
         m_uiMbYIdx    = uiFirstMbY;
@@ -1812,13 +1830,11 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         {
           bCheck = false;
           // restore status
-//            UInt uiUnused;
           xRestoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
-                            iCycle, uiPassStart, bAllowChromaDC, bAllowChromaAC,
-//                             uiUnused, uiUnused, uiUnused, uiUnused, uiUnused, uiUnused,
+                            iCycle, uiPassStart, uiFragIdx, 
                             iLastBitsLuma,
-//                             /*uiBitsLast*/uiUnused, uiUnused, uiUnused,
                             iLastQP);
+
           // restore the cbp-related coding states
           uiLumaCbpNextMbX    = m_uiLumaCbpNextMbX;
           uiLumaCbpNextMbY    = m_uiLumaCbpNextMbY;
@@ -1834,30 +1850,44 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       }
       uiPass = uiPassStart;
 
-      UInt uiMaxPosLuma;
-      UInt uiMaxPosChromaAC;
-      UInt uiMaxPosChromaDC;
+      uiMaxPosLuma      = aiMaxPosLuma    [uiFragIdx];
+      uiMaxPosChromaAC  = aiMaxPosChromaAC[uiFragIdx];
+      uiMaxPosChromaDC  = aiMaxPosChromaDC[uiFragIdx];
 
-      if( iLumaScanIdx == 16 )
-        uiMaxPosLuma = 16;
-      else
+      if( uiFragIdx == 0 )
       {
-        for( ui=0; m_auiScanPosVectLuma[ui]<iLumaScanIdx; ui++ ) ;
-        uiMaxPosLuma = m_auiScanPosVectLuma[ui];
+        bAllowChromaDC = true;
+        bAllowChromaAC = aiMaxPosChromaAC[0] > 0;
       }
-      if( iChromaACScanIdx == 16 )
-        uiMaxPosChromaAC = 16;
       else
       {
-        for( ui=0; 1+m_auiScanPosVectLuma[ui]<iChromaACScanIdx; ui++ ) ;
-        uiMaxPosChromaAC = 1+m_auiScanPosVectLuma[ui];
+        bAllowChromaDC = (Int) uiMaxPosChromaDC > aiMaxPosChromaDC[uiFragIdx - 1];
+        bAllowChromaAC = (Int) uiMaxPosChromaAC > aiMaxPosChromaAC[uiFragIdx - 1];
       }
-      if( iChromaDCScanIdx == 16 )
-        uiMaxPosChromaDC = 16;
-      else
+
+      // flush the bitstream, and send the re-sync marker
+      if( m_pcSliceHeader->getFGSCycleAlignedFragment() )
       {
-        for( ui=0; m_auiScanPosVectChromaDC[ui]<iChromaDCScanIdx; ui++ ) ;
-        uiMaxPosChromaDC = m_auiScanPosVectChromaDC[ui];
+        // any more fragment to follow?
+        if( iLumaScanIdx > 0 )
+        {
+          // do not know why the reader can not have enough bits
+          RNOK( m_pcSymbolWriter->RQencodeTermBit( 1 ) );
+          RNOK( m_pcSymbolWriter->RQencodeTermBit( 1 ) );
+          RNOK( m_pcSymbolWriter->finishSlice() );
+
+          // byte-aligned, same as NalUnitEncoder::xWriteTrailingBits
+          RNOK( m_pcSymbolWriter->getWriteBuffer()->write( 1 ) );
+          RNOK( m_pcSymbolWriter->getWriteBuffer()->writeAlignZero() );
+
+          // do not have to flush the buffer as more fragments will be coded
+          // record the end of the segment
+          puiPDFragBits[uiFragIdx] = m_pcSymbolWriter->getWriteBuffer()->getNumberOfWrittenBits();
+
+          m_pcSliceHeader->setSliceType( m_eSliceType );
+          m_pcSymbolWriter->RQreset( *m_pcSliceHeader );
+          m_pcSliceHeader->setSliceType( F_SLICE );
+        }
       }
 
       for(UInt uiMbAddress=m_uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice;)
@@ -1971,12 +2001,11 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           MbDataAccess *pcMbDataAccessEL  = NULL, *pcMbDataAccessBL = NULL;
           RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
           RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
-          if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
-              !m_pcCurrMbDataCtrl->getMbData( uiMbXIdx, uiMbYIdx ).isIntra() && rcMbFGSCoefMap.getNumCoded() == 0 )
-          {
-            // ----- Write motion parameters the first time we visit each inter-coded macroblock -----
-            RNOK( xEncodeMotionData( uiMbYIdx, uiMbXIdx ) );
+
+          if( iLumaScanIdx == 0 && rcMbFGSCoefMap.getNumCoded() == 0 ) {
+            xEncodeMbHeader( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, iLastQP );
           }
+
           if(!bFirstPass)
           {
             m_uiMbYIdx = uiMbYIdx;
@@ -1986,46 +2015,53 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
           //===== LUMA =====
           if( (m_uiFGSPart == 0) || (!bFirstPass) )
           {
-            if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )
-            {
-              if( iLumaScanIdx== 0 )
-              {
-                xEncodeLumaCbpVlc(uiMbXIdx, uiMbYIdx, uiLumaCbpNextMbX, uiLumaCbpNextMbY, uiLumaCbpNext8x8Idx, uiLastMbX, uiLastMbY, uiLumaCbpBitCount);
-                xEncodeChromaCbpVlc(uiMbXIdx, uiMbYIdx, uiChromaCbpNextMbX, uiChromaCbpNextMbY, uiLastMbX, uiLastMbY, uiChromaCbpBitCount);
-                RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbYIdx, uiMbXIdx ) );
-                RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbYIdx, uiMbXIdx ) );
-              }
-            }
             for( B8x8Idx c8x8Idx = m_c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
             {
               if(!bFirstPass)
                 m_cIdx = S4x4Idx( c8x8Idx );
               else
                 bFirstPass = false;
-              for( S4x4Idx cIdx = m_cIdx; cIdx.isLegal( c8x8Idx ); cIdx++ )
-              {
-                iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
-                if (iLumaScanIdx == 0)
-                  RNOK( xEncodeSigHeadersLuma( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, c8x8Idx, iLastQP ) );
-                for( ui=iLumaScanIdx; ui<=uiMaxPosLuma; ui++ )
-                {
-                  if( ui < 16 )
-                  {
-                    while( rcMbFGSCoefMap.getLumaScanPos( cIdx ) <= ui )
+              S4x4Idx cIdx2 = S4x4Idx( c8x8Idx ); 
+              Bool b8x8 = (rcMbFGSCoefMap.getLumaScanPos( cIdx2+1 ) == 64); 
+                //pcMbDataAccessBL->getMbData().isTransformSize8x8(); 
+              iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
+              if( b8x8 ) {
+                for( ui = iLumaScanIdx; ui <= uiMaxPosLuma; ui ++ ) {
+                  for( S4x4Idx cIdx = m_cIdx; cIdx.isLegal( c8x8Idx ); cIdx++ ) {
+                    iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
+                    UInt uiOffset = ( cIdx.y() % 2 ) * 2 + ( cIdx.x() % 2);
+                    if( rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == ui * 4 + uiOffset )
                       RNOK( xEncodeNewCoefficientLuma( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx ) );
                     RNOK( xEncodeCoefficientLumaRef( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx, ui ) );
+                    if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                    {
+                      xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
+                                      iCycle, uiPass, uiFragIdx, uiMbYIdx, uiMbXIdx,
+                                      c8x8Idx, cIdx/*cIdx replaced uiBlockYIdx, uiBlockXIdx+1 - this is not the same but how should it be?*/, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);                      throw WriteStop();
+                    }
                   }
                 }
-                if (iCycle == 0)
-                  iBitsLuma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsLuma;
-                if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
-                {
-                  xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
-                                  iCycle, uiPass, bAllowChromaDC, bAllowChromaAC, uiMbYIdx, uiMbXIdx,
-                                  c8x8Idx, cIdx/*cIdx replaced uiBlockYIdx, uiBlockXIdx+1 - this is not the same but how should it be?*/, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);
-                  throw WriteStop();
-                }
               }
+              else {
+                  for( S4x4Idx cIdx = m_cIdx; cIdx.isLegal( c8x8Idx ); cIdx++ ) {
+                    iLastBitsLuma = m_pcSymbolWriter->getNumberOfWrittenBits();
+                    for( ui=iLumaScanIdx; ui<=uiMaxPosLuma; ui++ ) {
+                      if( rcMbFGSCoefMap.getLumaScanPos( cIdx )  <= ui )
+                        RNOK( xEncodeNewCoefficientLuma( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx ) );
+                      RNOK( xEncodeCoefficientLumaRef( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx, ui ) );
+                    }
+                    if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
+                    {
+                      xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
+                                      iCycle, uiPass, uiFragIdx, uiMbYIdx, uiMbXIdx,
+                                      c8x8Idx, cIdx/*cIdx replaced uiBlockYIdx, uiBlockXIdx+1 - this is not the same but how should it be?*/, iLastBitsLuma, uiBitsLast, 0, 0, iLastQP);
+                      throw WriteStop();
+                    }
+                  }
+              }
+
+              if (iCycle == 0)
+                iBitsLuma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsLuma;
             }
             m_cCPlaneIdx = CPlaneIdx( 0 );
             m_c8x8Idx = B8x8Idx();
@@ -2052,7 +2088,8 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                 if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
-                                  iCycle, uiPass, bAllowChromaDC, bAllowChromaAC,
+                                  iCycle, uiPass, 
+                                  uiFragIdx,
                                   uiMbYIdx, uiMbXIdx, B8x8Idx(),S4x4Idx(), iLastBitsLuma, uiBitsLast, 1, cCPlaneIdx/* removed: +1 */, iLastQP);
                   throw WriteStop();
                 }
@@ -2080,7 +2117,8 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                   if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                   {
                     xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
-                      iCycle, uiPass, bAllowChromaDC, bAllowChromaAC,
+                      iCycle, uiPass, 
+                      uiFragIdx,
                       uiMbYIdx, uiMbXIdx, B8x8Idx( Par8x8(cCIdx&3) ),/*  uiB8YIdx, uiB8XIdx+1*/ S4x4Idx(), iLastBitsLuma, uiBitsLast, 2, CPlaneIdx( cCIdx.plane() ), iLastQP);
                     throw WriteStop();
                   }
@@ -2114,11 +2152,8 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         iChromaDCScanIdx = min(uiMaxPosChromaDC+1, 4);
       if (bAllowChromaAC)
         iChromaACScanIdx = min(uiMaxPosChromaAC+1, 16);
-      if ( iCycle == 0 && m_bFgsComponentSep == 0 ) {
-        UInt ratio = (iBitsChroma > 0) ? (iBitsLuma / iBitsChroma) : 999;
-        iStartCycle = 3 - (ratio >= 15) - (ratio >= 30);
-        m_pcSymbolWriter->RQencodeCycleSymbol(iStartCycle-1);
-      }
+
+      uiFragIdx ++;
       iCycle++;
 
     } // while
@@ -2149,7 +2184,14 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
         return Err::m_nOK;
     }
   }
+
+  if( ! m_pcSliceHeader->getFGSCycleAlignedFragment() )
+    ruiNumPDFrags = 1;
+  else
+    ruiNumPDFrags = uiFragIdx;
+
   rbFinished      = rbCorrupted || ( m_iRemainingTCoeff == 0 );
+
   RNOK( m_pcSymbolWriter->finishSlice() );
 
   RNOK( xUpdateCodingPath(m_pcSliceHeader) );
@@ -2160,103 +2202,89 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 
 
 ErrVal
-RQFGSEncoder::xEncodeSigHeadersLuma( MbDataAccess  *pcMbDataAccessBL,
-                                     MbDataAccess  *pcMbDataAccessEL,
-                                     MbFGSCoefMap  &rcMbFGSCoefMap,
-                                     const B8x8Idx &rc8x8Idx,
-                                     Int&   riLastQp )
+RQFGSEncoder::xEncodeMbHeader( MbDataAccess*      pcMbDataAccessBL,
+                               MbDataAccess*      pcMbDataAccessEL,
+                               MbFGSCoefMap       &rcMbFGSCoefMap,
+                               Int&               riLastQp )
 {
-  if( !(rcMbFGSCoefMap.getB8x8Map( rc8x8Idx ) & CODED ) )
+  UInt    uiMbX = pcMbDataAccessBL->getMbX();
+  UInt    uiMbY = pcMbDataAccessBL->getMbY();
+  UInt    uiMbIndex = uiMbY * m_uiWidthInMB + uiMbX;
+
+  if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
+    ! pcMbDataAccessBL->getMbData().isIntra() )
   {
-    //===== CBP =====
-    Bool bSigCBP = m_pcSymbolWriter->RQencodeCBP_8x8( *pcMbDataAccessEL, *pcMbDataAccessBL, rc8x8Idx );
-    rcMbFGSCoefMap.getB8x8Map( rc8x8Idx ) |= CODED;
-    if(  bSigCBP )
-    {
-      rcMbFGSCoefMap.getB8x8Map( rc8x8Idx ) |= SIGNIFICANT;
-    }
-    if( !bSigCBP )
-    {
-      //===== set coefficient and block map =====
-      for( S4x4Idx cIdx(rc8x8Idx); cIdx.isLegal(rc8x8Idx); cIdx++ )
-      {
-        rcMbFGSCoefMap.getB4x4Map( cIdx ) |= CODED;
-        rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
-        CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap( cIdx );
-        for( UInt ui = 0; ui < 16; ui++ )
-        {
-          if( ! ( pcCoefMap[ui] & SIGNIFICANT ) )
-          {
-            pcCoefMap[ui] |= CODED;
-            m_iRemainingTCoeff--;
-            RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-          }
-        }
-      }
-      TWSOT( m_iRemainingTCoeff < 0 );
-      return Err::m_nOK;
-    }
-
-    //===== DELTA QP & TRANSFORM SIZE =====
-    if( !(rcMbFGSCoefMap.getMbMap() & CODED ) )
-    {
-      //===== delta QP =====
-      if( !(rcMbFGSCoefMap.getMbMap() & SIGNIFICANT ) )
-      {
-        pcMbDataAccessEL->setLastQp( riLastQp );
-        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL ) );
-        riLastQp = pcMbDataAccessEL->getMbData().getQp();
-
-        rcMbFGSCoefMap.getMbMap() |= SIGNIFICANT;
-      }
-
-      //===== transform size =====
-      if( ! ( rcMbFGSCoefMap.getMbMap() & TRANSFORM_SPECIFIED ) )
-      {
-        RNOK( m_pcSymbolWriter->RQencode8x8Flag( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
-
-        rcMbFGSCoefMap.getMbMap() |= TRANSFORM_SPECIFIED;
-      }
-
-      rcMbFGSCoefMap.getMbMap() |= CODED;
-    }
+    m_pcSliceHeader  ->setSliceType( m_eSliceType );
+    RNOK( m_pcMbCoder->encodeMotion( *pcMbDataAccessEL, pcMbDataAccessBL ) );
+    m_pcSliceHeader  ->setSliceType( F_SLICE );
   }
 
 
-  if( ! pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+  //===== CBP =====
+  if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() ) {
+    xEncodeLumaCbpVlc   (uiMbX, uiMbY, uiLumaCbpNextMbX, uiLumaCbpNextMbY, uiLumaCbpNext8x8Idx, uiLastMbX, uiLastMbY, uiLumaCbpBitCount);
+    xEncodeChromaCbpVlc (uiMbX, uiMbY, uiChromaCbpNextMbX, uiChromaCbpNextMbY, uiLastMbX, uiLastMbY, uiChromaCbpBitCount);
+
+    // restore pcMbDataAccessBL and pcMbDataAccessEL
+    RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiMbY, uiMbX ) );
+    RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbY, uiMbX ) );
+  }
+
+
+  // Luma CBP in CABAC, need also for CAVLC to update the CBP in buffer
   {
-    for( S4x4Idx cIdx( rc8x8Idx ); cIdx.isLegal( rc8x8Idx ); cIdx++ )
-    {
-      UChar &rucB4x4Map = rcMbFGSCoefMap.getB4x4Map( cIdx );
-      if( !(rucB4x4Map & CODED ) )
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx ++ ) {
+      Bool bSigBCBP = m_pcSymbolWriter->RQencodeCBP_8x8( *pcMbDataAccessEL, *pcMbDataAccessBL, c8x8Idx );
+    }
+  }
+
+  // CHROMA CBP in CABAC, need also for CAVLC to update the CBP in buffer
+  if( m_pcSymbolWriter->RQencodeCBP_Chroma( *pcMbDataAccessEL, *pcMbDataAccessBL ) )
+    m_pcSymbolWriter->RQencodeCBP_ChromaAC( *pcMbDataAccessEL, *pcMbDataAccessBL );
+
+  // transform size
+  if( ( pcMbDataAccessBL->getMbData().getMbCbp() & 15 ) &&
+    ! ( rcMbFGSCoefMap.getMbMap() & TRANSFORM_SPECIFIED ) ) {
+    RNOK( m_pcSymbolWriter->RQencode8x8Flag( *pcMbDataAccessEL, *pcMbDataAccessBL ) );
+    rcMbFGSCoefMap.getMbMap() |= TRANSFORM_SPECIFIED;
+  }
+
+  // delta QP and transform flag
+  if( pcMbDataAccessBL->getMbData().getMbCbp() != 0 ) {
+    if( ! ( rcMbFGSCoefMap.getMbMap() & SIGNIFICANT ) ) {
+      pcMbDataAccessEL->setLastQp( riLastQp );
+      RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL ) );
+      riLastQp = pcMbDataAccessEL->getMbData().getQp();
+
+      rcMbFGSCoefMap.getMbMap() |= SIGNIFICANT;
+    }
+  }
+
+  // Luma BCBP
+  {
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx ++ ) {
+      Bool bSigBCBP = ( ( pcMbDataAccessEL->getMbData().getMbCbp() >> c8x8Idx.b8x8Index() ) & 1 ? 1 : 0 );
+      Bool b8x8     = pcMbDataAccessBL->getMbData().isTransformSize8x8();
+
+      // 8x8 in VLC mode is de-interleaved into 4 4x4 blocks
+      // 8x8 in CABAC mode is encoded in native 8x8 zigzag order, and no BCBP is needed
+      if( bSigBCBP && (! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() || ! b8x8 ) ) {
+        for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx ++ )
+          m_pcSymbolWriter->RQencodeBCBP_4x4( *pcMbDataAccessEL, *pcMbDataAccessBL, b8x8, cIdx );
+      }
+      else
       {
-        Bool bSigBCBP = m_pcSymbolWriter->RQencodeBCBP_4x4( *pcMbDataAccessEL, *pcMbDataAccessBL, cIdx );
-        rcMbFGSCoefMap.getB4x4Map( cIdx ) |= CODED;
-        if(  bSigBCBP )
-        {
-          rcMbFGSCoefMap.getB4x4Map( cIdx ) |= SIGNIFICANT;
-        }
-        if( ! bSigBCBP )
-        {
-          rcMbFGSCoefMap.getLumaScanPos( cIdx ) = 16;
-          CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap( cIdx );
-          for( UInt ui = 0; ui < 16; ui++ )
-          {
-            if( ! ( pcCoefMap[ui] & SIGNIFICANT ) )
-            {
-              pcCoefMap[ui] |= CODED;
-              m_iRemainingTCoeff--;
-              RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-            }
-          }
-          TWSOT( m_iRemainingTCoeff < 0 );
-        }
+        S4x4Idx cIdx (c8x8Idx);
+
+        rcMbFGSCoefMap.getLumaScanPos( cIdx+1 ) = 64;   
       }
     }
   }
+
+  xUpdateMbMaps( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, & m_iRemainingTCoeff );
+
   return Err::m_nOK;
 }
-
 
 ErrVal
 RQFGSEncoder::xEncodeNewCoefficientLuma( MbDataAccess  *pcMbDataAccessBL,
@@ -2265,112 +2293,117 @@ RQFGSEncoder::xEncodeNewCoefficientLuma( MbDataAccess  *pcMbDataAccessBL,
                                          const S4x4Idx &rcIdx )
 {
   B8x8Idx c8x8Idx( rcIdx.getContainingPar8x8() );
-  if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+  Bool    b8x8 = pcMbDataAccessBL->getMbData().isTransformSize8x8();
+  if( b8x8 && m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )
   {
-    UInt uiBlkIter8x8 = rcIdx.s4x4()&3;
-    UInt uiStop         = 64;
-    UInt ui8x8ScanIndex = rcMbFGSCoefMap.getLumaScanPos( rcIdx ) * 4 + uiBlkIter8x8;
-    ROTRS( ui8x8ScanIndex >= uiStop, Err::m_nOK );
+    UInt    uiStop          = 64;
+    UInt    ui8x8ScanIndex  = uiStop;
+    UInt    ui8x8StartIndex = uiStop;
+    UInt    ui8x8Index;
 
-    CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap( c8x8Idx );
-    UInt uiMbIndex = pcMbDataAccessBL->getMbY() * m_uiWidthInMB + pcMbDataAccessBL->getMbX();
-
-    if (uiMbIndex != m_uiLastMbNum)
+    CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap( c8x8Idx );
+    for( ui8x8Index = 0; ui8x8Index < uiStop; ui8x8Index++ )
     {
-      UInt uiMin    = 16;
-      UInt uiRemain = 0;
-
-      m_uiLastMbNum = uiMbIndex;
-      for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+      if( ! (pcCoefMap[ ui8x8Index ] & SIGNIFICANT ) || (pcCoefMap [ ui8x8Index ] & NEWSIG ) )
       {
-        uiMin = min( uiMin, rcMbFGSCoefMap.getLumaScanPos( cIdx ) );
-        if( rcMbFGSCoefMap.getLumaScanPos( cIdx ) < 16 )
-          uiRemain++;
-      }
-      if( ( uiRemain == 2 ) || ( uiMin > 10 && uiRemain == 3 ) )
-      {
-        UInt ui8x8Index;
-        Bool bIsEob         = true;
-        TCoeff* piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get8x8( c8x8Idx );
-        TCoeff* piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get8x8( c8x8Idx );
-        for( ui8x8Index = 0; ui8x8Index < uiStop; ui8x8Index++ )
-        {
-          if( ( ! ( pcCoefMap[ui8x8Index] & CODED ) &&
-            piCoeff[ g_aucFrameScan64[ui8x8Index] ] && !piCoeffBase[g_aucFrameScan64[ui8x8Index]] ) ||
-            ( abs(piCoeff[ g_aucFrameScan64[ui8x8Index] ]) > 1 && !piCoeffBase[g_aucFrameScan64[ui8x8Index]] &&
-            rcMbFGSCoefMap.getLumaScanPos( S4x4Idx( c8x8Idx ) + ui8x8Index%4 ) < 16 ) )
-          {
-            bIsEob = false;
-            break;
-          }
-        }
-
-        m_pcSymbolWriter->RQeo8b( bIsEob );
-        if (bIsEob)
-        {
-          for( ui8x8Index = 0; ui8x8Index < uiStop; ui8x8Index++ )
-          {
-            if( ! ( pcCoefMap[ui8x8Index] & SIGNIFICANT ) && ! ( pcCoefMap[ui8x8Index] & CODED ) )
-            {
-              pcCoefMap[ui8x8Index] |= CODED;
-              m_iRemainingTCoeff--;
-              RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-            }
-          }
-          for( S4x4Idx cIdx2( c8x8Idx ); cIdx2.isLegal( c8x8Idx ); cIdx2++  )
-            rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = 16;
-          ui8x8ScanIndex = rcMbFGSCoefMap.getLumaScanPos( rcIdx ) * 4 + uiBlkIter8x8;
-          ROTRS( ui8x8ScanIndex >= uiStop, Err::m_nOK );
-        }
+        ui8x8StartIndex = ui8x8Index;
+        break; 
       }
     }
 
-    UInt uiNumCoefWritten;
-    Bool bNeedEob = true;
-    UInt uiStride = 4;
+    S4x4Idx cIdx2 = S4x4Idx ( c8x8Idx );
+    ui8x8ScanIndex = rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) ;
+    ROTRS ( ui8x8ScanIndex == uiStop, Err::m_nOK ); 
+    
+    Bool bNeedEob = ( ui8x8ScanIndex > ui8x8StartIndex );
 
-    RNOK( m_pcSymbolWriter->RQencodeNewTCoeff_8x8( *pcMbDataAccessEL, *pcMbDataAccessBL,
-                                                  c8x8Idx, ui8x8ScanIndex, bNeedEob, uiNumCoefWritten ) );
-    for ( UInt ui8x8 = 0; ui8x8ScanIndex < 64 && ( ui8x8 < uiNumCoefWritten || bNeedEob ); ui8x8ScanIndex += uiStride )
+    while( ui8x8ScanIndex < 64 )
     {
-      if( ! ( pcCoefMap[ui8x8ScanIndex] & SIGNIFICANT ) )
-      {
-        if( pcMbDataAccessEL->getMbTCoeffs().get8x8( c8x8Idx )[ g_aucFrameScan64[ui8x8ScanIndex] ] )
-          pcCoefMap[ui8x8ScanIndex] |= SIGNIFICANT | NEWSIG;
+      UInt uiNumCoefWritten;
 
-        pcCoefMap[ui8x8ScanIndex] |= CODED;
-        m_iRemainingTCoeff--;
+      RNOK( m_pcSymbolWriter->RQencodeNewTCoeff_8x8( *pcMbDataAccessEL, *pcMbDataAccessBL,
+                                                    c8x8Idx, ui8x8ScanIndex, bNeedEob, uiNumCoefWritten ) );
+
+      if( bNeedEob )
+      {
+        //===== end of block =====
+        rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = 64;
+
+        for( UInt ui8x8 = ui8x8ScanIndex; ui8x8 < 64; ui8x8++ )
+        {
+          if( !(pcCoefMap [ ui8x8 ] & SIGNIFICANT) )
+          {
+            pcCoefMap[ ui8x8 ]  |= CODED;
+            m_iRemainingTCoeff--;
+            RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
+          }
+        }
+        break;
+      }
+      else
+      {
+        //===== coefficient =====
+        bNeedEob = false;
+
+        pcCoefMap[ ui8x8ScanIndex ] |= CODED;
         RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-        ui8x8++;
+        m_iRemainingTCoeff--;
+        if( pcMbDataAccessEL->getMbTCoeffs().get8x8( c8x8Idx )[g_aucFrameScan64[ui8x8ScanIndex]] )
+        {
+          rcMbFGSCoefMap.getRefCtx( c8x8Idx )[ui8x8ScanIndex] = 1;
+          pcCoefMap[ ui8x8ScanIndex ] |= SIGNIFICANT | NEWSIG;
+          break;
+        }
+
+        ui8x8ScanIndex++;
+        while( ( ui8x8ScanIndex < 64 ) && (pcCoefMap[ ui8x8ScanIndex ] & SIGNIFICANT) )
+        {
+          ui8x8ScanIndex++;
+        }
       }
     }
-    if( rcMbFGSCoefMap.getLumaScanPos( rcIdx ) * 4 + uiBlkIter8x8 < ui8x8ScanIndex )
-      rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = ui8x8ScanIndex / 4;
-    while( ui8x8ScanIndex < 64 && ( pcCoefMap[ui8x8ScanIndex] & SIGNIFICANT ) )
-    {
-      ui8x8ScanIndex += 4;
-      rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = ui8x8ScanIndex / 4;
-    }
-
+    if( rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) < ui8x8ScanIndex )
+      rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ui8x8ScanIndex;
+    while( ui8x8ScanIndex < 64 && ( pcCoefMap[ ui8x8ScanIndex ] & SIGNIFICANT ) )
+      rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) = ++ui8x8ScanIndex;
     TWSOT( m_iRemainingTCoeff < 0 );
   }
   else
   {
-    if (! m_pcSymbolWriter->RQpeekCbp4x4( *pcMbDataAccessEL, *pcMbDataAccessBL, rcIdx ) )
+    if (! m_pcSymbolWriter->RQpeekCbp4x4( *pcMbDataAccessEL, *pcMbDataAccessBL, b8x8, rcIdx ) )
     {
       return Err::m_nOK;
     }
-    CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap( rcIdx );
-    UInt    uiStop       = 16;
-    UInt    uiScanIndex  = uiStop;
+
+    CoefMap* pcCoefMap = b8x8 ? rcMbFGSCoefMap.getCoefMap( c8x8Idx ) : rcMbFGSCoefMap.getCoefMap( rcIdx );
+    UInt    uiStop = b8x8 ? 64:16;
+    UInt    uiScanIndex = uiStop;
     UInt    uiStartIndex = uiStop;
-    UInt    uiIndex;
-    for( uiIndex = 0; uiIndex < uiStop; uiIndex++ )
+    UInt    uiIndex = uiStop;
+
+    if(b8x8) 
     {
-      if( ! ( pcCoefMap[uiIndex] & SIGNIFICANT ) || ( pcCoefMap[uiIndex] & NEWSIG ) )
+      UInt ui8x8Index;
+      UInt uiOffset = (rcIdx.x() % 2) + (rcIdx.y() % 2) *2; 
+      for( ui8x8Index = uiOffset; ui8x8Index < uiStop; ui8x8Index+=4 )
       {
-        uiStartIndex = uiIndex;
-        break;
+        if( ! ( pcCoefMap[ui8x8Index] & SIGNIFICANT ) || ( pcCoefMap[ui8x8Index] & NEWSIG ) )
+        {
+          uiStartIndex = ui8x8Index;
+          break;
+        }
+      }
+      uiStartIndex >>= 2;
+    }
+    else
+    {
+      for( uiIndex = 0; uiIndex < uiStop; uiIndex++ )
+      {
+        if( ! ( pcCoefMap[uiIndex] & SIGNIFICANT ) || ( pcCoefMap[uiIndex] & NEWSIG ) )
+        {
+          uiStartIndex = uiIndex;
+          break;
+        }
       }
     }
     uiScanIndex = rcMbFGSCoefMap.getLumaScanPos( rcIdx );
@@ -2379,24 +2412,53 @@ RQFGSEncoder::xEncodeNewCoefficientLuma( MbDataAccess  *pcMbDataAccessBL,
     Bool bNeedEob = ( uiScanIndex > uiStartIndex );
     UInt uiNumCoefWritten;
 
-    RNOK( m_pcSymbolWriter->RQencodeNewTCoeff_Luma( *pcMbDataAccessEL, *pcMbDataAccessBL,
-      LUMA_SCAN, rcIdx, uiScanIndex, bNeedEob, uiNumCoefWritten ) );
 
-    for ( UInt ui = 0; uiScanIndex < 16 && ( ui < uiNumCoefWritten || bNeedEob ); uiScanIndex++ )
+    RNOK( m_pcSymbolWriter->RQencodeNewTCoeff_Luma( *pcMbDataAccessEL, *pcMbDataAccessBL,
+                                                  LUMA_SCAN, b8x8, rcIdx, uiScanIndex, bNeedEob, uiNumCoefWritten ) );
+
+    if(b8x8)
     {
-      if( ! ( pcCoefMap[uiScanIndex] & SIGNIFICANT ) )
+      UInt    uiOffset = (rcIdx.y() % 2) * 2 + (rcIdx.x() % 2); 
+      UInt    ui8x8ScanIndex = uiOffset + uiScanIndex * 4; 
+
+      for ( UInt ui8x8 = 0; ui8x8ScanIndex < 64 && ( ui8x8 < uiNumCoefWritten || bNeedEob ); ui8x8ScanIndex += 4 )
       {
-        if( pcMbDataAccessEL->getMbTCoeffs().get( rcIdx )[g_aucFrameScan[uiScanIndex]] )
-          pcCoefMap[uiScanIndex] |= SIGNIFICANT | NEWSIG;
-        pcCoefMap[uiScanIndex] |= CODED;
-        m_iRemainingTCoeff--;
-        RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-        ui++;
+        if( ! ( pcCoefMap[ui8x8ScanIndex] & SIGNIFICANT ) )
+        {
+          if( pcMbDataAccessEL->getMbTCoeffs().get8x8( c8x8Idx )[ g_aucFrameScan64[ui8x8ScanIndex] ] )
+            pcCoefMap[ui8x8ScanIndex] |= SIGNIFICANT | NEWSIG;
+
+          pcCoefMap[ui8x8ScanIndex] |= CODED;
+          m_iRemainingTCoeff--;
+          RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
+          ui8x8++;
+        }
+      }
+      rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = ui8x8ScanIndex / 4;
+      while( ui8x8ScanIndex < 64 && ( pcCoefMap[ui8x8ScanIndex] & SIGNIFICANT ) )
+      {
+        ui8x8ScanIndex += 4;
+        rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = ui8x8ScanIndex / 4;
       }
     }
-    rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = uiScanIndex;
-    while( uiScanIndex < 16 && ( pcCoefMap[uiScanIndex] & SIGNIFICANT ) )
-      rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = ++uiScanIndex;
+    else
+    {
+      for ( UInt ui = 0; uiScanIndex < 16 && ( ui < uiNumCoefWritten || bNeedEob ); uiScanIndex++ )
+      {
+        if( ! ( pcCoefMap[uiScanIndex] & SIGNIFICANT ) )
+        {
+          if( pcMbDataAccessEL->getMbTCoeffs().get( rcIdx )[g_aucFrameScan[uiScanIndex]] )
+            pcCoefMap[uiScanIndex] |= SIGNIFICANT | NEWSIG;
+          pcCoefMap[uiScanIndex] |= CODED;
+          m_iRemainingTCoeff--;
+          RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
+          ui++;
+        }
+      }
+      rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = uiScanIndex;
+      while( uiScanIndex < 16 && ( pcCoefMap[uiScanIndex] & SIGNIFICANT ) )
+        rcMbFGSCoefMap.getLumaScanPos( rcIdx ) = ++uiScanIndex;
+    }
     TWSOT( m_iRemainingTCoeff < 0 );
   }
 
@@ -2431,67 +2493,6 @@ RQFGSEncoder::xEncodeNewCoefficientChromaDC ( MbDataAccess    *pcMbDataAccessBL,
   ROTRS(uiDCIdx > uiChromaScanIndex, Err::m_nOK);
 
   Bool bNeedEob = ( uiDCIdx > uiStartIdx );
-
-  if( !(rcMbFGSCoefMap.getMbMap() & CHROMA_CBP_CODED ) )
-  {
-    //===== CHROMA CBP =====
-    Bool  bSigCBP = m_pcSymbolWriter->RQencodeCBP_Chroma( *pcMbDataAccessEL, *pcMbDataAccessBL );
-    rcMbFGSCoefMap.getMbMap() |= CHROMA_CBP_CODED;
-
-    if( !bSigCBP )
-    {
-      //----- chroma DC -----
-      for( CPlaneIdx cCPlaneIdx2; cCPlaneIdx2.isLegal(); ++cCPlaneIdx2 )
-      {
-        rcMbFGSCoefMap.getChromaDCMbMap( cCPlaneIdx2 ) |= CODED;
-        rcMbFGSCoefMap.getChromaDCScanPos( cCPlaneIdx2 ) = 4;
-
-        for( CIdx cCIdx( cCPlaneIdx2 ); cCIdx.isLegal(cCPlaneIdx2); cCIdx++ )
-        {
-          CoefMap &rcCoefMap = rcMbFGSCoefMap.getCoefMap( cCIdx )[0];
-          if( !(rcCoefMap & SIGNIFICANT ) )
-          {
-            rcCoefMap |= CODED;
-            m_iRemainingTCoeff--;
-            RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-          }
-        }
-      }
-      //----- chroma AC -----
-      for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
-      {
-        rcMbFGSCoefMap.getChromaACBlockMap( cCIdx ) |= CODED;
-        rcMbFGSCoefMap.getChromaACScanPos( cCIdx ) = 16;
-        CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap( cCIdx );
-        for( UInt ui = 1; ui < 16; ui++ )
-        {
-          if( !(pcCoefMap[ui] & SIGNIFICANT ) )
-          {
-            pcCoefMap[ui] |= CODED;
-            m_iRemainingTCoeff--;
-            RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-          }
-        }
-      }
-
-      TWSOT( m_iRemainingTCoeff < 0 );
-      return Err::m_nOK;
-    }
-
-    //===== DELTA QP =====
-    if( ! ( rcMbFGSCoefMap.getMbMap() & CODED ) )
-    {
-      //===== delta QP =====
-      if( ! ( rcMbFGSCoefMap.getMbMap() & SIGNIFICANT ) )
-      {
-        pcMbDataAccessEL->setLastQp( riLastQP );
-        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL ) );
-        riLastQP = pcMbDataAccessEL->getMbData().getQp();
-
-        rcMbFGSCoefMap.getMbMap() |= SIGNIFICANT;
-      }
-    }
-  }
 
   if( !(rcMbFGSCoefMap.getChromaDCMbMap( rcCPlaneIdx ) & CODED ) )
   {
@@ -2572,99 +2573,7 @@ RQFGSEncoder::xEncodeNewCoefficientChromaAC ( MbDataAccess *pcMbDataAccessBL,
   ROTRS(uiScanIndex > uiChromaScanIndex, Err::m_nOK);
 
   Bool bNeedEob = (uiScanIndex > uiStartIndex );
-
-  if( !(rcMbFGSCoefMap.getMbMap() & CHROMA_CBP_CODED ) )
-  {
-    //===== CHROMA CBP =====
-    Bool  bSigCBP = m_pcSymbolWriter->RQencodeCBP_Chroma( *pcMbDataAccessEL, *pcMbDataAccessBL );
-    rcMbFGSCoefMap.getMbMap() |= CHROMA_CBP_CODED;
-
-    if( !bSigCBP )
-    {
-      //----- chroma DC -----
-      for( CPlaneIdx cCPlaneIdx2; cCPlaneIdx2.isLegal(); ++cCPlaneIdx2 )
-      {
-        rcMbFGSCoefMap.getChromaDCMbMap( cCPlaneIdx2 ) |= CODED;
-        rcMbFGSCoefMap.getChromaDCScanPos( cCPlaneIdx2 ) = 4;
-
-        for( CIdx cCIdx( cCPlaneIdx2 ); cCIdx.isLegal( cCPlaneIdx2 ); cCIdx++ )
-        {
-          CoefMap &rcCoefMap = rcMbFGSCoefMap.getCoefMap( cCIdx )[0];
-          if( !(rcCoefMap & SIGNIFICANT ) )
-          {
-            rcCoefMap |= CODED;
-            m_iRemainingTCoeff--;
-            RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-          }
-        }
-      }
-      //----- chroma AC -----
-      for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
-      {
-        rcMbFGSCoefMap.getChromaACBlockMap( cCIdx ) |= CODED;
-        rcMbFGSCoefMap.getChromaACScanPos( cCIdx ) = 16;
-        CoefMap *pcCoefMap2 = rcMbFGSCoefMap.getCoefMap( cCIdx );
-        for( UInt ui = 1; ui < 16; ui++ )
-        {
-          if( !(pcCoefMap2[ui] & SIGNIFICANT ) )
-          {
-            pcCoefMap2[ui] |= CODED;
-            m_iRemainingTCoeff--;
-            RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-          }
-        }
-      }
-
-      TWSOT( m_iRemainingTCoeff < 0 );
-      return Err::m_nOK;
-    }
-
-    //===== DELTA QP =====
-    if( ! ( rcMbFGSCoefMap.getMbMap() & CODED ) )
-    {
-      //===== delta QP =====
-      if( ! ( rcMbFGSCoefMap.getMbMap() & SIGNIFICANT ) )
-      {
-        pcMbDataAccessEL->setLastQp( riLastQP );
-        RNOK( m_pcSymbolWriter->RQencodeDeltaQp( *pcMbDataAccessEL ) );
-        riLastQP = pcMbDataAccessEL->getMbData().getQp();
-
-        rcMbFGSCoefMap.getMbMap() |= SIGNIFICANT;
-      }
-    }
-  }
-
-
-  if( ! ( rcMbFGSCoefMap.getMbMap() & CHROMA_CBP_AC_CODED ) )
-  {
-    //===== CHROMA CBP =====
-    Bool  bSigCBP = m_pcSymbolWriter->RQencodeCBP_ChromaAC( *pcMbDataAccessEL, *pcMbDataAccessBL );
-    rcMbFGSCoefMap.getMbMap() |= CHROMA_CBP_AC_CODED;
-
-    if( !bSigCBP )
-    {
-      for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
-      {
-        rcMbFGSCoefMap.getChromaACBlockMap( cCIdx ) |= CODED;
-        rcMbFGSCoefMap.getChromaACScanPos( cCIdx ) = 16;
-        CoefMap *pcCoefMap2 = rcMbFGSCoefMap.getCoefMap( cCIdx );
-        for( UInt ui = 1; ui < 16; ui++ )
-        {
-          if( !(pcCoefMap2[ui] & SIGNIFICANT ) )
-          {
-            pcCoefMap2[ui] |= CODED;
-            m_iRemainingTCoeff--;
-            RNOK( rcMbFGSCoefMap.increaseAndCheckNumCoded( 1 ) );
-          }
-        }
-      }
-
-      TWSOT( m_iRemainingTCoeff < 0 );
-      return Err::m_nOK;
-    }
-  }
-
-
+  
   if( !(rcMbFGSCoefMap.getChromaACBlockMap( rcCIdx ) & CODED ) )
   {
     Bool bSigBCBP = m_pcSymbolWriter->RQencodeBCBP_ChromaAC( *pcMbDataAccessEL, *pcMbDataAccessBL, rcCIdx );

@@ -618,8 +618,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bReconstruct,
-                                  IntFrame*         pcBaseLayerRec
-                                  )
+                                  IntFrame*         pcBaseLayerRec )
 {
   IntYuvMbBuffer      cYuvMbBuffer;         cYuvMbBuffer        .setAllSamplesToZero();
   IntYuvMbBuffer      cYuvMbBufferResidual; cYuvMbBufferResidual.setAllSamplesToZero();
@@ -640,17 +639,19 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
         //----- motion compensated prediction -----
         RNOK( m_pcMotionCompensation->compensateSubMb ( c8x8Idx,
                                                         rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                        &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
+                                                        &cYuvMbBuffer, bCalcMv, bFaultTolerant,
+                                                        rcMbDataAccess.getMbData().getSmoothedRefFlag() ) );
       }
     }
     else
     {
       //----- motion compensated prediction -----
-      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess,
-                                                        rcRefFrameList0,
+      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess, 
+                                                        rcRefFrameList0, 
                                                         rcRefFrameList1,
-                                                        &cYuvMbBuffer,
-                                                        bCalcMv ) );
+                                                        &cYuvMbBuffer, 
+                                                        bCalcMv,
+                                                        rcMbDataAccess.getMbData().getSmoothedRefFlag() ) );
     }
     if(pcBaseLayerRec)
     {
@@ -698,40 +699,6 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
   {
     IntYuvMbBuffer cBaseLayerBuffer;
     cBaseLayerBuffer.loadBuffer( pcBaseResidual->getFullPelYuvBuffer() );
-
-    //-- JVT-R091
-    if ( bReconstruct && rcMbDataAccess.getMbData().getSmoothedRefFlag() )
-    {
-      IntYuvMbBuffer cMbBuffer;
-
-      // obtain P
-      cMbBuffer.loadLuma  ( cYuvMbBuffer );
-      cMbBuffer.loadChroma( cYuvMbBuffer );
-
-      // P+Rb
-      cMbBuffer.add( cBaseLayerBuffer );
-
-      // S(P+Rb)
-      pcRecYuvBuffer->loadBuffer( &cMbBuffer );
-      pcRecYuvBuffer->smoothMbInside();
-      if ( rcMbDataAccess.isAboveMbExisting() )
-      {
-        pcRecYuvBuffer->smoothMbTop();
-      }
-      if ( rcMbDataAccess.isLeftMbExisting() )
-      {
-        pcRecYuvBuffer->smoothMbLeft();
-      }
-
-      // store new prediction
-      cYuvMbBuffer.loadBuffer  ( pcRecYuvBuffer    );
-      cYuvMbBuffer.subtract    ( cBaseLayerBuffer  );
-
-      // update rcPredBuffer
-      rcPredBuffer.loadLuma   ( cYuvMbBuffer      );
-      rcPredBuffer.loadChroma ( cYuvMbBuffer      );
-    }
-    //--
 
     cYuvMbBufferResidual.add( cBaseLayerBuffer );
     //--- set CBP ---

@@ -108,11 +108,14 @@ public:
   ErrVal        init            ( BitReadBuffer*    pcBitReadBuffer   );
   ErrVal        destroy         ();
 
-  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, // Bool* KeyPicFlag, //bug-fix suffix shenqiu
-                                  UInt& uiNumBytesRemoved, //FIX_FRAG_CAVLC
-                                  Bool bPreParseHeader = true,
-                                  Bool bConcatenated = false, //FRAG_FIX
-                                  Bool bCheckGap = false); //TMM_EC
+  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, 
+                                  //Bool*             KeyPicFlag, 
+                                  UInt&             uiNumBytesRemoved,            //FIX_FRAG_CAVLC
+	                                Bool              bPreParseHeader     = true,
+                                  Bool              bConcatenated       = false,  //FRAG_FIX
+		                              Bool              bCheckGap           = false,  //TMM_EC
+                                  UInt*             puiNumFragments     = 0,
+                                  UChar**           ppucFragBuffers     = 0 ); 
   ErrVal        closeNalUnit    ();
 
   NalUnitType   getNalUnitType  ()      { return m_eNalUnitType;    }

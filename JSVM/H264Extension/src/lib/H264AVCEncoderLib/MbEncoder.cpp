@@ -551,16 +551,22 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
   {
     ROF( pcBaseLayerSbb );
     cBaseLayerBuffer    .loadBuffer ( pcBaseLayerSbb->getFullPelYuvBuffer() );
-    if( ! cBaseLayerBuffer.isZero() ) // HS: search only with residual prediction, when residual signal is non-zero
     {
       m_pcIntOrgMbPelData->subtract   ( cBaseLayerBuffer );
 
-    if( ! pcMbDataAccessBase->getMbData().isIntra() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
+      if( ! pcMbDataAccessBase->getMbData().isIntra() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
       {
         //--- only if base layer is in inter mode ---
           // TMM_ESS
-        if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
+        if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && ! cBaseLayerBuffer.isZero() ) 
           RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, iSpatialScalabilityType,  pcMbDataAccessBase, true ) );
+#if 0
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) ) 				
+#else
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) && pcRefFrameList0Base == 0 ) 				
+#endif
+			    RNOK( xEstimateMbSR				( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerSbb, 
+            pcMbDataAccessBase, true, pcBaseLayerRec ) );
       }
 
     if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
@@ -634,7 +640,6 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
       cBaseLayerBuffer    .loadBuffer ( pcBaseLayerSbb->getFullPelYuvBuffer() );
       m_pcIntOrgMbPelData->subtract( cBaseLayerBuffer );
     }
-
     if(m_pcIntMbBestData->getMbDataAccess().getMbData().isTransformSize8x8())
     {
       RNOK( xSetRdCost8x8InterMb( *m_pcIntMbBestData, pcMbDataAccessBase, *pcRefFrameList0Base, cRefFrameList1 ) );
@@ -643,7 +648,6 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
     {
       RNOK( xSetRdCostInterMb   ( *m_pcIntMbBestData, pcMbDataAccessBase, *pcRefFrameList0Base, cRefFrameList1 ) );
     }
-
     if( bResidualPredUsed )
       m_pcIntOrgMbPelData->add( cBaseLayerBuffer );
 
@@ -659,7 +663,6 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
       RNOK  ( xEstimateMbSkip     ( m_pcIntMbTempData, m_pcIntMbBestData, *pcRefFrameList0Base, cRefFrameList1 ) );
     }
   }
-
   m_pcTransform->setClipMode( true );
 
   //==== normal intra modes =====
@@ -674,8 +677,6 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
 
   RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
   xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, false, &cBaseLayerBuffer  );
-
-
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
@@ -810,6 +811,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
 
 ErrVal
 MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
+                           IntFrame*      pcOrgFrame, 
                            IntFrame*      pcFrame,
                            IntFrame*      pcResidual,
                            IntFrame*      pcBaseSubband,
@@ -869,38 +871,19 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
     bSmoothedRef = ( iCnt == 2 );
     if ( bSmoothedRef )
     {
-      // obtain P & Rb
-      cPrdMbBuffer    .loadBuffer( pcSRFrame->getFullPelYuvBuffer()      );
-      cBaseResMbBuffer.loadBuffer( pcBaseSubband->getFullPelYuvBuffer()  );
+      IntYuvMbBuffer cNewResMbBuffer; 
 
-      // P+Rb & save to pcPredSR
-      cMbBuffer        .loadBuffer( pcSRFrame->getFullPelYuvBuffer()      );
-      cMbBuffer        .add       ( cBaseResMbBuffer                      );
-      pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cMbBuffer );
+      // load pre-stored S(P)
+      cNewPrdMbBuffer .loadBuffer     ( pcSRFrame->getFullPelYuvBuffer()	    );
 
-      // S(P+Rb) & save to cMbBuffer
-      pcSRFrame->getFullPelYuvBuffer()->smoothMbInside();
-      if ( rcMbDataAccess.isAboveMbExisting() )
-      {
-        pcSRFrame->getFullPelYuvBuffer()->smoothMbTop();
-      }
-      if ( rcMbDataAccess.isLeftMbExisting() )
-      {
-        pcSRFrame->getFullPelYuvBuffer()->smoothMbLeft();
-      }
-      cMbBuffer.loadBuffer( pcSRFrame->getFullPelYuvBuffer() );
+      // compute residual -> O-S(P)
+      cNewResMbBuffer .loadBuffer     ( pcOrgFrame->getFullPelYuvBuffer()     );
+      cNewResMbBuffer .subtract       ( cNewPrdMbBuffer                       );
 
-      // restore pcPredSR
-      pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cPrdMbBuffer );
+      // store new residual
+      m_pcIntOrgMbPelData->loadLuma 	( cNewResMbBuffer ); 
+      m_pcIntOrgMbPelData->loadChroma	( cNewResMbBuffer ); 
 
-      // compute new prediction -> S(P+Rb)-Rb
-      cNewPrdMbBuffer.loadLuma      ( cMbBuffer          );
-      cNewPrdMbBuffer.loadChroma    ( cMbBuffer          );
-      cNewPrdMbBuffer.subtract      ( cBaseResMbBuffer  );
-
-      // compute new residual -> O-S(P+Rb)+Rb
-      m_pcIntOrgMbPelData->add      ( cPrdMbBuffer      );
-      m_pcIntOrgMbPelData->subtract  ( cNewPrdMbBuffer    );
     }
     //--
 
@@ -1068,9 +1051,6 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
           //-- JVT-R091
           if ( bSmoothedRef )
           {
-            // update prediction signal
-            pcSRFrame->getFullPelYuvBuffer()->loadBuffer        ( &cNewPrdMbBuffer  );
-
             // set flag
             rcMbDataAccess.getMbData().setSmoothedRefFlag( true );
           }
@@ -1633,7 +1613,8 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
                                  RefFrameList&   rcRefFrameList0,
                                  RefFrameList&   rcRefFrameList1,
                                  Bool            bCalcMv,
-                                 Bool            bFaultTolerant )
+                                 Bool            bFaultTolerant,
+                                 Bool            bSR  )
 {
   IntYuvMbBuffer  cYuvMbBuffer;
 
@@ -1647,13 +1628,13 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
-        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv, bFaultTolerant ) );
+        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv, bFaultTolerant, ( bSR && rcMbDataAccess.getMbData().getSmoothedRefFlag() )  ) );
       }
     }
     else
     {
       //----- motion compensated prediction -----
-      RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv ) );
+      RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv, ( bSR && rcMbDataAccess.getMbData().getSmoothedRefFlag() ) ) );
     }
   }
 
@@ -1665,6 +1646,51 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
   return Err::m_nOK;
 }
 
+ErrVal
+MbEncoder::compensateMbSR ( MbDataAccess&     rcMbDataAccess,
+                            IntFrame*         pcSRFrame,
+                            RefFrameList&     rcRefFrameList0,
+                            RefFrameList&     rcRefFrameList1,
+                            MbDataAccess*     pcMbDataAccessBase )
+{
+  IntYuvMbBuffer  cYuvMbBuffer;
+  UInt            uiFwdBwd = 0;
+
+  ROF( pcMbDataAccessBase );
+
+  if( ! pcMbDataAccessBase->getMbData().isIntra() )
+  {
+    MbMode          eMbMode           = rcMbDataAccess.getMbData().getMbMode();
+    Bool            b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
+
+    //===== get prediction and copy to temp buffer =====
+    if( b8x8Mode )
+    {
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                                     &cYuvMbBuffer, false, false, true ) );
+      }
+    }
+    else
+    {
+      RNOK  ( m_pcMotionEstimation->compensateMb  ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
+                                                    &cYuvMbBuffer, false, true ) );
+    }
+
+  }
+  else
+  {
+    cYuvMbBuffer.setAllSamplesToZero();
+  }
+
+
+  RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra( rcMbDataAccess, &cYuvMbBuffer, getBaseLayerRec()));
+
+  //===== insert into frame =====
+  RNOK( pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
+  return Err::m_nOK;
+}
 
 ErrVal
 MbEncoder::compensateUpdate(  MbDataAccess&   rcMbDataAccess,
@@ -3351,7 +3377,7 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
     RNOK(     MbCoder::m_pcMbSymbolWriteIf->cbp       ( rcMbDataAccess ) );
 
     if( rcRefFrameList0.getActive() && !bBLSkip )
-    {
+    { 
       RNOK(   MbCoder::xWriteMotionPredFlags          ( rcMbDataAccess, eMbMode, LIST_0 ) );
       RNOK(   MbCoder::xWriteReferenceFrames          ( rcMbDataAccess, eMbMode, LIST_0 ) );
       RNOK(   MbCoder::xWriteMotionVectors            ( rcMbDataAccess, eMbMode, LIST_0 ) );
@@ -3423,31 +3449,14 @@ MbEncoder::xSetRdCostInterMbSR( IntMbTempData&  rcMbTempData,
     for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
     {
       RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                   &rcYuvMbBuffer, false, false ) );
+                                                   &rcYuvMbBuffer, false, false, true ) );
     }
   }
   else
   {
     RNOK  ( m_pcMotionEstimation->compensateMb  ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                  &rcYuvMbBuffer, false ) );
+                                                  &rcYuvMbBuffer, false, true ) );
   }
-
-  // compute smoothed reference prediction: P+Rb
-  IntYuvMbBuffer cBaseResMbBuffer;
-  cBaseResMbBuffer.loadBuffer  ( pcBaseLayerSbb->getFullPelYuvBuffer() );
-  rcYuvMbBuffer    .add        ( cBaseResMbBuffer );
-
-  // S(P+Rb)
-  // note: only pixels inside MB are considered
-  pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &rcYuvMbBuffer    );
-  pcBaseLayerSbb->getFullPelYuvBuffer()->smoothMbInside();
-
-  // S(P+Rb)-Rb
-  rcYuvMbBuffer.loadBuffer    ( pcBaseLayerSbb->getFullPelYuvBuffer() );
-  rcYuvMbBuffer.subtract      ( cBaseResMbBuffer );
-
-  // recover buffer
-  pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &cBaseResMbBuffer );
 
   if(pcBaseLayerRec)
   {
@@ -3575,6 +3584,7 @@ MbEncoder::xCheckInterMbMode8x8SR( IntMbTempData*&   rpcMbTempData,
     rpcMbTempData->setMbMode            (           pcMbRefData->getMbMode            () );
     rpcMbTempData->setBLSkipFlag        (           pcMbRefData->getBLSkipFlag        () );
     rpcMbTempData->setResidualPredFlags (           pcMbRefData->getResidualPredFlags () );
+    rpcMbTempData->setSmoothedRefFlag   ( true );
     rpcMbTempData->setBlkMode           ( B_8x8_0,  pcMbRefData->getBlkMode           ( B_8x8_0 ) );
     rpcMbTempData->setBlkMode           ( B_8x8_1,  pcMbRefData->getBlkMode           ( B_8x8_1 ) );
     rpcMbTempData->setBlkMode           ( B_8x8_2,  pcMbRefData->getBlkMode           ( B_8x8_2 ) );
@@ -3655,31 +3665,14 @@ MbEncoder::xSetRdCost8x8InterMbSR ( IntMbTempData&  rcMbTempData,
     for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
     {
       RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                   &rcYuvMbBuffer, false, false ) );
+                                                   &rcYuvMbBuffer, false, false, true ) );
     }
   }
   else
   {
     RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                              &rcYuvMbBuffer, false) );
+                                              &rcYuvMbBuffer, false, true ) );
   }
-
-  // compute smoothed reference prediction: P+Rb
-  IntYuvMbBuffer cBaseResMbBuffer;
-  cBaseResMbBuffer.loadBuffer  ( pcBaseLayerSbb->getFullPelYuvBuffer() );
-  rcYuvMbBuffer    .add        ( cBaseResMbBuffer );
-
-  // S(P+Rb)
-  // note: only pixels inside MB are considered
-  pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &rcYuvMbBuffer    );
-  pcBaseLayerSbb->getFullPelYuvBuffer()->smoothMbInside();
-
-  // S(P+Rb)-Rb
-  rcYuvMbBuffer.loadBuffer    ( pcBaseLayerSbb->getFullPelYuvBuffer() );
-  rcYuvMbBuffer.subtract      ( cBaseResMbBuffer );
-
-  // recover buffer
-  pcBaseLayerSbb->getFullPelYuvBuffer()->loadBuffer( &cBaseResMbBuffer );
 
   if(pcBaseLayerRec)
   {

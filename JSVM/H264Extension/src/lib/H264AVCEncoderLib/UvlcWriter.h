@@ -134,12 +134,6 @@ protected:
   ErrVal xWriteGolomb(UInt uiSymbol, UInt uiK);
   ErrVal xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen );
   ErrVal xRQencodeEobOffsets ( UInt* auiSeq, UInt uiLen );
-  UInt m_auiShiftLuma[16];
-  UInt m_auiShiftChroma[16];
-  UInt m_auiBestCodeTabMap[16];
-  UInt m_uiCbpStats[3][2];
-  UcSymGrpWriter* m_pSymGrp;
-  UInt m_uiCbpStat4x4[2];
 
 public:
   static ErrVal create( UvlcWriter*& rpcUvlcWriter, Bool bTraceEnable = true );
@@ -233,7 +227,7 @@ public:
   UInt xConvertToUInt( Int iValue )  {  return ( iValue <= 0) ? -iValue<<1 : (iValue<<1)-1; }
 
   Bool    RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, B8x8Idx c8x8Idx );
-  Bool    RQencodeBCBP_4x4( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, LumaIdx cIdx );
+  Bool    RQencodeBCBP_4x4( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase, Bool b8x8, LumaIdx cIdx );
   Bool    RQencodeCBP_Chroma( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase );
   Bool    RQencodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, ChromaIdx cIdx );
   Bool    RQencodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess, MbDataAccess&   rcMbDataAccessBase, ChromaIdx cIdx );
@@ -246,10 +240,10 @@ public:
                                       UInt            uiScanIndex,
                                       Bool&           rbLast,
                                       UInt&           ruiNumCoefWritten );
-  ErrVal  RQeo8b                    ( Bool&           bEob );
   ErrVal RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                         MbDataAccess&   rcMbDataAccessBase,
                                         ResidualMode    eResidualMode,
+                                        Bool            b8x8,
                                         LumaIdx         cIdx,
                                         UInt            uiScanIndex,
                                         Bool&           rbLast,
@@ -279,7 +273,7 @@ public:
                                     UInt            uiCtx );
   ErrVal RQencodeCycleSymbol( UInt uiCycle );
   ErrVal RQencodeTermBit ( UInt uiIsLast ) { return Err::m_nOK;}
-  Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+  Bool   RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, Bool b8x8, LumaIdx cIdx);
   ErrVal RQencodeEobOffsets_Luma ( UInt* auiSeq );
   ErrVal RQencodeEobOffsets_Chroma( UInt* auiSeq );
   ErrVal RQencodeBestCodeTableMap( UInt* auiTable, UInt uiMaxH );
@@ -287,6 +281,8 @@ public:
   ErrVal RQvlcFlush               ();
   ErrVal RQcompSepAlign           ();
   static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
+  BitWriteBufferIf* getWriteBuffer()    { return m_pcBitWriteBufferIf;  }
+  ErrVal RQreset( const SliceHeader& rcSliceHeader );
   ErrVal RQcountFragmentedSymbols();
   ErrVal resetFragmentedSymbols() {m_uiFragmentedSymbols = 0; return Err::m_nOK;}
 private:
@@ -308,6 +304,20 @@ protected:
   UInt  m_uiRefSymbols;
   UInt  m_uiCodedSymbols;
   UInt  m_uiFragmentedSymbols;
+
+  UInt m_auiShiftLuma[16];
+  UInt m_auiShiftChroma[16];
+  UInt m_auiBestCodeTabMap[16];
+  UInt m_uiCbpStats[3][2];
+  UcSymGrpWriter* m_pSymGrp; 
+  UInt m_uiCbpStat4x4[2];
+
+  // new variables for switching bitstream inputs
+  BitWriteBufferIf* m_apcFragBitBuffers [MAX_NUM_PD_FRAGMENTS];
+  UcSymGrpWriter*   m_apcFragSymGrps    [MAX_NUM_PD_FRAGMENTS];
+  UInt              m_uiNumFragments;
+  UInt              m_uiCurrentFragment;
+
 };
 
 class UcSymGrpWriter

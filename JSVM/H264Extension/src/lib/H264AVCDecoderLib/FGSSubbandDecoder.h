@@ -161,6 +161,38 @@ private:
 
   ErrVal            xDecodeMotionData             ( UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx );
+  ErrVal			      xDecodingFGSBlock             ( SliceHeader*    pcSliceHeader 	);
+  ErrVal            xResidualBlock                ( MbDataAccess&   rcMbDataAccess,
+                                                    MbDataAccess&   rcMbDataAccessBase,
+                                                    ResidualMode    eResidualMode,
+                                                    UInt            uiStride,
+                                                    UInt            uiBlkIdx,
+                                                    UInt&           uiBcbp,
+                                                    Bool            bDecodeBcbpInside,
+                                                    Int*            piMaxPos, 
+                                                    RefCtx*         pcRefCtx, 
+                                                    UInt&           ruiNumFrags,
+                                                    UInt&           ruiCoeffsDecoded );
+
+  ErrVal            xResidualBlock                ( MbDataAccess&   rcMbDataAccess,
+                                                    MbDataAccess&   rcMbDataAccessBase,
+                                                    LumaIdx         cIdx, 
+                                                    ResidualMode    eResidualMode,
+                                                    UInt            uiStride,
+                                                    Int*            piMaxPos, 
+                                                    UInt&           ruiNumFrags,
+                                                    MbFGSCoefMap &  rcMbFGSCoefMap, 
+                                                    UInt&           ruiCoeffsDecoded );
+
+  ErrVal            xResidualBlock                ( MbDataAccess&   rcMbDataAccess,
+                                                    MbDataAccess&   rcMbDataAccessBase,
+                                                    ChromaIdx       cIdx, 
+                                                    ResidualMode    eResidualMode,
+                                                    Int*            piMaxPos, 
+                                                    UInt&           ruiNumFrags,
+                                                    MbFGSCoefMap &  rcMbFGSCoefMap, 
+                                                    UInt&           ruiCoeffsDecoded );
+
   ErrVal            xDecodeNewCoefficientLumaMb   ( MbDataAccess*       pcMbDataAccessBL,
                                                     MbDataAccess*       pcMbDataAccessEL,
                                                     MbFGSCoefMap       &rcMbFGSCoefMap,
@@ -169,12 +201,6 @@ private:
                                                     Int&                riLastQp,
                                                     Int                 iLumaScanIdx,
                                                     UInt                uiMaxPosLuma );
-
-  ErrVal            xDecodeSigHeadersLuma         ( MbDataAccess*       pcMbDataAccessBL,
-                                                    MbDataAccess*       pcMbDataAccessEL,
-                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    const B8x8Idx      &rc8x8Idx,
-                                                    Int&                riLastQp );
 
   ErrVal            xDecodeNewCoefficientLuma     ( MbDataAccess*       pcMbDataAccessBL,
                                                     MbDataAccess*       pcMbDataAccessEL,
@@ -209,6 +235,11 @@ private:
                                                     UInt                uiScanIdx );
   ErrVal            xInitializeMacroblockQPs      ();
 
+
+  ErrVal            xDecodeMbHeader               ( MbDataAccess*       pcMbDataAccessBL,
+                                                    MbDataAccess*       pcMbDataAccessEL,
+                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
+                                                    Int&                riLastQp );
 
 private:
   MbSymbolReadIf*   m_pcSymbolReader;

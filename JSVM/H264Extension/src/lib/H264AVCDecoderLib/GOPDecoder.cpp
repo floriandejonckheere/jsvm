@@ -2209,7 +2209,8 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
                                   RefFrameList& rcRefFrameList0,
                                   RefFrameList& rcRefFrameList1,
                                   MbDataCtrl*   pcMbDataCtrl,
-                                  SliceHeader&  rcSH )
+                                  SliceHeader&  rcSH, 
+                                  Bool          bSR )
 {
   RNOK( pcMbDataCtrl          ->initSlice( rcSH, PRE_PROCESS, true, NULL ) );
   RNOK( m_pcMotionCompensation->initSlice( rcSH              ) );
@@ -2235,7 +2236,7 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
     if( ! pcMbDataAccess->getMbData().isIntra() )
     {
       IntYuvMbBuffer cYuvMbBuffer;
-      RNOK( m_pcMotionCompensation->xCompensateMbAllModes( *pcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer ) );
+      RNOK( m_pcMotionCompensation->xCompensateMbAllModes( *pcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bSR ) );
       RNOK( m_pcMotionCompensation->compensateMbBLSkipIntra(*pcMbDataAccess, &cYuvMbBuffer, m_pcBaseLayerFrame));
       RNOK( pcMCFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
     }
@@ -2244,63 +2245,6 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
   return Err::m_nOK;
 }
 
-
-ErrVal
-MCTFDecoder::xFixMCPrediction( IntFrame*    pcMCFrame,
-                               ControlData& rcCtrlData )
-{
-  ROFRS( rcCtrlData.getBaseLayerSbb(), Err::m_nOK );
-
-  MbDataCtrl*       pcMbDataCtrl    = rcCtrlData.getMbDataCtrl          ();
-  SliceHeader*      pcSliceHeader    = rcCtrlData.getSliceHeader          ();
-  IntYuvPicBuffer*  pcPicBuffer      = pcMCFrame->getFullPelYuvBuffer    ();
-  IntYuvPicBuffer*  pcBaseResBuffer  = rcCtrlData.getBaseLayerSbb        ()->getFullPelYuvBuffer();
-
-  RNOK( pcMbDataCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
-
-  IntYuvMbBuffer cBaseResMbBuffer, cPrdMbBuffer;
-
-  for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
-  {
-    UInt          uiMbY           = uiMbIndex / m_uiFrameWidthInMb;
-    UInt          uiMbX           = uiMbIndex % m_uiFrameWidthInMb;
-    MbDataAccess* pcMbDataAccess  = 0;
-
-    RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
-    RNOK( m_pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX ) );
-
-    if( pcMbDataAccess->getMbData().getSmoothedRefFlag() )
-    {
-      // load P & Rb
-      cPrdMbBuffer    .loadBuffer  ( pcPicBuffer        );
-      cBaseResMbBuffer.loadBuffer  ( pcBaseResBuffer    );
-
-      // compute prediction: S(P+Rb)-Rb
-      cPrdMbBuffer    .add        ( cBaseResMbBuffer  );
-      pcPicBuffer->loadBuffer      ( &cPrdMbBuffer      );
-
-      pcPicBuffer->smoothMbInside();
-#if 0 // currently not used
-      if ( pcMbDataAccess->isAboveMbExisting() )
-      {
-        pcBQPicBuffer->smoothMbTop();
-      }
-      if ( pcMbDataAccess->isLeftMbExisting() )
-      {
-        pcBQPicBuffer->smoothMbLeft();
-      }
-#endif
-
-      cPrdMbBuffer.loadBuffer      ( pcPicBuffer      );
-      cPrdMbBuffer.subtract        ( cBaseResMbBuffer  );
-
-      // store prediction
-      pcPicBuffer->loadBuffer      ( &cPrdMbBuffer      );
-    }
-  }
-
-  return Err::m_nOK;
-}
 
 ErrVal
 MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T054
@@ -2356,13 +2300,11 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
       {
         setBaseMbDataCtrl(rcControlData.getBaseLayerCtrl());
 
-        //----- "normal" motion-compensated prediction -----
         RNOK( xMotionCompensation( m_pcPredSignal,
                                   rcControlData.getPrdFrameList( LIST_0 ),
                                   rcControlData.getPrdFrameList( LIST_1 ),
                                   m_pcRQFGSDecoder->getMbDataCtrl(),
-                                  *pcSliceHeader ) );
-        RNOK( xFixMCPrediction   ( m_pcPredSignal, rcControlData ) );
+                                  *pcSliceHeader, true ) );
       }
     }
 
@@ -2910,6 +2852,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
                                    &rcControlData.getPrdFrameList( LIST_1 ),
                    false,
                                    rcControlData.getSpatialScalability() ) );  // SSUN@SHARP
+
     //----- store in DPB with base representation -----
     RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcBaseRepFrame, rpcSliceHeader->getQualityLevel(), bRef) );
   }

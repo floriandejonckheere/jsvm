@@ -225,6 +225,14 @@ public:
   const Int xxxgetSIdx()                            const { return m_iSIdx; }
   ParIdx8x8 b8x8()                                  const { return ParIdx8x8(m_iIdx); }
   Par8x8    b8x8Index()                             const { return Par8x8(m_iSIdx>>2); }
+  B8x8Idx( LumaIdx cIdx )
+  {
+    UInt    uiB8x8  = (cIdx.y() / 2) * 2 + (cIdx.x() / 2);
+    Par8x8  ePar8x8 = Par8x8(uiB8x8);
+    m_iSIdx =  ePar8x8 << 2;
+    convert();
+  }
+
 protected:
   Int convert()                                           { return m_iIdx = g_aucConvertBlockOrder[m_iSIdx]; }
   B8x8Idx(Int i) : m_iSIdx( i<<2 )                        { convert(); }

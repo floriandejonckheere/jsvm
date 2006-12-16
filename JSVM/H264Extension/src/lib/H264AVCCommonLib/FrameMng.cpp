@@ -395,7 +395,7 @@ FrameMng::updateLastFrame( IntFrame* pcSrcFrame )  // MGS fix by Heiko Schwarz
   ROF   ( m_pcCurrentFrameUnit );
   ROFRS ( m_pcCurrentFrameUnit->isUsed       (), Err::m_nOK );
 
-  ROF   ( m_pcCurrentFrameUnit->getMaxPOC    () == pcSrcFrame->getPOC() );
+  ROFRS ( m_pcCurrentFrameUnit->getMaxPOC    () == pcSrcFrame->getPOC(), Err::m_nOK );
   ROF   ( m_pcCurrentFrameUnit->getPicBuffer () );
   ROT   ( m_pcCurrentFrameUnit->getBaseRep   () );
 

@@ -1198,7 +1198,8 @@ ErrVal MbParser::xReadMotionPredFlags( MbDataAccess&  rcMbDataAccess,
                                        MbMode         eMbMode,
                                        ListIdx        eLstIdx )
 {
-  ROFRS ( rcMbDataAccess.getSH().getAdaptivePredictionFlag(), Err::m_nOK );
+  ROTRS( rcMbDataAccess.getSH     ().getBaseLayerId     () == MSYS_UINT_MAX,  Err::m_nOK );
+  ROFRS( rcMbDataAccess.getMbData ().getInCropWindowFlag(),                   Err::m_nOK );
 
   MbMotionData& rcMbMotionData = rcMbDataAccess.getMbMotionData( eLstIdx );
 

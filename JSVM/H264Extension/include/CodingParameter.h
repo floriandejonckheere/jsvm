@@ -672,6 +672,7 @@ public:
     , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
     , m_uiSuffixUnitEnable        (0)  //JVT-S036 lsj
     , m_uiMMCOBaseEnable            ( 0 ) //JVT-S036 lsj
+    , m_bFGSParallelDecodingFlag          ( false )
 //JVT-T073 {
     , m_uiNestingSEIEnable              ( 0 )
     , m_uiSceneInfoEnable               ( 0 )
@@ -835,6 +836,9 @@ public:
   UInt                            getLowPassFgsMcFilter   ()            { return m_uiLowPassFgsMcFilter;  }
 
   Int                getNonRequiredEnable    ()      { return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
+  Void                            setFGSParallelDecodingFlag  ( Bool bFlag )  { m_bFGSParallelDecodingFlag = bFlag; }
+  Bool                            getFGSParallelDecodingFlag  ()              { return m_bFGSParallelDecodingFlag;  }
+
 //JVT-T054{
   UInt                            getCGSSNRRefinement     ()              const   { return m_uiCGSSNRRefinementFlag;}
   UInt                            getMaxLayerCGSSNR       ()              const   { return m_uiMaxLayerCGSSNR;}
@@ -925,6 +929,8 @@ protected:
 
   UInt            m_uiSuffixUnitEnable; //JVT-S036 lsj
   UInt            m_uiMMCOBaseEnable;  //JVT-S036 lsj
+
+  Bool            m_bFGSParallelDecodingFlag;
 
 //JVT-T054{
   UInt                      m_uiCGSSNRRefinementFlag;

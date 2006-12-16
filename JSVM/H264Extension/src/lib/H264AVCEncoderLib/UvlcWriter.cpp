@@ -330,6 +330,16 @@ UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
   m_bRunLengthCoding( false ),
   m_uiRun( 0 )
 {
+  UInt ui;
+
+  for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ )
+  {
+    m_apcFragBitBuffers [ui] = 0;
+    m_apcFragSymGrps    [ui] = 0;
+  }
+
+  m_uiCurrentFragment = 0;
+  m_uiNumFragments    = 0;
   m_pSymGrp    = new UcSymGrpWriter( this );
 }
 
@@ -412,6 +422,8 @@ ErrVal UvlcWriter::startSlice( const SliceHeader& rcSliceHeader )
 {
   m_bRunLengthCoding  = ! rcSliceHeader.isIntra();
   m_uiRun             = 0;
+  RQreset( rcSliceHeader );
+
   return Err::m_nOK;
 }
 
@@ -1612,15 +1624,33 @@ UvlcWriter::RQencodeCBP_8x8( MbDataAccess& rcMbDataAccess,
 Bool
 UvlcWriter::RQpeekCbp4x4( MbDataAccess&  rcMbDataAccess,
                           MbDataAccess&  rcMbDataAccessBase,
+                          Bool           b8x8,
                           LumaIdx        cIdx )
 {
   UInt    uiSymbol  = 0;
-  TCoeff* piCoeff   = rcMbDataAccess.    getMbTCoeffs().get( cIdx );
-  TCoeff* piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+  TCoeff* piCoeff;
+  TCoeff* piBCoeff;
+  const UChar*  pucScan;
+  UInt    uiOffset8x8   = (cIdx.y() % 2) * 2 + (cIdx.x() % 2);
+  B8x8Idx c8x8Idx(cIdx);
+
+  if( b8x8 )
+  {
+    piCoeff   = rcMbDataAccess.    getMbTCoeffs().get8x8( c8x8Idx );
+    piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
+    pucScan   = g_aucFrameScan64;
+  }
+  else
+  {
+    piCoeff   = rcMbDataAccess.    getMbTCoeffs().get( cIdx );
+    piBCoeff  = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+    pucScan   = g_aucFrameScan;
+  }
 
   for( UInt ui = 0; ui < 16; ui++ )
   {
-    if( piCoeff[ g_aucFrameScan[ui] ] && !piBCoeff[ g_aucFrameScan[ui] ] )
+    UInt uiScanIdx = b8x8 ? (ui * 4 + uiOffset8x8) : ui;
+    if( piCoeff[ pucScan[uiScanIdx] ] && !piBCoeff[ pucScan[uiScanIdx] ] )
     {
       uiSymbol = 1;
       break;
@@ -1632,6 +1662,7 @@ UvlcWriter::RQpeekCbp4x4( MbDataAccess&  rcMbDataAccess,
 Bool
 UvlcWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
                                MbDataAccess&  rcMbDataAccessBase,
+                               Bool           b8x8,
                                LumaIdx        cIdx )
 {
   if ( (cIdx.x() %2) == 0 && (cIdx.y() %2) == 0)
@@ -1647,8 +1678,10 @@ UvlcWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
       {
         UInt uiSymbol = 0;
         B4x4Idx cTmp(iY*4+iX);
-        uiSymbol = RQpeekCbp4x4(rcMbDataAccess, rcMbDataAccessBase, cTmp);
-        rcMbDataAccessBase.getMbData().setBCBP( cTmp, uiSymbol );
+        uiSymbol = RQpeekCbp4x4(rcMbDataAccess, rcMbDataAccessBase, b8x8, cTmp);
+
+        rcMbDataAccess.getMbData().setBCBP( cTmp, uiSymbol );
+
         uiCode <<= 1;
         uiCode |= uiSymbol;
         uiLen++;
@@ -1673,7 +1706,8 @@ UvlcWriter::RQencodeBCBP_4x4( MbDataAccess&  rcMbDataAccess,
     ETRACE_V( uiCode );
     ETRACE_N;
   }
-  return RQpeekCbp4x4(rcMbDataAccess, rcMbDataAccessBase, cIdx);
+
+  return RQpeekCbp4x4(rcMbDataAccess, rcMbDataAccessBase, b8x8, cIdx);
 }
 
 Bool
@@ -1797,13 +1831,6 @@ UvlcWriter::RQencode8x8Flag( MbDataAccess& rcMbDataAccess,
 }
 
 ErrVal
-UvlcWriter::RQeo8b( Bool& bEob )
-{
-  RNOK( xWriteFlag( bEob ? 1 : 0 ) );
-  return Err::m_nOK;
-}
-
-ErrVal
 UvlcWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase,
                                     B8x8Idx         c8x8Idx,
@@ -1839,25 +1866,51 @@ ErrVal
 UvlcWriter::RQencodeNewTCoeff_Luma ( MbDataAccess&   rcMbDataAccess,
                                       MbDataAccess&   rcMbDataAccessBase,
                                       ResidualMode    eResidualMode,
+                                      Bool            b8x8,
                                       LumaIdx         cIdx,
                                       UInt            uiScanIndex,
                                       Bool&           rbLast,
                                       UInt&           ruiNumCoefWritten )
 {
-  TCoeff*       piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
-  TCoeff*       piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
-  const UChar*  pucScan     = g_aucFrameScan;
-  UInt          uiStart     = 0;
-  UInt          uiStop      = 16;
+  TCoeff*       piCoeff;
+  TCoeff*       piCoeffBase;
+  const UChar*  pucScan;
+  UInt          uiStart;
+  UInt          uiStop;
+  UInt          uiStride;
+
+  if( b8x8 )
+  {
+    UInt    uiOffset8x8   = (cIdx.y() % 2) * 2 + (cIdx.x() % 2);
+    B8x8Idx c8x8Idx(cIdx);
+
+    piCoeff     = rcMbDataAccess    .getMbTCoeffs().get8x8( c8x8Idx );
+    piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx );
+    pucScan     = g_aucFrameScan64;
+    uiStart     = uiOffset8x8;
+    uiStop      = 64;
+    uiStride    = 4;
+    uiScanIndex = uiScanIndex * 4 + uiOffset8x8;
+  }
+  else
+  {
+    piCoeff     = rcMbDataAccess    .getMbTCoeffs().get( cIdx );
+    piCoeffBase = rcMbDataAccessBase.getMbTCoeffs().get( cIdx );
+    pucScan     = g_aucFrameScan;
+    uiStart     = 0;
+    uiStop      = 16;
+    uiStride    = 1;
+  }
 
   ROT( piCoeffBase[pucScan[uiScanIndex]] );
 
-  ETRACE_T( "LUMA_4x4_NEW" );
+  ETRACE_T( "LUMA_4x4_NEW blk/scan" );
   ETRACE_V( cIdx.b4x4() );
   ETRACE_V( uiScanIndex );
   ETRACE_N;
 
-  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, 1, pucScan, uiScanIndex, m_auiShiftLuma, rbLast, ruiNumCoefWritten ) );
+  RNOK( xRQencodeNewTCoeffs( piCoeff, piCoeffBase, uiStart, uiStop, uiStride, pucScan, uiScanIndex, m_auiShiftLuma, rbLast, ruiNumCoefWritten ) );
+
   return Err::m_nOK;
 }
 
@@ -1902,14 +1955,13 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
 {
   UInt ui;
 
-  UInt uiCycle = 0;
+  UInt uiCycle = uiStart/uiStride;
   for ( ui=uiStart; ui<uiScanIndex; ui+=uiStride )
   {
-    if ( !piCoeffBase[pucScan[ui]] && piCoeff[pucScan[ui]] )
-    {
+    if ( piCoeffBase[pucScan[ui]] || piCoeff[pucScan[ui]] )
       uiCycle = ui/uiStride + 1;
-    }
   }
+
   AOF( uiCycle < uiStop );
   Bool bSkipEob = !rbLast;
   ruiNumCoefWritten = 0;
@@ -1935,7 +1987,7 @@ UvlcWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
           uiLastPos++;
         if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
         {
-          uiLastPos = 1;
+          uiLastPos = 0;
         }
       }
       RNOK( xRQencodeSigMagGreater1( piCoeff, piCoeffBase, uiLastPos, uiStart, uiStop, uiCycle, pucScan, uiCountMag2, uiStride ) );
@@ -2521,6 +2573,13 @@ ErrVal
 UvlcWriter::RQcompSepAlign()
 {
   RNOK( m_pcBitWriteBufferIf->writeAlignZero() );
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::RQreset( const SliceHeader& rcSliceHeader )
+{
+  m_pSymGrp->Init();
   return Err::m_nOK;
 }
 

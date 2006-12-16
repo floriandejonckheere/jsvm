@@ -178,8 +178,7 @@ protected:
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   Bool              bReconstruct,
-                                  IntFrame*         pcBaseLayerRec = 0
-                                  );
+                                  IntFrame*         pcBaseLayerRec = 0 );
   ErrVal xDecodeChroma          ( MbDataAccess&     rcMbDataAccess,
                                   IntYuvMbBuffer&   rcRecYuvBuffer,
                                   IntYuvMbBuffer&   rcPredBuffer,

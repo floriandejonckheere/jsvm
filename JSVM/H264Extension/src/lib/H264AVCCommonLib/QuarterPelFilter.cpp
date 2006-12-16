@@ -874,6 +874,129 @@ Void QuarterPelFilter::xXFilter4( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt u
 
 
 
+Void QuarterPelFilter::predBlkSR( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
+{
+  XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
+  XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );
+  Int   iDesStride  = pcDesBuffer->getLStride();
+  Int   iSrcStride  = pcSrcBuffer->getLStride();
+  Int   iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
+  XPel  ucTmpBlk[16];
+  XPel  ucExtBlk[18*16];    // max size of internal block buffer 
+  XPel* pucExtBlk;
+  Int   x, y;
+
+  // TO BE FIXED: currently do not smooth across MB boundary, need to fix 
+  pucSrc += iOffset;
+
+  Int iDx = cMv.getHor() & 3;
+  Int iDy = cMv.getVer() & 3;
+
+  if( iDx == 0 && iDy == 0 )
+  {
+    pucExtBlk  = ucExtBlk;
+    pucSrc    -= iSrcStride;
+    for( y = -1; y < iSizeY+1; y++)
+    {
+      for( x = 0; x < iSizeX; x++ )
+        pucExtBlk[x] = pucSrc[x-1] + pucSrc[x]*2 + pucSrc[x+1];
+      
+      pucExtBlk += 16;
+      pucSrc    += iSrcStride;
+    }
+    
+    pucDes     = pcDesBuffer->getYBlk( cIdx );
+    pucExtBlk  = ucExtBlk + 16;
+    for( x = 0; x < iSizeX; x++)
+    {
+      for( y = 0; y < iSizeY; y++ )
+      {
+        ucTmpBlk[y] = (pucExtBlk[x+(y-1)*16] + pucExtBlk[x+y*16]*2 + pucExtBlk[x+(y+1)*16] + 8) >> 4;
+      }
+
+      for( y = 0; y < iSizeY; y++ )
+        pucDes[x + y*iDesStride] = ucTmpBlk[y];
+    }
+  }
+  else if ( iDx == 0 ) // iDy != 0
+  {
+    pucExtBlk  = ucExtBlk;
+    for( y = 0; y < iSizeY+1; y++)
+    {
+      for( x = 0; x < iSizeX; x++ )
+        pucExtBlk[x] = pucSrc[x-1] + pucSrc[x]*2 + pucSrc[x+1];
+      
+      pucExtBlk += 16;
+      pucSrc    += iSrcStride;
+    }
+
+    pucDes    = pcDesBuffer->getYBlk( cIdx );
+    pucExtBlk = ucExtBlk;
+    for( y = 0; y < iSizeY; y++)
+    {
+      for( x = 0; x < iSizeX; x++ )
+        pucDes[x] = (pucExtBlk[x] * (4 - iDy) + pucExtBlk[x + 16] * iDy + 8 ) >> 4;
+
+      pucExtBlk += 16;
+      pucDes    += iDesStride;
+    }
+  }
+  else if ( iDy == 0 ) // iDx != 0
+  {
+    pucExtBlk  = ucExtBlk;
+    pucSrc    -= iSrcStride; 
+    for( y = -1; y < iSizeY+1; y++)
+    {
+      for( x = 0; x < iSizeX; x++ )
+      {
+        pucExtBlk[x] = (pucSrc[x] * (4 - iDx) + pucSrc[x + 1] * iDx );
+      }
+
+      pucExtBlk += 16;
+      pucSrc    += iSrcStride;
+    }
+
+    pucDes     = pcDesBuffer->getYBlk( cIdx );
+    pucExtBlk  = ucExtBlk+16;
+    for( y = 0; y < iSizeY; y++ )
+    {
+      for( x = 0; x < iSizeX; x++)
+      {
+        pucDes[x] = (pucExtBlk[x - 16] + pucExtBlk[x]*2 + pucExtBlk[x + 16] + 8) >> 4;
+      }
+
+      pucExtBlk += 16;
+      pucDes    += iDesStride;
+    }
+  }
+  else // if (iDx != 0 && iDy != 0) 
+  {
+    pucExtBlk  = ucExtBlk;
+    for( y = 0; y < iSizeY+1; y++)
+    {
+      for( x = 0; x < iSizeX; x++ )
+      {
+        pucExtBlk[x] = (pucSrc[x] * (4 - iDx) + pucSrc[x + 1] * iDx );
+      }
+
+      pucExtBlk += 16;
+      pucSrc    += iSrcStride;
+    }
+
+    pucDes    = pcDesBuffer->getYBlk( cIdx );
+    pucExtBlk = ucExtBlk;
+    for( y = 0; y < iSizeY; y++)
+    {
+      for( x = 0; x < iSizeX; x++ )
+        pucDes[x] = (pucExtBlk[x] * (4 - iDy) + pucExtBlk[x + 16] * iDy + 8 ) >> 4;
+
+      pucExtBlk += 16;
+      pucDes    += iDesStride;
+    }
+  }
+}
+
+
 Void QuarterPelFilter::predBlkBilinear( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
 {
   XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );

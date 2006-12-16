@@ -123,6 +123,7 @@ public:
   //===== BCBP =====
   Bool    RQencodeBCBP_4x4        ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase,
+                                    Bool            b8x8,
                                     LumaIdx         cIdx );
   Bool    RQencodeBCBP_ChromaDC   ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase,
@@ -153,7 +154,6 @@ public:
                                      UInt            uiScanIndex,
                                      Bool&           rbLast,
                                      UInt&           ruiNumCoefWritten );
-  ErrVal  RQeo8b                   ( Bool&           bEob );
   ErrVal  RQencodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
@@ -162,6 +162,7 @@ public:
   ErrVal  RQencodeNewTCoeff_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
+                                     Bool            b8x8,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex,
                                      Bool&           rbLast,
@@ -186,7 +187,7 @@ public:
                                      UInt            uiCtx );
 
   ErrVal  RQencodeCycleSymbol      ( UInt            uiCycle );
-  Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+  Bool    RQpeekCbp4x4(MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbDataAccessBase, Bool b8x8, LumaIdx cIdx);
   ErrVal  RQencodeEobOffsets_Luma  ( UInt* pauiSeq ) { return Err::m_nOK; };
   ErrVal  RQencodeEobOffsets_Chroma( UInt* pauiSeq ) { return Err::m_nOK; };
   ErrVal  RQencodeBestCodeTableMap ( UInt* pauiTable, UInt uiMaxH ) { return Err::m_nOK; };
@@ -234,6 +235,18 @@ public:
   ErrVal  BLSkipFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  terminatingBit ( UInt uiIsLast );
   UInt getNumberOfWrittenBits();
+  BitWriteBufferIf* getWriteBuffer()    
+  {
+    return m_pcBitWriteBufferIf;
+  }
+  ErrVal  RQreset( const SliceHeader& rcSliceHeader )
+  {
+    RNOK( xInitContextModels( rcSliceHeader ) );
+
+    RNOK( CabaEncoder::start() );
+
+    return Err::m_nOK;  
+  }
 
 protected:
   ErrVal xInitContextModels( const SliceHeader& rcSliceHeader );
@@ -306,6 +319,11 @@ protected:
   UInt m_uiPosCounter;
   UInt m_uiLastDQpNonZero;
   Bool m_bTraceEnable;
+
+  // new variables for switching bitstream inputs
+  CabaEncoder*    m_apcCabacEncoder [MAX_NUM_PD_FRAGMENTS];
+  UInt            m_uiNumFragments;
+  UInt            m_uiCurrentFragment;
 };
 
 

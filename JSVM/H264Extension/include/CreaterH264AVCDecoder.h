@@ -150,21 +150,24 @@ public:
                       UInt&             uiSize
             //,UInt&        uiNonRequiredPic //NonRequired JVT-Q066
                         //JVT-P031
-                      ,Bool              bPreParseHeader //FRAG_FIX
-                      , Bool      bConcatenated //FRAG_FIX_3
-                      ,Bool&             rbStartDecoding,
+                     ,Bool              bPreParseHeader //FRAG_FIX
+                     ,Bool              bConcatenated //FRAG_FIX_3
+                     ,Bool&             rbStartDecoding,
                       UInt&             ruiStartPos,
                       UInt&             ruiEndPos,
-                      Bool&              bFragmented,
-                      Bool&              bDiscardable
+                      Bool&             bFragmented,
+                      Bool&             bDiscardable
                       //~JVT-P031
+                      , Bool*           pbFgsParallelDecoding = 0
+                      , UInt*           puiNumFragments       = 0
+                      , UChar**         ppucFragBuffers       = 0 
                       );
 //JVT-S036 lsj start
   ErrVal initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
-                                  UInt&             ruiNalUnitType,
-                               Bool             bPreParseHeader,
-                                  Bool      bConcatenated,
-                          Bool&       rbStarDecoding
+                           UInt&             ruiNalUnitType,
+                           Bool              bPreParseHeader,
+                           Bool              bConcatenated,
+                           Bool&             rbStarDecoding
                           ,CreaterH264AVCDecoder*   pcH264AVCDecoder
                           ,Bool&    SuffixEnable
              );
@@ -251,6 +254,8 @@ struct PacketDescription
   UInt uiPId;
   Bool bDiscardable;//JVT-P031
   Bool bFragmentedFlag;//JVT-P031
+  UInt  uiFragmentOrder;
+  Bool  bLastFragmentFlag;
   UInt NalRefIdc;
 
   //-- 2006.0604

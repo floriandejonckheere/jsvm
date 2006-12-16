@@ -518,7 +518,9 @@ MbCoder::xWriteMotionPredFlags( MbDataAccess&  rcMbDataAccess,
 {
   AOT_DBG( rcMbDataAccess.getMbData().isIntra() );
 
-  ROFRS  ( rcMbDataAccess.getSH().getAdaptivePredictionFlag (), Err::m_nOK );
+  MbDataAccess* pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
+  ROFRS  ( pcMbDataAccessBase,                                    Err::m_nOK );
+  ROFRS  ( pcMbDataAccessBase->getMbData().getInCropWindowFlag(), Err::m_nOK );
 
   switch( eMbMode )
   {

@@ -112,7 +112,16 @@ public:
   ErrVal init() { return Err::m_nOK; }
   ErrVal uninit() { return Err::m_nOK; }
 
-  ErrVal initPacket( ULong* puiBits, UInt uiBitsInPacket);
+  ErrVal  assignFragments           ( UChar** ppucFragBuffers, 
+                                      UInt&   ruiNumFragments);
+  ErrVal  separateFragments         ( UChar** ppucFragBuffers, 
+                                      UInt*   puiFragLengthInBits,
+                                      UInt&   ruiNumFragments,
+                                      UInt    uiMaxNumFragments );
+  ErrVal  initPacket                ( ULong*  puiBits, 
+                                      UInt    uiBitsInPacket, 
+                                      UInt*   puiNumFragments     = 0,
+                                      UChar** ppucFragBuffers     = 0 );
 
   ErrVal get  ( UInt& ruiBits, UInt uiNumberOfBits );
   ErrVal get  ( UInt& ruiBits);
@@ -156,6 +165,9 @@ protected:
   ULong  m_ulCurrentBits;
   UInt   m_uiNextBits;
   ULong* m_pulStreamPacket;
+  UInt    m_uiNumFragments;
+  UInt    m_auiFragLengthInBytes[MAX_NUM_PD_FRAGMENTS];
+  UChar*  m_apucFragBuffers     [MAX_NUM_PD_FRAGMENTS];
 };
 
 

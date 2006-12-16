@@ -475,6 +475,7 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 
   //===== read first parameters =====
   //JVT-P031
+  Bool bFGSCycleAlignedFragment = true;
   if(  uiLayerId == 0 && uiQualityLevel == 0 &&
     (eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) )
   {
@@ -551,6 +552,7 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 
   rpcSH->setFirstMbInSlice( uiFirstMbInSlice);
   rpcSH->setSliceType     ( SliceType( uiSliceType ) );
+  rpcSH->setFGSCycleAlignedFragment( bFGSCycleAlignedFragment );
   //JVT-P031
   if ( uiFragmentOrder > 0 )
   {

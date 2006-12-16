@@ -153,9 +153,13 @@ public:
   UInt                  getMbInFrame                          ()          const { return m_uiFrameWidthInMbs * m_uiFrameHeightInMbs;}
   Bool                  getInitState                          ()          const { return m_bInitDone; }
 
-  Bool getFGSCodingMode                       ()                          const { return m_bFGSCodingMode;   }
-  UInt getGroupingSize                        ()                          const { return m_uiGroupingSize;   }
-  UInt getPosVect                             ( UInt uiNum )              const { return m_uiPosVect[uiNum]; }
+  Bool getFGSInfoPresentFlag                  ()                          const { return m_bFGSInfoPresentFlag;       }
+  Bool getFGSCycleAlignedFragment             ()                          const { return m_bFGSCycleAlignedFragment;  }
+  UInt getNumFGSVectModes                     ()                          const { return m_uiNumFGSVectModes;         }
+  Bool getFGSCodingMode                       ( UInt uiIndex )            const { return m_abFGSCodingMode[uiIndex];  }
+  UInt getGroupingSize                        ( UInt uiIndex )            const { return m_auiGroupingSize[uiIndex];  }
+  UInt getNumPosVectors                       ( UInt uiIndex )            const { return m_auiNumPosVectors[uiIndex]; }
+  UInt getPosVect                             ( UInt uiIndex, UInt uiNum )const { return m_auiPosVect[uiIndex][uiNum];}
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
   Void  setLayerId                            ( UInt        ui )          { m_uiLayerId                             = ui; }
@@ -183,15 +187,18 @@ public:
   Void  setDirect8x8InferenceFlag             ( Bool        b  )          { m_bDirect8x8InferenceFlag               = b;  }
   Void  setInitState                          ( Bool        b  )          { m_bInitDone                             = b;  }
 
-  Void setFGSCodingMode                       ( Bool        b  )          { m_bFGSCodingMode                        = b;      }
-  Void setGroupingSize                        ( UInt        ui )          { m_uiGroupingSize                        = ui;     }
-  Void setPosVect                             ( UInt uiNum, UInt uiVect)  { m_uiPosVect[uiNum]                      = uiVect; }
+  Void setFGSInfoPresentFlag                  ( Bool        b  )                        { m_bFGSInfoPresentFlag                   = b;  }
+  Void setFGSCycleAlignedFragment             ( Bool        b  )                        { m_bFGSCycleAlignedFragment              = b;  }
+  Void setNumFGSVectModes                     ( UInt        ui )                        { m_uiNumFGSVectModes                     = ui; }
+  Void setFGSCodingMode                       ( UInt uiIndex, Bool        b  )          { m_abFGSCodingMode[uiIndex]              = b;  }
+  Void setGroupingSize                        ( UInt uiIndex, UInt        ui )          { m_auiGroupingSize[uiIndex]              = ui; }
+  Void setPosVect                             ( UInt uiIndex, UInt uiNum, UInt uiVect)  { m_auiPosVect[uiIndex][uiNum]            = uiVect; }
 
   Void setInterlayerDeblockingPresent ( Bool b ) { m_bInterlayerDeblockingPresent = b ;}
   Bool getInterlayerDeblockingPresent () const    { return m_bInterlayerDeblockingPresent; }
 
-
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
+
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
                 NalUnitType           eNalUnitType );
 
@@ -202,6 +209,36 @@ public:
   Void setExtendedSpatialScalability ( UInt ui ) { m_uiExtendedSpatialScalability = ui ;}
   UInt getExtendedSpatialScalability () const    { return m_uiExtendedSpatialScalability; }
 
+  // needs to be called after all the position vectors are set
+  ErrVal checkPosVectors              ( UInt uiIndex )
+  {
+    UInt uiTotalVectorLength = 0;
+    Bool bBadVector          = false;
+
+    m_auiNumPosVectors[ uiIndex ]    = 0;
+    while( uiTotalVectorLength < 16 && m_auiNumPosVectors[ uiIndex ] < 16 )
+    {
+      if( m_auiPosVect[uiIndex][m_auiNumPosVectors[uiIndex]] == 0 )
+      {
+        bBadVector      = true;
+        break;
+      }
+      if( m_auiPosVect[uiIndex][m_auiNumPosVectors[uiIndex]] > (16 - uiTotalVectorLength) )
+        m_auiPosVect[uiIndex][m_auiNumPosVectors[uiIndex]]  = 16 - uiTotalVectorLength;
+
+      uiTotalVectorLength += m_auiPosVect[uiIndex][m_auiNumPosVectors[uiIndex]];
+      m_auiNumPosVectors[uiIndex]++;
+    }
+
+    if( bBadVector )
+    {
+      // set the vector length to 1
+      for( m_auiNumPosVectors[uiIndex] = 0; m_auiNumPosVectors[uiIndex] < 16; m_auiNumPosVectors[uiIndex] ++ )
+        m_auiPosVect[uiIndex][m_auiNumPosVectors[uiIndex]] = 1;
+    }
+
+    return Err::m_nOK;
+  }
 
 // TMM_ESS }
 
@@ -256,9 +293,13 @@ protected:
   UInt          m_auiNumRefIdxUpdateActiveDefault[2];
 // VW }
 
-  Bool          m_bFGSCodingMode;
-  UInt          m_uiGroupingSize;
-  UInt          m_uiPosVect[16];
+  Bool          m_bFGSInfoPresentFlag; 
+  Bool          m_bFGSCycleAlignedFragment; 
+  UInt          m_uiNumFGSVectModes; 
+  Bool          m_abFGSCodingMode [MAX_NUM_FGS_VECT_MODES];
+  UInt          m_auiGroupingSize [MAX_NUM_FGS_VECT_MODES];
+  UInt          m_auiNumPosVectors[MAX_NUM_FGS_VECT_MODES];
+  UInt          m_auiPosVect [MAX_NUM_FGS_VECT_MODES] [16];
 
 private:
   static const LevelLimit m_aLevelLimit[52];

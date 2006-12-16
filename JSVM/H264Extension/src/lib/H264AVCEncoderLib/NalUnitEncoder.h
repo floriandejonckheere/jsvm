@@ -122,6 +122,10 @@ public:
   ErrVal write            ( const PictureParameterSet&  rcPPS );
   ErrVal write            ( const SliceHeader&          rcSH  );
   ErrVal write            ( SEI::MessageList&           rcSEIMessageList );
+
+  ErrVal terminateMultiFragments  ( UInt& ruiBits );
+  ErrVal attachFragmentData       ( UInt& ruiBits, UInt uiStartPos, UInt uiEndPos );
+
 //JVT-T073 {
   ErrVal writeNesting     ( SEI::MessageList&           rcSEIMessageList );
 //JVT-T073 }
@@ -139,6 +143,7 @@ protected:
   BinDataAccessor*      m_pcBinDataAccessor;
   UChar*                m_pucBuffer;
   UChar*                m_pucTempBuffer;
+  UChar*                m_pucTempBufferBackup;
   UInt                  m_uiPacketLength;
   NalUnitType           m_eNalUnitType;
 };

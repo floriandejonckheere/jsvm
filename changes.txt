@@ -1,5 +1,24 @@
 
 
+JSVM_7_10 -> JSVM_7_11
+=====================
+
+Date: Dec. 16, 2006 
+Author: Yan Ye, Yiliang Bao (Qualcomm)
+Contributions: JVT-U125, JVT-U126
+
+Changes:
+- Integration of cycle aligned fragments for FGS layer according 
+  to JVT-U125. Also simplified FGS layer syntaxes by grouping 
+  some syntaxes into a macroblock header. 
+- Implemented the low-complexity smoothed reference scheme
+  according to JVT-U126.
+
++ MGS fixes provided by Nathalie Cammas
++ fixes of conditions for motion_prediction_flag_lX
+
+
+
 JSVM_7_9 -> JSVM_7_10
 =====================
 

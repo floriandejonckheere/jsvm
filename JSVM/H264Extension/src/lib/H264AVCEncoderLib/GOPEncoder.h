@@ -422,6 +422,7 @@ protected:
                                           PicOutputDataList&          rcPicOutputDataList );
   ErrVal  xEncodeHighPassSignal         ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
                                           ControlData&                rcControlData,
+                                          IntFrame*                   pcOrgFrame, 
                                           IntFrame*                   pcFrame,
                                           IntFrame*                   pcResidual,
                                           IntFrame*                   pcPredSignal,
@@ -451,7 +452,15 @@ protected:
                                           RefFrameList*               pcRefFrameList0,
                                           RefFrameList*               pcRefFrameList1,
                                           MbDataCtrl*                 pcMbDataCtrl,
-                                          SliceHeader&                rcSH );
+                                          SliceHeader&                rcSH, 
+                                          Bool                        bSR  = false );
+  ErrVal  xMotionCompensationSRFrame    ( IntFrame*                   pcMCFrame,
+                                          RefFrameList*               pcRefFrameList0,
+                                          RefFrameList*               pcRefFrameList1,
+                                          MbDataCtrl*                 pcMbDataCtrl,
+                                          SliceHeader&                rcSH, 
+                                          MbDataCtrl*                 pcBaseMbDataCtrl
+                                          );
   ErrVal  xMotionEstimation             ( RefFrameList*               pcRefFrameList0,
                                           RefFrameList*               pcRefFrameList1,
                                           const IntFrame*             pcOrigFrame,
@@ -464,11 +473,6 @@ protected:
                                           UInt                        uiIterSearchRange,
                                           UInt                        uiFrameIdInGOP );
                                           // JVT-S054 (REPLACE) <-
-
-  //-- JVT-R091
-  ErrVal  xFixMCPrediction              ( IntFrame*                   pcMCFrame,
-                                          IntFrame*                    pcBQFrame,
-                                          ControlData&                pcCtrlData );
   ErrVal  xFixOrgResidual                ( IntFrame*                   pcFrame,
                                           IntFrame*                    pcOrgPred,
                                           IntFrame*                    pcResidual,

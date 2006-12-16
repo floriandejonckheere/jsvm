@@ -183,11 +183,42 @@ public:
                                           SChar   sL1RefIdx ) const;
   Int             getDistScaleFactorWP  ( const Frame*    pcFrameL0, const Frame*     pcFrameL1 )  const;
   Int             getDistScaleFactorWP  ( const IntFrame* pcFrameL0, const IntFrame*  pcFrameL1 )  const;
-  Void            setFGSCodingMode      ( Bool b  )            { m_bFGSCodingMode = b;     }
-  Void            setGroupingSize       ( UInt ui )            { m_uiGroupingSize = ui;    }
-  Void            setPosVect            ( UInt ui, UInt uiVal) { m_uiPosVect[ui]  = uiVal; }
-  Bool            getFGSCodingMode      ()                     { return m_bFGSCodingMode;  }
-  UInt            getGroupingSize       ()                     { return m_uiGroupingSize;  }
+  // check the position vectors, and find the number of position vectors.
+  // needs to be called after all the position vectors are set
+  ErrVal          checkPosVectors       ()
+  {
+    UInt uiTotalVectorLength = 0;
+    Bool bBadVector          = false;
+
+    m_uiNumPosVectors   = 0;
+    while( uiTotalVectorLength < 16 && m_uiNumPosVectors < 16 )
+    {
+      if( m_uiPosVect[m_uiNumPosVectors] == 0 )
+      {
+        bBadVector      = true;
+        break;
+      }
+      if( m_uiPosVect[m_uiNumPosVectors] > (16 - uiTotalVectorLength) )
+        m_uiPosVect[m_uiNumPosVectors] = 16 - uiTotalVectorLength;
+
+      uiTotalVectorLength += m_uiPosVect[m_uiNumPosVectors];
+      m_uiNumPosVectors++;
+    }
+
+    if( bBadVector )
+    {
+      // set the vector length to 1
+      for( m_uiNumPosVectors = 0; m_uiNumPosVectors < 16; m_uiNumPosVectors ++ )
+        m_uiPosVect[m_uiNumPosVectors] = 1;
+    }
+
+    return Err::m_nOK;
+  }
+  Void            setPosVect            ( UInt ui, UInt uiVal) 
+  { 
+    if( ! m_bFGSVectorModeOverrideFlag )
+      m_uiPosVect[ui]  = uiVal;
+  }
   UInt            getPosVect            ( UInt ui )            { return m_uiPosVect[ui];   }
 
 protected:
@@ -201,9 +232,6 @@ protected:
   FrameUnit*              m_pcFrameUnit;
   StatBuf<const UChar*,8> m_acScalingMatrix;
   RefFrameList*           m_apcRefFrameList[2];
-  Bool                    m_bFGSCodingMode;
-  UInt                    m_uiGroupingSize;
-  UInt                    m_uiPosVect[16];
 };
 
 

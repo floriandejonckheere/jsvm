@@ -246,6 +246,7 @@ public:
     , m_uiHeightInMB              ( 0 )
     , m_pcCurrMbDataCtrl          ( 0 )
     , m_pcBaseLayerSbb            ( 0 )
+    , m_bUpdateWithoutMap         ( false )
   {
   }
 
@@ -306,6 +307,10 @@ protected:
   ErrVal            xClearBaseCoeffs( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
   ErrVal            xInitBaseLayerSbb     ( UInt uiLayerId );
+  ErrVal            xUpdateMbMaps         ( MbDataAccess*      pcMbDataAccessBL,
+                                            MbDataAccess*      pcMbDataAccessEL,
+                                            MbFGSCoefMap       &rcMbFGSCoefMap,
+                                            Int*               piRemainingTCoeff = 0 );
 
   Bool              m_bInit;
   Bool              m_bPicInit;
@@ -331,6 +336,16 @@ protected:
   UInt              m_uiChromaCbpNextMbY;
 
   IntFrame*         m_pcBaseLayerSbb;
+  UInt              xDeriveComponentPosVectors  ( UInt*             puiRefPosVect,
+                                                  Int*              piMaxPosLuma,
+                                                  Int*              piMaxPosChromaAC,
+                                                  Int*              piMaxPosChromaDC,
+                                                  UInt              uiChromaStartCycle );
+  Bool              m_bUpdateWithoutMap;
+  ErrVal            xSetNumCoefficients         ( UInt              uiMbX, 
+                                                  UInt              uiMbY,
+                                                  MbFGSCoefMap       &rcMbFGSCoefMap,
+                                                  UInt              uiMbCoeffsDecoded );
 
 private:
 

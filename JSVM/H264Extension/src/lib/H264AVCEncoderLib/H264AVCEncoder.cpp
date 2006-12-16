@@ -1133,19 +1133,19 @@ H264AVCEncoder::xInitParameterSets()
     // TMM_ESS
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
-    if(rcLayerParameters.getFGSCodingMode() == 0)
-    {
-      pcSPS->setFGSCodingMode                     ( false );
-    }
-    else
-    {
-      pcSPS->setFGSCodingMode                     ( true );
-    }
-    pcSPS->setGroupingSize                        ( rcLayerParameters.getGroupingSize() );
+    // always send FGS info in SPS, and always send only 1 set of VectMode parameters
+    pcSPS->setFGSInfoPresentFlag                  ( true  );
+    pcSPS->setFGSCycleAlignedFragment             ( m_pcCodingParameter->getFGSParallelDecodingFlag() );
+    pcSPS->setNumFGSVectModes                     ( 1     );
+    pcSPS->setFGSCodingMode                       ( 0, (rcLayerParameters.getFGSCodingMode() != 0)    );
+    pcSPS->setGroupingSize                        ( 0, rcLayerParameters.getGroupingSize()            );
+
     for( UInt ui = 0; ui < 16; ui++ )
     {
-      pcSPS->setPosVect                           ( ui, rcLayerParameters.getPosVect(ui) );
+      pcSPS->setPosVect                           ( 0, ui, rcLayerParameters.getPosVect(ui)           );
     }
+
+    RNOK( pcSPS->checkPosVectors( 0 ) );
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
@@ -1286,19 +1286,19 @@ H264AVCEncoder::xInitParameterSets()
     // TMM_ESS
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
-    if(rcLayerParameters.getFGSCodingMode() == 0)
-    {
-      pcSPS->setFGSCodingMode                     ( false );
-    }
-    else
-    {
-      pcSPS->setFGSCodingMode                     ( true );
-    }
-    pcSPS->setGroupingSize                        ( rcLayerParameters.getGroupingSize() );
+    // always send FGS info in SPS, and always send only 1 set of VectMode parameters
+    pcSPS->setFGSInfoPresentFlag                  ( true  );
+    pcSPS->setFGSCycleAlignedFragment             ( m_pcCodingParameter->getFGSParallelDecodingFlag() );
+    pcSPS->setNumFGSVectModes                     ( 1     );
+    pcSPS->setFGSCodingMode                       ( 0, (rcLayerParameters.getFGSCodingMode() != 0)    );
+    pcSPS->setGroupingSize                        ( 0, rcLayerParameters.getGroupingSize()            );
+
     for( UInt ui = 0; ui < 16; ui++ )
     {
-      pcSPS->setPosVect                           ( ui, rcLayerParameters.getPosVect(ui) );
+      pcSPS->setPosVect                           ( 0, ui, rcLayerParameters.getPosVect(ui)           );
     }
+
+    RNOK( pcSPS->checkPosVectors( 0 ) );
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );

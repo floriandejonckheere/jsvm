@@ -179,15 +179,22 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
 ,m_uiChromaPhaseXPlus1                      ( 0 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
-, m_bFGSCodingMode                          ( false )
-, m_uiGroupingSize                          ( 1 )
+, m_bFGSInfoPresentFlag                     ( true )
+, m_bFGSCycleAlignedFragment                ( false ) 
+, m_uiNumFGSVectModes                       ( 1 )
 , m_bInterlayerDeblockingPresent            ( 0 )
 {
   m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
   m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
 
   ::memset( m_aiOffsetForRefFrame, 0x00, 64*sizeof(Int) );
-  ::memset( m_uiPosVect,           0x00, 16*sizeof(UInt));
+  ::memset( m_abFGSCodingMode,     0x00, MAX_NUM_FGS_VECT_MODES*sizeof(Bool)    );
+  ::memset( m_auiNumPosVectors,    0x00, MAX_NUM_FGS_VECT_MODES*sizeof(UInt)    );
+  ::memset( m_auiPosVect,          0x00, MAX_NUM_FGS_VECT_MODES*16*sizeof(UInt) );
+
+  UInt ui;
+  for( ui = 0; ui < MAX_NUM_FGS_VECT_MODES; ui++ )
+    m_auiGroupingSize[ ui ] = 1; 
 }
 
 SequenceParameterSet::~SequenceParameterSet()
@@ -306,27 +313,40 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: scaled_base_bottom_offset" ) );
     }
 
-    RNOK  ( pcWriteIf->writeFlag( m_bFGSCodingMode,                       "SPS: fgs_coding_mode") );
-    if(m_bFGSCodingMode == false)
+    RNOK  ( pcWriteIf->writeFlag( m_bFGSInfoPresentFlag,                       "SPS: fgs_info_present") );
+    if( m_bFGSInfoPresentFlag ) 
     {
-      RNOK  ( pcWriteIf->writeUvlc(m_uiGroupingSize-1,                    "SPS: groupingSizeMinus1") );
-    }
-    else
-    {
-      UInt uiNumPosVector = 0;
-      UInt uiIndex = 0;
-      while(uiNumPosVector != 15)
+      RNOK  ( pcWriteIf->writeFlag( m_bFGSCycleAlignedFragment,                "SPS: fgs_cycle_aligned_fragment") );
+      RNOK  ( pcWriteIf->writeUvlc( m_uiNumFGSVectModes-1,                     "SPS: fgs_number_vector_modes") );
+
+      UInt ui;
+      for( ui = 0; ui < m_uiNumFGSVectModes; ui++ )
       {
-        if(uiIndex == 0)
+        RNOK  ( pcWriteIf->writeFlag( m_abFGSCodingMode[ui],                   "SPS: fgs_coding_mode") );
+        if(m_abFGSCodingMode[ ui ] == false)
         {
-          RNOK( pcWriteIf->writeUvlc(m_uiPosVect[uiIndex],               "SPS: scanIndex0") );
+          RNOK  ( pcWriteIf->writeUvlc((m_auiGroupingSize[ui]-1),              "SPS: GroupingSizeMinus1") );
         }
         else
         {
-          RNOK( pcWriteIf->writeUvlc(m_uiPosVect[uiIndex]-m_uiPosVect[uiIndex-1]-1, "SPS: deltaScanIndexMinus1[numPosVector]") );
+          UInt uiIndex = 0;
+          UInt uiRemainingVectLen = 16; 
+          UInt auiReverseVectLen[16]; 
+          
+          for( uiIndex = 0; uiIndex < m_auiNumPosVectors[ui]; uiIndex ++ )
+            auiReverseVectLen [ m_auiNumPosVectors[ ui ] -1 - uiIndex ] = m_auiPosVect[ui][uiIndex];
+
+          uiIndex = 0; 
+          do 
+          {
+            UInt uiCodeLen = ( uiRemainingVectLen <= 4 ) ? ( ( uiRemainingVectLen <= 2 ) ? 1 : 2 ) : ( uiRemainingVectLen <= 8 ) ? 3 : 4;
+
+            if( uiRemainingVectLen > 1 )
+              RNOK( pcWriteIf->writeCode( auiReverseVectLen[uiIndex] - 1, uiCodeLen,  "SPS: ReverseVectLen") );
+            uiRemainingVectLen -= auiReverseVectLen [ uiIndex ];
+            uiIndex++;
+          } while( uiRemainingVectLen > 0 );
         }
-        uiNumPosVector = m_uiPosVect[uiIndex];
-        uiIndex++;
       }
     }
   }
@@ -416,30 +436,56 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
     }
-    RNOK  ( pcReadIf->getFlag( m_bFGSCodingMode,                            "SPS: fgs_coding_mode") );
-    if(m_bFGSCodingMode == false)
+    RNOK  ( pcReadIf->getFlag( m_bFGSInfoPresentFlag,                       "SPS: fgs_info_present") );
+    if( m_bFGSInfoPresentFlag ) 
     {
-      RNOK  ( pcReadIf->getUvlc(m_uiGroupingSize,                           "SPS: GroupingSizeMinus1") );
-      m_uiGroupingSize++;
-    }
-    else
-    {
-      UInt uiNumPosVector = 0;
-      UInt uiIndex = 0;
-      while(uiNumPosVector != 15)
+      RNOK  ( pcReadIf->getFlag( m_bFGSCycleAlignedFragment,                "SPS: fgs_cycle_aligned_fragment") );
+      RNOK  ( pcReadIf->getUvlc( m_uiNumFGSVectModes,                       "SPS: fgs_number_fgs_vector_modes") );
+      m_uiNumFGSVectModes++;
+      ROF ( m_uiNumFGSVectModes <= MAX_NUM_FGS_VECT_MODES ); 
+
+      UInt ui;
+      for( ui = 0; ui < m_uiNumFGSVectModes; ui++ )
       {
-        if(uiIndex == 0)
+        RNOK  ( pcReadIf->getFlag( m_abFGSCodingMode[ui],                   "SPS: fgs_coding_mode") );
+        if(m_abFGSCodingMode[ ui ] == false)
         {
-          RNOK( pcReadIf->getUvlc(m_uiPosVect[uiIndex],                     "SPS: scanIndex0") );
+          RNOK  ( pcReadIf->getUvlc(m_auiGroupingSize[ui],                  "SPS: GroupingSizeMinus1") );
+          m_auiGroupingSize[ ui ]++;
         }
         else
         {
-          RNOK( pcReadIf->getUvlc(m_uiPosVect[uiIndex], "SPS: deltaScanIndexMinus1[numPosVector]") );
-          m_uiPosVect[uiIndex] = m_uiPosVect[uiIndex] + m_uiPosVect[uiIndex-1] + 1;
+          UInt uiIndex = 0;
+          UInt uiRemainingVectLen = 16; 
+          UInt auiReverseVectLen[16]; 
+
+          do 
+          {
+            UInt uiCodeLen = ( uiRemainingVectLen <= 4 ) ? ( ( uiRemainingVectLen <= 2 ) ? 1 : 2 ) : ( uiRemainingVectLen <= 8 ) ? 3 : 4;
+
+            auiReverseVectLen[ uiIndex ] = 0;
+            if( uiRemainingVectLen > 1 )
+            {
+              RNOK( pcReadIf->getCode( auiReverseVectLen[ uiIndex ], uiCodeLen, "SPS: ReverseVectLen") );
+            }
+            else
+              auiReverseVectLen[ uiIndex ] = 0;
+            auiReverseVectLen[ uiIndex ] ++;
+            uiRemainingVectLen -= auiReverseVectLen [ uiIndex ];
+            uiIndex++;
+          } while( uiRemainingVectLen > 0 );
+
+          m_auiNumPosVectors[ui] = uiIndex;
+          
+          for( uiIndex = 0; uiIndex < m_auiNumPosVectors[ui]; uiIndex ++ )
+            m_auiPosVect[ui][uiIndex] = auiReverseVectLen [ m_auiNumPosVectors[ ui ] - 1 - uiIndex ];
+
         }
-        uiNumPosVector = m_uiPosVect[uiIndex];
-        uiIndex++;
       }
+    }
+    else
+    {
+      m_uiNumFGSVectModes = 0; 
     }
   }
 

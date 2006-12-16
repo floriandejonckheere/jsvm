@@ -97,6 +97,7 @@ NalUnitEncoder::NalUnitEncoder()
 , m_pcBinDataAccessor     ( 0 )
 , m_pucBuffer             ( 0 )
 , m_pucTempBuffer         ( 0 )
+, m_pucTempBufferBackup   ( 0 )
 , m_uiPacketLength        ( MSYS_UINT_MAX )
 , m_eNalUnitType          ( NAL_UNIT_EXTERNAL )
 {
@@ -132,6 +133,7 @@ NalUnitEncoder::init( BitWriteBuffer*       pcBitWriteBuffer,
   m_bIsUnitActive         = false;
   m_pucBuffer             = NULL;
   m_pucTempBuffer         = NULL;
+  m_pucTempBufferBackup   = NULL;
   m_uiPacketLength        = MSYS_UINT_MAX;
   m_eNalUnitType          = NAL_UNIT_EXTERNAL;
 
@@ -143,6 +145,8 @@ ErrVal
 NalUnitEncoder::uninit()
 {
   delete [] m_pucTempBuffer;
+  delete [] m_pucTempBufferBackup;
+  m_pucTempBufferBackup   = NULL;
 
   m_pcBitWriteBuffer      = NULL;
   m_pcHeaderSymbolWriteIf = NULL;
@@ -191,6 +195,69 @@ NalUnitEncoder::initNalUnit( BinDataAccessor* pcBinDataAccessor )
   return Err::m_nOK;
 }
 
+
+
+ErrVal
+NalUnitEncoder::terminateMultiFragments ( UInt& ruiBits )
+{
+  RNOK ( xWriteTrailingBits() );
+  RNOK( m_pcBitWriteBuffer->flushBuffer() );
+
+  ruiBits = m_pcBitWriteBuffer->getNumberOfWrittenBits();
+  ruiBits = ( ruiBits >> 3 ) + ( 0 != ( ruiBits & 0x07 ) );
+
+  ruiBits <<= 3;
+
+  if( m_pucTempBufferBackup == 0 )
+  {
+    m_pucTempBufferBackup  = new UChar[ m_uiPacketLength ];
+  }
+
+  memcpy( m_pucTempBufferBackup, m_pucTempBuffer, m_uiPacketLength );
+
+  return Err::m_nOK;
+}
+
+
+// called this function after fragment header is written
+// and only for closing FGS fragment
+ErrVal
+NalUnitEncoder::attachFragmentData( UInt& ruiBits,
+                                    UInt  uiStartPos,
+                                    UInt  uiEndPos )
+{
+  UInt  uiBits        = uiEndPos - uiStartPos;
+  ROF( m_bIsUnitActive );
+
+  if( uiStartPos > 0 )
+  {
+    // not the first segment, copy the data from the backup buffer
+    RNOK( m_pcBitWriteBuffer->writeAlignOne() );
+    RNOK( m_pcBitWriteBuffer->flushBuffer()   );
+    
+    uiBits  = m_pcBitWriteBuffer->getNumberOfWrittenBits();
+    uiBits  = ( uiBits >> 3 ) + ( 0 != ( uiBits & 0x07 ) );
+    memcpy( m_pucTempBuffer + uiBits, m_pucTempBufferBackup + uiStartPos, uiEndPos - uiStartPos );
+
+    uiBits += uiEndPos - uiStartPos;
+  }
+  else 
+    uiBits  = uiEndPos;
+
+  //===== convert to payload and add header =====
+  UInt  uiHeaderBytes = 2;
+  RNOK( xConvertRBSPToPayload( uiBits, uiHeaderBytes ) );
+  RNOK( m_pcBinDataAccessor->decreaseEndPos( m_pcBinDataAccessor->size() - uiBits ) );
+  ruiBits             = 8*uiBits;
+
+  //==== reset parameters =====
+  m_bIsUnitActive     = false;
+  m_pucBuffer         = NULL;
+  m_pcBinDataAccessor = NULL;
+  m_eNalUnitType      = NAL_UNIT_EXTERNAL;
+
+  return Err::m_nOK;
+}
 
 ErrVal
 NalUnitEncoder::closeNalUnit( UInt& ruiBits )

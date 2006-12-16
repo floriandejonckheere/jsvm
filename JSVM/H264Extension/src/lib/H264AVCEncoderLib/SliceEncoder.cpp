@@ -206,7 +206,6 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
   UInt          uiLastMbAddress       =  rcSliceHeader.getLastMbInSlice         ();
   UInt          uiBits                =  m_pcMbCoder ->getBitCount              ();
 
-
   //====== initialization ======
   RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
   if( pcBaseLayerCtrl )
@@ -233,6 +232,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     }
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
+    pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
 
 	//JVT-U106 Behaviour at slice boundaries{
 	if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
@@ -335,7 +335,9 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
     }
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbAddress  ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
-	//JVT-U106 Behaviour at slice boundaries{
+    pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
+
+    //JVT-U106 Behaviour at slice boundaries{
     if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
 	     m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
 	//JVT-U106 Behaviour at slice boundaries}
@@ -366,6 +368,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
 ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                             UInt&         ruiBits,
                                             SliceHeader&  rcSH,
+                                            IntFrame*     pcOrgFrame, 
                                             IntFrame*     pcFrame,
                                             IntFrame*     pcResidual,
                                             IntFrame*     pcPredSignal,
@@ -415,6 +418,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
     {
       RNOK( pcMbDataCtrlBaseMotion->initMb  ( pcMbDataAccessBase, uiMbY, uiMbX ) );
     }
+    pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
 
     if( pcMbDataAccess->getMbData().isIntra() )
     {
@@ -440,12 +444,13 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       pcMbDataAccess->getMbData().setQp( iQPRes );
 
       m_pcTransform->setClipMode( false );
-      RNOK( m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess,
-                                               pcFrame,
-                                               pcResidual,
+      RNOK( m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess, 
+                                               pcOrgFrame, 
+                                               pcFrame, 
+                                               pcResidual, 
                                                pcBaseSubband,
-                                               pcSRFrame, // JVT-R091
-                                               bCoded, dLambda, iMaxDeltaQp ) );
+																							 pcSRFrame, // JVT-R091
+																							 bCoded, dLambda, iMaxDeltaQp ) );
 
       if( pcMbDataAccess->getSH().getBaseLayerId() != MSYS_UINT_MAX && ! pcMbDataAccess->getSH().getAdaptivePredictionFlag() )
       {
@@ -525,6 +530,7 @@ SliceEncoder::encodeSlice( SliceHeader&  rcSliceHeader,
 
     RNOK( pcMbDataCtrl  ->initMb          (  pcMbDataAccess, uiMbY, uiMbX ) );
     RNOK( m_pcControlMng->initMbForCoding ( *pcMbDataAccess, uiMbAddress  ) );
+    pcMbDataAccess->setMbDataAccessBase   ( NULL );
 
     RNOK( m_pcMbEncoder ->encodeMacroblock( *pcMbDataAccess,
                                              pcFrame,

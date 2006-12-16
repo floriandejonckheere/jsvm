@@ -110,13 +110,15 @@ public:
   ErrVal destroy();
   ErrVal setec( UInt uiErrorConceal);//TMM_EC
   ErrVal removeRedundencySlice(BinDataAccessor*  pcBinDataAccessor, Bool& bFinishChecking ); //TMM_EC
-  ErrVal appendFragment(UInt uiTotalLength,
-                        UInt uiNbFrag,
-                        BinData* pcBinDataTmp[10],
-                        UInt *auiStartPos,
-                        UInt * auiEndPos,
-                        Bool &bConcatenated,
-                        BinData* pcBinData);
+  ErrVal appendFragment(UInt      uiTotalLength,
+                        UInt      uiNbFrag,
+                        BinData*  pcBinDataTmp[10],
+                        UInt*     auiStartPos,
+                        UInt*     auiEndPos,
+                        Bool&     bConcatenated,
+                        BinData*  pcBinData, 
+                        UChar*    apucFragBuffers[] );
+
   ErrVal initPacketToDecode(Bool &bDecode,
                             BinData*& pcBinData,
                             BinDataAccessor* cBinDataAccessor,

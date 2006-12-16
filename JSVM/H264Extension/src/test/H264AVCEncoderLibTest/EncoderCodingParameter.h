@@ -538,6 +538,14 @@ ErrVal EncoderCodingParameter::init( Int     argc,
 		continue;
 	}
     //JVT-U106 Behaviour at slice boundaries}
+    if( equals( pcCom, "-pd", 3 ) )
+    {
+      ROTS( NULL == argv[n] );
+      Bool bFlag = atoi( argv[n] ) != 0;
+      CodingParameter::setFGSParallelDecodingFlag( bFlag );
+      continue;
+    }
+
     if( equals( pcCom, "-h", 2) )
     {
       printHelp();
@@ -767,15 +775,15 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
   fclose( f );
 //JVT-T054{
-  UInt uiPrevLayer        = 0;
-  UInt uiPrevTemp         = 0;
-  UInt uiPrevWidth        = 0;
-  UInt uiPrevHeight       = 0;
-  UInt uiLayerTemp        = 0;
-  UInt uiQualityLevelTemp = 0;
-  UInt uiLastLayer        = 0;
-  UInt uiMaxLayer         = 0;
-  UInt uiMaxQualityLevel  = 0;
+  UInt    uiPrevLayer        = 0;
+  Double  dPrevTemp          = 0.0;
+  UInt    uiPrevWidth        = 0;
+  UInt    uiPrevHeight       = 0;
+  UInt    uiLayerTemp        = 0;
+  UInt    uiQualityLevelTemp = 0;
+  UInt    uiLastLayer        = 0;
+  UInt    uiMaxLayer         = 0;
+  UInt    uiMaxQualityLevel  = 0;
 //JVT-T054}
   for( UInt ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
@@ -786,9 +794,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     {
     if(ui == 0)
     {
-      uiPrevLayer = ui;
-      uiPrevTemp = getLayerParameters(ui).getTemporalResolution();
-      uiPrevWidth = getLayerParameters(ui).getFrameWidth();
+      uiPrevLayer  = ui;
+      dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
+      uiPrevWidth  = getLayerParameters(ui).getFrameWidth();
       uiPrevHeight = getLayerParameters(ui).getFrameHeight();
       getLayerParameters(ui).setLayerCGSSNR(ui);
       getLayerParameters(ui).setQualityLevelCGSSNR(0);
@@ -799,9 +807,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     }
     else
     {
-      if(uiPrevTemp == getLayerParameters(ui).getTemporalResolution() &&
-        uiPrevWidth == getLayerParameters(ui).getFrameWidth() &&
-        uiPrevHeight == getLayerParameters(ui).getFrameHeight())
+      if( dPrevTemp    == getLayerParameters(ui).getOutputFrameRate() &&
+          uiPrevWidth  == getLayerParameters(ui).getFrameWidth() &&
+          uiPrevHeight == getLayerParameters(ui).getFrameHeight())
       {
         // layer can be considered as a CGS refinement
         uiLayerTemp = getLayerParameters(ui-1).getLayerCGSSNR();
@@ -819,9 +827,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
       {
         //layer is not a refinement from previous CGS layer
         uiLastLayer++;
-        uiPrevLayer = uiLastLayer;
-        uiPrevTemp = getLayerParameters(ui).getTemporalResolution();
-        uiPrevWidth = getLayerParameters(ui).getFrameWidth();
+        uiPrevLayer  = uiLastLayer;
+        dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
+        uiPrevWidth  = getLayerParameters(ui).getFrameWidth();
         uiPrevHeight = getLayerParameters(ui).getFrameHeight();
         getLayerParameters(ui).setLayerCGSSNR(uiLastLayer);
         getLayerParameters(ui).setQualityLevelCGSSNR(0);

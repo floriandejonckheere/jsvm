@@ -117,19 +117,29 @@ public:
   ErrVal  init                ( BitReadBuffer* pcBitReadBuffer );
   ErrVal  uninit              ();
 
-  Bool    RQdecodeBCBP_4x4        ( MbDataAccess&   rcMbDataAccessBase,
-                                    LumaIdx         cIdx );
-  Bool    RQdecodeBCBP_ChromaDC   ( MbDataAccess&   rcMbDataAccessBase,
-                                    ChromaIdx       cIdx );
-  Bool    RQdecodeBCBP_ChromaAC   ( MbDataAccess&   rcMbDataAccessBase,
-                                    ChromaIdx       cIdx );
-  Bool    RQdecodeCBP_Chroma      ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase );
-  Bool    RQdecodeCBP_ChromaAC    ( MbDataAccess&   rcMbDataAccess,
-                                    MbDataAccess&   rcMbDataAccessBase );
-  Bool    RQdecodeCBP_8x8         ( MbDataAccess&   rcMbDataAccess,
+  ErrVal  RQdecodeBCBP_4x4        ( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    Bool            b8x8,
+                                    LumaIdx         cIdx,
+                                    UInt&           ruiSymbol );
+  ErrVal  RQdecodeBCBP_ChromaDC   ( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    ChromaIdx       cIdx,
+                                    UInt&           ruiSymbol );
+  ErrVal  RQdecodeBCBP_ChromaAC   ( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    ChromaIdx       cIdx,
+                                    UInt&           ruiSymbol );
+  ErrVal  RQdecodeCBP_Chroma      ( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    UInt&           ruiSymbol );
+  ErrVal  RQdecodeCBP_ChromaAC    ( MbDataAccess&   rcMbDataAccess,
+                                    MbDataAccess&   rcMbDataAccessBase,
+                                    UInt&           ruiSymbol );
+  ErrVal  RQdecodeCBP_8x8         ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase,
                                     B8x8Idx         c8x8Idx );
+
   ErrVal  RQdecodeDeltaQp         ( MbDataAccess&   rcMbDataAccess );
   ErrVal  RQdecode8x8Flag         ( MbDataAccess&   rcMbDataAccess,
                                     MbDataAccess&   rcMbDataAccessBase );
@@ -143,7 +153,6 @@ public:
                                      UInt            uiScanIndex,
                                      Bool&           rbLast,
                                      UInt&           ruiNumCoefRead );
-  ErrVal  RQeo8b                   ( Bool&           bEob );
   ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      B8x8Idx         c8x8Idx,
@@ -152,6 +161,7 @@ public:
   ErrVal  RQdecodeNewTCoeff_Luma   ( MbDataAccess&   rcMbDataAccess,
                                      MbDataAccess&   rcMbDataAccessBase,
                                      ResidualMode    eResidualMode,
+                                     Bool            b8x8,
                                      LumaIdx         cIdx,
                                      UInt            uiScanIndex,
                                      Bool&           rbLast,
@@ -182,6 +192,48 @@ public:
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
   ErrVal  RQcompSepAlign           ();
   Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
+
+  Void    RQsetTruncatedFlag       ( Bool bTruncated )  { return; }
+  ErrVal  RQreset                  (  const SliceHeader& rcSliceHeader )
+  {
+    RNOK( xInitContextModels( rcSliceHeader ) );
+
+    RNOK( CabaDecoder::start() );
+    return Err::m_nOK;  
+  }
+  ErrVal  RQdecodeSigCoeff          ( TCoeff*         piCoeff,
+                                      TCoeff*         piCoeffBase,
+                                      ResidualMode    eResidualMode,
+                                      const UChar*    pucScan,
+                                      Bool            bFirstSigRunCode,
+                                      UInt            uiCycle,
+                                      UInt            uiStartScanIdx,
+                                      UInt            uiLastScanIdx,
+                                      Bool&           rbEndOfBlock,
+                                      TCoeff&         riCoeff,
+                                      UInt&           ruiRun );
+
+  ErrVal  RQupdateVlcTable         ( UInt            uiNumFrags ) { return Err::m_nOK; };
+  ErrVal  RQinitFragments          ( const SliceHeader&  rcSliceHeader,
+                                     UInt&               ruiNumFrags,
+                                     Bool                bCAF );
+  ErrVal  RQreleaseFragments       ();
+
+  MbSymbolReadIf* RQactivateFragment( UInt uiFragIdx )
+  {
+    if( uiFragIdx < m_uiNumFragments ) {
+      m_uiCurrentFragment = uiFragIdx;
+      return m_apcFragmentReaders[uiFragIdx];
+    }
+    else
+      return 0;
+  }
+
+  ErrVal  RQdecodeTCoeffsRef  ( TCoeff*       piCoeff,
+                                TCoeff*       piCoeffBase,
+                                const UChar*  pucScan,
+                                UInt          uiScanIndex,
+                                UInt          uiCtx );
 
   Bool    isEndOfSlice        ();
   Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess );
@@ -241,6 +293,16 @@ protected:
                                 UInt          uiScanIndex,
                                 UInt          uiCtx );
 
+  ErrVal  xInitFragments      ( const SliceHeader&  rcSliceHeader,
+                                UChar**       ppucFragBuffers, 
+                                UInt*         puiFragLengthInBits,
+                                UInt          uiNumFragments );
+
+  Void    xSetParentFlag      ( Bool          bParentFlag )
+  {
+    m_bParentFlag = bParentFlag;
+  }
+
   ErrVal xGetMvd( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cIdx, ListIdx eLstIdx );
 
   ErrVal xInitContextModels( const SliceHeader& rcSliceHeader );
@@ -283,6 +345,14 @@ protected:
   UInt m_uiBitCounter;
   UInt m_uiPosCounter;
   UInt m_uiLastDQpNonZero;
+
+  // new variables for switching bitstream inputs
+  Bool                        m_bParentFlag;
+  CabacReader*                m_apcFragmentReaders[MAX_NUM_PD_FRAGMENTS];
+  BitReadBuffer*              m_apcFragBitBuffers [MAX_NUM_PD_FRAGMENTS];
+
+  UInt                        m_uiNumFragments;
+  UInt                        m_uiCurrentFragment;
 };
 
 H264AVC_NAMESPACE_END

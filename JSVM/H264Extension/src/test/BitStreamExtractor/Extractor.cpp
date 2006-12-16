@@ -2470,6 +2470,11 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
 
 	RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
+  BinData*  pcBinDataFrags[MAX_NUM_PD_FRAGMENTS];
+  UInt      ui, uiFgsLayerTotal;
+  for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ )
+    pcBinDataFrags[ui] = 0;
+
   while( ! bEOS )
   {
     UInt uiScalableLayer = 0;
@@ -2676,20 +2681,83 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
 					pcBinData->data()[pcBinData->size()-1]  |= 0x01; //trailing one
 					uiCropped++;
 				}
-				if( bFloatTruncate && uiFGSLayer == uiMaxFGSLayer )
-				{
-					Double dWeight    = uiMaxFGSLayer - dMaxFGSLayer;
-					UInt uiShrinkSize = (UInt)ceil( (pcBinData->size()+4 ) * dWeight );
-					uiShrinkSize      = ( pcBinData->size() > 25 + uiShrinkSize) ? uiShrinkSize : max( 0,(Int) pcBinData->size() - 25 ); // 25 bytes should be enough for the slice headers
-					RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
-					pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
-					uiCropped++;
-				}
 
-				RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
-				RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
-				uiPacketSize  += 4 + pcBinData->size();
+        if( bFloatTruncate && uiFGSLayer == uiMaxFGSLayer ) {
+          if( cPacketDescription.bFragmentedFlag ) {
+            UInt uiFragmentOrder = cPacketDescription.uiFragmentOrder;
 
+            if( uiFragmentOrder == 0 )
+              uiFgsLayerTotal = 0;
+
+            // buffer the packet
+            if( pcBinDataFrags[uiFragmentOrder] ) {
+              delete pcBinDataFrags[uiFragmentOrder];
+              pcBinDataFrags[uiFragmentOrder] = 0;
+            }
+
+            pcBinDataFrags[uiFragmentOrder] = new BinData;
+            if( pcBinDataFrags[uiFragmentOrder] == 0 )
+              return Err::m_nERR;
+
+            pcBinDataFrags[uiFragmentOrder]->set( new UChar[pcBinData->size()], pcBinData->size() );
+            
+            ::memcpy( pcBinDataFrags[uiFragmentOrder]->data(), pcBinData->data(), pcBinData->size() );
+            uiFgsLayerTotal += pcBinData->size();
+
+            if( cPacketDescription.bLastFragmentFlag ) {
+              UInt uiNumFragments = uiFragmentOrder + 1;
+
+              // perform actual truncation
+              Double  dWeight     = uiMaxFGSLayer - dMaxFGSLayer;
+              UInt    uiKeptSize  = (UInt) ( uiFgsLayerTotal * (1 - dWeight) );
+
+              UInt uiSliceReservedBytes = 25;
+              for( ui = 0; ui < uiNumFragments && uiKeptSize > uiSliceReservedBytes; ui ++ ) {
+                RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+
+                if( uiKeptSize > pcBinDataFrags[ui]->size() ) {
+                  RNOK( m_pcWriteBitstream->writePacket( pcBinDataFrags[ui] ) );
+                  uiKeptSize -= pcBinDataFrags[ui]->size();
+                  // write last fragment flag because all other fragments will be discarded
+                  if( uiKeptSize <= uiSliceReservedBytes )
+                    pcBinDataFrags[ui]->data()[3]                           |= 0x04;  // last fragment flag
+                  RNOK( m_pcWriteBitstream->writePacket( pcBinDataFrags[ui] ) );
+                }
+                else {
+                  // should we set the last_fragment_flag here?
+                  RNOK( pcBinDataFrags[ui]->decreaseEndPos( pcBinDataFrags[ui]->size() - uiKeptSize ) );
+                  pcBinDataFrags[ui]->data()[3]                             |= 0x04;  // last fragment flag
+                  pcBinDataFrags[ui]->data()[pcBinDataFrags[ui]->size()-1]  |= 0x01; // trailing one
+                  RNOK( m_pcWriteBitstream->writePacket( pcBinDataFrags[ui] ) );
+                  uiKeptSize = 0;
+
+                  // remove these fragments removed
+                  uiNumKept -= uiNumFragments - 1 - ui;
+
+                  uiCropped++;
+                }
+              }
+            }
+          }
+          else {
+            Double dWeight    = uiMaxFGSLayer - dMaxFGSLayer;
+            UInt uiShrinkSize = (UInt)ceil( (pcBinData->size()+4 ) * dWeight );
+            uiShrinkSize      = ( pcBinData->size() > 25 + uiShrinkSize) ? uiShrinkSize : max( 0,(Int) pcBinData->size() - 25 ); // 25 bytes should be enough for the slice headers
+            RNOK( pcBinData->decreaseEndPos( uiShrinkSize ) );
+            pcBinData->data()[pcBinData->size()-1]  |= 0x01; // trailing one
+            uiCropped++;
+
+            RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+            RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
+            uiPacketSize  += 4 + pcBinData->size();
+          }
+        }
+        else 
+        {
+          RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+          RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
+          uiPacketSize  += 4 + pcBinData->size();
+        }
 			}
 		}
     RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
@@ -2730,6 +2798,14 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
     RNOK( m_pcReadBitstream->releasePacket( pcBinDataSEILysNotPreDepChange ) );
     pcBinDataSEILysNotPreDepChange = NULL;
 // JVT-S080 LMI }
+  }
+
+
+  for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ ) {
+    if( pcBinDataFrags[ui] ) {
+      delete  pcBinDataFrags[ui];
+      pcBinDataFrags[ui] = 0;
+    }
   }
 
 
@@ -5889,6 +5965,8 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
 {
   ROT( m_bInit );
 
+	::memset( m_aaaauiPictureNALUBytes, 0x00, MAX_NUM_PICTURES * MAX_LAYERS * MAX_QUALITY_LEVELS * sizeof(UInt) );
+
   ::memset( m_aaaui64NumNALUBytes,  0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) );
 	::memset( m_aaaui64NumNALUBytesNoUse, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) ); 
   ::memset( m_aauiNumPictures,      0x00, MAX_LAYERS*(MAX_DSTAGES+1)                   *sizeof(UInt)   );
@@ -5998,6 +6076,13 @@ ScalableStreamDescription::addPacket( UInt  uiNumBytes,
   ROF( uiLayer    <  MAX_LAYERS         );
   ROF( uiLevel    <= MAX_DSTAGES        );
   ROF( uiFGSLayer <  MAX_QUALITY_LEVELS );
+
+
+  static UInt uiPictureIdx = 0;
+
+  m_aaaauiPictureNALUBytes[uiPictureIdx][uiLayer][uiFGSLayer] += uiNumBytes;
+  if( bNewPicture && uiFGSLayer == 0 )
+    uiPictureIdx ++;
 
   m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGSLayer] += uiNumBytes;
 
