@@ -207,7 +207,8 @@ ErrVal H264AVCDecoderTest::appendFragment(UInt uiTotalLength, UInt uiFragNb, Bin
 {
     // append fragments
     UInt uiOffset = 0;
-    for(UInt uiFrag = 0; uiFrag<uiFragNb+1; uiFrag++)
+    UInt uiFrag = 0;
+    for(uiFrag = 0; uiFrag<uiFragNb+1; uiFrag++)
     {
       apucFragBuffers[uiFrag] = pcBinData->data() + uiOffset;
       memcpy(pcBinData->data()+uiOffset, pcBinDataTmp[uiFrag]->data() + auiStartPos[uiFrag], auiEndPos[uiFrag]-auiStartPos[uiFrag]);

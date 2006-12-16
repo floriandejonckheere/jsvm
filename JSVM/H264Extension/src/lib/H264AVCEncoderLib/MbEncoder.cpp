@@ -1654,7 +1654,6 @@ MbEncoder::compensateMbSR ( MbDataAccess&     rcMbDataAccess,
                             MbDataAccess*     pcMbDataAccessBase )
 {
   IntYuvMbBuffer  cYuvMbBuffer;
-  UInt            uiFwdBwd = 0;
 
   ROF( pcMbDataAccessBase );
 

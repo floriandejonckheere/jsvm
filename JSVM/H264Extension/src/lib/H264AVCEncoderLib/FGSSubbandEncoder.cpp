@@ -1293,21 +1293,21 @@ RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiXLumaCbpNextMbX,
 ErrVal
 RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
                                 UInt  uiCurrMbIdxY,
-                                UInt& uiLumaCbpNextMbX,
-                                UInt& uiLumaCbpNextMbY,
-                                UInt& uiLumaCbpNext8x8Idx,
-                                UInt  uiLastMbX,
-                                UInt  uiLastMbY,
+                                UInt& uiXLumaCbpNextMbX,
+                                UInt& uiXLumaCbpNextMbY,
+                                UInt& uiXLumaCbpNext8x8Idx,
+                                UInt  uiXLastMbX,
+                                UInt  uiXLastMbY,
                                 UInt& ruiCbpBitCount)
 {
   Bool bFirstMb  = true;
   MbDataAccess *pcMbDataAccessEL, *pcMbDataAccessBL;
 
-  if( uiCurrMbIdxX != uiLumaCbpNextMbX || uiCurrMbIdxY != uiLumaCbpNextMbY )
+  if( uiCurrMbIdxX != uiXLumaCbpNextMbX || uiCurrMbIdxY != uiXLumaCbpNextMbY )
     return Err::m_nOK;
 
-  UInt uiFirstMbInSlice  = uiLumaCbpNextMbY*m_uiWidthInMB+uiLumaCbpNextMbX ;
-  UInt uiLastMbInSlice   = uiLastMbY*m_uiWidthInMB+uiLastMbX ;
+  UInt uiFirstMbInSlice  = uiXLumaCbpNextMbY*m_uiWidthInMB+uiXLumaCbpNextMbX ;
+  UInt uiLastMbInSlice   = uiXLastMbY*m_uiWidthInMB+uiXLastMbX ;
 
   for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
   {
@@ -1321,7 +1321,7 @@ RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
       UInt uiLumaCbpBase = pcMbDataAccessBL->getMbData().getMbCbp() & 0x0F;
       UInt uiLumaCbp     = pcMbDataAccessEL->getMbData().getMbCbp() & 0x0F;
 
-      for( UInt uiB8x8 = bFirstMb ? uiLumaCbpNext8x8Idx : 0; uiB8x8 < 4; uiB8x8 ++ )
+      for( UInt uiB8x8 = bFirstMb ? uiXLumaCbpNext8x8Idx : 0; uiB8x8 < 4; uiB8x8 ++ )
       {
         Bool bLumaCbpFlagBase = (uiLumaCbpBase >> gauiB8x8Mapping[uiB8x8]) & 1;
         Bool bLumaCbpFlag     = (uiLumaCbp     >> gauiB8x8Mapping[uiB8x8]) & 1;
@@ -1342,14 +1342,14 @@ RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
               m_uiLumaCbpRun  = 1;
             else
             {
-              uiLumaCbpNextMbX       = uiMbXIdx;
-              uiLumaCbpNextMbY       = uiMbYIdx;
-              uiLumaCbpNext8x8Idx    = uiB8x8;
+              uiXLumaCbpNextMbX       = uiMbXIdx;
+              uiXLumaCbpNextMbY       = uiMbYIdx;
+              uiXLumaCbpNext8x8Idx    = uiB8x8;
               m_uiLumaCbpRun  = 0;
 
-              m_uiLumaCbpNextMbX = uiLumaCbpNextMbX;
-              m_uiLumaCbpNextMbY = uiLumaCbpNextMbY;
-              m_uiLumaCbpNext8x8Idx = uiLumaCbpNext8x8Idx;
+              m_uiLumaCbpNextMbX = uiXLumaCbpNextMbX;
+              m_uiLumaCbpNextMbY = uiXLumaCbpNextMbY;
+              m_uiLumaCbpNext8x8Idx = uiXLumaCbpNext8x8Idx;
 
               return Err::m_nOK;
             }
@@ -1375,11 +1375,11 @@ RQFGSEncoder::xEncodeLumaCbpVlc(UInt  uiCurrMbIdxX,
 
     m_uiLumaCbpRun = 0;
 
-    uiLumaCbpNextMbX = uiLastMbX;
-    uiLumaCbpNextMbY = uiLastMbY;
+    uiXLumaCbpNextMbX = uiXLastMbX;
+    uiXLumaCbpNextMbY = uiXLastMbY;
 
-    m_uiLumaCbpNextMbX = uiLumaCbpNextMbX;
-    m_uiLumaCbpNextMbY = uiLumaCbpNextMbY;
+    m_uiLumaCbpNextMbX = uiXLumaCbpNextMbX;
+    m_uiLumaCbpNextMbY = uiXLumaCbpNextMbY;
   }
 
   return Err::m_nOK;
@@ -1416,19 +1416,19 @@ RQFGSEncoder::xEncodeChromaCbpVlcStart(UInt   uiCurrMbIdxX,
 ErrVal
 RQFGSEncoder::xEncodeChromaCbpVlc(UInt  uiCurrMbIdxX,
                                   UInt  uiCurrMbIdxY,
-                                  UInt& uiChromaCbpNextMbX,
-                                  UInt& uiChromaCbpNextMbY,
-                                  UInt  uiLastMbX,
-                                  UInt  uiLastMbY,
+                                  UInt& uiXChromaCbpNextMbX,
+                                  UInt& uiXChromaCbpNextMbY,
+                                  UInt  uiXLastMbX,
+                                  UInt  uiXLastMbY,
                                   UInt& ruiChromaCbpBitCount)
 {
   MbDataAccess *pcMbDataAccessEL;
 
-  if( uiCurrMbIdxX != uiChromaCbpNextMbX || uiCurrMbIdxY != uiChromaCbpNextMbY )
+  if( uiCurrMbIdxX != uiXChromaCbpNextMbX || uiCurrMbIdxY != uiXChromaCbpNextMbY )
     return Err::m_nOK;
 
-  UInt uiFirstMbInSlice  = uiChromaCbpNextMbY*m_uiWidthInMB+uiChromaCbpNextMbX ;
-  UInt uiLastMbInSlice   = uiLastMbY*m_uiWidthInMB+uiLastMbX ;
+  UInt uiFirstMbInSlice  = uiXChromaCbpNextMbY*m_uiWidthInMB+uiXChromaCbpNextMbX ;
+  UInt uiLastMbInSlice   = uiXLastMbY*m_uiWidthInMB+uiXLastMbX ;
 
 
   for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
@@ -1455,11 +1455,11 @@ RQFGSEncoder::xEncodeChromaCbpVlc(UInt  uiCurrMbIdxX,
         m_bChromaCbpTransition = gaabTransitionFlag[m_uiLastChromaCbp][uiChromaCbp];
         m_uiLastChromaCbp   = uiChromaCbp;
 
-        uiChromaCbpNextMbX  = uiMbXIdx;
-        uiChromaCbpNextMbY  = uiMbYIdx;
+        uiXChromaCbpNextMbX  = uiMbXIdx;
+        uiXChromaCbpNextMbY  = uiMbYIdx;
 
-        m_uiChromaCbpNextMbX = uiChromaCbpNextMbX;
-        m_uiChromaCbpNextMbY = uiChromaCbpNextMbY;
+        m_uiChromaCbpNextMbX = uiXChromaCbpNextMbX;
+        m_uiChromaCbpNextMbY = uiXChromaCbpNextMbY;
 
         return Err::m_nOK;
       }
@@ -1479,11 +1479,11 @@ RQFGSEncoder::xEncodeChromaCbpVlc(UInt  uiCurrMbIdxX,
 
     m_uiChromaCbpRun = 0;
 
-    uiChromaCbpNextMbX = uiLastMbX;
-    uiChromaCbpNextMbY = uiLastMbY;
+    uiXChromaCbpNextMbX = uiXLastMbX;
+    uiXChromaCbpNextMbY = uiXLastMbY;
 
-    m_uiChromaCbpNextMbX = uiChromaCbpNextMbX;
-    m_uiChromaCbpNextMbY = uiChromaCbpNextMbY;
+    m_uiChromaCbpNextMbX = uiXChromaCbpNextMbX;
+    m_uiChromaCbpNextMbY = uiXChromaCbpNextMbY;
   }
 
   return Err::m_nOK;
@@ -2209,7 +2209,6 @@ RQFGSEncoder::xEncodeMbHeader( MbDataAccess*      pcMbDataAccessBL,
 {
   UInt    uiMbX = pcMbDataAccessBL->getMbX();
   UInt    uiMbY = pcMbDataAccessBL->getMbY();
-  UInt    uiMbIndex = uiMbY * m_uiWidthInMB + uiMbX;
 
   if( m_pcSliceHeader->getAdaptivePredictionFlag() &&
     ! pcMbDataAccessBL->getMbData().isIntra() )
@@ -2234,7 +2233,7 @@ RQFGSEncoder::xEncodeMbHeader( MbDataAccess*      pcMbDataAccessBL,
   // Luma CBP in CABAC, need also for CAVLC to update the CBP in buffer
   {
     for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx ++ ) {
-      Bool bSigBCBP = m_pcSymbolWriter->RQencodeCBP_8x8( *pcMbDataAccessEL, *pcMbDataAccessBL, c8x8Idx );
+      m_pcSymbolWriter->RQencodeCBP_8x8( *pcMbDataAccessEL, *pcMbDataAccessBL, c8x8Idx );
     }
   }
 

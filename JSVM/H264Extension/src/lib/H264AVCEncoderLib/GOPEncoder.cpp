@@ -4868,7 +4868,6 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
   IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
   IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP]; // Hanke@RWTH
   IntFrame*     pcMCFrame       = m_apcFrameTemp  [0];
-  IntFrame*     pcSRFrame       = m_papcSmoothedFrame[uiFrameIdInGOP];  // JVT-R091
 
   //-- JVT-R091
   // obtain base-layer data
@@ -5349,7 +5348,6 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
   IntFrame*               pcSRFrame       = m_papcSmoothedFrame[uiFrameIdInGOP]; // JVT-R091
   ControlData&            rcControlData   = m_pacControlData[uiFrameIdInGOP];
   SliceHeader*            pcSliceHeader   = rcControlData.getSliceHeader();
-  IntFrame*               pcOrgPred       = m_apcFrameTemp  [2];  // JVT-R091
   IntFrame*               pcRedBQFrame    = m_apcFrameTemp  [3];  // JVT-Q054 Red. Picture
   IntFrame*               pcRedSRFrame    = m_apcFrameTemp  [4];  // JVT-Q054 Red. Picture
   AccessUnit&             rcAccessUnit    = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
@@ -5538,8 +5536,6 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
       m_uiNotYetConsideredBaseLayerBits = 0;
     }
 
-    ROF( m_papcOrgFrame );
-    IntFrame*    pcOrgFrame           = m_papcOrgFrame[uiFrameIdInGOP];
     IntFrame*    pcHighPassPredSignal = new IntFrame( *m_pcYuvFullPelBufferCtrl,
                                                       *m_pcYuvFullPelBufferCtrl );
     ROF ( pcHighPassPredSignal );
