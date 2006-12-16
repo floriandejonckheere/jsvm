@@ -1420,9 +1420,6 @@ FGSCoder::xUpdateMbMaps ( MbDataAccess*      pcMbDataAccessBL,
                           MbFGSCoefMap       &rcMbFGSCoefMap,
                           Int*               piRemainingTCoeff )
 {
-  UInt    uiMbX = pcMbDataAccessBL->getMbX();
-  UInt    uiMbY = pcMbDataAccessBL->getMbY();
-
   for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx ++ ) {
     Bool bSigCBP = ( pcMbDataAccessEL->getMbData().getMbCbp() >> c8x8Idx.b8x8Index() ) & 1;
 
