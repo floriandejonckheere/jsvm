@@ -1422,7 +1422,6 @@ FGSCoder::xUpdateMbMaps ( MbDataAccess*      pcMbDataAccessBL,
 {
   UInt    uiMbX = pcMbDataAccessBL->getMbX();
   UInt    uiMbY = pcMbDataAccessBL->getMbY();
-  UInt    uiMbIndex = uiMbY * m_uiWidthInMB + uiMbX;
 
   for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx ++ ) {
     Bool bSigCBP = ( pcMbDataAccessEL->getMbData().getMbCbp() >> c8x8Idx.b8x8Index() ) & 1;
@@ -1598,8 +1597,6 @@ FGSCoder::xSetNumCoefficients( UInt               uiMbX,
                                MbFGSCoefMap       &rcMbFGSCoefMap,
                                UInt               uiMbCoeffsDecoded )
 {
-  UInt uiMbIndex  = uiMbY * m_uiWidthInMB + uiMbX;
-
   // now partially it is set in xDecodeMbHeader, should be changed also
   rcMbFGSCoefMap.resetNumCoded();
   rcMbFGSCoefMap.increaseAndCheckNumCoded( uiMbCoeffsDecoded ); 

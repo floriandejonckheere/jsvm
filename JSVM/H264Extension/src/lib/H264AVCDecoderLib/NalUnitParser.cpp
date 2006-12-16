@@ -395,6 +395,7 @@ NalUnitParser::getBitsLeft()
 }
 //~JVT-P031
 
+ErrVal
 NalUnitParser::initNalUnit( BinDataAccessor*  pcBinDataAccessor, 
                             UInt&             uiNumBytesRemoved,  //FIX_FRAG_CAVLC
                             Bool              bPreParseHeader, 

@@ -1868,7 +1868,6 @@ CabacReader::RQdecodeBCBP_ChromaAC( MbDataAccess&  rcMbDataAccess,
                                     ChromaIdx      cIdx,
                                     UInt&          ruiSymbol )
 {
-  UInt    uiSymbol  = 0;
   UInt    uiCtx     = rcMbDataAccessBase.getCtxCodedBlockBit( 16 + cIdx );
 
   ruiSymbol  = 0;

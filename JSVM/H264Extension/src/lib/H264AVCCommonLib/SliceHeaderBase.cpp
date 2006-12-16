@@ -981,7 +981,6 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     {
       if( this->getSPS().getNumFGSVectModes() == 2)
       {
-        Bool bTmp; 
         RNOK ( pcReadIf->getFlag( bTmp,                                      "SH: vector_mode_index"     ) );
         m_uiVectorModeIndex = 1-bTmp; 
       }
