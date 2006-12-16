@@ -1223,11 +1223,11 @@ static UInt UvlcCodeLength(UInt uiSymbol)
 }
 
 ErrVal
-RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
-                                     UInt&  uiLumaCbpNextMbY,
-                                     UInt&  uiLumaCbpNext8x8Idx,
-                                     UInt   uiLastMbX,
-                                     UInt   uiLastMbY,
+RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiXLumaCbpNextMbX,
+                                     UInt&  uiXLumaCbpNextMbY,
+                                     UInt&  uiXLumaCbpNext8x8Idx,
+                                     UInt   uiXLastMbX,
+                                     UInt   uiXLastMbY,
                                      UInt&  ruiLumaCbpBitCount)
 {
   UInt uiMbXIdx = 0, uiMbYIdx = 0, uiB8x8 = 0;
@@ -1235,8 +1235,8 @@ RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
   MbDataAccess *pcMbDataAccessEL, *pcMbDataAccessBL;
   Bool bLumaCbpCodedFlag = false;
 
-  UInt uiFirstMbInSlice  = uiLumaCbpNextMbY*m_uiWidthInMB+uiLumaCbpNextMbX ;
-  UInt uiLastMbInSlice   = uiLastMbY*m_uiWidthInMB+uiLastMbX ;
+  UInt uiFirstMbInSlice  = uiXLumaCbpNextMbY*m_uiWidthInMB+uiXLumaCbpNextMbX ;
+  UInt uiLastMbInSlice   = uiXLastMbY*m_uiWidthInMB+uiXLastMbX ;
 
   for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
   {
@@ -1275,17 +1275,17 @@ RQFGSEncoder::xEncodeLumaCbpVlcStart(UInt&  uiLumaCbpNextMbX,
     uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
   }
 
-  uiLumaCbpNextMbX       = uiMbXIdx;
-  uiLumaCbpNextMbY       = uiMbYIdx;
-  uiLumaCbpNext8x8Idx    = uiB8x8;
+  uiXLumaCbpNextMbX       = uiMbXIdx;
+  uiXLumaCbpNextMbY       = uiMbYIdx;
+  uiXLumaCbpNext8x8Idx    = uiB8x8;
   m_uiLumaCbpRun  = 0;
 
   ((UvlcWriter *) m_pcSymbolWriter)->writeFlag(! m_bLastLumaCbpFlag, "Luma_CBP_first_flag");
   ruiLumaCbpBitCount ++;
 
-  m_uiLumaCbpNextMbX = uiLumaCbpNextMbX;
-  m_uiLumaCbpNextMbY = uiLumaCbpNextMbY;
-  m_uiLumaCbpNext8x8Idx = uiLumaCbpNext8x8Idx;
+  m_uiLumaCbpNextMbX = uiXLumaCbpNextMbX;
+  m_uiLumaCbpNextMbY = uiXLumaCbpNextMbY;
+  m_uiLumaCbpNext8x8Idx = uiXLumaCbpNext8x8Idx;
 
   return Err::m_nOK;
 }
