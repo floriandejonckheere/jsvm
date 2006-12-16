@@ -405,6 +405,8 @@ RQFGSDecoder::xDecodeMbHeader( MbDataAccess*      pcMbDataAccessBL,
                                MbFGSCoefMap       &rcMbFGSCoefMap,
                                Int&               riLastQp )
 {
+  UInt    uiMbX = pcMbDataAccessBL->getMbX();
+  UInt    uiMbY = pcMbDataAccessBL->getMbY();
   UInt    uiCbpBit;
   MbSymbolReadIf* pcMbHeaderReader;
 
