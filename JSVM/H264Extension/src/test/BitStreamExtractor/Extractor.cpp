@@ -2471,7 +2471,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
 	RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
   BinData*  pcBinDataFrags[MAX_NUM_PD_FRAGMENTS];
-  UInt      ui, uiFgsLayerTotal;
+  UInt      ui, uiFgsLayerTotal = 0;
   for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ )
     pcBinDataFrags[ui] = 0;
 
