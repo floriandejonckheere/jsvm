@@ -528,7 +528,7 @@ RQFGSDecoder::xResidualBlock        ( MbDataAccess&   rcMbDataAccess,
   TCoeff    aiCoeffTemp[16];
   TCoeff    aiCoeffBaseTemp[16];
   UInt      uiBlkX, uiBlkY, uiB8x8, uiB4x4IdxInB8x8;
-  Par8x8    ePar8x8;
+  Par8x8    ePar8x8 = Par8x8(0);
 
   uiB4x4IdxInB8x8 = 0;
   if( eResidualMode == LUMA_SCAN && uiStride == 1 ) {
@@ -622,11 +622,12 @@ RQFGSDecoder::xResidualBlock        ( MbDataAccess&   rcMbDataAccess,
         if( eStatus != Err::m_nOK )
           break;
 
+        Int iXCoeff; 
         //if( eResidualMode == LUMA_SCAN && uiStride == 1 )
         {
-          iCoeff = piCoeff[pucScan[uiCycle]];
+          iXCoeff = piCoeff[pucScan[uiCycle]];
           if( piCoeffBase[pucScan[uiCycle]] < 0 )
-            iCoeff = - iCoeff;
+            iXCoeff = -iXCoeff;
         }
 #if 0
         else if(eRedisualMode == LUMA_8x8 || uiStride == 4) 
@@ -637,9 +638,9 @@ RQFGSDecoder::xResidualBlock        ( MbDataAccess&   rcMbDataAccess,
         }
 #endif
         pcRefCtx[uiCycle] <<= 2;
-        if( iCoeff < 0 )
+        if( iXCoeff < 0 )
           pcRefCtx[uiCycle]+= 2;
-        else if( iCoeff > 0 )
+        else if( iXCoeff > 0 )
           pcRefCtx[uiCycle]++;
 
        uiNumCoeffs ++;

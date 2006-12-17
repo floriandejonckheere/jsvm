@@ -137,7 +137,7 @@
             		        height => 144,
             		        framerate => 15,
             		        bitrate => 270,
-            		        psnr => 33.11,
+            		        psnr => 33.10,
             		      },
     		              #----------#
 			# Test   5 #

@@ -123,7 +123,7 @@ tests      => [
 		 height => 288,
 		 framerate => 30,
 		 bitrate => 700,
-		 psnr => 30.8725,
+		 psnr => 30.85,
 		},
 	],
 }

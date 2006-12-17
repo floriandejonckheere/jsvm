@@ -55,8 +55,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1073.2488,
-                  			psnr        => 16.8015,
+                  			bitrate     => 1074,
+                  			psnr        => 16.77,
                         packetlossrate => 5,
                         errorconcealment => 1,
                         
@@ -86,8 +86,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1073.2488,
-                  			psnr        => 14.6489,
+                  			bitrate     => 1074,
+                  			psnr        => 14.64,
                   			packetlossrate => 5,
                         errorconcealment => 2,
                         
@@ -116,8 +116,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1073.2488,
-                  			psnr        => 14.8249,
+                  			bitrate     => 1074,
+                  			psnr        => 14.82,
                   			packetlossrate => 5,
                         errorconcealment => 3,
                         
