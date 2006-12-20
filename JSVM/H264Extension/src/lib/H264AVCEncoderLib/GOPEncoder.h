@@ -325,6 +325,8 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   UInt          getBaseLayerCGSSNR() { return m_uiBaseLayerCGSSNR;}
   UInt          getBaseQualityLevelCGSSNR() { return m_uiBaseQualityLevelCGSSNR;}
 //JVT-T054}
+  //EIDR bug-fix
+  Void			setIDRAccessPeriod(Int i)		{ m_iIDRAccessPeriod = i;}	
 protected:
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
@@ -691,7 +693,8 @@ protected:
 
 // JVT-Q065 EIDR{
   Int              m_iIDRPeriod;
-  Bool              m_bBLSkipEnable;
+  Int				       m_iIDRAccessPeriod;  //EIDR bug-fix
+  Bool             m_bBLSkipEnable;
 // JVT-Q065 EIDR}
   //JVT-R057 LA-RDO{
   Bool                          m_bLARDOEnable;

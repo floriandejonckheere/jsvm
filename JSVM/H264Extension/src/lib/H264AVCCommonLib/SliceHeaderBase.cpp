@@ -268,13 +268,20 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiBaseQualityLevel                ( 0 )
 , m_uiBaseFragmentOrder                ( 0 )
 , m_bAdaptivePredictionFlag           ( false )
+//JVT-U160 LMI {
+, m_bDefaultBaseModeFlag              ( true )
+, m_bAdaptiveMotPredictionFlag        ( true )
+, m_bDefaultMotPredictionFlag         ( false )
+, m_bAdaptiveResPredictionFlag        ( false )
+//JVT-U160 LMI }
 , m_bNumRefIdxActiveOverrideFlag      ( false )
-, m_bNoOutputOfPriorPicsFlag          ( true  )
+, m_bNoOutputOfPriorPicsFlag          ( false ) //EIDR bug-fix
 , m_bAdaptiveRefPicBufferingModeFlag  ( false )
 , m_bAdaptiveRefPicMarkingModeFlag    ( false )    //JVT-S036 lsj
 , m_uiCabacInitIdc                    ( 0 )
 , m_iSliceQpDelta                     ( 0 )
 , m_pcFMO                             ( 0 ) //--ICU/ETRI FMO Implementation
+, m_bFragmentedFlag                   ( false) //JV
 //TMM_ESS_UNIFIED {
 , m_iScaledBaseLeftOffset             ( 0 )
 , m_iScaledBaseTopOffset              ( 0 )
@@ -303,6 +310,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 //JVT-U106 Behaviour at slice boundaries{
 , m_bCIUFlag                          ( false )
 //JVT-U106 Behaviour at slice boundaries}
+, m_bInIDRAccess					  ( false ) //EIDR bug-fix
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -484,6 +492,19 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
         }
         RNOK( pcWriteIf->writeUvlc( uiBaseLayerId,                                "SH: base_id" ) );
         RNOK( pcWriteIf->writeFlag( m_bAdaptivePredictionFlag,                    "SH: adaptive_prediction_flag" ) );
+        // JVT-U160 LMI {
+        if ( !m_bAdaptivePredictionFlag ) 
+        {
+          RNOK( pcWriteIf->writeFlag( m_bDefaultBaseModeFlag,                    "SH: default_base_mode_flag" ) );
+		  if( !m_bDefaultBaseModeFlag) 
+          {
+            RNOK( pcWriteIf->writeFlag( m_bAdaptiveMotPredictionFlag,                    "SH: adaptive_motion_prediction_flag" ) );
+		    if ( !m_bAdaptiveMotPredictionFlag )
+              RNOK( pcWriteIf->writeFlag( m_bDefaultMotPredictionFlag,                    "SH: default_motion_prediction_flag" ) );
+          }
+        }
+        RNOK( pcWriteIf->writeFlag( m_bAdaptiveResPredictionFlag,                    "SH: adaptive_residual_prediction_flag" ) );
+        // JVT-U160 LMI }
       }
 
     if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
@@ -832,6 +853,19 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       m_uiBaseLayerId = m_uiBaseLayerId >> 4;
 
       RNOK( pcReadIf->getFlag( m_bAdaptivePredictionFlag,                    "SH: adaptive_prediction_flag" ) );
+      // JVT-U160 LMI {
+      if ( !m_bAdaptivePredictionFlag ) 
+      {
+          RNOK( pcReadIf->getFlag( m_bDefaultBaseModeFlag,                    "SH: default_base_mode_flag" ) );
+	      if( !m_bDefaultBaseModeFlag ) 
+          {
+            RNOK( pcReadIf->getFlag( m_bAdaptiveMotPredictionFlag,                    "SH: adaptive_motion_prediction_flag" ) );
+		    if ( !m_bAdaptiveMotPredictionFlag )
+                RNOK( pcReadIf->getFlag( m_bDefaultMotPredictionFlag,                    "SH: default_motion_prediction_flag" ) );
+          }
+      }
+      RNOK( pcReadIf->getFlag( m_bAdaptiveResPredictionFlag,                    "SH: adaptive_residual_prediction_flag" ) );
+      // JVT-U160 LMI }
     }
     else
     {

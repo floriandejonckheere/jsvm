@@ -179,10 +179,14 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
         {
           RNOK  ( m_pcMbSymbolWriteIf->BLSkipFlag( rcMbDataAccess ) );
         }
+// JVT-U160 LMI {
+        /*
         else
         {
           ROF( rcMbDataAccess.getMbData().getBLSkipFlag () );
         }
+        */
+// JVT-U160 LMI }
 // TMM_ESS {
       }
       else  // of if ( rcMbDataAccess.getMbData().getInCropWindowFlag() == true )
@@ -521,7 +525,8 @@ MbCoder::xWriteMotionPredFlags( MbDataAccess&  rcMbDataAccess,
   MbDataAccess* pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
   ROFRS  ( pcMbDataAccessBase,                                    Err::m_nOK );
   ROFRS  ( pcMbDataAccessBase->getMbData().getInCropWindowFlag(), Err::m_nOK );
-
+  // JVT-U160 LMI
+  ROFRS ( rcMbDataAccess.getSH().getAdaptiveMotPredictionFlag(), Err::m_nOK );
   switch( eMbMode )
   {
   case MODE_SKIP:
@@ -789,7 +794,8 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
   if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
      !rcMbDataAccess.getMbData().isIntra() )
   {
-    if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+  // JVT-U160 LMI
+    if( rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() )
     {
       if( ! rcMbDataAccess.getSH().isIntra() )
       {

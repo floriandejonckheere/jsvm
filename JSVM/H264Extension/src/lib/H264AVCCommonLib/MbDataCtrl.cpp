@@ -459,7 +459,10 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
     if( rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_IDR_SCALABLE &&
         rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_SCALABLE     && bDecoder )
     {
-      const RefPic& rcRefPic0L1 = rcSH.getRefPic( 1, LIST_1 );
+     // const RefPic& rcRefPic0L1 = rcSH.getRefPic( 1, LIST_1 );
+     //EIDR bug-fix
+		const RefPic& rcRefPic0L1 = ( rcSH.getRefListSize(LIST_1) > 1  && rcSH.getRefPic(2, LIST_1).getFrame()->getPOC() < rcSH.getRefPic(1, LIST_1).getFrame()->getPOC() && rcSH.getRefPic(2, LIST_1).getFrame()->getPOC() > rcSH.getPoc()) ?
+											           rcSH.getRefPic( 2, LIST_1 ) : rcSH.getRefPic( 1, LIST_1 );     
       AOF_DBG( rcRefPic0L1.isAvailable() );
       const FrameUnit* pcFU = rcRefPic0L1.getPic().getFrameUnit();
 

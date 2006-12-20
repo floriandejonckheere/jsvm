@@ -145,7 +145,8 @@ ErrVal PocCalculator::destroy()
 
 ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
     {
-  if( rcSliceHeader.isIdrNalUnit() )
+  
+  if( rcSliceHeader.isIdrNalUnit() && rcSliceHeader.getInIDRAccess() )//EIDR bug-fix
     {
     RNOK( xInitSPS( rcSliceHeader.getSPS() ) );
     }
@@ -159,12 +160,10 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
       Int iCurrPocLsb = rcSliceHeader.getPicOrderCntLsb();
       Int iDiffPocLsb = m_iPrevRefPocLsb - iCurrPocLsb;
 
-      if( rcSliceHeader.isIdrNalUnit() )
+       if( rcSliceHeader.isIdrNalUnit() && rcSliceHeader.getInIDRAccess() )//EIDR bug-fix
       {
-/* // JVT-Q065 EIDR
       iCurrPocMsb   = 0;
       iCurrPocLsb   = 0;
-*/
       }
       else if( iDiffPocLsb >= ( m_iMaxPocLsb >> 1 ) )
       {
@@ -303,8 +302,9 @@ ErrVal PocCalculator::setPoc( SliceHeader&  rcSliceHeader,
   {
     m_iBitsLsb          = rcSliceHeader.getSPS().getLog2MaxPicOrderCntLsb();
 
-  // JVT-Q065 EIDR
-  //m_iLastIdrFrameNum  = iContFrameNumber;
+  //EIDR bug-fix
+	if(rcSliceHeader.getInIDRAccess())
+  m_iLastIdrFrameNum  = iContFrameNumber;
 
   }
 

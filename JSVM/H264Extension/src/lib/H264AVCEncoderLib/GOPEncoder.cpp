@@ -230,6 +230,7 @@ MCTFEncoder::MCTFEncoder()
 , m_iPredLastFGSError                   ( 0 )//JVT-P031
 // JVT-Q065 EIDR{
 , m_iIDRPeriod            ( 0 )
+, m_iIDRAccessPeriod		  ( 0 ) //EIDR bug-fix
 , m_bBLSkipEnable          ( false )
 // JVT-Q065 EIDR}
 , m_bLARDOEnable                    ( false ) //JVT-R057 LA-RDO
@@ -3537,6 +3538,8 @@ MCTFEncoder::xSetBaseLayerData( UInt uiFrameIdInGOP )
     pcSliceHeader->setBaseLayerId           ( MSYS_UINT_MAX );
     pcSliceHeader->setBaseQualityLevel      ( 0 );
     pcSliceHeader->setAdaptivePredictionFlag( false );
+// JVT-U160 LMI
+    pcSliceHeader->setAdaptiveResPredictionFlag (false);
     rcControlData .setBaseLayer             ( MSYS_UINT_MAX, MSYS_UINT_MAX );
     rcControlData .setSpatialScalabilityType   ( SST_RATIO_1 );
     return Err::m_nOK;
@@ -3554,6 +3557,8 @@ MCTFEncoder::xSetBaseLayerData( UInt uiFrameIdInGOP )
   pcSliceHeader->setBaseLayerId             ( uiBaseLayerId );
   pcSliceHeader->setBaseQualityLevel        ( m_uiBaseQualityLevel );
   pcSliceHeader->setAdaptivePredictionFlag  ( uiBaseLayerId != MSYS_UINT_MAX ? bAdaptive : false );
+  // JVT-U160 LMI 
+  pcSliceHeader->setAdaptiveResPredictionFlag (pcSliceHeader->getAdaptivePredictionFlag());
   rcControlData .setBaseLayer               ( uiBaseLayerId, uiBaseLayerIdMotion );
   rcControlData .setSpatialScalability( iSpatialScalabilityType > SST_RATIO_1 );  // SSUN@SHARP
   rcControlData .setSpatialScalabilityType  ( iSpatialScalabilityType );
@@ -3708,6 +3713,9 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
     pcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setSliceBetaOffset            ( 2 * m_iBetaOffset   );
   }
 
+  //EIDR bug-fix
+  if(pcSliceHeader->isIdrNalUnit() && m_iIDRPeriod == m_iIDRAccessPeriod)
+	pcSliceHeader->setInIDRAccess(true);
   //===== set remaining slice header parameters =====
   RNOK( m_pcPocCalculator->setPoc( *pcSliceHeader, m_papcFrame[uiFrameIdInGOP]->getPOC() ) );
 

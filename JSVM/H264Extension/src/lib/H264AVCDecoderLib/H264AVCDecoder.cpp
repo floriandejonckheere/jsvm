@@ -117,6 +117,7 @@ H264AVCDecoder::H264AVCDecoder()
 , m_pcPocCalculator               ( NULL  )
 , m_pcSliceHeader                 ( NULL  )
 , m_pcPrevSliceHeader             ( NULL  )
+, m_pcTempSliceHeader			        ( NULL  )//EIDR bug-fix
 , m_pcSliceHeader_backup          ( NULL  ) // JVT-Q054 Red. Picture
 , m_bFirstSliceHeaderBackup       ( true  ) // JVT-Q054 Red. Picture
 , m_bRedundantPic                 ( false ) // JVT-Q054 Red. Picture
@@ -319,9 +320,11 @@ ErrVal H264AVCDecoder::uninit()
 
   delete m_pcSliceHeader;
   delete m_pcPrevSliceHeader;
+  delete m_pcTempSliceHeader;     //EIDR bug-fix  
   delete m_pcSliceHeader_backup;  // JVT-Q054 Red. Pic
   m_pcSliceHeader         = NULL;
   m_pcPrevSliceHeader     = NULL;
+  m_pcTempSliceHeader	  = NULL;   //EIDR bug-fix
   m_pcSliceHeader_backup  = NULL; // JVT-Q054 Red. Pic
 
   m_pcSliceReader         = NULL;
@@ -374,6 +377,17 @@ H264AVCDecoder::calculatePoc( NalUnitType   eNalUnitType,
   {
     m_apcMCTFDecoder[m_iFirstLayerIdx]->getPocCalculator()->copy( pcLocalPocCalculator );
   }
+
+  //EIDR bug-fix {
+	if(rcSliceHeader.getLayerId() == 0 )
+	{
+		rcSliceHeader.setInIDRAccess(rcSliceHeader.isIdrNalUnit());
+	}
+	else
+	{
+		rcSliceHeader.setInIDRAccess(m_pcTempSliceHeader?m_pcTempSliceHeader->getInIDRAccess():false);
+	}
+   //EIDR bug-fix }
 
   pcLocalPocCalculator->calculatePoc( rcSliceHeader );
 
@@ -630,7 +644,10 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
   }
 
   if( pcSliceHeader != NULL )
-    delete pcSliceHeader;
+  {
+  delete m_pcTempSliceHeader;  //EIDR bug-fix
+	m_pcTempSliceHeader = pcSliceHeader;//EIDR bug-fix
+  }
 
   return Err::m_nOK;
 }
@@ -1756,6 +1773,19 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
                          PicBufferList&   rcPicBufferReleaseList )
  {
   ROF( m_bInitDone );
+  //EIDR bug-fix {
+	if(m_pcSliceHeader )
+	{
+		if(m_pcSliceHeader->getLayerId() == 0 )
+		{
+			m_pcSliceHeader->setInIDRAccess(m_pcSliceHeader->isIdrNalUnit());
+		}
+		else
+		{
+			m_pcSliceHeader->setInIDRAccess(m_pcPrevSliceHeader?m_pcPrevSliceHeader->getInIDRAccess():false);
+		}
+	}
+//EIDR bug-fix }
 
   //JVT-T054_FIX{
   if(m_bBaseSVCActive)
@@ -2092,8 +2122,12 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
         }
         else
         {
-          delete m_pcPrevSliceHeader;
-          m_pcPrevSliceHeader = m_pcSliceHeader;
+          //EIDR bug-fix
+		     if(m_pcSliceHeader)
+         {
+           delete m_pcPrevSliceHeader;
+           m_pcPrevSliceHeader = m_pcSliceHeader;
+         }
           m_pcSliceHeader     = pSliceHeader;
         }
         //      delete m_pcPrevSliceHeader;

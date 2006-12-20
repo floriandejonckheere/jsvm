@@ -1,3 +1,25 @@
+JSVM_7_11 -> JSVM_7_12
+======================
+
+Date: Dec. 19, 2006 
+Author: Hao Zhang and Alex Eleftheriadis (Layered Media), J. Vieron (Thomson)
+Contributions: JVT-U160
+
+Changes:
+
+- Separate flags are added into the slice header to signal use of base mode selection, residual prediction and motion prediction, separately from adaptive prediction. 
+- Only syntax changes are integrated in the current version. R-D optimization is not changed and the default values of these new flags are set in such ways
+that the R-D performance stays the same. Therefore, arbitrary settings of these flags will not result in the expected performance.
+
+Note: The changes can be located by searching 'U160'.
+
+-EIDR Bug fixes related to IntraPeriod vs IDRPeriod (provided by shenqiu). 
+
+-Temporal level nesting flag default value is now set to 0  (J. Vieron).
+-Very minor: Remove of remaining AGS parts in cfg files of validation scripts (J. Viéron).
+
+
+
 
 
 JSVM_7_10 -> JSVM_7_11
@@ -8,6 +30,7 @@ Author: Yan Ye, Yiliang Bao (Qualcomm)
 Contributions: JVT-U125, JVT-U126
 
 Changes:
+
 - Integration of cycle aligned fragments for FGS layer according 
   to JVT-U125. Also simplified FGS layer syntaxes by grouping 
   some syntaxes into a macroblock header. 
@@ -27,6 +50,7 @@ Author: Xianglin Wang, Justin Ridge (Nokia)
 Contributions: JVT-U129, JVT-U130
 
 Changes:
+
 - Integration of JVT-U129,"Separation markers for FGS color 
   components". Added corresponding SEI message.
 - Implemented the improved inter-layer prediction mechanism
@@ -71,6 +95,8 @@ JSVM_7_7 -> JSVM_7_8
 Date: Nov. 28, 2006 
 Authors: Heiko Schwarz (HHI), Mathias Wien (RWTH Aachen)
 Contributions: Bug fixes
+
+Changes:
 
 1) remove X11 library from Linux makefiles
 2) add command line parameter "-meqplp" for adjusting lambda for key pictures

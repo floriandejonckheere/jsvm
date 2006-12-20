@@ -471,6 +471,10 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
 										   //JVT-U106 Behaviour at slice boundaries}
 										   ) );
   }
+  
+  //EIDR bug-fix
+	m_apcMCTFEncoder[uiLayer]->setIDRAccessPeriod(m_pcCodingParameter->getLayerParameters(0).getIDRPeriod()); 
+  
   //Bug_Fix JVT-R057{
   if(m_pcCodingParameter->getLARDOEnable())
   {

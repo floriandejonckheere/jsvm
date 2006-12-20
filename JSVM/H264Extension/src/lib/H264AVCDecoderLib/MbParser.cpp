@@ -264,7 +264,8 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
         }
         else
         {
-          rcMbDataAccess.getMbData().setBLSkipFlag( true  );
+    //JVT-U160 LMI
+          rcMbDataAccess.getMbData().setBLSkipFlag( rcMbDataAccess.getSH().getDefaultBaseModeFlag() );
         }
   // TMM_ESS {
       }
@@ -1202,7 +1203,10 @@ ErrVal MbParser::xReadMotionPredFlags( MbDataAccess&  rcMbDataAccess,
   ROFRS( rcMbDataAccess.getMbData ().getInCropWindowFlag(),                   Err::m_nOK );
 
   MbMotionData& rcMbMotionData = rcMbDataAccess.getMbMotionData( eLstIdx );
-
+  //JVT-U160 LMI {
+  rcMbMotionData.setMotPredFlag( rcMbDataAccess.getSH().getDefaultMotPredictionFlag() );
+  ROFRS ( rcMbDataAccess.getSH().getAdaptiveMotPredictionFlag(), Err::m_nOK );
+  //JVT-U160 LMI }
   //--- clear ---
   rcMbMotionData.setMotPredFlag( false );
 
@@ -1379,7 +1383,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
   if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
      !rcMbDataAccess.getMbData().isIntra() )
   {
-    if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
+    if( rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() )   // JVT-U160 LMI
     {
       if( ! rcMbDataAccess.getSH().isIntra() )
       {

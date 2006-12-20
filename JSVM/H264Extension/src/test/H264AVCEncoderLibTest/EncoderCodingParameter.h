@@ -722,7 +722,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",            &m_uiMMCOBaseEnable,                                      1 );
 //JVT-S036 lsj end //bug-fix suffix}}
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                              0 );  //JVT-T054
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",        &m_uiTlevelNestingFlag,                                   1 );  //JVT-U085
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",        &m_uiTlevelNestingFlag,                                   0 );  //JVT-U085
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLFrameIdxEnable",        &m_uiExtensionFlag,                                    0 );  //JVT-U116
   m_pEncoderLines[uiParLnCount] = NULL;
 

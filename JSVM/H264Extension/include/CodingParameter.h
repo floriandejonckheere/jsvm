@@ -665,27 +665,28 @@ public:
     , m_uiMaxRefIdxActiveBL1              ( 0 )
     , m_uiMaxRefIdxActiveP                ( 0 )
 //TMM_WP
-      , m_uiIPMode                       (0)
-      , m_uiBMode                        (0)
+      , m_uiIPMode                        ( 0 )
+      , m_uiBMode                         ( 0 )
 //TMM_WP
-    , m_bNonRequiredEnable        ( 0 ) //NonRequired JVT-Q066
-    , m_uiLARDOEnable                  (0)      //JVT-R057 LA-RDO
-    , m_uiSuffixUnitEnable        (0)  //JVT-S036 lsj
-    , m_uiMMCOBaseEnable            ( 0 ) //JVT-S036 lsj
+    , m_bNonRequiredEnable                ( 0 ) //NonRequired JVT-Q066
+    , m_uiLARDOEnable                     ( 0 )      //JVT-R057 LA-RDO
+    , m_uiSuffixUnitEnable                ( 0 )  //JVT-S036 lsj
+    , m_uiMMCOBaseEnable                  ( 0 ) //JVT-S036 lsj
     , m_bFGSParallelDecodingFlag          ( false )
 //JVT-T073 {
     , m_uiNestingSEIEnable              ( 0 )
     , m_uiSceneInfoEnable               ( 0 )
 //JVT-T073 }
 //JVT-T054{
-    , m_uiCGSSNRRefinementFlag             ( 0 )
+    , m_uiCGSSNRRefinementFlag          ( 0 )
     , m_uiMaxLayerCGSSNR                ( 0 )
     , m_uiMaxQualityLevelCGSSNR         ( 0 )
 //JVT-T054}
 // JVT-U085 LMI
-    , m_uiTlevelNestingFlag        ( 1 )
+    , m_uiTlevelNestingFlag             ( 1 )
 // JVT-U116 LMI
-    , m_uiExtensionFlag        ( 0 )
+    , m_uiExtensionFlag                 ( 0 )
+    ,m_uiCIUFlag                        ( 0 )  //JV        
 
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )

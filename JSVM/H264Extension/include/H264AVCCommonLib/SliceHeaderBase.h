@@ -688,6 +688,12 @@ public:
                                                                                                else return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
+  //JVT-U160 LMI {
+  Bool                              getAdaptiveResPredictionFlag  ()  const { return m_bAdaptiveResPredictionFlag; }
+  Bool                              getAdaptiveMotPredictionFlag  ()  const { return m_bAdaptiveMotPredictionFlag; }
+  Bool                              getDefaultBaseModeFlag         ()  const { return m_bDefaultBaseModeFlag; }
+  Bool                              getDefaultMotPredictionFlag   ()  const { return m_bDefaultMotPredictionFlag; }
+  //JVT-U160 LMI }
   Bool                              getNumRefIdxActiveOverrideFlag()  const { return m_bNumRefIdxActiveOverrideFlag; }
   UInt                              getNumRefIdxActive ( ListIdx e )  const { return m_auiNumRefIdxActive[e]; }
   const RplrBuffer&                 getRplrBuffer      ( ListIdx e )  const { return m_acRplrBuffer      [e]; }
@@ -827,6 +833,12 @@ public:
                                                             if (m_bLayerBaseFlag) m_uiBaseLayerId=MSYS_UINT_MAX;}
   Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
+// JVT-U160 LMI {
+  Void  setAdaptiveResPredictionFlag  ( Bool        b  )  { m_bAdaptiveResPredictionFlag        = b;  }
+  Void  setAdaptiveMotPredictionFlag  ( Bool        b  )  { m_bAdaptiveMotPredictionFlag        = b;  }
+  Void  setDefaultBaseModFlag         ( Bool        b  )  { m_bDefaultBaseModeFlag              = b;  }
+  Void  setDefaultMotPredictionFlag   ( Bool        b  )  { m_bDefaultMotPredictionFlag         = b;  }
+// JVT-U160 LMI }
   Void  setNumRefIdxActiveOverrideFlag( Bool        b  )  { m_bNumRefIdxActiveOverrideFlag      = b;  }
   Void  setNumRefIdxActive            ( ListIdx     e,
                                         UInt        ui )  { m_auiNumRefIdxActive[e]             = ui; }
@@ -869,6 +881,11 @@ public:
   Void          setBaseLayerCGSSNR(UInt ui) { m_uiBaseLayerCGSSNR = ui;}
   Void          setBaseQualityLevelCGSSNR(UInt ui) { m_uiBaseQualityLevelCGSSNR = ui;}
 //JVT-T054}
+
+ //EIDR bug-fix
+  Void			setInIDRAccess(Bool b)	{ m_bInIDRAccess = b; }
+  Bool			getInIDRAccess()		{ return m_bInIDRAccess; }
+
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
   ErrVal xReadScalable                ( HeaderSymbolReadIf*   pcReadIf );
@@ -909,6 +926,12 @@ protected:
   UInt                        m_uiBaseQualityLevel;
   UInt                        m_uiBaseFragmentOrder;
   Bool                        m_bAdaptivePredictionFlag;
+  // JVT-U160 LMI {
+  Bool                        m_bAdaptiveResPredictionFlag;
+  Bool                        m_bDefaultBaseModeFlag;
+  Bool                        m_bAdaptiveMotPredictionFlag;
+  Bool                        m_bDefaultMotPredictionFlag;
+  // JVT-U160 LMI }
   Bool                        m_bNumRefIdxActiveOverrideFlag;
   UInt                        m_auiNumRefIdxActive[2];
   RplrBuffer                  m_acRplrBuffer      [2];
@@ -997,6 +1020,8 @@ protected:
   UInt          m_uiNumPosVectors;
   UInt          m_uiPosVect[16];
   Bool          m_bFGSVectorModeOverrideFlag;
+  //EIDR bug-fix
+  Bool			m_bInIDRAccess; 
 };
 
 

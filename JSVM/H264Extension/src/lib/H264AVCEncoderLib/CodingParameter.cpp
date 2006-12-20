@@ -346,7 +346,7 @@ ErrVal CodingParameter::check()
   ROTREPORT( getGOPSize         ()  < 1  ||
              getGOPSize         ()  > 64,               "GOP Size not supported" );
   UInt uiDecStages = getLogFactor( 1.0, getGOPSize() );
-  ROTREPORT( uiDecStages == MSYS_UINT_MAX,              "GOP Size must be a multiple of 2" );
+  ROTREPORT( uiDecStages == MSYS_UINT_MAX,              "GOP Size must be a power of 2" );
   setDecompositionStages( uiDecStages );
 
   ROTREPORT( getIntraPeriod     ()  <

@@ -558,7 +558,7 @@ ErrVal H264AVCDecoderTest::go()
                 if( pcPicBufferTmp != NULL )
                 {
                 // HS: decoder robustness
-                  while( uiLastPoc + uiMaxPocDiff < (UInt)pcPicBufferTmp->getCts() )
+                  while( uiLastPoc + uiMaxPocDiff < (UInt)pcPicBufferTmp->getCts() && (Int)pcPicBufferTmp->getCts() > 0) //EIDR bug-fix
                   {
                     RNOK( m_pcWriteYuv->writeFrame( pcLastFrame + uiLumOffset,
                                                   pcLastFrame + uiCbOffset,
@@ -748,7 +748,7 @@ ErrVal H264AVCDecoderTest::go()
         if( pcPicBufferTmp != NULL )
       {
         // HS: decoder robustness
-          while( uiLastPoc + uiMaxPocDiff < (UInt)pcPicBufferTmp->getCts() )
+        while( uiLastPoc + uiMaxPocDiff < (UInt)pcPicBufferTmp->getCts() && (Int)pcPicBufferTmp->getCts() > 0)   //EIDR bug-fix
         {
           RNOK( m_pcWriteYuv->writeFrame( pcLastFrame + uiLumOffset,
                                           pcLastFrame + uiCbOffset,
