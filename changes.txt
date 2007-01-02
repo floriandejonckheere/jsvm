@@ -1,9 +1,23 @@
+JSVM_7_12 -> JSVM_7_12_1
+========================
+
+Date  : Jan. 02, 2007
+Author: J. Vieron (Thomson)
+
+
+Changes:
+
+- There was a mismatch between the JSVM text and the software regarding the INTRA blocks (4x4 or/and 8x8) replacement during the Inter-layer Prediction process. 
+- Bug fix in PSNRStatic regarding the PSNR computation of large size images.
+
+
+
 JSVM_7_11 -> JSVM_7_12
 ======================
 
 Date: Dec. 19, 2006 
 Author: Hao Zhang and Alex Eleftheriadis (Layered Media), J. Vieron (Thomson)
-Contributions: JVT-U160
+Contribution: JVT-U160
 
 Changes:
 

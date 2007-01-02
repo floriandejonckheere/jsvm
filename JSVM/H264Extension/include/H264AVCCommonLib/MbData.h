@@ -236,9 +236,10 @@ protected:
                       Int  aaiPartInfo[4][4]);
 
   ErrVal xRemoveIntra4x4(const UInt uiBlIdx,
-                          UInt  aui4x4Idx[4],
-                          UInt  auiMbIdx[4],
-                          Int  aaiPartInfo[4]);
+                         Bool bWasBl4x4Intra[4], //TMM_JV
+                         UInt  aui4x4Idx[4],
+                         UInt  auiMbIdx[4],
+                         Int  aaiPartInfo[4]);
 };
 
 

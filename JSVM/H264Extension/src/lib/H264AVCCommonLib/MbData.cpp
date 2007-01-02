@@ -341,8 +341,9 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
     for ( uiB8x8=0 ; uiB8x8<4 ; uiB8x8++)
       if(!abBl8x8Intra[uiB8x8])
       {
+        Bool        bWasBl4x4Intra  [4]= {false,false,false,false};
         for (uiB4x4=0 ; uiB4x4<4 ; uiB4x4++)
-          if(aaiPartInfo[uiB8x8][uiB4x4]==-1) xRemoveIntra4x4(uiB4x4,aui4x4Idx[uiB8x8],auiMbIdx[uiB8x8],aaiPartInfo[uiB8x8]);
+          if(aaiPartInfo[uiB8x8][uiB4x4]==-1) xRemoveIntra4x4(uiB4x4,bWasBl4x4Intra,aui4x4Idx[uiB8x8],auiMbIdx[uiB8x8],aaiPartInfo[uiB8x8]);
       }
 
     //--- Remove 8x8 INTRA blocks
@@ -723,21 +724,23 @@ MbData::xCopyBl8x8(const UInt uiBlIdx,
 
 ErrVal
 MbData::xRemoveIntra4x4(const UInt uiBlIdx,
+                        Bool bWasBl4x4Intra[4], //TMM_JV
                         UInt  aui4x4Idx[4],
                         UInt  auiMbIdx[4],
                         Int  aaiPartInfo[4])
 {
     UChar ucPredIdx=m_aucPredictor[0][uiBlIdx] ;
 
-    if(aaiPartInfo[ucPredIdx]==-1)
+    if(bWasBl4x4Intra[ucPredIdx] || aaiPartInfo[ucPredIdx]==-1)
     {
         ucPredIdx=m_aucPredictor[1][uiBlIdx] ;
-        if(aaiPartInfo[ucPredIdx]==-1)
-            xRemoveIntra4x4(ucPredIdx,aui4x4Idx,auiMbIdx,aaiPartInfo);
+        if(bWasBl4x4Intra[ucPredIdx] || aaiPartInfo[ucPredIdx]==-1)//TMM_JV
+            xRemoveIntra4x4(ucPredIdx,bWasBl4x4Intra,aui4x4Idx,auiMbIdx,aaiPartInfo);
     }
     aui4x4Idx[uiBlIdx]  = aui4x4Idx[ucPredIdx];
     auiMbIdx[uiBlIdx]   = auiMbIdx [ucPredIdx];
     aaiPartInfo[uiBlIdx]= aaiPartInfo[ucPredIdx];
+    bWasBl4x4Intra[uiBlIdx]=true; //TMM_JV
 
     return Err::m_nOK;
 }

@@ -297,9 +297,9 @@ int main(int argc, char *argv[])
   fseek(    rec_file, 0, SEEK_SET );
   fseek(    org_file, 0, SEEK_SET );
   if (rsize < osize)
-    sequence_length = rsize*4/(6*width)/height;
-  else
-    sequence_length = osize*4/(6*width)/height;
+   sequence_length = 4*(rsize/(6*width)/height); //BUG FIX VB
+  else  
+   sequence_length = 4*(osize/(6*width)/height); //BUG FIX VB
 
   if( stream )
   {
