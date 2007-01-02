@@ -8,7 +8,7 @@ Author: J. Vieron (Thomson)
 Changes:
 
 - There was a mismatch between the JSVM text and the software regarding the INTRA blocks (4x4 or/and 8x8) replacement during the Inter-layer Prediction process. 
-- Bug fix in PSNRStatic regarding the PSNR computation of large size images.
+
 
 
 

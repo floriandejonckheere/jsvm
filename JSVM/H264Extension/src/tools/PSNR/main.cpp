@@ -296,10 +296,11 @@ int main(int argc, char *argv[])
   size_t osize = ftell( org_file );
   fseek(    rec_file, 0, SEEK_SET );
   fseek(    org_file, 0, SEEK_SET );
+
   if (rsize < osize)
-   sequence_length = 4*(rsize/(6*width)/height); //BUG FIX VB
-  else  
-   sequence_length = 4*(osize/(6*width)/height); //BUG FIX VB
+    sequence_length = (unsigned int)((double)rsize/(double)((width*height*3)/2));
+   else
+    sequence_length = (unsigned int)((double)osize/(double)((width*height*3)/2));
 
   if( stream )
   {
