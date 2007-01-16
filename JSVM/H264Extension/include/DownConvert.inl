@@ -146,7 +146,7 @@ DownConvert::xClip( int iValue, int imin, int imax )
 __inline
 void
 DownConvert::xUpsampling3( ResizeParameters* pcParameters,
-                           bool bLuma
+                           bool bLuma, int resample_mode
                           )
 {
   int fact = (bLuma ? 1 : 2);
@@ -171,6 +171,32 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
     output_chroma_phase_shift_y = pcParameters->m_iChromaPhaseY;
   }
 
+  int top;
+  
+  if(resample_mode==1 || resample_mode>3)
+  {
+    input_height >>= 1;
+    top = (resample_mode==1 || resample_mode==4 || resample_mode==7);
+    if ( !bLuma ) // EF bug fix
+		input_chroma_phase_shift_y = input_chroma_phase_shift_y + 1 - 2*top;
+  }
+  else
+    input_chroma_phase_shift_y *= 2;
+  input_chroma_phase_shift_x *= 2;
+
+  if(resample_mode>0)
+  {
+    crop_y0 >>= 1;
+    crop_h >>= 1;
+    output_height >>= 1;
+    top = (resample_mode==1 || resample_mode==2 || resample_mode==4 || resample_mode==7);
+    if ( !bLuma ) // EF bug fix
+		output_chroma_phase_shift_y = output_chroma_phase_shift_y + 1 - 2*top;
+  }
+  else
+    output_chroma_phase_shift_y *= 2;
+  output_chroma_phase_shift_x *= 2;
+
   //cixunzhang
   xUpsampling3(input_width, input_height,
 	  output_width, output_height,
@@ -193,22 +219,22 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
 {
 
 	int filter16[16][6] = { // Cubic-spline JVT-U042
-		{0,0,32,0,0,0},
-		{0,-1,32,2,-1,0},
-		{0,-2,31,4,-1,0},
-		{0,-3,30,6,-1,0},
-		{0,-3,28,8,-1,0},
-		{0,-4,26,11,-1,0},
-		{0,-4,24,14,-2,0},
-		{0,-3,22,16,-3,0},
-		{0,-3,19,19,-3,0},
-		{0,-3,16,22,-3,0},
-		{0,-2,14,24,-4,0},
-		{0,-1,11,26,-4,0},
-		{0,-1,8,28,-3,0},
-		{0,-1,6,30,-3,0},
-		{0,-1,4,31,-2,0},
-		{0,-1,2,32,-1,0}
+    {0,0,32,0,0,0},
+    {0,-1,32,2,-1,0},
+    {0,-2,31,4,-1,0},
+    {0,-3,30,6,-1,0},
+    {0,-3,28,8,-1,0},
+    {0,-4,26,11,-1,0},
+    {0,-4,24,14,-2,0},
+    {0,-3,22,16,-3,0},
+    {0,-3,19,19,-3,0},
+    {0,-3,16,22,-3,0},
+    {0,-2,14,24,-4,0},
+    {0,-1,11,26,-4,0},
+    {0,-1,8,28,-3,0},
+    {0,-1,6,30,-3,0},
+    {0,-1,4,31,-2,0},
+    {0,-1,2,32,-1,0}
 	};
 
 	int filter16_chroma[16][6] = { // bilinear
@@ -261,7 +287,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   {
 	  for(i = 0; i < crop_w; i++)
 	  {
-        px[i+crop_x0] = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
+        px[i+crop_x0] = i*16+2*(4+output_chroma_phase_shift_x)-2*(4+input_chroma_phase_shift_x);
 	  }
   }
   else
@@ -269,10 +295,11 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
     deltaa = ((input_width<<16) + (crop_w>>1))/crop_w;
     if(uv_flag)
     {
-      deltab = ((input_width<<14) + (crop_w>>1))/crop_w;
+      deltab =   ((input_width<<14) + (crop_w>>1))/crop_w;
+
       for(i = 0; i < crop_w; i++)
       {
-        px[i+crop_x0] = ((i*deltaa + (2 + output_chroma_phase_shift_x)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_x);
+        px[i+crop_x0] = ((i*deltaa + (4 + output_chroma_phase_shift_x)*(deltab>>1) + 2048)>>12) - 2*(4 + input_chroma_phase_shift_x);
       }
     }
     else
@@ -282,7 +309,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
       {
         px[i+crop_x0] = (i*deltaa + deltab - 30720)>>12;
       }
-	}
+	 }    
   }
 
   ratio1_flag = ( input_height == crop_h );
@@ -295,7 +322,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   {
 	  for(j = 0; j < crop_h; j++)
 	  {
-        py[j+crop_y0] = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
+        py[j+crop_y0] = j*16+2*(4+output_chroma_phase_shift_y)-2*(4+input_chroma_phase_shift_y);
 	  }
   }
   else
@@ -303,10 +330,10 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
     deltaa = ((input_height<<16) + (crop_h>>1))/crop_h;
     if(uv_flag)
     {
-      deltab = ((input_height<<14) + (crop_h>>1))/crop_h;
+      deltab =  ((input_height<<14) + (crop_h>>1))/crop_h;
       for(j = 0; j < crop_h; j++)
       {
-        py[j+crop_y0] = ((j*deltaa + (2 + output_chroma_phase_shift_y)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_y);
+        py[j+crop_y0] = ((j*deltaa + (4 + output_chroma_phase_shift_y)*(deltab>>1) + 2048)>>12) - 2*(4 + input_chroma_phase_shift_y);
       }
     }
     else
@@ -316,7 +343,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
       {
         py[j+crop_y0] = (j*deltaa + deltab - 30720)>>12;
       }
-	}
+    }
   }
 
   //========== horizontal upsampling ===========
@@ -370,6 +397,130 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
    delete [] px;
    delete [] py;
 
+}
+
+
+__inline
+void
+DownConvert::xUpsampling_ver( int iWidth,       // low-resolution width
+                              int iHeight,      // low-resolution height
+                              int iPosY,     
+                              int iCropY,
+                              int aiFilter[],  // downsampling filter [15coeff+sum]
+                              bool top_flg )
+{
+  int i, j, im3, im2, im1, i0, ip1, ip2, ip3, ip4;
+  int div = ( aiFilter[15] ) / 2;
+  int add = div / 2;
+  int y0 = iPosY/2;
+  int y1 = y0 + iCropY/2;
+
+
+  //========== vertical upsampling ===========
+  for( j = 0; j < iWidth; j++ ) 
+  {
+    int*  piSrc = &m_paiImageBuffer[j];
+    //----- upsample column -----
+    for( i = 0; i < iHeight; i++)
+    {
+      if(i<y0 || i>=y1){
+        m_paiTmp1dBuffer[2*i+1-top_flg] = m_paiTmp1dBuffer[2*i+top_flg] = piSrc[i*m_iImageStride];
+        continue;
+      }
+      if(top_flg)
+      {
+        im3       = ( (i<     y0+3) ? y0  : i      -3 ) * m_iImageStride;
+        im2       = ( (i<     y0+2) ? y0  : i      -2 ) * m_iImageStride;
+        im1       = ( (i<     y0+1) ? y0  : i      -1 ) * m_iImageStride;
+    	  i0        = ( (i<     y1  ) ? i   : y1     -1 ) * m_iImageStride;
+        ip1       = ( (i<     y1-1) ? i+1 : y1     -1 ) * m_iImageStride;
+        ip2       = ( (i<     y1-2) ? i+2 : y1     -1 ) * m_iImageStride;
+        ip3       = ( (i<     y1-3) ? i+3 : y1     -1 ) * m_iImageStride;
+        ip4       = ( (i<     y1-4) ? i+4 : y1     -1 ) * m_iImageStride;
+      }
+      else
+      {
+        ip4       = ( (i<     y0+4) ? y0  : i      -4 ) * m_iImageStride;
+        ip3       = ( (i<     y0+3) ? y0  : i      -3 ) * m_iImageStride;
+        ip2       = ( (i<     y0+2) ? y0  : i      -2 ) * m_iImageStride;
+        ip1       = ( (i<     y0+1) ? y0  : i      -1 ) * m_iImageStride;
+    	  i0        = ( (i<     y1  ) ? i   : y1     -1 ) * m_iImageStride;
+        im1       = ( (i<     y1-1) ? i+1 : y1     -1 ) * m_iImageStride;
+        im2       = ( (i<     y1-2) ? i+2 : y1     -1 ) * m_iImageStride;
+        im3       = ( (i<     y1-3) ? i+3 : y1     -1 ) * m_iImageStride;
+      }
+
+      //--- even sample ---
+      m_paiTmp1dBuffer[2*i+1-top_flg] = aiFilter[13]*piSrc[im3]
+			                                + aiFilter[11]*piSrc[im2]
+				                              + aiFilter[ 9]*piSrc[im1]		   
+				                              + aiFilter[ 7]*piSrc[i0 ]
+			                                + aiFilter[ 5]*piSrc[ip1]
+			                                + aiFilter[ 3]*piSrc[ip2]
+			                                + aiFilter[ 1]*piSrc[ip3];
+      //--- odd sample ---
+      m_paiTmp1dBuffer[2*i+top_flg] = aiFilter[14]*piSrc[im3]
+			                              + aiFilter[12]*piSrc[im2]
+				                            + aiFilter[10]*piSrc[im1]		   
+				                            + aiFilter[ 8]*piSrc[i0 ]
+			                              + aiFilter[ 6]*piSrc[ip1]
+			                              + aiFilter[ 4]*piSrc[ip2]
+			                              + aiFilter[ 2]*piSrc[ip3]
+			                              + aiFilter[ 0]*piSrc[ip4];
+    }
+    //----- copy back to image buffer -----
+    for( i = 0; i < iHeight*2; i++ )
+      piSrc[i*m_iImageStride] = ( m_paiTmp1dBuffer[i] + add ) / div;
+  }
+}
+
+
+__inline
+void
+DownConvert::xUpsampling_ver_res( int iWidth,       // low-resolution width
+                                  int iHeight,      // low-resolution height
+                                  int iPosY,     
+                                  int iCropY,
+                                  int chroma,
+                                  bool top_flg )
+{
+  int i, j, i0, ip1;
+  int y0 = iPosY/2;
+  int y1 = y0 + iCropY/2;
+  int block = chroma? 4 : 8;
+
+
+  //========== vertical upsampling ===========
+  for( j = 0; j < iWidth; j++ ) 
+  {
+    int*  piSrc = &m_paiImageBuffer[j];
+    //----- upsample column -----
+    for( i = 0; i < iHeight; i++)
+    {
+      if(i<y0 || i>=y1){
+        m_paiTmp1dBuffer[2*i+1-top_flg] = m_paiTmp1dBuffer[2*i+top_flg] = piSrc[i*m_iImageStride];
+        continue;
+      }
+      if(top_flg)
+      {
+    	  i0        = ( (i<     y1  ) ? i   : y1     -1 ) * m_iImageStride;
+        ip1       = ( (i<     y1-1) ? i+1 : y1     -1 ) * m_iImageStride;
+      }
+      else
+      {
+        ip1       = ( (i<     y0+1) ? y0  : i      -1 ) * m_iImageStride;
+    	  i0        = ( (i<     y1  ) ? i   : y1     -1 ) * m_iImageStride;
+      }
+
+      //--- even sample ---
+      m_paiTmp1dBuffer[2*i+1-top_flg] = piSrc[i0 ];
+      //--- odd sample ---
+      m_paiTmp1dBuffer[2*i+top_flg] =  (piSrc[i0 ] + piSrc[ip1] + 1) / 2;
+    }
+    //----- copy back to image buffer -----
+    for( i = 0; i < iHeight*2; i++ )
+      piSrc[i*m_iImageStride] = m_paiTmp1dBuffer[i];
+  }
 }
 
 
@@ -445,7 +596,6 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
   }
 }
 
-
 __inline
 void
 DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
@@ -462,6 +612,16 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   short *buf1, *ptr1, *buf2, *ptr2, *tmp_buf1, *tmp_buf2;
   unsigned char *tmp_buf3;
 
+
+  int resample_mode = pcParameters->m_iResampleMode;
+  int iNbPasses=1+(resample_mode==1);
+  int iPass;
+  bool top_flg;
+  int input_chroma_phase_shift_x = pcParameters->m_iBaseChromaPhaseX;
+  int input_chroma_phase_shift_y = pcParameters->m_iBaseChromaPhaseY;
+  int output_chroma_phase_shift_x = pcParameters->m_iChromaPhaseX;
+  int output_chroma_phase_shift_y = pcParameters->m_iChromaPhaseY;
+
   tmp_buf1=new short[iWidth*iHeight];
   tmp_buf2=new short[width*iHeight];
   tmp_buf3=new unsigned char[width*iHeight];
@@ -474,6 +634,26 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   h=pcParameters->m_iOutHeight;
 
   // luma
+  if(resample_mode>3){
+    top_flg = (resample_mode==4 || resample_mode==7);
+    iHeight >>= 1;
+    xCopyToImageBuffer  ( psBufferY+iStrideY*(1-top_flg), iWidth, iHeight, iStrideY*2 );
+    xCopyFromImageBuffer( psBufferY, iWidth, iHeight, iStrideY, -32768, 32768 );
+  }
+
+  if(resample_mode>0){
+    height >>= 1;
+    y >>= 1;
+    h >>= 1;
+  }
+
+  if(resample_mode==1) {
+    iStrideY<<=1;
+    iHeight >>= 1;
+  }
+
+  for(iPass=0;iPass<iNbPasses;iPass++){
+    if(iPass==1) psBufferY += iStrideY/2;
   buf1=buf2=psBufferY;
   ptr1=buf1;
   ptr2=tmp_buf1;
@@ -482,17 +662,57 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideY;
   }
-  
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 0, 0, 0, tmp_buf3);
+    xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 0, (resample_mode>0), 0, 0, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideY;
   }
-  xFilterResidualVer(tmp_buf2, buf2, iStrideY,  x, y, w, h, width, iHeight, 0, 0, 0, tmp_buf3);
+    xFilterResidualVer(tmp_buf2, buf2, iStrideY, x, y, w, h, width, iHeight, 0, (resample_mode>0), 0, 0, tmp_buf3);
+  }
+
+  if(resample_mode>1){
+    top_flg = (resample_mode==2 || resample_mode==4 || resample_mode==7);
+    xCopyToImageBuffer  ( psBufferY, width, height, iStrideY );
+    xUpsampling_ver_res (            width, height, y*2, h*2, 0, top_flg );
+    xCopyFromImageBuffer( psBufferY, width, height*2, iStrideY, -32768, 32768 );
+  }
 
   // chroma
   width>>=1; height>>=1; x>>=1; y>>=1; w>>=1; h>>=1; iWidth>>=1; iHeight>>=1;
+
+  if(resample_mode==1 || resample_mode>3)
+  {
+    top_flg = (resample_mode==1 || resample_mode==4 || resample_mode==7);
+    input_chroma_phase_shift_y = input_chroma_phase_shift_y + 1 - 2*top_flg;
+  }
+  else
+    input_chroma_phase_shift_y *= 2;
+  input_chroma_phase_shift_x *= 2;
+
+  if(resample_mode>0)
+  {
+    top_flg = (resample_mode==1 || resample_mode==2 || resample_mode==4 || resample_mode==7);
+    output_chroma_phase_shift_y = output_chroma_phase_shift_y + 1 - 2*top_flg;
+  }
+  else
+    output_chroma_phase_shift_y *= 2;
+  output_chroma_phase_shift_x *= 2;
+  
   // U
+  if(resample_mode>3){
+    top_flg = (resample_mode==4 || resample_mode==7);
+    xCopyToImageBuffer  ( psBufferU+iStrideU*(1-top_flg), iWidth, iHeight, iStrideU*2 );
+    xCopyFromImageBuffer( psBufferU, iWidth, iHeight, iStrideU, -32768, 32768 );
+  }
+
+  if(resample_mode==1) iStrideU<<=1;
+
+  for(iPass=0;iPass<iNbPasses;iPass++){
+    if(iPass==1) {
+      psBufferU += iStrideU/2;
+      output_chroma_phase_shift_y += 2;
+      input_chroma_phase_shift_y  += 2;
+    }
   buf1=buf2=psBufferU;
   ptr1=buf1;
   ptr2=tmp_buf1;
@@ -501,14 +721,42 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideU;
   }
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w, iWidth, iHeight, pcMbDataCtrl, 1, pcParameters->m_iChromaPhaseX, pcParameters->m_iBaseChromaPhaseX, tmp_buf3);
+    xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 1, (resample_mode>0), 
+                       output_chroma_phase_shift_x, input_chroma_phase_shift_x, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU,  x, y, w, h, width, iHeight, 1, pcParameters->m_iChromaPhaseY, pcParameters->m_iBaseChromaPhaseY, tmp_buf3);
+    xFilterResidualVer(tmp_buf2, buf2, iStrideU, x, y, w, h, width, iHeight, 1, (resample_mode>0), 
+                       output_chroma_phase_shift_y, input_chroma_phase_shift_y, tmp_buf3);
+  }
+
+  if(resample_mode>1){
+    top_flg = (resample_mode==2 || resample_mode==4 || resample_mode==7);
+    xCopyToImageBuffer  ( psBufferU, width, height, iStrideU );
+    xUpsampling_ver_res (            width, height, y*2, h*2, 1, top_flg );
+    xCopyFromImageBuffer( psBufferU, width, height*2, iStrideU, -32768, 32768 );
+  }
 
   // V
+  if(resample_mode>3){
+    top_flg = (resample_mode==4 || resample_mode==7);
+    xCopyToImageBuffer  ( psBufferV+iStrideV*(1-top_flg), iWidth, iHeight, iStrideV*2 );
+    xCopyFromImageBuffer( psBufferV, iWidth, iHeight, iStrideV, -32768, 32768 );
+  }
+
+  if(resample_mode==1) {
+    iStrideV<<=1;
+    output_chroma_phase_shift_y -= 2;
+    input_chroma_phase_shift_y  -= 2;
+  }
+
+  for(iPass=0;iPass<iNbPasses;iPass++){
+    if(iPass==1) {
+      psBufferV += iStrideV/2;
+      output_chroma_phase_shift_y += 2;
+      input_chroma_phase_shift_y  += 2;
+    }
   buf1=buf2=psBufferV;
   ptr1=buf1;
   ptr2=tmp_buf1;
@@ -517,17 +765,30 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideV;
   }
-  xFilterResidualHor(tmp_buf1, tmp_buf2, width,  x,  w,  iWidth, iHeight, pcMbDataCtrl, 1, pcParameters->m_iChromaPhaseX, pcParameters->m_iBaseChromaPhaseX, tmp_buf3);
+    xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 1, (resample_mode>0), 
+                       output_chroma_phase_shift_x, input_chroma_phase_shift_x, tmp_buf3);
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
-  xFilterResidualVer(tmp_buf2, buf2, iStrideU,  x, y, w, h, width, iHeight,  1, pcParameters->m_iChromaPhaseY, pcParameters->m_iBaseChromaPhaseY, tmp_buf3);
+    xFilterResidualVer(tmp_buf2, buf2, iStrideU, x, y, w, h, width, iHeight, 1, (resample_mode>0), 
+                       output_chroma_phase_shift_y, input_chroma_phase_shift_y, tmp_buf3);
+  } 
+
+  if(resample_mode>1){
+    FILTER_UP_CHROMA
+    top_flg = (resample_mode==2 || resample_mode==4 || resample_mode==7);
+    xCopyToImageBuffer  ( psBufferV, width, height, iStrideV );
+    xUpsampling_ver_res (            width, height, y*2, h*2, 1, top_flg );
+    xCopyFromImageBuffer( psBufferV, width, height*2, iStrideV, -32768, 32768 );
+  }
   
   delete [] tmp_buf1;
   delete [] tmp_buf2;
   delete [] tmp_buf3;
 } 
+
+
 
 __inline
 void
@@ -545,28 +806,109 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   int iGlobWidth = pcParameters->m_iGlobWidth;
   int iGlobHeight = pcParameters->m_iGlobHeight;
   
+  int crop_y0 = pcParameters->m_iPosY;
+  int crop_h = pcParameters->m_iOutHeight;
+  int resample_mode = pcParameters->m_iResampleMode;
+  
   //===== luma =====
+  if(resample_mode==1 || resample_mode==4 || resample_mode==7)
+    xCopyToImageBuffer  ( psBufferY, iInWidth,   iInHeight/2,   iStrideY*2 );
+  else if(resample_mode==5 || resample_mode==6)
+    xCopyToImageBuffer  ( psBufferY+iStrideY, iInWidth,   iInHeight/2,   iStrideY*2 );
+  else
   xCopyToImageBuffer  ( psBufferY, iInWidth,   iInHeight,   iStrideY );
-  xUpsampling3        ( pcParameters, true);
+
+  xUpsampling3        ( pcParameters, true, resample_mode);
+
+  if(resample_mode>1){
+    bool top_flg = (resample_mode==2 || resample_mode==4 || resample_mode==7);
+#if UPS4TAP
+    FILTER_UP_4
+#else
+    FILTER_UP
+#endif
+    xUpsampling_ver     ( iGlobWidth, iGlobHeight/2, crop_y0, crop_h, piFilter, top_flg );
+  }
+
+  if(resample_mode==1)
+    xCopyFromImageBuffer( psBufferY, iGlobWidth,   iGlobHeight/2,  iStrideY*2, min, max );
+  else
   xCopyFromImageBuffer( psBufferY, iGlobWidth,   iGlobHeight,  iStrideY, min, max );
 
+  if(resample_mode==1){
+    xCopyToImageBuffer  ( psBufferY+iStrideY, iInWidth,   iInHeight/2,   iStrideY*2 );
+    xUpsampling3        ( pcParameters, true, 8);
+    xCopyFromImageBuffer( psBufferY+iStrideY, iGlobWidth,   iGlobHeight/2,  iStrideY*2, min, max );
+  }
 
   // ===== parameters for chromas =====
   iInWidth    >>= 1;
   iInHeight   >>= 1;
   iGlobWidth   >>= 1;
   iGlobHeight  >>= 1;
+  crop_y0     >>= 1;
+  crop_h      >>= 1;
   
   //===== chroma cb =====
+  if(resample_mode==1 || resample_mode==4 || resample_mode==7)
+    xCopyToImageBuffer  ( psBufferU, iInWidth,   iInHeight/2,   iStrideU*2 );
+  else if(resample_mode==5 || resample_mode==6)
+    xCopyToImageBuffer  ( psBufferU+iStrideU, iInWidth,   iInHeight/2,   iStrideU*2 );
+  else
   xCopyToImageBuffer  ( psBufferU, iInWidth, iInHeight, iStrideU );
-  xUpsampling3        ( pcParameters, false);
+
+  xUpsampling3        ( pcParameters, false, resample_mode);
+
+  if(resample_mode>1){
+    bool top_flg = (resample_mode==2 || resample_mode==4 || resample_mode==7);
+    FILTER_UP_CHROMA
+
+    xUpsampling_ver     ( iGlobWidth, iGlobHeight/2, crop_y0, crop_h, piFilter_chroma, top_flg );
+  }
+  
+  if(resample_mode==1)
+    xCopyFromImageBuffer( psBufferU, iGlobWidth, iGlobHeight/2, iStrideU*2, min, max ); 
+  else
   xCopyFromImageBuffer( psBufferU, iGlobWidth, iGlobHeight, iStrideU, min, max );
 
+  if(resample_mode==1){
+    xCopyToImageBuffer  ( psBufferU+iStrideU, iInWidth,   iInHeight/2,   iStrideU*2 );
+    xUpsampling3        ( pcParameters, false, 8);
+    xCopyFromImageBuffer( psBufferU+iStrideU, iGlobWidth,   iGlobHeight/2,  iStrideU*2, min, max );
+  }
+
   //===== chroma cr =====
+  if(resample_mode==1 || resample_mode==4 || resample_mode==7)
+    xCopyToImageBuffer  ( psBufferV, iInWidth,   iInHeight/2,   iStrideV*2 );
+  else if(resample_mode==5 || resample_mode==6)
+    xCopyToImageBuffer  ( psBufferV+iStrideV, iInWidth,   iInHeight/2,   iStrideV*2 );
+  else
   xCopyToImageBuffer  ( psBufferV, iInWidth, iInHeight, iStrideV );
-  xUpsampling3        ( pcParameters, false);
+
+  xUpsampling3        ( pcParameters, false, resample_mode);
+  
+  if(resample_mode>1){
+    bool top_flg = (resample_mode==2 || resample_mode==4 || resample_mode==7);
+    FILTER_UP_CHROMA
+
+    xUpsampling_ver     ( iGlobWidth, iGlobHeight/2, crop_y0, crop_h, piFilter_chroma, top_flg );
+  }
+  
+  if(resample_mode==1)
+    xCopyFromImageBuffer( psBufferV, iGlobWidth, iGlobHeight/2, iStrideV*2, min, max ); 
+  else
   xCopyFromImageBuffer( psBufferV, iGlobWidth, iGlobHeight, iStrideV, min, max ); 
+  
+  if(resample_mode==1){
+    xCopyToImageBuffer  ( psBufferV+iStrideV, iInWidth,   iInHeight/2,   iStrideV*2 );
+    xUpsampling3        ( pcParameters, false, 8);
+    xCopyFromImageBuffer( psBufferV+iStrideV, iGlobWidth,   iGlobHeight/2,  iStrideV*2, min, max );
 } 
+} 
+
+
+
+
 
 //JVT-U067
 __inline
@@ -576,7 +918,8 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
                                   int x, int w, 
                                   int wsize_in, int hsize_in, 
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
-                                  bool chroma, int output_chroma_phase_shift_x, int input_chroma_phase_shift_x,
+                                  bool chroma, bool interlace,
+                                  int output_chroma_phase_shift_x, int input_chroma_phase_shift_x,
                                   unsigned char *buf_blocksize )
 {
   int j, i, k, i1;
@@ -592,27 +935,27 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
 
   if(w == wsize_in)
   {
-    for(i = 0; i < w; i++)
-    {
-      k = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
-      if(k<0)
-        k = 0;
-      i1 = k >> 4;
-      k -= i1 * 16;
-      p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
-      p = p < 0 ? 0 : p;
-      x16[i] = i1; k16[i] = k; p16[i] = p;
-    }
+	  for(i = 0; i < w; i++)
+	  {
+		  k = i*16+2*(4+output_chroma_phase_shift_x)-2*(4+input_chroma_phase_shift_x);
+		  if(k<0)
+		    k = 0;
+		  i1 = k >> 4;
+	      k -= i1 * 16;
+	      p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+	      p = p < 0 ? 0 : p;
+		  x16[i] = i1; k16[i] = k; p16[i] = p;
+	  }
   }
   else
   {
     deltaa = ((wsize_in<<16) + (w>>1))/w;
     if(chroma)
     {
-      deltab = ((wsize_in<<14) + (w>>1))/w;
+      deltab =  ((wsize_in<<14) + (w>>1))/w;
       for(i = 0; i < w; i++)
       {
-        k = ((i*deltaa + (2 + output_chroma_phase_shift_x)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_x);
+        k = ((i*deltaa + (4 + output_chroma_phase_shift_x)*(deltab>>1) + 2048)>>12) - 2*(4 + input_chroma_phase_shift_x);
         if(k<0)
           k = 0;
         i1 = k >> 4;
@@ -648,7 +991,7 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
     {
       i1 = x16[i]; k = k16[i]; p = p16[i];
 #if !RESIDUAL_B8_BASED
-      if( !chroma )
+      if( !chroma && !interlace)
       {
         const h264::MbData& rcMbData = pcMbDataCtrl->getMbData( (p>>4) + (j>>4) * iMbPerRow );
         //if( rcMbData.isIntra16x16() ) block = 16;
@@ -678,7 +1021,8 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
                                   int width, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
-                                  bool chroma, int output_chroma_phase_shift_y, int input_chroma_phase_shift_y,
+                                  bool chroma, bool interlace,
+                                  int output_chroma_phase_shift_y, int input_chroma_phase_shift_y,
                                   unsigned char *buf_blocksize )
 {
   int j, i, k, j1;
@@ -693,27 +1037,27 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
 
   if(h == hsize_in)
   {
-    for(j = 0; j < h; j++)
-    {
-      k = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
-      if(k<0)
-        k = 0;
-      j1 = k >> 4;
-      k -= j1 * 16;
-      p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
-      p = p < 0 ? 0 : p;
-      y16[j] = j1; k16[j] = k; p16[j] = p;
-    }
+	  for(j = 0; j < h; j++)
+	  {
+		  k = j*16+2*(4+output_chroma_phase_shift_y)-2*(4+input_chroma_phase_shift_y);
+		  if(k<0)
+		    k = 0;
+	      j1 = k >> 4;
+	      k -= j1 * 16;
+	      p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+    	  p = p < 0 ? 0 : p;
+	      y16[j] = j1; k16[j] = k; p16[j] = p;
+	  }
   }
   else
   {
     deltaa = ((hsize_in<<16) + (h>>1))/h;
     if(chroma)
     {
-      deltab = ((hsize_in<<14) + (h>>1))/h;
+      deltab = ( ((hsize_in<<14) + (h>>1))/h );
       for(j = 0; j < h; j++)
       {
-        k = ((j*deltaa + (2 + output_chroma_phase_shift_y)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_y);
+        k = ((j*deltaa + (4 + output_chroma_phase_shift_y)*(deltab>>1) + 2048)>>12) - 2*(4 + input_chroma_phase_shift_y);
         if(k<0)
           k = 0;
         j1 = k >> 4;
@@ -749,7 +1093,8 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
     {
       j1 = y16[j]; k = k16[j]; p = p16[j];
 #if !RESIDUAL_B8_BASED
-      if( !chroma ){
+      if( !chroma && !interlace)
+      {
         block = ptr3[ wsize_in * p ];
       }
 #endif

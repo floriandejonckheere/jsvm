@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -112,20 +112,20 @@ H264AVCEncoder::H264AVCEncoder():
   m_bScalableSeiMessage( false ),
   m_bInitDone         ( false ),
   m_bTraceEnable      ( false ),
-  m_bWrteROISEI      ( true ),
-  m_loop_roi_sei    ( 0 )
+  m_bWrteROISEI		  ( true ), 
+  m_loop_roi_sei	  ( 0 )
 {
   ::memset( m_apcMCTFEncoder, 0x00, MAX_LAYERS*sizeof(Void*) );
   ::memset( m_dFinalFramerate, 0x00,MAX_LAYERS*MAX_DSTAGES*MAX_QUALITY_LEVELS*sizeof(Double) );
-  ::memset( m_dFinalBitrate,  0x00, MAX_LAYERS*MAX_DSTAGES*MAX_QUALITY_LEVELS*sizeof(Double) );
-  for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
-  for( UInt uj = 0; uj < MAX_TEMP_LEVELS; uj++ )
-    for( UInt uk = 0; uk < MAX_QUALITY_LEVELS; uk++ ){
+	::memset( m_dFinalBitrate,	0x00, MAX_LAYERS*MAX_DSTAGES*MAX_QUALITY_LEVELS*sizeof(Double) );
+	for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
+	for( UInt uj = 0; uj < MAX_TEMP_LEVELS; uj++ )
+		for( UInt uk = 0; uk < MAX_QUALITY_LEVELS; uk++ ){
 
-      m_aaauidSeqBits[ui][uj][uk] = 0;
-      m_aaadSingleLayerBitrate[ui][uj][uk] = 0;            // BUG_FIX Shenqiu (06-04-08)
-      m_aaauiScalableLayerId[ui][uj][uk] = MSYS_UINT_MAX;  // BUG_FIX Shenqiu (06-04-08)
-    }
+		  m_aaauidSeqBits[ui][uj][uk] = 0;                   
+		  m_aaadSingleLayerBitrate[ui][uj][uk] = 0;            // BUG_FIX Shenqiu (06-04-08)
+		  m_aaauiScalableLayerId[ui][uj][uk] = MSYS_UINT_MAX;  // BUG_FIX Shenqiu (06-04-08)
+		}
 
 }
 
@@ -159,11 +159,12 @@ H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
                                     UInt&   ruiBaseLayerIdMotionOnly,
                                     Int &   riSpatialScalabilityType,
                                     UInt    uiLayerId,
-                                    Int     iPoc )
+                                    Int     iPoc,
+																		PicType ePicType )
 {
   //===== get spatial resolution ratio =====
-
-// TMM_ESS
+ 
+// TMM_ESS 
   riSpatialScalabilityType = m_apcMCTFEncoder[uiLayerId]->getSpatialScalabilityType();
 
   //===== check data availability =====
@@ -172,7 +173,7 @@ H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
     Bool  bExists = false;
     Bool  bMotion = false;
 
-    RNOK( m_apcMCTFEncoder[ruiBaseLayerId]->getBaseLayerStatus( bExists, bMotion, iPoc ) );
+    RNOK( m_apcMCTFEncoder[ruiBaseLayerId]->getBaseLayerStatus( bExists, bMotion, iPoc, ePicType ) );
 
     ruiBaseLayerIdMotionOnly  = ( bMotion ? ruiBaseLayerId : MSYS_UINT_MAX );
     ruiBaseLayerId            = ( bExists ? ruiBaseLayerId : MSYS_UINT_MAX );
@@ -184,34 +185,70 @@ H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
   return Err::m_nOK;
 }
 
+ErrVal
+H264AVCEncoder::getBaseLayerDataAvailability  ( IntFrame*&    pcFrame,
+                                                IntFrame*&    pcResidual,
+                                                MbDataCtrl*&  pcMbDataCtrl,
+                                                Bool&         bConstrainedIPredBL,
+                                                Bool&         bForCopyOnly,
+                                                Int           iSpatialScalability,
+                                                UInt          uiBaseLayerId,
+                                                Int           iPoc,
+                                                Bool          bMotion,
+                                                Bool&         bBaseDataAvailable,
+                                                PicType       ePicType  )
+{
+  ROF ( uiBaseLayerId < MAX_LAYERS );
 
+  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerDataAvailability( pcFrame, 
+                                                                       pcResidual, 
+                                                                       pcMbDataCtrl, 
+                                                                       bConstrainedIPredBL,
+                                                                       bForCopyOnly, 
+                                                                       iSpatialScalability, 
+                                                                       iPoc, 
+                                                                       bMotion,
+                                                                       ePicType ) );
+
+  bBaseDataAvailable = pcFrame && pcResidual && pcMbDataCtrl;
+
+  return Err::m_nOK;
+}
 ErrVal
 H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
                                   IntFrame*&    pcResidual,
                                   MbDataCtrl*&  pcMbDataCtrl,
-                                  MbDataCtrl*&  pcMbDataCtrlEL,    // ICU/ETRI FGS_MOT_USE
+																	MbDataCtrl*&  pcMbDataCtrlEL,		// ICU/ETRI FGS_MOT_USE
                                   Bool&         bConstrainedIPredBL,
                                   Bool&         bForCopyOnly,
                                   Int           iSpatialScalability,
                                   UInt          uiBaseLayerId,
                                   Int           iPoc,
-                                  Bool          bMotion )
+                                  Bool				 bMotion,
+																	PicType      ePicType )
 {
   ROF ( uiBaseLayerId < MAX_LAYERS );
 
-  // ICU/ETRI FGS_MOT_USE
-  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl
-    , pcMbDataCtrlEL, bConstrainedIPredBL, bForCopyOnly, iSpatialScalability, iPoc, bMotion ) );
+	// ICU/ETRI FGS_MOT_USE
+	RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, 
+	                                                         pcResidual, 
+	                                                         pcMbDataCtrl,
+	                                                         pcMbDataCtrlEL,
+	                                                         bConstrainedIPredBL, 
+	                                                         bForCopyOnly, 
+	                                                         iSpatialScalability, 
+	                                                         iPoc, 
+																													 bMotion,
+																													 ePicType ) );
 
-  LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
-
+	  LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
     UInt uiFgsMotionMode = rcBaseLayer.getFGSMotionMode();
-  Double dNumFGSLayers = rcBaseLayer.getNumFGSLayers();
+	  Double dNumFGSLayers = rcBaseLayer.getNumFGSLayers();
 
-  // ICU/ETRI FGS_MOT Bug Fix
-  if (0 == uiFgsMotionMode || 0 == dNumFGSLayers)
-  {
-    pcMbDataCtrlEL = pcMbDataCtrl;
+	// ICU/ETRI FGS_MOT Bug Fix
+	if (0 == uiFgsMotionMode || 0 == dNumFGSLayers)
+  {	
+		pcMbDataCtrlEL = pcMbDataCtrl;
   }
 
   return Err::m_nOK;
@@ -220,11 +257,12 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
 ErrVal
 H264AVCEncoder::getBaseLayerSH( SliceHeader*& rpcSliceHeader,
                                 UInt          uiBaseLayerId,
-                                Int           iPoc )
+                                Int           iPoc,
+														    PicType      ePicType  )
 {
   ROF( uiBaseLayerId < MAX_LAYERS );
 
-  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerSH( rpcSliceHeader, iPoc ) );
+  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerSH( rpcSliceHeader, iPoc, ePicType  ) );
   return Err::m_nOK;
 }
 
@@ -292,7 +330,7 @@ H264AVCEncoder::uninit()
   m_bInitDone                   = false;
   m_bVeryFirstCall              = true;
   m_bScalableSeiMessage         = true;
-  m_bTraceEnable                = false;
+  m_bTraceEnable                = false;  
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
@@ -310,9 +348,9 @@ H264AVCEncoder::uninit()
 
 //{{Quality level estimation and modified truncation- JVTO044 and m12007
 //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-ErrVal H264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDataAccessor, UInt* uiaQualityLevel, UInt *uiaDelta, UInt uiNumLevels, UInt uiLayer )
+ErrVal H264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDataAccessor, UInt* uiaQualityLevel, UInt *uiaDelta, UInt uiNumLevels, UInt uiLayer ) 
 {
-  //===== create message =====
+	//===== create message =====
   SEI::QualityLevelSEI* pcQualityLevelSEI;
   RNOK( SEI::QualityLevelSEI::create( pcQualityLevelSEI ) );
 
@@ -323,10 +361,10 @@ ErrVal H264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDat
   UInt ui;
   for(ui= 0; ui < uiNumLevels; ui++)
   {
-    pcQualityLevelSEI->setQualityLevel(ui,uiaQualityLevel[ui]);
-    pcQualityLevelSEI->setDeltaBytesRateOfLevel(ui,uiaDelta[ui]);
+	  pcQualityLevelSEI->setQualityLevel(ui,uiaQualityLevel[ui]);
+	  pcQualityLevelSEI->setDeltaBytesRateOfLevel(ui,uiaDelta[ui]);
   }
-
+  
   //===== write message =====
   UInt              uiBits = 0;
   SEI::MessageList  cSEIMessageList;
@@ -340,379 +378,474 @@ ErrVal H264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDat
 //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 // JVT-T073 {
-ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor )
+ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor ) 
 {
-  SEI::ScalableNestingSei* pcScalableNestingSei;
-  RNOK( SEI::ScalableNestingSei::create(pcScalableNestingSei) );
+	SEI::ScalableNestingSei* pcScalableNestingSei;
+	RNOK( SEI::ScalableNestingSei::create(pcScalableNestingSei) );
 
-  //===== set message =====
-  //may be changed here
-  Bool bAllPicturesInAuFlag = 0;
-     pcScalableNestingSei->setAllPicturesInAuFlag( bAllPicturesInAuFlag );
-  if( bAllPicturesInAuFlag  == 0 )
-  {
-    UInt uiNumPictures;
+	//===== set message =====
+	//may be changed here
+	Bool bAllPicturesInAuFlag = 0;
+   	pcScalableNestingSei->setAllPicturesInAuFlag( bAllPicturesInAuFlag );
+	if( bAllPicturesInAuFlag  == 0 )
+	{
+		UInt uiNumPictures;
 
-    // assign value, may be changed here
-    uiNumPictures = 1;
-    ROT( uiNumPictures == 0 );
-    UInt *uiDependencyId = new UInt[uiNumPictures];
-    UInt *uiQualityLevel = new UInt[uiNumPictures];
+		// assign value, may be changed here
+		uiNumPictures = 1;
+		ROT( uiNumPictures == 0 );
+		UInt *uiDependencyId = new UInt[uiNumPictures];
+		UInt *uiQualityLevel = new UInt[uiNumPictures];
         uiDependencyId[0] = 0;
         uiQualityLevel[0] = 0;
 
-    pcScalableNestingSei->setNumPictures( uiNumPictures );
-    for( UInt uiIndex = 0; uiIndex < uiNumPictures; uiIndex++ )
-    {
-      pcScalableNestingSei->setDependencyId( uiIndex, uiDependencyId[uiIndex] );
-      pcScalableNestingSei->setQualityLevel( uiIndex, uiQualityLevel[uiIndex] );
-    }
-    delete uiDependencyId;
-    delete uiQualityLevel;
-  }
-  //deal with the following SEI message in nesting SEI message
-  //may be changed here, here take scene_info_sei as an example
-  SEI::SceneInfoSei *pcSceneInfoSEI;
-  RNOK( SEI::SceneInfoSei::create( pcSceneInfoSEI ) );
+		pcScalableNestingSei->setNumPictures( uiNumPictures );
+		for( UInt uiIndex = 0; uiIndex < uiNumPictures; uiIndex++ )
+		{
+			pcScalableNestingSei->setDependencyId( uiIndex, uiDependencyId[uiIndex] );
+			pcScalableNestingSei->setQualityLevel( uiIndex, uiQualityLevel[uiIndex] );
+		}
+		delete uiDependencyId;
+		delete uiQualityLevel;
+	}
+	//deal with the following SEI message in nesting SEI message
+	//may be changed here, here take scene_info_sei as an example
+	SEI::SceneInfoSei *pcSceneInfoSEI;
+	RNOK( SEI::SceneInfoSei::create( pcSceneInfoSEI ) );
 
-  UInt              uiBits = 0;
-  SEI::MessageList  cSEIMessageList;
-  cSEIMessageList.push_back                 ( pcScalableNestingSei );
-  cSEIMessageList.push_back                 ( pcSceneInfoSEI );
-  RNOK ( m_pcNalUnitEncoder->initNalUnit    ( pcExtBinDataAccessor ) );
-  RNOK ( m_pcNalUnitEncoder->writeNesting   ( cSEIMessageList ) );
-  RNOK ( m_pcNalUnitEncoder->closeNalUnit   ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
+	UInt              uiBits = 0;
+	SEI::MessageList  cSEIMessageList;
+	cSEIMessageList.push_back                 ( pcScalableNestingSei );
+	cSEIMessageList.push_back                 ( pcSceneInfoSEI );
+	RNOK ( m_pcNalUnitEncoder->initNalUnit    ( pcExtBinDataAccessor ) );
+	RNOK ( m_pcNalUnitEncoder->writeNesting   ( cSEIMessageList ) );
+	RNOK ( m_pcNalUnitEncoder->closeNalUnit   ( uiBits ) );
+	RNOK( m_apcMCTFEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
 
-  RNOK( pcSceneInfoSEI->destroy() );
-  RNOK( pcScalableNestingSei->destroy() );
-  return Err::m_nOK;
+	RNOK( pcSceneInfoSEI->destroy() );
+	RNOK( pcScalableNestingSei->destroy() );
+	return Err::m_nOK;
 }
 // JVT-T073 }
 
 ErrVal
 H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 {
-  //===== create message =====
-  SEI::ScalableSei* pcScalableSEI;
-  RNOK(SEI::ScalableSei::create(pcScalableSEI) );
+	//===== create message =====
+	SEI::ScalableSei* pcScalableSEI;
+	RNOK(SEI::ScalableSei::create(pcScalableSEI) );
 
-  //===== set message =====
-  UInt j; 
-  UInt uiInputLayers = m_pcCodingParameter->getNumberOfLayers ();
-  UInt uiLayerNum = 0;  //total scalable layer numbers
-  for ( UInt i = 0; i < uiInputLayers; i++ )  //calculate total scalable layer numbers
-  {
-    LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
-    UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages();
-    UInt uiMinTempLevel   = 0; 
-    UInt uiActTempLevel   = uiTotalTempLevel - uiMinTempLevel + 1;
-    UInt uiTotalFGSLevel  = (UInt)rcLayer.getNumFGSLayers () + 1;
-    uiLayerNum += uiActTempLevel * uiTotalFGSLevel;
 
-    pcScalableSEI->setROINum ( i, rcLayer.getNumROI() );
-    pcScalableSEI->setROIID  ( i, rcLayer.getROIID() );
-    pcScalableSEI->setSGID  ( i, rcLayer.getSGID() );
-    pcScalableSEI->setSLID  ( i, rcLayer.getSLID() );
-  }
-  UInt uiTotalScalableLayer = 0;
+	//===== set message =====
+	UInt j; //JVT-S036 lsj
+	UInt uiInputLayers = m_pcCodingParameter->getNumberOfLayers ();
+	UInt uiLayerNum = 0;	//total scalable layer numbers
+	for ( UInt i = 0; i < uiInputLayers; i++ )	//calculate total scalable layer numbers
+	{
+//bug-fix suffix{{
+		//Bool bH264AVCCompatible = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
+		//Bool bH264AVCCompatible = ( i == 0 );
+//bug-fix suffix}}
+		//Bool bSubSeq            = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
 
-  //===== get framerate information ===
-  Double *dFramerate = dGetFramerate();
-  UInt uiNumLayersMinus1 = uiLayerNum - 1;
-  pcScalableSEI->setNumLayersMinus1 ( uiNumLayersMinus1 );
-  // JVT-U085 LMI
-  pcScalableSEI->setTlevelNestingFlag( m_pcCodingParameter->getTlevelNestingFlag() );
-  UInt uiNumScalableLayer = 0;
-  for ( UInt uiCurrLayer = 0; uiCurrLayer < uiInputLayers; uiCurrLayer++)
-  {
-    LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( uiCurrLayer );
-    UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
-    UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 1 : (UInt)rcLayer.getNumFGSLayers () + 1);
-    UInt uiMinTempLevel     = 0; 
+		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
+		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages();
+// *LMH(20060203): Fix Bug due to underflow (Replace)
+		//UInt uiMinTempLevel   = ( !bH264AVCCompatible ||bSubSeq ) ? 0: max( 0, uiTotalTempLevel - 1 );
+		UInt uiMinTempLevel   = 0; //bugfix replace
+		UInt uiActTempLevel   = uiTotalTempLevel - uiMinTempLevel + 1;
+		UInt uiTotalFGSLevel  = (UInt)rcLayer.getNumFGSLayers () + 1;
+		uiLayerNum += uiActTempLevel * uiTotalFGSLevel;
 
-    for ( UInt uiCurrTempLevel = 0; uiCurrTempLevel < uiTotalTempLevel; uiCurrTempLevel++ )
-    {
-      for ( UInt uiCurrFGSLevel = 0; uiCurrFGSLevel < uiTotalFGSLevel; uiCurrFGSLevel++ )
-      {
-        if( uiCurrTempLevel >= uiMinTempLevel )
-        {
-          Bool bSubRegionLayerFlag = false;
-          Bool bProfileLevelInfoPresentFlag = false;
-          Bool bInitParameterSetsInfoPresentFlag = false;    //may be changed 
-          if( uiNumScalableLayer == 0 )
-          {//JVT-S036 lsj
-            bSubRegionLayerFlag = true;
-            bProfileLevelInfoPresentFlag = true;
-            bInitParameterSetsInfoPresentFlag = true;
-          }
-          Bool bBitrateInfoPresentFlag = true;
-          Bool bFrmRateInfoPresentFlag = true;
-          Bool bFrmSizeInfoPresentFlag = true;
-          Bool bLayerDependencyInfoPresentFlag = true;      //may be changed
-          Bool bExactInterayerPredFlag = true;      //JVT-S036 lsj may be changed
-          pcScalableSEI->setLayerId(uiNumScalableLayer, uiNumScalableLayer);
-          UInt uiTempLevel    = uiCurrTempLevel; //BUG_FIX_FT_01_2006
-          UInt uiDependencyID = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getLayerCGSSNR() : uiCurrLayer);
+		pcScalableSEI->setROINum ( i, rcLayer.getNumROI() );
+		pcScalableSEI->setROIID  ( i, rcLayer.getROIID() );
+		pcScalableSEI->setSGID  ( i, rcLayer.getSGID() );
+		pcScalableSEI->setSLID  ( i, rcLayer.getSLID() );
+	}
+	UInt uiTotalScalableLayer = 0;
+
+	//===== get framerate information ===
+	Double *dFramerate = dGetFramerate();
+  
+	UInt uiNumLayersMinus1 = uiLayerNum - 1;
+
+	pcScalableSEI->setNumLayersMinus1 ( uiNumLayersMinus1 );
+
+
+	UInt uiNumScalableLayer = 0;
+	for ( UInt uiCurrLayer = 0; uiCurrLayer < uiInputLayers; uiCurrLayer++)
+	{
+		LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( uiCurrLayer );
+		UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
+		 UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 1 : (UInt)rcLayer.getNumFGSLayers () + 1);
+
+		UInt uiMinTempLevel     = 0; //bugfix replace
+
+		for ( UInt uiCurrTempLevel = 0; uiCurrTempLevel < uiTotalTempLevel; uiCurrTempLevel++ )
+		{
+			for ( UInt uiCurrFGSLevel = 0; uiCurrFGSLevel < uiTotalFGSLevel; uiCurrFGSLevel++ )
+			{
+				if( uiCurrTempLevel >= uiMinTempLevel )
+				{
+				  //Bool bSubPicLayerFlag = false;
+				  Bool bSubRegionLayerFlag = false;
+				  Bool bProfileLevelInfoPresentFlag = false;
+				  Bool bInitParameterSetsInfoPresentFlag = false;		//may be changed  //JVT-S036 lsj
+				  if( uiNumScalableLayer == 0 )
+				 {//JVT-S036 lsj
+					 bSubRegionLayerFlag = true;
+					 bProfileLevelInfoPresentFlag = true;
+					 bInitParameterSetsInfoPresentFlag = true;		
+				 }
+				  Bool bBitrateInfoPresentFlag = true;
+				  Bool bFrmRateInfoPresentFlag = true;//rcLayer.getInputFrameRate () > 0;
+				  Bool bFrmSizeInfoPresentFlag = true;
+// BUG_FIX liuhui{
+				  Bool bLayerDependencyInfoPresentFlag = true;			//may be changed
+// BUG_FIX liuhui}
+				  Bool bExactInterayerPredFlag = true;			//JVT-S036 lsj may be changed
+				  pcScalableSEI->setLayerId(uiNumScalableLayer, uiNumScalableLayer);
+
+					UInt uiTempLevel = uiCurrTempLevel; //BUG_FIX_FT_01_2006
+				  UInt uiDependencyID = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getLayerCGSSNR() : uiCurrLayer);
           UInt uiQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getQualityLevelCGSSNR() : uiCurrFGSLevel);
           m_aaauiScalableLayerId[uiDependencyID][uiCurrTempLevel][uiQualityLevel] = uiNumScalableLayer;
-
-          UInt uiSimplePriorityId = 0;
-          Bool bDiscardableFlag  = false;
-          if( uiCurrFGSLevel > rcLayer.getNumFGSLayers() || rcLayer.isDiscardable() ) // bugfix replace
-            bDiscardableFlag = true;
-          pcScalableSEI->setSimplePriorityId(uiNumScalableLayer, uiSimplePriorityId);
-          pcScalableSEI->setDiscardableFlag(uiNumScalableLayer, bDiscardableFlag);
-          pcScalableSEI->setTemporalLevel(uiNumScalableLayer, uiTempLevel);
-          pcScalableSEI->setDependencyId(uiNumScalableLayer, uiDependencyID);
-          pcScalableSEI->setQualityLevel(uiNumScalableLayer, uiQualityLevel);
-//JVT-S036 lsj end
-          pcScalableSEI->setSubRegionLayerFlag(uiNumScalableLayer, bSubRegionLayerFlag);
+			
+					UInt uiSimplePriorityId = 0;
+					Bool bDiscardableFlag  = false;
+					if( uiCurrFGSLevel > rcLayer.getNumFGSLayers() || rcLayer.isDiscardable() ) // bugfix replace
+						bDiscardableFlag = true;
+					pcScalableSEI->setSimplePriorityId(uiNumScalableLayer, uiSimplePriorityId);
+					pcScalableSEI->setDiscardableFlag(uiNumScalableLayer, bDiscardableFlag);
+					pcScalableSEI->setTemporalLevel(uiNumScalableLayer, uiTempLevel);
+					pcScalableSEI->setDependencyId(uiNumScalableLayer, uiDependencyID);
+					pcScalableSEI->setQualityLevel(uiNumScalableLayer, uiQualityLevel);				
+	 //JVT-S036 lsj end
+				  pcScalableSEI->setSubRegionLayerFlag(uiNumScalableLayer, bSubRegionLayerFlag);
           // JVT-S054 (REPLACE)
-          pcScalableSEI->setIroiSliceDivisionInfoPresentFlag(uiNumScalableLayer, rcLayer.m_bSliceDivisionFlag);
-          pcScalableSEI->setProfileLevelInfoPresentFlag(uiNumScalableLayer, bProfileLevelInfoPresentFlag);
-          pcScalableSEI->setBitrateInfoPresentFlag(uiNumScalableLayer, bBitrateInfoPresentFlag);
-          pcScalableSEI->setFrmRateInfoPresentFlag(uiNumScalableLayer, bFrmRateInfoPresentFlag);
-          pcScalableSEI->setFrmSizeInfoPresentFlag(uiNumScalableLayer, bFrmSizeInfoPresentFlag);
-          pcScalableSEI->setLayerDependencyInfoPresentFlag(uiNumScalableLayer, bLayerDependencyInfoPresentFlag);
-          pcScalableSEI->setInitParameterSetsInfoPresentFlag(uiNumScalableLayer, bInitParameterSetsInfoPresentFlag);
+				  //pcScalableSEI->setIroiSliceDivisionInfoPresentFlag(uiNumScalableLayer, bIroiSliceDivisionFlag); //JVT-S036 lsj
+				  pcScalableSEI->setIroiSliceDivisionInfoPresentFlag(uiNumScalableLayer, rcLayer.m_bSliceDivisionFlag);
+				  pcScalableSEI->setProfileLevelInfoPresentFlag(uiNumScalableLayer, bProfileLevelInfoPresentFlag);
+				  pcScalableSEI->setBitrateInfoPresentFlag(uiNumScalableLayer, bBitrateInfoPresentFlag);
+				  pcScalableSEI->setFrmRateInfoPresentFlag(uiNumScalableLayer, bFrmRateInfoPresentFlag);
+				  pcScalableSEI->setFrmSizeInfoPresentFlag(uiNumScalableLayer, bFrmSizeInfoPresentFlag);
+				  pcScalableSEI->setLayerDependencyInfoPresentFlag(uiNumScalableLayer, bLayerDependencyInfoPresentFlag);
+				  pcScalableSEI->setInitParameterSetsInfoPresentFlag(uiNumScalableLayer, bInitParameterSetsInfoPresentFlag);
 
-          pcScalableSEI->setExactInterlayerPredFlag(uiNumScalableLayer, bExactInterayerPredFlag);//JVT-S036 lsj
+				  pcScalableSEI->setExactInterlayerPredFlag(uiNumScalableLayer, bExactInterayerPredFlag);//JVT-S036 lsj
 
-          if(pcScalableSEI->getProfileLevelInfoPresentFlag(uiNumScalableLayer))
-          {
-            UInt uilayerProfileIdc = 0;                                         //may be changed
-            Bool bLayerConstraintSet0Flag = false;                              //may be changed
-            Bool bH264AVCCompatibleTmp  = ( uiCurrLayer == 0 );
-            Bool bLayerConstraintSet1Flag = ( bH264AVCCompatibleTmp ? 1 : 0 );  //may be changed
-            Bool bLayerConstraintSet2Flag = false;                              //may be changed
-            Bool bLayerConstraintSet3Flag = false;                              //may be changed
-            UInt uiLayerLevelIdc = 0;                                           //may be changed
+				  if(pcScalableSEI->getProfileLevelInfoPresentFlag(uiNumScalableLayer))
+				  {
+					  UInt uilayerProfileIdc = 0;	//may be changed
+					  Bool bLayerConstraintSet0Flag = false;	//may be changed
+//bug-fix suffix{{
+//					  Bool bH264AVCCompatibleTmp  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiCurrLayer == 0;
+					  Bool bH264AVCCompatibleTmp  = ( uiCurrLayer == 0 );
+//bug-fix suffix}}
+					  Bool bLayerConstraintSet1Flag = ( bH264AVCCompatibleTmp ? 1 : 0 );	//may be changed
+					  Bool bLayerConstraintSet2Flag = false;	//may be changed
+					  Bool bLayerConstraintSet3Flag = false;	//may be changed
+					  UInt uiLayerLevelIdc = 0;		//may be changed
 
-            pcScalableSEI->setLayerProfileIdc(uiNumScalableLayer, uilayerProfileIdc);
-            pcScalableSEI->setLayerConstraintSet0Flag(uiNumScalableLayer, bLayerConstraintSet0Flag);
-            pcScalableSEI->setLayerConstraintSet1Flag(uiNumScalableLayer, bLayerConstraintSet1Flag);
-            pcScalableSEI->setLayerConstraintSet2Flag(uiNumScalableLayer, bLayerConstraintSet2Flag);
-            pcScalableSEI->setLayerConstraintSet3Flag(uiNumScalableLayer, bLayerConstraintSet3Flag);
-            pcScalableSEI->setLayerLevelIdc(uiNumScalableLayer, uiLayerLevelIdc);
-          }
-          else
-          {//JVT-S036 lsj
-            UInt bProfileLevelInfoSrcLayerIdDelta = 0;  //may be changed
-            pcScalableSEI->setProfileLevelInfoSrcLayerIdDelta(uiNumScalableLayer, bProfileLevelInfoSrcLayerIdDelta);
-          }
+					  pcScalableSEI->setLayerProfileIdc(uiNumScalableLayer, uilayerProfileIdc);
+					  pcScalableSEI->setLayerConstraintSet0Flag(uiNumScalableLayer, bLayerConstraintSet0Flag);
+					  pcScalableSEI->setLayerConstraintSet1Flag(uiNumScalableLayer, bLayerConstraintSet1Flag);
+					  pcScalableSEI->setLayerConstraintSet2Flag(uiNumScalableLayer, bLayerConstraintSet2Flag);
+					  pcScalableSEI->setLayerConstraintSet3Flag(uiNumScalableLayer, bLayerConstraintSet3Flag);
+					  pcScalableSEI->setLayerLevelIdc(uiNumScalableLayer, uiLayerLevelIdc);
+				  }
+				  else
+				  {//JVT-S036 lsj
+					  UInt bProfileLevelInfoSrcLayerIdDelta = 0;  //may be changed
 
-          if(pcScalableSEI->getBitrateInfoPresentFlag(uiNumScalableLayer))
-          {
-            UInt uiAvgBitrate = (UInt)( m_aaadSingleLayerBitrate[uiCurrLayer][uiCurrTempLevel][uiCurrFGSLevel]+0.5 );
-          //JVT-S036 lsj start
-            UInt uiMaxBitrateLayer = 0;           //may be changed
-            UInt uiMaxBitrateDecodedPicture = 0;  //may be changed
-            UInt uiMaxBitrateCalcWindow = 0;      //may be changed
+					  pcScalableSEI->setProfileLevelInfoSrcLayerIdDelta(uiNumScalableLayer, bProfileLevelInfoSrcLayerIdDelta);
+				  }
 
-            pcScalableSEI->setAvgBitrate(uiNumScalableLayer, uiAvgBitrate);
-            pcScalableSEI->setMaxBitrateLayer(uiNumScalableLayer, uiMaxBitrateLayer);
-            pcScalableSEI->setMaxBitrateDecodedPicture(uiNumScalableLayer, uiMaxBitrateDecodedPicture);
-            pcScalableSEI->setMaxBitrateCalcWindow(uiNumScalableLayer, uiMaxBitrateCalcWindow);
-            //JVT-S036 lsj end
-          }
 
-          if(pcScalableSEI->getFrmRateInfoPresentFlag(uiNumScalableLayer))
-          {
-            UInt uiConstantFrmRateIdc = 0;
-            UInt uiAvgFrmRate = (UInt)( 256*dFramerate[uiTotalScalableLayer] + 0.5 );
+	/*			  if(pcScalableSEI->getDecodingDependencyInfoPresentFlag(uiNumScalableLayer))
+				  {
+					  //UInt uiTempLevel = uiCurrTempLevel - uiMinTempLevel;
+					  UInt uiTempLevel = uiCurrTempLevel; //BUG_FIX_FT_01_2006
+					  UInt uiDependencyID = uiCurrLayer;
+					  UInt uiQualityLevel = uiCurrFGSLevel;
+// BUG_FIX liuhui{
+					  m_aaauiScalableLayerId[uiCurrLayer][uiCurrTempLevel][uiCurrFGSLevel] = uiNumScalableLayer;
+// BUG_FIX liuhui}
+					 
+					  UInt uiSimplePriorityId = 0;
+					  Bool uiDiscardableFlag  = false;
 
-            pcScalableSEI->setConstantFrmRateIdc(uiNumScalableLayer, uiConstantFrmRateIdc);
-            pcScalableSEI->setAvgFrmRate(uiNumScalableLayer, uiAvgFrmRate);
-          }
-          else
-          {//JVT-S036 lsj
-            UInt  bFrmRateInfoSrcLayerIdDelta = 0;  //may be changed
+					  pcScalableSEI->setSimplePriorityId(uiNumScalableLayer, uiSimplePriorityId);
+					  pcScalableSEI->setDiscardableFlag(uiNumScalableLayer, uiDiscardableFlag);
+			
+					  pcScalableSEI->setTemporalLevel(uiNumScalableLayer, uiTempLevel);
+					  pcScalableSEI->setDependencyId(uiNumScalableLayer, uiDependencyID);
+					  pcScalableSEI->setQualityLevel(uiNumScalableLayer, uiQualityLevel);
+				  }
+ JVT-S036 lsj */
+				  if(pcScalableSEI->getBitrateInfoPresentFlag(uiNumScalableLayer))
+				  {
+// BUG_FIX liuhui{
+					  UInt uiAvgBitrate = (UInt)( m_aaadSingleLayerBitrate[uiCurrLayer][uiCurrTempLevel][uiCurrFGSLevel]+0.5 );
+// BUG_FIX liuhui}
+					//JVT-S036 lsj start
+					  UInt uiMaxBitrateLayer = 0;	//should be changed
+					  UInt uiMaxBitrateDecodedPicture = 0;	//should be changed
+					  UInt uiMaxBitrateCalcWindow = 0; //should be changed
 
-            pcScalableSEI->setFrmRateInfoSrcLayerIdDelta(uiNumScalableLayer, bFrmRateInfoSrcLayerIdDelta);
-          }
+					  pcScalableSEI->setAvgBitrate(uiNumScalableLayer, uiAvgBitrate);
+					  pcScalableSEI->setMaxBitrateLayer(uiNumScalableLayer, uiMaxBitrateLayer);
+					  pcScalableSEI->setMaxBitrateDecodedPicture(uiNumScalableLayer, uiMaxBitrateDecodedPicture);
+					  pcScalableSEI->setMaxBitrateCalcWindow(uiNumScalableLayer, uiMaxBitrateCalcWindow);
+				    //JVT-S036 lsj end
+				  }
 
-          if(pcScalableSEI->getFrmSizeInfoPresentFlag(uiNumScalableLayer))
-          {
-            UInt uiFrmWidthInMbsMinus1 = rcLayer.getFrameWidth()/16 - 1;
-            UInt uiFrmHeightInMbsMinus1 = rcLayer.getFrameHeight()/16 - 1;
+				  if(pcScalableSEI->getFrmRateInfoPresentFlag(uiNumScalableLayer))
+				  {
+					  UInt uiConstantFrmRateIdc = 0;
+					  UInt uiAvgFrmRate = (UInt)( 256*dFramerate[uiTotalScalableLayer] + 0.5 );
 
-            pcScalableSEI->setFrmWidthInMbsMinus1(uiNumScalableLayer, uiFrmWidthInMbsMinus1);
-            pcScalableSEI->setFrmHeightInMbsMinus1(uiNumScalableLayer, uiFrmHeightInMbsMinus1);
-          }
-          else
-          {//JVT-S036 lsj
-            UInt  bFrmSizeInfoSrcLayerIdDelta = 0;  //may be changed
+					  pcScalableSEI->setConstantFrmRateIdc(uiNumScalableLayer, uiConstantFrmRateIdc);
+					  pcScalableSEI->setAvgFrmRate(uiNumScalableLayer, uiAvgFrmRate);
+				  }
+				  else
+				  {//JVT-S036 lsj
+					  UInt  bFrmRateInfoSrcLayerIdDelta = 0;  //may be changed
 
-            pcScalableSEI->setFrmSizeInfoSrcLayerIdDelta(uiNumScalableLayer, bFrmSizeInfoSrcLayerIdDelta);
-          }
+					  pcScalableSEI->setFrmRateInfoSrcLayerIdDelta(uiNumScalableLayer, bFrmRateInfoSrcLayerIdDelta);
+				  }
 
-          if(pcScalableSEI->getSubRegionLayerFlag(uiNumScalableLayer))
-          {
-            UInt uiBaseRegionLayerId = 0;
-            Bool bDynamicRectFlag = false;
+				  if(pcScalableSEI->getFrmSizeInfoPresentFlag(uiNumScalableLayer))
+				  {
+					  UInt uiFrmWidthInMbsMinus1 = rcLayer.getFrameWidth()/16 - 1;
+					  UInt uiFrmHeightInMbsMinus1 = rcLayer.getFrameHeight()/16 - 1;
 
-            pcScalableSEI->setBaseRegionLayerId(uiNumScalableLayer, uiBaseRegionLayerId);
-            pcScalableSEI->setDynamicRectFlag(uiNumScalableLayer, bDynamicRectFlag);
-            if(pcScalableSEI->getDynamicRectFlag(uiNumScalableLayer))
-            {
-              UInt uiHorizontalOffset = 0;
-              UInt uiVerticalOffset = 0;
-              UInt uiRegionWidth = 0;
-              UInt uiRegionHeight = 0;
-              pcScalableSEI->setHorizontalOffset(uiNumScalableLayer, uiHorizontalOffset);
-              pcScalableSEI->setVerticalOffset(uiNumScalableLayer, uiVerticalOffset);
-              pcScalableSEI->setRegionWidth(uiNumScalableLayer, uiRegionWidth);
-              pcScalableSEI->setRegionHeight(uiNumScalableLayer, uiRegionHeight);
-            }
-          }
-         else
-          {//JVT-S036 lsj
-            UInt  bSubRegionInfoSrcLayerIdDelta = 0; //may be changed
-            pcScalableSEI->setSubRegionInfoSrcLayerIdDelta(uiNumScalableLayer, bSubRegionInfoSrcLayerIdDelta);
-          }
+					  pcScalableSEI->setFrmWidthInMbsMinus1(uiNumScalableLayer, uiFrmWidthInMbsMinus1);
+					  pcScalableSEI->setFrmHeightInMbsMinus1(uiNumScalableLayer, uiFrmHeightInMbsMinus1);
+				  }
+				  else
+				  {//JVT-S036 lsj
+					  UInt  bFrmSizeInfoSrcLayerIdDelta = 0;  //may be changed
 
-        //JVT-S036 lsj start
-          if( pcScalableSEI->getSubPicLayerFlag( uiNumScalableLayer ) )
-          {
-            UInt RoiId = 1;//should be changed
-            pcScalableSEI->setRoiId( uiNumScalableLayer, RoiId );
-          }
-          if( pcScalableSEI->getIroiSliceDivisionInfoPresentFlag( uiNumScalableLayer ) )
-          {
-            pcScalableSEI->setIroiSliceDivisionType( uiNumScalableLayer, rcLayer.m_uiSliceDivisionType );
+					  pcScalableSEI->setFrmSizeInfoSrcLayerIdDelta(uiNumScalableLayer, bFrmSizeInfoSrcLayerIdDelta);
+				  }
+
+				  if(pcScalableSEI->getSubRegionLayerFlag(uiNumScalableLayer))
+				  {
+					  UInt uiBaseRegionLayerId = 0;
+					  Bool bDynamicRectFlag = false;
+
+					  pcScalableSEI->setBaseRegionLayerId(uiNumScalableLayer, uiBaseRegionLayerId);
+					  pcScalableSEI->setDynamicRectFlag(uiNumScalableLayer, bDynamicRectFlag);
+					  if(pcScalableSEI->getDynamicRectFlag(uiNumScalableLayer))
+					  {
+						  UInt uiHorizontalOffset = 0;
+						  UInt uiVerticalOffset = 0;
+						  UInt uiRegionWidth = 0;
+						  UInt uiRegionHeight = 0;
+						  pcScalableSEI->setHorizontalOffset(uiNumScalableLayer, uiHorizontalOffset);
+						  pcScalableSEI->setVerticalOffset(uiNumScalableLayer, uiVerticalOffset);
+						  pcScalableSEI->setRegionWidth(uiNumScalableLayer, uiRegionWidth);
+						  pcScalableSEI->setRegionHeight(uiNumScalableLayer, uiRegionHeight);
+					  }
+				  }
+				 else
+				  {//JVT-S036 lsj
+					  UInt  bSubRegionInfoSrcLayerIdDelta = 0; //may be changed
+
+					  pcScalableSEI->setSubRegionInfoSrcLayerIdDelta(uiNumScalableLayer, bSubRegionInfoSrcLayerIdDelta);
+				  }
+
+			  //JVT-S036 lsj start
+				  if( pcScalableSEI->getSubPicLayerFlag( uiNumScalableLayer ) )
+				  {
+					  UInt RoiId = 1;//should be changed
+					  pcScalableSEI->setRoiId( uiNumScalableLayer, RoiId );
+				  }
+				  if( pcScalableSEI->getIroiSliceDivisionInfoPresentFlag( uiNumScalableLayer ) )
+				  {
+            // JVT-S054 (REPLACE) ->
+            /*
+					  UInt bIroiSliceDivisionType = 0; //may be changed
+					  UInt bNumSliceMinus1 = 1;
+					  pcScalableSEI->setIroiSliceDivisionType( uiNumScalableLayer, bIroiSliceDivisionType );
+					  if( bIroiSliceDivisionType == 0 )
+					  {
+						  UInt bGridSliceWidthInMbsMinus1 = 0; //should be changed
+						  UInt bGridSliceHeightInMbsMinus1 = 0; //should be changed
+						  pcScalableSEI->setGridSliceWidthInMbsMinus1( uiNumScalableLayer, bGridSliceWidthInMbsMinus1 );
+						  pcScalableSEI->setGridSliceHeightInMbsMinus1( uiNumScalableLayer, bGridSliceHeightInMbsMinus1 );
+					  }
+					  else if( bIroiSliceDivisionType == 1 )
+					  {
+						  bNumSliceMinus1 = 1; //should be changed
+						  pcScalableSEI->setNumSliceMinus1( uiNumScalableLayer, bNumSliceMinus1);
+						  for ( j = 0; j <= bNumSliceMinus1; j++ )
+						  {
+							  UInt bFirstMbInSlice = 1;//should be changed
+							  UInt bSliceWidthInMbsMinus1 = 1;//should be changed
+							  UInt bSliceHeightInMbsMinus1 = 1;//should be changed
+							  pcScalableSEI->setFirstMbInSlice( uiNumScalableLayer, j, bFirstMbInSlice );
+							  pcScalableSEI->setSliceWidthInMbsMinus1( uiNumScalableLayer, j, bSliceWidthInMbsMinus1 );
+							  pcScalableSEI->setSliceHeightInMbsMinus1( uiNumScalableLayer, j, bSliceHeightInMbsMinus1 );
+						  }
+					  }
+					  else if( bIroiSliceDivisionType == 2 )
+					  {
+						  pcScalableSEI->setNumSliceMinus1( uiNumScalableLayer, bNumSliceMinus1 );
+						  UInt uiFrameHeightInMb = pcScalableSEI->getFrmHeightInMbsMinus1( uiNumScalableLayer ) + 1;
+						  UInt uiFrameWidthInMb  = pcScalableSEI->getFrmWidthInMbsMinus1(uiNumScalableLayer ) + 1;
+						  UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+						  for ( j = 0; j < uiPicSizeInMbs; j++)
+						  {
+							  UInt bSliceId = 1; //should be changed
+							  pcScalableSEI->setSliceId( uiNumScalableLayer, j, bSliceId );
+						  }
+					  }
+            */
+					  pcScalableSEI->setIroiSliceDivisionType( uiNumScalableLayer, rcLayer.m_uiSliceDivisionType );
             if (rcLayer.m_uiSliceDivisionType == 0)
-            {
-              pcScalableSEI->setGridSliceWidthInMbsMinus1( uiNumScalableLayer, rcLayer.m_puiGridSliceWidthInMbsMinus1[0] );
-              pcScalableSEI->setGridSliceHeightInMbsMinus1( uiNumScalableLayer, rcLayer.m_puiGridSliceHeightInMbsMinus1[0] );
-            }
+					  {
+						  pcScalableSEI->setGridSliceWidthInMbsMinus1( uiNumScalableLayer, rcLayer.m_puiGridSliceWidthInMbsMinus1[0] );
+						  pcScalableSEI->setGridSliceHeightInMbsMinus1( uiNumScalableLayer, rcLayer.m_puiGridSliceHeightInMbsMinus1[0] );
+					  }
             else if (rcLayer.m_uiSliceDivisionType == 1)
-            {
-              pcScalableSEI->setNumSliceMinus1( uiNumScalableLayer, rcLayer.m_uiNumSliceMinus1 );
-              for ( j = 0; j <= rcLayer.m_uiNumSliceMinus1; j++ )
-              {
-                pcScalableSEI->setFirstMbInSlice( uiNumScalableLayer, j, rcLayer.m_puiFirstMbInSlice[j] );
-                pcScalableSEI->setSliceWidthInMbsMinus1( uiNumScalableLayer, j, rcLayer.m_puiGridSliceWidthInMbsMinus1[j] );
-                pcScalableSEI->setSliceHeightInMbsMinus1( uiNumScalableLayer, j, rcLayer.m_puiGridSliceHeightInMbsMinus1[j] );
-              }
-            }
+					  {
+						  pcScalableSEI->setNumSliceMinus1( uiNumScalableLayer, rcLayer.m_uiNumSliceMinus1 );
+						  for ( j = 0; j <= rcLayer.m_uiNumSliceMinus1; j++ )
+						  {
+							  pcScalableSEI->setFirstMbInSlice( uiNumScalableLayer, j, rcLayer.m_puiFirstMbInSlice[j] );
+							  pcScalableSEI->setSliceWidthInMbsMinus1( uiNumScalableLayer, j, rcLayer.m_puiGridSliceWidthInMbsMinus1[j] );
+							  pcScalableSEI->setSliceHeightInMbsMinus1( uiNumScalableLayer, j, rcLayer.m_puiGridSliceHeightInMbsMinus1[j] );
+						  }
+					  }
             else if (rcLayer.m_uiSliceDivisionType == 2)
-            {
-              pcScalableSEI->setNumSliceMinus1( uiNumScalableLayer, rcLayer.m_uiNumSliceMinus1 );
-              UInt uiFrameHeightInMb = pcScalableSEI->getFrmHeightInMbsMinus1( uiNumScalableLayer ) + 1;
-              UInt uiFrameWidthInMb  = pcScalableSEI->getFrmWidthInMbsMinus1(uiNumScalableLayer ) + 1;
-              UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
-              for ( j = 0; j < uiPicSizeInMbs; j++)
-              {
-                pcScalableSEI->setSliceId( uiNumScalableLayer, j, rcLayer.m_puiSliceId[j] );
-              }
-            }
+					  {
+						  pcScalableSEI->setNumSliceMinus1( uiNumScalableLayer, rcLayer.m_uiNumSliceMinus1 );
+						  UInt uiFrameHeightInMb = pcScalableSEI->getFrmHeightInMbsMinus1( uiNumScalableLayer ) + 1;
+						  UInt uiFrameWidthInMb  = pcScalableSEI->getFrmWidthInMbsMinus1(uiNumScalableLayer ) + 1;
+						  UInt uiPicSizeInMbs = uiFrameHeightInMb * uiFrameWidthInMb;
+						  for ( j = 0; j < uiPicSizeInMbs; j++)
+						  {
+							  pcScalableSEI->setSliceId( uiNumScalableLayer, j, rcLayer.m_puiSliceId[j] );
+						  }
+					  }
             // JVT-S054 (REPLACE) <-
-          }
-        //JVT-S036 lsj end
+				  }
+			  //JVT-S036 lsj end
 
-          if(pcScalableSEI->getLayerDependencyInfoPresentFlag(uiNumScalableLayer))
-          {
-            UInt uiDelta;
+				  if(pcScalableSEI->getLayerDependencyInfoPresentFlag(uiNumScalableLayer))
+				  {
+// BUG_FIX liuhui{
+					{
+					  UInt uiDelta;
             UInt uiQL = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getQualityLevelCGSSNR() : uiCurrFGSLevel);
             UInt uiL = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getLayerCGSSNR() : uiCurrLayer);
             if( uiQL ) // FGS layer, Q != 0
-            {
-              uiDelta = uiNumScalableLayer - getScalableLayerId( uiL, uiCurrTempLevel, uiQL-1 );
-              pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 0, uiDelta );//JVT-S036 lsj
-              pcScalableSEI->setNumDirectlyDependentLayers(uiNumScalableLayer, 1 );
-              if( uiCurrTempLevel- uiMinTempLevel ) // T != 0
-              {
-                uiDelta = uiNumScalableLayer - getScalableLayerId( uiL, uiCurrTempLevel-1, uiQL );
-                pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 1, uiDelta );//JVT-S036 lsj
-                pcScalableSEI->setNumDirectlyDependentLayers(uiNumScalableLayer, 2 );
-              }
-            }
-            else if( ( uiCurrTempLevel- uiMinTempLevel ) ) // Q = 0, T != 0
-            {
-              uiDelta = uiNumScalableLayer - getScalableLayerId( uiL, uiCurrTempLevel-1, uiQL );
-              pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 0, uiDelta ); //JVT-S036 lsj
-              pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 1 );
-              if( uiL ) // D != 0, T != 0, Q = 0
-              {
-                UInt uiBaseLayerCGSSNRId = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseLayerCGSSNR() : rcLayer.getBaseLayerId());
-                UInt uiBaseLayerId = rcLayer.getBaseLayerId();
-                LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
-                UInt uiBaseFGSLayers = (UInt) rcBaseLayer.getNumFGSLayers();
-                UInt uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseQualityLevelCGSSNR() : rcLayer.getBaseQualityLevel());
-                uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? uiBaseQualityLevel : min( uiBaseQualityLevel, uiBaseFGSLayers ));
-                if( MSYS_UINT_MAX != getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel ) )
-                {
-                  uiDelta = uiNumScalableLayer - getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel );
-                  pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 1, uiDelta ); //JVT-S036 lsj
-                  pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 2 );
-                }
-              }
-            }
-            else if ( uiL ) // D != 0,T = 0, Q = 0
-            {
+					  {
+					    uiDelta = uiNumScalableLayer - getScalableLayerId( uiL, uiCurrTempLevel, uiQL-1 );
+						pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 0, uiDelta );//JVT-S036 lsj
+						pcScalableSEI->setNumDirectlyDependentLayers(uiNumScalableLayer, 1 );
+						if( uiCurrTempLevel- uiMinTempLevel ) // T != 0
+						{
+						  uiDelta = uiNumScalableLayer - getScalableLayerId( uiL, uiCurrTempLevel-1, uiQL );
+						  pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 1, uiDelta );//JVT-S036 lsj
+						  pcScalableSEI->setNumDirectlyDependentLayers(uiNumScalableLayer, 2 );
+						}
+					  }
+					  else if( ( uiCurrTempLevel- uiMinTempLevel ) ) // Q = 0, T != 0					    
+					  {
+					    uiDelta = uiNumScalableLayer - getScalableLayerId( uiL, uiCurrTempLevel-1, uiQL );
+						pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 0, uiDelta ); //JVT-S036 lsj
+						pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 1 );
+						if( uiL ) // D != 0, T != 0, Q = 0
+						{
               UInt uiBaseLayerCGSSNRId = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseLayerCGSSNR() : rcLayer.getBaseLayerId());
-              UInt uiBaseLayerId = rcLayer.getBaseLayerId();
-              LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
-              UInt uiBaseFGSLayers = (UInt)( rcBaseLayer.getNumFGSLayers() );
+						  UInt uiBaseLayerId = rcLayer.getBaseLayerId();
+						  LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
+              UInt uiBaseFGSLayers = (UInt) rcBaseLayer.getNumFGSLayers();
               UInt uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseQualityLevelCGSSNR() : rcLayer.getBaseQualityLevel());
               uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? uiBaseQualityLevel : min( uiBaseQualityLevel, uiBaseFGSLayers ));
-              uiDelta = uiNumScalableLayer - getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel );
-              pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 0, uiDelta ); //JVT-S036 lsj
-              pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 1 );
-            }
-            else // base layer, no dependency layers
-            {
-              pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 0 );
-            }
-          }
+//bugfix delete
+						  {
+						    if( MSYS_UINT_MAX != getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel ) )
+							{
+						      uiDelta = uiNumScalableLayer - getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel );
+						      pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 1, uiDelta ); //JVT-S036 lsj
+						      pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 2 );
+							}
+						  }
+						}
+					  }
+					  else if ( uiL ) // D != 0,T = 0, Q = 0
+					  {
+            UInt uiBaseLayerCGSSNRId = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseLayerCGSSNR() : rcLayer.getBaseLayerId());
+						UInt uiBaseLayerId = rcLayer.getBaseLayerId();
+						LayerParameters& rcBaseLayer = m_pcCodingParameter->getLayerParameters ( uiBaseLayerId );
+						UInt uiBaseFGSLayers = (UInt)( rcBaseLayer.getNumFGSLayers() );
+						UInt uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getBaseQualityLevelCGSSNR() : rcLayer.getBaseQualityLevel());
+						uiBaseQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? uiBaseQualityLevel : min( uiBaseQualityLevel, uiBaseFGSLayers ));
+//bugfix delete
+   					    uiDelta = uiNumScalableLayer - getScalableLayerId( uiBaseLayerCGSSNRId, uiCurrTempLevel, uiBaseQualityLevel );
+						pcScalableSEI->setDirectlyDependentLayerIdDeltaMinus1( uiNumScalableLayer, 0, uiDelta ); //JVT-S036 lsj
+						pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 1 );
+					  }
+				      else // base layer, no dependency layers
+					  {
+						pcScalableSEI->setNumDirectlyDependentLayers( uiNumScalableLayer, 0 );
+					  }
+					} 
 
-          else
-          {//JVT-S036 lsj
-            UInt uiLayerDependencyInfoSrcLayerIdDelta = 0; //may be changed
-            pcScalableSEI->setLayerDependencyInfoSrcLayerIdDelta( uiNumScalableLayer, uiLayerDependencyInfoSrcLayerIdDelta);
-          }
+// BUG_FIX liuhui}
+				  }
+				  else
+				  {//JVT-S036 lsj
+					  UInt uiLayerDependencyInfoSrcLayerIdDelta = 0; //may be changed
 
-          if(pcScalableSEI->getInitParameterSetsInfoPresentFlag(uiNumScalableLayer))
-          {
-            UInt uiNumInitSPSMinus1 = 0;  //should be changed
-            UInt uiNumInitPPSMinus1 = 0;  //should be changed
-            pcScalableSEI->setNumInitSeqParameterSetMinus1(uiNumScalableLayer, uiNumInitSPSMinus1);
-            pcScalableSEI->setNumInitPicParameterSetMinus1(uiNumScalableLayer, uiNumInitPPSMinus1);
-            for( j = 0; j <= pcScalableSEI->getNumInitSPSMinus1(uiNumScalableLayer); j++)
-            {
-              UInt uiDelta = 0; //should be changed
-              pcScalableSEI->setInitSeqParameterSetIdDelta( uiNumScalableLayer, j, uiDelta );
-            }
-            for( j = 0; j <= pcScalableSEI->getNumInitPPSMinus1(uiNumScalableLayer); j++)
-            {
-              UInt uiDelta = 0; //should be changed
-              pcScalableSEI->setInitPicParameterSetIdDelta( uiNumScalableLayer, j, uiDelta );
-            }
-          }
-          else
-          {//JVT-S036 lsj
-            UInt bInitParameterSetsInfoSrcLayerIdDelta = 0;  //may be changed
-            pcScalableSEI->setInitParameterSetsInfoSrcLayerIdDelta( uiNumScalableLayer, bInitParameterSetsInfoSrcLayerIdDelta );
-          }
+					  pcScalableSEI->setLayerDependencyInfoSrcLayerIdDelta( uiNumScalableLayer, uiLayerDependencyInfoSrcLayerIdDelta);
+				  }
 
-          uiNumScalableLayer++;
-        }
-        uiTotalScalableLayer++;
-      }
-    }
+				  if(pcScalableSEI->getInitParameterSetsInfoPresentFlag(uiNumScalableLayer))
+				  {
+        	  UInt uiNumInitSPSMinus1 = 0;	//should be changed
+					  UInt uiNumInitPPSMinus1 = 0;	//should be changed
+					  pcScalableSEI->setNumInitSeqParameterSetMinus1(uiNumScalableLayer, uiNumInitSPSMinus1);
+					  pcScalableSEI->setNumInitPicParameterSetMinus1(uiNumScalableLayer, uiNumInitPPSMinus1);
+					  for( j = 0; j <= pcScalableSEI->getNumInitSPSMinus1(uiNumScalableLayer); j++)
+					  {
+						  UInt uiDelta = 0; //should be changed
+						  pcScalableSEI->setInitSeqParameterSetIdDelta( uiNumScalableLayer, j, uiDelta );
+					  }
+					  for( j = 0; j <= pcScalableSEI->getNumInitPPSMinus1(uiNumScalableLayer); j++)
+					  {
+						  UInt uiDelta = 0; //should be changed
+						  pcScalableSEI->setInitPicParameterSetIdDelta( uiNumScalableLayer, j, uiDelta );
+					  }
+				  }
+				  else
+				  {//JVT-S036 lsj
+					  UInt bInitParameterSetsInfoSrcLayerIdDelta = 0;  //may be changed
 
-  }
+					  pcScalableSEI->setInitParameterSetsInfoSrcLayerIdDelta( uiNumScalableLayer, bInitParameterSetsInfoSrcLayerIdDelta );
+				  }
 
-  UInt              uiBits = 0;
-  SEI::MessageList  cSEIMessageList;
-  cSEIMessageList.push_back                       ( pcScalableSEI );
-  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
-  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
-  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+				  uiNumScalableLayer++;
+				}
+				uiTotalScalableLayer++;
+			}
+		}
 
-  return Err::m_nOK;
+	}
+
+	UInt              uiBits = 0;
+	SEI::MessageList  cSEIMessageList;
+	cSEIMessageList.push_back                       ( pcScalableSEI );
+	RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+	RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+	RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+	RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+
+	return Err::m_nOK;
 
 }
 
@@ -722,69 +855,69 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 ErrVal
 H264AVCEncoder::xWriteScalableSEILayersNotPresent( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId)
 {
-  UInt i, uiBits = 0;
-  SEI::MessageList  cSEIMessageList;
-  SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent;
-  RNOK(SEI::ScalableSeiLayersNotPresent::create(pcScalableSeiLayersNotPresent) );
-  pcScalableSeiLayersNotPresent->setNumLayers( uiNumLayers );
-  for (i=0; i < uiNumLayers; i++)
-  pcScalableSeiLayersNotPresent->setLayerId( i, uiLayerId[i] );
-  cSEIMessageList.push_back                       ( pcScalableSeiLayersNotPresent );
-  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
-  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
-  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+	UInt i, uiBits = 0;
+	SEI::MessageList  cSEIMessageList;
+	SEI::ScalableSeiLayersNotPresent* pcScalableSeiLayersNotPresent;
+	RNOK(SEI::ScalableSeiLayersNotPresent::create(pcScalableSeiLayersNotPresent) );
+	pcScalableSeiLayersNotPresent->setNumLayers( uiNumLayers );
+	for (i=0; i < uiNumLayers; i++)
+	pcScalableSeiLayersNotPresent->setLayerId( i, uiLayerId[i] );
+	cSEIMessageList.push_back                       ( pcScalableSeiLayersNotPresent );
+	RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+	RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+	RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+	RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
 
-  return Err::m_nOK;
+	return Err::m_nOK;
 }
 
 ErrVal
-H264AVCEncoder::xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag,
-                          UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1)
+H264AVCEncoder::xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag, 
+												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1)
 {
-  UInt uiBits = 0;
-  SEI::MessageList  cSEIMessageList;
-  SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange;
-  RNOK(SEI::ScalableSeiDependencyChange::create(pcScalableSeiDependencyChange) );
-  pcScalableSeiDependencyChange->setNumLayersMinus1(uiNumLayers-1);
+	UInt uiBits = 0;
+	SEI::MessageList  cSEIMessageList;
+	SEI::ScalableSeiDependencyChange* pcScalableSeiDependencyChange;
+	RNOK(SEI::ScalableSeiDependencyChange::create(pcScalableSeiDependencyChange) );
+	pcScalableSeiDependencyChange->setNumLayersMinus1(uiNumLayers-1);
     UInt uiLayer, uiDirectLayer;
 
-  for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
-  {
-    pcScalableSeiDependencyChange->setLayerId( uiLayer, uiLayerId[uiLayer]);
-    pcScalableSeiDependencyChange->setLayerDependencyInfoPresentFlag( uiLayer, pbLayerDependencyInfoPresentFlag[uiLayer] );
-    if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
-    {
+	for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
+	{
+		pcScalableSeiDependencyChange->setLayerId( uiLayer, uiLayerId[uiLayer]);
+		pcScalableSeiDependencyChange->setLayerDependencyInfoPresentFlag( uiLayer, pbLayerDependencyInfoPresentFlag[uiLayer] );
+		if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
+		{
           pcScalableSeiDependencyChange->setNumDirectDependentLayers( uiLayer, uiNumDirectDependentLayers[uiLayer] );
-      for ( uiDirectLayer = 0; uiDirectLayer < pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ); uiDirectLayer++)
+		  for ( uiDirectLayer = 0; uiDirectLayer < pcScalableSeiDependencyChange->getNumDirectDependentLayers( uiLayer ); uiDirectLayer++)
               pcScalableSeiDependencyChange->setDirectDependentLayerIdDeltaMinus1( uiLayer, uiDirectLayer,  puiDirectDependentLayerIdDeltaMinus1[uiLayer][uiDirectLayer] );
-    }
-    else
+		}
+		else
             pcScalableSeiDependencyChange->setLayerDependencyInfoSrcLayerIdDeltaMinus1( uiLayer, puiLayerDependencyInfoSrcLayerIdDeltaMinus1[uiLayer] );
-  }
+	}
 
 
-  cSEIMessageList.push_back                       ( pcScalableSeiDependencyChange );
-  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
-  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
-  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+	cSEIMessageList.push_back                       ( pcScalableSeiDependencyChange );
+	RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+	RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+	RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+	RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
 
-  return Err::m_nOK;
+	return Err::m_nOK;
 }
 //  JVT-S080 LMI }
 
 ErrVal
 H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor )
 {
-  SEI::SubPicSei* pcSubPicSEI;
-  RNOK( SEI::SubPicSei::create( pcSubPicSEI ) );
+	SEI::SubPicSei* pcSubPicSEI;
+	RNOK( SEI::SubPicSei::create( pcSubPicSEI ) );
 
   //===== set message =====
-  UInt uiScalableLayerId = 0;  //should be changed
-  pcSubPicSEI->setLayerId( uiScalableLayerId );
-
-  //===== write message =====
+	UInt uiScalableLayerId = 0;	//should be changed
+	pcSubPicSEI->setLayerId( uiScalableLayerId );
+  
+	//===== write message =====
   UInt              uiBits = 0;
   SEI::MessageList  cSEIMessageList;
   cSEIMessageList.push_back                       ( pcSubPicSEI );
@@ -792,20 +925,20 @@ H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor )
   RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
 
-  return Err::m_nOK;
+	return Err::m_nOK;
 }
 
 
 ErrVal
 H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt layer_id )
 {
-  SEI::SubPicSei* pcSubPicSEI;
-  RNOK( SEI::SubPicSei::create( pcSubPicSEI ) );
+	SEI::SubPicSei* pcSubPicSEI;
+	RNOK( SEI::SubPicSei::create( pcSubPicSEI ) );
 
   //===== set message =====
-  pcSubPicSEI->setLayerId( layer_id );
-
-  //===== write message =====
+	pcSubPicSEI->setLayerId( layer_id );
+  
+	//===== write message =====
   UInt              uiBits = 0;
   SEI::MessageList  cSEIMessageList;
   cSEIMessageList.push_back                       ( pcSubPicSEI );
@@ -813,12 +946,12 @@ H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt
   RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
 
-  return Err::m_nOK;
+	return Err::m_nOK;
 }
 
 // Scalable SEI for ROI ICU/ETRI
 ErrVal
-H264AVCEncoder::xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id )
+H264AVCEncoder::xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id ) 
 {
   //===== create message =====
   SEI::MotionSEI* pcMotionSEI;
@@ -838,7 +971,6 @@ H264AVCEncoder::xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt 
   return Err::m_nOK;
 }
 
-
 ErrVal
 H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bool &rbMoreSets )
 {
@@ -850,11 +982,11 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
     if( m_bScalableSeiMessage )
       RNOK( xWriteScalableSEI( pcExtBinDataAccessor ) );
 
-    LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( 0 );
-    if (0 < rcLayer.getNumROI())
-      m_bWrteROISEI = true;
-    else
-      m_bWrteROISEI = false;
+	LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( 0 );
+	if (0 < rcLayer.getNumROI())
+		m_bWrteROISEI = true;
+	else
+		m_bWrteROISEI = false;
     m_loop_roi_sei=0;
 
     return Err::m_nOK;
@@ -863,33 +995,39 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
     m_bScalableSeiMessage = true;
 
   UInt uiNumLayer = m_pcCodingParameter->getNumberOfLayers();
-
+	
   if(m_bWrteROISEI)
   {
-  LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( m_loop_roi_sei/2 );
-  {
-    if(((m_loop_roi_sei+1)/2) >= uiNumLayer )
-    {
-    m_bWrteROISEI = false;
-    }
+	LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( m_loop_roi_sei/2 );
+	{
+	  if(((m_loop_roi_sei+1)/2) >= uiNumLayer )
+	  {
+		m_bWrteROISEI = false;
+	  }
 
-    if(m_loop_roi_sei%2)
-    {
-    RNOK( xWriteMotionSEI( pcExtBinDataAccessor,rcLayer.getSGID()[0] ) );    m_loop_roi_sei++; return Err::m_nOK;
-    }
-    else
-    {
-      RNOK( xWriteSubPicSEI( pcExtBinDataAccessor, rcLayer.getSLID()[0] ) );    m_loop_roi_sei++; return Err::m_nOK;
-    }
-    }
+	  if(m_loop_roi_sei%2)
+	  {			
+		RNOK( xWriteMotionSEI( pcExtBinDataAccessor,rcLayer.getSGID()[0] ) );    m_loop_roi_sei++; return Err::m_nOK;
+	  }
+	  else
+	  {
+	    RNOK( xWriteSubPicSEI( pcExtBinDataAccessor, rcLayer.getSLID()[0] ) );    m_loop_roi_sei++; return Err::m_nOK;
+	  }
+    }		
   }
-
+    
   UInt uiBits;
 
   if( ! m_cUnWrittenSPS.empty() )
   {
     RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
     SequenceParameterSet& rcSPS = *m_cUnWrittenSPS.front();
+    
+    if( rcSPS.getMbAdaptiveFrameFieldFlag() )
+		{
+			rcSPS.setFrameMbsOnlyFlag( false );
+		}
+		
     RNOK( m_pcNalUnitEncoder->write( rcSPS ) );
     RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
 
@@ -899,7 +1037,7 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
       UInt  uiSize  = pcExtBinDataAccessor->size();
       RNOK( m_apcMCTFEncoder[uiLayer]->addParameterSetBits( 8*(uiSize+4) ) );
     }
-
+    
     m_cUnWrittenSPS.pop_front();
   }
   else
@@ -921,7 +1059,7 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
         UInt  uiSize  = pcExtBinDataAccessor->size();
         RNOK( m_apcMCTFEncoder[uiLayer]->addParameterSetBits( 8*(uiSize+4) ) );
       }
-
+      
       m_cUnWrittenPPS.pop_front();
     }
     else
@@ -1062,9 +1200,8 @@ H264AVCEncoder::xInitParameterSets()
   UInt uiPPSId = 0;
   UInt uiIndex;
 
-
-  //===== determine values for POC calculation =====
-  UInt uiMaxResolutionStages  = m_pcCodingParameter->getDecompositionStages();
+  //===== determine values for Poc calculation =====
+  UInt uiMaxResolutionStages  = m_pcCodingParameter->getDecompositionStages();  
   UInt uiRequiredPocBits      = max( 4, 1 + (Int)ceil( log10( 1.0 + ( 1 << uiMaxResolutionStages ) ) / log10( 2.0 ) ) );
 
 
@@ -1073,26 +1210,31 @@ H264AVCEncoder::xInitParameterSets()
   {
     //===== get configuration parameters =====
     LayerParameters&  rcLayerParameters   = m_pcCodingParameter->getLayerParameters( uiIndex );
-    Bool              bH264AVCCompatible  = ( uiIndex == 0 );
-    UInt              uiMbY               = rcLayerParameters.getFrameHeight() / 16;
+//bug-fix suffix{{
+	//Bool              bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiIndex == 0;
+	Bool              bH264AVCCompatible  = ( uiIndex == 0 );
+//bug-fix suffix}}
+	UInt              uiMbY               = rcLayerParameters.getFrameHeight() / 16;
     UInt              uiMbX               = rcLayerParameters.getFrameWidth () / 16;
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
-    UInt              uiNumRefPic         = uiDPBSize;
+    UInt              uiNumRefPic         = uiDPBSize; 
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
-    if(m_pcCodingParameter->getBaseLayerMode() > 0)
-    {
-      //ROT( bH264AVCCompatible && uiDPBSize > 16 );
-    }
-    ROT( uiLevelIdc == MSYS_UINT_MAX );
+//bug-fix suffix{{
+//	if(m_pcCodingParameter->getBaseLayerMode() > 0)
+//bug-fix suffix}}
+//	{
+//		ROT( bH264AVCCompatible && uiDPBSize > 16 );
+//	}
+	ROT( uiLevelIdc == MSYS_UINT_MAX );
 
-
+    
     //===== create parameter sets, set Id's, and store =====
     SequenceParameterSet* pcSPS;
     PictureParameterSet*  pcPPSLP;
     PictureParameterSet*  pcPPSHP;
-
+    
     RNOK( SequenceParameterSet::create( pcSPS   ) );
     RNOK( PictureParameterSet ::create( pcPPSHP ) );
     pcPPSHP->setPicParameterSetId( uiPPSId++ );
@@ -1126,13 +1268,24 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 );
     pcSPS->setLog2MaxPicOrderCntLsb               ( min( 15, uiRequiredPocBits + 2 ) );  // HS: decoder robustness -> value increased by 2
     pcSPS->setNumRefFrames                        ( uiNumRefPic );
-    pcSPS->setRequiredFrameNumUpdateBehaviourFlag ( true );
+    pcSPS->setGapsInFrameNumValueAllowedFlag      ( true );
     pcSPS->setFrameWidthInMbs                     ( uiMbX );
     pcSPS->setFrameHeightInMbs                    ( uiMbY );
     pcSPS->setDirect8x8InferenceFlag              ( true  );
-    // TMM_ESS
+    // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
+   const Bool  bInterlaced = ( rcLayerParameters.getPaff() || rcLayerParameters.getMbAff() );
+    pcSPS->setPaff                                ( bH264AVCCompatible || ! rcLayerParameters.getPaff() );
+	  pcSPS->setFrameMbsOnlyFlag										( ! bInterlaced );
+    pcSPS->setMbAdaptiveFrameFieldFlag            ( (rcLayerParameters.getMbAff() ? true : false ) );
+   
+    if( pcSPS->getMbAdaptiveFrameFieldFlag() && uiMbY % 2)
+    {
+      printf(" MBAFF ignored ");
+      pcSPS->setMbAdaptiveFrameFieldFlag( false ); //not allowed
+    }
+    
     // always send FGS info in SPS, and always send only 1 set of VectMode parameters
     pcSPS->setFGSInfoPresentFlag                  ( true  );
     pcSPS->setFGSCycleAlignedFragment             ( m_pcCodingParameter->getFGSParallelDecodingFlag() );
@@ -1169,20 +1322,20 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
 //TMM_WP
     pcPPSHP->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode()!=0);
-    pcPPSHP->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());
+    pcPPSHP->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());  
 //TMM_WP
 
-    //--ICU/ETRI FMO Implementation : FMO stuff start
-    pcPPSHP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
-    pcPPSHP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
-    pcPPSHP->setArrayRunLengthMinus1                (rcLayerParameters.getArrayRunLengthMinus1());
-    pcPPSHP->setArrayTopLeft                  (rcLayerParameters.getArrayTopLeft());
-    pcPPSHP->setArrayBottomRight                (rcLayerParameters.getArrayBottomRight());
-    pcPPSHP->setSliceGroupChangeDirection_flag      (rcLayerParameters.getSliceGroupChangeDirection_flag());
-    pcPPSHP->setSliceGroupChangeRateMinus1        (rcLayerParameters.getSliceGroupChangeRateMinus1());
-    pcPPSHP->setNumSliceGroupMapUnitsMinus1        (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
-    pcPPSHP->setArraySliceGroupId              (rcLayerParameters.getArraySliceGroupId());
-    //--ICU/ETRI FMO Implementation : FMO stuff end
+	  //--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSHP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSHP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSHP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSHP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSHP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSHP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSHP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSHP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSHP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
 
     if( ! rcLayerParameters.getContrainedIntraForLP() )
     {
@@ -1204,17 +1357,17 @@ H264AVCEncoder::xInitParameterSets()
       pcPPSLP->setWeightedBiPredIdc                     ( pcPPSHP->getWeightedBiPredIdc                     ()  );
     }
 
-    //--ICU/ETRI FMO Implementation : FMO stuff start
-    pcPPSLP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
-    pcPPSLP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
-    pcPPSLP->setArrayRunLengthMinus1                (rcLayerParameters.getArrayRunLengthMinus1());
-    pcPPSLP->setArrayTopLeft                  (rcLayerParameters.getArrayTopLeft());
-    pcPPSLP->setArrayBottomRight                (rcLayerParameters.getArrayBottomRight());
-    pcPPSLP->setSliceGroupChangeDirection_flag      (rcLayerParameters.getSliceGroupChangeDirection_flag());
-    pcPPSLP->setSliceGroupChangeRateMinus1        (rcLayerParameters.getSliceGroupChangeRateMinus1());
-    pcPPSLP->setNumSliceGroupMapUnitsMinus1        (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
-    pcPPSLP->setArraySliceGroupId              (rcLayerParameters.getArraySliceGroupId());
-    //--ICU/ETRI FMO Implementation : FMO stuff end
+  	//--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSLP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSLP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSLP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSLP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSLP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSLP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSLP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSLP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSLP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
 
     //===== initialization using parameter sets =====
     RNOK( m_pcControlMng->initParameterSets( *pcSPS, *pcPPSLP, *pcPPSHP ) );
@@ -1223,7 +1376,10 @@ H264AVCEncoder::xInitParameterSets()
 
   uiIndex = 0;
   LayerParameters&  rcLayerParameters   = m_pcCodingParameter->getLayerParameters( uiIndex );
+//bug-fix suffix{{
+  //Bool              bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiIndex == 0;
   Bool              bH264AVCCompatible  = ( uiIndex == 0 );
+//bug-fix suffix}}
   if(bH264AVCCompatible && m_pcCodingParameter->getNumberOfLayers() == 1 && rcLayerParameters.getNumFGSLayers() > 0)
   {
     UInt              uiMbY               = rcLayerParameters.getFrameHeight() / 16;
@@ -1231,21 +1387,23 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
-    UInt              uiNumRefPic         = uiDPBSize;
+    UInt              uiNumRefPic         = uiDPBSize; 
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
-    if(m_pcCodingParameter->getBaseLayerMode() > 0)
-    {
-      ROT( bH264AVCCompatible && uiDPBSize > 16 );
-    }
+//bug-fix suffix{{
+	if(m_pcCodingParameter->getBaseLayerMode() > 0)
+//bug-fix suffix}}
+	{
+		ROT( bH264AVCCompatible && uiDPBSize > 16 );
+	}
 
-    ROT( uiLevelIdc == MSYS_UINT_MAX );
+	ROT( uiLevelIdc == MSYS_UINT_MAX );
 
-
+    
     //===== create parameter sets, set Id's, and store =====
     SequenceParameterSet* pcSPS;
     PictureParameterSet*  pcPPSLP;
     PictureParameterSet*  pcPPSHP;
-
+    
     RNOK( SequenceParameterSet::create( pcSPS   ) );
     RNOK( PictureParameterSet ::create( pcPPSHP ) );
     pcPPSHP->setPicParameterSetId( uiPPSId++ );
@@ -1279,11 +1437,11 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setLog2MaxFrameNum                     ( MAX_FRAME_NUM_LOG2 );
     pcSPS->setLog2MaxPicOrderCntLsb               ( min( 15, uiRequiredPocBits + 2 ) );  // HS: decoder robustness -> value increased by 2
     pcSPS->setNumRefFrames                        ( uiNumRefPic );
-    pcSPS->setRequiredFrameNumUpdateBehaviourFlag ( true );
+    pcSPS->setGapsInFrameNumValueAllowedFlag      ( true );
     pcSPS->setFrameWidthInMbs                     ( uiMbX );
     pcSPS->setFrameHeightInMbs                    ( uiMbY );
     pcSPS->setDirect8x8InferenceFlag              ( true  );
-    // TMM_ESS
+    // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
     // always send FGS info in SPS, and always send only 1 set of VectMode parameters
@@ -1322,20 +1480,20 @@ H264AVCEncoder::xInitParameterSets()
     pcPPSHP->setWeightedBiPredIdc                     ( WEIGHTED_BIPRED_IDC );
 //TMM_WP
     pcPPSHP->setWeightedPredFlag                   (m_pcCodingParameter->getIPMode()!=0);
-    pcPPSHP->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());
+    pcPPSHP->setWeightedBiPredIdc                  (m_pcCodingParameter->getBMode());  
 //TMM_WP
 
-    //--ICU/ETRI FMO Implementation : FMO stuff start
-    pcPPSHP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
-    pcPPSHP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
-    pcPPSHP->setArrayRunLengthMinus1                (rcLayerParameters.getArrayRunLengthMinus1());
-    pcPPSHP->setArrayTopLeft                  (rcLayerParameters.getArrayTopLeft());
-    pcPPSHP->setArrayBottomRight                (rcLayerParameters.getArrayBottomRight());
-    pcPPSHP->setSliceGroupChangeDirection_flag      (rcLayerParameters.getSliceGroupChangeDirection_flag());
-    pcPPSHP->setSliceGroupChangeRateMinus1        (rcLayerParameters.getSliceGroupChangeRateMinus1());
-    pcPPSHP->setNumSliceGroupMapUnitsMinus1        (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
-    pcPPSHP->setArraySliceGroupId              (rcLayerParameters.getArraySliceGroupId());
-    //--ICU/ETRI FMO Implementation : FMO stuff end
+	  //--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSHP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSHP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSHP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSHP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSHP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSHP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSHP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSHP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSHP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
 
     if( ! rcLayerParameters.getContrainedIntraForLP() )
     {
@@ -1357,17 +1515,17 @@ H264AVCEncoder::xInitParameterSets()
       pcPPSLP->setWeightedBiPredIdc                     ( pcPPSHP->getWeightedBiPredIdc                     ()  );
     }
 
-    //--ICU/ETRI FMO Implementation : FMO stuff start
-    pcPPSLP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
-    pcPPSLP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
-    pcPPSLP->setArrayRunLengthMinus1                (rcLayerParameters.getArrayRunLengthMinus1());
-    pcPPSLP->setArrayTopLeft                  (rcLayerParameters.getArrayTopLeft());
-    pcPPSLP->setArrayBottomRight                (rcLayerParameters.getArrayBottomRight());
-    pcPPSLP->setSliceGroupChangeDirection_flag      (rcLayerParameters.getSliceGroupChangeDirection_flag());
-    pcPPSLP->setSliceGroupChangeRateMinus1        (rcLayerParameters.getSliceGroupChangeRateMinus1());
-    pcPPSLP->setNumSliceGroupMapUnitsMinus1        (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
-    pcPPSLP->setArraySliceGroupId              (rcLayerParameters.getArraySliceGroupId());
-    //--ICU/ETRI FMO Implementation : FMO stuff end
+  	//--ICU/ETRI FMO Implementation : FMO stuff start
+	  pcPPSLP->setNumSliceGroupsMinus1                  (rcLayerParameters.getNumSliceGroupsMinus1());
+	  pcPPSLP->setSliceGroupMapType                     (rcLayerParameters.getSliceGroupMapType());
+	  pcPPSLP->setArrayRunLengthMinus1					      (rcLayerParameters.getArrayRunLengthMinus1());
+	  pcPPSLP->setArrayTopLeft								  (rcLayerParameters.getArrayTopLeft());
+	  pcPPSLP->setArrayBottomRight							  (rcLayerParameters.getArrayBottomRight());
+	  pcPPSLP->setSliceGroupChangeDirection_flag		  (rcLayerParameters.getSliceGroupChangeDirection_flag());
+	  pcPPSLP->setSliceGroupChangeRateMinus1			  (rcLayerParameters.getSliceGroupChangeRateMinus1());
+	  pcPPSLP->setNumSliceGroupMapUnitsMinus1			  (rcLayerParameters.getNumSliceGroupMapUnitsMinus1());
+	  pcPPSLP->setArraySliceGroupId						  (rcLayerParameters.getArraySliceGroupId());
+	  //--ICU/ETRI FMO Implementation : FMO stuff end
 
     //===== initialization using parameter sets =====
     RNOK( m_pcControlMng->initParameterSetsForFGS( *pcSPS, *pcPPSLP, *pcPPSHP ) );

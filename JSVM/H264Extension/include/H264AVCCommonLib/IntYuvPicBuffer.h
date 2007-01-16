@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -109,12 +109,12 @@ class MbDataCtrl;
 class H264AVCCOMMONLIB_API IntYuvPicBuffer
 {
 public:
-  IntYuvPicBuffer         ( YuvBufferCtrl& rcYuvBufferCtrl );
-  virtual ~IntYuvPicBuffer();
+	IntYuvPicBuffer         ( YuvBufferCtrl& rcYuvBufferCtrl, PicType ePicType );
+	virtual ~IntYuvPicBuffer();
 
-  const Int     getLStride    ()                const { return m_iStride;   }
-  const Int     getCStride    ()                const { return m_iStride>>1;}
-
+	const Int     getLStride    ()                const { return m_rcBufferParam.getStride()   ; }
+  const Int     getCStride    ()                const { return m_rcBufferParam.getStride()>>1; }
+  
   XPel*         getLumBlk     ()                      { return m_pPelCurrY; }
   XPel*         getCbBlk      ()                      { return m_pPelCurrU; }
   XPel*         getCrBlk      ()                      { return m_pPelCurrV; }
@@ -130,11 +130,11 @@ public:
   Bool          isCurr4x4BlkNotZero ( LumaIdx cIdx );
   Bool          isLeft4x4BlkNotZero ( LumaIdx cIdx );
   Bool          isAbove4x4BlkNotZero( LumaIdx cIdx );
-
+ 
   XPel*         getYBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getYBlk( cIdx ); }
   XPel*         getUBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getUBlk( cIdx ); }
   XPel*         getVBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getVBlk( cIdx ); }
-
+  
   XPel*         getMbLumAddr  ()                      { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbLum(); }
   XPel*         getMbCbAddr   ()                      { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbCb (); }
   XPel*         getMbCrAddr   ()                      { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbCr (); }
@@ -143,19 +143,17 @@ public:
   const Int     getLHeight    ()                const { return m_rcBufferParam.getHeight();    }
   const Int     getCWidth     ()                const { return m_rcBufferParam.getWidth ()>>1; }
   const Int     getCHeight    ()                const { return m_rcBufferParam.getHeight()>>1; }
-
+  
   const Int     getLXMargin   ()                const { return m_rcYuvBufferCtrl.getXMargin(); }
   const Int     getLYMargin   ()                const { return m_rcYuvBufferCtrl.getYMargin(); }
   const Int     getCXMargin   ()                const { return m_rcYuvBufferCtrl.getXMargin()>>1; }
   const Int     getCYMargin   ()                const { return m_rcYuvBufferCtrl.getYMargin()>>1; }
 
   Bool          isValid       ()                      { return NULL != m_pucYuvBuffer; }
-
-  XPel*         getLumOrigin  ()                const { return m_pucYuvBuffer + m_rcYuvBufferCtrl.getLumOrigin(); }
-  XPel*         getCbOrigin   ()                const { return m_pucYuvBuffer + m_rcYuvBufferCtrl.getCbOrigin (); }
-  XPel*         getCrOrigin   ()                const { return m_pucYuvBuffer + m_rcYuvBufferCtrl.getCrOrigin (); }
-
-
+  XPel*         getLumOrigin  ()                const { return m_pucYuvBuffer + m_rcYuvBufferCtrl.getLumOrigin( m_ePicType ); }
+  XPel*         getCbOrigin   ()                const { return m_pucYuvBuffer + m_rcYuvBufferCtrl.getCbOrigin ( m_ePicType ); }
+  XPel*         getCrOrigin   ()                const { return m_pucYuvBuffer + m_rcYuvBufferCtrl.getCrOrigin ( m_ePicType ); }
+  
   ErrVal        loadFromPicBuffer       ( PicBuffer*        pcPicBuffer );
   ErrVal        storeToPicBuffer        ( PicBuffer*        pcPicBuffer );
 
@@ -171,9 +169,9 @@ public:
   ErrVal        inverseUpdate           ( IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer0, IntYuvPicBuffer*  pcMCPYuvPicBuffer1 );
 
   ErrVal        copy                    ( IntYuvPicBuffer*  pcSrcYuvPicBuffer );
-//  TMM_EC {{
+//	TMM_EC {{
   ErrVal        copy                    ( YuvPicBuffer*  pcSrcYuvPicBuffer );
-//  TMM_EC }}
+//	TMM_EC }}
   //JVT-U106 Behaviour at slice boundaries{
   ErrVal        copyMask                    ( IntYuvPicBuffer*  pcSrcYuvPicBuffer,Int**ppiMaskL,Int**ppiMaskC );
   ErrVal        copyPortion                  ( IntYuvPicBuffer*  pcSrcYuvPicBuffer);
@@ -205,29 +203,37 @@ public:
   ErrVal        setNonZeroFlags         ( UShort* pusNonZeroFlags, UInt uiStride );
 
   ErrVal        clear();
+  YuvBufferCtrl& getBufferCtrl()  { return m_rcYuvBufferCtrl; }
+  XPel*          getBuffer    ()  { return m_pucYuvBuffer; }
 
-  //-- JVT-R091
-  ErrVal        smoothMbInside          ();
-  ErrVal        smoothMbTop              ();
-  ErrVal        smoothMbLeft            ();
-  //--
-  // JVT-R057 LA-RDO{
-  YuvBufferCtrl& getYuvBufferCtrl(){ return m_rcYuvBufferCtrl;}
-  // JVT-R057 LA-RDO}
+  ErrVal loadBufferAndFillMargin( IntYuvPicBuffer *pcSrcYuvPicBuffer );
+  ErrVal loadBuffer             ( IntYuvPicBuffer *pcSrcYuvPicBuffer );
+
+	//-- JVT-R091
+	ErrVal				smoothMbInside					();
+	ErrVal				smoothMbTop							();
+	ErrVal				smoothMbLeft						();
+	//--
+	// JVT-R057 LA-RDO{
+	YuvBufferCtrl& getYuvBufferCtrl(){ return m_rcYuvBufferCtrl;}
+	// JVT-R057 LA-RDO} 
 protected:
+  Void xCopyFillPlaneMargin( XPel *pucSrc, XPel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );
+  Void xCopyPlane          ( XPel *pucSrc, XPel *pucDest, Int iHeight, Int iWidth, Int iStride );
   Void xFillPlaneMargin     ( XPel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );
 
 protected:
   const YuvBufferCtrl::YuvBufferParameter&  m_rcBufferParam;
   YuvBufferCtrl&                            m_rcYuvBufferCtrl;
 
-  Int             m_iStride;
   XPel*           m_pPelCurrY;
   XPel*           m_pPelCurrU;
   XPel*           m_pPelCurrV;
-
+  
   XPel*           m_pucYuvBuffer;
   XPel*           m_pucOwnYuvBuffer;
+
+	PicType                                   m_ePicType;
 };
 
 

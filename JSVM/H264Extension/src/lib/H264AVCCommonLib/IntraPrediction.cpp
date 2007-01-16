@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -93,24 +93,24 @@ H264AVC_NAMESPACE_BEGIN
 const UChar g_aaucAvailableBlkMask[16][8] =
 {
   {0x0,0x0,0x0,0x0,  0x0,0x8,0x0,0x08  }, // L, A, AL, AR
-  {0x1,0x0,0x0,0x0,  0x1,0x8,0x0,0x08  }, //    A, AL, AR
+  {0x1,0x0,0x0,0x0,  0x5,0x8,0x0,0x08  }, //    A, AL, AR
   {0xA,0xE,0xE,0x6,  0x0,0x8,0x0,0x08  }, // L,    AL, AR
-  {0xB,0xE,0xE,0x6,  0x1,0x8,0x0,0x08  }, //       AL, AR
+  {0xB,0xE,0xE,0x6,  0x5,0x8,0x0,0x08  }, //       AL, AR
 
   {0x4,0x0,0x0,0x0,  0x0,0x8,0x0,0x08  }, // L, A,     AR
-  {0x5,0x0,0x0,0x0,  0x1,0x8,0x0,0x08  }, //    A,     AR
+  {0x5,0x0,0x0,0x0,  0x5,0x8,0x0,0x08  }, //    A,     AR
   {0xE,0xE,0xE,0x6,  0x0,0x8,0x0,0x08  }, // L,        AR
-  {0xF,0xE,0xE,0x6,  0x1,0x8,0x0,0x08  }, //           AR
+  {0xF,0xE,0xE,0x6,  0x5,0x8,0x0,0x08  }, //           AR
 
   {0x0,0x0,0x0,0x8,  0x0,0x8,0x0,0x08  }, // L, A, AL
-  {0x1,0x0,0x0,0x8,  0x1,0x8,0x0,0x08  }, //    A, AL
+  {0x1,0x0,0x0,0x8,  0x5,0x8,0x0,0x08  }, //    A, AL
   {0xA,0xE,0xE,0xE,  0x0,0x8,0x0,0x08  }, // L,    AL
-  {0xB,0xE,0xE,0xE,  0x1,0x8,0x0,0x08  }, //       AL
+  {0xB,0xE,0xE,0xE,  0x5,0x8,0x0,0x08  }, //       AL
 
   {0x4,0x0,0x0,0x8,  0x0,0x8,0x0,0x08  }, // L, A,
-  {0x5,0x0,0x0,0x8,  0x1,0x8,0x0,0x08  }, //    A,
+  {0x5,0x0,0x0,0x8,  0x5,0x8,0x0,0x08  }, //    A,
   {0xE,0xE,0xE,0xE,  0x0,0x8,0x0,0x08  }, // L,
-  {0xF,0xE,0xE,0xE,  0x1,0x8,0x0,0x08  }  //
+  {0xF,0xE,0xE,0xE,  0x5,0x8,0x0,0x08  }  //
 };
 
 
@@ -120,7 +120,7 @@ IntraPrediction::IntraPrediction()
   m_uiAvailable=0;
   m_bSpecial=false;
   ::memset(m_ac8x8Pred,0,26*sizeof(XPel));
-
+  
   m_pucHor = m_ac8x8Pred+1;
   m_pucVer = m_ac8x8Pred+18;
 }
@@ -725,20 +725,20 @@ Void IntraPrediction::xPred16x16IMode3Plane( Pel* puc, Int iStride ) // plane pr
   puc += 7 - iStride;
   for( n = 1; n < 9; n++ )
   {
-    iH += n * (puc[n] - puc[-n]);
+    iH += n * (Int)(puc[n] - puc[-n]);
   }
 
   puc += (iStride << 3) - 8;
   for( m = iStride, n = 1; n < 9; n++, m += iStride)
   {
-    iV += n * (puc[m] - puc[-m]);
+    iV += n * (Int)(puc[m] - puc[-m]);
   }
   puc -= 7 * iStride - 1;
 
 
   Int iB =  (5 * iH + 32) >> 6;
   Int iC =  (5 * iV + 32) >> 6;
-  Int iA = 16 * (puc[(iStride << 4) - (iStride + 1)] + puc[ 15 - iStride ]);
+  Int iA = 16 * (Int)(puc[(iStride << 4) - (iStride + 1)] + puc[ 15 - iStride ]);
   Int x, y;
 
   for( y = 0; y < 16; y++ )
@@ -820,19 +820,19 @@ Void IntraPrediction::xPred8x8IMode3Plane( Pel* puc, Int iStride ) // plane pred
   puc += 3 - iStride;
   for( n = 1; n < 5; n++ )
   {
-    iH += n * (puc[n] - puc[-n]);
+    iH += n * (Int)(puc[n] - puc[-n]);
   }
 
   puc += (iStride << 2) - 4;
   for( m = iStride, n = 1; n < 5; n++, m += iStride)
   {
-    iV += n * (puc[m] - puc[-m]);
+    iV += n * (Int)(puc[m] - puc[-m]);
   }
   puc -= 3 * iStride - 1;
 
   Int iB =  (17 * iH + 16) >> 5;
   Int iC =  (17 * iV + 16) >> 5;
-  Int iA = 16 * (puc[(iStride << 3) - (iStride + 1)] + puc[ 7 - iStride ]);
+  Int iA = 16 * (Int)(puc[(iStride << 3) - (iStride + 1)] + puc[ 7 - iStride ]);
   Int x, y;
 
   for( y = 0; y < 8; y++ )
@@ -927,7 +927,7 @@ Void IntraPrediction::xPred16x16IMode2DC( XPel* puc, Int iStride ) // DC predict
 
   for( n = 0; n < 16; n++ )
   {
-    for( m = 0; m < 16; m++ )
+    for( UInt m = 0; m < 16; m++ )
     {
       puc[m] = uiDcValue;
     }
@@ -949,20 +949,20 @@ Void IntraPrediction::xPred16x16IMode3Plane( XPel* puc, Int iStride ) // plane p
   puc += 7 - iStride;
   for( n = 1; n < 9; n++ )
   {
-    iH += n * (puc[n] - puc[-n]);
+    iH += n * (Int)(puc[n] - puc[-n]);
   }
 
   puc += (iStride << 3) - 8;
   for( m = iStride, n = 1; n < 9; n++, m += iStride)
   {
-    iV += n * (puc[m] - puc[-m]);
+    iV += n * (Int)(puc[m] - puc[-m]);
   }
   puc -= 7 * iStride - 1;
 
 
   Int iB =  (5 * iH + 32) >> 6;
   Int iC =  (5 * iV + 32) >> 6;
-  Int iA = 16 * (puc[(iStride << 4) - (iStride + 1)] + puc[ 15 - iStride ]);
+  Int iA = 16 * (Int)(puc[(iStride << 4) - (iStride + 1)] + puc[ 15 - iStride ]);
   Int x, y;
 
   for( y = 0; y < 16; y++ )
@@ -1256,28 +1256,86 @@ Void IntraPrediction::xPred8x8IMode1Hori( XPel* puc, Int iStride ) // horizontal
 
 Void IntraPrediction::xPred8x8IMode0DC( XPel* puc, Int iStride ) // DC prediction
 {
-  if( ! xIsLeftRef() )
+  UInt uiA, uiB, uiC, uiD;
+
+  if( ! xIsAboveRef() )
   {
-    if( ! xIsAboveRef() )
+    if( m_uiAvailableMaskMb & 0x1 )  // top
     {
-      xChroma0PredAllOutside( puc, iStride );
+      uiA = uiB = 0x80;
+    }
+    else
+  {
+      uiA = uiB = (xGetS2( puc, iStride ) + 2) / 4;
+    }
+
+    if( m_uiAvailableMaskMb & 0x10 ) // bot
+    {
+      uiC = uiD = 0x80;
     }
     else
     {
-      xChroma0PredNoLeftRef( puc, iStride );
+      uiC = uiD = (xGetS3( puc, iStride ) + 2) / 4;
     }
+    }
+  else
+  {
+    UInt uiS0 = xGetS0( puc, iStride );
+    UInt uiS1 = xGetS1( puc, iStride );
+
+    if( m_uiAvailableMaskMb & 0x1 )  // top
+    {
+      uiA = (uiS0 + 2)/4;
+      uiB = (uiS1 + 2)/4;
   }
   else
   {
-    if( ! xIsAboveRef() )
+      UInt uiS2 = xGetS2( puc, iStride );
+      uiA = (uiS0 + uiS2 + 4)/8;
+      uiB = (uiS1 + 2)/4;
+    }
+
+    if( m_uiAvailableMaskMb & 0x10 ) // bot
     {
-      xChroma0PredNoAboveRef( puc, iStride );
+      uiC = (uiS0 + 2)/4;
+      uiD = (uiS1 + 2)/4;
     }
     else
     {
-      xChroma0PredAllInside( puc, iStride );
+      UInt uiS3 = xGetS3( puc, iStride );
+      uiC = (uiS3 + 2)/4;
+      uiD = (uiS1 + uiS3 + 4)/8;
     }
   }
+
+  Int pos;
+  XPel* pucDes = puc;
+  for( pos = 0; pos < 4; pos++)
+  {
+    pucDes[pos]      = uiA;
+    pucDes[pos + 4]  = uiB;
+  }
+
+
+  for( Int n1 = 0; n1 < 3; n1 ++ )
+  {
+    memcpy( pucDes + iStride, pucDes, 8 * sizeof( XPel ) );
+    pucDes += iStride;
+  }
+
+  pucDes += iStride;
+  for( pos = 0; pos < 4; pos++)
+  {
+    pucDes[pos]     = uiC;
+    pucDes[pos + 4] = uiD;
+    }
+
+  for( Int n2 = 0; n2 < 3; n2 ++ )
+  {
+    memcpy( pucDes + iStride, pucDes, 8 * sizeof( XPel ) );
+    pucDes += iStride;
+  }
+
 }
 
 
@@ -1294,19 +1352,19 @@ Void IntraPrediction::xPred8x8IMode3Plane( XPel* puc, Int iStride ) // plane pre
   puc += 3 - iStride;
   for( n = 1; n < 5; n++ )
   {
-    iH += n * (puc[n] - puc[-n]);
+    iH += n * (Int)(puc[n] - puc[-n]);
   }
 
   puc += (iStride << 2) - 4;
   for( m = iStride, n = 1; n < 5; n++, m += iStride)
   {
-    iV += n * (puc[m] - puc[-m]);
+    iV += n * (Int)(puc[m] - puc[-m]);
   }
   puc -= 3 * iStride - 1;
 
   Int iB =  (17 * iH + 16) >> 5;
   Int iC =  (17 * iV + 16) >> 5;
-  Int iA = 16 * (puc[(iStride << 3) - (iStride + 1)] + puc[ 7 - iStride ]);
+  Int iA = 16 * (Int)(puc[(iStride << 3) - (iStride + 1)] + puc[ 7 - iStride ]);
   Int x, y;
 
   for( y = 0; y < 8; y++ )
@@ -1558,7 +1616,7 @@ ErrVal IntraPrediction::predictLuma8x8Block( XPel* puc, Int iStride, UInt uiPred
 
 
 
-Void IntraPrediction::xLoadHorPred8x8( XPel* puc, Int iStride )
+Void IntraPrediction::xLoadHorPred8x8( XPel* puc, Int iStride ) 
 {
   if( xIsAboveLeftRef() )
   {
@@ -1618,7 +1676,7 @@ Void IntraPrediction::xLoadHorPred8x8( XPel* puc, Int iStride )
 }
 
 
-Void IntraPrediction::xLoadXPred8x8( XPel* puc, Int iStride )
+Void IntraPrediction::xLoadXPred8x8( XPel* puc, Int iStride ) 
 {
   if( xIsAboveLeftRef() )
   {
@@ -1648,7 +1706,7 @@ Void IntraPrediction::xLoadXPred8x8( XPel* puc, Int iStride )
 }
 
 
-Void IntraPrediction::xLoadVerPred8x8( XPel* puc, Int iStride )
+Void IntraPrediction::xLoadVerPred8x8( XPel* puc, Int iStride ) 
 {
   if( xIsLeftRef() )
   {
@@ -1704,7 +1762,7 @@ Void IntraPrediction::xPredLum8x8Mode1Horiz( XPel* puc, Int iStride )
 
 
 
-Void IntraPrediction::xPredLum8x8Mode2Dc( XPel* puc, Int iStride )
+Void IntraPrediction::xPredLum8x8Mode2Dc( XPel* puc, Int iStride ) 
 {
   UInt uiDcValue = 4;
 
@@ -1727,7 +1785,7 @@ Void IntraPrediction::xPredLum8x8Mode2Dc( XPel* puc, Int iStride )
   else
   {
     xLoadVerPred8x8( puc, iStride );
-
+  
     if( ! xIsAboveRef() )
     {
       for( Int y = 0; y < 8; y++ )
@@ -1739,7 +1797,7 @@ Void IntraPrediction::xPredLum8x8Mode2Dc( XPel* puc, Int iStride )
     else
     {
       xLoadHorPred8x8( puc, iStride );
-
+    
       uiDcValue = 8;
       for( Int x = 0; x < 8; x++ )
       {
@@ -1938,7 +1996,7 @@ Void IntraPrediction::xPredLum8x8Mode8HorizUp( XPel* puc, Int iStride ) // Horiz
 
   UInt uiEqual13 = (m_pucVer[6]+ 3*m_pucVer[7] + 2) >> 2;
   UInt uiGreater13 = m_pucVer[7];
-
+  
   for( Int y = 0; y < 8; y++ )
   {
     for( Int x = 0; x < 8; x++ )

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -121,9 +121,9 @@ MbDataStruct::load( FILE* pFile )
 
 
 
-const UChar MbDataStruct::m_aucACTab[6] =
+const UChar MbDataStruct::m_aucACTab[7] =
 {
-  0,1,2,0,1,2
+  0,1,2,0,1,2,2
 };
 
 MbDataStruct::MbDataStruct()
@@ -138,15 +138,17 @@ MbDataStruct::MbDataStruct()
 , m_usResidualPredFlags ( 0 )
 , m_bTransformSize8x8   ( false )
 , m_bSkipFlag       ( true )
-, m_bInCropWindowFlag ( false ) //TMM_ESS
-, m_bSmoothedRefFlag    ( false )  // JVT-R091
+, m_bInCropWindowFlag ( false ) //TMM_ESS	
+, m_bSmoothedRefFlag		( false )	// JVT-R091
+, m_bFieldFlag              ( 0 )
+, m_uiMbCbpResidual         ( 0 )
 {
   DO_DBG( clearIntraPredictionModes( true ) );
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
 }
 
 
-Void MbDataStruct::reset()
+Void MbDataStruct::reset() 
 {
   m_uiBCBP              = 0;
   m_usFwdBwd            = 0;
@@ -158,10 +160,11 @@ Void MbDataStruct::reset()
   m_ucQp                = 0;
   m_usResidualPredFlags = 0;
   m_bTransformSize8x8   = 0;
-  m_bInCropWindowFlag   = false; //TMM_ESS
-  m_bSmoothedRefFlag    = false; // JVT-R091
+  m_bInCropWindowFlag   = false; //TMM_ESS	
+	m_bSmoothedRefFlag		= false; // JVT-R091
   DO_DBG( clearIntraPredictionModes( true ) );
-  m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
+  m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS  
+	m_bFieldFlag          = 0;
 }
 
 
@@ -175,10 +178,11 @@ Void MbDataStruct::clear()
   m_uiBCBP              = 0;
   m_usResidualPredFlags = 0;
   m_bTransformSize8x8   = 0;
-  m_bInCropWindowFlag   = false; //TMM_ESS
-  m_bSmoothedRefFlag    = false; // JVT-R091
+  m_bInCropWindowFlag   = false; //TMM_ESS	
+	m_bSmoothedRefFlag		= false; // JVT-R091
   clearIntraPredictionModes( true );
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
+  //m_bSkipFlag						= false; TMM_JV_DEBUG
 }
 
 
@@ -225,6 +229,13 @@ Void MbDataStruct::setAndConvertMbExtCbp( UInt uiExtCbp )
 }
 
 
+Void MbDataStruct::copy( const MbDataStruct& rcMbDataStruct )
+{
+  copyFrom( rcMbDataStruct );
+  m_bSkipFlag                 = rcMbDataStruct.m_bSkipFlag;
+  m_bInCropWindowFlag         = rcMbDataStruct.m_bInCropWindowFlag;
+}
+
 Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
 {
   m_usFwdBwd            = rcMbDataStruct.m_usFwdBwd;
@@ -237,8 +248,9 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
   m_uiBCBP              = rcMbDataStruct.m_uiBCBP;
   m_usResidualPredFlags = rcMbDataStruct.m_usResidualPredFlags;
   m_bTransformSize8x8   = rcMbDataStruct.m_bTransformSize8x8;
-  m_bSmoothedRefFlag    = rcMbDataStruct.m_bSmoothedRefFlag; // JVT-R091
-
+	m_bSmoothedRefFlag		= rcMbDataStruct.m_bSmoothedRefFlag; // JVT-R091
+  m_bFieldFlag          = rcMbDataStruct.m_bFieldFlag;
+   
   ::memcpy( m_aBlkMode,     rcMbDataStruct.m_aBlkMode,      sizeof(m_aBlkMode) );
   ::memcpy( m_ascIPredMode, rcMbDataStruct.m_ascIPredMode,  sizeof(m_ascIPredMode) );
 }
@@ -254,14 +266,14 @@ MbDataStruct::upsampleMotion( const MbDataStruct& rcMbDataStruct, Par8x8 ePar8x8
 
   //--- set block modes ---
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;
-
+  
   B8x8Idx c8x8Idx(ePar8x8);
   UInt uiCbp = rcMbDataStruct.getMbExtCbp() >> c8x8Idx.b4x4();
 
   UInt uiMbCbp = 0;
   uiMbCbp |= ((uiCbp&0x10) ? 0x33 : 0);
   uiMbCbp |= ((uiCbp&0x20) ? 0xcc : 0);
-  uiMbCbp <<= 8;
+  uiMbCbp <<= 8; 
   uiMbCbp |= ((uiCbp&0x01) ? 0x33 : 0);
   uiMbCbp |= ((uiCbp&0x02) ? 0xcc : 0);
 
@@ -298,20 +310,32 @@ MbDataStruct::upsampleMotion( const MbDataStruct& rcMbDataStruct, Par8x8 ePar8x8
 
 
 Bool
-MbDataStruct::is8x8TrafoFlagPresent() const // only for MCTF case (skip mode)
+MbDataStruct::is8x8TrafoFlagPresent( Bool bDirect8x8Inference ) const
 {
   ROTRS( m_eMbMode == INTRA_BL, true  );
   ROTRS( m_eMbMode > INTRA_4X4, false );
 
-  if( m_eMbMode == MODE_8x8 || m_eMbMode == MODE_8x8ref0 )
+  ROTRS( MODE_SKIP == m_eMbMode, bDirect8x8Inference );
+
+  if(( MODE_8x8     == m_eMbMode ) ||
+     ( MODE_8x8ref0     == m_eMbMode ))
   {
     for( UInt n = 0; n < 4; n++ )
     {
-      ROTRS( m_aBlkMode[n] > BLK_8x8, false );
+      if ( BLK_8x8 != m_aBlkMode[n] && BLK_SKIP != m_aBlkMode[n] ) 
+      {
+        return false;
+      }
+
+      if (( BLK_SKIP == m_aBlkMode[n] ) && !bDirect8x8Inference)
+      {
+        return false;
+      }
     }
   }
 
   return true;
 }
+
 
 H264AVC_NAMESPACE_END

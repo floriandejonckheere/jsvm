@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -107,6 +107,11 @@ IntYuvMbBuffer::~IntYuvMbBuffer()
 {
 }
 
+Void
+IntYuvMbBuffer::setZero()
+{
+  ::memset( m_aucYuvBuffer, 0 , sizeof(m_aucYuvBuffer) );
+}
 
 Void IntYuvMbBuffer::loadIntraPredictors( IntYuvPicBuffer* pcSrcBuffer )
 {
@@ -725,46 +730,46 @@ Void IntYuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
 }
 
 
-Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, UInt uiSize, XPel *puc, Int iStride, Bool bPresent )
+Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, Int iStride, Bool bPresent )
 {
   XPel pPelH[9];
   XPel pPelV[9];
   Int  iAdd   =1;
   Int  x,y,xo;
 
-  if( yDir < 0)
+  if( yDir < 0)	
   {
-    puc    += iStride*(uiSize-1);
-    iStride = -iStride;
+    puc    += iStride*(iSize-1);
+    iStride = -iStride; 
   }
 
-  if( xDir < 0)
+  if( xDir < 0)	
   {
-    puc    += (uiSize-1);
+    puc    += (iSize-1);
     iAdd   =-1;
   }
 
-  for( x = 0; x <= (Int)uiSize; x++ )
+  for( x = 0; x <= iSize; x++ )
   {
     pPelH[x] = puc[(x-1)*iAdd - iStride];
-  }
+  }	
 
-  for( y = 0; y <= (Int)uiSize; y++ )
+  for( y = 0; y <= iSize; y++ )
   {
     pPelV[y] = puc[(y-1)*iStride - iAdd];
-  }
+  }	
 
   if( ! bPresent )
   {
     pPelV[0] = pPelH[0] = (pPelH[1] + pPelV[1] + 1)>>1;
   }
 
-  for( y = 0; y < (Int)uiSize; y++, puc += iStride )
+  for( y = 0; y < iSize; y++, puc += iStride )
   {
-    for( xo = 0, x = 0; x < (Int)uiSize; x++, xo += iAdd )
+    for( xo = 0, x = 0; x < iSize; x++, xo += iAdd )
     {
       const Int iOffset = x-y;
-      if( iOffset > 0 )
+	    if( iOffset > 0 )
       {
         puc[xo] = (pPelH[ iOffset-1] + 2*pPelH[ iOffset] + pPelH[ iOffset+1] + 2)>>2;
       }

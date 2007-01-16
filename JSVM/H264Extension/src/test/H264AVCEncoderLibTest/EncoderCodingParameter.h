@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -87,9 +87,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
-
-
-#include <string>
+ 
+ 
+#include <string> 
 #include "CodingParameter.h"
 
 
@@ -114,7 +114,7 @@ protected:
 class EncoderConfigLineDbl : public h264::EncoderConfigLineBase
 {
 public:
-  EncoderConfigLineDbl( Char* pcTag, Double* pdPar, Double pdDefault ) :  EncoderConfigLineBase( pcTag, 2 ), m_pdPar( pdPar )
+  EncoderConfigLineDbl( Char* pcTag, Double* pdPar, Double pdDefault ) :  EncoderConfigLineBase( pcTag, 2 ), m_pdPar( pdPar ) 
   {
     *m_pdPar = pdDefault;
   };
@@ -173,10 +173,10 @@ protected:
 
 
 
-class EncoderCodingParameter :
-public h264::CodingParameter
+class EncoderCodingParameter : 
+public h264::CodingParameter 
 {
-protected:
+protected: 
   EncoderCodingParameter          (){}
   virtual ~EncoderCodingParameter (){}
 
@@ -208,7 +208,7 @@ protected:
 ErrVal EncoderCodingParameter::create( EncoderCodingParameter*& rpcEncoderCodingParameter )
 {
   rpcEncoderCodingParameter = new EncoderCodingParameter;
-
+  
   ROT( NULL == rpcEncoderCodingParameter );
 
   return Err::m_nOK;
@@ -285,7 +285,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters( uiLayer ).setBaseQpResidual( dResQp );
       printf("\n********** layer %1d - rqp = %f **********\n\n",uiLayer,dResQp);
       n += 1;
-      continue;
+      continue;      
     }
     if( equals( pcCom, "-mqp", 4 ) )
     {
@@ -297,7 +297,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       Double  dMotQp  = atof( argv[n+2] );
       CodingParameter::getLayerParameters( uiLayer ).setQpModeDecision( uiStage, dMotQp );
       n += 2;
-      continue;
+      continue;      
     }
     if( equals( pcCom, "-lqp", 4 ) )
     {
@@ -312,7 +312,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       }
       CodingParameter::getLayerParameters( uiLayer ).setQpModeDecisionLP( dQp );
       n += 1;
-      continue;
+      continue;      
     }
     if( equals( pcCom, "-meqplp", 7 ) )
     {
@@ -348,7 +348,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     }
     if( equals( pcCom, "-frms", 5 ) )
     {
-      ROTS( NULL == argv[n] );
+      ROTS( NULL == argv[n] ); 
       UInt uiFrms = atoi( argv[n] );
       CodingParameter::setTotalFrames( uiFrms );
       continue;
@@ -399,7 +399,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     {
       ROTS( NULL == argv[n] );
       std::string cFilename = argv[n];
-      RNOKS( xReadFromFile( cFilename, rcBitstreamFile ) );
+      RNOKS( xReadFromFile( cFilename, rcBitstreamFile ) );  
       continue;
     }
     //JVT-P031
@@ -415,38 +415,38 @@ ErrVal EncoderCodingParameter::init( Int     argc,
      continue;
     }
     //~JVT-P031
-
-  //S051{
-  if( equals( pcCom, "-encsip", 7 ) )
+	
+	//S051{
+	if( equals( pcCom, "-encsip", 7 ) )
     {
-    ROTS( NULL == argv[n  ] );
-    ROTS( NULL == argv[n+1] );
-
-    UInt    uiLayer = atoi( argv[n  ] );
-    CodingParameter::getLayerParameters( uiLayer ).setEncSIP(true);
-    CodingParameter::getLayerParameters( uiLayer ).setInSIPFileName(argv[n+1]);
-    n += 1;
-    continue;
+		ROTS( NULL == argv[n  ] );
+		ROTS( NULL == argv[n+1] );
+		
+		UInt    uiLayer = atoi( argv[n  ] );
+		CodingParameter::getLayerParameters( uiLayer ).setEncSIP(true);
+		CodingParameter::getLayerParameters( uiLayer ).setInSIPFileName(argv[n+1]);
+		n += 1;
+		continue;
     }
-  if( equals( pcCom, "-anasip", 7 ) )
+	if( equals( pcCom, "-anasip", 7 ) )
     {
-    ROTS( NULL == argv[n  ] );
-    ROTS( NULL == argv[n+1] );
-    ROTS( NULL == argv[n+2] );
-
-    UInt    uiLayer = atoi( argv[n  ] );
-    UInt  uiMode = atoi( argv[n+1] );
-
-    if(uiMode!=0)
-      CodingParameter::getLayerParameters( uiLayer ).setAnaSIP(2);
-    else
-      CodingParameter::getLayerParameters( uiLayer ).setAnaSIP(1);
-
-    CodingParameter::getLayerParameters( uiLayer ).setOutSIPFileName(argv[n+2]);
-    n += 2;
-    continue;
+		ROTS( NULL == argv[n  ] );
+		ROTS( NULL == argv[n+1] );
+		ROTS( NULL == argv[n+2] );
+		
+		UInt    uiLayer = atoi( argv[n  ] );
+		UInt	uiMode = atoi( argv[n+1] );
+		
+		if(uiMode!=0)
+			CodingParameter::getLayerParameters( uiLayer ).setAnaSIP(2);
+		else
+			CodingParameter::getLayerParameters( uiLayer ).setAnaSIP(1);
+		
+		CodingParameter::getLayerParameters( uiLayer ).setOutSIPFileName(argv[n+2]);
+		n += 2;
+		continue;
     }
-  //S051}
+	//S051}
     // JVT-U116 LMI {
     if( equals( pcCom, "-tlidx", 6 ) )
     {
@@ -466,7 +466,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       continue;
     }
     // JVT-U085 LMI }
-
+	
     if( equals( pcCom, "-fgsmot", 7 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -486,7 +486,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       ROF(    uiLayer < MAX_LAYERS );
       CodingParameter::getLayerParameters( uiLayer ).setInputFilename( argv[n+1] );
       n += 1;
-      continue;
+      continue;      
     }
     if( equals( pcCom, "-rec", 4 ) )
     {
@@ -496,7 +496,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       ROF(    uiLayer < MAX_LAYERS );
       CodingParameter::getLayerParameters( uiLayer ).setOutputFilename( argv[n+1] );
       n += 1;
-      continue;
+      continue;      
     }
     if( equals( pcCom, "-ec", 3 ) )
     {
@@ -507,7 +507,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       UInt    uiECmode = atoi( argv[n+1] );
       CodingParameter::getLayerParameters( uiLayer ).setEntropyCodingModeFlag( uiECmode != 0 );
       n += 1;
-      continue;
+      continue;      
     }
     if( equals( pcCom, "-vlc", 4 ) )
     {
@@ -557,7 +557,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
 
 
   RNOKS( check() );
-
+  
   return Err::m_nOK;
 }
 
@@ -634,7 +634,7 @@ ErrVal EncoderCodingParameter::xReadLine( FILE* hFile, std::string* pacTag )
         if( ! pcTag->empty() )
           {
             uiTagNum++;
-          pcTag = &pacTag[uiTagNum];
+          pcTag = &pacTag[uiTagNum]; 
           }
   }
       else
@@ -655,10 +655,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
   FILE *f = fopen( rcFilename.c_str(), "r");
   if( NULL == f )
-  {
+  { 
     printf( "failed to open %s parameter file\n", rcFilename.c_str() );
     return Err::m_nERR;
-  }
+  } 
 
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("OutputFile",              &rcBitstreamFile,                                      "test.264");
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRate",               &m_dMaximumFrameRate,                                  60.0      );
@@ -681,9 +681,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
 //TMM_WP
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedPrediction",         &m_uiIPMode,                                     0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedBiprediction",       &m_uiBMode,                                      0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedBiprediction",       &m_uiBMode,                                      0 );  
 //TMM_WP
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("NonRequiredEnable",      &m_bNonRequiredEnable,               0 );  //NonRequired JVT-Q066
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("NonRequiredEnable",			&m_bNonRequiredEnable,							 0 );  //NonRequired JVT-Q066
   std::string cInputFile, cReconFile;
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MVCMode",                 &m_uiMVCmode,                                          0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",               &cInputFile,                                           "in.yuv");
@@ -709,7 +709,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxRefIdxActiveP",        &m_uiMaxRefIdxActiveP,                                 1 );
 
   //JVT-R057 LA-RDO{
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LARDO",                   &m_uiLARDOEnable,                                      0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LARDO",                   &m_uiLARDOEnable,                                      0 ); 
   //JVT-R057 LA-RDO}
   //JVT-T073 {
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NestingSEI",              &m_uiNestingSEIEnable,                                 0 );
@@ -718,11 +718,11 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
 //JVT-S036 lsj start  //bug-fix suffix{{
 //SuffixUnitEnable shall always be on in SVC contexts (i.e. when there are FGS/CGS/spatial enhancement layers)
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SuffixUnitEnable",                   &m_uiSuffixUnitEnable,                                      1);
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",            &m_uiMMCOBaseEnable,                                      1 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SuffixUnitEnable",        &m_uiSuffixUnitEnable,                                 1 ); 
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",					 &m_uiMMCOBaseEnable,                                   1 ); 
 //JVT-S036 lsj end //bug-fix suffix}}
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                              0 );  //JVT-T054
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",        &m_uiTlevelNestingFlag,                                   0 );  //JVT-U085
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                             0 );  //JVT-T054
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",           &m_uiTlevelNestingFlag,                                0 );  //JVT-U085
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLFrameIdxEnable",        &m_uiExtensionFlag,                                    0 );  //JVT-U116
   m_pEncoderLines[uiParLnCount] = NULL;
 
@@ -775,48 +775,54 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
   fclose( f );
 //JVT-T054{
-  UInt    uiPrevLayer        = 0;
+  UInt uiPrevLayer        = 0;
   Double  dPrevTemp          = 0.0;
-  UInt    uiPrevWidth        = 0;
-  UInt    uiPrevHeight       = 0;
-  UInt    uiLayerTemp        = 0;
-  UInt    uiQualityLevelTemp = 0;
-  UInt    uiLastLayer        = 0;
-  UInt    uiMaxLayer         = 0;
-  UInt    uiMaxQualityLevel  = 0;
+  UInt uiPrevWidth        = 0;
+  UInt uiPrevHeight       = 0;
+  UInt uiLayerTemp        = 0;
+  UInt uiQualityLevelTemp = 0;
+  UInt uiLastLayer        = 0;
+  UInt uiMaxLayer         = 0;
+  UInt uiMaxQualityLevel  = 0;
 //JVT-T054}
+  Bool bInterlaced = false; 
+
   for( UInt ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
     getLayerParameters(ui).setLayerId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
+    //TMM_INTERLACE{
+		if ( getLayerParameters(ui).m_uiMbAff || getLayerParameters(ui).m_uiPaff )
+			bInterlaced = true;			
+//TMM_INTERLACE}
 //JVT-T054{
     if(m_uiCGSSNRRefinementFlag)
     {
     if(ui == 0)
     {
-      uiPrevLayer  = ui;
+      uiPrevLayer = ui;
       dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
-      uiPrevWidth  = getLayerParameters(ui).getFrameWidth();
+      uiPrevWidth = getLayerParameters(ui).getFrameWidth();
       uiPrevHeight = getLayerParameters(ui).getFrameHeight();
       getLayerParameters(ui).setLayerCGSSNR(ui);
       getLayerParameters(ui).setQualityLevelCGSSNR(0);
       uiLastLayer = uiPrevLayer;
-
+      
       getLayerParameters(ui).setBaseLayerCGSSNR( MSYS_UINT_MAX );
       getLayerParameters(ui).setBaseQualityLevelCGSSNR( 0 );
     }
     else
     {
       if( dPrevTemp    == getLayerParameters(ui).getOutputFrameRate() &&
-          uiPrevWidth  == getLayerParameters(ui).getFrameWidth() &&
-          uiPrevHeight == getLayerParameters(ui).getFrameHeight())
+        uiPrevWidth == getLayerParameters(ui).getFrameWidth() &&
+        uiPrevHeight == getLayerParameters(ui).getFrameHeight())
       {
         // layer can be considered as a CGS refinement
         uiLayerTemp = getLayerParameters(ui-1).getLayerCGSSNR();
         getLayerParameters(ui).setLayerCGSSNR(uiLayerTemp);
         uiQualityLevelTemp = getLayerParameters(ui-1).getQualityLevelCGSSNR();
         getLayerParameters(ui).setQualityLevelCGSSNR(uiQualityLevelTemp+1);
-
+        
         getLayerParameters(ui).setBaseLayerCGSSNR( uiLayerTemp );
         getLayerParameters(ui).setBaseQualityLevelCGSSNR( uiQualityLevelTemp );
 
@@ -827,9 +833,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
       {
         //layer is not a refinement from previous CGS layer
         uiLastLayer++;
-        uiPrevLayer  = uiLastLayer;
+        uiPrevLayer = uiLastLayer;
         dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
-        uiPrevWidth  = getLayerParameters(ui).getFrameWidth();
+        uiPrevWidth = getLayerParameters(ui).getFrameWidth();
         uiPrevHeight = getLayerParameters(ui).getFrameHeight();
         getLayerParameters(ui).setLayerCGSSNR(uiLastLayer);
         getLayerParameters(ui).setQualityLevelCGSSNR(0);
@@ -857,10 +863,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     curr = getResizeParameters(ui);
 
 // JVT-Q065 EIDR{
-  if(ui > 0 && getLayerParameters(ui-1).getIDRPeriod() == getLayerParameters(ui).getIDRPeriod())
-  {
-    getLayerParameters(ui).setBLSkipEnable(true);
-  }
+	if(ui > 0 && getLayerParameters(ui-1).getIDRPeriod() == getLayerParameters(ui).getIDRPeriod())
+	{
+		getLayerParameters(ui).setBLSkipEnable(true);
+	}
 // JVT-Q065 EIDR}
 
     // HS: set base layer id
@@ -885,7 +891,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
       else if ((curr->m_iInWidth*2 == curr->m_iOutWidth) && (curr->m_iInHeight*2 == curr->m_iOutHeight) &&
                is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
         curr->m_iSpatialScalabilityType = SST_RATIO_2;
-      else
+      else 
       {
         curr->m_iSpatialScalabilityType = SST_RATIO_X;
         if ( curr->m_iExtendedSpatialScalability == ESS_NONE )
@@ -899,6 +905,12 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     }
 // TMM_ESS }
   }
+
+  
+//TMM_INTERLACE{
+  for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
+    getResizeParameters(ui)->m_bInterlaced = bInterlaced;
+//TMM_INTERLACE}
 
   return Err::m_nOK;
 }
@@ -914,15 +926,15 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   //S051{
   std::string cEncSIPFilename;
   //S051}
-
+  
   UInt        uiParLnCount = 0;
-
+  
   FILE *f = fopen( rcFilename.c_str(), "r");
   if( NULL == f )
-  {
+  { 
     printf( "failed to open %s layer config file\n", rcFilename.c_str() );
     return Err::m_nERR;
-  }
+  } 
 
   //--ICU/ETRI FMO Implementation
   UInt bSliceGroupChangeDirection_flag=0;
@@ -933,6 +945,8 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateOut",   &(rcLayer.m_dOutputFrameRate),           30        );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",      &cInputFilename,                         "test.yuv");
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",      &cOutputFilename,                        "rec.yuv" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MbAff",          &(rcLayer.m_uiMbAff),                    0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("Paff",           &(rcLayer.m_uiPaff),                     0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",     &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ClosedLoop",     &(rcLayer.m_uiClosedLoop),               0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );
@@ -975,15 +989,15 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumROI", &(rcLayer.m_uiNumROI),                  0       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ROICfgFileNm",&rcLayer.m_cROIConfigFileName,             "roicfg.cfg" );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSMotion",      &(rcLayer.m_uiFGSMotionMode),              0    );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSMotion",      &(rcLayer.m_uiFGSMotionMode),							0		);
 // JVT-Q065 EIDR{
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",    &(rcLayer.m_iIDRPeriod),                0    );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	  &(rcLayer.m_iIDRPeriod),								0		);
 // JVT-Q065 EIDR}
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",            &(rcLayer.m_uiPLR),                0    ); //JVT-R057 LA-RDO
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	          &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice), 0   );  //JVT-Q054 Red. Picture
-
+  
   //S051{
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, "");
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, ""); 
   //S051}
 
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVectorMode", &(rcLayer.m_uiFGSCodingMode), 0 );
@@ -1026,9 +1040,9 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   //S051{
         if(cEncSIPFilename.length())
         {
-          rcLayer.setEncSIP(true);
-          rcLayer.setInSIPFileName( (char*) cEncSIPFilename.c_str());
-        }
+      	  rcLayer.setEncSIP(true);
+      	  rcLayer.setInSIPFileName( (char*) cEncSIPFilename.c_str());
+        }  
   //S051}
 
   rcLayer.setInputFilename     ( (Char*)cInputFilename.c_str() );
@@ -1050,14 +1064,14 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_uiFrameWidth;
   rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_uiFrameHeight;
   rcLayer.m_ResizeParameter.m_bCrop       = false;
-  if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)
+  if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  
   {
-    rcLayer.m_ResizeParameter.m_bCrop = true;
+    rcLayer.m_ResizeParameter.m_bCrop = true;        
     if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
     {
       rcLayer.m_ResizeParameter.m_pParamFile = fopen( cESSFilename.c_str(), "r");
       if( NULL == rcLayer.m_ResizeParameter.m_pParamFile )
-      {
+      { 
         printf( "failed to open resize parameter file %s\n", cESSFilename.c_str() );
         return Err::m_nERR;
       }
@@ -1080,7 +1094,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
   // ROI Config ICU/ETRI
-  RNOK( xReadROICfg( rcLayer));
+  RNOK( xReadROICfg( rcLayer)); 
 
   ::fclose(f);
 
@@ -1089,81 +1103,81 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 
 ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLayer )
 {
-  UInt mapunit_height;
-  UInt mb_height;
-  UInt i;
-  UInt mb_width;
-   FILE* sgfile=NULL;
+	UInt mapunit_height;
+	UInt mb_height;
+	UInt i;
+	UInt mb_width;
+ 	FILE* sgfile=NULL;
 
-  if( (rcLayer.getNumSliceGroupsMinus1()!=0)&&
-    ((rcLayer.getSliceGroupMapType() == 0) || (rcLayer.getSliceGroupMapType() == 2) || (rcLayer.getSliceGroupMapType() == 6)) )
-  {
+	if( (rcLayer.getNumSliceGroupsMinus1()!=0)&&
+		((rcLayer.getSliceGroupMapType() == 0) || (rcLayer.getSliceGroupMapType() == 2) || (rcLayer.getSliceGroupMapType() == 6)) )
+	{ 
     if ( ! rcLayer.getSliceGroupConfigFileName().empty() &&
          ( sgfile = fopen( rcLayer.getSliceGroupConfigFileName().c_str(), "r" ) ) == NULL )
-    {
+		{
       printf("Error open file %s", rcLayer.getSliceGroupConfigFileName().c_str() );
-    }
-    else
-    {
-      if (rcLayer.getSliceGroupMapType() == 0)
-      {
-        for(i=0;i<=rcLayer.getNumSliceGroupsMinus1();i++)
-        {
-          fscanf(sgfile,"%d",(rcLayer.getArrayRunLengthMinus1()+i));
-          fscanf(sgfile,"%*[^\n]");
+		}
+		else
+		{
+			if (rcLayer.getSliceGroupMapType() == 0) 
+			{
+				for(i=0;i<=rcLayer.getNumSliceGroupsMinus1();i++)
+				{
+					fscanf(sgfile,"%d",(rcLayer.getArrayRunLengthMinus1()+i));
+					fscanf(sgfile,"%*[^\n]");
 
-        }
-      }
-      else if (rcLayer.getSliceGroupMapType() == 2)
-      {
-        // every two lines contain 'top_left' and 'bottom_right' value
-        for(i=0;i<rcLayer.getNumSliceGroupsMinus1();i++)
-        {
-          fscanf(sgfile,"%d",(rcLayer.getArrayTopLeft()+i));
-          fscanf(sgfile,"%*[^\n]");
-          fscanf(sgfile,"%d",(rcLayer.getArrayBottomRight()+i));
-          fscanf(sgfile,"%*[^\n]");
-        }
+				}
+			}
+			else if (rcLayer.getSliceGroupMapType() == 2)
+			{
+				// every two lines contain 'top_left' and 'bottom_right' value
+				for(i=0;i<rcLayer.getNumSliceGroupsMinus1();i++)
+				{
+					fscanf(sgfile,"%d",(rcLayer.getArrayTopLeft()+i));
+					fscanf(sgfile,"%*[^\n]");
+					fscanf(sgfile,"%d",(rcLayer.getArrayBottomRight()+i));
+					fscanf(sgfile,"%*[^\n]");
+				}
 
-      }
-      else if (rcLayer.getSliceGroupMapType()== 6)
-      {
-        //--ICU/ETRI
-        //TODO : currently map type 6 is partially supported
-        // Assume that only frame mode(no interlaced mode) is available
-        // Assume that Frame cropping is not avaliable
+			}
+			else if (rcLayer.getSliceGroupMapType()== 6)
+			{
+				//--ICU/ETRI
+				//TODO : currently map type 6 is partially supported 
+				// Assume that only frame mode(no interlaced mode) is available
+				// Assume that Frame cropping is not avaliable
 
-        Int tmp;
+				Int tmp;
 
-        /*
-        frame_mb_only = !(input->getPicInterlace() || input->getMbInterlace());
-        mb_width= (input->get_img_width()+img->get_auto_crop_right())/16;
-        mb_height= (input->get_img_height()+img->get_auto_crop_bottom())/16;
-        mapunit_height=mb_height/(2-frame_mb_only);
-        */
+				/*
+				frame_mb_only = !(input->getPicInterlace() || input->getMbInterlace());
+				mb_width= (input->get_img_width()+img->get_auto_crop_right())/16;
+				mb_height= (input->get_img_height()+img->get_auto_crop_bottom())/16;
+				mapunit_height=mb_height/(2-frame_mb_only);
+				*/
+
+				
+				mb_width= (rcLayer.getFrameWidth())/16;
+				mb_height= (rcLayer.getFrameHeight())/16;
+				mapunit_height=mb_height;
 
 
-        mb_width= (rcLayer.getFrameWidth())/16;
-        mb_height= (rcLayer.getFrameHeight())/16;
-        mapunit_height=mb_height;
+				// each line contains slice_group_id for one Macroblock
+				for (i=0;i<mapunit_height*mb_width;i++)
+				{
+					fscanf(sgfile,"%d", &tmp);
+					//input->set_slice_group_id_ith( i, (unsigned) tmp);
+					rcLayer.setSliceGroupId(i,(UInt)tmp);
+					assert(*(rcLayer.getArraySliceGroupId()+i) <= rcLayer.getNumSliceGroupsMinus1() );
+					fscanf(sgfile,"%*[^\n]");
+				}
 
+			}
+			fclose(sgfile);
 
-        // each line contains slice_group_id for one Macroblock
-        for (i=0;i<mapunit_height*mb_width;i++)
-        {
-          fscanf(sgfile,"%d", &tmp);
-          //input->set_slice_group_id_ith( i, (unsigned) tmp);
-          rcLayer.setSliceGroupId(i,(UInt)tmp);
-          assert(*(rcLayer.getArraySliceGroupId()+i) <= rcLayer.getNumSliceGroupsMinus1() );
-          fscanf(sgfile,"%*[^\n]");
-        }
-
-      }
-      fclose(sgfile);
-
-    }
-  }
-  return Err::m_nOK;
+		}
+	}
+	return Err::m_nOK;
 
 }
 
@@ -1171,37 +1185,37 @@ ErrVal EncoderCodingParameter::xReadSliceGroupCfg( h264::LayerParameters&  rcLay
 // ROI Config Read ICU/ETRI
 ErrVal EncoderCodingParameter::xReadROICfg( h264::LayerParameters&  rcLayer )
 {
-  UInt i;
-   FILE* roifile=NULL;
+	UInt i;
+ 	FILE* roifile=NULL;
 
-  if ( (0 < rcLayer.getNumROI()) )
-  {
-    if ( ! rcLayer.getROIConfigFileName().empty() &&
+	if ( (0 < rcLayer.getNumROI()) )
+	{
+		if ( ! rcLayer.getROIConfigFileName().empty() &&
          ( roifile = fopen( rcLayer.getROIConfigFileName().c_str(), "r" ) ) == NULL )
-    {
-      printf("Error open file %s", rcLayer.getROIConfigFileName().c_str() );
-    }
+		{
+			printf("Error open file %s", rcLayer.getROIConfigFileName().c_str() );
+		}
 
-    else
-    {
-      // every two lines contain 'top_left' and 'bottom_right' value
-      for(i=0;i<rcLayer.getNumROI(); i++)
-      {
-        fscanf(roifile, "%d",(rcLayer.getROIID()+i));
-        fscanf(roifile, "%*[^\n]");
-        fscanf(roifile, "%d",(rcLayer.getSGID()+i));
-        fscanf(roifile, "%*[^\n]");
-        fscanf(roifile, "%d",(rcLayer.getSLID()+i));
-        fscanf(roifile, "%*[^\n]");
-      }
+		else
+		{
+			// every two lines contain 'top_left' and 'bottom_right' value
+			for(i=0;i<rcLayer.getNumROI(); i++)
+			{
+				fscanf(roifile, "%d",(rcLayer.getROIID()+i));
+				fscanf(roifile, "%*[^\n]");
+				fscanf(roifile, "%d",(rcLayer.getSGID()+i));
+				fscanf(roifile, "%*[^\n]");
+				fscanf(roifile, "%d",(rcLayer.getSLID()+i));
+				fscanf(roifile, "%*[^\n]");
+			}
 
-      fclose(roifile);
-    }
+			fclose(roifile);
+		}
 
-  }
-
-
-  return Err::m_nOK;
+	}
+	
+	
+	return Err::m_nOK;
 }
 
 #endif // !defined(AFX_ENCODERCODINGPARAMETER_H__145580A5_E0D6_4E9C_820F_EA4EF1E1B793__INCLUDED_)

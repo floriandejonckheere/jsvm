@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -97,9 +97,9 @@ H264AVC_NAMESPACE_BEGIN
 
 class BitReadBuffer;
 
-#define CAVLC_SYMGRP_SIZE   3
+#define CAVLC_SYMGRP_SIZE   3 
 
-class UcSymGrpReader;
+class UcSymGrpReader; 
 
 class UvlcReader
 : public HeaderSymbolReadIf
@@ -115,8 +115,8 @@ public:
   }Vlc;
 
 protected:
-  UvlcReader();
-  virtual ~UvlcReader();
+	UvlcReader();
+	virtual ~UvlcReader();
   ErrVal  xRQdecodeNewTCoeffs ( TCoeff*       piCoeff,
                                 TCoeff*       piCoeffBase,
                                 UInt          uiStart,
@@ -158,7 +158,7 @@ public:
   ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag_FGS ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
-  ErrVal  smoothedRefFlag( MbDataAccess& rcMbDataAccess );  // JVT-R091
+	ErrVal  smoothedRefFlag( MbDataAccess& rcMbDataAccess );	// JVT-R091
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -185,14 +185,15 @@ public:
   ErrVal  deltaQp             ( MbDataAccess& rcMbDataAccess );
   ErrVal  intraPredModeLuma   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx );
   ErrVal  intraPredModeChroma ( MbDataAccess& rcMbDataAccess );
+	ErrVal  fieldFlag           ( MbDataAccess& rcMbDataAccess );
   ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess );
 
   ErrVal  startSlice          ( const SliceHeader& rcSliceHeader );
   ErrVal  finishSlice         ( );
-
+  
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
   ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx );
-  ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ); // HS: bug fix by Nokia
+	ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ); 
   ErrVal  RQdecodeCycleSymbol ( UInt& uiCycle );
   ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess );
   ErrVal  RQdecode8x8Flag     ( MbDataAccess&   rcMbDataAccess,
@@ -319,7 +320,7 @@ private:
   ErrVal xGetCode     ( UInt& ruiCode, UInt uiLength );
   ErrVal xGetUvlcCode ( UInt& ruiVal  );
   ErrVal xGetSvlcCode ( Int&  riVal   );
-  ErrVal xGetRefFrame ( Bool bWriteBit, UInt& uiRefFrame );
+  ErrVal xGetRefFrame ( Bool bWriteBit, UInt& uiRefFrame, ListIdx eLstIdx );
   ErrVal xGetMotionPredFlag( Bool& rbFlag );
   ErrVal xGetMvd      ( Mv& cMv );
   ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
@@ -362,7 +363,7 @@ protected:
   UInt m_uiCbp8x8;
   UInt m_uiCbpStat4x4[2];
   UInt m_uiCurrCbp4x4;
-  UcSymGrpReader* m_pSymGrp;
+  UcSymGrpReader* m_pSymGrp; 
 
   Bool m_bTruncated;
 

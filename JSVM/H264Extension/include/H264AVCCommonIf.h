@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -109,11 +109,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 typedef int ErrVal;
 
-class Err
+class Err  
 {
 public:
-  static const ErrVal m_nOK;
-  static const ErrVal m_nERR;
+  static const ErrVal m_nOK;         
+  static const ErrVal m_nERR;         
   static const ErrVal m_nEndOfStream;
   static const ErrVal m_nEndOfFile;
   static const ErrVal m_nEndOfBuffer;
@@ -161,8 +161,8 @@ class ExtBinDataAccessor : public BinDataAccessor
 {
 public:
   ExtBinDataAccessor() : BinDataAccessor() , m_pcMediaPacket (NULL ){}
-  ExtBinDataAccessor( BinDataAccessor& rcAccessor, Void* pcMediaPacket = NULL )
-    :  BinDataAccessor( rcAccessor )
+  ExtBinDataAccessor( BinDataAccessor& rcAccessor, Void* pcMediaPacket = NULL ) 
+    :  BinDataAccessor( rcAccessor ) 
     ,  m_pcMediaPacket (pcMediaPacket ){}
 
   Void* getMediaPacket() { return m_pcMediaPacket; }
@@ -174,25 +174,66 @@ private:
 typedef MyList< ExtBinDataAccessor* > ExtBinDataAccessorList;
 typedef MyList< ExtBinDataAccessorList* > ExtBinDataAccessorListList;
 
+enum PicStruct
+{
+  PS_NOT_SPECIFIED = -1,
+  PS_FRAME         =  0, // frame	field_pic_flag shall be 0	1
+  PS_TOP           =  1, // top field	field_pic_flag shall be 1, bottom_field_flag shall be 0 1
+  PS_BOT           =  2, // bottom field field_pic_flag shall be 1, bottom_field_flag shall be 1 1
+  PS_TOP_BOT       =  3, // top field, bottom field, in that order field_pic_flag shall be 0 2
+  PS_BOT_TOP       =  4  // bottom field, top field, in that order field_pic_flag shall be 0 2
+};
+
 class PicBuffer
 {
 public:
-  PicBuffer( Pel* pcBuffer = NULL, Void* pcMediaPacket  = NULL, UInt64 ui64Cts = 0) : m_pcMediaPacket(pcMediaPacket), m_pcBuffer(pcBuffer), m_iInUseCout(0), m_ui64Cts(ui64Cts) {}
+	PicBuffer( Pel* pcBuffer = NULL, Void* pcMediaPacket  = NULL, Int64 i64Cts = 0) 
+		: m_pcMediaPacket( pcMediaPacket )
+		, m_pcBuffer     ( pcBuffer )
+		, m_iInUseCout   ( 0 )
+		, m_i64Cts       ( i64Cts )
+    , m_ePicStruct   ( PS_NOT_SPECIFIED )
+    , m_iTopPoc      ( 0 )
+    , m_iBotPoc      ( 0 )
+    , m_iFramePoc    ( 0 )
+    , m_uiIdrPicId   ( 0 )
+    , m_bFieldCoded  ( false )
+	{}
+
   Void setUnused() { m_iInUseCout--; }
   Void setUsed()   { m_iInUseCout++; }
   Bool isUsed()    { return 0 != m_iInUseCout; }
   Pel* getBuffer() { return m_pcBuffer; }
   operator Pel*()  { return m_pcBuffer; }
   Void* getMediaPacket() { return m_pcMediaPacket; }
-  UInt64& getCts() { return m_ui64Cts; }
+  Int64& getCts()            { return m_i64Cts; }
+  Void setCts( Int64 i64 )   { m_i64Cts = i64; } // HS: decoder robustness
+  
+	Void setPicStruct     ( PicStruct e  ) { m_ePicStruct  = e;  }
+	Void setFieldCoding   ( Bool      b  ) { m_bFieldCoded = b;  }
+  Void setIdrPicId      ( UInt      ui ) { m_uiIdrPicId  = ui; }
+  Void setTopPoc        ( Int       i  ) { m_iTopPoc     = i;  }
+  Void setBotPoc        ( Int       i  ) { m_iBotPoc     = i;  }
+  Void setFramePoc      ( Int       i  ) { m_iFramePoc   = i;  }
 
-  Void setCts( UInt64 ui64 ) { m_ui64Cts = ui64; } // HS: decoder robustness
+	PicStruct getPicStruct() const  { return m_ePicStruct; }
+  Bool isFieldCoded     () const  { return m_bFieldCoded; }
+  UInt getIdrPicId      () const  { return m_uiIdrPicId; }
+  Int  getTopPoc        () const  { return m_iTopPoc; }
+  Int  getBotPoc        () const  { return m_iBotPoc; }
+  Int  getFramePoc      () const  { return m_iFramePoc; }
 
 private:
   Void*   m_pcMediaPacket;
   Pel*    m_pcBuffer;
   Int     m_iInUseCout;
-  UInt64  m_ui64Cts;
+	Int64			m_i64Cts;
+	PicStruct m_ePicStruct;
+  Int       m_iTopPoc;
+  Int       m_iBotPoc;
+  Int       m_iFramePoc;
+  UInt      m_uiIdrPicId;
+  Bool      m_bFieldCoded;
 };
 
 typedef MyList< PicBuffer* > PicBufferList;

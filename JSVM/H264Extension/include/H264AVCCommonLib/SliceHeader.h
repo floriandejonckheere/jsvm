@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -111,11 +111,18 @@ class H264AVCCOMMONLIB_API SliceHeader
 , protected CostData
 {
 public:
-  SliceHeader         ( const SequenceParameterSet& rcSPS,
+	SliceHeader         ( const SequenceParameterSet& rcSPS,
                         const PictureParameterSet&  rcPPS );
-  virtual ~SliceHeader();
+	SliceHeader         ( const SliceHeader& rcSliceHeader );
+	virtual ~SliceHeader();
+	ErrVal copy         ( const SliceHeader& rcSH );
+
+  Void getMbPositionFromAddress( UInt& ruiMbY, UInt& ruiMbX, const UInt uiMbAddress ) const; 
+  Void getMbPositionFromAddress( UInt& ruiMbY, UInt& ruiMbX, UInt& ruiMbIndex, const UInt uiMbAddress ) const ;
+  UInt getMbIndexFromAddress   ( UInt uiMbAddress ) const;
 
   ErrVal  compare     ( const SliceHeader*          pcSH,
+		                    Bool&                       rbNewPic,
                         Bool&                       rbNewFrame ) const;
 // JVT-Q054 Red. Picture {
   ErrVal  compareRedPic     ( const SliceHeader*          pcSH,
@@ -127,59 +134,71 @@ public:
   Bool    isIntra     ()  const   { return m_eSliceType == I_SLICE; }
   Bool    isInterP    ()  const   { return m_eSliceType == P_SLICE; }
   Bool    isInterB    ()  const   { return m_eSliceType == B_SLICE; }
+	Bool    isMbAff     ()  const   { return ( ! getFieldPicFlag() && getSPS().getMbAdaptiveFrameFieldFlag() ); }
+ 
+  Bool    isFieldPair ( const UInt uiFrameNum, const PicType ePicType, const Bool bIsNalRefIdc ) const;
 
-
-  const RefPicList<RefPic>& getRefPicList( ListIdx eListIdx ) const
+	const RefPicList<RefPic>& getRefPicList( PicType ePicType, ListIdx eListIdx ) const
   {
-    return m_acRefPicList[eListIdx];
+    return m_aacRefPicList[ePicType-1][eListIdx];
   }
-
-  RefPicList<RefPic>& getRefPicList( ListIdx eListIdx )
+  RefPicList<RefPic>& getRefPicList( PicType ePicType, ListIdx eListIdx )
   {
-    return m_acRefPicList[eListIdx];
+    return m_aacRefPicList[ePicType-1][eListIdx];
   }
 
   UInt  getRefListSize( ListIdx eListIdx ) const
   {
-    return m_acRefPicList[eListIdx].size();
+    return m_aacRefPicList[getPicType()-1][eListIdx].size();
   }
-
-  const RefPic& getRefPic( UInt uiFrameId, ListIdx eLstIdx ) const
+	const RefPic& getRefPic( UInt uiFrameId, PicType ePicType, ListIdx eLstIdx ) const
   {
     uiFrameId--;
     AOT_DBG( eLstIdx > 2 );
-    return m_acRefPicList[eLstIdx].get( uiFrameId );
+		return m_aacRefPicList[ePicType-1][eLstIdx].get( uiFrameId );
   }
+  Void  setRefFrameList ( RefFrameList* pc,
+		                      PicType       ePicType,
+                          ListIdx       eListIdx  )  { m_aapcRefFrameList[ePicType-1][eListIdx]  = pc; }
 
+	Void  setTopFieldPoc  ( Int           i  )  { m_iTopFieldPoc        = i;  }
+  Void  setBotFieldPoc  ( Int           i  )  { m_iBotFieldPoc        = i;  }
 
-  Void  setPoc          ( Int           i  )  { m_iPoc                = i; }
+ 
   Void  setLastMbInSlice( UInt          ui )  { m_uiLastMbInSlice     = ui; }
   Void  setFrameUnit    ( FrameUnit*    pc )  { m_pcFrameUnit         = pc; }
-  Void  setRefFrameList ( RefFrameList* pc,
-                          ListIdx       e  )  { m_apcRefFrameList[e]  = pc; }
-
-
-  Int             getPoc                ()                    const { return m_iPoc; }
+   
+  
+  
   UInt            getLastMbInSlice      ()                    const { return m_uiLastMbInSlice; }
+
+ Int             getTopFieldPoc        ()                    const { return m_iTopFieldPoc; }
+  Int             getBotFieldPoc        ()                    const { return m_iBotFieldPoc; }
+  Int             getPoc            ()                    const { return ( m_bFieldPicFlag ? ( m_bBottomFieldFlag ? m_iBotFieldPoc : m_iTopFieldPoc ) : min( m_iTopFieldPoc, m_iBotFieldPoc ) ); }
+  Int             getPoc            ( PicType ePicType )  const { return ( ePicType==FRAME ? min( m_iTopFieldPoc, m_iBotFieldPoc ) : ePicType==BOT_FIELD ? m_iBotFieldPoc : m_iTopFieldPoc ); }
+   
   FrameUnit*      getFrameUnit          ()                    const { return m_pcFrameUnit; }
   FrameUnit*      getFrameUnit          ()                          { return m_pcFrameUnit; }
-  RefFrameList*   getRefFrameList       ( ListIdx eLstIdx )   const { return m_apcRefFrameList[eLstIdx]; }
+ RefFrameList*   getRefFrameList       ( PicType ePicType,
+		                                      ListIdx eLstIdx )   const { return m_aapcRefFrameList[ePicType-1][eLstIdx]; }
   CostData&       getCostData           ()                          { return *this; }
   const CostData& getCostData           ()                    const { return *this; }
   UChar           getChromaQp           ( UChar   ucLumaQp )  const { return g_aucChromaScale[ gClipMinMax( ucLumaQp + getPPS().getChomaQpIndexOffset(), 0, 51 ) ];}
   const Bool      isScalingMatrixPresent( UInt    uiMatrix )  const { return NULL != m_acScalingMatrix.get( uiMatrix ); }
   const UChar*    getScalingMatrix      ( UInt    uiMatrix )  const { return m_acScalingMatrix.get( uiMatrix ); }
-
-
-  Int             getDistScaleFactor    ( SChar   sL0RefIdx,
+  
+  Int             getDistScaleFactor    ( PicType eMbPicType,
+		                                      SChar   sL0RefIdx,
                                           SChar   sL1RefIdx ) const;
-//  TMM_EC {{
-  Int             getDistScaleFactorVirtual( SChar   sL0RefIdx,
-                                          SChar   sL1RefIdx,
-                                          RefFrameList& rcRefFrameListL0,
-                                          RefFrameList& rcRefFrameListL1 ) const;
+
+  Int             getDistScaleFactorVirtual( PicType eMbPicType,
+                                             SChar   sL0RefIdx,
+                                             SChar   sL1RefIdx,
+																					   RefFrameList& rcRefFrameListL0, 
+																             RefFrameList& rcRefFrameListL1 ) const;
 //  TMM_EC }}
-  Int             getDistScaleFactorScal( SChar   sL0RefIdx,
+  Int             getDistScaleFactorScal( PicType eMbPicType,
+		                                      SChar   sL0RefIdx,
                                           SChar   sL1RefIdx ) const;
   Int             getDistScaleFactorWP  ( const Frame*    pcFrameL0, const Frame*     pcFrameL1 )  const;
   Int             getDistScaleFactorWP  ( const IntFrame* pcFrameL0, const IntFrame*  pcFrameL1 )  const;
@@ -221,17 +240,20 @@ public:
   }
   UInt            getPosVect            ( UInt ui )            { return m_uiPosVect[ui];   }
 
+  	const SliceHeaderBase&    getSliceHeaderBase()              const { return *this; }
 protected:
   ErrVal          xInitScalingMatrix    ();
 
 
 protected:
-  RefPicList<RefPic>      m_acRefPicList[2];
-  Int                     m_iPoc;
+  RefPicList<RefPic>      m_aacRefPicList[3][2];
+  RefFrameList*           m_aapcRefFrameList[3][2];
+  Int                     m_iTopFieldPoc;
+  Int                     m_iBotFieldPoc;
+  
   UInt                    m_uiLastMbInSlice;
   FrameUnit*              m_pcFrameUnit;
   StatBuf<const UChar*,8> m_acScalingMatrix;
-  RefFrameList*           m_apcRefFrameList[2];
 };
 
 
@@ -243,6 +265,7 @@ protected:
 
 typedef SliceHeader::DeblockingFilterParameter DFP;
 typedef SliceHeader::DeblockingFilterParameterScalable DFPScalable;
+
 
 
 H264AVC_NAMESPACE_END

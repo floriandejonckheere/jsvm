@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -90,8 +90,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-YuvPicBuffer::YuvPicBuffer( YuvBufferCtrl& rcYuvBufferCtrl ):
-  m_rcBufferParam   ( rcYuvBufferCtrl.getBufferParameter() ),
+YuvPicBuffer::YuvPicBuffer( YuvBufferCtrl& rcYuvBufferCtrl, PicType ePicType ):
+  m_rcBufferParam   ( rcYuvBufferCtrl.getBufferParameter( ePicType ) ),
+	m_ePicType        ( ePicType ),
   m_rcYuvBufferCtrl ( rcYuvBufferCtrl ),
   m_iStride         ( 0 ),
   m_pPelCurr        ( NULL ),
@@ -119,6 +120,7 @@ ErrVal YuvPicBuffer::init( Pel*& rpucYuvBuffer )
   if( NULL == rpucYuvBuffer )
   {
     m_pucOwnYuvBuffer = new Pel[ 6 * uiSize ];
+	::memset( m_pucOwnYuvBuffer, 0x00, (6 * uiSize)*sizeof(Pel) );
     ROT( NULL == m_pucOwnYuvBuffer );
     rpucYuvBuffer = m_pucYuvBuffer = m_pucOwnYuvBuffer;
   }
@@ -280,6 +282,66 @@ Void YuvPicBuffer::xFillPlaneMargin( Pel *pucDest, Int iHeight, Int iWidth, Int 
   }
 }
 
+Void YuvPicBuffer::xCopyFillPlaneMargin( Pel *pucSrc, Pel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin )
+{
+  Pel* puc;
+  Int n;
+
+  Int iOffset = -iXMargin;
+  // rec area + left and right borders at once
+  UInt uiSize = iWidth + 2*iXMargin;
+  for( n = 0; n < iHeight; n++)
+  {
+    ::memcpy( pucDest + iOffset, pucSrc + iOffset, uiSize );
+    iOffset += iStride;
+  }
+
+  // bot border lum
+  puc = pucDest - iXMargin + iStride * iHeight;
+  for( n = 0; n < iYMargin; n++)
+  {
+    ::memcpy( puc, puc - iStride, uiSize );
+    puc += iStride;
+  }
+
+  // top border lum
+  puc = pucDest - iXMargin;
+  for( n = 0; n < iYMargin; n++)
+  {
+    ::memcpy( puc - iStride, puc, uiSize );
+    puc -= iStride;
+  }
+}
+
+ErrVal YuvPicBuffer::loadBufferAndFillMargin( YuvPicBuffer *pcSrcYuvPicBuffer )
+{
+  m_rcYuvBufferCtrl.initMb();
+
+  ROT( pcSrcYuvPicBuffer->getLHeight() * pcSrcYuvPicBuffer->getLStride() != getLHeight() * getLStride() );
+
+  if( pcSrcYuvPicBuffer->m_ePicType != FRAME )
+  {
+    AOT( m_ePicType != FRAME )
+    Int iDesOffset  = pcSrcYuvPicBuffer->m_ePicType == BOT_FIELD ? getLStride() : -getLStride();
+
+    xCopyFillPlaneMargin( pcSrcYuvPicBuffer->getMbLumAddr(), iDesOffset + getMbLumAddr(), pcSrcYuvPicBuffer->getLHeight(), pcSrcYuvPicBuffer->getLWidth(), pcSrcYuvPicBuffer->getLStride(), pcSrcYuvPicBuffer->getLXMargin(), pcSrcYuvPicBuffer->getLYMargin() );
+    iDesOffset >>= 1;
+    xCopyFillPlaneMargin( pcSrcYuvPicBuffer->getMbCbAddr(),  iDesOffset + getMbCbAddr(),  pcSrcYuvPicBuffer->getCHeight(), pcSrcYuvPicBuffer->getCWidth(), pcSrcYuvPicBuffer->getCStride(), pcSrcYuvPicBuffer->getCXMargin(), pcSrcYuvPicBuffer->getCYMargin() );
+    xCopyFillPlaneMargin( pcSrcYuvPicBuffer->getMbCrAddr(),  iDesOffset + getMbCrAddr(),  pcSrcYuvPicBuffer->getCHeight(), pcSrcYuvPicBuffer->getCWidth(), pcSrcYuvPicBuffer->getCStride(), pcSrcYuvPicBuffer->getCXMargin(), pcSrcYuvPicBuffer->getCYMargin() );
+
+    return Err::m_nOK;
+  }
+
+  Int iSrcOffset  = pcSrcYuvPicBuffer->getPicType() == BOT_FIELD ? - pcSrcYuvPicBuffer->getCStride() : 0;
+      iSrcOffset += getPicType() == BOT_FIELD ? getCStride() : 0;
+
+  xCopyFillPlaneMargin( iSrcOffset + pcSrcYuvPicBuffer->getMbLumAddr(), getMbLumAddr(), getLHeight(), getLWidth(), getLStride(), getLXMargin(), getLYMargin() );
+  iSrcOffset >>= 1;
+  xCopyFillPlaneMargin( iSrcOffset + pcSrcYuvPicBuffer->getMbCbAddr(),  getMbCbAddr(),  getCHeight(), getCWidth(), getCStride(), getCXMargin(), getCYMargin() );
+  xCopyFillPlaneMargin( iSrcOffset + pcSrcYuvPicBuffer->getMbCrAddr(),  getMbCrAddr(),  getCHeight(), getCWidth(), getCStride(), getCXMargin(), getCYMargin() );
+
+  return Err::m_nOK;
+}
 
 
 

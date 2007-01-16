@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -110,15 +110,18 @@ MbDataCtrl::MbDataCtrl():
   m_uiSize          ( 0 ),
   m_uiMbProcessed   ( 0 ),
   m_uiSliceId       ( 0 ),
+	m_iColocatedOffset( 0 ),
   m_eProcessingState( PRE_PROCESS),
   m_pcMbDataCtrl0L1 ( NULL ),
   m_bUseTopField    ( false ),
   m_bPicCodedField  ( false ),
-  m_bInitDone       ( false )
-, m_pacFgsBQMbQP    ( 0 )
-, m_pauiFgsBQMbCbp  ( 0 )
-, m_pauiFgsBQBCBP   ( 0 )
-, m_pabFgsBQ8x8Trafo( 0 )
+  m_bInitDone       ( false ),
+  m_pacFgsBQMbQP    ( 0 ),
+  m_pauiFgsBQMbCbp  ( 0 ),
+  m_pauiFgsBQBCBP   ( 0 ),
+  m_pabFgsBQ8x8Trafo( 0 ),
+  m_bBuildInterlacePred ( false )
+
 {
   m_apcMbMvdData    [LIST_0]  = NULL;
   m_apcMbMvdData    [LIST_1]  = NULL;
@@ -253,36 +256,10 @@ ErrVal MbDataCtrl::init( const SequenceParameterSet& rcSPS )
 
   RNOK( m_cpDFPBuffer.init( uiSize+1 ) );
   m_cpDFPBuffer.clear();
-
+  RNOK( m_cMbProcessed.init( uiSize ) );
+  m_cMbProcessed.clear();
   m_bInitDone     = true;
 
-  return Err::m_nOK;
-}
-
-//JVT-T054{
-ErrVal
-MbDataCtrl::initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
-{
-  Int  iMbOrigX = pcParameters->m_iPosX/16;
-  Int  iMbOrigY = pcParameters->m_iPosY/16;
-  Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
-  Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
-
- for( Int iMbY = iMbOrigY ; iMbY < iMbEndY; iMbY++)
-  for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
-   {
-    MbData& rcMbDes = m_pcMbData[iMbY*rcBaseMbDataCtrl.m_uiMbStride + iMbX];
-    RNOK( rcMbDes.initMbCbp() );
-   }
-  return Err::m_nOK;
-}
-//JVT-T054}
-
-ErrVal
-MbDataCtrl::switchMotionRefinement()
-{
-  for( UInt n = 0; n < m_uiSize; n++ )
-    m_pcMbData[n].switchMotionRefinement();
   return Err::m_nOK;
 }
 
@@ -297,13 +274,70 @@ MbDataCtrl::copyMotion( MbDataCtrl& rcMbDataCtrl )
   return Err::m_nOK;
 }
 
-// TMM_ESS_UNIFIED {
-// motion copying (upsampling with factor=1) with/without cropping (MB aligned)
-ErrVal
-MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
-{
-  Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
 
+MbDataCtrl* 
+MbDataCtrl::xBuildVirtualBaseLayer( MbDataCtrl* pcMbBaseDataCtrl, 
+                                    Bool bField, 
+                                    ResizeParameters* pcParameters)
+{
+
+  MbDataCtrl* pcVBLMbDataCtrl = NULL;
+
+  if(!(pcParameters->m_bBaseIsMbAff || pcParameters->m_bIsMbAff)
+    && (pcParameters->m_bBaseFieldPicFlag == pcParameters->m_bFieldPicFlag))
+  { 
+   return pcMbBaseDataCtrl;
+  }
+
+  SliceHeader* pcSliceHeader = pcMbBaseDataCtrl->m_pcSliceHeader;
+  AOT( NULL == pcSliceHeader);
+  pcVBLMbDataCtrl = new MbDataCtrl;
+  AOT( NULL == pcVBLMbDataCtrl);
+
+  pcVBLMbDataCtrl->init( pcSliceHeader->getSPS() );
+  pcVBLMbDataCtrl->initSlice(*pcSliceHeader, PRE_PROCESS, true, NULL );
+ 
+  const Int iMbStride  = pcSliceHeader->getSPS().getFrameWidthInMbs();
+  const Int iMbEndY   = pcSliceHeader->getSPS().getFrameHeightInMbs();
+  const Int iMbEndX   = iMbStride;
+
+  const Bool  bBaseProg  = !pcSliceHeader->isMbAff() && !pcSliceHeader->getFieldPicFlag();
+  const Bool  bBaseField = pcSliceHeader->getFieldPicFlag();
+  Int   iSrc0 = iMbStride, iSrc1 = 0, iCopyForce = 0;
+
+  // VBL = copy of BL MB in 2 cases:
+  // case1: EL Interl & He/2>=Hb & BL prog (vertic upsamp by ratio/2)
+  // case2: EL Prog & BL Field (vertic upsamp by 2*ratio)
+  if ( ( bField && bBaseProg && pcParameters->m_iOutHeight>=2*pcParameters->m_iInHeight )   ||
+       ( !bField && bBaseField ))
+  {
+    iSrc0=0;
+    iSrc1=iMbStride;
+    iCopyForce=bField+1;
+  }
+
+  for( Int iMbY = 0; iMbY < iMbEndY; iMbY+=2 )
+  {
+    for( Int iMbX = 0; iMbX < iMbEndX; iMbX++ )
+	 {
+      const UInt uiIndex = iMbY*iMbStride + iMbX;
+      MbData* pcMbDes = pcVBLMbDataCtrl->m_pcMbData + uiIndex;
+      MbData* pcMbSrc = pcMbBaseDataCtrl->m_pcMbData + uiIndex;
+
+      AOT( pcMbDes[        0].copyMotionScale( pcMbSrc[        0], pcMbSrc[iSrc0], (bField?TOP_FIELD:FRAME), true , iCopyForce));
+      AOT( pcMbDes[iMbStride].copyMotionScale( pcMbSrc[iMbStride], pcMbSrc[iSrc1], (bField?BOT_FIELD:FRAME), false, iCopyForce));
+      pcMbDes[        0].setInCropWindowFlag( true );
+      pcMbDes[iMbStride].setInCropWindowFlag( true );
+    }
+	 }
+
+  return pcVBLMbDataCtrl;
+}
+
+//JVT-T054{
+ErrVal
+MbDataCtrl::initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
+{
   Int  iMbOrigX = pcParameters->m_iPosX/16;
   Int  iMbOrigY = pcParameters->m_iPosY/16;
   Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
@@ -311,105 +345,281 @@ MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcPara
 
  for( Int iMbY = iMbOrigY ; iMbY < iMbEndY; iMbY++)
   for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
-   {
+	 {
     MbData& rcMbDes = m_pcMbData[iMbY*rcBaseMbDataCtrl.m_uiMbStride + iMbX];
-    RNOK( rcMbDes.copyMotionBL( rcBaseMbDataCtrl.m_pcMbData[(iMbY - iMbOrigY)*rcBaseMbDataCtrl.m_uiMbStride + (iMbX - iMbOrigX)], bDirect8x8, m_uiSliceId ) );
-    rcMbDes.setInCropWindowFlag( true );
-   }
+    RNOK( rcMbDes.initMbCbp() );
+	 }
+  return Err::m_nOK;
+}
+//JVT-T054}
+
+ErrVal
+MbDataCtrl::switchMotionRefinement()
+{
+  for( UInt n = 0; n < m_uiSize; n++ )
+    m_pcMbData[n].switchMotionRefinement();
   return Err::m_nOK;
 }
 
-
-// motion upsampling (upsampling with factor=2) with/without cropping (MB aligned)
+//TMM_INTERLACE {
+// motion copying (upsampling with factor=1) with/without cropping (MB aligned)
 ErrVal
-MbDataCtrl::xUpsampleMotionDyad( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
+MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl, 
+                          ResizeParameters* pcParameters )
 {
-  Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
-  Int  iMbX,iMbY,iBaseMbY,iBaseMbX,iPar;
-  UInt uiBaseMbStride=rcBaseMbDataCtrl.m_uiMbStride;
+	Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
 
-  Int  iMbOrigX = pcParameters->m_iPosX/16;
-  Int  iMbOrigY = pcParameters->m_iPosY/16;
-  Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
-  Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
+	Int  iMbOrigX = pcParameters->m_iPosX/16;
+	Int  iMbOrigY = pcParameters->m_iPosY/16;
+	Int  iMbEndX = iMbOrigX + pcParameters->m_iOutWidth/16;
+	Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
 
-  //loop on scaled base window MBs
-  for( iMbY = iMbOrigY,iBaseMbY = 0 ; iMbY < iMbEndY; iMbY+=2,iBaseMbY++)
-    for( iMbX = iMbOrigX,iBaseMbX = 0 ; iMbX < iMbEndX; iMbX+=2,iBaseMbX++)
-      for( iPar = 0; iPar < 4;              iPar++  )
-      {
-        MbData& rcMbDes = m_pcMbData[(iMbY+(iPar/2))*m_uiMbStride+(iMbX+(iPar%2))];
-        MbData& rcMbSrc = rcBaseMbDataCtrl.m_pcMbData[iBaseMbY*uiBaseMbStride+iBaseMbX];
+  UInt uiMbStride= m_iMbPerLine;
+  
+  //////////////////////////////////////////////////////////
+  //VBL
+  ///////////////////////////////////////////////////////////
+  MbDataCtrl *pcBaseMbDataCtrl = &rcBaseMbDataCtrl;
+  MbDataCtrl *pcVBLMbDataCtrl  = NULL;
 
-        Par8x8  ePar    = Par8x8( iPar );
-        rcMbDes.setInCropWindowFlag( true );
-        RNOK( rcMbDes.upsampleMotion( rcMbSrc, ePar, bDirect8x8 ) );
-      }
+  pcVBLMbDataCtrl=xBuildVirtualBaseLayer(pcBaseMbDataCtrl,m_bBuildInterlacePred,pcParameters);
+  /////////////////////////////////////////////////////////////
+  
+ for( Int iMbY = iMbOrigY ; iMbY < iMbEndY; iMbY++)
+  for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
+			{
+    MbData& rcMbDes = m_pcMbData[iMbY*uiMbStride + iMbX];
+    RNOK( rcMbDes.copyMotionBL( pcVBLMbDataCtrl->m_pcMbData[(iMbY - iMbOrigY)*uiMbStride + (iMbX - iMbOrigX)], bDirect8x8, m_uiSliceId ) );
+    rcMbDes.setInCropWindowFlag( true );
+	 }
 
-      return Err::m_nOK;
+  //////////////////////////////////////////////////////////
+  //VBL
+  ///////////////////////////////////////////////////////////
+  if( pcVBLMbDataCtrl !=pcBaseMbDataCtrl)
+  {
+    pcVBLMbDataCtrl->uninit();
+    delete pcVBLMbDataCtrl;
+	}
+  /////////////////////////////////////////////////////////////
+
+			return Err::m_nOK;
 }
-
 
 // motion upsampling with any cropping and upsampling factor
 ErrVal
-MbDataCtrl::xUpsampleMotionESS( MbDataCtrl& rcBaseMbDataCtrl,ResizeParameters* pcParameters )
+MbDataCtrl::xUpsampleMotionESS( MbDataCtrl&       rcBaseMbDataCtrl,
+                                ResizeParameters* pcParameters )
 {
   Bool bDirect8x8 = rcBaseMbDataCtrl.xGetDirect8x8InferenceFlag();
-
+  
   if( pcParameters->m_iExtendedSpatialScalability == ESS_PICT )
   {
   Int index = m_pcSliceHeader->getPoc();
-  pcParameters->setPOC(index);
+		pcParameters->setPoc( index );
   pcParameters->setCurrentPictureParametersWith(index);
   }
 
   Int     iScaledBaseOrigX = pcParameters->m_iPosX;
-  Int     iScaledBaseOrigY = pcParameters->m_iPosY;
-  Int     iScaledBaseWidth = pcParameters->m_iOutWidth;
-  Int     iScaledBaseHeight = pcParameters->m_iOutHeight;
+  Int     iScaledBaseOrigY = pcParameters->m_iPosY; 
+  Int     iMbOrigX = (iScaledBaseOrigX+15) / 16;
+	Int     iMbOrigY = (iScaledBaseOrigY+15) / 16;
+	Int     iMbEndX = (iScaledBaseOrigX+pcParameters->m_iOutWidth) / 16;
+	Int     iMbEndY = (iScaledBaseOrigY+pcParameters->m_iOutHeight) / 16;
+  Int     aiPelOrig[2];  
 
-  Int  aiPelOrig[2];
+  UInt	uiBaseMbStride, uiBLMbOffset, uiConfig=0;
+  UInt	uiMbStride   = m_iMbPerLine;
+  
+  //////////////////////////////////////////////////////////
+  //VBL
+  //////////////////////////////////////////////////////////
+  MbDataCtrl *pcBaseMbDataCtrl = &rcBaseMbDataCtrl;
+  MbDataCtrl *pcVBLMbDataCtrl  = NULL;
 
+  pcVBLMbDataCtrl=xBuildVirtualBaseLayer(pcBaseMbDataCtrl,m_bBuildInterlacePred,pcParameters);
+	
+  // SET PICTURE SIZE PARAMETERS 
+  xInitVBLUpsampleData(pcVBLMbDataCtrl,pcParameters,uiConfig,iMbOrigY,iMbEndY ,iScaledBaseOrigY,uiBaseMbStride);
+  /////////////////////////////////////////////////////////////
+
+  
   // loop on MBs of high res picture
   //--------------------------------
   for( Int iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
   {
     for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
     {
+      //VBL
+      xInitVBLPelOrig( pcVBLMbDataCtrl,uiConfig,iMbX,iMbY,iScaledBaseOrigX,iScaledBaseOrigY,aiPelOrig,uiBLMbOffset);
+
       // get current high res MB and upsampling
-      MbData& rcMbDes = m_pcMbData[iMbY*m_uiMbStride+iMbX];
+      MbData& rcMbDes = m_pcMbData[iMbY*uiMbStride + iMbX];
+
+			rcMbDes.configureFieldFrameMode( m_bBuildInterlacePred );	
 
       // check if MB is inside cropping window - if not, no upsampling is performed
-      if ( (iMbX >= (iScaledBaseOrigX+15) / 16) && (iMbX < (iScaledBaseOrigX+iScaledBaseWidth) / 16) &&
-           (iMbY >= (iScaledBaseOrigY+15) / 16) && (iMbY < (iScaledBaseOrigY+iScaledBaseHeight) / 16) )
+      if ( (iMbX >= iMbOrigX) && (iMbX < iMbEndX) && (iMbY >= iMbOrigY) && (iMbY < iMbEndY) )
       {
-          aiPelOrig[0]=(Int)16*iMbX-iScaledBaseOrigX;
-          aiPelOrig[1]=(Int)16*iMbY-iScaledBaseOrigY;
-          RNOK(rcMbDes.upsampleMotionESS(rcBaseMbDataCtrl.m_pcMbData,
-                                         rcBaseMbDataCtrl.m_uiMbStride,
+         RNOK(rcMbDes.upsampleMotionESS(pcVBLMbDataCtrl->m_pcMbData+uiBLMbOffset,
+                                         uiBaseMbStride,
                                          aiPelOrig,
-                                         bDirect8x8,
+										                     bDirect8x8,
                                          pcParameters));
            rcMbDes.setInCropWindowFlag( true );
-      }
+		  }
       else
       {
           rcMbDes.noUpsampleMotion();
       }
-   } // end of for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
+	 } // end of for( Int iMbX = 0; iMbX < m_iMbPerLine;   iMbX++ )
   } // end of for( Int iMbY = 0; iMbY < m_iMbPerColumn; iMbY++ )
+
+ //////////////////////////////////////////////////////////
+  //VBL
+  ///////////////////////////////////////////////////////////
+  // RESET PICTURE SIZE PARAMETERS 
+	xUninitVBLUpsampleData( pcParameters, uiConfig );
+  
+  if( pcVBLMbDataCtrl != pcBaseMbDataCtrl)
+  {
+    pcVBLMbDataCtrl->uninit();
+    delete pcVBLMbDataCtrl;
+  }
+  /////////////////////////////////////////////////////////////
 
   return Err::m_nOK;
 }
+
+
+ErrVal
+MbDataCtrl::xUninitVBLUpsampleData( ResizeParameters*   pcParameters,
+                                    UInt                uiConfig )
+{
+if ( uiConfig == 2 )	// BL Prog -> VBL Prog -> EL Interl with He>=2.Hb
+	{
+		pcParameters->m_iOutHeight *= 2;
+	}
+  else if( uiConfig == 3 )	// BL prog, Frame or Field -> VBL Interl Field -> EL Interl
+  {
+		pcParameters->m_iInHeight  *= 2;
+		pcParameters->m_iOutHeight *= 2;
+  }
+  else if( uiConfig == 4 )	// BL Field -> VBL Interl -> EL Prog
+  {
+		pcParameters->m_iInHeight  *= 2;
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+MbDataCtrl::xInitVBLUpsampleData( MbDataCtrl*         pcBaseMbDataCtrl,
+                                  ResizeParameters*   pcParameters,
+                                  UInt&               ruiConfig,
+                                  Int&                riMbOrigY,
+                                  Int&                riMbEndY ,
+                                  Int&                riScaledBaseOrigY,
+                                  UInt&               ruiBaseMbStride     )
+{
+  const SliceHeader* pcBaseSliceHeader = pcBaseMbDataCtrl->m_pcSliceHeader;
+	ROT( NULL == pcBaseSliceHeader);
+
+  Bool  bBaseProg    = !pcBaseSliceHeader->isMbAff() && !pcBaseSliceHeader->getFieldPicFlag();
+  //Bool  bBaseProg    = !pcParameters->m_bBaseIsMbAff && !pcParameters->m_bBaseFieldPicFlag; 
+  Bool  bBaseField   = pcBaseSliceHeader->getFieldPicFlag();
+  //Bool  bBaseField   = pcParameters->m_bBaseFieldPicFlag;
+ 
+	// SET PICTURE SIZE PARAMETERS 
+	if ( m_bBuildInterlacePred && bBaseProg && pcParameters->m_iOutHeight>=2*pcParameters->m_iInHeight )
+  {
+		// BL Prog -> VBL Prog -> EL Interl with He>=2.Hb
+		ruiConfig                    = 2;
+		riMbOrigY                   += (riMbOrigY%2);
+		riMbEndY                    -= (riMbEndY%2);
+		riScaledBaseOrigY           /= 2;
+		ruiBaseMbStride              = pcBaseMbDataCtrl->m_iMbPerLine;
+		pcParameters->m_iOutHeight /= 2;
+  }
+  else if ( !m_bBuildInterlacePred && bBaseField )
+  {
+		// BL Field -> VBL Interl -> EL Prog
+		ruiConfig                    = 4;
+		ruiBaseMbStride              = 2 * pcBaseMbDataCtrl->m_iMbPerLine;
+		pcParameters->m_iInHeight  /= 2;
+  }
+  else if( m_bBuildInterlacePred )
+  {
+		// BL prog, Frame or Field -> VBL Interl Field -> EL Interl
+		ruiConfig                    = 3;
+		riMbOrigY                   += (riMbOrigY%2);
+		riMbEndY                    -= (riMbEndY%2);
+		riScaledBaseOrigY           /= 2;
+		ruiBaseMbStride              = 2 * pcBaseMbDataCtrl->m_iMbPerLine;
+		pcParameters->m_iInHeight  /= 2;
+		pcParameters->m_iOutHeight /= 2;
+  }
+  else
+  {
+		// BL Prog -> VBL Prog -> EL Prog
+		ruiConfig                    = 1;
+		ruiBaseMbStride              = pcBaseMbDataCtrl->m_iMbPerLine;
+		if (pcParameters->m_bIsMbAff)
+		{
+			riMbOrigY                   += (riMbOrigY%2);
+			riMbEndY                    -= (riMbEndY%2);
+		}
+  }
+
+   return Err::m_nOK;
+}
+
+
+ErrVal
+MbDataCtrl::xInitVBLPelOrig( MbDataCtrl*         pcBaseMbDataCtrl,
+                             UInt                uiConfig,
+                             Int                 iMbX,
+                             Int                 iMbY,
+                             Int                 iScaledBaseOrigX,
+                             Int                 iScaledBaseOrigY,  
+                             Int                 aiPelOrig[2],
+                             UInt&               ruiBLMbOffset)
+{
+			aiPelOrig[0]   = (Int)16 * iMbX - iScaledBaseOrigX;
+      if (uiConfig == 1)      // VBL prog -> EL prog
+			{
+				ruiBLMbOffset   = 0;
+        aiPelOrig[1]   = (Int)16 * iMbY - iScaledBaseOrigY;
+			}
+			else if (uiConfig == 2) // VBL prog -> EL interl && He>=Hb/2
+			{
+				ruiBLMbOffset   = 0;
+        aiPelOrig[1]   = (Int)16 * (iMbY/2) - iScaledBaseOrigY;
+			}
+			else if (uiConfig == 3) // VBL Interl -> EL Interl
+			{
+				ruiBLMbOffset   = (iMbY%2) * pcBaseMbDataCtrl->m_iMbPerLine; //EL TOP (BOT) MBs deduced from BL TOP (BOT) MBs
+        aiPelOrig[1]   = (Int)16 * (iMbY/2) - iScaledBaseOrigY;
+			}
+			else if (uiConfig == 4) // VBL Interl Field -> EL prog
+			{
+				ruiBLMbOffset   = pcBaseMbDataCtrl->m_uiMbOffset; // depends on the current BL field (if top-->0, if bottom-->pcBaseMbDataCtrl->m_uiMbStride)
+        aiPelOrig[1]   = (Int)16 * iMbY - iScaledBaseOrigY;
+			}
+
+      return Err::m_nOK;
+}
+
+//TMM_INTERLACE }
+
 ErrVal
 MbDataCtrl::upsampleMotion( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters )
 {
-  if(NULL==pcParameters)
+  if(NULL==pcParameters) 
   return copyMotion(rcBaseMbDataCtrl);
 
-  if(pcParameters->m_iSpatialScalabilityType==SST_RATIO_1)
+	if(pcParameters->m_iSpatialScalabilityType==SST_RATIO_1)
   return copyMotionBL(rcBaseMbDataCtrl, pcParameters);
-
+  
   return xUpsampleMotionESS(rcBaseMbDataCtrl, pcParameters);
 }
 // TMM_ESS_UNIFIED }
@@ -425,6 +635,8 @@ ErrVal MbDataCtrl::uninit()
   m_uiMbProcessed   = 0;
   m_uiSliceId       = 0;
   m_pcMbDataCtrl0L1 = 0;
+
+	RNOK( m_cMbProcessed.uninit() );
 
   for( UInt n = 0; n < m_cpDFPBuffer.size(); n++ )
   {
@@ -447,26 +659,47 @@ ErrVal MbDataCtrl::reset()
   return Err::m_nOK;
 }
 
-ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl )
+ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, 
+                              ProcessingState eProcessingState, 
+                              Bool bDecoder, 
+                              MbDataCtrl* pcMbDataCtrl )
 {
   AOF_DBG( m_bInitDone );
 
   m_eProcessingState  = eProcessingState;
   m_pcMbDataCtrl0L1   = NULL;
+	m_iColocatedOffset  = 0;
+  m_bUseTopField      = false;
+  m_bPicCodedField    = rcSH.getFieldPicFlag();
 
   if( rcSH.isInterB() )
   {
     if( rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_IDR_SCALABLE &&
-        rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_SCALABLE     && bDecoder )
+        rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_SCALABLE     && bDecoder
+				&& rcSH.getRefListSize( LIST_1 ) )
     {
-     // const RefPic& rcRefPic0L1 = rcSH.getRefPic( 1, LIST_1 );
+			//const RefPic& rcRefPic0L1 = rcSH.getRefPic( 1, rcSH.getPicType(), LIST_1 );
+     
      //EIDR bug-fix
-		const RefPic& rcRefPic0L1 = ( rcSH.getRefListSize(LIST_1) > 1  && rcSH.getRefPic(2, LIST_1).getFrame()->getPOC() < rcSH.getRefPic(1, LIST_1).getFrame()->getPOC() && rcSH.getRefPic(2, LIST_1).getFrame()->getPOC() > rcSH.getPoc()) ?
-											           rcSH.getRefPic( 2, LIST_1 ) : rcSH.getRefPic( 1, LIST_1 );     
+		  const RefPic& rcRefPic0L1 = ( rcSH.getRefListSize(LIST_1) > 1  && rcSH.getRefPic(2, rcSH.getPicType(), LIST_1).getFrame()->getPoc() < rcSH.getRefPic(1, rcSH.getPicType(), LIST_1).getFrame()->getPoc() && rcSH.getRefPic(2, rcSH.getPicType(), LIST_1).getFrame()->getPoc() > rcSH.getPoc()) ?
+			    								           rcSH.getRefPic( 2, rcSH.getPicType(), LIST_1 ) : rcSH.getRefPic( 1, rcSH.getPicType(), LIST_1 );     
       AOF_DBG( rcRefPic0L1.isAvailable() );
-      const FrameUnit* pcFU = rcRefPic0L1.getPic().getFrameUnit();
+      const FrameUnit* pcFU = rcRefPic0L1.getFrame()->getFrameUnit();
 
+      Int iCurrPoc    = rcSH.getPoc();
+      Int iTopDiffPoc = iCurrPoc - pcFU->getPic( TOP_FIELD )->getPoc();
+      Int iBotDiffPoc = iCurrPoc - pcFU->getPic( BOT_FIELD )->getPoc();
+
+      m_bUseTopField    = ( abs( iTopDiffPoc ) < abs( iBotDiffPoc ) );
       m_pcMbDataCtrl0L1 = pcFU->getMbDataCtrl();
+
+      if( FRAME != rcSH.getPicType() )
+      {
+        if( rcRefPic0L1.getFrame()->getPicType() != rcSH.getPicType() && m_pcMbDataCtrl0L1->isPicCodedField() )
+        {
+          m_iColocatedOffset = m_iMbPerLine;
+        }
+      }
     }
 
     if( pcMbDataCtrl )
@@ -488,7 +721,7 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
     //--
 
     m_cpDFPBuffer.set( m_uiSliceId, rcSH.getDeblockingFilterParameterScalable().getCopy() );
-
+   
     m_bDirect8x8InferenceFlag = rcSH.getSPS().getDirect8x8InferenceFlag();
   }
   m_pcSliceHeader = &rcSH;
@@ -496,9 +729,9 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, ProcessingState eProcessingStat
 
   Int iMbPerColumn  = rcSH.getSPS().getFrameHeightInMbs ();
   m_iMbPerLine      = rcSH.getSPS().getFrameWidthInMbs  ();
-  m_uiMbOffset      = 0;
-  m_uiMbStride      = m_iMbPerLine;
-  m_iMbPerColumn    = iMbPerColumn;
+  m_uiMbOffset      = rcSH.getBottomFieldFlag() ? 1 * m_iMbPerLine : 0;
+  m_uiMbStride      = rcSH.getFieldPicFlag   () ? 2 * m_iMbPerLine : m_iMbPerLine;
+  m_iMbPerColumn    = rcSH.getFieldPicFlag   () ?  iMbPerColumn>>1 : iMbPerColumn;
   m_ucLastMbQp      = rcSH.getPicQp();
 
   H264AVC_DELETE_CLASS( m_pcMbDataAccess );
@@ -511,7 +744,11 @@ const MbData& MbDataCtrl::xGetColMbData( UInt uiIndex )
   return (( m_pcMbDataCtrl0L1 == NULL ) ? xGetOutMbData() : m_pcMbDataCtrl0L1->getMbData( uiIndex ));
 }
 
-const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter )
+const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId, 
+                                         Int uiCurrSliceID, 
+                                         Int iMbY, 
+                                         Int iMbX, 
+                                         Bool bLoopFilter )
 {
   // check whether ref mb is inside
   ROTRS( iMbX < 0,               xGetOutMbData() );
@@ -520,7 +757,8 @@ const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int 
   ROTRS( iMbY >= m_iMbPerColumn, xGetOutMbData() );
 
   //--ICU/ETRI FMO Implementation
-  ROTRS( uiCurrSliceID != getSliceGroupIDofMb(iMbY * m_uiMbStride + iMbX + m_uiMbOffset ) , xGetOutMbData() );
+//  ROTRS( uiCurrSliceID != getSliceGroupIDofMb(iMbY * m_uiMbStride + iMbX + m_uiMbOffset ) , xGetOutMbData() );
+  ROTRS( uiCurrSliceID != getSliceGroupIDofMb(iMbY * (m_uiMbStride>>(UInt)m_pcSliceHeader->getFieldPicFlag()) + iMbX ) , xGetOutMbData() ); //TMM_INTERLACE
 
   // get the ref mb data
   const MbData& rcMbData = getMbData( iMbY * m_uiMbStride + iMbX + m_uiMbOffset );
@@ -528,6 +766,14 @@ const MbData& MbDataCtrl::xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int 
   return (( rcMbData.getSliceId() == uiSliceId || bLoopFilter ) ? rcMbData : xGetOutMbData() );
 }
 
+ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Bool bFieldFlag, const Int iForceQp )
+{
+  UInt     uiCurrIdx    = uiMbY        * m_uiMbStride + uiMbX + m_uiMbOffset;
+  MbData&  rcMbDataCurr = m_pcMbData[ uiCurrIdx ];
+  rcMbDataCurr.setFieldFlag( bFieldFlag );
+
+  return initMb( rpcMbDataAccess, uiMbY, uiMbX, iForceQp );
+}
 
 ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Int iForceQp )
 {
@@ -536,10 +782,41 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
   AOT_DBG( uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset >= m_uiSize );
 
   Bool     bLf          = (m_eProcessingState == POST_PROCESS);
+  Bool     bMbAff       = m_pcSliceHeader->isMbAff();
+  Bool     bTopMb       = ((bMbAff && (uiMbY % 2)) ? false : true);
+  UInt     uiMbYComp    = ( bMbAff ? ( bTopMb ? uiMbY+1 : uiMbY-1 ) : uiMbY );
   UInt     uiCurrIdx    = uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset;
+  UInt     uiCompIdx    = uiMbYComp    * m_uiMbStride + uiMbX + m_uiMbOffset;
+  ROT( uiCompIdx >= m_uiSize );
+  ROT( uiCurrIdx >= m_uiSize );
   MbData&  rcMbDataCurr = m_pcMbData[ uiCurrIdx ];
+	MbData&  rcMbDataComp = m_pcMbData[ uiCompIdx ];
 
 
+    //----- get co-located MbIndex -----
+  UInt     uiIdxColTop;
+  UInt     uiIdxColBot;
+  if( ! m_pcSliceHeader->getFieldPicFlag() )
+  {
+    UInt  uiMbYColTop = 2 * ( uiMbY / 2 );
+    uiIdxColTop       = uiMbYColTop * m_uiMbStride + uiMbX + m_uiMbOffset;
+    uiIdxColBot       = uiIdxColTop + m_uiMbStride;
+    if( uiIdxColBot >= m_pcSliceHeader->getMbInPic() )
+    {
+      uiIdxColBot = uiIdxColTop;
+    }
+  }
+  else if( ! m_pcSliceHeader->getBottomFieldFlag() )
+  {
+    uiIdxColTop       = uiCurrIdx   + m_iColocatedOffset;
+    uiIdxColBot       = uiIdxColTop - m_iColocatedOffset + m_iMbPerLine;
+  }
+  else
+  {
+    uiIdxColBot       = uiCurrIdx   - m_iColocatedOffset;
+    uiIdxColTop       = uiIdxColBot + m_iColocatedOffset - m_iMbPerLine;
+  }
+  
   if( m_pcMbDataAccess )
   {
     m_ucLastMbQp = m_pcMbDataAccess->getMbData().getQp();
@@ -555,6 +832,7 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
       rcMbDataCurr.initMbData( m_ucLastMbQp, uiSliceId );
       rcMbDataCurr.clear();
       m_uiMbProcessed++;
+			m_cMbProcessed.get(uiCurrIdx) = true;
     }
     else
     {
@@ -573,21 +851,31 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
     }
   }
 
-  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset);
+  const Bool bColocatedField = ( m_pcMbDataCtrl0L1 == NULL ) ? true : m_pcMbDataCtrl0L1->isPicCodedField();
 
-  m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess(
-                                       rcMbDataCurr,                                      // current
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left        //--ICU/ETRI FMO Implementation
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above       //--ICU/ETRI FMO Implementation
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left  //--ICU/ETRI FMO Implementation
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf ), // above right //--ICU/ETRI FMO Implementation
-                                       xGetOutMbData(),                                   // unvalid
-                                       xGetColMbData( uiCurrIdx ),
-                                       *m_pcSliceHeader,
-                                       *m_cpDFPBuffer.get( uiSliceId ),
-                                       uiMbX,
-                                       uiMbY,
-                                       m_ucLastMbQp );
+  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * (m_uiMbStride>>(UInt)m_pcSliceHeader->getFieldPicFlag()) + uiMbX ); //TMM_INTERLACE
+
+  m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess( rcMbDataCurr,                                      // current
+                                                          	rcMbDataComp,                                    // complementary
+                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left        
+                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above                                                                 
+                                                          xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left  
+																													((bMbAff && (uiMbY % 2 == 1)) ? xGetOutMbData() : xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf )), // above right
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX  , bLf ), // above above
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX-1, bLf ), // above above left
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX+1, bLf ), // above above right
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY+1, uiMbX-1, bLf ), // below left
+                                                          xGetOutMbData(),                                   // unvalid
+																													xGetColMbData( uiIdxColTop ),
+																													xGetColMbData( uiIdxColBot ),
+                                                         *m_pcSliceHeader,
+                                                         *m_cpDFPBuffer.get( uiSliceId ),
+                                                          uiMbX,
+                                                          uiMbY,
+																													bTopMb,
+																													m_bUseTopField,
+                                                          bColocatedField,// TMM_INTERLACE
+                                                          m_ucLastMbQp );
 
 
   ROT( NULL == m_pcMbDataAccess );
@@ -597,6 +885,13 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
   return Err::m_nOK;
 }
 
+
+
+
+
+
+
+
 //TMM_EC {{
 ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrl, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp )
 {
@@ -604,10 +899,42 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
 
   AOT_DBG( uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset >= m_uiSize );
 
-  Bool     bLf          = (m_eProcessingState == POST_PROCESS);
+ Bool     bLf          = (m_eProcessingState == POST_PROCESS);
+  Bool     bMbAff       = m_pcSliceHeader->isMbAff();
+  Bool     bTopMb       = ((bMbAff && (uiMbY % 2)) ? false : true);
+  UInt     uiMbYComp    = ( bMbAff ? ( bTopMb ? uiMbY+1 : uiMbY-1 ) : uiMbY );
   UInt     uiCurrIdx    = uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset;
+  UInt     uiCompIdx    = uiMbYComp    * m_uiMbStride + uiMbX + m_uiMbOffset;
+  ROT( uiCompIdx >= m_uiSize );
+  ROT( uiCurrIdx >= m_uiSize );
   MbData&  rcMbDataCurr = m_pcMbData[ uiCurrIdx ];
+	MbData&  rcMbDataComp = m_pcMbData[ uiCompIdx ];
 
+
+    //----- get co-located MbIndex -----
+  UInt     uiIdxColTop;
+  UInt     uiIdxColBot;
+  if( ! m_pcSliceHeader->getFieldPicFlag() )
+  {
+    UInt  uiMbYColTop = 2 * ( uiMbY / 2 );
+    uiIdxColTop       = uiMbYColTop * m_uiMbStride + uiMbX + m_uiMbOffset;
+    uiIdxColBot       = uiIdxColTop + m_uiMbStride;
+    if( uiIdxColBot >= m_pcSliceHeader->getMbInPic() )
+    {
+      uiIdxColBot = uiIdxColTop;
+    }
+  }
+  else if( ! m_pcSliceHeader->getBottomFieldFlag() )
+  {
+    uiIdxColTop       = uiCurrIdx   + m_iColocatedOffset;
+    uiIdxColBot       = uiIdxColTop - m_iColocatedOffset + m_iMbPerLine;
+  }
+  else
+  {
+    uiIdxColBot       = uiCurrIdx   - m_iColocatedOffset;
+    uiIdxColTop       = uiIdxColBot + m_iColocatedOffset - m_iMbPerLine;
+  }
+  
 
   if( m_pcMbDataAccess )
   {
@@ -624,6 +951,7 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
       rcMbDataCurr.initMbData( m_ucLastMbQp, uiSliceId );
       rcMbDataCurr.clear();
       m_uiMbProcessed++;
+      m_cMbProcessed.get(uiCurrIdx) = true;
     }
     else
     {
@@ -642,21 +970,32 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
     }
   }
 
-  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset);
+  const Bool bColocatedField = ( m_pcMbDataCtrl0L1 == NULL ) ? true : m_pcMbDataCtrl0L1->isPicCodedField(); // TMM_INTERLACE
+//  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset);
+  Int icurrSliceGroupID = getSliceGroupIDofMb(uiMbY * (m_uiMbStride>>(UInt)m_pcSliceHeader->getFieldPicFlag()) + uiMbX ); // TMM_INTERLACE
 
   m_pcMbDataAccess = new (m_pcMbDataAccess) MbDataAccess(
-                                       rcMbDataCurr,                                      // current
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left
-                                       xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf ), // above right
-                                       xGetOutMbData(),                                   // unvalid
-                                       pcMbDataCtrlRef->getMbData( uiMbX, uiMbY),
-                                       *m_pcSliceHeader,
-                                       *m_cpDFPBuffer.get( uiSliceId ),
-                                       uiMbX,
-                                       uiMbY,
-                                       m_ucLastMbQp );
+                                                          rcMbDataCurr,                                      // current
+																													rcMbDataComp,                                      // complementary
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY,   uiMbX-1, bLf ), // left
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX  , bLf ), // above
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX-1, bLf ), // above left
+																													((bMbAff && (uiMbY % 2 == 1)) ? xGetOutMbData() : xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-1, uiMbX+1, bLf )), // above right
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX  , bLf ), // above above
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX-1, bLf ), // above above left
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY-2, uiMbX+1, bLf ), // above above right
+																													xGetRefMbData( uiSliceId, icurrSliceGroupID, uiMbY+1, uiMbX-1, bLf ), // below left
+                                                          xGetOutMbData(),                                   // unvalid
+																													pcMbDataCtrlRef->getMbData( uiIdxColTop),
+                                                          pcMbDataCtrlRef->getMbData( uiIdxColBot),
+                                                          *m_pcSliceHeader,
+                                                          *m_cpDFPBuffer.get( uiSliceId ),
+                                                          uiMbX,
+                                                          uiMbY,
+																													bTopMb,
+																													m_bUseTopField,
+																													bColocatedField,
+                                                           m_ucLastMbQp );
 
 
   ROT( NULL == m_pcMbDataAccess );
@@ -680,7 +1019,7 @@ MbDataCtrl::storeFgsBQLayerQpAndCbp()
     m_pauiFgsBQMbCbp   [uiMbIndex] = getMbData( uiMbIndex ).getMbExtCbp();
     m_pauiFgsBQBCBP    [uiMbIndex] = getMbData( uiMbIndex ).getBCBP();
     m_pabFgsBQ8x8Trafo [uiMbIndex] = getMbData( uiMbIndex ).isTransformSize8x8();
-
+    
   }
   return Err::m_nOK;
 }
@@ -749,26 +1088,28 @@ MbDataCtrl::uninitFgsBQData()
 
 
 ControlData::ControlData()
-: m_pcMbDataCtrl        ( 0   )
-, m_pcSliceHeader       ( 0   )
-, m_dLambda             ( 0   )
-, m_pcBaseLayerRec      ( 0   )
-, m_pcBaseLayerSbb      ( 0   )
-, m_pcBaseLayerCtrl     ( 0   )
-, m_pcBaseCtrlData      ( 0   )
-, m_uiUseBLMotion       ( 0   )
-, m_dScalingFactor      ( 1.0 )
-, m_pacFGSMbQP          ( 0 )
-, m_pauiFGSMbCbp        ( 0 )
-, m_pabFGS8x8Trafo      ( 0 )
-, m_bIsNormalMbDataCtrl ( true )
-, m_pacBQMbQP           ( 0 )
-, m_pauiBQMbCbp         ( 0 )
-, m_pabBQ8x8Trafo       ( 0 )
-, m_paeBQMbMode         ( 0 )
-, m_pusBQFwdBwd         ( 0 )
-, m_iSpatialScalabilityType ( 0 )
-, m_bSpatialScalability ( false)//SSUN@SHARP
+: m_pcMbDataCtrl         ( 0   )
+, m_pcSliceHeader        ( 0   )
+, m_pcSliceHeaderBot     ( 0 )
+, m_dLambda              ( 0   )
+, m_pcBaseLayerRec       ( 0   )
+, m_pcBaseLayerSbb       ( 0   )
+, m_pcBaseLayerCtrl      ( 0   )
+, m_pcBaseLayerCtrlField ( 0   )
+, m_pcBaseCtrlData       ( 0   )
+, m_uiUseBLMotion        ( 0   )
+, m_dScalingFactor       ( 1.0 )
+, m_pacFGSMbQP           ( 0 )
+, m_pauiFGSMbCbp         ( 0 )
+, m_pabFGS8x8Trafo       ( 0 )
+, m_bIsNormalMbDataCtrl  ( true )
+, m_pacBQMbQP            ( 0 )
+, m_pauiBQMbCbp          ( 0 )
+, m_pabBQ8x8Trafo        ( 0 )
+, m_paeBQMbMode          ( 0 )
+, m_pusBQFwdBwd          ( 0 )
+, m_iSpatialScalabilityType ( 0 ) 
+, m_bSpatialScalability  ( false)
 {
   m_paacBQMotionData[0] = m_paacBQMotionData[1] = 0;
 }
@@ -786,11 +1127,12 @@ ControlData::~ControlData()
 Void
 ControlData::clear()
 {
-  m_pcBaseLayerRec      = 0;
-  m_pcBaseLayerSbb      = 0;
-  m_pcBaseLayerCtrl     = 0;
-  m_uiUseBLMotion       = 0;
-  m_dScalingFactor      = 1.0;
+  m_pcBaseLayerRec       = 0;
+  m_pcBaseLayerSbb       = 0;
+  m_pcBaseLayerCtrl      = 0;
+  m_pcBaseLayerCtrlField = 0;
+  m_uiUseBLMotion        = 0;
+  m_dScalingFactor       = 1.0;
 
   m_bIsNormalMbDataCtrl = true;
 }
@@ -806,11 +1148,12 @@ ControlData::init( SliceHeader*  pcSliceHeader,
   m_pcSliceHeader = pcSliceHeader;
   m_pcMbDataCtrl  = pcMbDataCtrl;
   m_dLambda       = dLambda;
-
-  m_pcBaseLayerRec      = 0;
-  m_pcBaseLayerSbb      = 0;
-  m_pcBaseLayerCtrl     = 0;
-  m_uiUseBLMotion       = 0;
+  
+  m_pcBaseLayerRec       = 0;
+  m_pcBaseLayerSbb       = 0;
+  m_pcBaseLayerCtrl      = 0;
+  m_pcBaseLayerCtrlField = 0;
+  m_uiUseBLMotion        = 0;
 
   return Err::m_nOK;
 }
@@ -822,11 +1165,12 @@ ControlData::init( SliceHeader*  pcSliceHeader )
   ROF( m_pcMbDataCtrl  );
 
   m_pcSliceHeader = pcSliceHeader;
-
-  m_pcBaseLayerRec      = 0;
-  m_pcBaseLayerSbb      = 0;
-  m_pcBaseLayerCtrl     = 0;
-  m_uiUseBLMotion       = 0;
+  
+  m_pcBaseLayerRec       = 0;
+  m_pcBaseLayerSbb       = 0;
+  m_pcBaseLayerCtrl      = 0;
+  m_pcBaseLayerCtrlField = 0; 
+  m_uiUseBLMotion        = 0;
 
   return Err::m_nOK;
 }
@@ -1002,7 +1346,7 @@ ControlData::switchFGSLayerQpAndCbp()
 
 
 
-ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
+ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const 
 {
   UInt     uiCurrIdx    = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
   AOT( uiCurrIdx >= m_uiSize );
@@ -1015,43 +1359,41 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
   Bool bTopAvailable    = ( iMbY > 0 );
   Bool bRightAvailable  = ( iMbX < m_iMbPerLine-1 );
   Bool bBottomAvailable = ( iMbY < m_iMbPerColumn-1 );
+  Int iStride           = m_uiMbStride;
+
 
   if( bTopAvailable )
   {
-    {
-    Int iIndex = uiCurrIdx - m_uiMbStride;
+    Int iIndex = uiCurrIdx - iStride;
     ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x01 :0;
-    }
 
     if( bLeftAvailable )
     {
-      Int iIndex = uiCurrIdx - m_uiMbStride - 1;
+      Int iIndex = uiCurrIdx - iStride - 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x80 :0;
     }
 
     if( bRightAvailable )
     {
-      Int iIndex = uiCurrIdx - m_uiMbStride + 1;
+      Int iIndex = uiCurrIdx - iStride + 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x02 :0;
     }
   }
 
   if( bBottomAvailable )
   {
-    {
-    Int iIndex = uiCurrIdx + m_uiMbStride;
+    Int iIndex = uiCurrIdx + iStride;
     ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x10 :0;
-    }
 
     if( bLeftAvailable )
     {
-      Int iIndex = uiCurrIdx  + m_uiMbStride - 1;
+      Int iIndex = uiCurrIdx  + iStride - 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x20 :0;
     }
 
     if( bRightAvailable )
     {
-      Int iIndex = uiCurrIdx + m_uiMbStride + 1;
+      Int iIndex = uiCurrIdx + iStride + 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x08 :0;
     }
   }
@@ -1074,9 +1416,9 @@ const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
 {
   Int iRefSliceID ;
   if(m_pcSliceHeader->getFMO() != NULL)
-  iRefSliceID =m_pcSliceHeader->getFMO()->getSliceGroupId(mb );
+	iRefSliceID =m_pcSliceHeader->getFMO()->getSliceGroupId(mb );
   else
-  iRefSliceID =-1;
+	iRefSliceID =-1;
 
   return iRefSliceID ;
 }

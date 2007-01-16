@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -126,8 +126,8 @@ H264AVC_NAMESPACE_BEGIN
 class ControlMngH264AVCEncoder : public ControlMngIf
 {
 protected:
-  ControlMngH264AVCEncoder();
-  virtual ~ControlMngH264AVCEncoder();
+	ControlMngH264AVCEncoder();
+	virtual ~ControlMngH264AVCEncoder();
 
 public:
   static ErrVal create( ControlMngH264AVCEncoder*& rpcControlMngH264AVCEncoder );
@@ -162,9 +162,9 @@ public:
 
 
   ErrVal initSlice0       (SliceHeader *rcSH)                     { return Err::m_nERR; }
-
+ 
   // TMM_ESS
-  ErrVal initSPS          ( SequenceParameterSet&       rcSPS, UInt  uiLayer   ) { return Err::m_nERR; }
+  ErrVal initSPS          ( SequenceParameterSet&       rcSPS, UInt  uiLayer   ) { return Err::m_nERR; }  
 
   ErrVal initParameterSets( const SequenceParameterSet& rcSPS,
                             const PictureParameterSet&  rcPPSLP,
@@ -180,16 +180,18 @@ public:
   ErrVal finishSlice( const SliceHeader& rcSH, Bool& rbPicDone, Bool& rbFrameDone );
 
   ErrVal initMbForParsing( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex ) { return Err::m_nERR; }
-  ErrVal initMbForDecoding( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex ) { return Err::m_nERR; }
+  ErrVal initMbForDecoding( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff ) { return Err::m_nERR; }
 
   ErrVal initSliceForCoding   ( const SliceHeader& rcSH );
   ErrVal initSliceForReading  ( const SliceHeader& rcSH ) { return Err::m_nERR; }
   ErrVal initSliceForDecoding ( const SliceHeader& rcSH ) { return Err::m_nERR; }
   ErrVal initSliceForFiltering( const SliceHeader& rcSH );
 
-  ErrVal initMbForCoding      ( MbDataAccess& rcMbDataAccess, UInt uiMbIndex );
-  ErrVal initMbForDecoding    ( UInt uiMbIndex ) { return Err::m_nERR; };
-  ErrVal initMbForFiltering   ( UInt uiMbIndex );
+ ErrVal initMbForCoding      ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff, Bool bFieldFlag );
+ ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff ) { return Err::m_nERR; };
+
+  ErrVal initMbForFiltering( MbDataAccess& rcMbDataAccess,   UInt uiMbY, UInt uiMbX, Bool bMbAff );
+  ErrVal initMbForFiltering( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff );
 
   UvlcWriter*  getUvlcWriter()  { return m_pcUvlcWriter;  };
   CabacWriter* getCabacWriter() { return m_pcCabacWriter; };
@@ -197,6 +199,10 @@ public:
 //TMM_WP
   ErrVal initSliceForWeighting ( const SliceHeader& rcSH);
 //TMM_WP
+//TMM_INTERLACE{
+  virtual ErrVal removeFrameFieldBuffer   ( ) { return Err::m_nERR; }
+//TMM_INTERLACE}
+
   MbDataCtrl* getMbDataCtrl() { return m_pcMbDataCtrl;} //JVT-T054
   //--TM 0109.2006
   FMO* getFMO(){return m_pcFMO;}

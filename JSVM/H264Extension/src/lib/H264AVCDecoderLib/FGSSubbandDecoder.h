@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -109,7 +109,7 @@ class MbDecoder;
 
 
 
-class RQFGSDecoder
+class RQFGSDecoder  
   : public FGSCoder
 {
 private:
@@ -118,8 +118,8 @@ private:
   };
 
 protected:
-  RQFGSDecoder         ();
-  virtual ~RQFGSDecoder();
+	RQFGSDecoder         ();
+	virtual ~RQFGSDecoder();
 
 public:
   static ErrVal     create                ( RQFGSDecoder*&              rpcFGSSubbandDecoder );
@@ -136,28 +136,29 @@ public:
   ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
                                             MbDataCtrl*                 pcCurrMbDataCtrl );
   ErrVal            decodeNextLayer       ( SliceHeader*                pcSliceHeader );
-  ErrVal            reconstruct           ( IntFrame*                   pcRecResidual );
+
   ErrVal            finishPicture         ();
 
   Bool              isInitialized         ()    { return m_bPicInit; }
   Bool              isFinished            ()    { return m_bPicFinished; }
   Bool              changed               ()    { return m_bPicChanged; }
-  SliceHeader*      getSliceHeader        ()    { return m_pcCurrSliceHeader; }
+  SliceHeader*      getSliceHeader        ()    { return m_pcSliceHeader; }
 
-  Bool        isFirstFGS      ()    { return m_bFirstFGS; }
-  Void        SetIsFirstFGS    (Bool b) { m_bFirstFGS = b; }
+  Bool				isFirstFGS			()		{ return m_bFirstFGS; }
+  Void				SetIsFirstFGS		(Bool b) { m_bFirstFGS = b; }
 
-  // ICU/ETRI FGS_MOT_USE
-  Bool        isUseFGSMotion      (UInt uiLayer)    { return m_bFGSMotionUse[uiLayer]; }
-  Void        SetUseFGSMotion      (UInt uiLayer, Bool b) { m_bFGSMotionUse[uiLayer] = b; }
+	// ICU/ETRI FGS_MOT_USE
+  Bool				isUseFGSMotion		  (UInt uiLayer)		{ return m_bFGSMotionUse[uiLayer]; }
+  Void				SetUseFGSMotion		  (UInt uiLayer, Bool b) { m_bFGSMotionUse[uiLayer] = b; }
 
 private:
   ErrVal            xDecodeLumaCbpVlc     ( UInt                        uiCurrMbIdxX,
                                             UInt                        uiCurrMbIdxY );
   ErrVal            xDecodeChromaCbpVlc   ( UInt                        uiCurrMbIdxX,
                                             UInt                        uiCurrMbIdxY );
-  ErrVal            xScaleBaseLayerCoeffs ();
-  ErrVal            xDecodingFGS                  ( SliceHeader*        pcSliceHeader  );
+ 
+  ErrVal            xDecodingFGS                  ();
+  ErrVal			xDecodingFGS		( SliceHeader*                pcSliceHeader 	);
 
   ErrVal            xDecodeMotionData             ( UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx );
@@ -200,12 +201,14 @@ private:
                                                     UInt                uiMbXIdx,
                                                     Int&                riLastQp,
                                                     Int                 iLumaScanIdx,
-                                                    UInt                uiMaxPosLuma );
+                                                    UInt                uiMaxPosLuma,
+                                                    Bool                bFrame );// TMM_INTERLACE
 
   ErrVal            xDecodeNewCoefficientLuma     ( MbDataAccess*       pcMbDataAccessBL,
                                                     MbDataAccess*       pcMbDataAccessEL,
                                                     MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    const S4x4Idx      &rcIdx );
+                                                    const S4x4Idx      &rcIdx,
+                                                    Bool                bFrame );// TMM_INTERLACE
   ErrVal            xDecodeNewCoefficientChromaDC ( MbDataAccess*       pcMbDataAccessBL,
                                                     MbDataAccess*       pcMbDataAccessEL,
                                                     MbFGSCoefMap&       rcMbFGSCoefMap,
@@ -217,7 +220,9 @@ private:
                                                     MbFGSCoefMap&       rcMbFGSCoefMap,
                                                     const CIdx         &rcCIdx,
                                                     Int&                riLastQP,
-                                                    UInt                uiChromaScanIndex );
+                                                    UInt                uiChromaScanIndex ,
+                                                    Bool                bFrame );// TMM_INTERLACE
+  
   ErrVal            xDecodeCoefficientLumaRef     ( MbDataAccess*       pcMbDataAccessBL,
                                                     MbDataAccess*       pcMbDataAccessEL,
                                                     MbFGSCoefMap       &rcMbFGSCoefMap,
@@ -250,15 +255,14 @@ private:
 
   Bool              m_bPicChanged;
   Bool              m_bPicFinished;
-  SliceHeader*      m_pcCurrSliceHeader;
 
   UInt              m_auiScanPosVectLuma    [16];
   UInt              m_auiScanPosVectChromaDC[ 4];
   UInt              m_uiLastMbNum;
-  Bool        m_bFirstFGS;
+  Bool				m_bFirstFGS;
 
-  // ICU/ETRI FGS_MOT_USE
-  Bool        m_bFGSMotionUse[8];
+	// ICU/ETRI FGS_MOT_USE
+  Bool				m_bFGSMotionUse[8];
 };
 
 

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -101,13 +101,21 @@ class H264AVCCOMMONLIB_API FrameUnit
 {
   enum
   {
-    REFERENCE     = 0x01,
-    IS_OUTPUTTED  = 0x02,
+    TOP_FLD_SHORT = 0x01,
+    BOT_FLD_SHORT = 0x02,
+    FRAME_SHORT   = 0x03,
+    TOP_FLD_LONG  = 0x04,
+    BOT_FLD_LONG  = 0x08,
+    FRAME_LONG    = 0x0c,
+    TOP_FLD_REF   = 0x05,
+    BOT_FLD_REF   = 0x0a,
+    FRAME_REF     = 0x0f,
+    IS_OUTPUTTED  = 0x10,
   };
 
 protected:
-  FrameUnit( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, Bool bOriginal );
-  virtual ~FrameUnit();
+	FrameUnit( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, Bool bOriginal );
+	virtual ~FrameUnit();
 
 public:
   ErrVal init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer );
@@ -118,25 +126,43 @@ public:
   static ErrVal create( FrameUnit*& rpcFrameUnit, YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, Bool bOriginal = false );
   ErrVal destroy ();
 
-  Frame& getFrame()                 { return m_cFrame;    }
-  const Frame& getFrame()    const  { return m_cFrame;    }
+  RefPic getRefPic( PicType ePicType, const RefPic& rcRefPic ) const;
+
+  Frame* getPic         ( PicType ePicType )       { return ( ePicType==FRAME ) ? &m_cFrame    : ( ePicType==BOT_FIELD ) ? &m_cBotField    : &m_cTopField; }
+  const Frame* getPic   ( PicType ePicType ) const { return ( ePicType==FRAME ) ? &m_cFrame    : ( ePicType==BOT_FIELD ) ? &m_cBotField    : &m_cTopField; }
+
+  Frame* getFGSPic      ( PicType ePicType )       { return ( ePicType==FRAME ) ? &m_cFGSFrame : ( ePicType==BOT_FIELD ) ? &m_cFGSBotField : &m_cFGSTopField; }
+  const Frame* getFGSPic( PicType ePicType ) const { return ( ePicType==FRAME ) ? &m_cFGSFrame : ( ePicType==BOT_FIELD ) ? &m_cFGSBotField : &m_cFGSTopField; }
 
   Void  setFrameNumber( UInt  uiFN  )           { m_uiFrameNumber = uiFN; }
   UInt  getFrameNumber()                  const { return m_uiFrameNumber; }
 
-  Void  setBaseRep    ( Bool  bFlag )      { m_bBaseRepresentation = bFlag; } //bug-fix base_rep
-  UInt  getBaseRep    ()          const { return m_bBaseRepresentation;  } //bug-fix base_rep
-  UChar getStatus    ()          const { return m_uiStatus;      } //JVT-S036 lsj
+  Void  setBaseRep    ( Bool  bFlag )			{ m_bBaseRepresentation = bFlag; } //bug-fix base_rep
+  UInt  getBaseRep	  ()				  const { return m_bBaseRepresentation;  } //bug-fix base_rep
+  UChar getStatus	  ()				  const { return m_uiStatus;			} //JVT-S036 lsj
 
   Void  setOutputDone ()                        { m_uiStatus |= IS_OUTPUTTED; }
   Bool  isOutputDone  ()                  const { return ( m_uiStatus & IS_OUTPUTTED ? true : false ); }
 
-  Bool  isUsed        ()                  const { return ( m_uiStatus & REFERENCE ? true : false ); }
-  Void  setUsed       ()                        { m_uiStatus |= REFERENCE; }
-  Void  setUnused     ();
-
-  Int   getMaxPOC     ()                  const { return m_iMaxPOC; }
-  Void  setPoc( Int iPoc );
+	Bool  isRefPic      ()                  const { return ( m_uiStatus & 0xf ? true : false ); }
+  Bool  isShortTerm   ( PicType ePicType )const { return ePicType == (m_uiStatus & ePicType); }
+	Bool  isUsed        ( PicType ePicType )const { return ( m_uiStatus & ( ePicType + ( ePicType << 2 ) ) ? true : false ); }
+	Void  setShortTerm  ( PicType ePicType )      { m_uiStatus |= ePicType; m_uiStatus &= ~( ePicType << 2 ); }
+  Bool  isSecField()                      const  { return 0 != m_eAvailable;  }
+  Bool  isBothFields()                    const  { return FRAME == m_eAvailable; }
+  Bool  isValid       ( UChar ucPicType ) const
+  {
+    return (((m_uiStatus & ucPicType) == ucPicType) || ( ((m_uiStatus>>2) & ucPicType) == ucPicType) );
+  }
+	Void  setUnused     ( PicType ePicType );
+  Int   getMaxPoc     ()                  const { return m_iMaxPoc; }
+  Void  setTopFieldPoc( Int iPoc );
+  Void  setBotFieldPoc( Int iPoc );
+  PicType getAvailableStatus()            const { return m_eAvailable; }
+  Void setPicStruct( PicStruct ePicStruct )     { m_ePicStruct = ePicStruct; }
+  PicStruct getPicStruct()                const { return m_ePicStruct; }
+  Bool isFieldCoded()                     const { return m_bFieldCoded; }
+  Void addPic( PicType ePicType, Bool bFieldCoded = false, UInt uiIdrPicId = 0 );
 
   PicBuffer*  getPicBuffer  ()            const { return m_pcPicBuffer; }
   const MbDataCtrl* getMbDataCtrl()       const { return &m_cMbDataCtrl; }
@@ -145,20 +171,16 @@ public:
   const IntFrame* getResidual() const { return &m_cResidual; }
   IntFrame* getResidual() { return &m_cResidual; }
 
-
-  ErrVal setFGS( PicBuffer* pcPicBuffer );
+  ErrVal setFGS     ( PicBuffer*& rpcPicBuffer );
   PicBuffer*  getFGSPicBuffer()           const { return m_pcFGSPicBuffer; }
 
-  const IntFrame* getFGSIntFrame() const { return &m_cFGSIntFrame; }
-  IntFrame* getFGSIntFrame() { return &m_cFGSIntFrame; }
-
-  Frame& getFGSFrame()                 { return m_cFGSFrame;    }
-  const Frame& getFGSFrame()    const  { return m_cFGSFrame;    }
+  const IntFrame* getFGSIntFrame()        const { return &m_cFGSIntFrame; ; }
+  IntFrame* getFGSIntFrame()                    { return &m_cFGSIntFrame; ; }
 
   Bool getContrainedIntraPred() const { return m_bConstrainedIntraPred; }
 
-  IntFrame* getFGSReconstruction(UInt uiLayerIdx)
-  {
+  IntFrame* getFGSReconstruction(UInt uiLayerIdx) 
+  { 
     return (uiLayerIdx > MAX_FGS_LAYERS) ? 0 : m_apcFGSRecon[uiLayerIdx];
   }
   Void setFGSReconCount(UInt uiFGSReconCount) { m_uiFGSReconCount = uiFGSReconCount;  }
@@ -169,19 +191,26 @@ public:
 
 private:
   Frame         m_cFrame;
+	Frame         m_cTopField;
+	Frame         m_cBotField;
+	PicType       m_eAvailable;
+	PicStruct     m_ePicStruct;
+	Bool          m_bFieldCoded;
   MbDataCtrl    m_cMbDataCtrl;
   PicBuffer*    m_pcPicBuffer;
   UInt          m_uiFrameNumber;
   UChar         m_uiStatus;
-  Int           m_iMaxPOC;
+  Int           m_iMaxPoc;
   Bool          m_bOriginal;
   Bool          m_bInitDone;
   IntFrame      m_cResidual;
-  Bool          m_bBaseRepresentation; //bug-fix base_rep
+  Bool			    m_bBaseRepresentation; //bug-fix base_rep
 
   IntFrame      m_cFGSIntFrame;
   PicBuffer*    m_pcFGSPicBuffer;
   Frame         m_cFGSFrame;
+  Frame         m_cFGSTopField;
+  Frame         m_cFGSBotField;
   Bool          m_bConstrainedIntraPred;
 
   UInt          m_uiFGSReconCount;

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -258,6 +258,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiIdrPicId                        ( 0 )
 , m_uiPicOrderCntLsb                  ( 0 )
 , m_iDeltaPicOrderCntBottom           ( 0 )
+, m_bFieldPicFlag                     ( false )
+, m_bBottomFieldFlag                  ( false )
 , m_bBasePredWeightTableFlag          ( false )
 , m_uiLumaLog2WeightDenom             ( 5 )
 , m_uiChromaLog2WeightDenom           ( 5 )
@@ -266,7 +268,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bStoreBaseRepresentationFlag      ( false )
 , m_uiBaseLayerId                     ( MSYS_UINT_MAX )
 , m_uiBaseQualityLevel                ( 0 )
-, m_uiBaseFragmentOrder                ( 0 )
+, m_uiBaseFragmentOrder				        ( 0 )
 , m_bAdaptivePredictionFlag           ( false )
 //JVT-U160 LMI {
 , m_bDefaultBaseModeFlag              ( true )
@@ -277,27 +279,35 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bNumRefIdxActiveOverrideFlag      ( false )
 , m_bNoOutputOfPriorPicsFlag          ( false ) //EIDR bug-fix
 , m_bAdaptiveRefPicBufferingModeFlag  ( false )
-, m_bAdaptiveRefPicMarkingModeFlag    ( false )    //JVT-S036 lsj
+, m_bAdaptiveRefPicMarkingModeFlag	  ( false )    //JVT-S036 lsj
 , m_uiCabacInitIdc                    ( 0 )
 , m_iSliceQpDelta                     ( 0 )
 , m_pcFMO                             ( 0 ) //--ICU/ETRI FMO Implementation
-, m_bFragmentedFlag                   ( false) //JV
+, m_bBaseLayerUsesConstrainedIntraPred( false ) 
+, m_bFragmentedFlag                   ( false ) //JV
 //TMM_ESS_UNIFIED {
-, m_iScaledBaseLeftOffset             ( 0 )
-, m_iScaledBaseTopOffset              ( 0 )
-, m_iScaledBaseRightOffset            ( 0 )
-, m_iScaledBaseBottomOffset           ( 0 )
+, m_iScaledBaseLeftOffset             ( 0 ) 
+, m_iScaledBaseTopOffset              ( 0 ) 
+, m_iScaledBaseRightOffset            ( 0 ) 
+, m_iScaledBaseBottomOffset           ( 0 ) 
 //TMM_ESS_UNIFIED }
 , m_uiBaseChromaPhaseXPlus1           ( 0 ) // TMM_ESS
 , m_uiBaseChromaPhaseYPlus1           ( 1 ) // TMM_ESS
+
+, m_bBaseFrameFromBotFieldFlag        ( false )
+, m_bBaseBotFieldSyncFlag             ( false )
+, m_bBaseFrameMbsOnlyFlag             ( true  )
+, m_bBaseFieldPicFlag                 ( false )
+, m_bBaseBotFieldFlag                 ( false )
+
 , m_bArFgsUsageFlag                   ( false )
 , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
 , m_uiBaseWeightZeroBaseBlock         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK )
 , m_uiBaseWeightZeroBaseCoeff         ( AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF )
 , m_uiFragmentOrder                   ( 0 )
 , m_uiRedundantPicCnt                 ( 0 ) //JVT-Q054 Red. Picture
-, m_uiSliceGroupChangeCycle           ( 0 )
-, m_eErrorConceal                     ( EC_NONE )
+, m_uiSliceGroupChangeCycle           ( 0 ) 
+, m_eErrorConceal                     ( EC_NONE ) 
 , m_uiVectorModeIndex                 ( 0 )
 , m_uiNumPosVectors                   ( 0 )
 , m_bFGSVectorModeOverrideFlag        ( false )
@@ -310,7 +320,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 //JVT-U106 Behaviour at slice boundaries{
 , m_bCIUFlag                          ( false )
 //JVT-U106 Behaviour at slice boundaries}
-, m_bInIDRAccess					  ( false ) //EIDR bug-fix
+, m_bInIDRAccess					            ( false ) //EIDR bug-fix
 {
   ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
   ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
@@ -330,6 +340,84 @@ SliceHeaderBase::~SliceHeaderBase()
   ANOK( m_acPredWeightTable[LIST_1].uninit() );
 }
 
+SliceHeaderBase& SliceHeaderBase::operator = ( const SliceHeaderBase& rcSHB )
+{
+	m_eNalRefIdc													= rcSHB.m_eNalRefIdc;
+  m_eNalUnitType												= rcSHB.m_eNalUnitType;
+  m_uiLayerId														= rcSHB.m_uiLayerId;
+  m_uiTemporalLevel											= rcSHB.m_uiTemporalLevel;
+  m_uiQualityLevel											= rcSHB.m_uiQualityLevel;
+  m_uiFirstMbInSlice										= rcSHB.m_uiFirstMbInSlice;
+  m_eSliceType													= rcSHB.m_eSliceType;
+  m_uiPicParameterSetId									= rcSHB.m_uiPicParameterSetId;
+  m_uiFrameNum													= rcSHB.m_uiFrameNum;
+  m_uiNumMbsInSlice											= rcSHB.m_uiNumMbsInSlice;
+  m_bFgsComponentSep										= rcSHB.m_bFgsComponentSep;
+  m_uiIdrPicId													= rcSHB.m_uiIdrPicId;
+  m_uiPicOrderCntLsb										= rcSHB.m_uiPicOrderCntLsb;
+  m_bDirectSpatialMvPredFlag						= rcSHB.m_bDirectSpatialMvPredFlag;
+
+  m_uiBaseLayerId												= rcSHB.m_uiBaseLayerId;
+  m_uiBaseQualityLevel									= rcSHB.m_uiBaseQualityLevel;
+  m_bAdaptivePredictionFlag							= rcSHB.m_bAdaptivePredictionFlag;
+  m_bNumRefIdxActiveOverrideFlag				= false; //rcSHB.m_bNumRefIdxActiveOverrideFlag;
+  m_auiNumRefIdxActive[ LIST_0 ]				= rcSHB.m_auiNumRefIdxActive[ LIST_0 ];
+	m_auiNumRefIdxActive[ LIST_1 ]				= rcSHB.m_auiNumRefIdxActive[ LIST_1 ];
+  m_acRplrBuffer      [ LIST_0 ]        = rcSHB.m_acRplrBuffer      [ LIST_0 ];
+	m_acRplrBuffer      [ LIST_1 ]        = rcSHB.m_acRplrBuffer      [ LIST_1 ];
+  //m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2];
+  m_bNoOutputOfPriorPicsFlag						= rcSHB.m_bNoOutputOfPriorPicsFlag;
+  m_bAdaptiveRefPicBufferingModeFlag		= rcSHB.m_bAdaptiveRefPicBufferingModeFlag;
+  m_cMmmcoBuffer												= rcSHB.m_cMmmcoBuffer;
+  m_uiCabacInitIdc											= rcSHB.m_uiCabacInitIdc;
+  m_iSliceQpDelta												= rcSHB.m_iSliceQpDelta;
+
+  m_cDeblockingFilterParameterScalable					= rcSHB.m_cDeblockingFilterParameterScalable;
+
+  m_bBaseLayerUsesConstrainedIntraPred	= rcSHB.m_bBaseLayerUsesConstrainedIntraPred;
+  m_uiPriorityId									      = rcSHB.m_uiPriorityId;
+  m_bDiscardableFlag										= rcSHB.m_bDiscardableFlag;
+
+  m_bFieldPicFlag												= rcSHB.m_bFieldPicFlag;
+  m_bBottomFieldFlag										= rcSHB.m_bBottomFieldFlag;
+	m_iDeltaPicOrderCntBottom							= rcSHB.m_iDeltaPicOrderCntBottom;
+  m_aiDeltaPicOrderCnt[0]								= rcSHB.m_aiDeltaPicOrderCnt[0];
+	m_aiDeltaPicOrderCnt[1]								= rcSHB.m_aiDeltaPicOrderCnt[1];
+
+  m_uiBaseChromaPhaseXPlus1							= rcSHB.m_uiBaseChromaPhaseXPlus1;
+  m_uiBaseChromaPhaseYPlus1							= rcSHB.m_uiBaseChromaPhaseYPlus1;
+
+  m_iScaledBaseLeftOffset								= rcSHB.m_iScaledBaseLeftOffset;
+  m_iScaledBaseTopOffset								= rcSHB.m_iScaledBaseTopOffset;
+  m_iScaledBaseRightOffset							= rcSHB.m_iScaledBaseRightOffset;
+  m_iScaledBaseBottomOffset							= rcSHB.m_iScaledBaseBottomOffset;
+
+  m_bArFgsUsageFlag											= rcSHB.m_bArFgsUsageFlag;
+  m_uiLowPassFgsMcFilter								= rcSHB.m_uiLowPassFgsMcFilter;
+  m_uiBaseWeightZeroBaseBlock						= rcSHB.m_uiBaseWeightZeroBaseBlock;
+  m_uiBaseWeightZeroBaseCoeff						= rcSHB.m_uiBaseWeightZeroBaseCoeff;
+
+  m_bBasePredWeightTableFlag            = rcSHB.m_bBasePredWeightTableFlag;
+  m_uiLumaLog2WeightDenom               = rcSHB.m_uiLumaLog2WeightDenom;
+  m_uiChromaLog2WeightDenom             = rcSHB.m_uiChromaLog2WeightDenom; 
+ 
+  m_uiBaseFragmentOrder                 = rcSHB.m_uiBaseFragmentOrder;
+ 
+  m_bCIUFlag                            = rcSHB.m_bCIUFlag;
+ 
+  if(m_pcFMO == NULL)
+		m_pcFMO = new FMO();
+	else
+	{
+		 delete m_pcFMO;
+		m_pcFMO = new FMO();
+	}
+	
+	*m_pcFMO                               = *(rcSHB.m_pcFMO);
+  
+  
+  return *this;
+}
 
 ErrVal
 SliceHeaderBase::write( HeaderSymbolWriteIf* pcWriteIf ) const
@@ -371,7 +459,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     RNOK (pcWriteIf->writeCode( 0             ,  2,                             "NALU HEADER: reserved_zero_two_bits"));
     RNOK (pcWriteIf->writeCode( m_uiPriorityId,  6,                             "NALU HEADER: priority_id"));
 
-  RNOK (pcWriteIf->writeCode( m_uiTemporalLevel,   3,                       "NALU HEADER: temporal_level"));
+	RNOK (pcWriteIf->writeCode( m_uiTemporalLevel,   3,                       "NALU HEADER: temporal_level"));
     RNOK( pcWriteIf->writeCode( uiDependencyId,         3,                      "NALU HEADER: dependency_id" ) );
     RNOK( pcWriteIf->writeCode( uiQualityLevel,    2,                           "NALU HEADER: quality_level" ) );
     // JVT-U116 LMI
@@ -384,14 +472,14 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       uiFragmentOrder = 0;
       RNOK( pcWriteIf->writeFlag( 1,                                            "NALU HEADER: fgs_frag_flag" ) );
       RNOK( pcWriteIf->writeFlag( 1,                                            "NALU HEADER: fgs_last_frag_flag" ) );
-      }
-      else
-      {
+    }
+    else
+    {
       RNOK( pcWriteIf->writeFlag( m_bFragmentedFlag,                            "NALU HEADER: fgs_frag_flag" ) );
       RNOK( pcWriteIf->writeFlag( m_bLastFragmentFlag,                          "NALU HEADER: fgs_last_frag_flag" ) );
-      }
+     }
     RNOK( pcWriteIf->writeCode( uiFragmentOrder,  2,                            "NALU HEADER: fgs_frag_order" ) );
-    //}}JVT-T083
+    //}}JVT-T083   
     // JVT-U116 LMI {
     RNOK (pcWriteIf->writeFlag( bExtensionFlag,                                 "NALU HEADER: extension_flag"));
     if ( bExtensionFlag )
@@ -403,81 +491,100 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   if(m_uiLayerId == 0 && m_uiQualityLevel == 0)
  {
     if( getNalRefIdc() )
-    {
+	  {
       if( m_bUseBasePredictionFlag && m_eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
-      {
-         RNOK(pcWriteIf->writeFlag( m_bAdaptiveRefPicMarkingModeFlag,      "DRPM: adaptive_ref_pic_marking_mode_flag"));
-         if(m_bAdaptiveRefPicMarkingModeFlag)
-         {
-           RNOK( getMmcoBaseBuffer().write( pcWriteIf ) );
-           }
-      }
-    }
+		  {
+			   RNOK(pcWriteIf->writeFlag( m_bAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
+			   if(m_bAdaptiveRefPicMarkingModeFlag)
+			   {
+				   RNOK( getMmcoBaseBuffer().write( pcWriteIf ) );
+		       }
+		  }
+	  }
  }
 
  else
  {
 //JVT-S036 lsj end
+
   //===== slice header =====
-  RNOK(     pcWriteIf->writeUvlc( m_uiFirstMbInSlice,                           "SH: first_mb_in_slice" ) );
-    RNOK(     pcWriteIf->writeUvlc( m_eSliceType,                                 "SH: slice_type" ) );
-  RNOK(     pcWriteIf->writeUvlc( m_uiPicParameterSetId,                        "SH: pic_parameter_set_id" ) );
-    RNOK(     pcWriteIf->writeCode( m_uiFrameNum,getSPS().getLog2MaxFrameNum(),   "SH: frame_num" ) );
-  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+  UInt uiFirstMbInSlice = getFirstMbInSlice();
+  if ( !getSPS().getFrameMbsOnlyFlag() && getSPS().getMbAdaptiveFrameFieldFlag() && !getFieldPicFlag())
   {
-    RNOK(   pcWriteIf->writeUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
-  }
-  if( getSPS().getPicOrderCntType() == 0 )
-  {
-  RNOK(     pcWriteIf->writeCode( m_uiPicOrderCntLsb,
-                  getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
-    {
-    RNOK( pcWriteIf->writeSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
-    }
-  }
-  if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
-  {
-    RNOK(   pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
-    {
-    RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
-    }
-  }
-    if ( getPPS().getRedundantPicCntPresentFlag() )
-    {
-    RNOK( pcWriteIf->writeUvlc( m_uiRedundantPicCnt,                          "SH: redundant_pic_cnt") );
-    }
-  if( m_eSliceType == B_SLICE )
-  {
-    RNOK(   pcWriteIf->writeFlag( m_bDirectSpatialMvPredFlag,                   "SH: direct_spatial_mv_pred_flag" ) );
+    uiFirstMbInSlice >>=1;
   }
 
-  if( m_eSliceType != F_SLICE )
+  
+	RNOK(     pcWriteIf->writeUvlc( uiFirstMbInSlice,                           "SH: first_mb_in_slice" ) );
+  RNOK(     pcWriteIf->writeUvlc( m_eSliceType,                                 "SH: slice_type" ) );
+	RNOK(     pcWriteIf->writeUvlc( m_uiPicParameterSetId,                        "SH: pic_parameter_set_id" ) );
+  RNOK(     pcWriteIf->writeCode( m_uiFrameNum,getSPS().getLog2MaxFrameNum(),   "SH: frame_num" ) );
+
+  if( ! getSPS().getFrameMbsOnlyFlag() )
   {
+    RNOK(   pcWriteIf->writeFlag( getFieldPicFlag(),                            "SH: field_pic_flag" ) );
+    if( getFieldPicFlag() )
+    {
+      RNOK( pcWriteIf->writeFlag( getBottomFieldFlag(),                         "SH: bottom_field_flag" ) );
+    }
+  }
+
+
+	if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+	{
+		RNOK(   pcWriteIf->writeUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
+	}
+	if( getSPS().getPicOrderCntType() == 0 )
+	{
+	RNOK(     pcWriteIf->writeCode( m_uiPicOrderCntLsb,
+									getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
+		if( getPPS().getPicOrderPresentFlag() && ! m_bFieldPicFlag )
+		{
+		RNOK( pcWriteIf->writeSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
+		}
+	}
+	if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
+	{
+		RNOK(   pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
+		if( getPPS().getPicOrderPresentFlag() && ! m_bFieldPicFlag )
+		{
+		RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
+		}
+	}
+		if ( getPPS().getRedundantPicCntPresentFlag() )
+		{
+		RNOK( pcWriteIf->writeUvlc( m_uiRedundantPicCnt,                          "SH: redundant_pic_cnt") );
+		}
+	if( m_eSliceType == B_SLICE )
+	{
+		RNOK(   pcWriteIf->writeFlag( m_bDirectSpatialMvPredFlag,                   "SH: direct_spatial_mv_pred_flag" ) );
+	}
+	  
+	if( m_eSliceType != F_SLICE )
+	{
       //{{JVT-T083
-    if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
-    {
-    RNOK( pcWriteIf->writeFlag( m_bNumRefIdxActiveOverrideFlag,               "SH: num_ref_idx_active_override_flag" ) );
-    if( m_bNumRefIdxActiveOverrideFlag )
-    {
-      RNOK( pcWriteIf->writeUvlc( m_auiNumRefIdxActive[LIST_0]-1,             "SH: num_ref_idx_l0_active_minus1" ) );
-      if( m_eSliceType == B_SLICE )
-      {
-      RNOK( pcWriteIf->writeUvlc( m_auiNumRefIdxActive[LIST_1]-1,           "SH: num_ref_idx_l1_active_minus1" ) );
-      }
-    }
-    }
-    if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
-    {
-    RNOK( getRplrBuffer( LIST_0 ).write( pcWriteIf ) );
-    }
-    if( m_eSliceType == B_SLICE )
-    {
-    RNOK( getRplrBuffer( LIST_1 ).write( pcWriteIf ) );
-    }
+		if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
+		{
+		RNOK( pcWriteIf->writeFlag( m_bNumRefIdxActiveOverrideFlag,               "SH: num_ref_idx_active_override_flag" ) );
+		if( m_bNumRefIdxActiveOverrideFlag )
+		{
+			RNOK( pcWriteIf->writeUvlc( m_auiNumRefIdxActive[LIST_0]-1,             "SH: num_ref_idx_l0_active_minus1" ) );
+			if( m_eSliceType == B_SLICE )
+			{
+			RNOK( pcWriteIf->writeUvlc( m_auiNumRefIdxActive[LIST_1]-1,           "SH: num_ref_idx_l1_active_minus1" ) );
+			}
+		}
+		}
+		if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
+		{
+		RNOK( getRplrBuffer( LIST_0 ).write( pcWriteIf ) );
+		}
+		if( m_eSliceType == B_SLICE )
+		{
+		RNOK( getRplrBuffer( LIST_1 ).write( pcWriteIf ) );
+		}
 
-      if ( !bLayerBaseFlag )
+      if ( !bLayerBaseFlag ) 
       {
         UInt  uiBaseLayerId;
 
@@ -496,10 +603,10 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
         if ( !m_bAdaptivePredictionFlag ) 
         {
           RNOK( pcWriteIf->writeFlag( m_bDefaultBaseModeFlag,                    "SH: default_base_mode_flag" ) );
-		  if( !m_bDefaultBaseModeFlag) 
+		      if( !m_bDefaultBaseModeFlag) 
           {
             RNOK( pcWriteIf->writeFlag( m_bAdaptiveMotPredictionFlag,                    "SH: adaptive_motion_prediction_flag" ) );
-		    if ( !m_bAdaptiveMotPredictionFlag )
+		        if ( !m_bAdaptiveMotPredictionFlag )
               RNOK( pcWriteIf->writeFlag( m_bDefaultMotPredictionFlag,                    "SH: default_motion_prediction_flag" ) );
           }
         }
@@ -507,65 +614,65 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
         // JVT-U160 LMI }
       }
 
-    if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
-      ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
-    {
-    if( m_bAdaptivePredictionFlag )
-    {
-      RNOK( pcWriteIf->writeFlag( m_bBasePredWeightTableFlag,                "PWT: base_pred_weight_table_flag" ) );
-    }
-    if( ! m_bBasePredWeightTableFlag )
-    {
-      RNOK( pcWriteIf->writeUvlc( m_uiLumaLog2WeightDenom,                   "PWT: luma_log_weight_denom" ) );
-      RNOK( pcWriteIf->writeUvlc( m_uiChromaLog2WeightDenom,                 "PWT: chroma_log_weight_denom" ) );
+		if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
+			( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
+		{
+		if( m_bAdaptivePredictionFlag ) 
+		{
+			RNOK( pcWriteIf->writeFlag( m_bBasePredWeightTableFlag,                "PWT: base_pred_weight_table_flag" ) );
+		}
+		if( ! m_bBasePredWeightTableFlag )
+		{
+			RNOK( pcWriteIf->writeUvlc( m_uiLumaLog2WeightDenom,                   "PWT: luma_log_weight_denom" ) );
+			RNOK( pcWriteIf->writeUvlc( m_uiChromaLog2WeightDenom,                 "PWT: chroma_log_weight_denom" ) );
 
-      RNOK( m_acPredWeightTable[LIST_0].write( pcWriteIf, getNumRefIdxActive( LIST_0 ) ) );
-      if( m_eSliceType == B_SLICE )
-      {
-      RNOK( m_acPredWeightTable[LIST_1].write( pcWriteIf, getNumRefIdxActive( LIST_1) ) );
-      }
-    }
-    }
-    if( getNalRefIdc() )
-    {
-    if( isIdrNalUnit() )
-    {
-      RNOK( pcWriteIf->writeFlag( m_bNoOutputOfPriorPicsFlag,                 "DRPM: no_output_of_prior_pics_flag" ) );
-      RNOK( pcWriteIf->writeFlag( false,                                      "DRPM: long_term_reference_flag" ) );
-    }
-    else
-    {
-      RNOK( pcWriteIf->writeFlag( m_bAdaptiveRefPicBufferingModeFlag,         "DRPM: adaptive_ref_pic_buffering_mode_flag" ) );
-      if( m_bAdaptiveRefPicBufferingModeFlag )
-      {
-      RNOK( getMmcoBuffer().write( pcWriteIf ) );
-      }
-    }
-  //JVT-S036 lsj start
-    if( m_bUseBasePredictionFlag && m_eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
-    {
-      RNOK(pcWriteIf->writeFlag( m_bAdaptiveRefPicMarkingModeFlag,      "DRPM: adaptive_ref_pic_marking_mode_flag"));
-      if(m_bAdaptiveRefPicMarkingModeFlag)
-      {
-        RNOK( getMmcoBaseBuffer().write( pcWriteIf ) );
-      }
-    }
-  //JVT-S036 lsj end
-    }
+			RNOK( m_acPredWeightTable[LIST_0].write( pcWriteIf, getNumRefIdxActive( LIST_0 ) ) );
+			if( m_eSliceType == B_SLICE )
+			{
+			RNOK( m_acPredWeightTable[LIST_1].write( pcWriteIf, getNumRefIdxActive( LIST_1) ) );
+			}
+		}
+		}
+		if( getNalRefIdc() )
+		{
+		if( isIdrNalUnit() )
+		{
+			RNOK( pcWriteIf->writeFlag( m_bNoOutputOfPriorPicsFlag,                 "DRPM: no_output_of_prior_pics_flag" ) );
+			RNOK( pcWriteIf->writeFlag( false,                                      "DRPM: long_term_reference_flag" ) );
+		}
+		else
+		{
+			RNOK( pcWriteIf->writeFlag( m_bAdaptiveRefPicBufferingModeFlag,         "DRPM: adaptive_ref_pic_buffering_mode_flag" ) );
+			if( m_bAdaptiveRefPicBufferingModeFlag )
+			{
+			RNOK( getMmcoBuffer().write( pcWriteIf ) );
+			}
+		}
+	//JVT-S036 lsj start
+        if( m_bUseBasePredictionFlag && m_eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
+		{
+			RNOK(pcWriteIf->writeFlag( m_bAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
+			if(m_bAdaptiveRefPicMarkingModeFlag)
+			{		
+				RNOK( getMmcoBaseBuffer().write( pcWriteIf ) );
+			}			  
+		}
+	//JVT-S036 lsj end
+		}
 
-    if( getPPS().getEntropyCodingModeFlag() && m_eSliceType != I_SLICE )
-    {
-    RNOK( pcWriteIf->writeUvlc( m_uiCabacInitIdc,                             "SH: cabac_init_idc" ) );
-    }
-  }
+		if( getPPS().getEntropyCodingModeFlag() && m_eSliceType != I_SLICE )
+		{
+		RNOK( pcWriteIf->writeUvlc( m_uiCabacInitIdc,                             "SH: cabac_init_idc" ) );
+		}
+	}
 
     if( uiFragmentOrder == 0 || m_eSliceType != F_SLICE )
     {
-  RNOK( pcWriteIf->writeSvlc( m_iSliceQpDelta,                                  "SH: slice_qp_delta" ) );
+	RNOK( pcWriteIf->writeSvlc( m_iSliceQpDelta,                                  "SH: slice_qp_delta" ) );
     }
     if ( m_eSliceType != F_SLICE ) {
-  if( getPPS().getDeblockingFilterParametersPresentFlag() )
-  {
+	if( getPPS().getDeblockingFilterParametersPresentFlag() )
+	{
         RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().write( pcWriteIf ) );
       }
       if ( getSPS().getInterlayerDeblockingPresent() )
@@ -575,58 +682,68 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	  //JVT-U106 Behaviour at slice boundaries{
 	  RNOK (pcWriteIf->writeFlag( m_bCIUFlag, "SH: constrained_intra_upsampling_flag"));
 	  //JVT-U106 Behaviour at slice boundaries}
-  }
-  if(getPPS().getNumSliceGroupsMinus1()>0 && getPPS().getSliceGroupMapType() >=3 && getPPS().getSliceGroupMapType() <= 5)
-  {
-    RNOK(     pcWriteIf->writeCode( m_uiSliceGroupChangeCycle, getPPS().getLog2MaxSliceGroupChangeCycle(getSPS().getMbInFrame()) ,                "SH: slice_group_change_cycle" ) );
-  }
+	}
+	if(getPPS().getNumSliceGroupsMinus1()>0 && getPPS().getSliceGroupMapType() >=3 && getPPS().getSliceGroupMapType() <= 5)
+	{    
+		RNOK(     pcWriteIf->writeCode( m_uiSliceGroupChangeCycle, getPPS().getLog2MaxSliceGroupChangeCycle(getSPS().getMbInFrame()) ,                "SH: slice_group_change_cycle" ) );
+	}
 
-  // TMM_ESS {
-  if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
-  {
-    //if ( 1 /* chroma_format_idc */ > 0 )
-    {
-    RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
-    RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
-    }
-
-    if (getSPS().getExtendedSpatialScalability() == ESS_PICT)
-    {
-    RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,                       "SH: ScaledBaseLeftOffset" ) );
-    RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,                        "SH: ScaledBaseTopOffset" ) );
-    RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,                      "SH: ScaledBaseRightOffset" ) );
-    RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,                     "SH: ScaledBaseBottomOffset" ) );
-    }
-  }
-  // TMM_ESS }
+	// TMM_ESS {
+	if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
+	{
+		//if ( 1 /* chroma_format_idc */ > 0 )
+		{
+		RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
+		RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
+		}
+	    
+		if (getSPS().getExtendedSpatialScalability() == ESS_PICT)
+		{
+      Int iYScale = 2 - getSPS().getFrameMbsOnlyFlag();
+		  RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,                       "SH: ScaledBaseLeftOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset/iYScale,                        "SH: ScaledBaseTopOffset" ) );
+		  RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,                      "SH: ScaledBaseRightOffset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset/iYScale,                     "SH: ScaledBaseBottomOffset" ) );
+		}
+	}
+	// TMM_ESS }
 
     if( m_eSliceType == F_SLICE && uiFragmentOrder == 0)
-  {
+	{
       RNOK(   pcWriteIf->writeUvlc( m_uiNumMbsInSlice - 1,                          "SH: num_mbs_in_slice_minus1" ) );
       RNOK(   pcWriteIf->writeFlag( m_bFgsComponentSep,                             "SH: luma_chroma_sep_flag" ) );
       if ( m_bUseBasePredictionFlag )
       {
-        RNOK(   pcWriteIf->writeFlag( m_bStoreBaseRepresentationFlag,                 "SH: store_base_rep_flag" ) );
+      	RNOK(   pcWriteIf->writeFlag( m_bStoreBaseRepresentationFlag,                 "SH: store_base_rep_flag" ) );
         RNOK( pcWriteIf->writeFlag( m_bArFgsUsageFlag,                                "SH: adaptive_ref_fgs_flag" ) );
-    if( m_bArFgsUsageFlag )
-    {
-    // send other information conditionally
-    UInt uiWeight;
+		if( m_bArFgsUsageFlag )
+		{
+		// send other information conditionally
+		UInt uiWeight;
 
-    // AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
-    uiWeight = ( m_uiBaseWeightZeroBaseBlock <= 1 ) ? 0 : ( m_uiBaseWeightZeroBaseBlock - 1 );
+		// AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
+		uiWeight = ( m_uiBaseWeightZeroBaseBlock <= 1 ) ? 0 : ( m_uiBaseWeightZeroBaseBlock - 1 );
           RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: max_diff_ref_scale_for_zero_base_block" ) );
 
-    // AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
-    uiWeight = ( m_uiBaseWeightZeroBaseCoeff <= 1 ) ? 0 : ( m_uiBaseWeightZeroBaseCoeff - 1 );
+		// AR_FGS_MAX_BASE_WEIGHT - 1 is not allowed
+		uiWeight = ( m_uiBaseWeightZeroBaseCoeff <= 1 ) ? 0 : ( m_uiBaseWeightZeroBaseCoeff - 1 );
           RNOK( pcWriteIf->writeCode( uiWeight, 5,                                   "SH: max_diff_ref_scale_for_zero_base_coeff" ) );
 
-    RNOK( pcWriteIf->writeFlag( m_bFgsEntropyOrderFlag,                               "SH: fgs_order_flag" ) );
-    }
-
+		RNOK( pcWriteIf->writeFlag( m_bFgsEntropyOrderFlag,                               "SH: fgs_order_flag" ) );
+		}
+        
       }
-    RNOK( pcWriteIf->writeFlag( m_bAdaptivePredictionFlag,                       "SH: motion_refinement_flag" ) );
+		RNOK( pcWriteIf->writeFlag( m_bAdaptivePredictionFlag,                       "SH: motion_refinement_flag" ) );
+	}
+	 if (m_eSliceType != F_SLICE )
+  {
+    if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() && m_bBaseFrameMbsOnlyFlag )  // will consider base-layer flags later
+      RNOK( pcWriteIf->writeFlag( m_bBaseFrameFromBotFieldFlag,                "SH: base_frame_from_bot_field_coincided_flag" ) );  // set to 0 (default)
+    if( !m_bBaseFrameMbsOnlyFlag && !m_bBaseFieldPicFlag && getSPS().getFrameMbsOnlyFlag() )  // will consider base-layer flags later
+      RNOK( pcWriteIf->writeFlag( m_bBaseBotFieldSyncFlag,                     "SH: base_bot_field_coincided_flag" ) );  // set to 0 (default)
   }
+	
+	
 }//JVT-S036 lsj
   return Err::m_nOK;
 }
@@ -640,23 +757,38 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeCode( m_eNalRefIdc,   2,                              "NALU HEADER: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                              "NALU HEADER: nal_unit_type" ) );
 
-
   //===== slice header =====
-  RNOK(     pcWriteIf->writeUvlc( m_uiFirstMbInSlice,                           "SH: first_mb_in_slice" ) );
+  UInt uiFirstMbInSlice = getFirstMbInSlice();
+  if ( !getSPS().getFrameMbsOnlyFlag() && getSPS().getMbAdaptiveFrameFieldFlag() && !getFieldPicFlag())
+  {
+    uiFirstMbInSlice >>=1;
+  }
+  
+  //===== slice header =====
+  RNOK(     pcWriteIf->writeUvlc( uiFirstMbInSlice,                           "SH: first_mb_in_slice" ) );
   RNOK(     pcWriteIf->writeUvlc( m_eSliceType,                                 "SH: slice_type" ) );
   RNOK(     pcWriteIf->writeUvlc( m_uiPicParameterSetId,                        "SH: pic_parameter_set_id" ) );
-  RNOK(     pcWriteIf->writeCode( m_uiFrameNum,
-                                  getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
+  RNOK(     pcWriteIf->writeCode( m_uiFrameNum, getSPS().getLog2MaxFrameNum(),  "SH: frame_num" ) );
+
+  if( ! getSPS().getFrameMbsOnlyFlag())
+  {
+    RNOK( pcWriteIf->writeFlag( getFieldPicFlag(),                              "SH: field_pic_flag" ) );
+    if( getFieldPicFlag() )
+    {
+      RNOK( pcWriteIf->writeFlag( getBottomFieldFlag(),                         "SH: bottom_field_flag" ) );
+    }
+  }
+
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
   {
     RNOK(   pcWriteIf->writeUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
-
-  if( getSPS().getPicOrderCntType() == 0 )
+  
+  if( 0 == getSPS().getPicOrderCntType() )
   {
   RNOK(     pcWriteIf->writeCode( m_uiPicOrderCntLsb,
                                   getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() && ! m_bFieldPicFlag )
     {
       RNOK( pcWriteIf->writeSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
     }
@@ -664,7 +796,7 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
   if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
   {
     RNOK(   pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() && ! m_bFieldPicFlag )
     {
       RNOK( pcWriteIf->writeSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
@@ -675,7 +807,7 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
     RNOK( pcWriteIf->writeUvlc( m_uiRedundantPicCnt,                            "SH: redundant_pic_cnt") );
   }
   //JVT-Q054 Red. Picture }
-
+  
   if( m_eSliceType == B_SLICE )
   {
     RNOK(   pcWriteIf->writeFlag( m_bDirectSpatialMvPredFlag,                   "SH: direct_spatial_mv_pred_flag" ) );
@@ -740,14 +872,14 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
 
 
   RNOK( pcWriteIf->writeSvlc( m_iSliceQpDelta,                                  "SH: slice_qp_delta" ) );
-
+  
   if( getPPS().getDeblockingFilterParametersPresentFlag() )
   {
     RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().write( pcWriteIf ) );
   }
 
   if(getPPS().getNumSliceGroupsMinus1()>0 && getPPS().getSliceGroupMapType() >=3 && getPPS().getSliceGroupMapType() <= 5)
-  {
+  {    
     RNOK(     pcWriteIf->writeCode( m_uiSliceGroupChangeCycle, getPPS().getLog2MaxSliceGroupChangeCycle(getSPS().getMbInFrame()) ,                "SH: slice_group_change_cycle" ) );
   }
 
@@ -760,9 +892,11 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
 ErrVal
 SliceHeaderBase::read( HeaderSymbolReadIf* pcReadIf )
 {
-  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
+  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || 
       m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE       )
   {
+      m_pcReadIf = pcReadIf; // TMM_INTERLACE
+
     return xReadScalable          ( pcReadIf );
   }
   else
@@ -772,6 +906,21 @@ SliceHeaderBase::read( HeaderSymbolReadIf* pcReadIf )
 }
 
 
+ErrVal
+SliceHeaderBase::ReadLastBit( )
+{
+  if (m_eSliceType != F_SLICE )
+  {
+    m_bBaseFrameFromBotFieldFlag = m_bBaseBotFieldSyncFlag = false;
+    if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() && m_bBaseFrameMbsOnlyFlag )  // will consider base-layer flags later
+      RNOK( m_pcReadIf->getFlag( m_bBaseFrameFromBotFieldFlag,                 "SH: base_frame_from_bot_field_coincided_flag" ) );
+    
+    if( getSPS().getFrameMbsOnlyFlag() && !m_bBaseFrameMbsOnlyFlag && !m_bBaseFieldPicFlag)  // will consider base-layer flags later
+      RNOK( m_pcReadIf->getFlag( m_bBaseBotFieldSyncFlag,                      "SH: base_bot_field_coincided_flag" ) );
+  }
+  
+  return Err::m_nOK;
+}
 
 ErrVal
 SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
@@ -780,24 +929,35 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
+
+  if( ! getSPS().getFrameMbsOnlyFlag() )
+  {
+    RNOKS(  pcReadIf->getFlag( m_bFieldPicFlag,                              "SH: field_pic_flag" ) );
+    if( m_bFieldPicFlag )
+    {
+      RNOKS(pcReadIf->getFlag( m_bBottomFieldFlag,                           "SH: bottom_field_flag" ) );
+    }
+  }
+
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
   {
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
-
-  if( getSPS().getPicOrderCntType() == 0 )
+  
+  if( 0 == getSPS().getPicOrderCntType() )
   {
   RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
                                getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() && ! m_bFieldPicFlag )
     {
       RNOK( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
     }
   }
-  if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
+
+  if( (1 == getSPS().getPicOrderCntType()) && ( ! getSPS().getDeltaPicOrderAlwaysZeroFlag()))
   {
-    RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true ! field_pic_flag */ )
+     RNOKS( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[LIST_0],                 "SH: delta_pic_order_cnt[0]" ) );
+     if (getPPS().getPicOrderPresentFlag() && (!m_bFieldPicFlag))
     {
       RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
@@ -811,7 +971,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   {
     RNOK(   pcReadIf->getFlag( m_bDirectSpatialMvPredFlag,                   "SH: direct_spatial_mv_pred_flag" ) );
   }
-
+  
   if( m_eSliceType != F_SLICE )
   {
     if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
@@ -850,10 +1010,10 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       RNOK(   pcReadIf->getUvlc( m_uiBaseLayerId,                            "SH: base_id" ) );
       m_uiBaseFragmentOrder = m_uiBaseLayerId & 0x03;
       m_uiBaseQualityLevel = (m_uiBaseLayerId >> 2) & 0x03;
-      m_uiBaseLayerId = m_uiBaseLayerId >> 4;
+	    m_uiBaseLayerId = m_uiBaseLayerId >> 4;
 
       RNOK( pcReadIf->getFlag( m_bAdaptivePredictionFlag,                    "SH: adaptive_prediction_flag" ) );
-      // JVT-U160 LMI {
+     // JVT-U160 LMI {
       if ( !m_bAdaptivePredictionFlag ) 
       {
           RNOK( pcReadIf->getFlag( m_bDefaultBaseModeFlag,                    "SH: default_base_mode_flag" ) );
@@ -874,7 +1034,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       m_uiBaseLayerId       = MSYS_UINT_MAX;
       m_bAdaptivePredictionFlag = 0;
     }
-
+ 
     if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
         ( getPPS().getWeightedBiPredIdc() == 1 && ( m_eSliceType == B_SLICE ) ) )
     {
@@ -916,16 +1076,16 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
           RNOK( getMmcoBuffer().read( pcReadIf ) );
         }
       }
-  //JVT-S036 lsj start
-    if( m_bUseBasePredictionFlag && getNalUnitType() != NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
-    {
-      RNOK(pcReadIf->getFlag( m_bAdaptiveRefPicMarkingModeFlag,      "DRPM: adaptive_ref_pic_marking_mode_flag"));
-      if(m_bAdaptiveRefPicMarkingModeFlag)
-      {
-        RNOK( getMmcoBaseBuffer().read( pcReadIf ) );
-      }
-    }
-  //JVT-S036 lsj end
+	//JVT-S036 lsj start
+	  if( m_bUseBasePredictionFlag && getNalUnitType() != NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+	  {
+		  RNOK(pcReadIf->getFlag( m_bAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
+		  if(m_bAdaptiveRefPicMarkingModeFlag)
+		  {
+			  RNOK( getMmcoBaseBuffer().read( pcReadIf ) );
+		  }		  
+	  }
+	//JVT-S036 lsj end
     }
 
     if( getPPS().getEntropyCodingModeFlag() && m_eSliceType != I_SLICE )
@@ -955,9 +1115,9 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   UInt uiSliceGroupChangeCycle;
   if( getPPS().getNumSliceGroupsMinus1()> 0  && getPPS().getSliceGroupMapType() >= 3  &&  getPPS().getSliceGroupMapType() <= 5)
   {
-    UInt pictureSizeInMB = getSPS().getFrameHeightInMbs()*getSPS().getFrameWidthInMbs();
-    RNOK(     pcReadIf->getCode( uiSliceGroupChangeCycle, getLog2MaxSliceGroupChangeCycle(pictureSizeInMB), "SH: slice_group_change_cycle" ) );
-    setSliceGroupChangeCycle(uiSliceGroupChangeCycle);
+	  UInt pictureSizeInMB = getSPS().getFrameHeightInMbs()*getSPS().getFrameWidthInMbs();
+	  RNOK(     pcReadIf->getCode( uiSliceGroupChangeCycle, getLog2MaxSliceGroupChangeCycle(pictureSizeInMB), "SH: slice_group_change_cycle" ) ); 
+	  setSliceGroupChangeCycle(uiSliceGroupChangeCycle);
   }
 
 // TMM_ESS {
@@ -971,10 +1131,13 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 
     if (getSPS().getExtendedSpatialScalability() == ESS_PICT)
     {
+      Int iYScale = 2 - getSPS().getFrameMbsOnlyFlag();
       RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                          "SH: ScaledBaseLeftOffset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                           "SH: ScaledBaseTopOffset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                         "SH: ScaledBaseRightOffset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                        "SH: ScaledBaseBottomOffset" ) );
+      m_iScaledBaseTopOffset    *= iYScale;
+      m_iScaledBaseBottomOffset *= iYScale;
     }
   }
 // TMM_ESS }
@@ -986,9 +1149,9 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     RNOK( pcReadIf    ->getFlag( m_bFgsComponentSep,                          "SH: luma_chroma_sep_flag" ) );
     if ( m_bUseBasePredictionFlag )
     {
-      RNOK( pcReadIf->getFlag( m_bStoreBaseRepresentationFlag,              "SH: store_base_rep_flag" ) );
+	  RNOK( pcReadIf    ->getFlag( m_bStoreBaseRepresentationFlag,              "SH: store_base_rep_flag" ) );
       RNOK( pcReadIf->getFlag( m_bArFgsUsageFlag,                             "SH: adaptive_ref_fgs_flag" ) );
-    if( m_bArFgsUsageFlag )
+    if( m_bArFgsUsageFlag ) 
     {
       // send other information conditionally
       RNOK( pcReadIf->getCode( m_uiBaseWeightZeroBaseBlock, 5,                "SH: base_ref_weight_for_zero_base_block" ) );
@@ -1049,30 +1212,43 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 ErrVal
 SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
 {
+  const Bool bL0InfoPresent = ! ( m_eSliceType == I_SLICE );
+  const Bool bL1InfoPresent =  m_eSliceType == B_SLICE;
   Bool  bTmp;
-
+ 
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
+	ROT( isIdrNalUnit() && (0 != m_uiFrameNum) );
+
+	if( ! getSPS().getFrameMbsOnlyFlag() )
+  {
+    RNOKS(   pcReadIf->getFlag( m_bFieldPicFlag,                             "SH: field_pic_flag" ) );
+    if( m_bFieldPicFlag )
+    {
+      RNOKS( pcReadIf->getFlag( m_bBottomFieldFlag,                          "SH: bottom_field_flag" ) );
+    }
+  }
+
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
   {
     RNOK(   pcReadIf->getUvlc( m_uiIdrPicId,                                 "SH: idr_pic_id" ) );
   }
-
-  if( getSPS().getPicOrderCntType() == 0 )
+  
+  if( 0 == getSPS().getPicOrderCntType() )
   {
   RNOK(     pcReadIf->getCode( m_uiPicOrderCntLsb,
                                getSPS().getLog2MaxPicOrderCntLsb(),          "SH: pic_order_cnt_lsb" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true  ! field_pic_flag */ )
+    if( getPPS().getPicOrderPresentFlag() && ! m_bFieldPicFlag )
     {
       RNOK( pcReadIf->getSvlc( m_iDeltaPicOrderCntBottom,                    "SH: delta_pic_order_cnt_bottom" ) );
     }
   }
   if( getSPS().getPicOrderCntType() == 1 && ! getSPS().getDeltaPicOrderAlwaysZeroFlag() )
   {
-    RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[0],                      "SH: delta_pic_order_cnt[0]" ) );
-    if( getPPS().getPicOrderPresentFlag() /*&& true ! field_pic_flag */ )
+    RNOK(   pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[LIST_0],                      "SH: delta_pic_order_cnt[0]" ) );
+    if( getPPS().getPicOrderPresentFlag() && ! m_bFieldPicFlag )
   {
-      RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[1],                      "SH: delta_pic_order_cnt[1]" ) );
+      RNOK( pcReadIf->getSvlc( m_aiDeltaPicOrderCnt[LIST_1],                      "SH: delta_pic_order_cnt[1]" ) );
     }
   }
   //JVT-Q054 Red. Picture {
@@ -1081,20 +1257,20 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
     RNOK( pcReadIf->getUvlc( m_uiRedundantPicCnt,                            "SH: redundant_pic_cnt") );
   }
   //JVT-Q054 Red. Picture }
-
-  if( m_eSliceType == B_SLICE )
+  
+	if( bL1InfoPresent )
   {
     RNOK(   pcReadIf->getFlag( m_bDirectSpatialMvPredFlag,                   "SH: direct_spatial_mv_pred_flag" ) );
   }
 
-  if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
+	if( bL0InfoPresent )
   {
     RNOK( pcReadIf->getFlag( m_bNumRefIdxActiveOverrideFlag,                 "SH: num_ref_idx_active_override_flag" ) );
     if( m_bNumRefIdxActiveOverrideFlag )
     {
       RNOK( pcReadIf->getUvlc( m_auiNumRefIdxActive[LIST_0],                 "SH: num_ref_idx_l0_active_minus1" ) );
       m_auiNumRefIdxActive[LIST_0]++;
-      if( m_eSliceType == B_SLICE )
+	    if( bL1InfoPresent )
       {
         RNOK( pcReadIf->getUvlc( m_auiNumRefIdxActive[LIST_1],               "SH: num_ref_idx_l1_active_minus1" ) );
         m_auiNumRefIdxActive[LIST_1]++;
@@ -1102,11 +1278,12 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
     }
   }
 
-  if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
+	if( bL0InfoPresent )
   {
     RNOK( getRplrBuffer( LIST_0 ).read( pcReadIf, getNumRefIdxActive( LIST_0 ) ) );
   }
-  if( m_eSliceType == B_SLICE )
+
+	if( bL1InfoPresent )
   {
     RNOK( getRplrBuffer( LIST_1 ).read( pcReadIf, getNumRefIdxActive( LIST_1 ) ) );
   }
@@ -1149,29 +1326,29 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
     }
   }
 
-  if( getPPS().getEntropyCodingModeFlag() && m_eSliceType != I_SLICE )
+	if( getPPS().getEntropyCodingModeFlag() && bL0InfoPresent )
   {
     RNOK( pcReadIf->getUvlc( m_uiCabacInitIdc,                               "SH: cabac_init_idc" ) );
   }
 
 
   RNOK( pcReadIf->getSvlc( m_iSliceQpDelta,                                  "SH: slice_qp_delta" ) );
-
+  
   if( getPPS().getDeblockingFilterParametersPresentFlag() )
   {
-    RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().read( pcReadIf ) );
+      RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().read( pcReadIf ) );
   }
 
   //--ICU/ETRI FMO Implementation
   UInt uiSliceGroupChangeCycle;
   if( getPPS().getNumSliceGroupsMinus1()> 0  && getPPS().getSliceGroupMapType() >= 3  &&  getPPS().getSliceGroupMapType() <= 5)
   {
-    UInt pictureSizeInMB = getSPS().getFrameHeightInMbs()*getSPS().getFrameWidthInMbs();
+	  UInt pictureSizeInMB = getSPS().getFrameHeightInMbs()*getSPS().getFrameWidthInMbs();
 
-    RNOK(     pcReadIf->getCode( uiSliceGroupChangeCycle, getLog2MaxSliceGroupChangeCycle(pictureSizeInMB), "SH: slice_group_change_cycle" ) );
-
-
-    setSliceGroupChangeCycle(uiSliceGroupChangeCycle);
+	  RNOK(     pcReadIf->getCode( uiSliceGroupChangeCycle, getLog2MaxSliceGroupChangeCycle(pictureSizeInMB), "SH: slice_group_change_cycle" ) );
+ 
+	   
+	  setSliceGroupChangeCycle(uiSliceGroupChangeCycle);
   }
 
   return Err::m_nOK;
@@ -1213,66 +1390,68 @@ SliceHeaderBase::DeblockingFilterParameter::read( HeaderSymbolReadIf* pcReadIf )
 
 
 //--ICU/ETRI FMO Implementation
-ErrVal
+ErrVal 
 SliceHeaderBase::FMOInit()
 {
-
-  if(m_pcFMO == NULL)
-    m_pcFMO = new FMO();
-  else
-  {
+		
+	if(m_pcFMO == NULL)
+		m_pcFMO = new FMO();
+	else
+	{
     //manu.mathew@samsung : memory leak fix
-    if( m_pcFMO )
+    if( m_pcFMO ) 
     {
-      delete m_pcFMO; m_pcFMO = NULL;
+      delete m_pcFMO; m_pcFMO = NULL; 
     }
     //--
-    m_pcFMO = new FMO();
-  }
+		m_pcFMO = new FMO();
+	}
 
-  const SequenceParameterSet* pcSPS = &(getSPS());
-  const PictureParameterSet* pcPPS = &(getPPS());
+	const SequenceParameterSet* pcSPS = &(getSPS());
+	const PictureParameterSet* pcPPS = &(getPPS());
 
-  m_pcFMO->img_.field_pic_flag = false;  //interlaced TODO
+//TMM_INTERLACE {
+  m_pcFMO->sps_.frame_mbs_only_flag            = pcSPS->getFrameMbsOnlyFlag(); 
+	m_pcFMO->sps_.mb_adaptive_frame_field_flag   = pcSPS->getMbAdaptiveFrameFieldFlag(); 
+  m_pcFMO->sps_.pic_height_in_map_units_minus1 = (pcSPS->getFrameMbsOnlyFlag()?pcSPS->getFrameHeightInMbs(): pcSPS->getFrameHeightInMbs()>>1)  -1;
+	m_pcFMO->sps_.pic_width_in_mbs_minus1        =  pcSPS->getFrameWidthInMbs()-1;
 
   m_pcFMO->pps_.num_slice_groups_minus1 = pcPPS->getNumSliceGroupsMinus1();
-  m_pcFMO->pps_.slice_group_map_type = pcPPS->getSliceGroupMapType();
-  m_pcFMO->img_.PicHeightInMapUnits = pcSPS->getFrameHeightInMbs();
-  m_pcFMO->img_.PicWidthInMbs = pcSPS->getFrameWidthInMbs();
-  m_pcFMO->img_.PicSizeInMbs = pcSPS->getFrameHeightInMbs()*pcSPS->getFrameWidthInMbs();
-  m_pcFMO->img_.slice_group_change_cycle = getSliceGroupChangeCycle();
-  m_pcFMO->pps_.num_slice_group_map_units_minus1 = pcPPS->getNumSliceGroupMapUnitsMinus1();
-  m_pcFMO->pps_.copy_run_length_minus1(pcPPS->getArrayRunLengthMinus1());
-  m_pcFMO->pps_.copy_top_left(pcPPS->getArrayTopLeft());
-  m_pcFMO->pps_.copy_bottom_right(pcPPS->getArrayBottomRight());
-  m_pcFMO->pps_.slice_group_change_direction_flag = pcPPS->getSliceGroupChangeDirection_flag();
-  m_pcFMO->pps_.slice_group_change_rate_minus1 = pcPPS->getSliceGroupChangeRateMinus1();
-  m_pcFMO->pps_.copy_slice_group_id(pcPPS->getArraySliceGroupId());
+	m_pcFMO->pps_.slice_group_map_type    = pcPPS->getSliceGroupMapType();
+  m_pcFMO->pps_.num_slice_group_map_units_minus1 = pcPPS->getNumSliceGroupMapUnitsMinus1();	  
+	m_pcFMO->pps_.copy_run_length_minus1(pcPPS->getArrayRunLengthMinus1());
+	m_pcFMO->pps_.copy_top_left(pcPPS->getArrayTopLeft());
+	m_pcFMO->pps_.copy_bottom_right(pcPPS->getArrayBottomRight());
+	m_pcFMO->pps_.slice_group_change_direction_flag = pcPPS->getSliceGroupChangeDirection_flag();
+	m_pcFMO->pps_.slice_group_change_rate_minus1    = pcPPS->getSliceGroupChangeRateMinus1();
+	m_pcFMO->pps_.copy_slice_group_id(pcPPS->getArraySliceGroupId());
 
-  m_pcFMO->sps_.pic_height_in_map_units_minus1 =pcSPS->getFrameHeightInMbs()-1;
-  m_pcFMO->sps_.pic_width_in_mbs_minus1 = pcSPS->getFrameWidthInMbs()-1;
-  m_pcFMO->sps_.frame_mbs_only_flag = 1; // interlaced TODO
-  m_pcFMO->sps_.mb_adaptive_frame_field_flag = 0; //
+	m_pcFMO->img_.field_pic_flag      = getFieldPicFlag();
+  m_pcFMO->img_.PicHeightInMapUnits = m_pcFMO->sps_.pic_height_in_map_units_minus1 + 1; 
+	m_pcFMO->img_.PicWidthInMbs       = pcSPS->getFrameWidthInMbs();
+	m_pcFMO->img_.PicSizeInMbs        = (pcSPS->getFrameHeightInMbs()>> (UChar)getFieldPicFlag())*pcSPS->getFrameWidthInMbs();
+	m_pcFMO->img_.slice_group_change_cycle = getSliceGroupChangeCycle();
+ //TMM_INTERLACE }
 
-  m_pcFMO->init(&(m_pcFMO->pps_),&(m_pcFMO->sps_));
+	m_pcFMO->init(&(m_pcFMO->pps_),&(m_pcFMO->sps_));
 
-  m_pcFMO->StartPicture();
+	m_pcFMO->StartPicture();
 
-  return Err::m_nOK;
+	return Err::m_nOK;
 }
 
 Int SliceHeaderBase::getNumMbInSlice()
-{
-  Int SliceID =m_pcFMO->getSliceGroupId(getFirstMbInSlice());
-  return m_pcFMO->getNumMbInSliceGroup(SliceID);
+{  
+	Int SliceID =m_pcFMO->getSliceGroupId(getFirstMbInSlice());
+	return m_pcFMO->getNumMbInSliceGroup(SliceID);
 }
 
 
 
 //TMM_WP
-ErrVal SliceHeaderBase::PredWeight::setPredWeightsAndFlags( const Int iLumaScale,
-                                                            const Int iChromaScale,
-                                                            const Double *pfWeight,
+ErrVal SliceHeaderBase::PredWeight::setPredWeightsAndFlags( const Int iLumaScale, 
+                                                            const Int iChromaScale, 
+                                                            const Double *pfWeight, 
                                                             Double fDiscardThr )
 {
   const Double *pW = pfWeight;
@@ -1291,11 +1470,11 @@ ErrVal SliceHeaderBase::PredWeight::setPredWeightsAndFlags( const Int iLumaScale
 }
 
 ErrVal SliceHeaderBase::PredWeight::getPredWeights( Double *afWeight)
-{
+{    
     afWeight[0] = (Double) getLumaWeight();
     afWeight[1] = (Double) getChromaWeight(0);
     afWeight[2] = (Double) getChromaWeight(1);
-
+    
     return Err::m_nOK;
 }
 
@@ -1318,7 +1497,7 @@ ErrVal SliceHeaderBase::copyWeightedPred(PredWeightTable& pcPredWeightTable, UIn
     Int iLumaScale = 1 << uiLumaLogWeightDenom;
     Int iChromaScale = 1 << uiChromaWeightDenom;
     Double afWeights[3];
-    /* Disable this for now since offsets are not supported for SVC. Enabling this will result in mismatch*/
+    /* Disable this for now since offsets are not supported for SVC. Enabling this will result in mismatch*/ 
     //Double afOffsets[3];
 
     if(!bDecoder)
@@ -1326,13 +1505,13 @@ ErrVal SliceHeaderBase::copyWeightedPred(PredWeightTable& pcPredWeightTable, UIn
         RNOK( getPredWeightTable(eListIdx).uninit() );
         RNOK( getPredWeightTable(eListIdx).init( getNumRefIdxActive( eListIdx) ) );
     }
-
+        
     for( UInt n = 0; n < pcPredWeightTable.size(); n++ )
     {
         RNOK( pcPredWeightTable.get(n).getPredWeights( afWeights) );
         m_acPredWeightTable[eListIdx].get(n).setPredWeightsAndFlags( iLumaScale, iChromaScale, afWeights, false );
 
-        /* Disable this for now since offsets are not supported for SVC. Enabling this will result in mismatch*/
+        /* Disable this for now since offsets are not supported for SVC. Enabling this will result in mismatch*/ 
 //        RNOK( pcPredWeightTable.get(n).getOffsets( afOffsets) );
 //        m_acPredWeightTable[eListIdx].get(n).setOffsets(afOffsets);
     }
@@ -1357,11 +1536,11 @@ ErrVal SliceHeaderBase::PredWeight::setOffsets( const Double *pfOffsets)
 }
 
 ErrVal SliceHeaderBase::PredWeight::getOffsets( Double *afOffset)
-{
+{    
     afOffset[0] = (Double) getLumaOffset();
     afOffset[1] = (Double) getChromaOffset(0);
     afOffset[2] = (Double) getChromaOffset(1);
-
+    
     return Err::m_nOK;
 }
 

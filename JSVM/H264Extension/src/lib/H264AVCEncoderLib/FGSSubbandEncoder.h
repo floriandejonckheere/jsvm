@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -112,7 +112,7 @@ class MbEncoder;
 #define TWSOF(x)  { if(!x) { xThrowWriteStop(); } }
 
 
-class RQFGSEncoder
+class RQFGSEncoder  
   : public FGSCoder
 {
 private:
@@ -126,8 +126,8 @@ private:
   }
 
 protected:
-  RQFGSEncoder         ();
-  virtual ~RQFGSEncoder();
+	RQFGSEncoder         ();
+	virtual ~RQFGSEncoder();
 
 public:
   static ErrVal     create                ( RQFGSEncoder*&              rpcFGSSubbandEncoder );
@@ -170,9 +170,9 @@ public:
                                             UInt                        uiFrac,
                                             Bool                        bFragmented,
                                             FILE*                       pFile ); //JVT-P031
-  ErrVal            reconstruct           ( IntFrame*                   pcRecResidual );
+ 
   ErrVal            finishPicture         ();
-
+  
   ErrVal            setNewOriginalResidual( IntFrame                    *pcNewOriginalResidual )
   {
     m_pcOrgResidual = pcNewOriginalResidual;
@@ -184,16 +184,18 @@ public:
   ErrVal            updateQP(Bool&  rbCorrupted, Bool& rbFinished, Bool bFragmented, UInt uiFrac, Bool isLastSlice);
   ErrVal            setSliceGroup(Int iSliceGroupID);
   ErrVal            prepareEncode(UInt uiFrac, UInt uiFracNb);
-
+  
 private:
   ErrVal            xVLCParseLuma         ( UInt   uiBlockYIndex,
                                             UInt   uiBlockXIndex,
                                             UInt*  pauiNumCoefHist,
-                                            UInt*  pauiHighMagHist);
+                                            UInt*  pauiHighMagHist,
+                                            Bool   bFrame);
   ErrVal            xVLCParseChromaAC     ( UInt   uiPlane,
                                             UInt   uiBlockYIndex,
                                             UInt   uiBlockXIndex,
-                                            UInt*  pauiNumCoefHist);
+                                            UInt*  pauiNumCoefHist,
+                                            Bool   bFrame);
 
   ErrVal            xSetSymbolsChroma     ( TCoeff*                     piCoeff,
                                             UInt                        uiMbX,
@@ -202,25 +204,27 @@ private:
                                             UInt&                       uiCoeffCostAC,
                                             Bool&                       bSigDC,
                                             Bool&                       bSigAC,
-                                            ChromaIdx                   cIdx );
+                                            ChromaIdx                   cIdx,
+                                            Bool                        bFrame );
   ErrVal            xSetSymbols4x4        ( TCoeff*                     piCoeff,
                                             UInt                        uiMbX,
                                             UInt                        uiMbY,
                                             UInt&                       uiCoeffCost,
                                             UInt&                       ruiCbp,
-                                            const S4x4Idx&              rcIdx,
-                                            UInt                        uiStart );
+                                            const S4x4Idx&              cIdx,
+                                            UInt                        uiStart,
+                                            Bool                        bFrame );
   ErrVal            xSetSymbols8x8        ( TCoeff*                     piCoeff,
                                             UInt                        uiMbX,
                                             UInt                        uiMbY,
                                             UInt&                       uiCoeffCost,
                                             UInt&                       ruiCbp,
-                                            B8x8Idx                     cIdx );
+                                            B8x8Idx                     cIdx,
+                                            Bool                        bFrame );
+
 
   ErrVal            xRequantizeMacroblock ( MbDataAccess&               rcMbDataAccess,
                                             MbDataAccess&               rcMbDataAccessBL );
-
-  ErrVal            xScaleBaseLayerCoeffs ();
   ErrVal            xResidualTransform    ();
 
   ErrVal            xMotionEstimation     ();
@@ -254,35 +258,37 @@ private:
                                             UInt                        uiLastMbY,
                                             UInt&                       ruiChromaCbpBitCount);
 
-  ErrVal            xEncodingFGS                  ( Bool&               rbFinished,
-                                                    Bool&               rbCorrupted,
-                                                    UInt                uiMaxBits,
+  ErrVal            xEncodingFGS                  ( Bool&               rbFinished, 
+                                                    Bool&               rbCorrupted, 
+                                                    UInt                uiMaxBits, 
                                                     UInt*               puiPDFragBits,
                                                     UInt&               ruiNumPDFrags,
-                                                    UInt                uiFracNb,
+                                                    UInt                uiFracNb, 
                                                     FILE*               pFile ); //JVT-P031
-  ErrVal            xEncodeNewCoefficientLuma    ( MbDataAccess        *pcMbDataAccessBL,
+  ErrVal            xEncodeNewCoefficientLuma     ( MbDataAccess        *pcMbDataAccessBL,
                                                    MbDataAccess        *pcMbDataAccessEL,
                                                    MbFGSCoefMap        &rcMbFGSCoefMap,
-                                                   const S4x4Idx       &rcIdx );
+                                                   const S4x4Idx       &rcIdx,
+                                                    Bool                bFrame  );
   ErrVal            xEncodeNewCoefficientChromaDC ( MbDataAccess       *pcMbDataAccessBL,
                                                     MbDataAccess       *pcMbDataAccessEL,
                                                     MbFGSCoefMap       &rcMbFGSCoefMap,
                                                     const CPlaneIdx    &rcCPlaneIdx,
                                                     Int&                riLastQp,
                                                     UInt                uiChromaScanIndex );
-  ErrVal            xEncodeNewCoefficientChromaAC ( MbDataAccess *pcMbDataAccessBL,
-                                                    MbDataAccess *pcMbDataAccessEL,
-                                                    MbFGSCoefMap &rcMbFGSCoefMap,
-                                                    const CIdx   &rcCIdx,
+  ErrVal            xEncodeNewCoefficientChromaAC ( MbDataAccess       *pcMbDataAccessBL,
+                                                    MbDataAccess       *pcMbDataAccessEL,
+                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
+                                                    const CIdx         &rcCIdx,
                                                     Int&                riLastQp,
-                                                    UInt                uiChromaScanIndex );
-
+                                                    UInt                uiChromaScanIndex,
+                                                    Bool                bFrame  );// TMM_INTERLACE
+  
   ErrVal            xEncodeCoefficientLumaRef     ( MbDataAccess       *pcMbDataAccessBL,
                                                     MbDataAccess       *pcMbDataAccessEL,
                                                     MbFGSCoefMap       &rcMbFGSCoefMap,
                                                     const S4x4Idx      &rcIdx,
-                                                    UInt                uiScanIndex );
+                                                    UInt                uiScanIndex);
   ErrVal            xEncodeCoefficientChromaDCRef ( MbDataAccess       *pcMbDataAccessBL,
                                                     MbDataAccess       *pcMbDataAccessEL,
                                                     MbFGSCoefMap       &rcMbFGSCoefMap,
@@ -295,7 +301,8 @@ private:
                                                     UInt                uiScanIdx );
   ErrVal            xPrescanCoefficientLumaRef    ( UInt                uiBlockYIndex,
                                                     UInt                uiBlockXIndex,
-                                                    UInt                uiScanIndex );
+                                                    UInt                uiScanIndex ,
+                                                    Bool                bFrame  );// TMM_INTERLACE
   ErrVal            xPrescanCoefficientChromaDCRef( UInt                uiPlane,
                                                     UInt                uiMbYIdx,
                                                     UInt                uiMbXIdx,
@@ -358,7 +365,6 @@ private:
   Int               m_iRemainingTCoeff;
   Double            m_dLambda;
   Int               m_iMaxQpDelta;
-  SliceHeader*      m_pcSliceHeader;
   SliceType         m_eSliceType;
   UInt              m_uiFirstMbInSlice;
   UInt              m_uiNumMbsInSlice;
@@ -366,7 +372,7 @@ private:
   IntFrame*         m_pcOrgResidual;
   UInt              m_auiScanPosVectLuma    [16];
   UInt              m_auiScanPosVectChromaDC[ 4];
-
+  
   Bool              m_bTraceEnable;
 
   //JVT-P031
@@ -386,7 +392,7 @@ private:
   UInt              m_uiBitsLast;
   UInt              m_uiFGSPart;
   Int               m_iLastQP;
-  Bool              m_bUseDiscardableUnit;
+  Bool              m_bUseDiscardableUnit;   
   MbTransformCoeffs ** m_aMyELTransformCoefs;
   MbTransformCoeffs ** m_aMyBLTransformCoefs;
   UInt              * m_auiMbCbpStored;

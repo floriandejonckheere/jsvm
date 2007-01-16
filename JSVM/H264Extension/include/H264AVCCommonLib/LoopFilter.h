@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -137,15 +137,15 @@ public:
   static const AlphaClip g_acAlphaClip[52]; // leszek
 
 protected:
-  LoopFilter();
-  virtual ~LoopFilter();
+	LoopFilter();
+	virtual ~LoopFilter();
 
 public:
   static ErrVal create( LoopFilter*& rpcLoopFilter );
   ErrVal destroy();
 
-  ErrVal process        ( SliceHeader& rcSH, IntYuvPicBuffer* pcIntYuvPicBuffer = NULL, IntYuvPicBuffer* pcHighpassYuvBuffer = NULL
-              , bool bAllSliceDone = false);
+  ErrVal process        ( SliceHeader& rcSH, IntFrame* pcIntFrame = NULL/*, IntYuvPicBuffer* pcHighpassYuvBuffer = NULL,*/
+							            ,bool  bAllSliceDone= false);
   ErrVal process        ( SliceHeader&        rcSH,
                           IntFrame*           pcFrame,
                           MbDataCtrl*         pcMbDataCtrlMot,
@@ -153,7 +153,7 @@ public:
                           UInt                uiMbInRow,
                           RefFrameList*       pcRefFrameList0,
                           RefFrameList*       pcRefFrameList1,
-              bool          bAllSliceDone,
+						  bool				  bAllSliceDone,
                           bool                spatial_scalable_flg);  // SSUN@SHARP
 
   ErrVal init( ControlMngIf*          pcControlMngIf,
@@ -171,6 +171,23 @@ private:
   UChar xCheckMvDataP( const MbData& rcQMbData, const LumaIdx cQIdx, const MbData& rcPMbData, const LumaIdx cPIdx, const Short sHorMvThr, const Short sVerMvThr );
 
   __inline ErrVal xFilterMb( const MbDataAccess& rcMbDataAccess );
+  __inline ErrVal xFilterMbFast( const MbDataAccess& rcMbDataAccess );
+	ErrVal xGetFilterStrengthFast( const MbDataAccess& rcMbDataAccess, const Int iFilterIdc );
+  __inline UInt xGetHorFilterStrengthFast( const MbData& rcMbDataCurr,
+		                                       const MbData& rcMbDataAbove,
+																					 LumaIdx       cIdx,
+																					 Bool          bAboveIntra,
+																					 Bool          bCheckMv,
+																					 Bool          bCoded,
+																					 const Short   sVerMvThr,
+																					 Int           iIntraStrength);
+  __inline UInt xGetVerFilterStrengthFast( const MbData& rcMbDataCurr,
+		                                       const MbData& rcMbDataLeft,
+																					 LumaIdx       cIdx,
+																					 Bool          bLeftIntra,
+																					 Bool          bCheckMv,
+																					 Bool          bCoded,
+																					 const Short   sVerMvThr);
 
   __inline Void xFilter( Pel* pFlt, const Int& iOffset, const Int& iIndexA, const Int& iIndexB, const UChar& ucBs, const Bool& bLum );
 
@@ -188,13 +205,13 @@ private:
                                                   const Int&          iIndexB,
                                                   const UChar&        ucBs,
                                                   const Bool&         bLum );
-  __inline ErrVal xFilterMb                     ( const MbDataAccess* rcMbDataAccessMot,
-                                                  const MbDataAccess* rcMbDataAccessRes,
+  __inline ErrVal xFilterMb                     ( MbDataAccess* rcMbDataAccessMot,
+                                                  MbDataAccess* rcMbDataAccessRes,
                                                   IntYuvPicBuffer*    pcYuvBuffer,
                                                   RefFrameList*       pcRefFrameList0,
                                                   RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg);  // SSUN@SHARP
-
+                                                  bool                spatial_scalable_flg);
+  
   __inline ErrVal xLumaHorFiltering             ( const MbDataAccess& rcMbDataAccessRes,
                                                   const DFP&          rcDFP,
                                                   IntYuvPicBuffer*    pcYuvBuffer );
@@ -214,7 +231,8 @@ private:
                                                   const LumaIdx       cPIdx,
                                                   const Short         sHorMvThr,
                                                   const Short         sVerMvThr,
-                                                  RefFrameList&       rcRefFrameList0 );
+                                                  RefFrameList&       rcRefFrameList0,
+                                                  RefFrameList&       rcRefFrameList1  );
   UChar           xCheckMvDataB_RefIdx          ( const MbData&       rcQMbData,
                                                   const LumaIdx       cQIdx,
                                                   const MbData&       rcPMbData,
@@ -229,14 +247,14 @@ private:
                                                   Int                 iFilterIdc,
                                                   RefFrameList*       pcRefFrameList0,
                                                   RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg);  // SSUN@SHARP
+                                                  bool                spatial_scalable_flg );
   __inline UInt   xGetVerFilterStrength_RefIdx  ( const MbDataAccess* pcMbDataAccessMot,
                                                   const MbDataAccess* pcMbDataAccessRes,
                                                   LumaIdx             cIdx,
                                                   Int                 iFilterIdc,
                                                   RefFrameList*       pcRefFrameList0,
                                                   RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg);  // SSUN@SHARP
+                                                  bool                spatial_scalable_flg );
 
 protected:
   // Hanke@RWTH
@@ -248,9 +266,15 @@ protected:
   ControlMngIf*    m_pcControlMngIf;
   FrameUnit*       m_pcRecFrameUnit;
   UChar            m_aaaucBs[2][4][4];
-  IntYuvPicBuffer* m_pcIntYuvBuffer;
+  IntYuvPicBuffer* m_apcIntYuvBuffer[4];
   LFMode           m_eLFMode;
   ReconstructionBypass*         m_pcReconstructionBypass;
+
+  UChar           m_aucBsHorTop[4];
+  UChar           m_aucBsVerBot[4];
+  Bool            m_bVerMixedMode;
+  Bool            m_bHorMixedMode;
+  Bool            m_bAddEdge;
 
 protected:
 

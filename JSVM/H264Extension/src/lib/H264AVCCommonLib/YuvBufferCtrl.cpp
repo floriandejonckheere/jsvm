@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,17 +71,13 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 ********************************************************************************
 */
-
-
-
-
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/YuvBufferCtrl.h"
@@ -115,7 +111,6 @@ ErrVal YuvBufferCtrl::create( YuvBufferCtrl*& rpcYuvBufferCtrl )
   return Err::m_nOK;
 }
 
-
 ErrVal YuvBufferCtrl::destroy()
 {
   delete this;
@@ -123,29 +118,39 @@ ErrVal YuvBufferCtrl::destroy()
   return Err::m_nOK;
 }
 
-
-
-ErrVal YuvBufferCtrl::initMb( UInt uiMbY, UInt uiMbX )
+ErrVal YuvBufferCtrl::initMb( UInt uiMbY, UInt uiMbX, Bool bMbAff )
 {
   ROF( m_bInitDone );
 
   UInt uiXPos     = (uiMbX<<3) << m_iResolution;
   UInt uiYPos     = (uiMbY<<3) << m_iResolution;
+
+  if( bMbAff )
+  {
+    uiMbY >>= 1;
+  }
+
   UInt uiYPosFld  = (uiMbY<<3) << m_iResolution;
-  Int  iStride    = m_cBufferParam.m_iStride;
+  Int  iStride    = m_acBufferParam[FRAME].m_iStride;
 
-  m_cBufferParam.m_uiCbOffset   = m_uiCbBaseOffset + uiXPos + uiYPos    * iStride / 2;
-  m_cBufferParam.m_uiCrOffset   = m_cBufferParam.m_uiCbOffset + m_uiChromaSize;
+  m_acBufferParam[FRAME]    .m_uiCbOffset = m_uiCbBaseOffset + uiXPos + uiYPos    * iStride / 2;
+  m_acBufferParam[TOP_FIELD].m_uiCbOffset = m_uiCbBaseOffset + uiXPos + uiYPosFld * iStride;
 
+  m_acBufferParam[FRAME]    .m_uiCrOffset = m_acBufferParam[FRAME]    .m_uiCbOffset + m_uiChromaSize;
+  m_acBufferParam[TOP_FIELD].m_uiCrOffset = m_acBufferParam[TOP_FIELD].m_uiCbOffset + m_uiChromaSize;
   uiXPos    <<= 1;
   uiYPos    <<= 1;
   uiYPosFld <<= 1;
 
-  m_cBufferParam.m_uiLumOffset  = m_uiLumBaseOffset + uiXPos + uiYPos    * iStride;
+  m_acBufferParam[FRAME]    .m_uiLumOffset  = m_uiLumBaseOffset + uiXPos + uiYPos    * iStride;
+  m_acBufferParam[TOP_FIELD].m_uiLumOffset  = m_uiLumBaseOffset + uiXPos + uiYPosFld * iStride * 2;
+
+  m_acBufferParam[BOT_FIELD].m_uiLumOffset  = m_acBufferParam[TOP_FIELD].m_uiLumOffset + iStride;
+  m_acBufferParam[BOT_FIELD].m_uiCbOffset   = m_acBufferParam[TOP_FIELD].m_uiCbOffset  + iStride / 2;
+  m_acBufferParam[BOT_FIELD].m_uiCrOffset   = m_acBufferParam[TOP_FIELD].m_uiCrOffset  + iStride / 2;
 
   return Err::m_nOK;
 }
-
 
 ErrVal YuvBufferCtrl::initSlice( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMarginSize, UInt uiXMarginSize, UInt uiResolution )
 {
@@ -156,7 +161,6 @@ ErrVal YuvBufferCtrl::initSlice( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYM
   ROT( 2 < uiResolution );
   ROT( 1 & uiXMarginSize );
 
-
   uiYFrameSize  <<= uiResolution;
   uiXFrameSize  <<= uiResolution;
   uiYMarginSize <<= uiResolution;
@@ -165,17 +169,28 @@ ErrVal YuvBufferCtrl::initSlice( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYM
   m_uiXMargin = uiXMarginSize;
   m_uiYMargin = uiYMarginSize/2;
 
-  m_cBufferParam.m_iHeight     = uiYFrameSize;
-  m_cBufferParam.m_iStride     = uiXFrameSize   + 2*uiXMarginSize;
-  m_cBufferParam.m_iWidth      = uiXFrameSize;
-  m_cBufferParam.m_iResolution = uiResolution;
+  m_acBufferParam[FRAME].    m_iHeight = uiYFrameSize;
+  m_acBufferParam[TOP_FIELD].m_iHeight =
+  m_acBufferParam[BOT_FIELD].m_iHeight = uiYFrameSize >> 1;
+
+  m_acBufferParam[FRAME].    m_iStride = uiXFrameSize   + 2*uiXMarginSize;
+  m_acBufferParam[TOP_FIELD].m_iStride =
+  m_acBufferParam[BOT_FIELD].m_iStride = 2*uiXFrameSize + 4*uiXMarginSize;
+
+  m_acBufferParam[FRAME].    m_iWidth = uiXFrameSize;
+  m_acBufferParam[TOP_FIELD].m_iWidth = uiXFrameSize;
+  m_acBufferParam[BOT_FIELD].m_iWidth = uiXFrameSize;
+
+  m_acBufferParam[FRAME].    m_iResolution = uiResolution;
+  m_acBufferParam[TOP_FIELD].m_iResolution = uiResolution;
+  m_acBufferParam[BOT_FIELD].m_iResolution = uiResolution;
 
   m_iResolution   = uiResolution;
   m_uiChromaSize  = ((uiYFrameSize >> 1) + uiYMarginSize)
                   * ((uiXFrameSize >> 1) + uiXMarginSize);
 
-  m_uiLumBaseOffset = (m_cBufferParam.m_iStride) * uiYMarginSize + uiXMarginSize;
-  m_uiCbBaseOffset  = (m_cBufferParam.m_iStride/2) * uiYMarginSize/2 + uiXMarginSize/2;
+  m_uiLumBaseOffset = (m_acBufferParam[FRAME].m_iStride) * uiYMarginSize + uiXMarginSize;
+  m_uiCbBaseOffset  = (m_acBufferParam[FRAME].m_iStride/2) * uiYMarginSize/2 + uiXMarginSize/2;
   m_uiCbBaseOffset += 4*m_uiChromaSize;
   m_bInitDone = true;
 
@@ -191,7 +206,6 @@ ErrVal YuvBufferCtrl::initSPS( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMar
   ROT( 2 < uiResolution );
   ROT( 1 & uiXMarginSize );
 
-
   uiYFrameSize  <<= uiResolution;
   uiXFrameSize  <<= uiResolution;
   uiYMarginSize <<= uiResolution;
@@ -200,17 +214,28 @@ ErrVal YuvBufferCtrl::initSPS( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMar
   m_uiXMargin = uiXMarginSize;
   m_uiYMargin = uiYMarginSize/2;
 
-  m_cBufferParam.m_iHeight     = uiYFrameSize;
-  m_cBufferParam.m_iStride     = uiXFrameSize   + 2*uiXMarginSize;
-  m_cBufferParam.m_iWidth      = uiXFrameSize;
-  m_cBufferParam.m_iResolution = uiResolution;
+  m_acBufferParam[FRAME].    m_iHeight = uiYFrameSize;
+  m_acBufferParam[TOP_FIELD].m_iHeight =
+  m_acBufferParam[BOT_FIELD].m_iHeight = uiYFrameSize >> 1;
+
+  m_acBufferParam[FRAME].    m_iStride = uiXFrameSize   + 2*uiXMarginSize;
+  m_acBufferParam[TOP_FIELD].m_iStride =
+  m_acBufferParam[BOT_FIELD].m_iStride = 2*uiXFrameSize + 4*uiXMarginSize;
+
+  m_acBufferParam[FRAME].    m_iWidth = uiXFrameSize;
+  m_acBufferParam[TOP_FIELD].m_iWidth = uiXFrameSize;
+  m_acBufferParam[BOT_FIELD].m_iWidth = uiXFrameSize;
+
+  m_acBufferParam[FRAME].    m_iResolution = uiResolution;
+  m_acBufferParam[TOP_FIELD].m_iResolution = uiResolution;
+  m_acBufferParam[BOT_FIELD].m_iResolution = uiResolution;
 
   m_iResolution   = uiResolution;
   m_uiChromaSize  = ((uiYFrameSize >> 1) + uiYMarginSize)
                   * ((uiXFrameSize >> 1) + uiXMarginSize);
 
-  m_uiLumBaseOffset = (m_cBufferParam.m_iStride) * uiYMarginSize + uiXMarginSize;
-  m_uiCbBaseOffset  = (m_cBufferParam.m_iStride/2) * uiYMarginSize/2 + uiXMarginSize/2;
+  m_uiLumBaseOffset = (m_acBufferParam[FRAME].m_iStride) * uiYMarginSize + uiXMarginSize;
+  m_uiCbBaseOffset  = (m_acBufferParam[FRAME].m_iStride/2) * uiYMarginSize/2 + uiXMarginSize/2;
   m_uiCbBaseOffset += 4*m_uiChromaSize;
   m_bInitDone = true;
 

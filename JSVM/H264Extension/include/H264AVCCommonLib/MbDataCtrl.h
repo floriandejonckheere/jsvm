@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -101,20 +101,18 @@ H264AVC_NAMESPACE_BEGIN
 
 
 
-
-
-
 class H264AVCCOMMONLIB_API MbDataCtrl
 {
 public:
-  MbDataCtrl();
+	MbDataCtrl();
   ~MbDataCtrl();
 
 public:
   ErrVal getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const ;
   ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
+	ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Bool bFieldFlag, const Int iForceQp );
   ErrVal init( const SequenceParameterSet& rcSPS );
-//  TMM_EC {{
+//	TMM_EC {{
   ErrVal initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrl, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
 //  TMM_EC }}
 
@@ -125,6 +123,9 @@ public:
   Bool isPicDone( const SliceHeader& rcSH );
   Bool isFrameDone( const SliceHeader& rcSH );
   UInt  getSize() { return m_uiSize; }
+
+	SliceHeader* getSliceHeader() { return m_pcSliceHeader; }
+	Void         setSliceHeader( SliceHeader* pcSliceHeader ) { m_pcSliceHeader = pcSliceHeader; }
 
   const MbData& getMbData( UInt uiIndex )   const { AOT_DBG( uiIndex >= m_uiSize );  return m_pcMbData[ uiIndex ]; }
   const Bool isPicCodedField( )              const { return m_bPicCodedField; }
@@ -143,22 +144,26 @@ public:
     return Err::m_nOK;
   }
 
+  Bool          getBuildInterlacePred ()  { return  m_bBuildInterlacePred;    }
+  Void          setBuildInterlacePred ( Bool bBuildInterlacePredpred )  { m_bBuildInterlacePred = bBuildInterlacePredpred;    }
+
   ErrVal clear() { return xResetData(); }
 
   MbData& getMbData( UInt uiMbX, UInt uiMbY )   { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
-//  TMM_EC {{
-  MbData& getMbData( UInt uiMbX, UInt uiMbY ) const  { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
+//	TMM_EC {{
+	MbData& getMbData( UInt uiMbX, UInt uiMbY ) const  { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
 //  TMM_EC }}
 
+  ErrVal        copyMotionBLForceFrame ( MbDataCtrl& rcMbDataCtrl );
+  
   ErrVal        switchMotionRefinement();
 
   ErrVal        copyMotion    ( MbDataCtrl& rcMbDataCtrl );
-  // TMM_ESS {
   ErrVal        copyMotionBL  ( MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters  );
   ErrVal        upsampleMotion ( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
-  // TMM_ESS }
+
 //JVT-T054{
-   ErrVal        initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
+  ErrVal        initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
 //JVT-T054}
   //--ICU/ETRI FMO Implementation
   const Int getSliceGroupIDofMb(Int mb);
@@ -168,16 +173,12 @@ public:
   ErrVal        storeFgsBQLayerQpAndCbp   ();
   ErrVal        switchFgsBQLayerQpAndCbp  ();
 
-//TMM_WP
-  SliceHeader*  getSliceHeader      ()  { return  m_pcSliceHeader;      }
-//TMM_WP
-
   // ICU/ETRI FGS_MOT_USE
-  Bool xGetDirect8x8InferenceFlagPublic() { return m_bDirect8x8InferenceFlag; }
+	Bool xGetDirect8x8InferenceFlagPublic() { return m_bDirect8x8InferenceFlag; }
   Void xSetDirect8x8InferenceFlag(Bool b) { m_bDirect8x8InferenceFlag = b; }
 
   UInt GetMbStride() { return m_uiMbStride; }
-  Void SetMbStride(UInt Stride) { m_uiMbStride = Stride; }
+  Void SetMbStride(UInt Stride) { m_uiMbStride = Stride; }  
 
   // JVT-S054 (ADD)
   UInt getSliceId() const { return m_uiSliceId;}
@@ -186,7 +187,7 @@ public:
   //JVT-U106 Behaviour at slice boundaries}
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
-  const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter );
+  const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter ); 
   const MbData& xGetColMbData( UInt uiIndex );
 
   ErrVal xCreateData( UInt uiSize );
@@ -195,12 +196,35 @@ protected:
 
   Bool xGetDirect8x8InferenceFlag() { return m_bDirect8x8InferenceFlag; }
 
-// TMM_ESS_UNIFIED {
-  ErrVal  xUpsampleMotionDyad(MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
   ErrVal  xUpsampleMotionESS(MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
-// TMM_ESS_UNIFIED }
+  
+  MbDataCtrl*		xBuildVirtualBaseLayer( MbDataCtrl* pcMbBaseDataCtrl,Bool bField,ResizeParameters* pcParameters);
+
+  ErrVal				xConvertMotion( MbDataCtrl& rcMbDataCtrl,Bool bField,ResizeParameters* pcParameters);
+
+
+  ErrVal        xInitVBLUpsampleData( MbDataCtrl*         pcBaseMbDataCtrl,
+                                      ResizeParameters*   pcParameters,
+                                      UInt&               ruiConfig,
+                                      Int&                riMbOrigY,
+                                      Int&                riMbEndY ,
+                                      Int&                riScaledBaseOrigY,
+                                      UInt&               ruiBaseMbStride     );
+
+  ErrVal        xUninitVBLUpsampleData( ResizeParameters*   pcParameters,
+                                        UInt                uiConfig );
+
+  ErrVal xInitVBLPelOrig( MbDataCtrl*         pcBaseMbDataCtrl,
+                             UInt                uiConfig,
+                             Int                 iMbX,
+                             Int                 iMbY,
+                             Int                 iScaledBaseOrigX,
+                             Int                 iScaledBaseOrigY,  
+                             Int                 aiPelOrig[2],
+                             UInt&               ruiBLMbOffset);
 
 protected:
+  DynBuf<Bool>        m_cMbProcessed;
   DynBuf<DFPScalable*>        m_cpDFPBuffer;
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMotionData*       m_apcMbMotionData[2];
@@ -208,7 +232,7 @@ protected:
   MbMvData*           m_apcMbMvdData[2];
   MbData*             m_pcMbData;
   MbDataAccess*       m_pcMbDataAccess;
-  SliceHeader*        m_pcSliceHeader;
+
   UChar               m_ucLastMbQp;
   UInt                m_uiMbStride;
   UInt                m_uiMbOffset;
@@ -217,16 +241,20 @@ protected:
   UInt                m_uiSize;
   UInt                m_uiMbProcessed;
   UInt                m_uiSliceId;
+	Int                 m_iColocatedOffset;
   ProcessingState     m_eProcessingState;
   const MbDataCtrl*   m_pcMbDataCtrl0L1;
   Bool                m_bUseTopField;
   Bool                m_bPicCodedField;
   Bool                m_bInitDone;
   Bool                m_bDirect8x8InferenceFlag;
+  Bool                m_bBuildInterlacePred;
+  SliceHeader*        m_pcSliceHeader;
   UChar*        m_pacFgsBQMbQP;
   UInt*         m_pauiFgsBQMbCbp;
   UInt*         m_pauiFgsBQBCBP;
   Bool*         m_pabFgsBQ8x8Trafo;
+  
 
 };
 
@@ -245,7 +273,8 @@ public:
   ErrVal        init                ( SliceHeader*  pcSliceHeader );
 
   Double        getLambda           ()  { return  m_dLambda;            }
-  SliceHeader*  getSliceHeader      ()  { return  m_pcSliceHeader;      }
+	SliceHeader*  getSliceHeader      ( PicType ePicType = FRAME ) { return ( ePicType==BOT_FIELD ) ? m_pcSliceHeaderBot : m_pcSliceHeader;	}
+
   MbDataCtrl*   getMbDataCtrl       ()  { return  m_pcMbDataCtrl;       }
   Bool          isInitialized       ()  { return  m_pcMbDataCtrl != 0;  }
 
@@ -254,9 +283,19 @@ public:
     m_pcMbDataCtrl = pcMbDataCtrl;
     return Err::m_nOK;
   }
-  ErrVal        setSliceHeader      ( SliceHeader* pcSliceHeader )
+
+  ErrVal        setSliceHeader      ( SliceHeader* pcSliceHeader,
+		                                  PicType      ePicType = FRAME )
+  {
+		if( ePicType==BOT_FIELD )
+		{
+			m_pcSliceHeaderBot = pcSliceHeader;
+		}
+		else
   {
     m_pcSliceHeader = pcSliceHeader;
+		}
+
     return Err::m_nOK;
   }
 
@@ -283,12 +322,13 @@ public:
   IntFrame*     getBaseLayerRec     ()  { return  m_pcBaseLayerRec;     }
   IntFrame*     getBaseLayerSbb     ()  { return  m_pcBaseLayerSbb;     }
   MbDataCtrl*   getBaseLayerCtrl    ()  { return  m_pcBaseLayerCtrl;    }
+  MbDataCtrl*   getBaseLayerCtrlField ()  { return  m_pcBaseLayerCtrlField;    }
   ControlData*  getBaseCtrlData     ()  { return  m_pcBaseCtrlData;     }
   UInt          getUseBLMotion      ()  { return  m_uiUseBLMotion;      }
-
   Void          setBaseLayerRec     ( IntFrame*   pcBaseLayerRec  )   { m_pcBaseLayerRec    = pcBaseLayerRec;   }
   Void          setBaseLayerSbb     ( IntFrame*   pcBaseLayerSbb  )   { m_pcBaseLayerSbb    = pcBaseLayerSbb;   }
   Void          setBaseLayerCtrl    ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrl   = pcBaseLayerCtrl;  }
+  Void          setBaseLayerCtrlField ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrlField = pcBaseLayerCtrl;  }
   Void          setBaseCtrlData     ( ControlData*pcBaseCtrlData  )   { m_pcBaseCtrlData    = pcBaseCtrlData;   }
   Void          setUseBLMotion      ( UInt        uiUseBLMotion   )   { m_uiUseBLMotion     = uiUseBLMotion;    }
 
@@ -299,7 +339,7 @@ public:
 
   Void          setBaseLayer        ( UInt  uiBaseLayerId, UInt  uiBaseLayerIdMotion )
   {
-    m_uiBaseLayerId = uiBaseLayerId; m_uiBaseLayerIdMotion = uiBaseLayerIdMotion;
+    m_uiBaseLayerId = uiBaseLayerId; m_uiBaseLayerIdMotion = uiBaseLayerIdMotion; 
   }
 
   UInt          getBaseLayerId    () { return m_uiBaseLayerId; }
@@ -314,7 +354,7 @@ public:
 
 
   RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
-
+  
   ErrVal        initFGSData             ( UInt uiNumMb );
   ErrVal        uninitFGSData           ();
   ErrVal        storeFGSLayerQpAndCbp   ();
@@ -324,15 +364,18 @@ public:
   ErrVal        uninitBQData          ();
   ErrVal        storeBQLayerQpAndCbp  ();
   ErrVal        switchBQLayerQpAndCbp ();
+
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
   SliceHeader*  m_pcSliceHeader;
+  SliceHeader*  m_pcSliceHeaderBot;
 
   Double        m_dLambda;
 
   IntFrame*     m_pcBaseLayerRec;
   IntFrame*     m_pcBaseLayerSbb;
   MbDataCtrl*   m_pcBaseLayerCtrl;
+  MbDataCtrl*   m_pcBaseLayerCtrlField;
   ControlData*  m_pcBaseCtrlData;
   UInt          m_uiUseBLMotion;
 
@@ -342,8 +385,7 @@ private:
   UInt          m_uiBaseLayerIdMotion;
 
   Int           m_iSpatialScalabilityType; // TMM_ESS
-  Bool          m_bSpatialScalability;     // TMM_ESS
-
+  Bool          m_bSpatialScalability;     // TMM_ESS  
 
   UChar*        m_pacFGSMbQP;
   UInt*         m_pauiFGSMbCbp;

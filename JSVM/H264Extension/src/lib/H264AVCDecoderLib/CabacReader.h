@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -192,7 +192,7 @@ public:
   ErrVal  RQvlcFlush               () { return Err::m_nOK; };
   ErrVal  RQcompSepAlign           ();
   Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
-
+  
   Void    RQsetTruncatedFlag       ( Bool bTruncated )  { return; }
   ErrVal  RQreset                  (  const SliceHeader& rcSliceHeader )
   {
@@ -242,7 +242,7 @@ public:
   ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag_FGS     ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
-  ErrVal  smoothedRefFlag     ( MbDataAccess& rcMbDataAccess );  // JVT-R091
+  ErrVal  smoothedRefFlag     ( MbDataAccess& rcMbDataAccess );	// JVT-R091
 
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -264,10 +264,11 @@ public:
 
   ErrVal  residualBlock       ( MbDataAccess& rcMbDataAccess, LumaIdx   cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp );
   ErrVal  residualBlock       ( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, ResidualMode eResidualMode );
-
+  
   ErrVal  deltaQp             ( MbDataAccess& rcMbDataAccess );
   ErrVal  intraPredModeLuma   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx );
   ErrVal  intraPredModeChroma ( MbDataAccess& rcMbDataAccess );
+	ErrVal  fieldFlag           ( MbDataAccess& rcMbDataAccess );
   ErrVal  samplesPCM          ( MbDataAccess& rcMbDataAccess );
 
   ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx );
@@ -315,10 +316,13 @@ protected:
 
   ErrVal xReadCoeff( TCoeff*        piCoeff,
                      ResidualMode   eResidualMode,
-                     const UChar*   pucScan
-                     );
+                     const UChar*   pucScan, 
+										 Bool           bFrame);
 
 protected:
+  CabacContextModel2DBuffer m_cFieldFlagCCModel;
+  CabacContextModel2DBuffer m_cFldMapCCModel;
+  CabacContextModel2DBuffer m_cFldLastCCModel;
   CabacContextModel2DBuffer m_cBCbpCCModel;
   CabacContextModel2DBuffer m_cMapCCModel;
   CabacContextModel2DBuffer m_cLastCCModel;
@@ -340,7 +344,7 @@ protected:
   CabacContextModel2DBuffer m_cBCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cTransSizeCCModel;
-  CabacContextModel2DBuffer m_cSRFlagCCModel;  // JVT-R091
+	CabacContextModel2DBuffer m_cSRFlagCCModel;	// JVT-R091
 
   UInt m_uiBitCounter;
   UInt m_uiPosCounter;

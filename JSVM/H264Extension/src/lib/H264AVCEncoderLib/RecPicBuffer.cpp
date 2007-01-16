@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -131,7 +131,7 @@ RecPicBufUnit::create( RecPicBufUnit*&              rpcRecPicBufUnit,
   rpcRecPicBufUnit->m_pcMbDataCtrl          = new MbDataCtrl();
   ROF( rpcRecPicBufUnit->m_pcReconstructedFrame );
   ROF( rpcRecPicBufUnit->m_pcMbDataCtrl );
-
+    
   RNOK( rpcRecPicBufUnit->m_pcReconstructedFrame  ->init() );
   RNOK( rpcRecPicBufUnit->m_pcMbDataCtrl          ->init( rcSPS ) );
 
@@ -160,7 +160,7 @@ RecPicBufUnit::init( SliceHeader* pcSliceHeader,
   m_bOutputted            = false;
   m_pcPicBuffer           = pcPicBuffer;
 
-  m_pcReconstructedFrame->setPOC( m_iPoc );
+  m_pcReconstructedFrame->setPoc( m_iPoc );
 
   return Err::m_nOK;
 }
@@ -177,7 +177,7 @@ RecPicBufUnit::initNonEx( Int   iPoc,
   m_bOutputted            = false;
   m_pcPicBuffer           = NULL;
 
-  m_pcReconstructedFrame->setPOC( m_iPoc );
+  m_pcReconstructedFrame->setPoc( m_iPoc );
 
   return Err::m_nOK;
 }
@@ -192,7 +192,7 @@ RecPicBufUnit::uninit()
   m_bNeededForReference   = false;
   m_bOutputted            = false;
   m_pcPicBuffer           = NULL;
-
+  
   return Err::m_nOK;
 }
 
@@ -388,7 +388,7 @@ RecPicBuffer::store( RecPicBufUnit*   pcRecPicBufUnit,
                      PicBufferList&   rcUnusedList )
 {
   RNOK( xStorePicture( pcRecPicBufUnit, rcOutputList, rcUnusedList, pcSliceHeader, pcSliceHeader->isIdrNalUnit() ) );
-
+  
   if( pcRecPicBufUnit->isNeededForRef() )
   {
     m_uiLastRefFrameNum = pcRecPicBufUnit->getFrameNum();
@@ -428,7 +428,7 @@ RecPicBuffer::getRefLists( RefFrameList&  rcList0,
 
   return Err::m_nOK;
 }
-
+ 
 
 
 ErrVal
@@ -507,8 +507,8 @@ RecPicBuffer::xCheckMissingPics( SliceHeader*   pcSliceHeader,
   {
     uiMissingFrames += m_uiMaxFrameNum;
   }
-  ROF( pcSliceHeader->getSPS().getRequiredFrameNumUpdateBehaviourFlag() );
-
+  ROF( pcSliceHeader->getSPS().getGapsInFrameNumValueAllowedFlag());
+  
   for( UInt uiIndex = 1; uiIndex <= uiMissingFrames; uiIndex++ )
   {
     Bool  bTreatAsIdr   = ( m_cUsedRecPicBufUnitList.empty() );
@@ -847,7 +847,7 @@ RecPicBuffer::xDumpRecPicBuffer()
 #if 1 // NO_DEBUG
   return Err::m_nOK;
 #endif
-
+  
   printf( "\nRECONSTRUCTED PICTURE BUFFER:\n" );
   RecPicBufUnitList::iterator iter  = m_cUsedRecPicBufUnitList.begin();
   RecPicBufUnitList::iterator end   = m_cUsedRecPicBufUnitList.end  ();
@@ -894,7 +894,7 @@ RecPicBuffer::xInitRefListPSlice( RefFrameList& rcList )
     iMaxPicNum = pNext->getPicNum( uiCurrFrameNum, m_uiMaxFrameNum );
     rcList.add( pNext->getRecFrame() );
   }
-
+  
   return Err::m_nOK;
 }
 
@@ -1063,7 +1063,7 @@ RecPicBuffer::xRefListRemapping( RefFrameList&  rcList,
         if( ! pcFrame )
         {
           fprintf( stderr, "\nERROR: MISSING PICTURE for RPLR\n\n" );
-          RERR();
+          RERR(); 
         }
         //----- find picture in reference list -----
         UInt uiRemoveIndex = MSYS_UINT_MAX;
@@ -1098,7 +1098,7 @@ RecPicBuffer::xDumpRefList( RefFrameList& rcList,
   printf( "List %d =", eListIdx );
   for( UInt uiIndex = 1; uiIndex <= rcList.getActive(); uiIndex++ )
   {
-    printf( " %d", rcList[uiIndex]->getPOC() );
+    printf( " %d", rcList[uiIndex]->getPoc() );
   }
   printf( "\n" );
   return Err::m_nOK;

@@ -93,8 +93,30 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define min(x,y) ((x)<(y)?(x):(y))
 #define max(x,y) ((x)>(y)?(x):(y))
 
-
 H264AVC_NAMESPACE_BEGIN
+
+__inline
+UInt gCeilLog2( const UInt uiVal )
+{
+  UInt uiTmp = uiVal-1;
+  UInt uiRet = 0;
+  AOT_DBG( uiTmp == 0);
+
+  AOT_DBG( uiTmp == 0);
+
+  while( uiTmp != 0 )
+  {
+    uiTmp >>= 1;
+    uiRet++;
+  }
+  return uiRet;
+}
+
+__inline
+Bool gBoolRandom()
+{
+  return 0 == (rand()&1);
+}
 
 __inline
 const Int gClip( const Int iX )

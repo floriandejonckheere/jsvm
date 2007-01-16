@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/Transform.h"
 
-
+  
 H264AVC_NAMESPACE_BEGIN
 
 
@@ -107,7 +107,7 @@ MotionEstimation::MotionEstimation() :
 }
 
 
-
+  
 MotionEstimation::~MotionEstimation()
 {
 
@@ -251,8 +251,8 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
   Double afCW[2]   = { 1.0, 1.0 };
 
   Bool      bOriginalSearchModeIsYUVSAD  = ( m_cParams.getFullPelDFunc() == DF_YUV_SAD );
-  const Int iXSize                       = m_pcXDistortion->getBlockWidth  ( uiMode );
-  const Int iYSize                       = m_pcXDistortion->getBlockHeight ( uiMode );
+  const Int iXSize                       = m_pcXDistortion->getBlockWidth  ( uiMode ); 
+  const Int iYSize                       = m_pcXDistortion->getBlockHeight ( uiMode ); 
 
   if( pcBSP ) // bi prediction
   {
@@ -294,7 +294,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
                                                           fWeight, iYSize, iXSize );
       }
     }
-    else if( pcBSP->apcWeight[LIST_0]->getLumaWeightFlag() ||
+    else if( pcBSP->apcWeight[LIST_0]->getLumaWeightFlag() || 
              pcBSP->apcWeight[LIST_1]->getLumaWeightFlag()   )
     {
       //----- explicit weighting -----
@@ -455,7 +455,7 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
 
 ErrVal MotionEstimation::initMb( UInt uiMbPosY, UInt uiMbPosX, MbDataAccess& rcMbDataAccess )
 {
-  RNOK( MotionCompensation::initMb( uiMbPosY, uiMbPosX) );
+  RNOK( MotionCompensation::initMb( uiMbPosY, uiMbPosX, rcMbDataAccess) );// TMM_INTERLACE
 
   return Err::m_nOK;
 }
@@ -558,11 +558,11 @@ Void MotionEstimation::xPelSpiralSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, U
   {
     Int x = rcMv.getHor() + m_pcMvSpiralSearch[n].getHor();
     Int y = rcMv.getVer() + m_pcMvSpiralSearch[n].getVer();
-
+    
     m_cXDSS.pYSearch = pucYRef + y * m_cXDSS.iYStride + x;
     m_cXDSS.pUSearch = pucURef + (y>>1) * m_cXDSS.iCStride + (x>>1);
     m_cXDSS.pVSearch = pucVRef + (y>>1) * m_cXDSS.iCStride + (x>>1);
-
+    
     uiSad  = m_cXDSS.Func( &m_cXDSS );
     uiSad += xGetCost( x, y );
 
@@ -876,7 +876,7 @@ Void MotionEstimation::xTZSearchHelp( IntTZSearchStrukt& rcStrukt, const Int iSe
   m_cXDSS.pYSearch = rcStrukt.pucYRef +  iSearchY     * rcStrukt.iYStride +  iSearchX;
   m_cXDSS.pUSearch = rcStrukt.pucURef + (iSearchY>>1) * rcStrukt.iCStride + (iSearchX>>1);
   m_cXDSS.pVSearch = rcStrukt.pucVRef + (iSearchY>>1) * rcStrukt.iCStride + (iSearchX>>1);
-
+  
   UInt uiSad       = m_cXDSS.Func( &m_cXDSS );
   uiSad           += MotionEstimationCost::xGetCost( iSearchX, iSearchY );
   if( rcStrukt.uiBestSad > uiSad )
@@ -1236,16 +1236,16 @@ Void MotionEstimation::xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, Sear
 
 }
 
-Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange )
+Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Int iSearchRange )
 {
   TZ_SEARCH_CONFIGURATION
 
   // limit search range
-  if( ! uiSearchRange ) { uiSearchRange = m_cParams.getSearchRange(); }
+  if( ! iSearchRange ) { iSearchRange = m_cParams.getSearchRange(); }
   rcMv.limitComponents(MotionCompensation::m_cMin, MotionCompensation::m_cMax );
   SearchRect cSearchRect;
   rcMv >>= 2;
-  cSearchRect.init( uiSearchRange, rcMv, MotionCompensation::m_cMin, MotionCompensation::m_cMax );
+  cSearchRect.init( iSearchRange, rcMv, MotionCompensation::m_cMin, MotionCompensation::m_cMax );
 
   // init TZSearchStrukt
   IntTZSearchStrukt cStrukt;
@@ -1285,7 +1285,7 @@ Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ru
   Int  iStartY     = cStrukt.iBestY;  //   6 7 8
 
   // fist search
-  for( iDist = 1; iDist <= (Int)uiSearchRange; iDist*=2 )
+  for( iDist = 1; iDist <= iSearchRange; iDist*=2 )
   {
     if( bFirstSearchDiamond == 1 )
     {
@@ -1308,7 +1308,7 @@ Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ru
     if( (cStrukt.iBestX == 0) && (cStrukt.iBestY == 0) )
     {
       // test his neighborhood
-      for( iDist = 1; iDist <= (Int)uiSearchRange; iDist*=2 )
+      for( iDist = 1; iDist <= iSearchRange; iDist*=2 )
       {
         xTZ8PointDiamondSearch( cStrukt, cSearchRect, 0, 0, iDist );
         if( bTestZeroVectorStop && (cStrukt.uiBestRound > 0) ) // stop criterion
@@ -1379,7 +1379,7 @@ Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ru
       iStartY                 = cStrukt.iBestY;
       cStrukt.uiBestDistance  = 0;
       cStrukt.ucPointNr       = 0;
-      for( iDist = 1; iDist < (Int)uiSearchRange + 1; iDist*=2 )
+      for( iDist = 1; iDist < iSearchRange + 1; iDist*=2 )
       {
         if( bStarRefinementDiamond == 1 )
         {

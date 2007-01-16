@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -121,8 +121,8 @@ class MbEncoder
 , protected BitCounter
 {
 protected:
-  MbEncoder();
-  virtual ~MbEncoder();
+	MbEncoder();
+	virtual ~MbEncoder();
 
 public:
   static ErrVal create( MbEncoder*& rpcMbEncoder );
@@ -142,18 +142,21 @@ public:
   IntMbTempData* getBestIntData() {return m_pcIntMbBestData; }
 
   ErrVal  encodeIntra         ( MbDataAccess&   rcMbDataAccess,
-                                MbDataAccess*   pcMbDataAccessBase,
+                                MbDataAccess*   pcMbDataAccessBase,                                  
+                                IntFrame*		pcOrgFrame,
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcRecSubband,
                                 IntFrame*       pcBaseLayer,
                                 IntFrame*       pcPredSignal,
-                                Double          dLambda );
-  ErrVal  encodeResidual      ( MbDataAccess&   rcMbDataAccess,
+                                Double        dLambda,
+                                Double&       rdCost );
+
+  ErrVal  encodeResidual      ( MbDataAccess&   rcMbDataAccess, 
                                 IntFrame*       pcOrgFrame, 
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcResidual,
                                 IntFrame*       pcBaseSubband,
-                                IntFrame*        pcSRFrame, // JVT-R091
+								IntFrame*		pcSRFrame, // JVT-R091
                                 Bool&           rbCoded,
                                 Double          dLambda,
                                 Int             iMaxDeltaQp );
@@ -168,6 +171,7 @@ public:
   ErrVal  encodeInterP        ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,
                                 Int             iSpatialScalabilityType,
+                                IntFrame*       pcOrgFrame,
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcRecSubband,
                                 IntFrame*       pcPredSignal,
@@ -175,7 +179,9 @@ public:
                                 IntFrame*       pcBaseLayerSbb,
                                 RefFrameList&   rcRefFrameList0,
                                 RefFrameList*   pcRefFrameList0Base,
-                                Double          dLambda );
+                                Double          dLambda,
+                                Double&         rdCost,
+                                Bool            bSkipModeAllowed);
   ErrVal  compensatePrediction( MbDataAccess&   rcMbDataAccess,
                                 IntFrame*       pcMCFrame,
                                 RefFrameList&   rcRefFrameList0,
@@ -199,7 +205,7 @@ public:
 
   ErrVal  estimatePrediction  ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,
-                                Int              iSpatialScalabilityType,
+                                Int							iSpatialScalabilityType,
                                 RefFrameList&   rcRefFrameList0,
                                 RefFrameList&   rcRefFrameList1,
                                 const IntFrame* pcBaseLayerFrame,
@@ -209,8 +215,10 @@ public:
                                 Bool            bBiPredOnly,
                                 UInt            uiNumMaxIter,
                                 UInt            uiIterSearchRange,
-                Bool      bBLSkipEnable, // JVT-Q065 EIDR
-                                Double          dLambda );
+								                Bool		      	bBLSkipEnable, // JVT-Q065 EIDR
+                                Double          dLambda,
+                                Double&         rdCost,
+                                Bool            bSkipModeAllowed );
   ErrVal  encodeMacroblock    ( MbDataAccess&   rcMbDataAccess,
                                 IntFrame*       pcFrame,
                                 RefFrameList&   rcList0,
@@ -235,12 +243,12 @@ public:
                                 Int             iMaxQpDelta );
 
 //TMM_WP
-  ErrVal getPredWeights( SliceHeader& rcSH, ListIdx eLstIdx,
+  ErrVal getPredWeights( SliceHeader& rcSH, ListIdx eLstIdx, 
                          Double(*pafWeight)[3], IntFrame* pOrgFrame,
                          RefFrameList& rcRefFrameListX);
 
 
-  ErrVal getPredOffsets( SliceHeader& rcSH, ListIdx eLstIdx,
+  ErrVal getPredOffsets( SliceHeader& rcSH, ListIdx eLstIdx, 
                          Double(*pafOffsets)[3], IntFrame* pOrgFrame,
                          RefFrameList& rcRefFrameListX);
 
@@ -250,55 +258,55 @@ public:
 
   //JVT-R057 LA-RDO{
   Void setLARDOEnable( Bool bLARDO)  { m_bLARDOEnable= bLARDO; }
-
+ 
   Void setLayerID (UInt uiLayer)     { m_uiLayerID=uiLayer;}
-
+ 
   Void setPLR( UInt auiPLR[5])       { for(UInt i=0;i<5;i++) m_auiPLR[i] = auiPLR[i];}
 
   Void setRatio( Double adRatio[5][2])
-  {
-    for(UInt i=0;i<5;i++)
-      for(UInt j=0;j<2;j++)
-        m_aadRatio[i][j] = adRatio[i][j];
+  { 
+	  for(UInt i=0;i<5;i++)
+		  for(UInt j=0;j<2;j++)
+			  m_aadRatio[i][j] = adRatio[i][j];
   }
  Void setMBSSD      ( UInt uiSSD)      { m_uiMBSSD=uiSSD; }
-
+ 
   Bool getLARDOEnable(){ return m_bLARDOEnable;}
-
+ 
  Void setFrameEcEp  ( IntFrame* p1)    { m_pcFrameEcEp=p1; }
 
   Int  GetEC_REC            ( IntYuvPicBuffer* pPic1,
                               IntYuvPicBuffer* pPic2,
-                              Int              blockX,
+                              Int              blockX, 
                               Int              blockY);
 
   Void  getChannelDistortion( MbDataAccess&    rcMbDataAccess,
-    IntFrame&       rcRefFrame,
-                              Int              *distortion,
-                              Int              iMvX,
-                              Int              iMvY,
-                              Int              startX,
-                              Int              startY,
-                              Int              blockX,
-                              Int              blockY,
-                              Bool             bSpatial=false);
-
+	  IntFrame&       rcRefFrame,
+	                            Int              *distortion,
+	                            Int              iMvX,
+	                            Int              iMvY,
+	                            Int              startX,
+	                            Int              startY,
+	                            Int              blockX,
+	                            Int              blockY,
+	                            Bool             bSpatial=false);
+  
   Int getEpRef() { return m_iEpRef; }
 
   Void setEpRef(Int iRef)   { m_iEpRef=iRef; }
-
-  Void  getDistortion       (Int              iDList0,
+  
+  Void  getDistortion       (Int              iDList0, 
                              Int              iDList1,
                              SampleWeighting* pcSampleWeighting,
                              MbDataAccess&    rcMbDataAccess);
   //JVT-R057 LA-RDO}
 
   //S051{
-  Void    setUseBDir  ( Bool bUse){ m_bUseBDir = bUse;}
+  Void		setUseBDir	( Bool bUse){ m_bUseBDir = bUse;}
   //S051}
   Void          setBaseLayerRec     ( IntFrame*   pcBaseLayerRec  )   { m_pcBaseLayerFrame    = pcBaseLayerRec;   }
   IntFrame*     getBaseLayerRec     ()  { return  m_pcBaseLayerFrame;     }
-
+  
   //JVT-U106 Behaviour at slice boundaries{
   void  setIntraBLFlag(Bool b){ m_bIntraBLFlag=b; }
   //JVT-U106 Behaviour at slice boundaries}
@@ -308,7 +316,7 @@ protected:
                                   const UChar*       pucScale,
                                   UInt               uiStart,
                                   const QpParameter& rcQP );
-
+ 
   ErrVal  xScale8x8Block        ( TCoeff*            piCoeff,
                                   const UChar*       pucScale,
                                   const QpParameter& rcQP );
@@ -319,7 +327,7 @@ protected:
                                   UInt              uiCoeffBits,
                                   Bool              bBSlice,
                                   Bool              bBLSkip );
-
+  
   ErrVal  xSetRdCostInterMb     ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBase,
                                   RefFrameList&     rcRefFrameList0,
@@ -329,17 +337,17 @@ protected:
                                   Bool              bSkipMCPrediction = false,
                                   IntFrame*         pcBaseLayerRec = 0 
                                   );
-  //-- JVT-R012
+	//-- JVT-R012
   ErrVal  xSetRdCostInterMbSR   ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBase,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  IntFrame*          pcBaseLayerSbb,
+																	IntFrame*					pcBaseLayerSbb,
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0,
                                   IntFrame*         pcBaseLayerRec = 0 
                                   );
-  //--
+	//--
   ErrVal  xSetRdCost8x8InterMb  ( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   RefFrameList&     rcRefFrameList0,
@@ -349,17 +357,17 @@ protected:
                                   Bool              bSkipMCPrediction = false,
                                   IntFrame*         pcBaseLayerRec = 0 
                                   );
-  //-- JVT-R012
+	//-- JVT-R012
   ErrVal  xSetRdCost8x8InterMbSR( IntMbTempData&    rcMbTempData,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  IntFrame*          pcBaseLayerSbb,
+																	IntFrame*					pcBaseLayerSbb,
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0,
                                   IntFrame*         pcBaseLayerRec = 0 
                                   );
-  //--
+	//--
   ErrVal  xSetRdCostInterSubMb  ( IntMbTempData&    rcMbTempData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
@@ -394,17 +402,17 @@ protected:
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   IntFrame*         pcBaseLayerRec = 0 
                                   );
-  //-- JVT-R012
+	//-- JVT-R012
   ErrVal  xCheckInterMbMode8x8SR( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   IntMbTempData*    pcMbRefData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
-                                  IntFrame*          pcBaseLayerSbb,
+																	IntFrame*					pcBaseLayerSbb,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   IntFrame*         pcBaseLayerRec = 0 
                                   );
-  //--
+	//--
 
   ErrVal  xEstimateMbIntraBL    ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
@@ -428,7 +436,7 @@ protected:
   ErrVal  xEstimateMbPCM        ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   Bool              bBSlice  );
-
+  
   ErrVal  xEstimateMbSkip       ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
@@ -439,8 +447,9 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   const IntFrame*   pcBaseLayerRec,
                                   Bool              bBSlice,
-                                  Int        iSpatialScalabilityType,
+                                  Int				iSpatialScalabilityType,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
+                                  MbDataAccess&     rcMbDataAccess,
                                   Bool              bResidualPred );
 
   ErrVal  xEstimateMbFGSSkip    ( IntMbTempData*&   rpcMbTempData,
@@ -452,8 +461,8 @@ protected:
                                   IntFrame*         pcPredSignal,
                                   Int               iMaxQpDelta );
 
-  //-- JVT-R091
-  ErrVal  xEstimateMbSR          ( IntMbTempData*&   rpcIntMbTempData,
+	//-- JVT-R091
+  ErrVal  xEstimateMbSR					( IntMbTempData*&   rpcIntMbTempData,
                                   IntMbTempData*&   rpcIntMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
@@ -462,14 +471,15 @@ protected:
                                   Bool              bResidualPred,
                                   IntFrame*         pcBaseLayerRec = 0 
                                   );
-  //--
+	//--
 
   ErrVal  xEstimateMbDirect     ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
-                                  Bool              bResidualPred );
+                                  Bool              bResidualPred,
+                                  Bool              bSkipModeAllowed=true);
   ErrVal  xEstimateMb16x16      ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   RefFrameList&     rcRefFrameList0,
@@ -573,7 +583,7 @@ protected:
                                   UInt              uiAddBits,
                                   Bool              bQPelRefinementOnly,
                                   MbDataAccess*     pcMbDataAccessBaseMotion );
-
+  
   ErrVal  xCheckBestEstimation  ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData );
   Void    xStoreEstimation      ( MbDataAccess&     rcMbDataAccess,
@@ -639,7 +649,7 @@ protected:
   //JVT-R057 LA-RDO}
 
   //S051{
-  Bool    m_bUseBDir;
+  Bool		m_bUseBDir;
   //S051}
   //JVT-U106 Behaviour at slice boundaries{
   Bool  m_bIntraBLFlag;

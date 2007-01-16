@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -90,24 +90,32 @@ H264AVC_NAMESPACE_BEGIN
 
 
 FrameUnit::FrameUnit( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, Bool bOriginal )
- : m_cFrame         ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
+ : m_cFrame         ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME )
+ , m_cTopField      ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, TOP_FIELD )
+ , m_cBotField      ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, BOT_FIELD )
+ , m_cFGSFrame      ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME )
+ , m_cFGSTopField   ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, TOP_FIELD )
+ , m_cFGSBotField   ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, BOT_FIELD )
+ , m_cFGSIntFrame   ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME )
+ , m_iMaxPoc        ( MSYS_INT_MIN )
+ , m_eAvailable     ( NOT_SPECIFIED )
+ , m_ePicStruct     ( PS_NOT_SPECIFIED )     
+ , m_bFieldCoded    ( false )
  , m_cMbDataCtrl    ( )
  , m_pcPicBuffer    ( NULL )
  , m_uiFrameNumber  ( MSYS_UINT_MAX )
  , m_bOriginal      ( bOriginal )
  , m_bInitDone      ( false )
- , m_cResidual     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
+ , m_cResidual     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME )
  , m_bBaseRepresentation ( false )   //bug-fix base_rep
- , m_cFGSFrame      ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
- , m_cFGSIntFrame   ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
  , m_pcFGSPicBuffer ( NULL)
  , m_uiFGSReconCount(0)
- , m_cFGSRecon0     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
- , m_cFGSRecon1     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
- , m_cFGSRecon2     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
- , m_cFGSRecon3     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl )
+ , m_cFGSRecon0     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
+ , m_cFGSRecon1     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
+ , m_cFGSRecon2     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
+ , m_cFGSRecon3     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
+ , m_uiStatus       ( 0 )
 {
-    m_uiStatus = 0;
     m_apcFGSRecon[0] = & m_cFGSRecon0;
     m_apcFGSRecon[1] = & m_cFGSRecon1;
     m_apcFGSRecon[2] = & m_cFGSRecon2;
@@ -145,28 +153,37 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer )
   m_uiFrameNumber = rcSH.getFrameNum();
 
   RNOK( m_cFrame.   init( m_pcPicBuffer->getBuffer(), this ) );
+	RNOK( m_cTopField.init( m_pcPicBuffer->getBuffer(), this ) );
+	RNOK( m_cBotField.init( m_pcPicBuffer->getBuffer(), this ) );
+  m_ePicStruct    = m_pcPicBuffer->getPicStruct();
   m_pcPicBuffer->setUsed();
 
+	m_bOriginal = (NULL == &rcSH.getSPS());
   ROTRS( m_bOriginal, Err::m_nOK );
   RNOK( m_cMbDataCtrl.init( rcSH.getSPS() ) );
 
   m_uiStatus = 0;
+  m_eAvailable = NOT_SPECIFIED;
+  m_iMaxPoc    = 0;
 
-  UInt uiStamp = m_cFrame.stamp() + 1;
+	UInt uiStamp = max( m_cFrame.stamp(), max( m_cTopField.stamp(), m_cBotField.stamp() ) ) + 1;
+	m_cTopField.stamp() = uiStamp;
+	m_cBotField.stamp() = uiStamp;
   m_cFrame.   stamp() = uiStamp;
 
-  m_cResidual.init( false );
+  m_cResidual.init();
   m_cResidual.getFullPelYuvBuffer()->clear();
   m_bInitDone = true;
 
-  m_cFGSIntFrame.init( false);
+  m_cFGSIntFrame.init();
+
   m_pcFGSPicBuffer = NULL;
 
   m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
 
   for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
   {
-    RNOK( m_apcFGSRecon[uiLayerIdx]->init( false ) );
+    RNOK( m_apcFGSRecon[uiLayerIdx]->init() );
   }
 
   m_cMbDataCtrl.initFgsBQData(m_cMbDataCtrl.getSize());
@@ -182,22 +199,34 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
 
   m_uiFrameNumber = rcSH.getFrameNum();
 
-  RNOK( m_cFrame.   init( NULL, this ) );
-  m_cFrame.getFullPelYuvBuffer()->copy( rcFrameUnit.getFrame().getFullPelYuvBuffer() );
-  m_cFrame.getFullPelYuvBuffer()->fillMargin();
+  RNOK( getPic( TOP_FIELD )->init( NULL, this ) );
+	RNOK( getPic( BOT_FIELD )->init( NULL, this ) );
+  RNOK( getPic( FRAME     )->init( NULL, this ) );
 
+  RNOK( getPic( TOP_FIELD )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( TOP_FIELD )->getFullPelYuvBuffer() ) );
+	RNOK( getPic( BOT_FIELD )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( BOT_FIELD )->getFullPelYuvBuffer() ) );
+  RNOK( getPic( FRAME     )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( FRAME     )->getFullPelYuvBuffer() ) );
+
+  RNOK( getPic( TOP_FIELD )->getFullPelYuvBuffer()->fillMargin() );
+	RNOK( getPic( BOT_FIELD )->getFullPelYuvBuffer()->fillMargin() );
+  RNOK( getPic( FRAME     )->getFullPelYuvBuffer()->fillMargin() );
+  
   RNOK( m_cMbDataCtrl.init( rcSH.getSPS() ) );
 
   m_uiStatus = 0;
+	m_eAvailable = NOT_SPECIFIED;
+  m_iMaxPoc    = 0;
 
-  UInt uiStamp = m_cFrame.stamp() + 1;
+	UInt uiStamp = max( m_cFrame.stamp(), max( m_cTopField.stamp(), m_cBotField.stamp() ) ) + 1;
+	m_cTopField.stamp() = uiStamp;
+	m_cBotField.stamp() = uiStamp;
   m_cFrame.   stamp() = uiStamp;
 
-  m_cResidual.init( false );
+  m_cResidual.init();
   m_cResidual.getFullPelYuvBuffer()->clear();
   m_bInitDone = true;
 
-  m_cFGSIntFrame.init( false);
+  m_cFGSIntFrame.init();
   m_cFGSIntFrame.getFullPelYuvBuffer()->copy( rcFrameUnit.getFGSIntFrame()->getFullPelYuvBuffer() );
   m_cFGSIntFrame.getFullPelYuvBuffer()->fillMargin();
   m_pcFGSPicBuffer = NULL;
@@ -216,51 +245,74 @@ ErrVal FrameUnit::copyBase( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
 
   m_uiFrameNumber = rcSH.getFrameNum();
 
-  RNOK( m_cFrame.   init( NULL, this ) );
-  m_cFrame.getFullPelYuvBuffer()->copy( rcFrameUnit.getFrame().getFullPelYuvBuffer() );
-  m_cFrame.getFullPelYuvBuffer()->fillMargin();
+  RNOK( getPic( TOP_FIELD )->init( NULL, this ) );
+	RNOK( getPic( BOT_FIELD )->init( NULL, this ) );
+  RNOK( getPic( FRAME     )->init( NULL, this ) );
 
+  RNOK( getPic( TOP_FIELD )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( TOP_FIELD )->getFullPelYuvBuffer() ) );
+	RNOK( getPic( BOT_FIELD )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( BOT_FIELD )->getFullPelYuvBuffer() ) );
+  RNOK( getPic( FRAME     )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( FRAME     )->getFullPelYuvBuffer() ) );
+
+  RNOK( getPic( TOP_FIELD )->getFullPelYuvBuffer()->fillMargin() );
+	RNOK( getPic( BOT_FIELD )->getFullPelYuvBuffer()->fillMargin() );
+  RNOK( getPic( FRAME     )->getFullPelYuvBuffer()->fillMargin() );
+  
+  
   RNOK( m_cMbDataCtrl.init( rcSH.getSPS() ) );
 
-  m_iMaxPOC = rcFrameUnit.getMaxPOC();
+  m_iMaxPoc = rcFrameUnit.getMaxPoc();
   m_uiStatus = rcFrameUnit.getStatus();  //JVT-S036 lsj
 
-  UInt uiStamp = m_cFrame.stamp() + 1;
+  UInt uiStamp = max( m_cFrame.stamp(), max( m_cTopField.stamp(), m_cBotField.stamp() ) ) + 1;
+	m_cTopField.stamp() = uiStamp;
+	m_cBotField.stamp() = uiStamp;
   m_cFrame.   stamp() = uiStamp;
-  m_cFrame.setPOC(rcFrameUnit.getFrame().getPOC());//JVT-S036 lsj
+    
+  m_cTopField.setPoc(rcFrameUnit.getPic(TOP_FIELD)->getPoc());//JVT-S036 lsj
+  m_cBotField.setPoc(rcFrameUnit.getPic(BOT_FIELD)->getPoc());//JVT-S036 lsj
+  m_cFrame.   setPoc(rcFrameUnit.getPic(FRAME)    ->getPoc());//JVT-S036 lsj
 
   m_pcPicBuffer = rcFrameUnit.getPicBuffer();
   m_pcPicBuffer->setUsed(); //JVT-S036 lsj
 
-  m_cResidual.init( false );
+  m_cResidual.init( );
   m_cResidual.getFullPelYuvBuffer()->clear();
   m_bInitDone = true;
-
-  m_cFGSIntFrame.init( false);
+  
+  m_cFGSIntFrame.init();
   m_pcFGSPicBuffer = NULL;
 
   m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
 
   return Err::m_nOK;
 }
-ErrVal FrameUnit::uninitBase()
-{
-  m_cFrame.uninit();
-  m_pcPicBuffer->setUnused();
-  m_pcPicBuffer = NULL;
-
-  return Err::m_nOK;
+ErrVal FrameUnit::uninitBase()  
+{ 
+	m_cFrame.uninit();
+	m_pcPicBuffer->setUnused();
+	m_pcPicBuffer = NULL;
+	
+	return Err::m_nOK;
 }
 //JVT-S036 lsj end
 
-Void FrameUnit::setPoc( Int iPoc )
-{
-  m_cFrame.setPOC( iPoc );
-  for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
-    m_apcFGSRecon[uiLayerIdx]->setPOC( iPoc );
 
-  m_iMaxPOC = iPoc;
+
+Void FrameUnit::setTopFieldPoc( Int iPoc )
+{
+  m_cTopField.setPoc( iPoc );
+  m_cFrame   .setPoc( m_cBotField.isPocAvailable() ? min( m_cBotField.getPoc(), iPoc ) : iPoc );
+  m_iMaxPoc   =     ( m_cBotField.isPocAvailable() ? max( m_cBotField.getPoc(), iPoc ) : iPoc );
 }
+
+Void FrameUnit::setBotFieldPoc( Int iPoc )
+{
+  m_cBotField.setPoc( iPoc );
+  m_cFrame   .setPoc( m_cTopField.isPocAvailable() ? min( m_cTopField.getPoc(), iPoc ) : iPoc );
+  m_iMaxPoc   =     ( m_cTopField.isPocAvailable() ? max( m_cTopField.getPoc(), iPoc ) : iPoc );
+}
+
+
 
 
 ErrVal FrameUnit::uninit()
@@ -270,7 +322,9 @@ ErrVal FrameUnit::uninit()
   m_pcPicBuffer = NULL;
   m_pcFGSPicBuffer = NULL;
   RNOK( m_cFGSFrame.uninit() );
-  m_cFGSIntFrame.uninit();
+  RNOK( m_cFGSTopField.uninit() );
+  RNOK( m_cFGSBotField.uninit() );
+  RNOK( m_cFGSIntFrame.uninit() );
 
   for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
     RNOK( m_apcFGSRecon[uiLayerIdx]->uninit() );
@@ -279,36 +333,90 @@ ErrVal FrameUnit::uninit()
 
   m_uiFrameNumber = 0;
   m_uiStatus      = 0;
-  m_iMaxPOC       = 0;
+  m_iMaxPoc       = 0;
 
   if( ! m_bOriginal )
   {
     RNOK( m_cMbDataCtrl.uninit() );
   }
   RNOK( m_cFrame.uninit() );
+  RNOK( m_cTopField.   uninit() );
+  RNOK( m_cBotField.   uninit() );
+  RNOK( m_cResidual.uninit() );
 
-  m_cResidual.uninit();
   m_bInitDone = false;
   return Err::m_nOK;
 }
 
-
-Void FrameUnit::setUnused()
+RefPic FrameUnit::getRefPic( PicType ePicType, const RefPic& rcRefPic ) const
 {
-  m_uiStatus &= ~REFERENCE;
-  getFrame().stamp()++;
+  const Frame* pcPic = getPic( ePicType );
+  if( pcPic->stamp() == rcRefPic.getStamp() )
+  {
+    return RefPic( pcPic, pcPic->stamp() );
+  }
+  return RefPic( pcPic, 0 );
 }
 
-ErrVal FrameUnit::setFGS( PicBuffer* pcPicBuffer )
+Void FrameUnit::setUnused( PicType ePicType )
 {
-  m_pcFGSPicBuffer = pcPicBuffer;
+  m_uiStatus &= ~(ePicType + ( ePicType << 2));
+  getPic( ePicType )->stamp()++;
+  if( ePicType==FRAME )
+{
+    getPic( TOP_FIELD )->stamp()++;
+    getPic( BOT_FIELD )->stamp()++;
+  }
+  else
+  {
+    getPic( FRAME     )->stamp()++;
+  }
+}
 
+ErrVal FrameUnit::setFGS( PicBuffer*& rpcPicBuffer )
+{
+  if( m_pcFGSPicBuffer == NULL )
+{
+    m_pcFGSPicBuffer = rpcPicBuffer;
   RNOK( m_cFGSFrame.   init( m_pcFGSPicBuffer->getBuffer(), this ) );
+    RNOK( m_cFGSTopField. init( m_pcFGSPicBuffer->getBuffer(), this ) );
+    RNOK( m_cFGSBotField. init( m_pcFGSPicBuffer->getBuffer(), this ) );
   m_pcFGSPicBuffer->setUsed();
+    rpcPicBuffer = NULL;
+  }
 
-  m_cFGSFrame.setPOC( m_cFrame.getPOC() );
+	getFGSIntFrame()->store( m_pcFGSPicBuffer );
+
+  m_cFGSFrame.setPoc( m_cFrame.getPoc() );
+	m_cFGSTopField.setPoc( m_cTopField.getPoc() );
+	m_cFGSBotField.setPoc( m_cBotField.getPoc() );
 
   return Err::m_nOK;
 }
+Void FrameUnit::addPic( PicType ePicType, Bool bFieldCoded, UInt uiIdrPicId )
+{ 
+  m_eAvailable = PicType( m_eAvailable + ePicType ); 
+  AOT_DBG( m_eAvailable > FRAME );
+  
+  m_bFieldCoded = bFieldCoded;
+
+  ROTVS( m_ePicStruct >= PS_BOT_TOP ); // other values are set explicitly
+  if( ePicType==FRAME )
+  {
+    m_ePicStruct = PS_FRAME;
+  }
+  else
+  {
+    if( m_eAvailable == FRAME )
+    {
+      m_ePicStruct = (( m_cTopField.getPoc() < m_cBotField.getPoc() ) ?  PS_TOP_BOT : PS_BOT_TOP );
+    }
+    else
+    {
+      m_ePicStruct = (( ePicType == TOP_FIELD ) ?  PS_TOP : PS_BOT );
+    }
+  }
+}
+
 
 H264AVC_NAMESPACE_END

@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -162,9 +162,9 @@ const MbMode MbDataAccess::m_aausInterBMbType0[23] =
 const UShort MbDataAccess::m_aausInterBMbType1[23] =
 {
   0x0000, //0
-  0x1111,  //1
-  0x2222,  //2
-  0x3333,  //3
+  0x1111,	//1
+  0x2222,	//2
+  0x3333,	//3
   0x1111, //4
   0x1111, //5
   0x2222, //6
@@ -220,6 +220,8 @@ const UChar MbDataAccess::m_auc4x4Idx28x8Idx [16 ]  = { 0, 0, 1, 1,   0, 0, 1, 1
 
 Void MbDataAccess::xGetMvPredictor( Mv& rcMvPred, SChar scRef, ListIdx eListIdx, PredictionType ePredType, LumaIdx cIdx, LumaIdx cIdxEnd )
 {
+	const Bool bCurrentFieldFlag = m_rcMbCurr.getFieldFlag();
+
   //===== set motion vector predictors: A, B, C =====
   B4x4Idx cIdxA             = cIdx   .b4x4();
   B4x4Idx cIdxB             = cIdx   .b4x4();
@@ -230,13 +232,13 @@ Void MbDataAccess::xGetMvPredictor( Mv& rcMvPred, SChar scRef, ListIdx eListIdx,
   const MbData& rcMbDataB   = xGetBlockAbove     ( cIdxB );
   const MbData& rcMbDataC   = xGetBlockAboveRight( cIdxC );
 
-  rcMbDataA.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_A, cIdxA );
-  rcMbDataB.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_B, cIdxB );
-  rcMbDataC.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxC );
+  rcMbDataA.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_A, cIdxA, bCurrentFieldFlag );
+  rcMbDataB.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_B, cIdxB, bCurrentFieldFlag );
+  rcMbDataC.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxC, bCurrentFieldFlag );
   if( m_cMv3D_C == BLOCK_NOT_AVAILABLE )
   {
     const MbData& rcMbDataD = xGetBlockAboveLeft ( cIdxD );
-    rcMbDataD.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxD );
+		rcMbDataD.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxD, bCurrentFieldFlag );
   }
 
   //===== check directional prediction types =====
@@ -271,6 +273,8 @@ Void MbDataAccess::xGetMvPredictor( Mv& rcMvPred, SChar scRef, ListIdx eListIdx,
 
 Void MbDataAccess::xSetMvPredictorsBL( const Mv& rcMvPredBL, ListIdx eListIdx, LumaIdx cIdx, LumaIdx cIdxEnd )
 {
+  const Bool bCurrentFieldFlag = m_rcMbCurr.getFieldFlag();
+
   //===== set motion vector predictors: A, B, C =====
   B4x4Idx cIdxA             = cIdx   .b4x4();
   B4x4Idx cIdxB             = cIdx   .b4x4();
@@ -278,8 +282,8 @@ Void MbDataAccess::xSetMvPredictorsBL( const Mv& rcMvPredBL, ListIdx eListIdx, L
   const MbData& rcMbDataA   = xGetBlockLeft      ( cIdxA );
   const MbData& rcMbDataB   = xGetBlockAbove     ( cIdxB );
 
-  rcMbDataA.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_A, cIdxA );
-  rcMbDataB.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_B, cIdxB );
+	rcMbDataA.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_A, cIdxA, bCurrentFieldFlag );
+  rcMbDataB.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_B, cIdxB, bCurrentFieldFlag );
   m_cMv3D_C.set( rcMvPredBL, 1 );
 }
 
@@ -288,6 +292,7 @@ Void MbDataAccess::xSetMvPredictorsBL( const Mv& rcMvPredBL, ListIdx eListIdx, L
 
 Void MbDataAccess::xSetNeighboursMvPredictor( ListIdx eListIdx, LumaIdx cIdx, LumaIdx cIdxEnd )
 {
+  const Bool bCurrentFieldFlag = m_rcMbCurr.getFieldFlag();
   //===== set motion vector predictors: A, B, C =====
   B4x4Idx cIdxA             = cIdx   .b4x4();
   B4x4Idx cIdxB             = cIdx   .b4x4();
@@ -298,13 +303,13 @@ Void MbDataAccess::xSetNeighboursMvPredictor( ListIdx eListIdx, LumaIdx cIdx, Lu
   const MbData& rcMbDataB   = xGetBlockAbove     ( cIdxB );
   const MbData& rcMbDataC   = xGetBlockAboveRight( cIdxC );
 
-  rcMbDataA.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_A, cIdxA );
-  rcMbDataB.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_B, cIdxB );
-  rcMbDataC.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxC );
+  rcMbDataA.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_A, cIdxA, bCurrentFieldFlag );
+  rcMbDataB.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_B, cIdxB, bCurrentFieldFlag );
+  rcMbDataC.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxC, bCurrentFieldFlag );
   if( m_cMv3D_C == BLOCK_NOT_AVAILABLE )
   {
     const MbData& rcMbDataD = xGetBlockAboveLeft ( cIdxD );
-    rcMbDataD.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxD  );
+		rcMbDataD.getMbMotionData( eListIdx ).getMv3DNeighbour( m_cMv3D_C, cIdxD, bCurrentFieldFlag );
   }
 }
 
@@ -354,7 +359,7 @@ Void MbDataAccess::getMvPredictorSkipMode()
     cMvPred.setZero();
   }
 
-  const Frame* pcFrame = ( m_rcSliceHeader.getRefPic ( 1, LIST_0 ).getFrame() );
+	const Frame* pcFrame = ( m_rcSliceHeader.getRefPic ( 1, getMbPicType(), LIST_0 ).getFrame() );
   getMbMotionData( LIST_0 ).setRefIdx ( 1 );
   getMbMotionData( LIST_0 ).setRefPic( pcFrame );
   getMbMotionData( LIST_0 ).setAllMv( cMvPred );
@@ -386,7 +391,7 @@ Void MbDataAccess::getMvPredictors( Mv* pcMv ) const
 
 
 
-Void MbDataAccess::xSetAvailableMask()
+Void MbDataAccess::setAvailableMask()
 {
   B4x4Idx   cIdx;
   B4x4Idx   cIdx0(0);
@@ -421,6 +426,24 @@ Void MbDataAccess::xSetAvailableMask()
   if( ! xIsAvailableIntra( xGetBlockAboveLeft( ( cIdx = cIdx8 ) ) ) )
   {
     bAvailable8 |= NO_ABOVELEFT_REF;
+  }
+
+  if( ! getMbData().getFieldFlag() && m_rcMbLeft.getFieldFlag() )
+  {
+    if( ! ( bAvailable0 & NO_LEFT_REF ) )
+    {
+      if( ! xIsAvailableIntra( xGetBlockLeftBottom( cIdx = cIdx0 ) ) )
+      {
+        bAvailable0 |= NO_LEFT_REF;
+      }
+    }
+    if( ! ( bAvailable8 & NO_LEFT_REF ) )
+    {
+      if( ! xIsAvailableIntra( xGetBlockLeftBottom( cIdx = cIdx0 ) ) )
+      {
+        bAvailable8 |= NO_LEFT_REF;
+      }
+    }
   }
 
   m_uiAvailable = bAvailable0 + ( bAvailable8 << 4 );
@@ -593,28 +616,36 @@ ErrVal  MbDataAccess::setConvertMbType( UInt uiMbType )
 }
 
 
-Bool MbDataAccess::getMvPredictorDirect( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant )
+Bool MbDataAccess::getMvPredictorDirect( ParIdx8x8 eParIdx, 
+                                         Bool& rbOneMv, 
+                                         Bool bFaultTolerant, 
+                                         RefFrameList* pcL0RefFrameList, 
+                                         RefFrameList* pcL1RefFrameList )
 {
   rbOneMv = getSH().getSPS().getDirect8x8InferenceFlag();
 
   if( getSH().getDirectSpatialMvPredFlag() )
   {
-    xSpatialDirectMode ( eParIdx, rbOneMv );
-    return true;
+    return xSpatialDirectMode ( eParIdx, rbOneMv, pcL0RefFrameList, pcL1RefFrameList );
   }
 
   return xTemporalDirectMode( eParIdx, rbOneMv, bFaultTolerant );
 }
 
-//  TMM_EC
-Bool MbDataAccess::getMvPredictorDirectVirtual( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
+//	TMM_EC
+Bool MbDataAccess::getMvPredictorDirectVirtual( ParIdx8x8 eParIdx, 
+                                                Bool& rbOneMv, 
+                                                Bool bFaultTolerant, 
+                                                RefFrameList& rcL0RefFrameList, 
+                                                RefFrameList& rcL1RefFrameList )
 {
   rbOneMv = getSH().getSPS().getDirect8x8InferenceFlag();
-  return xTemporalDirectModeVirtual( eParIdx, rbOneMv, bFaultTolerant, rcRefFrameListL0, rcRefFrameListL1);
+  return xTemporalDirectModeVirtual( eParIdx, rbOneMv, bFaultTolerant, rcL0RefFrameList, rcL1RefFrameList);
 }
-//  TMM_EC }}
+//	TMM_EC }}
 
-Void MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8 )
+Bool MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8, RefFrameList* pcL0RefFrameList, RefFrameList* pcL1RefFrameList )
+
 {
   UInt          uiLstIdx;
   Bool          bDirectZeroPred   = false;
@@ -655,6 +686,20 @@ Void MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8 )
 
     if( ! bAllColNonZero )
     {
+      if( NULL != pcL0RefFrameList && NULL != pcL1RefFrameList )
+      {
+        // no Long term support
+        bAllColNonZero          = false;
+      }
+      else
+      {
+        const RefPic& rcRefPic  = m_rcSliceHeader.getRefPic( 1, getMbPicType(), LIST_1 );
+        bAllColNonZero          = ( ! rcRefPic.getFrame()->isShortTerm() );
+      }
+    }
+
+    if( ! bAllColNonZero )
+    {
       if( b8x8 )
       {
         SParIdx4x4 eSubMbPartIdx = ( eParIdx <= PART_8x8_1 ? ( eParIdx == PART_8x8_0 ? SPART_4x4_0 : SPART_4x4_1 )
@@ -691,6 +736,7 @@ Void MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8 )
     MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
     SChar         scRefIdx          = ascRefIdx[ eListIdx ];
     Bool          bZeroMv;
+		Bool          bMvValid = true;
 
     //----- set motion vectors -----
     if( b8x8 || bAllColNonZero || scRefIdx < 1 )
@@ -698,37 +744,46 @@ Void MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8 )
       bZeroMv         = ( bDirectZeroPred || scRefIdx < 1 || ( scRefIdx == 1 && bColZeroFlagBlk0 ) );
       const Mv& rcMv  = ( bZeroMv ? Mv::ZeroMv() : acMvPred [ eListIdx ] );
       rcMbMotionDataLX.setAllMv( rcMv, eParIdx );
+			bMvValid = xCheckMv( rcMv );
     }
     else
     {
       bZeroMv         = ( scRefIdx == 1 && bColZeroFlagBlk0 );
       const Mv& rcMv0 = ( bZeroMv ? Mv::ZeroMv() : acMvPred [ eListIdx ] );
       rcMbMotionDataLX.setAllMv( rcMv0, eParIdx, SPART_4x4_0 );
+			bMvValid &= xCheckMv( rcMv0 );
 
       bZeroMv         = ( scRefIdx == 1 && bColZeroFlagBlk1 );
       const Mv& rcMv1 = ( bZeroMv ? Mv::ZeroMv() : acMvPred [ eListIdx ] );
       rcMbMotionDataLX.setAllMv( rcMv1, eParIdx, SPART_4x4_1 );
+			bMvValid &= xCheckMv( rcMv1 );
 
       bZeroMv         = ( scRefIdx == 1 && bColZeroFlagBlk2 );
       const Mv& rcMv2 = ( bZeroMv ? Mv::ZeroMv() : acMvPred [ eListIdx ] );
       rcMbMotionDataLX.setAllMv( rcMv2, eParIdx, SPART_4x4_2 );
+			bMvValid &= xCheckMv( rcMv2 );
 
       bZeroMv         = ( scRefIdx == 1 && bColZeroFlagBlk3 );
       const Mv& rcMv3 = ( bZeroMv ? Mv::ZeroMv() : acMvPred [ eListIdx ] );
       rcMbMotionDataLX.setAllMv( rcMv3, eParIdx, SPART_4x4_3 );
+			bMvValid &= xCheckMv( rcMv3 );
     }
 
     //----- set reference indices and reference pictures -----
     rcMbMotionDataLX.setRefIdx ( scRefIdx,  eParIdx );
 
-    if( m_rcSliceHeader.getRefPicList( eListIdx).size() )
+		if( m_rcSliceHeader.getRefPicList( getMbPicType(), eListIdx ).size() )
     {
-      const Frame* pcFrame = ( scRefIdx < 1 ? 0 : m_rcSliceHeader.getRefPic ( scRefIdx, eListIdx ).getFrame() );
+			const Frame* pcFrame = ( scRefIdx < 1 ? 0 : m_rcSliceHeader.getRefPic ( scRefIdx, getMbPicType(), eListIdx ).getFrame() );
       rcMbMotionDataLX.setRefPic ( pcFrame,   eParIdx );
     }
+    if ( !bMvValid )
+    {
+      return false;
   }
 }
-
+	return true;
+}
 
 Bool MbDataAccess::xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant )
 {
@@ -739,14 +794,15 @@ Bool MbDataAccess::xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaI
   //----- get reference index for list 0 -----
   if( scRefIdxCol > 0 )
   {
-    if( rcRefPicCol.isAvailable() )
+    if( rcRefPicCol.isAvailable() ) 
     {
-      const RefPic cRefPic  = rcRefPicCol;
+      const RefPic cRefPic = ( ( getMbPicType() != FRAME &&  rcRefPicCol.getFrame()->getPicType() != FRAME ) ? rcRefPicCol :
+			                                                                                                         rcRefPicCol.getFrame()->getFrameUnit()->getRefPic( getMbPicType(), rcRefPicCol ) );
 
-      ascRefIdx[LIST_0] = getSH().getRefPicList( LIST_0 ).find( cRefPic );
-
-       SChar sMaxRefIdx = getSH().getNumRefIdxActive(LIST_0);
-
+      ascRefIdx[LIST_0] = getSH().getRefPicList( getMbPicType(), LIST_0 ).find( cRefPic );
+       
+      SChar sMaxRefIdx  =  (getSH().isMbAff() && getMbPicType() != FRAME ) ? getSH().getNumRefIdxActive(LIST_0) *2 :
+			                                                                       getSH().getNumRefIdxActive(LIST_0);
        if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > sMaxRefIdx)
        {
          ROFRS( bFaultTolerant, false ); // not allowed
@@ -759,7 +815,7 @@ Bool MbDataAccess::xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaI
     }
   }
 
-  Int iScale = getSH().getDistScaleFactor( ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
+	Int iScale = getSH().getDistScaleFactor( getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
   if( iScale == 1024 )
   {
     acMv[LIST_0]  = cMvCol;
@@ -770,10 +826,11 @@ Bool MbDataAccess::xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaI
     acMv[LIST_0]  = cMvCol.scaleMv( iScale );
     acMv[LIST_1]  = acMv[LIST_0] - cMvCol;
   }
-  return true; // OK
+	const Bool bMvValid = xCheckMv( acMv[LIST_0]);
+	return bMvValid;
 }
 
-//  TMM_EC {{
+//	TMM_EC {{
 Bool MbDataAccess::xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
 {
   SChar         scRefIdxCol;
@@ -783,14 +840,16 @@ Bool MbDataAccess::xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[]
   //----- get reference index for list 0 -----
   if( scRefIdxCol > 0 )
   {
-    if( rcRefPicCol.isAvailable() )
+    if( rcRefPicCol.isAvailable() ) 
     {
-      const RefPic cRefPic  = rcRefPicCol;
+      const RefPic cRefPic = ( ( getMbPicType() != FRAME &&  rcRefPicCol.getFrame()->getPicType() != FRAME ) ? rcRefPicCol :
+			                                                                                                         rcRefPicCol.getFrame()->getFrameUnit()->getRefPic( getMbPicType(), rcRefPicCol ) );
 
-      ascRefIdx[LIST_0] = getSH().getRefPicList( LIST_0 ).find( cRefPic );
-
-       SChar sMaxRefIdx = getSH().getNumRefIdxActive(LIST_0);
-
+      ascRefIdx[LIST_0] = getSH().getRefPicList( getMbPicType(), LIST_0 ).find( cRefPic );
+       
+      SChar sMaxRefIdx  =  (getSH().isMbAff() && getMbPicType() != FRAME ) ? getSH().getNumRefIdxActive(LIST_0) *2 :
+			                                                                       getSH().getNumRefIdxActive(LIST_0);
+       
        if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > sMaxRefIdx)
        {
          ROFRS( bFaultTolerant, false ); // not allowed
@@ -802,20 +861,22 @@ Bool MbDataAccess::xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[]
       ROFRS( bFaultTolerant, false ); // not allowed
     }
   }
-  Int iScale = getSH().getDistScaleFactorVirtual( ascRefIdx[LIST_0], ascRefIdx[LIST_1], rcRefFrameListL0, rcRefFrameListL1  );
-  if( iScale == 1024 )
-  {
-    acMv[LIST_0]  = cMvCol;
-    acMv[LIST_1]  = Mv::ZeroMv();
-  }
-  else
-  {
-    acMv[LIST_0]  = cMvCol.scaleMv( iScale );
-    acMv[LIST_1]  = acMv[LIST_0] - cMvCol;
-  }
-  return true; // OK
+	Int iScale = getSH().getDistScaleFactorVirtual(getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1], rcRefFrameListL0, rcRefFrameListL1  );// TMM_INTERLACE
+	if( iScale == 1024 )
+	{
+		acMv[LIST_0]  = cMvCol;
+		acMv[LIST_1]  = Mv::ZeroMv();
+	}
+	else
+	{
+		acMv[LIST_0]  = cMvCol.scaleMv( iScale );
+		acMv[LIST_1]  = acMv[LIST_0] - cMvCol;
+	}
+  const Bool bMvValid = xCheckMv( acMv[LIST_0]);
+	return bMvValid;
 }
-//  TMM_EC }}
+//	TMM_EC }}
+
 
 Bool MbDataAccess::xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar ascRefIdx[], ParIdx8x8 eParIdx, Bool bFaultTolerant )
 {
@@ -826,11 +887,10 @@ Bool MbDataAccess::xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar 
   //----- get reference index for list 0 -----
   if( scRefIdxCol > 0 )
   {
-    if( rcRefPicCol.isAvailable() )
+    if( rcRefPicCol.isAvailable() ) 
     {
-      const RefPic cRefPic = rcRefPicCol;
-
-      ascRefIdx[LIST_0] = getSH().getRefPicList( LIST_0 ).find( cRefPic );
+			const RefPic cRefPic = rcRefPicCol.getFrame()->getFrameUnit()->getRefPic( getMbPicType(), rcRefPicCol );
+      ascRefIdx[LIST_0] = getSH().getRefPicList( getMbPicType(), LIST_0 ).find( cRefPic );
 
       if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > (SChar)getSH().getNumRefIdxActive(LIST_0))
       {
@@ -843,16 +903,16 @@ Bool MbDataAccess::xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar 
       ROFRS( bFaultTolerant, false ); // not allowed
     }
   }
-
+	bool bMvValid = true;
   Int iScale = 1024;
 
-  if( m_rcSliceHeader.getRefPicList(LIST_1).size() )
+	if( m_rcSliceHeader.getRefPicList( getMbPicType(), LIST_1 ).size() )
   {
-    iScale = m_rcSliceHeader.getDistScaleFactor     ( ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
+		iScale = m_rcSliceHeader.getDistScaleFactor     ( getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
   }
   else
   {
-    iScale = m_rcSliceHeader.getDistScaleFactorScal ( ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
+		iScale = m_rcSliceHeader.getDistScaleFactorScal ( getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
   }
   if( iScale == 1024 )
   {
@@ -868,9 +928,10 @@ Bool MbDataAccess::xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar 
     {
       aacMv[LIST_0][uiIndex] = acMvCol[uiIndex].scaleMv( iScale );
       aacMv[LIST_1][uiIndex] = aacMv[LIST_0][uiIndex] - acMvCol[uiIndex];
+			bMvValid &= xCheckMv( aacMv[LIST_0][uiIndex] );
     }
   }
-  return true; // OK
+	return bMvValid;
 }
 
 
@@ -892,9 +953,9 @@ Bool MbDataAccess::xTemporalDirectMode( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaul
     {
       ListIdx       eListIdx          = ListIdx( uiLstIdx );
       MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
-      if( m_rcSliceHeader.getRefPicList( LIST_1).size() )
+      if( m_rcSliceHeader.getRefPicList( getMbPicType(), eListIdx ).size() )
       {
-        const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], eListIdx ).getFrame() );
+				const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], getMbPicType(), eListIdx ).getFrame() );
         rcMbMotionDataLX.setRefPic( pcFrame,             eParIdx );
       }
       rcMbMotionDataLX.setAllMv ( acMv     [eListIdx], eParIdx );
@@ -911,9 +972,9 @@ Bool MbDataAccess::xTemporalDirectMode( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaul
       ListIdx       eListIdx          = ListIdx( uiLstIdx );
       MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
 
-      if( m_rcSliceHeader.getRefPicList( LIST_1).size() )
+      if( m_rcSliceHeader.getRefPicList( getMbPicType(), eListIdx ).size() )
       {
-        const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], eListIdx ).getFrame() );
+        const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], getMbPicType(), eListIdx ).getFrame() );
         rcMbMotionDataLX.setRefPic( pcFrame,             eParIdx );
       }
 
@@ -926,8 +987,9 @@ Bool MbDataAccess::xTemporalDirectMode( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaul
     }
   }
 
-  return bModeAllowed; // OK
+  return bModeAllowed;
 }
+
 //TMM_EC {{
 Bool MbDataAccess::xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
 {
@@ -947,17 +1009,17 @@ Bool MbDataAccess::xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Boo
     {
       ListIdx       eListIdx          = ListIdx( uiLstIdx );
       MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
-      if( m_rcSliceHeader.getNumRefIdxActive( LIST_1) != 0)
+			if( m_rcSliceHeader.getNumRefIdxActive( LIST_1) != 0)
       {
-        RefFrameList *pcRefFrameList;
-        if ( eListIdx == LIST_0)
-          pcRefFrameList  =  &rcRefFrameListL0;
-        else
-          pcRefFrameList  =  &rcRefFrameListL1;
-
+				RefFrameList *pcRefFrameList;
+				if ( eListIdx == LIST_0)
+					pcRefFrameList	=	&rcRefFrameListL0;
+				else
+					pcRefFrameList	=	&rcRefFrameListL1;
+   
       }
       rcMbMotionDataLX.setAllMv ( acMv     [eListIdx], eParIdx );
-      rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
+			rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
     }
 
   }
@@ -971,9 +1033,9 @@ Bool MbDataAccess::xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Boo
       ListIdx       eListIdx          = ListIdx( uiLstIdx );
       MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
 
-      if( m_rcSliceHeader.getRefPicList( LIST_1).size() )
+      if( m_rcSliceHeader.getRefPicList( getMbPicType(), LIST_1).size() )// TMM_INTERLACE
       {
-        const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], eListIdx ).getFrame() );
+        const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], getMbPicType(), eListIdx ).getFrame() );// TMM_INTERLACE
         rcMbMotionDataLX.setRefPic( pcFrame,             eParIdx );
       }
 

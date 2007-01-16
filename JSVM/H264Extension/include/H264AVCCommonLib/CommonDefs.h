@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "7.12.1" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "7.13" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -111,6 +111,14 @@ typedef UChar RefCtx;
 
 H264AVC_NAMESPACE_BEGIN
 
+enum PicType
+{
+  NOT_SPECIFIED   = 0x00,
+  TOP_FIELD       = 0x01,
+  BOT_FIELD       = 0x02,
+  FRAME           = 0x03,
+	MAX_FRAME_TYPE  = 0x04
+};
 
 enum ParIdx16x16
 {
@@ -339,17 +347,21 @@ H264AVC_NAMESPACE_END
 #define INFER_ELAYER_PRED_WEIGHTS                     0                   // (0:BL weights are not used, 1:infer enhancement layer prediction weights)
 
 //TMM_EC {{
-typedef  enum
+typedef	enum
 {
-  EC_NONE                        =  100,
+	EC_NONE												=	100,
   EC_BLSKIP,
-  EC_FRAME_COPY,
-  EC_TEMPORAL_DIRECT,
-  EC_INTRA_COPY                // =200
-}  ERROR_CONCEAL;
+	EC_FRAME_COPY,
+	EC_TEMPORAL_DIRECT,
+	EC_INTRA_COPY                // =200
+}	ERROR_CONCEAL;
 //TMM_EC }}
 
 #define MAX_NUM_PD_FRAGMENTS                          12
 #define MAX_NUM_FGS_VECT_MODES                        8
+
+// TMM_INTERLACE {
+// #define RANDOM_MBAFF 
+// TMM_INTERLACE }
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

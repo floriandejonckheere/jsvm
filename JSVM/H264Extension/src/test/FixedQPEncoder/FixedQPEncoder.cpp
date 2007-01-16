@@ -79,12 +79,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 ********************************************************************************
 */
 
-
-
-
-
-
-
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

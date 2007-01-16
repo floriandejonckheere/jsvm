@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -122,6 +122,15 @@ const UChar g_aucIndexChromaDCScan[4] =
 const UChar g_aucLumaFrameDCScan[16] =
 {
   0, 16, 64, 128, 80, 32, 48, 96, 144, 192, 208, 160, 112, 176, 224, 240
+};
+
+const UChar g_aucFieldScan[16] =
+{
+  0, 4, 1, 8, 12, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15
+};
+const UChar g_aucLumaFieldDCScan[16] =
+{
+  0x00, 0x40, 0x10, 0x80, 0xc0, 0x50, 0x90, 0xd0, 0x20, 0x60, 0xa0, 0xe0, 0x30, 0x70, 0xb0, 0xf0
 };
 
 const Int g_aaiQuantCoef[6][16] =
@@ -218,7 +227,19 @@ const UChar g_aucFrameScan64[64] =
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
-const Int g_aaiDequantCoef64[6][64] =
+const UChar g_aucFieldScan64[64] =
+{
+   0,  8, 16,  1,  9, 24, 32, 17,
+   2, 25, 40, 48, 56, 33, 10,  3,
+  18, 41, 49, 57, 26, 11,  4, 19,
+  34, 42, 50, 58, 27, 12,  5, 20,
+  35, 43, 51, 59, 28, 13,  6, 21,
+  36, 44, 52, 60, 29, 14, 22, 37,
+  45, 53, 61, 30,  7, 15, 38, 46,
+  54, 62, 23, 31, 39, 47, 55, 63
+};
+
+const Int g_aaiDequantCoef64[6][64] = 
 {
   {
     20,  19, 25, 19, 20, 19, 25, 19,
@@ -283,7 +304,7 @@ const Int g_aaiDequantCoef64[6][64] =
 
 };
 
-const Int g_aaiQuantCoef64[6][64] =
+const Int g_aaiQuantCoef64[6][64] = 
 {
   {
     0x3333, 0x2fbe, 0x4189, 0x2fbe, 0x3333, 0x2fbe, 0x4189, 0x2fbe,
@@ -349,7 +370,7 @@ const Int g_aaiQuantCoef64[6][64] =
 
 
 
-const UChar g_aucScalingMatrixDefault4x4Intra[16] =
+const UChar g_aucScalingMatrixDefault4x4Intra[16] = 
 {
    6, 13, 20, 28,
   13, 20, 28, 32,
@@ -357,7 +378,7 @@ const UChar g_aucScalingMatrixDefault4x4Intra[16] =
   28, 32, 37, 42
 };
 
-const UChar g_aucScalingMatrixDefault4x4Inter[16] =
+const UChar g_aucScalingMatrixDefault4x4Inter[16] = 
 {
   10, 14, 20, 24,
   14, 20, 24, 27,
@@ -365,7 +386,7 @@ const UChar g_aucScalingMatrixDefault4x4Inter[16] =
   24, 27, 30, 34
 };
 
-const UChar g_aucScalingMatrixDefault8x8Intra[64] =
+const UChar g_aucScalingMatrixDefault8x8Intra[64] = 
 {
    6, 10, 13, 16, 18, 23, 25, 27,
   10, 11, 16, 18, 23, 25, 27, 29,
@@ -377,7 +398,7 @@ const UChar g_aucScalingMatrixDefault8x8Intra[64] =
   27, 29, 31, 33, 36, 38, 40, 42
 };
 
-const UChar g_aucScalingMatrixDefault8x8Inter[64] =
+const UChar g_aucScalingMatrixDefault8x8Inter[64] = 
 {
    9, 13, 15, 17, 19, 21, 22, 24,
   13, 13, 17, 19, 21, 22, 24, 25,

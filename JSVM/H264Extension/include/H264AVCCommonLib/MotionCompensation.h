@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -133,6 +133,7 @@ protected:
     const PW*       m_apcPW[2];
     YuvPicBuffer*   m_apcRefBuffer[2];
     Mv3D            m_aacMv[2][6];
+		Short           m_sChromaOffset[2];
   };
 
   class IntMC8x8D
@@ -150,12 +151,13 @@ protected:
     const PW*         m_apcPW[2];
     IntYuvPicBuffer*  m_apcRefBuffer[2];
     Mv3D              m_aacMv[2][6];
-    Mv3D              m_aacMvd[2][6];  // differential motion vector
+    Mv3D              m_aacMvd[2][6];  // differential motion vector 
+		Short             m_sChromaOffset[2];
   };
 
 protected:
-  MotionCompensation();
-  virtual ~MotionCompensation();
+	MotionCompensation();
+	virtual ~MotionCompensation();
 
 public:
   static ErrVal create( MotionCompensation*& rpcMotionCompensation );
@@ -225,9 +227,9 @@ public:
                                         UChar*          pusSigMap,
                                         UInt            uiWeightZeroCoeff);
 
-  ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess,
-                                        RefFrameList&   rcRefFrameList0,
-                                        RefFrameList&   rcRefFrameList1,
+  ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess, 
+                                        RefFrameList&   rcRefFrameList0, 
+                                        RefFrameList&   rcRefFrameList1, 
                                         IntYuvMbBuffer* pcYuvMbBuffer,
                                         Bool            bSR = false );
 
@@ -250,8 +252,8 @@ public:
                                         SliceHeader*    pcSliceHeader );
 
   ErrVal loadAdaptiveRefPredictors    ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
-                                        IntFrame*       pcPredSignal,
-                                        IntFrame*       pcBaseFrame,
+                                        IntFrame*       pcPredSignal, 
+                                        IntFrame*       pcBaseFrame, 
                                         RefFrameList*   cRefListDiff,
                                         MbDataCtrl*     pcMbDataCtrl,
                                         FGSCoder*       pcFGSCoder,
@@ -262,7 +264,7 @@ public:
                   IntFrame*       pcMCFrame,
                   IntFrame*       pcPrdFrame,
                   ListIdx         eListPrd,
-                  Int             iRefIdx);
+                  Int             iRefIdx); 
 
   ErrVal updateSubMb( B8x8Idx         c8x8Idx,
                       MbDataAccess&   rcMbDataAccess,
@@ -276,11 +278,11 @@ public:
                             IntFrame*       pcPrdFrame,
                             ListIdx         eListPrd );
 
-  ErrVal updateDirectBlock( MbDataAccess&   rcMbDataAccess,
+  ErrVal updateDirectBlock( MbDataAccess&   rcMbDataAccess, 
                             IntFrame*       pcMCFrame,
                             IntFrame*       pcPrdFrame,
                             ListIdx         eListPrd,
-                            Int             iRefIdx,
+                            Int             iRefIdx,                                             
                             B8x8Idx         c8x8Idx );
 
   Void xUpdateBlk( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D );
@@ -289,13 +291,13 @@ public:
   Void xUpdateLuma( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, UShort *usWeight );
   Void xUpdateLuma( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
 
-  Void updateBlkAdapt( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX,
+  Void updateBlkAdapt( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX, 
                                       UShort *usWeight);
 
-  Void xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy,
+  Void xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
                                     UInt uiSizeY, UInt uiSizeX, UShort weight, UShort wMax );
 
-  __inline Void xUpdateChroma( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer,  LumaIdx cIdx, Mv cMv,
+  __inline Void xUpdateChroma( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer,  LumaIdx cIdx, Mv cMv, 
     Int iSizeY, Int iSizeX, UShort *usWeight);
   Void xUpdateChroma( IntFrame* pcSrcFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
   Void xUpdateChroma( IntFrame* pcSrcFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, UShort *usWeight );
@@ -309,13 +311,13 @@ public:
 
   ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, Bool& rbValid, Bool bFaultTolerant, Bool bCalcMv = true );
   ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, IntYuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1, Bool bSR = false );
-  ErrVal initMb( UInt uiMbY, UInt uiMbX);
+  ErrVal initMb( UInt uiMbY, UInt uiMbX, MbDataAccess& rcMbDataAccess );
 
 
 protected:
   Void xPredMb8x8Mode( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer );
   Void xPredMb8x8Mode( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntYuvMbBuffer* pcRecBuffer, Bool bSR = false );
-
+ 
   Void xPredLuma(   YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D );
   Void xPredChroma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D );
 
@@ -329,6 +331,7 @@ protected:
   Void xPredChroma( IntYuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
 
 private:
+	__inline Short xCorrectChromaMv( const MbDataAccess& rcMbDataAccess, PicType eRefPicType );
   __inline Void xGetMbPredData( MbDataAccess& rcMbDataAccess, MC8x8D& rcMC8x8D );
   __inline Void xGetBlkPredData( MbDataAccess& rcMbDataAccess, MC8x8D& rcMC8x8D, BlkMode eBlkMode );
   __inline Void xPredChromaPel( Pel* pucDest, Int iDestStride, Pel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
