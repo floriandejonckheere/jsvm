@@ -102,16 +102,16 @@
             		      #----------#
                       # Test   6 #
                       #----------#
-                      {
-            		        name   => "AVCMA-7",
-            		        mode   => 0,
-            		        width  => 720,
-            		        height => 480,
-            		        bitstreamname => "CVMAPAQP3_Sony_E.jsv",
-            		        decodedname   => "CVMAPAQP3_Sony_E_720x480.yuv",
-            		        origname      => "CVMAPAQP3_Sony_E.yuv",
-            		        psnr => 99,
-            		      },
+                      #{
+            		      #  name   => "AVCMA-7",
+            		      #  mode   => 0,
+            		      #  width  => 720,
+            		      #  height => 480,
+            		      #  bitstreamname => "CVMAPAQP3_Sony_E.jsv",
+            		      #  decodedname   => "CVMAPAQP3_Sony_E_720x480.yuv",
+            		      #  origname      => "CVMAPAQP3_Sony_E.yuv",
+            		      #  psnr => 99,
+            		      #},
             		      #----------#
                       # Test   7 #
                       #----------#

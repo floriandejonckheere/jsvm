@@ -5,7 +5,7 @@
 # File          : README.TXT
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.7
+# Version       : 1.0.0
 ################################################################################
 
 
@@ -20,6 +20,9 @@ SimuRun      : location where the "Simulations" will be run. (if not present, wi
 
 PacketLossSimulator : contains the source code of a packet loss simulator tool to be used when running the Short-term simulations set.
 
+422_to_420fullres   : contains the source code of the SD 422 to 420 conversion tools proposed in [VCEG-059]. 
+                      This tool has to be used for certain validation tests related to Interlaced material. 
+
 [orig]              : contains the original YUV sequences (typically the 4CIF sequences) [OPTIONAL]
                       NOTE: The location of this directory (including its name) can be specified.
                
@@ -31,11 +34,18 @@ PacketLossSimulator : contains the source code of a packet loss simulator tool t
 IMPORTANT NOTES:
 ================-
 
-1) The directory "orig"  must at least contain the following YUV sequences:
-- BUS_352x288_30.yuv, MOBILE_352x288_30.yuv, FOOTBALL_352x288_30.yuv  to run the Short-term simulations set.
-- CREW_704x576_30.yuv to run the Long-term simulations set.
+1)Before running the Short_term and Long_term tests sets, the user will have to download YUV sequences available at ftp.tnt.uni-hannover.de/pub/svc/testsequences/. The required sequences are the following:
+Short_term: BUS_352x288_30.yuv, MOBILE_352x288_30.yuv, FOOTBALL_352x288_30.yuv and, CREW_704x576_60.yuv.
+Long_term: CREW_704x576_30.yuv and, CREW_704x576_60.yuv.
 
-2) The directory "bin" must contain the following executables
+In order to run the "Interlaced" validation scripts CFG1_P2I, CFG4_I2I, LCFG1_P2I, and, LCFG4_I2I, the user will have to download the SD sequence called src5_ref__625.yuv available at ftp://vqeg.its.bldrdoc.gov/SDTV/VQEG_PhaseI/TestSequences/ALL_625/. This sequence is in 4:2:2 format. Conversion to 4:2:0 format shall be made using the conversion tool 422_to_420fullres using the p option as following: 
+> 422_to_420perl.exe p src5_ref__625.yuv CANOA_720x576_25i.yuv
+The resulting CANOA_720x576_25i.yuv will then be used for the Interlaced validation scripts (in both Short_term and Long_term tests sets).
+
+All these yuv sequences will be placed in the "orig" directory.
+
+
+2) The "bin" directory  must contain the following executables
 - DownConvertStatic
 - H264AVCDecoderLibTestStatic
 - H264AVCEncoderLibTestStatic
@@ -47,7 +57,7 @@ IMPORTANT NOTES:
 3) Before running AVC_Conformance simulation set, please read the README.TXT files located in the SimuDataBase/AVC_Conformance/ directory.
 You will have to download the conformance bistreams and YUV sequences available at "http://ftp3.itu.ch/av-arch/jvt-site/draft_conformance/".
 The numbering of the conformance tests corresponds to the classification of the conformance bit-streams in the ITU-T Recommendation H.264.1 "Conformance specification for H.264 advanced video coding".
-So far, only tests "6.6.1, 6.6.11 and, Hierachical" must be run. Please again, read the instructions...
+So far, only tests "6.6.1, 6.6.7, 6.6.11, 6.6.20 and, Hierachical" must be run. Please again, read the instructions...
 
 
 It contains also the file:

@@ -6,7 +6,7 @@
 # File          : Tools.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.7
+# Version       : 1.0.0
 ################################################################################
 
 package Tools;
@@ -132,6 +132,7 @@ sub InitSimu($;$)
   (defined $simu->{runencode}   ) or  $simu->{runencode}     = 1;
   (defined $simu->{nbfgslayer}  ) or  $simu->{nbfgslayer}    = 2;
   (defined $simu->{qualitylayer}) or  $simu->{qualitylayer}  = 0; #0: off 1: PID NAL 2:SEI
+  (defined $simu->{interlace}   ) or  $simu->{interlace}     = 0;
   #$simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264"  if($simu->{qualitylayer});
   ($simu->{qualitylayer}) and $simu->{bitstreamQLname}= $param->{path_str}.$simu->{name}."_ql.264";
   
@@ -152,6 +153,7 @@ sub InitSimu($;$)
     (defined $layer->{width})     or ($layer->{width}     = $simu->{width});
     (defined $layer->{height})    or ($layer->{height}    = $simu->{height});
     (defined $layer->{framerate}) or ($layer->{framerate} = $simu->{framerate});
+    (defined $layer->{interlace}) or ($layer->{interlace} = $simu->{interlace});
     ((defined $layer->{cropfilename}) and $layer->{cropfilename}=ConcatPath($param->{path_crop},$layer->{cropfilename}) );
     #or ($layer->{cropfilename}=$simu->{cropfilename});
     (defined $layer->{bitrate}) or $layer->{bitrate}=0;
@@ -183,7 +185,8 @@ sub InitSimu($;$)
   {
     my $bitrate =($test->{bitrate} ? $test->{bitrate}:500000);
 
-    (defined $test->{framerate}) or ($test->{framerate} = $simu->{framerate});
+    (defined $test->{framerate}) or ($test->{framerate}  = $simu->{framerate});
+    (defined $test->{interlace}) or ($test->{interlace}  = $simu->{interlace});
     (defined $test->{useql})     or ($test->{useql}=0);
     (defined $test->{usesip})     or ($test->{usesip}=0);
     
@@ -284,7 +287,7 @@ sub FindRefLayer($;$)
   while($nblayer>=0)
   {
     my $layer=@layers[$nblayer];
-    (($layer->{width} == $test->{width})&&($layer->{height} == $test->{height})&&( $layer->{framerate} >= $test->{framerate})) and return $layer;
+    (($layer->{interlace} == $test->{interlace}) && ($layer->{width} == $test->{width})&&($layer->{height} == $test->{height})&&( $layer->{framerate} >= $test->{framerate})) and return $layer;
     $nblayer--;
   }
 
@@ -313,19 +316,20 @@ sub CreateSequences($;$)
       if (!($temporatio == 1)) {$nbfr = int(($nbfr+($temporatio-1))/$temporatio);}
       
       External::Resize($param,
-      $simu->{logname},
-      $simu->{original},
-      $simu->{originalwidth},
-      $simu->{originalheight},
-      $simu->{originalframerate},
-      $simu->{origname},
-      $simu->{width},
-      $simu->{height},
-      $simu->{framerate},
-      $simu->{phasemode},
-      $essopt,
-      $nbfr,
-      $simu->{cropfilename});
+                      $simu->{logname},
+                      $simu->{original},
+                      $simu->{originalwidth},
+                      $simu->{originalheight},
+                      $simu->{originalframerate},
+                      $simu->{origname},
+                      $simu->{width},
+                      $simu->{height},
+                      $simu->{framerate},
+                      $simu->{phasemode},
+                      $essopt,
+                      $nbfr,
+                      $simu->{cropfilename},
+                      $simu->{resamplemode});
     }
   }
 
@@ -358,19 +362,20 @@ sub CreateSequences($;$)
       if (!($temporatio == 1)){$nbfr = int(($nbfr+($temporatio-1))/$temporatio);}
       
       External::Resize($param,
-      $simu->{logname},
-      $reforigname,
-      $refwidth,
-      $refheight,
-      $refframerate,
-      $layer->{origname},
-      $layer->{width},
-      $layer->{height},
-      $layer->{framerate},
-      $simu->{phasemode},
-      $essopt,
-      $nbfr,
-      $layer->{cropfilename});
+                        $simu->{logname},
+                        $reforigname,
+                        $refwidth,
+                        $refheight,
+                        $refframerate,
+                        $layer->{origname},
+                        $layer->{width},
+                        $layer->{height},
+                        $layer->{framerate},
+                        $simu->{phasemode},
+                        $essopt,
+                        $nbfr,
+                        $layer->{cropfilename},
+                        $layer->{resamplemode});
     }
     $reforigname    = $layer->{origname};
     $refwidth       = $layer->{width};
@@ -395,19 +400,20 @@ sub CreateSequences($;$)
       if (!($temporatio == 1)){$nbfr = int(($nbfr+($temporatio-1))/$temporatio);}
  
       External::Resize($param,
-      $simu->{logname},
-      $refl->{origname},
-      $refl->{width},
-      $refl->{height},
-      $refl->{framerate},
-      $test->{origname},
-      $test->{width},
-      $test->{height},
-      $test->{framerate},
-      $simu->{phasemode},
-      $essopt,
-      $nbfr,
-      $test->{cropfilename});
+                      $simu->{logname},
+                      $refl->{origname},
+                      $refl->{width},
+                      $refl->{height},
+                      $refl->{framerate},
+                      $test->{origname},
+                      $test->{width},
+                      $test->{height},
+                      $test->{framerate},
+                      $simu->{phasemode},
+                      $essopt,
+                      $nbfr,
+                      $test->{cropfilename},
+                      $test->{resamplemode});
     }
   }
   return 1;

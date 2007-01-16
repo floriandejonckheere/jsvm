@@ -6,7 +6,7 @@
 # File          : External.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.7
+# Version       : 1.0.0
 ################################################################################
 
 package External;
@@ -330,7 +330,7 @@ sub Resize($$;@)
 {
 	my $param=shift;
 	my $log=shift;
-	my ($namein,$win,$hin,$frin,$nameout,$wout,$hout,$frout,$phasemode,$essopt,$nbfr,$cropfile)=@_;
+	my ($namein,$win,$hin,$frin,$nameout,$wout,$hout,$frout,$phasemode,$essopt,$nbfr,$cropfile,$resamplemode)=@_;
 	
 	my $display=1;
 	my $bin =$param->{path_bin};
@@ -339,6 +339,12 @@ sub Resize($$;@)
 	my $cmd;
 	my $ret;
 	my $temporatio=GetPowerof2($frin/$frout);
+	
+	if ((defined $resamplemode) and (($resamplemode==4)or($resamplemode==5)))
+	{
+	  $temporatio=0;
+	}
+	
 	($win>=$wout) or die "The input width must be greater or equal to the output width $!";
 	($hin>=$hout) or die "The input height must be greater or equal to the output height $!";
 		
@@ -352,8 +358,6 @@ sub Resize($$;@)
 	  {
 	    $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr -crop 1 $cropfile";
 	  }
-		$ret = run($cmd, $log,0);
-		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
 	}
 	else
 	{
@@ -365,9 +369,15 @@ sub Resize($$;@)
 	  {
       $cmd ="$bin$RESAMPLER  $win $hin $namein  $wout $hout $nameout 0 $temporatio 0 $nbfr";
     }
-		$ret = run($cmd, $log,0);
-		($ret == 0) or die "problem while executing the command:\n$cmd\n";  
-	}  	   					         
+ 	}  
+	
+	if(defined $resamplemode)
+    	{
+      	$cmd .= " -resample_mode ".$resamplemode;
+    	}
+    
+	$ret = run($cmd, $log,0);
+	($ret == 0) or die "problem while executing the command:\n$cmd\n"; 	   					         
 } 
 
 

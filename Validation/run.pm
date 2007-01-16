@@ -6,7 +6,7 @@
 # File          : run.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.7
+# Version       : 1.0.0
 ################################################################################
 
 
@@ -29,7 +29,7 @@ use Tools::DirTree;
 #-----------------------#
 # Local variables       #
 #-----------------------#
-my $VERSION    = "0.0.7";
+my $VERSION    = "1.0.0";
 my $GLOBAL_LOG = "../Global.log"; #=== Global Log file
 my $DO_DISPLAY = 1;            #=== Display on stdout or not
 

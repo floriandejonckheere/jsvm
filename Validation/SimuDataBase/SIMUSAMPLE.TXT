@@ -48,6 +48,8 @@
 			                bitrateDS    => 0 ,         # Dead-substream bitrate for layer 0 [OPTIONAL] (default value :0 -> meaning no usage of Dead-Substreams )
 		                  cropfilename => "crop0.txt" # File containing crop parameters for the generation of layer 0 from the High Layer YUV sequences. [OPTIONAL]	
 		      	          croptype     => 1           # 1: sequence level cropping 2: picture level cropping [OPTIONAL] (default value :1)
+		                  interlace    => 0           # 0: coding of non interlaced material 1: coding of interlaced material (default value :0)
+		                  resamplemode => 0           # This represent the "-resample_mode" option of the "DownconvertStatic" tool (default value :0)
 		                  },
                       #----------#
                       # Layer  1 #
@@ -87,6 +89,7 @@
             		        psnr          => 28,	     # Expected PSNR    [OPTIONAL] (default value 0: means that psnr reults will not be checked)
             		     	  encdecmatch   => 1,        # 0: no check 1: check encoder/decoder perfect matching  [OPTIONAL] (default value 0) 
             		        jmdecmatch    => 1,        # 0: no check 1: check JSVM/JM  decoders perfect matching  [OPTIONAL] (default value 0) 
+            		        interlace     => 0,        # 0: Non Interlaced material 1: Interlaced material (default value :0)
             		      
             		       [bitstreamname => "mybstream.264", #[CAUTION][OPTIONAL++]: this option must be used for very special cases (c.f. AVC_Conformance simulations set)]
             		      },

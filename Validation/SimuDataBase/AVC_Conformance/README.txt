@@ -1,8 +1,8 @@
 Please put conformance data (bitsreams, YUV references sequences) in DATA folder or anywhere else
 (available at http://ftp3.itu.ch/av-arch/jvt-site/draft_conformance/).
 
-Before running the AVC-Conformance tests (the first time), you can (if you want) execute the "dump.pm" perl script.
-It should copy (or remove) the sequences and bistreams at the right places.
+Before running the AVC-Conformance tests (the first time), one can (if one wants) execute the "dump.pm" perl script.
+It should copy (or remove) the sequences and bitstreams at the right places.
 
 USAGE: dump.pm
 -------------- 
@@ -21,4 +21,4 @@ The numbering of the conformance tests corresponds to the classification of the 
 
 
 CAUTION: 
-So far, only tests "6.6.1", "6.6.11" and, "Hierarchical" need to be run!
+So far, only tests "6.6.1", "6.6.7", "6.6.11" and "6.6.20" and, "Hierarchical" need to be run!

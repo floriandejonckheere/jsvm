@@ -128,55 +128,55 @@
             		      #----------#
                       # Test   8 #
                       #----------#
-                      {
-          		        name   => "AVCCAPAMA-1",
-          		        mode   => 0,
-          		        width  => 352,
-          		        height => 288,
-          		        bitstreamname => "CAPAMA3_Sand_F.264",
-          		        decodedname   => "CAPAMA3_Sand_F_352x288.yuv",
-          		        origname      => "CAPAMA3_Sand_F.yuv",
-          		        psnr => 99,
-            		      },
+                     # {
+          		       # name   => "AVCCAPAMA-1",
+          		       # mode   => 0,
+          		       # width  => 352,
+          		       # height => 288,
+          		       # bitstreamname => "CAPAMA3_Sand_F.264",
+          		       # decodedname   => "CAPAMA3_Sand_F_352x288.yuv",
+          		       # origname      => "CAPAMA3_Sand_F.yuv",
+          		       # psnr => 99,
+            		     # },
             		      #----------#
                       # Test   9 #
                       #----------#
-		                  {
-          		        name => "AVCCAPAMA-2",
-          		        mode => 0,
-          		        width  => 720,
-          		        height => 480,
-          		        bitstreamname => "cama1_vtc_c.avc",
-          		        decodedname   => "cama1_vtc_c_720x480.yuv", 
-          		        origname      => "cama1_vtc_c_recon.yuv",
-          		        psnr => 99,
-            		      },
+		                 # {
+          		       # name => "AVCCAPAMA-2",
+          		       # mode => 0,
+          		       # width  => 720,
+          		       # height => 480,
+          		       # bitstreamname => "cama1_vtc_c.avc",
+          		       # decodedname   => "cama1_vtc_c_720x480.yuv", 
+          		       # origname      => "cama1_vtc_c_recon.yuv",
+          		       # psnr => 99,
+            		     # },
             		      #----------#
                       # Test  10 #
                       #----------#
-                      {
-          		        name   => "AVCCAPAMA-3",
-          		        mode   => 0,
-          		        width  => 720,
-          		        height => 576,
-          		        bitstreamname => "cama2_vtc_b.avc",
-          		        decodedname   => "cama2_vtc_b_720x576.yuv",
-          		        origname      => "cama2_vtc_b_recon.yuv",
-          		        psnr => 99,
-            		      },
+                     # {
+          		       # name   => "AVCCAPAMA-3",
+          		       # mode   => 0,
+          		       # width  => 720,
+          		       # height => 576,
+          		       # bitstreamname => "cama2_vtc_b.avc",
+          		       # decodedname   => "cama2_vtc_b_720x576.yuv",
+          		       # origname      => "cama2_vtc_b_recon.yuv",
+          		       # psnr => 99,
+            		     # },
             		      #----------#
                       # Test  11 #
                       #----------#
-                      {
-          		        name   => "AVCCAPAMA-4",
-          		        mode   => 0,
-          		        width  => 352,
-          		        height => 288,
-          		        bitstreamname => "cama3_vtc_b.avc",
-          		        decodedname   => "cama3_vtc_b_720x576.yuv",
-          		        origname      => "cama3_vtc_b_recon.yuv",
-          		        psnr => 99,
-		                  }
+                     # {
+          		       # name   => "AVCCAPAMA-4",
+          		       # mode   => 0,
+          		       # width  => 352,
+          		       # height => 288,
+          		       # bitstreamname => "cama3_vtc_b.avc",
+          		       # decodedname   => "cama3_vtc_b_720x576.yuv",
+          		       # origname      => "cama3_vtc_b_recon.yuv",
+          		       # psnr => 99,
+		                 # }
     		    ],
 }
 
