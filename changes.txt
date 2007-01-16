@@ -7,14 +7,14 @@ Contributions : JVT-S018
 
 Changes:
 
-- 134 files have been modified + 
+- 134 files have been modified  
 - MBAFF tools are now supported on both Base and Enhancement layers
 - Inter-layer Progressive/Interlace scalability based on the use of a "Virtual Base Layer" is also implemented
 - The DownConvertStatic tool has been modified to support the resampling of both Interlaced or Progressive material. The "resample_mode" option has been added.
 
 Regarding the Validation scripts:
 - Around 35 files have been added 
-- AVC_Conformance: 2 MBAFF validation test sets using the MBAFF AVC conformance bitstreams are provided (6.6.7 and 6.6.20)
+- AVC_Conformance: 3 MBAFF validation test sets using the MBAFF AVC conformance bitstreams are provided (6.6.2, 6.6.7 and 6.6.20)
 - Short_term: 4 validation tests emulating the 4 scenarios defined in the CE on interlaced coding are provided (CFG1_P2I, CFG2_I2P,CFG3_I2P,CFG4_I2I) 
 In these scenarios, small "gop" size are considered and CABAC/CAVLC coding is used         
 - Long_term: 4 validation tests emulating the 4 scenarios defined in the CE on interlaced coding are provided (LCFG1_P2I, LCFG2_I2P, LCFG3_I2P, LCFG4_I2I) 

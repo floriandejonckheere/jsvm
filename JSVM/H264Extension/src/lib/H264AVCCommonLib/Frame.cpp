@@ -199,7 +199,7 @@ Frame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, Bool bFrameMbsOnlyFlag
 		if( ! bFrameMbsOnlyFlag )
 		{
 			// creates private half pel buffer
-			Pel* pHPData = NULL;
+			pHPData = NULL;
 			RNOK( pcTopField->getHalfPelYuvBuffer()->init( pHPData ) );
 			RNOK( pcBotField->getHalfPelYuvBuffer()->init( pHPData ) );
 

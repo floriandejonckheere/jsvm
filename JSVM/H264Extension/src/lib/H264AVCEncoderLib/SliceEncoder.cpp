@@ -768,8 +768,7 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
   //====== initialization ======
   RNOK( pcMbDataCtrl  ->initSlice         ( rcSH, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcControlMng->initSliceForCoding( rcSH              ) );
-  Bool            bLowPass        = rcSH.getTemporalLevel() == 0;
-
+ 
   UInt uiBits   = m_pcMbCoder->getBitCount();
   Int  iQPRes   = rcSH.getPicQp           ();
   Int  iQPIntra = rcSH.getPicQp           (); //- 2;
@@ -800,7 +799,6 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
     {
       MbDataAccess* pcMbDataAccess     = NULL;
       MbDataAccess* pcMbDataAccessBase = NULL;
-      Double        dDistortion = 0;
       UInt          uiMbY, uiMbX;
       const UInt    uiMbAddressMbAff   = uiMbAddress+eP;
       Bool          bCoded;

@@ -391,48 +391,4 @@ TraceFile::newLine()
   return Err::m_nOK;
 }
 
-ErrVal TraceFile::printList0List1(SliceHeader& rcSH)
-{
-	static char *pic_typ[4] = {"NOT_SPECIF","TOP_FIELD","BOT_FIELD","FRAME"} ;
- 
-  int size_l0 = rcSH.getRefPicList( rcSH.getPicType(), LIST_0 ).size();
-  int size_l1 = rcSH.getRefPicList( rcSH.getPicType(), LIST_1 ).size();
-  DTRACE_T( " frame: " );
-  DTRACE_V( rcSH.getFrameNum() );
-  DTRACE_T( " PicType: " );
-  DTRACE_T( pic_typ[rcSH.getPicType()] );
-  DTRACE_T( " size_l0: " );
-  DTRACE_V( size_l0 );
-  DTRACE_T( " size_l1: " );
-  DTRACE_V( size_l1 );
-  DTRACE_N;
-
-  int i, poc;
-  for ( i = 0 ; i < size_l0 ; i++)
-  {
-    const RefPic& rcRefPic= rcSH.getRefPicList( rcSH.getPicType(), LIST_0 ).get(i);
-    poc = rcRefPic.getFrame()->getPoc();
-    DTRACE_T( "LIST0  i: " );
-    DTRACE_V( i );
-    DTRACE_T( " poc: " );
-    DTRACE_V( poc );
-    DTRACE_N;
-  }
-  DTRACE_N;
-
-  for ( i = 0 ; i < size_l1 ; i++)
-  {
-    const RefPic& rcRefPic= rcSH.getRefPicList( rcSH.getPicType(), LIST_1 ).get(i);
-    poc = rcRefPic.getFrame()->getPoc();
-    DTRACE_T( "LIST1  i: " );
-    DTRACE_V( i );
-    DTRACE_T( " poc: " );
-    DTRACE_V( poc );
-    DTRACE_N;
-
-  }
-
-  return Err::m_nOK;
-}
-
 H264AVC_NAMESPACE_END

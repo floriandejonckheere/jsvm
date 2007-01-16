@@ -2508,7 +2508,7 @@ MotionCompensation::xAdaptiveMotionCompensation(YuvBufferCtrl*  pcYuvFullPelBuff
 
     RNOK(                         initMb(                 uiMbY, uiMbX, *pcMbDataAccess) );// TMM_INTERLACE
 
-    const Bool bFrame = (FRAME == pcMbDataAccess->getMbPicType() );
+    //const Bool bFrame = (FRAME == pcMbDataAccess->getMbPicType() );
 
     if( ! pcMbDataAccess->getMbData().isIntra() )
     {

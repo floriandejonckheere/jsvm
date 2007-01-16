@@ -232,8 +232,6 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
     DTRACE_NEWMB( uiMbAddress );
 
     MbDataAccess* pcMbDataAccess      = 0;
-    MbDataAccess* pcMbDataAccessBase  = 0;
-    MbDataAccess* pcMbDataAccessBaseField  = 0;
     UInt          uiMbY, uiMbX;
 
     rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress );

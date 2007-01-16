@@ -776,7 +776,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   fclose( f );
 //JVT-T054{
   UInt uiPrevLayer        = 0;
-  Double  dPrevTemp          = 0.0;
+  Double  dPrevTemp       = 0.0;
   UInt uiPrevWidth        = 0;
   UInt uiPrevHeight       = 0;
   UInt uiLayerTemp        = 0;
@@ -785,9 +785,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   UInt uiMaxLayer         = 0;
   UInt uiMaxQualityLevel  = 0;
 //JVT-T054}
-  Bool bInterlaced = false; 
+  Bool bInterlaced        = false; 
+  UInt ui                 = 0;
 
-  for( UInt ui = 0; ui < m_uiNumberOfLayers; ui++ )
+  for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
     getLayerParameters(ui).setLayerId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );

@@ -1323,8 +1323,6 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
   if( bInterEnable )
   if( bBaseLayerAvailable )
   {
-    UInt xx=rcMbDataAccess.getMbX();
-    UInt yy=rcMbDataAccess.getMbY();
     //--- subtract (upsampled) base layer residual from original macroblock data ---
     ROF( pcBaseLayerResidual );
     cBaseLayerBuffer    .loadBuffer ( const_cast<IntFrame*>(pcBaseLayerResidual)->getFullPelYuvBuffer() );
@@ -4250,8 +4248,7 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
   ROF( pcMbDataAccessBase );
 
   PicType eMbPicType = rcMbDataAccess.getMbPicType();
-  Bool bRefinementAllowed = true;
-
+ 
   if( eMbPicType != FRAME && pcMbDataAccessBase->getMbPicType() == FRAME )
   {
     // check inter intra mixed modes 
@@ -4291,15 +4288,15 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
 	//JVT-R057 LA-RDO{
 	if(m_bLARDOEnable)
 	{
-		MbDataAccess&   rcMbDataAccess  = rpcIntMbTempData->getMbDataAccess();
+		MbDataAccess&  rcMbDataAccess1  = rpcIntMbTempData->getMbDataAccess();
 		Int distortion1=0,distortion2=0,distortion=0;
 		//Bug_Fix JVT-R057 0806{
 	
 		for( Int n = 0; n <16; n++)
 		{
 			Int iRefIdx[2];
-			iRefIdx [0]=rcMbDataAccess.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
-			iRefIdx [1]=rcMbDataAccess.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
+			iRefIdx [0]=rcMbDataAccess1.getMbMotionData(LIST_0).getRefIdx(B4x4Idx(n));
+			iRefIdx [1]=rcMbDataAccess1.getMbMotionData(LIST_1).getRefIdx(B4x4Idx(n));
 			IntFrame* pcRefFrame0 = ( iRefIdx [0] > 0 ? rcRefFrameList0[ iRefIdx [0] ] : NULL );
 			IntFrame* pcRefFrame1 = ( iRefIdx [1] > 0 ? rcRefFrameList1[ iRefIdx [1] ] : NULL );
 			Int iMvX;
@@ -4307,15 +4304,15 @@ MbEncoder::xEstimateMbBLSkip( IntMbTempData*&   rpcIntMbTempData,
 
 			if(pcRefFrame0)
 			{	 
-				iMvX=rcMbDataAccess.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getHor();
-				iMvY=rcMbDataAccess.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getVer();
-				getChannelDistortion(rcMbDataAccess,*pcRefFrame0,&distortion1,iMvX,iMvY,n%4,n/4,1,1);
+				iMvX=rcMbDataAccess1.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getHor();
+				iMvY=rcMbDataAccess1.getMbMotionData(LIST_0).getMv(B4x4Idx(n)).getVer();
+				getChannelDistortion(rcMbDataAccess1,*pcRefFrame0,&distortion1,iMvX,iMvY,n%4,n/4,1,1);
 			}
 			if(pcRefFrame1)
 			{
-				iMvX=rcMbDataAccess.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getHor();
-				iMvY=rcMbDataAccess.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getVer();
-				getChannelDistortion(rcMbDataAccess,*pcRefFrame1,&distortion2,iMvX,iMvY,n%4,n/4,1,1);
+				iMvX=rcMbDataAccess1.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getHor();
+				iMvY=rcMbDataAccess1.getMbMotionData(LIST_1).getMv(B4x4Idx(n)).getVer();
+				getChannelDistortion(rcMbDataAccess1,*pcRefFrame1,&distortion2,iMvX,iMvY,n%4,n/4,1,1);
 				distortion1=(Int)(m_dWr0*distortion1+m_dWr0*distortion2);
 			}
 			distortion+=distortion1;

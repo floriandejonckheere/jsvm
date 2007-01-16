@@ -927,7 +927,7 @@ Void IntraPrediction::xPred16x16IMode2DC( XPel* puc, Int iStride ) // DC predict
 
   for( n = 0; n < 16; n++ )
   {
-    for( UInt m = 0; m < 16; m++ )
+    for( m = 0; m < 16; m++ )
     {
       puc[m] = uiDcValue;
     }

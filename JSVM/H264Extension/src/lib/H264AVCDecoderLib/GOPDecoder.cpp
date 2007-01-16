@@ -802,7 +802,6 @@ DecodedPicBuffer::xClearOutputAll( PicBufferList&   rcOutputList,
                                    Int&             riMaxPoc,
                                    Bool             bFinal )
 {
-  const Int iSize = m_cPicBufferList.size();
   //===== create output list =====
   DPBUnitList cOutputList;
   Int         iMinPoc = MSYS_INT_MAX;
@@ -978,7 +977,6 @@ DecodedPicBuffer::xCheckMissingPics( SliceHeader*   pcSliceHeader,
     for( UInt uiIndex = 1; uiIndex <= uiMissingFrames; uiIndex++ )
     {
       const Bool  bTreatAsIdr = ( m_cUsedDPBUnitList.empty() );
-      DPBUnit*       pcDPBUnit   = m_cUsedDPBUnitList.back();
       const Int   iPoc        = ( bTreatAsIdr ? 0 : m_cUsedDPBUnitList.back()->getFrame()->getPoc() );
       const UInt  uiFrameNum  = ( m_uiLastRefFrameNum + uiIndex ) % m_uiMaxFrameNum;
 
@@ -1256,7 +1254,6 @@ DecodedPicBuffer::xPrdListRemapping ( RefFrameList&   rcList,
                                                                pcSliceHeader->getFrameNum()*2+1 );
     UInt    uiMaxPicNum           = ( eCurrentPicType==FRAME ? m_uiMaxFrameNum : 2*m_uiMaxFrameNum );
 
-    UInt    uiCurrentFrameNum     = uiPicNumPred;
     Bool  bBaseRep          = pcSliceHeader->getUseBasePredictionFlag();
     UInt  uiIndex           = 0;
     RplrOp  uiCommand;
@@ -3420,8 +3417,7 @@ MCTFDecoder::xDecodeBaseRepresentationVirtual( SliceHeader*&  rpcSliceHeader,
       if ( !m_bEnhanceAvailable)
       {
         IntFrame *IntFList_0= m_pcCurrDPBUnit->getCtrlData().getPrdFrameList( LIST_0 )[1];
-        const PicType ePicType  = rpcSliceHeader->getPicType();
-	      pcFrame->copy(IntFList_0, ePicType);	
+        pcFrame->copy(IntFList_0, ePicType);	
         if ( bUseBaseRepresentation)
         {
 	        RNOK( m_pcDecodedPictureBuffer->store( m_pcCurrDPBUnit, rcOutputList, rcUnusedList, pcFrame ) );

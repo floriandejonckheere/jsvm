@@ -1336,16 +1336,6 @@ ControlData::switchFGSLayerQpAndCbp()
   return Err::m_nOK;
 }
 
-
-
-
-
-
-
-
-
-
-
 ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const 
 {
   UInt     uiCurrIdx    = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
@@ -1361,7 +1351,6 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
   Bool bBottomAvailable = ( iMbY < m_iMbPerColumn-1 );
   Int iStride           = m_uiMbStride;
 
-
   if( bTopAvailable )
   {
     Int iIndex = uiCurrIdx - iStride;
@@ -1369,13 +1358,13 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
 
     if( bLeftAvailable )
     {
-      Int iIndex = uiCurrIdx - iStride - 1;
+      iIndex = uiCurrIdx - iStride - 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x80 :0;
     }
 
     if( bRightAvailable )
     {
-      Int iIndex = uiCurrIdx - iStride + 1;
+      iIndex = uiCurrIdx - iStride + 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x02 :0;
     }
   }
@@ -1387,13 +1376,13 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
 
     if( bLeftAvailable )
     {
-      Int iIndex = uiCurrIdx  + iStride - 1;
+      iIndex = uiCurrIdx  + iStride - 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x20 :0;
     }
 
     if( bRightAvailable )
     {
-      Int iIndex = uiCurrIdx + iStride + 1;
+      iIndex = uiCurrIdx + iStride + 1;
       ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x08 :0;
     }
   }

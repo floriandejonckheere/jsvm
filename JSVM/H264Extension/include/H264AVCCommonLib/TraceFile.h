@@ -136,8 +136,7 @@ public:
   static ErrVal printType   ( Char* pcString);
 
   static ErrVal newLine();
-	static ErrVal printList0List1(SliceHeader& rcSH);
-
+	
 protected:
   static UInt  sm_uiLayer;
   static FILE* sm_fTrace      [MAX_LAYERS];
@@ -184,8 +183,7 @@ H264AVC_NAMESPACE_END
   #define ETRACE_N         if( m_bTraceEnable ) TraceFile::newLine     ()
   #define ETRACE_DO(x)     if( m_bTraceEnable ) x
   #define ETRACE_DECLARE(x) x
-  #define ETRACE_LIST0_LIST1(rcSH) if( m_bTraceEnable ) TraceFile::printList0List1(rcSH)
-#else
+ #else
 
   #define OPEN_ETRACE
   #define INIT_ETRACE
@@ -212,7 +210,6 @@ H264AVC_NAMESPACE_END
   #define ETRACE_N
   #define ETRACE_DO(x)
   #define ETRACE_DECLARE(x)
-  #define ETRACE_LIST0_LIST1(rcSH) 
 #endif
 
 #if DECODER_TRACE
@@ -240,7 +237,6 @@ H264AVC_NAMESPACE_END
 
   #define DTRACE_N         TraceFile::newLine     ()
   #define DTRACE_DO(x)     x
-  #define DTRACE_LIST0_LIST1(rcSH) TraceFile::printList0List1(rcSH)
 #else
   #define OPEN_DTRACE
   #define OPEN_DTRACE_NR
@@ -267,7 +263,6 @@ H264AVC_NAMESPACE_END
 
   #define DTRACE_N
   #define DTRACE_DO(x)
-  #define DTRACE_LIST0_LIST1(rcSH) 
 #endif
 
 #endif // !defined(AFX_TRACEFILE_H__B87E26CF_023E_4DC7_8F94_D3E38F59ABA1__INCLUDED_)

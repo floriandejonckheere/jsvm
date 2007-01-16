@@ -4217,7 +4217,6 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
     if (m_uiLayerId > 0)
     {
       const Int iPoc = pcSliceHeader->getPoc();
-      const PictureParameters* pc = m_pcResizeParameters->getCurrentPictureParameters( iPoc )  ;
       pcSliceHeader->setLeftOffset      ( m_pcResizeParameters->getLeftOffset        ( iPoc ) );
       pcSliceHeader->setRightOffset     ( m_pcResizeParameters->getRightOffset       ( iPoc ) );
       pcSliceHeader->setTopOffset       ( m_pcResizeParameters->getTopOffset         ( iPoc ) );
@@ -5442,9 +5441,8 @@ MCTFEncoder::xMotionEstimationFrame( UInt uiBaseLevel, UInt uiFrame )
   ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
   IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
   IntFrame*     pcIntraRecFrame = m_apcFrameTemp  [0];
-  IntFrame*    pcTmpFrame      = m_apcFrameTemp  [              1 ];
-
-	const Bool bFieldCoded = m_pbFieldPicFlag[ uiFrameIdInGOP ] ; 
+  
+  const Bool bFieldCoded = m_pbFieldPicFlag[ uiFrameIdInGOP ] ; 
 
 	for( Int iPicType=(bFieldCoded?TOP_FIELD:FRAME); iPicType<=(bFieldCoded?BOT_FIELD:FRAME); iPicType++ )
 	{
@@ -6172,8 +6170,8 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
   IntFrame*     pcBLRecFrame    = m_apcFrameTemp  [1];
   IntFrame*			pcSRFrame				= m_papcSmoothedFrame[uiFrameIdInGOP]; // JVT-R091
   ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-  MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
-  SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
+ //MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
+ //SliceHeader*  pcSliceHeader   = rcControlData.getSliceHeader();
   IntFrame*     pcRedBQFrame    = m_apcFrameTemp  [3];  // JVT-Q054 Red. Picture
   IntFrame*     pcRedSRFrame    = m_apcFrameTemp  [4];  // JVT-Q054 Red. Picture
 
@@ -6182,7 +6180,7 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
   for( Int iPicType=(bFieldCoded?TOP_FIELD:FRAME); iPicType<=(bFieldCoded?BOT_FIELD:FRAME); iPicType++ )
   {
     const PicType ePicType               = PicType( iPicType );
-    SliceHeader* pcSliceHeader           = rcControlData.getSliceHeader( ePicType );
+    SliceHeader*  pcSliceHeader          = rcControlData.getSliceHeader( ePicType );
     ROF( pcSliceHeader );
 
     AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
@@ -7687,9 +7685,7 @@ MCTFEncoder::xFillPredictionLists_ESS( UInt          uiBaseLevel,
     UInt          uiList1Size     = pcSliceHeader->getNumRefIdxActive( LIST_1 );
     m_pcResizeParameters->initRefListPoc();
 
-	const PicType ePicType  =  pcSliceHeader->getPicType();
-
-    //===== list 0 =====
+	  //===== list 0 =====
     Int iFrameId,idx=0;
     for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2)
     {
@@ -8267,7 +8263,6 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
 
         //const Bool bInheritFieldMode = ! rcSliceHeader.getSPS().getPaff() && (SCALABLE_PROFILE == rcSliceHeader.getSPS().getProfileIdc()); 
 
-        Double dLambda = rcControlData.getLambda();
         MbDataBuffer acMbData[2];
         Bool   abSkipModeAllowed[4] = {true,true,true,true};
         IntMbTempData cMbTempDataBase;
@@ -8369,9 +8364,9 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
 			      fwrite( &ch, sizeof(char), 1, m_pMotionInfoFile );
 		      }
 
-      #ifdef RANDOM_MBAFF
+#ifdef RANDOM_MBAFF
           bFieldMode = gBoolRandom();
-      #endif
+#endif
 
           if( bFieldMode )
           {
@@ -8443,7 +8438,6 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
 
         //const Bool bInheritFieldMode = ! rcSliceHeader.getSPS().getPaff() && (SCALABLE_PROFILE == rcSliceHeader.getSPS().getProfileIdc()); 
 
-        Double dLambda = rcControlData.getLambda();
         MbDataBuffer acMbData[2];
         Bool   abSkipModeAllowed[4] = {true,true,true,true};
         IntMbTempData cMbTempDataBase;

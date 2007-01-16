@@ -487,9 +487,7 @@ DownConvert::xUpsampling_ver_res( int iWidth,       // low-resolution width
   int i, j, i0, ip1;
   int y0 = iPosY/2;
   int y1 = y0 + iCropY/2;
-  int block = chroma? 4 : 8;
-
-
+  
   //========== vertical upsampling ===========
   for( j = 0; j < iWidth; j++ ) 
   {
@@ -776,7 +774,6 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   } 
 
   if(resample_mode>1){
-    FILTER_UP_CHROMA
     top_flg = (resample_mode==2 || resample_mode==4 || resample_mode==7);
     xCopyToImageBuffer  ( psBufferV, width, height, iStrideV );
     xUpsampling_ver_res (            width, height, y*2, h*2, 1, top_flg );

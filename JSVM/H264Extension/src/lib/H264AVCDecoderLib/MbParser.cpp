@@ -270,9 +270,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
   }
 
   MbParser::IntMbTempData cIntMbTempData;
-  const PicType eMbPicType = rcMbDataAccess.getMbPicType();
-	
-  const Bool bBaseLayerAvailable = (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
+  Bool bBaseLayerAvailable = (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
 
     //===== base layer mode flag and base layer refinement flag =====
   if( bBaseLayerAvailable )
@@ -417,7 +415,7 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
                             ( rcMbDataAccess.getMbData().getBLSkipFlag() ||
                               ( rcMbDataAccess.getMbData().is8x8TrafoFlagPresent(rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag()) &&
                                !rcMbDataAccess.getMbData().isIntra4x4() ) ) );
-      Bool bBaseLayerAvailable = (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
+      bBaseLayerAvailable = (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
       //-- JVT-R091
 		  DECRNOK( xReadTextureInfo( rcMbDataAccess, bTrafo8x8Flag, bBaseLayerAvailable ) );
 		  //--

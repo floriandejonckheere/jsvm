@@ -1006,7 +1006,6 @@ ErrVal FrameMng::setRefPicLists( SliceHeader& rcSH, Bool bDoNotRemap )
   }
 
 	const PicType   ePicType   = rcSH.getPicType  ();
-	const SliceType eSliceType = rcSH.getSliceType();
 	//===== MBAFF field lists =====
   if( ePicType == FRAME && rcSH.getSPS().getMbAdaptiveFrameFieldFlag() )
   {
@@ -1341,8 +1340,6 @@ ErrVal FrameMng::xManageMemory( const SliceHeader& rcSH )
   Int iIndex = 0;
   while( MMCO_END != (eMmcoOp = rcMmcoBuffer.get( iIndex++ ).getCommand( uiVal1, uiVal2)) )
   {
-    ErrVal nRet = Err::m_nOK;
-
     switch (eMmcoOp)
     {
     case MMCO_SHORT_TERM_UNUSED:

@@ -435,8 +435,49 @@ public:
   Int			  m_iFrameNum; //JVT-S036 lsj
 };
 
-H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldLists ( RefFrameList& rcTopFieldList, RefFrameList& rcBotFieldList, RefFrameList& rcRefFrameList );
-H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldArrays( IntFrame* apcFrame[4], IntFrame* pcFrame );
+H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldLists ( RefFrameList& rcTopFieldList, RefFrameList& rcBotFieldList, RefFrameList& rcRefFrameList )
+{
+  ROTRS( NULL == &rcRefFrameList, Err::m_nOK );
+ 
+  rcTopFieldList.reset();
+  rcBotFieldList.reset();
+
+  const Int iMaxEntries = min( rcRefFrameList.getSize(), rcRefFrameList.getActive() );
+  for( Int iFrmIdx = 0; iFrmIdx < iMaxEntries; iFrmIdx++ )
+  {
+		//IntFrame* pcFrame    = rcRefFrameList.getEntry( iFrmIdx );
+    IntFrame* pcTopField = rcRefFrameList.getEntry( iFrmIdx )->getPic( TOP_FIELD );
+    IntFrame* pcBotField = rcRefFrameList.getEntry( iFrmIdx )->getPic( BOT_FIELD );
+    rcTopFieldList.add( pcTopField );
+    rcTopFieldList.add( pcBotField );
+    rcBotFieldList.add( pcBotField );
+    rcBotFieldList.add( pcTopField );
+  }
+
+  return Err::m_nOK;
+}
+
+
+
+H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldArrays( IntFrame* apcFrame[4], IntFrame* pcFrame )
+{
+  if( pcFrame == NULL )
+  {
+    apcFrame[0] = NULL;
+    apcFrame[1] = NULL;
+    apcFrame[2] = NULL;
+    apcFrame[3] = NULL;
+  }
+  else
+  {
+		RNOK( pcFrame->addFrameFieldBuffer() );
+    apcFrame[0] = pcFrame->getPic( TOP_FIELD );
+    apcFrame[1] = pcFrame->getPic( BOT_FIELD );
+    apcFrame[2] = pcFrame->getPic( FRAME     );
+    apcFrame[3] = pcFrame->getPic( FRAME     );
+  }
+  return Err::m_nOK;
+}
 
 H264AVC_NAMESPACE_END
 
