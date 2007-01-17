@@ -531,7 +531,7 @@ int main(int argc, char *argv[])
     {
       print_usage_and_exit ((method == 1), argv[0], "No crop in Dyadic method");
       print_usage_and_exit (((method == 2)&&(rp->m_iInWidth<rp->m_iGlobWidth)), argv[0], "No crop only while upsampling");
-      print_usage_and_exit ((crop_init||argc<(i+2)||argc==(i+3)||argc==(i+4)),argv[0],"Error in crop parameters");
+      print_usage_and_exit ((crop_init||argc<(i+3)||argc==(i+4)||argc==(i+5)),argv[0],"Error in crop parameters");
       crop_init = true;
       i++;
       print_usage_and_exit (!(atoi(argv[i])==0||atoi(argv[i])==1),argv[0],"Wrong crop type");
