@@ -323,7 +323,8 @@ return ERR_CLASS::m_nERR;     \
   #define AOT_DBG( exp )    ((VOID_TYPE)0)
   #define AOF_DBG( exp )    ((VOID_TYPE)0)
   #define ANOK_DBG( exp )   ((VOID_TYPE)0)
-  #define DO_DBG( exp )     ((VOID_TYPE)0)
+ //#define DO_DBG( exp )     ((VOID_TYPE)0)
+  #define DO_DBG( exp )     ( exp )
 #endif // _DEBUG
 
 #endif //__MACROS_H_D64BE9B4_A8DA_11D3_AFE7_005004464B79

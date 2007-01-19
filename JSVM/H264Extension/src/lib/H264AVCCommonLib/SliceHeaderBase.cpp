@@ -285,6 +285,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_pcFMO                             ( 0 ) //--ICU/ETRI FMO Implementation
 , m_bBaseLayerUsesConstrainedIntraPred( false ) 
 , m_bFragmentedFlag                   ( false ) //JV
+, m_bLastFragmentFlag                 ( true  ) //JV
 //TMM_ESS_UNIFIED {
 , m_iScaledBaseLeftOffset             ( 0 ) 
 , m_iScaledBaseTopOffset              ( 0 ) 
