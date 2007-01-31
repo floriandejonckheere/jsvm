@@ -91,6 +91,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/CommonDefs.h"
 #include <math.h>
 #if WIN32
+#if VC2005
+#include <stdio.h>
+FILE _iob[3] = {__iob_func()[0], __iob_func()[1], __iob_func()[2]};
+#endif
 #include <io.h>
 #include <windows.h>
 #endif

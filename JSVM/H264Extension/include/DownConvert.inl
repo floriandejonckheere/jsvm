@@ -327,6 +327,33 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
   else
   {
+//TMM_INTERLACE {
+		if ( input_height > crop_h )
+		{
+			// refering to JVT-S067, S=11, M+G=15, G-1+J+M=14
+			// x'=(x.C+D)>>S  with C=((M+G)<<2.WB+(WS>>1))/WS  and    D=-1<<(G-1+J+M) + 1<<(S-1)
+			deltaa = ((input_height<<15) + (crop_h>>1))/crop_h;
+			if(uv_flag)
+			{
+				deltab =  ((input_height<<13) + (crop_h>>1))/crop_h;
+				for(j = 0; j < crop_h; j++)
+				{
+					py[j+crop_y0] = ((j*deltaa + (4 + output_chroma_phase_shift_y)*(deltab>>1) + 1024)>>11) - 2*(4 + input_chroma_phase_shift_y);
+				}
+			}
+			else
+			{
+				deltab = ((input_height<<14) + (crop_h>>1))/crop_h;
+				for(j = 0; j < crop_h; j++)
+				{
+					py[j+crop_y0] = (j*deltaa + deltab - 15360)>>11;
+				}
+			}
+		}
+		else {
+			// refering to JVT-S067, S=12, M+G=16, G-1+J+M=15
+			// x'=(x.C+D)>>S  with C=((M+G)<<2.WB+(WS>>1))/WS  and    D=-1<<(G-1+J+M) + 1<<(S-1)
+//TMM_INTERLACE}
     deltaa = ((input_height<<16) + (crop_h>>1))/crop_h;
     if(uv_flag)
     {
@@ -344,6 +371,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
         py[j+crop_y0] = (j*deltaa + deltab - 30720)>>12;
       }
     }
+		} //TMM_INTERLACE}
   }
 
   //========== horizontal upsampling ===========
@@ -1048,6 +1076,44 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
   }
   else
   {
+//TMM_INTERLACE{
+		if ( hsize_in > h )
+		{
+			deltaa = ((hsize_in<<15) + (h>>1))/h;
+			if(chroma)
+			{
+				deltab = ( ((hsize_in<<13) + (h>>1))/h );
+				for(j = 0; j < h; j++)
+				{
+					k = ((j*deltaa + (4 + output_chroma_phase_shift_y)*(deltab>>1) + 1024)>>11) - 2*(4 + input_chroma_phase_shift_y);
+					if(k<0)
+						k = 0;
+					j1 = k >> 4;
+					k -= j1 * 16;
+					p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+					p = p < 0 ? 0 : p;
+					y16[j] = j1; k16[j] = k; p16[j] = p;
+				}
+			}
+			else
+			{
+				deltab = ((hsize_in<<14) + (h>>1))/h;
+				for(j = 0; j < h; j++)
+				{
+					k = (j*deltaa + deltab - 15360)>>11;
+					if(k<0)
+						k = 0;
+					j1 = k >> 4;
+					k -= j1 * 16;
+					p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+					p = p < 0 ? 0 : p;
+					y16[j] = j1; k16[j] = k; p16[j] = p;
+				}
+			}
+		}
+		else
+		{
+//TMM_INTERLACE}
     deltaa = ((hsize_in<<16) + (h>>1))/h;
     if(chroma)
     {
@@ -1079,6 +1145,7 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
         y16[j] = j1; k16[j] = k; p16[j] = p;
       }
 	}
+		} //TMM_INTERLACE{}
   }
 
   for( i = 0; i < w; i++ )

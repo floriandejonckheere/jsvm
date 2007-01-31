@@ -813,6 +813,17 @@ Extractor::xAnalyse()
   }
   uiMaxLayer          = pcTmpScalableSei->getDependencyId( m_uiScalableNumLayersMinus1);
   uiMaxTempLevel      = pcTmpScalableSei->getTemporalLevel(m_uiScalableNumLayersMinus1);
+ 
+  //NS leak fix extractor begin
+  if (pcTmpScalableSei)
+  {
+    pcScalableSei = (h264::SEI::ScalableSei*) pcTmpScalableSei;
+    delete pcScalableSei;
+    pcTmpScalableSei = NULL;
+    pcScalableSei = NULL;
+  }
+  //NS leak fix extractor end
+
   
   for( UInt uiDependencyId = 0; uiDependencyId <= uiMaxLayer; uiDependencyId++)
   {
@@ -4330,7 +4341,7 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
 {
   ROT( m_bInit );
 
-	::memset( m_aaaauiPictureNALUBytes, 0x00, MAX_NUM_PICTURES * MAX_LAYERS * MAX_QUALITY_LEVELS * sizeof(UInt) );
+	//::memset( m_aaaauiPictureNALUBytes, 0x00, MAX_NUM_PICTURES * MAX_LAYERS * MAX_QUALITY_LEVELS * sizeof(UInt) );
 
   ::memset( m_aaaui64NumNALUBytes,  0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) );
 	::memset( m_aaaui64NumNALUBytesNoUse, 0x00, MAX_LAYERS*(MAX_DSTAGES+1)*MAX_QUALITY_LEVELS*sizeof(UInt64) ); 
@@ -4445,7 +4456,7 @@ ScalableStreamDescription::addPacket( UInt  uiNumBytes,
 
   static UInt uiPictureIdx = 0;
 
-  m_aaaauiPictureNALUBytes[uiPictureIdx][uiLayer][uiFGSLayer] += uiNumBytes;
+  //m_aaaauiPictureNALUBytes[uiPictureIdx][uiLayer][uiFGSLayer] += uiNumBytes;
   if( bNewPicture && uiFGSLayer == 0 )
     uiPictureIdx ++;
 

@@ -7733,7 +7733,8 @@ MCTFEncoder::freeDiffPrdRefLists( RefFrameList& diffPrdRefList)
   for(UInt i=0; i< diffPrdRefList.getSize(); i++)
   {
     diffPrdRefList.getEntry(i)->uninit();
-    free(diffPrdRefList.getEntry(i));
+// TMM_INTERLACE    free(diffPrdRefList.getEntry(i));
+    delete diffPrdRefList.getEntry(i);
   }
 
   return Err::m_nOK;

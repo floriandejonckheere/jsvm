@@ -389,15 +389,15 @@ ErrVal FrameMng::uninit()
 
 
 ErrVal  
-FrameMng::updateLastFrame( IntFrame* pcSrcFrame )  // MGS fix by Heiko Schwarz
+FrameMng::updateLastFrame( IntFrame* pcSrcFrame, 
+                           const PicType ePicType,          //TMM_INTERLACE
+                            const Bool    bFrameMbsOnlyFlag //TMM_INTERLACE
+                                       )  // MGS fix by Heiko Schwarz
 {
   Bool bFlagFGS=false;
 
-	ROF   ( pcSrcFrame );
+  ROF   ( pcSrcFrame );
   ROF   ( m_pcCurrentFrameUnit );
-	const PicType ePicType          = m_pcCurrentFrameUnit->getMbDataCtrl()->getSliceHeader()->getPicType();
-    
-	const Bool    bFrameMbsOnlyFlag = m_pcCurrentFrameUnit->getMbDataCtrl()->getSliceHeader()->getSPS().getFrameMbsOnlyFlag();
 
   ROFRS ( m_pcCurrentFrameUnit->isUsed       (ePicType), Err::m_nOK );
 

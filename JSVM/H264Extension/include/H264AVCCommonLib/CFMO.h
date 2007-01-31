@@ -160,14 +160,23 @@ public :
     for (i=0;i<Max_Num_Slice_Groups;i++)
      	FirstMBInSlice[i] = rcFmo.FirstMBInSlice[i];
 
+   //MbToSliceGroupMap_
    mallocMbToSliceGroupMap();
    for (i=0;i<(int)(img_.PicSizeInMbs);i++)
      MbToSliceGroupMap_[i]=rcFmo.MbToSliceGroupMap_[i];
    
+   //MapUnitToSliceGroupMap_ 
+   if (MapUnitToSliceGroupMap_)
+    delete[] MapUnitToSliceGroupMap_;
+
    MapUnitToSliceGroupMap_ = new int[GetNumSliceGroupMapUnits()];
    for (i=0;i<(int)GetNumSliceGroupMapUnits();i++)
     MapUnitToSliceGroupMap_[i]=rcFmo.MapUnitToSliceGroupMap_[i];
 
+    //numMbInSliceGroup_   
+   if( numMbInSliceGroup_ )
+   delete[] numMbInSliceGroup_;
+   
   numMbInSliceGroup_ = new int[NumberOfSliceGroups_];
 	for( i=0; i<NumberOfSliceGroups_; i++)
 		numMbInSliceGroup_[i] = rcFmo.numMbInSliceGroup_[i];

@@ -2021,9 +2021,8 @@ MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
   }
 
   //===== delete slice header (if not stored) =====
-  delete rpcSliceHeader;
-  rpcSliceHeader = NULL;
-
+    delete rpcSliceHeader; 
+    rpcSliceHeader = NULL; 
 
   return Err::m_nOK;
 }
@@ -2587,11 +2586,10 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
         setDiffPrdRefLists( cRefListDiff, m_pcYuvFullPelBufferCtrl );
 
         //----- key frames: adaptive motion-compensated prediction -----
-        m_pcMotionCompensation->loadAdaptiveRefPredictors(
-          m_pcYuvFullPelBufferCtrl, m_pcPredSignal, 
-          m_pcPredSignal, &cRefListDiff, 
-          m_pcRQFGSDecoder->getMbDataCtrl(), m_pcRQFGSDecoder, 
-          m_pcRQFGSDecoder->getSliceHeader());
+        m_pcMotionCompensation->loadAdaptiveRefPredictors(m_pcYuvFullPelBufferCtrl, m_pcPredSignal, 
+                                                          m_pcPredSignal, &cRefListDiff, 
+                                                          m_pcRQFGSDecoder->getMbDataCtrl(), m_pcRQFGSDecoder, 
+                                                          m_pcRQFGSDecoder->getSliceHeader());
 
         freeDiffPrdRefLists(cRefListDiff);
       }
@@ -2643,14 +2641,17 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T
                                     rcControlData.getMbDataCtrl(),
                                     m_uiFrameWidthInMb,
                                     &rcRefFrameList0,
-                                   &rcRefFrameList1,
+                                    &rcRefFrameList1,
 								                    false,
                                     rcControlData.getSpatialScalability()) );
   }
 
   //===== update picture in DPB =====
   RNOK( m_pcDecodedPictureBuffer->update( pcLastDPBUnit ) );
-  RNOK( m_pcH264AVCDecoder->replaceSNRCGSBaseFrame( pcLastDPBUnit->getFrame() ) ); // MGS fix by Heiko Schwarz
+  //TMM_INTERLACE {
+  const Bool    bFrameMbsOnlyFlag = pcLastDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag();
+  RNOK( m_pcH264AVCDecoder->replaceSNRCGSBaseFrame( pcLastDPBUnit->getFrame(),ePicType, bFrameMbsOnlyFlag ) ); // MGS fix by Heiko Schwarz
+  //TMM_INTERLACE }
   return Err::m_nOK;
 }
 
@@ -3061,7 +3062,7 @@ MCTFDecoder::GetAVCFrameForDPB( SliceHeader*&  rpcSliceHeader,
   }
 
   //----- set slice header to zero (slice header is stored in control data) -----
-  rpcSliceHeader = 0;
+  rpcSliceHeader = 0; 
 
   DTRACE_NEWFRAME;
   return Err::m_nOK;
@@ -3082,19 +3083,6 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
       return xDecodeBaseRepresentationVirtual( rpcSliceHeader, rpcPicBuffer, rcOutputList, rcUnusedList, bReconstructionLayer );
 	}
 //TMM_EC }} 
-/*TMM_EF_01{
-	printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d )\n",
-		rpcSliceHeader->getPoc                    (),
-		rpcSliceHeader->getLayerId                (),
-		rpcSliceHeader->getTemporalLevel          (),
-		rpcSliceHeader->getQualityLevel           (),
-		rpcSliceHeader->isH264AVCCompatible       () ? "AVC" : "SVC",
-		rpcSliceHeader->getSliceType              () == I_SLICE ? 'I' :
-		rpcSliceHeader->getSliceType              () == P_SLICE ? 'P' : 'B',
-		rpcSliceHeader->getBaseLayerId            (),
-		rpcSliceHeader->getAdaptivePredictionFlag () ? 1 : 0,
-		rpcSliceHeader->getPicQp                  ());
-TMM_EF_01}*/
 
   //===== infer prediction weights when required =====
   if( rpcSliceHeader->getPPS().getWeightedBiPredIdc() == 1 && 
@@ -3274,11 +3262,11 @@ TMM_EF_01}*/
 
 
     //----- set slice header to zero (slice header is stored in control data) -----
-    rpcSliceHeader = 0;
+     rpcSliceHeader = 0; 
 
     //----- init FGS decoder -----
-		rcControlData.getSliceHeader()->FMOInit();
-		RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+	rcControlData.getSliceHeader()->FMOInit();
+	RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
     RNOK( xAddBaseLayerResidual( rcControlData, m_pcRQFGSDecoder->getBaseLayerSbb() ) );
 	}	// end DecComplete
 

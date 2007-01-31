@@ -1609,7 +1609,8 @@ FGSCoder::xUpdateMbMaps ( MbDataAccess*      pcMbDataAccessBL,
       rcMbFGSCoefMap.getChromaDCScanPos( cCPlaneIdx ) = 4;
 
       for( UInt ui = 0; ui < 4; ui++ ) {
-        CoefMap cCoefMap = rcMbFGSCoefMap.getCoefMap( CIdx( cCPlaneIdx ) + ui )[0];
+        CoefMap &cCoefMap = rcMbFGSCoefMap.getCoefMap( CIdx( cCPlaneIdx ) + ui )[0];
+ //       CoefMap cCoefMap = rcMbFGSCoefMap.getCoefMap( CIdx( cCPlaneIdx ) + ui )[0];
         if( ! ( cCoefMap & SIGNIFICANT ) ) {
           cCoefMap |= CODED;
           if( piRemainingTCoeff )

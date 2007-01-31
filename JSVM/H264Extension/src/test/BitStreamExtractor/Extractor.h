@@ -195,8 +195,10 @@ private:
   //S051}
 
   // for performing proportional extraction of FGS layer with fragments, a dirty solution
-  #define MAX_NUM_PICTURES          1200
-  UInt    m_aaaauiPictureNALUBytes  [MAX_NUM_PICTURES][MAX_LAYERS][MAX_QUALITY_LEVELS];
+   //NS extractor memory fix begin
+  //#define MAX_NUM_PICTURES          1200 
+  //UInt    m_aaaauiPictureNALUBytes  [MAX_NUM_PICTURES][MAX_LAYERS][MAX_QUALITY_LEVELS];
+  //NS extractor memory fix end  
 
   UInt64  m_aaaui64NumNALUBytes [MAX_LAYERS][MAX_DSTAGES+1][MAX_QUALITY_LEVELS];
   UInt64  m_aaui64BaseLayerBytes[MAX_LAYERS][MAX_DSTAGES+1];

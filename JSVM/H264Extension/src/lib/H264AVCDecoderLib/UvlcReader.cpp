@@ -2819,8 +2819,11 @@ UvlcReader::RQinitFragments   ( const SliceHeader&  rcSliceHeader,
   // and find the start and the length of remaining fragments
   m_pcBitReadBuffer->assignFragments( apucFragBuffers, ruiNumFrags );
 
-  if( bCAF )
-    m_pcBitReadBuffer->separateFragments
+ //Ye Yan Frag: Bugfix
+  if(!bCAF)
+    ruiNumFrags = 1; 
+ //
+   m_pcBitReadBuffer->separateFragments
       ( apucFragBuffers, auiFragLengthInBits, ruiNumFrags, MAX_NUM_PD_FRAGMENTS - 1 );
 
   xInitFragments( rcSliceHeader, apucFragBuffers, auiFragLengthInBits, ruiNumFrags );

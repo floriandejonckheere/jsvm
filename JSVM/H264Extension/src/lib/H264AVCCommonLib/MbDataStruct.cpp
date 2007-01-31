@@ -143,7 +143,7 @@ MbDataStruct::MbDataStruct()
 , m_bFieldFlag              ( 0 )
 , m_uiMbCbpResidual         ( 0 )
 {
-  DO_DBG( clearIntraPredictionModes( true ) );
+  DO_DBG_INIT( clearIntraPredictionModes( true ) );//TMM_INTERLACE
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
 }
 
@@ -162,7 +162,7 @@ Void MbDataStruct::reset()
   m_bTransformSize8x8   = 0;
   m_bInCropWindowFlag   = false; //TMM_ESS	
 	m_bSmoothedRefFlag		= false; // JVT-R091
-  DO_DBG( clearIntraPredictionModes( true ) );
+  DO_DBG_INIT( clearIntraPredictionModes( true ) );//TMM_INTERLACE
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS  
 	m_bFieldFlag          = 0;
 }

@@ -285,7 +285,9 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_pcFMO                             ( 0 ) //--ICU/ETRI FMO Implementation
 , m_bBaseLayerUsesConstrainedIntraPred( false ) 
 , m_bFragmentedFlag                   ( false ) //JV
-, m_bLastFragmentFlag                 ( true  ) //JV
+, m_bLastFragmentFlag                 ( true ) //
+, m_uiPrevTl0FrameIdx                 ( 0 )
+, m_uiNumTl0FrameIdxUpdate            ( 0 )
 //TMM_ESS_UNIFIED {
 , m_iScaledBaseLeftOffset             ( 0 ) 
 , m_iScaledBaseTopOffset              ( 0 ) 
@@ -323,19 +325,19 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 //JVT-U106 Behaviour at slice boundaries}
 , m_bInIDRAccess					            ( false ) //EIDR bug-fix
 {
-  ::memset( m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt) );
-  ::memset( m_aauiNumRefIdxActiveUpdate , 0x00, 2*sizeof(UInt)*MAX_TEMP_LEVELS );
-  ::memset( m_aiDeltaPicOrderCnt,         0x00, 2*sizeof(Int) );
+  ::memset(  m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt));
+  ::memset(  m_aiDeltaPicOrderCnt,         0x00, 2*sizeof(Int) );
+  //TMM_INTERLACE 
+   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
+     ::memset( m_aauiNumRefIdxActiveUpdate[ui] , 0x00, 2*sizeof(UInt));
+    
 }
 
 
 SliceHeaderBase::~SliceHeaderBase()
 {
-  if(m_pcFMO)
-  //manu.mathew@samsung : memory leak fix
-  {
-    delete m_pcFMO; m_pcFMO = NULL;
-  }
+  FMOUninit(); //TMM_INTERLACE 
+
   //--
   ANOK( m_acPredWeightTable[LIST_0].uninit() );
   ANOK( m_acPredWeightTable[LIST_1].uninit() );
@@ -410,7 +412,7 @@ SliceHeaderBase& SliceHeaderBase::operator = ( const SliceHeaderBase& rcSHB )
 		m_pcFMO = new FMO();
 	else
 	{
-		 delete m_pcFMO;
+		 FMOUninit(); //TMM_INTERLACE 
 		m_pcFMO = new FMO();
 	}
 	
@@ -1399,11 +1401,8 @@ SliceHeaderBase::FMOInit()
 		m_pcFMO = new FMO();
 	else
 	{
-    //manu.mathew@samsung : memory leak fix
-    if( m_pcFMO ) 
-    {
-      delete m_pcFMO; m_pcFMO = NULL; 
-    }
+    //TMM_INTERLACE 
+    FMOUninit(); 
     //--
 		m_pcFMO = new FMO();
 	}
@@ -1438,6 +1437,18 @@ SliceHeaderBase::FMOInit()
 
 	m_pcFMO->StartPicture();
 
+	return Err::m_nOK;
+}
+
+ErrVal 
+SliceHeaderBase::FMOUninit()
+{
+  if(m_pcFMO)
+  {
+	  m_pcFMO->finit(); // Bug_fix memory leak
+    delete m_pcFMO; m_pcFMO = NULL;
+  }
+		
 	return Err::m_nOK;
 }
 

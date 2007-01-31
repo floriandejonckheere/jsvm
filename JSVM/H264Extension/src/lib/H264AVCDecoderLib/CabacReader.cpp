@@ -2179,8 +2179,7 @@ CabacReader::xInitFragments   ( const SliceHeader&  rcSliceHeader,
       if( m_apcFragBitBuffers[uiFragIdx] == 0 )
         return Err::m_nERR;
     }
-    m_apcFragBitBuffers[uiFragIdx]->initPacket
-      ( (ULong *) ppucFragBuffers[uiFragIdx], puiFragLengthInBits[uiFragIdx] );
+    m_apcFragBitBuffers[uiFragIdx]->initPacket ( (ULong *) ppucFragBuffers[uiFragIdx], puiFragLengthInBits[uiFragIdx] );
 
     // child SymbolReader for fragments other than 0
     m_apcFragmentReaders[uiFragIdx] = new CabacReader();
@@ -2207,9 +2206,12 @@ CabacReader::RQinitFragments  ( const SliceHeader&  rcSliceHeader,
   // and find the start and the length of remaining fragments
   m_pcBitReadBuffer->assignFragments( apucFragBuffers, ruiNumFrags );
 
-  if( bCAF )
-    m_pcBitReadBuffer->separateFragments
-      ( apucFragBuffers, auiFragLengthInBits, ruiNumFrags, MAX_NUM_PD_FRAGMENTS - 1 );
+  //Ye Yan Frag: Bugfix
+ if(!bCAF) 
+  {
+    ruiNumFrags = 1; 
+  }
+    m_pcBitReadBuffer->separateFragments( apucFragBuffers, auiFragLengthInBits, ruiNumFrags, MAX_NUM_PD_FRAGMENTS - 1 );
 
   xInitFragments( rcSliceHeader, apucFragBuffers, auiFragLengthInBits, ruiNumFrags );
 

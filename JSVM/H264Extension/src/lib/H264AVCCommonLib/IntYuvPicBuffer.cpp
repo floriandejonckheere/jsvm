@@ -132,6 +132,9 @@ IntYuvPicBuffer::init( XPel*& rpucYuvBuffer )
   }
   else
   {
+   //TMM_INTERLACE                                       
+    if( m_pucOwnYuvBuffer) delete [] m_pucOwnYuvBuffer;
+
     m_pucOwnYuvBuffer = NULL;
     m_pucYuvBuffer = rpucYuvBuffer;
   }

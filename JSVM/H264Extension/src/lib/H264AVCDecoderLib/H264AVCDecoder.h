@@ -164,7 +164,8 @@ public:
   ErrVal  initPacket( BinDataAccessor*  pcBinDataAccessor);
   Void    getDecodedResolution(UInt &uiLayerId);
   UInt    getNumOfNALInAU() {return m_uiNumOfNALInAU;}
-  Void    decreaseNumOfNALInAU(){ m_uiNumOfNALInAU--;}
+  Void    decreaseNumOfNALInAU(){if (m_uiNumOfNALInAU > 0) m_uiNumOfNALInAU--;} //NS EIDR fix
+  //Void    decreaseNumOfNALInAU(){m_uiNumOfNALInAU--;} 
   Void    setDependencyInitialized(Bool b) { m_bDependencyInitialized = b;}
   Void    initNumberOfFragment();
   //~JVT-P031
@@ -211,7 +212,10 @@ public:
                                          ListIdx                        eListIdx,
                                          Int                            iPoc );
 
-  ErrVal  replaceSNRCGSBaseFrame      ( IntFrame* pcELFrame );      // MGS fix by Heiko Schwarz
+  ErrVal  replaceSNRCGSBaseFrame      ( IntFrame* pcELFrame,
+                                        const PicType ePicType,         //TMM_INTERLACE 
+                                        const Bool    bFrameMbsOnlyFlag //TMM_INTERLACE 
+                                       );      // MGS fix by Heiko Schwarz
   Void    setBaseAVCCompatible        ( Bool                        bAVCCompatible )    { m_bBaseLayerIsAVCCompatible = bAVCCompatible; }
   Void    setReconstructionLayerId    ( UInt                        uiLayerId )         { m_uiRecLayerId = uiLayerId; }
   Void    setVeryFirstSPS             ( const SequenceParameterSet* pcSPS )             { m_pcVeryFirstSPS = pcSPS; }

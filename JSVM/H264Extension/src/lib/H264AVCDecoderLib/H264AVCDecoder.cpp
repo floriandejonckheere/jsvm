@@ -319,7 +319,13 @@ ErrVal H264AVCDecoder::uninit()
   m_bLastFrame            = false;
   m_bFrameDone            = true;
   m_pcMotionCompensation  = NULL;
-
+  //NS leak fix begin
+  if (m_pcSliceHeader) 
+  {
+    FrameUnit* fu = m_pcSliceHeader->getFrameUnit();
+    if (fu) fu->destroy();
+  }
+  //NS leak fix end
   delete m_pcSliceHeader;
   delete m_pcPrevSliceHeader;
   delete m_pcTempSliceHeader;     //EIDR bug-fix 
@@ -350,7 +356,14 @@ ErrVal H264AVCDecoder::uninit()
   }
 
   m_bInitDone = false;
-  
+  //NS leak fix begin
+ for ( UInt i=0; i< m_uiNumLayers; i++)
+  {
+    if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
+    if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+    if (m_pauiTempLevelInGOP[i]) delete	[] m_pauiTempLevelInGOP[i];
+  }
+  //NS leak fix end
   return Err::m_nOK;
 }
 
@@ -608,6 +621,7 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
       m_bCheckNextSlice = true;
     }
   }
+   //TMM_INTERLACE if( bEos || slicePoc != m_iFirstSlicePoc || (eNalUnitType == NAL_UNIT_CODED_SLICE_IDR && slicePoc == 0)) //NS EIDR fix
   if( bEos || slicePoc != m_iFirstSlicePoc)  
   {
 	// ROI DECODE ICU/ETRI
@@ -1253,8 +1267,13 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			{
 				UInt	uiDecompositionStagesSub	=	m_uiMaxDecompositionStages - m_uiDecompositionStages[i];
 				UInt	uiGopSize	=	m_uiGopSize[i];
-				m_pauiPocInGOP[i]				=	new	UInt[uiGopSize];
-				m_pauiFrameNumInGOP[i]		=	new	UInt[uiGopSize];
+				 //NS leak fix begin
+        if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
+        if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+        if (m_pauiTempLevelInGOP[i]) delete	[] m_pauiTempLevelInGOP[i];
+        //NS leak fix end
+        m_pauiPocInGOP[i]				=	new	UInt[uiGopSize];
+				m_pauiFrameNumInGOP[i]	=	new	UInt[uiGopSize];
 				m_pauiTempLevelInGOP[i]	=	new	UInt[uiGopSize];
 				UInt	uiFrameIdx	=	0;
 				UInt	uiFrameNum	=	1;
@@ -2163,12 +2182,12 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
         else
         {
            //EIDR bug-fix
-		   if(m_pcSliceHeader)
-         {
-          //delete m_pcPrevSliceHeader; //TMM_INTERLACE
-          m_pcPrevSliceHeader = m_pcSliceHeader;
-         }
-          m_pcSliceHeader     = pSliceHeader;
+		      if(m_pcSliceHeader)
+            {
+              //delete m_pcPrevSliceHeader; //TMM_INTERLACE
+              m_pcPrevSliceHeader = m_pcSliceHeader;
+            }
+              m_pcSliceHeader     = pSliceHeader;
         }
         
         m_uiLastFragOrder = 0;
@@ -2228,11 +2247,15 @@ H264AVCDecoder::getAVCFrame( IntFrame*&      pcFrame,
 }
 //JVT-T054}
 
+
 ErrVal  
-H264AVCDecoder::replaceSNRCGSBaseFrame( IntFrame* pcELFrame ) // MGS fix by Heiko Schwarz
+H264AVCDecoder::replaceSNRCGSBaseFrame( IntFrame* pcELFrame,
+                                        const PicType ePicType,          //TMM_INTERLACE
+                                        const Bool    bFrameMbsOnlyFlag  //TMM_INTERLACE
+                                       ) // MGS fix by Heiko Schwarz
 {
   ROFRS ( m_bCGSSNRInAU, Err::m_nOK );
-  RNOK  ( m_pcFrameMng->updateLastFrame( pcELFrame ) );
+  RNOK  ( m_pcFrameMng->updateLastFrame( pcELFrame,ePicType,bFrameMbsOnlyFlag ) );//TMM_DEBUG
   return Err::m_nOK;
 }
 
@@ -2247,7 +2270,7 @@ H264AVCDecoder::xZeroIntraMacroblocks( IntFrame*    pcFrame,
   IntYuvMbBuffer cZeroMbBuffer;
   cZeroMbBuffer.setAllSamplesToZero();
 
-  	const PicType ePicType = pcSliceHeader->getPicType();
+  const PicType ePicType = pcSliceHeader->getPicType();
 	const Bool    bMbAff   = pcSliceHeader->isMbAff   ();
 	if( ePicType!=FRAME )
 	{
@@ -2916,7 +2939,8 @@ H264AVCDecoder::freeDiffPrdRefLists( RefFrameList& diffPrdRefList)
   for(UInt i=0; i< diffPrdRefList.getSize(); i++)
   {
     diffPrdRefList.getEntry(i)->uninit();
-    free(diffPrdRefList.getEntry(i));
+// TMM_INTERLACE    free(diffPrdRefList.getEntry(i));
+    delete diffPrdRefList.getEntry(i);
   }
 
   return Err::m_nOK;

@@ -431,7 +431,8 @@ BitReadBuffer::separateFragments( UChar** ppucFragBuffers,
     m_uiBitsLeft -= uiBitsRemoved;
 
     // count the exact bits of the other segment
-    for( ui = 1; ui < ruiNumFragments; ui ++ ) {
+    for( ui = 1; ui < ruiNumFragments; ui ++ ) 
+    {
       puc = m_apucFragBuffers[ui] + m_auiFragLengthInBytes[ui];
 
       do {
@@ -441,6 +442,12 @@ BitReadBuffer::separateFragments( UChar** ppucFragBuffers,
       puiFragLengthInBits[ui] = 8 * (puc - ppucFragBuffers[ui]) + 8 - numZeroLSBs( puc[0] );
     }
   }
+//Ye Yan Frag: Bugfix
+  else // ruiNumFrags == 1
+  {
+    puiFragLengthInBits[0] = m_uiBitsLeft; 
+  }
+//
 
   return Err::m_nOK;
 }

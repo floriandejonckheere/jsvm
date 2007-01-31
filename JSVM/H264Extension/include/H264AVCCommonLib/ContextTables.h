@@ -962,12 +962,14 @@ static const Short INIT_TRANSFORM_SIZE_P[3][1][3][2]=
 };
 
 
-static const Short INIT_REF[1][1][10][2] =
-{
-  {
-    { {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED }
+
+static const Short INIT_REF[1][1][NUM_FGS_REF_CTX][2] =
+{  // ctxIdxInc for coeff_refinement_flag and coeff_refinement_direction flag
+  {// 0       0       1       1       2       2                               3       3       4       4       5       5                               6       6       7       7       8       8
+    { {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64} }
   }
 };
+
 static const Short INIT_SIG[1][1][10][2] =
 {
   {

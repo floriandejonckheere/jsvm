@@ -327,7 +327,8 @@ MbEncoder::encodeIntra( MbDataAccess&  rcMbDataAccess,
 			  p=p*(100-m_auiPLR[i]);
 			  //Bug_Fix JVT-R057 0806}
 		  }
-		  q=(UInt)pow(100,(m_uiLayerID+1));
+		  //q=(UInt)pow(100,(m_uiLayerID+1));
+       q=(UInt)pow(100.0,(int)(m_uiLayerID+1));
 	  }
 	  else
 	  {
@@ -719,8 +720,9 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
 			  p=p*(100-m_auiPLR[i]);
 			  //Bug_Fix JVT-R057 0806}
 		  }
-		  q=(UInt)pow(100,(m_uiLayerID+1));
-	  }
+		  //q=(UInt)pow(100,(m_uiLayerID+1));
+	    q=(UInt)pow(100.0,(int)(m_uiLayerID+1));
+    }
 	  else
 	  {
 		  p=100-m_auiPLR[m_uiLayerID];
@@ -1440,7 +1442,8 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 			  p=p*(100-m_auiPLR[i]);
 			  //Bug_Fix JVT-R057 0806}
 		  }
-		  q=(UInt)pow(100,(m_uiLayerID+1));
+		  //q=(UInt)pow(100,(m_uiLayerID+1));
+      q=(UInt)pow(100.0,(int)(m_uiLayerID+1));
 	  }
 	  else
 	  {

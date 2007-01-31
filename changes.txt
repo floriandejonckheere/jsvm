@@ -1,5 +1,20 @@
-JSVM_12_1 -> JSVM_13
-======================
+JSVM_7_13 -> JSVM_7_8
+========================
+
+Date  : Feb 1, 2007
+Author: C. Chevance, E. Francois, and J. Vieron (Thomson)
+
+Changes:
+
+- Few bug fixes related to the interlaced implementation (downconvert, variables initialization...)
+- Many memory fixes (uninitialized memory read, memory leaks, etc.). Thanks to Ye Yan for the help! 
+- There are many remaining leaks...TODO
+- Validation scripts related to interlaced have been very slightly  modified
+- .Net 2005 "vcproj" and "sln" files have been added
+
+
+JSVM_7_12_1 -> JSVM_7_13
+========================
 
 Date  : Jan. 11, 2007
 Author: C. Chevance, E. Francois, V. Bottreau and J. Vieron (Thomson)
@@ -14,7 +29,7 @@ Changes:
 
 Regarding the Validation scripts:
 - Around 35 files have been added 
-- AVC_Conformance: 3 MBAFF validation test sets using the MBAFF AVC conformance bitstreams are provided (6.6.2, 6.6.7 and 6.6.20)
+- AVC_Conformance: 3 MBAFF validation test sets using the MBAFF AVC conformance bitstreams are provided (6.6.2, 6.6.7, 6.6.18 and, 6.6.20)
 - Short_term: 4 validation tests emulating the 4 scenarios defined in the CE on interlaced coding are provided (CFG1_P2I, CFG2_I2P,CFG3_I2P,CFG4_I2I) 
 In these scenarios, small "gop" size are considered and CABAC/CAVLC coding is used         
 - Long_term: 4 validation tests emulating the 4 scenarios defined in the CE on interlaced coding are provided (LCFG1_P2I, LCFG2_I2P, LCFG3_I2P, LCFG4_I2I) 

@@ -106,7 +106,7 @@ void createColorComponent( ColorComponent* cc )
   if( ! ( cc->data = new unsigned char[cc->width * cc->height]))
   {
     fprintf(stderr, "\nERROR: memory allocation failed!\n\n");
-    exit(1);
+    exit(-1);
   }
 }
 
@@ -142,7 +142,7 @@ void readColorComponent( ColorComponent* cc, FILE* file )
   if( size != rsize )
   {
     fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-    exit(1);
+    exit(-1);
   }
 }
 
@@ -159,7 +159,7 @@ void writeColorComponent( ColorComponent* cc, FILE* file, int downScale )
     if( outwidth != wsize )
     {
       fprintf(stderr, "\nERROR: while writing to output file!\n\n");
-      exit(1);
+      exit(-1);
     }
   }
 }
@@ -228,7 +228,7 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     fprintf (   stderr, "\t strm: coded stream\n" );
     fprintf (   stderr, "\t fps: frames per second\n" );
     fprintf (   stderr, "\n" );
-    exit    (   1 );
+    exit    (   -1 );
   }
 }
 

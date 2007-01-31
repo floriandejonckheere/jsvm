@@ -1182,11 +1182,16 @@ RQFGSDecoder::xDecodingFGS( SliceHeader*                pcSliceHeader 	)
 
   RNOK( m_pcSymbolReader->finishSlice( ) );
 
+  // initialize the parallel bitstream buffers
+  m_pcSymbolReader->RQreleaseFragments(); //TMM_INTERLACE 
+
   if( ! m_bPicFinished )
   {	  
     m_pcSliceHeader->setQualityLevel( pcSliceHeader->getQualityLevel());
   }
 
+  //TMM_INTERLACE ???
+  //m_bUpdateWithoutMap = true;
 
   //--ICU/ETRI 1206  
   RNOK( xUpdateCodingPath(pcSliceHeader) );  

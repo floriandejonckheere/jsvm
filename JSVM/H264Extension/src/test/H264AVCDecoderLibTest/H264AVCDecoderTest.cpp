@@ -331,6 +331,7 @@ ErrVal H264AVCDecoderTest::initPacketToDecode(Bool &bDecode, BinData*& pcBinData
               bDecode = true;
           }
         }
+      else {RNOK(m_pcReadBitstream->releasePacket(pcBinDataTmp[uiFragNb])); }//NS leak fix 
       }
   }
 
@@ -377,6 +378,7 @@ ErrVal H264AVCDecoderTest::go()
   for( uiFrame = 0; ( uiFrame <= MSYS_UINT_MAX && ! bEOS); )
   {
     BinData* pcBinData;
+    BinData* pcBinDataAVCNALU; //NS leak fix
     BinDataAccessor cBinDataAccessor;
 
     Int  iPos;
@@ -675,17 +677,17 @@ ErrVal H264AVCDecoderTest::go()
 	if((uiNalUnitType == 1 || uiNalUnitType == 5) && !bEOS) 
 	{
 		SuffixEnable = true;
-//		RNOK(m_pcH264AVCDecoderSuffix->init( false ));   // THAT'S REALLY BAD !!!
 		RNOK( m_pcReadBitstream->getPosition( iPos ) );
-		RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
-		pcBinData->setMemAccessor( cBinDataAccessor );
-    //TMM_EC
+    RNOK( m_pcReadBitstream->extractPacket( pcBinDataAVCNALU, bEOS ) ); //NS leak fix
+    pcBinDataAVCNALU->setMemAccessor( cBinDataAccessor ); //NS leak fix
+   
+   //TMM_EC
     bFinish = false;
     RNOK( removeRedundencySlice( &cBinDataAccessor,  bFinish ) );
     if ( bFinish )
     {
-       RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
-       pcBinData = NULL;
+      RNOK( m_pcReadBitstream->releasePacket( pcBinDataAVCNALU ) ); //NS leak fix
+      pcBinDataAVCNALU = NULL; //NS leak fix
     }
     else
     {
@@ -710,7 +712,14 @@ ErrVal H264AVCDecoderTest::go()
 		   }
      }
 //bug-fix suffix}}
-	}
+	//NS leak fix begin
+  if (pcBinDataAVCNALU)
+    {
+      RNOK( m_pcReadBitstream->releasePacket( pcBinDataAVCNALU ) );
+      pcBinDataAVCNALU = NULL;
+    } 
+    //NS leak fix end
+  }
 //JVT-S036 lsj end
 
     // decode the NAL unit

@@ -253,7 +253,10 @@ protected:
 	virtual ~FrameMng     ();
 
 public:
-  ErrVal      updateLastFrame( IntFrame* pcSrcFrame );       // MGS fix by Heiko Schwarz
+  ErrVal      updateLastFrame( IntFrame* pcSrcFrame, 
+                                const PicType ePicType, //TMM_INTERLACE
+                                const Bool    bFrameMbsOnlyFlag //TMM_INTERLACE
+                                       );       // MGS fix by Heiko Schwarz
 
   FrameUnit*  getCurrentFrameUnit   () { return m_pcCurrentFrameUnit; }
   IntFrame*   getRefinementIntFrame () { return m_pcRefinementIntFrame; }

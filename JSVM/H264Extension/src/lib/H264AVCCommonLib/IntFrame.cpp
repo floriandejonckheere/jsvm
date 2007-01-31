@@ -99,6 +99,7 @@ IntFrame::IntFrame( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvH
   m_pcDPBUnit             ( NULL ),
   m_bUnusedForRef       ( false), // JVT-Q065 EIDR
   m_piChannelDistortion   ( 0 )     // JVT-R057 LA-RDO
+ ,m_iFrameNum             ( 0 )  // TMM_INTERLACE
 {
 }
 

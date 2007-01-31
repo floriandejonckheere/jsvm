@@ -867,6 +867,7 @@ public:
 
   Void  setSliceGroupChangeCycle(UInt uiSliceGroupChangeCycle){m_uiSliceGroupChangeCycle = uiSliceGroupChangeCycle;};
   ErrVal FMOInit();
+  ErrVal FMOUninit(); //TMM_INTERLACE
 
   Void setFieldPicFlag                ( Bool        b  )  { m_bFieldPicFlag                     = b;  }
   Void setBottomFieldFlag             ( Bool        b  )  { m_bBottomFieldFlag                  = b;  }
