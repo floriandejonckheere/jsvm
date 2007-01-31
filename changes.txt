@@ -1,4 +1,4 @@
-JSVM_7_13 -> JSVM_7_8
+JSVM_7_13 -> JSVM_8_0
 ========================
 
 Date  : Feb 1, 2007
@@ -9,7 +9,7 @@ Changes:
 - Few bug fixes related to the interlaced implementation (downconvert, variables initialization...)
 - Many memory fixes (uninitialized memory read, memory leaks, etc.). Thanks to Ye Yan for the help! 
 - There are many remaining leaks...TODO
-- Validation scripts related to interlaced have been very slightly  modified
+- Validation scripts related to interlaced have been slightly  modified
 - .Net 2005 "vcproj" and "sln" files have been added
 
 
