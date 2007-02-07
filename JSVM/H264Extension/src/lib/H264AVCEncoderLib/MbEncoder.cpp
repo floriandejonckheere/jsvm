@@ -551,6 +551,22 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
   Bool bIntraEnable = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || rcMbDataAccess.getMbDataComplementary().isIntra();
   Bool bInterEnable = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || ! rcMbDataAccess.getMbDataComplementary().isIntra();
 
+  //--  JVT-T037
+  Bool  b = false;
+  if ( rcMbDataAccess.isFieldMbInMbaffFrame() && rcMbDataAccess.getMbPicType() == BOT_FIELD && rcMbDataAccess.getMbDataComplementary().isIntra() )
+  {
+    if ( pcMbDataAccessBase )
+    {
+      if ( !pcMbDataAccessBase->getMbData().isIntra()      || !pcMbDataAccessBase->getMbDataComplementary().isIntra() )
+      {
+        b = true;
+      }
+    }
+  }
+
+  bInterEnable |= b;
+  //--
+  
   Bool  bDefaultResPredFlag = false;
   if( rcMbDataAccess.getSH().getPPS().getEntropyCodingModeFlag() &&
       rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
@@ -1309,6 +1325,23 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
   Bool bBaseLayerAvailable = (NULL != pcMbDataAccessBase) && (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
   Bool bIntraEnable = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || rcMbDataAccess.getMbDataComplementary().isIntra();
   Bool bInterEnable = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || ! rcMbDataAccess.getMbDataComplementary().isIntra();
+
+ //--  JVT-T037
+  Bool  b = false;
+  if ( rcMbDataAccess.isFieldMbInMbaffFrame() && rcMbDataAccess.getMbPicType() == BOT_FIELD && rcMbDataAccess.getMbDataComplementary().isIntra() )
+  {
+    if ( pcMbDataAccessBase )
+    {
+      if (!pcMbDataAccessBase->getMbData().isIntra()      || !pcMbDataAccessBase->getMbDataComplementary().isIntra() )
+      {
+        b = true;
+      }
+    }
+  }
+
+  bInterEnable |= b;
+  //--
+
 
   Bool  bDefaultResPredFlag = false;
   if( rcMbDataAccess.getSH().getPPS().getEntropyCodingModeFlag() &&
