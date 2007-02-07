@@ -84,10 +84,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCDecoderLibTest.h"
 #include "DecoderParameter.h"
 
-#ifndef MSYS_WIN32
-#define stricmp strcasecmp
+//TMM_FIX {
+#ifdef MSYS_WIN32
+#define  strcasecmp _stricmp
 #endif
-
+//TMM_FIX }
 
 DecoderParameter::DecoderParameter()
 {
@@ -109,8 +110,9 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
   if( argc > 3 ) // HS: decoder robustness
   {
-    if ( 0 == stricmp( argv[3], "-ec"))
-    {
+   
+   if ( 0 == strcasecmp( argv[3], "-ec")) //TMM_FIX
+	  {
       if ( argc != 5)
       {
         RNOKS( xPrintUsage( argv ) );
@@ -131,8 +133,8 @@ ErrVal DecoderParameter::init(int argc, char** argv)
       ROT( 0 == uiMaxPocDiff );
       if ( argc > 4)
       {
-        if ( 0 == stricmp( argv[4], "-ec"))
-        {
+        if ( 0 == strcasecmp( argv[4], "-ec")) //TMM_FIX
+	 	  {
           if ( argc != 6)
           {
             RNOKS( xPrintUsage( argv ) );

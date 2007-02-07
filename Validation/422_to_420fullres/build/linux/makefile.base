@@ -31,10 +31,13 @@ DYN_RELEASE_OUT   	= $(LIB_DIR)/lib$(PRJ_NAME).so
 else 
 ifeq ($(CONFIG), CONSOLE)
 # the executables that can be created
-STAT_DEBUG_OUT    = $(BIN_DIR)/$(PRJ_NAME)
+#STAT_DEBUG_OUT    = $(BIN_DIR)/$(PRJ_NAME)Staticd
+#STAT_RELEASE_OUT  = $(BIN_DIR)/$(PRJ_NAME)Static
+#DYN_DEBUG_OUT     = $(BIN_DIR)/$(PRJ_NAME)d
+STAT_DEBUG_OUT    = $(BIN_DIR)/$(PRJ_NAME)d
 STAT_RELEASE_OUT  = $(BIN_DIR)/$(PRJ_NAME)
-DYN_DEBUG_OUT     = $(BIN_DIR)/$(PRJ_NAME)
-DYN_RELEASE_OUT   = $(BIN_DIR)/$(PRJ_NAME)
+#DYN_DEBUG_OUT     = $(BIN_DIR)/$(PRJ_NAME)
+#DYN_RELEASE_OUT   = $(BIN_DIR)/$(PRJ_NAME)
 #
 endif
 endif

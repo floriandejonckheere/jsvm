@@ -31,10 +31,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)/422_to_420fullres.exe"
+				OutputFile="$(OutDir)\422_to_420fullresd.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="$(OutDir)/422_to_420fullres.pdb"
+				ProgramDatabaseFile="$(OutDir)\422_to_420fullres.pdb"
 				SubSystem="1"
 				TargetMachine="1"/>
 			<Tool
@@ -76,7 +76,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)/422_to_420fullres.exe"
+				OutputFile="$(OutDir)\422_to_420fullres.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"
 				SubSystem="1"

@@ -31,10 +31,10 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)/PacketLossSimulatorStaticd.exe"
+				OutputFile="$(OutDir)\PacketLossSimulatorStaticd.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="$(OutDir)/PacketLossSimulator.pdb"
+				ProgramDatabaseFile="$(OutDir)\PacketLossSimulator.pdb"
 				SubSystem="1"
 				TargetMachine="1"/>
 			<Tool

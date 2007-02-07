@@ -389,17 +389,17 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
       fprintf ( stderr, "\nERROR: %s\n", message );
     }
 
-    fprintf (   stderr, "\nUsage: %s <win> <hin> <in> <wout> <hout> <out> [<method> [<t> [<skip> [<frms>]]]] [[-crop <args>] [-phase <args>] [-resample_mode <args>]]\n\n", name );
+    fprintf (   stderr, "\nUsage: %s <win> <hin> <in> <wout> <hout> <out> [<method> [<t> [<skip> [<frms>]]]] [[-crop <args>] [-phase <args>] [-resample_mode <arg>]]\n\n", name );
     fprintf (   stderr, "  win     : input width  (luma samples)\n" );
     fprintf (   stderr, "  hin     : input height (luma samples)\n" );
     fprintf (   stderr, "  in      : input file\n" );
-	fprintf (   stderr, "  wout    : output width  (luma samples)\n" );
+	  fprintf (   stderr, "  wout    : output width  (luma samples)\n" );
     fprintf (   stderr, "  hout    : output height (luma samples)\n" );
     fprintf (   stderr, "  out     : output file\n" );
     fprintf (   stderr, "\n--------------------------- OPTIONAL ---------------------------\n\n" );
-	fprintf (   stderr, "  method  : rescaling methods (default: 0)\n" );
-	fprintf (   stderr, "            0: normative upsampling\n" );
- 	fprintf (   stderr, "               non-normative downsampling (JVT-R006)\n" );
+	  fprintf (   stderr, "  method  : rescaling methods (default: 0)\n" );
+	  fprintf (   stderr, "            0: normative upsampling\n" );
+ 	  fprintf (   stderr, "               non-normative downsampling (JVT-R006)\n" );
     fprintf (   stderr, "            1: dyadic upsampling (AVC 6-tap (1/2 pel) on odd samples\n" );
     fprintf (   stderr, "               dyadic downsampling (MPEG-4 downsampling filter)\n" );
     fprintf (   stderr, "            2: crop only\n" );
@@ -409,7 +409,7 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     fprintf (   stderr, "  skip    : number of frames to skip at start (default: 0)\n" );
     fprintf (   stderr, "  frms    : number of frames wanted in output file (default: max)\n" );
     fprintf (   stderr, "\n-------------------------- OVERLOADED --------------------------\n\n" );
-    fprintf (   stderr, " -crop  <type> <parameters>\n");
+    fprintf (   stderr, " -crop  <type> <params>\n");
     fprintf (   stderr, "   type   : 0: Sequence level,    1: Picture level\n");
     fprintf (   stderr, "   params : IF Sequence level: <x_orig> <y_orig> <crop_width> <crop_height>\n");
     fprintf (   stderr, "               cropping window origin (x,y) and dimensions (width and height)\n");
@@ -425,7 +425,7 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     fprintf (   stderr, "   out_uv_ph_x: output chroma phase shift in horizontal direction (default:-1)\n" );
     fprintf (   stderr, "   out_uv_ph_y: output chroma phase shift in vertical   direction (default: 0)\n" );
     fprintf (   stderr, "\n");
-    fprintf (   stderr, " -resample_mode <resample_mode> \n");
+    fprintf (   stderr, " -resample_mode <resample_mode>\n");
     fprintf (   stderr, "   resample_mode : resampling modes, present when method==0 (default: 0)\n" );
     fprintf (   stderr, "                 0: low-res-frm  = progressive, high-res-frm = progressive\n" );
     fprintf (   stderr, "                 1: low-res-frm  = interlaced,  high-res-frm = interlaced\n" );
@@ -509,7 +509,7 @@ int main(int argc, char *argv[])
   int           written, skip;
   YuvFrame      cFrame;
   
-  print_usage_and_exit ((argc<7||argc>22), argv[0],"number of arguments");
+  print_usage_and_exit ((argc<7||argc>24), argv[0],"number of arguments");
   rp->m_iInWidth        = atoi  ( argv[1] );
   rp->m_iInHeight       = atoi  ( argv[2] );
   input_file            = fopen ( argv[3], "rb" );
@@ -589,7 +589,6 @@ int main(int argc, char *argv[])
       if (resample_mode > 5 || resample_mode < 0) resample_mode = 0;
       i++;
     }      
-
     else if (i == 7)
     {
       method_init = true;
@@ -799,10 +798,11 @@ int main(int argc, char *argv[])
           }
         }
       }
+
       if(method!=0)
       writeFrame ( &cFrame, output_file,  rp->m_iGlobWidth, rp->m_iGlobHeight );
       else
-        ess_writePic ( &cFrame, output_file, rp->m_iGlobWidth, rp->m_iGlobHeight, downsample_flg, resample_mode );
+      ess_writePic ( &cFrame, output_file, rp->m_iGlobWidth, rp->m_iGlobHeight, downsample_flg, resample_mode );
 
       if(resample_mode>3){
         if(downsample_flg){
@@ -838,6 +838,8 @@ int main(int argc, char *argv[])
   fprintf(stderr, "\n" );
   double delta_in_s = (double)(end_time - start_time) / CLOCKS_PER_SEC;
   fprintf(stderr, "in %.2lf seconds => %.0lf ms/frame\n", delta_in_s, delta_in_s/written*1000);
+  //TMM_FIX
+  delete rp;
 
   return 0;
 }

@@ -603,6 +603,14 @@ SEI::ScalableSei::create( ScalableSei*& rpcSeiMessage )
 		return Err::m_nOK;
 }
 
+//TMM_FIX
+ErrVal
+SEI::ScalableSei::destroy() 
+{
+	delete this;
+	return Err::m_nOK;
+}
+//TMM_FIX
 
 ErrVal
 SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
@@ -1334,7 +1342,14 @@ SEI::ScalableSeiLayersNotPresent::create( ScalableSeiLayersNotPresent*& rpcSeiMe
 	ROT( NULL == rpcSeiMessage )
 		return Err::m_nOK;
 }
-
+  //TMM_FIX
+ErrVal
+SEI::ScalableSeiLayersNotPresent::destroy()
+{
+	delete this ;
+	return Err::m_nOK;
+}
+  //TMM_FIX
 ErrVal
 SEI::ScalableSeiLayersNotPresent::write( HeaderSymbolWriteIf *pcWriteIf )
 {

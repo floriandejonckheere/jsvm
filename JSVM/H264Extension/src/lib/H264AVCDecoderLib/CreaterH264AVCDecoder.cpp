@@ -554,8 +554,13 @@ H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 : m_pcBitReadBuffer       ( NULL )
 , m_pcUvlcReader          ( NULL )
 , m_pcNalUnitParser       ( NULL )
-, m_pcNonRequiredSEI    ( NULL )
 , m_uiStdAVCOffset         ( 0 )
+, m_pcNonRequiredSEI    ( NULL )
+//TMM_FIX {
+, m_uiNonRequiredSeiFlag  ( 0 )
+, m_uiPrevPicLayer        ( 0 )
+, m_uiCurrPicLayer        ( 0 )
+//TMM_FIX }
 , m_bAVCCompatible      (false)//BUG FIX Kai Zhang
 {
   for(int iLayer=0;iLayer<MAX_SCALABLE_LAYERS;iLayer++)

@@ -203,13 +203,6 @@ void readFrame( YuvFrame* f, FILE* file )
   readColorComponent( &f->cr,  file );
 }
 
-void writeFrame( YuvFrame* f, FILE* file, int downscale )
-{
-  writeColorComponent( &f->lum, file, downscale );
-  writeColorComponent( &f->cb,  file, downscale );
-  writeColorComponent( &f->cr,  file, downscale );
-}
-
 void print_usage_and_exit( int test, char* name, char* message = 0 )
 {
   if( test )
@@ -218,15 +211,16 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     {
       fprintf ( stderr, "\nERROR: %s\n", message );
     }
-    fprintf (   stderr, "\nUsage: %s <w> <h> <org> <rec> [<t> [<skip> [<strm> <fps>]]]\n\n", name );
-    fprintf (   stderr, "\t    w: original width  (luma samples)\n" );
-    fprintf (   stderr, "\t    h: original height (luma samples)\n" );
-    fprintf (   stderr, "\t  org: original file\n" );
-    fprintf (   stderr, "\t  rec: reconstructed file\n" );
-    fprintf (   stderr, "\t    t: number of temporal downsampling stages (default: 0)\n" );
-    fprintf (   stderr, "\t skip: number of frames to skip at start      (default: 0)\n" );
-    fprintf (   stderr, "\t strm: coded stream\n" );
-    fprintf (   stderr, "\t fps: frames per second\n" );
+    fprintf (   stderr, "\nUsage: %s <w> <h> <org> <rec> [<t> [<skip> [<strm> <fps> ]]] [-r]\n\n", name );
+    fprintf (   stderr, "\t    w : original width  (luma samples)\n" );
+    fprintf (   stderr, "\t    h : original height (luma samples)\n" );
+    fprintf (   stderr, "\t  org : original file\n" );
+    fprintf (   stderr, "\t  rec : reconstructed file\n" );
+    fprintf (   stderr, "\t    t : number of temporal downsampling stages (default: 0)\n" );
+    fprintf (   stderr, "\t skip : number of frames to skip at start      (default: 0)\n" );
+    fprintf (   stderr, "\t strm : coded stream\n" );
+    fprintf (   stderr, "\t fps  : frames per second\n" );
+	fprintf (   stderr, "\t -r   : return Luma psnr (default: return -1 when failed and 0 otherwise)\n" );
     fprintf (   stderr, "\n" );
     exit    (   -1 );
   }
@@ -259,28 +253,44 @@ int main(int argc, char *argv[])
   double        AveragePSNR_Y = 0.0;
   double        AveragePSNR_U = 0.0;
   double        AveragePSNR_V = 0.0;
+  int		      	currarg = 5;
+  int			      rpsnr   = 0;
 
 
   //===== read input parameters =====
-  print_usage_and_exit((argc < 5 || (argc > 9 || argc == 8)), argv[0]);
+  print_usage_and_exit((argc < 5 || (argc > 10 )), argv[0]);
   width             = atoi  ( argv[1] );
   height            = atoi  ( argv[2] );
   org_file          = fopen ( argv[3], "rb" );
   rec_file          = fopen ( argv[4], "rb" );
-  if( argc >=  6 )
+
+
+  if(( argc >=  6 ) && strcmp( argv[5], "-r" ) )
   {
     temporal_stages = atoi  ( argv[5] );
+    currarg++;
   }
-  if( argc >=  7 )
+  if(( argc >=  7 ) && strcmp( argv[6], "-r" ) )
   {
     skip_at_start   = atoi  ( argv[6] );
+    currarg++;
   }
-  if( argc >= 9 )
+  if(( argc >= 9 ) && strcmp( argv[7], "-r" ) )
   {
     str_file        = fopen ( argv[7], "rb" );
-    fps             = atof  ( argv[8] );
+	  print_usage_and_exit(!strcmp( argv[8], "-r" ), argv[0]);
+	  fps             = atof  ( argv[8] );
     stream          = 1;
+	  currarg+=2;
   }
+
+	if(currarg < argc )
+	{
+	  if(!strcmp( argv[currarg], "-r" ))
+		  rpsnr=1;
+	  else
+          print_usage_and_exit (true,argv[0],"Bad number of argument!" );
+	}
 
 
   //===== check input parameters =====
@@ -362,6 +372,7 @@ int main(int argc, char *argv[])
     fclose   ( str_file   );
   }
 
-  return 0;
+  return (rpsnr*py);
+  //return 0;	
 }
 

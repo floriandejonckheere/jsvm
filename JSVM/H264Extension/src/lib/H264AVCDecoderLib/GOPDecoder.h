@@ -143,7 +143,6 @@ public:
                                 IntFrame* pcFrameBaseRep );
   ErrVal        uninit        ();
 
-
   ErrVal        markNonRef    ();
   ErrVal        markOutputted ();
 

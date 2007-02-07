@@ -1099,6 +1099,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
   return Err::m_nOK;
 }
 //TMM_EC }}
+
 ErrVal
 H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 													  UInt&             ruiNalUnitType,
@@ -1625,7 +1626,6 @@ H264AVCDecoder::initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
     SliceHeader* pTmp = m_pcSliceHeader;
     m_pcSliceHeader   = m_pcPrevSliceHeader;
     m_pcPrevSliceHeader = pTmp;
-
 
     m_bLastFrame = true;
     delete m_pcSliceHeader;

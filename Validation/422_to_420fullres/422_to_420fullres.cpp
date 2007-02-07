@@ -28,6 +28,7 @@ typedef unsigned char u_char;
 /* forward declaration */
 void tm5filter(u_char *in, u_char *out, int outheight, int outwidth);
 
+int
 main(int argc, char **argv)
 {
     u_char *yin = (u_char*)malloc(OUTFRAME*sizeof(u_char));

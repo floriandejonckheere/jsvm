@@ -326,7 +326,7 @@ return ERR_CLASS::m_nERR;     \
   #define AOT_DBG( exp )    ((VOID_TYPE)0)
   #define AOF_DBG( exp )    ((VOID_TYPE)0)
   #define ANOK_DBG( exp )   ((VOID_TYPE)0)
-// TMM_BUG  
+// TMM_INTERLACE  
   #define DO_DBG( exp )     ((VOID_TYPE)0)
   #define DO_DBG_INIT( exp )     ( exp )
 #endif // _DEBUG

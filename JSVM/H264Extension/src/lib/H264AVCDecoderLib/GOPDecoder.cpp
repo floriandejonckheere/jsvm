@@ -159,9 +159,6 @@ DPBUnit::~DPBUnit()
   }
 }
 
-
-
-
 ErrVal
 DPBUnit::create( DPBUnit*&                    rpcDPBUnit,
                  YuvBufferCtrl&               rcYuvBufferCtrl,
@@ -473,9 +470,11 @@ DecodedPicBuffer::xClearBuffer()
   while( cTempList.size() )
   {
     DPBUnit*  pcDPBUnit = cTempList.popFront();
+    
     RNOK( pcDPBUnit->uninit() );
     m_cUsedDPBUnitList.remove( pcDPBUnit );
     AOT( pcDPBUnit == NULL)
+
     m_cFreeDPBUnitList.push_back( pcDPBUnit );
   }
 
@@ -592,7 +591,7 @@ DecodedPicBuffer::xMarkShortTermUnusedBase( const PicType eCurrentPicType, UInt 
     {
 //bug-fix base_rep 0925{{ 
 		DPBUnit* pcDPBUnit = (*iter);
-		RNOK( pcDPBUnit->uninit() );
+   	RNOK( pcDPBUnit->uninit() );
 		m_cUsedDPBUnitList.remove(pcDPBUnit);
 		m_cFreeDPBUnitList.push_back( pcDPBUnit );
 		return Err::m_nOK;  
@@ -3585,7 +3584,7 @@ MCTFDecoder::freeDiffPrdRefLists( RefFrameList& diffPrdRefList)
   for(UInt i=0; i< diffPrdRefList.getSize(); i++)
   {
     diffPrdRefList.getEntry(i)->uninit();
-    free(diffPrdRefList.getEntry(i));
+    delete diffPrdRefList.getEntry(i); //TMM_FIX
   }
 
   return Err::m_nOK;

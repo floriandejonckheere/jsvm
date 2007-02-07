@@ -85,15 +85,14 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "BStreamExtractor.h"
 #include "ExtractorParameter.h"
 
-
-#ifndef MSYS_WIN32
-#define stricmp strcasecmp
+//TMM_FIX {
+#ifdef MSYS_WIN32
+#define  strcasecmp _stricmp
 #endif
 
-#define equal(a,b)  (!stricmp((a),(b)))
 
-
-
+#define equal(a,b)  (!strcasecmp((a),(b)))
+//TMM_FIX }
 
 ExtractorParameter::ExtractorParameter()
 : m_cInFile       ()

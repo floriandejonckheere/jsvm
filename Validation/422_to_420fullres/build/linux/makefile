@@ -26,7 +26,7 @@ DEFS				= -DMSYS_LINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DMSYS_UNIX_
 
 # set objects
 OBJS          		= 	\
-					$(OBJ_DIR)/main.o \
+					$(OBJ_DIR)/422_to_420fullres.o \
 
 # set libs to link with
 LIBS				= -ldl
@@ -34,7 +34,8 @@ LIBS				= -ldl
 DEBUG_LIBS			=
 RELEASE_LIBS		=
 
-STAT_LIBS			= -lpthread
+STAT_LIBS			= 
+#-lpthread
 DYN_LIBS			=
 
 

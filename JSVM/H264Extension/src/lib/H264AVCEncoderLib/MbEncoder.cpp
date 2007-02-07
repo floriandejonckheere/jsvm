@@ -551,7 +551,6 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
   Bool bIntraEnable = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || rcMbDataAccess.getMbDataComplementary().isIntra();
   Bool bInterEnable = ! rcMbDataAccess.isFieldMbInMbaffFrame() || rcMbDataAccess.isTopMb() || ! rcMbDataAccess.getMbDataComplementary().isIntra();
 
-  
   Bool  bDefaultResPredFlag = false;
   if( rcMbDataAccess.getSH().getPPS().getEntropyCodingModeFlag() &&
       rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )

@@ -265,7 +265,13 @@ Extractor::destroy()
     RNOK( m_pcReadBitstream->uninit() );
     RNOK( m_pcReadBitstream->destroy() );
   }
-
+//TMM_FIX
+  if( NULL != m_pcWriteBitstream )
+  {
+    RNOK( m_pcWriteBitstream->uninit() );
+    RNOK( m_pcWriteBitstream->destroy() );
+  }
+//TMM_FIX
   // HS: packet trace
   if( m_pcTraceFile )
   {
@@ -1302,6 +1308,7 @@ Extractor::xExtractPoints()
 
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
+  BinData*  pcBinData = NULL; //TMM_FIX
   while( ! bEOS )
   {
     //=========== get packet ===========
@@ -1317,6 +1324,10 @@ Extractor::xExtractPoints()
     {
       RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
       pcBinData = NULL;
+//TMM_FIX {
+      RNOK( m_pcReadBitstream->releasePacket( pcBinDataSEILysNotPreDepChange ) );
+      pcBinDataSEILysNotPreDepChange = NULL;
+//TMM_FIX }
       continue;
     }
     //========== get packet description ==========
@@ -1604,7 +1615,9 @@ Extractor::xExtractPoints()
     {
       RNOK( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
       if( bEOS )
+      {
         continue;
+      }
       while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
       {
         RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
@@ -1660,7 +1673,9 @@ Extractor::xWriteScalableSEIToBuffer(h264::SEI::SEIMessage* pcScalableSei, BinDa
 {
 	const UInt uiSEILength = 1000;
 	UChar		pulStreamPacket[uiSEILength];
-	pcBinData->reset();
+//TMM_FIX
+  //pcBinData->reset();
+	pcBinData->deleteData();
 	pcBinData->set( new UChar[uiSEILength], uiSEILength );
 	UChar *m_pucBuffer = pcBinData->data();
 
@@ -2105,7 +2120,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
   }
   pcNewScalableSei->setNumLayersMinus1( uiNumScalableLayer-1);
 
-// JVT-S080 LMI {
+  // JVT-S080 LMI 
 
   UInt i, uiNumLayersNotPresent = 0;
 
@@ -2138,6 +2153,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
   else
     pcOldScalableSeiLayersNotPresent->setOutputFlag ( false );
 #endif
+
+    pcNewScalableSei->destroy(); //TMM_FIX
   }
 
     // now deal with the layers_not_present SSEI message sent by the encoder
@@ -2234,6 +2251,9 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
       pcOldScalableSeiDepChange->setOutputFlag ( false );
   }
 // JVT-S080 LMI }
+  //TMM_FIX
+  RNOK( pcNewScalableSeiLayersNotPresent->destroy() );
+  //TMM_FIX
   return Err::m_nOK;
 }
 
@@ -4661,7 +4681,7 @@ Extractor::CheckSuffixNalUnit( h264::PacketDescription* pcPacketDescription, Boo
 		h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
 		Int iFilePos = 0;
 		RNOK( m_pcReadBitstream->getPosition( iFilePos ) );
-		BinData *pcNextBinData;
+		BinData *pcNextBinData=NULL;
 		RNOK( m_pcReadBitstream->extractPacket( pcNextBinData, bEOS ) );
 		m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
 		if( cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix

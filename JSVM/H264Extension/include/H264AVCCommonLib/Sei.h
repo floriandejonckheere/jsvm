@@ -220,6 +220,9 @@ public:
 
   public:
     static ErrVal create ( ScalableSei*&      rpcSeiMessage);
+//TMM_FIX
+    ErrVal    destroy ();
+//TMM_FIX
     ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
     ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
 
@@ -667,6 +670,9 @@ public:
 
   public:
       static ErrVal create ( ScalableSeiLayersNotPresent*&      rpcSeiMessage);
+   //TMM_FIX
+      ErrVal destroy ();
+   //TMM_FIX
       ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
       ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
       Void setNumLayers( UInt ui )                                        { m_uiNumLayers = ui;  }

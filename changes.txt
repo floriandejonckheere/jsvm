@@ -1,8 +1,24 @@
+ JSVM_8_0 -> JSVM_8_0_1
+========================
+
+Date  : Feb 6, 2007
+Author: C. Chevance V. Bottreau and, J. Vieron (Thomson)
+
+Changes:
+
+- Many memory leaks fixing (extractor, decoder)
+- FixedQPEncoder has been improved. Many new "interesting" features has been added. (cf. Software manual)
+- New encoding command line options (already present in configuration files) have been added.
+- Long-term interlaced validation scripts have been modified in order to be run in an acceptable time slot...;-)
+- Renaming of .Net 2005 "vcproj" and "sln" files. The new name are "*_vc8.vcproj" and "*_vc8.sln". 
+- Software manual was updated.
+
+
 JSVM_7_13 -> JSVM_8_0
 ========================
 
 Date  : Feb 1, 2007
-Author: C. Chevance, E. Francois, and J. Vieron (Thomson)
+Author: C. Chevance, E. Francois and, J. Vieron (Thomson)
 
 Changes:
 
@@ -17,7 +33,7 @@ JSVM_7_12_1 -> JSVM_7_13
 ========================
 
 Date  : Jan. 11, 2007
-Author: C. Chevance, E. Francois, V. Bottreau and J. Vieron (Thomson)
+Author: C. Chevance, E. Francois, V. Bottreau and, J. Vieron (Thomson)
 Contributions : JVT-S018
 
 Changes:

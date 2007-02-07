@@ -1190,9 +1190,6 @@ RQFGSDecoder::xDecodingFGS( SliceHeader*                pcSliceHeader 	)
     m_pcSliceHeader->setQualityLevel( pcSliceHeader->getQualityLevel());
   }
 
-  //TMM_INTERLACE ???
-  //m_bUpdateWithoutMap = true;
-
   //--ICU/ETRI 1206  
   RNOK( xUpdateCodingPath(pcSliceHeader) );  
   RNOK( xClearCodingPath() );

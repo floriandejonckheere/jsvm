@@ -276,6 +276,16 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::setNumberOfLayers( uiNumLayers );
       continue;
     }
+    if( equals( pcCom, "-ecmf", 5 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer                = atoi( argv[n  ] );
+      Bool    bEntropyCodingModFlag  = (atoi( argv[n+1] ) == 1) ;
+      CodingParameter::getLayerParameters( uiLayer ).setEntropyCodingModeFlag( bEntropyCodingModFlag );
+      n += 1;
+      continue;
+    }
     if( equals( pcCom, "-rqp", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -344,6 +354,30 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters( uiLayer ).setMotionInfoMode( uiMode );
       CodingParameter::getLayerParameters( uiLayer ).setMotionInfoFilename( argv[n+2] );
       n += 2;
+      continue;
+    }
+    if( equals( pcCom, "-gop", 4 ) )
+    {
+      ROTS( NULL == argv[n] ); 
+      UInt uiGOPSize = atoi( argv[n] );
+      CodingParameter::setGOPSize( uiGOPSize );
+      continue;
+    }
+		if( equals( pcCom, "-iper", 5 ) )
+    {
+      ROTS( NULL == argv[n] ); 
+      Int iIntraPeriod = atoi( argv[n] );
+      CodingParameter::setIntraPeriod( iIntraPeriod );
+      continue;
+    }
+    if( equals( pcCom, "-blid", 5 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      UInt    uiBlId  = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setBaseLayerId( uiBlId );
+      n += 1;
       continue;
     }
     if( equals( pcCom, "-frms", 5 ) )
@@ -569,9 +603,12 @@ Void EncoderCodingParameter::printHelp()
 
   printf("  -bf     BitStreamFile\n");
   printf("  -frms   Number of total frames\n");
+	printf("  -gop    GOPSize - GOP size (2,4,8,16,32,64, default: 1)\n");
+	printf("  -iper   Intra period (default: -1) : must be a power of 2 of GOP size (or -1)\n");
   printf("  -numl   Number Of Layers\n");
   printf("  -cabac  CABAC for all layers as entropy coding mode\n");
   printf("  -vlc    VLC for all layers as entropy coding mode\n");
+	printf("  -ecmf   (Layer) (entropy_coding_mod_flag)\n");
   printf("  -org    (Layer) (original file)\n");
   printf("  -rec    (Layer) (reconstructed file)\n");
   printf("  -ec     (Layer) (entropy coding mode)\n");
@@ -580,26 +617,30 @@ Void EncoderCodingParameter::printHelp()
   printf("  -lqp    (Layer) (ResidualAndMotionQP)\n");
   printf("  -meqplp (Layer) (MotionQPLowpass)\n");
   printf("  -ilpred (Layer) (InterLayerPredictionMode)\n");
+	printf("  -blid   (Layer) (BaseLayerId)\n");
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
   printf("  -anafgs (Layer) (NumFGSLayers) (File for storing FGS parameters)\n");
   printf("  -encfgs (Layer) (bit-rate in kbps) (File with stored FGS parameters)\n");
   printf("  -cl     (Layer) (ClosedLoopParameter)\n");
   printf("  -ds     (Layer) (Rate for inter-layer prediction)\n");
   printf("  -fgsmot (Layer) (FGSMotionRefinementMode) [0: no, 1: HP only, 2: all]\n");
-  printf("  -lcupd  Update method [0 - original, 1 - low-complexity (default)]\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   //S051{
   printf("  -anasip (Layer) (SIP Analysis Mode)[0: persists all inter-predictions, 1: forbids all inter-prediction.] (File for storing bits information)\n");
   printf("  -encsip (Layer) (File with stored SIP information)\n");
   //S051}
-  //JVT-U085 LMI
+   //JVT-U085 LMI
   printf("  -tlnest (TlevelNestingFlag)[0: temporal level nesting constraint is not applied, 1: the nesting constraint is applied.]\n");
   //JVT-U116 LMI
-  printf("  -nalext (ExtensionFlag)[0: tl0_frame_idx is not present, 1: tl0_frame_idx is present.]\n");
+  printf("  -tlidx  (ExtensionFlag)[0: tl0_frame_idx is not present, 1: tl0_frame_idx is present.]\n");
   //JVT-U106 Behaviour at slice boundaries{
   printf("  -ciu    (Constrained intra upsampling)[0: no, 1: yes]\n");
   //JVT-U106 Behaviour at slice boundaries}
-  printf("  -h      Print Option List \n");
+  printf("  -ref    (enhRef)    Enhancement reference weighting for ME [default: 0.0]\n");
+  printf("  -fs     (encStruct) FGS coding structure selection [0: Optimized FGS syntax structure 1: Standard structure]\n");
+  printf("  -ar     (wZBlock) (wZCoeff) Zero block and zero coefficient weightings [default: 32 32]\n");
+  printf("  -pd     (mode)      Cycle aligned fragments (CAF) is used [0: no, 1: yes]\n");
+  printf("  -h       Print Option List \n");
   printf("\n");
 }
 

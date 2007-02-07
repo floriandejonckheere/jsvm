@@ -116,6 +116,10 @@ PictureParameterSet::PictureParameterSet()
 {
   m_auiNumRefIdxActive[LIST_0] = 0;
   m_auiNumRefIdxActive[LIST_1] = 0;
+//TMM_FIX
+	::memset( m_uiTopLeft,     0x00, MAXNumSliceGroupsMinus1*sizeof(UInt) );
+	::memset( m_uiBottomRight, 0x00, MAXNumSliceGroupsMinus1*sizeof(UInt) );
+//TMM_FIX 
 }
 
 

@@ -674,14 +674,14 @@ public:
       , m_uiIPMode                        ( 0 )
       , m_uiBMode                         ( 0 )
 //TMM_WP
-	  , m_bNonRequiredEnable				        ( 0 ) //NonRequired JVT-Q066
-	  , m_uiLARDOEnable                     ( 0 )      //JVT-R057 LA-RDO
-	  , m_uiSuffixUnitEnable			          ( 0 )  //JVT-S036 lsj
-	  , m_uiMMCOBaseEnable					        ( 0 ) //JVT-S036 lsj
-    , m_bFGSParallelDecodingFlag          ( false )
+	  , m_bNonRequiredEnable		      ( 0 ) //NonRequired JVT-Q066
+	  , m_uiLARDOEnable                   ( 0 )      //JVT-R057 LA-RDO
+	  , m_uiSuffixUnitEnable		      ( 0 )  //JVT-S036 lsj
+	  , m_uiMMCOBaseEnable			      ( 0 ) //JVT-S036 lsj
+      , m_bFGSParallelDecodingFlag          ( false )
 //JVT-T073 {
-	  , m_uiNestingSEIEnable                ( 0 ) 
-	  , m_uiSceneInfoEnable                 ( 0 )
+	  , m_uiNestingSEIEnable              ( 0 ) 
+	  , m_uiSceneInfoEnable               ( 0 )
 //JVT-T073 }
 //JVT-T054{
     , m_uiCGSSNRRefinementFlag            ( 0 )
