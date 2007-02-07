@@ -3,10 +3,8 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="H264AVCCommonLibStatic"
-	SccProjectName="H264AVCCommonLibStatic"
-	SccAuxPath=""
-	SccLocalPath="..\..\.."
-	SccProvider="MSSCCI:Microsoft Visual SourceSafe">
+	SccProjectName=""
+	SccLocalPath="">
 	<Platforms>
 		<Platform
 			Name="Win32"/>
@@ -944,9 +942,6 @@
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\CabacTables.h">
-			</File>
-			<File
-				RelativePath="..\..\..\include\H264AVCCommonLib\CFMO.h">
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\CommonBuffers.h">
