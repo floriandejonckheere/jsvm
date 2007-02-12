@@ -1846,7 +1846,15 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
     else if(pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 ))
     {
       const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
-      const MbData& rcMbDataLeft = pcMbDataAccessRes->getMbDataLeft();
+//			const MbData& rcMbDataLeft = pcMbDataAccessRes->getMbDataLeft();//TMM_BUG_EF{}
+//TMM_INTERLACE {
+			Bool	bMixFrFld = rcMbDataCurr.getFieldFlag() && ! pcMbDataAccessRes->getMbDataLeft().getFieldFlag();
+			Bool	bTopMb = pcMbDataAccessRes->isTopMb();
+
+			const MbData& rcMbDataLeft =	( bMixFrFld && bTopMb && cIdx > 7 )  ? pcMbDataAccessRes->getMbDataBelowLeft() :
+																		( bMixFrFld && !bTopMb && cIdx < 8 ) ? pcMbDataAccessRes->getMbDataAboveLeft() : 
+																		pcMbDataAccessRes->getMbDataLeft();
+//TMM_INTERLACE }
       ROTRS( LFM_DEFAULT_FILTER != m_eLFMode && rcMbDataLeft.isIntra() ^ rcMbDataCurr.isIntra(), 0 );// bugfix, agl@simecom 
       if(rcMbDataCurr.isIntra_BL() && rcMbDataLeft.isIntra_BL())
       {

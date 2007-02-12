@@ -566,11 +566,14 @@ DownConvert::upsample ( short* psBufferY, int iStrideY,
                         bool bClip )
 {
   //===== Upsampling ======
-  switch (pcParameters->m_iSpatialScalabilityType)
+//TMM_INTERLACE
+	if (pcParameters->m_iSpatialScalabilityType > SST_RATIO_1 || pcParameters->m_iResampleMode > 0)
+	  {
+/*  switch (pcParameters->m_iSpatialScalabilityType)
     {
     case SST_RATIO_1:
       break;
-    default:
+    default:*/
       xGenericUpsampleEss(psBufferY, iStrideY,
                           psBufferU, iStrideU,
                           psBufferV, iStrideV,
@@ -599,11 +602,14 @@ DownConvert::upsampleResidual ( short*         psBufferY,  int iStrideY,
                                 bool           bClip )
 {
   //===== Upsampling ======
-  switch (pcParameters->m_iSpatialScalabilityType)
+//TMM_INTERLACE
+  if(pcParameters->m_iSpatialScalabilityType > SST_RATIO_1 || pcParameters->m_iResampleMode > 0)
+	  {
+  /*switch (pcParameters->m_iSpatialScalabilityType)
     {
     case SST_RATIO_1:
       break;
-    default:
+    default:*/
       xGenericUpsampleEss(psBufferY, iStrideY,
                           psBufferU, iStrideU,
                           psBufferV, iStrideV,

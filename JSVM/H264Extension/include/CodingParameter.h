@@ -691,7 +691,7 @@ public:
 // JVT-U085 LMI
     , m_uiTlevelNestingFlag               ( 1 )
 // JVT-U116 LMI
-    , m_uiExtensionFlag                   ( 0 )
+    , m_uiTl0PicIdxPresentFlag            ( 0 )
     , m_uiCIUFlag                         ( 0 ) //JV
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
@@ -858,8 +858,8 @@ public:
   Void                            setTlevelNestingFlag    ( UInt  ui )    { m_uiTlevelNestingFlag = ui; }
 // JVT-U085 LMI }
 // JVT-U116 LMI {
-  Bool                            getExtensionFlag        ()              const   { return m_uiExtensionFlag > 0 ? true : false; }
-  Void                            setExtensionFlag        ( UInt  ui )    { m_uiExtensionFlag = ui; }
+  Bool                            getTl0PicIdxPresentFlag        ()              const   { return m_uiTl0PicIdxPresentFlag > 0 ? true : false; }
+  Void                            setTl0PicIdxPresentFlag        ( UInt  ui )    { m_uiTl0PicIdxPresentFlag = ui; }
 // JVT-U116 LMI }
 
   //JVT-U106 Behaviour at slice boundaries{
@@ -950,7 +950,7 @@ protected:
 // JVT-U085 LMI 
   UInt                      m_uiTlevelNestingFlag;
 // JVT-U116 LMI 
-  UInt                      m_uiExtensionFlag;
+  UInt                      m_uiTl0PicIdxPresentFlag;
   //JVT-U106 Behaviour at slice boundaries{
   UInt                      m_uiCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}

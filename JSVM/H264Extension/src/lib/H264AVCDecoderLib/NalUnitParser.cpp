@@ -287,7 +287,7 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   DTRACE_BITS ( m_bDiscardableFlag, 1 );
   DTRACE_COUNT( 1 );
   DTRACE_N;
-
+  
   DTRACE_TH   ( "NALU HEADER: fgs_frag_flag" );
   DTRACE_TY   ( " u(1)" );
   DTRACE_POS;
@@ -311,27 +311,18 @@ NalUnitParser::xTrace( Bool bDDIPresent )
   DTRACE_BITS ( m_uiFGSFragOrder, 2 );
   DTRACE_COUNT( 2 );
   DTRACE_N;
-
+  // JVT-V088 LMI {
   // JVT-U116 LMI {
-  DTRACE_TH   ( "NALU HEADER: extension_flag" );
+  DTRACE_TH   ( "NALU HEADER: tl0_pic_idx_present_flag" );
   DTRACE_TY   ( " u(1)" );
   DTRACE_POS;
-  DTRACE_CODE ( m_bExtensionFlag );
-  DTRACE_BITS ( m_bExtensionFlag, 1 );
+  DTRACE_CODE ( m_bTl0PicIdxPresentFlag );
+  DTRACE_BITS ( m_bTl0PicIdxPresentFlag, 1 );
   DTRACE_COUNT( 1 );
   DTRACE_N;
-
-  if ( m_bExtensionFlag )
-  {
-    DTRACE_TH   ( "NALU HEADER: tl0_frame_idx" );
-    DTRACE_TY   ( " u(8)" );
-    DTRACE_POS;
-    DTRACE_CODE ( m_uiTl0FrameIdx );
-    DTRACE_BITS ( m_uiTl0FrameIdx, 8 );
-    DTRACE_COUNT( 8 );
-    DTRACE_N;
-  }
+  
   // JVT-U116 LMI }
+  // JVT-V088 LMI }
   
 }
 
@@ -441,15 +432,14 @@ NalUnitParser::initNalUnit( BinDataAccessor*  pcBinDataAccessor,
       m_bLayerBaseFlag      = ( ucByte >> 7) & 1;          // layer_base_flag          ( &10000000b)
       m_bUseBasePredFlag    = ( ucByte >> 6) & 1;          // use_base_prediction_flag ( &01000000b)
       m_bDiscardableFlag    = ( ucByte >> 5) & 1;          // discardable_flag         ( &00100000b)
+
       m_bFGSFragFlag        = ( ucByte >> 4) & 1;          // fgs_frag_flag            ( &00010000b)
       m_bFGSLastFragFlag    = ( ucByte >> 3) & 1;          // fgs_last_frag_flag       ( &00001000b)
       m_uiFGSFragOrder      = ( ucByte >> 1) & 3;          // fgs_frag_order           ( &00000110b)
-      m_bExtensionFlag      = ( ucByte >> 0) & 1;          // extension_flag           ( &00000001b)
-      
-      m_uiTl0FrameIdx = pcBinDataAccessor->data()[4];
+      // JVT-V088 LMI {
+      m_bTl0PicIdxPresentFlag      = ( ucByte >> 0) & 1;          // tl0_pic_idx_present_flag           ( &00000001b)
       uiHeaderLength    +=  NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
-      if ( m_bExtensionFlag )
-        uiHeaderLength ++;
+      // JVT-V088 LMI }
       // JVT-U116 LMI }
       }
     else

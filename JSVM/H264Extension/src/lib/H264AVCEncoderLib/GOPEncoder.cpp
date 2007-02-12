@@ -262,7 +262,7 @@ MCTFEncoder::MCTFEncoder()
 // JVT-U085 LMI 
 , m_bTlevelNestingFlag              (true)
 // JVT-U116 LMI 
-, m_bExtensionFlag                  (false)
+, m_bTl0PicIdxPresentFlag         (false)
 //JVT-U106 Behaviour at slice boundaries{
 , m_bCIUFlag                       (false)
 , m_pbIntraBLFlag                  ( NULL)
@@ -410,7 +410,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 // JVT-U085 LMI
   m_bTlevelNestingFlag      = pcCodingParameter->getTlevelNestingFlag();
 // JVT-U116 LMI
-  m_bExtensionFlag          = pcCodingParameter->getExtensionFlag();
+  m_bTl0PicIdxPresentFlag = pcCodingParameter->getTl0PicIdxPresentFlag();
 
   m_bExtendedPriorityId     = pcCodingParameter->getExtendedPriorityId();
 
@@ -4083,40 +4083,41 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setDiscardableFlag             ( false                 );
 
   // JVT-U116 LMI {
-  pcSliceHeader->setExtensionFlag               ( m_bExtensionFlag      );
+  pcSliceHeader->setTl0PicIdxPresentFlag      ( m_bTl0PicIdxPresentFlag      );
   SliceHeader*  pcTl0SliceHeader;
   pcTl0SliceHeader = m_pacControlData[ 0 ].getSliceHeader();
   ROF( pcTl0SliceHeader );
-  UInt uiPrevTl0FrameIdx = pcTl0SliceHeader->getPrevTl0FrameIdx();
-
-  if ( pcSliceHeader->getLayerId() == 0 )
+  UInt uiPrevTl0PicIdx = pcTl0SliceHeader->getPrevTl0PicIdx();
+//JVT-V088 LMI
+  //if ( pcSliceHeader->getLayerId() == 0 )
   {
-    pcTl0SliceHeader->setNumTl0FrameIdxUpdate ( pcTl0SliceHeader->getNumTl0FrameIdxUpdate() + 1 );
-    if ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+    pcTl0SliceHeader->setNumTl0PicIdxUpdate ( pcTl0SliceHeader->getNumTl0PicIdxUpdate() + 1 );
+//JVT-V088 LMI
+    if ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR || eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
     {
-      pcSliceHeader->setTl0FrameIdx        ( 0 );
+      pcSliceHeader->setTl0PicIdx        ( 0 );
       if ( m_papcFrame[uiFrameIdInGOP]->getPoc() == 0 ) 
       {
-        pcTl0SliceHeader->setPrevTl0FrameIdx    ( 0 );
-        pcTl0SliceHeader->setNumTl0FrameIdxUpdate ( 0 );
-        pcTl0SliceHeader->setTl0FrameIdxResetFlag ( false );
+        pcTl0SliceHeader->setPrevTl0PicIdx    ( 0 );
+        pcTl0SliceHeader->setNumTl0PicIdxUpdate ( 0 );
+        pcTl0SliceHeader->setTl0PicIdxResetFlag ( false );
       }
       else
-        pcTl0SliceHeader->setTl0FrameIdxResetFlag ( true );
+        pcTl0SliceHeader->setTl0PicIdxResetFlag ( true );
     }
     else if ( uiTemporalLevel == 0 ) 
-      pcSliceHeader->setTl0FrameIdx             ( (uiPrevTl0FrameIdx + 1) % 256 );
+      pcSliceHeader->setTl0PicIdx             ( (uiPrevTl0PicIdx + 1) % 256 );
     else 
-      pcSliceHeader->setTl0FrameIdx             ( uiPrevTl0FrameIdx );
+      pcSliceHeader->setTl0PicIdx             ( uiPrevTl0PicIdx );
 
-    if ( pcTl0SliceHeader->getNumTl0FrameIdxUpdate() == m_uiGOPSize )
+    if ( pcTl0SliceHeader->getNumTl0PicIdxUpdate() == m_uiGOPSize )
     {
-        pcTl0SliceHeader->setNumTl0FrameIdxUpdate ( 0 );
-        pcTl0SliceHeader->setPrevTl0FrameIdx( (uiPrevTl0FrameIdx + 1) % 256);
-        if ( pcTl0SliceHeader->getTl0FrameIdxResetFlag() )
+        pcTl0SliceHeader->setNumTl0PicIdxUpdate ( 0 );
+        pcTl0SliceHeader->setPrevTl0PicIdx( (uiPrevTl0PicIdx + 1) % 256);
+        if ( pcTl0SliceHeader->getTl0PicIdxResetFlag() )
         {
-          pcTl0SliceHeader->setPrevTl0FrameIdx( 0 );
-          pcTl0SliceHeader->setTl0FrameIdxResetFlag( false );
+          pcTl0SliceHeader->setPrevTl0PicIdx( 0 );
+          pcTl0SliceHeader->setTl0PicIdxResetFlag( false );
         }
     }
   }

@@ -794,16 +794,17 @@ public:
   Int                               getDeltaPicOrderCnt           ( UInt ui ) const {return m_aiDeltaPicOrderCnt[ui]; }
 	PicType                           getPicType                    ()  const { return ( ! m_bFieldPicFlag ? FRAME : m_bBottomFieldFlag ? BOT_FIELD : TOP_FIELD ); }
   // JVT-U116 LMI {
-  Bool                              getExtensionFlag              () const  { return m_bExtensionFlag; }
-  UInt                              getTl0FrameIdx                () const  { return m_uiTl0FrameIdx; }
-  Bool                              getTl0FrameIdxResetFlag       () const  { return m_bTl0FrameIdxResetFlag; }
-  UInt                              getPrevTl0FrameIdx            () const  { return m_uiPrevTl0FrameIdx; }
-  UInt                              getNumTl0FrameIdxUpdate       () const  { return m_uiNumTl0FrameIdxUpdate; }
-  Void                              setExtensionFlag              ( Bool b ){ m_bExtensionFlag = b; }
-  Void                              setTl0FrameIdx                ( UInt ui )  { m_uiTl0FrameIdx = ui; }           
-  Void                              setTl0FrameIdxResetFlag       ( Bool b )   { m_bTl0FrameIdxResetFlag = b; }
-  Void                              setPrevTl0FrameIdx            ( UInt ui )  { m_uiPrevTl0FrameIdx = ui; }
-  Void                              setNumTl0FrameIdxUpdate       ( UInt ui )   { m_uiNumTl0FrameIdxUpdate = ui; }
+  // JVT-V088 LMI
+  Bool                              getTl0PicIdxPresentFlag     () const  { return m_bTl0PicIdxPresentFlag; }
+  UInt                              getTl0PicIdx                () const  { return m_uiTl0PicIdx; }
+  Bool                              getTl0PicIdxResetFlag       () const  { return m_bTl0PicIdxResetFlag; }
+  UInt                              getPrevTl0PicIdx            () const  { return m_uiPrevTl0PicIdx; }
+  UInt                              getNumTl0PicIdxUpdate       () const  { return m_uiNumTl0PicIdxUpdate; }
+  Void                              setTl0PicIdxPresentFlag     ( Bool b ){ m_bTl0PicIdxPresentFlag = b; }
+  Void                              setTl0PicIdx                ( UInt ui )  { m_uiTl0PicIdx = ui; }           
+  Void                              setTl0PicIdxResetFlag       ( Bool b )   { m_bTl0PicIdxResetFlag = b; }
+  Void                              setPrevTl0PicIdx            ( UInt ui )  { m_uiPrevTl0PicIdx = ui; }
+  Void                              setNumTl0PicIdxUpdate       ( UInt ui )   { m_uiNumTl0PicIdxUpdate = ui; }
 
 // JVT-U116 LMI }
 
@@ -981,13 +982,15 @@ protected:
   UInt                        m_uiFragmentOrder;
   Bool                        m_bLastFragmentFlag;
   //~JVT-P031
+  // JVT-V088 LMI {
   // JVT-U116 LMI {
-  Bool                        m_bExtensionFlag;
-  UInt                        m_uiTl0FrameIdx;
-  UInt                        m_uiPrevTl0FrameIdx;
-  Bool                        m_bTl0FrameIdxResetFlag;
-  UInt                        m_uiNumTl0FrameIdxUpdate;
+  Bool                        m_bTl0PicIdxPresentFlag;
+  UInt                        m_uiTl0PicIdx;
+  UInt                        m_uiPrevTl0PicIdx;
+  Bool                        m_bTl0PicIdxResetFlag;
+  UInt                        m_uiNumTl0PicIdxUpdate;
   // JVT-U116 LMI }
+  // JVT-V088 LMI }
   UInt                        m_uiRedundantPicCnt;  // JVT-Q054 Red. Picture
 
   Bool                        m_bFieldPicFlag;

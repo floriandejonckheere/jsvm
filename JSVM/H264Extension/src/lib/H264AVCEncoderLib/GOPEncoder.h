@@ -822,7 +822,7 @@ protected:
 // JVT-U085 LMI 
   Bool                          m_bTlevelNestingFlag;
 // JVT-U116 LMI 
-  Bool                          m_bExtensionFlag;
+  Bool                          m_bTl0PicIdxPresentFlag;
   //JVT-U106 Behaviour at slice boundaries{
   Bool                          m_bCIUFlag;
   ReconstructionBypass*         m_pcReconstructionBypass;

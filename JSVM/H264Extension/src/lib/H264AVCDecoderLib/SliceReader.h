@@ -173,6 +173,8 @@ protected:
 	UInt m_uiPPSId_AVC, m_uiSPSId_AVC;
 	UInt m_uiPOC_AVC;
 //JVT-S036 lsj end 
+    //JVT-V088 LMI
+  Bool m_bTl0PicIdxPresentFlag;
 
 };
 

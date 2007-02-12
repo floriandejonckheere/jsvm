@@ -286,8 +286,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bBaseLayerUsesConstrainedIntraPred( false ) 
 , m_bFragmentedFlag                   ( false ) //JV
 , m_bLastFragmentFlag                 ( true ) //
-, m_uiPrevTl0FrameIdx                 ( 0 )
-, m_uiNumTl0FrameIdxUpdate            ( 0 )
+, m_uiPrevTl0PicIdx                 ( 0 )
+, m_uiNumTl0PicIdxUpdate            ( 0 )
 //TMM_ESS_UNIFIED {
 , m_iScaledBaseLeftOffset             ( 0 ) 
 , m_iScaledBaseTopOffset              ( 0 ) 
@@ -448,9 +448,10 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   UInt  uiQualityLevel = (m_eSliceType != F_SLICE)?m_uiQualityLevelCGSSNR:m_uiQualityLevel;
 
   Bool  bLayerBaseFlag = ( (m_uiBaseLayerId == MSYS_UINT_MAX) && (uiQualityLevel==0) );
+  // JVT-V088 LMI {
   // JVT-U116 LMI
-  Bool  bExtensionFlag =   (uiDependencyId == 0 && uiQualityLevel == 0) ? m_bExtensionFlag : false;
-
+  //Bool  bExtensionFlag =   (uiDependencyId == 0 && uiQualityLevel == 0) ? m_bExtensionFlag : false;
+  // JVT-V088 LMI }
   //===== NAL unit header =====
   RNOK  ( pcWriteIf->writeFlag( 0,                                              "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalRefIdc,   2,                              "NALU HEADER: nal_ref_idc" ) );
@@ -483,11 +484,13 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
      }
     RNOK( pcWriteIf->writeCode( uiFragmentOrder,  2,                            "NALU HEADER: fgs_frag_order" ) );
     //}}JVT-T083   
+    // JVT-V088 LMI {
     // JVT-U116 LMI {
-    RNOK (pcWriteIf->writeFlag( bExtensionFlag,                                 "NALU HEADER: extension_flag"));
-    if ( bExtensionFlag )
-      RNOK( pcWriteIf->writeCode( m_uiTl0FrameIdx,    8,                        "NALU HEADER: tl0_frame_idx" ) );
+    RNOK (pcWriteIf->writeFlag( m_bTl0PicIdxPresentFlag,                      "NALU HEADER: tl0_pic_idx_present_flag"));
+    if ( m_bTl0PicIdxPresentFlag )
+      RNOK( pcWriteIf->writeCode( m_uiTl0PicIdx,    8,                        "SH: tl0_pic_idx" ) );
     // JVT-U116 LMI }
+    // JVT-V088 LMI }
   }
 
 //JVT-S036 lsj start

@@ -599,7 +599,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   Bool bFragmentedFlag = false; //JVT-P031
   UInt uiFragmentOrder = 0; //JVT-P031
   Bool bLastFragmentFlag = false; //JVT-P031
-  Bool bExtensionFlag = false; // JVT-U116 LMI
+  Bool bTl0PicIdxPresentFlag = false; // JVT-U116 LMI
   rcPacketDescription.uiNumLevelsQL = 0;
   for(UInt ui = 0; ui < MAX_NUM_RD_LEVELS; ui++)
   {
@@ -635,7 +635,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
     bFragmentedFlag     = ( ucByte >> 4) & 1;          // fgs_frag_flag            ( &00010000b)
     bLastFragmentFlag   = ( ucByte >> 3) & 1;          // fgs_last_frag_flag      ( &00001000b)
     uiFragmentOrder     = ( ucByte >> 1) & 3;          // fgs_frag_order          ( &00000110b)
-    bExtensionFlag      = ( ucByte >> 0) & 1;          // extension_flag           ( &00000001b)
+    bTl0PicIdxPresentFlag      = ( ucByte >> 0) & 1;          // tl0_pic_idx_present_flag           ( &00000001b)
     // JVT-U116 LMI }
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||

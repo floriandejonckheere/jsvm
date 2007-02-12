@@ -1,3 +1,28 @@
+JSVM_8_1 -> JSVM_8_2
+======================
+
+Improved Error Resilience using Frame Index in NAL Header Extension for SVC
+
+Date: Feb 8, 2007
+Authors: Hao Zhang, Alex Eleftheriadis (Layered Media, Inc.), Jerome Vieron (Thomson R&D)
+Contribution: JVT-V088
+
+Changes:
+
+- Removed the picture index (tl0_pic_idx) from the "NAL unit header SVC extension" to the 
+  "slice layer in scalable extension". (Note that this field was previously called 
+  tl0_frame_idx.)
+- Extended the usage of picture index values from the base layer (dependency_id and 
+  quality_level equal to 0) to all spatial and quality scalability layers in the lowest 
+  temporal level.
+
+Note: The changes above can be found by searching "JVT-V088".
+  
+- Interlaced bug fixes(downconvert and Loopfilter)  
+    
+ 
+
+
 JSVM_8_0_1 -> JSVM_8_1
 ========================
 
