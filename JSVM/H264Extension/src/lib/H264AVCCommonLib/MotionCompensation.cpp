@@ -99,6 +99,12 @@ H264AVC_NAMESPACE_BEGIN
 
 __inline Void MotionCompensation::xPredChromaPel( Pel* pucDest, Int iDestStride, Pel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX )
 {
+  if( m_bRCDOC )
+  {
+    xPredChromaPelRCDO( pucDest, iDestStride, pucSrc, iSrcStride, cMv, iSizeY, iSizeX );
+    return;
+  }
+
   Int xF1 = cMv.getHor();
   Int yF1 = cMv.getVer();
 
@@ -838,7 +844,11 @@ __inline Void MotionCompensation::xPredChroma( YuvMbBuffer* pcDesBuffer, YuvPicB
 
   cMv.limitComponents( m_cMin, m_cMax );
 
-  const Int iOffset = (cMv.getHor() >> 3) + (cMv.getVer() >> 3) * iSrcStride;
+  Int iOffset = (cMv.getHor() >> 3) + (cMv.getVer() >> 3) * iSrcStride;
+  if( m_bRCDOC )
+  {
+    iOffset   = ( ( cMv.getHor() + ( (Int)m_uiFrameNum & 1 ) ) >> 3 ) + ( ( cMv.getVer() + ( (Int)m_uiFrameNum & 1 ) ) >> 3 ) * iSrcStride;
+  }
 
   xPredChromaPel( pcDesBuffer->getUBlk( cIdx ),          iDesStride,
                   pcSrcBuffer->getUBlk( cIdx )+ iOffset, iSrcStride,
@@ -997,6 +1007,12 @@ Void MotionCompensation::xPredLuma( IntYuvMbBuffer* apcTarBuffer[2], Int iSizeX,
 
 __inline Void MotionCompensation::xPredChromaPel( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX )
 {
+  if( m_bRCDOC )
+  {
+    xPredChromaPelRCDO( pucDest, iDestStride, pucSrc, iSrcStride, cMv, iSizeY, iSizeX );
+    return;
+  }
+
   Int xF1 = cMv.getHor();
   Int yF1 = cMv.getVer();
 
@@ -1080,6 +1096,106 @@ __inline Void MotionCompensation::xPredChromaPel( XPel* pucDest, Int iDestStride
   }
 }
 
+
+__inline Void MotionCompensation::xPredChromaPelRCDO( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX )
+{
+  Int iDx = ( ( cMv.getHor() + ( (Int)m_uiFrameNum & 1 ) ) >> 1 ) & 3;
+  Int iDy = ( ( cMv.getVer() + ( (Int)m_uiFrameNum & 1 ) ) >> 1 ) & 3;
+
+  for( Int y = 0; y < iSizeY; y++ )
+  {
+    for( Int x = 0; x < iSizeX; x++ )
+    {
+      if( iDx == 0 && iDy == 0 )
+      {
+        pucDest[x]  = pucSrc[x];
+      }
+      else if( iDy == 0 )
+      {
+        XPel    A   = pucSrc[x];
+        XPel    B   = pucSrc[x+1];
+        XPel    b   = ( A + B ) >> 1;
+        pucDest[x]  = ( iDx == 1 ? (A+b+1)>>1 : iDx == 2 ? b : (b+B+1)>> 1 );
+      }
+      else if( iDx == 0 )
+      {
+        XPel    A   = pucSrc[x];
+        XPel    C   = pucSrc[x+iSrcStride];
+        XPel    h   = ( A + C ) >> 1;
+        pucDest[x]  = ( iDy == 1 ? (A+h+1)>>1 : iDy == 2 ? h : (h+C+1)>> 1 );
+      }
+      else
+      {
+        XPel    A   = pucSrc[x];
+        XPel    B   = pucSrc[x+1];
+        XPel    C   = pucSrc[x+iSrcStride];
+        XPel    D   = pucSrc[x+iSrcStride+1];
+        XPel    b   = ( A + B ) >> 1;
+        XPel    h   = ( A + C ) >> 1;
+        XPel    j   = ( B + C ) >> 1;
+        XPel    m   = ( B + D ) >> 1;
+        XPel    s   = ( C + D ) >> 1;
+
+        if     ( iDy == 1 ) pucDest[x] = ( iDx == 1 ? (b+h+1)>>1 : iDx == 2 ? (A+m+1)>>1 : (b+m+1)>> 1 );
+        else if( iDy == 2 ) pucDest[x] = ( iDx == 1 ? (C+b+1)>>1 : iDx == 2 ?  j         : (s+B+1)>> 1 );
+        else                pucDest[x] = ( iDx == 1 ? (s+h+1)>>1 : iDx == 2 ? (D+h+1)>>1 : (s+m+1)>> 1 );
+      }
+    }
+    pucDest += iDestStride;
+    pucSrc  += iSrcStride;
+  }
+}
+
+__inline Void MotionCompensation::xPredChromaPelRCDO( Pel* pucDest, Int iDestStride, Pel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX )
+{
+  Int iDx = ( ( cMv.getHor() + ( (Int)m_uiFrameNum & 1 ) ) >> 1 ) & 3;
+  Int iDy = ( ( cMv.getVer() + ( (Int)m_uiFrameNum & 1 ) ) >> 1 ) & 3;
+
+  for( Int y = 0; y < iSizeY; y++ )
+  {
+    for( Int x = 0; x < iSizeX; x++ )
+    {
+      if( iDx == 0 && iDy == 0 )
+      {
+        pucDest[x]  = pucSrc[x];
+      }
+      else if( iDy == 0 )
+      {
+        XPel    A   = pucSrc[x];
+        XPel    B   = pucSrc[x+1];
+        XPel    b   = ( A + B ) >> 1;
+        pucDest[x]  = (Pel)( iDx == 1 ? (A+b+1)>>1 : iDx == 2 ? b : (b+B+1)>> 1 );
+      }
+      else if( iDx == 0 )
+      {
+        XPel    A   = pucSrc[x];
+        XPel    C   = pucSrc[x+iSrcStride];
+        XPel    h   = ( A + C ) >> 1;
+        pucDest[x]  = (Pel)( iDy == 1 ? (A+h+1)>>1 : iDy == 2 ? h : (h+C+1)>> 1 );
+      }
+      else
+      {
+        XPel    A   = pucSrc[x];
+        XPel    B   = pucSrc[x+1];
+        XPel    C   = pucSrc[x+iSrcStride];
+        XPel    D   = pucSrc[x+iSrcStride+1];
+        XPel    b   = ( A + B ) >> 1;
+        XPel    h   = ( A + C ) >> 1;
+        XPel    j   = ( B + C ) >> 1;
+        XPel    m   = ( B + D ) >> 1;
+        XPel    s   = ( C + D ) >> 1;
+
+        if     ( iDy == 1 ) pucDest[x] = (Pel)( iDx == 1 ? (b+h+1)>>1 : iDx == 2 ? (A+m+1)>>1 : (b+m+1)>> 1 );
+        else if( iDy == 2 ) pucDest[x] = (Pel)( iDx == 1 ? (C+b+1)>>1 : iDx == 2 ?  j         : (s+B+1)>> 1 );
+        else                pucDest[x] = (Pel)( iDx == 1 ? (s+h+1)>>1 : iDx == 2 ? (D+h+1)>>1 : (s+m+1)>> 1 );
+      }
+    }
+    pucDest += iDestStride;
+    pucSrc  += iSrcStride;
+  }
+}
+
+
 __inline Void MotionCompensation::xPredChroma( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
 {
   const Int iDesStride  = pcDesBuffer->getCStride();
@@ -1087,7 +1203,11 @@ __inline Void MotionCompensation::xPredChroma( IntYuvMbBuffer* pcDesBuffer, IntY
 
   cMv.limitComponents( m_cMin, m_cMax );
 
-  const Int iOffset = (cMv.getHor() >> 3) + (cMv.getVer() >> 3) * iSrcStride;
+  Int iOffset = (cMv.getHor() >> 3) + (cMv.getVer() >> 3) * iSrcStride;
+  if( m_bRCDOC )
+  {
+    iOffset   = ( ( cMv.getHor() + ( (Int)m_uiFrameNum & 1 ) ) >> 3 ) + ( ( cMv.getVer() + ( (Int)m_uiFrameNum & 1 ) ) >> 3 ) * iSrcStride;
+  }
 
   xPredChromaPel( pcDesBuffer->getUBlk( cIdx ),          iDesStride,
                   pcSrcBuffer->getUBlk( cIdx )+ iOffset, iSrcStride,

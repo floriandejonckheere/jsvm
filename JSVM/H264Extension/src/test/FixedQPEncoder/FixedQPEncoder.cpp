@@ -344,7 +344,7 @@ encode_layer( EncoderParameters& rcEncoderParameters )
   unsigned int      uiLayer          = rcEncoderParameters.uiNumberOfLayers - 1;
   LayerParameters&  rcLayer          = rcEncoderParameters.acLayerParameters[uiLayer];
   double            dSeqLength       = (double)rcEncoderParameters.uiNumberOfFrames / rcEncoderParameters.dFramesPerSecond;
-	double            dTarget;
+	double            dTarget          = 0.0;
 	switch( rcEncoderParameters.uiMode )
 	{
 	case 0:

@@ -117,8 +117,7 @@ RQFGSDecoder::RQFGSDecoder()
   m_pcCoefMap = NULL;
   m_pcSliceHeader       = 0;
 
-	// ICU/ETRI FGS_MOT_USE
-  for (int i = 0; i < 8; ++i) m_bFGSMotionUse[i] = false;
+  for (int i = 0; i < MAX_LAYERS; ++i ) m_bFGSUse[i] = false;
 }
 
 
@@ -219,6 +218,8 @@ RQFGSDecoder::initPicture( SliceHeader* pcSliceHeader,
   m_bPicChanged       = false;
   m_bPicFinished      = false;
 
+  for(int i = 0; i < MAX_LAYERS; ++i ) m_bFGSUse[i] = false;
+
   Bool bCabac         = pcSliceHeader->getPPS().getEntropyCodingModeFlag();
   m_pcSymbolReader    = ( bCabac ) ? (MbSymbolReadIf*)m_pcCabacReader : (MbSymbolReadIf*)m_pcUvlcReader;
 
@@ -266,6 +267,8 @@ RQFGSDecoder::decodeNextLayer( SliceHeader* pcSliceHeader )
   m_pcSliceHeader->setLastMbInSlice ( pcSliceHeader->getLastMbInSlice () );
   m_pcSliceHeader->setAdaptivePredictionFlag( pcSliceHeader->getAdaptivePredictionFlag() );
   m_bPicChanged = true;
+
+  m_bFGSUse[m_pcSliceHeader->getLayerId()] = true;
 
   if( pcSliceHeader->getFGSCycleAlignedFragment() )
   {
@@ -1201,9 +1204,6 @@ RQFGSDecoder::xDecodingFGS( SliceHeader*                pcSliceHeader 	)
 ErrVal
 RQFGSDecoder::xDecodeMotionData( UInt uiMbYIdx, UInt uiMbXIdx )
 {
-	// ICU/ETRI FGS_MOT_USE
-  m_bFGSMotionUse[m_pcSliceHeader->getLayerId()] = true;
-
   DTRACE_DO( UInt          uiMbIndex         = uiMbYIdx * m_uiWidthInMB + uiMbXIdx );
   MbDataAccess* pcMbDataAccessEL  = 0;
   MbDataAccess* pcMbDataAccessBL  = 0;

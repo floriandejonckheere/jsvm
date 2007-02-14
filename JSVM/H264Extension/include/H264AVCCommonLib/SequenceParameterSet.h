@@ -261,8 +261,17 @@ public:
 
     return Err::m_nOK;
   }
+  // TMM_ESS }
 
-// TMM_ESS }
+  Bool  getRCDOBlockSizes         () const { return m_bRCDOBlockSizes; }
+  Bool  getRCDOMotionCompensationY() const { return m_bRCDOMotionCompensationY; }
+  Bool  getRCDOMotionCompensationC() const { return m_bRCDOMotionCompensationC; }
+  Bool  getRCDODeblocking         () const { return m_bRCDODeblocking; }
+
+  Void  setRCDOBlockSizes         ( Bool b ) { m_bRCDOBlockSizes          = b; }
+  Void  setRCDOMotionCompensationY( Bool b ) { m_bRCDOMotionCompensationY = b; }
+  Void  setRCDOMotionCompensationC( Bool b ) { m_bRCDOMotionCompensationC = b; }
+  Void  setRCDODeblocking         ( Bool b ) { m_bRCDODeblocking          = b; }
 
 protected:
 	ErrVal xReadPicOrderCntInfo         ( HeaderSymbolReadIf* pcReadIf );
@@ -326,6 +335,11 @@ protected:
   UInt          m_uiPaff;
 	Bool          m_bFrameMbsOnlyFlag;
 	Bool          m_bMbAdaptiveFrameFieldFlag;
+
+  Bool          m_bRCDOBlockSizes;
+  Bool          m_bRCDOMotionCompensationY;
+  Bool          m_bRCDOMotionCompensationC;
+  Bool          m_bRCDODeblocking;
 
 private:
   static const LevelLimit m_aLevelLimit[52];

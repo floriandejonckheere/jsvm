@@ -186,6 +186,10 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiPaff                                  ( 0 )
 , m_bFrameMbsOnlyFlag                       ( true )
 , m_bMbAdaptiveFrameFieldFlag               ( false )
+, m_bRCDOBlockSizes                         ( false )
+, m_bRCDOMotionCompensationY                ( false )
+, m_bRCDOMotionCompensationC                ( false )
+, m_bRCDODeblocking                         ( false )
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -249,9 +253,6 @@ SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameter
   m_bMbAdaptiveFrameFieldFlag         = rcSPS.m_bMbAdaptiveFrameFieldFlag;
   m_bDirect8x8InferenceFlag           = rcSPS.m_bDirect8x8InferenceFlag;
   m_bSeqScalingMatrixPresentFlag      = rcSPS.m_bSeqScalingMatrixPresentFlag;
-#if MULTIPLE_LOOP_DECODING
-  m_bAlwaysDecodeBaseLayer            = rcSPS.m_bAlwaysDecodeBaseLayer;
-#endif
   m_uiExtendedSpatialScalability      = rcSPS.m_uiExtendedSpatialScalability;
   m_uiChromaPhaseXPlus1               = rcSPS.m_uiChromaPhaseXPlus1;
   m_uiChromaPhaseYPlus1               = rcSPS.m_uiChromaPhaseYPlus1;
@@ -436,6 +437,18 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
   RNOK  ( pcWriteIf->writeFlag( false,                                  "SPS: vui_parameters_present_flag" ) );
 
+  Bool bRCDO  = ( m_bRCDOBlockSizes ||
+                  m_bRCDOMotionCompensationY ||
+                  m_bRCDOMotionCompensationC ||
+                  m_bRCDODeblocking );
+  if(  bRCDO )
+  {
+    RNOK( pcWriteIf->writeFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
+    RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
+    RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
+    RNOK( pcWriteIf->writeFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
+  }
+
   return Err::m_nOK;
 }
 
@@ -572,6 +585,17 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: vui_parameters_present_flag" ) );
   ROT ( bTmp );
+
+
+  m_bRCDOBlockSizes          = false;
+  m_bRCDOMotionCompensationY = false;
+  m_bRCDOMotionCompensationC = false;
+  m_bRCDODeblocking          = false;
+  ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );
+  RNOK ( pcReadIf->getFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
+  RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
+  RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
+  RNOK ( pcReadIf->getFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
 
   return Err::m_nOK;
 }

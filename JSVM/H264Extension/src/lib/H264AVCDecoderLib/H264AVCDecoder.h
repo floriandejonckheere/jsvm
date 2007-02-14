@@ -93,6 +93,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "GOPDecoder.h"
 #include "H264AVCCommonLib/Sei.h" 
+#include "H264AVCCommonLib/MotionCompensation.h"
+#include "H264AVCCommonLib/LoopFilter.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -131,7 +133,19 @@ public:
                   PocCalculator*      pcPocCalculator,
                   MotionCompensation* pcMotionCompensation );
   ErrVal uninit ();
-//JVT-S036 lsj start
+
+  Void  setRCDO( SliceHeader* pcSliceHeader )
+  {
+    if( pcSliceHeader )
+    {
+      Bool  bRCDOY      = pcSliceHeader->getSPS().getRCDOMotionCompensationY();
+      Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
+      UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
+      m_pcMotionCompensation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
+    }
+  }
+  
+  //JVT-S036 lsj start
   SliceHeader *getSliceHeader() const { return m_pcSliceHeader ; }
   ErrVal  initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,
 											      UInt&             ruiNalUnitType,
@@ -287,7 +301,7 @@ protected:
                                       SliceHeader*    pcPrevSH,
                                       PicBuffer*&     rpcPicBuffer,
                                       Bool            bHighestLayer); //JVT-T054
-  ErrVal  xReconstructLastFGS       (Bool bHighestLayer); //JVT-T054
+  ErrVal  xReconstructLastFGS       (Bool bHighestLayer, SliceHeader* pcRCDOSliceHeader); //JVT-T054
   ErrVal  xDecodeFGSRefinement      ( SliceHeader*&   rpcSliceHeader,
                                       PicBuffer*&     rpcPicBuffer );
 

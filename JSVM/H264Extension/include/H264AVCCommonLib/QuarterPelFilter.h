@@ -113,6 +113,9 @@ public:
   virtual ErrVal init();
   ErrVal uninit();
 
+  Void setRCDO        ( Bool bRCDO )  { m_bRCDO = bRCDO; }
+  Void predBlkRCDO    ( YuvMbBuffer*        pcDesBuffer, YuvPicBuffer*        pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
+  Void predBlkRCDO    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
   Void predBlkSR      ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
   Void predBlkBilinear( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
   Void predBlk4Tap    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
@@ -121,15 +124,17 @@ public:
   Void setClipMode( Bool bEnableClip ) { m_bClip = bEnableClip; }
 
   virtual ErrVal filterFrame( IntYuvPicBuffer* pcPelBuffer, IntYuvPicBuffer* pcHalfPelBuffer );
-  Void filterBlock( Pel* pDes, Pel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
-  {
-    m_afpFilterBlockFunc[uiFilter]( pDes, pSrc, iSrcStride, uiXSize, uiYSize );
-  }
   Void filterBlock( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
   {
+    if( m_bRCDO )
+    {
+      filterBlockRCDO( pDes, pSrc, iSrcStride, uiXSize, uiYSize, uiFilter );
+      return;
+    }
     m_afpXFilterBlockFunc[uiFilter]( pDes, pSrc, iSrcStride, uiXSize, uiYSize );
   }
 
+  Void filterBlockRCDO( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter );
 
   Void predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
   Void predBlk( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
@@ -180,6 +185,8 @@ protected:
   Bool m_bClip;
   FilterBlockFunc m_afpFilterBlockFunc[4];
   XFilterBlockFunc m_afpXFilterBlockFunc[4];
+
+  Bool  m_bRCDO;
 };
 
 #if AR_FGS_COMPENSATE_SIGNED_FRAME

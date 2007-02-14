@@ -521,7 +521,7 @@ int main(int argc, char *argv[])
   print_usage_and_exit(((rp->m_iInWidth>rp->m_iGlobWidth&&rp->m_iInHeight<rp->m_iGlobHeight)||(rp->m_iInWidth<rp->m_iGlobWidth&&rp->m_iInHeight>rp->m_iGlobHeight)),argv[0],"mixed Upsample and Downsample");
   
   fseek(  input_file, 0, SEEK_END );
-  sequence_length = (ftell(input_file)/(3*rp->m_iInWidth*rp->m_iInHeight/2));
+  sequence_length = ((unsigned int)ftell(input_file)/(3*rp->m_iInWidth*rp->m_iInHeight/2));
   fseek(  input_file, 0, SEEK_SET );
   
   i = 7;
@@ -706,7 +706,10 @@ int main(int argc, char *argv[])
   
   for( skip = skip_at_start, rp->m_iPoc = 0, written = 0; ((rp->m_iPoc < sequence_length)&&(written < number_frames)); rp->m_iPoc++, skip = skip_between )
   {
-    fseek( input_file, skip*rp->m_iInWidth*rp->m_iInHeight*3/2, SEEK_CUR);
+    for( int num_skip = skip; num_skip > 0; num_skip-- )
+    {
+      fseek( input_file, rp->m_iInWidth*rp->m_iInHeight*3/2, SEEK_CUR);
+    }
     rp->m_iPoc += skip;
     
     if ((rp->m_iPoc < sequence_length)&&(written < number_frames))

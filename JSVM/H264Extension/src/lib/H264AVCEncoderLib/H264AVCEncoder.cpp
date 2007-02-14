@@ -1300,6 +1300,20 @@ H264AVCEncoder::xInitParameterSets()
 
     RNOK( pcSPS->checkPosVectors( 0 ) );
 
+    pcSPS->setRCDOBlockSizes         ( false );
+    pcSPS->setRCDOMotionCompensationY( false );
+    pcSPS->setRCDOMotionCompensationC( false );
+    pcSPS->setRCDODeblocking         ( false );
+    UInt  uiRCDOBS  = m_pcCodingParameter->getRCDOBlockSizes         ();
+    UInt  uiRCDOMCY = m_pcCodingParameter->getRCDOMotionCompensationY();
+    UInt  uiRCDOMCC = m_pcCodingParameter->getRCDOMotionCompensationC();
+    UInt  uiRCDODB  = m_pcCodingParameter->getRCDODeblocking         ();
+    pcSPS->setRCDOBlockSizes         ( ( uiIndex && uiRCDOBS  ) || ( uiRCDOBS  > 1 ) );
+    pcSPS->setRCDOMotionCompensationY( ( uiIndex && uiRCDOMCY ) || ( uiRCDOMCY > 1 ) );
+    pcSPS->setRCDOMotionCompensationC( ( uiIndex && uiRCDOMCC ) || ( uiRCDOMCC > 1 ) );
+    pcSPS->setRCDODeblocking         ( ( uiIndex && uiRCDODB  ) || ( uiRCDODB  > 1 ) );
+
+
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
     pcPPSHP->setLayerId                               ( rcLayerParameters.getLayerId() );
@@ -1457,6 +1471,20 @@ H264AVCEncoder::xInitParameterSets()
     }
 
     RNOK( pcSPS->checkPosVectors( 0 ) );
+
+    pcSPS->setRCDOBlockSizes         ( false );
+    pcSPS->setRCDOMotionCompensationY( false );
+    pcSPS->setRCDOMotionCompensationC( false );
+    pcSPS->setRCDODeblocking         ( false );
+    UInt  uiRCDOBS  = m_pcCodingParameter->getRCDOBlockSizes         ();
+    UInt  uiRCDOMCY = m_pcCodingParameter->getRCDOMotionCompensationY();
+    UInt  uiRCDOMCC = m_pcCodingParameter->getRCDOMotionCompensationC();
+    UInt  uiRCDODB  = m_pcCodingParameter->getRCDODeblocking         ();
+    pcSPS->setRCDOBlockSizes         ( ( uiIndex && uiRCDOBS  ) || ( uiRCDOBS  > 1 ) );
+    pcSPS->setRCDOMotionCompensationY( ( uiIndex && uiRCDOMCY ) || ( uiRCDOMCY > 1 ) );
+    pcSPS->setRCDOMotionCompensationC( ( uiIndex && uiRCDOMCC ) || ( uiRCDOMCC > 1 ) );
+    pcSPS->setRCDODeblocking         ( ( uiIndex && uiRCDODB  ) || ( uiRCDODB  > 1 ) );
+
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );

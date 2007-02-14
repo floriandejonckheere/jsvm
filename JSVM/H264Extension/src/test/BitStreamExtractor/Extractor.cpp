@@ -1308,11 +1308,10 @@ Extractor::xExtractPoints()
 
   RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
-  BinData*  pcBinData = NULL; //TMM_FIX
   while( ! bEOS )
   {
     //=========== get packet ===========
-    BinData*  pcBinData;
+    BinData*  pcBinData = NULL;
 // JVT-S080 LMI {
     BinData * pcBinDataSEILysNotPreDepChange;
     ROT( NULL == ( pcBinDataSEILysNotPreDepChange = new BinData ) );

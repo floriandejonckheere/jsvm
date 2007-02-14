@@ -4741,7 +4741,7 @@ MCTFEncoder::xGetPredictionListsField( RefFrameList& rcRefList0,
 		//--- opposite parity ---
 		while( uiOppositeParityIndex < rcTmpList0.getSize() && uiList0Size )
 		{
-      IntFrame* pcFrame = pcFrame = rcTmpList0[ ++uiOppositeParityIndex ];
+      IntFrame* pcFrame = rcTmpList0[ ++uiOppositeParityIndex ];
        if(!pcFrame->getUnusedForRef())  // JVT-Q065 EIDR
 	    {
       //----- create half-pel buffer -----
@@ -5172,6 +5172,7 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
 
   if( rcControlData.getBaseLayerIdMotion() != MSYS_UINT_MAX )
   {
+    m_pcLoopFilter->setRCDOSliceHeader( rcControlData.getSliceHeader() );
 	   m_pcResizeParameters->m_iResampleMode = 0; 
      RNOK( m_pcH264AVCEncoder->getBaseLayerDataAvailability( pcBaseFrame,
                                                             pcBaseResidual,
@@ -5218,6 +5219,7 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
 																									bMotion,
 																									ePicType ) );
 		}
+    m_pcLoopFilter->setRCDOSliceHeader();
   }
 
 
@@ -5233,17 +5235,16 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
     RNOK( m_pcBaseLayerCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
      m_pcBaseLayerCtrl->setBuildInterlacePred(  m_pcResizeParameters->m_bFieldPicFlag );
+
+     if( pcBaseDataCtrlEL )
+     {
+       pcBaseDataCtrlEL->setSliceHeader( pcBaseDataCtrl->getSliceHeader() );
+       pcBaseDataCtrl = pcBaseDataCtrlEL;
+     }
+
    
-   // ICU/ETRI FGS_MOT_USE
-		if (rcControlData.getSliceHeader()->getSliceType() == I_SLICE)
-		{
-			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
-		}
-		else
-		{
-			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrlEL, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
-		}
-		
+    // ICU/ETRI FGS_MOT_USE
+    RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
    //=== create Upsampled VBL Field ===
@@ -5450,6 +5451,11 @@ MCTFEncoder::xMotionEstimationFrame( UInt uiBaseLevel, UInt uiFrame )
 		const PicType ePicType      = PicType( iPicType );
 		SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
 		ROF( pcSliceHeader );
+
+    Bool  bRCDOY      = pcSliceHeader->getSPS().getRCDOMotionCompensationY();
+    Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
+    UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
+    m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
 
     RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
     RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
@@ -5888,6 +5894,11 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
 		const Bool   bFrameMbsOnlyFlag   = pcSliceHeader->getSPS().getFrameMbsOnlyFlag();
     ROF( pcSliceHeader );
 	
+    Bool  bRCDOY      = pcSliceHeader->getSPS().getRCDOMotionCompensationY();
+    Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
+    UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
+    m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
+
     AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
 
@@ -8115,6 +8126,11 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
   Int           iSpatialScalabilityType =  rcControlData.getSpatialScalabilityType();
   Bool          bEstimateBase						=  rcSliceHeader.getBaseLayerId           () == MSYS_UINT_MAX && ! pcBaseLayerCtrl;
   Bool          bEstimateMotion					=  rcSliceHeader.getAdaptivePredictionFlag() || bEstimateBase;
+
+  Bool  bRCDOY      = rcSliceHeader.getSPS().getRCDOMotionCompensationY();
+  Bool  bRCDOC      = rcSliceHeader.getSPS().getRCDOMotionCompensationC();
+  UInt  uiFrameNum  = rcSliceHeader.getFrameNum();
+  m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
 
   // JVT-S054 (ADD)
   MbDataCtrl*     pcMbDataCtrlL1    = xGetMbDataCtrlL1( rcSliceHeader, uiFrameIdInGOP );

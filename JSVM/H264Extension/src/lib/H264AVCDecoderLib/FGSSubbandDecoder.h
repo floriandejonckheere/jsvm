@@ -147,9 +147,7 @@ public:
   Bool				isFirstFGS			()		{ return m_bFirstFGS; }
   Void				SetIsFirstFGS		(Bool b) { m_bFirstFGS = b; }
 
-	// ICU/ETRI FGS_MOT_USE
-  Bool				isUseFGSMotion		  (UInt uiLayer)		{ return m_bFGSMotionUse[uiLayer]; }
-  Void				SetUseFGSMotion		  (UInt uiLayer, Bool b) { m_bFGSMotionUse[uiLayer] = b; }
+  Bool				isUseFGS		  (UInt uiLayer)		{ return m_bFGSUse[uiLayer]; }
 
 private:
   ErrVal            xDecodeLumaCbpVlc     ( UInt                        uiCurrMbIdxX,
@@ -261,8 +259,7 @@ private:
   UInt              m_uiLastMbNum;
   Bool				m_bFirstFGS;
 
-	// ICU/ETRI FGS_MOT_USE
-  Bool				m_bFGSMotionUse[8];
+  Bool				m_bFGSUse[MAX_LAYERS];
 };
 
 

@@ -96,6 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/IntYuvMbBuffer.h"
 #include "H264AVCCommonLib/IntYuvPicBuffer.h"
 #include "H264AVCCommonLib/IntFrame.h"
+#include "H264AVCCommonLib/QuarterPelFilter.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -160,6 +161,14 @@ protected:
 	virtual ~MotionCompensation();
 
 public:
+  Void setRCDO( Bool bRCDOY, Bool bRCDOC, UInt uiFrameNum )
+  {
+    m_bRCDOY      = bRCDOY;
+    m_bRCDOC      = bRCDOC;
+    m_uiFrameNum  = uiFrameNum;
+    m_pcQuarterPelFilter->setRCDO( bRCDOY );
+  }
+
   static ErrVal create( MotionCompensation*& rpcMotionCompensation );
   ErrVal destroy();
 
@@ -346,6 +355,8 @@ private:
   __inline Void xGetMbPredData  ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntMC8x8D& rcMC8x8D );
   __inline Void xGetBlkPredData ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntMC8x8D& rcMC8x8D, BlkMode eBlkMode );
 
+  __inline Void xPredChromaPelRCDO( Pel*  pucDest, Int iDestStride, Pel*  pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
+  __inline Void xPredChromaPelRCDO( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
 
 
 protected:
@@ -361,6 +372,9 @@ protected:
 
   ResizeParameters*				m_pcResizeParameters; 
 
+  Bool  m_bRCDOY;
+  Bool  m_bRCDOC;
+  UInt  m_uiFrameNum;
 };
 
 #if defined( WIN32 )

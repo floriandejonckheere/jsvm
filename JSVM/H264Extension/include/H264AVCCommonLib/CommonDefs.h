@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "8.2" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "8.3" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -177,7 +177,9 @@ enum NeighbourBlock
   CURR_MB_ABOVE_NEIGHBOUR  = -4,
   ABOVE_MB_ABOVE_NEIGHBOUR = +12,
   CURR_MB_RIGHT_NEIGHBOUR  = +1,
-  RIGHT_MB_RIGHT_NEIGHBOUR = -3
+  RIGHT_MB_RIGHT_NEIGHBOUR = -3,
+  VER_OFFSET_H241RCDO      = 4,
+  HOR_OFFSET_H241RCDO      = 1
 };
 enum ListIdx
 {

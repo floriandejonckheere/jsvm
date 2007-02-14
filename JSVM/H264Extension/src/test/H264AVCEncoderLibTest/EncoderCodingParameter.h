@@ -236,6 +236,52 @@ ErrVal EncoderCodingParameter::init( Int     argc,
   {
     pcCom = argv[n++];
 
+    if( equals( pcCom, "-rcdo-bs", 8 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt  uiValue = atoi( argv[n] );
+      CodingParameter::setRCDOBlockSizes( uiValue );
+      continue;
+    }
+    if( equals( pcCom, "-rcdo-mc-y", 10 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt  uiValue = atoi( argv[n] );
+      CodingParameter::setRCDOMotionCompensationY( uiValue );
+      continue;
+    }
+    if( equals( pcCom, "-rcdo-mc-c", 10 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt  uiValue = atoi( argv[n] );
+      CodingParameter::setRCDOMotionCompensationC( uiValue );
+      continue;
+    }
+    if( equals( pcCom, "-rcdo-mc", 8 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt  uiValue = atoi( argv[n] );
+      CodingParameter::setRCDOMotionCompensationY( uiValue );
+      CodingParameter::setRCDOMotionCompensationC( uiValue );
+      continue;
+    }
+    if( equals( pcCom, "-rcdo-db", 8 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt  uiValue = atoi( argv[n] );
+      CodingParameter::setRCDODeblocking( uiValue );
+      continue;
+    }
+    if( equals( pcCom, "-rcdo", 5 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt  uiValue = atoi( argv[n] );
+      CodingParameter::setRCDOBlockSizes         ( uiValue );
+      CodingParameter::setRCDOMotionCompensationY( uiValue );
+      CodingParameter::setRCDOMotionCompensationC( uiValue );
+      CodingParameter::setRCDODeblocking         ( uiValue );
+      continue;
+    }
     if( equals( pcCom, "-anafgs", 7 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -640,6 +686,14 @@ Void EncoderCodingParameter::printHelp()
   printf("  -fs     (encStruct) FGS coding structure selection [0: Optimized FGS syntax structure 1: Standard structure]\n");
   printf("  -ar     (wZBlock) (wZCoeff) Zero block and zero coefficient weightings [default: 32 32]\n");
   printf("  -pd     (mode)      Cycle aligned fragments (CAF) is used [0: no, 1: yes]\n");
+
+  printf("  -rcdo-bs   (value)  RDCO block size restriction     (0:off,1:ELonly,2:on)\n" );
+  printf("  -rcdo-mc-y (value)  RDCO motion compensation luma   (0:off,1:ELonly,2:on)\n" );
+  printf("  -rcdo-mc-c (value)  RDCO motion compensation chroma (0:off,1:ELonly,2:on)\n" );
+  printf("  -rcdo-mc   (value)  RDCO motion compensation        (0:off,1:ELonly,2:on)\n" );
+  printf("  -rcdo-db   (value)  RDCO deblocking                 (0:off,1:ELonly,2:on)\n" );
+  printf("  -rcdo      (value)  RDCO (all components)           (0:off,1:ELonly,2:on)\n" );
+
   printf("  -h       Print Option List \n");
   printf("\n");
 }
@@ -765,6 +819,11 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                             0 );  //JVT-T054
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",           &m_uiTlevelNestingFlag,                                0 );  //JVT-U085
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLPicIdxEnable",        &m_uiTl0PicIdxPresentFlag,                                    0 );  //JVT-U116
+
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOBlockSizes",         &m_uiRCDOBlockSizes,                                    0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationY",&m_uiRCDOMotionCompensationY,                           0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationC",&m_uiRCDOMotionCompensationC,                           0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDODeblocking",         &m_uiRCDODeblocking,                                    0 );
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))

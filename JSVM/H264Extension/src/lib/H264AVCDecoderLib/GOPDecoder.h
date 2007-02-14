@@ -593,7 +593,7 @@ protected:
   ResizeParameters*   m_pcResizeParameter;
  
   // should this layer be decoded at all, and up to which FGS layer should be decoded
-  Int                 m_uiQualityLevelForPrediction;
+  UInt                m_uiQualityLevelForPrediction;
   
   // ROI DECODE ICU/ETRI
   Int m_iMbProcessed;

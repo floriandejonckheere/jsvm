@@ -693,6 +693,10 @@ public:
 // JVT-U116 LMI
     , m_uiTl0PicIdxPresentFlag            ( 0 )
     , m_uiCIUFlag                         ( 0 ) //JV
+    , m_uiRCDOBlockSizes                  ( 0 )
+    , m_uiRCDOMotionCompensationY         ( 0 )
+    , m_uiRCDOMotionCompensationC         ( 0 )
+    , m_uiRCDODeblocking                  ( 0 )
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -872,6 +876,18 @@ public:
 	  return m_uiCIUFlag;
   }
   //JVT-U106 Behaviour at slice boundaries}
+
+  UInt  getRCDOBlockSizes         ()  const { return m_uiRCDOBlockSizes; }
+  UInt  getRCDOMotionCompensationY()  const { return m_uiRCDOMotionCompensationY; }
+  UInt  getRCDOMotionCompensationC()  const { return m_uiRCDOMotionCompensationC; }
+  UInt  getRCDODeblocking         ()  const { return m_uiRCDODeblocking; }
+
+  Void  setRCDOBlockSizes         ( UInt ui )  { m_uiRCDOBlockSizes          = ui; }
+  Void  setRCDOMotionCompensationY( UInt ui )  { m_uiRCDOMotionCompensationY = ui; }
+  Void  setRCDOMotionCompensationC( UInt ui )  { m_uiRCDOMotionCompensationC = ui; }
+  Void  setRCDODeblocking         ( UInt ui )  { m_uiRCDODeblocking          = ui; }
+
+
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -954,6 +970,11 @@ protected:
   //JVT-U106 Behaviour at slice boundaries{
   UInt                      m_uiCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}
+
+  UInt    m_uiRCDOBlockSizes;
+  UInt    m_uiRCDOMotionCompensationY;
+  UInt    m_uiRCDOMotionCompensationC;
+  UInt    m_uiRCDODeblocking;
 };
 
 #if defined( MSYS_WIN32 )

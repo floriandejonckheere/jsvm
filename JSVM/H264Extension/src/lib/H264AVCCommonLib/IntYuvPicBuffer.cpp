@@ -1385,7 +1385,6 @@ Bool IntYuvPicBuffer::isCurr4x4BlkNotZero ( LumaIdx cIdx )
 
 Bool IntYuvPicBuffer::isLeft4x4BlkNotZero ( LumaIdx cIdx )
 {
-  AF();
   XPel* pPel      = getMbLumAddr(); 
   Int   iStride   = getLStride();
      
@@ -1402,7 +1401,6 @@ Bool IntYuvPicBuffer::isLeft4x4BlkNotZero ( LumaIdx cIdx )
 
 Bool IntYuvPicBuffer::isAbove4x4BlkNotZero ( LumaIdx cIdx )
 {
-  AF();
   XPel* pPel      = getMbLumAddr(); 
   Int   iStride   = getLStride();
    

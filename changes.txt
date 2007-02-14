@@ -1,3 +1,17 @@
+
+
+JSVM_8_2 -> JSVM_8_3
+========================
+
+Date        : Feb 14, 2007
+Author      : H. Schwarz (HHI)
+Contribution: JVT-V125
+
+Changes:
+- added H.241/RCDO compatible encoding mode
+
+
+
 JSVM_8_1 -> JSVM_8_2
 ======================
 
@@ -20,7 +34,6 @@ Note: The changes above can be found by searching "JVT-V088".
   
 - Interlaced bug fixes(downconvert and Loopfilter)  
     
- 
 
 
 JSVM_8_0_1 -> JSVM_8_1

@@ -1795,9 +1795,6 @@ MCTFDecoder::MCTFDecoder()
 , m_uiLayerId                     ( 0 )
 , m_bActive                       ( false )
 , m_uiQualityLevelForPrediction    ( 3 )
-#if MULTIPLE_LOOP_DECODING
-, m_bCompletelyDecodeLayer        ( false )
-#endif
 , m_pcResizeParameter             ( 0 ) //TMM_ESS
 , m_iMbProcessed                           (-1) //--ICU/ETRI FMO Implementation
 , m_bIsNewPic						(true)
@@ -2003,6 +2000,8 @@ MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
 		m_pcVeryFirstSliceHeader  = new SliceHeader( rpcSliceHeader->getSPS(), rpcSliceHeader->getPPS() );
 	}
 //TMM_EC }}
+  m_pcH264AVCDecoder->setRCDO( rpcSliceHeader );
+
   //===== decoding =====
   if( rpcSliceHeader->getSliceType() == F_SLICE )
   {
@@ -2187,9 +2186,6 @@ MCTFDecoder::xCreateData( const SequenceParameterSet& rcSPS )
   ROFS   ( ( m_pcBaseLayerCtrlEL = new MbDataCtrl() ) );
   RNOK    (   m_pcBaseLayerCtrlEL ->init          ( rcSPS ) );
 
-  m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL = new MbDataCtrl();
-  m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL->init(rcSPS);
-
 
   //========== CREATE UPDATE WEIGHTS ARRAY and WRITE BUFFER ==========
   ROT ( m_cDownConvert    .init   ( m_uiFrameWidthInMb<<4, m_uiFrameHeightInMb<<4 ) );
@@ -2273,13 +2269,6 @@ MCTFDecoder::xDeleteData()
     RNOK( m_pcBaseLayerCtrlEL->uninit() );
     delete m_pcBaseLayerCtrlEL;
     m_pcBaseLayerCtrlEL = 0;
-  }
-
-  if (m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL)
-  {
-		m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL->uninit();
-		delete m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL;
-		m_pcH264AVCDecoder->m_pcBaseLayerCtrlEL = 0;
   }
 
   return Err::m_nOK;
@@ -2543,6 +2532,8 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
 ErrVal
 MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bCGSSNRInAU ) //JVT-T054
 {
+  m_pcH264AVCDecoder->setRCDO( m_pcRQFGSDecoder->getSliceHeader() );
+
   DPBUnit*      pcLastDPBUnit   = m_pcDecodedPictureBuffer->getLastUnit();
 //JVT-T054{
   if(!pcLastDPBUnit)
@@ -2709,11 +2700,11 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
 
       // ICU/ETRI FGS_MOT_USE
        // 2006.10.02 ICU/ETRI FGS_MOT_USE Bug Fix
-      if (!m_pcRQFGSDecoder->getSliceHeader()->isIntra() && m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel() == m_uiQualityLevelForPrediction )
-          {
-        m_pcBaseLayerCtrlEL->copyMotion(*(m_pcRQFGSDecoder->getMbDataCtrlEL()));
-        m_pcBaseLayerCtrlEL->SetMbStride(m_pcRQFGSDecoder->getMbDataCtrlEL()->GetMbStride());
-        m_pcBaseLayerCtrlEL->xSetDirect8x8InferenceFlag(m_pcRQFGSDecoder->getMbDataCtrlEL()->xGetDirect8x8InferenceFlagPublic());	
+      if ( m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel() <= m_uiQualityLevelForPrediction )
+      {
+        m_pcBaseLayerCtrlEL->copyMotion(*(m_pcRQFGSDecoder->getMbDataCtrl()));
+        m_pcBaseLayerCtrlEL->SetMbStride(m_pcRQFGSDecoder->getMbDataCtrl()->GetMbStride());
+        m_pcBaseLayerCtrlEL->xSetDirect8x8InferenceFlag(m_pcRQFGSDecoder->getMbDataCtrl()->xGetDirect8x8InferenceFlagPublic());	
       }
     }
   }
@@ -2877,6 +2868,7 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
  
   if( pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX)
   {
+    m_pcLoopFilter->setRCDOSliceHeader( rcControlData.getSliceHeader() );
     xGetBaseLayerData( rcControlData,
                        pcBaseFrame, 
                         pcBaseResidual, 
@@ -2886,7 +2878,7 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
                         bConstrainedIPredBL, 
                         bSpatialScalability,
                         pcResizeParameter); 
-   
+    m_pcLoopFilter->setRCDOSliceHeader();
    
     ROF( bBaseDataAvailable );
   }
@@ -2910,19 +2902,17 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
     RNOK( m_pcBaseLayerCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
     m_pcBaseLayerCtrl->setBuildInterlacePred( pcResizeParameter->m_bFieldPicFlag );
- 
-		if (!m_pcRQFGSDecoder->isUseFGSMotion(rcControlData.getSliceHeader()->getBaseLayerId()) 
-			|| rcControlData.getSliceHeader()->getSliceType() == I_SLICE)
-		{
-			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, pcResizeParameter) );
-      if(uiQualityLevel != 0)
-        RNOK( m_pcBaseLayerCtrl->initMbCBP( *pcBaseDataCtrl, pcResizeParameter ) );
-		}
-		else
-		{
-			RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrlEL, pcResizeParameter) );
-		}
-     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
+
+    if( m_pcRQFGSDecoder->isUseFGS( pcSliceHeader->getBaseLayerId() ) )
+    {
+      pcBaseDataCtrlEL->setSliceHeader( pcBaseDataCtrl->getSliceHeader() );
+      pcBaseDataCtrl = pcBaseDataCtrlEL;
+    }
+
+    RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, pcResizeParameter) );
+    if(uiQualityLevel != 0)
+      RNOK( m_pcBaseLayerCtrl->initMbCBP( *pcBaseDataCtrl, pcResizeParameter ) );
+    rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
     //=== create Upsampled VBL Field ===
     if( pcResizeParameter->m_bIsMbAff )
@@ -3066,6 +3056,7 @@ MCTFDecoder::GetAVCFrameForDPB( SliceHeader*&  rpcSliceHeader,
   DTRACE_NEWFRAME;
   return Err::m_nOK;
 }
+
 
 ErrVal
 MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
