@@ -97,6 +97,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "WriteBitstreamToFile.h"
 #include "ExtractorParameter.h"
 #define MAX_ROIS      5
+#define MAX_QLAYERS   64
+#define MAX_TLAYERS   8
 
 
 enum NalUnitType
@@ -271,6 +273,18 @@ protected:
   ErrVal        xExtractPoints      ();
   ErrVal        xExtractLayerLevel  ();
 
+  ErrVal  xExtractMaxRate ( Double  dMaxRate,
+                            Bool    bDontTruncQLayer );
+  ErrVal  xAnalyse        ( UInt    uiTargetLayer,
+                            Double& rdFrameRate,
+                            Bool&   rbQualityLayerPresent,
+                            UInt    auiQLRate[],
+                            Bool    bNoSpecialFirstFrame );
+  ErrVal  xExtract        ( UInt    uiTargetLayer,
+                            Bool    bQualityLayerPresent,
+                            Int     iQualityLayer,
+                            UInt&   ruiInLayerRate,
+                            Bool    bNoSpecialFirstFrame );
 
   // ROI ICU/ETRI
   Int CurNalKeepingNeed(h264::PacketDescription cPacketDescription

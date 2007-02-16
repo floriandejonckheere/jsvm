@@ -459,7 +459,7 @@ public:
   Void        setAVCBased(Bool b)   { m_bAVCBased = b;}
   Bool        getAVCBased()         { return m_bAVCBased;}
 ErrVal        setILPrediction(IntFrame * pcFrame, PicType ePicType);
-ErrVal        ReconstructLastFGS             ( Bool                          bHighestLayer, Bool bCGSSNRInAU );
+ErrVal        ReconstructLastFGS             ( Bool                          bHighestLayer, Bool bHighestMGSLayer );
 DPBUnit*      getLastDPBUnit() { return m_pcDecodedPictureBuffer->getLastUnit();}
 RQFGSDecoder* getRQFGSDecoder() { return m_pcRQFGSDecoder; }
 Void          setRQFGSDecoder(RQFGSDecoder* pcRQFGSDecoder) { m_pcRQFGSDecoder = pcRQFGSDecoder;}
@@ -503,7 +503,7 @@ protected:
 	  Bool                          bReconstructionLayer );
 //TMM_EC}}
   ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
-  ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer, Bool bCGSSNRInAU ); //JVT-T054
+  ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer, Bool bHighestMGSLayer ); //JVT-T054
   ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,
                                                 RefFrameList&                 rcRefFrameList0,
                                                 RefFrameList&                 rcRefFrameList1,

@@ -584,14 +584,14 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
     {
       m_pcIntOrgMbPelData->subtract   ( cBaseLayerBuffer );
 
-	  if( ! pcMbDataAccessBase->getMbData().isIntra() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
+	    if( ! pcMbDataAccessBase->getMbData().isIntra() && rcRefFrameList0.getActive() ) // JVT-Q065 EIDR
       {
         //--- only if base layer is in inter mode ---
           // TMM_ESS 
-	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag()&& ! cBaseLayerBuffer.isZero() ) 
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag()&& ( !cBaseLayerBuffer.isZero() || !rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() ) ) 
 					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, iSpatialScalabilityType,  pcMbDataAccessBase, rcMbDataAccess, true ) );
 
-	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) && pcRefFrameList0Base == 0 ) 				
+	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) && pcRefFrameList0Base == 0 && rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() ) 				
          {
 			    RNOK( xEstimateMbSR				( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerSbb, 
                                       pcMbDataAccessBase, true, pcBaseLayerRec ) );

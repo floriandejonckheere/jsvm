@@ -173,6 +173,7 @@ FrameMng::FrameMng()
   m_uiMaxFrameNumPrev       = 0;
   m_pcRefinementIntFrame    = 0;
   m_pcRefinementIntFrameSpatial = 0;
+  m_pcBaseRepFrame          = 0;
   m_pcPredictionIntFrame    = 0;
 
 }
@@ -299,8 +300,7 @@ ErrVal FrameMng::init( YuvBufferCtrl* pcYuvFullPelBufferCtrl, YuvBufferCtrl* pcY
   m_pcQuarterPelFilter      = NULL;
   m_pcOriginalFrameUnit     = NULL;
   m_pcCurrentFrameUnit      = NULL;
-  m_pcCurrentFrameUnitBase  = NULL; //JVT-S036 lsj
-
+  
 
   m_pcQuarterPelFilter = pcQuarterPelFilter;
 
@@ -314,6 +314,10 @@ ErrVal FrameMng::init( YuvBufferCtrl* pcYuvFullPelBufferCtrl, YuvBufferCtrl* pcY
   if( m_pcRefinementIntFrameSpatial == 0)
   {
 		RNOK( IntFrame::create( m_pcRefinementIntFrameSpatial, *pcYuvFullPelBufferCtrl, *pcYuvFullPelBufferCtrl, FRAME ) );
+  }
+  if( m_pcBaseRepFrame == 0)
+  {
+    RNOK( IntFrame::create( m_pcBaseRepFrame, *pcYuvFullPelBufferCtrl, *pcYuvFullPelBufferCtrl, FRAME ) );
   }
   if( m_pcPredictionIntFrame == 0)
   {
@@ -342,6 +346,13 @@ ErrVal FrameMng::uninit()
     m_pcRefinementIntFrameSpatial = NULL;
   }
 
+  if( NULL != m_pcBaseRepFrame )
+  {
+    RNOK( m_pcBaseRepFrame->uninit () );
+    RNOK( m_pcBaseRepFrame->destroy() );
+    m_pcBaseRepFrame = NULL;
+  }
+
   if( NULL != m_pcPredictionIntFrame )
   {
     RNOK( m_pcPredictionIntFrame->uninit () );
@@ -368,7 +379,6 @@ ErrVal FrameMng::uninit()
   m_pcQuarterPelFilter      = NULL;
   m_pcOriginalFrameUnit     = NULL;
   m_pcCurrentFrameUnit      = NULL;
-  m_pcCurrentFrameUnitBase  = NULL; //JVT-S036 lsj
 
 
   AOT( ! m_cShortTermList.empty() );
@@ -394,7 +404,7 @@ FrameMng::updateLastFrame( IntFrame* pcSrcFrame,
                             const Bool    bFrameMbsOnlyFlag //TMM_INTERLACE
                                        )  // MGS fix by Heiko Schwarz
 {
-  Bool bFlagFGS=false;
+  Bool bFlagFGS=true;
 
   ROF   ( pcSrcFrame );
   ROF   ( m_pcCurrentFrameUnit );
@@ -405,39 +415,25 @@ FrameMng::updateLastFrame( IntFrame* pcSrcFrame,
   ROF   ( m_pcCurrentFrameUnit->getPicBuffer () );
   ROT   ( m_pcCurrentFrameUnit->getBaseRep   () );
 
-  //===== normal frame =====
-  Frame*      pcDesFrame  = const_cast<Frame*>(m_pcCurrentFrameUnit->getPic(ePicType));
-  PicBuffer*  pcPicBuffer = m_pcCurrentFrameUnit->getPicBuffer();
-  ROF ( pcDesFrame  );
-  ROF ( pcPicBuffer );
-  RNOK( pcSrcFrame->store       ( pcPicBuffer ) );
-  RNOK( pcDesFrame->extendFrame ( m_pcQuarterPelFilter, bFrameMbsOnlyFlag, false  ) );
+  if( ! m_pcCurrentFrameUnit->getFGSPicBuffer() )
+  {
+    RNOK( m_pcCurrentFrameUnit->getFGSPic( FRAME )->init( 0, m_pcCurrentFrameUnit ) );
+    m_pcCurrentFrameUnit->getFGSPic( FRAME )->setPoc( m_pcCurrentFrameUnit->getPic( FRAME )->getPoc() );
+    if( ! bFrameMbsOnlyFlag )
+    {
+      Pel* pBuffer = m_pcCurrentFrameUnit->getFGSPic( FRAME )->getFullPelYuvBuffer()->getBuffer();
+      RNOK( m_pcCurrentFrameUnit->getFGSPic( TOP_FIELD )->init( pBuffer, m_pcCurrentFrameUnit ) );
+      RNOK( m_pcCurrentFrameUnit->getFGSPic( BOT_FIELD )->init( pBuffer, m_pcCurrentFrameUnit ) );
+      m_pcCurrentFrameUnit->getFGSPic( TOP_FIELD )->setPoc( m_pcCurrentFrameUnit->getPic( TOP_FIELD )->getPoc() );
+      m_pcCurrentFrameUnit->getFGSPic( BOT_FIELD )->setPoc( m_pcCurrentFrameUnit->getPic( BOT_FIELD )->getPoc() );
+    }
+    m_pcCurrentFrameUnit->setFGSPicBuffer( m_pcCurrentFrameUnit->getPicBuffer() );
+    m_pcCurrentFrameUnit->getFGSPicBuffer()->setUsed();
+  }
 
-  //===== special frame =====
-  Frame*      pcDesFrame2   = NULL;
-  PicBuffer*  pcPicBuffer2  = NULL;
-  if( m_pcCurrentFrameUnit->getFGSPicBuffer() )
-  {
-    bFlagFGS =true;
-    pcDesFrame2  = const_cast<Frame*>(m_pcCurrentFrameUnit->getFGSPic(ePicType));
-    pcPicBuffer2 = m_pcCurrentFrameUnit->getFGSPicBuffer ();
-    ROF ( pcDesFrame2  );
-    ROF ( pcPicBuffer2 );
-  }
-  else if( m_pcCurrentFrameUnitBase && m_pcCurrentFrameUnitBase->getBaseRep() )
-  {
-    bFlagFGS =false;
-    ROF( m_pcCurrentFrameUnitBase->getMaxPoc() == pcSrcFrame->getPoc() );
-    pcDesFrame2  = const_cast<Frame*>(m_pcCurrentFrameUnitBase->getPic(ePicType));
-    pcPicBuffer2 = m_pcCurrentFrameUnitBase->getPicBuffer();
-    ROF ( pcDesFrame2  );
-    ROF ( pcPicBuffer2 );
-  }
-  if( pcDesFrame2 && pcPicBuffer2 != pcPicBuffer )
-  {
-    RNOK( pcSrcFrame ->store       ( pcPicBuffer2 ) );
-    RNOK( pcDesFrame2->extendFrame ( m_pcQuarterPelFilter, bFrameMbsOnlyFlag, bFlagFGS  ) );
-  }
+  Frame* pcDesFrame = const_cast<Frame*>( m_pcCurrentFrameUnit->getFGSPic( ePicType ) );
+  RNOK( pcSrcFrame->getFullPelYuvBuffer()->copyTo( pcDesFrame->getFullPelYuvBuffer() ) );
+  RNOK( pcDesFrame->extendFrame ( m_pcQuarterPelFilter, bFrameMbsOnlyFlag, bFlagFGS ) );
 
   return Err::m_nOK;
 }
@@ -508,6 +504,10 @@ ErrVal FrameMng::initSlice( SliceHeader *rcSH )
   {
     RNOK( m_pcRefinementIntFrameSpatial->init() );
   }
+  if( m_pcBaseRepFrame )
+  {
+    RNOK( m_pcBaseRepFrame->init() );
+  }
   if( m_pcPredictionIntFrame )
   {
     RNOK( m_pcPredictionIntFrame->init() );
@@ -542,6 +542,10 @@ ErrVal FrameMng::initSPS( const SequenceParameterSet& rcSPS )
   if( m_pcRefinementIntFrameSpatial )
   {
     RNOK( m_pcRefinementIntFrameSpatial->init() );
+  }
+  if( m_pcBaseRepFrame )
+  {
+    RNOK( m_pcBaseRepFrame->init() );
   }
   if( m_pcPredictionIntFrame )
   {
@@ -638,7 +642,7 @@ ErrVal FrameMng::xStoreShortTerm( FrameUnit* pcFrameUnit,const Bool bStorePocLis
     }
   }
 
-AOT_DBG( m_cNonRefList.  end() != m_cNonRefList.  find( (const FrameUnit*&)pcFrameUnit ) );
+  AOT_DBG( m_cNonRefList.end() != m_cNonRefList.  find( (const FrameUnit*&)pcFrameUnit ) );
 
 	return Err::m_nOK;
 }
@@ -1237,17 +1241,7 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
     m_pcCurrentFrameUnit->setFrameNumber( rcSH.getFrameNum() );
 		m_pcCurrentFrameUnit->setShortTerm  ( ePicType );
 
-    RNOK( xStoreShortTerm( m_pcCurrentFrameUnit ,!rcSH.getUseBasePredictionFlag()) );
-
-  //JVT-S036 lsj start
-	  if( rcSH.getUseBasePredictionFlag() )  //bug-fix suffix shenqiu
-	  {
-		  RNOK( m_cFrameUnitBuffer.getFrameUnit( m_pcCurrentFrameUnitBase ) );
-		  RNOK( m_pcCurrentFrameUnitBase->copyBase( rcSH, *m_pcCurrentFrameUnit ) );
-		  m_pcCurrentFrameUnitBase->setBaseRep( true );
-		  RNOK( xStoreShortTerm( m_pcCurrentFrameUnitBase ) );
-	  }
-  //JVT-S036 lsj end
+    RNOK( xStoreShortTerm( m_pcCurrentFrameUnit ) );
   }
   else
   {

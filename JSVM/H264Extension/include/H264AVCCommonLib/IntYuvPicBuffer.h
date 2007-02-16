@@ -171,6 +171,7 @@ public:
   ErrVal        copy                    ( IntYuvPicBuffer*  pcSrcYuvPicBuffer );
 //	TMM_EC {{
   ErrVal        copy                    ( YuvPicBuffer*  pcSrcYuvPicBuffer );
+  ErrVal        copyTo                  ( YuvPicBuffer*  pcDesYuvPicBuffer );
 //	TMM_EC }}
   //JVT-U106 Behaviour at slice boundaries{
   ErrVal        copyMask                    ( IntYuvPicBuffer*  pcSrcYuvPicBuffer,Int**ppiMaskL,Int**ppiMaskC );

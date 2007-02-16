@@ -156,6 +156,7 @@ public:
   Pel* getCrOrigin()       const { return m_pucYuvBuffer + m_rcYuvBufferCtrl.getCrOrigin ( m_ePicType ); }
 
   ErrVal copy( YuvPicBuffer* pcPicBuffer ); // HS: decoder robustness
+  ErrVal dump( FILE* pFile );
 
 protected:
   Void xFillPlaneMargin( Pel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );

@@ -261,7 +261,8 @@ public:
   FrameUnit*  getCurrentFrameUnit   () { return m_pcCurrentFrameUnit; }
   IntFrame*   getRefinementIntFrame () { return m_pcRefinementIntFrame; }
   IntFrame*   getRefinementIntFrame2() { return m_pcRefinementIntFrameSpatial; }
-  IntFrame*   getPredictionIntFrame()  { return m_pcPredictionIntFrame; }
+  IntFrame*   getBaseRepFrame       () { return m_pcBaseRepFrame; }
+  IntFrame*   getPredictionIntFrame () { return m_pcPredictionIntFrame; }
 
   ErrVal			xSlidingWindowUpdateBase  ( UInt mCurrFrameNum); //JVT-S036 lsj
   ErrVal			xMMCOUpdateBase			     	( SliceHeader* rcSH ); //JVT-S036 lsj
@@ -339,7 +340,6 @@ private:
   PicBufferList     m_cPicBufferUnusedList;
   FrameUnit*        m_pcOriginalFrameUnit;
   FrameUnit*        m_pcCurrentFrameUnit;
-  FrameUnit*		m_pcCurrentFrameUnitBase; //JVT-S036 lsj
 
   RefPicList<FrameUnit*> m_acTmpShortTermRefList[2];
   RefPicList<Frame*>     m_cPocOrderedFrameList;
@@ -359,6 +359,7 @@ private:
   static UInt       m_uiDBPMemory[256];
   IntFrame*         m_pcRefinementIntFrame;
   IntFrame*         m_pcRefinementIntFrameSpatial;
+  IntFrame*         m_pcBaseRepFrame;
   IntFrame*         m_pcPredictionIntFrame;
 
 };

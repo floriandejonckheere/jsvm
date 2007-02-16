@@ -252,10 +252,6 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPi
     m_bRCDO = rcSH.getSPS().getRCDODeblocking();
   }
 
-  // Hanke@RWTH // switch off filter modifications
-  setHighpassFramePointer();
-//  m_pcHighpassYuvBuffer = pcHighpassYuvBuffer;
-
   if( pcIntFrame )
   {
 		RNOK( pcIntFrame->addFrameFieldBuffer() );
@@ -270,7 +266,7 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPi
   
     
 
-  ROT( NULL == m_pcControlMngIf );
+   ROT( NULL == m_pcControlMngIf );
 
   m_pcRecFrameUnit = const_cast<SliceHeader&>(rcSH).getFrameUnit();
 
@@ -317,7 +313,6 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPi
   }
   //<- ICU/ETRI DS
 
-//  m_pcHighpassYuvBuffer = NULL;
   m_apcIntYuvBuffer[ TOP_FIELD ] = 
   m_apcIntYuvBuffer[ BOT_FIELD ] = 
   m_apcIntYuvBuffer[     FRAME ] = NULL;
@@ -3437,6 +3432,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
 
   // Hanke@RWTH: Reset pointer
   setHighpassFramePointer();
+  m_pcHighpassYuvBuffer = NULL; // fix (HS)
 
   return Err::m_nOK;
 }
@@ -4383,7 +4379,7 @@ __inline ErrVal LoopFilter::xLumaHorFiltering( const MbDataAccess& rcMbDataAcces
   {
     //-----  curr = FRM, above = FLD  -----
     AOT_DBG( ! rcMbDataAccess.isTopMb() );
-//    AOT_DBG( ! rcMbDataAccess.isAboveMbExisting() );
+    AOT_DBG( ! rcMbDataAccess.isAboveMbExisting() );
 
     //===== top field filtering =====
     {

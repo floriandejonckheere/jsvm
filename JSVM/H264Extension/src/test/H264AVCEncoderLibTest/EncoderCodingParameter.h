@@ -282,6 +282,27 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::setRCDODeblocking         ( uiValue );
       continue;
     }
+    if( equals( pcCom, "-kpm", 4 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      UInt  uiMode = atoi( argv[n] );
+      CodingParameter::setEncodeKeyPictures( uiMode );
+      continue;
+    }
+    if( equals( pcCom, "-mgsctrl", 5 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt uiMode = atoi( argv[n] );
+      CodingParameter::setMGSKeyPictureControl( uiMode );
+      continue;
+    }
+    if( equals( pcCom, "-mgsmotr", 5 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt uiMode = atoi( argv[n] );
+      CodingParameter::setMGSKeyPictureMotRef( uiMode );
+      continue;
+    }
     if( equals( pcCom, "-anafgs", 7 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -694,6 +715,10 @@ Void EncoderCodingParameter::printHelp()
   printf("  -rcdo-db   (value)  RDCO deblocking                 (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo      (value)  RDCO (all components)           (0:off,1:ELonly,2:on)\n" );
 
+  printf("  -kpm       (mode) [0:only for FGS(default), 1:FGS&MGS, 2:always]\n");
+  printf("  -mgsctrl   (mode) [0:normal encoding(default), 1:EL ME, 2:EL ME+MC]\n");
+  printf("  -mgsmotr   (mode) [0:no MGS mot ref, 1:normal mot ref (default)\n");
+
   printf("  -h       Print Option List \n");
   printf("\n");
 }
@@ -818,12 +843,16 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 //JVT-S036 lsj end //bug-fix suffix}}
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                             0 );  //JVT-T054
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",           &m_uiTlevelNestingFlag,                                0 );  //JVT-U085
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLPicIdxEnable",        &m_uiTl0PicIdxPresentFlag,                                    0 );  //JVT-U116
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLPicIdxEnable",          &m_uiTl0PicIdxPresentFlag,                             0 );  //JVT-U116
 
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOBlockSizes",         &m_uiRCDOBlockSizes,                                    0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationY",&m_uiRCDOMotionCompensationY,                           0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationC",&m_uiRCDOMotionCompensationC,                           0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDODeblocking",         &m_uiRCDODeblocking,                                    0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOBlockSizes",          &m_uiRCDOBlockSizes,                                   0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationY", &m_uiRCDOMotionCompensationY,                          0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationC", &m_uiRCDOMotionCompensationC,                          0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDODeblocking",          &m_uiRCDODeblocking,                                   0 );
+
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EncodeKeyPictures",       &m_uiEncodeKeyPictures,                                0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSControl",              &m_uiMGSKeyPictureControl,                             0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSKeyPicMotRef",         &m_uiMGSKeyPictureMotionRefinement,                    1 );
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))

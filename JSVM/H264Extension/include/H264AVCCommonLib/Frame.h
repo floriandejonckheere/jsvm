@@ -135,6 +135,13 @@ public:
 
   const Bool isUsed()               const;
 
+  ErrVal dump( FILE* pFile )
+  {
+    RNOK( getFullPelYuvBuffer()->dump( pFile ) );
+    fflush( pFile );
+    return Err::m_nOK;
+  }
+
 protected:
   YuvPicBuffer  m_cFullPelYuvBuffer;
   YuvPicBuffer  m_cHalfPelYuvBuffer;

@@ -1,0 +1,116 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+    name 	=> "MGSCtrl2",
+    original 	=> "MOBILE_352x288_30.yuv",
+    width      	=> 352,
+    height     	=> 288,
+    framerate 	=> 30,
+    nbframes	=> 60,
+    verbosemode => 1,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+    runencode	 => 1,
+
+#=======================#
+# Layers  parameters    
+#=======================#     
+    layers       => [
+                      #----------#
+                      # Layer  0 #
+                      #----------#
+                       {
+                         width        => 176,
+                  			 height       => 144,
+                  			 framerate    =>  15,
+                  			 bitrate      => 0,
+                  			 bitrateDS    => 0 ,
+		                   },
+		                  #----------#
+			#----------#
+                      # Layer  1 #
+                      #----------#
+                       {
+                         width        => 176,
+                  			 height       => 144,
+                  			 framerate    =>  15,
+                  			 bitrate      => 0,
+                  			 bitrateDS    => 0 ,
+		                   },
+		                  #----------#
+			#----------#
+                      # Layer  2 #
+                      #----------#
+          		        {
+			width        =>176,
+                  			 height       => 144,
+					 framerate    =>  15,
+                  			 bitrate     =>0,
+                  			 bitrateDS   =>0,
+          		         },
+		                  #---------#
+			#----------#
+                      # Layer  3 #
+                      #----------#
+          		        {
+			width        =>352,
+                  			 height       => 288,
+					 framerate    =>  15,
+                  			 bitrate     =>0,
+                  			 bitrateDS   =>0,
+          		         },
+		                  #---------#
+			#----------#
+                      # Layer  4 #
+                      #----------#
+          		        {
+			width        =>352,
+                  			 height       => 288,
+					 framerate    =>  15,
+                  			 bitrate     =>0,
+                  			 bitrateDS   =>0,
+          		         },
+		                  #---------#
+   		              ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+      bitratecheckrange  => 3.,
+      psnrcheckrange     => 0.,
+	
+
+      tests      => [
+		                  #----------#
+                      # Test   0 #
+                      #----------#
+                      {
+            		        name => "test0",
+            		        mode => 1,
+            		        width => 176,
+            		        height => 144,
+            		        framerate => 15,
+            		        bitrate => 317,
+            		        psnr => 35.03,
+				encdecmatch => 1,
+            		      },
+            		      #----------#
+		                  #----------#
+                      # Test   1 #
+                      #----------#
+                      {
+            		        name => "test1",
+            		        mode => 1,
+            		        width => 352,
+            		        height => 288,
+            		        framerate => 15,
+            		        bitrate => 696,
+            		        psnr => 30.10,
+				encdecmatch => 1,
+            		      },
+            		      #----------#
+		  ],
+}

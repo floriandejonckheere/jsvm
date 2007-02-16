@@ -120,7 +120,6 @@ protected:
 public:
   ErrVal init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer );
   ErrVal init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit ); // HS: decoder robustness
-  ErrVal copyBase( const SliceHeader& rcSH, FrameUnit& rcFrameUnit ); //JVT-S036 lsj
   ErrVal uninit();
 
   static ErrVal create( FrameUnit*& rpcFrameUnit, YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, Bool bOriginal = false );
@@ -173,6 +172,7 @@ public:
 
   ErrVal setFGS     ( PicBuffer*& rpcPicBuffer );
   PicBuffer*  getFGSPicBuffer()           const { return m_pcFGSPicBuffer; }
+  Void        setFGSPicBuffer( PicBuffer* p )   { m_pcFGSPicBuffer = p; }
 
   const IntFrame* getFGSIntFrame()        const { return &m_cFGSIntFrame; ; }
   IntFrame* getFGSIntFrame()                    { return &m_cFGSIntFrame; ; }
@@ -186,8 +186,6 @@ public:
   Void setFGSReconCount(UInt uiFGSReconCount) { m_uiFGSReconCount = uiFGSReconCount;  }
   UInt getFGSReconCount()                     { return m_uiFGSReconCount;  }
   Void decFGSReconCount()                     { m_uiFGSReconCount -= (m_uiFGSReconCount > 1) ? 1 : 0;  }
-
-   ErrVal uninitBase(); //JVT-S036 lsj
 
 private:
   Frame         m_cFrame;

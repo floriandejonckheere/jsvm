@@ -223,6 +223,13 @@ class H264AVCENCODERLIB_API MCTFEncoder
   {
     NUM_TMP_FRAMES  = 6
   };
+  enum RefListUsage
+  {
+    RLU_UNDEFINED         = 0,
+    RLU_MOTION_ESTIMATION = 1,
+    RLU_GET_RESIDUAL      = 2,
+    RLU_RECONSTRUCTION    = 3
+  };
 
 protected:
 	MCTFEncoder          ();
@@ -319,6 +326,10 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
   Void          setScalableLayer    (UInt p)	{ m_uiScalableLayerId = p; }
   UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
+
+  IntFrame*     getMGSLPRec         ();
+  IntFrame*     getRefPic           ( Int iPoc );
+
 
   //===== ESS =====
   Int                     getSpatialScalabilityType() { return m_pcResizeParameters->m_iSpatialScalabilityType; }
@@ -417,6 +428,7 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           RefFrameList&               rcRefList1,
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
+                                          RefListUsage                eRefListUsage,
                                           Bool                        bHalfPel = false );
   ErrVal  xGetBQPredictionLists         ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
@@ -426,6 +438,7 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           RefFrameList&               rcRefList1,
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
+                                          RefListUsage                eRefListUsage,
                                           Bool                        bHalfPel = false );
   ErrVal  xInitBaseLayerData            ( ControlData&                rcControlData, 
                                           UInt                        uiBaseLevel,  //TMM_ESS
@@ -441,6 +454,7 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           RefFrameList&               rcRefList1,
                                           UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
+                                          RefListUsage                eRefListUsage,
 																					Bool                        bHalfPel,
                                           IntFrame*                   pcTmpFrame,
                                           PicType                     ePicType );
@@ -580,6 +594,13 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           IntFrame*                   pcFrame,
                                           Bool                        bSubtract,
 																					PicType                     ePicType );
+  ErrVal  xUpdateLowPassRec             ();
+  IntFrame* xGetRefFrame                ( IntFrame**                  papcRefFrameList,
+                                          UInt                        uiRefIndex,
+                                          RefListUsage                eRefListUsage );
+  ErrVal  xClearELPics                  ();
+  ErrVal  xUpdateELPics                 ();
+
 
   //===== slice header =====
   ErrVal        xSetRplr            ( RplrBuffer& rcRplrBuffer, UIntList cPicNumList, UInt uiCurrPicNr, PicType ePicType );
@@ -659,6 +680,7 @@ protected:
 
   //----- fixed control parameters ----
   Bool                          m_bTraceEnable;                       // trace file
+  Bool                          m_bFrameMbsOnlyFlag;                  // frame macroblocks only block
   UInt                          m_uiLayerId;                          // layer id for current layer
   UInt                          m_uiScalableLayerId;                  // scalable layer id for current layer
   UInt                          m_uiBaseLayerId;                      // layer if of base layer
@@ -716,6 +738,7 @@ protected:
   IntFrame**                    m_papcOrgFrame;                       // original (highpass) frames
   IntFrame**                    m_papcBQFrame;                        // base quality frames
   IntFrame**                    m_papcCLRecFrame;                     // closed-loop rec. (needed when m_uiQualityLevelForPrediction < NumFGS)
+  IntFrame**                    m_papcELFrame;                        // higher layer reference frames
   IntFrame**                    m_papcResidual;                       // frame stores for residual data
   IntFrame**                    m_papcSubband;                        // reconstructed subband pictures
   IntFrame*                     m_pcLowPassBaseReconstruction;        // base reconstruction of last low-pass picture
@@ -833,6 +856,14 @@ protected:
   Bool                          m_bGOPInitialized;
   MbDataCtrl*                   m_pcBaseMbDataCtrl;
 
+  UInt    m_uiEncodeKeyPictures;
+  Bool    m_bSameResBL;
+  Bool    m_bSameResEL;
+  Bool    m_bMGS;
+  UInt    m_uiMGSKeyPictureControl;
+  Bool    m_bHighestMGSLayer;
+  Bool    m_abCoded[(1<<MAX_DSTAGES)+1];
+  UInt    m_uiMGSKeyPictureMotRef;
 };
 
 #if defined( WIN32 )

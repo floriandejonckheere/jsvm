@@ -182,6 +182,7 @@ private:
   h264::NalUnitEncoder*         m_pcNalUnitEncoder;
 
   Bool                          m_bOutputReconstructions;
+  Bool                          m_bMGS;
   UInt                          m_uiNumLayers;
   UInt                          m_auiNumFGSLayers [MAX_LAYERS];
   UInt                          m_auiNumFrames    [MAX_LAYERS];

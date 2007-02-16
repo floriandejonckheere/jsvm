@@ -150,6 +150,7 @@ MCTFEncoder::MCTFEncoder()
 , m_pcRQFGSEncoder                  ( 0 )
 //----- fixed control parameters -----
 , m_bTraceEnable                    ( true )
+, m_bFrameMbsOnlyFlag               ( true )
 , m_uiLayerId                       ( 0 )
 , m_uiScalableLayerId								( 0 )
 , m_uiBaseLayerId                   ( MSYS_UINT_MAX )
@@ -195,6 +196,7 @@ MCTFEncoder::MCTFEncoder()
 , m_papcOrgFrame                    ( 0 )
 , m_papcBQFrame                     ( 0 )
 , m_papcCLRecFrame                  ( 0 )
+, m_papcELFrame                     ( 0 )
 , m_papcResidual                    ( 0 )
 , m_papcSubband                     ( 0 )
 , m_pcLowPassBaseReconstruction     ( 0 )
@@ -268,7 +270,10 @@ MCTFEncoder::MCTFEncoder()
 , m_pbIntraBLFlag                  ( NULL)
 //JVT-U106 Behaviour at slice boundaries}
 , m_bGOPInitialized                ( false )
- {
+, m_uiMGSKeyPictureControl( 0 )
+, m_bHighestMGSLayer( false )
+, m_uiMGSKeyPictureMotRef( 1 )
+{
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
 
@@ -443,6 +448,29 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_bWriteSubSequenceSei    = pcCodingParameter->getBaseLayerMode           ()  > 1 && m_uiLayerId == 0;
 
 
+  m_bSameResBL              = ( m_uiBaseLayerId != MSYS_UINT_MAX &&
+                                pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getFrameWidth () == pcLayerParameters->getFrameWidth () &&
+                                pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getFrameHeight() == pcLayerParameters->getFrameHeight() &&
+                                pcLayerParameters->getResizeParameters()->m_iExtendedSpatialScalability == ESS_NONE );
+  m_bSameResEL              = false;
+  {
+    UInt uiLId;
+    for( uiLId = m_uiLayerId + 1; uiLId < pcCodingParameter->getNumberOfLayers() && ! m_bSameResEL; uiLId++ )
+    {
+      LayerParameters& rcEL = pcCodingParameter->getLayerParameters( uiLId );
+      if( rcEL.getBaseLayerId() == m_uiLayerId )
+      {
+        m_bSameResEL        = ( pcLayerParameters->getFrameWidth () == rcEL.getFrameWidth () &&
+                                pcLayerParameters->getFrameHeight() == rcEL.getFrameHeight() &&
+                                rcEL.getResizeParameters()->m_iExtendedSpatialScalability == ESS_NONE );
+      }
+    }
+  }
+  m_bMGS                    = pcCodingParameter->getCGSSNRRefinement    () == 1 && ( m_bSameResBL || m_bSameResEL );
+  m_uiEncodeKeyPictures     = pcCodingParameter->getEncodeKeyPictures   ();
+  m_uiMGSKeyPictureControl  = pcCodingParameter->getMGSKeyPictureControl();
+  m_bHighestMGSLayer        = m_bMGS && !m_bSameResEL;
+  m_uiMGSKeyPictureMotRef   = pcCodingParameter->getMGSKeyPictureMotRef();
 
   //JVT-R057 LA-RDO{
   if(pcCodingParameter->getLARDOEnable()!=0)
@@ -779,6 +807,7 @@ MCTFEncoder::initParameterSets( const SequenceParameterSet& rcSPS,
 
 
   //===== get and set relevant parameters =====
+  m_bFrameMbsOnlyFlag     = rcSPS.getFrameMbsOnlyFlag ();
   UInt  uiMaxDPBSize      = rcSPS.getMaxDPBSize       ();
   m_uiFrameWidthInMb      = rcSPS.getFrameWidthInMbs  ();
   m_uiFrameHeightInMb     = rcSPS.getFrameHeightInMbs ();
@@ -831,6 +860,10 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
   {
     ROFS ( ( m_papcCLRecFrame                = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
   }
+  if( m_uiMGSKeyPictureControl && ! m_bHighestMGSLayer )
+  {
+    ROFS ( ( m_papcELFrame                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
+  }
   ROFS   ( ( m_papcResidual                  = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
   ROFS   ( ( m_papcSubband                   = new IntFrame* [ m_uiMaxGOPSize + 1 ]      ) );
 
@@ -854,6 +887,11 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     {
       RNOK( IntFrame::create( m_papcCLRecFrame[ uiIndex ], *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME ) );
       RNOK(   m_papcCLRecFrame    [ uiIndex ] ->init        () );
+    }
+    if( m_papcELFrame )
+    {
+      RNOK( IntFrame::create( m_papcELFrame[ uiIndex ], *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME ) );
+      RNOK(   m_papcELFrame    [ uiIndex ] ->init        () );
     }
     
     //-- JVT-R091
@@ -1064,6 +1102,21 @@ MCTFEncoder::xDeleteData()
     }
     delete [] m_papcCLRecFrame;
     m_papcCLRecFrame = 0;
+  }
+
+  if( m_papcELFrame )
+  {
+    for( uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
+    {
+      if( m_papcELFrame[ uiIndex ] )
+      {
+        RNOK(   m_papcELFrame[ uiIndex ]->uninit() );
+        RNOK(   m_papcELFrame[ uiIndex ]->destroy() );
+        m_papcELFrame[ uiIndex ] = 0;
+      }
+    }
+    delete [] m_papcELFrame;
+    m_papcELFrame = 0;
   }
 
 	//-- JVT-R091
@@ -3609,6 +3662,10 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
 					  {
 						  m_papcCLRecFrame[uiFrame]->setUnusedForRef(true);
 					  }
+            if(m_papcELFrame)
+            {
+              m_papcELFrame[uiFrame]->setUnusedForRef(true);
+            }
 				  }
 			  }
 		  }
@@ -3996,7 +4053,20 @@ MCTFEncoder::xSetBaseLayerData( UInt    uiFrameIdInGOP,
 
   RNOK( m_pcH264AVCEncoder->getBaseLayerStatus( uiBaseLayerId, uiBaseLayerIdMotion, iSpatialScalabilityType, m_uiLayerId, iPoc, ePicType ) );
 
-  Bool  bAdaptive = ( ! pcSliceHeader->getTemporalLevel() && ( ! pcSliceHeader->isIntra() || (iSpatialScalabilityType != SST_RATIO_1) ) ? true : m_bAdaptivePrediction );
+  Bool  bAdaptive = m_bAdaptivePrediction;
+  if(   bAdaptive )
+  {
+    if( uiBaseLayerId != MSYS_UINT_MAX         && // when base layer available
+        pcSliceHeader->getTemporalLevel() == 0 && // only for TL=0 pictures
+        m_bMGS                                 && // only when MGS
+        m_bSameResBL                           && // only when not lowest MGS layer (QL=0)
+        m_uiEncodeKeyPictures   >  0           && // only when MGS key pictures
+        m_uiMGSKeyPictureMotRef == 0            ) // no MGS key picture motion refinement 
+    {
+      bAdaptive = false;
+    }
+  }
+
 
   if( uiBaseLayerId != uiBaseLayerIdMotion && ( bAdaptive || (iSpatialScalabilityType != SST_RATIO_1) ) )
   {
@@ -4070,6 +4140,14 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
     {
       eNalUnitType = NAL_UNIT_CODED_SLICE_SCALABLE;
     }
+  }
+
+  if( bUseBaseRep )
+  {
+    bUseBaseRep =
+      ( (                               m_dNumFGSLayers != 0.0 ) || // always when  FGS
+        ( m_uiEncodeKeyPictures >= 1 && m_bMGS                 ) || // when MGS and KeyPicMode > 0
+        ( m_uiEncodeKeyPictures == 2                           ) ); // always when  KeyPicMode > 1
   }
 
   //===== set simple slice header parameters =====
@@ -4252,6 +4330,93 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   //S051}
   
   return Err::m_nOK;
+}
+
+
+IntFrame*
+MCTFEncoder::getMGSLPRec()
+{
+  ROFRS( m_bMGS && m_bSameResEL, 0 );
+  return m_pcLowPassBaseReconstruction;
+}
+
+
+IntFrame*
+MCTFEncoder::xGetRefFrame( IntFrame**   papcRefFrameList,
+                           UInt         uiRefIndex,
+                           RefListUsage eRefListUsage )
+{
+  if( eRefListUsage <= (Int)m_uiMGSKeyPictureControl &&
+      m_papcELFrame                                  && 
+     !m_papcELFrame[ uiRefIndex ]->isUnvalid()         )
+  {
+    return  m_papcELFrame   [ uiRefIndex ];
+  }
+  return    papcRefFrameList[ uiRefIndex ];
+}
+
+
+ErrVal
+MCTFEncoder::xClearELPics()
+{
+  ROFRS( m_papcELFrame, Err::m_nOK );
+
+  for( UInt uiIndex = 0; uiIndex <= m_uiMaxGOPSize; uiIndex++ )
+  {
+    m_papcELFrame[uiIndex]->setUnvalid();
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+MCTFEncoder::xUpdateELPics()
+{
+  ROFRS( m_papcELFrame, Err::m_nOK );
+
+  for( UInt uiIndex = 0; uiIndex <= m_uiGOPSize; uiIndex++ )
+  {
+    if( m_papcELFrame[uiIndex]->isUnvalid      () &&
+       !m_papcELFrame[uiIndex]->getUnusedForRef()   )
+    {
+      Int             iPoc    = m_papcFrame[uiIndex] ->getPoc     ();
+      const IntFrame* pcELPic = m_pcH264AVCEncoder   ->getELRefPic( m_uiLayerId, iPoc );
+      if( pcELPic )
+      {
+        RNOK( m_papcELFrame[uiIndex]->copy( const_cast<IntFrame*>( pcELPic ), FRAME ) );
+        RNOK( xFillAndUpsampleFrame( m_papcELFrame[uiIndex], FRAME, m_bFrameMbsOnlyFlag ) );
+        m_papcELFrame[uiIndex]->setValid();
+      }
+    }
+  }
+  return Err::m_nOK;
+}
+
+
+IntFrame* 
+MCTFEncoder::getRefPic( Int iPoc )
+{
+  IntFrame* pcRefPic = 0;
+
+  //===== determine frameId in GOP =====
+  UInt  uiFrameIdInGOP = MSYS_UINT_MAX;
+  for(  uiFrameIdInGOP = 0; uiFrameIdInGOP <= m_uiGOPSize; uiFrameIdInGOP++ )
+  {
+    if( m_papcFrame[uiFrameIdInGOP]->getPoc() == iPoc )
+    {
+      break;
+    }
+  }
+  AOT(  uiFrameIdInGOP > m_uiGOPSize );
+
+  if( m_abCoded       [uiFrameIdInGOP]                                  &&
+     !m_papcFrame     [uiFrameIdInGOP]->getUnusedForRef ()              &&
+      m_pacControlData[uiFrameIdInGOP] .getSliceHeader  ()->getNalRefIdc() )
+  {
+    if( m_papcCLRecFrame )  pcRefPic  = m_papcCLRecFrame[uiFrameIdInGOP];
+    else                    pcRefPic  = m_papcFrame     [uiFrameIdInGOP];
+  }
+
+  return pcRefPic;
 }
 
 
@@ -4507,6 +4672,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
                                   RefFrameList& rcRefList1,
                                   UInt          uiBaseLevel,
                                   UInt          uiFrame,
+                                  RefListUsage  eRefListUsage,
                                   Bool          bHalfPel )
 {
   rcRefList0.reset();
@@ -4524,7 +4690,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
    Int iFrameId;
 	 for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
     {
-      IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+      IntFrame* pcFrame = xGetRefFrame( m_papcFrame, iFrameId << uiBaseLevel, eRefListUsage );
 	  if(!pcFrame->getUnusedForRef())  // JVT-Q065 EIDR
 	  {
 		//----- create half-pel buffer -----
@@ -4553,7 +4719,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 	//bug-fix shenqiu EIDR{
 	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) ; iFrameId += 2 )
 	{
-		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+    IntFrame* pcFrame = xGetRefFrame( m_papcFrame, iFrameId << uiBaseLevel, eRefListUsage );
 
 		//----- create half-pel buffer -----
 		if(!pcFrame->getUnusedForRef())
@@ -4587,7 +4753,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
     Int iFrameId;
 	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
     {
-      IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+      IntFrame* pcFrame = xGetRefFrame( m_papcFrame, iFrameId << uiBaseLevel, eRefListUsage );
 
       //----- create half-pel buffer -----
 	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR{
@@ -4616,7 +4782,7 @@ MCTFEncoder::xGetPredictionLists( RefFrameList& rcRefList0,
 	//bug-fix shenqiu EIDR{
 	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
 	{
-		IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+    IntFrame* pcFrame = xGetRefFrame( m_papcFrame, iFrameId << uiBaseLevel, eRefListUsage );
 
 		if(!pcFrame->getUnusedForRef())
 		{
@@ -4673,6 +4839,7 @@ MCTFEncoder::xGetPredictionListsField( RefFrameList& rcRefList0,
                                        RefFrameList& rcRefList1,
                                        UInt          uiBaseLevel,
                                        UInt          uiFrame,
+                                       RefListUsage  eRefListUsage,
 																			 Bool          bHalfPel,
 									                     IntFrame*     pcTmpFrame,
 									                     PicType       eCurrentPicType )
@@ -4694,13 +4861,15 @@ MCTFEncoder::xGetPredictionListsField( RefFrameList& rcRefList0,
 	//===== temp list 0 =====
 	for( iFrameId = Int( uiFrame-1 ); iFrameId >= 0; iFrameId -= 2 )
 	{
-		RNOK( rcTmpList0.add( m_papcFrame[ iFrameId << uiBaseLevel ] ) );
+    IntFrame* pcFrame = xGetRefFrame( m_papcFrame, iFrameId << uiBaseLevel, eRefListUsage );
+    RNOK( rcTmpList0.add( pcFrame ) );
 	}
 
 	//===== temp list 1 =====
 	for( iFrameId = Int( uiFrame+1 ); iFrameId <= Int( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
 	{
-		RNOK( rcTmpList1.add( m_papcFrame[ iFrameId << uiBaseLevel ] ) );
+    IntFrame* pcFrame = xGetRefFrame( m_papcFrame, iFrameId << uiBaseLevel, eRefListUsage );
+    RNOK( rcTmpList1.add( pcFrame ) );
 	}
 
   const PicType eOppositePicType = ( eCurrentPicType==TOP_FIELD ? BOT_FIELD : TOP_FIELD );
@@ -4986,6 +5155,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
                                        RefFrameList& rcRefList1,
                                        UInt          uiBaseLevel,
                                        UInt          uiFrame,
+                                       RefListUsage  eRefListUsage,
                                        Bool          bHalfPel )
 {
   rcRefList0.reset();
@@ -5003,7 +5173,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
     Int iFrameId;
 	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
     {
-      IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
+      IntFrame* pcFrame = xGetRefFrame( m_papcCLRecFrame, iFrameId << uiBaseLevel, eRefListUsage );
 
 	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
 	  {
@@ -5031,8 +5201,9 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 	//bug-fix shenqiu EIDR{
 	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
 	{
-		IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
-		if(!pcFrame->getUnusedForRef())
+    IntFrame* pcFrame = xGetRefFrame( m_papcCLRecFrame, iFrameId << uiBaseLevel, eRefListUsage );
+
+    if(!pcFrame->getUnusedForRef())
 		{
 			//----- create half-pel buffer -----
 			if( ! pcFrame->isExtended() )
@@ -5062,8 +5233,9 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
     Int iFrameId;
 	for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ); iFrameId += 2 )
     {
-      IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
-	  if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
+      IntFrame* pcFrame = xGetRefFrame( m_papcCLRecFrame, iFrameId << uiBaseLevel, eRefListUsage );
+
+    if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
 	  {
 		//----- create half-pel buffer -----
 		if( ! pcFrame->isExtended() )
@@ -5091,7 +5263,7 @@ MCTFEncoder::xGetCLRecPredictionLists( RefFrameList& rcRefList0,
 	//bug-fix shenqiu EIDR{
 	for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0; iFrameId -= 2 )
 	{
-		IntFrame* pcFrame = m_papcCLRecFrame[ iFrameId << uiBaseLevel ];
+    IntFrame* pcFrame = xGetRefFrame( m_papcCLRecFrame, iFrameId << uiBaseLevel, eRefListUsage );
 
 		if(!pcFrame->getUnusedForRef()) // JVT-Q065 EIDR
 		{
@@ -5463,12 +5635,25 @@ MCTFEncoder::xMotionEstimationFrame( UInt uiBaseLevel, UInt uiFrame )
     //===== get reference frame lists =====
     if( m_papcCLRecFrame )
     {
-			  if( ! bFieldCoded ) { RNOK( xGetCLRecPredictionLists( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, true ) ); }
-			  else/*bFieldCoded*/ {	AF( ); }
+			  if( ! bFieldCoded )
+        {
+          RNOK( xGetCLRecPredictionLists( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_MOTION_ESTIMATION, true ) );
+        }
+			  else/*bFieldCoded*/
+        {
+          AF( );
+        }
     }
     else
     {
-      RNOK( xGetPredictionLists     ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, true ) );
+      if( ! bFieldCoded )
+      {
+        RNOK( xGetPredictionLists     ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_MOTION_ESTIMATION, true ) );
+      }
+      else/*bFieldCoded*/
+      {
+        AF( );
+      }
     }
 
     //===== set lambda and QP =====
@@ -5576,8 +5761,14 @@ MCTFEncoder::xDecompositionFrame( UInt uiBaseLevel, UInt uiFrame )
   if( m_papcBQFrame )
   {
     pcBQFrame = m_papcBQFrame[uiFrameIdInGOP];
-			if( ! bFieldCoded ) {	RNOK( xGetBQPredictionLists ( acBQRefFrameList[ 0 ], acBQRefFrameList[ 1 ], uiBaseLevel, uiFrame ) ); }
-			else/*bFieldCoded*/ { AF(); }
+			if( ! bFieldCoded )
+      {
+        RNOK( xGetBQPredictionLists ( acBQRefFrameList[ 0 ], acBQRefFrameList[ 1 ], uiBaseLevel, uiFrame ) ); 
+      }
+			else/*bFieldCoded*/
+      {
+        AF(); 
+      }
   }
 
   RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
@@ -5585,13 +5776,25 @@ MCTFEncoder::xDecompositionFrame( UInt uiBaseLevel, UInt uiFrame )
   //===== get reference frame lists =====
   if( m_papcCLRecFrame )
   {
-			if( ! bFieldCoded ) { RNOK( xGetCLRecPredictionLists( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, false                       ) ); }
-      else/*bFieldCoded*/ { AF(); }
+			if( ! bFieldCoded )
+      {
+        RNOK( xGetCLRecPredictionLists( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_GET_RESIDUAL, false ) );
+      }
+      else/*bFieldCoded*/
+      {
+        AF();
+      }
   }
   else
   {
-			if( ! bFieldCoded ) {	RNOK( xGetPredictionLists       ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, false                       ) ); }
-			else/*bFieldCoded*/ { RNOK( xGetPredictionListsField  ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, false, pcTmpFrame, ePicType ) ); }
+			if( ! bFieldCoded )
+      {	
+        RNOK( xGetPredictionLists     ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_GET_RESIDUAL, false ) );
+      }
+			else/*bFieldCoded*/
+      {
+        RNOK( xGetPredictionListsField  ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_GET_RESIDUAL, false, pcTmpFrame, ePicType ) );
+      }
   }
 
   //===== set lambda and QP =====// warnnig false in 7.8
@@ -5684,8 +5887,14 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
       
 
 			//===== get reference frame lists =====
-      if( ! bFieldCoded ) { RNOK( xGetBQPredictionLists( acBQRefFrameList[0], acBQRefFrameList[1], uiBaseLevel, uiFrame ) ); }
-			else/*bFieldCoded*/ { AF(); }
+      if( ! bFieldCoded )
+      {
+        RNOK( xGetBQPredictionLists( acBQRefFrameList[0], acBQRefFrameList[1], uiBaseLevel, uiFrame ) );
+      }
+			else/*bFieldCoded*/
+      {
+        AF();
+      }
 
 			RNOK( pcBQResidual->copy   ( pcBQFrame                  , ePicType ) );
 			RNOK( xZeroIntraMacroblocks( pcBQResidual, rcControlData, ePicType ) );
@@ -5708,8 +5917,14 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
      pcCLRecResidual    = m_apcFrameTemp     [2];
  
  			//===== get reference frame lists =====
-       if( ! bFieldCoded ) { RNOK( xGetCLRecPredictionLists       ( acCLRecRefFrameList[0], acCLRecRefFrameList[1], uiBaseLevel, uiFrame ) ); }
-       else/*bFieldCoded*/ { AOT(1); }
+       if( ! bFieldCoded )
+       {
+         RNOK( xGetCLRecPredictionLists       ( acCLRecRefFrameList[0], acCLRecRefFrameList[1], uiBaseLevel, uiFrame, RLU_RECONSTRUCTION ) );
+       }
+       else/*bFieldCoded*/
+       {
+         AF();
+       }
  
       RNOK( pcCLRecResidual->copy( pcCLRecFrame                  , ePicType ) );
       RNOK( xZeroIntraMacroblocks( pcCLRecResidual, rcControlData, ePicType ) );
@@ -5724,8 +5939,14 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
     RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
     RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
 
-		if( ! bFieldCoded ) { RNOK( xGetPredictionLists     ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, false                       ) );	}
-		else/*bFieldCoded*/ {	RNOK( xGetPredictionListsField( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, false, pcTmpFrame, ePicType ) ); }
+		if( ! bFieldCoded )
+    {
+      RNOK( xGetPredictionLists         ( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_RECONSTRUCTION, false ) );
+    }
+		else/*bFieldCoded*/
+    {
+      RNOK( xGetPredictionListsField( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_RECONSTRUCTION, false, pcTmpFrame, ePicType ) );
+    }
 
     //===== prediction =====
     RNOK( xMotionCompensation         ( pcMCFrame, &rcRefFrameList0, &rcRefFrameList1,
@@ -5857,6 +6078,8 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
   rbKeyPicCoded         = false;
   UInt   uiFrameIdInGOP = uiFrame << m_uiDecompositionStages;
   ROTRS( uiFrameIdInGOP > m_uiGOPSize, Err::m_nOK );
+
+  m_abCoded[uiFrameIdInGOP] = true;
 
   //===== check for first GOP =====
   if( uiFrame == 0 && m_uiGOPNumber )
@@ -6031,7 +6254,6 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
        
     //----- de-blocking -----
     m_pcLoopFilter->setHighpassFramePointer( pcResidual );
-  
     RNOK( m_pcLoopFilter->process ( *pcSliceHeader,
                                       pcBLRecFrame,
                                       ( pcSliceHeader->isIntra() ? NULL : pcMbDataCtrl ),
@@ -6152,6 +6374,8 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
     }
   }
 
+  RNOK( xUpdateLowPassRec() );
+
   if( m_uiFGSMode == 1 && m_pFGSFile && !m_bUseDiscardableUnit ) //FIX_FRAG_CAVLC)
   {
     fprintf( m_pFGSFile, "\n" );
@@ -6161,6 +6385,23 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
 }
 
 
+ErrVal
+MCTFEncoder::xUpdateLowPassRec()
+{
+  ROFRS( m_bMGS && m_bSameResBL,  Err::m_nOK );
+  ROFRS( m_uiEncodeKeyPictures,   Err::m_nOK );
+
+  IntFrame* pcLPRec  = m_pcH264AVCEncoder->getLowPassRec( m_uiLayerId );
+  ROF  (    pcLPRec );
+
+  Bool bUU4R = m_pcLowPassBaseReconstruction->getUnusedForRef();
+  RNOK( m_pcLowPassBaseReconstruction->copy( pcLPRec, FRAME ) );
+  m_pcLowPassBaseReconstruction->setUnusedForRef( bUU4R );
+
+  RNOK( xFillAndExtendFrame( m_pcLowPassBaseReconstruction, FRAME, m_pcSPS->getFrameMbsOnlyFlag() ) );
+
+  return Err::m_nOK;
+}
 
 
 
@@ -6187,7 +6428,8 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
   IntFrame*     pcRedBQFrame    = m_apcFrameTemp  [3];  // JVT-Q054 Red. Picture
   IntFrame*     pcRedSRFrame    = m_apcFrameTemp  [4];  // JVT-Q054 Red. Picture
 
-  const Bool bFieldCoded =  m_pbFieldPicFlag[ uiFrameIdInGOP ] ;
+  const Bool bFieldCoded    =  m_pbFieldPicFlag[ uiFrameIdInGOP ] ;
+  m_abCoded[uiFrameIdInGOP] = true;
 
   for( Int iPicType=(bFieldCoded?TOP_FIELD:FRAME); iPicType<=(bFieldCoded?BOT_FIELD:FRAME); iPicType++ )
   {
@@ -6395,11 +6637,11 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
       RefFrameList cRefFrameList0, cRefFrameList1;
       if( m_papcCLRecFrame )
       {
-        RNOK( xGetCLRecPredictionLists( cRefFrameList0, cRefFrameList1, uiBaseLevel, uiFrame, true ) );
+        RNOK( xGetCLRecPredictionLists( cRefFrameList0, cRefFrameList1, uiBaseLevel, uiFrame, RLU_GET_RESIDUAL, true ) );
       }
       else
       {
-        RNOK( xGetPredictionLists( cRefFrameList0, cRefFrameList1, uiBaseLevel, uiFrame, true ) );
+        RNOK( xGetPredictionLists( cRefFrameList0, cRefFrameList1, uiBaseLevel, uiFrame, RLU_GET_RESIDUAL, true ) );
       }
 
       RNOK( xMotionCompensation( pcHighPassPredSignal, 
@@ -6511,6 +6753,8 @@ MCTFEncoder::initGOP( AccessUnitList& rcAccessUnitList,
   ROT ( m_bGOPInitialized );
   RNOK( xInitGOP              ( rcPicBufferInputList ) );
   RNOK( xSetScalingFactors    () );
+  RNOK( xClearELPics          () );
+  ::memset( m_abCoded, 0x00, sizeof( m_abCoded ) );
   if  ( m_bFirstGOPCoded )
   {
     //==== copy picture zero =====
@@ -6547,8 +6791,10 @@ MCTFEncoder::process( UInt            uiAUIndex,
     m_pcSliceEncoder->getMbEncoder()->setLARDOEnable( m_bLARDOEnable );
     m_pcSliceEncoder->getMbEncoder()->setLayerID    ( m_uiLayerId    );
   }
-
   RNOK( xInitBitCounts() );
+
+  //===== update higher layer pictures =====
+  RNOK( xUpdateELPics() );
 
   //===== encode key pictures =====
   for( UInt uiKeyFrame = ( m_bFirstGOPCoded ? 1 : 0 ); uiKeyFrame <= ( m_uiGOPSize >> m_uiDecompositionStages ) && ! bPicCoded; uiKeyFrame++, uiCurrIdx++ )

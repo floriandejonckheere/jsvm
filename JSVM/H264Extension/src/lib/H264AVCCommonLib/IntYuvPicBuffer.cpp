@@ -1094,6 +1094,68 @@ ErrVal IntYuvPicBuffer::copy( YuvPicBuffer*  pcSrcYuvPicBuffer )
 
 //TMM_EC }}
 
+
+ErrVal IntYuvPicBuffer::copyTo( YuvPicBuffer* pcDesYuvPicBuffer )
+{
+  pcDesYuvPicBuffer->m_rcYuvBufferCtrl.initMb();
+  m_rcYuvBufferCtrl.initMb();
+
+  Pel*  pDes        = pcDesYuvPicBuffer->getMbLumAddr();
+  XPel* pSrc        = getMbLumAddr();
+  Int   iDesStride  = pcDesYuvPicBuffer->getLStride();
+  Int   iSrcStride  = getLStride();
+  UInt  uiHeight    = pcDesYuvPicBuffer->getLHeight();
+  UInt  uiWidth     = pcDesYuvPicBuffer->getLWidth ();
+  UInt  y, x;
+
+  //===== luminance =====
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pDes[x] = (Pel)pSrc[x];
+    }
+    pSrc  += iSrcStride;
+    pDes  += iDesStride;
+  }
+
+  //===== chrominance U =====
+  iSrcStride  >>= 1;
+  iDesStride  >>= 1;
+  uiHeight    >>= 1;
+  uiWidth     >>= 1;
+  pDes          = pcDesYuvPicBuffer->getMbCbAddr();
+  pSrc          = getMbCbAddr();
+
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pDes[x] = (Pel)pSrc[x];
+    }
+    pSrc  += iSrcStride;
+    pDes  += iDesStride;
+  }
+
+  //===== chrominance V =====
+  pDes          = pcDesYuvPicBuffer->getMbCrAddr();
+  pSrc          = getMbCrAddr();
+
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pDes[x] = (Pel)pSrc[x];
+    }
+    pSrc  += iSrcStride;
+    pDes  += iDesStride;
+  }
+
+  return Err::m_nOK;
+}
+
+
+
 //JVT-U106 Behaviour at slice boundaries{
 ErrVal IntYuvPicBuffer::copyMask ( IntYuvPicBuffer*  pcSrcYuvPicBuffer,Int**ppiMaskL,Int**ppiMaskC )
 {

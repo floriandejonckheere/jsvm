@@ -1151,6 +1151,13 @@ Extractor::go()
   xSetROIParameters();
 
   AllocateAndInitializeDatas();
+
+  if( m_pcExtractorParameter->getMaximumRate() != 0.0 )
+  {
+    xExtractMaxRate( m_pcExtractorParameter->getMaximumRate(), m_pcExtractorParameter->getDontTruncQLayer() );
+    return Err::m_nOK;
+  }
+
   RNOK ( xAnalyse() );
   ROTRS( m_pcExtractorParameter->getAnalysisOnly(), Err::m_nOK );
 
@@ -1197,6 +1204,452 @@ Extractor::go()
 
   return Err::m_nOK;
 }
+
+
+
+ErrVal
+Extractor::xExtractMaxRate( Double dMaxRate, Bool bDontTruncQLayer )
+{
+  ROF( dMaxRate > 0 );
+
+  Bool    bQualityLayerPresent  = false;
+  UInt    uiLayer               = MSYS_UINT_MAX;
+  Double  dFrameRate            = 0.0;
+  UInt    uiDiffRate            = 0;
+  UInt    auiQLRate[MAX_QLAYERS+2];
+
+  //----- get layer number -----
+  for( Int i = MAX_LAYERS - 1; i >= 0; i--) { if( m_auiNbImages[i] > 0 ) { uiLayer = (UInt)i; break; } }
+  ROT( uiLayer == MSYS_UINT_MAX );
+
+  //----- analyze -----
+  RNOK( xAnalyse( uiLayer, dFrameRate, bQualityLayerPresent, auiQLRate, bDontTruncQLayer ) );
+  ROF ( dFrameRate    >  0 );
+  ROF ( auiQLRate[0]  >  0 );
+
+  //----- get parameters -----
+  Double  dScale    = 1000.0 / 8.0 * (Double)m_auiNbImages[uiLayer] / dFrameRate;
+  UInt    uiTGRate  = (UInt)floor( dScale * dMaxRate );
+  Int     iExtPID   = MAX_QLAYERS;
+  UInt    uiInLRate = 0;
+  if(     uiTGRate  > auiQLRate[MAX_QLAYERS+1] )
+  {
+    for(  Int iQId  = MAX_QLAYERS; iQId >= 0; iQId-- )
+    {
+      if( uiTGRate  < auiQLRate[iQId] )
+      {
+        iExtPID     = iQId;
+        uiInLRate   = uiTGRate - auiQLRate[iQId+1];
+        break;
+      }
+      else if( iQId == 0 )
+      {
+        iExtPID     = -1;
+        uiInLRate   = uiTGRate - auiQLRate[0];
+      }
+    }
+  }
+  else
+  { 
+    uiDiffRate  = uiTGRate - auiQLRate[MAX_QLAYERS+1];
+  }
+  if( bDontTruncQLayer )
+  {
+    uiDiffRate  = uiInLRate;
+    uiInLRate   = 0;
+  }
+
+  //---- extraction ----
+  RNOK( xExtract( uiLayer, bQualityLayerPresent, iExtPID, uiInLRate, bDontTruncQLayer ) );
+  UInt  uiOutRate = uiTGRate - uiInLRate - uiDiffRate;
+
+
+#if 1
+  printf("minimum rate = %8.2lf kbit/s\n", (Double)auiQLRate[MAX_QLAYERS+1] / dScale );
+  printf("maximum rate = %8.2lf kbit/s\n", (Double)auiQLRate[            0] / dScale );
+  printf("\n");
+  if( iExtPID < 0 )
+  {
+    iExtPID = 0;
+  }
+  printf("   low limit = %8.2lf kbit/s\n", (Double)auiQLRate[    iExtPID+1] / dScale );
+  printf("  high limit = %8.2lf kbit/s\n", (Double)auiQLRate[    iExtPID  ] / dScale );
+  printf("\n");
+  printf(" target rate = %8.2lf kbit/s\n", (Double) uiTGRate                / dScale );
+  printf(" output rate = %8.2lf kbit/s\n", (Double)uiOutRate                / dScale );
+  printf("\n");
+#endif
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+Extractor::xAnalyse( UInt    uiTargetLayer,
+                    Double& rdFrameRate,
+                    Bool&   rbQualityLayerPresent,
+                    UInt    auiQLRate[],
+                    Bool    bNoSpecialFirstFrame
+                    )
+{
+  Bool                    bEOS          = false;
+  Bool                    bNextIsSuffix = false;
+  BinData*                pcBinData     = 0;
+  UInt                    uiDId         = 0;
+  UInt                    uiTId         = 0;
+  UInt                    uiQId         = 0;
+  UInt                    uiPId         = 0;
+  UInt                    uiPacketSize  = 0;
+  UInt                    uiNumAVCPics  = 0;
+  UInt&                   ruiBLRate     = auiQLRate[MAX_QLAYERS+1];
+  UInt&                   ruiFGSAU0Rate = auiQLRate[MAX_QLAYERS  ];
+  h264::SEI::SEIMessage*  pcScalableSei = 0;
+  h264::PacketDescription cPacketDescription;
+  UInt                    aauiTLRate[MAX_TLAYERS][MAX_QUALITY_LEVELS];
+
+  //===== clear arrays =====
+  ::memset( auiQLRate,  0x00, sizeof( UInt ) * ( MAX_QLAYERS + 2 ) );
+  ::memset( aauiTLRate, 0x00, sizeof( UInt ) * ( MAX_TLAYERS * MAX_QUALITY_LEVELS ) );
+
+
+  //===== initialize and read scalable SEI message =====
+  {
+    //----- init -----
+    RNOK( m_pcH264AVCPacketAnalyzer ->init          () );
+    //----- read first packet, which must contain the scalable SEI -----
+    RNOK( m_pcReadBitstream         ->extractPacket ( pcBinData, bEOS ) );
+    ROT ( bEOS );
+    RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinData, cPacketDescription, pcScalableSei ) );
+    ROF ( pcScalableSei );
+    //----- get SEI parameters and delete SEI -----
+    h264::SEI::ScalableSei* pcSSEI  = static_cast<h264::SEI::ScalableSei*>( pcScalableSei );
+    rdFrameRate     = (Double)pcSSEI->getAvgFrmRate( pcSSEI->getNumLayersMinus1() ) / 256.0;
+    delete pcScalableSei;
+    pcScalableSei   = 0;
+    //----- get packet size -----
+    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+    {
+      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
+    }
+    ruiBLRate       = 4 + pcBinData ->size();
+    //----- release packet -----
+    RNOK( m_pcReadBitstream         ->releasePacket ( pcBinData ) );
+    pcBinData       = 0;
+  }
+
+
+  //===== MAIN LOOP OVER PACKETS =====
+  while( ! bEOS )
+  {
+    //===== get packet =====
+    RNOK  ( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+    if    ( bEOS )
+    {
+      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+      continue;
+    }
+
+    //===== get packet description =====
+    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
+    ROT ( pcScalableSei );
+    ROT ( cPacketDescription.ApplyToNext );
+
+
+    //===== get packet size =====
+    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+    {
+      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
+    }
+
+
+    //==== get parameters =====
+    {
+      uiPacketSize  = 4 + pcBinData->size();
+      uiDId         = cPacketDescription.Layer;
+      uiTId         = cPacketDescription.Level;
+      uiQId         = cPacketDescription.FGSLayer;
+      uiPId         = cPacketDescription.uiPId;
+
+      //----- check whether next NAL unit is a suffix NAL unit -----
+      if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE ||
+        cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+      {
+        Int                     iStreamPos        = 0;
+        h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+        BinData*                pcBinDataTemp     = 0;
+        h264::PacketDescription cPacketDescriptionTemp;
+        RNOK( m_pcReadBitstream         ->getPosition   ( iStreamPos ) );
+        RNOK( m_pcReadBitstream         ->extractPacket ( pcBinDataTemp, bEOS ) );
+        ROT ( bEOS );
+        RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinDataTemp, cPacketDescriptionTemp, pcScalableSeiTemp ) );
+        ROT ( pcScalableSeiTemp );
+        if  ((cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE  ||
+          cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) &&
+          cPacketDescriptionTemp.Layer       == 0 &&
+          cPacketDescriptionTemp.FGSLayer    == 0 )
+        {
+          bNextIsSuffix = true;
+          uiTId         = cPacketDescriptionTemp.Level;
+        }
+        else
+        {
+          ROT( 1 ); // there must be suffix NAL unit
+        }
+        //----- increment number of AVC slices -----
+        if( cPacketDescription.uiFirstMb == 0 )
+        {
+          uiNumAVCPics++;
+        }
+        //----- release packet and reset stream -----
+        if( pcBinDataTemp )
+        {
+          RNOK( m_pcReadBitstream->releasePacket( pcBinDataTemp ) );
+          pcBinDataTemp = 0;
+        }
+        RNOK  ( m_pcReadBitstream->setPosition  ( iStreamPos ) );
+      }
+      else if( bNextIsSuffix )
+      {
+        bNextIsSuffix = false;
+      }
+    }
+    ROT( uiDId > uiTargetLayer );
+    ROF( uiPId < MAX_QLAYERS   );
+
+    //===== store data =====
+    if( uiDId < uiTargetLayer || uiQId == 0 )
+    {
+      ruiBLRate                 += uiPacketSize;
+    }
+    else if( uiQId == 1 && uiNumAVCPics == 1 && ! bNoSpecialFirstFrame )
+    {
+      ruiFGSAU0Rate             += uiPacketSize;
+    }
+    else
+    {
+      aauiTLRate[uiTId][uiQId]  += uiPacketSize;
+      auiQLRate [uiPId]         += uiPacketSize;
+      rbQualityLayerPresent      = rbQualityLayerPresent || uiPId != 0; 
+    }
+
+    //===== release packet =====
+    if( pcBinData )
+    {
+      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+    }
+  } // end of while( ! bEOS )
+
+
+  //===== get quality level automatically =====
+  if( ! rbQualityLayerPresent )
+  {
+    auiQLRate[0] = 0;
+    for( uiTId = 0; uiTId < MAX_TLAYERS;        uiTId++ )
+      for( uiQId = 1; uiQId < MAX_QUALITY_LEVELS; uiQId++ )
+      {
+        auiQLRate[ MAX_QLAYERS - 1 - ( ( uiQId - 1 ) << 3 ) - uiTId ] = aauiTLRate[uiTId][uiQId];
+      }
+  }
+
+
+  //===== accumulate rate =====
+  for( uiQId = MAX_QLAYERS + 1; uiQId > 0; uiQId-- )
+  {
+    auiQLRate[uiQId-1] += auiQLRate[uiQId];
+  }
+
+
+  //===== reset input file =====
+  RNOKS( static_cast<ReadBitstreamFile*>( m_pcReadBitstream )->uninit() );
+  RNOKS( static_cast<ReadBitstreamFile*>( m_pcReadBitstream )->init  ( m_pcExtractorParameter->getInFile() ) );
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+Extractor::xExtract( UInt    uiTargetLayer,
+                    Bool    bQualityLayerPresent,
+                    Int     iQualityLayer,
+                    UInt&   ruiInLayerRate,
+                    Bool    bNoSpecialFirstFrame )
+{
+  Bool                    bEOS          = false;
+  Bool                    bNextIsSuffix = false;
+  BinData*                pcBinData     = 0;
+  UInt                    uiDId         = 0;
+  UInt                    uiTId         = 0;
+  UInt                    uiQId         = 0;
+  UInt                    uiPId         = 0;
+  UInt                    uiPacketSize  = 0;
+  UInt                    uiNumAVCPics  = 0;
+  h264::SEI::SEIMessage*  pcScalableSei = 0;
+  h264::PacketDescription cPacketDescription;
+
+
+  //===== initialize and read scalable SEI message =====
+  {
+    //----- init -----
+    RNOK( m_pcH264AVCPacketAnalyzer ->init          () );
+    //----- read first packet, which must contain the scalable SEI -----
+    RNOK( m_pcReadBitstream         ->extractPacket ( pcBinData, bEOS ) );
+    ROT ( bEOS );
+    RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinData, cPacketDescription, pcScalableSei ) );
+    ROF ( pcScalableSei );
+    //----- delete SEI -----
+    delete pcScalableSei;
+    pcScalableSei   = 0;
+    //----- get packet size -----
+    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+    {
+      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
+    }
+    //----- write and release packet -----
+    RNOK( m_pcWriteBitstream        ->writePacket   ( &m_cBinDataStartCode ) );
+    RNOK( m_pcWriteBitstream        ->writePacket   ( pcBinData ) );
+    RNOK( m_pcReadBitstream         ->releasePacket ( pcBinData ) );
+    pcBinData       = 0;
+  }
+
+
+  //===== MAIN LOOP OVER PACKETS =====
+  while( ! bEOS )
+  {
+    //===== get packet =====
+    RNOK  ( m_pcReadBitstream->extractPacket( pcBinData, bEOS ) );
+    if    ( bEOS )
+    {
+      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+      continue;
+    }
+
+    //===== get packet description =====
+    RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
+    ROT ( pcScalableSei );
+    ROT ( cPacketDescription.ApplyToNext );
+
+
+    //===== get packet size =====
+    while( pcBinData->data()[ pcBinData->size() - 1 ] == 0x00 )
+    {
+      RNOK( pcBinData->decreaseEndPos( 1 ) ); // remove zero at end
+    }
+
+
+    //==== get parameters =====
+    {
+      uiPacketSize  = 4 + pcBinData->size();
+      uiDId         = cPacketDescription.Layer;
+      uiTId         = cPacketDescription.Level;
+      uiQId         = cPacketDescription.FGSLayer;
+      uiPId         = cPacketDescription.uiPId;
+
+      //----- check whether next NAL unit is a suffix NAL unit -----
+      if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE ||
+        cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+      {
+        Int                     iStreamPos        = 0;
+        h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+        BinData*                pcBinDataTemp     = 0;
+        h264::PacketDescription cPacketDescriptionTemp;
+        RNOK( m_pcReadBitstream         ->getPosition   ( iStreamPos ) );
+        RNOK( m_pcReadBitstream         ->extractPacket ( pcBinDataTemp, bEOS ) );
+        ROT ( bEOS );
+        RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinDataTemp, cPacketDescriptionTemp, pcScalableSeiTemp ) );
+        ROT ( pcScalableSeiTemp );
+        if  ((cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE  ||
+          cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) &&
+          cPacketDescriptionTemp.Layer       == 0 &&
+          cPacketDescriptionTemp.FGSLayer    == 0 )
+        {
+          bNextIsSuffix = true;
+          uiTId         = cPacketDescriptionTemp.Level;
+        }
+        else
+        {
+          ROT( 1 ); // there must be suffix NAL unit
+        }
+        //----- increment number of AVC slices -----
+        if( cPacketDescription.uiFirstMb == 0 )
+        {
+          uiNumAVCPics++;
+        }
+        //----- release packet and reset stream -----
+        if( pcBinDataTemp )
+        {
+          RNOK( m_pcReadBitstream->releasePacket( pcBinDataTemp ) );
+          pcBinDataTemp = 0;
+        }
+        RNOK  ( m_pcReadBitstream->setPosition  ( iStreamPos ) );
+      }
+      else if( bNextIsSuffix )
+      {
+        bNextIsSuffix = false;
+      }
+    }
+    ROT( uiDId > uiTargetLayer );
+    ROF( uiPId < MAX_QLAYERS   );
+
+
+    //===== determine whether packet is kept =====
+    Bool  bKeep = true;
+    if(  uiDId == uiTargetLayer && uiQId > 0 )
+    {
+      //---- get quality layer when not present -----
+      if( ! bQualityLayerPresent )
+      {
+        uiPId   = MAX_QLAYERS - 1 - ( ( uiQId - 1 ) << 3 ) - uiTId;
+      }
+      if( uiQId == 1 && uiNumAVCPics == 1 && ! bNoSpecialFirstFrame)
+      {
+        uiPId   = MAX_QLAYERS;
+      }
+      //---- check whether packet is discarded ----
+      if( (Int)uiPId < iQualityLayer )
+      {
+        bKeep   = false;
+      }
+      else if( (Int)uiPId == iQualityLayer )
+      {
+        if( ruiInLayerRate >= uiPacketSize )
+        {
+          ruiInLayerRate -= uiPacketSize;
+        }
+        else
+        {
+          bKeep = false;
+        }
+      }
+    }
+
+
+    //===== write packet ====
+    if( bKeep )
+    {
+      RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+      RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
+    }
+
+
+    //===== release packet =====
+    if( pcBinData )
+    {
+      RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+      pcBinData = NULL;
+    }
+  } // end of while( ! bEOS )
+
+
+  //===== uninit =====
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+
+  return Err::m_nOK;
+}
+
+
 
 
 // Keep ROI NAL ICU/ETRI DS

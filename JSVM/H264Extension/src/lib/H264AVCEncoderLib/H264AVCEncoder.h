@@ -188,6 +188,10 @@ public:
 
   UInt    getNewBits          ( UInt          uiBaseLayerId );
 
+
+  IntFrame* getLowPassRec     ( UInt uiLayerId );
+  IntFrame* getELRefPic       ( UInt uiLayerId, Int iPoc );
+
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
   ErrVal writeQualityLevelInfosSEI( ExtBinDataAccessor* pcExtBinDataAccessor, 

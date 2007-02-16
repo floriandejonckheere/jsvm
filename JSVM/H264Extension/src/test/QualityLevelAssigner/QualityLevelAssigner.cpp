@@ -114,6 +114,7 @@ QualityLevelAssigner::QualityLevelAssigner()
 , m_pcUvlcTester            ( 0 )
 , m_pcNalUnitEncoder        ( 0 )
 , m_uiNumLayers             ( 0 )
+, m_bMGS                    ( false )
 , m_bOutputReconstructions  ( false ) // for debugging
 {
   ::memset( m_auiNumFGSLayers, 0x00, MAX_LAYERS                   *sizeof(UInt) );
@@ -383,6 +384,7 @@ QualityLevelAssigner::xInitStreamParameters()
   PacketDescription cPacketDescription;
 
   m_uiNumLayers = 0;
+  m_bMGS        = false;
   ::memset( m_auiNumFGSLayers,  0x00, MAX_LAYERS*sizeof(UInt) );
   ::memset( m_auiNumFrames,     0x00, MAX_LAYERS*sizeof(UInt) );
   ::memset( m_auiGOPSize,       0x00, MAX_LAYERS*sizeof(UInt) );
@@ -486,6 +488,10 @@ QualityLevelAssigner::xInitStreamParameters()
 //bug-fix suffix}}
     if( cPacketDescription.FGSLayer )
     {
+      if( ! cPacketDescription.bFragmentedFlag )
+      {
+        m_bMGS = true;
+      }
       if( cPacketDescription.Layer+1 > m_uiNumLayers)
       {
         m_uiNumLayers = cPacketDescription.Layer+1;
@@ -553,6 +559,11 @@ QualityLevelAssigner::xInitRateAndDistortion(Bool bMultiLayer)
   Bool bDep = m_pcParameter->useDependentDistCalc   ();
   Bool bInd = m_pcParameter->useIndependentDistCalc ();
   ROF( bDep || bInd );
+  if ( m_bMGS )
+  {
+    bDep  = true;
+    bInd  = false; // independent analysis is not possible
+  }
 
 
   //----- determine picture distortions -----
@@ -1219,6 +1230,9 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
        //--
       }
     }
+
+    Bool bWasAVCNALUnit = ( uiNalUnitType == 1 || uiNalUnitType == 5 );
+
 //NonRequired JVT-Q066{
   if(m_pcH264AVCDecoder->isNonRequiredPic())
     continue;
@@ -1281,6 +1295,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
                                            cPicBufferOutputList,
                                            cPicBufferUnusedList,
                                            cPicBufferReleaseList ) );
+
+        if( bWasAVCNALUnit && m_pcH264AVCDecoder->getBaseSVCActive() )
+        {
+          RNOK( xGetNewPicBuffer( pcPicBuffer, uiSize ) );
+          RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
+        }
+
         //---- restore stdout -----
 #if WIN32 // for linux, this have to be slightly re-formulated
         fclose( stdout );
@@ -1506,6 +1527,10 @@ QualityLevelAssigner::xDetermineQualityIDs()
       for( UInt uiFrame    = 0; uiFrame    <  m_auiNumFrames   [uiLayer]; uiFrame   ++ )
       {
         m_aaauiQualityID[uiLayer][uiFGSLayer][uiFrame] = ( uiFGSLayer ? cQualityLevelEstimation.getQualityLevel( uiLayer, uiFGSLayer, uiFrame ) : 63 );
+      }
+      if( m_bMGS )
+      {
+        m_aaauiQualityID[uiLayer][1][0] = 62; // first frame must be presents (when any other MGS refinement is present)
       }
     }
   }

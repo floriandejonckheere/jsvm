@@ -247,6 +247,12 @@
 		<File
 			RelativePath="..\..\..\data\layer5.cfg">
 		</File>
+		<File
+			RelativePath="..\..\..\data\layer6.cfg">
+		</File>
+		<File
+			RelativePath="..\..\..\data\layer7.cfg">
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

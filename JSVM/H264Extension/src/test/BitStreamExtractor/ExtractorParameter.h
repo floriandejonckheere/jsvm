@@ -150,6 +150,11 @@ public:
   const std::string&    getTraceFile        ()            const { return m_cTraceFile;      }
   const std::string&    getExtractTraceFile ()            const { return m_cExtractTrace;   }
 
+  Void                  setDontTruncQLayer  ( Bool   b )        { m_bDontTruncQLayer  = b;    }
+  Bool                  getDontTruncQLayer  ()            const { return m_bDontTruncQLayer;  }
+  Void                  setMaximumRate      ( Double d )        { m_dMaximumRate      = d;    }
+  Double                getMaximumRate      ()            const { return m_dMaximumRate;      }
+
   Void    setResult           ( Int     iResult )   { m_iResult = iResult;  }
   ErrVal  init                ( Int     argc,
                                 Char**  argv );
@@ -232,6 +237,8 @@ protected:
 //JVT-T054{
   Bool            m_bKeepfExtraction; //used if extraction considering l AND f
 //JVT-T054}
+  Double  m_dMaximumRate; // option "-r"
+  Bool    m_bDontTruncQLayer; // option "-r"
 };
 
 #endif // !defined(AFX_EXTRACTORPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

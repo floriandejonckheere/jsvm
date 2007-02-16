@@ -697,6 +697,9 @@ public:
     , m_uiRCDOMotionCompensationY         ( 0 )
     , m_uiRCDOMotionCompensationC         ( 0 )
     , m_uiRCDODeblocking                  ( 0 )
+    , m_uiEncodeKeyPictures               ( 0 )
+    , m_uiMGSKeyPictureControl            ( 0 )
+    , m_uiMGSKeyPictureMotionRefinement   ( 1 )
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -887,6 +890,14 @@ public:
   Void  setRCDOMotionCompensationC( UInt ui )  { m_uiRCDOMotionCompensationC = ui; }
   Void  setRCDODeblocking         ( UInt ui )  { m_uiRCDODeblocking          = ui; }
 
+  Void  setEncodeKeyPictures      ( UInt ui )          { m_uiEncodeKeyPictures = ui; }
+  UInt  getEncodeKeyPictures      ()           const   { return m_uiEncodeKeyPictures; }
+
+  Void  setMGSKeyPictureControl   ( UInt ui )          { m_uiMGSKeyPictureControl = ui; }
+  UInt  getMGSKeyPictureControl   ()           const   { return m_uiMGSKeyPictureControl; }
+
+  Void  setMGSKeyPictureMotRef    ( UInt ui )          { m_uiMGSKeyPictureMotionRefinement = ui; }
+  UInt  getMGSKeyPictureMotRef    ()           const   { return m_uiMGSKeyPictureMotionRefinement; }
 
 private:
   UInt                            getLogFactor            ( Double  r0,
@@ -975,6 +986,10 @@ protected:
   UInt    m_uiRCDOMotionCompensationY;
   UInt    m_uiRCDOMotionCompensationC;
   UInt    m_uiRCDODeblocking;
+
+  UInt    m_uiEncodeKeyPictures;  // 0:only FGS[default], 1:FGS&MGS, 2:always[useless]
+  UInt    m_uiMGSKeyPictureControl;
+  UInt    m_uiMGSKeyPictureMotionRefinement;
 };
 
 #if defined( MSYS_WIN32 )

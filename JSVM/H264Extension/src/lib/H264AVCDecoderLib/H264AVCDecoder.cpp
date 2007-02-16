@@ -1984,7 +1984,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
       if(m_bFGSRefInAU)
         bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId );
       else
-        bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId && m_bLastNalInAU);
+        bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId && ( m_bLastNalInAU || m_pcSliceHeader->getStoreBaseRepresentationFlag() ) );
 //JVT-T054}
 //	TMM EC {{
       if ( m_pcNalUnitParser->getQualityLevel() == 0)
@@ -2240,13 +2240,13 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
 //JVT-T054_FIX{
 ErrVal
 H264AVCDecoder::getAVCFrame( IntFrame*&      pcFrame,
-                                  IntFrame*&      pcResidual,
-                                  MbDataCtrl*&    pcMbDataCtrl,
-                                  Int             iPoc)
+                             IntFrame*&      pcResidual,
+                             MbDataCtrl*&    pcMbDataCtrl,
+                             Int             iPoc)
 {
   FrameUnit*  pcFrameUnit = m_pcFrameMng->getReconstructedFrameUnit( iPoc );
   ROF( pcFrameUnit );
-  pcFrame             = m_pcFrameMng->getRefinementIntFrame();
+  pcFrame             = m_pcFrameMng->getBaseRepFrame();
   pcResidual          = pcFrameUnit ->getResidual();
   pcMbDataCtrl        = m_pcRQFGSDecoder->getMbDataCtrl();
   
@@ -2397,7 +2397,6 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 
   //===== set reference lists =====
   RNOK( m_pcFrameMng->setRefPicLists( rcSH, false ) );
-
 
   //===== parse slice =====
   RNOK( m_pcControlMng  ->initSlice ( rcSH, PARSE_PROCESS ) );
@@ -2646,7 +2645,7 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
     {
       if(bHighestLayer && m_bCGSSNRInAU)
       {
-        RNOK( m_apcMCTFDecoder[0]->ReconstructLastFGS(bHighestLayer, m_bCGSSNRInAU ) );
+        RNOK( m_apcMCTFDecoder[0]->ReconstructLastFGS(bHighestLayer, true ) );
         m_apcMCTFDecoder[0]->getLastDPBUnit()->setMbDataCtrl(0);
       }
       else
@@ -2687,6 +2686,7 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
   IntFrame* pcRecFrame           = pcSliceHeader->getFrameUnit()->getFGSIntFrame();
   IntFrame*     pcILPredFrame       = m_pcFrameMng    ->getRefinementIntFrame();
   IntFrame*     pcILPredFrameSpatial= m_pcFrameMng    ->getRefinementIntFrame2();
+  IntFrame*     pcBaseRepFrame      = m_pcFrameMng    ->getBaseRepFrame();
   Bool          bReconstructFGS     = m_pcRQFGSDecoder->changed();
   Bool          bUseBaseRep         = pcSliceHeader   ->getUseBasePredictionFlag(); // HS: fix by Nokia
   Bool          bConstrainedIP      = pcSliceHeader   ->getPPS().getConstrainedIntraPredFlag();
@@ -2766,10 +2766,6 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
     //===== update DPB =====
 		RNOK( m_pcFrameMng->storeFGSPicture( m_pcFGSPicBuffer ) );
     m_pcFGSPicBuffer = NULL;
-//JVT-S036 lsj{
-	if( pcSliceHeader->getUseBasePredictionFlag() )  //bug-fix suffix shenqiu
-		m_pcFrameMng->getCurrentFrameUnit()->uninitBase();
-//JVT-S036 lsj}
   }
   else if( ! bUseBaseRep && bConstrainedIP )
   {
@@ -2783,7 +2779,8 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
   //===== loop-filter for spatial scalable coding =====
   if( m_bEnhancementLayer )
   {
-   RNOK( pcILPredFrameSpatial->copy( pcILPredFrame, ePicType ) );
+    RNOK( pcILPredFrameSpatial->copy( pcILPredFrame, ePicType ) );
+    RNOK( pcBaseRepFrame      ->copy( pcILPredFrame, ePicType ) );
 //TMM_EC {{
     if ( pcSliceHeader->getTrueSlice())
     {
@@ -2808,9 +2805,14 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
       }
       else
       {
-      RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial ) );
+        RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial ) );
       }
       m_pcLoopFilter->setRCDOSliceHeader();
+      if( m_bCGSSNRInAU )
+      {
+        pcBaseRepFrame->setPoc( *pcSliceHeader );
+        RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBaseRepFrame ) );
+      }
     }
 //  TMM_EC }}
   }

@@ -152,6 +152,65 @@ ErrVal YuvPicBuffer::uninit()
   return Err::m_nOK;
 }
 
+ErrVal YuvPicBuffer::dump( FILE* pFile )
+{
+  UChar*  pChar = new UChar [ getLWidth() ];
+  ROF( pChar );
+
+  m_rcYuvBufferCtrl.initMb();
+
+  Pel*    pPel      = getMbLumAddr();
+  Int     iStride   = getLStride();
+  UInt    uiHeight  = getLHeight();
+  UInt    uiWidth   = getLWidth ();
+  UInt    y, x;
+
+  //===== luminance =====
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pChar[x] = pPel[x];
+    }
+    pPel += iStride;
+    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+  }
+
+  //===== chrominance U =====
+  iStride   >>= 1;
+  uiHeight  >>= 1;
+  uiWidth   >>= 1;
+  pPel        = getMbCbAddr();
+
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pChar[x] = pPel[x];
+    }
+    pPel += iStride;
+    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+  }
+
+  //===== chrominance V =====
+  pPel        = getMbCrAddr();
+
+  for( y = 0; y < uiHeight; y++ )
+  {
+    for( x = 0; x < uiWidth; x++ )
+    {
+      pChar[x] = pPel[x];
+    }
+    pPel += iStride;
+    ::fwrite( pChar, sizeof(UChar), uiWidth, pFile );
+  }
+
+  delete [] pChar; // bug-fix by H. Schwarz / J. Reichel
+
+  return Err::m_nOK;
+}
+
+
 ErrVal YuvPicBuffer::loadBuffer( YuvMbBuffer *pcYuvMbBuffer )
 {
   Pel   *pDes       = getMbLumAddr();

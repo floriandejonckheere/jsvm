@@ -124,6 +124,8 @@ ExtractorParameter::ExtractorParameter()
 //JVT-S043
 , m_eQLExtractionMode(QL_EXTRACTOR_MODE_JOINT)
 
+, m_dMaximumRate    ( 0.0 )
+, m_bDontTruncQLayer( false )
 {
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
     //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -198,7 +200,7 @@ ExtractorParameter::init( Int     argc,
 
   Bool  bTraceExtractionSpecified = false; // HS: packet trace
   Bool  bExtractionPointSpecified = false;
-
+  Bool  bMaximumRateSpecified     = false;
   Bool  bLayerSpecified           = false;
   Bool  bLevelSpecified           = false;
   Bool  bFGSSpecified             = false;
@@ -234,6 +236,26 @@ ExtractorParameter::init( Int     argc,
   //===== process arguments =====
   for( Int iArg = 3; iArg < argc; iArg++ )
   {
+    if( equal( "-r", argv[iArg] ) )
+    {
+      EXIT( iArg + 1 == argc,           "Option \"-r\" without argument specified" );
+      EXIT( bMaximumRateSpecified,      "Multiple options \"-r\"" );
+      EXIT( bExtractionPointSpecified,  "Option \"-r\" used in connection with option \"-e\"" );
+      EXIT( bLayerSpecified,            "Option \"-r\" used in connection with option \"-l\"" );
+      EXIT( bLevelSpecified,            "Option \"-r\" used in connection with option \"-t\"" );
+      EXIT( bFGSSpecified,              "Option \"-r\" used in connection with option \"-f\"" );
+      EXIT( bBitrateSpecified,          "Option \"-r\" used in connection with option \"-b\"" );
+      EXIT( bTraceExtractionSpecified,  "Option \"-r\" used in connection with option \"-et\"" ); // HS: packet trace
+      EXIT( bScalableLayerSpecified,    "Option \"-r\" used in connection with option \"-sl\"" );
+      m_dMaximumRate        = atof( argv[ ++iArg] );
+      bMaximumRateSpecified = true;
+      continue;
+    }
+    if( equal( "-dtql", argv[iArg] ) )
+    {
+      m_bDontTruncQLayer  = true;
+      continue;
+    }
     if( equal( "-sl", argv[iArg] ) ) // -sl
     {
       EXIT( iArg + 1 == argc,           "Option \"-sl\" without argument specified" );
@@ -244,6 +266,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bFGSSpecified,              "Option \"-sl\" used in connection with option \"-f\"" );
       EXIT( bBitrateSpecified,          "Option \"-sl\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-sl\" used in connection with option \"-et\"" ); // HS: packet trace
+      EXIT( bMaximumRateSpecified,      "Option \"-sl\" used in connection with option \"-r\"" );
       m_uiScalableLayer       = atoi( argv[ ++iArg ] );
       bScalableLayerSpecified = true;
       continue;
@@ -256,6 +279,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bScalableLayerSpecified,    "Option \"-l\" used in connection with option \"-sl\"" );
       EXIT( bBitrateSpecified,          "Option \"-l\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-l\" used in connection with option \"-et\"" ); // HS: packet trace
+      EXIT( bMaximumRateSpecified,      "Option \"-l\" used in connection with option \"-r\"" );
       m_uiLayer       = atoi( argv[ ++iArg ] );
       bLayerSpecified = true;
       continue;
@@ -269,6 +293,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bScalableLayerSpecified,    "Option \"-t\" used in connection with option \"-sl\"" );
       EXIT( bBitrateSpecified,          "Option \"-t\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-t\" used in connection with option \"-et\"" ); // HS: packet trace
+      EXIT( bMaximumRateSpecified,      "Option \"-t\" used in connection with option \"-r\"" );
       m_uiLevel       = atoi( argv[ ++iArg ] );
       bLevelSpecified = true;
       continue;
@@ -282,6 +307,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bScalableLayerSpecified,    "Option \"-f\" used in connection with option \"-sl\"" );
       EXIT( bBitrateSpecified,          "Option \"-f\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-f\" used in connection with option \"-et\"" ); // HS: packet trace
+      EXIT( bMaximumRateSpecified,      "Option \"-f\" used in connection with option \"-r\"" );
       m_dFGSLayer     = atof( argv[ ++iArg ] );
       bFGSSpecified   = true;
       continue;
@@ -297,6 +323,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bLevelSpecified,            "Option \"-b\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-b\" used in connection with option \"-f\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-b\" used in connection with option \"-et\"" ); // HS: packet trace
+      EXIT( bMaximumRateSpecified,      "Option \"-b\" used in connection with option \"-r\"" );
       m_dBitrate        = atof( argv[ ++iArg ] );
       bBitrateSpecified = true;
       continue;
@@ -317,6 +344,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bLevelSpecified,            "Option \"-e\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-e\" used in connection with option \"-f\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-e\" used in connection with option \"-et\"" ); // HS: packet trace
+      EXIT( bMaximumRateSpecified,      "Option \"-e\" used in connection with option \"-r\"" );
       ErrVal errVal  = xParseFormatString( argv[++iArg], cPoint );
       EXIT(  errVal != Err::m_nOK,      "Wrong format string with option \"-e\" specified" );
       m_cExtractionList.push_back( cPoint );
@@ -333,6 +361,7 @@ ExtractorParameter::init( Int     argc,
       EXIT( bLevelSpecified,            "Option \"-et\" used in connection with option \"-t\"" );
       EXIT( bFGSSpecified,              "Option \"-et\" used in connection with option \"-f\"" );
       EXIT( bExtractionPointSpecified,  "Option \"-et\" used in connection with option \"-e\"" );
+      EXIT( bMaximumRateSpecified,      "Option \"-et\" used in connection with option \"-r\"" );
       m_cExtractTrace           = argv[++iArg];
       m_bTraceExtract           = true;
       bTraceExtractionSpecified = true;
@@ -424,6 +453,8 @@ ExtractorParameter::xPrintUsage( Char **argv )
   printf("\t               - C frame rate [Hz]\n");
   printf("\t               - D bit rate [kbit/s]\n");
   printf("\t-et        -> extract packets as specified by given (modified) packet trace file\n"); // HS: packet trace
+  printf("\t-r RATE    -> extract rate of highest layer wo trunc. (use QL when present)\n\n");
+  printf("\t-dtql      -> do not truncate quality layers for \"-r\" (only remove)\n\n");
   //S051{
   printf("\t-sip       -> extract using SIP algorithm \n");
   //S051}

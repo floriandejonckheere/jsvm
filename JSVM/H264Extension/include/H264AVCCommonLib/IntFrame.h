@@ -413,7 +413,11 @@ public:
   Void   setChannelDistortion(IntFrame*p1) { if(p1) m_piChannelDistortion=p1->m_piChannelDistortion; else m_piChannelDistortion=NULL;}
   // JVT-R057 LA-RDO}  
   
-  protected:
+  Void  setUnvalid()  { m_bUnvalid = true;  }
+  Void  setValid  ()  { m_bUnvalid = false; }
+  Bool  isUnvalid ()  { return m_bUnvalid;  }
+
+protected:
   IntYuvPicBuffer m_cFullPelYuvBuffer;
   IntYuvPicBuffer m_cHalfPelYuvBuffer;
   
@@ -433,6 +437,7 @@ public:
   // JVT-R057 LA-RDO}
 
   Int			  m_iFrameNum; //JVT-S036 lsj
+  Bool      m_bUnvalid;
 };
 
 H264AVCCOMMONLIB_API extern __inline ErrVal gSetFrameFieldLists ( RefFrameList& rcTopFieldList, RefFrameList& rcBotFieldList, RefFrameList& rcRefFrameList )

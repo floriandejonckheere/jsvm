@@ -371,6 +371,14 @@ ErrVal CodingParameter::check()
   ROTREPORT( getBaseLayerMode   ()  > 2,                "Base layer mode not supported" );
   ROTREPORT( getNumberOfLayers  ()  > MAX_LAYERS,       "Number of layers not supported" );
 
+
+  ROTREPORT( m_uiEncodeKeyPictures    > 2,          "Key picture mode not supported" );
+  ROTREPORT( m_uiMGSKeyPictureControl > 2,          "Unsupported value for MGSControl" );
+  ROTREPORT( m_uiMGSKeyPictureControl &&
+            !m_uiCGSSNRRefinementFlag,              "MGSControl can only be specified in connection with CGSSNRRefinementFlag=1" );
+  ROTREPORT( m_uiMGSKeyPictureMotionRefinement > 1, "Unsupported value for MGSKeyPicMotRef" );
+
+
   Double  dMaxFrameDelay  = max( 0, m_dMaximumFrameRate * m_dMaximumDelay / 1000.0 );
   UInt    uiMaxFrameDelay = (UInt)floor( dMaxFrameDelay );
 
@@ -397,6 +405,8 @@ ErrVal CodingParameter::check()
     pcLayer->setTemporalResolution  ( uiLogFactorMaxInRate );
     pcLayer->setDecompositionStages ( getDecompositionStages() - uiLogFactorMaxInRate );
     pcLayer->setFrameDelay          ( uiMaxFrameDelay  /  ( 1 << uiLogFactorMaxInRate ) );
+
+    ROTREPORT( pcLayer->getNumFGSLayers() != 0.0 && getCGSSNRRefinement(), "MGS and FGS together are not supported" );
 
     if( pcBaseLayer ) // for sub-sequence SEI
     {

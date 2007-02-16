@@ -153,6 +153,58 @@ H264AVCEncoder::destroy()
 }
 
 
+IntFrame*
+H264AVCEncoder::getLowPassRec( UInt uiLayerId )
+{
+  //===== shall not be called in non-CGS mode =====
+  IntFrame* pcLPRec = 0;
+  for( UInt uiBL = MSYS_UINT_MAX; ( uiBL = m_pcCodingParameter->getLayerParameters( uiLayerId ).getBaseLayerId() ) != MSYS_UINT_MAX; uiLayerId = uiBL )
+  {
+    if( m_apcMCTFEncoder[uiBL]->getMGSLPRec() )
+    {
+      pcLPRec = m_apcMCTFEncoder[uiBL]->getMGSLPRec();
+    }
+    else
+    {
+      break;
+    }
+  }
+  return pcLPRec;
+}
+
+
+IntFrame*
+H264AVCEncoder::getELRefPic( UInt uiLayerId, Int iPoc )
+{
+  IntFrame* pcELRefPic = 0;
+  for( UInt uiELId = uiLayerId + 1; uiELId < m_pcCodingParameter->getNumberOfLayers(); uiELId++ )
+  {
+    //===== check whether higher layer can be used =====
+    LayerParameters&  rcCL        = m_pcCodingParameter->getLayerParameters( uiLayerId  );
+    LayerParameters&  rcEL        = m_pcCodingParameter->getLayerParameters( uiELId     );
+    UInt              uiScalType  = MSYS_UINT_MAX;
+    if( ! rcEL.getResizeParameters()->m_bCrop && ( rcCL.getBaseLayerId() == MSYS_UINT_MAX || ! rcCL.getResizeParameters()->m_bCrop ) )
+    {
+      if(   rcCL.getFrameWidth () == rcEL.getFrameWidth () &&
+            rcCL.getFrameHeight() == rcEL.getFrameHeight()   )   uiScalType  = 0;
+      if( 2*rcCL.getFrameWidth () == rcEL.getFrameWidth () &&
+          2*rcCL.getFrameHeight() == rcEL.getFrameHeight()   )   uiScalType  = 1;
+    }
+
+    //===== get frame =====
+    if( uiScalType == 0 )
+    {
+      pcELRefPic = m_apcMCTFEncoder[uiELId]->getRefPic( iPoc );
+    }
+    else
+    {
+      break;
+    }
+  }
+  return pcELRefPic;
+}
+
+
 
 ErrVal
 H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,

@@ -238,65 +238,6 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
   return Err::m_nOK;
 }
 
-//JVT-S036 lsj start
-ErrVal FrameUnit::copyBase( const SliceHeader& rcSH, FrameUnit& rcFrameUnit )
-{
-  ROT( NULL != m_pcPicBuffer );
-
-  m_uiFrameNumber = rcSH.getFrameNum();
-
-  RNOK( getPic( TOP_FIELD )->init( NULL, this ) );
-	RNOK( getPic( BOT_FIELD )->init( NULL, this ) );
-  RNOK( getPic( FRAME     )->init( NULL, this ) );
-
-  RNOK( getPic( TOP_FIELD )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( TOP_FIELD )->getFullPelYuvBuffer() ) );
-	RNOK( getPic( BOT_FIELD )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( BOT_FIELD )->getFullPelYuvBuffer() ) );
-  RNOK( getPic( FRAME     )->getFullPelYuvBuffer()->copy( rcFrameUnit.getPic( FRAME     )->getFullPelYuvBuffer() ) );
-
-  RNOK( getPic( TOP_FIELD )->getFullPelYuvBuffer()->fillMargin() );
-	RNOK( getPic( BOT_FIELD )->getFullPelYuvBuffer()->fillMargin() );
-  RNOK( getPic( FRAME     )->getFullPelYuvBuffer()->fillMargin() );
-  
-  
-  RNOK( m_cMbDataCtrl.init( rcSH.getSPS() ) );
-
-  m_iMaxPoc = rcFrameUnit.getMaxPoc();
-  m_uiStatus = rcFrameUnit.getStatus();  //JVT-S036 lsj
-
-  UInt uiStamp = max( m_cFrame.stamp(), max( m_cTopField.stamp(), m_cBotField.stamp() ) ) + 1;
-	m_cTopField.stamp() = uiStamp;
-	m_cBotField.stamp() = uiStamp;
-  m_cFrame.   stamp() = uiStamp;
-    
-  m_cTopField.setPoc(rcFrameUnit.getPic(TOP_FIELD)->getPoc());//JVT-S036 lsj
-  m_cBotField.setPoc(rcFrameUnit.getPic(BOT_FIELD)->getPoc());//JVT-S036 lsj
-  m_cFrame.   setPoc(rcFrameUnit.getPic(FRAME)    ->getPoc());//JVT-S036 lsj
-
-  m_pcPicBuffer = rcFrameUnit.getPicBuffer();
-  m_pcPicBuffer->setUsed(); //JVT-S036 lsj
-
-  m_cResidual.init( );
-  m_cResidual.getFullPelYuvBuffer()->clear();
-  m_bInitDone = true;
-  
-  m_cFGSIntFrame.init();
-  m_pcFGSPicBuffer = NULL;
-
-  m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
-
-  return Err::m_nOK;
-}
-ErrVal FrameUnit::uninitBase()  
-{ 
-	m_cFrame.uninit();
-	m_pcPicBuffer->setUnused();
-	m_pcPicBuffer = NULL;
-	
-	return Err::m_nOK;
-}
-//JVT-S036 lsj end
-
-
 
 Void FrameUnit::setTopFieldPoc( Int iPoc )
 {

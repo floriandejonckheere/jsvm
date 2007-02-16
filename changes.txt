@@ -1,5 +1,19 @@
 
 
+JSVM_8_3 -> JSVM_8_4
+========================
+
+Date        : Feb 17, 2007
+Author      : H. Schwarz (HHI)
+Contribution: JVT-V126
+
+Changes:
+- MGS key picture coding
+- options for MGS encoder control
++ bug fixes
+
+
+
 JSVM_8_2 -> JSVM_8_3
 ========================
 
@@ -9,6 +23,7 @@ Contribution: JVT-V125
 
 Changes:
 - added H.241/RCDO compatible encoding mode
++ bug fixes
 
 
 
