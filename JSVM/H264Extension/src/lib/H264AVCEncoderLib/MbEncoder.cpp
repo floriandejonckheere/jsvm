@@ -1059,6 +1059,27 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
         }
         uiRate  = uiMbBits + BitCounter::getNumberOfWrittenBits();
 
+        //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
+        if( rcMbDataAccess.getSH().getSliceType()  == P_SLICE   &&
+          rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP &&
+          ( uiExtCbp != 0 || bSmoothedRef || iCnt != 0 ) )
+        {
+          // convert SKIP mode into 16x16 mode
+          Mv cMvPred, cMvd;
+          rcMbDataAccess.getMvPredictor( cMvPred, 1, LIST_0 );
+          cMvd  = rcMbDataAccess.getMbMotionData( LIST_0 ).getMv();
+          cMvd -= cMvPred;
+          rcMbDataAccess.getMbMvdData( LIST_0 ).setAllMv( cMvd );
+          rcMbDataAccess.getMbData().setMbMode( MODE_16x16 );
+          RNOK( BitCounter::init() );
+          RNOK( MbCoder::m_pcMbSymbolWriteIf->mbMode( rcMbDataAccess ) );
+          RNOK( MbCoder::xWriteReferenceFrames      ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
+          RNOK( MbCoder::xWriteMotionPredFlags      ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
+          RNOK( MbCoder::xWriteMotionVectors        ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
+          uiRate += BitCounter::getNumberOfWrittenBits();
+        }
+        //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
+
         Bool bPotentialBSkip = false;
         if( rcMbDataAccess.getSH().getSliceType() == B_SLICE &&
             rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP &&
@@ -1351,6 +1372,14 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
     cBaseLayerBuffer.loadBuffer ( const_cast<IntFrame*>(pcBaseLayerResidual)->getFullPelYuvBuffer() );
     bDefaultResPredFlag     = cBaseLayerBuffer.isZero();
   }
+
+
+  //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
+  if( bSkipModeAllowed && ! bBSlice )
+  {
+    RNOK( xEstimateMbSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1 ) );
+  }
+  //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
 
 
   //===== residual prediction =====

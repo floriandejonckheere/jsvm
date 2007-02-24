@@ -135,7 +135,7 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 
 
   //===== init instances for reading and writing yuv data =====
-  UInt uiNumberOfLayers = m_pcEncoderCodingParameter->getMVCmode() ? 1 : m_pcEncoderCodingParameter->getNumberOfLayers();
+  UInt uiNumberOfLayers = m_pcEncoderCodingParameter->getAVCmode() ? 1 : m_pcEncoderCodingParameter->getNumberOfLayers();
   for( UInt uiLayer = 0; uiLayer < uiNumberOfLayers; uiLayer++ )
   {
     h264::LayerParameters&  rcLayer = m_pcEncoderCodingParameter->getLayerParameters( uiLayer );
@@ -150,7 +150,7 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
 
 
   //===== init bitstream writer =====
-  if( m_pcEncoderCodingParameter->getMVCmode() )
+  if( m_pcEncoderCodingParameter->getAVCmode() )
   {
     RNOKS( WriteBitstreamToFile::create   ( m_pcWriteBitstreamToFile ) );
     RNOKS( m_pcWriteBitstreamToFile->init ( m_cEncoderIoParameter.cBitstreamFilename ) );  
@@ -382,7 +382,7 @@ H264AVCEncoderTest::go()
 {
   UInt                    uiWrittenBytes          = 0;
   const UInt              uiMaxFrame              = m_pcEncoderCodingParameter->getTotalFrames();
-  UInt                    uiNumLayers             = ( m_pcEncoderCodingParameter->getMVCmode() ? 1 : m_pcEncoderCodingParameter->getNumberOfLayers() );
+  UInt                    uiNumLayers             = ( m_pcEncoderCodingParameter->getAVCmode() ? 1 : m_pcEncoderCodingParameter->getNumberOfLayers() );
   UInt                    uiFrame;
   UInt                    uiLayer;
   UInt                    auiMbX                  [MAX_LAYERS];
@@ -526,7 +526,7 @@ H264AVCEncoderTest::go()
   m_cEncoderIoParameter.nFrames = uiFrame;
   m_cEncoderIoParameter.nResult = 0;
 
-  if( ! m_pcEncoderCodingParameter->getMVCmode() )
+  if( ! m_pcEncoderCodingParameter->getAVCmode() )
 	{
 		UChar   aucParameterSetBuffer[1000];
 		BinData cBinData;
@@ -549,7 +549,7 @@ H264AVCEncoderTest::go()
     RNOK( m_pcWriteBitstreamToFile->destroy() );  
   }
 
-  if( ! m_pcEncoderCodingParameter->getMVCmode() )
+  if( ! m_pcEncoderCodingParameter->getAVCmode() )
   {
 	RNOK	( ScalableDealing() );
   }

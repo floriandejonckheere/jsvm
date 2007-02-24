@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "8.4" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "8.5" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -269,8 +269,6 @@ enum Profile
   HIGH_422_PROFILE  = 122,
   HIGH_444_PROFILE  = 144,
 
-  MULTI_VIEW_PROFILE= 78,
-
   SCALABLE_PROFILE  = 83
 };
 
@@ -343,7 +341,6 @@ H264AVC_NAMESPACE_END
 #define AR_FGS_DEFAULT_FILTER                         AR_FGS_MC_INTERP_BILINEAR
 #define AR_FGS_COMPENSATE_SIGNED_FRAME                1
 
-#define MVC_PROFILE                                   MULTI_VIEW_PROFILE  // ( MULTI_VIEW_PROFILE or HIGH_PROFILE )
 #define WEIGHTED_PRED_FLAG                            0                   // (0:no weighted prediction, 1:random weights)
 #define WEIGHTED_BIPRED_IDC                           0                   // (0:no weighted bi-prediction, 1:random weights, 2:implicit weights)
 #define INFER_ELAYER_PRED_WEIGHTS                     0                   // (0:BL weights are not used, 1:infer enhancement layer prediction weights)

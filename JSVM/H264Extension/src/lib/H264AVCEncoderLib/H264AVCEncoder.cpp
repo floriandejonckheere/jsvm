@@ -1365,6 +1365,11 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setRCDOMotionCompensationC( ( uiIndex && uiRCDOMCC ) || ( uiRCDOMCC > 1 ) );
     pcSPS->setRCDODeblocking         ( ( uiIndex && uiRCDODB  ) || ( uiRCDODB  > 1 ) );
 
+	// V090
+	pcSPS->set4TapMotionCompensationY( false );
+	UInt  ui4TapMCY = m_pcCodingParameter->get4TapMotionCompensationY();                 // V090
+	pcSPS->set4TapMotionCompensationY( ( uiIndex && ui4TapMCY ) || ( ui4TapMCY > 1 ) );  // V090
+	// V090
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
@@ -1537,6 +1542,11 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setRCDOMotionCompensationC( ( uiIndex && uiRCDOMCC ) || ( uiRCDOMCC > 1 ) );
     pcSPS->setRCDODeblocking         ( ( uiIndex && uiRCDODB  ) || ( uiRCDODB  > 1 ) );
 
+	// V090
+    pcSPS->set4TapMotionCompensationY( false );
+    UInt  ui4TapMCY = m_pcCodingParameter->get4TapMotionCompensationY();
+    pcSPS->set4TapMotionCompensationY( ( uiIndex && ui4TapMCY ) || ( ui4TapMCY > 1 ) );
+	// V090
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );

@@ -175,7 +175,7 @@ ErrVal
 CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,
                                            Bool&               rbMoreSets )
 {
-  if( m_pcCodingParameter->getMVCmode() )
+  if( m_pcCodingParameter->getAVCmode() )
   {
     RNOK( m_pcPicEncoder->writeAndInitParameterSets( pcExtBinDataAccessor, rbMoreSets ) );
     m_pcH264AVCEncoder->setScalableSEIMessage(); // due to Nokia's (Ye-Kui's) weird implementation
@@ -210,7 +210,7 @@ CreaterH264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorLis
                                 PicBufferList*           apcPicBufferOutputList,
                                 PicBufferList*           apcPicBufferUnusedList )
 {
-  if( m_pcCodingParameter->getMVCmode() )
+  if( m_pcCodingParameter->getAVCmode() )
   {
     apcPicBufferUnusedList->push_back( apcReconstructPicBuffer[0] );
     RNOK( m_pcPicEncoder  ->process  ( apcOriginalPicBuffer   [0],
@@ -236,7 +236,7 @@ CreaterH264AVCEncoder::finish ( ExtBinDataAccessorList&  rcExtBinDataAccessorLis
                                 UInt&                    ruiNumCodedFrames,
                                 Double&                  rdHighestLayerOutputRate )
 {
-  if( m_pcCodingParameter->getMVCmode() )
+  if( m_pcCodingParameter->getAVCmode() )
   {
     RNOK( m_pcPicEncoder->finish( *apcPicBufferOutputList,
                                   *apcPicBufferUnusedList ) );

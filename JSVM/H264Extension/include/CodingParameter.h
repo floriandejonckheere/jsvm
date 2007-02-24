@@ -253,9 +253,15 @@ public:
     , m_uiBaseQualityLevelCGSSNR ( 0 )
     , m_bDiscardable          ( false )
 //JVT-T054}
+    , m_uiExplicitQPCascading( 0 )
   {
     for( UInt ui = 0; ui < MAX_DSTAGES; ui++ ) m_adQpModeDecision[ui] = 0.00;
     ::memset( m_uiPosVect, 0x00, 16*sizeof(UInt) );
+
+    for( UInt uiTTL = 0; uiTTL < MAX_TEMP_LEVELS; uiTTL++ )
+    {
+      m_adDeltaQPTLevel[uiTTL] = 0.0;
+    }
   }
 
   virtual ~LayerParameters()
@@ -480,6 +486,15 @@ public:
   Void setBaseQualityLevelCGSSNR             (UInt ui)    { m_uiBaseQualityLevelCGSSNR            = ui;}
   Bool isDiscardable                      ()          { return m_bDiscardable;}
 //JVT-T054}
+
+  UInt    getExplicitQPCascading  ()               const   { return m_uiExplicitQPCascading; }
+  Double  getDeltaQPTLevel        ( UInt    ui )   const   { return m_adDeltaQPTLevel[ui]; }
+
+  Void    setExplicitQPCascading  ( UInt    ui )           { m_uiExplicitQPCascading = ui; }
+  Void    setDeltaQPTLevel        ( UInt    tl,
+                                    Double  d  )           { m_adDeltaQPTLevel[tl] = d; }
+
+
 public:
   UInt                      m_uiLayerId;
   UInt                      m_uiFrameWidth;
@@ -597,6 +612,9 @@ public:
   UInt                      m_uiBaseQualityLevelCGSSNR;
   Bool                      m_bDiscardable;
 //JVT-T054}
+
+  UInt    m_uiExplicitQPCascading;
+  Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
 };
 
 
@@ -656,7 +674,7 @@ public:
     , m_uiBaseWeightZeroBaseCoeff         ( MSYS_UINT_MAX )
     , m_uiFgsEncStructureFlag             ( MSYS_UINT_MAX )
     , m_uiLowPassFgsMcFilter              ( AR_FGS_DEFAULT_FILTER )
-    , m_uiMVCmode                         ( 0 )
+    , m_uiAVCmode                         ( 0 )
     , m_uiFrameWidth                      ( 0 )
     , m_uiFrameHeight                     ( 0 )
     , m_uiSymbolMode                      ( 0 )
@@ -697,6 +715,7 @@ public:
     , m_uiRCDOMotionCompensationY         ( 0 )
     , m_uiRCDOMotionCompensationC         ( 0 )
     , m_uiRCDODeblocking                  ( 0 )
+    , m_ui4TapMotionCompensationY         ( 0 ) // V090
     , m_uiEncodeKeyPictures               ( 0 )
     , m_uiMGSKeyPictureControl            ( 0 )
     , m_uiMGSKeyPictureMotionRefinement   ( 1 )
@@ -749,7 +768,7 @@ public:
   UInt getBMode()                   const { return m_uiBMode; }
 //TMM_WP
 
-  UInt                            getMVCmode              ()              const   { return m_uiMVCmode; }
+  UInt                            getAVCmode              ()              const   { return m_uiAVCmode; }
   UInt                            getFrameWidth           ()              const   { return m_uiFrameWidth; }
   UInt                            getFrameHeight          ()              const   { return m_uiFrameHeight; }
   UInt                            getSymbolMode           ()              const   { return m_uiSymbolMode; }
@@ -793,7 +812,7 @@ public:
                                                                             m_uiQualityLevelList [uiSimplePri] = uiQualityLevel;
                                                                           }
  JVT-S036 lsj */
-  Void                            setMVCmode              ( UInt    p )   { m_uiMVCmode             = p; }
+  Void                            setAVCmode              ( UInt    p )   { m_uiAVCmode             = p; }
   Void                            setFrameWidth           ( UInt    p )   { m_uiFrameWidth          = p; }
   Void                            setFrameHeight          ( UInt    p )   { m_uiFrameHeight         = p; }
   Void                            setSymbolMode           ( UInt    p )   { m_uiSymbolMode          = p; }
@@ -885,6 +904,9 @@ public:
   UInt  getRCDOMotionCompensationC()  const { return m_uiRCDOMotionCompensationC; }
   UInt  getRCDODeblocking         ()  const { return m_uiRCDODeblocking; }
 
+  UInt  get4TapMotionCompensationY()  const { return m_ui4TapMotionCompensationY; }  // V090
+  Void  set4TapMotionCompensationY( UInt ui )  { m_ui4TapMotionCompensationY = ui; } // V090
+
   Void  setRCDOBlockSizes         ( UInt ui )  { m_uiRCDOBlockSizes          = ui; }
   Void  setRCDOMotionCompensationY( UInt ui )  { m_uiRCDOMotionCompensationY = ui; }
   Void  setRCDOMotionCompensationC( UInt ui )  { m_uiRCDOMotionCompensationC = ui; }
@@ -934,7 +956,7 @@ protected:
   UInt                      m_uiFgsEncStructureFlag;
   UInt                      m_uiLowPassFgsMcFilter;
 
-  UInt                      m_uiMVCmode;
+  UInt                      m_uiAVCmode;
   UInt                      m_uiFrameWidth;
   UInt                      m_uiFrameHeight;
   UInt                      m_uiSymbolMode;
@@ -986,6 +1008,8 @@ protected:
   UInt    m_uiRCDOMotionCompensationY;
   UInt    m_uiRCDOMotionCompensationC;
   UInt    m_uiRCDODeblocking;
+
+  UInt    m_ui4TapMotionCompensationY;  // V090
 
   UInt    m_uiEncodeKeyPictures;  // 0:only FGS[default], 1:FGS&MGS, 2:always[useless]
   UInt    m_uiMGSKeyPictureControl;

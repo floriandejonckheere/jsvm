@@ -169,6 +169,15 @@ public:
     m_pcQuarterPelFilter->setRCDO( bRCDOY );
   }
 
+  // V090
+  Void set4Tap( Bool b4TapY, UInt uiFrameNum )
+  {
+    m_b4TapY      = b4TapY;
+    m_uiFrameNum  = uiFrameNum;
+    m_pcQuarterPelFilter->set4Tap( b4TapY );
+  }
+  //V090
+
   static ErrVal create( MotionCompensation*& rpcMotionCompensation );
   ErrVal destroy();
 
@@ -375,6 +384,8 @@ protected:
   Bool  m_bRCDOY;
   Bool  m_bRCDOC;
   UInt  m_uiFrameNum;
+
+  Bool m_b4TapY; // V090
 };
 
 #if defined( WIN32 )

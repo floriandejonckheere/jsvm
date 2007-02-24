@@ -113,6 +113,10 @@ public:
   virtual ErrVal init();
   ErrVal uninit();
 
+  Void set4Tap        ( Bool b4Tap )  { m_b4Tap = b4Tap; }  // V090
+  Void predBlk4TapD    ( YuvMbBuffer*        pcDesBuffer, YuvPicBuffer*        pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );   // V090
+  Void predBlk4TapD    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );   // V090
+
   Void setRCDO        ( Bool bRCDO )  { m_bRCDO = bRCDO; }
   Void predBlkRCDO    ( YuvMbBuffer*        pcDesBuffer, YuvPicBuffer*        pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
   Void predBlkRCDO    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
@@ -126,15 +130,26 @@ public:
   virtual ErrVal filterFrame( IntYuvPicBuffer* pcPelBuffer, IntYuvPicBuffer* pcHalfPelBuffer );
   Void filterBlock( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
   {
-    if( m_bRCDO )
+	  // V090
+    if( m_b4Tap )
+    {
+      filterBlock4Tap( pDes, pSrc, iSrcStride, uiXSize, uiYSize, uiFilter );
+      return;
+    }
+	// V090
+
+	if( m_bRCDO )
     {
       filterBlockRCDO( pDes, pSrc, iSrcStride, uiXSize, uiYSize, uiFilter );
       return;
     }
+
     m_afpXFilterBlockFunc[uiFilter]( pDes, pSrc, iSrcStride, uiXSize, uiYSize );
   }
 
   Void filterBlockRCDO( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter );
+
+  Void filterBlock4Tap( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter ); // V090
 
   Void predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
   Void predBlk( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
@@ -187,6 +202,8 @@ protected:
   XFilterBlockFunc m_afpXFilterBlockFunc[4];
 
   Bool  m_bRCDO;
+
+  Bool  m_b4Tap;  // V090
 };
 
 #if AR_FGS_COMPENSATE_SIGNED_FRAME

@@ -190,6 +190,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bRCDOMotionCompensationY                ( false )
 , m_bRCDOMotionCompensationC                ( false )
 , m_bRCDODeblocking                         ( false )
+, m_b4TapMotionCompensationY                ( false )  // V090
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -359,6 +360,40 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: scaled_base_bottom_offset" ) );
     }
 
+#ifdef _JVTV074_
+    Int k, kmin;
+    UInt uiResampleFilterIdx;
+    Int iResampleFilterParamA, iResampleFilterParamB;
+
+
+    RNOK( pcWriteIf->writeUvlc(m_uiNumResampleFiltersMinus1,         "SPS: NumResampleFiltersMinus1" ) );
+    for (uiResampleFilterIdx = 0; uiResampleFilterIdx <= m_uiNumResampleFiltersMinus1; uiResampleFilterIdx++)
+    {
+        RNOK( pcWriteIf->writeFlag( m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx],  "SPS: IntegerPosFilterPresentFlag" ) );
+        kmin = (!m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx]);
+        for (k = 7; k >= kmin; k--)
+        {
+            if (k == 6)
+                iResampleFilterParamA = m_iResampleFilterParamA[uiResampleFilterIdx][6] - m_iResampleFilterParamA[uiResampleFilterIdx][7];
+            else if (k < 6)
+                iResampleFilterParamA = m_iResampleFilterParamA[uiResampleFilterIdx][k] - 2 * m_iResampleFilterParamA[uiResampleFilterIdx][k+1] + m_iResampleFilterParamA[uiResampleFilterIdx][k+2];
+            else //k == 7
+                iResampleFilterParamA = m_iResampleFilterParamA[uiResampleFilterIdx][7];
+            RNOK( pcWriteIf->writeSvlc( iResampleFilterParamA, "SPS: ResampleFilterParamA" ) );
+        }
+        for (k = 1; k <= 8; k++) {
+            if (k == 2)
+                iResampleFilterParamB = m_iResampleFilterParamB[uiResampleFilterIdx][2] - m_iResampleFilterParamB[uiResampleFilterIdx][1];
+            else if (k > 2)
+                iResampleFilterParamB = m_iResampleFilterParamB[uiResampleFilterIdx][k] - 2 * m_iResampleFilterParamB[uiResampleFilterIdx][k-1] + m_iResampleFilterParamB[uiResampleFilterIdx][k-2];
+            else //k == 1;
+                iResampleFilterParamB = m_iResampleFilterParamB[uiResampleFilterIdx][1];
+            RNOK( pcWriteIf->writeSvlc( iResampleFilterParamB, "SPS: ResampleFilterParamB" ) );
+        }
+
+    }
+#endif // _JVTV074_
+
     RNOK  ( pcWriteIf->writeFlag( m_bFGSInfoPresentFlag,                       "SPS: fgs_info_present") );
     if( m_bFGSInfoPresentFlag ) 
     {
@@ -443,11 +478,15 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
                   m_bRCDODeblocking );
   if(  bRCDO )
   {
+    RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
     RNOK( pcWriteIf->writeFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
     RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
     RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
     RNOK( pcWriteIf->writeFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
   }
+  else if( m_b4TapMotionCompensationY)  // V090
+	  RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,    "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
+
 
   return Err::m_nOK;
 }
@@ -472,7 +511,6 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
           m_eProfileIdc != MAIN_PROFILE  &&
           m_eProfileIdc != EXTENDED_PROFILE  &&
           m_eProfileIdc != HIGH_PROFILE  &&
-          m_eProfileIdc != MULTI_VIEW_PROFILE &&
           m_eProfileIdc != SCALABLE_PROFILE );
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet0Flag,                      "SPS: constrained_set0_flag" ) );
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet1Flag,                      "SPS: constrained_set1_flag" ) );
@@ -504,6 +542,48 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
     }
+
+#ifdef _JVTV074_
+    UInt k, uiResampleFilterIdx, kmin;
+    Int iResampleFilterParamA, iResampleFilterParamB; 
+	Bool bIntegerPosFilterPresentFlag;
+
+
+    RNOK( pcReadIf->getUvlc( m_uiNumResampleFiltersMinus1,         "SPS: NumResampleFiltersMinus1" ) );
+    for (uiResampleFilterIdx = 0; uiResampleFilterIdx <= m_uiNumResampleFiltersMinus1; uiResampleFilterIdx++)
+    {
+        RNOK( pcReadIf->getFlag( bIntegerPosFilterPresentFlag,  "SPS: IntegerPosFilterPresentFlag" ) );
+        m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx] = bIntegerPosFilterPresentFlag;
+        if (!m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx])
+        {
+            m_iResampleFilterParamA[uiResampleFilterIdx][0] = 0;
+        }
+        m_iResampleFilterParamA[uiResampleFilterIdx][8] = 0;
+        m_iResampleFilterParamB[uiResampleFilterIdx][0] = 0;
+        kmin = (!m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx]);
+        for (k = 7; k >= kmin; k--)
+        {
+            RNOK( pcReadIf->getSvlc( iResampleFilterParamA, "SPS: ResampleFilterParamA" ) );
+            if (k == 6)
+                m_iResampleFilterParamA[uiResampleFilterIdx][6] = iResampleFilterParamA +  m_iResampleFilterParamA[uiResampleFilterIdx][7];
+            else if (k < 6)
+                m_iResampleFilterParamA[uiResampleFilterIdx][k] = iResampleFilterParamA + 2 * m_iResampleFilterParamA[uiResampleFilterIdx][k+1] - m_iResampleFilterParamA[uiResampleFilterIdx][k+2];
+            else //k == 7
+                m_iResampleFilterParamA[uiResampleFilterIdx][7] = iResampleFilterParamA;
+        }
+        for (k = 1; k <= 8; k++) 
+        {
+            RNOK( pcReadIf->getSvlc( iResampleFilterParamB, "SPS: ResampleFilterParamB" ) );
+            if (k == 2)
+                m_iResampleFilterParamB[uiResampleFilterIdx][2] = iResampleFilterParamB + m_iResampleFilterParamB[uiResampleFilterIdx][1];
+            else if (k > 2)
+                m_iResampleFilterParamB[uiResampleFilterIdx][k] = iResampleFilterParamB + 2 * m_iResampleFilterParamB[uiResampleFilterIdx][k-1] - m_iResampleFilterParamB[uiResampleFilterIdx][k-2];
+            else //k == 1;
+                m_iResampleFilterParamB[uiResampleFilterIdx][1] = iResampleFilterParamB;
+        }
+    }
+#endif // _JVTV074_
+
     RNOK  ( pcReadIf->getFlag( m_bFGSInfoPresentFlag,                       "SPS: fgs_info_present") );
     if( m_bFGSInfoPresentFlag ) 
     {
@@ -586,6 +666,9 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: vui_parameters_present_flag" ) );
   ROT ( bTmp );
 
+  m_b4TapMotionCompensationY = false;                      // V090
+  ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );           // V090
+  RNOK ( pcReadIf->getFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );   // V090
 
   m_bRCDOBlockSizes          = false;
   m_bRCDOMotionCompensationY = false;
@@ -608,7 +691,6 @@ SequenceParameterSet::xWriteFrext( HeaderSymbolWriteIf* pcWriteIf ) const
          m_eProfileIdc != HIGH_10_PROFILE   &&
          m_eProfileIdc != HIGH_422_PROFILE  &&
          m_eProfileIdc != HIGH_444_PROFILE  &&
-         m_eProfileIdc != MULTI_VIEW_PROFILE &&
          m_eProfileIdc != SCALABLE_PROFILE, Err::m_nOK );
 
   RNOK  ( pcWriteIf->writeUvlc( 1,                              "SPS: chroma_format_idc" ) );
@@ -631,7 +713,6 @@ SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
          m_eProfileIdc != HIGH_10_PROFILE   &&
          m_eProfileIdc != HIGH_422_PROFILE  &&
          m_eProfileIdc != HIGH_444_PROFILE  &&
-         m_eProfileIdc != MULTI_VIEW_PROFILE &&
          m_eProfileIdc != SCALABLE_PROFILE, Err::m_nOK );
 
   UInt  uiTmp;
@@ -675,6 +756,20 @@ Void SequenceParameterSet::setResizeParameters ( const ResizeParameters * params
     m_iScaledBaseRightOffset = 0;
     m_iScaledBaseTopOffset = 0;
   }
+#ifdef _JVTV074_
+  m_uiNumResampleFiltersMinus1 = params->m_uiNumResampleFiltersMinus1;
+  Int k;
+  UInt uiResampleFilterIdx;
+  for (uiResampleFilterIdx = 0; uiResampleFilterIdx <= m_uiNumResampleFiltersMinus1; uiResampleFilterIdx++)
+  {
+      m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx] = params->m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx];
+      for (k = 0; k < 9; k++) 
+      {
+          m_iResampleFilterParamA[uiResampleFilterIdx][k] = params->m_iResampleFilterParamA[uiResampleFilterIdx][k];
+          m_iResampleFilterParamB[uiResampleFilterIdx][k] = params->m_iResampleFilterParamB[uiResampleFilterIdx][k];
+      }
+  }
+#endif // _JVTV074_
  }
 
 Void SequenceParameterSet::getResizeParameters ( ResizeParameters * params ) const
@@ -706,6 +801,21 @@ Void SequenceParameterSet::getResizeParameters ( ResizeParameters * params ) con
     params->m_iPosX       = 0;
     params->m_iPosY       = 0;
   }
+#ifdef _JVTV074_
+    params->m_uiNumResampleFiltersMinus1 = m_uiNumResampleFiltersMinus1;
+  Int k;
+  UInt uiResampleFilterIdx;
+  for (uiResampleFilterIdx = 0; uiResampleFilterIdx <= m_uiNumResampleFiltersMinus1; uiResampleFilterIdx++)
+  {
+      params->m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx] = m_bIntegerPosFilterPresentFlag[uiResampleFilterIdx];
+      for (k = 0; k < 9; k++) 
+      {
+
+          params->m_iResampleFilterParamA[uiResampleFilterIdx][k] = m_iResampleFilterParamA[uiResampleFilterIdx][k];
+          params->m_iResampleFilterParamB[uiResampleFilterIdx][k] = m_iResampleFilterParamB[uiResampleFilterIdx][k];
+      }
+  }
+#endif //_JVTV074_
 }
 // TMM_ESS }
 

@@ -144,7 +144,19 @@ public:
       m_pcMotionCompensation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
     }
   }
-  
+
+  // V090
+  Void  set4Tap( SliceHeader* pcSliceHeader )
+  {
+    if( pcSliceHeader )
+    {
+      Bool  b4TapY      = pcSliceHeader->getSPS().get4TapMotionCompensationY();
+      UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
+      m_pcMotionCompensation->set4Tap( b4TapY, uiFrameNum );
+    }
+  }
+  // V090
+
   //JVT-S036 lsj start
   SliceHeader *getSliceHeader() const { return m_pcSliceHeader ; }
   ErrVal  initPacketSuffix( BinDataAccessor*  pcBinDataAccessor,

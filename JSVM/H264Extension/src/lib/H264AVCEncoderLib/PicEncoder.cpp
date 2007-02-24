@@ -389,7 +389,7 @@ PicEncoder::xInitSPS()
   //===== set SPS parameters =====
   m_pcSPS->setNalUnitType                           ( NAL_UNIT_SPS );
   m_pcSPS->setLayerId                               ( 0 );
-  m_pcSPS->setProfileIdc                            ( MVC_PROFILE );   // see definition in CommonDefs.h
+  m_pcSPS->setProfileIdc                            ( HIGH_PROFILE );
   m_pcSPS->setConstrainedSet0Flag                   ( false );
   m_pcSPS->setConstrainedSet1Flag                   ( false );
   m_pcSPS->setConstrainedSet2Flag                   ( false );

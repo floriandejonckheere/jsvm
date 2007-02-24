@@ -482,14 +482,7 @@ ErrVal FrameMng::initSlice( SliceHeader *rcSH )
   m_uiMaxFrameNumCurr = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
   m_uiMaxFrameNumPrev = ( 1 << ( rcSH->getSPS().getLog2MaxFrameNum() ) );
   m_uiNumRefFrames    = rcSH->getSPS().getNumRefFrames();
-  if( rcSH->getSPS().getProfileIdc() == MULTI_VIEW_PROFILE )
-  {
-    m_iMaxEntriesinDPB= rcSH->getSPS().getMaxDPBSize();
-  }
-  else
-  {
-    m_iMaxEntriesinDPB= min( 48, rcSH->getSPS().getMaxDPBSize() + 3 );
-  }
+  m_iMaxEntriesinDPB  = min( 64, rcSH->getSPS().getMaxDPBSize() + 3 );
 
   if( ! m_iMaxEntriesinDPB )
   {
@@ -521,14 +514,7 @@ ErrVal FrameMng::initSPS( const SequenceParameterSet& rcSPS )
   m_uiMaxFrameNumCurr = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );
   m_uiMaxFrameNumPrev = ( 1 << ( rcSPS.getLog2MaxFrameNum() ) );
   m_uiNumRefFrames    = rcSPS.getNumRefFrames();
-  if( rcSPS.getProfileIdc() == MULTI_VIEW_PROFILE )
-  {
-    m_iMaxEntriesinDPB= rcSPS.getMaxDPBSize();
-  }
-  else
-  {
-    m_iMaxEntriesinDPB= min( 48, rcSPS.getMaxDPBSize() + 3 );
-  }
+  m_iMaxEntriesinDPB  = min( 64, rcSPS.getMaxDPBSize() + 3 );
 
   if( ! m_iMaxEntriesinDPB )
   {

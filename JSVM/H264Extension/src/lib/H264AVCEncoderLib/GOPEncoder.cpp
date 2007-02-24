@@ -472,6 +472,12 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_bHighestMGSLayer        = m_bMGS && !m_bSameResEL;
   m_uiMGSKeyPictureMotRef   = pcCodingParameter->getMGSKeyPictureMotRef();
 
+  m_bExplicitQPCascading      = pcLayerParameters->getExplicitQPCascading() != 0;
+  for( UInt uiTTL = 0; uiTTL < MAX_TEMP_LEVELS; uiTTL++ )
+  {
+    m_adDeltaQPTLevel[uiTTL]  = pcLayerParameters->getDeltaQPTLevel( uiTTL );
+  }
+
   //JVT-R057 LA-RDO{
   if(pcCodingParameter->getLARDOEnable()!=0)
   {
@@ -4302,6 +4308,9 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
       pcSliceHeader->setBottomOffset    ( m_pcResizeParameters->getBottomOffset      ( iPoc ) );
       pcSliceHeader->setBaseChromaPhaseX(m_pcResizeParameters->m_iBaseChromaPhaseX);  // Shijun-bug-fix
       pcSliceHeader->setBaseChromaPhaseY(m_pcResizeParameters->m_iBaseChromaPhaseY);  // Shijun-bug-fix
+#ifdef _JVTV074_
+      pcSliceHeader->setResampleFilterIdx( m_pcResizeParameters->m_uiResampleFilterIdx);
+#endif //_JVTV074_
     }
     // TMM_ESS }
 
@@ -5514,6 +5523,11 @@ MCTFEncoder::xInitControlDataMotion( UInt uiBaseLevel,
   ROF( pcSliceHeader );
   Double          dScalFactor       = rcControlData.getScalingFactor();
   Double          dQpPredData       = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
+  if( m_bExplicitQPCascading )
+  {
+    UInt  uiTLevel               = m_uiDecompositionStages - uiBaseLevel;
+    dQpPredData                  = m_adBaseQpLambdaMotion[ uiBaseLevel ] + m_adDeltaQPTLevel[ uiTLevel ];
+  }
   Double          dLambda           = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
   Int             iQp               = max( MIN_QP, min( MAX_QP, (Int)floor( dQpPredData + 0.5 ) ) );
 
@@ -5541,8 +5555,16 @@ MCTFEncoder::xInitControlDataLowPass( UInt uiFrameIdInGOP,
   
   Double        dScalFactor     = rcControlData.getScalingFactor();
   Double        dQP             = m_dBaseQpLambdaMotionLP - 6.0 * log10( dScalFactor ) / log10( 2.0 );
+  if( m_bExplicitQPCascading )
+  {
+    dQP                         = m_dBaseQpLambdaMotionLP + m_adDeltaQPTLevel[ 0 ];
+  }
   Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
   dQP                           = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
+  if( m_bExplicitQPCascading )
+  {
+    dQP                         = m_dBaseQPResidual + m_adDeltaQPTLevel[ 0 ];
+  }
   Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
 
   pcSliceHeader->setSliceHeaderQp ( iQP );
@@ -5595,6 +5617,11 @@ MCTFEncoder::xInitControlDataHighPass( UInt uiFrameIdInGOP,
   
   Double        dScalFactor     = rcControlData.getScalingFactor();
   Double        dQP             = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
+  if( m_bExplicitQPCascading )
+  {
+    UInt  uiTLevel              = m_uiDecompositionStages - uiBaseLevel;
+    dQP                         = m_dBaseQPResidual + m_adDeltaQPTLevel[ uiTLevel ];
+  }
   Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
   Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
 
@@ -5628,6 +5655,12 @@ MCTFEncoder::xMotionEstimationFrame( UInt uiBaseLevel, UInt uiFrame )
     Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
     UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
     m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
+
+	// V090
+	Bool  b4TapY      = pcSliceHeader->getSPS().get4TapMotionCompensationY();
+    uiFrameNum  = pcSliceHeader->getFrameNum();
+    m_pcMotionEstimation->set4Tap( b4TapY, uiFrameNum );
+	// V090
 
     RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
     RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
@@ -6121,6 +6154,12 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
     Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
     UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
     m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
+
+	// V090
+	Bool  b4TapY      = pcSliceHeader->getSPS().get4TapMotionCompensationY();
+    uiFrameNum  = pcSliceHeader->getFrameNum();
+    m_pcMotionEstimation->set4Tap( b4TapY, uiFrameNum );
+	// V090
 
     AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
     ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
@@ -8377,6 +8416,12 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
   Bool  bRCDOC      = rcSliceHeader.getSPS().getRCDOMotionCompensationC();
   UInt  uiFrameNum  = rcSliceHeader.getFrameNum();
   m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
+
+  // V090
+  Bool  b4TapY      = rcSliceHeader.getSPS().get4TapMotionCompensationY();
+  uiFrameNum  = rcSliceHeader.getFrameNum();
+  m_pcMotionEstimation->set4Tap( b4TapY, uiFrameNum );
+  // V090
 
   // JVT-S054 (ADD)
   MbDataCtrl*     pcMbDataCtrlL1    = xGetMbDataCtrlL1( rcSliceHeader, uiFrameIdInGOP );

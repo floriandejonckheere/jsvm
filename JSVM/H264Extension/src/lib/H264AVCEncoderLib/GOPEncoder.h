@@ -864,6 +864,9 @@ protected:
   Bool    m_bHighestMGSLayer;
   Bool    m_abCoded[(1<<MAX_DSTAGES)+1];
   UInt    m_uiMGSKeyPictureMotRef;
+
+  Bool    m_bExplicitQPCascading;
+  Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
 };
 
 #if defined( WIN32 )

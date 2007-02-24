@@ -312,7 +312,7 @@ ErrVal CodingParameter::check()
   ROTS( m_cLoopFilterParams         .check() );
   ROTS( m_cMotionVectorSearchParams .check() );
 
-  if( getMVCmode() )
+  if( getAVCmode() )
   {
     Bool bStringNotOk = SequenceStructure::checkString( getSequenceFormatString() ); 
 

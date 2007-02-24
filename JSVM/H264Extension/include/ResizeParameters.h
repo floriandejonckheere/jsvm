@@ -8,6 +8,7 @@
 #define	MAX_REFLIST_SIZE		   32
 //H264AVC_NAMESPACE_BEGIN
 
+//#define _JVTV074_
 #define INTRA_UPSAMPLING_TYPE_DEFAULT     2
 
 #define SST_RATIO_1   0
@@ -81,6 +82,10 @@ public:
                      { return m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseX; }
     Int  getBaseChromaPhaseY ( Int index ) const 
                      { return m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseY; }
+#ifdef _JVTV074_
+    Void setResampleFilterIdx ( UInt uiResampleFilterIdx) { m_uiResampleFilterIdx = uiResampleFilterIdx; }
+    UInt getResampleFilterIdx ( ) {return m_uiResampleFilterIdx;}
+#endif //_JVTV074_
 
     Int  getPoc() const { return m_iPoc; }; 
     Void setPoc( Int iPoc ) { m_iPoc = iPoc; }; 
@@ -102,6 +107,16 @@ public:
     Int  m_iGlobHeight;    //              Henh      if (!bCrop) then it's equal to iOutHeight
     Int m_iChromaPhaseX;
     Int m_iChromaPhaseY;
+
+#ifdef _JVTV074_
+    //Sequence level
+    UInt          m_uiNumResampleFiltersMinus1;
+    Bool          m_bIntegerPosFilterPresentFlag[16];
+    Int           m_iResampleFilterParamA[16][9];
+    Int           m_iResampleFilterParamB[16][9];
+    //Slice level
+    UInt          m_uiResampleFilterIdx;
+#endif //_JVTV074_
 
     // ----- Last Value if by picture
     Int  m_iPosX;          // Position     Xorig

@@ -1971,6 +1971,8 @@ MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
 //TMM_EC }}
   m_pcH264AVCDecoder->setRCDO( rpcSliceHeader );
 
+  m_pcH264AVCDecoder->set4Tap( rpcSliceHeader );  // V090
+
 
   //===== decoding =====
   if( rpcSliceHeader->getSliceType() == F_SLICE )
@@ -2506,6 +2508,8 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bHighestMGSLayer ) //
 {
   m_pcH264AVCDecoder->setRCDO( m_pcRQFGSDecoder->getSliceHeader() );
 
+  m_pcH264AVCDecoder->set4Tap( m_pcRQFGSDecoder->getSliceHeader() );  // V090
+
   DPBUnit*      pcLastDPBUnit   = m_pcDecodedPictureBuffer->getLastUnit();
 //JVT-T054{
   if(!pcLastDPBUnit)
@@ -2741,6 +2745,9 @@ MCTFDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
                                                      rcSliceHeader.getBaseChromaPhaseX(),
                                                      rcSliceHeader.getBaseChromaPhaseY() );
   pcResizeParameter->setPoc( rcSliceHeader.getPoc() );
+#ifdef _JVTV074_
+  m_pcResizeParameter->setResampleFilterIdx( rcSliceHeader.getResampleFilterIdx( ) );
+#endif //_JVTV074_
 
   //===== set crop window flag: in current macroblock data (we don't need the base layer here) =====
   if( pcResizeParameter->m_iSpatialScalabilityType == SST_RATIO_1 ||

@@ -91,6 +91,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
  
 #include <string> 
 #include "CodingParameter.h"
+#ifdef _JVTV074_
+//#define _FILT2_
+//#define _FILT3_
+#endif // _JVTV074_
 
 
 
@@ -282,6 +286,15 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::setRCDODeblocking         ( uiValue );
       continue;
     }
+    if( equals( pcCom, "-4tap-mc-y", 10 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt  uiValue = atoi( argv[n] );
+      CodingParameter::set4TapMotionCompensationY( uiValue );
+	  if(uiValue != 0)
+		  CodingParameter::setRCDOMotionCompensationY( 0 );
+      continue;
+    }
     if( equals( pcCom, "-kpm", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -301,6 +314,75 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       ROTS( NULL == argv[n] );
       UInt uiMode = atoi( argv[n] );
       CodingParameter::setMGSKeyPictureMotRef( uiMode );
+      continue;
+    }
+    if( equals( pcCom, "-eqpc", 5 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt  uiLayer = atoi( argv[n  ] );
+      UInt  uiValue = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setExplicitQPCascading( uiValue );
+      n += 1;
+      continue;
+    }
+    if( equals( pcCom, "-dqp", 4 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      ROTS( NULL == argv[n+2] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      UInt    uiLevel = atoi( argv[n+1] );
+      Double  dValue  = atof( argv[n+2] );
+      CodingParameter::getLayerParameters( uiLayer ).setDeltaQPTLevel( uiLevel, dValue );
+      n += 2;
+      continue;
+    }
+    if( equals( pcCom, "-aeqpc", 6 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      UInt  uiValue = atoi( argv[n] );
+      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+      {
+        CodingParameter::getLayerParameters( uiLayer ).setExplicitQPCascading( uiValue );
+      }
+      continue;
+    }
+    if( equals( pcCom, "-adqp", 5 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLevel = atoi( argv[n  ] );
+      Double  dValue  = atof( argv[n+1] );
+      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+      {
+        CodingParameter::getLayerParameters( uiLayer ).setDeltaQPTLevel( uiLevel, dValue );
+      }
+      n += 1;
+      continue;
+    }
+    if( equals( pcCom, "-xdqp", 5 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      ROTS( NULL == argv[n+2] );
+      Double  dDQP0   = atof( argv[n  ] );
+      Double  dDDQP1  = atof( argv[n+1] );
+      Double  dDDQPN  = atof( argv[n+2] );
+      for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+      {
+        CodingParameter::getLayerParameters( uiLayer ).setExplicitQPCascading( 1 );
+        for( UInt uiLevel = 0; uiLevel <= MAX_DSTAGES; uiLevel++ )
+        {
+          Double  dDQP = dDQP0;
+          if( uiLevel > 0 )
+          {
+            dDQP += dDDQP1 + (Double)( uiLevel - 1 ) * dDDQPN;
+          }
+          CodingParameter::getLayerParameters( uiLayer ).setDeltaQPTLevel( uiLevel, dDQP );
+        }
+      }                                          
+      n += 2;
       continue;
     }
     if( equals( pcCom, "-anafgs", 7 ) )
@@ -715,9 +797,17 @@ Void EncoderCodingParameter::printHelp()
   printf("  -rcdo-db   (value)  RDCO deblocking                 (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo      (value)  RDCO (all components)           (0:off,1:ELonly,2:on)\n" );
 
+  printf("  -4tap-mc-y (value)  4-tap motion compensation luma   (0:off,1:ELonly,2:on)\n" );  // V090
+
   printf("  -kpm       (mode) [0:only for FGS(default), 1:FGS&MGS, 2:always]\n");
   printf("  -mgsctrl   (mode) [0:normal encoding(default), 1:EL ME, 2:EL ME+MC]\n");
   printf("  -mgsmotr   (mode) [0:no MGS mot ref, 1:normal mot ref (default)\n");
+  
+  printf("  -eqpc   (layer) (value)         sets explicit QP cascading mode for given layer [0: no, 1: yes]\n");
+  printf("  -dqp    (layer) (level) (value) sets delta QP for given layer and temporal level (in explicit mode)\n");
+  printf("  -aeqpc  (value)                 sets explicit QP cascading mode for all layers  [0: no, 1: yes]\n");
+  printf("  -adqp   (level) (value)         sets delta QP for all layers and given temporal level (in explicit mode)\n");
+  printf("  -xdqp   (DQP0) (DDQP1) (DDQPN)  sets delta QP for all layers (in explicit mode)\n");
 
   printf("  -h       Print Option List \n");
   printf("\n");
@@ -805,7 +895,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 //TMM_WP
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt("NonRequiredEnable",			&m_bNonRequiredEnable,							 0 );  //NonRequired JVT-Q066
   std::string cInputFile, cReconFile;
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MVCMode",                 &m_uiMVCmode,                                          0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("AVCMode",                 &m_uiAVCmode,                                          0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",               &cInputFile,                                           "in.yuv");
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",               &cReconFile,                                           "rec.yuv");
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceWidth",             &m_uiFrameWidth,                                       0 );
@@ -850,6 +940,8 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationC", &m_uiRCDOMotionCompensationC,                          0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDODeblocking",          &m_uiRCDODeblocking,                                   0 );
 
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("4TapMotionCompensationY", &m_ui4TapMotionCompensationY,                          0 ); // V090
+
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EncodeKeyPictures",       &m_uiEncodeKeyPictures,                                0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSControl",              &m_uiMGSKeyPictureControl,                             0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSKeyPicMotRef",         &m_uiMGSKeyPictureMotionRefinement,                    1 );
@@ -885,7 +977,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     uiParLnCount++;
   }
 
-  if( m_uiMVCmode )
+  if( m_uiAVCmode )
   {
     m_uiNumberOfLayers = 0;
     getLayerParameters(0).setInputFilename  ( (Char*)cInputFile.c_str() );
@@ -1148,6 +1240,16 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector13", &(rcLayer.m_uiPosVect[13]), 0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector14", &(rcLayer.m_uiPosVect[14]), 0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector15", &(rcLayer.m_uiPosVect[15]), 0 );
+
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ExplicitQPCascading", &(rcLayer.m_uiExplicitQPCascading), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel0",         &(rcLayer.m_adDeltaQPTLevel[0]),    0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel1",         &(rcLayer.m_adDeltaQPTLevel[1]),    0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel2",         &(rcLayer.m_adDeltaQPTLevel[2]),    0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel3",         &(rcLayer.m_adDeltaQPTLevel[3]),    0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel4",         &(rcLayer.m_adDeltaQPTLevel[4]),    0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel5",         &(rcLayer.m_adDeltaQPTLevel[5]),    0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel6",         &(rcLayer.m_adDeltaQPTLevel[6]),    0 );
+
   m_pLayerLines[uiParLnCount] = NULL;
 
   while (!feof(f))
@@ -1216,6 +1318,69 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
     rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX = rcLayer.m_ResizeParameter.m_iChromaPhaseX;  // SSUN, Nov2005
     rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY = rcLayer.m_ResizeParameter.m_iChromaPhaseY;
   }
+#ifdef _JVTV074_
+  rcLayer.m_ResizeParameter.m_uiNumResampleFiltersMinus1 = 0;
+  rcLayer.m_ResizeParameter.m_bIntegerPosFilterPresentFlag[0] = false;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][0] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][1] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][2] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][3] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][4] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][5] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][6] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][7] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][8] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][0] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][1] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][2] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][3] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][4] = -2;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][5] = -2;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][6] = -3;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][7] = -3;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][8] = -3;
+#ifdef _FILT2_   
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][0] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][1] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][2] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][3] = -2;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][4] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][5] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][6] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][7] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][8] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][0] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][1] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][2] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][3] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][4] = -3;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][5] = -3;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][6] = -4;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][7] = -5;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][8] = -4;
+#endif
+#ifdef _FILT3_
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][0] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][1] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][2] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][3] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][4] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][5] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][6] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][7] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][8] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][0] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][1] = 0;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][2] = -1;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][3] = -2;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][4] = -3;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][5] = -3;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][6] = -3;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][7] = -5;
+  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][8] = -4;
+#endif
+  rcLayer.m_ResizeParameter.m_uiResampleFilterIdx         = 0; 
+#endif //_JVTV074_
 // TMM_ESS }
 
   //--ICU/ETRI FMO Implementation : FMO stuff start

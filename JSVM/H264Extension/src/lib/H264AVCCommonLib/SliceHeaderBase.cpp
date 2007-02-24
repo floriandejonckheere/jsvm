@@ -712,6 +712,15 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset/iYScale,                     "SH: ScaledBaseBottomOffset" ) );
 		}
 	}
+#ifdef _JVTV074_
+  if ((m_eSliceType != F_SLICE))
+  {
+    if (getSPS().getNumResampleFiltersMinus1())
+    {
+      RNOK( pcWriteIf->writeUvlc( m_uiResampleFilterIdx,                     "SH: ResampleFilterIdx" ) );
+    }
+  }
+#endif // _JVTV074_
 	// TMM_ESS }
 
     if( m_eSliceType == F_SLICE && uiFragmentOrder == 0)
@@ -1146,6 +1155,16 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       m_iScaledBaseBottomOffset *= iYScale;
     }
   }
+#ifdef _JVTV074_
+  if ((m_eSliceType != F_SLICE))
+  {
+    m_uiResampleFilterIdx = 0;
+    if (getSPS().getNumResampleFiltersMinus1())
+    {
+      RNOK( pcReadIf->getUvlc( m_uiResampleFilterIdx,                          "SH: ResampleFilterIdx" ) );
+    }
+  }
+#endif //_JVTV074_
 // TMM_ESS }
 
   if( m_eSliceType == F_SLICE && m_uiFragmentOrder == 0)

@@ -132,7 +132,7 @@ ControlMngH264AVCEncoder::initParameterSetsForFGS( const SequenceParameterSet&  
                                              const PictureParameterSet&   rcPPSHP )
 {
   UInt  uiLayer             = rcSPS.getLayerId          ();
-  if( ! m_bMVCMode )
+  if( ! m_bAVCMode )
   {
     RNOK( m_apcMCTFEncoder[uiLayer]->initParameterSetsForFGS( rcSPS, rcPPSLP, rcPPSHP ) );
   }
@@ -153,7 +153,7 @@ ControlMngH264AVCEncoder::initParameterSets( const SequenceParameterSet&  rcSPS,
   //===== initialize buffer controls and MCTFEncoder =====
   RNOK( m_apcYuvFullPelBufferCtrl[uiLayer]->initSPS( uiMbY<<4, uiMbX<<4, YUV_Y_MARGIN, YUV_X_MARGIN    ) );
   RNOK( m_apcYuvHalfPelBufferCtrl[uiLayer]->initSPS( uiMbY<<4, uiMbX<<4, YUV_Y_MARGIN, YUV_X_MARGIN, 1 ) );
-  if( ! m_bMVCMode )
+  if( ! m_bAVCMode )
   {
   RNOK( m_apcMCTFEncoder         [uiLayer]->initParameterSets( rcSPS, rcPPSLP, rcPPSHP ) );
   }
@@ -305,7 +305,7 @@ ErrVal ControlMngH264AVCEncoder::init( FrameMng*               pcFrameMng,
     m_apcYuvHalfPelBufferCtrl [uiLayer] = apcYuvHalfPelBufferCtrl [uiLayer];
   }
 
-  m_bMVCMode = ( pcCodingParameter->getMVCmode() != 0 );
+  m_bAVCMode = ( pcCodingParameter->getAVCmode() != 0 );
 
   return Err::m_nOK;
 }

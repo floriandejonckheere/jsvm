@@ -2333,6 +2333,8 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 {
   setRCDO( &rcSH );
 
+  set4Tap( &rcSH );  // V090
+
   UInt  uiMbRead;
   Bool  bNewFrame = false;
   Bool  bNewPic   = false; 
@@ -2467,6 +2469,8 @@ H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
                                       PicBuffer* &    rpcPicBuffer)
 {
   setRCDO( &rcSH );
+
+  set4Tap( &rcSH );  // V090
 
   UInt  uiMbRead;
   Bool  bNewFrame = false;
@@ -2677,6 +2681,8 @@ ErrVal
 H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSliceHeader) //JVT-T054
 {
   setRCDO( m_pcRQFGSDecoder->getSliceHeader() );
+
+  set4Tap( m_pcRQFGSDecoder->getSliceHeader() );  // V090
 
   MbDataCtrl*   pcMbDataCtrl        = m_pcRQFGSDecoder->getMbDataCtrl   ();
   SliceHeader*  pcSliceHeader       = m_pcRQFGSDecoder->getSliceHeader  ();

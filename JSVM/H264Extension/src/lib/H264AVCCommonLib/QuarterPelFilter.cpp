@@ -206,6 +206,11 @@ Void predBlkBilinear( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaI
 
 Void QuarterPelFilter::predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
 {
+  if( m_b4Tap )   // V090
+  {
+    predBlk4TapD( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
+    return;
+  }               // V090
   if( m_bRCDO )
   {
     predBlkRCDO( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
@@ -581,7 +586,26 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
 
   XPel*  ps          = &psTemp[ iMargin * uiTmpXSize + 2*iMargin ];
 
-  if( m_bRCDO )
+  if( m_b4Tap) // V090
+  {
+    for( y = 0; y < iHeight; y++ )
+    {
+      for( x = -iMarginNew; x < iWidth+iMarginNew; x++ )
+      {
+        Int iTemp;
+        iTemp  = pucSrc[x - 0];
+        iTemp += pucSrc[x + 1];
+        iTemp += iTemp << 3;
+        iTemp -= pucSrc[x - 1];
+        iTemp -= pucSrc[x + 2];
+        ps[2*x]    = pucSrc[x]<<4;
+        ps[2*x+1]  = iTemp;
+	  }
+      ps     += uiTmpXSize;
+      pucSrc += iStride;
+	}
+  }            // V090
+  else if( m_bRCDO )
   {
     for( y = 0; y < iHeight; y++ )
     {
@@ -649,7 +673,27 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
   Pel* pucDesHP       = pcHalfPelBuffer->getMbLumAddr();
   pucDesHP -= (iMarginNew*iDesStrideHP)<<1;
 
-  if( m_bRCDO )
+  if( m_b4Tap)   // V090
+  {
+    for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
+    {
+      for( x = -2*iMarginNew; x < 2*(iWidth+iMarginNew); x++ )
+      {
+        Int iTemp;
+        iTemp  = ps[x - 0*iStride];
+        iTemp += ps[x + 1*iStride];
+        iTemp += iTemp << 3;
+        iTemp -= ps[x - 1*iStride];
+        iTemp -= ps[x + 2*iStride];
+
+        pucDesHP[x]              = xClip( ( ps[x] + 8) >> 4);
+        pucDesHP[x+iDesStrideHP] = xClip( ( iTemp + 128) >> 8);
+      }
+      pucDesHP += iDesStrideHP<<1;
+      ps     += iStride;
+    }
+  } // V090
+  else if( m_bRCDO )
   {
     for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
     {
@@ -716,7 +760,26 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
 
   XXPel*  ps          = &psTemp[ iMargin * uiTmpXSize + 2*iMargin ]; // fix provided by Shijun Sun
 
-  if( m_bRCDO )
+  if( m_b4Tap) // V090
+  {
+    for( y = 0; y < iHeight; y++ )
+    {
+      for( x = -iMarginNew; x < iWidth+iMarginNew; x++ )
+      {
+        Int iTemp;
+        iTemp  = pucSrc[x - 0];
+        iTemp += pucSrc[x + 1];
+        iTemp += iTemp << 3;
+        iTemp -= pucSrc[x - 1];
+        iTemp -= pucSrc[x + 2];
+        ps[2*x]    = pucSrc[x]<<4;
+        ps[2*x+1]  = iTemp;
+	  }
+      ps     += uiTmpXSize;
+      pucSrc += iStride;
+	}
+  }            // V090
+  else if( m_bRCDO )
   {
     for( y = 0; y < iHeight; y++ )
     {
@@ -784,7 +847,27 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
   XPel* pucDesHP      = pcHalfPelBuffer->getMbLumAddr();
   pucDesHP -= (iMarginNew*iDesStrideHP)<<1;
 
-  if( m_bRCDO )
+  if( m_b4Tap)   // V090
+  {
+    for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
+    {
+      for( x = -2*iMarginNew; x < 2*(iWidth+iMarginNew); x++ )
+      {
+        Int iTemp;
+        iTemp  = ps[x - 0*iStride];
+        iTemp += ps[x + 1*iStride];
+        iTemp += iTemp << 3;
+        iTemp -= ps[x - 1*iStride];
+        iTemp -= ps[x + 2*iStride];
+
+        pucDesHP[x]              = xClip( ( ps[x] + 8) >> 4);
+        pucDesHP[x+iDesStrideHP] = xClip( ( iTemp + 128) >> 8);
+      }
+      pucDesHP += iDesStrideHP<<1;
+      ps     += iStride;
+    }
+  } // V090
+  else if( m_bRCDO )
   {
     for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
     {
@@ -829,6 +912,222 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
   return Err::m_nOK;
 }
 
+// ********************** V090 begins ************************************
+Void QuarterPelFilter::filterBlock4Tap( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
+{
+  Int l[20], c[20], r[20], * p;
+  UInt y, x;
+  XPel * pS, * pD;
+
+  for( x = 0; x < uiXSize; x++, pSrc += 2 )
+  {
+    if( uiFilter == 0 ) // vertical full-sample, horizontal full-sample
+    {
+	  pS = pSrc - 4 * iSrcStride, pD = pDes + x;
+	  for(y = 0; y < 4 + uiYSize; y ++, pS += 2 * iSrcStride)
+	  {
+        l[y] = 4 * pS[-2] + 14 * pS[0] - pS[-4] - pS[2];
+		c[y] = pS[0];
+		r[y] = 14 * pS[0] + 4 * pS[2] - pS[-2] - pS[4];
+
+		if(y >= 4){
+			p = l + y - 4;
+			pD[0x000] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x300] = xClip((p[2] + 8) >> 4);
+			pD[0x600] = xClip((14 * p[2] + 4 * p[3] - p[1] - p[4] + 128) >> 8);
+
+			p = c + y - 4;
+			pD[0x100] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 8) >> 4);
+			pD[0x700] = xClip((14 * p[2] + 4 * p[3] - p[1] - p[4] + 8) >> 4);
+
+			p = r + y - 4;
+			pD[0x200] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x500] = xClip((p[2] + 8) >> 4);
+			pD[0x800] = xClip((14 * p[2] + 4 * p[3] - p[1] - p[4] + 128) >> 8);
+
+			pD += 16;
+		}
+	  }
+	}
+    else if( uiFilter == 1 ) // vertical half-sample, horizontal full-sample
+    {
+	  pS = pSrc - 4 * iSrcStride - 1, pD = pDes + x;
+	  for(y = 0; y < 4 + uiYSize; y ++, pS += 2 * iSrcStride)
+	  {
+        l[y] = 14 * pS[0] + 4 * pS[2] - pS[-2] - pS[4];
+		c[y] = 9 * (pS[0] + pS[2]) - pS[-2] - pS[4];
+		r[y] = 4 * pS[0] + 14 * pS[2] - pS[-2] - pS[4];
+
+		if(y >= 4){
+			p = l + y - 4;
+			pD[0x000] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x300] = xClip((p[2] + 8) >> 4);
+			pD[0x600] = xClip((14 * p[2] + 4 * p[3] - p[1] - p[4] + 128) >> 8);
+
+			p = c + y - 4;
+			pD[0x100] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x700] = xClip((14 * p[2] + 4 * p[3] - p[1] - p[4] + 128) >> 8);
+
+			p = r + y - 4;
+			pD[0x200] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x500] = xClip((p[2] + 8) >> 4);
+			pD[0x800] = xClip((14 * p[2] + 4 * p[3] - p[1] - p[4] + 128) >> 8);
+
+			pD += 16;
+		}
+	  }
+	}
+    else if( uiFilter == 2 ) // vertical full-sample, horizontal half-sample
+    {
+	  pS = pSrc - 3 * iSrcStride, pD = pDes + x;
+	  for(y = 0; y < 3 + uiYSize; y ++, pS += 2 * iSrcStride)
+	  {
+        l[y] = 4 * pS[-2] + 14 * pS[0] - pS[-4] - pS[2];
+		c[y] = pS[0];
+		r[y] = 14 * pS[0] + 4 * pS[2] - pS[-2] - pS[4];
+
+		if(y >= 3){
+			p = l + y - 3;
+			pD[0x000] = xClip((14 * p[1] + 4 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x300] = xClip((9 * (p[1] + p[2]) - p[0] - p[3] + 128) >> 8);
+			pD[0x600] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+
+			p = c + y - 3;
+			pD[0x100] = xClip((14 * p[1] + 4 * p[2] - p[0] - p[3] + 8) >> 4);
+			pD[0x700] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 8) >> 4);
+
+			p = r + y - 3;
+			pD[0x200] = xClip((14 * p[1] + 4 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x500] = xClip((9 * (p[1] + p[2]) - p[0] - p[3] + 128) >> 8);
+			pD[0x800] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+
+			pD += 16;
+		}
+	  }
+	}
+    else // vertical half-sample, horizontal half-sample
+    {
+	  pS = pSrc - 3 * iSrcStride - 1, pD = pDes + x;
+	  for(y = 0; y < 3 + uiYSize; y ++, pS += 2 * iSrcStride)
+	  {
+        l[y] = 14 * pS[0] + 4 * pS[2] - pS[-2] - pS[4];
+		c[y] = 9 * (pS[0] + pS[2]) - pS[-2] - pS[4];
+		r[y] = 4 * pS[0] + 14 * pS[2] - pS[-2] - pS[4];
+
+		if(y >= 3){
+			p = l + y - 3;
+			pD[0x000] = xClip((14 * p[1] + 4 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x300] = xClip((9 * (p[1] + p[2]) - p[0] - p[3] + 128) >> 8);
+			pD[0x600] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+
+			p = c + y - 3;
+			pD[0x100] = xClip((14 * p[1] + 4 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x700] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+
+			p = r + y - 3;
+			pD[0x200] = xClip((14 * p[1] + 4 * p[2] - p[0] - p[3] + 128) >> 8);
+			pD[0x500] = xClip((9 * (p[1] + p[2]) - p[0] - p[3] + 128) >> 8);
+			pD[0x800] = xClip((4 * p[1] + 14 * p[2] - p[0] - p[3] + 128) >> 8);
+
+			pD += 16;
+		}
+	  }
+	}
+  }
+}
+
+Void QuarterPelFilter::predBlk4TapD( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
+{
+  XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
+  XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );
+  Int iDesStride  = pcDesBuffer->getLStride();
+  Int iSrcStride  = pcSrcBuffer->getLStride();
+  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
+  Int iTemp1[4], iTemp2, x, y;
+  int i, j;
+  Int iDx = cMv.getHor() & 3;
+  Int iDy = cMv.getVer() & 3;
+  static int f4tap[4][4] = {
+    { 0, 16,  0,  0}, 
+    {-1, 14,  4, -1},
+    {-1, 9, 9, -1},
+    {-1,  4, 14, -1}
+  };
+
+  pucSrc += iOffset;
+
+  for( y = 0; y < iSizeY; y++)
+  {
+    for( x = 0; x < iSizeX; x++ )
+    {
+      for( i = 0; i < 4; i++ )
+      {
+        iTemp1[i] = 0;
+        for( j = 0; j < 4; j++ )
+          iTemp1[i] += pucSrc[x + (i - 1) * iSrcStride + j - 1] * f4tap[iDx][j];
+      }
+
+      iTemp2 = 0;
+      for(j=0;j<4;j++)
+        iTemp2 += iTemp1[j] * f4tap[iDy][j];
+
+      if( m_bClip )
+        pucDes[x] = xClip( (iTemp2 + 128) >> 8 );
+      else
+        pucDes[x] = (iTemp2 >= 0) ? ( (iTemp2 + 128) >> 8 ) : -( (-iTemp2 + 128) >> 8 );
+    }
+
+    pucDes += iDesStride;
+    pucSrc += iSrcStride;
+  }
+}
+
+Void QuarterPelFilter::predBlk4TapD( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
+{
+  Pel* pucDes     = pcDesBuffer->getYBlk( cIdx );
+  Pel* pucSrc     = pcSrcBuffer->getYBlk( cIdx );
+  Int iDesStride  = pcDesBuffer->getLStride();
+  Int iSrcStride  = pcSrcBuffer->getLStride();
+  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
+  Int iTemp1[4], iTemp2, x, y;
+  Int iDx = cMv.getHor() & 3;
+  Int iDy = cMv.getVer() & 3;
+  int i, j;
+  static int f4tap[4][4] = {
+    { 0, 16,  0,  0}, 
+    {-1, 14,  4, -1},
+    {-1, 9, 9, -1},
+    {-1,  4, 14, -1}
+  };
+
+  pucSrc += iOffset;
+
+  for( y = 0; y < iSizeY; y++)
+  {
+    for( x = 0; x < iSizeX; x++ )
+    {
+      for( i = 0; i < 4; i++ )
+      {
+        iTemp1[i] = 0;
+        for( j = 0; j < 4; j++ )
+          iTemp1[i] += pucSrc[x + (i - 1) * iSrcStride + j - 1] * f4tap[iDx][j];
+      }
+
+      iTemp2 = 0;
+      for(j=0;j<4;j++)
+        iTemp2 += iTemp1[j] * f4tap[iDy][j];
+
+      if( m_bClip )
+        pucDes[x] = xClip( (iTemp2 + 128) >> 8 );
+      else
+        pucDes[x] = (iTemp2 >= 0) ? ( (iTemp2 + 128) >> 8 ) : -( (-iTemp2 + 128) >> 8 );
+    }
+
+    pucDes += iDesStride;
+    pucSrc += iSrcStride;
+  }
+}
+// ********************** V090 ends ************************************
 
 Void QuarterPelFilter::filterBlockRCDO( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
 {
@@ -1477,6 +1776,11 @@ Void QuarterPelFilter::predBlk4Tap( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer
 
 Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
 {
+  if( m_b4Tap)  // V090
+  {
+    predBlk4TapD( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
+    return;
+  }             // V090
   if( m_bRCDO )
   {
     predBlkRCDO( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );

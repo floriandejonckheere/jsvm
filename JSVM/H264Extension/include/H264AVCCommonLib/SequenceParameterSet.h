@@ -273,6 +273,9 @@ public:
   Void  setRCDOMotionCompensationC( Bool b ) { m_bRCDOMotionCompensationC = b; }
   Void  setRCDODeblocking         ( Bool b ) { m_bRCDODeblocking          = b; }
 
+  Void  set4TapMotionCompensationY( Bool b ) {m_b4TapMotionCompensationY = b; } // V090
+  Bool  get4TapMotionCompensationY() const { return m_b4TapMotionCompensationY; }  // V090
+
 protected:
 	ErrVal xReadPicOrderCntInfo         ( HeaderSymbolReadIf* pcReadIf );
   static ErrVal xGetLevelLimit        ( const LevelLimit*&    rpcLevelLimit,
@@ -317,6 +320,15 @@ protected:
   Int           m_iScaledBaseTopOffset;
   Int           m_iScaledBaseRightOffset;
   Int           m_iScaledBaseBottomOffset;
+#ifdef _JVTV074_
+public:
+    UInt        getNumResampleFiltersMinus1( ) const { return m_uiNumResampleFiltersMinus1;}
+protected:
+  UInt          m_uiNumResampleFiltersMinus1;
+  Bool          m_bIntegerPosFilterPresentFlag[16];
+  Int           m_iResampleFilterParamA[16][9];
+  Int           m_iResampleFilterParamB[16][9];
+#endif //_JVTV074_
 // TMM_ESS }
 
   Bool          m_bInterlayerDeblockingPresent;
@@ -340,6 +352,8 @@ protected:
   Bool          m_bRCDOMotionCompensationY;
   Bool          m_bRCDOMotionCompensationC;
   Bool          m_bRCDODeblocking;
+
+  Bool          m_b4TapMotionCompensationY;  // V090
 
 private:
   static const LevelLimit m_aLevelLimit[52];

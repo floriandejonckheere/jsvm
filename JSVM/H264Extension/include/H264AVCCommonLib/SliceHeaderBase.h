@@ -1038,6 +1038,13 @@ protected:
   Int           m_iScaledBaseTopOffset;
   Int           m_iScaledBaseRightOffset;
   Int           m_iScaledBaseBottomOffset;
+#ifdef _JVTV074_
+public:
+  Void          setResampleFilterIdx ( Int i ) { m_uiResampleFilterIdx = i; }
+  Int           getResampleFilterIdx ( ) const { return m_uiResampleFilterIdx; }
+protected:
+  UInt          m_uiResampleFilterIdx;
+#endif //_JVTV074_
 // TMM_ESS }
 
   Bool          m_bArFgsUsageFlag;

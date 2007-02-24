@@ -1,5 +1,20 @@
 
 
+JSVM_8_4 -> JSVM_8_5
+========================
+Date        : Feb 20, 2007
+Authors     : Chengjie Tu (Microsoft), Shankar Regunathan (Microsoft), H. Schwarz (HHI)
+Contribution: JVT-V090, JVT-V074
+
+Changes:
+- added 4 tap direct motion compensation interpolation for luma (as a configurable encoder option)
+- added flexible 4-tap upsampling filters (as an option controlled by the preprocessing flag _JVTV074_)
+- bug fix for SKIP mode in hierarchical P pictures
+- added encoder option: explicit QP cascading mode
+- renamed "MVCMode" to "AVCMode", made it compatible with H.264/AVC
+
+
+
 JSVM_8_3 -> JSVM_8_4
 ========================
 
