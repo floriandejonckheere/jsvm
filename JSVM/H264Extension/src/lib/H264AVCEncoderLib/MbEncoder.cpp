@@ -873,6 +873,10 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
   Int     iMinCnt     = ( uiRPred == 0 || uiRPred == 2 ? 0 : 1 );
   Int     iMaxCnt     = ( uiRPred == 1 || uiRPred == 2 ? 2 : 1 );
 
+  //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
+  Bool    bRemovePSkip= false;
+  //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
+
 	//-- JVT-R091
 	Bool		bSmoothedRef = false;
 	rcMbDataAccess.getMbData().setSmoothedRefFlag( false );
@@ -1060,11 +1064,12 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
         uiRate  = uiMbBits + BitCounter::getNumberOfWrittenBits();
 
         //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
+        Bool bCoefficientsInPSkip = false;
         if( rcMbDataAccess.getSH().getSliceType()  == P_SLICE   &&
-          rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP &&
-          ( uiExtCbp != 0 || bSmoothedRef || iCnt != 0 ) )
+            rcMbDataAccess.getMbData().getMbMode() == MODE_SKIP &&
+            ( uiExtCbp != 0 || bSmoothedRef || iCnt != 0 ) )
         {
-          // convert SKIP mode into 16x16 mode
+          // temporarily convert SKIP mode into 16x16 mode
           Mv cMvPred, cMvd;
           rcMbDataAccess.getMvPredictor( cMvPred, 1, LIST_0 );
           cMvd  = rcMbDataAccess.getMbMotionData( LIST_0 ).getMv();
@@ -1077,6 +1082,11 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
           RNOK( MbCoder::xWriteMotionPredFlags      ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
           RNOK( MbCoder::xWriteMotionVectors        ( rcMbDataAccess, MODE_16x16, LIST_0 ) );
           uiRate += BitCounter::getNumberOfWrittenBits();
+          // reset original SKIP mode
+          rcMbDataAccess.getMbMvdData( LIST_0 ).setAllMv( Mv::m_cMvZero );
+          rcMbDataAccess.getMbData().setMbMode( MODE_SKIP );
+          // set flag
+          bCoefficientsInPSkip = true;
         }
         //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
 
@@ -1110,7 +1120,11 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
 						// set flag
 						rcMbDataAccess.getMbData().setSmoothedRefFlag( true );
 					}
-					//--
+          //--
+
+          //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
+          bRemovePSkip = bCoefficientsInPSkip;
+          //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
         }
 
         m_pcIntMbTempData->uninit();
@@ -1123,6 +1137,19 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
 		m_pcIntOrgMbPelData->loadChroma	( cOrgMbBuffer );
 		//--
   }
+
+  //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
+  if( bRemovePSkip )
+  {
+    // convert SKIP mode into 16x16 mode
+    Mv cMvPred, cMvd;
+    rcMbDataAccess.getMvPredictor( cMvPred, 1, LIST_0 );
+    cMvd  = rcMbDataAccess.getMbMotionData( LIST_0 ).getMv();
+    cMvd -= cMvPred;
+    rcMbDataAccess.getMbMvdData( LIST_0 ).setAllMv( cMvd );
+    rcMbDataAccess.getMbData().setMbMode( MODE_16x16 );
+  }
+  //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
 
   return Err::m_nOK;
 }
