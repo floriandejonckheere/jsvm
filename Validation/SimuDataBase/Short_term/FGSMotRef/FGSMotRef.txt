@@ -47,7 +47,7 @@
 				                width => 176,
 				                height => 144,
             		        bitrate => 50,
-            		        psnr => 25.19,
+            		        psnr => 25.18,
             		      },
 		                  #----------#
                       # Test   1 #
@@ -58,7 +58,7 @@
 				                width => 176,
 				                height => 144,
             		        bitrate => 80,
-            		        psnr => 26.35,
+            		        psnr => 26.34,
             		      },
 			                 #----------#
                       # Test   2 #

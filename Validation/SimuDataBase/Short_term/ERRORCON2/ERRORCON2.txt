@@ -84,7 +84,7 @@ tests              => [
                         height      => 288,
                         framerate   => 15,
                   			bitrate     => 537,
-                  			psnr        => 14.64,
+                  			psnr        => 14.63,
                         errorconcealment => 2,
                         packetlossrate  => 5,
                        },  
