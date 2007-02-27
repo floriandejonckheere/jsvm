@@ -283,16 +283,16 @@
             		      #---------------#
                       # Test 6.6.1.18 #
                       #---------------#
-                      #{
-          		        #name          => "AVCFM-3",
-          		        #mode          => 0,
-          		        #width         => 176,
-          		        #height        => 144,
-          		        #bitstreamname => "FM1_FT_E.264",
-          		        #decodedname   => "FM1_FT_E_176x144.yuv",
-          		        #origname      => "FM1_FT_E.yuv",
-          		        #psnr          => 99.99,
-		                  #},		                  
+                     # {
+          		       # name          => "AVCFM-3",
+          		       # mode          => 0,
+          		       # width         => 176,
+          		       # height        => 144,
+          		       # bitstreamname => "FM1_FT_E.264",
+          		       # decodedname   => "FM1_FT_E_176x144.yuv",
+          		       # origname      => "FM1_FT_E.yuv",
+          		       # psnr          => 99.99,
+		                 # },		                  
             		      #---------------#
                       # Test 6.6.1.19 #
                       #---------------#
@@ -348,16 +348,16 @@
             		      #---------------#
                       # Test 6.6.1.23 #
                       #---------------#
-                      #{
-          		        #name          => "AVCAUD-1",
-          		        #mode          => 0,
-          		        #width         => 176,
-          		        #height        => 144,
-          		        #bitstreamname => "AUD_MW_E.264",
-          		        #decodedname   => "AUD_MW_E_rec_176x144.yuv",
-          		        #origname      => "AUD_MW_E_rec.qcif",
-          		        #psnr          => 99.99,
-		                  #},		                  
+                      {
+          		        name          => "AVCAUD-1",
+          		        mode          => 0,
+          		        width         => 176,
+          		        height        => 144,
+          		        bitstreamname => "AUD_MW_E.264",
+          		        decodedname   => "AUD_MW_E_rec_176x144.yuv",
+          		        origname      => "AUD_MW_E_rec.qcif",
+          		        psnr          => 99.99,
+		                  },		                  
             		      #---------------#
                       # Test 6.6.1.24 #
                       #---------------#
