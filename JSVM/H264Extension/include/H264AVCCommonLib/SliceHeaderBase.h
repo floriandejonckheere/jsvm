@@ -904,6 +904,9 @@ public:
   Void			setInIDRAccess(Bool b)	{ m_bInIDRAccess = b; }
   Bool			getInIDRAccess()		{ return m_bInIDRAccess; }
 
+  Bool          getUseSmoothedRef() { return m_bUseSmoothedRef;} //JVT-V058
+  Void          setUseSmoothedRef(Bool b) {m_bUseSmoothedRef = b;}//JVT-V058 
+
 protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
   ErrVal xReadScalable                ( HeaderSymbolReadIf*   pcReadIf );
@@ -1062,6 +1065,8 @@ protected:
   Bool          m_bFGSVectorModeOverrideFlag;
   //EIDR bug-fix
   Bool			m_bInIDRAccess; 
+
+  Bool          m_bUseSmoothedRef;//JVT-V058
 };
 
 

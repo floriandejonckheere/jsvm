@@ -273,6 +273,7 @@ MCTFEncoder::MCTFEncoder()
 , m_uiMGSKeyPictureControl( 0 )
 , m_bHighestMGSLayer( false )
 , m_uiMGSKeyPictureMotRef( 1 )
+, m_bUseSmoothedRef( 0 ) //JVT-V058
 {
   ::memset( m_abIsRef,          0x00, sizeof( m_abIsRef           ) );
   ::memset( m_apcFrameTemp,     0x00, sizeof( m_apcFrameTemp      ) );
@@ -447,6 +448,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_bForceReOrderingCommands= pcLayerParameters->getForceReorderingCommands ()  > 0;
   m_bWriteSubSequenceSei    = pcCodingParameter->getBaseLayerMode           ()  > 1 && m_uiLayerId == 0;
 
+  m_bUseSmoothedRef         = (pcLayerParameters->getUseSmoothedRef()!=0 ? true: false); //JVT-V058
 
   m_bSameResBL              = ( m_uiBaseLayerId != MSYS_UINT_MAX &&
                                 pcCodingParameter->getLayerParameters( m_uiBaseLayerId ).getFrameWidth () == pcLayerParameters->getFrameWidth () &&
@@ -4240,6 +4242,9 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   pcSliceHeader->setBaseLayerCGSSNR                 (m_uiBaseLayerCGSSNR);
   pcSliceHeader->setBaseQualityLevelCGSSNR          (m_uiBaseQualityLevelCGSSNR);
 //JVT-T054}
+
+  pcSliceHeader->setUseSmoothedRef(m_bUseSmoothedRef);//JVT-V058
+
 //JVT-Q054 Red. Picture {
   if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag())
   {
@@ -8656,8 +8661,9 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
             if( bField )
             {
               acMbData[eP].copy( pcMbDataAccess->getMbData() );
-              acIntYuvMbBuffer->loadBuffer( apcIntraRecFrame[eP]->getFullPelYuvBuffer() );
-            }
+             // TMM_INTERLACE
+             (&acIntYuvMbBuffer[eP])->loadBuffer( apcIntraRecFrame[eP]->getFullPelYuvBuffer() );
+           }
           }
           Bool bFieldMode = adCost[0] < adCost[1];
 
@@ -8837,7 +8843,8 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
             if( bField )
             {
               acMbData[eP].copy( pcMbDataAccess->getMbData() );
-              acIntYuvMbBuffer->loadBuffer( apcIntraRecFrame[eP]->getFullPelYuvBuffer() );
+            //TMM_INTERLACE
+            (&acIntYuvMbBuffer[eP])->loadBuffer( apcIntraRecFrame[eP]->getFullPelYuvBuffer() );
             }
           }
           Bool bFieldMode = adCost[0] < adCost[1];

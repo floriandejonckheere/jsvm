@@ -99,7 +99,7 @@ IntYuvMbBuffer::IntYuvMbBuffer()
 , m_pPelCurrU( NULL )
 , m_pPelCurrV( NULL )
 {
-  DO_DBG_INIT( ::memset( m_aucYuvBuffer, 0 , sizeof(m_aucYuvBuffer) ) );// TMM_INTERLACE
+  DO_DBG( ::memset( m_aucYuvBuffer, 0 , sizeof(m_aucYuvBuffer) ) );// TMM_INTERLACE
 }
 
 

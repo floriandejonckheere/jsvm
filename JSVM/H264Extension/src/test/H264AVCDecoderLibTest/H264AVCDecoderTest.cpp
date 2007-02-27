@@ -396,6 +396,7 @@ ErrVal H264AVCDecoderTest::go()
          if ( bFinish )
          {
            RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+           pcBinData = NULL; //TMM_JV
            continue;
          }
       }
@@ -592,10 +593,13 @@ ErrVal H264AVCDecoderTest::go()
 			      
 					  RNOK( xRemovePicBuffer( cPicBufferReleaseList ) );
 					  RNOK( xRemovePicBuffer( cPicBufferUnusedList ) );
-              if(pcBinDataS)
-                RNOK( m_pcReadBitstream->releasePacket( pcBinDataS ) );
+           // if(pcBinDataS) //TMM_JV
+           //     RNOK( m_pcReadBitstream->releasePacket( pcBinDataS ) );
 				  }
-			  }
+			    //TMM_JV
+          if(pcBinDataS)
+          RNOK( m_pcReadBitstream->releasePacket( pcBinDataS ) );
+        }
 		  }	while( true);
 		}
 //TMM_EC }}

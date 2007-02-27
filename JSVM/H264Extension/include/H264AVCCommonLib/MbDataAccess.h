@@ -316,6 +316,8 @@ public:
   	return getSH().getBaseLayerUsesConstrainedIntraPred();
   }
 
+  Bool useSmoothedRef() { return getSH().getUseSmoothedRef();}//JVT-V058
+
   UInt getCtxChromaPredMode ()                  const;
   UInt getCtxCoeffCount     ( LumaIdx cIdx )    const;
   UInt getCtxCoeffCount     ( ChromaIdx cIdx )  const;

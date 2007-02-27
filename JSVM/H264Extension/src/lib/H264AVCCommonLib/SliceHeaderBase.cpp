@@ -324,6 +324,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bCIUFlag                          ( false )
 //JVT-U106 Behaviour at slice boundaries}
 , m_bInIDRAccess					            ( false ) //EIDR bug-fix
+, m_bUseSmoothedRef                   ( true )//JVT-V058
 {
   ::memset(  m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt));
   ::memset(  m_aiDeltaPicOrderCnt,         0x00, 2*sizeof(Int) );
@@ -618,6 +619,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
         }
         RNOK( pcWriteIf->writeFlag( m_bAdaptiveResPredictionFlag,                    "SH: adaptive_residual_prediction_flag" ) );
         // JVT-U160 LMI }
+        RNOK( pcWriteIf->writeFlag( m_bUseSmoothedRef,                          "SH: use_smoothed_ref") );
       }
 
 		if( ( getPPS().getWeightedPredFlag ()      && ( m_eSliceType == P_SLICE ) ) ||
@@ -752,10 +754,12 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	}
 	 if (m_eSliceType != F_SLICE )
   {
-    if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() && m_bBaseFrameMbsOnlyFlag )  // will consider base-layer flags later
+    //TMM_INTERLACE {
+    if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() ) 
       RNOK( pcWriteIf->writeFlag( m_bBaseFrameFromBotFieldFlag,                "SH: base_frame_from_bot_field_coincided_flag" ) );  // set to 0 (default)
-    if( !m_bBaseFrameMbsOnlyFlag && !m_bBaseFieldPicFlag && getSPS().getFrameMbsOnlyFlag() )  // will consider base-layer flags later
+    if( getSPS().getFrameMbsOnlyFlag() )  
       RNOK( pcWriteIf->writeFlag( m_bBaseBotFieldSyncFlag,                     "SH: base_bot_field_coincided_flag" ) );  // set to 0 (default)
+    //TMM_INTERLACE }
   }
 	
 	
@@ -927,11 +931,13 @@ SliceHeaderBase::ReadLastBit( )
   if (m_eSliceType != F_SLICE )
   {
     m_bBaseFrameFromBotFieldFlag = m_bBaseBotFieldSyncFlag = false;
-    if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() && m_bBaseFrameMbsOnlyFlag )  // will consider base-layer flags later
+    //TMM_INTERLACE {  
+    if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() )  
       RNOK( m_pcReadIf->getFlag( m_bBaseFrameFromBotFieldFlag,                 "SH: base_frame_from_bot_field_coincided_flag" ) );
     
-    if( getSPS().getFrameMbsOnlyFlag() && !m_bBaseFrameMbsOnlyFlag && !m_bBaseFieldPicFlag)  // will consider base-layer flags later
+    if( getSPS().getFrameMbsOnlyFlag() )  
       RNOK( m_pcReadIf->getFlag( m_bBaseBotFieldSyncFlag,                      "SH: base_bot_field_coincided_flag" ) );
+   //TMM_INTERLACE }
   }
   
   return Err::m_nOK;
@@ -1041,6 +1047,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
       }
       RNOK( pcReadIf->getFlag( m_bAdaptiveResPredictionFlag,                    "SH: adaptive_residual_prediction_flag" ) );
       // JVT-U160 LMI }
+      RNOK( pcReadIf->getFlag( m_bUseSmoothedRef,                           "SH: use_smoothed_ref_flag") );
     }
     else
     {

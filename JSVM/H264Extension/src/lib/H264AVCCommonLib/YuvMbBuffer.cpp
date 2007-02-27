@@ -93,7 +93,7 @@ H264AVC_NAMESPACE_BEGIN
 YuvMbBuffer::YuvMbBuffer():
   m_pPelCurr( NULL )
 {
-  DO_DBG_INIT( ::memset( m_aucYuvBuffer, 0 , sizeof(m_aucYuvBuffer) ) );
+  DO_DBG( ::memset( m_aucYuvBuffer, 0 , sizeof(m_aucYuvBuffer) ) );
 }
 
 YuvMbBuffer::~YuvMbBuffer()

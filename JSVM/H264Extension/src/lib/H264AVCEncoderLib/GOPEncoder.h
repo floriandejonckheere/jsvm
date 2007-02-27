@@ -867,6 +867,8 @@ protected:
 
   Bool    m_bExplicitQPCascading;
   Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
+
+  Bool    m_bUseSmoothedRef;//JVT-V058
 };
 
 #if defined( WIN32 )

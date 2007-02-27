@@ -591,7 +591,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
 	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag()&& ( !cBaseLayerBuffer.isZero() || !rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() ) ) 
 					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerRec, false, iSpatialScalabilityType,  pcMbDataAccessBase, rcMbDataAccess, true ) );
 
-	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) && pcRefFrameList0Base == 0 && rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() ) 				
+        if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) && pcRefFrameList0Base == 0 && rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() && rcMbDataAccess.useSmoothedRef() ) 				
          {
 			    RNOK( xEstimateMbSR				( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, cRefFrameList1, pcBaseLayerSbb, 
                                       pcMbDataAccessBase, true, pcBaseLayerRec ) );
@@ -880,7 +880,7 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
 	//-- JVT-R091
 	Bool		bSmoothedRef = false;
 	rcMbDataAccess.getMbData().setSmoothedRefFlag( false );
-	if ( uiRPred == 2 && rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) )
+  if ( uiRPred == 2 && rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) && rcMbDataAccess.useSmoothedRef())
 	{
 		iMaxCnt = 3;
 	}
@@ -1430,7 +1430,7 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
 					RNOK( xEstimateMbBLSkip   ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerFrame, bBSlice, iSpatialScalabilityType,         pcMbDataAccessBase, rcMbDataAccess, true ) );
 
 				//-- JVT-R091
-	      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) ) 				
+      if ( pcMbDataAccessBase->getMbData().getInCropWindowFlag() && rcMbDataAccess.isConstrainedInterLayerPred(  ) && rcMbDataAccess.useSmoothedRef()) 				
         RNOK( xEstimateMbSR        ( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1, pcBaseLayerResidual, pcMbDataAccessBase, true,
                                     (IntFrame *)pcBaseLayerFrame) );
 				//--

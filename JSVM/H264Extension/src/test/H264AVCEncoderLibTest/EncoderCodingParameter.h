@@ -1250,6 +1250,8 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel5",         &(rcLayer.m_adDeltaQPTLevel[5]),    0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel6",         &(rcLayer.m_adDeltaQPTLevel[6]),    0 );
 
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("UseSmoothedRef",      &(rcLayer.m_uiUseSmoothedRef),    1 );//JVT-V058
+
   m_pLayerLines[uiParLnCount] = NULL;
 
   while (!feof(f))

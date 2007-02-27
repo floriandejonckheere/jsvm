@@ -628,7 +628,7 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
       m_bCheckNextSlice = true;
     }
   }
-   //TMM_INTERLACE if( bEos || slicePoc != m_iFirstSlicePoc || (eNalUnitType == NAL_UNIT_CODED_SLICE_IDR && slicePoc == 0)) //NS EIDR fix
+  
   if( bEos || slicePoc != m_iFirstSlicePoc)  
   {
 	// ROI DECODE ICU/ETRI
@@ -2262,7 +2262,7 @@ H264AVCDecoder::replaceSNRCGSBaseFrame( IntFrame* pcELFrame,
                                        ) // MGS fix by Heiko Schwarz
 {
   ROFRS ( m_bCGSSNRInAU, Err::m_nOK );
-  RNOK  ( m_pcFrameMng->updateLastFrame( pcELFrame,ePicType,bFrameMbsOnlyFlag ) );//TMM_DEBUG
+  RNOK  ( m_pcFrameMng->updateLastFrame( pcELFrame,ePicType,bFrameMbsOnlyFlag ) );//TMM_INTERLACE
   return Err::m_nOK;
 }
 
@@ -2974,28 +2974,33 @@ ErrVal
 H264AVCDecoder::checkRedundantPic()
 {
   m_bRedundantPic = false;
-  if ( m_bFirstSliceHeaderBackup && (NULL != m_pcSliceHeader) )
+  // TMM_INTERLACE {
+  if( m_pcSliceHeader && m_pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
+ // TMM_INTERLACE }
   {
-    ROF( ( m_pcSliceHeader_backup = new SliceHeader ( m_pcSliceHeader->getSPS(), m_pcSliceHeader->getPPS()) ) );
-    m_bFirstSliceHeaderBackup = false;
-  }
-  else
-  {
-    if ( ( NULL != m_pcSliceHeader ) && ( NULL != m_pcSliceHeader_backup ) )
+    if ( m_bFirstSliceHeaderBackup && (NULL != m_pcSliceHeader) )
     {
-      const NalUnitType eNalUnitType  = m_pcNalUnitParser->getNalUnitType();
-      if ( ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) || ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
-        || ( eNalUnitType == NAL_UNIT_CODED_SLICE ) || ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ) )
+      ROF( ( m_pcSliceHeader_backup = new SliceHeader ( m_pcSliceHeader->getSPS(), m_pcSliceHeader->getPPS()) ) );
+      m_bFirstSliceHeaderBackup = false;
+    }
+    else
+    {
+      if ( ( NULL != m_pcSliceHeader ) && ( NULL != m_pcSliceHeader_backup ) )
       {
-        Bool  bNewFrame  = true;
-        RNOK( m_pcSliceHeader->compareRedPic ( m_pcSliceHeader_backup, bNewFrame ) );
-        if (!bNewFrame)
+        const NalUnitType eNalUnitType  = m_pcNalUnitParser->getNalUnitType();
+        if ( ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) || ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+          || ( eNalUnitType == NAL_UNIT_CODED_SLICE ) || ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ) )
         {
-          m_bRedundantPic = true;
+          Bool  bNewFrame  = true;
+          RNOK( m_pcSliceHeader->compareRedPic ( m_pcSliceHeader_backup, bNewFrame ) );
+          if (!bNewFrame)
+          {
+            m_bRedundantPic = true;
+          }
         }
       }
     }
-  }
+  } // TMM_INTERLACE
   return Err::m_nOK;
 }
 

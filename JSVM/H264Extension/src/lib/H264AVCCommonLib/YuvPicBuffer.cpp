@@ -378,19 +378,7 @@ ErrVal YuvPicBuffer::loadBufferAndFillMargin( YuvPicBuffer *pcSrcYuvPicBuffer )
 
   ROT( pcSrcYuvPicBuffer->getLHeight() * pcSrcYuvPicBuffer->getLStride() != getLHeight() * getLStride() );
 
-  if( pcSrcYuvPicBuffer->m_ePicType != FRAME )
-  {
-    AOT( m_ePicType != FRAME )
-    Int iDesOffset  = pcSrcYuvPicBuffer->m_ePicType == BOT_FIELD ? getLStride() : -getLStride();
-
-    xCopyFillPlaneMargin( pcSrcYuvPicBuffer->getMbLumAddr(), iDesOffset + getMbLumAddr(), pcSrcYuvPicBuffer->getLHeight(), pcSrcYuvPicBuffer->getLWidth(), pcSrcYuvPicBuffer->getLStride(), pcSrcYuvPicBuffer->getLXMargin(), pcSrcYuvPicBuffer->getLYMargin() );
-    iDesOffset >>= 1;
-    xCopyFillPlaneMargin( pcSrcYuvPicBuffer->getMbCbAddr(),  iDesOffset + getMbCbAddr(),  pcSrcYuvPicBuffer->getCHeight(), pcSrcYuvPicBuffer->getCWidth(), pcSrcYuvPicBuffer->getCStride(), pcSrcYuvPicBuffer->getCXMargin(), pcSrcYuvPicBuffer->getCYMargin() );
-    xCopyFillPlaneMargin( pcSrcYuvPicBuffer->getMbCrAddr(),  iDesOffset + getMbCrAddr(),  pcSrcYuvPicBuffer->getCHeight(), pcSrcYuvPicBuffer->getCWidth(), pcSrcYuvPicBuffer->getCStride(), pcSrcYuvPicBuffer->getCXMargin(), pcSrcYuvPicBuffer->getCYMargin() );
-
-    return Err::m_nOK;
-  }
-
+  //TMM_INTERLACE
   Int iSrcOffset  = pcSrcYuvPicBuffer->getPicType() == BOT_FIELD ? - pcSrcYuvPicBuffer->getCStride() : 0;
       iSrcOffset += getPicType() == BOT_FIELD ? getCStride() : 0;
 

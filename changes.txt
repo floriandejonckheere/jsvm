@@ -1,3 +1,15 @@
+JSVM_8_5 -> JSVM_8_6
+========================
+Date        : Feb 26, 2007
+Author      : N. Cammas (Orange-France Telecom R&D), J. Vieron (Thomson R&D)
+Contribution: JVT-V058
+
+Changes:
+
+- Add a useSmoothedRef flag in slice header
+- Many bug fixes related to Interlaced + others
+- Only "6.6.21" validation test (in the AVC_Conformance set) would NOT have to be run !!!
+
 
 
 JSVM_8_4 -> JSVM_8_5
@@ -7,6 +19,7 @@ Authors     : Chengjie Tu (Microsoft), Shankar Regunathan (Microsoft), H. Schwar
 Contribution: JVT-V090, JVT-V074
 
 Changes:
+
 - added 4 tap direct motion compensation interpolation for luma (as a configurable encoder option)
 - added flexible 4-tap upsampling filters (as an option controlled by the preprocessing flag _JVTV074_)
 - bug fix for SKIP mode in hierarchical P pictures
@@ -23,6 +36,7 @@ Author      : H. Schwarz (HHI)
 Contribution: JVT-V126
 
 Changes:
+
 - MGS key picture coding
 - options for MGS encoder control
 + bug fixes
@@ -37,6 +51,7 @@ Author      : H. Schwarz (HHI)
 Contribution: JVT-V125
 
 Changes:
+
 - added H.241/RCDO compatible encoding mode
 + bug fixes
 

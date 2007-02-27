@@ -494,6 +494,9 @@ public:
   Void    setDeltaQPTLevel        ( UInt    tl,
                                     Double  d  )           { m_adDeltaQPTLevel[tl] = d; }
 
+  Void    setUseSmoothedRef( UInt ui) { m_uiUseSmoothedRef = ui;}//JVT-V058
+  UInt    getUseSmoothedRef() { return m_uiUseSmoothedRef;} //JVT-V058
+
 
 public:
   UInt                      m_uiLayerId;
@@ -615,6 +618,8 @@ public:
 
   UInt    m_uiExplicitQPCascading;
   Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
+
+  UInt    m_uiUseSmoothedRef; //JVT-V058
 };
 
 
