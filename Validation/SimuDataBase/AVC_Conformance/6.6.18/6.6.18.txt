@@ -32,7 +32,7 @@
             		        bitstreamname => "CABREF3_Sand_D.264",
             		        decodedname   => "CABREF3_Sand_D_352x288.yuv",
             		        origname      => "CABREF3_Sand_D.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   1 #
@@ -45,7 +45,7 @@
             		        bitstreamname => "CAFI1_SVA_C.264",
             		        decodedname   => "CAFI1_SVA_C_720x480.yuv", 
             		        origname      => "CAFI1_SVA_C_rec.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   2 #
@@ -58,7 +58,7 @@
                         		        bitstreamname => "camp_mot_fld0_full.26l",
             		        decodedname   => "camp_mot_fld0_full_720x480.yuv",
             		        origname      => "camp_mot_fld0_full_rec.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
 		                  },
 		               ],
 }

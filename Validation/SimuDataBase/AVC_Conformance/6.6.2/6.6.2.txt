@@ -32,7 +32,7 @@
           		        bitstreamname => "CVPCMNL1_SVA_C.264",
           		        decodedname   => "CVPCMNL1_SVA_C_352x288.yuv",
           		        origname      => "CVPCMNL1_SVA_C_rec.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   1 #
@@ -45,7 +45,7 @@
           		        bitstreamname => "CVPCMNL2_SVA_C.264",
           		        decodedname   => "CVPCMNL2_SVA_C_1280x720.yuv", 
           		        origname      => "CVPCMNL2_SVA_C_rec.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
 		                  },
     		          ],
 }

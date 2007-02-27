@@ -32,7 +32,7 @@
           		        bitstreamname => "Sharp_MP_PAFF_1r2.jvt",
           		        decodedname   => "Sharp_MP_PAFF_1r2_720x480.yuv",
           		        origname      => "Sharp_MP_PAFF_1r2_rec.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   1 #
@@ -45,7 +45,7 @@
           		        bitstreamname => "CVPA1_TOSHIBA_B.264",
           		        decodedname   => "CVPA1_TOSHIBA_B_352x288.yuv", 
           		        origname      => "CVPA1_TOSHIBA_B_dec.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   2 #
@@ -58,7 +58,7 @@
           		        bitstreamname => "cvmp_mot_picaff0_full_B.26l",
           		        decodedname   => "cvmp_mot_picaff0_full_B_720x480.yuv",
           		        origname      => "cvmp_mot_picaff0_full_B_rec.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
 		                  },
 		 
     		    ],

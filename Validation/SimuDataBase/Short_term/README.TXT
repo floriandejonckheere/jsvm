@@ -15,7 +15,7 @@
 
 3) Note that you will have (to compile and) to use the PacketLossSimulatorStatic tool in order to run the ERRORCON1, ERRORCON2, ERRORCON3 and, ERRORCON4 valaidation tests.
 
-4) In order to run the "Interlaced" validation scripts CFG1_P2I and, CFG4_I2I,  the user will have to download the SD sequence called src5_ref__625.yuv available at ftp://vqeg.its.bldrdoc.gov/SDTV/VQEG_PhaseI/TestSequences/ALL_625/. This sequence is in 4:2:2 format. Conversion to 4:2:0 format shall be made using the conversion tool 422_to_420fullres using the p option as following: 
+4) In order to run the "Interlaced" validation scripts CFG1_P2I and, CFG4_I2I, MGSCtrl3, and MGSCtrl4 the user will have to download the SD sequence called src5_ref__625.yuv available at ftp://vqeg.its.bldrdoc.gov/SDTV/VQEG_PhaseI/TestSequences/ALL_625/. This sequence is in 4:2:2 format. Conversion to 4:2:0 format shall be made using the conversion tool 422_to_420fullres using the p option as following: 
 --------------------------------------------------------------
 ">422_to_420perl.exe p src5_ref__625.yuv CANOA_720x576_25i.yuv"
 --------------------------------------------------------------

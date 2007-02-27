@@ -32,7 +32,7 @@
           		        bitstreamname => "HCAFR1_HHI.264",
           		        decodedname   => "HCAFR1_HHI_352x288.yuv",
           		        origname      => "HCAFR1_HHI.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   1 #
@@ -45,7 +45,7 @@
           		        bitstreamname => "HCAFF1_HHI.264",
           		        decodedname   => "HCAFF1_HHI_352x288.yuv", 
           		        origname      => "HCAFF1_HHI.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   2 #
@@ -58,7 +58,7 @@
           		        bitstreamname => "HPCANL_BRCM_C.264",
           		        decodedname   => "HPCANL_BRCM_C_352x288.yuv",
           		        origname      => "HPCANL_BRCM_C.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   3 #
@@ -71,7 +71,7 @@
           		        bitstreamname => "HPCA_BRCM_C.264",
           		        decodedname   => "HPCA_BRCM_C_352x288.yuv",
           		        origname      => "HPCA_BRCM_C.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   4 #
@@ -84,7 +84,7 @@
           		        bitstreamname => "HPCAFLNL_BRCM_C.264",
           		        decodedname   => "HPCAFLNL_BRCM_C_352x288.yuv",
           		        origname      => "HPCAFLNL_BRCM_C.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   5 #
@@ -97,7 +97,7 @@
           		        bitstreamname => "HPCAFL_BRCM_C.264",
           		        decodedname   => "HPCAFL_BRCM_C_352x288.yuv",
           		        origname      => "HPCAFL_BRCM_C.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   6 #
@@ -110,7 +110,7 @@
           		        bitstreamname => "freh3.264",
           		        decodedname   => "brcm_freh3_352x288.yuv",
           		        origname      => "Freh3_dec.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   7 #
@@ -123,7 +123,7 @@
           		        bitstreamname => "freh4.264",
           		        decodedname   => "brcm_freh4_352x288.yuv",
           		        origname      => "Freh4_dec.yuv",
-          		        psnr => 99,
+          		        psnr => 99.99,
 		                  }
     		    ],
 }

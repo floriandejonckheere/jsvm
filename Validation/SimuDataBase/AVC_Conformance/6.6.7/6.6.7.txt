@@ -32,7 +32,7 @@
             		        bitstreamname => "CVMANL1_TOSHIBA_B.264",
             		        decodedname   => "CVMANL1_TOSHIBA_B_352x288.yuv",
             		        origname      => "CVMANL1_TOSHIBA_B_dec.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   1 #
@@ -45,7 +45,7 @@
             		        bitstreamname => "CVMANL2_TOSHIBA_B.264",
             		        decodedname   => "CVMANL2_TOSHIBA_B_352x288.yuv", 
             		        origname      => "CVMANL2_TOSHIBA_B_dec.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
 		                  #----------#
                       # Test   2 #
@@ -58,7 +58,7 @@
             		        bitstreamname => "CVMA1_Sony_D.jsv",
             		        decodedname   => "CVMA1_Sony_D_720x480.yuv",
             		        origname      => "CVMA1_Sony_D.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
 		                  #----------#
                       # Test   3 #
@@ -71,7 +71,7 @@
             		        bitstreamname => "CVMA1_TOSHIBA_B.264",
             		        decodedname   => "CVMA1_TOSHIBA_B_352x288.yuv",
             		        origname      => "CVMA1_TOSHIBA_B_dec.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   4 #
@@ -84,7 +84,7 @@
             		        bitstreamname => "CVMAQP2_Sony_G.jsv",
             		        decodedname   => "CVMAQP2_Sony_G_192x128.yuv",
             		        origname      => "CVMAQP2_Sony_G.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   5 #
@@ -97,7 +97,7 @@
             		        bitstreamname => "CVMAQP3_Sony_D.jsv ",
             		        decodedname   => "CVMAQP3_Sony_D_192x128.yuv",
             		        origname      => "CVMAQP3_Sony_D.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   6 #
@@ -110,7 +110,7 @@
             		      #  bitstreamname => "CVMAPAQP3_Sony_E.jsv",
             		      #  decodedname   => "CVMAPAQP3_Sony_E_720x480.yuv",
             		      #  origname      => "CVMAPAQP3_Sony_E.yuv",
-            		      #  psnr => 99,
+            		      #  psnr => 99.99,
             		      #},
             		      #----------#
                       # Test   7 #
@@ -123,7 +123,7 @@
             		        bitstreamname => "cvmp_mot_mbaff0_full_B.26l",
             		        decodedname   => "cvmp_mot_mbaff0_full_B_720x480.yuv",
             		        origname      => "cvmp_mot_mbaff0_full_B_rec.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
             		      },
             		      #----------#
                       # Test   8 #
@@ -136,7 +136,7 @@
             		        bitstreamname => "CVMP_MOT_FRM_L31_B.26l",
             		        decodedname   => "CVMP_MOT_FRM_L31_B_720x480.yuv",
             		        origname      => "CVMP_MOT_FRM_L31_B_rec.yuv",
-            		        psnr => 99,
+            		        psnr => 99.99,
           		        },
 		    		    ],
 }

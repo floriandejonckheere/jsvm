@@ -21,4 +21,4 @@ The numbering of the conformance tests corresponds to the classification of the 
 
 
 CAUTION: 
-So far, only tests "6.6.1", "6.6.2", "6.6.7", "6.6.11", "6.6.18", "6.6.20" and, "Hierarchical" need to be run!
+So far, only tests "6.6.1", "6.6.2", "6.6.5", "6.6.6", "6.6.7", "6.6.11", "6.6.18", "6.6.19", "6.6.20" and, "Hierarchical" need to be run!

@@ -57,7 +57,7 @@ All these yuv sequences will be placed in the "orig" directory.
 3) Before running AVC_Conformance simulation set, please read the README.TXT files located in the SimuDataBase/AVC_Conformance/ directory.
 You will have to download the conformance bistreams and YUV sequences available at "http://ftp3.itu.ch/av-arch/jvt-site/draft_conformance/".
 The numbering of the conformance tests corresponds to the classification of the conformance bit-streams in the ITU-T Recommendation H.264.1 "Conformance specification for H.264 advanced video coding".
-So far, only tests "6.6.1, 6.6.2, 6.6.7, 6.6.11, 6.6.18, 6.6.20 and, Hierachical" must be run. Please again, read the instructions...
+So far, only tests "6.6.1, 6.6.2, 6.6.5, 6.6.6, 6.6.7, 6.6.11, 6.6.18, 6.6.19, 6.6.20 and, Hierarchical" must be run. Please again, read the instructions...
 
 
 It contains also the file:
