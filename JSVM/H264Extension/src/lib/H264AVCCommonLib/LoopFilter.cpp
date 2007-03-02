@@ -241,8 +241,9 @@ ErrVal LoopFilter::uninit()
 }
 
 ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPicBuffer* pcHighpassYuvBuffer*/
-							, bool  bAllSliceDone)
+							              , bool  bAllSliceDone)
 {
+   bool enhancedLayerFlag =  (rcSH.getLayerId()>0) ; //V032, added for disabling chroma deblocking at enhanced layer
   if( m_pcRCDOSliceHeader )
   {
     m_bRCDO = m_pcRCDOSliceHeader->getSPS().getRCDODeblocking();
@@ -302,11 +303,11 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPi
 
 		  if ( ! bMbAff && ! m_bRCDO )
 		  {
-        RNOK( xFilterMbFast( *pcMbDataAccess ) );
+      	RNOK( xFilterMbFast( *pcMbDataAccess, enhancedLayerFlag ) ); //V032 of FSL added for disabling chroma deblocking
 		  }
 		  else 
 		  {
-        RNOK( xFilterMb( *pcMbDataAccess ) );
+      	RNOK( xFilterMb( *pcMbDataAccess, enhancedLayerFlag)); //V032 of FSL added for disabling chroma deblocking
       }
 	    uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );    
 	  }
@@ -321,7 +322,8 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPi
 }
 
 __inline 
-ErrVal LoopFilter::xFilterMbFast( const MbDataAccess& rcMbDataAccess )
+ErrVal LoopFilter::xFilterMbFast( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag ) //V032 of FSL, disabling chroma deblocking in enh. layer
+
 {
   const DFP& rcDFP      = rcMbDataAccess.getDeblockingFilterParameter();
   const Int iFilterIdc  = rcDFP.getDisableDeblockingFilterIdc();
@@ -334,8 +336,12 @@ ErrVal LoopFilter::xFilterMbFast( const MbDataAccess& rcMbDataAccess )
   {
     RNOK( xLumaVerFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
     RNOK( xLumaHorFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
-    RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
-    RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
+	//V032 of FSL for disabling chroma deblocking in enh. layer
+	if (!enhancedLayerFlag || (enhancedLayerFlag && (iFilterIdc !=3 && iFilterIdc != 4)) ) 
+	{ 
+		RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
+		RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
+	}
 
     return Err::m_nOK;
   }
@@ -344,9 +350,12 @@ ErrVal LoopFilter::xFilterMbFast( const MbDataAccess& rcMbDataAccess )
 
 	RNOK( xLumaVerFiltering(   rcMbDataAccess, rcDFP, pcYuvBuffer ) );
   RNOK( xLumaHorFiltering(   rcMbDataAccess, rcDFP, pcYuvBuffer ) );
-  RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
-  RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
-
+  //V032 of FSL for disabling chroma deblocking in enh. layer
+  if (!enhancedLayerFlag || (enhancedLayerFlag && (iFilterIdc !=3 && iFilterIdc != 4)) ) 
+  { 
+	RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
+	RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
+  }
   return Err::m_nOK;
 }
 
@@ -451,7 +460,7 @@ ErrVal LoopFilter::xGetFilterStrengthFast( const MbDataAccess& rcMbDataAccess, c
 
   Bool bClearAbove = ! rcMbDataAccess.isAboveMbExisting();
   Bool bClearLeft  = ! rcMbDataAccess.isLeftMbExisting();
-  if( iFilterIdc == 2 )
+  if( iFilterIdc == 2 || iFilterIdc == 4 ) //V032 of FSL
   {
     bClearAbove |= ! rcMbDataAccess.isAvailableAbove();
     bClearLeft  |= ! rcMbDataAccess.isAvailableLeft();
@@ -570,7 +579,8 @@ UInt LoopFilter::xGetHorFilterStrengthFast( const MbData& rcMbDataCurr,
   return xCheckMvDataB  ( rcMbDataCurr, cIdx, rcMbDataAbove, cIdx + ABOVE_MB_ABOVE_NEIGHBOUR, 4, sVerMvThr );
 }
 
-__inline ErrVal LoopFilter::xFilterMb( const MbDataAccess& rcMbDataAccess )
+
+__inline ErrVal LoopFilter::xFilterMb( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag) //V032 of FSL
 {
   if( m_bRCDO )
   {
@@ -637,8 +647,12 @@ __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess& rcMbDataAccess )
     const PicType ePicType = rcMbDataAccess.getMbPicType();
     RNOK( xLumaVerFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
     RNOK( xLumaHorFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
-    RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
-    RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
+//V032 of FSL for disabling chroma deblocking in enh. layer
+	if (!enhancedLayerFlag || (enhancedLayerFlag && (iFilterIdc !=3 && iFilterIdc != 4)) ) 
+	{ 
+		RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
+		RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
+	}
     return Err::m_nOK;
   }
 
@@ -648,9 +662,12 @@ __inline ErrVal LoopFilter::xFilterMb( const MbDataAccess& rcMbDataAccess )
 
   RNOK( xLumaVerFiltering(   rcMbDataAccess, rcDFP, pcYuvBuffer ) );
   RNOK( xLumaHorFiltering(   rcMbDataAccess, rcDFP, pcYuvBuffer ) );
-  RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
-  RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
-
+  //V032 of FSL for disabling chroma deblocking in enh. layer
+  if (!enhancedLayerFlag || (enhancedLayerFlag && (iFilterIdc !=3 && iFilterIdc != 4)) ) 
+  { 
+     RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
+     RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, pcYuvBuffer ) );
+  }
   return Err::m_nOK;
 }
 
@@ -3094,7 +3111,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAc
   }
 
   // if we get here we are on a macroblock edge
-  ROTRS( iFilterIdc == 2 && ! rcMbDataAccess.isAvailableLeft(), 0 );
+  ROTRS( (iFilterIdc == 2 || iFilterIdc == 4) && ! rcMbDataAccess.isAvailableLeft(), 0 ); //V032 of FSL
   ROTRS( ! rcMbDataAccess.isLeftMbExisting(),                   0 );
 
   if( ! m_bVerMixedMode )
@@ -3192,7 +3209,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength( const MbDataAccess&  rcMbDataAc
   }
 
   // if we get here we are on a macroblock edge
-  ROTRS( iFilterIdc == 2 && ! rcMbDataAccess.isAvailableAbove(),  0 );
+  ROTRS( (iFilterIdc == 2 || iFilterIdc == 4) && ! rcMbDataAccess.isAvailableAbove(),  0 );
   ROTRS( ! rcMbDataAccess.isAboveMbExisting(),                    0 );
 
   if( ! m_bHorMixedMode )
@@ -3272,6 +3289,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
 							bool		  bAllSliceDone, 
                             bool          spatial_scalable_flg)
 {
+  bool enhancedLayerFlag = (rcSH.getLayerId()>0) ; //V032 FSL added for disabling chroma deblocking
   if( m_pcRCDOSliceHeader )
   {
     m_bRCDO = m_pcRCDOSliceHeader->getSPS().getRCDODeblocking();
@@ -3389,7 +3407,8 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
                          apcFrame        [ eMbPicType ]->getFullPelYuvBuffer(),
                          apcRefFrameList0[ eMbPicType ],
                          apcRefFrameList1[ eMbPicType ],
-                         spatial_scalable_flg) );
+                         spatial_scalable_flg,
+						             enhancedLayerFlag ) );  //V032 of FSL added for disabling chroma deblocking
 	   }
  //{ agl@simecom FIX ------------------
       uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
@@ -3442,7 +3461,8 @@ __inline ErrVal LoopFilter::xFilterMb( MbDataAccess*        pcMbDataAccessMot,
                                        IntYuvPicBuffer*     pcYuvBuffer,
                                        RefFrameList*        pcRefFrameList0,
                                        RefFrameList*        pcRefFrameList1,
-                                       bool                 spatial_scalable_flg)  // SSUN@SHARP
+                                       bool                 spatial_scalable_flg,   // SSUN@SHARP
+									                     bool					enhancedLayerFlag)                //V032 of FSL
 {
   if( m_bRCDO )
   {
@@ -3549,12 +3569,13 @@ __inline ErrVal LoopFilter::xFilterMb( MbDataAccess*        pcMbDataAccessMot,
   m_bHorMixedMode  = m_bHorMixedMode && bCurrFrame;
 
   RNOK( xLumaVerFiltering(   *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
- 
   RNOK( xLumaHorFiltering(   *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
- 
-  RNOK( xChromaVerFiltering( *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
-  RNOK( xChromaHorFiltering( *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
-
+ //V032 of FSL for disabling chroma deblocking in enh. layer
+  if (!enhancedLayerFlag || (enhancedLayerFlag && iFilterIdc !=3 && iFilterIdc != 4) ) 
+  { 
+	RNOK( xChromaVerFiltering( *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
+	RNOK( xChromaHorFiltering( *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
+  }
   return Err::m_nOK;
 }
 
@@ -3610,7 +3631,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
         return( 0 );
       }
     }
-    else if(pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 ))
+   	else if(pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 && iFilterIdc != 4)) //V032 of FSL
     {
       const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
 //			const MbData& rcMbDataLeft = pcMbDataAccessRes->getMbDataLeft();//TMM_BUG_EF{}
@@ -3662,7 +3683,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
       }
 
       // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
-      if( ( pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 ) ) &&
+      if( ( pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 && iFilterIdc != 4) ) && //V032 of FSL
             pcMbDataAccessRes->getMbDataLeft().getMbMode() == INTRA_BL )
       {
         return 1;
@@ -3707,7 +3728,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
 
 
   // if we get here we are on a macroblock edge
-  ROTRS( iFilterIdc == 2 && ! pcMbDataAccessMot->isAvailableLeft(), 0 );
+  ROTRS( (iFilterIdc == 2 || iFilterIdc == 4) && ! pcMbDataAccessMot->isAvailableLeft(), 0 ); //V032 of FSL
   ROTRS( ! pcMbDataAccessMot->isLeftMbExisting(),                   0 );
 
   if( ! m_bVerMixedMode )
@@ -3810,8 +3831,8 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
         return( 0 );
       }
     }
-    else if(pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 ))
-    {
+    else if(pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 && iFilterIdc != 4)) //V032
+   {
       const MbData& rcMbDataCurr = pcMbDataAccessRes->getMbDataCurr();
       const MbData& rcMbDataAbove = pcMbDataAccessRes->getMbDataAbove();
       ROTRS( LFM_DEFAULT_FILTER != m_eLFMode && rcMbDataCurr.isIntra() ^ rcMbDataAbove.isIntra(), 0 ); // bugfix, agl@simecom 
@@ -3855,7 +3876,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
       }
 
       // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
-      if( ( pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 ) ) &&
+      if( ( pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 && iFilterIdc != 4) ) &&
             pcMbDataAccessRes->getMbDataAbove().getMbMode() == INTRA_BL )
       {
         return 1;
@@ -3899,7 +3920,7 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
   }
 
   // if we get here we are on a macroblock edge
-  ROTRS( iFilterIdc == 2 && ! pcMbDataAccessMot->isAvailableAbove(),  0 );
+  ROTRS( (iFilterIdc == 2 || iFilterIdc == 4) && ! pcMbDataAccessMot->isAvailableAbove(),  0 ); //V032
   ROTRS( ! pcMbDataAccessMot->isAboveMbExisting(),                    0 );
 
   if( ! m_bHorMixedMode )

@@ -2650,10 +2650,8 @@ MCTFDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader )
         rpcSliceHeader->getQualityLevel           (),
         rpcSliceHeader->getAdaptivePredictionFlag (),
         rpcSliceHeader->getPicQp                  (),
-//TMM_EF_01{
-//				(ePicType==FRAME) ?  "FRAME" : ( (ePicType==TOP_FIELD) ? "TOP_FIELD" : "BOT_FIELD") );
+
 				(ePicType==FRAME) ?  "Frame" : ( (ePicType==TOP_FIELD) ? "TopFd" : "BotFd") );
-//TMM_EF_01}
 
       if( m_pcRQFGSDecoder->getSliceHeader()->getTemporalLevel()  == 0      &&
         m_pcRQFGSDecoder->getSliceHeader()->isInterP())
@@ -3184,13 +3182,10 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 
   m_iMbProcessed += uiMbRead;
 
-//TMM_EF_01{
-//	printf("  %s POC %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d )\n",
-//		(ePicType==FRAME) ?  "FRAME" : ( (ePicType==TOP_FIELD) ? "TOP_FIELD" : "BOT_FIELD"),
   printf("  %s %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d )\n",
 		(ePicType==FRAME) ?  "Frame" : ( (ePicType==TOP_FIELD) ? "TopFd" : "BotFd"),
-//TMM_EF_01}
-    rpcSliceHeader->getPoc                (),
+
+    rpcSliceHeader->getPoc                    (),
     rpcSliceHeader->getLayerId                (),
     rpcSliceHeader->getTemporalLevel          (),
     rpcSliceHeader->getQualityLevel           (),

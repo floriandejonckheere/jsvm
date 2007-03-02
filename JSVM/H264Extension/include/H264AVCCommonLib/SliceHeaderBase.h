@@ -569,8 +569,8 @@ public:
     {
     }
 
-    ErrVal write( HeaderSymbolWriteIf*  pcWriteIf ) const;
-    ErrVal read ( HeaderSymbolReadIf*   pcReadIf );
+   	ErrVal write( HeaderSymbolWriteIf*  pcWriteIf, bool enhancedLayerFlag ) const; //V032, added enhanced layer indicator
+    ErrVal read ( HeaderSymbolReadIf*   pcReadIf, bool enhancedLayerFlag  ); //V032, added enhanced layer indicator
 
     DeblockingFilterParameter* getCopy()  const
     {

@@ -258,6 +258,9 @@ public:
                                 const Bool    bFrameMbsOnlyFlag //TMM_INTERLACE
                                        );       // MGS fix by Heiko Schwarz
 
+//chevance
+  PicBufferList  getPicBufferOutputList   () { return m_cPicBufferOutputList; }
+// end chevance
   FrameUnit*  getCurrentFrameUnit   () { return m_pcCurrentFrameUnit; }
   IntFrame*   getRefinementIntFrame () { return m_pcRefinementIntFrame; }
   IntFrame*   getRefinementIntFrame2() { return m_pcRefinementIntFrameSpatial; }

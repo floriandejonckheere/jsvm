@@ -177,9 +177,9 @@ private:
   UChar xCheckMvDataB( const MbData& rcQMbData, const LumaIdx cQIdx, const MbData& rcPMbData, const LumaIdx cPIdx, const Short sHorMvThr, const Short sVerMvThr );
   UChar xCheckMvDataP( const MbData& rcQMbData, const LumaIdx cQIdx, const MbData& rcPMbData, const LumaIdx cPIdx, const Short sHorMvThr, const Short sVerMvThr );
 
-  __inline ErrVal xFilterMb       ( const MbDataAccess& rcMbDataAccess );
+  __inline ErrVal xFilterMb       ( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag ); //V032, added enhanced layer indicator
   __inline ErrVal xFilterMb_RCDO  ( const MbDataAccess& rcMbDataAccess );
-  __inline ErrVal xFilterMbFast ( const MbDataAccess& rcMbDataAccess );
+  __inline ErrVal xFilterMbFast ( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag); //V032, added enhanced layer indicator
 	ErrVal xGetFilterStrengthFast ( const MbDataAccess& rcMbDataAccess, const Int iFilterIdc );
   __inline UInt xGetHorFilterStrengthFast( const MbData& rcMbDataCurr,
 		                                       const MbData& rcMbDataAbove,
@@ -244,7 +244,8 @@ private:
                                                   IntYuvPicBuffer*    pcYuvBuffer,
                                                   RefFrameList*       pcRefFrameList0,
                                                   RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg);
+                                                  bool                spatial_scalable_flg,
+									                        			  bool				  enhancedLayerFlag ); //V032 of FSL, added enhanced layer indicator
   __inline ErrVal xFilterMb_RCDO                ( const MbDataAccess* rcMbDataAccessMot,
                                                   const MbDataAccess* rcMbDataAccessRes,
                                                   IntYuvPicBuffer*    pcYuvBuffer,

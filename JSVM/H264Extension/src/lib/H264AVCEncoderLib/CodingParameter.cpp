@@ -112,7 +112,10 @@ ErrVal MotionVectorSearchParams::check() const
 
 ErrVal LoopFilterParams::check() const
 {
-  ROTREPORT( 2 < getFilterIdc(),        "Loop Filter Idc exceeds supported range 0..2");  if( 69 != getAlphaOffset() )
+  //V032 of FSL for extending the Idc value to 3 and 4 w.r.t. 0 and 2 in the enhanced layer 
+  //for disabling chroma deblocking in enhanced layer
+  ROTREPORT( 4 < getFilterIdc(),        "Loop Filter Idc exceeds supported range 0..4");  if( 69 != getAlphaOffset() )
+
 
   if( 69 != getAlphaOffset() )
   {

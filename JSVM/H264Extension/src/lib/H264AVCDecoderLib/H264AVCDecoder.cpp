@@ -2053,9 +2053,16 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 //TMM_EC }}
 
       PicBufferList   cDummyList;
+
+      //TMM_INTERLACE BUG FIX FOR 6.6.21 BUT PBM WITH QLASSIGNER
+
+      //PicBufferList&  rcOutputList  = ( (!m_bCGSSNRInAU && m_uiRecLayerId == 0 && m_pcFrameMng->getPicBufferOutputList().size() ) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
       PicBufferList&  rcOutputList  = ( (!m_bCGSSNRInAU && m_uiRecLayerId == 0 && bHighestLayer) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
+      //TMM_INTERLACE 
 
       RNOK( m_pcFrameMng->setPicBufferLists( rcOutputList, rcPicBufferReleaseList ) );
+
+
 //JVT-T054_FIX{
       m_apcMCTFDecoder[m_uiLastLayerId]->setAVCBased(true);
       m_bBaseSVCActive = (bHighestLayer && m_apcMCTFDecoder[0]->isActive());
@@ -2442,12 +2449,8 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
     RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
    }
   
-//TMM_EF_01{
-//	  printf("  %s POC %4d ( LId 0, TL X, QL 0, AVC-%c, BId-1, AP 0, QP%3d )\n",
-//		(ePicType==FRAME) ?  "FRAME" : ( (ePicType==TOP_FIELD) ? "TOP_FIELD" : "BOT_FIELD"),
 	  printf("  %s %4d ( LId 0, TL X, QL 0, AVC-%c, BId 1, AP 0, QP%3d )\n",
 		(ePicType==FRAME) ?  "Frame" : ( (ePicType==TOP_FIELD) ? "TopFd" : "BotFd"),
-//TMM_EF_01}
 		rcSH.getPoc                (),
 		rcSH.getSliceType              () == B_SLICE ? 'B' : 
 	  rcSH.getSliceType              () == P_SLICE ? 'P' : 'I',

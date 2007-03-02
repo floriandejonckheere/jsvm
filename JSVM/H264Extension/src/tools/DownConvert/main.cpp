@@ -606,7 +606,7 @@ int main(int argc, char *argv[])
         if (rp->m_iInWidth < rp->m_iGlobWidth)
         {
           upsample = true;
-					downsample_flg = !upsample;//TMM_EF
+					downsample_flg = !upsample;//TMM_INTERLACE
         }
       }
       if (method==1)
@@ -665,7 +665,7 @@ int main(int argc, char *argv[])
     if (rp->m_iInWidth < rp->m_iGlobWidth)
     {
       upsample = true;
-			downsample_flg = !upsample;//TMM_EF
+			downsample_flg = !upsample;//TMM_INTERLACE
     }
   }
   

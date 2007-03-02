@@ -681,12 +681,12 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     if ( m_eSliceType != F_SLICE ) {
 	if( getPPS().getDeblockingFilterParametersPresentFlag() )
 	{
-        RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().write( pcWriteIf ) );
+           RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().write( pcWriteIf, true ) ); //V032, added enhanced layer indicator "true"
       }
       if ( getSPS().getInterlayerDeblockingPresent() )
       {
-        RNOK( getDeblockingFilterParameterScalable().getInterlayerDeblockingFilterParameter().write( pcWriteIf ) );
-      }
+        	RNOK( getDeblockingFilterParameterScalable().getInterlayerDeblockingFilterParameter().write( pcWriteIf, true ) ); //V032, added enhanced layer indicator "true"
+	    }
 	  //JVT-U106 Behaviour at slice boundaries{
 	  RNOK (pcWriteIf->writeFlag( m_bCIUFlag, "SH: constrained_intra_upsampling_flag"));
 	  //JVT-U106 Behaviour at slice boundaries}
@@ -894,7 +894,7 @@ SliceHeaderBase::xWriteH264AVCCompatible( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( getPPS().getDeblockingFilterParametersPresentFlag() )
   {
-    RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().write( pcWriteIf ) );
+    	RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().write( pcWriteIf, false ) ); //XXXV032, added enhanced layer indicator "true"
   }
 
   if(getPPS().getNumSliceGroupsMinus1()>0 && getPPS().getSliceGroupMapType() >=3 && getPPS().getSliceGroupMapType() <= 5)
@@ -1122,14 +1122,14 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   }
   if( m_eSliceType != F_SLICE )
   {
-  if( getPPS().getDeblockingFilterParametersPresentFlag() )
-  {
-      RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().read( pcReadIf ) );
-    }
-    if ( getSPS().getInterlayerDeblockingPresent() )
-    {
-      RNOK( getDeblockingFilterParameterScalable().getInterlayerDeblockingFilterParameter().read( pcReadIf ) );
-    }
+   if( getPPS().getDeblockingFilterParametersPresentFlag() )
+   {
+    RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().read( pcReadIf, true ) ); //V032, added enhanced layer indicator "true"
+   }
+   if ( getSPS().getInterlayerDeblockingPresent() )
+   {
+    RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().read( pcReadIf, true ) ); //V032, added enhanced layer indicator "true"
+   }
 	//JVT-U106 Behaviour at slice boundaries{
 	RNOK (pcReadIf->getFlag( m_bCIUFlag, "SH: constrained_intra_upsampling_flag"));
 	//JVT-U106 Behaviour at slice boundaries}
@@ -1368,7 +1368,8 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
   
   if( getPPS().getDeblockingFilterParametersPresentFlag() )
   {
-      RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().read( pcReadIf ) );
+       RNOK( getDeblockingFilterParameterScalable().getDeblockingFilterParameter().read( pcReadIf, false ) ); //V032, added enhanced layer indicator "false"
+
   }
 
   //--ICU/ETRI FMO Implementation
@@ -1389,9 +1390,26 @@ SliceHeaderBase::xReadH264AVCCompatible( HeaderSymbolReadIf* pcReadIf )
 
 
 ErrVal
-SliceHeaderBase::DeblockingFilterParameter::write( HeaderSymbolWriteIf* pcWriteIf ) const
+SliceHeaderBase::DeblockingFilterParameter::write( HeaderSymbolWriteIf* pcWriteIf, bool enhancedLayerFlag ) const //V032, added enhanced layer indicator
+
 {
-  RNOK( pcWriteIf->writeUvlc( getDisableDeblockingFilterIdc(),  "SH: disable_deblocking_filter_idc" ) );
+  //RNOK( pcWriteIf->writeUvlc( getDisableDeblockingFilterIdc(),  "SH: disable_deblocking_filter_idc" ) );
+
+  //======The following code were added for V032=============
+  //=======Start adding code for V032
+  if (enhancedLayerFlag)  //for enhanced layer
+	pcWriteIf->writeUvlc( getDisableDeblockingFilterIdc(),  "SH: disable_deblocking_filter_idc" ) ;
+  else  //for base layer
+  {
+    if (3 == getDisableDeblockingFilterIdc())  //Disable chroma deblocking W.R.T. idc of 0 in base layer
+	  pcWriteIf->writeUvlc( 0,  "SH: disable_deblocking_filter_idc" );
+    else if (4 == getDisableDeblockingFilterIdc()) //Disable chroma deblocking W.R.T. idc of 2 in base layer
+	  pcWriteIf->writeUvlc( 2,  "SH: disable_deblocking_filter_idc" );
+	else  //normal values of idc, 0, 1, and 2
+	  pcWriteIf->writeUvlc( getDisableDeblockingFilterIdc(),  "SH: disable_deblocking_filter_idc" );
+  }
+  //=======End adding code for V032=========================
+
   ROTRS( 1 == getDisableDeblockingFilterIdc(), Err::m_nOK );
 
   RNOK( pcWriteIf->writeSvlc( getSliceAlphaC0Offset() >> 1,     "SH: slice_alpha_c0_offset_div2" ) );
@@ -1402,10 +1420,13 @@ SliceHeaderBase::DeblockingFilterParameter::write( HeaderSymbolWriteIf* pcWriteI
 
 
 ErrVal
-SliceHeaderBase::DeblockingFilterParameter::read( HeaderSymbolReadIf* pcReadIf )
+SliceHeaderBase::DeblockingFilterParameter::read( HeaderSymbolReadIf* pcReadIf, bool enhancedLayerFlag )  //V032, added enhanced layer indicator "false"
 {
   RNOK( pcReadIf->getUvlc( m_uiDisableDeblockingFilterIdc,      "SH: disable_deblocking_filter_idc" ) );
-  ROT ( m_uiDisableDeblockingFilterIdc > 2 );
+  //ROT ( m_uiDisableDeblockingFilterIdc > 2 );
+  ROT ( m_uiDisableDeblockingFilterIdc > 4 );      //V032 for extending Idc value to 3 and 4 w.r.t. 0 and 2 respectively
+  ROT (!enhancedLayerFlag && (m_uiDisableDeblockingFilterIdc > 2) ); //V032, Idc should not be >2 for base layer
+
   ROTRS( 1 == getDisableDeblockingFilterIdc(), Err::m_nOK );
 
   Int iTmp;

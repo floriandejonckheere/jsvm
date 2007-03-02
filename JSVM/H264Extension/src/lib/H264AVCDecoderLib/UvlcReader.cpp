@@ -1671,6 +1671,12 @@ ErrVal UvlcReader::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
   UInt  auiTotalRun     [4]     = { 0, 0, 0, 0 };
   UInt  auiCoeffCnt     [4]     = { 0, 0, 0, 0 };
 
+  //Heiner Kirchhoffer fix  
+  for ( uiBlk  = 0; uiBlk < 4; uiBlk++ )
+   for ( uiPos = 0; uiPos < 32; uiPos++ )
+     aaiLevelRun[uiBlk][uiPos] = 0;
+  //
+  
   {
     UInt uiBitPos = c8x8Idx;
     rcMbDataAccess.getMbData().setBCBP( uiBitPos,   1);
