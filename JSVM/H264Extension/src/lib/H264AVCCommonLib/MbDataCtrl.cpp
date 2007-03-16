@@ -649,6 +649,27 @@ ErrVal MbDataCtrl::uninit()
   return Err::m_nOK;
 }
 
+// for SVC to AVC rewrite
+ErrVal
+MbDataCtrl::copyTCoeffs( MbDataCtrl& rcMbDataCtrl )
+{
+  for( UInt n = 0; n < m_uiSize; n++ )
+  {
+    RNOK( m_pcMbData[n].copyTCoeffs( rcMbDataCtrl.m_pcMbData[n] ) );
+  }
+  return Err::m_nOK;
+}
+
+// for SVC to AVC rewrite
+ErrVal
+MbDataCtrl::copyIntraPred( MbDataCtrl& rcMbDataCtrl )
+{
+  for( UInt n = 0; n < m_uiSize; n++ )
+  {
+    RNOK( m_pcMbData[n].copyIntraPred( rcMbDataCtrl.m_pcMbData[n] ) );
+  }
+  return Err::m_nOK;
+}
 
 ErrVal MbDataCtrl::reset()
 {

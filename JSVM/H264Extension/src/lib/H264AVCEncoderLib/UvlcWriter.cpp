@@ -932,7 +932,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
                                   ResidualMode  eResidualMode )
 {
   const UChar*  pucScan;
-  const TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
+  TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   const Bool    bFrame  = ( FRAME == rcMbDataAccess.getMbPicType());
 
   Int   iLevel;
@@ -1047,7 +1047,8 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
                                   ChromaIdx     cIdx,
                                   ResidualMode  eResidualMode )
 {
-  const TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
+
+  TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
   const Bool    bFrame  = ( FRAME == rcMbDataAccess.getMbPicType());
   const UChar*  pucScan;
   Int           iRun = 0, iLevel;
@@ -1558,8 +1559,7 @@ ErrVal UvlcWriter::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
 
   const Bool    bFrame  = ( FRAME == rcMbDataAccess.getMbPicType());
   const UChar*  pucScan = (bFrame) ? g_aucFrameScan64 : g_aucFieldScan64;
-
-  const TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get8x8( c8x8Idx );
+  TCoeff* piCoeff = rcMbDataAccess.getMbTCoeffs().get8x8( c8x8Idx );
 
   UInt  uiBlk;
   Int   iLevel;
@@ -2099,7 +2099,7 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
       uiCountMag1++;
-      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -piCoeff[pucScan[ui]] : piCoeff[pucScan[ui]] );
+      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -1*piCoeff[pucScan[ui]].getCoeff() : (Short)piCoeff[pucScan[ui]].getCoeff() );
       if ( uiAbs > 1 )
       {
         ruiNumMagG1++;
@@ -2144,7 +2144,8 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
         continue;
       if ( uiCount > uiEnd )
         break;
-      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -piCoeff[pucScan[ui]] : piCoeff[pucScan[ui]] );
+      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -1*piCoeff[pucScan[ui]].getCoeff() : (Short)piCoeff[pucScan[ui]].getCoeff() );
+
       RNOK( xWriteFlag( (uiAbs > 1) ? 1 : 0 ) );
       uiRemaining -= ( uiAbs > 1 ) ? 1-uiFlip : uiFlip;
       if ( uiRemaining == 0 )
@@ -2159,7 +2160,7 @@ UvlcWriter::xRQencodeSigMagGreater1( TCoeff* piCoeff,
       break;
     if( piCoeff[pucScan[ui]] && ! piCoeffBase[pucScan[ui]])
     {
-      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -piCoeff[pucScan[ui]] : piCoeff[pucScan[ui]] );
+      UInt uiAbs = ( piCoeff[pucScan[ui]] < 0 ? -1*piCoeff[pucScan[ui]].getCoeff() : piCoeff[pucScan[ui]].getCoeff() );
       bSeenMaxMag |= ( uiAbs == uiMaxMag );
       for ( UInt uiCutoff=1; uiAbs>uiCutoff && uiCutoff<uiMaxMag; uiCutoff++ )
       {

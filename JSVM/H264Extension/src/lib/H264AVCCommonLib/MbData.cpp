@@ -191,6 +191,52 @@ MbData::copyMotionBL( MbData& rcMbData,
   return Err::m_nOK;
 }
 
+// for SVC to AVC rewrite
+ErrVal
+MbData::copyIntraPred( MbData &rcMbData )
+{
+	// COPY INTRA PREDICTION MODES
+	::memcpy(m_ascIPredMode, rcMbData.m_ascIPredMode, sizeof(m_ascIPredMode) );
+	::memcpy( &m_ucChromaPredMode, &rcMbData.m_ucChromaPredMode, sizeof(m_ucChromaPredMode) );
+
+	// COPY TRANSFORM SIZE
+	m_bTransformSize8x8 = rcMbData.m_bTransformSize8x8;
+
+    // COPY CBP
+   setMbExtCbp( rcMbData.getMbExtCbp() );
+
+	// COPY QUANTIZER DATA
+	m_ucQp = rcMbData.m_ucQp;
+
+	return Err::m_nOK;
+}
+
+// for SVC to AVC rewrite
+ErrVal
+MbData::copyTCoeffs( MbData& rcMbData )
+{
+  // DECLARATIONS
+  TCoeff *piCoeff;
+
+  // COPY COEFFICIENTS
+  // Luma
+  for( B4x4Idx b4x4Idx; b4x4Idx.isLegal(); b4x4Idx++ )
+  {
+	  piCoeff = getMbTCoeffs().get(b4x4Idx);
+	  ::memcpy( piCoeff, rcMbData.getMbTCoeffs().get(b4x4Idx), 16*sizeof(TCoeff) );
+  }
+
+  // Chroma
+  for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
+  {
+	  piCoeff = getMbTCoeffs().get(cIdx);
+	  ::memcpy( piCoeff, rcMbData.getMbTCoeffs().get(cIdx), 16*sizeof(TCoeff) );
+  }
+
+  return Err::m_nOK;
+}
+
+
 ErrVal
 MbData::copyMotionScale( const MbData& rcMbDataBL1, 
                          const MbData& rcMbDataBL2, 

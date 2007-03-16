@@ -88,6 +88,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVCDecoderTest::H264AVCDecoderTest() :
   m_pcH264AVCDecoder( NULL ),
   m_pcH264AVCDecoderSuffix( NULL ), //JVT-S036 lsj
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  m_pcAvcReWriteBitstream( NULL ),
+#endif
   m_pcParameter( NULL ),
   m_cActivePicBufferList( ),
   m_cUnusedPicBufferList( )
@@ -142,6 +145,15 @@ ErrVal H264AVCDecoderTest::destroy()
   {//JVT-S036 lsj
     RNOK( m_pcH264AVCDecoderSuffix->destroy() );       
   }
+
+ #ifdef SHARP_AVC_REWRITE_OUTPUT
+   if( NULL != m_pcAvcReWriteBitstream )     
+  {
+    RNOK( m_pcAvcReWriteBitstream->uninit() );  
+    RNOK( m_pcAvcReWriteBitstream->destroy() );  
+  }
+  m_cBinDataStartCode.reset();
+#endif
 
   AOF( m_cActivePicBufferList.empty() );
   
@@ -344,6 +356,13 @@ ErrVal H264AVCDecoderTest::go()
   PicBufferList cPicBufferOutputList; 
   PicBufferList cPicBufferUnusedList;
   PicBufferList cPicBufferReleaseList;
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  ExtBinDataAccessor avcRewriteExtBinDataAccessor;
+  UChar*          avcRewriteBinDataBuffer = NULL;
+  BinData*		  avcRewriteBinData = NULL;
+  int             avcRewriteBufsize=0;
+  bool            avcRewriteInitialized = false;
+#endif
 
   UInt      uiMbX           = 0;
   UInt      uiMbY           = 0;
@@ -377,7 +396,7 @@ ErrVal H264AVCDecoderTest::go()
 
   for( uiFrame = 0; ( uiFrame <= MSYS_UINT_MAX && ! bEOS); )
   {
-    BinData* pcBinData;
+    BinData* pcBinData = 0;
     BinData* pcBinDataAVCNALU; //NS leak fix
     BinDataAccessor cBinDataAccessor;
 
@@ -654,6 +673,54 @@ ErrVal H264AVCDecoderTest::go()
 //bug-fix suffix}}
 // JVT-Q054 Red. Picture }
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  if (m_pcH264AVCDecoder->getAvcRewriteFlag())
+  {
+	  if (avcRewriteInitialized==false )
+	  {	  
+		  // initialize, this is called only once
+		  avcRewriteBinData = new BinData;
+		  avcRewriteBinData->setMemAccessor(avcRewriteExtBinDataAccessor);
+		  m_pcH264AVCDecoder->startAvcRewrite(avcRewriteBinDataBuffer, avcRewriteBinData, &avcRewriteExtBinDataAccessor);
+		  avcRewriteInitialized = true;
+
+		  // open the rewrite bit stream file
+		  RNOKS( WriteBitstreamToFile::create(m_pcAvcReWriteBitstream) );	  
+		  RNOKS( m_pcAvcReWriteBitstream->init(m_cAvcReWriteBitstreamFileName) );
+
+		  //===== set start code =====
+		  m_aucStartCodeBuffer[0] = 0;
+		  m_aucStartCodeBuffer[1] = 0;
+		  m_aucStartCodeBuffer[2] = 0;
+		  m_aucStartCodeBuffer[3] = 1;
+		  m_cBinDataStartCode.reset ();
+		  m_cBinDataStartCode.set   ( m_aucStartCodeBuffer, 4 );
+
+		  // write parameter sets
+		  bool moreSet = true;
+		  UInt index = 0;
+		  while (moreSet) {
+			  moreSet = m_pcH264AVCDecoder->writeAvcRewriteParameterSets(7, index);	   // NAL_UNIT_SPS
+
+			  RNOK(m_pcAvcReWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+			  RNOK(m_pcAvcReWriteBitstream->writePacket(avcRewriteBinData));
+			  index ++;
+		  }
+
+		  moreSet = true;
+		  index = 0;
+		  while (moreSet) 
+		  {
+			  moreSet = m_pcH264AVCDecoder->writeAvcRewriteParameterSets(8, index);	   //NAL_UNIT_PPS
+			  RNOK(m_pcAvcReWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+			  RNOK(m_pcAvcReWriteBitstream->writePacket(avcRewriteBinData));
+			  index ++;
+		  }
+	  }	  
+  }
+  
+#endif
+
   if(bToDecode)//JVT-P031
   {
     // get new picture buffer if required if coded Slice || coded IDR slice
@@ -728,6 +795,7 @@ ErrVal H264AVCDecoderTest::go()
 
     // decode the NAL unit
     RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
+    
     //JVT-T054_FIX{
     //add last decoded frame to SVC DPB if last frame was an AVC unit
    if(bWasAVCNALUnit && m_pcH264AVCDecoder->getBaseSVCActive())
@@ -750,6 +818,15 @@ ErrVal H264AVCDecoderTest::go()
       RNOK( m_pcH264AVCDecoder->process( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cPicBufferReleaseList ) );
    }
     //JVT-T054}
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+	if (avcRewriteInitialized && avcRewriteBinData->size())
+	{
+		RNOK(m_pcAvcReWriteBitstream->writePacket( &m_cBinDataStartCode ) );		
+		RNOK(m_pcAvcReWriteBitstream->writePacket(avcRewriteBinData));      // SVC-AVC rewrite -- slice header and data
+		avcRewriteBinData->reset();
+	}
+#endif
 
 	// ROI DECODE ICU/ETRI
 	m_pcH264AVCDecoder->RoiDecodeInit();
@@ -805,6 +882,21 @@ ErrVal H264AVCDecoderTest::go()
 
   delete [] pcLastFrame; // HS: decoder robustness
   
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  if (avcRewriteInitialized==true) {	
+	  avcRewriteBinData->reset();
+	  m_pcH264AVCDecoder->closeAvcRewrite(); // free the avcRewriteBinDataBuffer inside this function
+
+	  // close file
+	  if( NULL != m_pcAvcReWriteBitstream )     
+	  {
+		  RNOK( m_pcAvcReWriteBitstream->uninit() );  
+		  RNOK( m_pcAvcReWriteBitstream->destroy() );  
+	  }
+	  m_pcAvcReWriteBitstream = NULL;
+  }
+#endif
+
   RNOK( m_pcH264AVCDecoder->uninit( true ) );
   
   m_pcParameter->nFrames  = uiFrame;
@@ -812,6 +904,16 @@ ErrVal H264AVCDecoderTest::go()
 
   return Err::m_nOK;
 }
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+ErrVal
+H264AVCDecoderTest::setAvcReWriteBitstreamFile (char* AvcReWriteBitstreamFileName) {
+	
+	m_cAvcReWriteBitstreamFileName = AvcReWriteBitstreamFileName;
+	return Err::m_nOK;
+}
+
+#endif
 
 //TMM_EC
 ErrVal

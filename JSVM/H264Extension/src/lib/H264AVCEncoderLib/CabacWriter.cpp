@@ -1721,7 +1721,7 @@ CabacWriter::RQencodeNewTCoeff_8x8( MbDataAccess&   rcMbDataAccess,
 
   if( uiSig )
   {
-    UInt  uiAbs     = ( piCoeff[pucScan[uiScanIndex]] > 0 ? piCoeff[pucScan[uiScanIndex]] : -piCoeff[pucScan[uiScanIndex]] );
+    UInt  uiAbs     = ( piCoeff[pucScan[uiScanIndex]] > 0 ? piCoeff[pucScan[uiScanIndex]].getCoeff() : -1*(Short)piCoeff[pucScan[uiScanIndex]].getCoeff() );
     UInt  uiSign    = ( piCoeff[pucScan[uiScanIndex]] > 0 ?                             0 :                              1 );
 
     //===== SIGN =====
@@ -1965,7 +1965,8 @@ CabacWriter::xRQencodeNewTCoeffs( TCoeff*       piCoeff,
       uiScanIndex+=uiStride;
   }
   while ( true );
-    UInt  uiAbs     = ( piCoeff[pucScan[uiScanIndex]] > 0 ? piCoeff[pucScan[uiScanIndex]] : -piCoeff[pucScan[uiScanIndex]] );
+
+    UInt  uiAbs     = ( piCoeff[pucScan[uiScanIndex]] > 0 ? piCoeff[pucScan[uiScanIndex]].getCoeff() : -1*(Short)piCoeff[pucScan[uiScanIndex]].getCoeff() );
     UInt  uiSign    = ( piCoeff[pucScan[uiScanIndex]] > 0 ?                             0 :                              1 );
 
     //===== SIGN =====

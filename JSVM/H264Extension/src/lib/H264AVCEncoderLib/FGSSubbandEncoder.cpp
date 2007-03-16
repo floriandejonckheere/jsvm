@@ -712,7 +712,7 @@ RQFGSEncoder::xRequantizeMacroblock( MbDataAccess&    rcMbDataAccess,
           uiAbsSum4x4 ) );
         uiAbsSum8x8 += uiAbsSum4x4;
         if ( bIntra16x16 )
-          uiAbsSum8x8 -= abs(rcMbDataAccess.getMbTCoeffs().get( cIdx )[0]);
+          uiAbsSum8x8 -= abs( (Int)rcMbDataAccess.getMbTCoeffs().get( cIdx )[0] );
 
         RNOK( xSetSymbols4x4( rcMbDataAccess    .getMbTCoeffs().get( cIdx ),
                               uiMbX, uiMbY, 
@@ -2883,7 +2883,8 @@ RQFGSEncoder::xVLCParseLuma( UInt   uiBlockYIndex,
         if ( piCoeff[pucScan[uiIndex]] )
         {
           pauiNumCoefHist[((uiCycle * 16) + uiBaseLast) * 16 + uiRun+1]++;
-          UInt uiAbsMag = ( piCoeff[pucScan[uiIndex]] >= 0 ) ? piCoeff[pucScan[uiIndex]] : -piCoeff[pucScan[uiIndex]];
+          UInt uiAbsMag = ( piCoeff[pucScan[uiIndex]] >= 0 ) ? piCoeff[pucScan[uiIndex]].getCoeff() : -1*(Short)piCoeff[pucScan[uiIndex]].getCoeff();
+
           uiHighMagCount += ( uiAbsMag > 1 ) ? 1 : 0;
           uiCycle = uiIndex + 1;
           uiRun = 0;

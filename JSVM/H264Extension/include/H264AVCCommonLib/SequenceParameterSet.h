@@ -231,6 +231,17 @@ public:
   Void setExtendedSpatialScalability ( UInt ui ) { m_uiExtendedSpatialScalability = ui ;}
   UInt getExtendedSpatialScalability () const    { return m_uiExtendedSpatialScalability; }
 
+  // JVT-V035
+  Bool getAVCRewriteFlag ()                       const { return m_bAVCRewriteFlag; }
+  Bool getAVCAdaptiveRewriteFlag ()               const { return m_bAVCAdaptiveRewriteFlag; }
+  Void setAVCRewriteFlag( Bool b )                { m_bAVCRewriteFlag = b; }
+  Void setAVCAdaptiveRewriteFlag ( Bool b )
+  { 
+	  if( getAVCRewriteFlag() == false && b == true )
+		  printf("WARNING: Setting AVCAdaptiveRewriteFlag when AVCRewriteFlag is false.\n");
+	  m_bAVCAdaptiveRewriteFlag = b; 
+  }
+
   // needs to be called after all the position vectors are set
   ErrVal checkPosVectors              ( UInt uiIndex )
   {
@@ -354,6 +365,9 @@ protected:
   Bool          m_bRCDODeblocking;
 
   Bool          m_b4TapMotionCompensationY;  // V090
+
+  Bool          m_bAVCRewriteFlag;          // V-035
+  Bool          m_bAVCAdaptiveRewriteFlag;
 
 private:
   static const LevelLimit m_aLevelLimit[52];

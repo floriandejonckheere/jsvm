@@ -812,7 +812,8 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
       {
         RNOK( m_pcMbSymbolWriteIf->resPredFlag( rcMbDataAccess ) );
         if ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
-          rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.useSmoothedRef() )
+          rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.useSmoothedRef() 
+          && (rcMbDataAccess.getSH().getAVCRewriteFlag()==false) )  
         {
           RNOK( m_pcMbSymbolWriteIf->smoothedRefFlag( rcMbDataAccess ) );
         }

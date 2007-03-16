@@ -162,6 +162,10 @@ public:
   ErrVal        copyMotionBL  ( MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters  );
   ErrVal        upsampleMotion ( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
 
+  // JVT-V035, functions for SVC to AVC rewrite
+  ErrVal  copyTCoeffs   ( MbDataCtrl& rcMbDataCtrl );
+  ErrVal  copyIntraPred ( MbDataCtrl& rcMbDataCtrl );
+
 //JVT-T054{
   ErrVal        initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
 //JVT-T054}

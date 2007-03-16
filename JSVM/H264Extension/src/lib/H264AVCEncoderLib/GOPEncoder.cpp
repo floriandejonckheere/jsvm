@@ -1680,6 +1680,8 @@ MCTFEncoder::xMotionEstimation( RefFrameList*    pcRefFrameList0,
         if    ( pcBaseLayerCtrl )
         {
           RNOK( pcBaseLayerCtrl         ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
+          if (rcSliceHeader.getAVCRewriteFlag())
+            pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
         }
 
         if( ! m_bLoadMotionInfo )
@@ -5420,14 +5422,21 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
 		 //=== create Upsampled VBL Frame ===
     RNOK( m_pcBaseLayerCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
-     m_pcBaseLayerCtrl->setBuildInterlacePred(  m_pcResizeParameters->m_bFieldPicFlag );
+
+    //===== data needed for SVC to AVC translation --- JVT-V035====/
+    if(rcControlData.getSliceHeader()->getAVCRewriteFlag() && pcBaseDataCtrl )
+    {
+      m_pcBaseLayerCtrl->copyTCoeffs( *pcBaseDataCtrl );
+      m_pcBaseLayerCtrl->copyIntraPred( *pcBaseDataCtrl );
+    }
+
+    m_pcBaseLayerCtrl->setBuildInterlacePred(  m_pcResizeParameters->m_bFieldPicFlag );
 
      if( pcBaseDataCtrlEL )
      {
        pcBaseDataCtrlEL->setSliceHeader( pcBaseDataCtrl->getSliceHeader() );
        pcBaseDataCtrl = pcBaseDataCtrlEL;
      }
-
    
     // ICU/ETRI FGS_MOT_USE
     RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
@@ -6004,6 +6013,13 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
     }
     // JVT-R057 LA-RDO}
 
+    // JVT-V035
+    if (rcControlData.getSliceHeader()->getAVCRewriteFlag())
+    {
+      //===== update state prior to deblocking
+      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
+    }
+
     //===== de-blocking =====
     // Hanke@RWTH: set pointer to current residual frame
     m_pcLoopFilter->setHighpassFramePointer( pcResidual ); 
@@ -6276,6 +6292,11 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
       m_uiNotYetConsideredBaseLayerBits = 0;
     }
 
+    if (rcControlData.getSliceHeader()->getAVCRewriteFlag())
+    {
+      //===== update state prior to deblocking
+      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
+    }
 
     //===== deblock and store picture for prediction of following low-pass frames =====
     //ROF( pcSliceHeader->getNumRefIdxActive( LIST_0 ) == ( pcSliceHeader->isIntra() ? 0 : 1 ) );

@@ -156,6 +156,12 @@ ErrVal LayerParameters::check()
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
 
+  if ((getBaseLayerId() == MSYS_UINT_MAX) && (getAVCRewriteFlag() == true))
+  {
+    printf( "AvcRewriteFlag should be false for base layer, reset to 0\n" );
+    m_bAVCRewriteFlag = 0;
+  }
+
   if( m_dQpModeDecisionLP == -1.0 )
   {
     m_dQpModeDecisionLP = m_dBaseQpResidual;

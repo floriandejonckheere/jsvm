@@ -1222,6 +1222,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, ""); 
   //S051}
 
+  // JVT-V035
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("AvcRewriteFlag",          &(rcLayer.m_bAVCRewriteFlag),                            0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("AvcAdaptiveRewriteFlag",  &(rcLayer.m_bAVCAdaptiveRewriteFlag),                    0 );
+
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVectorMode", &(rcLayer.m_uiFGSCodingMode), 0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSGroupingSize", &(rcLayer.m_uiGroupingSize), 1 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector0", &(rcLayer.m_uiPosVect[0]), 0 );

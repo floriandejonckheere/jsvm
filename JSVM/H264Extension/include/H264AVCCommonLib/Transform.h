@@ -97,11 +97,27 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-
 class MbFGSCoefMap;
+
+class H264AVCCOMMONLIB_API CoeffLevelPred
+{
+protected:
+	CoeffLevelPred();
+	virtual ~CoeffLevelPred();
+
+public:
+	
+  ErrVal ScaleCoeffLevels       ( TCoeff* piCoeff, 
+                                  TCoeff* piRefCoeff,
+                                  UInt uiQp,
+                                  UInt uiRefQp, 
+                                  UInt uiNumCoeff );  
+
+};
 
 class H264AVCCOMMONLIB_API Transform :
 public Quantizer
+, CoeffLevelPred
 {
 protected:
 	Transform();
@@ -154,6 +170,16 @@ public:
 
     invTransform8x8Blk( pOrg, iStride, piCoeff );
   }
+
+  // JVT-V035 functions for SVC to AVC rewrite
+  ErrVal        predict4x4Blk             ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiAbsSum );
+  ErrVal        predict8x8Blk             ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiAbsSum );
+  ErrVal        predictChromaBlocks       ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );    
+  ErrVal        predictScaledACCoeffs     ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp );  
+  ErrVal        predictMb16x16            ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );
+  ErrVal        addPrediction4x4Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiDstQp, UInt uiRefQp, UInt &uiCoded  );
+  ErrVal        addPrediction8x8Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, Bool& bCoded  );
+  ErrVal        addPredictionChromaBlocks ( TCoeff* piCoeff, TCoeff* piRef, UInt uiQp, UInt uiRefQp, Bool& bDCflag, Bool& bACflag );
 
   ErrVal        transform8x8Blk           ( IntYuvMbBuffer*       pcOrgData,
                                             IntYuvMbBuffer*       pcPelData,

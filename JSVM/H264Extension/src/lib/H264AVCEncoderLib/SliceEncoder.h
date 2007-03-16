@@ -222,6 +222,15 @@ ErrVal encodeIntraPictureMbAff      ( UInt&					ruiBits,
   //S051{
   Void		setUseBDir			(Bool b){m_pcMbEncoder->setUseBDir(b);}
   //S051}
+
+  // JVT-V035
+  ErrVal updatePictureAVCRewrite( ControlData&     rcControlData,
+                                  UInt          uiMbInRow );
+
+  ErrVal xAddTCoeffs2            ( MbDataAccess&      rcMbDataAccess,
+                                   MbDataAccess&      rcMbDataAccessBase );
+
+
   //JVT-U106 Behaviour at slice boundaries{
   Void    setIntraBLFlag  (Bool* b){m_pbIntraBLFlag=b;}
   //JVT-U106 Behaviour at slice boundaries}

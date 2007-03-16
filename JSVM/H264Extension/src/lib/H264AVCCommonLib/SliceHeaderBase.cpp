@@ -325,6 +325,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 //JVT-U106 Behaviour at slice boundaries}
 , m_bInIDRAccess					            ( false ) //EIDR bug-fix
 , m_bUseSmoothedRef                   ( true )//JVT-V058
+, m_bAVCRewriteFlag                   ( rcSPS.getAVCRewriteFlag() )  // V-035
 {
   ::memset(  m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt));
   ::memset(  m_aiDeltaPicOrderCnt,         0x00, 2*sizeof(Int) );
@@ -569,6 +570,9 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	  
 	if( m_eSliceType != F_SLICE )
 	{
+    if( getSPS().getAVCAdaptiveRewriteFlag() == true )
+      RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                        "SH: AVC_rewrite_flag" ) );
+
       //{{JVT-T083
 		if( m_eSliceType == P_SLICE || m_eSliceType == B_SLICE )
 		{
@@ -992,6 +996,9 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
   {
     RNOK(   pcReadIf->getFlag( m_bDirectSpatialMvPredFlag,                   "SH: direct_spatial_mv_pred_flag" ) );
   }
+
+  if( getSPS().getAVCAdaptiveRewriteFlag() == true )
+    RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                            "SH: AVC_rewrite_flag" ) );
   
   if( m_eSliceType != F_SLICE )
   {

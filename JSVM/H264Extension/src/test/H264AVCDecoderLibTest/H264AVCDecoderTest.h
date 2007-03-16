@@ -88,6 +88,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "ReadBitstreamFile.h"
 #include "WriteYuvToFile.h"
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+#include "WriteBitstreamToFile.h"
+#endif
+
 #define MAX_REFERENCE_FRAMES 15
 #define MAX_B_FRAMES         15
 
@@ -132,6 +136,9 @@ public:
                             MyList<BinData*>&  cVirtualSliceList,
                             Bool bVirtualSlice);
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  ErrVal setAvcReWriteBitstreamFile (char* AvcReWriteBitstreamFileName);
+#endif
 
 protected:
   ErrVal xGetNewPicBuffer ( PicBuffer*& rpcPicBuffer, UInt uiSize );
@@ -143,6 +150,13 @@ protected:
   ReadBitstreamIf*            m_pcReadBitstream;
   WriteYuvIf*                 m_pcWriteYuv;
   DecoderParameter*           m_pcParameter;
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  std::string                 m_cAvcReWriteBitstreamFileName;
+  WriteBitstreamToFile*       m_pcAvcReWriteBitstream;
+  UChar                       m_aucStartCodeBuffer[5];
+  BinData                     m_cBinDataStartCode;
+#endif
 
   PicBufferList               m_cActivePicBufferList;
   PicBufferList               m_cUnusedPicBufferList;

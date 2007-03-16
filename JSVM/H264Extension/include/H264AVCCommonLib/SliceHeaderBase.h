@@ -684,6 +684,7 @@ public:
                           UInt uiChromaWeightDenom, ListIdx eListIdx, Bool bDecoder);
 //TMM_WP
 
+  Bool                              getAVCRewriteFlag ()              const { return m_bAVCRewriteFlag; }
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
   Bool                              getUseBasePredictionFlag      ()  const { return m_bUseBasePredictionFlag; }
   Bool                              getStoreBaseRepresentationFlag()  const { return m_bStoreBaseRepresentationFlag; }
@@ -1011,6 +1012,8 @@ protected:
   //JVT-U106 Behaviour at slice boundaries{
   Bool                        m_bCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}
+  Bool                        m_bAVCRewriteFlag;   // V-035
+
 // TMM_ESS {
 public:
   Int           getLeftOffset ()   const { return m_iScaledBaseLeftOffset; }

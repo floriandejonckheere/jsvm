@@ -1327,7 +1327,18 @@ H264AVCEncoder::xInitParameterSets()
     // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
-   const Bool  bInterlaced = ( rcLayerParameters.getPaff() || rcLayerParameters.getMbAff() );
+    if (uiIndex == 0)
+    {  // base layer AVC rewrite flag should always be false
+      pcSPS->setAVCRewriteFlag(false);
+      pcSPS->setAVCAdaptiveRewriteFlag(false);
+    }
+    else
+    {
+      pcSPS->setAVCRewriteFlag(rcLayerParameters.getAVCRewriteFlag());
+      pcSPS->setAVCAdaptiveRewriteFlag(rcLayerParameters.getAVCAdaptiveRewriteFlag());
+    }
+    
+    const Bool  bInterlaced = ( rcLayerParameters.getPaff() || rcLayerParameters.getMbAff() );
     pcSPS->setPaff                                ( bH264AVCCompatible || ! rcLayerParameters.getPaff() );
 	  pcSPS->setFrameMbsOnlyFlag										( ! bInterlaced );
     pcSPS->setMbAdaptiveFrameFieldFlag            ( (rcLayerParameters.getMbAff() ? true : false ) );
@@ -1627,6 +1638,252 @@ H264AVCEncoder::xInitParameterSets()
   return Err::m_nOK;
 }
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+MbCoder* 
+H264AVCEncoder::xGetPcMbCoder() {
+	return m_pcMbCoder;
+}
+
+ErrVal H264AVCEncoder::initMb( MbDataAccess*& pcMbDataAccessRewrite, UInt uiMbY, UInt uiMbX )
+{
+	return m_pcMbDataCtrl->initMb( pcMbDataAccessRewrite, uiMbY, uiMbX );
+}
+
+ErrVal H264AVCEncoder::initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl )
+{
+	return m_pcMbDataCtrl->initSlice( rcSH, eProcessingState, bDecoder, pcMbDataCtrl );
+}
+
+Void
+H264AVCEncoder::xStoreEstimation( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbBestData )
+{
+  if( rcMbBestData.getMbData().isIntra() )
+  {
+    rcMbBestData.getMbData().getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
+    rcMbBestData.getMbData().getMbMvdData   ( LIST_0 ).clear();
+
+    if( rcMbDataAccess.getSH().isInterB() )
+    {
+      rcMbBestData.getMbData().getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
+      rcMbBestData.getMbData().getMbMvdData   ( LIST_1 ).clear();
+    }
+  }
+  else if( rcMbBestData.getMbData().isSkiped() )
+  {
+    rcMbBestData.getMbData().getMbMvdData( LIST_0 ).clear();
+
+    if( rcMbDataAccess.getSH().isInterB() )
+    {
+      rcMbBestData.getMbData().getMbMvdData( LIST_1 ).clear();
+    }
+  }  
+
+  UInt uiFwdBwd = 0;
+  if( rcMbDataAccess.getSH().isInterB() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += (0 < rcMbBestData.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+      uiFwdBwd += (0 < rcMbBestData.getMbData().getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) )) ? 2:0;
+    }
+  }
+
+  if( rcMbDataAccess.getSH().isInterP() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd +=  (0 < rcMbBestData.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
+    }
+  }
+  rcMbBestData.getMbData().setFwdBwd  ( uiFwdBwd );
+  //rcMbBestData.copyTo     ( rcMbDataAccess );
+  
+  rcMbDataAccess.getMbData()            .copyFrom( rcMbBestData.getMbData() );
+  rcMbDataAccess.getMbTCoeffs()         .copyFrom( rcMbBestData.getMbTCoeffs() );
+  rcMbDataAccess.getMbData().copyMotion( rcMbBestData.getMbData(), 0 );  // SET THE SLICE ID (BIT OF A HACK)  
+
+  if( ! rcMbDataAccess.getMbData().isIntra4x4() && ( rcMbDataAccess.getMbData().getMbCbp() & 0x0F ) == 0 
+	  && !rcMbDataAccess.getMbData().isIntra_BL() 	  
+	  )
+  {
+    rcMbDataAccess.getMbData().setTransformSize8x8( false );
+  }
+}
+
+
+ErrVal
+H264AVCEncoder::xCreateAvcRewriteEncoder() {
+
+	ROT( NULL == this);
+	// only create the parts relating to the SVC-AVC rewrite	
+	RNOK( BitWriteBuffer              ::create( m_pcBitWriteBuffer ) );
+	RNOK( BitCounter                  ::create( m_pcBitCounter ) );
+	RNOK( NalUnitEncoder              ::create( m_pcNalUnitEncoder) );
+
+	RNOK( UvlcWriter                  ::create( m_pcUvlcWriter ) );
+	RNOK( UvlcWriter                  ::create( m_pcUvlcTester ) );
+	RNOK( CabacWriter                 ::create( m_pcCabacWriter ) );
+	RNOK( MbCoder                     ::create( m_pcMbCoder ) );
+	RNOK( RateDistortion              ::create( m_pcRateDistortion ) ); // maybe used in init m_pcMbCoder
+
+	return Err::m_nOK;
+}
+
+ErrVal
+H264AVCEncoder::xInitAvcRewriteEncoder() {
+  // init
+  RNOK( m_pcBitWriteBuffer          ->init() );
+  RNOK( m_pcBitCounter              ->init() );
+  
+  RNOK( m_pcUvlcWriter              ->init( m_pcBitWriteBuffer ) );
+  RNOK( m_pcUvlcTester              ->init( m_pcBitCounter ) );
+  RNOK( m_pcCabacWriter             ->init( m_pcBitWriteBuffer ) );
+
+  RNOK( m_pcNalUnitEncoder          ->init( m_pcBitWriteBuffer,
+                                            m_pcUvlcWriter,
+                                            m_pcUvlcTester));   // 
+     
+  return Err::m_nOK;
+}
+
+ErrVal
+H264AVCEncoder::xInitSliceForAvcRewriteCoding(const SliceHeader& rcSH)
+{
+  MbSymbolWriteIf* m_pcMbSymbolWriteIf;
+  bool bCabac = rcSH.getPPS().getEntropyCodingModeFlag();
+
+  if(bCabac )
+  {
+    m_pcMbSymbolWriteIf = m_pcCabacWriter;
+  }
+  else
+  {
+    m_pcMbSymbolWriteIf = m_pcUvlcWriter;
+  }
+
+  RNOK( m_pcMbSymbolWriteIf   ->startSlice( rcSH ) );
+  RNOK( m_pcMbCoder           ->initSlice ( rcSH, m_pcMbSymbolWriteIf, m_pcRateDistortion) ); // 
+
+  m_pcMbDataCtrl = new MbDataCtrl();
+  m_pcMbDataCtrl->init( rcSH.getSPS() );  
+  
+  return Err::m_nOK;
+}
+
+ErrVal
+H264AVCEncoder::xCloseAvcRewriteEncoder() {
+
+  RNOK( m_pcBitWriteBuffer        ->destroy() );
+  RNOK( m_pcBitCounter            ->destroy() );
+  RNOK( m_pcNalUnitEncoder        ->destroy() );
+  RNOK( m_pcUvlcWriter            ->destroy() );
+  RNOK( m_pcUvlcTester            ->destroy() );
+  RNOK( m_pcCabacWriter           ->destroy() );
+  RNOK( m_pcMbCoder               ->destroy() );
+  RNOK( m_pcRateDistortion        ->destroy() );
+
+  return Err::m_nOK;
+}
+
+// overloaded functions to write parameter sets
+ErrVal  
+H264AVCEncoder::xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,const SliceHeader& rcSH, const NalUnitType eNalUnitType) {
+	UInt uiBits=0;
+	RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
+	switch( eNalUnitType )
+	{
+	case NAL_UNIT_SPS:
+		{
+			// Todo: disable sending seq_parameter_set_svc_extension if profile_idc == 83			
+			RNOK( m_pcNalUnitEncoder->write( rcSH.getSPS()) );		// write SPS	  
+			break;
+		}
+	case NAL_UNIT_PPS:
+		{
+			RNOK( m_pcNalUnitEncoder->write( rcSH.getPPS()) );		// write PPS	 
+			break;
+		}
+	case NAL_UNIT_SEI:     // SHARP_AVC_REWRITE_OUTPUT: TODO
+		break;
+	case NAL_UNIT_ACCESS_UNIT_DELIMITER:    
+		break;
+	case NAL_UNIT_END_OF_SEQUENCE:
+		break;
+	case NAL_UNIT_END_OF_STREAM:
+		break;
+	default:
+		break;
+	}
+
+	RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+	return Err::m_nOK;
+}
+
+ErrVal  
+H264AVCEncoder::xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor, SequenceParameterSet& rcSps) {
+	UInt uiBits=0;
+	RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
+	
+	Profile profile_idc_save = rcSps.getProfileIdc();
+
+	if (profile_idc_save ==   SCALABLE_PROFILE)  // SVC extension 
+		rcSps.setProfileIdc(HIGH_PROFILE);
+
+	RNOK( m_pcNalUnitEncoder->write( rcSps) );	// write SPS	  
+
+	RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+
+	rcSps.setProfileIdc(profile_idc_save);     // resume the profile
+
+	return Err::m_nOK;
+}
+
+ErrVal  
+H264AVCEncoder::xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor, PictureParameterSet& rcPps) {
+	UInt uiBits=0;
+	RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );	
+	RNOK( m_pcNalUnitEncoder->write( rcPps) );		// write PPS	  
+
+	RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+
+	return Err::m_nOK;
+}
+
+ErrVal  
+H264AVCEncoder::xAvcRewriteSliceHeader ( ExtBinDataAccessor* pcExtBinDataAccessor, SliceHeader& rcSH) {
+	// need to write AVC compatible
+	NalUnitType nal_type_save = rcSH.getNalUnitType();
+
+	if (nal_type_save==NAL_UNIT_CODED_SLICE_SCALABLE)
+		rcSH.setNalUnitType(NAL_UNIT_CODED_SLICE);
+	else if (nal_type_save==NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
+		rcSH.setNalUnitType(NAL_UNIT_CODED_SLICE_IDR);
+
+	RNOK( m_pcNalUnitEncoder->write  (rcSH) );
+
+	// resume the NAL slice type
+	rcSH.setNalUnitType(nal_type_save);
+
+	return Err::m_nOK;
+}
+
+ErrVal  
+H264AVCEncoder::xAvcRewriteInitNalUnit ( ExtBinDataAccessor* pcExtBinDataAccessor) {
+
+	RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
+	return Err::m_nOK;
+}
+
+ErrVal  
+H264AVCEncoder::xAvcRewriteCloseNalUnit () {
+	UInt uiBits;
+	RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+	return Err::m_nOK;
+}
+
+#endif
 
 
 H264AVC_NAMESPACE_END

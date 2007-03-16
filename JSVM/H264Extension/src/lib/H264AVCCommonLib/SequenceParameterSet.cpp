@@ -191,6 +191,9 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bRCDOMotionCompensationC                ( false )
 , m_bRCDODeblocking                         ( false )
 , m_b4TapMotionCompensationY                ( false )  // V090
+, m_bAVCRewriteFlag                         ( false )   // V035
+, m_bAVCAdaptiveRewriteFlag                 ( false )
+
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -430,8 +433,14 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
         }
       }
     }
-  }
 
+    if( getExtendedSpatialScalability() == ESS_NONE )
+    {
+      RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                    "SPS: AVC_rewrite_flag" ) );
+      if( m_bAVCRewriteFlag )
+        RNOK( pcWriteIf->writeFlag( m_bAVCAdaptiveRewriteFlag,        "SPS: AVC_adaptive_rewrite_flag" ) );
+    }
+  }
   
   UInt    uiTmp = getLog2MaxFrameNum();
   ROF   ( uiTmp >= 4 );
@@ -635,8 +644,14 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     {
       m_uiNumFGSVectModes = 0; 
     }
+
+    if( getExtendedSpatialScalability() == ESS_NONE )
+    {
+      RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                       "SPS: AVC_rewrite_flag" ) );
+      if( m_bAVCRewriteFlag )
+        RNOK( pcReadIf->getFlag( m_bAVCAdaptiveRewriteFlag,           "SPS: AVC_adaptive_rewrite_flag" ) );
+    }
   }
- 
 
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_frame_num_minus_4" ) );
   ROT   ( uiTmp > 12 );

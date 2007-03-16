@@ -196,6 +196,14 @@ public:
   Void    RoiDecodeInit();
   Bool           getBaseSVCActive() { return m_bBaseSVCActive;} //JVT-T054_FIX
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  bool      getAvcRewriteFlag();
+  ErrVal    startAvcRewrite(UChar*& avcRewriteBinDataBuffer, BinData*& avcRewriteBinData, ExtBinDataAccessor* avcRewriteExtBinDataAccessor);
+  ErrVal    closeAvcRewrite();
+  bool      writeAvcRewriteParameterSets(int nal_unit_type, UInt index);
+#endif
+
+
 protected:
   ErrVal xCreateDecoder();
 

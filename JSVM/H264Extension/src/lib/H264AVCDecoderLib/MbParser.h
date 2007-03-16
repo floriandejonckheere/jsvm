@@ -105,7 +105,7 @@ class MbParser
   public:
     MbDataAccess&       getMbDataAccess   ()                  { AOF_DBG(m_pcMbDataAccess); return *m_pcMbDataAccess; }
 
-    IntMbTempData::IntMbTempData() :
+    IntMbTempData() :
     m_pcMbDataAccess( NULL )
     {
       m_pcMbDataAccess = NULL;  
@@ -115,7 +115,7 @@ class MbParser
       MbData::init( this, &m_acMbMvdData[0], &m_acMbMvdData[1], &m_acMbMotionData[0], &m_acMbMotionData[1] );
     }
 
-    IntMbTempData::~IntMbTempData()
+    ~IntMbTempData()
     {
       delete m_pcMbDataAccess;
       m_pcMbDataAccess = NULL;

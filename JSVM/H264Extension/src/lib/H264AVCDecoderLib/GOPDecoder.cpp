@@ -2889,6 +2889,14 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
     RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, pcResizeParameter) );
     if(uiQualityLevel != 0)
       RNOK( m_pcBaseLayerCtrl->initMbCBP( *pcBaseDataCtrl, pcResizeParameter ) );
+    
+    //===== data needed for SVC to AVC translation====/
+    if( pcBaseDataCtrl && rcControlData.getSliceHeader()->getAVCRewriteFlag() )
+    {
+      m_pcBaseLayerCtrl->copyTCoeffs( *pcBaseDataCtrl );
+      m_pcBaseLayerCtrl->copyIntraPred( *pcBaseDataCtrl );
+    }
+    
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
     //=== create Upsampled VBL Field ===
@@ -2912,7 +2920,8 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
 
 	  RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, pcResizeParameter, pcBaseDataCtrl, false) ); 
 
-    rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
+	  if( !rcControlData.getSliceHeader()->getAVCRewriteFlag() )
+      rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
   }
 
   //===== reconstruction (intra) =====

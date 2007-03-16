@@ -1052,6 +1052,9 @@ FGSCoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess,
   const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
   Int                 iScale    = 1;
 
+  if (!rcMbDataAccess.getMbData().isPCM() )
+      rcMbDataAccess.getMbTCoeffs().storeLevelData();  // for SVC to AVC rewrite
+
   //===== luma =====
   if( b16x16 )
   {

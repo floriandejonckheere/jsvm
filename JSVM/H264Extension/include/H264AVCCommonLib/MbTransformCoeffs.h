@@ -136,6 +136,9 @@ public:
   Void  clearNewLumaLevels8x8Block ( B8x8Idx c8x8Idx, MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
   Void  clearNewAcBlk              ( ChromaIdx cChromaIdx, MbFGSCoefMap& rcMbFGSCoefMap, MbTransformCoeffs& rcBaseMbTCoeffs );
 
+  Void storeLevelData              ();
+  Void switchLevelCoeffData        ();
+
 protected:
   TCoeff m_aaiLevel[24][16];
   UChar  m_aaucCoeffCount[24];

@@ -91,6 +91,39 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+// for SVC to AVC rewrite
+CoeffLevelPred::CoeffLevelPred()
+{
+}
+
+CoeffLevelPred::~CoeffLevelPred()
+{
+}
+
+ErrVal 
+CoeffLevelPred::ScaleCoeffLevels( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, UInt uiNumCoeffs )
+{
+	// DECLARATIONS	
+	UInt uiScaleFactor[6] = {8, 9, 10, 11, 13, 14};	
+	UInt uiDeltaQp;
+
+	// DETERMINE THE SCALING FACTOR	
+	uiDeltaQp = uiRefQp - uiQp;
+	if( uiDeltaQp < 0 )
+		uiDeltaQp = 0;
+
+	// PREDICT THE COEFFICIENTS		
+	for( UInt n=0; n<uiNumCoeffs; n++ )
+	{		
+		piCoeff[n] = piRefCoeff[n]<<(uiDeltaQp/6);
+		piCoeff[n] *= uiScaleFactor[ uiDeltaQp%6 ];
+		piCoeff[n] += ( piCoeff[n]>0 ) ? 4 : -4;
+		piCoeff[n] /= 8;
+	}
+
+	return Err::m_nOK;
+}
+
 
 Transform::Transform()
 : m_bClip( true )
@@ -602,6 +635,185 @@ Void Transform::xQuantDequantUniform4x4( TCoeff*                      piQCoeff,
 }
 
 
+// for SVC to AVC rewrite
+ErrVal Transform::predict4x4Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiRefQp, UInt& ruiAbsSum  )
+{	
+	// DECLARATIONS
+	TCoeff cPredCoeff[16];
+	
+	// PREDICT THE COEFFICIENTS	
+	ScaleCoeffLevels( cPredCoeff, piRefCoeff, getLumaQp().value(), uiRefQp, 16 );
+
+	// ADJUST THE TRANSMITTED COEFFICIENTS
+	for( Int n=0; n<16; n++ )
+	{
+    ruiAbsSum -= (piCoeff[n] >0) ? piCoeff[n].getCoeff() : (-1*piCoeff[n].getCoeff());
+		piCoeff[n] -= cPredCoeff[n];
+		ruiAbsSum += (piCoeff[n]>0) ? piCoeff[n].getCoeff() : (-1*piCoeff[n].getCoeff());
+	}
+	
+	return Err::m_nOK;
+}
+
+ErrVal Transform::predict8x8Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiRefQp, UInt& ruiAbsSum  )
+{
+	// DECLARATIONS
+	TCoeff cPredCoeff[64];
+
+	// PREDICT THE COEFFICIENTS		
+    ScaleCoeffLevels( cPredCoeff, piRefCoeff, getLumaQp().value(), uiRefQp, 64 );
+	
+
+	// ADJUST THE TRANSMITTED COEFFICIENTS
+	for( Int n=0; n<64; n++ )
+	{
+    ruiAbsSum -= (piCoeff[n] >0) ? piCoeff[n].getCoeff() : -1*piCoeff[n].getCoeff();
+		piCoeff[n] -= cPredCoeff[n];
+		ruiAbsSum += (piCoeff[n]>0) ? piCoeff[n].getCoeff() : -1*piCoeff[n].getCoeff();
+	}
+	
+	return Err::m_nOK;
+}
+
+ErrVal Transform::predictMb16x16( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs )
+{
+	UInt uiAbs = 0;
+
+	for( UInt n=0; n<16; n++ )
+		predict4x4Blk( &piCoeff[n<<4], &piRef[n<<4], uiRefQp, uiAbs );
+
+	return Err::m_nOK;
+
+}
+
+ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs )
+{
+
+	// DECLARATIONS
+	TCoeff cScaledRef[64];
+
+	for( UInt x=0; x<0x40; x+=0x10 )
+	{		
+		ScaleCoeffLevels( &cScaledRef[x], &piRef[x], getChromaQp().value(), uiRefQp, 16 );
+
+		for( UInt n=0; n<16; n++ )
+		{			
+			piCoeff[x+n] -= cScaledRef[x+n];		
+		}
+  }
+
+	// RECOMPUTE THE COEFFICIENT COUNTS
+	ruiAcAbs = 0;
+	ruiDcAbs = 0;
+
+	for( int i=0; i<64; i++ )
+		ruiAcAbs += abs( (Int)piCoeff[i] );
+    
+	for( int i=0; i<64; i+=16 )
+		ruiDcAbs += abs( (Int)piCoeff[i] );
+	  
+	ruiAcAbs -= ruiDcAbs;
+
+	return Err::m_nOK;
+
+}
+ErrVal
+Transform::predictScaledACCoeffs(  TCoeff *piCoeff, 
+								   TCoeff *piRef,
+								   UInt uiRefQp )
+{
+
+	// DECLARATIONS
+	TCoeff cPredCoeff[64] = {0};
+	UInt uiDcAbs=0, uiAcAbs=0;
+
+	// Predict the chroma coefficients
+	predictChromaBlocks( cPredCoeff, piRef, uiRefQp, uiDcAbs, uiAcAbs  );
+
+	for( UInt i=0; i<64; i++ )
+		cPredCoeff[i] = -cPredCoeff[i];
+
+	// Scale the coefficients
+	x4x4Dequant( &cPredCoeff[0x00], &cPredCoeff[0x00], m_cChromaQp );
+	x4x4Dequant( &cPredCoeff[0x10], &cPredCoeff[0x10], m_cChromaQp );
+	x4x4Dequant( &cPredCoeff[0x20], &cPredCoeff[0x20], m_cChromaQp );
+	x4x4Dequant( &cPredCoeff[0x30], &cPredCoeff[0x30], m_cChromaQp );
+
+	// Substitute
+	for( UInt x=0x00; x<0x40; x+=0x10 )
+		for( UInt n=1; n<16; n++ )
+			piCoeff[x+n] = cPredCoeff[x+n];	
+
+
+	return Err::m_nOK;
+}
+
+
+ErrVal Transform::addPrediction4x4Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, UInt &uiCoded  )
+{	
+	// DECLARATIONS
+	TCoeff cPredCoeff[16];
+	
+	// PREDICT THE COEFFICIENTS
+	ScaleCoeffLevels( cPredCoeff, piRefCoeff, uiQp, uiRefQp, 16 );
+
+	// ADJUST THE TRANSMITTED COEFFICIENTS
+	for( Int n=0; n<16; n++ )
+	{
+		piCoeff[n] += cPredCoeff[n];
+		if( piCoeff[n] )
+			uiCoded++;
+	}
+	
+	return Err::m_nOK;
+}
+
+ErrVal Transform::addPrediction8x8Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, Bool& bCoded  )
+{
+	// DECLARATIONS
+	TCoeff cPredCoeff[64];
+
+	// PREDICT THE COEFFICIENTS	
+	ScaleCoeffLevels( cPredCoeff, piRefCoeff, uiQp, uiRefQp, 64 );
+
+	// ADJUST THE TRANSMITTED COEFFICIENTS
+	for( Int n=0; n<64; n++ )
+	{
+		piCoeff[n] += cPredCoeff[n];
+		if( piCoeff[n] )
+			bCoded = true;
+	}
+	
+	return Err::m_nOK;
+}
+
+ErrVal Transform::addPredictionChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiQp, UInt uiRefQp, Bool& bDCflag, Bool& bACflag )
+{
+
+	// DECLARATIONS
+	TCoeff cScaledRef[64];	
+
+	for( UInt x=0; x<0x40; x+=0x10 )
+	{
+		ScaleCoeffLevels( &cScaledRef[x], &piRef[x], uiQp, uiRefQp, 16 );
+
+		for( UInt n=0; n<16; n++ )
+		{			
+			piCoeff[x+n] += cScaledRef[x+n];
+
+			if( piCoeff[x+n] )
+			{
+				if( n%16 )
+					bACflag = true;
+				else
+					bDCflag = true;
+			}			
+		}
+	}	
+
+	return Err::m_nOK;
+
+}
 
 
 Void Transform::xRequantUniform4x4( TCoeff*             piCoeff,
@@ -814,10 +1026,10 @@ Transform::requantLumaDcCoeffs( MbTransformCoeffs& rcMbTCoeff,
   for( S4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
     TCoeff&      riCoeff    = rcMbTCoeff.get    ( cIdx )[0];
-    const TCoeff iCoeffBase = rcMbTCoeffBase.get( cIdx )[0];
+    TCoeff& iCoeffBase = rcMbTCoeffBase.get( cIdx )[0];
     Int iLevel    = riCoeff;
-    Int iBaseSign = iCoeffBase >> 15;
-    iLevel       -= ( (Int)iCoeffBase + 1 ) >> 1;
+    Int iBaseSign = iCoeffBase.getCoeff() >> 15;
+    iLevel       -= ( (Int)iCoeffBase.getCoeff() + 1 ) >> 1;
     Int iSign     = iLevel >> 31;
     iLevel       = abs( iLevel ) * g_aaiQuantCoef[ m_cLumaQp.rem() ][0];
     if( pucScale )
@@ -1321,7 +1533,7 @@ Transform::x4x4Quant( TCoeff*             piQCoeff,
 {
   for( Int n = 0; n < 16; n++ )
   {
-    Int iLevel  = ( abs( piCoeff[n] ) * g_aaiQuantCoef[ rcQp.rem() ][n] + rcQp.add() ) >> rcQp.bits();
+    Int iLevel  = ( abs( (Int)piCoeff[n] ) * g_aaiQuantCoef[ rcQp.rem() ][n] + rcQp.add() ) >> rcQp.bits();
     Int iSign   = (  0 < piCoeff[n] ? 1 : -1 );
     
     if( 0 != iLevel )

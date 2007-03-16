@@ -95,7 +95,7 @@ public:
 			slice_group_id[i] = Slice_group_id[i];
 	}
 
-  FMO_PPS& FMO_PPS::operator = ( const FMO_PPS& rcFmoPPS )
+  FMO_PPS& operator = ( const FMO_PPS& rcFmoPPS )
   {
     num_slice_group_map_units_minus1 = rcFmoPPS.num_slice_group_map_units_minus1;
     num_slice_groups_minus1          = rcFmoPPS.num_slice_groups_minus1;

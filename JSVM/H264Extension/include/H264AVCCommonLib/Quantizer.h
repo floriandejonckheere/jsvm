@@ -124,6 +124,7 @@ public :
   const Int bits()  const { return m_iBits; }
   const Int add()   const { return m_iAdd; }
   const Int mode()  const { return m_iMode; }
+  const Int value() const { return 6*m_iPer+m_iRem; }
 
 private:
   Int m_iPer;

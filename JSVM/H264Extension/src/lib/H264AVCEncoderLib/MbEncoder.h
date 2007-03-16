@@ -424,15 +424,20 @@ protected:
                                   const IntFrame*   pcBaseLayerRec,
                                   Bool              bBSlice,
                                   Bool              bBLSkip );
+
   ErrVal  xEstimateMbIntra16    ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
-                                  Bool              bBSlice  );
+                                  Bool              bBSlice, 
+                                  Bool              bBLSkip=false );
   ErrVal  xEstimateMbIntra8     ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
-                                  Bool              bBSlice  );
+                                  Bool              bBSlice,
+                                  Bool              bBLSkip=false );
   ErrVal  xEstimateMbIntra4     ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
-                                  Bool              bBSlice  );
+                                  Bool              bBSlice,
+                                  Bool              bBLSkip=false );
+
   ErrVal  xEstimateMbPCM        ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   Bool              bBSlice  );

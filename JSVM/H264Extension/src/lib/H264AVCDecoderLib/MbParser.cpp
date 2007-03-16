@@ -1428,7 +1428,8 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
         DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
         //-- JVT-R091
         if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
-          rcMbDataAccess.getMbData().getBLSkipFlag() &&rcMbDataAccess.useSmoothedRef())
+          rcMbDataAccess.getMbData().getBLSkipFlag() &&rcMbDataAccess.useSmoothedRef()
+          && (rcMbDataAccess.getSH().getAVCRewriteFlag() == false) )
         {
           DECRNOK( m_pcMbSymbolReadIf->smoothedRefFlag( rcMbDataAccess ) );
         }

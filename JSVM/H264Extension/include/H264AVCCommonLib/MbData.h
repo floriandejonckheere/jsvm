@@ -166,6 +166,10 @@ public:
   ErrVal  copyMotionBL  ( MbData& rcMbData, Bool bDirect8x8, UInt    uiSliceId = MSYS_UINT_MAX );
   ErrVal  upsampleMotion( MbData& rcMbData, Par8x8  ePar8x8, Bool bDirect8x8   );
 
+  // functions for SVC to AVC rewrite
+  ErrVal  copyTCoeffs   ( MbData& rcMbData );
+  ErrVal  copyIntraPred ( MbData& rcMbData );
+
 	// TMM_ESS {
   ErrVal upsampleMotionESS( MbData* pcBaseMbData,
                             const UInt uiBaseMbStride,

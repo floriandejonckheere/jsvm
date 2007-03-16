@@ -201,6 +201,10 @@ protected:
   ErrVal xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
                                    MbDataAccess*  pcMbDataAccessBase );
 
+  // for SVC to AVC rewrite JVT-V035
+  ErrVal xAddTCoeffs2            ( MbDataAccess&      rcMbDataAccess,
+	                              MbDataAccess&      rcMbDataAccessBase );
+
 protected:
   MbTransformCoeffs   m_cTCoeffs;
   

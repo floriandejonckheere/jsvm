@@ -301,12 +301,65 @@ return;
 
 	for( unsigned char i=0; i<24; i++ )
 	{
-		for( unsigned char j=0; j<16; j++ )
+		for( unsigned char j=0; j<16; j++ )                 
 		{
-			::fprintf( hFile, "[%2u][%2u]=%5d\t", i, j, m_aaiLevel[i][j] );
+			::fprintf( hFile, "[%2u][%2u]=%5d\t", i, j, (Int)(Short)m_aaiLevel[i][j] );
 		}
 		::fprintf( hFile, "\n" );
 	}
+}
+
+// functions for SVC to AVC rewrite JVT-V035
+Void
+MbTransformCoeffs::storeLevelData()
+{
+	for( B4x4Idx bIdx; bIdx.isLegal(); bIdx++ )
+	{
+		//TCoeff* piCoeff = m_aaiLevel[bIdx];
+		TCoeff* piCoeff = get( bIdx );
+		for( UInt ui=0; ui<16; ui++ )
+			piCoeff[ui].setLevel( piCoeff[ui].getCoeff() );
+	}
+
+	for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
+	{
+		//TCoeff* piCoeff = m_aaiLevel[cIdx];
+		TCoeff* piCoeff = get( cIdx );
+		for( UInt ui=0; ui<16; ui++ )
+			piCoeff[ui].setLevel( piCoeff[ui].getCoeff() );
+	}
+	
+}
+
+Void
+MbTransformCoeffs::switchLevelCoeffData()
+{
+	TCoeff sTemp;
+
+	for( B4x4Idx bIdx; bIdx.isLegal(); bIdx++ )
+	{
+		//TCoeff* piCoeff = m_aaiLevel[bIdx];
+		TCoeff* piCoeff = get( bIdx );
+		for( UInt ui=0; ui<16; ui++ )
+		{
+			sTemp = piCoeff[ui].getLevel();
+			piCoeff[ui].setLevel( piCoeff[ui].getCoeff() );
+			piCoeff[ui].setCoeff( sTemp );
+		}
+	}
+
+	for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
+	{
+		//TCoeff* piCoeff = m_aaiLevel[cIdx];
+		TCoeff* piCoeff = get( cIdx );
+		for( UInt ui=0; ui<16; ui++ )
+		{
+			sTemp = piCoeff[ui].getLevel();
+			piCoeff[ui].setLevel( piCoeff[ui].getCoeff() );
+			piCoeff[ui].setCoeff( sTemp );
+		}		
+	}
+	
 }
 
 H264AVC_NAMESPACE_END

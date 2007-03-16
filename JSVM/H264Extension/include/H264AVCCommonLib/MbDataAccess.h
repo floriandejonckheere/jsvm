@@ -787,6 +787,16 @@ __inline UInt MbDataAccess::getCtxChromaPredMode() const
   uiCtx  = ((xGetMbLeft ().getChromaPredMode() > 0) ? 1 : 0);
   uiCtx += ((xGetMbAbove().getChromaPredMode() > 0) ? 1 : 0);
 
+  // Support independent parsing of layers
+  // -- Current layer blocks will inherit the 
+  // -- prediction modes from the lower layer.
+  // -- However, this happens after parsing.
+  if( getSH().getAVCRewriteFlag() )
+  {
+	  uiCtx -= ( xGetMbLeft().getChromaPredMode() > 0 && xGetMbLeft().isIntra_BL() ) ? 1 : 0;
+	  uiCtx -= ( xGetMbAbove().getChromaPredMode() > 0 && xGetMbAbove().isIntra_BL() ) ? 1 : 0;
+  }
+
   return uiCtx;
 }
 
@@ -802,6 +812,23 @@ __inline Int MbDataAccess::mostProbableIntraPredMode( LumaIdx cIdx )
   const MbData& rcMbDataAbove = xGetBlockAbove( cIdxA );
   Int iAbovePredMode = ( xIsAvailableIntra( rcMbDataAbove ) ? rcMbDataAbove.intraPredMode( cIdxA ) : OUTSIDE);
 
+	if( getSH().getAVCRewriteFlag() )
+	{
+		// ENCODER
+		if( rcMbDataLeft.isIntra_BL() )
+			iLeftPredMode = DC_PRED;
+
+		if( rcMbDataAbove.isIntra_BL() )
+			iAbovePredMode = DC_PRED;
+
+		// DECODER
+		if( rcMbDataLeft.isIntra() && rcMbDataLeft.getBLSkipFlag() )
+			iLeftPredMode = DC_PRED;
+
+		if( rcMbDataAbove.isIntra() && rcMbDataAbove.getBLSkipFlag() )
+			iAbovePredMode = DC_PRED;
+	}
+
   Int iMostProbable = min( iLeftPredMode, iAbovePredMode );
 
   return ( OUTSIDE == iMostProbable ) ? DC_PRED : iMostProbable;
@@ -811,6 +838,9 @@ __inline Int MbDataAccess::encodeIntraPredMode( LumaIdx cIdx )
 {
   const Int iMostProbable   = mostProbableIntraPredMode( cIdx );
   const Int iIntraPredMode  = m_rcMbCurr.intraPredMode ( cIdx );
+
+  if( getMbData().getBLSkipFlag() && getSH().getAVCRewriteFlag() )	  
+	  return iIntraPredMode;  
 
   ROTRS( iMostProbable == iIntraPredMode, -1 )
 

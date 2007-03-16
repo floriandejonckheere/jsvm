@@ -239,6 +239,8 @@ public:
     , m_puiLastMbInSlice (0)
     , m_puiSliceId (0)
     // JVT-S054 (ADD) <-
+    , m_bAVCRewriteFlag                  ( 0 )   // JVT-V035
+    , m_bAVCAdaptiveRewriteFlag          ( 0 )   // JVT-V035
 
 	//S051{
 	, m_cOutSIPFileName					("none")
@@ -366,6 +368,8 @@ public:
   UInt getFGSCodingMode                  ()    { return m_uiFGSCodingMode; }
   UInt getGroupingSize                   ()    { return m_uiGroupingSize; }
   UInt getPosVect                        (UInt uiNum) {return m_uiPosVect[uiNum];} 
+  Bool getAVCRewriteFlag ()               const { return m_bAVCRewriteFlag==1; }
+  Bool getAVCAdaptiveRewriteFlag ()       const { return m_bAVCAdaptiveRewriteFlag==1; }
 
   //===== set =====
   Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
@@ -584,6 +588,10 @@ public:
   UInt*        m_puiLastMbInSlice;
   UInt*        m_puiSliceId;
   // JVT-S054 (ADD) <-
+
+  // JVT-V035
+  UInt         m_bAVCRewriteFlag;
+  UInt         m_bAVCAdaptiveRewriteFlag;
 
   //JVT-P031
   Bool                      m_bUseDiscardable; //indicate if discardable stream is coded for this layer 

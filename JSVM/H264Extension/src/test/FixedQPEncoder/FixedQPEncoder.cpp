@@ -133,7 +133,7 @@ typedef struct
 
 	unsigned int  uiEntropyCodingModFlag;           // needed for encode
 	unsigned int  uiInterLayerPredictionMode;       // needed for encode
-	unsigned int  uiBaseLayerId;                    // needed for encode
+	int           iBaseLayerId;                     // needed for encode
 
   double        dRate;                            // needed for encode
 	unsigned int  uiCurrSize;                       // needed for encode
@@ -226,7 +226,7 @@ void encode( EncoderParameters& rcEncoderParameters )
 			switch( rcLayer.iFGSMode )
 			{
 			case -1:
-				sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %u ",
+				sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %d ",
 					uiLayer, rcLayer.cOrgFile.c_str(), 
 					uiLayer, rcLayer.cRecFile.c_str(),
 					uiLayer, rcLayer.dQpModeDecision, 
@@ -236,11 +236,11 @@ void encode( EncoderParameters& rcEncoderParameters )
 					uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str(),
 					uiLayer,
 					uiLayer, rcLayer.uiInterLayerPredictionMode,
-					uiLayer, rcLayer.uiBaseLayerId );
+					uiLayer, rcLayer.iBaseLayerId );
 				break;
 
 			case 0:
-				sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %u -anafgs %u %u %s -fgsmot %u %u ",
+				sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %d -anafgs %u %u %s -fgsmot %u %u ",
 					uiLayer, rcLayer.cOrgFile.c_str(), 
 					uiLayer, rcLayer.cRecFile.c_str(), 
 					uiLayer, rcLayer.dQpModeDecision, 
@@ -250,13 +250,13 @@ void encode( EncoderParameters& rcEncoderParameters )
 					uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str(),
 					uiLayer,
 					uiLayer, rcLayer.uiInterLayerPredictionMode,
-					uiLayer, rcLayer.uiBaseLayerId,
+					uiLayer, rcLayer.iBaseLayerId,
 					uiLayer, rcLayer.uiNumberOfFGSLayers, rcLayer.cFGSFile.c_str(),
 					uiLayer, rcLayer.uiFGSMotionRefinementMode );
 				break;
 			case 1:
 			case 2:
-				sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %u -encfgs %u %lf %s -fgsmot %u %u ",
+				sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %d -encfgs %u %lf %s -fgsmot %u %u ",
 					uiLayer, rcLayer.cOrgFile.c_str(), 
 					uiLayer, rcLayer.cRecFile.c_str(), 
 					uiLayer, rcLayer.dQpModeDecision, 
@@ -266,7 +266,7 @@ void encode( EncoderParameters& rcEncoderParameters )
 					uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str(),
 					uiLayer,
 					uiLayer, rcLayer.uiInterLayerPredictionMode,
-					uiLayer, rcLayer.uiBaseLayerId,
+					uiLayer, rcLayer.iBaseLayerId,
 					uiLayer, rcLayer.dHighestTarget, rcLayer.cFGSFile.c_str(),
 					uiLayer, rcLayer.uiFGSMotionRefinementMode );
 				break;
@@ -276,7 +276,7 @@ void encode( EncoderParameters& rcEncoderParameters )
 		}
 		else
 		{
-			sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %u ",
+			sprintf( acTempString, " -org %u %s -rec %u %s -lqp %d %lf -rqp %u %lf -meqplp %d %lf -ecmf %u %u -mfile %u %u %s -cl %u 2 -ilpred %u %u -blid %u %d ",
 				uiLayer, rcLayer.cOrgFile.c_str(), 
 				uiLayer, rcLayer.cRecFile.c_str(), 
 				uiLayer, rcLayer.dQpModeDecision, 
@@ -287,7 +287,7 @@ void encode( EncoderParameters& rcEncoderParameters )
 				uiLayer, rcLayer.uiMotionFileMode, rcLayer.cMotionFile.c_str(),
 				uiLayer,
 				uiLayer, rcLayer.uiInterLayerPredictionMode,
-				uiLayer, rcLayer.uiBaseLayerId );
+				uiLayer, rcLayer.iBaseLayerId );
 		}
     cCommandLineString  += acTempString;
   }
@@ -566,7 +566,7 @@ read_config_file( EncoderParameters& cEncoderParameters, FILE* pFile )
     ROT( read_line( pFile, "%lf", &rcLayer.dStartQpModeDecision ) );
 		ROT( read_line( pFile, "%d",  &rcLayer.uiEntropyCodingModFlag ) );
 		ROT( read_line( pFile, "%d",  &rcLayer.uiInterLayerPredictionMode ) );
-		ROT( read_line( pFile, "%d",  &rcLayer.uiBaseLayerId ) );
+		ROT( read_line( pFile, "%d",  &rcLayer.iBaseLayerId ) );
 		rcLayer.iFGSMode = ( cEncoderParameters.uiNumberOfLayers > 0 ) ? -1 : 0;
   }
 

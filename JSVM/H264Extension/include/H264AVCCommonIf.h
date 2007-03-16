@@ -139,9 +139,32 @@ typedef MemAccessor< UChar > BinDataAccessor;
 #include <algorithm>
 
 typedef UChar   Pel;
-typedef Short   TCoeff;
 typedef Short   XPel;
 typedef Long    XXPel;
+
+class TCoeff
+{
+public:
+	TCoeff()                                  { sCoeffValue=0; sLevelValue=0; };
+	TCoeff( Short val )                       { sCoeffValue = val; sLevelValue=val; };
+	~TCoeff()                                 { };
+
+	operator Short() const { return sCoeffValue; };	
+	TCoeff &operator=  (const Short val )      { sCoeffValue =  val; return *this; };
+	TCoeff &operator+= (const Short val )      { sCoeffValue += val;  return *this; };
+	TCoeff &operator-= (const Short val )      { sCoeffValue -= val;  return *this; };
+	TCoeff &operator*= (const Short val )      { sCoeffValue *= val;  return *this; };
+	TCoeff &operator/= (const Short val )      { sCoeffValue /= val;  return *this; };
+	
+	Short getLevel()                           { return sLevelValue; };
+	Short getCoeff()                           { return sCoeffValue; };	
+	Void  setLevel( Short val )                { sLevelValue = val; };
+	Void  setCoeff( Short val )                { sCoeffValue = val; };	
+
+private: 	
+	Short sCoeffValue;
+	Short sLevelValue;	
+};
 
 template< class T >
 class MyList : public std::list< T >

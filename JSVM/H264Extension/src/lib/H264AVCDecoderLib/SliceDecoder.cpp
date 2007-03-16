@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -173,7 +173,7 @@ ErrVal SliceDecoder::processVirtual(const SliceHeader& rcSH, Bool bReconstructAl
 	}
   //====== initialization ======
   UInt  uiMbAddress   = rcSH.getFirstMbInSlice();
- 
+
   //===== loop over macroblocks =====
   for( ; uiMbRead; uiMbAddress++ )
   {
@@ -189,7 +189,7 @@ ErrVal SliceDecoder::processVirtual(const SliceHeader& rcSH, Bool bReconstructAl
 		RNOK( m_pcMbDecoder ->process          ( *pcMbDataAccess, bReconstructAll, uiMbAddress ) );
     uiMbRead--;
   }
-  
+
 if( ePicType!=FRAME )
 	{
 		RNOK( m_pcMbDecoder->getFrameMng()->getCurrentFrameUnit()->getResidual()   ->removeFieldBuffer     ( ePicType ) );
@@ -201,7 +201,7 @@ if( ePicType!=FRAME )
 		RNOK( m_pcMbDecoder->getFrameMng()->getCurrentFrameUnit()->getFGSIntFrame()->removeFrameFieldBuffer()           );
 	}
 
-  return Err::m_nOK;	
+  return Err::m_nOK;
 }
 //TMM_EC }}
 
@@ -226,7 +226,7 @@ SliceDecoder::process( const SliceHeader& rcSH, Bool bReconstructAll, UInt uiMbR
   UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
 
   //===== loop over macroblocks =====
-  for( ; uiMbRead; uiMbRead--) //--ICU/ETRI FMO Implementation 
+  for( ; uiMbRead; uiMbRead--) //--ICU/ETRI FMO Implementation
   {
     MbDataAccess* pcMbDataAccess = NULL;
     UInt          uiMbY, uiMbX;
@@ -269,7 +269,7 @@ SliceDecoder::decode( SliceHeader&   rcSH,
                       RefFrameList*  pcRefFrameList0,
                       RefFrameList*  pcRefFrameList1,
                       Bool           bReconstructAll,
-                      UInt           uiMbInRow, 
+                      UInt           uiMbInRow,
                       UInt           uiMbRead )
 {
   ROF( m_bInitDone );
@@ -278,6 +278,10 @@ SliceDecoder::decode( SliceHeader&   rcSH,
   UInt  uiMbAddress         = rcSH.getFirstMbInSlice();
 
   RNOK( pcMbDataCtrl->initSlice( rcSH, DECODE_PROCESS, true, NULL ) );
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  RNOK( m_pcAvcRewriteEncoder->initSlice( rcSH, DECODE_PROCESS, true, NULL ) );
+#endif
 
   const PicType ePicType = rcSH.getPicType();
 	if( ePicType!=FRAME )
@@ -316,6 +320,177 @@ SliceDecoder::decode( SliceHeader&   rcSH,
                                               pcRefFrameList1,
                                               bReconstructAll ) );
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+
+	MbDataAccess* pcMbDataAccessRewrite = 0;
+	RNOK( m_pcAvcRewriteEncoder->initMb( pcMbDataAccessRewrite, uiMbY, uiMbX ) );
+	//pcMbDataCtrlBase->
+
+	// Copy the decoded block
+	m_pcAvcRewriteEncoder->xStoreEstimation( *pcMbDataAccessRewrite, *pcMbDataAccess );
+
+	pcMbDataAccessRewrite->getMbData().setBLSkipFlag( false );
+
+	if( pcMbDataAccessRewrite->getMbData().getMbMode() == MODE_SKIP )
+		pcMbDataAccessRewrite->getMbData().setMbMode( MODE_16x16 );
+
+	/////////////////////////////////////////////////////////////
+	// Recompute motion vector differences
+	if( !pcMbDataAccessRewrite->getMbData().isIntra() )
+	{
+		Mv           cMv;
+		MbMotionData cMbMotionData[2];
+
+		for( UInt uiList=0; uiList<2; uiList++ )
+		{
+			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
+
+			cMbMotionData[uiList].copyFrom( pcMbDataAccessRewrite->getMbMotionData(eListIdx) );
+			pcMbDataAccessRewrite->getMbMvdData(eListIdx).clear();
+			pcMbDataAccessRewrite->getMbMotionData(eListIdx).setMotPredFlag( false );
+
+		}
+
+		// This is a sub-optimal implementation
+		for( UInt uiList=0; uiList<2; uiList++ )
+		{
+			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
+
+			for( S4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+			{
+				m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
+
+				cMv  = cMbMotionData[uiList].getMv( cIdx );
+				cMv -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
+				pcMbDataAccessRewrite->getMbMvdData( eListIdx ).setMv( cMv, cIdx );
+			}
+
+			// Cleanup for CABAC context models
+			switch( pcMbDataAccessRewrite->getMbData().getMbMode() )
+			{
+
+			case MODE_16x16:
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv );
+				break;
+
+			case MODE_16x8:
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_0 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_0 );
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_1 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_1 );
+				break;
+
+			case MODE_8x16:
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_0 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_0 );
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_1 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_1 );
+				break;
+
+
+			case MODE_8x8:
+				for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+				{
+					ParIdx8x8 eParIdx = c8x8Idx.b8x8();
+
+					if( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) == BLK_SKIP )
+						pcMbDataAccessRewrite->getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
+
+					switch( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) )
+					{
+
+					case BLK_8x8:
+
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx );
+						break;
+
+					case BLK_8x4:
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_0 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_0 );
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_1 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_1 );
+						break;
+
+					case BLK_4x8:
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_0 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_0 );
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_1 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_1 );
+						break;
+
+					case BLK_4x4:
+						break;
+
+					default:
+						AOT(1);
+
+
+					}
+				}
+				break;
+
+  			default:
+				AOT(1);
+			}
+		}
+
+		// SANITY CHECK
+		m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
+
+		for( UInt uiList=0; uiList<2; uiList++ )
+		{
+			for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+			{
+				ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
+
+				cMv  = cMbMotionData[uiList].getMv( cIdx );
+				cMv -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
+				if( cMv.getHor() || cMv.getVer() )
+					AOT(1);
+			}
+		}
+		// END SANITY CHECK
+	}
+
+	///////////////////////////////////////////////////////////
+
+	pcMbDataAccessRewrite->getMbData().setBCBPAll(0);
+
+	// Reset data
+	UInt uiCbp = pcMbDataAccess->getMbData().getMbCbp();
+	//MbMode mode = pcMbDataAccess->getMbData().getMbMode();
+
+	int base_layer_id_save = rcSH.getBaseLayerId();
+	//bool bl_skip_flag_save = pcMbDataAccess->getMbData().getBLSkipFlag();
+	bool adaptivePredictionFlag_save = rcSH.getAdaptivePredictionFlag();
+	bool adaptiveResPredictionFlag_save = rcSH.getAdaptiveResPredictionFlag();
+
+	rcSH.setBaseLayerId(MSYS_UINT_MAX);
+	rcSH.setAdaptivePredictionFlag(false);
+	rcSH.setAdaptiveResPredictionFlag(false);
+
+	//pcMbDataAccess->getMbData().setBLSkipFlag(false);
+	pcMbDataAccessRewrite->getMbData().setBLSkipFlag( false );
+
+	if (uiCbp >=48) {
+		fprintf(stderr, "Warning! frame %d, MB (%d, %d), uiCbp=%d\n", rcSH.getFrameNum(), uiMbY, uiMbX, uiCbp);
+		AOT(1);
+	}
+
+	if (rcSH.getAVCRewriteFlag()) {
+
+		//RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccess,
+		RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccessRewrite,NULL, 0, uiMbRead==1, true ));
+	}
+
+	// resume
+	rcSH.setBaseLayerId(base_layer_id_save);
+	rcSH.setAdaptivePredictionFlag(adaptivePredictionFlag_save);
+	rcSH.setAdaptiveResPredictionFlag(adaptiveResPredictionFlag_save);
+#endif
+
    uiMbRead--;
 
 //TMM_EC {{
@@ -330,7 +505,7 @@ SliceDecoder::decode( SliceHeader&   rcSH,
 		 uiMbAddress++;
 	 }
   }
-  
+
   if( ePicType!=FRAME )
 	{
 		if( pcFrame )             RNOK( pcFrame->            removeFieldBuffer( ePicType ) );
@@ -463,11 +638,11 @@ SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
 
   UInt uiFirstMbInSlice;
   UInt uiLastMbInSlice;
-  FMO* pcFMO = rcSH.getFMO();  
+  FMO* pcFMO = rcSH.getFMO();
 
 	const Bool    bMbAff   = rcSH.isMbAff();
 
-  for(Int iSliceGroupID=0; !pcFMO->SliceGroupCompletelyCoded(iSliceGroupID); iSliceGroupID++)   
+  for(Int iSliceGroupID=0; !pcFMO->SliceGroupCompletelyCoded(iSliceGroupID); iSliceGroupID++)
   {
   	if (false == pcFMO->isCodedSG(iSliceGroupID))
 	  {
@@ -486,10 +661,10 @@ SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
     rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbIndex                        );
 
     RNOK( m_pcControlMng->initMbForDecoding( pcMbDataAccess, uiMbY, uiMbX, bMbAff ) );
-      
+
       RNOK( m_pcMbDecoder ->compensatePrediction( *pcMbDataAccess            ) );
 
-  	  uiMbIndex = rcSH.getFMO()->getNextMBNr(uiMbIndex);    
+  	  uiMbIndex = rcSH.getFMO()->getNextMBNr(uiMbIndex);
     }
 
   }
@@ -500,6 +675,15 @@ SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
 
   return Err::m_nOK;
 }
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+ErrVal
+SliceDecoder::xSetAvcRewriteEncoder(H264AVCEncoder* pcAvcRewriteEncoder) {
+
+	m_pcAvcRewriteEncoder = pcAvcRewriteEncoder;
+	return Err::m_nOK;
+}
+#endif
 
 
 H264AVC_NAMESPACE_END

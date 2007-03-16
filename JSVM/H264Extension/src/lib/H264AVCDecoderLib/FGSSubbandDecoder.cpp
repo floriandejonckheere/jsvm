@@ -290,7 +290,7 @@ RQFGSDecoder::decodeNextLayer( SliceHeader* pcSliceHeader )
 
 
 
-UInt gauiB8x8Mapping[4] = { 0, 2, 3, 1 }; 
+static UInt gauiB8x8Mapping[4] = { 0, 2, 3, 1 }; 
 
 ErrVal
 RQFGSDecoder::xDecodeLumaCbpVlc(UInt  uiCurrMbIdxX,

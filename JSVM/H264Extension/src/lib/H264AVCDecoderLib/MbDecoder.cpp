@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards. 
+ITU Recommendations and/or ISO/IEC International Standards.
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005. 
+Copyright (c) ISO/IEC 2005.
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from 
+patent holders. Information regarding the ITU-T patent policy is available from
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -157,7 +157,7 @@ ErrVal MbDecoder::uninit()
   m_pcIntraPrediction     = NULL;
   m_pcMotionCompensation  = NULL;
   m_bInitDone             = false;
-  
+
   return Err::m_nOK;
 }
 
@@ -260,6 +260,51 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
   rcMbDataAccess.setMbDataAccessBase(pcMbDataAccessBase);
 
   IntYuvMbBuffer  cPredBuffer;  cPredBuffer.setAllSamplesToZero();
+
+  if( ( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL || rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16) )
+	  && rcMbDataAccess.getSH().getAVCRewriteFlag() )
+  {
+
+	  if( rcMbDataAccess.getMbData().getMbMode() == INTRA_BL )
+	  {
+		  // We're going to use the BL skip flag to correctly decode the intra prediction mode
+		  AOT( rcMbDataAccess.getMbData().getBLSkipFlag() == false );
+
+		  // Inherit the mode of the base block
+		  rcMbDataAccess.getMbData().setMbMode( pcMbDataAccessBase->getMbData().getMbMode() );
+
+		  // Inherit intra prediction modes
+		  for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+			  rcMbDataAccess.getMbData().intraPredMode(cIdx) = pcMbDataAccessBase->getMbData().intraPredMode(cIdx);
+
+		  rcMbDataAccess.getMbData().setChromaPredMode( pcMbDataAccessBase->getMbData().getChromaPredMode() );
+	  }
+
+	  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ||
+		  ( rcMbDataAccess.getMbData().isIntra() && rcMbDataAccess.getMbData().getBLSkipFlag() ) )
+	  {
+		  // The 8x8 transform flag is present in the bit-stream unless transform coefficients
+		  // are not transmitted at the enhancement layer.  In this case, inherit the base layer
+		  // transform type.  This makes intra predition work correctly, etc.
+		  if( !( rcMbDataAccess.getMbData().getMbCbp() & 0x0F )  ||
+        !rcMbDataAccess.getMbData().is8x8TrafoFlagPresent(rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag()) )
+			  rcMbDataAccess.getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
+	  }
+
+	  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 )
+		  || ( rcMbDataAccess.getMbData().isIntra() && rcMbDataAccess.getMbData().getBLSkipFlag() ) )
+	  {
+		  xAddTCoeffs2( rcMbDataAccess, *pcMbDataAccessBase );
+	  }
+  }
+
+  // overwrite the QP, so the rewritten AVC bitstream can get correct QPDelta
+  if (rcMbDataAccess.getSH().getAVCRewriteFlag() && (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX)
+    && (rcMbDataAccess.getSH().getLayerId() != rcMbDataAccess.getSH().getBaseLayerId()))
+  {
+    if(( rcMbDataAccess.getMbData().getMbExtCbp() == 0 ) && (!rcMbDataAccess.getMbData().isIntra16x16()))
+      rcMbDataAccess.getMbData().setQp( rcMbDataAccess.getLastQp());
+  }
 
   //===== scale coefficients =====
   RNOK( xScaleTCoeffs( rcMbDataAccess ) );
@@ -410,7 +455,7 @@ ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess,
     {
       m_pcIntraPrediction->setAvailableMaskMb( rcMbDataAccess.getAvailableMask() );
       cResIntYuvMbBuffer.loadIntraPredictors( pcRecYuvBuffer );
-  
+
       if( rcMbDataAccess.getMbData().isIntra4x4() )
       {
         if( rcMbDataAccess.getMbData().isTransformSize8x8() )
@@ -430,7 +475,7 @@ ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess,
     }
     else
     {
-      RNOK( xDecodeMbInter( rcMbDataAccess, 
+      RNOK( xDecodeMbInter( rcMbDataAccess,
                             cYuvMbBuffer, cPredIntYuvMbBuffer, cResIntYuvMbBuffer, bReconstructAll ) );
     }
   }
@@ -438,8 +483,7 @@ ErrVal MbDecoder::process( MbDataAccess& rcMbDataAccess,
   pcRecYuvBuffer->loadBuffer( &cYuvMbBuffer );
   const PicType eMbPicType = rcMbDataAccess.getMbPicType();
 	RNOK( m_pcFrameMng->getCurrentFrameUnit()->getResidual()   ->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cResIntYuvMbBuffer  ) );
-	RNOK( m_pcFrameMng->getCurrentFrameUnit()->getFGSIntFrame()->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cPredIntYuvMbBuffer ) );
-
+  RNOK( m_pcFrameMng->getCurrentFrameUnit()->getFGSIntFrame()->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cPredIntYuvMbBuffer ) );
 
   return Err::m_nOK;
 }
@@ -567,11 +611,11 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
   }
 
   rcPredIntYuvMbBuffer.loadBuffer( &rcRecYuvBuffer );
-    
+
   MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
 
   m_pcTransform->setClipMode( false );
-  
+
   if( rcMbDataAccess.getMbData().isTransformSize8x8() )
   {
     for( B8x8Idx cIdx8x8; cIdx8x8.isLegal(); cIdx8x8++ )
@@ -602,7 +646,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
   RNOK( xDecodeChroma( rcMbDataAccess, rcResIntYuvMbBuffer, cPredBuffer, uiChromaCbp, false ) );
   m_pcTransform->setClipMode( true );
 
- 
+
   IntYuvMbBuffer  cIntYuvMbBuffer;
   cIntYuvMbBuffer. loadLuma      ( rcPredIntYuvMbBuffer );
   cIntYuvMbBuffer. loadChroma    ( rcPredIntYuvMbBuffer );
@@ -652,10 +696,10 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
     else
     {
       //----- motion compensated prediction -----
-      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess, 
-                                                        rcRefFrameList0, 
+      RNOK(   m_pcMotionCompensation->compensateMb    ( rcMbDataAccess,
+                                                        rcRefFrameList0,
                                                         rcRefFrameList1,
-                                                        &cYuvMbBuffer, 
+                                                        &cYuvMbBuffer,
                                                         bCalcMv,
                                                         rcMbDataAccess.getMbData().getSmoothedRefFlag() ) );
     }
@@ -701,7 +745,8 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
 
 
   //===== add base layer residual =====
-  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) )
+  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 )
+    && !rcMbDataAccess.getSH().getAVCRewriteFlag() )
   {
     IntYuvMbBuffer cBaseLayerBuffer;
     cBaseLayerBuffer.loadBuffer( pcBaseResidual->getFullPelYuvBuffer() );
@@ -761,7 +806,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
 
   // scaling has already been performed on DC coefficients
   iScale = ( pucScaleU ? pucScaleU[0] : 16 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );     
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );
   iScale = ( pucScaleV ? pucScaleV[0] : 16 );
   m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale );
 
@@ -773,7 +818,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
 
 
 
-ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess, 
+ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
                                      IntYuvMbBuffer& cYuvMbBuffer,
                                      IntYuvMbBuffer&  rcPredBuffer )
 {
@@ -783,7 +828,8 @@ ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
 
   for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
-    rcMbDataAccess.getMbData().intraPredMode( cIdx ) = rcMbDataAccess.decodeIntraPredMode( cIdx );
+    if( !rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getSH().getAVCRewriteFlag() )
+      rcMbDataAccess.getMbData().intraPredMode( cIdx ) = rcMbDataAccess.decodeIntraPredMode( cIdx );
 
     XPel* puc = cYuvMbBuffer.getYBlk( cIdx );
 
@@ -817,6 +863,7 @@ ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess&   rcMbDataAccess,
 
   for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
+    if( !rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getSH().getAVCRewriteFlag() )
     {
       Int iPredMode = rcMbDataAccess.decodeIntraPredMode( cIdx );
       for( S4x4Idx cIdx4x4( cIdx ); cIdx4x4.isLegal( cIdx ); cIdx4x4++ )
@@ -956,8 +1003,9 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
     rcPredMbBuffer.loadChroma( rcRecYuvBuffer );
   }
 
-  ROTRS( 0 == uiChromaCbp, Err::m_nOK );
-  
+  // ChromaCbp value is not correct when AVCRewriteFlag is true
+  ROTRS( 0 == uiChromaCbp && !rcMbDataAccess.getSH().getAVCRewriteFlag(), Err::m_nOK );
+
   Int                 iScale;
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
   UInt                uiUScalId = ( bIntra ? 1 : 4 );
@@ -967,7 +1015,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
 
   // scaling has already been performed on DC coefficients
   iScale = ( pucScaleU ? pucScaleU[0] : 16 );
-  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );     
+  m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(0) ), iScale );
   iScale = ( pucScaleV ? pucScaleV[0] : 16 );
   m_pcTransform->invTransformChromaDc( rcCoeffs.get( CIdx(4) ), iScale );
 
@@ -989,7 +1037,7 @@ MbDecoder::xScale4x4Block( TCoeff*            piCoeff,
   if( pucScale )
   {
     Int iAdd = ( rcQP.per() <= 3 ? ( 1 << ( 3 - rcQP.per() ) ) : 0 );
-    
+
     for( UInt ui = uiStart; ui < 16; ui++ )
     {
       piCoeff[ui] = ( ( piCoeff[ui] * g_aaiDequantCoef[rcQP.rem()][ui] * pucScale[ui] + iAdd ) << rcQP.per() ) >> 4;
@@ -1038,7 +1086,7 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
 {
   Quantizer cQuantizer;
   cQuantizer.setQp( rcMbDataAccess, false );
-  
+
   const QpParameter&  cLQp      = cQuantizer.getLumaQp  ();
   const QpParameter&  cCQp      = cQuantizer.getChromaQp();
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
@@ -1050,6 +1098,10 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
   const UChar*        pucScaleY = rcMbDataAccess.getSH().getScalingMatrix( uiYScalId );
   const UChar*        pucScaleU = rcMbDataAccess.getSH().getScalingMatrix( uiUScalId );
   const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
+
+  //===== store coefficient level values ==
+  if (!rcMbDataAccess.getMbData().isPCM() )
+      rcMbDataAccess.getMbTCoeffs().storeLevelData();
 
   //===== copy all coefficients =====
   MbTransformCoeffs& rcTCoeffs = m_cTCoeffs;
@@ -1115,6 +1167,112 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
+// for SVC to AVC rewrite
+ErrVal
+MbDecoder::xAddTCoeffs2( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbDataAccessBase )
+{
 
+	UInt uiBCBP = 0;
+	UInt uiCoded = 0;
+	Bool bCoded = false;
+	Bool bChromaAC = false;
+	Bool bChromaDC = false;
+
+	rcMbDataAccessBase.getMbTCoeffs().switchLevelCoeffData();
+
+	// Add the luma coefficients and track the new BCBP
+	if( rcMbDataAccess.getMbData().isTransformSize8x8() )
+	{
+		for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+		{
+			bCoded = false;
+
+			m_pcTransform->addPrediction8x8Blk( rcMbDataAccess.getMbTCoeffs().get8x8( c8x8Idx ),
+				rcMbDataAccessBase.getMbTCoeffs().get8x8( c8x8Idx ),
+				rcMbDataAccess.getMbData().getQp(),
+				rcMbDataAccessBase.getMbData().getQp(), bCoded );
+
+			if( rcMbDataAccess.getMbData().isIntra16x16() )
+				AOT(1);
+
+			if( bCoded )
+				uiBCBP |= (0x33 << c8x8Idx.b4x4());
+		}
+
+	}
+	else
+	{
+
+		for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+		{
+			uiCoded = 0;
+
+			m_pcTransform->addPrediction4x4Blk( rcMbDataAccess.getMbTCoeffs().get( cIdx ),
+				rcMbDataAccessBase.getMbTCoeffs().get( cIdx ),
+				rcMbDataAccess.getMbData().getQp(),
+				rcMbDataAccessBase.getMbData().getQp(), uiCoded );
+
+			if( rcMbDataAccess.getMbData().isIntra16x16() )
+			{
+				if( *(rcMbDataAccess.getMbTCoeffs().get( cIdx )) )
+					uiCoded--;
+			}
+
+			if( uiCoded )
+				uiBCBP |= (1<<cIdx);
+		}
+
+		if( rcMbDataAccess.getMbData().isIntra16x16() )
+		{
+			uiBCBP = uiBCBP?((1<<16)-1):0;
+		}
+	}
+
+	// Add the chroma coefficients and update the BCBP
+	m_pcTransform->addPredictionChromaBlocks( rcMbDataAccess.getMbTCoeffs().get( CIdx(0) ),
+		rcMbDataAccessBase.getMbTCoeffs().get( CIdx(0) ),
+		rcMbDataAccess.getSH().getChromaQp( rcMbDataAccess.getMbData().getQp() ),
+		rcMbDataAccessBase.getSH().getChromaQp( rcMbDataAccessBase.getMbData().getQp() ),
+		bChromaDC, bChromaAC );
+
+	m_pcTransform->addPredictionChromaBlocks( rcMbDataAccess.getMbTCoeffs().get( CIdx(4) ),
+		rcMbDataAccessBase.getMbTCoeffs().get( CIdx(4) ),
+		rcMbDataAccess.getSH().getChromaQp( rcMbDataAccess.getMbData().getQp() ),
+		rcMbDataAccessBase.getSH().getChromaQp( rcMbDataAccessBase.getMbData().getQp() ),
+		bChromaDC, bChromaAC );
+
+	uiBCBP |= (bChromaAC?2:(bChromaDC?1:0))<<16;
+
+	// Update the CBP
+	rcMbDataAccess.getMbData().setAndConvertMbExtCbp( uiBCBP );
+
+	// Update the Intra16x16 mode
+	if( rcMbDataAccess.getMbData().isIntra16x16() )
+	{
+		UInt uiMbType = INTRA_4X4 + 1;
+		UInt uiPredMode = rcMbDataAccess.getMbData().intraPredMode();
+		UInt uiChromaCbp = uiBCBP>>16;
+		Bool bACcoded = (uiBCBP && ((1<<16)-1));
+
+		uiMbType += uiPredMode;
+        uiMbType += ( bACcoded ) ? 12 : 0;
+        uiMbType += uiChromaCbp << 2;
+
+		rcMbDataAccess.getMbData().setMbMode( MbMode(uiMbType) );
+
+		// Sanity checks
+		if( rcMbDataAccess.getMbData().intraPredMode() != uiPredMode )
+			AOT(1);
+		if( rcMbDataAccess.getMbData().getCbpChroma16x16() != uiChromaCbp )
+			AOT(1);
+		if( rcMbDataAccess.getMbData().isAcCoded() != bACcoded )
+			AOT(1);
+	}
+
+	rcMbDataAccessBase.getMbTCoeffs().switchLevelCoeffData();
+
+	return Err::m_nOK;
+
+}
 
 H264AVC_NAMESPACE_END

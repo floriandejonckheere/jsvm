@@ -96,7 +96,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/TraceFile.h"
 #include "GOPEncoder.h"
 
-
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+#include "MbCoder.h"
+#include "CreaterH264AVCEncoder.h"
+#endif
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -201,7 +204,7 @@ public:
                                     UInt                uiLayer ) ;
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
 // JVT-T073 {
-  ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
+  ErrVal writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
 // JVT-T073 }
 
   Void setScalableSEIMessage  ()       { m_bScalableSeiMessage = true; }
@@ -220,6 +223,27 @@ public:
   ErrVal xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag, 
 												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1);
 // JVT-S080 LMI }
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  ErrVal  xCreateAvcRewriteEncoder();
+  ErrVal  xInitAvcRewriteEncoder();
+  ErrVal  xInitSliceForAvcRewriteCoding(const SliceHeader& rcSH);
+  ErrVal  xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,const SliceHeader& rcSH, const NalUnitType eNalUnitType);  
+  ErrVal  xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,      SequenceParameterSet& rcSps);
+  ErrVal  xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,      PictureParameterSet& rcPps);
+
+  ErrVal  xAvcRewriteSliceHeader ( ExtBinDataAccessor* pcExtBinDataAccessor,SliceHeader& rcSH);
+  ErrVal  xCloseAvcRewriteEncoder();
+
+  ErrVal  xAvcRewriteInitNalUnit ( ExtBinDataAccessor* pcExtBinDataAccessor);
+  ErrVal  xAvcRewriteCloseNalUnit ();
+  MbCoder* xGetPcMbCoder();
+
+  ErrVal initMb( MbDataAccess*& pcMbDataAccessRewrite, UInt uiMbY, UInt uiMbX );
+  Void xStoreEstimation( MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbBestData );
+  ErrVal initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl );
+#endif
+
 protected:
   ErrVal xInitParameterSets ();
   ErrVal xWriteScalableSEI  ( ExtBinDataAccessor*       pcExtBinDataAccessor );
@@ -229,6 +253,17 @@ protected:
 
   ErrVal xProcessGOP        ( PicBufferList*            apcPicBufferOutputList, 
                               PicBufferList*            apcPicBufferUnusedList );
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  MbCoder*                      m_pcMbCoder;
+  BitWriteBuffer*				m_pcBitWriteBuffer;
+  BitCounter*                   m_pcBitCounter;
+  UvlcWriter*                   m_pcUvlcTester;
+  UvlcWriter*                   m_pcUvlcWriter;
+  CabacWriter*                  m_pcCabacWriter;
+  RateDistortion*               m_pcRateDistortion;
+  MbDataCtrl*                   m_pcMbDataCtrl;
+#endif
 
 protected:
   std::list<SequenceParameterSet*>  m_cUnWrittenSPS;

@@ -96,6 +96,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/MotionCompensation.h"
 #include "H264AVCCommonLib/LoopFilter.h"
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+#include "../H264AVCEncoderLib/H264AVCEncoder.h"
+#endif
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -299,6 +302,16 @@ public:
   MCTFDecoder *getMCTFDecoder(UInt uiLayer) { return m_apcMCTFDecoder[uiLayer];}
   Bool   getBaseSVCActive() { return m_bBaseSVCActive;} //JVT-T054_FIX
   //JVt-T054}
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  ErrVal              xStartAvcRewrite(UChar*& avcRewriteBinDataBuffer, BinData*& avcRewriteBinData, ExtBinDataAccessor* avcRewriteBinDataAcessor); 
+  ErrVal              xCloseAvcRewriteEncoder();
+  
+  ErrVal              xInitSliceForAvcRewriteCoding(const SliceHeader& rcSH);  
+  bool                xWriteAvcRewriteParameterSets(NalUnitType nal_unit_type, UInt index);
+  bool                xGetAvcRewriteFlag();
+#endif
+
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
@@ -413,6 +426,15 @@ protected:
 
   bool	m_bCurNalIsEndOfPic;
   bool	m_bFirstFGS;
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  H264AVCEncoder*               m_pcAvcRewriteEncoder;
+  UChar*                        m_avcRewriteBinDataBuffer;
+  BinData*						m_avcRewriteBindata;
+  ExtBinDataAccessor*			m_avcRewriteBinDataAccessor;
+  int                           m_avcRewriteBufsize;
+  bool                          m_avcRewriteFlag;
+#endif
 
 //JVT-T054{
   Bool                          m_bLastNalInAU;

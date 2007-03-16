@@ -1,3 +1,17 @@
+
+JSVM_8_7 -> JSVM_8_8
+======================
+Date        : March 10, 2007
+Author      : Andrew Segall, Jane Zhao (Sharp)
+Contribution: JVT-V035
+
+Changes:
+
+- Add SVC to AVC bitstream rewriting ability
+- Bug fixes for GCC 4.x
+
+
+
 JSVM_8_6 -> JSVM_8_7
 ======================
 Date        : March 2, 2007
@@ -9,6 +23,7 @@ Changes:
 - Extend the "disable_deblocking_filter_idc" to 3 and 4 for disabling chroma deblocking 
   filter in enhanced layer while keeping luma processing per values 0 and 2, respectively
 - Bug fix (missing initialisation) in UvlcReader.cpp (Provided by Heiner Kirchhoffer / HHI)
+
 
 
 JSVM_8_5 -> JSVM_8_6

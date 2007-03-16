@@ -192,7 +192,7 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
                                 //~JVT-P031
                                 , Bool*           pbFgsParallelDecoding
                                 , UInt*           puiNumFragments
-                                , UChar**         ppucFragBuffers 
+                                , UChar**         ppucFragBuffers
                                 )
 {
   return m_pcH264AVCDecoder->initPacket( pcBinDataAccessor,
@@ -997,5 +997,30 @@ CreaterH264AVCDecoder::checkRedundantPic()
 
 
 // JVT-Q054 Red. Picture }
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+bool
+CreaterH264AVCDecoder::getAvcRewriteFlag()
+{
+	return m_pcH264AVCDecoder->xGetAvcRewriteFlag();
+}
+
+ErrVal
+CreaterH264AVCDecoder::startAvcRewrite(UChar*& avcRewriteBinDataBuffer, BinData*& avcRewriteBinData, ExtBinDataAccessor* avcRewriteBinDataAccessor) {
+	return m_pcH264AVCDecoder->xStartAvcRewrite(avcRewriteBinDataBuffer, avcRewriteBinData, avcRewriteBinDataAccessor);
+}
+
+ErrVal
+CreaterH264AVCDecoder::closeAvcRewrite() {
+	return m_pcH264AVCDecoder->xCloseAvcRewriteEncoder();
+
+}
+bool
+CreaterH264AVCDecoder::writeAvcRewriteParameterSets(int nal_unit_type, UInt index) {
+
+	return m_pcH264AVCDecoder->xWriteAvcRewriteParameterSets((NalUnitType)nal_unit_type, index);
+}
+
+#endif
 
 H264AVC_NAMESPACE_END
