@@ -707,7 +707,7 @@ public:
 //TMM_WP
 	  , m_bNonRequiredEnable		      ( 0 ) //NonRequired JVT-Q066
 	  , m_uiLARDOEnable                   ( 0 )      //JVT-R057 LA-RDO
-	  , m_uiSuffixUnitEnable		      ( 0 )  //JVT-S036 lsj
+	  , m_uiPreAndSuffixUnitEnable		      ( 0 )  //JVT-S036 lsj 
 	  , m_uiMMCOBaseEnable			      ( 0 ) //JVT-S036 lsj
       , m_bFGSParallelDecodingFlag          ( false )
 //JVT-T073 {
@@ -800,8 +800,8 @@ public:
   Void                            setInputFile            ( Char*   p )   { m_cInputFile            = p; }
 
   UInt                            getLARDOEnable          ()              const   { return m_uiLARDOEnable;} //JVT-R057 LA-RDO
-  UInt							              getSuffixUnitEnable	  ()		      const	  { return m_uiSuffixUnitEnable;} //JVT-S036 lsj
-  UInt							              getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  UInt							              getPreAndSuffixUnitEnable	  ()		      const	  { return m_uiPreAndSuffixUnitEnable;} //prefix unit
+	UInt							              getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
   // JVT-T073 {
   UInt                            getNestingSEIEnable     ()              const   { return m_uiNestingSEIEnable; }
   UInt                            getSceneInfoEnable      ()              const   { return m_uiSceneInfoEnable; }
@@ -995,7 +995,7 @@ protected:
   Int						m_bNonRequiredEnable; //NonRequired JVT-Q066
   UInt                       m_uiLARDOEnable; //JVT-R057 LA-RDO
 
-  UInt						m_uiSuffixUnitEnable; //JVT-S036 lsj
+  UInt						m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj 
   UInt						m_uiMMCOBaseEnable;  //JVT-S036 lsj
 
   Bool            m_bFGSParallelDecodingFlag;

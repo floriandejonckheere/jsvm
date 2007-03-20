@@ -610,8 +610,9 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
   ErrVal        xSetRplrAndMmcoFld  ( SliceHeader& rcSH );
 
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
-  ErrVal		xWriteSuffixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//JVT-S036 lsj
-  ErrVal		xSetMmcoBase		( SliceHeader& rcSH, UInt iNum ); //JVT-S036 lsj
+  ErrVal		xWriteSuffixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//JVT-S036 lsj 
+   ErrVal		xWritePrefixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//prefix unit
+	ErrVal		xSetMmcoBase		( SliceHeader& rcSH, UInt iNum ); //JVT-S036 lsj
   //NonRequired JVT-Q066 (06-04-08){{
   ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SEI::NonRequiredSei* pcNonRequiredSei, UInt& ruiBit ); 
   ErrVal		xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
@@ -633,8 +634,8 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
   ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
 
-  UInt				getSuffixUnitEnable()	{return m_uiSuffixUnitEnable;} //JVT-S036 lsj
-  UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
+  UInt				getPreAndSuffixUnitEnable()	{return m_uiPreAndSuffixUnitEnable;} //JVT-S036 lsj 
+	UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
 
   //S051{
   Bool	xSIPCheck	(UInt POC);
@@ -817,7 +818,7 @@ protected:
 
   UInt							            m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
 
-  UInt							            m_uiSuffixUnitEnable; //JVT-S036 lsj
+  UInt							            m_uiPreAndSuffixUnitEnable; //JVT-S036 lsj 
   UInt							            m_uiMMCOBaseEnable;  //JVT-S036 lsj
 
   //S051{

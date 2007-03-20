@@ -105,7 +105,7 @@ Extractor::Extractor()
 , m_bQualityLevelInSEI    ( false )
 //S051{
 , m_bUseSIP(false)
-,m_uiSuffixUnitEnable(0)//If we want to use sip with AVC compatiblity, the encoder and extractor should both set this to true
+,m_uiPreAndSuffixUnitEnable(0)//If we want to use sip with AVC compatiblity, the encoder and extractor should both set this to true
 //S051}
 {
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
@@ -242,7 +242,7 @@ Extractor::init( ExtractorParameter *pcExtractorParameter )
 
   //S051{
   m_bUseSIP=pcExtractorParameter->getUseSIP();
-  m_uiSuffixUnitEnable=pcExtractorParameter->getSuffixUnitEnable();
+  m_uiPreAndSuffixUnitEnable=pcExtractorParameter->getPreAndSuffixUnitEnable();
   //S051}
 
   return Err::m_nOK;
@@ -291,7 +291,7 @@ Extractor::destroy()
   UInt uiLayer, uiFGSLayer, uiPoint;
   for(uiLayer=0; uiLayer<MAX_LAYERS; uiLayer++)
   {
-        delete []m_aaadMaxRate[uiLayer];
+        delete []m_aaadMaxRate[uiLayer]; 
         delete []m_aaiLevelForFrame[uiLayer];
         delete []m_aadTargetByteForFrame[uiLayer];
         delete []m_aaiNumLevels[uiLayer];
@@ -327,6 +327,9 @@ Extractor::xPrimaryAnalyse()
   h264::PacketDescription cPacketDescription;
 	Bool                    bNextSuffix = false;
 	setBaseLayerAVCCompatible(true); //default value
+//prefix unit{{
+	Bool bDiscardable_prefix;
+//prefix unit}}
   //Common information to dead substreams and quality levels
   //arrays initialization
   static UInt auiNumImage[MAX_LAYERS] =
@@ -366,6 +369,14 @@ Extractor::xPrimaryAnalyse()
     if( ! bApplyToNext )
     {
 			RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
+//prefix unit{{
+			if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+			{
+				cPacketDescription.Level = uiLevel;
+				cPacketDescription.bDiscardable = bDiscardable_prefix;
+			}
+			bDiscardable_prefix = cPacketDescription.bDiscardable;
+//prefix unit}}	
       uiLayer     = cPacketDescription.Layer;
       uiLevel     = cPacketDescription.Level;
       uiFGSLayer  = cPacketDescription.FGSLayer;
@@ -377,6 +388,10 @@ Extractor::xPrimaryAnalyse()
     {
       bNewPicture = false;
     }
+//prefix unit{{
+	if( cPacketDescription.NalUnitType == 14 )
+		bNewPicture = false;
+//prefix unit}}
 
     //==== update stream description =====
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
@@ -472,6 +487,9 @@ Extractor::xAnalyse()
 	Bool                    bFirstPacket  = true;
   h264::SEI::SEIMessage*  pcScalableSei = 0;
   h264::PacketDescription cPacketDescription;
+//prefix unit{{
+	Bool bDiscardable_prefix;
+//prefix unit}}
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
 
@@ -646,6 +664,14 @@ Extractor::xAnalyse()
     if( ! bApplyToNext )
     {
 			RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
+//prefix unit{{
+			if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+			{
+				cPacketDescription.Level = uiLevel;
+				cPacketDescription.bDiscardable = bDiscardable_prefix;
+			}
+			bDiscardable_prefix = cPacketDescription.bDiscardable;
+//prefix unit}}	
       uiLayer     = cPacketDescription.Layer;
       uiLevel     = cPacketDescription.Level;
       uiFGSLayer  = cPacketDescription.FGSLayer;
@@ -660,7 +686,10 @@ Extractor::xAnalyse()
     {
       bNewPicture = false;
     }
-
+//prefix unit{{
+	if( cPacketDescription.NalUnitType == 14 )
+		bNewPicture = false;
+//prefix unit}}
     uiPId = cPacketDescription.uiPId;
     //S051{
     if(!m_bUseSIP)
@@ -680,8 +709,9 @@ Extractor::xAnalyse()
     {
       auiNumImage[uiLayer] ++;
     }
-    if(cPacketDescription.ParameterSet || cPacketDescription.NalUnitType == NAL_UNIT_SEI )
-    {
+     if(cPacketDescription.ParameterSet || cPacketDescription.NalUnitType == NAL_UNIT_SEI 
+			   || cPacketDescription.NalUnitType == NAL_UNIT_PREFIX ) //prefix unit
+		 {
       //NonRequired JVT-Q066 (06-04-08){{
       if(m_pcH264AVCPacketAnalyzer->getNonRequiredSeiFlag() == 1 )
       {
@@ -791,8 +821,9 @@ Extractor::xAnalyse()
     {
       RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
       pcBinData = NULL;
-    }
+    }	
   }
+
   RNOK( m_cScalableStreamDescription.analyse() );
   m_uiScalableNumLayersMinus1 =  pcTmpScalableSei->getNumLayersMinus1();
   for( UInt uiScalableLayerId = 0; uiScalableLayerId <= m_uiScalableNumLayersMinus1; uiScalableLayerId++ )
@@ -1146,12 +1177,11 @@ Extractor::go()
   //~JVT-P031
 
   RNOK ( xPrimaryAnalyse());
-
   // ROI ICU/ETRI DS
   xSetROIParameters();
 
   AllocateAndInitializeDatas();
-
+	
   if( m_pcExtractorParameter->getMaximumRate() != 0.0 )
   {
     xExtractMaxRate( m_pcExtractorParameter->getMaximumRate(), m_pcExtractorParameter->getDontTruncQLayer() );
@@ -1367,47 +1397,46 @@ Extractor::xAnalyse( UInt    uiTargetLayer,
     {
       uiPacketSize  = 4 + pcBinData->size();
       uiDId         = cPacketDescription.Layer;
-      uiTId         = cPacketDescription.Level;
-      uiQId         = cPacketDescription.FGSLayer;
+//prefix unit{{
+			if(cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE && cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE_IDR)
+				uiTId         = cPacketDescription.Level;
+//prefix unit}}
+			uiQId         = cPacketDescription.FGSLayer;
       uiPId         = cPacketDescription.uiPId;
 
       //----- check whether next NAL unit is a suffix NAL unit -----
       if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE ||
         cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR )
       {
-        Int                     iStreamPos        = 0;
-        h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
-        BinData*                pcBinDataTemp     = 0;
-        h264::PacketDescription cPacketDescriptionTemp;
-        RNOK( m_pcReadBitstream         ->getPosition   ( iStreamPos ) );
-        RNOK( m_pcReadBitstream         ->extractPacket ( pcBinDataTemp, bEOS ) );
-        ROT ( bEOS );
-        RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinDataTemp, cPacketDescriptionTemp, pcScalableSeiTemp ) );
-        ROT ( pcScalableSeiTemp );
-        if  ((cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE  ||
-          cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) &&
-          cPacketDescriptionTemp.Layer       == 0 &&
-          cPacketDescriptionTemp.FGSLayer    == 0 )
-        {
-          bNextIsSuffix = true;
-          uiTId         = cPacketDescriptionTemp.Level;
-        }
-        else
-        {
-          ROT( 1 ); // there must be suffix NAL unit
-        }
-        //----- increment number of AVC slices -----
-        if( cPacketDescription.uiFirstMb == 0 )
-        {
-          uiNumAVCPics++;
-        }
-        //----- release packet and reset stream -----
-        if( pcBinDataTemp )
-        {
-          RNOK( m_pcReadBitstream->releasePacket( pcBinDataTemp ) );
-          pcBinDataTemp = 0;
-        }
-        RNOK  ( m_pcReadBitstream->setPosition  ( iStreamPos ) );
+				Int                     iStreamPos        = 0;
+				h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
+				BinData*                pcBinDataTemp     = 0;
+				h264::PacketDescription cPacketDescriptionTemp;
+				RNOK( m_pcReadBitstream         ->getPosition   ( iStreamPos ) );
+				RNOK( m_pcReadBitstream         ->extractPacket ( pcBinDataTemp, bEOS ) );
+				ROT ( bEOS );
+				RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinDataTemp, cPacketDescriptionTemp, pcScalableSeiTemp ) );
+				ROT ( pcScalableSeiTemp );
+				if  ((cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE  ||
+					cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) &&
+					cPacketDescriptionTemp.Layer       == 0 &&
+					cPacketDescriptionTemp.FGSLayer    == 0 )
+				{
+					bNextIsSuffix = true;
+					uiTId         = cPacketDescriptionTemp.Level;
+				}
+		//----- increment number of AVC slices -----
+				if( cPacketDescription.uiFirstMb == 0 )
+				{
+					uiNumAVCPics++;
+				}
+				//----- release packet and reset stream -----
+				if( pcBinDataTemp )
+				{
+					RNOK( m_pcReadBitstream->releasePacket( pcBinDataTemp ) );
+					pcBinDataTemp = 0;
+				}
+				RNOK  ( m_pcReadBitstream->setPosition  ( iStreamPos ) );
       }
       else if( bNextIsSuffix )
       {
@@ -1543,7 +1572,10 @@ Extractor::xExtract( UInt    uiTargetLayer,
     {
       uiPacketSize  = 4 + pcBinData->size();
       uiDId         = cPacketDescription.Layer;
-      uiTId         = cPacketDescription.Level;
+//prefix unit{{
+			if(cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE && cPacketDescription.NalUnitType != NAL_UNIT_CODED_SLICE_IDR)
+				uiTId         = cPacketDescription.Level;
+//prefix unit}}
       uiQId         = cPacketDescription.FGSLayer;
       uiPId         = cPacketDescription.uiPId;
 
@@ -1568,11 +1600,8 @@ Extractor::xExtract( UInt    uiTargetLayer,
           bNextIsSuffix = true;
           uiTId         = cPacketDescriptionTemp.Level;
         }
-        else
-        {
-          ROT( 1 ); // there must be suffix NAL unit
-        }
-        //----- increment number of AVC slices -----
+ 
+		//----- increment number of AVC slices -----
         if( cPacketDescription.uiFirstMb == 0 )
         {
           uiNumAVCPics++;
@@ -1736,6 +1765,10 @@ Extractor::xExtractPoints()
   UInt uiSEI = 0;
   UInt uiSEISize = 0;
   UInt uiTotalSEI = 0;
+//prefix unit{{
+  BinData*  pcBinData_prefix = NULL;
+	Bool bDiscardable_prefix;
+//prefix unit}}
 
   //DS parameters, count number of frame per layer
   Int currFrame[MAX_LAYERS];
@@ -1786,6 +1819,17 @@ Extractor::xExtractPoints()
     h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
     h264::PacketDescription cPacketDescription;
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
+//prefix unit{{
+	if(cPacketDescription.NalUnitType == 14)
+	{
+		if(pcBinData_prefix)
+			RNOK( m_pcReadBitstream->releasePacket( pcBinData_prefix ) );
+		bDiscardable_prefix = cPacketDescription.bDiscardable;
+		pcBinData_prefix = pcBinData;
+		uiLevel = cPacketDescription.Level;
+		continue;
+	}
+//prefix unit}}
     if( pcScalableSEIMessage ) //re-write scalability SEI message
     {
       bFirstPacket = true;
@@ -1845,6 +1889,13 @@ Extractor::xExtractPoints()
 			if( ! bApplyToNext  )
 			{
 				RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
+//prefix unit{{
+				if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+				{
+					cPacketDescription.Level = uiLevel;
+					cPacketDescription.bDiscardable = bDiscardable_prefix;
+				}
+//prefix unit}}	
 				uiLayer    = cPacketDescription.Layer;
 				uiLevel    = cPacketDescription.Level;
 				uiFGSLayer = cPacketDescription.FGSLayer;
@@ -1861,6 +1912,10 @@ Extractor::xExtractPoints()
 			{
 				bNewPicture = false;
 			}
+//prefix unit{{
+			if( cPacketDescription.NalUnitType == 14 )
+				bNewPicture = false;
+//prefix unit}}
 			bKeep = false;
 			bCrop = false;
 			if( ( m_bInInputStreamDS || m_bInInputStreamQL ) && !(m_pcExtractorParameter->getUseSIP() ) )
@@ -2053,9 +2108,31 @@ Extractor::xExtractPoints()
 			//============ write and release packet ============
 			if( bKeep )
 			{
+//prefix unit{{
+				if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && pcBinData_prefix != NULL )
+				{
+					RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+					RNOK( m_pcWriteBitstream->writePacket( pcBinData_prefix ) );				
+					RNOK( m_pcReadBitstream->releasePacket( pcBinData_prefix ) );
+					pcBinData_prefix = NULL;
+					uiNumKept++;
+					uiNumInput++;
+				}
+//prefix unit}}
 				RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
 				RNOK( m_pcWriteBitstream->writePacket( pcBinData ) );
 			}
+//prefix unit{{
+			else
+			{
+				if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && pcBinData_prefix != NULL )
+				{		
+					RNOK( m_pcReadBitstream->releasePacket( pcBinData_prefix ) );
+					pcBinData_prefix = NULL;
+					uiNumInput++;
+				}
+			}
+//prefix unit}}
 		}
     RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
     pcBinData = NULL;
@@ -2841,6 +2918,10 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
   UInt uiTempLevel         = 0;
   UInt uiFGSLayer          = 0;
   UInt uiPacketSize        = 0;
+//prefix unit{{
+  BinData*  pcBinData_prefix = NULL;
+	Bool bDiscardable_prefix;
+//prefix unit}} 
 
 	RNOK( m_pcH264AVCPacketAnalyzer->init() );
 
@@ -2872,6 +2953,18 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
     h264::SEI::SEIMessage*  pcScalableSEIMessage = 0;
     h264::PacketDescription cPacketDescription;
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSEIMessage ) );
+//prefix unit{{
+	if(cPacketDescription.NalUnitType == 14)
+	{
+		if(pcBinData_prefix)
+			RNOK( m_pcReadBitstream->releasePacket( pcBinData_prefix ) );
+		
+		bDiscardable_prefix = cPacketDescription.bDiscardable;
+		pcBinData_prefix = pcBinData;
+		uiTempLevel = cPacketDescription.Level;
+		continue;
+	}
+//prefix unit}}
     if( pcScalableSEIMessage )
     {
 // JVT-S080 LMI {
@@ -2926,6 +3019,13 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
 			if( ! bApplyToNext  )
 			{
 			  RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
+//prefix unit{{
+				if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+				{
+					cPacketDescription.Level = uiTempLevel;
+					cPacketDescription.bDiscardable = bDiscardable_prefix;
+				}
+//prefix unit}}	
 				uiLayer          = cPacketDescription.Layer;
 				uiTempLevel      = cPacketDescription.Level;
 				uiFGSLayer      = cPacketDescription.FGSLayer;
@@ -3034,6 +3134,18 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
 			//============ write and release packet ============
 			if( bKeep )
 			{
+//prefix unit{{
+				if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && pcBinData_prefix != NULL )
+				{
+					RNOK( m_pcWriteBitstream->writePacket( &m_cBinDataStartCode ) );
+					RNOK( m_pcWriteBitstream->writePacket( pcBinData_prefix ) );	
+          uiPacketSize  += 4 + pcBinData->size();			
+					RNOK( m_pcReadBitstream->releasePacket( pcBinData_prefix ) );
+					pcBinData_prefix = NULL;
+					uiNumKept++;
+					uiNumInput++;
+				}
+//prefix unit}}
 	//JVT-T054{
 			if(uiFGSLayer > 0 && bTruncated && !m_bEnableQLTruncation[uiLayer][uiFGSLayer-1])
 			{
@@ -3133,6 +3245,18 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
           uiPacketSize  += 4 + pcBinData->size();
         }
 			}
+//prefix unit{{
+			else
+			{
+				if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && pcBinData_prefix != NULL )
+				{		
+					RNOK( m_pcReadBitstream->releasePacket( pcBinData_prefix ) );
+					pcBinData_prefix = NULL;
+					uiNumInput++;
+				}
+			}
+//prefix unit}}
+
 		}
     RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
     pcBinData = NULL;
@@ -3173,7 +3297,6 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
     pcBinDataSEILysNotPreDepChange = NULL;
 // JVT-S080 LMI }
   }
-
 
   for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ ) {
     if( pcBinDataFrags[ui] ) {
@@ -5136,7 +5259,9 @@ Extractor::CheckSuffixNalUnit( h264::PacketDescription* pcPacketDescription, Boo
 		BinData *pcNextBinData=NULL;
 		RNOK( m_pcReadBitstream->extractPacket( pcNextBinData, bEOS ) );
 		m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
-		if( cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
+
+		if( (pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE) //prefix unit 
+				&& cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
 		{
 		  bNextSuffix = true;
 			pcPacketDescription->Level = cPacketDescriptionTemp.Level;

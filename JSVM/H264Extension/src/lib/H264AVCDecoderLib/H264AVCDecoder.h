@@ -349,7 +349,8 @@ protected:
   HeaderSymbolReadIf*           m_pcHeaderSymbolReadIf;
   ParameterSetMng*              m_pcParameterSetMng;
   PocCalculator*                m_pcPocCalculator;
-  SliceHeader*                  m_pcSliceHeader;
+  SliceHeader*                  m_pcSliceHeader; 
+  SliceHeader*									m_pcPrefixSliceHeader;//prefix unit
   SliceHeader*                  m_pcPrevSliceHeader;
   SliceHeader*					        m_pcTempSliceHeader;  //EIDR bug-fix 
   SliceHeader*                  m_pcSliceHeader_backup; //JVT-Q054 Red. Picture

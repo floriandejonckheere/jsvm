@@ -1498,10 +1498,10 @@ SliceEncoder::xAddTCoeffs2( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbData
   // Set scale factor
   cScaleQp.setQp( (cSrcCQp.per()*6+cSrcCQp.rem()) - (cDstCQp.per()*6+cDstCQp.rem()), true );
 
-  for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
+  for( CIdx cIdxi; cIdxi.isLegal(); cIdxi++ )
   {
-	  TCoeff *pcDst = rcMbDataAccess.getMbData().getMbTCoeffs().get( cIdx );
-	  TCoeff *pcSrc = rcMbDataAccessBase.getMbData().getMbTCoeffs().get( cIdx );
+	  TCoeff *pcDst = rcMbDataAccess.getMbData().getMbTCoeffs().get( cIdxi );
+	  TCoeff *pcSrc = rcMbDataAccessBase.getMbData().getMbTCoeffs().get( cIdxi );
 
 	  for( UInt n=0; n<16; n++ )
 	  {

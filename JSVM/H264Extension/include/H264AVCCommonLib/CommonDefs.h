@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "8.8" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "8.9" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -107,7 +107,6 @@ typedef UChar RefCtx;
 #define NO_ABOVE_REF       2
 #define NO_ABOVELEFT_REF   4
 #define NO_ABOVERIGHT_REF  8
-
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -229,6 +228,7 @@ enum NalUnitType
   NAL_UNIT_END_OF_SEQUENCE          = 10,
   NAL_UNIT_END_OF_STREAM            = 11,
   NAL_UNIT_FILLER_DATA              = 12,
+  NAL_UNIT_PREFIX										= 14,//prefix unit
 
   NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
   NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21

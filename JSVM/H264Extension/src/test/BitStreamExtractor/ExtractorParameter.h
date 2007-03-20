@@ -183,7 +183,7 @@ public:
 
   //S051{
   Bool getUseSIP(){return m_bUseSIP;}
-  UInt getSuffixUnitEnable(){return m_uiSuffixUnitEnable;}
+  UInt getPreAndSuffixUnitEnable(){return m_uiPreAndSuffixUnitEnable;}
   //S051}
 
   QLExtractionMode getQLExtractionMode() { return m_eQLExtractionMode; }
@@ -229,7 +229,7 @@ protected:
 
   //S051{
   Bool            m_bUseSIP;
-  UInt            m_uiSuffixUnitEnable;
+  UInt            m_uiPreAndSuffixUnitEnable;
   //S051}
 
   //JVT-S043

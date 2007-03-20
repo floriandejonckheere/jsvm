@@ -428,7 +428,8 @@ ErrVal
 SliceHeaderBase::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
-      m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE        )
+      m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
+	  m_eNalUnitType == NAL_UNIT_PREFIX						 ) //prefix unit
   {
     return xWriteScalable         ( pcWriteIf );
   }
@@ -458,8 +459,10 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeFlag( 0,                                              "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalRefIdc,   2,                              "NALU HEADER: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                              "NALU HEADER: nal_unit_type" ) );
+
   if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
-      m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE )
+      m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE	  ||
+	  m_eNalUnitType == NAL_UNIT_PREFIX			)//prefix unit
   {
     //{{JVT-T083
     RNOK (pcWriteIf->writeCode( 0             ,  2,                             "NALU HEADER: reserved_zero_two_bits"));

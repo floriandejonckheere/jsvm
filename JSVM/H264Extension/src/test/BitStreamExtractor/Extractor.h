@@ -116,6 +116,7 @@ enum NalUnitType
   NAL_UNIT_END_OF_SEQUENCE          = 10,
   NAL_UNIT_END_OF_STREAM            = 11,
   NAL_UNIT_FILLER_DATA              = 12,
+  NAL_UNIT_PREFIX										= 14,  //prefix unit
 
   NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
   NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
@@ -447,7 +448,7 @@ protected:
   //S051{
   Bool              m_bUseSIP;
   Double            m_aadTargetSNRLayerNoUse[MAX_LAYERS][MAX_DSTAGES+1];
-  UInt              m_uiSuffixUnitEnable;
+  UInt              m_uiPreAndSuffixUnitEnable;
   //S051}
 
   //-- ICU/ETRI ROI

@@ -112,7 +112,7 @@ ExtractorParameter::ExtractorParameter()
 
 //S051{
 , m_bUseSIP(false)
-, m_uiSuffixUnitEnable(0)
+, m_uiPreAndSuffixUnitEnable(0)
 //S051}
 //JVT-T054{
 , m_bKeepfExtraction (false)
@@ -418,7 +418,7 @@ ExtractorParameter::init( Int     argc,
 
   if(equal("-suf",argv[iArg]))
   {
-    m_uiSuffixUnitEnable=1;
+    m_uiPreAndSuffixUnitEnable=1;
     continue;
   }
   //S051}

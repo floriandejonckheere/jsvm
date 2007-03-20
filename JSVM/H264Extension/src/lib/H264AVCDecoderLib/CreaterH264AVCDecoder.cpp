@@ -616,7 +616,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
 
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
-      eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
+      eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
+	  eNalUnitType == NAL_UNIT_PREFIX  )//prefix unit
   {
     ucByte             = (pcBinData->data())[1];
     uiSimplePriorityId = ( ucByte & 63 );   // fix (Heiko Schwarz)
@@ -886,7 +887,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
     //~JVT-P031
     m_uiCurrPicLayer = (uiLayer << 4) + uiFGSLayer;
-    if(m_uiCurrPicLayer <= m_uiPrevPicLayer && m_uiNonRequiredSeiFlag != 1)
+    if((m_uiCurrPicLayer < m_uiPrevPicLayer || (m_uiCurrPicLayer == m_uiPrevPicLayer && m_uiCurrPicLayer == 0))&& m_uiNonRequiredSeiFlag != 1) //prefix unit
     {
       m_pcNonRequiredSEI->destroy();
       m_pcNonRequiredSEI = NULL;

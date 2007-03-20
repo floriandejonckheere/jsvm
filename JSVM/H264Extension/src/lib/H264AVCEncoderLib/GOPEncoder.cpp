@@ -238,7 +238,7 @@ MCTFEncoder::MCTFEncoder()
 // JVT-Q065 EIDR}
 , m_bLARDOEnable                    ( false ) //JVT-R057 LA-RDO
 , m_uiNonRequiredWrite				      ( 0 )  //NonRequired JVT-Q066 (06-04-08)
-, m_uiSuffixUnitEnable				      ( 0 ) //JVT-S036 lsj
+, m_uiPreAndSuffixUnitEnable				      ( 0 ) //JVT-S036 lsj 
 , m_uiMMCOBaseEnable						    ( 0 ) //JVT-S036 lsj
 // JVT-S054 (ADD) ->
 , m_bIroiSliceDivisionFlag          ( false )
@@ -507,7 +507,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   }
   //JVT-R057 LA-RDO}
 
-  m_uiSuffixUnitEnable = pcCodingParameter->getSuffixUnitEnable();//JVT-S036 lsj
+  m_uiPreAndSuffixUnitEnable = pcCodingParameter->getPreAndSuffixUnitEnable();//JVT-S036 lsj 
   m_uiMMCOBaseEnable   = pcCodingParameter->getMMCOBaseEnable();  //JVT-S036 lsj
 
   // TMM_ESS 
@@ -2840,7 +2840,15 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
         UInt iFrameNum =  m_pcLowPassBaseReconstruction->getFrameNum(); 
         RNOK( xSetMmcoBase( *pcSliceHeader, iFrameNum ) );  
       }
-
+//prefix unit{{
+	  if( m_uiPreAndSuffixUnitEnable && uiSliceId == 0) 
+	  {
+        if ( rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE|| rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
+        {
+          RNOK( xWritePrefixUnit( rcOutExtBinDataAccessorList, *rcControlData.getSliceHeader(), uiBits ) );
+        }
+      }
+//prefix unit}}
       //----- init NAL UNIT -----
       RNOK( xInitExtBinDataAccessor                 (  m_cExtBinDataAccessor ) );
       RNOK( m_pcNalUnitEncoder->initNalUnit         ( &m_cExtBinDataAccessor ) );
@@ -2966,7 +2974,8 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
       uiBits += 4*8;
 
       //JVT-S036 lsj start
-      if( m_uiSuffixUnitEnable )
+
+	  if( m_uiPreAndSuffixUnitEnable && uiSliceId != 0) //prefix unit
       {
         if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
         {
@@ -3018,7 +3027,15 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
         UInt iFrameNum =  m_pcLowPassBaseReconstruction->getFrameNum(); 
         RNOK( xSetMmcoBase( *pcSliceHeader, iFrameNum ) );  
       }
-
+//prefix unit{{
+	  if( m_uiPreAndSuffixUnitEnable && iSliceGroupID == 0) 
+	  {
+        if ( rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE|| rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
+        {
+          RNOK( xWritePrefixUnit( rcOutExtBinDataAccessorList, *rcControlData.getSliceHeader(), uiBits ) );
+        }
+      }
+//prefix unit}}
       //----- init NAL UNIT -----
       RNOK( xInitExtBinDataAccessor                 (  m_cExtBinDataAccessor ) );
       RNOK( m_pcNalUnitEncoder->initNalUnit         ( &m_cExtBinDataAccessor ) );
@@ -3144,13 +3161,14 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
       uiBits += 4*8;
 
       //JVT-S036 lsj start
-      if( m_uiSuffixUnitEnable )
-      {
+	  if( m_uiPreAndSuffixUnitEnable && iSliceGroupID != 0 ) //prefix unit
+	  {
         if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
         {
           RNOK( xWriteSuffixUnit( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBits ) );
         }
       }
+
       //JVT-S036 lsj end
 
       PicOutputData cPicOutputData;
@@ -3201,7 +3219,8 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
                                     PicOutputDataList&       rcPicOutputDataList,
 																		PicType                  ePicType )
 {
-  UInt  uiBitsSEI   = 0;
+  UInt  uiBitsSEI   = 0; 
+      UInt  uiBits      = 0;//prefix unit 
   SliceHeader* pcSliceHeader = rcControlData.getSliceHeader( ePicType );
 	ROF( pcSliceHeader );
 
@@ -3216,7 +3235,6 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
   {
     for (UInt uiSliceId=0; uiSliceId <= m_uiNumSliceMinus1; uiSliceId++)
     {
-      UInt  uiBits      = 0;
       UInt  uiBitsRes   = 0;
       UInt  uiMbCoded   = 0;
 
@@ -3226,6 +3244,15 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       pcSliceHeader->setNumMbsInSlice(pcSliceHeader->getFMO()->getNumMbsInSlice(rcControlData.getSliceHeader()->getFirstMbInSlice(), rcControlData.getSliceHeader()->getLastMbInSlice()));
 
       pcSliceHeader->setAdaptiveRefPicMarkingFlag( false );  //JVT-S036 lsj
+//prefix unit{{
+	  if( m_uiPreAndSuffixUnitEnable && uiSliceId == 0) 
+	  {
+        if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
+        {
+          RNOK( xWritePrefixUnit( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBits ) );
+        }
+      }
+//prefix unit}}
 
       //----- init NAL UNIT -----
       RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
@@ -3312,14 +3339,14 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       //----- update -----
       RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
       uiBits += 4*8;
-      //JVT-S036 lsj start
-      if( m_uiSuffixUnitEnable )
-      {
+      //JVT-S036 lsj start1
+	  if( m_uiPreAndSuffixUnitEnable && uiSliceId != 0) //prefix unit
+	  {
         if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
         {
           RNOK( xWriteSuffixUnit( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBits ) );
         }
-      }
+		}
       //JVT-S036 lsj end
 
       PicOutputData cPicOutputData;
@@ -3363,7 +3390,15 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       pcSliceHeader->setNumMbsInSlice(pcFMO->getNumMbsInSlice(rcControlData.getSliceHeader()->getFirstMbInSlice(), rcControlData.getSliceHeader()->getLastMbInSlice()));
 
       rcControlData.getSliceHeader()->setAdaptiveRefPicMarkingFlag( false );  //JVT-S036 lsj
-
+//prefix unit{{
+	  if( m_uiPreAndSuffixUnitEnable && iSliceGroupID == 0) 
+	  {
+        if ( pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE|| pcSliceHeader->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
+        {
+          RNOK( xWritePrefixUnit( rcOutExtBinDataAccessorList, *pcSliceHeader, uiBits ) );
+        }
+      }
+//prefix unit}}
       //----- init NAL UNIT -----
       RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
       RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
@@ -3451,8 +3486,8 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
       uiBits += 4*8;
       //JVT-S036 lsj start
-      if( m_uiSuffixUnitEnable )
-      {
+	  if( m_uiPreAndSuffixUnitEnable && iSliceGroupID != 0) //prefix unit
+	  {
         if ( rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE|| rcControlData.getSliceHeader()->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR )
         {
           RNOK( xWriteSuffixUnit( rcOutExtBinDataAccessorList, *rcControlData.getSliceHeader(), uiBits ) );
@@ -7672,7 +7707,49 @@ MCTFEncoder::xWriteSuffixUnit( ExtBinDataAccessorList& rcOutExtBinDataAccessorLi
 
   return Err::m_nOK;
 }
+//prefix unit{{
+ErrVal
+MCTFEncoder::xWritePrefixUnit( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit )
+{
+  UInt uiBit = 0;
+  Bool m_bWriteSuffixUnit = true; 
+  if( m_bWriteSuffixUnit )
+  {
+    RNOK( xInitExtBinDataAccessor        (  m_cExtBinDataAccessor ) );
+    RNOK( m_pcNalUnitEncoder->initNalUnit( &m_cExtBinDataAccessor ) );
 
+	NalUnitType eNalUnitType = rcSH.getNalUnitType();
+	UInt eLayerId = rcSH.getLayerId();
+	UInt eQualityLevel = rcSH.getQualityLevel();
+
+    
+	rcSH.setLayerId( 0 );
+	rcSH.setQualityLevel( 0 );
+
+	if( eNalUnitType == NAL_UNIT_CODED_SLICE || eNalUnitType == NAL_UNIT_CODED_SLICE_IDR )
+	{
+		rcSH.setNalUnitType( NAL_UNIT_PREFIX );
+	}
+	else
+	{
+		return Err::m_nERR;
+	}
+
+    RNOK( m_pcNalUnitEncoder->write( rcSH ) ); 
+
+    RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBit ) );
+    RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
+    uiBit += 4*8;
+    ruiBit += uiBit;
+
+	rcSH.setNalUnitType( eNalUnitType );
+	rcSH.setLayerId( eLayerId );
+	rcSH.setQualityLevel( eQualityLevel );
+  }
+
+  return Err::m_nOK;
+}
+//prefix unit}}
 //JVT-S036 lsj end
 
 //NonRequired JVT-Q066 (06-04-08){{

@@ -125,7 +125,20 @@ SliceHeader::copy( const SliceHeader& rcSH )
 
   return Err::m_nOK;
 }
+//prefix unit{{
+ErrVal 
+SliceHeader::copyPrefix( const SliceHeader& rcSH)
+{
+	m_uiTemporalLevel = rcSH.getTemporalLevel();
+	m_cMmmcoBaseBuffer = rcSH.getMmcoBaseBuffer();
 
+	m_bUseBasePredictionFlag = rcSH.getUseBasePredictionFlag(); 
+    m_bStoreBaseRepresentationFlag = rcSH.getUseBasePredictionFlag();   
+	m_bAdaptiveRefPicMarkingModeFlag = rcSH.getAdaptiveRefPicMarkingFlag();
+
+	return Err::m_nOK;
+}
+//prefix unit}}
 ErrVal
 SliceHeader::xInitScalingMatrix()
 {

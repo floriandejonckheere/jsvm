@@ -628,7 +628,13 @@ ErrVal H264AVCDecoderTest::go()
     pcBinData = 0;
     RNOK(initPacketToDecode(bToDecode, pcBinData, &cBinDataAccessor, bEOS,
       uiNalUnitType, uiMbX, uiMbY, uiSize, uiPreNalUnitType, iPos, cVirtualSliceList, false));
-
+//prefix unit{{
+		  if(uiNalUnitType == 14)
+		  {
+			  RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
+				continue;
+		  }
+//prefix unit}}
     //JVT-T054_FIX{
     Bool bWasAVCNALUnit = (uiNalUnitType == 1 || uiNalUnitType == 5);
     //JVT-T054}

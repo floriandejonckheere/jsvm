@@ -131,6 +131,15 @@ public:
                                 Bool          bUseBasePredFlag,
                                 SliceHeader*  pcSliceHeader
                                 );					//JVT-S036 lsj
+//prefix unit{{
+  ErrVal readSliceHeaderPrefix( NalUnitType   eNalUnitType,
+                                NalRefIdc     eNalRefIdc,
+                                UInt		      uiLayerId,
+                                UInt		      uiQualityLevel,
+                                Bool          bUseBasePredFlag,
+                                SliceHeader*  pcSliceHeader
+                                );	
+//prefix unit}}
 
   //TMM_EC {{
 	ErrVal	readSliceHeaderVirtual(	NalUnitType   eNalUnitType,

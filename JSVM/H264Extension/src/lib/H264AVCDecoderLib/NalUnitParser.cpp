@@ -411,9 +411,10 @@ NalUnitParser::initNalUnit( BinDataAccessor*  pcBinDataAccessor,
 
 //  TMM_EC {{
   if ( *(int*)(pcBinDataAccessor->data()+1) != 0xdeadface)
-  {
+  { 
     if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-        m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+        m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
+		m_eNalUnitType == NAL_UNIT_PREFIX)//prefix unit
     {
       ROF( pcBinDataAccessor->size() > 3 );
 

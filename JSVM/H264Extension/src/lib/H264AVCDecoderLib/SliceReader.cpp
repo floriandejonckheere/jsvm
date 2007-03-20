@@ -681,6 +681,44 @@ SliceReader::readSliceHeaderSuffix( NalUnitType   eNalUnitType,
   else
 	  return Err::m_nERR;
 }
+//prefix unit{{
+ErrVal
+SliceReader::readSliceHeaderPrefix( NalUnitType   eNalUnitType,
+									NalRefIdc     eNalRefIdc,
+									UInt		  uiLayerId,
+									UInt		  uiQualityLevel,
+									Bool          bUseBasePredFlag,
+									SliceHeader*  pcSliceHeader
+								  )
+{
+  
+  //===== read first parameters =====
+  
+  Bool eAdaptiveRefPicMarkingModeFlag = false;
+ 
+	if( uiLayerId == 0 && uiQualityLevel == 0 ) 
+	{
+		if( eNalRefIdc != 0)
+		{
+			if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+			{
+				RNOK(m_pcHeaderReadIf->getFlag( eAdaptiveRefPicMarkingModeFlag,			"DRPM: adaptive_ref_pic_marking_mode_flag"));
+				if( eAdaptiveRefPicMarkingModeFlag )
+				{  
+					RNOK( pcSliceHeader->getMmcoBaseBuffer().read( m_pcHeaderReadIf ) );
+				}		
+			}
+		}
+
+		pcSliceHeader->setUseBaseRepresentationFlag( bUseBasePredFlag      );   
+		pcSliceHeader->setAdaptiveRefPicMarkingFlag( eAdaptiveRefPicMarkingModeFlag );
+
+		return Err::m_nOK;
+	}
+	else
+		return Err::m_nERR;
+}
+//prefix unit}}
 //JVT-S036 lsj end
 
 H264AVC_NAMESPACE_END

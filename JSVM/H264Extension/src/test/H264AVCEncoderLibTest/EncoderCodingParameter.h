@@ -927,9 +927,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   //JVT-T073 }
 
 //JVT-S036 lsj start  //bug-fix suffix{{
-//SuffixUnitEnable shall always be on in SVC contexts (i.e. when there are FGS/CGS/spatial enhancement layers)
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SuffixUnitEnable",        &m_uiSuffixUnitEnable,                                 1 ); 
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",					 &m_uiMMCOBaseEnable,                                   1 ); 
+//PreAndSuffixUnitEnable shall always be on in SVC contexts (i.e. when there are FGS/CGS/spatial enhancement layers)
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("PreAndSuffixUnitEnable",        &m_uiPreAndSuffixUnitEnable,                                 1 ); //prefix unit
+	m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",					 &m_uiMMCOBaseEnable,                                   1 ); 
 //JVT-S036 lsj end //bug-fix suffix}}
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                             0 );  //JVT-T054
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",           &m_uiTlevelNestingFlag,                                0 );  //JVT-U085
@@ -1103,8 +1103,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     if (ui>0)
     {
       ResizeParameters * prev = getResizeParameters(uiBaseLayerId); // HS: use "real" base layer
-      curr->m_iInWidth  = prev->m_iOutWidth;
-      curr->m_iInHeight = prev->m_iOutHeight;
+      //curr->m_iInWidth  = prev->m_iOutWidth;
+      //curr->m_iInHeight = prev->m_iOutHeight;
+      curr->m_iInWidth = prev->m_iGlobWidth; //TMM
+      curr->m_iInHeight = prev->m_iGlobHeight; //TMM
 
       bool is_crop_aligned = (curr->m_iPosX%16 == 0) && (curr->m_iPosY%16 == 0);
       if      ((curr->m_iInWidth == curr->m_iOutWidth) && (curr->m_iInHeight == curr->m_iOutHeight) &&

@@ -1,4 +1,15 @@
 
+JSVM_8_8 -> JSVM_8_9
+======================
+Date        : March 19, 2007
+Author      : Qiu Shen(USTC)
+
+Changes:
+
+- Add prefix unit before the NAL unit of the first AVC slice, and change suffix unit to be after the other NAL unit of AVC slice.
+- Minor bug fixes related to ESS
+
+
 JSVM_8_7 -> JSVM_8_8
 ======================
 Date        : March 10, 2007

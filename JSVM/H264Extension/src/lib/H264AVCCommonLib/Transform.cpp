@@ -709,7 +709,7 @@ ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRe
 	for( int i=0; i<64; i++ )
 		ruiAcAbs += abs( (Int)piCoeff[i] );
     
-	for( int i=0; i<64; i+=16 )
+	for( i=0; i<64; i+=16 )
 		ruiDcAbs += abs( (Int)piCoeff[i] );
 	  
 	ruiAcAbs -= ruiDcAbs;

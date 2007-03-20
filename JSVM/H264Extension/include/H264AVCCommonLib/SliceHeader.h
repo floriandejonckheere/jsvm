@@ -116,7 +116,7 @@ public:
 	SliceHeader         ( const SliceHeader& rcSliceHeader );
 	virtual ~SliceHeader();
 	ErrVal copy         ( const SliceHeader& rcSH );
-
+	ErrVal copyPrefix	( const SliceHeader& rcSH );//prefix unit
   Void getMbPositionFromAddress( UInt& ruiMbY, UInt& ruiMbX, const UInt uiMbAddress ) const; 
   Void getMbPositionFromAddress( UInt& ruiMbY, UInt& ruiMbX, UInt& ruiMbIndex, const UInt uiMbAddress ) const ;
   UInt getMbIndexFromAddress   ( UInt uiMbAddress ) const;
