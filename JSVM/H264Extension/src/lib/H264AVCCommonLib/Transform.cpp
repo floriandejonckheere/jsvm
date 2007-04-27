@@ -127,6 +127,7 @@ CoeffLevelPred::ScaleCoeffLevels( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp
 
 Transform::Transform()
 : m_bClip( true )
+, m_storeCoeffFlag (true)
 {
 }
 
@@ -528,8 +529,10 @@ Void Transform::xQuantDequantNonUniformChroma( TCoeff* piQCoeff,
   
     ruiDcAbs   += iLevel;
     iLevel      = ( uiSign ? -iLevel : iLevel );
-    piQCoeff[0] = iLevel;
-    piCoeff [0] = iLevel;
+    piQCoeff[0] = iLevel; 
+    // dequantize DC also
+    piCoeff [0] = iLevel * g_aaiDequantCoef[rcQp.rem()][0] << rcQp.per();   
+
     if( pcRefCtx && iLevel )
       pcRefCtx[0] = 1;
   }
@@ -691,6 +694,7 @@ ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRe
 
 	// DECLARATIONS
 	TCoeff cScaledRef[64];
+  int i;
 
 	for( UInt x=0; x<0x40; x+=0x10 )
 	{		
@@ -706,7 +710,7 @@ ErrVal Transform::predictChromaBlocks( TCoeff* piCoeff, TCoeff* piRef, UInt uiRe
 	ruiAcAbs = 0;
 	ruiDcAbs = 0;
 
-	for( int i=0; i<64; i++ )
+	for(i=0; i<64; i++ )
 		ruiAcAbs += abs( (Int)piCoeff[i] );
     
 	for( i=0; i<64; i+=16 )
@@ -990,12 +994,96 @@ ErrVal Transform::transform4x4Blk( IntYuvMbBuffer*              pcOrgData,
 
   xForTransform4x4Blk( pOrg, pRec, iStride, aiTemp );
   xQuantDequantUniform4x4( piCoeff, aiTemp, pcRefCtx, m_cLumaQp, pucScale, ruiAbsSum );
+ 
+  if (m_storeCoeffFlag)   // store the coefficients
+  {
+    for( UInt ui=0; ui<16; ui++ )      
+	  piCoeff[ui].setLevel( piCoeff[ui].getCoeff() * (g_aaiDequantCoef[m_cLumaQp.rem()][ui] << m_cLumaQp.per()) );
+  }
 
   ROTRS( 0 == ruiAbsSum, Err::m_nOK );
   xInvTransform4x4Blk( pRec, iStride, aiTemp );
   return Err::m_nOK;
 }
 
+
+ErrVal
+Transform::transform8x8BlkCGS( IntYuvMbBuffer* pcOrgData,
+                            IntYuvMbBuffer* pcPelData,
+                            TCoeff*         piCoeff,
+                            TCoeff*         piCoeffBase,
+                            const UChar*    pucScale,
+                            UInt&           ruiAbsSum,
+                            RefCtx*         pcRefCtx )
+{
+  TCoeff  aiTemp[64];  	  
+  Int normAdjust[] = { 8, 9, 5, 9,   8, 9, 5, 9 };
+
+  XPel*   pOrg    = pcOrgData->getLumBlk();
+  XPel*   pRec    = pcPelData->getLumBlk();
+  Int     iStride = pcPelData->getLStride();
+
+  xForTransform8x8Blk     ( pOrg, pRec, iStride, aiTemp );
+
+  // get the baselayer coefficients  
+  for( UInt ui=0; ui<64; ui++ )
+	  aiTemp[ui] = ( aiTemp[ui].getCoeff() - ( ( normAdjust[ui/8]*normAdjust[ui%8]*(Int)piCoeffBase[ui].getLevel() + (1<<5) ) >> 6 ) );
+
+  xQuantDequantUniform8x8 ( piCoeff, aiTemp, pcRefCtx, m_cLumaQp, pucScale, ruiAbsSum );
+  
+  // add the base layer coeff back
+  for( UInt ui=0; ui<64; ui++ )
+  {
+   aiTemp[ui] = piCoeffBase[ui].getLevel() + aiTemp[ui].getCoeff();
+
+    // store the coefficients
+   if (m_storeCoeffFlag)
+      piCoeff[ui].setLevel( aiTemp[ui].getCoeff() );
+  }
+
+  invTransform8x8Blk      ( pRec, iStride, aiTemp );
+
+  return Err::m_nOK;
+}
+
+ErrVal Transform::transform4x4BlkCGS( IntYuvMbBuffer*         pcOrgData,
+                                   IntYuvMbBuffer*            pcPelData,                                   
+                                   TCoeff*                    piCoeff,
+                                   TCoeff*                    piCoeffBase,
+                                   const UChar*               pucScale,
+                                   UInt&                      ruiAbsSum,
+                                   RefCtx*                    pcRefCtx)
+{
+  TCoeff  aiTemp[64];
+  Int normAdjust[] = { 4, 5, 4, 5 };
+  XPel*   pOrg    = pcOrgData->getLumBlk();
+  XPel*   pRec    = pcPelData->getLumBlk();
+  Int     iStride = pcPelData->getLStride();
+  UInt uiAbsSum = 0;
+
+  xForTransform4x4Blk( pOrg, pRec, iStride, aiTemp );
+  
+  // get the baselayer coefficients  
+  for( UInt ui=0; ui<16; ui++ )
+	  aiTemp[ui] = ( aiTemp[ui].getCoeff() - ( ( normAdjust[ui/4]*normAdjust[ui%4]*(Int)piCoeffBase[ui].getLevel() + (1<<5) ) >> 6 ) );
+
+  xQuantDequantUniform4x4( piCoeff, aiTemp, pcRefCtx, m_cLumaQp, pucScale, ruiAbsSum );
+
+  // add the base layer coeff back
+  for( UInt ui=0; ui<16; ui++ )
+  {	  
+    aiTemp[ui] = piCoeffBase[ui].getLevel() + aiTemp[ui].getCoeff();
+
+    // store the coefficients
+    if (m_storeCoeffFlag)
+		piCoeff[ui].setLevel( aiTemp[ui].getCoeff() );
+
+  }
+
+  xInvTransform4x4Blk( pRec, iStride, aiTemp );  
+
+  return Err::m_nOK;
+}
 
 
 ErrVal
@@ -1206,10 +1294,6 @@ Void Transform::xInvTransform4x4Blk( XPel* puc, Int iStride, TCoeff* piCoeff )
   }
 }
 
-
-
-
-
 ErrVal Transform::transformMb16x16( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs )
 {
   XPel* pucOrg  = pcOrgData->getMbLumAddr();
@@ -1304,6 +1388,74 @@ ErrVal Transform::transformChromaBlocks( XPel*          pucOrg,
     xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, NULL, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
     xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, NULL, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
   }
+ 
+  if (m_storeCoeffFlag)
+  {
+    for( UInt ui=0; ui<64; ui++ )
+    {    
+      piCoeff[ui].setLevel( piQuantCoeff[ui].getCoeff() );  // store the dequantized coeffs in TCoeff.level
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal Transform::transformChromaBlocksCGS( XPel*       pucOrg,
+                                         XPel*          pucRec,                                         
+                                         MbFGSCoefMap* pcMbFGSCoefMap,
+                                         const CIdx     cCIdx,
+                                         Int            iStride,
+                                         TCoeff*        piCoeff,
+                                         TCoeff*        piQuantCoeff,
+                                         TCoeff*        piCoeffBase,
+                                         const UChar*   pucScale,
+                                         UInt&          ruiDcAbs,
+                                         UInt&          ruiAcAbs )
+{
+  Int iOffset = 0;
+  Int normAdjust[] = { 4, 5, 4, 5};
+
+  xForTransform4x4Blk( pucOrg + iOffset, pucRec + iOffset, iStride, piQuantCoeff + 0x00);
+  iOffset += 4;
+  xForTransform4x4Blk( pucOrg + iOffset, pucRec + iOffset, iStride, piQuantCoeff + 0x10);
+  iOffset  = 4*iStride;
+  xForTransform4x4Blk( pucOrg + iOffset, pucRec + iOffset, iStride, piQuantCoeff + 0x20);
+  iOffset += 4;
+  xForTransform4x4Blk( pucOrg + iOffset, pucRec + iOffset, iStride, piQuantCoeff + 0x30);
+
+  xForTransformChromaDc( piQuantCoeff );
+
+  // substract the baselayer coefficients  
+  for( UInt uiOffset = 0; uiOffset<0x40; uiOffset+=0x10 )
+  {
+	  piQuantCoeff[uiOffset+0] = ( piQuantCoeff[uiOffset+0].getCoeff() - ( ( piCoeffBase[uiOffset+0].getLevel() + 1) >> 1 ) );	        
+	  for( UInt ui=1; ui<16; ui++ )
+		  piQuantCoeff[uiOffset+ui] = ( piQuantCoeff[uiOffset+ui].getCoeff() - ( ( normAdjust[ui/4] * normAdjust[ui%4] * piCoeffBase[uiOffset+ui].getLevel() + (1<<5) ) >> 6 ) );		  
+  }
+
+  if( pcMbFGSCoefMap )
+  {
+    xQuantDequantNonUniformChroma( piCoeff + 0x00, piQuantCoeff + 0x00, pcMbFGSCoefMap->getRefCtx( cCIdx   ), m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+    xQuantDequantNonUniformChroma( piCoeff + 0x10, piQuantCoeff + 0x10, pcMbFGSCoefMap->getRefCtx( cCIdx+1 ), m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+    xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, pcMbFGSCoefMap->getRefCtx( cCIdx+2 ), m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+    xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, pcMbFGSCoefMap->getRefCtx( cCIdx+3 ), m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+  }
+  else
+  {
+    xQuantDequantNonUniformChroma( piCoeff + 0x00, piQuantCoeff + 0x00, NULL, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+    xQuantDequantNonUniformChroma( piCoeff + 0x10, piQuantCoeff + 0x10, NULL, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+    xQuantDequantNonUniformChroma( piCoeff + 0x20, piQuantCoeff + 0x20, NULL, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+    xQuantDequantNonUniformChroma( piCoeff + 0x30, piQuantCoeff + 0x30, NULL, m_cChromaQp, pucScale, ruiDcAbs, ruiAcAbs );
+  }
+
+  // add the base layer coeff back and also store the dequantized coeffs
+  for( UInt ui=0; ui<64; ui++ )
+  {
+    piQuantCoeff[ui] = piCoeffBase[ui].getLevel() + piQuantCoeff[ui].getCoeff();
+    if (m_storeCoeffFlag)
+      piCoeff[ui].setLevel( piQuantCoeff[ui].getCoeff() );
+  }
+
   return Err::m_nOK;
 }
 
@@ -1346,6 +1498,13 @@ Transform::transform8x8Blk( IntYuvMbBuffer* pcOrgData,
 
   xForTransform8x8Blk     ( pOrg, pRec, iStride, aiTemp );
   xQuantDequantUniform8x8 ( piCoeff, aiTemp, pcRefCtx, m_cLumaQp, pucScale, ruiAbsSum );
+   
+  if (m_storeCoeffFlag)
+  {
+    for( UInt ui=0; ui<64; ui++ )
+      piCoeff[ui].setLevel( aiTemp[ui].getCoeff() );  // store the dequantized coeffs are stored in TCoeff.level
+  }
+
   invTransform8x8Blk      ( pRec, iStride, aiTemp );
 
   return Err::m_nOK;

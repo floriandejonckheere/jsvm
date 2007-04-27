@@ -184,6 +184,8 @@ public:
                                 Bool					bMotion,
 																PicType       ePicType );
 
+  ErrVal getBaseLayerResidual( IntFrame*&      pcResidual, UInt            uiBaseLayerId);
+
   ErrVal  getBaseLayerSH      ( SliceHeader*& rpcSliceHeader,
                                 UInt          uiBaseLayerId,
                                 Int           iPoc,

@@ -326,6 +326,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bInIDRAccess					            ( false ) //EIDR bug-fix
 , m_bUseSmoothedRef                   ( true )//JVT-V058
 , m_bAVCRewriteFlag                   ( rcSPS.getAVCRewriteFlag() )  // V-035
+, m_iSpatialScalabilityType           (-1)
 {
   ::memset(  m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt));
   ::memset(  m_aiDeltaPicOrderCnt,         0x00, 2*sizeof(Int) );
@@ -409,7 +410,8 @@ SliceHeaderBase& SliceHeaderBase::operator = ( const SliceHeaderBase& rcSHB )
   m_uiBaseFragmentOrder                 = rcSHB.m_uiBaseFragmentOrder;
  
   m_bCIUFlag                            = rcSHB.m_bCIUFlag;
- 
+  m_iSpatialScalabilityType             = rcSHB.m_iSpatialScalabilityType;
+
   if(m_pcFMO == NULL)
 		m_pcFMO = new FMO();
 	else

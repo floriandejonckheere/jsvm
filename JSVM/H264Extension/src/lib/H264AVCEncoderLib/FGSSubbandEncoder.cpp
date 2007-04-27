@@ -168,6 +168,7 @@ RQFGSEncoder::init( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
   m_pcQuarterPelFilter        = pcQuarterPelFilter;
   m_pcMotionEstimation        = pcMotionEstimation;
   m_pcMbCoder                 = pcMbCoder;
+  m_bEncoder                  = true;
 
   xInit( apcYuvFullPelBufferCtrl, pcTransform );
 
@@ -190,6 +191,8 @@ RQFGSEncoder::uninit()
   m_iRemainingTCoeff          = 0;
   m_pcSliceHeader             = 0;
   m_pcOrgResidual             = 0;
+  m_bEncoder                  = false;
+
   return Err::m_nOK;
 }
 

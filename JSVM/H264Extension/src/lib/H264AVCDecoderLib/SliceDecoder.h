@@ -153,6 +153,10 @@ ErrVal decodeMbAff( SliceHeader&   rcSH,
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   ErrVal                xSetAvcRewriteEncoder(H264AVCEncoder* pcAvcRewriteEncoder);
+  ErrVal                xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
+                                                MbDataAccess* pcMbDataAccess,
+                                                MbDataAccess* pcMbDataAccessBase,
+                                                UInt uiMbRead);
 #endif
 
 protected:

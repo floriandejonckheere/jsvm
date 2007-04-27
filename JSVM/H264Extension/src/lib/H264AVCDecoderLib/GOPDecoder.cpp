@@ -1979,7 +1979,7 @@ MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
   {
     RNOK( xDecodeFGSRefinement( rpcSliceHeader ) );
   }
-  else
+ else
   {
     RNOK( xDecodeBaseRepresentation( rpcSliceHeader, pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList, bReconstructionLayer ) );
   }
@@ -2890,13 +2890,19 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
     if(uiQualityLevel != 0)
       RNOK( m_pcBaseLayerCtrl->initMbCBP( *pcBaseDataCtrl, pcResizeParameter ) );
     
-    //===== data needed for SVC to AVC translation====/
-    if( pcBaseDataCtrl && rcControlData.getSliceHeader()->getAVCRewriteFlag() )
+    pcSliceHeader->setPicCoeffResidualPredFlag(pcBaseDataCtrl->getSliceHeader());
+    //===== data needed for residual prediction in transform domain or SVC to AVC translation====/
+    Bool avcRewriteFlag = pcSliceHeader->getAVCRewriteFlag();
+    
+    if (avcRewriteFlag || pcSliceHeader->getPicCoeffResidualPredFlag() )
     {
       m_pcBaseLayerCtrl->copyTCoeffs( *pcBaseDataCtrl );
-      m_pcBaseLayerCtrl->copyIntraPred( *pcBaseDataCtrl );
+      if( rcControlData.getSliceHeader()->getAVCRewriteFlag() )
+      {	
+        m_pcBaseLayerCtrl->copyIntraPred( *pcBaseDataCtrl );
+      }    
     }
-    
+   
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
     //=== create Upsampled VBL Field ===
@@ -2916,6 +2922,20 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
   //===== residual data =====
   if( bBaseDataAvailable )
   {
+    if (pcSliceHeader->getPicCoeffResidualPredFlag() )
+    {
+      // if CGS, propogate the further lower base layer residuals
+      UInt lowerBaseLayerId = pcBaseDataCtrl->getSliceHeader()->getBaseLayerId();
+      if (lowerBaseLayerId != MSYS_UINT_MAX) // lower baselayer exist
+      {        
+        RNOK( m_pcH264AVCDecoder->getBaseLayerResidual(pcBaseFrame, pcBaseResidual, 
+          pcSliceHeader->getBaseLayerId(), pcBaseDataCtrl->getSliceHeader()->getQualityLevel(), 
+          pcBaseDataCtrl->getSliceHeader()->getPoc()) );
+      }
+      else
+        pcBaseResidual->getFullPelYuvBuffer()->clear();
+    }
+
     RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual, ePicType ) );
 
 	  RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, pcResizeParameter, pcBaseDataCtrl, false) ); 
@@ -3675,6 +3695,8 @@ MCTFDecoder::xGetBaseLayerData( ControlData&    rcControlData,
     pcSliceHeader->m_bBaseBotFieldFlag                = pcResizeParameter->m_bBaseBotFieldFlag;
     rcControlData.setSpatialScalability     ( rbSpatialScalability );
     rcControlData.setSpatialScalabilityType ( pcResizeParameter->m_iSpatialScalabilityType );
+    rcControlData.getSliceHeader()->setSpatialScalabilityType(pcResizeParameter->m_iSpatialScalabilityType);
+    
     rbSpatialScalability = rbSpatialScalability? rbSpatialScalability : pcResizeParameter->m_iResampleMode>0;
 
 		RNOK( m_pcH264AVCDecoder->getBaseLayerData( rpcBaseFrame, 

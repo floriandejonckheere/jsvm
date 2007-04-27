@@ -138,6 +138,7 @@ public:
 
   Void storeLevelData              ();
   Void switchLevelCoeffData        ();
+  Void add                         ( MbTransformCoeffs* pcCoeffs );
 
 protected:
   TCoeff m_aaiLevel[24][16];

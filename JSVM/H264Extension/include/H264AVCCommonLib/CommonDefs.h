@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "8.9" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "8.10" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -346,8 +346,9 @@ H264AVC_NAMESPACE_END
 #define INFER_ELAYER_PRED_WEIGHTS                     0                   // (0:BL weights are not used, 1:infer enhancement layer prediction weights)
 
 // to output the AVC rewritten bitstream, define SHARP_AVC_REWRITE_OUTPUT
-// and also need to link the encoder library to H264AVCDecoderLibStatic
+// and also need to link the encoder library to H264AVCDecoder
 //#define SHARP_AVC_REWRITE_OUTPUT
+
 
 //TMM_EC {{
 typedef	enum

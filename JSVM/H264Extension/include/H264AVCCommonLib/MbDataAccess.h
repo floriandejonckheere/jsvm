@@ -267,6 +267,28 @@ public:
     return false;
   }
 
+  Bool getCoeffResidualPredFlag() {
+    // return a flag indicating wether it'e eligible for residual prediction in transform domain for CGS
+    if (getMbDataAccessBase() != NULL)
+    {
+      Bool slice_flag = getSH().getPicCoeffResidualPredFlag( );
+      return slice_flag && !getMbData().isIntra() && ! (getMbDataAccessBase()->getMbData().isIntra());
+    }
+    return false;
+
+  }
+
+  Bool getDisableCoeffResidualPredFlag() {
+    if (getMbDataAccessBase() != NULL)
+    {
+      Bool slice_flag = getSH().getPicCoeffResidualPredFlag( );
+      if (slice_flag)
+        return (getMbData().isIntra() || getMbDataAccessBase()->getMbData().isIntra() );
+    }
+
+    return false;
+  }
+
   UInt    getConvertBlkMode ( Par8x8 ePar8x8 );
   ErrVal  setConvertBlkMode ( Par8x8 ePar8x8, UInt uiBlockMode );
   UInt    getConvertMbType  ();

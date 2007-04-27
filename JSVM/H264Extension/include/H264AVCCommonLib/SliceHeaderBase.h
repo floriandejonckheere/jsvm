@@ -684,6 +684,8 @@ public:
                           UInt uiChromaWeightDenom, ListIdx eListIdx, Bool bDecoder);
 //TMM_WP
 
+  Void                             setSpatialScalabilityType ( const int iSST )  { m_iSpatialScalabilityType = iSST; }
+  Int                              getSpatialScalabilityType ()       const { return m_iSpatialScalabilityType; }
   Bool                              getAVCRewriteFlag ()              const { return m_bAVCRewriteFlag; }
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
   Bool                              getUseBasePredictionFlag      ()  const { return m_bUseBasePredictionFlag; }
@@ -1013,6 +1015,7 @@ protected:
   Bool                        m_bCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}
   Bool                        m_bAVCRewriteFlag;   // V-035
+  Int                        m_iSpatialScalabilityType;
 
 // TMM_ESS {
 public:
@@ -1068,7 +1071,6 @@ protected:
   Bool          m_bFGSVectorModeOverrideFlag;
   //EIDR bug-fix
   Bool			m_bInIDRAccess; 
-
   Bool          m_bUseSmoothedRef;//JVT-V058
 };
 

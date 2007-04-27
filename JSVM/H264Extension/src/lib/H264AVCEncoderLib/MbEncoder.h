@@ -611,6 +611,9 @@ protected:
 
   UInt  xCalcMbCbp    ( UInt uiExtCbp );
 
+  Void reCalcBlock8x8(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int mode);
+  ErrVal reCalcBlock8x8Rewrite(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int mode);
+
 private:
   UChar xGetFrameBits ( ListIdx eLstIdx, Int iRefPic );
 

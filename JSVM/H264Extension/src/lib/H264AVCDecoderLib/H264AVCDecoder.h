@@ -241,6 +241,12 @@ public:
                                          ListIdx                        eListIdx,
                                          Int                            iPoc );
 
+ ErrVal  getBaseLayerResidual     ( IntFrame*&  pcFrame,
+                                  IntFrame*&      pcResidual,
+                                  UInt            uiBaseLayerId,
+                                  UInt            uiBaseQualityLevel,                                  
+                                  Int             iPoc);
+
   ErrVal  replaceSNRCGSBaseFrame      ( IntFrame* pcELFrame,
                                         const PicType ePicType,         //TMM_INTERLACE 
                                         const Bool    bFrameMbsOnlyFlag //TMM_INTERLACE 

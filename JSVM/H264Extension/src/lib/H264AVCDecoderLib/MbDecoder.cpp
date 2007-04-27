@@ -306,6 +306,21 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
       rcMbDataAccess.getMbData().setQp( rcMbDataAccess.getLastQp());
   }
 
+  if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 )
+    && rcMbDataAccess.getCoeffResidualPredFlag())
+  {
+    if( !( rcMbDataAccess.getMbData().getMbCbp() & 0x0F ) ||
+      !rcMbDataAccess.getMbData().is8x8TrafoFlagPresent(rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag()) )
+      rcMbDataAccess.getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
+  }
+
+  if( ( rcMbDataAccess.getMbData().isIntra() || !rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ) 
+    && pcBaseLayerResidual && !rcMbDataAccess.getSH().getFGSInfoPresentFlag())
+  {	 
+    IntYuvPicBuffer* pcBaseResidualBuffer = pcBaseLayerResidual->getFullPelYuvBuffer();
+    pcBaseResidualBuffer->clearCurrMb();
+  }
+
   //===== scale coefficients =====
   RNOK( xScaleTCoeffs( rcMbDataAccess ) );
 
@@ -711,6 +726,22 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
     rcPredBuffer.loadChroma ( cYuvMbBuffer );
   }
 
+  Bool coeffResidualPredFlag = rcMbDataAccess.getCoeffResidualPredFlag();  
+  Int oldExtCbp = 0;
+
+  //===== add base layer residual =====
+  if (rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ))
+  {
+    oldExtCbp = rcMbDataAccess.getMbData().getMbExtCbp();
+    if (coeffResidualPredFlag)
+    { 
+      rcCoeffs.add( &pcMbDataAccessBase->getMbData().getMbTCoeffs() );            
+      rcMbDataAccess.getMbTCoeffs().copyFrom(rcCoeffs);     // store the sum of the coefficients and base layer coefficients      
+      rcMbDataAccess.getMbData().setMbExtCbp( rcMbDataAccess.getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
+    }
+    else
+      pcMbDataAccessBase->getMbData().getMbTCoeffs().clearLumaLevels();
+  }
 
   //===== reconstruct residual signal by using transform coefficients ======
   m_pcTransform->setClipMode( false );
@@ -718,7 +749,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
   {
     for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
     {
-      if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx ) )
+      // if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx ) ) // there may be coefficients propogated from base layer
       {
         RNOK( m_pcTransform->invTransform8x8Blk( cYuvMbBufferResidual.getYBlk( cIdx ),
                                                  cYuvMbBufferResidual.getLStride(),
@@ -730,7 +761,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
   {
     for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
     {
-      if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx ) )
+      // if( rcMbDataAccess.getMbData().is4x4BlkCoded( cIdx )
       {
         RNOK( m_pcTransform->invTransform4x4Blk( cYuvMbBufferResidual.getYBlk( cIdx ),
                                                  cYuvMbBufferResidual.getLStride(),
@@ -752,10 +783,18 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
     cBaseLayerBuffer.loadBuffer( pcBaseResidual->getFullPelYuvBuffer() );
 
     cYuvMbBufferResidual.add( cBaseLayerBuffer );
-    //--- set CBP ---
-    rcMbDataAccess.getMbData().setMbExtCbp( rcMbDataAccess.getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
   }
-
+ 
+  if (rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && rcMbDataAccess.getCoeffResidualPredFlag())
+  {
+    rcMbDataAccess.getMbData().setMbExtCbp( oldExtCbp);  // resume cbp
+  }
+  if( (rcMbDataAccess.getMbData().isIntra() ||!rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ))
+    && pcBaseResidual && !rcMbDataAccess.getSH().getFGSInfoPresentFlag())
+  {	 
+    IntYuvPicBuffer* pcBaseResidualBuffer = pcBaseResidual->getFullPelYuvBuffer();
+    pcBaseResidualBuffer->clearCurrMb();
+  }
 
   //===== reconstruct signal =====
   if( bReconstruct )
@@ -795,7 +834,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRe
     RNOK( m_pcIntraPrediction->predictChromaBlock( pucCb, pucCr, iStride, rcMbDataAccess.getMbData().getChromaPredMode() ) );
   }
 
-  ROTRS( 0 == uiChromaCbp, Err::m_nOK );
+  // ROTRS( 0 == uiChromaCbp, Err::m_nOK );  // there may be coefficients propagated from base layers
 
   Int                 iScale;
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
@@ -1004,7 +1043,7 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
   }
 
   // ChromaCbp value is not correct when AVCRewriteFlag is true
-  ROTRS( 0 == uiChromaCbp && !rcMbDataAccess.getSH().getAVCRewriteFlag(), Err::m_nOK );
+  // ROTRS( 0 == uiChromaCbp && !rcMbDataAccess.getSH().getAVCRewriteFlag(), Err::m_nOK );
 
   Int                 iScale;
   Bool                bIntra    = rcMbDataAccess.getMbData().isIntra();
@@ -1163,6 +1202,9 @@ MbDecoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess )
     piCoeff[16*uiDCIdx] *= iScaleV;
   }
 
+  // store the coefficient for non intra 16x16 block. Intra16x16 will be dequantized in FGSCoder->xScaleTCoeffs
+  if (!rcMbDataAccess.getMbData().isIntra16x16() && (!rcMbDataAccess.getMbData().isPCM() ))
+    rcMbDataAccess.getMbTCoeffs().copyFrom(rcTCoeffs);
 
   return Err::m_nOK;
 }

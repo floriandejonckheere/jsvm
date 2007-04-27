@@ -1052,8 +1052,8 @@ FGSCoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess,
   const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
   Int                 iScale    = 1;
 
-  if (!rcMbDataAccess.getMbData().isPCM() )
-      rcMbDataAccess.getMbTCoeffs().storeLevelData();  // for SVC to AVC rewrite
+  if( !m_bEncoder && bBaseLayer && !b16x16 ) // for non intra 16x16 blocks of non-FGS at decoder, we reuse the stored dequantized coefficients
+    return Err::m_nOK;
 
   //===== luma =====
   if( b16x16 )
@@ -1689,7 +1689,6 @@ FGSCoder::xSetNumCoefficients( UInt               uiMbX,
   else
     return Err::m_nOK;
 }
-
 
 H264AVC_NAMESPACE_END
 

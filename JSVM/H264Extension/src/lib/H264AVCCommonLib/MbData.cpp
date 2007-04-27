@@ -233,6 +233,12 @@ MbData::copyTCoeffs( MbData& rcMbData )
 	  ::memcpy( piCoeff, rcMbData.getMbTCoeffs().get(cIdx), 16*sizeof(TCoeff) );
   }
 
+  // COPY TRANSFORM SIZE
+  m_bTransformSize8x8 = rcMbData.m_bTransformSize8x8;
+
+  // COPY CBP
+  setMbExtCbp( rcMbData.getMbExtCbp() );
+
   return Err::m_nOK;
 }
 

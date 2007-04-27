@@ -306,6 +306,16 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
   return Err::m_nOK;
 }
 
+
+ErrVal
+H264AVCEncoder::getBaseLayerResidual( IntFrame*&      pcResidual,
+                                      UInt            uiBaseLayerId)
+{
+  pcResidual = m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerResidual();  
+  return Err::m_nOK;
+}
+
+
 ErrVal
 H264AVCEncoder::getBaseLayerSH( SliceHeader*& rpcSliceHeader,
                                 UInt          uiBaseLayerId,
@@ -1349,8 +1359,7 @@ H264AVCEncoder::xInitParameterSets()
       pcSPS->setMbAdaptiveFrameFieldFlag( false ); //not allowed
     }
     
-    // always send FGS info in SPS, and always send only 1 set of VectMode parameters
-    pcSPS->setFGSInfoPresentFlag                  ( true  );
+    pcSPS->setFGSInfoPresentFlag                  (rcLayerParameters.getNumFGSLayers()>0);
     pcSPS->setFGSCycleAlignedFragment             ( m_pcCodingParameter->getFGSParallelDecodingFlag() );
     pcSPS->setNumFGSVectModes                     ( 1     );
     pcSPS->setFGSCodingMode                       ( 0, (rcLayerParameters.getFGSCodingMode() != 0)    );
@@ -1525,9 +1534,7 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setDirect8x8InferenceFlag              ( true  );
     // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
-
-    // always send FGS info in SPS, and always send only 1 set of VectMode parameters
-    pcSPS->setFGSInfoPresentFlag                  ( true  );
+    pcSPS->setFGSInfoPresentFlag                  (rcLayerParameters.getNumFGSLayers()>0);
     pcSPS->setFGSCycleAlignedFragment             ( m_pcCodingParameter->getFGSParallelDecodingFlag() );
     pcSPS->setNumFGSVectModes                     ( 1     );
     pcSPS->setFGSCodingMode                       ( 0, (rcLayerParameters.getFGSCodingMode() != 0)    );

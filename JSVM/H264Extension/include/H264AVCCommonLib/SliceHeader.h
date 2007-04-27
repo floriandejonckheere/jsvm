@@ -240,7 +240,24 @@ public:
   }
   UInt            getPosVect            ( UInt ui )            { return m_uiPosVect[ui];   }
 
-  	const SliceHeaderBase&    getSliceHeaderBase()              const { return *this; }
+  Bool       getFGSInfoPresentFlag()   const {return getSPS().getFGSInfoPresentFlag();}
+  
+  void       setPicCoeffResidualPredFlag(SliceHeader* baseSH) {
+    // a flag indicating whether a slice is eligible for residual prediction in transform domain for CGS
+    m_bCoeffResidualPred = false;
+    if (baseSH != NULL )
+       m_bCoeffResidualPred = ( !getAVCRewriteFlag()
+                                && !isIntra()
+                                && (getSpatialScalabilityType()==SST_RATIO_1)     // CGS
+                                && getSPS().getFrameMbsOnlyFlag()      
+                                && m_bBaseFrameMbsOnlyFlag
+                                && !getFGSInfoPresentFlag() 
+                                && !baseSH->getFGSInfoPresentFlag()
+                               );    
+  }
+  Bool getPicCoeffResidualPredFlag() const {return m_bCoeffResidualPred;}
+
+ 	const SliceHeaderBase&    getSliceHeaderBase()              const { return *this; }
 protected:
   ErrVal          xInitScalingMatrix    ();
 
@@ -250,6 +267,7 @@ protected:
   RefFrameList*           m_aapcRefFrameList[3][2];
   Int                     m_iTopFieldPoc;
   Int                     m_iBotFieldPoc;
+  Bool                    m_bCoeffResidualPred;
   
   UInt                    m_uiLastMbInSlice;
   FrameUnit*              m_pcFrameUnit;

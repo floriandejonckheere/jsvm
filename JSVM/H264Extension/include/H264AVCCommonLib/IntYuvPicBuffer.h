@@ -204,6 +204,9 @@ public:
   ErrVal        setNonZeroFlags         ( UShort* pusNonZeroFlags, UInt uiStride );
 
   ErrVal        clear();
+  ErrVal        clearCurrMb();
+
+
   YuvBufferCtrl& getBufferCtrl()  { return m_rcYuvBufferCtrl; }
   XPel*          getBuffer    ()  { return m_pucYuvBuffer; }
 

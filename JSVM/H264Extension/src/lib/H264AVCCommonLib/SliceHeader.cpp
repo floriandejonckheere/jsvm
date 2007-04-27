@@ -99,6 +99,7 @@ SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS,
 : SliceHeaderBase   ( rcSPS, rcPPS ),
   m_uiLastMbInSlice ( 0 ), //--ICU/ETRI FMO Implementation
   m_pcFrameUnit     ( 0 )
+ , m_bCoeffResidualPred (false)
 {
   m_auiNumRefIdxActive[LIST_0] = m_rcPPS.getNumRefIdxActive( LIST_0 );
   m_auiNumRefIdxActive[LIST_1] = m_rcPPS.getNumRefIdxActive( LIST_1 );
@@ -121,7 +122,8 @@ SliceHeader::copy( const SliceHeader& rcSH )
   m_iBotFieldPoc                = rcSH.m_iBotFieldPoc;
   m_uiLastMbInSlice             = rcSH.m_uiLastMbInSlice;
   m_uiNumMbsInSlice             = rcSH.m_uiNumMbsInSlice;
-  m_pcFrameUnit                 = rcSH.m_pcFrameUnit;
+  m_pcFrameUnit                 = rcSH.m_pcFrameUnit;  
+  m_bCoeffResidualPred          = rcSH.m_bCoeffResidualPred;
 
   return Err::m_nOK;
 }

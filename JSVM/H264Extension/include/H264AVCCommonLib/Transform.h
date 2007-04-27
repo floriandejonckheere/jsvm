@@ -247,7 +247,34 @@ public:
                                             const UChar*    pucScaleV,
                                             UInt&           ruiDcAbs,
                                             UInt&           ruiAcAbs );
-
+  void         setStoreCoeffFlag(Bool flag)   { m_storeCoeffFlag = flag;}
+  Bool         getStoreCoeffFlag()        {return  m_storeCoeffFlag;}
+  ErrVal       transform4x4BlkCGS         ( IntYuvMbBuffer*         pcOrgData,
+                                            IntYuvMbBuffer*         pcPelData,                                   
+                                            TCoeff*                 piCoeff,
+                                            TCoeff*                 piCoeffBase,
+                                            const UChar*            pucScale,
+                                            UInt&                   ruiAbsSum,
+                                            RefCtx*                 pcRefCtx);
+  ErrVal       transform8x8BlkCGS           ( IntYuvMbBuffer*       pcOrgData,
+                                            IntYuvMbBuffer*         pcPelData,
+                                            TCoeff*                 piCoeff,
+                                            TCoeff*                 piCoeffBase,
+                                            const UChar*            pucScale,
+                                            UInt&                   ruiAbsSum,
+                                            RefCtx*                 pcRefCtx );
+  
+  ErrVal        transformChromaBlocksCGS  ( XPel* pucOrg, 
+                                            XPel* pucRec,                        
+                                            MbFGSCoefMap*         pcMbFGSCoefMap,
+                                            const CIdx            cCIdx,
+                                            Int iStride, 
+                                            TCoeff* piCoeff, 
+                                            TCoeff* piQuantCoeff, 
+                                            TCoeff* piCoeffBase,
+                                            const UChar* pucScale, 
+                                            UInt& ruiDcAbs, 
+                                            UInt& ruiAcAbs );
 
 private:
   Void xForTransform8x8Blk      ( XPel* pucOrg, XPel* pucRec, Int iStride, TCoeff* piPredCoeff );
@@ -331,6 +358,7 @@ private:
 protected:
   const SliceHeader*  m_pcSliceHeader;
   Bool                m_bClip;
+  Bool                m_storeCoeffFlag;
 };
 
 

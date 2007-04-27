@@ -321,174 +321,7 @@ SliceDecoder::decode( SliceHeader&   rcSH,
                                               bReconstructAll ) );
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-
-	MbDataAccess* pcMbDataAccessRewrite = 0;
-	RNOK( m_pcAvcRewriteEncoder->initMb( pcMbDataAccessRewrite, uiMbY, uiMbX ) );
-	//pcMbDataCtrlBase->
-
-	// Copy the decoded block
-	m_pcAvcRewriteEncoder->xStoreEstimation( *pcMbDataAccessRewrite, *pcMbDataAccess );
-
-	pcMbDataAccessRewrite->getMbData().setBLSkipFlag( false );
-
-	if( pcMbDataAccessRewrite->getMbData().getMbMode() == MODE_SKIP )
-		pcMbDataAccessRewrite->getMbData().setMbMode( MODE_16x16 );
-
-	/////////////////////////////////////////////////////////////
-	// Recompute motion vector differences
-	if( !pcMbDataAccessRewrite->getMbData().isIntra() )
-	{
-		Mv           cMv;
-		MbMotionData cMbMotionData[2];
-
-		for( UInt uiList=0; uiList<2; uiList++ )
-		{
-			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
-
-			cMbMotionData[uiList].copyFrom( pcMbDataAccessRewrite->getMbMotionData(eListIdx) );
-			pcMbDataAccessRewrite->getMbMvdData(eListIdx).clear();
-			pcMbDataAccessRewrite->getMbMotionData(eListIdx).setMotPredFlag( false );
-
-		}
-
-		// This is a sub-optimal implementation
-		for( UInt uiList=0; uiList<2; uiList++ )
-		{
-			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
-
-			for( S4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-			{
-				m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
-
-				cMv  = cMbMotionData[uiList].getMv( cIdx );
-				cMv -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
-				pcMbDataAccessRewrite->getMbMvdData( eListIdx ).setMv( cMv, cIdx );
-			}
-
-			// Cleanup for CABAC context models
-			switch( pcMbDataAccessRewrite->getMbData().getMbMode() )
-			{
-
-			case MODE_16x16:
-				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( );
-				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv );
-				break;
-
-			case MODE_16x8:
-				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_0 );
-				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_0 );
-				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_1 );
-				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_1 );
-				break;
-
-			case MODE_8x16:
-				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_0 );
-				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_0 );
-				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_1 );
-				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_1 );
-				break;
-
-
-			case MODE_8x8:
-				for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-				{
-					ParIdx8x8 eParIdx = c8x8Idx.b8x8();
-
-					if( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) == BLK_SKIP )
-						pcMbDataAccessRewrite->getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
-
-					switch( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) )
-					{
-
-					case BLK_8x8:
-
-						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx );
-						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx );
-						break;
-
-					case BLK_8x4:
-						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_0 );
-						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_0 );
-						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_1 );
-						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_1 );
-						break;
-
-					case BLK_4x8:
-						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_0 );
-						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_0 );
-						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_1 );
-						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_1 );
-						break;
-
-					case BLK_4x4:
-						break;
-
-					default:
-						AOT(1);
-
-
-					}
-				}
-				break;
-
-  			default:
-				AOT(1);
-			}
-		}
-
-		// SANITY CHECK
-		m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
-
-		for( UInt uiList=0; uiList<2; uiList++ )
-		{
-			for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-			{
-				ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
-
-				cMv  = cMbMotionData[uiList].getMv( cIdx );
-				cMv -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
-				if( cMv.getHor() || cMv.getVer() )
-					AOT(1);
-			}
-		}
-		// END SANITY CHECK
-	}
-
-	///////////////////////////////////////////////////////////
-
-	pcMbDataAccessRewrite->getMbData().setBCBPAll(0);
-
-	// Reset data
-	UInt uiCbp = pcMbDataAccess->getMbData().getMbCbp();
-	//MbMode mode = pcMbDataAccess->getMbData().getMbMode();
-
-	int base_layer_id_save = rcSH.getBaseLayerId();
-	//bool bl_skip_flag_save = pcMbDataAccess->getMbData().getBLSkipFlag();
-	bool adaptivePredictionFlag_save = rcSH.getAdaptivePredictionFlag();
-	bool adaptiveResPredictionFlag_save = rcSH.getAdaptiveResPredictionFlag();
-
-	rcSH.setBaseLayerId(MSYS_UINT_MAX);
-	rcSH.setAdaptivePredictionFlag(false);
-	rcSH.setAdaptiveResPredictionFlag(false);
-
-	//pcMbDataAccess->getMbData().setBLSkipFlag(false);
-	pcMbDataAccessRewrite->getMbData().setBLSkipFlag( false );
-
-	if (uiCbp >=48) {
-		fprintf(stderr, "Warning! frame %d, MB (%d, %d), uiCbp=%d\n", rcSH.getFrameNum(), uiMbY, uiMbX, uiCbp);
-		AOT(1);
-	}
-
-	if (rcSH.getAVCRewriteFlag()) {
-
-		//RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccess,
-		RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccessRewrite,NULL, 0, uiMbRead==1, true ));
-	}
-
-	// resume
-	rcSH.setBaseLayerId(base_layer_id_save);
-	rcSH.setAdaptivePredictionFlag(adaptivePredictionFlag_save);
-	rcSH.setAdaptiveResPredictionFlag(adaptiveResPredictionFlag_save);
+    xStoreInfoForAvcRewrite(rcSH, pcMbDataAccess, pcMbDataAccessBase, uiMbRead);
 #endif
 
    uiMbRead--;
@@ -682,6 +515,188 @@ SliceDecoder::xSetAvcRewriteEncoder(H264AVCEncoder* pcAvcRewriteEncoder) {
 
 	m_pcAvcRewriteEncoder = pcAvcRewriteEncoder;
 	return Err::m_nOK;
+}
+
+ErrVal
+SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
+                                      MbDataAccess* pcMbDataAccess,
+                                      MbDataAccess* pcMbDataAccessBase,
+                                      UInt uiMbRead)
+{
+
+  UInt          uiMbY, uiMbX;
+  uiMbY = pcMbDataAccess->getMbY();
+  uiMbX = pcMbDataAccess->getMbX();
+
+  pcMbDataAccess->getMbTCoeffs().switchLevelCoeffData();
+
+	MbDataAccess* pcMbDataAccessRewrite = 0;
+	RNOK( m_pcAvcRewriteEncoder->initMb( pcMbDataAccessRewrite, uiMbY, uiMbX ) );
+
+	// Copy the decoded block
+	m_pcAvcRewriteEncoder->xStoreEstimation( *pcMbDataAccessRewrite, *pcMbDataAccess );
+
+	pcMbDataAccessRewrite->getMbData().setBLSkipFlag( false );
+
+	if( pcMbDataAccessRewrite->getMbData().getMbMode() == MODE_SKIP )
+		pcMbDataAccessRewrite->getMbData().setMbMode( MODE_16x16 );
+
+	/////////////////////////////////////////////////////////////
+	// Recompute motion vector differences
+	if( !pcMbDataAccessRewrite->getMbData().isIntra() )
+	{
+		Mv           cMv;
+		MbMotionData cMbMotionData[2];
+
+		for( UInt uiList=0; uiList<2; uiList++ )
+		{
+			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
+
+			cMbMotionData[uiList].copyFrom( pcMbDataAccessRewrite->getMbMotionData(eListIdx) );
+			pcMbDataAccessRewrite->getMbMvdData(eListIdx).clear();
+			pcMbDataAccessRewrite->getMbMotionData(eListIdx).setMotPredFlag( false );
+
+		}
+
+		// This is a sub-optimal implementation
+		for( UInt uiList=0; uiList<2; uiList++ )
+		{
+			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
+
+			for( S4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+			{
+				m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
+
+				cMv  = cMbMotionData[uiList].getMv( cIdx );
+				cMv -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
+				pcMbDataAccessRewrite->getMbMvdData( eListIdx ).setMv( cMv, cIdx );
+			}
+
+			// Cleanup for CABAC context models
+			switch( pcMbDataAccessRewrite->getMbData().getMbMode() )
+			{
+
+			case MODE_16x16:
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv );
+				break;
+
+			case MODE_16x8:
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_0 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_0 );
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_1 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_1 );
+				break;
+
+			case MODE_8x16:
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_0 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_0 );
+				cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_1 );
+				pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_1 );
+				break;
+
+
+			case MODE_8x8:
+				for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+				{
+					ParIdx8x8 eParIdx = c8x8Idx.b8x8();
+
+					if( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) == BLK_SKIP )
+						pcMbDataAccessRewrite->getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
+
+					switch( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) )
+					{
+
+					case BLK_8x8:
+
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx );
+						break;
+
+					case BLK_8x4:
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_0 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_0 );
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_1 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_1 );
+						break;
+
+					case BLK_4x8:
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_0 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_0 );
+						cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_1 );
+						pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_1 );
+						break;
+
+					case BLK_4x4:
+						break;
+
+					default:
+						AOT(1);
+					}
+				}
+				break;
+
+  			default:
+				AOT(1);
+			}
+		}
+
+		// SANITY CHECK
+		m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
+
+		for( UInt uiList=0; uiList<2; uiList++ )
+		{
+			for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+			{
+				ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
+
+				cMv  = cMbMotionData[uiList].getMv( cIdx );
+				cMv -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
+				if( cMv.getHor() || cMv.getVer() )
+					AOT(1);
+			}
+		}
+		// END SANITY CHECK
+	}
+
+	///////////////////////////////////////////////////////////
+
+	pcMbDataAccessRewrite->getMbData().setBCBPAll(0);
+
+	// Reset data
+	UInt uiCbp = pcMbDataAccess->getMbData().getMbCbp();
+	//MbMode mode = pcMbDataAccess->getMbData().getMbMode();
+
+	int base_layer_id_save = rcSH.getBaseLayerId();
+	//bool bl_skip_flag_save = pcMbDataAccess->getMbData().getBLSkipFlag();
+	bool adaptivePredictionFlag_save = rcSH.getAdaptivePredictionFlag();
+	bool adaptiveResPredictionFlag_save = rcSH.getAdaptiveResPredictionFlag();
+
+	rcSH.setBaseLayerId(MSYS_UINT_MAX);
+	rcSH.setAdaptivePredictionFlag(false);
+	rcSH.setAdaptiveResPredictionFlag(false);
+
+	//pcMbDataAccess->getMbData().setBLSkipFlag(false);
+	pcMbDataAccessRewrite->getMbData().setBLSkipFlag( false );
+
+	if (uiCbp >=48) {
+		fprintf(stderr, "Warning! frame %d, MB (%d, %d), uiCbp=%d\n", rcSH.getFrameNum(), uiMbY, uiMbX, uiCbp);
+		AOT(1);
+	}
+
+	if (rcSH.getAVCRewriteFlag()) {
+
+		//RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccess,
+		RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccessRewrite,NULL, 0, uiMbRead==1, true ));
+	}
+
+	// resume
+	rcSH.setBaseLayerId(base_layer_id_save);
+	rcSH.setAdaptivePredictionFlag(adaptivePredictionFlag_save);
+	rcSH.setAdaptiveResPredictionFlag(adaptiveResPredictionFlag_save);
+  pcMbDataAccess->getMbTCoeffs().switchLevelCoeffData();
+
+  return Err::m_nOK;
 }
 #endif
 

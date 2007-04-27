@@ -248,6 +248,7 @@ public:
     , m_pcBaseLayerSbb            ( 0 )
     , m_bUpdateWithoutMap         ( false )
     , m_pcSliceHeader             ( 0 )
+   , m_bEncoder                   (false)
   {
   }
 
@@ -271,6 +272,7 @@ public:
   Void        setMbDataCtrl(MbDataCtrl* pcMbDataCtrl) { m_pcCurrMbDataCtrl = pcMbDataCtrl;}
   Void        setBaseLayerSbb(IntFrame* pcBaseLayerSbb) { m_pcBaseLayerSbb = pcBaseLayerSbb; }
 //JVT-T054}
+
   enum
   {
     CLEAR               = 0x00,
@@ -343,6 +345,8 @@ protected:
 
   IntFrame*         m_pcBaseLayerSbb;
   SliceHeader*      m_pcSliceHeader;
+  Bool              m_bEncoder;
+
   UInt              xDeriveComponentPosVectors  ( UInt*             puiRefPosVect,
                                                   Int*              piMaxPosLuma,
                                                   Int*              piMaxPosChromaAC,

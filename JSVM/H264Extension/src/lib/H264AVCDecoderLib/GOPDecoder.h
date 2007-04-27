@@ -465,6 +465,9 @@ RQFGSDecoder* getRQFGSDecoder() { return m_pcRQFGSDecoder; }
 Void          setRQFGSDecoder(RQFGSDecoder* pcRQFGSDecoder) { m_pcRQFGSDecoder = pcRQFGSDecoder;}
 IntFrame*     getPredSignal() {return m_pcPredSignal;}
 //JVT-T054}
+
+IntFrame*     getBaseLayerResidual() {return  m_pcBaseLayerResidual;} // this one is upsampled base layer's residual
+
 protected:
   //===== create and initialize data arrays =====
   ErrVal      xCreateData                     ( const SequenceParameterSet&   rcSPS );

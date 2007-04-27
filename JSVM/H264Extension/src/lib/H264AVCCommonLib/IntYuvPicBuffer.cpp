@@ -185,6 +185,36 @@ IntYuvPicBuffer::clear()
 }
 
 
+ErrVal        
+IntYuvPicBuffer::clearCurrMb()
+{ 
+  XPel *pData = getMbLumAddr();
+
+  Int iStride = getLStride();
+
+  for( UInt y=0; y<16; y++ )
+  {
+    ::memset( pData, 0, sizeof(XPel)*16 );
+    pData += iStride;
+  }
+
+  pData = getMbCbAddr();
+  iStride = getCStride();
+  for( UInt y=0; y<8; y++ )
+  {
+    ::memset( pData, 0, sizeof(XPel)*8 );
+    pData += iStride;
+  }
+
+  pData = getMbCrAddr();
+  for( UInt y=0; y<8; y++ )
+  {
+    ::memset( pData, 0, sizeof(XPel)*8 );
+    pData += iStride;
+  }
+  return Err::m_nOK;
+}
+
 
 
 ErrVal IntYuvPicBuffer::getSSD( Double& dSSDY, Double& dSSDU, Double& dSSDV, PicBuffer* pcOrgPicBuffer )

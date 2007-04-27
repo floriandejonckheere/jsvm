@@ -354,6 +354,9 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   UInt          getBaseLayerCGSSNR() { return m_uiBaseLayerCGSSNR;}
   UInt          getBaseQualityLevelCGSSNR() { return m_uiBaseQualityLevelCGSSNR;}
 //JVT-T054}
+
+  IntFrame*     getBaseLayerResidual() {return m_pcBaseLayerResidual;} // this one is upsampled base layer's residual
+
  //EIDR bug-fix
   Void		      setIDRAccessPeriod(Int i)		{ m_iIDRAccessPeriod = i;}	
 protected:

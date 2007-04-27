@@ -222,6 +222,10 @@ ErrVal encodeIntraPictureMbAff      ( UInt&					ruiBits,
   //S051{
   Void		setUseBDir			(Bool b){m_pcMbEncoder->setUseBDir(b);}
   //S051}
+  ErrVal updatePictureResTransform( ControlData&     rcControlData,
+                                    UInt             uiMbInRow );
+  ErrVal updateBaseLayerResidual( ControlData&     rcControlData,
+                                    UInt             uiMbInRow );
 
   // JVT-V035
   ErrVal updatePictureAVCRewrite( ControlData&     rcControlData,

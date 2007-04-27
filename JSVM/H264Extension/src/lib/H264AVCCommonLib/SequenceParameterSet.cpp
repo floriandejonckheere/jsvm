@@ -179,7 +179,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
 ,m_uiChromaPhaseXPlus1                      ( 0 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
-, m_bFGSInfoPresentFlag                     ( true )
+, m_bFGSInfoPresentFlag                     ( false )
 , m_bFGSCycleAlignedFragment                ( false ) 
 , m_uiNumFGSVectModes                       ( 1 )
 , m_bInterlayerDeblockingPresent            ( 0 )
@@ -193,7 +193,6 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_b4TapMotionCompensationY                ( false )  // V090
 , m_bAVCRewriteFlag                         ( false )   // V035
 , m_bAVCAdaptiveRewriteFlag                 ( false )
-
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW

@@ -1364,6 +1364,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 //TMM_EC }}
     m_pcSliceHeader->setFGSCodingMode( m_bFGSCodingMode );
     m_pcSliceHeader->setGroupingSize ( m_uiGroupingSize );
+
     UInt ui;
     for( ui = 0; ui < 16; ui++ )
     {
@@ -1588,6 +1589,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   {
     m_pcSliceHeader->setFGSCodingMode( m_bFGSCodingMode );
     m_pcSliceHeader->setGroupingSize ( m_uiGroupingSize );
+
     UInt ui;
     for(ui = 0; ui < 16; ui++)
     {
@@ -1918,6 +1920,26 @@ H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
     rbConstrainedIPred  = pcFrameUnit ->getContrainedIntraPred();
   }
   return Err::m_nOK;
+}
+
+ErrVal
+H264AVCDecoder::getBaseLayerResidual( IntFrame*&  pcFrame,
+                                     IntFrame*&      pcResidual,
+                                     UInt            uiLayerId,
+                                     UInt            uiQualityLevel,
+                                     Int             iPoc)
+{
+  if(uiLayerId != 0 || !m_apcMCTFDecoder[uiLayerId]->getAVCBased() ||
+    (uiQualityLevel != 0 && m_bCGSSNRInAU))
+  {
+    //===== base layer is scalable extension =====
+    pcResidual = m_apcMCTFDecoder[uiLayerId]->getBaseLayerResidual();
+    return Err::m_nOK;
+  }
+  else
+  {
+    return Err::m_nERR;
+  }  
 }
 
 ErrVal

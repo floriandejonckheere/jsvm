@@ -2159,6 +2159,7 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
 
   pcSliceHeader->setFGSCodingMode( m_pcSPS_FGS->getFGSCodingMode(0) );
   pcSliceHeader->setGroupingSize ( m_pcSPS_FGS->getGroupingSize (0) );
+
   UInt ui = 0;
   for(ui = 0; ui < 16; ui++)
   {
@@ -3980,7 +3981,6 @@ MCTFEncoder::getBaseLayerData( IntFrame*&     pcFrame,
   return Err::m_nOK;
 }
 
-
 ErrVal
 MCTFEncoder::getBaseLayerSH( SliceHeader*&  rpcSliceHeader,
                              Int            iPoc,
@@ -4256,6 +4256,7 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 			pcSliceHeader->setBottomFieldFlag         ( ePicType==BOT_FIELD );
 		}
 	}
+
   m_uiMbNumber = m_uiFrameWidthInMb*m_uiFrameHeightInMb;
   m_uiMbNumber = pcSliceHeader->getFieldPicFlag() ? m_uiMbNumber>>1 : m_uiMbNumber;
 
@@ -4353,7 +4354,10 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
 #ifdef _JVTV074_
       pcSliceHeader->setResampleFilterIdx( m_pcResizeParameters->m_uiResampleFilterIdx);
 #endif //_JVTV074_
+
+      pcSliceHeader->setSpatialScalabilityType(m_pcResizeParameters->m_iSpatialScalabilityType);
     }
+
     // TMM_ESS }
 
   //===== update some parameters =====
@@ -5458,11 +5462,17 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
     RNOK( m_pcBaseLayerCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
     RNOK( pcBaseDataCtrl->switchMotionRefinement() );
 
-    //===== data needed for SVC to AVC translation --- JVT-V035====/
-    if(rcControlData.getSliceHeader()->getAVCRewriteFlag() && pcBaseDataCtrl )
+    pcSliceHeader->setPicCoeffResidualPredFlag(pcBaseDataCtrl->getSliceHeader());
+
+    //===== data needed for residual prediction in transform domain or SVC to AVC translation --- JVT-V035====/
+    Bool avcRewriteFlag = rcControlData.getSliceHeader()->getAVCRewriteFlag();
+
+    if (avcRewriteFlag || pcSliceHeader->getPicCoeffResidualPredFlag() )
     {
+
       m_pcBaseLayerCtrl->copyTCoeffs( *pcBaseDataCtrl );
-      m_pcBaseLayerCtrl->copyIntraPred( *pcBaseDataCtrl );
+      if (avcRewriteFlag)
+        m_pcBaseLayerCtrl->copyIntraPred( *pcBaseDataCtrl );
     }
 
     m_pcBaseLayerCtrl->setBuildInterlacePred(  m_pcResizeParameters->m_bFieldPicFlag );
@@ -5515,6 +5525,18 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
   //===== residual data =====
   if( bBaseDataAvailable )
   {
+    if (pcSliceHeader->getPicCoeffResidualPredFlag() )
+    {
+      // if CGS, propogate the futher lower base layer residuals
+      UInt lowerBaseLayerId = pcBaseDataCtrl->getSliceHeader()->getBaseLayerId();      
+      if (lowerBaseLayerId != MSYS_UINT_MAX) // lower baselayer exist
+      {        
+        RNOK( m_pcH264AVCEncoder->getBaseLayerResidual(pcBaseResidual, pcSliceHeader->getBaseLayerId()) );
+      }
+      else
+        pcBaseResidual->getFullPelYuvBuffer()->clear();
+    }
+
     RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual, ePicType ) );
     m_pcBaseLayerResidual->upsampleResidual(m_cDownConvert, m_pcResizeParameters, pcBaseDataCtrl, false);//    RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, m_pcResizeParameters, pcBaseDataCtrl, false ) );
     rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
@@ -6048,8 +6070,17 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
     }
     // JVT-R057 LA-RDO}
 
+    if (( pcSliceHeader->getBaseLayerId() !=  MSYS_UINT_MAX)
+      && pcSliceHeader->getPicCoeffResidualPredFlag() )
+    {
+      m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
+    }
+
+    if( (pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX ) && !pcSliceHeader->getFGSInfoPresentFlag() )
+      m_pcSliceEncoder->updateBaseLayerResidual( rcControlData, m_uiFrameWidthInMb );
+
     // JVT-V035
-    if (rcControlData.getSliceHeader()->getAVCRewriteFlag())
+    if (pcSliceHeader->getAVCRewriteFlag())
     {
       //===== update state prior to deblocking
       m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
@@ -6327,7 +6358,15 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
       m_uiNotYetConsideredBaseLayerBits = 0;
     }
 
-    if (rcControlData.getSliceHeader()->getAVCRewriteFlag())
+    if ( ( pcSliceHeader->getBaseLayerId() !=  MSYS_UINT_MAX)
+      && pcSliceHeader->getPicCoeffResidualPredFlag() )
+    {
+      m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
+    }
+    if( (pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX ) && !pcSliceHeader->getFGSInfoPresentFlag() )
+      m_pcSliceEncoder->updateBaseLayerResidual( rcControlData, m_uiFrameWidthInMb );
+
+    if (pcSliceHeader->getAVCRewriteFlag())
     {
       //===== update state prior to deblocking
       m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
