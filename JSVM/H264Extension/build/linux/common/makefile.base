@@ -46,7 +46,7 @@ endif
 
 # default cpp flags for all configurations
 #CPPFLAGS          = -Wall -fPIC $(DEFS) -I$(CURDIR)/$(INC_DIR) $(USER_INC_DIRS)
-CPPFLAGS          = -fPIC $(DEFS) -I$(CURDIR)/$(INC_DIR) $(USER_INC_DIRS) -Wall -Wshadow -Wno-reorder -Wno-sign-compare
+CPPFLAGS          = -fPIC $(DEFS) -I$(CURDIR)/$(INC_DIR) $(USER_INC_DIRS) -Wall -Wshadow -Wno-reorder -Wno-sign-compare -m32
 #
 # debug cpp flags
 DEBUG_CPPFLAGS    = -g  -D_DEBUG
@@ -75,7 +75,7 @@ RELEASE_ASMFLAGS  =
 #########################################################
 
 # linker flags for all
-ALL_LDFLAGS       = -Wall
+ALL_LDFLAGS       = -Wall -m32
 
 
 ifeq ($(CONFIG), LIBRARY)

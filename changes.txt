@@ -7,6 +7,7 @@ Contribution:
 Changes:
 
 - Converted residual prediction from spatial domain to transform domain
+- Modified Linux makefile to generate 32bit binary (S. Kamp, RWTH)
 
 
 JSVM_8_8 -> JSVM_8_9
