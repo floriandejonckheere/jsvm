@@ -1,3 +1,13 @@
+JSVM_8_9 -> JSVM_8_10
+======================
+Date        : Apr 20, 2007
+Author      : Andrew Segall, Jane Zhao (Sharp)
+Contribution: 
+
+Changes:
+
+- Converted residual prediction from spatial domain to transform domain
+
 
 JSVM_8_8 -> JSVM_8_9
 ======================
