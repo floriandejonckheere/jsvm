@@ -480,6 +480,13 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
     m_adDeltaQPTLevel[uiTTL]  = pcLayerParameters->getDeltaQPTLevel( uiTTL );
   }
 
+  //JVT-V079 Low-complexity MB mode decision {
+  if ( m_uiLayerId==0 )
+    m_pcSliceEncoder->getMbEncoder()->setLowComplexMbEnable ( m_uiLayerId, pcLayerParameters->getLowComplexMbEnable () );
+  else
+    m_pcSliceEncoder->getMbEncoder()->setLowComplexMbEnable ( m_uiLayerId, false );
+  //JVT-V079 Low-complexity MB mode decision }
+  
   //JVT-R057 LA-RDO{
   if(pcCodingParameter->getLARDOEnable()!=0)
   {

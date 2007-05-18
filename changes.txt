@@ -1,3 +1,14 @@
+JSVM_8_10 -> JSVM_8_11
+======================
+Date        : May 15, 2007
+Author      : Daniele Alfonso (STMicroelectronics)
+Contribution: JVT-V079
+
+Changes:
+
+- Added low-complexity macroblock mode decision method (for base layer only).
+
+
 JSVM_8_9 -> JSVM_8_10
 ======================
 Date        : Apr 20, 2007
@@ -238,7 +249,7 @@ Note: The changes can be located by searching 'U160'.
 -EIDR Bug fixes related to IntraPeriod vs IDRPeriod (provided by shenqiu). 
 
 -Temporal level nesting flag default value is now set to 0  (J. Vieron).
--Very minor: Remove of remaining AGS parts in cfg files of validation scripts (J. Viéron).
+-Very minor: Remove of remaining AGS parts in cfg files of validation scripts (J. Viï¿½on).
 
 
 

@@ -241,6 +241,7 @@ public:
     // JVT-S054 (ADD) <-
     , m_bAVCRewriteFlag                  ( 0 )   // JVT-V035
     , m_bAVCAdaptiveRewriteFlag          ( 0 )   // JVT-V035
+    , m_uiLowComplexMbEnable             ( 0 )   // JVT-V079    
 
 	//S051{
 	, m_cOutSIPFileName					("none")
@@ -321,6 +322,10 @@ public:
   UInt                            getFGSMode                        () const {return m_uiFGSMode; }
   const std::string&              getFGSFilename                    () const {return m_cFGSRateFilename; }
   Double                          getFGSRate                        () const {return m_dFGSRate; }
+  
+//JVT-V079 Low-complexity MB mode decision {
+  UInt                            getLowComplexMbEnable             () const   { return m_uiLowComplexMbEnable; }
+//JVT-V079 Low-complexity MB mode decision }
   
   UInt                            getDecompositionStages            () const {return m_uiDecompositionStages; }
   UInt                            getNotCodedMCTFStages             () const {return m_uiNotCodedMCTFStages; }
@@ -534,6 +539,10 @@ public:
   UInt                      m_uiFGSMode;
   std::string               m_cFGSRateFilename;
   Double                    m_dFGSRate;
+  
+  //JVT-V079 Low-complexity MB mode decision {
+  Int                     m_uiLowComplexMbEnable;
+  //JVT-V079 Low-complexity MB mode decision }
   
   //----- derived parameters -----
   UInt                      m_uiDecompositionStages;

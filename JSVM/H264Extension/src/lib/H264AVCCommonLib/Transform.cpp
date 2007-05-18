@@ -1059,7 +1059,6 @@ ErrVal Transform::transform4x4BlkCGS( IntYuvMbBuffer*         pcOrgData,
   XPel*   pOrg    = pcOrgData->getLumBlk();
   XPel*   pRec    = pcPelData->getLumBlk();
   Int     iStride = pcPelData->getLStride();
-  UInt uiAbsSum = 0;
 
   xForTransform4x4Blk( pOrg, pRec, iStride, aiTemp );
   

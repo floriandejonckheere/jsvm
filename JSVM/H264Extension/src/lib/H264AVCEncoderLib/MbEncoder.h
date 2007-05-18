@@ -259,6 +259,10 @@ public:
   //JVT-R057 LA-RDO{
   Void setLARDOEnable( Bool bLARDO)  { m_bLARDOEnable= bLARDO; }
  
+  //JVT-V079 Low-complexity MB mode decision
+  Void setLowComplexMbEnable( Int iLayer, Bool bEnable )  
+  { m_bLowComplexMbEnable[iLayer] = bEnable; }
+  
   Void setLayerID (UInt uiLayer)     { m_uiLayerID=uiLayer;}
  
   Void setPLR( UInt auiPLR[5])       { for(UInt i=0;i<5;i++) m_auiPLR[i] = auiPLR[i];}
@@ -335,7 +339,8 @@ protected:
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0,
                                   Bool              bSkipMCPrediction = false,
-                                  IntFrame*         pcBaseLayerRec = 0 
+                                  IntFrame*         pcBaseLayerRec = 0,
+                                  Bool              bLowComplexity=false // JVT-V079 
                                   );
 	//-- JVT-R012
   ErrVal  xSetRdCostInterMbSR   ( IntMbTempData&    rcMbTempData,
@@ -345,7 +350,8 @@ protected:
 																	IntFrame*					pcBaseLayerSbb,
                                   Bool              bBLSkip          = false,
                                   UInt              uiAdditionalBits = 0,
-                                  IntFrame*         pcBaseLayerRec = 0 
+                                  IntFrame*         pcBaseLayerRec = 0,
+                                  Bool              bLowComplexity=false // JVT-V079 
                                   );
 	//--
   ErrVal  xSetRdCost8x8InterMb  ( IntMbTempData&    rcMbTempData,
@@ -373,11 +379,14 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   B8x8Idx           c8x8Idx,
                                   Bool              bTrafo8x8,
-                                  UInt              uiAddBits );
+                                  UInt              uiAddBits,
+                                  Bool              bLowComplexity=false // JVT-V079
+                                );
 
-  ErrVal  xEncodeChromaIntra        ( IntMbTempData& rcMbTempData, UInt& ruiExtCbp, UInt& ruiBits );
+  ErrVal  xEncodeChromaIntra        ( IntMbTempData& rcMbTempData, UInt& ruiExtCbp, UInt& ruiBits,
+                                      Bool bLowComplexity=false );
 
-  ErrVal  xEncode4x4IntraBlock      ( IntMbTempData& rcMbTempData, LumaIdx cIdx,     UInt& ruiBits, UInt& ruiExtCbp );
+  ErrVal  xEncode4x4IntraBlock      ( IntMbTempData& rcMbTempData, LumaIdx cIdx,     UInt& ruiBits, UInt& ruiExtCbp, UInt mpMode, UInt lambda_val, Bool LowComplex=false );
   ErrVal  xEncode4x4InterBlock      ( IntMbTempData&               rcMbTempData,
                                       LumaIdx                      cIdx,
                                       UInt&                        ruiBits,
@@ -389,7 +398,7 @@ protected:
                                       UInt&                        ruiExtCbp,
                                       RefCtx*                      pcRefCtx = NULL );
   ErrVal  xEncode8x8IntraBlock      ( IntMbTempData& rcMbTempData, B8x8Idx cIdx,     UInt& ruiBits, UInt& ruiExtCbp );
-  ErrVal  xEncodeChromaTexture      ( IntMbTempData& rcMbTempData, UInt& ruiExtCbp, UInt& ruiBits, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
+  ErrVal  xEncodeChromaTexture      ( IntMbTempData& rcMbTempData, UInt& ruiExtCbp, UInt& ruiBits, MbFGSCoefMap* pcMbFGSCoefMap = NULL, Bool bLowComplexity=false );
 
   Void    xReStoreParameter     ( MbDataAccess&     rcMbDataAccess, IntMbTempData& rcMbBestData );
   Void    xUpDateBest           ( IntMbTempData&    rcMbTempData );
@@ -414,7 +423,8 @@ protected:
                                   );
 	//--
 
-  ErrVal  xEstimateMbIntraBL    ( IntMbTempData*&   rpcMbTempData,
+  ErrVal  xEstimateMbIntraBL    ( MbDataAccess&  rcMbDataAccess,   // JVT-V079,
+                                  IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   const IntFrame*   pcBaseLayerRec,
                                   Bool              bBSlice,
@@ -433,7 +443,8 @@ protected:
                                   IntMbTempData*&   rpcMbBestData,
                                   Bool              bBSlice,
                                   Bool              bBLSkip=false );
-  ErrVal  xEstimateMbIntra4     ( IntMbTempData*&   rpcMbTempData,
+  ErrVal  xEstimateMbIntra4     ( MbDataAccess&  rcMbDataAccess,   // JVT-V079
+                                  IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   Bool              bBSlice,
                                   Bool              bBLSkip=false );
@@ -484,6 +495,7 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   Bool              bResidualPred,
+                                  UInt              Qp,
                                   Bool              bSkipModeAllowed=true);
   ErrVal  xEstimateMb16x16      ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
@@ -643,6 +655,10 @@ protected:
   UInt m_uiMaxRefPics[2];
 
   BitWriteBufferIf* m_BitCounter;
+  
+  //JVT-V079 Low-complexity MB mode decision
+  Bool m_bLowComplexMbEnable[MAX_LAYERS];
+
   //JVT-R057 LA-RDO{
   Bool m_bLARDOEnable;
   UInt m_uiLayerID;

@@ -910,7 +910,11 @@ public:
   Bool          getUseSmoothedRef() { return m_bUseSmoothedRef;} //JVT-V058
   Void          setUseSmoothedRef(Bool b) {m_bUseSmoothedRef = b;}//JVT-V058 
 
-protected:
+  //JVT-V079 Low-complexity MB mode decision {
+  Void setLowComplexMbEnable( Bool b )  { m_bLowComplexMbEnable = b; }
+  //JVT-V079 Low-complexity MB mode decision }
+ 
+ protected:
   ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
   ErrVal xReadScalable                ( HeaderSymbolReadIf*   pcReadIf );
   ErrVal xWriteScalable               ( HeaderSymbolWriteIf*  pcWriteIf ) const;
@@ -1017,7 +1021,11 @@ protected:
   Bool                        m_bAVCRewriteFlag;   // V-035
   Int                        m_iSpatialScalabilityType;
 
-// TMM_ESS {
+  //JVT-V079 Low-complexity MB mode decision {
+  UInt m_bLowComplexMbEnable;
+  //JVT-V079 Low-complexity MB mode decision }
+
+  // TMM_ESS {
 public:
   Int           getLeftOffset ()   const { return m_iScaledBaseLeftOffset; }
   Int           getRightOffset ()  const { return m_iScaledBaseRightOffset; }
