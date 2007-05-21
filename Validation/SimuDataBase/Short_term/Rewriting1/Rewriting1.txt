@@ -2,12 +2,12 @@
 #==========================================================#
 #               General parameters                         #
 #==========================================================#
-    name 	=> "Rewriting",
-    original 	=> "BUS_352x288_30.yuv",
-    width      	=> 352,
-    height     	=> 288,
+    name 	=> "Rewriting1",
+    original 	=> "CREW_704x576_30.yuv",
+    width      	=> 704,
+    height     	=> 576,
     framerate 	=> 30,
-    nbframes	=> 35,
+    nbframes	=> 60,
     verbosemode => 1,	
 
 #==========================================================#
@@ -29,8 +29,7 @@
                   	 framerate    =>  30,
                   	 bitrate      => 0,
                   	 bitrateDS    => 0 ,
-		        },
-
+		       },		                  
 		      #----------#
                       # Layer  1 #
                       #----------#
@@ -40,8 +39,17 @@
                   	 framerate    =>  30,
                   	 bitrate      => 0,
                   	 bitrateDS    => 0 ,
-		        },
-		      #----------#
+		       },		                  
+		       #----------#
+		       # Layer  2 #
+		       #----------#
+		       {
+		         width        => 352,
+		         height       => 288,
+		         framerate    =>  30,
+		         bitrate      => 0,
+		         bitrateDS    => 0 ,
+		       },		                  
    		      ],
    
 #==========================================================#
@@ -57,27 +65,38 @@
                       # Test   0 #
                       #----------#
                       {
-            	        name => "BL",
-            	        mode => 1,
-            	        width => 352,
-            	        height => 288,
-            	        framerate => 30,
-            	        bitrate => 516,
-            	        psnr => 30.80,
+            		name => "L0",
+            		mode => 1,
+            		width => 352,
+            		height => 288,
+            		framerate => 30,
+            		bitrate => 182,
+            		psnr => 33.9,
             	      },
             	      #----------#
                       # Test   1 #
                       #----------#
             	      {
-            	        name => "EL",
+            		name => "L1",
             	        mode => 11,
-            	        width => 352,
-            	        height => 288,
-            	        framerate => 30,
-            	        bitrate => 1221,
-            	        psnr => 34.33,
-            	        encdecmatch => 1,
+            		width => 352,
+            		height => 288,
+            		framerate => 30,
+            		bitrate => 517,
+            		psnr => 37.1,            		
+            	       },
+            	      #----------#
+            	      # Test   2 #
+		      #----------#
+		      {
+			name => "L2",
+			mode => 11,
+			width => 352,
+			height => 288,
+			framerate => 30,
+			bitrate => 992,
+			psnr => 39.2,
+			encdecmatch => 1,
             	      },
-            	      #----------#    		              
 		  ],
 }

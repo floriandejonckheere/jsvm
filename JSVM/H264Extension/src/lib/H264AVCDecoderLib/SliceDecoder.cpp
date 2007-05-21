@@ -684,9 +684,7 @@ SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
 		AOT(1);
 	}
 
-	if (rcSH.getAVCRewriteFlag()) {
-
-		//RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccess,
+	if (rcSH.getAVCRewriteFlag() && rcSH.isReconstructionLayer()) {
 		RNOK( m_pcAvcRewriteEncoder->xGetPcMbCoder()->encode( *pcMbDataAccessRewrite,NULL, 0, uiMbRead==1, true ));
 	}
 

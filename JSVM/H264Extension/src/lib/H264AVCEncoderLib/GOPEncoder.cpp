@@ -486,7 +486,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   else
     m_pcSliceEncoder->getMbEncoder()->setLowComplexMbEnable ( m_uiLayerId, false );
   //JVT-V079 Low-complexity MB mode decision }
-  
+
   //JVT-R057 LA-RDO{
   if(pcCodingParameter->getLARDOEnable()!=0)
   {
@@ -2332,7 +2332,8 @@ MCTFEncoder::xEncodeFGSLayer( ExtBinDataAccessorList& rcOutExtBinDataAccessorLis
                                        bFinished,
                                        ( m_uiFGSMode == 2 ),
                                        m_bUseDiscardableUnit ) );
-  RNOK( xAddBaseLayerResidual( rcControlData, m_pcRQFGSEncoder->getBaseLayerSbb(), false,ePicType ) );
+  if( !pcSliceHeader->getAVCRewriteFlag() )
+    RNOK( xAddBaseLayerResidual( rcControlData, m_pcRQFGSEncoder->getBaseLayerSbb(), false,ePicType ) );
 
   // HS: bug-fix for m_uiQualityLevelForPrediction == 0
   if( 0 == m_uiQualityLevelForPrediction && !bAlreadyReconstructed) 
@@ -3205,6 +3206,18 @@ MCTFEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcces
     // JVT-S054 (ADD)
     }
   
+    if (( pcSliceHeader->getBaseLayerId() !=  MSYS_UINT_MAX)
+      && pcSliceHeader->getPicCoeffResidualPredFlag() )
+    {
+      m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
+    }
+
+    if (pcSliceHeader->getAVCRewriteFlag())
+    {
+      //===== update state prior to deblocking
+      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
+    }
+
   return Err::m_nOK;
 }
 
@@ -3525,6 +3538,18 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       uiBitsSEI =0;
     }
   // JVT-S054 (ADD)
+  }
+
+  if (( pcSliceHeader->getBaseLayerId() !=  MSYS_UINT_MAX)
+    && pcSliceHeader->getPicCoeffResidualPredFlag() )
+  {
+    m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
+  }
+
+  if (pcSliceHeader->getAVCRewriteFlag())
+  {
+    //===== update state prior to deblocking
+    m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
   }
 
   ETRACE_NEWFRAME;
@@ -6077,21 +6102,8 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
     }
     // JVT-R057 LA-RDO}
 
-    if (( pcSliceHeader->getBaseLayerId() !=  MSYS_UINT_MAX)
-      && pcSliceHeader->getPicCoeffResidualPredFlag() )
-    {
-      m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
-    }
-
     if( (pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX ) && !pcSliceHeader->getFGSInfoPresentFlag() )
       m_pcSliceEncoder->updateBaseLayerResidual( rcControlData, m_uiFrameWidthInMb );
-
-    // JVT-V035
-    if (pcSliceHeader->getAVCRewriteFlag())
-    {
-      //===== update state prior to deblocking
-      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
-    }
 
     //===== de-blocking =====
     // Hanke@RWTH: set pointer to current residual frame
@@ -6365,19 +6377,8 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
       m_uiNotYetConsideredBaseLayerBits = 0;
     }
 
-    if ( ( pcSliceHeader->getBaseLayerId() !=  MSYS_UINT_MAX)
-      && pcSliceHeader->getPicCoeffResidualPredFlag() )
-    {
-      m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
-    }
     if( (pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX ) && !pcSliceHeader->getFGSInfoPresentFlag() )
       m_pcSliceEncoder->updateBaseLayerResidual( rcControlData, m_uiFrameWidthInMb );
-
-    if (pcSliceHeader->getAVCRewriteFlag())
-    {
-      //===== update state prior to deblocking
-      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
-    }
 
     //===== deblock and store picture for prediction of following low-pass frames =====
     //ROF( pcSliceHeader->getNumRefIdxActive( LIST_0 ) == ( pcSliceHeader->isIntra() ? 0 : 1 ) );

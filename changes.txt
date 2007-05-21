@@ -1,3 +1,16 @@
+﻿JSVM_8_11 -> JSVM_8_12
+======================
+Date        : May 18, 2007
+Author      : Andrew Segall, Jie Zhao (Sharp)
+Contribution: JVT-V035
+
+Changes:
+
+- Added project files/make files for standalone SVC to AVC bitstream rewriter, 
+- Modified decoder source files to bypass decoding when SHARP_AVC_REWRITE_OUTPUT is defined.
+- Minor bugfixes for transform domain prediction (whether coefficient levels or values)
+
+
 JSVM_8_10 -> JSVM_8_11
 ======================
 Date        : May 15, 2007
@@ -12,7 +25,7 @@ Changes:
 JSVM_8_9 -> JSVM_8_10
 ======================
 Date        : Apr 20, 2007
-Author      : Andrew Segall, Jane Zhao (Sharp)
+Author      : Andrew Segall, Jie Zhao (Sharp)
 Contribution: 
 
 Changes:
@@ -35,7 +48,7 @@ Changes:
 JSVM_8_7 -> JSVM_8_8
 ======================
 Date        : March 10, 2007
-Author      : Andrew Segall, Jane Zhao (Sharp)
+Author      : Andrew Segall, Jie Zhao (Sharp)
 Contribution: JVT-V035
 
 Changes:

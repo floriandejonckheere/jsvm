@@ -3,7 +3,43 @@ Microsoft Developer Studio Workspace File, Format Version 6.00
 
 ###############################################################################
 
-Project: "BitStreamExtractorStatic"=..\..\src\test\BitStreamExtractor\BitStreamExtractor.dsp - Package Owner=<4>
+Project: "AvcRewriterLibStatic"="..\..\src\lib\AvcRewriterLib\AvcRewriterLibStatic.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+}}}
+
+###############################################################################
+
+Project: "AvcRewriterStatic"="..\..\src\test\AvcRewriter\AvcRewriter.dsp" - Package Owner=<4>
+
+Package=<5>
+{{{
+}}}
+
+Package=<4>
+{{{
+    Begin Project Dependency
+    Project_Dep_Name AvcRewriterLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCCommonLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCEncoderLibStatic
+    End Project Dependency
+    Begin Project Dependency
+    Project_Dep_Name H264AVCVideoIoLibStatic
+    End Project Dependency
+}}}
+
+###############################################################################
+
+Project: "BitStreamExtractorStatic"="..\..\src\test\BitStreamExtractor\BitStreamExtractor.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -24,7 +60,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "DownConvertStatic"=..\..\src\tools\DownConvert\DownConvertStatic.dsp - Package Owner=<4>
+Project: "DownConvertStatic"="..\..\src\tools\DownConvert\DownConvertStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -36,7 +72,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "FixedQPEncoderStatic"=..\..\src\test\FixedQPEncoder\FixedQPEncoder.dsp - Package Owner=<4>
+Project: "FixedQPEncoderStatic"="..\..\src\test\FixedQPEncoder\FixedQPEncoder.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -48,7 +84,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "H264AVCCommonLibStatic"=..\..\src\lib\H264AVCCommonLib\H264AVCCommonLibStatic.dsp - Package Owner=<4>
+Project: "H264AVCCommonLibStatic"="..\..\src\lib\H264AVCCommonLib\H264AVCCommonLibStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -60,7 +96,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "H264AVCDecoderLibStatic"=..\..\src\lib\H264AVCDecoderLib\H264AVCDecoderLibStatic.dsp - Package Owner=<4>
+Project: "H264AVCDecoderLibStatic"="..\..\src\lib\H264AVCDecoderLib\H264AVCDecoderLibStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -72,7 +108,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "H264AVCDecoderLibTestStatic"=..\..\src\test\H264AVCDecoderLibTest\H264AVCDecoderLibTestStatic.dsp - Package Owner=<4>
+Project: "H264AVCDecoderLibTestStatic"="..\..\src\test\H264AVCDecoderLibTest\H264AVCDecoderLibTestStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -93,7 +129,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "H264AVCEncoderLibStatic"=..\..\src\lib\H264AVCEncoderLib\H264AVCEncoderLibStatic.dsp - Package Owner=<4>
+Project: "H264AVCEncoderLibStatic"="..\..\src\lib\H264AVCEncoderLib\H264AVCEncoderLibStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -105,7 +141,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "H264AVCEncoderLibTestStatic"=..\..\src\test\H264AVCEncoderLibTest\H264AVCEncoderLibTestStatic.dsp - Package Owner=<4>
+Project: "H264AVCEncoderLibTestStatic"="..\..\src\test\H264AVCEncoderLibTest\H264AVCEncoderLibTestStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -153,7 +189,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "H264AVCVideoIoLibStatic"=..\..\src\lib\H264AVCVideoIoLib\H264AVCVideoIoLibStatic.dsp - Package Owner=<4>
+Project: "H264AVCVideoIoLibStatic"="..\..\src\lib\H264AVCVideoIoLib\H264AVCVideoIoLibStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -165,7 +201,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "MCTFPreProcessor"=..\..\src\test\MCTFPreProcessor\MCTFPreProcessor.dsp - Package Owner=<4>
+Project: "MCTFPreProcessor"="..\..\src\test\MCTFPreProcessor\MCTFPreProcessor.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -186,7 +222,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "PSNRStatic"=..\..\src\tools\PSNR\PSNRStatic.dsp - Package Owner=<4>
+Project: "PSNRStatic"="..\..\src\tools\PSNR\PSNRStatic.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -198,7 +234,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "QualityLevelAssigner"=..\..\src\test\QualityLevelAssigner\QualityLevelAssigner.dsp - Package Owner=<4>
+Project: "QualityLevelAssigner"="..\..\src\test\QualityLevelAssigner\QualityLevelAssigner.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{
@@ -222,7 +258,7 @@ Package=<4>
 
 ###############################################################################
 
-Project: "SIPAnalyser"=..\..\src\test\SIPAnalyser\SIPAnalyser.dsp - Package Owner=<4>
+Project: "SIPAnalyser"="..\..\src\test\SIPAnalyser\SIPAnalyser.dsp" - Package Owner=<4>
 
 Package=<5>
 {{{

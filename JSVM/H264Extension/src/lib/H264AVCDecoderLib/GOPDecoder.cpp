@@ -2412,6 +2412,10 @@ MCTFDecoder::setILPrediction(IntFrame * pcFrame, PicType ePicType )
 ErrVal
 MCTFDecoder::ReconstructLastFGS( Bool bHighestLayer, Bool bHighestMGSLayer )
 {
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  RNOK( m_pcRQFGSDecoder->finishPicture () );
+  return Err::m_nOK;
+#endif
   DPBUnit*      pcLastDPBUnit   = m_pcDecodedPictureBuffer->getLastUnit();
   DPBUnit* pcTemp = m_pcDecodedPictureBuffer->getCurrDPBUnit();
   m_pcDecodedPictureBuffer->setCurrDPBUnit(pcLastDPBUnit);
@@ -2940,8 +2944,9 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
 
 	  RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, pcResizeParameter, pcBaseDataCtrl, false) ); 
 
-	  if( !rcControlData.getSliceHeader()->getAVCRewriteFlag() )
-      rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
+	  //if( !rcControlData.getSliceHeader()->getAVCRewriteFlag() )
+    rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
+
   }
 
   //===== reconstruction (intra) =====
@@ -3275,6 +3280,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
     //----- init FGS decoder -----
 	rcControlData.getSliceHeader()->FMOInit();
 	RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
+  if( !rcControlData.getSliceHeader()->getAVCRewriteFlag() )
     RNOK( xAddBaseLayerResidual( rcControlData, m_pcRQFGSDecoder->getBaseLayerSbb() ) );
 	}	// end DecComplete
 
@@ -3526,8 +3532,8 @@ MCTFDecoder::xDecodeBaseRepresentationVirtual( SliceHeader*&  rpcSliceHeader,
     //----- init FGS decoder -----
 	  rcControlData.getSliceHeader()->FMOInit();
 	  RNOK( m_pcRQFGSDecoder->initPicture( rcControlData.getSliceHeader(), rcControlData.getMbDataCtrl() ) );
-
-	  RNOK( xAddBaseLayerResidual( rcControlData, m_pcRQFGSDecoder->getBaseLayerSbb() ) );
+    if( !rcControlData.getSliceHeader()->getAVCRewriteFlag() )
+	    RNOK( xAddBaseLayerResidual( rcControlData, m_pcRQFGSDecoder->getBaseLayerSbb() ) );
   }	// end DecComplete
 
   DTRACE_NEWFRAME;

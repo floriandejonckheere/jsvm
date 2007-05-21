@@ -136,10 +136,6 @@ public:
                             MyList<BinData*>&  cVirtualSliceList,
                             Bool bVirtualSlice);
 
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  ErrVal setAvcReWriteBitstreamFile (char* AvcReWriteBitstreamFileName);
-#endif
-
 protected:
   ErrVal xGetNewPicBuffer ( PicBuffer*& rpcPicBuffer, UInt uiSize );
   ErrVal xRemovePicBuffer ( PicBufferList& rcPicBufferUnusedList );

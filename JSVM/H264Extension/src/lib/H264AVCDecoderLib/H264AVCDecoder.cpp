@@ -1747,6 +1747,8 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     {
       m_avcRewriteFlag = true;
     }
+    else
+      m_avcRewriteFlag = false;
 #endif
   }
   return Err::m_nOK;
@@ -2097,24 +2099,8 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
   const NalUnitType eNalUnitType  = m_pcNalUnitParser->getNalUnitType();
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-  if ( xGetAvcRewriteFlag() &&
-	  ( eNalUnitType==NAL_UNIT_CODED_SLICE_SCALABLE || eNalUnitType==NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
-	  )
-  {
-	  m_avcRewriteBindata->reset();
-	  m_avcRewriteBindata->set(m_avcRewriteBinDataBuffer, m_avcRewriteBufsize);
-	  m_avcRewriteBindata->setMemAccessor(*m_avcRewriteBinDataAccessor );
-	  m_pcAvcRewriteEncoder->xAvcRewriteInitNalUnit(m_avcRewriteBinDataAccessor);
-
-	  RNOK( m_pcAvcRewriteEncoder->xAvcRewriteSliceHeader(m_avcRewriteBinDataAccessor, *m_pcSliceHeader) );
-	  RNOK(xInitSliceForAvcRewriteCoding(*m_pcSliceHeader));
-
-
-  }
-  else {
 	  if (m_avcRewriteBindata!=NULL)
 		  m_avcRewriteBindata->reset();
-  }
 #endif
 
   //====== check for AVC baselayer FGS refinement =====
@@ -2157,6 +2143,11 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
   case NAL_UNIT_CODED_SLICE_IDR_SCALABLE:
     {
       ROT( m_pcSliceHeader == NULL );
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+      if (m_pcSliceHeader->getLayerId() !=MSYS_UINT_MAX  && !xGetAvcRewriteFlag()) {
+       ::fprintf(stderr, "\nERROR:   AVC rewrite flag is not present in the input bitstream\n"); assert(0); return Err::m_nERR;
+      }
+#endif
       m_uiLastLayerId = m_pcSliceHeader->getLayerId();
       m_bLastNalInAU = m_uiNumOfNALInAU == 0; //JVT-T054
 // JVT-Q054 Red. Picture {
@@ -2193,6 +2184,20 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
         m_apcMCTFDecoder[m_uiLastLayerId]->setAVCBased(false);
       }
 //JVT-T054}
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+      m_pcSliceHeader->setReconstructionLayer(bHighestLayer);
+      if ( xGetAvcRewriteFlag())
+      {
+        if (bHighestLayer)
+        {
+          m_avcRewriteBindata->set(m_avcRewriteBinDataBuffer, m_avcRewriteBufsize);
+          m_avcRewriteBindata->setMemAccessor(*m_avcRewriteBinDataAccessor );
+          m_pcAvcRewriteEncoder->xAvcRewriteInitNalUnit(m_avcRewriteBinDataAccessor);
+          RNOK( m_pcAvcRewriteEncoder->xAvcRewriteSliceHeader(m_avcRewriteBinDataAccessor, *m_pcSliceHeader) );
+        }
+        RNOK(xInitSliceForAvcRewriteCoding(*m_pcSliceHeader));
+      }
+#endif
       RNOK( m_apcMCTFDecoder[m_uiLastLayerId] ->process     ( m_pcSliceHeader,
                                                               pcPicBuffer,
                                                               rcOutputList,
@@ -2200,7 +2205,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
                                                               bHighestLayer ) );
       RNOK( m_pcNalUnitParser                 ->closeNalUnit() );
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-      if (xGetAvcRewriteFlag()) {
+      if (xGetAvcRewriteFlag() && bHighestLayer) {
         m_pcAvcRewriteEncoder->xAvcRewriteCloseNalUnit();
         m_avcRewriteBindata->set(m_avcRewriteBinDataBuffer, m_avcRewriteBinDataAccessor->size());
       }

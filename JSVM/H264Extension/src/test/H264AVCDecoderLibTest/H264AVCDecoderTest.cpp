@@ -118,6 +118,9 @@ ErrVal H264AVCDecoderTest::init( DecoderParameter *pcDecoderParameter, WriteYuvT
   m_pcParameter = pcDecoderParameter;
   m_pcParameter->nResult = -1;
 
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  m_cAvcReWriteBitstreamFileName = pcDecoderParameter->cYuvFile; // rewrite bitstream file name
+#endif
 	m_pcWriteYuv	=	pcWriterYuv;
   m_pcReadBitstream = (ReadBitstreamIf*)pcReadBitstreamFile;
 
@@ -571,7 +574,8 @@ ErrVal H264AVCDecoderTest::go()
 
 					  // ROI DECODE ICU/ETRI
 					  m_pcH264AVCDecoder->RoiDecodeInit();
-			      
+
+#ifndef SHARP_AVC_REWRITE_OUTPUT			      
 					  // picture output
 					  while( ! cPicBufferOutputList.empty() )
 					  {
@@ -609,6 +613,9 @@ ErrVal H264AVCDecoderTest::go()
                   ::memcpy( pcLastFrame, *pcPicBufferTmp+0, uiSize*sizeof(UChar) );
 						  }
 					  }
+#else
+           cPicBufferOutputList.clear();
+#endif
 			      
 					  RNOK( xRemovePicBuffer( cPicBufferReleaseList ) );
 					  RNOK( xRemovePicBuffer( cPicBufferUnusedList ) );
@@ -723,8 +730,7 @@ ErrVal H264AVCDecoderTest::go()
 			  index ++;
 		  }
 	  }	  
-  }
-  
+  }  
 #endif
 
   if(bToDecode)//JVT-P031
@@ -825,6 +831,9 @@ ErrVal H264AVCDecoderTest::go()
    }
     //JVT-T054}
 
+   // ROI DECODE ICU/ETRI
+	m_pcH264AVCDecoder->RoiDecodeInit();
+
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 	if (avcRewriteInitialized && avcRewriteBinData->size())
 	{
@@ -832,11 +841,8 @@ ErrVal H264AVCDecoderTest::go()
 		RNOK(m_pcAvcReWriteBitstream->writePacket(avcRewriteBinData));      // SVC-AVC rewrite -- slice header and data
 		avcRewriteBinData->reset();
 	}
-#endif
-
-	// ROI DECODE ICU/ETRI
-	m_pcH264AVCDecoder->RoiDecodeInit();
-    
+  cPicBufferOutputList.clear();
+#else
     // picture output
     while( ! cPicBufferOutputList.empty() )
     {
@@ -874,6 +880,7 @@ ErrVal H264AVCDecoderTest::go()
         ::memcpy( pcLastFrame, *pcPicBufferTmp+0, uiSize*sizeof(UChar) );
       }
     }
+#endif
    } 
     RNOK( xRemovePicBuffer( cPicBufferReleaseList ) );
     RNOK( xRemovePicBuffer( cPicBufferUnusedList ) );
@@ -884,11 +891,13 @@ ErrVal H264AVCDecoderTest::go()
     }
   }
 
-  printf("\n %d frames decoded\n", uiFrame );
-
   delete [] pcLastFrame; // HS: decoder robustness
-  
-#ifdef SHARP_AVC_REWRITE_OUTPUT
+
+#ifndef SHARP_AVC_REWRITE_OUTPUT
+  printf("\n %d frames decoded\n", uiFrame );
+#else
+  printf("\n Finish AVC rewriting\n" );
+
   if (avcRewriteInitialized==true) {	
 	  avcRewriteBinData->reset();
 	  m_pcH264AVCDecoder->closeAvcRewrite(); // free the avcRewriteBinDataBuffer inside this function
@@ -910,16 +919,6 @@ ErrVal H264AVCDecoderTest::go()
 
   return Err::m_nOK;
 }
-
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-ErrVal
-H264AVCDecoderTest::setAvcReWriteBitstreamFile (char* AvcReWriteBitstreamFileName) {
-	
-	m_cAvcReWriteBitstreamFileName = AvcReWriteBitstreamFileName;
-	return Err::m_nOK;
-}
-
-#endif
 
 //TMM_EC
 ErrVal

@@ -22,6 +22,7 @@ use IO::File;
 #-----------------------#
 my $ENCODER    = "H264AVCEncoderLibTestStatic";
 my $PSNR       = "PSNRStatic";
+my $REWRITER   = "AvcRewriterStatic";
 my $EXTRACTOR  = "BitStreamExtractorStatic";
 my $DECODER    = "H264AVCDecoderLibTestStatic";
 my $RESAMPLER  = "DownConvertStatic";
@@ -246,6 +247,42 @@ sub Extract($$;$)
 	my $ret = run($cmd, $simu->{logname},0);
   	($ret == 0) or die "problem while executing the command:\n$cmd\n";
 }
+
+###############################################################################
+# Function         : Rewrite ($;$;$)
+###############################################################################
+sub Rewrite($$;$)
+{
+	my $simu=shift;
+	my $test=shift;
+	my $param=shift;
+	
+	my $bin =$param->{path_bin};
+	my $tmp =$param->{path_tmp};
+	my $display=1; 
+
+  my $inputname = (defined $test->{errorbitstreamname}? $test->{errorbitstreamname}:$test->{extractedname});
+
+	my $rewritestr="Rewriting.264";
+  	my $rewriteyuv="Rewriting.yuv";
+  	
+  	my $cmd ="$bin$DECODER ".$inputname." ".$test->{decodedname};
+		(defined $test->{errorconcealment}) and $cmd .= " -ec ".$test->{errorconcealment};
+	my $ret = run($cmd, $simu->{logname},0);
+	  	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
+
+
+	my $cmd ="$bin$REWRITER ".$inputname." ".$rewritestr;	
+	my $ret = run($cmd, $simu->{logname},0);
+  	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
+  	
+  	
+  	my $cmd ="$bin$DECODER ".$rewritestr." ".$rewriteyuv;
+	my $ret = run($cmd, $simu->{logname},0);
+  	($ret == 0) or die "problem while executing the command:\n$cmd\n $!";
+    	
+  	return ComputePSNR($bin,$simu->{logname},$test->{width},$test->{height},$test->{origname},$test->{decodedname},$inputname,$test->{framerate},"${tmp}psnr.dat");	
+ }
 
 ###############################################################################
 # Function         : Decode ($;$;$)

@@ -28,7 +28,7 @@ MINOR_VER		= 1
 VER				= $(MAJOR_VER).$(MINOR_VER)
 
 # defines to set
-DEFS			= -DMSYS_LINUX
+DEFS			= -DMSYS_LINUX	-DSHARP_AVC_REWRITE_OUTPUT
 
 # set objects
 OBJS          	= \

@@ -68,10 +68,24 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SIPAnalyser", "..\..\src\te
 		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AvcRewriter", "..\..\src\test\AvcRewriter\AvcRewriter.vcproj", "{3209C1A3-D422-4CAF-8A17-C58FA0C14D28}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5C23B105-7DEC-40A8-86B8-612F117880E9} = {5C23B105-7DEC-40A8-86B8-612F117880E9}
+		{429A9314-F0A4-46E4-9B79-CF1FBEFBB777} = {429A9314-F0A4-46E4-9B79-CF1FBEFBB777}
+		{98943B4B-0D3C-4748-A963-60CBA5FF3D45} = {98943B4B-0D3C-4748-A963-60CBA5FF3D45}
+		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AvcRewriterLibStatic", "..\..\src\lib\AvcRewriterLib\AvcRewriterLibStatic.vcproj", "{98943B4B-0D3C-4748-A963-60CBA5FF3D45}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectDependencies) = postSolution
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
 		{88A96066-A5FA-41D0-82B5-AB2A4B51DB08}.Debug.ActiveCfg = Debug|Win32
@@ -126,6 +140,14 @@ Global
 		{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}.Debug.Build.0 = Debug|Win32
 		{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}.Release.ActiveCfg = Release|Win32
 		{19BB0AAE-E6C5-4B7E-9333-57DE38B8EC6E}.Release.Build.0 = Release|Win32
+		{3209C1A3-D422-4CAF-8A17-C58FA0C14D28}.Debug.ActiveCfg = Debug|Win32
+		{3209C1A3-D422-4CAF-8A17-C58FA0C14D28}.Debug.Build.0 = Debug|Win32
+		{3209C1A3-D422-4CAF-8A17-C58FA0C14D28}.Release.ActiveCfg = Release|Win32
+		{3209C1A3-D422-4CAF-8A17-C58FA0C14D28}.Release.Build.0 = Release|Win32
+		{98943B4B-0D3C-4748-A963-60CBA5FF3D45}.Debug.ActiveCfg = Debug|Win32
+		{98943B4B-0D3C-4748-A963-60CBA5FF3D45}.Debug.Build.0 = Debug|Win32
+		{98943B4B-0D3C-4748-A963-60CBA5FF3D45}.Release.ActiveCfg = Release|Win32
+		{98943B4B-0D3C-4748-A963-60CBA5FF3D45}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

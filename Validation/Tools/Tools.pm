@@ -555,6 +555,12 @@ sub ApplyTests ($;$)
       ($test->{packetlossrate})  and External::LossSimulator($simu,$param,$test);
       ($res_rate2, $res_psnrY2, $res_psnrCb2, $res_psnrCr2) = External::Decode($simu,$test,$param);
     }
+    elsif ($test->{mode}==11) #decode+rewrite
+    {
+      External::Extract($simu,$test,$param);
+      ($test->{packetlossrate})  and External::LossSimulator($simu,$param,$test);
+      ($res_rate, $res_psnrY, $res_psnrCb, $res_psnrCr) = External::Rewrite($simu,$test,$param);      
+    }    
     else #extract + utilisation pour le prochain test
     {
       External::Extract($simu,$test,$param);
@@ -568,7 +574,15 @@ sub ApplyTests ($;$)
     if($test->{encdecmatch})
     {
       my($rate, $psnrY, $psnrCb, $psnrCr)=External::ComputePSNR($param->{path_bin},$simu->{logname},$test->{width},$test->{height},$test->{decodedname},$test->{reconname},$test->{extractedname},$test->{framerate},$param->{path_tmp}."psnr.dat");
-      ::PrintLog("\tEncoder/Decoder match\t\t");
+    	::PrintLog("\tEncoder/Decoder match\t\t");
+      $result &= CheckPerfectMatch ($psnrY, $psnrCb, $psnrCr);
+    }
+
+    #Check decoder/rewriter matching
+    if ($test->{mode}==11)
+    {
+      my($rate, $psnrY, $psnrCb, $psnrCr)=External::ComputePSNR($param->{path_bin},$simu->{logname},$test->{width},$test->{height},$test->{decodedname},"Rewriting.yuv","Rewriting.264",$test->{framerate},$param->{path_tmp}."psnr.dat");
+    	::PrintLog("\tDecoder/Rewriter match\t\t");
       $result &= CheckPerfectMatch ($psnrY, $psnrCb, $psnrCr);
     }
 

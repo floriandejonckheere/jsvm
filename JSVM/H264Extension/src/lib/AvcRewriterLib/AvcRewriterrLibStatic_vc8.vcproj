@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8,00"
-	Name="H264AVCEncoderLibStatic"
-	ProjectGUID="{429A9314-F0A4-46E4-9B79-CF1FBEFBB777}"
+	Name="AvcRewriterLibStatic"
+	ProjectGUID="{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}"
 	>
 	<Platforms>
 		<Platform
@@ -16,7 +16,7 @@
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory=".\..\..\..\..\..\lib"
-			IntermediateDirectory=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic"
+			IntermediateDirectory=".\..\..\..\build\windows\lib\AvcRewriterLib\ReleaseStatic"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
@@ -43,16 +43,16 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
-				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;"EXCEL=1;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
+				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;AVCREWRITERLIB_LIB;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderThrough="H264AVCEncoderLib.h"
-				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic/H264AVCEncoderLibStatic.pch"
-				AssemblerListingLocation=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic/"
-				ObjectFile=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic/"
-				ProgramDataBaseFileName=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic/"
+				PrecompiledHeaderThrough="AvcRewriterLib.h"
+				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\AvcRewriterLib\ReleaseStatic/AvcRewriterLibStatic.pch"
+				AssemblerListingLocation=".\..\..\..\build\windows\lib\AvcRewriterLib\ReleaseStatic/"
+				ObjectFile=".\..\..\..\build\windows\lib\AvcRewriterLib\ReleaseStatic/"
+				ProgramDataBaseFileName=".\..\..\..\build\windows\lib\AvcRewriterLib\ReleaseStatic/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -71,7 +71,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile=".\..\..\..\..\..\lib\H264AVCEncoderLibStatic.lib"
+				OutputFile=".\..\..\..\..\..\lib\AvcRewriterLibStatic.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -93,7 +93,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory=".\..\..\..\..\..\lib"
-			IntermediateDirectory=".\..\..\..\build\windows\lib\H264AVCEncoderLib\DebugStatic"
+			IntermediateDirectory=".\..\..\..\build\windows\lib\AvcRewriterLib\DebugStatic"
 			ConfigurationType="4"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
@@ -119,15 +119,15 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\include,."
-				PreprocessorDefinitions="_DEBUG;WIN32;_LIB;H264_AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
+				PreprocessorDefinitions="_DEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;AVCREWRITERLIB_LIB;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderThrough="H264AVCEncoderLib.h"
-				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\H264AVCEncoderLib\DebugStatic/H264AVCEncoderLibStatic.pch"
-				AssemblerListingLocation=".\..\..\..\build\windows\lib\H264AVCEncoderLib\DebugStatic/"
-				ObjectFile=".\..\..\..\build\windows\lib\H264AVCEncoderLib\DebugStatic/"
-				ProgramDataBaseFileName=".\..\..\..\build\windows\lib\H264AVCEncoderLib\DebugStatic/"
+				PrecompiledHeaderThrough="AvcRewriterLib.h"
+				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\AvcRewriterLib\DebugStatic/AvcRewriterLibStatic.pch"
+				AssemblerListingLocation=".\..\..\..\build\windows\lib\AvcRewriterLib\DebugStatic/"
+				ObjectFile=".\..\..\..\build\windows\lib\AvcRewriterLib\DebugStatic/"
+				ProgramDataBaseFileName=".\..\..\..\build\windows\lib\AvcRewriterLib\DebugStatic/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -146,7 +146,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="..\..\..\..\..\lib\H264AVCEncoderLibStaticd.lib"
+				OutputFile="..\..\..\..\..\lib\AvcRewriterLibStaticd.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -174,7 +174,7 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="BitCounter.cpp"
+				RelativePath="BitReadBuffer.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -199,7 +199,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="BitWriteBuffer.cpp"
+				RelativePath="CabacReader.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -224,7 +224,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="CabacWriter.cpp"
+				RelativePath="CabaDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -249,7 +249,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="CabaEncoder.cpp"
+				RelativePath="ControlMngH264AVCDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -274,7 +274,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="CodingParameter.cpp"
+				RelativePath="CreaterH264AVCDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -299,7 +299,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="ControlMngH264AVCEncoder.cpp"
+				RelativePath="FGSSubbandDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -324,7 +324,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="CreaterH264AVCEncoder.cpp"
+				RelativePath="GOPDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -349,7 +349,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="Distortion.cpp"
+				RelativePath="H264AVCDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -374,82 +374,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="FGSSubbandEncoder.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="GOPEncoder.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="H264AVCEncoder.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="H264AVCEncoderLib.cpp"
+				RelativePath="AvcRewriterLib.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -476,11 +401,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\InputPicBuffer.cpp"
-				>
-			</File>
-			<File
-				RelativePath="IntraPredictionSearch.cpp"
+				RelativePath="MbDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -505,7 +426,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="MbCoder.cpp"
+				RelativePath="MbParser.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -530,7 +451,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="MbEncoder.cpp"
+				RelativePath="NalUnitParser.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -555,7 +476,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="MbTempData.cpp"
+				RelativePath="SliceDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -580,7 +501,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="MotionEstimation.cpp"
+				RelativePath="SliceReader.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -605,144 +526,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="MotionEstimationCost.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="MotionEstimationQuarterPel.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="NalUnitEncoder.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\PicEncoder.cpp"
-				>
-			</File>
-			<File
-				RelativePath="RateDistortion.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\RecPicBuffer.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\SequenceStructure.cpp"
-				>
-			</File>
-			<File
-				RelativePath="SliceEncoder.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="UvlcWriter.cpp"
+				RelativePath="UvlcReader.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -772,127 +556,67 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
-				RelativePath="BitCounter.h"
+				RelativePath="BitReadBuffer.h"
 				>
 			</File>
 			<File
-				RelativePath="BitWriteBuffer.h"
+				RelativePath="CabacReader.h"
 				>
 			</File>
 			<File
-				RelativePath="BitWriteBufferIf.h"
+				RelativePath="CabaDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="CabacWriter.h"
+				RelativePath="ControlMngH264AVCDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="CabaEncoder.h"
+				RelativePath="..\..\..\include\CreaterH264AVCDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\include\CodingParameter.h"
+				RelativePath="FGSSubbandDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="ControlMngH264AVCEncoder.h"
+				RelativePath="GOPDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\include\CreaterH264AVCEncoder.h"
+				RelativePath="H264AVCDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="Distortion.h"
+				RelativePath="..\..\..\include\AvcRewriterLib.h"
 				>
 			</File>
 			<File
-				RelativePath="DistortionIf.h"
+				RelativePath="MbDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="FGSSubbandEncoder.h"
+				RelativePath="MbParser.h"
 				>
 			</File>
 			<File
-				RelativePath="GOPEncoder.h"
+				RelativePath="MbSymbolReadIf.h"
 				>
 			</File>
 			<File
-				RelativePath="H264AVCEncoder.h"
+				RelativePath="NalUnitParser.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\include\H264AVCEncoderLib.h"
+				RelativePath="SliceDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath=".\InputPicBuffer.h"
+				RelativePath="SliceReader.h"
 				>
 			</File>
 			<File
-				RelativePath="IntraPredictionSearch.h"
-				>
-			</File>
-			<File
-				RelativePath="MbCoder.h"
-				>
-			</File>
-			<File
-				RelativePath="MbEncoder.h"
-				>
-			</File>
-			<File
-				RelativePath="MbSymbolWriteIf.h"
-				>
-			</File>
-			<File
-				RelativePath="MbTempData.h"
-				>
-			</File>
-			<File
-				RelativePath="MotionEstimation.h"
-				>
-			</File>
-			<File
-				RelativePath="MotionEstimationCost.h"
-				>
-			</File>
-			<File
-				RelativePath="MotionEstimationQuarterPel.h"
-				>
-			</File>
-			<File
-				RelativePath="NalUnitEncoder.h"
-				>
-			</File>
-			<File
-				RelativePath=".\PicEncoder.h"
-				>
-			</File>
-			<File
-				RelativePath="RateDistortion.h"
-				>
-			</File>
-			<File
-				RelativePath="RateDistortionIf.h"
-				>
-			</File>
-			<File
-				RelativePath=".\RecPicBuffer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\SequenceStructure.h"
-				>
-			</File>
-			<File
-				RelativePath="SliceEncoder.h"
-				>
-			</File>
-			<File
-				RelativePath="UvlcWriter.h"
+				RelativePath="UvlcReader.h"
 				>
 			</File>
 		</Filter>

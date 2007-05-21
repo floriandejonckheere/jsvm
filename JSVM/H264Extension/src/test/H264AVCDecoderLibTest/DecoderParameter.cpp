@@ -100,7 +100,11 @@ DecoderParameter::~DecoderParameter()
 
 ErrVal DecoderParameter::init(int argc, char** argv)
 {
+#ifndef SHARP_AVC_REWRITE_OUTPUT  
   if( argc < 3 || argc > 6 ) // HS: decoder robustness
+#else
+  if( argc != 3)
+#endif
   {
     RNOKS( xPrintUsage( argv ) );
   }
@@ -168,7 +172,11 @@ ErrVal DecoderParameter::init(int argc, char** argv)
 
 ErrVal DecoderParameter::xPrintUsage(char **argv)
 {
+#ifndef SHARP_AVC_REWRITE_OUTPUT
   printf("usage: %s BitstreamFile YuvOutputFile [MaxPocDiff] [-ec <1..3>]\n\n", argv[0] );  // HS: decoder robustness
+#else
+  printf("usage: %s BitstreamFile RewrittenAvcFile\n\n", argv[0] );
+#endif
 // (1: BLSKIP;  2: Frame copy; 3: Temporal Direct{{TMM_EC}}
   //printf("usage: %s BitstreamFile YuvOutputFile\n\n", argv[0] );
   RERRS();

@@ -108,6 +108,9 @@ H264AVCEncoder::H264AVCEncoder():
   m_pcControlMng      ( NULL ),
   m_pcCodingParameter ( NULL ),
   m_pcFrameMng        ( NULL ),
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  m_pcMbDataCtrl      ( NULL ),
+#endif
   m_bVeryFirstCall    ( true ),
   m_bScalableSeiMessage( false ),
   m_bInitDone         ( false ),
@@ -1773,9 +1776,12 @@ H264AVCEncoder::xInitSliceForAvcRewriteCoding(const SliceHeader& rcSH)
   RNOK( m_pcMbSymbolWriteIf   ->startSlice( rcSH ) );
   RNOK( m_pcMbCoder           ->initSlice ( rcSH, m_pcMbSymbolWriteIf, m_pcRateDistortion) ); // 
 
-  m_pcMbDataCtrl = new MbDataCtrl();
-  m_pcMbDataCtrl->init( rcSH.getSPS() );  
-  
+  if (m_pcMbDataCtrl == NULL)
+  {
+    m_pcMbDataCtrl = new MbDataCtrl();
+    m_pcMbDataCtrl->init( rcSH.getSPS() ); 
+  }
+    
   return Err::m_nOK;
 }
 
@@ -1790,7 +1796,11 @@ H264AVCEncoder::xCloseAvcRewriteEncoder() {
   RNOK( m_pcCabacWriter           ->destroy() );
   RNOK( m_pcMbCoder               ->destroy() );
   RNOK( m_pcRateDistortion        ->destroy() );
-
+  if( m_pcMbDataCtrl )
+  {
+    m_pcMbDataCtrl->uninit();
+    m_pcMbDataCtrl = NULL;
+  }
   return Err::m_nOK;
 }
 

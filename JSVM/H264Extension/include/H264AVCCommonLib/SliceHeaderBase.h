@@ -818,6 +818,9 @@ public:
   void                              setCIUFlag                    ( Bool b ) {   m_bCIUFlag=b;}
   //JVT-U106 Behaviour at slice boundaries}
 
+  Bool                              isReconstructionLayer()                  {   return m_bRecosntructionLayer;}  
+  void                              setReconstructionLayer( Bool b )         {   m_bRecosntructionLayer=b;}
+
   //===== set parameters =====
   Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
   Void  setNalUnitType                ( NalUnitType e  )  { m_eNalUnitType                      = e;  }
@@ -1019,7 +1022,8 @@ protected:
   Bool                        m_bCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}
   Bool                        m_bAVCRewriteFlag;   // V-035
-  Int                        m_iSpatialScalabilityType;
+  Int                         m_iSpatialScalabilityType;
+  Bool                        m_bRecosntructionLayer;
 
   //JVT-V079 Low-complexity MB mode decision {
   UInt m_bLowComplexMbEnable;

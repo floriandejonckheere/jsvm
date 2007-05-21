@@ -1,10 +1,12 @@
 all:
 	$(MAKE) -C lib/H264AVCVideoIoLib
-	$(MAKE) -C lib/H264AVCCommonLib
+	$(MAKE) -C lib/H264AVCCommonLib	
 	$(MAKE) -C lib/H264AVCDecoderLib
 	$(MAKE) -C lib/H264AVCEncoderLib
+	$(MAKE) -C lib/AvcRewriterLib
 	$(MAKE) -C test/H264AVCDecoderLibTest
 	$(MAKE) -C test/H264AVCEncoderLibTest
+	$(MAKE) -C test/AvcRewriter
 	$(MAKE) -C test/BitStreamExtractor
 	$(MAKE) -C test/FixedQPEncoder
 	$(MAKE) -C test/QualityLevelAssigner
@@ -18,8 +20,10 @@ debug:
 	$(MAKE) -C lib/H264AVCCommonLib debug
 	$(MAKE) -C lib/H264AVCDecoderLib debug
 	$(MAKE) -C lib/H264AVCEncoderLib debug
+	$(MAKE) -C lib/AvcRewriterLib debug
 	$(MAKE) -C test/H264AVCDecoderLibTest debug
 	$(MAKE) -C test/H264AVCEncoderLibTest debug
+	$(MAKE) -C test/AvcRewriter debug
 	$(MAKE) -C test/BitStreamExtractor debug
 	$(MAKE) -C test/FixedQPEncoder debug
 	$(MAKE) -C test/QualityLevelAssigner debug
@@ -33,8 +37,10 @@ release:
 	$(MAKE) -C lib/H264AVCCommonLib release
 	$(MAKE) -C lib/H264AVCDecoderLib release
 	$(MAKE) -C lib/H264AVCEncoderLib release
+	$(MAKE) -C lib/AvcRewriterLib release
 	$(MAKE) -C test/H264AVCDecoderLibTest release
 	$(MAKE) -C test/H264AVCEncoderLibTest release
+	$(MAKE) -C test/AvcRewriter release
 	$(MAKE) -C test/BitStreamExtractor release
 	$(MAKE) -C test/FixedQPEncoder release
 	$(MAKE) -C test/QualityLevelAssigner release
@@ -48,8 +54,10 @@ clean:
 	$(MAKE) -C lib/H264AVCCommonLib clean
 	$(MAKE) -C lib/H264AVCDecoderLib clean
 	$(MAKE) -C lib/H264AVCEncoderLib clean
+	$(MAKE) -C lib/AvcRewriterLib clean
 	$(MAKE) -C test/H264AVCDecoderLibTest clean
 	$(MAKE) -C test/H264AVCEncoderLibTest clean
+	$(MAKE) -C test/AvcRewriter clean
 	$(MAKE) -C test/BitStreamExtractor clean
 	$(MAKE) -C test/FixedQPEncoder clean
 	$(MAKE) -C test/QualityLevelAssigner clean

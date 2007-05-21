@@ -613,6 +613,7 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
                                   IntYuvMbBuffer& rcResIntYuvMbBuffer,
                                   Bool            bReconstruct )
 {
+
   rcResIntYuvMbBuffer.setAllSamplesToZero();
 
   if( ! bReconstruct )
@@ -624,6 +625,10 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&   rcMbDataAccess,
   {
     RNOK( m_pcMotionCompensation->compensateMb( rcMbDataAccess, &rcRecYuvBuffer, true ) );
   }
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  return Err::m_nOK;
+#endif
 
   rcPredIntYuvMbBuffer.loadBuffer( &rcRecYuvBuffer );
 
@@ -693,6 +698,10 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
 
   //===== derive motion vectors =====
   calcMv( rcMbDataAccess, pcMbDataAccessBase );
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  return Err::m_nOK;
+#endif
 
   //===== get prediction signal when full reconstruction is requested =====
   if( bReconstruct )
@@ -823,6 +832,10 @@ ErrVal MbDecoder::xDecodeMbInter( MbDataAccess&     rcMbDataAccess,
 
 ErrVal MbDecoder::xDecodeChroma( MbDataAccess& rcMbDataAccess, YuvMbBuffer& rcRecYuvBuffer, UInt uiChromaCbp, Bool bPredChroma )
 {
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  return Err::m_nOK;
+#endif
+
   MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
 
   Pel*  pucCb   = rcRecYuvBuffer.getMbCbAddr();
@@ -869,7 +882,7 @@ ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
   {
     if( !rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getSH().getAVCRewriteFlag() )
       rcMbDataAccess.getMbData().intraPredMode( cIdx ) = rcMbDataAccess.decodeIntraPredMode( cIdx );
-
+#ifndef SHARP_AVC_REWRITE_OUTPUT
     XPel* puc = cYuvMbBuffer.getYBlk( cIdx );
 
     UInt uiPredMode = rcMbDataAccess.getMbData().intraPredMode( cIdx );
@@ -881,6 +894,7 @@ ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
     {
       RNOK( m_pcTransform->invTransform4x4Blk( puc, iStride, rcCoeffs.get( cIdx ) ) );
     }
+#endif
   }
 
   UInt uiChromaCbp = rcMbDataAccess.getMbData().getCbpChroma4x4();
@@ -910,7 +924,7 @@ ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess&   rcMbDataAccess,
         rcMbDataAccess.getMbData().intraPredMode( cIdx4x4 ) = iPredMode;
       }
     }
-
+#ifndef SHARP_AVC_REWRITE_OUTPUT
     XPel* puc = cYuvMbBuffer.getYBlk( cIdx );
 
     const UInt uiPredMode = rcMbDataAccess.getMbData().intraPredMode( cIdx );
@@ -923,7 +937,7 @@ ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess&   rcMbDataAccess,
     {
       RNOK( m_pcTransform->invTransform8x8Blk( puc, iStride, rcCoeffs.get8x8( cIdx ) ) );
     }
-
+#endif
   }
 
   UInt uiChromaCbp = rcMbDataAccess.getMbData().getCbpChroma4x4();
@@ -939,6 +953,9 @@ ErrVal MbDecoder::xDecodeMbIntraBL( MbDataAccess&     rcMbDataAccess,
                                     IntYuvMbBuffer&   rcPredBuffer,
                                     IntYuvPicBuffer*  pcBaseYuvBuffer )
 {
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  return Err::m_nOK;
+#endif
   IntYuvMbBuffer      cYuvMbBuffer;
   MbTransformCoeffs&  rcCoeffs = m_cTCoeffs;
 
@@ -985,6 +1002,10 @@ ErrVal MbDecoder::xDecodeMbIntra16x16( MbDataAccess&    rcMbDataAccess,
                                        IntYuvMbBuffer&  cYuvMbBuffer,
                                        IntYuvMbBuffer& rcPredBuffer )
 {
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  return Err::m_nOK;
+#endif
+
   Int  iStride = cYuvMbBuffer.getLStride();
 
   RNOK( m_pcIntraPrediction->predictLumaMb( cYuvMbBuffer.getMbLumAddr(), iStride, rcMbDataAccess.getMbData().intraPredMode() ) );
@@ -1030,6 +1051,9 @@ ErrVal MbDecoder::xDecodeChroma( MbDataAccess&    rcMbDataAccess,
                                  UInt             uiChromaCbp,
                                  Bool             bPredChroma )
 {
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  return Err::m_nOK;
+#endif
   MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
 
   XPel* pucCb   = rcRecYuvBuffer.getMbCbAddr();

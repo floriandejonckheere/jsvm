@@ -91,35 +91,35 @@ main( int argc, char** argv)
 {
   H264AVCDecoderTest* pcH264AVCDecoderTest = NULL;
   DecoderParameter    cParameter;
-
+#ifndef SHARP_AVC_REWRITE_OUTPUT
   printf("JSVM %s Decoder\n\n\n",_JSVM_VERSION_);
-
+#else
+  printf("JSVM %s AVC REWRITER\n\n\n",_JSVM_VERSION_);
+#endif
   RNOKRS( cParameter.init( argc, argv ), -2 );
 //TMM_EC {{
 	UInt	nCount	=	1;
 
-  WriteYuvIf*                 pcWriteYuv;
+  WriteYuvIf*                 pcWriteYuv = NULL;
+#ifndef SHARP_AVC_REWRITE_OUTPUT
 	RNOKS( WriteYuvToFile::create( pcWriteYuv, cParameter.cYuvFile ) );
+#endif
 
   ReadBitstreamFile *pcReadBitstreamFile;
   RNOKS( ReadBitstreamFile::create( pcReadBitstreamFile ) ); 
   RNOKS( pcReadBitstreamFile->init( cParameter.cBitstreamFile ) );  
 //TMM_EC }}
 
-	for( UInt n = 0; n < nCount; n++ )
+  for( UInt n = 0; n < nCount; n++ )
   {
     RNOKR( H264AVCDecoderTest::create   ( pcH264AVCDecoderTest ), -3 );
     RNOKR( pcH264AVCDecoderTest->init   ( &cParameter, (WriteYuvToFile*)pcWriteYuv, pcReadBitstreamFile ),          -4 );
-	
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  pcH264AVCDecoderTest->setAvcReWriteBitstreamFile("JVT-V035.264");
-#endif
 
-	RNOKR( pcH264AVCDecoderTest->go     (),                       -5 );
+    RNOKR( pcH264AVCDecoderTest->go     (),                       -5 );
     RNOKR( pcH264AVCDecoderTest->destroy(),                       -6 );
   }
-//TMM_EC {{
-	if( NULL != pcWriteYuv )              
+  //TMM_EC {{
+  if( NULL != pcWriteYuv )              
   {
     RNOK( pcWriteYuv->destroy() );  
   }

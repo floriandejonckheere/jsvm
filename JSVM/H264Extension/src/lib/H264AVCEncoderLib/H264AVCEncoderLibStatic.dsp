@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /Zi /O2 /I "..\..\..\include" /I "." /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCVIDEOLIB_LIB" /D "H264AVCCOMMONLIB_LIB" /D "H264AVCENCODERLIB_LIB" /D EXCEL=1 /D "USE_NAMESPACE_H264AVC" /YX"H264AVCEncoderLib.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /Zi /O2 /I "..\..\..\include" /I "." /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCVIDEOLIB_LIB" /D "H264AVCCOMMONLIB_LIB" /D "H264AVCENCODERLIB_LIB" /D "SHARP_AVC_REWRITE_OUTPUT" /D EXCEL=1 /D "USE_NAMESPACE_H264AVC" /YX"H264AVCEncoderLib.h" /FD /c
 # ADD BASE RSC /l 0x407 /d "NDEBUG"
 # ADD RSC /l 0x407 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -64,7 +64,7 @@ LIB32=link.exe -lib
 # PROP Intermediate_Dir "..\..\..\build\windows\lib\H264AVCEncoderLib\DebugStatic"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "..\..\..\include" /I "." /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCVIDEOLIB_LIB" /D "H264AVCCOMMONLIB_LIB" /D "H264AVCENCODERLIB_LIB" /D "USE_NAMESPACE_H264AVC" /YX"H264AVCEncoderLib.h" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /Zi /Od /I "..\..\..\include" /I "." /D "_DEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCVIDEOLIB_LIB" /D "H264AVCCOMMONLIB_LIB" /D "H264AVCENCODERLIB_LIB" /D "SHARP_AVC_REWRITE_OUTPUT" /D "USE_NAMESPACE_H264AVC" /YX"H264AVCEncoderLib.h" /FD /GZ /c
 # ADD BASE RSC /l 0x407 /d "_DEBUG"
 # ADD RSC /l 0x407 /d "_DEBUG"
 BSC32=bscmake.exe

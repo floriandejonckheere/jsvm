@@ -2,8 +2,8 @@
 #==========================================================#
 #               General parameters                         #
 #==========================================================#
-    name 	=> "Rewriting",
-    original 	=> "BUS_352x288_30.yuv",
+    name 	=> "Rewriting2",
+    original 	=> "MOBILE_352x288_30.yuv",
     width      	=> 352,
     height     	=> 288,
     framerate 	=> 30,
@@ -42,6 +42,15 @@
                   	 bitrateDS    => 0 ,
 		        },
 		      #----------#
+		      # Layer  2 #
+		      #----------#
+		      {
+		         width        => 352,
+		       	 height       => 288,
+		         framerate    =>  30,
+		         bitrate      => 0,
+		         bitrateDS    => 0 ,
+		        },
    		      ],
    
 #==========================================================#
@@ -57,26 +66,38 @@
                       # Test   0 #
                       #----------#
                       {
-            	        name => "BL",
+            	        name => "L0",
             	        mode => 1,
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 516,
-            	        psnr => 30.80,
+            	        bitrate => 431,
+            	        psnr => 30.1,
             	      },
             	      #----------#
                       # Test   1 #
                       #----------#
             	      {
-            	        name => "EL",
+            	        name => "L1",
             	        mode => 11,
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 1221,
-            	        psnr => 34.33,
-            	        encdecmatch => 1,
+            	        bitrate => 1139,
+            	        psnr => 33.2,
+            	      },
+            	      #----------#
+		      # Test   2 #
+		      #----------#
+		      {
+		        name => "L2",
+		        mode => 1,
+		        width => 352,
+		        height => 288,
+		        framerate => 30,
+		        bitrate => 1380,
+		        psnr => 33.2,
+		        encdecmatch => 1,
             	      },
             	      #----------#    		              
 		  ],

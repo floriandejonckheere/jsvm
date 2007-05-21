@@ -1087,8 +1087,7 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
                 }
                 else if( avcRewriteFlag && m_pcIntMbTempData->getResidualPredFlag( PART_16x16 ) )
                   {
-                  reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, 0);
-                  m_pcIntMbTempData->clearLumaLevels8x8Block( c8x8Idx );
+                  reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, 0);                  
                 }
               }
               else
@@ -1128,8 +1127,7 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
                 }
                 else if( avcRewriteFlag && m_pcIntMbTempData->getResidualPredFlag( PART_16x16 ) )
                 {
-                  reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, 1);
-                  m_pcIntMbTempData->clearLumaLevels8x8( c8x8Idx );
+                  reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, 1);                  
                 }
               }
               else
@@ -1165,9 +1163,7 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
             for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
             {
               reCalcBlock8x8Rewrite(*m_pcIntMbTempData, c8x8Idx, !bBaseTransSize8x8);
-            }
-
-            m_pcIntMbTempData->clearLumaLevels( );
+            }            
           }
         }
         m_pcIntMbTempData->distY() = m_pcXDistortion->getLum16x16( m_pcIntMbTempData->getMbLumAddr(), m_pcIntMbTempData->getLStride() );
@@ -2109,7 +2105,7 @@ MbEncoder::xEstimateMbIntraBL( MbDataAccess&    rcMbDataAccess,   // JVT-V079,
       }
       break;
     case INTRA_BL:
-      printf("Encoder does not support more than 2 CGS layers\n");
+      printf("Check if AvcRewriteFlag is on for all the layers below the current layer\n");
       break;
     case MODE_PCM:
       // Refinement of PCM data not supported by encoder.
@@ -2530,6 +2526,10 @@ MbEncoder::xEstimateMbIntra4( MbDataAccess&    rcMbDataAccess,
         Int mpMode = rcMbDataAccess.mostProbableIntraPredMode(LumaIdx(cIdx));
         RNOK( xEncode4x4IntraBlock( *rpcMbTempData, cIdx, uiBits, uiCbp, 
               mpMode, lambda_val, bLowComplexMbEnable ) );
+        
+        if( avcRewriteFlag && (uiBits == MSYS_UINT_MAX ))
+          return Err::m_nOK;    // no valid mode is found
+
         rpcMbTempData->copyTo     ( rcMbDataAccess );
         uiTempCost += uiBits;
       }
@@ -3613,6 +3613,15 @@ MbEncoder::xEncodeChromaTexture( IntMbTempData& rcMbTempData,
           m_pcTransform->predictScaledACCoeffs( &aiCoeff[0x40],
             rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbTCoeffs().get( CIdx(4) ),
             uiBaseQp  );
+       
+          TCoeff* ptCoeff = rcMbTempData.getMbDataAccess().getMbTCoeffs().get( CIdx(4) );
+          for( UInt x=0x00; x<0x40; x+=0x10 )
+          {
+            for( UInt n=1; n<16; n++ )
+            {              
+              ptCoeff[x+n].setLevel(aiCoeff[0x40+x+n].getCoeff()); // store the coefficients in TCoeff.level field              
+            }
+          }
         }
         else
         {
@@ -3668,6 +3677,12 @@ MbEncoder::xEncodeChromaTexture( IntMbTempData& rcMbTempData,
             rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbTCoeffs().get( CIdx(0) ),
             uiBaseQp  );
 
+          TCoeff* ptCoeff = rcMbTempData.getMbDataAccess().getMbTCoeffs().get( CIdx(0) );
+          for( UInt x=0x00; x<0x40; x+=0x10 )
+            for( UInt n=1; n<16; n++ )
+            {              
+              ptCoeff[x+n].setLevel(aiCoeff[x+n].getCoeff()); // store the coefficients in TCoeff.level field              
+            }
         }
         else
         {
@@ -3968,8 +3983,7 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
           else if( avcRewriteFlag && rcMbTempData.getResidualPredFlag( PART_16x16 ) )
           {
             rcMbTempData.clearLumaLevels8x8( c8x8Idx );
-            reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
-            rcMbTempData.clearLumaLevels8x8( c8x8Idx );
+            reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);            
           }
           else if( !avcRewriteFlag && rcMbDataAccess.getMbData().getBLSkipFlag() )
           {
@@ -3992,13 +4006,11 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
           rcMbTempData.clearLumaLevels8x8( c8x8Idx ); 
 
           if( coeffResidualPredFlag && rcMbTempData.getResidualPredFlag( PART_16x16 ) )
-          {
-            rcMbTempData.clearLumaLevels8x8( c8x8Idx );
+          {            
             reCalcBlock8x8(rcMbTempData, c8x8Idx, 1);
           }
           else if ( avcRewriteFlag && rcMbTempData.getResidualPredFlag( PART_16x16 ) )
           {
-            rcMbTempData.clearLumaLevels8x8( c8x8Idx );
             reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
           }              
         }
@@ -4034,9 +4046,7 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
         for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
         {
           reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
-        }
-
-        rcMbTempData.clearLumaLevels( );
+        }        
       }
       else if ( !avcRewriteFlag && rcMbDataAccess.getMbData().getBLSkipFlag() )
       {
@@ -4065,6 +4075,13 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
         for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
         {
           reCalcBlock8x8(rcMbTempData, c8x8Idx, 1);
+        }
+      }
+      else if( avcRewriteFlag && rcMbTempData.getResidualPredFlag( PART_16x16 ) )
+      {
+        for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+        {
+          reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
         }
       }
     }
@@ -4828,8 +4845,7 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
         else if( avcRewriteFlag && rcMbTempData.getResidualPredFlag( PART_16x16 ) )
         {
           rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
-          reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
-          rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
+          reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);          
         }        
         else if (!avcRewriteFlag && rcMbDataAccess.getMbData().getBLSkipFlag())
         {
@@ -4854,8 +4870,7 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
         }
         else if( avcRewriteFlag && rcMbTempData.getResidualPredFlag( PART_16x16 ) )      
         {
-          reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
-          rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
+          reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);          
         }
       }
       else
@@ -4887,8 +4902,7 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
       rcMbTempData.clearLumaLevels();
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
-        reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
-        rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
+        reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);        
       }
     }
     else if (!avcRewriteFlag && rcMbDataAccess.getMbData().getBLSkipFlag() )
@@ -4925,8 +4939,7 @@ MbEncoder::xSetRdCost8x8InterMb ( IntMbTempData&  rcMbTempData,
     {
       for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
       {
-        reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
-        rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
+        reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);        
       }
     }
   }
@@ -5059,8 +5072,7 @@ MbEncoder::xSetRdCostInterSubMb( IntMbTempData&  rcMbTempData,
           }
           else if ( rcMbDataAccess.getSH().getAVCRewriteFlag() && rcMbTempData.getResidualPredFlag( PART_16x16 ) )
           {
-            reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);
-            rcMbTempData.clearLumaLevels8x8Block( c8x8Idx );
+            reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 0);            
           }
         }
         else
@@ -5089,8 +5101,7 @@ MbEncoder::xSetRdCostInterSubMb( IntMbTempData&  rcMbTempData,
           }
           else if( rcMbDataAccess.getSH().getAVCRewriteFlag() && rcMbTempData.getResidualPredFlag( PART_16x16 ) )
           {
-            reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);
-            rcMbTempData.clearLumaLevels8x8( c8x8Idx );
+            reCalcBlock8x8Rewrite(rcMbTempData, c8x8Idx, 1);            
           }
         }
         else
@@ -9208,7 +9219,12 @@ MbEncoder::reCalcBlock8x8Rewrite(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, I
 
     m_pcTransform->invTransform8x8Blk( rcMbTempData.getYBlk( c8x8Idx ),
       rcMbTempData.getLStride(), pcCoeff );
-
+    // only clear the coefficients
+    for( UInt ui=0; ui<64; ui++ )
+    {
+      pcCoeff[ui].setLevel(pcCoeff[ui].getCoeff());
+      pcCoeff[ui].setCoeff(0);      
+    }
   }
   else  // 4x4 mode
   {
@@ -9228,6 +9244,13 @@ MbEncoder::reCalcBlock8x8Rewrite(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, I
       xScale4x4Block( pcCoeff, NULL, 0, m_pcTransform->getLumaQp() );
 
       m_pcTransform->invTransform4x4Blk( rcMbTempData.getYBlk( cIdx ), rcMbTempData.getLStride(), pcCoeff );
+
+      // only clear the coefficients
+      for( UInt ui=0; ui<16; ui++ )
+      {
+        pcCoeff[ui].setLevel(pcCoeff[ui].getCoeff());
+        pcCoeff[ui].setCoeff(0);      
+      }
     }
   }
 
