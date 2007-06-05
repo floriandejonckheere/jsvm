@@ -601,6 +601,11 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   Bool bLastFragmentFlag = false; //JVT-P031
   Bool bTl0PicIdxPresentFlag = false; // JVT-U116 LMI
   rcPacketDescription.uiNumLevelsQL = 0;
+
+  // JVT-V068 {
+  rcPacketDescription.bDiscardableHRDSEI = false;
+  // JVT-V068 }
+
   for(UInt ui = 0; ui < MAX_NUM_RD_LEVELS; ui++)
   {
     rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = 0;
@@ -663,7 +668,14 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   RNOK( m_pcNalUnitParser->initNalUnit( &cBinDataAccessor, uiNumBytesRemoved ) ); //FIX_FRAG_CAVLC
 //bug-fix suffix shenqiu}}
     SEI::MessageList cMessageList;
-    RNOK( SEI::read( m_pcUvlcReader, cMessageList ) );
+    // JVT-V068 HRD {
+    ParameterSetMng* pcParameterSetMng = NULL;
+    // JVT-V068 HRD }
+    RNOK( SEI::read( m_pcUvlcReader, cMessageList
+    				// JVT-V068 HRD {
+					, pcParameterSetMng 
+    				// JVT-V068 HRD }
+		) );
 
     SEI::MessageList::iterator iter = cMessageList.begin();
     while( ! cMessageList.empty() )
@@ -791,9 +803,30 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
           delete puiQualityLevel;
         }
               bApplyToNext = true;
+      // JVT-V068 {
+              rcPacketDescription.bDiscardableHRDSEI = true;
+      // JVT-V068 }
+
         break;
       }
 // JVT-T073 }
+
+      // JVT-V068 {
+    case SEI::BUFFERING_PERIOD:
+      {
+        rcPacketDescription.bDiscardableHRDSEI = true;
+        rcPacketDescription.bDiscardable = true;
+        break;
+      }
+
+    case SEI::PIC_TIMING:
+      {
+        rcPacketDescription.bDiscardableHRDSEI = true;
+        rcPacketDescription.bDiscardable = true;
+        break;
+      }
+      // JVT-V068 }
+
       default:
         {
           delete pcSEIMessage;

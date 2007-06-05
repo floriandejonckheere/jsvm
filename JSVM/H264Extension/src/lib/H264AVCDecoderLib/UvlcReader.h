@@ -142,6 +142,9 @@ public:
   Bool    moreRBSPData();
   ErrVal  getUvlc     ( UInt& ruiCode,                Char* pcTraceString );
   ErrVal  getCode     ( UInt& ruiCode, UInt uiLength, Char* pcTraceString );
+  // JVT-V068 HRD {
+  ErrVal  getSCode    ( Int& riCode, UInt uiLength, Char* pcTraceString );
+  // JVT-V068 HRD }
   ErrVal  getSvlc     ( Int&  riCode,                 Char* pcTraceString );
   ErrVal  getFlag     ( Bool& rbFlag,                 Char* pcTraceString );
   ErrVal  readByteAlign();

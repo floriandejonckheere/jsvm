@@ -260,6 +260,16 @@ ErrVal ParameterSetMng::setParamterSetList( std::list<SequenceParameterSet*>& rc
   return Err::m_nOK;
 }
 
+// JVT-V068 HRD {
+ErrVal ParameterSetMng::getActiveSPS( SequenceParameterSet *& rpcSPS)
+{
+  rpcSPS = NULL; 
+  RNOKS( m_cSPSBuf.get( rpcSPS, m_uiActiveSPSId) );
+
+  ROTS( NULL == rpcSPS);
+  return Err::m_nOK;
+}
+// JVT-V068 HRD }
 
 H264AVC_NAMESPACE_END
 

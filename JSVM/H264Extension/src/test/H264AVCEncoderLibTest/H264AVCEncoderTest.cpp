@@ -87,6 +87,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "EncoderCodingParameter.h"
 #include <cstdio>
 
+// JVT-V068 {
+#include "H264AVCCommonLib/SequenceParameterSet.h"
+// JVT-V068 }
 
 H264AVCEncoderTest::H264AVCEncoderTest() :
   m_pcH264AVCEncoder        ( NULL ),
@@ -410,8 +413,14 @@ H264AVCEncoderTest::go()
 
     ExtBinDataAccessor cExtBinDataAccessor;
     cBinData.setMemAccessor( cExtBinDataAccessor );
-
-    RNOK( m_pcH264AVCEncoder      ->writeParameterSets( &cExtBinDataAccessor, bMoreSets) );
+    // JVT-V068 {
+    h264::SequenceParameterSet* pcAVCSPS = NULL;
+    // JVT-V068 }
+    RNOK( m_pcH264AVCEncoder      ->writeParameterSets( &cExtBinDataAccessor
+  														// JVT-V068 {
+														, pcAVCSPS
+  														// JVT-V068 }
+														, bMoreSets) );
 		if( m_pcH264AVCEncoder->getScalableSeiMessage() )
 		{		
     RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
@@ -420,6 +429,28 @@ H264AVCEncoderTest::go()
     uiWrittenBytes += 4 + cExtBinDataAccessor.size();
 		}
     cBinData.reset();
+    // JVT-V068 {
+/* luodan */
+    if (pcAVCSPS)
+    {
+      UChar   aucParameterSetBuffer[1000];
+      BinData cBinData;
+      cBinData.reset();
+      cBinData.set( aucParameterSetBuffer, 1000 );
+
+      ExtBinDataAccessor cExtBinDataAccessor;
+      cBinData.setMemAccessor( cExtBinDataAccessor );
+      
+      RNOK( m_pcH264AVCEncoder->writeAVCCompatibleHRDSEI( &cExtBinDataAccessor, pcAVCSPS ) );
+      
+      RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
+      RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
+
+      uiWrittenBytes += 4 + cExtBinDataAccessor.size();
+      cBinData.reset();
+    }
+/* luodan */
+    // JVT-V068 }
   }
   // JVT-T073 {
   if( m_pcEncoderCodingParameter->getNestingSEIEnable() && m_pcEncoderCodingParameter->getSceneInfoEnable() )
@@ -536,7 +567,16 @@ H264AVCEncoderTest::go()
 		ExtBinDataAccessor cExtBinDataAccessor;
 		cBinData.setMemAccessor( cExtBinDataAccessor );
 		m_pcH264AVCEncoder->SetVeryFirstCall();
-		RNOK( m_pcH264AVCEncoder      ->writeParameterSets( &cExtBinDataAccessor, bMoreSets) );
+
+  	// JVT-V068 {
+    	h264::SequenceParameterSet* pcAVCSPS = NULL;
+  	// JVT-V068 }
+		
+    	RNOK( m_pcH264AVCEncoder      ->writeParameterSets( &cExtBinDataAccessor
+  	// JVT-V068 {
+, pcAVCSPS
+  	// JVT-V068 }
+, bMoreSets) );
 		RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
 		RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
 		uiWrittenBytes += 4 + cExtBinDataAccessor.size();

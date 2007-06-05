@@ -269,6 +269,11 @@ struct PacketDescription
   //-- 2006.0604
   UInt uiFirstMb;
   Bool  bEnableQLTruncation; //JVT-T054
+
+  // JVT-V068 {
+  Bool bDiscardableHRDSEI;
+  // JVT-V068 }
+
 };
 
 

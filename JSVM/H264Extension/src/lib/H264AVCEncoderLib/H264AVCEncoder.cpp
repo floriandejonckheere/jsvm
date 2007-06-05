@@ -95,8 +95,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include <math.h>
 
-
-
+// JVT-V068 HRD {
+#include "Scheduler.h"
+#include "H264AVCCommonLib/Hrd.h"
+// JVT-V068 HRD }
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -347,7 +349,11 @@ H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
                       NalUnitEncoder*   pcNalUnitEncoder,
                       ControlMngIf*     pcControlMng,
                       CodingParameter*  pcCodingParameter,
-                      FrameMng*         pcFrameMng)
+                      FrameMng*         pcFrameMng
+                      // JVT-V068 {
+                      ,StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler 
+                      // JVT-V068 }
+                      )
 {
   ROT( NULL == apcMCTFEncoder );
   ROT( NULL == pcFrameMng );
@@ -363,6 +369,11 @@ H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
   m_pcNalUnitEncoder  = pcNalUnitEncoder;
   m_pcControlMng      = pcControlMng;
   m_pcCodingParameter = pcCodingParameter;
+
+  // JVT-V068 {
+  m_apcScheduler = apcScheduler;
+  m_apcScheduler->clear();
+  // JVT-V068 }
 
   UInt uiLayer;
   for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
@@ -1037,7 +1048,11 @@ H264AVCEncoder::xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt 
 }
 
 ErrVal
-H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bool &rbMoreSets )
+H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, 
+                                    // JVT-V068 {
+                                    SequenceParameterSet *pcAVCSPS, 
+                                    // JVT-V068 }
+                                    Bool &rbMoreSets )
 {
   if( m_bVeryFirstCall )
   {
@@ -1103,6 +1118,13 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, Bo
       RNOK( m_apcMCTFEncoder[uiLayer]->addParameterSetBits( 8*(uiSize+4) ) );
     }
     
+// JVT-V068 {
+    if ( (m_pcCodingParameter->getEnableNalHRD() || m_pcCodingParameter->getEnableVclHRD()) && rcSPS.getProfileIdc() != SCALABLE_PROFILE )
+    {
+      pcAVCSPS = m_cUnWrittenSPS.front();
+    }
+// JVT-V068 }
+
     m_cUnWrittenSPS.pop_front();
   }
   else
@@ -1238,7 +1260,11 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
                                               m_acOrgPicBufferList  [uiLayer],
                                               m_acRecPicBufferList  [uiLayer],
                                               apcPicBufferUnusedList[uiLayer],
-                                              m_aaauidSeqBits ) );
+                                              m_aaauidSeqBits
+                                              // JVT-V068 HRD {
+											  ,m_pcParameterSetMng
+                                              // JVT-V068 HRD }
+                                            ) );
   }
 
   //===== update pic buffer lists =====
@@ -1393,6 +1419,11 @@ H264AVCEncoder::xInitParameterSets()
 	UInt  ui4TapMCY = m_pcCodingParameter->get4TapMotionCompensationY();                 // V090
 	pcSPS->set4TapMotionCompensationY( ( uiIndex && ui4TapMCY ) || ( ui4TapMCY > 1 ) );  // V090
 	// V090
+
+	// JVT-V068 HRD {
+    pcSPS->setVUI( pcSPS );
+	xInitLayerInfoForHrd( pcSPS, uiIndex );
+	// JVT-V068 HRD }
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
@@ -1568,6 +1599,11 @@ H264AVCEncoder::xInitParameterSets()
     UInt  ui4TapMCY = m_pcCodingParameter->get4TapMotionCompensationY();
     pcSPS->set4TapMotionCompensationY( ( uiIndex && ui4TapMCY ) || ( ui4TapMCY > 1 ) );
 	// V090
+
+    // JVT-V068 HRD {
+    pcSPS->setVUI( pcSPS );
+    xInitLayerInfoForHrd( pcSPS, uiIndex );
+    // JVT-V068 HRD }
 
     //===== set picture parameter set parameters =====
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
@@ -1902,5 +1938,101 @@ H264AVCEncoder::xAvcRewriteCloseNalUnit () {
 
 #endif
 
+// JVT-V068 HRD {
+ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt uiLayer )
+{
+  Scheduler* pcScheduler = NULL;
+
+  VUI* pcVui = pcSPS->getVUI();
+	LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters(uiLayer);
+
+  UInt uiTotalTemporalLevel = rcLayer.getDecompositionStages()- rcLayer.getNotCodedMCTFStages() + 1;
+  UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 1 : /* luodan (UInt)rcLayer.getNumFGSLayers ()*/ MAX_FGS_LAYERS + 1);
+  UInt uiDependencyId = m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getLayerCGSSNR() : uiLayer;
+
+  pcVui->setVuiParametersPresentFlag( m_pcCodingParameter->getEnableVUI() );
+
+  if (pcVui->getVuiParametersPresentFlag())
+  {
+    pcVui->setProfileIdc(pcSPS->getProfileIdc());
+    pcVui->setBaseLayerProfileIdc( m_pcCodingParameter->getLayerParameters(0).getAdaptiveTransform() > 0 ? HIGH_PROFILE : MAIN_PROFILE );
+    pcVui->setLevelIdc(pcSPS->getLevelIdc());
+
+    pcVui->init( pcSPS, uiDependencyId, uiTotalTemporalLevel, uiTotalFGSLevel );
+
+    // initiate Nal HRD pamameters
+    UInt uiCpbBrNalFactor = pcVui->getBaseLayerProfileIdc() < HIGH_PROFILE ? 1200 : 
+                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 1500 :
+                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 3600 : 4800 ) );
+
+    UInt uiCpbBrVclFactor = pcVui->getBaseLayerProfileIdc() < HIGH_PROFILE ? 1000 : 
+                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 1250 :
+                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 3000 : 4000 ) );
+
+    // handle 'output frequency' case
+    Float fOutFreq = rcLayer.getOutputFrameRate() / ( 1 << (uiTotalTemporalLevel - 1) );
+    UInt uiTimeScale = UInt(fOutFreq * 2000000 + 0.5); // integer frame rate (24, 30, 50, 60, etc)
+    UInt uiNumUnits = 1000000;
+
+    for (UInt uiTemporalId = 0; uiTemporalId < uiTotalTemporalLevel; uiTemporalId++)
+    for (UInt uiFGSLevel = 0; uiFGSLevel < uiTotalFGSLevel; uiFGSLevel++)
+    {
+      UInt uiQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getQualityLevelCGSSNR() : uiFGSLevel);
+      UInt uiIndex = (uiDependencyId<<5)+(uiTemporalId<<2)+uiQualityLevel;
+      UInt uiHrdIdx = uiTemporalId * uiTotalFGSLevel + uiFGSLevel;
+
+      pcVui->getLayerInfo(uiHrdIdx).setDependencyID(uiDependencyId);
+      pcVui->getLayerInfo(uiHrdIdx).setTemporalLevel(uiTemporalId);
+      pcVui->getLayerInfo(uiHrdIdx).setQualityLevel(uiQualityLevel);
+      pcVui->getTimingInfo(uiHrdIdx).setTimingInfoPresentFlag(m_pcCodingParameter->getEnableVUITimingInfo());
+      if (pcVui->getTimingInfo(uiHrdIdx).getTimingInfoPresentFlag() )
+      {
+        // write TimingInfo
+        pcVui->getTimingInfo(uiHrdIdx).setNumUnitsInTick ( uiNumUnits );
+        pcVui->getTimingInfo(uiHrdIdx).setTimeScale      ( uiTimeScale << uiTemporalId );
+        pcVui->getTimingInfo(uiHrdIdx).setFixedFrameRateFlag ( true );  // fixed frame rate hard coded
+      }
+      pcVui->getNalHrd(uiHrdIdx).setHrdParametersPresentFlag(m_pcCodingParameter->getEnableNalHRD());
+      pcVui->getVclHrd(uiHrdIdx).setHrdParametersPresentFlag(m_pcCodingParameter->getEnableVclHRD());
+      pcVui->getLowDelayHrdFlag(uiHrdIdx) = false;        // we hard coded the low delay mode.
+      pcVui->getPicStructPresentFlag(uiHrdIdx) = false;   // we hard coded the pic_struct_present_flag.
+
+      if ( pcVui->getNalHrd(uiHrdIdx).getHrdParametersPresentFlag() )
+        pcVui->InitHrd( uiHrdIdx, HRD::NAL_HRD,  pcSPS->getMaxBitRate() * uiCpbBrNalFactor, pcSPS->getMaxCPBSize() * uiCpbBrNalFactor );
+
+      if ( pcVui->getVclHrd(uiHrdIdx).getHrdParametersPresentFlag() )
+        pcVui->InitHrd( uiHrdIdx, HRD::VCL_HRD, pcSPS->getMaxBitRate() * uiCpbBrVclFactor, pcSPS->getMaxCPBSize() * uiCpbBrVclFactor );
+
+      if ( m_pcCodingParameter->getEnableNalHRD() || m_pcCodingParameter->getEnableVclHRD() )
+      {
+        Scheduler::create(pcScheduler);
+        pcScheduler->init(m_pcCodingParameter, uiLayer);
+        RNOK( pcScheduler->initBuffer (pcVui, uiHrdIdx));
+        pcScheduler->setInitialOutputDelay( 2*rcLayer.getDecompositionStages() );
+        (*m_apcScheduler)[uiIndex] = pcScheduler;
+      }
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal H264AVCEncoder::writeAVCCompatibleHRDSEI(ExtBinDataAccessor* pcExtBinDataAccessor, SequenceParameterSet& rcSPS )
+{
+  VUI* pcVUI = rcSPS.getVUI();
+  if (pcVUI->getVuiParametersPresentFlag() && pcVUI->getNumTemporalLevels() > 1)
+  {
+    UInt uiBitsSei = 0;
+    SEI::MessageList cSEIMessageList; 
+    SEI::AVCCompatibleHRD* pcAVCCompHRD;
+    RNOK( SEI::AVCCompatibleHRD::create(pcAVCCompHRD, pcVUI) );  
+    cSEIMessageList.push_back(pcAVCCompHRD);
+    RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
+    RNOK( m_pcNalUnitEncoder->write( cSEIMessageList ) );
+    RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBitsSei ) );
+  }
+  return Err::m_nOK;
+}
+// JVT-V068 HRD }
 
 H264AVC_NAMESPACE_END

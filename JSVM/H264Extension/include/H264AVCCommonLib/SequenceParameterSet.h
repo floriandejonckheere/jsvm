@@ -96,9 +96,15 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 // TMM_ESS 
 #include "ResizeParameters.h"
 
+// JVT-V068 HRD {
+#include "H264AVCCommonLib/Vui.h"
+// JVT-V068 HRD }
 
 H264AVC_NAMESPACE_BEGIN
 
+// JVT-V068 HRD {
+class CodingParameter;
+// JVT-V068 HRD }
 
 class H264AVCCOMMONLIB_API SequenceParameterSet
 {
@@ -287,6 +293,14 @@ public:
   Void  set4TapMotionCompensationY( Bool b ) {m_b4TapMotionCompensationY = b; } // V090
   Bool  get4TapMotionCompensationY() const { return m_b4TapMotionCompensationY; }  // V090
 
+  // JVT-V068 HRD {
+  VUI*  getVUI                     () const { return m_pcVUI; }
+  Void  setVUI                     ( VUI* pcVUI )              { delete m_pcVUI; m_pcVUI = pcVUI; } 
+  Void  setVUI                     ( SequenceParameterSet* pcSPS );
+  UInt          getMaxCPBSize() const;
+  UInt          getMaxBitRate() const;
+  // JVT-V068 HRD } 
+
 protected:
 	ErrVal xReadPicOrderCntInfo         ( HeaderSymbolReadIf* pcReadIf );
   static ErrVal xGetLevelLimit        ( const LevelLimit*&    rpcLevelLimit,
@@ -369,6 +383,9 @@ protected:
   Bool          m_bAVCRewriteFlag;          // V-035
   Bool          m_bAVCAdaptiveRewriteFlag;
 
+  // JVT-V068 HRD {
+  VUI*          m_pcVUI;
+  // JVT-V068 HRD }
 private:
   static const LevelLimit m_aLevelLimit[52];
 };

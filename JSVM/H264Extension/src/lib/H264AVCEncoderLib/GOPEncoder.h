@@ -95,6 +95,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/TraceFile.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
+// JVT-V068 HRD {
+#include "H264AVCCommonLib/ParameterSetMng.h"
+// JVT-V068 HRD }
 #include "DownConvert.h"
 #include "H264AVCCommonLib/Sei.h"  //NonRequired JVT-Q066 (06-04-08)
 
@@ -130,6 +133,9 @@ class RQFGSEncoder;
 class ReconstructionBypass;
 //JVT-U106 Behaviour at slice boundaries}
 
+// JVT-V068 {
+class Scheduler;
+// JVT-V068 }
 
 typedef MyList<UInt>        UIntList;
 
@@ -210,6 +216,13 @@ public:
   Double  YPSNR;
   Double  UPSNR;
   Double  VPSNR;
+// JVT-V068 {
+  Int     iPicType;
+  UInt    uiBaseQualityLevel;
+  UInt    uiBaseLayerId;
+
+  PicOutputData(): uiBaseQualityLevel(MSYS_UINT_MAX), uiBaseLayerId(MSYS_UINT_MAX) {};
+// JVT-V068 }
 };
 
 typedef MyList<PicOutputData> PicOutputDataList;
@@ -253,6 +266,9 @@ public:
 									  //JVT-U106 Behaviour at slice boundaries{
                                       ,ReconstructionBypass*           pcReconstructionBypass
 									  //JVT-U106 Behaviour at slice boundaries}
+                                      // JVT-V068 {
+                                      ,StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler
+                                      // JVT-V068 }
 									  );
   ErrVal        initParameterSets   ( const SequenceParameterSet&     rcSPS,
                                       const PictureParameterSet&      rcPPSLP,
@@ -273,7 +289,11 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
                                       PicBufferList&                  rcPicBufferUnusedList,
-                                      Double                          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
+                                      Double                          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS]
+                                      // JVT-V068 HRD {
+									  ,ParameterSetMng*                pcParameterSetMng
+                                      // JVT-V068 HRD {
+									                  );
   ErrVal        finish              ( UInt&                           ruiNumCodedFrames,
                                       Double&                         rdOutputRate,
                                       Double*                         rdOutputFramerate,
@@ -621,6 +641,14 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
   ErrVal		xSetNonRequiredSEI  ( SliceHeader* pcSliceHeader, SEI::NonRequiredSei* pcNonRequiredSei);
   //ErrVal		xWriteNonRequiredSEI( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, UInt& ruiBit ); 
   //NonRequired JVT-Q066 (06-04-08)}}
+
+  // JVT-V068 HRD {
+  ErrVal xWriteSEI(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::MessageList& rcSEIMessageList, UInt &ruiBits);
+  ErrVal xWriteNestingSEIforHrd(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage *pcSEIMessage, UInt uiuiDependencyId, UInt uiQualityLevel, UInt uiTemporalLevel, UInt &ruiBits);
+  ErrVal xWriteSEIforAVCCompatibleHrd(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage* pcSEIMessage, UInt &ruiBits);
+  ErrVal xCalculateTiming( PicOutputDataList&  rcPicOutputDataList, UInt uiFrame );
+  // JVT-V068 HRD }
+
   ErrVal        xGetFrameNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
 
   ErrVal        xGetFieldNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
@@ -873,6 +901,12 @@ protected:
   Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
 
   Bool    m_bUseSmoothedRef;//JVT-V058
+
+// JVT-V068 HRD {
+  StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* m_apcScheduler;
+  ParameterSetMng* m_pcParameterSetMng;
+  Bool    m_bEnableHrd;
+// JVT-V068 HRD }
 };
 
 #if defined( WIN32 )

@@ -224,6 +224,10 @@ SequenceParameterSet::create( SequenceParameterSet*& rpcSPS )
 ErrVal
 SequenceParameterSet::destroy()
 {
+  // JVT-V068 {
+  if (m_pcVUI) delete m_pcVUI;
+  // JVT-V068 }
+
   delete this;
   return Err::m_nOK;
 }
@@ -276,6 +280,29 @@ SequenceParameterSet::getMaxDPBSize() const
   ANOK( xGetLevelLimit( pcLevelLimit, getLevelIdc() ) );
   return pcLevelLimit->uiMaxDPBSizeX2 / ( 2*uiFrameSize );
 }
+
+// JVT-V068 HRD {
+Void SequenceParameterSet::setVUI(SequenceParameterSet* pcSPS)
+{
+	m_pcVUI = new VUI(pcSPS);
+}
+
+UInt
+SequenceParameterSet::getMaxCPBSize() const
+{
+  const LevelLimit* pcLevelLimit = 0;
+  ANOK( xGetLevelLimit( pcLevelLimit, getLevelIdc() ) );
+  return pcLevelLimit->uiMaxCPBSize;
+}
+
+UInt
+SequenceParameterSet::getMaxBitRate() const
+{
+  const LevelLimit* pcLevelLimit = 0;
+  ANOK( xGetLevelLimit( pcLevelLimit, getLevelIdc() ) );
+  return pcLevelLimit->uiMaxBitRate;
+}
+// JVT-V068 HRD }
 
 
 ErrVal
@@ -478,7 +505,9 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeFlag( getDirect8x8InferenceFlag(),              "SPS: direct_8x8_inference_flag" ) );
   RNOK  ( pcWriteIf->writeFlag( false,                                    "SPS: frame_cropping_flag" ) );
 
-  RNOK  ( pcWriteIf->writeFlag( false,                                  "SPS: vui_parameters_present_flag" ) );
+  // JVT-V068 HRD {
+  m_pcVUI->write(pcWriteIf);
+	// JVT-V068 HRD }
 
   Bool bRCDO  = ( m_bRCDOBlockSizes ||
                   m_bRCDOMotionCompensationY ||
@@ -678,7 +707,13 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   ROT ( bTmp );
   
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: vui_parameters_present_flag" ) );
-  ROT ( bTmp );
+  // JVT-V068 {
+  //ROT ( bTmp );
+  m_pcVUI = new VUI(this);
+  m_pcVUI->setVuiParametersPresentFlag( bTmp );
+  if (bTmp) m_pcVUI->read(pcReadIf);
+  // JVT-V068 }
+
 
   m_b4TapMotionCompensationY = false;                      // V090
   ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );           // V090

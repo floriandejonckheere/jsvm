@@ -129,7 +129,10 @@ class ControlMngH264AVCEncoder;
 class ReconstructionBypass;
 class RQFGSEncoder;
 class PicEncoder;
-
+// JVT-V068 {
+class Scheduler;
+class SequenceParameterSet;
+// JVT-V068 }
 
 
 class H264AVCENCODERLIB_API CreaterH264AVCEncoder 
@@ -145,8 +148,15 @@ public:
   ErrVal init               ( CodingParameter*    pcCodingParameter);
   ErrVal uninit             ();
   ErrVal writeParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,
+                              // JVT-V068 {
+                              SequenceParameterSet* pcAVCSPS,
+                              // JVT-V068 }
                               Bool&               rbMoreSets );
   
+// JVT-V068 {
+  ErrVal writeAVCCompatibleHRDSEI( ExtBinDataAccessor* pcExtBinDataAccessor, SequenceParameterSet*pcAVCSPS );
+// JVT-V068 }
+
   ErrVal process(  ExtBinDataAccessorList&  rcExtBinDataAccessorList, 
                    PicBuffer*               apcOriginalPicBuffer    [MAX_LAYERS],
                    PicBuffer*               apcReconstructPicBuffer [MAX_LAYERS],
@@ -216,6 +226,9 @@ protected:
   ReconstructionBypass*     m_pcReconstructionBypass;
   PicEncoder*               m_pcPicEncoder;
   Bool                      m_bTraceEnable;
+  // JVT-V068 HRD {
+  StatBuf<Scheduler*, MAX_SCALABLE_LAYERS> m_apcScheduler;
+  // JVT-V068 HRD }
 };
 
 H264AVC_NAMESPACE_END

@@ -945,6 +945,12 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EncodeKeyPictures",       &m_uiEncodeKeyPictures,                                0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSControl",              &m_uiMGSKeyPictureControl,                             0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSKeyPicMotRef",         &m_uiMGSKeyPictureMotionRefinement,                    1 );
+
+// JVT-V068 HRD {
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EnableNalHRD",            &m_uiNalHRD,                                           0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EnableVclHRD",            &m_uiVclHRD,                                           0 );
+// JVT-V068 HRD }
+
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))

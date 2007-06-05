@@ -405,6 +405,9 @@ PicEncoder::xInitSPS()
   m_pcSPS->setFrameHeightInMbs                      ( uiMbY );
   m_pcSPS->setDirect8x8InferenceFlag                ( true );
 
+// JVT-V068 {
+  m_pcSPS->setVUI                                   (m_pcSPS);
+// JVT-V068 }
   return Err::m_nOK;
 }
 

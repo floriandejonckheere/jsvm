@@ -404,5 +404,14 @@ NalUnitEncoder::writeNesting( SEI::MessageList& rcSEIMessageList )
 }
 // JVT-T073 }
 
+// JVT-V068 {
+ErrVal
+NalUnitEncoder::writeScalableNestingSei( SEI::MessageList& rcSEIMessageList )
+{
+  RNOK( SEI::writeScalableNestingSei( m_pcHeaderSymbolWriteIf, m_pcHeaderSymbolTestIf, &rcSEIMessageList ) );
+  m_eNalUnitType = NAL_UNIT_SEI;
+  return Err::m_nOK;
+}
+// JVT-V068 }
 
 H264AVC_NAMESPACE_END

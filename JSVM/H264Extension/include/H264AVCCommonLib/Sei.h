@@ -93,6 +93,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/CommonBuffers.h"
 #include "H264AVCCommonLib/HeaderSymbolReadIf.h"
 #include "H264AVCCommonLib/HeaderSymbolWriteIf.h"
+// JVT-V068 HRD {
+#include "H264AVCCommonLib/Vui.h"
+#include "H264AVCCommonLib/Hrd.h"
+// JVT-V068 HRD }
 #include <list>
 
 #define MAX_NUM_LAYER 6
@@ -117,6 +121,14 @@ class H264AVCCOMMONLIB_API SEI
 public:
   enum MessageType
   {
+    // JVT-V068 HRD {
+    BUFFERING_PERIOD                      = 0,
+    PIC_TIMING                            = 1,
+    AVC_COMPATIBLE_HRD_SEI                = 30,
+    RESERVED_SEI                          = 31,
+
+    // JVT-V068 HRD }
+
     SUB_SEQ_INFO                          = 10,
   MOTION_SEI                            = 18,
     SCALABLE_SEI                          = 22,
@@ -134,7 +146,8 @@ public:
   SCENE_INFO_SEI                        = 9,
   SCALABLE_NESTING_SEI                  = 28,
   PR_COMPONENT_INFO_SEI                 = 29,
-  RESERVED_SEI                          = 30,
+  //RESERVED_SEI                          = 31, // JVT-V068
+
     //  JVT-T073 }
     NON_REQUIRED_SEI                      = 24
   };
@@ -762,11 +775,19 @@ public:
   Void setDependencyId( UInt uiIndex, UInt uiValue ) { m_auiDependencyId[uiIndex] = uiValue; }
   Void setQualityLevel( UInt uiIndex, UInt uiValue ) { m_auiQualityLevel[uiIndex] = uiValue; }
 
+    // JVT-V068 {
+    UInt getTemporalLevel() { return m_uiTemporalLevel; }
+    Void setTemporalLevel( UInt uiValue ) { m_uiTemporalLevel = uiValue; }
+    // JVT-V068 }
+  
   private:
     Bool  m_bAllPicturesInAuFlag;
     UInt  m_uiNumPictures;
     UInt  m_auiDependencyId[MAX_PICTURES_IN_ACCESS_UNIT];
     UInt  m_auiQualityLevel[MAX_PICTURES_IN_ACCESS_UNIT];
+    // JVT-V068 {
+    UInt  m_uiTemporalLevel;
+    // JVT-V068 }
     SEIMessage *m_pcSEIMessage;
   };
   //scene_info is taken as en example
@@ -825,10 +846,178 @@ public:
     UInt m_uiChromaOffset         [MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_SLICE_NUM];
   };
 
+  // JVT-V068 HRD {
+  class H264AVCCOMMONLIB_API BufferingPeriod :
+    public SEIMessage
+  {
+
+  public:
+    class H264AVCCOMMONLIB_API SchedSel
+    {
+    public:
+      SchedSel() : m_uiInitialCpbRemovalDelay(0), m_uiInitialCpbRemovalDelayOffset(0) {}
+      SchedSel& operator = (const SchedSel& rcSchedSel)
+      {
+        m_uiInitialCpbRemovalDelay = rcSchedSel.m_uiInitialCpbRemovalDelay;
+        m_uiInitialCpbRemovalDelayOffset = rcSchedSel.m_uiInitialCpbRemovalDelayOffset;
+        return *this;
+      }
+      ErrVal write( HeaderSymbolWriteIf* pcWriteIf, const HRD& rcHrd );
+      ErrVal read ( HeaderSymbolReadIf* pcReadIf,   const HRD& rcHrd );
+
+      UInt getDelay() { return m_uiInitialCpbRemovalDelay; }
+      UInt getDelayOffset() { return m_uiInitialCpbRemovalDelayOffset; }
+      ErrVal setDelay( UInt uiInitialCpbRemovalDelay)
+      {
+        m_uiInitialCpbRemovalDelay = uiInitialCpbRemovalDelay;
+        return Err::m_nOK;
+      }
+      ErrVal setDelayOffset( UInt uiInitialCpbRemovalDelayOffset)
+      {
+        m_uiInitialCpbRemovalDelayOffset = uiInitialCpbRemovalDelayOffset;
+        return Err::m_nOK;
+      }
+
+    private:
+      UInt m_uiInitialCpbRemovalDelay;
+      UInt m_uiInitialCpbRemovalDelayOffset;
+    };
+
+  protected:
+    BufferingPeriod( ParameterSetMng*& rpcParameterSetMng ): SEIMessage( BUFFERING_PERIOD ), m_pcParameterSetMng( rpcParameterSetMng), m_uiSeqParameterSetId( 0 ) {}
+
+  public:
+    static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng );
+    static ErrVal create( BufferingPeriod*& rpcBufferingPeriod, BufferingPeriod * pcBufferingPeriod );
+
+    virtual ~BufferingPeriod();
+    SchedSel& getSchedSel( HRD::HrdParamType eHrdParamType, UInt uiNum ) { return m_aacSchedSel[eHrdParamType].get( uiNum ); }
+    ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
+    ErrVal read ( HeaderSymbolReadIf* pcReadIf );
+
+    ErrVal setHRD( UInt uiSPSId, const HRD* apcHrd[] );
+
+  private:
+    const HRD* m_apcHrd[2];
+    ParameterSetMng* m_pcParameterSetMng;
+
+    UInt m_uiSeqParameterSetId;
+    Bool m_bHrdParametersPresentFlag[2];
+    StatBuf <DynBuf< SchedSel >, 2>  m_aacSchedSel;
+  }; 
+
+  class H264AVCCOMMONLIB_API PicTiming :
+    public SEIMessage
+  {
+
+  public:
+    class H264AVCCOMMONLIB_API ClockTimestamp
+    {
+
+    public:
+      ClockTimestamp()
+        : m_bClockTimestampFlag ( false )
+        , m_uiCtType            ( MSYS_UINT_MAX )
+        , m_bNuitFieldBasedFlag ( false )
+        , m_uiCountingType      ( MSYS_UINT_MAX )
+        , m_bFullTimestampFlag  ( false )
+        , m_bDiscontinuityFlag  ( false )
+        , m_bCntDroppedFlag     ( false )
+        , m_uiNFrames           ( MSYS_UINT_MAX )
+        , m_uiSeconds           ( 0 )
+        , m_uiMinutes           ( 0 )
+        , m_uiHours             ( 0 )
+        , m_iTimeOffset         ( 0 )
+      {}
+
+      ErrVal write( HeaderSymbolWriteIf* pcWriteIf, const HRD& rcHRD );
+      ErrVal read ( HeaderSymbolReadIf* pcReadIf,   const HRD& rcHRD );
+      Int  get( const VUI& rcVUI, UInt uiLayerIndex );
+      Void set( const VUI& rcVUI, UInt uiLayerIndex, Int iTimestamp );
+    private:
+      Bool m_bClockTimestampFlag;
+      UInt m_uiCtType;
+      Bool m_bNuitFieldBasedFlag;
+      UInt m_uiCountingType;
+      Bool m_bFullTimestampFlag;
+      Bool m_bDiscontinuityFlag;
+      Bool m_bCntDroppedFlag;
+      UInt m_uiNFrames;
+      UInt m_uiSeconds;
+      UInt m_uiMinutes;
+      UInt m_uiHours;
+      Int m_iTimeOffset;
+    };
+
+  protected:
+    PicTiming( const VUI& rcVUI, UInt uiLayerIndex ) 
+      : SEIMessage          ( PIC_TIMING )
+      , m_rcVUI             ( rcVUI )
+      , m_uiLayerIndex      ( uiLayerIndex )
+      , m_uiCpbRemovalDelay ( MSYS_UINT_MAX )
+      , m_uiDpbOutputDelay  ( MSYS_UINT_MAX )
+      , m_ePicStruct        ( PS_NOT_SPECIFIED ) 
+    {}
+
+  public:
+    static ErrVal create( PicTiming*& rpcPicTiming, const VUI* pcVUI, UInt uiLayerIndex );
+    static ErrVal create( PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, UInt uiLayerIndex );
+
+    Int  getTimestamp( UInt uiNum = 0, UInt uiLayerIndex = 0 );
+    ErrVal setTimestamp( UInt uiNum, UInt uiLayerIndex, Int iTimestamp );
+
+    Int  getCpbRemovalDelay() { return m_uiCpbRemovalDelay; } 
+    ErrVal setCpbRemovalDelay( UInt uiCpbRemovalDelay ); 
+
+    UInt  getDpbOutputDelay() { return m_uiDpbOutputDelay; }                
+    ErrVal setDpbOutputDelay( UInt uiDpbOutputDelay ); 
+
+    UInt getNumClockTs();
+    ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
+    ErrVal read ( HeaderSymbolReadIf* pcReadIf );
+    PicStruct getPicStruct() const               { return m_ePicStruct; }
+    Void      setPicStruct(PicStruct ePicStruct) { m_ePicStruct = ePicStruct; }
+
+  private:
+    const VUI& m_rcVUI;
+    UInt m_uiLayerIndex;
+
+    UInt m_uiCpbRemovalDelay;
+    UInt m_uiDpbOutputDelay;
+    PicStruct m_ePicStruct;
+    StatBuf< ClockTimestamp, 3 > m_acClockTimestampBuf;
+  };
+
+  class H264AVCCOMMONLIB_API AVCCompatibleHRD :
+    public SEIMessage
+  {
+  public:
+
+  protected:
+    AVCCompatibleHRD( VUI& rcVUI ) 
+      : SEIMessage          ( AVC_COMPATIBLE_HRD_SEI )
+      , m_rcVUI             ( rcVUI )
+    {}
+
+  public:
+    static ErrVal create( AVCCompatibleHRD*& rpcAVCCompatibleHRD, VUI* pcVUI );
+
+    ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
+    ErrVal read ( HeaderSymbolReadIf* pcReadIf );
+
+  private:
+    VUI& m_rcVUI;
+  };
+  // JVT-V068 HRD }
+
   typedef MyList<SEIMessage*> MessageList;
 
   static ErrVal read  ( HeaderSymbolReadIf*   pcReadIf,
-                        MessageList&          rcSEIMessageList );
+                        MessageList&          rcSEIMessageList
+                        // JVT-V068 {
+                        ,ParameterSetMng* pcParameterSetMng
+                        // JVT-V068 }
+                      );
   static ErrVal write ( HeaderSymbolWriteIf*  pcWriteIf,
                         HeaderSymbolWriteIf*  pcWriteTestIf,
                         MessageList*          rpcSEIMessageList );
@@ -842,9 +1031,19 @@ public:
                     UInt&                 uiBits );
  //JVT-T073 }
 
+  // JVT-V068 {
+  static ErrVal writeScalableNestingSei( HeaderSymbolWriteIf*  pcWriteIf,
+                                         HeaderSymbolWriteIf*  pcWriteTestIf,
+                                         MessageList*          rpcSEIMessageList );
+  // JVT-V068 }
+
 protected:
   static ErrVal xRead               ( HeaderSymbolReadIf*   pcReadIf,
-                                      SEIMessage*&          rpcSEIMessage );
+                                      SEIMessage*&          rpcSEIMessage 
+                                      // JVT-V068 {
+                                      ,ParameterSetMng* pcParameterSetMng
+                                      // JVT-V068 }
+                                    );
   static ErrVal xWrite              ( HeaderSymbolWriteIf*  pcWriteIf,
                                       HeaderSymbolWriteIf*  pcWriteTestIf,
                                       SEIMessage*           pcSEIMessage );
@@ -856,6 +1055,9 @@ protected:
                                       UInt&                 ruiSize);
   static ErrVal xCreate             ( SEIMessage*&          rpcSEIMessage,
                                       MessageType           eMessageType,
+                                      // JVT-V068 {
+                                      ParameterSetMng*& rpcParameterSetMng,
+                                      // JVT-V068 }
                                       UInt                  uiSize );
 public:
 

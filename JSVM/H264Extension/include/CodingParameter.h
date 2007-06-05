@@ -943,6 +943,15 @@ public:
   Void  setMGSKeyPictureMotRef    ( UInt ui )          { m_uiMGSKeyPictureMotionRefinement = ui; }
   UInt  getMGSKeyPictureMotRef    ()           const   { return m_uiMGSKeyPictureMotionRefinement; }
 
+  // JVT-V068 HRD {
+  UInt getEnableVUI()    { return getEnableNalHRD() || getEnableVclHRD(); }
+  Bool getEnableNalHRD() { return m_uiNalHRD == 0 ? false: true; }
+  Bool getEnableVclHRD() { return m_uiVclHRD == 0 ? false: true; }
+  UInt getEnableVUITimingInfo() { return getEnableVUI(); }
+  UInt getEnableSEIBufferingPeriod() { return getEnableNalHRD() || getEnableVclHRD(); }
+  UInt getEnableSEIPicTiming() { return getEnableNalHRD() || getEnableVclHRD(); }
+  // JVT-V068 HRD }
+
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -1036,6 +1045,11 @@ protected:
   UInt    m_uiEncodeKeyPictures;  // 0:only FGS[default], 1:FGS&MGS, 2:always[useless]
   UInt    m_uiMGSKeyPictureControl;
   UInt    m_uiMGSKeyPictureMotionRefinement;
+
+  // JVT-V068 HRD {
+  UInt    m_uiNalHRD;
+  UInt    m_uiVclHRD;
+  // JVT-V068 HRD }
 };
 
 #if defined( MSYS_WIN32 )

@@ -271,6 +271,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\Hrd.cpp">
+			</File>
+			<File
 				RelativePath="IntFrame.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -871,6 +874,9 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\Vui.cpp">
+			</File>
+			<File
 				RelativePath="YuvBufferCtrl.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -986,6 +992,9 @@
 				RelativePath="..\..\..\include\H264AVCCommonLib\HeaderSymbolWriteIf.h">
 			</File>
 			<File
+				RelativePath="..\..\..\include\H264AVCCommonLib\Hrd.h">
+			</File>
+			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\IntFrame.h">
 			</File>
 			<File
@@ -1077,6 +1086,9 @@
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\Transform.h">
+			</File>
+			<File
+				RelativePath="..\..\..\include\H264AVCCommonLib\Vui.h">
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\YuvBufferCtrl.h">

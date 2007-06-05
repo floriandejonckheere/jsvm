@@ -591,6 +591,27 @@ ErrVal UvlcReader::readZeroByteAlign()
 }
 //JVT-T073 }
 
+// JVT-V068 HRD {
+ErrVal UvlcReader::getSCode( Int& riCode, UInt uiLength, Char* pcTraceString )
+{
+  DTRACE_TH( pcTraceString );
+  DTRACE_TY( " u(v)" );
+
+  UInt uiCode;
+  DECRNOK( m_pcBitReadBuffer->get( uiCode, uiLength ) );
+
+  UInt uiShift = 32 - uiLength;
+  riCode = ((Int)(uiCode << uiShift)) >> uiShift;
+
+  DTRACE_POS;
+  DTRACE_CODE (riCode);
+  DTRACE_BITS (uiCode, uiLength );
+  DTRACE_COUNT(uiLength);
+  DTRACE_N;
+
+  return Err::m_nOK;
+}
+// JVT-V068 HRD }
 
 ErrVal UvlcReader::startSlice( const SliceHeader& rcSliceHeader )
 {

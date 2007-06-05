@@ -73,6 +73,8 @@ OBJS          	= \
 			$(OBJ_DIR)/YuvMbBuffer.o \
 			$(OBJ_DIR)/YuvPicBuffer.o \
 			$(OBJ_DIR)/CFMO.o \
+			$(OBJ_DIR)/Vui.o \
+			$(OBJ_DIR)/Hrd.o \
 
 LIBS				= -lpthread
 

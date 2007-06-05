@@ -86,7 +86,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/ParameterSetMng.h"
 #include "H264AVCCommonLib/TraceFile.h"
 
-
+// JVT-V068 HRD {
+#include "H264AVCCommonLib/Vui.h"
+// JVT-V068 HRD }
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -95,7 +97,11 @@ H264AVC_NAMESPACE_BEGIN
 
 ErrVal
 SEI::read( HeaderSymbolReadIf* pcReadIf,
-           MessageList&        rcSEIMessageList ) 
+           MessageList&        rcSEIMessageList
+           // JVT-V068 {
+           ,ParameterSetMng*    pcParameterSetMng
+           // JVT-V068 }
+         ) 
 {
   ROT( NULL == pcReadIf);
 
@@ -103,8 +109,15 @@ SEI::read( HeaderSymbolReadIf* pcReadIf,
   {
     SEIMessage* pcActualSEIMessage = NULL;
 
-    RNOK( xRead( pcReadIf, pcActualSEIMessage ));
+    RNOK( xRead( pcReadIf, pcActualSEIMessage
+    // JVT-V068 {
+				, pcParameterSetMng
+    // JVT-V068 }
+		 ));
 
+    // JVT-V068 {
+    if (pcActualSEIMessage)
+    // JVT-V068 }
     rcSEIMessageList.push_back( pcActualSEIMessage );
   }
   return Err::m_nOK;
@@ -204,17 +217,107 @@ SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
 }
 // JVT-T073 }
 
+// JVT-V068 {
+ErrVal
+SEI::writeScalableNestingSei( HeaderSymbolWriteIf*  pcWriteIf,
+                              HeaderSymbolWriteIf*  pcWriteTestIf,
+                              MessageList*          rpcSEIMessageList )
+{
+  ROT( NULL == pcWriteIf);
+	ROT( NULL == pcWriteTestIf);
+	ROT( NULL == rpcSEIMessageList);
+  ROT( rpcSEIMessageList->size() != 2 );
+
+  SEIMessage* pcTop = rpcSEIMessageList->front();
+  rpcSEIMessageList->pop_front();
+  ROT( pcTop->getMessageType() != SCALABLE_NESTING_SEI );
+
+	SEIMessage* pcBottom = rpcSEIMessageList->front();
+	rpcSEIMessageList->pop_front();
+
+	//===== NAL unit header =====
+	ETRACE_DECLARE( Bool m_bTraceEnable = true );
+	g_nLayer = 0;
+	ETRACE_LAYER(0);
+	ETRACE_HEADER( "SEI MESSAGE" );
+	RNOK  ( pcWriteIf->writeFlag( 0,                "NALU HEADER: forbidden_zero_bit"  ) );
+	RNOK  ( pcWriteIf->writeCode( 0, 2,             "NALU HEADER: nal_ref_idc" ) );
+	RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NALU HEADER: nal_unit_type" ) );
+
+	//first write testing SEI message to get payload size
+	UInt uiBits = 0;
+	UInt uiNestedSeiSize = 0;
+	//take scene info as example, 	//can be changed here
+
+  // First Test the payload size 
+  UInt uiStart  = pcWriteTestIf->getNumberOfWrittenBits();
+  pcBottom->write(pcWriteTestIf);
+  uiBits = pcWriteTestIf->getNumberOfWrittenBits() - uiStart;
+  UInt uiSize = (uiBits+7)>>3;
+
+  uiNestedSeiSize = uiSize;
+  
+  uiStart  = pcWriteTestIf->getNumberOfWrittenBits();
+  RNOK( xWritePayloadHeader( pcWriteTestIf, pcBottom->getMessageType(), uiSize ) );
+  uiBits = pcWriteTestIf->getNumberOfWrittenBits() - uiStart;
+  AOT( (uiBits & 7) > 0 );
+  uiSize += (uiBits>>3);
+
+  uiStart  = pcWriteTestIf->getNumberOfWrittenBits();
+  RNOK( pcTop->write( pcWriteTestIf ) );
+  uiBits = pcWriteTestIf->getNumberOfWrittenBits() - uiStart;
+  AOT( (uiBits & 7) > 0 );
+  uiSize += (uiBits>>3); // Scalable Nesting Sei Payload Size
+
+  //Then write actual SEI message
+  uiStart  = pcWriteIf->getNumberOfWrittenBits();
+  RNOK( xWritePayloadHeader( pcWriteIf, SCALABLE_NESTING_SEI, uiSize ) );
+  RNOK( pcTop->write( pcWriteIf ) );
+	RNOK( xWritePayloadHeader( pcWriteIf, pcBottom->getMessageType(), uiNestedSeiSize ) );
+	RNOK( pcBottom->write( pcWriteIf ) );
+  uiBits = pcWriteIf->getNumberOfWrittenBits() - uiStart;
+  UInt uiAlignedBits = 8 - (uiBits&7);
+  if( uiAlignedBits != 0 && uiAlignedBits != 8)
+  {
+      RNOK( pcWriteIf->writeCode( 1<<(uiAlignedBits-1), uiAlignedBits, "SEI: alignment_bits" ) );
+  }
+  delete pcTop;
+  delete pcBottom;
+
+  return Err::m_nOK;
+}
+// JVT-V068 }
 
 ErrVal
 SEI::xRead( HeaderSymbolReadIf* pcReadIf,
-            SEIMessage*&        rpcSEIMessage) 
+            SEIMessage*&        rpcSEIMessage
+            // JVT-V068 {
+            ,ParameterSetMng* pcParameterSetMng
+            // JVT-V068 }
+            ) 
 {
   MessageType eMessageType = RESERVED_SEI;
   UInt        uiSize       = 0;
 
   RNOK( xReadPayloadHeader( pcReadIf, eMessageType, uiSize) );
 
-  RNOK( xCreate( rpcSEIMessage, eMessageType, uiSize ) )
+  // JVT-V068 { 
+  // Dump HRD SEIs
+  if (eMessageType==BUFFERING_PERIOD||eMessageType==PIC_TIMING||eMessageType==AVC_COMPATIBLE_HRD_SEI)
+  {
+    RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) )
+    
+    UInt uiDummy;
+    while (uiSize--)
+    {
+      pcReadIf->getCode(uiDummy, 8, "SEI: Byte ignored.");
+    }
+    RNOK( pcReadIf->readByteAlign() );
+
+    return Err::m_nOK;
+  }
+  // JVT-V068 }
+  RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) )
 
   RNOK( rpcSEIMessage->read( pcReadIf ) );
   RNOK( pcReadIf->readByteAlign() );
@@ -306,6 +409,9 @@ SEI::xReadPayloadHeader( HeaderSymbolReadIf*  pcReadIf,
 ErrVal
 SEI::xCreate( SEIMessage*&  rpcSEIMessage,
               MessageType   eMessageType,
+              // JVT-V068 {
+              ParameterSetMng*& rpcParameterSetMng,
+              // JVT-V068 }
               UInt          uiSize ) 
 {
   switch( eMessageType )
@@ -327,6 +433,14 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
 	case SCALABLE_NESTING_SEI: return ScalableNestingSei::create( (ScalableNestingSei*&) rpcSEIMessage );
     // JVT-T073 }
     case PR_COMPONENT_INFO_SEI: return PRComponentInfoSei::create( (PRComponentInfoSei*&) rpcSEIMessage );
+// JVT-V068 {
+    case AVC_COMPATIBLE_HRD_SEI: 
+      return AVCCompatibleHRD::create( (AVCCompatibleHRD*&)rpcSEIMessage, NULL );
+    case PIC_TIMING:       
+      return PicTiming::create( (PicTiming*&)rpcSEIMessage, NULL, 0 );
+    case BUFFERING_PERIOD: 
+      return BufferingPeriod::create( (BufferingPeriod*&) rpcSEIMessage, rpcParameterSetMng );
+// JVT-V068 }
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
   //return Err::m_nOK;
@@ -1478,6 +1592,9 @@ SEI::ScalableNestingSei::write( HeaderSymbolWriteIf *pcWriteIf )
 			RNOK( pcWriteIf->writeCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
 			RNOK( pcWriteIf->writeCode( m_auiQualityLevel[uiIndex],2, " ScalableNestingSei:uiQualityLevel " ) );
 		}	    
+		// JVT-V068 HRD {
+    	RNOK( pcWriteIf->writeCode( m_uiTemporalLevel,3, " ScalableNestingSei:uiTemporalLevel " ) );
+		// JVT-V068 HRD }
 	}
 	UInt uiBits = pcWriteIf->getNumberOfWrittenBits()-uiStartBits;
 	UInt uiBitsMod8 = uiBits%8;
@@ -1503,7 +1620,10 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 		{
 			RNOK( pcReadIf->getCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
 			RNOK( pcReadIf->getCode( m_auiQualityLevel[uiIndex],2, " ScalableNestingSei:uiQualityLevel " ) );
-		}	  
+		}
+    // JVT-V068 HRD {
+    RNOK( pcReadIf->getCode( m_uiTemporalLevel,3, " ScalableNestingSei:uiTemporalLevel " ) );
+    // JVT-V068 HRD }
 	}
 	RNOK( pcReadIf->readZeroByteAlign() ); //nesting_zero_bit
 
@@ -1535,6 +1655,15 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 		}
 	//more case can be added here
 	default:
+// JVT-V068 {
+    {
+      for (UInt ui=0; ui<uiPayloadSize; ui++)
+      {
+        UInt uiDummy;
+        pcReadIf->getCode(uiDummy, 8, "SEI: Byte ignored" );
+      }
+    }
+// JVT-V068 }
 		break;
 	}
 
@@ -1658,4 +1787,453 @@ SEI::PRComponentInfoSei::read( HeaderSymbolReadIf *pcReadIf )
   }
   return Err::m_nOK;
 }
+
+// JVT-V068 HRD {
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  BufferingPeriod
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ErrVal SEI::BufferingPeriod::create( BufferingPeriod*& rpcBufferingPeriod, BufferingPeriod* pcBufferingPeriod )
+{
+  rpcBufferingPeriod = new BufferingPeriod( pcBufferingPeriod->m_pcParameterSetMng );
+  ROT( NULL == rpcBufferingPeriod );
+  rpcBufferingPeriod->m_uiSeqParameterSetId       = pcBufferingPeriod->m_uiSeqParameterSetId;
+  rpcBufferingPeriod->m_aacSchedSel[HRD::NAL_HRD] = pcBufferingPeriod->m_aacSchedSel[HRD::NAL_HRD];
+  rpcBufferingPeriod->m_aacSchedSel[HRD::VCL_HRD] = pcBufferingPeriod->m_aacSchedSel[HRD::VCL_HRD];
+  return Err::m_nOK;
+}
+
+SEI::BufferingPeriod::~BufferingPeriod()
+{
+  if (m_bHrdParametersPresentFlag[HRD::NAL_HRD])
+  {
+    m_aacSchedSel[HRD::NAL_HRD].uninit();
+  }
+  if (m_bHrdParametersPresentFlag[HRD::VCL_HRD])
+  {
+    m_aacSchedSel[HRD::VCL_HRD].uninit();
+  } 
+}
+
+ErrVal SEI::BufferingPeriod::create( BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng*& rpcParameterSetMng )
+{
+  rpcBufferingPeriod = new BufferingPeriod( rpcParameterSetMng );
+  ROT( NULL == rpcBufferingPeriod );
+  return Err::m_nOK;
+}
+
+ErrVal SEI::BufferingPeriod::setHRD( UInt uiSPSId, const HRD* apcHrd[] )
+{
+  ROF( m_pcParameterSetMng->isValidSPS(uiSPSId));
+  m_uiSeqParameterSetId = uiSPSId;
+
+  SequenceParameterSet *pcSPS = NULL;
+  m_pcParameterSetMng->get( pcSPS, m_uiSeqParameterSetId);  
+
+  m_apcHrd[HRD::NAL_HRD] = apcHrd[HRD::NAL_HRD];
+  m_apcHrd[HRD::VCL_HRD] = apcHrd[HRD::VCL_HRD];
+
+  if (m_apcHrd[HRD::NAL_HRD]->getHrdParametersPresentFlag()) 
+  {
+    m_aacSchedSel[HRD::NAL_HRD].init( m_apcHrd[HRD::NAL_HRD]->getCpbCnt() );
+  }
+
+  if (m_apcHrd[HRD::VCL_HRD]->getHrdParametersPresentFlag()) 
+  {
+    m_aacSchedSel[HRD::VCL_HRD].init( m_apcHrd[HRD::VCL_HRD]->getCpbCnt() );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal SEI::BufferingPeriod::write( HeaderSymbolWriteIf* pcWriteIf )
+{
+  RNOK( pcWriteIf->writeUvlc( m_uiSeqParameterSetId, "SEI: seq_parameter_set_id" ) );
+
+  if ( m_apcHrd[HRD::NAL_HRD]->getHrdParametersPresentFlag() )
+  {
+    for( UInt n = 0; n < m_apcHrd[HRD::NAL_HRD]->getCpbCnt(); n++ )
+    {
+      RNOK( getSchedSel( HRD::NAL_HRD, n ).write( pcWriteIf, *(m_apcHrd[HRD::NAL_HRD]) ) );
+    }
+  }
+
+  if (m_apcHrd[HRD::VCL_HRD]->getHrdParametersPresentFlag())
+  {
+    for( UInt n = 0; n < m_apcHrd[HRD::VCL_HRD]->getCpbCnt(); n++ )
+    {
+      RNOK( getSchedSel( HRD::VCL_HRD, n ).write( pcWriteIf, *(m_apcHrd[HRD::VCL_HRD]) ) );
+    }
+  }
+  return Err::m_nOK;
+}
+
+
+
+ErrVal SEI::BufferingPeriod::read ( HeaderSymbolReadIf* pcReadIf )
+{
+//  RNOKS( pcReadIf->getUvlc( m_uiSeqParameterSetId, "SEI: seq_parameter_set_id" ) );
+//
+//  ROF( m_pcParameterSetMng->isValidSPS(m_uiSeqParameterSetId));
+//
+//  SequenceParameterSet *pcSPS = NULL;
+//  m_pcParameterSetMng->get( pcSPS,m_uiSeqParameterSetId);  
+//
+//  m_pcVUI = pcSPS->getVUI ();// get a pointer to VUI of the SPS with m_uiSeqParameterSetId
+//
+//  Bool bNalHrdBpPresentFlag = m_pcVUI ? m_pcVUI->getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() : false;
+//  Bool bVclHrdBpPresentFlag = m_pcVUI ? m_pcVUI->getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() : false;
+//
+//  if (bNalHrdBpPresentFlag) 
+//  {
+//    m_aacSchedSel[HRD::NAL_HRD].init( m_pcVUI->getNalHrd(m_uiLayerIndex).getCpbCnt() + 1 );
+//  }
+//  if (bVclHrdBpPresentFlag) 
+//  {
+//    m_aacSchedSel[HRD::VCL_HRD].init( m_pcVUI->getVclHrd(m_uiLayerIndex).getCpbCnt() + 1 );
+//  }
+//
+//  if (bNalHrdBpPresentFlag)
+//  {
+//    const HRD& rcNalHRD = m_pcVUI->getNalHrd(m_uiLayerIndex);
+//    for( UInt n = 0; n < rcNalHRD.getCpbCnt(); n++ )
+//    {
+//      RNOKS( getSchedSel( HRD::NAL_HRD, n ).read( pcReadIf, rcNalHRD ) );
+//    }
+//  }
+//
+//  if (bVclHrdBpPresentFlag)
+//  {
+//    const HRD& rcVlcHRD = m_pcVUI->getVclHrd(m_uiLayerIndex);
+//    for( UInt n = 0; n < rcVlcHRD.getCpbCnt(); n++ )
+//    {
+//      RNOKS( getSchedSel( HRD::VCL_HRD, n ).read( pcReadIf, rcVlcHRD ) );
+//    }
+//  }
+  return Err::m_nOK;
+}
+
+
+
+ErrVal SEI::BufferingPeriod::SchedSel::write( HeaderSymbolWriteIf* pcWriteIf, const HRD& rcHrd )
+{
+  const UInt uiLength = rcHrd.getInitialCpbRemovalDelayLength();
+  RNOK( pcWriteIf->writeCode( m_uiInitialCpbRemovalDelay,       uiLength, "SEI: initial_cpb_removal_delay ") );
+  RNOK( pcWriteIf->writeCode( m_uiInitialCpbRemovalDelayOffset, uiLength, "SEI: initial_cpb_removal_delay_offset ") );
+  return Err::m_nOK;
+}
+
+
+ErrVal SEI::BufferingPeriod::SchedSel::read ( HeaderSymbolReadIf* pcReadIf, const HRD& rcHrd )
+{
+//  const UInt uiLength = rcHrd.getInitialCpbRemovalDelayLength();
+//  RNOKS( pcReadIf->getCode( m_uiInitialCpbRemovalDelay ,       uiLength, "SEI: initial_cpb_removal_delay ") );
+//  RNOKS( pcReadIf->getCode( m_uiInitialCpbRemovalDelayOffset,  uiLength, "SEI: initial_cpb_removal_delay_offset ") );
+  return Err::m_nOK;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//  PicTimiming
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+UInt SEI::PicTiming::getNumClockTs()
+{
+  switch ( m_ePicStruct )
+  {
+  case PS_FRAME:
+  case PS_TOP:
+  case PS_BOT:
+    return 1;
+  case PS_TOP_BOT:
+  case PS_BOT_TOP:
+    return 2;
+  default:  return 0; // reserved
+  }
+}
+
+ErrVal SEI::PicTiming::create( PicTiming*& rpcPicTiming, const VUI* pcVUI, UInt uiLayerIndex )
+{
+  //ROT( NULL == pcVUI );
+  rpcPicTiming = new PicTiming( *pcVUI, uiLayerIndex );
+  ROT( NULL == rpcPicTiming );
+  return Err::m_nOK;
+}
+
+ErrVal SEI::PicTiming::create(PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, UInt uiLayerIndex)
+{
+	ROF( parameterSetMng->isValidSPS(uiSPSId));
+
+	SequenceParameterSet *pcSPS = NULL;
+	parameterSetMng->get( pcSPS, uiSPSId );  
+
+	VUI& rcVUI = *(pcSPS->getVUI ()); // get a pointer to VUI of SPS with m_uiSeqParameterSetId
+
+	rpcPicTiming = new PicTiming( rcVUI, uiLayerIndex );
+	ROT( NULL == rpcPicTiming );
+
+	return Err::m_nOK;
+}
+
+ErrVal SEI::PicTiming::write( HeaderSymbolWriteIf* pcWriteIf )
+{
+  const HRD* pcHRD = NULL;
+  if( m_rcVUI.getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  {
+    pcHRD = &m_rcVUI.getNalHrd(m_uiLayerIndex);
+  }
+  else if( m_rcVUI.getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  {
+    pcHRD = &m_rcVUI.getVclHrd(m_uiLayerIndex);
+  }
+
+  if( NULL != pcHRD )
+  {
+    RNOK( pcWriteIf->writeCode( m_uiCpbRemovalDelay,  pcHRD->getCpbRemovalDelayLength(), "SEI: cpb_removal_delay"  ) );
+    RNOK( pcWriteIf->writeCode( m_uiDpbOutputDelay,   pcHRD->getDpbOutputDelayLength(),  "SEI: dpb_output_delay"   ) );
+  }
+
+  if( m_rcVUI.getPicStructPresentFlag(m_uiLayerIndex) )
+  {
+    RNOK( pcWriteIf->writeCode( m_ePicStruct, 4,      "SEI: pic_struct"         ) );
+    AOT( NULL == pcHRD );
+    UInt uiNumClockTs = getNumClockTs(); 
+    for( UInt n = 0; n < uiNumClockTs ; n++ ) 
+    {
+      RNOK( m_acClockTimestampBuf.get( n ).write( pcWriteIf, *pcHRD ) );
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+Int  SEI::PicTiming::getTimestamp( UInt uiNum, UInt uiLayerIndex )
+{
+  return m_acClockTimestampBuf.get( uiNum ).get( m_rcVUI, uiLayerIndex );
+}
+
+ErrVal  SEI::PicTiming::setDpbOutputDelay( UInt uiDpbOutputDelay)
+{
+  m_uiDpbOutputDelay = uiDpbOutputDelay;
+  return Err::m_nOK;
+}
+
+
+ErrVal SEI::PicTiming::setTimestamp( UInt uiNum, UInt uiLayerIndex, Int iTimestamp )
+{
+  m_acClockTimestampBuf.get( uiNum ).set( m_rcVUI, uiLayerIndex, iTimestamp );
+  return Err::m_nOK;
+}
+
+ErrVal  SEI::PicTiming::setCpbRemovalDelay(UInt uiCpbRemovalDelay)
+{
+  m_uiCpbRemovalDelay = uiCpbRemovalDelay;
+  return Err::m_nOK;
+}
+
+
+ErrVal SEI::PicTiming::read( HeaderSymbolReadIf* pcReadIf )
+{
+  const HRD* pcHRD = NULL;
+  if( m_rcVUI.getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  {
+    pcHRD = &m_rcVUI.getNalHrd(m_uiLayerIndex);
+  }
+  else if( m_rcVUI.getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  {
+    pcHRD = &m_rcVUI.getVclHrd(m_uiLayerIndex);
+  }
+
+  if( NULL != pcHRD )
+  {
+    RNOKS( pcReadIf->getCode( m_uiCpbRemovalDelay,  pcHRD->getCpbRemovalDelayLength(), "SEI: cpb_removal_delay"  ) );
+    RNOKS( pcReadIf->getCode( m_uiDpbOutputDelay,   pcHRD->getDpbOutputDelayLength(),  "SEI: dpb_output_delay"   ) );
+  }
+
+  if( m_rcVUI.getPicStructPresentFlag(m_uiLayerIndex) )
+  {
+    RNOKS( pcReadIf->getCode( (UInt&)m_ePicStruct, 4, "SEI: pic_struct" ) );
+    AOT( NULL == pcHRD );
+    UInt uiNumClockTs = getNumClockTs(); 
+    for( UInt n = 0; n < uiNumClockTs ; n++ ) 
+    {
+      RNOKS( m_acClockTimestampBuf.get( n ).read( pcReadIf, *pcHRD ) );
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal SEI::PicTiming::ClockTimestamp::write( HeaderSymbolWriteIf* pcWriteIf, const HRD& rcHRD )
+{
+  RNOK( pcWriteIf->writeFlag( m_bClockTimestampFlag, "SEI: clock_timestamp_flag"   ) );
+
+  ROFRS( m_bClockTimestampFlag, Err::m_nOK );
+
+  m_bFullTimestampFlag = (0 != m_uiHours);
+
+  RNOK( pcWriteIf->writeCode( m_uiCtType, 2,         "SEI: ct_type"                ) );
+  RNOK( pcWriteIf->writeFlag( m_bNuitFieldBasedFlag, "SEI: nuit_field_based_flag"  ) );
+  RNOK( pcWriteIf->writeCode( m_uiCountingType, 5,   "SEI: counting_type"          ) );
+  RNOK( pcWriteIf->writeFlag( m_bFullTimestampFlag,  "SEI: full_timestamp_flag"    ) );
+  RNOK( pcWriteIf->writeFlag( m_bDiscontinuityFlag,  "SEI: discontinuity_flag"     ) );
+  RNOK( pcWriteIf->writeFlag( m_bCntDroppedFlag,     "SEI: cnt_dropped_flag"       ) );
+  RNOK( pcWriteIf->writeCode( m_uiNFrames, 8,        "SEI: n_frames"               ) );
+
+  if( m_bFullTimestampFlag )
+  {
+    RNOK( pcWriteIf->writeCode( m_uiSeconds, 6,      "SEI: seconds_value"          ) );
+    RNOK( pcWriteIf->writeCode( m_uiMinutes, 6,      "SEI: minutes_value"          ) );
+    RNOK( pcWriteIf->writeCode( m_uiHours,   5,      "SEI: hours_value"            ) );
+  }
+  else
+  {
+    Bool bHoursFlag   = ( 0 != m_uiHours );
+    Bool bMinutesFlag = ( 0 != m_uiMinutes ) || bHoursFlag;
+    Bool bSecondFlag  = ( 0 != m_uiSeconds ) || bMinutesFlag;
+
+    RNOK( pcWriteIf->writeFlag( bSecondFlag,         "SEI: seconds_flag"           ) );
+    if( bSecondFlag )
+    {
+      RNOK( pcWriteIf->writeCode( m_uiSeconds, 6,    "SEI: seconds_value"          ) );
+      RNOK( pcWriteIf->writeFlag( bMinutesFlag,      "SEI: minutes_flag"           ) );
+      if( bMinutesFlag )
+      {
+        RNOK( pcWriteIf->writeCode( m_uiMinutes, 6,  "SEI: minutes_value"          ) );
+        RNOK( pcWriteIf->writeFlag( bHoursFlag,      "SEI: hours_flag"             ) );
+        if( bHoursFlag )
+        {
+          RNOK( pcWriteIf->writeCode( m_uiHours, 5,  "SEI: hours_value"            ) );
+        }
+      }
+    }
+  }
+
+  if( rcHRD.getTimeOffsetLength() > 0 )
+  {
+    RNOK( pcWriteIf->writeSCode( m_iTimeOffset, rcHRD.getTimeOffsetLength(), "SEI: time_offset" ) );
+  }
+  return Err::m_nOK;
+}
+
+ErrVal SEI::PicTiming::ClockTimestamp::read( HeaderSymbolReadIf* pcReadIf, const HRD& rcHRD )
+{
+  RNOKS( pcReadIf->getFlag( m_bClockTimestampFlag, "SEI: clock_timestamp_flag"   ) );
+
+  ROFRS( m_bClockTimestampFlag, Err::m_nOK );
+
+  RNOKS( pcReadIf->getCode( m_uiCtType, 2,         "SEI: ct_type"                ) );
+  RNOKS( pcReadIf->getFlag( m_bNuitFieldBasedFlag, "SEI: nuit_field_based_flag"  ) );
+  RNOKS( pcReadIf->getCode( m_uiCountingType, 5,   "SEI: counting_type"          ) );
+  RNOKS( pcReadIf->getFlag( m_bFullTimestampFlag,  "SEI: full_timestamp_flag"    ) );
+  RNOKS( pcReadIf->getFlag( m_bDiscontinuityFlag,  "SEI: discontinuity_flag"     ) );
+  RNOKS( pcReadIf->getFlag( m_bCntDroppedFlag,     "SEI: cnt_dropped_flag"       ) );
+  RNOKS( pcReadIf->getCode( m_uiNFrames, 8,        "SEI: n_frames"               ) );
+
+  if( m_bFullTimestampFlag )
+  {
+    RNOKS( pcReadIf->getCode( m_uiSeconds, 6,      "SEI: seconds_value"          ) );
+    RNOKS( pcReadIf->getCode( m_uiMinutes, 6,      "SEI: minutes_value"          ) );
+    RNOKS( pcReadIf->getCode( m_uiHours,   5,      "SEI: hours_value"            ) );
+  }
+  else
+  {
+    Bool bSecondFlag;
+    RNOKS( pcReadIf->getFlag( bSecondFlag,         "SEI: seconds_flag"           ) );
+    if( bSecondFlag )
+    {
+      RNOKS( pcReadIf->getCode( m_uiSeconds, 6,    "SEI: seconds_value"          ) );
+      Bool bMinutesFlag;
+      RNOKS( pcReadIf->getFlag( bMinutesFlag,      "SEI: minutes_flag"           ) );
+      if( bMinutesFlag )
+      {
+        RNOKS( pcReadIf->getCode( m_uiMinutes, 6,  "SEI: minutes_value"          ) );
+        Bool bHoursFlag;
+        RNOKS( pcReadIf->getFlag( bHoursFlag,      "SEI: hours_flag"             ) );
+        if( bHoursFlag )
+        {
+          RNOKS( pcReadIf->getCode( m_uiHours, 5,  "SEI: hours_value"            ) );
+        }
+      }
+    }
+  }
+
+  if( rcHRD.getTimeOffsetLength() > 0 )
+  {
+    RNOKS( pcReadIf->getSCode( m_iTimeOffset, rcHRD.getTimeOffsetLength(), "SEI: time_offset" ) );
+  }
+  return Err::m_nOK;
+}
+
+Int SEI::PicTiming::ClockTimestamp::get( const VUI& rcVUI, UInt uiLayerIndex )
+{
+  const VUI::TimingInfo& rcTimingInfo = rcVUI.getTimingInfo( uiLayerIndex );
+  Int iTimeOffset  = (((m_uiHours * 60 + m_uiMinutes) * 60) + m_uiSeconds ) * rcTimingInfo.getTimeScale();
+  Int iFrameOffset = m_uiNFrames * ( rcTimingInfo.getNumUnitsInTick() * (m_bNuitFieldBasedFlag?2:1));
+
+  return iTimeOffset + iFrameOffset + m_iTimeOffset;
+}
+
+Void SEI::PicTiming::ClockTimestamp::set( const VUI& rcVUI, UInt uiLayerIndex, Int iTimestamp )
+{
+  const VUI::TimingInfo& rcTimingInfo = rcVUI.getTimingInfo(uiLayerIndex);
+  Int iTime     = iTimestamp / rcTimingInfo.getTimeScale();
+  Int iTimeSub  = 0;
+  m_uiHours     = iTime / 360;
+  iTimeSub      = m_uiHours * 360;
+  m_uiMinutes   = (iTime - iTimeSub) / 60;
+  iTimeSub     += m_uiMinutes * 60;
+  m_uiSeconds   = iTime - iTimeSub;
+  iTimeSub     += m_uiSeconds;
+
+  iTime         = iTimestamp - iTimeSub * rcTimingInfo.getTimeScale();
+
+  Int iScale    = ( rcTimingInfo.getNumUnitsInTick() * (m_bNuitFieldBasedFlag?2:1));
+  m_uiNFrames   = iTime / iScale;
+  m_iTimeOffset = iTime - m_uiNFrames * iScale;
+}
+
+ErrVal SEI::AVCCompatibleHRD::create( AVCCompatibleHRD*& rpcAVCCompatibleHRD, VUI* pcVUI )
+{
+  ROT( NULL == pcVUI );
+  rpcAVCCompatibleHRD = new AVCCompatibleHRD( *pcVUI );
+  ROT( NULL == rpcAVCCompatibleHRD );
+  return Err::m_nOK;
+}
+
+ErrVal SEI::AVCCompatibleHRD::write( HeaderSymbolWriteIf* pcWriteIf )
+{
+  AOF( m_rcVUI.getNumTemporalLevels() > 1 );
+
+  RNOK( pcWriteIf->writeUvlc( m_rcVUI.getNumLayers() - 1,  "SEI: num_of_temporal_layers_in_base_layer_minus1"  ) );
+
+  for ( UInt ui = 0; ui < m_rcVUI.getNumLayers(); ui++ )
+  {
+    VUI::LayerInfo& rcLayerInfo = m_rcVUI.getLayerInfo(ui);
+    if ( rcLayerInfo.getTemporalLevel() < m_rcVUI.getNumTemporalLevels() - 1 )
+    {
+      RNOK( pcWriteIf->writeCode( rcLayerInfo.getTemporalLevel(), 3,  "SEI: temporal_level"  ) );
+      RNOK( m_rcVUI.getTimingInfo(ui).write( pcWriteIf) );
+      RNOK( m_rcVUI.getNalHrd(ui).write( pcWriteIf ) );
+      RNOK( m_rcVUI.getVclHrd(ui).write( pcWriteIf ) );
+      if( m_rcVUI.getNalHrd(ui).getHrdParametersPresentFlag() || m_rcVUI.getVclHrd(ui).getHrdParametersPresentFlag() )
+      {
+        RNOK( pcWriteIf->writeFlag( m_rcVUI.getLowDelayHrdFlag(ui),           "VUI: low_delay_hrd_flag[i]"));
+      }
+      RNOK( pcWriteIf->writeFlag( m_rcVUI.getPicStructPresentFlag(ui),        "VUI: pic_struct_present_flag[i]"));
+    }
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::AVCCompatibleHRD::read( HeaderSymbolReadIf* pcReadIf )
+{
+  AF();
+  return Err::m_nOK;
+}
+
+// JVT-V068 HRD }
+
 H264AVC_NAMESPACE_END

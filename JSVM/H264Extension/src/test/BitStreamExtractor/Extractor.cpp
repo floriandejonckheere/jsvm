@@ -1865,6 +1865,15 @@ Extractor::xExtractPoints()
 			bFirstPacket = false;
     delete pcScalableSEIMessage;
 
+    // JVT-V068 {
+    if ( cPacketDescription.bDiscardableHRDSEI )
+    {
+      uiNumInput++;
+      Count++;
+      continue;
+    }
+    // JVT-V068 }
+
     // consider ROI Extraction ICU/ETRI DS
     if (false == CurNalKeepingNeed(cPacketDescription, rcExtPoint))
     {

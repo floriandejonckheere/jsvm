@@ -557,6 +557,9 @@
 				RelativePath=".\RecPicBuffer.cpp">
 			</File>
 			<File
+				RelativePath=".\Scheduler.cpp">
+			</File>
+			<File
 				RelativePath=".\SequenceStructure.cpp">
 			</File>
 			<File
@@ -686,6 +689,9 @@
 			</File>
 			<File
 				RelativePath=".\RecPicBuffer.h">
+			</File>
+			<File
+				RelativePath=".\Scheduler.h">
 			</File>
 			<File
 				RelativePath=".\SequenceStructure.h">

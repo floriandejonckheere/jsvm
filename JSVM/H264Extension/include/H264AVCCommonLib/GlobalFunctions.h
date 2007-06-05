@@ -146,6 +146,19 @@ Int gIntRandom(const Int iMin, const Int iMax)
 }
 //TMM_WP
 
+// JVT-V068 HRD {
+__inline
+Int gGetNumberOfLSBZeros( UInt ui )
+{
+  ROTRS( ui == 0, 0);
+  for( Int i = 0; ; i++)
+  {
+    ROTRS( (ui&1) == 1, i);
+    ui >>= 1;
+  }
+}
+// JVT-V068 HRD }
+
 H264AVC_NAMESPACE_END
 
 

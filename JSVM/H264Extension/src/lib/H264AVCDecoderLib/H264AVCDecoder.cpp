@@ -1605,7 +1605,12 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       //===== just for trace file =====
       SEI::MessageList  cMessageList;
 			UInt	i;
-      RNOK( SEI::read( m_pcHeaderSymbolReadIf, cMessageList ) );
+      RNOK( SEI::read( m_pcHeaderSymbolReadIf, cMessageList
+    				// JVT-V068 HRD }
+					, m_pcParameterSetMng 
+    				// JVT-V068 HRD }
+			) );
+
       while( ! cMessageList.empty() )
       {
         SEI::SEIMessage*  pcSEIMessage = cMessageList.popBack();

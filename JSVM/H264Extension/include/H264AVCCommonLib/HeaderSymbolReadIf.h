@@ -103,6 +103,9 @@ public:
   virtual ErrVal  getSvlc     ( Int& riCode, Char* pcTraceString ) = 0;
   virtual ErrVal  getUvlc     ( UInt& ruiCode, Char* pcTraceString ) = 0;
   virtual ErrVal  getCode     ( UInt& ruiCode, UInt uiLength, Char* pcTraceString ) = 0;
+  // JVT-V068 HRD {
+  virtual ErrVal getSCode( Int& riCode, UInt uiLength, Char* pcTraceString ) = 0;
+  // JVT-V068 HRD }
   virtual ErrVal  getFlag     ( Bool& rbFlag, Char* pcTraceString ) = 0;
   virtual ErrVal  readByteAlign() = 0;
 // JVT-T073 {

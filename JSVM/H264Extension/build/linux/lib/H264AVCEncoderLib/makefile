@@ -59,6 +59,7 @@ OBJS          	= \
 			$(OBJ_DIR)/SequenceStructure.o \
 			$(OBJ_DIR)/SliceEncoder.o \
 			$(OBJ_DIR)/UvlcWriter.o \
+			$(OBJ_DIR)/Scheduler.o \
 				
 
 LIBS				= -lpthread

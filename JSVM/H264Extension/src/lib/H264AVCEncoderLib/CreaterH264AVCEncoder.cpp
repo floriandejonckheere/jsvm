@@ -114,7 +114,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/TraceFile.h"
 #include "FGSSubbandEncoder.h"
 #include "PicEncoder.h"
-
+// JVT-V068 HRD {
+#include "Scheduler.h"
+#include "H264AVCCommonLib/SequenceParameterSet.h"
+// JVT-V068 HRD }
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -173,6 +176,9 @@ CreaterH264AVCEncoder::SetVeryFirstCall()
 
 ErrVal
 CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,
+                                           // JVT-V068 {
+                                           SequenceParameterSet* pcAVCSPS,
+                                           // JVT-V068 }
                                            Bool&               rbMoreSets )
 {
   if( m_pcCodingParameter->getAVCmode() )
@@ -181,7 +187,11 @@ CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAcces
     m_pcH264AVCEncoder->setScalableSEIMessage(); // due to Nokia's (Ye-Kui's) weird implementation
     return Err::m_nOK;
   }
-  RNOK( m_pcH264AVCEncoder->writeParameterSets( pcExtBinDataAccessor, rbMoreSets ) );
+  RNOK( m_pcH264AVCEncoder->writeParameterSets( pcExtBinDataAccessor
+                                           		// JVT-V068 {
+												, pcAVCSPS
+                                           		// JVT-V068 }
+												, rbMoreSets ) );
   return Err::m_nOK;
 }
 
@@ -343,6 +353,14 @@ CreaterH264AVCEncoder::destroy()
     RNOK( m_apcPocCalculator        [uiLayer] ->destroy() );
   }
 
+  // JVT-V068 {
+  for( UInt uiIndex = 0; uiIndex < MAX_SCALABLE_LAYERS; uiIndex++ )
+  {
+    if (m_apcScheduler[uiIndex]) m_apcScheduler[uiIndex]->destroy();
+  }
+  m_apcScheduler.clear();
+  // JVT-V068 }
+
   delete this;
 
   return Err::m_nOK;
@@ -441,7 +459,11 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             m_pcNalUnitEncoder,
                                             m_pcControlMng,
                                             pcCodingParameter,
-                                            m_pcFrameMng) );
+                                            m_pcFrameMng
+                                            // JVT-V068 {
+                                            ,&m_apcScheduler
+                                            // JVT-V068 }
+                                          ) );
 
   RNOK( m_pcRQFGSEncoder            ->init( m_apcYuvFullPelBufferCtrl,
                                             m_apcYuvHalfPelBufferCtrl,
@@ -469,7 +491,10 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
 										   //JVT-U106 Behaviour at slice boundaries{
 										   ,m_pcReconstructionBypass
 										   //JVT-U106 Behaviour at slice boundaries}
-										   ) );
+                                          // JVT-V068 {
+                                          ,&m_apcScheduler
+                                          // JVT-V068 }
+										                    ) );
   
   //EIDR bug-fix
 	m_apcMCTFEncoder[uiLayer]->setIDRAccessPeriod(m_pcCodingParameter->getLayerParameters(0).getIDRPeriod()); 
@@ -539,7 +564,12 @@ CreaterH264AVCEncoder::uninit()
   return Err::m_nOK;
 }
 
-
-
+// JVT-V068 {
+ErrVal CreaterH264AVCEncoder::writeAVCCompatibleHRDSEI( ExtBinDataAccessor* pcExtBinDataAccessor, SequenceParameterSet* pcAVCSPS )
+{
+  RNOK( m_pcH264AVCEncoder->writeAVCCompatibleHRDSEI(pcExtBinDataAccessor, *pcAVCSPS) );
+  return Err::m_nOK;
+}
+// JVT-V068 }
 
 H264AVC_NAMESPACE_END

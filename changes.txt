@@ -1,4 +1,27 @@
-﻿JSVM_8_11 -> JSVM_8_12
+﻿JSVM_8_12 -> JSVM_8_13
+========================
+Date        : May 09, 2007
+Author      : Jiancong Luo (Thomson)
+Contribution: JVT-V068
+
+Changes:
+- 27 files are modified and 6 files are added.
+- added Buffering Period SEI, Picture Timing SEI, AVC Temporal HRD SEI.
+- modified nesting scalable SEI.
+- added VUI in SPS.
+- added HSS and HRD, including time calculation and writting of HRD parameters and timing 
+  information in VUI and writing of the Buffering Period SEI, Picture Timing SEI, AVC 
+  Temporal HRD SEI and nesting scalable SEI containing Buffering Period SEI and 
+  Picture Timing SEI for SVC layers.
+- Added options to the encoder.cfg file to enable HRD.
+
+Notes:
+1.Currently, only each HRD only support one scheduler, i.e. cpb_cnt_minus1 = 0. 
+  For the HRD parameters, the BitRate and CpbSize of each scheduler are derived from 
+  Table A-1 and Table A-2 based on the level and HRD type.
+2.Changes can be found by searching "// JVT-V068"  
+
+JSVM_8_11 -> JSVM_8_12
 ======================
 Date        : May 18, 2007
 Author      : Andrew Segall, Jie Zhao (Sharp)

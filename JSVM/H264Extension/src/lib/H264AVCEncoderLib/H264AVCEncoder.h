@@ -136,10 +136,17 @@ public:
                           NalUnitEncoder*   pcNalUnitEncoder,
                           ControlMngIf*     pcControlMng,
                           CodingParameter*  pcCodingParameter,
-                          FrameMng*         pcFrameMng );
+                          FrameMng*         pcFrameMng 
+                          // JVT-V068 {
+                          ,StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler 
+                          // JVT-V068 }
+                        );
   virtual ErrVal uninit ();
 
   ErrVal writeParameterSets ( ExtBinDataAccessor*       pcExtBinDataAccessor,
+                              // JVT-V068 {
+                              SequenceParameterSet *pcAVCSPS, 
+                              // JVT-V068 }
                               Bool&                     rbMoreSets );
   ErrVal process            ( ExtBinDataAccessorList&   rcExtBinDataAccessorList, 
                               PicBuffer*                apcOriginalPicBuffer   [MAX_LAYERS],
@@ -210,6 +217,10 @@ public:
 // JVT-T073 }
 
   Void setScalableSEIMessage  ()       { m_bScalableSeiMessage = true; }
+// JVT-V068 HRD {
+  Void setBufferPeriodSEIMessage()     { m_bWriteBufferingPeriodSEI = true; }
+  ErrVal writeAVCCompatibleHRDSEI( ExtBinDataAccessor* pcExtBinDataAccessor, SequenceParameterSet& rcSPS );
+// JVT-V068 HRD }
 	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
 	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }
 	Double* dGetFramerate				()			 { return m_dFinalFramerate; }
@@ -248,10 +259,16 @@ public:
 
 protected:
   ErrVal xInitParameterSets ();
+// JVT-V068 HRD {
+	ErrVal xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt uiLayer );
+// JVT-V068 HRD }
   ErrVal xWriteScalableSEI  ( ExtBinDataAccessor*       pcExtBinDataAccessor );
 	ErrVal xWriteSubPicSEI		( ExtBinDataAccessor*				pcExtBinDataAccessor );
 	ErrVal xWriteSubPicSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt layer_id ) ;
 	ErrVal xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt sg_id ) ;
+// JVT-V068 HRD {
+  ErrVal xWriteBufferingPeriodSEI ( ExtBinDataAccessor*  pcExtBinDataAccessor );
+// JVT-V068 HRD }
 
   ErrVal xProcessGOP        ( PicBufferList*            apcPicBufferOutputList, 
                               PicBufferList*            apcPicBufferUnusedList );
@@ -290,6 +307,10 @@ protected:
 
   // ICU / ETRI ROI 
   Bool    m_bWrteROISEI;
+// JVT-V068 HRD {
+  Bool    m_bWriteBufferingPeriodSEI;
+  StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* m_apcScheduler;
+// JVT-V068 HRD }
   UInt    m_loop_roi_sei;
 };
 

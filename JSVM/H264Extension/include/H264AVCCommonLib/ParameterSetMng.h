@@ -121,6 +121,9 @@ public:
   ErrVal get( PictureParameterSet *& rpcPPS, UInt uiPPSId );
   Bool   isValidPPS( UInt uiPPSId )                    { return m_cPPSBuf.isValidOffset(uiPPSId) && NULL != m_cPPSBuf.get( uiPPSId); }
   ErrVal store( PictureParameterSet* pcPPS );
+  // JVT-V068 HRD {
+  ErrVal getActiveSPS( SequenceParameterSet *& rpcSPS); 
+  // JVT-V068 HRD }
 
 private:
   ErrVal xDestroyPPS(UInt uiPPSId);
