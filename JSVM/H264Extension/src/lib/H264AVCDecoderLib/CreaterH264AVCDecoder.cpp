@@ -596,6 +596,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   Bool      bLayerBaseFlag=false;
   Bool      bUseBasePredFlag=false;
   Bool      bDiscardableFlag = false;
+	Bool      m_bOutputFlag   = true;//JVT-W047
   Bool bFragmentedFlag = false; //JVT-P031
   UInt uiFragmentOrder = 0; //JVT-P031
   Bool bLastFragmentFlag = false; //JVT-P031
@@ -625,6 +626,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 	  eNalUnitType == NAL_UNIT_PREFIX  )//prefix unit
   {
     ucByte             = (pcBinData->data())[1];
+		m_bOutputFlag      = ( ucByte >> 6) & 1;  //JVT-W047 
     uiSimplePriorityId = ( ucByte & 63 );   // fix (Heiko Schwarz)
     //uiSimplePriorityId = ( ucByte >> 2);  // fix (Heiko Schwarz)
 
@@ -827,6 +829,59 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       }
       // JVT-V068 }
 
+			//JVT-W052
+		case SEI::INTE_CHECK_SEI:
+			{
+				SEI::IntegrityCheckSEI* pcSEI = (SEI::IntegrityCheckSEI*) pcSEIMessage;
+				break;
+			}
+			//JVT-W052
+
+			//JVT-W049 { 
+	case SEI::REDUNDANT_PIC_SEI:
+	  {
+		SEI::RedundantPicSei* pcSEI = (SEI::RedundantPicSei*) pcSEIMessage;
+    UInt uiNumDIdMinus1;
+		UInt uiNumDId;
+		UInt *puiNumQIdMinus1, *puiDependencyId;
+		UInt **ppuiQualityId, **ppuiNumRedundantPicsMinus1;
+		UInt ***pppuiRedundantPicCntMinus1;
+		
+		uiNumDIdMinus1 = pcSEI->getNumDIdMinus1( );
+		uiNumDId = uiNumDIdMinus1 + 1;
+		puiNumQIdMinus1              = new UInt[uiNumDId];
+		puiDependencyId              = new UInt[uiNumDId]; 
+		ppuiQualityId                 = new UInt*[uiNumDId];
+		ppuiNumRedundantPicsMinus1    = new UInt*[uiNumDId];
+    pppuiRedundantPicCntMinus1     = new UInt**[uiNumDId];
+		for(UInt ui = 0; ui <= uiNumDIdMinus1; ui++)
+		{
+	    puiDependencyId[ui] = pcSEI->getDependencyId ( ui );
+      puiNumQIdMinus1[ui] = pcSEI->getNumQIdMinus1 ( ui );
+		  ppuiQualityId[ui]                = new UInt[puiNumQIdMinus1[ui]+1];
+		  ppuiNumRedundantPicsMinus1[ui]   = new UInt[puiNumQIdMinus1[ui]+1];
+		  pppuiRedundantPicCntMinus1[ui]    = new UInt*[puiNumQIdMinus1[ui]+1];
+		  for(UInt uj = 0; uj <= puiNumQIdMinus1[ui]; uj++)
+		  {
+			ppuiQualityId[ui][uj]  = pcSEI->getQualityId ( ui, uj );
+			ppuiNumRedundantPicsMinus1[ui][uj]  = pcSEI->getNumRedundantPicsMinus1 ( ui, uj );
+            pppuiRedundantPicCntMinus1[ui][uj] = new UInt[ppuiNumRedundantPicsMinus1[ui][uj] +1];
+			for(UInt uk = 0; uk <= ppuiNumRedundantPicsMinus1[ui][uj]; uk++)
+			{
+              pppuiRedundantPicCntMinus1[ui][uj][uk] = pcSEI->getRedundantPicCntMinus1 ( ui, uj, uk );
+			}
+		  }                                                           			                                               		                                
+		}
+		
+        delete puiNumQIdMinus1;
+        delete puiDependencyId;
+        delete ppuiQualityId;
+				delete ppuiNumRedundantPicsMinus1;
+        delete pppuiRedundantPicCntMinus1;
+
+		break;
+	  }
+   //JVT-W049 }
       default:
         {
           delete pcSEIMessage;
@@ -1031,6 +1086,20 @@ CreaterH264AVCDecoder::checkRedundantPic()
 
 
 // JVT-Q054 Red. Picture }
+
+//JVT-W049 {
+
+Void 
+CreaterH264AVCDecoder::deleteRedSH()
+{
+  m_pcH264AVCDecoder->deleteRedSH();
+}
+Void
+CreaterH264AVCDecoder::setRedundantPicDefault( Bool bValue )
+{
+	m_pcH264AVCDecoder->setRedundantPicDefault( bValue );
+}
+//JVT-W049 }
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 bool

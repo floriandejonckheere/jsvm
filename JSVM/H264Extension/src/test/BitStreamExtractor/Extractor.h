@@ -416,7 +416,23 @@ protected:
   Double                        m_aadMinBitrate[MAX_LAYERS][MAX_TEMP_LEVELS];
   Double                        m_aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
   Double                        m_adTotalBitrate[MAX_SCALABLE_LAYERS];
-
+//JVT-W046 {
+  Bool													m_bAvc_Layer_Conversion_Flag[MAX_SCALABLE_LAYERS];
+	UInt													m_uiAvc_Conversion_Type_Idc[MAX_SCALABLE_LAYERS];
+	Bool													m_bAvc_Info_Flag[MAX_SCALABLE_LAYERS][2];
+	Int32													m_uiAvc_Profile_Level_Idc[MAX_SCALABLE_LAYERS][2];
+	UInt												  m_dAvc_Avg_Bitrate[MAX_SCALABLE_LAYERS][2];
+	UInt												  m_dAvc_Max_Bitrate[MAX_SCALABLE_LAYERS][2];
+//JVT-W046 }
+	//JVT-W051 {
+	UInt													m_uiQl_num_dId_minus1;
+	UInt													m_uiQl_Dependency_Id[MAX_LAYERS];
+	UInt													m_uiQl_num_minus1[MAX_LAYERS];
+	UInt													m_uiQl_Id[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	Int32													m_uiQl_Profile_Level_Idc[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	UInt													m_dQl_Avg_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	UInt													m_dQl_Max_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	//JVT-W051 }
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)

@@ -98,6 +98,7 @@ NalUnitParser::NalUnitParser()
 , m_pucBuffer           ( 0 )
 , m_eNalUnitType        ( NAL_UNIT_EXTERNAL )
 , m_eNalRefIdc          ( NAL_REF_IDC_PRIORITY_LOWEST )
+, m_bOutputFlag         (true)//JVT-W047
 , m_uiLayerId           ( 0 )
 , m_uiTemporalLevel     ( 0 )
 , m_uiQualityLevel      ( 0 )
@@ -419,7 +420,8 @@ NalUnitParser::initNalUnit( BinDataAccessor*  pcBinDataAccessor,
       ROF( pcBinDataAccessor->size() > 3 );
 
       ucByte              = pcBinDataAccessor->data()[1];
-      ROT( ucByte & 0xC0 );                                 // reserved_zero_two_bitst ( &11000000b)
+      ROT( ucByte & 0x80 );                                 // reserved_zero_one_bitst ( &10000000b) JVT-W047
+			m_bOutputFlag         = ( ucByte >> 6) & 1;						// output_flag             ( &01000000b) JVT-W047
       m_uiPriorityId        = ( ucByte >> 2);               // priority_id             ( &00111111b)
 
       ucByte              = pcBinDataAccessor->data()[2];
@@ -446,7 +448,7 @@ NalUnitParser::initNalUnit( BinDataAccessor*  pcBinDataAccessor,
     else
     {
       m_uiPriorityId    = 0;
-
+			m_bOutputFlag     = true;//JVT-W047
       m_uiTemporalLevel = 0;
       m_uiLayerId       = 0;
       m_uiQualityLevel  = 0;

@@ -385,6 +385,10 @@ public:
   Bool	getUnusedForRef()			  { return m_bUnusedForRef; }
   Void	setUnusedForRef( Bool b )	  { m_bUnusedForRef = b; }
 // JVT-Q065 EIDR}
+//EIDR 0619{
+	UInt	getIdrPicId()				{return m_uiIdrPicId;}
+	Void	setIdrPicId(UInt ui)				{ m_uiIdrPicId=ui;	}
+//EIDR 0619}
 
 
   Bool  isHalfPel()   { return m_bHalfPel; }
@@ -432,6 +436,7 @@ protected:
 
   DPBUnit*        m_pcDPBUnit;
   Bool			  m_bUnusedForRef; // JVT-Q065 EIDR
+	UInt				m_uiIdrPicId; //EIDR 0619
   // JVT-R057 LA-RDO{
   UInt*            m_piChannelDistortion;
   // JVT-R057 LA-RDO}

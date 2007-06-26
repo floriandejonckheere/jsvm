@@ -277,8 +277,20 @@ public:
 	UInt	m_uiNextLayerId;
 	UInt	m_uiNextPoc;
 	UInt	m_uiNextTempLevel;
-	UInt	*m_pauiPocInGOP[MAX_LAYERS];
-	UInt	*m_pauiFrameNumInGOP[MAX_LAYERS];
+	//JVT-W049 {
+    #define MAX_GOP_FRAME 64
+	UInt	m_uiNextFrameNumRedu;
+	UInt	m_uiNextLayerIdRedu;
+	UInt	m_uiNextPocLsbRedu;
+	Bool    m_bNextRedu[MAX_LAYERS];
+	UInt    m_pauiPocInGOP[MAX_LAYERS][MAX_GOP_FRAME];
+	UInt    m_pauiFrameNumInGOP[MAX_LAYERS][MAX_GOP_FRAME];
+	//UInt	*m_pauiPocInGOP[MAX_LAYERS];
+	//UInt	*m_pauiFrameNumInGOP[MAX_LAYERS];
+  UInt    m_uiNumDId;
+  UInt    m_uiHaveRed[MAX_LAYERS][MAX_QUALITY_LEVELS];
+  UInt    m_uiNumQId[MAX_LAYERS];
+	//JVT-W049 }
 	UInt	*m_pauiTempLevelInGOP[MAX_LAYERS];
 	UInt	m_uiDecompositionStages[MAX_LAYERS];
 	UInt	m_uiNumLayers;
@@ -298,6 +310,15 @@ public:
   UInt isNonRequiredPic()						  { return m_uiNonRequiredPic;  } //NonRequired JVT-Q066
   Bool isRedundantPic()             { return m_bRedundantPic; }  // JVT-Q054 Red. Picture
   ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
+	//JVT-W049 {
+	Void deleteRedSH()               { if (m_pcSliceHeader) { delete m_pcSliceHeader; m_pcSliceHeader = NULL;} }
+  Bool bKeyPicReduUseAvc ;
+  Bool bKeyPicReduUseSvc[MAX_LAYERS] ;
+  Bool bIfNextFrame ;
+  UInt uiLastFrameNum;
+  UInt uiLastPocLsb;
+  Void    setRedundantPicDefault( Bool value) { m_bRedundantPic = value; }
+  //JVT-W049 }
   Void    setFGSRefInAU(Bool &b); //JVT-T054
   //JVT-T054_FIX{
   ErrVal UpdateAVCList(SliceHeader *pcSliceHeader);

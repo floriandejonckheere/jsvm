@@ -161,48 +161,53 @@ public:
 
 
   ErrVal  getBaseLayerStatus  ( UInt&         ruiBaseLayerId,
-                                UInt&         ruiBaseLayerIdMotionOnly,
-                                Int&          riSpatialScalabilityType,
-                                UInt          uiLayerId,
-                                Int           iPoc,
-																PicType       ePicType );
+																UInt&         ruiBaseLayerIdMotionOnly,
+																Int&          riSpatialScalabilityType,
+																UInt          uiLayerId,
+																Int           iPoc,
+																PicType       ePicType,
+																UInt					uiIdrPicId);//EIDR 0619
 
-  ErrVal  getBaseLayerDataAvailability  ( IntFrame*&    pcFrame,
-                                          IntFrame*&    pcResidual,
-                                          MbDataCtrl*&  pcMbDataCtrl,
-                                          Bool&         bConstrainedIPredBL,
-                                          Bool&         bForCopyOnly,
-                                          Int                             iSpatialScalability,
-                                          UInt          uiBaseLayerId,
-                                          Int           iPoc,
-                                          Bool          bMotion,
-                                          Bool&         bBaseDataAvailable,
-                                          PicType       ePicType);
-                                          
-  ErrVal  getBaseLayerData    ( IntFrame*&    pcFrame,
-                                IntFrame*&    pcResidual,
-                                MbDataCtrl*&  pcMbDataCtrl,
+	ErrVal  getBaseLayerDataAvailability  ( IntFrame*&    pcFrame,
+																					IntFrame*&    pcResidual,
+																					MbDataCtrl*&  pcMbDataCtrl,
+																					Bool&         bConstrainedIPredBL,
+																					Bool&         bForCopyOnly,
+																					Int                             iSpatialScalability,
+																					UInt          uiBaseLayerId,
+																					Int           iPoc,
+																					Bool          bMotion,
+																					Bool&         bBaseDataAvailable,
+																					PicType       ePicType,
+																					UInt					uiIdrPicId);//EIDR 0619
+
+	ErrVal  getBaseLayerData    ( IntFrame*&    pcFrame,
+																IntFrame*&    pcResidual,
+																MbDataCtrl*&  pcMbDataCtrl,
 																MbDataCtrl*&  pcMbDataCtrlEL,
-                                Bool&         bConstrainedIPredBL,
-                                Bool&         bForCopyOnly,
-                                Int                             iSpatialScalability,
-                                UInt          uiBaseLayerId,
-                                Int           iPoc,
-                                Bool					bMotion,
-																PicType       ePicType );
+																Bool&         bConstrainedIPredBL,
+																Bool&         bForCopyOnly,
+																Int                             iSpatialScalability,
+																UInt          uiBaseLayerId,
+																Int           iPoc,
+																Bool					bMotion,
+																PicType       ePicType,
+																UInt					uiIdrPicId);//EIDR 0619
 
-  ErrVal getBaseLayerResidual( IntFrame*&      pcResidual, UInt            uiBaseLayerId);
+	ErrVal getBaseLayerResidual( IntFrame*&      pcResidual, UInt            uiBaseLayerId);
 
-  ErrVal  getBaseLayerSH      ( SliceHeader*& rpcSliceHeader,
-                                UInt          uiBaseLayerId,
-                                Int           iPoc,
-                                PicType      ePicType );
+	ErrVal  getBaseLayerSH      ( SliceHeader*& rpcSliceHeader,
+																UInt          uiBaseLayerId,
+																Int           iPoc,
+																PicType      ePicType,
+																UInt					uiIdrPicId);//EIDR 0619
 
-  UInt    getNewBits          ( UInt          uiBaseLayerId );
+	UInt    getNewBits          ( UInt          uiBaseLayerId );
 
 
-  IntFrame* getLowPassRec     ( UInt uiLayerId );
-  IntFrame* getELRefPic       ( UInt uiLayerId, Int iPoc );
+	IntFrame* getLowPassRec     ( UInt uiLayerId );
+	IntFrame* getELRefPic       ( UInt uiLayerId, Int iPoc,
+																UInt uiIdrPicId);//EIDR 0619
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -231,12 +236,19 @@ public:
 	Double m_aaadSingleLayerBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 	UInt   m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 // BUG_FIX liuhui}
+
+	//JVT-W052
+	CodingParameter*  getCodingParameter()  { return m_pcCodingParameter;}
+	SEI::IntegrityCheckSEI * getIntegrityCheckSEI() {return m_pcIntegrityCheckSEI; }
+	//JVT-W052
+
 // JVT-S080 LMI {
   ErrVal xWriteScalableSEILayersNotPresent( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiInputLayers, UInt* m_layer_id);
   ErrVal xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag, 
 												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1);
 // JVT-S080 LMI }
 
+	ErrVal xCalMaxBitrate(UInt uiLayer);//JVT-W051 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   ErrVal  xCreateAvcRewriteEncoder();
   ErrVal  xInitAvcRewriteEncoder();
@@ -312,6 +324,28 @@ protected:
   StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* m_apcScheduler;
 // JVT-V068 HRD }
   UInt    m_loop_roi_sei;
+	//JVT-W051 {
+	UInt m_uiFrameNumInGOP[MAX_LAYERS];
+	UInt m_uiCodeFrameNum[MAX_LAYERS];
+	Double	m_aaadFrameInGOPBits[65][MAX_LAYERS][MAX_FGS_LAYERS+1];
+	Double	***m_aaadFrameInTimeWindowBits;
+	Double	m_aadAvgBitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
+	Double	m_aadMaxBitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
+	UInt		m_uiProfileIdc[MAX_LAYERS];
+	UInt		m_uiLevelIdc[MAX_LAYERS];
+	Bool		m_bConstraint0Flag[MAX_LAYERS];
+	Bool		m_bConstraint1Flag[MAX_LAYERS];
+	Bool		m_bConstraint2Flag[MAX_LAYERS];
+	Bool		m_bConstraint3Flag[MAX_LAYERS];
+	Bool		m_bIsFirstGOP;
+	//JVT-W051 }
+
+	//JVT-W052
+public:
+	UInt    m_uicrcVal[MAX_LAYERS];
+	UInt    m_uiNumofCGS[MAX_LAYERS];
+	SEI::IntegrityCheckSEI * m_pcIntegrityCheckSEI;
+	//JVT-W052
 };
 
 

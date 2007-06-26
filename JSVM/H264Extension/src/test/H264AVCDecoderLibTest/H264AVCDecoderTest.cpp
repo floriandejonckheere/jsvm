@@ -676,11 +676,21 @@ ErrVal H264AVCDecoderTest::go()
 			RNOK( m_pcReadBitstream->setPosition( iPos ) );
 			bEOS = false; 
 		}
-		else
-		{
-			m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
-		}
+		//JVT-W049 {
+		//else
+		//{
+			//m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
+		//}
 	}
+	m_pcH264AVCDecoder->setRedundantPicDefault( 0 );
+  m_pcH264AVCDecoder->deleteRedSH();
+	
+	//	else
+	//	{
+	//		m_pcH264AVCDecoder->decreaseNumOfNALInAU(); 
+	//	}
+	//}
+	//JVT-W049 }
 	continue;
   }
 //bug-fix suffix}}

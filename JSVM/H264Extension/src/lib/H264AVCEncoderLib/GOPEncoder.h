@@ -155,10 +155,16 @@ public:
   SEI::NonRequiredSei*	  getNonRequiredSei()				{ return m_pcNonRequiredSei; }
   //NonRequired JVT-Q066 (06-04-08)}}
 
+	//JVT-W052 wxwan
+	ErrVal					CreatIntegrityCheckSei()    { RNOK(SEI::IntegrityCheckSEI::create( m_pcIntegrityCheckSei)) return Err::m_nOK; }
+	SEI::IntegrityCheckSEI* getIntegrityCheckSei()    { return m_pcIntegrityCheckSei; }
+	//JVT-W052 wxwan
+
 private:
   Int                     m_iPoc;
   ExtBinDataAccessorList  m_cNalUnitList;
   SEI::NonRequiredSei*	  m_pcNonRequiredSei; //NonRequired JVT-Q066 (06-04-08)
+	SEI::IntegrityCheckSEI* m_pcIntegrityCheckSei;//JVT-W052
 };
 
 
@@ -310,45 +316,50 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   Int           getFrameWidth       ()                                { return 16*m_uiFrameWidthInMb; }
   Int           getFrameHeight      ()                                { return 16*m_uiFrameHeightInMb; }
   ErrVal        getBaseLayerStatus  ( Bool&                           bExists,
-                                      Bool&                           bMotion,
-                                      Int                             iPoc,
-																			PicType                         ePicType );
+																			Bool&                           bMotion,
+																			Int                             iPoc,
+																			PicType                         ePicType,
+																			UInt														uiIdrPicId);//EIDR 0619
 
-   ErrVal       getBaseLayerDataAvailability( IntFrame*&                      pcFrame,
-                                              IntFrame*&                      pcResidual,
-                                              MbDataCtrl*&                    pcMbDataCtrl,
-                                              Bool&                           bConstrainedIPredBL,
-                                              Bool&                           bForCopyOnly,
-                                              Int                             iSpatialScalability,
-                                              Int                             iPoc,
-                                              Bool                            bMotion,
-                                              PicType                         ePicType  );
+	ErrVal       getBaseLayerDataAvailability( IntFrame*&                      pcFrame,
+																							IntFrame*&                      pcResidual,
+																							MbDataCtrl*&                    pcMbDataCtrl,
+																							Bool&                           bConstrainedIPredBL,
+																							Bool&                           bForCopyOnly,
+																							Int                             iSpatialScalability,
+																							Int                             iPoc,
+																							Bool                            bMotion,
+																							PicType                         ePicType,
+																							UInt														uiIdrPicId);//EIDR 0619
 
 
-  ErrVal        getBaseLayerData    ( IntFrame*&                      pcFrame,
-                                      IntFrame*&                      pcResidual,
-                                      MbDataCtrl*&                    pcMbDataCtrl,
-																		  MbDataCtrl*&                    pcMbDataCtrlEL,			// ICU/ETRI FGS_MOT_USE
-                                      Bool&                           bConstrainedIPredBL,
-                                      Bool&                           bForCopyOnly,
-                                      Int                             iSpatialScalability,
-                                      Int                             iPoc,
-                                      Bool                            bMotion,
-																			PicType                         ePicType );
+		ErrVal        getBaseLayerData    ( IntFrame*&                      pcFrame,
+																				IntFrame*&                      pcResidual,
+																				MbDataCtrl*&                    pcMbDataCtrl,
+																				MbDataCtrl*&                    pcMbDataCtrlEL,			// ICU/ETRI FGS_MOT_USE
+																				Bool&                           bConstrainedIPredBL,
+																				Bool&                           bForCopyOnly,
+																				Int                             iSpatialScalability,
+																				Int                             iPoc,
+																				Bool                            bMotion,
+																				PicType                         ePicType,
+																				UInt														uiIdrPicId);//EIDR 0619
 
-  
-  
-  ErrVal        getBaseLayerSH      ( SliceHeader*&                   rpcSliceHeader,
-                                      Int                             iPoc,
-                                      PicType                         ePicType );
 
-  UInt          getNewBits          ()  { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
-  UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
-  Void          setScalableLayer    (UInt p)	{ m_uiScalableLayerId = p; }
-  UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
 
-  IntFrame*     getMGSLPRec         ();
-  IntFrame*     getRefPic           ( Int iPoc );
+		ErrVal        getBaseLayerSH      ( SliceHeader*&                   rpcSliceHeader,
+																				Int                             iPoc,
+																				PicType                         ePicType,
+																				UInt														uiIdrPicId); //EIDR 0619
+
+		UInt          getNewBits          ()  { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
+		UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
+		Void          setScalableLayer    (UInt p)	{ m_uiScalableLayerId = p; }
+		UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
+
+		IntFrame*     getMGSLPRec         ();
+		IntFrame*     getRefPic           ( Int iPoc, 
+																				UInt uiIdrPicId	);//EIDR 0619
 
 
   //===== ESS =====
@@ -379,6 +390,9 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 
  //EIDR bug-fix
   Void		      setIDRAccessPeriod(Int i)		{ m_iIDRAccessPeriod = i;}	
+	//JVT-W051 {
+	UInt			xGetParameterSetBits()	{ return m_uiParameterSetBits; }
+	//JVT-W051 }
 protected:
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
@@ -648,6 +662,11 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
   ErrVal xWriteSEIforAVCCompatibleHrd(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage* pcSEIMessage, UInt &ruiBits);
   ErrVal xCalculateTiming( PicOutputDataList&  rcPicOutputDataList, UInt uiFrame );
   // JVT-V068 HRD }
+	ErrVal xWriteRedundantKeyPicSEI  ( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList, UInt &ruiBits ); //JVT-W049
+
+	//JVT-W052 wxwan
+	ErrVal xWriteIntegrityCheckSEI(ExtBinDataAccessorList &rcOutExtBinDataAccessorList, SEI::SEIMessage *pcSEIMessage, UInt &ruiBits);
+	//JVT-W052 wxwan
 
   ErrVal        xGetFrameNumList    ( SliceHeader& rcSH, UIntList& rcFrameNumList, ListIdx eLstIdx, UInt uiCurrBasePos );
 
@@ -763,6 +782,7 @@ protected:
   UInt                          m_uiGOPNumber;                        // number of coded GOP's
   Bool                          m_abIsRef[MAX_DSTAGES];               // state of temporal layer (H.264/AVC base layer)
   UIntList                      m_cLPFrameNumList;                    // list of frame_num for low-pass frames
+	UInt													m_uiIdrPicId;	//EIDR 0619 
 
   //----- frame memories -----
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
@@ -907,6 +927,25 @@ protected:
   ParameterSetMng* m_pcParameterSetMng;
   Bool    m_bEnableHrd;
 // JVT-V068 HRD }
+	
+	// JVT-W049 {
+  UInt m_uiNumberLayersCnt;
+  // JVT-W049 }
+	
+	//JVT-W051 {
+public:
+	Double	m_aadFrameBits[MAX_FGS_LAYERS+1];
+	Double	m_aadAvgBitrate[MAX_FGS_LAYERS+1];
+	UInt		m_uiProfileIdc;
+	UInt		m_uiLevelIdc;
+	Bool		m_bConstraint0Flag;
+	Bool		m_bConstraint1Flag;
+	Bool		m_bConstraint2Flag;
+	Bool		m_bConstraint3Flag;
+	//JVT-W051 }
+public:
+	Bool    m_bOutputFlag;//JVT-W047
+  
 };
 
 #if defined( WIN32 )

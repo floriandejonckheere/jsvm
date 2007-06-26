@@ -163,6 +163,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiLevelIdc                              ( 0 )
 , m_uiSeqParameterSetId                     ( MSYS_UINT_MAX )
 //, m_bNalUnitExtFlag                         ( true  )  //JVT-S036 lsj
+, m_uiChromaFormatIdc                       ( 1 ) //JVT-W046
 , m_bSeqScalingMatrixPresentFlag            ( false )
 , m_uiLog2MaxFrameNum                       ( 0 )
 , m_uiPicOrderCntType                       ( 0 )
@@ -179,6 +180,8 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
 ,m_uiChromaPhaseXPlus1                      ( 0 ) // TMM_ESS
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
+, m_uiBaseChromaPhaseXPlus1                 ( 0 ) //JVT-W046
+, m_uiBaseChromaPhaseYPlus1                 ( 1 ) //JVT-W046
 , m_bFGSInfoPresentFlag                     ( false )
 , m_bFGSCycleAlignedFragment                ( false ) 
 , m_uiNumFGSVectModes                       ( 1 )
@@ -193,6 +196,7 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_b4TapMotionCompensationY                ( false )  // V090
 , m_bAVCRewriteFlag                         ( false )   // V035
 , m_bAVCAdaptiveRewriteFlag                 ( false )
+, m_bAVCHeaderRewriteFlag                   ( false ) //JVT-W046
 {
 	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
 	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -263,6 +267,10 @@ SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameter
   m_uiExtendedSpatialScalability      = rcSPS.m_uiExtendedSpatialScalability;
   m_uiChromaPhaseXPlus1               = rcSPS.m_uiChromaPhaseXPlus1;
   m_uiChromaPhaseYPlus1               = rcSPS.m_uiChromaPhaseYPlus1;
+//JVT-W046 {
+  m_uiBaseChromaPhaseXPlus1               = rcSPS.m_uiBaseChromaPhaseXPlus1;
+  m_uiBaseChromaPhaseYPlus1               = rcSPS.m_uiBaseChromaPhaseYPlus1;
+//JVT-W046 }
   m_iScaledBaseLeftOffset             = rcSPS.m_iScaledBaseLeftOffset;
   m_iScaledBaseTopOffset              = rcSPS.m_iScaledBaseTopOffset;
   m_iScaledBaseRightOffset            = rcSPS.m_iScaledBaseRightOffset;
@@ -377,12 +385,25 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
     RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,     "SPS: extended_spatial_scalability" ) );
 //    if ( 1 /* chroma_format_idc */ > 0 )
-    {
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: chroma_phase_x_plus1" ) );
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
-    }
+//JVT-W046 {    
+	//{
+    //  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: chroma_phase_x_plus1" ) );
+    //  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+    //}
+	if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
+	  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
+    if (getChromaFormatIdc() == 1 )  
+	  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+//JVT-W046 }
     if (getExtendedSpatialScalability() == ESS_SEQ)
     {
+	  //JVT-W046 {
+	  if (getChromaFormatIdc() > 0 )
+	  {
+        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
+		RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
+	  }
+	  //JVT-W046 }
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: scaled_base_left_offset" ) );
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: scaled_base_top_offset" ) );
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: scaled_base_right_offset" ) );
@@ -466,6 +487,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       if( m_bAVCRewriteFlag )
         RNOK( pcWriteIf->writeFlag( m_bAVCAdaptiveRewriteFlag,        "SPS: AVC_adaptive_rewrite_flag" ) );
     }
+	RNOK( pcWriteIf->writeFlag( m_bAVCHeaderRewriteFlag,              "SPS: AVC_header_rewrite_flag" ) ); // JVT-W046
   }
   
   UInt    uiTmp = getLog2MaxFrameNum();
@@ -568,13 +590,26 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
 
     RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: extended_spatial_scalability" ) );
 //    if ( 1 /* chroma_format_idc */ > 0 )
-    {
-      RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                  "SPS: chroma_phase_x_plus1" ) );
-      RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
-    }
+    //{
+    //  RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                  "SPS: chroma_phase_x_plus1" ) );
+    //  RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
+    //}
+//JVT-W046 {	
+	if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
+	  RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
+    if (getChromaFormatIdc() == 1 )  
+	  RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+//JVT-W046 }
     if (m_uiExtendedSpatialScalability == ESS_SEQ)
     {
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
+      //JVT-W046 {
+	  if (getChromaFormatIdc() > 0 )
+	  {
+        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
+		RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
+	  }
+	  //JVT-W046 }
+	  RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: scaled_base_top_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
@@ -679,6 +714,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       if( m_bAVCRewriteFlag )
         RNOK( pcReadIf->getFlag( m_bAVCAdaptiveRewriteFlag,           "SPS: AVC_adaptive_rewrite_flag" ) );
     }
+	RNOK( pcReadIf->getFlag( m_bAVCHeaderRewriteFlag,           "SPS: AVC_header_adaptive_rewrite_flag" ) );//JVT-W046
   }
 
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_frame_num_minus_4" ) );
@@ -742,7 +778,10 @@ SequenceParameterSet::xWriteFrext( HeaderSymbolWriteIf* pcWriteIf ) const
          m_eProfileIdc != HIGH_444_PROFILE  &&
          m_eProfileIdc != SCALABLE_PROFILE, Err::m_nOK );
 
-  RNOK  ( pcWriteIf->writeUvlc( 1,                              "SPS: chroma_format_idc" ) );
+  //JVT-W046 {
+  //RNOK  ( pcWriteIf->writeUvlc( 1,                              "SPS: chroma_format_idc" ) );
+  RNOK  ( pcWriteIf->writeUvlc( m_uiChromaFormatIdc,            "SPS: chroma_format_idc" ) );
+  //JVT-W046 }
   RNOK  ( pcWriteIf->writeUvlc( 0,                              "SPS: bit_depth_luma_minus8" ) );
   RNOK  ( pcWriteIf->writeUvlc( 0,                              "SPS: bit_depth_chroma_minus8" ) );
   RNOK  ( pcWriteIf->writeFlag( false,                          "SPS: qpprime_y_zero_transform_bypass_flag" ) );
@@ -793,6 +832,10 @@ Void SequenceParameterSet::setResizeParameters ( const ResizeParameters * params
 
   if (m_uiExtendedSpatialScalability == ESS_SEQ)
   {
+//JVT-W046 {
+    m_uiBaseChromaPhaseXPlus1 = (UInt)(params->m_iBaseChromaPhaseX+1);
+    m_uiBaseChromaPhaseYPlus1 = (UInt)(params->m_iBaseChromaPhaseY+1);
+//JVT-W046 }
     m_iScaledBaseLeftOffset   = params->m_iPosX /2;
     m_iScaledBaseTopOffset    = params->m_iPosY /2;
     m_iScaledBaseRightOffset  = (params->m_iGlobWidth - params->m_iPosX - params->m_iOutWidth) /2;
@@ -838,6 +881,10 @@ Void SequenceParameterSet::getResizeParameters ( ResizeParameters * params ) con
 
   if (m_uiExtendedSpatialScalability == ESS_SEQ)
   {
+    //JVT-W046 {
+    params->m_iBaseChromaPhaseX = (Int)m_uiBaseChromaPhaseXPlus1 - 1;
+    params->m_iBaseChromaPhaseY = (Int)m_uiBaseChromaPhaseYPlus1 - 1;
+    //JVT-W046 }
     params->m_iPosX       = m_iScaledBaseLeftOffset *2;
     params->m_iPosY       = m_iScaledBaseTopOffset *2;
     params->m_iOutWidth   = w - params->m_iPosX - (m_iScaledBaseRightOffset *2);

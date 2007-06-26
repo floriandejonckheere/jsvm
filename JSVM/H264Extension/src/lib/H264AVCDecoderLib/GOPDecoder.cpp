@@ -1626,13 +1626,55 @@ DecodedPicBuffer::store( DPBUnit*&        rpcDPBUnit,
                          IntFrame*        pcFrameBaseRep,
                          Bool             bRef) //JVT-T054
 {
-    RNOK( xStorePicture( rpcDPBUnit, 
-                       rcOutputList, 
-                       rcUnusedList,
-                       rpcDPBUnit->getCtrlData().getSliceHeader()->isIdrNalUnit(),
-                       /*uiQualityLevel,*/                         //JVT-T054
-                       rpcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag(), bRef) ); //TMM_INTERLACE
- 
+	if( rpcDPBUnit->isNeededForRef() )		//JVT-W047 wxwan
+	{																				//JVT-W047 wxwan
+		if(rpcDPBUnit->getCtrlData().getSliceHeader()->getLayerId() == m_uiMaxlayerId)//JVT-W047 wxwan
+		{
+			RNOK( xStorePicture( rpcDPBUnit, 
+				rcOutputList, 
+				rcUnusedList,
+				rpcDPBUnit->getCtrlData().getSliceHeader()->isIdrNalUnit(),
+				/*uiQualityLevel,*/                         //JVT-T054
+				rpcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag(), bRef) ); //TMM_INTERLACE
+			if( !rpcDPBUnit->getCtrlData().getSliceHeader()->getOutputFlag() )//JVT-W047 wxwan
+			{																		//JVT-W047 wxwan
+				rpcDPBUnit->markOutputted();			//JVT-W047 wxwan	
+			}
+		}//JVT-W047 wxwan
+		else
+		{
+			RNOK( xStorePicture( rpcDPBUnit, 
+				rcOutputList, 
+				rcUnusedList,
+				rpcDPBUnit->getCtrlData().getSliceHeader()->isIdrNalUnit(),
+				/*uiQualityLevel,*/                         //JVT-T054
+				rpcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag(), bRef) ); //TMM_INTERLACE
+		}
+	}																			//JVT-W047 wxwan
+	//JVT-W047 wxwan{
+	else
+	{
+		if(rpcDPBUnit->getCtrlData().getSliceHeader()->getLayerId() == m_uiMaxlayerId)
+		{
+			if(rpcDPBUnit->getCtrlData().getSliceHeader()->getOutputFlag())
+				RNOK( xStorePicture( rpcDPBUnit, 
+				rcOutputList, 
+				rcUnusedList,
+				rpcDPBUnit->getCtrlData().getSliceHeader()->isIdrNalUnit(),
+				/*uiQualityLevel,*/                         //JVT-T054
+				rpcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag(), bRef) ); //TMM_INTERLACE
+		}
+		else
+		{
+			RNOK( xStorePicture( rpcDPBUnit, 
+				rcOutputList, 
+				rcUnusedList,
+				rpcDPBUnit->getCtrlData().getSliceHeader()->isIdrNalUnit(),
+				/*uiQualityLevel,*/                         //JVT-T054
+				rpcDPBUnit->getCtrlData().getSliceHeader()->getSPS().getFrameMbsOnlyFlag(), bRef) ); //TMM_INTERLACE
+		}
+	}
+	//JVT-W047 wxwan } 
   
   if( rpcDPBUnit->isNeededForRef() )
   {
@@ -3159,7 +3201,7 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
 
  RNOK( xInitESSandCroppingWindow( *rpcSliceHeader, *m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl(),rcControlData ) );
 // RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(), pcSliceHeaderBase) );
- RNOK( rpcSliceHeader->ReadLastBit() ); 
+ RNOK( rpcSliceHeader->ReadLastBit() );
  // TMM_INTERLACE}
 
  //----- parsing -----

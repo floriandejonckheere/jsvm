@@ -1,4 +1,23 @@
-﻿JSVM_8_12 -> JSVM_8_13
+JSVM_9 -> JSVM_9_1
+========================
+Date        : June 25
+Authors      : Siping Tao, Ci He, Weixing Wan, Qiu Shen, Hui Liu, Yi Guo (USTC)
+Contributions: JVT-W046, JVT-W047, JVT-W048, JVT-W049, JVT-W051,JVT-W052, JVT-W053
+
+Changes:
+- Modification of syntax structure in slice header and sequence parameter sets. (JVT-W046)
+- Addition of syntax elements in NAL unit header and scalable SEI message. (JVT-W047)
+- Modification of syntax in prefix NAL unit and slice header. (JVT-W048)
+- Implementation of redundant picture property SEI message, added of one script for 
+  JVT-W049 named "ReduKeyPic". (JVT-W049)
+- Modification of syntax in scalable SEI message. (JVT-W051)
+- Implementation of Integrity-Check SEI message. (JVT-W052)
+- Modification of syntax in scalable SEI message. (JVT-W053)
+- bug-fixes: minor bug-fix related to IDR
+
+Notes: changes could be found by searching "JVT-WXXX" which corresponds to contributions
+
+JSVM_8_12 -> JSVM_8_13
 ========================
 Date        : May 09, 2007
 Author      : Jiancong Luo (Thomson)

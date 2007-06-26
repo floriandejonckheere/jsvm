@@ -203,15 +203,30 @@ H264AVCDecoder::H264AVCDecoder()
 	m_uiMaxGopSize		=	16;
 	m_uiMaxDecompositionStages	=	4;
 	m_uiMaxLayerId	=	0;
+	//JVT-W049 {
+	m_uiNextFrameNumRedu  = 0;
+	m_uiNextLayerIdRedu   = 0;
+	m_uiNextPocLsbRedu    = 0;
+	bKeyPicReduUseAvc     = false;
+  bIfNextFrame          = false;
+	uiLastFrameNum        = 0;
+	uiLastPocLsb          = 0;
+  //JVT-W049 }
   UInt ui;
 	for ( ui=0; ui<MAX_LAYERS; ui++)
 	{
-		m_pauiPocInGOP         [ui]  =	NULL;
-		m_pauiFrameNumInGOP    [ui]  =	NULL;
+		//JVT-W049 {
+		//m_pauiPocInGOP         [ui]  =	NULL;
+		//m_pauiFrameNumInGOP    [ui]  =	NULL;
+		//JVT-W049 }
 		m_pauiTempLevelInGOP   [ui]  =	NULL;
 		m_uiDecompositionStages[ui]	 =	4;
 		m_uiFrameIdx           [ui]  =	0;
 		m_uiGopSize            [ui] 	 =	16;
+		//JVT-W049 {
+		m_bNextRedu            [ui]  =  0;
+		bKeyPicReduUseSvc      [ui]  =  false;
+    //JVT-W049 }
 	}
 
   m_eErrorConceal  =	EC_NONE;
@@ -392,8 +407,10 @@ ErrVal H264AVCDecoder::uninit()
   //NS leak fix begin
  for ( UInt i=0; i< m_uiNumLayers; i++)
   {
-    if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
-    if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+    //JVT-W049 {
+		//if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
+    //if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+		//JVT-W049 }
     if (m_pauiTempLevelInGOP[i]) delete	[] m_pauiTempLevelInGOP[i];
   }
   //NS leak fix end
@@ -597,7 +614,12 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
 																								m_uiFirstFragmentNumMbsInSlice,
 																								m_bFirstFragmentFGSCompSep
 																								) );
-
+//JVT-W049 {
+			if((pcSliceHeader->getRedundantPicCnt()))
+			{
+				m_bNextRedu[pcSliceHeader->getLayerId()]=1;
+			}	  
+//JVT-W049 }
 //prefix unit{{
 					if(m_pcPrefixSliceHeader )
 					{
@@ -908,8 +930,12 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
                                                 m_uiFirstFragmentNumMbsInSlice,
                                                 m_bFirstFragmentFGSCompSep
 		        ) );
+				m_bRedundantPic = ( pcSliceHeader->getRedundantPicCnt() > 0 ? true:false );		//JVT-W049
         if(pcSliceHeader->getFrameNum()==0)
 					m_uiMaxLayerId=pcSliceHeader->getLayerId()>m_uiMaxLayerId ? pcSliceHeader->getLayerId(): m_uiMaxLayerId;
+				//JVT-W047
+				m_apcMCTFDecoder[pcSliceHeader->getLayerId()]->getDecodedPicBuffer()->setMaxLayerId(m_uiMaxLayerId);
+				//JVT-W047
       }
       return Err::m_nOK;
     }
@@ -923,8 +949,38 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
                                               m_uiFirstFragmentNumMbsInSlice,
                                               m_bFirstFragmentFGSCompSep
 											                         ) );
+			//JVT-W049 {
+  	  m_bRedundantPic = ( pcSliceHeader->getRedundantPicCnt() > 0 ? true:false );
+      if ( pcSliceHeader->getRedundantPicCnt()	  )
+      {
+	      if((m_uiNextFrameNumRedu==pcSliceHeader->getFrameNum())&&(m_uiNextLayerIdRedu==pcSliceHeader->getLayerId())&&(m_uiNextPocLsbRedu==pcSliceHeader->getPicOrderCntLsb()))
+	      {
+		      m_bRedundantPic = true;
+		      bKeyPicReduUseAvc = false;
+		      bKeyPicReduUseSvc[pcSliceHeader->getLayerId()] = false;
+          delete pcSliceHeader;
+		      return Err::m_nOK;
+	      }
+	      else
+	      {
+		      pcSliceHeader->setRedundantPicCnt(0);
+		      m_bRedundantPic = false;
+		      if( pcSliceHeader->getLayerId() == 0 )
+		      {
+		        bKeyPicReduUseAvc = true; bKeyPicReduUseSvc[pcSliceHeader->getLayerId()] = 0;
+		      }
+		      else if(pcSliceHeader->getLayerId() >= 1 )
+		      {
+		        bKeyPicReduUseAvc = false; bKeyPicReduUseSvc[pcSliceHeader->getLayerId()] = 1;
+		      }
+	      }
+      }
+      //JVT-W049 }
 				if(pcSliceHeader->getFrameNum()==0)
 					m_uiMaxLayerId=pcSliceHeader->getLayerId()>m_uiMaxLayerId ? pcSliceHeader->getLayerId(): m_uiMaxLayerId;
+				//JVT-W047
+				m_apcMCTFDecoder[pcSliceHeader->getLayerId()]->getDecodedPicBuffer()->setMaxLayerId(m_uiMaxLayerId);
+				//JVT-W047
 
 	      calculatePoc( eNalUnitType, *pcSliceHeader, slicePoc );
 //        if(pcSliceHeader->getFrameNum()==1&&m_uiMaxLayerId!=(m_uiNumLayers-1))
@@ -1152,6 +1208,14 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 					m_uiNextPoc					=	m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
 					m_uiNextTempLevel		=	m_pauiTempLevelInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
           // TMM_EC
+					//JVT-W049 {
+					if(pcSliceHeader->getNalRefIdc()==NAL_REF_IDC_PRIORITY_HIGHEST)
+					{
+						m_uiNextFrameNumRedu = pcSliceHeader->getFrameNum();
+						m_uiNextPocLsbRedu   = pcSliceHeader->getPicOrderCntLsb();
+						m_uiNextLayerIdRedu  = pcSliceHeader->getLayerId();
+					}
+					//JVT-W049 }
           if ( uiGopSize == 1)
 					  m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	1 ;
           else
@@ -1268,6 +1332,17 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   UInt uiBitsLeft = m_pcNalUnitParser->getBitsLeft(); //JVT-P031
 
   ruiNalUnitType = m_pcNalUnitParser->getNalUnitType();
+
+	//JVT-W047
+	if(ruiNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
+		ruiNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
+		ruiNalUnitType == NAL_UNIT_PREFIX) 
+	{
+		if(m_pcSliceHeader)
+			m_pcSliceHeader->setOutputFlag( m_pcNalUnitParser->getOutputFlag() );
+	}
+	//JVT-W047
+
 //prefix unit{{
 	if(m_pcPrefixSliceHeader && (ruiNalUnitType != NAL_UNIT_CODED_SLICE && ruiNalUnitType != NAL_UNIT_CODED_SLICE_IDR))
 	{
@@ -1288,8 +1363,10 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 
 		for ( UInt i=0; i< m_uiNumLayers; i++)
 		{
-			if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
-      if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+			//JVT-W049 {
+			//if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
+   //   if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+			//JVT-W049 }
 			if (m_pauiTempLevelInGOP[i]) delete	[] m_pauiTempLevelInGOP[i];
 		}
     m_bLastFrame = true;
@@ -1359,6 +1436,14 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			  {
 				  m_uiNextFrameNum	=	0;
 				  m_uiNextPoc			=	0;
+					//JVT-W049 {
+				  if(m_pcNalUnitParser->getNalRefIdc()==NAL_REF_IDC_PRIORITY_HIGHEST)
+				  {
+					  m_uiNextFrameNumRedu  =   0;
+					  m_uiNextPocLsbRedu	=	0;
+						m_uiNextLayerIdRedu = 0;
+				  } 
+				  //JVT-W049 }
 			  }
 		}
 //TMM_EC }}
@@ -1390,12 +1475,16 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 				UInt	uiDecompositionStagesSub	=	m_uiMaxDecompositionStages - m_uiDecompositionStages[i];
 				UInt	uiGopSize	=	m_uiGopSize[i];
 				 //NS leak fix begin
-        if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
-        if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+				//JVT-W049 {
+        //if (m_pauiPocInGOP[i])       delete	[] m_pauiPocInGOP[i];
+        //if (m_pauiFrameNumInGOP[i])  delete	[] m_pauiFrameNumInGOP[i];
+				//JVT-W049 }
         if (m_pauiTempLevelInGOP[i]) delete	[] m_pauiTempLevelInGOP[i];
         //NS leak fix end
-        m_pauiPocInGOP[i]				=	new	UInt[uiGopSize];
-				m_pauiFrameNumInGOP[i]	=	new	UInt[uiGopSize];
+				//JVT-W049 {
+    //    m_pauiPocInGOP[i]				=	new	UInt[uiGopSize];
+				//m_pauiFrameNumInGOP[i]	=	new	UInt[uiGopSize];
+				//JVT-W049 }
 				m_pauiTempLevelInGOP[i]	=	new	UInt[uiGopSize];
 				UInt	uiFrameIdx	=	0;
 				UInt	uiFrameNum	=	1;
@@ -1549,6 +1638,36 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
         rbStartDecoding = true;
       //~JVT-P031
       //TMM_EC {{
+			//JVT-W049 {
+			if(m_pcNalUnitParser->getNalRefIdc()==NAL_REF_IDC_PRIORITY_HIGHEST)
+			{
+				if((!bKeyPicReduUseSvc[m_pcNalUnitParser->getLayerId()])&&(isRedundantPic()))
+				{
+					if(bIfNextFrame)
+					{
+						bIfNextFrame = false;
+					    return Err::m_nOK;
+					}
+					else
+					{
+						bIfNextFrame = true;
+						//return Err::m_nOK;
+					}
+				}
+				else if((bKeyPicReduUseSvc[m_pcNalUnitParser->getLayerId()])&&(m_pcSliceHeader->getRedundantPicCnt()))
+				{					
+					if(bIfNextFrame)
+					{
+						bIfNextFrame = false;
+					    m_pcSliceHeader->setRedundantPicCnt(0);
+					}
+					else
+					{
+						bIfNextFrame = true;
+					}
+				}
+			}
+      //JVT-W049 }
       if ( !m_bNotSupport && !bPreParseHeader && m_pcNalUnitParser->getQualityLevel() == 0)
       {
         UInt	uiMaxGopSize	=	m_uiMaxGopSize;
@@ -1570,6 +1689,14 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
  				  //UInt	uiMaxPocLsb		=	1 << m_pcSliceHeader->getSPS().getLog2MaxPicOrderCntLsb();
 				  m_uiNextFrameNum		=	m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize] % uiMaxFrameNum;
 				  m_uiNextPoc					=	m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
+					//JVT-W049 {
+				  if(m_pcNalUnitParser->getNalRefIdc()==NAL_REF_IDC_PRIORITY_HIGHEST)
+				  {
+					  m_uiNextFrameNumRedu  =   m_pcSliceHeader->getFrameNum();
+					  m_uiNextPocLsbRedu	  =	  m_pcSliceHeader->getPicOrderCntLsb();
+						m_uiNextLayerIdRedu   =   m_pcSliceHeader->getLayerId();
+				  } 
+				  //JVT-W049 }
 				  m_uiNextTempLevel		=	m_pauiTempLevelInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
 				  if ( uiGopSize == 1)
 				      m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	1;
@@ -1582,6 +1709,14 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			  {
 				  m_uiNextFrameNum	=	0;
 				  m_uiNextPoc			=	0;
+					//JVT-W049 {
+				  if(m_pcNalUnitParser->getNalRefIdc()==NAL_REF_IDC_PRIORITY_HIGHEST)
+				  {
+					  m_uiNextFrameNumRedu  =   0;
+					  m_uiNextPocLsbRedu	    =	0;
+						m_uiNextLayerIdRedu = m_pcNalUnitParser->getLayerId();
+				  } 
+				  //JVT-W049 }
 			  }
 		  }
 //TMM_EC }}
@@ -1644,6 +1779,28 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 				      //do nothing, or add your code here
 				  }
 // JVT-T073 }
+					// JVT-W049 {				  
+				  else if( pcSEIMessage->getMessageType() == SEI::REDUNDANT_PIC_SEI)
+				  {
+             m_uiNumDId = ((SEI::RedundantPicSei*)pcSEIMessage)->getNumDIdMinus1()+1;                       
+             for( UInt ui = 0; ui < m_uiNumDId; ui++ )
+             {
+               m_uiNumQId[ui] = ((SEI::RedundantPicSei*)pcSEIMessage)->getNumQIdMinus1(ui)+1;
+               for( UInt uj =0; uj < m_uiNumQId[ui]; uj++ )
+               {
+                 m_uiHaveRed[ui][uj] = 0;
+                 if(ui > 0 )
+                   m_uiHaveRed[ui][uj] = 1;
+               }
+             }
+				  }
+          // JVT-W049 }
+					//JVT-W052
+					else if( pcSEIMessage->getMessageType() == SEI::INTE_CHECK_SEI )
+					{
+						//do nothing,or add your feedback information check here
+					}
+					//JVT-W052
 			    delete pcSEIMessage;
           pcSEIMessage = NULL;
 		}
@@ -2025,7 +2182,10 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 		}
 		else
 		{
-			m_pcSliceHeader->setInIDRAccess(m_pcPrevSliceHeader?m_pcPrevSliceHeader->getInIDRAccess():false);
+			//JVT-W049 {
+			//m_pcSliceHeader->setInIDRAccess(m_pcPrevSliceHeader?m_pcPrevSliceHeader->getInIDRAccess():false);
+			m_pcSliceHeader->setInIDRAccess(m_pcPrevSliceHeader?m_pcPrevSliceHeader->isIdrNalUnit():false);
+			//JVT-W049 }
 		}
 	}
  //EIDR bug-fix }
@@ -2161,6 +2321,11 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
         RNOK( m_pcSliceHeader->sliceHeaderBackup( m_pcSliceHeader_backup ) );
       }
 // JVT-Q054 Red. Picture }
+			//JVT-W049 {
+      if( m_pcSliceHeader->getLayerId() == m_uiNumDId-1 &&m_pcSliceHeader->getTrueSlice() &&
+        m_uiHaveRed[m_pcSliceHeader->getLayerId()][m_pcSliceHeader->getQualityLevel()] )
+        m_bLastNalInAU = 1; 
+      //JVT-W049 }
 
       PicBufferList   cDummyList;
       PicBufferList&  rcOutputList  = ( m_uiLastLayerId == m_uiRecLayerId ? rcPicBufferOutputList : cDummyList );
@@ -2229,6 +2394,11 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 //JVT-T054{
       Bool bHighestLayer;
       m_bLastNalInAU = (m_uiNumOfNALInAU == 0);
+			//JVT-W049 {
+      if( m_pcSliceHeader->getLayerId() == m_uiNumDId-1 &&
+        m_uiHaveRed[m_pcSliceHeader->getLayerId()] )
+        m_bLastNalInAU = 1; 
+      //JVT-W049 }
       if(m_bFGSRefInAU)
         bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId );
       else
@@ -2394,17 +2564,65 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
       if(bPreParseHeader) //FRAG_FIX
       {
 // JVT-Q054 Red. Picture {
-        if ( isRedundantPic() )
-        {
-          delete m_pcSliceHeader;
-          m_pcSliceHeader = pSliceHeader;
-        }
+        //if ( isRedundantPic() )
+        //{
+        //  delete m_pcSliceHeader;
+        //  m_pcSliceHeader = pSliceHeader;
+        //}
+        //else
+        //{
+				//JVT-W049 {       
+		     if(pSliceHeader->getRedundantPicCnt())
+         { 
+					 if(pSliceHeader->getNalRefIdc()==NAL_REF_IDC_PRIORITY_HIGHEST)
+					 {
+							Bool bNotNeedRedu = m_uiNextFrameNumRedu == pSliceHeader->getFrameNum() 
+								&& m_uiNextPocLsbRedu ==  pSliceHeader->getPicOrderCntLsb()
+								&& m_uiNextLayerIdRedu == pSliceHeader->getLayerId();
+							bKeyPicReduUseAvc = !bNotNeedRedu && m_uiNextLayerIdRedu == 0;
+							bKeyPicReduUseSvc[pSliceHeader->getLayerId()] = !bNotNeedRedu && m_uiNextLayerIdRedu == pSliceHeader->getLayerId() && m_uiNextLayerIdRedu != 0;
+							if(bKeyPicReduUseAvc==true||bKeyPicReduUseSvc[pSliceHeader->getLayerId()])
+							{
+								if(bKeyPicReduUseAvc==true||bKeyPicReduUseSvc[1])
+                  m_pcPrevSliceHeader = m_pcSliceHeader;
+								m_pcSliceHeader = pSliceHeader;
+							}
+							else
+							{
+								m_bRedundantPic=true;
+                //pSliceHeader->setRedundantPicCnt(0);
+                //if( m_pcSliceHeader )
+                //m_pcPrevSliceHeader = m_pcSliceHeader;
+							  m_pcSliceHeader = pSliceHeader;
+                //delete pSliceHeader;
+							}
+					 }
+					 else
+					 {
+							m_bRedundantPic=true;
+						  //delete m_pcSliceHeader;
+              pSliceHeader->setRedundantPicCnt(0);
+							m_pcSliceHeader = pSliceHeader;
+					 }
+					 
+         }
+
         else
         {
+				  if(pSliceHeader->getNalRefIdc()==NAL_REF_IDC_PRIORITY_HIGHEST)
+				  {
+					  m_uiNextLayerIdRedu  =   pSliceHeader->getLayerId();
+					  m_uiNextFrameNumRedu  =  pSliceHeader->getFrameNum();
+					  m_uiNextPocLsbRedu    =  pSliceHeader->getPicOrderCntLsb();
+				  } 
+
+		
+         //JVT-W049 }
            //EIDR bug-fix
 		      if(m_pcSliceHeader)
             {
               //delete m_pcPrevSliceHeader; //TMM_INTERLACE
+							m_pcSliceHeader->setRedundantPicCnt(0);//JVT-W049
               m_pcPrevSliceHeader = m_pcSliceHeader;
             }
               m_pcSliceHeader     = pSliceHeader;

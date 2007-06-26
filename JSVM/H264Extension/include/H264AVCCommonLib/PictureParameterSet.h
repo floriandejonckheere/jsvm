@@ -129,7 +129,9 @@ public:
   Bool                  getDeblockingFilterParametersPresentFlag()            const { return m_bDeblockingFilterParametersPresentFlag; }
   Bool                  getConstrainedIntraPredFlag             ()            const { return m_bConstrainedIntraPredFlag; }
   Bool                  getRedundantPicCntPresentFlag           ()            const { return m_bRedundantPicCntPresentFlag; } //JVT-Q054 Red. Picture
-  Bool                  getTransform8x8ModeFlag                 ()            const { return m_bTransform8x8ModeFlag; }
+  Bool                  getRedundantKeyPicCntPresentFlag        ()            const { return m_bRedundantKeyPicCntPresentFlag; } //JVT-W049
+  Bool                  getEnableRedundantKeyPicCntPresentFlag  ()            const { return m_bEnableRedundantKeyPicCntPresentFlag; } //JVT-W049
+	Bool                  getTransform8x8ModeFlag                 ()            const { return m_bTransform8x8ModeFlag; }
   Bool                  getPicScalingMatrixPresentFlag          ()            const { return m_bPicScalingMatrixPresentFlag; }
   const ScalingMatrix&  getPicScalingMatrix                     ()            const { return m_cPicScalingMatrix; }
   Int                   get2ndChromaQpIndexOffset               ()            const { return m_iSecondChromaQpIndexOffset; }
@@ -169,7 +171,9 @@ public:
   Void  setDeblockingFilterParametersPresentFlag( Bool        b )           { m_bDeblockingFilterParametersPresentFlag  = b; }
   Void  setConstrainedIntraPredFlag             ( Bool        b )           { m_bConstrainedIntraPredFlag               = b; }
   Void  setRedundantPicCntPresentFlag           ( Bool        b )           { m_bRedundantPicCntPresentFlag             = b; }  // JVT-Q054 Red. Picture
-  Void  setTransform8x8ModeFlag                 ( Bool        b )           { m_bTransform8x8ModeFlag                   = b; }
+  Void  setRedundantKeyPicCntPresentFlag        ( Bool        b )           { m_bRedundantKeyPicCntPresentFlag          = b; }  // JVT-W049
+  Void  setEnableRedundantKeyPicCntPresentFlag  ( Bool        b )           { m_bEnableRedundantKeyPicCntPresentFlag    = b; }  // JVT-W049
+	Void  setTransform8x8ModeFlag                 ( Bool        b )           { m_bTransform8x8ModeFlag                   = b; }
   Void  setPicScalingMatrixPresentFlag          ( Bool        b )           { m_bPicScalingMatrixPresentFlag            = b; }
   Void  set2ndChromaQpIndexOffset               ( Int         i )           { m_iSecondChromaQpIndexOffset              = i; }
 
@@ -250,6 +254,8 @@ protected:
   ScalingMatrix m_cPicScalingMatrix;
   Int           m_iSecondChromaQpIndexOffset;
   Bool          m_bRedundantPicCntPresentFlag;  //JVT-Q054 Red. Picture u(1)
+	Bool          m_bRedundantKeyPicCntPresentFlag;  //JVT-W049
+  Bool          m_bEnableRedundantKeyPicCntPresentFlag;  //JVT-W049
 };
 
 

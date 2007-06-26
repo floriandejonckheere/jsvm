@@ -560,35 +560,52 @@ public:
   class H264AVCCOMMONLIB_API DeblockingFilterParameter
   {
   public:
-    DeblockingFilterParameter( UInt uiDisableDeblockingFilterIdc  = 0,
-                               Int  iSliceAlphaC0Offset           = 0,
-                               Int  iSliceBetaOffset              = 0 )
+    DeblockingFilterParameter( UInt uiDisableDeblockingFilterIdc            = 0,
+                               Int  iSliceAlphaC0Offset                     = 0,
+                               Int  iSliceBetaOffset                        = 0,
+							   //JVT-W046 {
+							   UInt uiDisableInterlayerDeblockingFilterIdc  = 0,
+                               Int  iInterlayerSliceAlphaC0Offset           = 0,
+                               Int  iInterlayerSliceBetaOffset              = 0)
+							   //JVT-W046 }                                      
     : m_uiDisableDeblockingFilterIdc( uiDisableDeblockingFilterIdc )
-    , m_iSliceAlphaC0Offset         ( iSliceAlphaC0Offset )
-    , m_iSliceBetaOffset            ( iSliceBetaOffset )
+	, m_uiDisableInterlayerDeblockingFilterIdc( uiDisableInterlayerDeblockingFilterIdc )//JVT-W046
+    , m_iSliceAlphaC0Offset                   ( iSliceAlphaC0Offset )
+    , m_iSliceBetaOffset                      ( iSliceBetaOffset )
+	, m_iInterlayerSliceAlphaC0Offset         ( iInterlayerSliceAlphaC0Offset )//JVT-W046
+	, m_iInterlayerSliceBetaOffset            ( iInterlayerSliceBetaOffset )//JVT-W046
     {
     }
-
-   	ErrVal write( HeaderSymbolWriteIf*  pcWriteIf, bool enhancedLayerFlag ) const; //V032, added enhanced layer indicator
-    ErrVal read ( HeaderSymbolReadIf*   pcReadIf, bool enhancedLayerFlag  ); //V032, added enhanced layer indicator
-
+    //JVT-W046 {
+   	ErrVal write( HeaderSymbolWriteIf*  pcWriteIf, bool enhancedLayerFlag, bool interlayer ) const; //V032, added enhanced layer indicator
+    ErrVal read ( HeaderSymbolReadIf*   pcReadIf, bool enhancedLayerFlag, bool interlayer  ); //V032, added enhanced layer indicator
+    //JVT-W046 }
     DeblockingFilterParameter* getCopy()  const
     {
-      return new DeblockingFilterParameter( m_uiDisableDeblockingFilterIdc, m_iSliceAlphaC0Offset, m_iSliceBetaOffset );
+      return new DeblockingFilterParameter( m_uiDisableDeblockingFilterIdc, m_iSliceAlphaC0Offset, m_iSliceBetaOffset, m_uiDisableInterlayerDeblockingFilterIdc, m_iInterlayerSliceAlphaC0Offset, m_iInterlayerSliceBetaOffset );
     }
     
     Void setDisableDeblockingFilterIdc( UInt uiDisableDeblockingFilterIdc ) { m_uiDisableDeblockingFilterIdc = uiDisableDeblockingFilterIdc; }
-    Void setSliceAlphaC0Offset        ( Int  iSliceAlphaC0Offset )          { AOT_DBG( 1 & iSliceAlphaC0Offset);  m_iSliceAlphaC0Offset = iSliceAlphaC0Offset; }
+    Void setDisableInterlayerDeblockingFilterIdc( UInt uiDisableInterlayerDeblockingFilterIdc ) { m_uiDisableInterlayerDeblockingFilterIdc = uiDisableInterlayerDeblockingFilterIdc; }//JVT-W046
+	Void setSliceAlphaC0Offset        ( Int  iSliceAlphaC0Offset )          { AOT_DBG( 1 & iSliceAlphaC0Offset);  m_iSliceAlphaC0Offset = iSliceAlphaC0Offset; }
+	Void setInterlayerSliceAlphaC0Offset        ( Int  iInterlayerSliceAlphaC0Offset )          { AOT_DBG( 1 & iInterlayerSliceAlphaC0Offset);  m_iInterlayerSliceAlphaC0Offset = iInterlayerSliceAlphaC0Offset; }//JVT-W046
     Void setSliceBetaOffset           ( Int  iSliceBetaOffset )             { AOT_DBG( 1 & iSliceBetaOffset);     m_iSliceBetaOffset = iSliceBetaOffset; }
+	Void setInterlayerSliceBetaOffset           ( Int  iInterlayerSliceBetaOffset )             { AOT_DBG( 1 & iInterlayerSliceBetaOffset);     m_iInterlayerSliceBetaOffset = iInterlayerSliceBetaOffset; }//JVT-W046
 
     UInt getDisableDeblockingFilterIdc()  const { return m_uiDisableDeblockingFilterIdc;}
-    Int  getSliceAlphaC0Offset()          const { return m_iSliceAlphaC0Offset;}
+    UInt getDisableInterlayerDeblockingFilterIdc()  const { return m_uiDisableInterlayerDeblockingFilterIdc;}//JVT-W046
+	Int  getSliceAlphaC0Offset()          const { return m_iSliceAlphaC0Offset;}
+	Int  getInterlayerSliceAlphaC0Offset()          const { return m_iInterlayerSliceAlphaC0Offset;}//JVT-W046
     Int  getSliceBetaOffset()             const { return m_iSliceBetaOffset;}
+	Int  getInterlayerSliceBetaOffset()             const { return m_iInterlayerSliceBetaOffset;}//JVT-W046
 
   private:
     UInt m_uiDisableDeblockingFilterIdc;
+	UInt m_uiDisableInterlayerDeblockingFilterIdc;//JVT-W046
     Int  m_iSliceAlphaC0Offset;
+	Int  m_iInterlayerSliceAlphaC0Offset;//JVT-W046
     Int  m_iSliceBetaOffset;
+	Int  m_iInterlayerSliceBetaOffset;//JVT-W046
   };
 
   class H264AVCCOMMONLIB_API DeblockingFilterParameterScalable
@@ -616,8 +633,11 @@ public:
 
     // Access to the "normal" parameters
     UInt getDisableDeblockingFilterIdc()  const { return getDeblockingFilterParameter().getDisableDeblockingFilterIdc();}
-    Int  getSliceAlphaC0Offset()          const { return getDeblockingFilterParameter().getSliceAlphaC0Offset();}
-    Int  getSliceBetaOffset()             const { return getDeblockingFilterParameter().getSliceBetaOffset();}
+	UInt getDisableInterlayerDeblockingFilterIdc()  const { return getDeblockingFilterParameter().getDisableInterlayerDeblockingFilterIdc();}//JVT-W046
+	Int  getSliceAlphaC0Offset()          const { return getDeblockingFilterParameter().getSliceAlphaC0Offset();}
+    Int  getInterlayerSliceAlphaC0Offset()          const { return getDeblockingFilterParameter().getInterlayerSliceAlphaC0Offset();}//JVT-W046
+	Int  getSliceBetaOffset()             const { return getDeblockingFilterParameter().getSliceBetaOffset();}
+	Int  getInterlayerSliceBetaOffset()             const { return getDeblockingFilterParameter().getInterlayerSliceBetaOffset();}//JVT-W046
   private:
     DeblockingFilterParameter m_cDeblockingFilterParameter;
     DeblockingFilterParameter m_cInterlayerDeblockingFilterParameter;
@@ -658,6 +678,7 @@ public:
   NalUnitType                       getNalUnitType                ()  const { return m_eNalUnitType; }
   UInt                              getLayerId                    ()  const { return m_uiLayerId; }
   UInt                              getTemporalLevel              ()  const { return m_uiTemporalLevel; }
+	Bool															getOutputFlag                 ()  const { return m_bOutputFlag; }//JVT-W047
   UInt                              getQualityLevel               ()  const { return m_uiQualityLevel; }
   UInt                              getFirstMbInSlice             ()  const { return m_uiFirstMbInSlice; }
   SliceType                         getSliceType                  ()  const { return m_eSliceType; }
@@ -693,6 +714,11 @@ public:
   UInt                              getBaseLayerId                ()  const { if (m_bLayerBaseFlag) return MSYS_UINT_MAX; 
                                                                                                else return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
+  //JVT-W046 {
+  Bool                              getSliceSkipFlag              ()  const { return m_bSliceSkipFlag; }
+  UInt                              getScanIdxStart           ()  const { return m_uiScanIdxStart; }
+  UInt                              getScanIdxEnd           ()  const { return m_uiScanIdxEnd; }
+  //JVT-W046 }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
   //JVT-U160 LMI {
   Bool                              getAdaptiveResPredictionFlag  ()  const { return m_bAdaptiveResPredictionFlag; }
@@ -848,6 +874,11 @@ public:
                                                             if (m_bLayerBaseFlag) m_uiBaseLayerId=MSYS_UINT_MAX;}
   Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
+  //JVT-W046 {
+  Void  setSliceSkipFlag              ( Bool        b  )  { m_bSliceSkipFlag                    = b;  }
+  Void  setScanIdxStart           ( UInt        ui )  { m_uiScanIdxStart                = ui; }
+  Void  setScanIdxEnd           ( UInt        ui )  { m_uiScanIdxEnd                = ui; }
+  //JVT-W046 }
   // JVT-U160 LMI {
   Void  setAdaptiveResPredictionFlag  ( Bool        b  )  { m_bAdaptiveResPredictionFlag        = b;  }
   Void  setAdaptiveMotPredictionFlag  ( Bool        b  )  { m_bAdaptiveMotPredictionFlag        = b;  }
@@ -905,6 +936,9 @@ public:
   Void          setBaseLayerCGSSNR(UInt ui) { m_uiBaseLayerCGSSNR = ui;}
   Void          setBaseQualityLevelCGSSNR(UInt ui) { m_uiBaseQualityLevelCGSSNR = ui;}
 //JVT-T054}
+	//JVT-W047 wxwan
+	Void          setOutputFlag(Bool b)	{ m_bOutputFlag = b; }
+	//JVT-W047 wxwan
 
   //EIDR bug-fix
   Void			setInIDRAccess(Bool b)	{ m_bInIDRAccess = b; }
@@ -957,6 +991,11 @@ protected:
   UInt                        m_uiBaseQualityLevel;
   UInt						            m_uiBaseFragmentOrder;
   Bool                        m_bAdaptivePredictionFlag;
+  //JVT-W046 {
+  Bool                        m_bSliceSkipFlag;
+  UInt                        m_uiScanIdxStart;
+  UInt                        m_uiScanIdxEnd;
+  //JVT-W046 }
 // JVT-U160 LMI {
   Bool                        m_bAdaptiveResPredictionFlag;
   Bool                        m_bDefaultBaseModeFlag;
@@ -1018,6 +1057,11 @@ protected:
   UInt                        m_uiBaseLayerCGSSNR;
   UInt                        m_uiBaseQualityLevelCGSSNR;
 //JVT-T054}
+
+	//JVT-W047 wxwan
+	Bool												m_bOutputFlag;
+	//JVT-W047 wxwan
+
   //JVT-U106 Behaviour at slice boundaries{
   Bool                        m_bCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}

@@ -331,6 +331,9 @@ private:
   DPBUnit*            m_pcCurrDPBUnit;
   DPBUnit*            m_pcLastDPBUnit;
   PicBufferList       m_cPicBufferList;
+public:
+	UInt                m_uiMaxlayerId;//JVT-W047
+	Void                setMaxLayerId (UInt ui) { m_uiMaxlayerId = ui; }//JVT-W047
 
 };
 
@@ -465,6 +468,7 @@ RQFGSDecoder* getRQFGSDecoder() { return m_pcRQFGSDecoder; }
 Void          setRQFGSDecoder(RQFGSDecoder* pcRQFGSDecoder) { m_pcRQFGSDecoder = pcRQFGSDecoder;}
 IntFrame*     getPredSignal() {return m_pcPredSignal;}
 //JVT-T054}
+DecodedPicBuffer* getDecodedPicBuffer() { return m_pcDecodedPictureBuffer; } //JVT-W047
 
 IntFrame*     getBaseLayerResidual() {return  m_pcBaseLayerResidual;} // this one is upsampled base layer's residual
 

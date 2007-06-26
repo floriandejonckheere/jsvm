@@ -390,11 +390,16 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
 {
   // JVT-U085 LMI
   pcScalableModifyCode->WriteFlag( pcScalableSei->getTlevelNestingFlag() );
+	pcScalableModifyCode->WriteFlag( pcScalableSei->getQualityLayerInfoPresentFlag() );//JVT-W051
+	pcScalableModifyCode->WriteFlag( pcScalableSei->getPriorityIdSettingFlag() );//JVT-W053 wxwan
   UInt uiNumScalableLayersMinus1 = pcScalableSei->getNumLayersMinus1();
   pcScalableModifyCode->WriteUVLC( uiNumScalableLayersMinus1 );
   for( UInt uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
   {
-    pcScalableModifyCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
+		//JVT-W051 {
+		//pcScalableModifyCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
+		pcScalableModifyCode->WriteUVLC( pcScalableSei->getLayerId( uiLayer ) );
+		//JVT-W051 }
 //JVT-S036 lsj start
     pcScalableModifyCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );
@@ -411,17 +416,23 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
     pcScalableModifyCode->WriteFlag( pcScalableSei->getFrmSizeInfoPresentFlag( uiLayer ) );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerDependencyInfoPresentFlag( uiLayer ) );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getInitParameterSetsInfoPresentFlag( uiLayer ) );
+		pcScalableModifyCode->WriteFlag( pcScalableSei->getBitstreamRestrictionFlag( uiLayer ) );//JVT-W051
     pcScalableModifyCode->WriteFlag( pcScalableSei->getExactInterlayerPredFlag( uiLayer ) ); //JVT-S036 lsj
-
+    pcScalableModifyCode->WriteFlag( pcScalableSei->getAvcLayerConversionFlag( uiLayer ) ); //JVT-W046
+		pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerOutputFlag( uiLayer ) );//JVT-W047 wxwan
     if( pcScalableSei->getProfileLevelInfoPresentFlag( uiLayer ) )
     {
-      pcScalableModifyCode->WriteCode( pcScalableSei->getLayerProfileIdc( uiLayer ), 8 );
-      pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet0Flag( uiLayer ) );
-      pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet1Flag( uiLayer ) );
-      pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet2Flag( uiLayer ) );
-      pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet3Flag( uiLayer ) );
-      pcScalableModifyCode->WriteCode( 0, 4 );
-      pcScalableModifyCode->WriteCode( pcScalableSei->getLayerLevelIdc( uiLayer ), 8 );
+			//JVT-W051 {
+			//pcScalableModifyCode->WriteCode( pcScalableSei->getLayerProfileIdc( uiLayer ), 8 );
+			pcScalableModifyCode->WriteCode( pcScalableSei->getLayerProfileIdc( uiLayer ), 24 );			
+
+			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet0Flag( uiLayer ) );
+			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet1Flag( uiLayer ) );
+			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet2Flag( uiLayer ) );
+			//pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConstraintSet3Flag( uiLayer ) );
+			//pcScalableModifyCode->WriteCode( 0, 4 );
+			//pcScalableModifyCode->WriteCode( pcScalableSei->getLayerLevelIdc( uiLayer ), 8 );
+			//JVT-W051 }
     }
     else
     {//JVT-S036 lsj
@@ -461,9 +472,15 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
 
     if( pcScalableSei->getSubRegionLayerFlag( uiLayer ) )
     {
-      pcScalableModifyCode->WriteCode( pcScalableSei->getBaseRegionLayerId( uiLayer ), 8 );
-      pcScalableModifyCode->WriteFlag( pcScalableSei->getDynamicRectFlag( uiLayer ) );
-      if( pcScalableSei->getDynamicRectFlag( uiLayer ) )
+			//JVT-W051 {
+			//pcScalableModifyCode->WriteCode( pcScalableSei->getBaseRegionLayerId( uiLayer ), 8 );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getBaseRegionLayerId( uiLayer ) );
+			//JVT-W051 }
+			pcScalableModifyCode->WriteFlag( pcScalableSei->getDynamicRectFlag( uiLayer ) );
+			//JVT-W051 {
+			//if( pcScalableSei->getDynamicRectFlag( uiLayer ) )
+			if( !pcScalableSei->getDynamicRectFlag( uiLayer ) )
+			//JVT-W051 }
       {
         pcScalableModifyCode->WriteCode( pcScalableSei->getHorizontalOffset( uiLayer ), 16 );
         pcScalableModifyCode->WriteCode( pcScalableSei->getVerticalOffset( uiLayer ), 16 );
@@ -479,11 +496,17 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
   //JVT-S036 lsj start
     if( pcScalableSei->getSubPicLayerFlag( uiLayer ) )
     {
-      pcScalableModifyCode->WriteCode( pcScalableSei->getRoiId( uiLayer ), 3 );
+			//JVT-W051 {
+			//pcScalableModifyCode->WriteCode( pcScalableSei->getRoiId( uiLayer ), 3 );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getRoiId( uiLayer ) );
+			//JVT-W051 }
     }
     if( pcScalableSei->getIroiSliceDivisionInfoPresentFlag( uiLayer ) )
     {
-      pcScalableModifyCode->WriteCode( pcScalableSei->getIroiSliceDivisionType( uiLayer ) , 2 );
+			//JVT-W051 {
+			//pcScalableModifyCode->WriteCode( pcScalableSei->getIroiSliceDivisionType( uiLayer ) , 2 );
+			pcScalableModifyCode->WriteCode( pcScalableSei->getIroiSliceDivisionType( uiLayer ) , 1 );
+			//JVT-W051 }
       if( pcScalableSei->getIroiSliceDivisionType(uiLayer) == 0 )
       {
         pcScalableModifyCode->WriteUVLC( pcScalableSei->getGridSliceWidthInMbsMinus1( uiLayer ) );
@@ -550,8 +573,68 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
     {//JVT-S036 lsj
       pcScalableModifyCode->WriteUVLC( pcScalableSei->getInitParameterSetsInfoSrcLayerIdDelta( uiLayer ) );
     }
-
+		//JVT-W051 {
+		if ( pcScalableSei->getBitstreamRestrictionFlag( uiLayer ) )
+		{
+			pcScalableModifyCode->WriteFlag( pcScalableSei->getMotionVectorsOverPicBoundariesFlag( uiLayer ) );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getMaxBytesPerPicDenom( uiLayer ) );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getMaxBitsPerMbDenom( uiLayer ) );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getLog2MaxMvLengthHorizontal( uiLayer ) );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getLog2MaxMvLengthVertical( uiLayer ) );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getMaxDecFrameBuffering( uiLayer ) );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumReorderFrames( uiLayer ) );
+		}
+		else
+		{
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getBitstreamRestrictionSrcLayerIdDelta( uiLayer ) );
+		}
+		//JVT-W051 }
+  //JVT-W046 {
+    if( pcScalableSei->getAvcLayerConversionFlag( uiLayer ) )
+    {
+      UInt ui;
+      pcScalableModifyCode->WriteUVLC( pcScalableSei->getAvcConversionTypeIdc( uiLayer ) );
+      for( ui = 0; ui < 2; ui++)
+      {
+        pcScalableModifyCode->WriteFlag( pcScalableSei->getAvcInfoFlag( uiLayer,ui ) );
+        if(pcScalableSei->getAvcInfoFlag( uiLayer,ui ))
+        {
+          pcScalableModifyCode->WriteCode(pcScalableSei->getAvcProfileLevelIdc( uiLayer,ui ),24 );
+          pcScalableModifyCode->WriteCode(pcScalableSei->getAvcAvgBitrate( uiLayer,ui ),16 );
+          pcScalableModifyCode->WriteCode(pcScalableSei->getAvcMaxBitrate( uiLayer,ui ),16 );
+        }
+      }
+    }
+  //JVT-W046 }
   }// for
+	//JVT-W051 {
+	if ( pcScalableSei->getQualityLayerInfoPresentFlag() )
+	{
+		pcScalableModifyCode->WriteUVLC( pcScalableSei->getQlNumdIdMinus1() );
+		for ( UInt i = 0; i <= pcScalableSei->getQlNumdIdMinus1(); i++ )
+		{
+			pcScalableModifyCode->WriteCode( pcScalableSei->getQlDependencyId( i ), 3 );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getQlNumMinus1( i ) );
+			for ( UInt j = 0; j <= pcScalableSei->getQlNumMinus1( i ); j++ )
+			{
+				pcScalableModifyCode->WriteUVLC( pcScalableSei->getQlId( i, j ) );
+				pcScalableModifyCode->WriteCode( pcScalableSei->getQlProfileLevelIdc( i, j ),24 );
+				pcScalableModifyCode->WriteCode( pcScalableSei->getQlAvgBitrate( i, j ), 16 );
+				pcScalableModifyCode->WriteCode( pcScalableSei->getQlMaxBitrate( i, j ), 16 );
+			}
+		}
+	}
+	//JVT-W051 }
+	//JVT-W053 wxwan
+	if(pcScalableSei->getPriorityIdSettingFlag() )
+	{
+		UInt PriorityIdSettingUriIdx = 0;
+		do{
+			pcScalableModifyCode->WriteCode( pcScalableSei->getPriorityIdSettingUri(PriorityIdSettingUriIdx),   8) ;
+			PriorityIdSettingUriIdx++;
+		}while( pcScalableSei->getPriorityIdSettingUri( PriorityIdSettingUriIdx-1 )  !=  0 );
+	}
+	//JVT-W053 wxwan
 
   return Err::m_nOK;
 }

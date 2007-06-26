@@ -187,16 +187,16 @@ public:
   Void  setSeqParameterSetId                  ( UInt        ui )          { m_uiSeqParameterSetId                   = ui; }
   Void  setSeqScalingMatrixPresentFlag        ( Bool        b  )          { m_bSeqScalingMatrixPresentFlag          = b;  }
   Void  setLog2MaxFrameNum                    ( UInt        ui )          { m_uiLog2MaxFrameNum                     = ui; }
-	Void  setPicOrderCntType                    ( UInt        ui )          { m_uiPicOrderCntType                     = ui; }
+  Void  setPicOrderCntType                    ( UInt        ui )          { m_uiPicOrderCntType                     = ui; }
   Void  setLog2MaxPicOrderCntLsb              ( UInt        ui )          { m_uiLog2MaxPicOrderCntLsb               = ui; }
-	Void  setDeltaPicOrderAlwaysZeroFlag        ( Bool        b  )          { m_bDeltaPicOrderAlwaysZeroFlag          = b;  }
+  Void  setDeltaPicOrderAlwaysZeroFlag        ( Bool        b  )          { m_bDeltaPicOrderAlwaysZeroFlag          = b;  }
   Void  setOffsetForNonRefPic                 ( Int         i  )          { m_iOffsetForNonRefPic                   = i;  }
   Void  setOffsetForTopToBottomField          ( Int         i  )          { m_iOffsetForTopToBottomField            = i;  }
   Void  setNumRefFramesInPicOrderCntCycle     ( UInt        ui )          { m_uiNumRefFramesInPicOrderCntCycle      = ui; }
   Void  setOffsetForRefFrame                  ( UInt        ui, 
 		                                            Int         i  )          { m_piOffsetForRefFrame[ui]               = i;  }
   Void  setNumRefFrames                       ( UInt        ui )          { m_uiNumRefFrames                        = ui; }
-	Void  setGapsInFrameNumValueAllowedFlag     ( Bool        b  )          { m_bGapsInFrameNumValueAllowedFlag       = b;  }
+  Void  setGapsInFrameNumValueAllowedFlag     ( Bool        b  )          { m_bGapsInFrameNumValueAllowedFlag       = b;  }
   Void  setFrameWidthInMbs                    ( UInt        ui )          { m_uiFrameWidthInMbs                     = ui; }
   Void  setFrameHeightInMbs                   ( UInt        ui )          { m_uiFrameHeightInMbs                    = ui; }
   Void  setDirect8x8InferenceFlag             ( Bool        b  )          { m_bDirect8x8InferenceFlag               = b;  }
@@ -215,7 +215,7 @@ public:
   Void  setPaff                               ( UInt        ui )          { m_uiPaff                                = ui; }
   Void  setFrameMbsOnlyFlag                   ( Bool        b  )          { m_bFrameMbsOnlyFlag                     = b;  }
 	Void  setMbAdaptiveFrameFieldFlag           ( Bool        b  )          { m_bMbAdaptiveFrameFieldFlag             = b;  }
-
+  
   ErrVal initOffsetForRefFrame( UInt uiSize )
   {
     ROT ( uiSize<1 );
@@ -236,7 +236,16 @@ public:
 
   Void setExtendedSpatialScalability ( UInt ui ) { m_uiExtendedSpatialScalability = ui ;}
   UInt getExtendedSpatialScalability () const    { return m_uiExtendedSpatialScalability; }
-
+  //JVT-W046 {
+  Void  setChromaFormatIdc ( UInt ui ) { m_uiChromaFormatIdc = ui ;  }
+  UInt  getChromaFormatIdc () const    { return m_uiChromaFormatIdc; }
+  Bool  getAVCHeaderRewriteFlag ()                const { return m_bAVCHeaderRewriteFlag; }
+  Void  setAVCHeaderRewriteFlag ( Bool b )        { m_bAVCHeaderRewriteFlag = b; }
+  Void  setBaseChromaPhaseXPlus1 ( UInt ui)       { m_uiBaseChromaPhaseXPlus1 = ui; }
+  Void  setBaseChromaPhaseYPlus1 ( UInt ui)       { m_uiBaseChromaPhaseYPlus1 = ui; }
+  UInt  getBaseChromaPhaseXPlus1 () const         { return m_uiBaseChromaPhaseXPlus1 ; }
+  UInt  getBaseChromaPhaseYPlus1 () const         { return m_uiBaseChromaPhaseYPlus1 ; }
+  //JVT-W046 }
   // JVT-V035
   Bool getAVCRewriteFlag ()                       const { return m_bAVCRewriteFlag; }
   Bool getAVCAdaptiveRewriteFlag ()               const { return m_bAVCAdaptiveRewriteFlag; }
@@ -321,6 +330,7 @@ protected:
 	Bool          m_bConstrainedSet3Flag;
   UInt          m_uiLevelIdc;
   UInt          m_uiSeqParameterSetId;
+  UInt          m_uiChromaFormatIdc;//JVT-W046
 	Bool          m_bSeqScalingMatrixPresentFlag;
   ScalingMatrix m_cSeqScalingMatrix;
   UInt          m_uiLog2MaxFrameNum;
@@ -341,6 +351,8 @@ protected:
   UInt          m_uiExtendedSpatialScalability;
   UInt          m_uiChromaPhaseXPlus1;
   UInt          m_uiChromaPhaseYPlus1;
+  UInt          m_uiBaseChromaPhaseXPlus1;
+  UInt          m_uiBaseChromaPhaseYPlus1;
   Int           m_iScaledBaseLeftOffset;
   Int           m_iScaledBaseTopOffset;
   Int           m_iScaledBaseRightOffset;
@@ -382,6 +394,7 @@ protected:
 
   Bool          m_bAVCRewriteFlag;          // V-035
   Bool          m_bAVCAdaptiveRewriteFlag;
+  Bool          m_bAVCHeaderRewriteFlag;    // JVT-W046
 
   // JVT-V068 HRD {
   VUI*          m_pcVUI;

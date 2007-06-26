@@ -671,6 +671,42 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       n += 1;
       continue;      
     }
+		//JVT-W049 {
+    if( equals( pcCom, "-plr", 4 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      ROF(    uiLayer < MAX_LAYERS );
+			UInt    uiPLR = atoi( argv[n+1  ] );
+      CodingParameter::getLayerParameters( uiLayer ).setPLR( uiPLR );
+      n += 1;
+      continue;      
+    }
+		if( equals( pcCom, "-redu", 5 ) )
+		{
+			ROTS( NULL == argv[n  ] );
+			ROTS( NULL == argv[n+1] );
+			UInt    uiLayer = atoi( argv[n  ] );
+			ROF(    uiLayer < MAX_LAYERS );
+			Bool    bReduFlag = (atoi( argv[n+1  ] ) > 0 ? true:false);
+			CodingParameter::getLayerParameters( uiLayer ).setUseRedundantSliceFlag( bReduFlag );
+			n += 1;
+			continue;      
+		}
+
+		if( equals( pcCom, "-kpredu", 7 ) )
+		{
+			ROTS( NULL == argv[n  ] );
+			ROTS( NULL == argv[n+1] );
+			UInt    uiLayer = atoi( argv[n  ] );
+			ROF(    uiLayer < MAX_LAYERS );
+			Bool    bReduKeyFlag = (atoi( argv[n+1  ] ) > 0 ? true:false);
+			CodingParameter::getLayerParameters( uiLayer ).setUseRedundantKeySliceFlag( bReduKeyFlag );
+			n += 1;
+			continue;      
+    }
+    //JVT-W049 }
     if( equals( pcCom, "-rec", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -926,6 +962,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SceneInfo",               &m_uiSceneInfoEnable,                                  0 );
   //JVT-T073 }
 
+	//JVT-W052 wxwan
+	m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("INTER_CHECK_SEI",          &m_uiIntegrityCheckSEIEnable,                          true );
+	//JVT-W052 wxwan
+
 //JVT-S036 lsj start  //bug-fix suffix{{
 //PreAndSuffixUnitEnable shall always be on in SVC contexts (i.e. when there are FGS/CGS/spatial enhancement layers)
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("PreAndSuffixUnitEnable",        &m_uiPreAndSuffixUnitEnable,                                 1 ); //prefix unit
@@ -950,6 +990,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EnableNalHRD",            &m_uiNalHRD,                                           0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EnableVclHRD",            &m_uiVclHRD,                                           0 );
 // JVT-V068 HRD }
+//JVT-W049 {
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EnableRedundantKeyPic",   &m_uiRedundantKeyPic,                                  0 );
+//JVT-W049 }
 
   m_pEncoderLines[uiParLnCount] = NULL;
 
@@ -1226,7 +1269,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 // JVT-Q065 EIDR}
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	          &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice), 0   );  //JVT-Q054 Red. Picture
-  
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantKeySlc",&(rcLayer.m_uiUseRedundantKeySlice), 0   );  //JVT-W049
   //S051{
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, ""); 
   //S051}

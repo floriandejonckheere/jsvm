@@ -129,6 +129,11 @@ public:
   UInt          getQualityLevel ()      { return m_uiQualityLevel;  }
   UInt          getPriorityId ()        { return m_uiPriorityId;  }
 
+	//JVT-W047
+	Bool          getOutputFlag ()        { return m_bOutputFlag;   }
+	Void					setOutputFlag (Bool bflag) { m_bOutputFlag = bflag; }
+	//JVT-W047
+
   Bool          getUseBasePredFlag()    { return m_bUseBasePredFlag;}
   Bool          getLayerBaseFlag()      { return m_bLayerBaseFlag;}
   Bool          getDiscardableFlag ()    { return m_bDiscardableFlag;}
@@ -171,6 +176,8 @@ protected:
   UInt          m_uiTemporalLevel;
   UInt          m_uiLayerId;
   UInt          m_uiQualityLevel;
+
+	Bool          m_bOutputFlag;//JVT-W047
 
   // JVT T083
   Bool          m_bLayerBaseFlag;

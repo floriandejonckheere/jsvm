@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "8.12" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "9.1" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -201,7 +201,12 @@ enum SliceType
   P_SLICE  = 0,
   B_SLICE  = 1,
   I_SLICE  = 2,
-  F_SLICE  = 3
+  F_SLICE  = 3,
+  //JVT-W046 {
+  EP_SLICE  = 5,
+  EB_SLICE  = 6,
+  EI_SLICE  = 7,
+  //JVT-W046 }
 };
 
 
@@ -310,6 +315,9 @@ H264AVC_NAMESPACE_END
 #define LOG2_GOP_ID_WRAP    4
 #define PRI_ID_BITS         6
 #define MAX_SCALABLE_LAYERS MAX_LAYERS * MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS
+//JVT-W049 {
+#define MAX_REDUNDANT_PICTURES_NUM          128
+//JVT-W049 }
 
 //{{Quality level estimation and modified truncation- JVTO044 and m12007
 //France Telecom R&D-(nathalie.cammas@francetelecom.com)

@@ -125,8 +125,16 @@ public:
     BUFFERING_PERIOD                      = 0,
     PIC_TIMING                            = 1,
     AVC_COMPATIBLE_HRD_SEI                = 30,
-    RESERVED_SEI                          = 31,
+//    RESERVED_SEI                          = 31, JVT-W052
 
+//JVT-W052 wxwan
+		INTE_CHECK_SEI												= 31,
+		//RESERVED_SEI													=32,//JVT-W049
+//JVT-W052 wxwan
+//JVT-W049 {
+	  REDUNDANT_PIC_SEI                     = 32,
+    RESERVED_SEI                          = 33,
+//JVT-W049 }
     // JVT-V068 HRD }
 
     SUB_SEQ_INFO                          = 10,
@@ -240,7 +248,9 @@ public:
     ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
 
     Void setTlevelNestingFlag( Bool bFlag )                                   { m_temporal_level_nesting_flag = bFlag; }
-    Void setNumLayersMinus1( UInt ui )                                        { m_num_layers_minus1 = ui;  }
+		Void setPriorityIdSettingFlag( Bool bFlag )                               { m_priority_id_setting_flag = bFlag; }//JVT-W053
+		Void setPriorityIdSettingUri (UInt index,UChar ucchar )												{ priority_id_setting_uri[index] = ucchar; }//JVT-W053
+		Void setNumLayersMinus1( UInt ui )                                        { m_num_layers_minus1 = ui;  }
     Void setLayerId ( UInt uilayer, UInt uiId )                                { m_layer_id                              [uilayer] = uiId; }
   //JVT-S036 lsj start
 //    Void setFGSlayerFlag ( UInt uilayer, Bool bFlag )                          { m_fgs_layer_flag                        [uilayer] = bFlag; }
@@ -252,7 +262,8 @@ public:
 
     Void setSubPicLayerFlag ( UInt uilayer, Bool bFlag)                        { m_sub_pic_layer_flag[uilayer] = bFlag; }
     Void setSubRegionLayerFlag ( UInt uilayer, Bool bFlag)                    { m_sub_region_layer_flag                  [uilayer] = bFlag; }
-    Void setIroiSliceDivisionInfoPresentFlag ( UInt uilayer, Bool bFlag )        { m_iroi_slice_division_info_present_flag    [uilayer] = bFlag; }
+    //Void setIroiSliceDivisionInfoPresentFlag ( UInt uilayer, Bool bFlag )        { m_iroi_slice_division_info_present_flag    [uilayer] = bFlag; }
+		Void setIroiSliceDivisionInfoPresentFlag ( UInt uilayer, Bool bFlag )        { m_iroi_division_info_present_flag    [uilayer] = bFlag; }//JVT-W051
     Void setProfileLevelInfoPresentFlag ( UInt uilayer, Bool bFlag)            { m_profile_level_info_present_flag        [uilayer] = bFlag; }
   //JVT-S036 lsj end
 
@@ -262,7 +273,17 @@ public:
     Void setLayerDependencyInfoPresentFlag ( UInt uilayer, Bool bFlag )        { m_layer_dependency_info_present_flag    [uilayer] = bFlag; }
     Void setInitParameterSetsInfoPresentFlag ( UInt uilayer, Bool bFlag )      { m_init_parameter_sets_info_present_flag  [uilayer] = bFlag; }
     Void setExactInterlayerPredFlag ( UInt uilayer, Bool bFlag )      { m_exact_interlayer_pred_flag  [uilayer] = bFlag; }        //JVT-S036 lsj
-    Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_idc                      [uilayer] = uiIdc; }
+//JVT-W046 {    
+	Void setAvcLayerConversionFlag ( UInt uilayer, Bool bFlag )               { m_avc_layer_conversion_flag [uilayer]         = bFlag;     }
+  Void setAvcInfoFlag ( UInt uilayer, UInt bType, Bool bFlag )              { m_avc_info_flag             [uilayer][bType]  = bFlag;     }
+	Void setAvcConversionTypeIdc ( UInt uilayer, UInt uiIdc )                 { m_avc_conversion_type_idc   [uilayer]         = uiIdc;     } 
+	Void setAvcProfileLevelIdc ( UInt uilayer, UInt bType, Int32 uiIdc )      { m_avc_profile_level_idc     [uilayer][bType]  = uiIdc;     }
+	Void setAvcAvgBitrate ( UInt uilayer, UInt bType, UInt uiBitrate )        { m_avc_avg_bitrate           [uilayer][bType]  = uiBitrate; }
+	Void setAvcMaxBitrate ( UInt uilayer, UInt bType, UInt uiBitrate )        { m_avc_max_bitrate           [uilayer][bType]  = uiBitrate; }
+//JVT-W046 }
+	Void setLayerOutputFlag      ( UInt uilayer,Bool bFlag )                       {m_layer_output_flag													[uilayer] = bFlag; }//JVT-W047 wxwan
+	//Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_idc                      [uilayer] = uiIdc; }
+	Void setLayerProfileIdc ( UInt uilayer, UInt uiIdc )                      { m_layer_profile_level_idc                      [uilayer] = uiIdc; }//JVT-W051
     Void setLayerConstraintSet0Flag ( UInt uilayer, Bool bFlag )              { m_layer_constraint_set0_flag            [uilayer] = bFlag; }
     Void setLayerConstraintSet1Flag ( UInt uilayer, Bool bFlag )              { m_layer_constraint_set1_flag            [uilayer] = bFlag; }
     Void setLayerConstraintSet2Flag ( UInt uilayer, Bool bFlag )              { m_layer_constraint_set2_flag            [uilayer] = bFlag; }
@@ -274,7 +295,8 @@ public:
 
     Void setAvgBitrate ( UInt uilayer, UInt uiBitrate )                        { m_avg_bitrate                    [uilayer] = uiBitrate; }
     Void setMaxBitrateLayer ( UInt uilayer, UInt uiBitrate )                    { m_max_bitrate_layer                [uilayer] = uiBitrate; }
-    Void setMaxBitrateDecodedPicture ( UInt uilayer, UInt uiBitrate )                { m_max_bitrate_decoded_picture            [uilayer] = uiBitrate; }
+    //Void setMaxBitrateDecodedPicture ( UInt uilayer, UInt uiBitrate )                { m_max_bitrate_decoded_picture            [uilayer] = uiBitrate; }
+		Void setMaxBitrateDecodedPicture ( UInt uilayer, UInt uiBitrate )                { m_max_bitrate_layer_representation            [uilayer] = uiBitrate; }//JVT-W051
     Void setMaxBitrateCalcWindow ( UInt uilayer, UInt uiBitrate )                  { m_max_bitrate_calc_window              [uilayer] = uiBitrate; }
   //JVT-S036 lsj end
 
@@ -294,9 +316,11 @@ public:
     Void setSubRegionInfoSrcLayerIdDelta ( UInt uilayer, UInt uiSubRegion )          { m_sub_region_info_src_layer_id_delta            [uilayer] = uiSubRegion; } //JVT-S036 lsj
   //JVT-S036 lsj start
     Void setRoiId ( UInt uilayer, UInt RoiId )                        { m_roi_id[uilayer]  = RoiId; }
-    Void setIroiSliceDivisionType ( UInt uilayer, UInt bType )                { m_iroi_slice_division_type[uilayer] = bType; }
-    Void setGridSliceWidthInMbsMinus1 ( UInt uilayer, UInt bWidth )              { m_grid_slice_width_in_mbs_minus1[uilayer] = bWidth; }
-    Void setGridSliceHeightInMbsMinus1 ( UInt uilayer, UInt bHeight )            { m_grid_slice_height_in_mbs_minus1[uilayer] = bHeight; }
+    Void setIroiSliceDivisionType ( UInt uilayer, UInt bType )                { m_iroi_division_type[uilayer] = bType; }
+    //Void setGridSliceWidthInMbsMinus1 ( UInt uilayer, UInt bWidth )              { m_grid_slice_width_in_mbs_minus1[uilayer] = bWidth; }
+    //Void setGridSliceHeightInMbsMinus1 ( UInt uilayer, UInt bHeight )            { m_grid_slice_height_in_mbs_minus1[uilayer] = bHeight; }
+		Void setGridSliceWidthInMbsMinus1 ( UInt uilayer, UInt bWidth )              { m_grid_width_in_mbs_minus1[uilayer] = bWidth; }//JVT-W051
+		Void setGridSliceHeightInMbsMinus1 ( UInt uilayer, UInt bHeight )            { m_grid_height_in_mbs_minus1[uilayer] = bHeight; }//JVT-W051
 
     Void setROINum(UInt iDependencyId, UInt iNumROI)      { m_aiNumRoi[iDependencyId] = iNumROI; }
     Void setROIID(UInt iDependencyId, UInt* iROIId)
@@ -322,38 +346,38 @@ public:
     }
 
     // JVT-S054 (REPLACE) ->
-    //Void setNumSliceMinus1 ( UInt uilayer, UInt bNum )                     { m_num_slice_minus1[uilayer] = bNum; }
+    //Void setNumSliceMinus1 ( UInt uilayer, UInt bNum )                     { m_num_rois_minus1[uilayer] = bNum; }
     Void setNumSliceMinus1 ( UInt uilayer, UInt bNum )
     {
-      if ( m_num_slice_minus1[uilayer] != bNum )
+      if ( m_num_rois_minus1[uilayer] != bNum )
       {
-        if ( m_first_mb_in_slice[uilayer] != NULL )
+        if ( m_first_mb_in_roi[uilayer] != NULL )
         {
-          free(m_first_mb_in_slice[uilayer]);
-          m_first_mb_in_slice[uilayer] = NULL;
+          free(m_first_mb_in_roi[uilayer]);
+          m_first_mb_in_roi[uilayer] = NULL;
         }
-        if ( m_slice_width_in_mbs_minus1[uilayer] != NULL )
+        if ( m_roi_width_in_mbs_minus1[uilayer] != NULL )
         {
-          free(m_slice_width_in_mbs_minus1[uilayer]);
-          m_slice_width_in_mbs_minus1[uilayer] = NULL;
+          free(m_roi_width_in_mbs_minus1[uilayer]);
+          m_roi_width_in_mbs_minus1[uilayer] = NULL;
         }
-        if ( m_slice_height_in_mbs_minus1[uilayer] != NULL )
+        if ( m_roi_height_in_mbs_minus1[uilayer] != NULL )
         {
-          free(m_slice_height_in_mbs_minus1[uilayer]);
-          m_slice_height_in_mbs_minus1[uilayer] = NULL;
+          free(m_roi_height_in_mbs_minus1[uilayer]);
+          m_roi_height_in_mbs_minus1[uilayer] = NULL;
         }
       }
 
-      m_num_slice_minus1[uilayer] = bNum;
+      m_num_rois_minus1[uilayer] = bNum;
 
-      if ( m_first_mb_in_slice[uilayer] == NULL )
-        m_first_mb_in_slice[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
+      if ( m_first_mb_in_roi[uilayer] == NULL )
+        m_first_mb_in_roi[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
 
-      if ( m_slice_width_in_mbs_minus1[uilayer] == NULL )
-        m_slice_width_in_mbs_minus1[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
+      if ( m_roi_width_in_mbs_minus1[uilayer] == NULL )
+        m_roi_width_in_mbs_minus1[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
 
-      if ( m_slice_height_in_mbs_minus1[uilayer] == NULL )
-        m_slice_height_in_mbs_minus1[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
+      if ( m_roi_height_in_mbs_minus1[uilayer] == NULL )
+        m_roi_height_in_mbs_minus1[uilayer] = (UInt*)malloc((bNum+1)*sizeof(UInt));
 
       if ( sizeof(m_slice_id[uilayer]) != (m_frm_width_in_mbs_minus1[uilayer]+1)*(m_frm_height_in_mbs_minus1[uilayer]+1)*sizeof(UInt) )
       {
@@ -365,9 +389,9 @@ public:
     }
     // JVT-S054 (REPLACE) <-
 
-    Void setFirstMbInSlice ( UInt uilayer, UInt uiTar, UInt bNum )              { m_first_mb_in_slice[uilayer][uiTar] = bNum; }
-    Void setSliceWidthInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bWidth )          { m_slice_width_in_mbs_minus1[uilayer][uiTar] = bWidth; }
-    Void setSliceHeightInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bHeight )        { m_slice_height_in_mbs_minus1[uilayer][uiTar] = bHeight; }
+    Void setFirstMbInSlice ( UInt uilayer, UInt uiTar, UInt bNum )              { m_first_mb_in_roi[uilayer][uiTar] = bNum; }
+    Void setSliceWidthInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bWidth )          { m_roi_width_in_mbs_minus1[uilayer][uiTar] = bWidth; }
+    Void setSliceHeightInMbsMinus1 ( UInt uilayer, UInt uiTar, UInt bHeight )        { m_roi_height_in_mbs_minus1[uilayer][uiTar] = bHeight; }
     Void setSliceId ( UInt uilayer, UInt uiTar, UInt bId )                  { m_slice_id[uilayer][uiTar] = bId; }
     //JVT-S036 lsj end
     Void setNumDirectlyDependentLayers ( UInt uilayer, UInt uiNum )            { m_num_directly_dependent_layers          [uilayer] = uiNum; }
@@ -385,6 +409,13 @@ public:
 
     // JVT-U085 LMI
     Bool getTlevelNestingFlag() const { return m_temporal_level_nesting_flag; }
+
+		//JVT-W053 wxwan
+		Bool getPriorityIdSettingFlag() const { return m_priority_id_setting_flag ; }
+		Char* getPriorityIdSetUri() { return priority_id_setting_uri; }
+		UChar getPriorityIdSettingUri (UInt index) const { return priority_id_setting_uri[index]; }
+		//JVT-W053 wxwan
+
     UInt getNumLayersMinus1() const {return m_num_layers_minus1;}
     UInt getLayerId ( UInt uilayer ) const { return m_layer_id[uilayer]; }
    //JVT-S036 lsj start
@@ -397,7 +428,8 @@ public:
 
     Bool getSubPicLayerFlag ( UInt uilayer ) { return m_sub_pic_layer_flag[uilayer]; }
     Bool getSubRegionLayerFlag ( UInt uilayer ) const { return m_sub_region_layer_flag[uilayer]; }
-    Bool getIroiSliceDivisionInfoPresentFlag ( UInt uilayer ) const { return m_iroi_slice_division_info_present_flag[uilayer]; }
+    //Bool getIroiSliceDivisionInfoPresentFlag ( UInt uilayer ) const { return m_iroi_slice_division_info_present_flag[uilayer]; }
+		Bool getIroiSliceDivisionInfoPresentFlag ( UInt uilayer ) const { return m_iroi_division_info_present_flag[uilayer]; }//JVT-W051
     Bool getProfileLevelInfoPresentFlag ( UInt uilayer ) const { return m_profile_level_info_present_flag[uilayer]; }
    //JVT-S036 lsj end
     Bool getBitrateInfoPresentFlag ( UInt uilayer ) const { return m_bitrate_info_present_flag[uilayer]; }
@@ -407,8 +439,20 @@ public:
     Bool getInitParameterSetsInfoPresentFlag ( UInt uilayer ) const { return m_init_parameter_sets_info_present_flag[uilayer]; }
 
     Bool getExactInterlayerPredFlag ( UInt uilayer )  const { return m_exact_interlayer_pred_flag  [uilayer]; }        //JVT-S036 lsj
+		//JVT-W046 {
+		Bool   getAvcLayerConversionFlag ( UInt uilayer )          const { return m_avc_layer_conversion_flag  [uilayer];        }
+		Bool   getAvcInfoFlag ( UInt uilayer, UInt bType )         const { return m_avc_info_flag  [uilayer][bType]; }
+		UInt   getAvcConversionTypeIdc ( UInt uilayer )            const { return m_avc_conversion_type_idc          [uilayer];        }
+		Int32  getAvcProfileLevelIdc ( UInt uilayer, UInt bType )  const { return m_avc_profile_level_idc          [uilayer][bType]; }
+		UInt   getAvcAvgBitrate ( UInt uilayer, UInt bType )       const { return m_avc_avg_bitrate          [uilayer][bType]; }
+		UInt   getAvcMaxBitrate ( UInt uilayer, UInt bType )       const { return m_avc_max_bitrate          [uilayer][bType]; }
+		//JVT-W046 }
 
-    UInt getLayerProfileIdc ( UInt uilayer ) const { return m_layer_profile_idc[uilayer]; }
+		//JVT-W047 wxwan
+		Bool getLayerOutputFlag( UInt uilayer ) const { return m_layer_output_flag[uilayer]; }
+		//JVT-W047 wxwan
+    //UInt getLayerProfileIdc ( UInt uilayer ) const { return m_layer_profile_idc[uilayer]; }
+		UInt getLayerProfileIdc ( UInt uilayer ) const { return m_layer_profile_level_idc[uilayer]; }//JVT-W051
     Bool getLayerConstraintSet0Flag ( UInt uilayer ) const { return m_layer_constraint_set0_flag[uilayer]; }
     Bool getLayerConstraintSet1Flag ( UInt uilayer ) const { return m_layer_constraint_set1_flag[uilayer]; }
     Bool getLayerConstraintSet2Flag ( UInt uilayer ) const { return m_layer_constraint_set2_flag[uilayer]; }
@@ -420,7 +464,8 @@ public:
 
     UInt getAvgBitrate ( UInt uilayer ) const { return m_avg_bitrate[uilayer]; }
     UInt getMaxBitrateLayer ( UInt uilayer ) const { return m_max_bitrate_layer[uilayer]; }
-    UInt getMaxBitrateDecodedPicture ( UInt uilayer ) const { return m_max_bitrate_decoded_picture[uilayer]; }
+    //UInt getMaxBitrateDecodedPicture ( UInt uilayer ) const { return m_max_bitrate_decoded_picture[uilayer]; }
+		UInt getMaxBitrateDecodedPicture ( UInt uilayer ) const { return m_max_bitrate_layer_representation[uilayer]; }//JVT-W051
     UInt getMaxBitrateCalcWindow ( UInt uilayer ) const { return m_max_bitrate_calc_window[uilayer]; }
   //JVT-S036 lsj end
 
@@ -440,13 +485,15 @@ public:
     UInt getSubRegionInfoSrcLayerIdDelta ( UInt uilayer ) const { return m_sub_region_info_src_layer_id_delta[uilayer]; } ///JVT-S036 lsj
   //JVT-S036 lsj start
     UInt getRoiId ( UInt uilayer ) const { return m_roi_id[uilayer]; }
-    UInt getIroiSliceDivisionType ( UInt uilayer ) const { return m_iroi_slice_division_type[uilayer]; }
-    UInt getGridSliceWidthInMbsMinus1 ( UInt uilayer ) const { return m_grid_slice_width_in_mbs_minus1[uilayer]; }
-    UInt getGridSliceHeightInMbsMinus1 ( UInt uilayer ) const { return m_grid_slice_height_in_mbs_minus1[uilayer]; }
-    UInt getNumSliceMinus1 ( UInt uilayer ) const { return m_num_slice_minus1[uilayer]; }
-    UInt getFirstMbInSlice ( UInt uilayer, UInt uiTar )  const { return m_first_mb_in_slice[uilayer][uiTar]; }
-    UInt getSliceWidthInMbsMinus1 ( UInt uilayer, UInt uiTar ) const { return m_slice_width_in_mbs_minus1[uilayer][uiTar]; }
-    UInt getSliceHeightInMbsMinus1 ( UInt uilayer, UInt uiTar ) const { return m_slice_height_in_mbs_minus1[uilayer][uiTar]; }
+    UInt getIroiSliceDivisionType ( UInt uilayer ) const { return m_iroi_division_type[uilayer]; }
+    //UInt getGridSliceWidthInMbsMinus1 ( UInt uilayer ) const { return m_grid_slice_width_in_mbs_minus1[uilayer]; }
+    //UInt getGridSliceHeightInMbsMinus1 ( UInt uilayer ) const { return m_grid_slice_height_in_mbs_minus1[uilayer]; }
+		UInt getGridSliceWidthInMbsMinus1 ( UInt uilayer ) const { return m_grid_width_in_mbs_minus1[uilayer]; }//JVT-W051
+		UInt getGridSliceHeightInMbsMinus1 ( UInt uilayer ) const { return m_grid_height_in_mbs_minus1[uilayer]; }//JVT-W051
+    UInt getNumSliceMinus1 ( UInt uilayer ) const { return m_num_rois_minus1[uilayer]; }
+    UInt getFirstMbInSlice ( UInt uilayer, UInt uiTar )  const { return m_first_mb_in_roi[uilayer][uiTar]; }
+    UInt getSliceWidthInMbsMinus1 ( UInt uilayer, UInt uiTar ) const { return m_roi_width_in_mbs_minus1[uilayer][uiTar]; }
+    UInt getSliceHeightInMbsMinus1 ( UInt uilayer, UInt uiTar ) const { return m_roi_height_in_mbs_minus1[uilayer][uiTar]; }
     UInt getSliceId ( UInt uilayer, UInt uiTar ) const { return m_slice_id[uilayer][uiTar]; }
   //JVT-S036 lsj end
 
@@ -463,13 +510,53 @@ public:
     UInt getInitPPSIdDelta ( UInt uilayer, UInt uiIndex ) const { return m_init_pic_parameter_set_id_delta[uilayer][uiIndex]; }
 // BUG_FIX liuhui}
     UInt getInitParameterSetsInfoSrcLayerIdDelta ( UInt uilayer ) const { return m_init_parameter_sets_info_src_layer_id_delta[uilayer]; } //JVT-S036 lsj
+		//JVT-W051 {
+		Bool getQualityLayerInfoPresentFlag ( void ) const { return m_quality_layer_info_present_flag; }
+		Bool getBitstreamRestrictionFlag ( UInt uilayer ) const { return m_bitstream_restriction_flag[uilayer]; }
+		Bool getMotionVectorsOverPicBoundariesFlag ( UInt uilayer ) const { return m_motion_vectors_over_pic_boundaries_flag [uilayer]; }
+		UInt getMaxBytesPerPicDenom ( UInt uilayer ) const { return m_max_bytes_per_pic_denom [uilayer]; }
+		UInt getMaxBitsPerMbDenom ( UInt uilayer ) const { return m_max_bits_per_mb_denom [uilayer]; }
+		UInt getLog2MaxMvLengthHorizontal ( UInt uilayer ) const { return m_log2_max_mv_length_horizontal [uilayer]; }
+		UInt getLog2MaxMvLengthVertical ( UInt uilayer ) const { return m_log2_max_mv_length_vertical [uilayer]; }
+		UInt getMaxDecFrameBuffering ( UInt uilayer ) const { return m_max_dec_frame_buffering [uilayer]; }
+		UInt getNumReorderFrames ( UInt uilayer ) const { return m_num_reorder_frames [uilayer]; }
+		UInt getBitstreamRestrictionSrcLayerIdDelta ( UInt uilayer ) const { return m_bitstream_restriction_src_layer_id_delta [uilayer]; }
+		UInt getQlNumdIdMinus1 ( void ) const { return m_ql_num_dId_minus1; }
+		UInt getQlNumMinus1 ( UInt uilayer ) const { return m_ql_num_minus1 [uilayer]; }
+		UInt getQlDependencyId ( UInt uilayer ) const { return m_ql_dependency_id [uilayer]; }
+		UInt getQlId ( UInt uilayer, UInt uiIndex ) const { return m_ql_id [uilayer][uiIndex]; }
+		Int32 getQlProfileLevelIdc ( UInt uilayer, UInt uiIndex ) const { return m_ql_profile_level_idc [uilayer][uiIndex]; }
+		UInt getQlAvgBitrate ( UInt uilayer, UInt uiIndex ) const { return m_ql_avg_bitrate [uilayer][uiIndex]; }
+		UInt getQlMaxBitrate ( UInt uilayer, UInt uiIndex ) const { return m_ql_max_bitrate [uilayer][uiIndex]; }
 
+		void setQualityLayerInfoPresentFlag ( Bool bFlag ) { m_quality_layer_info_present_flag = bFlag; }	
+		void setBitstreamRestrictionFlag ( UInt uilayer, Bool bFlag ){ m_bitstream_restriction_flag [uilayer] = bFlag; }	
+		void setMotionVectorsOverPicBoundariesFlag ( UInt uilayer, Bool bFlag ) { m_motion_vectors_over_pic_boundaries_flag [uilayer] = bFlag; }
+		void setMaxBytesPerPicDenom ( UInt uilayer, UInt uiMaxBytesPerPicDenom ) { m_max_bytes_per_pic_denom [uilayer] = uiMaxBytesPerPicDenom; }
+		void setMaxBitsPerMbDenom ( UInt uilayer, UInt uiMaxBitsPerMbDenom ) { m_max_bits_per_mb_denom [uilayer] = uiMaxBitsPerMbDenom; }
+		void setLog2MaxMvLengthHorizontal ( UInt uilayer, UInt uiLog2MaxMvLengthHorizontal ) { m_log2_max_mv_length_horizontal [uilayer] = uiLog2MaxMvLengthHorizontal; }
+		void setLog2MaxMvLengthVertical ( UInt uilayer, UInt uiLog2MaxMvLengthVertical ) { m_log2_max_mv_length_vertical [uilayer] = uiLog2MaxMvLengthVertical; }
+		void setMaxDecFrameBuffering ( UInt uilayer, UInt uiMaxDecFrameBuffering ) { m_max_dec_frame_buffering [uilayer] = uiMaxDecFrameBuffering; }	
+		void setNumReorderFrames ( UInt uilayer, UInt uiNumReorderFrames ) { m_num_reorder_frames [uilayer] = uiNumReorderFrames; }
+		void setBitstreamRestrictionSrcLayerIdDelta ( UInt uilayer, UInt uiDpbInfoSrcLayerIdDelta ) { m_bitstream_restriction_src_layer_id_delta [uilayer] = uiDpbInfoSrcLayerIdDelta; }
+		void setQlNumdIdMinus1 (UInt uiQlNumdIdMinus1) { m_ql_num_dId_minus1 = uiQlNumdIdMinus1; }
+		void setQlNumMinus1 ( UInt uilayer, UInt uiQlNumMinus1 ) { m_ql_num_minus1 [uilayer] = uiQlNumMinus1; }
+		void setQlDependencyId ( UInt uilayer, UInt uiQlDependencyId ) { m_ql_dependency_id [uilayer] = uiQlDependencyId; }
+		void setQlId ( UInt uilayer, UInt uiIndex, UInt uiQlId ) { m_ql_id [uilayer][uiIndex] = uiQlId; }
+		void setQlProfileLevelIdx ( UInt uilayer, UInt uiIndex, Int32 uiQlProfileLevelIdc ) { m_ql_profile_level_idc [uilayer][uiIndex] = uiQlProfileLevelIdc; }
+		void setQlAvgBitrate ( UInt uilayer, UInt uiIndex, UInt uiQlAvgBitrate ) { m_ql_avg_bitrate [uilayer][uiIndex] = uiQlAvgBitrate; }
+		void setQlMaxBitrate ( UInt uilayer, UInt uiIndex, UInt uiQlMaxBitrate ) { m_ql_max_bitrate [uilayer][uiIndex] = uiQlMaxBitrate; }
+		//JVT-W051 }
   private:
 // BUG_FIX liuhui{
     UInt m_std_AVC_Offset;
 // BUG_FIX liuhui}
     // JVT-U085 LMI
     Bool m_temporal_level_nesting_flag;
+
+		Bool m_priority_id_setting_flag;//JVT-W053
+		char priority_id_setting_uri[20];//JVT-W053
+
     UInt m_num_layers_minus1;
     UInt m_layer_id[MAX_SCALABLE_LAYERS];
   //JVT-S036 lsj start
@@ -482,7 +569,11 @@ public:
 
     Bool m_sub_pic_layer_flag[MAX_SCALABLE_LAYERS];
     Bool m_sub_region_layer_flag[MAX_SCALABLE_LAYERS];
-    Bool m_iroi_slice_division_info_present_flag[MAX_SCALABLE_LAYERS];
+		//JVT-W051 {
+		//rename
+		//Bool m_iroi_slice_division_info_present_flag[MAX_SCALABLE_LAYERS];
+		Bool m_iroi_division_info_present_flag[MAX_SCALABLE_LAYERS];
+		//JVT-W051 }
     Bool m_profile_level_info_present_flag[MAX_SCALABLE_LAYERS];
   //JVT-S036 lsj end
     Bool m_bitrate_info_present_flag[MAX_SCALABLE_LAYERS];
@@ -492,8 +583,19 @@ public:
     Bool m_init_parameter_sets_info_present_flag[MAX_SCALABLE_LAYERS];
 
     Bool m_exact_interlayer_pred_flag[MAX_SCALABLE_LAYERS];  //JVT-S036 lsj
-
-    UInt m_layer_profile_idc[MAX_SCALABLE_LAYERS];
+	//JVT-W046 {
+	Bool    m_avc_layer_conversion_flag[MAX_SCALABLE_LAYERS];
+  Bool    m_avc_info_flag[MAX_SCALABLE_LAYERS][2];
+  UInt    m_avc_conversion_type_idc[MAX_SCALABLE_LAYERS];
+	Int32   m_avc_profile_level_idc[MAX_SCALABLE_LAYERS][2];
+	UInt  m_avc_avg_bitrate[MAX_SCALABLE_LAYERS][2];
+	UInt  m_avc_max_bitrate[MAX_SCALABLE_LAYERS][2];
+ //JVT-W046 }
+		//JVT-W051 {
+		//rename
+		//UInt m_layer_profile_idc[MAX_SCALABLE_LAYERS];
+		Int32 m_layer_profile_level_idc[MAX_SCALABLE_LAYERS];
+		//JVT-W051 }
     Bool m_layer_constraint_set0_flag[MAX_SCALABLE_LAYERS];
     Bool m_layer_constraint_set1_flag[MAX_SCALABLE_LAYERS];
     Bool m_layer_constraint_set2_flag[MAX_SCALABLE_LAYERS];
@@ -507,7 +609,11 @@ public:
 
     UInt m_avg_bitrate[MAX_SCALABLE_LAYERS];
     UInt m_max_bitrate_layer[MAX_SCALABLE_LAYERS];//
-    UInt m_max_bitrate_decoded_picture[MAX_SCALABLE_LAYERS];//
+		//JVT-W051 {
+		//rename
+		//UInt m_max_bitrate_decoded_picture[MAX_SCALABLE_LAYERS];//
+		UInt m_max_bitrate_layer_representation[MAX_SCALABLE_LAYERS];//
+		//JVT-W051 } 
     UInt m_max_bitrate_calc_window[MAX_SCALABLE_LAYERS];//
 
     UInt m_constant_frm_rate_idc[MAX_SCALABLE_LAYERS];
@@ -531,20 +637,33 @@ public:
 
     UInt m_roi_id[MAX_SCALABLE_LAYERS]; //
 
-    UInt m_iroi_slice_division_type[MAX_SCALABLE_LAYERS]; //
-    UInt m_grid_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
-    UInt m_grid_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
-    UInt m_num_slice_minus1[MAX_SCALABLE_LAYERS];//
+		//JVT-W051 {
+		//rename
+		//UInt m_iroi_slice_division_type[MAX_SCALABLE_LAYERS]; //
+		//UInt m_grid_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
+		//UInt m_grid_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
+		//UInt m_num_slice_minus1[MAX_SCALABLE_LAYERS];//
+		UInt m_iroi_division_type[MAX_SCALABLE_LAYERS];;//
+		UInt m_grid_width_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
+		UInt m_grid_height_in_mbs_minus1[MAX_SCALABLE_LAYERS]; //
+		UInt m_num_rois_minus1[MAX_SCALABLE_LAYERS];//
+		//JVT-W051 }
     // JVT-S054 (REPLACE) ->
     /*
-    UInt m_first_mb_in_slice[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
-    UInt m_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
-    UInt m_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+    UInt m_first_mb_in_roi[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+    UInt m_roi_width_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
+    UInt m_roi_height_in_mbs_minus1[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
     UInt m_slice_id[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];//
     */
-    UInt* m_first_mb_in_slice[MAX_SCALABLE_LAYERS];//
-    UInt* m_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
-    UInt* m_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
+		//JVT-W051 {
+		//rename
+		//UInt* m_first_mb_in_slice[MAX_SCALABLE_LAYERS];//
+		//UInt* m_slice_width_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
+		//UInt* m_slice_height_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
+		UInt* m_first_mb_in_roi[MAX_SCALABLE_LAYERS];//
+		UInt* m_roi_width_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
+		UInt* m_roi_height_in_mbs_minus1[MAX_SCALABLE_LAYERS];//
+		//JVT-W051 }
     UInt* m_slice_id[MAX_SCALABLE_LAYERS];//
     // JVT-S054 (REPLACE) <-
 // BUG_FIX liuhui{
@@ -560,11 +679,31 @@ public:
 // BUG_FIX liuhui}
     UInt m_init_parameter_sets_info_src_layer_id_delta[MAX_SCALABLE_LAYERS];//
   //JVT-S036 lsj end
+		Bool m_layer_output_flag[MAX_SCALABLE_LAYERS];//JVT-W047 wxwan
 
     UInt m_aiNumRoi[MAX_SCALABLE_LAYERS];
     UInt m_aaiRoiID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
     UInt m_aaiSGID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
     UInt m_aaiSLID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
+		//JVT-W051 {
+		Bool m_quality_layer_info_present_flag;
+		Bool m_bitstream_restriction_flag[MAX_SCALABLE_LAYERS];
+		Bool m_motion_vectors_over_pic_boundaries_flag[MAX_SCALABLE_LAYERS];
+		UInt m_max_bytes_per_pic_denom[MAX_SCALABLE_LAYERS];
+		UInt m_max_bits_per_mb_denom[MAX_SCALABLE_LAYERS];
+		UInt m_log2_max_mv_length_horizontal[MAX_SCALABLE_LAYERS];
+		UInt m_log2_max_mv_length_vertical[MAX_SCALABLE_LAYERS];
+		UInt m_num_reorder_frames[MAX_SCALABLE_LAYERS];
+		UInt m_max_dec_frame_buffering[MAX_SCALABLE_LAYERS];		
+		UInt m_bitstream_restriction_src_layer_id_delta[MAX_SCALABLE_LAYERS];
+		UInt m_ql_num_dId_minus1;
+		UInt m_ql_dependency_id[MAX_LAYERS];
+		UInt m_ql_num_minus1[MAX_LAYERS];
+		UInt m_ql_id[MAX_LAYERS][MAX_FGS_LAYERS+1];
+		Int32 m_ql_profile_level_idc[MAX_LAYERS][MAX_FGS_LAYERS+1];
+		UInt m_ql_avg_bitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
+		UInt m_ql_max_bitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
+		//JVT-W051 }
   };
 
   class H264AVCCOMMONLIB_API SubPicSei : public SEIMessage
@@ -1009,6 +1148,81 @@ public:
     VUI& m_rcVUI;
   };
   // JVT-V068 HRD }
+
+//JVT-W049 {
+  class H264AVCCOMMONLIB_API RedundantPicSei: public SEIMessage
+{
+protected:
+    RedundantPicSei ();
+    ~RedundantPicSei ();
+
+public:
+    static ErrVal create  ( RedundantPicSei*&      rpcSeiMessage );
+    ErrVal        write   ( HeaderSymbolWriteIf*   pcWriteIf     );
+    ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf      );
+
+  Void setNumDIdMinus1( UInt ui )                                                                       { m_num_dId_minus1 = ui;                                                    }
+	Void setDependencyId ( UInt uidId, UInt uiId )                                                        { m_dependency_id[uidId] = uiId;                                            }
+  Void setNumQIdMinus1 ( UInt uidId, UInt uiId )                                                        { m_num_qId_minus1[uidId] = uiId;                                           }
+	Void setQualityId ( UInt uidId, UInt uiqId, UInt uiId )                                               { m_quality_id[uidId][uiqId] = uiId;                                        }
+	Void setNumRedundantPicsMinus1 ( UInt uidId, UInt uiqId, UInt uiredupic )                             { m_num_redundant_pics_minus1[uidId][uiqId] = uiredupic;                    }
+	Void setRedundantPicCntMinus1 ( UInt uidId, UInt uiqId, UInt uiredupic,UInt uiredupicnt )             { m_redundant_pic_cnt_minus1[uidId][uiqId][uiredupic] = uiredupicnt;        }
+	Void setPicMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                           { m_pic_match_flag[uidId][uiqId][uiredupic] = bFlag;                        }
+	Void setMbTypeMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                        { m_mb_type_match_flag[uidId][uiqId][uiredupic] = bFlag;                    }
+	Void setMotionMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                        { m_motion_match_flag[uidId][uiqId][uiredupic] = bFlag;                     }
+	Void setResidualMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                      { m_residual_match_flag[uidId][uiqId][uiredupic] = bFlag;                   }
+	Void setIntraSamplesMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic, Bool bFlag )                  { m_intra_samples_match_flag[uidId][uiqId][uiredupic] = bFlag;              }
+    
+	UInt getNumDIdMinus1( )                                                                         const { return m_num_dId_minus1;                                                  }
+	UInt getDependencyId ( UInt uidId )                                                             const { return m_dependency_id[uidId];                                            }	
+  UInt getNumQIdMinus1 ( UInt uidId )                                                             const { return m_num_qId_minus1[uidId];                                           }
+	UInt getQualityId ( UInt uidId, UInt uiqId )                                                    const { return m_quality_id[uidId][uiqId];                                        }
+	UInt getNumRedundantPicsMinus1 ( UInt uidId, UInt uiqId )                                       const { return m_num_redundant_pics_minus1[uidId][uiqId];                         }
+	UInt getRedundantPicCntMinus1 ( UInt uidId, UInt uiqId, UInt uiredupic )                        const { return m_redundant_pic_cnt_minus1[uidId][uiqId][uiredupic];               }
+	Bool getPicMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic )                                 const { return m_pic_match_flag[uidId][uiqId][uiredupic];                         }
+	Bool getMbTypeMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic )                              const { return m_mb_type_match_flag[uidId][uiqId][uiredupic];                     }
+	Bool getMotionMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic )                              const { return m_motion_match_flag[uidId][uiqId][uiredupic];                      }
+	Bool getResidualMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic )                            const { return m_residual_match_flag[uidId][uiqId][uiredupic];                    }
+	Bool getIntraSamplesMatchFlag ( UInt uidId, UInt uiqId, UInt uiredupic )                        const { return m_intra_samples_match_flag[uidId][uiqId][uiredupic];               }
+
+private:
+	UInt m_num_dId_minus1;
+	UInt m_dependency_id[MAX_LAYERS];
+  UInt m_num_qId_minus1[MAX_LAYERS];
+	UInt m_quality_id[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	UInt m_num_redundant_pics_minus1[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	UInt m_redundant_pic_cnt_minus1[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_REDUNDANT_PICTURES_NUM];
+	Bool m_pic_match_flag[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_REDUNDANT_PICTURES_NUM];
+	Bool m_mb_type_match_flag[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_REDUNDANT_PICTURES_NUM];
+	Bool m_motion_match_flag[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_REDUNDANT_PICTURES_NUM];
+	Bool m_residual_match_flag[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_REDUNDANT_PICTURES_NUM];
+	Bool m_intra_samples_match_flag[MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_REDUNDANT_PICTURES_NUM];
+};
+//JVT-W049 }
+
+	//JVT-W052 wxwan
+	class H264AVCCOMMONLIB_API IntegrityCheckSEI : public SEIMessage
+	{
+	protected:
+		IntegrityCheckSEI() : SEIMessage(INTE_CHECK_SEI)
+		{}
+	public:
+		static ErrVal create( IntegrityCheckSEI*& rpcIntegrityCheckSEI );
+		ErrVal    destroy ();
+		ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf);
+		ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
+		UInt					getNumInfoEntriesMinus1()							{ return m_uinuminfoentriesminus1; }
+		UInt          getEntryDependencyId(UInt uilayer)		{ return m_uientrydependency_id[uilayer]; }
+		UInt          getQualityLayerCRC  (UInt uilayer)		{ return m_uiquality_layer_crc [uilayer]; }
+		Void          setNumInfoEntriesMinus1(UInt ui )     { m_uinuminfoentriesminus1 = ui; } 
+		Void					setEntryDependencyId(UInt uilayer, UInt ui)    { m_uientrydependency_id[uilayer] = ui; }
+		Void					setQualityLayerCRC  (UInt uilayer, UInt ui)		 { m_uiquality_layer_crc [uilayer] = ui; }
+	private:
+		UInt					m_uinuminfoentriesminus1;
+		UInt					m_uientrydependency_id[ MAX_LAYERS ];
+		UInt					m_uiquality_layer_crc [ MAX_LAYERS ];
+	};
+	//JVT-W052 wxwan
 
   typedef MyList<SEIMessage*> MessageList;
 

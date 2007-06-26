@@ -221,6 +221,7 @@ public:
     , m_bUseDiscardable                   (false) //JVT-P031
     , m_dPredFGSRate                      (0.0) //JVT-P031
     , m_uiUseRedundantSlice               (0)   //JVT-Q054 Red. Picture
+		, m_uiUseRedundantKeySlice            (0)   //JVT-W049
 // JVT-Q065 EIDR{
 	  , m_iIDRPeriod						  (0)
 	  , m_bBLSkipEnable					  ( false )
@@ -343,7 +344,7 @@ public:
   Bool                            getUseDiscardable                 () const {return m_bUseDiscardable;} //JVT-P031
   Double                          getPredFGSRate                    () const {return m_dPredFGSRate;} //JVT-P031
   Bool                            getUseRedundantSliceFlag          () const {return m_uiUseRedundantSlice == 1; }  //JVT-Q054 Red. Picture
-  
+  Bool                            getUseRedundantKeySliceFlag       () const {return m_uiUseRedundantKeySlice == 1; }   //JVT-W049
   //--ICU/ETRI FMO Implementation :  FMO start 
   UInt          getNumSliceGroupsMinus1() const {return m_uiNumSliceGroupsMinus1;}  //for test
   UInt          getSliceGroupMapType() const {return  m_uiSliceGroupMapType;  }
@@ -432,7 +433,7 @@ public:
 // JVT-Q065 EIDR}
 
   UInt                getPLR                   () { return m_uiPLR; } //JVT-R057 LA-RDO
-
+  Void                setPLR                   (UInt ui){m_uiPLR=ui;} //JVT-W049
   //===== check =====
   ErrVal  check();
 
@@ -473,7 +474,7 @@ public:
   UInt                            getFGSMotionMode() { return m_uiFGSMotionMode;  }
   Void                            setFGSMotionMode( UInt uiFGSMotionMode ) { m_uiFGSMotionMode = uiFGSMotionMode; }
   Void                            setUseRedundantSliceFlag(Bool   b) { m_uiUseRedundantSlice = b; }  // JVT-Q054 Red. Picture
-
+  Void                            setUseRedundantKeySliceFlag(UInt   b) { m_uiUseRedundantKeySlice = b; }  //JVT-W049
   //S051{
   const std::string&              getInSIPFileName             () const { return m_cInSIPFileName; }
   const std::string&              getOutSIPFileName            () const { return m_cOutSIPFileName; }
@@ -586,7 +587,7 @@ public:
 
   //--ICU/ETRI FMO Implementation : FMO end
   UInt         m_uiUseRedundantSlice;   // JVT-Q054 Red. Picture
-
+  UInt         m_uiUseRedundantKeySlice;   //JVT-W049
   // JVT-S054 (ADD) ->
   Bool         m_bSliceDivisionFlag;
   UInt         m_uiNumSliceMinus1;
@@ -723,6 +724,7 @@ public:
 	  , m_uiNestingSEIEnable              ( 0 ) 
 	  , m_uiSceneInfoEnable               ( 0 )
 //JVT-T073 }
+		, m_uiIntegrityCheckSEIEnable       ( 0 )//JVT-W052 wxwan
 //JVT-T054{
     , m_uiCGSSNRRefinementFlag            ( 0 )
     , m_uiMaxLayerCGSSNR                  ( 0 )
@@ -816,6 +818,7 @@ public:
   UInt                            getSceneInfoEnable      ()              const   { return m_uiSceneInfoEnable; }
   // JVT-T073 }
 
+	UInt														getIntegrityCheckSEIEnable()						const   { return m_uiIntegrityCheckSEIEnable; }//JVT-W052
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
   Void                            setMaximumDelay         ( Double  d )   { m_dMaximumDelay         = d; }
   Void                            setTotalFrames          ( UInt    n )   { m_uiTotalFrames         = n; }
@@ -951,7 +954,9 @@ public:
   UInt getEnableSEIBufferingPeriod() { return getEnableNalHRD() || getEnableVclHRD(); }
   UInt getEnableSEIPicTiming() { return getEnableNalHRD() || getEnableVclHRD(); }
   // JVT-V068 HRD }
-
+  //JVT-W049 {
+  Bool getEnableRedundantKeyPic() {return m_uiRedundantKeyPic == 0 ? false:true; }
+  //JVT-W049 }
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -1027,6 +1032,11 @@ protected:
   UInt                      m_uiNestingSEIEnable;
   UInt                      m_uiSceneInfoEnable;
 //JVT-T073 }
+
+	//JVT-W052
+	UInt											m_uiIntegrityCheckSEIEnable;
+	//JVT-W052
+
 // JVT-U085 LMI 
   UInt                      m_uiTlevelNestingFlag;
 // JVT-U116 LMI 
@@ -1050,6 +1060,9 @@ protected:
   UInt    m_uiNalHRD;
   UInt    m_uiVclHRD;
   // JVT-V068 HRD }
+	//JVT-W049 {
+  UInt    m_uiRedundantKeyPic;
+  //JVT-W049 }
 };
 
 #if defined( MSYS_WIN32 )

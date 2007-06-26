@@ -106,6 +106,8 @@ PictureParameterSet::PictureParameterSet()
 , m_bDeblockingFilterParametersPresentFlag  ( false )
 , m_bConstrainedIntraPredFlag               ( false )
 , m_bRedundantPicCntPresentFlag             ( false )  // JVT-Q054, Red. Picture
+, m_bRedundantKeyPicCntPresentFlag          ( false )  // JVT-W049
+, m_bEnableRedundantKeyPicCntPresentFlag    ( false )  // JVT-W049
 , m_bTransform8x8ModeFlag                   ( false )
 , m_bPicScalingMatrixPresentFlag            ( false )
 , m_iSecondChromaQpIndexOffset              ( 0 )

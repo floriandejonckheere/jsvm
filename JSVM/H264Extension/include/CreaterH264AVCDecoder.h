@@ -187,6 +187,8 @@ public:
   UInt isNonRequiredPic();  //NonRequired JVT-Q066
   Bool isRedundantPic();  // JVT-Q054 Red. Picture
   ErrVal  checkRedundantPic();  // JVT-Q054 Red. Picture
+  Void deleteRedSH(); //JVT-W049
+  Void setRedundantPicDefault( Bool bValue ); //JVT-W049
 
 //  TMM_EC {{
   ErrVal  checkSliceGap ( BinDataAccessor*  pcBinDataAccessor,

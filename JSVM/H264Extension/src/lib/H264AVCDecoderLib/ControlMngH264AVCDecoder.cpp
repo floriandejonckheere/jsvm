@@ -306,7 +306,7 @@ ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
     {
       m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
     }
-    //if(!m_apcMCTFDecoder[uiLayer]->getResizeParameters())
+    //if(!m_apcMCTFDecoder[uiLayer]-^>getResizeParameters())
       RNOK( xInitESS( rcSH ) );
     return Err::m_nOK;
   }
