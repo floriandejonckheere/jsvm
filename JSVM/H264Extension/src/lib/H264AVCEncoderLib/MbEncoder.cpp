@@ -2181,10 +2181,10 @@ MbEncoder::xEstimateMbIntraBL( MbDataAccess&    rcMbDataAccess,   // JVT-V079,
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
   {
-	  MbDataAccess&rcMbDataAccess  = rpcMbTempData->getMbDataAccess();
+	  MbDataAccess& rcMbDataAccessl  = rpcMbTempData->getMbDataAccess();
 	  Int x,y,blockX,blockY;
-	  blockX=rcMbDataAccess.getMbX()*4;
-	  blockY=rcMbDataAccess.getMbY()*4;
+	  blockX=rcMbDataAccessl.getMbX()*4;
+	  blockY=rcMbDataAccessl.getMbY()*4;
 	  Int blockIndex;
 	  Int ep_ref=0;
 	  Int KBlock=m_pcIntPicBuffer->getLWidth()/4;
@@ -2308,7 +2308,7 @@ MbEncoder::xEstimateMbIntra16( IntMbTempData*&  rpcMbTempData,
   UInt          uiPredMode  = 0;
   UInt          uiBestRd    = MSYS_UINT_MAX;
   UInt          uiBestBits  = 0;
-  UInt          uiDist, uiBits, uiRd, uiCost;
+  UInt          uiDist, uiBits = 0, uiRd, uiCost;
 
   // Make sure the uiPredMode is equal to the baselayer when AVC rewriting is enabled.
   Bool avcRewriteFlag = rpcMbTempData->getMbDataAccess().getSH().getAVCRewriteFlag();
@@ -3701,9 +3701,6 @@ MbEncoder::xEncodeChromaTexture( IntMbTempData& rcMbTempData,
     ruiBits += uiAcBits1 + uiAcBits2;
     uiChromaCbp = max( uiCbp1, uiCbp2 );
   }
-
-  const QpParameter& rcChromaQp = m_pcTransform->getChromaQp();
-
 
   if ((coeffResidualPredFlag&&rcMbTempData.getResidualPredFlag( PART_16x16 )) || avcRewriteFlag || uiCbp1)
   {
@@ -9157,7 +9154,8 @@ MbEncoder::reCalcBlock8x8(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int is4x
     pcCoeff = rcMbTempData.get8x8( c8x8Idx );  
     piCoeffBase = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbTCoeffs().get8x8( c8x8Idx );
 
-    for( UInt ui=0; ui<64; ui++ )
+    UInt ui=0;
+	for( ui=0; ui<64; ui++ )
     {
       pcCoeff[ui] = piCoeffBase[ui].getLevel();
       pcCoeff[ui].setLevel(piCoeffBase[ui].getLevel());      
@@ -9166,7 +9164,7 @@ MbEncoder::reCalcBlock8x8(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int is4x
     m_pcTransform->invTransform8x8Blk( rcMbTempData.getYBlk( c8x8Idx ),  rcMbTempData.getLStride(), pcCoeff );  
 
     // only clear the coefficients
-    for( UInt ui=0; ui<64; ui++ )
+    for( ui=0; ui<64; ui++ )
     {
       pcCoeff[ui].setCoeff(0);      
     }
@@ -9178,7 +9176,8 @@ MbEncoder::reCalcBlock8x8(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int is4x
       piCoeffBase = rcMbTempData.getMbDataAccess().getMbDataAccessBase()->getMbTCoeffs().get( cIdx );
 
       // add the base layer dequantized coeff
-      for( UInt ui=0; ui<16; ui++ )
+      UInt ui=0;
+	  for( ui=0; ui<16; ui++ )
       {
         pcCoeff[ui] = piCoeffBase[ui].getLevel();
         pcCoeff[ui].setLevel(piCoeffBase[ui].getLevel());
@@ -9188,7 +9187,7 @@ MbEncoder::reCalcBlock8x8(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int is4x
         rcMbTempData.getLStride(), pcCoeff );
 
       // only clear the coefficients
-      for( UInt ui=0; ui<16; ui++ )
+      for( ui=0; ui<16; ui++ )
       {
         pcCoeff[ui].setCoeff(0);      
       }

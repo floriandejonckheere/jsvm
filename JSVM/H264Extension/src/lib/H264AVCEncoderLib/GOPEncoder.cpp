@@ -496,7 +496,7 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 
   //JVT-V079 Low-complexity MB mode decision {
   if ( m_uiLayerId==0 )
-    m_pcSliceEncoder->getMbEncoder()->setLowComplexMbEnable ( m_uiLayerId, pcLayerParameters->getLowComplexMbEnable () );
+    m_pcSliceEncoder->getMbEncoder()->setLowComplexMbEnable ( m_uiLayerId, (pcLayerParameters->getLowComplexMbEnable ()==1) );
   else
     m_pcSliceEncoder->getMbEncoder()->setLowComplexMbEnable ( m_uiLayerId, false );
   //JVT-V079 Low-complexity MB mode decision }
@@ -3519,7 +3519,7 @@ MCTFEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
     FMO* pcFMO = rcControlData.getSliceHeader()->getFMO();
     for (UInt iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)
     {
-      UInt  uiBits      = 0;
+      uiBits      = 0;
       UInt  uiBitsRes   = 0;
       UInt  uiMbCoded   = 0;
 
@@ -8372,7 +8372,7 @@ MCTFEncoder::xCalculateTiming( PicOutputDataList&  rcPicOutputDataList, UInt uiF
     
     if ( iter->DependencyId == uiBaseLayerId )
     {
-      uiBaseQualityLevel = iter->QualityId > uiBaseQualityLevel ? uiBaseQualityLevel : iter->QualityId - 1;
+      uiBaseQualityLevel = iter->QualityId > (Int) uiBaseQualityLevel ? uiBaseQualityLevel : iter->QualityId - 1;
     }
     else if ( uiBaseLayerId!=MSYS_UINT_MAX && uiBaseQualityLevel!=MSYS_UINT_MAX )
     {

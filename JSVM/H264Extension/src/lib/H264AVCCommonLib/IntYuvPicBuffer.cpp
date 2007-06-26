@@ -191,8 +191,9 @@ IntYuvPicBuffer::clearCurrMb()
   XPel *pData = getMbLumAddr();
 
   Int iStride = getLStride();
-
-  for( UInt y=0; y<16; y++ )
+  UInt y=0;
+ 	
+  for( y=0; y<16; y++ )
   {
     ::memset( pData, 0, sizeof(XPel)*16 );
     pData += iStride;
@@ -200,14 +201,14 @@ IntYuvPicBuffer::clearCurrMb()
 
   pData = getMbCbAddr();
   iStride = getCStride();
-  for( UInt y=0; y<8; y++ )
+  for( y=0; y<8; y++ )
   {
     ::memset( pData, 0, sizeof(XPel)*8 );
     pData += iStride;
   }
 
   pData = getMbCrAddr();
-  for( UInt y=0; y<8; y++ )
+  for( y=0; y<8; y++ )
   {
     ::memset( pData, 0, sizeof(XPel)*8 );
     pData += iStride;

@@ -260,8 +260,7 @@ public:
   Void setLARDOEnable( Bool bLARDO)  { m_bLARDOEnable= bLARDO; }
  
   //JVT-V079 Low-complexity MB mode decision
-  Void setLowComplexMbEnable( Int iLayer, Bool bEnable )  
-  { m_bLowComplexMbEnable[iLayer] = bEnable; }
+  Void setLowComplexMbEnable( Int iLayer, Bool bEnable )    { m_bLowComplexMbEnable[iLayer] = bEnable; }
   
   Void setLayerID (UInt uiLayer)     { m_uiLayerID=uiLayer;}
  

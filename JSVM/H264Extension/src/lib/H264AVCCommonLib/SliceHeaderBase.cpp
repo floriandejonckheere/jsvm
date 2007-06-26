@@ -532,7 +532,8 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 //JVT-S036 lsj end
 
   //===== slice header =====
-  /*UInt uiFirstMbInSlice = getFirstMbInSlice();
+#if 0
+  UInt uiFirstMbInSlice = getFirstMbInSlice();
   if ( !getSPS().getFrameMbsOnlyFlag() && getSPS().getMbAdaptiveFrameFieldFlag() && !getFieldPicFlag())
   {
     uiFirstMbInSlice >>=1;
@@ -719,7 +720,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
 	// TMM_ESS {
 	if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
 	{
-		//if ( 1 /* chroma_format_idc *//* > 0 )
+		//if ( 1 /* chroma_format_idc */ > 0 )
 		{
 		RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
 		RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,                  "SH: BaseChromaPhaseXPlus1" ) );
@@ -780,7 +781,8 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf ) const
     if( getSPS().getFrameMbsOnlyFlag() )  
       RNOK( pcWriteIf->writeFlag( m_bBaseBotFieldSyncFlag,                     "SH: base_bot_field_coincided_flag" ) );  // set to 0 (default)
     //TMM_INTERLACE }
-  }*/
+  }
+#endif //#if 0
 
   UInt uiFirstMbInSlice = getFirstMbInSlice();
   if ( !getSPS().getFrameMbsOnlyFlag() && getSPS().getMbAdaptiveFrameFieldFlag() && !getFieldPicFlag())
@@ -1249,7 +1251,8 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 {
   Bool  bTmp;
   //JVT-W046 {
-  /*RNOK(     pcReadIf->getCode( m_uiFrameNum,
+#if 0 
+  RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );
 
   if( ! getSPS().getFrameMbsOnlyFlag() )
@@ -1449,7 +1452,7 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
 // TMM_ESS {
   if ((m_eSliceType != F_SLICE) && (getSPS().getExtendedSpatialScalability() > ESS_NONE))
   {
-    //if ( 1 /* chroma_format_idc */ /*> 0 )
+    //if ( 1 /* chroma_format_idc */ > 0 )
     {
       RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 2,                 "SH: BaseChromaPhaseXPlus1" ) );
       RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,                 "SH: BaseChromaPhaseYPlus1" ) );
@@ -1539,7 +1542,10 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
           m_uiPosVect[uiIndex] = this->getSPS().getPosVect( m_uiVectorModeIndex, uiIndex ); 
       }
     }
-  }*/
+  }
+
+#endif //#if 0
+
   UInt  uiQualityLevel = m_uiQualityLevel;//heci
   RNOK(     pcReadIf->getCode( m_uiFrameNum,
                                getSPS().getLog2MaxFrameNum(),                "SH: frame_num" ) );

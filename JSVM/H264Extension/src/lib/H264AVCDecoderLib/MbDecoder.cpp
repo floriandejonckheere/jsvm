@@ -874,16 +874,17 @@ ErrVal MbDecoder::xDecodeMbIntra4x4( MbDataAccess& rcMbDataAccess,
                                      IntYuvMbBuffer& cYuvMbBuffer,
                                      IntYuvMbBuffer&  rcPredBuffer )
 {
-  Int  iStride = cYuvMbBuffer.getLStride();
-
-  MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
+#ifndef SHARP_AVC_REWRITE_OUTPUT //JV: not clean at all -> to remove compilation warnings
+	Int  iStride = cYuvMbBuffer.getLStride();
+    MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
+#endif //JV: not clean at all -> to remove compilation warnings
 
   for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
     if( !rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getSH().getAVCRewriteFlag() )
       rcMbDataAccess.getMbData().intraPredMode( cIdx ) = rcMbDataAccess.decodeIntraPredMode( cIdx );
 #ifndef SHARP_AVC_REWRITE_OUTPUT
-    XPel* puc = cYuvMbBuffer.getYBlk( cIdx );
+	XPel* puc = cYuvMbBuffer.getYBlk( cIdx );
 
     UInt uiPredMode = rcMbDataAccess.getMbData().intraPredMode( cIdx );
     RNOK( m_pcIntraPrediction->predictLumaBlock( puc, iStride, uiPredMode, cIdx ) );
@@ -910,9 +911,10 @@ ErrVal MbDecoder::xDecodeMbIntra8x8( MbDataAccess&   rcMbDataAccess,
                                      IntYuvMbBuffer& cYuvMbBuffer,
                                      IntYuvMbBuffer& rcPredBuffer )
 {
-  Int  iStride = cYuvMbBuffer.getLStride();
-
-  MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
+#ifndef SHARP_AVC_REWRITE_OUTPUT //JV : Not clean at all -> to remove compilation warnings
+	Int  iStride = cYuvMbBuffer.getLStride();
+    MbTransformCoeffs& rcCoeffs = m_cTCoeffs;
+#endif //JV : Not clean at all
 
   for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
   {

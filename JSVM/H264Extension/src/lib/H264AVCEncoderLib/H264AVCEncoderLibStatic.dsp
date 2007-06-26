@@ -182,6 +182,10 @@ SOURCE=.\RecPicBuffer.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Scheduler.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\SequenceStructure.cpp
 # End Source File
 # Begin Source File
@@ -307,6 +311,10 @@ SOURCE=.\RateDistortionIf.h
 # Begin Source File
 
 SOURCE=.\RecPicBuffer.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\Scheduler.h
 # End Source File
 # Begin Source File
 

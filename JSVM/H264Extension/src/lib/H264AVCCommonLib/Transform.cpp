@@ -1024,15 +1024,16 @@ Transform::transform8x8BlkCGS( IntYuvMbBuffer* pcOrgData,
   Int     iStride = pcPelData->getLStride();
 
   xForTransform8x8Blk     ( pOrg, pRec, iStride, aiTemp );
-
+  UInt ui=0;
+  
   // get the baselayer coefficients  
-  for( UInt ui=0; ui<64; ui++ )
+  for( ui=0; ui<64; ui++ )
 	  aiTemp[ui] = ( aiTemp[ui].getCoeff() - ( ( normAdjust[ui/8]*normAdjust[ui%8]*(Int)piCoeffBase[ui].getLevel() + (1<<5) ) >> 6 ) );
 
   xQuantDequantUniform8x8 ( piCoeff, aiTemp, pcRefCtx, m_cLumaQp, pucScale, ruiAbsSum );
   
   // add the base layer coeff back
-  for( UInt ui=0; ui<64; ui++ )
+  for( ui=0; ui<64; ui++ )
   {
    aiTemp[ui] = piCoeffBase[ui].getLevel() + aiTemp[ui].getCoeff();
 
@@ -1061,15 +1062,16 @@ ErrVal Transform::transform4x4BlkCGS( IntYuvMbBuffer*         pcOrgData,
   Int     iStride = pcPelData->getLStride();
 
   xForTransform4x4Blk( pOrg, pRec, iStride, aiTemp );
-  
+  UInt ui=0;
+
   // get the baselayer coefficients  
-  for( UInt ui=0; ui<16; ui++ )
+  for( ui=0; ui<16; ui++ )
 	  aiTemp[ui] = ( aiTemp[ui].getCoeff() - ( ( normAdjust[ui/4]*normAdjust[ui%4]*(Int)piCoeffBase[ui].getLevel() + (1<<5) ) >> 6 ) );
 
   xQuantDequantUniform4x4( piCoeff, aiTemp, pcRefCtx, m_cLumaQp, pucScale, ruiAbsSum );
 
   // add the base layer coeff back
-  for( UInt ui=0; ui<16; ui++ )
+  for( ui=0; ui<16; ui++ )
   {	  
     aiTemp[ui] = piCoeffBase[ui].getLevel() + aiTemp[ui].getCoeff();
 

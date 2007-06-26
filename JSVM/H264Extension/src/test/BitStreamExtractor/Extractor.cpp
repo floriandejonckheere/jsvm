@@ -325,10 +325,10 @@ Extractor::xPrimaryAnalyse()
   BinData*                pcBinData     = 0;
   h264::SEI::SEIMessage*  pcScalableSei = 0;
   h264::PacketDescription cPacketDescription;
-	Bool                    bNextSuffix = false;
-	setBaseLayerAVCCompatible(true); //default value
+  Bool                    bNextSuffix = false;
+  setBaseLayerAVCCompatible(true); //default value
 //prefix unit{{
-	Bool bDiscardable_prefix;
+  Bool bDiscardable_prefix = false;
 //prefix unit}}
   //Common information to dead substreams and quality levels
   //arrays initialization
@@ -488,7 +488,7 @@ Extractor::xAnalyse()
   h264::SEI::SEIMessage*  pcScalableSei = 0;
   h264::PacketDescription cPacketDescription;
 //prefix unit{{
-	Bool bDiscardable_prefix;
+  Bool bDiscardable_prefix = false;
 //prefix unit}}
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -1802,7 +1802,7 @@ Extractor::xExtractPoints()
   UInt uiTotalSEI = 0;
 //prefix unit{{
   BinData*  pcBinData_prefix = NULL;
-	Bool bDiscardable_prefix;
+  Bool bDiscardable_prefix = false;
 //prefix unit}}
 
   //DS parameters, count number of frame per layer
@@ -2366,7 +2366,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     bExactMatchFlag[ui] = true;
 //JVT-S036 lsj end
   UInt uiNumScalableLayer = 0;
-  for( UInt uiScalableLayer = 0; uiScalableLayer <= pcOldScalableSei->getNumLayersMinus1(); uiScalableLayer++ )
+  UInt uiScalableLayer = 0;
+  for( uiScalableLayer = 0; uiScalableLayer <= pcOldScalableSei->getNumLayersMinus1(); uiScalableLayer++ )
   {
  //JVT-S036 lsj start
     if( uiWantedScalableLayer == MSYS_UINT_MAX && //-l, -t, -f
@@ -2743,7 +2744,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     h264::SEI::ScalableSeiLayersNotPresent::m_auiLeftLayerId[i] = pcNewScalableSeiLayersNotPresent->getLayerId(i);
 	//JVT-W051 {
 	pcNewScalableSei->setQualityLayerInfoPresentFlag(pcOldScalableSei->getQualityLayerInfoPresentFlag());
-	for( UInt uiScalableLayer = 0; uiScalableLayer <= pcOldScalableSei->getNumLayersMinus1(); uiScalableLayer++ )
+	
+	for( uiScalableLayer = 0; uiScalableLayer <= pcOldScalableSei->getNumLayersMinus1(); uiScalableLayer++ )
 	{
 		pcNewScalableSei->setBitstreamRestrictionFlag(uiScalableLayer,pcOldScalableSei->getBitstreamRestrictionFlag(uiScalableLayer));
 		pcNewScalableSei->setMotionVectorsOverPicBoundariesFlag(uiScalableLayer,pcOldScalableSei->getMotionVectorsOverPicBoundariesFlag(uiScalableLayer));
@@ -2758,7 +2760,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
 	if (pcOldScalableSei->getQualityLayerInfoPresentFlag())
 	{
 		pcNewScalableSei->setQlNumdIdMinus1(pcOldScalableSei->getQlNumdIdMinus1());
-		for ( UInt i = 0; i <= pcOldScalableSei->getQlNumdIdMinus1(); i++ )
+		for ( i = 0; i <= pcOldScalableSei->getQlNumdIdMinus1(); i++ )
 		{
 			pcNewScalableSei->setDependencyId(i,pcOldScalableSei->getDependencyId(i));
 			pcNewScalableSei->setQlNumMinus1(i,pcOldScalableSei->getQlNumMinus1(i));
@@ -3025,7 +3027,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
   UInt uiPacketSize        = 0;
 //prefix unit{{
   BinData*  pcBinData_prefix = NULL;
-	Bool bDiscardable_prefix;
+  Bool bDiscardable_prefix = false;
 //prefix unit}} 
 
 	RNOK( m_pcH264AVCPacketAnalyzer->init() );

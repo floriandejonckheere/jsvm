@@ -433,20 +433,20 @@ H264AVCEncoderTest::go()
 /* luodan */
     if (pcAVCSPS)
     {
-      UChar   aucParameterSetBuffer[1000];
-      BinData cBinData;
-      cBinData.reset();
+      //UChar   aucParameterSetBufferl[1000];
+      //BinData cBinDatal;
+      //cBinData.reset();
       cBinData.set( aucParameterSetBuffer, 1000 );
 
-      ExtBinDataAccessor cExtBinDataAccessor;
-      cBinData.setMemAccessor( cExtBinDataAccessor );
+      ExtBinDataAccessor cExtBinDataAccessorl;
+      cBinData.setMemAccessor( cExtBinDataAccessorl );
       
-      RNOK( m_pcH264AVCEncoder->writeAVCCompatibleHRDSEI( &cExtBinDataAccessor, pcAVCSPS ) );
+      RNOK( m_pcH264AVCEncoder->writeAVCCompatibleHRDSEI( &cExtBinDataAccessorl, pcAVCSPS ) );
       
       RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
-      RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
+      RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessorl ) );
 
-      uiWrittenBytes += 4 + cExtBinDataAccessor.size();
+      uiWrittenBytes += 4 + cExtBinDataAccessorl.size();
       cBinData.reset();
     }
 /* luodan */

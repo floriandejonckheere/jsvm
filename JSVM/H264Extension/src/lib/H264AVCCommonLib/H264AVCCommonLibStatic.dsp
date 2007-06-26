@@ -118,6 +118,10 @@ SOURCE=.\H264AVCCommonLib.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Hrd.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\IntFrame.cpp
 # End Source File
 # Begin Source File
@@ -238,6 +242,10 @@ SOURCE=.\Transform.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\Vui.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\YuvBufferCtrl.cpp
 # End Source File
 # Begin Source File
@@ -323,6 +331,10 @@ SOURCE=..\..\..\include\H264AVCCommonLib\HeaderSymbolReadIf.h
 # Begin Source File
 
 SOURCE=..\..\..\include\H264AVCCommonLib\HeaderSymbolWriteIf.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\include\H264AVCCommonLib\Hrd.h
 # End Source File
 # Begin Source File
 
@@ -447,6 +459,10 @@ SOURCE=..\..\..\include\H264AVCCommonLib\TraceFile.h
 # Begin Source File
 
 SOURCE=..\..\..\include\H264AVCCommonLib\Transform.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\..\include\H264AVCCommonLib\Vui.h
 # End Source File
 # Begin Source File
 

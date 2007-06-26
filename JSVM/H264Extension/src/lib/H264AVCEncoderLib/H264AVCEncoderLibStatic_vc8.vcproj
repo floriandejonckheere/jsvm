@@ -43,7 +43,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
-				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;"EXCEL=1;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
+				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;EXCEL=1;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -713,6 +713,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\Scheduler.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\SequenceStructure.cpp"
 				>
 			</File>
@@ -881,6 +885,10 @@
 			</File>
 			<File
 				RelativePath=".\RecPicBuffer.h"
+				>
+			</File>
+			<File
+				RelativePath=".\Scheduler.h"
 				>
 			</File>
 			<File

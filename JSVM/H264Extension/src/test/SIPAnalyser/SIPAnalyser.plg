@@ -3,183 +3,25 @@
 <pre>
 <h1>Build Log</h1>
 <h3>
---------------------Configuration: H264AVCCommonLibStatic - Win32 Release--------------------
+--------------------Configuration: SIPAnalyser - Win32 Debug--------------------
 </h3>
 <h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E1.tmp" with contents
+Creating temporary file "C:\DOCUME~1\vieronj\LOCALS~1\Temp\RSP288.tmp" with contents
 [
-/nologo /MD /W3 /GX /Zi /O2 /I "..\..\..\include" /I "." /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCVIDEOLIB_LIB" /D "H264AVCCOMMONLIB_LIB" /D "USE_NAMESPACE_H264AVC" /Fp"..\..\..\build\windows\lib\H264AVCCommonLib\ReleaseStatic/H264AVCCommonLibStatic.pch" /YX"H264AVCCommonLib.h" /Fo"..\..\..\build\windows\lib\H264AVCCommonLib\ReleaseStatic/" /Fd"..\..\..\build\windows\lib\H264AVCCommonLib\ReleaseStatic/" /FD /c 
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\CabacContextModel.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\CabacContextModel2DBuffer.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\CFMO.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\FGSCoder.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\Frame.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\FrameMng.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\FrameUnit.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\IntFrame.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\IntraPrediction.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\IntYuvMbBuffer.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\IntYuvPicBuffer.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\LoopFilter.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MbData.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MbDataAccess.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MbDataCtrl.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MbDataStruct.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MbMvData.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MbTransformCoeffs.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MotionCompensation.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\MotionVectorCalculation.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\Mv.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\ParameterSetMng.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\PictureParameterSet.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\PocCalculator.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\Quantizer.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\QuarterPelFilter.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\ReconstructionBypass.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\ResizeParameters.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\SampleWeighting.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\ScalingMatrix.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\Sei.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\SequenceParameterSet.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\SliceHeader.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\SliceHeaderBase.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\Tables.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\TraceFile.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\Transform.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\YuvBufferCtrl.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\YuvMbBuffer.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\YuvPicBuffer.cpp"
+kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:yes /pdb:"..\..\..\..\..\bin\SIPAnalyser.pdb" /debug /machine:I386 /out:"..\..\..\..\..\bin\SIPAnalyserd.exe" /pdbtype:sept /libpath:"..\..\..\..\..\lib" 
+\Public\VALIDATION_INTEGRATION\liuhui_9_1\jsvm_last\jsvm\JSVM\H264Extension\build\windows\test\SIPAnalyser\DebugStatic\SIP.obj
+\Public\VALIDATION_INTEGRATION\liuhui_9_1\jsvm_last\jsvm\JSVM\H264Extension\build\windows\test\SIPAnalyser\DebugStatic\SIPAnalyser.obj
+\Public\VALIDATION_INTEGRATION\liuhui_9_1\jsvm_last\jsvm\JSVM\H264Extension\build\windows\test\SIPAnalyser\DebugStatic\SIPParameters.obj
+\Public\VALIDATION_INTEGRATION\liuhui_9_1\jsvm_last\jsvm\lib\H264AVCCommonLibStaticd.lib
 ]
-Creating command line "cl.exe @"C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E1.tmp"" 
-Creating temporary file "C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E2.tmp" with contents
-[
-/nologo /MD /W3 /GX /Zi /O2 /I "..\..\..\include" /I "." /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCVIDEOLIB_LIB" /D "H264AVCCOMMONLIB_LIB" /D "USE_NAMESPACE_H264AVC" /Fp"..\..\..\build\windows\lib\H264AVCCommonLib\ReleaseStatic/H264AVCCommonLibStatic.pch" /Yc"H264AVCCommonLib.h" /Fo"..\..\..\build\windows\lib\H264AVCCommonLib\ReleaseStatic/" /Fd"..\..\..\build\windows\lib\H264AVCCommonLib\ReleaseStatic/" /FD /c 
-"D:\cygwin\jsvm\JSVM\H264Extension\src\lib\H264AVCCommonLib\H264AVCCommonLib.cpp"
-]
-Creating command line "cl.exe @"C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E2.tmp"" 
-Creating temporary file "C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E3.tmp" with contents
-[
-/nologo /out:"..\..\..\..\..\lib\H264AVCCommonLibStatic.lib" 
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\CabacContextModel.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\CabacContextModel2DBuffer.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\CFMO.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\FGSCoder.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\Frame.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\FrameMng.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\FrameUnit.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\H264AVCCommonLib.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\IntFrame.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\IntraPrediction.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\IntYuvMbBuffer.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\IntYuvPicBuffer.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\LoopFilter.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MbData.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MbDataAccess.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MbDataCtrl.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MbDataStruct.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MbMvData.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MbTransformCoeffs.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MotionCompensation.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\MotionVectorCalculation.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\Mv.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\ParameterSetMng.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\PictureParameterSet.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\PocCalculator.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\Quantizer.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\QuarterPelFilter.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\ReconstructionBypass.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\ResizeParameters.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\SampleWeighting.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\ScalingMatrix.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\Sei.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\SequenceParameterSet.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\SliceHeader.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\SliceHeaderBase.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\Tables.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\TraceFile.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\Transform.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\YuvBufferCtrl.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\YuvMbBuffer.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\lib\H264AVCCommonLib\ReleaseStatic\YuvPicBuffer.obj
-]
-Creating command line "link.exe -lib @"C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E3.tmp""
+Creating command line "link.exe @C:\DOCUME~1\vieronj\LOCALS~1\Temp\RSP288.tmp"
 <h3>Output Window</h3>
-Compiling...
-H264AVCCommonLib.cpp
-Compiling...
-CabacContextModel.cpp
-CabacContextModel2DBuffer.cpp
-CFMO.cpp
-FGSCoder.cpp
-Frame.cpp
-FrameMng.cpp
-FrameUnit.cpp
-IntFrame.cpp
-IntraPrediction.cpp
-IntYuvMbBuffer.cpp
-IntYuvPicBuffer.cpp
-LoopFilter.cpp
-MbData.cpp
-MbDataAccess.cpp
-MbDataCtrl.cpp
-MbDataStruct.cpp
-MbMvData.cpp
-MbTransformCoeffs.cpp
-MotionCompensation.cpp
-MotionVectorCalculation.cpp
-Mv.cpp
-ParameterSetMng.cpp
-PictureParameterSet.cpp
-PocCalculator.cpp
-Quantizer.cpp
-QuarterPelFilter.cpp
-ReconstructionBypass.cpp
-ResizeParameters.cpp
-SampleWeighting.cpp
-ScalingMatrix.cpp
-Sei.cpp
-SequenceParameterSet.cpp
-SliceHeader.cpp
-SliceHeaderBase.cpp
-Tables.cpp
-TraceFile.cpp
-Transform.cpp
-YuvBufferCtrl.cpp
-YuvMbBuffer.cpp
-YuvPicBuffer.cpp
-Creating library...
-<h3>
---------------------Configuration: SIPAnalyser - Win32 Release--------------------
-</h3>
-<h3>Command Lines</h3>
-Creating temporary file "C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E4.tmp" with contents
-[
-/nologo /MD /W3 /GX /O2 /I "..\..\..\include" /I "." /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /D "H264AVCCOMMONLIB_LIB" /FR"..\..\..\build\windows\test\SIPAnalyser\ReleaseStatic/" /Fp"..\..\..\build\windows\test\SIPAnalyser\ReleaseStatic/SIPAnalyser.pch" /YX /Fo"..\..\..\build\windows\test\SIPAnalyser\ReleaseStatic/" /Fd"..\..\..\build\windows\test\SIPAnalyser\ReleaseStatic/" /FD /c 
-"D:\cygwin\jsvm\JSVM\H264Extension\src\test\SIPAnalyser\SIP.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\test\SIPAnalyser\SIPAnalyser.cpp"
-"D:\cygwin\jsvm\JSVM\H264Extension\src\test\SIPAnalyser\SIPParameters.cpp"
-]
-Creating command line "cl.exe @"C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E4.tmp"" 
-Creating temporary file "C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E5.tmp" with contents
-[
-kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:console /incremental:no /pdb:"..\..\..\..\..\bin\QualityLevelAssigner.pdb" /machine:I386 /out:"..\..\..\..\..\bin\SIPAnalyser.exe" /libpath:"..\..\..\..\..\lib" 
-\cygwin\jsvm\JSVM\H264Extension\build\windows\test\SIPAnalyser\ReleaseStatic\SIP.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\test\SIPAnalyser\ReleaseStatic\SIPAnalyser.obj
-\cygwin\jsvm\JSVM\H264Extension\build\windows\test\SIPAnalyser\ReleaseStatic\SIPParameters.obj
-\cygwin\jsvm\lib\H264AVCCommonLibStatic.lib
-]
-Creating command line "link.exe @"C:\DOCUME~1\i-jzhxu\LOCALS~1\Temp\RSP1E5.tmp""
-<h3>Output Window</h3>
-Compiling...
-SIP.cpp
-SIPAnalyser.cpp
-SIPParameters.cpp
 Linking...
 
 
 
 <h3>Results</h3>
-SIPAnalyser.exe - 0 error(s), 0 warning(s)
+SIPAnalyserd.exe - 0 error(s), 0 warning(s)
 </pre>
 </body>
 </html>

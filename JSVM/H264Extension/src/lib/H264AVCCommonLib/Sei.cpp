@@ -1992,6 +1992,7 @@ SEI::IntegrityCheckSEI::write( HeaderSymbolWriteIf *pcWriteIf )
 	}
 	return Err::m_nOK;
 }
+ErrVal
 SEI::IntegrityCheckSEI::read( HeaderSymbolReadIf* pcReadIf )
 {
 	RNOK( pcReadIf->getUvlc( m_uinuminfoentriesminus1, " IntegrityCheckSEI:num_info_entries_minus1 ") );

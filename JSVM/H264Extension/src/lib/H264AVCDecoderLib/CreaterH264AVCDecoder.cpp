@@ -832,7 +832,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			//JVT-W052
 		case SEI::INTE_CHECK_SEI:
 			{
-				SEI::IntegrityCheckSEI* pcSEI = (SEI::IntegrityCheckSEI*) pcSEIMessage;
+				//SEI::IntegrityCheckSEI* pcSEI = (SEI::IntegrityCheckSEI*) pcSEIMessage;
 				break;
 			}
 			//JVT-W052

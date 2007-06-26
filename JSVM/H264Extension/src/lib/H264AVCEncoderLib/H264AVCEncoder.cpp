@@ -553,10 +553,11 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 
 
 	//===== set message =====
-	UInt j; //JVT-S036 lsj
+	UInt j = 0; //JVT-S036 lsj
+	UInt i = 0;
 	UInt uiInputLayers = m_pcCodingParameter->getNumberOfLayers ();
 	UInt uiLayerNum = 0;	//total scalable layer numbers
-	for ( UInt i = 0; i < uiInputLayers; i++ )	//calculate total scalable layer numbers
+	for ( i = 0; i < uiInputLayers; i++ )	//calculate total scalable layer numbers
 	{
 //bug-fix suffix{{
 		//Bool bH264AVCCompatible = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 0 );
@@ -1001,18 +1002,18 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 	{
 		UInt uiQlNumdIdMinus1 = m_pcCodingParameter->getNumberOfLayers ()-1;
 		pcScalableSEI->setQlNumdIdMinus1( uiQlNumdIdMinus1 );
-		for ( UInt i=0; i <= pcScalableSEI->getQlNumdIdMinus1(); i++ )
+		for ( i=0; i <= pcScalableSEI->getQlNumdIdMinus1(); i++ )
 		{
 			UInt uiQlDependencyId = i;//could be changed
 			pcScalableSEI->setQlDependencyId(i, uiQlDependencyId);
 			UInt uiQlNumMinus1 = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 0 : (UInt)m_pcCodingParameter->getLayerParameters ( uiQlDependencyId ).getNumFGSLayers ());
 			pcScalableSEI->setQlNumMinus1(i, uiQlNumMinus1);
 
-			LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( uiQlDependencyId );
-			UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
-			UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 1 : (UInt)rcLayer.getNumFGSLayers () + 1);
+			//LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( uiQlDependencyId );
+			//UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
+			//UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 1 : (UInt)rcLayer.getNumFGSLayers () + 1);
 
-			for (UInt j=0; j <= pcScalableSEI->getQlNumMinus1(i); j++)
+			for (j=0; j <= pcScalableSEI->getQlNumMinus1(i); j++)
 			{
 				UInt uiQlId = j;//could be changed
 				pcScalableSEI->setQlId(i,j,uiQlId);
@@ -1374,12 +1375,8 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
 ErrVal 
 H264AVCEncoder::xCalMaxBitrate(UInt uiLayer)
 {	
-	UInt uiDecompositionStages = m_pcCodingParameter->getLayerParameters(uiLayer).getDecompositionStages();
-	UInt uiNotCodedMCTFStages = m_pcCodingParameter->getLayerParameters(uiLayer).getNotCodedMCTFStages();
-	UInt uiGOPSize = 1 << uiDecompositionStages;
+	//UInt uiDecompositionStages = m_pcCodingParameter->getLayerParameters(uiLayer).getDecompositionStages();
 	UInt uiCurrIdx = 0;
-	UInt uiAUIndexSize = m_uiFrameNumInGOP[uiLayer];
-
 	UInt uiTimeWindowSize =  (UInt)(m_pcCodingParameter->getLayerParameters(uiLayer).m_dOutputFrameRate+0.5);
 	UInt uiFrameNumInGOP = m_uiFrameNumInGOP[uiLayer];
 	UInt uiBaseLayerId = m_pcCodingParameter->getLayerParameters(uiLayer).getBaseLayerId();
@@ -1437,13 +1434,14 @@ H264AVCEncoder::xCalMaxBitrate(UInt uiLayer)
 			{
 				for ( UInt uiFGSLayer = 0; uiFGSLayer <= MAX_FGS_LAYERS; uiFGSLayer++ )
 				{
-					for (UInt i = 0; i < uiTimeWindowSize-1; i++)
+					UInt i = 0;
+					for (i = 0; i < uiTimeWindowSize-1; i++)
 					{
 						m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer] = m_aaadFrameInTimeWindowBits[i+1][uiLayer][uiFGSLayer];
 					}
 					m_aaadFrameInTimeWindowBits[uiTimeWindowSize-1][uiLayer][uiFGSLayer] = m_aaadFrameInGOPBits[uiCurrAUIdx][uiLayer][uiFGSLayer];
 					Double dTmpMaxBitrate = 0;
-					for (UInt i = 0; i < uiTimeWindowSize; i++)
+					for (i = 0; i < uiTimeWindowSize; i++)
 					{
 						dTmpMaxBitrate += m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer];
 					}
@@ -1462,13 +1460,14 @@ H264AVCEncoder::xCalMaxBitrate(UInt uiLayer)
 		{
 			for ( UInt uiFGSLayer = 0; uiFGSLayer <= MAX_FGS_LAYERS; uiFGSLayer++ )
 			{
-				for (UInt i = 0; i < uiTimeWindowSize-1; i++)
+				UInt i = 0;
+				for (i = 0; i < uiTimeWindowSize-1; i++)
 				{
 					m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer] = m_aaadFrameInTimeWindowBits[i+1][uiLayer][uiFGSLayer];
 				}
 				m_aaadFrameInTimeWindowBits[uiTimeWindowSize-1][uiLayer][uiFGSLayer] = m_aaadFrameInGOPBits[uiCurrIdx][uiLayer][uiFGSLayer];
 				Double dTmpMaxBitrate = 0;
-				for (UInt i = 0; i < uiTimeWindowSize; i++)
+				for (i = 0; i < uiTimeWindowSize; i++)
 				{
 					dTmpMaxBitrate += m_aaadFrameInTimeWindowBits[i][uiLayer][uiFGSLayer];
 				}
@@ -1505,7 +1504,6 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
 	//JVT-W052
 	if(m_pcCodingParameter->getIntegrityCheckSEIEnable() && m_pcCodingParameter->getCGSSNRRefinement())
 	{
-		UInt uiCurrCGSLayerId = 0;
 		for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
 		{
 			m_uiNumofCGS[m_apcMCTFEncoder[uiLayer]->getLayerCGSSNR()] = m_apcMCTFEncoder[uiLayer]->getQualityLevelCGSSNR();
@@ -2290,7 +2288,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
   UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 1 : /* luodan (UInt)rcLayer.getNumFGSLayers ()*/ MAX_FGS_LAYERS + 1);
   UInt uiDependencyId = m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getLayerCGSSNR() : uiLayer;
 
-  pcVui->setVuiParametersPresentFlag( m_pcCodingParameter->getEnableVUI() );
+  pcVui->setVuiParametersPresentFlag( ( m_pcCodingParameter->getEnableVUI()!=0) );
 
   if (pcVui->getVuiParametersPresentFlag())
   {
@@ -2310,7 +2308,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
                           ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 3000 : 4000 ) );
 
     // handle 'output frequency' case
-    Float fOutFreq = rcLayer.getOutputFrameRate() / ( 1 << (uiTotalTemporalLevel - 1) );
+    Float fOutFreq = (Float)rcLayer.getOutputFrameRate() / ( 1 << (uiTotalTemporalLevel - 1) );
     UInt uiTimeScale = UInt(fOutFreq * 2000000 + 0.5); // integer frame rate (24, 30, 50, 60, etc)
     UInt uiNumUnits = 1000000;
 
@@ -2324,7 +2322,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
       pcVui->getLayerInfo(uiHrdIdx).setDependencyID(uiDependencyId);
       pcVui->getLayerInfo(uiHrdIdx).setTemporalLevel(uiTemporalId);
       pcVui->getLayerInfo(uiHrdIdx).setQualityLevel(uiQualityLevel);
-      pcVui->getTimingInfo(uiHrdIdx).setTimingInfoPresentFlag(m_pcCodingParameter->getEnableVUITimingInfo());
+      pcVui->getTimingInfo(uiHrdIdx).setTimingInfoPresentFlag((m_pcCodingParameter->getEnableVUITimingInfo()!=0));
       if (pcVui->getTimingInfo(uiHrdIdx).getTimingInfoPresentFlag() )
       {
         // write TimingInfo

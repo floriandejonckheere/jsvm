@@ -355,6 +355,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\Hrd.cpp"
+				>
+			</File>
+			<File
 				RelativePath="IntFrame.cpp"
 				>
 				<FileConfiguration
@@ -1105,6 +1109,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\Vui.cpp"
+				>
+			</File>
+			<File
 				RelativePath="YuvBufferCtrl.cpp"
 				>
 				<FileConfiguration
@@ -1253,6 +1261,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\include\H264AVCCommonLib\Hrd.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\IntFrame.h"
 				>
 			</File>
@@ -1374,6 +1386,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\Transform.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\H264AVCCommonLib\Vui.h"
 				>
 			</File>
 			<File

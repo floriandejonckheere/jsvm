@@ -363,7 +363,6 @@ ErrVal H264AVCDecoderTest::go()
   ExtBinDataAccessor avcRewriteExtBinDataAccessor;
   UChar*          avcRewriteBinDataBuffer = NULL;
   BinData*		  avcRewriteBinData = NULL;
-  int             avcRewriteBufsize=0;
   bool            avcRewriteInitialized = false;
 #endif
 
@@ -384,8 +383,10 @@ ErrVal H264AVCDecoderTest::go()
   Bool		SuffixEnable;  //JVT-S036 lsj 
 
   // HS: packet trace
+#ifndef SHARP_AVC_REWRITE_OUTPUT
   Int   iMaxPocDiff = (Int)m_pcParameter->uiMaxPocDiff;
   Int   iLastPoc    = MSYS_INT_MAX;
+#endif
   UChar* pcLastFrame  = 0;
   UInt   uiPreNalUnitType = 0;
 
@@ -576,7 +577,7 @@ ErrVal H264AVCDecoderTest::go()
 					  m_pcH264AVCDecoder->RoiDecodeInit();
 
 #ifndef SHARP_AVC_REWRITE_OUTPUT			      
-					  // picture output
+				  // picture output
 					  while( ! cPicBufferOutputList.empty() )
 					  {
                 PicBuffer* pcPicBufferTmp = cPicBufferOutputList.front();

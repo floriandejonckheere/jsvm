@@ -547,8 +547,9 @@ SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
 	{
 		Mv           cMv;
 		MbMotionData cMbMotionData[2];
+		UInt uiList=0;
 
-		for( UInt uiList=0; uiList<2; uiList++ )
+		for( uiList=0; uiList<2; uiList++ )
 		{
 			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
 
@@ -559,7 +560,7 @@ SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
 		}
 
 		// This is a sub-optimal implementation
-		for( UInt uiList=0; uiList<2; uiList++ )
+		for( uiList=0; uiList<2; uiList++ )
 		{
 			ListIdx eListIdx = uiList==0 ? LIST_0:LIST_1;
 
@@ -597,6 +598,7 @@ SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
 
 
 			case MODE_8x8:
+				{					
 				for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
 				{
 					ParIdx8x8 eParIdx = c8x8Idx.b8x8();
@@ -634,6 +636,7 @@ SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
 						AOT(1);
 					}
 				}
+				}
 				break;
 
   			default:
@@ -644,7 +647,7 @@ SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
 		// SANITY CHECK
 		m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
 
-		for( UInt uiList=0; uiList<2; uiList++ )
+		for( uiList=0; uiList<2; uiList++ )
 		{
 			for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
 			{
