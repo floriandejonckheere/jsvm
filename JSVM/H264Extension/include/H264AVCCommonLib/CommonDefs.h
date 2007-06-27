@@ -93,7 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 typedef UChar CoefMap;
 typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "9.1" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "8.9" //added by jerome.vieron@thomson.net
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -201,12 +201,7 @@ enum SliceType
   P_SLICE  = 0,
   B_SLICE  = 1,
   I_SLICE  = 2,
-  F_SLICE  = 3,
-  //JVT-W046 {
-  EP_SLICE  = 5,
-  EB_SLICE  = 6,
-  EI_SLICE  = 7,
-  //JVT-W046 }
+  F_SLICE  = 3
 };
 
 
@@ -315,9 +310,6 @@ H264AVC_NAMESPACE_END
 #define LOG2_GOP_ID_WRAP    4
 #define PRI_ID_BITS         6
 #define MAX_SCALABLE_LAYERS MAX_LAYERS * MAX_TEMP_LEVELS * MAX_QUALITY_LEVELS
-//JVT-W049 {
-#define MAX_REDUNDANT_PICTURES_NUM          128
-//JVT-W049 }
 
 //{{Quality level estimation and modified truncation- JVTO044 and m12007
 //France Telecom R&D-(nathalie.cammas@francetelecom.com)
@@ -353,11 +345,15 @@ H264AVC_NAMESPACE_END
 #define WEIGHTED_BIPRED_IDC                           0                   // (0:no weighted bi-prediction, 1:random weights, 2:implicit weights)
 #define INFER_ELAYER_PRED_WEIGHTS                     0                   // (0:BL weights are not used, 1:infer enhancement layer prediction weights)
 
+// to output the AVC rewritten bitstream, define SHARP_AVC_REWRITE_OUTPUT
+// and also need to link the encoder library to H264AVCDecoderLibStatic
+//#define SHARP_AVC_REWRITE_OUTPUT
+
 //TMM_EC {{
 typedef	enum
 {
 	EC_NONE												=	100,
-  EC_BLSKIP,
+    EC_BLSKIP,
 	EC_FRAME_COPY,
 	EC_TEMPORAL_DIRECT,
 	EC_INTRA_COPY                // =200
@@ -366,6 +362,8 @@ typedef	enum
 
 #define MAX_NUM_PD_FRAGMENTS                          12
 #define MAX_NUM_FGS_VECT_MODES                        8
+
+#define REF_COEFF_FORCE_ZERO_THRESHOLD				  0	  // JVT-U132 and JVT-V095
 
 // TMM_INTERLACE {
 // #define RANDOM_MBAFF

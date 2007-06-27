@@ -845,15 +845,19 @@ ErrVal FGSCoder::xClearCodingPath()
 
 ErrVal
 FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
-                             MbDataAccess&  rcMbDataAccessEL,
-                             UInt           uiMbY,
-                             UInt           uiMbX )
+                            MbDataAccess&  rcMbDataAccessEL,
+                            UInt           uiMbY,
+                            UInt           uiMbX )
 {
   UInt  uiExtCbp  = 0;
   Bool  b8x8      = rcMbDataAccessBL.getMbData().isTransformSize8x8();
   UInt  uiMbIndex = uiMbY*m_uiWidthInMB + uiMbX;
   MbFGSCoefMap &rcMbFGSCoefMap = m_pcCoefMap[uiMbIndex];
   const Bool  bFrame = (FRAME == rcMbDataAccessBL.getMbPicType());
+
+  UInt Qlevel = rcMbDataAccessBL.getSH().getQualityLevel();	    //get quality  level info
+  UInt uiTL   = rcMbDataAccessBL.getSH().getTemporalLevel();	//get temporal level info
+  UInt uiSig  = 0;
 
   if( ! rcMbDataAccessBL.getMbData().isIntra() && ! rcMbDataAccessEL.getMbData().getBLSkipFlag() )
   {
@@ -871,9 +875,27 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
       TCoeff* piCoeffBL = rcMbDataAccessBL.getMbTCoeffs().get8x8( c8x8Idx );
       TCoeff* piCoeffEL = rcMbDataAccessEL.getMbTCoeffs().get8x8( c8x8Idx );
       CoefMap *pcCoefMap = rcMbFGSCoefMap.getCoefMap( c8x8Idx );
+      CoefMap *pcCoefMapH = rcMbFGSCoefMap.getCoefMapH( c8x8Idx );
+
       for( UInt ui8x8ScanIdx = 0; ui8x8ScanIdx < 64; ui8x8ScanIdx++ )
       {
         UInt  uiPos         = pucScan64[ui8x8ScanIdx];
+
+        if ( ( m_eFrameType == I_SLICE || (m_eFrameType == P_SLICE && uiTL==0) ) && (Qlevel < 3) ) {
+          if (Qlevel==1)
+          {
+            uiSig = ( piCoeffBL[uiPos]? 1 : 0 );
+            pcCoefMapH[ui8x8ScanIdx]=uiSig;
+          }
+          uiSig = ( piCoeffEL[uiPos]? 1 : 0 );
+          if (piCoeffBL[uiPos]==0)
+            pcCoefMapH[ui8x8ScanIdx]=(uiSig<<Qlevel);
+          else
+            pcCoefMapH[ui8x8ScanIdx]+=(uiSig<<Qlevel);
+        }
+        else
+          pcCoefMapH[ui8x8ScanIdx]=0;
+
         if(  m_bUpdateWithoutMap || (pcCoefMap[ui8x8ScanIdx] & CODED ) )
         {
           xUpdateCoefMap(piCoeffBL[uiPos], piCoeffEL[uiPos], pcCoefMap[ui8x8ScanIdx] );
@@ -898,9 +920,26 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
       TCoeff* piCoeffBL = rcMbDataAccessBL.getMbTCoeffs().get( c4x4Idx );
       TCoeff* piCoeffEL = rcMbDataAccessEL.getMbTCoeffs().get( c4x4Idx );
       CoefMap* pcCoefMap = rcMbFGSCoefMap.getCoefMap( c4x4Idx );
+      CoefMap *pcCoefMapH = rcMbFGSCoefMap.getCoefMapH( c4x4Idx );
+
       for( UInt uiScanIdx = 0; uiScanIdx < 16; uiScanIdx++ )
       {
         UInt  uiPos         = pucScan[uiScanIdx];
+
+        if ( (m_eFrameType == I_SLICE || (m_eFrameType == P_SLICE && uiTL==0)) && (Qlevel < 3) ) {
+          if (Qlevel==1)
+          {
+            uiSig = ( piCoeffBL[uiPos]? 1 : 0 );
+            pcCoefMapH[uiScanIdx]=uiSig;
+          }
+          uiSig = ( piCoeffEL[uiPos]? 1 : 0 );
+          if (piCoeffBL[uiPos]==0)
+            pcCoefMapH[uiScanIdx]=(uiSig<<Qlevel);
+          else
+            pcCoefMapH[uiScanIdx]+=(uiSig<<Qlevel);
+        }
+        else
+          pcCoefMapH[uiScanIdx]=0;
 
         if( m_bUpdateWithoutMap || pcCoefMap[uiScanIdx] & CODED )
         {
@@ -922,19 +961,19 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
   //===== chroma DC =====
   Bool  bSigDC = false;
   for( CIdx cCIdx2; cCIdx2.isLegal(); cCIdx2++ )
-    {
+  {
     CoefMap &rcCoefMap = rcMbFGSCoefMap.getCoefMap( cCIdx2)[0];
     TCoeff  &riCoeffBL = rcMbDataAccessBL.getMbTCoeffs().get( cCIdx2 )[0];
 
     if( m_bUpdateWithoutMap || rcCoefMap & CODED )
-      {
+    {
       TCoeff  &riCoeffEL = rcMbDataAccessEL.getMbTCoeffs().get( cCIdx2 )[0];
       xUpdateCoefMap( riCoeffBL, riCoeffEL, rcCoefMap );
-      }
+    }
 
     if( riCoeffBL )
-        bSigDC = true;
-      }
+      bSigDC = true;
+  }
   //===== chroma AC =====
   Bool  bSigAC = false;
   const UChar*  pucScan = (bFrame) ? g_aucFrameScan : g_aucFieldScan;
@@ -955,7 +994,7 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
     }
   }
 
-  
+
   //===== set CBP =====
   UInt  uiChromaCBP = ( bSigAC ? 2 : bSigDC ? 1 : 0 );
   uiExtCbp         |= ( uiChromaCBP << 16 );
@@ -980,14 +1019,14 @@ FGSCoder::xUpdateMacroblock( MbDataAccess&  rcMbDataAccessBL,
 
 ErrVal
 FGSCoder::xScale4x4Block( TCoeff*            piCoeff,
-                          const UChar*       pucScale,
-                          UInt               uiStart,
-                          const QpParameter& rcQP )
+                         const UChar*       pucScale,
+                         UInt               uiStart,
+                         const QpParameter& rcQP )
 {
   if( pucScale )
   {
     Int iAdd = ( rcQP.per() <= 3 ? ( 1 << ( 3 - rcQP.per() ) ) : 0 );
-    
+
     for( UInt ui = uiStart; ui < 16; ui++ )
     {
       piCoeff[ui] = ( ( piCoeff[ui] * g_aaiDequantCoef[rcQP.rem()][ui] * pucScale[ui] + iAdd ) << rcQP.per() ) >> 4;
@@ -1052,8 +1091,8 @@ FGSCoder::xScaleTCoeffs( MbDataAccess& rcMbDataAccess,
   const UChar*        pucScaleV = rcMbDataAccess.getSH().getScalingMatrix( uiVScalId );
   Int                 iScale    = 1;
 
-  if( !m_bEncoder && bBaseLayer && !b16x16 ) // for non intra 16x16 blocks of non-FGS at decoder, we reuse the stored dequantized coefficients
-    return Err::m_nOK;
+  if (!rcMbDataAccess.getMbData().isPCM() )
+      rcMbDataAccess.getMbTCoeffs().storeLevelData();  // for SVC to AVC rewrite
 
   //===== luma =====
   if( b16x16 )
@@ -1689,6 +1728,7 @@ FGSCoder::xSetNumCoefficients( UInt               uiMbX,
   else
     return Err::m_nOK;
 }
+
 
 H264AVC_NAMESPACE_END
 

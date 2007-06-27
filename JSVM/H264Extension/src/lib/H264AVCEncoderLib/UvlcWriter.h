@@ -286,6 +286,49 @@ public:
   ErrVal RQreset( const SliceHeader& rcSliceHeader );
   ErrVal RQcountFragmentedSymbols();
   ErrVal resetFragmentedSymbols() {m_uiFragmentedSymbols = 0; return Err::m_nOK;}
+
+
+  Bool m_isIntra;
+  UInt m_qLevel;
+  UInt m_TableRefInit[2];	//to store initial values of tables for Intra and Inter
+
+  Void setMBMode(Bool isIntra);
+  Void setQLevel(UInt qLevel);
+  Void decideTable();
+
+
+  Int m_codType;
+  Int m_prevLevelInd;
+
+  Int  decideCodType();
+  Void setCodType(Int codType);
+  ErrVal CodTypePrint(Int codType);
+  Void initCount();
+  Void setPrevLevInd(Int prevLevelInd){m_prevLevelInd=prevLevelInd;};
+  UInt m_auiBlCountSymbols[8][3];
+  
+  ErrVal xRQcountTCoeffsRefNew( TCoeff*       piCoeff,
+								TCoeff*       piCoeffBase,
+								const UChar*  pucScan,
+								UInt          uiScanIndex);
+  ErrVal xRQcountTCoeffsRefNew_zero( TCoeff*       piCoeff,
+									 TCoeff*       piCoeffBase,
+									 const UChar*  pucScan,
+									 UInt          uiScanIndex);
+  ErrVal xRQencodeTCoeffsRef1(	TCoeff*       piCoeff,
+								TCoeff*       piCoeffBase,
+								const UChar*  pucScan,
+								UInt          uiScanIndex );
+  ErrVal xRQencodeTCoeffsRef0(	TCoeff*       piCoeff,
+								TCoeff*       piCoeffBase,
+								const UChar*  pucScan,
+								UInt          uiScanIndex );
+  
+  Bool m_mapLev2[3];
+  Bool m_mapLev3[7];
+  Bool useCodeTypeIntra;	//whether to use codetype for Intra or not
+  Bool useCodeTypeInter;	//whether to use codetype for Inter or not
+
 private:
   __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );
   __inline ErrVal xWriteFlag( UInt uiCode );
@@ -332,6 +375,8 @@ public:
   UInt   getTable()                   { return m_uiTable;       }
   Void   setCodedFlag(UInt uiFlag)    { m_uiCodedFlag = uiFlag; }
   Void   incrementCounter(UInt uiSym) { m_auiSymCount[uiSym]++; }
+  Void   UpdateTable();
+
 
 protected:
   UvlcWriter* m_pParent;

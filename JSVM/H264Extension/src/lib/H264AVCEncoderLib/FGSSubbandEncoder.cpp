@@ -168,7 +168,6 @@ RQFGSEncoder::init( YuvBufferCtrl** apcYuvFullPelBufferCtrl,
   m_pcQuarterPelFilter        = pcQuarterPelFilter;
   m_pcMotionEstimation        = pcMotionEstimation;
   m_pcMbCoder                 = pcMbCoder;
-  m_bEncoder                  = true;
 
   xInit( apcYuvFullPelBufferCtrl, pcTransform );
 
@@ -191,8 +190,6 @@ RQFGSEncoder::uninit()
   m_iRemainingTCoeff          = 0;
   m_pcSliceHeader             = 0;
   m_pcOrgResidual             = 0;
-  m_bEncoder                  = false;
-
   return Err::m_nOK;
 }
 
@@ -1505,6 +1502,10 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
   RNOK( m_cMbDataCtrlEL    .initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS, false, NULL ) );
   m_pcSliceHeader->setSliceType( m_eSliceType );
+
+  m_eFrameType=m_pcSliceHeader->getSliceType();
+  UInt Type = m_eFrameType;
+
   if(!uiFracNb)
   {
     RNOK( m_pcSymbolWriter   ->startSlice( *m_pcSliceHeader ) );
@@ -1774,6 +1775,16 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
       delete pauiHistChroma;
       } //FIX_FRAG_CAVLC
 
+//    with fragments a layer is encoded twice for each fragment.
+//    so to avoid signaling twice, I use the below condition.
+//    1st time uiFracNb will be 0 and 2nd time it will be 1.....Rahul...reference JVT-P031
+      if(!m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() && !uiFracNb) //only for CAVLC- JVT-V095
+      {
+        xSignaling_Table(Type);	// signal as to which VLC table (used for refinement coeffs) to be used for particular frame JVT-V095
+        xSignaling(Type);
+        xPrescanRefLuma();
+      }
+
     uiLumaCbpBitCount    = 0;
     uiLumaCbpNextMbX     = uiFirstMbX;
     uiLumaCbpNextMbY     = uiFirstMbY;
@@ -1894,6 +1905,8 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
 
 		    for(UInt uiMbAddress=m_uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice;)
 		    {
+        MbFGSCoefMap &rcMbFGSCoefMapPrescan	= m_pcCoefMap[uiMbAddress];
+
         const UInt uiMbYIdx = uiMbAddress / m_uiWidthInMB;
         const UInt uiMbXIdx = uiMbAddress % m_uiWidthInMB;
 			    
@@ -1937,13 +1950,17 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                   {
                     for( UInt uiBlockXIdx = uiBlockXInit; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ )
                     {
-                      for( ui=iLumaScanIdx; ui<=uiMaxPosLuma; ui++ )
+                      Bool bcabac = m_pcSliceHeader->getPPS().getEntropyCodingModeFlag();
+                      if((rcMbFGSCoefMapPrescan.getMbMapH()!=1 && !bcabac) || bcabac)    //JVT-U132 and JVT-V095
                       {
-                        if( ui < 16 )
+                        for( ui=iLumaScanIdx;	ui<=uiMaxPosLuma; ui++ ) 
                         {
-                          RNOK( xPrescanCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, ui, bFrame ) );
+                          if(	ui < 16	)
+                          {
+                            RNOK(	xPrescanCoefficientLumaRef(	uiBlockYIdx, uiBlockXIdx, ui, bFrame ) );
                           }
                         }
+                      }
                       } // 4x4 block iteration
                       uiBlockXInit = 2 * uiB8XIdx;
                     }
@@ -2039,6 +2056,10 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                     UInt uiOffset = ( cIdx.y() % 2 ) * 2 + ( cIdx.x() % 2);
                     if( rcMbFGSCoefMap.getLumaScanPos( cIdx2 ) == ui * 4 + uiOffset )
                       RNOK( xEncodeNewCoefficientLuma( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx, bFrame ) );
+                    if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )    //JVT-V095
+                    {
+					  ((UvlcWriter *)m_pcSymbolWriter)->setCodType(rcMbFGSCoefMap.getMbMapH());
+                    }
                     RNOK( xEncodeCoefficientLumaRef( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx, ui ) );
                     if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                     {
@@ -2055,8 +2076,12 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                     for( ui=iLumaScanIdx; ui<=uiMaxPosLuma; ui++ ) {
                       if( rcMbFGSCoefMap.getLumaScanPos( cIdx )  <= ui )
                         RNOK( xEncodeNewCoefficientLuma( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx, bFrame ) );
-                      RNOK( xEncodeCoefficientLumaRef( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx, ui ) );
+                    if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )    //JVT-V095
+                    {
+                      ((UvlcWriter *)m_pcSymbolWriter)->setCodType(rcMbFGSCoefMap.getMbMapH());
                     }
+                      RNOK( xEncodeCoefficientLumaRef( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cIdx, ui ) );
+					}
                     if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                     {
                       xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
@@ -2090,8 +2115,14 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                     iBitsChroma += m_pcSymbolWriter->getNumberOfWrittenBits() - iLastBitsChroma;
                   CoefMap cCoefMap = rcMbFGSCoefMap.getCoefMap( CIdx( cCPlaneIdx ) + ui )[0];
                   if( (cCoefMap & SIGNIFICANT) && !(cCoefMap & CODED) )
+				  {
+                    if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )    //JVT-V095
+                    {
+                      ((UvlcWriter *)m_pcSymbolWriter)->setCodType(-1);
+                    }
                     RNOK( xEncodeCoefficientChromaDCRef( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cCPlaneIdx, ui ) );
-                }
+				  }
+				  }
                 if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                 {
                   xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
@@ -2120,7 +2151,13 @@ RQFGSEncoder::xEncodingFGS( Bool& rbFinished,
                   if( ui == rcMbFGSCoefMap.getChromaACScanPos( cCIdx ) )
                     RNOK( xEncodeNewCoefficientChromaAC( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cCIdx, iLastQP, ui, bFrame ) );
                   if( (pcCoefMap[ui] & SIGNIFICANT) && !(pcCoefMap[ui] & CODED) )
+				  {
+                    if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )    //JVT-V095
+                    {
+                      ((UvlcWriter *)m_pcSymbolWriter)->setCodType(-1);
+                    }
                     RNOK( xEncodeCoefficientChromaACRef( pcMbDataAccessBL, pcMbDataAccessEL, rcMbFGSCoefMap, cCIdx, ui ) );
+				  }
                         if( bCheck && m_pcSymbolWriter->getNumberOfWrittenBits() - uiBitsLast >= uiMaxBits )
                         {
                     xStoreFGSState(iLumaScanIdx, iChromaDCScanIdx, iChromaACScanIdx, iStartCycle,
@@ -2236,7 +2273,23 @@ RQFGSEncoder::xEncodeMbHeader( MbDataAccess*      pcMbDataAccessBL,
     RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiMbY, uiMbX ) );
   }
 
+  if(!m_pcSliceHeader->getPPS().getEntropyCodingModeFlag())   //JVT-V095
+  { 
+  //decide the VLC table to be used for refinement coefficients for current MB -V095
+  //Set the MB Type (intra/inter)
+  //also decide the table here,before we call encoding of refinement coeffs
+  Bool bLowPass = (m_pcSliceHeader->getTemporalLevel()==0);
+  Bool isIntra  = m_pcCurrMbDataCtrl->getMbData( uiMbX, uiMbY ).isIntra();
+  ((UvlcWriter *)m_pcSymbolWriter)->setMBMode(bLowPass || isIntra);
+  ((UvlcWriter *)m_pcSymbolWriter)->setQLevel(m_pcSliceHeader->getQualityLevel());
+  ((UvlcWriter *)m_pcSymbolWriter)->decideTable();
 
+ // signal the codetype for current MB to decoder
+  Bool useCT_Intra = ((UvlcWriter *)m_pcSymbolWriter)->useCodeTypeIntra;
+  Bool useCT_Inter = ((UvlcWriter *)m_pcSymbolWriter)->useCodeTypeInter;
+  if ((useCT_Intra==1 && useCT_Inter==1))
+      xWriteCodeTypeRef(rcMbFGSCoefMap,uiMbX, uiMbY);
+  }
   // Luma CBP in CABAC, need also for CAVLC to update the CBP in buffer
   {
     for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx ++ ) {
@@ -2651,18 +2704,32 @@ RQFGSEncoder::xEncodeCoefficientLumaRef( MbDataAccess  *pcMbDataAccessBL,
 {
   B8x8Idx c8x8Idx( rcIdx.getContainingPar8x8() );
   CoefMap* pcCoefMap;
+  CoefMap* pcCoefMapH;
 
   if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
   {
     uiScanIndex = 4*uiScanIndex + (rcIdx.s4x4() & 3); // convert scan index to 8x8 scan index
     pcCoefMap = &rcMbFGSCoefMap.getCoefMap( c8x8Idx )[uiScanIndex];
+    pcCoefMapH = &rcMbFGSCoefMap.getCoefMapH( c8x8Idx )[uiScanIndex];
   }
   else
+  {
     pcCoefMap = &rcMbFGSCoefMap.getCoefMap( rcIdx )[uiScanIndex];
+    pcCoefMapH = &rcMbFGSCoefMap.getCoefMapH( rcIdx )[uiScanIndex];
+  }
 
   //===== check if coefficient is not significant or was already coded =====
   ROFRS( *pcCoefMap & SIGNIFICANT, Err::m_nOK );
   ROTRS( *pcCoefMap & CODED,       Err::m_nOK );
+
+  if( ! m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() )    //JVT-V095
+  {
+  UInt Qlevel=pcMbDataAccessEL->getSH().getQualityLevel();
+  Int uiPrevCoeffInd=0;
+  if (Qlevel>1)
+    uiPrevCoeffInd = *pcCoefMapH ;
+  ((UvlcWriter *)m_pcSymbolWriter)->setPrevLevInd(uiPrevCoeffInd);
+  }
 
   if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
   {
@@ -2957,6 +3024,352 @@ RQFGSEncoder::xVLCParseChromaAC( UInt   uiPlane,
     pauiNumCoefHist[((uiCycle * 16) + uiBaseLast) * 16]++;
   }
   return Err::m_nOK;
+}
+
+
+Void 
+RQFGSEncoder::xSignaling_Table( UInt Type)
+{
+  /*
+  P_SLICE = 0
+  B_SLICE = 1
+  I_SLICE = 2
+  PK_SLICE= 3	//key frame P
+  send 2 bits x1 x2 
+  x1 = Table to be used for INTRA MB
+  x2 = Table to be used for INTER MB 
+  */
+
+  UInt QL = m_pcSliceHeader->getQualityLevel();
+  UInt TL = m_pcSliceHeader->getTemporalLevel();
+
+  UInt Frame_Type = Type;
+  if(Type==P_SLICE && TL==0)
+    Frame_Type = 3;
+
+    ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[1]=0;		//Intra
+    ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[0]=0;		//Inter
+
+  if(QL==1)
+  {
+    ((UvlcWriter *) m_pcSymbolWriter)->writeCode(0,2,"TABLE_TYPE_00");		//00
+    ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[1]=0;		//Intra
+    ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[0]=0;		//Inter
+  }
+
+  if(QL>1)	
+  {
+    if(Frame_Type >=0 && Frame_Type < 3)	//for I,B,P
+    {
+      ((UvlcWriter *) m_pcSymbolWriter)->writeCode(2,2,"TABLE_TYPE_10");		//10
+      ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[1]=1;		//Intra
+      ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[0]=0;		//Inter
+    }
+    if(Frame_Type == 3)					// for Key P
+    {
+      ((UvlcWriter *) m_pcSymbolWriter)->writeCode(3,2,"TABLE_TYPE_11");		//11
+      ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[1]=1;		//Intra
+      ((UvlcWriter *) m_pcSymbolWriter)->m_TableRefInit[0]=1;		//Inter
+    }
+  }
+
+}
+
+
+ErrVal
+RQFGSEncoder::xCountCoefficientLumaRef( UInt  uiBlockYIndex,
+                                       UInt   uiBlockXIndex,
+                                       UInt   uiScanIndex)
+{
+  UInt uiB8x8 = ((uiBlockYIndex>>1)%2) * 2 + ((uiBlockXIndex>>1)%2);
+  UInt uiB4x4 = ( uiBlockYIndex    %2) * 2 + ( uiBlockXIndex    %2);
+  Par8x8 ePar8x8 = Par8x8(uiB8x8);
+
+  B8x8Idx c8x8Idx( ePar8x8 );
+  S4x4Idx c4x4Idx = S4x4Idx( c8x8Idx ) + uiB4x4;
+
+  MbDataAccess* pcMbDataAccessBL  = 0;
+  RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiBlockYIndex/4, uiBlockXIndex/4 ) );
+  UInt    uiMbIndex     = (uiBlockYIndex/4) * 1 * m_uiWidthInMB + (uiBlockXIndex/4);
+  CoefMap* pcCoefMap;
+  CoefMap* pcCoefMapH;		//rahul....get the history
+  UInt uiScanIdxCurr;
+  if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+  {
+    pcCoefMap = m_pcCoefMap[uiMbIndex].getCoefMap( c8x8Idx );
+    pcCoefMapH = m_pcCoefMap[uiMbIndex].getCoefMapH( c8x8Idx );
+    uiScanIdxCurr = 4*uiScanIndex + 2*( uiBlockYIndex % 2 ) + ( uiBlockXIndex % 2 );
+  }
+  else
+  {
+    pcCoefMap = m_pcCoefMap[uiMbIndex].getCoefMap( c4x4Idx );
+    pcCoefMapH = m_pcCoefMap[uiMbIndex].getCoefMapH( c4x4Idx );
+    uiScanIdxCurr = uiScanIndex;
+  }
+
+  //===== check if coefficient is not significant or was already coded =====
+  //  ROFRS( pcCoefMap[uiScanIdxCurr] & SIGNIFICANT, Err::m_nOK );
+  //  ROTRS( pcCoefMap[uiScanIdxCurr] & CODED,       Err::m_nOK );
+
+  MbDataAccess* pcMbDataAccessEL  = 0;
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiBlockYIndex/4, uiBlockXIndex/4 ) );
+
+  Bool          bLowPass=(pcMbDataAccessEL->getSH().getTemporalLevel()==0);
+  Bool          isIntra=pcMbDataAccessBL->getMbData().isIntra(); 
+
+  UInt Qlevel=pcMbDataAccessEL->getSH().getQualityLevel();
+  ((UvlcWriter *)m_pcSymbolWriter)->setQLevel(Qlevel);
+  ((UvlcWriter *)m_pcSymbolWriter)->setMBMode(bLowPass || isIntra);
+
+  Int uiPrevCoeffInd=0;
+  if (Qlevel>1)
+  {
+    uiPrevCoeffInd=pcCoefMapH[uiScanIdxCurr];
+  }
+  ((UvlcWriter *)m_pcSymbolWriter)->setPrevLevInd(uiPrevCoeffInd);
+
+  if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+  {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get8x8( c8x8Idx );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get8x8( c8x8Idx );
+    const UChar*  pucScan     = g_aucFrameScan64;
+    UInt  ui8x8ScanIndex  = 4*uiScanIndex + 2*( uiBlockYIndex % 2 ) + ( uiBlockXIndex % 2 );
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQcountTCoeffsRefNew( piCoeff, piCoeffBase, pucScan, ui8x8ScanIndex ) );
+  }
+  else
+  {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get( c4x4Idx );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get( c4x4Idx );
+    const UChar*  pucScan     = g_aucFrameScan;
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQcountTCoeffsRefNew( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RQFGSEncoder::xCountCoefficientLumaRef_zero( UInt   uiBlockYIndex,
+                                            UInt   uiBlockXIndex,
+                                            UInt   uiScanIndex)
+{
+  UInt uiB8x8 = ((uiBlockYIndex>>1)%2) * 2 + ((uiBlockXIndex>>1)%2);
+  UInt uiB4x4 = ( uiBlockYIndex    %2) * 2 + ( uiBlockXIndex    %2);
+  Par8x8 ePar8x8 = Par8x8(uiB8x8);
+
+  B8x8Idx c8x8Idx( ePar8x8 );
+  S4x4Idx c4x4Idx = S4x4Idx( c8x8Idx ) + uiB4x4;
+
+  MbDataAccess* pcMbDataAccessBL  = 0;
+  RNOK( m_pcCurrMbDataCtrl ->initMb( pcMbDataAccessBL, uiBlockYIndex/4, uiBlockXIndex/4 ) );
+  UInt    uiMbIndex     = (uiBlockYIndex/4) * 1 * m_uiWidthInMB + (uiBlockXIndex/4);
+  CoefMap* pcCoefMap;
+  CoefMap* pcCoefMapH;		//rahul....get the history
+  UInt uiScanIdxCurr;
+  if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+  {
+    pcCoefMap = m_pcCoefMap[uiMbIndex].getCoefMap( c8x8Idx );
+    pcCoefMapH = m_pcCoefMap[uiMbIndex].getCoefMapH( c8x8Idx );
+    uiScanIdxCurr = 4*uiScanIndex + 2*( uiBlockYIndex % 2 ) + ( uiBlockXIndex % 2 );
+  }
+  else
+  {
+    pcCoefMap = m_pcCoefMap[uiMbIndex].getCoefMap( c4x4Idx );
+    pcCoefMapH = m_pcCoefMap[uiMbIndex].getCoefMapH( c4x4Idx );
+    uiScanIdxCurr = uiScanIndex;
+  }
+
+  //===== check if coefficient is not significant or was already coded =====
+  //  ROFRS( pcCoefMap[uiScanIdxCurr] & SIGNIFICANT, Err::m_nOK );
+  //  ROTRS( pcCoefMap[uiScanIdxCurr] & CODED,       Err::m_nOK );
+
+  MbDataAccess* pcMbDataAccessEL  = 0;
+  RNOK( m_cMbDataCtrlEL     .initMb( pcMbDataAccessEL, uiBlockYIndex/4, uiBlockXIndex/4 ) );
+
+  Bool          bLowPass=(pcMbDataAccessEL->getSH().getTemporalLevel()==0);
+  Bool          isIntra=pcMbDataAccessBL->getMbData().isIntra(); 
+
+  UInt Qlevel=pcMbDataAccessEL->getSH().getQualityLevel();
+  ((UvlcWriter *)m_pcSymbolWriter)->setQLevel(Qlevel);
+  ((UvlcWriter *)m_pcSymbolWriter)->setMBMode(bLowPass || isIntra);
+
+  Int uiPrevCoeffInd=0;
+  if (Qlevel>1)
+  {
+    uiPrevCoeffInd=pcCoefMapH[uiScanIdxCurr];
+  }
+  ((UvlcWriter *)m_pcSymbolWriter)->setPrevLevInd(uiPrevCoeffInd);
+
+  if( pcMbDataAccessBL->getMbData().isTransformSize8x8() )
+  {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get8x8( c8x8Idx );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get8x8( c8x8Idx );
+    const UChar*  pucScan     = g_aucFrameScan64;
+    UInt  ui8x8ScanIndex  = 4*uiScanIndex + 2*( uiBlockYIndex % 2 ) + ( uiBlockXIndex % 2 );
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQcountTCoeffsRefNew_zero( piCoeff, piCoeffBase, pucScan, ui8x8ScanIndex ) );
+  }
+  else
+  {
+    TCoeff*       piCoeff     = pcMbDataAccessEL->getMbTCoeffs().get( c4x4Idx );
+    TCoeff*       piCoeffBase = pcMbDataAccessBL->getMbTCoeffs().get( c4x4Idx );
+    const UChar*  pucScan     = g_aucFrameScan;
+
+    RNOK( ((UvlcWriter *)m_pcSymbolWriter)->xRQcountTCoeffsRefNew_zero( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal RQFGSEncoder::xPrescanRefLuma ()
+{
+  UInt uiFirstMbInSlice  = m_pcSliceHeader->getFirstMbInSlice();
+  UInt uiLastMbInSlice   = m_pcSliceHeader->getLastMbInSlice();
+  UInt uiMbYIdx = uiFirstMbInSlice / m_uiWidthInMB;
+  UInt uiMbXIdx = uiFirstMbInSlice % m_uiWidthInMB;
+  UInt QL = m_pcSliceHeader->getQualityLevel();
+  Bool bLowPass=(m_pcSliceHeader->getTemporalLevel()==0);
+
+  for(UInt uiMbAddress=uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
+  {
+    MbFGSCoefMap &rcMbFGSCoefMapH = m_pcCoefMap[uiMbAddress];
+    if (((m_eFrameType == I_SLICE)  || (m_eFrameType == P_SLICE && bLowPass)) && QL>1)
+    {
+      uiMbYIdx = uiMbAddress / m_uiWidthInMB;
+      uiMbXIdx = uiMbAddress % m_uiWidthInMB;
+      ((UvlcWriter *)m_pcSymbolWriter)->initCount();
+      for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ ){
+        for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ){
+          for( UInt uiBlockYIdx = 2 * uiB8YIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ ){
+            for( UInt uiBlockXIdx = 2 * uiB8XIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ ){
+              for(UInt ui=0; ui<16; ui++ )
+              {      
+                RNOK( xCountCoefficientLumaRef( uiBlockYIdx, uiBlockXIdx, ui ) );
+              }
+            } 
+          }
+        } 
+      }
+
+      rcMbFGSCoefMapH.getMbMapH() = ((UvlcWriter *)m_pcSymbolWriter)->decideCodType();
+
+      if(rcMbFGSCoefMapH.getMbMapH()==1)
+      {
+        for( UInt uiB8YIdx = 2 * uiMbYIdx; uiB8YIdx < 2 * uiMbYIdx + 2; uiB8YIdx++ ){
+          for( UInt uiB8XIdx = 2 * uiMbXIdx; uiB8XIdx < 2 * uiMbXIdx + 2; uiB8XIdx++ ){
+            for( UInt uiBlockYIdx = 2 * uiB8YIdx; uiBlockYIdx < 2 * uiB8YIdx + 2; uiBlockYIdx++ ){
+              for( UInt uiBlockXIdx = 2 * uiB8XIdx; uiBlockXIdx < 2 * uiB8XIdx + 2; uiBlockXIdx++ ){
+                for(UInt ui=0; ui<16; ui++ )
+                {      
+                  RNOK( xCountCoefficientLumaRef_zero( uiBlockYIdx, uiBlockXIdx, ui ) );
+                }
+              } 
+            }
+          } 
+        }
+      }//if
+    } //if((IK or PK) and QL>1)
+    else
+      rcMbFGSCoefMapH.getMbMapH() = -1;
+
+    uiMbAddress = m_pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+
+  }//	end of MB loop
+  return Err::m_nOK;
+}
+
+Void 
+RQFGSEncoder::xWriteCodeTypeRef	(MbFGSCoefMap       &rcMbFGSCoefMap,
+                                 UInt uiMbX,
+                                 UInt uiMbY)
+{
+  UInt	Qlevel	 = m_pcSliceHeader->getQualityLevel();
+  Bool	bLowPass =(m_pcSliceHeader->getTemporalLevel()==0);
+  Bool	isIntra  = m_pcCurrMbDataCtrl->getMbData( uiMbX, uiMbY ).isIntra(); 
+  ((UvlcWriter *)m_pcSymbolWriter)->setQLevel(Qlevel);
+  ((UvlcWriter *)m_pcSymbolWriter)->setMBMode(bLowPass || isIntra);
+  UInt q = ((UvlcWriter *)m_pcSymbolWriter)->m_qLevel;
+  Bool p = ((UvlcWriter *)m_pcSymbolWriter)->m_isIntra;
+  if (q>1 && p)
+  {
+    if (rcMbFGSCoefMap.getMbMapH()>=0)
+    {
+      ((UvlcWriter *)m_pcSymbolWriter)->writeCode(rcMbFGSCoefMap.getMbMapH(),1,"CodeType for LumaMB");
+    }
+  }
+}
+
+Void 
+RQFGSEncoder::xSignaling( UInt Type)
+{
+  /*
+  P_SLICE = 0
+  B_SLICE = 1
+  I_SLICE = 2
+  PK_SLICE= 3	//key frame P
+  send 2 bits ---- x3 x4
+  x3 = whether to use CodeType MB method for INTRA MBs = useCodeTypeIntra
+  x4 = whether to use CodeType MB method for INTER MBs = useCodeTypeInter
+  send HistoryMap only if we are going to use Code_type method
+  */
+
+  UInt QL = m_pcSliceHeader->getQualityLevel();
+  UInt TL = m_pcSliceHeader->getTemporalLevel();
+
+  UInt Frame_Type = Type;
+  if(Type==P_SLICE && TL==0)
+    Frame_Type = 3;
+
+  //=====decides whether to use codetype method or not for Intra/Inter MBs
+  Bool useCT_Intra = 0;
+  Bool useCT_Inter = 0;
+
+    if(QL>1)
+    {
+		if(Frame_Type == 2 ||Frame_Type == 3)		//for IK and PK only
+		{
+			useCT_Intra = 1;
+			useCT_Inter = 1;
+		}
+        else
+        {
+          	useCT_Intra = 0;
+	        useCT_Inter = 0;
+        }
+		//send the flag "useCodeTypeIntra/Inter" here
+		((UvlcWriter *) m_pcSymbolWriter)->writeFlag(useCT_Intra,"useCodeTypeIntra");
+		((UvlcWriter *) m_pcSymbolWriter)->writeFlag(useCT_Inter,"useCodeTypeInter");
+    }
+
+    if(useCT_Intra==1 && useCT_Inter==1)	//send HistoryMap if we are using code_type method
+    {
+      if(QL==2)
+      {
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev2[0]=0;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev2[1]=1;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev2[2]=1;
+        for(UInt i=0;i<3;i++)
+          ((UvlcWriter *) m_pcSymbolWriter)->writeFlag(((UvlcWriter *) m_pcSymbolWriter)->m_mapLev2[i],"HistoryMap_QL2");
+      }
+      if(QL==3)	
+      {
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[0]=0;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[1]=0;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[2]=0;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[3]=1;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[4]=1;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[5]=0;
+        ((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[6]=0;
+        for(UInt i=0;i<7;i++)
+          ((UvlcWriter *) m_pcSymbolWriter)->writeFlag(((UvlcWriter *) m_pcSymbolWriter)->m_mapLev3[i],"HistoryMap_QL3");
+      }
+    }
+
+  ((UvlcWriter *) m_pcSymbolWriter)->useCodeTypeIntra = useCT_Intra;
+  ((UvlcWriter *) m_pcSymbolWriter)->useCodeTypeInter = useCT_Inter;
 }
 
 H264AVC_NAMESPACE_END

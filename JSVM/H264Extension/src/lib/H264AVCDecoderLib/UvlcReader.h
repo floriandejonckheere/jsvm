@@ -142,9 +142,6 @@ public:
   Bool    moreRBSPData();
   ErrVal  getUvlc     ( UInt& ruiCode,                Char* pcTraceString );
   ErrVal  getCode     ( UInt& ruiCode, UInt uiLength, Char* pcTraceString );
-  // JVT-V068 HRD {
-  ErrVal  getSCode    ( Int& riCode, UInt uiLength, Char* pcTraceString );
-  // JVT-V068 HRD }
   ErrVal  getSvlc     ( Int&  riCode,                 Char* pcTraceString );
   ErrVal  getFlag     ( Bool& rbFlag,                 Char* pcTraceString );
   ErrVal  readByteAlign();
@@ -155,7 +152,7 @@ public:
   ErrVal  codeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 )
     {return xCodeFromBitstream2Di(auiCode, auiLen, uiWidth, uiHeight, uiVal1, uiVal2);};
   Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess );
-  Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess );
+  ErrVal  isBLSkipped ( MbDataAccess& rcMbDataAccess, Bool &bBLSkipped );
   Bool    isEndOfSlice();
   ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess );
@@ -381,6 +378,33 @@ protected:
   static UInt     m_auiShiftLuma[16];
   static UInt     m_auiShiftChroma[16];
   static UInt     m_auiBestCodeTab[16];
+
+public: 
+  Bool m_isIntra;
+  UInt m_qLevel;
+  UInt m_TableRefInit[2];
+
+  void setMBMode(Bool isIntra);
+  void setQLevel(UInt qLevel);
+  void decideTable();
+
+  Int m_codType_d;
+  Int m_prevLevelInd;
+  void setPrevLevInd(Int prevLevelInd){m_prevLevelInd=prevLevelInd;};
+  void setCodType(Int codType){m_codType_d=codType;};
+  ErrVal xRQdecodeTCoeffsRef1(	TCoeff*       piCoeff,
+								TCoeff*       piCoeffBase,
+								const UChar*  pucScan,
+								UInt          uiScanIndex );
+  ErrVal xRQdecodeTCoeffsRef0(	TCoeff*       piCoeff,
+								TCoeff*       piCoeffBase,
+								const UChar*  pucScan,
+								UInt          uiScanIndex );
+  Bool m_mapLev2[3];
+  Bool m_mapLev3[7];
+  Bool useCodeTypeIntra;	//whether to use codetype for Intra or not
+  Bool useCodeTypeInter;	//whether to use codetype for Inter or not
+
 };
 
 
@@ -395,6 +419,7 @@ public:
   Bool   UpdateVlc();
   UInt   GetCode()    { return m_uiCode;   }
   Void   setCodedFlag(UInt uiFlag)    { m_uiCodedFlag = uiFlag; }
+  Void   UpdateTable(UvlcReader *pParent);
 
 protected:
   UInt m_auiSymCount[3];

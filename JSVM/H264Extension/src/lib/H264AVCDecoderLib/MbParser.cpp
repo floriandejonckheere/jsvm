@@ -279,7 +279,8 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
       {
 			  if( rcMbDataAccess.getSH().getAdaptivePredictionFlag() )
 			  {
-          m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess );
+          Bool bBLSkipped; 
+          m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess, bBLSkipped );
 			  }
 			  else
 			  {
@@ -505,7 +506,9 @@ ErrVal MbParser::readMotion(MbDataAccess&  rcMbDataAccess,
 
   try {
     //===== base mode flag =====
-    ROTRS( m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess ), Err::m_nOK );
+    Bool bBLSkipped; 
+    RNOKS( m_pcMbSymbolReadIf->isBLSkipped( rcMbDataAccess, bBLSkipped ) );
+    ROTRS( bBLSkipped, Err::m_nOK );
 
     rcMbDataAccess.getMbMotionData( LIST_0 ).reset();
     rcMbDataAccess.getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );

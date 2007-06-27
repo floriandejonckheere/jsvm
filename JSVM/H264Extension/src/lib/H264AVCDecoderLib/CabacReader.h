@@ -237,7 +237,7 @@ public:
 
   Bool    isEndOfSlice        ();
   Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess );
-  Bool    isBLSkipped         ( MbDataAccess& rcMbDataAccess );
+  ErrVal  isBLSkipped         ( MbDataAccess& rcMbDataAccess, Bool &bBLSkipped );
   ErrVal  blockModes          ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess );

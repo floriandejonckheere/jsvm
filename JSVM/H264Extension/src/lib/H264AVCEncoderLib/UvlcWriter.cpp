@@ -293,33 +293,17 @@ const UInt g_auiISymLen[3][16] =
 
 #define CAVLC_SYMGRP_SIZE       3 
 
-const UInt g_auiRefSymCode[2][27] =
-{
-  { 
-    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5, 
-    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3, 
-    0x3, 0x3, 0x3, 0x3, 0x1, 0x2, 0x2, 0x1, 0x0
-  },
-  {
-    0x1, 0x7, 0x6, 0x7,	0x9, 0x8, 0x6, 0x7,	0x9,
-    0x5, 0x6,	0x5, 0x8,	0x7, 0x6,	0x7, 0x5,	0x4,
-    0x4, 0x4,	0x6, 0x5,	0x3, 0x2,	0x5, 0x1,	0x0
-  }
-};
-
 const UInt g_auiRefSymLen[2][27] =
 {
-  {
-    1, 4, 5, 3, 6, 8, 5, 7, 9,
-    3, 6, 8, 6, 9,10, 7,10,12,
-    5, 7, 9, 8,10,12, 9,12,12
-  },
-  {
-    1, 5, 5, 4, 7, 7, 4, 7, 6,
-    4, 7, 7, 6, 8, 8, 6, 8, 8,
-    4, 7, 6, 6, 8, 8, 5, 8, 8
-  }
+	{1, 3, 8, 3, 5, 10, 7, 10, 11, 3, 6, 10, 5, 7, 11, 9, 11, 14, 6, 9, 12, 9, 11, 14, 11, 14, 14},
+	{1, 5, 4, 5, 8, 7, 4, 7, 6, 4, 8, 7, 7, 10, 9, 7, 10, 9, 3, 7, 6, 7, 9, 9, 6, 9, 8},
 };
+const UInt g_auiRefSymCode[2][27] =
+{
+	{0x1, 0x0, 0x3a, 0x2, 0x5, 0xee, 0x1c, 0xed, 0x124, 0x3, 0xf, 0xef, 0x6, 0x13, 0x126, 0x4a, 0x127, 0xec6, 0x8, 0x48, 0x3b0, 0x4b, 0x125, 0xec5, 0x1d9, 0xec7, 0xec4},
+	{0x1, 0x9, 0x5, 0xd, 0x1f, 0xe, 0x7, 0xb, 0x11, 0x0, 0x1e, 0xc, 0x8, 0x4c, 0x25, 0x31, 0x4d, 0x35, 0x1, 0xa, 0x10, 0x30, 0x24, 0x34, 0x19, 0x27, 0x1b}
+};
+
 
 UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
   m_pcBitWriteBufferIf( NULL ),
@@ -2219,10 +2203,78 @@ UvlcWriter::RQencodeTCoeffRef_Luma ( MbDataAccess&   rcMbDataAccess,
 
 ErrVal
 UvlcWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
+                                TCoeff*       piCoeffBase,
+                                const UChar*  pucScan,
+                                UInt          uiScanIndex )
+{
+  if (m_codType==1) // marta
+  {
+    //	UInt  mapLev2[4]={0, 0, 1, 1};
+    //	UInt  mapLev3[8]={0, 0, 0, 0, 1, 1, 0, 0};
+    UInt  mapLev2[4]={	0,
+      m_mapLev2[0],
+      m_mapLev2[1],
+      m_mapLev2[2]};
+    UInt  mapLev3[8]={	0,
+      m_mapLev3[0],
+      m_mapLev3[1],
+      m_mapLev3[2],
+      m_mapLev3[3],
+      m_mapLev3[4],
+      m_mapLev3[5],
+      m_mapLev3[6]};
+    UInt  mapPrevLevel=0;
+
+    if (m_qLevel==2)
+    {
+      mapPrevLevel=mapLev2[m_prevLevelInd];
+    }
+    else if (m_qLevel==3)
+    {
+      mapPrevLevel=mapLev3[m_prevLevelInd];
+    }
+
+    if (mapPrevLevel==0)
+    {
+      RNOK( xRQencodeTCoeffsRef1( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+    }
+  }
+  else
+  {
+    RNOK( xRQencodeTCoeffsRef0( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+  }
+
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xRQencodeTCoeffsRef1( TCoeff*       piCoeff,
                                  TCoeff*       piCoeffBase,
                                  const UChar*  pucScan,
                                  UInt          uiScanIndex )
 {
+  UInt uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
+  UInt uiSym = 0;
+  if(uiSig) 
+  {
+    RNOK(xWriteFlag(1));
+    UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
+    RNOK(xWriteFlag(uiSignEL));
+  }
+  else
+  {
+    RNOK(xWriteFlag(0));
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xRQencodeTCoeffsRef0( TCoeff*       piCoeff,
+                                 TCoeff*       piCoeffBase,
+                                 const UChar*  pucScan,
+                                 UInt          uiScanIndex )
+{
+
   if (m_uiCodedSymbols % 3 == m_uiFragmentedSymbols) {
     UInt uiCode = 0;
     UInt uiTable = m_pSymGrp->getTable();
@@ -2235,7 +2287,7 @@ UvlcWriter::xRQencodeTCoeffsRef( TCoeff*       piCoeff,
     }
 
     m_pSymGrp->setCodedFlag(true);
-    RNOK(writeCode( g_auiRefSymCode[uiTable][uiCode], g_auiRefSymLen[uiTable][uiCode], "" ) );
+    RNOK(writeCode( g_auiRefSymCode[uiTable][uiCode], g_auiRefSymLen[uiTable][uiCode], "Ref0-ORG" ) );
   }
   if (m_uiFragmentedSymbols) {
     m_pSymGrp->setCodedFlag(true);
@@ -2660,19 +2712,7 @@ UcSymGrpWriter::UpdateVlc()
 {
   UInt uiFlag = m_uiCodedFlag;
   if (uiFlag) {
-    // updating
-    m_uiTable = 0;
-    if (m_auiSymCount[0] < 2 *(m_auiSymCount[1] + m_auiSymCount[2]) ||
-      m_auiSymCount[1] < 2 * m_auiSymCount[2]) {
-      m_uiTable = 1;
-    }
-
-    // scaling
-    m_auiSymCount[0] = (m_auiSymCount[0] >> 1);
-    m_auiSymCount[1] = (m_auiSymCount[1] >> 1);
-    m_auiSymCount[2] = (m_auiSymCount[2] >> 1);
     m_uiCodedFlag = false;
-
     m_pParent->resetFragmentedSymbols();
   }
   return (uiFlag != 0);
@@ -2697,5 +2737,159 @@ UcSymGrpWriter::Flush()
   m_uiLen  = 0;
   return Err::m_nOK;
 }
+
+void UvlcWriter::setMBMode(Bool isIntra)
+{
+  m_isIntra=isIntra;
+}
+
+void UvlcWriter::setQLevel(UInt qLevel)
+{
+  m_qLevel=qLevel;
+}
+
+void UvlcWriter::decideTable()
+{
+  m_pSymGrp->UpdateTable();
+}
+
+void UcSymGrpWriter::UpdateTable()
+{
+  m_uiTable = m_pParent->m_TableRefInit[m_pParent->m_isIntra];
+}
+
+void UvlcWriter::setCodType(Int codType)
+{
+  m_codType=codType;
+}
+
+Int UvlcWriter::decideCodType()
+{
+  UInt s;
+  Int codType;
+
+  s=m_auiBlCountSymbols[1][1]+m_auiBlCountSymbols[1][2];
+
+  codType=-1;
+  if (m_isIntra && m_qLevel>1){
+    codType=(s<=REF_COEFF_FORCE_ZERO_THRESHOLD)? 1 :0;
+  }
+  return(codType);
+}
+ErrVal UvlcWriter::CodTypePrint(Int codType)
+{
+  if (codType>=0)
+  {
+    RNOK(xWriteFlag(codType));
+  }
+  return Err::m_nOK;
+}
+
+void UvlcWriter::initCount()
+{
+  UInt ui, uj;
+  for (ui=0; ui<8; ui++)
+  {
+    for (uj=0; uj<3; uj++)
+    {
+      m_auiBlCountSymbols[ui][uj]=0;
+    }
+  }
+}
+
+ErrVal
+UvlcWriter::xRQcountTCoeffsRefNew(TCoeff*       piCoeff,
+                                  TCoeff*       piCoeffBase,
+                                  const UChar*  pucScan,
+                                  UInt          uiScanIndex)
+{
+  UInt  uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
+  UChar uiSym = 0;
+  //  UInt  mapLev2[4]={0, 0, 1, 1};
+  //  UInt  mapLev3[8]={0, 0, 0, 0, 1, 1, 0, 0};
+  UInt  mapLev2[4]={	0,
+    m_mapLev2[0],
+    m_mapLev2[1],
+    m_mapLev2[2]};
+  UInt  mapLev3[8]={	0,
+    m_mapLev3[0],
+    m_mapLev3[1],
+    m_mapLev3[2],
+    m_mapLev3[3],
+    m_mapLev3[4],
+    m_mapLev3[5],
+    m_mapLev3[6]};
+  UInt  mapPrevLevel=0;
+
+  if (piCoeffBase[pucScan[uiScanIndex]]!=0)
+  {
+    if (m_qLevel==2)
+    {
+      mapPrevLevel=mapLev2[m_prevLevelInd];
+    }
+    else if (m_qLevel==3)
+    {
+      mapPrevLevel=mapLev3[m_prevLevelInd];
+    }
+
+    if(uiSig) 
+    {
+      UInt uiSignBL = ( piCoeffBase[pucScan[uiScanIndex]] < 0 ? 1 : 0 );
+      UInt uiSignEL = ( piCoeff    [pucScan[uiScanIndex]] < 0 ? 1 : 0 );
+      UInt uiSign = ( uiSignBL ^ uiSignEL );
+
+      uiSym = (uiSign ? 2:1);
+    }
+  }
+  m_auiBlCountSymbols[mapPrevLevel][uiSym]++;
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcWriter::xRQcountTCoeffsRefNew_zero(TCoeff*       piCoeff,
+                                       TCoeff*       piCoeffBase,
+                                       const UChar*  pucScan,
+                                       UInt          uiScanIndex)
+{
+  UInt  uiSig = ( piCoeff[pucScan[uiScanIndex]] ? 1 : 0 );
+  UChar uiSym = 0;
+  //  UInt  mapLev2[4]={0, 0, 1, 1};
+  //  UInt  mapLev3[8]={0, 0, 0, 0, 1, 1, 0, 0};
+  UInt  mapLev2[4]={	0,
+    m_mapLev2[0],
+    m_mapLev2[1],
+    m_mapLev2[2]};
+  UInt  mapLev3[8]={	0,
+    m_mapLev3[0],
+    m_mapLev3[1],
+    m_mapLev3[2],
+    m_mapLev3[3],
+    m_mapLev3[4],
+    m_mapLev3[5],
+    m_mapLev3[6]};
+  UInt  mapPrevLevel=0;
+
+  if (piCoeffBase[pucScan[uiScanIndex]]!=0)
+  {
+    if (m_qLevel==2)
+    {
+      mapPrevLevel=mapLev2[m_prevLevelInd];
+    }
+    else if (m_qLevel==3)
+    {
+      mapPrevLevel=mapLev3[m_prevLevelInd];
+    }
+
+    if (mapPrevLevel>0 && m_qLevel>1)
+    {
+      piCoeff    [pucScan[uiScanIndex]]=0;
+      uiSym=0;
+      m_auiBlCountSymbols[1][1]=0;
+      m_auiBlCountSymbols[1][2]=0;
+    }
+  }
+  return Err::m_nOK;
+}
+
 
 H264AVC_NAMESPACE_END

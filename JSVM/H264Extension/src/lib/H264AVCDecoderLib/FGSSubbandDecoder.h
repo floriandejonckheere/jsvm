@@ -171,7 +171,8 @@ private:
                                                     Int*            piMaxPos, 
                                                     RefCtx*         pcRefCtx, 
                                                     UInt&           ruiNumFrags,
-                                                    UInt&           ruiCoeffsDecoded );
+                                                    UInt&           ruiCoeffsDecoded, 
+													MbFGSCoefMap &  rcMbFGSCoefMap	);
 
   ErrVal            xResidualBlock                ( MbDataAccess&   rcMbDataAccess,
                                                     MbDataAccess&   rcMbDataAccessBase,
@@ -238,11 +239,21 @@ private:
                                                     UInt                uiScanIdx );
   ErrVal            xInitializeMacroblockQPs      ();
 
-
   ErrVal            xDecodeMbHeader               ( MbDataAccess*       pcMbDataAccessBL,
                                                     MbDataAccess*       pcMbDataAccessEL,
                                                     MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    Int&                riLastQp );
+                                                    Int&                riLastQp,
+                                                    SliceHeader*        pcSliceHeader /* U132 */);
+
+  Void  xSignaling_Table( SliceHeader*       pcSliceHeader);
+ 
+  Void  xReadCodeTypeRef (	SliceHeader*    pcSliceHeader,
+                            MbFGSCoefMap    &rcMbFGSCoefMap,
+                            UInt uiMbX,
+                            UInt uiMbY);
+
+  Void  xSignaling		 ( SliceHeader*       pcSliceHeader);
+
 
 private:
   MbSymbolReadIf*   m_pcSymbolReader;

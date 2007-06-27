@@ -125,7 +125,7 @@ protected:
 
 public:
   virtual Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
+  virtual ErrVal  isBLSkipped ( MbDataAccess& rcMbDataAccess, Bool &bBLSkipped ) = 0;
   virtual Bool    isEndOfSlice() = 0;
   virtual ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess ) = 0;

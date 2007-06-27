@@ -287,33 +287,18 @@ const UInt g_auiISymLen[3][16] =
   { 1, 3, 3, 5, 4, 5, 6, 8, 4, 6, 7, 8, 7, 8, 9, 9}
 };
 
-const UInt g_auiRefSymCode[2][27] =
-{
-  { 
-    0x1, 0x3, 0x5, 0x3, 0x5, 0x5, 0x4, 0x5, 0x5, 
-    0x2, 0x4, 0x4, 0x3, 0x4, 0x3, 0x4, 0x2, 0x3, 
-    0x3, 0x3, 0x3, 0x3, 0x1, 0x2, 0x2, 0x1, 0x0
-  },
-  {
-    0x1, 0x7, 0x6, 0x7,	0x9, 0x8, 0x6, 0x7,	0x9,
-    0x5, 0x6,	0x5, 0x8,	0x7, 0x6,	0x7, 0x5,	0x4,
-    0x4, 0x4,	0x6, 0x5,	0x3, 0x2,	0x5, 0x1,	0x0
-  }
-};
 
 const UInt g_auiRefSymLen[2][27] =
 {
-  {
-    1, 4, 5, 3, 6, 8, 5, 7, 9,
-    3, 6, 8, 6, 9,10, 7,10,12,
-    5, 7, 9, 8,10,12, 9,12,12
-  },
-  {
-    1, 5, 5, 4, 7, 7, 4, 7, 6,
-    4, 7, 7, 6, 8, 8, 6, 8, 8,
-    4, 7, 6, 6, 8, 8, 5, 8, 8
-  }
+	{1, 3, 8, 3, 5, 10, 7, 10, 11, 3, 6, 10, 5, 7, 11, 9, 11, 14, 6, 9, 12, 9, 11, 14, 11, 14, 14},
+	{1, 5, 4, 5, 8, 7, 4, 7, 6, 4, 8, 7, 7, 10, 9, 7, 10, 9, 3, 7, 6, 7, 9, 9, 6, 9, 8}
 };
+const UInt g_auiRefSymCode[2][27] =
+{
+	{0x1, 0x0, 0x3a, 0x2, 0x5, 0xee, 0x1c, 0xed, 0x124, 0x3, 0xf, 0xef, 0x6, 0x13, 0x126, 0x4a, 0x127, 0xec6, 0x8, 0x48, 0x3b0, 0x4b, 0x125, 0xec5, 0x1d9, 0xec7, 0xec4},
+	{0x1, 0x9, 0x5, 0xd, 0x1f, 0xe, 0x7, 0xb, 0x11, 0x0, 0x1e, 0xc, 0x8, 0x4c, 0x25, 0x31, 0x4d, 0x35, 0x1, 0xa, 0x10, 0x30, 0x24, 0x34, 0x19, 0x27, 0x1b}
+};
+
 
 UvlcReader::UvlcReader() :
   m_pcBitReadBuffer( NULL ),
@@ -591,27 +576,6 @@ ErrVal UvlcReader::readZeroByteAlign()
 }
 //JVT-T073 }
 
-// JVT-V068 HRD {
-ErrVal UvlcReader::getSCode( Int& riCode, UInt uiLength, Char* pcTraceString )
-{
-  DTRACE_TH( pcTraceString );
-  DTRACE_TY( " u(v)" );
-
-  UInt uiCode;
-  DECRNOK( m_pcBitReadBuffer->get( uiCode, uiLength ) );
-
-  UInt uiShift = 32 - uiLength;
-  riCode = ((Int)(uiCode << uiShift)) >> uiShift;
-
-  DTRACE_POS;
-  DTRACE_CODE (riCode);
-  DTRACE_BITS (uiCode, uiLength );
-  DTRACE_COUNT(uiLength);
-  DTRACE_N;
-
-  return Err::m_nOK;
-}
-// JVT-V068 HRD }
 
 ErrVal UvlcReader::startSlice( const SliceHeader& rcSliceHeader )
 {
@@ -627,7 +591,7 @@ ErrVal UvlcReader::startSlice( const SliceHeader& rcSliceHeader )
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 {
   UInt uiRefFrame = 0;
-	RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
+  RNOKS( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame );
   return Err::m_nOK;
 }
@@ -635,7 +599,7 @@ ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
 {
   UInt uiRefFrame = 0;
-	RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
+  RNOKS( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame, eParIdx );
   return Err::m_nOK;
 }
@@ -643,7 +607,7 @@ ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParI
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
 {
   UInt uiRefFrame = 0;
-	RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
+  RNOKS( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame, eParIdx );
   return Err::m_nOK;
 }
@@ -651,7 +615,7 @@ ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParI
 ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8 eParIdx  )
 {
   UInt uiRefFrame = 0;
-	RNOK( xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
+  RNOKS(xGetRefFrame( 2 == rcMbDataAccess.getNumActiveRef( eLstIdx ), uiRefFrame, eLstIdx ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setRefIdx( ++uiRefFrame, eParIdx );
   return Err::m_nOK;
 }
@@ -659,28 +623,28 @@ ErrVal UvlcReader::refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParI
 ErrVal  UvlcReader::motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 {
   Bool bFlag;
-  RNOK( xGetMotionPredFlag( bFlag ) );
+  RNOKS( xGetMotionPredFlag( bFlag ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setMotPredFlag( bFlag );
   return Err::m_nOK;
 }
 ErrVal  UvlcReader::motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx   )
 {
   Bool bFlag;
-  RNOK( xGetMotionPredFlag( bFlag ) );
+  RNOKS( xGetMotionPredFlag( bFlag ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setMotPredFlag( bFlag, eParIdx );
   return Err::m_nOK;
 }
 ErrVal  UvlcReader::motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx   )
 {
   Bool bFlag;
-  RNOK( xGetMotionPredFlag( bFlag ) );
+  RNOKS( xGetMotionPredFlag( bFlag ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setMotPredFlag( bFlag, eParIdx );
   return Err::m_nOK;
 }
 ErrVal  UvlcReader::motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8 eParIdx   )
 {
   Bool bFlag;
-  RNOK( xGetMotionPredFlag( bFlag ) );
+  RNOKS( xGetMotionPredFlag( bFlag ) );
   rcMbDataAccess.getMbMotionData( eLstIdx ).setMotPredFlag( bFlag, eParIdx );
   return Err::m_nOK;
 }
@@ -692,8 +656,7 @@ ErrVal UvlcReader::blockModes( MbDataAccess& rcMbDataAccess )
     DTRACE_T( "BlockMode" );
 
     UInt uiBlockMode = 0;
-    RNOK( xGetUvlcCode( uiBlockMode ) );
-
+    RNOKS( xGetUvlcCode( uiBlockMode ) );
     rcMbDataAccess.setConvertBlkMode( c8x8Idx.b8x8Index(), uiBlockMode );
 
     DTRACE_N;
@@ -720,10 +683,11 @@ Bool UvlcReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
   return ( rcMbDataAccess.getMbData().getSkipFlag() );
 }
 
-Bool UvlcReader::isBLSkipped( MbDataAccess& rcMbDataAccess )
+ErrVal UvlcReader::isBLSkipped( MbDataAccess& rcMbDataAccess, Bool& bBLSkipped )
 {
   UInt uiCode;
-  ANOK( xGetFlag( uiCode ) );
+
+  RNOKS( xGetFlag( uiCode ) ); 
 
   DTRACE_T( "BLSkipFlag" );
   DTRACE_TY( "ae(v)" );
@@ -733,8 +697,10 @@ Bool UvlcReader::isBLSkipped( MbDataAccess& rcMbDataAccess )
   rcMbDataAccess.getMbTCoeffs().setAllCoeffCount( 0 );
 
   rcMbDataAccess.getMbData().setBLSkipFlag( ( uiCode != 0 ) );
-  return rcMbDataAccess.getMbData().getBLSkipFlag();
+  bBLSkipped = rcMbDataAccess.getMbData().getBLSkipFlag();
+  return Err::m_nOK; 
 }
+
 
 ErrVal UvlcReader::mbMode( MbDataAccess& rcMbDataAccess )
 {
@@ -743,7 +709,7 @@ ErrVal UvlcReader::mbMode( MbDataAccess& rcMbDataAccess )
   rcMbDataAccess.getMbData().setBCBPAll( 0 );
 
   DTRACE_T( "MbMode" );
-  RNOK( xGetUvlcCode( uiMbMode ) );
+  RNOKS( xGetUvlcCode( uiMbMode ) );
   DTRACE_N;
 
   rcMbDataAccess.setConvertMbType( uiMbMode );
@@ -766,7 +732,7 @@ ErrVal UvlcReader::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoef
 {
   UInt uiCode;
   DTRACE_T( "ResidualPredFlag" );
-  RNOK( xGetFlag( uiCode ) );
+  RNOKS( xGetFlag( uiCode ) );
   DTRACE_N;
   rcMbDataAccess.getMbData().setResidualPredFlag( uiCode?true:false );
 
@@ -789,7 +755,7 @@ ErrVal UvlcReader::smoothedRefFlag( MbDataAccess& rcMbDataAccess )
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 {
   Mv cMv;
-  RNOK( xGetMvd( cMv ) );
+  RNOKS( xGetMvd( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv );
   return Err::m_nOK;
 }
@@ -797,7 +763,7 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  )
 {
   Mv cMv;
-  RNOK( xGetMvd( cMv ) );
+  RNOKS( xGetMvd( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
   return Err::m_nOK;
 }
@@ -805,7 +771,7 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  )
 {
   Mv cMv;
-  RNOK( xGetMvd( cMv ) );
+  RNOKS( xGetMvd( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
   return Err::m_nOK;
 }
@@ -813,7 +779,7 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x1
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  )
 {
   Mv cMv;
-  RNOK( xGetMvd( cMv ) );
+  RNOKS( xGetMvd( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx );
   return Err::m_nOK;
 }
@@ -821,7 +787,7 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx8x4 eSParIdx )
 {
   Mv cMv;
-  RNOK( xGetMvd( cMv ) );
+  RNOKS( xGetMvd( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx, eSParIdx );
   return Err::m_nOK;
 }
@@ -829,7 +795,7 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x8 eSParIdx )
 {
   Mv cMv;
-  RNOK( xGetMvd( cMv ) );
+  RNOKS( xGetMvd( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx, eSParIdx );
   return Err::m_nOK;
 }
@@ -837,7 +803,7 @@ ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8
 ErrVal UvlcReader::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx )
 {
   Mv cMv;
-  RNOK( xGetMvd( cMv ) );
+  RNOKS( xGetMvd( cMv ) );
   rcMbDataAccess.getMbMvdData( eLstIdx ).setAllMv( cMv, eParIdx, eSParIdx );
   return Err::m_nOK;
 }
@@ -1150,12 +1116,12 @@ ErrVal UvlcReader::xGetRefFrame( Bool bWriteBit, UInt& uiRefFrame, ListIdx eLstI
 
   if( bWriteBit )
   {
-    RNOK( xGetFlag( uiCode ) );
-    uiRefFrame = 1-uiCode;
+    RNOKS( xGetFlag( uiCode ) );
+	uiRefFrame = 1-uiCode;
   }
   else
   {
-    RNOK( xGetUvlcCode( uiRefFrame ) );
+    RNOKS( xGetUvlcCode( uiRefFrame ) );
   }
 
   DTRACE_V( uiRefFrame+1 );
@@ -1168,7 +1134,7 @@ ErrVal UvlcReader::xGetMotionPredFlag( Bool& rbFlag )
   DTRACE_T( "MotionPredFlag" );
 
   UInt uiCode;
-  RNOK( xGetFlag( uiCode ) );
+  RNOKS( xGetFlag( uiCode ) );
 
   DTRACE_V( uiCode );
   DTRACE_N;
@@ -1183,7 +1149,7 @@ ErrVal UvlcReader::xGetMvd( Mv& cMv )
 
   UInt  uiTemp = 0;
 
-  RNOK( xGetUvlcCode( uiTemp ) );
+  RNOKS( xGetUvlcCode( uiTemp ) );
 
   Short sHor = ( uiTemp & 1) ? (Int)((uiTemp+1)>>1) : -(Int)(uiTemp>>1);
   DTRACE_CODE( sHor );
@@ -1192,7 +1158,7 @@ ErrVal UvlcReader::xGetMvd( Mv& cMv )
 
   DTRACE_T( "Mvd: y" );
 
-  RNOK( xGetUvlcCode( uiTemp ) );
+  RNOKS( xGetUvlcCode( uiTemp ) );
 
   Short sVer = ( uiTemp & 1) ? (Int)((uiTemp+1)>>1) : -(Int)(uiTemp>>1);
 
@@ -2048,7 +2014,7 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
     uiMaxMag    = (uiTermSym % 2) + 2;
     uiCountMag2 = (uiTermSym / 2) + 1;
   } else {
-    uiMaxMag    = (uiTermSym / uiCountMag1) + 2;
+		uiMaxMag    = (uiTermSym / uiCountMag1) + 2;
     uiCountMag2 = (uiTermSym % uiCountMag1) + 1;
   }
   UInt auiRemMag[16];
@@ -2114,7 +2080,66 @@ UvlcReader::xRQdecodeSigMagGreater1( TCoeff* piCoeff,
 }
 
 ErrVal
-UvlcReader::xRQdecodeTCoeffsRef( TCoeff*       piCoeff,
+UvlcReader::xRQdecodeTCoeffsRef(TCoeff*       piCoeff,
+                                TCoeff*       piCoeffBase,
+                                const UChar*  pucScan,
+                                UInt          uiScanIndex )
+{
+  if (m_codType_d==1)
+  {
+    //UInt  mapLev2[4]={0, 0, 1, 1};
+    //UInt  mapLev3[8]={0, 0, 0, 0, 1, 1, 0, 0};
+    UInt mapLev2[4]={0,m_mapLev2[0],m_mapLev2[1],m_mapLev2[2]};
+    UInt mapLev3[8]={0,m_mapLev3[0],m_mapLev3[1],m_mapLev3[2],m_mapLev3[3],
+      m_mapLev3[4],m_mapLev3[5],m_mapLev3[6]};
+
+    UInt  mapPrevLevel=0;
+
+    if (m_qLevel==2)
+    {
+      mapPrevLevel=mapLev2[m_prevLevelInd];
+    }
+    else if (m_qLevel==3)
+    {
+      mapPrevLevel=mapLev3[m_prevLevelInd];
+    }
+
+    if (mapPrevLevel==0)
+    {
+      RNOK( xRQdecodeTCoeffsRef1( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+    }
+  }
+  else
+  {
+    // If codeType != 1, decode it in a original way, grab 3 symbols at the time
+    RNOK( xRQdecodeTCoeffsRef0( piCoeff, piCoeffBase, pucScan, uiScanIndex ) );
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+UvlcReader::xRQdecodeTCoeffsRef1(TCoeff*       piCoeff,
+                                 TCoeff*       piCoeffBase,
+                                 const UChar*  pucScan,
+                                 UInt          uiScanIndex )
+{
+  UInt uiSig;
+  RNOK( xGetFlag( uiSig ) );
+  piCoeff[pucScan[uiScanIndex]] = uiSig;
+
+  if(uiSig)
+  {
+    UInt uiSignEL;
+    RNOK( xGetFlag( uiSignEL ) );
+    piCoeff [pucScan[uiScanIndex]] = ( piCoeff[pucScan[uiScanIndex]] * (uiSignEL ? -1 : 1 ));
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+UvlcReader::xRQdecodeTCoeffsRef0(TCoeff*       piCoeff,
                                  TCoeff*       piCoeffBase,
                                  const UChar*  pucScan,
                                  UInt          uiScanIndex )
@@ -2124,11 +2149,10 @@ UvlcReader::xRQdecodeTCoeffsRef( TCoeff*       piCoeff,
 
   uiBaseSign = (piCoeffBase[pucScan[uiScanIndex]] < 0) ? 1 : 0;
   piCoeffPtr = & piCoeff[pucScan[uiScanIndex]];
-  RNOKS( m_pSymGrp->xFetchSymbol( this, uiBaseSign, piCoeffPtr, "REF_COEFF" ) );
+  RNOKS( m_pSymGrp->xFetchSymbol( this, uiBaseSign, piCoeffPtr, "Ref0-ORG" ) );
 
   return Err::m_nOK;
 }
-
 
 ErrVal
 UvlcReader::xGetGolomb(UInt& uiSymbol, UInt uiK)
@@ -2525,19 +2549,7 @@ UcSymGrpReader::UpdateVlc()
 {
   UInt uiFlag = m_uiCodedFlag;
   if (uiFlag) {
-    // updating
-    m_uiTable = 0;
-    if (m_auiSymCount[0] < 2 *(m_auiSymCount[1] + m_auiSymCount[2]) ||
-      m_auiSymCount[1] < 2 * m_auiSymCount[2]) {
-      m_uiTable = 1;
-    }
-
-    // scaling
-    m_auiSymCount[0] = (m_auiSymCount[0] >> 1);
-    m_auiSymCount[1] = (m_auiSymCount[1] >> 1);
-    m_auiSymCount[2] = (m_auiSymCount[2] >> 1);
     m_uiCodedFlag = false;
-    
     m_uiLen = CAVLC_SYMGRP_SIZE;
   }
   return (uiFlag != 0);
@@ -2950,5 +2962,27 @@ UvlcReader::RQdecodeSigCoeff        ( TCoeff*         piCoeff,
 
   return Err::m_nOK;
 }
+
+
+Void UvlcReader::setMBMode(Bool isIntra)
+{
+  m_isIntra=isIntra;
+}
+
+Void UvlcReader::setQLevel(UInt qLevel)
+{
+  m_qLevel=qLevel;
+}
+
+Void UvlcReader::decideTable()
+{
+  m_pSymGrp->UpdateTable(this);
+}
+
+Void UcSymGrpReader::UpdateTable(UvlcReader *pParent)
+{
+	m_uiTable = pParent->m_TableRefInit[pParent->m_isIntra];
+}
+
 
 H264AVC_NAMESPACE_END

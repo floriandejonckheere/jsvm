@@ -226,8 +226,6 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
   }
 }
 
-
-
 int main(int argc, char *argv[])
 {
   int     acc = 10000;
@@ -340,8 +338,10 @@ int main(int argc, char *argv[])
     py = (int)floor( acc * psnrY + 0.5 );
     pu = (int)floor( acc * psnrU + 0.5 );
     pv = (int)floor( acc * psnrV + 0.5 );
+
     fprintf(stdout,"%d\t"OUT"\t"OUT"\t"OUT"\n",index,py/acc,py%acc,pu/acc,pu%acc,pv/acc,pv%acc);
   }
+
   fprintf(stdout,"\n");
 
   py = (int)floor( acc * AveragePSNR_Y / (double)sequence_length + 0.5 );
@@ -360,7 +360,6 @@ int main(int argc, char *argv[])
   }
 
   fprintf(stdout, "\n");
-
 
   //===== finish =====
   deleteFrame( &cOrgFrame );

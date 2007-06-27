@@ -356,6 +356,25 @@ ErrVal            xStoreFGSState(UInt iLumaScanIdx,
                                                     MbFGSCoefMap        &rcMbFGSCoefMap,
                                                     Int&                riLastQp );
 
+  Void	  xSignaling_Table( UInt Type);
+
+
+  ErrVal  xCountCoefficientLumaRef    ( UInt   uiBlockYIndex,
+										UInt   uiBlockXIndex,
+										UInt   uiScanIndex);
+
+  ErrVal  xCountCoefficientLumaRef_zero	  ( UInt   uiBlockYIndex,
+											UInt   uiBlockXIndex,
+											UInt   uiScanIndex);
+  ErrVal  xPrescanRefLuma();
+
+  Void	  xWriteCodeTypeRef		(	MbFGSCoefMap       &rcMbFGSCoefMap,
+	  								UInt uiMbX,
+									UInt uiMbY);
+
+  Void	  xSignaling( UInt Type);
+
+
 private:
   MbSymbolWriteIf*  m_pcSymbolWriter;
   ControlMngH264AVCEncoder* m_pcControlMng;
