@@ -1,3 +1,16 @@
+JSVM_9_1 -> JSVM_9_2
+========================
+Date         : Aug 6
+Authors      : Heiner Kirchhoffer
+Contributions: JVT-W090
+
+Changes:
+- Removal of FGS, SmoothedReferences
+- Integration of MGS fragments
+
+Notes: Validation scripts need to be updated to reflect the removal of FGS.
+
+
 JSVM_9 -> JSVM_9_1
 ========================
 Date        : June 25
