@@ -73,7 +73,7 @@
             		        height => 288,
             		        framerate => 30,
             		        bitrate => 299,
-            		        psnr => 27.04,
+            		        psnr => 27.03,
 				encdecmatch => 1,
             		      },
             		      #----------#

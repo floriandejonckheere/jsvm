@@ -93,11 +93,14 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-class MbFGSCoefMap;
+class IntYuvMbBuffer;
 
 class H264AVCCOMMONLIB_API MbTransformCoeffs
 {
 public:
+  ErrVal copyPredictionFrom( IntYuvMbBuffer &rcPred );
+  ErrVal copyPredictionTo( IntYuvMbBuffer &rcPred );
+
   MbTransformCoeffs() ;
   TCoeff*       get   ( LumaIdx   cLumaIdx )          { return &m_aaiLevel[cLumaIdx     ][0]; }
   const TCoeff* get   ( LumaIdx   cLumaIdx )    const { return &m_aaiLevel[cLumaIdx     ][0]; }
@@ -111,6 +114,8 @@ public:
   Pel*          getPelBuffer()                        { return (Pel*) &m_aaiLevel[0][0]; }
   const Pel*    getPelBuffer()                  const { return (Pel*) &m_aaiLevel[0][0]; }
 
+  UInt calcCoeffCount( LumaIdx cLumaIdx, Bool bIs8x8, Bool bInterlaced, UInt uiStart, UInt uiStop ) const;
+  UInt calcCoeffCount( ChromaIdx cChromaIdx, const UChar *pucScan, UInt uiStart, UInt uiStop ) const;
   UInt getCoeffCount( LumaIdx cLumaIdx )                   const { return m_aaucCoeffCount[cLumaIdx]; }
   UInt getCoeffCount( ChromaIdx cChromaIdx )               const { return m_aaucCoeffCount[16+cChromaIdx]; }
   Void setCoeffCount( LumaIdx cLumaIdx, UInt uiCoeffCount )      { m_aaucCoeffCount[cLumaIdx] = uiCoeffCount; }
@@ -127,18 +132,17 @@ public:
   ErrVal  load( FILE* pFile );
   ErrVal  save( FILE* pFile );
 
-  Void  clearAcBlk                 ( ChromaIdx cChromaIdx, MbFGSCoefMap* pcMbFGSCoefMap );
-  Void  clearLumaLevels            ( MbFGSCoefMap* pcMbFGSCoefMap = NULL );
-  Void  clearLumaLevels8x8         ( B8x8Idx c8x8Idx, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
-  Void  clearLumaLevels8x8Block    ( B8x8Idx c8x8Idx, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
-  Void  clearNewLumaLevels         ( MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap = NULL, Bool bIsB8x8 = true );
-  Void  clearNewLumaLevels8x8      ( B8x8Idx c8x8Idx, MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
-  Void  clearNewLumaLevels8x8Block ( B8x8Idx c8x8Idx, MbTransformCoeffs& rcBaseMbTCoeffs, MbFGSCoefMap* pcMbFGSCoefMap = NULL );
-  Void  clearNewAcBlk              ( ChromaIdx cChromaIdx, MbFGSCoefMap& rcMbFGSCoefMap, MbTransformCoeffs& rcBaseMbTCoeffs );
+  Void  clearAcBlk                 ( ChromaIdx cChromaIdx );
+  Void  clearLumaLevels            ();
+  Void  clearLumaLevels8x8         ( B8x8Idx c8x8Idx );
+  Void  clearLumaLevels8x8Block    ( B8x8Idx c8x8Idx );
+  Void  clearNewLumaLevels         ( MbTransformCoeffs& rcBaseMbTCoeffs );
+  Void  clearNewLumaLevels8x8      ( B8x8Idx c8x8Idx, MbTransformCoeffs& rcBaseMbTCoeffs );
+  Void  clearNewLumaLevels8x8Block ( B8x8Idx c8x8Idx, MbTransformCoeffs& rcBaseMbTCoeffs );
 
   Void storeLevelData              ();
   Void switchLevelCoeffData        ();
-  Void add                         ( MbTransformCoeffs* pcCoeffs );
+  Void add                         ( MbTransformCoeffs* pcCoeffs, Bool bLuma = true, Bool bChroma = true );
 
 protected:
   TCoeff m_aaiLevel[24][16];

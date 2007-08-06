@@ -196,7 +196,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 {
   ROF( m_bInitDone );
 
-	SliceHeader& rcSliceHeader           = *rcControlData.getSliceHeader          ( ePicType );
+	SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader          ( ePicType );
   MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
   IntFrame*     pcBaseLayerFrame      =  rcControlData.getBaseLayerRec          ();
   IntFrame*     pcBaseLayerResidual   =  rcControlData.getBaseLayerSbb          ();
@@ -240,15 +240,15 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     if( pcBaseLayerCtrl )
     {
       RNOK( pcBaseLayerCtrl ->initMb          ( pcMbDataAccessBase, uiMbY, uiMbX ) );
-	}
+  	}
     RNOK( m_pcControlMng   ->initMbForCoding( *pcMbDataAccess,    uiMbY, uiMbX, false, false  ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
     pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
 
-	//JVT-U106 Behaviour at slice boundaries{
-	if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
-	        m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
-	//JVT-U106 Behaviour at slice boundaries}
+	  //JVT-U106 Behaviour at slice boundaries{
+	  if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
+	    m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
+	  //JVT-U106 Behaviour at slice boundaries}
 
     if( rcRefFrameListBase.getSize() )
     {
@@ -299,7 +299,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 
     // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
     if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
-      && pcBaseLayerResidual && !pcMbDataAccess->getSH().getFGSInfoPresentFlag())	
+      && pcBaseLayerResidual )	
     {
       IntYuvPicBuffer* pcBaseResidual = pcBaseLayerResidual->getPic( ePicType )->getFullPelYuvBuffer();
       pcBaseResidual->clearCurrMb();
@@ -356,7 +356,7 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
   UInt          uiBits              = m_pcMbCoder ->getBitCount       ();
 
   if(uiMbAddress == -1) return Err::m_nOK;
-if( ePicType!=FRAME )
+  if( ePicType!=FRAME )
 	{
 		if( pcFrame )      RNOK( pcFrame     ->addFieldBuffer( ePicType ) );
 		if( pcRecSubband ) RNOK( pcRecSubband->addFieldBuffer( ePicType ) );
@@ -696,8 +696,8 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                                pcOrgFrame->getPic( ePicType ),
                                                pcFrame   ->getPic( ePicType ),
                                                pcResidual->getPic( ePicType ),
-											   pcBaseSubband ? pcBaseSubband->getPic( ePicType ) : NULL,
-											   pcSRFrame, // JVT-R091
+                                               pcBaseSubband ? pcBaseSubband->getPic( ePicType ) : NULL,
+                                               pcSRFrame, // JVT-R091
                                                bCoded,
                                                dLambda,
                                                iMaxDeltaQp ) );
@@ -726,7 +726,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
 
       // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
       if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
-        && pcBaseSubband && !pcMbDataAccess->getSH().getFGSInfoPresentFlag() )	
+        && pcBaseSubband )	
       {
         IntYuvPicBuffer* pcBaseResidual = pcBaseSubband->getPic( ePicType )->getFullPelYuvBuffer();
         pcBaseResidual->clearCurrMb();
@@ -879,13 +879,13 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
 
         m_pcTransform->setClipMode( false );
         RNOK( m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess,
-					                             apcOrgFrame   [uiLI],
-					                             apcFrame      [uiLI],
-												 apcResidual   [uiLI],
-												 apcBaseSubband[uiLI],
-												 pcSRFrame, // JVT-R091,
+                                                 apcOrgFrame   [uiLI],
+                                                 apcFrame      [uiLI],
+                                                 apcResidual   [uiLI],
+                                                 apcBaseSubband[uiLI],
+                                                 pcSRFrame, // JVT-R091,
                                                  bCoded,
-												 dLambda,
+                                                 dLambda,
                                                  iMaxDeltaQp ) );
 
         if( pcMbDataAccess->getSH().getBaseLayerId() != MSYS_UINT_MAX && ! pcMbDataAccess->getSH().getAdaptivePredictionFlag() )
@@ -1376,7 +1376,7 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
     if( !pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
     {
       if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
-        && pcBaseLayerSbb && !pcMbDataAccess->getSH().getFGSInfoPresentFlag() )	
+        && pcBaseLayerSbb )	
       {
         IntYuvPicBuffer* pcBaseResidual = pcBaseLayerSbb->getFullPelYuvBuffer();
 

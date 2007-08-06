@@ -180,7 +180,6 @@ ErrVal WriteYuvToFile::xWriteFrame( const UChar *pLum,
     pucSrc += uiStride;
   }
 
-
   uiStride >>= 1;
   uiHeight >>= 1;
   uiWidth  >>= 1;

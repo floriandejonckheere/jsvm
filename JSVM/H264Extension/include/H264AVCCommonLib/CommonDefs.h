@@ -91,9 +91,16 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 typedef UChar CoefMap;
-typedef UChar RefCtx;
 
-#define _JSVM_VERSION_ "9.1" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "9.2" //added by jerome.vieron@thomson.net
+
+#define TO_BE_REMOVED     1   // things that are different in the SVC text
+#define NOK_MGSCAVLC      1   // check if this is conforming to the SVC text
+
+#if !NOK_MGSCAVLC
+#error
+#endif
+
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -201,7 +208,6 @@ enum SliceType
   P_SLICE  = 0,
   B_SLICE  = 1,
   I_SLICE  = 2,
-  F_SLICE  = 3,
   //JVT-W046 {
   EP_SLICE  = 5,
   EB_SLICE  = 6,
@@ -309,8 +315,9 @@ H264AVC_NAMESPACE_END
 
 #define MAX_LAYERS          8
 #define MAX_TEMP_LEVELS     8
-#define MAX_QUALITY_LEVELS  4
-#define MAX_FGS_LAYERS      3
+
+#define MAX_QUALITY_LEVELS  16
+
 #define MAX_DSTAGES         6
 #define LOG2_GOP_ID_WRAP    4
 #define PRI_ID_BITS         6
@@ -334,19 +341,6 @@ H264AVC_NAMESPACE_END
 #define MAX_NUM_INFO_ENTRIES 8
 #define MAX_NUM_NON_REQUIRED_PICS 32
 
-#define AR_FGS_MAX_BASE_WEIGHT                        32
-#define AR_FGS_BASE_WEIGHT_SHIFT_BITS                 5
-
-// default values
-#define AR_FGS_DEFAULT_LOW_PASS_ENH_REF               0.0
-#define AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK         0
-#define AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF         0
-#define AR_FGS_DEFAULT_ENC_STRUCTURE                  1
-
-#define AR_FGS_MC_INTERP_AVC                          0
-#define AR_FGS_MC_INTERP_BILINEAR                     1
-#define AR_FGS_MC_INTERP_4_TAP                        2
-#define AR_FGS_DEFAULT_FILTER                         AR_FGS_MC_INTERP_BILINEAR
 #define AR_FGS_COMPENSATE_SIGNED_FRAME                1
 
 #define WEIGHTED_PRED_FLAG                            0                   // (0:no weighted prediction, 1:random weights)
@@ -365,7 +359,6 @@ typedef	enum
 //TMM_EC }}
 
 #define MAX_NUM_PD_FRAGMENTS                          12
-#define MAX_NUM_FGS_VECT_MODES                        8
 
 // TMM_INTERLACE {
 // #define RANDOM_MBAFF

@@ -89,9 +89,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-extern Bool gbParallelDecoding;
-
-
 BitReadBuffer::BitReadBuffer():
   m_uiDWordsLeft( 0 ),
   m_uiBitsLeft( 0 ),
@@ -160,7 +157,8 @@ ErrVal BitReadBuffer::initPacket( ULong*  puiBits,
   xReadNextWord();
 
   // get the fragment buffers also
-  if( puiNumFragments != 0 ) {
+  if( puiNumFragments != 0 )
+  {
     m_uiNumFragments  = *puiNumFragments;
     if( m_uiNumFragments > 1 )
       m_uiNumFragments = m_uiNumFragments;
@@ -272,10 +270,7 @@ ErrVal BitReadBuffer::get( UInt& ruiBits, UInt uiNumberOfBits  )
 
   if( uiNumberOfBits > m_uiBitsLeft )
   {
-    if( gbParallelDecoding )
-      return Err::m_nEndOfStream;
-    else
-      throw ReadStop();
+    throw ReadStop();
   }
 
   m_uiBitsLeft  -= uiNumberOfBits;

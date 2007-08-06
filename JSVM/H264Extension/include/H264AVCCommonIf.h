@@ -150,6 +150,9 @@ public:
 	~TCoeff()                                 { };
 
 	operator Short() const { return sCoeffValue; };	
+
+  XPel  m_sPred;
+
 	TCoeff &operator=  (const Short val )      { sCoeffValue =  val; return *this; };
 	TCoeff &operator+= (const Short val )      { sCoeffValue += val;  return *this; };
 	TCoeff &operator-= (const Short val )      { sCoeffValue -= val;  return *this; };

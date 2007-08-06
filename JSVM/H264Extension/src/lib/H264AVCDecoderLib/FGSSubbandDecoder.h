@@ -112,11 +112,6 @@ class MbDecoder;
 class RQFGSDecoder  
   : public FGSCoder
 {
-private:
-  class ReadStop
-  {
-  };
-
 protected:
 	RQFGSDecoder         ();
 	virtual ~RQFGSDecoder();
@@ -135,131 +130,11 @@ public:
 
   ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
                                             MbDataCtrl*                 pcCurrMbDataCtrl );
-  ErrVal            decodeNextLayer       ( SliceHeader*                pcSliceHeader );
 
   ErrVal            finishPicture         ();
 
   Bool              isInitialized         ()    { return m_bPicInit; }
-  Bool              isFinished            ()    { return m_bPicFinished; }
-  Bool              changed               ()    { return m_bPicChanged; }
   SliceHeader*      getSliceHeader        ()    { return m_pcSliceHeader; }
-
-  Bool				isFirstFGS			()		{ return m_bFirstFGS; }
-  Void				SetIsFirstFGS		(Bool b) { m_bFirstFGS = b; }
-
-  Bool				isUseFGS		  (UInt uiLayer)		{ return m_bFGSUse[uiLayer]; }
-
-private:
-  ErrVal            xDecodeLumaCbpVlc     ( UInt                        uiCurrMbIdxX,
-                                            UInt                        uiCurrMbIdxY );
-  ErrVal            xDecodeChromaCbpVlc   ( UInt                        uiCurrMbIdxX,
-                                            UInt                        uiCurrMbIdxY );
- 
-  ErrVal            xDecodingFGS                  ();
-  ErrVal			xDecodingFGS		( SliceHeader*                pcSliceHeader 	);
-
-  ErrVal            xDecodeMotionData             ( UInt                uiMbYIdx,
-                                                    UInt                uiMbXIdx );
-  ErrVal			      xDecodingFGSBlock             ( SliceHeader*    pcSliceHeader 	);
-  ErrVal            xResidualBlock                ( MbDataAccess&   rcMbDataAccess,
-                                                    MbDataAccess&   rcMbDataAccessBase,
-                                                    ResidualMode    eResidualMode,
-                                                    UInt            uiStride,
-                                                    UInt            uiBlkIdx,
-                                                    UInt&           uiBcbp,
-                                                    Bool            bDecodeBcbpInside,
-                                                    Int*            piMaxPos, 
-                                                    RefCtx*         pcRefCtx, 
-                                                    UInt&           ruiNumFrags,
-                                                    UInt&           ruiCoeffsDecoded );
-
-  ErrVal            xResidualBlock                ( MbDataAccess&   rcMbDataAccess,
-                                                    MbDataAccess&   rcMbDataAccessBase,
-                                                    LumaIdx         cIdx, 
-                                                    ResidualMode    eResidualMode,
-                                                    UInt            uiStride,
-                                                    Int*            piMaxPos, 
-                                                    UInt&           ruiNumFrags,
-                                                    MbFGSCoefMap &  rcMbFGSCoefMap, 
-                                                    UInt&           ruiCoeffsDecoded );
-
-  ErrVal            xResidualBlock                ( MbDataAccess&   rcMbDataAccess,
-                                                    MbDataAccess&   rcMbDataAccessBase,
-                                                    ChromaIdx       cIdx, 
-                                                    ResidualMode    eResidualMode,
-                                                    Int*            piMaxPos, 
-                                                    UInt&           ruiNumFrags,
-                                                    MbFGSCoefMap &  rcMbFGSCoefMap, 
-                                                    UInt&           ruiCoeffsDecoded );
-
-  ErrVal            xDecodeNewCoefficientLumaMb   ( MbDataAccess*       pcMbDataAccessBL,
-                                                    MbDataAccess*       pcMbDataAccessEL,
-                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    UInt                uiMbYIdx,
-                                                    UInt                uiMbXIdx,
-                                                    Int&                riLastQp,
-                                                    Int                 iLumaScanIdx,
-                                                    UInt                uiMaxPosLuma,
-                                                    Bool                bFrame );// TMM_INTERLACE
-
-  ErrVal            xDecodeNewCoefficientLuma     ( MbDataAccess*       pcMbDataAccessBL,
-                                                    MbDataAccess*       pcMbDataAccessEL,
-                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    const S4x4Idx      &rcIdx,
-                                                    Bool                bFrame );// TMM_INTERLACE
-  ErrVal            xDecodeNewCoefficientChromaDC ( MbDataAccess*       pcMbDataAccessBL,
-                                                    MbDataAccess*       pcMbDataAccessEL,
-                                                    MbFGSCoefMap&       rcMbFGSCoefMap,
-                                                    const CPlaneIdx    &rcCPlaneIdx,
-                                                    Int&                riLastQP,
-                                                    UInt                uiChromaScanIndex );
-  ErrVal            xDecodeNewCoefficientChromaAC ( MbDataAccess*       pcMbDataAccessBL,
-                                                    MbDataAccess*       pcMbDataAccessEL,
-                                                    MbFGSCoefMap&       rcMbFGSCoefMap,
-                                                    const CIdx         &rcCIdx,
-                                                    Int&                riLastQP,
-                                                    UInt                uiChromaScanIndex ,
-                                                    Bool                bFrame );// TMM_INTERLACE
-  
-  ErrVal            xDecodeCoefficientLumaRef     ( MbDataAccess*       pcMbDataAccessBL,
-                                                    MbDataAccess*       pcMbDataAccessEL,
-                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    const S4x4Idx      &rcIdx,
-                                                    UInt                uiScanIndex );
-  ErrVal            xDecodeCoefficientChromaDCRef ( MbDataAccess       *pcMbDataAccessBL,
-                                                    MbDataAccess       *pcMbDataAccessEL,
-                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    const CPlaneIdx    &rcCPlaneIdx,
-                                                    UInt                uiDCIdx );
-  ErrVal            xDecodeCoefficientChromaACRef ( MbDataAccess* pcMbDataAccessBL,
-                                                    MbDataAccess* pcMbDataAccessEL,
-                                                    MbFGSCoefMap  &rcMbFGSCoefMap,
-                                                    const CIdx    &rcCIdx,
-                                                    UInt                uiScanIdx );
-  ErrVal            xInitializeMacroblockQPs      ();
-
-
-  ErrVal            xDecodeMbHeader               ( MbDataAccess*       pcMbDataAccessBL,
-                                                    MbDataAccess*       pcMbDataAccessEL,
-                                                    MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                    Int&                riLastQp );
-
-private:
-  MbSymbolReadIf*   m_pcSymbolReader;
-  UvlcReader*       m_pcUvlcReader;
-  CabacReader*      m_pcCabacReader;
-  MbParser*         m_pcMbParser;
-  MbDecoder*        m_pcMbDecoder;
-
-  Bool              m_bPicChanged;
-  Bool              m_bPicFinished;
-
-  UInt              m_auiScanPosVectLuma    [16];
-  UInt              m_auiScanPosVectChromaDC[ 4];
-  UInt              m_uiLastMbNum;
-  Bool				m_bFirstFGS;
-
-  Bool				m_bFGSUse[MAX_LAYERS];
 };
 
 

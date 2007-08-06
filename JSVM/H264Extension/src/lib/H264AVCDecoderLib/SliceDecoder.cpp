@@ -339,6 +339,7 @@ SliceDecoder::decode( SliceHeader&   rcSH,
 	 }
   }
 
+
   if( ePicType!=FRAME )
 	{
 		if( pcFrame )             RNOK( pcFrame->            removeFieldBuffer( ePicType ) );

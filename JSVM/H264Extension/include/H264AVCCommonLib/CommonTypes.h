@@ -191,6 +191,8 @@ public:
   Int x()                                           const { return m_iIdx&3;  }
   Int y()                                           const { return m_iIdx>>2; }
   Int b4x4()                                        const { return m_iIdx;    }
+  Par8x8 getPar8x8()                                const { return Par8x8(g_aucConvertBlockOrder[m_iIdx]>>2); }
+  UInt   getS4x4()                                  const { return Par8x8(g_aucConvertBlockOrder[m_iIdx]& 3); }
 
 protected:
   Int m_iIdx;

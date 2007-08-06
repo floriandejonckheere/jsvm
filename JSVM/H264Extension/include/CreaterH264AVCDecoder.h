@@ -155,10 +155,8 @@ public:
                      ,Bool&             rbStartDecoding,
                       UInt&             ruiStartPos,
                       UInt&             ruiEndPos,
-                      Bool&             bFragmented,
                       Bool&             bDiscardable
                       //~JVT-P031
-                      , Bool*           pbFgsParallelDecoding = 0
                       , UInt*           puiNumFragments       = 0
                       , UChar**         ppucFragBuffers       = 0 
                       );
@@ -178,9 +176,7 @@ public:
   Void decreaseNumOfNALInAU();
   Void    setDependencyInitialized(Bool b);
   UInt    getNumOfNALInAU();
-  Void    initNumberOfFragment();
   //~JVT-P031
-  Void    setFGSRefInAU(Bool &b); //JVT-T054
   ErrVal  checkSliceLayerDependency ( BinDataAccessor*  pcBinDataAccessor,
                                       Bool&             bFinishChecking );
 
@@ -270,8 +266,6 @@ struct PacketDescription
 
   //-- 2006.0604
   UInt uiFirstMb;
-  Bool  bEnableQLTruncation; //JVT-T054
-
   // JVT-V068 {
   Bool bDiscardableHRDSEI;
   // JVT-V068 }

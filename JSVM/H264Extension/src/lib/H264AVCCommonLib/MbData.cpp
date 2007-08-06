@@ -128,6 +128,150 @@ MbData::loadAll( FILE* pFile )
   return Err::m_nOK;
 }
 
+Bool MbData::calcBCBP( UInt uiStart, UInt uiStop, UInt uiPos ) const
+{
+  AOF( uiStart != uiStop );
+  if( uiPos < 16 )
+  {
+    if( isTransformSize8x8() )
+    {
+      UInt uiTab[] = { 0, 1, 0, 1, 2, 3, 2, 3 };
+      return ( ( calcMbCbp( uiStart, uiStop ) >> uiTab[uiPos>>1] ) & 1 ) != 0;
+    }
+    // Luma 4x4 block
+    if( uiStart == 0 && isIntra16x16() )
+      uiStart = 1;
+
+    const UChar  *pucScan = getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
+    const TCoeff *piCoeff = getMbTCoeffs().get( B4x4Idx(uiPos) );
+    for( UInt ui = uiStart; ui < uiStop; ui++ )
+    {
+      if( piCoeff[pucScan[ui]] )
+      {
+        return true;
+      }
+    }
+  }
+  else if( uiPos < 24 )
+  {
+    // Chroma AC 4x4 block
+    AOF( uiStop > 1 );
+    uiStart = max( 1, uiStart );
+    const UChar  *pucScan = getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
+    const TCoeff *piCoeff = getMbTCoeffs().get( CIdx(uiPos - 16) );
+    for( UInt ui = uiStart; ui < uiStop; ui++ )
+    {
+      if( piCoeff[pucScan[ui]] )
+      {
+        return true;
+      }
+    }
+  }
+  else if( uiPos < 26 )
+  {
+    // Chroma DC 4x4 block
+    AOF( uiStart == 0 );
+    CPlaneIdx cCPlane( uiPos - 24 ); 
+    for( CIdx cCIdx( cCPlane ) ; cCIdx.isLegal( cCPlane ); cCIdx++ )
+    {
+      if( getMbTCoeffs().get( cCIdx )[0] )
+      {
+        return true;
+      }
+    }
+  }
+  else
+  {
+    AOF( uiPos == 26 );
+    AOF( uiStart == 0 );
+    if( !isIntra16x16() )
+    {
+      return false;
+    }
+    // Intra 16x16 DC coeff (scan is not important here)
+    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+    {
+      if( getMbTCoeffs().get( cIdx )[0] )
+      {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+UInt MbData::calcMbCbp( UInt uiStart, UInt uiStop ) const
+{
+  UInt uiCbp  = 0;
+  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+  {
+    if( isTransformSize8x8() )
+    {
+      const UChar *pucScan = getFieldFlag() ? g_aucFieldScan64 : g_aucFrameScan64;
+      const TCoeff *piCoeff = getMbTCoeffs().get8x8( c8x8Idx );
+      for( UInt ui = uiStart*4; ui < uiStop*4; ui++ )
+      {
+        if( piCoeff[pucScan[ui]] )
+        {
+          uiCbp |= 0x33 << c8x8Idx.b8x8();
+          break;
+        }
+      }
+    }
+    else
+    {
+      const UChar *pucScan = getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
+      for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
+      {
+        const TCoeff *piCoeff = getMbTCoeffs().get( cIdx );
+        for( UInt ui = uiStart; ui < uiStop; ui++ )
+        {
+          if( piCoeff[pucScan[ui]] )
+          {
+            uiCbp |= 1 << cIdx;
+            break;
+          }
+        }
+      }
+    }
+  }
+  Bool bChroma   = false;
+  Bool bChromaAC = false;
+  for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
+  {
+    const UChar *pucScan = getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
+    const TCoeff *piCoeff = getMbTCoeffs().get( cCIdx );
+    for( UInt ui = uiStart; ui < uiStop; ui++ )
+    {
+      if( piCoeff[pucScan[ui]] )
+      {
+        bChroma = true;
+        if( ui != 0 )
+        {
+          bChromaAC = true;
+          break;
+        }
+      }
+    }
+  }
+
+  if( isIntra16x16() )
+  {
+    uiCbp = ( ( uiCbp & 0xFFFF ) ? 15 : 0 ) |
+            ( bChromaAC          ? 32 : ( bChroma ? 16 : 0 ) );
+  }
+  else
+  {
+    uiCbp = ( ( uiCbp & 0x0033 ) ?  1 : 0 ) |
+            ( ( uiCbp & 0x00cc ) ?  2 : 0 ) |
+            ( ( uiCbp & 0x3300 ) ?  4 : 0 ) |
+            ( ( uiCbp & 0xcc00 ) ?  8 : 0 ) |
+            ( bChromaAC          ? 32 : ( bChroma ? 16 : 0 ) );
+  }
+  return uiCbp;
+}
+
+
 ErrVal
 MbData::copyMotion( MbData& rcMbData,
                     UInt    uiSliceId )
@@ -223,7 +367,7 @@ MbData::copyTCoeffs( MbData& rcMbData )
   for( B4x4Idx b4x4Idx; b4x4Idx.isLegal(); b4x4Idx++ )
   {
 	  piCoeff = getMbTCoeffs().get(b4x4Idx);
-	  ::memcpy( piCoeff, rcMbData.getMbTCoeffs().get(b4x4Idx), 16*sizeof(TCoeff) );
+    ::memcpy( piCoeff, rcMbData.getMbTCoeffs().get(b4x4Idx), 16*sizeof(TCoeff) );
   }
 
   // Chroma

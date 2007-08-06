@@ -131,6 +131,81 @@ public:
 	const YuvBufferParameter& getBufferParameter( PicType ePicType=FRAME ) const { return m_acBufferParam[ePicType]; }
 	ErrVal initMb( UInt uiMbY, UInt uiMbX, Bool bMbAff );
 	ErrVal initMb() { return initMb( 0, 0, false ); }
+
+  UInt getMbLum( PicType ePicType, UInt uiMbY, UInt uiMbX, Bool bMbAff ) const
+  {
+    UInt uiXPos = (uiMbX<<4) << m_iResolution;
+    UInt uiYPos = (uiMbY<<4) << m_iResolution;
+
+    if( ePicType == FRAME )
+    {
+      return m_uiLumBaseOffset + uiXPos + uiYPos * m_acBufferParam[FRAME].m_iStride;
+    }
+
+    if( bMbAff )
+    {
+      uiMbY >>= 1;
+    }
+    UInt uiYPosFld  = (uiMbY<<4) << m_iResolution;
+    UInt uiTopOff = m_uiLumBaseOffset + uiXPos + uiYPosFld * m_acBufferParam[FRAME].m_iStride * 2;
+    if( ePicType == TOP_FIELD )
+    {
+      return uiTopOff;
+    }
+
+    AOF( ePicType == BOT_FIELD );
+    return uiTopOff + m_acBufferParam[FRAME].m_iStride;
+  }
+
+  UInt getMbCb( PicType ePicType, UInt uiMbY, UInt uiMbX, Bool bMbAff ) const
+  {
+    UInt uiXPos = (uiMbX<<3) << m_iResolution;
+    UInt uiYPos = (uiMbY<<3) << m_iResolution;
+
+    if( ePicType == FRAME )
+    {
+      return m_uiCbBaseOffset + uiXPos + uiYPos    * m_acBufferParam[FRAME].m_iStride / 2;
+    }
+
+    if( bMbAff )
+    {
+      uiMbY >>= 1;
+    }
+    UInt uiYPosFld  = (uiMbY<<3) << m_iResolution;
+    UInt uiTopOff = m_uiCbBaseOffset + uiXPos + uiYPosFld * m_acBufferParam[FRAME].m_iStride;
+    if( ePicType == TOP_FIELD )
+    {
+      return uiTopOff;
+    }
+    AOF( ePicType == BOT_FIELD );
+
+    return uiTopOff + m_acBufferParam[FRAME].m_iStride / 2;
+  }
+
+  UInt getMbCr( PicType ePicType, UInt uiMbY, UInt uiMbX, Bool bMbAff ) const
+  {
+    UInt uiXPos = (uiMbX<<3) << m_iResolution;
+    UInt uiYPos = (uiMbY<<3) << m_iResolution;
+
+    if( ePicType == FRAME )
+    {
+      return m_uiCbBaseOffset + uiXPos + uiYPos * m_acBufferParam[FRAME].m_iStride / 2 + m_uiChromaSize;
+    }
+
+    if( bMbAff )
+    {
+      uiMbY >>= 1;
+    }
+    UInt uiYPosFld  = (uiMbY<<3) << m_iResolution;
+    UInt uiTopOff = m_uiCbBaseOffset + uiXPos + uiYPosFld * m_acBufferParam[FRAME].m_iStride + m_uiChromaSize;
+    if( ePicType == TOP_FIELD )
+    {
+      return uiTopOff;
+    }
+    AOF( ePicType == BOT_FIELD );
+    return uiTopOff + m_acBufferParam[FRAME].m_iStride / 2;
+  }
+
   ErrVal initSlice( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMarginSize = 0, UInt uiXMarginSize = 0, UInt uiResolution = 0 );
   ErrVal initSPS( UInt uiYFrameSize, UInt uiXFrameSize, UInt uiYMarginSize = 0, UInt uiXMarginSize = 0, UInt uiResolution = 0 );
   ErrVal uninit();

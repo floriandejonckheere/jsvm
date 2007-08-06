@@ -322,21 +322,6 @@ RecPicBuffer::clear( PicBufferList& rcOutputList,
 
 
 RecPicBufUnit*
-RecPicBuffer::getLastUnit()
-{
-  ROTRS( m_cUsedRecPicBufUnitList.empty(), NULL );
-  return m_cUsedRecPicBufUnitList.back();
-}
-
-
-RecPicBufUnit*
-RecPicBuffer::getCurrUnit()
-{
-  return m_pcCurrRecPicBufUnit;
-}
-
-
-RecPicBufUnit*
 RecPicBuffer::getRecPicBufUnit( Int iPoc )
 {
   RecPicBufUnit*            pcRecPicBufUnit = 0;

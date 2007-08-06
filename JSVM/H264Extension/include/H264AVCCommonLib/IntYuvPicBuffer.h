@@ -135,9 +135,13 @@ public:
   XPel*         getUBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getUBlk( cIdx ); }
   XPel*         getVBlk       ( LumaIdx cIdx )        { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getVBlk( cIdx ); }
   
-  XPel*         getMbLumAddr  ()                      { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbLum(); }
-  XPel*         getMbCbAddr   ()                      { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbCb (); }
-  XPel*         getMbCrAddr   ()                      { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbCr (); }
+  XPel*         getMbLumAddr  ()                const { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbLum(); }
+  XPel*         getMbCbAddr   ()                const { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbCb (); }
+  XPel*         getMbCrAddr   ()                const { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcBufferParam.getMbCr (); }
+
+  XPel*         getMbLumAddr  ( UInt uiX, UInt uiY, Bool bMbAff ) const { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcYuvBufferCtrl.getMbLum( m_ePicType, uiY, uiX, bMbAff ); }
+  XPel*         getMbCbAddr   ( UInt uiX, UInt uiY, Bool bMbAff ) const { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcYuvBufferCtrl.getMbCb ( m_ePicType, uiY, uiX, bMbAff ); }
+  XPel*         getMbCrAddr   ( UInt uiX, UInt uiY, Bool bMbAff ) const { AOF_DBG(m_pucYuvBuffer); return m_pucYuvBuffer + m_rcYuvBufferCtrl.getMbCr ( m_ePicType, uiY, uiX, bMbAff ); }
 
   const Int     getLWidth     ()                const { return m_rcBufferParam.getWidth ();    }
   const Int     getLHeight    ()                const { return m_rcBufferParam.getHeight();    }
@@ -213,10 +217,6 @@ public:
   ErrVal loadBufferAndFillMargin( IntYuvPicBuffer *pcSrcYuvPicBuffer );
   ErrVal loadBuffer             ( IntYuvPicBuffer *pcSrcYuvPicBuffer );
 
-	//-- JVT-R091
-	ErrVal				smoothMbInside					();
-	ErrVal				smoothMbTop							();
-	ErrVal				smoothMbLeft						();
 	//--
 	// JVT-R057 LA-RDO{
 	YuvBufferCtrl& getYuvBufferCtrl(){ return m_rcYuvBufferCtrl;}
@@ -237,7 +237,9 @@ protected:
   XPel*           m_pucYuvBuffer;
   XPel*           m_pucOwnYuvBuffer;
 
-	PicType                                   m_ePicType;
+  const PicType   m_ePicType;
+private:
+  IntYuvPicBuffer();
 };
 
 

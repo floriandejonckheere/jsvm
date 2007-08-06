@@ -112,7 +112,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "ControlMngH264AVCEncoder.h"
 #include "CreaterH264AVCEncoder.h"
 #include "H264AVCCommonLib/TraceFile.h"
-#include "FGSSubbandEncoder.h"
 #include "PicEncoder.h"
 // JVT-V068 HRD {
 #include "Scheduler.h"
@@ -145,7 +144,6 @@ CreaterH264AVCEncoder::CreaterH264AVCEncoder():
   m_pcMotionEstimation    ( NULL ),
   m_pcRateDistortion      ( NULL ),
   m_pcHistory             ( NULL ),
-  m_pcRQFGSEncoder        ( NULL ),
   m_pcPicEncoder          ( NULL ),
   m_bTraceEnable          ( true )
 {
@@ -298,7 +296,6 @@ CreaterH264AVCEncoder::xCreateEncoder()
   RNOK( Transform                   ::create( m_pcTransform ) );
   RNOK( SampleWeighting             ::create( m_pcSampleWeighting ) );
   RNOK( XDistortion                 ::create( m_pcXDistortion ) );
-  RNOK( RQFGSEncoder                ::create( m_pcRQFGSEncoder ) );
   RNOK( PicEncoder                  ::create( m_pcPicEncoder ) );
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
@@ -337,7 +334,6 @@ CreaterH264AVCEncoder::destroy()
   RNOK( m_pcH264AVCEncoder        ->destroy() );
   RNOK( m_pcControlMng            ->destroy() );
   RNOK( m_pcReconstructionBypass  ->destroy() );
-  RNOK( m_pcRQFGSEncoder          ->destroy() );
   RNOK( m_pcPicEncoder            ->destroy() );
 
   if( NULL != m_pcRateDistortion )
@@ -400,8 +396,9 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             m_apcPocCalculator[0],
                                             m_pcTransform ) );
   RNOK( m_pcReconstructionBypass    ->init() );
-  RNOK( m_pcLoopFilter              ->init( m_pcControlMng,
-                                            m_pcReconstructionBypass ) );
+
+  ErrVal cRet = m_pcLoopFilter      ->init( m_pcControlMng, m_pcReconstructionBypass, true );
+  RNOK( cRet );
   RNOK( m_pcQuarterPelFilter        ->init() );
 
   RNOK( m_pcMbEncoder               ->init( m_pcTransform,
@@ -465,22 +462,12 @@ CreaterH264AVCEncoder::init( CodingParameter* pcCodingParameter )
                                             // JVT-V068 }
                                           ) );
 
-  RNOK( m_pcRQFGSEncoder            ->init( m_apcYuvFullPelBufferCtrl,
-                                            m_apcYuvHalfPelBufferCtrl,
-                                            m_pcQuarterPelFilter,
-                                            m_pcMotionEstimation,
-                                            m_pcMbCoder,
-                                            m_pcTransform,
-                                            m_pcControlMng,
-                                            m_pcMbEncoder ) );
-
   for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {
     RNOK( m_apcMCTFEncoder[uiLayer]->init( m_pcCodingParameter,
                                           &m_pcCodingParameter->getLayerParameters(uiLayer),
                                            m_pcH264AVCEncoder,
                                            m_pcSliceEncoder,
-                                           m_pcRQFGSEncoder,
                                            m_pcLoopFilter,
                                            m_apcPocCalculator        [uiLayer],
                                            m_pcNalUnitEncoder,
@@ -549,7 +536,6 @@ CreaterH264AVCEncoder::uninit()
   RNOK( m_pcH264AVCEncoder        ->uninit() );
   RNOK( m_pcControlMng            ->uninit() );
   RNOK( m_pcReconstructionBypass  ->uninit() );
-  RNOK( m_pcRQFGSEncoder          ->uninit() );
   RNOK( m_pcPicEncoder            ->uninit() );
 
   for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )

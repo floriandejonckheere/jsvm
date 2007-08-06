@@ -441,8 +441,6 @@ SliceHeader::sliceHeaderBackup ( SliceHeader*                pcSH )
   return Err::m_nOK;
 }
 
-
-
 // JVT-Q054 Red. Picture }
 
 H264AVC_NAMESPACE_END

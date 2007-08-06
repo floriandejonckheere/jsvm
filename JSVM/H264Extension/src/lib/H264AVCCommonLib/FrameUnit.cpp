@@ -109,17 +109,8 @@ FrameUnit::FrameUnit( YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYu
  , m_cResidual     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME )
  , m_bBaseRepresentation ( false )   //bug-fix base_rep
  , m_pcFGSPicBuffer ( NULL)
- , m_uiFGSReconCount(0)
- , m_cFGSRecon0     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
- , m_cFGSRecon1     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
- , m_cFGSRecon2     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
- , m_cFGSRecon3     ( rcYuvFullPelBufferCtrl, rcYuvHalfPelBufferCtrl, FRAME  )
  , m_uiStatus       ( 0 )
 {
-    m_apcFGSRecon[0] = & m_cFGSRecon0;
-    m_apcFGSRecon[1] = & m_cFGSRecon1;
-    m_apcFGSRecon[2] = & m_cFGSRecon2;
-    m_apcFGSRecon[3] = & m_cFGSRecon3;
 }
 
 FrameUnit::~FrameUnit()
@@ -180,14 +171,6 @@ ErrVal FrameUnit::init( const SliceHeader& rcSH, PicBuffer *pcPicBuffer )
   m_pcFGSPicBuffer = NULL;
 
   m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
-
-  for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
-  {
-    RNOK( m_apcFGSRecon[uiLayerIdx]->init() );
-  }
-
-  m_cMbDataCtrl.initFgsBQData(m_cMbDataCtrl.getSize());
-
   return Err::m_nOK;
 }
 
@@ -266,11 +249,6 @@ ErrVal FrameUnit::uninit()
   RNOK( m_cFGSTopField.uninit() );
   RNOK( m_cFGSBotField.uninit() );
   RNOK( m_cFGSIntFrame.uninit() );
-
-  for( UInt uiLayerIdx = 0; uiLayerIdx < MAX_FGS_LAYERS + 1; uiLayerIdx ++ )
-    RNOK( m_apcFGSRecon[uiLayerIdx]->uninit() );
-
-  m_cMbDataCtrl.uninitFgsBQData();
 
   m_uiFrameNumber = 0;
   m_uiStatus      = 0;

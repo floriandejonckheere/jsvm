@@ -152,8 +152,8 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
   ETRACE_DECLARE( Bool m_bTraceEnable = true );
-  g_nLayer = m_uiLayerId;
-  ETRACE_LAYER(m_uiLayerId);
+  g_nLayer = 0;
+  ETRACE_LAYER(0);
   ETRACE_HEADER( "PICTURE PARAMETER SET" );
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NALU HEADER: nal_ref_idc" ) );

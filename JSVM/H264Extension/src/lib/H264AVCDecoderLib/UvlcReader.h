@@ -117,20 +117,6 @@ public:
 protected:
 	UvlcReader();
 	virtual ~UvlcReader();
-  ErrVal  xRQdecodeNewTCoeffs ( TCoeff*       piCoeff,
-                                TCoeff*       piCoeffBase,
-                                UInt          uiStart,
-                                UInt          uiStop,
-                                UInt          uiStride,
-                                const UChar*  pucScan,
-                                UInt          uiScanIndex,
-                                UInt*         pauiEobShift,
-                                Bool&         rbLast,
-                                UInt&         ruiNumCoefRead );
-  ErrVal  xRQdecodeTCoeffsRef ( TCoeff*       piCoeff,
-                                TCoeff*       piCoeffBase,
-                                const UChar*  pucScan,
-                                UInt          uiScanIndex );
 
 public:
   static ErrVal create( UvlcReader*& rpcUvlcReader );
@@ -161,7 +147,6 @@ public:
   ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag_FGS ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
-	ErrVal  smoothedRefFlag( MbDataAccess& rcMbDataAccess );	// JVT-R091
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -171,7 +156,7 @@ public:
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x8 eSParIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx );
 
-  ErrVal  cbp( MbDataAccess& rcMbDataAccess );
+  ErrVal  cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop );
   ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
   ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
@@ -182,8 +167,8 @@ public:
   ErrVal  motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
   ErrVal  motionPredFlag( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx  );
 
-  ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, LumaIdx   cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp);
-  ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, ResidualMode eResidualMode );
+  ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, LumaIdx   cIdx, ResidualMode eResidualMode, UInt& ruiMbExtCbp, UInt uiStart, UInt uiStop );
+  ErrVal  residualBlock( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, ResidualMode eResidualMode, UInt uiStart, UInt uiStop );
 
   ErrVal  deltaQp             ( MbDataAccess& rcMbDataAccess );
   ErrVal  intraPredModeLuma   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx );
@@ -195,124 +180,10 @@ public:
   ErrVal  finishSlice         ( );
   
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
-  ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx );
+  ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, UInt uiStart, UInt uiStop );
 	ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ); 
-  ErrVal  RQdecodeCycleSymbol ( UInt& uiCycle );
-  ErrVal  RQdecodeDeltaQp     ( MbDataAccess&   rcMbDataAccess );
-  ErrVal  RQdecode8x8Flag     ( MbDataAccess&   rcMbDataAccess,
-                                MbDataAccess&   rcMbDataAccessBase );
-
-  ErrVal  RQdecodeTermBit     ( UInt&           ruiBit ) { ruiBit = 1; return Err::m_nOK; };
-  ErrVal  RQdecodeNewTCoeff_8x8    ( MbDataAccess&   rcMbDataAccess,
-                                     MbDataAccess&   rcMbDataAccessBase,
-                                     B8x8Idx         c8x8Idx,
-                                     UInt            uiScanIndex,
-                                     Bool&           rbLast,
-                                     UInt&           ruiNumCoefRead );
-  ErrVal  RQdecodeTCoeffRef_8x8    ( MbDataAccess&   rcMbDataAccess,
-                                     MbDataAccess&   rcMbDataAccessBase,
-                                     B8x8Idx         c8x8Idx,
-                                     UInt            uiScanIndex,
-                                     UInt            uiCtx );
-  ErrVal  RQdecodeNewTCoeff_Luma   ( MbDataAccess&   rcMbDataAccess,
-                                     MbDataAccess&   rcMbDataAccessBase,
-                                     ResidualMode    eResidualMode,
-                                     Bool            b8x8,
-                                     LumaIdx         cIdx,
-                                     UInt            uiScanIndex,
-                                     Bool&           rbLast,
-                                     UInt&           ruiNumCoefRead );
-  ErrVal  RQdecodeTCoeffRef_Luma   ( MbDataAccess&   rcMbDataAccess,
-                                     MbDataAccess&   rcMbDataAccessBase,
-                                     LumaIdx         cIdx,
-                                     UInt            uiScanIndex,
-                                     UInt            uiCtx );
-  ErrVal  RQdecodeNewTCoeff_Chroma ( MbDataAccess&   rcMbDataAccess,
-                                     MbDataAccess&   rcMbDataAccessBase,
-                                     ResidualMode    eResidualMode,
-                                     ChromaIdx       cIdx,
-                                     UInt            uiScanIndex,
-                                     Bool&           rbLast,
-                                     UInt&           ruiNumCoefRead );
-  ErrVal  RQdecodeTCoeffRef_Chroma ( MbDataAccess&   rcMbDataAccess,
-                                     MbDataAccess&   rcMbDataAccessBase,
-                                     ResidualMode    eResidualMode,
-                                     ChromaIdx       cIdx,
-                                     UInt            uiScanIndex,
-                                     UInt            uiCtx );
-  ErrVal  RQdecodeBCBP_4x4     ( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
-                                 Bool            b8x8,
-                                 LumaIdx         cIdx,
-                                 UInt&           ruiSymbol );
-  ErrVal  RQdecodeBCBP_ChromaDC( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
-                                 ChromaIdx       cIdx,
-                                 UInt&           ruiSymbol );
-  ErrVal  RQdecodeBCBP_ChromaAC( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
-                                 ChromaIdx       cIdx,
-                                 UInt&           ruiSymbol );
-  ErrVal  RQdecodeCBP_Chroma   ( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
-                                 UInt&           ruiSymbol );
-  ErrVal  RQdecodeCBP_ChromaAC ( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
-                                 UInt&           ruiSymbol );
-  ErrVal  RQdecodeCBP_8x8      ( MbDataAccess&   rcMbDataAccess,
-                                 MbDataAccess&   rcMbDataAccessBase,
-                                 B8x8Idx         c8x8Idx );
-
-  ErrVal  RQdecodeEobOffsets_Luma  ();
-  ErrVal  RQdecodeEobOffsets_Chroma();
-  ErrVal  RQdecodeBestCodeTableMap ( UInt            uiMaxH );
-  ErrVal  RQupdateVlcTable         ();
-  ErrVal  RQvlcFlush               ();
-  ErrVal  RQcompSepAlign           ();
-  Bool    RQpeekCbp4x4( MbDataAccess&  rcMbDataAccessBase, LumaIdx cIdx);
-
-  Void    RQsetTruncatedFlag       ( Bool bTruncated )  { m_bTruncated = bTruncated;  }
   ErrVal  RQreset                  ( const SliceHeader& rcSliceHeader );
-  ErrVal  RQdecodeTCoeffsRef       ( TCoeff*         piCoeff,
-                                     TCoeff*         piCoeffBase,
-                                     const UChar*    pucScan,
-                                     UInt            uiScanIndex,
-                                     UInt            uiCtx );
-  ErrVal  RQupdateVlcTable         ( UInt            uiNumFrags );
-  ErrVal  RQdecodeSigCoeff         ( TCoeff*         piCoeff,
-                                     TCoeff*         piCoeffBase,
-                                     ResidualMode    eResidualMode,
-                                     const UChar*    pucScan,
-                                     Bool            bFirstSigRunCode,
-                                     UInt            uiCycle,
-                                     UInt            uiStartScanIdx,
-                                     UInt            uiLastScanIdx,
-                                     Bool&           rbEndOfBlock,
-                                     TCoeff&         riCoeff,
-                                     UInt&           ruiRun );
 
-  ErrVal  RQinitFragments          ( const SliceHeader&  rcSliceHeader,
-                                     UInt&               uiNumFrags,
-                                     Bool                bCAF );
-  ErrVal  RQreleaseFragments       ();
-
-  MbSymbolReadIf* RQactivateFragment( UInt uiFragIdx )
-  {
-    if( uiFragIdx < m_uiNumFragments ) {
-      m_uiCurrentFragment = uiFragIdx;
-      if( uiFragIdx == 0 )
-        return this;
-      else
-        return m_apcFragmentReaders[uiFragIdx];
-    }
-    else
-      return 0;
-  }
-
-  ErrVal  xInitFragments           ( const SliceHeader&  rcSliceHeader,
-                                     UChar**             ppucFragBuffers, 
-                                     UInt*               puiFragLengthInBits,
-                                     UInt                 uiNumFragments );
   Void    xSetParentFlag           ( Bool          bParentFlag )
   {
     m_bParentFlag = bParentFlag;
@@ -326,19 +197,18 @@ private:
   ErrVal xGetRefFrame ( Bool bWriteBit, UInt& uiRefFrame, ListIdx eLstIdx );
   ErrVal xGetMotionPredFlag( Bool& rbFlag );
   ErrVal xGetMvd      ( Mv& cMv );
-  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
-  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes );
+  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
+  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
   ErrVal xGetTrailingOnes16( UInt uiLastCoeffCount, UInt& uiCoeffCount, UInt& uiTrailingOnes );
   ErrVal xCodeFromBitstream2D( const UChar* aucCode, const UChar* aucLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
   ErrVal xCodeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
-  ErrVal xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun );
+  ErrVal xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun, MbDataAccess &rcMbDataAccess );
   ErrVal xGetLevelVLC0( Int& iLevel );
   ErrVal xGetLevelVLCN( Int& iLevel, UInt uiVlcLength );
   ErrVal xGetRun( UInt uiVlcPos, UInt& uiRun  );
   ErrVal xGetTotalRun16( UInt uiVlcPos, UInt& uiTotalRun );
   ErrVal xGetTotalRun4( UInt& uiVlcPos, UInt& uiTotalRun );
   ErrVal xGetTrailingOnes4( UInt& uiCoeffCount, UInt& uiTrailingOnes );
-  ErrVal xRQdecodeEobOffsets       ( UInt* pauiShift, UInt            uiLen );
   ErrVal xGetGolomb(UInt& uiSymbol, UInt uiK);
   ErrVal xGetSigRunCode( UInt& uiSymbol, UInt uiTableIdx );
   ErrVal xGetUnaryCode( UInt& uiSymbol );
@@ -348,13 +218,6 @@ private:
   ErrVal  xDecodeMonSeq           ( UInt*           auiSeq,
                                     UInt uiStart,
                                      UInt            uiLen );
-  ErrVal xRQdecodeSigMagGreater1( TCoeff* piCoeff,
-                                     TCoeff* piCoeffBase,
-                                     const UChar* pucScan,
-                                     UInt    uiTermSym,
-                                     UInt    uiStart,
-                                     UInt    uiStop,
-                                     UInt    uiStride = 1 );
 
 protected:
   BitReadBuffer*  m_pcBitReadBuffer;

@@ -188,12 +188,13 @@ ScalableSEIModifyCode::Destroy()
 }
 
 ErrVal
-ScalableSEIModifyCode::init( ULong* pulStream )
+ScalableSEIModifyCode::init( ULong* pulStream, UInt uiBytes )
 {
   ROT( pulStream == NULL );
   m_pulStreamPacket = pulStream;
 
-  m_uiDWordsLeft = 0x400/4;
+  m_uiDWordsLeft = uiBytes/4;
+//  m_uiDWordsLeft = 0x400/4;
   m_iValidBits = 32;
   return Err::m_nOK;
 }
@@ -405,7 +406,7 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
     pcScalableModifyCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );
     pcScalableModifyCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );
     pcScalableModifyCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
-    pcScalableModifyCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 2 );
+    pcScalableModifyCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 4 );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getSubPicLayerFlag( uiLayer ) );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getSubRegionLayerFlag( uiLayer ) );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getIroiSliceDivisionInfoPresentFlag ( uiLayer ) );

@@ -182,10 +182,8 @@ public:
                         Bool&             rbStartDecoding,
                         UInt&             ruiStartPos,
                         UInt&             ruiEndPos,
-                        Bool&             bFragmented,
                         Bool&             bDiscardable
                         //~JVT-P031
-                        , Bool*           pbFgsParallelDecoding = 0
                         , UInt*           puiNumFragments       = 0
                         , UChar**         ppucFragBuffers       = 0 
                         ); 
@@ -196,7 +194,7 @@ public:
   Void    decreaseNumOfNALInAU(){if (m_uiNumOfNALInAU > 0) m_uiNumOfNALInAU--;} //NS EIDR fix
   //Void    decreaseNumOfNALInAU(){m_uiNumOfNALInAU--;} 
   Void    setDependencyInitialized(Bool b) { m_bDependencyInitialized = b;}
-  Void    initNumberOfFragment();
+
   //~JVT-P031
   ErrVal  process   ( PicBuffer*        pcPicBuffer,
                       PicBufferList&    rcPicBufferOutputList,
@@ -319,7 +317,6 @@ public:
   UInt uiLastPocLsb;
   Void    setRedundantPicDefault( Bool value) { m_bRedundantPic = value; }
   //JVT-W049 }
-  Void    setFGSRefInAU(Bool &b); //JVT-T054
   //JVT-T054_FIX{
   ErrVal UpdateAVCList(SliceHeader *pcSliceHeader);
   ErrVal getAVCFrame( IntFrame*&      pcFrame,
@@ -342,7 +339,7 @@ public:
 protected:
 
   ErrVal  xInitSlice                ( SliceHeader*    pcSliceHeader );
-  ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bFirstFragment, Bool& bLastFragment, Bool* pbFgsParallelDecoding, Bool& bDiscardable ); //FRAG_FIX //TMM_EC//JVT-S036 lsj
+  ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bDiscardable ); //FRAG_FIX //TMM_EC//JVT-S036 lsj
 
   // TMM_EC {{
   ErrVal  xProcessSliceVirtual      ( SliceHeader&    rcSH,
@@ -354,16 +351,10 @@ protected:
                                       PicBuffer*&     rpcPicBuffer,
                                       Bool            bHighestLayer); //JVT-T054
   ErrVal  xReconstructLastFGS       (Bool bHighestLayer, SliceHeader* pcRCDOSliceHeader); //JVT-T054
-  ErrVal  xDecodeFGSRefinement      ( SliceHeader*&   rpcSliceHeader,
-                                      PicBuffer*&     rpcPicBuffer );
 
   ErrVal  xZeroIntraMacroblocks     ( IntFrame*       pcFrame,
                                       MbDataCtrl*     pcMbDataCtrl,
                                       SliceHeader*    pcSliceHeader );
-
-  ErrVal  setDiffPrdRefLists        ( RefFrameList&               diffPrdRefList,
-                                      YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
-  ErrVal  freeDiffPrdRefLists       ( RefFrameList& diffPrdRefList);
 
   ErrVal xInitParameters(SliceHeader* pcSliceHeader);
 protected:
@@ -419,10 +410,6 @@ protected:
   // should this layer be decoded at all, and up to which FGS layer should be decoded
   UInt                          m_uiQualityLevelForPrediction;
 
-  Bool                          m_bFGSCodingMode;
-  UInt                          m_uiGroupingSize;
-  UInt                          m_uiPosVect[16];
-
   SEI::NonRequiredSei*			m_pcNonRequiredSei;
   UInt							m_uiNonRequiredSeiReadFlag;
 	UInt							m_uiNonRequiredSeiRead;
@@ -430,16 +417,10 @@ protected:
   UInt							m_uiPrevPicLayer;
   UInt							m_uiCurrPicLayer;
   //JVT-P031
-  UInt                          m_uiFirstFragmentPPSId;
-  UInt                          m_uiFirstFragmentNumMbsInSlice;
-  Bool                          m_bFirstFragmentFGSCompSep;
-  UInt                          m_uiLastFragOrder;
-  UInt                          m_uiNumberOfFragment[MAX_LAYERS][MAX_QUALITY_LEVELS];
   UInt                          m_uiNumberOfSPS;
   UInt                          m_uiSPSId[MAX_LAYERS];
   UInt                          m_uiDecodedLayer;
   UInt                          m_uiNumOfNALInAU;
-  SliceHeader*                  m_pcSliceHeaderStored;
   //~JVT-P031
 
   SliceHeader::PredWeightTable  m_acLastPredWeightTable[2];
@@ -453,7 +434,6 @@ protected:
   int   m_iCurNalFirstMb;
 
   bool	m_bCurNalIsEndOfPic;
-  bool	m_bFirstFGS;
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   H264AVCEncoder*               m_pcAvcRewriteEncoder;
@@ -466,7 +446,6 @@ protected:
 
 //JVT-T054{
   Bool                          m_bLastNalInAU;
-  Bool                          m_bFGSRefInAU;
 
   Bool                          m_bCGSSNRInAU;
 //JVT-T054}

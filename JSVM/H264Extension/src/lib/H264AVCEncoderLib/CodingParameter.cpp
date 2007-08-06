@@ -100,10 +100,10 @@ H264AVC_NAMESPACE_BEGIN
 
 ErrVal MotionVectorSearchParams::check() const
 {
-  ROTREPORT( 4 < m_eSearchMode,   "No Such Search Mode 0==Block,1==Spiral,2==Log,3==Fast, 4==NewFast" )
-  ROTREPORT( 3 < m_eFullPelDFunc, "No Such Search Func (Full Pel) 0==SAD,1==SSE,2==Hadamard,3==YUV-SAD" )
-  ROTREPORT( 3 == m_eFullPelDFunc && (m_eSearchMode==2 || m_eSearchMode==3), "Log and Fast search not possible in comb. with distortion measure 3" )
-  ROTREPORT( 2 < m_eSubPelDFunc,  "No Such Search Func (Sub Pel) 0==SAD,1==SSE,2==Hadamard" )
+  ROTREPORT( 4 < m_uiSearchMode,   "No Such Search Mode 0==Block,1==Spiral,2==Log,3==Fast, 4==NewFast" )
+  ROTREPORT( 3 < m_uiFullPelDFunc, "No Such Search Func (Full Pel) 0==SAD,1==SSE,2==Hadamard,3==YUV-SAD" )
+  ROTREPORT( 3 == m_uiFullPelDFunc && (m_uiSearchMode==2 || m_uiSearchMode==3), "Log and Fast search not possible in comb. with distortion measure 3" )
+  ROTREPORT( 2 < m_uiSubPelDFunc,  "No Such Search Func (Sub Pel) 0==SAD,1==SSE,2==Hadamard" )
   ROTREPORT( 1 < m_uiDirectMode,  "Direct Mode Exceeds Supported Range 0==Temporal, 1==Spatial");
 
   return Err::m_nOK;
@@ -133,12 +133,20 @@ ErrVal LoopFilterParams::check() const
 }
 
 
+UInt LayerParameters::getNumberOfQualityLevelsCGSSNR() const
+{
+  UInt uiVectPos = 0;
+  UInt uiQLs;
+  for( uiQLs = 0; uiVectPos != 16; uiQLs++ )
+  {
+    uiVectPos += getMGSVect( uiQLs );
+  }
+  return uiQLs;
+}
 
 ErrVal LayerParameters::check()
 {
 //TMM_INTERLACE{
-  ROTREPORT( ( getNumFGSLayers          () > 0 ) &&
-             ( getMbAff() > 0 || getPaff() > 0 ),       "Interlaced FGS not supported" );
   ROTREPORT( ( getFrameHeight           () % 32 ) &&
              ( getMbAff() > 0 || getPaff() > 0 ),       "Frame Height must be a multiple of 32 for interlace" );
 //TMM_INTERLACE}
@@ -149,12 +157,28 @@ ErrVal LayerParameters::check()
              getOutputFrameRate         (),             "Output frame rate must be less than or equal to input frame rate" );
   ROTREPORT( getAdaptiveTransform       () > 2,         "FRExt mode not supported" );
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
-  ROTREPORT( getNumFGSLayers            () > 3,         "Number of FGS layers not supported" );
   ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
   ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
   ROTREPORT( getClosedLoop              () > 2,         "Unsupported closed-loop mode" );
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
+
+  UInt uiVectPos = 0;
+  UInt ui;
+  for( ui = 0; uiVectPos < 16; ui++ )
+  {
+    uiVectPos += getMGSVect( ui );
+    ROTREPORT( uiVectPos > 16 || (ui == 15 && uiVectPos < 16), "Sum over elements of MGSVector does not equal 16." );
+  }
+  Bool bTrailingZeros = true;
+  for( ui = 15; ui > 0; ui-- )
+  {
+    if( getMGSVect( ui ) != 0 )
+      bTrailingZeros = false;
+    ROTREPORT( !bTrailingZeros && getMGSVect( ui ) == 0, "Zeros inside of the MGSVector are not allowed (except for the first element and the end of the vector)." );
+  }
+  Bool bUseMGSVectors = getMGSVect( 0 ) != 16;
+  ROTREPORT( ( getAVCRewriteFlag() || getAVCAdaptiveRewriteFlag() ) && bUseMGSVectors, "MGS Vectors are not allowed with AVC rewriting enabled." );
 
   if ((getBaseLayerId() == MSYS_UINT_MAX) && (getAVCRewriteFlag() == true))
   {
@@ -279,10 +303,6 @@ ErrVal LayerParameters::check()
       return Err::m_nOK;
     }
 
-    if( m_dNumFGSLayers == 0 )
-    {
-      m_uiFGSMotionMode = 0;
-    }
 
     // Display slice division info.
     printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);
@@ -415,10 +435,19 @@ ErrVal CodingParameter::check()
     pcLayer->setDecompositionStages ( getDecompositionStages() - uiLogFactorMaxInRate );
     pcLayer->setFrameDelay          ( uiMaxFrameDelay  /  ( 1 << uiLogFactorMaxInRate ) );
 
-    ROTREPORT( pcLayer->getNumFGSLayers() != 0.0 && getCGSSNRRefinement(), "MGS and FGS together are not supported" );
+    Bool bMGSVectorUsed = pcLayer->getMGSVect( 0 ) != 16;
+    if( bMGSVectorUsed )
+    {
+      ROTREPORT( !getCGSSNRRefinement(), "MGS vectors are only supported in MGS." );
+      ROTREPORT( !pcBaseLayer,           "MGS vectors are not allowed in the base layer." );
+    }
 
     if( pcBaseLayer ) // for sub-sequence SEI
     {
+      Bool bResolutionChange = pcLayer->getFrameWidth () != pcBaseLayer->getFrameWidth() || 
+                               pcLayer->getFrameHeight() != pcBaseLayer->getFrameHeight();
+      // maybe the following is only necessary when key pictures are used
+      ROTREPORT( bResolutionChange && pcLayer->getMGSVect(0) != 16, "Base layer and current layer must have the same resolution when MGS vectors are used in the current layer." );
       ROTREPORT( pcLayer->getInputFrameRate() < pcBaseLayer->getInputFrameRate(), "Input frame rate less than base layer output frame rate" );
       UInt uiLogFactorRate = getLogFactor( pcBaseLayer->getInputFrameRate(), pcLayer->getInputFrameRate() );
       ROTREPORT( uiLogFactorRate == MSYS_UINT_MAX, "Input Frame rate must be a power of 2 from layer to layer" );
@@ -471,24 +500,11 @@ ErrVal CodingParameter::check()
       pcBaseLayer->setContrainedIntraForLP();
     }
 
-    if( pcLayer->getBaseQualityLevel() > 3 )
-      pcLayer->setBaseQualityLevel(3);
+    ROTREPORT( pcLayer->getBaseQualityLevel() > 15, "Base quality level may not exceed 15." );
 
     if( uiLayer == 0 && pcLayer->getBaseQualityLevel() != 0 )
+    {
       pcLayer->setBaseQualityLevel(0);
-
-    // pass parameters from command line to layer configurations
-     if( m_dLowPassEnhRef >= 0 )
-    {
-      pcLayer->setLowPassEnhRef( m_dLowPassEnhRef );
-    }
-    if( m_uiBaseWeightZeroBaseBlock <= AR_FGS_MAX_BASE_WEIGHT || m_uiBaseWeightZeroBaseCoeff <= AR_FGS_MAX_BASE_WEIGHT )
-    {
-      pcLayer->setAdaptiveRefFGSWeights( m_uiBaseWeightZeroBaseBlock, m_uiBaseWeightZeroBaseCoeff );
-    }
-    if( m_uiFgsEncStructureFlag < MSYS_UINT_MAX )
-    {
-      pcLayer->setFgsEncStructureFlag( m_uiFgsEncStructureFlag );
     }
   }
 

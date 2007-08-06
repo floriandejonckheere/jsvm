@@ -93,6 +93,38 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+class UCharArrayParser
+{
+public:
+  UCharArrayParser( UChar* paucArray ) : m_paucArray( paucArray ), m_scPos( 7 ) {}
+
+  bool getBit()
+  {
+    if( m_scPos < 0 )
+    {
+      m_scPos = 7;
+      m_paucArray++;
+    }
+    return ( *m_paucArray & (1<<m_scPos--) ) != 0;
+  }
+
+  UInt getBits( UChar uiNumBits )
+  {
+    UInt uiValue = 0;
+    for( Int i = uiNumBits - 1; i >= 0 ; i-- )
+    {
+      if( getBit() )
+      {
+        uiValue |= 1 << i;
+      }
+    }
+    return uiValue;
+  }
+
+private:
+  UChar *m_paucArray;
+  SChar  m_scPos;
+};
 
 class BitReadBuffer;
 
@@ -138,15 +170,11 @@ public:
   Bool          getLayerBaseFlag()      { return m_bLayerBaseFlag;}
   Bool          getDiscardableFlag ()    { return m_bDiscardableFlag;}
 
-  Bool          getFragmentedFlag()     { return m_bFGSFragFlag;}
-  Bool          getLastFragmentFlag()   { return m_bFGSLastFragFlag;}
-  UInt          getFragmentOrder()      { return m_uiFGSFragOrder;}
-
   //JVT-P031
   UInt getBytesLeft();
   UInt getBitsLeft();
   ErrVal initSODBNalUnit( BinDataAccessor* pcBinDataAccessor );
-  UInt getNalHeaderSize( BinDataAccessor* pcBinDataAccessor );
+//  UInt getNalHeaderSize( BinDataAccessor* pcBinDataAccessor ) const;
   // JVT-V088 LMI 
   Bool getTl0PicIdxPresentFlag() {return m_bTl0PicIdxPresentFlag;}
   Void setCheckAllNALUs(Bool b) { m_bCheckAllNALUs = b;}
@@ -183,9 +211,6 @@ protected:
   Bool          m_bLayerBaseFlag;
   Bool          m_bUseBasePredFlag;
   Bool          m_bDiscardableFlag;
-  Bool          m_bFGSFragFlag;
-  Bool          m_bFGSLastFragFlag;
-  UInt          m_uiFGSFragOrder;
   // JVT-V088 LMI {
   Bool          m_bTl0PicIdxPresentFlag;
   //UInt          m_uiTl0PicIdx;

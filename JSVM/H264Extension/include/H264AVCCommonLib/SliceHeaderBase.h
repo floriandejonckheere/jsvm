@@ -679,13 +679,12 @@ public:
   UInt                              getLayerId                    ()  const { return m_uiLayerId; }
   UInt                              getTemporalLevel              ()  const { return m_uiTemporalLevel; }
 	Bool															getOutputFlag                 ()  const { return m_bOutputFlag; }//JVT-W047
-  UInt                              getQualityLevel               ()  const { return m_uiQualityLevel; }
+  UInt                              getQualityLevel               ()  const { return m_uiQualityLevelSH; }
   UInt                              getFirstMbInSlice             ()  const { return m_uiFirstMbInSlice; }
   SliceType                         getSliceType                  ()  const { return m_eSliceType; }
   UInt                              getPicParameterSetId          ()  const { return m_uiPicParameterSetId; }
   UInt                              getFrameNum                   ()  const { return m_uiFrameNum; }
   UInt                              getNumMbsInSlice              ()  const { return m_uiNumMbsInSlice; }
-  Bool                              getFgsComponentSep            ()  const { return m_bFgsComponentSep; }
   UInt                              getIdrPicId                   ()  const { return m_uiIdrPicId; }
   Bool                              getBasePredWeightTableFlag    ()  const { return m_bBasePredWeightTableFlag; }
   UInt                              getLumaLog2WeightDenom        ()  const { return m_uiLumaLog2WeightDenom; }
@@ -711,13 +710,12 @@ public:
   Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
   Bool                              getUseBasePredictionFlag      ()  const { return m_bUseBasePredictionFlag; }
   Bool                              getStoreBaseRepresentationFlag()  const { return m_bStoreBaseRepresentationFlag; }
+  Bool                              getNoInterLayerPredFlag       ()  const { return m_bLayerBaseFlag; }
   UInt                              getBaseLayerId                ()  const { if (m_bLayerBaseFlag) return MSYS_UINT_MAX; 
                                                                                                else return m_uiBaseLayerId; }
   UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
   //JVT-W046 {
   Bool                              getSliceSkipFlag              ()  const { return m_bSliceSkipFlag; }
-  UInt                              getScanIdxStart           ()  const { return m_uiScanIdxStart; }
-  UInt                              getScanIdxEnd           ()  const { return m_uiScanIdxEnd; }
   //JVT-W046 }
   Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
   //JVT-U160 LMI {
@@ -778,44 +776,12 @@ public:
   FMO*  getFMO() const { return  m_pcFMO;}
   Int getNumMbInSlice();
 
-  UInt                              getBaseWeightZeroBaseBlock()            { return m_uiBaseWeightZeroBaseBlock;     }
-  UInt                              getBaseWeightZeroBaseCoeff()            { return m_uiBaseWeightZeroBaseCoeff;     }
-
-  Void  setBaseWeightZeroBaseBlock(UInt ui)
-  { 
-    AOT( ui > AR_FGS_MAX_BASE_WEIGHT );
-    m_uiBaseWeightZeroBaseBlock = (ui <= 1) ? 0 : ui; 
-  }
-  Void  setBaseWeightZeroBaseCoeff(UInt ui)
-  {
-    AOT( ui > AR_FGS_MAX_BASE_WEIGHT );
-    m_uiBaseWeightZeroBaseCoeff = (ui <= 1) ? 0 : ui; 
-  }
-
-  Void  setArFgsUsageFlag               ( Bool b  )         { m_bArFgsUsageFlag       = b;  }
-  Bool  getArFgsUsageFlag               ()                  { return m_bArFgsUsageFlag;     }
-
   Void  setFgsEntropyOrderFlag               ( Bool b  )         { m_bFgsEntropyOrderFlag       = b;  }
   Bool  getFgsEntropyOrderFlag               ()                  { return m_bFgsEntropyOrderFlag;     }
   
-  Void  setLowPassFgsMcFilter           ( UInt ui )         { m_uiLowPassFgsMcFilter  = ui;  }
-  UInt  getLowPassFgsMcFilter           ()                  { return m_uiLowPassFgsMcFilter;  }
-  
-
   UInt                              getSimplePriorityId			  ()	    { return m_uiPriorityId;}
   Bool                              getDiscardableFlag			  ()		{ return m_bDiscardableFlag;}
 
-  //JVT-P031
-  Bool                              getFragmentedFlag              ()       {return m_bFragmentedFlag;}
-  UInt                              getFragmentOrder               ()       {return m_uiFragmentOrder;}
-  Bool                              getLastFragmentFlag            ()       {return m_bLastFragmentFlag;}
-  Void                              setFragmentedFlag              (Bool b)    {m_bFragmentedFlag = b;}
-  Void                              setFragmentOrder               (UInt ui)   {m_uiFragmentOrder = ui;}
-  Void                              setLastFragmentFlag            (Bool b)    {m_bLastFragmentFlag = b;}
-  //~JVT-P031
-//JVT-T054{
-  Void                              setBaseFragmentOrder          ( UInt        ui )  { m_uiBaseFragmentOrder               = ui; }           
-//JVT-T054}
   Bool                              getFieldPicFlag               ()  const         { return m_bFieldPicFlag; }
   Bool                              getBottomFieldFlag            ()  const         { return m_bBottomFieldFlag; }
 	UInt                              getPicOrderCntLsb             ()  const         { return m_uiPicOrderCntLsb; }
@@ -852,13 +818,12 @@ public:
   Void  setNalUnitType                ( NalUnitType e  )  { m_eNalUnitType                      = e;  }
   Void  setLayerId                    ( UInt        ui )  { m_uiLayerId                         = ui; }
   Void  setTemporalLevel              ( UInt        ui )  { m_uiTemporalLevel                   = ui; }
-  Void  setQualityLevel               ( UInt        ui )  { m_uiQualityLevel                    = ui; }
+  Void  setQualityLevel               ( UInt        ui )  { m_uiQualityLevelSH                  = ui; }
   Void  setFirstMbInSlice             ( UInt        ui )  { m_uiFirstMbInSlice                  = ui; }
   Void  setSliceType                  ( SliceType   e  )  { m_eSliceType                        = e;  }
   Void  setPicParameterSetId          ( UInt        ui )  { m_uiPicParameterSetId               = ui; }
   Void  setFrameNum                   ( UInt        ui )  { m_uiFrameNum                        = ui; }
   Void  setNumMbsInSlice              ( UInt        ui )  { m_uiNumMbsInSlice                   = ui; }
-  Void  setFgsComponentSep            ( Bool        b  )  { m_bFgsComponentSep                  = b;  }
   Void  setIdrPicId                   ( UInt        ui )  { m_uiIdrPicId                        = ui; }
   
   Void  setBasePredWeightTableFlag    ( Bool        b  )  { m_bBasePredWeightTableFlag          = b;  }
@@ -876,8 +841,6 @@ public:
   Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
   //JVT-W046 {
   Void  setSliceSkipFlag              ( Bool        b  )  { m_bSliceSkipFlag                    = b;  }
-  Void  setScanIdxStart           ( UInt        ui )  { m_uiScanIdxStart                = ui; }
-  Void  setScanIdxEnd           ( UInt        ui )  { m_uiScanIdxEnd                = ui; }
   //JVT-W046 }
   // JVT-U160 LMI {
   Void  setAdaptiveResPredictionFlag  ( Bool        b  )  { m_bAdaptiveResPredictionFlag        = b;  }
@@ -921,18 +884,12 @@ public:
 	Bool	m_bTrueSlice;
 //  TMM_EC }}
   Void  setRedundantPicCnt            (UInt         ui )  { m_uiRedundantPicCnt                 = ui; }  // JVT-Q054 Red. Picture
-  Void            setFGSCycleAlignedFragment    ( Bool bFlag )  { m_bFGSCycleAlignedFragment = bFlag; }
-  Bool            getFGSCycleAlignedFragment    ()              { return m_bFGSCycleAlignedFragment;  }
-  Void            setFGSCodingMode      ( Bool b  )             { m_bFGSCodingMode = b;     }
-  Bool            getFGSCodingMode      ()                      { return m_bFGSCodingMode;  }
-  Void            setGroupingSize       ( UInt ui )             { m_uiGroupingSize = ui;    }
-  UInt            getGroupingSize       ()                      { return m_uiGroupingSize;  }
 
 //JVT-T054{
   Void          setLayerCGSSNR(UInt ui) { m_uiLayerCGSSNR = ui;}
   UInt          getLayerCGSSNR() { return m_uiLayerCGSSNR;}
   Void          setQualityLevelCGSSNR(UInt ui) { m_uiQualityLevelCGSSNR = ui;}
-  UInt          getQualityLevelCGSSNR() { return m_uiQualityLevelCGSSNR;}
+  UInt          getQualityLevelCGSSNR() const { return m_uiQualityLevelCGSSNR;}
   Void          setBaseLayerCGSSNR(UInt ui) { m_uiBaseLayerCGSSNR = ui;}
   Void          setBaseQualityLevelCGSSNR(UInt ui) { m_uiBaseQualityLevelCGSSNR = ui;}
 //JVT-T054}
@@ -944,18 +901,24 @@ public:
   Void			setInIDRAccess(Bool b)	{ m_bInIDRAccess = b; }
   Bool			getInIDRAccess()		{ return m_bInIDRAccess; }
 
-  Bool          getUseSmoothedRef() { return m_bUseSmoothedRef;} //JVT-V058
-  Void          setUseSmoothedRef(Bool b) {m_bUseSmoothedRef = b;}//JVT-V058 
-
   //JVT-V079 Low-complexity MB mode decision {
   Void setLowComplexMbEnable( Bool b )  { m_bLowComplexMbEnable = b; }
   //JVT-V079 Low-complexity MB mode decision }
  
  protected:
-  ErrVal xReadH264AVCCompatible       ( HeaderSymbolReadIf*   pcReadIf );
-  ErrVal xReadScalable                ( HeaderSymbolReadIf*   pcReadIf );
-  ErrVal xWriteScalable               ( HeaderSymbolWriteIf*  pcWriteIf ) const;
-  ErrVal xWriteH264AVCCompatible      ( HeaderSymbolWriteIf*  pcWriteIf ) const;
+  ErrVal xReadH264AVCCompatible( HeaderSymbolReadIf*   pcReadIf );
+  ErrVal xReadScalable         ( HeaderSymbolReadIf*   pcReadIf );
+  ErrVal xWriteScalable        ( HeaderSymbolWriteIf* pcWriteIf,
+                                 UInt uiQualityLevelCGSSNR,
+                                 UInt uiBaseLayerCGSSNR,
+                                 UInt uiBaseQualityLevelCGSSNR,
+                                 Bool bAdaptivePredictionFlag,
+                                 Bool bDefaultBaseModeFlag,
+                                 Bool bAdaptiveResPredictionFlag,
+                                 UInt uiWriteStart,
+                                 UInt uiWriteStop ) const;
+
+  ErrVal xWriteH264AVCCompatible( HeaderSymbolWriteIf*  pcWriteIf ) const;
 
 public:
   ErrVal ReadLastBit                  (  );
@@ -969,13 +932,12 @@ protected:
   NalUnitType                 m_eNalUnitType;
   UInt                        m_uiLayerId;
   UInt                        m_uiTemporalLevel;
-  UInt                        m_uiQualityLevel;
+  UInt                        m_uiQualityLevelSH;
   UInt                        m_uiFirstMbInSlice;
   SliceType                   m_eSliceType;
   UInt                        m_uiPicParameterSetId;
   UInt                        m_uiFrameNum;
   UInt                        m_uiNumMbsInSlice;
-  Bool                        m_bFgsComponentSep;
   UInt                        m_uiIdrPicId;
   Bool                        m_bBasePredWeightTableFlag;
   UInt                        m_uiLumaLog2WeightDenom;
@@ -989,12 +951,9 @@ protected:
   Bool                        m_bLayerBaseFlag;
   UInt                        m_uiBaseLayerId;
   UInt                        m_uiBaseQualityLevel;
-  UInt						            m_uiBaseFragmentOrder;
   Bool                        m_bAdaptivePredictionFlag;
   //JVT-W046 {
   Bool                        m_bSliceSkipFlag;
-  UInt                        m_uiScanIdxStart;
-  UInt                        m_uiScanIdxEnd;
   //JVT-W046 }
 // JVT-U160 LMI {
   Bool                        m_bAdaptiveResPredictionFlag;
@@ -1029,11 +988,6 @@ protected:
   UInt						            m_uiPriorityId;
   Bool					              m_bDiscardableFlag;
   
-  //JVT-P031
-  Bool                        m_bFragmentedFlag;
-  UInt                        m_uiFragmentOrder;
-  Bool                        m_bLastFragmentFlag;
-  //~JVT-P031
   // JVT-V088 LMI {
   // JVT-U116 LMI {
   Bool                        m_bTl0PicIdxPresentFlag;
@@ -1089,6 +1043,11 @@ public:
   Void          setBaseChromaPhaseY ( Int i)  { m_uiBaseChromaPhaseYPlus1 = i+1; }
   Void          Print               ( );
 
+  UInt          getMGSCoeffStart()          const { return m_uiMGSCoeffStart; }
+  UInt          getMGSCoeffStop ()          const { return m_uiMGSCoeffStop;  }
+  Void          setMGSCoeffStart( UInt ui )       { m_uiMGSCoeffStart = ui; }
+  Void          setMGSCoeffStop ( UInt ui )       { m_uiMGSCoeffStop  = ui; }
+
   Bool          m_bBaseFrameFromBotFieldFlag;
   Bool          m_bBaseBotFieldSyncFlag;
   Bool          m_bBaseFrameMbsOnlyFlag;
@@ -1112,22 +1071,11 @@ protected:
 #endif //_JVTV074_
 // TMM_ESS }
 
-  Bool          m_bArFgsUsageFlag;
   Bool          m_bFgsEntropyOrderFlag;
-  UInt          m_uiLowPassFgsMcFilter;
-  UInt          m_uiBaseWeightZeroBaseBlock;
-  UInt          m_uiBaseWeightZeroBaseCoeff;
-
-  UInt          m_uiVectorModeIndex; 
-  UInt          m_uiGroupingSize; 
-  Bool          m_bFGSCycleAlignedFragment; 
-  Bool          m_bFGSCodingMode;
-  UInt          m_uiNumPosVectors;
-  UInt          m_uiPosVect[16];
-  Bool          m_bFGSVectorModeOverrideFlag;
+  UInt          m_uiMGSCoeffStart;
+  UInt          m_uiMGSCoeffStop;
   //EIDR bug-fix
   Bool			m_bInIDRAccess; 
-  Bool          m_bUseSmoothedRef;//JVT-V058
 };
 
 

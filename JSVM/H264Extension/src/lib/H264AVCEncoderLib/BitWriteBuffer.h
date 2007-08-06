@@ -102,6 +102,11 @@ protected:
   virtual ~BitWriteBuffer();
 
 public:
+
+  BitWriteBufferIf* getNextBitWriteBuffer( Bool bStartNewBitstream );
+  Bool nextBitWriteBufferActive() { return NULL != m_pucNextStreamPacket; }
+  UChar* getNextBuffersPacket() { return m_pucNextStreamPacket; }
+
   static ErrVal create( BitWriteBuffer*& rpcBitWriteBuffer );
   ErrVal destroy();
 
@@ -119,8 +124,6 @@ public:
   ErrVal flushBuffer();
   ErrVal writeAlignZero();
   ErrVal writeAlignOne();
-
-  ErrVal loadContent( BitWriteBuffer& rcBitWriteBuffer );
 
   ErrVal getLastByte(UChar &uiLastByte, UInt &uiLastBitPos);//FIX_FRAG_CAVLC
 
@@ -148,6 +151,11 @@ protected:
   Int    m_iValidBits;
   ULong  m_ulCurrentBits;
   ULong* m_pulStreamPacket;
+
+private:
+  UInt   m_uiInitPacketLength;
+  BitWriteBuffer * m_pcNextBitWriteBuffer;
+  UChar *m_pucNextStreamPacket;
 };
 
 

@@ -101,6 +101,8 @@ protected:
   virtual ~HeaderSymbolWriteIf() {}
 
 public:
+  virtual HeaderSymbolWriteIf* getHeaderSymbolWriteIfNextSlice( Bool bStartNewBitstream ) = 0;
+
   virtual ErrVal writeUvlc( UInt uiCode, Char* pcTraceString ) = 0;
   virtual ErrVal writeSvlc( Int iCode, Char* pcTraceString ) = 0;
   virtual ErrVal writeCode( UInt uiCode, UInt uiLength, Char* pcTraceString ) = 0;

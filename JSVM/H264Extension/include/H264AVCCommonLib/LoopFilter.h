@@ -164,7 +164,10 @@ public:
                           bool                spatial_scalable_flg);  // SSUN@SHARP
 
   ErrVal init( ControlMngIf*          pcControlMngIf,
-               ReconstructionBypass*  pcReconstructionBypass );
+               ReconstructionBypass*  pcReconstructionBypass,
+               Bool                   bEncoder
+               );
+
   ErrVal uninit();
 
   Void setFilterMode( LFMode eLFMode = LFM_DEFAULT_FILTER ) { m_eLFMode = eLFMode; }
@@ -252,7 +255,54 @@ private:
                                                   RefFrameList*       pcRefFrameList0,
                                                   RefFrameList*       pcRefFrameList1,
                                                   bool                spatial_scalable_flg);  // SSUN@SHARP
-  
+
+  ErrVal xRecalcCBP( MbDataAccess &rcMbDataAccess )
+  {
+    UInt uiCbp = 0;
+    UInt uiStart = 0;
+    UInt uiStop  = 16;
+    if( rcMbDataAccess.getMbData().isTransformSize8x8() )
+    {
+      const UChar *pucScan = rcMbDataAccess.getMbData().getFieldFlag() ? g_aucFieldScan64 : g_aucFrameScan64;
+      uiStart <<= 2;
+      uiStop  <<= 2;
+      for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
+      {
+        TCoeff *piCoeff = rcMbDataAccess.getMbTCoeffs().get8x8( cIdx );
+        for( UInt ui = uiStart; ui < uiStop; ui++ )
+        {
+          if( m_bEncoder ? piCoeff[pucScan[ui]].getLevel() : piCoeff[pucScan[ui]].getCoeff() )
+          {
+            uiCbp |= 0x33 << cIdx.b8x8();
+            break;
+          }
+        }
+      }
+    }
+    else
+    {
+      const UChar *pucScan = rcMbDataAccess.getMbData().getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
+      for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+      {
+        TCoeff *piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
+        for( UInt ui = uiStart; ui < uiStop; ui++ )
+        {
+          if( m_bEncoder ? piCoeff[pucScan[ui]].getLevel() : piCoeff[pucScan[ui]].getCoeff() )
+          {
+            uiCbp |= 1<<cIdx.b4x4();
+            break;
+          }
+        }
+      }
+      if( rcMbDataAccess.getMbData().isIntra16x16() )
+      {
+        uiCbp = uiCbp ? 0xFFFF : 0;
+      }
+    }
+    rcMbDataAccess.getMbData().setAndConvertMbExtCbp( uiCbp );
+    return Err::m_nOK;
+  }
+
   __inline ErrVal xLumaHorFiltering             ( const MbDataAccess& rcMbDataAccessRes,
                                                   const DFP&          rcDFP,
                                                   IntYuvPicBuffer*    pcYuvBuffer );
@@ -319,6 +369,7 @@ protected:
 
   Bool          m_bRCDO;
   SliceHeader*  m_pcRCDOSliceHeader; // only for SPS RCDO deblocking flag
+  Bool          m_bEncoder;
 
 protected:
 

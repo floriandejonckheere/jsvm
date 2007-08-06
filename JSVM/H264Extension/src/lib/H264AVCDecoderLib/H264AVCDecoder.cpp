@@ -140,23 +140,17 @@ H264AVCDecoder::H264AVCDecoder()
 , m_iFirstSlicePoc                ( 0 )
 , m_bBaseLayerAvcCompliant        ( false )
 , m_bDependencyInitialized        ( false )
-, m_uiQualityLevelForPrediction   ( 3 )
+, m_uiQualityLevelForPrediction   ( 15 )
 , m_pcNonRequiredSei			  ( NULL )
 , m_uiNonRequiredSeiReadFlag	  ( 0 )
 , m_uiNonRequiredSeiRead    	  ( 0 )
 , m_uiPrevPicLayer				  ( 0 )
 , m_uiCurrPicLayer				  ( 0 )
 //JVT-P031
-, m_uiFirstFragmentPPSId          ( 0 )
-, m_uiFirstFragmentNumMbsInSlice  ( 0 )
-, m_bFirstFragmentFGSCompSep      ( false )
-, m_uiLastFragOrder               ( 0 )
 , m_uiNumberOfSPS                 ( 0 )
 , m_uiDecodedLayer                ( 0 )
 , m_uiNumOfNALInAU                ( 0 )
 //~JVT-P031
-, m_bFGSCodingMode                ( false )
-, m_uiGroupingSize                ( 1 )
 , m_pcBaseLayerCtrlEL						  ( 0 )		// ICU/ETRI FGS_MOT_USE
 , m_iCurNalSpatialLayer		(-1)
 , m_iNextNalSpatialLayer	(-1)
@@ -164,10 +158,8 @@ H264AVCDecoder::H264AVCDecoder()
 , m_iNextNalPOC				(-1)
 , m_bCurNalIsEndOfPic		(false)
 , m_iCurNalFirstMb			(-1)
-, m_bFirstFGS				(true)
 //JVT-T054{
 , m_bLastNalInAU                  ( false )
-, m_bFGSRefInAU                   ( false )
 , m_bCGSSNRInAU                   ( false )
 //JVT-T054}
 , m_bBaseSVCActive                ( false ) //JVT-T054_FIX
@@ -183,15 +175,11 @@ H264AVCDecoder::H264AVCDecoder()
 
 {
   ::memset( m_apcMCTFDecoder, 0x00, MAX_LAYERS * sizeof( Void* ) );
-  ::memset( m_uiPosVect,      0x00, 16         * sizeof( UInt  ) );
   m_pcVeryFirstSliceHeader = NULL;
 
-  UInt uiLayer, uiQualityLevel;
+  UInt uiLayer;
   for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
   {
-    for( uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel ++)
-      m_uiNumberOfFragment[uiLayer][uiQualityLevel] = 0;
-
       m_uiSPSId[uiLayer] = 0;
   }
 
@@ -310,9 +298,6 @@ ErrVal H264AVCDecoder::init( MCTFDecoder*        apcMCTFDecoder[MAX_LAYERS],
     ROT( NULL == apcMCTFDecoder[uiLayer] );
 
     m_apcMCTFDecoder[uiLayer] = apcMCTFDecoder[uiLayer];
-    for( UInt uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel ++)
-      m_uiNumberOfFragment[uiLayer][uiQualityLevel] = 0;
-
 
 //	TMM EC {{
 		m_apcMCTFDecoder[uiLayer]->m_pcFrameMng	=	m_pcFrameMng;
@@ -466,12 +451,9 @@ H264AVCDecoder::calculatePoc( NalUnitType   eNalUnitType,
 
 ErrVal H264AVCDecoder::xInitParameters(SliceHeader* pcSliceHeader)
 {
-  m_uiFirstFragmentPPSId = pcSliceHeader->getPicParameterSetId();
-  m_uiFirstFragmentNumMbsInSlice = pcSliceHeader->getNumMbsInSlice();
-  m_bFirstFragmentFGSCompSep = pcSliceHeader->getFgsComponentSep();
   //activate corresponding SPS
   PictureParameterSet * rcPPS;
-  m_pcParameterSetMng->get(rcPPS,m_uiFirstFragmentPPSId);
+  m_pcParameterSetMng->get( rcPPS, pcSliceHeader->getPicParameterSetId() );
   UInt uiSPSId = rcPPS->getSeqParameterSetId();
   Bool bFound = false;
   for(UInt ui = 0; ui < m_uiNumberOfSPS; ui++)
@@ -514,11 +496,9 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
   {
     //new AU: initialization
     m_bDependencyInitialized = false;
-    m_bFGSRefInAU = false;
     //if(!bEos)                     MGS fix by Heiko Schwarz
     //  m_bCGSSNRInAU = false;      MSG fix by Heiko Schwarz
 
-    initNumberOfFragment();
   }
   else
   {
@@ -530,8 +510,8 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
   }
   if(bEos)
   {
-	if (-1 == m_iNextNalSpatialLayer)
-		m_bCurNalIsEndOfPic = true;
+	  if (-1 == m_iNextNalSpatialLayer)
+		  m_bCurNalIsEndOfPic = true;
     m_bDependencyInitialized = true; //JVT-T054
     bFinishChecking = true;
     return Err::m_nOK;
@@ -610,10 +590,7 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
 //prefix unit}}
 		{
 				RNOK( m_pcSliceReader->readSliceHeader( m_pcNalUnitParser,
-																								pcSliceHeader,
-																								m_uiFirstFragmentNumMbsInSlice,
-																								m_bFirstFragmentFGSCompSep
-																								) );
+																								pcSliceHeader ) );
 //JVT-W049 {
 			if((pcSliceHeader->getRedundantPicCnt()))
 			{
@@ -632,37 +609,8 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
 					}
 //prefix unit}}
 
-				//To detect if fragments have been lost or previously extracted
-				if(pcSliceHeader->getFragmentedFlag())
-				{
-						m_uiNumberOfFragment[pcSliceHeader->getLayerId()][pcSliceHeader->getQualityLevel()] ++;
-				}
+        xInitParameters(pcSliceHeader);
 
-				if(pcSliceHeader->getFragmentOrder() == 0)
-				{
-						xInitParameters(pcSliceHeader);
-				}
-				else
-				{
-					//if next fragments, skip
-					if( pcSliceHeader != NULL )
-							delete pcSliceHeader;
-
-					return Err::m_nOK;
-				}
-				//~JVT-P031
-
-				// F slices are also ignored
-				if( pcSliceHeader->getSliceType() == F_SLICE )
-				{
-					m_bFGSRefInAU = true;
-
-					//manu.mathew@samsung : memory leak fix
-					if( pcSliceHeader )
-						delete pcSliceHeader;
-					//--
-					return Err::m_nOK;
-				}
 				m_bCGSSNRInAU = (m_bCGSSNRInAU || pcSliceHeader->getQualityLevel() != 0);
 
 			calculatePoc( eNalUnitType, *pcSliceHeader, slicePoc );
@@ -686,9 +634,6 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
 					m_bCurNalIsEndOfPic = true;
 
 				if (m_iCurNalPOC != m_iNextNalPOC)
-					m_bCurNalIsEndOfPic = true;
-
-				if( pcSliceHeader->getSliceType() == F_SLICE )
 					m_bCurNalIsEndOfPic = true;
 
 				Bool bNewFrame =false;
@@ -789,16 +734,6 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
 }
 
 //JVT-P031
-Void H264AVCDecoder::initNumberOfFragment()
-{
-  UInt uiLayer, uiQualityLevel;
-  for( uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer ++ )
-  for( uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel ++)
-  {
-      m_uiNumberOfFragment[uiLayer][uiQualityLevel] = 0;
-  }
-
-}
 Void H264AVCDecoder::getDecodedResolution(UInt &uiLayerId)
 {
  UInt uiSPSId = 0;
@@ -926,10 +861,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 			if(eNalUnitType==NAL_UNIT_CODED_SLICE_IDR||eNalUnitType==NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
       {
         RNOK( m_pcSliceReader->readSliceHeader( m_pcNalUnitParser,
-                                                pcSliceHeader,
-                                                m_uiFirstFragmentNumMbsInSlice,
-                                                m_bFirstFragmentFGSCompSep
-		        ) );
+                                                pcSliceHeader  ) );
 				m_bRedundantPic = ( pcSliceHeader->getRedundantPicCnt() > 0 ? true:false );		//JVT-W049
         if(pcSliceHeader->getFrameNum()==0)
 					m_uiMaxLayerId=pcSliceHeader->getLayerId()>m_uiMaxLayerId ? pcSliceHeader->getLayerId(): m_uiMaxLayerId;
@@ -945,10 +877,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 			{
 				// read the slice header
 	      RNOK( m_pcSliceReader->readSliceHeader( m_pcNalUnitParser,
-                                              pcSliceHeader,
-                                              m_uiFirstFragmentNumMbsInSlice,
-                                              m_bFirstFragmentFGSCompSep
-											                         ) );
+                                              pcSliceHeader ) );
 			//JVT-W049 {
   	  m_bRedundantPic = ( pcSliceHeader->getRedundantPicCnt() > 0 ? true:false );
       if ( pcSliceHeader->getRedundantPicCnt()	  )
@@ -1008,9 +937,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 						}
 					}
 				}
-				// F slices are also ignored
-				if( pcSliceHeader->getSliceType() == F_SLICE || pcSliceHeader->getFrameNum() == 1 && pcSliceHeader->getLayerId() < m_uiMaxLayerId)
-//				if( pcSliceHeader->getSliceType() == F_SLICE)
+				if( false || pcSliceHeader->getFrameNum() == 1 && pcSliceHeader->getLayerId() < m_uiMaxLayerId)
 				{
 					if( pcSliceHeader != NULL )
 						delete pcSliceHeader;
@@ -1280,10 +1207,8 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 														, Bool&           rbStartDecoding,
 														UInt&             ruiStartPos,
 														UInt&             ruiEndPos,
-														Bool&             bFragmented,
 														Bool&             bDiscardable
                             //~JVT-P031
-                            , Bool*           pbFgsParallelDecoding
                             , UInt*           puiNumFragments
                             , UChar**         ppucFragBuffers
                             )
@@ -1310,14 +1235,11 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 //  Bool KeyPicFlag = false; //bug-fix suffix shenqiu
   static Bool bSuffixUnit = false;  //JVT-S036 lsj
 
-  Bool bFirstFragment;
-
   //JVT-P031
-  Bool bLastFragment;
   UInt uiHeaderBits;
   getDecodedResolution(m_uiDecodedLayer);
   m_pcNalUnitParser->setDecodedLayer(m_uiDecodedLayer);
-  ruiStartPos = m_pcNalUnitParser->getNalHeaderSize(pcBinDataAccessor);
+//  ruiStartPos = m_pcNalUnitParser->getNalHeaderSize(pcBinDataAccessor);
   ruiStartPos = 0; //FRAG_FIX
   //~JVT-P031
   UInt uiNumBytesRemoved; //FIX_FRAG_CAVLC
@@ -1381,7 +1303,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   case NAL_UNIT_CODED_SLICE_IDR:
 		{
     //JVT-P031
-    RNOK( xStartSlice(bPreParseHeader,bFirstFragment, bLastFragment, pbFgsParallelDecoding, bDiscardable) ); //FRAG_FIX //TMM_EC //JVT-S036 lsj
+    RNOK( xStartSlice( bPreParseHeader, bDiscardable ) ); //FRAG_FIX //TMM_EC //JVT-S036 lsj
 //prefix unit{{
 	if(m_pcPrefixSliceHeader)
 	{
@@ -1399,7 +1321,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
     RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
     m_bActive = true;
     rbStartDecoding = true; //JVT-P031
-	bSuffixUnit = true; //JVT-S036 lsj
+  	bSuffixUnit = true; //JVT-S036 lsj
 
 //TMM_EC {{
 		if (!m_bNotSupport && !bPreParseHeader)
@@ -1447,15 +1369,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			  }
 		}
 //TMM_EC }}
-    m_pcSliceHeader->setFGSCodingMode( m_bFGSCodingMode );
-    m_pcSliceHeader->setGroupingSize ( m_uiGroupingSize );
-
-    UInt ui;
-    for( ui = 0; ui < 16; ui++ )
-    {
-      m_pcSliceHeader->setPosVect( ui, m_uiPosVect[ui] );
-    }
-    RNOK( m_pcSliceHeader->checkPosVectors() );
 	}
 	break;
   case NAL_UNIT_SPS:
@@ -1538,27 +1451,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       ruiEndPos = pcBinDataAccessor->size(); //JVT-P031
       bDiscardable = false;//JVT-P031
       rbStartDecoding = true;//JVT-P031
-
-      if( pcSPS->getNumFGSVectModes() == 1)
-      {
-        m_bFGSCodingMode = pcSPS->getFGSCodingMode( 0 );
-        m_uiGroupingSize = pcSPS->getGroupingSize ( 0 );
-        UInt ui;
-        for(ui = 0; ui < 16; ui++)
-        {
-          m_uiPosVect[ui] = pcSPS->getPosVect( 0, ui );
-        }
-      }
-      else if( m_pcSliceHeader )
-      {
-        m_bFGSCodingMode = m_pcSliceHeader->getFGSCodingMode();
-        m_uiGroupingSize = m_pcSliceHeader->getGroupingSize ();
-        UInt ui;
-        for(ui = 0; ui < 16; ui++)
-        {
-          m_uiPosVect[ui] = m_pcSliceHeader->getPosVect(ui);
-        }
-      }
     }
     break;
 
@@ -1578,7 +1470,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   case NAL_UNIT_CODED_SLICE_SCALABLE:
   case NAL_UNIT_CODED_SLICE_IDR_SCALABLE:
     {
-      bFragmented = m_pcNalUnitParser->getFragmentedFlag() && (m_pcNalUnitParser->getFragmentOrder()!=0 || !m_pcNalUnitParser->getLastFragmentFlag());
       //JVT-P031
       getDecodedResolution(m_uiDecodedLayer);
       if(m_pcNalUnitParser->getLayerId() < m_uiDecodedLayer && m_pcNalUnitParser->getDiscardableFlag())
@@ -1586,7 +1477,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       else
         bDiscardable = false;
 
-      RNOK( xStartSlice(bPreParseHeader, bFirstFragment, bLastFragment, pbFgsParallelDecoding, bDiscardable) );
+      RNOK( xStartSlice( bPreParseHeader, bDiscardable) );
 
       if(bDiscardable)
         ruiEndPos = 0;
@@ -1600,42 +1491,20 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
         uiHeaderBits += 8;
       // JVT-U116 LMI }
 
-      if( (bDiscardable) || (!bFragmented) || (bFragmented && m_pcNalUnitParser->getFragmentOrder()==0) )
-      {
-        ruiStartPos = 0;
-      }
-      else
-      {
-        ruiStartPos += (uiHeaderBits+(1+NAL_UNIT_HEADER_SVC_EXTENSION_BYTES)*8+7)>>3;//BUG_FIX_FT_01_2006_2
-        //(1+NAL_UNIT_HEADER_SVC_EXTENSION_BYTES)*8 is used to take into account the nal header which has already been read
-      }
-      if(m_pcNalUnitParser->getFragmentedFlag() && ! m_pcNalUnitParser->getLastFragmentFlag())
-      { //FIX_FRAG_CAVLC
-        if(bPreParseHeader)
-        {
-          ruiEndPos -= uiNumBytesRemoved;
-        }//~FIX_FRAG_CAVLC
-        while( pcBinDataAccessor->data()[ruiEndPos - 1] == 0 )
-          ruiEndPos --;
-        if( pbFgsParallelDecoding != 0 && (! (*pbFgsParallelDecoding) ) )
-        {
-          ruiEndPos --;
-        }
+      ruiStartPos = 0;
 
-      }//FIX_FRAG_CAVLC
       if(!bDiscardable)//~JVT-P031
-        RNOK( m_pcControlMng      ->initSlice0(m_pcSliceHeader) );
+      {
+        RNOK( m_pcControlMng->initSlice0(m_pcSliceHeader) );
+      }
       //bug-fix suffix shenqiu{{
       // if(m_pcSliceHeader) //JVT-P031
 
       //bug-fix suffix shenqiu
       //JVT-P031
 
-      // the variable m_pcSliceHeader->m_uiLastFragOrder is not updated
-      if( (bLastFragment) || (!bFragmented) ||
-        ( bFragmented && m_uiLastFragOrder+1 == m_uiNumberOfFragment[m_pcSliceHeader->getLayerId()][m_pcSliceHeader->getQualityLevel()]))
+      rbStartDecoding = true;
 
-        rbStartDecoding = true;
       //~JVT-P031
       //TMM_EC {{
 			//JVT-W049 {
@@ -1720,18 +1589,6 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 			  }
 		  }
 //TMM_EC }}
-  if(m_pcSliceHeader)
-  {
-    m_pcSliceHeader->setFGSCodingMode( m_bFGSCodingMode );
-    m_pcSliceHeader->setGroupingSize ( m_uiGroupingSize );
-
-    UInt ui;
-    for(ui = 0; ui < 16; ui++)
-    {
-      m_pcSliceHeader->setPosVect( ui, m_uiPosVect[ui] );
-    }
-    RNOK( m_pcSliceHeader->checkPosVectors() );
-  }
   }
   break;
 
@@ -2173,7 +2030,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
  {
   ROF( m_bInitDone );
 
-   //EIDR bug-fix {
+  //EIDR bug-fix {
 	if(m_pcSliceHeader )
 	{
 		if(m_pcSliceHeader->getLayerId() == 0 )
@@ -2268,39 +2125,6 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 		  m_avcRewriteBindata->reset();
 #endif
 
-  //====== check for AVC baselayer FGS refinement =====
-  if( ( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) &&
-      m_bActive &&
-      m_pcSliceHeader->getLayerId()   == 0 &&
-      m_pcSliceHeader->getSliceType() == F_SLICE )
-  {
-//TMM_EC {{
-    if ( m_pcSliceHeader->getTrueSlice())
-    {
-//      RNOK( xDecodeFGSRefinement( m_pcSliceHeader, pcPicBuffer ) );
-
-			if ( Err::m_nOK != xDecodeFGSRefinement( m_pcSliceHeader, pcPicBuffer ) )
-			{
-				//===== switch slice headers and update =====
-				SliceHeader*  pcTemp  = m_pcSliceHeader;
-				m_pcSliceHeader       = m_pcPrevSliceHeader;
-				m_pcPrevSliceHeader   = pcTemp;
-			}
-		}
-    else
-    {
-      //===== switch slice headers and update =====
-      SliceHeader*  pcTemp  = m_pcSliceHeader;
-      m_pcSliceHeader       = m_pcPrevSliceHeader;
-      m_pcPrevSliceHeader   = pcTemp;
-    }
-//TMM_EC }}
-    rcPicBufferUnusedList.pushBack( pcPicBuffer );
-    RNOK( m_pcNalUnitParser->closeNalUnit() );
-    return Err::m_nOK;
-  }
-
-
   //===== decode NAL unit =====
   switch( eNalUnitType )
   {
@@ -2331,10 +2155,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
       PicBufferList&  rcOutputList  = ( m_uiLastLayerId == m_uiRecLayerId ? rcPicBufferOutputList : cDummyList );
 //JVT-T054{
       Bool bHighestLayer;
-      if(m_bFGSRefInAU)
-        bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId );
-      else
-        bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId && ( m_bLastNalInAU || m_pcSliceHeader->getStoreBaseRepresentationFlag() ) );
+      bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId && ( m_bLastNalInAU || m_pcSliceHeader->getStoreBaseRepresentationFlag() ) );
 //JVT-T054}
 //	TMM EC {{
       if ( m_pcNalUnitParser->getQualityLevel() == 0)
@@ -2344,8 +2165,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
       }
 //TMM_EC }}
 //JVT-T054{
-       if(m_bBaseLayerAvcCompliant && m_uiLastLayerId == 0 && m_pcSliceHeader->getQualityLevel() == 1)
-
+      if(m_bBaseLayerAvcCompliant && m_uiLastLayerId == 0 && m_pcSliceHeader->getQualityLevel() == 1)
       {
          m_apcMCTFDecoder[m_uiLastLayerId]->setAVCBased(true);
       }
@@ -2399,10 +2219,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
         m_uiHaveRed[m_pcSliceHeader->getLayerId()] )
         m_bLastNalInAU = 1; 
       //JVT-W049 }
-      if(m_bFGSRefInAU)
-        bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId );
-      else
-        bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId && m_bLastNalInAU);
+      bHighestLayer = ( m_uiLastLayerId == m_uiRecLayerId && m_bLastNalInAU);
 //JVT-T054}
 // JVT-Q054 Red. Picture {
       if ( NULL != m_pcSliceHeader_backup )
@@ -2421,10 +2238,13 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 			}
 			else
 			{
-      RNOK( xProcessSlice( *m_pcSliceHeader,
-                          m_pcPrevSliceHeader,
-                          pcPicBuffer,
-                          bHighestLayer ) ); //JVT-T054
+        g_nLayer = m_pcSliceHeader->getQualityLevel();
+        DTRACE_LAYER( g_nLayer );
+
+        RNOK( xProcessSlice( *m_pcSliceHeader,
+                             m_pcPrevSliceHeader,
+                             pcPicBuffer,
+                             bHighestLayer ) ); //JVT-T054
 			}
 //TMM_EC }}
 
@@ -2478,20 +2298,15 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 
 
 
-ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, Bool& bLastFragment, Bool* pbFgsParallelDecoding, Bool& bDiscardable) //FRAG_FIX //TMM_EC  //JVT-S036 lsj
+ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bDiscardable) //FRAG_FIX //TMM_EC  //JVT-S036 lsj
 {
   //JVT-P031
   SliceHeader * pSliceHeader = NULL;
-
-  bFirstFragment = true;
-  bLastFragment = false;
 
   if(m_pcNalUnitParser->getDiscardableFlag() == false || m_pcNalUnitParser->getLayerId() == m_uiDecodedLayer)
   {
     //TMM_EC {{
       //UInt uiPPSId = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getPicParameterSetId() : 0;
-    UInt uiNumMbsInSlice = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getNumMbsInSlice() : 0;
-    Bool bFGSCompSep = (m_pcSliceHeader != NULL) ? m_pcSliceHeader->getFgsComponentSep() : 0;
 		if ( !m_pcNalUnitParser->isTrueNalUnit())
 		{
 
@@ -2525,10 +2340,7 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
 		else
 		{
 				RNOK( m_pcSliceReader->readSliceHeader( m_pcNalUnitParser,
-																						    pSliceHeader,
-																						    uiNumMbsInSlice,
-																						    bFGSCompSep
-																						));
+																						    pSliceHeader ));
 				pSliceHeader->setTrueSlice( true);
 		}
 //TMM_EC {{
@@ -2543,24 +2355,9 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
     {
       pSH = m_pcSliceHeader;
     }
-//    if (bPreParseHeader && pSH != NULL && (pSH->getPicOrderCntLsb() != pSliceHeader->getPicOrderCntLsb() || !pSH->getTrueSlice()) && pSliceHeader->getSliceType() == F_SLICE && pSH->getSliceType() != F_SLICE)
-
-		if (bPreParseHeader && m_pcSliceHeader != NULL && (m_pcSliceHeader->getPicOrderCntLsb() != pSliceHeader->getPicOrderCntLsb() || !m_pcSliceHeader->getTrueSlice()) && pSliceHeader->getSliceType() == F_SLICE && m_pcSliceHeader->getSliceType() != F_SLICE)
-		{
-			delete pSliceHeader;
-			pSliceHeader = NULL;
-			bLastFragment = true;
-			bPreParseHeader	=	false;
-			bDiscardable	=	true;
-			return Err::m_nOK;
-		}
 //TMM_EC }}
-    if( (!pSliceHeader->getFragmentedFlag()) || ( (pSliceHeader->getFragmentedFlag()) && (pSliceHeader->getFragmentOrder() == 0) ) )
-    {
-      if( pSliceHeader->getFragmentedFlag() && pSliceHeader->getFragmentOrder() == 0
-        && pbFgsParallelDecoding != 0 )
-        *pbFgsParallelDecoding  = pSliceHeader->getFGSCycleAlignedFragment();
 
+    {
       if(bPreParseHeader) //FRAG_FIX
       {
 // JVT-Q054 Red. Picture {
@@ -2627,8 +2424,6 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
             }
               m_pcSliceHeader     = pSliceHeader;
         }
-
-        m_uiLastFragOrder = 0;
 // JVT-Q054 Red. Picture }
       } // FRAG_FIX
       else // memory leak fix provided by Nathalie
@@ -2637,31 +2432,6 @@ ErrVal H264AVCDecoder::xStartSlice(Bool& bPreParseHeader, Bool& bFirstFragment, 
         pSliceHeader = NULL;
       }
     }
-    else
-    {
-      // just ensure that fragmented information are correct
-      if(pSliceHeader->getFragmentOrder() != m_uiLastFragOrder+1)
-      {
-        printf("pb with fragment ordering information\n");
-      }
-
-      m_uiLastFragOrder = pSliceHeader->getFragmentOrder();
-
-      // set current slice header with last fragment info, in order to start the decoding process
-      bFirstFragment = false;
-      if( pSliceHeader->getLastFragmentFlag() )
-      bLastFragment = true;
-      else
-        bLastFragment = false;
-
-      delete pSliceHeader;
-      pSliceHeader = NULL;
-    }
-  }
-  else
-  {
-    // set current slice header with last fragment info, in order to start the decoding process
-    bLastFragment = true;
   }
   //~JVT-P031
 
@@ -2846,7 +2616,8 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 
   RNOK( m_pcControlMng  ->initSlice ( rcSH, DECODE_PROCESS ) );
   RNOK( m_pcSliceDecoder->process   ( rcSH, bReconstruct, uiMbRead ) );
-	const PicType ePicType = rcSH.getPicType();
+
+  const PicType ePicType = rcSH.getPicType();
 
   Bool bPicDone;
   RNOK( m_pcControlMng->finishSlice( rcSH, bPicDone, m_bFrameDone ) );
@@ -3061,14 +2832,8 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
   }
 
   //===== check if an FGS enhancement needs to be reconstructed =====
-  if( m_pcRQFGSDecoder->isInitialized  ()                                                               &&
-      m_pcRQFGSDecoder->getSliceHeader ()->getLayerId() == 0                                            &&
-    (!pcSliceHeader                                                                                     ||
-      pcSliceHeader->getLayerId       () != m_pcRQFGSDecoder->getSliceHeader()->getLayerId      ()      ||
-      pcSliceHeader->getQualityLevel  () != m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel () + 1  ||
-      pcSliceHeader->getPoc           () != m_pcRQFGSDecoder->getSliceHeader()->getPoc          ()
-      || pcSliceHeader->getSliceType() != F_SLICE //JVT-T054
-      ))
+  if( m_pcRQFGSDecoder->isInitialized() &&
+      m_pcRQFGSDecoder->getSliceHeader()->getLayerId() == 0 )
   {
     Bool bHighestLayer = ( m_bLastNalInAU ); //JVT-T054
 
@@ -3097,13 +2862,6 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
   return Err::m_nOK;
 }
 
-//JVT-T054{
-Void  H264AVCDecoder::setFGSRefInAU(Bool &b)
-{
-  m_bFGSRefInAU = b;
-}
-//JVT-T054}
-
 ErrVal
 H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSliceHeader) //JVT-T054
 {
@@ -3120,46 +2878,26 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
   IntFrame*     pcILPredFrame       = m_pcFrameMng    ->getRefinementIntFrame();
   IntFrame*     pcILPredFrameSpatial= m_pcFrameMng    ->getRefinementIntFrame2();
   IntFrame*     pcBaseRepFrame      = m_pcFrameMng    ->getBaseRepFrame();
-  Bool          bReconstructFGS     = m_pcRQFGSDecoder->changed();
   Bool          bUseBaseRep         = pcSliceHeader   ->getUseBasePredictionFlag(); // HS: fix by Nokia
   Bool          bConstrainedIP      = pcSliceHeader   ->getPPS().getConstrainedIntraPredFlag();
 
   //===== reconstruct FGS =====
-  if( bReconstructFGS || ! bUseBaseRep && bConstrainedIP )
+  if( !bUseBaseRep && bConstrainedIP )
   {
 		RNOK( pcRecFrame->removeFrameFieldBuffer() );
     RNOK( m_pcRQFGSDecoder            ->reconstruct( pcRecFrame, true                                ) );
     RNOK( pcResidual                  ->copy       ( pcRecFrame,                            ePicType ) );
     RNOK( xZeroIntraMacroblocks           ( pcResidual, pcMbDataCtrl, pcSliceHeader ) );
 
-    if( m_bReconstruct )
+    if( m_bReconstruct && !pcSliceHeader->isIntra() )
     {
-      if( bUseBaseRep && pcSliceHeader->isInterP() )
-      {
-        RefFrameList  cRefListDiff;
-
-        setDiffPrdRefLists(cRefListDiff, m_pcFrameMng->getYuvFullPelBufferCtrl() );
-
-        //----- key frames: adaptive motion-compensated prediction -----
-        m_pcMotionCompensation->loadAdaptiveRefPredictors(
-                                              m_pcFrameMng->getYuvFullPelBufferCtrl(),
-                                              m_pcFrameMng->getPredictionIntFrame(),
-                                              m_pcFrameMng->getPredictionIntFrame(),
-                                              &cRefListDiff,
-                                              pcMbDataCtrl, m_pcRQFGSDecoder,
-                                              m_pcRQFGSDecoder->getSliceHeader());
-
-        freeDiffPrdRefLists(cRefListDiff);
-      }
-      else if( ! pcSliceHeader->isIntra() )
-      {
-        //----- "normal" motion-compensated prediction -----
-        RNOK( m_pcSliceDecoder->compensatePrediction( *pcSliceHeader ) );
-      }
+      //----- "normal" motion-compensated prediction -----
+      RNOK( m_pcSliceDecoder->compensatePrediction( *pcSliceHeader ) );
     }
 
     RNOK( pcRecFrame      ->add           ( m_pcFrameMng->getPredictionIntFrame(), ePicType ) );
     RNOK( pcRecFrame      ->clip          () );
+
   }
 //JVT-S036 lsj start
 
@@ -3194,13 +2932,7 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
   }
 //TMM_EC }}
   //===== store in FGS pic buffer =====
-  if( bReconstructFGS )
-  {
-    //===== update DPB =====
-		RNOK( m_pcFrameMng->storeFGSPicture( m_pcFGSPicBuffer ) );
-    m_pcFGSPicBuffer = NULL;
-  }
-  else if( ! bUseBaseRep && bConstrainedIP )
+  if( !bUseBaseRep && bConstrainedIP )
   {
     RNOK( m_pcFrameMng->storeFGSPicture( pcSliceHeader->getFrameUnit()->getPicBuffer() ) );
   }
@@ -3253,148 +2985,6 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
   return Err::m_nOK;
 }
 
-
-ErrVal
-H264AVCDecoder::xDecodeFGSRefinement( SliceHeader*& rpcSliceHeader, PicBuffer*& rpcPicBuffer )
-{
-
-  ROFS( m_pcRQFGSDecoder->isInitialized() );
-
-  //===== check slice header =====
-	if(!m_pcRQFGSDecoder->isFinished    ()                                                                 &&
-		m_pcRQFGSDecoder->getSliceHeader()->getPoc          ()      == rpcSliceHeader->getPoc           () &&
-		(  m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel () + 1  == rpcSliceHeader->getQualityLevel  ()  ||
-		   m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel () == rpcSliceHeader->getQualityLevel  ()
-	    )
-	  )
-  {
-		const PicType ePicType = rpcSliceHeader->getPicType();
-    if( rpcSliceHeader->getQualityLevel() <= m_uiQualityLevelForPrediction )
-    {
-      printf("  FGS   %4d ( LId%2d, TL%2d, QL%2d, PrRef,        MR %d, QP%3d, %s )\n",
-        rpcSliceHeader->getPoc                    (),
-        rpcSliceHeader->getLayerId                (),
-        rpcSliceHeader->getTemporalLevel          (),
-        rpcSliceHeader->getQualityLevel           (),
-        rpcSliceHeader->getAdaptivePredictionFlag (),
-        rpcSliceHeader->getPicQp                  (),
-        (ePicType==FRAME) ?  "FRAME" : ( (ePicType==TOP_FIELD) ? "TOP_FIELD" : "BOT_FIELD") );
-
-      //===== set mem when first FGS layer ====
-      if( rpcSliceHeader->getQualityLevel() == 1 )
-      {
-		if (m_pcRQFGSDecoder->isFirstFGS())
-		{
-          ROT( m_pcFGSPicBuffer );
-          ROF( rpcPicBuffer );
-
-          m_pcFGSPicBuffer  = rpcPicBuffer;
-          rpcPicBuffer      = 0;
-		  m_pcRQFGSDecoder->SetIsFirstFGS(false);
-
-		  if( rpcSliceHeader->getTemporalLevel()  == 0  &&
-			  m_pcRQFGSDecoder->getSliceHeader()->isInterP() )
-			    m_pcRQFGSDecoder->SetIsFirstFGS(true);
-		}
-      }
-
-      if( rpcSliceHeader->getTemporalLevel()  == 0      &&
-        m_pcRQFGSDecoder->getSliceHeader()->isInterP())
-      {
-        // m_pcRQFGSDecoder->getSliceHeader has the slice header of the base layer
-        m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseBlock(rpcSliceHeader->getBaseWeightZeroBaseBlock() );
-        m_pcRQFGSDecoder->getSliceHeader()->setBaseWeightZeroBaseCoeff(rpcSliceHeader->getBaseWeightZeroBaseCoeff() );
-        m_pcRQFGSDecoder->getSliceHeader()->setLowPassFgsMcFilter     (rpcSliceHeader->getLowPassFgsMcFilter() );
-        m_pcRQFGSDecoder->getSliceHeader()->setArFgsUsageFlag         (rpcSliceHeader->getArFgsUsageFlag() );
-
-        if( rpcSliceHeader->getQualityLevel()   == 1 )
-        {
-		  if (m_pcRQFGSDecoder->isFirstFGS())
-		  {
-            m_pcRQFGSDecoder->getMbDataCtrl()->storeFgsBQLayerQpAndCbp();
-            m_pcRQFGSDecoder->xStoreBQLayerSigMap();
-		    m_pcRQFGSDecoder->SetIsFirstFGS(false);
-		  }	// end if isFirstFGS
-        }
-      }
-
-      RNOK( m_pcRQFGSDecoder->decodeNextLayer( rpcSliceHeader ) );
-    }
-
-		// ICU/ETRI FGS_MOT_USE
-		// 2006.10.02 ICU/ETRI FGS_MOT_USE Bug Fix
-    if ( m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel() <= m_uiQualityLevelForPrediction)
-    {
-      m_pcBaseLayerCtrlEL->copyMotion(*(m_pcRQFGSDecoder->getMbDataCtrl()));
-      m_pcBaseLayerCtrlEL->SetMbStride(m_pcRQFGSDecoder->getMbDataCtrl()->GetMbStride());
-      m_pcBaseLayerCtrlEL->xSetDirect8x8InferenceFlag(m_pcRQFGSDecoder->getMbDataCtrl()->xGetDirect8x8InferenceFlagPublic());
-    }
-
-
-    //===== switch slice headers and update =====
-    SliceHeader*  pcTemp  = m_pcSliceHeader;
-    m_pcSliceHeader       = m_pcPrevSliceHeader;
-    m_pcPrevSliceHeader   = pcTemp;
-  }
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-H264AVCDecoder::setDiffPrdRefLists( RefFrameList& diffPrdRefList,
-                                    YuvBufferCtrl* pcYuvFullPelBufferCtrl )
-{
-  SliceHeader* pcSH = m_pcRQFGSDecoder->getSliceHeader();
-  ROTRS( pcSH->isIntra(),   Err::m_nOK );
-  const PicType ePicType = pcSH->getPicType();
-
-  RefPicList<RefPic>& rcBaseList = pcSH->getRefPicList(ePicType,  LIST_0 );
-
-  for(UInt i=0; i< rcBaseList.size(); i++)
-  {
-    Int iRefPoc;
-
-    IntFrame* pcDiffFrame;
-    ROFS   ( ( pcDiffFrame                  = new IntFrame( *pcYuvFullPelBufferCtrl,
-                                                           *pcYuvFullPelBufferCtrl ) ) );
-    pcDiffFrame->init();
-
-    iRefPoc = rcBaseList.get(i).getFrame()->getPoc();
-
-    FrameUnit* pcRefFrameUnit     = m_pcFrameMng->getReconstructedFrameUnit( iRefPoc );
-
-// JVT-Q065 EIDR{
-	if(!pcRefFrameUnit)
-	{
-		break;
-	}
-// JVT-Q065 EIDR}
-
-    IntFrame* baseFrame = pcRefFrameUnit->getFGSReconstruction(0);
-    IntFrame* enhFrame = pcRefFrameUnit->getFGSIntFrame();
-
-    pcDiffFrame->subtract(enhFrame, baseFrame);
-    RNOK( pcDiffFrame->extendFrame( NULL ) );
-    RNOK( diffPrdRefList.add( pcDiffFrame ) );
-  }
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-H264AVCDecoder::freeDiffPrdRefLists( RefFrameList& diffPrdRefList)
-{
-  for(UInt i=0; i< diffPrdRefList.getSize(); i++)
-  {
-    diffPrdRefList.getEntry(i)->uninit();
-// TMM_INTERLACE    free(diffPrdRefList.getEntry(i));
-    delete diffPrdRefList.getEntry(i);
-  }
-
-  return Err::m_nOK;
-}
 
 // JVT-Q054 Red. Picture {
 ErrVal

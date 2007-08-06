@@ -1192,10 +1192,6 @@ ErrVal FrameMng::storeFGSPicture( PicBuffer* pcPicBuffer )
 	const PicType ePicType          = m_pcCurrentFrameUnit->getMbDataCtrl()->getSliceHeader()->getPicType();
 	const Bool    bFrameMbsOnlyFlag = m_pcCurrentFrameUnit->getMbDataCtrl()->getSliceHeader()->getSPS().getFrameMbsOnlyFlag();
 
-  UInt uiFGSReconCount = m_pcCurrentFrameUnit->getFGSReconCount();
-  m_pcCurrentFrameUnit->getFGSReconstruction(uiFGSReconCount)->copyAll(m_pcCurrentFrameUnit->getFGSIntFrame());
-  m_pcCurrentFrameUnit->setFGSReconCount(uiFGSReconCount + 1);
-
   m_pcCurrentFrameUnit->setFGS( pcPicBuffer );
 	m_cPicBufferUnusedList.pushBack( pcPicBuffer );
 
@@ -1210,10 +1206,6 @@ ErrVal FrameMng::xStoreCurrentPicture( const SliceHeader& rcSH )
   const PicType ePicType = rcSH.getPicType();
 	Frame* pcBaseFrame = m_pcCurrentFrameUnit->getPic( ePicType );
 	PicBuffer cTempPicBuffer( pcBaseFrame->getFullPelYuvBuffer()->getBuffer() );
-
-  // Base layer
-  m_pcCurrentFrameUnit->getFGSReconstruction(0)->load(& cTempPicBuffer);
-  m_pcCurrentFrameUnit->setFGSReconCount(1);
 
   const Bool bFieldCoded = rcSH.getFieldPicFlag()? true : rcSH.isMbAff();
 

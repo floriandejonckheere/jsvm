@@ -128,7 +128,6 @@ class ParameterSetMng;
 class ControlMngH264AVCEncoder;
 class MotionEstimation;
 class IntFrame;
-class RQFGSEncoder;
 //JVT-U106 Behaviour at slice boundaries{
 class ReconstructionBypass;
 //JVT-U106 Behaviour at slice boundaries}
@@ -261,7 +260,6 @@ public:
                                       LayerParameters*                pcLayerParameters,
                                       H264AVCEncoder*                 pcH264AVCEncoder,
                                       SliceEncoder*                   pcSliceEncoder,
-                                      RQFGSEncoder*                   pcRQFGSEncoder,
                                       LoopFilter*                     pcLoopFilter,
                                       PocCalculator*                  pcPocCalculator,
                                       NalUnitEncoder*                 pcNalUnitEncoder,
@@ -302,12 +300,11 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 									                  );
   ErrVal        finish              ( UInt&                           ruiNumCodedFrames,
                                       Double&                         rdOutputRate,
-                                      Double*                         rdOutputFramerate,
-                                      Double*                         rdOutputBitrate,
-                                      Double                          aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
+                                      Double                          aaadOutputFramerate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
+                                      const Double                    aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 
 // BUG_FIX liuhui{
-  ErrVal        SingleLayerFinish(   Double                           aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
+  ErrVal        SingleLayerFinish(   const Double                     aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
                                      Double                           aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 // BUG_FIX liuhui}
 
@@ -354,7 +351,6 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 
 		UInt          getNewBits          ()  { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
 		UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
-		Void          setScalableLayer    (UInt p)	{ m_uiScalableLayerId = p; }
 		UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
 
 		IntFrame*     getMGSLPRec         ();
@@ -366,8 +362,6 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   Int                     getSpatialScalabilityType() { return m_pcResizeParameters->m_iSpatialScalabilityType; }
   ResizeParameters*       getResizeParameters()       { return m_pcResizeParameters; }
 
-  Bool          getUseDiscardableUnit() { return m_bUseDiscardableUnit;} //JVT-P031
-  Void          setDiscardableUnit( Bool b) {m_bUseDiscardableUnit = b;} //JVT-P031
   Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
   //Bug_Fix JVT-R057{
   Bool              getLARDOEnable( ){ return m_bLARDOEnable; }
@@ -408,10 +402,7 @@ protected:
 
   ErrVal  xInitExtBinDataAccessor       ( ExtBinDataAccessor&         rcExtBinDataAccessor );
   ErrVal  xAppendNewExtBinDataAccessor  ( ExtBinDataAccessorList&     rcExtBinDataAccessorList,
-                                          ExtBinDataAccessor*         pcExtBinDataAccessor,
-                                          Bool                        bModifyDataAccessor = true );
-
-
+                                          ExtBinDataAccessor*         pcExtBinDataAccessor );
   
   //===== decomposition / composition =====
   ErrVal  xMotionEstimationFrame        ( UInt                        uiBaseLevel,
@@ -551,23 +542,6 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           PicOutputDataList&          rcPicOutputDataList,
 																					PicType                     ePicType );
 
-  ErrVal  xEncodeFGSLayer               ( ExtBinDataAccessorList&     rcOutExtBinDataAccessorList,
-                                          ControlData&                rcControlData,
-                                          IntFrame*                   pcFrame,
-                                          IntFrame*                   pcResidual,
-                                          IntFrame*                   pcPredSignal,
-                                          IntFrame*                   pcTempFrame,
-                                          IntFrame*                   pcSubband,
-                                          IntFrame*                   pcCLRec,
-                                          UInt                        uiFrameIdInGOP,
-                                          IntFrame*                   pcOrgFrame,
-                                          IntFrame*                   pcHighPassPredSignal,
-                                          RefFrameList&               rcRefFrameList0,
-                                          RefFrameList&               rcRefFrameList1,
-                                          UInt&                       ruiBits,
-                                          PicOutputDataList&          rcPicOutputDataList,
-																					PicType                     ePicType  );
-
 
   //===== motion estimation / compensation =====
   ErrVal  xMotionCompensation           ( IntFrame*                   pcMCFrame,
@@ -678,12 +652,6 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
    //===== ESS =====
    ErrVal		xFillPredictionLists_ESS( UInt uiBaseLevel , UInt uiFrame );
 
-  ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
-                                          IntFrame*                   baseFrame,  
-                                          IntFrame*                   enhFrame,
-                                          YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
-  ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
-
   UInt				getPreAndSuffixUnitEnable()	{return m_uiPreAndSuffixUnitEnable;} //JVT-S036 lsj 
 	UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
 
@@ -727,7 +695,6 @@ protected:
   LoopFilter*                   m_pcLoopFilter;
   QuarterPelFilter*             m_pcQuarterPelFilter;
   MotionEstimation*             m_pcMotionEstimation;
-  RQFGSEncoder*                 m_pcRQFGSEncoder;
 
   //----- fixed control parameters ----
   Bool                          m_bTraceEnable;                       // trace file
@@ -761,7 +728,6 @@ protected:
   Double                        m_adBaseQpLambdaMotion[MAX_DSTAGES];  // base QP's for mode decision and motion estimation
   Double                        m_dBaseQpLambdaMotionLP;
   Double                        m_dBaseQPResidual;                    // base residual QP
-  Double                        m_dNumFGSLayers;                      // number of FGS layers
 
   UInt                          m_uiFilterIdc;                        // de-blocking filter idc
   Int                           m_iAlphaOffset;                       // alpha offset for de-blocking filter
@@ -770,8 +736,6 @@ protected:
   Bool                          m_bLoadMotionInfo;                    // load motion data from file
   Bool                          m_bSaveMotionInfo;                    // save motion data to file
   FILE*                         m_pMotionInfoFile;                    // motion data file
-
-  UInt                          m_uiFGSMotionMode;                    // 0: no FGS motion refinement, 1: only non-key framees, 2: for all frames
 
   //----- variable control parameters -----
   Bool                          m_bInitDone;                          // initilisation
@@ -824,36 +788,9 @@ protected:
   Double                        m_adPSNRSumV        [MAX_DSTAGES+1];
   UInt m_auiCurrGOPBits     [ MAX_SCALABLE_LAYERS ];
   Double m_adSeqBits        [ MAX_SCALABLE_LAYERS ];
-  //----- FGS -----
-  UInt                          m_uiFGSMode;
-  FILE*                         m_pFGSFile;
-  Double                        m_dFGSCutFactor;
-  Double                        m_dFGSBitRateFactor;
-  Double                        m_dFGSRoundingOffset;
-  Int                           m_iLastFGSError;
-  UInt                          m_uiNotYetConsideredBaseLayerBits;
-  Bool                          m_bExtendedPriorityId;
 
- //----- ESS -----
+  //----- ESS -----
   ResizeParameters*				m_pcResizeParameters; 
-
-  UInt                          m_uiBaseWeightZeroBaseBlock;
-  UInt                          m_uiBaseWeightZeroBaseCoeff;
-  UInt                          m_uiFgsEncStructureFlag;
-  UInt                          m_uiNumLayers[2];
-  IntFrame*                     m_aapcFGSRecon[2][MAX_FGS_LAYERS+1];             // previous low-pass base layer reconstruction
-
-  IntFrame*                     m_aapcFGSPredFrame;     
-
-  Double                        m_dLowPassEnhRef;
-  UInt                          m_uiLowPassFgsMcFilter;
-
-  //JVT-P031
-  Bool                          m_bUseDiscardableUnit;
-  Double                        m_dPredFGSCutFactor;
-  Double                        m_dPredFGSBitRateFactor;
-  Int                           m_iPredLastFGSError;
-  Double                        m_dPredFGSRoundingOffset;
 
   UInt                          m_uiPaff;
   Bool*                         m_pbFieldPicFlag;
@@ -920,8 +857,6 @@ protected:
   Bool    m_bExplicitQPCascading;
   Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
 
-  Bool    m_bUseSmoothedRef;//JVT-V058
-
 // JVT-V068 HRD {
   StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* m_apcScheduler;
   ParameterSetMng* m_pcParameterSetMng;
@@ -934,8 +869,8 @@ protected:
 	
 	//JVT-W051 {
 public:
-	Double	m_aadFrameBits[MAX_FGS_LAYERS+1];
-	Double	m_aadAvgBitrate[MAX_FGS_LAYERS+1];
+	Double	m_dFrameBits;
+	Double	m_dAvgBitrate;
 	UInt		m_uiProfileIdc;
 	UInt		m_uiLevelIdc;
 	Bool		m_bConstraint0Flag;

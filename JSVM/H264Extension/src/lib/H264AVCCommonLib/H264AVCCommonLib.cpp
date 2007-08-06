@@ -85,7 +85,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib.h"
 
-H264AVCCOMMONLIB_API UInt g_nSymbolCounter[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+H264AVCCOMMONLIB_API UInt g_nSymbolCounter[16] = { 0,0,0,0,  0,0,0,0,  0,0,0,0,  0,0,0,0 };
 H264AVCCOMMONLIB_API UInt g_nLayer = 0;
 
 

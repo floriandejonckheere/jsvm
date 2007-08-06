@@ -171,7 +171,7 @@ protected:
 public:
   static ErrVal Create         ( ScalableSEIModifyCode*& rpcScalableSEIModifyCode );	
 	ErrVal Destroy               ();
-	ErrVal init                  ( ULong* pulStream );
+	ErrVal init                  ( ULong* pulStream, UInt uiBytes );
 	ErrVal Uninit                ();
   ErrVal Write                 ( UInt uiBits, UInt uiNumberOfBits );
 	ErrVal WriteUVLC             ( UInt uiValue );

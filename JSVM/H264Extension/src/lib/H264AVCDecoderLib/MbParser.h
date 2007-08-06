@@ -164,10 +164,8 @@ protected:
   ErrVal xReadIntraPredModes          ( MbDataAccess& rcMbDataAccess );
 
 	//-- JVT-R091
-	ErrVal xReadTextureInfo             ( MbDataAccess& rcMbDataAccess, Bool bTrafo8x8Flag, Bool bBaseLayerAvailable ); //TMM_INTERLACE
-  //--
-
-  ErrVal xScanChromaBlocks            ( MbDataAccess& rcMbDataAccess, UInt uiChromCbp );
+  ErrVal xReadTextureInfo             ( MbDataAccess& rcMbDataAccess, Bool bTrafo8x8Flag, Bool bBaseLayerAvailable, UInt uiStart = 0, UInt uiStop = 16 ); //TMM_INTERLACE
+  ErrVal xScanChromaBlocks            ( MbDataAccess& rcMbDataAccess, UInt uiChromCbp, UInt uiStart = 0, UInt uiStop = 16 );
 
   ErrVal xReadMotionVectors           ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );
   ErrVal xReadReferenceFrames         ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );

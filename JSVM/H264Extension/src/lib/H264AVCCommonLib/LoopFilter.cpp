@@ -222,7 +222,8 @@ ErrVal LoopFilter::destroy()
 
 ErrVal LoopFilter::init(  ControlMngIf*         pcControlMngIf,
                           ReconstructionBypass* pcReconstructionBypass
-                        )
+                         ,Bool                   bEncoder
+                         )
 {
   ROT( NULL == pcControlMngIf );
   ROT( NULL == pcReconstructionBypass );
@@ -230,7 +231,7 @@ ErrVal LoopFilter::init(  ControlMngIf*         pcControlMngIf,
 
   m_pcControlMngIf  = pcControlMngIf;
   m_pcHighpassFrame = NULL;
-
+  m_bEncoder = bEncoder;
   return Err::m_nOK;
 }
 
@@ -300,6 +301,8 @@ ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPi
       rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress                           );
 
 		  RNOK( m_pcControlMngIf->initMbForFiltering( pcMbDataAccess, uiMbY, uiMbX, bMbAff ) );
+
+      RNOK( xRecalcCBP( *pcMbDataAccess ) );
 
 		  if ( ! bMbAff && ! m_bRCDO )
 		  {
@@ -3286,7 +3289,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
                             UInt          uiMbInRow,
                             RefFrameList* pcRefFrameList0,
                             RefFrameList* pcRefFrameList1,			
-							bool		  bAllSliceDone, 
+                            bool		  bAllSliceDone, 
                             bool          spatial_scalable_flg)
 {
   bool enhancedLayerFlag = (rcSH.getLayerId()>0) ; //V032 FSL added for disabling chroma deblocking
@@ -3397,11 +3400,10 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
       {
         m_pcHighpassYuvBuffer = NULL;
       } 
-    
-	  
+
       if( 0 == (m_eLFMode & LFM_NO_FILTER))
       {				
-
+        RNOK( xRecalcCBP( *pcMbDataAccessRes ) );
   		  RNOK( xFilterMb( pcMbDataAccessMot,
                          pcMbDataAccessRes,
                          apcFrame        [ eMbPicType ]->getFullPelYuvBuffer(),
@@ -3533,7 +3535,7 @@ __inline ErrVal LoopFilter::xFilterMb( MbDataAccess*        pcMbDataAccessMot,
     }
   }
   m_bAddEdge = false;
-
+  
   for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
   {
     if( !b8x8 || ( ( cIdx.x() & 1 ) == 0 ) )
@@ -3805,7 +3807,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
   ROTRS( rcMbDataCurrRes.is4x4BlkResidual( cIdx     ), 2 );
   ROTRS( rcMbDataLeftRes.is4x4BlkResidual( cIdxLeft ), 2 ); 
 
-    ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
+  ROTRS( rcMbDataCurrRes.is4x4BlkCoded( cIdx                          ), 2 );
   ROTRS( rcMbDataLeftRes.is4x4BlkCoded( cIdxLeft ), 2 );
   
   return 1;

@@ -228,8 +228,6 @@ public:
 // JVT-V068 HRD }
 	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
 	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }
-	Double* dGetFramerate				()			 { return m_dFinalFramerate; }
-	Double* dGetBitrate					()			 { return m_dFinalBitrate; }
 	Double m_aaauidSeqBits [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 // BUG_FIX liuhui{
 	UInt   getScalableLayerId( UInt uiLayer, UInt uiTempLevel, UInt uiFGS ) const { return m_aaauiScalableLayerId[uiLayer][uiTempLevel][uiFGS]; }
@@ -312,8 +310,10 @@ protected:
   Bool                              m_bTraceEnable;
 
 	Bool															m_bScalableSeiMessage;
-  Double														m_dFinalBitrate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
-	Double														m_dFinalFramerate[MAX_LAYERS * MAX_DSTAGES * MAX_QUALITY_LEVELS];
+public:
+	Double														m_aaadFinalFramerate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+  Double                            m_aaadSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
+protected:
   MCTFEncoder*                      m_apcMCTFEncoder    [MAX_LAYERS];
   AccessUnitList                    m_cAccessUnitList;
 
@@ -327,10 +327,10 @@ protected:
 	//JVT-W051 {
 	UInt m_uiFrameNumInGOP[MAX_LAYERS];
 	UInt m_uiCodeFrameNum[MAX_LAYERS];
-	Double	m_aaadFrameInGOPBits[65][MAX_LAYERS][MAX_FGS_LAYERS+1];
+	Double	m_aaadFrameInGOPBits[65][MAX_LAYERS][MAX_QUALITY_LEVELS];
 	Double	***m_aaadFrameInTimeWindowBits;
-	Double	m_aadAvgBitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
-	Double	m_aadMaxBitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
+	Double	m_adAvgBitrate[MAX_LAYERS];
+	Double	m_aadMaxBitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
 	UInt		m_uiProfileIdc[MAX_LAYERS];
 	UInt		m_uiLevelIdc[MAX_LAYERS];
 	Bool		m_bConstraint0Flag[MAX_LAYERS];

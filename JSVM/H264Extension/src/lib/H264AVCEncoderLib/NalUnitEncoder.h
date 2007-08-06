@@ -117,14 +117,18 @@ public:
 
   ErrVal initNalUnit      ( BinDataAccessor*            pcBinDataAccessor );
   ErrVal closeNalUnit     ( UInt&                       ruiBits );
+  ErrVal closeAndAppendNalUnits( UInt                    *pauiBits,
+                                 ExtBinDataAccessorList  &rcExtBinDataAccessorList,
+                                 ExtBinDataAccessor      *pcExtBinDataAccessor,
+                                 BinData                 &rcBinData,
+                                 H264AVCEncoder          *pcH264AVCEncoder,
+                                 UInt                    uiQualityLevelCGSSNR,
+                                 UInt                    uiLayerCGSSNR );
 
   ErrVal write            ( const SequenceParameterSet& rcSPS );
   ErrVal write            ( const PictureParameterSet&  rcPPS );
   ErrVal write            ( const SliceHeader&          rcSH  );
   ErrVal write            ( SEI::MessageList&           rcSEIMessageList );
-
-  ErrVal terminateMultiFragments  ( UInt& ruiBits );
-  ErrVal attachFragmentData       ( UInt& ruiBits, UInt uiStartPos, UInt uiEndPos );
 
 //JVT-T073 {
   ErrVal writeNesting     ( SEI::MessageList&           rcSEIMessageList );
@@ -133,10 +137,13 @@ public:
   ErrVal writeScalableNestingSei     ( SEI::MessageList&           rcSEIMessageList );
 //JVT-V068 }
 
+  static ErrVal convertRBSPToPayload( UInt  &ruiBytesWritten,
+                                      UInt   uiHeaderBytes,
+                                      UChar *pcPayload,
+                                      const UChar *pcRBSP,
+                                      UInt   uiPayloadBufferSize );
 protected:
-  ErrVal xConvertRBSPToPayload( UInt& ruiBytesWritten,
-                                UInt  uiHeaderBytes );
-  ErrVal xWriteTrailingBits   ( UInt  uiFixedNumberOfBits = 0);
+  ErrVal xWriteTrailingBits();
 
 protected:
   Bool                  m_bIsUnitActive;

@@ -344,6 +344,12 @@ ErrVal ControlMngH264AVCEncoder::initSliceForCoding( const SliceHeader& rcSH )
   }
 
   RNOK( m_pcMbSymbolWriteIf   ->startSlice( rcSH ) );
+  MbSymbolWriteIf *pcCurrentWriter = m_pcMbSymbolWriteIf;
+  for( UInt uiMGSFragments = 0; rcSH.getSPS().getMGSCoeffStop( uiMGSFragments ) < 16; uiMGSFragments++ )
+  {
+    pcCurrentWriter = pcCurrentWriter->getSymbolWriteIfNextSlice();
+    RNOK( pcCurrentWriter->startSlice( rcSH ) );
+  }
   RNOK( m_pcMbEncoder         ->initSlice ( rcSH ) )
   RNOK( m_pcMbCoder           ->initSlice ( rcSH, m_pcMbSymbolWriteIf, m_pcRateDistortion ) );
   RNOK( m_pcMotionEstimation  ->initSlice ( rcSH ) );

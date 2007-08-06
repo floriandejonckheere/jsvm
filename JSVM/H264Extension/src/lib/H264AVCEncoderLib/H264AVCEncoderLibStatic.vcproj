@@ -286,26 +286,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="FGSSubbandEncoder.cpp">
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="GOPEncoder.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
@@ -635,9 +615,6 @@
 			</File>
 			<File
 				RelativePath="DistortionIf.h">
-			</File>
-			<File
-				RelativePath="FGSSubbandEncoder.h">
 			</File>
 			<File
 				RelativePath="GOPEncoder.h">

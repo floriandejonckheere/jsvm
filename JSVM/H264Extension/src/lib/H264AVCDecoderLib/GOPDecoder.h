@@ -451,10 +451,6 @@ public:
   Void				setWaitForIdr(Bool b)	{ m_bWaitForIdr = b;}
   Bool				getWaitForIdr()			{ return m_bWaitForIdr;}
 
-  ErrVal            setDiffPrdRefLists  ( RefFrameList&               diffPrdRefList,
-                                          YuvBufferCtrl*              pcYuvFullPelBufferCtrl);
-  ErrVal            freeDiffPrdRefLists ( RefFrameList& diffPrdRefList);
-
   MbDataCtrl*   getBaseMbDataCtrl() {return m_pcBaseMbDataCtrl;}
   Void          setBaseMbDataCtrl(MbDataCtrl* pcMbDataCtrl) {m_pcBaseMbDataCtrl = pcMbDataCtrl;}
 
@@ -464,9 +460,6 @@ public:
 ErrVal        setILPrediction(IntFrame * pcFrame, PicType ePicType);
 ErrVal        ReconstructLastFGS             ( Bool                          bHighestLayer, Bool bHighestMGSLayer );
 DPBUnit*      getLastDPBUnit() { return m_pcDecodedPictureBuffer->getLastUnit();}
-RQFGSDecoder* getRQFGSDecoder() { return m_pcRQFGSDecoder; }
-Void          setRQFGSDecoder(RQFGSDecoder* pcRQFGSDecoder) { m_pcRQFGSDecoder = pcRQFGSDecoder;}
-IntFrame*     getPredSignal() {return m_pcPredSignal;}
 //JVT-T054}
 DecodedPicBuffer* getDecodedPicBuffer() { return m_pcDecodedPictureBuffer; } //JVT-W047
 
@@ -509,7 +502,6 @@ protected:
 	  PicBufferList&                rcUnusedList,
 	  Bool                          bReconstructionLayer );
 //TMM_EC}}
-  ErrVal      xDecodeFGSRefinement            ( SliceHeader*&                 rpcSliceHeader );
   ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer, Bool bHighestMGSLayer ); //JVT-T054
   ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,
                                                 RefFrameList&                 rcRefFrameList0,
@@ -594,7 +586,7 @@ protected:
   
 //JVT-T054{
   Bool                m_bAVCBased;
-  ResizeParameters*   m_pcResizeParameterCGSSNR[MAX_FGS_LAYERS+1];
+  ResizeParameters*   m_pcResizeParameterCGSSNR[MAX_QUALITY_LEVELS+1];
   //JVT-T054}
   // TMM_ESS 
   ResizeParameters*   m_pcResizeParameter;

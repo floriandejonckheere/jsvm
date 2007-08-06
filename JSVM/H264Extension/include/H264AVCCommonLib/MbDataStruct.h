@@ -227,11 +227,6 @@ public:
 	Void    setFieldFlag          ( Bool b )  { m_bFieldFlag = b; }
   Bool    getFieldFlag          () const    { return m_bFieldFlag; }
   
-  //-- JVT-R091
-  Void    setSmoothedRefFlag    ( Bool b )  { m_bSmoothedRefFlag = b;			}
-  Bool    getSmoothedRefFlag    () const    { return m_bSmoothedRefFlag;	}
-	//--
-
 public:
   UInt    m_uiSliceId;
   Bool    m_bBLSkipFlag;
@@ -253,10 +248,6 @@ public:
   Bool    m_bFieldFlag;
 
 	UInt m_uiMbCbpResidual;
-	
-	//-- JVT-R091
-	Bool		m_bSmoothedRefFlag;		// indicates if the smoothed reference mode is used
-	//--
 
 public:
   static const UChar m_aucACTab[7];

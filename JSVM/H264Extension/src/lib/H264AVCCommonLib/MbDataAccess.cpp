@@ -271,6 +271,130 @@ Void MbDataAccess::xGetMvPredictor( Mv& rcMvPred, SChar scRef, ListIdx eListIdx,
 }
 
 
+
+UInt MbDataAccess::getCtxCoeffCount( LumaIdx cIdx, UInt uiStart, UInt uiStop )  const
+{
+  Bool bLeftAvailable = false;
+  UInt uiCoeffCount   = 0;
+
+  {
+    B4x4Idx cIdxL( cIdx.b4x4() );
+    const MbData& rcMbDataLeft = xGetBlockLeft( cIdxL );
+
+    if( xIsAvailable( rcMbDataLeft ) )
+    {
+      bLeftAvailable = true;
+      if( uiStart == 0 && uiStop == 16 )
+      {
+        uiCoeffCount = rcMbDataLeft.getMbTCoeffs().getCoeffCount( cIdxL );
+      }
+      else
+      {
+        uiCoeffCount = rcMbDataLeft.getMbTCoeffs().calcCoeffCount( cIdxL, rcMbDataLeft.isTransformSize8x8(),
+                                                                  rcMbDataLeft.getFieldFlag(),
+                                                                  rcMbDataLeft.isIntra16x16() ? max( 1, uiStart) : uiStart,
+                                                                  uiStop );
+      }
+    }
+  }
+
+  const MbData& rcMbDataAbove = xGetBlockAbove( cIdx );
+  if( xIsAvailable( rcMbDataAbove ) )
+  {
+    if( uiStart == 0 && uiStop == 16 )
+    {
+      uiCoeffCount += rcMbDataAbove.getMbTCoeffs().getCoeffCount( cIdx );
+    }
+    else
+    {
+      uiCoeffCount += rcMbDataAbove.getMbTCoeffs().calcCoeffCount( cIdx, rcMbDataAbove.isTransformSize8x8(),
+                                                                   rcMbDataAbove.getFieldFlag(),
+                                                                   rcMbDataAbove.isIntra16x16() ? max( 1, uiStart) : uiStart,
+                                                                   uiStop );
+    }
+    if( bLeftAvailable )
+    {
+      uiCoeffCount  += 1;
+      uiCoeffCount >>= 1;
+    }
+  }
+
+  if( 4 > uiCoeffCount )
+  {
+    uiCoeffCount >>= 1;
+  }
+  else
+  {
+    uiCoeffCount = ( 8 > uiCoeffCount) ? 2 : 3;
+  }
+
+  return uiCoeffCount;
+}
+
+
+UInt MbDataAccess::getCtxCoeffCount( ChromaIdx cIdx, UInt uiStart, UInt uiStop )  const
+{
+  Bool bLeftAvailable = false;
+  UInt uiCoeffCount     = 0;
+
+  B4x4Idx       cLumIdx( m_aucChroma2LumaIdx[ cIdx ] );
+  Int           iComp = ( cIdx >> 2) << 2;
+
+  {
+    B4x4Idx cLumIdxL = cLumIdx;
+    const MbData& rcMbDataLeft = xGetBlockLeft( cLumIdxL );
+
+    if( xIsAvailable( rcMbDataLeft ) )
+    {
+      bLeftAvailable = true;
+      if( uiStart == 0 && uiStop == 16 )
+      {
+        uiCoeffCount += rcMbDataLeft.getMbTCoeffs().getCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdxL.b4x4() ] ) );
+      }
+      else
+      {
+        uiCoeffCount = rcMbDataLeft.getMbTCoeffs().calcCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdxL.b4x4() ] ),
+                                                                  rcMbDataLeft.getFieldFlag() ? g_aucFieldScan : g_aucFrameScan,
+                                                                  uiStart,
+                                                                  uiStop );
+      }
+    }
+  }
+
+  const MbData& rcMbDataAbove = xGetBlockAbove( cLumIdx );
+  if( xIsAvailable( rcMbDataAbove ) )
+  {
+    if( uiStart == 0 && uiStop == 16 )
+    {
+      uiCoeffCount += rcMbDataAbove.getMbTCoeffs().getCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdx.b4x4() ] ) );
+    }
+    else
+    {
+      uiCoeffCount += rcMbDataAbove.getMbTCoeffs().calcCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdx.b4x4() ] ),
+                                                                  rcMbDataAbove.getFieldFlag() ? g_aucFieldScan : g_aucFrameScan,
+                                                                  uiStart,
+                                                                  uiStop );
+    }
+    if( bLeftAvailable )
+    {
+      uiCoeffCount  += 1;
+      uiCoeffCount >>= 1;
+    }
+  }
+
+  if( 4 > uiCoeffCount )
+  {
+    uiCoeffCount >>= 1;
+  }
+  else
+  {
+    uiCoeffCount = ( 8 > uiCoeffCount) ? 2 : 3;
+  }
+
+  return uiCoeffCount;
+}
+
+
 Void MbDataAccess::xSetMvPredictorsBL( const Mv& rcMvPredBL, ListIdx eListIdx, LumaIdx cIdx, LumaIdx cIdxEnd )
 {
   const Bool bCurrentFieldFlag = m_rcMbCurr.getFieldFlag();

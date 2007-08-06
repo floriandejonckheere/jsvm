@@ -154,56 +154,6 @@ ErrVal QuarterPelFilter::uninit()
 const Int g_aiTapCoeff[6] = { 1, -5,20,20,-5, 1};
 
 
-extern Int  giInterpolationType;
-
-
-Void predBlkBilinear( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX )
-{
-  Pel* pucDes     = pcDesBuffer->getYBlk( cIdx );
-  Pel* pucSrc     = pcSrcBuffer->getYBlk( cIdx );
-  Int iDesStride  = pcDesBuffer->getLStride();
-  Int iSrcStride  = pcSrcBuffer->getLStride();
-  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
-
-  pucSrc += iOffset;
-
-  Int iDx = cMv.getHor() & 3;
-  Int iDy = cMv.getVer() & 3;
-
-  if( iDx == 0 && iDy == 0 )
-  {
-    for( Int y = 0; y < iSizeY; y++)
-    {
-      for( Int x = 0; x < iSizeX; x++ )
-        pucDes[x] = pucSrc[x];
-
-      pucDes += iDesStride;
-      pucSrc += iSrcStride;
-    }
-  }
-  else
-  {
-    // normal bilinear interpolation
-    for( Int y = 0; y < iSizeY; y++)
-    {
-      for( Int x = 0; x < iSizeX; x++ )
-      {
-        Int iTemp;
-
-        iTemp = 
-          (pucSrc[x]              * (4 - iDx) + pucSrc[x + 1]              * iDx) * (4 - iDy) + 
-          (pucSrc[iSrcStride + x] * (4 - iDx) + pucSrc[iSrcStride + x + 1] * iDx) * iDy;
-
-        pucDes[x] = (iTemp >= 0) ? ( (iTemp + 8) >> 4 ) : -( (-iTemp + 8) >> 4 );
-      }
-
-      pucDes += iDesStride;
-      pucSrc += iSrcStride;
-    }
-  }
-}
-
-
 Void QuarterPelFilter::predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
 {
   if( m_b4Tap )   // V090
@@ -1681,98 +1631,6 @@ Void QuarterPelFilter::predBlkSR( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* 
 }
 
 
-Void QuarterPelFilter::predBlkBilinear( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
-{
-  XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
-  XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );
-  Int iDesStride  = pcDesBuffer->getLStride();
-  Int iSrcStride  = pcSrcBuffer->getLStride();
-  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
-
-  pucSrc += iOffset;
-
-  Int iDx = cMv.getHor() & 3;
-  Int iDy = cMv.getVer() & 3;
-
-  if( iDx == 0 && iDy == 0 )
-  {
-    for( Int y = 0; y < iSizeY; y++)
-    {
-      for( Int x = 0; x < iSizeX; x++ )
-        pucDes[x] = pucSrc[x];
-
-      pucDes += iDesStride;
-      pucSrc += iSrcStride;
-    }
-  }
-  else
-  {
-    for( Int y = 0; y < iSizeY; y++)
-    {
-      for( Int x = 0; x < iSizeX; x++ )
-      {
-        Int iSum = 
-          (pucSrc[x]              * (4 - iDx) + pucSrc[x + 1]              * iDx) * (4 - iDy) + 
-          (pucSrc[iSrcStride + x] * (4 - iDx) + pucSrc[iSrcStride + x + 1] * iDx) * iDy;
-
-        pucDes[x] = ( iSum >= 0 ) ? ( ( iSum + 8 ) >> 4 ) : -( ( -iSum + 8 ) >> 4 );
-      }
-
-      pucDes += iDesStride;
-      pucSrc += iSrcStride;
-    }
-  }
-}
-
-
-Void QuarterPelFilter::predBlk4Tap( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
-{
-  XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
-  XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );
-  Int iDesStride  = pcDesBuffer->getLStride();
-  Int iSrcStride  = pcSrcBuffer->getLStride();
-  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
-
-  pucSrc += iOffset;
-
-  Int iDx = cMv.getHor() & 3;
-  Int iDy = cMv.getVer() & 3;
-  static int f4tap[4][4] = {
-    { 0, 16,  0,  0}, 
-    {-2, 14,  5, -1},
-    {-2, 10, 10, -2},
-    {-1,  5, 14, -2}
-  };
-
-  for( Int y = 0; y < iSizeY; y++)
-  {
-    for( Int x = 0; x < iSizeX; x++ )
-    {
-      Int iTemp1[4], iTemp2;
-      int i, j;
-
-      for( i = 0; i < 4; i++ )
-      {
-        iTemp1[i] = 0;
-        for( j = 0; j < 4; j++ )
-          iTemp1[i] += pucSrc[x + (i - 1) * iSrcStride + j - 1] * f4tap[iDx][j];
-      }
-
-      iTemp2 = 0;
-      for(j=0;j<4;j++)
-        iTemp2 += iTemp1[j] * f4tap[iDy][j];
-
-      if( m_bClip )
-        pucDes[x] = xClip( (iTemp2 + 128) >> 8 );
-      else
-        pucDes[x] = (iTemp2 >= 0) ? ( (iTemp2 + 128) >> 8 ) : -( (-iTemp2 + 128) >> 8 );
-    }
-
-    pucDes += iDesStride;
-    pucSrc += iSrcStride;
-  }
-}
-
 
 Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
 {
@@ -1784,17 +1642,6 @@ Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pc
   if( m_bRCDO )
   {
     predBlkRCDO( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
-    return;
-  }
-
-  if( giInterpolationType == AR_FGS_MC_INTERP_BILINEAR )
-  {
-    predBlkBilinear(pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX);
-    return;
-  }
-  else if( giInterpolationType == AR_FGS_MC_INTERP_4_TAP )
-  {
-    predBlk4Tap(pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX);
     return;
   }
 

@@ -216,6 +216,7 @@ public:
 
 public:
 
+  const UInt      getMbAddress          ()    const { return getSH().getSPS().getFrameWidthInMbs() * getMbY() + getMbX(); }
   const MbData&   getMbData             ()    const { return m_rcMbCurr; }
   MbData&         getMbData             ()          { return m_rcMbCurr; }
   const MbData&   getMbDataCurr         ()    const { return m_rcMbCurr; }
@@ -272,7 +273,7 @@ public:
     if (getMbDataAccessBase() != NULL)
     {
       Bool slice_flag = getSH().getPicCoeffResidualPredFlag( );
-      return slice_flag && !getMbData().isIntra() && ! (getMbDataAccessBase()->getMbData().isIntra());
+      return slice_flag && !getMbData().isIntra_nonBL() && !getMbDataAccessBase()->getMbData().isIntra_nonBL();
     }
     return false;
 
@@ -282,8 +283,8 @@ public:
     if (getMbDataAccessBase() != NULL)
     {
       Bool slice_flag = getSH().getPicCoeffResidualPredFlag( );
-      if (slice_flag)
-        return (getMbData().isIntra() || getMbDataAccessBase()->getMbData().isIntra() );
+      // is this correct???
+      return slice_flag && ( getMbData().isIntra_nonBL() || getMbDataAccessBase()->getMbData().isIntra_nonBL() );
     }
 
     return false;
@@ -338,26 +339,26 @@ public:
   	return getSH().getBaseLayerUsesConstrainedIntraPred();
   }
 
-  Bool useSmoothedRef() { return getSH().getUseSmoothedRef();}//JVT-V058
-
   UInt getCtxChromaPredMode ()                  const;
-  UInt getCtxCoeffCount     ( LumaIdx cIdx )    const;
-  UInt getCtxCoeffCount     ( ChromaIdx cIdx )  const;
+  UInt getCtxCoeffCount     ( LumaIdx cIdx, UInt uiStart, UInt uiStop )    const;
+  UInt getCtxCoeffCount     ( ChromaIdx cIdx, UInt uiStart, UInt uiStop )  const;
   UInt getCtxMbSkipped      ()                  const;
   UInt getCtxBLSkipFlag     ()                  const;
   UInt getCtxDirectMbWoCoeff()                  const;
-  UInt getCtxCodedBlockBit  ( UInt uiBitPos )   const;
+  UInt getCtxCodedBlockBit  ( UInt uiBitPos, UInt uiStart = 0, UInt uiStop = 16 ) const;
   UInt getCtxRefIdx         ( ListIdx eLstIdx, ParIdx8x8 eParIdx ) const;
   UInt getCtxMbIntra4x4     ()                  const;
   UInt getCtxMbType         ()                  const;
+  UInt getCtx8x8Flag        ( UInt uiStart, UInt uiStop ) const;
   UInt getCtx8x8Flag        ()                  const;
 
   UInt  getCtxFieldFlag()  const; // TMM_INTERLACE
 
-  UInt  getLeftLumaCbp          ( LumaIdx cIdx )  const;
-  UInt  getAboveLumaCbp         ( LumaIdx cIdx )  const;
-  UInt  getLeftChromaCbp        ()                const;
-  UInt  getAboveChromaCbp       ()                const;
+  UInt  getLeftLumaCbp          ( LumaIdx cIdx, UInt uiStart, UInt uiStop )  const;
+  UInt  getAboveLumaCbp         ( LumaIdx cIdx, UInt uiStart, UInt uiStop )  const;
+  UInt  getLeftChromaCbp        ( UInt uiStart, UInt uiStop )  const;
+  UInt  getAboveChromaCbp       ( UInt uiStart, UInt uiStop )  const;
+
   UInt  getAutoCbp              ()                const;
 
   UInt  getLeftLumaCbpFGS       ( LumaIdx cIdx )  const;
@@ -435,8 +436,9 @@ protected:
   __inline const MbData& xGetBlockAboveLeft   ( LumaIdx&   cIdx ) const;
   __inline const MbData& xGetBlockAboveRight  ( LumaIdx&   cIdx ) const;
 
-  __inline UInt  xGetLeftCodedBlockBit    ( UInt uiBit   )  const;
-  __inline UInt  xGetAboveCodedBlockBit   ( UInt uiBit   )  const;
+  __inline UInt  xGetLeftCodedBlockBit    ( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const;
+  __inline UInt  xGetAboveCodedBlockBit   ( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const;
+
   __inline SChar xGetRefIdxLeft ( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
   __inline SChar xGetRefIdxAbove( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
   
@@ -474,8 +476,16 @@ protected:
   }
   Bool  xIsAvailableIntra( const MbData& rcMbData )  const
   {
-    Bool  bConstrainedIntraPred = m_rcSliceHeader.getPPS().getConstrainedIntraPredFlag();
-    return ( xIsAvailable( rcMbData ) && ( rcMbData.isIntra() || ! bConstrainedIntraPred ) );
+    if( !xIsAvailable( rcMbData ) )
+    {
+      return false;
+    }
+    if( !m_rcSliceHeader.getPPS().getConstrainedIntraPredFlag() )
+    {
+      return true;
+    }
+    Bool b = m_rcSliceHeader.getAVCRewriteFlag();
+    return b && rcMbData.isIntra() || !b && rcMbData.isIntra_nonBL();
   }
 
   __inline Bool xCheckMv (const Mv& rcMv) const
@@ -716,92 +726,6 @@ __inline Void MbDataAccess::getMvdAbove( Mv& rcMv, ListIdx eListIdx, LumaIdx cId
 }
 
 
-
-
-__inline UInt MbDataAccess::getCtxCoeffCount( LumaIdx cIdx )  const
-{
-  Bool bLeftAvailable = false;
-  UInt uiCoeffCount   = 0;
-
-  {
-    B4x4Idx cIdxL( cIdx.b4x4() );
-    const MbData& rcMbDataLeft = xGetBlockLeft( cIdxL );
-
-    if( xIsAvailable( rcMbDataLeft ) )
-    {
-      bLeftAvailable = true;
-      uiCoeffCount = rcMbDataLeft.getMbTCoeffs().getCoeffCount( cIdxL );
-    }
-  }
-
-  const MbData& rcMbDataAbove = xGetBlockAbove( cIdx );
-  if( xIsAvailable( rcMbDataAbove ) )
-  {
-    uiCoeffCount += rcMbDataAbove.getMbTCoeffs().getCoeffCount( cIdx );
-
-    if( bLeftAvailable )
-    {
-      uiCoeffCount  += 1;
-      uiCoeffCount >>= 1;
-    }
-  }
-
-  if( 4 > uiCoeffCount )
-  {
-    uiCoeffCount >>= 1;
-  }
-  else
-  {
-    uiCoeffCount = ( 8 > uiCoeffCount) ? 2 : 3;
-  }
-
-  return uiCoeffCount;
-}
-
-
-__inline UInt MbDataAccess::getCtxCoeffCount( ChromaIdx cIdx )  const
-{
-  Bool bLeftAvailable = false;
-  UInt uiCoeffCount     = 0;
-
-  B4x4Idx       cLumIdx( m_aucChroma2LumaIdx[ cIdx ] );
-  Int           iComp = ( cIdx >> 2) << 2;
-
-  {
-    B4x4Idx cLumIdxL = cLumIdx;
-    const MbData& rcMbDataLeft = xGetBlockLeft( cLumIdxL );
-
-    if( xIsAvailable( rcMbDataLeft ) )
-    {
-      bLeftAvailable = true;
-      uiCoeffCount = rcMbDataLeft.getMbTCoeffs().getCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdxL.b4x4() ] ) );
-    }
-  }
-
-  const MbData& rcMbDataAbove = xGetBlockAbove( cLumIdx );
-  if( xIsAvailable( rcMbDataAbove ) )
-  {
-    uiCoeffCount += rcMbDataAbove.getMbTCoeffs().getCoeffCount( CIdx( iComp + m_auc4x4Idx28x8Idx[ cLumIdx.b4x4() ] ) );
-    if( bLeftAvailable )
-    {
-      uiCoeffCount  += 1;
-      uiCoeffCount >>= 1;
-    }
-  }
-
-  if( 4 > uiCoeffCount )
-  {
-    uiCoeffCount >>= 1;
-  }
-  else
-  {
-    uiCoeffCount = ( 8 > uiCoeffCount) ? 2 : 3;
-  }
-
-  return uiCoeffCount;
-}
-
-
 __inline UInt MbDataAccess::getCtxChromaPredMode() const
 {
   UInt uiCtx;
@@ -907,6 +831,32 @@ __inline UInt MbDataAccess::getCtxMbType() const
 }
 
 
+__inline UInt MbDataAccess::getCtx8x8Flag( UInt uiStart, UInt uiStop ) const
+{
+  const MbData &rcLeft  = xGetMbLeft();
+  const MbData &rcAbove = xGetMbAbove();
+  UInt uiCtx = 0;
+  Bool bLeftTs8x8    = rcLeft.isTransformSize8x8();
+  Bool bLeftIntra4x4 = rcLeft.isIntra4x4();
+  Bool bLeftCoeff    = (rcLeft.calcMbCbp( uiStart, uiStop ) & 0x0F) != 0;
+  if( bLeftTs8x8 && (bLeftIntra4x4 || bLeftCoeff) )
+  {
+    uiCtx++;
+  }
+
+  Bool bAboveTs8x8    = rcAbove.isTransformSize8x8();
+  Bool bAboveIntra4x4 = rcAbove.isIntra4x4();
+  Bool bAboveCoeff    = (rcAbove.calcMbCbp( uiStart, uiStop ) & 0x0F) != 0;
+  if( bAboveTs8x8 && (bAboveIntra4x4 || bAboveCoeff) )
+  {
+    uiCtx++;
+  }
+
+  return uiCtx;
+}
+
+
+
 __inline UInt MbDataAccess::getCtx8x8Flag() const
 {
   UInt uiCtx = ( xGetMbLeft ().isTransformSize8x8() ? 1 : 0);
@@ -981,8 +931,7 @@ __inline UInt MbDataAccess::getCtxRefIdx( ListIdx eLstIdx, ParIdx8x8 eParIdx ) c
   return uiCtx;
 }
 
-
-__inline UInt MbDataAccess::getLeftLumaCbp( LumaIdx cIdx )  const
+__inline UInt MbDataAccess::getLeftLumaCbp( LumaIdx cIdx, UInt uiStart, UInt uiStop )  const
 {
   const MbData& rcMbData = xGetBlockLeft( cIdx );
 
@@ -992,12 +941,16 @@ __inline UInt MbDataAccess::getLeftLumaCbp( LumaIdx cIdx )  const
   }
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
+    if( uiStart != 0 || uiStop != 16 )
+    {
+      AOT( 1 );
+    }
     return rcMbData.isAcCoded() ? 1 : 0;
   }
-  return ( rcMbData.getMbCbp() >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
+  return ( rcMbData.calcMbCbp( uiStart, uiStop ) >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
 }
 
-__inline UInt MbDataAccess::getAboveLumaCbp( LumaIdx cIdx )  const
+__inline UInt MbDataAccess::getAboveLumaCbp( LumaIdx cIdx, UInt uiStart, UInt uiStop )  const
 {
   const MbData& rcMbData = xGetBlockAbove( cIdx );
 
@@ -1007,31 +960,43 @@ __inline UInt MbDataAccess::getAboveLumaCbp( LumaIdx cIdx )  const
   }
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
+    if( uiStart != 0 || uiStop != 16 )
+    {
+      ROT( 1 );
+    }
     return rcMbData.isAcCoded() ? 1 : 0;
   }
-  return ( rcMbData.getMbCbp() >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
+  return ( rcMbData.calcMbCbp( uiStart, uiStop ) >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
 }
 
-__inline UInt MbDataAccess::getLeftChromaCbp()  const
+__inline UInt MbDataAccess::getLeftChromaCbp( UInt uiStart, UInt uiStop )  const
 {
   const MbData& rcMbData = xGetMbLeft();
 
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
+    if( uiStart != 0 || uiStop != 16 )
+    {
+      ROT( 1 );
+    }
     return rcMbData.getCbpChroma16x16();
   }
-  return rcMbData.getMbCbp() >> 4;
+  return rcMbData.calcMbCbp( uiStart, uiStop ) >> 4;
 }
 
-__inline UInt MbDataAccess::getAboveChromaCbp()  const
+__inline UInt MbDataAccess::getAboveChromaCbp( UInt uiStart, UInt uiStop )  const
 {
   const MbData& rcMbData = xGetMbAbove();
 
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
+    if( uiStart != 0 || uiStop != 16 )
+    {
+      ROT( 1 );
+    }
     return rcMbData.getCbpChroma16x16();
   }
-  return rcMbData.getMbCbp() >> 4;
+  return rcMbData.calcMbCbp( uiStart, uiStop ) >> 4;
 }
 
 
@@ -1084,20 +1049,20 @@ __inline UInt MbDataAccess::getAboveChromaCbpFGS()  const
   return rcMbData.getMbCbp() >> 4;
 }
 
-
-__inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
+__inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const
 {
-  AOT_DBG( uiBit > 30 );
-  if( uiBit > 26 )
-  {
-    B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 27 ] );
-    const MbData& rcMbData  = xGetBlockLeft( cIdx );
-    if( ! xIsAvailable( rcMbData ) )
-    {
-      return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
-    }
-    return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
-  }
+  AOT( uiBit > 26 );
+//   AOT_DBG( uiBit > 30 );
+//   if( uiBit > 26 )
+//   {
+//     B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 27 ] );
+//     const MbData& rcMbData  = xGetBlockLeft( cIdx );
+//     if( ! xIsAvailable( rcMbData ) )
+//     {
+//       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+//     }
+//     return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
+//   }
 
   if( uiBit >= 24 ) // macroblock based stuff
   {
@@ -1106,7 +1071,7 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
     {
       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
     }
-    return rcMbData.getBCBP( uiBit );
+    return rcMbData.calcBCBP( uiStart, uiStop, uiBit );
   }
 
   if( uiBit < 16 ) // luma block based
@@ -1117,7 +1082,7 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
     {
       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
     }
-    return rcMbData.getBCBP( cIdx.b4x4() );
+    return rcMbData.calcBCBP( uiStart, uiStop, cIdx.b4x4() );
   }
   // chroma block based
   B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 16 ] );
@@ -1127,22 +1092,23 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit )  const
   {
     return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
   }
-  return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + iOffset );
+  return rcMbData.calcBCBP( uiStart, uiStop, m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + iOffset );
 }
 
-__inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
+__inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const
 {
-  AOT_DBG( uiBit > 30 );
-  if( uiBit > 26 )
-  {
-    B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 27 ] );
-    const MbData& rcMbData  = xGetBlockAbove( cIdx );
-    if( ! xIsAvailable( rcMbData ) )
-    {
-      return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
-    }
-    return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
-  }
+  AOT( uiBit > 26 );
+//   AOT_DBG( uiBit > 30 );
+//   if( uiBit > 26 )
+//   {
+//     B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 27 ] );
+//     const MbData& rcMbData  = xGetBlockAbove( cIdx );
+//     if( ! xIsAvailable( rcMbData ) )
+//     {
+//       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
+//     }
+//     return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
+//   }
 
   if( uiBit >= 24 ) // macroblock based stuff
   {
@@ -1151,7 +1117,7 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
     {
       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
     }
-    return rcMbData.getBCBP( uiBit );
+    return rcMbData.calcBCBP( uiStart, uiStop, uiBit );
   }
   if( uiBit < 16 ) // luma block based
   {
@@ -1161,7 +1127,7 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
     {
       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
     }
-    return rcMbData.getBCBP( cIdx.b4x4() );
+    return rcMbData.calcBCBP( uiStart, uiStop, cIdx.b4x4() );
   }
   // chroma block based
   B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 16 ] );
@@ -1171,15 +1137,16 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit )  const
   {
     return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
   }
-  return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + iOffset );
+  return rcMbData.calcBCBP( uiStart, uiStop, m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + iOffset );
 }
 
 
-__inline UInt MbDataAccess::getCtxCodedBlockBit( UInt uiBitPos ) const
+__inline UInt MbDataAccess::getCtxCodedBlockBit( UInt uiBitPos, UInt uiStart, UInt uiStop ) const
 {
   UInt uiCtx;
-  uiCtx  = xGetLeftCodedBlockBit ( uiBitPos );
-  uiCtx += xGetAboveCodedBlockBit( uiBitPos ) << 1;
+  Bool bInterlaced = getMbPicType() != FRAME;
+  uiCtx  = xGetLeftCodedBlockBit ( uiBitPos, bInterlaced, uiStart, uiStop );
+  uiCtx += xGetAboveCodedBlockBit( uiBitPos, bInterlaced, uiStart, uiStop ) << 1;
   return uiCtx;
 }
 

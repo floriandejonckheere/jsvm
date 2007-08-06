@@ -71,7 +71,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
 			bitrate     => 978,	
-			psnr        => 31.2731,
+			psnr        => 31.18,
                         encdecmatch => 1,
                        },
                       ],

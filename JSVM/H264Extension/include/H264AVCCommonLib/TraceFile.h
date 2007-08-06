@@ -95,6 +95,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define ENCODER_TRACE     0
 #define DECODER_TRACE     0
 
+#define MAX_TRACE_LAYERS 17
+
 #define MAX_LINE_LENGTH 255
 #define MAX_BITS_LENGTH 64
 
@@ -139,10 +141,10 @@ public:
 	
 protected:
   static UInt  sm_uiLayer;
-  static FILE* sm_fTrace      [MAX_LAYERS];
-  static UInt  sm_uiFrameNum  [MAX_LAYERS];
-  static UInt  sm_uiSliceNum  [MAX_LAYERS];
-  static UInt  sm_uiPosCounter[MAX_LAYERS];
+  static FILE* sm_fTrace      [MAX_TRACE_LAYERS];
+  static UInt  sm_uiFrameNum  [MAX_TRACE_LAYERS];
+  static UInt  sm_uiSliceNum  [MAX_TRACE_LAYERS];
+  static UInt  sm_uiPosCounter[MAX_TRACE_LAYERS];
   static Char  sm_acLine      [MAX_LINE_LENGTH];
   static Char  sm_acType      [9];
   static Char  sm_acPos       [9];

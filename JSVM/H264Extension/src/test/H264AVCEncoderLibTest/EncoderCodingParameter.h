@@ -385,33 +385,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       n += 2;
       continue;
     }
-    if( equals( pcCom, "-anafgs", 7 ) )
-    {
-      ROTS( NULL == argv[n  ] );
-      ROTS( NULL == argv[n+1] );
-      ROTS( NULL == argv[n+2] );
-      UInt  uiLayer       = atoi( argv[n++] );
-      UInt  uiNumLayers   = atoi( argv[n++] );
-      ROT( CodingParameter::getLayerParameters( uiLayer ).getFGSMode() );
-      CodingParameter::getLayerParameters( uiLayer ).setNumFGSLayers( uiNumLayers );
-      CodingParameter::getLayerParameters( uiLayer ).setFGSFilename ( argv[n]     );
-      CodingParameter::getLayerParameters( uiLayer ).setFGSMode     ( 1           );
-      continue;
-    }
-    if( equals( pcCom, "-encfgs", 7 ) )
-    {
-      ROTS( NULL == argv[n  ] );
-      ROTS( NULL == argv[n+1] );
-      ROTS( NULL == argv[n+2] );
-      UInt    uiLayer   = atoi( argv[n++] );
-      Double  dFGSRate  = atof( argv[n++] );
-      ROT( CodingParameter::getLayerParameters( uiLayer ).getFGSMode() );
-      CodingParameter::getLayerParameters( uiLayer ).setFGSRate     ( dFGSRate    );
-      CodingParameter::getLayerParameters( uiLayer ).setFGSFilename ( argv[n]     );
-      CodingParameter::getLayerParameters( uiLayer ).setFGSMode     ( 2           );
-      continue;
-    }
-
     if( equals( pcCom, "-bf", 3 ) )
     {
       ROTS( NULL == argv[n] );
@@ -553,31 +526,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       n += 1;
       continue;
     }
-    if( equals( pcCom, "-ref", 4 ) )
-    {
-      ROTS( NULL == argv[n] );
-      Double dLowPassEnhRef = atof( argv[n] );
-      CodingParameter::setLowPassEnhRef( dLowPassEnhRef );
-      continue;
-    }
-    if( equals( pcCom, "-ar", 3 ) )
-    {
-      ROTS( NULL == argv[n] );
-      ROTS( NULL == argv[n + 1] );
-      UInt uiBaseRefWeightZeroBlock = atoi( argv[n] );
-      UInt uiBaseRefWeightZeroCoeff = atoi( argv[n + 1] );
-      CodingParameter::setAdaptiveRefFGSWeights( uiBaseRefWeightZeroBlock, uiBaseRefWeightZeroCoeff );
-      // skip two
-      n += 1;
-      continue;
-    }
-    if( equals( pcCom, "-fs", 3 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt flag = atoi( argv[n] );
-      CodingParameter::setFgsEncStructureFlag( flag );
-      continue;
-    }
     if( equals( pcCom, "-pf", 3) )
     {
       ROTS( NULL == argv[n] );
@@ -585,19 +533,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       RNOKS( xReadFromFile( cFilename, rcBitstreamFile ) );  
       continue;
     }
-    //JVT-P031
-    if( equals( pcCom, "-ds", 3) )
-    {
-     ROTS( NULL == argv[n] );
-     ROTS( NULL == argv[n+1] );
-     UInt uiLayer = atoi(argv[n]);
-     CodingParameter::getLayerParameters(uiLayer).setUseDiscardable(true);
-     Double dRate = atof(argv[n+1]);
-     CodingParameter::getLayerParameters(uiLayer).setPredFGSRate(dRate);
-     n+=1;
-     continue;
-    }
-    //~JVT-P031
 	
 	//S051{
 	if( equals( pcCom, "-encsip", 7 ) )
@@ -650,17 +585,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     }
     // JVT-U085 LMI }
 	
-    if( equals( pcCom, "-fgsmot", 7 ) )
-    {
-      ROTS( NULL == argv[n  ] );
-      ROTS( NULL == argv[n+1] );
-      UInt uiLayer         = atoi( argv[n  ] );
-      UInt uiFGSMotionMode = atoi( argv[n+1] );
-      CodingParameter::getLayerParameters( uiLayer ).setFGSMotionMode( uiFGSMotionMode );
-      n += 1;
-      continue;
-    }
-
     if( equals( pcCom, "-org", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -748,22 +672,15 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       }
       continue;
     }
-	//JVT-U106 Behaviour at slice boundaries{
-	if( equals( pcCom, "-ciu", 3 ) )
-	{
-		ROTS( NULL == argv[n] );
-		UInt flag = atoi( argv[n] );
-		CodingParameter::setCIUFlag( flag );
-		continue;
-	}
-    //JVT-U106 Behaviour at slice boundaries}
-    if( equals( pcCom, "-pd", 3 ) )
+    //JVT-U106 Behaviour at slice boundaries{
+    if( equals( pcCom, "-ciu", 3 ) )
     {
-      ROTS( NULL == argv[n] );
-      Bool bFlag = atoi( argv[n] ) != 0;
-      CodingParameter::setFGSParallelDecodingFlag( bFlag );
-      continue;
+	    ROTS( NULL == argv[n] );
+	    UInt flag = atoi( argv[n] );
+	    CodingParameter::setCIUFlag( flag );
+	    continue;
     }
+    //JVT-U106 Behaviour at slice boundaries}
 
     if( equals( pcCom, "-h", 2) )
     {
@@ -804,8 +721,6 @@ Void EncoderCodingParameter::printHelp()
   printf("  -ilpred (Layer) (InterLayerPredictionMode)\n");
 	printf("  -blid   (Layer) (BaseLayerId)\n");
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
-  printf("  -anafgs (Layer) (NumFGSLayers) (File for storing FGS parameters)\n");
-  printf("  -encfgs (Layer) (bit-rate in kbps) (File with stored FGS parameters)\n");
   printf("  -cl     (Layer) (ClosedLoopParameter)\n");
   printf("  -ds     (Layer) (Rate for inter-layer prediction)\n");
   printf("  -fgsmot (Layer) (FGSMotionRefinementMode) [0: no, 1: HP only, 2: all]\n");
@@ -822,9 +737,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -ciu    (Constrained intra upsampling)[0: no, 1: yes]\n");
   //JVT-U106 Behaviour at slice boundaries}
   printf("  -ref    (enhRef)    Enhancement reference weighting for ME [default: 0.0]\n");
-  printf("  -fs     (encStruct) FGS coding structure selection [0: Optimized FGS syntax structure 1: Standard structure]\n");
   printf("  -ar     (wZBlock) (wZCoeff) Zero block and zero coefficient weightings [default: 32 32]\n");
-  printf("  -pd     (mode)      Cycle aligned fragments (CAF) is used [0: no, 1: yes]\n");
 
   printf("  -rcdo-bs   (value)  RDCO block size restriction     (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo-mc-y (value)  RDCO motion compensation luma   (0:off,1:ELonly,2:on)\n" );
@@ -919,11 +832,11 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BiPredIter",              &(m_cMotionVectorSearchParams.m_uiNumMaxIter),         4 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IterSearchRange",         &(m_cMotionVectorSearchParams.m_uiIterSearchRange),    8 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LoopFilterDisable",       &(m_cLoopFilterParams.m_uiFilterIdc),                  0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterAlphaC0Offset", (Int*)&(m_cLoopFilterParams.m_iAlphaOffset),           0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterBetaOffset",    (Int*)&(m_cLoopFilterParams.m_iBetaOffset),            0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("SearchMode",              (Int*)&(m_cMotionVectorSearchParams.m_eSearchMode),    0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("SearchFuncFullPel",       (Int*)&(m_cMotionVectorSearchParams.m_eFullPelDFunc),  0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("SearchFuncSubPel",        (Int*)&(m_cMotionVectorSearchParams.m_eSubPelDFunc),   0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterAlphaC0Offset", &(m_cLoopFilterParams.m_iAlphaOffset),                 0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterBetaOffset",    &(m_cLoopFilterParams.m_iBetaOffset),                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchMode",              &(m_cMotionVectorSearchParams.m_uiSearchMode),         0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchFuncFullPel",       &(m_cMotionVectorSearchParams.m_uiFullPelDFunc),       0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchFuncSubPel",        &(m_cMotionVectorSearchParams.m_uiSubPelDFunc),        0 );
 
 //TMM_WP
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightedPrediction",         &m_uiIPMode,                                     0 );
@@ -963,12 +876,12 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   //JVT-T073 }
 
 	//JVT-W052 wxwan
-	m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("INTER_CHECK_SEI",          &m_uiIntegrityCheckSEIEnable,                          true );
+	m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("INTER_CHECK_SEI",          &m_uiIntegrityCheckSEIEnable,                          false ); // Disabled due to buggy behaviour. mwi 070803
 	//JVT-W052 wxwan
 
 //JVT-S036 lsj start  //bug-fix suffix{{
 //PreAndSuffixUnitEnable shall always be on in SVC contexts (i.e. when there are FGS/CGS/spatial enhancement layers)
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("PreAndSuffixUnitEnable",        &m_uiPreAndSuffixUnitEnable,                                 1 ); //prefix unit
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("PreAndSuffixUnitEnable",  &m_uiPreAndSuffixUnitEnable,                           1 ); //prefix unit
 	m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MMCOBaseEnable",					 &m_uiMMCOBaseEnable,                                   1 ); 
 //JVT-S036 lsj end //bug-fix suffix}}
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                             0 );  //JVT-T054
@@ -1049,11 +962,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   Double  dPrevTemp       = 0.0;
   UInt uiPrevWidth        = 0;
   UInt uiPrevHeight       = 0;
-  UInt uiLayerTemp        = 0;
-  UInt uiQualityLevelTemp = 0;
   UInt uiLastLayer        = 0;
-  UInt uiMaxLayer         = 0;
-  UInt uiMaxQualityLevel  = 0;
 //JVT-T054}
   Bool bInterlaced        = false; 
   UInt ui                 = 0;
@@ -1062,82 +971,67 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   {
     getLayerParameters(ui).setLayerId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
-    //TMM_INTERLACE{
 		if ( getLayerParameters(ui).m_uiMbAff || getLayerParameters(ui).m_uiPaff )
-			bInterlaced = true;			
-//TMM_INTERLACE}
-//JVT-T054{
-    if(m_uiCGSSNRRefinementFlag)
     {
-    if(ui == 0)
-    {
-      uiPrevLayer = ui;
-      dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
-      uiPrevWidth = getLayerParameters(ui).getFrameWidth();
-      uiPrevHeight = getLayerParameters(ui).getFrameHeight();
-      getLayerParameters(ui).setLayerCGSSNR(ui);
-      getLayerParameters(ui).setQualityLevelCGSSNR(0);
-      uiLastLayer = uiPrevLayer;
-      
-      getLayerParameters(ui).setBaseLayerCGSSNR( MSYS_UINT_MAX );
-      getLayerParameters(ui).setBaseQualityLevelCGSSNR( 0 );
+      bInterlaced = true;			
     }
-    else
+    if( m_uiCGSSNRRefinementFlag )
     {
-      if( dPrevTemp    == getLayerParameters(ui).getOutputFrameRate() &&
-        uiPrevWidth == getLayerParameters(ui).getFrameWidth() &&
-        uiPrevHeight == getLayerParameters(ui).getFrameHeight())
+      if(ui == 0)
       {
-        // layer can be considered as a CGS refinement
-        uiLayerTemp = getLayerParameters(ui-1).getLayerCGSSNR();
-        getLayerParameters(ui).setLayerCGSSNR(uiLayerTemp);
-        uiQualityLevelTemp = getLayerParameters(ui-1).getQualityLevelCGSSNR();
-        getLayerParameters(ui).setQualityLevelCGSSNR(uiQualityLevelTemp+1);
-        
-        getLayerParameters(ui).setBaseLayerCGSSNR( uiLayerTemp );
-        getLayerParameters(ui).setBaseQualityLevelCGSSNR( uiQualityLevelTemp );
-
-        if(uiMaxQualityLevel < uiQualityLevelTemp+1)
-          uiMaxQualityLevel = uiQualityLevelTemp+1;
+        uiPrevLayer  = ui;
+        dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
+        uiPrevWidth  = getLayerParameters(ui).getFrameWidth();
+        uiPrevHeight = getLayerParameters(ui).getFrameHeight();
+        getLayerParameters(ui).setLayerCGSSNR(ui);
+        getLayerParameters(ui).setQualityLevelCGSSNR(0);
+        uiLastLayer = uiPrevLayer;
+        getLayerParameters(ui).setBaseLayerCGSSNR( MSYS_UINT_MAX );
+        getLayerParameters(ui).setBaseQualityLevelCGSSNR( 0 );
       }
       else
       {
-        //layer is not a refinement from previous CGS layer
-        uiLastLayer++;
-        uiPrevLayer = uiLastLayer;
-        dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
-        uiPrevWidth = getLayerParameters(ui).getFrameWidth();
-        uiPrevHeight = getLayerParameters(ui).getFrameHeight();
-        getLayerParameters(ui).setLayerCGSSNR(uiLastLayer);
-        getLayerParameters(ui).setQualityLevelCGSSNR(0);
-
-        uiLayerTemp = getLayerParameters(ui-1).getLayerCGSSNR();
-        uiQualityLevelTemp = getLayerParameters(ui-1).getQualityLevelCGSSNR();
-        getLayerParameters(ui).setBaseLayerCGSSNR( uiLayerTemp );
-        getLayerParameters(ui).setBaseQualityLevelCGSSNR( uiQualityLevelTemp );
-
-        if(uiMaxLayer < uiLastLayer)
-          uiMaxLayer = uiLastLayer;
+        if( dPrevTemp == getLayerParameters(ui).getOutputFrameRate() &&
+            uiPrevWidth == getLayerParameters(ui).getFrameWidth()    &&
+            uiPrevHeight == getLayerParameters(ui).getFrameHeight() )
+        {
+          // layer can be considered as a CGS refinement
+          UInt uiLayerTemp = getLayerParameters(ui-1).getLayerCGSSNR();
+          getLayerParameters(ui).setLayerCGSSNR(uiLayerTemp);
+          UInt uiQualityLevelTemp = getLayerParameters(ui-1).getQualityLevelCGSSNR();
+          getLayerParameters(ui).setQualityLevelCGSSNR( uiQualityLevelTemp + getLayerParameters(ui-1).getNumberOfQualityLevelsCGSSNR() );
+        }
+        else
+        {
+          //layer is not a refinement from previous CGS layer
+          uiLastLayer++;
+          uiPrevLayer = uiLastLayer;
+          dPrevTemp    = getLayerParameters(ui).getOutputFrameRate();
+          uiPrevWidth = getLayerParameters(ui).getFrameWidth();
+          uiPrevHeight = getLayerParameters(ui).getFrameHeight();
+          getLayerParameters(ui).setLayerCGSSNR(uiLastLayer);
+          getLayerParameters(ui).setQualityLevelCGSSNR(0);
+        }
+        getLayerParameters(ui).setBaseLayerCGSSNR( getLayerParameters(ui-1).getLayerCGSSNR() );
+        getLayerParameters(ui).setBaseQualityLevelCGSSNR( getLayerParameters(ui-1).getQualityLevelCGSSNR() + getLayerParameters(ui-1).getNumberOfQualityLevelsCGSSNR() - 1 );
       }
-    }
     }
     else
     {
-        getLayerParameters(ui).setLayerCGSSNR(ui);
-        getLayerParameters(ui).setQualityLevelCGSSNR(0);
+      getLayerParameters(ui).setLayerCGSSNR(ui);
+      getLayerParameters(ui).setQualityLevelCGSSNR(0);
     }
-    m_uiMaxLayerCGSSNR = uiMaxLayer;
-    m_uiMaxQualityLevelCGSSNR = uiMaxQualityLevel;
+
 //JVT-T054}
 // TMM_ESS {
     ResizeParameters * curr;
     curr = getResizeParameters(ui);
 
 // JVT-Q065 EIDR{
-	if(ui > 0 && getLayerParameters(ui-1).getIDRPeriod() == getLayerParameters(ui).getIDRPeriod())
-	{
-		getLayerParameters(ui).setBLSkipEnable(true);
-	}
+    if(ui > 0 && getLayerParameters(ui-1).getIDRPeriod() == getLayerParameters(ui).getIDRPeriod())
+    {
+	    getLayerParameters(ui).setBLSkipEnable(true);
+    }
 // JVT-Q065 EIDR}
 
     // HS: set base layer id
@@ -1225,7 +1119,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",     &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",             &(rcLayer.m_dBaseQpResidual),            32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("NumFGSLayers",   &(rcLayer.m_dNumFGSLayers),              0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQPLP",         &(rcLayer.m_dQpModeDecisionLP),          -1.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP0",          &(rcLayer.m_adQpModeDecision[0]),        32.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP1",          &(rcLayer.m_adQpModeDecision[1]),        32.0      );
@@ -1234,7 +1127,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP4",          &(rcLayer.m_adQpModeDecision[4]),        32.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP5",          &(rcLayer.m_adQpModeDecision[5]),        32.0      );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("InterLayerPred", &(rcLayer.m_uiInterLayerPredictionMode), 0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",    &(rcLayer.m_uiBaseQualityLevel),         3         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",    &(rcLayer.m_uiBaseQualityLevel),         15        );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MotionInfoMode", &(rcLayer.m_uiMotionInfoMode),           0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("MotionInfoFile", &cMotionFilename,                        "test.mot");
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("LowComplexityMbMode",         &(rcLayer.m_uiLowComplexMbEnable), 0         );
@@ -1250,10 +1143,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseY",&(rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY),       0         );  // SSUN, Nov2005
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",&(rcLayer.m_uiForceReorderingCommands),  0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerId",    &(rcLayer.m_uiBaseLayerId),              MSYS_UINT_MAX );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("EnhRefME",       &(rcLayer.m_dLowPassEnhRef),              AR_FGS_DEFAULT_LOW_PASS_ENH_REF );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroBlock",&(rcLayer.m_uiBaseWeightZeroBaseBlock),   AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_BLOCK   );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("WeightZeroCoeff",&(rcLayer.m_uiBaseWeightZeroBaseCoeff),   AR_FGS_DEFAULT_BASE_WEIGHT_ZERO_COEFF   );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FgsEncStructure",&(rcLayer.m_uiFgsEncStructureFlag),   AR_FGS_DEFAULT_ENC_STRUCTURE   );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceMode",      &(rcLayer.m_uiSliceMode),                             0       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",  &(rcLayer.m_uiSliceArgument),                        50       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumSlicGrpMns1", &(rcLayer.m_uiNumSliceGroupsMinus1),                  0       );
@@ -1263,7 +1152,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumROI", &(rcLayer.m_uiNumROI),                  0       );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ROICfgFileNm",&rcLayer.m_cROIConfigFileName,             "roicfg.cfg" );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSMotion",      &(rcLayer.m_uiFGSMotionMode),							0		);
 // JVT-Q065 EIDR{
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	  &(rcLayer.m_iIDRPeriod),								0		);
 // JVT-Q065 EIDR}
@@ -1274,28 +1162,27 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, ""); 
   //S051}
 
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVectorMode", &(rcLayer.m_uiMGSVectorMode), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector0", &(rcLayer.m_uiMGSVect[0]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector1", &(rcLayer.m_uiMGSVect[1]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector2", &(rcLayer.m_uiMGSVect[2]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector3", &(rcLayer.m_uiMGSVect[3]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector4", &(rcLayer.m_uiMGSVect[4]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector5", &(rcLayer.m_uiMGSVect[5]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector6", &(rcLayer.m_uiMGSVect[6]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector7", &(rcLayer.m_uiMGSVect[7]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector8", &(rcLayer.m_uiMGSVect[8]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector9", &(rcLayer.m_uiMGSVect[9]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector10", &(rcLayer.m_uiMGSVect[10]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector11", &(rcLayer.m_uiMGSVect[11]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector12", &(rcLayer.m_uiMGSVect[12]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector13", &(rcLayer.m_uiMGSVect[13]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector14", &(rcLayer.m_uiMGSVect[14]), 0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSVector15", &(rcLayer.m_uiMGSVect[15]), 0 );
+
   // JVT-V035
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("AvcRewriteFlag",          &(rcLayer.m_bAVCRewriteFlag),                            0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("AvcAdaptiveRewriteFlag",  &(rcLayer.m_bAVCAdaptiveRewriteFlag),                    0 );
-
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVectorMode", &(rcLayer.m_uiFGSCodingMode), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSGroupingSize", &(rcLayer.m_uiGroupingSize), 1 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector0", &(rcLayer.m_uiPosVect[0]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector1", &(rcLayer.m_uiPosVect[1]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector2", &(rcLayer.m_uiPosVect[2]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector3", &(rcLayer.m_uiPosVect[3]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector4", &(rcLayer.m_uiPosVect[4]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector5", &(rcLayer.m_uiPosVect[5]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector6", &(rcLayer.m_uiPosVect[6]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector7", &(rcLayer.m_uiPosVect[7]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector8", &(rcLayer.m_uiPosVect[8]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector9", &(rcLayer.m_uiPosVect[9]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector10", &(rcLayer.m_uiPosVect[10]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector11", &(rcLayer.m_uiPosVect[11]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector12", &(rcLayer.m_uiPosVect[12]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector13", &(rcLayer.m_uiPosVect[13]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector14", &(rcLayer.m_uiPosVect[14]), 0 );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FGSVector15", &(rcLayer.m_uiPosVect[15]), 0 );
 
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ExplicitQPCascading", &(rcLayer.m_uiExplicitQPCascading), 0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel0",         &(rcLayer.m_adDeltaQPTLevel[0]),    0 );
@@ -1305,8 +1192,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel4",         &(rcLayer.m_adDeltaQPTLevel[4]),    0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel5",         &(rcLayer.m_adDeltaQPTLevel[5]),    0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel6",         &(rcLayer.m_adDeltaQPTLevel[6]),    0 );
-
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("UseSmoothedRef",      &(rcLayer.m_uiUseSmoothedRef),    1 );//JVT-V058
 
   m_pLayerLines[uiParLnCount] = NULL;
 
@@ -1328,11 +1213,11 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   }
 
   //S051{
-        if(cEncSIPFilename.length())
-        {
-      	  rcLayer.setEncSIP(true);
-      	  rcLayer.setInSIPFileName( (char*) cEncSIPFilename.c_str());
-        }  
+  if(cEncSIPFilename.length())
+  {
+    rcLayer.setEncSIP(true);
+    rcLayer.setInSIPFileName( (char*) cEncSIPFilename.c_str());
+  }  
   //S051}
 
   rcLayer.setInputFilename     ( (Char*)cInputFilename.c_str() );

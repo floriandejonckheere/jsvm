@@ -538,7 +538,6 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   rpcSliceHeader->setNalUnitType                        ( rcFrameSpec.getNalUnitType  () );
   rpcSliceHeader->setLayerId                            ( 0 );
   rpcSliceHeader->setTemporalLevel                      ( rcFrameSpec.getTemporalLayer() );
-  rpcSliceHeader->setQualityLevel                       ( 0 );
   rpcSliceHeader->setUseBaseRepresentationFlag          ( rcFrameSpec.getTemporalLayer() == 0 );
   rpcSliceHeader->setSimplePriorityId                   ( 0 );
   rpcSliceHeader->setDiscardableFlag                    ( false );
@@ -553,16 +552,12 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   rpcSliceHeader->setIdrPicId                           ( m_uiIdrPicId );
   rpcSliceHeader->setDirectSpatialMvPredFlag            ( true );
   rpcSliceHeader->setBaseLayerId                        ( MSYS_UINT_MAX );
-  rpcSliceHeader->setBaseQualityLevel                   ( 3 );
+  rpcSliceHeader->setBaseQualityLevel                   ( 15 );
   rpcSliceHeader->setAdaptivePredictionFlag             ( false );
   rpcSliceHeader->setNoOutputOfPriorPicsFlag            ( true );
   rpcSliceHeader->setCabacInitIdc                       ( 0 );
   rpcSliceHeader->setSliceHeaderQp                      ( iQp );
-  rpcSliceHeader->setFragmentedFlag                     ( false );
-  rpcSliceHeader->setFragmentOrder                      ( 0 );
-  rpcSliceHeader->setLastFragmentFlag                   ( true );
   rpcSliceHeader->setBaseLayerUsesConstrainedIntraPred  ( false );
-  rpcSliceHeader->setFgsComponentSep                    ( false );
 
   //===== reference picture list ===== (init with default data, later updated)
   rpcSliceHeader->setNumRefIdxActiveOverrideFlag        ( false );

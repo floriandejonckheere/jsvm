@@ -699,10 +699,10 @@ public:
 		UInt m_ql_num_dId_minus1;
 		UInt m_ql_dependency_id[MAX_LAYERS];
 		UInt m_ql_num_minus1[MAX_LAYERS];
-		UInt m_ql_id[MAX_LAYERS][MAX_FGS_LAYERS+1];
-		Int32 m_ql_profile_level_idc[MAX_LAYERS][MAX_FGS_LAYERS+1];
-		UInt m_ql_avg_bitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
-		UInt m_ql_max_bitrate[MAX_LAYERS][MAX_FGS_LAYERS+1];
+		UInt m_ql_id[MAX_LAYERS][MAX_QUALITY_LEVELS];
+		Int32 m_ql_profile_level_idc[MAX_LAYERS][MAX_QUALITY_LEVELS];
+		UInt m_ql_avg_bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
+		UInt m_ql_max_bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
 		//JVT-W051 }
   };
 

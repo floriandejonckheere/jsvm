@@ -116,10 +116,6 @@ MbDataCtrl::MbDataCtrl():
   m_bUseTopField    ( false ),
   m_bPicCodedField  ( false ),
   m_bInitDone       ( false ),
-  m_pacFgsBQMbQP    ( 0 ),
-  m_pauiFgsBQMbCbp  ( 0 ),
-  m_pauiFgsBQBCBP   ( 0 ),
-  m_pabFgsBQ8x8Trafo( 0 ),
   m_bBuildInterlacePred ( false )
 
 {
@@ -1030,85 +1026,6 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
   return Err::m_nOK;
 }
 //TMM_EC }}
-
-ErrVal
-MbDataCtrl::storeFgsBQLayerQpAndCbp()
-{
-  ROF( m_pacFgsBQMbQP );
-  ROF( m_pauiFgsBQMbCbp );
-  ROF( m_pauiFgsBQBCBP );
-  ROF( m_pabFgsBQ8x8Trafo );
-  for( UInt uiMbIndex = 0; uiMbIndex < getSize(); uiMbIndex++ )
-  {
-    m_pacFgsBQMbQP     [uiMbIndex] = getMbData( uiMbIndex ).getQp();
-    m_pauiFgsBQMbCbp   [uiMbIndex] = getMbData( uiMbIndex ).getMbExtCbp();
-    m_pauiFgsBQBCBP    [uiMbIndex] = getMbData( uiMbIndex ).getBCBP();
-    m_pabFgsBQ8x8Trafo [uiMbIndex] = getMbData( uiMbIndex ).isTransformSize8x8();
-    
-  }
-  return Err::m_nOK;
-}
-
-ErrVal
-MbDataCtrl::switchFgsBQLayerQpAndCbp()
-{
-  ROF( m_pacFgsBQMbQP );
-  ROF( m_pauiFgsBQMbCbp );
-  ROF( m_pauiFgsBQBCBP );
-  ROF( m_pabFgsBQ8x8Trafo );
-  for( UInt uiMbIndex = 0; uiMbIndex < getSize(); uiMbIndex++ )
-  {
-    UChar ucQP  = getMbData( uiMbIndex ).getQp();
-    UInt  uiCbp = getMbData( uiMbIndex ).getMbExtCbp();
-    UInt  uiBCBP= getMbData( uiMbIndex ).getBCBP();
-    Bool  bT8x8 = getMbData( uiMbIndex ).isTransformSize8x8();
-
-    getMbDataByIndex( uiMbIndex ).setQp               ( m_pacFgsBQMbQP     [uiMbIndex] );
-    getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiFgsBQMbCbp   [uiMbIndex] );
-    getMbDataByIndex( uiMbIndex ).setBCBP             ( m_pauiFgsBQBCBP    [uiMbIndex] );
-    getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabFgsBQ8x8Trafo [uiMbIndex] );
-
-    m_pacFgsBQMbQP     [uiMbIndex] = ucQP;
-    m_pauiFgsBQMbCbp   [uiMbIndex] = uiCbp;
-    m_pauiFgsBQBCBP    [uiMbIndex] = uiBCBP;
-    m_pabFgsBQ8x8Trafo [uiMbIndex] = bT8x8;
-  }
-  return Err::m_nOK;
-}
-
-ErrVal
-MbDataCtrl::initFgsBQData( UInt uiNumMb )
-{
-  ROT( m_pacFgsBQMbQP );
-  ROT( m_pauiFgsBQMbCbp );
-  ROT( m_pauiFgsBQBCBP );
-  ROT( m_pabFgsBQ8x8Trafo );
-  ROFS( ( m_pacFgsBQMbQP      = new UChar [uiNumMb] ) );
-  ROFS( ( m_pauiFgsBQMbCbp    = new UInt  [uiNumMb] ) );
-  ROFS( ( m_pauiFgsBQBCBP     = new UInt  [uiNumMb] ) );
-  ROFS( ( m_pabFgsBQ8x8Trafo  = new Bool  [uiNumMb] ) );
-  return Err::m_nOK;
-}
-
-ErrVal
-MbDataCtrl::uninitFgsBQData()
-{
-  delete [] m_pacFgsBQMbQP;
-  delete [] m_pauiFgsBQMbCbp;
-  delete [] m_pauiFgsBQBCBP;
-  delete [] m_pabFgsBQ8x8Trafo;
-  m_pacFgsBQMbQP      = 0;
-  m_pauiFgsBQMbCbp    = 0;
-  m_pauiFgsBQBCBP    = 0;
-  m_pabFgsBQ8x8Trafo  = 0;
-  return Err::m_nOK;
-}
-
-
-
-
-
-
 
 
 

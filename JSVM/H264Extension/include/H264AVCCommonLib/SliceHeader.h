@@ -202,57 +202,15 @@ public:
                                           SChar   sL1RefIdx ) const;
   Int             getDistScaleFactorWP  ( const Frame*    pcFrameL0, const Frame*     pcFrameL1 )  const;
   Int             getDistScaleFactorWP  ( const IntFrame* pcFrameL0, const IntFrame*  pcFrameL1 )  const;
-  // check the position vectors, and find the number of position vectors.
-  // needs to be called after all the position vectors are set
-  ErrVal          checkPosVectors       ()
-  {
-    UInt uiTotalVectorLength = 0;
-    Bool bBadVector          = false;
 
-    m_uiNumPosVectors   = 0;
-    while( uiTotalVectorLength < 16 && m_uiNumPosVectors < 16 )
-    {
-      if( m_uiPosVect[m_uiNumPosVectors] == 0 )
-      {
-        bBadVector      = true;
-        break;
-      }
-      if( m_uiPosVect[m_uiNumPosVectors] > (16 - uiTotalVectorLength) )
-        m_uiPosVect[m_uiNumPosVectors] = 16 - uiTotalVectorLength;
-
-      uiTotalVectorLength += m_uiPosVect[m_uiNumPosVectors];
-      m_uiNumPosVectors++;
-    }
-
-    if( bBadVector )
-    {
-      // set the vector length to 1
-      for( m_uiNumPosVectors = 0; m_uiNumPosVectors < 16; m_uiNumPosVectors ++ )
-        m_uiPosVect[m_uiNumPosVectors] = 1;
-    }
-
-    return Err::m_nOK;
-  }
-  Void            setPosVect            ( UInt ui, UInt uiVal) 
-  { 
-    if( ! m_bFGSVectorModeOverrideFlag )
-      m_uiPosVect[ui]  = uiVal;
-  }
-  UInt            getPosVect            ( UInt ui )            { return m_uiPosVect[ui];   }
-
-  Bool       getFGSInfoPresentFlag()   const {return getSPS().getFGSInfoPresentFlag();}
-  
   void       setPicCoeffResidualPredFlag(SliceHeader* baseSH) {
     // a flag indicating whether a slice is eligible for residual prediction in transform domain for CGS
     m_bCoeffResidualPred = false;
     if (baseSH != NULL )
        m_bCoeffResidualPred = ( !getAVCRewriteFlag()
-                                && !isIntra()
                                 && (getSpatialScalabilityType()==SST_RATIO_1)     // CGS
                                 && getSPS().getFrameMbsOnlyFlag()      
                                 && m_bBaseFrameMbsOnlyFlag
-                                && !getFGSInfoPresentFlag() 
-                                && !baseSH->getFGSInfoPresentFlag()
                                );    
   }
   Bool getPicCoeffResidualPredFlag() const {return m_bCoeffResidualPred;}

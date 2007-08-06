@@ -40,7 +40,6 @@ OBJS          	= \
 			$(OBJ_DIR)/ControlMngH264AVCEncoder.o \
 			$(OBJ_DIR)/CreaterH264AVCEncoder.o \
 			$(OBJ_DIR)/Distortion.o \
-			$(OBJ_DIR)/FGSSubbandEncoder.o \
 			$(OBJ_DIR)/GOPEncoder.o \
 			$(OBJ_DIR)/H264AVCEncoder.o \
 			$(OBJ_DIR)/H264AVCEncoderLib.o \

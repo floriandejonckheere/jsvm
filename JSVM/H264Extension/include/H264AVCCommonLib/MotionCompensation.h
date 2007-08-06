@@ -220,63 +220,17 @@ public:
   Void xAdjustResidualRefBlk          ( XPel*           piResidualRef,
                                         UInt            uiBlkWidth,
                                         UInt            uiBlkHeight,
-                                        Int             iStride,
-                                        UChar*          pucSigMap,
-                                        Bool            bNonzeroBaseBlock,
-                                        Int             iBcbpCtx,
-                                        UInt            uiWeightZeroBlk,
-                                        UInt            uiWeightZeroCoeff);
+                                        Int             iStride );
 
-  Void xAdjustResidualRefBlkSpatial   ( XPel*           piResidualRef,
-                                        UInt            uiBlkWidth,
-                                        UInt            uiBlkHeight,
-                                        Int             iStride,
-                                        UInt            uiWeightZeroBlk);
-
-  Void xAdjustResidualRefBlkFrequency ( XPel*           piResidualRef,
-                                        UInt            uiBlkWidth,
-                                        UInt            uiBlkHeight,
-                                        Int             iStride,
-                                        UChar*          pucSigMap,
-                                        UInt            uiWeightZeroCoeff);
 
   Void xAdjustChromaResidualRefBlock  ( XPel*           piResidualRef,
-                                        Int             iStride,
-                                        UChar*          pusSigMap,
-                                        UInt            uiWeightZeroCoeff);
+                                        Int             iStride );
 
   ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess, 
                                         RefFrameList&   rcRefFrameList0, 
                                         RefFrameList&   rcRefFrameList1, 
                                         IntYuvMbBuffer* pcYuvMbBuffer,
                                         Bool            bSR = false );
-
-  ErrVal xAdjustMbResidual            ( IntYuvMbBuffer& rcMbBufferDiff,
-                                        MbDataAccess*   pcMbDataAccess,
-                                        FGSCoder*       pcFGSCoder,
-                                        SliceHeader*    pcSliceHeader );
-
-  ErrVal adaptiveMotionCompensationMb(  IntYuvMbBuffer* pcMbBufferMC,
-                                        RefFrameList*   pcRefFrameListDiff,
-                                        MbDataAccess*   pcMbDataAccessMotion,
-                                        FGSCoder*       pcFGSCoder );
-
-  ErrVal xAdaptiveMotionCompensation  ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
-                                        IntFrame*       pcMCFrame,
-                                        IntFrame*       pcBaseFrame,
-                                        RefFrameList*   pcRefFrameListBase,
-                                        MbDataCtrl*     pcMbDataCtrl,
-                                        FGSCoder*       pcFGSCoder,
-                                        SliceHeader*    pcSliceHeader );
-
-  ErrVal loadAdaptiveRefPredictors    ( YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
-                                        IntFrame*       pcPredSignal, 
-                                        IntFrame*       pcBaseFrame, 
-                                        RefFrameList*   cRefListDiff,
-                                        MbDataCtrl*     pcMbDataCtrl,
-                                        FGSCoder*       pcFGSCoder,
-                                        SliceHeader*    pcSliceHeader);
-
 
   ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
                   IntFrame*       pcMCFrame,

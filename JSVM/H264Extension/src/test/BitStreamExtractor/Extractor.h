@@ -97,7 +97,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "WriteBitstreamToFile.h"
 #include "ExtractorParameter.h"
 #define MAX_ROIS      5
-#define MAX_QLAYERS   64
+#define MAX_QLAYERS   (MAX_TLAYERS*MAX_QUALITY_LEVELS)
 #define MAX_TLAYERS   8
 
 
@@ -275,7 +275,8 @@ protected:
   ErrVal        xExtractLayerLevel  ();
 
   ErrVal  xExtractMaxRate ( Double  dMaxRate,
-                            Bool    bDontTruncQLayer );
+                            Bool    bDontTruncQLayer,
+                            Bool    bPercentageMode );
   ErrVal  xAnalyse        ( UInt    uiTargetLayer,
                             Double& rdFrameRate,
                             Bool&   rbQualityLayerPresent,
@@ -292,11 +293,10 @@ protected:
                  , const ExtractorParameter::Point& rcExtPoint);
 
   void          xSetROIParameters  ();
-  ErrVal        GetPictureDataKeepCrop( h264::PacketDescription* pcPacketDescription, 
+  ErrVal        GetPictureDataKeep( h264::PacketDescription* pcPacketDescription, 
 		                                    Double dRemainingBytes, 
 																				Double dCurrPacketBytes, 
-																				Bool& bKeep, 
-																				Bool& bCrop );
+																				Bool& bKeep );
 	ErrVal        xResetSLFGSBitrate( UInt uiDependencyId, UInt uiTempLevel, UInt uiFGSLayer, Double dDecBitrate ); //cleaning
 
   Void          setBaseLayerAVCCompatible( Bool bAVCCompatible ) { m_bAVCCompatible = bAVCCompatible; }
@@ -437,9 +437,9 @@ protected:
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
   Double*           m_aaadMaxRate[MAX_LAYERS]; //size of each frame for each layer without deadsubstream
-  Double*           m_aaadTargetBytesFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //bytes to be extracted for each FGS layer for each frame                                               // at each layer
+  Double*           m_aaadTargetBytesFGS[MAX_LAYERS][MAX_QUALITY_LEVELS]; //bytes to be extracted for each FGS layer for each frame                                               // at each layer
   Int*              m_aaiLevelForFrame[MAX_LAYERS];//temporal level of each frame
-  Double*           m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_FGS_LAYERS+1]; //size of each FGS layer for each frame at each layer
+  Double*           m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_QUALITY_LEVELS]; //size of each FGS layer for each frame at each layer
   Double            m_aaadMaxRateForLevel[MAX_LAYERS][MAX_DSTAGES+1]; //size of layer for each level without deadsubstream
   Bool              m_bExtractDeadSubstream[MAX_LAYERS]; //indicate if deadsubstream has to be removed (command line)
   UInt              m_aSizeDeadSubstream[MAX_LAYERS]; //size of deadsubstream for each layer
@@ -478,12 +478,8 @@ protected:
   UInt              m_auiYinLastMB[MAX_LAYERS][MAX_ROI_NUM];
   UInt              m_auiAddrFirstMBofROIs[MAX_LAYERS][MAX_ROI_NUM];
   UInt              m_auiAddrLastMBofROIs[MAX_LAYERS][MAX_ROI_NUM];
-
-//JVT-T054{
-  Bool            m_bEnableQLTruncation[MAX_LAYERS][MAX_FGS_LAYERS];
-//JVT-T054}
-
 };
-class ExtractStop{};
-#endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79
 
+class ExtractStop{};
+
+#endif //__EXTRACTOR_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

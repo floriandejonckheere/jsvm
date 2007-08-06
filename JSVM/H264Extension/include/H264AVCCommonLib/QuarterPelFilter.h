@@ -121,8 +121,6 @@ public:
   Void predBlkRCDO    ( YuvMbBuffer*        pcDesBuffer, YuvPicBuffer*        pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
   Void predBlkRCDO    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
   Void predBlkSR      ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
-  Void predBlkBilinear( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
-  Void predBlk4Tap    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
   Bool getClipMode    ()        { return m_bClip; }
 	virtual ErrVal filterFrame( YuvPicBuffer* pcPelBuffer, YuvPicBuffer* pcHalfPelBuffer );
   Void setClipMode( Bool bEnableClip ) { m_bClip = bEnableClip; }

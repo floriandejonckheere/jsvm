@@ -186,7 +186,8 @@ protected:
                                   IntYuvMbBuffer&   rcRecYuvBuffer,
                                   IntYuvMbBuffer&   rcPredBuffer,
                                   UInt              uiChromaCbp,
-                                  Bool              bPredChroma );
+                                  Bool              bPredChroma,
+                                  Bool              bAddBaseCoeffsChroma = false );
   
   
   ErrVal xScaleTCoeffs          ( MbDataAccess&      rcMbDataAccess );

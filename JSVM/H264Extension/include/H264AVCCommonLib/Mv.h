@@ -114,7 +114,7 @@ public:
   Short getAbsHor()             const           { return abs( m_sHor ); }
   Short getAbsVer()             const           { return abs( m_sVer ); }
 
-  Void  setZero()                               { /*m_sHor = m_sVer = 0;*/ *((UInt*)&m_sHor) = 0;}
+  Void  setZero()                               { m_sHor = m_sVer = 0; }
   Void  setHor( Short sHor )                    { m_sHor = sHor; }
   Void  setVer( Short sVer )                    { m_sVer = sVer; }
   Void  set( Short sHor, Short sVer )           { m_sHor = sHor; m_sVer = sVer; }

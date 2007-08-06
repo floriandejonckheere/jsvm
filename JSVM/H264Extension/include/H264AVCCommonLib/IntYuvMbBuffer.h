@@ -126,7 +126,10 @@ public:
   XPel*     getVBlk       ( LumaIdx cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
   XPel*     getCBlk       ( ChromaIdx cIdx )      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2) + 12*cIdx.plane()]; }
 
-  
+  const XPel*     getMbLumAddr  ()          const { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
+  const XPel*     getMbCbAddr   ()          const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
+  const XPel*     getMbCrAddr   ()          const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }
+
   XPel*     getMbLumAddr  ()                      { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
   XPel*     getMbCbAddr   ()                      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
   XPel*     getMbCrAddr   ()                      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }

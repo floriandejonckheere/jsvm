@@ -227,7 +227,7 @@ protected:
   ResizeParameters        m_ResizeParameter[MAX_LAYERS]; // TMM_ESS
   Bool                    m_bMbAff;
   const SliceHeader*      m_pcSliceHeader;
-  ResizeParameters        m_ResizeParameterCGSSNR[MAX_LAYERS][MAX_FGS_LAYERS+1]; // JVT-T054
+  ResizeParameters        m_ResizeParameterCGSSNR[MAX_LAYERS][MAX_QUALITY_LEVELS+1];
 };
 
 H264AVC_NAMESPACE_END

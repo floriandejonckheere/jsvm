@@ -96,6 +96,9 @@ BitWriteBuffer::BitWriteBuffer():
   m_iValidBits      ( 0 ),
   m_ulCurrentBits   ( 0 ),
   m_pulStreamPacket ( NULL )
+, m_uiInitPacketLength( 0 )
+, m_pcNextBitWriteBuffer( NULL )
+, m_pucNextStreamPacket( NULL )
 {
 }
 
@@ -111,17 +114,40 @@ ErrVal BitWriteBuffer::init()
   m_iValidBits      = 0;
   m_ulCurrentBits   = 0;
   m_pulStreamPacket = NULL;
+  if( m_pucNextStreamPacket )
+  {
+    delete[] m_pucNextStreamPacket;
+    m_pucNextStreamPacket = NULL;
+  }
+  if( m_pcNextBitWriteBuffer )
+  {
+    m_pcNextBitWriteBuffer->uninit();
+  }
+  m_uiInitPacketLength = 0;
   return Err::m_nOK;
 }
 
-ErrVal BitWriteBuffer::loadContent( BitWriteBuffer& rcBitWriteBuffer )
+
+BitWriteBufferIf* BitWriteBuffer::getNextBitWriteBuffer( Bool bStartNewBitstream  )
 {
-  m_uiDWordsLeft    = rcBitWriteBuffer.m_uiDWordsLeft;
-  m_uiBitsWritten   = rcBitWriteBuffer.m_uiBitsWritten;
-  m_iValidBits      = rcBitWriteBuffer.m_iValidBits;
-  m_ulCurrentBits   = rcBitWriteBuffer.m_ulCurrentBits;
-  m_pulStreamPacket = rcBitWriteBuffer.m_pulStreamPacket;
-  return Err::m_nOK;
+  if( bStartNewBitstream )
+  {
+    if( !m_pcNextBitWriteBuffer )
+    {
+      BitWriteBuffer::create( m_pcNextBitWriteBuffer );
+      m_pcNextBitWriteBuffer->init();
+    }
+
+    AOT( m_pucNextStreamPacket );
+    m_pucNextStreamPacket = new UChar [m_uiInitPacketLength + 1];
+    m_pcNextBitWriteBuffer->initPacket( (ULong*)m_pucNextStreamPacket, m_uiInitPacketLength );
+  }
+  else
+  {
+    AOF( m_pcNextBitWriteBuffer );
+    AOF( m_pucNextStreamPacket );
+  }
+  return m_pcNextBitWriteBuffer;
 }
 
 
@@ -136,6 +162,11 @@ ErrVal BitWriteBuffer::create( BitWriteBuffer*& rpcBitWriteBuffer )
 
 ErrVal BitWriteBuffer::destroy()
 {
+  if( m_pcNextBitWriteBuffer )
+  {
+    m_pcNextBitWriteBuffer->destroy();
+    m_pcNextBitWriteBuffer = NULL;
+  }
   delete this;
 
   return Err::m_nOK;
@@ -146,6 +177,8 @@ ErrVal BitWriteBuffer::initPacket( ULong* pulBits, UInt uiPacketLength )
 {
   // invalidate all members if something is wrong
   uninit();
+
+  m_uiInitPacketLength = uiPacketLength;
 
   // check the parameter
   ROT( uiPacketLength < 4);
@@ -241,7 +274,10 @@ ErrVal BitWriteBuffer::flushBuffer()
   m_uiBitsWritten = (m_uiBitsWritten+7)/8;
 
   m_uiBitsWritten *= 8;
-
+  if( nextBitWriteBufferActive() )
+  {
+    getNextBitWriteBuffer( false )->flushBuffer();
+  }
   return Err::m_nOK;
 }
 

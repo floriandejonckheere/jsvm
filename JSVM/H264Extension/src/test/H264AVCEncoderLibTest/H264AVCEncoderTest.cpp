@@ -182,41 +182,10 @@ ErrVal H264AVCEncoderTest::init( Int    argc,
   // Extended NAL unit priority is enabled by default, since 6-bit short priority
   // is incompatible with extended 4CIF Palma test set.  Change value to false
   // to enable short ID.
-  m_pcEncoderCodingParameter->setExtendedPriorityId( true );
 
   // Example priority ID assignment: (a) spatial, (b) temporal, (c) quality
   // Other priority assignments can be created by adjusting the mapping table.
   // (J. Ridge, Nokia)
-  if ( !m_pcEncoderCodingParameter->getExtendedPriorityId() )
-  {
-    UInt  uiPriorityId = 0;
-    for( UInt uiLayer = 0; uiLayer < m_pcEncoderCodingParameter->getNumberOfLayers(); uiLayer++ )
-    {
-        UInt uiBitplanes;
-        if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getFGSMode() > 0 )
-        {
-          uiBitplanes = MAX_QUALITY_LEVELS - 1;  
-        } else {
-          uiBitplanes = (UInt) m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers();
-          if ( m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getNumFGSLayers() > (Double) uiBitplanes)
-          {
-            uiBitplanes++;
-          }
-        }
- /*       for ( UInt uiTempLevel = 0; uiTempLevel <= m_pcEncoderCodingParameter->getLayerParameters( uiLayer ).getDecompositionStages(); uiTempLevel++ )
-        {
-            for ( UInt uiQualLevel = 0; uiQualLevel <= uiBitplanes; uiQualLevel++ )
-            {
-                m_pcEncoderCodingParameter->setSimplePriorityMap( uiPriorityId++, uiTempLevel, uiLayer, uiQualLevel );
-                AOF( uiPriorityId > ( 1 << PRI_ID_BITS ) );
-            }
-        }
- JVT-S036 lsj */
-    }
-
-    m_pcEncoderCodingParameter->setNumSimplePris( uiPriorityId );
-  }
-
   return Err::m_nOK;
 }
 
@@ -423,10 +392,10 @@ H264AVCEncoderTest::go()
 														, bMoreSets) );
 		if( m_pcH264AVCEncoder->getScalableSeiMessage() )
 		{		
-    RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
-    RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
-    
-    uiWrittenBytes += 4 + cExtBinDataAccessor.size();
+      RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
+      RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
+      
+      uiWrittenBytes += 4 + cExtBinDataAccessor.size();
 		}
     cBinData.reset();
     // JVT-V068 {
@@ -559,10 +528,10 @@ H264AVCEncoderTest::go()
 
   if( ! m_pcEncoderCodingParameter->getAVCmode() )
 	{
-		UChar   aucParameterSetBuffer[1000];
-		BinData cBinData;
-		cBinData.reset();
-		cBinData.set( aucParameterSetBuffer, 1000 );
+    UChar   aucParameterSetBuffer[10000];
+    BinData cBinData;
+    cBinData.reset();
+    cBinData.set( aucParameterSetBuffer, 10000 );
 
 		ExtBinDataAccessor cExtBinDataAccessor;
 		cBinData.setMemAccessor( cExtBinDataAccessor );
@@ -572,12 +541,8 @@ H264AVCEncoderTest::go()
     	h264::SequenceParameterSet* pcAVCSPS = NULL;
   	// JVT-V068 }
 		
-    	RNOK( m_pcH264AVCEncoder      ->writeParameterSets( &cExtBinDataAccessor
-  	// JVT-V068 {
-, pcAVCSPS
-  	// JVT-V068 }
-, bMoreSets) );
-		RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
+  	RNOK( m_pcH264AVCEncoder->writeParameterSets( &cExtBinDataAccessor, pcAVCSPS, bMoreSets ) );
+    RNOK( m_pcWriteBitstreamToFile->writePacket       ( &m_cBinDataStartCode ) );
 		RNOK( m_pcWriteBitstreamToFile->writePacket       ( &cExtBinDataAccessor ) );
 		uiWrittenBytes += 4 + cExtBinDataAccessor.size();
 		cBinData.reset();
@@ -591,7 +556,7 @@ H264AVCEncoderTest::go()
 
   if( ! m_pcEncoderCodingParameter->getAVCmode() )
   {
-	RNOK	( ScalableDealing() );
+    RNOK	( ScalableDealing() );
   }
 
   return Err::m_nOK;
@@ -611,7 +576,8 @@ H264AVCEncoderTest::ScalableDealing()
 	long lpos = 0;
 	long loffset = -5;	//start offset from end of file
 	Bool bMoreSets = true;
-	do {
+	do
+  {
 		fseek( ftemp, loffset, SEEK_END);
 		fread( pvBuffer, 1, 4, ftemp );
 		if( pvBuffer[0] == 0 && pvBuffer[1] == 0 && pvBuffer[2] == 0 && pvBuffer[3] == 1)

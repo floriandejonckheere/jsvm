@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="H264AVCEncoderLibStatic"
 	ProjectGUID="{429A9314-F0A4-46E4-9B79-CF1FBEFBB777}"
+	RootNamespace="H264AVCEncoderLibStatic"
 	>
 	<Platforms>
 		<Platform
@@ -47,6 +48,7 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
+				FloatingPointModel="1"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="H264AVCEncoderLib.h"
 				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic/H264AVCEncoderLibStatic.pch"
@@ -122,6 +124,7 @@
 				PreprocessorDefinitions="_DEBUG;WIN32;_LIB;H264_AVCVIDEOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCENCODERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
+				FloatingPointModel="1"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="H264AVCEncoderLib.h"
 				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\H264AVCEncoderLib\DebugStatic/H264AVCEncoderLibStatic.pch"
@@ -350,31 +353,6 @@
 			</File>
 			<File
 				RelativePath="Distortion.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="FGSSubbandEncoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -813,10 +791,6 @@
 			</File>
 			<File
 				RelativePath="DistortionIf.h"
-				>
-			</File>
-			<File
-				RelativePath="FGSSubbandEncoder.h"
 				>
 			</File>
 			<File

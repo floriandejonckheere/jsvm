@@ -101,7 +101,7 @@ ExtractorParameter::ExtractorParameter()
 , m_uiScalableLayer( MSYS_UINT_MAX )
 , m_uiLayer       ( MSYS_UINT_MAX )
 , m_uiLevel       ( MSYS_UINT_MAX )
-, m_dFGSLayer     ( 10.0 )
+, m_uiFGSLayer    ( 1000 )
 , m_dBitrate      ( MSYS_UINT_MAX )
 , m_bAnalysisOnly ( true )
 // HS: packet trace
@@ -125,6 +125,8 @@ ExtractorParameter::ExtractorParameter()
 , m_eQLExtractionMode(QL_EXTRACTOR_MODE_JOINT)
 
 , m_dMaximumRate    ( 0.0 )
+, m_bMinusRSpecified( false )
+, m_bMinusRPercentageMode( false )
 , m_bDontTruncQLayer( false )
 {
     //{{Quality level estimation and modified truncation- JVTO044 and m12007
@@ -247,7 +249,26 @@ ExtractorParameter::init( Int     argc,
       EXIT( bBitrateSpecified,          "Option \"-r\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-r\" used in connection with option \"-et\"" ); // HS: packet trace
       EXIT( bScalableLayerSpecified,    "Option \"-r\" used in connection with option \"-sl\"" );
-      m_dMaximumRate        = atof( argv[ ++iArg] );
+      ++iArg;
+      UInt uiLen = strlen( argv[iArg] );
+      if( argv[iArg][uiLen-1] == '%' )
+      {
+        ROT( uiLen > 99 );
+        Char acStr[100];
+        strcpy( acStr, argv[iArg] );
+        acStr[uiLen-1] = '\0';
+        m_dMaximumRate = atof( acStr );
+        EXIT( m_dMaximumRate > 100.0,  "Option \"-r\": Percentage may not exceed 100%." );
+        EXIT( m_dMaximumRate < 0.0,    "Option \"-r\": Percentage may not be smaller than 0%." );
+        m_dMaximumRate /= 100.0;
+        m_dMaximumRate = max( 0.0, min( 1.0, m_dMaximumRate ) );
+        m_bMinusRPercentageMode = true;
+      }
+      else
+      {
+        m_dMaximumRate        = atof( argv[iArg] );
+      }
+      m_bMinusRSpecified = true;
       bMaximumRateSpecified = true;
       continue;
     }
@@ -308,7 +329,15 @@ ExtractorParameter::init( Int     argc,
       EXIT( bBitrateSpecified,          "Option \"-f\" used in connection with option \"-b\"" );
       EXIT( bTraceExtractionSpecified,  "Option \"-f\" used in connection with option \"-et\"" ); // HS: packet trace
       EXIT( bMaximumRateSpecified,      "Option \"-f\" used in connection with option \"-r\"" );
-      m_dFGSLayer     = atof( argv[ ++iArg ] );
+      iArg++;
+      for( Int i = 0; argv[iArg][i]!= '\0'; i++ )
+      {
+        EXIT( argv[iArg][i] == '.', "Option \"-f\" used with floating point value." );
+      }
+      Int iFGSLayer   = atoi( argv[iArg] );
+      EXIT( iFGSLayer < 0,  "Option \"-f\" used with negative value." );
+      EXIT( iFGSLayer > 15, "Option \"-f\" used with value greater than 15." );
+      m_uiFGSLayer    = (UInt)iFGSLayer;
       bFGSSpecified   = true;
       continue;
     }
@@ -453,7 +482,8 @@ ExtractorParameter::xPrintUsage( Char **argv )
   printf("\t               - C frame rate [Hz]\n");
   printf("\t               - D bit rate [kbit/s]\n");
   printf("\t-et        -> extract packets as specified by given (modified) packet trace file\n"); // HS: packet trace
-  printf("\t-r RATE    -> extract rate of highest layer wo trunc. (use QL when present)\n\n");
+  printf("\t-r RATE    -> extract rate of highest layer wo trunc. (use QL when present)\n");
+  printf("\t               - may be specified as percentage (0%% no ql, 100%% all qls)\n");
   printf("\t-dtql      -> do not truncate quality layers for \"-r\" (only remove)\n\n");
   //S051{
   printf("\t-sip       -> extract using SIP algorithm \n");

@@ -371,6 +371,7 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
   }
   else
   {
+    ROT( pcSliceHeader->getQualityLevel() > MAX_QUALITY_LEVELS );
     pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()]);
   }
 //JVT-T054}
@@ -384,6 +385,7 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
     }
     else
     {
+      ROT( pcSliceHeader->getQualityLevel() > MAX_QUALITY_LEVELS );
       curr = &m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()];
     }
 //JVT-T054}
@@ -413,6 +415,7 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
     }
     else
     {
+      ROT( pcSliceHeader->getQualityLevel() > MAX_QUALITY_LEVELS );
       m_apcMCTFDecoder[uiLayer]->setResizeParametersCGSSNR(pcSliceHeader->getQualityLevel(), &m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()]);
     }
 //JVT-T054}

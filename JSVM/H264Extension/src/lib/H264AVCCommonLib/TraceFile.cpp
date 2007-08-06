@@ -107,10 +107,10 @@ TraceFile::~TraceFile()
 
 
 UInt  TraceFile::sm_uiLayer;
-FILE* TraceFile::sm_fTrace      [MAX_LAYERS];
-UInt  TraceFile::sm_uiFrameNum  [MAX_LAYERS];
-UInt  TraceFile::sm_uiSliceNum  [MAX_LAYERS];
-UInt  TraceFile::sm_uiPosCounter[MAX_LAYERS];
+FILE* TraceFile::sm_fTrace      [MAX_TRACE_LAYERS];
+UInt  TraceFile::sm_uiFrameNum  [MAX_TRACE_LAYERS];
+UInt  TraceFile::sm_uiSliceNum  [MAX_TRACE_LAYERS];
+UInt  TraceFile::sm_uiPosCounter[MAX_TRACE_LAYERS];
 Char  TraceFile::sm_acLine      [MAX_LINE_LENGTH] ;
 Char  TraceFile::sm_acType      [9];
 Char  TraceFile::sm_acPos       [9];
@@ -128,8 +128,7 @@ TraceFile::initTrace()
   sm_acPos [0]  = '\0';
   sm_acCode[0]  = '\0';
   sm_acBits[0]  = '\0';
-
-  for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
+  for( UInt ui = 0; ui < MAX_TRACE_LAYERS; ui++ )
   {
     sm_fTrace      [ui] = 0;
     sm_uiFrameNum  [ui] = 0;
@@ -144,7 +143,7 @@ TraceFile::initTrace()
 ErrVal
 TraceFile::openTrace( Char* pucBaseFilename )
 {
-  for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
+  for( UInt ui = 0; ui < MAX_TRACE_LAYERS; ui++ )
   {
     Char file[1000];
     ::snprintf( file, 1000, "%s_L%d.txt", pucBaseFilename, ui );
@@ -158,7 +157,7 @@ TraceFile::openTrace( Char* pucBaseFilename )
 ErrVal
 TraceFile::closeTrace ()
 {
-  for( UInt ui = 0; ui < MAX_LAYERS; ui++ )
+  for( UInt ui = 0; ui < MAX_TRACE_LAYERS; ui++ )
   {
     if( sm_fTrace[ui] )
     {
@@ -173,6 +172,7 @@ TraceFile::closeTrace ()
 ErrVal
 TraceFile::setLayer( UInt uiLayerId )
 {
+  ROT( uiLayerId >= MAX_TRACE_LAYERS );
   sm_uiLayer = uiLayerId;
   return Err::m_nOK;
 }
@@ -223,6 +223,7 @@ TraceFile::startMb( Int iMbAddress )
 ErrVal
 TraceFile::printHeading( Char* pcString )
 {
+  sm_uiPosCounter[sm_uiLayer] = 0;
   if( ! sm_fTrace[0] )
   {
     sm_acLine[0] = '\0';

@@ -172,70 +172,9 @@ class IntFrame;
 
 H264AVC_NAMESPACE_BEGIN
 
-class H264AVCCOMMONLIB_API MbFGSCoefMap
-{
-public:
-
-  Void resetMbCoefMap() { ::memset( m_aacCoefMap, 0, sizeof( m_aacCoefMap ) ); }
-  Void resetMbRefCtx()  { ::memset( m_aacRefCtx,  0, sizeof( m_aacRefCtx  ) ); }
-  Void resetNumCoded()  { m_usNumCoded = 0; }
-
-  Void reset()
-  {
-    resetMbCoefMap();
-    resetMbRefCtx();
-    resetNumCoded();
-    m_uiMbMap = 0;
-  }
-
-  MbFGSCoefMap()  { reset(); }
-  CoefMap* getCoefMap( S4x4Idx   cS4x4Idx   )               { return &m_aacCoefMap[cS4x4Idx.s4x4()][0]; }
-  CoefMap* getCoefMap( B8x8Idx   c8x8Idx    )               { return &m_aacCoefMap[4*c8x8Idx.b8x8Index()][0]; }
-  CoefMap* getCoefMap( ChromaIdx cChromaIdx )               { return &m_aacCoefMap[16+cChromaIdx][0]; }
-
-  RefCtx*  getRefCtx( S4x4Idx   cS4x4Idx   )                { return &m_aacRefCtx[cS4x4Idx.s4x4()][0]; }
-  RefCtx*  getRefCtx( B8x8Idx   c8x8Idx    )                { return &m_aacRefCtx[4*c8x8Idx.b8x8Index()][0]; }
-  RefCtx*  getRefCtx( ChromaIdx cChromaIdx )                { return &m_aacRefCtx[16+cChromaIdx][0]; }
-
-  UInt&  getMbMap()                                         { return m_uiMbMap; }
-  UChar& getB8x8Map( const B8x8Idx &rcB8x8Idx )             { return m_aucB8x8Map[rcB8x8Idx.b8x8Index()]; }
-  UChar& getB4x4Map( const LumaIdx &rcLumaIdx )             { return m_aucB4x4Map[rcLumaIdx]; }
-  UChar& getChromaDCMbMap( const CPlaneIdx &rcCPlaneIdx )   { return m_aucChromaDCMbMap[rcCPlaneIdx]; }
-  UChar& getChromaACBlockMap( const CIdx &rcCIdx )          { return m_aucChromaACBlockMap[rcCIdx]; }
-
-  UChar& getLumaScanPos( const S4x4Idx &rcS4x4Idx )         { return m_aucLumaScanPosMap[rcS4x4Idx.s4x4()]; }
-  UChar& getChromaDCScanPos( const CPlaneIdx &rcCPlaneIdx ) { return m_aucChromaDCScanPosMap[rcCPlaneIdx]; }
-  UChar& getChromaACScanPos( const CIdx &rcCIdx )           { return m_aucChromaACScanPosMap[rcCIdx]; }
-
-  ErrVal increaseAndCheckNumCoded( UInt ui )                { return ( m_usNumCoded += ui ) > 384 ? Err::m_nERR : Err::m_nOK;  }
-  UShort getNumCoded()                                const { return m_usNumCoded; }
-
-private:
-  CoefMap m_aacCoefMap[24][16];
-  RefCtx  m_aacRefCtx[24][16];
-
-  UInt    m_uiMbMap;
-  UChar   m_aucB8x8Map[4];
-  UChar   m_aucB4x4Map[16];
-  UChar   m_aucChromaDCMbMap[2];
-  UChar   m_aucChromaACBlockMap[8];
-
-  UChar   m_aucLumaScanPosMap[16]; // s-ordered buffer (to be accessed with m_iSIdx of S4x4Idx )
-  UChar   m_aucChromaDCScanPosMap[2];
-  UChar   m_aucChromaACScanPosMap[8];
-
-  UShort  m_usNumCoded;
-};
-
-
 class FGSCoder
 {
 public:
-
-  enum
-  {
-    RQ_QP_DELTA = 6
-  };
 
   FGSCoder()
     : m_bInit                     ( false )
@@ -248,21 +187,7 @@ public:
     , m_pcBaseLayerSbb            ( 0 )
     , m_bUpdateWithoutMap         ( false )
     , m_pcSliceHeader             ( 0 )
-   , m_bEncoder                   (false)
   {
-  }
-
-  Void getCoeffSigMap         ( UInt uiMbX, UInt uiMbY, S4x4Idx cIdx,    UChar *pucSigMap, Bool bFrame );
-  Void getCoeffSigMap         ( UInt uiMbX, UInt uiMbY, B8x8Idx c8x8Idx, UChar *pucSigMap, Bool bFrame );
-  Void getCoeffSigMap         ( UInt uiMbX, UInt uiMbY, CIdx cIdx,       UChar *pucSigMap, Bool bFrame );
-  Void getCoeffSigMapChroma8x8( UInt uiMbX, UInt uiMbY, UInt uiPlane,    UChar *pucSigMap, Bool bFrame );
-
-  ErrVal            xStoreBQLayerSigMap();
-  ErrVal            xSwitchBQLayerSigMap();
-
-  static Bool isSignificant(UChar ucCoeffState)
-  {
-    return ( ( ucCoeffState & SIGNIFICANT ) != 0 );
   }
 
   IntFrame*   getBaseLayerSbb()   { return m_pcBaseLayerSbb;   }
@@ -270,7 +195,6 @@ public:
   MbDataCtrl* getMbDataCtrlEL()     { return &m_cMbDataCtrlEL; }
 //JVT-T054{
   Void        setMbDataCtrl(MbDataCtrl* pcMbDataCtrl) { m_pcCurrMbDataCtrl = pcMbDataCtrl;}
-  Void        setBaseLayerSbb(IntFrame* pcBaseLayerSbb) { m_pcBaseLayerSbb = pcBaseLayerSbb; }
 //JVT-T054}
 
   enum
@@ -294,31 +218,12 @@ protected:
                                             Transform*      pcTransform );
   ErrVal            xInitSPS              ( const SequenceParameterSet& rcSPS );
   ErrVal            xUninit               ();
-  ErrVal            xScaleTCoeffs         ( MbDataAccess&               rcMbDataAccess,
-                                            Bool                        bBaseLayer  );
   ErrVal            xReconstructMacroblock( MbDataAccess&               rcMbDataAccess,
                                             IntYuvMbBuffer&             rcMbBuffer );
 
-  ErrVal            xScaleBaseLayerCoeffs ( Bool bDecoder );
-  
-  // FMO FGS ICU/ETRI
   ErrVal            xInitializeCodingPath         (SliceHeader* pcSliceHeader);
-  ErrVal            xUpdateCodingPath             (SliceHeader* pcSliceHeader);
-  ErrVal            xInitializeCodingPath         ();
-  ErrVal            xUpdateCodingPath             ();
-  ErrVal            xClearCodingPath              ();
-
-  ErrVal            xUpdateMacroblock             ( MbDataAccess&       rcMbDataAccessBL,
-                                                    MbDataAccess&       rcMbDataAccessEL,
-                                                    UInt                uiMbY,
-                                                    UInt                uiMbX );
-  ErrVal            xClearBaseCoeffs( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
   ErrVal            xInitBaseLayerSbb     ( UInt uiLayerId );
-  ErrVal            xUpdateMbMaps         ( MbDataAccess*      pcMbDataAccessBL,
-                                            MbDataAccess*      pcMbDataAccessEL,
-                                            MbFGSCoefMap       &rcMbFGSCoefMap,
-                                            Int*               piRemainingTCoeff = 0 );
 
   Bool              m_bInit;
   Bool              m_bPicInit;
@@ -329,9 +234,6 @@ protected:
 
   UInt              m_uiWidthInMB;
   UInt              m_uiHeightInMB;
-  Bool              m_bFgsComponentSep;
-  MbFGSCoefMap*    m_pcCoefMap;
-  MbFGSCoefMap*    m_pcBQCoefMap;
 
   UInt              m_uiLumaCbpRun;
   Bool              m_bLastLumaCbpFlag;
@@ -345,48 +247,11 @@ protected:
 
   IntFrame*         m_pcBaseLayerSbb;
   SliceHeader*      m_pcSliceHeader;
-  Bool              m_bEncoder;
 
-  UInt              xDeriveComponentPosVectors  ( UInt*             puiRefPosVect,
-                                                  Int*              piMaxPosLuma,
-                                                  Int*              piMaxPosChromaAC,
-                                                  Int*              piMaxPosChromaDC,
-                                                  UInt              uiChromaStartCycle );
   Bool              m_bUpdateWithoutMap;
-  ErrVal            xSetNumCoefficients         ( UInt              uiMbX, 
-                                                  UInt              uiMbY,
-                                                  MbFGSCoefMap       &rcMbFGSCoefMap,
-                                                  UInt              uiMbCoeffsDecoded );
 
 private:
 
-  Void xUpdateCoefMap(TCoeff& cBL, TCoeff cEL, CoefMap& sm)
-  {
-    if ((cEL))
-    {
-      if( cEL < 0 ) // set sign only when base layer not significant
-      {
-        sm  |= BASE_SIGN;
-      }
-      sm    |= SIGNIFICANT;
-      cBL   += cEL;
-    }
-  }
-
-  Int               xScaleLevel4x4        ( Int                         iLevel,
-                                            Int                         iIndex,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  Int               xScaleLevel8x8        ( Int                         iLevel,
-                                            Int                         iIndex,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  ErrVal            xScaleSymbols4x4      ( TCoeff*                     piCoeff,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
-  ErrVal            xScaleSymbols8x8      ( TCoeff*                     piCoeff,
-                                            const QpParameter&          cQP,
-                                            const QpParameter&          cBaseQP );
   ErrVal            xScale4x4Block        ( TCoeff*                     piCoeff,
                                             const UChar*                pucScale,
                                             UInt                        uiStart,
@@ -394,11 +259,6 @@ private:
   ErrVal            xScale8x8Block        ( TCoeff*                     piCoeff,
                                             const UChar*                pucScale,
                                             const QpParameter&          rcQP );
-  ErrVal            xUpdateSymbols        ( TCoeff*                     piCoeff,
-                                            TCoeff*                     piCoeffEL,
-                                            Bool&                       bSigDC,
-                                            Bool&                       bSigAC,
-                                            Int                         iNumCoeff );
 };
 
 

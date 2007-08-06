@@ -103,7 +103,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define NUM_ONE_CTX    5
 #define NUM_ABS_CTX    5
 #define NUM_TRANSFORM_SIZE_CTX 3
-#define NUM_FGS_REF_CTX         22
 
 #define NUM_ADAPTIVE_BCBP_CTX     1
 #define NUM_EXTRA_RUN_CTX         2
@@ -467,14 +466,6 @@ static const Short INIT_FLD_LAST_P[3][8][NUM_LAST_CTX][2] =
     { {  36, -16} , {  37, -14} , {  37, -17} , {  32,   1} , {  34,  15} , {  29,  15} , {  24,  25} , {  34,  22} , {  31,  16} , {  35,  18} , {  31,  28} , {  33,  41} , {  36,  28} , {  27,  47} , {  21,  62} },
     { {  18,  31} , {  19,  26} , {  36,  24} ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED },
     {  CTX_UNUSED , {  24,  23} , {  27,  16} , {  24,  30} , {  31,  29} , {  22,  41} , {  22,  42} , {  16,  60} , {  15,  52} , {  14,  60} , {   3,  78} , { -16, 123} , {  21,  53} , {  22,  56} , {  25,  61} }
-  }
-};
-
-static const Short INIT_SR_FLAG[1][1][1][2] =
-{
-  //----- model 0 -----
-  {
-    { { 0, 40 } }
   }
 };
 
@@ -958,22 +949,6 @@ static const Short INIT_TRANSFORM_SIZE_P[3][1][3][2]=
   {
     {  {  21,  33} , {  19,  50} , {  17,  61} },
 //    { {   0,  41} , {   0,  63} , {   0,  63} },
-  }
-};
-
-
-
-static const Short INIT_REF[1][1][NUM_FGS_REF_CTX][2] =
-{  // ctxIdxInc for coeff_refinement_flag and coeff_refinement_direction flag
-  {// 0       0       1       1       2       2                               3       3       4       4       5       5                               6       6       7       7       8       8
-    { {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, {0,64}, {0,64}, {0,64}, {0,64}, {0,64}, {0,64} }
-  }
-};
-
-static const Short INIT_SIG[1][1][10][2] =
-{
-  {
-    { {0,64}, {0,64}, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED, CTX_UNUSED }
   }
 };
 

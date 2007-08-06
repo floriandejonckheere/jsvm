@@ -103,6 +103,9 @@ protected:
 
 public:
   virtual ErrVal write( UInt uiBits, UInt uiNumberOfBits = 1) = 0;
+  virtual BitWriteBufferIf* getNextBitWriteBuffer( Bool bStartNewBitstream = false ) = 0;
+  virtual Bool nextBitWriteBufferActive() = 0;
+  virtual UChar* getNextBuffersPacket() = 0;
 
   virtual UInt getNumberOfWrittenBits() = 0 ;
 

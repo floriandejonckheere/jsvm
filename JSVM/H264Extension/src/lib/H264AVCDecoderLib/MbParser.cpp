@@ -244,7 +244,6 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
     RNOK( xSkipMb( rcMbDataAccess ) );
     rcMbDataAccess.getMbData().setBLSkipFlag( false );
     rcMbDataAccess.getMbData().setResidualPredFlag( false );
-    rcMbDataAccess.getMbData().setSmoothedRefFlag ( false );
     if( rcMbDataAccess.getSH().isInterB() )
     {
       rcMbDataAccess.getMbData().setFwdBwd( 0x3333 );
@@ -264,16 +263,16 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
 
   if( bIsCoded )
   {
-  if( rcMbDataAccess.getSH().isMbAff() && ( rcMbDataAccess.isTopMb() || m_bPrevIsSkipped ) )
-  {
-    RNOK( m_pcMbSymbolReadIf->fieldFlag( rcMbDataAccess) );
-  }
+    if( rcMbDataAccess.getSH().isMbAff() && ( rcMbDataAccess.isTopMb() || m_bPrevIsSkipped ) )
+    {
+      RNOK( m_pcMbSymbolReadIf->fieldFlag( rcMbDataAccess) );
+    }
 
-  MbParser::IntMbTempData cIntMbTempData;
-  Bool bBaseLayerAvailable = (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
+    MbParser::IntMbTempData cIntMbTempData;
+    Bool bBaseLayerAvailable = (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
 
-    //===== base layer mode flag and base layer refinement flag =====
-  if( bBaseLayerAvailable )
+      //===== base layer mode flag and base layer refinement flag =====
+    if( bBaseLayerAvailable )
     {
       if ( rcMbDataAccess.getMbData().getInCropWindowFlag() == true )
       {
@@ -417,7 +416,11 @@ ErrVal MbParser::read( MbDataAccess&  rcMbDataAccess,
                                !rcMbDataAccess.getMbData().isIntra4x4() ) ) );
       bBaseLayerAvailable = (rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX);
       //-- JVT-R091
-		  DECRNOK( xReadTextureInfo( rcMbDataAccess, bTrafo8x8Flag, bBaseLayerAvailable ) );
+      DECRNOK( xReadTextureInfo( rcMbDataAccess,
+                                 bTrafo8x8Flag,
+                                 bBaseLayerAvailable,
+                                 rcMbDataAccess.getSH().getMGSCoeffStart(),
+                                 rcMbDataAccess.getSH().getMGSCoeffStop() ) );
 		  //--
     }
 
@@ -1383,21 +1386,26 @@ ErrVal MbParser::xReadMotionVectors( MbDataAccess& rcMbDataAccess, MbMode eMbMod
 }
 
 
-
-
-
-
 ErrVal
 MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
                             Bool						bTrafo8x8Flag,
-                            Bool            bBaseLayerAvailable )
+                            Bool            bBaseLayerAvailable,
+                            UInt            uiStart,
+                            UInt            uiStop )
 {
   Bool bReadDQp = true;
 
   if( rcMbDataAccess.getMbData().getBLSkipFlag() || 
      !rcMbDataAccess.getMbData().isIntra16x16() )
   {
-    DECRNOK( m_pcMbSymbolReadIf->cbp( rcMbDataAccess ) );
+    if( uiStart == uiStop )
+    {
+      rcMbDataAccess.getMbData().setMbCbp( 0 );
+    }
+    else
+    {
+      DECRNOK( m_pcMbSymbolReadIf->cbp( rcMbDataAccess, uiStart, uiStop ) );
+    }
     bReadDQp = rcMbDataAccess.getMbData().getMbCbp() != 0;
   }
 
@@ -1417,29 +1425,29 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
     rcMbDataAccess.resetQp();
   }
 
+//   if( rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() && !rcMbDataAccess.getSH().isIntra() &&
+//       ( rcMbDataAccess.getMbData().getBLSkipFlag() ||
+//       ( !rcMbDataAccess.getMbData().isIntra_nonBL() && rcMbDataAccess.getMbData().getInCropWindowFlag() ) ) )
+//   {
+//     DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
+//   }
+//   else
+//   {
+//     rcMbDataAccess.getMbData().setResidualPredFlag( !rcMbDataAccess.getSH().getAVCRewriteFlag() &&
+//                                                     rcMbDataAccess.getMbData().getInCropWindowFlag() &&
+//                                                     ( rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getMbData().isIntra_nonBL() ) &&
+//                                                     rcMbDataAccess.getSH().getNoInterLayerPredFlag() );
+//   }
 
-  if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
-     !rcMbDataAccess.getMbData().isIntra() )
+  if( (rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getMbData().isIntra()) &&
+      (rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() && !rcMbDataAccess.getSH().isIntra()) )
   {
-   if( rcMbDataAccess.getSH().getAdaptiveResPredictionFlag() )   // JVT-U160 LMI
-    {
-      if( ! rcMbDataAccess.getSH().isIntra() )
-      {
-        DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
-        //-- JVT-R091
-        if( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) && 
-          rcMbDataAccess.getMbData().getBLSkipFlag() &&rcMbDataAccess.useSmoothedRef()
-          && (rcMbDataAccess.getSH().getAVCRewriteFlag() == false) )
-        {
-          DECRNOK( m_pcMbSymbolReadIf->smoothedRefFlag( rcMbDataAccess ) );
-        }
-      }
-    }
-   else if( bBaseLayerAvailable && rcMbDataAccess.useSmoothedRef())
-    {
-      rcMbDataAccess.getMbData().setResidualPredFlag( true );
-      rcMbDataAccess.getMbData().setSmoothedRefFlag( false );	// JVT-R091
-    }
+    DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
+  }
+  else
+  {
+    rcMbDataAccess.getMbData().setResidualPredFlag( ( rcMbDataAccess.getSH().isIntra() && rcMbDataAccess.getMbData().getBLSkipFlag() ) ||
+                                                    (!rcMbDataAccess.getSH().isIntra() && rcMbDataAccess.getMbData().getBLSkipFlag() && !rcMbDataAccess.getSH().getNoInterLayerPredFlag() ) );
   }
 
   UInt uiDummy     = 0;
@@ -1471,7 +1479,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
     {
       if( uiMbExtCbp & ( 1 << c8x8Idx.b4x4() ) )
       {
-        DECRNOK( m_pcMbSymbolReadIf->residualBlock8x8( rcMbDataAccess, c8x8Idx ) );
+        DECRNOK( m_pcMbSymbolReadIf->residualBlock8x8( rcMbDataAccess, c8x8Idx, uiStart, uiStop ) );
       }
     }
   }
@@ -1483,7 +1491,7 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
       {
         for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
         {
-          DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess, cIdx , LUMA_SCAN, uiMbExtCbp ) );
+          DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess, cIdx , LUMA_SCAN, uiMbExtCbp, uiStart, uiStop ) );
         }
       }
     }
@@ -1491,28 +1499,29 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
   }
   rcMbDataAccess.getMbData().setMbExtCbp( uiMbExtCbp );
 
-  DECRNOK( xScanChromaBlocks  ( rcMbDataAccess,  rcMbDataAccess.getMbData().getCbpChroma4x4() ) );
-
+  DECRNOK( xScanChromaBlocks  ( rcMbDataAccess,  rcMbDataAccess.getMbData().getCbpChroma4x4(), uiStart, uiStop ) );
   return Err::m_nOK;
 }
 
 
-
-
-
-
-ErrVal MbParser::xScanChromaBlocks( MbDataAccess& rcMbDataAccess, UInt uiChromCbp )
+ErrVal MbParser::xScanChromaBlocks( MbDataAccess& rcMbDataAccess, UInt uiChromCbp, UInt uiStart, UInt uiStop )
 {
   ROTRS( 1 > uiChromCbp, Err::m_nOK );
 
-  DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess,  CIdx(0), CHROMA_DC ) );
-  DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess,  CIdx(4), CHROMA_DC ) );
+  if( uiStart == 0 )
+  {
+    DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess,  CIdx(0), CHROMA_DC, uiStart, uiStop ) );
+    DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess,  CIdx(4), CHROMA_DC, uiStart, uiStop ) );
+  }
 
   ROTRS( 2 > uiChromCbp, Err::m_nOK );
 
   for( CIdx cCIdx; cCIdx.isLegal(); cCIdx++ )
   {
-    DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess,  cCIdx, CHROMA_AC ) );
+    if( uiStop > 1 )
+    {
+      DECRNOK( m_pcMbSymbolReadIf->residualBlock( rcMbDataAccess,  cCIdx, CHROMA_AC, uiStart, uiStop ) );
+    }
   }
   return Err::m_nOK;
 }

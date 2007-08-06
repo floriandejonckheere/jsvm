@@ -128,7 +128,6 @@ protected:
   BinData m_cTempBuffer;
   UInt  m_uiWidth;
   UInt  m_uiHeight;
-
 };
 
 #if defined( WIN32 )

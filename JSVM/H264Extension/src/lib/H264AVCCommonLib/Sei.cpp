@@ -711,10 +711,10 @@ SEI::ScalableSei::ScalableSei	()
 	::memset( m_bitstream_restriction_src_layer_id_delta, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt));
 	::memset( m_ql_dependency_id, 0x00, MAX_LAYERS*sizeof(UInt));
 	::memset( m_ql_num_minus1, 0x00, MAX_LAYERS*sizeof(UInt));
-	::memset( m_ql_id, 0x00, MAX_LAYERS*(MAX_FGS_LAYERS+1)*sizeof(UInt));
-	::memset( m_ql_profile_level_idc, 0x00, MAX_LAYERS*(MAX_FGS_LAYERS+1)*sizeof(Int32));
-	::memset( m_ql_avg_bitrate, 0x00, MAX_LAYERS*(MAX_FGS_LAYERS+1)*sizeof(UInt));
-	::memset( m_ql_max_bitrate, 0x00, MAX_LAYERS*(MAX_FGS_LAYERS+1)*sizeof(UInt));
+	::memset( m_ql_id, 0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(UInt));
+	::memset( m_ql_profile_level_idc, 0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(Int32));
+	::memset( m_ql_avg_bitrate, 0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(UInt));
+	::memset( m_ql_max_bitrate, 0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(UInt));
 	//JVT-W051 }
 
 }
@@ -796,8 +796,7 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 		RNOK    ( pcWriteIf->writeFlag( m_discardable_flag[i],								"ScalableSEI: discardable_flag"											) );  
 		RNOK	( pcWriteIf->writeCode( m_temporal_level[i],								3,		"ScalableSEI: temporal_level"												) );
 		RNOK	( pcWriteIf->writeCode( m_dependency_id[i],							3,		"ScalableSEI: dependency_level"											) );
-		RNOK	( pcWriteIf->writeCode( m_quality_level[i],									2,		"ScalableSEI: quality_level"													) );
-	
+    RNOK	( pcWriteIf->writeCode( m_quality_level[i],									4,		"ScalableSEI: quality_level"													) );
 		RNOK	( pcWriteIf->writeFlag( m_sub_pic_layer_flag[i],										"ScalableSEI: sub_pic_layer_flag"										) );
 		RNOK	( pcWriteIf->writeFlag( m_sub_region_layer_flag[i],									"ScalableSEI: sub_region_layer_flag"									) );
 		//RNOK	( pcWriteIf->writeFlag( m_iroi_slice_division_info_present_flag[i],					"ScalableSEI: iroi_slice_division_info_present_flag"					) ); 
@@ -1080,8 +1079,7 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 		RNOK	( pcReadIf->getFlag( m_discardable_flag[i],													"" ) );     
 		RNOK	( pcReadIf->getCode( m_temporal_level[i],													3,		""	) );
 		RNOK	( pcReadIf->getCode( m_dependency_id[i],												3,		""	) );
-		RNOK	( pcReadIf->getCode( m_quality_level[i],													2,		""	) );
-	
+    RNOK	( pcReadIf->getCode( m_quality_level[i],													4,		""	) );
 		RNOK	( pcReadIf->getFlag( m_sub_pic_layer_flag[i],														""	) );
 		RNOK	( pcReadIf->getFlag( m_sub_region_layer_flag[i],													""	) );
 		//RNOK	( pcReadIf->getFlag( m_iroi_slice_division_info_present_flag[i],						""  ) ); 
@@ -2333,7 +2331,9 @@ ErrVal SEI::PicTiming::read( HeaderSymbolReadIf* pcReadIf )
 
   if( m_rcVUI.getPicStructPresentFlag(m_uiLayerIndex) )
   {
-    RNOKS( pcReadIf->getCode( (UInt&)m_ePicStruct, 4, "SEI: pic_struct" ) );
+    UInt uiCode = 0;
+    RNOKS( pcReadIf->getCode( uiCode, 4, "SEI: pic_struct" ) );
+    m_ePicStruct = (PicStruct)uiCode;
     AOT( NULL == pcHRD );
     UInt uiNumClockTs = getNumClockTs(); 
     for( UInt n = 0; n < uiNumClockTs ; n++ ) 

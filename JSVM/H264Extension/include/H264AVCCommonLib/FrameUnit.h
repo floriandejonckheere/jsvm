@@ -179,14 +179,6 @@ public:
 
   Bool getContrainedIntraPred() const { return m_bConstrainedIntraPred; }
 
-  IntFrame* getFGSReconstruction(UInt uiLayerIdx) 
-  { 
-    return (uiLayerIdx > MAX_FGS_LAYERS) ? 0 : m_apcFGSRecon[uiLayerIdx];
-  }
-  Void setFGSReconCount(UInt uiFGSReconCount) { m_uiFGSReconCount = uiFGSReconCount;  }
-  UInt getFGSReconCount()                     { return m_uiFGSReconCount;  }
-  Void decFGSReconCount()                     { m_uiFGSReconCount -= (m_uiFGSReconCount > 1) ? 1 : 0;  }
-
 private:
   Frame         m_cFrame;
 	Frame         m_cTopField;
@@ -210,13 +202,6 @@ private:
   Frame         m_cFGSTopField;
   Frame         m_cFGSBotField;
   Bool          m_bConstrainedIntraPred;
-
-  UInt          m_uiFGSReconCount;
-  IntFrame*     m_apcFGSRecon[MAX_FGS_LAYERS + 1];             // base layer of the first FGS layer
-  IntFrame      m_cFGSRecon0;
-  IntFrame      m_cFGSRecon1;
-  IntFrame      m_cFGSRecon2;
-  IntFrame      m_cFGSRecon3;
 };
 
 

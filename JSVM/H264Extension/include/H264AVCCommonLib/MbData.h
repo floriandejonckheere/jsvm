@@ -112,6 +112,9 @@ public:
     m_apcMbData[0]=m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;
   }
 
+  UInt calcMbCbp ( UInt uiStart, UInt uiStop ) const;
+  Bool calcBCBP  ( UInt uiStart, UInt uiStop, UInt uiPos ) const;
+
   ~MbData()
   {
   }

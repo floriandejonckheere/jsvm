@@ -124,7 +124,6 @@ public:
 	Void                  setFrameHeight      (UInt uiHeight)     { m_uiFrameHeight = uiHeight; }
   Void                  setLayer            (UInt layer )       { m_uiLayer = layer;        }
   Void                  setLayerId          (UInt layer )       { m_uiLayerId = layer;        }
-  Void                  setScalableLayer    (UInt sLayer)       { m_uiScalableLayer = sLayer; }
   Void                  setBitrate          ( Double dBitrate ) { m_dBitrate = dBitrate;    }
   Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
   Void                  setMaxFGSLayerKept  (UInt fgs)           { m_uiMaxFGSLayerKept = fgs; }
@@ -134,7 +133,7 @@ public:
   Bool                  getAnalysisOnly     ()            const { return m_bAnalysisOnly;   }
   UInt                  getLayer            ()            const { return m_uiLayer;         }
   UInt                  getLayerId          ()            const { return m_uiLayerId;       }
-  Double                getFGSLayer         ()            const { return m_dFGSLayer;       }
+  UInt                  getFGSLayer         ()            const { return m_uiFGSLayer;      }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
 	UInt                  getFrameWidth       ()            const { return m_uiFrameWidth;    }
 	UInt                  getFrameHeight      ()            const { return m_uiFrameHeight;   }
@@ -150,10 +149,10 @@ public:
   const std::string&    getTraceFile        ()            const { return m_cTraceFile;      }
   const std::string&    getExtractTraceFile ()            const { return m_cExtractTrace;   }
 
-  Void                  setDontTruncQLayer  ( Bool   b )        { m_bDontTruncQLayer  = b;    }
   Bool                  getDontTruncQLayer  ()            const { return m_bDontTruncQLayer;  }
-  Void                  setMaximumRate      ( Double d )        { m_dMaximumRate      = d;    }
   Double                getMaximumRate      ()            const { return m_dMaximumRate;      }
+  Bool                  minusRSpecified     ()            const { return m_bMinusRSpecified;  }
+  Bool                  minusRPercentageMode()            const { return m_bMinusRPercentageMode; }
 
   Void    setResult           ( Int     iResult )   { m_iResult = iResult;  }
   ErrVal  init                ( Int     argc,
@@ -203,7 +202,7 @@ protected:
   UInt            m_uiLayer;
   UInt            m_uiLayerId;
   UInt            m_uiLevel;
-  Double          m_dFGSLayer;
+  UInt            m_uiFGSLayer;
 	UInt            m_uiFrameWidth;
 	UInt            m_uiFrameHeight;
   UInt            m_uiMaxFGSLayerKept;
@@ -238,6 +237,8 @@ protected:
   Bool            m_bKeepfExtraction; //used if extraction considering l AND f
 //JVT-T054}
   Double  m_dMaximumRate; // option "-r"
+  Bool    m_bMinusRSpecified;
+  Bool    m_bMinusRPercentageMode;
   Bool    m_bDontTruncQLayer; // option "-r"
 };
 

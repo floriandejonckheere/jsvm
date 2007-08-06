@@ -182,8 +182,6 @@ public:
                                           RefFrameList&               rcList1,
                                           SliceHeader&                rcSliceHeader );
 
-  RecPicBufUnit*  getLastUnit           ();
-  RecPicBufUnit*  getCurrUnit           ();
   RecPicBufUnit*  getRecPicBufUnit      ( Int                         iPoc );
 
 private:

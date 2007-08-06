@@ -172,11 +172,6 @@ public:
   //--ICU/ETRI FMO Implementation
   const Int getSliceGroupIDofMb(Int mb);
 
-  ErrVal        initFgsBQData             ( UInt uiNumMb );
-  ErrVal        uninitFgsBQData           ();
-  ErrVal        storeFgsBQLayerQpAndCbp   ();
-  ErrVal        switchFgsBQLayerQpAndCbp  ();
-
   // ICU/ETRI FGS_MOT_USE
 	Bool xGetDirect8x8InferenceFlagPublic() { return m_bDirect8x8InferenceFlag; }
   Void xSetDirect8x8InferenceFlag(Bool b) { m_bDirect8x8InferenceFlag = b; }
@@ -254,12 +249,6 @@ protected:
   Bool                m_bDirect8x8InferenceFlag;
   Bool                m_bBuildInterlacePred;
   SliceHeader*        m_pcSliceHeader;
-  UChar*        m_pacFgsBQMbQP;
-  UInt*         m_pauiFgsBQMbCbp;
-  UInt*         m_pauiFgsBQBCBP;
-  Bool*         m_pabFgsBQ8x8Trafo;
-  
-
 };
 
 

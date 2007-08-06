@@ -182,9 +182,6 @@ SequenceParameterSet::SequenceParameterSet  ()
 ,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
 , m_uiBaseChromaPhaseXPlus1                 ( 0 ) //JVT-W046
 , m_uiBaseChromaPhaseYPlus1                 ( 1 ) //JVT-W046
-, m_bFGSInfoPresentFlag                     ( false )
-, m_bFGSCycleAlignedFragment                ( false ) 
-, m_uiNumFGSVectModes                       ( 1 )
 , m_bInterlayerDeblockingPresent            ( 0 )
 , m_uiPaff                                  ( 0 )
 , m_bFrameMbsOnlyFlag                       ( true )
@@ -198,16 +195,10 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bAVCAdaptiveRewriteFlag                 ( false )
 , m_bAVCHeaderRewriteFlag                   ( false ) //JVT-W046
 {
-	m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
-	m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
-
-  ::memset( m_abFGSCodingMode,     0x00, MAX_NUM_FGS_VECT_MODES*sizeof(Bool)    );
-  ::memset( m_auiNumPosVectors,    0x00, MAX_NUM_FGS_VECT_MODES*sizeof(UInt)    );
-  ::memset( m_auiPosVect,          0x00, MAX_NUM_FGS_VECT_MODES*16*sizeof(UInt) );
-
-  UInt ui;
-  for( ui = 0; ui < MAX_NUM_FGS_VECT_MODES; ui++ )
-    m_auiGroupingSize[ ui ] = 1; 
+  m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
+  m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
+  ::memset( m_uiMGSVect,           0x00, 16*sizeof(UInt) );
+  m_uiMGSVect[0] = 16;
 }
 
 SequenceParameterSet::~SequenceParameterSet()
@@ -238,13 +229,13 @@ SequenceParameterSet::destroy()
 
 SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameterSet& rcSPS )
 {
-	m_eNalUnitType                      = rcSPS.m_eNalUnitType;
+  m_eNalUnitType                      = rcSPS.m_eNalUnitType;
   m_uiLayerId                         = rcSPS.m_uiLayerId;
   m_eProfileIdc                       = rcSPS.m_eProfileIdc;
   m_bConstrainedSet0Flag              = rcSPS.m_bConstrainedSet0Flag;
   m_bConstrainedSet1Flag              = rcSPS.m_bConstrainedSet1Flag;
   m_bConstrainedSet2Flag              = rcSPS.m_bConstrainedSet2Flag;
-	m_bConstrainedSet3Flag              = rcSPS.m_bConstrainedSet3Flag;
+  m_bConstrainedSet3Flag              = rcSPS.m_bConstrainedSet3Flag;
   m_uiLevelIdc                        = rcSPS.m_uiLevelIdc;
   m_uiSeqParameterSetId               = rcSPS.m_uiSeqParameterSetId;
   m_uiLog2MaxFrameNum                 = rcSPS.m_uiLog2MaxFrameNum;
@@ -292,7 +283,7 @@ SequenceParameterSet::getMaxDPBSize() const
 // JVT-V068 HRD {
 Void SequenceParameterSet::setVUI(SequenceParameterSet* pcSPS)
 {
-	m_pcVUI = new VUI(pcSPS);
+  m_pcVUI = new VUI(pcSPS);
 }
 
 UInt
@@ -358,8 +349,8 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   //===== NAL unit header =====
   ETRACE_DECLARE( Bool m_bTraceEnable = true );
-	g_nLayer = m_uiLayerId;
-  ETRACE_LAYER(m_uiLayerId);
+  g_nLayer = 0;
+  ETRACE_LAYER(0);
   ETRACE_HEADER( "SEQUENCE PARAMETER SET" );
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NALU HEADER: nal_ref_idc" ) );
@@ -380,30 +371,27 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   
   if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
   {
-
     RNOK( pcWriteIf->writeFlag( getInterlayerDeblockingPresent(),       "SPS: interlayer_deblocking_filter_control_present_flag" ) );
-
     RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,     "SPS: extended_spatial_scalability" ) );
-//    if ( 1 /* chroma_format_idc */ > 0 )
-//JVT-W046 {    
-	//{
-    //  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 2,             "SPS: chroma_phase_x_plus1" ) );
-    //  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
-    //}
-	if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
-	  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
+
+    if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
+    {
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
+    }
     if (getChromaFormatIdc() == 1 )  
-	  RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+    {
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+    }
 //JVT-W046 }
     if (getExtendedSpatialScalability() == ESS_SEQ)
     {
-	  //JVT-W046 {
-	  if (getChromaFormatIdc() > 0 )
-	  {
+      //JVT-W046 {
+      if (getChromaFormatIdc() > 0 )
+      {
         RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
-		RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
-	  }
-	  //JVT-W046 }
+        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
+      }
+      //JVT-W046 }
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: scaled_base_left_offset" ) );
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: scaled_base_top_offset" ) );
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: scaled_base_right_offset" ) );
@@ -444,50 +432,17 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
     }
 #endif // _JVTV074_
 
-    RNOK  ( pcWriteIf->writeFlag( m_bFGSInfoPresentFlag,                       "SPS: fgs_info_present") );
-    if( m_bFGSInfoPresentFlag ) 
+#if TO_BE_REMOVED
+    if( getExtendedSpatialScalability() == ESS_NONE )
+#endif
     {
-      RNOK  ( pcWriteIf->writeFlag( m_bFGSCycleAlignedFragment,                "SPS: fgs_cycle_aligned_fragment") );
-      RNOK  ( pcWriteIf->writeUvlc( m_uiNumFGSVectModes-1,                     "SPS: fgs_number_vector_modes") );
-
-      UInt ui;
-      for( ui = 0; ui < m_uiNumFGSVectModes; ui++ )
+      RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                    "SPS: seq_tcoeff_level_prediction_flag" ) );
+      if( m_bAVCRewriteFlag )
       {
-        RNOK  ( pcWriteIf->writeFlag( m_abFGSCodingMode[ui],                   "SPS: fgs_coding_mode") );
-        if(m_abFGSCodingMode[ ui ] == false)
-        {
-          RNOK  ( pcWriteIf->writeUvlc((m_auiGroupingSize[ui]-1),              "SPS: GroupingSizeMinus1") );
-        }
-        else
-        {
-          UInt uiIndex = 0;
-          UInt uiRemainingVectLen = 16; 
-          UInt auiReverseVectLen[16]; 
-          
-          for( uiIndex = 0; uiIndex < m_auiNumPosVectors[ui]; uiIndex ++ )
-            auiReverseVectLen [ m_auiNumPosVectors[ ui ] -1 - uiIndex ] = m_auiPosVect[ui][uiIndex];
-
-          uiIndex = 0; 
-          do 
-          {
-            UInt uiCodeLen = ( uiRemainingVectLen <= 4 ) ? ( ( uiRemainingVectLen <= 2 ) ? 1 : 2 ) : ( uiRemainingVectLen <= 8 ) ? 3 : 4;
-
-            if( uiRemainingVectLen > 1 )
-              RNOK( pcWriteIf->writeCode( auiReverseVectLen[uiIndex] - 1, uiCodeLen,  "SPS: ReverseVectLen") );
-            uiRemainingVectLen -= auiReverseVectLen [ uiIndex ];
-            uiIndex++;
-          } while( uiRemainingVectLen > 0 );
-        }
+        RNOK( pcWriteIf->writeFlag( m_bAVCAdaptiveRewriteFlag,          "SPS: adaptive_tcoeff_level_prediction_flag" ) );
       }
     }
-
-    if( getExtendedSpatialScalability() == ESS_NONE )
-    {
-      RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                    "SPS: AVC_rewrite_flag" ) );
-      if( m_bAVCRewriteFlag )
-        RNOK( pcWriteIf->writeFlag( m_bAVCAdaptiveRewriteFlag,        "SPS: AVC_adaptive_rewrite_flag" ) );
-    }
-	RNOK( pcWriteIf->writeFlag( m_bAVCHeaderRewriteFlag,              "SPS: AVC_header_rewrite_flag" ) ); // JVT-W046
+    RNOK( pcWriteIf->writeFlag( m_bAVCHeaderRewriteFlag,                "SPS: slice_header_restriction_flag" ) );
   }
   
   UInt    uiTmp = getLog2MaxFrameNum();
@@ -496,7 +451,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeUvlc( getPicOrderCntType(),                     "SPS: pic_order_cnt_type" ) );
   if( getPicOrderCntType() == 0 )
   {
-  RNOK  ( pcWriteIf->writeUvlc( getLog2MaxPicOrderCntLsb() - 4,           "SPS: log2_max_pic_order_cnt_lsb_minus4" ) );
+    RNOK  ( pcWriteIf->writeUvlc( getLog2MaxPicOrderCntLsb() - 4,           "SPS: log2_max_pic_order_cnt_lsb_minus4" ) );
   }
   else if( getPicOrderCntType() == 1 )
   {
@@ -512,7 +467,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeUvlc( getNumRefFrames(),                        "SPS: num_ref_frames" ) );
   RNOK  ( pcWriteIf->writeFlag( getGapsInFrameNumValueAllowedFlag(),      "SPS: gaps_in_frame_num_value_allowed_flag" ) );
   
-  RNOK  ( pcWriteIf->writeUvlc( getFrameWidthInMbs  () - 1,               "SPS: pic_width_in_mbs_minus_1" ) );
+  RNOK  ( pcWriteIf->writeUvlc( getFrameWidthInMbs  () - 1,               "SPS: pic_width_in_mbs_minus1" ) );
   UInt uiHeight = ( getFrameHeightInMbs()-1) >> (1- getFrameMbsOnlyFlag() );
 
   RNOK  ( pcWriteIf->writeUvlc( uiHeight,                                 "SPS: pic_height_in_map_units_minus1" ) );
@@ -529,7 +484,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
   // JVT-V068 HRD {
   m_pcVUI->write(pcWriteIf);
-	// JVT-V068 HRD }
+  // JVT-V068 HRD }
 
   Bool bRCDO  = ( m_bRCDOBlockSizes ||
                   m_bRCDOMotionCompensationY ||
@@ -544,7 +499,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
     RNOK( pcWriteIf->writeFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
   }
   else if( m_b4TapMotionCompensationY)  // V090
-	  RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,    "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
+    RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,    "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
 
 
   return Err::m_nOK;
@@ -595,21 +550,21 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     //  RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
     //}
 //JVT-W046 {	
-	if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
-	  RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
+  if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
+    RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
     if (getChromaFormatIdc() == 1 )  
-	  RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+    RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
 //JVT-W046 }
     if (m_uiExtendedSpatialScalability == ESS_SEQ)
     {
       //JVT-W046 {
-	  if (getChromaFormatIdc() > 0 )
-	  {
+    if (getChromaFormatIdc() > 0 )
+    {
         RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
-		RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
-	  }
-	  //JVT-W046 }
-	  RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
+    RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
+    }
+    //JVT-W046 }
+    RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: scaled_base_top_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
@@ -618,7 +573,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
 #ifdef _JVTV074_
     UInt k, uiResampleFilterIdx, kmin;
     Int iResampleFilterParamA, iResampleFilterParamB; 
-	Bool bIntegerPosFilterPresentFlag;
+  Bool bIntegerPosFilterPresentFlag;
 
 
     RNOK( pcReadIf->getUvlc( m_uiNumResampleFiltersMinus1,         "SPS: NumResampleFiltersMinus1" ) );
@@ -656,87 +611,39 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     }
 #endif // _JVTV074_
 
-    RNOK  ( pcReadIf->getFlag( m_bFGSInfoPresentFlag,                       "SPS: fgs_info_present") );
-    if( m_bFGSInfoPresentFlag ) 
+#if TO_BE_REMOVED
+    if( getExtendedSpatialScalability() == ESS_NONE )
+#endif
     {
-      RNOK  ( pcReadIf->getFlag( m_bFGSCycleAlignedFragment,                "SPS: fgs_cycle_aligned_fragment") );
-      RNOK  ( pcReadIf->getUvlc( m_uiNumFGSVectModes,                       "SPS: fgs_number_fgs_vector_modes") );
-      m_uiNumFGSVectModes++;
-      ROF ( m_uiNumFGSVectModes <= MAX_NUM_FGS_VECT_MODES ); 
-
-      UInt ui;
-      for( ui = 0; ui < m_uiNumFGSVectModes; ui++ )
+      RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                       "SPS: seq_tcoeff_level_prediction_flag" ) );
+      if( m_bAVCRewriteFlag )
       {
-        RNOK  ( pcReadIf->getFlag( m_abFGSCodingMode[ui],                   "SPS: fgs_coding_mode") );
-        if(m_abFGSCodingMode[ ui ] == false)
-        {
-          RNOK  ( pcReadIf->getUvlc(m_auiGroupingSize[ui],                  "SPS: GroupingSizeMinus1") );
-          m_auiGroupingSize[ ui ]++;
-        }
-        else
-        {
-          UInt uiIndex = 0;
-          UInt uiRemainingVectLen = 16; 
-          UInt auiReverseVectLen[16]; 
-
-          do 
-          {
-            UInt uiCodeLen = ( uiRemainingVectLen <= 4 ) ? ( ( uiRemainingVectLen <= 2 ) ? 1 : 2 ) : ( uiRemainingVectLen <= 8 ) ? 3 : 4;
-
-            auiReverseVectLen[ uiIndex ] = 0;
-            if( uiRemainingVectLen > 1 )
-            {
-              RNOK( pcReadIf->getCode( auiReverseVectLen[ uiIndex ], uiCodeLen, "SPS: ReverseVectLen") );
-            }
-            else
-              auiReverseVectLen[ uiIndex ] = 0;
-            auiReverseVectLen[ uiIndex ] ++;
-            uiRemainingVectLen -= auiReverseVectLen [ uiIndex ];
-            uiIndex++;
-          } while( uiRemainingVectLen > 0 );
-
-          m_auiNumPosVectors[ui] = uiIndex;
-          
-          for( uiIndex = 0; uiIndex < m_auiNumPosVectors[ui]; uiIndex ++ )
-            m_auiPosVect[ui][uiIndex] = auiReverseVectLen [ m_auiNumPosVectors[ ui ] - 1 - uiIndex ];
-
-        }
+        RNOK( pcReadIf->getFlag( m_bAVCAdaptiveRewriteFlag,             "SPS: adaptive_tcoeff_level_prediction_flag" ) );
       }
     }
-    else
-    {
-      m_uiNumFGSVectModes = 0; 
-    }
-
-    if( getExtendedSpatialScalability() == ESS_NONE )
-    {
-      RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                       "SPS: AVC_rewrite_flag" ) );
-      if( m_bAVCRewriteFlag )
-        RNOK( pcReadIf->getFlag( m_bAVCAdaptiveRewriteFlag,           "SPS: AVC_adaptive_rewrite_flag" ) );
-    }
-	RNOK( pcReadIf->getFlag( m_bAVCHeaderRewriteFlag,           "SPS: AVC_header_adaptive_rewrite_flag" ) );//JVT-W046
+    RNOK( pcReadIf->getFlag( m_bAVCHeaderRewriteFlag,                   "SPS: slice_header_restriction_flag" ) );
   }
 
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_frame_num_minus_4" ) );
   ROT   ( uiTmp > 12 );
   setLog2MaxFrameNum( uiTmp + 4 );
-	RNOK  ( xReadPicOrderCntInfo( pcReadIf ) );
+  RNOK  ( xReadPicOrderCntInfo( pcReadIf ) );
   RNOK( pcReadIf->getUvlc( m_uiNumRefFrames,                              "SPS: num_ref_frames" ) );
-	RNOK( pcReadIf->getFlag( m_bGapsInFrameNumValueAllowedFlag,             "SPS: gaps_in_frame_num_value_allowed_flag" ) );
+  RNOK( pcReadIf->getFlag( m_bGapsInFrameNumValueAllowedFlag,             "SPS: gaps_in_frame_num_value_allowed_flag" ) );
 
-	RNOK( pcReadIf->getUvlc( uiTmp,                                         "SPS: pic_width_in_mbs_minus1" ) );
+  RNOK( pcReadIf->getUvlc( uiTmp,                                         "SPS: pic_width_in_mbs_minus1" ) );
   setFrameWidthInMbs ( 1 + uiTmp );
   RNOK( pcReadIf->getUvlc( uiTmp,                                         "SPS: pic_height_in_map_units_minus1" ) );
   RNOK( pcReadIf->getFlag( m_bFrameMbsOnlyFlag,                           "SPS: frame_mbs_only_flag" ) );
-	if( getFrameMbsOnlyFlag() )
+  if( getFrameMbsOnlyFlag() )
   {
     setFrameHeightInMbs( uiTmp+1 );
-		setMbAdaptiveFrameFieldFlag( false );
+    setMbAdaptiveFrameFieldFlag( false );
   }
   else
     {
     setFrameHeightInMbs( (uiTmp+1)<<1 );
-		RNOK( pcReadIf->getFlag( m_bMbAdaptiveFrameFieldFlag,                 "SPS: mb_adaptive_frame_field_flag"));
+    RNOK( pcReadIf->getFlag( m_bMbAdaptiveFrameFieldFlag,                 "SPS: mb_adaptive_frame_field_flag"));
     }
   RNOK( pcReadIf->getFlag( m_bDirect8x8InferenceFlag,                     "SPS: direct_8x8_inference_flag" ) );
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: frame_cropping_flag" ) );
@@ -928,21 +835,21 @@ ErrVal SequenceParameterSet::xReadPicOrderCntInfo( HeaderSymbolReadIf* pcReadIf 
     RNOK( pcReadIf->getUvlc( uiTmp,                              "SPS: log2_max_pic_order_cnt_lsb_minus4" ));
     setLog2MaxPicOrderCntLsb( 4+uiTmp );
   }
-	else if( 1 == m_uiPicOrderCntType )
-	{
-		RNOK( pcReadIf->getFlag( m_bDeltaPicOrderAlwaysZeroFlag,     "SPS: delta_pic_order_always_zero_flag" ));
-		RNOK( pcReadIf->getSvlc( m_iOffsetForNonRefPic,              "SPS: offset_for_non_ref_pic" ));
-		RNOK( pcReadIf->getSvlc( m_iOffsetForTopToBottomField,       "SPS: offset_for_top_to_bottom_field" ));
-		RNOK( pcReadIf->getUvlc( m_uiNumRefFramesInPicOrderCntCycle, "SPS: num_ref_frames_in_pic_order_cnt_cycle" ));
-		RNOK( initOffsetForRefFrame( m_uiNumRefFramesInPicOrderCntCycle ) );
+  else if( 1 == m_uiPicOrderCntType )
+  {
+    RNOK( pcReadIf->getFlag( m_bDeltaPicOrderAlwaysZeroFlag,     "SPS: delta_pic_order_always_zero_flag" ));
+    RNOK( pcReadIf->getSvlc( m_iOffsetForNonRefPic,              "SPS: offset_for_non_ref_pic" ));
+    RNOK( pcReadIf->getSvlc( m_iOffsetForTopToBottomField,       "SPS: offset_for_top_to_bottom_field" ));
+    RNOK( pcReadIf->getUvlc( m_uiNumRefFramesInPicOrderCntCycle, "SPS: num_ref_frames_in_pic_order_cnt_cycle" ));
+    RNOK( initOffsetForRefFrame( m_uiNumRefFramesInPicOrderCntCycle ) );
 
-		for( UInt i = 0; i < m_uiNumRefFramesInPicOrderCntCycle; i++)
-		{
-			Int  iTmp;
-			RNOK( pcReadIf->getSvlc( iTmp, "SPS: offset_for_ref_frame" ) );
-			setOffsetForRefFrame( i, iTmp );
-		}
-	}
+    for( UInt i = 0; i < m_uiNumRefFramesInPicOrderCntCycle; i++)
+    {
+      Int  iTmp;
+      RNOK( pcReadIf->getSvlc( iTmp, "SPS: offset_for_ref_frame" ) );
+      setOffsetForRefFrame( i, iTmp );
+    }
+  }
 
   return Err::m_nOK;
 }

@@ -118,11 +118,7 @@ public:
   ErrVal process( SliceHeader& rcSH, UInt& ruiMbRead );
   
   ErrVal readSliceHeader  ( NalUnitParser* pcNalUnitParser,
-                            SliceHeader*& rpcSH,
-                            //JVT-P031
-                            UInt         uiFirstFragNumMbsInSlice,
-                            Bool         bFirstFragFGSCompSep
-							              );
+                            SliceHeader*& rpcSH  );
     
   ErrVal readSliceHeaderSuffix( NalUnitType   eNalUnitType,
                                 NalRefIdc     eNalRefIdc,

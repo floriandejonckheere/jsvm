@@ -127,7 +127,6 @@ class MCTFEncoder;
 class XDistortion;
 class ControlMngH264AVCEncoder;
 class ReconstructionBypass;
-class RQFGSEncoder;
 class PicEncoder;
 // JVT-V068 {
 class Scheduler;
@@ -194,7 +193,6 @@ protected:
 
 protected:
   H264AVCEncoder*           m_pcH264AVCEncoder;
-  RQFGSEncoder*             m_pcRQFGSEncoder;
   FrameMng*                 m_pcFrameMng;
 
   MCTFEncoder*              m_apcMCTFEncoder          [MAX_LAYERS];

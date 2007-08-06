@@ -162,13 +162,6 @@ ErrVal CabaEncoder::start()
   return Err::m_nOK;
 }
 
-//JVT-P031
-ErrVal CabaEncoder::startFragment()
-{
-  RNOK( m_pcBitWriteBufferIf->writeAlignOne() );
-  return Err::m_nOK;
-}
-//~JVT-P031
 //FIX_FRAG_CAVLC
 ErrVal CabaEncoder::getLastByte(UChar &uiLastByte, UInt &uiLastBitPos)
 {

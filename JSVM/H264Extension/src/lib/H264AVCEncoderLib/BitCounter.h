@@ -99,6 +99,11 @@ class BitCounter :
 public BitWriteBufferIf
 {
 public:
+
+  BitWriteBufferIf* getNextBitWriteBuffer( Bool bStartNewBitstream ) { return NULL; }
+  Bool              nextBitWriteBufferActive() { return false; }
+  UChar*            getNextBuffersPacket()  { return NULL; }
+
   static ErrVal create( BitCounter*& rpcBitCounter );
   ErrVal destroy();
 

@@ -187,10 +187,8 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
                                   ,Bool&            rbStartDecoding,
                                 UInt&             ruiStartPos,
                                 UInt&             ruiEndPos,
-                                Bool&              bFragmented,
                                 Bool&              bDiscardable
                                 //~JVT-P031
-                                , Bool*           pbFgsParallelDecoding
                                 , UInt*           puiNumFragments
                                 , UChar**         ppucFragBuffers
                                 )
@@ -206,10 +204,9 @@ CreaterH264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
                                           rbStartDecoding,
                                           ruiStartPos,
                                           ruiEndPos,
-                                          bFragmented,
                                           bDiscardable
                                           //~JVT-P031
-                                          , pbFgsParallelDecoding, puiNumFragments, ppucFragBuffers
+                                          , puiNumFragments, ppucFragBuffers
                                          );
 }
 
@@ -256,18 +253,7 @@ CreaterH264AVCDecoder::getNumOfNALInAU()
 {
     return m_pcH264AVCDecoder->getNumOfNALInAU();
 }
-Void CreaterH264AVCDecoder::initNumberOfFragment()
-{
-    m_pcH264AVCDecoder->initNumberOfFragment();
-}
 //~JVT-P031
-//JVT-T054{
-Void
-CreaterH264AVCDecoder::setFGSRefInAU(Bool &b)
-{
-  m_pcH264AVCDecoder->setFGSRefInAU(b);
-}
-//JVT-T054}
 ErrVal
 CreaterH264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
                                                   Bool&             bFinishChecking )
@@ -410,8 +396,9 @@ ErrVal CreaterH264AVCDecoder::init( Bool bOpenTrace )
                                           m_pcMbParser,
                                           m_pcControlMng ) );
   RNOK( m_pcMbParser              ->init( m_pcTransform  ) );
-  RNOK( m_pcLoopFilter            ->init( m_pcControlMng , m_pcReconstructionBypass  ) );
 
+  ErrVal cRet = m_pcLoopFilter    ->init( m_pcControlMng , m_pcReconstructionBypass, false );
+  RNOK( cRet );
   RNOK( m_pcIntraPrediction       ->init() );
   RNOK( m_pcMotionCompensation    ->init( m_pcQuarterPelFilter,
                                           m_pcTransform,
@@ -534,22 +521,6 @@ ErrVal CreaterH264AVCDecoder::uninit( Bool bCloseTrace )
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 H264AVCPacketAnalyzer::H264AVCPacketAnalyzer()
 : m_pcBitReadBuffer       ( NULL )
 , m_pcUvlcReader          ( NULL )
@@ -583,9 +554,10 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
                                 SEI::SEIMessage*&   pcScalableSEIMessage )
 {
   pcScalableSEIMessage      = 0;
-  UChar       ucByte        = (pcBinData->data())[0];
-  NalUnitType eNalUnitType  = NalUnitType ( ucByte  & 0x1F );
-  NalRefIdc   eNalRefIdc    = NalRefIdc   ( ucByte >> 5 );
+  UCharArrayParser cNaluHeader( pcBinData->data() );
+  ROT( cNaluHeader.getBit() );                                           // NALU HEADER: forbidden_zero_bit
+  NalRefIdc   eNalRefIdc    = NalRefIdc   ( cNaluHeader.getBits( 2 ) );  // NALU HEADER: nal_ref_idc
+  NalUnitType eNalUnitType  = NalUnitType ( cNaluHeader.getBits( 5 ) );  // NALU HEADER: nal_unit_type
   UInt        uiLayer       = 0;
   UInt        uiLevel       = 0;
   UInt        uiFGSLayer    = 0;
@@ -597,10 +569,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   Bool      bUseBasePredFlag=false;
   Bool      bDiscardableFlag = false;
 	Bool      m_bOutputFlag   = true;//JVT-W047
-  Bool bFragmentedFlag = false; //JVT-P031
-  UInt uiFragmentOrder = 0; //JVT-P031
-  Bool bLastFragmentFlag = false; //JVT-P031
-  Bool bTl0PicIdxPresentFlag = false; // JVT-U116 LMI
   rcPacketDescription.uiNumLevelsQL = 0;
 
   // JVT-V068 {
@@ -623,34 +591,28 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
   if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
-	  eNalUnitType == NAL_UNIT_PREFIX  )//prefix unit
+	    eNalUnitType == NAL_UNIT_PREFIX  )//prefix unit
   {
-    ucByte             = (pcBinData->data())[1];
-		m_bOutputFlag      = ( ucByte >> 6) & 1;  //JVT-W047 
-    uiSimplePriorityId = ( ucByte & 63 );   // fix (Heiko Schwarz)
-    //uiSimplePriorityId = ( ucByte >> 2);  // fix (Heiko Schwarz)
-
-    ucByte              = (pcBinData->data())[2];
-        uiLevel     = ( ucByte >> 5 );
-        uiLayer     = ( ucByte >> 2 ) & 7;
-        uiFGSLayer  = ( ucByte      ) & 3;
-
-    ucByte              = (pcBinData->data())[3];
-    // JVT-U116 LMI {
-    bLayerBaseFlag      = ( ucByte >> 7) & 1;          // layer_base_flag          ( &10000000b)
-    bUseBasePredFlag    = ( ucByte >> 6) & 1;          // use_base_prediction_flag ( &01000000b)
-    bDiscardableFlag    = ( ucByte >> 5) & 1;          // discardable_flag         ( &00100000b)
-    bFragmentedFlag     = ( ucByte >> 4) & 1;          // fgs_frag_flag            ( &00010000b)
-    bLastFragmentFlag   = ( ucByte >> 3) & 1;          // fgs_last_frag_flag      ( &00001000b)
-    uiFragmentOrder     = ( ucByte >> 1) & 3;          // fgs_frag_order          ( &00000110b)
-    bTl0PicIdxPresentFlag      = ( ucByte >> 0) & 1;          // tl0_pic_idx_present_flag           ( &00000001b)
-    // JVT-U116 LMI }
+    // byte 0
+    cNaluHeader.getBit();                             // NALU HEADER SVC: reserved_one_bit
+    cNaluHeader.getBit();/*dummy*/                    // NALU HEADER SVC: idr_flag
+    uiSimplePriorityId = cNaluHeader.getBits( 6 );    // NALU HEADER SVC: priority_id
+    // byte 1
+    bLayerBaseFlag     = cNaluHeader.getBit();        // NALU HEADER SVC: no_inter_layer_pred_flag
+    uiLayer            = cNaluHeader.getBits( 3 );    // NALU HEADER SVC: dependency_id
+    uiFGSLayer         = cNaluHeader.getBits( 4 );    // NALU HEADER SVC: quality_id
+    // byte 2
+    uiLevel            = cNaluHeader.getBits( 3 );    // NALU HEADER SVC: temporal_id
+    bUseBasePredFlag   = cNaluHeader.getBit();        // NALU HEADER SVC: use_ref_base_pic_flag
+    bDiscardableFlag   = cNaluHeader.getBit();        // NALU HEADER SVC: discardable_flag
+    m_bOutputFlag      = cNaluHeader.getBit();        // NALU HEADER SVC: output_flag
+    cNaluHeader.getBits( 2 );                         // NALU HEADER SVC: reserved_three_2bits
   }
   else if( eNalUnitType == NAL_UNIT_CODED_SLICE     ||
            eNalUnitType == NAL_UNIT_CODED_SLICE_IDR   )
   {
     uiLevel     = ( eNalRefIdc > 0 ? 0 : 1+m_uiStdAVCOffset);
-  m_bAVCCompatible=true;//BUG FIX Kai Zhang
+    m_bAVCCompatible=true;//BUG FIX Kai Zhang
   }
   else if( eNalUnitType == NAL_UNIT_SEI )
   {
@@ -948,9 +910,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
               eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
     {
-      // fragmented flag means that FGS is used.
-      rcPacketDescription.bEnableQLTruncation = bFragmentedFlag;
-
       if(!(uiLayer == 0 && uiFGSLayer == 0 &&
       (eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE||eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE))){
 
@@ -964,14 +923,9 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
     RNOK( m_pcUvlcReader->getUvlc( uiTemp,  "SH: slice_type" ) );
           // Normally the following test is not necessary because FGS slice shall be marked as Fragmented.
-    //JVT-T054_FIX{
-    rcPacketDescription.bEnableQLTruncation = false;
-    //JVT-T054}
-    if(uiTemp == F_SLICE)
-      rcPacketDescription.bEnableQLTruncation = true;
 
-        RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
-        uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
+    RNOK( m_pcUvlcReader->getUvlc( uiPPSid, "SH: pic_parameter_set_id" ) );
+    uiSPSid = rcPacketDescription.SPSidRefByPPS[uiPPSid];
 
     //~JVT-P031
     m_uiCurrPicLayer = (uiLayer << 4) + uiFGSLayer;
@@ -1000,9 +954,9 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   rcPacketDescription.ApplyToNext   = bApplyToNext;
   rcPacketDescription.uiPId         = uiSimplePriorityId;
   rcPacketDescription.bDiscardable  = bDiscardableFlag;//JVT-P031
-  rcPacketDescription.bFragmentedFlag   = bFragmentedFlag;//JVT-P031
-  rcPacketDescription.uiFragmentOrder   = uiFragmentOrder;
-  rcPacketDescription.bLastFragmentFlag = bLastFragmentFlag;
+  rcPacketDescription.bFragmentedFlag   = false;
+  rcPacketDescription.uiFragmentOrder   = 0;
+  rcPacketDescription.bLastFragmentFlag = false;
   rcPacketDescription.NalRefIdc     = eNalRefIdc;
   return Err::m_nOK;
 }

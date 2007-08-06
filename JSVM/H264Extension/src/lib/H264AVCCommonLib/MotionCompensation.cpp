@@ -490,7 +490,6 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess& rcMbDataAccess,
                                          Bool bCalcMv )
 {
   MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
-
   switch( eMbMode )
   {
   case MODE_16x16:
@@ -2064,7 +2063,6 @@ ErrVal MotionCompensation::compensateMb( MbDataAccess&    rcMbDataAccess,
       IntFrame* pcRefFrame0 = ( iRefIdx0 > 0 ? rcRefFrameList0[ iRefIdx0 ] : NULL );
       IntFrame* pcRefFrame1 = ( iRefIdx1 > 0 ? rcRefFrameList1[ iRefIdx1 ] : NULL );
       xGetMbPredData( rcMbDataAccess, pcRefFrame0, pcRefFrame1, cMC8x8D );
-
       xPredLuma(   pcRecBuffer, 16, 16, cMC8x8D, bSR );
       xPredChroma( pcRecBuffer,  8,  8, cMC8x8D );
     }
@@ -2318,38 +2316,6 @@ __inline Void MotionCompensation::xGetBlkPredData(       MbDataAccess& rcMbDataA
 }
 
 
-
-Void forwardTransformChroma8x8(Transform* pcTransform,
-                               XPel*      piChroma,
-                               Int        iStride,
-                               TCoeff*    piCoeff)
-{
-  pcTransform->e4x4Trafo( piChroma,                  iStride, piCoeff + 0x00 );
-  pcTransform->e4x4Trafo( piChroma + 4,              iStride, piCoeff + 0x10 );
-  pcTransform->e4x4Trafo( piChroma +     4*iStride, iStride, piCoeff + 0x20 );
-  pcTransform->e4x4Trafo( piChroma + 4 + 4*iStride, iStride, piCoeff + 0x30 );
-  pcTransform->eForTransformChromaDc( piCoeff );
-}
-
-
-Void inverseTransformChroma8x8(Transform* pcTransform,
-                               XPel*   piChroma,
-                               Int     iStride,
-                               TCoeff* piCoeff)
-{
-  pcTransform->eForTransformChromaDc( piCoeff );
-  piCoeff[0]  = (piCoeff[0]  + 1) >> 1;
-  piCoeff[16] = (piCoeff[16] + 1) >> 1;
-  piCoeff[32] = (piCoeff[32] + 1) >> 1;
-  piCoeff[48] = (piCoeff[48] + 1) >> 1;
-
-  pcTransform->e4x4InverseTrafo( piChroma,                 iStride, piCoeff + 0x00 );
-  pcTransform->e4x4InverseTrafo( piChroma + 4,             iStride, piCoeff + 0x10 );
-  pcTransform->e4x4InverseTrafo( piChroma +     4*iStride, iStride, piCoeff + 0x20 );
-  pcTransform->e4x4InverseTrafo( piChroma + 4 + 4*iStride, iStride, piCoeff + 0x30 );
-}
-
-
 // scaled by 10-bits
 TCoeff aiNormMatrix4x4[16]=
 {
@@ -2373,152 +2339,31 @@ TCoeff aiNormMatrix8x8[64] =
 };
 
 
-Void 
-MotionCompensation::xAdjustResidualRefBlkSpatial(XPel*     piResidualRef,
-                                                 UInt      uiBlkWidth,
-                                                 UInt      uiBlkHeight,
-                                                 Int       iStride,
-                                                 UInt      uiWeightZeroBlk)
-{
-  UInt  i, j;
-
-  // perform simple scaling in the spatial domain
-  for( i = 0; i < uiBlkHeight; i ++ )
-  {
-    for( j = 0; j < uiBlkWidth; j ++ )
-    {
-      Int iOrig = piResidualRef[i * iStride + j];
-
-      piResidualRef[i * iStride + j] = ( iOrig >= 0 ) 
-        ?  ( (  iOrig * (Int)uiWeightZeroBlk + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS )
-        : -( ( -iOrig * (Int)uiWeightZeroBlk + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
-    }
-  }
-}
-
-
-Void 
-MotionCompensation::xAdjustResidualRefBlkFrequency(XPel*     piResidualRef,
-                                                   UInt      uiBlkWidth,
-                                                   UInt      uiBlkHeight,
-                                                   Int       iStride,
-                                                   UChar*    pucSigMap,
-                                                   UInt      uiWeightZeroCoeff)
-{
-  UInt   i, j;
-  Int iNumNonzero = 0;
-  TCoeff aiCoeffResidualRef[64];
-  
-  for( i = 0; i < uiBlkWidth * uiBlkHeight; i ++ )
-    iNumNonzero += pucSigMap[i];
-
-  if( uiBlkWidth == 4 && uiBlkHeight == 4 )
-  {
-    iNumNonzero = (iNumNonzero < 1) ? 1 : ((iNumNonzero >= 5) ? 5: iNumNonzero);
-    Int iWeight = static_cast<Int>(uiWeightZeroCoeff) - ((static_cast<Int>(uiWeightZeroCoeff) * (iNumNonzero - 1) + 2)/4);
-    iWeight = ( iWeight >= 0 ) ? iWeight : 0;
-
-    if( iNumNonzero > 4 )
-    {
-      for( i = 0; i < 4; i ++ )
-        for( j = 0; j < 4; j ++ )
-          piResidualRef[i * iStride + j] = 0;
-    }
-    else
-    {
-      m_pcTransform->e4x4Trafo(piResidualRef, iStride, aiCoeffResidualRef);
-
-      for( i = 0; i < 16; i ++ )
-      {
-        aiCoeffResidualRef[i] = (pucSigMap[i] != 0 ) ?
-        0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( iWeight ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS );
-  
-        aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i] + 64 ) >> 7;
-      }
-
-      // inverse transform
-      m_pcTransform->e4x4InverseTrafo(piResidualRef, iStride, aiCoeffResidualRef);
-    }
-  }
-  else
-  {
-    // must be 8x8 block
-    m_pcTransform->e8x8Trafo(piResidualRef, iStride, aiCoeffResidualRef);
-
-    for( i = 0; i < 64; i ++ )
-    {
-      aiCoeffResidualRef[i] = (pucSigMap[i] != 0 ) ? 
-      0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1) ) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS ) ;
-  
-      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix8x8[i] + 256 ) >> 9;
-    }
-
-    // inverse transform
-    m_pcTransform->e8x8InverseTrafo(piResidualRef, iStride, aiCoeffResidualRef);
-  }
-}
-
 
 Void 
 MotionCompensation::xAdjustResidualRefBlk(XPel*     piResidualRef,
                                           UInt      uiBlkWidth,
                                           UInt      uiBlkHeight,
-                                          Int       iStride,
-                                          UChar*    pucSigMap,
-                                          Bool      bNonzeroBaseBlock,
-                                          Int       iBcbpCtx,
-                                          UInt      uiWeightZeroBlk,
-                                          UInt      uiWeightZeroCoeff)
+                                          Int       iStride )
 {
-  if( ! bNonzeroBaseBlock )
+  for( int i = 0; i < (int)uiBlkHeight; i ++ )
   {
-    if( iBcbpCtx )
+    for( int j = 0; j < (int)uiBlkWidth; j ++ )
     {
-      if( uiWeightZeroBlk < 4 )
-        uiWeightZeroBlk  = 0;
-      else
-        uiWeightZeroBlk -= 4;
+      piResidualRef[i * iStride + j] = 0;
     }
-
-    xAdjustResidualRefBlkSpatial
-      (piResidualRef, uiBlkWidth, uiBlkHeight, iStride, uiWeightZeroBlk);
-  }
-  else
-  {
-    xAdjustResidualRefBlkFrequency
-      (piResidualRef, uiBlkWidth, uiBlkHeight, iStride, pucSigMap, uiWeightZeroCoeff);
   }
 }
 
 
 Void 
 MotionCompensation::xAdjustChromaResidualRefBlock(XPel*  piResidualRef,
-                                                  Int    iStride,
-                                                  UChar* pusSigMap,
-                                                  UInt   uiWeightZeroCoeff)
+                                                  Int    iStride )
 {
-  UInt   i;
-  TCoeff aiCoeffResidualRef[64];
-
-  forwardTransformChroma8x8(m_pcTransform, piResidualRef, iStride, aiCoeffResidualRef);
-
-  for( i = 0; i < 64; i ++ )
-  {
-    aiCoeffResidualRef[i] = (pusSigMap[i] != 0) ?
-    0 : ( ( aiCoeffResidualRef[i] * static_cast<TCoeff>( uiWeightZeroCoeff ) + (AR_FGS_MAX_BASE_WEIGHT >> 1)) >> AR_FGS_BASE_WEIGHT_SHIFT_BITS);
-  
-    if( (i % 16) == 0 )
-      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i % 16] + 128 ) >> 8;
-    else
-      aiCoeffResidualRef[i] = ( aiCoeffResidualRef[i] * aiNormMatrix4x4[i % 16] + 64 ) >> 7;
-  }
-
-  // inverse transform
-  inverseTransformChroma8x8(m_pcTransform, piResidualRef, iStride, aiCoeffResidualRef);
+  for( int i = 0; i < 8; i++ )
+    for( int j = 0; j < 8; j++ )
+      piResidualRef[i * iStride + j] = 0;
 }
-
-
-Int  giInterpolationType = AR_FGS_MC_INTERP_AVC;
 
 
 ErrVal
@@ -2532,341 +2377,21 @@ MotionCompensation::xCompensateMbAllModes(MbDataAccess&       rcMbDataAccess,
   {
     for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
     {
-      if( bSR && rcMbDataAccess.getMbData().getSmoothedRefFlag() )
-      {
-        RNOK( compensateSubMb( c8x8Idx, rcMbDataAccess, 
-         rcRefFrameList0, rcRefFrameList1, pcYuvMbBuffer, false, false, true ) );
-      }
-      else
-      {
-        RNOK( compensateSubMb( c8x8Idx, rcMbDataAccess, 
-         rcRefFrameList0, rcRefFrameList1, pcYuvMbBuffer, false, false, false ) );
-      }
+      RNOK( compensateSubMb( c8x8Idx, rcMbDataAccess, 
+        rcRefFrameList0, rcRefFrameList1, pcYuvMbBuffer, false, false, false ) );
     }
   }
   else
   {
-    //----- motion compensated prediction -----
-    if( bSR && rcMbDataAccess.getMbData().getSmoothedRefFlag() )
-    {
-      RNOK( compensateMb( rcMbDataAccess, 
-                          rcRefFrameList0, 
-                          rcRefFrameList1, 
-                          pcYuvMbBuffer, 
-                          false, true
-                          ) );
-    }
-    else
-    {
-      RNOK( compensateMb( rcMbDataAccess, 
-                          rcRefFrameList0, 
-                          rcRefFrameList1, 
-                          pcYuvMbBuffer, 
-                          false, false
-                          ) );
-    }
+    RNOK( compensateMb( rcMbDataAccess, 
+                        rcRefFrameList0, 
+                        rcRefFrameList1, 
+                        pcYuvMbBuffer, 
+                        false, false
+                        ) );
   }
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-MotionCompensation::xAdaptiveMotionCompensation(YuvBufferCtrl*  pcYuvFullPelBufferCtrl,
-                                                IntFrame*       pcMCFrame,
-                                                IntFrame*       pcBaseFrame,
-                                                RefFrameList*   pcRefFrameListBase,
-                                                MbDataCtrl*     pcMbDataCtrl,
-                                                FGSCoder*       pcFGSCoder,
-                                                SliceHeader*    pcSliceHeader )
-{
-  const UInt uiMbNumber       = pcSliceHeader->getMbInPic();
-  const UInt uiFrameWidthInMb = pcSliceHeader->getSPS().getFrameWidthInMbs();
-  RNOK( pcMbDataCtrl        ->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
-  RNOK(                       initSlice( *pcSliceHeader              ) );
-  IntYuvMbBuffer cMbBufferBase, cMbBufferRef;
-
- const PicType ePicType = pcSliceHeader->getPicType();
- const Bool    bMbAff   = pcSliceHeader->isMbAff();
-  if(pcMCFrame != pcBaseFrame)
-    pcMCFrame->copy(pcBaseFrame, ePicType);// TMM_INTERLACE
-
- RefFrameList* apcRefFrameList[4] = { NULL, NULL, NULL, NULL };
-
-  if( bMbAff )
-  {
-	   RNOK( pcMCFrame  ->addFrameFieldBuffer() );
-     RNOK( pcBaseFrame->addFrameFieldBuffer() );
-  
-     RefFrameList acRefFrameList[2];
-	
-    RNOK( gSetFrameFieldLists( acRefFrameList[0], acRefFrameList[1], *pcRefFrameListBase ) );
-
-    apcRefFrameList[ TOP_FIELD ] = ( NULL == pcRefFrameListBase ) ? NULL : &acRefFrameList[0];
-    apcRefFrameList[ BOT_FIELD ] = ( NULL == pcRefFrameListBase ) ? NULL : &acRefFrameList[1];
-    apcRefFrameList[     FRAME ] = pcRefFrameListBase;
-  }
-	else
-  {
-    if( ePicType!=FRAME )
-  	{
-		 RNOK( pcMCFrame  ->addFieldBuffer( ePicType ) );
-     RNOK( pcBaseFrame->addFieldBuffer( ePicType ) );
-   }
-    apcRefFrameList[ ePicType ] = pcRefFrameListBase;
-  }
-
-	//===== loop over macroblocks =====
- 	for( UInt uiMbAddress  =  0 ; uiMbAddress < uiMbNumber ; uiMbAddress++ )
-  {
-    UInt           uiMbY           = uiMbAddress / uiFrameWidthInMb;
-    UInt           uiMbX           = uiMbAddress % uiFrameWidthInMb;
-    MbDataAccess*  pcMbDataAccess  = 0;
-
-    RNOK( pcMbDataCtrl          ->initMb( pcMbDataAccess, uiMbY, uiMbX                  ) );
-    RNOK( pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX , bMbAff         ) );
-
-    RNOK(                         initMb(                 uiMbY, uiMbX, *pcMbDataAccess) );// TMM_INTERLACE
-
-    //const Bool bFrame = (FRAME == pcMbDataAccess->getMbPicType() );
-
-    if( ! pcMbDataAccess->getMbData().isIntra() )
-    {
-      RefFrameList    cRefFrameListDummy;
-			const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-			cMbBufferBase.loadBuffer( pcBaseFrame->getPic( eMbPicType )->getFullPelYuvBuffer() );
-      
-      giInterpolationType = pcSliceHeader->getLowPassFgsMcFilter();
-			xCompensateMbAllModes( *pcMbDataAccess, *apcRefFrameList[ eMbPicType ], cRefFrameListDummy, &cMbBufferRef );
-      giInterpolationType = AR_FGS_MC_INTERP_AVC;
-
-      RNOK( xAdjustMbResidual( cMbBufferRef,
-                               pcMbDataAccess,
-                               pcFGSCoder,
-                               pcSliceHeader ) );
-
-      //===== insert into frame =====
-      cMbBufferRef.add(cMbBufferBase);
-      RNOK( pcMCFrame->getFullPelYuvBuffer()->loadBuffer( &cMbBufferRef ) );
-    }
-  }
- if( bMbAff )
- {
-  RNOK( pcMCFrame  ->removeFrameFieldBuffer() );
-  RNOK( pcBaseFrame->removeFrameFieldBuffer() );
- }
- else
- {
-   if( ePicType!=FRAME )
-  	{
-		 RNOK( pcMCFrame  ->removeFieldBuffer( ePicType ) );
-     RNOK( pcBaseFrame->removeFieldBuffer( ePicType ) );
-   }
- }
-
-  return Err::m_nOK;
-}
-ErrVal
-MotionCompensation::xAdjustMbResidual( IntYuvMbBuffer& rcMbBufferDiff,
-                                       MbDataAccess*   pcMbDataAccess,
-                                       FGSCoder*       pcFGSCoder,
-                                       SliceHeader*    pcSliceHeader )
-{
-  UChar        aucSigMap[64];
-  UInt         uiBaseRefWeightZeroBlock = pcSliceHeader->getBaseWeightZeroBaseBlock();
-  UInt         uiBaseRefWeightZeroCoeff = pcSliceHeader->getBaseWeightZeroBaseCoeff();
-
-  UInt         uiMbY = pcMbDataAccess->getMbY();
-  UInt         uiMbX = pcMbDataAccess->getMbX();
- 
-  const Bool bFrame = (FRAME == pcMbDataAccess->getMbPicType() );
-
-  // adjust the residual for the prediction
-  for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-  {
-    if( pcMbDataAccess->getMbData().isTransformSize8x8() )
-    {
-      S4x4Idx cIdx( c8x8Idx );
-
-          pcFGSCoder->getCoeffSigMap(uiMbX, uiMbY, c8x8Idx, aucSigMap, bFrame );
-
-      xAdjustResidualRefBlk( rcMbBufferDiff.getYBlk(cIdx), 
-                             8, 
-                             8, 
-                             rcMbBufferDiff.getLStride(), 
-                             aucSigMap, 
-                             ((pcMbDataAccess->getMbData().getMbCbp() >> c8x8Idx.b8x8Index() ) & 1) != 0,
-                             0,
-                             uiBaseRefWeightZeroBlock,
-                             uiBaseRefWeightZeroCoeff);
-    }
-    else
-    {
-      for( S4x4Idx cIdx( c8x8Idx ); cIdx.isLegal( c8x8Idx ); cIdx++ )
-      {
-        Int iBcbpCtx = pcMbDataAccess->getCtxCodedBlockBit(cIdx);
-
-            pcFGSCoder->getCoeffSigMap(uiMbX, uiMbY, cIdx, aucSigMap, bFrame);
-
-        xAdjustResidualRefBlk( rcMbBufferDiff.getYBlk(cIdx), 
-                               4, 
-                               4, 
-                               rcMbBufferDiff.getLStride(), 
-                                aucSigMap, 
-                                pcMbDataAccess->getMbData().getBCBP( cIdx.b4x4()) != 0,
-                                iBcbpCtx,
-                                uiBaseRefWeightZeroBlock,
-                                uiBaseRefWeightZeroCoeff);
-      }
-    }
-  }
-
-  UInt uiBaseBCBP = pcMbDataAccess->getMbData().getBCBP();
-  if( (uiBaseBCBP & (1 << 24)) == 0 )
-  {
-    // Cb DC is 0
-    for( CIdx cIdxU(0); cIdxU.isLegal(4); cIdxU++ )
-    {
-         pcFGSCoder->getCoeffSigMap(uiMbX, uiMbY, cIdxU, aucSigMap, bFrame);
-      xAdjustResidualRefBlk( rcMbBufferDiff.getCBlk(cIdxU), 
-                             4, 
-                             4, 
-                             rcMbBufferDiff.getCStride(), 
-                              aucSigMap, 
-                              (uiBaseBCBP & (1 << (Int(cIdxU) + 16))) != 0,
-                              0,
-                              uiBaseRefWeightZeroBlock,
-                              uiBaseRefWeightZeroCoeff);
-    }
-  }
-  else
-  {
-    CIdx cIdxU(0);
-
-    pcFGSCoder->getCoeffSigMapChroma8x8(uiMbX, uiMbY, 0, aucSigMap, bFrame);
-    xAdjustChromaResidualRefBlock( rcMbBufferDiff.getMbCbAddr(), 
-                                    rcMbBufferDiff.getCStride(), 
-                                    aucSigMap,
-                                    uiBaseRefWeightZeroCoeff);
-  }
-
-  if( (uiBaseBCBP & (1 << 25)) == 0 )
-  {
-    // Cr DC is 0
-    for( CIdx cIdxV(4); cIdxV.isLegal(8); cIdxV++ )
-    {
-      pcFGSCoder->getCoeffSigMap(uiMbX, uiMbY, cIdxV, aucSigMap, bFrame);
-      xAdjustResidualRefBlk( rcMbBufferDiff.getCBlk(cIdxV), 
-                             4, 
-                             4, 
-                             rcMbBufferDiff.getCStride(), 
-                              aucSigMap, 
-                              (uiBaseBCBP & (1 << (Int(cIdxV) + 16))) != 0,
-                              0,
-                              uiBaseRefWeightZeroBlock,
-                              uiBaseRefWeightZeroCoeff);
-     }
-  }
-  else
-  {
-    CIdx cIdxV(4);
-
-    pcFGSCoder->getCoeffSigMapChroma8x8(uiMbX, uiMbY, 1, aucSigMap, bFrame);
-    xAdjustChromaResidualRefBlock( rcMbBufferDiff.getMbCrAddr(), 
-                                   rcMbBufferDiff.getCStride(), 
-                                   aucSigMap,
-                                   uiBaseRefWeightZeroCoeff);
-  }
-
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-MotionCompensation::loadAdaptiveRefPredictors(YuvBufferCtrl* pcYuvFullPelBufferCtrl,
-                                              IntFrame*      pcPredSignal, 
-                                              IntFrame*      pcBaseFrame, 
-                                              RefFrameList*  cRefListDiff,
-                                              MbDataCtrl*    pcMbDataCtrl,
-                                              FGSCoder*      pcFGSCoder,
-                                              SliceHeader*   pcSliceHeader)
-{
-  pcMbDataCtrl->switchFgsBQLayerQpAndCbp();
-  pcFGSCoder->xSwitchBQLayerSigMap();
-
-  Bool bSavedInterpClipMode = m_pcQuarterPelFilter->getClipMode();
-  m_pcQuarterPelFilter->setClipMode(false);
-
-  Bool bSavedTransformClipMode = m_pcTransform->getClipMode();
-  m_pcTransform->setClipMode(false);
-
-  // load new predictors
-  RNOK( xAdaptiveMotionCompensation( pcYuvFullPelBufferCtrl,
-                                     pcPredSignal, 
-                                     pcBaseFrame,
-                                     cRefListDiff, 
-                                     pcMbDataCtrl, 
-                                     pcFGSCoder,
-                                     pcSliceHeader ) );
-
-  m_pcTransform->setClipMode(bSavedTransformClipMode);
-
-  m_pcQuarterPelFilter->setClipMode(bSavedInterpClipMode);
-
-  pcMbDataCtrl->switchFgsBQLayerQpAndCbp();
-  pcFGSCoder->xSwitchBQLayerSigMap();
-
-  return Err::m_nOK;
-}
-
-ErrVal
-MotionCompensation::adaptiveMotionCompensationMb( IntYuvMbBuffer* pcMbBufferMC,
-                                                  RefFrameList*   pcRefFrameListDiff,
-                                                  MbDataAccess*   pcMbDataAccessMotion,
-                                                  FGSCoder*       pcFGSCoder )
-{
-  RNOK( pcFGSCoder->getMbDataCtrl()->switchFgsBQLayerQpAndCbp() );
-  RNOK( pcFGSCoder->xSwitchBQLayerSigMap() );
-
-  SliceHeader*   pcSliceHeader            = &pcMbDataAccessMotion->getSH();
-  UInt           uiMbX                    =  pcMbDataAccessMotion->getMbX();
-  UInt           uiMbY                    =  pcMbDataAccessMotion->getMbY();
-  MbDataAccess*  pcMbDataAccess           = 0;
-  RefFrameList   cRefFrameListDummy;
-  RNOK( pcFGSCoder->getMbDataCtrl()->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
-
-
-  giInterpolationType = pcSliceHeader->getLowPassFgsMcFilter();
-  Bool bSavedQPelClipMode      = m_pcQuarterPelFilter->getClipMode();
-  m_pcQuarterPelFilter->setClipMode( false );
-
-  IntYuvMbBuffer cMbBufferDiff;
-  RNOK( xCompensateMbAllModes( *pcMbDataAccessMotion, *pcRefFrameListDiff, cRefFrameListDummy, &cMbBufferDiff ) );
-
-  m_pcQuarterPelFilter->setClipMode( bSavedQPelClipMode );
-  giInterpolationType = AR_FGS_MC_INTERP_AVC;
-
-  // =================================
-  Bool bSavedTransformClipMode = m_pcTransform->getClipMode();
-  m_pcTransform->setClipMode( false );
-  RNOK( xAdjustMbResidual( cMbBufferDiff,
-                           pcMbDataAccess,
-                           pcFGSCoder,
-                           pcSliceHeader ) );
-  m_pcTransform->setClipMode( bSavedTransformClipMode );
-
-  //===== insert into frame =====
-  pcMbBufferMC->add( cMbBufferDiff );
-  // =================================
-
-  RNOK( pcFGSCoder->getMbDataCtrl()->switchFgsBQLayerQpAndCbp() );
-  RNOK( pcFGSCoder->xSwitchBQLayerSigMap() );
-
   return Err::m_nOK;
 }
 
 
 H264AVC_NAMESPACE_END
-

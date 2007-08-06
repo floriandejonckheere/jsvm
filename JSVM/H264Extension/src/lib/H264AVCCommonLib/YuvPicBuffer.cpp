@@ -152,6 +152,7 @@ ErrVal YuvPicBuffer::uninit()
   return Err::m_nOK;
 }
 
+
 ErrVal YuvPicBuffer::dump( FILE* pFile )
 {
   UChar*  pChar = new UChar [ getLWidth() ];

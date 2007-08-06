@@ -1162,7 +1162,6 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
 #define MAX_FRAGMENTS 10 // see H264AVCDecoderTest::go()
 
-    Bool            bFragmented       = false;
     Bool            bDiscardable      = false;
     Bool            bStart            = false;
     Bool            bFirst            = true;
@@ -1190,7 +1189,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
                       //uiNonRequiredPic,  //NonRequired JVT-Q066
                       true, false, //FRAG_FIX_3
                                             bStart, auiStartPos[uiFragmentNumber], auiEndPos[uiFragmentNumber],
-                                            bFragmented, bDiscardable ) );
+                                            bDiscardable ) );
 //prefix unit{{
 		  if(uiNalUnitType == 14)
 		  {
@@ -1241,7 +1240,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
           pcBinData->setMemAccessor( cBinDataAccessor );
           bToDecode = false;
-          if( ( uiTotalLength != 0 ) && ( !bDiscardable || bFragmented ) )
+          if( ( uiTotalLength != 0 ) && ( !bDiscardable ) )
           {
             if( ( uiNalUnitType == 20 ) || ( uiNalUnitType == 21 ) || ( uiNalUnitType == 1 ) || ( uiNalUnitType == 5 ) )
             {
@@ -1251,7 +1250,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
                           //uiNonRequiredPic, //NonRequired JVT-Q066
                                                     false, bConcatenated, bStart,
                                                     auiStartPos[uiFragmentNumber+1], auiEndPos[uiFragmentNumber+1],
-                                                    bFragmented, bDiscardable ) );
+                                                    bDiscardable ) );
             }
             else
             {

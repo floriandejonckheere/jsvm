@@ -89,8 +89,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/YuvMbBuffer.h"
 
 
-
-
 H264AVC_NAMESPACE_BEGIN
 
 
@@ -398,7 +396,8 @@ IntYuvMbBuffer::subtract( IntYuvMbBuffer& rcIntYuvMbBuffer )
 
   for( y = 0; y < 16; y++ )
   {
-    for( x = 0; x < 16; x++ )   pDes[x] -= pSrc[x];
+    for( x = 0; x < 16; x++ )
+      pDes[x] -= pSrc[x];
     pDes += iStride;
     pSrc += iStride;
   }
@@ -409,7 +408,8 @@ IntYuvMbBuffer::subtract( IntYuvMbBuffer& rcIntYuvMbBuffer )
 
   for( y = 0; y < 8; y++ )
   {
-    for( x = 0; x < 8;  x++ )   pDes[x] -= pSrc[x];
+    for( x = 0; x < 8;  x++ )
+      pDes[x] -= pSrc[x];
     pDes += iStride;
     pSrc += iStride;
   }
@@ -419,7 +419,8 @@ IntYuvMbBuffer::subtract( IntYuvMbBuffer& rcIntYuvMbBuffer )
 
   for( y = 0; y < 8; y++ )
   {
-    for( x = 0; x < 8;  x++ )   pDes[x] -= pSrc[x];
+    for( x = 0; x < 8;  x++ )
+      pDes[x] -= pSrc[x];
     pDes += iStride;
     pSrc += iStride;
   }
