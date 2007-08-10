@@ -1125,7 +1125,11 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
             }            
           }
         }
-        m_pcIntMbTempData->distY() = m_pcXDistortion->getLum16x16( m_pcIntMbTempData->getMbLumAddr(), m_pcIntMbTempData->getLStride() );
+        MbDataAccess*  pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
+        if(!pcMbDataAccessBase||pcMbDataAccessBase->getMbData().m_bRPSafe||m_pcIntMbTempData->getResidualPredFlag(PART_16x16)==false)
+          m_pcIntMbTempData->distY() = m_pcXDistortion->getLum16x16( m_pcIntMbTempData->getMbLumAddr(), m_pcIntMbTempData->getLStride() );
+        else
+          m_pcIntMbTempData->distY() = m_pcXDistortion->getLum16x16RP( m_pcIntMbTempData->getMbLumAddr(), m_pcIntMbTempData->getLStride() );
 
         //----- encode chrominance signal -----
         RNOK( xEncodeChromaTexture( *m_pcIntMbTempData, uiExtCbp, uiMbBits ) );
@@ -3719,7 +3723,10 @@ MbEncoder::xSetRdCostInterMb( IntMbTempData&  rcMbTempData,
   rcMbTempData.cbp() = xCalcMbCbp( uiExtCbp );
  
   //===== get distortion =====
-  uiMbDist  += m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
+  if(!pcMbDataAccessBase||pcMbDataAccessBase->getMbData().m_bRPSafe||rcMbTempData.getResidualPredFlag(PART_16x16)==false)
+    uiMbDist  += m_pcXDistortion->getLum16x16 ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
+  else
+    uiMbDist  += m_pcXDistortion->getLum16x16RP ( rcYuvMbBuffer.getMbLumAddr(), rcYuvMbBuffer.getLStride() );
   uiMbDist  += m_pcXDistortion->get8x8Cb    ( rcYuvMbBuffer.getMbCbAddr (), rcYuvMbBuffer.getCStride() );
   uiMbDist  += m_pcXDistortion->get8x8Cr    ( rcYuvMbBuffer.getMbCrAddr (), rcYuvMbBuffer.getCStride() );
 
@@ -4495,6 +4502,7 @@ MbEncoder::xEstimateMbSkip( IntMbTempData*&  rpcMbTempData,
   rpcMbTempData->getMbMotionData( LIST_1 ).setRefIdx( iRefIdxL1 );
   rpcMbTempData->getMbMotionData( LIST_1 ).setAllMv ( cMvPredL1 );
   rpcMbTempData->getMbMvdData   ( LIST_1 ).setAllMv ( Mv::ZeroMv() );
+  rpcMbTempData->setResidualPredFlag(false);
 
   rpcMbTempData->getMbMotionData( LIST_0 ).setMotPredFlag( false );
   rpcMbTempData->getMbMotionData( LIST_1 ).setMotPredFlag( false );

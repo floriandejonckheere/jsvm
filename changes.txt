@@ -1,3 +1,20 @@
+
+[Ed. Note (Jerome): For the time being, the following validation scripts "failed":
+T3, T1, SLoop, SIP, RPIC, ReduceKeyPic, RCDO, QLSEI, QLNALPid, NonRequired, MLQL, IROI, FragVLC, FragCABAC, FMO, EIDR, ChromaLPoff, CAFVLC, CAFCABAC, CAVLC, BaseId
+HRD, Rewriting2
+]
+
+JSVM_9_2 -> JSVM_9_3
+========================
+Date         : Aug 9
+Authors      : Xianglin Wang, Justin Ridge (Nokia)
+Contributions: JVT-W030, JVT-W123
+
+Changes:
+- Added block merging process under ESS according to JVT-W030.
+- Added in encoder the mechanism according to JVT-W123 for avoiding potential 
+  artifacts due to residual prediction in ESS. 
+
 JSVM_9_1 -> JSVM_9_2
 ========================
 Date         : Aug 6

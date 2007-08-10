@@ -870,7 +870,11 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   //JVT-R057 LA-RDO{
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LARDO",                   &m_uiLARDOEnable,                                      0 ); 
   //JVT-R057 LA-RDO}
-  //JVT-T073 {
+
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RPEncCheck",							 &m_uiEssRPChkEnable,																					0  );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MVDiffThreshold",				 &m_uiMVThres,																					20 );
+
+	//JVT-T073 {
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("NestingSEI",              &m_uiNestingSEIEnable,                                 0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SceneInfo",               &m_uiSceneInfoEnable,                                  0 );
   //JVT-T073 }

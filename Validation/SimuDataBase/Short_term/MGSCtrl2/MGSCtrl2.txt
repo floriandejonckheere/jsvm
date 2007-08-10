@@ -26,9 +26,7 @@
                          width        => 176,
                   			 height       => 144,
                   			 framerate    =>  15,
-                  			 bitrate      => 0,
-                  			 bitrateDS    => 0 ,
-		                   },
+                  			},
 		                  #----------#
                       # Layer  1 #
                       #----------#
@@ -36,9 +34,7 @@
                          width        => 176,
                   			 height       => 144,
                   			 framerate    =>  15,
-                  			 bitrate      => 0,
-                  			 bitrateDS    => 0 ,
-		                   },
+                  		},
 		                  #----------#
                       # Layer  2 #
                       #----------#
@@ -46,9 +42,7 @@
 			                   width        =>176,
                   			 height       => 144,
 					               framerate    =>  15,
-                  			 bitrate     =>0,
-                  			 bitrateDS   =>0,
-          		         },
+                  		},
 		                  #----------#
                       # Layer  3 #
                       #----------#
@@ -56,9 +50,7 @@
 			                   width        =>352,
                   			 height       => 288,
 					               framerate    =>  15,
-                  			 bitrate     =>0,
-                  			 bitrateDS   =>0,
-          		         },
+                  		},
 		                  #----------#
                       # Layer  4 #
                       #----------#
@@ -66,9 +58,7 @@
 		                     	width        =>352,
                   			 height       => 288,
 					               framerate    =>  15,
-                  			 bitrate     =>0,
-                  			 bitrateDS   =>0,
-          		         },
+                  		},
 		                  #---------#
    		              ],
    

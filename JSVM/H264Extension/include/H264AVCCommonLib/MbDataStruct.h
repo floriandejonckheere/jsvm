@@ -209,6 +209,9 @@ public:
 // TMM_ESS 
   Void    setInCropWindowFlag   ( Bool        bFlag  )       { m_bInCropWindowFlag = bFlag; } 
 
+	Void		setEssRPChkEnable	(UInt val)		{ m_uiEssRPChkEnable = val; }
+	Void		setMVThres				(UInt val)		{ m_uiMVThres = val; }
+
 
   ErrVal  save( FILE* pFile );
   ErrVal  load( FILE* pFile );
@@ -248,6 +251,10 @@ public:
   Bool    m_bFieldFlag;
 
 	UInt m_uiMbCbpResidual;
+
+	UInt		m_uiEssRPChkEnable;
+	UInt		m_uiMVThres;		
+  Bool    m_bRPSafe; 
 
 public:
   static const UChar m_aucACTab[7];

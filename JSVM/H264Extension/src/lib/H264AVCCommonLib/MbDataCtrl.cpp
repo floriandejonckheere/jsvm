@@ -116,6 +116,8 @@ MbDataCtrl::MbDataCtrl():
   m_bUseTopField    ( false ),
   m_bPicCodedField  ( false ),
   m_bInitDone       ( false ),
+	m_uiEssRPChkEnable	( 0 ),
+	m_uiMVThres					( 20 ),
   m_bBuildInterlacePred ( false )
 
 {
@@ -453,6 +455,9 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl&       rcBaseMbDataCtrl,
       MbData& rcMbDes = m_pcMbData[iMbY*uiMbStride + iMbX];
 
 			rcMbDes.configureFieldFrameMode( m_bBuildInterlacePred );	
+
+			rcMbDes.setEssRPChkEnable(m_uiEssRPChkEnable);
+			rcMbDes.setMVThres(m_uiMVThres);
 
       // check if MB is inside cropping window - if not, no upsampling is performed
       if ( (iMbX >= iMbOrigX) && (iMbX < iMbEndX) && (iMbY >= iMbOrigY) && (iMbY < iMbEndY) )

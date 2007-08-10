@@ -131,6 +131,8 @@ public:
   UInt    getLum16x16( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD );
   UInt    getLum8x8  ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD );
 
+  UInt    getLum16x16RP( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD );
+  UInt    checkLargeDistortion( XPel *pOrg, XPel *pPel, Int iStride );
 
   Void    loadOrgMbPelData( IntYuvPicBuffer* pcOrgYuvBuffer, IntYuvMbBuffer*& rpcOrgMbBuffer );
 

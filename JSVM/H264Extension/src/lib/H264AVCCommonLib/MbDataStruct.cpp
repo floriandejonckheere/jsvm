@@ -141,6 +141,9 @@ MbDataStruct::MbDataStruct()
 , m_bInCropWindowFlag ( false ) //TMM_ESS	
 , m_bFieldFlag              ( 0 )
 , m_uiMbCbpResidual         ( 0 )
+, m_uiEssRPChkEnable			( 0 )
+, m_uiMVThres							( 20 )
+, m_bRPSafe								( true )
 {
   DO_DBG( clearIntraPredictionModes( true ) );//TMM_INTERLACE
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS

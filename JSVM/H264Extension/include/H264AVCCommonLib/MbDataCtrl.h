@@ -144,6 +144,9 @@ public:
     return Err::m_nOK;
   }
 
+	Void					setEssRPChkEnable	(UInt val)  { m_uiEssRPChkEnable = val; }
+	Void					setMVThres				(UInt val)	{ m_uiMVThres = val; }
+
   Bool          getBuildInterlacePred ()  { return  m_bBuildInterlacePred;    }
   Void          setBuildInterlacePred ( Bool bBuildInterlacePredpred )  { m_bBuildInterlacePred = bBuildInterlacePredpred;    }
 
@@ -249,6 +252,9 @@ protected:
   Bool                m_bDirect8x8InferenceFlag;
   Bool                m_bBuildInterlacePred;
   SliceHeader*        m_pcSliceHeader;
+	UInt								m_uiEssRPChkEnable;
+	UInt								m_uiMVThres;
+
 };
 
 

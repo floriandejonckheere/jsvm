@@ -122,6 +122,8 @@ public:
   Short getAbsHorDiff( const Mv& rcMv )  const  { return abs( m_sHor - rcMv.m_sHor ); }
   Short getAbsVerDiff( const Mv& rcMv )  const  { return abs( m_sVer - rcMv.m_sVer ); }
 
+  Short getAbsMvDiff( const Mv& rcMv) const {return abs( m_sHor - rcMv.m_sHor )+ abs( m_sVer - rcMv.m_sVer ); }
+
   const UInt  getFilter() const { return (m_sHor & 3) + (m_sVer & 3)*4;}
   const Mv operator + ( const Mv& rcMv ) const
   {

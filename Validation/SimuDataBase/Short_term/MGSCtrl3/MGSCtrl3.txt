@@ -28,30 +28,28 @@
                          width        => 384,
                   			 height       => 288,
                   			 framerate    =>  25,
-					 cropfilename => "SDi_384x288i.txt",
-					 croptype     => 1,
+            					   cropfilename => "SDi_384x288i.txt",
+            					   croptype     => 1,
                   			 resamplemode => 1,
 		                   },
 		                  #----------#
-			#----------#
-                      # Layer  1 #
+			                # Layer  1 #
                       #----------#
                        {
                          width        => 384,
                   			 height       => 288,
                   			 framerate    =>  25,
-					 cropfilename => "SDi_384x288i.txt",
-					 croptype     => 1,
+					               cropfilename => "SDi_384x288i.txt",
+					               croptype     => 1,
                   			 resamplemode => 1,
 		                   },
 		                  #----------#
-			#----------#
-                      # Layer  2 #
+			                # Layer  2 #
                       #----------#
           		        {
-			width        =>720,
+			                   width        =>720,
                   			 height       => 576,
-					 framerate    =>  25,
+				               	 framerate    =>  25,
           		         },
 		                  #---------#
 				  ],

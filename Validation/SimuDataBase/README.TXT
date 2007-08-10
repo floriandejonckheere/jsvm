@@ -5,7 +5,7 @@
 # File          : README.TXT
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 0.0.3
+# Version       : 0.0.4
 ################################################################################
 
 ###################################################################################
@@ -112,6 +112,6 @@ InputFile       orig/Simuname_176x144_15.yuv  # Input file "SimuName_widthxcolum
 ReconFile       tmp/Simuname_rec_Li.yuv       # Reconstructed file of layer i
 MotionInfoFile  mot/Simuname_Li.mot           # Motion Info File
 
-FGSFile         fgs/Simuname_Li.dat           # FGS analysis data
+
 
 

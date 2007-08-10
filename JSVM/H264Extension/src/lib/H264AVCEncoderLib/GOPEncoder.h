@@ -803,6 +803,8 @@ protected:
   //JVT-R057 LA-RDO{
   Bool                          m_bLARDOEnable;     
   //JVT-R057 LA-RD}
+  UInt                          m_uiEssRPChkEnable;
+  UInt                          m_uiMVThres;
 
   UInt							            m_uiNonRequiredWrite; //NonRequired JVT-Q066 (06-04-08)
 
@@ -831,6 +833,7 @@ protected:
   UInt                          m_uiBaseLayerCGSSNR;
   UInt                          m_uiBaseQualityLevelCGSSNR;
 //JVT-T054}
+
 // JVT-U085 LMI 
   Bool                          m_bTlevelNestingFlag;
 // JVT-U116 LMI 

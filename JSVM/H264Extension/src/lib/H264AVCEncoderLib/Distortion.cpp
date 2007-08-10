@@ -311,6 +311,52 @@ UInt XDistortion::getLum16x16( XPel *pPel, Int iStride, DFunc eDFunc )
   return cDSS.Func( &cDSS );
 }
 
+UInt XDistortion::getLum16x16RP( XPel *pPel, Int iStride, DFunc eDFunc )
+{
+  XDistSearchStruct cDSS;
+  getDistStruct( MODE_16x16, eDFunc, false, cDSS );
+  cDSS.pYOrg    = m_cOrgData.getMbLumAddr();  // i do not like this
+  cDSS.pYSearch = pPel;
+  cDSS.iYStride = iStride;
+  if(checkLargeDistortion(cDSS.pYOrg, cDSS.pYSearch, iStride))
+    return 10*cDSS.Func( &cDSS );
+
+  return cDSS.Func( &cDSS );
+}
+
+UInt XDistortion::checkLargeDistortion( XPel *pOrg, XPel *pPel, Int iStride )
+{
+  int i, j, m, n;
+  XPel a[16];
+
+  for(i=0; i<4; i++)
+    for(j=0; j<4; j++)
+    {
+      for(m=0; m<4; m++)
+        for(n=0; n<4; n++)
+        {
+          int offset = (i*4+m)*iStride + j*4 + n;
+          a[m*4+n] = abs(pOrg[offset]-pPel[offset]);
+        }
+
+      int ave=0;
+      for(m=0; m<16; m++)
+        ave += a[m];
+      ave = (ave+8)/16;
+
+      for(m=0; m<16; m++)
+        a[m] = a[m]>2*ave? 1:0;
+      for(m=0,n=0; m<4; m++, n+=4)
+      {
+        if(a[n]+a[n+1]+a[n+2]+a[n+3]>=3)
+          return 1;
+        if(a[m]+a[m+4]+a[m+8]+a[m+12]>=3)
+          return 1;
+      }
+    }
+  return 0;
+}
+
 
 UInt XDistortion::getLum8x8( XPel *pPel, Int iStride, DFunc eDFunc )
 {

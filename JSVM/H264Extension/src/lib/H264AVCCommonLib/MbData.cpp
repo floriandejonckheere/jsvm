@@ -690,6 +690,11 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
                     uiMbBaseOrigX,
                     uiMbBaseOrigY);
 
+		xESSCheckRP(pcBaseMbData,
+								uiBaseMbStride,
+								aiPelOrig,
+								pcParameters);
+
   if( m_eMbMode!=INTRA_4X4)
   {
     // Build PartInfo and inherited base idx filling
@@ -728,6 +733,9 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
     // macroblock mode choice
     //-----------------------
     xInheritMbMotionData (aaiPartInfo);
+
+		if(pcParameters->m_iSpatialScalabilityType > SST_RATIO_2)
+			xMergeMotionData();
   }
 
   // Transfer in MB structure
@@ -837,6 +845,76 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
 
     return Err::m_nOK;   
 }
+
+ErrVal
+MbData::xESSCheckRP( MbData*           pcBaseMbData,
+                     const UInt        uiBaseMbStride,
+                     const Int         aiPelOrig[2],
+                     ResizeParameters* pcParameters)
+{
+  int i, j, k, list;
+  int iBaseX0, iBaseY0, iBaseX1, iBaseY1;
+  int uiBaseBlkX0, uiBaseBlkY0, uiBaseBlkX1, uiBaseBlkY1;
+  int iMbBaseIdx[4], blkIdx[4];
+  MbData *pcBaseMb;
+
+  m_bRPSafe = true;
+	if(!m_uiEssRPChkEnable||pcParameters->m_iSpatialScalabilityType <= SST_RATIO_2)
+		return Err::m_nOK;
+
+  for(i=0; i<4; i++)
+  {
+    iBaseY0 = ((aiPelOrig[1]+i*4)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
+    iBaseY1 = ((aiPelOrig[1]+i*4+3)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
+    for(j=0; j<4; j++)
+    {
+      iBaseX0 = ((aiPelOrig[0]+j*4)*pcParameters->m_iInWidth + pcParameters->m_iOutWidth/2) / pcParameters->m_iOutWidth;
+      iBaseX1 = ((aiPelOrig[0]+j*4+3)*pcParameters->m_iInWidth + pcParameters->m_iOutWidth/2) / pcParameters->m_iOutWidth;
+
+      uiBaseBlkX0 = (iBaseX0 >> 2);
+      uiBaseBlkY0 = (iBaseY0 >> 2);
+      uiBaseBlkX1 = (iBaseX1 >> 2);
+      uiBaseBlkY1 = (iBaseY1 >> 2);
+
+      iMbBaseIdx[0] = (uiBaseBlkY0>>2)*uiBaseMbStride + (uiBaseBlkX0>>2);
+      iMbBaseIdx[1] = (uiBaseBlkY0>>2)*uiBaseMbStride + (uiBaseBlkX1>>2);
+      iMbBaseIdx[2] = (uiBaseBlkY1>>2)*uiBaseMbStride + (uiBaseBlkX0>>2);
+      iMbBaseIdx[3] = (uiBaseBlkY1>>2)*uiBaseMbStride + (uiBaseBlkX1>>2);
+
+      blkIdx[0] = (uiBaseBlkY0%4)*4 + (uiBaseBlkX0%4);
+      blkIdx[1] = (uiBaseBlkY0%4)*4 + (uiBaseBlkX1%4);
+      blkIdx[2] = (uiBaseBlkY1%4)*4 + (uiBaseBlkX0%4);
+      blkIdx[3] = (uiBaseBlkY1%4)*4 + (uiBaseBlkX1%4);
+
+      if(uiBaseBlkX0 == uiBaseBlkX1 && uiBaseBlkY0 == uiBaseBlkY1)
+        continue;
+      else
+      {
+        for(list=0; list<2; list++)
+        {
+          Mv mv[4], aveMv;
+          for(k=0; k<4; k++)
+          {
+            pcBaseMb = &(pcBaseMbData[iMbBaseIdx[k]]);
+            mv[k] = pcBaseMb->getMbMotionData(ListIdx(list)).getMv(B4x4Idx(blkIdx[k]));
+          }
+          aveMv = (mv[0]+mv[1]+mv[2]+mv[3]+Mv(2,2))>>2;
+          for(k=0; k<4; k++)
+          {
+						if(mv[k].getAbsMvDiff(aveMv)>(int)m_uiMVThres)
+            {
+              m_bRPSafe = false;
+              return Err::m_nOK;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return Err::m_nOK;
+}
+
 
 
 ErrVal
@@ -978,6 +1056,142 @@ MbData::xInheritMbMotionData(const Int aaiPartInfo[4][4])
 
      return Err::m_nOK;
  }
+
+
+ErrVal
+MbData::xMergeMotionData()
+{
+  Bool bR1, bR2, bC1, bC2;
+  if(m_eMbMode == MODE_8x8)
+  {
+    for ( UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
+    {
+      Mv aveMv[2];
+      const UChar* pucBlockOrder=&(g_aucConvertBlockOrder[uiB8x8Idx<<2]);
+
+      switch (m_aBlkMode[uiB8x8Idx])
+      {
+      case BLK_4x4:
+        bR1 = m_acBl4x4Mv[0][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[0][pucBlockOrder[1]])<=1 &&
+                  m_acBl4x4Mv[1][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[1][pucBlockOrder[1]])<=1;
+        bR2 = m_acBl4x4Mv[0][pucBlockOrder[2]].getAbsMvDiff(m_acBl4x4Mv[0][pucBlockOrder[3]])<=1 && 
+                  m_acBl4x4Mv[1][pucBlockOrder[2]].getAbsMvDiff(m_acBl4x4Mv[1][pucBlockOrder[3]])<=1;              
+        bC1 = m_acBl4x4Mv[0][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[0][pucBlockOrder[2]])<=1 && 
+                  m_acBl4x4Mv[1][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[1][pucBlockOrder[2]])<=1;
+        bC2 = m_acBl4x4Mv[0][pucBlockOrder[1]].getAbsMvDiff(m_acBl4x4Mv[0][pucBlockOrder[3]])<=1 && 
+                  m_acBl4x4Mv[1][pucBlockOrder[1]].getAbsMvDiff(m_acBl4x4Mv[1][pucBlockOrder[3]])<=1;
+
+        if( bR1 && bR2 )
+          m_aBlkMode[uiB8x8Idx]= BLK_8x4 ;
+        if( bC1 && bC2 )
+          m_aBlkMode[uiB8x8Idx]= ( m_aBlkMode[uiB8x8Idx] == BLK_8x4 ) ? BLK_8x8  : BLK_4x8;
+
+        if(m_aBlkMode[uiB8x8Idx]==BLK_8x8)
+        {
+          aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[0]]+ m_acBl4x4Mv[0][pucBlockOrder[1]]+ m_acBl4x4Mv[0][pucBlockOrder[2]]
+                      + m_acBl4x4Mv[0][pucBlockOrder[3]]+Mv(2,2))>>2;
+          aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[0]]+ m_acBl4x4Mv[1][pucBlockOrder[1]]+ m_acBl4x4Mv[1][pucBlockOrder[2]]
+                      + m_acBl4x4Mv[1][pucBlockOrder[3]]+Mv(2,2))>>2;
+
+          m_acBl4x4Mv[0][pucBlockOrder[0]] = m_acBl4x4Mv[0][pucBlockOrder[1]] = m_acBl4x4Mv[0][pucBlockOrder[2]]
+                                          = m_acBl4x4Mv[0][pucBlockOrder[3]] = aveMv[0];
+          m_acBl4x4Mv[1][pucBlockOrder[0]] = m_acBl4x4Mv[1][pucBlockOrder[1]] = m_acBl4x4Mv[1][pucBlockOrder[2]]
+                                          = m_acBl4x4Mv[1][pucBlockOrder[3]] = aveMv[1];
+        }
+        else if(m_aBlkMode[uiB8x8Idx]==BLK_8x4)
+        {
+          aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[0]]+ m_acBl4x4Mv[0][pucBlockOrder[1]]+Mv(1,1))>>1;
+          aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[0]]+ m_acBl4x4Mv[1][pucBlockOrder[1]]+Mv(1,1))>>1;
+          m_acBl4x4Mv[0][pucBlockOrder[0]] = m_acBl4x4Mv[0][pucBlockOrder[1]] = aveMv[0];
+          m_acBl4x4Mv[1][pucBlockOrder[0]] = m_acBl4x4Mv[1][pucBlockOrder[1]] = aveMv[1];
+
+          aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[2]]+ m_acBl4x4Mv[0][pucBlockOrder[3]]+Mv(1,1))>>1;
+          aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[2]]+ m_acBl4x4Mv[1][pucBlockOrder[3]]+Mv(1,1))>>1;
+          m_acBl4x4Mv[0][pucBlockOrder[2]] = m_acBl4x4Mv[0][pucBlockOrder[3]] = aveMv[0];
+          m_acBl4x4Mv[1][pucBlockOrder[2]] = m_acBl4x4Mv[1][pucBlockOrder[3]] = aveMv[1];
+        }
+        else if(m_aBlkMode[uiB8x8Idx]==BLK_4x8)
+        {
+          aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[0]]+ m_acBl4x4Mv[0][pucBlockOrder[2]]+Mv(1,1))>>1;
+          aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[0]]+ m_acBl4x4Mv[1][pucBlockOrder[2]]+Mv(1,1))>>1;
+          m_acBl4x4Mv[0][pucBlockOrder[0]] = m_acBl4x4Mv[0][pucBlockOrder[2]] = aveMv[0];
+          m_acBl4x4Mv[1][pucBlockOrder[0]] = m_acBl4x4Mv[1][pucBlockOrder[2]] = aveMv[1];
+
+          aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[1]]+ m_acBl4x4Mv[0][pucBlockOrder[3]]+Mv(1,1))>>1;
+          aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[1]]+ m_acBl4x4Mv[1][pucBlockOrder[3]]+Mv(1,1))>>1;
+          m_acBl4x4Mv[0][pucBlockOrder[1]] = m_acBl4x4Mv[0][pucBlockOrder[3]] = aveMv[0];
+          m_acBl4x4Mv[1][pucBlockOrder[1]] = m_acBl4x4Mv[1][pucBlockOrder[3]] = aveMv[1];
+        }
+        break;
+      case BLK_8x4:
+        bC1 = m_acBl4x4Mv[0][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[0][pucBlockOrder[2]])<=1 && 
+              m_acBl4x4Mv[1][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[1][pucBlockOrder[2]])<=1;
+
+        if( bC1 )
+        {
+          m_aBlkMode[uiB8x8Idx]= BLK_8x8;
+
+          aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[0]]+ m_acBl4x4Mv[0][pucBlockOrder[2]]+Mv(1,1))>>1;
+          aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[0]]+ m_acBl4x4Mv[1][pucBlockOrder[2]]+Mv(1,1))>>1;
+          m_acBl4x4Mv[0][pucBlockOrder[0]] = m_acBl4x4Mv[0][pucBlockOrder[1]] = 
+            m_acBl4x4Mv[0][pucBlockOrder[2]] = m_acBl4x4Mv[0][pucBlockOrder[3]] = aveMv[0];
+          m_acBl4x4Mv[1][pucBlockOrder[0]] = m_acBl4x4Mv[1][pucBlockOrder[1]] = 
+            m_acBl4x4Mv[1][pucBlockOrder[2]] = m_acBl4x4Mv[1][pucBlockOrder[3]] = aveMv[1];
+        }
+        break;
+      case BLK_4x8:
+        bR1 = m_acBl4x4Mv[0][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[0][pucBlockOrder[1]])<=1 && 
+              m_acBl4x4Mv[1][pucBlockOrder[0]].getAbsMvDiff(m_acBl4x4Mv[1][pucBlockOrder[1]])<=1;
+
+        if( bR1 )
+        {
+          m_aBlkMode[uiB8x8Idx]= BLK_8x8;
+
+          aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[0]]+ m_acBl4x4Mv[0][pucBlockOrder[1]]+Mv(1,1))>>1;
+          aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[0]]+ m_acBl4x4Mv[1][pucBlockOrder[1]]+Mv(1,1))>>1;
+          m_acBl4x4Mv[0][pucBlockOrder[0]] = m_acBl4x4Mv[0][pucBlockOrder[1]] = 
+            m_acBl4x4Mv[0][pucBlockOrder[2]] = m_acBl4x4Mv[0][pucBlockOrder[3]] = aveMv[0];
+          m_acBl4x4Mv[1][pucBlockOrder[0]] = m_acBl4x4Mv[1][pucBlockOrder[1]] = 
+            m_acBl4x4Mv[1][pucBlockOrder[2]] = m_acBl4x4Mv[1][pucBlockOrder[3]] = aveMv[1];
+        }
+        break;
+      } // switch
+    } // for loop
+
+    if(m_aBlkMode[0]==BLK_8x8 && m_aBlkMode[1]==BLK_8x8 && m_aBlkMode[2]==BLK_8x8 && m_aBlkMode[3]==BLK_8x8)
+    {
+      bR1 = ( m_ascBl4x4RefIdx[0][0] == m_ascBl4x4RefIdx[0][2] && m_ascBl4x4RefIdx[1][0] == m_ascBl4x4RefIdx[1][2] &&
+              m_acBl4x4Mv[0][0] == m_acBl4x4Mv[0][2] && m_acBl4x4Mv[1][0] == m_acBl4x4Mv[1][2] );
+      bR2 = ( m_ascBl4x4RefIdx[0][8] == m_ascBl4x4RefIdx[0][10] && m_ascBl4x4RefIdx[1][8] == m_ascBl4x4RefIdx[1][10] &&
+              m_acBl4x4Mv[0][8] == m_acBl4x4Mv[0][10] && m_acBl4x4Mv[1][8] == m_acBl4x4Mv[1][10] );
+      bC1 = ( m_ascBl4x4RefIdx[0][0] == m_ascBl4x4RefIdx[0][8] && m_ascBl4x4RefIdx[1][0] == m_ascBl4x4RefIdx[1][8] &&
+              m_acBl4x4Mv[0][0] == m_acBl4x4Mv[0][8] && m_acBl4x4Mv[1][0] == m_acBl4x4Mv[1][8] );
+      bC2 = ( m_ascBl4x4RefIdx[0][2] == m_ascBl4x4RefIdx[0][10] && m_ascBl4x4RefIdx[1][2] == m_ascBl4x4RefIdx[1][10] &&
+              m_acBl4x4Mv[0][2] == m_acBl4x4Mv[0][10] && m_acBl4x4Mv[1][2] == m_acBl4x4Mv[1][10] );
+
+      if( bR1 && bR2 )
+        m_eMbMode = MODE_16x8 ;
+      if( bC1 && bC2 )
+        m_eMbMode = ( m_eMbMode == MODE_16x8 ) ? MODE_16x16  : MODE_8x16;
+    }
+  } 
+  else if(m_eMbMode == MODE_16x8)
+  {
+    bC1 = ( m_ascBl4x4RefIdx[0][0] == m_ascBl4x4RefIdx[0][8] && m_ascBl4x4RefIdx[1][0] == m_ascBl4x4RefIdx[1][8] &&
+            m_acBl4x4Mv[0][0] == m_acBl4x4Mv[0][8] && m_acBl4x4Mv[1][0] == m_acBl4x4Mv[1][8] );
+    if( bC1 )
+      m_eMbMode = MODE_16x16;
+  }
+  else if(m_eMbMode == MODE_8x16)
+  {
+    bR1 = ( m_ascBl4x4RefIdx[0][0] == m_ascBl4x4RefIdx[0][2] && m_ascBl4x4RefIdx[1][0] == m_ascBl4x4RefIdx[1][2] &&
+            m_acBl4x4Mv[0][0] == m_acBl4x4Mv[0][2] && m_acBl4x4Mv[1][0] == m_acBl4x4Mv[1][2] );
+    if( bR1 )
+      m_eMbMode = MODE_16x16;
+  }
+
+  return Err::m_nOK;
+}
 
 ErrVal
 MbData::xMergeBl8x8MvAndRef(const UInt uiBlIdx)

@@ -26,31 +26,23 @@
                          width        => 176,
                   			 height       => 144,
                   			 framerate    =>  15,
-                  			 bitrate      => 0,
-                  			 bitrateDS    => 0 ,
-		                   },
+                  			},
 		                  #----------#
-			#----------#
-                      # Layer  1 #
+			                # Layer  1 #
                       #----------#
                        {
                          width        => 176,
                   			 height       => 144,
                   			 framerate    =>  15,
-                  			 bitrate      => 0,
-                  			 bitrateDS    => 0 ,
-		                   },
-		                  #----------#
-			#----------#
+                       },
+		               		#----------#
                       # Layer  2 #
                       #----------#
           		        {
-			width        =>176,
+			                   width        =>176,
                   			 height       => 144,
-					 framerate    =>  15,
-                  			 bitrate     =>0,
-                  			 bitrateDS   =>0,
-          		         },
+					               framerate    =>  15,
+                  	  },
 		                  #---------#
    		              ],
    

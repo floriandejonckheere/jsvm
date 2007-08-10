@@ -229,6 +229,8 @@ MCTFEncoder::MCTFEncoder()
 , m_bBLSkipEnable			          		( false )
 // JVT-Q065 EIDR}
 , m_bLARDOEnable                    ( false ) //JVT-R057 LA-RDO
+, m_uiEssRPChkEnable								( 0 )
+, m_uiMVThres												( 20 )
 , m_uiNonRequiredWrite				      ( 0 )  //NonRequired JVT-Q066 (06-04-08)
 , m_uiPreAndSuffixUnitEnable				      ( 0 ) //JVT-S036 lsj 
 , m_uiMMCOBaseEnable						    ( 0 ) //JVT-S036 lsj
@@ -395,6 +397,9 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
   m_bTlevelNestingFlag      = pcCodingParameter->getTlevelNestingFlag();
 // JVT-U116 LMI
   m_bTl0PicIdxPresentFlag = pcCodingParameter->getTl0PicIdxPresentFlag();
+
+	m_uiEssRPChkEnable = pcCodingParameter->getEssRPChkEnable();
+	m_uiMVThres = pcCodingParameter->getMVThres();
 
   m_uiQualityLevelForPrediction = 15;
 
@@ -4715,6 +4720,8 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
      }
    
     // ICU/ETRI FGS_MOT_USE
+		m_pcBaseLayerCtrl->setEssRPChkEnable(m_uiEssRPChkEnable);
+		m_pcBaseLayerCtrl->setMVThres(m_uiMVThres);
     RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, (bForCopyOnly ? NULL : m_pcResizeParameters) ) );
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
 
@@ -4723,6 +4730,8 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
       {
     RNOK( m_pcBaseLayerCtrlField->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
     m_pcBaseLayerCtrlField->setBuildInterlacePred( true );
+		m_pcBaseLayerCtrlField->setEssRPChkEnable(m_uiEssRPChkEnable);
+		m_pcBaseLayerCtrlField->setMVThres(m_uiMVThres);
     RNOK( m_pcBaseLayerCtrlField->upsampleMotion( *pcBaseDataCtrl, m_pcResizeParameters) );
     rcControlData.setBaseLayerCtrlField( m_pcBaseLayerCtrlField );
       }

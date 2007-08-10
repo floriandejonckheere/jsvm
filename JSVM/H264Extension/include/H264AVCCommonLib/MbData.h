@@ -184,6 +184,7 @@ public:
   // TMM_ESS }
   ErrVal  initMbCbp();
 
+
 protected:
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMvData*           m_apcMbMvdData[2];
@@ -213,6 +214,11 @@ protected:
                           UInt&             uiMbBaseOrigX,
                           UInt&             uiMbBaseOrigY);
  
+ ErrVal  xESSCheckRP( MbData*           pcBaseMbData,
+                      const UInt        uiBaseMbStride,
+                      const Int         aiPelOrig[2],
+                      ResizeParameters* pcParameters);
+
  ErrVal xBuildPartInfo(   const Int aiPelOrig[2],
                           ResizeParameters* pcParameters,
                           const MbMode      aeMbMode[4],
@@ -229,6 +235,8 @@ protected:
   ErrVal xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
                                 const UInt        auiMbIdx	  [4][4], 
                                 const Int        aaiPartInfo[4][4]);
+
+  ErrVal xMergeMotionData();
 
   ErrVal xFillMbMvData		  ( ResizeParameters* pcParameters );
 							  
