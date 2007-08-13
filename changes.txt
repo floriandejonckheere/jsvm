@@ -1,8 +1,7 @@
 
-[Ed. Note (Jerome): For the time being, the following validation scripts "failed":
+[Note (Jerome): For the time being, the following validation scripts "fail":
 T3, T1, SLoop, SIP, RPIC, ReduceKeyPic, RCDO, QLSEI, QLNALPid, NonRequired, MLQL, IROI, FragVLC, FragCABAC, FMO, EIDR, ChromaLPoff, CAFVLC, CAFCABAC, CAVLC, BaseId
-HRD, Rewriting2
-]
+, Rewriting2 ]
 
 JSVM_9_2 -> JSVM_9_3
 ========================

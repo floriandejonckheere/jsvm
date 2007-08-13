@@ -1825,7 +1825,7 @@ SEI::ScalableNestingSei::write( HeaderSymbolWriteIf *pcWriteIf )
 		for( uiIndex = 0; uiIndex < m_uiNumPictures; uiIndex++ )
 		{
 			RNOK( pcWriteIf->writeCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
-			RNOK( pcWriteIf->writeCode( m_auiQualityLevel[uiIndex],2, " ScalableNestingSei:uiQualityLevel " ) );
+			RNOK( pcWriteIf->writeCode( m_auiQualityLevel[uiIndex],4, " ScalableNestingSei:uiQualityLevel " ) );
 		}	    
 		// JVT-V068 HRD {
     	RNOK( pcWriteIf->writeCode( m_uiTemporalLevel,3, " ScalableNestingSei:uiTemporalLevel " ) );
@@ -1854,7 +1854,7 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 		for( UInt uiIndex = 0; uiIndex < m_uiNumPictures; uiIndex++ )
 		{
 			RNOK( pcReadIf->getCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
-			RNOK( pcReadIf->getCode( m_auiQualityLevel[uiIndex],2, " ScalableNestingSei:uiQualityLevel " ) );
+			RNOK( pcReadIf->getCode( m_auiQualityLevel[uiIndex],4, " ScalableNestingSei:uiQualityLevel " ) );
 		}
     // JVT-V068 HRD {
     RNOK( pcReadIf->getCode( m_uiTemporalLevel,3, " ScalableNestingSei:uiTemporalLevel " ) );

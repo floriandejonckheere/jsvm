@@ -1995,7 +1995,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
   LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters(uiLayer);
 
   UInt uiTotalTemporalLevel = rcLayer.getDecompositionStages()- rcLayer.getNotCodedMCTFStages() + 1;
-  UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? 1 : MAX_QUALITY_LEVELS);
+  UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? pcSPS->getNumberOfQualityLevelsCGSSNR() : 1);
   UInt uiDependencyId = m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getLayerCGSSNR() : uiLayer;
 
   pcVui->setVuiParametersPresentFlag( ( m_pcCodingParameter->getEnableVUI()!=0) );

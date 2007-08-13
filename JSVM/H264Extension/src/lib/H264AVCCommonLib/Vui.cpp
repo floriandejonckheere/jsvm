@@ -300,9 +300,9 @@ ErrVal VUI::init( SequenceParameterSet* pcSPS, UInt uiDependencyId, UInt uiNumTe
 
 ErrVal VUI::LayerInfo::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
-  RNOK( pcWriteIf->writeCode( m_uiDependencyID, 3,                        "HRD::dependency_id[i]"));
   RNOK( pcWriteIf->writeCode( m_uiTemporalLevel, 3,                       "HRD::temporal_level[i]"));
-  RNOK( pcWriteIf->writeCode( m_uiQualityLevel, 2,                        "HRD::quality_level[i]"));
+  RNOK( pcWriteIf->writeCode( m_uiDependencyID, 3,                        "HRD::dependency_id[i]"));
+  RNOK( pcWriteIf->writeCode( m_uiQualityLevel, 4,                        "HRD::quality_level[i]"));
   return Err::m_nOK;
 }
 
@@ -359,9 +359,9 @@ ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf, UInt uiSchedulerId ) const
 
 ErrVal VUI::LayerInfo::read( HeaderSymbolReadIf* pcReadIf ) 
 {
-  RNOKS( pcReadIf->getCode( m_uiDependencyID, 3,               "VUI: dependency_id"));
   RNOKS( pcReadIf->getCode( m_uiTemporalLevel, 3,               "VUI: temporal_level"));
-  RNOKS( pcReadIf->getCode( m_uiQualityLevel, 2,               "VUI: quality_level"));
+  RNOKS( pcReadIf->getCode( m_uiDependencyID, 3,               "VUI: dependency_id"));
+  RNOKS( pcReadIf->getCode( m_uiQualityLevel, 4,               "VUI: quality_level"));
   return Err::m_nOK;
 }
 

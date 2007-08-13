@@ -5522,7 +5522,7 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
         }
         else
         {
-          RNOK( xWriteNestingSEIforHrd(rcOutputList, pcBufferingPeriodSei, uiDependencyId, uiTemporalLevel, uiQualityLevel, uiBits) );
+          RNOK( xWriteNestingSEIforHrd(rcOutputList, pcBufferingPeriodSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits) );
         }
       }
       ETRACE_LAYER(0);
@@ -5547,7 +5547,7 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
         }
         else
         {
-          RNOK( xWriteNestingSEIforHrd(rcOutputList, pcPicTimingSei, uiDependencyId, uiTemporalLevel, uiQualityLevel, uiBits ) );
+          RNOK( xWriteNestingSEIforHrd(rcOutputList, pcPicTimingSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits ) );
         }
       }
       ETRACE_LAYER(0);
@@ -5821,7 +5821,7 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
           }
           else
           {
-            RNOK( xWriteNestingSEIforHrd(rcOutputList, pcPicTimingSei, uiDependencyId, uiTemporalLevel, uiQualityLevel, uiBits ) );
+            RNOK( xWriteNestingSEIforHrd(rcOutputList, pcPicTimingSei, uiDependencyId, uiQualityLevel, uiTemporalLevel, uiBits ) );
           }
           RNOK( addParameterSetBits ( uiBits ) );
         }
