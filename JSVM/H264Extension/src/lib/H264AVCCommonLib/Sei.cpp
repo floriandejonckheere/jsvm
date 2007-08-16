@@ -708,7 +708,6 @@ SEI::ScalableSei::ScalableSei	()
 	::memset( m_log2_max_mv_length_vertical, 0x10, MAX_SCALABLE_LAYERS*sizeof(UInt));
 	::memset( m_max_dec_frame_buffering, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt));
 	::memset( m_num_reorder_frames, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt));
-	::memset( m_bitstream_restriction_src_layer_id_delta, 0x00, MAX_SCALABLE_LAYERS*sizeof(UInt));
 	::memset( m_ql_dependency_id, 0x00, MAX_LAYERS*sizeof(UInt));
 	::memset( m_ql_num_minus1, 0x00, MAX_LAYERS*sizeof(UInt));
 	::memset( m_ql_id, 0x00, MAX_LAYERS*MAX_QUALITY_LEVELS*sizeof(UInt));
@@ -808,7 +807,7 @@ SEI::ScalableSei::write( HeaderSymbolWriteIf *pcWriteIf )
 		RNOK	( pcWriteIf->writeFlag( m_frm_size_info_present_flag[i],						"ScalableSEI: frm_size_info_present_flag"						) );
 		RNOK	( pcWriteIf->writeFlag( m_layer_dependency_info_present_flag[i],		"ScalableSEI: layer_dependency_info_present_flag"		) );
 		RNOK	( pcWriteIf->writeFlag( m_init_parameter_sets_info_present_flag[i],	"ScalableSEI: init_parameter_sets_info_present_flag" ) );
-		RNOK	( pcWriteIf->writeFlag(	m_bitstream_restriction_flag[i],					"ScalableSEI: dpb_info_present_flag" ));//JVT-W051 
+		RNOK	( pcWriteIf->writeFlag(	m_bitstream_restriction_flag[i],					  "ScalableSEI: bitstream_restriction_info_present_flag" ));  //JVT-051 & JVT-W064
 		RNOK	( pcWriteIf->writeFlag( m_exact_interlayer_pred_flag[i],						"ScalableSEI: exact_interlayer_pred_flag"                      ) );//JVT-S036 lsj 
     RNOK	( pcWriteIf->writeFlag( m_avc_layer_conversion_flag[i],					   	"ScalableSEI: avc_layer_conversion_flag"                      ) );//JVT-W046
 		RNOK	( pcWriteIf->writeFlag( m_layer_output_flag[i],											"ScalableSEI: layer_output_flag		" ) );//JVT-W047 wxwan
@@ -992,7 +991,7 @@ JVT-S036 lsj */
 		{//JVT-S036 lsj 
 			RNOK	(pcWriteIf->writeUvlc( m_init_parameter_sets_info_src_layer_id_delta[i], "ScalableSEI: init_parameter_sets_info_src_layer_id_delta"	) );
 		}
-		//JVT-W051 {
+		//JVT-W051 & JVT-W064 {
 		if (m_bitstream_restriction_flag[i])
 		{
 			RNOK	(pcWriteIf->writeFlag(m_motion_vectors_over_pic_boundaries_flag[i], "ScalableSEI: motion_vectors_over_pic_boundaries_flag") );
@@ -1000,14 +999,10 @@ JVT-S036 lsj */
 			RNOK	(pcWriteIf->writeUvlc(m_max_bits_per_mb_denom[i], "ScalableSEI: max_bits_per_mb_denom") );
 			RNOK	(pcWriteIf->writeUvlc(m_log2_max_mv_length_horizontal[i], "ScalableSEI: log2_max_mv_length_horizontal") );
 			RNOK	(pcWriteIf->writeUvlc(m_log2_max_mv_length_vertical[i], "ScalableSEI: log2_max_mv_length_vertical") );
-			RNOK	(pcWriteIf->writeUvlc(m_max_dec_frame_buffering[i], "ScalableSEI: max_dec_frame_buffering") );
 			RNOK	(pcWriteIf->writeUvlc(m_num_reorder_frames[i], "ScalableSEI: num_reorder_frames"));
+			RNOK	(pcWriteIf->writeUvlc(m_max_dec_frame_buffering[i],                   "ScalableSEI: max_dec_frame_buffering") );
 		}
-		else
-		{
-			RNOK	(pcWriteIf->writeUvlc(m_bitstream_restriction_src_layer_id_delta[i], "ScalableSEI: dpb_info_src_layer_id_delta"));
-		}
-		//JVT-W051 }
+		//JVT-W051 & JVT-W064  }
 		//JVT-W046 {
 		if( m_avc_layer_conversion_flag[i] )
 		{
@@ -1341,12 +1336,8 @@ JVT-S036 lsj */
 			RNOK	(pcReadIf->getUvlc( m_max_bits_per_mb_denom[i], "") );
 			RNOK	(pcReadIf->getUvlc( m_log2_max_mv_length_horizontal[i], "l") );
 			RNOK	(pcReadIf->getUvlc( m_log2_max_mv_length_vertical[i], "") );
-			RNOK	(pcReadIf->getUvlc( m_max_dec_frame_buffering[i], ""));
 			RNOK	(pcReadIf->getUvlc( m_num_reorder_frames[i], ""));
-		}
-		else
-		{
-			RNOK	(pcReadIf->getUvlc( m_bitstream_restriction_src_layer_id_delta[i], ""));
+			RNOK	(pcReadIf->getUvlc( m_max_dec_frame_buffering[i], ""));
 		}
 		//JVT-W051 }
 		//JVT-W046 {

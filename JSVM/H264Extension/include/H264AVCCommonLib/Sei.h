@@ -520,7 +520,6 @@ public:
 		UInt getLog2MaxMvLengthVertical ( UInt uilayer ) const { return m_log2_max_mv_length_vertical [uilayer]; }
 		UInt getMaxDecFrameBuffering ( UInt uilayer ) const { return m_max_dec_frame_buffering [uilayer]; }
 		UInt getNumReorderFrames ( UInt uilayer ) const { return m_num_reorder_frames [uilayer]; }
-		UInt getBitstreamRestrictionSrcLayerIdDelta ( UInt uilayer ) const { return m_bitstream_restriction_src_layer_id_delta [uilayer]; }
 		UInt getQlNumdIdMinus1 ( void ) const { return m_ql_num_dId_minus1; }
 		UInt getQlNumMinus1 ( UInt uilayer ) const { return m_ql_num_minus1 [uilayer]; }
 		UInt getQlDependencyId ( UInt uilayer ) const { return m_ql_dependency_id [uilayer]; }
@@ -538,7 +537,6 @@ public:
 		void setLog2MaxMvLengthVertical ( UInt uilayer, UInt uiLog2MaxMvLengthVertical ) { m_log2_max_mv_length_vertical [uilayer] = uiLog2MaxMvLengthVertical; }
 		void setMaxDecFrameBuffering ( UInt uilayer, UInt uiMaxDecFrameBuffering ) { m_max_dec_frame_buffering [uilayer] = uiMaxDecFrameBuffering; }	
 		void setNumReorderFrames ( UInt uilayer, UInt uiNumReorderFrames ) { m_num_reorder_frames [uilayer] = uiNumReorderFrames; }
-		void setBitstreamRestrictionSrcLayerIdDelta ( UInt uilayer, UInt uiDpbInfoSrcLayerIdDelta ) { m_bitstream_restriction_src_layer_id_delta [uilayer] = uiDpbInfoSrcLayerIdDelta; }
 		void setQlNumdIdMinus1 (UInt uiQlNumdIdMinus1) { m_ql_num_dId_minus1 = uiQlNumdIdMinus1; }
 		void setQlNumMinus1 ( UInt uilayer, UInt uiQlNumMinus1 ) { m_ql_num_minus1 [uilayer] = uiQlNumMinus1; }
 		void setQlDependencyId ( UInt uilayer, UInt uiQlDependencyId ) { m_ql_dependency_id [uilayer] = uiQlDependencyId; }
@@ -685,7 +683,7 @@ public:
     UInt m_aaiRoiID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
     UInt m_aaiSGID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
     UInt m_aaiSLID[MAX_SCALABLE_LAYERS][MAX_SCALABLE_LAYERS];
-		//JVT-W051 {
+		//JVT-W051 & JVT064 {
 		Bool m_quality_layer_info_present_flag;
 		Bool m_bitstream_restriction_flag[MAX_SCALABLE_LAYERS];
 		Bool m_motion_vectors_over_pic_boundaries_flag[MAX_SCALABLE_LAYERS];
@@ -695,7 +693,6 @@ public:
 		UInt m_log2_max_mv_length_vertical[MAX_SCALABLE_LAYERS];
 		UInt m_num_reorder_frames[MAX_SCALABLE_LAYERS];
 		UInt m_max_dec_frame_buffering[MAX_SCALABLE_LAYERS];		
-		UInt m_bitstream_restriction_src_layer_id_delta[MAX_SCALABLE_LAYERS];
 		UInt m_ql_num_dId_minus1;
 		UInt m_ql_dependency_id[MAX_LAYERS];
 		UInt m_ql_num_minus1[MAX_LAYERS];
@@ -703,7 +700,7 @@ public:
 		Int32 m_ql_profile_level_idc[MAX_LAYERS][MAX_QUALITY_LEVELS];
 		UInt m_ql_avg_bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
 		UInt m_ql_max_bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
-		//JVT-W051 }
+		//JVT-W051 & JVT064 }
   };
 
   class H264AVCCOMMONLIB_API SubPicSei : public SEIMessage

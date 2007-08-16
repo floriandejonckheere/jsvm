@@ -899,11 +899,12 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
             UInt uiNumReorderFrames = pcScalableSEI->getMaxDecFrameBuffering( uiNumScalableLayer );//should be changed
             pcScalableSEI->setMaxDecFrameBuffering( uiNumScalableLayer, uiMaxDecFrameBuffering );					  
             pcScalableSEI->setNumReorderFrames( uiNumScalableLayer, uiNumReorderFrames );
-          }
-          else
-          {
-            UInt uiDpbInfoSrcLayerIdDelta = 0;//should be changed
-            pcScalableSEI->setBitstreamRestrictionSrcLayerIdDelta( uiNumScalableLayer, uiDpbInfoSrcLayerIdDelta );
+            // JVT-W064 { value of the following restriction parameters are set to the maximum in this example.
+            pcScalableSEI->setMotionVectorsOverPicBoundariesFlag( uiNumScalableLayer, true );
+            pcScalableSEI->setMaxBytesPerPicDenom( uiNumScalableLayer, 0 ); 
+            pcScalableSEI->setLog2MaxMvLengthHorizontal( uiNumScalableLayer, 16 ); 
+            pcScalableSEI->setLog2MaxMvLengthVertical( uiNumScalableLayer, 16 ); 
+            // JVT-W064 }
           }
           //JVT-W051 }
           uiNumScalableLayer++;

@@ -2715,9 +2715,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     pcNewScalableSei->setMaxBitsPerMbDenom(uiScalableLayer,pcOldScalableSei->getMaxBitsPerMbDenom(uiScalableLayer));
     pcNewScalableSei->setLog2MaxMvLengthHorizontal(uiScalableLayer,pcOldScalableSei->getLog2MaxMvLengthHorizontal(uiScalableLayer));
     pcNewScalableSei->setLog2MaxMvLengthVertical(uiScalableLayer,pcOldScalableSei->getLog2MaxMvLengthVertical(uiScalableLayer));
-    pcNewScalableSei->setMaxDecFrameBuffering(uiScalableLayer,pcOldScalableSei->getMaxDecFrameBuffering(uiScalableLayer));
     pcNewScalableSei->setNumReorderFrames(uiScalableLayer,pcOldScalableSei->getNumReorderFrames(uiScalableLayer));
-    pcNewScalableSei->setBitstreamRestrictionSrcLayerIdDelta(uiScalableLayer,pcOldScalableSei->getBitstreamRestrictionSrcLayerIdDelta(uiScalableLayer));
+    pcNewScalableSei->setMaxDecFrameBuffering(uiScalableLayer,pcOldScalableSei->getMaxDecFrameBuffering(uiScalableLayer));
   }
   if (pcOldScalableSei->getQualityLayerInfoPresentFlag())
   {

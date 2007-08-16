@@ -1,3 +1,11 @@
+JSVM_9_3 -> JSVM_9_4
+========================
+Date         : Aug 15
+Authors      : Jiancong Luo (Thomson)
+Contributions: JVT-W064
+
+Changes:
+- Added seven bitstream restriction indicators in scalability info SEI.
 
 [Note (Jerome): For the time being, the following validation scripts "fail":
 T3, T1, SLoop, SIP, RPIC, ReduceKeyPic, RCDO, QLSEI, QLNALPid, NonRequired, MLQL, IROI, FragVLC, FragCABAC, FMO, EIDR, ChromaLPoff, CAFVLC, CAFCABAC, CAVLC, BaseId

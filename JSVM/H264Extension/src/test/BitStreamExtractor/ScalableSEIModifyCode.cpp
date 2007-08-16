@@ -574,7 +574,7 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
     {//JVT-S036 lsj
       pcScalableModifyCode->WriteUVLC( pcScalableSei->getInitParameterSetsInfoSrcLayerIdDelta( uiLayer ) );
     }
-		//JVT-W051 {
+		//JVT-W051 & JVT-W064 {
 		if ( pcScalableSei->getBitstreamRestrictionFlag( uiLayer ) )
 		{
 			pcScalableModifyCode->WriteFlag( pcScalableSei->getMotionVectorsOverPicBoundariesFlag( uiLayer ) );
@@ -582,14 +582,10 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getMaxBitsPerMbDenom( uiLayer ) );
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getLog2MaxMvLengthHorizontal( uiLayer ) );
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getLog2MaxMvLengthVertical( uiLayer ) );
-			pcScalableModifyCode->WriteUVLC( pcScalableSei->getMaxDecFrameBuffering( uiLayer ) );
 			pcScalableModifyCode->WriteUVLC( pcScalableSei->getNumReorderFrames( uiLayer ) );
+			pcScalableModifyCode->WriteUVLC( pcScalableSei->getMaxDecFrameBuffering( uiLayer ) );
 		}
-		else
-		{
-			pcScalableModifyCode->WriteUVLC( pcScalableSei->getBitstreamRestrictionSrcLayerIdDelta( uiLayer ) );
-		}
-		//JVT-W051 }
+		//JVT-W051 & JVT-W064 }
   //JVT-W046 {
     if( pcScalableSei->getAvcLayerConversionFlag( uiLayer ) )
     {
