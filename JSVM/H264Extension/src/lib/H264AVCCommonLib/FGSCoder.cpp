@@ -401,9 +401,9 @@ FGSCoder::xReconstructMacroblock( MbDataAccess&   rcMbDataAccess,
 
     const QpParameter&  cCQp      = cQuantizer.getChromaQp();
     //===== chroma =====
-    for( CIdx cIdx; cIdx.isLegal(); cIdx++ )
+    for( CIdx ccIdx; ccIdx.isLegal(); ccIdx++ )
     {
-      RNOK( xScale4x4Block( cCoeffs.get( cIdx ), ( cIdx.plane() ? pucScaleV : pucScaleU ), 1, cCQp ) );
+      RNOK( xScale4x4Block( cCoeffs.get( ccIdx ), ( ccIdx.plane() ? pucScaleV : pucScaleU ), 1, cCQp ) );
     }
 
     iScale = g_aaiDequantCoef[cCQp.rem()][0] << cCQp.per();
@@ -425,9 +425,9 @@ FGSCoder::xReconstructMacroblock( MbDataAccess&   rcMbDataAccess,
     RNOK( m_pcTransform->invTransformDcCoeff( piCoeffs, 1 ) );
 
     // inverse transform on entire MB
-    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+    for( B4x4Idx cBIdx; cBIdx.isLegal(); cBIdx++ )
     {
-      RNOK( m_pcTransform->invTransform4x4Blk( rcMbBuffer.getYBlk( cIdx ), iLStride, cCoeffs.get( cIdx ) ) );
+      RNOK( m_pcTransform->invTransform4x4Blk( rcMbBuffer.getYBlk( cBIdx ), iLStride, cCoeffs.get( cBIdx ) ) );
     }
 
 //     // restore luma DC

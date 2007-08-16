@@ -6,7 +6,7 @@
 # File          : External.pm
 # Author        : jerome.vieron@thomson.net
 # Creation date : 25 January 2006
-# Version       : 1.0.0
+# Version       : 1.0.1
 ################################################################################
 
 package External;
@@ -101,11 +101,8 @@ sub Encode($;$)
 		
 	 ::PrintLog(" Encode                    .......... ");
 		
-	my $FGSlayer	= $simu->{nbfgslayer};
-	my $FGSConf="";
 	my $MotConf="";
 	my $MotConfCGS="";
-	my $DSConf="";
 	my $cmd ;
 	my $ret;
 	
@@ -116,34 +113,16 @@ sub Encode($;$)
 	{
 		$l++;
 		$lp1++;	
-		if($layer->{bitrate}==0)
+		#if($layer->{bitrate}==0)
 		{
 			#cgs layer
 			#motion for this layer wil have to be computed later
 			$MotConf	.= " -mfile $l 2 ".$layer->{motionname};
 			$MotConfCGS	.= " -mfile $l 1 ".$layer->{motionname};
 		}	
-		else
-		{
-			#Layer with FGS content
-			$cmd = "$bin$ENCODER -pf ".$simu->{configname}." -bf ".$simu->{bitstreamname}." -numl $lp1  $DSConf $MotConf -mfile $l 2 ".$layer->{motionname}." $FGSConf -anafgs $l $FGSlayer ".$layer->{fgsname}." ".$simu->{singleloopflag};
-    	$ret = run($cmd, $simu->{logname},0);
-  	 ($ret == 0) or die "problem while executing the command:\n$cmd\n";
-
-			if ($layer->{bitrateDS}>0)
-			{
-				$DSConf .=" -ds $l ".$layer->{bitrateDS};
-			}
-
-			$FGSConf .= " -encfgs $l ".$layer->{bitrate}." ".$layer->{fgsname};
-
-			#motion can be read
-			$MotConf	 = "$MotConfCGS -mfile $l 1 ".$layer->{motionname};
-			$MotConfCGS	 = "$MotConfCGS -mfile $l 1 ".$layer->{motionname};
-		}
 	}	
 	
-	$cmd = "$bin$ENCODER -pf ".$simu->{configname}." -bf ".$simu->{bitstreamname}." -numl $lp1 $DSConf $MotConf $FGSConf ".$simu->{singleloopflag};
+	$cmd = "$bin$ENCODER -pf ".$simu->{configname}." -bf ".$simu->{bitstreamname}." -numl $lp1 $MotConf ".$simu->{singleloopflag};
  	$ret = run($cmd,$simu->{logname},0);
   ($ret == 0) or die "problem while executing the command:\n$cmd\n";
   	

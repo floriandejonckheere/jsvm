@@ -321,15 +321,7 @@ protected:
   Int           m_iScaledBaseTopOffset;
   Int           m_iScaledBaseRightOffset;
   Int           m_iScaledBaseBottomOffset;
-#ifdef _JVTV074_
-public:
-    UInt        getNumResampleFiltersMinus1( ) const { return m_uiNumResampleFiltersMinus1;}
-protected:
-  UInt          m_uiNumResampleFiltersMinus1;
-  Bool          m_bIntegerPosFilterPresentFlag[16];
-  Int           m_iResampleFilterParamA[16][9];
-  Int           m_iResampleFilterParamB[16][9];
-#endif //_JVTV074_
+
 // TMM_ESS }
 
   Bool          m_bInterlayerDeblockingPresent;

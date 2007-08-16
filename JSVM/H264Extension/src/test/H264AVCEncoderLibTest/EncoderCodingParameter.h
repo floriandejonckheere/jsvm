@@ -716,8 +716,6 @@ Void EncoderCodingParameter::printHelp()
 	printf("  -blid   (Layer) (BaseLayerId)\n");
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
   printf("  -cl     (Layer) (ClosedLoopParameter)\n");
-  printf("  -ds     (Layer) (Rate for inter-layer prediction)\n");
-  printf("  -fgsmot (Layer) (FGSMotionRefinementMode) [0: no, 1: HP only, 2: all]\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   //S051{
   printf("  -anasip (Layer) (SIP Analysis Mode)[0: persists all inter-predictions, 1: forbids all inter-prediction.] (File for storing bits information)\n");

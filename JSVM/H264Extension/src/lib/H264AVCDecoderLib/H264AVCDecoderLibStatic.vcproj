@@ -226,24 +226,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="FGSSubbandDecoder.cpp">
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
+				RelativePath=".\FGSSubbandDecoder.cpp">
 			</File>
 			<File
 				RelativePath="GOPDecoder.cpp">
@@ -447,7 +430,7 @@
 				RelativePath="..\..\..\include\CreaterH264AVCDecoder.h">
 			</File>
 			<File
-				RelativePath="FGSSubbandDecoder.h">
+				RelativePath=".\FGSSubbandDecoder.h">
 			</File>
 			<File
 				RelativePath="GOPDecoder.h">

@@ -3589,10 +3589,6 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
       pcSliceHeader->setBottomOffset    ( m_pcResizeParameters->getBottomOffset      ( iPoc ) );
       pcSliceHeader->setBaseChromaPhaseX(m_pcResizeParameters->m_iBaseChromaPhaseX);  // Shijun-bug-fix
       pcSliceHeader->setBaseChromaPhaseY(m_pcResizeParameters->m_iBaseChromaPhaseY);  // Shijun-bug-fix
-#ifdef _JVTV074_
-      pcSliceHeader->setResampleFilterIdx( m_pcResizeParameters->m_uiResampleFilterIdx);
-#endif //_JVTV074_
-
       pcSliceHeader->setSpatialScalabilityType(m_pcResizeParameters->m_iSpatialScalabilityType);
     }
 

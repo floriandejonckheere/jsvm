@@ -244,14 +244,6 @@ private:
 	                                int crop_x0, int crop_y0, int crop_w, int crop_h,
 	                                int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
 	                                int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag );
-#ifdef _JVTV074_
-  //cixunzhang
-  void   xUpsampling4           ( int input_width, int input_height,
-	                                int output_width, int output_height,
-	                                int crop_x0, int crop_y0, int crop_w, int crop_h,
-	                                int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-	                                int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag, int iResampleFilter[16][4]);
-#endif // _JVTV074_
                                   
 #ifndef DOWN_CONVERT_STATIC // TMM_JV
 //-------------------------------------------------

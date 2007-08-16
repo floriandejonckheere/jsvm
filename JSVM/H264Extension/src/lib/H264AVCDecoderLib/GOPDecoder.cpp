@@ -2683,9 +2683,6 @@ MCTFDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
                                                      rcSliceHeader.getBaseChromaPhaseX(),
                                                      rcSliceHeader.getBaseChromaPhaseY() );
   pcResizeParameter->setPoc( rcSliceHeader.getPoc() );
-#ifdef _JVTV074_
-  m_pcResizeParameter->setResampleFilterIdx( rcSliceHeader.getResampleFilterIdx( ) );
-#endif //_JVTV074_
 
   //===== set crop window flag: in current macroblock data (we don't need the base layer here) =====
   if( pcResizeParameter->m_iSpatialScalabilityType == SST_RATIO_1 ||

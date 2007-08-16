@@ -1,15 +1,19 @@
+[Note (Jerome): For the time being, the following validation scripts "fail":
+T3, T1, SLoop, SIP, RPIC, ReduceKeyPic, RCDO, QLSEI, QLNALPid, NonRequired, MLQL, IROI, FMO, EIDR, ChromaLPoff, CAFVLC, CAFCABAC, CAVLC, BaseId ]
+
+
 JSVM_9_3 -> JSVM_9_4
 ========================
 Date         : Aug 15
-Authors      : Jiancong Luo (Thomson)
+Authors      : Jiancong Luo (Thomson) + Jerome Vieron 
 Contributions: JVT-W064
 
 Changes:
 - Added seven bitstream restriction indicators in scalability info SEI.
+- Removal of FGSSubbandEncoder*.* files
+- Removal of adpative filtering features ([JVT-V074])
+- Removal of all data related to FGS in FixedQPEncoder
 
-[Note (Jerome): For the time being, the following validation scripts "fail":
-T3, T1, SLoop, SIP, RPIC, ReduceKeyPic, RCDO, QLSEI, QLNALPid, NonRequired, MLQL, IROI, FragVLC, FragCABAC, FMO, EIDR, ChromaLPoff, CAFVLC, CAFCABAC, CAVLC, BaseId
-, Rewriting2 ]
 
 JSVM_9_2 -> JSVM_9_3
 ========================

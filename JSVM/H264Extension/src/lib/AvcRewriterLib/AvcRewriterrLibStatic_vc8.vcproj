@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8,00"
 	Name="AvcRewriterLibStatic"
-	ProjectGUID="{E2B9B66A-CD35-466B-BB35-0D1FBBE55EE6}"
+	ProjectGUID="{33896657-4671-433C-97FA-4DB40498C010}"
 	>
 	<Platforms>
 		<Platform
@@ -43,7 +43,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include,."
-				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;AVCREWRITERLIB_LIB;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="NDEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;H264AVCENCODERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -119,7 +119,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\include,."
-				PreprocessorDefinitions="_DEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;AVCREWRITERLIB_LIB;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="_DEBUG;WIN32;_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;H264AVCENCODERLIB_LIB;AVCREWRITERLIB_LIB;SHARP_AVC_REWRITE_OUTPUT;USE_NAMESPACE_H264AVC;_CRT_SECURE_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
@@ -174,7 +174,7 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="BitReadBuffer.cpp"
+				RelativePath="..\H264AVCDecoderLib\BitReadBuffer.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -199,7 +199,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="CabacReader.cpp"
+				RelativePath="..\H264AVCDecoderLib\CabacReader.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -224,7 +224,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="CabaDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\CabaDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -249,7 +249,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="ControlMngH264AVCDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\ControlMngH264AVCDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -274,7 +274,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="CreaterH264AVCDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\CreaterH264AVCDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -299,7 +299,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="FGSSubbandDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\FGSSubbandDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -324,7 +324,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="GOPDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\GOPDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -349,7 +349,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="H264AVCDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\H264AVCDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -374,34 +374,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="AvcRewriterLib.cpp"
-				>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"
-						UsePrecompiledHeader="1"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="MbDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\H264AVCDecoderLib.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -426,7 +399,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="MbParser.cpp"
+				RelativePath="..\H264AVCDecoderLib\MbDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -451,7 +424,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="NalUnitParser.cpp"
+				RelativePath="..\H264AVCDecoderLib\MbParser.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -476,7 +449,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="SliceDecoder.cpp"
+				RelativePath="..\H264AVCDecoderLib\NalUnitParser.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -501,7 +474,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="SliceReader.cpp"
+				RelativePath="..\H264AVCDecoderLib\SliceDecoder.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -526,7 +499,32 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="UvlcReader.cpp"
+				RelativePath="..\H264AVCDecoderLib\SliceReader.cpp"
+				>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="2"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						Optimization="0"
+						AdditionalIncludeDirectories=""
+						PreprocessorDefinitions=""
+						BasicRuntimeChecks="3"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\H264AVCDecoderLib\UvlcReader.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -556,19 +554,19 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
-				RelativePath="BitReadBuffer.h"
+				RelativePath="..\H264AVCDecoderLib\BitReadBuffer.h"
 				>
 			</File>
 			<File
-				RelativePath="CabacReader.h"
+				RelativePath="..\H264AVCDecoderLib\CabacReader.h"
 				>
 			</File>
 			<File
-				RelativePath="CabaDecoder.h"
+				RelativePath="..\H264AVCDecoderLib\CabaDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="ControlMngH264AVCDecoder.h"
+				RelativePath="..\H264AVCDecoderLib\ControlMngH264AVCDecoder.h"
 				>
 			</File>
 			<File
@@ -576,47 +574,51 @@
 				>
 			</File>
 			<File
-				RelativePath="FGSSubbandDecoder.h"
+				RelativePath="..\H264AVCDecoderLib\DecError.h"
 				>
 			</File>
 			<File
-				RelativePath="GOPDecoder.h"
+				RelativePath="..\H264AVCDecoderLib\FGSSubbandDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="H264AVCDecoder.h"
+				RelativePath="..\H264AVCDecoderLib\GOPDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\include\AvcRewriterLib.h"
+				RelativePath="..\H264AVCDecoderLib\H264AVCDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="MbDecoder.h"
+				RelativePath="..\..\..\include\H264AVCDecoderLib.h"
 				>
 			</File>
 			<File
-				RelativePath="MbParser.h"
+				RelativePath="..\H264AVCDecoderLib\MbDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="MbSymbolReadIf.h"
+				RelativePath="..\H264AVCDecoderLib\MbParser.h"
 				>
 			</File>
 			<File
-				RelativePath="NalUnitParser.h"
+				RelativePath="..\H264AVCDecoderLib\MbSymbolReadIf.h"
 				>
 			</File>
 			<File
-				RelativePath="SliceDecoder.h"
+				RelativePath="..\H264AVCDecoderLib\NalUnitParser.h"
 				>
 			</File>
 			<File
-				RelativePath="SliceReader.h"
+				RelativePath="..\H264AVCDecoderLib\SliceDecoder.h"
 				>
 			</File>
 			<File
-				RelativePath="UvlcReader.h"
+				RelativePath="..\H264AVCDecoderLib\SliceReader.h"
+				>
+			</File>
+			<File
+				RelativePath="..\H264AVCDecoderLib\UvlcReader.h"
 				>
 			</File>
 		</Filter>

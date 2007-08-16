@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8,00"
 	Name="AvcRewriterStatic"
-	ProjectGUID="{E1129CA9-6027-4460-B239-CB48A593AF07}"
+	ProjectGUID="{0FC02A5E-4E06-4CAC-8FB2-1C968FF0BDE9}"
 	>
 	<Platforms>
 		<Platform
@@ -209,7 +209,7 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="DecoderParameter.cpp"
+				RelativePath="..\H264AVCDecoderLibTest\DecoderParameter.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -234,7 +234,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="H264AVCDecoderLibTest.cpp"
+				RelativePath="..\H264AVCDecoderLibTest\H264AVCDecoderLibTest.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -261,7 +261,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="H264AVCDecoderTest.cpp"
+				RelativePath="..\H264AVCDecoderLibTest\H264AVCDecoderTest.cpp"
 				>
 				<FileConfiguration
 					Name="Release|Win32"
@@ -291,15 +291,15 @@
 			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
-				RelativePath="DecoderParameter.h"
+				RelativePath="..\H264AVCDecoderLibTest\DecoderParameter.h"
 				>
 			</File>
 			<File
-				RelativePath="H264AVCDecoderLibTest.h"
+				RelativePath="..\H264AVCDecoderLibTest\H264AVCDecoderLibTest.h"
 				>
 			</File>
 			<File
-				RelativePath="H264AVCDecoderTest.h"
+				RelativePath="..\H264AVCDecoderLibTest\H264AVCDecoderTest.h"
 				>
 			</File>
 		</Filter>
