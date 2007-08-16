@@ -91,12 +91,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
  
 #include <string> 
 #include "CodingParameter.h"
-#ifdef _JVTV074_
-//#define _FILT2_
-//#define _FILT3_
-#endif // _JVTV074_
-
-
 
 #define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
 
@@ -1265,69 +1259,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
     rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX = rcLayer.m_ResizeParameter.m_iChromaPhaseX;  // SSUN, Nov2005
     rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY = rcLayer.m_ResizeParameter.m_iChromaPhaseY;
   }
-#ifdef _JVTV074_
-  rcLayer.m_ResizeParameter.m_uiNumResampleFiltersMinus1 = 0;
-  rcLayer.m_ResizeParameter.m_bIntegerPosFilterPresentFlag[0] = false;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][0] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][1] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][2] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][3] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][4] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][5] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][6] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][7] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][8] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][0] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][1] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][2] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][3] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][4] = -2;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][5] = -2;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][6] = -3;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][7] = -3;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][8] = -3;
-#ifdef _FILT2_   
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][0] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][1] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][2] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][3] = -2;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][4] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][5] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][6] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][7] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][8] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][0] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][1] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][2] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][3] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][4] = -3;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][5] = -3;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][6] = -4;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][7] = -5;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][8] = -4;
-#endif
-#ifdef _FILT3_
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][0] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][1] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][2] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][3] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][4] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][5] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][6] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][7] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamA[0][8] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][0] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][1] = 0;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][2] = -1;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][3] = -2;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][4] = -3;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][5] = -3;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][6] = -3;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][7] = -5;
-  rcLayer.m_ResizeParameter.m_iResampleFilterParamB[0][8] = -4;
-#endif
-  rcLayer.m_ResizeParameter.m_uiResampleFilterIdx         = 0; 
-#endif //_JVTV074_
 // TMM_ESS }
 
   //--ICU/ETRI FMO Implementation : FMO stuff start

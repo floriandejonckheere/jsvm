@@ -757,12 +757,6 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf,
       RNOK( pcWriteIf->writeCode( uiWriteStop,       4,                      "SH: scan_idx_end" ) );
     }
 
-#ifdef _JVTV074_
-    if (getSPS().getNumResampleFiltersMinus1())
-    {
-      RNOK( pcWriteIf->writeUvlc( m_uiResampleFilterIdx,                     "SH: ResampleFilterIdx" ) );
-    }
-#endif // _JVTV074_
     // TMM_ESS }
     //TMM_INTERLACE {
     if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() ) 
@@ -1211,13 +1205,6 @@ SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )
     }
   }
   
-#ifdef _JVTV074_
-  m_uiResampleFilterIdx = 0;
-  if (getSPS().getNumResampleFiltersMinus1())
-  {
-    RNOK( pcReadIf->getUvlc( m_uiResampleFilterIdx,                          "SH: ResampleFilterIdx" ) );
-  }
-#endif //_JVTV074_
   return Err::m_nOK;
 }
 
