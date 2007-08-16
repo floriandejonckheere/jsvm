@@ -27,22 +27,20 @@
                          width        => 352,
                   	 height       => 288,
                   	 framerate    =>  30,
-
                   	 bitrate      => 0,
                   	 bitrateDS    => 0 ,
-                  	 },
+		        },
 
-		                  #----------#
+		      #----------#
                       # Layer  1 #
                       #----------#
                        {
                          width        => 352,
                   	 height       => 288,
                   	 framerate    =>  30,
-
                   	 bitrate      => 0,
                   	 bitrateDS    => 0 ,
-                  	 },
+		        },
 		      #----------#
 		      # Layer  2 #
 		      #----------#
@@ -50,7 +48,6 @@
 		         width        => 352,
 		       	 height       => 288,
 		         framerate    =>  30,
-
 		         bitrate      => 0,
 		         bitrateDS    => 0 ,
 		        },
@@ -98,7 +95,7 @@
 		        width => 352,
 		        height => 288,
 		        framerate => 30,
-		        bitrate => 1385,
+		        bitrate => 1388,
 		        psnr => 33.2,
 		        encdecmatch => 1,
             	      },
