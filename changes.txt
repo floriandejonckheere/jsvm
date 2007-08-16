@@ -4,15 +4,17 @@ T3, T1, SLoop, SIP, RPIC, ReduceKeyPic, RCDO, QLSEI, QLNALPid, NonRequired, MLQL
 
 JSVM_9_3 -> JSVM_9_4
 ========================
-Date         : Aug 15
-Authors      : Jiancong Luo (Thomson) + Jerome Vieron 
+Date         : Aug 16
+Authors      : Jiancong Luo (Thomson) + Jerome Vieron (Thomson)
 Contributions: JVT-W064
 
 Changes:
 - Added seven bitstream restriction indicators in scalability info SEI.
+
 - Removal of FGSSubbandEncoder*.* files
 - Removal of adpative filtering features ([JVT-V074])
 - Removal of all data related to FGS in FixedQPEncoder
+- Removal of all data related to FGS in Perl scripts (not in validation scripts...)
 
 
 JSVM_9_2 -> JSVM_9_3
