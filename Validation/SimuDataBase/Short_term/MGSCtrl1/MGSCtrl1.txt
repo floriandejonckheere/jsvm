@@ -63,9 +63,9 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-            		        bitrate => 319,
+            		        bitrate => 321,
             		        psnr => 35.07,
-				encdecmatch => 1,
+			                	encdecmatch => 1,
             		      },
             		      #----------#
 		  ],
