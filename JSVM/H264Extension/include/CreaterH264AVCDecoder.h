@@ -253,7 +253,7 @@ struct PacketDescription
   UInt  SPSidRefByPPS[256];
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  UInt auiDeltaBytesRateOfLevelQL[MAX_NUM_RD_LEVELS];
+  //UInt auiDeltaBytesRateOfLevelQL[MAX_NUM_RD_LEVELS]; //JVT-W137
   UInt auiQualityLevelQL[MAX_NUM_RD_LEVELS];
   UInt uiNumLevelsQL;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007

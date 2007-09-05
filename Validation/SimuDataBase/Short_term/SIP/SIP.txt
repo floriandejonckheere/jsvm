@@ -51,35 +51,9 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                        bitrate     => 656,
-                        psnr        => 28.97,
+                        bitrate     => 360,
+                        psnr        => 28.04,
                         usesip      => 2,
-                       },
-                       #----------#
-                       # Test   1 #
-                       #----------#
-                       {
-                        name        => "L1_1",
-                        mode        => 1,
-                        width       => 352,
-                        height      => 288,
-                        framerate   => 30,
-                        bitrate     => 784,
-                        psnr        => 30.48,
-                        usesip      => 2
-                       },
-                       #----------#
-                       # Test   2 #
-                       #----------#
-                       {
-                        name        => "L1_2",
-                        mode        => 1,
-                        width       => 352,
-                        height      => 288,
-                        framerate   => 30,
-                        bitrate     => 912,
-                        psnr        => 31.0698,
-                        usesip      => 2
                        },
                       ],
 }

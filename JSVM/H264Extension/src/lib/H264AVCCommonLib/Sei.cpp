@@ -446,7 +446,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
 	    return RedundantPicSei::create( (RedundantPicSei*&) rpcSEIMessage );
     // JVT-W049 }
 			//JVT-W052 wxwan
-		case INTE_CHECK_SEI: return IntegrityCheckSEI::create((IntegrityCheckSEI*&) rpcSEIMessage );
+		case INTEGRITY_CHECK_SEI: return IntegrityCheckSEI::create((IntegrityCheckSEI*&) rpcSEIMessage );
 			//JVT-W052 wxwan
     default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
   }
@@ -1531,7 +1531,7 @@ SEI::QualityLevelSEI::QualityLevelSEI     ()
  m_uiDependencyId      ( 0 )
 {
   ::memset( m_auiQualityLevel,  0x00, MAX_NUM_RD_LEVELS*sizeof(UInt) );
-  ::memset( m_auiDeltaBytesRateOfLevel, 0x00, MAX_NUM_RD_LEVELS*sizeof(UInt) );
+//  ::memset( m_auiDeltaBytesRateOfLevel, 0x00, MAX_NUM_RD_LEVELS*sizeof(UInt) ); //JVT-W137
 }
 
 
@@ -1557,7 +1557,8 @@ SEI::QualityLevelSEI::write( HeaderSymbolWriteIf* pcWriteIf )
   for(UInt ui = 0; ui < m_uiNumLevels; ui++)
   {
 	RNOK  ( pcWriteIf->writeCode( m_auiQualityLevel[ui], 8,"QualityLevelSEI: QualityLevel"   ) );
-	RNOK  ( pcWriteIf->writeUvlc( m_auiDeltaBytesRateOfLevel[ui],"QualityLevelSEI: DeDeltaBytesRateOfLevellta"   ) );
+  //JVT-W137: remove m_auiDeltaBytesRateOfLevel
+	//RNOK  ( pcWriteIf->writeUvlc( m_auiDeltaBytesRateOfLevel[ui],"QualityLevelSEI: DeDeltaBytesRateOfLevellta"   ) );//~JVT-W137
   }
 
   return Err::m_nOK;
@@ -1572,7 +1573,8 @@ SEI::QualityLevelSEI::read ( HeaderSymbolReadIf* pcReadIf )
   for(UInt ui = 0; ui < m_uiNumLevels; ui++)
   {
 	RNOK  ( pcReadIf->getCode( m_auiQualityLevel[ui], 8,"QualityLevelSEI: QualityLevel"   ) );
-	RNOK  ( pcReadIf->getUvlc( m_auiDeltaBytesRateOfLevel[ui],"QualityLevelSEI: DeltaBytesRateOfLevel"   ) );
+  //JVT-W137
+	//RNOK  ( pcReadIf->getUvlc( m_auiDeltaBytesRateOfLevel[ui],"QualityLevelSEI: DeltaBytesRateOfLevel"   ) );//~JVT-W137
   }
   return Err::m_nOK;
 }

@@ -1,0 +1,105 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+name 	            => "QLSEI_SNR",
+original 	        => "BUS_352x288_30.yuv",
+ 
+width      	      => 176,
+height     	      => 144,
+framerate 	      => 15,
+nbframes	        => 33,
+verbosemode       => 1,
+phasemode         => 1,
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+runencode	      => 1,
+qualitylayer    => 2,
+      
+#=======================#
+# Layers  parameters    
+#=======================#
+layers       => [
+    #----------#
+    # Layer  0 #
+    #----------#
+    {
+     width       => 176,
+		 height      => 144,
+		 framerate   => 15,
+		 bitrate     => 192,
+		},
+		#----------#
+    # Layer  1 #
+    #----------#
+		{
+		 width       => 176,
+		 height      => 144,
+		 framerate   => 15,
+		 bitrate     => 768,
+		},
+				       ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+    bitratecheckrange  => 3,
+    psnrcheckrange    =>  0,	
+
+tests      => [
+		#----------#
+    # Test   0 #
+    #----------#
+		{
+		 name => "BL_QL",
+		 mode => 1,
+		 width => 176,
+		 height => 144,
+		 framerate => 15,
+		 useql     => 1,
+		 bitrate => 396,
+		 psnr => 31.66,
+		},
+		#----------#
+    # Test   1 #
+    #----------#	
+		{
+		 name => "BL_withoutQL",
+	   mode => 1,
+		 width => 176,
+		 height => 144,
+		 framerate => 15,
+		 bitrate => 394,
+		 psnr => 31.66,
+		},
+		#----------#
+    # Test   2 #
+    #----------#	
+		{
+		 name => "EL_QL",
+	   mode => 1,
+		 width => 176,
+		 height => 144,
+		 framerate => 15,
+		 useql     => 1,
+		 bitrate => 509,
+		 psnr => 33.18,
+		},
+		#----------#
+    # Test   3 #
+    #----------#	
+		{
+		 name => "EL_withoutQL",
+	   mode => 1,
+		 width => 176,
+		 height => 144,
+		 framerate => 15,
+		 bitrate => 32.4711,
+		 psnr => 32.47,
+		 },
+	],
+}
+
+

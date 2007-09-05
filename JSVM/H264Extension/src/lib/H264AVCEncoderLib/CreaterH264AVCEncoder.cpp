@@ -193,14 +193,6 @@ CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAcces
   return Err::m_nOK;
 }
 
-//{{Quality level estimation and modified truncation- JVTO044 and m12007
-//France Telecom R&D-(nathalie.cammas@francetelecom.com)
-ErrVal CreaterH264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDataAccessor,UInt* uiaQualityLevel, UInt *uiaDelta,UInt uiNumLevels, UInt uiLayer)
-{
-  RNOK( m_pcH264AVCEncoder->writeQualityLevelInfosSEI( pcExtBinDataAccessor, uiaQualityLevel,uiaDelta, uiNumLevels, uiLayer ) );
-  return Err::m_nOK;
-}
-//}}Quality level estimation and modified truncation- JVTO044 and m12007
 
 // JVT-T073 {
 ErrVal CreaterH264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor )

@@ -449,6 +449,7 @@ protected:
 
   Bool                          m_bCGSSNRInAU;
 //JVT-T054}
+  Bool                          m_abMGSAtLayer[MAX_LAYERS]; //MGS_FIX_FT_09_2007
   Bool                          m_bBaseSVCActive; //JVT-T054_FIX
   Bool                          m_bLastFrameReconstructed; //JVT-T054_FIX
 public:

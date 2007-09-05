@@ -208,15 +208,6 @@ public:
 	IntFrame* getLowPassRec     ( UInt uiLayerId );
 	IntFrame* getELRefPic       ( UInt uiLayerId, Int iPoc,
 																UInt uiIdrPicId);//EIDR 0619
-
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  ErrVal writeQualityLevelInfosSEI( ExtBinDataAccessor* pcExtBinDataAccessor, 
-                                    UInt*               uiaQualityLevel, 
-                                    UInt *              uiaDelta, 
-                                    UInt                uiNumLevels, 
-                                    UInt                uiLayer ) ;
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 // JVT-T073 {
   ErrVal writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
 // JVT-T073 }

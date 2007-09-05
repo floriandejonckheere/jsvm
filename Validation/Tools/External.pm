@@ -189,11 +189,32 @@ sub QLAssigner($$)
 
   my $cmdLayer;
  	my $layer;
+	my $wprev;
+	my $hprev;
+	my $frprev;
  	my $l=0;
+	
 	foreach $layer (@{$simu->{layers}})
   {
+   if($l==0)
+   {
+	$wprev = $layer->{width};
+	$hprev = $layer->{height};
+	$frprev = $layer->{framerate};
    $cmdLayer .= " -org $l ".$layer->{origname};
    $l++;
+  }
+   else
+   {
+	if($layer->{width} != $wprev || $layer->{height} != $hprev || $layer->{framerate} != $frprev)
+   	{
+        	$wprev = $layer->{width};
+		$hprev = $layer->{height};
+		$frprev = $layer->{framerate};
+		$cmdLayer .= " -org $l ".$layer->{origname};
+		$l++;
+	}
+   }
   }
 	
 	my $cmd = "$bin$QLASSIGNER -in ".$simu->{bitstreamname}." $cmdLayer -out ".$simu->{bitstreamQLname}; 

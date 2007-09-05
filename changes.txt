@@ -1,5 +1,36 @@
 [Note (Jerome): For the time being, the following validation scripts "fail":
-T3, T1, SLoop, SIP, RPIC, ReduceKeyPic, RCDO, QLSEI, QLNALPid, NonRequired, MLQL, IROI, FMO, EIDR, ChromaLPoff, CAFVLC, CAFCABAC, CAVLC, BaseId ]
+FMO, IROI, HRD, MLQL, NonRequired, ReduKeyPic, RPIC ]
+
+
+JSVM_9_4 -> JSVM_9_5
+========================
+Date         : September 04, 2007 
+Authors      : Nathalie Cammas (Orange-France Telecom R&D) + Jerome Vieron (Thomson)
+Contributions: JVT-W137
+
+Changes:
+- Quality layer SEI syntax implementation/updating
+- Fixes related to dead substreams 
+-> changes can be find by searching tags MGS_FIX_FT_09_2007 and DS_FIX_FT_09_2007.
+
+- Removal of all the data structure related to Smoothed Ref
+- Removal of all the data structure related to Closed Loop option
+- Many validation scripts have been repaired etsome have been removed:
+-BaseId: fix a bug in encoder, add discardable features in CGS mode, modify the script so as to extract discardable stream or not, adjust PSNR since FGS refinements have been removed
+-CAVLC: adjust PSNR since FGS refinements have been removed
+-ChromaLPoff: adjust PSNR since FGS refinements have been removed
+-EIDR: adjust PSNR since FGS refinements have been removed
+-QLNALPid: needs MGS, adjust test configuration
+-QLSEI: needs MGS, adjust test configuration
+-RCDO: adjust PSNR since FGS refinements have been removed
+-SIP: adjust PSNR since FGS refinements have been removed
+-SLoop: adjust PSNR since FGS refinements have been removed
+-T1: adjust PSNR since FGS refinements have been removed, modify configuration to replace FGS with MGS for SNR extraction test, fix a bug in extractor
+-T3: adjust PSNR since FGS refinements have been removed, modify configuration to replace FGS with MGS for SNR extraction test
+-Add a validation script MGSDS for the use of discardable stream with MGS
+-Add a validation script QLMGSFragments
+
+
 
 
 JSVM_9_3 -> JSVM_9_4

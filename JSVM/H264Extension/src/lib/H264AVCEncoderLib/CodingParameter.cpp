@@ -159,7 +159,6 @@ ErrVal LayerParameters::check()
   ROTREPORT( getMaxAbsDeltaQP           () > 7,         "MaxAbsDeltaQP not supported" );
   ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
   ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
-  ROTREPORT( getClosedLoop              () > 2,         "Unsupported closed-loop mode" );
 
   ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
 

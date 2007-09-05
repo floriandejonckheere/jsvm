@@ -1048,6 +1048,8 @@ public:
   Void          setMGSCoeffStart( UInt ui )       { m_uiMGSCoeffStart = ui; }
   Void          setMGSCoeffStop ( UInt ui )       { m_uiMGSCoeffStop  = ui; }
 
+  Void          setQLDiscardable  ( UInt ui )     { m_uiQLDiscardable = ui;} //DS_FIX_FT_09_2007
+
   Bool          m_bBaseFrameFromBotFieldFlag;
   Bool          m_bBaseBotFieldSyncFlag;
   Bool          m_bBaseFrameMbsOnlyFlag;
@@ -1070,6 +1072,9 @@ protected:
   UInt          m_uiMGSCoeffStop;
   //EIDR bug-fix
   Bool			m_bInIDRAccess; 
+
+  UInt      m_uiQLDiscardable; //DS_FIX_FT_09_2007
+
 };
 
 

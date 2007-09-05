@@ -1303,11 +1303,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
       //----- decode packet -----
       {
+      /*
         //----- re-direct stdout -----
 #if WIN32 // for linux, this have to be slightly re-formulated
         Int   orig_stdout     = _dup(1);
         FILE* stdout_copy     = freopen( tmp_file_name, "wt", stdout );
 #endif
+      */
 //bug-fix suffix{{
     if(uiNalUnitType == 1 || uiNalUnitType == 5)
     {
@@ -1348,12 +1350,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
         }
 
         //---- restore stdout -----
+        /* 
 #if WIN32 // for linux, this have to be slightly re-formulated
         fclose( stdout );
         _dup2( orig_stdout, 1 );
         _iob[1] = *fdopen( 1, "wt" );
         fclose(  fdopen( orig_stdout, "w" ) );
-#endif
+#endif*/
       }
 
       //----- determine distortion (and output for debugging) -----
@@ -1779,6 +1782,7 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
   RNOK( pcReadBitStream ->init( m_pcParameter->getInputBitStreamName  () ) );
   RNOK( pcWriteBitStream->init( m_pcParameter->getOutputBitStreamName () ) );
 
+  Bool bPrevNALUnitWasPrefix = false; //JVT-W137
 
   //===== loop over packets =====
   while( true )
@@ -1833,6 +1837,9 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
     if(cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE)
     {
       bAVCComaptible = true;
+      bNewAccessUnit = bNewAccessUnit && (!bPrevNALUnitWasPrefix); //JVT-W137
+      if(bPrevNALUnitWasPrefix)
+        bPrevNALUnitWasPrefix = false; //JVT-W137
     }
     if((cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
       && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && bAVCComaptible)
@@ -1843,7 +1850,8 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
 	if(cPacketDescription.NalUnitType == 14)
 	{
 		uiLevel_prefix = cPacketDescription.Level;
-		bNewAccessUnit = false;
+		//bNewAccessUnit = false; //JVT-W137 remove
+    bPrevNALUnitWasPrefix = true; //JVT-W137
 	}
 //prefix unit}}
     //bug-fix suffix}}
@@ -1916,7 +1924,7 @@ QualityLevelAssigner::xInsertQualityLayerSEI( WriteBitstreamToFile* pcWriteBitSt
   for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers++ )
   {
     pcQualityLevelSEI->setQualityLevel          ( uiNumLayers,       m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] );
-    pcQualityLevelSEI->setDeltaBytesRateOfLevel ( uiNumLayers,       m_aaauiPacketSize [uiLayer][uiNumLayers][uiFrameNum] );
+    //pcQualityLevelSEI->setDeltaBytesRateOfLevel ( uiNumLayers,       m_aaauiPacketSize [uiLayer][uiNumLayers][uiFrameNum] ); //JVT-W137
   }
   pcQualityLevelSEI->setDependencyId            ( uiLayer );
   pcQualityLevelSEI->setNumLevel                ( uiNumLayers );

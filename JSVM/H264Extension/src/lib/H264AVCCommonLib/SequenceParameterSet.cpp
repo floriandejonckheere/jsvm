@@ -398,9 +398,9 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
       RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: scaled_base_bottom_offset" ) );
     }
 
-#if TO_BE_REMOVED
-    if( getExtendedSpatialScalability() == ESS_NONE )
-#endif
+//#if TO_BE_REMOVED
+   //TMM if( getExtendedSpatialScalability() == ESS_NONE )
+//#endif
     {
       RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                    "SPS: seq_tcoeff_level_prediction_flag" ) );
       if( m_bAVCRewriteFlag )
@@ -537,9 +537,9 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     }
 
 
-#if TO_BE_REMOVED
-    if( getExtendedSpatialScalability() == ESS_NONE )
-#endif
+//#if TO_BE_REMOVED
+   //TMM if( getExtendedSpatialScalability() == ESS_NONE )
+//#endif
     {
       RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                       "SPS: seq_tcoeff_level_prediction_flag" ) );
       if( m_bAVCRewriteFlag )

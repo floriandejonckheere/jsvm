@@ -458,10 +458,7 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           UInt                        uiFrame,
                                           RefListUsage                eRefListUsage,
                                           Bool                        bHalfPel = false );
-  ErrVal  xGetBQPredictionLists         ( RefFrameList&               rcRefList0,
-                                          RefFrameList&               rcRefList1,
-                                          UInt                        uiBaseLevel,
-                                          UInt                        uiFrame );
+
   ErrVal  xGetCLRecPredictionLists      ( RefFrameList&               rcRefList0,
                                           RefFrameList&               rcRefList1,
                                           UInt                        uiBaseLevel,
@@ -536,8 +533,7 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           IntFrame*                   pcFrame,
                                           IntFrame*                   pcResidual,
                                           IntFrame*                   pcPredSignal,
-																					IntFrame*										pcSRFrame, // JVT-R091
-                                          UInt&                       ruiBits,
+																					UInt&                       ruiBits,
                                           UInt&                       ruiBitsRes,
                                           PicOutputDataList&          rcPicOutputDataList,
 																					PicType                     ePicType );
@@ -548,16 +544,8 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           RefFrameList*               pcRefFrameList0,
                                           RefFrameList*               pcRefFrameList1,
                                           MbDataCtrl*                 pcMbDataCtrl,
-                                          SliceHeader&                rcSH, 
-                                          Bool                        bSR  = false );
-  ErrVal  xMotionCompensationSRFrame    ( IntFrame*                   pcMCFrame,
-                                          RefFrameList*               pcRefFrameList0,
-                                          RefFrameList*               pcRefFrameList1,
-                                          MbDataCtrl*                 pcMbDataCtrl,
-                                          SliceHeader&                rcSH, 
-                                          MbDataCtrl*                 pcBaseMbDataCtrl
-                                          );
-
+                                          SliceHeader&                rcSH);
+  
   ErrVal  xMotionEstimation             ( RefFrameList*               pcRefFrameList0,
                                           RefFrameList*               pcRefFrameList1,
                                           IntFrame*                   pcOrigFrame,
@@ -717,7 +705,6 @@ protected:
   UInt                          m_uiNumMaxIter;                       // maximum number of iteration for bi-directional search
   UInt                          m_uiIterSearchRange;                  // search range for iterative search
   UInt                          m_iMaxDeltaQp;                        // maximum QP changing
-  UInt                          m_uiClosedLoopMode;                   // closed-loop coding mode (0:open-loop)
   Bool                          m_bH264AVCCompatible;                 // H.264/AVC compatibility
   Bool                          m_bInterLayerPrediction;              // inter-layer prediction
   Bool                          m_bAdaptivePrediction;                // adaptive inter-layer prediction
@@ -752,7 +739,6 @@ protected:
   IntFrame*                     m_apcFrameTemp[NUM_TMP_FRAMES];       // auxiliary frame memories
   IntFrame**                    m_papcFrame;                          // frame stores
   IntFrame**                    m_papcOrgFrame;                       // original (highpass) frames
-  IntFrame**                    m_papcBQFrame;                        // base quality frames
   IntFrame**                    m_papcCLRecFrame;                     // closed-loop rec. (needed when m_uiQualityLevelForPrediction < NumFGS)
   IntFrame**                    m_papcELFrame;                        // higher layer reference frames
   IntFrame**                    m_papcResidual;                       // frame stores for residual data
@@ -765,8 +751,7 @@ protected:
   IntFrame*                     m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
   IntFrame*                     m_pcBaseLayerFrame;                   // base layer frame
   IntFrame*                     m_pcBaseLayerResidual;                // base layer residual
-	IntFrame**                    m_papcSmoothedFrame;									// JVT-R091; smoothed reference frame
-  
+	  
   //----- control data arrays -----
   ControlData*                  m_pacControlData;                     // control data arrays
   MbDataCtrl*                   m_pcBaseLayerCtrl;                    // macroblock data of the base layer pictures
@@ -833,7 +818,10 @@ protected:
   UInt                          m_uiBaseLayerCGSSNR;
   UInt                          m_uiBaseQualityLevelCGSSNR;
 //JVT-T054}
-
+//DS_FIX_FT_09_2007
+  Bool                          m_bDiscardable;
+  UInt                          m_uiQLDiscardable;
+//~DS_FIX_FT_09_2007
 // JVT-U085 LMI 
   Bool                          m_bTlevelNestingFlag;
 // JVT-U116 LMI 

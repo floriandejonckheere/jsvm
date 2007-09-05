@@ -510,16 +510,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::getLayerParameters(0).setContrainedIntraForLP();
       continue;
     }
-    if( equals( pcCom, "-cl", 3 ) )
-    {
-      ROTS( NULL == argv[n] );
-      ROTS( NULL == argv[n+1] );
-      UInt uiLayer = atoi( argv[n] );
-      UInt uiCLoop = atoi( argv[n+1] );
-      CodingParameter::getLayerParameters( uiLayer ).setClosedLoop( uiCLoop );
-      n += 1;
-      continue;
-    }
     if( equals( pcCom, "-pf", 3) )
     {
       ROTS( NULL == argv[n] );
@@ -559,6 +549,17 @@ ErrVal EncoderCodingParameter::init( Int     argc,
 		continue;
     }
 	//S051}
+
+    //JVT-W052 bug_fixed
+    if( equals( pcCom, "-icsei", 6 ) )
+    {
+      ROTS( NULL == argv[n] );
+      UInt uiIntegrityCheckSei = atoi( argv[n] );
+      CodingParameter::setIntegrityCheckSEIEnable( uiIntegrityCheckSei );
+      continue;
+    }
+    //JVT-W052 bug_fixed
+
     // JVT-U116 LMI {
     if( equals( pcCom, "-tlidx", 6 ) )
     {
@@ -715,12 +716,14 @@ Void EncoderCodingParameter::printHelp()
   printf("  -ilpred (Layer) (InterLayerPredictionMode)\n");
 	printf("  -blid   (Layer) (BaseLayerId)\n");
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
-  printf("  -cl     (Layer) (ClosedLoopParameter)\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   //S051{
   printf("  -anasip (Layer) (SIP Analysis Mode)[0: persists all inter-predictions, 1: forbids all inter-prediction.] (File for storing bits information)\n");
   printf("  -encsip (Layer) (File with stored SIP information)\n");
   //S051}
+  //JVT-W052 bug_fixed
+  printf("  -icsei   (IntegrityCheckSEIEnableFlag)[0: IntegrityCheckSEI is not applied, 1: IntegrityCheckSEI is applied.]\n");
+  //JVT-W052 bug_fixed
    //JVT-U085 LMI
   printf("  -tlnest (TlevelNestingFlag)[0: temporal level nesting constraint is not applied, 1: the nesting constraint is applied.]\n");
   //JVT-U116 JVT-V088 LMI
@@ -728,9 +731,7 @@ Void EncoderCodingParameter::printHelp()
   //JVT-U106 Behaviour at slice boundaries{
   printf("  -ciu    (Constrained intra upsampling)[0: no, 1: yes]\n");
   //JVT-U106 Behaviour at slice boundaries}
-  printf("  -ref    (enhRef)    Enhancement reference weighting for ME [default: 0.0]\n");
-  printf("  -ar     (wZBlock) (wZCoeff) Zero block and zero coefficient weightings [default: 32 32]\n");
-
+   
   printf("  -rcdo-bs   (value)  RDCO block size restriction     (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo-mc-y (value)  RDCO motion compensation luma   (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo-mc-c (value)  RDCO motion compensation chroma (0:off,1:ELonly,2:on)\n" );
@@ -871,9 +872,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SceneInfo",               &m_uiSceneInfoEnable,                                  0 );
   //JVT-T073 }
 
-	//JVT-W052 wxwan
-	m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("INTER_CHECK_SEI",          &m_uiIntegrityCheckSEIEnable,                          false ); // Disabled due to buggy behaviour. mwi 070803
-	//JVT-W052 wxwan
+	//JVT-W052
+	m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("IntegrityCheckSEI",          &m_uiIntegrityCheckSEIEnable,                          false ); // Disabled due to buggy behaviour. mwi 070803, bug_fixed
+	//JVT-W052
 
 //JVT-S036 lsj start  //bug-fix suffix{{
 //PreAndSuffixUnitEnable shall always be on in SVC contexts (i.e. when there are FGS/CGS/spatial enhancement layers)
@@ -1038,6 +1039,14 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     }
     getLayerParameters(ui).setBaseLayerId(uiBaseLayerId);
     // HS: set base layer id
+//DS_FIX_FT_09_2007
+  //uiBaseLayerId is no more discardable
+    if(uiBaseLayerId != MSYS_UINT_MAX)
+    {
+      getLayerParameters(uiBaseLayerId).setNonDiscardable();
+      getLayerParameters(uiBaseLayerId).setQLDiscardable(getLayerParameters(ui).getBaseQualityLevel()+1);
+    }
+//~DS_FIX_FT_09_2007
 
     if (ui>0)
     {
@@ -1111,7 +1120,6 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MbAff",          &(rcLayer.m_uiMbAff),                    0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("Paff",           &(rcLayer.m_uiPaff),                     0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",     &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ClosedLoop",     &(rcLayer.m_uiClosedLoop),               0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",     &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",             &(rcLayer.m_dBaseQpResidual),            32.0      );
@@ -1237,7 +1245,14 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   rcLayer.m_ResizeParameter.m_bCrop       = false;
   if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  
   {
-    rcLayer.m_ResizeParameter.m_bCrop = true;        
+//TMM {
+   rcLayer.m_ResizeParameter.m_bCrop = true;        
+    /*if (rcLayer.m_ResizeParameter.m_iInWidth != rcLayer.m_ResizeParameter.m_iOutWidth || 
+			  rcLayer.m_ResizeParameter.m_iInHeight != rcLayer.m_ResizeParameter.m_iOutHeight || 
+			  rcLayer.m_ResizeParameter.m_iPosX != 0 || 
+			  rcLayer.m_ResizeParameter.m_iPosY != 0 ) */
+		   
+//TMM }     
     if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
     {
       rcLayer.m_ResizeParameter.m_pParamFile = fopen( cESSFilename.c_str(), "r");

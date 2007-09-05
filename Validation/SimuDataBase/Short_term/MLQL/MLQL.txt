@@ -34,6 +34,23 @@ layers       => [
 	#----------#
     # Layer  1 #
     #----------#
+    {
+     width       => 176,
+	 height      => 144,
+	 framerate   => 15,
+	 bitrate     => 192,
+	},
+	#----------#
+    # Layer  2 #
+    #----------#
+	{
+	 width       => 352,
+	 height      => 288,
+	 framerate   => 30,
+	 bitrate     => 768,
+	},
+     # Layer  3 #
+    #----------#
 	{
 	 width       => 352,
 	 height      => 288,

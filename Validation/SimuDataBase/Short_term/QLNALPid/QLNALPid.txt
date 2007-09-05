@@ -32,7 +32,26 @@ layers       => [
 		 bitrate     => 192,
 		},
 		#----------#
+    #----------#
     # Layer  1 #
+    #----------#
+		{
+     width       => 176,
+		 height      => 144,
+		 framerate   => 15,
+		 bitrate     => 192,
+		},
+		#----------#
+    # Layer  2 #
+    #----------#
+		{
+		 width       => 352,
+		 height      => 288,
+		 framerate   => 30,
+		 bitrate     => 768,
+
+		},
+    # Layer  3 #
     #----------#
 		{
 		 width       => 352,
@@ -85,8 +104,8 @@ tests      => [
 		 height => 288,
 		 framerate => 30,
 		 useql     => 1,
-		 bitrate => 700,
-		 psnr => 30.98,
+		 bitrate => 676,
+		 psnr => 30.65,
 		},
 		#----------#
     # Test   3 #
@@ -97,8 +116,8 @@ tests      => [
 		 width => 352,
 		 height => 288,
 		 framerate => 30,
-		 bitrate => 700,
-		 psnr => 30.83,
+		 bitrate => 559,
+		 psnr => 30.15,
 		 },
 	],
 }

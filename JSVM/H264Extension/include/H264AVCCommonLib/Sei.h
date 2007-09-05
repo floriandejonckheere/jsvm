@@ -128,7 +128,7 @@ public:
 //    RESERVED_SEI                          = 31, JVT-W052
 
 //JVT-W052 wxwan
-		INTE_CHECK_SEI												= 31,
+		INTEGRITY_CHECK_SEI												= 31,
 		//RESERVED_SEI													=32,//JVT-W049
 //JVT-W052 wxwan
 //JVT-W049 {
@@ -757,8 +757,9 @@ public:
 
   UInt     getNumLevel() { return m_uiNumLevels;}
   Void     setNumLevel(UInt ui) { m_uiNumLevels = ui;}
-  UInt     getDeltaBytesRateOfLevel(UInt ui) { return m_auiDeltaBytesRateOfLevel[ui];}
-  Void     setDeltaBytesRateOfLevel(UInt uiIndex, UInt ui) { m_auiDeltaBytesRateOfLevel[uiIndex] = ui;}
+  //JVT-W137
+  //UInt     getDeltaBytesRateOfLevel(UInt ui) { return m_auiDeltaBytesRateOfLevel[ui];}
+  //Void     setDeltaBytesRateOfLevel(UInt uiIndex, UInt ui) { m_auiDeltaBytesRateOfLevel[uiIndex] = ui;} //~JVT-W137
   UInt     getQualityLevel(UInt ui) { return m_auiQualityLevel[ui];}
   Void     setQualityLevel(UInt uiIndex, UInt ui) { m_auiQualityLevel[uiIndex] = ui;}
   UInt     getDependencyId() { return m_uiDependencyId;}
@@ -766,7 +767,7 @@ public:
 
   private:
     UInt m_auiQualityLevel[MAX_NUM_RD_LEVELS];
-    UInt m_auiDeltaBytesRateOfLevel[MAX_NUM_RD_LEVELS];
+    //UInt m_auiDeltaBytesRateOfLevel[MAX_NUM_RD_LEVELS]; JVT-W137 remove
     UInt m_uiNumLevels;
     UInt m_uiDependencyId;
   };
@@ -1201,7 +1202,7 @@ private:
 	class H264AVCCOMMONLIB_API IntegrityCheckSEI : public SEIMessage
 	{
 	protected:
-		IntegrityCheckSEI() : SEIMessage(INTE_CHECK_SEI)
+		IntegrityCheckSEI() : SEIMessage(INTEGRITY_CHECK_SEI)
 		{}
 	public:
 		static ErrVal create( IntegrityCheckSEI*& rpcIntegrityCheckSEI );

@@ -597,8 +597,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                             IntFrame*     pcFrame,
                                             IntFrame*     pcResidual,
                                             IntFrame*     pcPredSignal,
- 																						IntFrame*			pcSRFrame, // JVT-R091
-                                            IntFrame*     pcBaseSubband,
+ 																						IntFrame*     pcBaseSubband,
                                             IntFrame*     pcBaseLayer,
                                             MbDataCtrl*   pcMbDataCtrl,
                                             MbDataCtrl*   pcMbDataCtrlBaseMotion,
@@ -680,12 +679,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                              iSpatialScalabilityType,
                                              (uiMbAddress == uiLastMbAddress ),
                                              true ) );
-			//-- JVT-R091
-			// update with best data (intra)
-			pcSRFrame->getFullPelYuvBuffer()->loadBuffer( m_pcMbEncoder->getBestIntData() );
-			//--
-
-      ruiMbCoded++;
+			ruiMbCoded++;
     }
     else
     {
@@ -697,7 +691,6 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                                pcFrame   ->getPic( ePicType ),
                                                pcResidual->getPic( ePicType ),
                                                pcBaseSubband ? pcBaseSubband->getPic( ePicType ) : NULL,
-                                               pcSRFrame, // JVT-R091
                                                bCoded,
                                                dLambda,
                                                iMaxDeltaQp ) );
@@ -716,14 +709,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       {
         ruiMbCoded++;
       }
-      /* commented out by jzhao@sharplabs. This is not right. It will affect syntax of the next MB
-      it got lucky because before JSVM8_10, the base cbp is not set at all, it's always 0.
-      if( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) && !rcSH.getAVCRewriteFlag() )
-      {
-      pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
-      }
-      */
-
+      
       // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
       if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
         && pcBaseSubband )	
@@ -732,17 +718,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
         pcBaseResidual->clearCurrMb();
       }
 
-			//-- JVT-R091
-			// update with best-data (inter)
-			IntYuvMbBuffer	cPredBuffer, cResBuffer;
-			cPredBuffer.loadBuffer	( ((IntFrame*)pcSRFrame		)->getFullPelYuvBuffer() );
-			cResBuffer.	loadBuffer	( ((IntFrame*)pcResidual  )->getFullPelYuvBuffer() );
-			cPredBuffer.add( cResBuffer );
-			cPredBuffer.clip				();
-			pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cPredBuffer );
-			//--
-
-      RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
+	    RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
     }
 
     uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress);
@@ -770,8 +746,7 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
                                                  IntFrame*    pcFrame,
                                                  IntFrame*    pcResidual,
                                                  IntFrame*    pcPredSignal,
-     																						 IntFrame*		pcSRFrame, // JVT-R091
-                                                 IntFrame*    pcBaseSubband,
+     																						 IntFrame*    pcBaseSubband,
                                                  IntFrame*    pcBaseLayer,
                                                  MbDataCtrl*	pcMbDataCtrl,
                                                  MbDataCtrl*  pcMbDataCtrlBaseMotion,
@@ -865,11 +840,7 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
 																						iSpatialScalabilityType,
 																						(uiMbAddressMbAff == uiLastMbAddress ),
 																						(eP == 1)  ) );
-			//-- JVT-R091
-			// update with best data (intra)
-			pcSRFrame->getFullPelYuvBuffer()->loadBuffer( m_pcMbEncoder->getBestIntData() );
-			//--
-
+		
         ruiMbCoded++;
       }
       else
@@ -883,7 +854,6 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
                                                  apcFrame      [uiLI],
                                                  apcResidual   [uiLI],
                                                  apcBaseSubband[uiLI],
-                                                 pcSRFrame, // JVT-R091,
                                                  bCoded,
                                                  dLambda,
                                                  iMaxDeltaQp ) );
@@ -906,25 +876,8 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
         {
           ruiMbCoded++;
         }
-        /* commented out by jzhao@sharplabs. This is not right. It will affect syntax of the next MB
-        it got lucky because before JSVM8_10, the base cbp is not set at all, it's always 0.
-        if( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
-        {
-        pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
-        }
-        */
-
-        //-- JVT-R091
-        // update with best-data (inter)
-        IntYuvMbBuffer	cPredBuffer, cResBuffer;
-        cPredBuffer.loadBuffer	( ((IntFrame*)pcSRFrame		)->getFullPelYuvBuffer() );
-        cResBuffer.	loadBuffer	( ((IntFrame*)pcResidual  )->getFullPelYuvBuffer() );
-        cPredBuffer.add					( cResBuffer );
-        cPredBuffer.clip				();
-        pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cPredBuffer );
-        //--
-
-        RNOK( apcPredSignal[uiLI]->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
+       
+         RNOK( apcPredSignal[uiLI]->getFullPelYuvBuffer()->loadBuffer( &cZeroBuffer ) );
       }
     }
   }

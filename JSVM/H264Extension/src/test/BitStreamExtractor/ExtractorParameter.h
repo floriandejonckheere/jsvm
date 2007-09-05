@@ -160,7 +160,6 @@ public:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool  getExtractDeadSubstream(UInt ui) { return m_bExtractDeadSubstream[ui]; }
   Void  setLevel( UInt &uiLevel)         { m_uiLevel = uiLevel; }
   Void  setTargetRate(Double d)          { m_dTargetRate = d; }
   Double getTargetRate()                 { return m_dTargetRate; }
@@ -219,7 +218,6 @@ protected:
 
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  Bool            m_bExtractDeadSubstream[MAX_LAYERS];
   Double          m_dTargetRate;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   UInt            m_uiExtractNonRequiredPics;

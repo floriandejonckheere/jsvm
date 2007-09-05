@@ -156,7 +156,6 @@ public:
                                 IntFrame*       pcFrame,
                                 IntFrame*       pcResidual,
                                 IntFrame*       pcBaseSubband,
-                                IntFrame*       pcSRFrame, // JVT-R091
                                 Bool&           rbCoded,
                                 Double          dLambda,
                                 Int             iMaxDeltaQp );
@@ -175,20 +174,14 @@ public:
                                 Double          dLambda,
                                 Double&         rdCost,
                                 Bool            bSkipModeAllowed);
+
   ErrVal  compensatePrediction( MbDataAccess&   rcMbDataAccess,
                                 IntFrame*       pcMCFrame,
                                 RefFrameList&   rcRefFrameList0,
                                 RefFrameList&   rcRefFrameList1,
                                 Bool            bCalcMv,
-                                Bool            bFaultTolerant, 
-                                Bool            bSR = false
-                                );
-  ErrVal  compensateMbSR       ( MbDataAccess&     rcMbDataAccess,
-                                 IntFrame*         pcSRFrame,
-                                 RefFrameList&     rcRefFrameList0,
-                                 RefFrameList&     rcRefFrameList1,
-                                 MbDataAccess*     pcBaseMbDataAccess );
-
+                                Bool            bFaultTolerant);
+  
   ErrVal  compensateUpdate(      MbDataAccess&   rcMbDataAccess,
                                  IntFrame*       pcMCFrame,
                                  Int             iRefIdx,

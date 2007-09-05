@@ -53,8 +53,8 @@ bitratecheckrange  => 3,
 psnrcheckrange     => 0,
          
 tests              => [
-                       #----------#
-                       # Test   0 #
+		       #----------#
+                       # Test   1 #
                        #----------#
                        {
                         name        => "L1",
@@ -62,22 +62,35 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                        bitrate     => 490,
-                        psnr        => 34.99,
+                        psnr        => 31.08,
                         encdecmatch => 1,
                        },
                        #----------#
                        # Test   1 #
                        #----------#
                        {
-                        name        => "L2",
+                        name        => "L2 with Discardable stream",
                         mode        => 1,
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                        bitrate     => 577,
-                        psnr        => 25.03,
+                        bitrate     => 450,
+                        psnr        => 28.63,
                         encdecmatch => 1,
+                       },
+			#----------#
+                       # Test   2 #
+                       #----------#
+                       {
+                        name        => "L2 without discardable stream",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+                        bitrate     => 356,
+                        psnr        => 28.63,
+                        usesip      => 1,
+			encdecmatch => 1,
                        },
                       ],
 }

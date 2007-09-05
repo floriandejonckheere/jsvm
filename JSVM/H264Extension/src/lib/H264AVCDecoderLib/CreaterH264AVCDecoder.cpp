@@ -577,7 +577,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 
   for(UInt ui = 0; ui < MAX_NUM_RD_LEVELS; ui++)
   {
-    rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = 0;
+    //rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = 0; //JVT-W137
     rcPacketDescription.auiQualityLevelQL[ui] = 0;
   }
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
@@ -727,9 +727,9 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       for(UInt ui = 0; ui < uiNum; ui++)
       {
         uiQualityLevel = pcSEI->getQualityLevel(ui);
-        uiDeltaBytesRateOfLevel = pcSEI->getDeltaBytesRateOfLevel(ui);
+        //uiDeltaBytesRateOfLevel = pcSEI->getDeltaBytesRateOfLevel(ui); //JVT-W137 remove
         rcPacketDescription.auiQualityLevelQL[ui] = uiQualityLevel;
-        rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = uiDeltaBytesRateOfLevel;
+        //rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = uiDeltaBytesRateOfLevel; //JVT-W137 remove
       }
       uiLayer = pcSEI->getDependencyId();
       bApplyToNext = true;
@@ -792,7 +792,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       // JVT-V068 }
 
 			//JVT-W052
-		case SEI::INTE_CHECK_SEI:
+		case SEI::INTEGRITY_CHECK_SEI:
 			{
 				//SEI::IntegrityCheckSEI* pcSEI = (SEI::IntegrityCheckSEI*) pcSEIMessage;
 				break;

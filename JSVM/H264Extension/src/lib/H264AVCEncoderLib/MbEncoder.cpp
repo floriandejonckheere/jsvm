@@ -899,8 +899,7 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
                            IntFrame*      pcFrame,
                            IntFrame*      pcResidual,
                            IntFrame*      pcBaseSubband,
-													 IntFrame*			pcSRFrame, // JVT-R091
-                           Bool&          rbCoded,
+													 Bool&          rbCoded,
                            Double         dLambda,
                            Int            iMaxQpDelta )
 {
@@ -1587,8 +1586,7 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
                                  RefFrameList&   rcRefFrameList0,
                                  RefFrameList&   rcRefFrameList1,
                                  Bool            bCalcMv,
-                                 Bool            bFaultTolerant,
-                                 Bool            bSR  )
+                                 Bool            bFaultTolerant)
 {
   IntYuvMbBuffer  cYuvMbBuffer;
   if( rcMbDataAccess.getMbData().isIntra() )
@@ -1619,50 +1617,6 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
   return Err::m_nOK;
 }
 
-ErrVal
-MbEncoder::compensateMbSR ( MbDataAccess&     rcMbDataAccess,
-                            IntFrame*         pcSRFrame,
-                            RefFrameList&     rcRefFrameList0,
-                            RefFrameList&     rcRefFrameList1,
-                            MbDataAccess*     pcMbDataAccessBase )
-{
-  IntYuvMbBuffer  cYuvMbBuffer;
-
-  ROF( pcMbDataAccessBase );
-
-  if( ! pcMbDataAccessBase->getMbData().isIntra() )
-  {
-    MbMode          eMbMode           = rcMbDataAccess.getMbData().getMbMode();
-    Bool            b8x8Mode          = ( eMbMode == MODE_8x8 || eMbMode == MODE_8x8ref0 );
-
-    //===== get prediction and copy to temp buffer =====
-    if( b8x8Mode )
-    {
-      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-      {
-        RNOK( m_pcMotionEstimation->compensateSubMb( c8x8Idx, rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                     &cYuvMbBuffer, false, false, true ) );
-      }
-    }
-    else
-    {
-      RNOK  ( m_pcMotionEstimation->compensateMb  ( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1,
-                                                    &cYuvMbBuffer, false, true ) );
-    }
-
-  }
-  else
-  {
-    cYuvMbBuffer.setAllSamplesToZero();
-  }
-
-
-  RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra( rcMbDataAccess, &cYuvMbBuffer, getBaseLayerRec()));
-
-  //===== insert into frame =====
-  RNOK( pcSRFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
-  return Err::m_nOK;
-}
 
 ErrVal
 MbEncoder::compensateUpdate(  MbDataAccess&   rcMbDataAccess,

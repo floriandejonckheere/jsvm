@@ -282,6 +282,15 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
             pcH264AVCEncoder->m_pcIntegrityCheckSEI->setQualityLayerCRC(uiLayerCGSSNR,uicrcVal);
           }
         }
+
+        //JVT-W052 bug_fixed
+        if(pcH264AVCEncoder->getCodingParameter()->getNumberOfLayers() == 1)
+        {
+          pcH264AVCEncoder->m_pcIntegrityCheckSEI->setNumInfoEntriesMinus1(0);
+          pcH264AVCEncoder->m_pcIntegrityCheckSEI->setEntryDependencyId(0,0);
+          pcH264AVCEncoder->m_pcIntegrityCheckSEI->setQualityLayerCRC(0,0);
+        }
+        //JVT-W052 bug_fixed
       }
       //JVT-W052
     }

@@ -193,7 +193,6 @@ public:
     , m_cInputFilename                    ("none")
     , m_cOutputFilename                   ("none")
     , m_uiEntropyCodingModeFlag           (1)
-    , m_uiClosedLoop                      (0)
     , m_uiAdaptiveTransform               (0)
     , m_uiMaxAbsDeltaQP                   (1)
     , m_dBaseQpResidual                   (26.0)
@@ -244,7 +243,10 @@ public:
     , m_uiQualityLevelCGSSNR  ( 0 )
     , m_uiBaseLayerCGSSNR     ( 0 )
     , m_uiBaseQualityLevelCGSSNR ( 0 )
-    , m_bDiscardable          ( false )
+//DS_FIX_FT_09_2007
+    , m_bDiscardable          ( true )
+    , m_uiQLDiscardable       ( MAX_QUALITY_LEVELS )
+//~DS_FIX_FT_09_2007
 //JVT-T054}
     , m_uiExplicitQPCascading( 0 )
   {
@@ -297,7 +299,6 @@ public:
   Double                          getOutputFrameRate                () const {return m_dOutputFrameRate; }
   const std::string&              getInputFilename                  () const {return m_cInputFilename; }
   const std::string&              getOutputFilename                 () const {return m_cOutputFilename; }
-  UInt                            getClosedLoop                     () const {return m_uiClosedLoop; }
   Bool                            getEntropyCodingModeFlag          () const {return m_uiEntropyCodingModeFlag == 1; }
   UInt                            getAdaptiveTransform              () const {return m_uiAdaptiveTransform; }
   UInt                            getMaxAbsDeltaQP                  () const {return m_uiMaxAbsDeltaQP; }
@@ -365,7 +366,6 @@ public:
   Void setOutputFrameRate                 (Double p) { m_dOutputFrameRate                 = p; }
   Void setInputFilename                   (Char*  p) { m_cInputFilename                   = p; }
   Void setOutputFilename                  (Char*  p) { m_cOutputFilename                  = p; }
-  Void setClosedLoop                      (UInt   p) { m_uiClosedLoop                     = p; }
   Void setEntropyCodingModeFlag           (Bool   p) { m_uiEntropyCodingModeFlag          = p; }
   Void setAdaptiveTransform               (UInt   p) { m_uiAdaptiveTransform              = p; }
   Void setMaxAbsDeltaQP                   (UInt   p) { m_uiMaxAbsDeltaQP                  = p; }
@@ -433,6 +433,11 @@ public:
   Void setQualityLevelCGSSNR             (UInt ui)    { m_uiQualityLevelCGSSNR            = ui;}
   Void setBaseLayerCGSSNR                    (UInt ui)    { m_uiBaseLayerCGSSNR                   = ui;}
   Void setBaseQualityLevelCGSSNR             (UInt ui)    { m_uiBaseQualityLevelCGSSNR            = ui;}
+//DS_FIX_FT_09_2007
+   Void setNonDiscardable                  ()       { m_bDiscardable = false;}
+   Void setQLDiscardable                   (UInt ui)  { m_uiQLDiscardable = ui;}
+   UInt getQLDiscardable                   ()       { return m_uiQLDiscardable;}
+//~DS_FIX_FT_09_2007
   Bool isDiscardable                      ()          { return m_bDiscardable;}
 //JVT-T054}
 
@@ -452,7 +457,6 @@ public:
   std::string               m_cInputFilename;
   std::string               m_cOutputFilename;
 
-  UInt                      m_uiClosedLoop;
   UInt                      m_uiEntropyCodingModeFlag;
   UInt                      m_uiAdaptiveTransform;
 
@@ -550,6 +554,7 @@ public:
   UInt                      m_uiBaseLayerCGSSNR;
   UInt                      m_uiBaseQualityLevelCGSSNR;
   Bool                      m_bDiscardable;
+  UInt                      m_uiQLDiscardable; //DS_FIX_FT_09_2007
 //JVT-T054}
 
   UInt    m_uiExplicitQPCascading;
@@ -729,6 +734,7 @@ public:
   // JVT-T073 }
 
 	UInt														getIntegrityCheckSEIEnable()						const   { return m_uiIntegrityCheckSEIEnable; }//JVT-W052
+  Void                            setIntegrityCheckSEIEnable( UInt  ui )  { m_uiIntegrityCheckSEIEnable = ui;}           //JVT-W052 bug_fixed
   Void                            setMaximumFrameRate     ( Double  d )   { m_dMaximumFrameRate     = d; }
   Void                            setMaximumDelay         ( Double  d )   { m_dMaximumDelay         = d; }
   Void                            setTotalFrames          ( UInt    n )   { m_uiTotalFrames         = n; }

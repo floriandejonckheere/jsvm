@@ -257,8 +257,6 @@ public:
  //JVT-S080 LMI }
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  //if there is dead substream in the input bitstream but no R/D information
-  ErrVal        go_DS                  ();
   //if there is R/D information (with or without Dead substreams)
   ErrVal        go_QL                  ();
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
@@ -317,10 +315,7 @@ protected:
                                         UInt*               puiStart,
                                         UInt*               puiLength );
   ErrVal        xExtractTrace         ();
-  //{{Quality level estimation and modified truncation- JVTO044 and m12007
-  //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-  ErrVal        xSetParameters_DS      ();
-  ErrVal        xExtractPoints_DS      ();
+  
   //initialize temporal level of a frame
   Void setLevel(      UInt          uiLayer,
                       UInt          uiLevel,
@@ -334,10 +329,7 @@ protected:
                       UInt          uiLevel,
                       UInt          uiFGSLayer,
                       UInt          uiNumBytes );
-  //set if dead substream must be kept or thrown away (from command line argument)
-  Void setExtractDeadSubstream(Bool b, UInt ui) { m_bExtractDeadSubstream[ui] = b;}
-  //calculate the size of the dead substream
-  Void CalculateSizeDeadSubstream();
+
   //determine layer, level and target rate for output stream
   ErrVal xGetExtParameters();
   ErrVal CheckSuffixNalUnit( h264::PacketDescription* pcPacketDescription, Bool& bNextSuffix );
@@ -440,10 +432,6 @@ protected:
   Double*           m_aaadTargetBytesFGS[MAX_LAYERS][MAX_QUALITY_LEVELS]; //bytes to be extracted for each FGS layer for each frame                                               // at each layer
   Int*              m_aaiLevelForFrame[MAX_LAYERS];//temporal level of each frame
   Double*           m_aaadBytesForFrameFGS[MAX_LAYERS][MAX_QUALITY_LEVELS]; //size of each FGS layer for each frame at each layer
-  Double            m_aaadMaxRateForLevel[MAX_LAYERS][MAX_DSTAGES+1]; //size of layer for each level without deadsubstream
-  Bool              m_bExtractDeadSubstream[MAX_LAYERS]; //indicate if deadsubstream has to be removed (command line)
-  UInt              m_aSizeDeadSubstream[MAX_LAYERS]; //size of deadsubstream for each layer
-  Bool              m_bInInputStreamDS; //indicate if deadsubstream is in the input bitstream
   Bool              m_bInInputStreamQL;// indicate if RD informations are in the input bitstream
   Double*           m_aadTargetByteForFrame[MAX_LAYERS];
   UInt*             m_aaauiBytesForQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];

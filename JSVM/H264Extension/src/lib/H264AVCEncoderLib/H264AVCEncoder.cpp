@@ -454,39 +454,6 @@ H264AVCEncoder::uninit()
   return Err::m_nOK;
 }
 
-
-
-//{{Quality level estimation and modified truncation- JVTO044 and m12007
-//France Telecom R&D-(nathalie.cammas@francetelecom.com)
-ErrVal H264AVCEncoder::writeQualityLevelInfosSEI(ExtBinDataAccessor* pcExtBinDataAccessor, UInt* uiaQualityLevel, UInt *uiaDelta, UInt uiNumLevels, UInt uiLayer ) 
-{
-  //===== create message =====
-  SEI::QualityLevelSEI* pcQualityLevelSEI;
-  RNOK( SEI::QualityLevelSEI::create( pcQualityLevelSEI ) );
-
-  //===== set message =====
-  pcQualityLevelSEI->setNumLevel(uiNumLevels);
-  pcQualityLevelSEI->setDependencyId(uiLayer);
-
-  UInt ui;
-  for(ui= 0; ui < uiNumLevels; ui++)
-  {
-    pcQualityLevelSEI->setQualityLevel(ui,uiaQualityLevel[ui]);
-    pcQualityLevelSEI->setDeltaBytesRateOfLevel(ui,uiaDelta[ui]);
-  }
-  
-  //===== write message =====
-  UInt              uiBits = 0;
-  SEI::MessageList  cSEIMessageList;
-  cSEIMessageList.push_back                       ( pcQualityLevelSEI );
-  RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
-  RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
-  RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-
-  return Err::m_nOK;
-}
-//}}Quality level estimation and modified truncation- JVTO044 and m12007
-
 // JVT-T073 {
 ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor ) 
 {

@@ -319,6 +319,7 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_bAVCRewriteFlag                   ( rcSPS.getAVCRewriteFlag() )  // V-035
 , m_iSpatialScalabilityType           (-1)
 , m_bRecosntructionLayer              (false)
+, m_uiQLDiscardable                   ( MAX_QUALITY_LEVELS ) //DS_FIX_FT_09_2007
 {
   ::memset(  m_auiNumRefIdxActive        , 0x00, 2*sizeof(UInt));
   ::memset(  m_aiDeltaPicOrderCnt,         0x00, 2*sizeof(Int) );
@@ -469,6 +470,7 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf,
 {
   UInt  uiDependencyId = m_uiLayerCGSSNR;
   UInt  uiQualityLevel = uiQualityLevelCGSSNR;
+  Bool bDiscardableFlag = (m_bDiscardableFlag || uiQualityLevel >= m_uiQLDiscardable); //DS_FIX_FT_09_2007
   ROT( uiQualityLevel > 15 );
 
   Bool  bLayerBaseFlag = ( (m_uiBaseLayerId == MSYS_UINT_MAX) && (uiQualityLevel==0) );
@@ -493,7 +495,9 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf,
     // byte 2
     RNOK (pcWriteIf->writeCode( m_uiTemporalLevel,        3,                    "NALU HEADER SVC: temporal_id" ) );
     RNOK (pcWriteIf->writeFlag( m_bUseBasePredictionFlag,                       "NALU HEADER SVC: use_ref_base_pic_flag"));
-    RNOK (pcWriteIf->writeFlag( m_bDiscardableFlag,                             "NALU HEADER SVC: discardable_flag"));
+
+    RNOK (pcWriteIf->writeFlag( bDiscardableFlag,                             "NALU HEADER SVC: discardable_flag")); //DS_FIX_FT_09_2007
+
     RNOK (pcWriteIf->writeFlag( m_bOutputFlag,                                  "NALU HEADER SVC: output_flag"));
     RNOK (pcWriteIf->writeCode( 3,                        2,                    "NALU HEADER SVC: reserved_three_2bits" ) );
 

@@ -181,6 +181,7 @@ H264AVCDecoder::H264AVCDecoder()
   for(uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
   {
       m_uiSPSId[uiLayer] = 0;
+      m_abMGSAtLayer[uiLayer] = false; //MGS_FIX_FT_09_2007               
   }
 
 //	TMM	EC {{
@@ -612,6 +613,18 @@ H264AVCDecoder::checkSliceLayerDependency( BinDataAccessor*  pcBinDataAccessor,
         xInitParameters(pcSliceHeader);
 
 				m_bCGSSNRInAU = (m_bCGSSNRInAU || pcSliceHeader->getQualityLevel() != 0);
+
+        //MGS_FIX_FT_09_2007
+        if(m_pcNalUnitParser->getQualityLevel() == 0)
+        {
+          m_abMGSAtLayer[m_pcNalUnitParser->getLayerId()] = false;
+        }
+        else
+        {
+          m_abMGSAtLayer[m_pcNalUnitParser->getLayerId()] = (m_abMGSAtLayer[m_pcNalUnitParser->getLayerId()] || m_pcNalUnitParser->getQualityLevel() != 0);
+        }
+        //~MGS_FIX_FT_09_2007
+
 
 			calculatePoc( eNalUnitType, *pcSliceHeader, slicePoc );
 
@@ -1653,7 +1666,7 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 				  }
           // JVT-W049 }
 					//JVT-W052
-					else if( pcSEIMessage->getMessageType() == SEI::INTE_CHECK_SEI )
+					else if( pcSEIMessage->getMessageType() == SEI::INTEGRITY_CHECK_SEI )
 					{
 						//do nothing,or add your feedback information check here
 					}
@@ -1913,8 +1926,8 @@ H264AVCDecoder::getBaseLayerData( IntFrame*&      pcFrame,
                                   UInt            uiBaseQualityLevel) //JVT-T054
 {
   if(uiBaseLayerId != 0 || !m_apcMCTFDecoder[uiBaseLayerId]->getAVCBased() ||
-    (uiBaseQualityLevel != 0 && m_bCGSSNRInAU))
-
+    (uiBaseQualityLevel != 0 && m_abMGSAtLayer[uiBaseLayerId])) //MGS_FIX_FT_09_2007
+    //(uiBaseQualityLevel != 0 && m_bCGSSNRInAU))
   {
     //===== base layer is scalable extension =====
       //--- get data ---
@@ -1951,7 +1964,8 @@ H264AVCDecoder::getBaseLayerResidual( IntFrame*&  pcFrame,
                                      Int             iPoc)
 {
   if(uiLayerId != 0 || !m_apcMCTFDecoder[uiLayerId]->getAVCBased() ||
-    (uiQualityLevel != 0 && m_bCGSSNRInAU))
+    (uiQualityLevel != 0 && m_abMGSAtLayer[uiLayerId])) //MGS_FIX_FT_09_2007
+    //(uiQualityLevel != 0 && m_bCGSSNRInAU))
   {
     //===== base layer is scalable extension =====
     pcResidual = m_apcMCTFDecoder[uiLayerId]->getBaseLayerResidual();
@@ -1975,7 +1989,8 @@ H264AVCDecoder::getBaseLayerDataAvailability( IntFrame*&      pcFrame,
                                               UInt            uiBaseQualityLevel) //JVT-T054
 {
   if(uiBaseLayerId != 0 || !m_apcMCTFDecoder[uiBaseLayerId]->getAVCBased() ||
-    (uiBaseQualityLevel != 0 && m_bCGSSNRInAU))
+    (uiBaseQualityLevel != 0 && m_abMGSAtLayer[uiBaseLayerId])) //MGS_FIX_FT_09_2007
+    //(uiBaseQualityLevel != 0 && m_bCGSSNRInAU))
   {
     //===== base layer is scalable extension =====
     //--- get spatial resolution ratio ---

@@ -129,13 +129,6 @@ ExtractorParameter::ExtractorParameter()
 , m_bMinusRPercentageMode( false )
 , m_bDontTruncQLayer( false )
 {
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    for(UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++)
-    {
-      m_bExtractDeadSubstream[uiLayer] = false;
-    }
-    //}}Quality level estimation and modified truncation- JVTO044 and m12007
 }
 
 
@@ -395,22 +388,6 @@ ExtractorParameter::init( Int     argc,
       m_bTraceExtract           = true;
       bTraceExtractionSpecified = true;
       continue;
-    }
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    //option utilized to remove Dead Substream of uiLayer
-    if(equal( "-ds",argv[iArg] ))
-    {
-       EXIT( iArg + 1 == argc,           "Option \"-ds\" without argument specified" );
-
-     //S051{
-     bDSSpecified=true;
-       EXIT( m_bUseSIP,"Option \"-ds\" used in connection with option \"-sip\"");
-     //S051}
-
-       UInt uiLayer = atoi(argv[++iArg]);
-       m_bExtractDeadSubstream[uiLayer] = true;
-       continue;
     }
     //}}Quality level estimation and modified truncation- JVTO044 and m12007
     if(equal( "-ql", argv[iArg] ))
