@@ -1303,13 +1303,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
 
       //----- decode packet -----
       {
-      /*
+      
         //----- re-direct stdout -----
 #if WIN32 // for linux, this have to be slightly re-formulated
         Int   orig_stdout     = _dup(1);
         FILE* stdout_copy     = freopen( tmp_file_name, "wt", stdout );
 #endif
-      */
+      
 //bug-fix suffix{{
     if(uiNalUnitType == 1 || uiNalUnitType == 5)
     {
@@ -1350,13 +1350,13 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
         }
 
         //---- restore stdout -----
-        /* 
+       
 #if WIN32 // for linux, this have to be slightly re-formulated
         fclose( stdout );
         _dup2( orig_stdout, 1 );
         _iob[1] = *fdopen( 1, "wt" );
         fclose(  fdopen( orig_stdout, "w" ) );
-#endif*/
+#endif
       }
 
       //----- determine distortion (and output for debugging) -----
