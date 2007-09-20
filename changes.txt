@@ -2,6 +2,17 @@
 FMO, IROI, HRD, MLQL, NonRequired, ReduKeyPic, RPIC ]
 
 
+JSVM_9_5 -> JSVM_9_6
+========================
+Date         : September 19, 2007 
+Authors      : Jerome Vieron (Thomson R&D France) 
+Contributions: JVT-W025
+
+Changes:
+- Many Bug fixes related to Interlaced (mainly related to Field coding)
+- Removal of flags as adopted in JVT-W025
+
+
 JSVM_9_4 -> JSVM_9_5
 ========================
 Date         : September 04, 2007 
