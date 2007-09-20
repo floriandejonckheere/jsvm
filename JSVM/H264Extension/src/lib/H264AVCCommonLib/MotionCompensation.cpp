@@ -1921,8 +1921,8 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess&      rcMbDataA
     return Err::m_nOK;
 
   // TMM_INTERLACE{
-	if ( m_pcResizeParameters && (m_pcResizeParameters->m_bBaseIsMbAff || m_pcResizeParameters->m_bIsMbAff) )
-    return Err::m_nOK;
+	//if ( m_pcResizeParameters && (m_pcResizeParameters->m_bBaseIsMbAff || m_pcResizeParameters->m_bIsMbAff) )
+  //  return Err::m_nOK;
   // TMM_INTERLACE}
 
   MbDataAccess* pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
@@ -1930,7 +1930,10 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess&      rcMbDataA
   ResizeParameters*	 pcParameters   = m_pcResizeParameters;
   IntYuvMbBuffer cBaseMbRec;
 
-  if(rcMbData.getBaseMbData(1)==0 && rcMbData.getBaseMbData(2)==0)
+//TMM_INTERLACE {
+//	if(rcMbData.getBaseMbData(1)==0 && rcMbData.getBaseMbData(2)==0)
+	if(rcMbData.getBaseMbMode(1)==NOT_AVAILABLE && rcMbData.getBaseMbMode(2)==NOT_AVAILABLE)
+//TMM_INTERLACE }
     return Err::m_nOK;
 
   Int iMbX = rcMbDataAccess.getMbX();
@@ -1944,18 +1947,33 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess&      rcMbDataA
   Int iOutWidth = pcParameters->m_iOutWidth;
   Int iOutHeight = pcParameters->m_iOutHeight;
 
+//TMM_INTERLACE {
+	if (rcMbDataAccess.m_bMbAff && rcMbDataAccess.m_eMbPicType != FRAME)
+	{
+		iMbY /= 2;
+		iScaledBaseOrigY /= 2;
+		iOutHeight /= 2;
+	}
+//TMM_INTERLACE }
+
+
   Int cX, cY;
   Int cBaseX, cBaseY;
 
   cBaseX = (((((16*iMbX-iScaledBaseOrigX+13)*iInWidth  + iOutWidth /2) / iOutWidth)>>4)<<4); 
   cBaseY = (((((16*iMbY-iScaledBaseOrigY+13)*iInHeight + iOutHeight/2) / iOutHeight)>>4)<<4); 
 
-  cX = rcMbData.getBaseMbData(1)?((cBaseX*iOutWidth + iInWidth/2 )/iInWidth + iScaledBaseOrigX)%16:16;
-  cY = rcMbData.getBaseMbData(2)?((cBaseY*iOutHeight + iInHeight/2)/iInHeight + iScaledBaseOrigY)%16:16;
+//TMM_INTERLACE {
+  /*cX = rcMbData.getBaseMbData(1)?((cBaseX*iOutWidth + iInWidth/2 )/iInWidth + iScaledBaseOrigX)%16:16;
+  cY = rcMbData.getBaseMbData(2)?((cBaseY*iOutHeight + iInHeight/2)/iInHeight + iScaledBaseOrigY)%16:16;*/
+  cX = (rcMbData.getBaseMbMode(1)!=NOT_AVAILABLE) ?((cBaseX*iOutWidth + iInWidth/2 )/iInWidth + iScaledBaseOrigX)%16:16;
+  cY = (rcMbData.getBaseMbMode(2)!=NOT_AVAILABLE) ?((cBaseY*iOutHeight + iInHeight/2)/iInHeight + iScaledBaseOrigY)%16:16;
+//TMM_INTERLACE }
 
   cBaseMbRec.loadBuffer(((IntFrame*)pcBaseLayerRec)->getFullPelYuvBuffer());
 
-  if(!rcMbData.getBaseMbData(0)->isIntra() || 
+//TMM_INTERLACE {
+  /*if(!rcMbData.getBaseMbData(0)->isIntra() || 
      (cX<16 && !rcMbData.getBaseMbData(1)->isIntra()) ||
      (cY<16 && !rcMbData.getBaseMbData(2)->isIntra()) ||
      (cX<16 && cY<16 && !rcMbData.getBaseMbData(3)->isIntra())) // Otherwise, INTRA_BL, not handled here
@@ -1968,7 +1986,24 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess&      rcMbDataA
       copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, cY, cX, 16);
     if(cX<16 && cY<16 && rcMbData.getBaseMbData(3)->isIntra())
       copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, cY, 16, 16);
+  }*/
+//((IntFrame*)pcBaseLayerRec)->getFullPelYuvBuffer()->write();
+
+  if( (rcMbData.getBaseMbMode(0)!=INTRA_4X4) || 
+      (cX<16 && rcMbData.getBaseMbMode(1)!=INTRA_4X4) ||
+      (cY<16 && rcMbData.getBaseMbMode(2)!=INTRA_4X4) ||
+      (cX<16 && cY<16 && rcMbData.getBaseMbMode(3)!=INTRA_4X4) ) // Otherwise, INTRA_BL, not handled here
+  {
+    if(rcMbData.getBaseMbMode(0)==INTRA_4X4)
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, 0, cX, cY);
+    if(cX<16 && rcMbData.getBaseMbMode(1)==INTRA_4X4)
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, 0, 16, cY);
+    if(cY<16 && rcMbData.getBaseMbMode(2)==INTRA_4X4)
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, cY, cX, 16);
+    if(cX<16 && cY<16 && rcMbData.getBaseMbMode(3)==INTRA_4X4)
+      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, cY, 16, 16);
   }
+//TMM_INTERLACE }
 
   return Err::m_nOK;
 }

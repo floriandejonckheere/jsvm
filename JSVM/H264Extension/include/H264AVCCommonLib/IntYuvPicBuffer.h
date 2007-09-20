@@ -162,6 +162,8 @@ public:
   ErrVal        storeToPicBuffer        ( PicBuffer*        pcPicBuffer );
 
   ErrVal        loadBuffer              ( IntYuvMbBuffer*   pcYuvMbBuffer );
+  ErrVal        loadBuffer_MbAff        ( IntYuvMbBuffer *pcYuvMbBuffer   ,  UInt uiMask) ;//TMM_INTERLACE
+
   ErrVal        fillMargin              ();
 
   ErrVal        prediction              ( IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer );

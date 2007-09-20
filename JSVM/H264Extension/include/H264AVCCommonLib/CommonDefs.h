@@ -92,7 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 typedef UChar CoefMap;
 
-#define _JSVM_VERSION_ "9.5.1" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "9.6" //added by jerome.vieron@thomson.net
 
 #define TO_BE_REMOVED     1   // things that are different in the SVC text
 #define NOK_MGSCAVLC      1   // check if this is conforming to the SVC text
@@ -100,7 +100,6 @@ typedef UChar CoefMap;
 #if !NOK_MGSCAVLC
 #error
 #endif
-
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -257,7 +256,8 @@ enum MbMode
   MODE_8x8ref0      = 5,
   INTRA_4X4         = 6,
   MODE_PCM          = 25+6,
-  INTRA_BL          = 36
+  INTRA_BL          = 36,
+  NOT_AVAILABLE     = 99 //TMM 
 };
 
 enum BlkMode
@@ -361,9 +361,5 @@ typedef	enum
 #define MAX_NUM_PD_FRAGMENTS                          12
 
 
-
-// TMM_INTERLACE {
-// #define RANDOM_MBAFF
-// TMM_INTERLACE }
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

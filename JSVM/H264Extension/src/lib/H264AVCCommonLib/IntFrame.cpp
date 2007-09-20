@@ -298,6 +298,7 @@ ErrVal IntFrame::addFieldBuffer( PicType ePicType )
     RNOK( m_pcIntFrameTopField->getFullPelYuvBuffer()->init( pData ) );
 
     m_pcIntFrameTopField->setPoc( m_iPoc );
+    m_pcIntFrameTopField->setFrameNum( m_iFrameNum );
   }
   else if( ePicType == BOT_FIELD )
   {
@@ -318,6 +319,7 @@ ErrVal IntFrame::addFieldBuffer( PicType ePicType )
     RNOK( m_pcIntFrameBotField->getFullPelYuvBuffer()->init( pData ) );
 
     m_pcIntFrameBotField->setPoc( m_iPoc+1 );
+    m_pcIntFrameBotField->setFrameNum( m_iFrameNum );
   }
 
   return Err::m_nOK;
@@ -375,7 +377,15 @@ ErrVal IntFrame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, PicType ePic
 				// creates private full pel buffer
 				XPel* pData = NULL;
 				RNOK( m_pcIntFrameTopField->getFullPelYuvBuffer()->init( pData ) );
+//TMM {
+        m_pcIntFrameTopField->setPoc     ( m_iPoc );
+        m_pcIntFrameTopField->setFrameNum( m_iFrameNum );
+//TMM }
 				RNOK( m_pcIntFrameBotField->getFullPelYuvBuffer()->init( pData ) );
+//TMM {
+        m_pcIntFrameBotField->setPoc     ( m_iPoc+1 );
+        m_pcIntFrameBotField->setFrameNum( m_iFrameNum );
+//TMM }       
 			}
 		}
 		else

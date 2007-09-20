@@ -921,7 +921,6 @@ public:
   ErrVal xWriteH264AVCCompatible( HeaderSymbolWriteIf*  pcWriteIf ) const;
 
 public:
-  ErrVal ReadLastBit                  (  );
   HeaderSymbolReadIf*                 m_pcReadIf;
   
 protected:
@@ -1050,8 +1049,6 @@ public:
 
   Void          setQLDiscardable  ( UInt ui )     { m_uiQLDiscardable = ui;} //DS_FIX_FT_09_2007
 
-  Bool          m_bBaseFrameFromBotFieldFlag;
-  Bool          m_bBaseBotFieldSyncFlag;
   Bool          m_bBaseFrameMbsOnlyFlag;
   Bool          m_bBaseFieldPicFlag;
   Bool          m_bBaseBotFieldFlag;

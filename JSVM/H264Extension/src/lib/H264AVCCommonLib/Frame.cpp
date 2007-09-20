@@ -210,7 +210,6 @@ Frame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, Bool bFrameMbsOnlyFlag
 	}
 	else
 	{
-    AOT( bFGS );
 		Frame* pcFramePic = getFrameUnit()->getPic( FRAME );
 
 		if( pcFramePic->getFullPelYuvBuffer()->isValid() )

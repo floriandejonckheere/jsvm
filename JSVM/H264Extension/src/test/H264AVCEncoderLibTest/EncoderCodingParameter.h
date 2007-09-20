@@ -413,6 +413,36 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       n += 1;
       continue;      
     }
+    if( equals( pcCom, "-mbaff", 6 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      UInt    uiMbAff = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setMbAff( uiMbAff );
+      UInt ui;
+      for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
+      {
+        getResizeParameters(ui)->m_bInterlaced = (uiMbAff > 0) ? true : false;
+      }
+      n += 1;
+      continue;
+    }
+    if( equals( pcCom, "-paff", 5 ) )
+    {
+      ROTS( NULL == argv[n  ] );
+      ROTS( NULL == argv[n+1] );
+      UInt    uiLayer = atoi( argv[n  ] );
+      UInt    uiPaff  = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setPaff( uiPaff );
+      UInt ui;
+      for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
+      {
+        getResizeParameters(ui)->m_bInterlaced = (uiPaff > 0) ? true : false;
+      }
+      n += 1;
+      continue;
+    }
     if( equals( pcCom, "-mqp", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -751,6 +781,9 @@ Void EncoderCodingParameter::printHelp()
   printf("  -adqp   (level) (value)         sets delta QP for all layers and given temporal level (in explicit mode)\n");
   printf("  -xdqp   (DQP0) (DDQP1) (DDQPN)  sets delta QP for all layers (in explicit mode)\n");
 
+  printf("  -mbaff  (layer) (MbAff)\n");
+  printf("  -paff   (layer) (Paff)\n");
+
   printf("  -h       Print Option List \n");
   printf("\n");
 }
@@ -1051,8 +1084,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     if (ui>0)
     {
       ResizeParameters * prev = getResizeParameters(uiBaseLayerId); // HS: use "real" base layer
-      //curr->m_iInWidth  = prev->m_iOutWidth;
-      //curr->m_iInHeight = prev->m_iOutHeight;
       curr->m_iInWidth = prev->m_iGlobWidth; //TMM
       curr->m_iInHeight = prev->m_iGlobHeight; //TMM
 

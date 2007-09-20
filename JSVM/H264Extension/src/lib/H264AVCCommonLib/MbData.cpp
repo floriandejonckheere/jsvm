@@ -668,7 +668,10 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
                            ResizeParameters* pcParameters)
 {
     Bool        abBl8x8Intra  [4]= {false,false,false,false}; 
-    MbMode      aeMbMode      [4]= {MODE_16x16,MODE_16x16,MODE_16x16,MODE_16x16};
+//TMM_INTERLACE {
+//    MbMode      aeMbMode      [4]= {MODE_16x16,MODE_16x16,MODE_16x16,MODE_16x16};
+    m_aeMbMode[0]=m_aeMbMode[1]=m_aeMbMode[2]=m_aeMbMode[3]=NOT_AVAILABLE;
+//TMM_INTERLACE }
     BlkMode     aeBlkMode     [4][4];  
     UInt        auiMbIdx	    [4][4]; 
     UInt        aui4x4Idx	    [4][4];
@@ -685,7 +688,7 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
                     aiPelOrig, 
                     bDirect8x8, 
                     pcParameters, 
-                    aeMbMode,
+                    //aeMbMode, //TMM_INTERLACE
                     aeBlkMode,
                     uiMbBaseOrigX,
                     uiMbBaseOrigY);
@@ -701,7 +704,7 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
     //----------------------------------------------
     xBuildPartInfo(aiPelOrig, 
                   pcParameters,
-                  aeMbMode,
+                  //aeMbMode, //TMM_INTERLACE
                   aeBlkMode,  
                   aui4x4Idx, 
                   auiMbIdx,
@@ -786,7 +789,7 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
                           const Int aiPelOrig[2],
                           const Bool bDirect8x8,
                           ResizeParameters* pcParameters,
-                          MbMode      aeMbMode	  [4],
+                          //MbMode      aeMbMode	  [4], //TMM_INTERLACE
                           BlkMode     aeBlkMode	  [4][4],
                           UInt&       uiMbBaseOrigX,
                           UInt&       uiMbBaseOrigY)
@@ -835,7 +838,10 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
                }
              }
 
-             aeMbMode[uiIdxMb]= eMbMode;
+//TMM_INTERLACE {
+//             aeMbMode[uiIdxMb]= eMbMode;
+             m_aeMbMode[uiIdxMb]= eMbMode;
+//TMM_INTERLACE }
 
              bIsMbIntra &= (eMbMode==INTRA_4X4);
         }
@@ -920,7 +926,7 @@ MbData::xESSCheckRP( MbData*           pcBaseMbData,
 ErrVal
 MbData::xBuildPartInfo(const Int         aiPelOrig[2],
                        ResizeParameters* pcParameters,
-                       const MbMode      aeMbMode[4],
+                       // const MbMode      aeMbMode[4], //TMM_INTERLACE
                        const  BlkMode    aeBlkMode[4][4],  
                        UInt              aui4x4Idx[4][4],
                        UInt              auiMbIdx [4][4], 
@@ -959,10 +965,16 @@ MbData::xBuildPartInfo(const Int         aiPelOrig[2],
           
           //Set PartInfo
           /////////////// 
-          aaiPartInfo[uiB8x8Idx][0]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][0]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][0]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][0]]])%8 ] [aui4x4Idx[uiB8x8Idx][0]];
+//TMM_INTERLACE {
+					/*aaiPartInfo[uiB8x8Idx][0]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][0]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][0]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][0]]])%8 ] [aui4x4Idx[uiB8x8Idx][0]];
           aaiPartInfo[uiB8x8Idx][1]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][1]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][1]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][1]]])%8 ] [aui4x4Idx[uiB8x8Idx][1]];
           aaiPartInfo[uiB8x8Idx][2]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][2]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][2]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][2]]])%8 ] [aui4x4Idx[uiB8x8Idx][2]];
-          aaiPartInfo[uiB8x8Idx][3]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][3]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][3]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][3]]])%8 ] [aui4x4Idx[uiB8x8Idx][3]];
+          aaiPartInfo[uiB8x8Idx][3]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][3]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][3]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][3]]])%8 ] [aui4x4Idx[uiB8x8Idx][3]];*/
+					aaiPartInfo[uiB8x8Idx][0]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][0]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][0]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][0]]])%8 ] [aui4x4Idx[uiB8x8Idx][0]];
+          aaiPartInfo[uiB8x8Idx][1]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][1]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][1]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][1]]])%8 ] [aui4x4Idx[uiB8x8Idx][1]];
+          aaiPartInfo[uiB8x8Idx][2]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][2]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][2]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][2]]])%8 ] [aui4x4Idx[uiB8x8Idx][2]];
+          aaiPartInfo[uiB8x8Idx][3]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][3]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][3]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][3]]])%8 ] [aui4x4Idx[uiB8x8Idx][3]];
+//TMM_INTERLACE }
          
           aaiPartInfo[uiB8x8Idx][0]+=  (aaiPartInfo[uiB8x8Idx][0]==-1? 0:auiMbIdx[uiB8x8Idx][0]<<4);
           aaiPartInfo[uiB8x8Idx][1]+=  (aaiPartInfo[uiB8x8Idx][1]==-1? 0:auiMbIdx[uiB8x8Idx][1]<<4);

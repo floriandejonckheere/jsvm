@@ -258,14 +258,13 @@ public:
                                 const Bool    bFrameMbsOnlyFlag //TMM_INTERLACE
                                        );       // MGS fix by Heiko Schwarz
 
-//chevance
-  PicBufferList  getPicBufferOutputList   () { return m_cPicBufferOutputList; }
-// end chevance
-  FrameUnit*  getCurrentFrameUnit   () { return m_pcCurrentFrameUnit; }
-  IntFrame*   getRefinementIntFrame () { return m_pcRefinementIntFrame; }
-  IntFrame*   getRefinementIntFrame2() { return m_pcRefinementIntFrameSpatial; }
-  IntFrame*   getBaseRepFrame       () { return m_pcBaseRepFrame; }
-  IntFrame*   getPredictionIntFrame () { return m_pcPredictionIntFrame; }
+
+  PicBufferList  getPicBufferOutputList   () { return m_cPicBufferOutputList; } //TMM 
+  FrameUnit*     getCurrentFrameUnit   () { return m_pcCurrentFrameUnit; }
+  IntFrame*      getRefinementIntFrame () { return m_pcRefinementIntFrame; }
+  IntFrame*      getRefinementIntFrame2() { return m_pcRefinementIntFrameSpatial; }
+  IntFrame*      getBaseRepFrame       () { return m_pcBaseRepFrame; }
+  IntFrame*      getPredictionIntFrame () { return m_pcPredictionIntFrame; }
 
   ErrVal			xSlidingWindowUpdateBase  ( UInt mCurrFrameNum); //JVT-S036 lsj
   ErrVal			xMMCOUpdateBase			     	( SliceHeader* rcSH ); //JVT-S036 lsj

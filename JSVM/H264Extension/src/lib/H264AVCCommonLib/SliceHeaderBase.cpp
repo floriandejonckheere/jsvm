@@ -294,8 +294,6 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_uiBaseChromaPhaseXPlus1           ( 0 ) // TMM_ESS
 , m_uiBaseChromaPhaseYPlus1           ( 1 ) // TMM_ESS
 
-, m_bBaseFrameFromBotFieldFlag        ( false )
-, m_bBaseBotFieldSyncFlag             ( false )
 , m_bBaseFrameMbsOnlyFlag             ( true  )
 , m_bBaseFieldPicFlag                 ( false )
 , m_bBaseBotFieldFlag                 ( false )
@@ -761,14 +759,6 @@ SliceHeaderBase::xWriteScalable( HeaderSymbolWriteIf* pcWriteIf,
       RNOK( pcWriteIf->writeCode( uiWriteStop,       4,                      "SH: scan_idx_end" ) );
     }
 
-    // TMM_ESS }
-    //TMM_INTERLACE {
-    if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() ) 
-      RNOK( pcWriteIf->writeFlag( m_bBaseFrameFromBotFieldFlag,                "SH: base_frame_from_bot_field_coincided_flag" ) );  // set to 0 (default)
-    if( getSPS().getFrameMbsOnlyFlag() )  
-      RNOK( pcWriteIf->writeFlag( m_bBaseBotFieldSyncFlag,                     "SH: base_bot_field_coincided_flag" ) );  // set to 0 (default)
-    //TMM_INTERLACE }
-    
   }//JVT-S036 lsj
   return Err::m_nOK;
 }
@@ -929,21 +919,6 @@ SliceHeaderBase::read( HeaderSymbolReadIf* pcReadIf )
     return xReadH264AVCCompatible ( pcReadIf );
   }
 }
-
-ErrVal
-SliceHeaderBase::ReadLastBit( )
-{
-  m_bBaseFrameFromBotFieldFlag = m_bBaseBotFieldSyncFlag = false;
-  //TMM_INTERLACE {  
-  if( !getSPS().getFrameMbsOnlyFlag() && !getFieldPicFlag() )  
-    RNOK( m_pcReadIf->getFlag( m_bBaseFrameFromBotFieldFlag,                 "SH: base_frame_from_bot_field_coincided_flag" ) );
-  
-  if( getSPS().getFrameMbsOnlyFlag() )  
-    RNOK( m_pcReadIf->getFlag( m_bBaseBotFieldSyncFlag,                      "SH: base_bot_field_coincided_flag" ) );
- //TMM_INTERLACE }
-  return Err::m_nOK;
-}
-
 
 ErrVal
 SliceHeaderBase::xReadScalable( HeaderSymbolReadIf* pcReadIf )

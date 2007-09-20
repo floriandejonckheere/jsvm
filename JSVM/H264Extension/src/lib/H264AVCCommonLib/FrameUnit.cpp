@@ -303,7 +303,12 @@ ErrVal FrameUnit::setFGS( PicBuffer*& rpcPicBuffer )
   m_pcFGSPicBuffer->setUsed();
     rpcPicBuffer = NULL;
   }
-
+//TMM {
+  if( m_pcFGSPicBuffer == rpcPicBuffer )
+  {
+    rpcPicBuffer = NULL;
+  }
+//TMM }
 	getFGSIntFrame()->store( m_pcFGSPicBuffer );
 
   m_cFGSFrame.setPoc( m_cFrame.getPoc() );

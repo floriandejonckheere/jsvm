@@ -353,21 +353,6 @@ H264AVCEncoder::getBaseLayerResidual( IntFrame*&      pcResidual,
 }
 
 
-ErrVal
-H264AVCEncoder::getBaseLayerSH( SliceHeader*& rpcSliceHeader,
-                                UInt          uiBaseLayerId,
-                                Int           iPoc,
-                                PicType      ePicType,
-                                UInt					uiIdrPicId)//EIDR 0619
-{
-  ROF( uiBaseLayerId < MAX_LAYERS );
-
-  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerSH( rpcSliceHeader, iPoc, ePicType,
-                                                          uiIdrPicId) ); //EIDR 0619
-  return Err::m_nOK;
-}
-
-
 UInt
 H264AVCEncoder::getNewBits( UInt uiBaseLayerId )
 {
@@ -1495,6 +1480,7 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
+                      uiDPBSize          += ( rcLayerParameters.getPaff() > 0 ) ? 1 : 0; // TMM 
     UInt              uiNumRefPic         = uiDPBSize; 
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
 //bug-fix suffix{{
@@ -1563,7 +1549,6 @@ H264AVCEncoder::xInitParameterSets()
     }
     
     const Bool  bInterlaced = ( rcLayerParameters.getPaff() || rcLayerParameters.getMbAff() );
-    pcSPS->setPaff                                ( bH264AVCCompatible || ! rcLayerParameters.getPaff() );
     pcSPS->setFrameMbsOnlyFlag										( ! bInterlaced );
     pcSPS->setMbAdaptiveFrameFieldFlag            ( (rcLayerParameters.getMbAff() ? true : false ) );
    

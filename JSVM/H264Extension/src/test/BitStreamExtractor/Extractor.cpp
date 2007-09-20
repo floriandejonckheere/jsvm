@@ -4709,6 +4709,8 @@ Extractor::CheckSuffixNalUnit( h264::PacketDescription* pcPacketDescription, Boo
     RNOK( m_pcReadBitstream->getPosition( iFilePos ) );
     BinData *pcNextBinData=NULL;
     RNOK( m_pcReadBitstream->extractPacket( pcNextBinData, bEOS ) );
+//TMM 
+    if( pcNextBinData->byteSize()>0 )
     m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
 
     if( (pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE) //prefix unit 

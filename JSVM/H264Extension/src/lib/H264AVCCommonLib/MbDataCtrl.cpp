@@ -681,6 +681,24 @@ ErrVal MbDataCtrl::reset()
   return Err::m_nOK;
 }
 
+//TMM {
+ErrVal MbDataCtrl::initUsedField( SliceHeader& rcSH, RefFrameList& rcRefFrameList1 )
+{
+   if( /*!rcSH.getFieldPicFlag() &&*/
+        rcRefFrameList1.getSize() !=0 && 
+        rcRefFrameList1[1]->getPic(TOP_FIELD) != NULL && 
+        rcRefFrameList1[1]->getPic(BOT_FIELD) != NULL )
+   {
+     Int iCurrPoc     = rcSH.getPoc();
+     Int iTopDiffPoc  = iCurrPoc - rcRefFrameList1[1]->getPic(TOP_FIELD)->getPoc();
+     Int iBotDiffPoc  = iCurrPoc - rcRefFrameList1[1]->getPic(BOT_FIELD)->getPoc();
+     m_bUseTopField   = ( abs( iTopDiffPoc ) < abs( iBotDiffPoc ) );
+   }
+
+  return Err::m_nOK;
+}
+//TMM }
+
 ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH, 
                               ProcessingState eProcessingState, 
                               Bool bDecoder, 
@@ -691,7 +709,6 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
   m_eProcessingState  = eProcessingState;
   m_pcMbDataCtrl0L1   = NULL;
 	m_iColocatedOffset  = 0;
-  m_bUseTopField      = false;
   m_bPicCodedField    = rcSH.getFieldPicFlag();
 
   if( rcSH.isInterB() )
@@ -1348,6 +1365,194 @@ ErrVal MbDataCtrl::getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const
   return Err::m_nOK;
 }
 
+//TMM_INTERLACE {
+ErrVal 
+MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask) const 
+{
+  UInt     uiCurrIdx    = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
+  AOT( uiCurrIdx >= m_uiSize );
+
+  ruiMask               = 0;
+  Bool  bIscurrField  = m_pcMbData[uiCurrIdx].getFieldFlag();
+  Bool  bIsUp         = !(iMbY%2);
+  Bool bTopIntra=false;
+  Bool bBotIntra=false;
+  Bool bIsIntra=m_pcMbData[uiCurrIdx].isIntra();
+
+  if(!bIscurrField) 
+  {
+    const UInt uiComplIdx= uiCurrIdx + (bIsUp? 1:-1)*m_uiMbStride;
+    Bool  bIsCompIntra=m_pcMbData[uiComplIdx].isIntra();
+
+    ROTRS( bIsIntra && bIsCompIntra, Err::m_nOK );
+
+    bTopIntra=(bIsUp&&bIsIntra)||(!bIsUp&&bIsCompIntra);
+    bBotIntra=(!bIsUp&&bIsIntra)||(bIsUp&&bIsCompIntra);
+  }
+  else
+  {
+   ROTRS( bIsIntra, Err::m_nOK );
+  }
+
+  ruiMask |= bTopIntra ? 0x01000 :0;
+  ruiMask |= bBotIntra ? 0x02000 :0;
+
+  Int iTopStride   =(bTopIntra ? (bIsUp?0:m_uiMbStride): m_uiMbStride<<1);
+  Int iBottomStride=(bBotIntra ? (bIsUp?m_uiMbStride:0): m_uiMbStride<<1);
+
+  Bool bLeftAvailable   = ( iMbX > 0 );
+  Bool bRightAvailable  = ( iMbX < m_iMbPerLine-1 );
+  Bool bTopAvailable    = ( iMbY-(iTopStride/(Int)m_uiMbStride) >= 0 );
+  Bool bBottomAvailable = ( iMbY+(iBottomStride/(Int)m_uiMbStride) <= m_iMbPerColumn-1 );
+
+ 
+  if( bTopAvailable )
+  {
+    Int iIndex = uiCurrIdx - iTopStride;
+    
+    if(iTopStride && bIsUp && !m_pcMbData[iIndex].getFieldFlag()) 
+    iIndex+=m_uiMbStride;
+
+    //TOP
+    ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x01 :0;
+
+    //TOP LEFT  
+    if( bLeftAvailable )
+    {
+      iIndex = uiCurrIdx - iTopStride - 1;
+      if( iTopStride&&bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex+=m_uiMbStride;
+
+      ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x80 :0;
+    }
+
+    //TOP RIGHT 
+    if( bRightAvailable )
+    {
+      iIndex = uiCurrIdx - iTopStride + 1;
+      if(iTopStride&&bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex+=m_uiMbStride;
+      
+      ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x02 :0;
+    }
+  }
+
+  if( bBottomAvailable )
+  {
+    Int iIndex = uiCurrIdx + iBottomStride;
+    
+    if( iBottomStride&&!bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+    iIndex-=m_uiMbStride;
+
+    //BOTTOM
+    ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x10 :0;
+
+    //BOTTOM LEFT
+    if( bLeftAvailable )
+    {
+      iIndex = uiCurrIdx  + iBottomStride - 1;
+      if( iBottomStride&&!bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex-=m_uiMbStride;
+      ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x20 :0;
+    }
+
+    //BOTTOM RIGHT
+    if( bRightAvailable )
+    {
+      iIndex = uiCurrIdx + iBottomStride + 1;
+      if( iBottomStride&&!bIsUp && !m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex-=m_uiMbStride;
+      ruiMask |= m_pcMbData[iIndex].isIntra() ? 0x08 :0;
+    }
+  }
+
+  //LEFT
+  if( bLeftAvailable )
+  {
+    Int iIndex = uiCurrIdx-1;
+   
+    Bool bIntra;
+     Bool bTopCoincided=false;
+     Bool bBottomCoincided=false;
+    if(m_pcMbData[iIndex].getFieldFlag() ) 
+    {
+      bIntra=m_pcMbData[iIndex].isIntra();
+      bTopCoincided=bBottomCoincided=bIntra;
+    }
+    else
+    {
+     const UInt uiComplIdx= iIndex + (bIsUp? 1:-1)*m_uiMbStride;
+     Bool  bIsCurIntra=m_pcMbData[iIndex].isIntra(); 
+     Bool  bIsCompIntra=m_pcMbData[uiComplIdx].isIntra(); 
+    
+     if(bTopIntra || bBotIntra)
+     {
+     if( bIsIntra)
+     bIntra= bIsCompIntra; 
+     else
+      bIntra= bIsCurIntra; 
+     }
+     else  
+     bIntra=  (bIsCurIntra ||bIsCompIntra);
+      
+     if(bIntra)
+      {
+          bTopCoincided=(bIsUp&&bIsCurIntra)||(!bIsUp&&bIsCompIntra);
+          bBottomCoincided=(!bIsUp&&bIsCurIntra)||(bIsUp&&bIsCompIntra);
+      }      
+    }
+    ruiMask |= bTopCoincided    ? 0x0100 :0;
+    ruiMask |= bBottomCoincided ? 0x0200 :0;
+   }
+
+  //RIGHT
+  if( bRightAvailable )
+  {
+    Int iIndex = uiCurrIdx + 1;
+    Bool bIntra;
+     Bool bTopCoincided=false;
+     Bool bBottomCoincided=false;
+    if(m_pcMbData[iIndex].getFieldFlag())
+    {
+       bIntra=m_pcMbData[iIndex].isIntra(); 
+       bTopCoincided=bBottomCoincided=bIntra;
+    }
+    else
+    {
+
+      const UInt uiComplIdx= iIndex + (bIsUp? 1:-1)*m_uiMbStride;
+    
+     Bool  bIsCurIntra=m_pcMbData[iIndex].isIntra(); 
+     Bool  bIsCompIntra=m_pcMbData[uiComplIdx].isIntra(); 
+    
+     if(bTopIntra || bBotIntra)
+     {
+     if( bIsIntra)
+     bIntra= bIsCompIntra; 
+     else
+      bIntra= bIsCurIntra; 
+     }
+     else  
+     bIntra=  (bIsCurIntra ||bIsCompIntra);
+      
+     if(bIntra)
+      {
+          bTopCoincided=(bIsUp&&bIsCurIntra)||(!bIsUp&&bIsCompIntra);
+          bBottomCoincided=(!bIsUp&&bIsCurIntra)||(bIsUp&&bIsCompIntra);
+      }    
+    }
+
+    ruiMask |= bTopCoincided    ? 0x0400 :0;
+    ruiMask |= bBottomCoincided ? 0x0800 :0;
+  }
+
+  return Err::m_nOK;
+}
+
+//TMM_INTERLACE }
+
+
+
 const Int MbDataCtrl::getSliceGroupIDofMb(Int mb)
 {
   Int iRefSliceID ;
@@ -1428,6 +1633,196 @@ ErrVal MbDataCtrl::getBoundaryMaskCIU( Int iMbY, Int iMbX, UInt& ruiMask, UInt u
 	return Err::m_nOK;
 }
 //JVT-U106 Behaviour at slice boundaries}
+
+
+//JVT-U106 Behaviour at slice boundaries {
+//TMM_INTERLACE {
+ErrVal 
+MbDataCtrl::getBoundaryMaskCIU_MbAff( Int iMbY, Int iMbX, UInt& ruiMask,UInt uiCurrentSliceID) 
+{
+  UInt     uiCurrIdx    = iMbY * m_uiMbStride + iMbX + m_uiMbOffset;
+  AOT( uiCurrIdx >= m_uiSize );
+
+  ruiMask               = 0;
+  Bool  bIscurrField  = m_pcMbData[uiCurrIdx].getFieldFlag();
+  Bool  bIsUp         = !(iMbY%2);
+  Bool bTopIntra=false;
+  Bool bBotIntra=false;
+  Bool bIsIntra=(m_pcMbData[uiCurrIdx].isIntra()&&(m_pcMbData[uiCurrIdx].getSliceId()==uiCurrentSliceID));
+
+  if(!bIscurrField) 
+  {
+    const UInt uiComplIdx= uiCurrIdx + (bIsUp? 1:-1)*m_uiMbStride;
+    Bool  bIsCompIntra=(m_pcMbData[uiComplIdx].isIntra()&&(m_pcMbData[uiComplIdx].getSliceId()==uiCurrentSliceID));
+
+    ROTRS( (bIsIntra && bIsCompIntra ), Err::m_nOK );
+
+    bTopIntra=(bIsUp&&bIsIntra)||(!bIsUp&&bIsCompIntra);
+    bBotIntra=(!bIsUp&&bIsIntra)||(bIsUp&&bIsCompIntra);  }
+  else
+  {
+   ROTRS( bIsIntra, Err::m_nOK );
+  }
+
+  ruiMask |= bTopIntra ? 0x01000 :0;
+  ruiMask |= bBotIntra ? 0x02000 :0;
+
+  Int iTopStride   =(bTopIntra ? (bIsUp?0:m_uiMbStride): m_uiMbStride<<1);
+  Int iBottomStride=(bBotIntra ? (bIsUp?m_uiMbStride:0): m_uiMbStride<<1);
+
+  Bool bLeftAvailable   = ( iMbX > 0 );
+  Bool bRightAvailable  = ( iMbX < m_iMbPerLine-1 );
+  Bool bTopAvailable    = ( iMbY-(iTopStride/(Int)m_uiMbStride) >= 0 );
+  Bool bBottomAvailable = ( iMbY+(iBottomStride/(Int)m_uiMbStride) <= m_iMbPerColumn-1 );
+
+ 
+  if( bTopAvailable )
+  {
+    Int iIndex = uiCurrIdx - iTopStride;
+    
+    if(iTopStride && bIsUp && !m_pcMbData[iIndex].getFieldFlag()) 
+    iIndex+=m_uiMbStride;
+
+    //TOP
+    ruiMask |= (m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID))? 0x01 :0;
+
+    //TOP LEFT  
+    if( bLeftAvailable )
+    {
+      iIndex = uiCurrIdx - iTopStride - 1;
+      if( iTopStride&&bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex+=m_uiMbStride;
+
+      ruiMask |= (m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x80 :0;
+    }
+
+    //TOP RIGHT 
+    if( bRightAvailable )
+    {
+      iIndex = uiCurrIdx - iTopStride + 1;
+      if(iTopStride&&bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex+=m_uiMbStride;
+      
+      ruiMask |= (m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x02 :0;
+    }
+  }
+
+  if( bBottomAvailable )
+  {
+    Int iIndex = uiCurrIdx + iBottomStride;
+    
+    if( iBottomStride&&!bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+    iIndex-=m_uiMbStride;
+
+    //BOTTOM
+    ruiMask |= (m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x10 :0;
+
+    //BOTTOM LEFT
+    if( bLeftAvailable )
+    {
+      iIndex = uiCurrIdx  + iBottomStride - 1;
+      if( iBottomStride&&!bIsUp&&!m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex-=m_uiMbStride;
+      ruiMask |= (m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x20 :0;
+    }
+
+    //BOTTOM RIGHT
+    if( bRightAvailable )
+    {
+      iIndex = uiCurrIdx + iBottomStride + 1;
+      if( iBottomStride&&!bIsUp && !m_pcMbData[iIndex].getFieldFlag()) 
+      iIndex-=m_uiMbStride;
+      ruiMask |= (m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)) ? 0x08 :0;
+    }
+  }
+
+  //LEFT
+  if( bLeftAvailable )
+  {
+    Int iIndex = uiCurrIdx-1;
+   
+    Bool bIntra;
+     Bool bTopCoincided=false;
+     Bool bBottomCoincided=false;
+    if(m_pcMbData[iIndex].getFieldFlag() ) 
+    {
+      bIntra=(m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID));
+      bTopCoincided=bBottomCoincided=bIntra;
+    }
+    else
+    {
+     const UInt uiComplIdx= iIndex + (bIsUp? 1:-1)*m_uiMbStride;
+    
+     Bool  bIsCurIntra=(m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)); 
+     Bool  bIsCompIntra=(m_pcMbData[uiComplIdx].isIntra()&&(m_pcMbData[uiComplIdx].getSliceId()==uiCurrentSliceID)); 
+    
+     if(bTopIntra || bBotIntra)
+     {
+     if( bIsIntra)
+     bIntra= bIsCompIntra; 
+     else
+      bIntra= bIsCurIntra; 
+     }
+     else  
+     bIntra=  (bIsCurIntra ||bIsCompIntra);
+      
+     if(bIntra)
+      {
+          bTopCoincided=(bIsUp&&bIsCurIntra)||(!bIsUp&&bIsCompIntra);
+          bBottomCoincided=(!bIsUp&&bIsCurIntra)||(bIsUp&&bIsCompIntra);
+      }  
+    }
+    ruiMask |= bTopCoincided    ? 0x0100 :0;
+    ruiMask |= bBottomCoincided ? 0x0200 :0;
+   }
+
+  //RIGHT
+  if( bRightAvailable )
+  {
+    Int iIndex = uiCurrIdx + 1;
+    Bool bIntra;
+     Bool bTopCoincided=false;
+     Bool bBottomCoincided=false;
+    if(m_pcMbData[iIndex].getFieldFlag())
+    {
+       bIntra=(m_pcMbData[iIndex].isIntra()&& (m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID));
+       bTopCoincided=bBottomCoincided=bIntra;
+    }
+    else
+    {
+
+      const UInt uiComplIdx= iIndex + (bIsUp? 1:-1)*m_uiMbStride;
+    
+     Bool  bIsCurIntra=(m_pcMbData[iIndex].isIntra()&&(m_pcMbData[iIndex].getSliceId()==uiCurrentSliceID)); 
+     Bool  bIsCompIntra=(m_pcMbData[uiComplIdx].isIntra()&&(m_pcMbData[uiComplIdx].getSliceId()==uiCurrentSliceID)); 
+    
+     if(bTopIntra || bBotIntra)
+     {
+     if( bIsIntra)
+     bIntra= bIsCompIntra; 
+     else
+      bIntra= bIsCurIntra; 
+     }
+     else  
+     bIntra=  (bIsCurIntra ||bIsCompIntra);
+      
+     if(bIntra)
+      {
+          bTopCoincided=(bIsUp&&bIsCurIntra)||(!bIsUp&&bIsCompIntra);
+          bBottomCoincided=(!bIsUp&&bIsCurIntra)||(bIsUp&&bIsCompIntra);
+      }   
+    }
+
+    ruiMask |= bTopCoincided    ? 0x0400 :0;
+    ruiMask |= bBottomCoincided ? 0x0800 :0;
+  }
+
+  return Err::m_nOK;
+}
+
+//TMM_INTERLACE }
+//JVT-U106 Behaviour at slice boundaries}
+
 
 H264AVC_NAMESPACE_END
 

@@ -109,6 +109,8 @@ public:
 
 public:
   ErrVal getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const ;
+  ErrVal getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask ) const ; //TMM_INTERLACE
+
   ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
 	ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Bool bFieldFlag, const Int iForceQp );
   ErrVal init( const SequenceParameterSet& rcSPS );
@@ -119,7 +121,7 @@ public:
   ErrVal uninit();
   ErrVal reset();
   ErrVal initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl );
-
+  ErrVal initUsedField(SliceHeader& rcSH, RefFrameList&           rcRefFrameList1); //TMM
   Bool isPicDone( const SliceHeader& rcSH );
   Bool isFrameDone( const SliceHeader& rcSH );
   UInt  getSize() { return m_uiSize; }
@@ -186,6 +188,7 @@ public:
   UInt getSliceId() const { return m_uiSliceId;}
   //JVT-U106 Behaviour at slice boundaries{
   ErrVal        getBoundaryMaskCIU( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID );
+  ErrVal        getBoundaryMaskCIU_MbAff( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ); //TMM_INTERLACE
   //JVT-U106 Behaviour at slice boundaries}
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }

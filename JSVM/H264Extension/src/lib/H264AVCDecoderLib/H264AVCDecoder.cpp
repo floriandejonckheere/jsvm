@@ -961,7 +961,6 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 				frame_num	=	pcSliceHeader->getFrameNum();
 				uiLayerId	=	pcSliceHeader->getLayerId();
 				uiPocLsb	=	pcSliceHeader->getPicOrderCntLsb();
-//				uiGopSize	=	pcSliceHeader->getSPS().getNumRefFrames() + 1;	//??
 				UInt uiGopSize	=	m_uiGopSize[uiLayerId];
 				if ( frame_num == 1 &&m_uiMaxLayerId==uiLayerId&& uiPocLsb > uiGopSize)
 				{
@@ -2264,12 +2263,8 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 //TMM_EC }}
 
       PicBufferList   cDummyList;
-
-      //TMM_INTERLACE BUG FIX FOR 6.6.21 BUT PBM WITH QLASSIGNER
-
-      //PicBufferList&  rcOutputList  = ( (!m_bCGSSNRInAU && m_uiRecLayerId == 0 && m_pcFrameMng->getPicBufferOutputList().size() ) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
-      PicBufferList&  rcOutputList  = ( (!m_bCGSSNRInAU && m_uiRecLayerId == 0 && bHighestLayer) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
-      //TMM_INTERLACE
+//TMM
+      PicBufferList&  rcOutputList  = ( (!m_bCGSSNRInAU && m_uiRecLayerId == 0 && m_pcFrameMng->getPicBufferOutputList().size() ) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
 
       RNOK( m_pcFrameMng->setPicBufferLists( rcOutputList, rcPicBufferReleaseList ) );
 

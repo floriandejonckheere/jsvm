@@ -196,12 +196,6 @@ public:
 
 	ErrVal getBaseLayerResidual( IntFrame*&      pcResidual, UInt            uiBaseLayerId);
 
-	ErrVal  getBaseLayerSH      ( SliceHeader*& rpcSliceHeader,
-																UInt          uiBaseLayerId,
-																Int           iPoc,
-																PicType      ePicType,
-																UInt					uiIdrPicId);//EIDR 0619
-
 	UInt    getNewBits          ( UInt          uiBaseLayerId );
 
 

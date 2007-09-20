@@ -97,6 +97,8 @@ H264AVC_NAMESPACE_BEGIN
 SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS,
                           const PictureParameterSet&  rcPPS )
 : SliceHeaderBase   ( rcSPS, rcPPS ),
+  m_iTopFieldPoc   ( 0 ),
+  m_iBotFieldPoc    ( 0 ), 
   m_uiLastMbInSlice ( 0 ), //--ICU/ETRI FMO Implementation
   m_pcFrameUnit     ( 0 )
  , m_bCoeffResidualPred (false)

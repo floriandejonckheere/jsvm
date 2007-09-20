@@ -624,6 +624,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
 
 	if( ePicType!=FRAME )
 	{
+    if( pcOrgFrame )    RNOK( pcOrgFrame   ->addFieldBuffer( ePicType ) ); //TMM
 		if( pcFrame )       RNOK( pcFrame      ->addFieldBuffer( ePicType ) );
 		if( pcResidual )    RNOK( pcResidual   ->addFieldBuffer( ePicType ) );
 		if( pcBaseSubband ) RNOK( pcBaseSubband->addFieldBuffer( ePicType ) );
@@ -948,7 +949,6 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
   RNOK( gSetFrameFieldArrays( apcBaseLayerF, pcBaseLayerFrame    ) );
   RNOK( gSetFrameFieldArrays( apcBaseLayerR, pcBaseLayerResidual ) );
 
-//  const Bool bInheritFieldMode = ! rcSliceHeader.getSPS().getFieldFlagCoded() && (SCALABLE_PROFILE == rcSliceHeader.getSPS().getProfileIdc());
   MbDataBuffer acMbData[2];
   Bool   abSkipModeAllowed[4] = {true,true,true,true};
   UInt uiLastQp = rcSliceHeader.getPicQp();

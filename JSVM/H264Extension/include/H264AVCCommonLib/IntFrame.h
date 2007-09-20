@@ -378,7 +378,16 @@ public:
 
 //JVT-S036 lsj{
   Int	getFrameNum()	  const		{ return m_iFrameNum; }
-  Void  setFrameNum( Int iNum )		{ m_iFrameNum = iNum; }
+  Void  setFrameNum( Int iNum )		
+  {
+    m_iFrameNum = iNum;
+//TMM  {
+    if( NULL != m_pcIntFrameTopField )
+      m_pcIntFrameTopField->setFrameNum( iNum );
+    if( NULL != m_pcIntFrameBotField )
+      m_pcIntFrameBotField->setFrameNum( iNum );
+//TMM }
+  }
 //JVT-S036 lsj}
 
 // JVT-Q065 EIDR{

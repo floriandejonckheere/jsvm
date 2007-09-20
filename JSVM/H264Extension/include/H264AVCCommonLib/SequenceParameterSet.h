@@ -163,7 +163,7 @@ public:
   Bool                  getDirect8x8InferenceFlag             ()          const { return m_bDirect8x8InferenceFlag;}
   UInt                  getMbInFrame                          ()          const { return m_uiFrameWidthInMbs * m_uiFrameHeightInMbs;}
   Bool                  getInitState                          ()          const { return m_bInitDone; }
-  UInt                  getPaff()                                         const { return m_uiPaff; }
+ 
 	Bool                  getFrameMbsOnlyFlag()                             const { return m_bFrameMbsOnlyFlag; }
 	Bool                  getMbAdaptiveFrameFieldFlag()                     const { return m_bMbAdaptiveFrameFieldFlag; }
 
@@ -206,7 +206,6 @@ public:
   Void setInterlayerDeblockingPresent ( Bool b ) { m_bInterlayerDeblockingPresent = b ;}
   Bool getInterlayerDeblockingPresent () const    { return m_bInterlayerDeblockingPresent; }
 
-  Void  setPaff                               ( UInt        ui )          { m_uiPaff                                = ui; }
   Void  setFrameMbsOnlyFlag                   ( Bool        b  )          { m_bFrameMbsOnlyFlag                     = b;  }
 	Void  setMbAdaptiveFrameFieldFlag           ( Bool        b  )          { m_bMbAdaptiveFrameFieldFlag             = b;  }
   
@@ -330,7 +329,6 @@ protected:
 	UInt					m_auiNumRefIdxUpdateActiveDefault[2];
 // VW }
 
-  UInt          m_uiPaff;
   UInt          m_uiMGSVect[16];
 	Bool          m_bFrameMbsOnlyFlag;
 	Bool          m_bMbAdaptiveFrameFieldFlag;

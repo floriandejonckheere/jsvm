@@ -1338,8 +1338,10 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
   }
 
   //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
-  if( ! rcMbDataAccess.getSH().isMbAff() ) // don't know why, but it doesn't work for MbAff (when there is a layer on top of it)
+  //TMM_INTERLACE {
+  //if( ! rcMbDataAccess.getSH().isMbAff() ) // don't know why, but it doesn't work for MbAff (when there is a layer on top of it)
                                            // looks like the problem lies somewhere else ... may be in intra padding process before upsampling
+   //TMM_INTERLACE }
   if( bSkipModeAllowed && ! bBSlice )
   {
     RNOK( xEstimateMbSkip( m_pcIntMbTempData, m_pcIntMbBestData, rcRefFrameList0, rcRefFrameList1 ) );

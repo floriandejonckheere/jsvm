@@ -3085,8 +3085,6 @@ MCTFDecoder::xDecodeBaseRepresentation( SliceHeader*&  rpcSliceHeader,
   // TMM_INTERLACE{
 
  RNOK( xInitESSandCroppingWindow( *rpcSliceHeader, *m_pcCurrDPBUnit->getCtrlData().getMbDataCtrl(),rcControlData ) );
-// RNOK( xInitBaseLayer( m_pcCurrDPBUnit->getCtrlData(), pcSliceHeaderBase) );
- RNOK( rpcSliceHeader->ReadLastBit() );
  // TMM_INTERLACE}
 
  //----- parsing -----
@@ -3570,8 +3568,6 @@ MCTFDecoder::xGetBaseLayerData( ControlData&    rcControlData,
     ROF( rbBaseDataAvailable );
 
     pcResizeParameter->m_iResampleMode = 0; 
-    pcResizeParameter->m_bBaseFrameFromBotFieldFlag	= pcSliceHeader->m_bBaseFrameFromBotFieldFlag;  
-    pcResizeParameter->m_bBaseBotFieldSyncFlag			= pcSliceHeader->m_bBaseBotFieldSyncFlag;
     pcResizeParameter->m_bBaseFrameMbsOnlyFlag			= rpcBaseDataCtrl->getSliceHeader()->getSPS().getFrameMbsOnlyFlag();
     pcResizeParameter->m_bBaseFieldPicFlag					= rpcBaseDataCtrl->getSliceHeader()->getFieldPicFlag();
     pcResizeParameter->m_bBaseIsMbAff               = rpcBaseDataCtrl->getSliceHeader()->isMbAff();   

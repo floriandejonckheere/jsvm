@@ -159,11 +159,17 @@ public:
   Bool  isZero      ();
 	Void  setZero     ();
 
+  //TMM_INTERLACE
+  Void setSubBlock  () {m_bSubBlock=true;}
+
 protected:
   XPel* m_pPelCurrY;
   XPel* m_pPelCurrU;
   XPel* m_pPelCurrV;
   XPel  m_aucYuvBuffer[MB_BUFFER_WIDTH*(29+1)];
+
+  //TMM_INTERLACE
+  Bool  m_bSubBlock;
 };
 
 class H264AVCCOMMONLIB_API IntYuvMbBufferExtension : public IntYuvMbBuffer
@@ -171,6 +177,7 @@ class H264AVCCOMMONLIB_API IntYuvMbBufferExtension : public IntYuvMbBuffer
 public:
   Void loadSurrounding( IntYuvPicBuffer* pcSrcBuffer );
   Void loadSurrounding( YuvPicBuffer* pcSrcBuffer );
+  Void loadSurrounding_MbAff( IntYuvPicBuffer* pcSrcBuffer, UInt uiMask );//TMM_INTERLACE
 
   Void mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent );
   Void mergeRightBelow    ( LumaIdx cIdx, Bool bCornerMbPresent );
@@ -178,16 +185,16 @@ public:
   Void mergeLeftBelow     ( LumaIdx cIdx, Bool bCornerMbPresent );
 
   Void copyFromBelow      ( LumaIdx cIdx );
-  Void copyFromLeft       ( LumaIdx cIdx );
+  Void copyFromLeft       ( LumaIdx cIdx , Int iOffset =0 ); //TMM_JV_DEBUG
   Void copyFromAbove      ( LumaIdx cIdx );
-  Void copyFromRight      ( LumaIdx cIdx );
+  Void copyFromRight      ( LumaIdx cIdx, Int iOffset =0 ); //TMM_JV_DEBUG
 
   Void copyFromLeftAbove  ( LumaIdx cIdx );
   Void copyFromRightAbove ( LumaIdx cIdx );
   Void copyFromLeftBelow  ( LumaIdx cIdx );
   Void copyFromRightBelow ( LumaIdx cIdx );
 
-  Void xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV );
+  Void xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV , Int iOffset=0 ); //TMM_INTERLACE
   Void xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, Int iStride, Bool bPresent );
 
 };

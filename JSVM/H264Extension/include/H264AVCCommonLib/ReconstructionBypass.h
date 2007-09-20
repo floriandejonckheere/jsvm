@@ -110,6 +110,7 @@ public:
 
   ErrVal padRecFrame( IntFrame* pcIntFrame, const MbDataCtrl* pcMbDataCtrl, YuvBufferCtrl* pcYuvFullPelBufferCtrl, UInt uiFrameWidthInMb, UInt uiFrameHeightInMb );
   ErrVal padRecMb( IntYuvMbBufferExtension* pcBuffer, UInt uiMask );
+  ErrVal padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, UInt uiMask ); //TMM_INTERLACE
 
 };
 

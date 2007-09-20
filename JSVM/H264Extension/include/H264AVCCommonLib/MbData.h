@@ -110,6 +110,7 @@ public:
     m_apcMbMotionData[ LIST_0 ]  = NULL;
     m_apcMbMotionData[ LIST_1 ]  = NULL;
     m_apcMbData[0]=m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;
+    m_aeMbMode[0]=m_aeMbMode[1]=m_aeMbMode[2]=m_aeMbMode[3]=NOT_AVAILABLE;//TMM_INTERLACE
   }
 
   UInt calcMbCbp ( UInt uiStart, UInt uiStop ) const;
@@ -155,7 +156,10 @@ public:
 
   operator MbTransformCoeffs& ()                                        { return *m_pcMbTCoeffs; }
 
-  MbData* getBaseMbData(Int mbIdx){return m_apcMbData[mbIdx];}
+//TMM_INTERLACE {
+//  MbData* getBaseMbData(Int mbIdx){return m_apcMbData[mbIdx];}
+  MbMode getBaseMbMode(Int mbIdx){return m_aeMbMode[mbIdx];}
+//TMM_INTERLACE }
 
   Void    copy( const MbData& rcMbData );
   ErrVal  loadAll( FILE* pFile );
@@ -201,6 +205,7 @@ protected:
   MbData*                   m_apcMbData     [4];
   SChar                     m_ascBl4x4RefIdx[2][16];// ref index of list_0/1 for each 4x4 blk
   Mv                        m_acBl4x4Mv	    [2][16];// motion vectors of list_0/1 for each 4x4 blk
+	MbMode										m_aeMbMode      [4];    //TMM_INTERLACE
 
   ErrVal xInitESS             ( );
 
@@ -209,7 +214,7 @@ protected:
                           const Int         aiPelOrig[2],
                           const Bool        bDirect8x8,
                           ResizeParameters* pcParameters,
-                          MbMode            aeMbMode [4],
+                          //MbMode            aeMbMode [4], //TMM_INTERLACE
                           BlkMode           aeBlkMode[4][4],
                           UInt&             uiMbBaseOrigX,
                           UInt&             uiMbBaseOrigY);
@@ -221,7 +226,7 @@ protected:
 
  ErrVal xBuildPartInfo(   const Int aiPelOrig[2],
                           ResizeParameters* pcParameters,
-                          const MbMode      aeMbMode[4],
+                          //const MbMode      aeMbMode[4], //TMM_INTERLACE
                           const  BlkMode     aeBlkMode[4][4],  
                           UInt          aui4x4Idx[4][4],
                           UInt          auiMbIdx [4][4], 

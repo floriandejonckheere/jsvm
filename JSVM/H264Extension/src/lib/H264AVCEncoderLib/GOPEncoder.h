@@ -342,13 +342,6 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 																				PicType                         ePicType,
 																				UInt														uiIdrPicId);//EIDR 0619
 
-
-
-		ErrVal        getBaseLayerSH      ( SliceHeader*&                   rpcSliceHeader,
-																				Int                             iPoc,
-																				PicType                         ePicType,
-																				UInt														uiIdrPicId); //EIDR 0619
-
 		UInt          getNewBits          ()  { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
 		UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
 		UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
@@ -406,12 +399,19 @@ protected:
   
   //===== decomposition / composition =====
   ErrVal  xMotionEstimationFrame        ( UInt                        uiBaseLevel,
-                                          UInt                        uiFrame );
+                                          UInt                        uiFrame
+                                          , PicType                   ePicType //TMM
+
+                                          );
   ErrVal  xDecompositionFrame           ( UInt                        uiBaseLevel,
-                                          UInt                        uiFrame );
+                                          UInt                        uiFrame
+                                          , PicType                   ePicType //TMM
+                                          );
   ErrVal  xCompositionFrame             ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
-                                          PicBufferList&              rcPicBufferInputList );
+                                          PicBufferList&              rcPicBufferInputList
+                                          , PicType                   ePicType //TMM
+                                          );
   ErrVal  xStoreReconstruction          ( PicBufferList&              rcPicBufferOutputList );
 
 //TMM_INTERLACE{
@@ -442,7 +442,9 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
  	ErrVal  xSetBaseLayerData             ( UInt                        uiFrameIdInGOP,
 		                                      PicType                     ePicType );
   ErrVal  xInitReordering               ( UInt                        uiFrameIdInGOP,
-		                                      PicType                     ePicType );   
+		                                      PicType                     ePicType
+                                          , Bool                      bUncompleteCOP = false // TMM
+                                          );   
   
   Void    xPaffDecision                 ( UInt                        uiFrame );              
 
@@ -481,7 +483,6 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           UInt                        uiFrame,
                                           RefListUsage                eRefListUsage,
 																					Bool                        bHalfPel,
-                                          IntFrame*                   pcTmpFrame,
                                           PicType                     ePicType );
 
   ErrVal  xInitControlDataMotion        ( UInt                        uiBaseLevel,
@@ -512,7 +513,9 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
   ErrVal  xEncodeNonKeyPicture          ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
                                           AccessUnitList&             rcAccessUnitList,
-                                          PicOutputDataList&          rcPicOutputDataList );
+                                          PicOutputDataList&          rcPicOutputDataList
+                                          , PicType                   ePicType  //TMM
+                                          );
   ErrVal  xOutputPicData                ( PicOutputDataList&          rcPicOutputDataList );
 
   //===== basic encoding =====
@@ -608,6 +611,8 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
 
   ErrVal        xSetRplrAndMmcoFld  ( SliceHeader& rcSH );
 
+  ErrVal        xSetMmcoFld         ( SliceHeader& rcSH ); //TMM
+
   ErrVal        xWriteSEI           ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );
   ErrVal		xWriteSuffixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//JVT-S036 lsj 
    ErrVal		xWritePrefixUnit    ( ExtBinDataAccessorList& rcOutExtBinDataAccessorList, SliceHeader& rcSH, UInt& ruiBit );//prefix unit
@@ -683,6 +688,7 @@ protected:
   LoopFilter*                   m_pcLoopFilter;
   QuarterPelFilter*             m_pcQuarterPelFilter;
   MotionEstimation*             m_pcMotionEstimation;
+  LayerParameters*              m_pcLayerParameters;
 
   //----- fixed control parameters ----
   Bool                          m_bTraceEnable;                       // trace file
@@ -777,7 +783,6 @@ protected:
   //----- ESS -----
   ResizeParameters*				m_pcResizeParameters; 
 
-  UInt                          m_uiPaff;
   Bool*                         m_pbFieldPicFlag;
 
 // JVT-Q065 EIDR{

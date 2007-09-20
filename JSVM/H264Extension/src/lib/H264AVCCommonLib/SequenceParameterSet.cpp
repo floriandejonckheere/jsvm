@@ -183,7 +183,6 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiBaseChromaPhaseXPlus1                 ( 0 ) //JVT-W046
 , m_uiBaseChromaPhaseYPlus1                 ( 1 ) //JVT-W046
 , m_bInterlayerDeblockingPresent            ( 0 )
-, m_uiPaff                                  ( 0 )
 , m_bFrameMbsOnlyFlag                       ( true )
 , m_bMbAdaptiveFrameFieldFlag               ( false )
 , m_bRCDOBlockSizes                         ( false )
@@ -250,7 +249,6 @@ SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameter
   m_bGapsInFrameNumValueAllowedFlag   = rcSPS.m_bGapsInFrameNumValueAllowedFlag;
   m_uiFrameWidthInMbs                 = rcSPS.m_uiFrameWidthInMbs;
   m_uiFrameHeightInMbs                = rcSPS.m_uiFrameHeightInMbs;
-  m_uiPaff                            = rcSPS.m_uiPaff;
   m_bFrameMbsOnlyFlag                 = rcSPS.m_bFrameMbsOnlyFlag;
   m_bMbAdaptiveFrameFieldFlag         = rcSPS.m_bMbAdaptiveFrameFieldFlag;
   m_bDirect8x8InferenceFlag           = rcSPS.m_bDirect8x8InferenceFlag;

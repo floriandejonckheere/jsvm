@@ -275,6 +275,161 @@ ErrVal ReconstructionBypass::padRecMb( IntYuvMbBufferExtension* pcBuffer, UInt u
   return Err::m_nOK;
 }
 
+//TMM_INTERLACE  {
+ErrVal ReconstructionBypass::padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, UInt uiMask )
+{
+  Bool bAboveIntra      = 0 != (uiMask & 0x01);
+  Bool bBelowIntra      = 0 != (uiMask & 0x10);
+  //Bool bLeftIntra       = 0 != (uiMask & 0x40);
+  Bool bRightIntra      = 0 != (uiMask & 0x04);
+  Bool bLeftAboveIntra  = 0 != (uiMask & 0x80);
+  Bool bRightAboveIntra = 0 != (uiMask & 0x02);
+  Bool bLeftBelowIntra  = 0 != (uiMask & 0x20);
+  Bool bRightBelowIntra = 0 != (uiMask & 0x08);
+  Bool bLeftIntraTop    = 0 != (uiMask & 0x0100);
+  Bool bLeftIntraBot    = 0 != (uiMask & 0x0200);
+  Bool bRightIntraTop   = 0 != (uiMask & 0x0400);
+  Bool bRightIntraBot   = 0 != (uiMask & 0x0800);
+  Bool bTopIntra        = 0 != (uiMask & 0x01000);
+  Bool bBotIntra        = 0 != (uiMask & 0x02000);
+
+  UInt mymap[4]={0,1,2,3}; 
+
+  if(bBotIntra)
+   { 
+    pcBuffer->setSubBlock();
+     mymap[2]=0;
+     mymap[3]=1;
+   }
+   else if(bTopIntra)
+   {
+    pcBuffer->setSubBlock();
+    mymap[0]=2;
+    mymap[1]=3;
+   }
+
+  //for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
+  for( B8x8Idx cB8x8idx; cB8x8idx.isLegal(); cB8x8idx++ )
+  {
+    //Int iIndex=mymap[cIdx.b8x8Index()];
+    Int iIndex=mymap[cB8x8idx.b8x8Index()];
+    B8x8Idx cIdx( (Par8x8)iIndex );
+    
+    switch(cB8x8idx.b8x8Index())//cIdx.b8x8Index() )
+    {
+    case 0:
+      {
+        if( bAboveIntra )
+        {
+           if( bLeftIntraTop )
+          {
+            pcBuffer->mergeFromLeftAbove( cIdx, bLeftAboveIntra );
+          }
+          else
+          {
+            pcBuffer->copyFromAbove( cIdx );
+          }
+        }
+        else
+        {
+          if( bLeftIntraTop )
+          {
+            pcBuffer->copyFromLeft( cIdx );
+          }
+          else if( bLeftAboveIntra )
+          {
+            pcBuffer->copyFromLeftAbove( cIdx );
+          }
+        }
+      }
+      break;
+    case 1:
+      {
+        if( bAboveIntra )
+        {
+          if( bRightIntraTop )  
+          {
+            pcBuffer->mergeFromRightAbove( cIdx, bRightAboveIntra );
+          }
+          else
+          {
+            pcBuffer->copyFromAbove( cIdx );
+          }
+        }
+        else
+        {
+          if( bRightIntraTop )
+          {
+            pcBuffer->copyFromRight( cIdx );
+          }
+          else if( bRightAboveIntra )
+          {
+            pcBuffer->copyFromRightAbove( cIdx );
+          }
+        }
+      }
+      break;
+    case 2:
+      {
+        if( bBelowIntra )
+        {
+          if( bLeftIntraBot) 
+          {
+            pcBuffer->mergeLeftBelow( cIdx, bLeftBelowIntra );
+          }
+          else
+          {
+            pcBuffer->copyFromBelow( cIdx );
+          }
+        }
+        else
+        {
+          if( bLeftIntraBot )
+          {
+            pcBuffer->copyFromLeft( cIdx, 1 );
+          }
+          else if( bLeftBelowIntra )
+          {
+            pcBuffer->copyFromLeftBelow( cIdx );
+          }
+        }
+      }
+      break;
+    case 3:
+      {
+        if( bBelowIntra )
+        {
+          if( bRightIntraBot ) 
+          {
+            pcBuffer->mergeRightBelow( cIdx, bRightBelowIntra );
+          }
+          else
+          {
+            pcBuffer->copyFromBelow( cIdx );
+          }
+        }
+        else
+        {
+          if( bRightIntraBot )
+          {
+            pcBuffer->copyFromRight( cIdx,1 );
+          }
+          else if( bRightBelowIntra )
+          {
+            pcBuffer->copyFromRightBelow( cIdx );
+          }
+        }
+      }
+      break;
+    default:
+      break;
+    }
+  }
+
+  return Err::m_nOK;
+}
+//TMM_INTERLACE  }
+
 H264AVC_NAMESPACE_END
 
 

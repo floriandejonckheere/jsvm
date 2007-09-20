@@ -150,12 +150,12 @@ ResizeParameters::SetUpSampleMode()
     m_iResampleMode = 0;
   else if(m_bBaseFrameMbsOnlyFlag)
   {
-    bot = m_bBaseFrameFromBotFieldFlag + (m_bFieldPicFlag & m_bBotFieldFlag);
+    bot = (m_bFieldPicFlag & m_bBotFieldFlag);
     m_iResampleMode = 2 + bot;
   }
   else if(m_bFrameMbsOnlyFlag)
   {
-    bot = m_bBaseFieldPicFlag? m_bBaseBotFieldFlag : m_bBaseBotFieldSyncFlag;
+    bot = m_bBaseFieldPicFlag? m_bBaseBotFieldFlag : 0;
     m_iResampleMode = 4 + bot*2;
   }
   else

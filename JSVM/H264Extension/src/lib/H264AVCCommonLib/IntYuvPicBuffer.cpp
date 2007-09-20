@@ -455,6 +455,78 @@ ErrVal IntYuvPicBuffer::loadBuffer( IntYuvMbBuffer *pcYuvMbBuffer )
   return Err::m_nOK;
 }
 
+//TMM_INTERLACE {
+ErrVal IntYuvPicBuffer::loadBuffer_MbAff( IntYuvMbBuffer *pcYuvMbBuffer,UInt uiMask)
+{
+  XPel* pDes        = getMbLumAddr();
+  XPel* pScr        = pcYuvMbBuffer->getMbLumAddr();
+  Int   iSrcStride  = pcYuvMbBuffer->getLStride();
+  Int   iDesStride  = getLStride();
+  UInt  y;
+  UInt  uiSize   = 16;
+  UInt  uiSizeCr = 8;
+  Bool bTopIntra    = 0 != (uiMask & 0x01000);
+  Bool bBotIntra    = 0 != (uiMask & 0x02000);
+   
+  if(bTopIntra)
+  {
+    uiSize   = 8;
+    uiSizeCr = 4;
+    pDes+=8*iDesStride;
+    pScr+=8*iSrcStride;
+  }
+  else
+    if(bBotIntra) 
+    {
+    uiSize   = 8;
+    uiSizeCr = 4;
+    }
+
+ 
+  for( y = 0; y < uiSize; y++ )
+  {
+    ::memcpy( pDes, pScr, 16* sizeof(XPel) );
+    pDes += iDesStride,
+    pScr += iSrcStride;
+  }
+
+  iDesStride  >>= 1;
+  iSrcStride  = pcYuvMbBuffer->getCStride();
+  pScr = pcYuvMbBuffer->getMbCbAddr();
+  pDes = getMbCbAddr();
+
+  if(bTopIntra)
+  {
+    pDes+=4*iDesStride;
+    pScr+=4*iSrcStride;
+  }
+
+  for( y = 0; y < uiSizeCr; y++ )
+  {
+    ::memcpy( pDes, pScr, 8* sizeof(XPel) );
+    pDes += iDesStride,
+    pScr += iSrcStride;
+  }
+
+  pScr = pcYuvMbBuffer->getMbCrAddr();
+  pDes = getMbCrAddr();
+
+  if(bTopIntra)
+  {
+    pDes+=4*iDesStride;
+    pScr+=4*iSrcStride;
+  }
+
+  for( y = 0; y < uiSizeCr; y++ )
+  {
+    ::memcpy( pDes, pScr, 8* sizeof(XPel) );
+    pDes += iDesStride,
+    pScr += iSrcStride;
+  }
+
+  return Err::m_nOK;
+}
+//TMM_INTERLACE }
 
 ErrVal IntYuvPicBuffer::prediction( IntYuvPicBuffer*  pcSrcYuvPicBuffer,
                                     IntYuvPicBuffer*  pcMCPYuvPicBuffer )

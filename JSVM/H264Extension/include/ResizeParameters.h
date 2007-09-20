@@ -43,8 +43,6 @@ public:
       m_iIntraUpsamplingType = INTRA_UPSAMPLING_TYPE_DEFAULT;
 
       m_iResampleMode = 0;   // SSUN, 28Nov2005
-      m_bBaseFrameFromBotFieldFlag = false;
-      m_bBaseBotFieldSyncFlag      = false;
       m_bBaseFrameMbsOnlyFlag      = true;
       m_bBaseIsMbAff               = false;
       m_bFrameMbsOnlyFlag          = true;
@@ -116,8 +114,6 @@ public:
 
     Int m_iResampleMode;   // SSUN, 28Nov2005
     
-    Bool m_bBaseFrameFromBotFieldFlag;
-    Bool m_bBaseBotFieldSyncFlag;
     Bool m_bBaseFrameMbsOnlyFlag;
     Bool m_bBaseFieldPicFlag;
     Bool m_bBaseBotFieldFlag;

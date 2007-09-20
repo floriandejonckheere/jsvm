@@ -241,8 +241,9 @@ ErrVal LoopFilter::uninit()
   return Err::m_nOK;
 }
 
-ErrVal LoopFilter::process( SliceHeader& rcSH, IntFrame* pcIntFrame /*, IntYuvPicBuffer* pcHighpassYuvBuffer*/
-							              , bool  bAllSliceDone)
+ErrVal LoopFilter::process( SliceHeader& rcSH, 
+                            IntFrame* pcIntFrame , 
+                            bool  bAllSliceDone)
 {
    bool enhancedLayerFlag =  (rcSH.getLayerId()>0) ; //V032, added for disabling chroma deblocking at enhanced layer
   if( m_pcRCDOSliceHeader )
@@ -334,16 +335,21 @@ ErrVal LoopFilter::xFilterMbFast( const MbDataAccess& rcMbDataAccess, bool enhan
   ROTRS( iFilterIdc == 1, Err::m_nOK );
 
   xGetFilterStrengthFast( rcMbDataAccess, iFilterIdc );
-  
-  if( m_apcIntYuvBuffer[ FRAME ] )
+
+  const PicType ePicType = rcMbDataAccess.getSH().getPicType();
+  if( m_apcIntYuvBuffer[ ePicType ] )
   {
-    RNOK( xLumaVerFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
-    RNOK( xLumaHorFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
+  
+    RNOK( xLumaVerFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
+    RNOK( xLumaHorFiltering(   rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
+
 	//V032 of FSL for disabling chroma deblocking in enh. layer
 	if (!enhancedLayerFlag || (enhancedLayerFlag && (iFilterIdc !=3 && iFilterIdc != 4)) ) 
 	{ 
-		RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
-		RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ FRAME ] ) );
+//TMM {
+  		RNOK( xChromaVerFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
+  		RNOK( xChromaHorFiltering( rcMbDataAccess, rcDFP, m_apcIntYuvBuffer[ ePicType ] ) );
+//TMM } 	
 	}
 
     return Err::m_nOK;
@@ -3162,7 +3168,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength( const MbDataAccess&  rcMbDataAc
     return 1;
 }
 
-  // mixed mode, current macroblock is a field macroblock
+  // current macroblock is a field macroblock
   const MbData& rcMbDataLeft = (   rcMbDataAccess.isTopMb() && cIdx > 7 ? rcMbDataAccess.getMbDataBelowLeft() :
   ! rcMbDataAccess.isTopMb() && cIdx < 8 ? rcMbDataAccess.getMbDataAboveLeft() : rcMbDataAccess.getMbDataLeft() );
 
@@ -3319,7 +3325,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
   IntFrame* apcFrame        [4] = { NULL, NULL, NULL, NULL };
   IntFrame* apcHighpassFrame[4] = { NULL, NULL, NULL, NULL };
 
-  if( pcIntFrame != NULL )
+  if( NULL!= pcIntFrame )
   {
 		RNOK( pcIntFrame->addFrameFieldBuffer() );
     apcFrame[ TOP_FIELD ] = pcIntFrame->getPic( TOP_FIELD );
@@ -3327,7 +3333,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
 		apcFrame[ FRAME     ] = pcIntFrame->getPic( FRAME     );
   }
 
-  if( m_pcHighpassFrame != NULL )
+  if( NULL != m_pcHighpassFrame )
   {
 		RNOK( m_pcHighpassFrame->addFrameFieldBuffer() );
     apcHighpassFrame[ TOP_FIELD ] = m_pcHighpassFrame->getPic( TOP_FIELD );
@@ -3416,6 +3422,11 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
       uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
 	}								
  
+    //TMM_INTERLACE {
+    if( m_eLFMode & LFM_EXTEND_INTRA_SUR ) 
+    {
+      if(bMbAff) 
+      {
 	for(uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
 	{
      UInt          uiMbY             = uiMbAddress / uiMbInRow;
@@ -3424,30 +3435,55 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
      MbDataAccess* pcMbDataAccessRes = 0;
 
      RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
-     RNOK(   m_pcControlMngIf->initMbForFiltering(  *pcMbDataAccessRes, uiMbY, uiMbX, bMbAff  ) ); // TMM_INTERLACE
- //-------------------------- agl@simecom FIX }
+          RNOK(   m_pcControlMngIf->initMbForFiltering(  *pcMbDataAccessRes, uiMbY, uiMbX, true  ) ); 
 
+          UInt uiMask = 0;
+          PicType eMbPicType=eMbPicType=((uiMbY%2) ? BOT_FIELD : TOP_FIELD);
 
-      if( m_eLFMode & LFM_EXTEND_INTRA_SUR )
+          RNOK( pcMbDataCtrlRes->getBoundaryMask_MbAff( uiMbY, uiMbX, uiMask ) );
+
+          if( uiMask /*&& eMbPicType!=BOT_FIELD*/)
+          {
+            IntYuvMbBufferExtension cBuffer;
+            cBuffer.setAllSamplesToZero();
+            cBuffer.loadSurrounding_MbAff( apcFrame        [ eMbPicType ]->getFullPelYuvBuffer(), uiMask );
+            RNOK( m_pcReconstructionBypass->padRecMb_MbAff( &cBuffer                            , uiMask ));
+            apcFrame        [ eMbPicType ]->getFullPelYuvBuffer()->loadBuffer_MbAff( &cBuffer   , uiMask );
+          }
+
+          uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
+        }
+      }
+      else
   	  {
-        UInt uiMask = 0;
   
+        for(uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
+        {
+          UInt          uiMbY            = uiMbAddress / uiMbInRow;
+          UInt          uiMbX            = uiMbAddress % uiMbInRow;
+
+          MbDataAccess* pcMbDataAccessRes = 0;
+
+          RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
+          RNOK(   m_pcControlMngIf->initMbForFiltering(  *pcMbDataAccessRes, uiMbY, uiMbX, false  ) ); 
+
+          UInt uiMask = 0;
         RNOK( pcMbDataCtrlRes->getBoundaryMask( uiMbY, uiMbX, uiMask ) );
   
         if( uiMask )
   		  {
           IntYuvMbBufferExtension cBuffer;
           cBuffer.setAllSamplesToZero();
-  
-      		cBuffer.loadSurrounding( pcIntFrame->getPic(ePicType)->getFullPelYuvBuffer() );
-  
+            cBuffer.loadSurrounding( apcFrame        [ ePicType ]->getFullPelYuvBuffer());
           RNOK( m_pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
+            apcFrame        [ ePicType ]->getFullPelYuvBuffer()->loadBuffer( &cBuffer);
+          }
       		
-      		pcIntFrame->getPic(ePicType)->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
+          uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
   		  }
   	  }
-      uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
     }
+   //TMM_INTERLACE }
   }
   //<- ICU/ETRI DS
 
@@ -3788,8 +3824,7 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
   }
 
 
-  // mixed mode, current macroblock is a field macroblock
-
+  // current macroblock is a field macroblock
   const MbData& rcMbDataLeftMot = (   pcMbDataAccessMot->isTopMb() && cIdx > 7 ? pcMbDataAccessMot->getMbDataBelowLeft() :
   ! pcMbDataAccessMot->isTopMb() && cIdx < 8 ? pcMbDataAccessMot->getMbDataAboveLeft() : pcMbDataAccessMot->getMbDataLeft() );
   const MbData& rcMbDataLeftRes = (   pcMbDataAccessRes->isTopMb() && cIdx > 7 ? pcMbDataAccessRes->getMbDataBelowLeft() :
