@@ -92,7 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 typedef UChar CoefMap;
 
-#define _JSVM_VERSION_ "9.6" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "9.7" //added by jerome.vieron@thomson.net
 
 #define TO_BE_REMOVED     1   // things that are different in the SVC text
 #define NOK_MGSCAVLC      1   // check if this is conforming to the SVC text
@@ -239,7 +239,7 @@ enum NalUnitType
   NAL_UNIT_END_OF_STREAM            = 11,
   NAL_UNIT_FILLER_DATA              = 12,
   NAL_UNIT_PREFIX										= 14,//prefix unit
-
+  NAL_UNIT_SUB_SPS                  = 15,//SSPS
   NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
   NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
 };

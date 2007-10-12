@@ -128,8 +128,13 @@ public:
                                             CabacReader*                pcCabacReader );
   ErrVal            uninit                ();
 
-  ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
-                                            MbDataCtrl*                 pcCurrMbDataCtrl );
+	//JVT-X046 {
+  /*ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
+                                            MbDataCtrl*                 pcCurrMbDataCtrl );*/
+	ErrVal            initPicture           ( SliceHeader*                pcSliceHeader,
+                                            MbDataCtrl*                 pcCurrMbDataCtrl, 
+																						Bool*												bMbStatus = NULL);
+	//JVT-X046 }
 
   ErrVal            finishPicture         ();
 

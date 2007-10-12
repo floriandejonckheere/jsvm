@@ -1,5 +1,24 @@
 [Note (Jerome): For the time being, the following validation scripts "fail":
-FMO, IROI, HRD, MLQL, NonRequired, ReduKeyPic, RPIC ]
+FMO, IROI, HRD, MLQL, NonRequired, ReduKeyPic, RPIC,LCFG4_I2I ]
+
+JSVM_9_6 -> JSVM_9_7
+========================
+Date         : October 10, 2007
+Authors      : Siping Tao, He Ci(USTC)
+Contributions: JVT-X046 JVT-X032
+
+Changes:
+- Integration of JVT-X046
+- Add a validation script SLICE
+- Add Subset SPS
+- Add Temproal Layer Switching Point SEI 
+- Modify ReduKeyPic validation script
+- Bug fix relate to Redundant Picture
+- Update syntax of the following SEIs:
+  Scalability information SEI
+  Non-required layer representation SEI
+  Priority layer information SEI
+- Removal of RCDO validation scripts
 
 
 JSVM_9_5 -> JSVM_9_6

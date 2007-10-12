@@ -93,7 +93,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "MbSymbolWriteIf.h"
 #include "RateDistortionIf.h"
-
+//JVT-X046 {
+#include "CabacWriter.h"
+#include "UvlcWriter.h"
+//JVT-X046 }
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -122,7 +125,13 @@ public:
   ErrVal  encodeMotion      ( MbDataAccess& rcMbDataAccess,
                               MbDataAccess* pcMbDataAccessBase );
   UInt    getBitCount       ()  { return m_pcMbSymbolWriteIf->getNumberOfWrittenBits(); }
-
+  
+	//JVT-X046 {
+	UInt getBitsWritten(void) { return m_pcMbSymbolWriteIf->getBitsWritten(); }
+	Bool bSliceCodedDone;
+  UInt m_uiSliceMode;
+  UInt m_uiSliceArgument;
+	//JVT-X046 }
 protected:
   ErrVal xWriteIntraPredModes ( MbDataAccess& rcMbDataAccess );
   
@@ -159,6 +168,11 @@ protected:
 protected:
   MbSymbolWriteIf* m_pcMbSymbolWriteIf;
   RateDistortionIf* m_pcRateDistortionIf;
+
+	//JVT-X046 {
+	MbSymbolWriteIf* m_pcCabacSymbolWriteIf;
+	MbSymbolWriteIf* m_pcUvlcSymbolWriteIf;
+	//JVT-X046 }
 
   Bool m_bInitDone;
   Bool  m_bCabac;

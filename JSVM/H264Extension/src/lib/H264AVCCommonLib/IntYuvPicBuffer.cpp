@@ -527,7 +527,208 @@ ErrVal IntYuvPicBuffer::loadBuffer_MbAff( IntYuvMbBuffer *pcYuvMbBuffer,UInt uiM
   return Err::m_nOK;
 }
 //TMM_INTERLACE }
+//JVT-X046 {
+  void	IntYuvPicBuffer::setMBZero( UInt uiMBY, UInt uiMBX )
+	{
+		m_rcYuvBufferCtrl.initMb(uiMBY,uiMBX,false);
+		Int iDesStride = getLStride();
+		XPel* pDes = getMbLumAddr();
+		UInt y,x;
 
+		for ( y = 0; y < 16; y++ )
+		{
+			for ( x = 0; x < 16; x++ )
+				pDes[x] = 0;
+			pDes += iDesStride;
+		}
+		iDesStride >>= 1;
+
+		pDes = getMbCbAddr();
+		for ( y = 0; y < 8; y++ )
+		{
+			for ( x = 0; x < 8; x++ )
+				pDes[x] = 0;
+			pDes += iDesStride;
+		}
+
+		pDes = getMbCrAddr();
+		for ( y = 0; y < 8; y++ )
+		{
+			for ( x = 0; x < 8; x++)
+				pDes[x] = 0;
+			pDes += iDesStride;
+		}
+		m_rcYuvBufferCtrl.initMb();
+	}
+  ErrVal IntYuvPicBuffer::predictionSlices(IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer, UInt uiMbY, UInt uiMbX )
+  {
+	  pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  pcMCPYuvPicBuffer->m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  XPel* pSrc = pcSrcYuvPicBuffer->getMbLumAddr();
+	  XPel* pMCP = pcMCPYuvPicBuffer->getMbLumAddr();
+	  XPel* pDes        = getMbLumAddr();
+	  Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+	  Int   iMCPStride  = pcMCPYuvPicBuffer->getLStride();
+	  Int   iDesStride  = getLStride();
+	  UInt x,y;
+	  //===== luminance =====
+	  for( y = 0; y < 16; y++ )
+	  {
+		  for (x = 0; x < 16; x++)
+		  {
+			  pDes[x] = pSrc[x] - pMCP[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pMCP  += iMCPStride;
+		  pDes  += iDesStride;
+	  }
+
+	  //===== chrominance U =====
+	  iSrcStride  >>= 1;
+	  iMCPStride  >>= 1;
+	  iDesStride  >>= 1;
+	  pSrc          = pcSrcYuvPicBuffer->getMbCbAddr();
+	  pMCP          = pcMCPYuvPicBuffer->getMbCbAddr();
+	  pDes          = getMbCbAddr();
+
+	  for( y = 0; y < 8; y++ )
+	  {
+		  for( x = 0; x < 8; x++ )
+		  {
+			  pDes[x] = pSrc[x] - pMCP[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pMCP  += iMCPStride;
+		  pDes  += iDesStride;
+	  }
+	  //===== chrominance V =====
+	  pSrc          = pcSrcYuvPicBuffer->getMbCrAddr();
+	  pMCP          = pcMCPYuvPicBuffer->getMbCrAddr();
+	  pDes          = getMbCrAddr();
+
+	  for( y = 0; y < 8; y++ )
+	  {
+		  for( x = 0; x < 8; x++ )
+		  {
+			  pDes[x] = pSrc[x] - pMCP[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pMCP  += iMCPStride;
+		  pDes  += iDesStride;
+	  }
+	  return Err::m_nOK;
+  }
+  ErrVal IntYuvPicBuffer::inversepredictionSlices(IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer, UInt uiMbY, UInt uiMbX )
+  {
+	  pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  pcMCPYuvPicBuffer->m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  XPel* pSrc = pcSrcYuvPicBuffer->getMbLumAddr();
+	  XPel* pMCP = pcMCPYuvPicBuffer->getMbLumAddr();
+	  XPel* pDes        = getMbLumAddr();
+	  Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+	  Int   iMCPStride  = pcMCPYuvPicBuffer->getLStride();
+	  Int   iDesStride  = getLStride();
+	  UInt x,y;
+	  //===== luminance =====
+	  for( y = 0; y < 16; y++ )
+	  {
+		  for (x = 0; x < 16; x++)
+		  {
+			  pDes[x] = pSrc[x] + pMCP[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pMCP  += iMCPStride;
+		  pDes  += iDesStride;
+	  }
+
+	  //===== chrominance U =====
+	  iSrcStride  >>= 1;
+	  iMCPStride  >>= 1;
+	  iDesStride  >>= 1;
+	  pSrc          = pcSrcYuvPicBuffer->getMbCbAddr();
+	  pMCP          = pcMCPYuvPicBuffer->getMbCbAddr();
+	  pDes          = getMbCbAddr();
+
+	  for( y = 0; y < 8; y++ )
+	  {
+		  for( x = 0; x < 8; x++ )
+		  {
+			  pDes[x] = pSrc[x] + pMCP[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pMCP  += iMCPStride;
+		  pDes  += iDesStride;
+	  }
+	  //===== chrominance V =====
+	  pSrc          = pcSrcYuvPicBuffer->getMbCrAddr();
+	  pMCP          = pcMCPYuvPicBuffer->getMbCrAddr();
+	  pDes          = getMbCrAddr();
+
+	  for( y = 0; y < 8; y++ )
+	  {
+		  for( x = 0; x < 8; x++ )
+		  {
+			  pDes[x] = pSrc[x] + pMCP[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pMCP  += iMCPStride;
+		  pDes  += iDesStride;
+	  }
+	  return Err::m_nOK;
+  }
+  ErrVal IntYuvPicBuffer::copyMb(IntYuvPicBuffer* pcSrcYuvPicBuffer,UInt uiMbY, UInt uiMbX)
+  {
+	  pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  m_rcYuvBufferCtrl.initMb(uiMbY,uiMbX,false);
+	  XPel* pSrc = pcSrcYuvPicBuffer->getMbLumAddr();
+	  XPel* pDes        = getMbLumAddr();
+	  Int   iSrcStride  = pcSrcYuvPicBuffer->getLStride();
+	  Int   iDesStride  = getLStride();
+	  UInt x,y;
+	  //===== luminance =====
+	  for( y = 0; y < 16; y++ )
+	  {
+		  for (x = 0; x < 16; x++)
+		  {
+			  pDes[x] = pSrc[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pDes  += iDesStride;
+	  }
+
+	  //===== chrominance U =====
+	  iSrcStride  >>= 1;
+	  iDesStride  >>= 1;
+	  pSrc          = pcSrcYuvPicBuffer->getMbCbAddr();
+	  pDes          = getMbCbAddr();
+
+	  for( y = 0; y < 8; y++ )
+	  {
+		  for( x = 0; x < 8; x++ )
+		  {
+			  pDes[x] = pSrc[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pDes  += iDesStride;
+	  }
+	  //===== chrominance V =====
+	  pSrc          = pcSrcYuvPicBuffer->getMbCrAddr();
+	  pDes          = getMbCrAddr();
+
+	  for( y = 0; y < 8; y++ )
+	  {
+		  for( x = 0; x < 8; x++ )
+		  {
+			  pDes[x] = pSrc[x];
+		  }
+		  pSrc  += iSrcStride;
+		  pDes  += iDesStride;
+	  }
+	  return Err::m_nOK;
+  }
+//JVT-X046 }
 ErrVal IntYuvPicBuffer::prediction( IntYuvPicBuffer*  pcSrcYuvPicBuffer,
                                     IntYuvPicBuffer*  pcMCPYuvPicBuffer )
 {

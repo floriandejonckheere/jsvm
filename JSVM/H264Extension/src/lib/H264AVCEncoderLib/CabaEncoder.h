@@ -140,6 +140,7 @@ public:
     pcExtEncoder->m_uiBitsLeft          = m_uiBitsLeft;
     pcExtEncoder->m_uiBitsToFollow      = m_uiBitsToFollow;
   }
+	BitWriteBufferIf* getBitWriteBufferIf(void){return m_pcBitWriteBufferIf;}//JVT-X046
 
 private:
   __inline ErrVal xWriteBit( UInt uiBit);

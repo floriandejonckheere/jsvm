@@ -114,8 +114,8 @@ public:
   Bool                readDataFile            ()          const { return m_uiDataFileMode == 1; }
   Bool                useIndependentDistCalc  ()          const { return ( m_uiDistortionEstimationMode & 1) == 1; }
   Bool                useDependentDistCalc    ()          const { return ( m_uiDistortionEstimationMode & 2) == 2; }
-  Bool                writeQualityLayerSEI    ()          const { return m_bQualityLayerSEI; }
-
+  //Bool                writeQualityLayerSEI    ()          const { return m_bQualityLayerSEI; }//SEI changes update
+  Bool                writePriorityLevelSEI    ()          const { return m_bPriorityLevelSEI; }//SEI changes update
   QLAssignerMode      getQLAssignerMode       ()          const { return m_eQLAssignerMode; }
 protected:
   ErrVal              xPrintUsage             ( Char** argv );
@@ -128,7 +128,8 @@ private:
   std::string   m_cDataFileName;
   UInt          m_uiDataFileMode;
   UInt          m_uiDistortionEstimationMode;
-  Bool          m_bQualityLayerSEI;
+  //Bool          m_bQualityLayerSEI;//SEI changes update
+	Bool          m_bPriorityLevelSEI;//SEI changes update
   //JVT-S043
   QLAssignerMode  m_eQLAssignerMode;
 };

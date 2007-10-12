@@ -461,7 +461,8 @@ ErrVal H264AVCDecoderTest::go()
 		  {
 			  BinDataAccessor	lcBinDataAccessor;
 			  lcBinDataAccessor	=	cBinDataAccessor;
-
+				
+				m_pcH264AVCDecoder->m_bDiscard = false;//JVT-X046
 			  MyList<BinData*>	cVirtualSliceList;
 			  while ( Err::m_nERR == m_pcH264AVCDecoder->checkSliceGap( &lcBinDataAccessor, cVirtualSliceList))
 			  {
@@ -471,6 +472,13 @@ ErrVal H264AVCDecoderTest::go()
 				  pcBinData->setMemAccessor( cBinDataAccessor );
 				  lcBinDataAccessor	=	cBinDataAccessor;
 			  }
+				//JVT-X046 {
+				if ( m_pcH264AVCDecoder->m_bDiscard )
+				{
+					m_pcH264AVCDecoder->decreaseNumOfNALInAU();
+				  break;
+				}				
+				//JVT-X046 }
 
 			  if ( cVirtualSliceList.empty())
 			  {
@@ -626,6 +634,12 @@ ErrVal H264AVCDecoderTest::go()
 		}
 //TMM_EC }}
 
+		//JVT-X046 {
+		if (m_pcH264AVCDecoder->m_bDiscard && (NULL != cBinDataAccessor.data()))
+		{			
+			continue;
+		}
+		//JVT-X046 }
     Bool bStart = false;
     MyList<BinData*>	cVirtualSliceList;
     pcBinData = 0;

@@ -391,7 +391,59 @@ ErrVal YuvPicBuffer::loadBufferAndFillMargin( YuvPicBuffer *pcSrcYuvPicBuffer )
   return Err::m_nOK;
 }
 
+//JVT-X046 {
+ErrVal YuvPicBuffer::loadMbBuffer (YuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress)
+{
+	Int uiSrcStride = pcSrcYuvPicBuffer->getLStride();
+	Int uiDesStride = getLStride();
+	UInt uiWidth     = pcSrcYuvPicBuffer->getLWidth ()/16;
+	UInt uiXPos,uiYPos;
+	uiXPos = uiMbAddress % uiWidth;
+	uiYPos = ( uiMbAddress - uiXPos )/uiWidth;
+	pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb(uiYPos,uiXPos,false);
+	m_rcYuvBufferCtrl.initMb(uiYPos,uiXPos,false);
+	Pel* pSrc = pcSrcYuvPicBuffer->getMbLumAddr();
+	Pel* pDes = getMbLumAddr();
 
+	UInt y;
+	for ( y = 0; y < 16; y++ )
+	{
+		memcpy(pDes,pSrc,16*sizeof(Pel));
+		pSrc += uiSrcStride;
+		pDes += uiDesStride;
+	}
+	uiSrcStride >>= 1;
+	uiDesStride >>= 1;
+	uiWidth >>= 1;
+	uiXPos >>= 1;
+	uiYPos >>= 1;
+	pSrc = pcSrcYuvPicBuffer->getMbCbAddr();
+	pDes = getMbCbAddr();
+	for ( y = 0; y < 8; y++ )
+	{
+		memcpy(pDes,pSrc,8*sizeof(Pel));
+		pSrc += uiSrcStride;
+		pDes += uiDesStride;
+	}
+	pSrc = pcSrcYuvPicBuffer->getMbCrAddr();
+	pDes = getMbCrAddr();
+	for ( y = 0; y < 8; y++ )
+	{
+		memcpy(pDes,pSrc,8*sizeof(Pel));
+		pSrc += uiSrcStride;
+		pDes += uiDesStride;
+	}
+	return Err::m_nOK;
+}
+ErrVal YuvPicBuffer::loadSliceBuffer( YuvPicBuffer *pcSrcYuvPicBuffer, UInt uiFirstMB, UInt uiLastMB )
+{
+	for (UInt uiMbAddress=uiFirstMB;uiMbAddress<uiLastMB;uiMbAddress++)
+	{
+		RNOK(loadMbBuffer(pcSrcYuvPicBuffer,uiMbAddress));
+	}
+	return Err::m_nOK;
+}
+//JVT-X046 }
 
 ErrVal YuvPicBuffer::loadBuffer( YuvPicBuffer *pcSrcYuvPicBuffer )
 {

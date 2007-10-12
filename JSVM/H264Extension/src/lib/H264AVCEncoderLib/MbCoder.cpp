@@ -98,11 +98,23 @@ MbCoder::MbCoder():
   m_bCabac( false ),
   m_bPrevIsSkipped( false )
 {
+	//JVT-X046 {
+	CabacWriter* pcCabacWrite;
+	UvlcWriter* pcUvlcWrite;
+	CabacWriter::create(pcCabacWrite);
+	UvlcWriter::create(pcUvlcWrite);
+	m_pcCabacSymbolWriteIf = pcCabacWrite;
+	m_pcUvlcSymbolWriteIf = pcUvlcWrite;
+	//JVT-X046 }
 }
 
 
 MbCoder::~MbCoder()
 {
+	//JVT-X046 {
+	delete m_pcCabacSymbolWriteIf;
+	delete m_pcUvlcSymbolWriteIf;
+	//JVT-X046 }
 }
 
 
@@ -368,6 +380,37 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
   m_bPrevIsSkipped = !bIsCoded;
 
   ROTRS( ! bSendTerminateSlice, Err::m_nOK );
+
+	//JVT-X046 {
+  if (m_uiSliceMode==2)
+  {
+		if (m_bCabac)
+		{
+			if ((getBitsWritten() >= m_uiSliceArgument))
+			{
+				m_pcMbSymbolWriteIf->loadCabacWrite(m_pcCabacSymbolWriteIf);
+				RNOK( m_pcMbSymbolWriteIf->terminatingBit ( true ? 1:0 ) );
+				RNOK( m_pcMbSymbolWriteIf->finishSlice() );
+				bSliceCodedDone=true;
+				return Err::m_nOK;
+			}
+			m_pcCabacSymbolWriteIf->loadCabacWrite(m_pcMbSymbolWriteIf);
+		}
+		else
+		{
+			if ((getBitsWritten() >= m_uiSliceArgument))
+			{
+				m_pcMbSymbolWriteIf->loadUvlcWrite(m_pcUvlcSymbolWriteIf);
+				RNOK( m_pcMbSymbolWriteIf->terminatingBit ( true ? 1:0 ) );
+				RNOK( m_pcMbSymbolWriteIf->finishSlice() );
+				bSliceCodedDone=true;
+				return Err::m_nOK;
+			}
+			m_pcUvlcSymbolWriteIf->loadUvlcWrite(m_pcMbSymbolWriteIf);
+		}
+	}
+	//JVT-X046 }
+
   //--- write terminating bit ---
   RNOK( m_pcMbSymbolWriteIf->terminatingBit ( bTerminateSlice ? 1:0 ) );
 

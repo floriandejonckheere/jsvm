@@ -222,7 +222,11 @@ public:
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
                 NalUnitType           eNalUnitType );
-
+//SSPS {
+	ErrVal writeSubSPS( HeaderSymbolWriteIf*  pcWriteIf )       const;
+  ErrVal readSubSPS ( HeaderSymbolReadIf*   pcReadIf,
+                NalUnitType           eNalUnitType );
+//SSPS }
 // TMM_ESS {
   Void setResizeParameters    ( const ResizeParameters * params );
   Void getResizeParameters    ( ResizeParameters * params ) const;
@@ -272,6 +276,44 @@ public:
   UInt          getMaxCPBSize() const;
   UInt          getMaxBitRate() const;
   // JVT-V068 HRD } 
+
+//SSPS {
+	ErrVal writeSVCVUIParametersExtension ( HeaderSymbolWriteIf*  pcWriteIf )  const;
+	ErrVal ReadSVCVUIParametersExtension ( HeaderSymbolReadIf*   pcReadIf );
+  Bool getSVCVUIParametersPresentFlag()            const { return m_bSVCVUIParametersPresentFlag;      }
+	Bool getAdditionalExtension2Flag()               const { return m_bAdditionalExtension2Flag;         }
+  Bool getAdditionalExtension2DataFlag()           const { return m_bAdditionalExtension2DataFlag;     }
+	Bool getSubSPS()                                 const { return m_bSubSPS;                           }
+	Bool getFixedFrameRateFlag( UInt ui )            const { return m_bFixedFrameRateFlag[ui];           }
+  Bool getNalHrdParametersPresentFlag( UInt ui )   const { return m_bNalHrdParametersPresentFlag[ui];  }
+	Bool getVclHrdParametersPresentFlag( UInt ui )   const { return m_bVclHrdParametersPresentFlag[ui];  }
+	Bool getPicStructPresentFlag( UInt ui )          const { return m_bPicStructPresentFlag[ui];         }
+	Bool getTimingInfoPresentFlag( UInt ui )         const { return m_bTimingInfoPresentFlag[ui];        }
+	Bool getLowDelayHrdFlag( UInt ui )               const { return m_bLowDelayHrdFlag[ui];              }
+	UInt getNumLayersMinus1()                        const { return m_uiNumLayersMinus1;                 }
+	UInt getDependencyId( UInt ui )                  const { return m_uiDependencyId[ui];                }
+	UInt getQualityId( UInt ui )                     const { return m_uiQualityId[ui];                   }
+	UInt getTemporalId( UInt ui )                    const { return m_uiTemporalId[ui];                  }
+	UInt getNumUnitsInTick( UInt ui )                const { return m_uiNumUnitsInTick[ui];              }
+	UInt getTimeScale( UInt ui )                     const { return m_uiTimeScale[ui];                   }
+	Void setFixedFrameRateFlag( UInt ui, Bool b )          {  m_bFixedFrameRateFlag[ui]  = b;            }
+  Void setNalHrdParametersPresentFlag( UInt ui, Bool b ) {  m_bNalHrdParametersPresentFlag[ui]  = b;   }
+	Void setVclHrdParametersPresentFlag( UInt ui, Bool b ) {  m_bVclHrdParametersPresentFlag[ui]  = b;   }
+	Void setPicStructPresentFlag( UInt ui, Bool b )        {  m_bPicStructPresentFlag[ui]  = b;          }
+	Void setTimingInfoPresentFlag( UInt ui, Bool b )       {  m_bTimingInfoPresentFlag[ui]  = b;         } 
+	Void setLowDelayHrdFlag( UInt ui, Bool b )             {  m_bLowDelayHrdFlag[ui]  = b;               }
+	Void setNumLayersMinus1( UInt ui)                      {  m_uiNumLayersMinus1  = ui;                 }
+	Void setDependencyId( UInt ui,UInt uj )                {  m_uiDependencyId[ui]  = uj;                }
+	Void setQualityId( UInt ui,UInt uj )                   {  m_uiQualityId[ui]  = uj;                   }
+	Void setTemporalId( UInt ui,UInt uj )                  {  m_uiTemporalId[ui]  = uj;                  }
+	Void setNumUnitsInTick( UInt ui,UInt uj )              {  m_uiNumUnitsInTick[ui]  = uj;              }
+	Void setTimeScale( UInt ui,UInt uj )                   {  m_uiTimeScale[ui]  = uj;                   }
+  Void setSVCVUIParametersPresentFlag ( Bool b )         {  m_bSVCVUIParametersPresentFlag  = b;       }
+	Void setAdditionalExtension2Flag    ( Bool b )         {  m_bAdditionalExtension2Flag     = b;       }
+  Void setAdditionalExtension2DataFlag( Bool b )         {  m_bAdditionalExtension2DataFlag = b;       }
+	Void setSubSPS                      ( Bool b )         {  m_bSubSPS                       = b;       }
+
+//SSPS }
 
 protected:
 	ErrVal xReadPicOrderCntInfo         ( HeaderSymbolReadIf* pcReadIf );
@@ -347,6 +389,26 @@ protected:
   // JVT-V068 HRD {
   VUI*          m_pcVUI;
   // JVT-V068 HRD }
+
+  //SSPS {
+	Bool m_bSubSPS;
+	Bool m_bSVCVUIParametersPresentFlag;
+	Bool m_bAdditionalExtension2Flag;
+	Bool m_bAdditionalExtension2DataFlag;
+	Bool m_bFixedFrameRateFlag[MAX_LAYERS];
+	Bool m_bNalHrdParametersPresentFlag[MAX_LAYERS];
+	Bool m_bVclHrdParametersPresentFlag[MAX_LAYERS];
+	Bool m_bPicStructPresentFlag[MAX_LAYERS];
+	Bool m_bTimingInfoPresentFlag[MAX_LAYERS];
+	Bool m_bLowDelayHrdFlag[MAX_LAYERS];
+	UInt m_uiNumLayersMinus1;
+	UInt m_uiDependencyId[MAX_LAYERS];
+	UInt m_uiQualityId[MAX_LAYERS];
+	UInt m_uiTemporalId[MAX_LAYERS];
+	UInt m_uiNumUnitsInTick[MAX_LAYERS];
+	UInt m_uiTimeScale[MAX_LAYERS];
+	//SSPS }
+
 private:
   static const LevelLimit m_aLevelLimit[52];
 };

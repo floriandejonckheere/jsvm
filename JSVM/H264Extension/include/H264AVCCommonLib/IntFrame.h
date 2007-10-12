@@ -135,7 +135,6 @@ public:
 
   Void            setRecPicBufUnit( RecPicBufUnit* pcUnit ) { m_pcDPBUnit = (DPBUnit*)(Void*)pcUnit; }
   RecPicBufUnit*  getRecPicBufUnit()                        { return (RecPicBufUnit*)(Void*)m_pcDPBUnit; }
-  
   ErrVal clip()
   {
     ASSERT( m_ePicType==FRAME );
@@ -257,7 +256,47 @@ public:
     return Err::m_nOK;
   }
   
-  
+    //JVT-X046 {
+  ErrVal predictionSlices       (IntFrame* pcSrcFrame,IntFrame* pcMCPFrame, UInt uiMbY, UInt uiMbX)
+  {	 
+	  RNOK( getFullPelYuvBuffer()->predictionSlices( pcSrcFrame->getFullPelYuvBuffer(), 
+		  pcMCPFrame->getFullPelYuvBuffer(), uiMbY, uiMbX ) );
+	  return Err::m_nOK;
+  }
+  ErrVal inversepredictionSlices       (IntFrame* pcSrcFrame,IntFrame* pcMCPFrame, UInt uiMbY, UInt uiMbX)
+  {	 
+	  RNOK( getFullPelYuvBuffer()->inversepredictionSlices( pcSrcFrame->getFullPelYuvBuffer(), 
+		  pcMCPFrame->getFullPelYuvBuffer(), uiMbY, uiMbX ) );
+	  return Err::m_nOK;
+  }
+  ErrVal copyMb       (IntFrame* pcSrcFrame, UInt uiMbY ,UInt uiMbX)
+  {	 
+	  RNOK( getFullPelYuvBuffer()->copyMb( pcSrcFrame->getFullPelYuvBuffer(),uiMbY,uiMbX) );
+	  return Err::m_nOK;
+  }
+	void   setMBZero( UInt uiMBY, UInt uiMBX ) { getFullPelYuvBuffer()->setMBZero(uiMBY,uiMBX); }
+	ErrVal copySlice (Frame* pcSrcFrame, PicType ePicType, UInt uiFirstMB, UInt uiLastMB)
+  {
+	  ASSERT( m_ePicType==FRAME );
+	  //m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
+	  if( ePicType==FRAME )
+	  {
+		  RNOK( getFullPelYuvBuffer()->copySlice( pcSrcFrame->getFullPelYuvBuffer(),uiFirstMB,uiLastMB) );
+	  }
+	  return Err::m_nOK;
+  }
+	ErrVal copySlice (IntFrame* pcSrcFrame, PicType ePicType, UInt uiFirstMB, UInt uiLastMB)
+  {
+	  ASSERT( m_ePicType==FRAME );
+	  //m_bUnusedForRef = pcSrcFrame->getUnusedForRef();// JVT-Q065 EIDR
+	  if( ePicType==FRAME )
+	  {
+		  RNOK( getFullPelYuvBuffer()->copySlice( pcSrcFrame->getFullPelYuvBuffer(),uiFirstMB,uiLastMB) );
+	  }
+	  return Err::m_nOK;
+  }
+	//JVT-X046 }
+
   //	TMM_EC {{
 	ErrVal  copy        ( Frame* pcSrcFrame, PicType ePicType )
   {

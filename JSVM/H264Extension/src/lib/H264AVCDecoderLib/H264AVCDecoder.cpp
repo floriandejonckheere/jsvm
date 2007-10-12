@@ -221,6 +221,22 @@ H264AVCDecoder::H264AVCDecoder()
   m_eErrorConceal  =	EC_NONE;
 	m_bNotSupport	=	false;
   m_baseMode = 1;
+	//JVT-X046 {
+	m_bPicDone = false;
+	m_bDiscard = false;
+	m_uiDecodedMbNum = 0;
+	m_uiNextFirstMb = 0;
+	m_uiLostMbNum = 0;
+	for ( uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+	{
+		m_uiMbNumInFrame[uiLayer] = 0;
+	}
+	for ( ui=0; ui<MAX_LAYERS; ui++ )
+	{
+		m_bMbStatus[ui] = NULL;
+		m_bLayerStatus[ui] = true;
+	}
+	//JVT-X046 }
 //  TMM_EC }}
 }
 
@@ -234,6 +250,16 @@ H264AVCDecoder::~H264AVCDecoder()
     delete m_pcBaseLayerCtrlEL;
     m_pcBaseLayerCtrlEL = 0;
   }
+	//JVT-X046 {
+	for ( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
+	{
+		if ( m_bMbStatus[uiLayer] != NULL )
+		{
+			delete [] m_bMbStatus[uiLayer];
+			m_bMbStatus[uiLayer] = NULL;
+		}
+	}
+	//JVT-X046 }
 }
 
 
@@ -796,7 +822,55 @@ H264AVCDecoder::checkSEIForErrorConceal()
 	}
 	return	ret;
 }
+//JVT-X046 {
+Bool 
+H264AVCDecoder::checkOrderFromPoc(UInt uiPocLsb1,UInt uiPocLsb2,UInt& id1,UInt& id2,UInt uiDecompositionStages)
+{
+	UInt uiGOPSize = 1<<uiDecompositionStages;	
+	UInt *Mapping = new UInt[uiGOPSize];
+	memset(Mapping,0,uiGOPSize*sizeof(UInt));
+	UInt *MappingTmp = new UInt[uiGOPSize];
+	memset(MappingTmp,0,uiGOPSize*sizeof(UInt));
+	UInt uiCurrIdx;
 
+	uiPocLsb1 = uiPocLsb1 % uiGOPSize;
+	uiPocLsb2 = uiPocLsb2 % uiGOPSize;
+
+	Mapping[0] = 0;	
+	for ( UInt uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
+	{
+		uiCurrIdx = 1;
+		for( Int iLevel = (Int)uiDecompositionStages - 1; iLevel >= 0; iLevel-- )
+		{
+			for( UInt uiFrame = 1; uiFrame <= ( uiGOPSize >> iLevel ); uiFrame += 2, uiCurrIdx++ )
+			{
+				if( uiAUIndex == uiCurrIdx )
+				{ 
+					Mapping[uiCurrIdx] = uiFrame << iLevel;
+				}
+			}
+		}
+	}
+
+	for ( UInt uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
+	{
+		for (UInt i = 0; i < uiGOPSize;i++)
+		{
+			if ( Mapping[i] == uiAUIndex )
+				break;
+		}
+		MappingTmp[uiAUIndex] = i;
+	}
+	for ( UInt uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
+	{
+		Mapping[uiAUIndex] = MappingTmp[uiAUIndex];;
+	}
+
+	id1 = Mapping[uiPocLsb1];
+	id2 = Mapping[uiPocLsb2];
+	return true;
+}
+//JVT-X046 }
 ErrVal
 H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
                                MyList<BinData*>& cVirtualSliceList )
@@ -820,6 +894,10 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 
 
 //TMM_EC {{
+	//JVT-X046 {
+	UInt	uiFirstMb;
+	m_bDiscard = false;
+	//JVT-X046 }
   if ( bEos && !bFinished)
   {
     bFinished = true;
@@ -933,10 +1011,10 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 					{
 						m_bNotSupport	=	true;
 					}
-					if ( pcSliceHeader->getFirstMbInSlice() != 0)
+					/*if ( pcSliceHeader->getFirstMbInSlice() != 0)//JVT-X046 commented
 					{
 						m_bNotSupport	=	true;
-					}
+					}*/
 					if ( pcSliceHeader->getFrameNum() == 1)
 					{
 						UInt	i=pcSliceHeader->getPicOrderCntLsb();
@@ -961,6 +1039,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 				frame_num	=	pcSliceHeader->getFrameNum();
 				uiLayerId	=	pcSliceHeader->getLayerId();
 				uiPocLsb	=	pcSliceHeader->getPicOrderCntLsb();
+				uiFirstMb = pcSliceHeader->getFirstMbInSlice();//JVT-X046
 				UInt uiGopSize	=	m_uiGopSize[uiLayerId];
 				if ( frame_num == 1 &&m_uiMaxLayerId==uiLayerId&& uiPocLsb > uiGopSize)
 				{
@@ -988,6 +1067,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 				uiMaxPocLsb		=	1 << pcSH->getSPS().getLog2MaxPicOrderCntLsb();
 				uiLayerId	=	m_uiNextLayerId;
 				UInt uiGopSize	=	1 << m_uiDecompositionStages[uiLayerId];
+				uiFirstMb = pcSH->getFirstMbInSlice();//JVT-X046
 //				uiGopSize	=	m_uiGopSize[uiLayerId];
 				if ( m_uiFrameIdx[uiLayerId] % uiGopSize != 1)
 				{
@@ -1010,14 +1090,60 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 			}
 		}
 
-		if ( frame_num != m_uiNextFrameNum || uiLayerId != m_uiNextLayerId || uiPocLsb != (m_uiNextPoc % uiMaxPocLsb))
+//JVT-X046 {
+		if ( m_uiNextFirstMb == 0 && !bEos )
+		{			
+			UInt	uiGopSize = 1 << m_uiDecompositionStages[m_uiNextLayerId];
+			UInt	uiMaxGopSize	=	m_uiMaxGopSize;
+			do
+			  {
+				  m_uiNextLayerId		=	(m_uiNextLayerId + 1) % m_uiNumLayers;
+				  uiGopSize	=	1 << m_uiDecompositionStages[m_uiNextLayerId];
+				  if (m_uiFrameIdx[m_uiNextLayerId] % uiMaxGopSize < m_uiGopSize[m_uiNextLayerId])
+					  break;
+				  m_uiFrameIdx[m_uiNextLayerId]++;
+			  }
+			  while( true);
+			m_bLayerStatus[m_uiNextLayerId] = true;//initilization
+			if ( ((m_pcNalUnitParser->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE)&&(m_uiNextLayerId != 0))
+				||(m_pcNalUnitParser->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR) )
+			{
+				m_uiNextPoc = 0;
+				m_uiNextFrameNum = 0;
+			}
+			else
+			{
+				m_uiNextFrameNum		=	m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize] % uiMaxFrameNum;
+				m_uiNextPoc					=	m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
+				m_uiNextTempLevel		=	m_pauiTempLevelInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
+
+				if ( uiGopSize == 1)
+				{
+					m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	1;
+				}
+				else
+				{
+					m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	uiGopSize >> 1;
+				}
+				m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	uiMaxGopSize;				
+				m_uiFrameIdx[m_uiNextLayerId]++;
+			}
+		}
+		if ( m_uiNextFirstMb == -1 )//treat it special when m_bDiscard is true
+		{
+			m_uiNextFirstMb = 0;
+		}
+		if ( frame_num != m_uiNextFrameNum || uiLayerId != m_uiNextLayerId || uiPocLsb != (m_uiNextPoc % uiMaxPocLsb) || uiFirstMb != m_uiNextFirstMb)
+		//if ( frame_num != m_uiNextFrameNum || uiLayerId != m_uiNextLayerId || uiPocLsb != (m_uiNextPoc % uiMaxPocLsb))
+		//JVT-X046 }
 		{
 //	judge if the uncompleted GOP
 			UInt	uiFrameIdx	=	0;
 			UInt	uiGopSize	=	1 << m_uiDecompositionStages[uiLayerId];
 //			UInt	uiGopSize	=	m_uiGopSize[uiLayerId];
 
-			for ( ;uiFrameIdx < uiGopSize; uiFrameIdx++)
+			//JVT-X046
+			/*for ( ;uiFrameIdx < uiGopSize; uiFrameIdx++)
 			{
 				if ( m_pauiPocInGOP[uiLayerId][uiFrameIdx]	% uiMaxPocLsb ==	uiPocLsb)
 					break;
@@ -1195,7 +1321,285 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
             m_uiNumOfNALInAU++;  //TMM_EC
 					}
 				}
+			}*/
+			//JVT-X046 {
+			if ( frame_num == m_uiNextFrameNum && uiPocLsb == (m_uiNextPoc % uiMaxPocLsb) )
+			{
+				if ( m_uiNextLayerId == uiLayerId && m_uiNextFirstMb != uiFirstMb )
+					m_uiLostMbNum = uiFirstMb - m_uiNextFirstMb;
+				else
+					m_uiLostMbNum = m_uiMbNumInFrame[m_uiNextLayerId] - m_uiNextFirstMb;
+				if ( m_uiNextLayerId == 0) 
+				{
+					BinData	*pcBinData = new BinData;
+					pcBinData->set( new UChar[11], 11);
+					*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE;
+					*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+					*(Short*)(pcBinData->data()+5)	=	(Short) m_uiNextFrameNum;
+					*(Short*)(pcBinData->data()+7)	=	(Short) m_uiNextPoc;
+					*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+					*(pcBinData->data()+pcBinData->size()-1)	=	0;
+					cVirtualSliceList.pushFront( pcBinData);
+				}
+				else
+				{
+					BinData	*pcBinData = new BinData;
+					pcBinData->set( new UChar[11], 11);
+					*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE_SCALABLE;
+					*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+					*(Short*)(pcBinData->data()+5)	=	(Short)m_uiNextFrameNum;
+					*(Short*)(pcBinData->data()+7)	=	(Short)m_uiNextPoc;
+					*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+					*(pcBinData->data()+pcBinData->size()-1)	=	0;
+					cVirtualSliceList.pushFront( pcBinData);
+					m_uiNumOfNALInAU++;  //TMM_EC
+				}
 			}
+			else
+			{
+				//check which packet should be discarded
+				UInt id1,id2;
+				id1 = uiPocLsb/m_uiMaxGopSize + ( (uiPocLsb % m_uiMaxGopSize)? 1:0 );
+				if ( m_uiNextPoc%uiMaxPocLsb == 0 )
+				{
+					id2 = ( (m_uiNextPoc-1) % uiMaxPocLsb + 1 )/m_uiMaxGopSize + ( (m_uiNextPoc % m_uiMaxGopSize)? 1:0 );
+				}
+				else
+				{
+					id2 = ( (m_uiNextPoc) % uiMaxPocLsb )/m_uiMaxGopSize + ( (m_uiNextPoc % m_uiMaxGopSize)? 1:0 );
+				}
+				if ( (id2 > id1)&&(id2 < id1 + uiMaxPocLsb/m_uiMaxGopSize/2) || id1 > id2 + uiMaxPocLsb/m_uiMaxGopSize/2 )
+				{
+					m_bDiscard = true;
+					m_uiNextFirstMb = -1;//treat it special
+					return Err::m_nOK;
+				}
+				if ( (id2 > id1)&&((id2-id1)%(uiMaxPocLsb/m_uiMaxGopSize) == 0) )
+				{
+					id2 = id1;
+				}
+				if ( id2 == id1 )
+					checkOrderFromPoc(uiPocLsb,m_uiNextPoc % uiMaxPocLsb,id1,id2,m_uiDecompositionStages[uiLayerId]);
+				else
+					id2 = id1;
+				if ( id2 > id1)
+				{
+					m_bDiscard = true;
+					m_uiNextFirstMb = -1;
+					return Err::m_nOK;
+				}
+				//check end
+				for ( ;uiFrameIdx < uiGopSize; uiFrameIdx++)
+				{
+					if ( m_pauiPocInGOP[uiLayerId][uiFrameIdx]	% uiMaxPocLsb ==	uiPocLsb)
+						break;
+				}				
+				if ( ( m_pauiFrameNumInGOP[uiLayerId][uiFrameIdx] % uiMaxFrameNum ) != frame_num && (uiPocLsb-1) / m_uiMaxGopSize == ((m_uiNextPoc-1) % uiMaxPocLsb) / m_uiMaxGopSize)
+				{
+	//	uncomplete GOP structure
+	//	calculate the gop size of the layer current packet belongs to
+					if ( uiPocLsb % ( 2<<(m_uiMaxDecompositionStages-m_uiDecompositionStages[uiLayerId])) != 0)
+					{
+						m_uiGopSize[uiLayerId]	=	(((frame_num-1) % (uiGopSize>>1))<< 1) + 1;
+					}
+					else
+					{
+						UInt	uiFrameDiff	=	( m_pauiFrameNumInGOP[uiLayerId][uiFrameIdx] % uiMaxFrameNum)  - frame_num;
+						UInt	uiTL	=	m_uiDecompositionStages[uiLayerId];
+						UInt	uiTmp	=	uiPocLsb >> (m_uiMaxDecompositionStages - m_uiDecompositionStages[uiLayerId]);
+						while( uiTmp % 2 == 0)
+						{
+							uiTmp	>>=1;
+							uiTL--;
+						}
+						UInt ui = 0;
+						for ( ui=m_uiGopSize[uiLayerId]&(-2); ui>0; ui-=2)
+						{
+							UInt	uiTempLevel	=	m_uiDecompositionStages[uiLayerId];
+							uiTmp	=	ui;
+							while( uiTmp % 2 == 0)
+							{
+								uiTmp	>>=1;
+								uiTempLevel--;
+							}
+							if ( uiTL <= uiTempLevel)
+							{
+								continue;
+							}
+							uiFrameDiff--;
+							if ( uiFrameDiff == 0)
+							{
+								break;
+							}
+						}
+						m_uiGopSize[uiLayerId]	=	ui - 1;
+					}
+					//	calculate the gop size of other layers
+					UInt  ui=0; 
+					for ( ui=0; ui<uiLayerId; ui++)
+					{
+						m_uiGopSize[ui]	=	m_uiGopSize[uiLayerId] >> (m_uiDecompositionStages[uiLayerId] - m_uiDecompositionStages[ui]);
+					}
+					for ( ui=uiLayerId+1; ui<m_uiNumLayers; ui++)
+					{
+						m_uiGopSize[ui]	=	( m_uiGopSize[uiLayerId] << (m_uiDecompositionStages[ui] - m_uiDecompositionStages[uiLayerId])) + ((1<<(m_uiDecompositionStages[ui] - m_uiDecompositionStages[uiLayerId])) -1);
+					}
+	//	calculate the correct frame_num and poc of every packet in this uncompleted gop each layer
+					m_uiFrameIdx[m_uiNextLayerId]--;
+					for ( ui=0; ui<m_uiNumLayers; ui++)
+					{
+						uiFrameIdx      	=	0;
+						UInt	uiFrameNum	=	m_pauiFrameNumInGOP[ui][0];
+						UInt	uiPoc	=	( m_uiNextPoc - 1 ) & -(1<<m_uiMaxDecompositionStages);
+						if ( ui == 0 || m_uiFrameIdx[ui] % (1<<m_uiDecompositionStages[ui]) != 0)
+							uiFrameNum	-=	( 1 << ( m_uiDecompositionStages[ui] - 1 ) );
+						UInt	uiDecompositionStagesSub	=	m_uiMaxDecompositionStages - m_uiDecompositionStages[ui];
+						for( UInt uiTemporalLevel = 0; uiTemporalLevel <= m_uiDecompositionStages[ui]; uiTemporalLevel++ )
+						{
+							UInt      uiStep    = ( 1 << ( m_uiDecompositionStages[ui] - uiTemporalLevel ) );
+							for( UInt uiFrameId = uiStep; uiFrameId <= m_uiGopSize[ui]; uiFrameId += ( uiStep << 1 ) )
+							{
+								m_pauiPocInGOP[ui][uiFrameIdx]	=	(uiFrameId << uiDecompositionStagesSub ) + uiPoc;
+								m_pauiFrameNumInGOP[ui][uiFrameIdx]	=	uiFrameNum;
+								m_pauiTempLevelInGOP[ui][uiFrameIdx]	=	uiTemporalLevel;
+								uiFrameIdx++;
+								if ( uiFrameId % 2 == 0)
+									uiFrameNum++;
+							}
+						}
+						for ( uiFrameIdx=0; uiFrameIdx<m_uiFrameIdx[ui] % (1<<m_uiDecompositionStages[ui]); uiFrameIdx++)
+						{
+							m_pauiPocInGOP[ui][uiFrameIdx]	+=	m_uiMaxGopSize;
+							m_pauiFrameNumInGOP[ui][uiFrameIdx]	+=	(1<<(m_uiDecompositionStages[ui]-1));
+						}
+					}
+					//07.09.11
+					if ( m_uiNextFirstMb == 0 && !bEos )
+					{
+						do
+						{
+							if (m_uiFrameIdx[m_uiNextLayerId] % m_uiMaxGopSize < m_uiGopSize[m_uiNextLayerId])
+								break;
+							m_uiNextLayerId		=	(m_uiNextLayerId + 1) % m_uiNumLayers;
+						}
+						while( true);
+						if (m_uiFrameIdx[m_uiNextLayerId] % m_uiMaxGopSize < m_uiGopSize[m_uiNextLayerId])
+						{
+							uiMaxFrameNum				=	1 << pcSliceHeader->getSPS().getLog2MaxFrameNum();
+							m_uiNextFrameNum		=	m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize] % uiMaxFrameNum;
+							m_uiNextPoc					=	m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
+							m_uiNextTempLevel		=	m_pauiTempLevelInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
+							// TMM_EC
+							if ( uiGopSize == 1)
+								m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	1 ;
+							else
+								m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	1 << ( m_uiDecompositionStages[m_uiNextLayerId] - 1);
+
+							m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	m_uiMaxGopSize;
+							m_uiFrameIdx[m_uiNextLayerId]++;
+						}
+					}
+					//07.09.11
+					if ( frame_num != m_uiNextFrameNum || uiLayerId != m_uiNextLayerId || uiPocLsb != (m_uiNextPoc % uiMaxPocLsb) || uiFirstMb != m_uiNextFirstMb)
+					{
+						if ( frame_num == m_uiNextFrameNum && uiPocLsb == (m_uiNextPoc % uiMaxPocLsb) )
+						{
+							if ( m_uiNextLayerId == uiLayerId && m_uiNextFirstMb != uiFirstMb )
+								m_uiLostMbNum = uiFirstMb - m_uiNextFirstMb;
+							else
+								m_uiLostMbNum = m_uiMbNumInFrame[m_uiNextLayerId] - m_uiNextFirstMb;
+							if ( m_uiNextLayerId == 0) 
+							{
+								BinData	*pcBinData = new BinData;
+								pcBinData->set( new UChar[11], 11);
+								*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE;
+								*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+								*(Short*)(pcBinData->data()+5)	=	(Short) m_uiNextFrameNum;
+								*(Short*)(pcBinData->data()+7)	=	(Short) m_uiNextPoc;
+								*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+								*(pcBinData->data()+pcBinData->size()-1)	=	0;
+								cVirtualSliceList.pushFront( pcBinData);
+							}
+							else
+							{
+								BinData	*pcBinData = new BinData;
+								pcBinData->set( new UChar[11], 11);
+								*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE_SCALABLE;
+								*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+								*(Short*)(pcBinData->data()+5)	=	(Short)m_uiNextFrameNum;
+								*(Short*)(pcBinData->data()+7)	=	(Short)m_uiNextPoc;
+								*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+								*(pcBinData->data()+pcBinData->size()-1)	=	0;
+								cVirtualSliceList.pushFront( pcBinData);
+								m_uiNumOfNALInAU++;  //TMM_EC
+							}
+						}
+						else
+						{
+							m_uiLostMbNum = m_uiMbNumInFrame[m_uiNextLayerId] - m_uiNextFirstMb;
+							if ( m_uiNextLayerId == 0 && m_baseMode == 1) 
+							{
+								BinData	*pcBinData = new BinData;
+								pcBinData->set( new UChar[11], 11);
+								//					*(pcBinData->data()+0)	=	NAL_UNIT_VIRTUAL_BASELAYER;
+								*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE;
+								*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+								*(Short*)(pcBinData->data()+5)	=	(Short) m_uiNextFrameNum;
+								*(Short*)(pcBinData->data()+7)	=	(Short) m_uiNextPoc;
+								*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+								*(pcBinData->data()+pcBinData->size()-1)	=	0;
+								cVirtualSliceList.pushFront( pcBinData);
+							}
+							else
+							{
+								BinData	*pcBinData = new BinData;
+								pcBinData->set( new UChar[11], 11);
+								//					*(pcBinData->data()+0)	=	NAL_UNIT_VIRTUAL_ENHANCELAYER;
+								*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE_SCALABLE;
+								*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+								*(Short*)(pcBinData->data()+5)	=	(Short)m_uiNextFrameNum;
+								*(Short*)(pcBinData->data()+7)	=	(Short)m_uiNextPoc;
+								*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+								*(pcBinData->data()+pcBinData->size()-1)	=	0;
+								cVirtualSliceList.pushFront( pcBinData);
+								m_uiNumOfNALInAU++;  //TMM_EC
+							}
+						}
+					}
+				}
+				else
+				{					
+					m_uiLostMbNum = m_uiMbNumInFrame[m_uiNextLayerId] - m_uiNextFirstMb;
+					if ( m_uiNextLayerId == 0 && m_baseMode == 1) 
+					{
+						BinData	*pcBinData = new BinData;
+						pcBinData->set( new UChar[11], 11);
+						//					*(pcBinData->data()+0)	=	NAL_UNIT_VIRTUAL_BASELAYER;
+						*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE;
+						*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+						*(Short*)(pcBinData->data()+5)	=	(Short) m_uiNextFrameNum;
+						*(Short*)(pcBinData->data()+7)	=	(Short) m_uiNextPoc;
+						*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+						*(pcBinData->data()+pcBinData->size()-1)	=	0;
+						cVirtualSliceList.pushFront( pcBinData);
+					}
+					else
+					{
+						BinData	*pcBinData = new BinData;
+						pcBinData->set( new UChar[11], 11);
+						//					*(pcBinData->data()+0)	=	NAL_UNIT_VIRTUAL_ENHANCELAYER;
+						*(pcBinData->data()+0)	=	NAL_UNIT_CODED_SLICE_SCALABLE;
+						*(Int*)(pcBinData->data()+1)	=	0xdeadface;
+						*(Short*)(pcBinData->data()+5)	=	(Short)m_uiNextFrameNum;
+						*(Short*)(pcBinData->data()+7)	=	(Short)m_uiNextPoc;
+						*(pcBinData->data()+9)	=	(UChar) m_uiNextTempLevel;
+						*(pcBinData->data()+pcBinData->size()-1)	=	0;
+						cVirtualSliceList.pushFront( pcBinData);
+						m_uiNumOfNALInAU++;  //TMM_EC
+					}
+				}
+			}
+   		//JVT-X046 }
 		}
 	}
 
@@ -1278,7 +1682,9 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 	//JVT-W047
 
 //prefix unit{{
-	if(m_pcPrefixSliceHeader && (ruiNalUnitType != NAL_UNIT_CODED_SLICE && ruiNalUnitType != NAL_UNIT_CODED_SLICE_IDR))
+	//JVT-X046
+	//if(m_pcPrefixSliceHeader && (ruiNalUnitType != NAL_UNIT_CODED_SLICE && ruiNalUnitType != NAL_UNIT_CODED_SLICE_IDR))
+	if(m_pcPrefixSliceHeader && (ruiNalUnitType != NAL_UNIT_CODED_SLICE && ruiNalUnitType != NAL_UNIT_CODED_SLICE_IDR &&ruiNalUnitType != NAL_UNIT_CODED_SLICE_SCALABLE && ruiNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE ))
 	{
 		delete m_pcPrefixSliceHeader;
 		m_pcPrefixSliceHeader = NULL;
@@ -1336,6 +1742,10 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
   	bSuffixUnit = true; //JVT-S036 lsj
 
 //TMM_EC {{
+//JVT-X046 {
+	if ( m_eErrorConceal == EC_NONE )
+	{
+//JVT-X046 }
 		if (!m_bNotSupport && !bPreParseHeader)
 		{
 				UInt	uiMaxGopSize	=	m_uiMaxGopSize;
@@ -1380,15 +1790,30 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 				  //JVT-W049 }
 			  }
 		}
+//JVT-X046 {
+	}
+//JVT-X046 }
 //TMM_EC }}
 	}
 	break;
   case NAL_UNIT_SPS:
+	case NAL_UNIT_SUB_SPS://SSPS
     {
       SequenceParameterSet* pcSPS = NULL;
       RNOK( SequenceParameterSet::create  ( pcSPS   ) );
-      RNOK( pcSPS               ->read    ( m_pcHeaderSymbolReadIf,
+			//SSPS {
+			if( m_pcNalUnitParser->getNalUnitType() == NAL_UNIT_SPS )
+			{
+        RNOK( pcSPS               ->read    ( m_pcHeaderSymbolReadIf,
                                             m_pcNalUnitParser->getNalUnitType() ) );
+			}
+			else
+			{
+        RNOK( pcSPS               ->readSubSPS( m_pcHeaderSymbolReadIf,
+                                            m_pcNalUnitParser->getNalUnitType() ) );
+			  
+			}
+			//SSPS }
       // It is assumed that layer 0 and layer 1 use the first two SPSs, respectively.
       if( NULL == m_pcVeryFirstSPS )
       {
@@ -1463,6 +1888,24 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
       ruiEndPos = pcBinDataAccessor->size(); //JVT-P031
       bDiscardable = false;//JVT-P031
       rbStartDecoding = true;//JVT-P031
+			//JVT-X046 {
+			if ( pcSPS->getSeqParameterSetId() == 0 )
+			{
+				m_uiFrameHeightInMb = pcSPS->getFrameHeightInMbs();	
+				m_uiFrameWidthInMb = pcSPS->getFrameWidthInMbs();
+			}
+			m_uiMbNumInFrame[pcSPS->getSeqParameterSetId()] = pcSPS->getFrameHeightInMbs()*pcSPS->getFrameWidthInMbs();
+			if ( m_bMbStatus[pcSPS->getSeqParameterSetId()] != NULL )
+			{
+				delete [] m_bMbStatus[pcSPS->getSeqParameterSetId()];				
+				m_bMbStatus[pcSPS->getSeqParameterSetId()] = NULL;
+			}
+			m_bMbStatus[pcSPS->getSeqParameterSetId()] = new Bool[m_uiMbNumInFrame[pcSPS->getSeqParameterSetId()]];
+			for ( UInt uiMbAddress = 0; uiMbAddress < m_uiMbNumInFrame[pcSPS->getSeqParameterSetId()]; uiMbAddress++ )
+			{
+				m_bMbStatus[pcSPS->getSeqParameterSetId()][uiMbAddress] = true;
+			}
+			//JVT-X046 }
     }
     break;
 
@@ -1549,6 +1992,10 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 				}
 			}
       //JVT-W049 }
+//JVT-X046 {
+		if ( m_eErrorConceal == EC_NONE )
+		{
+//JVT-X046 }
       if ( !m_bNotSupport && !bPreParseHeader && m_pcNalUnitParser->getQualityLevel() == 0)
       {
         UInt	uiMaxGopSize	=	m_uiMaxGopSize;
@@ -1600,6 +2047,48 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 				  //JVT-W049 }
 			  }
 		  }
+//JVT-X046 {
+		}
+		else
+		{		
+			if ( m_pcNalUnitParser->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+					if ( !m_bNotSupport && !bPreParseHeader && m_pcNalUnitParser->getQualityLevel() == 0 && m_uiNextFirstMb == 0)
+					{
+						UInt	uiMaxGopSize	=	m_uiMaxGopSize;
+						UInt	uiGopSize;
+						m_uiNextLayerId		=	m_pcSliceHeader->getLayerId();		  			
+						do
+						{
+							m_uiNextLayerId		=	(m_uiNextLayerId + 1) % m_uiNumLayers;						
+							uiGopSize	=	1 << m_uiDecompositionStages[m_uiNextLayerId];
+							if (m_uiFrameIdx[m_uiNextLayerId] % uiMaxGopSize < m_uiGopSize[m_uiNextLayerId])
+								break;
+							m_uiFrameIdx[m_uiNextLayerId]++;
+						}
+						while( true);
+		//EC bug fix					
+						if ( m_pcNalUnitParser->getNalUnitType() != NAL_UNIT_CODED_SLICE_IDR_SCALABLE || m_uiNextLayerId == 0)
+						{
+							UInt	uiMaxFrameNum	=	1 << m_pcSliceHeader->getSPS().getLog2MaxFrameNum();
+ 							//UInt	uiMaxPocLsb		=	1 << m_pcSliceHeader->getSPS().getLog2MaxPicOrderCntLsb();
+							m_uiNextFrameNum		=	m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize] % uiMaxFrameNum;
+							m_uiNextPoc					=	m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
+							m_uiNextTempLevel		=	m_pauiTempLevelInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize];
+							if ( uiGopSize == 1) 
+									m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	1;
+							else
+								m_pauiFrameNumInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	uiGopSize >> 1;
+							m_pauiPocInGOP[m_uiNextLayerId][m_uiFrameIdx[m_uiNextLayerId] % uiGopSize]	+=	uiMaxGopSize;
+							m_uiFrameIdx[m_uiNextLayerId]++;
+						}
+						else
+						{
+							m_uiNextFrameNum	=	0;
+							m_uiNextPoc			=	0;
+						}
+					}
+		}
+//JVT-X046 }
 //TMM_EC }}
   }
   break;
@@ -1670,6 +2159,11 @@ H264AVCDecoder::initPacket( BinDataAccessor*  pcBinDataAccessor,
 						//do nothing,or add your feedback information check here
 					}
 					//JVT-W052
+					//JVT-X032 {
+					else if(pcSEIMessage->getMessageType() == SEI::TL_SWITCHING_POINT_SEI)
+					{
+					}
+					//JVT-X032 }
 			    delete pcSEIMessage;
           pcSEIMessage = NULL;
 		}
@@ -2202,6 +2696,27 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
         RNOK(xInitSliceForAvcRewriteCoding(*m_pcSliceHeader));
       }
 #endif
+			//JVT-X046 {			
+			m_apcMCTFDecoder[m_uiLastLayerId]->m_uiNextFirstMb = m_uiNextFirstMb;
+			m_apcMCTFDecoder[m_uiLastLayerId]->m_uiLostMbNum = m_uiLostMbNum;
+			m_apcMCTFDecoder[m_uiLastLayerId]->m_uiMbNumInFrame =	m_pcSliceHeader->getSPS().getFrameHeightInMbs()*m_pcSliceHeader->getSPS().getFrameWidthInMbs();
+			if ( !m_apcMCTFDecoder[m_uiLastLayerId]->m_bMbStatus )
+			{				
+				m_apcMCTFDecoder[m_uiLastLayerId]->m_bMbStatus = new Bool[m_apcMCTFDecoder[m_uiLastLayerId]->m_uiMbNumInFrame];
+			}
+			if ( m_uiLastLayerId > 0 && m_bLayerStatus[m_uiLastLayerId-1] == false || !m_pcSliceHeader->getTrueSlice() )
+			{
+				if (m_uiLastLayerId > 0 && m_bLayerStatus[m_uiLastLayerId-1] == false)
+				{
+					m_uiLostMbNum = m_uiMbNumInFrame[m_uiLastLayerId] - m_uiNextFirstMb;
+					m_apcMCTFDecoder[m_uiLastLayerId]->m_uiLostMbNum = m_uiLostMbNum;
+				}
+				m_pcSliceHeader->setTrueSlice(false);
+				m_pcSliceHeader->setBaseLayerId(MSYS_UINT_MAX);
+				if ( m_pcSliceHeader->isIntra() == true )
+					m_pcSliceHeader->setSliceType(P_SLICE);
+			}
+			//JVT-X046 }
       RNOK( m_apcMCTFDecoder[m_uiLastLayerId] ->process     ( m_pcSliceHeader,
                                                               pcPicBuffer,
                                                               rcOutputList,
@@ -2214,6 +2729,10 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
         m_avcRewriteBindata->set(m_avcRewriteBinDataBuffer, m_avcRewriteBinDataAccessor->size());
       }
 #endif
+			//JVT-X046 {
+			m_uiDecodedMbNum = m_apcMCTFDecoder[m_uiLastLayerId] -> m_uiDecodedMbNum;
+			m_uiNextFirstMb = m_uiDecodedMbNum % m_uiMbNumInFrame[m_uiLastLayerId];
+			//JVT-X046 }
 
       return Err::m_nOK;
     }
@@ -2243,12 +2762,24 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
 // JVT-Q054 Red. Picture }
 
 //	TMM EC {{
-			m_apcMCTFDecoder[m_uiLastLayerId+1]->m_bBaseLayerLost	=	!m_pcSliceHeader->getTrueSlice();
+			//JVT-X046
+			//m_apcMCTFDecoder[m_uiLastLayerId+1]->m_bBaseLayerLost	=	!m_pcSliceHeader->getTrueSlice();
 
 //			if(eNalUnitType==NAL_UNIT_VIRTUAL_BASELAYER)
 			if ( !m_pcSliceHeader->getTrueSlice())
 			{
-				RNOK( xProcessSliceVirtual( *m_pcSliceHeader, m_pcPrevSliceHeader, pcPicBuffer ) );
+				//JVT-X046 {
+				//RNOK( xProcessSliceVirtual( *m_pcSliceHeader, m_pcPrevSliceHeader, pcPicBuffer ) );
+				if ( m_eErrorConceal == EC_FRAME_COPY )
+				{
+					RNOK( xDecodeBaseLayerVirtual( *m_pcSliceHeader, m_pcPrevSliceHeader, pcPicBuffer ) );
+				}
+				else
+				{
+					RNOK( xProcessSliceVirtual( *m_pcSliceHeader, m_pcPrevSliceHeader, pcPicBuffer ) );
+				}
+				m_bLayerStatus[m_pcSliceHeader->getLayerId()] = false;
+				//JVT-X046 }
 			}
 			else
 			{
@@ -2260,11 +2791,15 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
                              pcPicBuffer,
                              bHighestLayer ) ); //JVT-T054
 			}
+			m_apcMCTFDecoder[m_uiLastLayerId+1]->m_bBaseLayerLost = !m_bLayerStatus[m_uiLastLayerId];//JVT-X046
 //TMM_EC }}
 
       PicBufferList   cDummyList;
 //TMM
-      PicBufferList&  rcOutputList  = ( (!m_bCGSSNRInAU && m_uiRecLayerId == 0 && m_pcFrameMng->getPicBufferOutputList().size() ) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
+			//JVT-X046 {
+      //PicBufferList&  rcOutputList  = ( (!m_bCGSSNRInAU && m_uiRecLayerId == 0 && m_pcFrameMng->getPicBufferOutputList().size() ) ? rcPicBufferOutputList : cDummyList ); //JVT-T054
+			PicBufferList& rcOutputList = ( (!m_bCGSSNRInAU && (m_uiRecLayerId == 0 || bHighestLayer) ) ? rcPicBufferOutputList : cDummyList );
+			//JVT-X046 }
 
       RNOK( m_pcFrameMng->setPicBufferLists( rcOutputList, rcPicBufferReleaseList ) );
 
@@ -2278,6 +2813,7 @@ H264AVCDecoder::process( PicBuffer*       pcPicBuffer,
     break;
 
   case NAL_UNIT_SPS:
+	case NAL_UNIT_SUB_SPS: //SSPS
     {
       break;
     }
@@ -2623,7 +3159,17 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
   m_bReconstruct  = bReconstruct;
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
   bReconstruct    = bReconstruct && bUseBaseRep || ! bConstrainedIP;
-
+	//JVT-X046 {
+	UInt uiMbAddress = rcSH.getFirstMbInSlice();
+	for ( UInt uiMbNum = uiMbRead; uiMbNum ; uiMbNum -- )
+	{
+		m_bMbStatus[rcSH.getLayerId()][uiMbAddress] = true;
+		uiMbAddress = rcSH.getFMO() ->getNextMBNr(uiMbAddress);
+	}
+	m_uiDecodedMbNum += uiMbRead;
+	m_uiDecodedMbNum = m_uiDecodedMbNum % m_uiMbNumInFrame[rcSH.getLayerId()];
+	m_uiNextFirstMb = m_uiDecodedMbNum % m_uiMbNumInFrame[rcSH.getLayerId()];//should be modified later
+	//JVT-X046 }
   RNOK( m_pcControlMng  ->initSlice ( rcSH, DECODE_PROCESS ) );
   RNOK( m_pcSliceDecoder->process   ( rcSH, bReconstruct, uiMbRead ) );
 
@@ -2647,11 +3193,19 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
                                  rcSH.getFrameUnit()->getMbDataCtrl(), m_pcVeryFirstSliceHeader ) );
 
     //===== deblocking of base representation =====
-    RNOK( m_pcLoopFilter->process( rcSH) );
+		//JVT-X046 {
+		rcSH.FMOInit();
+		//reset FirstMbInSlice and LastMbInSlice
+		rcSH.setFirstMbInSlice(0);
+		rcSH.setLastMbInSlice(m_uiMbNumInFrame[rcSH.getLayerId()]-1);		
+		//RNOK( m_pcLoopFilter->process( rcSH ) );
+    RNOK( m_pcLoopFilter->process( rcSH, NULL, false, m_bMbStatus[rcSH.getLayerId()]) );
+		//JVT-X046 }
     RNOK( m_pcFrameMng->storePicture( rcSH ) );
 
     //===== init FGS decoder =====
-    RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl() ) );
+		//RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl()) );
+    RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl(), m_bMbStatus[rcSH.getLayerId()] ) );//JVT-X046
    }
 
 	  printf("  %s %4d ( LId 0, TL X, QL 0, AVC-%c, BId 1, AP 0, QP%3d )\n",
@@ -2671,6 +3225,152 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
 
 
 //TMM_EC {{
+//JVT-X046 {
+ErrVal
+H264AVCDecoder::xDecodeBaseLayerVirtual( SliceHeader&    rcSH,
+                                      SliceHeader*    pcPrevSH,
+                                      PicBuffer* &    rpcPicBuffer)
+{
+  setRCDO( &rcSH );
+
+  set4Tap( &rcSH );  // V090
+
+  UInt  uiMbRead;
+  Bool  bNewFrame = false;
+  Bool  bNewPic   = false; 
+
+   //===== calculate Poc =====
+  if( rcSH.getLayerId() == 0 )
+  {
+    RNOK( m_pcPocCalculator->calculatePoc( rcSH ) );
+  }
+
+  //===== store prediction weights table for inter-layer prediction =====
+  m_acLastPredWeightTable[LIST_0].copy( rcSH.getPredWeightTable( LIST_0 ) );
+  m_acLastPredWeightTable[LIST_1].copy( rcSH.getPredWeightTable( LIST_1 ) );
+
+  m_uiNumOfNALInAU++;  //TMM_EC
+ 
+  //===== set some basic parameters =====
+  if( NULL == m_pcVeryFirstSliceHeader )
+  {
+    m_pcVeryFirstSliceHeader  = new SliceHeader( rcSH);
+  }
+
+ 
+  //===== check if new pictures and initialization =====
+  rcSH.compare( pcPrevSH, bNewPic, bNewFrame );
+	
+	if( rcSH.getBottomFieldFlag())
+	{
+ 	  bNewFrame = false;
+	  bNewPic = true;
+	}
+
+  if( bNewFrame || m_bFrameDone )
+  {
+    RNOK( m_pcFrameMng->initFrame( rcSH, rpcPicBuffer ) );
+    rpcPicBuffer = NULL;
+  }
+  if( bNewPic )
+  {
+    RNOK( m_pcFrameMng->initPic  ( rcSH ) );
+  }
+  else
+  {
+    rcSH.setFrameUnit( pcPrevSH->getFrameUnit() );
+  }
+
+
+  //===== set reference lists =====
+  RNOK( m_pcFrameMng->setRefPicLists( rcSH, false ) );
+
+
+  //===== parse slice =====
+  RNOK( m_pcControlMng  ->initSlice ( rcSH, PARSE_PROCESS ) );
+  uiMbRead	=	rcSH.getMbInPic();
+
+  //===== decode slice =====
+//   Bool  bUseBaseRep     = rcSH.getUseBasePredictionFlag();
+  Bool  bUseBaseRep     = 1;
+  Bool  bConstrainedIP  = rcSH.getPPS().getConstrainedIntraPredFlag();
+
+  Bool  bReconstruct    = (m_uiRecLayerId == 0) || ! bConstrainedIP;
+
+  m_bReconstruct = bReconstruct;
+  //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
+  bReconstruct   = bReconstruct && bUseBaseRep || ! bConstrainedIP;
+
+  RNOK( m_pcControlMng  ->initSlice ( rcSH, DECODE_PROCESS ) );
+
+  const PicType ePicType = rcSH.getPicType();
+	
+	Frame	*frame	=	(Frame*)(rcSH.getRefPicList( ePicType, LIST_0 ).get(0).getFrame());
+
+	//slice copy
+	//m_pcFrameMng->getCurrentFrameUnit()->getPic(ePicType)->getFullPelYuvBuffer()->loadBuffer( frame->getFullPelYuvBuffer());
+	m_pcFrameMng->getCurrentFrameUnit()->getPic(ePicType)->getFullPelYuvBuffer()->loadSliceBuffer( frame->getFullPelYuvBuffer(), m_uiNextFirstMb, m_uiNextFirstMb+m_uiLostMbNum );
+	rcSH.getFrameUnit()->getFGSIntFrame()->copySlice( m_pcFrameMng->getCurrentFrameUnit()->getPic(ePicType), ePicType, m_uiNextFirstMb, m_uiNextFirstMb+m_uiLostMbNum);
+
+	//set Mb status
+	for ( UInt uiMbAddress = m_uiNextFirstMb; uiMbAddress < m_uiNextFirstMb+m_uiLostMbNum; uiMbAddress++ )
+	{
+		m_bMbStatus[rcSH.getLayerId()][uiMbAddress] = false;//should be modified later
+	}
+
+	m_pcControlMng->getMbDataCtrl()->updateMBProcessed( m_uiLostMbNum );
+	//reset NextFirstMb and LostMbNum
+	m_uiDecodedMbNum += m_uiLostMbNum;
+	m_uiNextFirstMb += m_uiLostMbNum;
+	m_uiLostMbNum = 0;
+	m_uiNextFirstMb = m_uiNextFirstMb % m_uiMbNumInFrame[rcSH.getLayerId()];	
+    
+  Bool bPicDone;
+  RNOK( m_pcControlMng->finishSlice( rcSH, bPicDone, m_bFrameDone ) );
+
+// TMM_EC
+  if( bPicDone )
+  {
+    // copy intra and inter prediction signal
+    m_pcFrameMng->getPredictionIntFrame()->copy( rcSH.getFrameUnit()->getFGSIntFrame(),ePicType);
+    // delete intra prediction
+    RNOK( m_pcControlMng->initSlice( rcSH, POST_PROCESS));
+    RNOK( xZeroIntraMacroblocks( rcSH.getFrameUnit()->getFGSIntFrame(), rcSH.getFrameUnit()->getMbDataCtrl(), &rcSH ) );
+    // add residual and intra signal
+    rcSH.getFrameUnit()->getFGSIntFrame()->add( rcSH.getFrameUnit()->getResidual(),ePicType );
+    rcSH.getFrameUnit()->getFGSIntFrame()->clip();
+
+    RNOK( xZeroIntraMacroblocks( rcSH.getFrameUnit()->getResidual(),
+                                 rcSH.getFrameUnit()->getMbDataCtrl(), m_pcVeryFirstSliceHeader ) );
+
+    //===== deblocking of base representation =====
+		rcSH.FMOInit();
+		//reset FirstMbInSlice and LastMbInSlice
+		rcSH.setFirstMbInSlice(0);
+		rcSH.setLastMbInSlice(m_uiMbNumInFrame[rcSH.getLayerId()]-1);
+
+		RNOK( m_pcLoopFilter->process( rcSH, NULL, false, m_bMbStatus[rcSH.getLayerId()]) );
+  
+    RNOK( m_pcFrameMng->storePicture( rcSH ) );
+    //===== init FGS decoder =====
+    RNOK( m_pcRQFGSDecoder->initPicture( &rcSH, rcSH.getFrameUnit()->getMbDataCtrl(), m_bMbStatus[rcSH.getLayerId()] ) );
+  }
+	
+	printf("  Frame %4d ( LId 0, TL X, QL 0, AVC-%c, BId-1, AP 0, QP%3d, V )\n",
+    rcSH.getPoc                    (),
+    rcSH.getSliceType              () == B_SLICE ? 'B' : 
+    rcSH.getSliceType              () == P_SLICE ? 'P' : 'I',
+    rcSH.getPicQp                  () );
+
+
+  if( m_bFrameDone )
+  {
+    DTRACE_NEWFRAME;
+  }
+
+  return Err::m_nOK;
+}
+//JVT-X046 }
 ErrVal
 H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
@@ -2895,15 +3595,26 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
   if( !bUseBaseRep && bConstrainedIP )
   {
 		RNOK( pcRecFrame->removeFrameFieldBuffer() );
-    RNOK( m_pcRQFGSDecoder            ->reconstruct( pcRecFrame, true                                ) );
+
+    //RNOK( m_pcRQFGSDecoder            ->reconstruct( pcRecFrame, true                                ) );
+		RNOK( m_pcRQFGSDecoder            ->reconstruct( pcRecFrame, true ,m_bMbStatus[pcSliceHeader->getLayerId()]) );//JVT-X046
     RNOK( pcResidual                  ->copy       ( pcRecFrame,                            ePicType ) );
     RNOK( xZeroIntraMacroblocks           ( pcResidual, pcMbDataCtrl, pcSliceHeader ) );
 
     if( m_bReconstruct && !pcSliceHeader->isIntra() )
     {
       //----- "normal" motion-compensated prediction -----
-      RNOK( m_pcSliceDecoder->compensatePrediction( *pcSliceHeader ) );
+      //RNOK( m_pcSliceDecoder->compensatePrediction( *pcSliceHeader ) );
+			RNOK( m_pcSliceDecoder->compensatePrediction( *pcSliceHeader,m_bMbStatus[pcSliceHeader->getLayerId()] ) );//JVT-X046
     }
+		//JVT-X046 {
+		for ( UInt uiMBY = 0; uiMBY < m_uiFrameHeightInMb; uiMBY++ )
+			for ( UInt uiMBX = 0; uiMBX < m_uiFrameWidthInMb; uiMBX++ )
+			{
+				if ( m_bMbStatus[pcSliceHeader->getLayerId()][uiMBY*m_uiFrameWidthInMb+uiMBX] == false )
+					m_pcFrameMng->getPredictionIntFrame()->setMBZero(uiMBY,uiMBX);
+			}
+		//JVT-X046 }
 
     RNOK( pcRecFrame      ->add           ( m_pcFrameMng->getPredictionIntFrame(), ePicType ) );
     RNOK( pcRecFrame      ->clip          () );
@@ -2932,14 +3643,20 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
     RNOK( pcILPredFrame->copy( pcRecFrame, ePicType ) );
   }
 //TMM_EC {{
-  if ( pcSliceHeader->getTrueSlice())
+	//JVT-X046 {
+  /*if ( pcSliceHeader->getTrueSlice())
   {
   //===== loop filter =====
   if( (m_uiRecLayerId == 0) || bUseBaseRep || bHighestLayer ) // HS: fix by Nokia //JVT-T054
   {
 		RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcRecFrame ) );
   }
+  }*/
+	if( (m_uiRecLayerId == 0) || bUseBaseRep || bHighestLayer ) // HS: fix by Nokia //JVT-T054
+  {
+		RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcRecFrame, false, m_bMbStatus[pcSliceHeader->getLayerId()] ) );
   }
+	//JVT-X046
 //TMM_EC }}
   //===== store in FGS pic buffer =====
   if( !bUseBaseRep && bConstrainedIP )
@@ -2957,13 +3674,13 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
     RNOK( pcILPredFrameSpatial->copy( pcILPredFrame, ePicType ) );
     RNOK( pcBaseRepFrame      ->copy( pcILPredFrame, ePicType ) );
 //TMM_EC {{
-    if ( pcSliceHeader->getTrueSlice())
-    {
+    //if ( pcSliceHeader->getTrueSlice())//JVT-X046
+    //{
       m_pcLoopFilter->setRCDOSliceHeader( pcRCDOSliceHeader );
       if( pcSliceHeader->getFrameUnit()->getContrainedIntraPred() )
       {
         m_pcLoopFilter->setFilterMode( LoopFilter::LFMode( LoopFilter::LFM_NO_INTER_FILTER + LoopFilter::LFM_EXTEND_INTRA_SUR ) );
-        RNOK( m_pcLoopFilter->process( *m_pcVeryFirstSliceHeader,
+        /*RNOK( m_pcLoopFilter->process( *m_pcVeryFirstSliceHeader,
                                       pcILPredFrameSpatial,
                                       pcMbDataCtrl,
                                       pcMbDataCtrl,
@@ -2971,7 +3688,17 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
                                       NULL,
                                       NULL,
 									  false,
-                                      false ) );  // SSUN@SHARP
+                                      false ) );  // SSUN@SHARP*/
+				RNOK( m_pcLoopFilter->process( *m_pcVeryFirstSliceHeader,
+                                      pcILPredFrameSpatial,
+                                      pcMbDataCtrl,
+                                      pcMbDataCtrl,
+                                      m_pcVeryFirstSliceHeader->getSPS().getFrameWidthInMbs(),
+                                      NULL,
+                                      NULL,
+																			false,
+                                      false,
+																			m_bMbStatus[m_pcVeryFirstSliceHeader->getLayerId()]) );//JVT-X046
 
         m_pcLoopFilter->setFilterMode();
         //  bug fix TMM_EC
@@ -2980,15 +3707,17 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
       }
       else
       {
-        RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial ) );
+        //RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial ) );
+				RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial, false, m_bMbStatus[pcSliceHeader->getLayerId()] ) );//JVT-X046
       }
       m_pcLoopFilter->setRCDOSliceHeader();
       if( m_bCGSSNRInAU )
       {
         pcBaseRepFrame->setPoc( *pcSliceHeader );
-        RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBaseRepFrame ) );
+        //RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBaseRepFrame ) );
+				RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBaseRepFrame, false, m_bMbStatus[pcSliceHeader->getLayerId()] ) );//JVT-X046
       }
-    }
+    //}//JVT-X046
 //  TMM_EC }}
   }
 
@@ -3105,7 +3834,8 @@ H264AVCDecoder::xWriteAvcRewriteParameterSets(NalUnitType nal_unit_type, UInt in
 	size = m_avcRewriteBinDataAccessor->size();
 	m_avcRewriteBindata->set(m_avcRewriteBinDataBuffer, size);*/
 
-	if (nal_unit_type == NAL_UNIT_SPS)
+	//if (nal_unit_type == NAL_UNIT_SPS)
+	if (nal_unit_type == NAL_UNIT_SPS || nal_unit_type == NAL_UNIT_SUB_SPS )//SSPS
 	{
 		SequenceParameterSet *rcSps;
 		if (m_pcParameterSetMng->isValidSPS(index)) {

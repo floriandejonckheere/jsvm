@@ -126,7 +126,7 @@
             		        framerate => 15,
 				bitrate => 150,
 				useql     => 1,
-            		        psnr => 31.86,            		        
+            		        psnr => 31.85,            		        
             		      },
             		      #----------#
                       # Test   4 #

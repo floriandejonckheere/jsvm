@@ -231,6 +231,10 @@ protected:
   SampleWeighting*        m_pcSampleWeighting;
   ReconstructionBypass*   m_pcReconstructionBypass;
   Bool                    m_bBaseSVCActive; //JVT-T054_FIX
+	//JVT-X046 {
+public:
+	Bool										m_bDiscard;
+	//JVT-X046 }
 };
 
 
@@ -254,7 +258,8 @@ struct PacketDescription
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
   //UInt auiDeltaBytesRateOfLevelQL[MAX_NUM_RD_LEVELS]; //JVT-W137
-  UInt auiQualityLevelQL[MAX_NUM_RD_LEVELS];
+  //UInt auiQualityLevelQL[MAX_NUM_RD_LEVELS];//SEI changes update
+	UInt auiPriorityLevelPR[MAX_NUM_RD_LEVELS];//SEI changes update
   UInt uiNumLevelsQL;
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   UInt uiPId;

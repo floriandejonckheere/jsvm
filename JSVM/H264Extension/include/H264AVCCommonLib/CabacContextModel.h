@@ -129,7 +129,21 @@ public:
   }
 
   Void  incrementCount()  { m_uiCount++; }
-
+	//JVT-X046 {
+	UChar getucState(void)
+	{
+		return m_ucState;
+	}
+	UInt getuiCount(void)
+	{
+		return m_uiCount;
+	}
+	void set(CabacContextModel* pcCContextModel)
+  {
+		m_ucState = pcCContextModel->getucState();
+		m_uiCount = pcCContextModel->getuiCount();
+  }
+  //JVT-X046 }
 private:
   UChar m_ucState;
   UInt  m_uiCount;

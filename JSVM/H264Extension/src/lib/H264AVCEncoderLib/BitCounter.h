@@ -127,6 +127,16 @@ public:
 
   ErrVal   getLastByte(UChar &uiLastByte, UInt &uiLastBitPos) { return Err::m_nERR;} //FIX_FRAG_CAVLC
 
+	//JVT-X046 {
+	void loadBitWriteBuffer(BitWriteBufferIf* pcBitWriteBufferIf)	{}
+	void loadBitCounter(BitWriteBufferIf* pcBitWriteBufferIf)
+	{
+		BitCounter* pcBitCounter = (BitCounter*)(pcBitWriteBufferIf);
+		m_uiBitCounter = pcBitCounter->getNumberOfWrittenBits();
+	}
+	UInt getBitsWritten(void) { return 0; }
+	//JVT-X046 }
+
 private:
   UInt m_uiBitCounter;
 };

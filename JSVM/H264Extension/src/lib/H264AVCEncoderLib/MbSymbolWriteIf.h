@@ -112,7 +112,7 @@ class BitWriteBufferIf;
 
 class MbSymbolWriteIf
 {
-protected:
+public://protected://JVT-X046
   MbSymbolWriteIf() {}
 	virtual ~MbSymbolWriteIf() {}
 
@@ -168,6 +168,11 @@ public:
   virtual ErrVal  getLastByte         (UChar &uiLastByte, UInt &uiLastBitPos) = 0; //FIX_FRAG_CAVLC
   virtual ErrVal  setFirstBits(UChar ucByte,UInt uiLastBitPos) = 0; //FIX_FRAG_CAVLC
   virtual ErrVal  finishSlice         ( ) = 0;
+	//JVT-X046 {
+	virtual void loadCabacWrite( MbSymbolWriteIf* pcMbSymbolWriteIf ) = 0;
+	virtual void loadUvlcWrite( MbSymbolWriteIf* pcMbSymbolWriteIf ) = 0;
+	virtual UInt getBitsWritten(void) = 0; 
+  //JVT-X046 }
 };
 
 

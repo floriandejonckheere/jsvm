@@ -238,14 +238,13 @@ FGSCoder::xUninit()
     delete m_pcBaseLayerSbb;
     m_pcBaseLayerSbb = 0;
   }
-
   return Err::m_nOK;
 }
 
 
 //--ICU/ETRI FMO 1206
 ErrVal
-FGSCoder::xInitializeCodingPath(SliceHeader* pcSliceHeader)
+FGSCoder::xInitializeCodingPath(SliceHeader* pcSliceHeader, Bool* bMbStatus)
 {
 	//--ICU/ETRI FMO Implementation 1206
   UInt uiFirstMbInSlice;
@@ -264,6 +263,16 @@ FGSCoder::xInitializeCodingPath(SliceHeader* pcSliceHeader)
 
     for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)
     {
+			//JVT-X046 {
+			if ( bMbStatus != NULL && bMbStatus[uiMbAddress] == false )
+			{
+				if(pcSliceHeader !=NULL)
+					uiMbAddress = pcSliceHeader->getFMO()->getNextMBNr(uiMbAddress );
+				else
+					uiMbAddress ++;
+				continue;
+			}
+			//JVT-X046 }
       UInt uiMbY  = uiMbAddress / m_uiWidthInMB;
       UInt uiMbX  = uiMbAddress % m_uiWidthInMB;
     
@@ -468,9 +477,65 @@ FGSCoder::xReconstructMacroblock( MbDataAccess&   rcMbDataAccess,
   return Err::m_nOK;
 }
 
-
-
+//JVT-X046 {
 ErrVal
+FGSCoder::reconstruct( IntFrame* pcRecResidual, Bool bDecoder , Bool* bMbStatus)
+{
+  ROF( m_bInit );
+  ROF( m_bPicInit );
+  ROF( pcRecResidual );	
+
+  UInt            uiLayer         = m_pcSliceHeader->getLayerId(); 
+  YuvBufferCtrl*  pcYuvBufferCtrl = m_papcYuvFullPelBufferCtrl[ uiLayer ];
+  IntYuvMbBuffer  cMbBuffer;
+
+  RNOK( m_pcCurrMbDataCtrl->initSlice ( *m_pcSliceHeader, PRE_PROCESS, bDecoder, NULL ) );
+
+	const PicType ePicType = m_pcSliceHeader->getPicType();
+	const Bool    bMbAff   = m_pcSliceHeader->isMbAff   ();
+
+	if( ePicType!=FRAME )
+	{
+		RNOK( pcRecResidual->addFieldBuffer     ( ePicType ) );
+		RNOK( m_pcBaseLayerSbb->addFieldBuffer( ePicType ) );//TMM_INTERLACE
+	}
+	else if( bMbAff )
+	{
+		RNOK( pcRecResidual->addFrameFieldBuffer() );
+		RNOK( m_pcBaseLayerSbb->addFrameFieldBuffer() );//TMM_INTERLACE
+	}
+
+	//===== loop over macroblocks =====
+ for( UInt uiMbY = 0; uiMbY < m_uiHeightInMB; uiMbY++ )
+  for( UInt uiMbX = 0; uiMbX < m_uiWidthInMB;  uiMbX++ )
+  {
+		if ( bMbStatus != NULL && bMbStatus[uiMbY*m_uiWidthInMB+uiMbX] == false )
+		{
+			continue;
+		}
+    MbDataAccess* pcMbDataAccessBL = NULL;
+   	RNOK( m_pcCurrMbDataCtrl->initMb( pcMbDataAccessBL, uiMbY, uiMbX         ) );
+    RNOK( pcYuvBufferCtrl   ->initMb(                   uiMbY, uiMbX, bMbAff ) );
+
+    RNOK( xReconstructMacroblock    ( *pcMbDataAccessBL, cMbBuffer           ) );
+		const PicType eMbPicType = pcMbDataAccessBL->getMbPicType();
+		RNOK( pcRecResidual->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cMbBuffer ) );
+  }
+
+	if( ePicType!=FRAME )
+	{
+		RNOK( pcRecResidual->removeFieldBuffer     ( ePicType ) );
+	}
+	else if( bMbAff )
+	{
+		RNOK( pcRecResidual->removeFrameFieldBuffer()           );
+	}
+
+  return Err::m_nOK;
+}
+
+
+/*ErrVal
 FGSCoder::reconstruct( IntFrame* pcRecResidual, Bool bDecoder )
 {
   ROF( m_bInit );
@@ -520,6 +585,7 @@ FGSCoder::reconstruct( IntFrame* pcRecResidual, Bool bDecoder )
 	}
 
   return Err::m_nOK;
-}
+}*/
+//JVT-X046 }
 
 H264AVC_NAMESPACE_END

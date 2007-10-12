@@ -150,6 +150,7 @@ ErrVal decodeMbAff( SliceHeader&   rcSH,
                         Bool                bReconstructAll );
 
   ErrVal compensatePrediction( SliceHeader& rcSH );
+	ErrVal compensatePrediction( SliceHeader& rcSH, Bool* bMbStatus = NULL);//JVT-X046
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   ErrVal                xSetAvcRewriteEncoder(H264AVCEncoder* pcAvcRewriteEncoder);
@@ -167,7 +168,6 @@ protected:
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   H264AVCEncoder*       m_pcAvcRewriteEncoder;
 #endif
-
 };
 
 

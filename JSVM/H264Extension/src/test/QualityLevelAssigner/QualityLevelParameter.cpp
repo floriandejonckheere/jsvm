@@ -92,7 +92,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 QualityLevelParameter::QualityLevelParameter()
 : m_uiDataFileMode              ( 0 )
 , m_uiDistortionEstimationMode  ( 3 )
-, m_bQualityLayerSEI            ( false )
+//, m_bQualityLayerSEI            ( false )//SEI changes update
+, m_bPriorityLevelSEI            ( false )//SEI changes update
 , m_eQLAssignerMode             ( QLASSIGNERMODE_QL )
 {
 }
@@ -200,7 +201,8 @@ QualityLevelParameter::init( Int argc, Char** argv )
     }
     else if( !strcmp( argv[iArg], "-sei" ) )
     {
-      m_bQualityLayerSEI = true;
+      //m_bQualityLayerSEI = true;//SEI changes update
+			m_bPriorityLevelSEI = true;//SEI changes update
     }
     //JVT-S043
     else if( !strcmp( argv[iArg], "-mlql" ) )

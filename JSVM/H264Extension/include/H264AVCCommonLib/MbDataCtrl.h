@@ -190,6 +190,10 @@ public:
   ErrVal        getBoundaryMaskCIU( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID );
   ErrVal        getBoundaryMaskCIU_MbAff( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ); //TMM_INTERLACE
   //JVT-U106 Behaviour at slice boundaries}
+	//JVT-X046 {
+	MbData* xGetMbData(UInt uiMbAddress) { return &m_pcMbData[uiMbAddress]; }
+	void MbDataCtrl::updateMBProcessed(UInt uiProcessed) { m_uiMbProcessed += uiProcessed; }
+	//JVT-X046 }
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
   const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter ); 
@@ -403,7 +407,12 @@ private:
   MbMotionData* m_paacBQMotionData[2];
 
   RefFrameList  m_acPrdFrameList[2];
-
+	//JVT-X046 {
+public:
+	UInt m_uiCurrentFirstMB;
+	bool m_bSliceGroupAllCoded;
+	UInt m_uiCurrentSliceGroupId;
+  //JVT-X046 }
 };
 
 

@@ -2119,5 +2119,58 @@ UcSymGrpWriter::Flush()
   m_uiLen  = 0;
   return Err::m_nOK;
 }
+//JVT-X046 {
+void
+UvlcWriter::loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
+{
+	UvlcWriter* pcUvlcWriter = (UvlcWriter*) (pcMbSymbolWriteIf);
+	m_uiBitCounter = pcUvlcWriter->getBitCounter();
+	m_uiPosCounter = pcUvlcWriter->getPosCounter();
+  
+	m_uiCoeffCost = pcUvlcWriter->getCoeffCost();
+	m_bTraceEnable = pcUvlcWriter->getTraceEnable();
 
+	m_bRunLengthCoding = pcUvlcWriter->getRunLengthCoding();
+	m_uiRun = pcUvlcWriter->getRun();
+
+	UInt i;
+	UInt *pcUIntTemp;
+	UChar *pcUCharTemp;
+
+	pcUCharTemp = pcUvlcWriter->getPrescannedSymbools();
+	for ( i = 0; i < REFSYM_MB; i++ )
+		m_auiPrescannedSymbols[i] = pcUCharTemp[i];
+	m_uiRefSymbols = pcUvlcWriter->getRefSymbols();
+	m_uiCodedSymbols = pcUvlcWriter->getCodedSymbols();
+	m_uiFragmentedSymbols = pcUvlcWriter->getFragmentedSymbols();
+  
+	pcUIntTemp = pcUvlcWriter->getShiftChroma();
+	for ( i = 0; i < 16; i++ )
+		m_auiShiftLuma[i] = pcUIntTemp[i];
+	pcUIntTemp = pcUvlcWriter->getShiftLuma();
+	for ( i = 0; i < 16; i++ )
+		m_auiShiftChroma[16] = pcUIntTemp[i];
+	pcUIntTemp = pcUvlcWriter->getBestCodeTabMap();
+	for ( i = 0; i < 16; i++ )
+		m_auiBestCodeTabMap[16] = pcUIntTemp[i];
+	pcUIntTemp = pcUvlcWriter->getCbpStat4x4();
+	for ( i = 0; i < 2 ; i++ )
+		m_uiCbpStat4x4[2] = pcUIntTemp[i];
+	pcUIntTemp = new UInt[3*2];
+	getCbpStats(pcUIntTemp);
+	for ( i = 0; i < 3 ; i++ )
+		for ( UInt j = 0; j < 2; j++ )
+		{
+			m_uiCbpStats[i][j] = pcUIntTemp[i*2+j];
+		}
+	delete [] pcUIntTemp;
+	if ( m_pcBitWriteBufferIf == NULL )
+	{
+		BitWriteBuffer *pcBitWriteBuffer;
+		BitWriteBuffer::create(pcBitWriteBuffer);
+		m_pcBitWriteBufferIf = pcBitWriteBuffer;
+	}
+	m_pcBitWriteBufferIf->loadBitWriteBuffer(pcUvlcWriter->getBitWriteBufferIf());
+}
+//JVT-X046 }
 H264AVC_NAMESPACE_END

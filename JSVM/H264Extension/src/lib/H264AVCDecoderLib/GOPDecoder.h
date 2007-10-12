@@ -476,6 +476,13 @@ protected:
   ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
                                                 IntFrame*                     pcFrame );
 //TMM_EC 
+	//JVT-X046 {
+	ErrVal			xDecodeEnhanceLayerVirtual       ( SliceHeader*&                 rpcSliceHeader,
+																								 PicBuffer*&                   rpcPicBuffer,
+																								 PicBufferList&                rcOutputList,
+																								 PicBufferList&                rcUnusedList,
+																								 Bool                          bReconstructionLayer );
+	//JVT-X046 }
   ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData,
 												SliceHeader *&rcSliceHeaderBase);
 
@@ -602,6 +609,16 @@ protected:
   //JVT-U106 Behaviour at slice boundaries{
   ReconstructionBypass* m_pcReconstructionBypass;
   //JVT-U106 Behaviour at slice boundaries}
+	//JVT-X046 {
+public:
+	UInt			m_uiMbNumInFrame;
+	UInt			m_uiDecodedMbNum;
+	Bool			*m_bMbStatus;
+	UInt			m_uiNextFirstMb;
+	UInt			m_uiLostMbNum;
+	Bool			m_bInitBaseLayer;
+	SliceHeader*	m_pcSliceHeader;//slice header backup
+	//JVT-X046 }
 };
 
 H264AVC_NAMESPACE_END

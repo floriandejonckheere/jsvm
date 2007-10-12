@@ -259,7 +259,7 @@
             		        height => 128,
             		        framerate => 7.5,
             		        bitrate => 127,
-            		        psnr => 33.56,
+            		        psnr => 33.55,
             		      },
 		],
 }

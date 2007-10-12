@@ -157,7 +157,10 @@ public:
 
   ErrVal copy( YuvPicBuffer* pcPicBuffer ); // HS: decoder robustness
   ErrVal dump( FILE* pFile );
-
+//JVT-X046 {
+	ErrVal loadMbBuffer (YuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress);
+	ErrVal loadSliceBuffer( YuvPicBuffer *pcSrcYuvPicBuffer, UInt uiFirstMB, UInt uiLastMB );
+	//JVT-X046 }
 protected:
   Void xFillPlaneMargin( Pel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );
 	Void xCopyFillPlaneMargin( Pel *pucSrc, Pel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );

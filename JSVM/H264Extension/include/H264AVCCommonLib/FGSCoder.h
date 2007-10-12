@@ -208,8 +208,10 @@ public:
     BASE_SIGN           = 0x20,
     NEWSIG              = 0x40, // new significant only during the current path
   };
-
-  ErrVal            reconstruct           ( IntFrame* pcRecResidual, Bool bDecoder );
+  //JVT-X046 {
+	ErrVal            reconstruct           ( IntFrame* pcRecResidual, Bool bDecoder, Bool *bMbStatus = NULL );
+  //ErrVal            reconstruct           ( IntFrame* pcRecResidual, Bool bDecoder );
+	//JVT-X046 }
   SliceHeader*      getSliceHeader        ()    { return m_pcSliceHeader; }
 
 protected:
@@ -221,7 +223,10 @@ protected:
   ErrVal            xReconstructMacroblock( MbDataAccess&               rcMbDataAccess,
                                             IntYuvMbBuffer&             rcMbBuffer );
 
-  ErrVal            xInitializeCodingPath         (SliceHeader* pcSliceHeader);
+//JVT-X046
+  //ErrVal            xInitializeCodingPath         (SliceHeader* pcSliceHeader);
+	ErrVal            xInitializeCodingPath         (SliceHeader* pcSliceHeader, Bool* bMbStatus = NULL);
+//JVT-X046
 
   ErrVal            xInitBaseLayerSbb     ( UInt uiLayerId );
 
@@ -259,6 +264,7 @@ private:
   ErrVal            xScale8x8Block        ( TCoeff*                     piCoeff,
                                             const UChar*                pucScale,
                                             const QpParameter&          rcQP );
+
 };
 
 

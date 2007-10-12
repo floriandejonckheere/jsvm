@@ -291,7 +291,8 @@ QualityLevelAssigner::go()
 
 
     //===== write output stream with quality levels =====
-    if( m_pcParameter->writeQualityLayerSEI() )
+    //if( m_pcParameter->writeQualityLayerSEI() )//SEI changes update
+    if( m_pcParameter->writePriorityLevelSEI() )//SEI changes update
     {
       RNOK( xWriteQualityLayerStreamSEI() );
     }
@@ -920,7 +921,9 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
     {
       bValid      = true;
     }
-    else if( cPacketDescription.NalUnitType == NAL_UNIT_SPS )
+    //else if( cPacketDescription.NalUnitType == NAL_UNIT_SPS )
+		else if( cPacketDescription.NalUnitType == NAL_UNIT_SPS || 
+			       cPacketDescription.NalUnitType == NAL_UNIT_SUB_SPS )//SSPS
     {
       bValid      = false;
       for( UInt ui = 0; ui <= uiTopLayer; ui++ )
@@ -1869,7 +1872,8 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
       for( UInt uiLayer = cPacketDescription.Layer; uiLayer < m_uiNumLayers; uiLayer++ )
       {
         auiFrameNum[uiLayer]++;
-        xInsertQualityLayerSEI( pcWriteBitStream, uiLayer, auiFrameNum[uiLayer] );
+        //xInsertQualityLayerSEI( pcWriteBitStream, uiLayer, auiFrameNum[uiLayer] );//SEI changes update
+        xInsertPriorityLevelSEI( pcWriteBitStream, uiLayer, auiFrameNum[uiLayer] );//SEI changes update
       }
       uiNumAccessUnits++;
     }
@@ -1899,35 +1903,80 @@ QualityLevelAssigner::xWriteQualityLayerStreamSEI()
 
 
 
+//SEI changes update {
+//ErrVal
+//QualityLevelAssigner::xInsertQualityLayerSEI( WriteBitstreamToFile* pcWriteBitStream,
+//                                              UInt                  uiLayer,
+//                                              UInt                  uiFrameNum )
+//{
+//  //===== init binary data =====
+//  const UInt          uiQLSEIMessageBufferSize = 1024;
+//  UChar               aucQLSEIMessageBuffer[uiQLSEIMessageBufferSize];
+//  BinData             cBinData;
+//  ExtBinDataAccessor  cExtBinDataAccessor;
+//  cBinData.reset          ();
+//  cBinData.set            ( aucQLSEIMessageBuffer, uiQLSEIMessageBufferSize );
+//  cBinData.setMemAccessor ( cExtBinDataAccessor );
+//
+//  //===== create SEI message =====
+//  SEI::QualityLevelSEI* pcQualityLevelSEI;
+//  SEI::MessageList      cSEIMessageList;
+//  RNOK( SEI::QualityLevelSEI::create( pcQualityLevelSEI ) );
+//  cSEIMessageList.push_back( pcQualityLevelSEI );
+//
+//  //===== set content of SEI message =====
+//  UInt uiNumLayers;
+//  for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers++ )
+//  {
+//    pcQualityLevelSEI->setQualityLevel          ( uiNumLayers,       m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] );
+//    //pcQualityLevelSEI->setDeltaBytesRateOfLevel ( uiNumLayers,       m_aaauiPacketSize [uiLayer][uiNumLayers][uiFrameNum] ); //JVT-W137
+//  }
+//  pcQualityLevelSEI->setDependencyId            ( uiLayer );
+//  pcQualityLevelSEI->setNumLevel                ( uiNumLayers );
+//
+//  //===== encode SEI message =====
+//  UInt uiBits = 0;
+//  RNOK( m_pcNalUnitEncoder->initNalUnit ( &cExtBinDataAccessor ) );
+//  RNOK( m_pcNalUnitEncoder->write       ( cSEIMessageList ) );
+//  RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+//
+//  //===== write SEI message =====
+//  RNOK( pcWriteBitStream->writePacket( &m_cBinDataStartCode ) );
+//  RNOK( pcWriteBitStream->writePacket( &cExtBinDataAccessor ) );
+//
+//  //===== reset =====
+//  cBinData.reset();
+//
+//  return Err::m_nOK;
+//}
 ErrVal
-QualityLevelAssigner::xInsertQualityLayerSEI( WriteBitstreamToFile* pcWriteBitStream,
+QualityLevelAssigner::xInsertPriorityLevelSEI( WriteBitstreamToFile* pcWriteBitStream,
                                               UInt                  uiLayer,
                                               UInt                  uiFrameNum )
 {
   //===== init binary data =====
-  const UInt          uiQLSEIMessageBufferSize = 1024;
-  UChar               aucQLSEIMessageBuffer[uiQLSEIMessageBufferSize];
+  const UInt          uiPRSEIMessageBufferSize = 1024;
+  UChar               aucPRSEIMessageBuffer[uiPRSEIMessageBufferSize];
   BinData             cBinData;
   ExtBinDataAccessor  cExtBinDataAccessor;
   cBinData.reset          ();
-  cBinData.set            ( aucQLSEIMessageBuffer, uiQLSEIMessageBufferSize );
+  cBinData.set            ( aucPRSEIMessageBuffer, uiPRSEIMessageBufferSize );
   cBinData.setMemAccessor ( cExtBinDataAccessor );
 
   //===== create SEI message =====
-  SEI::QualityLevelSEI* pcQualityLevelSEI;
+  SEI::PriorityLevelSEI* pcPriorityLevelSEI;
   SEI::MessageList      cSEIMessageList;
-  RNOK( SEI::QualityLevelSEI::create( pcQualityLevelSEI ) );
-  cSEIMessageList.push_back( pcQualityLevelSEI );
+  RNOK( SEI::PriorityLevelSEI::create( pcPriorityLevelSEI ) );
+  cSEIMessageList.push_back( pcPriorityLevelSEI );
 
   //===== set content of SEI message =====
   UInt uiNumLayers;
   for( uiNumLayers = 0; uiNumLayers <= m_auiNumFGSLayers[uiLayer] && m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] != MSYS_UINT_MAX; uiNumLayers++ )
   {
-    pcQualityLevelSEI->setQualityLevel          ( uiNumLayers,       m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] );
-    //pcQualityLevelSEI->setDeltaBytesRateOfLevel ( uiNumLayers,       m_aaauiPacketSize [uiLayer][uiNumLayers][uiFrameNum] ); //JVT-W137
+		pcPriorityLevelSEI->setAltPriorityId          ( uiNumLayers,       m_aaauiQualityID  [uiLayer][uiNumLayers][uiFrameNum] );
   }
-  pcQualityLevelSEI->setDependencyId            ( uiLayer );
-  pcQualityLevelSEI->setNumLevel                ( uiNumLayers );
+	pcPriorityLevelSEI->setPrDependencyId           ( uiLayer );
+	pcPriorityLevelSEI->setNumPriorityIds           ( uiNumLayers );
 
   //===== encode SEI message =====
   UInt uiBits = 0;
@@ -1944,3 +1993,4 @@ QualityLevelAssigner::xInsertQualityLayerSEI( WriteBitstreamToFile* pcWriteBitSt
 
   return Err::m_nOK;
 }
+//SEI changes update }

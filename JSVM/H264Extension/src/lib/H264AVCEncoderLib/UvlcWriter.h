@@ -108,7 +108,7 @@ public MbSymbolWriteIf
 , public HeaderSymbolWriteIf
 
 {
-protected:
+public://protected://JVT-X046
 	UvlcWriter( Bool bTraceEnable = false );
 	virtual ~UvlcWriter();
 
@@ -210,6 +210,39 @@ protected:
   ErrVal xWriteUvlcCode( UInt uiVal);
   ErrVal xWriteSvlcCode( Int iVal);
 
+	//JVT-X046 {
+	UInt getBitCounter(void)					{return m_uiBitCounter;				}
+	UInt getPosCounter(void)					{return m_uiPosCounter;				}
+
+	UInt getCoeffCost(void)						{return m_uiCoeffCost;				}
+	Bool getTraceEnable(void)					{return m_bTraceEnable;				}
+
+	Bool getRunLengthCoding(void)			{return m_bRunLengthCoding;		}
+	UInt getRun(void)									{return m_uiRun;							}
+
+	UChar* getPrescannedSymbools(void){return m_auiPrescannedSymbols;}
+	UInt getRefSymbols(void)					{return m_uiRefSymbols;				}
+	UInt getCodedSymbols(void)				{return m_uiCodedSymbols;}
+	UInt getFragmentedSymbols(void)		{return m_uiFragmentedSymbols;}
+
+	UInt *getShiftLuma(void)					{return m_auiShiftLuma;				}
+	UInt *getShiftChroma(void)				{return m_auiShiftChroma;			}
+	UInt *getBestCodeTabMap(void)			{return m_auiBestCodeTabMap;	}
+	void getCbpStats(UInt *t_CbpStats)
+  {
+	  UInt i,j;
+	  for (i=0;i<3;i++)
+		  for (j=0;j<2;j++)
+		  {
+			  t_CbpStats[2*i+j] = m_uiCbpStats[i][j];
+		  }
+  }
+	UInt *getCbpStat4x4(void)					{return m_uiCbpStat4x4;				}
+	BitWriteBufferIf* getBitWriteBufferIf(void){return m_pcBitWriteBufferIf;}
+  void loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)	{	}
+	void loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf);
+	UInt getBitsWritten(void) {  return m_pcBitWriteBufferIf->getBitsWritten(); }
+	//JVT-X046 }
 
 protected:
   UInt xConvertToUInt( Int iValue )  {  return ( iValue <= 0) ? -iValue<<1 : (iValue<<1)-1; }

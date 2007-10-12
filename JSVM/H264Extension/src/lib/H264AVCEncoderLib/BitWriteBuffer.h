@@ -126,7 +126,24 @@ public:
   ErrVal writeAlignOne();
 
   ErrVal getLastByte(UChar &uiLastByte, UInt &uiLastBitPos);//FIX_FRAG_CAVLC
-
+	//JVT-X046 {
+	UInt   getDWordsLeft(void)  { return m_uiDWordsLeft;   }
+	UInt   getBitsWritten(void) { return m_uiBitsWritten;  }
+	Int    getValidBits(void)   { return m_iValidBits;     }
+	ULong	 getCurrentBits(void) { return m_ulCurrentBits;  }
+	ULong* getStreamPacket(void){ return m_pulStreamPacket;}
+	void loadBitWriteBuffer(BitWriteBufferIf* pcBitWriteBufferIf)
+	{
+		BitWriteBuffer* pcBitWriteBuffer = (BitWriteBuffer*)(pcBitWriteBufferIf);
+		m_uiDWordsLeft = pcBitWriteBuffer->getDWordsLeft();
+		m_uiBitsWritten = pcBitWriteBuffer->getBitsWritten();
+		m_iValidBits = pcBitWriteBuffer->getValidBits();
+		m_ulCurrentBits = pcBitWriteBuffer->getCurrentBits();
+		m_pulStreamPacket = pcBitWriteBuffer->getStreamPacket();
+	}
+	void loadBitCounter(BitWriteBufferIf* pcBitWriteBufferIf){}
+	UInt getBitsWriten() { return m_uiBitsWritten; }
+	//JVT-X046 }
 protected:
   ULong  xSwap( ULong ul )
   {

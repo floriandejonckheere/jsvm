@@ -239,7 +239,8 @@ class H264AVCENCODERLIB_API MCTFEncoder
 {
   enum
   {
-    NUM_TMP_FRAMES  = 6
+    //NUM_TMP_FRAMES  = 6//RPIC bug fix
+    NUM_TMP_FRAMES  = 11
   };
   enum RefListUsage
   {
@@ -380,6 +381,34 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 	//JVT-W051 {
 	UInt			xGetParameterSetBits()	{ return m_uiParameterSetBits; }
 	//JVT-W051 }
+	//JVT-X046 {
+  ErrVal xEncodeNonKeyPictureSlices(  UInt                        uiBaseLevel,
+								  UInt                        uiFrame, 
+								  AccessUnitList&             rcAccessUnitList,
+								PicBufferList&				  rcPicBufferInputList,
+								PicOutputDataList&            rcPicOutputDataList );
+
+  ErrVal  xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList,
+											RefFrameList* pcRefFrameList0,
+											RefFrameList* pcRefFrameList1,
+											IntFrame*        pcOrigFrame,
+											IntFrame*        pcIntraRecFrame,
+											IntFrame*        pcMCFrame,
+											IntFrame*        pcResidual,
+											IntFrame*        pcPredSignal,
+											ControlData&     rcControlData,
+											Bool             bBiPredOnly,
+											UInt             uiNumMaxIter,
+											UInt             uiIterSearchRange,
+											UInt             uiFrameIdInGOP,
+											PicType          ePicType,
+											UInt&            ruiBits,
+											UInt&            ruiBitsRes,
+											PicOutputDataList&       rcPicOutputDataList,
+											IntFrame*		 pcFrame,
+											IntFrame*		 pcBLRecFrame,
+											UInt         uiBaseLevel);
+	//JVT-X046 }
 protected:
   //===== data management =====
   ErrVal  xCreateData                   ( const SequenceParameterSet& rcSPS );
@@ -764,6 +793,8 @@ protected:
   MbDataCtrl*                   m_pcBaseLayerCtrlField; 
 	ControlData*                  m_pacControlDataEL;                     // control data arrays
 	MbDataCtrl*                   m_pcBaseLayerCtrlEL;                    // macroblock data of the base layer pictures
+  MbDataCtrl*                   m_pcRedundantCtrl;//RPIC bug fix
+  MbDataCtrl*                   m_pcRedundant1Ctrl;//RPIC bug fix
 
   //----- auxiliary buffers -----
   UInt                          m_uiWriteBufferSize;                  // size of temporary write buffer
@@ -876,6 +907,10 @@ public:
 	//JVT-W051 }
 public:
 	Bool    m_bOutputFlag;//JVT-W047
+	//JVT-X046 {
+  UInt    m_uiSliceMode;
+  UInt    m_uiSliceArgument;
+  //JVT-X046 }
   
 };
 

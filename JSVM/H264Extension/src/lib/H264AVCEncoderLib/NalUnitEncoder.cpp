@@ -432,8 +432,16 @@ ErrVal NalUnitEncoder::xWriteTrailingBits( )
 ErrVal
 NalUnitEncoder::write( const SequenceParameterSet& rcSPS )
 {
-  RNOK( rcSPS.write( m_pcHeaderSymbolWriteIf ) );
-
+  //SSPS {
+	if( rcSPS.getNalUnitType() == NAL_UNIT_SPS )
+	{
+    RNOK( rcSPS.write( m_pcHeaderSymbolWriteIf ) );
+	}
+	else
+	{
+	  RNOK( rcSPS.writeSubSPS( m_pcHeaderSymbolWriteIf ) );
+	}
+  //SSPS }
   m_eNalUnitType  = rcSPS.getNalUnitType();
   return Err::m_nOK;
 }

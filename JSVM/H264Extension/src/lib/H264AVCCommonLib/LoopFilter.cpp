@@ -243,7 +243,8 @@ ErrVal LoopFilter::uninit()
 
 ErrVal LoopFilter::process( SliceHeader& rcSH, 
                             IntFrame* pcIntFrame , 
-                            bool  bAllSliceDone)
+                            bool  bAllSliceDone ,
+														Bool* bMbStatus)
 {
    bool enhancedLayerFlag =  (rcSH.getLayerId()>0) ; //V032, added for disabling chroma deblocking at enhanced layer
   if( m_pcRCDOSliceHeader )
@@ -296,6 +297,13 @@ ErrVal LoopFilter::process( SliceHeader& rcSH,
     //===== loop over macroblocks =====
     for(UInt uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)    
     {
+			//JVT-X046 {
+			if ( bMbStatus != NULL && bMbStatus[uiMbAddress] == false )
+			{
+				uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
+				continue;
+			}
+			//JVT-X046 }
 		  MbDataAccess* pcMbDataAccess = NULL;
       UInt uiMbX, uiMbY;
 
@@ -3288,6 +3296,220 @@ __inline UInt LoopFilter::xGetHorFilterStrength( const MbDataAccess&  rcMbDataAc
   return 1;
 }
 
+//JVT-X046 {
+ErrVal LoopFilter::process( SliceHeader&  rcSH,
+                            IntFrame*     pcIntFrame,
+                            MbDataCtrl*   pcMbDataCtrlMot, // if NULL -> all intra
+                            MbDataCtrl*   pcMbDataCtrlRes,
+                            UInt          uiMbInRow,
+                            RefFrameList* pcRefFrameList0,
+                            RefFrameList* pcRefFrameList1,			
+                            bool		  bAllSliceDone, 
+                            bool          spatial_scalable_flg,
+														Bool*					bMbStatus)
+{
+  bool enhancedLayerFlag = (rcSH.getLayerId()>0) ; //V032 FSL added for disabling chroma deblocking
+  if( m_pcRCDOSliceHeader )
+  {
+    m_bRCDO = m_pcRCDOSliceHeader->getSPS().getRCDODeblocking();
+  }
+  else
+  {
+    m_bRCDO = rcSH.getSPS().getRCDODeblocking();
+  }
+
+  ROT( NULL == m_pcControlMngIf );
+
+  RNOK(   m_pcControlMngIf->initSliceForFiltering ( rcSH               ) );
+  RNOK(   pcMbDataCtrlRes ->initSlice             ( rcSH, POST_PROCESS, false, NULL ) );
+  if( pcMbDataCtrlMot )
+  {
+    RNOK( pcMbDataCtrlMot ->initSlice             ( rcSH, POST_PROCESS, false, NULL ) );
+  }    
+  m_bVerMixedMode = false;
+  m_bHorMixedMode = false;
+
+  RefFrameList* apcRefFrameList0[4] = { NULL, NULL, NULL, NULL };
+  RefFrameList* apcRefFrameList1[4] = { NULL, NULL, NULL, NULL };
+
+  IntFrame* apcFrame        [4] = { NULL, NULL, NULL, NULL };
+  IntFrame* apcHighpassFrame[4] = { NULL, NULL, NULL, NULL };
+
+  if( NULL!= pcIntFrame )
+  {
+		RNOK( pcIntFrame->addFrameFieldBuffer() );
+    apcFrame[ TOP_FIELD ] = pcIntFrame->getPic( TOP_FIELD );
+    apcFrame[ BOT_FIELD ] = pcIntFrame->getPic( BOT_FIELD );
+		apcFrame[ FRAME     ] = pcIntFrame->getPic( FRAME     );
+  }
+
+  if( NULL != m_pcHighpassFrame )
+  {
+		RNOK( m_pcHighpassFrame->addFrameFieldBuffer() );
+    apcHighpassFrame[ TOP_FIELD ] = m_pcHighpassFrame->getPic( TOP_FIELD );
+    apcHighpassFrame[ BOT_FIELD ] = m_pcHighpassFrame->getPic( BOT_FIELD );
+		apcHighpassFrame[ FRAME     ] = m_pcHighpassFrame->getPic( FRAME     );
+  }
+
+  const PicType ePicType = rcSH.getPicType();
+  const Bool    bMbAff   = rcSH.isMbAff();
+	if( bMbAff )
+  {
+	  RefFrameList acRefFrameList0[2];
+		RefFrameList acRefFrameList1[2];
+
+		RNOK( gSetFrameFieldLists( acRefFrameList0[0], acRefFrameList0[1], *pcRefFrameList0 ) );
+		RNOK( gSetFrameFieldLists( acRefFrameList1[0], acRefFrameList1[1], *pcRefFrameList1 ) );
+
+    apcRefFrameList0[ TOP_FIELD ] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[0];
+    apcRefFrameList0[ BOT_FIELD ] = ( NULL == pcRefFrameList0 ) ? NULL : &acRefFrameList0[1];
+    apcRefFrameList1[ TOP_FIELD ] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[0];
+    apcRefFrameList1[ BOT_FIELD ] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[1];
+    apcRefFrameList0[     FRAME ] = pcRefFrameList0;
+    apcRefFrameList1[     FRAME ] = pcRefFrameList1;
+  }
+	else
+  {
+    apcRefFrameList0[ ePicType ] = pcRefFrameList0;
+    apcRefFrameList1[ ePicType ] = pcRefFrameList1;
+  }
+
+  //-> ICU/ETRI DS FMO Process
+  UInt uiFirstMbInSlice;
+  UInt uiLastMbInSlice;
+
+  FMO* pcFMO = rcSH.getFMO();  
+
+  for(Int iSliceGroupID=0;!pcFMO->SliceGroupCompletelyCoded(iSliceGroupID);iSliceGroupID++)   
+  {
+	 if (false == pcFMO->isCodedSG(iSliceGroupID) && false == bAllSliceDone)	 
+	 {
+		 continue;
+	 }
+
+	 uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+	 uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+    UInt uiMbAddress = uiFirstMbInSlice;
+    for( ;uiMbAddress<=uiLastMbInSlice ;)    
+    //===== loop over macroblocks use raster scan =====  
+    {
+			if ( bMbStatus != NULL && bMbStatus[uiMbAddress] == false )
+			{
+				uiMbAddress ++;
+				continue;			
+			}
+      MbDataAccess* pcMbDataAccessMot = NULL;
+      MbDataAccess* pcMbDataAccessRes = NULL;
+      UInt          uiMbY, uiMbX;
+
+      rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress                                 );
+
+      if( pcMbDataCtrlMot )
+      {
+        RNOK( pcMbDataCtrlMot ->initMb            (  pcMbDataAccessMot, uiMbY, uiMbX ) );
+      }
+      RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
+      RNOK(   m_pcControlMngIf->initMbForFiltering( *pcMbDataAccessRes, uiMbY, uiMbX, bMbAff ) );
+
+      const PicType eMbPicType = pcMbDataAccessRes->getMbPicType();
+
+      if( m_pcHighpassFrame ) 
+      {
+        m_pcHighpassYuvBuffer = apcHighpassFrame[ eMbPicType ]->getFullPelYuvBuffer();
+      }
+      else
+      {
+        m_pcHighpassYuvBuffer = NULL;
+      } 
+
+      if( 0 == (m_eLFMode & LFM_NO_FILTER))
+      {				
+        RNOK( xRecalcCBP( *pcMbDataAccessRes ) );
+  		  RNOK( xFilterMb( pcMbDataAccessMot,
+                         pcMbDataAccessRes,
+                         apcFrame        [ eMbPicType ]->getFullPelYuvBuffer(),
+                         apcRefFrameList0[ eMbPicType ],
+                         apcRefFrameList1[ eMbPicType ],
+                         spatial_scalable_flg,
+						             enhancedLayerFlag ) );  //V032 of FSL added for disabling chroma deblocking
+	   }
+ //{ agl@simecom FIX ------------------
+      uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress ); 
+	}								
+ 
+    //TMM_INTERLACE {
+    if( m_eLFMode & LFM_EXTEND_INTRA_SUR ) 
+    {
+      if(bMbAff) 
+      {
+	for(uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
+	{
+     UInt          uiMbY             = uiMbAddress / uiMbInRow;
+     UInt          uiMbX             = uiMbAddress % uiMbInRow;
+
+     MbDataAccess* pcMbDataAccessRes = 0;
+
+     RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
+          RNOK(   m_pcControlMngIf->initMbForFiltering(  *pcMbDataAccessRes, uiMbY, uiMbX, true  ) ); 
+
+          UInt uiMask = 0;
+          PicType eMbPicType=eMbPicType=((uiMbY%2) ? BOT_FIELD : TOP_FIELD);
+
+          RNOK( pcMbDataCtrlRes->getBoundaryMask_MbAff( uiMbY, uiMbX, uiMask ) );
+
+          if( uiMask /*&& eMbPicType!=BOT_FIELD*/)
+          {
+            IntYuvMbBufferExtension cBuffer;
+            cBuffer.setAllSamplesToZero();
+            cBuffer.loadSurrounding_MbAff( apcFrame        [ eMbPicType ]->getFullPelYuvBuffer(), uiMask );
+            RNOK( m_pcReconstructionBypass->padRecMb_MbAff( &cBuffer                            , uiMask ));
+            apcFrame        [ eMbPicType ]->getFullPelYuvBuffer()->loadBuffer_MbAff( &cBuffer   , uiMask );
+          }
+
+          uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
+        }
+      }
+      else
+  	  {
+  
+        for(uiMbAddress= uiFirstMbInSlice ;uiMbAddress<=uiLastMbInSlice ;)  
+        {
+          UInt          uiMbY            = uiMbAddress / uiMbInRow;
+          UInt          uiMbX            = uiMbAddress % uiMbInRow;
+
+          MbDataAccess* pcMbDataAccessRes = 0;
+
+          RNOK(   pcMbDataCtrlRes ->initMb            (  pcMbDataAccessRes, uiMbY, uiMbX ) );
+          RNOK(   m_pcControlMngIf->initMbForFiltering(  *pcMbDataAccessRes, uiMbY, uiMbX, false  ) ); 
+
+          UInt uiMask = 0;
+        RNOK( pcMbDataCtrlRes->getBoundaryMask( uiMbY, uiMbX, uiMask ) );
+  
+        if( uiMask )
+  		  {
+          IntYuvMbBufferExtension cBuffer;
+          cBuffer.setAllSamplesToZero();
+            cBuffer.loadSurrounding( apcFrame        [ ePicType ]->getFullPelYuvBuffer());
+          RNOK( m_pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
+            apcFrame        [ ePicType ]->getFullPelYuvBuffer()->loadBuffer( &cBuffer);
+          }
+      		
+          uiMbAddress = rcSH.getFMO()->getNextMBNr(uiMbAddress );
+  		  }
+  	  }
+    }
+   //TMM_INTERLACE }
+  }
+  //<- ICU/ETRI DS
+
+  // Hanke@RWTH: Reset pointer
+  setHighpassFramePointer();
+  m_pcHighpassYuvBuffer = NULL; // fix (HS)
+
+  return Err::m_nOK;
+}
+
+/*
 ErrVal LoopFilter::process( SliceHeader&  rcSH,
                             IntFrame*     pcIntFrame,
                             MbDataCtrl*   pcMbDataCtrlMot, // if NULL -> all intra
@@ -3442,7 +3664,7 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
 
           RNOK( pcMbDataCtrlRes->getBoundaryMask_MbAff( uiMbY, uiMbX, uiMask ) );
 
-          if( uiMask /*&& eMbPicType!=BOT_FIELD*/)
+          if( uiMask )
           {
             IntYuvMbBufferExtension cBuffer;
             cBuffer.setAllSamplesToZero();
@@ -3492,8 +3714,9 @@ ErrVal LoopFilter::process( SliceHeader&  rcSH,
   m_pcHighpassYuvBuffer = NULL; // fix (HS)
 
   return Err::m_nOK;
-}
+}*/
 
+//JVT-X046 }
 __inline ErrVal LoopFilter::xFilterMb( MbDataAccess*        pcMbDataAccessMot,
                                        MbDataAccess*        pcMbDataAccessRes,
                                        IntYuvPicBuffer*     pcYuvBuffer,

@@ -103,7 +103,7 @@ class CabacWriter :
 public MbSymbolWriteIf
 , private CabaEncoder
 {
-protected:
+public://protected://JVT-X046
 	CabacWriter();
 	virtual ~CabacWriter();
 
@@ -176,7 +176,38 @@ public:
 
     return Err::m_nOK;  
   }
+	//JVT-X046 {
+	CabacContextModel2DBuffer& getFieldFlagCCModel(void)  {return m_cFieldFlagCCModel;   }
+	CabacContextModel2DBuffer& getFldMapCCModel(void)     {return m_cFldMapCCModel;      }
+	CabacContextModel2DBuffer& getFldLastCCModel(void)    {return m_cFldLastCCModel;     }
+	CabacContextModel2DBuffer& getBLSkipCCModel(void)     {return m_cBLSkipCCModel;      }
 
+	CabacContextModel2DBuffer& getBCbpCCModel(void)       {return m_cBCbpCCModel;        }
+	CabacContextModel2DBuffer& getMapCCModel(void)        {return m_cMapCCModel;         }
+	CabacContextModel2DBuffer& getLastCCModel(void)       {return m_cLastCCModel;        }
+
+	CabacContextModel2DBuffer& getOneCCModel(void)        {return m_cOneCCModel;         }
+	CabacContextModel2DBuffer& getAbsCCModel(void)        {return m_cAbsCCModel;         }
+	CabacContextModel2DBuffer& getChromaPredCCModel(void) {return m_cChromaPredCCModel;  }
+
+	CabacContextModel2DBuffer& getMbTypeCCModel(void)     {return m_cMbTypeCCModel;      }
+	CabacContextModel2DBuffer& getBlockTypeCCModel(void)  {return m_cBlockTypeCCModel;   }
+	CabacContextModel2DBuffer& getMvdCCModel(void)        {return m_cMvdCCModel;         }
+	CabacContextModel2DBuffer& getRefPicCCModel(void)     {return m_cRefPicCCModel;      }
+	CabacContextModel2DBuffer& getBLPredFlagCCModel(void) {return m_cBLPredFlagCCModel;  }
+	CabacContextModel2DBuffer& getResPredFlagCCModel(void){return m_cResPredFlagCCModel; }
+	CabacContextModel2DBuffer& getDeltaQpCCModel(void)    {return m_cDeltaQpCCModel;     }
+	CabacContextModel2DBuffer& getIntraPredCCModel(void)  {return m_cIntraPredCCModel;   }
+	CabacContextModel2DBuffer& getCbpCCModel(void)        {return m_cCbpCCModel;         }
+
+	CabacContextModel2DBuffer& getBCbpEnhanceCCModel(void){return m_cBCbpEnhanceCCModel; }
+	CabacContextModel2DBuffer& getCbpEnhanceCCModel(void) {return m_cCbpEnhanceCCModel;  }
+	CabacContextModel2DBuffer& getTransSizeCCModel(void)  {return m_cTransSizeCCModel;   }
+
+	void loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf);
+	void loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf) { }
+	UInt getBitsWritten(void) { return m_pcBitWriteBufferIf->getBitsWritten(); }
+  //JVT-X046 }
 protected:
   ErrVal xInitContextModels( const SliceHeader& rcSliceHeader );
 

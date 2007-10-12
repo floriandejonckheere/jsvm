@@ -142,6 +142,7 @@ public:
                                       UChar *pcPayload,
                                       const UChar *pcRBSP,
                                       UInt   uiPayloadBufferSize );
+	BitWriteBuffer* xGetBitsWriteBuffer(void)  {  return m_pcBitWriteBuffer;  }//JVT-X046
 protected:
   ErrVal xWriteTrailingBits();
 

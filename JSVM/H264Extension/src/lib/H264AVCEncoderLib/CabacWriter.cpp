@@ -1416,7 +1416,51 @@ ErrVal CabacWriter::residualBlock8x8( MbDataAccess& rcMbDataAccess,
   return Err::m_nOK;
 }
 
+//JVT-X046 {
+void 
+CabacWriter::loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
+{
+	CabacWriter * pcCabacWriter = (CabacWriter*) (pcMbSymbolWriteIf);
+	m_cFieldFlagCCModel.setCabacContextModel(pcCabacWriter->getFieldFlagCCModel().getCabacContextModel());
+	m_cFldMapCCModel.setCabacContextModel(pcCabacWriter->getFldLastCCModel().getCabacContextModel());
+	m_cFldLastCCModel.setCabacContextModel(pcCabacWriter->getFldLastCCModel().getCabacContextModel());
+	m_cBLSkipCCModel.setCabacContextModel(pcCabacWriter->getBLSkipCCModel().getCabacContextModel());
 
+	m_cBCbpCCModel.setCabacContextModel(pcCabacWriter->getBCbpCCModel().getCabacContextModel());
+	m_cMapCCModel.setCabacContextModel(pcCabacWriter->getMapCCModel().getCabacContextModel());
+	m_cLastCCModel.setCabacContextModel(pcCabacWriter->getLastCCModel().getCabacContextModel());
+
+	m_cOneCCModel.setCabacContextModel(pcCabacWriter->getOneCCModel().getCabacContextModel());
+	m_cAbsCCModel.setCabacContextModel(pcCabacWriter->getAbsCCModel().getCabacContextModel());
+	m_cChromaPredCCModel.setCabacContextModel(pcCabacWriter->getChromaPredCCModel().getCabacContextModel());
+
+	m_cMbTypeCCModel.setCabacContextModel(pcCabacWriter->getMbTypeCCModel().getCabacContextModel());		
+	m_cBlockTypeCCModel.setCabacContextModel(pcCabacWriter->getBlockTypeCCModel().getCabacContextModel());
+	m_cMvdCCModel.setCabacContextModel(pcCabacWriter->getMvdCCModel().getCabacContextModel());
+	m_cRefPicCCModel.setCabacContextModel(pcCabacWriter->getRefPicCCModel().getCabacContextModel());
+	m_cBLPredFlagCCModel.setCabacContextModel(pcCabacWriter->getBLPredFlagCCModel().getCabacContextModel());
+	m_cResPredFlagCCModel.setCabacContextModel(pcCabacWriter->getResPredFlagCCModel().getCabacContextModel());
+	m_cDeltaQpCCModel.setCabacContextModel(pcCabacWriter->getDeltaQpCCModel().getCabacContextModel());
+	m_cIntraPredCCModel.setCabacContextModel(pcCabacWriter->getIntraPredCCModel().getCabacContextModel());
+	m_cCbpCCModel.setCabacContextModel(pcCabacWriter->getCbpCCModel().getCabacContextModel());
+
+	m_cBCbpEnhanceCCModel.setCabacContextModel(pcCabacWriter->getBCbpEnhanceCCModel().getCabacContextModel());
+	m_cCbpEnhanceCCModel.setCabacContextModel(pcCabacWriter->getCbpEnhanceCCModel().getCabacContextModel());
+	m_cTransSizeCCModel.setCabacContextModel(pcCabacWriter->getTransSizeCCModel().getCabacContextModel());
+	if ( m_pcBitWriteBufferIf == NULL )
+	{
+		BitWriteBuffer* pcBitWriteBuffer;
+		BitWriteBuffer::create(pcBitWriteBuffer);
+		m_pcBitWriteBufferIf = pcBitWriteBuffer;
+	}
+	m_uiRange        = pcCabacWriter->m_uiRange;
+	m_uiLow          = pcCabacWriter->m_uiLow;
+	m_uiByte         = pcCabacWriter->m_uiByte;
+	m_uiBitsLeft     = pcCabacWriter->m_uiBitsLeft;
+	m_uiBitsToFollow = pcCabacWriter->m_uiBitsToFollow;
+	m_pcBitWriteBufferIf->loadBitWriteBuffer(pcCabacWriter->getBitWriteBufferIf());
+}
+//JVT-X046 }
 
 
 H264AVC_NAMESPACE_END

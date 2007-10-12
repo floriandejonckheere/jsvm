@@ -253,7 +253,8 @@ ErrVal  SliceReader::read( SliceHeader&   rcSH,
                                             iSpatialScalabilityType,
                                             bEndOfSlice  ) );
 
-    if( bEndOfSlice && ruiMbRead < uiNumMbInPic - 1 )
+    //if( bEndOfSlice && ruiMbRead < uiNumMbInPic - 1 )
+		if( bEndOfSlice && ruiMbRead < uiNumMbInPic - 1 && rcSH.getMGSCoeffStart() == rcSH.getMGSCoeffStop()  )//JVT-X046
     {
       ROF( rcSH.getMGSCoeffStart() == rcSH.getMGSCoeffStop() );
       bEndOfSlice = false;

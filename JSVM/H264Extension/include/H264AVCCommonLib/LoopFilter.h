@@ -152,8 +152,9 @@ public:
     m_pcRCDOSliceHeader = pcSliceHeader;
   }
   ErrVal process        ( SliceHeader& rcSH, IntFrame* pcIntFrame = NULL/*, IntYuvPicBuffer* pcHighpassYuvBuffer = NULL,*/
-							            ,bool  bAllSliceDone= false);
-  ErrVal process        ( SliceHeader&        rcSH,
+							            ,bool  bAllSliceDone= false
+													,Bool* bMbStatus = NULL);
+  /*ErrVal process        ( SliceHeader&        rcSH,
                           IntFrame*           pcFrame,
                           MbDataCtrl*         pcMbDataCtrlMot,
                           MbDataCtrl*         pcMbDataCtrlRes,
@@ -161,7 +162,17 @@ public:
                           RefFrameList*       pcRefFrameList0,
                           RefFrameList*       pcRefFrameList1,
 						  bool				  bAllSliceDone,
-                          bool                spatial_scalable_flg);  // SSUN@SHARP
+                          bool                spatial_scalable_flg);  // SSUN@SHARP*/
+	ErrVal process        ( SliceHeader&        rcSH,
+                          IntFrame*           pcFrame,
+                          MbDataCtrl*         pcMbDataCtrlMot,
+                          MbDataCtrl*         pcMbDataCtrlRes,
+                          UInt                uiMbInRow,
+                          RefFrameList*       pcRefFrameList0,
+                          RefFrameList*       pcRefFrameList1,
+						              bool				        bAllSliceDone,
+                          bool                spatial_scalable_flg,
+													Bool*								bMbStatus = NULL);//JVT-X046
 
   ErrVal init( ControlMngIf*          pcControlMngIf,
                ReconstructionBypass*  pcReconstructionBypass,

@@ -147,6 +147,7 @@ CreaterH264AVCDecoder::CreaterH264AVCDecoder():
   ::memset( m_apcMCTFDecoder,          0x00, MAX_LAYERS * sizeof( Void* ) );
   ::memset( m_apcPocCalculator,        0x00, MAX_LAYERS * sizeof( Void* ) );
   ::memset( m_apcYuvFullPelBufferCtrl, 0x00, MAX_LAYERS * sizeof( Void* ) );
+	m_bDiscard = false;//JVT-X046
 }
 
 
@@ -272,7 +273,23 @@ ErrVal
 CreaterH264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
                                       MyList<BinData*>&  cVirtualSliceList)
 {
-  return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList );
+  //return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList );
+	//JVT-X046 {
+	if ( m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList ) == Err::m_nOK )
+	{
+		m_bDiscard = m_pcH264AVCDecoder->m_bDiscard;
+		return Err::m_nOK;
+	}
+	else if ( m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList ) == Err::m_nERR )
+	{
+		m_bDiscard = m_pcH264AVCDecoder->m_bDiscard;
+		return Err::m_nERR;
+	}
+	else
+	{
+		return m_pcH264AVCDecoder->checkSliceGap( pcBinDataAccessor, cVirtualSliceList );
+	}
+	//JVT-X046 }
 }
 ErrVal
 CreaterH264AVCDecoder::setec( UInt uiErrorConceal)
@@ -578,7 +595,8 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   for(UInt ui = 0; ui < MAX_NUM_RD_LEVELS; ui++)
   {
     //rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = 0; //JVT-W137
-    rcPacketDescription.auiQualityLevelQL[ui] = 0;
+    //rcPacketDescription.auiQualityLevelQL[ui] = 0;//SEI changes update
+		rcPacketDescription.auiPriorityLevelPR[ui] = 0;//SEI changes update
   }
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   Bool        bScalable     = ( eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
@@ -586,6 +604,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
   UInt        uiSPSid       = 0;
   UInt        uiPPSid       = 0;
   Bool        bParameterSet = ( eNalUnitType == NAL_UNIT_SPS                      ||
+																eNalUnitType == NAL_UNIT_SUB_SPS                  ||//SSPS
                                 eNalUnitType == NAL_UNIT_PPS                        );
 
 
@@ -714,28 +733,47 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         bApplyToNext  = true;
               break;
       }
-      //{{Quality level estimation and modified truncation- JVTO044 and m12007
+      //SEI changes update {
+			//{{Quality level estimation and modified truncation- JVTO044 and m12007
       //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-      case SEI::QUALITYLEVEL_SEI:
-      {
-      UInt uiNum = 0;
-      UInt uiDeltaBytesRateOfLevel = 0;
-      UInt uiQualityLevel = 0;
-      SEI::QualityLevelSEI* pcSEI           = (SEI::QualityLevelSEI*)pcSEIMessage;
-      uiNum = pcSEI->getNumLevel();
-      rcPacketDescription.uiNumLevelsQL = uiNum;
-      for(UInt ui = 0; ui < uiNum; ui++)
-      {
-        uiQualityLevel = pcSEI->getQualityLevel(ui);
-        //uiDeltaBytesRateOfLevel = pcSEI->getDeltaBytesRateOfLevel(ui); //JVT-W137 remove
-        rcPacketDescription.auiQualityLevelQL[ui] = uiQualityLevel;
-        //rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = uiDeltaBytesRateOfLevel; //JVT-W137 remove
-      }
-      uiLayer = pcSEI->getDependencyId();
-      bApplyToNext = true;
-      break;
-      }
+      //case SEI::QUALITYLEVEL_SEI:
+      //{
+      //UInt uiNum = 0;
+      //UInt uiDeltaBytesRateOfLevel = 0;
+      //UInt uiQualityLevel = 0;
+      //SEI::QualityLevelSEI* pcSEI           = (SEI::QualityLevelSEI*)pcSEIMessage;
+      //uiNum = pcSEI->getNumLevel();
+      //rcPacketDescription.uiNumLevelsQL = uiNum;
+      //for(UInt ui = 0; ui < uiNum; ui++)
+      //{
+      //  uiQualityLevel = pcSEI->getQualityLevel(ui);
+      //  //uiDeltaBytesRateOfLevel = pcSEI->getDeltaBytesRateOfLevel(ui); //JVT-W137 remove
+      //  rcPacketDescription.auiQualityLevelQL[ui] = uiQualityLevel;
+      //  //rcPacketDescription.auiDeltaBytesRateOfLevelQL[ui] = uiDeltaBytesRateOfLevel; //JVT-W137 remove
+      //}
+      //uiLayer = pcSEI->getDependencyId();
+      //bApplyToNext = true;
+      //break;
+      //}
       //}}Quality level estimation and modified truncation- JVTO044 and m12007
+			case SEI::PRIORITYLEVEL_SEI:
+      {
+				UInt uiNum = 0;
+				UInt uiDeltaBytesRateOfLevel = 0;
+				UInt uiPriorityLevel = 0;
+				SEI::PriorityLevelSEI* pcSEI           = (SEI::PriorityLevelSEI*)pcSEIMessage;
+				uiNum = pcSEI->getNumPriorityIds();
+				rcPacketDescription.uiNumLevelsQL = uiNum;
+				for(UInt ui = 0; ui < uiNum; ui++)
+				{
+					uiPriorityLevel = pcSEI->getAltPriorityId(ui);
+					rcPacketDescription.auiPriorityLevelPR[ui] = uiPriorityLevel;
+				}
+				uiLayer = pcSEI->getPrDependencyId();
+				bApplyToNext = true;
+				break;
+			}
+			//SEI changes update }
       case SEI::NON_REQUIRED_SEI:
       {
         m_pcNonRequiredSEI = (SEI::NonRequiredSei*) pcSEIMessage;
@@ -844,6 +882,13 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 		break;
 	  }
    //JVT-W049 }
+			 //JVT-X032 {
+	case SEI::TL_SWITCHING_POINT_SEI:
+		{
+			SEI::TLSwitchingPointSei* pcSEI = (SEI::TLSwitchingPointSei*) pcSEIMessage;
+			UInt uiDeltaFrameNum = pcSEI->getDeltaFrameNum();
+		}
+   //JVT-X032 }
       default:
         {
           delete pcSEIMessage;
@@ -883,6 +928,18 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
       uiSPSid = pcSPS->getSeqParameterSetId();
       pcSPS->destroy();
     }
+		//SSPS {
+		else if( eNalUnitType == NAL_UNIT_SUB_SPS )
+		{
+		  SequenceParameterSet* pcSPS = NULL;
+			RNOK( SequenceParameterSet::create ( pcSPS ) );
+			RNOK( pcSPS->readSubSPS( m_pcUvlcReader, eNalUnitType ) );
+      // Copy simple priority ID mapping from SPS
+
+			uiSPSid = pcSPS->getSeqParameterSetId();
+      pcSPS->destroy();
+		}
+		//SSPS }
     // get the PPSid and the referenced SPSid
     else if( eNalUnitType == NAL_UNIT_PPS )
     {

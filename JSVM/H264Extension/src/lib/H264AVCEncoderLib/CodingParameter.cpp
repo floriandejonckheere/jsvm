@@ -196,18 +196,21 @@ ErrVal LayerParameters::check()
     UInt i, j, uiSliceId, uiTotalRun, uiNumSlicePerHeight, uiMBAddr, uiMBCount, uiFrameWidthInMbs, uiFrameHeightInMbs, uiFrameSizeInMbs;
 
     m_bSliceDivisionFlag = true;
-    m_uiSliceDivisionType = 0;  // rectangular grid slice of constant size
+    //m_uiSliceDivisionType = 0;  // rectangular grid slice of constant size//SEI changes update
+    m_bGridFlag = 0;  // rectangular grid slice of constant size//SEI changes update
     uiTotalRun = m_uiRunLengthMinus1[0] + 1;
     for (i=1; i<m_uiNumSliceGroupsMinus1; i++)
     {
       uiTotalRun += m_uiRunLengthMinus1[i] + 1;
       if ( m_uiRunLengthMinus1[i] != m_uiRunLengthMinus1[0] )
-        m_uiSliceDivisionType = 1;
+        //m_uiSliceDivisionType = 1;//SEI changes update
+        m_bGridFlag = 1;//SEI changes update
     }
     uiTotalRun += m_uiRunLengthMinus1[m_uiNumSliceGroupsMinus1] + 1;
     if ( m_uiRunLengthMinus1[m_uiNumSliceGroupsMinus1] > m_uiRunLengthMinus1[0] )
     {
-      m_uiSliceDivisionType = 1;
+      //m_uiSliceDivisionType = 1;//SEI changes update
+			m_bGridFlag = 1;//SEI changes update
     }
 
     if ( (uiTotalRun<<4) != m_uiFrameWidth )
@@ -304,7 +307,8 @@ ErrVal LayerParameters::check()
 
 
     // Display slice division info.
-    printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);
+    //printf("IROI: Slice Division Type %d, Num Slice %d\n", m_uiSliceDivisionType, m_uiNumSliceMinus1+1);//SEI changes update
+		printf("IROI: Iroi Grid Flag %d, Num Slice %d\n", m_bGridFlag, m_uiNumSliceMinus1+1);//SEI changes update
     //for (i=0; i<=m_uiNumSliceMinus1; i++)
     //{
     //  printf("(%d, %d, %d, %d, %d)\n", i, m_puiGridSliceWidthInMbsMinus1[i], m_puiGridSliceHeightInMbsMinus1[i], m_puiFirstMbInSlice[i], m_puiLastMbInSlice[i]);
@@ -394,6 +398,11 @@ ErrVal CodingParameter::check()
     setIntraPeriodLowPass( uiIntraPeriod );
   }
 
+	//JVT-X046 {
+  ROTREPORT(   m_uiSliceMode < 0 || m_uiSliceMode > 2 || 
+	  (m_uiSliceMode==1)&&(m_uiSliceArgument <= 0) || (m_uiSliceMode==2)&&(m_uiSliceArgument <= 0)
+	  , "Unvalid value for SliceMode or SliceArgument" );
+  //JVT-X046 }
   ROTREPORT( getNumRefFrames    ()  < 1  ||
              getNumRefFrames    ()  > 15,               "Number of reference frames not supported" );
   ROTREPORT( getBaseLayerMode   ()  > 2,                "Base layer mode not supported" );

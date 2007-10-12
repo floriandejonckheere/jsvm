@@ -259,6 +259,9 @@ public:
   ErrVal  checkSliceLayerDependency   ( BinDataAccessor*  pcBinDataAccessor,
                                         Bool&             bFinishChecking);
 //	TMM_EC {{
+	//JVT-X046 {
+	Bool checkOrderFromPoc(UInt uiPoc1,UInt uiPoc2,UInt& id1,UInt& id2,UInt uiDecompositionStages);
+	//JVT-X046 }
 	Bool		checkSEIForErrorConceal();
   ErrVal  checkSliceGap   ( BinDataAccessor*  pcBinDataAccessor,
                             MyList<BinData*>&	cVirtualSliceList );
@@ -342,6 +345,11 @@ protected:
   ErrVal  xStartSlice               ( Bool& bPreParseHeader, Bool& bDiscardable ); //FRAG_FIX //TMM_EC//JVT-S036 lsj
 
   // TMM_EC {{
+	//JVT-X046 {
+	ErrVal	xDecodeBaseLayerVirtual      ( SliceHeader&    rcSH,
+	                                    SliceHeader* pcPrevSH,
+									                    PicBuffer* &    rpcPicBuffer);
+	//JVT-X046 }
   ErrVal  xProcessSliceVirtual      ( SliceHeader&    rcSH,
 	                                    SliceHeader* pcPrevSH,
 									                    PicBuffer* &    rpcPicBuffer);
@@ -454,6 +462,18 @@ protected:
   Bool                          m_bLastFrameReconstructed; //JVT-T054_FIX
 public:
   MbDataCtrl*         m_pcBaseLayerCtrlEL;
+	//JVT-X046 {
+	UInt	m_uiNextFirstMb;
+	UInt	m_uiLostMbNum;
+	Bool	m_bPicDone;
+	Bool	m_bDiscard;
+	UInt	m_uiMbNumInFrame[MAX_LAYERS];
+	UInt	m_uiFrameHeightInMb;
+	UInt	m_uiFrameWidthInMb;
+	UInt	m_uiDecodedMbNum;
+	Bool	*m_bMbStatus[MAX_LAYERS];
+	Bool	m_bLayerStatus[MAX_LAYERS];//when all slices are correct, set it true, else false
+	//JVT-X046 }
 };
 
 H264AVC_NAMESPACE_END

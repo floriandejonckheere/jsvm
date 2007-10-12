@@ -224,6 +224,10 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 		if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->addFieldBuffer( ePicType ) );
 	}
 
+	//JVT-X046 {
+	UInt uiCodedMBNumber=0;
+	m_pcMbCoder->bSliceCodedDone=false;
+	//JVT-X046 }
   //===== loop over macroblocks =====
   for( ; uiMbAddress <= uiLastMbAddress; ) //--ICU/ETRI FMO Implementation
   {
@@ -284,11 +288,12 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
                                                   dCost,
                                                   true ) );
     }
-    RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
+		//JVT-X046
+    /*RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
                                                 pcMbDataAccessBase,
                                                 iSpatialScalabilityType,
                                                 (uiMbAddress == uiLastMbAddress),
-                                                true ) );
+                                                true ) );*/
  
     /* commented out by jzhao@sharplabs. This is not right. It will affect syntax of the next MB
     it got lucky because before JSVM8_10, the base cbp is not set at all, it's always 0.
@@ -304,8 +309,69 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
       IntYuvPicBuffer* pcBaseResidual = pcBaseLayerResidual->getPic( ePicType )->getFullPelYuvBuffer();
       pcBaseResidual->clearCurrMb();
     }
+		//JVT-X046 {
+    uiCodedMBNumber++;
+		if (m_uiSliceMode==1) //fixed slice size in number of MBs
+		{
+			if (uiCodedMBNumber >= m_uiSliceArgument)// this slice is done
+			{
+				RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
+					pcMbDataAccessBase,
+					iSpatialScalabilityType,
+					true, true ) );
+				rcControlData.m_uiCurrentFirstMB = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
+				rcSliceHeader.setNumMbsInSlice(uiCodedMBNumber);
+				if (rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1)
+					rcControlData.m_bSliceGroupAllCoded = true;
+				break;
+			}
+			else
+			{
+				RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
+					pcMbDataAccessBase,
+					iSpatialScalabilityType,
+					(uiMbAddress == uiLastMbAddress), 
+					true ) );
+			}
+		}
+		else if(m_uiSliceMode==2) //fixed slice size in number of bytes
+		{
+			RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
+				pcMbDataAccessBase,
+				iSpatialScalabilityType,
+				(uiMbAddress == uiLastMbAddress), 
+				true ) );
+			if ((rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1) && (!m_pcMbCoder->bSliceCodedDone))
+				rcControlData.m_bSliceGroupAllCoded = true;
+			if (m_pcMbCoder->bSliceCodedDone==true)	
+			{
+				rcControlData.m_uiCurrentFirstMB = uiMbAddress;
+				rcSliceHeader.setNumMbsInSlice(uiCodedMBNumber-1);
 
+				//set SliceId equal to zero because this MBData belong to the next slice
+				MbData* tempMbData;
+				tempMbData=pcMbDataCtrl->xGetMbData(rcControlData.m_uiCurrentFirstMB);
+				tempMbData->m_uiSliceId = 0;
+				break;
+			}
+		}
+		else 
+		{
+			RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
+				pcMbDataAccessBase,
+				iSpatialScalabilityType,
+				(uiMbAddress == uiLastMbAddress), 
+				true ) );
+		}
+		//JVT-X046 }
     uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
+		//JVT-X046 {
+		if (uiMbAddress==-1)
+		{
+			rcControlData.m_bSliceGroupAllCoded=true;
+			break;
+		}
+		//JVT-X046 }
   }
 
 	if( ePicType!=FRAME )
@@ -363,6 +429,11 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
 		if( pcBaseLayer )  RNOK( pcBaseLayer ->addFieldBuffer( ePicType ) );
 		if( pcPredSignal ) RNOK( pcPredSignal->addFieldBuffer( ePicType ) );
 	}
+  
+	//JVT-X046 {
+	UInt uiCodedMBNumber = 0;
+	m_pcMbCoder->bSliceCodedDone = false;
+	//JVT-X046 }
 
   //===== loop over macroblocks =====
   for(  ; uiMbAddress <= uiLastMbAddress;  ) //--ICU/ETRI FMO Implementation
@@ -399,12 +470,66 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
                                                  dLambda,
                                                  dCost) );
 
-    RNOK( m_pcMbCoder       ->encode          ( *pcMbDataAccess,
-                                                pcMbDataAccessBase,
-                                                iSpatialScalabilityType,
-                                                 ( uiMbAddress == uiLastMbAddress ), true ) );
+    //JVT-X046 {
+		uiCodedMBNumber++;
+		if (m_uiSliceMode==1) //fixed slice size in number of MBs
+		{		
+			if (uiCodedMBNumber >= m_uiSliceArgument)//reach the fixed MB number
+			{
+				RNOK( m_pcMbCoder       ->encode          ( *pcMbDataAccess,
+					pcMbDataAccessBase,
+					iSpatialScalabilityType,
+					true, true ) );
+				rcControlData.m_uiCurrentFirstMB = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
+				rcControlData.getSliceHeader(ePicType)->setNumMbsInSlice(uiCodedMBNumber);
+				if (rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1)
+					rcControlData.m_bSliceGroupAllCoded = true;
+				break;
+			}
+			else
+			{
+				RNOK( m_pcMbCoder       ->encode          ( *pcMbDataAccess,
+					pcMbDataAccessBase,
+					iSpatialScalabilityType,
+					( uiMbAddress == uiLastMbAddress ), true ) );
+			}
+		}
+		else if(m_uiSliceMode==2) //fixed slice size in number of MBs
+		{
+			RNOK( m_pcMbCoder       ->encode          ( *pcMbDataAccess,
+				pcMbDataAccessBase,
+				iSpatialScalabilityType,
+				( uiMbAddress == uiLastMbAddress ), true ) );
+			if ((rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress)==-1) && (!m_pcMbCoder->bSliceCodedDone))
+				rcControlData.m_bSliceGroupAllCoded = true;
+			if (m_pcMbCoder->bSliceCodedDone==true)// this slice is done
+			{
+				rcControlData.m_uiCurrentFirstMB = uiMbAddress;
+				rcControlData.getSliceHeader(ePicType)->setNumMbsInSlice(uiCodedMBNumber-1);
+
+				MbData* tempMbData;//set SliceId equal to zero because this MBData belong to the next slice
+				tempMbData = pcMbDataCtrl->xGetMbData(rcControlData.m_uiCurrentFirstMB);
+				tempMbData->m_uiSliceId = 0;
+				break;
+			}
+		}
+		else
+		{
+			RNOK( m_pcMbCoder       ->encode          ( *pcMbDataAccess,
+			pcMbDataAccessBase,
+			iSpatialScalabilityType,
+			( uiMbAddress == uiLastMbAddress ), true ) );
+		}
+		//JVT-X046 }
 
     uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
+		//JVT-X046 {
+		if (uiMbAddress==-1)
+		{
+			rcControlData.m_bSliceGroupAllCoded = true;
+			break;
+		}
+		//JVT-X046 }
   }
 
   if( ePicType!=FRAME )

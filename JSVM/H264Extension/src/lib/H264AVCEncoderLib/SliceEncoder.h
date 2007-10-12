@@ -236,7 +236,7 @@ ErrVal encodeIntraPictureMbAff      ( UInt&					ruiBits,
   //JVT-U106 Behaviour at slice boundaries{
   Void    setIntraBLFlag  (Bool* b){m_pbIntraBLFlag=b;}
   //JVT-U106 Behaviour at slice boundaries}
-protected:
+public://protected://JVT-X046 
   MbEncoder* m_pcMbEncoder;
   MbCoder* m_pcMbCoder;
   ControlMngIf* m_pcControlMng;
@@ -251,6 +251,10 @@ protected:
   //JVT-U106 Behaviour at slice boundaries{
   Bool* m_pbIntraBLFlag;
   //JVT-U106 Behaviour at slice boundaries}
+	//JVT-X046 {
+  UInt m_uiSliceMode;
+  UInt m_uiSliceArgument;
+  //JVT-X046 }
 };
 
 

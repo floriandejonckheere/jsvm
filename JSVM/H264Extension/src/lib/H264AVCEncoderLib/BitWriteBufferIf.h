@@ -114,6 +114,11 @@ public:
   virtual ErrVal flushBuffer() = 0;
   virtual ErrVal samples( const Pel* pPel, UInt uiNumberOfSamples ) = 0;
   virtual ErrVal getLastByte(UChar &uiLastByte, UInt &uiLastBitPos) = 0; //FIX_FRAG_CAVLC
+	//JVT-X046 {
+	virtual void loadBitWriteBuffer(BitWriteBufferIf* pcBitWriteBufferIf) = 0;
+	virtual void loadBitCounter(BitWriteBufferIf* pcBitWriteBufferIf) = 0;
+	virtual UInt getBitsWritten(void) = 0;
+	//JVT-X046 }
 };
 
 

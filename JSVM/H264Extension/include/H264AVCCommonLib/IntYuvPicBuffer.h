@@ -223,6 +223,122 @@ public:
 	// JVT-R057 LA-RDO{
 	YuvBufferCtrl& getYuvBufferCtrl(){ return m_rcYuvBufferCtrl;}
 	// JVT-R057 LA-RDO} 
+	//JVT-X046 {
+	void   setMBZero( UInt uiMBY, UInt uiMBX );
+  ErrVal predictionSlices(IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer, UInt uiMbY, UInt uiMbX );
+  ErrVal inversepredictionSlices(IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer, UInt uiMbY, UInt uiMbX );
+  ErrVal copyMb(IntYuvPicBuffer* pcSrcYuvPicBuffer,UInt uiMbY, UInt uiMbX);
+	ErrVal IntYuvPicBuffer::copyMB( YuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress)
+	{
+		Int iSrcStride = pcSrcYuvPicBuffer->getLStride();
+		Int iDesStride = getLStride();
+		UInt uiWidth     = pcSrcYuvPicBuffer->getLWidth ()/16;
+		UInt uiXPos,uiYPos;
+		uiXPos = uiMbAddress % uiWidth;
+		uiYPos = (uiMbAddress)/uiWidth;
+		pcSrcYuvPicBuffer->m_rcYuvBufferCtrl.initMb(uiYPos,uiXPos,false);
+		m_rcYuvBufferCtrl.initMb(uiYPos,uiXPos,false);
+		Pel* pSrc = pcSrcYuvPicBuffer->getMbLumAddr();
+		XPel* pDes = getMbLumAddr();
+		
+		UInt y,x;
+		for ( y = 0; y < 16; y++ )
+		{
+			for ( x = 0; x < 16; x++ )
+				pDes[x]=pSrc[x];
+			pSrc += iSrcStride;
+			pDes += iDesStride;
+		}
+		iSrcStride >>= 1;
+		iDesStride >>= 1;
+
+		pSrc = pcSrcYuvPicBuffer->getMbCbAddr();
+		pDes = getMbCbAddr();
+
+		for ( y = 0; y < 8; y++ )
+		{
+			for ( x = 0; x < 8; x++ )
+				pDes[x] = pSrc[x];
+			pSrc += iSrcStride;
+			pDes += iDesStride;
+		}
+
+		pSrc = pcSrcYuvPicBuffer->getMbCrAddr();
+		pDes = getMbCrAddr();
+		for ( y = 0; y < 8; y++ )
+		{
+
+			for ( x = 0; x < 8; x++)
+				pDes[x] = pSrc[x];
+			pSrc += iSrcStride;
+			pDes += iDesStride;
+		}
+		return Err::m_nOK;
+	}
+	ErrVal IntYuvPicBuffer::copyMB( IntYuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress)
+	{
+		Int iSrcStride = pcSrcYuvPicBuffer->getLStride();
+		Int iDesStride = getLStride();
+		UInt uiWidth     = pcSrcYuvPicBuffer->getLWidth ()/16;
+		UInt uiXPos,uiYPos;
+		uiXPos = uiMbAddress % uiWidth;
+		uiYPos = (uiMbAddress)/uiWidth;
+		pcSrcYuvPicBuffer->getYuvBufferCtrl().initMb(uiYPos,uiXPos,false);
+		getYuvBufferCtrl().initMb(uiYPos,uiXPos,false);
+		XPel* pSrc = pcSrcYuvPicBuffer->getMbLumAddr();
+		XPel* pDes = getMbLumAddr();
+		
+		UInt y,x;
+		for ( y = 0; y < 16; y++ )
+		{
+			for ( x = 0; x < 16; x++ )
+				pDes[x]=pSrc[x];
+			pSrc += iSrcStride;
+			pDes += iDesStride;
+		}
+		iSrcStride >>= 1;
+		iDesStride >>= 1;
+
+		pSrc = pcSrcYuvPicBuffer->getMbCbAddr();
+		pDes = getMbCbAddr();
+
+		for ( y = 0; y < 8; y++ )
+		{
+			for ( x = 0; x < 8; x++ )
+				pDes[x] = pSrc[x];
+			pSrc += iSrcStride;
+			pDes += iDesStride;
+		}
+
+		pSrc = pcSrcYuvPicBuffer->getMbCrAddr();
+		pDes = getMbCrAddr();
+		for ( y = 0; y < 8; y++ )
+		{
+
+			for ( x = 0; x < 8; x++)
+				pDes[x] = pSrc[x];
+			pSrc += iSrcStride;
+			pDes += iDesStride;
+		}
+		return Err::m_nOK;
+	}
+	ErrVal IntYuvPicBuffer::copySlice( YuvPicBuffer* pcSrcYuvPicBuffer,UInt uiFirstMB,UInt uiLastMB)
+	{
+		for (UInt uiMbAddress=uiFirstMB;uiMbAddress<uiLastMB;uiMbAddress++)
+		{
+			RNOK(copyMB(pcSrcYuvPicBuffer,uiMbAddress));
+		}
+		return Err::m_nOK;
+	}
+	ErrVal IntYuvPicBuffer::copySlice( IntYuvPicBuffer* pcSrcYuvPicBuffer,UInt uiFirstMB,UInt uiLastMB)
+	{
+		for (UInt uiMbAddress=uiFirstMB;uiMbAddress<uiLastMB;uiMbAddress++)
+		{
+			RNOK(copyMB(pcSrcYuvPicBuffer,uiMbAddress));
+		}
+		return Err::m_nOK;
+	}
+  //JVT-X046 }
 protected:
   Void xCopyFillPlaneMargin( XPel *pucSrc, XPel *pucDest, Int iHeight, Int iWidth, Int iStride, Int iXMargin, Int iYMargin );
   Void xCopyPlane          ( XPel *pucSrc, XPel *pucDest, Int iHeight, Int iWidth, Int iStride );

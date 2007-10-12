@@ -221,7 +221,8 @@ public:
     // JVT-S054 (ADD) ->
     , m_uiNumSliceMinus1 (0)
     , m_bSliceDivisionFlag (false)
-    , m_uiSliceDivisionType (0)
+    //, m_uiSliceDivisionType (0)//SEI changes update
+		, m_bGridFlag (0)//SEI changes update
     , m_puiGridSliceWidthInMbsMinus1 (0)
     , m_puiGridSliceHeightInMbsMinus1 (0)
     , m_puiFirstMbInSlice (0)
@@ -521,7 +522,8 @@ public:
   // JVT-S054 (ADD) ->
   Bool         m_bSliceDivisionFlag;
   UInt         m_uiNumSliceMinus1;
-  UInt         m_uiSliceDivisionType;
+  //UInt         m_uiSliceDivisionType;//SEI changes update
+	Bool         m_bGridFlag;//SEI changes update
   UInt*        m_puiGridSliceWidthInMbsMinus1;
   UInt*        m_puiGridSliceHeightInMbsMinus1;
   UInt*        m_puiFirstMbInSlice;
@@ -831,6 +833,10 @@ public:
   //JVT-W049 {
   Bool getEnableRedundantKeyPic() {return m_uiRedundantKeyPic == 0 ? false:true; }
   //JVT-W049 }
+	//JVT-X046 {
+  UInt getSliceMode               ()                   { return m_uiSliceMode; }
+  UInt getSliceArgument           ()                   { return m_uiSliceArgument; }
+  //JVT-X046 }
 private:
   UInt                            getLogFactor            ( Double  r0,
                                                             Double  r1 );
@@ -928,6 +934,10 @@ protected:
 	//JVT-W049 {
   UInt    m_uiRedundantKeyPic;
   //JVT-W049 }
+	//JVT-X046 {
+  UInt    m_uiSliceMode;
+  UInt    m_uiSliceArgument;
+  //JVT-X046 }
 };
 
 #if defined( MSYS_WIN32 )

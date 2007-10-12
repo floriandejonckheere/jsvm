@@ -117,7 +117,7 @@ enum NalUnitType
   NAL_UNIT_END_OF_STREAM            = 11,
   NAL_UNIT_FILLER_DATA              = 12,
   NAL_UNIT_PREFIX										= 14,  //prefix unit
-
+  NAL_UNIT_SUB_SPS                  = 15,  //SSPS
   NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
   NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
 };
@@ -409,23 +409,37 @@ protected:
   Double                        m_aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
   Double                        m_adTotalBitrate[MAX_SCALABLE_LAYERS];
 //JVT-W046 {
-  Bool													m_bAvc_Layer_Conversion_Flag[MAX_SCALABLE_LAYERS];
-	UInt													m_uiAvc_Conversion_Type_Idc[MAX_SCALABLE_LAYERS];
-	Bool													m_bAvc_Info_Flag[MAX_SCALABLE_LAYERS][2];
-	Int32													m_uiAvc_Profile_Level_Idc[MAX_SCALABLE_LAYERS][2];
-	UInt												  m_dAvc_Avg_Bitrate[MAX_SCALABLE_LAYERS][2];
-	UInt												  m_dAvc_Max_Bitrate[MAX_SCALABLE_LAYERS][2];
+	//SEI changes update {
+ // Bool													m_bAvc_Layer_Conversion_Flag[MAX_SCALABLE_LAYERS];
+	//UInt													m_uiAvc_Conversion_Type_Idc[MAX_SCALABLE_LAYERS];
+	//Bool													m_bAvc_Info_Flag[MAX_SCALABLE_LAYERS][2];
+	//Int32													m_uiAvc_Profile_Level_Idc[MAX_SCALABLE_LAYERS][2];
+	//UInt												  m_dAvc_Avg_Bitrate[MAX_SCALABLE_LAYERS][2];
+	//UInt												  m_dAvc_Max_Bitrate[MAX_SCALABLE_LAYERS][2];
+	Bool													m_bLayer_Conversion_Flag[MAX_SCALABLE_LAYERS];
+	UInt													m_uiConversion_Type_Idc[MAX_SCALABLE_LAYERS];
+	Bool													m_bRewriting_Info_Flag[MAX_SCALABLE_LAYERS][2];
+	Int32													m_uiRewriting_Profile_Level_Idc[MAX_SCALABLE_LAYERS][2];
+	UInt												  m_dRewriting_Avg_Bitrate[MAX_SCALABLE_LAYERS][2];
+	UInt												  m_dRewriting_Max_Bitrate[MAX_SCALABLE_LAYERS][2];
 //JVT-W046 }
 	//JVT-W051 {
-	UInt													m_uiQl_num_dId_minus1;
-	UInt													m_uiQl_Dependency_Id[MAX_LAYERS];
-	UInt													m_uiQl_num_minus1[MAX_LAYERS];
-	UInt													m_uiQl_Id[MAX_LAYERS][MAX_QUALITY_LEVELS];
-	Int32													m_uiQl_Profile_Level_Idc[MAX_LAYERS][MAX_QUALITY_LEVELS];
-	UInt													m_dQl_Avg_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
-	UInt													m_dQl_Max_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	//UInt													m_uiQl_num_dId_minus1;
+	//UInt													m_uiQl_Dependency_Id[MAX_LAYERS];
+	//UInt													m_uiQl_num_minus1[MAX_LAYERS];
+	//UInt													m_uiQl_Id[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	//Int32													m_uiQl_Profile_Level_Idc[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	//UInt													m_dQl_Avg_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	//UInt													m_dQl_Max_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
+  UInt													m_uiPr_num_dId_minus1;
+	UInt													m_uiPr_Dependency_Id[MAX_LAYERS];
+	UInt													m_uiPr_num_minus1[MAX_LAYERS];
+	UInt													m_uiPr_Id[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	Int32													m_uiPr_Profile_Level_Idc[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	UInt													m_dPr_Avg_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
+	UInt													m_dPr_Max_Bitrate[MAX_LAYERS][MAX_QUALITY_LEVELS];
 	//JVT-W051 }
-
+//SEI changes update }
   //{{Quality level estimation and modified truncation- JVTO044 and m12007
   //France Telecom R&D-(nathalie.cammas@francetelecom.com)
   Double*           m_aaadMaxRate[MAX_LAYERS]; //size of each frame for each layer without deadsubstream
@@ -435,7 +449,8 @@ protected:
   Bool              m_bInInputStreamQL;// indicate if RD informations are in the input bitstream
   Double*           m_aadTargetByteForFrame[MAX_LAYERS];
   UInt*             m_aaauiBytesForQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
-  Double*           m_aaadQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];
+  //Double*           m_aaadQualityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];//SEI changes update
+	Double*           m_aaadPriorityLevel[MAX_LAYERS][MAX_NUM_RD_LEVELS];//SEI changes update
   Int*              m_aaiNumLevels[MAX_LAYERS];
   UInt              m_auiNbImages[MAX_LAYERS];
   //}}Quality level estimation and modified truncation- JVTO044 and m12007

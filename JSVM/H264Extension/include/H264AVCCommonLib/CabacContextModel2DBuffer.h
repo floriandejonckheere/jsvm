@@ -122,7 +122,16 @@ public:
     }
     return Err::m_nOK;
   }
-
+	//JVT-X046 {
+	CabacContextModel* getCabacContextModel(void)
+	{
+		return m_pcCContextModel;
+	}
+	void setCabacContextModel(CabacContextModel* pcCContextModel)
+	{
+		m_pcCContextModel->set(pcCContextModel);
+	}
+  //JVT-X046 }
 protected:
   CabacContextModel*  m_pcCContextModel;
   const UInt          m_uiSizeX;

@@ -193,6 +193,12 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bAVCRewriteFlag                         ( false )   // V035
 , m_bAVCAdaptiveRewriteFlag                 ( false )
 , m_bAVCHeaderRewriteFlag                   ( false ) //JVT-W046
+//SSPS {
+, m_bSubSPS                                 ( false )
+, m_bSVCVUIParametersPresentFlag            ( false )
+, m_bAdditionalExtension2Flag               ( false )
+, m_bAdditionalExtension2DataFlag           ( false )
+//SSPS }
 {
   m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
   m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -450,21 +456,21 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   m_pcVUI->write(pcWriteIf);
   // JVT-V068 HRD }
 
-  Bool bRCDO  = ( m_bRCDOBlockSizes ||
-                  m_bRCDOMotionCompensationY ||
-                  m_bRCDOMotionCompensationC ||
-                  m_bRCDODeblocking );
-  if(  bRCDO )
-  {
-    RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
-    RNOK( pcWriteIf->writeFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
-    RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
-    RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
-    RNOK( pcWriteIf->writeFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
-  }
-  else if( m_b4TapMotionCompensationY)  // V090
-    RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,    "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
-
+  //Bool bRCDO  = ( m_bRCDOBlockSizes ||
+  //                m_bRCDOMotionCompensationY ||
+  //                m_bRCDOMotionCompensationC ||
+  //                m_bRCDODeblocking );
+  //if(  bRCDO )
+  //{
+  //  RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
+  //  RNOK( pcWriteIf->writeFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
+  //  RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
+  //  RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
+  //  RNOK( pcWriteIf->writeFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
+  //}
+  //else if( m_b4TapMotionCompensationY)  // V090
+  //  RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,    "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
+  
 
   return Err::m_nOK;
 }
@@ -535,9 +541,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     }
 
 
-//#if TO_BE_REMOVED
-   //TMM if( getExtendedSpatialScalability() == ESS_NONE )
-//#endif
+
     {
       RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                       "SPS: seq_tcoeff_level_prediction_flag" ) );
       if( m_bAVCRewriteFlag )
@@ -582,23 +586,127 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   // JVT-V068 }
 
 
-  m_b4TapMotionCompensationY = false;                      // V090
-  ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );           // V090
-  RNOK ( pcReadIf->getFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );   // V090
+  //m_b4TapMotionCompensationY = false;                      // V090
+  //ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );           // V090
+  //RNOK ( pcReadIf->getFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );   // V090
 
-  m_bRCDOBlockSizes          = false;
-  m_bRCDOMotionCompensationY = false;
-  m_bRCDOMotionCompensationC = false;
-  m_bRCDODeblocking          = false;
-  ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );
-  RNOK ( pcReadIf->getFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
-  RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
-  RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
-  RNOK ( pcReadIf->getFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
+  //m_bRCDOBlockSizes          = false;
+  //m_bRCDOMotionCompensationY = false;
+  //m_bRCDOMotionCompensationC = false;
+  //m_bRCDODeblocking          = false;
+  //ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );
+  //RNOK ( pcReadIf->getFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
+  //RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
+  //RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
+  //RNOK ( pcReadIf->getFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
 
   return Err::m_nOK;
 }
 
+//SSPS {
+ErrVal
+SequenceParameterSet::writeSVCVUIParametersExtension( HeaderSymbolWriteIf* pcWriteIf ) const
+{
+	RNOK  ( pcWriteIf->writeUvlc( getNumLayersMinus1(),                       "SVC VUI: num_layers_minus1" ) );
+	for ( UInt i = 0; i <= getNumLayersMinus1(); i++ )
+	{
+		RNOK  ( pcWriteIf->writeCode( getDependencyId(i),              3,              "SVC VUI: dependency_id" ) );
+		RNOK  ( pcWriteIf->writeCode( getQualityId(i),                 4,              "SVC VUI: quality_id" ) );
+		RNOK  ( pcWriteIf->writeCode( getTemporalId(i),                3,              "SVC VUI: temporal_id" ) );
+    RNOK  ( pcWriteIf->writeFlag( getTimingInfoPresentFlag(i),                    "SVC VUI: timing_info_present_flag" ) );
+		if ( getTimingInfoPresentFlag(i) )
+		{
+      RNOK  ( pcWriteIf->writeCode( getNumUnitsInTick(i),            32,              "SVC VUI: dependency_id" ) );
+      RNOK  ( pcWriteIf->writeCode( getTimeScale(i),                 32,              "SVC VUI: time_scale" ) );
+			RNOK  ( pcWriteIf->writeFlag( getFixedFrameRateFlag(i),                        "SVC VUI: fixed_frame_rate_flag" ) );
+		}
+		RNOK  ( pcWriteIf->writeFlag( getNalHrdParametersPresentFlag(i),              "SVC VUI: nal_hrd_parameters_present_flag" ) );
+		if ( getNalHrdParametersPresentFlag(i) )
+			//add hrd parameters here
+		RNOK  ( pcWriteIf->writeFlag( getVclHrdParametersPresentFlag(i),              "SVC VUI: vcl_hrd_parameters_present_flag" ) );
+		if ( getVclHrdParametersPresentFlag(i) )
+			//add hrd parameters here
+		if ( getNalHrdParametersPresentFlag(i)||getVclHrdParametersPresentFlag(i) )
+			RNOK  ( pcWriteIf->writeFlag( getLowDelayHrdFlag(i),                        "SVC VUI: low_delay_hrd_flag" ) );
+		RNOK  ( pcWriteIf->writeFlag( getPicStructPresentFlag(i),                    "SVC VUI: pic_struct_present_flag" ) );
+	}
+	return Err::m_nOK;
+}
+ErrVal
+SequenceParameterSet::ReadSVCVUIParametersExtension( HeaderSymbolReadIf* pcReadIf )
+{
+	RNOK  ( pcReadIf->getUvlc( m_uiNumLayersMinus1,                       "SVC VUI: num_layers_minus1" ) );
+	for ( UInt i = 0; i <= m_uiNumLayersMinus1; i++ )
+	{
+		RNOK  ( pcReadIf->getCode( m_uiDependencyId[i],              3,              "SVC VUI: dependency_id" ) );
+		RNOK  ( pcReadIf->getCode( m_uiQualityId[i],                 4,              "SVC VUI: quality_id" ) );
+		RNOK  ( pcReadIf->getCode( m_uiTemporalId[i],                3,              "SVC VUI: temporal_id" ) );
+    RNOK  ( pcReadIf->getFlag( m_bTimingInfoPresentFlag[i],                    "SVC VUI: timing_info_present_flag" ) );
+		if ( m_bTimingInfoPresentFlag[i] )
+		{
+      RNOK  ( pcReadIf->getCode( m_uiNumUnitsInTick[i],            32,              "SVC VUI: dependency_id" ) );
+      RNOK  ( pcReadIf->getCode( m_uiTimeScale[i],                 32,              "SVC VUI: time_scale" ) );
+			RNOK  ( pcReadIf->getFlag( m_bFixedFrameRateFlag[i],                        "SVC VUI: fixed_frame_rate_flag" ) );
+		}
+		RNOK  ( pcReadIf->getFlag( m_bNalHrdParametersPresentFlag[i],              "SVC VUI: nal_hrd_parameters_present_flag" ) );
+		if ( m_bNalHrdParametersPresentFlag[i] )
+			//add hrd parameters here
+		RNOK  ( pcReadIf->getFlag( m_bVclHrdParametersPresentFlag[i],              "SVC VUI: vcl_hrd_parameters_present_flag" ) );
+		if ( m_bVclHrdParametersPresentFlag[i] )
+			//add hrd parameters here
+		if ( m_bNalHrdParametersPresentFlag[i]||m_bVclHrdParametersPresentFlag[i] )
+			RNOK  ( pcReadIf->getFlag( m_bLowDelayHrdFlag[i],                        "SVC VUI: low_delay_hrd_flag" ) );
+		RNOK  ( pcReadIf->getFlag( m_bPicStructPresentFlag[i],                    "SVC VUI: pic_struct_present_flag" ) );
+	}
+	return Err::m_nOK;
+}
+
+ErrVal
+SequenceParameterSet::writeSubSPS( HeaderSymbolWriteIf* pcWriteIf ) const
+{
+	RNOK( write( pcWriteIf ) );
+	if( getProfileIdc() == 83 || getProfileIdc() == 86 )
+	{
+		RNOK( pcWriteIf->writeFlag( getSVCVUIParametersPresentFlag(), "SubSPS: svc_vui_parameters_present_flag" ) );
+		if( getSVCVUIParametersPresentFlag() )
+		{
+		  RNOK( writeSVCVUIParametersExtension( pcWriteIf ) );
+		}
+	}
+
+	RNOK( pcWriteIf->writeFlag( getAdditionalExtension2Flag(),   "SubSPS: additional_extension2_flag" ) );
+	if( getAdditionalExtension2Flag() )
+	{
+	  //add more addition data
+		RNOK( pcWriteIf->writeFlag( getAdditionalExtension2DataFlag(), "SubSPS: addtional_extension2_data_flag" ) );
+	}  
+	return Err::m_nOK;
+}
+
+ErrVal
+SequenceParameterSet::readSubSPS( HeaderSymbolReadIf* pcReadIf,
+                                  NalUnitType         eNalUnitType )
+{
+	RNOK( read( pcReadIf, eNalUnitType ) );
+	if( getProfileIdc() == 83 || getProfileIdc() == 86 )
+	{
+		RNOK ( pcReadIf->getFlag( m_bSVCVUIParametersPresentFlag, "SubSPS: svc_vui_parameters_present_flag" ) );
+		if( m_bSVCVUIParametersPresentFlag )
+		{
+		  RNOK( ReadSVCVUIParametersExtension ( pcReadIf ) );
+		}
+	}
+
+	RNOK( pcReadIf->getFlag ( m_bAdditionalExtension2Flag, "SubSPS: additional_extension2_flag" ) );
+	if( m_bAdditionalExtension2Flag )
+	{
+	  //read more RBSP data here
+		RNOK( pcReadIf->getFlag( m_bAdditionalExtension2DataFlag, "SubSPS: addtional_extension2_data_flag" ) );
+	}
+
+	return Err::m_nOK;
+}
+//SSPS }
 
 ErrVal
 SequenceParameterSet::xWriteFrext( HeaderSymbolWriteIf* pcWriteIf ) const

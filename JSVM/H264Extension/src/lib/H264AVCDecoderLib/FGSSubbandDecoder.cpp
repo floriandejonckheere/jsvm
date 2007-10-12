@@ -174,7 +174,8 @@ RQFGSDecoder::uninit()
 
 ErrVal
 RQFGSDecoder::initPicture( SliceHeader* pcSliceHeader,
-                           MbDataCtrl*  pcCurrMbDataCtrl )
+                           MbDataCtrl*  pcCurrMbDataCtrl,
+													 Bool*				bMbStatus)
 {
   ROT( m_bPicInit );
   ROF( m_bInit );
@@ -193,7 +194,10 @@ RQFGSDecoder::initPicture( SliceHeader* pcSliceHeader,
   RNOK( m_pcCurrMbDataCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, true, NULL ) );
   
   RNOK( xInitBaseLayerSbb( m_pcSliceHeader->getLayerId() ) );
-  RNOK( xInitializeCodingPath(pcSliceHeader) );
+	//JVT-X046 {
+  //RNOK( xInitializeCodingPath(pcSliceHeader) );
+	RNOK( xInitializeCodingPath(pcSliceHeader, bMbStatus) );
+	//JVT-X046 }
 
   return Err::m_nOK;
 }

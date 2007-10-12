@@ -157,15 +157,24 @@ protected:
   ErrVal          xDetermineQualityIDs        ();
   ErrVal          xWriteQualityLayerStreamPID ();
   ErrVal          xWriteQualityLayerStreamSEI ();
-  ErrVal          xInsertQualityLayerSEI      ( WriteBitstreamToFile* pcWriteBitStream,
+	//SEI changes update {
+  //ErrVal          xInsertQualityLayerSEI      ( WriteBitstreamToFile* pcWriteBitStream,
+  //                                              UInt                  uiLayer,
+  //                                              UInt                  uiFrameNum );
+	  ErrVal          xInsertPriorityLevelSEI      ( WriteBitstreamToFile* pcWriteBitStream,
                                                 UInt                  uiLayer,
                                                 UInt                  uiFrameNum );
+	//SEI changes update }
   //JVT-S043
   ErrVal          xDetermineMultiLayerQualityIDs        ();
-  ErrVal          xInsertMultiLayerQualityLayerSEI ( WriteBitstreamToFile* pcWriteBitStream,
+  //SEI changes update {
+	//ErrVal          xInsertMultiLayerQualityLayerSEI ( WriteBitstreamToFile* pcWriteBitStream,
+ //                                                    UInt                  uiLayer,
+ //                                                    UInt                  uiFrameNum );
+	ErrVal          xInsertMultiLayerPriorityLevelSEI ( WriteBitstreamToFile* pcWriteBitStream,
                                                      UInt                  uiLayer,
                                                      UInt                  uiFrameNum );
-
+	//SEI changes update }
 private:
   QualityLevelParameter*        m_pcParameter;
   h264::H264AVCPacketAnalyzer*  m_pcH264AVCPacketAnalyzer;

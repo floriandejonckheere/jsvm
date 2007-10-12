@@ -461,8 +461,61 @@ ErrVal SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
 	return Err::m_nOK;
 }
 
-
+//JVT-X046 {
 ErrVal
+SliceDecoder::compensatePrediction( SliceHeader&   rcSH, Bool * bMbStatus )
+{
+  ROF( m_bInitDone );
+
+  //====== initialization ======
+  RNOK( m_pcControlMng->initSlice( rcSH, DECODE_PROCESS ) );
+
+  UInt uiFirstMbInSlice;
+  UInt uiLastMbInSlice;
+  FMO* pcFMO = rcSH.getFMO();
+
+	const Bool    bMbAff   = rcSH.isMbAff();
+
+  for(Int iSliceGroupID=0; !pcFMO->SliceGroupCompletelyCoded(iSliceGroupID); iSliceGroupID++)
+  {
+  	if (false == pcFMO->isCodedSG(iSliceGroupID))
+	  {
+	    continue;
+	  }
+
+  	uiFirstMbInSlice = pcFMO->getFirstMacroblockInSlice(iSliceGroupID);
+	  uiLastMbInSlice = pcFMO->getLastMBInSliceGroup(iSliceGroupID);
+    //===== loop over macroblocks =====
+    for(UInt uiMbIndex = uiFirstMbInSlice; uiMbIndex<=uiLastMbInSlice;)
+    {
+			if ( bMbStatus != NULL && bMbStatus[uiMbIndex] == false )
+			{
+				uiMbIndex = rcSH.getFMO()->getNextMBNr(uiMbIndex);
+				continue;
+			}
+
+    MbDataAccess* pcMbDataAccess = NULL;
+    UInt          uiMbY, uiMbX;
+
+    rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbIndex                        );
+
+    RNOK( m_pcControlMng->initMbForDecoding( pcMbDataAccess, uiMbY, uiMbX, bMbAff ) );
+
+      RNOK( m_pcMbDecoder ->compensatePrediction( *pcMbDataAccess            ) );
+
+  	  uiMbIndex = rcSH.getFMO()->getNextMBNr(uiMbIndex);
+    }
+
+  }
+
+//TMM_INTERLACE{
+  RNOK( m_pcControlMng->removeFrameFieldBuffer() );
+//TMM_INTERLACE}
+
+  return Err::m_nOK;
+}
+
+/*ErrVal
 SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
 {
   ROF( m_bInitDone );
@@ -508,7 +561,8 @@ SliceDecoder::compensatePrediction( SliceHeader&   rcSH )
 //TMM_INTERLACE}
 
   return Err::m_nOK;
-}
+}*/
+//JVT-X046 }
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 ErrVal

@@ -936,6 +936,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 //JVT-W049 {
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EnableRedundantKeyPic",   &m_uiRedundantKeyPic,                                  0 );
 //JVT-W049 }
+	//JVT-X046 {
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceMode",               &m_uiSliceMode,                                        0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",           &m_uiSliceArgument,                                    0 );
+  //JVT-X046 }
 
   m_pEncoderLines[uiParLnCount] = NULL;
 
@@ -1274,15 +1278,12 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_uiFrameWidth;
   rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_uiFrameHeight;
   rcLayer.m_ResizeParameter.m_bCrop       = false;
+
   if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  
   {
 //TMM {
    rcLayer.m_ResizeParameter.m_bCrop = true;        
-    /*if (rcLayer.m_ResizeParameter.m_iInWidth != rcLayer.m_ResizeParameter.m_iOutWidth || 
-			  rcLayer.m_ResizeParameter.m_iInHeight != rcLayer.m_ResizeParameter.m_iOutHeight || 
-			  rcLayer.m_ResizeParameter.m_iPosX != 0 || 
-			  rcLayer.m_ResizeParameter.m_iPosY != 0 ) */
-		   
+   	   
 //TMM }     
     if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
     {
