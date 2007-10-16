@@ -375,7 +375,7 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
 //JVT-T054}
 
   IntFrame*     getBaseLayerResidual() {return m_pcBaseLayerResidual;} // this one is upsampled base layer's residual
-
+  UInt          getIdrPicId         () { return m_uiIdrPicId; } //JVT-W062
  //EIDR bug-fix
   Void		      setIDRAccessPeriod(Int i)		{ m_iIDRAccessPeriod = i;}	
 	//JVT-W051 {
@@ -475,7 +475,7 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           , Bool                      bUncompleteCOP = false // TMM
                                           );   
   
-  Void    xPaffDecision                 ( UInt                        uiFrame );              
+  Void    xPAffDecision                 ( UInt                        uiFrame );              
 
 
  ErrVal  xInitSliceHeader              ( UInt                        uiTemporalLevel,
@@ -860,8 +860,8 @@ protected:
 //~DS_FIX_FT_09_2007
 // JVT-U085 LMI 
   Bool                          m_bTlevelNestingFlag;
-// JVT-U116 LMI 
-  Bool                          m_bTl0PicIdxPresentFlag;
+// JVT-U116 W062 LMI 
+  Bool                          m_bTl0DepRepIdxEnable;
   //JVT-U106 Behaviour at slice boundaries{
   Bool                          m_bCIUFlag;
   ReconstructionBypass*         m_pcReconstructionBypass;

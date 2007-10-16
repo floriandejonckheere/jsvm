@@ -323,8 +323,46 @@ ErrVal
 H264AVCEncoderTest::xWrite( ExtBinDataAccessorList& rcList,
                             UInt&                   ruiBytesInFrame )
 {
+  static Bool bFirstPkt = true;
+  static UInt uiTl0DepRepIdx = 0;
+  UInt uiTid = 0, uiEfIdrPicId = 0, uiIdxSend = 0;
+  UChar *nalh = NULL, uiNalUnitType = 0;
+  Bool bCoded = false;
   while( rcList.size() )
   {
+    if( m_pcEncoderCodingParameter->getNestingSEIEnable() && m_pcEncoderCodingParameter->getTl0DepRepIdxSeiEnable() )
+    {
+      nalh = rcList.front()->data();
+      UChar uiNalUnitType = nalh[0]&0x1f;
+      UChar uiNextNalUnitType = 0;
+      uiEfIdrPicId = m_pcH264AVCEncoder->getIdrPicId();
+      if( uiNalUnitType == 14 )
+      {
+        UChar aucParameterSetBuffer[1000];
+        BinData cBinData;
+        cBinData.reset();
+        cBinData.set( aucParameterSetBuffer, 1000 );
+        ExtBinDataAccessor cExtBinDataAccessor;
+        cBinData.setMemAccessor( cExtBinDataAccessor );
+
+        uiTid = (nalh[3]>>5)&0x7;
+        bCoded = true;
+        if( uiTid == 0 && !bFirstPkt )
+          uiIdxSend = (uiTl0DepRepIdx + 1)%256;
+        else if( uiTid )
+          uiIdxSend = uiTl0DepRepIdx;
+
+        RNOK( m_pcH264AVCEncoder ->writeNestingTl0DepRepIdxSEIMessage( &cExtBinDataAccessor, uiTid, uiIdxSend, uiEfIdrPicId) );
+        
+        bFirstPkt = false;
+
+	      RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
+	      RNOK( m_pcWriteBitstreamToFile->writePacket( &cExtBinDataAccessor ) );
+	      ruiBytesInFrame += 4 + cExtBinDataAccessor.size();
+        cBinData.reset();       
+      }
+    }
+
     ruiBytesInFrame += rcList.front()->size() + 4;
     RNOK( m_pcWriteBitstreamToFile->writePacket( &m_cBinDataStartCode ) );
     RNOK( m_pcWriteBitstreamToFile->writePacket( rcList.front() ) );
@@ -332,6 +370,10 @@ H264AVCEncoderTest::xWrite( ExtBinDataAccessorList& rcList,
     delete   rcList.front();
     rcList.pop_front();
   }
+
+  if( bCoded )
+    uiTl0DepRepIdx++;
+
   return Err::m_nOK;
 }
 

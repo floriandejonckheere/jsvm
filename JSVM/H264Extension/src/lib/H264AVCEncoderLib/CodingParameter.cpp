@@ -148,7 +148,7 @@ ErrVal LayerParameters::check()
 {
 //TMM_INTERLACE{
   ROTREPORT( ( getFrameHeight           () % 32 ) &&
-             ( getMbAff() > 0 || getPaff() > 0 ),       "Frame Height must be a multiple of 32 for interlace" );
+             ( getMbAff() > 0 || getPAff() > 0 ),       "Frame Height must be a multiple of 32 for interlace" );
 //TMM_INTERLACE}
 
   ROTREPORT( getFrameWidth              () % 16,        "Frame Width must be a multiple of 16" );

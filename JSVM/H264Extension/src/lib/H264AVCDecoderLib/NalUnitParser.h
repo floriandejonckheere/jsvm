@@ -175,8 +175,8 @@ public:
   UInt getBitsLeft();
   ErrVal initSODBNalUnit( BinDataAccessor* pcBinDataAccessor );
 //  UInt getNalHeaderSize( BinDataAccessor* pcBinDataAccessor ) const;
-  // JVT-V088 LMI 
-  Bool getTl0PicIdxPresentFlag() {return m_bTl0PicIdxPresentFlag;}
+  // JVT-V088,W062 LMI 
+  //Bool getTl0PicIdxPresentFlag() {return m_bTl0PicIdxPresentFlag;}
   Void setCheckAllNALUs(Bool b) { m_bCheckAllNALUs = b;}
   Void setDecodedLayer( UInt uiLayer) { m_uiDecodedLayer = uiLayer;}
   //~JVT-P031
@@ -211,8 +211,8 @@ protected:
   Bool          m_bLayerBaseFlag;
   Bool          m_bUseBasePredFlag;
   Bool          m_bDiscardableFlag;
-  // JVT-V088 LMI {
-  Bool          m_bTl0PicIdxPresentFlag;
+  // JVT-V088,W062 LMI {
+  //Bool          m_bTl0PicIdxPresentFlag;
   //UInt          m_uiTl0PicIdx;
   // JVT-V088 LMI }
   Bool          m_bCheckAllNALUs;

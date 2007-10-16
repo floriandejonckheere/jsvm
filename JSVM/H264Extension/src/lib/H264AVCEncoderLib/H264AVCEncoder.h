@@ -230,7 +230,10 @@ public:
   ErrVal xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiNumLayers, UInt* uiLayerId, Bool* pbLayerDependencyInfoPresentFlag, 
 												  UInt* uiNumDirectDependentLayers, UInt** puiDirectDependentLayerIdDeltaMinus1, UInt* puiLayerDependencyInfoSrcLayerIdDeltaMinus1);
 // JVT-S080 LMI }
-
+// JVT-W062 {
+  ErrVal writeTl0DepRepIdxSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
+  ErrVal writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
+// JVT-W062 }
 	ErrVal xCalMaxBitrate(UInt uiLayer);//JVT-W051 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   ErrVal  xCreateAvcRewriteEncoder();

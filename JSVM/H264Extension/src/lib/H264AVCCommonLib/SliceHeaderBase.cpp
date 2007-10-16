@@ -283,8 +283,8 @@ SliceHeaderBase::SliceHeaderBase( const SequenceParameterSet& rcSPS,
 , m_iSliceQpDelta                     ( 0 )
 , m_pcFMO                             ( 0 ) //--ICU/ETRI FMO Implementation
 , m_bBaseLayerUsesConstrainedIntraPred( false ) 
-, m_uiPrevTl0PicIdx                 ( 0 )
-, m_uiNumTl0PicIdxUpdate            ( 0 )
+//, m_uiPrevTl0PicIdx                 ( 0 ) //JVT-W062
+//, m_uiNumTl0PicIdxUpdate            ( 0 ) //JVT-W062
 //TMM_ESS_UNIFIED {
 , m_iScaledBaseLeftOffset             ( 0 ) 
 , m_iScaledBaseTopOffset              ( 0 ) 

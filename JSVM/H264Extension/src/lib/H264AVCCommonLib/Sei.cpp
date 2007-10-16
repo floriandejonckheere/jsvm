@@ -179,6 +179,8 @@ SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
 	UInt uiBits = 0;
 	UInt uiSecondSEILength = 0;
 	//take scene info as example, 	//can be changed here
+  //JVT-W062
+  UInt uiStart = 0;
 	switch( pcBottom->getMessageType() )
 	{
 		case SCENE_INFO_SEI:
@@ -197,6 +199,20 @@ SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
 			uiSecondSEILength = (uiBits-16+7)/8;
 			break;
 	    }
+    // JVT-W062 {
+    case TL0_DEP_REP_IDX_SEI:
+    {
+      SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSEI = (SEI::Tl0DepRepIdxSei*) pcBottom;
+	    RNOK( pcWriteTestIf->writeCode( TL0_DEP_REP_IDX_SEI, 8, "SEI type" ) );
+  	  RNOK( pcWriteTestIf->writeCode( 3, 8, "SEI payload size " ) ); //currently size equals to 3
+      uiStart = pcWriteTestIf->getNumberOfWrittenBits();
+	    RNOK( xWriteNesting( pcWriteIf, pcWriteTestIf, pcBottom, uiBits ) );
+      uiBits -= uiStart;
+	    uiSecondSEILength = (uiBits+7)/8;
+      break;
+    }
+    // JVT-W062 }
+
 		//more case: added here
 		default: break;
 	}
@@ -206,7 +222,11 @@ SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
 	UInt uiSize = (uiBits+7)/8;
     RNOK( xWritePayloadHeader( pcWriteIf, SCALABLE_NESTING_SEI, uiSize ) );
     RNOK( pcTop->write( pcWriteIf ) );
-	RNOK( xWritePayloadHeader( pcWriteIf, SCENE_INFO_SEI, uiSecondSEILength ) );
+    // JVT-W062 {
+	//RNOK( xWritePayloadHeader( pcWriteIf, SCENE_INFO_SEI, uiSecondSEILength ) );
+    RNOK( xWritePayloadHeader( pcWriteIf, pcBottom->getMessageType(), uiSecondSEILength ) );
+    // JVT-W062 }
+
 	RNOK( pcBottom->write( pcWriteIf ) );
     UInt uiAlignedBits = 8 - (uiBits&7);
     if( uiAlignedBits != 0 && uiAlignedBits != 8)
@@ -430,6 +450,8 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case SCALABLE_SEI_LAYERS_NOT_PRESENT:  return ScalableSeiLayersNotPresent::create( (ScalableSeiLayersNotPresent*&) rpcSEIMessage );
 	case SCALABLE_SEI_DEPENDENCY_CHANGE:   return ScalableSeiDependencyChange::create( (ScalableSeiDependencyChange*&) rpcSEIMessage );
 	// JVT-S080 LMI }
+    // JVT-W062
+    case TL0_DEP_REP_IDX_SEI: return Tl0DepRepIdxSei::create( (Tl0DepRepIdxSei*&) rpcSEIMessage);
     // JVT-T073 {
 	case SCALABLE_NESTING_SEI: return ScalableNestingSei::create( (ScalableNestingSei*&) rpcSEIMessage );
     // JVT-T073 }
@@ -2553,6 +2575,17 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 			RNOK( pcSceneInfoSei->destroy() );  
 			break;
 		}
+  //JVT-W062 {
+  case SEI::TL0_DEP_REP_IDX_SEI:
+    {
+      SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSei;
+  		RNOK( SEI::Tl0DepRepIdxSei::create(pcTl0DepRepIdxSei) );
+	    RNOK( pcTl0DepRepIdxSei->read(pcReadIf) );
+	    RNOK( pcTl0DepRepIdxSei->destroy() );  
+      break;
+    }
+//JVT-W062 }
+
 	//more case can be added here
 	default:
 // JVT-V068 {
@@ -3325,4 +3358,52 @@ SEI::TLSwitchingPointSei::read(HeaderSymbolReadIf* pcReadIf)
 	return Err::m_nOK;
 }
 //JVT-X032}
+
+//JVT-W062 {
+//////////////////////////////////////////////////////////////////////////
+//
+//			TL0 DEP REP INDEX SEI
+//
+//////////////////////////////////////////////////////////////////////////
+
+SEI::Tl0DepRepIdxSei::Tl0DepRepIdxSei (): SEIMessage		( TL0_DEP_REP_IDX_SEI )
+{
+}
+
+SEI::Tl0DepRepIdxSei::~Tl0DepRepIdxSei ()
+{
+}
+
+ErrVal
+SEI::Tl0DepRepIdxSei::create ( Tl0DepRepIdxSei*& rpcSeiMessage)
+{
+  rpcSeiMessage = new Tl0DepRepIdxSei();
+  ROT( NULL == rpcSeiMessage );
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::Tl0DepRepIdxSei::destroy()
+{
+    delete this;
+	return Err::m_nOK;
+}
+
+ErrVal
+SEI::Tl0DepRepIdxSei::read( HeaderSymbolReadIf *pcReadIf )
+{
+  RNOK( pcReadIf->getCode( m_uiTl0DepRepIdx, 8, "Tl0DepRepIdxSei: tl0_dep_rep_idx" ) );
+  RNOK( pcReadIf->getCode( m_uiEfIdrPicId, 16, "Tl0DepRepIdxSei: effective_idr_pic_id" ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+SEI::Tl0DepRepIdxSei::write( HeaderSymbolWriteIf *pcWriteIf )
+{
+  RNOK( pcWriteIf->writeCode( m_uiTl0DepRepIdx, 8, "Tl0DepRepIdxSei: tl0_dep_rep_idx" ) );
+  RNOK( pcWriteIf->writeCode( m_uiEfIdrPicId, 16, "Tl0DepRepIdxSei: effective_idr_pic_id" ) );
+  return Err::m_nOK;
+}
+//JVT-W062 }
+
 H264AVC_NAMESPACE_END

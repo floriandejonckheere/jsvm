@@ -138,7 +138,7 @@ public:
     // JVT-V068 HRD }
 //JVT-X032 {
     TL_SWITCHING_POINT_SEI                = 33,
-    RESERVED_SEI                          = 34,
+    RESERVED_SEI                          = 35,//JVT-W062
 //JVT-X032 }
     SUB_SEQ_INFO                          = 10,
   MOTION_SEI                            = 18,
@@ -159,7 +159,8 @@ public:
   SCALABLE_NESTING_SEI                  = 28,
   PR_COMPONENT_INFO_SEI                 = 29,
   //RESERVED_SEI                          = 31, // JVT-V068
-
+  // JVT-W062
+  TL0_DEP_REP_IDX_SEI                   = 34,
     //  JVT-T073 }
     NON_REQUIRED_SEI                      = 24
   };
@@ -1039,8 +1040,15 @@ public:
     UInt getTemporalLevel() { return m_uiTemporalLevel; }
     Void setTemporalLevel( UInt uiValue ) { m_uiTemporalLevel = uiValue; }
     // JVT-V068 }
-  
+  //JVT-W062 {
+  UInt getTl0DepRepIdx() const { return m_uiTl0DepRepIdx; }
+  UInt getNestedSeiType() const { return m_uiNestedSeiType; }
+  Void setTemporalId( UInt uiValue ) { m_uiTemporalId = uiValue; }
   private:
+    UInt  m_uiTl0DepRepIdx;
+    UInt  m_uiTemporalId;
+    UInt  m_uiNestedSeiType;
+  //JVT-W062 }  
     Bool  m_bAllPicturesInAuFlag;
     UInt  m_uiNumPictures;
     UInt  m_auiDependencyId[MAX_PICTURES_IN_ACCESS_UNIT];
@@ -1364,6 +1372,28 @@ private:
 	Int m_delta_frame_num;
 };
 //JVT-X032 }
+
+    //JVT-W062 {
+  class H264AVCCOMMONLIB_API Tl0DepRepIdxSei : public SEIMessage
+  {
+  protected:
+    Tl0DepRepIdxSei();
+    ~Tl0DepRepIdxSei();
+  public:
+    static ErrVal create ( Tl0DepRepIdxSei*& rpcSeiMessage);
+    ErrVal destroy       ();
+    ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
+    ErrVal read          ( HeaderSymbolReadIf   *pcReadIf);
+    UInt getTl0DepRepIdx()         const { return m_uiTl0DepRepIdx; }
+    Void setTl0DepRepIdx           (UInt uiIdx) {m_uiTl0DepRepIdx = uiIdx;}
+    UInt getEfIdrPicId()         const { return m_uiEfIdrPicId; }
+    Void setEfIdrPicId           (UInt uiId) {m_uiEfIdrPicId = uiId;}
+
+  private:
+    UInt m_uiTl0DepRepIdx;
+    UInt m_uiEfIdrPicId;
+  };
+//JVT-W062 }
   typedef MyList<SEIMessage*> MessageList;
 
   static ErrVal read  ( HeaderSymbolReadIf*   pcReadIf,

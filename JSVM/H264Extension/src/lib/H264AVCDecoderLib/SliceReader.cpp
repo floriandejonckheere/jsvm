@@ -506,7 +506,8 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 
   //===== read first parameters =====
   //JVT-P031
-
+  //JVT-W062 {
+  /*
   //JVT-V088 LMI {
   UInt                uiTl0PicIdx;
   if( bScalable && pcNalUnitParser->getTl0PicIdxPresentFlag() ) 
@@ -514,6 +515,8 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
     RNOK(m_pcHeaderReadIf->getCode(uiTl0PicIdx, 8, "SH: tl0_pic_idx"));
   }
 //JVT-V088 LMI }
+  */
+  //JVT-W062 }
   if(  uiLayerId == 0 && uiQualityLevel == 0 && 
     (eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE || eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ) )
   {
@@ -525,9 +528,13 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
 
     rpcSH = new SliceHeader ( *pcSPS, *pcPPS );
     ROF( rpcSH );
+    //JVT-W062 {
+    /*
     //JVT-V088 LMI
     if( pcNalUnitParser->getTl0PicIdxPresentFlag() ) 
       rpcSH->setTl0PicIdx  ( uiTl0PicIdx  );
+    */
+    //JVT-W062 }
     if( eNalRefIdc != 0)
     {
 			 if( bUseBasePredFlag && eNalUnitType != NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
@@ -582,10 +589,10 @@ SliceReader::readSliceHeader( NalUnitParser* pcNalUnitParser,
   rpcSH->setLayerBaseFlag   ( pcNalUnitParser->getLayerBaseFlag()     );
   rpcSH->setUseBaseRepresentationFlag  ( bUseBasePredFlag                        );
   rpcSH->setDiscardableFlag ( pcNalUnitParser->getDiscardableFlag()     );
-
+  //JVT-W062 
   //JVT-V088 LMI
-  if( bScalable && pcNalUnitParser->getTl0PicIdxPresentFlag() ) 
-    rpcSH->setTl0PicIdx  ( uiTl0PicIdx  );
+  //if( bScalable && pcNalUnitParser->getTl0PicIdxPresentFlag() ) 
+  //  rpcSH->setTl0PicIdx  ( uiTl0PicIdx  );
 
   rpcSH->setFirstMbInSlice( uiFirstMbInSlice);
   rpcSH->setSliceType     ( SliceType( uiSliceType ) );

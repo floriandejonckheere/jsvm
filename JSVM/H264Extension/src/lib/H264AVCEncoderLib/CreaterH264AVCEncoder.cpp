@@ -549,5 +549,16 @@ ErrVal CreaterH264AVCEncoder::writeAVCCompatibleHRDSEI( ExtBinDataAccessor* pcEx
   return Err::m_nOK;
 }
 // JVT-V068 }
+// JVT-W062 {
+ErrVal CreaterH264AVCEncoder::writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId )
+{
+  RNOK( m_pcH264AVCEncoder->writeNestingTl0DepRepIdxSEIMessage( pcExtBinDataAccessor, uiTid, uiTl0DepRepIdx, uiEfIdrPicId));
+  return Err::m_nOK;
 
+}
+UInt CreaterH264AVCEncoder::getIdrPicId ( void )
+{
+  return m_apcMCTFEncoder[0]->getIdrPicId(); 
+}
+// JVT-W062 }
 H264AVC_NAMESPACE_END

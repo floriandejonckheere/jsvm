@@ -788,6 +788,8 @@ public:
   Int                               getDeltaPicOrderCntBottom     ()  const         { return m_iDeltaPicOrderCntBottom; }
   Int                               getDeltaPicOrderCnt           ( UInt ui ) const {return m_aiDeltaPicOrderCnt[ui]; }
 	PicType                           getPicType                    ()  const { return ( ! m_bFieldPicFlag ? FRAME : m_bBottomFieldFlag ? BOT_FIELD : TOP_FIELD ); }
+  // JVT-W062 {
+  /*
   // JVT-U116 LMI {
   // JVT-V088 LMI
   Bool                              getTl0PicIdxPresentFlag     () const  { return m_bTl0PicIdxPresentFlag; }
@@ -802,7 +804,8 @@ public:
   Void                              setNumTl0PicIdxUpdate       ( UInt ui )   { m_uiNumTl0PicIdxUpdate = ui; }
 
 // JVT-U116 LMI }
-
+  */
+  // JVT-W062 }
   Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
   UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
   //JVT-U106 Behaviour at slice boundaries{
@@ -986,7 +989,8 @@ protected:
 
   UInt						            m_uiPriorityId;
   Bool					              m_bDiscardableFlag;
-  
+  // JVT-W062 {
+  /*
   // JVT-V088 LMI {
   // JVT-U116 LMI {
   Bool                        m_bTl0PicIdxPresentFlag;
@@ -996,6 +1000,8 @@ protected:
   UInt                        m_uiNumTl0PicIdxUpdate;
   // JVT-U116 LMI }
   // JVT-V088 LMI }
+  */
+  // JVT-W062 }
   UInt                        m_uiRedundantPicCnt;  // JVT-Q054 Red. Picture
 
   Bool                        m_bFieldPicFlag;

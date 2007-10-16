@@ -889,6 +889,16 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			UInt uiDeltaFrameNum = pcSEI->getDeltaFrameNum();
 		}
    //JVT-X032 }
+  //JVT-W062 {
+    case SEI::TL0_DEP_REP_IDX_SEI:
+      {
+        SEI::Tl0DepRepIdxSei* pcSEI = (SEI::Tl0DepRepIdxSei*)pcSEIMessage;
+        UInt uiTl0DepRepIdx = pcSEI->getTl0DepRepIdx();
+        UInt uiEfIdrPicIdx = pcSEI->getEfIdrPicId();
+
+        break;
+      }
+  //JVT-W062 }
       default:
         {
           delete pcSEIMessage;

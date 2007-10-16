@@ -177,9 +177,10 @@ protected:
   MmcoBuffer m_cMmmcoBufferSuffix; 
 	UInt m_uiPPSId_AVC, m_uiSPSId_AVC;
 	UInt m_uiPOC_AVC;
-//JVT-S036 lsj end 
+//JVT-S036 lsj end
+    //JVT-W062
     //JVT-V088 LMI
-  Bool m_bTl0PicIdxPresentFlag;
+  //Bool m_bTl0PicIdxPresentFlag;
 
 };
 

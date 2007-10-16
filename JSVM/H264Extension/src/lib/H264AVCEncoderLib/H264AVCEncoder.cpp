@@ -1567,7 +1567,7 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
-                      uiDPBSize          += ( rcLayerParameters.getPaff() > 0 ) ? 1 : 0; // TMM 
+                      uiDPBSize          += ( rcLayerParameters.getPAff() > 0 ) ? 1 : 0; // TMM 
     UInt              uiNumRefPic         = uiDPBSize; 
     UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
 //bug-fix suffix{{
@@ -1635,7 +1635,7 @@ H264AVCEncoder::xInitParameterSets()
       pcSPS->setAVCAdaptiveRewriteFlag(rcLayerParameters.getAVCAdaptiveRewriteFlag());
     }
     
-    const Bool  bInterlaced = ( rcLayerParameters.getPaff() || rcLayerParameters.getMbAff() );
+    const Bool  bInterlaced = ( rcLayerParameters.getPAff() || rcLayerParameters.getMbAff() );
     pcSPS->setFrameMbsOnlyFlag										( ! bInterlaced );
     pcSPS->setMbAdaptiveFrameFieldFlag            ( (rcLayerParameters.getMbAff() ? true : false ) );
    
@@ -2156,4 +2156,81 @@ ErrVal H264AVCEncoder::writeAVCCompatibleHRDSEI(ExtBinDataAccessor* pcExtBinData
 }
 // JVT-V068 HRD }
 
+// JVT-W062 {
+ErrVal H264AVCEncoder::writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId )
+{
+	SEI::ScalableNestingSei* pcScalableNestingSei;
+	RNOK( SEI::ScalableNestingSei::create(pcScalableNestingSei) );
+
+	//===== set message =====
+	//may be changed here
+	Bool bAllPicturesInAuFlag = 0;
+  pcScalableNestingSei->setAllPicturesInAuFlag( bAllPicturesInAuFlag );
+	if( bAllPicturesInAuFlag  == 0 )
+	{
+		UInt uiNumPictures;
+
+		// assign value, may be changed here
+		uiNumPictures = 1;
+		ROT( uiNumPictures == 0 );
+		UInt uiTemporalId;
+    UInt *uiDependencyId = new UInt[uiNumPictures];
+		UInt *uiQualityLevel = new UInt[uiNumPictures];
+    uiTemporalId = uiTid;
+    uiDependencyId[0] = 0;
+    uiQualityLevel[0] = 0;
+
+		pcScalableNestingSei->setNumPictures( uiNumPictures );
+		for( UInt uiIndex = 0; uiIndex < uiNumPictures; uiIndex++ )
+		{
+      pcScalableNestingSei->setDependencyId( uiIndex, uiDependencyId[uiIndex] );
+			pcScalableNestingSei->setQualityLevel( uiIndex, uiQualityLevel[uiIndex] );
+		}
+    pcScalableNestingSei->setTemporalLevel(uiTemporalId);
+		delete uiDependencyId;
+		delete uiQualityLevel;
+	}
+
+    SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSEI;
+    RNOK( SEI::Tl0DepRepIdxSei::create( pcTl0DepRepIdxSEI ) );
+
+    pcTl0DepRepIdxSEI->setTl0DepRepIdx( uiTl0DepRepIdx );
+    pcTl0DepRepIdxSEI->setEfIdrPicId( uiEfIdrPicId );
+
+	  UInt              uiBits = 0;
+  	SEI::MessageList  cSEIMessageList;
+  	cSEIMessageList.push_back                 ( pcScalableNestingSei );
+    cSEIMessageList.push_back                 ( pcTl0DepRepIdxSEI );
+
+	  RNOK ( m_pcNalUnitEncoder->initNalUnit    ( pcExtBinDataAccessor ) );
+	  RNOK ( m_pcNalUnitEncoder->writeNesting   ( cSEIMessageList ) );
+	  RNOK ( m_pcNalUnitEncoder->closeNalUnit   ( uiBits ) );
+	  RNOK( m_apcMCTFEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
+
+    RNOK( pcTl0DepRepIdxSEI->destroy() );
+  	RNOK( pcScalableNestingSei->destroy() );
+	  return Err::m_nOK;
+}
+
+ErrVal
+H264AVCEncoder::writeTl0DepRepIdxSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId )
+{
+    SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSEI;
+    RNOK( SEI::Tl0DepRepIdxSei::create( pcTl0DepRepIdxSEI ) );
+
+    //===== set message =====
+    pcTl0DepRepIdxSEI->setTl0DepRepIdx( uiTl0DepRepIdx );
+    pcTl0DepRepIdxSEI->setEfIdrPicId( uiEfIdrPicId );
+
+    //===== write message =====
+    UInt              uiBits = 0;
+    SEI::MessageList  cSEIMessageList;
+    cSEIMessageList.push_back                       ( pcTl0DepRepIdxSEI );
+    RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
+    RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
+    RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
+	return Err::m_nOK;
+
+}
+//JVT-W062 }
 H264AVC_NAMESPACE_END

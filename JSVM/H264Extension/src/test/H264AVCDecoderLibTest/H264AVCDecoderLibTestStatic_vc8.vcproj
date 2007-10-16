@@ -139,7 +139,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\include,."
-				PreprocessorDefinitions="_DEBUG;WIN32;_CONSOLE;H264AVCVIDEOIOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;_CRT_SECURE_NO_DEPRECATE;"
+				PreprocessorDefinitions="_DEBUG;WIN32;_CONSOLE;H264AVCVIDEOIOLIB_LIB;H264AVCCOMMONLIB_LIB;H264AVCDECODERLIB_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				FloatingPointModel="1"

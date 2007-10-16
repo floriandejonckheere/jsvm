@@ -92,7 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 typedef UChar CoefMap;
 
-#define _JSVM_VERSION_ "9.7" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "9.8" //added by jerome.vieron@thomson.net
 
 #define TO_BE_REMOVED     1   // things that are different in the SVC text
 #define NOK_MGSCAVLC      1   // check if this is conforming to the SVC text

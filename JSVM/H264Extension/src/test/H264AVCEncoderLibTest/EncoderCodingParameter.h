@@ -433,12 +433,12 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       ROTS( NULL == argv[n  ] );
       ROTS( NULL == argv[n+1] );
       UInt    uiLayer = atoi( argv[n  ] );
-      UInt    uiPaff  = atoi( argv[n+1] );
-      CodingParameter::getLayerParameters( uiLayer ).setPaff( uiPaff );
+      UInt    uiPAff  = atoi( argv[n+1] );
+      CodingParameter::getLayerParameters( uiLayer ).setPAff( uiPAff );
       UInt ui;
       for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
       {
-        getResizeParameters(ui)->m_bInterlaced = (uiPaff > 0) ? true : false;
+        getResizeParameters(ui)->m_bInterlaced = (uiPAff > 0) ? true : false;
       }
       n += 1;
       continue;
@@ -594,8 +594,8 @@ ErrVal EncoderCodingParameter::init( Int     argc,
     if( equals( pcCom, "-tlidx", 6 ) )
     {
       ROTS( NULL == argv[n] );
-      UInt uiTl0PicIdxPresentFlag = atoi( argv[n] );
-      CodingParameter::setTl0PicIdxPresentFlag( uiTl0PicIdxPresentFlag );
+      UInt uiTl0DepRepIdxSeiEnable = atoi( argv[n] );
+      CodingParameter::setTl0DepRepIdxSeiEnable( uiTl0DepRepIdxSeiEnable );
       continue;
     }
     // JVT-U116 LMI }
@@ -756,8 +756,8 @@ Void EncoderCodingParameter::printHelp()
   //JVT-W052 bug_fixed
    //JVT-U085 LMI
   printf("  -tlnest (TlevelNestingFlag)[0: temporal level nesting constraint is not applied, 1: the nesting constraint is applied.]\n");
-  //JVT-U116 JVT-V088 LMI
-  printf("  -tlidx (Tl0PicIdxPresentFlag)[0: tl0_pic_idx is not present, 1: tl0_pic_idx is present.]\n");
+  //JVT-U116 JVT-V088 JVT-W062 LMI
+  printf("  -tlidx (Tl0DepRepIdxSeiEnable)[0: tl0_dep_rep_idx is not present, 1: tl0_dep_rep_idx is present.]\n");
   //JVT-U106 Behaviour at slice boundaries{
   printf("  -ciu    (Constrained intra upsampling)[0: no, 1: yes]\n");
   //JVT-U106 Behaviour at slice boundaries}
@@ -781,8 +781,8 @@ Void EncoderCodingParameter::printHelp()
   printf("  -adqp   (level) (value)         sets delta QP for all layers and given temporal level (in explicit mode)\n");
   printf("  -xdqp   (DQP0) (DDQP1) (DDQPN)  sets delta QP for all layers (in explicit mode)\n");
 
-  printf("  -mbaff  (layer) (MbAff)\n");
-  printf("  -paff   (layer) (Paff)\n");
+  printf("  -mbaff  (layer) (Mb Adaptive Frame Field Coding)  \n");
+  printf("  -paff   (layer) (Picture Adadptive Frame Field Coding)   \n");
 
   printf("  -h       Print Option List \n");
   printf("\n");
@@ -916,7 +916,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 //JVT-S036 lsj end //bug-fix suffix}}
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("CgsSnrRefinement",        &m_uiCGSSNRRefinementFlag,                             0 );  //JVT-T054
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",           &m_uiTlevelNestingFlag,                                0 );  //JVT-U085
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLPicIdxEnable",          &m_uiTl0PicIdxPresentFlag,                             0 );  //JVT-U116
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TL0DepRepIdxSeiEnable",    &m_uiTl0DepRepIdxSeiEnable,                           0 );  //JVT-U116,JVT-W062
 
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOBlockSizes",          &m_uiRCDOBlockSizes,                                   0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationY", &m_uiRCDOMotionCompensationY,                          0 );
@@ -1005,7 +1005,7 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   {
     getLayerParameters(ui).setLayerId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
-		if ( getLayerParameters(ui).m_uiMbAff || getLayerParameters(ui).m_uiPaff )
+		if ( getLayerParameters(ui).m_uiMbAff || getLayerParameters(ui).m_uiPAff )
     {
       bInterlaced = true;			
     }
@@ -1153,7 +1153,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",      &cInputFilename,                         "test.yuv");
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",      &cOutputFilename,                        "rec.yuv" );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MbAff",          &(rcLayer.m_uiMbAff),                    0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("Paff",           &(rcLayer.m_uiPaff),                     0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("PAff",           &(rcLayer.m_uiPAff),                     0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",     &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",     &(rcLayer.m_uiMaxAbsDeltaQP),            1         );

@@ -208,7 +208,7 @@ public:
     , m_uiForceReorderingCommands         (0)
     , m_uiBaseLayerId                     (MSYS_UINT_MAX)
     , m_uiMbAff                           ( 0 )
-    , m_uiPaff                            ( 0 )
+    , m_uiPAff                            ( 0 )
     , m_uiUseRedundantSlice               (0)   //JVT-Q054 Red. Picture
 		, m_uiUseRedundantKeySlice            (0)   //JVT-W049
 // JVT-Q065 EIDR{
@@ -326,7 +326,7 @@ public:
   UInt                            getForceReorderingCommands        () const {return m_uiForceReorderingCommands; }
   UInt                            getBaseLayerId                    () const {return m_uiBaseLayerId; }
   UInt                            getMbAff                          () const {return m_uiMbAff;}
-  UInt                            getPaff                           () const {return m_uiPaff;}
+  UInt                            getPAff                           () const {return m_uiPAff;}
   Bool                            getUseRedundantSliceFlag          () const {return m_uiUseRedundantSlice == 1; }  //JVT-Q054 Red. Picture
   Bool                            getUseRedundantKeySliceFlag       () const {return m_uiUseRedundantKeySlice == 1; }   //JVT-W049
   //--ICU/ETRI FMO Implementation :  FMO start 
@@ -390,7 +390,7 @@ public:
   Void setForceReorderingCommands         (UInt   p) { m_uiForceReorderingCommands        = p; }
   Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
   Void setMbAff                           (UInt   p) { m_uiMbAff                          = p; }
-  Void setPaff                            (UInt   p) { m_uiPaff                           = p; }
+  Void setPAff                            (UInt   p) { m_uiPAff                           = p; }
 // TMM_ESS {
   int                 getExtendedSpatialScalability     () { return m_ResizeParameter.m_iExtendedSpatialScalability; }
   int                 getSpatialScalabilityType         () { return m_ResizeParameter.m_iSpatialScalabilityType; }
@@ -494,7 +494,7 @@ public:
   ResizeParameters          m_ResizeParameter;
 
   UInt                      m_uiMbAff;
-  UInt                      m_uiPaff;
+  UInt                      m_uiPAff;
 
   //--ICU/ETRI FMO Implementation : FMO start
   UInt         m_uiNumSliceGroupsMinus1;  
@@ -648,8 +648,8 @@ public:
 //JVT-T054}
 // JVT-U085 LMI
     , m_uiTlevelNestingFlag               ( 1 )
-// JVT-U116 LMI
-    , m_uiTl0PicIdxPresentFlag            ( 0 )
+// JVT-U116 W062 LMI
+    , m_uiTl0DepRepIdxSeiEnable           ( 0 )
     , m_uiCIUFlag                         ( 0 ) //JV
     , m_uiRCDOBlockSizes                  ( 0 )
     , m_uiRCDOMotionCompensationY         ( 0 )
@@ -784,10 +784,10 @@ public:
   Bool                            getTlevelNestingFlag    ()              const   { return m_uiTlevelNestingFlag > 0 ? true : false; }
   Void                            setTlevelNestingFlag    ( UInt  ui )    { m_uiTlevelNestingFlag = ui; }
 // JVT-U085 LMI }
-// JVT-U116 LMI {
-  Bool                            getTl0PicIdxPresentFlag        ()              const   { return m_uiTl0PicIdxPresentFlag > 0 ? true : false; }
-  Void                            setTl0PicIdxPresentFlag        ( UInt  ui )    { m_uiTl0PicIdxPresentFlag = ui; }
-// JVT-U116 LMI }
+// JVT-U116 W062 LMI {
+  Bool                            getTl0DepRepIdxSeiEnable        ()              const   { return m_uiTl0DepRepIdxSeiEnable > 0 ? true : false; }
+  Void                            setTl0DepRepIdxSeiEnable        ( UInt  ui )    { m_uiTl0DepRepIdxSeiEnable = ui; }
+// JVT-U116 W062 LMI }
 
   //JVT-U106 Behaviour at slice boundaries{
   void   setCIUFlag(UInt  flag)
@@ -910,8 +910,9 @@ protected:
 
 // JVT-U085 LMI 
   UInt                      m_uiTlevelNestingFlag;
-// JVT-U116 LMI 
-  UInt                      m_uiTl0PicIdxPresentFlag;
+// JVT-U116,W062 LMI
+  //UInt                      m_uiTl0PicIdxPresentFlag;
+  UInt                      m_uiTl0DepRepIdxSeiEnable;
   //JVT-U106 Behaviour at slice boundaries{
   UInt                      m_uiCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}

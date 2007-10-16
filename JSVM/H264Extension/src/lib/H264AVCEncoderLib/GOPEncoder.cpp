@@ -253,8 +253,8 @@ MCTFEncoder::MCTFEncoder()
 //JVT-T054}
 // JVT-U085 LMI 
 , m_bTlevelNestingFlag              (true)
-// JVT-U116 LMI 
-, m_bTl0PicIdxPresentFlag         (false)
+// JVT-U116 W062 LMI 
+, m_bTl0DepRepIdxEnable            (false)
 //JVT-U106 Behaviour at slice boundaries{
 , m_bCIUFlag                       (false)
 , m_pbIntraBLFlag                  ( NULL)
@@ -395,8 +395,8 @@ MCTFEncoder::init( CodingParameter*   pcCodingParameter,
 // JVT-Q065 EIDR}
 // JVT-U085 LMI
   m_bTlevelNestingFlag      = pcCodingParameter->getTlevelNestingFlag();
-// JVT-U116 LMI
-  m_bTl0PicIdxPresentFlag = pcCodingParameter->getTl0PicIdxPresentFlag();
+// JVT-U116 W062 LMI
+  m_bTl0DepRepIdxEnable = pcCodingParameter->getTl0DepRepIdxSeiEnable();
 
   m_bDiscardable = pcLayerParameters->isDiscardable(); //DS_FIX_FT_09_2007
   m_uiQLDiscardable = pcLayerParameters->getQLDiscardable(); //DS_FIX_FT_09_2007
@@ -777,7 +777,7 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     ROFS ( (     pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ) );
     RNOK  (       m_pacControlData[ uiIndex ] . setSliceHeader  (  pcSliceHeader, FRAME ) );
 
-    if( m_pcLayerParameters->getPaff() )
+    if( m_pcLayerParameters->getPAff() )
     {
       ROFRS ( (   pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ), Err::m_nERR );
       RNOK  (     m_pacControlData[ uiIndex ] . setSliceHeader  ( pcSliceHeader, BOT_FIELD ) );
@@ -794,7 +794,7 @@ MCTFEncoder::xCreateData( const SequenceParameterSet& rcSPS )
     ROFS ( (     pcSliceHeaderEL               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ) );
     RNOK  (      m_pacControlDataEL[ uiIndex ] . setSliceHeader  (  pcSliceHeaderEL, FRAME ) );
    
-    if( m_pcLayerParameters->getPaff() )
+    if( m_pcLayerParameters->getPAff() )
     {
       ROFRS ( (   pcSliceHeader               = new SliceHeader ( *m_pcSPS, bLowPass ? *m_pcPPSLP : *m_pcPPSHP ) ), Err::m_nERR );
       RNOK  (     m_pacControlDataEL[ uiIndex ] . setSliceHeader  ( pcSliceHeader, BOT_FIELD ) );
@@ -1020,7 +1020,7 @@ MCTFEncoder::xDeleteData()
       delete pcSliceHeader;
       pcSliceHeader = 0 ;
    
-      if( m_pcLayerParameters->getPaff() )
+      if( m_pcLayerParameters->getPAff() )
       {
         pcSliceHeader = m_pacControlData[ uiIndex ].getSliceHeader( BOT_FIELD );
       delete pcSliceHeader;
@@ -2717,7 +2717,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   m_uiGOPSize                         = rcPicBufferInputList.size ();
 // TMM {
   Bool bUncompleteCOP = false;
-  if( m_pcLayerParameters[ m_uiLayerId ].getPaff() == 1 )
+  if( m_pcLayerParameters[ m_uiLayerId ].getPAff() == 1 )
   {
     if( m_uiDecompositionStages != (UInt)floor( log10( (Double)m_uiGOPSize ) / log10( 2.0 ) ) )
     {
@@ -2798,8 +2798,8 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   //========== INITIALIZE SLICE HEADERS (the decomposition structure is determined at this point) ==========
   if( ! m_bFirstGOPCoded )
   {
-    xPaffDecision( 0 );
-    switch( m_pcLayerParameters->getPaff() )
+    xPAffDecision( 0 );
+    switch( m_pcLayerParameters->getPAff() )
     {
     case 0:
       RNOK( xInitSliceHeader  ( 0, 0, FRAME     ) );
@@ -2831,7 +2831,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   {
     //----- copy frame_num of anchor frame -> needed for RPLR command setting -----
     m_pacControlData[0].getSliceHeader()->setFrameNum( m_cLPFrameNumList.front()  );
-    if( m_pcLayerParameters->getPaff() )
+    if( m_pcLayerParameters->getPAff() )
     {
       m_pacControlData[0].getSliceHeader( BOT_FIELD )->setFrameNum( m_cLPFrameNumList.front() );
     }
@@ -2842,8 +2842,8 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
     UInt      uiStep    = ( 1 << ( m_uiDecompositionStages - uiTemporalLevel ) );
     for( UInt uiFrameId = uiStep; uiFrameId <= m_uiGOPSize; uiFrameId += ( uiStep << 1 ) )
     {
-      xPaffDecision( uiFrameId );
-      switch( m_pcLayerParameters->getPaff() )
+      xPAffDecision( uiFrameId );
+      switch( m_pcLayerParameters->getPAff() )
       { 
       case 0:
         RNOK( xInitSliceHeader  ( uiTemporalLevel, uiFrameId, FRAME     ) );
@@ -2914,7 +2914,7 @@ MCTFEncoder::xInitGOP( PicBufferList&  rcPicBufferInputList )
   //===== RPLR and MMCO commands =====
    for( uiFrame = m_bFirstGOPCoded ? 1 : 0; uiFrame <= m_uiGOPSize; uiFrame++ )
   {
-    switch( m_pcLayerParameters->getPaff() )
+    switch( m_pcLayerParameters->getPAff() )
     { 
     case 0:
       RNOK( xInitReordering  ( uiFrame, FRAME     ) );
@@ -3388,7 +3388,8 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   
   pcSliceHeader->setDiscardableFlag             ( m_bDiscardable                 ); //DS_FIX_FT_09_2007
   pcSliceHeader->setQLDiscardable               ( m_uiQLDiscardable              ); //DS_FIX_FT_09_2007
-
+  // JVT-W062 {
+  /*
   // JVT-U116 LMI {
   pcSliceHeader->setTl0PicIdxPresentFlag      ( m_bTl0PicIdxPresentFlag      );
   SliceHeader*  pcTl0SliceHeader;
@@ -3429,7 +3430,8 @@ MCTFEncoder::xInitSliceHeader( UInt uiTemporalLevel,
     }
   }
   // JVT-U116 LMI }
-  
+  */
+  // JVT-W062 }  
   pcSliceHeader->setSimplePriorityId            ( 0	                    );
   
   if( ! pcSliceHeader->getSPS().getFrameMbsOnlyFlag() )
@@ -8501,9 +8503,9 @@ MCTFEncoder::xGetPredictionListsFieldKey( RefFrameList& rcRefList0,
 }
 
 Void 
-MCTFEncoder::xPaffDecision( UInt uiFrame )
+MCTFEncoder::xPAffDecision( UInt uiFrame )
 {
-  switch( m_pcLayerParameters->getPaff() )
+  switch( m_pcLayerParameters->getPAff() )
   {
   case 0:
     m_pbFieldPicFlag[ uiFrame ] = false;

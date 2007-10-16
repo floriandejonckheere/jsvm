@@ -837,7 +837,8 @@ H264AVCDecoder::checkOrderFromPoc(UInt uiPocLsb1,UInt uiPocLsb2,UInt& id1,UInt& 
 	uiPocLsb2 = uiPocLsb2 % uiGOPSize;
 
 	Mapping[0] = 0;	
-	for ( UInt uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
+	UInt uiAUIndex = 0;
+    for ( uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
 	{
 		uiCurrIdx = 1;
 		for( Int iLevel = (Int)uiDecompositionStages - 1; iLevel >= 0; iLevel-- )
@@ -852,16 +853,17 @@ H264AVCDecoder::checkOrderFromPoc(UInt uiPocLsb1,UInt uiPocLsb2,UInt& id1,UInt& 
 		}
 	}
 
-	for ( UInt uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
+	for ( uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
 	{
-		for (UInt i = 0; i < uiGOPSize;i++)
+		UInt i = 0;
+		for (i = 0; i < uiGOPSize;i++)
 		{
 			if ( Mapping[i] == uiAUIndex )
 				break;
 		}
 		MappingTmp[uiAUIndex] = i;
 	}
-	for ( UInt uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
+	for ( uiAUIndex = 0; uiAUIndex < uiGOPSize; uiAUIndex++ )
 	{
 		Mapping[uiAUIndex] = MappingTmp[uiAUIndex];;
 	}
