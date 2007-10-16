@@ -1,5 +1,19 @@
 [Note (Jerome): For the time being, the following validation scripts "fail":
-FMO, IROI, HRD, MLQL, NonRequired, ReduKeyPic, RPIC,LCFG4_I2I ]
+FMO, IROI, HRD, MLQL, NonRequired, RPIC,LCFG4_I2I ]
+
+JSVM_9_7 -> JSVM_9_8
+========================
+Date         : October 15, 2007
+Authors      : Hao Zhang, Alex Eleftheriadis (Vidyo Inc, formerly Layered Media Inc.) + Jerome Vieron (Thomson R&D France) 
+Contributions: JVT-W062
+
+Changes:
+- Implement Tl0DepRep SEI for the layers where dId = 0 and qId = 0.
+  Change the name of tl0_pic_idx to tl0_dep_rep_idx. 
+- Removal of codes related to tl0_pic_idx in previous versions.
+- Add the effective_idr_pic_id syntax into the new Tl0DepRep SEI. 
+  Its value is set in the slice header of IDR pictures.
+- Very minor changes related to PAff parameter
 
 JSVM_9_6 -> JSVM_9_7
 ========================
@@ -19,6 +33,7 @@ Changes:
   Non-required layer representation SEI
   Priority layer information SEI
 - Removal of RCDO validation scripts
+
 
 
 JSVM_9_5 -> JSVM_9_6

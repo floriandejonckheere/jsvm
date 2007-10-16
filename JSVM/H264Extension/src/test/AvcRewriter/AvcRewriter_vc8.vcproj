@@ -15,8 +15,8 @@
 	<Configurations>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\ReleaseStatic"
-			IntermediateDirectory=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\ReleaseStatic"
+			OutputDirectory=".\..\..\..\build\windows\test\AvcRewriter\ReleaseStatic"
+			IntermediateDirectory=".\..\..\..\build\windows\test\AvcRewriter\ReleaseStatic"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
@@ -37,7 +37,7 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\ReleaseStatic/AvcRewriterStatic.tlb"
+				TypeLibraryName=".\..\..\..\build\windows\test\AvcRewriter\ReleaseStatic/AvcRewriterStatic.tlb"
 				HeaderFileName=""
 			/>
 			<Tool
@@ -51,10 +51,10 @@
 				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="H264AVCDecoderLibTest.h"
-				PrecompiledHeaderFile=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\ReleaseStatic/AvcRewriterStatic.pch"
-				AssemblerListingLocation=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\ReleaseStatic/"
-				ObjectFile=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\ReleaseStatic/"
-				ProgramDataBaseFileName=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\ReleaseStatic/"
+				PrecompiledHeaderFile=".\..\..\..\build\windows\test\AvcRewriter\ReleaseStatic/AvcRewriterStatic.pch"
+				AssemblerListingLocation=".\..\..\..\build\windows\test\AvcRewriter\ReleaseStatic/"
+				ObjectFile=".\..\..\..\build\windows\test\AvcRewriter\ReleaseStatic/"
+				ProgramDataBaseFileName=".\..\..\..\build\windows\test\AvcRewriter\ReleaseStatic/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="3"
@@ -109,8 +109,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\DebugStatic"
-			IntermediateDirectory=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\DebugStatic"
+			OutputDirectory=".\..\..\..\build\windows\test\AvcRewriter\DebugStatic"
+			IntermediateDirectory=".\..\..\..\build\windows\test\AvcRewriter\DebugStatic"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			UseOfMFC="0"
@@ -131,7 +131,7 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\..\..\..\build\windows\test\H264AVCDecoderLibTest\DebugStatic/AvcRewriterStatic.tlb"
+				TypeLibraryName=".\..\..\..\build\windows\test\AvcRewriter\DebugStatic/AvcRewriterStatic.tlb"
 				HeaderFileName=""
 			/>
 			<Tool
