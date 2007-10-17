@@ -213,6 +213,7 @@ public:
 // JVT-V068 HRD }
 	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
 	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }
+
 	Double m_aaauidSeqBits [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 // BUG_FIX liuhui{
 	UInt   getScalableLayerId( UInt uiLayer, UInt uiTempLevel, UInt uiFGS ) const { return m_aaauiScalableLayerId[uiLayer][uiTempLevel][uiFGS]; }

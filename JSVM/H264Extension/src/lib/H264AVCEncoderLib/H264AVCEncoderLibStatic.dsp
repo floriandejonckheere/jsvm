@@ -117,10 +117,6 @@ SOURCE=.\Distortion.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\FGSSubbandEncoder.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\GOPEncoder.cpp
 # End Source File
 # Begin Source File
@@ -239,10 +235,6 @@ SOURCE=.\Distortion.h
 # Begin Source File
 
 SOURCE=.\DistortionIf.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\FGSSubbandEncoder.h
 # End Source File
 # Begin Source File
 

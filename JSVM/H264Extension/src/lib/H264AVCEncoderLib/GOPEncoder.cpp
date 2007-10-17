@@ -6900,7 +6900,7 @@ MCTFEncoder::process( UInt            uiAUIndex,
                       PicBufferList&  rcPicBufferInputList,
                       PicBufferList&  rcPicBufferOutputList,
                       PicBufferList&  rcPicBufferUnusedList,
-                      Double          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS]
+                      Double          aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS]
                       // JVT-V068 HRD {
                       ,ParameterSetMng* pcParameterSetMng
                       // JVT-V068 HRD }
@@ -7013,7 +7013,7 @@ MCTFEncoder::process( UInt            uiAUIndex,
     RNOK( xFinishGOP          ( rcPicBufferInputList,
                                 rcPicBufferOutputList,
                                 rcPicBufferUnusedList,
-                                m_aaauidSeqBits ) );
+                                aaauidSeqBits ) );
   }
 
   return Err::m_nOK;
@@ -7025,7 +7025,7 @@ ErrVal
 MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
                          PicBufferList& rcPicBufferOutputList,
                          PicBufferList& rcPicBufferUnusedList,
-                         Double         m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
+                         Double         aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
   UInt  uiLowPassSize = m_uiGOPSize >> m_uiNotCodedMCTFStages;
 
@@ -7053,7 +7053,7 @@ MCTFEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
   UInt uiLayerOffset = (UInt)m_uiScalableLayerId - ( m_uiDecompositionStages-m_uiNotCodedMCTFStages+1 );
   for( uiLevel = 0; uiLevel <= m_uiDecompositionStages-m_uiNotCodedMCTFStages; uiLevel++ )
   {
-    m_aaauidSeqBits [m_uiLayerId][uiLevel][0] = m_adSeqBits[uiLayerOffset+uiLevel];
+    aaauidSeqBits [m_uiLayerId][uiLevel][0] = m_adSeqBits[uiLayerOffset+uiLevel];
   }
 
   //===== update parameters =====
@@ -7185,7 +7185,7 @@ ErrVal
 MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
                      Double&  rdOutputRate,
                      Double   aaadOutputFramerate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
-                     const Double   m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
+                     Double   aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
   ROFRS( m_auiNumFramesCoded[0], Err::m_nOK );
 
@@ -7242,7 +7242,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 // BUG_FIX liuhui}
         }
 //bugfix delete
-        dBits += m_aaauidSeqBits[m_uiLayerId][uiLevel][uiFGS];
+        dBits += aaauidSeqBits[m_uiLayerId][uiLevel][uiFGS];
         aaadCurrBits[m_uiLayerId][uiLevel][uiFGS] = dBits;
       }
     }
@@ -7263,7 +7263,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
         {
           for( UInt uiFIndex = 0; uiFIndex <= uiFGS; uiFIndex++ )
           {
-            dBits += m_aaauidSeqBits[m_uiLayerId][uiTIndex][uiFIndex];
+            dBits += aaauidSeqBits[m_uiLayerId][uiTIndex][uiFIndex];
           }
         }
         aaadCurrBits[m_uiLayerId][uiLevel][uiFGS] = dBits;
@@ -7319,7 +7319,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
         adMinBitrate[m_uiLayerId][uiStage] = adMinBitrate[m_uiBaseLayerId][uiStage];
         for(UInt uiTIndex = 0; uiTIndex <= uiStage; uiTIndex++)
         {  
-          adMinBitrate[m_uiLayerId][uiStage] += m_aaauidSeqBits[m_uiLayerId][uiTIndex][0] * dScale;
+          adMinBitrate[m_uiLayerId][uiStage] += aaauidSeqBits[m_uiLayerId][uiTIndex][0] * dScale;
         }			  
       }
       else // base layer non-exists
@@ -7332,13 +7332,13 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
             for( uiTL = 0; uiTL < MAX_TEMP_LEVELS; uiTL++) //search minimum base layer bitrate
               if( adMinBitrate[m_uiBaseLayerId][uiTL] )
                 break;
-            adMinBitrate[m_uiLayerId][uiStage] = m_aaauidSeqBits[m_uiLayerId][uiStage][0]*dScale +
+            adMinBitrate[m_uiLayerId][uiStage] = aaauidSeqBits[m_uiLayerId][uiStage][0]*dScale +
               ( adMinBitrate[m_uiBaseLayerId][uiTL]*m_auiNumFramesCoded[uiTL]/m_auiNumFramesCoded[uiStage] ) / ( 1 << ( uiTL - uiStage ) );
           }
         }
         else //high layer without corresponding TL in base layer
         {
-          adMinBitrate[m_uiLayerId][uiStage] = m_aaauidSeqBits[m_uiLayerId][uiStage][0]*dScale + 
+          adMinBitrate[m_uiLayerId][uiStage] = aaauidSeqBits[m_uiLayerId][uiStage][0]*dScale + 
             adMinBitrate[m_uiLayerId][uiStage-1]*m_auiNumFramesCoded[uiStage-1]/m_auiNumFramesCoded[uiStage]*2;	
         }//if(adMinBitrate[m_uiBaseLayerId][uiStage]) //base layer exist for same TL
       }
@@ -7380,7 +7380,7 @@ MCTFEncoder::finish( UInt&    ruiNumCodedFrames,
 
 // BUG_FIX liuhui{
 ErrVal
-MCTFEncoder::SingleLayerFinish( const Double aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
+MCTFEncoder::SingleLayerFinish( Double aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
                                 Double aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
   ROFRS( m_auiNumFramesCoded[0], Err::m_nOK );

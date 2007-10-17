@@ -184,7 +184,8 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 //#ifndef SHARP_AVC_REWRITE_OUTPUT
   MbSymbolWriteIf *pcCurrentWriter = m_pcMbSymbolWriteIf;
   UInt uiSourceLayer = g_nLayer;
-  for( UInt uiMGSFragment = 0;
+  UInt uiMGSFragment = 0;
+  for( uiMGSFragment = 0;
        rcMbDataAccess.getSH().getSPS().getMGSCoeffStop( uiMGSFragment ) < 16;
        uiMGSFragment++ )
   {
@@ -421,7 +422,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 //#ifndef SHARP_AVC_REWRITE_OUTPUT
   MbSymbolWriteIf *pcMasterWriter = m_pcMbSymbolWriteIf;
   uiSourceLayer = g_nLayer;
-  for( UInt uiMGSFragment = 0; rcMbDataAccess.getSH().getSPS().getMGSCoeffStop( uiMGSFragment ) < 16; uiMGSFragment++ )
+  for( uiMGSFragment = 0; rcMbDataAccess.getSH().getSPS().getMGSCoeffStop( uiMGSFragment ) < 16; uiMGSFragment++ )
   {
     {
       g_nLayer++;

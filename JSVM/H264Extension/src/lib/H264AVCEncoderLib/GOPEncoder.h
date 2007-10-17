@@ -294,7 +294,7 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
                                       PicBufferList&                  rcPicBufferUnusedList,
-                                      Double                          m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS]
+                                      Double                          aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS]
                                       // JVT-V068 HRD {
 									  ,ParameterSetMng*                pcParameterSetMng
                                       // JVT-V068 HRD {
@@ -302,10 +302,10 @@ ErrVal          initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
   ErrVal        finish              ( UInt&                           ruiNumCodedFrames,
                                       Double&                         rdOutputRate,
                                       Double                          aaadOutputFramerate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
-                                      const Double                    aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
+                                      Double                          aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 
 // BUG_FIX liuhui{
-  ErrVal        SingleLayerFinish(   const Double                     aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
+  ErrVal        SingleLayerFinish(   Double                           aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
                                      Double                           aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 // BUG_FIX liuhui}
 
@@ -420,7 +420,7 @@ protected:
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
                                           PicBufferList&              rcPicBufferUnusedList,
-                                          Double                      m_aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
+                                          Double                      aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
 
   ErrVal  xInitExtBinDataAccessor       ( ExtBinDataAccessor&         rcExtBinDataAccessor );
   ErrVal  xAppendNewExtBinDataAccessor  ( ExtBinDataAccessorList&     rcExtBinDataAccessorList,
