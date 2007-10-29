@@ -1373,7 +1373,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 				if ( (id2 > id1)&&(id2 < id1 + uiMaxPocLsb/m_uiMaxGopSize/2) || id1 > id2 + uiMaxPocLsb/m_uiMaxGopSize/2 )
 				{
 					m_bDiscard = true;
-					m_uiNextFirstMb = -1;//treat it special
+					m_uiNextFirstMb = (UInt)-1;//treat it special
 					return Err::m_nOK;
 				}
 				if ( (id2 > id1)&&((id2-id1)%(uiMaxPocLsb/m_uiMaxGopSize) == 0) )
@@ -1387,7 +1387,7 @@ H264AVCDecoder::checkSliceGap( BinDataAccessor*  pcBinDataAccessor,
 				if ( id2 > id1)
 				{
 					m_bDiscard = true;
-					m_uiNextFirstMb = -1;
+					m_uiNextFirstMb = (UInt)-1;
 					return Err::m_nOK;
 				}
 				//check end
@@ -3080,8 +3080,6 @@ H264AVCDecoder::xProcessSlice( SliceHeader& rcSH,
                                PicBuffer*&  rpcPicBuffer,
                                Bool         bHighestLayer) //JVT-T054
 {
-  setRCDO( &rcSH );
-
   set4Tap( &rcSH );  // V090
 
   UInt  uiMbRead;
@@ -3233,8 +3231,6 @@ H264AVCDecoder::xDecodeBaseLayerVirtual( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
                                       PicBuffer* &    rpcPicBuffer)
 {
-  setRCDO( &rcSH );
-
   set4Tap( &rcSH );  // V090
 
   UInt  uiMbRead;
@@ -3378,8 +3374,6 @@ H264AVCDecoder::xProcessSliceVirtual( SliceHeader&    rcSH,
                                       SliceHeader*    pcPrevSH,
                                       PicBuffer* &    rpcPicBuffer)
 {
-  setRCDO( &rcSH );
-
   set4Tap( &rcSH );  // V090
 
   UInt  uiMbRead;
@@ -3558,7 +3552,7 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
       }
       else
       {
-        RNOK( xReconstructLastFGS(bHighestLayer,pcSliceHeader) );
+        RNOK( xReconstructLastFGS(bHighestLayer/*,pcSliceHeader*/) );
       }
     }
     else
@@ -3566,7 +3560,7 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
       if(pcSliceHeader->getQualityLevel  () != m_pcRQFGSDecoder->getSliceHeader()->getQualityLevel () ||
           0 == pcSliceHeader->getQualityLevel  ())
       {
-        RNOK( xReconstructLastFGS(bHighestLayer,pcSliceHeader) );
+        RNOK( xReconstructLastFGS(bHighestLayer/*,pcSliceHeader*/) );
       }
   	}
   }
@@ -3575,11 +3569,9 @@ H264AVCDecoder::xInitSlice( SliceHeader* pcSliceHeader )
 }
 
 ErrVal
-H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSliceHeader) //JVT-T054
+H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer) //JVT-T054
 {
-  setRCDO( m_pcRQFGSDecoder->getSliceHeader() );
-
-  set4Tap( m_pcRQFGSDecoder->getSliceHeader() );  // V090
+   set4Tap( m_pcRQFGSDecoder->getSliceHeader() );  // V090
 
   MbDataCtrl*   pcMbDataCtrl        = m_pcRQFGSDecoder->getMbDataCtrl   ();
   SliceHeader*  pcSliceHeader       = m_pcRQFGSDecoder->getSliceHeader  ();
@@ -3676,21 +3668,11 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
     RNOK( pcILPredFrameSpatial->copy( pcILPredFrame, ePicType ) );
     RNOK( pcBaseRepFrame      ->copy( pcILPredFrame, ePicType ) );
 //TMM_EC {{
-    //if ( pcSliceHeader->getTrueSlice())//JVT-X046
-    //{
-      m_pcLoopFilter->setRCDOSliceHeader( pcRCDOSliceHeader );
+   
       if( pcSliceHeader->getFrameUnit()->getContrainedIntraPred() )
       {
         m_pcLoopFilter->setFilterMode( LoopFilter::LFMode( LoopFilter::LFM_NO_INTER_FILTER + LoopFilter::LFM_EXTEND_INTRA_SUR ) );
-        /*RNOK( m_pcLoopFilter->process( *m_pcVeryFirstSliceHeader,
-                                      pcILPredFrameSpatial,
-                                      pcMbDataCtrl,
-                                      pcMbDataCtrl,
-                                      m_pcVeryFirstSliceHeader->getSPS().getFrameWidthInMbs(),
-                                      NULL,
-                                      NULL,
-									  false,
-                                      false ) );  // SSUN@SHARP*/
+       
 				RNOK( m_pcLoopFilter->process( *m_pcVeryFirstSliceHeader,
                                       pcILPredFrameSpatial,
                                       pcMbDataCtrl,
@@ -3709,15 +3691,13 @@ H264AVCDecoder::xReconstructLastFGS(Bool bHighestLayer, SliceHeader* pcRCDOSlice
       }
       else
       {
-        //RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial ) );
-				RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial, false, m_bMbStatus[pcSliceHeader->getLayerId()] ) );//JVT-X046
+       RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcILPredFrameSpatial, false, m_bMbStatus[pcSliceHeader->getLayerId()] ) );//JVT-X046
       }
-      m_pcLoopFilter->setRCDOSliceHeader();
+
       if( m_bCGSSNRInAU )
       {
         pcBaseRepFrame->setPoc( *pcSliceHeader );
-        //RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBaseRepFrame ) );
-				RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBaseRepFrame, false, m_bMbStatus[pcSliceHeader->getLayerId()] ) );//JVT-X046
+       	RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcBaseRepFrame, false, m_bMbStatus[pcSliceHeader->getLayerId()] ) );//JVT-X046
       }
     //}//JVT-X046
 //  TMM_EC }}

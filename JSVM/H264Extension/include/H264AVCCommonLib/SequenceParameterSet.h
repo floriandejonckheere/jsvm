@@ -256,15 +256,15 @@ public:
 
   // TMM_ESS }
 
-  Bool  getRCDOBlockSizes         () const { return m_bRCDOBlockSizes; }
-  Bool  getRCDOMotionCompensationY() const { return m_bRCDOMotionCompensationY; }
-  Bool  getRCDOMotionCompensationC() const { return m_bRCDOMotionCompensationC; }
-  Bool  getRCDODeblocking         () const { return m_bRCDODeblocking; }
+ // Bool  getRCDOBlockSizes         () const { return m_bRCDOBlockSizes; }
+ // Bool  getRCDOMotionCompensationY() const { return m_bRCDOMotionCompensationY; }
+ // Bool  getRCDOMotionCompensationC() const { return m_bRCDOMotionCompensationC; }
+ // Bool  getRCDODeblocking         () const { return m_bRCDODeblocking; }
 
-  Void  setRCDOBlockSizes         ( Bool b ) { m_bRCDOBlockSizes          = b; }
-  Void  setRCDOMotionCompensationY( Bool b ) { m_bRCDOMotionCompensationY = b; }
-  Void  setRCDOMotionCompensationC( Bool b ) { m_bRCDOMotionCompensationC = b; }
-  Void  setRCDODeblocking         ( Bool b ) { m_bRCDODeblocking          = b; }
+ // Void  setRCDOBlockSizes         ( Bool b ) { m_bRCDOBlockSizes          = b; }
+ // Void  setRCDOMotionCompensationY( Bool b ) { m_bRCDOMotionCompensationY = b; }
+ // Void  setRCDOMotionCompensationC( Bool b ) { m_bRCDOMotionCompensationC = b; }
+ // Void  setRCDODeblocking         ( Bool b ) { m_bRCDODeblocking          = b; }
 
   Void  set4TapMotionCompensationY( Bool b ) {m_b4TapMotionCompensationY = b; } // V090
   Bool  get4TapMotionCompensationY() const { return m_b4TapMotionCompensationY; }  // V090
@@ -375,10 +375,10 @@ protected:
 	Bool          m_bFrameMbsOnlyFlag;
 	Bool          m_bMbAdaptiveFrameFieldFlag;
 
-  Bool          m_bRCDOBlockSizes;
-  Bool          m_bRCDOMotionCompensationY;
-  Bool          m_bRCDOMotionCompensationC;
-  Bool          m_bRCDODeblocking;
+  // Bool          m_bRCDOBlockSizes;
+  // Bool          m_bRCDOMotionCompensationY;
+  // Bool          m_bRCDOMotionCompensationC;
+ // Bool          m_bRCDODeblocking;
 
   Bool          m_b4TapMotionCompensationY;  // V090
 

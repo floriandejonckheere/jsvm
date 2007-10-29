@@ -651,10 +651,6 @@ public:
 // JVT-U116 W062 LMI
     , m_uiTl0DepRepIdxSeiEnable           ( 0 )
     , m_uiCIUFlag                         ( 0 ) //JV
-    , m_uiRCDOBlockSizes                  ( 0 )
-    , m_uiRCDOMotionCompensationY         ( 0 )
-    , m_uiRCDOMotionCompensationC         ( 0 )
-    , m_uiRCDODeblocking                  ( 0 )
     , m_ui4TapMotionCompensationY         ( 0 ) // V090
     , m_uiEncodeKeyPictures               ( 0 )
     , m_uiMGSKeyPictureControl            ( 0 )
@@ -800,18 +796,18 @@ public:
   }
   //JVT-U106 Behaviour at slice boundaries}
 
-  UInt  getRCDOBlockSizes         ()  const { return m_uiRCDOBlockSizes; }
-  UInt  getRCDOMotionCompensationY()  const { return m_uiRCDOMotionCompensationY; }
-  UInt  getRCDOMotionCompensationC()  const { return m_uiRCDOMotionCompensationC; }
-  UInt  getRCDODeblocking         ()  const { return m_uiRCDODeblocking; }
+  // UInt  getRCDOBlockSizes         ()  const { return m_uiRCDOBlockSizes; }
+ // UInt  getRCDOMotionCompensationY()  const { return m_uiRCDOMotionCompensationY; }
+//  UInt  getRCDOMotionCompensationC()  const { return m_uiRCDOMotionCompensationC; }
+//  UInt  getRCDODeblocking         ()  const { return m_uiRCDODeblocking; }
 
   UInt  get4TapMotionCompensationY()  const { return m_ui4TapMotionCompensationY; }  // V090
   Void  set4TapMotionCompensationY( UInt ui )  { m_ui4TapMotionCompensationY = ui; } // V090
 
-  Void  setRCDOBlockSizes         ( UInt ui )  { m_uiRCDOBlockSizes          = ui; }
-  Void  setRCDOMotionCompensationY( UInt ui )  { m_uiRCDOMotionCompensationY = ui; }
-  Void  setRCDOMotionCompensationC( UInt ui )  { m_uiRCDOMotionCompensationC = ui; }
-  Void  setRCDODeblocking         ( UInt ui )  { m_uiRCDODeblocking          = ui; }
+  //Void  setRCDOBlockSizes         ( UInt ui )  { m_uiRCDOBlockSizes          = ui; }
+  //Void  setRCDOMotionCompensationY( UInt ui )  { m_uiRCDOMotionCompensationY = ui; }
+  //Void  setRCDOMotionCompensationC( UInt ui )  { m_uiRCDOMotionCompensationC = ui; }
+  //Void  setRCDODeblocking         ( UInt ui )  { m_uiRCDODeblocking          = ui; }
 
   Void  setEncodeKeyPictures      ( UInt ui )          { m_uiEncodeKeyPictures = ui; }
   UInt  getEncodeKeyPictures      ()           const   { return m_uiEncodeKeyPictures; }
@@ -917,10 +913,10 @@ protected:
   UInt                      m_uiCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}
 
-  UInt    m_uiRCDOBlockSizes;
-  UInt    m_uiRCDOMotionCompensationY;
-  UInt    m_uiRCDOMotionCompensationC;
-  UInt    m_uiRCDODeblocking;
+ // UInt    m_uiRCDOBlockSizes;
+//  UInt    m_uiRCDOMotionCompensationY;
+//  UInt    m_uiRCDOMotionCompensationC;
+//  UInt    m_uiRCDODeblocking;
 
   UInt    m_ui4TapMotionCompensationY;  // V090
 

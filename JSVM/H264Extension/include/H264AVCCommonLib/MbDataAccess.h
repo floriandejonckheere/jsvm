@@ -436,8 +436,8 @@ protected:
   __inline const MbData& xGetBlockAboveLeft   ( LumaIdx&   cIdx ) const;
   __inline const MbData& xGetBlockAboveRight  ( LumaIdx&   cIdx ) const;
 
-  __inline UInt  xGetLeftCodedBlockBit    ( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const;
-  __inline UInt  xGetAboveCodedBlockBit   ( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const;
+  __inline UInt  xGetLeftCodedBlockBit    ( UInt uiBit, UInt uiStart, UInt uiStop )  const;
+  __inline UInt  xGetAboveCodedBlockBit   ( UInt uiBit, UInt uiStart, UInt uiStop )  const;
 
   __inline SChar xGetRefIdxLeft ( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
   __inline SChar xGetRefIdxAbove( ListIdx eListIdx, ParIdx8x8 eParIdx )       const;
@@ -1049,20 +1049,9 @@ __inline UInt MbDataAccess::getAboveChromaCbpFGS()  const
   return rcMbData.getMbCbp() >> 4;
 }
 
-__inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const
+__inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit, UInt uiStart, UInt uiStop )  const
 {
   AOT( uiBit > 26 );
-//   AOT_DBG( uiBit > 30 );
-//   if( uiBit > 26 )
-//   {
-//     B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 27 ] );
-//     const MbData& rcMbData  = xGetBlockLeft( cIdx );
-//     if( ! xIsAvailable( rcMbData ) )
-//     {
-//       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
-//     }
-//     return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
-//   }
 
   if( uiBit >= 24 ) // macroblock based stuff
   {
@@ -1095,20 +1084,9 @@ __inline UInt MbDataAccess::xGetLeftCodedBlockBit( UInt uiBit, Bool bInterlaced,
   return rcMbData.calcBCBP( uiStart, uiStop, m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + iOffset );
 }
 
-__inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit, Bool bInterlaced, UInt uiStart, UInt uiStop )  const
+__inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit, UInt uiStart, UInt uiStop )  const
 {
   AOT( uiBit > 26 );
-//   AOT_DBG( uiBit > 30 );
-//   if( uiBit > 26 )
-//   {
-//     B4x4Idx       cIdx( m_aucChroma2LumaIdx[ uiBit - 27 ] );
-//     const MbData& rcMbData  = xGetBlockAbove( cIdx );
-//     if( ! xIsAvailable( rcMbData ) )
-//     {
-//       return ( !m_rcMbCurr.getBLSkipFlag() && m_rcMbCurr.isIntra() ? 1 : 0 );
-//     }
-//     return rcMbData.getBCBP( m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] + 27 );
-//   }
 
   if( uiBit >= 24 ) // macroblock based stuff
   {
@@ -1144,9 +1122,8 @@ __inline UInt MbDataAccess::xGetAboveCodedBlockBit( UInt uiBit, Bool bInterlaced
 __inline UInt MbDataAccess::getCtxCodedBlockBit( UInt uiBitPos, UInt uiStart, UInt uiStop ) const
 {
   UInt uiCtx;
-  Bool bInterlaced = getMbPicType() != FRAME;
-  uiCtx  = xGetLeftCodedBlockBit ( uiBitPos, bInterlaced, uiStart, uiStop );
-  uiCtx += xGetAboveCodedBlockBit( uiBitPos, bInterlaced, uiStart, uiStop ) << 1;
+  uiCtx  = xGetLeftCodedBlockBit ( uiBitPos, uiStart, uiStop );
+  uiCtx += xGetAboveCodedBlockBit( uiBitPos, uiStart, uiStop ) << 1;
   return uiCtx;
 }
 

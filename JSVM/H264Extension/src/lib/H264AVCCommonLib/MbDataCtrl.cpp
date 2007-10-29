@@ -426,7 +426,7 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl&       rcBaseMbDataCtrl,
 	Int     iMbEndY = (iScaledBaseOrigY+pcParameters->m_iOutHeight) / 16;
   Int     aiPelOrig[2];  
 
-  UInt	uiBaseMbStride, uiBLMbOffset, uiConfig=0;
+  UInt	uiBaseMbStride, uiBLMbOffset=0, uiConfig=0;
   UInt	uiMbStride   = m_iMbPerLine;
   
   //////////////////////////////////////////////////////////
@@ -588,8 +588,8 @@ MbDataCtrl::xInitVBLPelOrig( MbDataCtrl*         pcBaseMbDataCtrl,
 			aiPelOrig[0]   = (Int)16 * iMbX - iScaledBaseOrigX;
       if (uiConfig == 1)      // VBL prog -> EL prog
 			{
-				ruiBLMbOffset   = 0;
-        aiPelOrig[1]   = (Int)16 * iMbY - iScaledBaseOrigY;
+			ruiBLMbOffset   = 0;
+            aiPelOrig[1]   = (Int)16 * iMbY - iScaledBaseOrigY;
 			}
 			else if (uiConfig == 2) // VBL prog -> EL interl && He>=Hb/2
 			{
@@ -936,7 +936,7 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 
 
 //TMM_EC {{
-ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrl, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp )
+ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp )
 {
   ROF( m_bInitDone );
 
@@ -1472,8 +1472,8 @@ MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask) const
     Int iIndex = uiCurrIdx-1;
    
     Bool bIntra;
-     Bool bTopCoincided=false;
-     Bool bBottomCoincided=false;
+    Bool bTopCoincided=false;
+    Bool bBottomCoincided=false;
     if(m_pcMbData[iIndex].getFieldFlag() ) 
     {
       bIntra=m_pcMbData[iIndex].isIntra();
@@ -1497,8 +1497,8 @@ MbDataCtrl::getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask) const
       
      if(bIntra)
       {
-          bTopCoincided=(bIsUp&&bIsCurIntra)||(!bIsUp&&bIsCompIntra);
-          bBottomCoincided=(!bIsUp&&bIsCurIntra)||(bIsUp&&bIsCompIntra);
+        bTopCoincided=(bIsUp&&bIsCurIntra)||(!bIsUp&&bIsCompIntra);
+        bBottomCoincided=(!bIsUp&&bIsCurIntra)||(bIsUp&&bIsCompIntra);
       }      
     }
     ruiMask |= bTopCoincided    ? 0x0100 :0;

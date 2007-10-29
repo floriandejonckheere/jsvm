@@ -185,10 +185,6 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bInterlayerDeblockingPresent            ( 0 )
 , m_bFrameMbsOnlyFlag                       ( true )
 , m_bMbAdaptiveFrameFieldFlag               ( false )
-, m_bRCDOBlockSizes                         ( false )
-, m_bRCDOMotionCompensationY                ( false )
-, m_bRCDOMotionCompensationC                ( false )
-, m_bRCDODeblocking                         ( false )
 , m_b4TapMotionCompensationY                ( false )  // V090
 , m_bAVCRewriteFlag                         ( false )   // V035
 , m_bAVCAdaptiveRewriteFlag                 ( false )
@@ -456,23 +452,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   m_pcVUI->write(pcWriteIf);
   // JVT-V068 HRD }
 
-  //Bool bRCDO  = ( m_bRCDOBlockSizes ||
-  //                m_bRCDOMotionCompensationY ||
-  //                m_bRCDOMotionCompensationC ||
-  //                m_bRCDODeblocking );
-  //if(  bRCDO )
-  //{
-  //  RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
-  //  RNOK( pcWriteIf->writeFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
-  //  RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
-  //  RNOK( pcWriteIf->writeFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
-  //  RNOK( pcWriteIf->writeFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
-  //}
-  //else if( m_b4TapMotionCompensationY)  // V090
-  //  RNOK( pcWriteIf->writeFlag( m_b4TapMotionCompensationY,    "4TAPMC: 4tap_motion_compensation_y" ) );  // V090
-  
-
-  return Err::m_nOK;
+    return Err::m_nOK;
 }
 
 
@@ -584,21 +564,6 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   m_pcVUI->setVuiParametersPresentFlag( bTmp );
   if (bTmp) m_pcVUI->read(pcReadIf);
   // JVT-V068 }
-
-
-  //m_b4TapMotionCompensationY = false;                      // V090
-  //ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );           // V090
-  //RNOK ( pcReadIf->getFlag( m_b4TapMotionCompensationY,  "4TAPMC: 4tap_motion_compensation_y" ) );   // V090
-
-  //m_bRCDOBlockSizes          = false;
-  //m_bRCDOMotionCompensationY = false;
-  //m_bRCDOMotionCompensationC = false;
-  //m_bRCDODeblocking          = false;
-  //ROFRS( pcReadIf->moreRBSPData(), Err::m_nOK );
-  //RNOK ( pcReadIf->getFlag( m_bRCDOBlockSizes,           "RCDO: rdco_block_sizes"           ) ); // not really required by decoder
-  //RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationY,  "RCDO: rdco_motion_compensation_y" ) );
-  //RNOK ( pcReadIf->getFlag( m_bRCDOMotionCompensationC,  "RCDO: rdco_motion_compensation_c" ) );
-  //RNOK ( pcReadIf->getFlag( m_bRCDODeblocking,           "RCDO: rdco_deblocking"            ) );
 
   return Err::m_nOK;
 }

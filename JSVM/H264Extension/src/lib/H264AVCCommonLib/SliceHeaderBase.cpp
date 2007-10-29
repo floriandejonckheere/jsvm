@@ -1482,7 +1482,7 @@ SliceHeaderBase::FMOInit()
   m_pcFMO->img_.slice_group_change_cycle = getSliceGroupChangeCycle();
  //TMM_INTERLACE }
 
-  m_pcFMO->init(&(m_pcFMO->pps_),&(m_pcFMO->sps_));
+  m_pcFMO->init();
 
   m_pcFMO->StartPicture();
 

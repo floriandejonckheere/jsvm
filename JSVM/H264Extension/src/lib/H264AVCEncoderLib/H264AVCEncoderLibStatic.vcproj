@@ -28,7 +28,7 @@
 				StringPooling="TRUE"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="TRUE"
-				UsePrecompiledHeader="2"
+				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="H264AVCEncoderLib.h"
 				PrecompiledHeaderFile=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic/H264AVCEncoderLibStatic.pch"
 				AssemblerListingLocation=".\..\..\..\build\windows\lib\H264AVCEncoderLib\ReleaseStatic/"

@@ -687,15 +687,15 @@ SliceDecoder::xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
 					case BLK_4x4:
 						break;
 
-					//default:
-						//AOT(1);
+					default:
+						AOT(1);
 					}
 				}
 				}
 				break;
 
-  			//default:
-				//AOT(1);
+  			default:
+			     AOT(1);
 			}
 		}
 

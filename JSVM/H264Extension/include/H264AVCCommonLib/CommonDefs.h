@@ -183,8 +183,6 @@ enum NeighbourBlock
   ABOVE_MB_ABOVE_NEIGHBOUR = +12,
   CURR_MB_RIGHT_NEIGHBOUR  = +1,
   RIGHT_MB_RIGHT_NEIGHBOUR = -3,
-  VER_OFFSET_H241RCDO      = 4,
-  HOR_OFFSET_H241RCDO      = 1
 };
 enum ListIdx
 {

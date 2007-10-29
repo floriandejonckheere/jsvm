@@ -115,7 +115,7 @@ public:
 	ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Bool bFieldFlag, const Int iForceQp );
   ErrVal init( const SequenceParameterSet& rcSPS );
 //	TMM_EC {{
-  ErrVal initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrl, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
+  ErrVal initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
 //  TMM_EC }}
 
   ErrVal uninit();
@@ -192,7 +192,7 @@ public:
   //JVT-U106 Behaviour at slice boundaries}
 	//JVT-X046 {
 	MbData* xGetMbData(UInt uiMbAddress) { return &m_pcMbData[uiMbAddress]; }
-	void MbDataCtrl::updateMBProcessed(UInt uiProcessed) { m_uiMbProcessed += uiProcessed; }
+	void updateMBProcessed(UInt uiProcessed) { m_uiMbProcessed += uiProcessed; }
 	//JVT-X046 }
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }

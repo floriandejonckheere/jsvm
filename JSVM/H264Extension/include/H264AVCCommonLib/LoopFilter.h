@@ -136,9 +136,6 @@ public:
   static const UChar g_aucBetaTab[52]; // leszek
   static const AlphaClip g_acAlphaClip[52]; // leszek
 
-  static const UChar g_aucTcTab_H241RCDO[52];
-  static const UChar g_aucBetaTab_H241RCDO[52];
-
 protected:
 	LoopFilter();
 	virtual ~LoopFilter();
@@ -147,22 +144,10 @@ public:
   static ErrVal create( LoopFilter*& rpcLoopFilter );
   ErrVal destroy();
 
-  Void   setRCDOSliceHeader( SliceHeader* pcSliceHeader = 0 )
-  {
-    m_pcRCDOSliceHeader = pcSliceHeader;
-  }
-  ErrVal process        ( SliceHeader& rcSH, IntFrame* pcIntFrame = NULL/*, IntYuvPicBuffer* pcHighpassYuvBuffer = NULL,*/
+  ErrVal process        ( SliceHeader& rcSH, IntFrame* pcIntFrame = NULL
 							            ,bool  bAllSliceDone= false
 													,Bool* bMbStatus = NULL);
-  /*ErrVal process        ( SliceHeader&        rcSH,
-                          IntFrame*           pcFrame,
-                          MbDataCtrl*         pcMbDataCtrlMot,
-                          MbDataCtrl*         pcMbDataCtrlRes,
-                          UInt                uiMbInRow,
-                          RefFrameList*       pcRefFrameList0,
-                          RefFrameList*       pcRefFrameList1,
-						  bool				  bAllSliceDone,
-                          bool                spatial_scalable_flg);  // SSUN@SHARP*/
+  
 	ErrVal process        ( SliceHeader&        rcSH,
                           IntFrame*           pcFrame,
                           MbDataCtrl*         pcMbDataCtrlMot,
@@ -192,7 +177,6 @@ private:
   UChar xCheckMvDataP( const MbData& rcQMbData, const LumaIdx cQIdx, const MbData& rcPMbData, const LumaIdx cPIdx, const Short sHorMvThr, const Short sVerMvThr );
 
   __inline ErrVal xFilterMb       ( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag ); //V032, added enhanced layer indicator
-  __inline ErrVal xFilterMb_RCDO  ( const MbDataAccess& rcMbDataAccess );
   __inline ErrVal xFilterMbFast ( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag); //V032, added enhanced layer indicator
 	ErrVal xGetFilterStrengthFast ( const MbDataAccess& rcMbDataAccess, const Int iFilterIdc );
   __inline UInt xGetHorFilterStrengthFast( const MbData& rcMbDataCurr,
@@ -220,34 +204,7 @@ private:
   __inline ErrVal xChromaHorFiltering( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
   __inline ErrVal xChromaVerFiltering( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
 
-  __inline Void xFilter_H241RCDO( Pel*  pFlt, const Int& iOffset, const Int& iIndexA, const Int& iIndexB, const Int& blk_pos, const Bool& bLum );
-  __inline Void xFilter_H241RCDO( XPel* pFlt, const Int& iOffset, const Int& iIndexA, const Int& iIndexB, const Int& blk_pos, const Bool& bLum );
-  
-  __inline ErrVal xLumaHorFiltering_H241RCDO  ( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
-  __inline ErrVal xLumaVerFiltering_H241RCDO  ( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
-  __inline ErrVal xChromaHorFiltering_H241RCDO( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
-  __inline ErrVal xChromaVerFiltering_H241RCDO( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
-
-  __inline ErrVal xLumaHorFiltering_H241RCDO  ( const MbDataAccess& rcMbDataAccessRes,
-                                                const DFP&          rcDFP,
-                                                IntYuvPicBuffer*    pcYuvBuffer,
-												                        const MbDataAccess* rcMbDataAccessMot, //HZL added
-                                                RefFrameList*       rcRefFrameList0,   //HZL added
-                                                RefFrameList*       rcRefFrameList1 ); //HZL added
-  __inline ErrVal xLumaVerFiltering_H241RCDO  ( const MbDataAccess& rcMbDataAccessRes,
-                                                const DFP&          rcDFP,
-                                                IntYuvPicBuffer*    pcYuvBuffer,
-												                        const MbDataAccess* rcMbDataAccessMot, //HZL added
-                                                RefFrameList*       rcRefFrameList0,   //HZL added
-                                                RefFrameList*       rcRefFrameList1 ); //HZL added												  
-  __inline ErrVal xChromaHorFiltering_H241RCDO( const MbDataAccess& rcMbDataAccessRes,
-                                                const DFP&          rcDFP,
-                                                IntYuvPicBuffer*    pcYuvBuffer );
-  __inline ErrVal xChromaVerFiltering_H241RCDO( const MbDataAccess& rcMbDataAccessRes,
-                                                const DFP&          rcDFP,
-                                                IntYuvPicBuffer*    pcYuvBuffer );
-
-  __inline Void   xFilter                       ( XPel*               pFlt,
+   __inline Void   xFilter                       ( XPel*               pFlt,
                                                   const Int&          iOffset,
                                                   const Int&          iIndexA,
                                                   const Int&          iIndexB,
@@ -260,13 +217,6 @@ private:
                                                   RefFrameList*       pcRefFrameList1,
                                                   bool                spatial_scalable_flg,
 									                        			  bool				  enhancedLayerFlag ); //V032 of FSL, added enhanced layer indicator
-  __inline ErrVal xFilterMb_RCDO                ( const MbDataAccess* rcMbDataAccessMot,
-                                                  const MbDataAccess* rcMbDataAccessRes,
-                                                  IntYuvPicBuffer*    pcYuvBuffer,
-                                                  RefFrameList*       pcRefFrameList0,
-                                                  RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg);  // SSUN@SHARP
-
   ErrVal xRecalcCBP( MbDataAccess &rcMbDataAccess )
   {
     UInt uiCbp = 0;
@@ -377,9 +327,6 @@ protected:
   Bool            m_bVerMixedMode;
   Bool            m_bHorMixedMode;
   Bool            m_bAddEdge;
-
-  Bool          m_bRCDO;
-  SliceHeader*  m_pcRCDOSliceHeader; // only for SPS RCDO deblocking flag
   Bool          m_bEncoder;
 
 protected:

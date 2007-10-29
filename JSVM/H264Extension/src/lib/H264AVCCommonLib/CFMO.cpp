@@ -179,7 +179,7 @@ Void FMO::printFmoMaps()
   printf("\n");
 }
 
-int FMO::init(FMO_PPS* pps, FMO_SPS* sps)
+int FMO::init()
 {
   if(MbToSliceGroupMap_)
   {

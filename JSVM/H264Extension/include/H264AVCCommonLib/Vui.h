@@ -184,9 +184,9 @@ public:
   VUI( SequenceParameterSet* pcSPS );
   virtual ~VUI();
 
-  ErrVal init( SequenceParameterSet* pcSPS, UInt uiDependencyId, UInt uiNumTemporalLevels, UInt uiNumFGSLevels );
+  ErrVal init( UInt uiNumTemporalLevels, UInt uiNumFGSLevels );
 
-  ErrVal write( HeaderSymbolWriteIf* pcWriteIf, UInt uiSchedulerID = 0 )          const;
+  ErrVal write( HeaderSymbolWriteIf* pcWriteIf )          const;
   ErrVal read( HeaderSymbolReadIf* pcReadIf );
 
   Bool getOverscanInfoPresentFlag()                 const { return m_bOverscanInfoPresentFlag; }

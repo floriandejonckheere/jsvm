@@ -204,7 +204,7 @@ public:
 	FMO():MbToSliceGroupMap_(0),MapUnitToSliceGroupMap_(0),PicSizeInMapUnits_(0),numMbInSliceGroup_(0)	{	};	
 	~FMO(){	finit();};		
 
-	int init (FMO_PPS* Pps, FMO_SPS* Sps);
+	int init ();
 	int finit (); //destroy
 	int getNumberOfSliceGroup();
 	int getLastMBOfPicture();

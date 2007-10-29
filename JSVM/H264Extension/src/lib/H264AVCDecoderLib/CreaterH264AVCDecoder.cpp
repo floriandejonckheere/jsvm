@@ -759,7 +759,6 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			case SEI::PRIORITYLEVEL_SEI:
       {
 				UInt uiNum = 0;
-				UInt uiDeltaBytesRateOfLevel = 0;
 				UInt uiPriorityLevel = 0;
 				SEI::PriorityLevelSEI* pcSEI           = (SEI::PriorityLevelSEI*)pcSEIMessage;
 				uiNum = pcSEI->getNumPriorityIds();
@@ -841,7 +840,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 	case SEI::REDUNDANT_PIC_SEI:
 	  {
 		SEI::RedundantPicSei* pcSEI = (SEI::RedundantPicSei*) pcSEIMessage;
-    UInt uiNumDIdMinus1;
+        UInt uiNumDIdMinus1;
 		UInt uiNumDId;
 		UInt *puiNumQIdMinus1, *puiDependencyId;
 		UInt **ppuiQualityId, **ppuiNumRedundantPicsMinus1;
@@ -849,11 +848,11 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 		
 		uiNumDIdMinus1 = pcSEI->getNumDIdMinus1( );
 		uiNumDId = uiNumDIdMinus1 + 1;
-		puiNumQIdMinus1              = new UInt[uiNumDId];
-		puiDependencyId              = new UInt[uiNumDId]; 
-		ppuiQualityId                 = new UInt*[uiNumDId];
-		ppuiNumRedundantPicsMinus1    = new UInt*[uiNumDId];
-    pppuiRedundantPicCntMinus1     = new UInt**[uiNumDId];
+		puiNumQIdMinus1                = new UInt[uiNumDId];
+		puiDependencyId                = new UInt[uiNumDId]; 
+		ppuiQualityId                  = new UInt*[uiNumDId];
+		ppuiNumRedundantPicsMinus1     = new UInt*[uiNumDId];
+        pppuiRedundantPicCntMinus1     = new UInt**[uiNumDId];
 		for(UInt ui = 0; ui <= uiNumDIdMinus1; ui++)
 		{
 	    puiDependencyId[ui] = pcSEI->getDependencyId ( ui );
@@ -876,7 +875,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
         delete puiNumQIdMinus1;
         delete puiDependencyId;
         delete ppuiQualityId;
-				delete ppuiNumRedundantPicsMinus1;
+		delete ppuiNumRedundantPicsMinus1;
         delete pppuiRedundantPicCntMinus1;
 
 		break;
@@ -885,17 +884,13 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
 			 //JVT-X032 {
 	case SEI::TL_SWITCHING_POINT_SEI:
 		{
-			SEI::TLSwitchingPointSei* pcSEI = (SEI::TLSwitchingPointSei*) pcSEIMessage;
-			UInt uiDeltaFrameNum = pcSEI->getDeltaFrameNum();
+		//	SEI::TLSwitchingPointSei* pcSEI = (SEI::TLSwitchingPointSei*) pcSEIMessage;
 		}
    //JVT-X032 }
   //JVT-W062 {
     case SEI::TL0_DEP_REP_IDX_SEI:
       {
-        SEI::Tl0DepRepIdxSei* pcSEI = (SEI::Tl0DepRepIdxSei*)pcSEIMessage;
-        UInt uiTl0DepRepIdx = pcSEI->getTl0DepRepIdx();
-        UInt uiEfIdrPicIdx = pcSEI->getEfIdrPicId();
-
+       // SEI::Tl0DepRepIdxSei* pcSEI = (SEI::Tl0DepRepIdxSei*)pcSEIMessage;
         break;
       }
   //JVT-W062 }

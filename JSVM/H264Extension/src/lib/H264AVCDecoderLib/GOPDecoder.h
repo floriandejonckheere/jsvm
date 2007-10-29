@@ -514,8 +514,7 @@ protected:
                                                 RefFrameList&                 rcRefFrameList0,
                                                 RefFrameList&                 rcRefFrameList1,
                                                 MbDataCtrl*                   pcMbDataCtrl,
-                                                SliceHeader&                  rcSH, 
-                                                Bool                          bSR = false   );
+                                                SliceHeader&                  rcSH  );
 
   Bool isPictureDecComplete(SliceHeader* rpcSliceHeader);
   const Bool isNewPictureStart(SliceHeader* rpcSliceHeader);

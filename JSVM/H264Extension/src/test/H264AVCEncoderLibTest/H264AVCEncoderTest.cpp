@@ -333,8 +333,6 @@ H264AVCEncoderTest::xWrite( ExtBinDataAccessorList& rcList,
     if( m_pcEncoderCodingParameter->getNestingSEIEnable() && m_pcEncoderCodingParameter->getTl0DepRepIdxSeiEnable() )
     {
       nalh = rcList.front()->data();
-      UChar uiNalUnitType = nalh[0]&0x1f;
-      UChar uiNextNalUnitType = 0;
       uiEfIdrPicId = m_pcH264AVCEncoder->getIdrPicId();
       if( uiNalUnitType == 14 )
       {

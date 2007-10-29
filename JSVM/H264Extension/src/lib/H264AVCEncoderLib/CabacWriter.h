@@ -103,7 +103,8 @@ class CabacWriter :
 public MbSymbolWriteIf
 , private CabaEncoder
 {
-public://protected://JVT-X046
+public:
+//protected://JVT-X046
 	CabacWriter();
 	virtual ~CabacWriter();
 
@@ -176,6 +177,7 @@ public:
 
     return Err::m_nOK;  
   }
+	
 	//JVT-X046 {
 	CabacContextModel2DBuffer& getFieldFlagCCModel(void)  {return m_cFieldFlagCCModel;   }
 	CabacContextModel2DBuffer& getFldMapCCModel(void)     {return m_cFldMapCCModel;      }
@@ -206,8 +208,9 @@ public:
 
 	void loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf);
 	void loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf) { }
-	UInt getBitsWritten(void) { return m_pcBitWriteBufferIf->getBitsWritten(); }
+    UInt getBitsWritten(void) { return m_pcBitWriteBufferIf->getBitsWritten(); }
   //JVT-X046 }
+  
 protected:
   ErrVal xInitContextModels( const SliceHeader& rcSliceHeader );
 

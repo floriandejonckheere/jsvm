@@ -2025,7 +2025,7 @@ MCTFDecoder::process( SliceHeader*&  rpcSliceHeader,
 		m_pcVeryFirstSliceHeader  = new SliceHeader( rpcSliceHeader->getSPS(), rpcSliceHeader->getPPS() );
 	}
 //TMM_EC }}
-  m_pcH264AVCDecoder->setRCDO( rpcSliceHeader );
+  // m_pcH264AVCDecoder->setRCDO( rpcSliceHeader );
 
   m_pcH264AVCDecoder->set4Tap( rpcSliceHeader );  // V090
 
@@ -2477,8 +2477,7 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
                                   RefFrameList& rcRefFrameList0,
                                   RefFrameList& rcRefFrameList1,
                                   MbDataCtrl*   pcMbDataCtrl,
-                                  SliceHeader&  rcSH, 
-                                  Bool          bSR  )
+                                  SliceHeader&  rcSH )
 {
   RNOK( pcMbDataCtrl          ->initSlice( rcSH, PRE_PROCESS, true, NULL ) );
   RNOK( m_pcMotionCompensation->initSlice( rcSH              ) );
@@ -2545,8 +2544,8 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
       IntYuvMbBuffer cYuvMbBuffer;
 
 			const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-			RNOK( m_pcMotionCompensation->xCompensateMbAllModes( *pcMbDataAccess, *apcRefFrameList0[ eMbPicType ], *apcRefFrameList1[ eMbPicType ], &cYuvMbBuffer, bSR ) );
-      RNOK( m_pcMotionCompensation->compensateMbBLSkipIntra(*pcMbDataAccess, &cYuvMbBuffer, m_pcBaseLayerFrame));
+			RNOK( m_pcMotionCompensation->xCompensateMbAllModes( *pcMbDataAccess, *apcRefFrameList0[ eMbPicType ], *apcRefFrameList1[ eMbPicType ], &cYuvMbBuffer ) );
+            RNOK( m_pcMotionCompensation->compensateMbBLSkipIntra(*pcMbDataAccess, &cYuvMbBuffer, m_pcBaseLayerFrame));
 			RNOK( pcMCFrame->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
     }
   }
@@ -2560,7 +2559,7 @@ MCTFDecoder::xMotionCompensation( IntFrame*     pcMCFrame,
 ErrVal
 MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bHighestMGSLayer ) //JVT-T054
 {
-  m_pcH264AVCDecoder->setRCDO( m_pcRQFGSDecoder->getSliceHeader() );
+  // m_pcH264AVCDecoder->setRCDO( m_pcRQFGSDecoder->getSliceHeader() );
 
   m_pcH264AVCDecoder->set4Tap( m_pcRQFGSDecoder->getSliceHeader() );  // V090
 
@@ -2610,7 +2609,7 @@ MCTFDecoder::xReconstructLastFGS( Bool bHighestLayer, Bool bHighestMGSLayer ) //
                                 rcControlData.getPrdFrameList( LIST_0 ),
                                 rcControlData.getPrdFrameList( LIST_1 ),
                                 m_pcRQFGSDecoder->getMbDataCtrl(),
-                                *pcSliceHeader, true ) );
+                                *pcSliceHeader ) );
     }
 
 		//JVT-X046 {
@@ -2834,7 +2833,7 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
  
   if( pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX)
   {
-    m_pcLoopFilter->setRCDOSliceHeader( rcControlData.getSliceHeader() );
+   // m_pcLoopFilter->setRCDOSliceHeader( rcControlData.getSliceHeader() );
     xGetBaseLayerData( rcControlData,
                        pcBaseFrame, 
                         pcBaseResidual, 
@@ -2844,7 +2843,7 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
                         bConstrainedIPredBL, 
                         bSpatialScalability,
                         pcResizeParameter); 
-    m_pcLoopFilter->setRCDOSliceHeader();
+   // m_pcLoopFilter->setRCDOSliceHeader();
    
     ROF( bBaseDataAvailable );
   }
@@ -3319,9 +3318,7 @@ MCTFDecoder::xDecodeEnhanceLayerVirtual( SliceHeader*&  rpcSliceHeader,
                                         PicBufferList& rcUnusedList,
                                         Bool           bReconstructionLayer )
 {
-  DPBUnit *pcBaseDPBUnit=NULL;
-
-	printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d  %c)\n",
+  	printf("  Frame %4d ( LId%2d, TL%2d, QL%2d, %s-%c, BId%2d, AP%2d, QP%3d  %c)\n",
 		rpcSliceHeader->getPoc                    (),
 		rpcSliceHeader->getLayerId                (),
 		rpcSliceHeader->getTemporalLevel          (),
@@ -3398,11 +3395,6 @@ MCTFDecoder::xDecodeEnhanceLayerVirtual( SliceHeader*&  rpcSliceHeader,
   IntFrame*     pcResidual      = m_pcResidual;
   IntFrame*     pcBaseRepFrame  = m_apcFrameTemp[0];  
   MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
-  UInt          uiMbRead        = 0;
-
-  MbDataCtrl*   pcMbDataCtrlRef = NULL;//TMM_EC 
-
-
   Bool          bUseBaseRepresentation     = rpcSliceHeader->getUseBasePredictionFlag();
   Bool          bConstrainedIP  = rpcSliceHeader->getPPS().getConstrainedIntraPredFlag();
   Bool          bReconstructAll = bReconstructionLayer || !bConstrainedIP;
@@ -3410,9 +3402,7 @@ MCTFDecoder::xDecodeEnhanceLayerVirtual( SliceHeader*&  rpcSliceHeader,
   //***** NOTE: Motion-compensated prediction for non-key pictures is done in xReconstructLastFGS()
   bReconstructAll = bReconstructAll && bUseBaseRepresentation || ! bConstrainedIP;
  
-
-  //tttest
-// if (m_bIsNewPic)                           // may be modified later TMM_EC
+  // if (m_bIsNewPic)                           // may be modified later TMM_EC
   if(isNewPictureStart(rpcSliceHeader))
   {
     m_iMbProcessed =0;

@@ -283,7 +283,7 @@ ErrVal VUI::InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, U
 }
 
 
-ErrVal VUI::init( SequenceParameterSet* pcSPS, UInt uiDependencyId, UInt uiNumTemporalLevels, UInt uiNumFGSLevels )
+ErrVal VUI::init( UInt uiNumTemporalLevels, UInt uiNumFGSLevels )
 {
   m_uiNumTemporalLevels = uiNumTemporalLevels;
   m_uiNumFGSLevels = uiNumFGSLevels;
@@ -306,7 +306,7 @@ ErrVal VUI::LayerInfo::write( HeaderSymbolWriteIf* pcWriteIf ) const
   return Err::m_nOK;
 }
 
-ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf, UInt uiSchedulerId ) const
+ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
   RNOK( pcWriteIf->writeFlag( m_bVuiParametersPresentFlag,            "SPS: vui_parameters_present_flag" ) );
 

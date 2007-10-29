@@ -42,15 +42,15 @@ STAT_LIBS		= -lpthread
 DYN_LIBS		=
 
 
-DYN_DEBUG_LIBS		= -lH264AVCCommonLibd -lH264AVCVideoIoLibd -lH264AVCEncoderLibd
-DYN_DEBUG_PREREQS	= $(LIB_DIR)/libH264AVCCommonLibd.a $(LIB_DIR)/libH264AVCVideoIoLibd.a $(LIB_DIR)/libH264AVCEncoderLibd.a
-STAT_DEBUG_LIBS		= -lH264AVCCommonLibStaticd -lH264AVCVideoIoLibStaticd -lH264AVCEncoderLibStaticd
-STAT_DEBUG_PREREQS	= $(LIB_DIR)/libH264AVCCommonLibStaticd.a $(LIB_DIR)/libH264AVCVideoIoLibStaticd.a $(LIB_DIR)/libH264AVCEncoderLibStaticd.a
+DYN_DEBUG_LIBS		= -lH264AVCVideoIoLibd -lH264AVCEncoderLibd -lH264AVCCommonLibd 
+DYN_DEBUG_PREREQS	= $(LIB_DIR)/libH264AVCVideoIoLibd.a $(LIB_DIR)/libH264AVCEncoderLibd.a $(LIB_DIR)/libH264AVCCommonLibd.a
+STAT_DEBUG_LIBS		=  -lH264AVCVideoIoLibStaticd -lH264AVCEncoderLibStaticd -lH264AVCCommonLibStaticd
+STAT_DEBUG_PREREQS	= $(LIB_DIR)/libH264AVCVideoIoLibStaticd.a $(LIB_DIR)/libH264AVCEncoderLibStaticd.a $(LIB_DIR)/libH264AVCCommonLibStaticd.a
 
-DYN_RELEASE_LIBS	= -lH264AVCCommonLib -lH264AVCVideoIoLib -lH264AVCEncoderLib
-DYN_RELEASE_PREREQS	= $(LIB_DIR)/libH264AVCCommonLib.a $(LIB_DIR)/libH264AVCVideoIoLib.a $(LIB_DIR)/libH264AVCEncoderLib.a
-STAT_RELEASE_LIBS	= -lH264AVCCommonLibStatic -lH264AVCVideoIoLibStatic -lH264AVCEncoderLibStatic
-STAT_RELEASE_PREREQS	= $(LIB_DIR)/libH264AVCCommonLibStatic.a $(LIB_DIR)/libH264AVCVideoIoLibStatic.a $(LIB_DIR)/libH264AVCEncoderLibStatic.a
+DYN_RELEASE_LIBS	= -lH264AVCVideoIoLib -lH264AVCEncoderLib -lH264AVCCommonLib 
+DYN_RELEASE_PREREQS	= $(LIB_DIR)/libH264AVCVideoIoLib.a $(LIB_DIR)/libH264AVCEncoderLib.a $(LIB_DIR)/libH264AVCCommonLib.a
+STAT_RELEASE_LIBS	= -lH264AVCVideoIoLibStatic -lH264AVCEncoderLibStatic -lH264AVCCommonLibStatic
+STAT_RELEASE_PREREQS	= $(LIB_DIR)/libH264AVCVideoIoLibStatic.a $(LIB_DIR)/libH264AVCEncoderLibStatic.a  $(LIB_DIR)/libH264AVCCommonLibStatic.a
 
 
 # name of the base makefile

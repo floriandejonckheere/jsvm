@@ -591,12 +591,7 @@ ErrVal xMotionCompensationMbAff(        IntFrame*                   pcMCFrame,
                                           UInt                        uiFrameIdInGOP ,
 																					PicType                     ePicType  );
                                           // JVT-S054 (REPLACE) <-
-  ErrVal  xFixOrgResidual								( IntFrame*                   pcFrame,
-																					IntFrame*										pcOrgPred,
-																					IntFrame*										pcResidual,
-																					IntFrame*										pcSRFrame,
-                                          ControlData&                pcCtrlData );
-	//--
+  	//--
 
   //===== auxiliary functions =====
   ErrVal  xCalculateAndAddPSNR          ( UInt                        uiStage,

@@ -161,14 +161,6 @@ protected:
 	virtual ~MotionCompensation();
 
 public:
-  Void setRCDO( Bool bRCDOY, Bool bRCDOC, UInt uiFrameNum )
-  {
-    m_bRCDOY      = bRCDOY;
-    m_bRCDOC      = bRCDOC;
-    m_uiFrameNum  = uiFrameNum;
-    m_pcQuarterPelFilter->setRCDO( bRCDOY );
-  }
-
   // V090
   Void set4Tap( Bool b4TapY, UInt uiFrameNum )
   {
@@ -229,8 +221,7 @@ public:
   ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess, 
                                         RefFrameList&   rcRefFrameList0, 
                                         RefFrameList&   rcRefFrameList1, 
-                                        IntYuvMbBuffer* pcYuvMbBuffer,
-                                        Bool            bSR = false );
+                                        IntYuvMbBuffer* pcYuvMbBuffer );
 
   ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
                   IntFrame*       pcMCFrame,
@@ -318,10 +309,6 @@ private:
   __inline Void xGetMbPredData  ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntMC8x8D& rcMC8x8D );
   __inline Void xGetBlkPredData ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntMC8x8D& rcMC8x8D, BlkMode eBlkMode );
 
-  __inline Void xPredChromaPelRCDO( Pel*  pucDest, Int iDestStride, Pel*  pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
-  __inline Void xPredChromaPelRCDO( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
-
-
 protected:
   QuarterPelFilter* m_pcQuarterPelFilter;
   Transform*        m_pcTransform;
@@ -335,8 +322,6 @@ protected:
 
   ResizeParameters*				m_pcResizeParameters; 
 
-  Bool  m_bRCDOY;
-  Bool  m_bRCDOC;
   UInt  m_uiFrameNum;
 
   Bool m_b4TapY; // V090

@@ -1162,12 +1162,16 @@ MbData::xMergeMotionData()
           aveMv[0] = (m_acBl4x4Mv[0][pucBlockOrder[0]]+ m_acBl4x4Mv[0][pucBlockOrder[1]]+Mv(1,1))>>1;
           aveMv[1] = (m_acBl4x4Mv[1][pucBlockOrder[0]]+ m_acBl4x4Mv[1][pucBlockOrder[1]]+Mv(1,1))>>1;
           m_acBl4x4Mv[0][pucBlockOrder[0]] = m_acBl4x4Mv[0][pucBlockOrder[1]] = 
-            m_acBl4x4Mv[0][pucBlockOrder[2]] = m_acBl4x4Mv[0][pucBlockOrder[3]] = aveMv[0];
+          m_acBl4x4Mv[0][pucBlockOrder[2]] = m_acBl4x4Mv[0][pucBlockOrder[3]] = aveMv[0];
           m_acBl4x4Mv[1][pucBlockOrder[0]] = m_acBl4x4Mv[1][pucBlockOrder[1]] = 
-            m_acBl4x4Mv[1][pucBlockOrder[2]] = m_acBl4x4Mv[1][pucBlockOrder[3]] = aveMv[1];
+          m_acBl4x4Mv[1][pucBlockOrder[2]] = m_acBl4x4Mv[1][pucBlockOrder[3]] = aveMv[1];
         }
         break;
-      } // switch
+	  
+	  default: 
+		  break;
+
+	  } // switch
     } // for loop
 
     if(m_aBlkMode[0]==BLK_8x8 && m_aBlkMode[1]==BLK_8x8 && m_aBlkMode[2]==BLK_8x8 && m_aBlkMode[3]==BLK_8x8)

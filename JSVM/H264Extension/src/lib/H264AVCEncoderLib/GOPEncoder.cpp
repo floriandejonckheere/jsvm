@@ -4520,9 +4520,7 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
 
   if( rcControlData.getBaseLayerIdMotion() != MSYS_UINT_MAX )
   {
-    m_pcLoopFilter->setRCDOSliceHeader( rcControlData.getSliceHeader( ePicType ) ); //TMM
-  
-     m_pcResizeParameters->m_iResampleMode = 0; 
+      m_pcResizeParameters->m_iResampleMode = 0; 
      RNOK( m_pcH264AVCEncoder->getBaseLayerDataAvailability( pcBaseFrame,
                                                             pcBaseResidual,
                                                             pcBaseDataCtrl,
@@ -4569,7 +4567,6 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
                                                   pcSliceHeader->getIdrPicId() ) );//EIDR 0619
 
     }
-    m_pcLoopFilter->setRCDOSliceHeader();
   }
 
 
@@ -4853,14 +4850,9 @@ MCTFEncoder::xMotionEstimationFrame( UInt uiBaseLevel, UInt uiFrame, PicType ePi
   SliceHeader*  pcSliceHeader = rcControlData.getSliceHeader( ePicType );
   ROF( pcSliceHeader );
 
-  Bool  bRCDOY      = pcSliceHeader->getSPS().getRCDOMotionCompensationY();
-  Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
-  UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
-  m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
-
   // V090
   Bool  b4TapY      = pcSliceHeader->getSPS().get4TapMotionCompensationY();
-  uiFrameNum  = pcSliceHeader->getFrameNum();
+  UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
   m_pcMotionEstimation->set4Tap( b4TapY, uiFrameNum );
   // V090
 
@@ -5151,34 +5143,6 @@ MCTFEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& r
   return Err::m_nOK;
 }
 
-ErrVal
-MCTFEncoder::xFixOrgResidual( IntFrame*			pcFrame,
-                              IntFrame*			pcOrgPred,
-                              IntFrame*			pcResidual,
-                              IntFrame*			pcSRFrame,
-                              ControlData&	rcCtrlData )
-{
-  MbDataCtrl*       pcMbDataCtrl  = rcCtrlData.getMbDataCtrl       ();
-  SliceHeader*      pcSliceHeader = rcCtrlData.getSliceHeader      ();
-
-  RNOK( pcMbDataCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
-
-  IntYuvMbBuffer cMbBuffer, cResMbBuffer, cPrdMbBuffer, cRecMbBuffer;
-
-  const UInt uiMbNumber = pcSliceHeader->getMbInPic(); //TMM
-  for( UInt uiMbAddress = 0 ; uiMbAddress < uiMbNumber; uiMbAddress++ ) //TMM
-  {
-    MbDataAccess* pcMbDataAccess = NULL;
-    UInt          uiMbY, uiMbX;
-
-    pcSliceHeader->getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress             );
-
-    RNOK( pcMbDataCtrl            ->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
-    RNOK( m_pcYuvFullPelBufferCtrl->initMb(                 uiMbY, uiMbX, false ) );
-  }
-
-  return Err::m_nOK;
-}
 //--
 
 
@@ -5253,14 +5217,9 @@ MCTFEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
     //JVT-W047
     ROF( pcSliceHeader );
   
-    Bool  bRCDOY      = pcSliceHeader->getSPS().getRCDOMotionCompensationY();
-    Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
+    // V090
+    Bool  b4TapY      = pcSliceHeader->getSPS().get4TapMotionCompensationY();
     UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
-    m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
-
-  // V090
-  Bool  b4TapY      = pcSliceHeader->getSPS().get4TapMotionCompensationY();
-    uiFrameNum  = pcSliceHeader->getFrameNum();
     m_pcMotionEstimation->set4Tap( b4TapY, uiFrameNum );
   // V090
 
@@ -5557,8 +5516,6 @@ MCTFEncoder::xEncodeNonKeyPicture( UInt                 uiBaseLevel,
   IntFrame*     pcBLRecFrame    = m_apcFrameTemp  [1];
   ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
  
-  IntFrame*     pcRedSRFrame    = m_apcFrameTemp  [4];  // JVT-Q054 Red. Picture
-
   const Bool bFieldCoded    =  m_pbFieldPicFlag[ uiFrameIdInGOP ] ;
   m_abCoded[uiFrameIdInGOP] = true;
   UInt uiBits          = 0;
@@ -5859,7 +5816,6 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 	RNOK( m_pcMotionEstimation->initSlice( rcSH              ) );
 
 	pcMbEncoder->setBaseLayerRec(m_pcBaseLayerFrame);
-	MbDataCtrl*      pcBaseMbDataCtrl = getBaseMbDataCtrl();
 	RefFrameList* apcRefFrameList0[4] = { NULL, NULL, NULL, NULL };
 	RefFrameList* apcRefFrameList1[4] = { NULL, NULL, NULL, NULL };
 	const Bool    bMbAff   = rcSH.isMbAff   ();
@@ -5974,7 +5930,7 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 				Int             iQPIntra          = pcSliceHeader->getPicQp(); //- 2;
 				IntYuvMbBuffer  cZeroBuffer;
 				cZeroBuffer.setAllSamplesToZero();
-				Int iSpatialScalabilityType=rcControlData.getSpatialScalabilityType();
+				iSpatialScalabilityType=rcControlData.getSpatialScalabilityType();
 				uiBits = m_pcSliceEncoder->m_pcMbCoder->getBitCount();
 				Double dLambda,dQpPredData,dScalFactor,dQP;
 				UInt uiTLevel,iQP;
@@ -6044,8 +6000,7 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 					{
 						IntYuvMbBuffer cZeroMbBuffer;
 						cZeroMbBuffer.setAllSamplesToZero();
-						const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-						pcResidual->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cZeroMbBuffer );
+						pcResidual->getPic( pcMbDataAccess->getMbPicType() )->getFullPelYuvBuffer()->loadBuffer( &cZeroMbBuffer );
 					}
 
 					RNOK( m_pcSliceEncoder->m_pcControlMng  ->initMbForCoding ( *pcMbDataAccess,    uiMbY, uiMbX, false, false ) );
@@ -6074,7 +6029,7 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 					
 					if( pcMbDataAccess->getMbData().isIntra() )
 					{
-						Double dCost = 0;
+						dCost = 0;
 						//JVT-U106 Behaviour at slice boundaries{
 						if( pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX )
 							m_pcSliceEncoder->m_pcMbEncoder->setIntraBLFlag(m_pcSliceEncoder->m_pbIntraBLFlag[uiMbAddress]);
@@ -6358,7 +6313,7 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 			Int             iQPIntra          = pcSliceHeader->getPicQp(); //- 2;
 			IntYuvMbBuffer  cZeroBuffer;
 			cZeroBuffer.setAllSamplesToZero();
-			Int iSpatialScalabilityType=rcControlData.getSpatialScalabilityType();
+			iSpatialScalabilityType=rcControlData.getSpatialScalabilityType();
 			uiBits = m_pcSliceEncoder->m_pcMbCoder->getBitCount();
 			Double dLambda,dQpPredData,dScalFactor,dQP;
 			UInt uiTLevel,iQP;
@@ -6465,8 +6420,7 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 					{
 						IntYuvMbBuffer cZeroMbBuffer;
 						cZeroMbBuffer.setAllSamplesToZero();
-						const PicType eMbPicType = pcMbDataAccess->getMbPicType();
-						pcResidual->getPic( eMbPicType )->getFullPelYuvBuffer()->loadBuffer( &cZeroMbBuffer );
+						pcResidual->getPic( pcMbDataAccess->getMbPicType() )->getFullPelYuvBuffer()->loadBuffer( &cZeroMbBuffer );
 					}
 
 					RNOK( m_pcSliceEncoder->m_pcControlMng  ->initMbForCoding ( *pcMbDataAccess,    uiMbY, uiMbX, false, false ) );
@@ -6482,7 +6436,7 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 					
 					if( pcMbDataAccess->getMbData().isIntra() )
 					{
-						Double dCost = 0;
+						dCost = 0;
 						//JVT-U106 Behaviour at slice boundaries{
 						if( pcSliceHeader->getBaseLayerId() != MSYS_UINT_MAX )
 							m_pcSliceEncoder->m_pcMbEncoder->setIntraBLFlag(m_pcSliceEncoder->m_pbIntraBLFlag[uiMbAddress]);
@@ -6645,7 +6599,7 @@ MCTFEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOu
 
 			//----- close NAL UNIT -----
 			UInt auiBits[16];
-      RNOK( m_pcNalUnitEncoder->closeAndAppendNalUnits( auiBits, rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor, m_cBinData, NULL, 0, 0 ) );
+            RNOK( m_pcNalUnitEncoder->closeAndAppendNalUnits( auiBits, rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor, m_cBinData, NULL, 0, 0 ) );
 			muiBits = auiBits[0] + 4*8;
 
 			//JVT-S036 lsj start
@@ -6710,8 +6664,7 @@ MCTFEncoder::xEncodeNonKeyPictureSlices(UInt uiBaseLevel, UInt uiFrame, 							 
 	IntFrame*     pcOrgFrame      = m_papcOrgFrame [uiFrameIdInGOP];
 	IntFrame*     pcPredSignal    = m_apcFrameTemp  [2];
 	IntFrame*     pcBLRecFrame    = m_apcFrameTemp  [3];
-	IntFrame*     pcRedSRFrame    = m_apcFrameTemp  [4];  // JVT-Q054 Red. Picture
-
+	
 	const Bool bFieldCoded = m_pbFieldPicFlag[ uiFrameIdInGOP ] ; 
 
 	m_abCoded[uiFrameIdInGOP] = true;
@@ -6725,14 +6678,9 @@ MCTFEncoder::xEncodeNonKeyPictureSlices(UInt uiBaseLevel, UInt uiFrame, 							 
 		AccessUnit&             rcAccessUnit  = rcAccessUnitList.getAccessUnit  ( pcSliceHeader->getPoc() );
 		ExtBinDataAccessorList& rcOutputList  = rcAccessUnit    .getNalUnitList ();
 
-		Bool  bRCDOY      = pcSliceHeader->getSPS().getRCDOMotionCompensationY();
-		Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
-		UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
-		m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
-
-		// V090
+    // V090
 		Bool  b4TapY      = pcSliceHeader->getSPS().get4TapMotionCompensationY();
-		uiFrameNum  = pcSliceHeader->getFrameNum();
+		UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
 		m_pcMotionEstimation->set4Tap( b4TapY, uiFrameNum );
 		// V090
 
@@ -8844,14 +8792,14 @@ MCTFEncoder::xMotionEstimationMbAff( RefFrameList*    pcRefFrameList0,
   Bool          bEstimateBase						=  rcSliceHeader.getBaseLayerId           () == MSYS_UINT_MAX && ! pcBaseLayerCtrl;
   Bool          bEstimateMotion					=  rcSliceHeader.getAdaptivePredictionFlag() || bEstimateBase;
 
-  Bool  bRCDOY      = rcSliceHeader.getSPS().getRCDOMotionCompensationY();
-  Bool  bRCDOC      = rcSliceHeader.getSPS().getRCDOMotionCompensationC();
-  UInt  uiFrameNum  = rcSliceHeader.getFrameNum();
-  m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
+  //Bool  bRCDOY      = rcSliceHeader.getSPS().getRCDOMotionCompensationY();
+ // Bool  bRCDOC      = rcSliceHeader.getSPS().getRCDOMotionCompensationC();
+ // UInt  uiFrameNum  = rcSliceHeader.getFrameNum();
+ // m_pcMotionEstimation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
 
   // V090
   Bool  b4TapY      = rcSliceHeader.getSPS().get4TapMotionCompensationY();
-  uiFrameNum  = rcSliceHeader.getFrameNum();
+  UInt  uiFrameNum  = rcSliceHeader.getFrameNum();
   m_pcMotionEstimation->set4Tap( b4TapY, uiFrameNum );
   // V090
 

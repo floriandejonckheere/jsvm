@@ -117,9 +117,6 @@ public:
   Void predBlk4TapD    ( YuvMbBuffer*        pcDesBuffer, YuvPicBuffer*        pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );   // V090
   Void predBlk4TapD    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );   // V090
 
-  Void setRCDO        ( Bool bRCDO )  { m_bRCDO = bRCDO; }
-  Void predBlkRCDO    ( YuvMbBuffer*        pcDesBuffer, YuvPicBuffer*        pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
-  Void predBlkRCDO    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );
   Void predBlkSR      ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
   Bool getClipMode    ()        { return m_bClip; }
 	virtual ErrVal filterFrame( YuvPicBuffer* pcPelBuffer, YuvPicBuffer* pcHalfPelBuffer );
@@ -136,16 +133,8 @@ public:
     }
 	// V090
 
-	if( m_bRCDO )
-    {
-      filterBlockRCDO( pDes, pSrc, iSrcStride, uiXSize, uiYSize, uiFilter );
-      return;
-    }
-
     m_afpXFilterBlockFunc[uiFilter]( pDes, pSrc, iSrcStride, uiXSize, uiYSize );
   }
-
-  Void filterBlockRCDO( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter );
 
   Void filterBlock4Tap( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter ); // V090
 
@@ -198,8 +187,6 @@ protected:
   Bool m_bClip;
   FilterBlockFunc m_afpFilterBlockFunc[4];
   XFilterBlockFunc m_afpXFilterBlockFunc[4];
-
-  Bool  m_bRCDO;
 
   Bool  m_b4Tap;  // V090
 };

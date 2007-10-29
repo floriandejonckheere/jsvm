@@ -202,7 +202,7 @@ SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
     // JVT-W062 {
     case TL0_DEP_REP_IDX_SEI:
     {
-      SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSEI = (SEI::Tl0DepRepIdxSei*) pcBottom;
+     // SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSEI = (SEI::Tl0DepRepIdxSei*) pcBottom;
 	    RNOK( pcWriteTestIf->writeCode( TL0_DEP_REP_IDX_SEI, 8, "SEI type" ) );
   	  RNOK( pcWriteTestIf->writeCode( 3, 8, "SEI payload size " ) ); //currently size equals to 3
       uiStart = pcWriteTestIf->getNumberOfWrittenBits();

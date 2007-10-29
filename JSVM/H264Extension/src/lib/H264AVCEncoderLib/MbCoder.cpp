@@ -87,6 +87,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/Tables.h"
 #include "H264AVCCommonLib/TraceFile.h"
 
+//JVT-X046 {
+#include "CabacWriter.h"
+#include "UvlcWriter.h"
+//JVT-X046 }
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -337,7 +341,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 //       RNOK( xWriteTextureInfo( rcMbDataAccess, pcMbDataAccessBase, rcMbDataAccess.getMbTCoeffs(), bTrafo8x8Flag, 0, 16, 0 ) );
 // #else
       MbSymbolWriteIf *pcMasterWriter = m_pcMbSymbolWriteIf;
-      UInt uiMGSFragment = 0;
+      uiMGSFragment = 0;
       uiSourceLayer = g_nLayer;
       while( true )
       {
@@ -411,6 +415,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 		}
 	}
 	//JVT-X046 }
+
 
   //--- write terminating bit ---
   RNOK( m_pcMbSymbolWriteIf->terminatingBit ( bTerminateSlice ? 1:0 ) );

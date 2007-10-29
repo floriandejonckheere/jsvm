@@ -326,7 +326,7 @@ ErrVal  SliceReader::readVirtual( SliceHeader&   rcSH,
 		}
 		else
 		{
-			RNOK( pcMbDataCtrl        ->initMbTDEnhance( pcMbDataAccess, pcMbDataCtrl, pcMbDataCtrlRef, uiMbY, uiMbX ) );
+			RNOK( pcMbDataCtrl        ->initMbTDEnhance( pcMbDataAccess, pcMbDataCtrlRef, uiMbY, uiMbX ) );
 		}
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
 		if  ( pcMbDataCtrlBase )

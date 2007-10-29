@@ -234,7 +234,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
   {
     pcCom = argv[n++];
 
-    if( equals( pcCom, "-rcdo-bs", 8 ) )
+  /*  if( equals( pcCom, "-rcdo-bs", 8 ) )
     {
       ROTS( NULL == argv[n] );
       UInt  uiValue = atoi( argv[n] );
@@ -263,13 +263,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::setRCDOMotionCompensationC( uiValue );
       continue;
     }
-    if( equals( pcCom, "-rcdo-db", 8 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt  uiValue = atoi( argv[n] );
-      CodingParameter::setRCDODeblocking( uiValue );
-      continue;
-    }
     if( equals( pcCom, "-rcdo", 5 ) )
     {
       ROTS( NULL == argv[n] );
@@ -277,7 +270,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       CodingParameter::setRCDOBlockSizes         ( uiValue );
       CodingParameter::setRCDOMotionCompensationY( uiValue );
       CodingParameter::setRCDOMotionCompensationC( uiValue );
-      CodingParameter::setRCDODeblocking         ( uiValue );
       continue;
     }
     if( equals( pcCom, "-4tap-mc-y", 10 ) )
@@ -288,7 +280,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
 	  if(uiValue != 0)
 		  CodingParameter::setRCDOMotionCompensationY( 0 );
       continue;
-    }
+    }*/
     if( equals( pcCom, "-kpm", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -735,7 +727,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -numl   Number Of Layers\n");
   printf("  -cabac  CABAC for all layers as entropy coding mode\n");
   printf("  -vlc    VLC for all layers as entropy coding mode\n");
-	printf("  -ecmf   (Layer) (entropy_coding_mod_flag)\n");
+  printf("  -ecmf   (Layer) (entropy_coding_mod_flag)\n");
   printf("  -org    (Layer) (original file)\n");
   printf("  -rec    (Layer) (reconstructed file)\n");
   printf("  -ec     (Layer) (entropy coding mode)\n");
@@ -744,7 +736,7 @@ Void EncoderCodingParameter::printHelp()
   printf("  -lqp    (Layer) (ResidualAndMotionQP)\n");
   printf("  -meqplp (Layer) (MotionQPLowpass)\n");
   printf("  -ilpred (Layer) (InterLayerPredictionMode)\n");
-	printf("  -blid   (Layer) (BaseLayerId)\n");
+  printf("  -blid   (Layer) (BaseLayerId)\n");
   printf("  -mfile  (Layer) (Mode) (MotionInfoFile)\n");
   printf("  -bcip   Constrained intra prediction for base layer (needed for single-loop) in scripts\n");
   //S051{
@@ -762,13 +754,13 @@ Void EncoderCodingParameter::printHelp()
   printf("  -ciu    (Constrained intra upsampling)[0: no, 1: yes]\n");
   //JVT-U106 Behaviour at slice boundaries}
    
-  printf("  -rcdo-bs   (value)  RDCO block size restriction     (0:off,1:ELonly,2:on)\n" );
+  /*printf("  -rcdo-bs   (value)  RDCO block size restriction     (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo-mc-y (value)  RDCO motion compensation luma   (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo-mc-c (value)  RDCO motion compensation chroma (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo-mc   (value)  RDCO motion compensation        (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo-db   (value)  RDCO deblocking                 (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo      (value)  RDCO (all components)           (0:off,1:ELonly,2:on)\n" );
-
+*/
   printf("  -4tap-mc-y (value)  4-tap motion compensation luma   (0:off,1:ELonly,2:on)\n" );  // V090
 
   printf("  -kpm       (mode) [0:only for FGS(default), 1:FGS&MGS, 2:always]\n");
@@ -918,10 +910,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",           &m_uiTlevelNestingFlag,                                0 );  //JVT-U085
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TL0DepRepIdxSeiEnable",    &m_uiTl0DepRepIdxSeiEnable,                           0 );  //JVT-U116,JVT-W062
 
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOBlockSizes",          &m_uiRCDOBlockSizes,                                   0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationY", &m_uiRCDOMotionCompensationY,                          0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationC", &m_uiRCDOMotionCompensationC,                          0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDODeblocking",          &m_uiRCDODeblocking,                                   0 );
+  // m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOBlockSizes",          &m_uiRCDOBlockSizes,                                   0 );
+  // m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationY", &m_uiRCDOMotionCompensationY,                          0 );
+  //m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationC", &m_uiRCDOMotionCompensationC,                          0 );
+ // m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDODeblocking",          &m_uiRCDODeblocking,                                   0 );
 
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("4TapMotionCompensationY", &m_ui4TapMotionCompensationY,                          0 ); // V090
 

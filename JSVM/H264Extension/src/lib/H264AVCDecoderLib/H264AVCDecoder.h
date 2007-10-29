@@ -137,17 +137,6 @@ public:
                   MotionCompensation* pcMotionCompensation );
   ErrVal uninit ();
 
-  Void  setRCDO( SliceHeader* pcSliceHeader )
-  {
-    if( pcSliceHeader )
-    {
-      Bool  bRCDOY      = pcSliceHeader->getSPS().getRCDOMotionCompensationY();
-      Bool  bRCDOC      = pcSliceHeader->getSPS().getRCDOMotionCompensationC();
-      UInt  uiFrameNum  = pcSliceHeader->getFrameNum();
-      m_pcMotionCompensation->setRCDO( bRCDOY, bRCDOC, uiFrameNum );
-    }
-  }
-
   // V090
   Void  set4Tap( SliceHeader* pcSliceHeader )
   {
@@ -358,7 +347,7 @@ protected:
                                       SliceHeader*    pcPrevSH,
                                       PicBuffer*&     rpcPicBuffer,
                                       Bool            bHighestLayer); //JVT-T054
-  ErrVal  xReconstructLastFGS       (Bool bHighestLayer, SliceHeader* pcRCDOSliceHeader); //JVT-T054
+  ErrVal  xReconstructLastFGS       (Bool bHighestLayer); //JVT-T054
 
   ErrVal  xZeroIntraMacroblocks     ( IntFrame*       pcFrame,
                                       MbDataCtrl*     pcMbDataCtrl,

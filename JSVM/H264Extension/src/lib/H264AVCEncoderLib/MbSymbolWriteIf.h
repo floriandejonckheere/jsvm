@@ -112,7 +112,8 @@ class BitWriteBufferIf;
 
 class MbSymbolWriteIf
 {
-public://protected://JVT-X046
+public://
+//protected://JVT-X046
   MbSymbolWriteIf() {}
 	virtual ~MbSymbolWriteIf() {}
 
@@ -171,7 +172,7 @@ public:
 	//JVT-X046 {
 	virtual void loadCabacWrite( MbSymbolWriteIf* pcMbSymbolWriteIf ) = 0;
 	virtual void loadUvlcWrite( MbSymbolWriteIf* pcMbSymbolWriteIf ) = 0;
-	virtual UInt getBitsWritten(void) = 0; 
+    virtual UInt getBitsWritten(void) = 0; 
   //JVT-X046 }
 };
 

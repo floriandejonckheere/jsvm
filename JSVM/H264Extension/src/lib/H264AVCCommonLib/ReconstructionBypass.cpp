@@ -281,7 +281,7 @@ ErrVal ReconstructionBypass::padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, 
   Bool bAboveIntra      = 0 != (uiMask & 0x01);
   Bool bBelowIntra      = 0 != (uiMask & 0x10);
   //Bool bLeftIntra       = 0 != (uiMask & 0x40);
-  Bool bRightIntra      = 0 != (uiMask & 0x04);
+  //Bool bRightIntra      = 0 != (uiMask & 0x04);
   Bool bLeftAboveIntra  = 0 != (uiMask & 0x80);
   Bool bRightAboveIntra = 0 != (uiMask & 0x02);
   Bool bLeftBelowIntra  = 0 != (uiMask & 0x20);
@@ -297,15 +297,31 @@ ErrVal ReconstructionBypass::padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, 
 
   if(bBotIntra)
    { 
-    pcBuffer->setSubBlock();
+ //TMM_JV_PAD
+	   //  pcBuffer->setSubBlock();
      mymap[2]=0;
      mymap[3]=1;
+ 
+//TMM_JV_PAD {
+	 if(bAboveIntra)
+	{
+	bBelowIntra = bLeftIntraBot = bRightIntraBot =bLeftBelowIntra= bRightBelowIntra= 0;
+	}
+ //TMM_JV_PAD }  
    }
    else if(bTopIntra)
    {
-    pcBuffer->setSubBlock();
+    //TMM_JV_PAD
+	   //pcBuffer->setSubBlock();
     mymap[0]=2;
     mymap[1]=3;
+
+	//TMM_JV_PAD {
+	if(bBelowIntra)
+	{
+	bAboveIntra = bLeftIntraTop = bRightIntraTop = bLeftAboveIntra= bRightAboveIntra= 0;
+	}
+	//TMM_JV_PAD }
    }
 
   //for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
@@ -386,7 +402,7 @@ ErrVal ReconstructionBypass::padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, 
         {
           if( bLeftIntraBot )
           {
-            pcBuffer->copyFromLeft( cIdx, 1 );
+            pcBuffer->copyFromLeft( cIdx);
           }
           else if( bLeftBelowIntra )
           {
@@ -412,7 +428,7 @@ ErrVal ReconstructionBypass::padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, 
         {
           if( bRightIntraBot )
           {
-            pcBuffer->copyFromRight( cIdx,1 );
+            pcBuffer->copyFromRight( cIdx );
           }
           else if( bRightBelowIntra )
           {

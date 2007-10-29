@@ -90,7 +90,6 @@ H264AVC_NAMESPACE_BEGIN
 
 QuarterPelFilter::QuarterPelFilter()
 : m_bClip ( true )
-, m_bRCDO ( false )
 {
   uninit();
 }
@@ -161,11 +160,6 @@ Void QuarterPelFilter::predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuf
     predBlk4TapD( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
     return;
   }               // V090
-  if( m_bRCDO )
-  {
-    predBlkRCDO( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
-    return;
-  }
 
   Pel* pucDes     = pcDesBuffer->getYBlk( cIdx );
   Pel* pucSrc     = pcSrcBuffer->getYBlk( cIdx );
@@ -550,34 +544,11 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
         iTemp -= pucSrc[x + 2];
         ps[2*x]    = pucSrc[x]<<4;
         ps[2*x+1]  = iTemp;
+	    }
+      ps     += uiTmpXSize;
+      pucSrc += iStride;
 	  }
-      ps     += uiTmpXSize;
-      pucSrc += iStride;
-	}
   }            // V090
-  else if( m_bRCDO )
-  {
-    for( y = 0; y < iHeight; y++ )
-    {
-      for( x = -iMarginNew; x < iWidth+iMarginNew; x++ )
-      {
-        Int iTemp;
-        iTemp  = pucSrc[x - 0];
-        iTemp += pucSrc[x + 1];
-        iTemp  = iTemp << 2;
-        iTemp -= pucSrc[x - 1];
-        iTemp -= pucSrc[x + 2];
-        iTemp += iTemp << 2;
-        iTemp += pucSrc[x - 2];
-        iTemp += pucSrc[x + 3];
-        ps[2*x]    = pucSrc[x];
-        ps[2*x+1]  = (XPel)xClip((iTemp + 6) >> 5);
-      }
-
-      ps     += uiTmpXSize;
-      pucSrc += iStride;
-    }
-  }
   else
   {
     for( y = 0; y < iHeight; y++ )
@@ -643,22 +614,6 @@ ErrVal QuarterPelFilter::filterFrame( YuvPicBuffer *pcPelBuffer, YuvPicBuffer *p
       ps     += iStride;
     }
   } // V090
-  else if( m_bRCDO )
-  {
-    for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
-    {
-      for( x = -2*iMarginNew; x < 2*(iWidth+iMarginNew); x++ )
-      {
-        pucDesHP[x]                = (Pel)ps[x];
-        if( ( x & 1 ) == 0 )
-          pucDesHP[x+iDesStrideHP] = (Pel)xClip( ( (ps[x+iStride]+ps[x])*5 - ps[x+2*iStride] - ps[x-iStride] + 1 ) >> 3 );
-        else
-          pucDesHP[x+iDesStrideHP] = (Pel)( ps[x+iStride-1] + ps[x+1] ) >> 1;
-      }
-      pucDesHP += iDesStrideHP<<1;
-      ps       += iStride;
-    }
-  }
   else
   {
     for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
@@ -729,29 +684,6 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
       pucSrc += iStride;
 	}
   }            // V090
-  else if( m_bRCDO )
-  {
-    for( y = 0; y < iHeight; y++ )
-    {
-      for( x = -iMarginNew; x < iWidth+iMarginNew; x++ )
-      {
-        Int iTemp;
-        iTemp  = pucSrc[x - 0];
-        iTemp += pucSrc[x + 1];
-        iTemp  = iTemp << 2;
-        iTemp -= pucSrc[x - 1];
-        iTemp -= pucSrc[x + 2];
-        iTemp += iTemp << 2;
-        iTemp += pucSrc[x - 2];
-        iTemp += pucSrc[x + 3];
-        ps[2*x]    = pucSrc[x];
-        ps[2*x+1]  = (XPel)xClip((iTemp + 6) >> 5);
-      }
-
-      ps     += uiTmpXSize;
-      pucSrc += iStride;
-    }
-  }
   else
   {
     for( y = 0; y < iHeight; y++ )
@@ -817,23 +749,7 @@ ErrVal QuarterPelFilter::filterFrame( IntYuvPicBuffer *pcPelBuffer, IntYuvPicBuf
       ps     += iStride;
     }
   } // V090
-  else if( m_bRCDO )
-  {
-    for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
-    {
-      for( x = -2*iMarginNew; x < 2*(iWidth+iMarginNew); x++ )
-      {
-        pucDesHP[x]                = (XPel)ps[x];
-        if( ( x & 1 ) == 0 )
-          pucDesHP[x+iDesStrideHP] = (XPel)xClip( ( (ps[x+iStride]+ps[x])*5 - ps[x+2*iStride] - ps[x-iStride] + 1 ) >> 3 );
-        else
-          pucDesHP[x+iDesStrideHP] = (XPel)( ps[x+iStride-1] + ps[x+1] ) >> 1;
-      }
-      pucDesHP += iDesStrideHP<<1;
-      ps       += iStride;
-    }
-  }
-  else
+ else
   {
     for( y = -iMarginNew; y < iHeight+iMarginNew; y++ )
     {
@@ -1078,211 +994,6 @@ Void QuarterPelFilter::predBlk4TapD( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcS
   }
 }
 // ********************** V090 ends ************************************
-
-Void QuarterPelFilter::filterBlockRCDO( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
-{
-  UInt y, x;
-
-  if( uiFilter == 0 ) // vertical full-sample, horizontal full-sample
-  {
-    for( y = 0; y < uiYSize; y++ )
-    {
-      for( x = 0; x < uiXSize; x++ )
-      {
-        XPel a = pSrc[-iSrcStride], b = pSrc[-1], o = pSrc[0], c = pSrc[1], d = pSrc[iSrcStride];
-
-        pDes[0x000] = (a + b + 1) >> 1;
-        pDes[0x100] = (a + o + 1) >> 1;
-        pDes[0x200] = (a + c + 1) >> 1;
-        pDes[0x300] = (b + o + 1) >> 1;
-        pDes[0x500] = (o + c + 1) >> 1;
-        pDes[0x600] = (b + d + 1) >> 1;
-        pDes[0x700] = (o + d + 1) >> 1;
-        pDes[0x800] = (c + d + 1) >> 1;
-        pSrc += 2;
-        pDes++;
-      }
-      pSrc += 2*(iSrcStride - uiXSize);
-      pDes += 16 - uiXSize;
-    }
-  }
-  else if( uiFilter == 1 ) // vertical full-sample, horizontal half-sample
-  {
-    for( y = 0; y < uiYSize; y++ )
-    {
-      for( x = 0; x < uiXSize; x++ )
-      {
-        pDes[0x000] = ( pSrc[ 0] + pSrc[-iSrcStride - 1] + 1 ) >> 1;
-        pDes[0x100] = ( pSrc[ 1] + pSrc[-iSrcStride - 1] + 1 ) >> 1;
-        pDes[0x200] = ( pSrc[ 0] + pSrc[-iSrcStride + 1] + 1 ) >> 1;
-        pDes[0x300] = ( pSrc[ 0] + pSrc[            - 1] + 1 ) >> 1;
-        pDes[0x500] = ( pSrc[ 0] + pSrc[              1] + 1 ) >> 1;
-        pDes[0x600] = ( pSrc[ 0] + pSrc[ iSrcStride - 1] + 1 ) >> 1;
-        pDes[0x700] = ( pSrc[-1] + pSrc[ iSrcStride + 1] + 1 ) >> 1;
-        pDes[0x800] = ( pSrc[ 0] + pSrc[ iSrcStride + 1] + 1 ) >> 1;
-        pSrc += 2;
-        pDes++;
-      }
-      pSrc += 2*(iSrcStride - uiXSize);
-      pDes += 16 - uiXSize;
-    }
-  }
-  else if( uiFilter == 2 ) // vertical half-sample, horizontal full-sample
-  {
-    for( y = 0; y < uiYSize; y++ )
-    {
-      for( x = 0; x < uiXSize; x++ )
-      {
-        pDes[0x000] = ( pSrc[0]            + pSrc[-iSrcStride-1] + 1 ) >> 1;
-        pDes[0x100] = ( pSrc[0]            + pSrc[-iSrcStride  ] + 1 ) >> 1;
-        pDes[0x200] = ( pSrc[0]            + pSrc[-iSrcStride+1] + 1 ) >> 1;
-        pDes[0x300] = ( pSrc[iSrcStride-1] + pSrc[-iSrcStride  ] + 1 ) >> 1;
-        pDes[0x500] = ( pSrc[iSrcStride]   + pSrc[-iSrcStride+1] + 1 ) >> 1;
-        pDes[0x600] = ( pSrc[0]            + pSrc[ iSrcStride-1] + 1 ) >> 1;
-        pDes[0x700] = ( pSrc[0]            + pSrc[ iSrcStride  ] + 1 ) >> 1;
-        pDes[0x800] = ( pSrc[0]            + pSrc[ iSrcStride+1] + 1 ) >> 1;
-        pSrc += 2;
-        pDes++;
-      }
-      pSrc += 2*(iSrcStride - uiXSize);
-      pDes += 16 - uiXSize;
-    }
-  }
-  else  // vertical half-sample, horizontal half-sample
-  {
-    for( y = 0; y < uiYSize; y++ )
-    {
-      for( x = 0; x < uiXSize; x++ )
-      {
-        pDes[0x000] = ( pSrc[-1]            + pSrc[-iSrcStride  ] + 1 ) >> 1;
-        pDes[0x100] = ( pSrc[ 1]            + pSrc[-iSrcStride-1] + 1 ) >> 1;
-        pDes[0x200] = ( pSrc[ 1]            + pSrc[-iSrcStride  ] + 1 ) >> 1;
-        pDes[0x300] = ( pSrc[ iSrcStride-1] + pSrc[-iSrcStride  ] + 1 ) >> 1;
-        pDes[0x500] = ( pSrc[-iSrcStride+1] + pSrc[ iSrcStride  ] + 1 ) >> 1;
-        pDes[0x600] = ( pSrc[-1]            + pSrc[ iSrcStride  ] + 1 ) >> 1;
-        pDes[0x700] = ( pSrc[-1]            + pSrc[ iSrcStride+1] + 1 ) >> 1;
-        pDes[0x800] = ( pSrc[ 1]            + pSrc[ iSrcStride  ] + 1 ) >> 1;
-        pSrc += 2;
-        pDes++;
-      }
-      pSrc += 2*(iSrcStride - uiXSize);
-      pDes += 16 - uiXSize;
-    }
-  }
-}
-
-Void QuarterPelFilter::predBlkRCDO( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
-{
-  XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
-  XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );
-  Int iDesStride  = pcDesBuffer->getLStride();
-  Int iSrcStride  = pcSrcBuffer->getLStride();
-  Int iOffset     = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
-
-  pucSrc += iOffset;
-
-  Int iDx = cMv.getHor() & 3;
-  Int iDy = cMv.getVer() & 3;
-
-  for( Int y = 0; y < iSizeY; y++)
-  {
-    for( Int x = 0; x < iSizeX; x++ )
-    {
-      XPel  A = pucSrc[x];
-      XPel  B = pucSrc[x+1];
-      XPel  C = pucSrc[x+iSrcStride];
-      XPel  D = pucSrc[x+iSrcStride+1];
-      XPel* p = pucSrc+x;
-      XPel  b, h, j, m, s;
-
-      j = (B + C) >> 1;
-      b = xClip( ( (p[0]+p[1])*20 - (p[-1]+p[2])* 5 +(p[-2]+p[3]) + 6 ) >> 5 );
-      h = xClip( ( (p[0]+p[iSrcStride])*5 - (p[-iSrcStride]+p[2*iSrcStride]) + 1 ) >> 3);
-      p = pucSrc+x+iSrcStride;
-      s = xClip( ( (p[0]+p[1])*20 - (p[-1]+p[2])* 5 +(p[-2]+p[3]) + 6 ) >> 5 );
-      p = pucSrc+x+1;
-      m = xClip( ( (p[0]+p[iSrcStride])*5 - (p[-iSrcStride]+p[2*iSrcStride]) + 1 ) >> 3);
-
-      if( iDy == 0 )
-      {
-        pucDes[x] = ( iDx == 0 ?  A               : ( iDx == 1 ? (A + b + 1) >> 1 : ( iDx == 2 ?  b               : (B + b + 1) >> 1 ) ) );
-      }
-      else if( iDy == 1 )
-      {
-        pucDes[x] = ( iDx == 0 ? (A + h + 1) >> 1 : ( iDx == 1 ? (b + h + 1) >> 1 : ( iDx == 2 ? (A + m + 1) >> 1 : (b + m + 1) >> 1 ) ) );
-      }
-      else if( iDy == 2 )
-      {
-        pucDes[x] = ( iDx == 0 ?  h               : ( iDx == 1 ? (C + b + 1) >> 1 : ( iDx == 2 ?  j               : (B + s + 1) >> 1 ) ) );
-      }
-      else
-      {
-        pucDes[x] = ( iDx == 0 ? (C + h + 1) >> 1 : ( iDx == 1 ? (h + s + 1) >> 1 : ( iDx == 2 ? (D + h + 1) >> 1 : (m + s + 1) >> 1 ) ) );
-      }
-    }
-
-    pucDes += iDesStride;
-    pucSrc += iSrcStride;
-  }
-}
-
-Void QuarterPelFilter::predBlkRCDO( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX)
-{
-  Pel* pucDes     = pcDesBuffer->getYBlk( cIdx );
-  Pel* pucSrc     = pcSrcBuffer->getYBlk( cIdx );
-  Int  iDesStride = pcDesBuffer->getLStride();
-  Int  iSrcStride = pcSrcBuffer->getLStride();
-  Int  iOffset    = (cMv.getHor() >> 2) + (cMv.getVer() >> 2) * iSrcStride;
-
-  pucSrc += iOffset;
-
-  Int iDx = cMv.getHor() & 3;
-  Int iDy = cMv.getVer() & 3;
-
-  for( Int y = 0; y < iSizeY; y++)
-  {
-    for( Int x = 0; x < iSizeX; x++ )
-    {
-      Pel  A = pucSrc[x];
-      Pel  B = pucSrc[x+1];
-      Pel  C = pucSrc[x+iSrcStride];
-      Pel  D = pucSrc[x+iSrcStride+1];
-      Pel* p = pucSrc+x;
-      Pel  b, h, j, m, s;
-
-      j = (B + C) >> 1;
-      b = xClip( ( (p[0]+p[1])*20 - (p[-1]+p[2])* 5 +(p[-2]+p[3]) + 6 ) >> 5 );
-      h = xClip( ( (p[0]+p[iSrcStride])*5 - (p[-iSrcStride]+p[2*iSrcStride]) + 1 ) >> 3);
-      p = pucSrc+x+iSrcStride;
-      s = xClip( ( (p[0]+p[1])*20 - (p[-1]+p[2])* 5 +(p[-2]+p[3]) + 6 ) >> 5 );
-      p = pucSrc+x+1;
-      m = xClip( ( (p[0]+p[iSrcStride])*5 - (p[-iSrcStride]+p[2*iSrcStride]) + 1 ) >> 3);
-
-      if( iDy == 0 )
-      {
-        pucDes[x] = ( iDx == 0 ?  A               : ( iDx == 1 ? (A + b + 1) >> 1 : ( iDx == 2 ?  b               : (B + b + 1) >> 1 ) ) );
-      }
-      else if( iDy == 1 )
-      {
-        pucDes[x] = ( iDx == 0 ? (A + h + 1) >> 1 : ( iDx == 1 ? (b + h + 1) >> 1 : ( iDx == 2 ? (A + m + 1) >> 1 : (b + m + 1) >> 1 ) ) );
-      }
-      else if( iDy == 2 )
-      {
-        pucDes[x] = ( iDx == 0 ?  h               : ( iDx == 1 ? (C + b + 1) >> 1 : ( iDx == 2 ?  j               : (B + s + 1) >> 1 ) ) );
-      }
-      else
-      {
-        pucDes[x] = ( iDx == 0 ? (C + h + 1) >> 1 : ( iDx == 1 ? (h + s + 1) >> 1 : ( iDx == 2 ? (D + h + 1) >> 1 : (m + s + 1) >> 1 ) ) );
-      }
-    }
-
-    pucDes += iDesStride;
-    pucSrc += iSrcStride;
-  }
-}
-
-
-
 
 Void QuarterPelFilter::xFilter1( Pel* pDes, Pel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize )
 {
@@ -1639,11 +1350,6 @@ Void QuarterPelFilter::predBlk( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pc
     predBlk4TapD( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
     return;
   }             // V090
-  if( m_bRCDO )
-  {
-    predBlkRCDO( pcDesBuffer, pcSrcBuffer, cIdx, cMv, iSizeY, iSizeX );
-    return;
-  }
 
   XPel* pucDes    = pcDesBuffer->getYBlk( cIdx );
   XPel* pucSrc    = pcSrcBuffer->getYBlk( cIdx );

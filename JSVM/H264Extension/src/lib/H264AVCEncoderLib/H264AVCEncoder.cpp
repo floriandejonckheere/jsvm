@@ -1650,18 +1650,18 @@ H264AVCEncoder::xInitParameterSets()
       pcSPS->setMGSVect                           ( ui, rcLayerParameters.getMGSVect( ui ) );
     }
 
-    pcSPS->setRCDOBlockSizes         ( false );
-    pcSPS->setRCDOMotionCompensationY( false );
-    pcSPS->setRCDOMotionCompensationC( false );
-    pcSPS->setRCDODeblocking         ( false );
-    UInt  uiRCDOBS  = m_pcCodingParameter->getRCDOBlockSizes         ();
-    UInt  uiRCDOMCY = m_pcCodingParameter->getRCDOMotionCompensationY();
-    UInt  uiRCDOMCC = m_pcCodingParameter->getRCDOMotionCompensationC();
-    UInt  uiRCDODB  = m_pcCodingParameter->getRCDODeblocking         ();
-    pcSPS->setRCDOBlockSizes         ( ( uiIndex && uiRCDOBS  ) || ( uiRCDOBS  > 1 ) );
-    pcSPS->setRCDOMotionCompensationY( ( uiIndex && uiRCDOMCY ) || ( uiRCDOMCY > 1 ) );
-    pcSPS->setRCDOMotionCompensationC( ( uiIndex && uiRCDOMCC ) || ( uiRCDOMCC > 1 ) );
-    pcSPS->setRCDODeblocking         ( ( uiIndex && uiRCDODB  ) || ( uiRCDODB  > 1 ) );
+   // pcSPS->setRCDOBlockSizes         ( false );
+   // pcSPS->setRCDOMotionCompensationY( false );
+  //  pcSPS->setRCDOMotionCompensationC( false );
+   // pcSPS->setRCDODeblocking         ( false );
+    // UInt  uiRCDOBS  = m_pcCodingParameter->getRCDOBlockSizes         ();
+   // UInt  uiRCDOMCY = m_pcCodingParameter->getRCDOMotionCompensationY();
+   // UInt  uiRCDOMCC = m_pcCodingParameter->getRCDOMotionCompensationC();
+  //  UInt  uiRCDODB  = m_pcCodingParameter->getRCDODeblocking         ();
+    // pcSPS->setRCDOBlockSizes         ( ( uiIndex && uiRCDOBS  ) || ( uiRCDOBS  > 1 ) );
+    // pcSPS->setRCDOMotionCompensationY( ( uiIndex && uiRCDOMCY ) || ( uiRCDOMCY > 1 ) );
+   // pcSPS->setRCDOMotionCompensationC( ( uiIndex && uiRCDOMCC ) || ( uiRCDOMCC > 1 ) );
+   // pcSPS->setRCDODeblocking         ( ( uiIndex && uiRCDODB  ) || ( uiRCDODB  > 1 ) );
 
   // V090
   pcSPS->set4TapMotionCompensationY( false );
@@ -2079,7 +2079,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
     pcVui->setBaseLayerProfileIdc( m_pcCodingParameter->getLayerParameters(0).getAdaptiveTransform() > 0 ? HIGH_PROFILE : MAIN_PROFILE );
     pcVui->setLevelIdc(pcSPS->getLevelIdc());
 
-    pcVui->init( pcSPS, uiDependencyId, uiTotalTemporalLevel, uiTotalFGSLevel );
+    pcVui->init( uiTotalTemporalLevel, uiTotalFGSLevel );
 
     // initiate Nal HRD pamameters
     UInt uiCpbBrNalFactor = pcVui->getBaseLayerProfileIdc() < HIGH_PROFILE ? 1200 : 

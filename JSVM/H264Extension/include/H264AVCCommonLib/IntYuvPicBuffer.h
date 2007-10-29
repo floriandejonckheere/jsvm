@@ -228,7 +228,7 @@ public:
   ErrVal predictionSlices(IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer, UInt uiMbY, UInt uiMbX );
   ErrVal inversepredictionSlices(IntYuvPicBuffer*  pcSrcYuvPicBuffer, IntYuvPicBuffer*  pcMCPYuvPicBuffer, UInt uiMbY, UInt uiMbX );
   ErrVal copyMb(IntYuvPicBuffer* pcSrcYuvPicBuffer,UInt uiMbY, UInt uiMbX);
-	ErrVal IntYuvPicBuffer::copyMB( YuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress)
+  ErrVal copyMB( YuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress)
 	{
 		Int iSrcStride = pcSrcYuvPicBuffer->getLStride();
 		Int iDesStride = getLStride();
@@ -275,7 +275,7 @@ public:
 		}
 		return Err::m_nOK;
 	}
-	ErrVal IntYuvPicBuffer::copyMB( IntYuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress)
+	ErrVal copyMB( IntYuvPicBuffer* pcSrcYuvPicBuffer, UInt uiMbAddress)
 	{
 		Int iSrcStride = pcSrcYuvPicBuffer->getLStride();
 		Int iDesStride = getLStride();
@@ -322,7 +322,7 @@ public:
 		}
 		return Err::m_nOK;
 	}
-	ErrVal IntYuvPicBuffer::copySlice( YuvPicBuffer* pcSrcYuvPicBuffer,UInt uiFirstMB,UInt uiLastMB)
+	ErrVal copySlice( YuvPicBuffer* pcSrcYuvPicBuffer,UInt uiFirstMB,UInt uiLastMB)
 	{
 		for (UInt uiMbAddress=uiFirstMB;uiMbAddress<uiLastMB;uiMbAddress++)
 		{
@@ -330,7 +330,7 @@ public:
 		}
 		return Err::m_nOK;
 	}
-	ErrVal IntYuvPicBuffer::copySlice( IntYuvPicBuffer* pcSrcYuvPicBuffer,UInt uiFirstMB,UInt uiLastMB)
+	ErrVal copySlice( IntYuvPicBuffer* pcSrcYuvPicBuffer,UInt uiFirstMB,UInt uiLastMB)
 	{
 		for (UInt uiMbAddress=uiFirstMB;uiMbAddress<uiLastMB;uiMbAddress++)
 		{

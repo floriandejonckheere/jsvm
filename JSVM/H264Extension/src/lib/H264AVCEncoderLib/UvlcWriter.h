@@ -108,7 +108,8 @@ public MbSymbolWriteIf
 , public HeaderSymbolWriteIf
 
 {
-public://protected://JVT-X046
+public://
+//protected://JVT-X046
 	UvlcWriter( Bool bTraceEnable = false );
 	virtual ~UvlcWriter();
 
@@ -239,7 +240,7 @@ protected:
   }
 	UInt *getCbpStat4x4(void)					{return m_uiCbpStat4x4;				}
 	BitWriteBufferIf* getBitWriteBufferIf(void){return m_pcBitWriteBufferIf;}
-  void loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)	{	}
+	void loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)	{}
 	void loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf);
 	UInt getBitsWritten(void) {  return m_pcBitWriteBufferIf->getBitsWritten(); }
 	//JVT-X046 }

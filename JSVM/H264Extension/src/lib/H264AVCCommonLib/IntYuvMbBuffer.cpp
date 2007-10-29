@@ -96,7 +96,6 @@ IntYuvMbBuffer::IntYuvMbBuffer()
 : m_pPelCurrY( NULL )
 , m_pPelCurrU( NULL )
 , m_pPelCurrV( NULL )
-, m_bSubBlock(false) //TMM_INTERLACE
 {
   DO_DBG( ::memset( m_aucYuvBuffer, 0 , sizeof(m_aucYuvBuffer) ) );// TMM_INTERLACE
 }
@@ -841,8 +840,6 @@ Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, 
   Int  iAdd   =1;
   Int  x,y,xo;
 
-  Int ysize=(m_bSubBlock? iSize>>1 : iSize); //TMM_INTERLACE
-
   if( yDir < 0)	
   {
     puc    += iStride*(iSize-1);
@@ -860,7 +857,7 @@ Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, 
     pPelH[x] = puc[(x-1)*iAdd - iStride];
   }	
 
-  for( y = 0; y <= ysize; y++ )
+   for( y = 0; y <= iSize; y++ )
   {
     pPelV[y] = puc[(y-1)*iStride - iAdd];
   }	
@@ -870,7 +867,7 @@ Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, 
     pPelV[0] = pPelH[0] = (pPelH[1] + pPelV[1] + 1)>>1;
   }
 
-  for( y = 0; y < ysize; y++, puc += iStride )
+    for( y = 0; y < iSize; y++, puc += iStride )
   {
     for( xo = 0, x = 0; x < iSize; x++, xo += iAdd )
     {
@@ -925,10 +922,8 @@ Void IntYuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx )
   Int   iStride = getLStride();
   Int   y;
 
-  Int ysize=(m_bSubBlock ? 4 : 8); //TMM_INTERLACE
-
   pPel += 8*iStride;
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 8; y++ )
   {
     ::memcpy( pPel-iStride, pPel, 8 * sizeof(XPel) );
     pPel -= iStride;
@@ -937,10 +932,8 @@ Void IntYuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx )
   pPel    = getUBlk( cIdx );
   iStride = getCStride();
 
-  ysize=(m_bSubBlock?2:4); //TMM_INTERLACE
-
   pPel += 4*iStride;
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     ::memcpy( pPel-iStride, pPel, 4 * sizeof(XPel) );
     pPel -= iStride;
@@ -949,25 +942,20 @@ Void IntYuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx )
   pPel    = getVBlk( cIdx );
 
   pPel += 4*iStride;
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     ::memcpy( pPel-iStride, pPel, 4 * sizeof(XPel) );
     pPel -= iStride;
   }
 }
 
-Void IntYuvMbBufferExtension::copyFromLeft       ( LumaIdx cIdx, Int iOffset )
+Void IntYuvMbBufferExtension::copyFromLeft       ( LumaIdx cIdx )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
   Int   x, y;
 
-  //TMM_INTERLACE {
-  Int ysize =( m_bSubBlock ? 4 : 8 );
-  if(m_bSubBlock) pPel += 4*iOffset*iStride;
- //TMM_INTERLACE }
- 
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 8; y++ )
   {
     for( x = 0; x < 8; x++ )
     {
@@ -979,12 +967,7 @@ Void IntYuvMbBufferExtension::copyFromLeft       ( LumaIdx cIdx, Int iOffset )
   pPel    = getUBlk( cIdx );
   iStride = getCStride();
 
-  //TMM_INTERLACE {
-  ysize =( m_bSubBlock ? 2 : 4 );
- if(m_bSubBlock) pPel+= 2*iOffset*iStride;
-  //TMM_INTERLACE }
-
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     for( x = 0; x < 4; x++ )
     {
@@ -995,9 +978,7 @@ Void IntYuvMbBufferExtension::copyFromLeft       ( LumaIdx cIdx, Int iOffset )
 
   pPel    = getVBlk( cIdx );
 
-  if(m_bSubBlock) pPel+=2*iOffset*iStride;  //TMM_INTERLACE 
-
-  for( y = 0; y < ysize ; y++ )
+  for( y = 0; y < 4; y++ )
   {
     for( x = 0; x < 4; x++ )
     {
@@ -1012,9 +993,8 @@ Void IntYuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx )
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
   Int   y;
-  Int  ysize =( m_bSubBlock ? 4 : 8 ); //TMM_INTERLACE 
 
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 8; y++ )
   {
     ::memcpy( pPel, pPel-iStride, 8 * sizeof(XPel) );
     pPel += iStride;
@@ -1023,9 +1003,7 @@ Void IntYuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx )
   pPel    = getUBlk( cIdx );
   iStride = getCStride();
 
-  ysize =( m_bSubBlock ? 2 : 4 ); //TMM_INTERLACE 
-  
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     ::memcpy( pPel, pPel-iStride, 4 * sizeof(XPel) );
     pPel += iStride;
@@ -1033,26 +1011,20 @@ Void IntYuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx )
 
   pPel    = getVBlk( cIdx );
 
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     ::memcpy( pPel, pPel-iStride, 4 * sizeof(XPel) );
     pPel += iStride;
   }
 }
 
-
-Void IntYuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx, Int iOffset )
+Void IntYuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
   Int   y,x;
 
- //TMM_INTERLACE  {
-  Int ysize = ( m_bSubBlock ? 4 : 8 );
-  if(m_bSubBlock) pPel+= 4*iOffset*iStride;
- //TMM_INTERLACE }
-
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 8; y++ )
   {
     for( x = 0; x < 8; x++ )
     {
@@ -1064,12 +1036,7 @@ Void IntYuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx, Int iOffset )
   pPel    = getUBlk( cIdx );
   iStride = getCStride();
 
-  //TMM_INTERLACE {
-  ysize = ( m_bSubBlock ? 2 : 4 );
-  if(m_bSubBlock) pPel+= 2*iOffset*iStride;
- //TMM_INTERLACE }
-
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     for( x = 0; x < 4; x++ )
     {
@@ -1080,9 +1047,7 @@ Void IntYuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx, Int iOffset )
 
   pPel    = getVBlk( cIdx );
 
-  if(m_bSubBlock) pPel+=2*iOffset*iStride;  //TMM_INTERLACE 
-
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     for( x = 0; x < 4; x++ )
     {
@@ -1092,18 +1057,13 @@ Void IntYuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx, Int iOffset )
   }
 }
 
-Void IntYuvMbBufferExtension::xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV , Int iOffset)
+Void IntYuvMbBufferExtension::xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
   Int   x, y;
 
-  //TMM_INTERLACE {
- Int ysize = ( m_bSubBlock ? 4 : 8 );
- if(m_bSubBlock) pPel += 4*iOffset*iStride; 
- //TMM_INTERLACE }
-
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 8; y++ )
   {
     for( x = 0; x < 8; x++ )
     {
@@ -1115,12 +1075,7 @@ Void IntYuvMbBufferExtension::xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV , I
   pPel    = getUBlk( cIdx );
   iStride = getCStride();
 
-   //TMM_INTERLACE {
-  ysize =( m_bSubBlock ? 2 : 4 );
-  if(m_bSubBlock) pPel+= 2*iOffset*iStride;
-   //TMM_INTERLACE }
-
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     for( x = 0; x < 4; x++ )
     {
@@ -1131,9 +1086,7 @@ Void IntYuvMbBufferExtension::xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV , I
 
   pPel    = getVBlk( cIdx );
 
- if(m_bSubBlock) pPel+=2*iOffset*iStride; //TMM_INTERLACE
-  
-  for( y = 0; y < ysize; y++ )
+  for( y = 0; y < 4; y++ )
   {
     for( x = 0; x < 4; x++ )
     {
@@ -1167,7 +1120,7 @@ Void IntYuvMbBufferExtension::copyFromLeftBelow  ( LumaIdx cIdx )
   XPel cU = *(getUBlk( cIdx ) - 1 + 4 * getCStride());
   XPel cV = *(getVBlk( cIdx ) - 1 + 4 * getCStride());
 
-  xFill( cIdx, cY, cU, cV, 1 );
+  xFill( cIdx, cY, cU, cV );
 }
 
 Void IntYuvMbBufferExtension::copyFromRightBelow ( LumaIdx cIdx )
@@ -1176,7 +1129,7 @@ Void IntYuvMbBufferExtension::copyFromRightBelow ( LumaIdx cIdx )
   XPel cU = *(getUBlk( cIdx ) + 4 + 4 * getCStride());
   XPel cV = *(getVBlk( cIdx ) + 4 + 4 * getCStride());
 
-  xFill( cIdx, cY, cU, cV, 1 );
+  xFill( cIdx, cY, cU, cV );
 }
 
 
