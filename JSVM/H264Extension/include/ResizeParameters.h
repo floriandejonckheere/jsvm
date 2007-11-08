@@ -110,7 +110,7 @@ public:
     Int  m_iBaseChromaPhaseY;
 
     // ----- Intra Upsampling method
-    Int m_iIntraUpsamplingType;   // 1:lanczos, 2:½ pel + bilin ¼ pel
+    Int m_iIntraUpsamplingType;   // 1:lanczos, 2:?pel + bilin ?pel
 
     Int m_iResampleMode;   // SSUN, 28Nov2005
     
@@ -132,6 +132,7 @@ public:
     FILE  *m_pParamFile; 
     Int   m_aiRefListPoc[2][MAX_REFLIST_SIZE]; 
 
+	Int m_level_idc;//jzxu, 02Nov2007
 protected:
     PictureParameters m_acCurrentGop[MAX_PICT_PARAM_NB];
 

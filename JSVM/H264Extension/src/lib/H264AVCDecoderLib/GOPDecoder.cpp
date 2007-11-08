@@ -2939,6 +2939,8 @@ MCTFDecoder::xInitBaseLayer( ControlData&    rcControlData,
 	{
     RNOK( m_pcBaseLayerFrame->copy( pcBaseFrame, ePicType ) );
 
+	pcResizeParameter->m_level_idc = m_pcSliceHeader->getSPS().getLevelIdc();//jzxu 03Nov2007
+
     RNOK( m_pcBaseLayerFrame->upsample( m_cDownConvert, pcResizeParameter, true ) );
 	}
   //JVT-U106 Behaviour at slice boundaries}

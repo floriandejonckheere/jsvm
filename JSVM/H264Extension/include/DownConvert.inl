@@ -162,6 +162,7 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
   int input_chroma_phase_shift_y = 0;
   int output_chroma_phase_shift_x = 0;
   int output_chroma_phase_shift_y = 0;
+  bool bField = false;
   
   if ( !bLuma )
   {
@@ -190,8 +191,10 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
     crop_h >>= 1;
     output_height >>= 1;
     top = (resample_mode==1 || resample_mode==2 || resample_mode==4 || resample_mode==7);
-    if ( !bLuma ) // EF bug fix
+	if ( !bLuma ) { // EF bug fix
 		output_chroma_phase_shift_y = output_chroma_phase_shift_y + 1 - 2*top;
+		bField = true;
+	}
   }
   else
     output_chroma_phase_shift_y *= 2;
@@ -202,7 +205,9 @@ DownConvert::xUpsampling3( ResizeParameters* pcParameters,
 	  output_width, output_height,
 	  crop_x0, crop_y0, crop_w, crop_h,
 	  input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-	  output_chroma_phase_shift_x, output_chroma_phase_shift_y, !bLuma);
+	  output_chroma_phase_shift_x, output_chroma_phase_shift_y, !bLuma
+	  , pcParameters->m_level_idc, bField//jzxu, 02Nov2007
+	  );
   //end
 }
 
@@ -213,7 +218,9 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
 							   int output_width, int output_height,
 							   int crop_x0, int crop_y0, int crop_w, int crop_h,
 							   int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-							   int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag )
+							   int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag
+							   , int level_idc, bool bField//jzxu, 02Nov2007
+							   )
 
 {
 
@@ -268,7 +275,8 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   int i, j, k, *px, *py;
   int x16, y16, x, y, m;
   bool ratio1_flag = ( input_width == crop_w );
-  unsigned short deltaa, deltab;
+//  unsigned short deltaa, deltab;
+  int t, shiftX, scaleX, addX, deltaX, shiftY, scaleY, addY, deltaY;
   // initialization
   px = new int[output_width];
   py = new int[output_height];
@@ -291,6 +299,25 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
   else
   {
+	  if(level_idc <= 30) {
+          shiftX = 16;
+      }
+      else {
+          shiftX = 0;
+          t = input_width - 1;
+          while(t > 0) {
+              shiftX++;
+              t >>= 1;
+          }        
+          shiftX = 31 - shiftX;
+      }
+      scaleX = ((input_width << shiftX) + (crop_w >> 1)) / crop_w;
+      addX = ((input_width * (2 + (output_chroma_phase_shift_x >> 1)) << (shiftX - 2)) + (crop_w >> 1)) / crop_w + (1 << (shiftX - 5));
+      deltaX = 2 * (4 + input_chroma_phase_shift_x);
+      for(i = 0; i < crop_w; i++) {
+          px[i + crop_x0] = ((i * scaleX + addX) >> (shiftX - 4)) - deltaX;
+      }
+/*
     deltaa = ((input_width<<16) + (crop_w>>1))/crop_w;
     if(uv_flag)
     {
@@ -309,6 +336,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
         px[i+crop_x0] = (i*deltaa + deltab - 30720)>>12;
       }
 	 }    
+*/
   }
 
   ratio1_flag = ( input_height == crop_h );
@@ -326,6 +354,31 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
   }
   else
   {
+	  if(level_idc <= 30) {
+          shiftY = 16;
+      }
+      else {
+          shiftY = 0;
+          t = input_height - 1;
+          while(t > 0) {
+              shiftY++;
+              t >>= 1;
+          }        
+          shiftY = 31 - shiftY;
+      }
+      scaleY = ((input_height << shiftY) + (crop_h >> 1)) / crop_h;
+      if(bField) {
+          addY = ((input_height * (4 + output_chroma_phase_shift_y) << (shiftY - 3)) + (crop_h >> 1)) / crop_h + (1 << (shiftY - 5));
+          deltaY = 2 * (4 + input_chroma_phase_shift_y);
+      }
+      else {
+          addY = ((input_height * (2 + (output_chroma_phase_shift_y >> 1)) << (shiftY - 2)) + (crop_h >> 1)) / crop_h + (1 << (shiftY - 5));
+          deltaY = 2 * (4 + input_chroma_phase_shift_y);
+      }
+      for(i = 0; i < crop_h; i++) {
+          py[i + crop_y0] = ((i * scaleY + addY) >> (shiftY - 4)) - deltaY;
+      }
+/*
 //TMM_INTERLACE {
 		if ( input_height > crop_h )
 		{
@@ -371,6 +424,7 @@ DownConvert::xUpsampling3  ( int input_width, int input_height,
       }
     }
 		} //TMM_INTERLACE}
+*/
   }
 
   //========== horizontal upsampling ===========

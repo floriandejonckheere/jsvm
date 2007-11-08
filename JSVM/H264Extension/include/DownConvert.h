@@ -243,7 +243,9 @@ private:
 	                                int output_width, int output_height,
 	                                int crop_x0, int crop_y0, int crop_w, int crop_h,
 	                                int input_chroma_phase_shift_x, int input_chroma_phase_shift_y,
-	                                int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag );
+	                                int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, bool uv_flag
+									, int level_idc = 31, bool bField = false//jzxu, 02Nov2007
+									);
                                   
 #ifndef DOWN_CONVERT_STATIC // TMM_JV
 //-------------------------------------------------

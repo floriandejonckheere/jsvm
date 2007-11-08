@@ -4546,6 +4546,7 @@ MCTFEncoder::xInitBaseLayerData( ControlData& rcControlData,
       m_pcResizeParameters->m_bBaseIsMbAff               = pcBaseDataCtrl->getSliceHeader()->isMbAff();
       m_pcResizeParameters->m_bBaseBotFieldFlag          = pcBaseDataCtrl->getSliceHeader()->getBottomFieldFlag();
       m_pcResizeParameters->SetUpSampleMode(); 
+	  m_pcResizeParameters->m_level_idc                  = m_uiLevelIdc;//jzxu, 02Nov2007
 
       pcSliceHeader->m_bBaseFrameMbsOnlyFlag = m_pcResizeParameters->m_bBaseFrameMbsOnlyFlag;
       pcSliceHeader->m_bBaseFieldPicFlag     = m_pcResizeParameters->m_bBaseFieldPicFlag;
