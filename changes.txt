@@ -1,3 +1,41 @@
+﻿
+JSVM_9_9 -> JSVM_9_10_DEVEL
+===========================
+
+NOTE: This is a version in development. Some features have been removed and other features have to be fixed.
+
+1) correction of syntax, including
+    - SPS and subset SPS
+    - correction of handling of subset SPS
+    - correction of prefix header syntax
+    - correction of slice header syntax
+    - correction of IDR picture support
+
+2) removing of features that are not supported in the standard
+   (mainly decoder clean-up)
+    - RCDO, 4-tap upsampling filters
+    - FGS
+    - fragmented NAL units
+
+3) major rewrite of decoder (simplification, code improvement)
+    - removing of additional "base layer decoder" in class H264AVCDecoder
+    - clean up of processing order in decoder
+    - clean processing of access units in decoder
+    - general improvement, simplifications of main decoder classes
+      (H264AVCDecoderLibTest,H264AVCDecoder,LayerDecoder,...)
+
+NOTE: THE CURRENT SOFTWARE NEEDS FURTHER IMPROVEMENT
+----------------------------------------------------
+    - temporal direct mode currently not supported due to the removal of the 2nd "base layer" decoder
+      (all validation scripts for AVC bitstreams that use the temporal direct mode fail)
+    - error detection and concealment code has been removed - it need to be added in a more general way
+      (all validation scripts that simulate packet losses fail)
+    - interlaced features need to be corrected
+      (corresponding validation scripts fails)
+    - some other issues (need to be debugged)
+
+
+
 [Note (Jerome): For the time being, the following validation scripts "fail":
 FMO, IROI, HRD, MLQL, NonRequired, RPIC,LCFG4_I2I ]
 
