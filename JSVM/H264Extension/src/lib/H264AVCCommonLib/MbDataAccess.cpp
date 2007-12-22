@@ -85,7 +85,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/MbDataAccess.h"
-#include "H264AVCCommonLib/FrameUnit.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -483,9 +482,7 @@ Void MbDataAccess::getMvPredictorSkipMode()
     cMvPred.setZero();
   }
 
-	const Frame* pcFrame = ( m_rcSliceHeader.getRefPic ( 1, getMbPicType(), LIST_0 ).getFrame() );
   getMbMotionData( LIST_0 ).setRefIdx ( 1 );
-  getMbMotionData( LIST_0 ).setRefPic( pcFrame );
   getMbMotionData( LIST_0 ).setAllMv( cMvPred );
 }
 
@@ -578,8 +575,8 @@ Void MbDataAccess::setAvailableMask()
 UInt MbDataAccess::getConvertBlkMode( Par8x8 ePar8x8 )
 {
   const BlkMode eBlkMode = m_rcMbCurr.getBlkMode( ePar8x8 );
-  AOT_DBG( m_rcSliceHeader.isIntra() );
-  ROTRS( ! m_rcSliceHeader.isInterB(), eBlkMode - BLK_8x8 );
+  AOT_DBG( m_rcSliceHeader.isIntraSlice() );
+  ROTRS( ! m_rcSliceHeader.isBSlice(), eBlkMode - BLK_8x8 );
 
   UInt uiCode;
 
@@ -624,7 +621,7 @@ UInt MbDataAccess::getConvertBlkMode( Par8x8 ePar8x8 )
 
 ErrVal MbDataAccess::setConvertBlkMode( Par8x8 ePar8x8, UInt uiBlockMode )
 {
-  if( m_rcSliceHeader.isInterB() )
+  if( m_rcSliceHeader.isBSlice() )
   {
     ROT( uiBlockMode > 13 );
     m_rcMbCurr.setBlkMode( ePar8x8, m_aucBMTabB0[uiBlockMode] );
@@ -647,11 +644,11 @@ UInt MbDataAccess::getConvertMbType()
 {
   MbMode eMbMode = m_rcMbCurr.getMbMode();
 
-  ROTRS( m_rcSliceHeader.isInterP(), eMbMode );
+  ROTRS( m_rcSliceHeader.isPSlice(), eMbMode );
 
-  ROTRS( m_rcSliceHeader.isIntra(), eMbMode - INTRA_4X4 );
+  ROTRS( m_rcSliceHeader.isIntraSlice(), eMbMode - INTRA_4X4 );
 
-  if( m_rcSliceHeader.isInterB() )
+  if( m_rcSliceHeader.isBSlice() )
   {
     UInt uiMbType = 0;
     switch( eMbMode )
@@ -709,7 +706,7 @@ UInt MbDataAccess::getConvertMbType()
 
 ErrVal  MbDataAccess::setConvertMbType( UInt uiMbType )
 {
-  if( m_rcSliceHeader.isInterB() )
+  if( m_rcSliceHeader.isBSlice() )
   {
     if( uiMbType < 23 )
     {
@@ -724,7 +721,7 @@ ErrVal  MbDataAccess::setConvertMbType( UInt uiMbType )
     return Err::m_nOK;
   }
 
-  if( m_rcSliceHeader.isIntra() )
+  if( m_rcSliceHeader.isIntraSlice() )
   {
     ROT( uiMbType > 25 );
     m_rcMbCurr.setMbMode( MbMode(uiMbType + INTRA_4X4) );
@@ -753,7 +750,8 @@ Bool MbDataAccess::getMvPredictorDirect( ParIdx8x8 eParIdx,
     return xSpatialDirectMode ( eParIdx, rbOneMv, pcL0RefFrameList, pcL1RefFrameList );
   }
 
-  return xTemporalDirectMode( eParIdx, rbOneMv, bFaultTolerant );
+  AOT( 1 );
+  return false;
 }
 
 //	TMM_EC
@@ -763,8 +761,8 @@ Bool MbDataAccess::getMvPredictorDirectVirtual( ParIdx8x8 eParIdx,
                                                 RefFrameList& rcL0RefFrameList, 
                                                 RefFrameList& rcL1RefFrameList )
 {
-  rbOneMv = getSH().getSPS().getDirect8x8InferenceFlag();
-  return xTemporalDirectModeVirtual( eParIdx, rbOneMv, bFaultTolerant, rcL0RefFrameList, rcL1RefFrameList);
+  AOT(1);
+  return false;
 }
 //	TMM_EC }}
 
@@ -817,8 +815,7 @@ Bool MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8, RefFrameLis
       }
       else
       {
-        const RefPic& rcRefPic  = m_rcSliceHeader.getRefPic( 1, getMbPicType(), LIST_1 );
-        bAllColNonZero          = ( ! rcRefPic.getFrame()->isShortTerm() );
+        AOT(1);
       }
     }
 
@@ -896,11 +893,6 @@ Bool MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8, RefFrameLis
     //----- set reference indices and reference pictures -----
     rcMbMotionDataLX.setRefIdx ( scRefIdx,  eParIdx );
 
-		if( m_rcSliceHeader.getRefPicList( getMbPicType(), eListIdx ).size() )
-    {
-			const Frame* pcFrame = ( scRefIdx < 1 ? 0 : m_rcSliceHeader.getRefPic ( scRefIdx, getMbPicType(), eListIdx ).getFrame() );
-      rcMbMotionDataLX.setRefPic ( pcFrame,   eParIdx );
-    }
     if ( !bMvValid )
     {
       return false;
@@ -909,271 +901,5 @@ Bool MbDataAccess::xSpatialDirectMode( ParIdx8x8 eParIdx, Bool b8x8, RefFrameLis
 	return true;
 }
 
-Bool MbDataAccess::xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant )
-{
-  SChar         scRefIdxCol;
-  Mv            cMvCol;
-  const RefPic& rcRefPicCol = xGetColocatedMvRefPic( cMvCol, scRefIdxCol, cIdx );
-
-  //----- get reference index for list 0 -----
-  if( scRefIdxCol > 0 )
-  {
-    if( rcRefPicCol.isAvailable() ) 
-    {
-      const RefPic cRefPic = ( ( getMbPicType() != FRAME &&  rcRefPicCol.getFrame()->getPicType() != FRAME ) ? rcRefPicCol :
-			                                                                                                         rcRefPicCol.getFrame()->getFrameUnit()->getRefPic( getMbPicType(), rcRefPicCol ) );
-
-      ascRefIdx[LIST_0] = getSH().getRefPicList( getMbPicType(), LIST_0 ).find( cRefPic );
-       
-      SChar sMaxRefIdx  =  (getSH().isMbAff() && getMbPicType() != FRAME ) ? getSH().getNumRefIdxActive(LIST_0) *2 :
-			                                                                       getSH().getNumRefIdxActive(LIST_0);
-       if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > sMaxRefIdx)
-       {
-         ROFRS( bFaultTolerant, false ); // not allowed
-         ascRefIdx[LIST_0] = 1;
-       }
-    }
-    else
-    {
-      ROFRS( bFaultTolerant, false ); // not allowed
-    }
-  }
-
-	Int iScale = getSH().getDistScaleFactor( getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
-  if( iScale == 1024 )
-  {
-    acMv[LIST_0]  = cMvCol;
-    acMv[LIST_1]  = Mv::ZeroMv();
-  }
-  else
-  {
-    acMv[LIST_0]  = cMvCol.scaleMv( iScale );
-    acMv[LIST_1]  = acMv[LIST_0] - cMvCol;
-  }
-	const Bool bMvValid = xCheckMv( acMv[LIST_0]);
-	return bMvValid;
-}
-
-//	TMM_EC {{
-Bool MbDataAccess::xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
-{
-  SChar         scRefIdxCol;
-  Mv            cMvCol;
-  const RefPic& rcRefPicCol = xGetColocatedMvRefPic( cMvCol, scRefIdxCol, cIdx );
-
-  //----- get reference index for list 0 -----
-  if( scRefIdxCol > 0 )
-  {
-    if( rcRefPicCol.isAvailable() ) 
-    {
-      const RefPic cRefPic = ( ( getMbPicType() != FRAME &&  rcRefPicCol.getFrame()->getPicType() != FRAME ) ? rcRefPicCol :
-			                                                                                                         rcRefPicCol.getFrame()->getFrameUnit()->getRefPic( getMbPicType(), rcRefPicCol ) );
-
-      ascRefIdx[LIST_0] = getSH().getRefPicList( getMbPicType(), LIST_0 ).find( cRefPic );
-       
-      SChar sMaxRefIdx  =  (getSH().isMbAff() && getMbPicType() != FRAME ) ? getSH().getNumRefIdxActive(LIST_0) *2 :
-			                                                                       getSH().getNumRefIdxActive(LIST_0);
-       
-       if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > sMaxRefIdx)
-       {
-         ROFRS( bFaultTolerant, false ); // not allowed
-         ascRefIdx[LIST_0] = 1;
-       }
-    }
-    else
-    {
-      ROFRS( bFaultTolerant, false ); // not allowed
-    }
-  }
-	Int iScale = getSH().getDistScaleFactorVirtual(getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1], rcRefFrameListL0, rcRefFrameListL1  );// TMM_INTERLACE
-	if( iScale == 1024 )
-	{
-		acMv[LIST_0]  = cMvCol;
-		acMv[LIST_1]  = Mv::ZeroMv();
-	}
-	else
-	{
-		acMv[LIST_0]  = cMvCol.scaleMv( iScale );
-		acMv[LIST_1]  = acMv[LIST_0] - cMvCol;
-	}
-  const Bool bMvValid = xCheckMv( acMv[LIST_0]);
-	return bMvValid;
-}
-//	TMM_EC }}
-
-
-Bool MbDataAccess::xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar ascRefIdx[], ParIdx8x8 eParIdx, Bool bFaultTolerant )
-{
-  SChar         scRefIdxCol;
-  Mv            acMvCol[4];
-  const RefPic& rcRefPicCol = xGetColocatedMvsRefPicNonInterlaced( acMvCol, scRefIdxCol, eParIdx );
-
-  //----- get reference index for list 0 -----
-  if( scRefIdxCol > 0 )
-  {
-    if( rcRefPicCol.isAvailable() ) 
-    {
-			const RefPic cRefPic = rcRefPicCol.getFrame()->getFrameUnit()->getRefPic( getMbPicType(), rcRefPicCol );
-      ascRefIdx[LIST_0] = getSH().getRefPicList( getMbPicType(), LIST_0 ).find( cRefPic );
-
-      if(ascRefIdx[LIST_0] < 1 || ascRefIdx[LIST_0] > (SChar)getSH().getNumRefIdxActive(LIST_0))
-      {
-        ROFRS( bFaultTolerant, false ); // not allowed
-        ascRefIdx[LIST_0] = 1;
-      }
-    }
-    else
-    {
-      ROFRS( bFaultTolerant, false ); // not allowed
-    }
-  }
-	bool bMvValid = true;
-  Int iScale = 1024;
-
-	if( m_rcSliceHeader.getRefPicList( getMbPicType(), LIST_1 ).size() )
-  {
-		iScale = m_rcSliceHeader.getDistScaleFactor     ( getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
-  }
-  else
-  {
-		iScale = m_rcSliceHeader.getDistScaleFactorScal ( getMbPicType(), ascRefIdx[LIST_0], ascRefIdx[LIST_1] );
-  }
-  if( iScale == 1024 )
-  {
-    for( UInt uiIndex = 0; uiIndex < 4; uiIndex++ )
-    {
-      aacMv[LIST_0][uiIndex] = acMvCol[uiIndex];
-      aacMv[LIST_1][uiIndex] = Mv::ZeroMv();
-    }
-  }
-  else
-  {
-    for( UInt uiIndex = 0; uiIndex < 4; uiIndex++ )
-    {
-      aacMv[LIST_0][uiIndex] = acMvCol[uiIndex].scaleMv( iScale );
-      aacMv[LIST_1][uiIndex] = aacMv[LIST_0][uiIndex] - acMvCol[uiIndex];
-			bMvValid &= xCheckMv( aacMv[LIST_0][uiIndex] );
-    }
-  }
-	return bMvValid;
-}
-
-
-Bool MbDataAccess::xTemporalDirectMode( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant )
-{
-  Bool  bModeAllowed;
-  SChar ascRefIdx[2]  = { 1, 1 };
-
-  if( b8x8 )
-  {
-    Mv          acMv[2];
-    SParIdx4x4  eSubMbPartIdx = ( eParIdx <= PART_8x8_1 ? ( eParIdx == PART_8x8_0 ? SPART_4x4_0 : SPART_4x4_1 )
-                                                        : ( eParIdx == PART_8x8_2 ? SPART_4x4_2 : SPART_4x4_3 ) );
-    B4x4Idx     cIdx          = B4x4Idx( eParIdx + eSubMbPartIdx );
-
-    bModeAllowed = xTemporalDirectModeMvRef( acMv, ascRefIdx, cIdx, bFaultTolerant );
-    ROFRS( bModeAllowed, bModeAllowed );
-    for( UInt uiLstIdx = 0; uiLstIdx < 2; uiLstIdx++ )
-    {
-      ListIdx       eListIdx          = ListIdx( uiLstIdx );
-      MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
-      if( m_rcSliceHeader.getRefPicList( getMbPicType(), eListIdx ).size() )
-      {
-				const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], getMbPicType(), eListIdx ).getFrame() );
-        rcMbMotionDataLX.setRefPic( pcFrame,             eParIdx );
-      }
-      rcMbMotionDataLX.setAllMv ( acMv     [eListIdx], eParIdx );
-      rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
-    }
-  }
-  else // do not do this for interlaced stuff
-  {
-    Mv      aacMv[2][4];
-    bModeAllowed = xTemporalDirectModeMvsRefNonInterlaced( aacMv, ascRefIdx, eParIdx, bFaultTolerant );
-    ROFRS( bModeAllowed, bModeAllowed );
-    for( UInt uiLstIdx = 0; uiLstIdx < 2; uiLstIdx++ )
-    {
-      ListIdx       eListIdx          = ListIdx( uiLstIdx );
-      MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
-
-      if( m_rcSliceHeader.getRefPicList( getMbPicType(), eListIdx ).size() )
-      {
-        const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], getMbPicType(), eListIdx ).getFrame() );
-        rcMbMotionDataLX.setRefPic( pcFrame,             eParIdx );
-      }
-
-      rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
-
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][0],  eParIdx, SPART_4x4_0 );
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][1],  eParIdx, SPART_4x4_1 );
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][2],  eParIdx, SPART_4x4_2 );
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][3],  eParIdx, SPART_4x4_3 );
-    }
-  }
-
-  return bModeAllowed;
-}
-
-//TMM_EC {{
-Bool MbDataAccess::xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
-{
-  Bool  bModeAllowed;
-  SChar ascRefIdx[2]  = { 1, 1 };
-
-  if( b8x8 )
-  {
-    Mv          acMv[2];
-    SParIdx4x4  eSubMbPartIdx = ( eParIdx <= PART_8x8_1 ? ( eParIdx == PART_8x8_0 ? SPART_4x4_0 : SPART_4x4_1 )
-                                                        : ( eParIdx == PART_8x8_2 ? SPART_4x4_2 : SPART_4x4_3 ) );
-    B4x4Idx     cIdx          = B4x4Idx( eParIdx + eSubMbPartIdx );
-
-    bModeAllowed = xTemporalDirectModeMvRefVirtual( acMv, ascRefIdx, cIdx, bFaultTolerant, rcRefFrameListL0, rcRefFrameListL1 );
-    ROFRS( bModeAllowed, bModeAllowed );
-    for( UInt uiLstIdx = 0; uiLstIdx < 2; uiLstIdx++ )
-    {
-      ListIdx       eListIdx          = ListIdx( uiLstIdx );
-      MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
-			if( m_rcSliceHeader.getNumRefIdxActive( LIST_1) != 0)
-      {
-				RefFrameList *pcRefFrameList;
-				if ( eListIdx == LIST_0)
-					pcRefFrameList	=	&rcRefFrameListL0;
-				else
-					pcRefFrameList	=	&rcRefFrameListL1;
-   
-      }
-      rcMbMotionDataLX.setAllMv ( acMv     [eListIdx], eParIdx );
-			rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
-    }
-
-  }
-  else // do not do this for interlaced stuff
-  {
-    Mv      aacMv[2][4];
-    bModeAllowed = xTemporalDirectModeMvsRefNonInterlaced( aacMv, ascRefIdx, eParIdx, bFaultTolerant );
-    ROFRS( bModeAllowed, bModeAllowed );
-    for( UInt uiLstIdx = 0; uiLstIdx < 2; uiLstIdx++ )
-    {
-      ListIdx       eListIdx          = ListIdx( uiLstIdx );
-      MbMotionData& rcMbMotionDataLX  = getMbMotionData( eListIdx );
-
-      if( m_rcSliceHeader.getRefPicList( getMbPicType(), LIST_1).size() )// TMM_INTERLACE
-      {
-        const Frame*  pcFrame           = ( ascRefIdx[eListIdx] < 1 ? 0 : m_rcSliceHeader.getRefPic ( ascRefIdx[eListIdx], getMbPicType(), eListIdx ).getFrame() );// TMM_INTERLACE
-        rcMbMotionDataLX.setRefPic( pcFrame,             eParIdx );
-      }
-
-      rcMbMotionDataLX.setRefIdx( ascRefIdx[eListIdx], eParIdx );
-
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][0],  eParIdx, SPART_4x4_0 );
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][1],  eParIdx, SPART_4x4_1 );
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][2],  eParIdx, SPART_4x4_2 );
-      rcMbMotionDataLX.setAllMv ( aacMv[eListIdx][3],  eParIdx, SPART_4x4_3 );
-    }
-  }
-
-  return bModeAllowed; // OK
-}
-//TMM_EC }}
 H264AVC_NAMESPACE_END
 

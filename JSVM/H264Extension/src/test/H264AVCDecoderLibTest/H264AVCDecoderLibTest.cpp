@@ -89,46 +89,65 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 int
 main( int argc, char** argv)
 {
-  H264AVCDecoderTest* pcH264AVCDecoderTest = NULL;
-  DecoderParameter    cParameter;
-#ifndef SHARP_AVC_REWRITE_OUTPUT
-  printf("JSVM %s Decoder\n\n\n",_JSVM_VERSION_);
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  printf( "JSVM %s AVC REWRITER\n\n\n", _JSVM_VERSION_ );
 #else
-  printf("JSVM %s AVC REWRITER\n\n\n",_JSVM_VERSION_);
-#endif
-  RNOKRS( cParameter.init( argc, argv ), -2 );
-//TMM_EC {{
-	UInt	nCount	=	1;
-
-  WriteYuvIf*                 pcWriteYuv = NULL;
-#ifndef SHARP_AVC_REWRITE_OUTPUT
-	RNOKS( WriteYuvToFile::create( pcWriteYuv, cParameter.cYuvFile ) );
+  printf( "JSVM %s Decoder\n\n\n",      _JSVM_VERSION_ );
 #endif
 
-  ReadBitstreamFile *pcReadBitstreamFile;
-  RNOKS( ReadBitstreamFile::create( pcReadBitstreamFile ) ); 
-  RNOKS( pcReadBitstreamFile->init( cParameter.cBitstreamFile ) );  
-//TMM_EC }}
+  H264AVCDecoderTest*   pcH264AVCDecoderTest  = 0;
+  ReadBitstreamFile*    pcReadStream          = 0;
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  WriteBitstreamToFile* pcWriteStream         = 0;
+#else
+  WriteYuvToFile*       pcWriteYuv            = 0;
+#endif
+  DecoderParameter      cParameter;
 
-  for( UInt n = 0; n < nCount; n++ )
-  {
-    RNOKR( H264AVCDecoderTest::create   ( pcH264AVCDecoderTest ), -3 );
-    RNOKR( pcH264AVCDecoderTest->init   ( &cParameter, (WriteYuvToFile*)pcWriteYuv, pcReadBitstreamFile ),          -4 );
+  //===== create instances =====
+  RNOKRS( ReadBitstreamFile   ::create  ( pcReadStream ),                             -1 );
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  RNOKRS( WriteBitstreamToFile::create  ( pcWriteStream ),                            -2 );
+#else
+  RNOKRS( WriteYuvToFile      ::create  ( pcWriteYuv ),                               -2 );
+#endif
+  RNOKRS( H264AVCDecoderTest  ::create  ( pcH264AVCDecoderTest ),                     -3 );
 
-    RNOKR( pcH264AVCDecoderTest->go     (),                       -5 );
-    RNOKR( pcH264AVCDecoderTest->destroy(),                       -6 );
-  }
-  //TMM_EC {{
-  if( NULL != pcWriteYuv )              
-  {
-    RNOK( pcWriteYuv->destroy() );  
-  }
+  //===== initialization =====
+  RNOKRS( cParameter           .init    ( argc, argv ),                               -4 );
+  RNOKRS( pcReadStream        ->init    ( cParameter.cBitstreamFile ),                -5 );  
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  RNOKRS( pcWriteStream       ->init    ( cParameter.cYuvFile ),                      -6 );
+  RNOKRS( pcH264AVCDecoderTest->init    ( &cParameter, pcReadStream, pcWriteStream ), -7 );
+#else
+  RNOKRS( pcWriteYuv          ->init    ( cParameter.cYuvFile ),                      -6 );
+  RNOKRS( pcH264AVCDecoderTest->init    ( &cParameter, pcReadStream, pcWriteYuv ),    -7 );
+#endif
 
-  if( NULL != pcReadBitstreamFile )     
+  //===== run =====
+  RNOKR ( pcH264AVCDecoderTest->go      (),                                           -8 );
+
+  //===== uninit and destroy instances =====
+  RNOKR ( pcH264AVCDecoderTest->uninit  (),                                           -9 ); 
+  RNOKR ( pcH264AVCDecoderTest->destroy (),                                           -10 );
+  if( pcReadStream )
   {
-    RNOK( pcReadBitstreamFile->uninit() );  
-    RNOK( pcReadBitstreamFile->destroy() );  
+    RNOKR ( pcReadStream      ->uninit  (),                                           -11 );
+    RNOKR ( pcReadStream      ->destroy (),                                           -12 );
   }
-//TMM_EC }}
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  if( pcWriteStream )
+  {
+    RNOKR ( pcWriteStream     ->uninit  (),                                           -13 );
+    RNOKR ( pcWriteStream     ->destroy (),                                           -14 );
+  }
+#else
+  if( pcWriteYuv )              
+  {
+    RNOKR ( pcWriteYuv        ->uninit  (),                                           -13 );  
+    RNOKR ( pcWriteYuv        ->destroy (),                                           -14 );  
+  }
+#endif
+
   return 0;
 }

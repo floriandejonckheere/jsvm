@@ -127,6 +127,7 @@ public:
 
   ErrVal write            ( const SequenceParameterSet& rcSPS );
   ErrVal write            ( const PictureParameterSet&  rcPPS );
+  ErrVal writePrefix      ( const SliceHeader&          rcSH  );
   ErrVal write            ( const SliceHeader&          rcSH  );
   ErrVal write            ( SEI::MessageList&           rcSEIMessageList );
 
@@ -157,6 +158,7 @@ protected:
   UChar*                m_pucTempBufferBackup;
   UInt                  m_uiPacketLength;
   NalUnitType           m_eNalUnitType;
+  NalRefIdc             m_eNalRefIdc;
 };
 
 

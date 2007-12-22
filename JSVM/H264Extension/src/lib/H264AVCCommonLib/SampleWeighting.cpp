@@ -86,7 +86,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib.h"
 
 #include "H264AVCCommonLib/SampleWeighting.h"
-#include  "H264AVCCommonLib/YuvMbBuffer.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -164,14 +163,14 @@ ErrVal SampleWeighting::uninit()
 ErrVal
 SampleWeighting::initSlice( const SliceHeader& rcSliceHeader )
 {
-  if( rcSliceHeader.isIntra() )
+  if( rcSliceHeader.isIntraSlice() )
   {
     m_bWeightedPredDisableP = true;
     m_bWeightedPredDisableB = true;
     m_bExplicit             = false;
     return Err::m_nOK;
   }
-  if( rcSliceHeader.isInterP() )
+  if( rcSliceHeader.isPSlice() )
   {
     m_bExplicit             = rcSliceHeader.getPPS().getWeightedPredFlag();
     m_bWeightedPredDisableP = ! m_bExplicit;
@@ -183,7 +182,7 @@ SampleWeighting::initSlice( const SliceHeader& rcSliceHeader )
     }
     return Err::m_nOK;
   }
-  if( rcSliceHeader.isInterB() )
+  if( rcSliceHeader.isBSlice() )
   {
     switch( rcSliceHeader.getPPS().getWeightedBiPredIdc() )
     {
@@ -225,21 +224,7 @@ SampleWeighting::initSlice( const SliceHeader& rcSliceHeader )
 }
 
 
-Void SampleWeighting::getTargetBuffers( YuvMbBuffer* apcTarBuffer[2], YuvMbBuffer* pcRecBuffer, const PW* pcPW0, const PW* pcPW1 )
-{
-  if( pcPW0 != 0 && pcPW1 != 0 )
-  {
-    apcTarBuffer[0] = pcRecBuffer;
-    apcTarBuffer[1] = &m_cYuvBiBuffer;
-  }
-  else
-  {
-    apcTarBuffer[0] = pcRecBuffer;
-    apcTarBuffer[1] = pcRecBuffer;
-  }
-}
-
-Void SampleWeighting::getTargetBuffers( IntYuvMbBuffer* apcTarBuffer[2], IntYuvMbBuffer* pcRecBuffer, const PW* pcPW0, const PW* pcPW1 )
+Void SampleWeighting::getTargetBuffers( YuvMbBuffer* apcTarBuffer[2], YuvMbBuffer* pcRecBuffer, const PredWeight* pcPW0, const PredWeight* pcPW1 )
 {
   if( pcPW0 != 0 && pcPW1 != 0 )
   {
@@ -254,52 +239,8 @@ Void SampleWeighting::getTargetBuffers( IntYuvMbBuffer* apcTarBuffer[2], IntYuvM
 }
 
 
-Void SampleWeighting::weightLumaSamples( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 )
-{
-  AOT_DBG( iSizeY < 8 );
-  AOT_DBG( iSizeX < 8 );
 
-  if( pcPW0 != NULL && pcPW1 != NULL )
-  {
-    // bidirectional prediction
-    if( m_bWeightedPredDisableB )
-    {
-      xMixB( pcRecBuffer  ->getYBlk( cIdx ),  pcRecBuffer  ->getLStride(),
-             m_cYuvBiBuffer.getYBlk( cIdx ),  m_cYuvBiBuffer.getLStride(),
-             iSizeY, iSizeX );
-    }
-    else
-    {
-      xMixBWeight( pcRecBuffer  ->getYBlk( cIdx ), pcRecBuffer  ->getLStride(),
-                   m_cYuvBiBuffer.getYBlk( cIdx ), m_cYuvBiBuffer.getLStride(),
-                   iSizeY, iSizeX,
-                   pcPW0->getLumaWeight(),
-                   pcPW1->getLumaWeight(),
-                   pcPW0->getLumaOffset() + pcPW1->getLumaOffset(),
-                   m_uiLumaLogWeightDenom );
-    }
-  }
-  else
-  {
-    ROTVS( m_bWeightedPredDisableP );
-
-    // unidirectionl prediction
-    const PW* pcPredWeight = (pcPW0 != NULL) ? pcPW0 : pcPW1;
-    AOT_DBG( NULL == pcPredWeight );
-
-    if( pcPredWeight->getLumaWeightFlag() )
-    {
-      xWeight( pcRecBuffer->getYBlk( cIdx ), pcRecBuffer->getLStride(),
-               iSizeY, iSizeX,
-               pcPredWeight->getLumaWeight(),
-               pcPredWeight->getLumaOffset(),
-               m_uiLumaLogWeightDenom );
-    }
-  }
-}
-
-
-Void SampleWeighting::weightLumaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 )
+Void SampleWeighting::weightLumaSamples( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PredWeight* pcPW0, const PredWeight* pcPW1 )
 {
   AOT_DBG( iSizeY < 8 );
   AOT_DBG( iSizeX < 8 );
@@ -329,7 +270,7 @@ Void SampleWeighting::weightLumaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSizeX
     ROTVS( m_bWeightedPredDisableP );
 
     // unidirectionl prediction
-    const PW* pcPredWeight = (pcPW0 != NULL) ? pcPW0 : pcPW1;
+    const PredWeight* pcPredWeight = (pcPW0 != NULL) ? pcPW0 : pcPW1;
     AOT_DBG( NULL == pcPredWeight );
 
     if( pcPredWeight->getLumaWeightFlag() )
@@ -344,68 +285,8 @@ Void SampleWeighting::weightLumaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSizeX
 }
 
 
-Void SampleWeighting::weightChromaSamples( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 )
-{
-  AOT_DBG( iSizeY < 4 );
-  AOT_DBG( iSizeX < 4 );
 
-  if( pcPW0 != NULL && pcPW1 != NULL )
-  {
-    // bidirectional prediction
-    if( m_bWeightedPredDisableB )
-    {
-      xMixB( pcRecBuffer  ->getUBlk( cIdx ), pcRecBuffer  ->getCStride(),
-             m_cYuvBiBuffer.getUBlk( cIdx ), m_cYuvBiBuffer.getCStride(),
-             iSizeY, iSizeX );
-      xMixB( pcRecBuffer  ->getVBlk( cIdx ), pcRecBuffer  ->getCStride(),
-             m_cYuvBiBuffer.getVBlk( cIdx ), m_cYuvBiBuffer.getCStride(),
-             iSizeY, iSizeX );
-    }
-    else
-  {
-      xMixBWeight( pcRecBuffer  ->getUBlk( cIdx ), pcRecBuffer  ->getCStride(),
-                   m_cYuvBiBuffer.getUBlk( cIdx ), m_cYuvBiBuffer.getCStride(),
-                   iSizeY, iSizeX,
-                   pcPW0->getChromaWeight( 0 ),
-                   pcPW1->getChromaWeight( 0 ),
-                   pcPW0->getChromaOffset( 0 ) + pcPW1->getChromaOffset( 0 ),
-                   m_uiChromaLogWeightDenom );
-      xMixBWeight( pcRecBuffer  ->getVBlk( cIdx ), pcRecBuffer  ->getCStride(),
-                   m_cYuvBiBuffer.getVBlk( cIdx ), m_cYuvBiBuffer.getCStride(),
-                   iSizeY, iSizeX,
-                   pcPW0->getChromaWeight( 1 ),
-                   pcPW1->getChromaWeight( 1 ),
-                   pcPW0->getChromaOffset( 1 ) + pcPW1->getChromaOffset( 1 ),
-                   m_uiChromaLogWeightDenom );
-    }
-  }
-  else
-  {
-    ROTVS( m_bWeightedPredDisableP );
-
-    // unidirectionl prediction
-    const PW* pcPredWeight = (pcPW0 != NULL) ? pcPW0 : pcPW1;
-    AOT_DBG( NULL == pcPredWeight );
-
-    if( pcPredWeight->getChromaWeightFlag() )
-    {
-      xWeight( pcRecBuffer->getUBlk( cIdx ), pcRecBuffer->getCStride(),
-               iSizeY, iSizeX,
-               pcPredWeight->getChromaWeight( 0 ),
-               pcPredWeight->getChromaOffset( 0 ),
-               m_uiChromaLogWeightDenom );
-      xWeight( pcRecBuffer->getVBlk( cIdx ), pcRecBuffer->getCStride(),
-               iSizeY, iSizeX,
-               pcPredWeight->getChromaWeight( 1 ),
-               pcPredWeight->getChromaOffset( 1 ),
-               m_uiChromaLogWeightDenom );
-    }
-  }
-}
-
-
-
-Void SampleWeighting::weightChromaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 )
+Void SampleWeighting::weightChromaSamples( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PredWeight* pcPW0, const PredWeight* pcPW1 )
 {
   AOT_DBG( iSizeY < 4 );
   AOT_DBG( iSizeX < 4 );
@@ -427,16 +308,16 @@ Void SampleWeighting::weightChromaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSiz
       xMixBWeight( pcRecBuffer     ->getUBlk( cIdx ), pcRecBuffer     ->getCStride(),
                    m_cIntYuvBiBuffer.getUBlk( cIdx ), m_cIntYuvBiBuffer.getCStride(),
                    iSizeY, iSizeX,
-                   pcPW0->getChromaWeight( 0 ),
-                   pcPW1->getChromaWeight( 0 ),
-                   pcPW0->getChromaOffset( 0 ) + pcPW1->getChromaOffset( 0 ),
+                   pcPW0->getChromaCbWeight(),
+                   pcPW1->getChromaCbWeight(),
+                   pcPW0->getChromaCbOffset() + pcPW1->getChromaCbOffset(),
                    m_uiChromaLogWeightDenom );
       xMixBWeight( pcRecBuffer     ->getVBlk( cIdx ), pcRecBuffer     ->getCStride(),
                    m_cIntYuvBiBuffer.getVBlk( cIdx ), m_cIntYuvBiBuffer.getCStride(),
                    iSizeY, iSizeX,
-                   pcPW0->getChromaWeight( 1 ),
-                   pcPW1->getChromaWeight( 1 ),
-                   pcPW0->getChromaOffset( 1 ) + pcPW1->getChromaOffset( 1 ),
+                   pcPW0->getChromaCrWeight(),
+                   pcPW1->getChromaCrWeight(),
+                   pcPW0->getChromaCrOffset() + pcPW1->getChromaCrOffset(),
                    m_uiChromaLogWeightDenom );
 }
   }
@@ -445,20 +326,20 @@ Void SampleWeighting::weightChromaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSiz
     ROTVS( m_bWeightedPredDisableP );
 
     // unidirectionl prediction
-    const PW* pcPredWeight = (pcPW0 != NULL) ? pcPW0 : pcPW1;
+    const PredWeight* pcPredWeight = (pcPW0 != NULL) ? pcPW0 : pcPW1;
     AOT_DBG( NULL == pcPredWeight );
 
     if( pcPredWeight->getChromaWeightFlag() )
     {
       xWeight( pcRecBuffer->getUBlk( cIdx ), pcRecBuffer->getCStride(),
                iSizeY, iSizeX,
-               pcPredWeight->getChromaWeight( 0 ),
-               pcPredWeight->getChromaOffset( 0 ),
+               pcPredWeight->getChromaCbWeight(),
+               pcPredWeight->getChromaCbOffset(),
                m_uiChromaLogWeightDenom );
       xWeight( pcRecBuffer->getVBlk( cIdx ), pcRecBuffer->getCStride(),
                iSizeY, iSizeX,
-               pcPredWeight->getChromaWeight( 1 ),
-               pcPredWeight->getChromaOffset( 1 ),
+               pcPredWeight->getChromaCrWeight(),
+               pcPredWeight->getChromaCrOffset(),
                m_uiChromaLogWeightDenom );
     }
   }
@@ -467,9 +348,9 @@ Void SampleWeighting::weightChromaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSiz
 
 
 
-Void SampleWeighting::inverseLumaSamples( IntYuvMbBuffer* pcDesBuffer,
-                                          IntYuvMbBuffer* pcOrgBuffer,
-                                          IntYuvMbBuffer* pcFixBuffer,
+Void SampleWeighting::inverseLumaSamples( YuvMbBuffer* pcDesBuffer,
+                                          YuvMbBuffer* pcOrgBuffer,
+                                          YuvMbBuffer* pcFixBuffer,
                                           Int             iYSize,
                                           Int             iXSize )
 {
@@ -670,11 +551,11 @@ __inline Void SampleWeighting::xMixB(XPel* pucDest, Int iDestStride, XPel* pucSr
 
 
 Void
-SampleWeighting::weightInverseLumaSamples( IntYuvMbBuffer*  pcDesBuffer,
-                                           IntYuvMbBuffer*  pcOrgBuffer,
-                                           IntYuvMbBuffer*  pcFixBuffer,
-                                           const PW*        pcSearchPW,
-                                           const PW*        pcFixPW,
+SampleWeighting::weightInverseLumaSamples( YuvMbBuffer*  pcDesBuffer,
+                                           YuvMbBuffer*  pcOrgBuffer,
+                                           YuvMbBuffer*  pcFixBuffer,
+                                           const PredWeight*        pcSearchPW,
+                                           const PredWeight*        pcFixPW,
                                            Double&          rdWeight,
                                            Int              iYSize,
                                            Int              iXSize )
@@ -722,9 +603,9 @@ SampleWeighting::weightInverseLumaSamples( IntYuvMbBuffer*  pcDesBuffer,
 
 
 Void
-SampleWeighting::weightInverseLumaSamples( IntYuvMbBuffer* pcDesBuffer,
-                                           IntYuvMbBuffer* pcOrgBuffer,
-                                           const PW*       pcPW,
+SampleWeighting::weightInverseLumaSamples( YuvMbBuffer* pcDesBuffer,
+                                           YuvMbBuffer* pcOrgBuffer,
+                                           const PredWeight*       pcPW,
                                            Double&         rdWeight,
                                            Int             iYSize,
                                            Int             iXSize )
@@ -777,9 +658,9 @@ SampleWeighting::weightInverseLumaSamples( IntYuvMbBuffer* pcDesBuffer,
 
 
 Void
-SampleWeighting::weightInverseChromaSamples( IntYuvMbBuffer* pcDesBuffer,
-                                             IntYuvMbBuffer* pcOrgBuffer,
-                                             const PW*       pcPW,
+SampleWeighting::weightInverseChromaSamples( YuvMbBuffer* pcDesBuffer,
+                                             YuvMbBuffer* pcOrgBuffer,
+                                             const PredWeight*       pcPW,
                                              Double*         padWeight,
                                              Int             iYSize,
                                              Int             iXSize )
@@ -793,8 +674,8 @@ SampleWeighting::weightInverseChromaSamples( IntYuvMbBuffer* pcDesBuffer,
     XPel* pDes      = ( C ? pcDesBuffer->getCrBlk() : pcDesBuffer->getCbBlk() );
     Int   iStride   = pcDesBuffer->getCStride();
 
-    Int   iWeight   = pcPW->getChromaWeight( C );
-    Int   iOffset   = pcPW->getChromaOffset( C );
+    Int   iWeight   = ( C ? pcPW->getChromaCrWeight() : pcPW->getChromaCbWeight() );
+    Int   iOffset   = ( C ? pcPW->getChromaCrOffset() : pcPW->getChromaCbOffset() );
     Int   iAdd      = ( 1 << m_uiChromaLogWeightDenom ) >> 1;
 
     AOT_DBG( iWeight >  127 );
@@ -839,7 +720,7 @@ SampleWeighting::weightInverseChromaSamples( IntYuvMbBuffer* pcDesBuffer,
 //TMM_WP
 ErrVal SampleWeighting::initSliceForWeighting( const SliceHeader& rcSliceHeader)
 {
-  if( rcSliceHeader.isIntra() )
+  if( rcSliceHeader.isIntraSlice() )
   {
     m_bWeightedPredDisableP = true;
     m_bWeightedPredDisableB = true;
@@ -847,7 +728,7 @@ ErrVal SampleWeighting::initSliceForWeighting( const SliceHeader& rcSliceHeader)
     return Err::m_nOK;
   }
 
-  if( rcSliceHeader.isInterP() )
+  if( rcSliceHeader.isPSlice() )
   {
     m_bExplicit             = rcSliceHeader.getPPS().getWeightedPredFlag();
     m_bWeightedPredDisableP = ! m_bExplicit;
@@ -863,7 +744,7 @@ ErrVal SampleWeighting::initSliceForWeighting( const SliceHeader& rcSliceHeader)
   }
 
 
-  else if( rcSliceHeader.isInterB() )
+  else if( rcSliceHeader.isBSlice() )
   {
     switch( rcSliceHeader.getPPS().getWeightedBiPredIdc() )
     {

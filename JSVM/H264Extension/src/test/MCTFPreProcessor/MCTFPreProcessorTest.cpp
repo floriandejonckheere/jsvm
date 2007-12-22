@@ -165,7 +165,8 @@ MCTFPreProcessorTest::init( PreProcessorParameter* pcParameter )
   RNOK( xInitCodingParameter() );
 
   //----- init YUV reader and writer -----
-  RNOKS( WriteYuvToFile::create( m_pcWriteYuv, m_pcParameter->getOutputFileName() ) );
+  RNOKS( WriteYuvToFile::create( m_pcWriteYuv ) );
+  RNOKS( m_pcWriteYuv  ->init  ( m_pcParameter->getOutputFileName() ) );
   RNOKS( ReadYuvFile   ::create( m_pcReadYuv  ) );
   RNOKS( m_pcReadYuv   ->init  ( m_pcParameter->getInputFileName(),
                                  m_pcParameter->getFrameHeight  (),
@@ -288,6 +289,8 @@ MCTFPreProcessorTest::xRemovePicBuffer( PicBufferList&  rcList )
 ErrVal
 MCTFPreProcessorTest::xWrite( PicBufferList&  rcPicBufferList )
 {
+  UInt auiCropping[4] = {0,0,0,0};
+
   while( ! rcPicBufferList.empty() )
   {
     PicBuffer*  pcBuffer  = rcPicBufferList.popFront();
@@ -297,7 +300,7 @@ MCTFPreProcessorTest::xWrite( PicBufferList&  rcPicBufferList )
                                     pcBuf + m_uiCrOffset,
                                     m_uiHeight,
                                     m_uiWidth,
-                                    m_uiStride ) );
+                                    m_uiStride, auiCropping ) );
   }
   return Err::m_nOK;
 }

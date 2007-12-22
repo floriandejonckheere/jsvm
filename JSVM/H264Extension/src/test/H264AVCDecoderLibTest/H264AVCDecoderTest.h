@@ -85,44 +85,68 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define __H264AVCDECODERTEST_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79
 
 
-#include "ReadBitstreamFile.h"
-#include "WriteYuvToFile.h"
-
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-#include "WriteBitstreamToFile.h"
-#endif
-
-#define MAX_REFERENCE_FRAMES 15
-#define MAX_B_FRAMES         15
-
 #include <algorithm>
 #include <list>
 
 #include "DecoderParameter.h"
+#include "ReadBitstreamFile.h"
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+#include "WriteBitstreamToFile.h"
+#else
+#include "WriteYuvToFile.h"
+#endif
+
 
 
 class H264AVCDecoderTest
 {
+private:
+  class BufferParameters
+  {
+  public:
+    BufferParameters();
+    virtual ~BufferParameters();
+
+    ErrVal      init( const h264::SliceDataNALUnit& rcSliceDataNalUnit );
+
+    UInt        getLumaOffset ()  const { return m_uiLumaOffset; }
+    UInt        getCbOffset   ()  const { return m_uiCbOffset; }
+    UInt        getCrOffset   ()  const { return m_uiCrOffset; }
+    UInt        getLumaHeight ()  const { return m_uiLumaHeight; }
+    UInt        getLumaWidth  ()  const { return m_uiLumaWidth; }
+    UInt        getLumaStride ()  const { return m_uiLumaStride; }
+    UInt        getBufferSize ()  const { return m_uiBufferSize; }
+    const UInt* getCropping   ()  const { return m_auiCropping; }
+
+  private:
+    UInt  m_uiLumaOffset;
+    UInt  m_uiCbOffset;
+    UInt  m_uiCrOffset;
+    UInt  m_uiLumaHeight;
+    UInt  m_uiLumaWidth;
+    UInt  m_uiLumaStride;
+    UInt  m_uiBufferSize;
+    UInt  m_auiCropping[4];
+  };
+
 protected:
   H264AVCDecoderTest();
   virtual ~H264AVCDecoderTest();
 
 public:
-  static ErrVal create( H264AVCDecoderTest*& rpcH264AVCDecoderTest );
-  ErrVal init( DecoderParameter *pcDecoderParameter, WriteYuvToFile *pcWriteYuv, ReadBitstreamFile *pcReadBitstreamFile );//TMM_EC
-  ErrVal go();
-  ErrVal destroy();
-  ErrVal setec( UInt uiErrorConceal);//TMM_EC
-  ErrVal removeRedundencySlice(BinDataAccessor*  pcBinDataAccessor, Bool& bFinishChecking ); //TMM_EC
-  ErrVal appendFragment(UInt      uiTotalLength,
-                        UInt      uiNbFrag,
-                        BinData*  pcBinDataTmp[10],
-                        UInt*     auiStartPos,
-                        UInt*     auiEndPos,
-                        Bool&     bConcatenated,
-                        BinData*  pcBinData, 
-                        UChar*    apucFragBuffers[] );
+  static ErrVal create  ( H264AVCDecoderTest*&  rpcH264AVCDecoderTest );
+  ErrVal        destroy ();
+  ErrVal        init    ( DecoderParameter*     pcDecoderParameter,
+                          ReadBitstreamIf*      pcReadBitStream,
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+                          WriteBitstreamIf*     pcWriteBitstream );
+#else
+                          WriteYuvIf*           pcWriteYuv );
+#endif
+  ErrVal        uninit  ();
+  ErrVal        go      ();
 
+  //==== to remove ====
   ErrVal initPacketToDecode(Bool &bDecode,
                             BinData*& pcBinData,
                             BinDataAccessor* cBinDataAccessor,
@@ -131,31 +155,46 @@ public:
                             UInt &uiMbX,
                             UInt &uiMbY,
                             UInt& uiSize,
+                            UInt rauiCropping[],
                             UInt uiPreNalUnitType,
                             Int iPos,
                             MyList<BinData*>&  cVirtualSliceList,
                             Bool bVirtualSlice);
 
-protected:
-  ErrVal xGetNewPicBuffer ( PicBuffer*& rpcPicBuffer, UInt uiSize );
-  ErrVal xRemovePicBuffer ( PicBufferList& rcPicBufferUnusedList );
+private:
+  ErrVal  xProcessAccessUnit( h264::AccessUnitSlices& rcAccessUnitSlices, 
+                              Bool&                   rbFirstAccessUnit,
+                              UInt&                   ruiNumProcessed );
+  ErrVal  xGetNewPicBuffer  ( PicBuffer*&             rpcPicBuffer,
+                              UInt                    uiSize );
+  ErrVal  xOutputNALUnits   ( BinDataList&            rcBinDataList, 
+                              UInt&                   ruiNumNALUnits );
+  ErrVal  xOutputPicBuffer  ( PicBufferList&          rcPicBufferOutputList, 
+                              UInt&                   ruiNumFrames );
+  ErrVal  xRemovePicBuffer  ( PicBufferList&          rcPicBufferUnusedList );
 
-protected:
-  h264::CreaterH264AVCDecoder*   m_pcH264AVCDecoder;
-  h264::CreaterH264AVCDecoder*   m_pcH264AVCDecoderSuffix; //JVT-S036 lsj
-  ReadBitstreamIf*            m_pcReadBitstream;
-  WriteYuvIf*                 m_pcWriteYuv;
-  DecoderParameter*           m_pcParameter;
-
+private:
+  Bool                          m_bInitialized;
+  h264::CreaterH264AVCDecoder*  m_pcH264AVCDecoder;
+  DecoderParameter*             m_pcParameter;
+  ReadBitstreamIf*              m_pcReadBitstream;
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-  std::string                 m_cAvcReWriteBitstreamFileName;
-  WriteBitstreamToFile*       m_pcAvcReWriteBitstream;
-  UChar                       m_aucStartCodeBuffer[5];
-  BinData                     m_cBinDataStartCode;
+  WriteBitstreamIf*             m_pcWriteBitstream;
+#else
+  WriteYuvIf*                   m_pcWriteYuv;
 #endif
 
-  PicBufferList               m_cActivePicBufferList;
-  PicBufferList               m_cUnusedPicBufferList;
+  PicBufferList                 m_cActivePicBufferList;
+  PicBufferList                 m_cUnusedPicBufferList;
+  BufferParameters              m_cBufferParameters;
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  UChar                         m_aucStartCodeBuffer[5];
+  BinData                       m_cBinDataStartCode;
+#else
+  Int                           m_iMaxPocDiff;
+  Int                           m_iLastPoc;
+  UChar*                        m_pcLastFrame;
+#endif
 };
 
 #endif //__H264AVCDECODERTEST_H_D65BE9B4_A8DA_11D3_AFE7_005004464B79

@@ -94,16 +94,16 @@ public:
   DecoderParameter();
   virtual ~DecoderParameter();
 
-  ErrVal init(int argc, char** argv);
+  ErrVal init( Int argc, Char** argv );
 
   std::string  cBitstreamFile;
   std::string  cYuvFile;
   Int          nResult;
   UInt         nFrames;
-  UInt         uiMaxPocDiff; // HS: decoder robustness
+  UInt         uiMaxPocDiff;
   UInt         uiErrorConceal;
 protected:
-  ErrVal xPrintUsage(char** argv);
+  ErrVal xPrintUsage( Char** argv );
 };
 
 #endif // !defined(AFX_DECODERPARAMETER_H__79149AEA_06A8_49CE_AB0A_7FC9ED7C05B5__INCLUDED_)

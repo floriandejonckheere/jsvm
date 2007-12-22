@@ -107,9 +107,9 @@ public:
                                         UInt        uiFramesSkipped,
                                         Bool        bUseBaseRep,
                                         UInt        uiLayer,
-                                        MmcoBuffer* pcMmcoBuf,
-                                        RplrBuffer* pcRplrBufL0,
-                                        RplrBuffer* pcRplrBufL1 );
+                                        DecRefPicMarking* pcMmcoBuf,
+                                        RefPicListReOrdering* pcRplrBufL0,
+                                        RefPicListReOrdering* pcRplrBufL1 );
 
   Bool              isInitialized     ()                  const;
   UInt              getContFrameNumber()                  const;
@@ -121,8 +121,8 @@ public:
   Bool              isAnchor          ()                  const;
   UInt              getFramesSkipped  ()                  const;
   UInt              getTemporalLayer  ()                  const;
-  const MmcoBuffer* getMmcoBuf        ()                  const;
-  const RplrBuffer* getRplrBuf        ( ListIdx eLstIdx)  const;
+  const DecRefPicMarking* getMmcoBuf        ()                  const;
+  const RefPicListReOrdering* getRplrBuf        ( ListIdx eLstIdx)  const;
 
 private:
   Bool          m_bInit;
@@ -134,8 +134,8 @@ private:
   Bool          m_bAnchor;
   UInt          m_uiFramesSkipped;
   UInt          m_uiTemporalLayer;
-  MmcoBuffer*   m_pcMmcoBuf;
-  RplrBuffer*   m_apcRplrBuf[2];
+  DecRefPicMarking*   m_pcMmcoBuf;
+  RefPicListReOrdering*   m_apcRplrBuf[2];
 };
 
 
@@ -149,13 +149,13 @@ public:
                                                 String&         rcRplrStringL0,
                                                 String&         rcRplrStringL1 );
   static  ErrVal  extractRplr                 ( const String&   rcString,
-                                                RplrBuffer&     rcRplrBuf);
+                                                RefPicListReOrdering&     rcRplrBuf);
   static  ErrVal  extractMmco                 ( const String&   rcString,
-                                                MmcoBuffer&     rcMmcoBuf );
+                                                DecRefPicMarking&     rcMmcoBuf );
   static  ErrVal  extractSingleRplrCommand   ( const String&   rcString,
-                                                Rplr&           rcRplr );
+                                                RplrCommand&           rcRplr );
   static  ErrVal  extractSingleMmcoCommand    ( const String&   rcString,
-                                                Mmco&           rcMmco );
+                                                MmcoCommand&           rcMmco );
   static  ErrVal  extractFrameDescription     ( const String&   rcString,
                                                 UChar&          rucType,
                                                 UInt&           ruiIncrement,
@@ -221,8 +221,8 @@ private:
     UInt        m_uiFramesSkipped;
     Bool        m_bUseBaseRep;
     UInt        m_uiLayer;
-    MmcoBuffer* m_pcMmcoBuf;
-    RplrBuffer* m_apcRplrBuf[2];
+    DecRefPicMarking* m_pcMmcoBuf;
+    RefPicListReOrdering* m_apcRplrBuf[2];
   };
 
 

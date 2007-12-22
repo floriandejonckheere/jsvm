@@ -80,100 +80,74 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 */
 
 
-
-
-
 #include "H264AVCVideoIoLib.h"
 #include "WriteYuvToFile.h"
 
 
-
 WriteYuvToFile::WriteYuvToFile()
-: m_uiWidth         ( 0 )
-, m_uiHeight        ( 0 )
-, m_bInitDone       ( false )
 {
 }
-
 
 WriteYuvToFile::~WriteYuvToFile()
 {
 }
 
-
-
-ErrVal WriteYuvToFile::create( WriteYuvIf*& rpcWriteYuv, const std::string& rcFileName )
+ErrVal
+WriteYuvToFile::create( WriteYuvToFile*& rpcWriteYuv )
 {
-  ROT( 0 == rcFileName.size() );
-
-  WriteYuvToFile* pcWriteYuvToFile;
-
-  pcWriteYuvToFile = new WriteYuvToFile;
-
-  rpcWriteYuv = pcWriteYuvToFile;
-
-  ROT( NULL == pcWriteYuvToFile )
-
-  RNOKS( pcWriteYuvToFile->xInit( rcFileName ) );
-
+  rpcWriteYuv = new WriteYuvToFile;
+  ROF( rpcWriteYuv )
   return Err::m_nOK;
 }
 
-
-ErrVal WriteYuvToFile::xInit( const std::string& rcFileName )
+ErrVal
+WriteYuvToFile::destroy()
 {
+  ROT( m_cFile.is_open() );
+  delete this;
+  return Err::m_nOK;
+}
+
+ErrVal
+WriteYuvToFile::init( const std::string& rcFileName )
+{
+  ROF( rcFileName.size() );
   if( Err::m_nOK != m_cFile.open( rcFileName, LargeFile::OM_WRITEONLY ) )
   {
     std::cerr << "failed to open YUV output file " << rcFileName.data() << std::endl;
     return Err::m_nERR;
   }
-
   return Err::m_nOK;
 }
 
-
-ErrVal WriteYuvToFile::destroy()
+ErrVal
+WriteYuvToFile::uninit()
 {
-  m_cTempBuffer.deleteData();
-
   if( m_cFile.is_open() )
   {
     RNOK( m_cFile.close() );
   }
-
-  delete this;
   return Err::m_nOK;
 }
 
-
-ErrVal WriteYuvToFile::writeFrame( const UChar *pLum,
-                             const UChar *pCb,
-                             const UChar *pCr,
-                             UInt uiLumHeight,
-                             UInt uiLumWidth,
-                             UInt uiLumStride )
+ErrVal
+WriteYuvToFile::writeFrame( const UChar* pLum,
+                            const UChar* pCb,
+                            const UChar* pCr,
+                            UInt         uiHeight,
+                            UInt         uiWidth,
+                            UInt         uiStride,
+                            const UInt   rauiCropping[] )
 {
-  m_uiWidth  = uiLumWidth;
-  m_uiHeight = uiLumHeight;
+  ROF( m_cFile.is_open() );
 
-  RNOKS( xWriteFrame( pLum, pCb, pCr, uiLumHeight, uiLumWidth, uiLumStride ) );
-
-  return Err::m_nOK;
-}
-
-
-ErrVal WriteYuvToFile::xWriteFrame( const UChar *pLum,
-                              const UChar *pCb,
-                              const UChar *pCr,
-                              UInt uiHeight,
-                              UInt uiWidth,
-                              UInt uiStride )
-{
-
-  UInt    y;
+  UInt          y;
   const UChar*  pucSrc;
 
-  pucSrc = pLum;
+  uiWidth   -= rauiCropping[1] + rauiCropping[1];
+  uiHeight  -= rauiCropping[2] + rauiCropping[3];
+
+  pucSrc = pLum + ( rauiCropping[0] + rauiCropping[2] * uiStride );
   for( y = 0; y < uiHeight; y++ )
   {
     RNOK( m_cFile.write( pucSrc, uiWidth ) );
@@ -184,15 +158,14 @@ ErrVal WriteYuvToFile::xWriteFrame( const UChar *pLum,
   uiHeight >>= 1;
   uiWidth  >>= 1;
 
-  pucSrc = pCb;
+  pucSrc = pCb + ( ( rauiCropping[0] + rauiCropping[2] * uiStride ) >> 1 );
   for( y = 0; y < uiHeight; y++ )
   {
     RNOK( m_cFile.write( pucSrc, uiWidth ) );
     pucSrc += uiStride;
   }
 
-
-  pucSrc = pCr;
+  pucSrc = pCr + ( ( rauiCropping[0] + rauiCropping[2] * uiStride ) >> 1 );
   for( y = 0; y < uiHeight; y++ )
   {
     RNOK( m_cFile.write( pucSrc, uiWidth ) );

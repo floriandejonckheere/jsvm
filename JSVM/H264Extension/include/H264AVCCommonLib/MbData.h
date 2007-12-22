@@ -169,7 +169,7 @@ public:
   ErrVal  copyMotionScale( const MbData& rcMbData, const PicType eMbPicType, const Int iDirectCopyMode);
  
 
-  ErrVal  copyMotion    ( MbData& rcMbData, UInt    uiSliceId = MSYS_UINT_MAX );
+  ErrVal  copyMotion    ( const MbData& rcMbData, UInt    uiSliceId = MSYS_UINT_MAX );
   ErrVal  copyMotionBL  ( MbData& rcMbData, Bool bDirect8x8, UInt    uiSliceId = MSYS_UINT_MAX );
   ErrVal  upsampleMotion( MbData& rcMbData, Par8x8  ePar8x8, Bool bDirect8x8   );
 

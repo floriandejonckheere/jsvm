@@ -325,8 +325,6 @@ const UInt g_auiISymLen[3][16] =
   { 1, 3, 3, 5, 4, 5, 6, 8, 4, 6, 7, 8, 7, 8, 9, 9}
 };
 
-#define CAVLC_SYMGRP_SIZE       3 
-
 const UInt g_auiRefSymCode[2][27] =
 {
   { 
@@ -365,23 +363,11 @@ UvlcWriter::UvlcWriter( Bool bTraceEnable ) :
   m_uiRun( 0 ),
   m_pcNextUvlcWriter( NULL )
 {
-  UInt ui;
-
-  for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ )
-  {
-    m_apcFragBitBuffers [ui] = 0;
-    m_apcFragSymGrps    [ui] = 0;
-  }
-
-  m_uiCurrentFragment = 0;
-  m_uiNumFragments    = 0;
-  m_pSymGrp    = new UcSymGrpWriter( this );
 }
 
 
 UvlcWriter::~UvlcWriter()
 {
-  delete m_pSymGrp; 
 }
 
 
@@ -463,9 +449,8 @@ UInt UvlcWriter::getNumberOfWrittenBits()
 
 ErrVal UvlcWriter::startSlice( const SliceHeader& rcSliceHeader )
 {
-  m_bRunLengthCoding  = ! rcSliceHeader.isIntra();
+  m_bRunLengthCoding  = ! rcSliceHeader.isIntraSlice();
   m_uiRun             = 0;
-  RQreset( rcSliceHeader );
 
   if( m_pcNextUvlcWriter )
   {
@@ -773,17 +758,6 @@ ErrVal UvlcWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff )
-{
-  UInt uiCode = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
-
-  ETRACE_T( "ResidualPredFlag" );
-  RNOK( xWriteFlag( uiCode ) );
-  ETRACE_N;
-
-  return Err::m_nOK;
-}
-
 ErrVal UvlcWriter::mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx )
 {
   Mv cMv = rcMbDataAccess.getMbMvdData( eLstIdx ).getMv();
@@ -925,7 +899,7 @@ ErrVal UvlcWriter::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.getMbData().isIntra() );
   if( rcMbDataAccess.getMbData().isIntra() )
   {
-    ROF( rcMbDataAccess.getMbData().isIntra_BL() == rcMbDataAccess.getMbData().getBLSkipFlag() );
+    ROF( rcMbDataAccess.getMbData().isIntraBL() == rcMbDataAccess.getMbData().getBLSkipFlag() );
   }
   if( uiStart != 0 || uiStop != 16 )
   {
@@ -934,7 +908,7 @@ ErrVal UvlcWriter::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   UInt uiTemp = ( bIntra ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp] );
 
 #if NOK_MGSCAVLC
-  if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+  if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
   {
     UInt uiPrevCbp = 0;
     if( rcMbDataAccess.isAvailableLeft() )
@@ -1433,7 +1407,7 @@ ErrVal UvlcWriter::xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrai
   if( uiMaxCoeffs <= 4 )
   {
 #if NOK_MGSCAVLC
-    if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
     {
       UInt uiTempVlcTable = min(iVlcTable + 4-uiMaxCoeffs, 2);
       xWriteTotalRun4( uiTempVlcTable, uiTotalRun );
@@ -1447,7 +1421,7 @@ ErrVal UvlcWriter::xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrai
   else
   {
 #if NOK_MGSCAVLC
-    if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
     {
       UInt uiTempVlcTable = iVlcTable;
       if( uiMaxCoeffs < 15 )
@@ -1858,49 +1832,9 @@ UvlcWriter::xWriteGolomb(UInt uiSymbol, UInt uiK)
   return Err::m_nOK;
 }
 
-UInt
-UvlcWriter::peekGolomb(UInt uiSymbol, UInt uiK)
-{
-  UInt uiQ = uiSymbol / uiK;
-  UInt uiR = uiSymbol - uiQ * uiK;
-  UInt uiC = 0;
-  UInt uiT = uiK >> 1;
-
-  while ( uiT > 0 )
-  {
-    uiC++;
-    uiT >>= 1;
-  }
-
-  // Unary part
-  uiT = uiQ + 1 + uiC;
-  if ( uiR >= uiC && uiC > 0 )
-  {
-    uiT++;
-  }
-
-  return uiT;
-}
-
-
-
 UInt g_auiSigRunTabCode[] = {0x01, 0x01, 0x01, 0x01, 0x00};
 UInt g_auiSigRunTabCodeLen[] = {1, 2, 3, 4, 4};
 
-
-ErrVal 
-UvlcWriter::RQcountFragmentedSymbols()
-{
-  if ((m_uiRefSymbols - m_uiCodedSymbols) > 0) {
-    m_pSymGrp->setCodedFlag(false);
-    switch (m_uiCodedSymbols%3) {
-    case 0: m_uiFragmentedSymbols = 0; break;
-    case 1: m_uiFragmentedSymbols = 2; break;
-    case 2: m_uiFragmentedSymbols = 1; break;
-    }
-  }
-  return Err::m_nOK;
-}
 
 ErrVal
 UvlcWriter::xEncodeMonSeq ( UInt* auiSeq, UInt uiStartVal, UInt uiLen )
@@ -2028,97 +1962,6 @@ UvlcWriter::xWriteCodeCB2 ( UInt uiSymbol )
 }
 
 
-ErrVal
-UvlcWriter::RQreset( const SliceHeader& rcSliceHeader )
-{
-  m_pSymGrp->Init();
-  return Err::m_nOK;
-}
-
-UcSymGrpWriter::UcSymGrpWriter( UvlcWriter* pParent )
-{
-  m_pParent      = pParent;
-  Init();
-}
-
-ErrVal
-UcSymGrpWriter::Init()
-{
-  m_uiCode         = 0;
-  m_uiLen          = 0;
-  m_auiSymCount[0] = m_auiSymCount[1] = m_auiSymCount[2] = 0;
-  m_uiTable = 0;
-  m_uiCodedFlag    = false;
-
-  return Err::m_nOK;
-}
-
-ErrVal
-UcSymGrpWriter::Write( UChar ucSym )
-{
-  // ucSym takes one of three values {0, 1, 2} 
-  AOF((ucSym & 0xfc) == 0);
-
-  {
-    m_uiCode *= 3;
-    m_uiCode += ucSym;
-    m_auiSymCount[ucSym]++;
-    m_uiLen++;
-
-    if ( m_uiLen == CAVLC_SYMGRP_SIZE )
-    {
-      m_uiCodedFlag = true;
-      RNOK( m_pParent->writeCode( g_auiRefSymCode[m_uiTable][m_uiCode], g_auiRefSymLen[m_uiTable][m_uiCode], "" ) );
-      m_uiCode   = 0;
-      m_uiLen    = 0;
-    }
-  }
-
-  return Err::m_nOK;
-}
-
-Bool
-UcSymGrpWriter::UpdateVlc()
-{
-  UInt uiFlag = m_uiCodedFlag;
-  if (uiFlag) {
-    // updating
-    m_uiTable = 0;
-    if (m_auiSymCount[0] < 2 *(m_auiSymCount[1] + m_auiSymCount[2]) ||
-      m_auiSymCount[1] < 2 * m_auiSymCount[2]) {
-      m_uiTable = 1;
-    }
-
-    // scaling
-    m_auiSymCount[0] = (m_auiSymCount[0] >> 1);
-    m_auiSymCount[1] = (m_auiSymCount[1] >> 1);
-    m_auiSymCount[2] = (m_auiSymCount[2] >> 1);
-    m_uiCodedFlag = false;
-
-    m_pParent->resetFragmentedSymbols();
-  }
-  return (uiFlag != 0);
-}
-
-ErrVal
-UcSymGrpWriter::Flush()
-{
-  if ( m_uiLen == 0 )
-    return Err::m_nOK;
-
-  {
-    UInt uiMulti = 1;
-    for(UInt ui = 0; ui < (CAVLC_SYMGRP_SIZE-m_uiLen); ui++)
-      uiMulti *= 3;
-    m_uiCode *= uiMulti; 
-    m_uiLen = 0;
-  }
-  RNOK( m_pParent->writeCode( g_auiRefSymCode[m_uiTable][m_uiCode], g_auiRefSymLen[m_uiTable][m_uiCode], "" ) );
-
-  m_uiCode = 0;
-  m_uiLen  = 0;
-  return Err::m_nOK;
-}
 //JVT-X046 {
 void
 UvlcWriter::loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
@@ -2133,37 +1976,6 @@ UvlcWriter::loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
 	m_bRunLengthCoding = pcUvlcWriter->getRunLengthCoding();
 	m_uiRun = pcUvlcWriter->getRun();
 
-	UInt i;
-	UInt *pcUIntTemp;
-	UChar *pcUCharTemp;
-
-	pcUCharTemp = pcUvlcWriter->getPrescannedSymbools();
-	for ( i = 0; i < REFSYM_MB; i++ )
-		m_auiPrescannedSymbols[i] = pcUCharTemp[i];
-	m_uiRefSymbols = pcUvlcWriter->getRefSymbols();
-	m_uiCodedSymbols = pcUvlcWriter->getCodedSymbols();
-	m_uiFragmentedSymbols = pcUvlcWriter->getFragmentedSymbols();
-  
-	pcUIntTemp = pcUvlcWriter->getShiftChroma();
-	for ( i = 0; i < 16; i++ )
-		m_auiShiftLuma[i] = pcUIntTemp[i];
-	pcUIntTemp = pcUvlcWriter->getShiftLuma();
-	for ( i = 0; i < 16; i++ )
-		m_auiShiftChroma[16] = pcUIntTemp[i];
-	pcUIntTemp = pcUvlcWriter->getBestCodeTabMap();
-	for ( i = 0; i < 16; i++ )
-		m_auiBestCodeTabMap[16] = pcUIntTemp[i];
-	pcUIntTemp = pcUvlcWriter->getCbpStat4x4();
-	for ( i = 0; i < 2 ; i++ )
-		m_uiCbpStat4x4[2] = pcUIntTemp[i];
-	pcUIntTemp = new UInt[3*2];
-	getCbpStats(pcUIntTemp);
-	for ( i = 0; i < 3 ; i++ )
-		for ( UInt j = 0; j < 2; j++ )
-		{
-			m_uiCbpStats[i][j] = pcUIntTemp[i*2+j];
-		}
-	delete [] pcUIntTemp;
 	if ( m_pcBitWriteBufferIf == NULL )
 	{
 		BitWriteBuffer *pcBitWriteBuffer;

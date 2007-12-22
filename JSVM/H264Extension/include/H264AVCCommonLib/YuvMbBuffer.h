@@ -24,7 +24,7 @@ software module or modifications thereof.
 Assurance that the originally developed software module can be used
 (1) in the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) once the
 ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding) has been adopted; and
-(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding):
+(2) to develop the ISO/IEC 14496-10:2005 Amd.1 (Scalable Video Coding): 
 
 To the extent that Fraunhofer HHI owns patent rights that would be required to
 make, use, or sell the originally developed software module or portions thereof
@@ -36,10 +36,10 @@ conditions with applicants throughout the world.
 Fraunhofer HHI retains full right to modify and use the code for its own
 purpose, assign or donate the code to a third party and to inhibit third
 parties from using the code for products that do not conform to MPEG-related
-ITU Recommendations and/or ISO/IEC International Standards.
+ITU Recommendations and/or ISO/IEC International Standards. 
 
 This copyright notice must be included in all copies or derivative works.
-Copyright (c) ISO/IEC 2005.
+Copyright (c) ISO/IEC 2005. 
 
 ********************************************************************************
 
@@ -71,7 +71,7 @@ customers, employees, agents, transferees, successors, and assigns.
 The ITU does not represent or warrant that the programs furnished hereunder are
 free of infringement of any third-party patents. Commercial implementations of
 ITU-T Recommendations, including shareware, may be subject to royalty fees to
-patent holders. Information regarding the ITU-T patent policy is available from
+patent holders. Information regarding the ITU-T patent policy is available from 
 the ITU Web site at http://www.itu.int.
 
 THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
@@ -84,8 +84,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
-#if !defined(AFX_YUVMBBUFFER_H__F4C18313_4C6D_4412_96E3_BADC7F1AE13F__INCLUDED_)
-#define AFX_YUVMBBUFFER_H__F4C18313_4C6D_4412_96E3_BADC7F1AE13F__INCLUDED_
+#if !defined(AFX_INTYUVMBBUFFER_H__C9AFC3F1_5EEF_43A6_8105_C3BCD7B098FA__INCLUDED_)
+#define AFX_INTYUVMBBUFFER_H__C9AFC3F1_5EEF_43A6_8105_C3BCD7B098FA__INCLUDED_
+
 
 #if _MSC_VER > 1000
 #pragma once
@@ -95,55 +96,100 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 
-class IntYuvMbBuffer;
+class YuvPicBuffer;
 
+
+#define OFFSET 19
 class H264AVCCOMMONLIB_API YuvMbBuffer
 {
 public:
-  YuvMbBuffer();
-  virtual ~YuvMbBuffer();
+	YuvMbBuffer();
+	virtual ~YuvMbBuffer();
 
-  Pel* getYBlk( LumaIdx cIdx )
-  {
-    return &m_aucYuvBuffer[   MB_BUFFER_WIDTH + 4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2)];
-  }
-  Pel* getLumBlk()       { return m_pPelCurr; }
-  const Int getLStride()      const { return MB_BUFFER_WIDTH;}
-  const Int getCStride()      const { return MB_BUFFER_WIDTH;}
+  XPel*     getLumBlk     ()                      { return m_pPelCurrY; }
+  XPel*     getCbBlk      ()                      { return m_pPelCurrU; }
+  XPel*     getCrBlk      ()                      { return m_pPelCurrV; }
 
-  Pel* getUBlk( LumaIdx cIdx )
+  Void      set4x4Block   ( LumaIdx cIdx )
   {
-    return &m_aucYuvBuffer[18*MB_BUFFER_WIDTH + 4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)];
-  }
-  Pel* getVBlk( LumaIdx cIdx )
-  {
-    return &m_aucYuvBuffer[18*MB_BUFFER_WIDTH + 16 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)];
-  }
-  Void set4x4Block( LumaIdx cIdx )
-  {
-    m_pPelCurr = &m_aucYuvBuffer[   MB_BUFFER_WIDTH + 4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2)];
+    m_pPelCurrY = &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2)];
+    m_pPelCurrU = &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)];
+    m_pPelCurrV = &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)];
   }
 
-  Pel* getMbLumAddr()   { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
-  Pel* getMbCbAddr()    { return &m_aucYuvBuffer[18*MB_BUFFER_WIDTH +  4]; }
-  Pel* getMbCrAddr()    { return &m_aucYuvBuffer[18*MB_BUFFER_WIDTH + 16];  }
+  const Int getLStride    ()                const { return MB_BUFFER_WIDTH;}
+  const Int getCStride    ()                const { return MB_BUFFER_WIDTH;}
 
-  const Int getLWidth()       const { return 16; }
-  const Int getLHeight()      const { return 16; }
-  const Int getCWidth()       const { return 8; }
-  const Int getCHeight()      const { return 8; }
+  XPel*     getYBlk       ( LumaIdx cIdx )        { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2)]; }
+  XPel*     getUBlk       ( LumaIdx cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
+  XPel*     getVBlk       ( LumaIdx cIdx )        { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<1)]; }
+  XPel*     getCBlk       ( ChromaIdx cIdx )      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4 + ((cIdx.x() + cIdx.y()* MB_BUFFER_WIDTH)<<2) + 12*cIdx.plane()]; }
 
-  Void loadIntraPredictors( YuvPicBuffer* pcSrcBuffer );
-  Void loadBuffer( IntYuvMbBuffer* pcSrcBuffer );
-  Void loadBufferClip( IntYuvMbBuffer* pcSrcBuffer );
-  Void  setZero();
+  const XPel*     getMbLumAddr  ()          const { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
+  const XPel*     getMbCbAddr   ()          const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
+  const XPel*     getMbCrAddr   ()          const { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }
+
+  XPel*     getMbLumAddr  ()                      { return &m_aucYuvBuffer[   MB_BUFFER_WIDTH +  4]; }
+  XPel*     getMbCbAddr   ()                      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH +  4]; }
+  XPel*     getMbCrAddr   ()                      { return &m_aucYuvBuffer[OFFSET*MB_BUFFER_WIDTH + 16];  }
+
+  const Int getLWidth     ()                const { return 16; }
+  const Int getLHeight    ()                const { return 16; }
+  const Int getCWidth     ()                const { return 8; }
+  const Int getCHeight    ()                const { return 8; }
+
+  Void loadBuffer           ( YuvPicBuffer*  pcSrcBuffer );
+
+  Void loadLuma             ( YuvMbBuffer&   rcSrcBuffer, LumaIdx c4x4Idx);
+  Void loadLuma             ( YuvMbBuffer&   rcSrcBuffer, B8x8Idx c8x8Idx);
+  Void loadLuma             ( YuvMbBuffer&   rcSrcBuffer );
+  Void loadChroma           ( YuvMbBuffer&   rcSrcBuffer );
+
+  Void loadIntraPredictors  ( YuvPicBuffer*  pcSrcBuffer );
+
+  Void setAllSamplesToZero  ();
+
+  Void  add         ( YuvMbBuffer& rcIntYuvMbBuffer );
+  Void  subtract    ( YuvMbBuffer& rcIntYuvMbBuffer );
+  Void  clip        ();
+  Bool  isZero      ();
+	Void  setZero     ();
 
 protected:
-  Pel* m_pPelCurr;
-  Pel m_aucYuvBuffer[MB_BUFFER_WIDTH*26];
+  XPel* m_pPelCurrY;
+  XPel* m_pPelCurrU;
+  XPel* m_pPelCurrV;
+  XPel  m_aucYuvBuffer[MB_BUFFER_WIDTH*(29+1)];
+};
+
+class H264AVCCOMMONLIB_API IntYuvMbBufferExtension : public YuvMbBuffer
+{
+public:
+  Void loadSurrounding( YuvPicBuffer* pcSrcBuffer );
+  Void loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask );//TMM_INTERLACE
+
+  Void mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent );
+  Void mergeRightBelow    ( LumaIdx cIdx, Bool bCornerMbPresent );
+  Void mergeFromRightAbove( LumaIdx cIdx, Bool bCornerMbPresent );
+  Void mergeLeftBelow     ( LumaIdx cIdx, Bool bCornerMbPresent );
+
+  Void copyFromBelow      ( LumaIdx cIdx );
+  Void copyFromLeft       ( LumaIdx cIdx );
+  Void copyFromAbove      ( LumaIdx cIdx );
+  Void copyFromRight      ( LumaIdx cIdx );
+
+  Void copyFromLeftAbove  ( LumaIdx cIdx );
+  Void copyFromRightAbove ( LumaIdx cIdx );
+  Void copyFromLeftBelow  ( LumaIdx cIdx );
+  Void copyFromRightBelow ( LumaIdx cIdx );
+
+  Void xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV );
+  Void xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, Int iStride, Bool bPresent );
+
 };
 
 
 H264AVC_NAMESPACE_END
 
-#endif // !defined(AFX_YUVMBBUFFER_H__F4C18313_4C6D_4412_96E3_BADC7F1AE13F__INCLUDED_)
+
+#endif // !defined(AFX_INTYUVMBBUFFER_H__C9AFC3F1_5EEF_43A6_8105_C3BCD7B098FA__INCLUDED_)

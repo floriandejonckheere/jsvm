@@ -85,7 +85,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/MbMvData.h"
-#include "H264AVCCommonLib/FrameUnit.h"
 
 #include<stdio.h>
 
@@ -162,7 +161,6 @@ Void  MbMotionData::copyFrom( const MbMotionData& rcMbMotionData, const ParIdx8x
 {
   UInt uiOffset = m_auiBlk2Part[ eParIdx ];
   m_ascRefIdx[ uiOffset ] = rcMbMotionData.m_ascRefIdx[ uiOffset ];
-  m_acRefPic [ uiOffset ] = rcMbMotionData.m_acRefPic [ uiOffset ];
 
   setMotPredFlag( rcMbMotionData.getMotPredFlag( eParIdx ), eParIdx );
 
@@ -367,7 +365,6 @@ if( ! bC1 || ! bC2 )
 
 Void  MbMotionData::copyFrom( const MbMotionData& rcMbMotionData )
 {
-  ::memcpy( m_acRefPic,   rcMbMotionData.m_acRefPic,  4 * sizeof(RefPic) );
   ::memcpy( m_ascRefIdx,  rcMbMotionData.m_ascRefIdx, 4 * sizeof(SChar) ); 
   m_usMotPredFlags = rcMbMotionData.m_usMotPredFlags;
 
@@ -394,11 +391,6 @@ ErrVal
 MbMotionData::upsampleMotion( const MbMotionData& rcMbMotionData, Par8x8 ePar8x8 )
 {
   m_ascRefIdx[0] = m_ascRefIdx[1] = m_ascRefIdx[2] = m_ascRefIdx[3] = rcMbMotionData.m_ascRefIdx[ePar8x8];
-  
-  m_acRefPic [0].setFrame( NULL );
-  m_acRefPic [1].setFrame( NULL );
-  m_acRefPic [2].setFrame( NULL );
-  m_acRefPic [3].setFrame( NULL );
 
   RNOK( MbMvData::upsampleMotion( rcMbMotionData, ePar8x8 ) );
 
@@ -416,7 +408,6 @@ MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , Re
   
   for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
   {	
-	m_acRefPic[uiB8x8Idx].setFrame(NULL);
 	m_ascRefIdx[uiB8x8Idx] = pscBl4x4RefIdx[g_aucConvertTo4x4Idx[uiB8x8Idx]];
 	m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?BLOCK_NOT_PREDICTED:m_ascRefIdx[uiB8x8Idx]); 
   }

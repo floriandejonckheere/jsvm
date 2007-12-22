@@ -93,8 +93,8 @@ H264AVC_NAMESPACE_BEGIN
 
 
 PictureParameterSet::PictureParameterSet()
-: m_eNalUnitType                            ( NAL_UNIT_EXTERNAL )
-, m_uiLayerId                               ( 0 )
+: m_eNalUnitType                            ( NAL_UNIT_UNSPECIFIED_0 )
+, m_uiDependencyId                               ( 0 )
 , m_uiPicParameterSetId                     ( MSYS_UINT_MAX )
 , m_uiSeqParameterSetId                     ( MSYS_UINT_MAX )
 , m_bEntropyCodingModeFlag                  ( false )
@@ -115,6 +115,7 @@ PictureParameterSet::PictureParameterSet()
 , m_bSliceGroupChangeDirection_flag         ( false )
 , m_uiSliceGroupChangeRateMinus1            ( 0 )
 , m_uiNumSliceGroupMapUnitsMinus1           ( 0 )
+, m_bReferencesSubsetSPS                    ( false )
 {
   m_auiNumRefIdxActive[LIST_0] = 0;
   m_auiNumRefIdxActive[LIST_1] = 0;

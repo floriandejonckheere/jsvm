@@ -120,7 +120,7 @@ ErrVal WriteBitstreamToFile::uninit()
 
 ErrVal WriteBitstreamToFile::destroy()
 {
-  AOT_DBG( m_cFile.is_open() );
+  ROT( m_cFile.is_open() );
   RNOK( uninit() );
   delete this;
   return Err::m_nOK;

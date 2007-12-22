@@ -126,11 +126,10 @@ protected:
 public:
   virtual Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual Bool    isEndOfSlice() = 0;
+  virtual Bool    isEndOfSlice()                               = 0;
   virtual ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual ErrVal  resPredFlag_FGS ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff ) = 0;
 
   virtual ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx ) = 0;
   virtual ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) = 0;
@@ -166,7 +165,6 @@ public:
   virtual ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess) = 0;
   virtual ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, UInt uiStart = 0, UInt uiStop = 16 ) = 0;
   virtual ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ) = 0;
-  virtual ErrVal  RQreset                  ( const SliceHeader& rcSliceHeader ) = 0;
 };
 
 

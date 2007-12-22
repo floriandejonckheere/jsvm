@@ -145,11 +145,10 @@ ErrVal PocCalculator::destroy()
 
 ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
 {
-   if( rcSliceHeader.isIdrNalUnit() && rcSliceHeader.getInIDRAccess() )//EIDR bug-fix
-
-    {
+  if( rcSliceHeader.getIdrFlag() )
+  {
     RNOK( xInitSPS( rcSliceHeader.getSPS() ) );
-    }
+  }
 
   switch( rcSliceHeader.getSPS().getPicOrderCntType() )
   {
@@ -160,10 +159,10 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
       Int iCurrPocLsb = rcSliceHeader.getPicOrderCntLsb();
       Int iDiffPocLsb = m_iPrevRefPocLsb - iCurrPocLsb;
 
-      if( rcSliceHeader.isIdrNalUnit() && rcSliceHeader.getInIDRAccess() )//EIDR bug-fix
+      if( rcSliceHeader.getIdrFlag() )
       {
-      iCurrPocMsb   = 0;
-      iCurrPocLsb   = 0;
+        iCurrPocMsb   = 0;
+        iCurrPocLsb   = 0;
       }
       else if( iDiffPocLsb >= ( m_iMaxPocLsb >> 1 ) )
       {
@@ -201,20 +200,20 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
       UInt  uiAbsFrameNum   = 0;
 
 			//----- update parameters, set AbsFrameNum -----
-			if( rcSliceHeader.isIdrNalUnit() )
+			if( rcSliceHeader.getIdrFlag() )
 			{
 				m_iFrameNumOffset  = 0;
 			}
 			else if( m_iPrevFrameNum > (Int)rcSliceHeader.getFrameNum() )
       {
         m_iFrameNumOffset  += ( 1 << rcSliceHeader.getSPS().getLog2MaxFrameNum() );
-	}
+	    }
       m_iPrevFrameNum       = rcSliceHeader.getFrameNum();
       if( rcSliceHeader.getSPS().getNumRefFramesInPicOrderCntCycle() )
       {
         uiAbsFrameNum       = m_iFrameNumOffset + m_iPrevFrameNum;
         if( uiAbsFrameNum > 0 && rcSliceHeader.getNalRefIdc() == 0 )
-    {
+        {
           uiAbsFrameNum--;
         }
       }
@@ -229,7 +228,7 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
         for( Int iIndex = 0; iIndex <= iFrameNumCycle; iIndex++ )
         {
           iExpectedPoc     += rcSliceHeader.getSPS().getOffsetForRefFrame( iIndex );
-      }
+        }
       }
 			else
 			{
@@ -243,25 +242,24 @@ ErrVal PocCalculator::calculatePoc( SliceHeader& rcSliceHeader )
 			//----- set Poc -----
 			if( rcSliceHeader.getPicType() & TOP_FIELD )
 			{
-				rcSliceHeader.setTopFieldPoc( iExpectedPoc + rcSliceHeader.getDeltaPicOrderCnt( 0 ) );
+				rcSliceHeader.setTopFieldPoc( iExpectedPoc + rcSliceHeader.getDeltaPicOrderCnt0() );
 
 				if( rcSliceHeader.getPicType() == FRAME )
 				{
-					rcSliceHeader.setBotFieldPoc( rcSliceHeader.getTopFieldPoc() + rcSliceHeader.getDeltaPicOrderCnt( 1 ) + rcSliceHeader.getSPS().getOffsetForTopToBottomField() );
+					rcSliceHeader.setBotFieldPoc( rcSliceHeader.getTopFieldPoc() + rcSliceHeader.getDeltaPicOrderCnt1() + rcSliceHeader.getSPS().getOffsetForTopToBottomField() );
 				}
 			}
 			else
 			{
-				rcSliceHeader.setBotFieldPoc( iExpectedPoc + rcSliceHeader.getDeltaPicOrderCnt( 0 ) + rcSliceHeader.getSPS().getOffsetForTopToBottomField() );
+				rcSliceHeader.setBotFieldPoc( iExpectedPoc + rcSliceHeader.getDeltaPicOrderCnt0() + rcSliceHeader.getSPS().getOffsetForTopToBottomField() );
 			}
     }
     break;
   case 2:
     {
       //===== POC mode 2 =====
-      Int iCurrPoc = 0; // for IDR NAL unit
-      
-			if( rcSliceHeader.isIdrNalUnit() )
+      Int iCurrPoc;
+			if( rcSliceHeader.getIdrFlag() )
 			{
 				m_iFrameNumOffset  = 0;
 				iCurrPoc           = 0;
@@ -352,12 +350,12 @@ ErrVal PocCalculator::setPoc( SliceHeader&  rcSliceHeader,
 	//const UInt iCurrFieldNum = ( iContFrameNumber /*<< 1*/ ) + (m_iTop2BotOffset?1:0) + ( rcSliceHeader.getBottomFieldFlag() ? m_iTop2BotOffset : 0 );
   const UInt iCurrFieldNum = iContFrameNumber + rcSliceHeader.getBottomFieldFlag();
 
-  if( rcSliceHeader.isIdrNalUnit() )
+  if( rcSliceHeader.getIdrFlag() )
   {
     m_iBitsLsb          = rcSliceHeader.getSPS().getLog2MaxPicOrderCntLsb();
 		// JVT-Q065 EIDR
 	//m_iLastIdrFrameNum  = iContFrameNumber; 
-    if(rcSliceHeader.getInIDRAccess())
+    //if(rcSliceHeader.getInIDRAccess())
      m_iLastIdrFieldNum  = iCurrFieldNum;
   }
 
@@ -378,8 +376,7 @@ ErrVal PocCalculator::setPoc( SliceHeader&  rcSliceHeader,
 	{
 		rcSliceHeader.setBotFieldPoc  ( iCurrPoc );
 	}
-
-  rcSliceHeader.setPicOrderCntLsb ( iCurrPoc & ~ ( -1 << m_iBitsLsb ) );
+  rcSliceHeader.setPicOrderCntLsb ( iCurrPoc & ~( -1 << m_iBitsLsb ) );
 
   return Err::m_nOK;
 }

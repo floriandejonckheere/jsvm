@@ -94,523 +94,210 @@ H264AVC_NAMESPACE_BEGIN
 
 
 NalUnitParser::NalUnitParser()
-: m_pcBitReadBuffer     ( 0 )
-, m_pucBuffer           ( 0 )
-, m_eNalUnitType        ( NAL_UNIT_EXTERNAL )
-, m_eNalRefIdc          ( NAL_REF_IDC_PRIORITY_LOWEST )
-, m_bOutputFlag         (true)//JVT-W047
-, m_uiLayerId           ( 0 )
-, m_uiTemporalLevel     ( 0 )
-, m_uiQualityLevel      ( 0 )
-, m_bCheckAllNALUs      ( false ) //JVT-P031
-, m_uiDecodedLayer      ( 0 ) //JVT-P031
-, m_bDiscardableFlag    ( false )
-//, m_bTl0PicIdxPresentFlag( false )//JVT-W062
+: m_bInitialized        ( false )
+, m_bNalUnitInitialized ( false )
+, m_pcBitReadBuffer     ( 0 )
 {
-  /*for ( UInt uiLoop = 0; uiLoop < (1 << PRI_ID_BITS); uiLoop++ )
-  {
-    m_uiTemporalLevelList[uiLoop] = 0;
-    m_uiDependencyIdList [uiLoop] = 0;
-    m_uiQualityLevelList [uiLoop] = 0;
-  }
- JVT-S036 lsj */
 }
-
 
 NalUnitParser::~NalUnitParser()
 {
 }
 
-
 ErrVal
 NalUnitParser::create( NalUnitParser*& rpcNalUnitParser )
 {
   rpcNalUnitParser = new NalUnitParser;
-
   ROT( NULL == rpcNalUnitParser );
-
   return Err::m_nOK;
 }
-
-
-ErrVal
-NalUnitParser::init( BitReadBuffer *pcBitReadBuffer )
-{
-  ROT(NULL == pcBitReadBuffer);
-
-  m_pcBitReadBuffer = pcBitReadBuffer;
-
-  return Err::m_nOK;
-}
-
 
 ErrVal
 NalUnitParser::destroy()
 {
+  ROT( m_bInitialized );
+  ROT( m_bNalUnitInitialized );
   delete this;
   return Err::m_nOK;
 }
 
-
-Void
-NalUnitParser::xTrace( Bool bDDIPresent )
+ErrVal
+NalUnitParser::init( BitReadBuffer*       pcBitReadBuffer,
+                     HeaderSymbolReadIf*  pcHeaderSymbolReadIf )
 {
-  g_nLayer = m_uiQualityLevel;
-  DTRACE_LAYER(m_uiQualityLevel);
+  ROT( m_bInitialized );
+  ROT( m_bNalUnitInitialized );
+  ROF( pcBitReadBuffer );
+  ROF( pcHeaderSymbolReadIf );
+  m_bInitialized          = true;
+  m_bNalUnitInitialized   = false;
+  m_pcBitReadBuffer       = pcBitReadBuffer;
+  m_pcHeaderSymbolReadIf  = pcHeaderSymbolReadIf;
+  return Err::m_nOK;
+}
 
-  //===== head line =====
-  switch( m_eNalUnitType )
+ErrVal
+NalUnitParser::uninit()
+{
+  ROF( m_bInitialized );
+  ROT( m_bNalUnitInitialized );
+  m_bInitialized          = false;
+  m_bNalUnitInitialized   = false;
+  m_pcBitReadBuffer       = 0;
+  m_pcHeaderSymbolReadIf  = 0;
+  return Err::m_nOK;
+}
+
+ErrVal
+NalUnitParser::initNalUnit( BinDataAccessor& rcBinDataAccessor )
+{
+  ROF( m_bInitialized );
+  ROT( m_bNalUnitInitialized );
+  ROF( rcBinDataAccessor.size() );
+  ROF( rcBinDataAccessor.data() );
+
+  //===== determine NAL unit type =====
+  UChar       ucFirstByte   = rcBinDataAccessor.data()[ 0 ];
+  NalRefIdc   eNalRefIdc    = NalRefIdc   ( ( ucFirstByte & 0x7F ) >> 5 );
+  NalUnitType eNalUnitType  = NalUnitType (   ucFirstByte & 0x1F );
+  Bool        bTrailingBits = true;
+  switch( eNalUnitType )
   {
   case NAL_UNIT_SPS:
     DTRACE_HEADER( "SEQUENCE PARAMETER SET" );
     break;
-  //SSPS {
-	case NAL_UNIT_SUB_SPS:
-    DTRACE_HEADER( "SUB SEQUENCE PARAMETER SET" );
+  case NAL_UNIT_SPS_EXTENSION:
+    DTRACE_HEADER( "SEQUENCE PARAMETER SET EXTENSION" );
     break;
-	//SSPS }
+  case NAL_UNIT_SUBSET_SPS:
+    DTRACE_HEADER( "SUBSET SEQUENCE PARAMETER SET" );
+    break;
   case NAL_UNIT_PPS:
     DTRACE_HEADER( "PICTURE PARAMETER SET" );
     break;
-
   case NAL_UNIT_SEI:
-    DTRACE_HEADER( "SEI MESSAGE" );
+    DTRACE_HEADER( "SEI" );
     break;
-
+  case NAL_UNIT_FILLER_DATA:
+    DTRACE_HEADER( "FILLER DATA" );
+    break;
+  case NAL_UNIT_ACCESS_UNIT_DELIMITER:
+    DTRACE_HEADER( "ACCESS UNIT DELIMITER" );
+    break;
+  case NAL_UNIT_END_OF_SEQUENCE:
+    DTRACE_HEADER( "END OF SEQUENCE" );
+    bTrailingBits = false;
+    break;
+  case NAL_UNIT_END_OF_STREAM:
+    DTRACE_HEADER( "END OF STREAM" );
+    bTrailingBits = false;
+    break;
+  case NAL_UNIT_PREFIX:
+    DTRACE_HEADER( "PREFIX" );
+    bTrailingBits = ( eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST );
+    break;
   case NAL_UNIT_CODED_SLICE:
+  case NAL_UNIT_CODED_SLICE_DATAPART_A:
+  case NAL_UNIT_CODED_SLICE_DATAPART_B:
+  case NAL_UNIT_CODED_SLICE_DATAPART_C:
   case NAL_UNIT_CODED_SLICE_IDR:
+  case NAL_UNIT_AUX_CODED_SLICE:
   case NAL_UNIT_CODED_SLICE_SCALABLE:
-  case NAL_UNIT_CODED_SLICE_IDR_SCALABLE:
     DTRACE_NEWSLICE;
     break;
-
-  case NAL_UNIT_PREFIX:
-    DTRACE_HEADER( "PREFIX UNIT" );
+  case NAL_UNIT_RESERVED_16:
+  case NAL_UNIT_RESERVED_17:
+  case NAL_UNIT_RESERVED_18:
+  case NAL_UNIT_RESERVED_21:
+  case NAL_UNIT_RESERVED_22:
+  case NAL_UNIT_RESERVED_23:
+    DTRACE_HEADER( "RESERVED" );
+    bTrailingBits = false;
     break;
-
   default:
+    DTRACE_HEADER( "UNSPECIFIED" );
+    bTrailingBits = false;
     break;
   }
 
-  //===== forbidden zero bit =====
-  DTRACE_TH   ( "NALU HEADER: forbidden_zero_bit" );
-  DTRACE_TY   ( " u(1)" );
-  DTRACE_BITS ( 0, 1 );
-  DTRACE_POS;
-  DTRACE_CODE ( 0 );
-  DTRACE_COUNT( 1 );
-  DTRACE_N;
-
-  //===== nal ref idc =====
-  DTRACE_TH   ( "NALU HEADER: nal_ref_idc" );
-  DTRACE_TY   ( " u(2)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_eNalRefIdc );
-  DTRACE_BITS ( m_eNalRefIdc, 2 );
-  DTRACE_COUNT( 2 );
-  DTRACE_N;
-
-  //===== nal unit type =====
-  DTRACE_TH   ( "NALU HEADER: nal_unit_type" );
-  DTRACE_TY   ( " u(5)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_eNalUnitType );
-  DTRACE_BITS ( m_eNalUnitType, 5 );
-  DTRACE_COUNT( 5 );
-  DTRACE_N;
-
-  ROFVS( bDDIPresent );
-
-  // ========= nal_unit_header_svc_extension( ) =========
-  DTRACE_TH   ( "NALU HEADER SVC: reserved_one_bit" );
-  DTRACE_TY   ( " u(1)" );
-  DTRACE_BITS ( 1, 1 );
-  DTRACE_POS;
-  DTRACE_CODE ( 1 );
-  DTRACE_COUNT( 1 );
-  DTRACE_N;
-
-  
-  DTRACE_TH   ( "NALU HEADER SVC: idr_flag" );
-  DTRACE_TY   ( " u(1)" );
-  DTRACE_POS;
-  DTRACE_CODE ( 0 );
-  DTRACE_BITS ( 0, 1 );
-  DTRACE_COUNT( 1 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: priority_id" );
-  DTRACE_TY   ( " u(6)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_uiPriorityId );
-  DTRACE_BITS ( m_uiPriorityId, 6 );
-  DTRACE_COUNT( 6 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: no_inter_layer_pred_flag" );
-  DTRACE_TY   ( " u(1)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_bLayerBaseFlag );
-  DTRACE_BITS ( m_bLayerBaseFlag, 1 );
-  DTRACE_COUNT( 1 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: dependency_id" );
-  DTRACE_TY   ( " u(3)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_uiLayerId );
-  DTRACE_BITS ( m_uiLayerId, 3 );
-  DTRACE_COUNT( 3 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: quality_id" );
-  DTRACE_TY   ( " u(4)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_uiQualityLevel );
-  DTRACE_BITS ( m_uiQualityLevel, 4 );
-  DTRACE_COUNT( 4 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: temporal_id" );
-  DTRACE_TY   ( " u(3)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_uiTemporalLevel );
-  DTRACE_BITS ( m_uiTemporalLevel, 3 );
-  DTRACE_COUNT( 3 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: use_ref_base_pic_flag" );
-  DTRACE_TY   ( " u(1)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_bUseBasePredFlag );
-  DTRACE_BITS ( m_bUseBasePredFlag, 1 );
-  DTRACE_COUNT( 1 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: discardable_flag" );
-  DTRACE_TY   ( " u(1)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_bDiscardableFlag );
-  DTRACE_BITS ( m_bDiscardableFlag, 1 );
-  DTRACE_COUNT( 1 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: output_flag" );
-  DTRACE_TY   ( " u(1)" );
-  DTRACE_POS;
-  DTRACE_CODE ( m_bOutputFlag );
-  DTRACE_BITS ( m_bOutputFlag, 1 );
-  DTRACE_COUNT( 1 );
-  DTRACE_N;
-
-  DTRACE_TH   ( "NALU HEADER SVC: reserved_three_2bits" );
-  DTRACE_TY   ( " u(2)" );
-  DTRACE_POS;
-  DTRACE_CODE ( 3 );
-  DTRACE_BITS ( 3, 2 );
-  DTRACE_COUNT( 2 );
-  DTRACE_N;
-
-//   // JVT-V088 LMI {
-//   // JVT-U116 LMI {
-//   DTRACE_TH   ( "NALU HEADER: tl0_pic_idx_present_flag" );
-//   DTRACE_TY   ( " u(1)" );
-//   DTRACE_POS;
-//   DTRACE_CODE ( m_bTl0PicIdxPresentFlag );
-//   DTRACE_BITS ( m_bTl0PicIdxPresentFlag, 1 );
-//   DTRACE_COUNT( 1 );
-//   DTRACE_N;
-//   
-//   // JVT-U116 LMI }
-//   // JVT-V088 LMI }
-  
-}
-
-
-// UInt
-// NalUnitParser::getNalHeaderSize( BinDataAccessor* pcBinDataAccessor ) const
-// {
-//   ROF( pcBinDataAccessor->size() );
-//   ROF( pcBinDataAccessor->data() );
-// 
-//   NalUnitType   eNalUnitType;
-//   NalRefIdc     eNalRefIdc;
-// 
-//   UInt  uiHeaderLength  = 1;
-//   UChar ucByte          = pcBinDataAccessor->data()[0];
-// 
-// 
-//   //===== NAL unit header =====
-//   ROT( ucByte & 0x80 );                                   // forbidden_zero_bit ( &10000000b)
-//   eNalRefIdc          = NalRefIdc   ( ucByte >> 5     );  // nal_ref_idc        ( &01100000b)
-//   eNalUnitType        = NalUnitType ( ucByte &  0x1F  );  // nal_unit_type      ( &00011111b)
-// 
-// 
-//   if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-//       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
-//   {
-//     uiHeaderLength      += NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
-//     // JVT-U116 LMI {
-//     ucByte = pcBinDataAccessor->data()[3];
-//     if ( ucByte & 1 )
-//       uiHeaderLength ++;
-//     // JVT-U116 LMI }
-//   }
-// 
-//   return uiHeaderLength;
-// }
-
-ErrVal
-NalUnitParser::initSODBNalUnit( BinDataAccessor* pcBinDataAccessor )
-{
-  m_pucBuffer = pcBinDataAccessor->data();
-  UInt uiPacketLength = pcBinDataAccessor->size();
-
-  UInt uiBits;
-  xConvertRBSPToSODB(uiPacketLength, uiBits);
-
-  RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBits) );
-  return Err::m_nOK;
-}
-
-UInt
-NalUnitParser::getBytesLeft()
-{
-  return(m_pcBitReadBuffer->getBytesLeft());
-}
-
-UInt
-NalUnitParser::getBitsLeft()
-{
-  return(m_pcBitReadBuffer->getBitsLeft());
-}
-//~JVT-P031
-
-ErrVal
-NalUnitParser::initNalUnit( BinDataAccessor*  pcBinDataAccessor, 
-                            UInt&             uiNumBytesRemoved,  //FIX_FRAG_CAVLC
-                            Bool              bPreParseHeader, 
-                            Bool              bConcatenated,      //FRAG_FIX
-													  Bool	            bCheckGap,          //TMM_EC
-                            UInt*             puiNumFragments,
-                            UChar**           ppucFragBuffers ) 
-{
-  ROF( pcBinDataAccessor->size() );
-  ROF( pcBinDataAccessor->data() );
-
-
-  UInt  uiHeaderLength  = 1;
-
-  //===== NAL unit header =====
-  UCharArrayParser cNaluHeader( pcBinDataAccessor->data() );
-  ROT( cNaluHeader.getBit() );                                // NALU HEADER: forbidden_zero_bit
-  m_eNalRefIdc   = NalRefIdc   ( cNaluHeader.getBits( 2 ) );  // NALU HEADER: nal_ref_idc
-  m_eNalUnitType = NalUnitType ( cNaluHeader.getBits( 5 ) );  // NALU HEADER: nal_unit_type
-
-//  TMM_EC {{
-  if ( *(int*)(pcBinDataAccessor->data()+1) != 0xdeadface)
-  { 
-    if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-        m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
-	    	m_eNalUnitType == NAL_UNIT_PREFIX)//prefix unit
-    {
-      ROF( pcBinDataAccessor->size() > 3 );
-
-      // byte 0
-      cNaluHeader.getBit();                             // NALU HEADER SVC: reserved_one_bit
-      cNaluHeader.getBit();/*dummy*/                    // NALU HEADER SVC: idr_flag
-      m_uiPriorityId     = cNaluHeader.getBits( 6 );    // NALU HEADER SVC: priority_id
-      // byte 1
-      m_bLayerBaseFlag   = cNaluHeader.getBit();        // NALU HEADER SVC: no_inter_layer_pred_flag
-      m_uiLayerId        = cNaluHeader.getBits( 3 );    // NALU HEADER SVC: dependency_id
-      m_uiQualityLevel   = cNaluHeader.getBits( 4 );    // NALU HEADER SVC: quality_id
-      // byte 2
-      m_uiTemporalLevel  = cNaluHeader.getBits( 3 );    // NALU HEADER SVC: temporal_id
-      m_bUseBasePredFlag = cNaluHeader.getBit();        // NALU HEADER SVC: use_ref_base_pic_flag
-      m_bDiscardableFlag = cNaluHeader.getBit();        // NALU HEADER SVC: discardable_flag
-      m_bOutputFlag      = cNaluHeader.getBit();        // NALU HEADER SVC: output_flag
-      cNaluHeader.getBits( 2 );                         // NALU HEADER SVC: reserved_three_2bits
-
-      uiHeaderLength    +=  NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
-    }
-    else
-    {
-      m_uiPriorityId    = 0;
-			m_bOutputFlag     = true;//JVT-W047
-      m_uiTemporalLevel = 0;
-      m_uiLayerId       = 0;
-      m_uiQualityLevel  = 0;
-
-      m_bLayerBaseFlag  = 1; // m_bLayerBaseFlag indicate that the content of the NAL is compatible with NAL_UNIT_CODED_SLICE
-      m_bUseBasePredFlag= 0;
-      m_bDiscardableFlag= 0;
-    }
-  }
-  else //TMM_EC
-  {
-    uiNumBytesRemoved  =  0;
-    m_pucBuffer         = pcBinDataAccessor->data() + uiHeaderLength;
-    return Err::m_nOK;
-  }
-
-
-  //===== TRACE output =====
-  xTrace( uiHeaderLength > 1 );
-
-  //===== NAL unit payload =====
-  m_pucBuffer         = pcBinDataAccessor->data() + uiHeaderLength;
-  UInt uiPacketLength = pcBinDataAccessor->size() - uiHeaderLength;
-
-  //JVT-P031
-  if(m_bDiscardableFlag == true && m_uiDecodedLayer > m_uiLayerId && !m_bCheckAllNALUs)
-  {
-    //Nal unit or fragment must be discarded
-        uiPacketLength = 0;
-  }
-  //~JVT-P031
-
-  // nothing more to do
-  ROTRS( NAL_UNIT_END_OF_STREAM   == m_eNalUnitType ||
-         NAL_UNIT_END_OF_SEQUENCE == m_eNalUnitType,    Err::m_nOK );
-
-  uiNumBytesRemoved = uiPacketLength;//FIX_FRAG_CAVLC
-  if ( !bCheckGap)
-  {
-    // Unit->RBSP
-    if(bPreParseHeader) //FRAG_FIX
-    {//FIX_FRAG_CAVLC
-        RNOK( xConvertPayloadToRBSP ( uiPacketLength ) );
-        uiNumBytesRemoved -= uiPacketLength; //FIX_FRAG_CAVLC
-    }//FIX_FRAG_CAVLC
-  }
-  else //TMM_EC
-  {
-    uiNumBytesRemoved  =  0;
-  }
-  UInt uiBitsInPacket;
-  // RBSP->SODB
-  RNOK( xConvertRBSPToSODB    ( uiPacketLength, uiBitsInPacket ) );
-
-  //FRAG_FIX
-  if(!(m_bDiscardableFlag && m_uiDecodedLayer > m_uiLayerId)) //FRAG_FIX_3
-  {
-    if(bPreParseHeader)
-        m_uiBitsInPacketSaved = uiBitsInPacket;
-    if(!bPreParseHeader && !bConcatenated) //FRAG_FIX_3
-        uiBitsInPacket = m_uiBitsInPacketSaved;
-  } //FRAG_FIX_3
-
-  if(!m_bDiscardableFlag || (m_bDiscardableFlag && m_uiDecodedLayer == m_uiLayerId) || m_bCheckAllNALUs) //JVT-P031
-  {
-    RNOK( m_pcBitReadBuffer->initPacket( (ULong*)(m_pucBuffer), uiBitsInPacket, puiNumFragments, ppucFragBuffers ) );
-  }
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-NalUnitParser::closeNalUnit()
-{
-  m_pucBuffer         = NULL;
-  m_eNalUnitType      = NAL_UNIT_EXTERNAL;
-  m_eNalRefIdc        = NAL_REF_IDC_PRIORITY_LOWEST;
-  m_uiLayerId         = 0;
-  m_uiTemporalLevel   = 0;
-  m_uiQualityLevel    = 0;
+  //===== init bit read buffer and read NAL unit header =====
+  RNOK( xInitSODB( rcBinDataAccessor, bTrailingBits ) );
+  RNOK( NalUnitHeader::read( *m_pcHeaderSymbolReadIf ) );
+  m_bNalUnitInitialized = true;
 
   return Err::m_nOK;
 }
 
-
+ErrVal
+NalUnitParser::closeNalUnit( Bool bCheckEndOfNalUnit )
+{
+  ROF( m_bInitialized );
+  ROF( m_bNalUnitInitialized );
+  ROT( bCheckEndOfNalUnit && m_pcBitReadBuffer->isValid() );
+  m_bNalUnitInitialized = false;
+  return Err::m_nOK;
+}
 
 ErrVal
-NalUnitParser::xConvertPayloadToRBSP( UInt& ruiPacketLength )
+NalUnitParser::xInitSODB( BinDataAccessor&  rcBinDataAccessor,
+                          Bool              bTrailingBits )
 {
-  UInt uiZeroCount    = 0;
-  UInt uiWriteOffset  = 0;
-  UInt uiReadOffset   = 0;
+  UChar*  pucBuffer       = rcBinDataAccessor.data();
+  UInt    uiRBSPSize      = 0;
+  UInt    uiBitsInPacket  = 0;
 
-  for( ; uiReadOffset < ruiPacketLength; uiReadOffset++, uiWriteOffset++ )
+  //===== convert payload to RBSP =====
+  for( UInt uiNumZeros = 0, uiReadOffset = 0; uiReadOffset < rcBinDataAccessor.size(); uiReadOffset++ )
   {
-    if( 2 == uiZeroCount && 0x03 == m_pucBuffer[uiReadOffset] )
+    if( uiNumZeros == 2 && pucBuffer[ uiReadOffset ] == 0x03 )
     {
       uiReadOffset++;
-      uiZeroCount = 0;
+      uiNumZeros = 0;
     }
-
-    m_pucBuffer[uiWriteOffset] = m_pucBuffer[uiReadOffset];
-
-    if( 0x00 == m_pucBuffer[uiReadOffset] )
+    
+    pucBuffer[ uiRBSPSize++ ] = pucBuffer[ uiReadOffset ];
+    
+    if( pucBuffer[ uiReadOffset] == 0x00 )
     {
-      uiZeroCount++;
+      uiNumZeros++;
     }
     else
     {
-      uiZeroCount = 0;
+      uiNumZeros = 0;
     }
   }
+  
+  //===== determine bits in NAL unit except trailing bits =====
+  uiBitsInPacket      = ( uiRBSPSize << 3 );
+  UInt  uiLastBytePos = uiRBSPSize - 1;
 
-  ruiPacketLength = uiWriteOffset;
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-NalUnitParser::xConvertRBSPToSODB( UInt  uiPacketLength,
-                                   UInt& ruiBitsInPacket )
-{
-  uiPacketLength--;
-  UChar *puc = m_pucBuffer;
-
-  //remove zero bytes at the end of the stream
-  while (puc[uiPacketLength] == 0x00)
+  //----- remove zero bytes at the end -----
   {
-    uiPacketLength-=1;
+    while( pucBuffer[ uiLastBytePos ] == 0x00 )
+    {
+      uiLastBytePos --;
+    }
+    uiBitsInPacket  -= ( ( uiRBSPSize - uiLastBytePos - 1 ) << 3 );
   }
 
-  // find the first non-zero bit
-  UChar ucLastByte=puc[uiPacketLength];
-  Int   i;
-  for(  i = 0; (ucLastByte & 1 ) == 0; i++ )
+  //----- remove trailing bits -----
+  if( bTrailingBits )
   {
-    ucLastByte >>= 1;
-    AOT_DBG( i > 7 );
+    UChar ucLastByte    = pucBuffer[ uiLastBytePos ];
+    UInt  uiNumZeroBits = 0;
+    while( ( ucLastByte & 0x01 ) == 0x00 )
+    {
+      ucLastByte    >>= 1;
+      uiNumZeroBits ++;
+    }
+    uiBitsInPacket  -= uiNumZeroBits;
   }
 
-  ruiBitsInPacket = (uiPacketLength << 3) + 8 - i;
+  //===== init bit read buffer =====
+  ULong*  pulBuffer = (ULong*)pucBuffer;
+  RNOK( m_pcBitReadBuffer->initPacket( pulBuffer, uiBitsInPacket ) );
   return Err::m_nOK;
 }
 
-ErrVal NalUnitParser::readAUDelimiter()
-{
-  DTRACE_HEADER("Access Unit Delimiter");
-
-  UInt uiPicDelimiterType;
-  m_pcBitReadBuffer->get(uiPicDelimiterType, 3);
-
-  DTRACE_TH( "AUD: primary_pic_type"  );
-  DTRACE_TY( " u(3)" );
-  DTRACE_BITS(uiPicDelimiterType, 3);
-  DTRACE_POS;
-  DTRACE_CODE(uiPicDelimiterType);
-  DTRACE_COUNT(3);
-  DTRACE_N;
-
-  return Err::m_nOK;
-}
-
-ErrVal NalUnitParser::readEndOfSeqence()
-{
-  DTRACE_HEADER("End of Sequence");
-  return Err::m_nOK;
-}
-
-ErrVal NalUnitParser::readEndOfStream()
-{
-  DTRACE_HEADER("End of Stream");
-  return Err::m_nOK;
-}
 
 H264AVC_NAMESPACE_END

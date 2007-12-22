@@ -97,95 +97,34 @@ class MbSymbolReadIf;
 
 class MbParser
 {
-//quick bug fix
-  class IntMbTempData :
-      public MbData
-    , public MbTransformCoeffs
-  {
-  public:
-    MbDataAccess&       getMbDataAccess   ()                  { AOF_DBG(m_pcMbDataAccess); return *m_pcMbDataAccess; }
-
-    IntMbTempData() :
-    m_pcMbDataAccess( NULL )
-    {
-      m_pcMbDataAccess = NULL;  
-      MbDataStruct::clear();
-      MbTransformCoeffs::clear();
-
-      MbData::init( this, &m_acMbMvdData[0], &m_acMbMvdData[1], &m_acMbMotionData[0], &m_acMbMotionData[1] );
-    }
-
-    ~IntMbTempData()
-    {
-      delete m_pcMbDataAccess;
-      m_pcMbDataAccess = NULL;
-    }
-
-  protected:
-    MbDataAccess*       m_pcMbDataAccess;
-    MbMvData            m_acMbMvdData[2];
-    MbMotionData        m_acMbMotionData[2];
-  };
-
-
-
-
-
 protected:
 	MbParser();
 	virtual ~MbParser();
 
 public:
-  static ErrVal create    ( MbParser*&      rpcMbParser );
-  ErrVal        destroy   ();
+  static ErrVal create  ( MbParser*&      rpcMbParser );
+  ErrVal        destroy ();
+  ErrVal        init    ();
+  ErrVal        uninit  ();
 
-  ErrVal initSlice        ( MbSymbolReadIf* pcMbSymbolReadIf );
-  ErrVal init             ( Transform*      pcTransform );
-  ErrVal uninit           ();
-  ErrVal process          ( MbDataAccess&   rcMbDataAccess, Bool& rbEndOfSlice);
-
-  ErrVal read             ( MbDataAccess&   rcMbDataAccess,
-                            Int             iSpatialScalabilityType,
-                            Bool&           rbEndOfSlice);
-  ErrVal readMotion       ( MbDataAccess&  rcMbDataAccess,
-                            MbDataAccess*  pcMbDataAccessBase );
-//	TMM_EC {{
-  ErrVal readVirtual      ( MbDataAccess&   rcMbDataAccess,
-                            MbDataAccess*   pcMbDataAccessBaseFrame,
-                            MbDataAccess*   pcMbDataAccessBaseField,
-                            Int             iSpatialScalabilityType,
-                            Bool&           rbEndOfSlice,
-														ERROR_CONCEAL   e_ErrorConceal);
-//  TMM_EC }}
+  ErrVal initSlice      ( MbSymbolReadIf* pcMbSymbolReadIf );
+  ErrVal read           ( MbDataAccess&   rcMbDataAccess,
+                          Bool&           rbEndOfSlice );
 
 protected:
   ErrVal xSkipMb                      ( MbDataAccess& rcMbDataAccess );
-  ErrVal xReadMbType                  ( MbDataAccess& rcMbDataAccess );
   ErrVal xReadIntraPredModes          ( MbDataAccess& rcMbDataAccess );
 
-	//-- JVT-R091
-  ErrVal xReadTextureInfo             ( MbDataAccess& rcMbDataAccess, Bool bTrafo8x8Flag, Bool bBaseLayerAvailable, UInt uiStart = 0, UInt uiStop = 16 ); //TMM_INTERLACE
+  ErrVal xReadTextureInfo             ( MbDataAccess& rcMbDataAccess, Bool bTrafo8x8Flag, Bool bBaseLayerAvailable, UInt uiStart = 0, UInt uiStop = 16 );
   ErrVal xScanChromaBlocks            ( MbDataAccess& rcMbDataAccess, UInt uiChromCbp, UInt uiStart = 0, UInt uiStop = 16 );
-
-  ErrVal xReadMotionVectors           ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );
-  ErrVal xReadReferenceFrames         ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );
-
-  ErrVal xReadReferenceFramesNoRefPic ( MbDataAccess& rcMbDataAccess, MbMode eMbMode, ListIdx eLstIdx );
-
-  ErrVal xReadMotionPredFlags_FGS     ( MbDataAccess& rcMbDataAccess,
-                                        MbDataAccess* pcMbDataAccessBaseMotion,
-                                        MbMode        eMbMode,
-                                        ListIdx       eLstIdx );
-  ErrVal xReadMotionPredFlags         ( MbDataAccess& rcMbDataAccess,
-                                        MbMode        eMbMode,
-                                        ListIdx       eLstIdx );
-
+  ErrVal xReadMotionVectors           ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
+  ErrVal xReadReferenceFramesNoRefPic ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
+  ErrVal xReadMotionPredFlags         ( MbDataAccess& rcMbDataAccess, MbMode  eMbMode, ListIdx eLstIdx );
   ErrVal xGet8x8BlockMv               ( MbDataAccess& rcMbDataAccess, B8x8Idx c8x8Idx, ListIdx eLstIdx );
 
 protected:
-  Transform*      m_pcTransform;
-  MbSymbolReadIf* m_pcMbSymbolReadIf;
   Bool            m_bInitDone;
+  MbSymbolReadIf* m_pcMbSymbolReadIf;
   Bool            m_bPrevIsSkipped;
 };
 

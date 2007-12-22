@@ -115,8 +115,9 @@ public:
   static ErrVal create  ( PictureParameterSet*& rpcPPS );
   ErrVal        destroy ();
 
+  Bool                  referencesSubsetSPS                     ()            const { return m_bReferencesSubsetSPS; }
   NalUnitType           getNalUnitType                          ()            const { return m_eNalUnitType; }
-  UInt                  getLayerId                              ()            const { return m_uiLayerId; }
+  UInt                  getDependencyId                              ()            const { return m_uiDependencyId; }
   UInt                  getPicParameterSetId                    ()            const { return m_uiPicParameterSetId; }
   UInt                  getSeqParameterSetId                    ()            const { return m_uiSeqParameterSetId; }
   Bool                  getEntropyCodingModeFlag                ()            const { return m_bEntropyCodingModeFlag; }
@@ -156,9 +157,9 @@ public:
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
 
-
+  Void  setReferencesSubsetSPS                  ( Bool b )                  { m_bReferencesSubsetSPS                    = b; }
   Void  setNalUnitType                          ( NalUnitType e )           { m_eNalUnitType                            = e; }
-  Void  setLayerId                              ( UInt        ui )          { m_uiLayerId                               = ui; }
+  Void  setDependencyId                              ( UInt        ui )          { m_uiDependencyId                               = ui; }
   Void  setPicParameterSetId                    ( UInt        ui )          { m_uiPicParameterSetId                     = ui; }
   Void  setSeqParameterSetId                    ( UInt        ui )          { m_uiSeqParameterSetId                     = ui; }
   Void  setEntropyCodingModeFlag                ( Bool        b )           { m_bEntropyCodingModeFlag                  = b; }
@@ -211,7 +212,6 @@ public:
   Void setSliceGroupChangeCycle(UInt SliceGroupChangeCycle){ m_uiSliceGroupChangeCycle = SliceGroupChangeCycle;}
   //--ICU/ETRI FMO Implementation : FMO stuff end
 
-
   ErrVal write      ( HeaderSymbolWriteIf*  pcWriteIf ) const;
   ErrVal read       ( HeaderSymbolReadIf*   pcReadIf,
                       NalUnitType           eNalUnitType );
@@ -222,7 +222,7 @@ protected:
 
 protected:
   NalUnitType   m_eNalUnitType;
-  UInt          m_uiLayerId;
+  UInt          m_uiDependencyId;
   UInt          m_uiPicParameterSetId;
   UInt          m_uiSeqParameterSetId;
   Bool          m_bEntropyCodingModeFlag;
@@ -256,6 +256,8 @@ protected:
   Bool          m_bRedundantPicCntPresentFlag;  //JVT-Q054 Red. Picture u(1)
 	Bool          m_bRedundantKeyPicCntPresentFlag;  //JVT-W049
   Bool          m_bEnableRedundantKeyPicCntPresentFlag;  //JVT-W049
+
+  Bool          m_bReferencesSubsetSPS;
 };
 
 

@@ -233,54 +233,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
   for( Int n = 1; n < argc; n++ )
   {
     pcCom = argv[n++];
-
-  /*  if( equals( pcCom, "-rcdo-bs", 8 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt  uiValue = atoi( argv[n] );
-      CodingParameter::setRCDOBlockSizes( uiValue );
-      continue;
-    }
-    if( equals( pcCom, "-rcdo-mc-y", 10 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt  uiValue = atoi( argv[n] );
-      CodingParameter::setRCDOMotionCompensationY( uiValue );
-      continue;
-    }
-    if( equals( pcCom, "-rcdo-mc-c", 10 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt  uiValue = atoi( argv[n] );
-      CodingParameter::setRCDOMotionCompensationC( uiValue );
-      continue;
-    }
-    if( equals( pcCom, "-rcdo-mc", 8 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt  uiValue = atoi( argv[n] );
-      CodingParameter::setRCDOMotionCompensationY( uiValue );
-      CodingParameter::setRCDOMotionCompensationC( uiValue );
-      continue;
-    }
-    if( equals( pcCom, "-rcdo", 5 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt  uiValue = atoi( argv[n] );
-      CodingParameter::setRCDOBlockSizes         ( uiValue );
-      CodingParameter::setRCDOMotionCompensationY( uiValue );
-      CodingParameter::setRCDOMotionCompensationC( uiValue );
-      continue;
-    }
-    if( equals( pcCom, "-4tap-mc-y", 10 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt  uiValue = atoi( argv[n] );
-      CodingParameter::set4TapMotionCompensationY( uiValue );
-	  if(uiValue != 0)
-		  CodingParameter::setRCDOMotionCompensationY( 0 );
-      continue;
-    }*/
     if( equals( pcCom, "-kpm", 4 ) )
     {
       ROTS( NULL == argv[n  ] );
@@ -293,13 +245,6 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       ROTS( NULL == argv[n] );
       UInt uiMode = atoi( argv[n] );
       CodingParameter::setMGSKeyPictureControl( uiMode );
-      continue;
-    }
-    if( equals( pcCom, "-mgsmotr", 5 ) )
-    {
-      ROTS( NULL == argv[n] );
-      UInt uiMode = atoi( argv[n] );
-      CodingParameter::setMGSKeyPictureMotRef( uiMode );
       continue;
     }
     if( equals( pcCom, "-eqpc", 5 ) )
@@ -761,11 +706,8 @@ Void EncoderCodingParameter::printHelp()
   printf("  -rcdo-db   (value)  RDCO deblocking                 (0:off,1:ELonly,2:on)\n" );
   printf("  -rcdo      (value)  RDCO (all components)           (0:off,1:ELonly,2:on)\n" );
 */
-  printf("  -4tap-mc-y (value)  4-tap motion compensation luma   (0:off,1:ELonly,2:on)\n" );  // V090
-
   printf("  -kpm       (mode) [0:only for FGS(default), 1:FGS&MGS, 2:always]\n");
   printf("  -mgsctrl   (mode) [0:normal encoding(default), 1:EL ME, 2:EL ME+MC]\n");
-  printf("  -mgsmotr   (mode) [0:no MGS mot ref, 1:normal mot ref (default)\n");
   
   printf("  -eqpc   (layer) (value)         sets explicit QP cascading mode for given layer [0: no, 1: yes]\n");
   printf("  -dqp    (layer) (level) (value) sets delta QP for given layer and temporal level (in explicit mode)\n");
@@ -910,16 +852,8 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TLNestingFlag",           &m_uiTlevelNestingFlag,                                0 );  //JVT-U085
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("TL0DepRepIdxSeiEnable",    &m_uiTl0DepRepIdxSeiEnable,                           0 );  //JVT-U116,JVT-W062
 
-  // m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOBlockSizes",          &m_uiRCDOBlockSizes,                                   0 );
-  // m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationY", &m_uiRCDOMotionCompensationY,                          0 );
-  //m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDOMotionCompensationC", &m_uiRCDOMotionCompensationC,                          0 );
- // m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCDODeblocking",          &m_uiRCDODeblocking,                                   0 );
-
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("4TapMotionCompensationY", &m_ui4TapMotionCompensationY,                          0 ); // V090
-
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EncodeKeyPictures",       &m_uiEncodeKeyPictures,                                0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSControl",              &m_uiMGSKeyPictureControl,                             0 );
-  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MGSKeyPicMotRef",         &m_uiMGSKeyPictureMotionRefinement,                    1 );
 
 // JVT-V068 HRD {
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("EnableNalHRD",            &m_uiNalHRD,                                           0 );
@@ -995,12 +929,22 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
   for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
-    getLayerParameters(ui).setLayerId(ui);
+    getLayerParameters(ui).setDependencyId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
 		if ( getLayerParameters(ui).m_uiMbAff || getLayerParameters(ui).m_uiPAff )
     {
       bInterlaced = true;			
     }
+
+    // HS: set base layer id
+    UInt uiBaseLayerId = getLayerParameters(ui).getBaseLayerId();
+    if( ui && uiBaseLayerId == MSYS_UINT_MAX )
+    {
+      uiBaseLayerId = ui - 1; // default value
+    }
+    getLayerParameters(ui).setBaseLayerId(uiBaseLayerId);
+    // HS: set base layer id
+
     if( m_uiCGSSNRRefinementFlag )
     {
       if(ui == 0)
@@ -1038,14 +982,21 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
           getLayerParameters(ui).setLayerCGSSNR(uiLastLayer);
           getLayerParameters(ui).setQualityLevelCGSSNR(0);
         }
-        getLayerParameters(ui).setBaseLayerCGSSNR( getLayerParameters(ui-1).getLayerCGSSNR() );
-        getLayerParameters(ui).setBaseQualityLevelCGSSNR( getLayerParameters(ui-1).getQualityLevelCGSSNR() + getLayerParameters(ui-1).getNumberOfQualityLevelsCGSSNR() - 1 );
+        //getLayerParameters(ui).setBaseLayerCGSSNR( getLayerParameters(ui-1).getLayerCGSSNR() );
+        //getLayerParameters(ui).setBaseQualityLevelCGSSNR( getLayerParameters(ui-1).getQualityLevelCGSSNR() + getLayerParameters(ui-1).getNumberOfQualityLevelsCGSSNR() - 1 );
+        getLayerParameters(ui).setBaseLayerCGSSNR( getLayerParameters(uiBaseLayerId).getLayerCGSSNR() );
+        getLayerParameters(ui).setBaseQualityLevelCGSSNR( getLayerParameters(uiBaseLayerId).getQualityLevelCGSSNR() + getLayerParameters(uiBaseLayerId).getNumberOfQualityLevelsCGSSNR() - 1 );
       }
     }
     else
     {
       getLayerParameters(ui).setLayerCGSSNR(ui);
       getLayerParameters(ui).setQualityLevelCGSSNR(0);
+      if( ui )
+      {
+        getLayerParameters(ui).setBaseLayerCGSSNR( getLayerParameters(uiBaseLayerId).getLayerCGSSNR() );
+        getLayerParameters(ui).setBaseQualityLevelCGSSNR( getLayerParameters(uiBaseLayerId).getQualityLevelCGSSNR() + getLayerParameters(uiBaseLayerId).getNumberOfQualityLevelsCGSSNR() - 1 );
+      }
     }
 
 //JVT-T054}
@@ -1060,14 +1011,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     }
 // JVT-Q065 EIDR}
 
-    // HS: set base layer id
-    UInt uiBaseLayerId = getLayerParameters(ui).getBaseLayerId();
-    if( ui && uiBaseLayerId == MSYS_UINT_MAX )
-    {
-      uiBaseLayerId = ui - 1; // default value
-    }
-    getLayerParameters(ui).setBaseLayerId(uiBaseLayerId);
-    // HS: set base layer id
 //DS_FIX_FT_09_2007
   //uiBaseLayerId is no more discardable
     if(uiBaseLayerId != MSYS_UINT_MAX)
@@ -1265,10 +1208,10 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
 
 // TMM_ESS {
   // default values
-  rcLayer.m_ResizeParameter.m_iInWidth    = rcLayer.m_uiFrameWidth;
-  rcLayer.m_ResizeParameter.m_iInHeight   = rcLayer.m_uiFrameHeight;
-  rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_uiFrameWidth;
-  rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_uiFrameHeight;
+  rcLayer.m_ResizeParameter.m_iInWidth    = ( ( rcLayer.m_uiFrameWidth  + 15 ) >> 4 ) << 4;
+  rcLayer.m_ResizeParameter.m_iInHeight   = ( ( rcLayer.m_uiFrameHeight + 15 ) >> 4 ) << 4;
+  rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_ResizeParameter.m_iInWidth;
+  rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_ResizeParameter.m_iInHeight;
   rcLayer.m_ResizeParameter.m_bCrop       = false;
 
   if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  

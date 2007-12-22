@@ -91,7 +91,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/IntraPrediction.h"
 #include "H264AVCCommonLib/YuvMbBuffer.h"
-#include "H264AVCCommonLib/IntYuvMbBuffer.h"
 #include "DistortionIf.h"
 
 
@@ -109,10 +108,10 @@ public:
   static ErrVal create( IntraPredictionSearch*& rpcIntraPredictionSearch );
   ErrVal destroy();
 
-  ErrVal predictSLumaMb       ( IntYuvMbBuffer *pcYuvBuffer, UInt uiPredMode,               Bool& rbValid );
-  ErrVal predictSLumaBlock    ( IntYuvMbBuffer *pcYuvBuffer, UInt uiPredMode, LumaIdx cIdx, Bool &rbValid );
-  ErrVal predictSChromaBlock  ( IntYuvMbBuffer *pcYuvBuffer, UInt uiPredMode,               Bool &rbValid );
-  ErrVal predictSLumaBlock8x8 ( IntYuvMbBuffer *pcYuvBuffer, UInt uiPredMode, B8x8Idx cIdx, Bool &rbValid );
+  ErrVal predictSLumaMb       ( YuvMbBuffer *pcYuvBuffer, UInt uiPredMode,               Bool& rbValid );
+  ErrVal predictSLumaBlock    ( YuvMbBuffer *pcYuvBuffer, UInt uiPredMode, LumaIdx cIdx, Bool &rbValid );
+  ErrVal predictSChromaBlock  ( YuvMbBuffer *pcYuvBuffer, UInt uiPredMode,               Bool &rbValid );
+  ErrVal predictSLumaBlock8x8 ( YuvMbBuffer *pcYuvBuffer, UInt uiPredMode, B8x8Idx cIdx, Bool &rbValid );
 };
 
 

@@ -38,7 +38,6 @@ OBJS          	= \
 				$(OBJ_DIR)/ControlMngH264AVCDecoder.o \
 				$(OBJ_DIR)/CreaterH264AVCDecoder.o \
 				$(OBJ_DIR)/GOPDecoder.o \
-				$(OBJ_DIR)/FGSSubbandDecoder.o \
 				$(OBJ_DIR)/H264AVCDecoder.o \
 				$(OBJ_DIR)/H264AVCDecoderLib.o \
 				$(OBJ_DIR)/MbDecoder.o \

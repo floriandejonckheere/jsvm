@@ -87,7 +87,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/Tables.h"
 #include "H264AVCCommonLib/Transform.h"
-#include "H264AVCCommonLib/FGSCoder.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -825,8 +824,8 @@ ErrVal Transform::invTransformChromaBlocks( Pel* puc, Int iStride, TCoeff* piCoe
 
 
 
-ErrVal Transform::transform4x4Blk( IntYuvMbBuffer*              pcOrgData,
-                                   IntYuvMbBuffer*              pcPelData,
+ErrVal Transform::transform4x4Blk( YuvMbBuffer*              pcOrgData,
+                                   YuvMbBuffer*              pcPelData,
                                    TCoeff*                      piCoeff,
                                    const UChar*                 pucScale,
                                    UInt&                        ruiAbsSum  )
@@ -852,8 +851,8 @@ ErrVal Transform::transform4x4Blk( IntYuvMbBuffer*              pcOrgData,
 
 
 ErrVal
-Transform::transform8x8BlkCGS( IntYuvMbBuffer* pcOrgData,
-                            IntYuvMbBuffer* pcPelData,
+Transform::transform8x8BlkCGS( YuvMbBuffer* pcOrgData,
+                            YuvMbBuffer* pcPelData,
                             TCoeff*         piCoeff,
                             TCoeff*         piCoeffBase,
                             const UChar*    pucScale,
@@ -890,8 +889,8 @@ Transform::transform8x8BlkCGS( IntYuvMbBuffer* pcOrgData,
   return Err::m_nOK;
 }
 
-ErrVal Transform::transform4x4BlkCGS( IntYuvMbBuffer*         pcOrgData,
-                                   IntYuvMbBuffer*            pcPelData,                                   
+ErrVal Transform::transform4x4BlkCGS( YuvMbBuffer*         pcOrgData,
+                                   YuvMbBuffer*            pcPelData,                                   
                                    TCoeff*                    piCoeff,
                                    TCoeff*                    piCoeffBase,
                                    const UChar*               pucScale,
@@ -1021,7 +1020,7 @@ Void Transform::xInvTransform4x4Blk( XPel* puc, Int iStride, TCoeff* piCoeff )
   }
 }
 
-ErrVal Transform::transformMb16x16( IntYuvMbBuffer* pcOrgData, IntYuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs )
+ErrVal Transform::transformMb16x16( YuvMbBuffer* pcOrgData, YuvMbBuffer* pcPelData, TCoeff* piCoeff, const UChar* pucScale, UInt& ruiDcAbs, UInt& ruiAcAbs )
 {
   XPel* pucOrg  = pcOrgData->getMbLumAddr();
   XPel* pucRec  = pcPelData->getMbLumAddr();
@@ -1194,8 +1193,8 @@ ErrVal Transform::invTransform4x4Blk( XPel* puc, Int iStride, TCoeff* piCoeff )
 
 
 ErrVal
-Transform::transform8x8Blk( IntYuvMbBuffer* pcOrgData,
-                            IntYuvMbBuffer* pcPelData,
+Transform::transform8x8Blk( YuvMbBuffer* pcOrgData,
+                            YuvMbBuffer* pcPelData,
                             TCoeff*         piCoeff,
                             const UChar*    pucScale,
                             UInt&           ruiAbsSum )

@@ -120,8 +120,6 @@ CabacWriter::CabacWriter():
   m_cDeltaQpCCModel( 1, NUM_DELTA_QP_CTX ),
   m_cIntraPredCCModel( 9, NUM_IPR_CTX ),
   m_cCbpCCModel( 3, NUM_CBP_CTX ),
-  m_cBCbpEnhanceCCModel( NUM_BLOCK_TYPES, NUM_BCBP_CTX ),
-  m_cCbpEnhanceCCModel( 3, NUM_CBP_CTX ),
   m_cTransSizeCCModel( 1, NUM_TRANSFORM_SIZE_CTX ),
   m_pcSliceHeader( NULL ),
   m_uiBitCounter( 0 ),
@@ -139,8 +137,8 @@ CabacWriter::~CabacWriter()
 
 ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
 {
-  Int  iQp    = rcSliceHeader.getPicQp();
-  Bool bIntra = rcSliceHeader.isIntra();
+  Int  iQp    = rcSliceHeader.getSliceQp();
+  Bool bIntra = rcSliceHeader.isIntraSlice();
   Int  iIndex = rcSliceHeader.getCabacInitIdc();
 
   if( bIntra )
@@ -162,9 +160,6 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cLastCCModel.initBuffer(        (Short*)INIT_LAST_I,          iQp ) );
     RNOK( m_cOneCCModel.initBuffer(         (Short*)INIT_ONE_I,           iQp ) );
     RNOK( m_cAbsCCModel.initBuffer(         (Short*)INIT_ABS_I,           iQp ) );
-
-    RNOK( m_cCbpEnhanceCCModel.initBuffer(  (Short*)INIT_CBP_ENH_I,       iQp ) );
-    RNOK( m_cBCbpEnhanceCCModel.initBuffer( (Short*)INIT_BCBP_ENH_I,      iQp ) );
 
     RNOK( m_cTransSizeCCModel.initBuffer(   (Short*)INIT_TRANSFORM_SIZE_I,iQp ) );
     RNOK( m_cFieldFlagCCModel.initBuffer(   (Short*)INIT_MB_AFF_I,        iQp ) );
@@ -190,9 +185,6 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cLastCCModel.initBuffer(        (Short*)INIT_LAST_P           [iIndex], iQp ) );
     RNOK( m_cOneCCModel.initBuffer(         (Short*)INIT_ONE_P            [iIndex], iQp ) );
     RNOK( m_cAbsCCModel.initBuffer(         (Short*)INIT_ABS_P            [iIndex], iQp ) );
-
-    RNOK( m_cCbpEnhanceCCModel.initBuffer(  (Short*)INIT_CBP_ENH_P        [iIndex], iQp ) );
-    RNOK( m_cBCbpEnhanceCCModel.initBuffer( (Short*)INIT_BCBP_ENH_P       [iIndex], iQp ) );
 
     RNOK( m_cTransSizeCCModel.initBuffer(   (Short*)INIT_TRANSFORM_SIZE_P [iIndex], iQp ) );
     RNOK( m_cFieldFlagCCModel.initBuffer(   (Short*)INIT_MB_AFF_P         [iIndex], iQp ) );
@@ -387,7 +379,7 @@ ErrVal CabacWriter::xWriteBlockMode( UInt uiBlockMode )
 {
   UInt uiSymbol;
 
-  if( ! m_pcSliceHeader->isInterB() )
+  if( ! m_pcSliceHeader->isBSlice() )
   {
     uiSymbol = (0 == uiBlockMode) ? 1 : 0;
     RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cBlockTypeCCModel.get( 0, 1 ) ) );
@@ -469,11 +461,11 @@ ErrVal CabacWriter::fieldFlag( MbDataAccess& rcMbDataAccess )
 }
 ErrVal CabacWriter::skipFlag( MbDataAccess& rcMbDataAccess, Bool bNotAllowed )
 {
-  ROTRS( m_pcSliceHeader->isIntra(), Err::m_nOK );
+  ROTRS( m_pcSliceHeader->isIntraSlice(), Err::m_nOK );
 
   UInt uiSymbol = bNotAllowed ? 0 : rcMbDataAccess.isSkippedMb() ? 1 : 0;
 
-  if( m_pcSliceHeader->isInterB() )
+  if( m_pcSliceHeader->isBSlice() )
   {
     RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 7 + rcMbDataAccess.getCtxMbSkipped() ) ) );
   }
@@ -526,29 +518,12 @@ ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 }
 
 
-ErrVal CabacWriter::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff )
-{
-  UInt  uiSymbol = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
-  UInt  uiCtx    = ( bBaseCoeff ? 2 : 3 );
-
-  RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
-
-  ETRACE_T( "ResidualPredFlag " );
-  ETRACE_TY( "ae(v)" );
-  ETRACE_CODE( uiSymbol );
-  ETRACE_N;
-
-  return Err::m_nOK;
-}
-
-
-
 ErrVal CabacWriter::mbMode( MbDataAccess& rcMbDataAccess )
 {
   UInt uiMbMode     = rcMbDataAccess.getConvertMbType();
   ETRACE_DECLARE( UInt uiOrigMbMode = uiMbMode );
 
-  if( m_pcSliceHeader->isIntra() )
+  if( m_pcSliceHeader->isIntraSlice() )
   {
     UInt uiSymbol;
     uiSymbol = ( 0 == uiMbMode) ? 0 : 1;
@@ -586,7 +561,7 @@ ErrVal CabacWriter::mbMode( MbDataAccess& rcMbDataAccess )
   {
     UInt uiSymbol, uiIntra16x16Symbol = 0;
 
-    if( ! m_pcSliceHeader->isInterB() )
+    if( ! m_pcSliceHeader->isBSlice() )
     {
       uiSymbol = ( 6 > uiMbMode) ? 0 : 1;
       RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 4 ) ) );
@@ -1443,9 +1418,6 @@ CabacWriter::loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
 	m_cDeltaQpCCModel.setCabacContextModel(pcCabacWriter->getDeltaQpCCModel().getCabacContextModel());
 	m_cIntraPredCCModel.setCabacContextModel(pcCabacWriter->getIntraPredCCModel().getCabacContextModel());
 	m_cCbpCCModel.setCabacContextModel(pcCabacWriter->getCbpCCModel().getCabacContextModel());
-
-	m_cBCbpEnhanceCCModel.setCabacContextModel(pcCabacWriter->getBCbpEnhanceCCModel().getCabacContextModel());
-	m_cCbpEnhanceCCModel.setCabacContextModel(pcCabacWriter->getCbpEnhanceCCModel().getCabacContextModel());
 	m_cTransSizeCCModel.setCabacContextModel(pcCabacWriter->getTransSizeCCModel().getCabacContextModel());
 	if ( m_pcBitWriteBufferIf == NULL )
 	{

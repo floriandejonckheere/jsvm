@@ -116,8 +116,8 @@ protected:
   {
     return ( m_uiCost * xGetBits( rcMv.getHor(), rcMv.getVer() ) ) >> 16;
   }
-  UInt xGetCost( UInt x, UInt y )  {  return ( m_uiCost * xGetBits( x, y ) ) >> 16;  }
-  UInt xGetBits( UInt x, UInt y )  {  return m_puiHorCost[ x << m_iCostScale] + m_puiVerCost[ y << m_iCostScale ];  }
+  UInt xGetCost( Int x, Int y )  {  return ( m_uiCost * xGetBits( x, y ) ) >> 16;  }
+  UInt xGetBits( Int x, Int y )  {  return m_puiHorCost[ x << m_iCostScale] + m_puiVerCost[ y << m_iCostScale ];  }
 
   Void xSetPredictor( const Mv& rcMv )
   {

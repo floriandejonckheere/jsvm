@@ -101,8 +101,6 @@ H264AVC_NAMESPACE_BEGIN
 
 #define REFSYM_MB                                     384
 
-class UcSymGrpWriter; 
-
 class UvlcWriter :
 public MbSymbolWriteIf
 , public HeaderSymbolWriteIf
@@ -142,7 +140,6 @@ public:
   ErrVal  mbMode     ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  fieldFlag  ( MbDataAccess& rcMbDataAccess );
-  ErrVal  resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -221,24 +218,6 @@ protected:
 	Bool getRunLengthCoding(void)			{return m_bRunLengthCoding;		}
 	UInt getRun(void)									{return m_uiRun;							}
 
-	UChar* getPrescannedSymbools(void){return m_auiPrescannedSymbols;}
-	UInt getRefSymbols(void)					{return m_uiRefSymbols;				}
-	UInt getCodedSymbols(void)				{return m_uiCodedSymbols;}
-	UInt getFragmentedSymbols(void)		{return m_uiFragmentedSymbols;}
-
-	UInt *getShiftLuma(void)					{return m_auiShiftLuma;				}
-	UInt *getShiftChroma(void)				{return m_auiShiftChroma;			}
-	UInt *getBestCodeTabMap(void)			{return m_auiBestCodeTabMap;	}
-	void getCbpStats(UInt *t_CbpStats)
-  {
-	  UInt i,j;
-	  for (i=0;i<3;i++)
-		  for (j=0;j<2;j++)
-		  {
-			  t_CbpStats[2*i+j] = m_uiCbpStats[i][j];
-		  }
-  }
-	UInt *getCbpStat4x4(void)					{return m_uiCbpStat4x4;				}
 	BitWriteBufferIf* getBitWriteBufferIf(void){return m_pcBitWriteBufferIf;}
 	void loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)	{}
 	void loadUvlcWrite(MbSymbolWriteIf *pcMbSymbolWriteIf);
@@ -248,13 +227,6 @@ protected:
 protected:
   UInt xConvertToUInt( Int iValue )  {  return ( iValue <= 0) ? -iValue<<1 : (iValue<<1)-1; }
 
-public:
-
-  static UInt   peekGolomb(UInt uiSymbol, UInt uiK);
-  BitWriteBufferIf* getWriteBuffer()    { return m_pcBitWriteBufferIf;  }
-  ErrVal RQreset( const SliceHeader& rcSliceHeader );
-  ErrVal RQcountFragmentedSymbols();
-  ErrVal resetFragmentedSymbols() {m_uiFragmentedSymbols = 0; return Err::m_nOK;}
 private:
   __inline ErrVal xWriteCode( UInt uiCode, UInt uiLength );
   __inline ErrVal xWriteFlag( UInt uiCode );
@@ -270,45 +242,8 @@ protected:
   Bool m_bRunLengthCoding;
   UInt m_uiRun;
 
-  UChar m_auiPrescannedSymbols[REFSYM_MB];
-  UInt  m_uiRefSymbols;
-  UInt  m_uiCodedSymbols;
-  UInt  m_uiFragmentedSymbols;
-
-  UInt m_auiShiftLuma[16];
-  UInt m_auiShiftChroma[16];
-  UInt m_auiBestCodeTabMap[16];
-  UInt m_uiCbpStats[3][2];
-  UcSymGrpWriter* m_pSymGrp; 
-  UInt m_uiCbpStat4x4[2];
-
   // new variables for switching bitstream inputs
-  BitWriteBufferIf* m_apcFragBitBuffers [MAX_NUM_PD_FRAGMENTS];
-  UcSymGrpWriter*   m_apcFragSymGrps    [MAX_NUM_PD_FRAGMENTS];
-  UInt              m_uiNumFragments;
-  UInt              m_uiCurrentFragment;
   UvlcWriter       *m_pcNextUvlcWriter;
-};
-
-class UcSymGrpWriter
-{
-public:
-  UcSymGrpWriter( UvlcWriter* pParent );
-  ErrVal Init();
-  ErrVal Flush();
-  ErrVal Write( UChar ucBit );
-  Bool   UpdateVlc();
-  UInt   getTable()                   { return m_uiTable;       }
-  Void   setCodedFlag(UInt uiFlag)    { m_uiCodedFlag = uiFlag; }
-  Void   incrementCounter(UInt uiSym) { m_auiSymCount[uiSym]++; }
-
-protected:
-  UvlcWriter* m_pParent;
-  UInt m_auiSymCount[3];
-  UInt m_uiTable;
-  UInt m_uiCodedFlag;
-  UInt m_uiCode;
-  UInt m_uiLen;
 };
 
 

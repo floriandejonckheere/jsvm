@@ -102,47 +102,29 @@ protected:
   virtual ~CabaDecoder();
 
 public:
-  ErrVal init( BitReadBuffer* pcBitReadBuffer );
-  ErrVal start();
-  ErrVal finish();
-  ErrVal uninit();
+  ErrVal init   ( BitReadBuffer* pcBitReadBuffer );
+  ErrVal start  ();
+  ErrVal finish ();
+  ErrVal uninit ();
 
-  ErrVal getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel );
-  ErrVal getEpSymbol( UInt& ruiSymbol );
-  ErrVal getEpExGolomb( UInt& ruiSymbol, UInt uiCount );
-  ErrVal getExGolombLevel( UInt& ruiSymbol, CabacContextModel& rcCCModel  );
-  ErrVal getExGolombMvd( UInt& ruiSymbol, CabacContextModel* pcCCModel, UInt uiMaxBin );
+  ErrVal getSymbol            ( UInt& ruiSymbol, CabacContextModel& rcCCModel );
+  ErrVal getEpSymbol          ( UInt& ruiSymbol );
+  ErrVal getEpExGolomb        ( UInt& ruiSymbol, UInt uiCount );
+  ErrVal getExGolombLevel     ( UInt& ruiSymbol, CabacContextModel& rcCCModel  );
+  ErrVal getExGolombMvd       ( UInt& ruiSymbol, CabacContextModel* pcCCModel, UInt uiMaxBin );
   ErrVal getTerminateBufferBit( UInt& ruiBit );
-  ErrVal getUnaryMaxSymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset, UInt uiMaxSymbol );
-  ErrVal getUnarySymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset );
-
-  Void   setStates  (CabaDecoder* pcExtDecoder )
-  {
-    m_pcBitReadBuffer = pcExtDecoder->m_pcBitReadBuffer;
-    m_uiRange         = pcExtDecoder->m_uiRange;
-    m_uiValue         = pcExtDecoder->m_uiValue;
-    m_uiWord          = pcExtDecoder->m_uiWord;
-    m_uiBitsLeft      = pcExtDecoder->m_uiBitsLeft;
-  }
-  Void   getStates  (CabaDecoder* pcExtDecoder )
-  {
-    pcExtDecoder->m_pcBitReadBuffer = m_pcBitReadBuffer;
-    pcExtDecoder->m_uiRange         = m_uiRange;
-    pcExtDecoder->m_uiValue         = m_uiValue;
-    pcExtDecoder->m_uiWord          = m_uiWord;
-    pcExtDecoder->m_uiBitsLeft      = m_uiBitsLeft;
-  }
+  ErrVal getUnaryMaxSymbol    ( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset, UInt uiMaxSymbol );
+  ErrVal getUnarySymbol       ( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset );
 
 private:
   __inline ErrVal xReadBit( UInt& ruiValue );
 
 protected:
-  BitReadBuffer* m_pcBitReadBuffer;
-
-  UInt m_uiRange;
-  UInt m_uiValue;
-  UInt m_uiWord;
-  UInt m_uiBitsLeft;
+  BitReadBuffer*  m_pcBitReadBuffer;
+  UInt            m_uiRange;
+  UInt            m_uiValue;
+  UInt            m_uiWord;
+  UInt            m_uiBitsLeft;
 };
 
 H264AVC_NAMESPACE_END

@@ -96,7 +96,7 @@ class SliceHeader;
 class MbDataCtrl;
 class MbEncoder;
 class MotionEstimation;
-class IntFrame;
+class Frame;
 
 
 class MCTF
@@ -169,24 +169,24 @@ protected:
                                       Bool                        bMotionEstimation );
 
   //===== motion estimation / compensation =====
-  ErrVal  xMotionCompensation       ( IntFrame*                   pcMCFrame,
+  ErrVal  xMotionCompensation       ( Frame*                   pcMCFrame,
                                       RefFrameList*               pcRefFrameList0,
                                       RefFrameList*               pcRefFrameList1,
                                       MbDataCtrl*                 pcMbDataCtrl,
                                       SliceHeader&                rcSH );
   ErrVal  xMotionEstimation         ( RefFrameList*               pcRefFrameList0,
                                       RefFrameList*               pcRefFrameList1,
-                                      const IntFrame*             pcOrigFrame,
+                                      const Frame*             pcOrigFrame,
                                       ControlData&                rcControlData );
-  ErrVal  xUpdateCompensation       ( IntFrame*                   pcMCFrame,
+  ErrVal  xUpdateCompensation       ( Frame*                   pcMCFrame,
                                       RefFrameList*               pcRefFrameList,
                                       CtrlDataList*               pcCtrlDataList,
                                       ListIdx                     eListUpd );
 
   //===== auxiliary functions =====
-  ErrVal  xFillAndUpsampleFrame     ( IntFrame*                   rcFrame );
-  ErrVal  xFillAndExtendFrame       ( IntFrame*                   rcFrame );
-  ErrVal  xZeroIntraMacroblocks     ( IntFrame*                   pcFrame,
+  ErrVal  xFillAndUpsampleFrame     ( Frame*                   rcFrame );
+  ErrVal  xFillAndExtendFrame       ( Frame*                   rcFrame );
+  ErrVal  xZeroIntraMacroblocks     ( Frame*                   pcFrame,
                                       ControlData&                pcCtrlData );
 
 protected:
@@ -205,9 +205,9 @@ protected:
   UInt                          m_uiFrameHeightInMb;                  // frame height in macroblocks
   UInt                          m_uiMbNumber;                         // number of macroblocks in a frame
   Double                        m_adBaseQpLambdaMotion[MAX_DSTAGES];  // base QP's for mode decision and motion estimation
-  IntFrame*                     m_pcFrameTemp;                        // auxiliary frame memory
-  IntFrame**                    m_papcFrame;                          // frame stores
-  IntFrame**                    m_papcResidual;                       // frame stores for residual data
+  Frame*                     m_pcFrameTemp;                        // auxiliary frame memory
+  Frame**                    m_papcFrame;                          // frame stores
+  Frame**                    m_papcResidual;                       // frame stores for residual data
   ControlData*                  m_pacControlData;                     // control data arrays
   PicBufferList                 m_cOrgPicBufferList;
   PicBufferList                 m_cRecPicBufferList;

@@ -174,7 +174,7 @@ Void MotionEstimationQuarterPel::xInitBuffer()
 
 
 
-Void MotionEstimationQuarterPel::xSubPelSearch( IntYuvPicBuffer*  pcPelData,
+Void MotionEstimationQuarterPel::xSubPelSearch( YuvPicBuffer*  pcPelData,
                                                 Mv&               rcMv,
                                                 UInt&             ruiSAD,
                                                 UInt              uiBlk,
@@ -490,7 +490,7 @@ Void MotionEstimationQuarterPel::xGetSizeFromMode( UInt& ruiXSize, UInt& ruiYSiz
   }
 }
 
-Void MotionEstimationQuarterPel::xCompensateBlocksHalf( XPel *pPelDes, IntYuvPicBuffer *pcRefPelData, Mv cMv, UInt uiMode, UInt uiYSize, UInt uiXSize )
+Void MotionEstimationQuarterPel::xCompensateBlocksHalf( XPel *pPelDes, YuvPicBuffer *pcRefPelData, Mv cMv, UInt uiMode, UInt uiYSize, UInt uiXSize )
 {
   XPel* pPelSrc = pcRefPelData->getLumBlk();
   Int iSrcStride = pcRefPelData->getLStride();
@@ -530,10 +530,10 @@ Void MotionEstimationQuarterPel::xCompensateBlocksHalf( XPel *pPelDes, IntYuvPic
 }
 
 
-ErrVal MotionEstimationQuarterPel::compensateBlock( IntYuvMbBuffer* pcRecPelData,
+ErrVal MotionEstimationQuarterPel::compensateBlock( YuvMbBuffer* pcRecPelData,
                                                     UInt            uiBlk,
                                                     UInt            uiMode,
-                                                    IntYuvMbBuffer* pcRefPelData2 )
+                                                    YuvMbBuffer* pcRefPelData2 )
 {
   pcRecPelData->set4x4Block( B4x4Idx(uiBlk) );
   XPel iStride = pcRecPelData->getLStride();

@@ -307,7 +307,6 @@ Extractor::xPrimaryAnalyse()
   BinData*                pcBinData     = 0;
   h264::SEI::SEIMessage*  pcScalableSei = 0;
   h264::PacketDescription cPacketDescription;
-  Bool                    bNextSuffix = false;
   setBaseLayerAVCCompatible(true); //default value
 //prefix unit{{
   Bool bDiscardable_prefix = false;
@@ -350,9 +349,8 @@ Extractor::xPrimaryAnalyse()
     //==== get parameters =====
     if( ! bApplyToNext )
     {
-      RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
 //prefix unit{{
-      if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+      if(cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5 )
       {
         cPacketDescription.Level = uiLevel;
         cPacketDescription.bDiscardable = bDiscardable_prefix;
@@ -397,6 +395,8 @@ Extractor::xPrimaryAnalyse()
     RNOK( m_pcReadBitstream->releasePacket( pcBinData ) );
     pcBinData = NULL;
   }
+
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
 
   //----- reset input file -----
   RNOKS( static_cast<ReadBitstreamFile*>(m_pcReadBitstream)->uninit() );
@@ -492,11 +492,6 @@ Extractor::xAnalyse()
   };
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
 
-// JVT-T073 {
-  Bool bNextSuffix = false;
-// JVT-T073 }
-
-
   UInt uiPId = 0;
 
   // HS: packet trace
@@ -556,7 +551,7 @@ Extractor::xAnalyse()
     pcTmpScalableSei    = (h264::SEI::ScalableSei* ) pcScalableSei;
     m_uiScalableNumLayersMinus1 = pcTmpScalableSei->getNumLayersMinus1();
     uiMaxLayer          = pcTmpScalableSei->getDependencyId( m_uiScalableNumLayersMinus1);
-    uiMaxTempLevel      = pcTmpScalableSei->getTemporalLevel(m_uiScalableNumLayersMinus1);
+    uiMaxTempLevel      = pcTmpScalableSei->getTemporalId(m_uiScalableNumLayersMinus1);
     //SEI changes update {
     //JVT-W051 {
     //m_uiQl_num_dId_minus1 = pcTmpScalableSei->getQlNumdIdMinus1();
@@ -647,8 +642,6 @@ Extractor::xAnalyse()
     //===== get packet description =====
     RNOK( m_pcH264AVCPacketAnalyzer->process( pcBinData, cPacketDescription, pcScalableSei ) );
 
-    RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
-
     // *LMH (ADD) ->
     if ( m_pcExtractorParameter->getROIFlag() )
     {
@@ -715,9 +708,8 @@ Extractor::xAnalyse()
     UInt  uiPacketSize  = 4 + pcBinData->size();
     if( ! bApplyToNext )
     {
-      RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
 //prefix unit{{
-      if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+      if(cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5)
       {
         cPacketDescription.Level = uiLevel;
         cPacketDescription.bDiscardable = bDiscardable_prefix;
@@ -833,10 +825,12 @@ Extractor::xAnalyse()
       UInt eNalUnitType = cPacketDescription.NalUnitType;
         if( (!cPacketDescription.bDiscardable || cPacketDescription.Layer == uiExtLayer )&& (eNalUnitType == NAL_UNIT_CODED_SLICE              ||
          eNalUnitType == NAL_UNIT_CODED_SLICE_IDR          ||
-        eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
-         eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE)   )
+        eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     )   )
     {
-      m_cScalableStreamDescription.m_bSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
+      if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE )
+        m_cScalableStreamDescription.m_bSubsetSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
+      else
+        m_cScalableStreamDescription.m_bSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
       m_cScalableStreamDescription.m_bPPSRequired[uiLayer][cPacketDescription.PPSid] = true;
     }
     //~DS_FIX_FT_09_2007
@@ -853,10 +847,12 @@ Extractor::xAnalyse()
     UInt eNalUnitType = cPacketDescription.NalUnitType;
         if( eNalUnitType == NAL_UNIT_CODED_SLICE              ||
          eNalUnitType == NAL_UNIT_CODED_SLICE_IDR          ||
-        eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
-         eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE   )
+        eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE        )
     {
-      m_cScalableStreamDescription.m_bSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
+      if( eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE )
+        m_cScalableStreamDescription.m_bSubsetSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
+      else
+        m_cScalableStreamDescription.m_bSPSRequired[uiLayer][cPacketDescription.SPSid] = true;
       m_cScalableStreamDescription.m_bPPSRequired[uiLayer][cPacketDescription.PPSid] = true;
     }
     } //~DS_FIX_FT_09_2007
@@ -890,8 +886,8 @@ Extractor::xAnalyse()
   for( UInt uiScalableLayerId = 0; uiScalableLayerId <= m_uiScalableNumLayersMinus1; uiScalableLayerId++ )
   {
     UInt uiDependencyId =  pcTmpScalableSei->getDependencyId( uiScalableLayerId );
-    UInt uiQualityLevel =  pcTmpScalableSei->getQualityLevel(uiScalableLayerId);
-    UInt uiTempLevel    =  pcTmpScalableSei->getTemporalLevel(uiScalableLayerId);
+    UInt uiQualityLevel =  pcTmpScalableSei->getQualityId(uiScalableLayerId);
+    UInt uiTempLevel    =  pcTmpScalableSei->getTemporalId(uiScalableLayerId);
     m_auiDependencyId[uiScalableLayerId] = uiDependencyId;
     m_auiTempLevel   [uiScalableLayerId] = uiTempLevel;
     m_auiQualityLevel[uiScalableLayerId] = uiQualityLevel;
@@ -910,7 +906,7 @@ Extractor::xAnalyse()
       m_adFrameRate[uiTempLevel] = pcTmpScalableSei->getAvgFrmRate(uiScalableLayerId)/256.0;
   }
   uiMaxLayer          = pcTmpScalableSei->getDependencyId( m_uiScalableNumLayersMinus1);
-  uiMaxTempLevel      = pcTmpScalableSei->getTemporalLevel(m_uiScalableNumLayersMinus1);
+  uiMaxTempLevel      = pcTmpScalableSei->getTemporalId(m_uiScalableNumLayersMinus1);
  
   //NS leak fix extractor begin
   if (pcTmpScalableSei)
@@ -1017,6 +1013,9 @@ Extractor::xAnalyse()
   }
   }
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
+
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
+
   return Err::m_nOK;
 }
 
@@ -1334,7 +1333,6 @@ Extractor::xAnalyse( UInt    uiTargetLayer,
                     )
 {
   Bool                    bEOS          = false;
-  Bool                    bNextIsSuffix = false;
   BinData*                pcBinData     = 0;
   UInt                    uiDId         = 0;
   UInt                    uiTId         = 0;
@@ -1414,45 +1412,6 @@ Extractor::xAnalyse( UInt    uiTargetLayer,
 //prefix unit}}
       uiQId         = cPacketDescription.FGSLayer;
       uiPId         = cPacketDescription.uiPId;
-
-      //----- check whether next NAL unit is a suffix NAL unit -----
-      if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE ||
-        cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR )
-      {
-        Int                     iStreamPos        = 0;
-        h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
-        BinData*                pcBinDataTemp     = 0;
-        h264::PacketDescription cPacketDescriptionTemp;
-        RNOK( m_pcReadBitstream         ->getPosition   ( iStreamPos ) );
-        RNOK( m_pcReadBitstream         ->extractPacket ( pcBinDataTemp, bEOS ) );
-        ROT ( bEOS );
-        RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinDataTemp, cPacketDescriptionTemp, pcScalableSeiTemp ) );
-        ROT ( pcScalableSeiTemp );
-        if  ((cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE  ||
-          cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) &&
-          cPacketDescriptionTemp.Layer       == 0 &&
-          cPacketDescriptionTemp.FGSLayer    == 0 )
-        {
-          bNextIsSuffix = true;
-          uiTId         = cPacketDescriptionTemp.Level;
-        }
-    //----- increment number of AVC slices -----
-        if( cPacketDescription.uiFirstMb == 0 )
-        {
-          uiNumAVCPics++;
-        }
-        //----- release packet and reset stream -----
-        if( pcBinDataTemp )
-        {
-          RNOK( m_pcReadBitstream->releasePacket( pcBinDataTemp ) );
-          pcBinDataTemp = 0;
-        }
-        RNOK  ( m_pcReadBitstream->setPosition  ( iStreamPos ) );
-      }
-      else if( bNextIsSuffix )
-      {
-        bNextIsSuffix = false;
-      }
     }
     ROT( uiDId > uiTargetLayer );
     ROF( uiPId < MAX_QLAYERS   );
@@ -1500,6 +1459,7 @@ Extractor::xAnalyse( UInt    uiTargetLayer,
     auiQLRate[uiQId-1] += auiQLRate[uiQId];
   }
 
+  RNOK( m_pcH264AVCPacketAnalyzer->uninit() );
 
   //===== reset input file =====
   RNOKS( static_cast<ReadBitstreamFile*>( m_pcReadBitstream )->uninit() );
@@ -1517,7 +1477,6 @@ Extractor::xExtract( UInt    uiTargetLayer,
                     Bool    bNoSpecialFirstFrame )
 {
   Bool                    bEOS          = false;
-  Bool                    bNextIsSuffix = false;
   BinData*                pcBinData     = 0;
   UInt                    uiDId         = 0;
   UInt                    uiTId         = 0;
@@ -1590,45 +1549,6 @@ Extractor::xExtract( UInt    uiTargetLayer,
       uiQId         = cPacketDescription.FGSLayer;
       uiPId         = cPacketDescription.uiPId;
 
-      //----- check whether next NAL unit is a suffix NAL unit -----
-      if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE ||
-        cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR )
-      {
-        Int                     iStreamPos        = 0;
-        h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
-        BinData*                pcBinDataTemp     = 0;
-        h264::PacketDescription cPacketDescriptionTemp;
-        RNOK( m_pcReadBitstream         ->getPosition   ( iStreamPos ) );
-        RNOK( m_pcReadBitstream         ->extractPacket ( pcBinDataTemp, bEOS ) );
-        ROT ( bEOS );
-        RNOK( m_pcH264AVCPacketAnalyzer ->process       ( pcBinDataTemp, cPacketDescriptionTemp, pcScalableSeiTemp ) );
-        ROT ( pcScalableSeiTemp );
-        if  ((cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE  ||
-          cPacketDescriptionTemp.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ) &&
-          cPacketDescriptionTemp.Layer       == 0 &&
-          cPacketDescriptionTemp.FGSLayer    == 0 )
-        {
-          bNextIsSuffix = true;
-          uiTId         = cPacketDescriptionTemp.Level;
-        }
- 
-    //----- increment number of AVC slices -----
-        if( cPacketDescription.uiFirstMb == 0 )
-        {
-          uiNumAVCPics++;
-        }
-        //----- release packet and reset stream -----
-        if( pcBinDataTemp )
-        {
-          RNOK( m_pcReadBitstream->releasePacket( pcBinDataTemp ) );
-          pcBinDataTemp = 0;
-        }
-        RNOK  ( m_pcReadBitstream->setPosition  ( iStreamPos ) );
-      }
-      else if( bNextIsSuffix )
-      {
-        bNextIsSuffix = false;
-      }
     }
     ROT( uiDId > uiTargetLayer );
     ROF( uiPId < MAX_QLAYERS   );
@@ -1911,9 +1831,8 @@ Extractor::xExtractPoints()
       //============ set parameters ===========
       if( ! bApplyToNext  )
       {
-        RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
 //prefix unit{{
-        if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+        if(cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5)
         {
           cPacketDescription.Level = uiLevel;
           cPacketDescription.bDiscardable = bDiscardable_prefix;
@@ -1981,7 +1900,7 @@ Extractor::xExtractPoints()
           //look if parameter sets NAL Unit
           UInt eNalUnitType = cPacketDescription.NalUnitType;
           //if(eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS)			
-					if(eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS || eNalUnitType == NAL_UNIT_SUB_SPS )// SSPS
+					if(eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS || eNalUnitType == NAL_UNIT_SUBSET_SPS )// SSPS
           {
             RNOK( GetPictureDataKeep( &cPacketDescription, 0, uiPacketSize, bKeep ) );
             m_aadTargetByteForFrame[uiLayer][uiCurrFrame] -= uiPacketSize;
@@ -2043,7 +1962,7 @@ Extractor::xExtractPoints()
 
         UInt eNalUnitType = cPacketDescription.NalUnitType;
         //if( eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS )
-				if( eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS || eNalUnitType == NAL_UNIT_SUB_SPS )//SSPS
+				if( eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_PPS || eNalUnitType == NAL_UNIT_SUBSET_SPS )//SSPS
           RNOK( GetPictureDataKeep( &cPacketDescription, 0, 0, bKeep ) );
       //modif Nathalie
         }
@@ -2069,8 +1988,7 @@ Extractor::xExtractPoints()
       Bool bCountStat = false;
       if( cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE              ||
           cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR          ||
-          cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE     ||
-          cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE )
+          cPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE      )
       {
         if( cPacketDescription.Level <= m_pcExtractorParameter->getLevel() && cPacketDescription.Layer <= m_pcExtractorParameter->getLayer() )
         {
@@ -2323,55 +2241,55 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
  //JVT-S036 lsj start
     if( uiWantedScalableLayer == MSYS_UINT_MAX && //-l, -t, -f
       pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
-      pcOldScalableSei->getQualityLevel( uiScalableLayer ) > uiMaxFGSLayer
+      pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer
       )
       bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
     else if( uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX &&  // -e
             pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
-            pcOldScalableSei->getQualityLevel( uiScalableLayer ) > uiMaxFGSLayer )
+            pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer )
           bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
     else if( uiMaxBitrate == MSYS_UINT_MAX && //-sl
             pcOldScalableSei->getDependencyId( uiWantedScalableLayer ) == pcOldScalableSei->getDependencyId( uiScalableLayer ) &&
-      pcOldScalableSei->getQualityLevel( uiScalableLayer ) > pcOldScalableSei->getQualityLevel( uiWantedScalableLayer ) )
+      pcOldScalableSei->getQualityId( uiScalableLayer ) > pcOldScalableSei->getQualityId( uiWantedScalableLayer ) )
       bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
     else if //-b
       ( pcOldScalableSei->getDependencyId( uiWantedScalableLayer ) == pcOldScalableSei->getDependencyId( uiScalableLayer ) &&
-      pcOldScalableSei->getQualityLevel( uiScalableLayer ) > pcOldScalableSei->getQualityLevel( uiWantedScalableLayer ) )
+      pcOldScalableSei->getQualityId( uiScalableLayer ) > pcOldScalableSei->getQualityId( uiWantedScalableLayer ) )
       bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
 //JVT-S036 lsj end
     if( uiWantedScalableLayer == MSYS_UINT_MAX ) //-l, -t, -f
     {
       if( pcOldScalableSei->getDependencyId( uiScalableLayer ) > uiMaxLayer    ||
-          pcOldScalableSei->getQualityLevel( uiScalableLayer ) > uiMaxFGSLayer ||
-          pcOldScalableSei->getTemporalLevel( uiScalableLayer ) > uiMaxTempLevel  )
+          pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer ||
+          pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel  )
           continue;
     }
     else if( uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX ) // -e
     {
       if( pcOldScalableSei->getDependencyId ( uiScalableLayer ) > uiMaxLayer ||
-          pcOldScalableSei->getTemporalLevel( uiScalableLayer ) > uiMaxTempLevel ||
+          pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel ||
           m_aaadSingleBitrate[pcOldScalableSei->getDependencyId ( uiScalableLayer )]
-                             [pcOldScalableSei->getTemporalLevel( uiScalableLayer )]
-                             [pcOldScalableSei->getQualityLevel( uiScalableLayer )]  <= 0 )
+                             [pcOldScalableSei->getTemporalId( uiScalableLayer )]
+                             [pcOldScalableSei->getQualityId( uiScalableLayer )]  <= 0 )
         continue;
     }
     else if( uiMaxBitrate == MSYS_UINT_MAX )//-sl
     {
       {
         if( pcOldScalableSei->getDependencyId(uiScalableLayer) > m_auiDependencyId[uiWantedScalableLayer] ||
-        pcOldScalableSei->getTemporalLevel(uiScalableLayer)  > m_auiTempLevel[uiWantedScalableLayer]  )
+        pcOldScalableSei->getTemporalId(uiScalableLayer)  > m_auiTempLevel[uiWantedScalableLayer]  )
         continue;
         else if( pcOldScalableSei->getDependencyId(uiScalableLayer) == m_auiDependencyId[uiWantedScalableLayer] &&
-          pcOldScalableSei->getQualityLevel(uiScalableLayer) > m_auiQualityLevel[uiWantedScalableLayer] )
+          pcOldScalableSei->getQualityId(uiScalableLayer) > m_auiQualityLevel[uiWantedScalableLayer] )
         continue;
       }
     }
     else //-b
     {
       if( pcOldScalableSei->getDependencyId ( uiScalableLayer )  > m_auiDependencyId[uiWantedScalableLayer] ||
-          pcOldScalableSei->getTemporalLevel( uiScalableLayer )  > m_auiTempLevel   [uiWantedScalableLayer] ||
+          pcOldScalableSei->getTemporalId( uiScalableLayer )  > m_auiTempLevel   [uiWantedScalableLayer] ||
           pcOldScalableSei->getDependencyId ( uiScalableLayer ) == m_auiDependencyId[uiWantedScalableLayer] &&
-          pcOldScalableSei->getQualityLevel ( uiScalableLayer )  > m_auiQualityLevel[uiWantedScalableLayer] )
+          pcOldScalableSei->getQualityId ( uiScalableLayer )  > m_auiQualityLevel[uiWantedScalableLayer] )
         continue;
      }
 
@@ -2384,12 +2302,12 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     //pcNewScalableSei->setSimplePriorityId(uiNumScalableLayer, pcOldScalableSei->getSimplePriorityId( uiScalableLayer ) );//SEI changes update
 		pcNewScalableSei->setPriorityId(uiNumScalableLayer, pcOldScalableSei->getPriorityId( uiScalableLayer ) );//SEI changes update
     pcNewScalableSei->setDiscardableFlag(uiNumScalableLayer, pcOldScalableSei->getDiscardableFlag( uiScalableLayer) );
-    pcNewScalableSei->setTemporalLevel(uiNumScalableLayer, pcOldScalableSei->getTemporalLevel( uiScalableLayer ) );
+    pcNewScalableSei->setTemporalId(uiNumScalableLayer, pcOldScalableSei->getTemporalId( uiScalableLayer ) );
     pcNewScalableSei->setDependencyId(uiNumScalableLayer, pcOldScalableSei->getDependencyId( uiScalableLayer ) );
-    pcNewScalableSei->setQualityLevel(uiNumScalableLayer, pcOldScalableSei->getQualityLevel( uiScalableLayer ) );
+    pcNewScalableSei->setQualityLevel(uiNumScalableLayer, pcOldScalableSei->getQualityId( uiScalableLayer ) );
     tmpScaLayerId[pcOldScalableSei->getDependencyId ( uiScalableLayer )]
-                 [pcOldScalableSei->getTemporalLevel( uiScalableLayer )]
-                 [pcOldScalableSei->getQualityLevel ( uiScalableLayer )] =  uiNumScalableLayer;
+                 [pcOldScalableSei->getTemporalId( uiScalableLayer )]
+                 [pcOldScalableSei->getQualityId ( uiScalableLayer )] =  uiNumScalableLayer;
 
     pcNewScalableSei->setSubPicLayerFlag( uiNumScalableLayer, pcOldScalableSei->getSubPicLayerFlag( uiScalableLayer ) );
     pcNewScalableSei->setSubRegionLayerFlag( uiNumScalableLayer, pcOldScalableSei->getSubRegionLayerFlag( uiScalableLayer ) );
@@ -2430,7 +2348,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
       {
         if( uiWantedScalableLayer == MSYS_UINT_MAX ) //-f
         {
-          if( pcNewScalableSei->getQualityLevel( uiNumScalableLayer ) == uiMaxFGSLayer )
+          if( pcNewScalableSei->getQualityId( uiNumScalableLayer ) == uiMaxFGSLayer )
             pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, (UInt)(pcOldScalableSei->getAvgBitrate( uiScalableLayer ) * ( 1 - dSNRLayerDiff ) ) );
           else
             pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, pcOldScalableSei->getAvgBitrate( uiScalableLayer ) );
@@ -2439,15 +2357,15 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         {
 //cleaning
       Double dBitrate = m_aaadSingleBitrate[pcOldScalableSei->getDependencyId(uiScalableLayer)]
-                                               [pcOldScalableSei->getTemporalLevel(uiScalableLayer)]
-                                               [pcOldScalableSei->getQualityLevel(uiScalableLayer)];
+                                               [pcOldScalableSei->getTemporalId(uiScalableLayer)]
+                                               [pcOldScalableSei->getQualityId(uiScalableLayer)];
       pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, (UInt)(dBitrate+0.5) );
 //~cleaning
         }
         else //-b
         {
           if( pcNewScalableSei->getDependencyId( uiNumScalableLayer ) == m_auiDependencyId[uiWantedScalableLayer] &&
-              pcNewScalableSei->getQualityLevel( uiNumScalableLayer ) == m_auiQualityLevel[uiWantedScalableLayer] )
+              pcNewScalableSei->getQualityId( uiNumScalableLayer ) == m_auiQualityLevel[uiWantedScalableLayer] )
             pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, (UInt)(pcOldScalableSei->getAvgBitrate( uiScalableLayer ) * ( 1 - dSNRLayerDiff ) ) );
           else
             pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, pcOldScalableSei->getAvgBitrate( uiScalableLayer ) );
@@ -2569,8 +2487,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         assert( j <= 2 );
         UInt uiOldDepScaLayer  = uiScalableLayer - pcOldScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayer, j); //JVT-S036 lsj
         UInt uiOldDependencyId = pcOldScalableSei->getDependencyId(uiOldDepScaLayer);
-        UInt uiOldTempLevel    = pcOldScalableSei->getTemporalLevel(uiOldDepScaLayer);
-        UInt uiOldQualityLevel = pcOldScalableSei->getQualityLevel(uiOldDepScaLayer);
+        UInt uiOldTempLevel    = pcOldScalableSei->getTemporalId(uiOldDepScaLayer);
+        UInt uiOldQualityLevel = pcOldScalableSei->getQualityId(uiOldDepScaLayer);
         UInt uiNewDepScaLayer  = tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][uiOldQualityLevel];
         if( uiNewDepScaLayer == MSYS_UINT_MAX ) //this happens only when SIP is used and ALL packets of certain scalable layer is discarded
         {
@@ -2583,11 +2501,11 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         }
         if( j == 0 ) //direct dependent layer 0
         {
-        if( pcOldScalableSei->getQualityLevel(uiScalableLayer) ) // Q != 0
+        if( pcOldScalableSei->getQualityId(uiScalableLayer) ) // Q != 0
         {
           assert( uiNumScalableLayer - uiNewDepScaLayer >= 0 );
         }
-        else if( pcOldScalableSei->getTemporalLevel(uiScalableLayer) ) //TL != 0, Q = 0
+        else if( pcOldScalableSei->getTemporalId(uiScalableLayer) ) //TL != 0, Q = 0
         {
           assert( uiNumScalableLayer - uiNewDepScaLayer >= 0 );
         }
@@ -2612,7 +2530,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         }
         else if( j == 1 ) // j == 1, direct dependent layer 1
         {
-          if( pcOldScalableSei->getQualityLevel(uiScalableLayer) ) // Q != 0, T != 0
+          if( pcOldScalableSei->getQualityId(uiScalableLayer) ) // Q != 0, T != 0
         {
           Int iFGS;
           for( iFGS = (Int) uiOldQualityLevel; iFGS >= 0; iFGS-- )
@@ -2623,7 +2541,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
           uiOldQualityLevel = ( iFGS >= 0 ) ? (UInt) iFGS : 0;
           uiNewDepScaLayer = tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][uiOldQualityLevel];
         }
-        else if( pcOldScalableSei->getTemporalLevel( uiScalableLayer ) ) // D != 0, T != 0, Q = 0
+        else if( pcOldScalableSei->getTemporalId( uiScalableLayer ) ) // D != 0, T != 0, Q = 0
         {
           Int iFGS;
           for( iFGS = (Int) uiOldQualityLevel; iFGS >= 0; iFGS-- )
@@ -2835,7 +2753,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
          if( !bLayerNotPresent[uiScalableLayer] )
                bLayerNotPresentUpdate[uiOldNewLayerIdMap[uiScalableLayer]] = true ;
          #else
-            bLayerNotPresent[pcOldScalableSeiLayersNotPresent->getLayerId(i)] = true;
+            bLayerNotPresent[pcOldScalableSeiLayersNotPresent->getDependencyId(i)] = true;
          #endif
      }
 
@@ -2876,10 +2794,10 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
     j = 0;
     for( i = 0; i <= pcOldScalableSeiDepChange->getNumLayersMinus1(); i++ )
     {
-      uiLid = pcOldScalableSeiDepChange->getLayerId( i );
+      uiLid = pcOldScalableSeiDepChange->getDependencyId( i );
       if( ! bLayerNotPresent[uiLid] )
       {
-        pcNewScalableSeiDepChange->setLayerId( j, uiLid );
+        pcNewScalableSeiDepChange->setDependencyId( j, uiLid );
         pcNewScalableSeiDepChange->setLayerDependencyInfoPresentFlag( j, pcOldScalableSeiDepChange->getLayerDependencyInfoPresentFlag(i) );
         if( pcOldScalableSeiDepChange->getLayerDependencyInfoPresentFlag(i) )
         {
@@ -3140,9 +3058,8 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
       //============ set parameters ===========
       if( ! bApplyToNext  )
       {
-        RNOK( CheckSuffixNalUnit( &cPacketDescription, bNextSuffix ) );
 //prefix unit{{
-        if((cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5) && !bNextSuffix)
+        if(cPacketDescription.NalUnitType == 1 || cPacketDescription.NalUnitType == 5)
         {
           cPacketDescription.Level = uiTempLevel;
           cPacketDescription.bDiscardable = bDiscardable_prefix;
@@ -3221,12 +3138,23 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
 
       UInt eNalUnitType = cPacketDescription.NalUnitType;
       Bool bRequired = false;
-      //if(  eNalUnitType == NAL_UNIT_SPS )
-			if(  eNalUnitType == NAL_UNIT_SPS || eNalUnitType == NAL_UNIT_SUB_SPS )//SSPS
+      if(  eNalUnitType == NAL_UNIT_SPS )
       {
         for( UInt layer = 0; layer <= uiMaxLayer; layer ++ )
         {
           if( m_cScalableStreamDescription.m_bSPSRequired[layer][cPacketDescription.SPSid] )
+          {
+            bRequired = true;
+            break;
+          }
+        }
+        bKeep = bRequired;
+      }
+      else if( eNalUnitType == NAL_UNIT_SUBSET_SPS )
+      {
+        for( UInt layer = 0; layer <= uiMaxLayer; layer ++ )
+        {
+          if( m_cScalableStreamDescription.m_bSubsetSPSRequired[layer][cPacketDescription.SPSid] )
           {
             bRequired = true;
             break;
@@ -3279,7 +3207,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
         //first check if truncated FGS layer
         if( cPacketDescription.NalUnitType != NAL_UNIT_PPS &&
             cPacketDescription.NalUnitType != NAL_UNIT_SPS &&
-						cPacketDescription.NalUnitType != NAL_UNIT_SUB_SPS && //SSPS
+						cPacketDescription.NalUnitType != NAL_UNIT_SUBSET_SPS && //SSPS
             cPacketDescription.NalUnitType != NAL_UNIT_SEI )
         if( bTruncated && uiLayer == uiMaxLayer && uiFGSLayer == uiMaxFGSLayer )
         {
@@ -3890,9 +3818,9 @@ ErrVal Extractor::QualityLevelSearch(Bool bOrderedTopLayerTrunc)
       }
     }
 
-    m_uiQualityLevel = (UInt)QualityLevelMax;
+    m_uiQualityId = (UInt)QualityLevelMax;
 
-    printf("  - Actual Rate generated: %.2lf   QualityLevel: %d\n", totalRate, m_uiQualityLevel);
+    printf("  - Actual Rate generated: %.2lf   QualityLevel: %d\n", totalRate, m_uiQualityId);
   }
   //Do a temporal level based truncation for low bitrates.
   else
@@ -4509,7 +4437,7 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
   //if( pcScalableSei->getDecodingDependencyInfoPresentFlag( m_uiScalableNumLayersMinus1 ) )  //JVT-S036 lsj
   //{
     m_uiNumLayers     = pcScalableSei->getDependencyId( m_uiScalableNumLayersMinus1 ) + 1;
-    m_uiMaxDecStages  = pcScalableSei->getTemporalLevel( m_uiScalableNumLayersMinus1 ) + 1;
+    m_uiMaxDecStages  = pcScalableSei->getTemporalId( m_uiScalableNumLayersMinus1 ) + 1;
   //}
   //if( pcScalableSei->getFrmSizeInfoPresentFlag( m_uiScalableNumLayersMinus1 ) )
   if( pcScalableSei->getFrmSizeInfoPresentFlag( m_uiScalableNumLayersMinus1 ) || pcScalableSei->getIroiSliceDivisionInfoPresentFlag(m_uiScalableNumLayersMinus1) )//SEI changes update
@@ -4526,8 +4454,8 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
   for ( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; uiScalableLayer++ )
   {
     uiLayer = pcScalableSei->getDependencyId ( uiScalableLayer );
-    uiLevel = pcScalableSei->getTemporalLevel( uiScalableLayer );
-    uiFGS   = pcScalableSei->getQualityLevel ( uiScalableLayer );
+    uiLevel = pcScalableSei->getTemporalId( uiScalableLayer );
+    uiFGS   = pcScalableSei->getQualityId ( uiScalableLayer );
 
     m_auiFrameWidth [ uiLayer ] = pcScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) ?
                                 ( pcScalableSei->getFrmWidthInMbsMinus1    (uiScalableLayer)+1 ) << 4 : 0;
@@ -4535,7 +4463,7 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
                                 ( pcScalableSei->getFrmHeightInMbsMinus1  (uiScalableLayer)+1 ) << 4 : 0;
 
     if(uiFGS == 0) //MGS_FIX_FT_09_2007
-    m_auiDecStages  [ uiLayer ] = pcScalableSei->getTemporalLevel( uiScalableLayer );//JVT-S036 lsj
+    m_auiDecStages  [ uiLayer ] = pcScalableSei->getTemporalId( uiScalableLayer );//JVT-S036 lsj
     m_aaauiScalableLayerId[uiLayer][uiLevel][uiFGS] = uiScalableLayer;
     m_aaauiTempLevel      [uiLayer][uiLevel][uiFGS] = uiLevel;
     m_aaauiDependencyId   [uiLayer][uiLevel][uiFGS] = uiLayer;
@@ -4564,6 +4492,8 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
   {
     for( uiNum = 0; uiNum < 32; uiNum ++ )
       m_bSPSRequired[uiIndex][uiNum] = false;
+    for( uiNum = 0; uiNum < 32; uiNum ++ )
+      m_bSubsetSPSRequired[uiIndex][uiNum] = false;
     for( uiNum = 0; uiNum < 256; uiNum ++ )
       m_bPPSRequired[uiIndex][uiNum] = false;
   }
@@ -4814,12 +4744,23 @@ Extractor::GetPictureDataKeep( h264::PacketDescription* pcPacketDescription, Dou
     bKeep = true;
     return Err::m_nOK;
   }
-  //if( NalUnitType == NAL_UNIT_SPS )
-	if( NalUnitType == NAL_UNIT_SPS || NalUnitType == NAL_UNIT_SUB_SPS )//SSPS
+  if( NalUnitType == NAL_UNIT_SPS )
   {
     for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
     {
       if( m_cScalableStreamDescription.m_bSPSRequired[layer][pcPacketDescription->SPSid] )
+      {
+        bKeep = true;
+        break;
+      }
+    }
+    return Err::m_nOK;
+  }
+  else if( NalUnitType == NAL_UNIT_SUBSET_SPS )
+  {
+    for( UInt layer = 0; layer <= m_pcExtractorParameter->getLayer(); layer ++ )
+    {
+      if( m_cScalableStreamDescription.m_bSubsetSPSRequired[layer][pcPacketDescription->SPSid] )
       {
         bKeep = true;
         break;
@@ -4858,43 +4799,6 @@ Extractor::GetPictureDataKeep( h264::PacketDescription* pcPacketDescription, Dou
   return Err::m_nOK;
 }
 
-ErrVal
-Extractor::CheckSuffixNalUnit( h264::PacketDescription* pcPacketDescription, Bool& bNextSuffix )
-{
-  bNextSuffix = false;
-  if( pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE || pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE_IDR &&
-    getBaseLayerAVCCompatible() )
-  {
-    Bool bEOS = false;
-    h264::PacketDescription cPacketDescriptionTemp;
-    h264::SEI::SEIMessage*  pcScalableSeiTemp = 0;
-    Int iFilePos = 0;
-    RNOK( m_pcReadBitstream->getPosition( iFilePos ) );
-    BinData *pcNextBinData=NULL;
-    RNOK( m_pcReadBitstream->extractPacket( pcNextBinData, bEOS ) );
-//TMM 
-    if( pcNextBinData->byteSize()>0 )
-    m_pcH264AVCPacketAnalyzer->process( pcNextBinData, cPacketDescriptionTemp, pcScalableSeiTemp  );
-
-    if( (pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || pcPacketDescription->NalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE) //prefix unit 
-        && cPacketDescriptionTemp.Layer == 0 && cPacketDescriptionTemp.FGSLayer == 0 ) //AVC suffix
-    {
-      bNextSuffix = true;
-      pcPacketDescription->Level = cPacketDescriptionTemp.Level;
-      pcPacketDescription->bDiscardable = cPacketDescriptionTemp.bDiscardable;
-    }
-    if( pcScalableSeiTemp )
-    {
-      delete pcScalableSeiTemp;
-      pcScalableSeiTemp = NULL;
-    }
-    RNOK( m_pcReadBitstream->releasePacket( pcNextBinData ) );
-    pcNextBinData = NULL;
-    RNOK( m_pcReadBitstream->setPosition( iFilePos ) );
-  }
-
-  return Err::m_nOK;
-}
 
 ErrVal
 Extractor::xResetSLFGSBitrate( UInt uiDependencyId, UInt uiTempLevel, UInt uiFGSLayer, Double dDecBitrate )

@@ -90,6 +90,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 
+
 Void MbData::copy( const MbData& rcMbData )
 {
   MbDataStruct::          copy    ( rcMbData );
@@ -273,7 +274,7 @@ UInt MbData::calcMbCbp( UInt uiStart, UInt uiStop ) const
 
 
 ErrVal
-MbData::copyMotion( MbData& rcMbData,
+MbData::copyMotion( const MbData& rcMbData,
                     UInt    uiSliceId )
 {
   m_uiSliceId   = ( uiSliceId != MSYS_UINT_MAX ? uiSliceId : m_uiSliceId );

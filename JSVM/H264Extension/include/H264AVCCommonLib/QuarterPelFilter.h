@@ -93,8 +93,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/YuvMbBuffer.h"
 #include "H264AVCCommonLib/YuvPicBuffer.h"
-#include "H264AVCCommonLib/IntYuvMbBuffer.h"
-#include "H264AVCCommonLib/IntYuvPicBuffer.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -113,33 +111,16 @@ public:
   virtual ErrVal init();
   ErrVal uninit();
 
-  Void set4Tap        ( Bool b4Tap )  { m_b4Tap = b4Tap; }  // V090
-  Void predBlk4TapD    ( YuvMbBuffer*        pcDesBuffer, YuvPicBuffer*        pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );   // V090
-  Void predBlk4TapD    ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX );   // V090
-
-  Void predBlkSR      ( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
   Bool getClipMode    ()        { return m_bClip; }
-	virtual ErrVal filterFrame( YuvPicBuffer* pcPelBuffer, YuvPicBuffer* pcHalfPelBuffer );
   Void setClipMode( Bool bEnableClip ) { m_bClip = bEnableClip; }
 
-  virtual ErrVal filterFrame( IntYuvPicBuffer* pcPelBuffer, IntYuvPicBuffer* pcHalfPelBuffer );
+  virtual ErrVal filterFrame( YuvPicBuffer* pcPelBuffer, YuvPicBuffer* pcHalfPelBuffer );
   Void filterBlock( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter )
   {
-	  // V090
-    if( m_b4Tap )
-    {
-      filterBlock4Tap( pDes, pSrc, iSrcStride, uiXSize, uiYSize, uiFilter );
-      return;
-    }
-	// V090
-
     m_afpXFilterBlockFunc[uiFilter]( pDes, pSrc, iSrcStride, uiXSize, uiYSize );
   }
 
-  Void filterBlock4Tap( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize, UInt uiFilter ); // V090
-
-  Void predBlk( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
-  Void predBlk( IntYuvMbBuffer*     pcDesBuffer, IntYuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
+  Void predBlk( YuvMbBuffer*     pcDesBuffer, YuvPicBuffer*     pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
 
   Void weightOnEnergy(UShort *usWeight, XPel* pucSrc, Int iSrcStride, Int iSizeY, Int iSizeX );
   Void xUpdInterpBlnr(Int* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
@@ -149,17 +130,6 @@ public:
   Void xUpdInterpChroma( Int* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
 
 protected:
-  virtual Void xPredElse( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
-  virtual Void xPredDy2Dx13( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
-  virtual Void xPredDx2Dy13( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
-  virtual Void xPredDx2Dy2( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
-  virtual Void xPredDx0Dy13( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
-  virtual Void xPredDx0Dy2( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, UInt uiSizeY, UInt uiSizeX );
-  virtual Void xPredDy0Dx13( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, UInt uiSizeY, UInt uiSizeX );
-  virtual Void xPredDy0Dx2( Pel*  pucDest, Pel*  pucSrc, Int iDestStride, Int iSrcStride, UInt uiSizeY, UInt uiSizeX );
-  
-  virtual Void xPredDx2( Short* psDest, Pel*  pucSrc, Int iSrcStride, UInt uiSizeY, UInt uiSizeX );
-
   Void xPredElse    ( XPel*  pucDest, XPel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
   Void xPredDy2Dx13 ( XPel*  pucDest, XPel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
   Void xPredDx2Dy13 ( XPel*  pucDest, XPel*  pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, UInt uiSizeY, UInt uiSizeX );
@@ -170,12 +140,6 @@ protected:
   Void xPredDy0Dx2  ( XPel*  pucDest, XPel*  pucSrc, Int iDestStride, Int iSrcStride, UInt uiSizeY, UInt uiSizeX );
   Void xPredDx2     ( XXPel* psDest,  XPel*  pucSrc, Int iSrcStride, UInt uiSizeY,   UInt uiSizeX );
 
-
-  static Void xFilter1( Pel* pDes, Pel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
-  static Void xFilter2( Pel* pDes, Pel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
-  static Void xFilter3( Pel* pDes, Pel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
-  static Void xFilter4( Pel* pDes, Pel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
-
   static Void xXFilter1( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
   static Void xXFilter2( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
   static Void xXFilter3( XPel* pDes, XPel* pSrc, Int iSrcStride, UInt uiXSize, UInt uiYSize );
@@ -185,10 +149,7 @@ protected:
 
 protected:
   Bool m_bClip;
-  FilterBlockFunc m_afpFilterBlockFunc[4];
   XFilterBlockFunc m_afpXFilterBlockFunc[4];
-
-  Bool  m_b4Tap;  // V090
 };
 
 #if AR_FGS_COMPENSATE_SIGNED_FRAME

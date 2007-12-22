@@ -97,6 +97,7 @@ H264AVC_NAMESPACE_BEGIN
 
 class MbParser;
 class ParameterSetMng;
+class MbStatus;
 
 class SliceReader
 {
@@ -105,83 +106,20 @@ protected:
 	virtual ~SliceReader();
 
 public:
-  static ErrVal create( SliceReader*& rpcSliceReader );
-  ErrVal destroy();
-  ErrVal init(  HeaderSymbolReadIf* pcHeaderSymbolReadIf,
-                ParameterSetMng* pcParameterSetMng,
-                MbParser* pcMbParser,
-                ControlMngIf* pcControlMng );
-  ErrVal uninit();
+  static ErrVal create  ( SliceReader*& rpcSliceReader );
+  ErrVal        destroy ();
+  ErrVal        init    ( MbParser*     pcMbParser );
+  ErrVal        uninit  ();
 
-  // JVT-S054 (2) (REPLACE)
-  //ErrVal process( const SliceHeader& rcSH, UInt& ruiMbRead );
-  ErrVal process( SliceHeader& rcSH, UInt& ruiMbRead );
-  
-  ErrVal readSliceHeader  ( NalUnitParser* pcNalUnitParser,
-                            SliceHeader*& rpcSH  );
-    
-  ErrVal readSliceHeaderSuffix( NalUnitType   eNalUnitType,
-                                NalRefIdc     eNalRefIdc,
-                                UInt		      uiLayerId,
-                                UInt		      uiQualityLevel,
-                                Bool          bUseBasePredFlag,
-                                SliceHeader*  pcSliceHeader
-                                );					//JVT-S036 lsj
-//prefix unit{{
-  ErrVal readSliceHeaderPrefix( NalUnitType   eNalUnitType,
-                                NalRefIdc     eNalRefIdc,
-                                UInt		      uiLayerId,
-                                UInt		      uiQualityLevel,
-                                Bool          bUseBasePredFlag,
-                                SliceHeader*  pcSliceHeader
-                                );	
-//prefix unit}}
-
-  //TMM_EC {{
-	ErrVal	readSliceHeaderVirtual(	NalUnitType   eNalUnitType,
-		                              SliceHeader	*rpcVeryFirstSliceHeader,
-																	UInt	uiDecompositionStages,
-																	UInt	uiMaxDecompositionStages,
-																	UInt	uiGopSize,
-																	UInt	uiMaxGopSize,
-																	UInt	uiFrameNum,
-																	UInt	uiPocLsb,
-																	UInt	uiTemporalLevel,
-                                  UInt  uiLayerID      ,
-																	SliceHeader*& rpcSH);
-  //TMM_EC }}
-  ErrVal  read           ( SliceHeader&   rcSH,
-                           MbDataCtrl*    pcMbDataCtrl,
-                           Int            iSpatialScalabilityType,
-                           UInt           uiMbInRow,
-                           UInt&          ruiMbRead );
-//	TMM_EC {{
-	ErrVal  readVirtual    ( SliceHeader&   rcSH,
-                           MbDataCtrl*    pcMbDataCtrl,
-                           MbDataCtrl*    pcMbDataCtrlRef,
-                           MbDataCtrl*    pcMbDataCtrlBase,
-                           MbDataCtrl*    pcMbDataCtrlBaseField,
-                           Int             iSpatialScalabilityType,
-                           UInt           uiMbInRow,
-                           UInt&          ruiMbRead,
-													 ERROR_CONCEAL      m_eErrorConceal);
+  ErrVal        read    ( SliceHeader&  rcSH,
+                          MbDataCtrl*   pcMbDataCtrl,
+                          MbStatus*     pacMbStatus,
+                          UInt          uiMbInRow,
+                          UInt&         ruiMbRead );
 
 protected:
-  HeaderSymbolReadIf* m_pcHeaderReadIf;
-  ParameterSetMng *m_pcParameterSetMng;
+  Bool      m_bInitDone;
   MbParser* m_pcMbParser;
-  ControlMngIf* m_pcControlMng;
-  Bool m_bInitDone;
-//JVT-S036 lsj start
-  Bool uiAdaptiveRefPicMarkingModeFlag;
-  MmcoBuffer m_cMmmcoBufferSuffix; 
-	UInt m_uiPPSId_AVC, m_uiSPSId_AVC;
-	UInt m_uiPOC_AVC;
-//JVT-S036 lsj end
-    //JVT-W062
-    //JVT-V088 LMI
-  //Bool m_bTl0PicIdxPresentFlag;
-
 };
 
 H264AVC_NAMESPACE_END

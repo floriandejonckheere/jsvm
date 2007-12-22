@@ -103,23 +103,30 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 enum NalUnitType
 {
-  NAL_UNIT_EXTERNAL                 = 0,
-  NAL_UNIT_CODED_SLICE              = 1,
-  NAL_UNIT_CODED_SLICE_DATAPART_A   = 2,
-  NAL_UNIT_CODED_SLICE_DATAPART_B   = 3,
-  NAL_UNIT_CODED_SLICE_DATAPART_C   = 4,
-  NAL_UNIT_CODED_SLICE_IDR          = 5,
-  NAL_UNIT_SEI                      = 6,
-  NAL_UNIT_SPS                      = 7,
-  NAL_UNIT_PPS                      = 8,
-  NAL_UNIT_ACCESS_UNIT_DELIMITER    = 9,
+  NAL_UNIT_UNSPECIFIED_0            =  0,
+  NAL_UNIT_CODED_SLICE              =  1,
+  NAL_UNIT_CODED_SLICE_DATAPART_A   =  2,
+  NAL_UNIT_CODED_SLICE_DATAPART_B   =  3,
+  NAL_UNIT_CODED_SLICE_DATAPART_C   =  4,
+  NAL_UNIT_CODED_SLICE_IDR          =  5,
+  NAL_UNIT_SEI                      =  6,
+  NAL_UNIT_SPS                      =  7,
+  NAL_UNIT_PPS                      =  8,
+  NAL_UNIT_ACCESS_UNIT_DELIMITER    =  9,
   NAL_UNIT_END_OF_SEQUENCE          = 10,
   NAL_UNIT_END_OF_STREAM            = 11,
   NAL_UNIT_FILLER_DATA              = 12,
-  NAL_UNIT_PREFIX										= 14,  //prefix unit
-  NAL_UNIT_SUB_SPS                  = 15,  //SSPS
+  NAL_UNIT_SPS_EXTENSION            = 13,
+  NAL_UNIT_PREFIX										= 14,
+  NAL_UNIT_SUBSET_SPS               = 15,
+  NAL_UNIT_RESERVED_16              = 16,
+  NAL_UNIT_RESERVED_17              = 17,
+  NAL_UNIT_RESERVED_18              = 18,
+  NAL_UNIT_AUX_CODED_SLICE          = 19,
   NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
-  NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
+  NAL_UNIT_RESERVED_21              = 21,
+  NAL_UNIT_RESERVED_22              = 22,
+  NAL_UNIT_RESERVED_23              = 23
 };
 
 
@@ -178,6 +185,7 @@ public:
   Double getFrameRate(UInt uiExtLayer, UInt uiLevel) { return m_aaadFramerate[uiExtLayer][uiLevel][0];}
   //~add France Telecom
   Bool    m_bSPSRequired[MAX_LAYERS][32];
+  Bool    m_bSubsetSPSRequired[MAX_LAYERS][32];
   Bool    m_bPPSRequired[MAX_LAYERS][256];
 
 
@@ -332,8 +340,7 @@ protected:
 
   //determine layer, level and target rate for output stream
   ErrVal xGetExtParameters();
-  ErrVal CheckSuffixNalUnit( h264::PacketDescription* pcPacketDescription, Bool& bNextSuffix );
-	ErrVal GetAndCheckBaseLayerPackets( Double& dRemainingBytes );
+  ErrVal GetAndCheckBaseLayerPackets( Double& dRemainingBytes );
 	UInt   GetWantedScalableLayer();
   //search optimal quality for target rate
   ErrVal QualityLevelSearch(Bool bOrderedTopLayerTrunc);
@@ -455,7 +462,7 @@ protected:
   UInt              m_auiNbImages[MAX_LAYERS];
   //}}Quality level estimation and modified truncation- JVTO044 and m12007
   UInt              m_uiExtractNonRequiredPics;
-  UInt m_uiQualityLevel;
+  UInt m_uiQualityId;
   UInt m_auiPID[64];
   UInt m_uiNbPID;
   Bool m_bQualityLevelInSEI; //indicates if QualityLayers are in SEI messages

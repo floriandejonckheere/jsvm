@@ -110,12 +110,6 @@ public:
   Void  setQp( UChar ucQp )                                     { m_ucQp = ucQp; }
   Void  clearIntraPredictionModes( Bool bAll );
 
-  Bool  isIntra   ( Par8x8  ePar8x8 )                     const { return getBlockFwdBwd( ePar8x8 ) == 0; }
-  Bool  isInterP  ( Par8x8  ePar8x8 )                     const { return getBlockFwdBwd( ePar8x8 ) == 1; }
-
-  Bool  isIntra   ( LumaIdx cIdx    )                     const { return isIntra ( Par8x8( ((cIdx.y()>>1)<<1) + (cIdx.x()>>1) ) ) ; }
-  Bool  isInterP  ( LumaIdx cIdx    )                     const { return isInterP( Par8x8( ((cIdx.y()>>1)<<1) + (cIdx.x()>>1) ) ) ; }
-
   UInt  getFwdBwd ( LumaIdx cIdx    )                     const { return getBlockFwdBwd( Par8x8( ((cIdx.y()>>1)<<1) + (cIdx.x()>>1) ) ); }
 
   const Bool isInterPMb()                                 const { return m_usFwdBwd == 0x1111; }
@@ -136,8 +130,8 @@ public:
   Bool    isIntra4x4        ()                            const { return m_eMbMode == INTRA_4X4; }
   Bool    isIntra16x16      ()                            const { return m_eMbMode  > INTRA_4X4 && m_eMbMode < MODE_PCM; }
   Bool    isIntra           ()                            const { return m_eMbMode >= INTRA_4X4; }
-  Bool    isIntra_BL        ()                            const { return m_eMbMode == INTRA_BL; } // SSUN@SHARP
-  Bool    isIntra_nonBL     ()                            const { return (m_eMbMode >= INTRA_4X4 && m_eMbMode != INTRA_BL); } // SSUN@SHARP
+  Bool    isIntraBL         ()                            const { return m_eMbMode == INTRA_BL; } // SSUN@SHARP
+  Bool    isIntraButnotIBL  ()                            const { return (m_eMbMode >= INTRA_4X4 && m_eMbMode != INTRA_BL); } // SSUN@SHARP
   Bool    isSkiped          ()                            const { return m_eMbMode == MODE_SKIP; }
   Bool    isPCM             ()                            const { return m_eMbMode == MODE_PCM; }
   Bool    isAcCoded         ()                            const { AOF_DBG(isIntra16x16()); return m_eMbMode>=(INTRA_4X4 + 13); }

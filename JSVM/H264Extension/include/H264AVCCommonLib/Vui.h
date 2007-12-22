@@ -164,18 +164,18 @@ public:
     ErrVal read( HeaderSymbolReadIf* pcReadIf );
 
     Void setDependencyID(UInt uiDependencyID)             { m_uiDependencyID = uiDependencyID; }
-    Void setTemporalLevel(UInt uiTemporalLevel)           { m_uiTemporalLevel = uiTemporalLevel; }
-    Void setQualityLevel(UInt uiQualityLevel)             { m_uiQualityLevel = uiQualityLevel; }
+    Void setTemporalId(UInt uiTemporalLevel)           { m_uiTemporalId = uiTemporalLevel; }
+    Void setQualityLevel(UInt uiQualityLevel)             { m_uiQualityId = uiQualityLevel; }
 
     UInt getDependencyID()                        const { return m_uiDependencyID; }
-    UInt getTemporalLevel()                       const { return m_uiTemporalLevel; }
-    UInt getQualityLevel()                        const { return m_uiQualityLevel; }
+    UInt getTemporalId()                       const { return m_uiTemporalId; }
+    UInt getQualityId()                        const { return m_uiQualityId; }
 
   protected:
 
     UInt m_uiDependencyID;
-    UInt m_uiTemporalLevel;
-    UInt m_uiQualityLevel;
+    UInt m_uiTemporalId;
+    UInt m_uiQualityId;
   };
 
 

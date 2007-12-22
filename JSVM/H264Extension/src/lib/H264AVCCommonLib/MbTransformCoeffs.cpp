@@ -84,7 +84,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/MbTransformCoeffs.h"
-#include "H264AVCCommonLib/FGSCoder.h"
+#include "H264AVCCommonLib/YuvMbBuffer.h"
 
 #include <stdio.h>
 
@@ -133,7 +133,7 @@ Void MbTransformCoeffs::clearAcBlk( ChromaIdx cChromaIdx )
 }
 
 
-ErrVal MbTransformCoeffs::copyPredictionFrom( IntYuvMbBuffer &rcPred )
+ErrVal MbTransformCoeffs::copyPredictionFrom( YuvMbBuffer &rcPred )
 {
   TCoeff *pcDst     = get( B4x4Idx(0) );
   XPel   *pSrc      = rcPred.getMbLumAddr();
@@ -172,7 +172,7 @@ ErrVal MbTransformCoeffs::copyPredictionFrom( IntYuvMbBuffer &rcPred )
   return Err::m_nOK;
 }
 
-ErrVal MbTransformCoeffs::copyPredictionTo( IntYuvMbBuffer &rcPred )
+ErrVal MbTransformCoeffs::copyPredictionTo( YuvMbBuffer &rcPred )
 {
   TCoeff *pcSrc     = get( B4x4Idx(0) );
   XPel   *pcDst      = rcPred.getMbLumAddr();

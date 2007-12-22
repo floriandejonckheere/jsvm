@@ -115,22 +115,20 @@ public:
   ErrVal uninit();
 
   ErrVal setParamterSetList( std::list<SequenceParameterSet*>& rcSPSList, std::list<PictureParameterSet*>& rcPPSList) const;
-  Bool   isValidSPS( UInt uiSPSId )                    { return m_cSPSBuf.isValidOffset(uiSPSId) && NULL != m_cSPSBuf.get( uiSPSId); }
-  ErrVal get( SequenceParameterSet *& rpcSPS, UInt uiSPSId);
-  ErrVal store( SequenceParameterSet* pcSPS );
-  ErrVal get( PictureParameterSet *& rpcPPS, UInt uiPPSId );
+  Bool   isValidSPS( UInt uiSPSId, Bool bSubSetSPS )   { return m_cSPSBuf.isValidOffset(uiSPSId+(bSubSetSPS?32:0)) && NULL != m_cSPSBuf.get( uiSPSId+(bSubSetSPS?32:0)); }
   Bool   isValidPPS( UInt uiPPSId )                    { return m_cPPSBuf.isValidOffset(uiPPSId) && NULL != m_cPPSBuf.get( uiPPSId); }
+  ErrVal get( SequenceParameterSet *& rpcSPS, UInt uiSPSId, Bool bSubSetSPS );
+  ErrVal get( PictureParameterSet *& rpcPPS, UInt uiPPSId );
+  ErrVal store( SequenceParameterSet* pcSPS );
   ErrVal store( PictureParameterSet* pcPPS );
-  // JVT-V068 HRD {
   ErrVal getActiveSPS( SequenceParameterSet *& rpcSPS); 
-  // JVT-V068 HRD }
 
 private:
   ErrVal xDestroyPPS(UInt uiPPSId);
   ErrVal xDestroySPS(UInt uiSPSId);
 
 private:
-  StatBuf<SequenceParameterSet*,32>  m_cSPSBuf;
+  StatBuf<SequenceParameterSet*,2*NUM_SPS_IDS>  m_cSPSBuf;
   StatBuf<PictureParameterSet*,256> m_cPPSBuf;
   UInt m_uiActiveSPSId;
   UInt m_uiActivePPSId;

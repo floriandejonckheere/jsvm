@@ -117,9 +117,9 @@ FrameSpec::init( UChar        ucType,
                  UInt         uiFramesSkipped,
                  Bool         bUseBaseRep,
                  UInt         uiLayer,
-                 MmcoBuffer*  pcMmcoBuf,
-                 RplrBuffer*  pcRplrBufL0,
-                 RplrBuffer*  pcRplrBufL1 )
+                 DecRefPicMarking*  pcMmcoBuf,
+                 RefPicListReOrdering*  pcRplrBufL0,
+                 RefPicListReOrdering*  pcRplrBufL1 )
 {
   //===== set slice_type, nal_unit_type, nal_ref_idc
   switch( ucType )
@@ -276,14 +276,14 @@ FrameSpec::getTemporalLayer() const
   return m_uiTemporalLayer;
 }
 
-const MmcoBuffer*
+const DecRefPicMarking*
 FrameSpec::getMmcoBuf() const
 {
   AOF_DBG( m_bInit );
   return m_pcMmcoBuf;
 }
 
-const RplrBuffer*
+const RefPicListReOrdering*
 FrameSpec::getRplrBuf( ListIdx eLstIdx) const
 {
   AOF_DBG( m_bInit );
@@ -348,19 +348,19 @@ SequenceStructure::FrameDescriptor::init( const String& rcString,
   //===== parse and set MMCO and RPLR commands =====
   if( ! cMmcoString.empty() )
   {
-    ROT( NULL == ( m_pcMmcoBuf = new MmcoBuffer ) );
+    ROT( NULL == ( m_pcMmcoBuf = new DecRefPicMarking( false ) ) );
     RNOK( FormattedStringParser::extractMmco( cMmcoString, *m_pcMmcoBuf ) );
   }
 
   if( ! cRplrStringL0.empty() )
   {
-    ROT( NULL == ( m_apcRplrBuf[LIST_0] = new RplrBuffer ) );
+    ROT( NULL == ( m_apcRplrBuf[LIST_0] = new RefPicListReOrdering() ) );
     RNOK( FormattedStringParser::extractRplr( cRplrStringL0, *m_apcRplrBuf[LIST_0] ) );
   }
 
   if( ! cRplrStringL1.empty() )
   {
-    ROT( NULL == ( m_apcRplrBuf[LIST_1] = new RplrBuffer ) );
+    ROT( NULL == ( m_apcRplrBuf[LIST_1] = new RefPicListReOrdering ) );
     RNOK( FormattedStringParser::extractRplr( cRplrStringL1, *m_apcRplrBuf[LIST_1] ) );
   }
 
@@ -393,7 +393,7 @@ SequenceStructure::FrameDescriptor::check() const
   {
     for( UInt uiPos = 0; ; uiPos++ )
     {
-      Mmco cCommand = m_pcMmcoBuf->get( uiPos );
+      MmcoCommand cCommand = m_pcMmcoBuf->get( uiPos );
       if(  cCommand.isEnd() )
       {
         break;
@@ -408,7 +408,7 @@ SequenceStructure::FrameDescriptor::check() const
     {
       for( UInt uiPos = 0; ; uiPos++ )
       {
-        Rplr cCommand = m_apcRplrBuf[uiList]->get( uiPos );
+        RplrCommand cCommand = m_apcRplrBuf[uiList]->get( uiPos );
         if(  cCommand.isEnd() )
         {
           break;
@@ -1513,7 +1513,7 @@ FormattedStringParser::extractFrameDescription( const String&  rcString,
 
 ErrVal
 FormattedStringParser::extractRplr( const String& rcString,
-                                    RplrBuffer&   rcRplrBuf)
+                                    RefPicListReOrdering&   rcRplrBuf)
 {
   //--- check if string is correct ---
   ROFS( rcString.find_first_of( "R" ) == 0 );
@@ -1535,7 +1535,7 @@ FormattedStringParser::extractRplr( const String& rcString,
 
 ErrVal
 FormattedStringParser::extractMmco( const String& rcString,
-                                    MmcoBuffer&   rcMmcoBuf )
+                                    DecRefPicMarking&   rcMmcoBuf )
 {
   //--- check if string is correct ---
   ROFS( rcString.find_first_of   ( "M" ) == 0 );
@@ -1557,7 +1557,7 @@ FormattedStringParser::extractMmco( const String& rcString,
 
 ErrVal
 FormattedStringParser::extractSingleRplrCommand( const String&  rcString,
-                                                 Rplr&          rcRplr )
+                                                 RplrCommand&          rcRplr )
 {
   //--- check if string is correct ---
   ROFS( rcString.find_first_of   ( "L+-" ) == 0 );
@@ -1569,17 +1569,17 @@ FormattedStringParser::extractSingleRplrCommand( const String&  rcString,
 
   if( cCommand == 'L' )
   {
-    rcRplr = Rplr( RPLR_LONG, uiNum );
+    rcRplr = RplrCommand( RPLR_LONG, uiNum );
     return Err::m_nOK;
   }
   else if( cCommand == '+' )
   {
-    rcRplr = Rplr( RPLR_POS, uiNum );
+    rcRplr = RplrCommand( RPLR_POS, uiNum );
     return Err::m_nOK;
   }
   else if( cCommand == '-' )
   {
-    rcRplr = Rplr( RPLR_NEG, uiNum );
+    rcRplr = RplrCommand( RPLR_NEG, uiNum );
     return Err::m_nOK;
   }
 
@@ -1590,7 +1590,7 @@ FormattedStringParser::extractSingleRplrCommand( const String&  rcString,
 
 ErrVal
 FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
-                                                Mmco&          rcMmco )
+                                                MmcoCommand&          rcMmco )
 {
   //--- check if string is correct ---
   ROFS( rcString.find_first_of( "LNE" ) == 0 );
@@ -1611,17 +1611,17 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
     Char cCommand2 = rcString[uiEnd];
     if( cCommand2 == '+' )
     {
-      rcMmco = Mmco( MMCO_SET_LONG_TERM, uiLtId );
+      rcMmco = MmcoCommand( MMCO_SET_LONG_TERM, uiLtId );
       return Err::m_nOK;
     }
     else if( cCommand2 == '-' )
     {
-      rcMmco = Mmco( MMCO_LONG_TERM_UNUSED, uiLtId );
+      rcMmco = MmcoCommand( MMCO_LONG_TERM_UNUSED, uiLtId );
       return Err::m_nOK;
     }
     else if( cCommand2 == '$' )
     {
-      rcMmco = Mmco( MMCO_MAX_LONG_TERM_IDX, uiLtId );
+      rcMmco = MmcoCommand( MMCO_MAX_LONG_TERM_IDX, uiLtId );
       return Err::m_nOK;
     }
     else if( cCommand2 == ':' )
@@ -1631,7 +1631,7 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
       ROTS( String::npos != cString2.find_last_not_of( sm_cSetOfDigits  ) );
 
       UInt uiStId  = atoi( cString2.c_str() );
-      rcMmco = Mmco( MMCO_ASSIGN_LONG_TERM, uiLtId, uiStId );
+      rcMmco = MmcoCommand( MMCO_ASSIGN_LONG_TERM, uiLtId, uiStId );
       return Err::m_nOK;
     }
     else
@@ -1645,12 +1645,12 @@ FormattedStringParser::extractSingleMmcoCommand( const String&  rcString,
     ROFS( 1 == rcString.find_first_of   ( sm_cSetOfDigits  ) );
     ROFS( 0 == rcString.find_last_not_of( sm_cSetOfDigits  ) );
     UInt uiNum  = atoi( rcString.c_str() + 1 );
-    rcMmco = Mmco( MMCO_SHORT_TERM_UNUSED, uiNum );
+    rcMmco = MmcoCommand( MMCO_SHORT_TERM_UNUSED, uiNum );
     return Err::m_nOK;
   }
   else if( cCommand1 == 'E' )
   {
-    rcMmco = Mmco( MMCO_RESET );
+    rcMmco = MmcoCommand( MMCO_RESET );
     return Err::m_nOK;
   }
 

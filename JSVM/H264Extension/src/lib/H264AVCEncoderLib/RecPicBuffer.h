@@ -89,7 +89,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "H264AVCCommonLib/MbDataCtrl.h"
-#include "H264AVCCommonLib/IntFrame.h"
+#include "H264AVCCommonLib/Frame.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -122,7 +122,7 @@ public:
   Bool          isExisting      ()  const { return m_bExisting; }
   Bool          isNeededForRef  ()  const { return m_bNeededForReference; }
   Bool          isOutputted     ()  const { return m_bOutputted; }
-  IntFrame*     getRecFrame     ()        { return m_pcReconstructedFrame; }
+  Frame*     getRecFrame     ()        { return m_pcReconstructedFrame; }
   MbDataCtrl*   getMbDataCtrl   ()        { return m_pcMbDataCtrl; }
   PicBuffer*    getPicBuffer    ()        { return m_pcPicBuffer; }
 
@@ -143,7 +143,7 @@ private:
   Bool          m_bExisting;
   Bool          m_bNeededForReference;
   Bool          m_bOutputted;
-  IntFrame*     m_pcReconstructedFrame;
+  Frame*     m_pcReconstructedFrame;
   MbDataCtrl*   m_pcMbDataCtrl;
   PicBuffer*    m_pcPicBuffer;
 };

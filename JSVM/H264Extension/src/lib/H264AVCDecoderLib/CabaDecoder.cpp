@@ -91,46 +91,33 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "DecError.h"
 
 
-#if 0 // FAST_CABAC
-#define RNOKCABAC( exp ) exp
-#define ROTRSCABAC( exp, err ) ROTVS(exp)
-#define ROFRSCABAC( exp, err ) ROFVS(exp)
-#else
-#define RNOKCABAC( exp )       RNOKS(exp)
-#define ROTRSCABAC( exp, err ) ROTRS(exp,err)
-#define ROFRSCABAC( exp, err ) ROFRS(exp,err)
-#endif
-
-
 H264AVC_NAMESPACE_BEGIN
 
 
-CabaDecoder::CabaDecoder() :
-  m_pcBitReadBuffer( NULL ),
-  m_uiRange( 0 ),
-  m_uiValue( 0 ),
-  m_uiWord( 0 ),
-  m_uiBitsLeft( 0 )
+CabaDecoder::CabaDecoder() 
+: m_pcBitReadBuffer ( 0 )
+, m_uiRange         ( 0 )
+, m_uiValue         ( 0 )
+, m_uiWord          ( 0 )
+, m_uiBitsLeft      ( 0 )
 {
 }
-
 
 CabaDecoder::~CabaDecoder()
 {
-
 }
 
-
-ErrVal CabaDecoder::init( BitReadBuffer* pcBitReadBuffer )
+ErrVal
+CabaDecoder::init( BitReadBuffer* pcBitReadBuffer )
 {
-  ROT( NULL == pcBitReadBuffer )
-
+  ROF( pcBitReadBuffer )
   m_pcBitReadBuffer = pcBitReadBuffer;
   return Err::m_nOK;
 }
 
-
-__inline ErrVal CabaDecoder::xReadBit( UInt& ruiValue )
+__inline
+ErrVal
+CabaDecoder::xReadBit( UInt& ruiValue )
 {
   if( 0 == m_uiBitsLeft-- )
   {
@@ -144,18 +131,19 @@ __inline ErrVal CabaDecoder::xReadBit( UInt& ruiValue )
   return Err::m_nOK;
 }
 
-ErrVal CabaDecoder::finish()
+ErrVal
+CabaDecoder::finish()
 {
   return Err::m_nOK;
 }
 
-ErrVal CabaDecoder::start()
+ErrVal
+CabaDecoder::start()
 {
   m_uiRange     = HALF-2;
   m_uiValue     = 0;
   m_uiWord      = 0;
   m_uiBitsLeft  = 0;
-
 
   RNOK( m_pcBitReadBuffer->flush( m_pcBitReadBuffer->getBitsUntilByteAligned() ) );
   m_pcBitReadBuffer->setModeCabac();
@@ -179,9 +167,8 @@ ErrVal CabaDecoder::start()
   return Err::m_nOK;
 }
 
-
-
-ErrVal CabaDecoder::getTerminateBufferBit( UInt& ruiBit )
+ErrVal
+CabaDecoder::getTerminateBufferBit( UInt& ruiBit )
 {
   UInt uiRange = m_uiRange-2;
   UInt uiValue = m_uiValue;
@@ -189,7 +176,6 @@ ErrVal CabaDecoder::getTerminateBufferBit( UInt& ruiBit )
   DTRACE_V (g_nSymbolCounter[g_nLayer]++);
   DTRACE_T ("  ");
   DTRACE_X (m_uiRange);
-
 
   if( uiValue >= uiRange )
   {
@@ -215,8 +201,8 @@ ErrVal CabaDecoder::getTerminateBufferBit( UInt& ruiBit )
   return Err::m_nOK;
 }
 
-
-ErrVal CabaDecoder::uninit()
+ErrVal
+CabaDecoder::uninit()
 {
   m_pcBitReadBuffer = NULL;
   m_uiRange = 0;
@@ -224,10 +210,8 @@ ErrVal CabaDecoder::uninit()
   return Err::m_nOK;
 }
 
-
-
-
-ErrVal CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
+ErrVal
+CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
 {
   UInt uiRange = m_uiRange;
   UInt uiValue = m_uiValue;
@@ -241,7 +225,6 @@ ErrVal CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
   DTRACE_V (rcCCModel.getMps());
 
   {
-
     UInt uiLPS;
 
     uiLPS = g_aucLPSTable64x4[rcCCModel.getState()][(uiRange>>6) & 0x03];
@@ -285,7 +268,8 @@ ErrVal CabaDecoder::getSymbol( UInt& ruiSymbol, CabacContextModel& rcCCModel )
 }
 
 
-ErrVal CabaDecoder::getEpSymbol( UInt& ruiSymbol )
+ErrVal
+CabaDecoder::getEpSymbol( UInt& ruiSymbol )
 {
   DTRACE_V (g_nSymbolCounter[g_nLayer]++);
   DTRACE_T ("  ");
@@ -315,15 +299,14 @@ ErrVal CabaDecoder::getEpSymbol( UInt& ruiSymbol )
 }
 
 
-
-
-ErrVal CabaDecoder::getExGolombLevel( UInt& ruiSymbol, CabacContextModel& rcCCModel  )
+ErrVal
+CabaDecoder::getExGolombLevel( UInt& ruiSymbol, CabacContextModel& rcCCModel  )
 {
   UInt uiSymbol;
   UInt uiCount = 0;
   do
   {
-    RNOKCABAC( getSymbol( uiSymbol, rcCCModel ) );
+    RNOK( getSymbol( uiSymbol, rcCCModel ) );
     uiCount++;
   }
   while( uiSymbol && (uiCount != 13));
@@ -332,7 +315,7 @@ ErrVal CabaDecoder::getExGolombLevel( UInt& ruiSymbol, CabacContextModel& rcCCMo
 
   if( uiSymbol )
   {
-    RNOKCABAC( getEpExGolomb( uiSymbol, 0 ) );
+    RNOK( getEpExGolomb( uiSymbol, 0 ) );
     ruiSymbol += uiSymbol+1;
   }
 
@@ -340,20 +323,16 @@ ErrVal CabaDecoder::getExGolombLevel( UInt& ruiSymbol, CabacContextModel& rcCCMo
 }
 
 
-
-ErrVal CabaDecoder::getExGolombMvd( UInt& ruiSymbol, CabacContextModel* pcCCModel, UInt uiMaxBin )
+ErrVal
+CabaDecoder::getExGolombMvd( UInt& ruiSymbol, CabacContextModel* pcCCModel, UInt uiMaxBin )
 {
   UInt uiSymbol;
 
-  RNOKCABAC( getSymbol( ruiSymbol, pcCCModel[0] ) );
-
-  ROTRSCABAC( 0 == ruiSymbol, Err::m_nOK );
-
-  RNOKCABAC( getSymbol( uiSymbol, pcCCModel[1] ) );
-
+  RNOK  ( getSymbol( ruiSymbol, pcCCModel[0] ) );
+  ROFRS ( ruiSymbol, Err::m_nOK );
+  RNOK  ( getSymbol( uiSymbol, pcCCModel[1] ) );
   ruiSymbol = 1;
-
-  ROTRSCABAC( 0 == uiSymbol, Err::m_nOK );
+  ROFRS ( uiSymbol, Err::m_nOK );
 
   pcCCModel += 2;
   UInt uiCount = 2;
@@ -364,7 +343,7 @@ ErrVal CabaDecoder::getExGolombMvd( UInt& ruiSymbol, CabacContextModel* pcCCMode
     {
       pcCCModel++;
     }
-    RNOKCABAC( getSymbol( uiSymbol, *pcCCModel ) );
+    RNOK( getSymbol( uiSymbol, *pcCCModel ) );
     uiCount++;
   }
   while( uiSymbol && (uiCount != 8));
@@ -373,7 +352,7 @@ ErrVal CabaDecoder::getExGolombMvd( UInt& ruiSymbol, CabacContextModel* pcCCMode
 
   if( uiSymbol )
   {
-    RNOKCABAC( getEpExGolomb( uiSymbol, 3 ) );
+    RNOK( getEpExGolomb( uiSymbol, 3 ) );
     ruiSymbol += uiSymbol+1;
   }
 
@@ -381,22 +360,22 @@ ErrVal CabaDecoder::getExGolombMvd( UInt& ruiSymbol, CabacContextModel* pcCCMode
 }
 
 
-ErrVal CabaDecoder::getEpExGolomb( UInt& ruiSymbol, UInt uiCount )
+ErrVal 
+CabaDecoder::getEpExGolomb( UInt& ruiSymbol, UInt uiCount )
 {
   UInt uiSymbol = 0;
   UInt uiBit = 1;
 
-
   while( uiBit )
   {
-    RNOKCABAC( getEpSymbol( uiBit ) );
+    RNOK( getEpSymbol( uiBit ) );
     uiSymbol += uiBit << uiCount++;
   }
 
   uiCount--;
   while( uiCount-- )
   {
-    RNOKCABAC( getEpSymbol( uiBit ) );
+    RNOK( getEpSymbol( uiBit ) );
     uiSymbol += uiBit << uiCount;
   }
 
@@ -405,19 +384,19 @@ ErrVal CabaDecoder::getEpExGolomb( UInt& ruiSymbol, UInt uiCount )
 }
 
 
-ErrVal CabaDecoder::getUnaryMaxSymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset, UInt uiMaxSymbol )
+ErrVal
+CabaDecoder::getUnaryMaxSymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset, UInt uiMaxSymbol )
 {
-  RNOKCABAC( getSymbol( ruiSymbol, pcCCModel[0] ) );
-
-  ROTRSCABAC( 0 == ruiSymbol, Err::m_nOK );
-  ROTRSCABAC( 1 == uiMaxSymbol, Err::m_nOK );
+  RNOK  ( getSymbol( ruiSymbol, pcCCModel[0] ) );
+  ROTRS ( 0 == ruiSymbol,   Err::m_nOK );
+  ROTRS ( 1 == uiMaxSymbol, Err::m_nOK );
 
   UInt uiSymbol = 0;
   UInt uiCont;
 
   do
   {
-    RNOKCABAC( getSymbol( uiCont, pcCCModel[ iOffset ] ) );
+    RNOK( getSymbol( uiCont, pcCCModel[ iOffset ] ) );
     uiSymbol++;
   }
   while( uiCont && (uiSymbol < uiMaxSymbol-1) );
@@ -432,18 +411,18 @@ ErrVal CabaDecoder::getUnaryMaxSymbol( UInt& ruiSymbol, CabacContextModel* pcCCM
 }
 
 
-ErrVal CabaDecoder::getUnarySymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset )
+ErrVal
+CabaDecoder::getUnarySymbol( UInt& ruiSymbol, CabacContextModel* pcCCModel, Int iOffset )
 {
-  RNOKCABAC( getSymbol( ruiSymbol, pcCCModel[0] ) );
-
-  ROTRSCABAC( 0 == ruiSymbol, Err::m_nOK );
+  RNOK  ( getSymbol( ruiSymbol, pcCCModel[0] ) );
+  ROFRS ( ruiSymbol, Err::m_nOK );
 
   UInt uiSymbol = 0;
   UInt uiCont;
 
   do
   {
-    RNOKCABAC( getSymbol( uiCont, pcCCModel[ iOffset ] ) );
+    RNOK( getSymbol( uiCont, pcCCModel[ iOffset ] ) );
     uiSymbol++;
   }
   while( uiCont );
@@ -451,6 +430,7 @@ ErrVal CabaDecoder::getUnarySymbol( UInt& ruiSymbol, CabacContextModel* pcCCMode
   ruiSymbol = uiSymbol;
   return Err::m_nOK;
 }
+
 
 H264AVC_NAMESPACE_END
 

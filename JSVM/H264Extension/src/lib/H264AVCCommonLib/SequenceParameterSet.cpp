@@ -152,10 +152,9 @@ const SequenceParameterSet::LevelLimit SequenceParameterSet::m_aLevelLimit[52] =
 
 
 SequenceParameterSet::SequenceParameterSet  ()
-: m_bInitDone                               ( false )
-, m_eNalUnitType                            ( NAL_UNIT_EXTERNAL )
-, m_uiLayerId                               ( 0 )
-, m_eProfileIdc                             ( SCALABLE_PROFILE )
+: m_eNalUnitType                            ( NAL_UNIT_UNSPECIFIED_0 )
+, m_uiDependencyId                          ( 0 )
+, m_eProfileIdc                             ( SCALABLE_HIGH_PROFILE )
 , m_bConstrainedSet0Flag                    ( false )
 , m_bConstrainedSet1Flag                    ( false )
 , m_bConstrainedSet2Flag                    ( false )
@@ -185,16 +184,17 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_bInterlayerDeblockingPresent            ( 0 )
 , m_bFrameMbsOnlyFlag                       ( true )
 , m_bMbAdaptiveFrameFieldFlag               ( false )
-, m_b4TapMotionCompensationY                ( false )  // V090
 , m_bAVCRewriteFlag                         ( false )   // V035
 , m_bAVCAdaptiveRewriteFlag                 ( false )
 , m_bAVCHeaderRewriteFlag                   ( false ) //JVT-W046
 //SSPS {
-, m_bSubSPS                                 ( false )
 , m_bSVCVUIParametersPresentFlag            ( false )
 , m_bAdditionalExtension2Flag               ( false )
-, m_bAdditionalExtension2DataFlag           ( false )
 //SSPS }
+, m_uiFrameCropLeftOffset                   ( 0 )
+, m_uiFrameCropRightOffset                  ( 0 )
+, m_uiFrameCropTopOffset                    ( 0 )
+, m_uiFrameCropBottomOffset                 ( 0 )
 {
   m_auiNumRefIdxUpdateActiveDefault[LIST_0]=1;// VW
   m_auiNumRefIdxUpdateActiveDefault[LIST_1]=1;// VW
@@ -231,7 +231,7 @@ SequenceParameterSet::destroy()
 SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameterSet& rcSPS )
 {
   m_eNalUnitType                      = rcSPS.m_eNalUnitType;
-  m_uiLayerId                         = rcSPS.m_uiLayerId;
+  m_uiDependencyId                         = rcSPS.m_uiDependencyId;
   m_eProfileIdc                       = rcSPS.m_eProfileIdc;
   m_bConstrainedSet0Flag              = rcSPS.m_bConstrainedSet0Flag;
   m_bConstrainedSet1Flag              = rcSPS.m_bConstrainedSet1Flag;
@@ -266,7 +266,6 @@ SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameter
   m_iScaledBaseTopOffset              = rcSPS.m_iScaledBaseTopOffset;
   m_iScaledBaseRightOffset            = rcSPS.m_iScaledBaseRightOffset;
   m_iScaledBaseBottomOffset           = rcSPS.m_iScaledBaseBottomOffset;
-  m_bInitDone                         = rcSPS.m_bInitDone;
 
   return *this;
 }
@@ -351,7 +350,14 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   ETRACE_DECLARE( Bool m_bTraceEnable = true );
   g_nLayer = 0;
   ETRACE_LAYER(0);
-  ETRACE_HEADER( "SEQUENCE PARAMETER SET" );
+  if( m_eNalUnitType == NAL_UNIT_SUBSET_SPS )
+  {
+    ETRACE_HEADER( "SUBSET SEQUENCE PARAMETER SET" );
+  }
+  else
+  {
+    ETRACE_HEADER( "SEQUENCE PARAMETER SET" );
+  }
   RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
   RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NALU HEADER: nal_ref_idc" ) );
   RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                        "NALU HEADER: nal_unit_type" ) );
@@ -367,57 +373,15 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK  ( pcWriteIf->writeUvlc( getSeqParameterSetId(),                   "SPS: seq_parameter_set_id" ) );
   
   //--- fidelity range extension syntax ---
-  RNOK  ( xWriteFrext( pcWriteIf ) ); //bug fix JV 07/11/06
-  
-  if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
-  {
-    RNOK( pcWriteIf->writeFlag( getInterlayerDeblockingPresent(),       "SPS: interlayer_deblocking_filter_control_present_flag" ) );
-    RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,     "SPS: extended_spatial_scalability" ) );
-
-    if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
-    {
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
-    }
-    if (getChromaFormatIdc() == 1 )  
-    {
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
-    }
-//JVT-W046 }
-    if (getExtendedSpatialScalability() == ESS_SEQ)
-    {
-      //JVT-W046 {
-      if (getChromaFormatIdc() > 0 )
-      {
-        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
-        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
-      }
-      //JVT-W046 }
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: scaled_base_left_offset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: scaled_base_top_offset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: scaled_base_right_offset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: scaled_base_bottom_offset" ) );
-    }
-
-//#if TO_BE_REMOVED
-   //TMM if( getExtendedSpatialScalability() == ESS_NONE )
-//#endif
-    {
-      RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                    "SPS: seq_tcoeff_level_prediction_flag" ) );
-      if( m_bAVCRewriteFlag )
-      {
-        RNOK( pcWriteIf->writeFlag( m_bAVCAdaptiveRewriteFlag,          "SPS: adaptive_tcoeff_level_prediction_flag" ) );
-      }
-    }
-    RNOK( pcWriteIf->writeFlag( m_bAVCHeaderRewriteFlag,                "SPS: slice_header_restriction_flag" ) );
-  }
-  
+  RNOK  ( xWriteFrext( pcWriteIf ) );
+    
   UInt    uiTmp = getLog2MaxFrameNum();
   ROF   ( uiTmp >= 4 );
   RNOK  ( pcWriteIf->writeUvlc( uiTmp - 4,                                "SPS: log2_max_frame_num_minus_4" ) );
   RNOK  ( pcWriteIf->writeUvlc( getPicOrderCntType(),                     "SPS: pic_order_cnt_type" ) );
   if( getPicOrderCntType() == 0 )
   {
-    RNOK  ( pcWriteIf->writeUvlc( getLog2MaxPicOrderCntLsb() - 4,           "SPS: log2_max_pic_order_cnt_lsb_minus4" ) );
+    RNOK  ( pcWriteIf->writeUvlc( getLog2MaxPicOrderCntLsb() - 4,         "SPS: log2_max_pic_order_cnt_lsb_minus4" ) );
   }
   else if( getPicOrderCntType() == 1 )
   {
@@ -446,13 +410,70 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
 
   RNOK  ( pcWriteIf->writeFlag( getDirect8x8InferenceFlag(),              "SPS: direct_8x8_inference_flag" ) );
-  RNOK  ( pcWriteIf->writeFlag( false,                                    "SPS: frame_cropping_flag" ) );
 
-  // JVT-V068 HRD {
-  m_pcVUI->write(pcWriteIf);
-  // JVT-V068 HRD }
+  if( m_uiFrameCropLeftOffset || m_uiFrameCropRightOffset || m_uiFrameCropTopOffset || m_uiFrameCropBottomOffset )
+  {
+    RNOK( pcWriteIf->writeFlag( true,                                     "SPS: frame_cropping_flag"      ) );
+    RNOK( pcWriteIf->writeUvlc( m_uiFrameCropLeftOffset,                  "SPS: frame_crop_left_offset"   ) );
+    RNOK( pcWriteIf->writeUvlc( m_uiFrameCropRightOffset,                 "SPS: frame_crop_right_offset"  ) );
+    RNOK( pcWriteIf->writeUvlc( m_uiFrameCropTopOffset,                   "SPS: frame_crop_top_offset"    ) );
+    RNOK( pcWriteIf->writeUvlc( m_uiFrameCropBottomOffset,                "SPS: frame_crop_bottom_offset" ) );
+  }
+  else
+  {
+    RNOK( pcWriteIf->writeFlag( false,                                    "SPS: frame_cropping_flag" ) );
+  }
 
-    return Err::m_nOK;
+  RNOK( m_pcVUI->write( pcWriteIf ) );
+  
+  ROFRS( m_eNalUnitType == NAL_UNIT_SUBSET_SPS, Err::m_nOK );
+
+
+  //===== start of subset sequence parameter set extension ======
+  if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
+  {
+    RNOK( pcWriteIf->writeFlag( getInterlayerDeblockingPresent(),       "SPS: interlayer_deblocking_filter_control_present_flag" ) );
+    RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,     "SPS: extended_spatial_scalability" ) );
+
+    if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
+    {
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
+    }
+    if (getChromaFormatIdc() == 1 )  
+    {
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+    }
+    if( getExtendedSpatialScalability() == ESS_SEQ )
+    {
+      if (getChromaFormatIdc() > 0 )
+      {
+        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
+        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
+      }
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: scaled_base_left_offset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: scaled_base_top_offset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: scaled_base_right_offset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: scaled_base_bottom_offset" ) );
+    }
+    RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                      "SPS: seq_tcoeff_level_prediction_flag" ) );
+    if( m_bAVCRewriteFlag )
+    {
+      RNOK( pcWriteIf->writeFlag( m_bAVCAdaptiveRewriteFlag,            "SPS: adaptive_tcoeff_level_prediction_flag" ) );
+    }
+    RNOK( pcWriteIf->writeFlag( m_bAVCHeaderRewriteFlag,                "SPS: slice_header_restriction_flag" ) );
+
+    //===== SVC VUI extension ====
+    RNOK( pcWriteIf->writeFlag( getSVCVUIParametersPresentFlag(),       "SPS: svc_vui_parameters_present_flag" ) );
+    if( getSVCVUIParametersPresentFlag() )
+    {
+      RNOK( writeSVCVUIParametersExtension( pcWriteIf ) );
+    }
+  }
+
+  RNOK( pcWriteIf->writeFlag( getAdditionalExtension2Flag(),            "SPS: additional_extension2_flag" ) );
+  ROT ( getAdditionalExtension2Flag() ); // not supported
+
+  return Err::m_nOK;
 }
 
 
@@ -460,10 +481,11 @@ ErrVal
 SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
                             NalUnitType         eNalUnitType )
 {
-  m_uiExtendedSpatialScalability = ESS_NONE;
 
   //===== NAL unit header =====
-  setNalUnitType    ( eNalUnitType );
+  setNalUnitType          ( eNalUnitType );
+  setAVCHeaderRewriteFlag ( eNalUnitType == NAL_UNIT_SPS ); // for non-SVC SPS
+  m_uiExtendedSpatialScalability = ESS_NONE; // for non-SVC SPS
 
   Bool  bTmp;
   UInt  uiTmp;
@@ -471,11 +493,12 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   //===== Sequence parameter set =====
   RNOK  ( pcReadIf->getCode( uiTmp,                               8,      "SPS: profile_idc" ) );
   m_eProfileIdc  = Profile ( uiTmp );
-  ROT   ( m_eProfileIdc != BASELINE_PROFILE &&
-          m_eProfileIdc != MAIN_PROFILE  &&
-          m_eProfileIdc != EXTENDED_PROFILE  &&
-          m_eProfileIdc != HIGH_PROFILE  &&
-          m_eProfileIdc != SCALABLE_PROFILE );
+  ROT   ( m_eProfileIdc != BASELINE_PROFILE           &&
+          m_eProfileIdc != MAIN_PROFILE               &&
+          m_eProfileIdc != EXTENDED_PROFILE           &&
+          m_eProfileIdc != HIGH_PROFILE               &&
+          m_eProfileIdc != SCALABLE_BASELINE_PROFILE  &&
+          m_eProfileIdc != SCALABLE_HIGH_PROFILE        );
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet0Flag,                      "SPS: constrained_set0_flag" ) );
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet1Flag,                      "SPS: constrained_set1_flag" ) );
   RNOK  ( pcReadIf->getFlag( m_bConstrainedSet2Flag,                      "SPS: constrained_set2_flag" ) );
@@ -486,51 +509,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   RNOK  ( pcReadIf->getUvlc( m_uiSeqParameterSetId,                       "SPS: seq_parameter_set_id" ) );
 
    //--- fidelity range extension syntax ---
-  RNOK  ( xReadFrext( pcReadIf ) );//bug fix JV 07/11/06
-
-  if( m_eProfileIdc == SCALABLE_PROFILE ) // bug-fix (HS)
-  {
-
-    RNOK( pcReadIf->getFlag( m_bInterlayerDeblockingPresent,              "SPS: interlayer_deblocking_filter_control_present_flag" ) );
-
-    RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: extended_spatial_scalability" ) );
-//    if ( 1 /* chroma_format_idc */ > 0 )
-    //{
-    //  RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 2,                  "SPS: chroma_phase_x_plus1" ) );
-    //  RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
-    //}
-//JVT-W046 {	
-  if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
-    RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
-    if (getChromaFormatIdc() == 1 )  
-    RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
-//JVT-W046 }
-    if (m_uiExtendedSpatialScalability == ESS_SEQ)
-    {
-      //JVT-W046 {
-    if (getChromaFormatIdc() > 0 )
-    {
-        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
-    RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
-    }
-    //JVT-W046 }
-    RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: scaled_base_top_offset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
-    }
-
-
-
-    {
-      RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                       "SPS: seq_tcoeff_level_prediction_flag" ) );
-      if( m_bAVCRewriteFlag )
-      {
-        RNOK( pcReadIf->getFlag( m_bAVCAdaptiveRewriteFlag,             "SPS: adaptive_tcoeff_level_prediction_flag" ) );
-      }
-    }
-    RNOK( pcReadIf->getFlag( m_bAVCHeaderRewriteFlag,                   "SPS: slice_header_restriction_flag" ) );
-  }
+  RNOK  ( xReadFrext( pcReadIf ) );
 
   RNOK  ( pcReadIf->getUvlc( uiTmp,                                       "SPS: log2_max_frame_num_minus_4" ) );
   ROT   ( uiTmp > 12 );
@@ -549,21 +528,83 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     setMbAdaptiveFrameFieldFlag( false );
   }
   else
-    {
+  {
     setFrameHeightInMbs( (uiTmp+1)<<1 );
     RNOK( pcReadIf->getFlag( m_bMbAdaptiveFrameFieldFlag,                 "SPS: mb_adaptive_frame_field_flag"));
-    }
+  }
   RNOK( pcReadIf->getFlag( m_bDirect8x8InferenceFlag,                     "SPS: direct_8x8_inference_flag" ) );
-  RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: frame_cropping_flag" ) );
-  ROT ( bTmp );
+
+  Bool  bFrameCroppingFlag;
+  RNOK( pcReadIf->getFlag( bFrameCroppingFlag,                            "SPS: frame_cropping_flag"      ) );
+  if( bFrameCroppingFlag )
+  {
+    RNOK( pcReadIf->getUvlc( m_uiFrameCropLeftOffset,                     "SPS: frame_crop_left_offset"   ) );
+    RNOK( pcReadIf->getUvlc( m_uiFrameCropRightOffset,                    "SPS: frame_crop_right_offset"  ) );
+    RNOK( pcReadIf->getUvlc( m_uiFrameCropTopOffset,                      "SPS: frame_crop_top_offset"    ) );
+    RNOK( pcReadIf->getUvlc( m_uiFrameCropBottomOffset,                   "SPS: frame_crop_bottom_offset" ) );
+  }
+  else
+  {
+    m_uiFrameCropLeftOffset   = 0;
+    m_uiFrameCropRightOffset  = 0;
+    m_uiFrameCropTopOffset    = 0;
+    m_uiFrameCropBottomOffset = 0;
+  }
   
   RNOK( pcReadIf->getFlag( bTmp,                                          "SPS: vui_parameters_present_flag" ) );
-  // JVT-V068 {
-  //ROT ( bTmp );
   m_pcVUI = new VUI(this);
   m_pcVUI->setVuiParametersPresentFlag( bTmp );
-  if (bTmp) m_pcVUI->read(pcReadIf);
-  // JVT-V068 }
+  if( bTmp )
+  {
+    RNOK( m_pcVUI->read( pcReadIf ) );
+  }
+
+  ROFRS( m_eNalUnitType == NAL_UNIT_SUBSET_SPS, Err::m_nOK );
+
+
+  //===== start of subset parameter extension =====
+  if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
+  {
+    RNOK( pcReadIf->getFlag( m_bInterlayerDeblockingPresent,              "SPS: interlayer_deblocking_filter_control_present_flag" ) );
+
+    RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: extended_spatial_scalability" ) );
+    if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
+    {
+      RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,                  "SPS: chroma_phase_x_plus1" ) );
+    }
+    if (getChromaFormatIdc() == 1 )  
+    {
+      RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
+    }
+    if( m_uiExtendedSpatialScalability == ESS_SEQ )
+    {
+      if( getChromaFormatIdc() > 0 )
+      {
+        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 1,            "SPS: base_chroma_phase_x_plus1" ) );
+        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,            "SPS: base_chroma_phase_y_plus1" ) );
+      }
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: scaled_base_top_offset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
+    }
+    RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                           "SPS: seq_tcoeff_level_prediction_flag" ) );
+    if( m_bAVCRewriteFlag )
+    {
+      RNOK( pcReadIf->getFlag( m_bAVCAdaptiveRewriteFlag,                 "SPS: adaptive_tcoeff_level_prediction_flag" ) );
+    }
+    RNOK( pcReadIf->getFlag( m_bAVCHeaderRewriteFlag,                     "SPS: slice_header_restriction_flag" ) );
+
+    //===== svc VUI extension =====
+    RNOK ( pcReadIf->getFlag( m_bSVCVUIParametersPresentFlag,             "SPS: svc_vui_parameters_present_flag" ) );
+    if( m_bSVCVUIParametersPresentFlag )
+    {
+      RNOK( ReadSVCVUIParametersExtension( pcReadIf ) );
+    }
+  }
+
+  RNOK( pcReadIf->getFlag ( m_bAdditionalExtension2Flag,                  "SPS: additional_extension2_flag" ) );
+  ROT( m_bAdditionalExtension2Flag ); // not supported
 
   return Err::m_nOK;
 }
@@ -603,14 +644,14 @@ SequenceParameterSet::ReadSVCVUIParametersExtension( HeaderSymbolReadIf* pcReadI
 	RNOK  ( pcReadIf->getUvlc( m_uiNumLayersMinus1,                       "SVC VUI: num_layers_minus1" ) );
 	for ( UInt i = 0; i <= m_uiNumLayersMinus1; i++ )
 	{
-		RNOK  ( pcReadIf->getCode( m_uiDependencyId[i],              3,              "SVC VUI: dependency_id" ) );
-		RNOK  ( pcReadIf->getCode( m_uiQualityId[i],                 4,              "SVC VUI: quality_id" ) );
-		RNOK  ( pcReadIf->getCode( m_uiTemporalId[i],                3,              "SVC VUI: temporal_id" ) );
+		RNOK  ( pcReadIf->getCode( m_auiDependencyId[i],              3,              "SVC VUI: dependency_id" ) );
+		RNOK  ( pcReadIf->getCode( m_auiQualityId[i],                 4,              "SVC VUI: quality_id" ) );
+		RNOK  ( pcReadIf->getCode( m_auiTemporalId[i],                3,              "SVC VUI: temporal_id" ) );
     RNOK  ( pcReadIf->getFlag( m_bTimingInfoPresentFlag[i],                    "SVC VUI: timing_info_present_flag" ) );
 		if ( m_bTimingInfoPresentFlag[i] )
 		{
-      RNOK  ( pcReadIf->getCode( m_uiNumUnitsInTick[i],            32,              "SVC VUI: dependency_id" ) );
-      RNOK  ( pcReadIf->getCode( m_uiTimeScale[i],                 32,              "SVC VUI: time_scale" ) );
+      RNOK  ( pcReadIf->getCode( m_auiNumUnitsInTick[i],            32,              "SVC VUI: dependency_id" ) );
+      RNOK  ( pcReadIf->getCode( m_auiTimeScale[i],                 32,              "SVC VUI: time_scale" ) );
 			RNOK  ( pcReadIf->getFlag( m_bFixedFrameRateFlag[i],                        "SVC VUI: fixed_frame_rate_flag" ) );
 		}
 		RNOK  ( pcReadIf->getFlag( m_bNalHrdParametersPresentFlag[i],              "SVC VUI: nal_hrd_parameters_present_flag" ) );
@@ -626,72 +667,23 @@ SequenceParameterSet::ReadSVCVUIParametersExtension( HeaderSymbolReadIf* pcReadI
 	return Err::m_nOK;
 }
 
-ErrVal
-SequenceParameterSet::writeSubSPS( HeaderSymbolWriteIf* pcWriteIf ) const
-{
-	RNOK( write( pcWriteIf ) );
-	if( getProfileIdc() == 83 || getProfileIdc() == 86 )
-	{
-		RNOK( pcWriteIf->writeFlag( getSVCVUIParametersPresentFlag(), "SubSPS: svc_vui_parameters_present_flag" ) );
-		if( getSVCVUIParametersPresentFlag() )
-		{
-		  RNOK( writeSVCVUIParametersExtension( pcWriteIf ) );
-		}
-	}
-
-	RNOK( pcWriteIf->writeFlag( getAdditionalExtension2Flag(),   "SubSPS: additional_extension2_flag" ) );
-	if( getAdditionalExtension2Flag() )
-	{
-	  //add more addition data
-		RNOK( pcWriteIf->writeFlag( getAdditionalExtension2DataFlag(), "SubSPS: addtional_extension2_data_flag" ) );
-	}  
-	return Err::m_nOK;
-}
-
-ErrVal
-SequenceParameterSet::readSubSPS( HeaderSymbolReadIf* pcReadIf,
-                                  NalUnitType         eNalUnitType )
-{
-	RNOK( read( pcReadIf, eNalUnitType ) );
-	if( getProfileIdc() == 83 || getProfileIdc() == 86 )
-	{
-		RNOK ( pcReadIf->getFlag( m_bSVCVUIParametersPresentFlag, "SubSPS: svc_vui_parameters_present_flag" ) );
-		if( m_bSVCVUIParametersPresentFlag )
-		{
-		  RNOK( ReadSVCVUIParametersExtension ( pcReadIf ) );
-		}
-	}
-
-	RNOK( pcReadIf->getFlag ( m_bAdditionalExtension2Flag, "SubSPS: additional_extension2_flag" ) );
-	if( m_bAdditionalExtension2Flag )
-	{
-	  //read more RBSP data here
-		RNOK( pcReadIf->getFlag( m_bAdditionalExtension2DataFlag, "SubSPS: addtional_extension2_data_flag" ) );
-	}
-
-	return Err::m_nOK;
-}
-//SSPS }
 
 ErrVal
 SequenceParameterSet::xWriteFrext( HeaderSymbolWriteIf* pcWriteIf ) const
 {
-  ROTRS( m_eProfileIdc != HIGH_PROFILE      &&
-         m_eProfileIdc != HIGH_10_PROFILE   &&
-         m_eProfileIdc != HIGH_422_PROFILE  &&
-         m_eProfileIdc != HIGH_444_PROFILE  &&
-         m_eProfileIdc != SCALABLE_PROFILE, Err::m_nOK );
+  ROTRS( m_eProfileIdc != HIGH_PROFILE              &&
+         m_eProfileIdc != HIGH_10_PROFILE           &&
+         m_eProfileIdc != HIGH_422_PROFILE          &&
+         m_eProfileIdc != HIGH_444_PROFILE          &&
+         m_eProfileIdc != SCALABLE_BASELINE_PROFILE &&
+         m_eProfileIdc != SCALABLE_HIGH_PROFILE,      Err::m_nOK );
 
-  //JVT-W046 {
-  //RNOK  ( pcWriteIf->writeUvlc( 1,                              "SPS: chroma_format_idc" ) );
   RNOK  ( pcWriteIf->writeUvlc( m_uiChromaFormatIdc,            "SPS: chroma_format_idc" ) );
-  //JVT-W046 }
   RNOK  ( pcWriteIf->writeUvlc( 0,                              "SPS: bit_depth_luma_minus8" ) );
   RNOK  ( pcWriteIf->writeUvlc( 0,                              "SPS: bit_depth_chroma_minus8" ) );
   RNOK  ( pcWriteIf->writeFlag( false,                          "SPS: qpprime_y_zero_transform_bypass_flag" ) );
   RNOK  ( pcWriteIf->writeFlag( m_bSeqScalingMatrixPresentFlag, "SPS: seq_scaling_matrix_present_flag"  ) );
-  
-  ROTRS ( ! m_bSeqScalingMatrixPresentFlag, Err::m_nOK );
+  ROFRS ( m_bSeqScalingMatrixPresentFlag, Err::m_nOK );
   RNOK  ( m_cSeqScalingMatrix.write( pcWriteIf, true ) );
 
   return Err::m_nOK;
@@ -701,11 +693,12 @@ SequenceParameterSet::xWriteFrext( HeaderSymbolWriteIf* pcWriteIf ) const
 ErrVal
 SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
 {
-  ROTRS( m_eProfileIdc != HIGH_PROFILE      &&
-         m_eProfileIdc != HIGH_10_PROFILE   &&
-         m_eProfileIdc != HIGH_422_PROFILE  &&
-         m_eProfileIdc != HIGH_444_PROFILE  &&
-         m_eProfileIdc != SCALABLE_PROFILE, Err::m_nOK );
+  ROTRS( m_eProfileIdc != HIGH_PROFILE              &&
+         m_eProfileIdc != HIGH_10_PROFILE           &&
+         m_eProfileIdc != HIGH_422_PROFILE          &&
+         m_eProfileIdc != HIGH_444_PROFILE          &&
+         m_eProfileIdc != SCALABLE_BASELINE_PROFILE &&
+         m_eProfileIdc != SCALABLE_HIGH_PROFILE,      Err::m_nOK );
 
   UInt  uiTmp;
   Bool  bTmp;
@@ -719,7 +712,7 @@ SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
   ROT ( bTmp )
   RNOK( pcReadIf->getFlag( m_bSeqScalingMatrixPresentFlag,      "SPS: seq_scaling_matrix_present_flag") );
   
-  ROTRS ( ! m_bSeqScalingMatrixPresentFlag, Err::m_nOK );
+  ROFRS ( m_bSeqScalingMatrixPresentFlag, Err::m_nOK );
   RNOK  ( m_cSeqScalingMatrix.read( pcReadIf, true ) );
 
   return Err::m_nOK;
@@ -814,7 +807,7 @@ ErrVal SequenceParameterSet::xReadPicOrderCntInfo( HeaderSymbolReadIf* pcReadIf 
     for( UInt i = 0; i < m_uiNumRefFramesInPicOrderCntCycle; i++)
     {
       Int  iTmp;
-      RNOK( pcReadIf->getSvlc( iTmp, "SPS: offset_for_ref_frame" ) );
+      RNOK( pcReadIf->getSvlc( iTmp,                             "SPS: offset_for_ref_frame" ) );
       setOffsetForRefFrame( i, iTmp );
     }
   }

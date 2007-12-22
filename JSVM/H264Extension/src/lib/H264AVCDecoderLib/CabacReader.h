@@ -117,21 +117,12 @@ public:
   ErrVal  init                ( BitReadBuffer* pcBitReadBuffer );
   ErrVal  uninit              ();
 
-  ErrVal  RQreset                  (  const SliceHeader& rcSliceHeader )
-  {
-    RNOK( xInitContextModels( rcSliceHeader ) );
-
-    RNOK( CabaDecoder::start() );
-    return Err::m_nOK;  
-  }
-
   Bool    isEndOfSlice        ();
   Bool    isMbSkipped         ( MbDataAccess& rcMbDataAccess );
   Bool    isBLSkipped         ( MbDataAccess& rcMbDataAccess );
   ErrVal  blockModes          ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess );
-  ErrVal  resPredFlag_FGS     ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
 
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -165,11 +156,6 @@ public:
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
 
 protected:
-
-  Void    xSetParentFlag      ( Bool          bParentFlag )
-  {
-    m_bParentFlag = bParentFlag;
-  }
 
   ErrVal xGetMvd( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cIdx, ListIdx eLstIdx );
 
@@ -207,21 +193,11 @@ protected:
   CabacContextModel2DBuffer m_cDeltaQpCCModel;
   CabacContextModel2DBuffer m_cIntraPredCCModel;
   CabacContextModel2DBuffer m_cCbpCCModel;
-  CabacContextModel2DBuffer m_cBCbpEnhanceCCModel;
-  CabacContextModel2DBuffer m_cCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cTransSizeCCModel;
 
   UInt m_uiBitCounter;
   UInt m_uiPosCounter;
   UInt m_uiLastDQpNonZero;
-
-  // new variables for switching bitstream inputs
-  Bool                        m_bParentFlag;
-  CabacReader*                m_apcFragmentReaders[MAX_NUM_PD_FRAGMENTS];
-  BitReadBuffer*              m_apcFragBitBuffers [MAX_NUM_PD_FRAGMENTS];
-
-  UInt                        m_uiNumFragments;
-  UInt                        m_uiCurrentFragment;
 };
 
 H264AVC_NAMESPACE_END

@@ -132,7 +132,6 @@ public:
 #define max(x,y) ((x)>(y)?(x):(y))
 
 typedef MemCont< UChar > BinData;
-typedef MemList< UChar > BinDataList;
 typedef MemAccessor< UChar > BinDataAccessor;
 
 #include <list>
@@ -226,6 +225,8 @@ public:
     , m_bFieldCoded  ( false )
 	{}
 
+  Pel*  switchBuffer( Pel* pcBuffer ) { Pel* pcTmp = m_pcBuffer; m_pcBuffer = pcBuffer; return pcTmp; }
+
   Void setUnused() { m_iInUseCout--; }
   Void setUsed()   { m_iInUseCout++; }
   Bool isUsed()    { return 0 != m_iInUseCout; }
@@ -250,9 +251,9 @@ public:
   Int  getFramePoc      () const  { return m_iFramePoc; }
 
 private:
-  Void*   m_pcMediaPacket;
-  Pel*    m_pcBuffer;
-  Int     m_iInUseCout;
+  Void*     m_pcMediaPacket;
+  Pel*      m_pcBuffer;
+  Int       m_iInUseCout;
 	Int64			m_i64Cts;
 	PicStruct m_ePicStruct;
   Int       m_iTopPoc;
@@ -263,6 +264,7 @@ private:
 };
 
 typedef MyList< PicBuffer* > PicBufferList;
+typedef MyList< BinData*   > BinDataList;
 
 
 #endif // !defined(AFX_H264AVCCOMMONIF_H__625AA7B6_0241_4166_8D3A_BC831985BE5F__INCLUDED_)

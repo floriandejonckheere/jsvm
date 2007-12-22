@@ -85,7 +85,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCEncoderLib.h"
 
-#include "H264AVCCommonLib/FrameMng.h"
 #include "H264AVCCommonLib/SampleWeighting.h"
 #include "RateDistortionIf.h"
 #include "CodingParameter.h"
@@ -219,7 +218,7 @@ ErrVal MotionEstimation::uninit()
 
 ErrVal
 MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
-                                          const IntFrame&      rcRefFrame,
+                                          const Frame&      rcRefFrame,
                                           Mv&                  rcMv,         // <-- MVSTART / --> MV
                                           Mv&                  rcMvPred,
                                           UInt&                ruiBits,
@@ -228,16 +227,16 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
                                           UInt                 uiMode,
                                           Bool                 bQPelRefinementOnly,
                                           UInt                 uiSearchRange,
-                                          const PW*             pcPW,
+                                          const PredWeight*             pcPW,
                                           MEBiSearchParameters* pcBSP )
 {
   const LumaIdx    cIdx                 = B4x4Idx(uiBlk);
-  IntYuvMbBuffer*  pcWeightedYuvBuffer  = NULL;
-  IntYuvPicBuffer* pcRefPelData[2];
-  IntYuvMbBuffer   cWeightedYuvBuffer;
+  YuvMbBuffer*  pcWeightedYuvBuffer  = NULL;
+  YuvPicBuffer* pcRefPelData[2];
+  YuvMbBuffer   cWeightedYuvBuffer;
 
-  pcRefPelData[0] = const_cast<IntFrame&>(rcRefFrame).getFullPelYuvBuffer();
-  pcRefPelData[1] = const_cast<IntFrame&>(rcRefFrame).getHalfPelYuvBuffer();
+  pcRefPelData[0] = const_cast<Frame&>(rcRefFrame).getFullPelYuvBuffer();
+  pcRefPelData[1] = const_cast<Frame&>(rcRefFrame).getHalfPelYuvBuffer();
 
   m_pcXDistortion->set4x4Block( cIdx );
   pcRefPelData[0]->set4x4Block( cIdx );
@@ -268,9 +267,9 @@ MotionEstimation::estimateBlockWithStart( const MbDataAccess&  rcMbDataAccess,
     if( rcMbDataAccess.getSH().getPPS().getWeightedBiPredIdc() == 2 ) // implicit weighting
     {
       //----- get implicit weights -----
-      PW              acIPW[2];
-      const IntFrame* pcFrameL0 = ( pcBSP->uiL1Search ? pcBSP->pcAltRefFrame : &rcRefFrame          );
-      const IntFrame* pcFrameL1 = ( pcBSP->uiL1Search ? &rcRefFrame          : pcBSP->pcAltRefFrame );
+      PredWeight              acIPW[2];
+      const Frame* pcFrameL0 = ( pcBSP->uiL1Search ? pcBSP->pcAltRefFrame : &rcRefFrame          );
+      const Frame* pcFrameL1 = ( pcBSP->uiL1Search ? &rcRefFrame          : pcBSP->pcAltRefFrame );
       Int             iScale    = rcMbDataAccess.getSH().getDistScaleFactorWP( pcFrameL0, pcFrameL1 );
 
       //----- weighting -----
@@ -464,7 +463,7 @@ ErrVal MotionEstimation::initMb( UInt uiMbPosY, UInt uiMbPosX, MbDataAccess& rcM
 
 
 
-Void MotionEstimation::xPelBlockSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange )
+Void MotionEstimation::xPelBlockSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange )
 {
   if( ! uiSearchRange )
   {
@@ -531,7 +530,7 @@ Void MotionEstimation::xPelBlockSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UI
 
 
 
-Void MotionEstimation::xPelSpiralSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange )
+Void MotionEstimation::xPelSpiralSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiSearchRange )
 {
   if( ! uiSearchRange )
   {
@@ -588,7 +587,7 @@ Void MotionEstimation::xPelSpiralSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, U
 
 
 
-Void MotionEstimation::xPelLogSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bFme, UInt uiStep, UInt uiSearchRange )
+Void MotionEstimation::xPelLogSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bFme, UInt uiStep, UInt uiSearchRange )
 {
   if( ! uiSearchRange )
   {
@@ -1236,7 +1235,7 @@ Void MotionEstimation::xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, Sear
 
 }
 
-Void MotionEstimation::xTZSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Int iSearchRange )
+Void MotionEstimation::xTZSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Int iSearchRange )
 {
   TZ_SEARCH_CONFIGURATION
 

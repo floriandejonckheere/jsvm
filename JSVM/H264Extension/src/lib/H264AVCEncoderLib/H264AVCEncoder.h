@@ -110,8 +110,7 @@ class CodingParameter;
 class NalUnitEncoder;
 class ControlMngIf;
 class ParameterSetMng;
-class MCTFEncoder;
-class FrameMng;
+class LayerEncoder;
 
 
 #if defined( WIN32 )
@@ -130,15 +129,14 @@ protected:
 public:
   static  ErrVal create ( H264AVCEncoder*&  rpcH264AVCEncoder );
   virtual ErrVal destroy();
-  virtual ErrVal init   ( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
+  virtual ErrVal init   ( LayerEncoder*     apcLayerEncoder[MAX_LAYERS],
                           ParameterSetMng*  pcParameterSetMng,
                           PocCalculator*    pcPocCalculator,
                           NalUnitEncoder*   pcNalUnitEncoder,
                           ControlMngIf*     pcControlMng,
                           CodingParameter*  pcCodingParameter,
-                          FrameMng*         pcFrameMng 
                           // JVT-V068 {
-                          ,StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler 
+                          StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler 
                           // JVT-V068 }
                         );
   virtual ErrVal uninit ();
@@ -159,50 +157,46 @@ public:
                               UInt&                     ruiNumCodedFrames,
                               Double&                   rdHighestLayerOutputRate );
 
-
   ErrVal  getBaseLayerStatus  ( UInt&         ruiBaseLayerId,
 																UInt&         ruiBaseLayerIdMotionOnly,
 																Int&          riSpatialScalabilityType,
 																UInt          uiLayerId,
-																Int           iPoc,
 																PicType       ePicType,
-																UInt					uiIdrPicId);//EIDR 0619
+																UInt					uiTemporalId );
 
-	ErrVal  getBaseLayerDataAvailability  ( IntFrame*&    pcFrame,
-																					IntFrame*&    pcResidual,
+	ErrVal  getBaseLayerDataAvailability  ( Frame*&       pcFrame,
+																					Frame*&       pcResidual,
 																					MbDataCtrl*&  pcMbDataCtrl,
 																					Bool&         bConstrainedIPredBL,
 																					Bool&         bForCopyOnly,
-																					Int                             iSpatialScalability,
+																					Int           iSpatialScalability,
 																					UInt          uiBaseLayerId,
-																					Int           iPoc,
 																					Bool          bMotion,
 																					Bool&         bBaseDataAvailable,
 																					PicType       ePicType,
-																					UInt					uiIdrPicId);//EIDR 0619
+																					UInt					uiTemporalId );
 
-	ErrVal  getBaseLayerData    ( IntFrame*&    pcFrame,
-																IntFrame*&    pcResidual,
+	ErrVal  getBaseLayerData    ( Frame*&       pcFrame,
+																Frame*&       pcResidual,
 																MbDataCtrl*&  pcMbDataCtrl,
 																MbDataCtrl*&  pcMbDataCtrlEL,
 																Bool&         bConstrainedIPredBL,
 																Bool&         bForCopyOnly,
-																Int                             iSpatialScalability,
+																Int           iSpatialScalability,
 																UInt          uiBaseLayerId,
-																Int           iPoc,
 																Bool					bMotion,
 																PicType       ePicType,
-																UInt					uiIdrPicId);//EIDR 0619
+																UInt					uiTemporalId );
 
-	ErrVal getBaseLayerResidual( IntFrame*&      pcResidual, UInt            uiBaseLayerId);
+	ErrVal getBaseLayerResidual( Frame*&      pcResidual, UInt            uiBaseLayerId);
 
 	UInt    getNewBits          ( UInt          uiBaseLayerId );
 
 
-	IntFrame* getLowPassRec     ( UInt uiLayerId );
-	IntFrame* getELRefPic       ( UInt uiLayerId, Int iPoc,
-																UInt uiIdrPicId);//EIDR 0619
-// JVT-T073 {
+	Frame* getLowPassRec     ( UInt uiLayerId );
+  Frame* getELRefPic       ( UInt uiLayerId, Int iPoc );
+
+  // JVT-T073 {
   ErrVal writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor );
 // JVT-T073 }
 
@@ -236,25 +230,6 @@ public:
   ErrVal writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* pcExtBinDataAccessor, UInt uiTid, UInt uiTl0DepRepIdx, UInt uiEfIdrPicId );
 // JVT-W062 }
 	ErrVal xCalMaxBitrate(UInt uiLayer);//JVT-W051 
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  ErrVal  xCreateAvcRewriteEncoder();
-  ErrVal  xInitAvcRewriteEncoder();
-  ErrVal  xInitSliceForAvcRewriteCoding(const SliceHeader& rcSH);
-  ErrVal  xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,const SliceHeader& rcSH, const NalUnitType eNalUnitType);  
-  ErrVal  xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,      SequenceParameterSet& rcSps);
-  ErrVal  xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,      PictureParameterSet& rcPps);
-
-  ErrVal  xAvcRewriteSliceHeader ( ExtBinDataAccessor* pcExtBinDataAccessor,SliceHeader& rcSH);
-  ErrVal  xCloseAvcRewriteEncoder();
-
-  ErrVal  xAvcRewriteInitNalUnit ( ExtBinDataAccessor* pcExtBinDataAccessor);
-  ErrVal  xAvcRewriteCloseNalUnit ();
-  MbCoder* xGetPcMbCoder();
-
-  ErrVal initMb( MbDataAccess*& pcMbDataAccessRewrite, UInt uiMbY, UInt uiMbX );
-  Void xStoreEstimation( MbDataAccess& rcMbDataAccess, MbDataAccess&  rcMbBestData );
-  ErrVal initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl );
-#endif
 
 protected:
   ErrVal xInitParameterSets ();
@@ -272,17 +247,6 @@ protected:
   ErrVal xProcessGOP        ( PicBufferList*            apcPicBufferOutputList, 
                               PicBufferList*            apcPicBufferUnusedList );
 
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  MbCoder*                      m_pcMbCoder;
-  BitWriteBuffer*				m_pcBitWriteBuffer;
-  BitCounter*                   m_pcBitCounter;
-  UvlcWriter*                   m_pcUvlcTester;
-  UvlcWriter*                   m_pcUvlcWriter;
-  CabacWriter*                  m_pcCabacWriter;
-  RateDistortion*               m_pcRateDistortion;
-  MbDataCtrl*                   m_pcMbDataCtrl;
-#endif
-
 protected:
   std::list<SequenceParameterSet*>  m_cUnWrittenSPS;
   std::list<PictureParameterSet*>   m_cUnWrittenPPS;
@@ -293,7 +257,6 @@ protected:
   NalUnitEncoder*                   m_pcNalUnitEncoder;
   ControlMngIf*                     m_pcControlMng;
   CodingParameter*                  m_pcCodingParameter;
-  FrameMng*                         m_pcFrameMng;
   Bool                              m_bVeryFirstCall;
   Bool                              m_bInitDone;
   Bool                              m_bTraceEnable;
@@ -303,7 +266,7 @@ public:
 	Double														m_aaadFinalFramerate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
   Double                            m_aaadSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 protected:
-  MCTFEncoder*                      m_apcMCTFEncoder    [MAX_LAYERS];
+  LayerEncoder*                     m_apcLayerEncoder   [MAX_LAYERS];
   AccessUnitList                    m_cAccessUnitList;
 
   // ICU / ETRI ROI 
@@ -336,6 +299,74 @@ public:
 	SEI::IntegrityCheckSEI * m_pcIntegrityCheckSEI;
 	//JVT-W052
 };
+
+
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+
+class H264AVCENCODERLIB_API RewriteEncoder
+{
+protected:
+  RewriteEncoder();
+  virtual ~RewriteEncoder();
+
+public:
+  static ErrVal   create            ( RewriteEncoder*&            rpcRewriteEncoder );
+  ErrVal          destroy           ();
+  ErrVal          init              ();
+  ErrVal          uninit            ();
+
+  ErrVal          startSlice        ( BinDataList&                rcBinDataList,
+                                      const SliceHeader&          rcSliceHeader );
+  ErrVal          finishSlice       ( BinDataList&                rcBinDataList );
+  ErrVal          initMb            ( MbDataAccess*&              rpcMbDataAccess,
+                                      UInt                        uiMbY,
+                                      UInt                        uiMbX );
+  ErrVal          storeMb           ( MbDataAccess&               rcMbDataAccess,
+                                      const MbDataAccess&         rcMbDataAccessSrc );
+  ErrVal          encodeMb          ( MbDataAccess&               rcMbDataAccess,
+                                      Bool                        bTerminateSlice );
+  
+  Bool            isSliceInProgress ()  const { return m_bSliceInProgress; }
+
+private:
+  ErrVal          xCreate           ();
+  ErrVal          xInitSPS          ( const SequenceParameterSet& rcSPS );
+
+  ErrVal          xCreateSliceHeader( const SliceHeader&          rcSliceHeader );
+  ErrVal          xInitNALUnit      ();
+  ErrVal          xCloseNALUnit     ( BinDataList&                rcBinDataList );
+
+  Bool            xIsRewritten      ( const Void*                 pParameterSet );
+  ErrVal          xRewriteSPS       ( const SequenceParameterSet& rcSPS,
+                                      BinDataList&                rcBinDataList );
+  ErrVal          xRewritePPS       ( const PictureParameterSet&  rcPPS,
+                                      BinDataList&                rcBinDataList );
+
+private:
+  Bool                m_bInitialized;
+  Bool                m_bSliceInProgress;
+  UInt                m_uiBinDataSize;
+  BitWriteBuffer*     m_pcBitWriteBuffer;
+  BitCounter*         m_pcBitCounter;
+  NalUnitEncoder*     m_pcNalUnitEncoder;
+  UvlcWriter*         m_pcUvlcWriter;
+  UvlcWriter*         m_pcUvlcTester;
+  CabacWriter*        m_pcCabacWriter;
+  MbCoder*            m_pcMbCoder;
+  RateDistortion*     m_pcRateDistortion;
+  MbDataCtrl*         m_pcMbDataCtrl;
+  MyList<const Void*> m_cRewrittenParameterSets;
+  
+  BinData*            m_pcBinData;
+  BinDataAccessor*    m_pcBinDataAccessor;
+  SliceHeader*        m_pcSliceHeader;
+  MbSymbolWriteIf*    m_pcMbSymbolWriteIf;
+
+  Bool                m_bTraceEnable;
+};
+
+#endif
 
 
 #if defined( WIN32 )

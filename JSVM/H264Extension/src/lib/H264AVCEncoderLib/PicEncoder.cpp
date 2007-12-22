@@ -376,8 +376,8 @@ PicEncoder::xInitSPS()
 
   //===== determine parameters =====
   UInt  uiSPSId     = 0;
-  UInt  uiMbX       = m_pcCodingParameter->getFrameWidth () >> 4;
-  UInt  uiMbY       = m_pcCodingParameter->getFrameHeight() >> 4;
+  UInt  uiMbX       = ( m_pcCodingParameter->getFrameWidth () + 15 ) >> 4;
+  UInt  uiMbY       = ( m_pcCodingParameter->getFrameHeight() + 15 ) >> 4;
   UInt  uiOutFreq   = (UInt)ceil( m_pcCodingParameter->getMaximumFrameRate() );
   UInt  uiMvRange   = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange();
   UInt  uiDPBSize   = m_pcCodingParameter->getDPBSize();
@@ -388,7 +388,8 @@ PicEncoder::xInitSPS()
 
   //===== set SPS parameters =====
   m_pcSPS->setNalUnitType                           ( NAL_UNIT_SPS );
-  m_pcSPS->setLayerId                               ( 0 );
+  m_pcSPS->setAVCHeaderRewriteFlag( false );
+  m_pcSPS->setDependencyId                               ( 0 );
   m_pcSPS->setProfileIdc                            ( HIGH_PROFILE );
   m_pcSPS->setConstrainedSet0Flag                   ( false );
   m_pcSPS->setConstrainedSet1Flag                   ( false );
@@ -536,10 +537,11 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   //===== set NAL unit header =====
   rpcSliceHeader->setNalRefIdc                          ( rcFrameSpec.getNalRefIdc    () );
   rpcSliceHeader->setNalUnitType                        ( rcFrameSpec.getNalUnitType  () );
-  rpcSliceHeader->setLayerId                            ( 0 );
-  rpcSliceHeader->setTemporalLevel                      ( rcFrameSpec.getTemporalLayer() );
-  rpcSliceHeader->setUseBaseRepresentationFlag          ( rcFrameSpec.getTemporalLayer() == 0 );
-  rpcSliceHeader->setSimplePriorityId                   ( 0 );
+  rpcSliceHeader->setDependencyId                       ( 0 );
+  rpcSliceHeader->setTemporalId                         ( rcFrameSpec.getTemporalLayer() );
+  rpcSliceHeader->setUseRefBasePicFlag                  ( false );
+  rpcSliceHeader->setStoreRefBasePicFlag                ( false );
+  rpcSliceHeader->setPriorityId                         ( 0 );
   rpcSliceHeader->setDiscardableFlag                    ( false );
 
 
@@ -551,13 +553,12 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   rpcSliceHeader->setNumMbsInSlice                      ( m_uiMbNumber );
   rpcSliceHeader->setIdrPicId                           ( m_uiIdrPicId );
   rpcSliceHeader->setDirectSpatialMvPredFlag            ( true );
-  rpcSliceHeader->setBaseLayerId                        ( MSYS_UINT_MAX );
-  rpcSliceHeader->setBaseQualityLevel                   ( 15 );
-  rpcSliceHeader->setAdaptivePredictionFlag             ( false );
-  rpcSliceHeader->setNoOutputOfPriorPicsFlag            ( true );
+  rpcSliceHeader->setRefLayer                           ( MSYS_UINT_MAX, 15 );
+  rpcSliceHeader->setNoInterLayerPredFlag               ( true );
+  rpcSliceHeader->setAdaptiveBaseModeFlag               ( false );
+  rpcSliceHeader->setNoOutputOfPriorPicsFlag            ( false );
   rpcSliceHeader->setCabacInitIdc                       ( 0 );
   rpcSliceHeader->setSliceHeaderQp                      ( iQp );
-  rpcSliceHeader->setBaseLayerUsesConstrainedIntraPred  ( false );
 
   //===== reference picture list ===== (init with default data, later updated)
   rpcSliceHeader->setNumRefIdxActiveOverrideFlag        ( false );
@@ -567,9 +568,9 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   //===== set deblocking filter parameters =====
   if( rpcSliceHeader->getPPS().getDeblockingFilterParametersPresentFlag() )
   {
-    rpcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setDisableDeblockingFilterIdc(   m_pcCodingParameter->getLoopFilterParams().getFilterIdc   () );
-    rpcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setSliceAlphaC0Offset        ( 2*m_pcCodingParameter->getLoopFilterParams().getAlphaOffset () );
-    rpcSliceHeader->getDeblockingFilterParameterScalable().getDeblockingFilterParameter().setSliceBetaOffset           ( 2*m_pcCodingParameter->getLoopFilterParams().getBetaOffset  () );
+    rpcSliceHeader->getDeblockingFilterParameter().setDisableDeblockingFilterIdc(   m_pcCodingParameter->getLoopFilterParams().getFilterIdc   () );
+    rpcSliceHeader->getDeblockingFilterParameter().setSliceAlphaC0Offset        ( 2*m_pcCodingParameter->getLoopFilterParams().getAlphaOffset () );
+    rpcSliceHeader->getDeblockingFilterParameter().setSliceBetaOffset           ( 2*m_pcCodingParameter->getLoopFilterParams().getBetaOffset  () );
   }
 
   //===== set picture order count =====
@@ -578,20 +579,18 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   //===== set MMCO commands =====
   if( rcFrameSpec.getMmcoBuf() )
   {
-    rpcSliceHeader->setAdaptiveRefPicBufferingFlag( true );
-    rpcSliceHeader->getMmcoBuffer().copy( *rcFrameSpec.getMmcoBuf() );
+    rpcSliceHeader->getDecRefPicMarking().setAdaptiveRefPicMarkingModeFlag( true );
+    rpcSliceHeader->getDecRefPicMarking().copy( *rcFrameSpec.getMmcoBuf() );
   }
 
   //===== set RPRL commands =====
   if( rcFrameSpec.getRplrBuf( LIST_0 ) )
   {
-    rpcSliceHeader->getRplrBuffer( LIST_0 ).setRefPicListReorderingFlag( true );
-    rpcSliceHeader->getRplrBuffer( LIST_0 ).copy( *(StatBuf<Rplr,32>*)rcFrameSpec.getRplrBuf( LIST_0 ) );
+    rpcSliceHeader->getRefPicListReordering( LIST_0 ).copy( *rcFrameSpec.getRplrBuf( LIST_0 ) );
   }
   if( rcFrameSpec.getRplrBuf( LIST_1 ) )
   {
-    rpcSliceHeader->getRplrBuffer( LIST_1 ).setRefPicListReorderingFlag( true );
-    rpcSliceHeader->getRplrBuffer( LIST_1 ).copy( *(StatBuf<Rplr,32>*)rcFrameSpec.getRplrBuf( LIST_1 ) );
+    rpcSliceHeader->getRefPicListReordering( LIST_1 ).copy( *rcFrameSpec.getRplrBuf( LIST_1 ) );
   }
 
 #if 0
@@ -609,7 +608,7 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   {
     m_uiFrameNum  = ( m_uiFrameNum + 1 ) % ( 1 << rpcSliceHeader->getSPS().getLog2MaxFrameNum() );
   }
-  if( rpcSliceHeader->isIdrNalUnit() )
+  if( rpcSliceHeader->getIdrFlag() )
   {
     m_uiIdrPicId  = ( m_uiIdrPicId + 1 ) % 3;
   }
@@ -621,31 +620,26 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
 ErrVal
 PicEncoder::xInitPredWeights( SliceHeader& rcSliceHeader )
 {
-  if( rcSliceHeader.isInterP() )
+  if( rcSliceHeader.isPSlice() )
   {
-    RNOK( rcSliceHeader.getPredWeightTable( LIST_0 ).init( 64 ) );
-
     if( rcSliceHeader.getPPS().getWeightedPredFlag() )
     {
       rcSliceHeader.setLumaLog2WeightDenom  ( 6 );
       rcSliceHeader.setChromaLog2WeightDenom( 6 );
-      RNOK( rcSliceHeader.getPredWeightTable( LIST_0 ).initDefaults( rcSliceHeader.getLumaLog2WeightDenom(), rcSliceHeader.getChromaLog2WeightDenom() ) );
-      RNOK( rcSliceHeader.getPredWeightTable( LIST_0 ).createRandomParameters() );
+      RNOK( rcSliceHeader.getPredWeightTableL0().initDefaults( rcSliceHeader.getLumaLog2WeightDenom(), rcSliceHeader.getChromaLog2WeightDenom() ) );
+      RNOK( rcSliceHeader.getPredWeightTableL0().initRandomly() );
     }
   }
-  else if( rcSliceHeader.isInterB() )
+  else if( rcSliceHeader.isBSlice() )
   {
-    RNOK( rcSliceHeader.getPredWeightTable( LIST_0 ).init( 64 ) );
-    RNOK( rcSliceHeader.getPredWeightTable( LIST_1 ).init( 64 ) );
-
     if( rcSliceHeader.getPPS().getWeightedBiPredIdc() == 1 )
     {
       rcSliceHeader.setLumaLog2WeightDenom  ( 6 );
       rcSliceHeader.setChromaLog2WeightDenom( 6 );
-      RNOK( rcSliceHeader.getPredWeightTable( LIST_0 ).initDefaults( rcSliceHeader.getLumaLog2WeightDenom(), rcSliceHeader.getChromaLog2WeightDenom() ) );
-      RNOK( rcSliceHeader.getPredWeightTable( LIST_1 ).initDefaults( rcSliceHeader.getLumaLog2WeightDenom(), rcSliceHeader.getChromaLog2WeightDenom() ) );
-      RNOK( rcSliceHeader.getPredWeightTable( LIST_0 ).createRandomParameters() );
-      RNOK( rcSliceHeader.getPredWeightTable( LIST_1 ).createRandomParameters() );
+      RNOK( rcSliceHeader.getPredWeightTableL0().initDefaults( rcSliceHeader.getLumaLog2WeightDenom(), rcSliceHeader.getChromaLog2WeightDenom() ) );
+      RNOK( rcSliceHeader.getPredWeightTableL1().initDefaults( rcSliceHeader.getLumaLog2WeightDenom(), rcSliceHeader.getChromaLog2WeightDenom() ) );
+      RNOK( rcSliceHeader.getPredWeightTableL0().initRandomly() );
+      RNOK( rcSliceHeader.getPredWeightTableL1().initRandomly() );
     }
   }
   return Err::m_nOK;
@@ -774,7 +768,7 @@ PicEncoder::xStartPicture( RecPicBufUnit& rcRecPicBufUnit,
   UInt uiPos;  
   for( uiPos = 0; uiPos < rcList0.getActive(); uiPos++ )
   {
-    IntFrame* pcRefFrame = rcList0.getEntry( uiPos );
+    Frame* pcRefFrame = rcList0.getEntry( uiPos );
     if( ! pcRefFrame->isHalfPel() )
     {
       RNOK( pcRefFrame->initHalfPel() );
@@ -788,7 +782,7 @@ PicEncoder::xStartPicture( RecPicBufUnit& rcRecPicBufUnit,
   }
   for( uiPos = 0; uiPos < rcList1.getActive(); uiPos++ )
   {
-    IntFrame* pcRefFrame = rcList1.getEntry( uiPos );
+    Frame* pcRefFrame = rcList1.getEntry( uiPos );
     if( ! pcRefFrame->isHalfPel() )
     {
       RNOK( pcRefFrame->initHalfPel() );
@@ -818,7 +812,7 @@ PicEncoder::xFinishPicture( RecPicBufUnit&  rcRecPicBufUnit,
   UInt uiPos;
   for( uiPos = 0; uiPos < rcList0.getActive(); uiPos++ )
   {
-    IntFrame* pcRefFrame = rcList0.getEntry( uiPos );
+    Frame* pcRefFrame = rcList0.getEntry( uiPos );
     if( pcRefFrame->isExtended() )
     {
       pcRefFrame->clearExtended();
@@ -830,7 +824,7 @@ PicEncoder::xFinishPicture( RecPicBufUnit&  rcRecPicBufUnit,
   }
   for( uiPos = 0; uiPos < rcList1.getActive(); uiPos++ )
   {
-    IntFrame* pcRefFrame = rcList1.getEntry( uiPos );
+    Frame* pcRefFrame = rcList1.getEntry( uiPos );
     if( pcRefFrame->isExtended() )
     {
       pcRefFrame->clearExtended();
@@ -864,7 +858,7 @@ PicEncoder::xFinishPicture( RecPicBufUnit&  rcRecPicBufUnit,
     rcSliceHeader.getNalUnitType()==NAL_UNIT_CODED_SLICE_IDR ? "IDR" :
     rcSliceHeader.getNalRefIdc  ()==NAL_REF_IDC_PRIORITY_LOWEST ? "   " : "REF",
     rcSliceHeader.getPoc(),
-    rcSliceHeader.getPicQp(),
+    rcSliceHeader.getSliceQp(),
     dPSNR[0],
     dPSNR[1],
     dPSNR[2],
@@ -888,7 +882,7 @@ PicEncoder::xGetPSNR( RecPicBufUnit&  rcRecPicBufUnit,
 
   //===== set parameters =====
   const YuvBufferCtrl::YuvBufferParameter&  cBufferParam  = m_pcYuvBufferCtrlFullPel->getBufferParameter();
-  IntFrame*                                 pcFrame       = rcRecPicBufUnit.getRecFrame  ();
+  Frame*                                 pcFrame       = rcRecPicBufUnit.getRecFrame  ();
   PicBuffer*                                pcPicBuffer   = rcRecPicBufUnit.getPicBuffer ();
   
   //===== calculate PSNR =====

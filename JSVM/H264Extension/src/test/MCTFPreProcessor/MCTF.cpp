@@ -168,8 +168,8 @@ MCTF::init( PreProcessorParameter*  pcParameter,
   }
 
   //----- init parameter sets -----
-  m_uiFrameWidthInMb      = pcParameter->getFrameWidth  () >> 4;
-  m_uiFrameHeightInMb     = pcParameter->getFrameHeight () >> 4;
+  m_uiFrameWidthInMb      = ( pcParameter->getFrameWidth  () + 15 ) >> 4;
+  m_uiFrameHeightInMb     = ( pcParameter->getFrameHeight () + 15 ) >> 4;
   m_uiMbNumber            = m_uiFrameWidthInMb * m_uiFrameHeightInMb;
   m_bFirstGOPCoded        = false;
   RNOK( SequenceParameterSet::create( m_pcSPS ) );
@@ -198,15 +198,15 @@ MCTF::xCreateData( const SequenceParameterSet& rcSPS )
 {
   UInt uiIndex;
 
-  ROFS   ( ( m_papcFrame       = new IntFrame*   [ ( 1 << m_uiDecompositionStages ) + 1 ] ) );
-  ROFS   ( ( m_papcResidual    = new IntFrame*   [ ( 1 << m_uiDecompositionStages ) + 1 ] ) );
+  ROFS   ( ( m_papcFrame       = new Frame*   [ ( 1 << m_uiDecompositionStages ) + 1 ] ) );
+  ROFS   ( ( m_papcResidual    = new Frame*   [ ( 1 << m_uiDecompositionStages ) + 1 ] ) );
   ROFS   ( ( m_pacControlData  = new ControlData [ ( 1 << m_uiDecompositionStages ) + 1 ] ) );
 
   for( uiIndex = 0; uiIndex <= ( 1U << m_uiDecompositionStages ); uiIndex++ )
   {
-    ROFS ( ( m_papcFrame         [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+    ROFS ( ( m_papcFrame         [ uiIndex ] = new Frame( *m_pcYuvFullPelBufferCtrl,
                                                               *m_pcYuvHalfPelBufferCtrl ) ) );
-    ROFS ( ( m_papcResidual      [ uiIndex ] = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+    ROFS ( ( m_papcResidual      [ uiIndex ] = new Frame( *m_pcYuvFullPelBufferCtrl,
                                                               *m_pcYuvHalfPelBufferCtrl ) ) );
     RNOK  (   m_papcFrame         [ uiIndex ] ->init        () );
     RNOK  (   m_papcResidual      [ uiIndex ] ->init        () );
@@ -221,7 +221,7 @@ MCTF::xCreateData( const SequenceParameterSet& rcSPS )
     RNOK  (       m_pacControlData[ uiIndex ] . setSliceHeader  (  pcSliceHeader ) );
   }
 
-  ROFS   ( ( m_pcFrameTemp                   = new IntFrame( *m_pcYuvFullPelBufferCtrl,
+  ROFS   ( ( m_pcFrameTemp                   = new Frame( *m_pcYuvFullPelBufferCtrl,
                                                               *m_pcYuvHalfPelBufferCtrl ) ) );
   RNOK    (   m_pcFrameTemp                   ->init        () );
 
@@ -302,7 +302,7 @@ MCTF::uninit()
 
 
 ErrVal
-MCTF::xFillAndUpsampleFrame( IntFrame* rcFrame )
+MCTF::xFillAndUpsampleFrame( Frame* rcFrame )
 {
   RNOK( m_pcYuvFullPelBufferCtrl->initMb() );
   RNOK( m_pcYuvHalfPelBufferCtrl->initMb() );
@@ -318,7 +318,7 @@ MCTF::xFillAndUpsampleFrame( IntFrame* rcFrame )
 
 
 ErrVal
-MCTF::xFillAndExtendFrame( IntFrame* rcFrame )
+MCTF::xFillAndExtendFrame( Frame* rcFrame )
 {
   RNOK( m_pcYuvFullPelBufferCtrl->initMb() );
   RNOK( rcFrame->extendFrame( NULL ) );
@@ -329,7 +329,7 @@ MCTF::xFillAndExtendFrame( IntFrame* rcFrame )
 ErrVal
 MCTF::xMotionEstimation( RefFrameList*    pcRefFrameList0,
                          RefFrameList*    pcRefFrameList1,
-                         const IntFrame*  pcOrigFrame,
+                         const Frame*  pcOrigFrame,
                          ControlData&     rcControlData )
 {
   SliceHeader&  rcSliceHeader = *rcControlData.getSliceHeader();
@@ -377,7 +377,7 @@ MCTF::xMotionEstimation( RefFrameList*    pcRefFrameList0,
 
 
 ErrVal
-MCTF::xMotionCompensation( IntFrame*        pcMCFrame,
+MCTF::xMotionCompensation( Frame*        pcMCFrame,
                            RefFrameList*    pcRefFrameList0,
                            RefFrameList*    pcRefFrameList1,
                            MbDataCtrl*      pcMbDataCtrl,
@@ -420,16 +420,16 @@ MCTF::xGetConnections( Double&  rdL0Rate,
 
 
 ErrVal
-MCTF::xZeroIntraMacroblocks( IntFrame*    pcFrame,
+MCTF::xZeroIntraMacroblocks( Frame*    pcFrame,
                              ControlData& rcCtrlData )
 {
   MbDataCtrl*       pcMbDataCtrl  = rcCtrlData.getMbDataCtrl       ();
   SliceHeader*      pcSliceHeader = rcCtrlData.getSliceHeader      ();
-  IntYuvPicBuffer*  pcPicBuffer   = pcFrame  ->getFullPelYuvBuffer ();
+  YuvPicBuffer*  pcPicBuffer   = pcFrame  ->getFullPelYuvBuffer ();
 
   RNOK( pcMbDataCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
 
-  IntYuvMbBuffer cZeroMbBuffer;
+  YuvMbBuffer cZeroMbBuffer;
   cZeroMbBuffer.setAllSamplesToZero();
 
   for( UInt uiMbIndex = 0; uiMbIndex < m_uiMbNumber; uiMbIndex++ )
@@ -603,10 +603,6 @@ MCTF::xInitSliceHeader( UInt uiTemporalLevel,
   }
 
   //===== pred weights =====
-  RNOK( pcSliceHeader->getPredWeightTable(LIST_0).uninit() );
-  RNOK( pcSliceHeader->getPredWeightTable(LIST_1).uninit() );
-  RNOK( pcSliceHeader->getPredWeightTable(LIST_0).init( pcSliceHeader->getNumRefIdxActive( LIST_0) ) );
-  RNOK( pcSliceHeader->getPredWeightTable(LIST_1).init( pcSliceHeader->getNumRefIdxActive( LIST_1) ) );
   RNOK( pcSliceHeader->getPredWeightTable(LIST_1).initDefaults( pcSliceHeader->getLumaLog2WeightDenom(), pcSliceHeader->getChromaLog2WeightDenom() ) );
   RNOK( pcSliceHeader->getPredWeightTable(LIST_0).initDefaults( pcSliceHeader->getLumaLog2WeightDenom(), pcSliceHeader->getChromaLog2WeightDenom() ) );
 
@@ -720,7 +716,7 @@ MCTF::xGetPredictionLists( RefFrameList& rcRefList0,
     Int iFrameId;
     for( iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
     {
-      IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+      Frame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
       if( ! pcFrame->isExtended() )
       {
         if( bHalfPel )
@@ -743,7 +739,7 @@ MCTF::xGetPredictionLists( RefFrameList& rcRefList0,
     Int iFrameId;
     for( iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
-      IntFrame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
+      Frame* pcFrame = m_papcFrame[ iFrameId << uiBaseLevel ];
       if( ! pcFrame->isExtended() )
       {
         if( bHalfPel )
@@ -788,7 +784,7 @@ MCTF::xGetUpdateLists( RefFrameList& rcRefList0,
   {
     for( Int iFrameId = Int( uiFrame - 1 ); iFrameId >= 0 && uiList0Size; iFrameId -= 2 )
     {
-      IntFrame*     pcFrame       =  m_papcResidual   [ iFrameId << uiBaseLevel ];
+      Frame*     pcFrame       =  m_papcResidual   [ iFrameId << uiBaseLevel ];
       ControlData*  pcControlData = &m_pacControlData [ iFrameId << uiBaseLevel ];
       if( ! pcFrame->isExtended() )
       {
@@ -805,7 +801,7 @@ MCTF::xGetUpdateLists( RefFrameList& rcRefList0,
   {
     for( Int iFrameId = Int( uiFrame + 1 ); iFrameId <= (Int)( m_uiGOPSize >> uiBaseLevel ) && uiList1Size; iFrameId += 2 )
     {
-      IntFrame*     pcFrame       =  m_papcResidual   [ iFrameId << uiBaseLevel ];
+      Frame*     pcFrame       =  m_papcResidual   [ iFrameId << uiBaseLevel ];
       ControlData*  pcControlData = &m_pacControlData [ iFrameId << uiBaseLevel ];
       if( ! pcFrame->isExtended() )
       {
@@ -856,7 +852,7 @@ MCTF::xMotionEstimationStage( UInt uiBaseLevel )
     printf(".");
     UInt          uiFrameIdInGOP  = uiFrame << uiBaseLevel;
     ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-    IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+    Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
 
     //===== get reference frame lists =====
     RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
@@ -879,9 +875,9 @@ MCTF::xDecompositionStage( UInt uiBaseLevel )
   {
     UInt          uiFrameIdInGOP  = uiFramePrd << uiBaseLevel;
     ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-    IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-    IntFrame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
-    IntFrame*     pcMCFrame       = m_pcFrameTemp;
+    Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+    Frame*     pcResidual      = m_papcResidual  [uiFrameIdInGOP];
+    Frame*     pcMCFrame       = m_pcFrameTemp;
 
     RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
     RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
@@ -899,7 +895,7 @@ MCTF::xDecompositionStage( UInt uiBaseLevel )
   for( UInt uiFrameUpd = 2; uiFrameUpd <= ( m_uiGOPSize >> uiBaseLevel ); uiFrameUpd += 2 )
   {
     UInt          uiFrameIdInGOP  = uiFrameUpd << uiBaseLevel;
-    IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+    Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
 
     RefFrameList  acRefFrameListUpd[2];
     CtrlDataList  acCtrlDataList[2];
@@ -923,8 +919,8 @@ MCTF::xCompositionStage( UInt           uiBaseLevel,
   {
     UInt          uiFrameIdInGOP  = uiFramePrd << uiBaseLevel;
     ControlData&  rcControlData   = m_pacControlData[uiFrameIdInGOP];
-    IntFrame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
-    IntFrame*     pcMCFrame       = m_pcFrameTemp;
+    Frame*     pcFrame         = m_papcFrame     [uiFrameIdInGOP];
+    Frame*     pcMCFrame       = m_pcFrameTemp;
 
     RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
     RefFrameList& rcRefFrameList1 = rcControlData.getPrdFrameList( LIST_1 );
@@ -998,7 +994,7 @@ MCTF::xFinishGOP( PicBufferList& rcPicBufferInputList,
 
 
 ErrVal
-MCTF::xUpdateCompensation( IntFrame*        pcMCFrame,
+MCTF::xUpdateCompensation( Frame*        pcMCFrame,
                            RefFrameList*    pcRefFrameList,
                            CtrlDataList*    pcCtrlDataList,
                            ListIdx          eListUpd)

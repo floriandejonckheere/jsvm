@@ -105,6 +105,7 @@ public:
   {
   public:
     ScalingList ();
+    virtual ~ScalingList() {}
     ErrVal        read      ( HeaderSymbolReadIf*   pcReadIf,
                               const UChar*          pucScan,
                               Bool&                 rbUseDefaultScalingMatrixFlag );

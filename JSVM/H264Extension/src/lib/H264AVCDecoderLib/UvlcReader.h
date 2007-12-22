@@ -97,56 +97,38 @@ H264AVC_NAMESPACE_BEGIN
 
 class BitReadBuffer;
 
-#define CAVLC_SYMGRP_SIZE   3 
-
-class UcSymGrpReader; 
-
 class UvlcReader
 : public HeaderSymbolReadIf
 , public MbSymbolReadIf
 , public Quantizer
 
 {
-public:
-  typedef struct
-  {
-    UChar nVal;
-    UChar nSize;
-  }Vlc;
-
 protected:
 	UvlcReader();
 	virtual ~UvlcReader();
 
 public:
-  static ErrVal create( UvlcReader*& rpcUvlcReader );
-  ErrVal destroy();
+  static ErrVal create  ( UvlcReader*& rpcUvlcReader );
+  ErrVal        destroy ();
+  ErrVal        init    ( BitReadBuffer* pcBitReadBuffer );
+  ErrVal        uninit  ();
 
-  ErrVal init   ( BitReadBuffer* pcBitReadBuffer );
-  ErrVal uninit ();
+  ErrVal  getUvlc           ( UInt& ruiCode,                  Char* pcTraceString );
+  ErrVal  getCode           ( UInt& ruiCode,  UInt uiLength,  Char* pcTraceString );
+  ErrVal  getSCode          ( Int&  riCode,   UInt uiLength,  Char* pcTraceString );
+  ErrVal  getSvlc           ( Int&  riCode,                   Char* pcTraceString );
+  ErrVal  getFlag           ( Bool& rbFlag,                   Char* pcTraceString );
+  ErrVal  readByteAlign     ();
+  ErrVal  readZeroByteAlign ();
+  Bool    moreRBSPData      ();
 
-  Bool    moreRBSPData();
-  ErrVal  getUvlc     ( UInt& ruiCode,                Char* pcTraceString );
-  ErrVal  getCode     ( UInt& ruiCode, UInt uiLength, Char* pcTraceString );
-  // JVT-V068 HRD {
-  ErrVal  getSCode    ( Int& riCode, UInt uiLength, Char* pcTraceString );
-  // JVT-V068 HRD }
-  ErrVal  getSvlc     ( Int&  riCode,                 Char* pcTraceString );
-  ErrVal  getFlag     ( Bool& rbFlag,                 Char* pcTraceString );
-  ErrVal  readByteAlign();
-// JVT-T073 {
-  ErrVal  readZeroByteAlign();
-// JVT-T073 }
 
-  ErrVal  codeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 )
-    {return xCodeFromBitstream2Di(auiCode, auiLen, uiWidth, uiHeight, uiVal1, uiVal2);};
   Bool    isMbSkipped ( MbDataAccess& rcMbDataAccess );
   Bool    isBLSkipped ( MbDataAccess& rcMbDataAccess );
   Bool    isEndOfSlice();
   ErrVal  blockModes  ( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode      ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag ( MbDataAccess& rcMbDataAccess );
-  ErrVal  resPredFlag_FGS ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -156,7 +138,7 @@ public:
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x8 eSParIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx );
 
-  ErrVal  cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop );
+  ErrVal  cbp     ( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop );
   ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
   ErrVal  refFrame( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx8x16 eParIdx  );
@@ -182,42 +164,26 @@ public:
   ErrVal  transformSize8x8Flag( MbDataAccess& rcMbDataAccess);
   ErrVal  residualBlock8x8    ( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx, UInt uiStart, UInt uiStop );
 	ErrVal  intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx cIdx ); 
-  ErrVal  RQreset                  ( const SliceHeader& rcSliceHeader );
-
-  Void    xSetParentFlag           ( Bool          bParentFlag )
-  {
-    m_bParentFlag = bParentFlag;
-  }
 
 private:
-  ErrVal xGetFlag     ( UInt& ruiCode );
-  ErrVal xGetCode     ( UInt& ruiCode, UInt uiLength );
-  ErrVal xGetUvlcCode ( UInt& ruiVal  );
-  ErrVal xGetSvlcCode ( Int&  riVal   );
-  ErrVal xGetRefFrame ( Bool bWriteBit, UInt& uiRefFrame, ListIdx eLstIdx );
-  ErrVal xGetMotionPredFlag( Bool& rbFlag );
-  ErrVal xGetMvd      ( Mv& cMv );
-  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
-  ErrVal xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
-  ErrVal xGetTrailingOnes16( UInt uiLastCoeffCount, UInt& uiCoeffCount, UInt& uiTrailingOnes );
-  ErrVal xCodeFromBitstream2D( const UChar* aucCode, const UChar* aucLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
-  ErrVal xCodeFromBitstream2Di( const UInt* auiCode, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
-  ErrVal xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun, MbDataAccess &rcMbDataAccess );
-  ErrVal xGetLevelVLC0( Int& iLevel );
-  ErrVal xGetLevelVLCN( Int& iLevel, UInt uiVlcLength );
-  ErrVal xGetRun( UInt uiVlcPos, UInt& uiRun  );
-  ErrVal xGetTotalRun16( UInt uiVlcPos, UInt& uiTotalRun );
-  ErrVal xGetTotalRun4( UInt& uiVlcPos, UInt& uiTotalRun );
-  ErrVal xGetTrailingOnes4( UInt& uiCoeffCount, UInt& uiTrailingOnes );
-  ErrVal xGetGolomb(UInt& uiSymbol, UInt uiK);
-  ErrVal xGetSigRunCode( UInt& uiSymbol, UInt uiTableIdx );
-  ErrVal xGetUnaryCode( UInt& uiSymbol );
-  ErrVal xGetCodeCB1( UInt& uiSymbol );
-  ErrVal xGetCodeCB2( UInt& uiSymbol );
-  ErrVal xGetSigRunTabCode(UInt& uiTab);
-  ErrVal  xDecodeMonSeq           ( UInt*           auiSeq,
-                                    UInt uiStart,
-                                     UInt            uiLen );
+  ErrVal xGetFlag             ( UInt& ruiCode );
+  ErrVal xGetCode             ( UInt& ruiCode, UInt uiLength );
+  ErrVal xGetUvlcCode         ( UInt& ruiVal  );
+  ErrVal xGetSvlcCode         ( Int&  riVal   );
+  ErrVal xGetRefFrame         ( Bool bWriteBit, UInt& uiRefFrame, ListIdx eLstIdx );
+  ErrVal xGetMotionPredFlag   ( Bool& rbFlag );
+  ErrVal xGetMvd              ( Mv& cMv );
+  ErrVal xPredictNonZeroCnt   ( MbDataAccess& rcMbDataAccess, LumaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
+  ErrVal xPredictNonZeroCnt   ( MbDataAccess& rcMbDataAccess, ChromaIdx cIdx, UInt& uiCoeffCount, UInt& uiTrailingOnes, UInt uiStart, UInt uiStop );
+  ErrVal xGetTrailingOnes16   ( UInt uiLastCoeffCount, UInt& uiCoeffCount, UInt& uiTrailingOnes );
+  ErrVal xCodeFromBitstream2D ( const UChar* aucCode, const UChar* aucLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 );
+  ErrVal xGetRunLevel         ( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun, MbDataAccess &rcMbDataAccess );
+  ErrVal xGetLevelVLC0        ( Int& iLevel );
+  ErrVal xGetLevelVLCN        ( Int& iLevel, UInt uiVlcLength );
+  ErrVal xGetRun              ( UInt uiVlcPos, UInt& uiRun  );
+  ErrVal xGetTotalRun16       ( UInt uiVlcPos, UInt& uiTotalRun );
+  ErrVal xGetTotalRun4        ( UInt& uiVlcPos, UInt& uiTotalRun );
+  ErrVal xGetTrailingOnes4    ( UInt& uiCoeffCount, UInt& uiTrailingOnes );
 
 protected:
   BitReadBuffer*  m_pcBitReadBuffer;
@@ -225,48 +191,8 @@ protected:
   UInt            m_uiPosCounter;
   Bool            m_bRunLengthCoding;
   UInt            m_uiRun;
-  UInt m_uiCbpStats[3][2];
-  UInt m_uiCbp8x8;
-  UInt m_uiCbpStat4x4[2];
-  UInt m_uiCurrCbp4x4;
-  UcSymGrpReader* m_pSymGrp; 
-
-  Bool m_bTruncated;
-
-  // new variables for switching bitstream inputs
-  Bool            m_bParentFlag;
-  UvlcReader*     m_apcFragmentReaders[MAX_NUM_PD_FRAGMENTS];
-  BitReadBuffer*  m_apcFragBitBuffers [MAX_NUM_PD_FRAGMENTS];
-  UcSymGrpReader* m_apcFragSymGrps    [MAX_NUM_PD_FRAGMENTS];
-  UInt            m_uiNumFragments;
-  UInt            m_uiCurrentFragment;
-
-  static UInt     m_auiShiftLuma[16];
-  static UInt     m_auiShiftChroma[16];
-  static UInt     m_auiBestCodeTab[16];
 };
 
-
-class UcSymGrpReader
-{
-public:
-  UcSymGrpReader( UvlcReader* pParent );
-  ErrVal Init();
-  ErrVal Flush();
-  ErrVal xFetchSymbol( UvlcReader* pcUvlcReader, UInt uiBaseSign, TCoeff* piCoeffPtr, Char* pcTraceString );
-
-  Bool   UpdateVlc();
-  UInt   GetCode()    { return m_uiCode;   }
-  Void   setCodedFlag(UInt uiFlag)    { m_uiCodedFlag = uiFlag; }
-
-protected:
-  UInt m_auiSymCount[3];
-  UInt m_uiTable;
-  UInt m_uiCodedFlag;
-  UInt m_uiCode;
-  UInt m_uiLen;
-  UInt m_auiSymbolBuf[CAVLC_SYMGRP_SIZE];
-};
 
 H264AVC_NAMESPACE_END
 

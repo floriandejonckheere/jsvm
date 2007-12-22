@@ -118,7 +118,7 @@ ErrVal IntraPredictionSearch::destroy()
 
 
 
-ErrVal IntraPredictionSearch::predictSLumaMb( IntYuvMbBuffer *pcYuvBuffer, UInt uiPredMode, Bool& rbValid )
+ErrVal IntraPredictionSearch::predictSLumaMb( YuvMbBuffer *pcYuvBuffer, UInt uiPredMode, Bool& rbValid )
 {
   rbValid = false;
   m_uiAvailable = ( m_uiAvailableMaskMb >> 4 ) | m_uiAvailableMaskMb;
@@ -172,7 +172,7 @@ ErrVal IntraPredictionSearch::predictSLumaMb( IntYuvMbBuffer *pcYuvBuffer, UInt 
 
 
 
-ErrVal IntraPredictionSearch::predictSLumaBlock( IntYuvMbBuffer *pcYuvBuffer, UInt uiPredMode, LumaIdx cIdx, Bool &rbValid )
+ErrVal IntraPredictionSearch::predictSLumaBlock( YuvMbBuffer *pcYuvBuffer, UInt uiPredMode, LumaIdx cIdx, Bool &rbValid )
 {
   rbValid       = false;
   XPel* pPel    = pcYuvBuffer->getLumBlk();
@@ -272,7 +272,7 @@ ErrVal IntraPredictionSearch::predictSLumaBlock( IntYuvMbBuffer *pcYuvBuffer, UI
 
 
 
-ErrVal IntraPredictionSearch::predictSChromaBlock( IntYuvMbBuffer *pcYuvBuffer, UInt uiPredMode, Bool &rbValid )
+ErrVal IntraPredictionSearch::predictSChromaBlock( YuvMbBuffer *pcYuvBuffer, UInt uiPredMode, Bool &rbValid )
 {
   m_uiAvailable = ( m_uiAvailableMaskMb >> 4 ) | m_uiAvailableMaskMb;
 
@@ -331,7 +331,7 @@ ErrVal IntraPredictionSearch::predictSChromaBlock( IntYuvMbBuffer *pcYuvBuffer, 
 
 
 
-ErrVal IntraPredictionSearch::predictSLumaBlock8x8( IntYuvMbBuffer* pcYuvBuffer,
+ErrVal IntraPredictionSearch::predictSLumaBlock8x8( YuvMbBuffer* pcYuvBuffer,
                                                     UInt            uiPredMode,
                                                     B8x8Idx         c8x8Idx,
                                                     Bool&           rbValid )

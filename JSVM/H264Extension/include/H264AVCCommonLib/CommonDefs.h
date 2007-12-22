@@ -90,9 +90,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #pragma once
 #endif // _MSC_VER > 1000
 
+
+
 typedef UChar CoefMap;
 
-#define _JSVM_VERSION_ "9.8" //added by jerome.vieron@thomson.net
+#define _JSVM_VERSION_ "9.10" //added by jerome.vieron@thomson.net
 
 #define TO_BE_REMOVED     1   // things that are different in the SVC text
 #define NOK_MGSCAVLC      1   // check if this is conforming to the SVC text
@@ -205,11 +207,8 @@ enum SliceType
   P_SLICE  = 0,
   B_SLICE  = 1,
   I_SLICE  = 2,
-  //JVT-W046 {
-  EP_SLICE  = 5,
-  EB_SLICE  = 6,
-  EI_SLICE  = 7,
-  //JVT-W046 }
+  SP_SLICE = 3,
+  SI_SLICE = 4
 };
 
 
@@ -223,26 +222,34 @@ enum NalRefIdc
 
 enum NalUnitType
 {
-  NAL_UNIT_EXTERNAL                 = 0,
-  NAL_UNIT_CODED_SLICE              = 1,
-  NAL_UNIT_CODED_SLICE_DATAPART_A   = 2,
-  NAL_UNIT_CODED_SLICE_DATAPART_B   = 3,
-  NAL_UNIT_CODED_SLICE_DATAPART_C   = 4,
-  NAL_UNIT_CODED_SLICE_IDR          = 5,
-  NAL_UNIT_SEI                      = 6,
-  NAL_UNIT_SPS                      = 7,
-  NAL_UNIT_PPS                      = 8,
-  NAL_UNIT_ACCESS_UNIT_DELIMITER    = 9,
+  NAL_UNIT_UNSPECIFIED_0            =  0,
+  NAL_UNIT_CODED_SLICE              =  1,
+  NAL_UNIT_CODED_SLICE_DATAPART_A   =  2,
+  NAL_UNIT_CODED_SLICE_DATAPART_B   =  3,
+  NAL_UNIT_CODED_SLICE_DATAPART_C   =  4,
+  NAL_UNIT_CODED_SLICE_IDR          =  5,
+  NAL_UNIT_SEI                      =  6,
+  NAL_UNIT_SPS                      =  7,
+  NAL_UNIT_PPS                      =  8,
+  NAL_UNIT_ACCESS_UNIT_DELIMITER    =  9,
   NAL_UNIT_END_OF_SEQUENCE          = 10,
   NAL_UNIT_END_OF_STREAM            = 11,
   NAL_UNIT_FILLER_DATA              = 12,
-  NAL_UNIT_PREFIX										= 14,//prefix unit
-  NAL_UNIT_SUB_SPS                  = 15,//SSPS
+  NAL_UNIT_SPS_EXTENSION            = 13,
+  NAL_UNIT_PREFIX										= 14,
+  NAL_UNIT_SUBSET_SPS               = 15,
+  NAL_UNIT_RESERVED_16              = 16,
+  NAL_UNIT_RESERVED_17              = 17,
+  NAL_UNIT_RESERVED_18              = 18,
+  NAL_UNIT_AUX_CODED_SLICE          = 19,
   NAL_UNIT_CODED_SLICE_SCALABLE     = 20,
-  NAL_UNIT_CODED_SLICE_IDR_SCALABLE = 21
+  NAL_UNIT_RESERVED_21              = 21,
+  NAL_UNIT_RESERVED_22              = 22,
+  NAL_UNIT_RESERVED_23              = 23
 };
 
 #define NAL_UNIT_HEADER_SVC_EXTENSION_BYTES      3
+#define NUM_SPS_IDS                             32
 
 enum MbMode
 {
@@ -278,7 +285,8 @@ enum Profile
   HIGH_422_PROFILE  = 122,
   HIGH_444_PROFILE  = 144,
 
-  SCALABLE_PROFILE  = 83
+  SCALABLE_BASELINE_PROFILE = 83,
+  SCALABLE_HIGH_PROFILE     = 86
 };
 
 enum DFunc
@@ -357,7 +365,6 @@ typedef	enum
 //TMM_EC }}
 
 #define MAX_NUM_PD_FRAGMENTS                          12
-
 
 
 #endif // !defined(AFX_COMMONDEFS_H__4CE634CE_B48D_4812_8098_9CAEA258BAA2__INCLUDED_)

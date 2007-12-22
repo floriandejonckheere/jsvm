@@ -234,7 +234,8 @@ protected:
 
 protected:
   DynBuf<Bool>        m_cMbProcessed;
-  DynBuf<DFPScalable*>        m_cpDFPBuffer;
+  DynBuf<DBFilterParameter*>  m_cDBFPBuffer;
+  DynBuf<DBFilterParameter*>  m_cILDBFPBuffer;
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMotionData*       m_apcMbMotionData[2];
   MbMotionData*       m_apcMbMotionDataBase[2];
@@ -325,14 +326,16 @@ public:
     return Err::m_nOK;
   }
 
-  IntFrame*     getBaseLayerRec     ()  { return  m_pcBaseLayerRec;     }
-  IntFrame*     getBaseLayerSbb     ()  { return  m_pcBaseLayerSbb;     }
+  Frame*     getBaseLayerRec     ()  { return  m_pcBaseLayerRec;     }
+  Frame*     getBaseLayerSbb     ()  { return  m_pcBaseLayerSbb;     }
   MbDataCtrl*   getBaseLayerCtrl    ()  { return  m_pcBaseLayerCtrl;    }
+  MbDataCtrl*   getMbDataCtrl0L1    ()  { return m_pcMbDataCtrl0L1; }
+  Void          setMbDataCtrl0L1    ( MbDataCtrl* p )  { m_pcMbDataCtrl0L1 = p; }
   MbDataCtrl*   getBaseLayerCtrlField ()  { return  m_pcBaseLayerCtrlField;    }
   ControlData*  getBaseCtrlData     ()  { return  m_pcBaseCtrlData;     }
   UInt          getUseBLMotion      ()  { return  m_uiUseBLMotion;      }
-  Void          setBaseLayerRec     ( IntFrame*   pcBaseLayerRec  )   { m_pcBaseLayerRec    = pcBaseLayerRec;   }
-  Void          setBaseLayerSbb     ( IntFrame*   pcBaseLayerSbb  )   { m_pcBaseLayerSbb    = pcBaseLayerSbb;   }
+  Void          setBaseLayerRec     ( Frame*   pcBaseLayerRec  )   { m_pcBaseLayerRec    = pcBaseLayerRec;   }
+  Void          setBaseLayerSbb     ( Frame*   pcBaseLayerSbb  )   { m_pcBaseLayerSbb    = pcBaseLayerSbb;   }
   Void          setBaseLayerCtrl    ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrl   = pcBaseLayerCtrl;  }
   Void          setBaseLayerCtrlField ( MbDataCtrl* pcBaseLayerCtrl )   { m_pcBaseLayerCtrlField = pcBaseLayerCtrl;  }
   Void          setBaseCtrlData     ( ControlData*pcBaseCtrlData  )   { m_pcBaseCtrlData    = pcBaseCtrlData;   }
@@ -373,13 +376,14 @@ public:
 
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
+  MbDataCtrl*   m_pcMbDataCtrl0L1;
   SliceHeader*  m_pcSliceHeader;
   SliceHeader*  m_pcSliceHeaderBot;
 
   Double        m_dLambda;
 
-  IntFrame*     m_pcBaseLayerRec;
-  IntFrame*     m_pcBaseLayerSbb;
+  Frame*     m_pcBaseLayerRec;
+  Frame*     m_pcBaseLayerSbb;
   MbDataCtrl*   m_pcBaseLayerCtrl;
   MbDataCtrl*   m_pcBaseLayerCtrlField;
   ControlData*  m_pcBaseCtrlData;

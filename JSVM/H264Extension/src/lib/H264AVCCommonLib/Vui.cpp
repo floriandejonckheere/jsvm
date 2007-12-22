@@ -300,9 +300,9 @@ ErrVal VUI::init( UInt uiNumTemporalLevels, UInt uiNumFGSLevels )
 
 ErrVal VUI::LayerInfo::write( HeaderSymbolWriteIf* pcWriteIf ) const
 {
-  RNOK( pcWriteIf->writeCode( m_uiTemporalLevel, 3,                       "HRD::temporal_level[i]"));
+  RNOK( pcWriteIf->writeCode( m_uiTemporalId, 3,                       "HRD::temporal_level[i]"));
   RNOK( pcWriteIf->writeCode( m_uiDependencyID, 3,                        "HRD::dependency_id[i]"));
-  RNOK( pcWriteIf->writeCode( m_uiQualityLevel, 4,                        "HRD::quality_level[i]"));
+  RNOK( pcWriteIf->writeCode( m_uiQualityId, 4,                        "HRD::quality_level[i]"));
   return Err::m_nOK;
 }
 
@@ -322,7 +322,7 @@ ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
   RNOK( m_cVideoSignalType.write( pcWriteIf ) );
   RNOK( m_cChromaLocationInfo.write( pcWriteIf ) );
-	if(m_eProfileIdc==SCALABLE_PROFILE)
+	if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
 	{
     UInt uiNumLayers = m_uiNumTemporalLevels * m_uiNumFGSLevels;
 		RNOK( pcWriteIf->writeUvlc( uiNumLayers - 1,  "VUI: num_temporal_layers_minus1"));
@@ -359,9 +359,9 @@ ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
 ErrVal VUI::LayerInfo::read( HeaderSymbolReadIf* pcReadIf ) 
 {
-  RNOKS( pcReadIf->getCode( m_uiTemporalLevel, 3,               "VUI: temporal_level"));
+  RNOKS( pcReadIf->getCode( m_uiTemporalId, 3,               "VUI: temporal_level"));
   RNOKS( pcReadIf->getCode( m_uiDependencyID, 3,               "VUI: dependency_id"));
-  RNOKS( pcReadIf->getCode( m_uiQualityLevel, 4,               "VUI: quality_level"));
+  RNOKS( pcReadIf->getCode( m_uiQualityId, 4,               "VUI: quality_level"));
   return Err::m_nOK;
 }
 
@@ -379,7 +379,7 @@ ErrVal VUI::read( HeaderSymbolReadIf *pcReadIf )
   RNOKS( m_cVideoSignalType.read( pcReadIf ) );
   RNOKS( m_cChromaLocationInfo.read( pcReadIf ) );
 
-	if(m_eProfileIdc==SCALABLE_PROFILE)
+  if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
 	{
 		RNOKS( pcReadIf->getUvlc( uiNumLayers,                              "VUI: num_temporal_layers_minus1"));
     uiNumLayers++;
@@ -409,7 +409,7 @@ ErrVal VUI::read( HeaderSymbolReadIf *pcReadIf )
 
 	for(UInt i=0; i<uiNumLayers; i++)
 	{
-    if ( m_eProfileIdc == SCALABLE_PROFILE )
+    if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
     {
       m_acLayerInfo.get(i).read(pcReadIf);
     }
@@ -418,7 +418,7 @@ ErrVal VUI::read( HeaderSymbolReadIf *pcReadIf )
       // fill in the LayerInfo of AVC compatible layer
       m_acLayerInfo[0].setDependencyID(0);
       m_acLayerInfo[0].setQualityLevel(0);
-      m_acLayerInfo[0].setTemporalLevel(0);
+      m_acLayerInfo[0].setTemporalId(0);
     }
 
 		RNOKS( m_acTimingInfo.get(i).read( pcReadIf ) ); //DL

@@ -93,7 +93,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/SequenceParameterSet.h"
 #include "H264AVCCommonLib/PictureParameterSet.h"
-#include "H264AVCCommonLib/Frame.h"
+#include "H264AVCCommonLib/ParameterSetMng.h"
+#include "H264AVCCommonLib/YuvBufferCtrl.h"
+#include "H264AVCCommonLib/MbTransformCoeffs.h"
 #include "H264AVCCommonLib/Tables.h"
 
 #include "H264AVCCommonLib/HeaderSymbolWriteIf.h"
@@ -104,6 +106,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 #include <math.h>
+class YuvMbBuffer;
+class QuarterPelFilter;
 class FMO;
 
 #if defined( WIN32 )
@@ -112,7 +116,8 @@ class FMO;
 #endif
 
 
-enum RplrOp
+
+enum ReOrderingOfPicNumsIdc
 {
   RPLR_NEG   = 0,
   RPLR_POS   = 1,
@@ -121,163 +126,60 @@ enum RplrOp
 };
 
 
-
-class H264AVCCOMMONLIB_API Rplr
+class H264AVCCOMMONLIB_API RplrCommand
 {
 public:
-	Rplr( RplrOp  eRplrOp = RPLR_END,
-        UInt    uiVal   = 0 )
-  : m_eRplrOp ( eRplrOp )
-  , m_uiVal   ( uiVal   )
-  {
-  }
+	RplrCommand( ReOrderingOfPicNumsIdc   eReOrderingOfPicNumsIdc = RPLR_END,
+               UInt                     uiValue                 = 0 );
+  RplrCommand( const RplrCommand&       rcRplrCommand );
+  virtual ~RplrCommand();
 
-  const RplrOp& getCommand( UInt& ruiVal ) const
-  {
-    ruiVal = m_uiVal;
-    return m_eRplrOp;
-  }
+  Void    copy  ( const RplrCommand&    rcRplrCommand );
+  ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf,
+                  Bool&                 rbEnd )   const;
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf,
+                  Bool&                 rbEnd );
 
-  Bool operator != ( const Rplr& rcRplr ) const
-  {
-    ROTRS( m_eRplrOp != rcRplr.m_eRplrOp, true );
-    ROTRS( m_uiVal   != rcRplr.m_uiVal,   true );
-    return false;
-  }
+  ReOrderingOfPicNumsIdc  getCommand  ( UInt&               ruiValue )      const { ruiValue = m_uiValue; return m_eReOrderingOfPicNumsIdc; }
+  ReOrderingOfPicNumsIdc  getCommand  ()                                    const { return m_eReOrderingOfPicNumsIdc; }
+  UInt                    getValue    ()                                    const { return m_uiValue; }
+  Bool                    isEnd       ()                                    const { return m_eReOrderingOfPicNumsIdc == RPLR_END; }
+  Bool                    operator != ( const RplrCommand&  rcRplrCommand ) const { return m_eReOrderingOfPicNumsIdc != rcRplrCommand.m_eReOrderingOfPicNumsIdc || m_uiValue != rcRplrCommand.m_uiValue; }
 
-  Rplr& operator = ( const Rplr& rcRplr ) 
-  {
-    m_eRplrOp = rcRplr.m_eRplrOp;
-    m_uiVal   = rcRplr.m_uiVal;
-    return *this;
-  }
-
-  Bool isEnd() const
-  {
-    return RPLR_END == m_eRplrOp;
-  }
-
-  ErrVal write( HeaderSymbolWriteIf*  pcWriteIf,
-                Bool&                 rbContinue ) const
-  {
-    rbContinue = ( m_eRplrOp != RPLR_END );
-
-    RNOK( pcWriteIf->writeUvlc( m_eRplrOp,    "RPLR: remapping_of_pic_nums_idc" ) );
-
-    if( rbContinue )
-    {
-      switch (m_eRplrOp)
-      {
-      case 0:
-      case 1:
-        RNOK( pcWriteIf->writeUvlc( m_uiVal,  "RPLR: abs_diff_pic_num_minus1" ) );
-        break;
-      case 2:
-        RNOK( pcWriteIf->writeUvlc( m_uiVal,  "RPLR: long_term_pic_num" ) );
-        break;
-      default:
-        RERR(); 
-      }
-    }
-    return Err::m_nOK;
-  }
-
-  ErrVal read( HeaderSymbolReadIf*  pcReadIf,
-               Bool&                rbContinue )
-  {
-    UInt uiCommand;
-    RNOK( pcReadIf->getUvlc( uiCommand,   "RPLR: remapping_of_pic_nums_idc" ) );
-    
-    m_eRplrOp   = RplrOp( uiCommand );
-    rbContinue  = ( m_eRplrOp != RPLR_END );
-
-    if( rbContinue )
-    {
-      switch (m_eRplrOp)
-      {
-      case 0:
-      case 1:
-        RNOK( pcReadIf->getUvlc( m_uiVal, "RPLR: abs_diff_pic_num_minus1" ) );
-        break;
-      case 2:
-        RNOK( pcReadIf->getUvlc( m_uiVal, "RPLR: long_term_pic_num" ) );
-        break;
-      default:
-        RVAL( Err::m_nInvalidParameter ); 
-      }
-
-    }
-    return Err::m_nOK;
-  }
+  const RplrCommand&      operator  = ( const RplrCommand&  rcRplrCommand )       { copy( rcRplrCommand ); return *this; }
 
 private:
-  RplrOp  m_eRplrOp;
-  UInt    m_uiVal;
+  ReOrderingOfPicNumsIdc  m_eReOrderingOfPicNumsIdc;
+  UInt                    m_uiValue;
 };
 
 
-
-class H264AVCCOMMONLIB_API RplrBuffer :
-public StatBuf<Rplr,33>
+class H264AVCCOMMONLIB_API RefPicListReOrdering : public StatBuf< RplrCommand, 33 >
 {
 public:
-  RplrBuffer()
-  : m_bRefPicListReorderingFlag( false )
-  {
-  }
+  RefPicListReOrdering();
+  RefPicListReOrdering( const RefPicListReOrdering& rcRefPicListReOrdering );
+  virtual ~RefPicListReOrdering();
 
-  ErrVal write( HeaderSymbolWriteIf* pcWriteIf ) const
-  {
-    RNOK( pcWriteIf->writeFlag( m_bRefPicListReorderingFlag,  "RIR: ref_pic_list_reordering_flag" ) );
-    ROFRS( m_bRefPicListReorderingFlag, Err::m_nOK );
+  Void    clear ( Bool                        bRefPicListReOrderingFlag = false );
+  Void    copy  ( const RefPicListReOrdering& rcRefPicListReOrdering );
+  ErrVal  write ( HeaderSymbolWriteIf&        rcWriteIf )   const;
+  ErrVal  read  ( HeaderSymbolReadIf&         rcReadIf,
+                  UInt                        uiNumRefIdx = MSYS_UINT_MAX );
 
-    Bool bCont = true;
-    for( Int iIndex = 0; bCont; iIndex++ )
-    {
-      RNOK( get( iIndex ).write( pcWriteIf, bCont ) );
-    }
+  Bool    getRefPicListReorderingFlag()              const { return m_bRefPicListReorderingFlag; }
 
-    return Err::m_nOK;
-  }
+  Void    setRefPicListReorderingFlag( Bool bFlag )        { m_bRefPicListReorderingFlag = bFlag; }
 
-  ErrVal read( HeaderSymbolReadIf*  pcReadIf,
-               UInt                 uiNumRefIdx )
-  {
-    RNOK( pcReadIf->getFlag( m_bRefPicListReorderingFlag,     "RIR: ref_pic_list_reordering_flag" ) );
-    
-    ROFRS( m_bRefPicListReorderingFlag, Err::m_nOK );
+  const RefPicListReOrdering& operator = ( const RefPicListReOrdering& rcRefPicListReOrdering ) { copy( rcRefPicListReOrdering ); return *this; }
 
-    Bool bCont    = true;
-    UInt uiIndex  = 0;
-    for( ; uiIndex <= uiNumRefIdx && bCont; uiIndex++ )
-    {
-      RNOK( get( uiIndex ).read( pcReadIf, bCont ) );
-    }
-    ROTR( uiIndex > uiNumRefIdx && bCont, Err::m_nInvalidParameter );
-
-    return Err::m_nOK;
-  }
-
-  Void clear                      ()                    { setAll( Rplr() ); }
-  Bool getRefPicListReorderingFlag()              const { return m_bRefPicListReorderingFlag; }
-  Void setRefPicListReorderingFlag( Bool bFlag )        { m_bRefPicListReorderingFlag = bFlag; }
-
-  Void copy( const StatBuf<Rplr,32>& rcSrcRplrBuffer)
-  {
-    for( Int n = 0; n < 32; n++ )
-    {
-      get(n) = rcSrcRplrBuffer.get( n );
-      ROTVS( get(n).isEnd() );
-    }
-  }
-
-protected:
-  Bool m_bRefPicListReorderingFlag;
+private:
+  Bool    m_bRefPicListReorderingFlag;
 };
 
 
 
-enum MmcoOp
+enum Mmco
 {
   MMCO_END                = 0,
 	MMCO_SHORT_TERM_UNUSED  = 1,
@@ -289,804 +191,602 @@ enum MmcoOp
 };
 
 
-
-class Mmco
+class H264AVCCOMMONLIB_API MmcoCommand
 {
 public:
-  Mmco( MmcoOp  eMmcoOp  = MMCO_END,
-        UInt    uiVal1   = 0,
-        UInt    uiVal2   = 0 )
-  : m_eMmcoOp ( eMmcoOp )
-  , m_uiVal1  ( uiVal1  )
-  , m_uiVal2  ( uiVal2  )
-  {
-  }
+  MmcoCommand( Mmco               eMmco     = MMCO_END,
+               UInt               uiValue1  = 0,
+               UInt               uiValue2  = 0 );
+  MmcoCommand( const MmcoCommand& rcMmcoCommand );
+  virtual ~MmcoCommand();
 
-  Bool operator != ( const Mmco& rcMmco ) const
-  {
-    ROTRS( m_eMmcoOp != rcMmco.m_eMmcoOp, true );
-    ROTRS( m_uiVal1  != rcMmco.m_uiVal1,  true );
-    ROTRS( m_uiVal2  != rcMmco.m_uiVal2,  true );
-    return false;
-  }
+  Void    copy  ( const MmcoCommand&    rcMmcoCommand );
+  ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf,
+                  Bool                  bRefBasePic,
+                  Bool&                 rbEnd )   const;
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf,
+                  Bool                  bRefBasePic,
+                  Bool&                 rbEnd );
 
-  Mmco& operator = ( const Mmco& rcMmco ) 
-  {
-    m_eMmcoOp = rcMmco.m_eMmcoOp;
-    m_uiVal1  = rcMmco.m_uiVal1;
-    m_uiVal2  = rcMmco.m_uiVal2;
-    return *this;
-  }
-
-  const MmcoOp& getCommand( UInt&   ruiVal1,
-                            UInt&   ruiVal2 ) const { ruiVal1 = m_uiVal1; ruiVal2 = m_uiVal2; return m_eMmcoOp; }
-  Bool          isCommand ( MmcoOp  eMmcoOp ) const { return eMmcoOp == m_eMmcoOp; }
-  UInt          getVal1   ()                  const { return m_uiVal1; }
-  UInt          getVal2   ()                  const { return m_uiVal2; }
-  Bool          isEnd     ()                  const { return MMCO_END == m_eMmcoOp; }
-
+  Mmco        getCommand  ( UInt&       ruiValue1,
+                            UInt&       ruiValue2 ) const { ruiValue1 = m_uiValue1, ruiValue2 = m_uiValue2; return m_eMmco; }
+  Mmco        getCommand  ()                        const { return m_eMmco; }
+  UInt        getValue1   ()                        const { return m_uiValue1; }
+  UInt        getValue2   ()                        const { return m_uiValue2; }
+  Bool        isEnd       ()                        const { return m_eMmco == MMCO_END; }
   
-  ErrVal write( HeaderSymbolWriteIf*  pcWriteIf,
-                Bool&                 rbContinue ) const
-  {
-    RNOK( pcWriteIf->writeUvlc( m_eMmcoOp,    "DRPM: memory_mangement_control_operation" ) );
-
-    rbContinue = (m_eMmcoOp != MMCO_END);
-
-    if( (m_eMmcoOp != MMCO_END) && (m_eMmcoOp != MMCO_RESET) )
-    {
-      RNOK( pcWriteIf->writeUvlc( m_uiVal1,   "DRPM: MMCO Param" ) );
-
-      if( m_eMmcoOp == MMCO_ASSIGN_LONG_TERM )
-      {
-        RNOK( pcWriteIf->writeUvlc( m_uiVal2, "DRPM: MMCO Param" ) );
-      }
-    }
-    return Err::m_nOK;
-  }
+  Bool                operator != ( const MmcoCommand& rcMmcoCommand  )   const { return m_eMmco != rcMmcoCommand.m_eMmco || m_uiValue1 != rcMmcoCommand.m_uiValue1 || m_uiValue2 != rcMmcoCommand.m_uiValue2; }
+  const MmcoCommand&  operator  = ( const MmcoCommand& rcMmcoCommand  )         { copy( rcMmcoCommand ); return *this; }
+  
+private:
+  Mmco    m_eMmco;
+  UInt    m_uiValue1;
+  UInt    m_uiValue2;
+};
 
 
-  ErrVal read( HeaderSymbolReadIf*  pcReadIf,
-               Bool&                rbContinue )
-  {
-    UInt uiCommand;
-    RNOK( pcReadIf->getUvlc( uiCommand,     "DRPM: memory_mangement_control_operation" ) );
+class H264AVCCOMMONLIB_API DecRefPicMarking : public StatBuf< MmcoCommand, 33 >
+{
+public:
+  DecRefPicMarking( Bool                    bDecRefBasePicMarking = false );
+  DecRefPicMarking( const DecRefPicMarking& rcDecRefPicMarking );
+  virtual ~DecRefPicMarking();
 
-    ROTR( MMCO_SET_LONG_TERM < uiCommand, Err::m_nInvalidParameter );
-    m_eMmcoOp = MmcoOp( uiCommand );
+  Void    clear ( Bool                      bDecRefBasePicMarking,
+                  Bool                      bAdaptiveRefPicMarkingModeFlag = false );
+  Void    copy  ( const DecRefPicMarking&   rcDecRefPicMarking );
+  ErrVal  write ( HeaderSymbolWriteIf&      rcWriteIf ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&       rcReadIf );
 
-    rbContinue = (m_eMmcoOp != MMCO_END);
+  Bool    isDecRefBasePicMarking            ()                                  const   { return m_bDecRefBasePicMarking; }
+  Bool    getAdaptiveRefPicMarkingModeFlag  ()                                  const   { return m_bAdaptiveRefPicMarkingModeFlag; }
 
-    if( (m_eMmcoOp != MMCO_END) && (m_eMmcoOp != MMCO_RESET) )
-    {
-      RNOK( pcReadIf->getUvlc( m_uiVal1,    "DRPM: MMCO Param" ) );
+  Void    setDecRefBasePicMarking           ( Bool  bDecRefBasePicMarking )             { m_bDecRefBasePicMarking           = bDecRefBasePicMarking; }
+  Void    setAdaptiveRefPicMarkingModeFlag  ( Bool  bAdaptiveRefPicMarkingModeFlag  )   { m_bAdaptiveRefPicMarkingModeFlag  = bAdaptiveRefPicMarkingModeFlag; }
 
-      if( m_eMmcoOp == MMCO_ASSIGN_LONG_TERM )
-      {
-        RNOK( pcReadIf->getUvlc( m_uiVal2,  "DRPM: MMCO Param" ) );
-      }
-    }
-    return Err::m_nOK;
-  }
+  const DecRefPicMarking& operator = ( const DecRefPicMarking& rcDecRefPicMarking )     { copy( rcDecRefPicMarking ); return *this; }
 
 private:
-  MmcoOp  m_eMmcoOp;
-  UInt    m_uiVal1;
-  UInt    m_uiVal2;
+  Bool    m_bDecRefBasePicMarking;
+  Bool    m_bAdaptiveRefPicMarkingModeFlag;
 };
 
 
 
-
-class H264AVCCOMMONLIB_API MmcoBuffer :
-public StatBuf<Mmco,32>
+class H264AVCCOMMONLIB_API PredWeight
 {
-  public:
-  Void clear()
-  {
-    setAll( MmcoOp() );
-  }
+public:
+  PredWeight();
+  PredWeight( const PredWeight& rcPredWeight );
+  virtual ~PredWeight();
 
-  ErrVal write( HeaderSymbolWriteIf* pcWriteIf ) const
-  {
-    Bool bCont = true;
-    for( Int iIndex = 0; bCont; iIndex++ )
-    {
-      RNOK( get( iIndex ).write( pcWriteIf, bCont ) );
-    }
-    return Err::m_nOK;
-  }
+  Void    copy  ( const PredWeight&     rcPredWeight );
+  ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf );
 
-  ErrVal read( HeaderSymbolReadIf* pcReadIf )
-  {
-    Bool bCont = true;
-    for( Int iIndex = 0; bCont; iIndex++ )
-    {
-      RNOK( get( iIndex ).read( pcReadIf, bCont ) );
-    }
-    return Err::m_nOK;
-  }
+  ErrVal  initRandomly  ();
+  ErrVal  initWeights   ( Int iLumaWeight, Int iCbWeight, Int iCrWeight );
+  ErrVal  initOffsets   ( Int iLumaOffset, Int iCbOffset, Int iCrOffset );
+  
+  ErrVal  setOffsets    ( const Double* padOffsets );
+  ErrVal  setWeights    ( const Double* padWeights, Int iLumaScale, Int iChromaScale );
+  ErrVal  getOffsets    ( Double*       padOffsets );
+  ErrVal  getWeights    ( Double*       padWeights );
 
-  Void copy( const StatBuf<Mmco,32>& rcSrcMmcoBuffer)
-  {
-    for( Int n = 0; n < 32; n++ )
-    {
-      get(n) = rcSrcMmcoBuffer.get( n );
-      ROTVS( get(n).isEnd() );
-    }
-  }
+  Void    scaleL1Weight ( Int               iDistScaleFactor );
+  Void    scaleL0Weight ( const PredWeight& rcPredWeightL1 );
+
+  Bool    getLumaWeightFlag   ()  const { return m_bLumaWeightFlag; }
+  Int     getLumaWeight       ()  const { return m_iLumaWeight; }
+  Int     getLumaOffset       ()  const { return m_iLumaOffset; }
+  Bool    getChromaWeightFlag ()  const { return m_bChromaWeightFlag; }
+  Int     getChromaCbWeight   ()  const { return m_iChromaCbWeight; }
+  Int     getChromaCbOffset   ()  const { return m_iChromaCbOffset; }
+  Int     getChromaCrWeight   ()  const { return m_iChromaCrWeight; }
+  Int     getChromaCrOffset   ()  const { return m_iChromaCrOffset; }
+
+  Void    setLumaWeightFlag   ( Bool  bLumaWeightFlag   )   { m_bLumaWeightFlag   = bLumaWeightFlag; }
+  Void    setLumaWeight       ( Int   iLumaWeight       )   { m_iLumaWeight       = iLumaWeight; }
+  Void    setLumaOffset       ( Int   iLumaOffset       )   { m_iLumaOffset       = iLumaOffset; }
+  Void    setChromaWeightFlag ( Bool  bChromaWeightFlag )   { m_bChromaWeightFlag = bChromaWeightFlag; }
+  Void    setChromaCbWeight   ( Int   iChromaCbWeight   )   { m_iChromaCbWeight   = iChromaCbWeight; }
+  Void    setChromaCbOffset   ( Int   iChromaCbOffset   )   { m_iChromaCbOffset   = iChromaCbOffset; }
+  Void    setChromaCrWeight   ( Int   iChromaCrWeight   )   { m_iChromaCrWeight   = iChromaCrWeight; }
+  Void    setChromaCrOffset   ( Int   iChromaCrOffset   )   { m_iChromaCrOffset   = iChromaCrOffset; }
+
+  Bool              operator  ==  ( const PredWeight& rcPredWeight )  const;
+  Bool              operator  !=  ( const PredWeight& rcPredWeight )  const;
+  const PredWeight& operator   =  ( const PredWeight& rcPredWeight )          { copy( rcPredWeight ); return *this; }
+
+private:
+  Int     xRandom( Int iMin, Int iMax );
+
+private:
+  Bool    m_bLumaWeightFlag;
+  Int     m_iLumaWeight;
+  Int     m_iLumaOffset;
+  Bool    m_bChromaWeightFlag;
+  Int     m_iChromaCbWeight;
+  Int     m_iChromaCbOffset;
+  Int     m_iChromaCrWeight;
+  Int     m_iChromaCrOffset;
+};
+
+
+class H264AVCCOMMONLIB_API PredWeightTable : public StatBuf< PredWeight, 32 >
+{
+public:
+  PredWeightTable();
+  PredWeightTable( const PredWeightTable& rcPredWeightTable );
+  virtual ~PredWeightTable();
+
+  ErrVal  initRandomly  ();
+  ErrVal  initDefaults  ( UInt  uiLumaWeightDenom,
+                          UInt  uiChromaWeightDenom );
+
+  ErrVal  setOffsets    ( const Double (*padOffsets)[3] );
+  ErrVal  setWeights    ( const Double (*padOffsets)[3], Int iLumaScale, Int iChromaScale );
+
+  Void    clear ();
+  Void    copy  ( const PredWeightTable&  rcPredWeightTable );
+  ErrVal  write ( HeaderSymbolWriteIf&    rcWriteIf,  UInt uiNumRefIdxActiveMinus1 ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&     rcReadIf,   UInt uiNumRefIdxActiveMinus1 );
+
+  const PredWeightTable& operator = ( const PredWeightTable& rcPredWeightTable )    { copy( rcPredWeightTable ); return *this; }
+};
+
+
+class H264AVCCOMMONLIB_API DBFilterParameter
+{
+public:
+  DBFilterParameter( Bool                     bInterLayerParameters = false );
+  DBFilterParameter( const DBFilterParameter& rcDBFilterParameter );
+  virtual ~DBFilterParameter();
+
+  Void    clear ( Bool                      InterLayerParameters = false );
+  Void    copy  ( const DBFilterParameter&  rcDBFilterParameter );
+  ErrVal  write ( HeaderSymbolWriteIf&      rcWriteIf ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&       rcReadIf, Bool bSVCNalUnit );
+
+  Bool    isInterLayerParameters        ()  const   { return m_bInterLayerParameters; }
+  UInt    getDisableDeblockingFilterIdc ()  const   { return m_uiDisableDeblockingFilterIdc; }
+  Int     getSliceAlphaC0OffsetDiv2     ()  const   { return m_iSliceAlphaC0OffsetDiv2; }
+  Int     getSliceAlphaC0Offset         ()  const   { return m_iSliceAlphaC0OffsetDiv2 << 1; }
+  Int     getSliceBetaOffsetDiv2        ()  const   { return m_iSliceBetaOffsetDiv2; }
+  Int     getSliceBetaOffset            ()  const   { return m_iSliceBetaOffsetDiv2 << 1; }
+
+  Void    setDisableDeblockingFilterIdc ( UInt  uiDisableDeblockingFilterIdc  )   { m_uiDisableDeblockingFilterIdc  = uiDisableDeblockingFilterIdc; }
+  Void    setSliceAlphaC0OffsetDiv2     ( Int   iSliceAlphaC0OffsetDiv2       )   { m_iSliceAlphaC0OffsetDiv2       = iSliceAlphaC0OffsetDiv2; }
+  Void    setSliceAlphaC0Offset         ( Int   iSliceAlphaC0Offset           )   { m_iSliceAlphaC0OffsetDiv2       = iSliceAlphaC0Offset >> 1; }
+  Void    setSliceBetaOffsetDiv2        ( Int   iSliceBetaOffsetDiv2          )   { m_iSliceBetaOffsetDiv2          = iSliceBetaOffsetDiv2; }
+  Void    setSliceBetaOffset            ( Int   iSliceBetaOffset              )   { m_iSliceBetaOffsetDiv2          = iSliceBetaOffset >> 1; }
+
+  const DBFilterParameter&  operator = ( const DBFilterParameter& rcDBFilterParameter ) { copy( rcDBFilterParameter ); return *this; }
+
+private:
+  Bool  m_bInterLayerParameters;
+  UInt  m_uiDisableDeblockingFilterIdc;
+  Int   m_iSliceAlphaC0OffsetDiv2;
+  Int   m_iSliceBetaOffsetDiv2;
 };
 
 
 
-
-
-class H264AVCCOMMONLIB_API SliceHeaderBase
+class H264AVCCOMMONLIB_API NalUnitHeader
 {
 public:
-  class H264AVCCOMMONLIB_API PredWeight
-  {
-  public:
-    PredWeight() : m_bLumaWeightFlag( false ), m_bChromaWeightFlag( false ), m_iLumaWeight( 0 ), m_iLumaOffset( 0 )
-    {
-      m_aiChromaWeight[0] = m_aiChromaWeight[1] = 0;
-      m_aiChromaOffset[0] = m_aiChromaOffset[1] = 0;
-    }
-    ~PredWeight() {}
+  NalUnitHeader();
+  NalUnitHeader( const NalUnitHeader& rcNalUnitHeader );
+  virtual ~NalUnitHeader();
 
-    ErrVal createRandomParameters(); // just for encoder testing
+  Void              copy  ( const NalUnitHeader&  rcNalUnitHeader,
+                            Bool                  bInclusiveSVCExtension = true );
+  ErrVal            write ( HeaderSymbolWriteIf&  rcWriteIf ) const;
+  ErrVal            read  ( HeaderSymbolReadIf&   rcReadIf );
 
-    Void scaleL1Weight( Int iDistScaleFactor )
-    {
-      iDistScaleFactor >>= 2;
-      if( (iDistScaleFactor > 128) || (iDistScaleFactor < -64) )
-      {
-        iDistScaleFactor = 32;
-      }
+  Bool              isH264AVCCompatible     ()  const { return  m_eNalUnitType != NAL_UNIT_CODED_SLICE_SCALABLE && m_eNalUnitType != NAL_UNIT_PREFIX && m_eNalUnitType != NAL_UNIT_SUBSET_SPS; }
+  Bool              isRefPic                ()  const { return  m_eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST; }
+  NalRefIdc         getNalRefIdc            ()  const { return  m_eNalRefIdc;             }
+  NalUnitType       getNalUnitType          ()  const { return  m_eNalUnitType;           }
+  Bool              getIdrFlag              ()  const { return  m_bIdrFlag;               }
+  UInt              getPriorityId           ()  const { return  m_uiPriorityId;           }
+  Bool              getNoInterLayerPredFlag ()  const { return  m_bNoInterLayerPredFlag;  }
+  UInt              getDependencyId         ()  const { return  m_uiDependencyId;         }
+  UInt              getQualityId            ()  const { return  m_uiQualityId;            }
+  UInt              getTemporalId           ()  const { return  m_uiTemporalId;           }
+  Bool              getUseRefBasePicFlag    ()  const { return  m_bUseRefBasePicFlag;     }
+  Bool              getDiscardableFlag      ()  const { return  m_bDiscardableFlag;       }
+  Bool              getOutputFlag           ()  const { return  m_bOutputFlag;            }
 
-      m_iLumaWeight       = iDistScaleFactor;
-      m_aiChromaWeight[0] = iDistScaleFactor;
-      m_aiChromaWeight[1] = iDistScaleFactor;
-    }
-    Void scaleL0Weight( const PredWeight& rcPredWeightL1 )
-    {
-      m_iLumaWeight       = 64 - rcPredWeightL1.m_iLumaWeight;
-      m_aiChromaWeight[0] = 64 - rcPredWeightL1.m_aiChromaWeight[0];
-      m_aiChromaWeight[1] = 64 - rcPredWeightL1.m_aiChromaWeight[1];
-    }
-    ErrVal init( Int iLumaWeight, Int iChromaCbWeight, Int iChromaCrWeight )
-    {
-      m_iLumaWeight       = iLumaWeight;
-      m_aiChromaWeight[0] = iChromaCbWeight;
-      m_aiChromaWeight[1] = iChromaCrWeight;
-      return Err::m_nOK;
-    }
+  Void              setNalRefIdc            ( NalRefIdc   eNalRefIdc            ) { m_eNalRefIdc            = eNalRefIdc;             }
+  Void              setNalUnitType          ( NalUnitType eNalUnitType          ) { m_eNalUnitType          = eNalUnitType;           }
+  Void              setIdrFlag              ( Bool        bIdrFlag              ) { m_bIdrFlag              = bIdrFlag;               }
+  Void              setPriorityId           ( UInt        uiPriorityId          ) { m_uiPriorityId          = uiPriorityId;           }
+  Void              setNoInterLayerPredFlag ( Bool        bNoInterLayerPredFlag ) { m_bNoInterLayerPredFlag = bNoInterLayerPredFlag;  }
+  Void              setDependencyId         ( UInt        uiDependencyId        ) { m_uiDependencyId        = uiDependencyId;         }
+  Void              setQualityId            ( UInt        uiQualityId           ) { m_uiQualityId           = uiQualityId;            }
+  Void              setTemporalId           ( UInt        uiTemporalId          ) { m_uiTemporalId          = uiTemporalId;           }
+  Void              setUseRefBasePicFlag    ( Bool        bUseRefBasePicFlag    ) { m_bUseRefBasePicFlag    = bUseRefBasePicFlag;     }
+  Void              setDiscardableFlag      ( Bool        bDiscardableFlag      ) { m_bDiscardableFlag      = bDiscardableFlag;       }
+  Void              setOutputFlag           ( Bool        bOutputFlag           ) { m_bOutputFlag           = bOutputFlag;            }
 
-//TMM_WP
-    ErrVal initOffsets( Int iLumaOffset, Int iChromaCbOffset, Int iChromaCrOffset )
-    {
-        m_iLumaOffset = iLumaOffset;
-        m_aiChromaOffset[0] = iChromaCbOffset;
-        m_aiChromaOffset[1] = iChromaCrOffset;
-        return Err::m_nOK;
-    }
+private:
+  Bool              m_bForbiddenZeroBit;
+  NalRefIdc         m_eNalRefIdc;
+  NalUnitType       m_eNalUnitType;
+  Bool              m_bReservedOneBit;
+  Bool              m_bIdrFlag;
+  UInt              m_uiPriorityId;
+  Bool              m_bNoInterLayerPredFlag;
+  UInt              m_uiDependencyId;
+  UInt              m_uiQualityId;
+  UInt              m_uiTemporalId;
+  Bool              m_bUseRefBasePicFlag;
+  Bool              m_bDiscardableFlag;
+  Bool              m_bOutputFlag;
+  UInt              m_uiReservedThree2Bits;
+};
 
-    ErrVal setOffsets(  const Double *pafOffsets );
-    ErrVal getOffsets( Double *afOffset);
-//TMM_WP
-    Bool  getLumaWeightFlag()                                  const { return m_bLumaWeightFlag; }
-    Bool  getChromaWeightFlag()                                const { return m_bChromaWeightFlag; }
-    Int   getLumaWeight()                                      const { return m_iLumaWeight; }
-    Int   getLumaOffset()                                      const { return m_iLumaOffset; }
-    Int   getChromaWeight( UInt uiChromaPlane )                const { return m_aiChromaWeight[uiChromaPlane]; }
-    Int   getChromaOffset( UInt uiChromaPlane )                const { return m_aiChromaOffset[uiChromaPlane]; }
 
-    Void  setLumaWeightFlag( Bool bLumaWeightFlag )                  { m_bLumaWeightFlag = bLumaWeightFlag; }
-    Void  setChromaWeightFlag( Bool bChromaWeightFlag )              { m_bChromaWeightFlag = bChromaWeightFlag; }
-    Void  setLumaWeight( Int iLumaWeight )                           { m_iLumaWeight = iLumaWeight; }
-    Void  setLumaOffset( Int iLumaOffset )                           { m_iLumaOffset = iLumaOffset; }
-    Void  setChromaWeight( UInt uiChromaPlane, Int iChromaWeight )   { m_aiChromaWeight[uiChromaPlane] = iChromaWeight; }
-    Void  setChromaOffset( UInt uiChromaPlane, Int iChromaOffset )   { m_aiChromaOffset[uiChromaPlane] = iChromaOffset; }
 
-//TMM_WP
-    ErrVal getPredWeights( Double *afWeight);
-    ErrVal setPredWeightsAndFlags( const Int iLumaScale, 
-                                   const Int iChromaScale, 
-                                   const Double *pfWeight, 
-                                   Double fDiscardThr );
-//TMM_WP
+class H264AVCCOMMONLIB_API AUDelimiter : public NalUnitHeader
+{
+public:
+  AUDelimiter();
+  AUDelimiter( const NalUnitHeader& rcNalUnitHeader );
+  AUDelimiter( const AUDelimiter&   rcAUDelimiter );
+  virtual ~AUDelimiter();
 
-    ErrVal write( HeaderSymbolWriteIf*  pcWriteIf ) const;
-    ErrVal read ( HeaderSymbolReadIf*   pcReadIf  );
+  Void    copy  ( const AUDelimiter&    rcAUDelimiter,  Bool bInclusiveNALUnitHeader = true   );
+  ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf,      Bool bInclusiveNALUnitHeader = true   ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf,       Bool bInclusiveNALUnitHeader = false  );
 
-    Bool  operator!=( const PredWeight& rcPredWeight ) const
-    {
-      ROTRS( m_bLumaWeightFlag    != rcPredWeight.m_bLumaWeightFlag,    true );
-      ROTRS( m_bChromaWeightFlag  != rcPredWeight.m_bChromaWeightFlag,  true );
-      ROTRS( m_iLumaWeight        != rcPredWeight.m_iLumaWeight,        true );
-      ROTRS( m_iLumaOffset        != rcPredWeight.m_iLumaOffset,        true );
-      ROTRS( m_aiChromaWeight[0]  != rcPredWeight.m_aiChromaWeight[0],  true );
-      ROTRS( m_aiChromaWeight[1]  != rcPredWeight.m_aiChromaWeight[1],  true );
-      ROTRS( m_aiChromaOffset[0]  != rcPredWeight.m_aiChromaOffset[0],  true );
-      ROTRS( m_aiChromaOffset[1]  != rcPredWeight.m_aiChromaOffset[1],  true );
-      return false;
-    }
-    Bool  operator==( const PredWeight& rcPredWeight ) const
-    {
-      return !(*this != rcPredWeight);
-    }
-
-    Void  copy( const PredWeight& rcPredWeight )
-    {
-      m_bLumaWeightFlag   = rcPredWeight.m_bLumaWeightFlag;
-      m_bChromaWeightFlag = rcPredWeight.m_bChromaWeightFlag;
-      m_iLumaWeight       = rcPredWeight.m_iLumaWeight;
-      m_iLumaOffset       = rcPredWeight.m_iLumaOffset;
-      m_aiChromaWeight[0] = rcPredWeight.m_aiChromaWeight[0];
-      m_aiChromaWeight[1] = rcPredWeight.m_aiChromaWeight[1];
-      m_aiChromaOffset[0] = rcPredWeight.m_aiChromaOffset[0];
-      m_aiChromaOffset[1] = rcPredWeight.m_aiChromaOffset[1];
-    }
-
-  private:
-    Bool  m_bLumaWeightFlag;
-    Bool  m_bChromaWeightFlag;
-    Int   m_iLumaWeight;
-    Int   m_iLumaOffset;
-    Int   m_aiChromaWeight[2];
-    Int   m_aiChromaOffset[2];
-  };
-
-  class H264AVCCOMMONLIB_API PredWeightTable : public DynBuf<PredWeight>
-  {
-  public:
-    ErrVal initDefaults( UInt uiLumaWeightDenom, UInt uiChromaWeightDenom );
-    ErrVal createRandomParameters();
-
-    ErrVal write( HeaderSymbolWriteIf*  pcWriteIf,  UInt uiNumber ) const;
-    ErrVal read ( HeaderSymbolReadIf*   pcReadIf,   UInt uiNumber );
-
-//TMM_WP
-    ErrVal setPredWeightsAndFlags( const Int iLumaScale, 
-                                   const Int iChromaScale, 
-                                   const Double(*pafWeight)[3], 
-                                   Double fDiscardThr );
-
-    ErrVal setOffsets(  const Double(*pafOffsets)[3] );
-//TMM_WP
-    ErrVal copy ( const PredWeightTable& rcPredWeightTable );
-  };
-
-  class H264AVCCOMMONLIB_API DeblockingFilterParameter
-  {
-  public:
-    DeblockingFilterParameter( UInt uiDisableDeblockingFilterIdc            = 0,
-                               Int  iSliceAlphaC0Offset                     = 0,
-                               Int  iSliceBetaOffset                        = 0,
-							   //JVT-W046 {
-							   UInt uiDisableInterlayerDeblockingFilterIdc  = 0,
-                               Int  iInterlayerSliceAlphaC0Offset           = 0,
-                               Int  iInterlayerSliceBetaOffset              = 0)
-							   //JVT-W046 }                                      
-    : m_uiDisableDeblockingFilterIdc( uiDisableDeblockingFilterIdc )
-	, m_uiDisableInterlayerDeblockingFilterIdc( uiDisableInterlayerDeblockingFilterIdc )//JVT-W046
-    , m_iSliceAlphaC0Offset                   ( iSliceAlphaC0Offset )
-    , m_iSliceBetaOffset                      ( iSliceBetaOffset )
-	, m_iInterlayerSliceAlphaC0Offset         ( iInterlayerSliceAlphaC0Offset )//JVT-W046
-	, m_iInterlayerSliceBetaOffset            ( iInterlayerSliceBetaOffset )//JVT-W046
-    {
-    }
-    //JVT-W046 {
-   	ErrVal write( HeaderSymbolWriteIf*  pcWriteIf, bool enhancedLayerFlag, bool interlayer ) const; //V032, added enhanced layer indicator
-    ErrVal read ( HeaderSymbolReadIf*   pcReadIf, bool enhancedLayerFlag, bool interlayer  ); //V032, added enhanced layer indicator
-    //JVT-W046 }
-    DeblockingFilterParameter* getCopy()  const
-    {
-      return new DeblockingFilterParameter( m_uiDisableDeblockingFilterIdc, m_iSliceAlphaC0Offset, m_iSliceBetaOffset, m_uiDisableInterlayerDeblockingFilterIdc, m_iInterlayerSliceAlphaC0Offset, m_iInterlayerSliceBetaOffset );
-    }
-    
-    Void setDisableDeblockingFilterIdc( UInt uiDisableDeblockingFilterIdc ) { m_uiDisableDeblockingFilterIdc = uiDisableDeblockingFilterIdc; }
-    Void setDisableInterlayerDeblockingFilterIdc( UInt uiDisableInterlayerDeblockingFilterIdc ) { m_uiDisableInterlayerDeblockingFilterIdc = uiDisableInterlayerDeblockingFilterIdc; }//JVT-W046
-	Void setSliceAlphaC0Offset        ( Int  iSliceAlphaC0Offset )          { AOT_DBG( 1 & iSliceAlphaC0Offset);  m_iSliceAlphaC0Offset = iSliceAlphaC0Offset; }
-	Void setInterlayerSliceAlphaC0Offset        ( Int  iInterlayerSliceAlphaC0Offset )          { AOT_DBG( 1 & iInterlayerSliceAlphaC0Offset);  m_iInterlayerSliceAlphaC0Offset = iInterlayerSliceAlphaC0Offset; }//JVT-W046
-    Void setSliceBetaOffset           ( Int  iSliceBetaOffset )             { AOT_DBG( 1 & iSliceBetaOffset);     m_iSliceBetaOffset = iSliceBetaOffset; }
-	Void setInterlayerSliceBetaOffset           ( Int  iInterlayerSliceBetaOffset )             { AOT_DBG( 1 & iInterlayerSliceBetaOffset);     m_iInterlayerSliceBetaOffset = iInterlayerSliceBetaOffset; }//JVT-W046
-
-    UInt getDisableDeblockingFilterIdc()  const { return m_uiDisableDeblockingFilterIdc;}
-    UInt getDisableInterlayerDeblockingFilterIdc()  const { return m_uiDisableInterlayerDeblockingFilterIdc;}//JVT-W046
-	Int  getSliceAlphaC0Offset()          const { return m_iSliceAlphaC0Offset;}
-	Int  getInterlayerSliceAlphaC0Offset()          const { return m_iInterlayerSliceAlphaC0Offset;}//JVT-W046
-    Int  getSliceBetaOffset()             const { return m_iSliceBetaOffset;}
-	Int  getInterlayerSliceBetaOffset()             const { return m_iInterlayerSliceBetaOffset;}//JVT-W046
-
-  private:
-    UInt m_uiDisableDeblockingFilterIdc;
-	UInt m_uiDisableInterlayerDeblockingFilterIdc;//JVT-W046
-    Int  m_iSliceAlphaC0Offset;
-	Int  m_iInterlayerSliceAlphaC0Offset;//JVT-W046
-    Int  m_iSliceBetaOffset;
-	Int  m_iInterlayerSliceBetaOffset;//JVT-W046
-  };
-
-  class H264AVCCOMMONLIB_API DeblockingFilterParameterScalable
-  {
-  public:
-    DeblockingFilterParameterScalable( )
-    {
-    }
-    DeblockingFilterParameterScalable( const DeblockingFilterParameter& cDeblockingFilterParameter, 
-                                       const DeblockingFilterParameter& cInterlayerDeblockingFilterParameter)
-    : m_cDeblockingFilterParameter              ( cDeblockingFilterParameter )
-    , m_cInterlayerDeblockingFilterParameter    ( cInterlayerDeblockingFilterParameter )
-    {
-    }
-    DeblockingFilterParameterScalable* getCopy()  const
-    {
-      return new DeblockingFilterParameterScalable( m_cDeblockingFilterParameter, m_cInterlayerDeblockingFilterParameter );
-    }
-    // Access to the parameters
-    DeblockingFilterParameter& getDeblockingFilterParameter       ()                 {return m_cDeblockingFilterParameter;}
-    const DeblockingFilterParameter& getDeblockingFilterParameter () const           {return m_cDeblockingFilterParameter;}
-    
-    DeblockingFilterParameter& getInterlayerDeblockingFilterParameter       ()       {return m_cInterlayerDeblockingFilterParameter;}
-    const DeblockingFilterParameter& getInterlayerDeblockingFilterParameter () const {return m_cInterlayerDeblockingFilterParameter;}
-
-    // Access to the "normal" parameters
-    UInt getDisableDeblockingFilterIdc()  const { return getDeblockingFilterParameter().getDisableDeblockingFilterIdc();}
-	UInt getDisableInterlayerDeblockingFilterIdc()  const { return getDeblockingFilterParameter().getDisableInterlayerDeblockingFilterIdc();}//JVT-W046
-	Int  getSliceAlphaC0Offset()          const { return getDeblockingFilterParameter().getSliceAlphaC0Offset();}
-    Int  getInterlayerSliceAlphaC0Offset()          const { return getDeblockingFilterParameter().getInterlayerSliceAlphaC0Offset();}//JVT-W046
-	Int  getSliceBetaOffset()             const { return getDeblockingFilterParameter().getSliceBetaOffset();}
-	Int  getInterlayerSliceBetaOffset()             const { return getDeblockingFilterParameter().getInterlayerSliceBetaOffset();}//JVT-W046
-  private:
-    DeblockingFilterParameter m_cDeblockingFilterParameter;
-    DeblockingFilterParameter m_cInterlayerDeblockingFilterParameter;
-  };
+  UInt    getPrimaryPicType ()  const                   { return m_uiPrimaryPicType;  }
   
+  Void    setPrimaryPicType ( UInt  uiPrimaryPicType  ) { m_uiPrimaryPicType  = uiPrimaryPicType; }
 
+private:
+  UInt    m_uiPrimaryPicType;
+};
+
+
+
+class H264AVCCOMMONLIB_API EndOfSequence : public NalUnitHeader
+{
+public:
+  EndOfSequence();
+  EndOfSequence( const NalUnitHeader& rcNalUnitHeader );
+  EndOfSequence( const EndOfSequence& rcEndOfSequence );
+  virtual ~EndOfSequence();
+
+  Void    copy  ( const EndOfSequence&  rcEndOfSequence,  Bool bInclusiveNALUnitHeader = true   );
+  ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf,        Bool bInclusiveNALUnitHeader = true   ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf,         Bool bInclusiveNALUnitHeader = false  );
+};
+
+
+
+class H264AVCCOMMONLIB_API EndOfStream : public NalUnitHeader
+{
+public:
+  EndOfStream();
+  EndOfStream( const NalUnitHeader& rcNalUnitHeader );
+  EndOfStream( const EndOfStream&   rcEndOfStream );
+  virtual ~EndOfStream();
+
+  Void    copy  ( const EndOfStream&    rcEndOfStream,    Bool bInclusiveNALUnitHeader = true   );
+  ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf,        Bool bInclusiveNALUnitHeader = true   ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf,         Bool bInclusiveNALUnitHeader = false  );
+};
+
+
+
+class H264AVCCOMMONLIB_API FillerData : public NalUnitHeader
+{
+public:
+  FillerData();
+  FillerData( const NalUnitHeader&  rcNalUnitHeader );
+  FillerData( const FillerData&     rcFillerData );
+  virtual ~FillerData();
+
+  Void    copy        ( const FillerData&    rcFillerData,  Bool bInclusiveNalUnitHeader = true  );
+  ErrVal  writePrefix ( HeaderSymbolWriteIf& rcWriteIf,     Bool bInclusiveNalUnitHeader = true  ) const;
+  ErrVal  write       ( HeaderSymbolWriteIf& rcWriteIf,     Bool bInclusiveNalUnitHeader = true  ) const;
+  ErrVal  read        ( HeaderSymbolReadIf&  rcReadIf,      Bool bInclusiveNalUnitHeader = false );
+
+  UInt    getNumFFBytes() const   { return m_uiNumFFBytes; }
+
+  Void    setNumFFBytes( UInt uiNumFFBytes )  { m_uiNumFFBytes = uiNumFFBytes; }
+
+private:
+  UInt  m_uiNumFFBytes;
+};
+
+
+
+class H264AVCCOMMONLIB_API PrefixHeader : public NalUnitHeader
+{
+public:
+  PrefixHeader();
+  PrefixHeader( const NalUnitHeader& rcNalUnitHeader );
+  PrefixHeader( const PrefixHeader&  rcPrefixHeader  );
+  virtual ~PrefixHeader();
+
+  Void    copy  ( const PrefixHeader&   rcPrefixHeader, Bool bInclusiveNALUnitHeader = true   );
+  ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf,      Bool bInclusiveNALUnitHeader = true   ) const;
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf,       Bool bInclusiveNALUnitHeader = false  );
+
+  Bool                    getStoreRefBasePicFlag  ()  const { return m_bStoreRefBasePicFlag;  }
+  const DecRefPicMarking& getDecRefBasePicMarking ()  const { return m_cDecRefBasePicMarking; }
+  DecRefPicMarking&       getDecRefBasePicMarking ()        { return m_cDecRefBasePicMarking; }
+
+  Void                    setStoreRefBasePicFlag  ( Bool  bStoreRefBasePicFlag  ) { m_bStoreRefBasePicFlag  = bStoreRefBasePicFlag; }
 
 protected:
-	SliceHeaderBase         ( const SequenceParameterSet& rcSPS,
-                            const PictureParameterSet&  rcPPS );
-	virtual ~SliceHeaderBase();
+  Bool              m_bStoreRefBasePicFlag;
+  DecRefPicMarking  m_cDecRefBasePicMarking;
+private:
+  Bool              m_bPrefixNalUnitAdditionalExtensionFlag;
+};
 
 
+
+class H264AVCCOMMONLIB_API SliceHeaderSyntax : public PrefixHeader
+{
 public:
+  SliceHeaderSyntax();
+  SliceHeaderSyntax( const NalUnitHeader&         rcNalUnitHeader );
+  SliceHeaderSyntax( const PrefixHeader&          rcPrefixHeader );
+  SliceHeaderSyntax( const SliceHeaderSyntax&     rcSliceHeaderSyntax );
+  SliceHeaderSyntax( const SequenceParameterSet&  rcSPS,
+                     const PictureParameterSet&   rcPPS );
+  virtual ~SliceHeaderSyntax();
 
-  SliceHeaderBase& operator = ( const SliceHeaderBase& rcSHB );
-  
-  ErrVal    read    ( HeaderSymbolReadIf*   pcReadIf  );
-  ErrVal    write   ( HeaderSymbolWriteIf*  pcWriteIf ) const;
+  ErrVal  init        ( const SequenceParameterSet& rcSPS,
+                        const PictureParameterSet&  rcPPS );
+  Void    copy        ( const SliceHeaderSyntax&    rcSliceHeaderSyntax,  Bool bInclusiveNalUnitHeader = true  );
+  ErrVal  writePrefix ( HeaderSymbolWriteIf&        rcWriteIf,            Bool bInclusiveNalUnitHeader = true  ) const;
+  ErrVal  write       ( HeaderSymbolWriteIf&        rcWriteIf,            Bool bInclusiveNalUnitHeader = true  ) const;
+  ErrVal  read        ( ParameterSetMng&            rcParameterSetMng,
+                        HeaderSymbolReadIf&         rcReadIf,             Bool bInclusiveNalUnitHeader = false );
+
+  Bool    isPSlice      ()  const   { return ( m_eSliceType % 5 ) ==  P_SLICE; }
+  Bool    isBSlice      ()  const   { return ( m_eSliceType % 5 ) ==  B_SLICE; }
+  Bool    isISlice      ()  const   { return ( m_eSliceType % 5 ) ==  I_SLICE; }
+  Bool    isSPSlice     ()  const   { return ( m_eSliceType % 5 ) == SP_SLICE; }
+  Bool    isSISlice     ()  const   { return ( m_eSliceType % 5 ) == SI_SLICE; }
+  Bool    isIntraSlice  ()  const   { return isISlice() || isSISlice    (); }
+  Bool    isPorSPSlice  ()  const   { return isPSlice() || isSPSlice    (); }
+  Bool    isInterSlice  ()  const   { return isBSlice() || isPorSPSlice (); }
+  Bool    isMbaffFrame  ()  const   { AOF( parameterSetsInitialized() ); return getSPS().getMbAdaptiveFrameFieldFlag() && !m_bFieldPicFlag; }
+  Bool    isFrameMbsOnly()  const   { AOF( parameterSetsInitialized() ); return getSPS().getFrameMbsOnlyFlag(); }
+  Int     getPPSQp      ()  const   { AOF( parameterSetsInitialized() ); return getPPS().getPicInitQp(); }   
+
+  UInt                            getFirstMbInSlice                     ()                    const { return ( isMbaffFrame() ? m_uiFirstMbInSlice << 1 : m_uiFirstMbInSlice ); }
+  SliceType                       getSliceType                          ()                    const { return m_eSliceType; }
+  UInt                            getPicParameterSetId                  ()                    const { return m_uiPicParameterSetId; }
+  UInt                            getColourPlaneId                      ()                    const { return m_uiColourPlaneId; }
+  UInt                            getFrameNum                           ()                    const { return m_uiFrameNum; }
+  Bool                            getFieldPicFlag                       ()                    const { return m_bFieldPicFlag; }
+  Bool                            getBottomFieldFlag                    ()                    const { return m_bBottomFieldFlag; }
+  UInt                            getIdrPicId                           ()                    const { return m_uiIdrPicId; }
+  UInt                            getPicOrderCntLsb                     ()                    const { return m_uiPicOrderCntLsb; }
+  Int                             getDeltaPicOrderCntBottom             ()                    const { return m_iDeltaPicOrderCntBottom; }
+  Int                             getDeltaPicOrderCnt0                  ()                    const { return m_iDeltaPicOrderCnt0; }
+  Int                             getDeltaPicOrderCnt1                  ()                    const { return m_iDeltaPicOrderCnt1; }
+  UInt                            getRedundantPicCnt                    ()                    const { return m_uiRedundantPicCnt; }
+  Bool                            getDirectSpatialMvPredFlag            ()                    const { return m_bDirectSpatialMvPredFlag; }
+  Bool                            getNumRefIdxActiveOverrideFlag        ()                    const { return m_bNumRefIdxActiveOverrideFlag; }
+  UInt                            getNumRefIdxL0ActiveMinus1            ()                    const { return m_uiNumRefIdxL0ActiveMinus1; }
+  UInt                            getNumRefIdxL0Active                  ()                    const { return m_uiNumRefIdxL0ActiveMinus1 + 1; }
+  UInt                            getNumRefIdxL1ActiveMinus1            ()                    const { return m_uiNumRefIdxL1ActiveMinus1; }
+  UInt                            getNumRefIdxL1Active                  ()                    const { return m_uiNumRefIdxL1ActiveMinus1 + 1; }
+  UInt                            getNumRefIdxActive                    ( ListIdx eListIdx )  const { return ( eListIdx == LIST_0 ? m_uiNumRefIdxL0ActiveMinus1 + 1 : m_uiNumRefIdxL1ActiveMinus1 + 1 ); }
+  const RefPicListReOrdering&     getRefPicListReorderingL0             ()                    const { return m_cRefPicListReorderingL0; }
+  RefPicListReOrdering&           getRefPicListReorderingL0             ()                          { return m_cRefPicListReorderingL0; }
+  const RefPicListReOrdering&     getRefPicListReorderingL1             ()                    const { return m_cRefPicListReorderingL1; }
+  RefPicListReOrdering&           getRefPicListReorderingL1             ()                          { return m_cRefPicListReorderingL1; }
+  const RefPicListReOrdering&     getRefPicListReordering               ( ListIdx eListIdx )  const { return ( eListIdx == LIST_0 ? m_cRefPicListReorderingL0 : m_cRefPicListReorderingL1 ); }
+  RefPicListReOrdering&           getRefPicListReordering               ( ListIdx eListIdx )        { return ( eListIdx == LIST_0 ? m_cRefPicListReorderingL0 : m_cRefPicListReorderingL1 ); }
+  Bool                            getBasePredWeightTableFlag            ()                    const { return m_bBasePredWeightTableFlag; }
+  UInt                            getLumaLog2WeightDenom                ()                    const { return m_uiLumaLog2WeightDenom; }
+  UInt                            getLumaWeightDenom                    ()                    const { return ( 1 << m_uiLumaLog2WeightDenom ); }
+  UInt                            getChromaLog2WeightDenom              ()                    const { return m_uiChromaLog2WeightDenom; }
+  UInt                            getChromaWeightDenom                  ()                    const { return ( 1 << m_uiChromaLog2WeightDenom ); }
+  const PredWeightTable&          getPredWeightTableL0                  ()                    const { return m_cPredWeightTableL0; }
+  PredWeightTable&                getPredWeightTableL0                  ()                          { return m_cPredWeightTableL0; }
+  const PredWeightTable&          getPredWeightTableL1                  ()                    const { return m_cPredWeightTableL1; }
+  PredWeightTable&                getPredWeightTableL1                  ()                          { return m_cPredWeightTableL1; }
+  const PredWeightTable&          getPredWeightTable                    ( ListIdx eListIdx )  const { return ( eListIdx == LIST_0 ? m_cPredWeightTableL0 : m_cPredWeightTableL1 ); }
+  PredWeightTable&                getPredWeightTable                    ( ListIdx eListIdx )        { return ( eListIdx == LIST_0 ? m_cPredWeightTableL0 : m_cPredWeightTableL1 ); }
+  Bool                            getNoOutputOfPriorPicsFlag            ()                    const { return m_bNoOutputOfPriorPicsFlag; }
+  Bool                            getLongTermReferenceFlag              ()                    const { return m_bLongTermReferenceFlag; }
+  const DecRefPicMarking&         getDecRefPicMarking                   ()                    const { return m_cDecRefPicMarking; }
+  DecRefPicMarking&               getDecRefPicMarking                   ()                          { return m_cDecRefPicMarking; }
+  UInt                            getCabacInitIdc                       ()                    const { return m_uiCabacInitIdc; }
+  Int                             getSliceQpDelta                       ()                    const { return m_iSliceQpDelta; }
+  Int                             getSliceQp                            ()                    const { return m_iSliceQpDelta + getPPSQp(); }
+  Bool                            getSPForSwitchFlag                    ()                    const { return m_bSPForSwitchFlag; }
+  Int                             getSliceQsDelta                       ()                    const { return m_iSliceQsDelta; }
+  const DBFilterParameter&        getDeblockingFilterParameter          ()                    const { return m_cDeblockingFilterParameter; }
+  DBFilterParameter&              getDeblockingFilterParameter          ()                          { return m_cDeblockingFilterParameter; }
+  UInt                            getSliceGroupChangeCycle              ()                    const { return m_uiSliceGroupChangeCycle; }
+  UInt                            getRefLayerDQId                       ()                    const { return m_uiRefLayerDQId; }
+  UInt                            getRefLayerDependencyId               ()                    const { return m_uiRefLayerDQId >> 4; }
+  UInt                            getRefLayerQualityId                  ()                    const { return m_uiRefLayerDQId & 15; }
+  const DBFilterParameter&        getInterLayerDeblockingFilterParameter()                    const { return m_cInterLayerDeblockingFilterParameter; }
+  DBFilterParameter&              getInterLayerDeblockingFilterParameter()                          { return m_cInterLayerDeblockingFilterParameter; }
+  Bool                            getConstrainedIntraResamplingFlag     ()                    const { return m_bConstrainedIntraResamplingFlag; }
+  Bool                            getRefLayerChromaPhaseXPlus1Flag      ()                    const { return m_bRefLayerChromaPhaseXPlus1Flag; }
+  UInt                            getRefLayerChromaPhaseXPlus1          ()                    const { return m_bRefLayerChromaPhaseXPlus1Flag ? 1 : 0; }
+  UInt                            getRefLayerChromaPhaseYPlus1          ()                    const { return m_uiRefLayerChromaPhaseYPlus1; }
+  Int                             getRefLayerChromaPhaseX               ()                    const { return m_bRefLayerChromaPhaseXPlus1Flag ? 0 : -1; }
+  Int                             getRefLayerChromaPhaseY               ()                    const { return m_uiRefLayerChromaPhaseYPlus1 - 1; }
+  Int                             getScaledRefLayerLeftOffset           ()                    const { return m_iScaledRefLayerLeftOffset; }
+  Int                             getScaledRefLayerTopOffset            ()                    const { return ( isFrameMbsOnly() ? m_iScaledRefLayerTopOffset : m_iScaledRefLayerTopOffset << 1 ); }
+  Int                             getScaledRefLayerRightOffset          ()                    const { return m_iScaledRefLayerRightOffset; }
+  Int                             getScaledRefLayerBottomOffset         ()                    const { return ( isFrameMbsOnly() ? m_iScaledRefLayerBottomOffset : m_iScaledRefLayerBottomOffset << 1 ); }
+  Bool                            getSliceSkipFlag                      ()                    const { return m_bSliceSkipFlag; }
+  UInt                            getNumMbsInSliceMinus1                ()                    const { return m_uiNumMbsInSliceMinus1; }
+  Bool                            getAdaptiveBaseModeFlag               ()                    const { return m_bAdaptiveBaseModeFlag; }
+  Bool                            getDefaultBaseModeFlag                ()                    const { return m_bDefaultBaseModeFlag; }
+  Bool                            getAdaptiveMotionPredictionFlag       ()                    const { return m_bAdaptiveMotionPredictionFlag; }
+  Bool                            getDefaultMotionPredictionFlag        ()                    const { return m_bDefaultMotionPredictionFlag; }
+  Bool                            getAdaptiveResidualPredictionFlag     ()                    const { return m_bAdaptiveResidualPredictionFlag; }
+  Bool                            getDefaultResidualPredictionFlag      ()                    const { return m_bDefaultResidualPredictionFlag; }
+  Bool                            getTCoeffLevelPredictionFlag          ()                    const { return m_bTCoeffLevelPredictionFlag; }
+  UInt                            getScanIdxStart                       ()                    const { return m_uiScanIdxStart; }
+  UInt                            getScanIdxStop                        ()                    const { return m_uiScanIdxStop; }
+  Bool                            parameterSetsInitialized              ()                    const { return m_pcPPS != 0 && m_pcSPS != 0; }
+  const SequenceParameterSet&     getSPS                                ()                    const { AOF( parameterSetsInitialized() ); return *m_pcSPS; }
+  const PictureParameterSet&      getPPS                                ()                    const { AOF( parameterSetsInitialized() ); return *m_pcPPS; }
+  const StatBuf<const UChar*,8>&  getScalingMatrix                      ()                    const { return m_acScalingMatrix; }
+  StatBuf<const UChar*,8>&        getScalingMatrix                      ()                          { return m_acScalingMatrix; }
 
 
-  //===== get properties =====
-  Bool                              isH264AVCCompatible           ()  const { return ( m_eNalUnitType == NAL_UNIT_CODED_SLICE  ||
-                                                                                       m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ); }
-  Bool                              isIdrNalUnit                  ()  const { return ( m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR || 
-                                                                                       m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ); }
-  Int                               getPicQp                      ()  const { return m_rcPPS.getPicInitQp() + getSliceQpDelta(); }
-	UInt                              getMbInPic                    ()  const { const UInt uiMbInPic = m_rcSPS.getMbInFrame(); return getFieldPicFlag() ? uiMbInPic/2 : uiMbInPic; }
-  
-  //===== get parameter sets =====
-  const PictureParameterSet&        getPPS                        ()  const { return m_rcPPS; }
-  const SequenceParameterSet&       getSPS                        ()  const { return m_rcSPS; }
+  Void  setFirstMbInSlice                     ( UInt                        uiFirstMbInSlice                      )  { m_uiFirstMbInSlice                     = ( isMbaffFrame() ? uiFirstMbInSlice >> 1 : uiFirstMbInSlice ); }
+  Void  setSliceType                          ( SliceType                   eSliceType                            )  { m_eSliceType                           = eSliceType; }
+  Void  setPicParameterSetId                  ( UInt                        uiPicParameterSetId                   )  { m_uiPicParameterSetId                  = uiPicParameterSetId; }
+  Void  setColourPlaneId                      ( UInt                        uiColourPlaneId                       )  { m_uiColourPlaneId                      = uiColourPlaneId; }
+  Void  setFrameNum                           ( UInt                        uiFrameNum                            )  { m_uiFrameNum                           = uiFrameNum; }
+  Void  setFieldPicFlag                       ( Bool                        bFieldPicFlag                         )  { m_bFieldPicFlag                        = bFieldPicFlag; }
+  Void  setBottomFieldFlag                    ( Bool                        bBottomFieldFlag                      )  { m_bBottomFieldFlag                     = bBottomFieldFlag; }
+  Void  setIdrPicId                           ( UInt                        uiIdrPicId                            )  { m_uiIdrPicId                           = uiIdrPicId; }
+  Void  setPicOrderCntLsb                     ( UInt                        uiPicOrderCntLsb                      )  { m_uiPicOrderCntLsb                     = uiPicOrderCntLsb; }
+  Void  setDeltaPicOrderCntBottom             ( Int                         iDeltaPicOrderCntBottom               )  { m_iDeltaPicOrderCntBottom              = iDeltaPicOrderCntBottom; }
+  Void  setDeltaPicOrderCnt0                  ( Int                         iDeltaPicOrderCnt0                    )  { m_iDeltaPicOrderCnt0                   = iDeltaPicOrderCnt0; }
+  Void  setDeltaPicOrderCnt1                  ( Int                         iDeltaPicOrderCnt1                    )  { m_iDeltaPicOrderCnt1                   = iDeltaPicOrderCnt1; }
+  Void  setRedundantPicCnt                    ( UInt                        uiRedundantPicCnt                     )  { m_uiRedundantPicCnt                    = uiRedundantPicCnt; }
+  Void  setDirectSpatialMvPredFlag            ( Bool                        bDirectSpatialMvPredFlag              )  { m_bDirectSpatialMvPredFlag             = bDirectSpatialMvPredFlag; }
+  Void  setNumRefIdxActiveOverrideFlag        ( Bool                        bNumRefIdxActiveOverrideFlag          )  { m_bNumRefIdxActiveOverrideFlag         = bNumRefIdxActiveOverrideFlag; }
+  Void  setNumRefIdxL0ActiveMinus1            ( UInt                        uiNumRefIdxL0ActiveMinus1             )  { m_uiNumRefIdxL0ActiveMinus1            = uiNumRefIdxL0ActiveMinus1; }
+  Void  setNumRefIdxL0Active                  ( UInt                        uiNumRefIdxL0Active                   )  { m_uiNumRefIdxL0ActiveMinus1            = uiNumRefIdxL0Active - 1; }
+  Void  setNumRefIdxL1ActiveMinus1            ( UInt                        uiNumRefIdxL1ActiveMinus1             )  { m_uiNumRefIdxL1ActiveMinus1            = uiNumRefIdxL1ActiveMinus1; }
+  Void  setNumRefIdxL1Active                  ( UInt                        uiNumRefIdxL1Active                   )  { m_uiNumRefIdxL1ActiveMinus1            = uiNumRefIdxL1Active - 1; }
+  Void  setNumRefIdxActive                    ( ListIdx                     eListIdx,
+                                                UInt                        uiNumRefIdxActive                     )  { if( eListIdx == LIST_0 ) m_uiNumRefIdxL0ActiveMinus1 = uiNumRefIdxActive - 1; else m_uiNumRefIdxL1ActiveMinus1 = uiNumRefIdxActive - 1; }
+  Void  setRefPicListReorderingL0             ( const RefPicListReOrdering& rcRefPicListReorderingL0              )  { m_cRefPicListReorderingL0              = rcRefPicListReorderingL0; }
+  Void  setRefPicListReorderingL1             ( const RefPicListReOrdering& rcRefPicListReorderingL1              )  { m_cRefPicListReorderingL1              = rcRefPicListReorderingL1; }
+  Void  setBasePredWeightTableFlag            ( Bool                        bBasePredWeightTableFlag              )  { m_bBasePredWeightTableFlag             = bBasePredWeightTableFlag; }
+  Void  setLumaLog2WeightDenom                ( UInt                        uiLumaLog2WeightDenom                 )  { m_uiLumaLog2WeightDenom                = uiLumaLog2WeightDenom; }
+  Void  setChromaLog2WeightDenom              ( UInt                        uiChromaLog2WeightDenom               )  { m_uiChromaLog2WeightDenom              = uiChromaLog2WeightDenom; }
+  Void  setPredWeightTableL0                  ( const PredWeightTable&      rcPredWeightTableL0                   )  { m_cPredWeightTableL0                   = rcPredWeightTableL0; }
+  Void  setPredWeightTableL1                  ( const PredWeightTable&      rcPredWeightTableL1                   )  { m_cPredWeightTableL1                   = rcPredWeightTableL1; }
+  Void  setNoOutputOfPriorPicsFlag            ( Bool                        bNoOutputOfPriorPicsFlag              )  { m_bNoOutputOfPriorPicsFlag             = bNoOutputOfPriorPicsFlag; }
+  Void  setLongTermReferenceFlag              ( Bool                        bLongTermReferenceFlag                )  { m_bLongTermReferenceFlag               = bLongTermReferenceFlag; }
+  Void  setDecRefPicMarking                   ( const DecRefPicMarking&     rcDecRefPicMarking                    )  { m_cDecRefPicMarking                    = rcDecRefPicMarking; }
+  Void  setCabacInitIdc                       ( UInt                        uiCabacInitIdc                        )  { m_uiCabacInitIdc                       = uiCabacInitIdc; }
+  Void  setSliceQpDelta                       ( Int                         iSliceQpDelta                         )  { m_iSliceQpDelta                        = iSliceQpDelta; }
+  Void  setSliceHeaderQp                      ( Int                         iSliceHeaderQp                        )  { m_iSliceQpDelta                        = iSliceHeaderQp - getPPSQp(); }
+  Void  setSPForSwitchFlag                    ( Bool                        bSPForSwitchFlag                      )  { m_bSPForSwitchFlag                     = bSPForSwitchFlag; }
+  Void  setSliceQsDelta                       ( Int                         iSliceQsDelta                         )  { m_iSliceQsDelta                        = iSliceQsDelta; }
+  Void  setDeblockingFilterParameter          ( const DBFilterParameter&    rcDeblockingFilterParameter           )  { m_cDeblockingFilterParameter           = rcDeblockingFilterParameter; }
+  Void  setSliceGroupChangeCycle              ( UInt                        uiSliceGroupChangeCycle               )  { m_uiSliceGroupChangeCycle              = uiSliceGroupChangeCycle; }
+  Void  setRefLayerDQId                       ( UInt                        uiRefLayerDQId                        )  { m_uiRefLayerDQId                       = uiRefLayerDQId; }
+  Void  setRefLayer                           ( UInt                        uiRefLayerDependencyId,
+                                                UInt                        uiRefLayerQualityId                   )  { m_uiRefLayerDQId                       = ( uiRefLayerDependencyId << 4 ) + uiRefLayerQualityId; }
+  Void  setInterLayerDeblockingFilterParameter( const DBFilterParameter&    rcInterLayerDeblockingFilterParameter )  { m_cInterLayerDeblockingFilterParameter = rcInterLayerDeblockingFilterParameter; }
+  Void  setConstrainedIntraResamplingFlag     ( Bool                        bConstrainedIntraResamplingFlag       )  { m_bConstrainedIntraResamplingFlag      = bConstrainedIntraResamplingFlag; }
+  Void  setRefLayerChromaPhaseXPlus1Flag      ( Bool                        bRefLayerChromaPhaseXPlus1Flag        )  { m_bRefLayerChromaPhaseXPlus1Flag       = bRefLayerChromaPhaseXPlus1Flag; }
+  Void  setRefLayerChromaPhaseXPlus1          ( UInt                        uiRefLayerChromaPhaseXPlus1           )  { m_bRefLayerChromaPhaseXPlus1Flag       = uiRefLayerChromaPhaseXPlus1 > 0; }
+  Void  setRefLayerChromaPhaseYPlus1          ( UInt                        uiRefLayerChromaPhaseYPlus1           )  { m_uiRefLayerChromaPhaseYPlus1          = uiRefLayerChromaPhaseYPlus1; }
+  Void  setRefLayerChromaPhaseX               ( Int                         iRefLayerChromaPhaseX                 )  { m_bRefLayerChromaPhaseXPlus1Flag       = iRefLayerChromaPhaseX == 0; }
+  Void  setRefLayerChromaPhaseY               ( Int                         iRefLayerChromaPhaseY                 )  { m_uiRefLayerChromaPhaseYPlus1          = iRefLayerChromaPhaseY + 1; }
+  Void  setScaledRefLayerLeftOffset           ( Int                         iScaledRefLayerLeftOffset             )  { m_iScaledRefLayerLeftOffset            = iScaledRefLayerLeftOffset; }
+  Void  setScaledRefLayerTopOffset            ( Int                         iScaledRefLayerTopOffset              )  { m_iScaledRefLayerTopOffset             = ( isFrameMbsOnly() ? iScaledRefLayerTopOffset : iScaledRefLayerTopOffset >> 1 ); }
+  Void  setScaledRefLayerRightOffset          ( Int                         iScaledRefLayerRightOffset            )  { m_iScaledRefLayerRightOffset           = iScaledRefLayerRightOffset; }
+  Void  setScaledRefLayerBottomOffset         ( Int                         iScaledRefLayerBottomOffset           )  { m_iScaledRefLayerBottomOffset          = ( isFrameMbsOnly() ? iScaledRefLayerBottomOffset : iScaledRefLayerBottomOffset >> 1 ); }
+  Void  setSliceSkipFlag                      ( Bool                        bSliceSkipFlag                        )  { m_bSliceSkipFlag                       = bSliceSkipFlag; }
+  Void  setNumMbsInSliceMinus1                ( UInt                        uiNumMbsInSliceMinus1                 )  { m_uiNumMbsInSliceMinus1                = uiNumMbsInSliceMinus1; }
+  Void  setAdaptiveBaseModeFlag               ( Bool                        bAdaptiveBaseModeFlag                 )  { m_bAdaptiveBaseModeFlag                = bAdaptiveBaseModeFlag; }
+  Void  setDefaultBaseModeFlag                ( Bool                        bDefaultBaseModeFlag                  )  { m_bDefaultBaseModeFlag                 = bDefaultBaseModeFlag; }
+  Void  setAdaptiveMotionPredictionFlag       ( Bool                        bAdaptiveMotionPredictionFlag         )  { m_bAdaptiveMotionPredictionFlag        = bAdaptiveMotionPredictionFlag; }
+  Void  setDefaultMotionPredictionFlag        ( Bool                        bDefaultMotionPredictionFlag          )  { m_bDefaultMotionPredictionFlag         = bDefaultMotionPredictionFlag; }
+  Void  setAdaptiveResidualPredictionFlag     ( Bool                        bAdaptiveResidualPredictionFlag       )  { m_bAdaptiveResidualPredictionFlag      = bAdaptiveResidualPredictionFlag; }
+  Void  setDefaultResidualPredictionFlag      ( Bool                        bDefaultResidualPredictionFlag        )  { m_bDefaultResidualPredictionFlag       = bDefaultResidualPredictionFlag; }
+  Void  setTCoeffLevelPredictionFlag          ( Bool                        bTCoeffLevelPredictionFlag            )  { m_bTCoeffLevelPredictionFlag           = bTCoeffLevelPredictionFlag; }
+  Void  setScanIdxStart                       ( UInt                        uiScanIdxStart                        )  { m_uiScanIdxStart                       = uiScanIdxStart; }
+  Void  setScanIdxStop                        ( UInt                        uiScanIdxStop                         )  { m_uiScanIdxStop                        = uiScanIdxStop; }
 
+private:
+  Void    xInit               ();
+  Void    xCopy               ( const SliceHeaderSyntax&    rcSliceHeaderSyntax );
+  ErrVal  xInitScalingMatrix  ();
+  ErrVal  xInitParameterSets  ( ParameterSetMng&            rcParameterSetMng,
+                                UInt                        uiPPSId,
+                                Bool                        bSubSetSPS );
+  ErrVal  xInitParameterSets  ( const SequenceParameterSet& rcSPS,
+                                const PictureParameterSet&  rcPPS );
 
-  //===== get parameters =====
-  NalRefIdc                         getNalRefIdc                  ()  const { return m_eNalRefIdc; }
-	Bool                              isNalRefIdc                   ()  const { return m_eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST; }
-  NalUnitType                       getNalUnitType                ()  const { return m_eNalUnitType; }
-  UInt                              getLayerId                    ()  const { return m_uiLayerId; }
-  UInt                              getTemporalLevel              ()  const { return m_uiTemporalLevel; }
-	Bool															getOutputFlag                 ()  const { return m_bOutputFlag; }//JVT-W047
-  UInt                              getQualityLevel               ()  const { return m_uiQualityLevelSH; }
-  UInt                              getFirstMbInSlice             ()  const { return m_uiFirstMbInSlice; }
-  SliceType                         getSliceType                  ()  const { return m_eSliceType; }
-  UInt                              getPicParameterSetId          ()  const { return m_uiPicParameterSetId; }
-  UInt                              getFrameNum                   ()  const { return m_uiFrameNum; }
-  UInt                              getNumMbsInSlice              ()  const { return m_uiNumMbsInSlice; }
-  UInt                              getIdrPicId                   ()  const { return m_uiIdrPicId; }
-  Bool                              getBasePredWeightTableFlag    ()  const { return m_bBasePredWeightTableFlag; }
-  UInt                              getLumaLog2WeightDenom        ()  const { return m_uiLumaLog2WeightDenom; }
-  UInt                              getChromaLog2WeightDenom      ()  const { return m_uiChromaLog2WeightDenom; }
-  const PredWeightTable&            getPredWeightTable   (ListIdx e)  const { return m_acPredWeightTable[e]; }
-  PredWeightTable&                  getPredWeightTable   (ListIdx e)        { return m_acPredWeightTable[e]; }
- //TMM_INTERLACE{
-  const PredWeight&                 getPredWeight        (ListIdx e,
-                                                          UInt   ui,
-														  Bool   bFieldFlag)  const { return ( (bFieldFlag) ? (m_acPredWeightTable[e].get((ui-1)/2)) : (m_acPredWeightTable[e].get(ui-1)) ); }
-  PredWeight&                       getPredWeight        (ListIdx e,
-                                                          UInt   ui,
-														  Bool   bFieldFlag) { return ( (bFieldFlag) ? (m_acPredWeightTable[e].get((ui-1)/2)) : (m_acPredWeightTable[e].get(ui-1)) ); }
-//TMM_INTERLACE}
-//TMM_WP
-  ErrVal copyWeightedPred(PredWeightTable& pcPredWeightTable, UInt uiLumaLogWeightDenom,
-                          UInt uiChromaWeightDenom, ListIdx eListIdx, Bool bDecoder);
-//TMM_WP
-
-  Void                             setSpatialScalabilityType ( const int iSST )  { m_iSpatialScalabilityType = iSST; }
-  Int                              getSpatialScalabilityType ()       const { return m_iSpatialScalabilityType; }
-  Bool                              getAVCRewriteFlag ()              const { return m_bAVCRewriteFlag; }
-  Bool                              getDirectSpatialMvPredFlag    ()  const { return m_bDirectSpatialMvPredFlag; }
-  Bool                              getUseBasePredictionFlag      ()  const { return m_bUseBasePredictionFlag; }
-  Bool                              getStoreBaseRepresentationFlag()  const { return m_bStoreBaseRepresentationFlag; }
-  Bool                              getNoInterLayerPredFlag       ()  const { return m_bLayerBaseFlag; }
-  UInt                              getBaseLayerId                ()  const { if (m_bLayerBaseFlag) return MSYS_UINT_MAX; 
-                                                                                               else return m_uiBaseLayerId; }
-  UInt                              getBaseQualityLevel           ()  const { return m_uiBaseQualityLevel; }
-  //JVT-W046 {
-  Bool                              getSliceSkipFlag              ()  const { return m_bSliceSkipFlag; }
-  //JVT-W046 }
-  Bool                              getAdaptivePredictionFlag     ()  const { return m_bAdaptivePredictionFlag; }
-  //JVT-U160 LMI {
-  Bool                              getAdaptiveResPredictionFlag  ()  const { return m_bAdaptiveResPredictionFlag; }
-  Bool                              getAdaptiveMotPredictionFlag  ()  const { return m_bAdaptiveMotPredictionFlag; }
-  Bool                              getDefaultBaseModeFlag         ()  const { return m_bDefaultBaseModeFlag; }
-  Bool                              getDefaultMotPredictionFlag   ()  const { return m_bDefaultMotPredictionFlag; }
-  //JVT-U160 LMI }
-  Bool                              getNumRefIdxActiveOverrideFlag()  const { return m_bNumRefIdxActiveOverrideFlag; }
-  UInt                              getNumRefIdxActive ( ListIdx e )  const { return m_auiNumRefIdxActive[e]; }
-  const RplrBuffer&                 getRplrBuffer      ( ListIdx e )  const { return m_acRplrBuffer      [e]; }
-  RplrBuffer&                       getRplrBuffer      ( ListIdx e )        { return m_acRplrBuffer      [e]; }
-  UInt                              getNumRefIdxUpdate ( UInt    ui,
-                                                         ListIdx e )  const { return m_aauiNumRefIdxActiveUpdate[ui][e]; }
-  Bool                              getNoOutputOfPriorPicsFlag    ()  const { return m_bNoOutputOfPriorPicsFlag; }
-  Bool                              getAdaptiveRefPicBufferingFlag()  const { return m_bAdaptiveRefPicBufferingModeFlag; }
-  Bool								getAdaptiveRefPicMarkingFlag  ()  const { return m_bAdaptiveRefPicMarkingModeFlag; } //JVT-S036 lsj
-  const MmcoBuffer&                 getMmcoBuffer                 ()  const { return m_cMmmcoBuffer; }
-  MmcoBuffer&                       getMmcoBuffer                 ()        { return m_cMmmcoBuffer; }
-//JVT-S036 lsj start
-  const MmcoBuffer&                 getMmcoBaseBuffer             ()  const { return m_cMmmcoBaseBuffer; }
-  MmcoBuffer&                       getMmcoBaseBuffer             ()        { return m_cMmmcoBaseBuffer; }
-//JVT-S036 lsj end
-  //TMM_EC {{
-  Void								setDefualtMmcoBuffer(UInt uiDecompositionStages, Bool Number2)
-  {
-	m_cMmmcoBuffer.clear();
-
-	UInt uiCount=0;
-	UInt	uiGopSize	=	1 << uiDecompositionStages;
-// TMM_EC_FIX
-  if(uiGopSize==1)
-	{
-		m_cMmmcoBuffer.set(uiCount++, Mmco(MMCO_SHORT_TERM_UNUSED,1));
-		m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_END));
-		return ;
-	}
-
-	for( Int iIndex=uiGopSize/2-2;iIndex>=0;iIndex-- )
-	{
-		m_cMmmcoBuffer.set( uiCount++, Mmco(MMCO_SHORT_TERM_UNUSED,iIndex));
-	}
-	if(!Number2)m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_SHORT_TERM_UNUSED,uiGopSize/2));
-	else       m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_SHORT_TERM_UNUSED,uiGopSize-1));
-
-	m_cMmmcoBuffer.set(uiCount++,Mmco(MMCO_END));
-
-    return ;	  
-  }
-
-  UInt                              getCabacInitIdc               ()  const { return m_uiCabacInitIdc; }
-  Int                               getSliceQpDelta               ()  const { return m_iSliceQpDelta; }
-  const DeblockingFilterParameterScalable&  getDeblockingFilterParameterScalable  ()  const { return m_cDeblockingFilterParameterScalable; }
-  DeblockingFilterParameterScalable&        getDeblockingFilterParameterScalable  ()        { return m_cDeblockingFilterParameterScalable; }
-
-  UInt  getLog2MaxSliceGroupChangeCycle(UInt uiPicSizeInMapUnits) const {return UInt(ceil( (log ( uiPicSizeInMapUnits*(getPPS().getSliceGroupChangeRateMinus1()+1.)+ 1. ))/log(2.) ));};
-  UInt  getSliceGroupChangeCycle() const {return m_uiSliceGroupChangeCycle;}
-  FMO*  getFMO() const { return  m_pcFMO;}
-  Int getNumMbInSlice();
-
-  Void  setFgsEntropyOrderFlag               ( Bool b  )         { m_bFgsEntropyOrderFlag       = b;  }
-  Bool  getFgsEntropyOrderFlag               ()                  { return m_bFgsEntropyOrderFlag;     }
-  
-  UInt                              getSimplePriorityId			  ()	    { return m_uiPriorityId;}
-  Bool                              getDiscardableFlag			  ()		{ return m_bDiscardableFlag;}
-
-  Bool                              getFieldPicFlag               ()  const         { return m_bFieldPicFlag; }
-  Bool                              getBottomFieldFlag            ()  const         { return m_bBottomFieldFlag; }
-	UInt                              getPicOrderCntLsb             ()  const         { return m_uiPicOrderCntLsb; }
-  Int                               getDeltaPicOrderCntBottom     ()  const         { return m_iDeltaPicOrderCntBottom; }
-  Int                               getDeltaPicOrderCnt           ( UInt ui ) const {return m_aiDeltaPicOrderCnt[ui]; }
-	PicType                           getPicType                    ()  const { return ( ! m_bFieldPicFlag ? FRAME : m_bBottomFieldFlag ? BOT_FIELD : TOP_FIELD ); }
-  // JVT-W062 {
-  /*
-  // JVT-U116 LMI {
-  // JVT-V088 LMI
-  Bool                              getTl0PicIdxPresentFlag     () const  { return m_bTl0PicIdxPresentFlag; }
-  UInt                              getTl0PicIdx                () const  { return m_uiTl0PicIdx; }
-  Bool                              getTl0PicIdxResetFlag       () const  { return m_bTl0PicIdxResetFlag; }
-  UInt                              getPrevTl0PicIdx            () const  { return m_uiPrevTl0PicIdx; }
-  UInt                              getNumTl0PicIdxUpdate       () const  { return m_uiNumTl0PicIdxUpdate; }
-  Void                              setTl0PicIdxPresentFlag     ( Bool b ){ m_bTl0PicIdxPresentFlag = b; }
-  Void                              setTl0PicIdx                ( UInt ui )  { m_uiTl0PicIdx = ui; }           
-  Void                              setTl0PicIdxResetFlag       ( Bool b )   { m_bTl0PicIdxResetFlag = b; }
-  Void                              setPrevTl0PicIdx            ( UInt ui )  { m_uiPrevTl0PicIdx = ui; }
-  Void                              setNumTl0PicIdxUpdate       ( UInt ui )   { m_uiNumTl0PicIdxUpdate = ui; }
-
-// JVT-U116 LMI }
-  */
-  // JVT-W062 }
-  Bool                              getBaseLayerUsesConstrainedIntraPred() const { return m_bBaseLayerUsesConstrainedIntraPred; }
-  UInt                              getRedundantPicCnt             ()       { return m_uiRedundantPicCnt; } // JVT-Q054 Red. Picture
-  //JVT-U106 Behaviour at slice boundaries{
-  Bool                              getCIUFlag()                  {   return m_bCIUFlag;}  
-  void                              setCIUFlag                    ( Bool b ) {   m_bCIUFlag=b;}
-  //JVT-U106 Behaviour at slice boundaries}
-
-  Bool                              isReconstructionLayer()                  {   return m_bRecosntructionLayer;}  
-  void                              setReconstructionLayer( Bool b )         {   m_bRecosntructionLayer=b;}
-
-  //===== set parameters =====
-  Void  setNalRefIdc                  ( NalRefIdc   e  )  { m_eNalRefIdc                        = e;  }
-  Void  setNalUnitType                ( NalUnitType e  )  { m_eNalUnitType                      = e;  }
-  Void  setLayerId                    ( UInt        ui )  { m_uiLayerId                         = ui; }
-  Void  setTemporalLevel              ( UInt        ui )  { m_uiTemporalLevel                   = ui; }
-  Void  setQualityLevel               ( UInt        ui )  { m_uiQualityLevelSH                  = ui; }
-  Void  setFirstMbInSlice             ( UInt        ui )  { m_uiFirstMbInSlice                  = ui; }
-  Void  setSliceType                  ( SliceType   e  )  { m_eSliceType                        = e;  }
-  Void  setPicParameterSetId          ( UInt        ui )  { m_uiPicParameterSetId               = ui; }
-  Void  setFrameNum                   ( UInt        ui )  { m_uiFrameNum                        = ui; }
-  Void  setNumMbsInSlice              ( UInt        ui )  { m_uiNumMbsInSlice                   = ui; }
-  Void  setIdrPicId                   ( UInt        ui )  { m_uiIdrPicId                        = ui; }
-  
-  Void  setBasePredWeightTableFlag    ( Bool        b  )  { m_bBasePredWeightTableFlag          = b;  }
-  Void  setLumaLog2WeightDenom        ( UInt        ui )  { m_uiLumaLog2WeightDenom             = ui; }
-  Void  setChromaLog2WeightDenom      ( UInt        ui )  { m_uiChromaLog2WeightDenom           = ui; }
-  Void  setDirectSpatialMvPredFlag    ( Bool        b  )  { m_bDirectSpatialMvPredFlag          = b;  }
-  Void  setUseBaseRepresentationFlag  ( Bool        b  )  { m_bUseBasePredictionFlag            = b; 
-                                                            m_bStoreBaseRepresentationFlag      = b; }
- 
-  Void  setBaseLayerId                ( UInt        ui )  { m_uiBaseLayerId                     = ui; 
-                                                            m_bLayerBaseFlag                    = (m_uiBaseLayerId==MSYS_UINT_MAX);}
-  Void  setLayerBaseFlag              ( Bool        b  )  { m_bLayerBaseFlag = b; 
-                                                            if (m_bLayerBaseFlag) m_uiBaseLayerId=MSYS_UINT_MAX;}
-  Void  setBaseQualityLevel           ( UInt        ui )  { m_uiBaseQualityLevel                = ui; }
-  Void  setAdaptivePredictionFlag     ( Bool        b  )  { m_bAdaptivePredictionFlag           = b;  }
-  //JVT-W046 {
-  Void  setSliceSkipFlag              ( Bool        b  )  { m_bSliceSkipFlag                    = b;  }
-  //JVT-W046 }
-  // JVT-U160 LMI {
-  Void  setAdaptiveResPredictionFlag  ( Bool        b  )  { m_bAdaptiveResPredictionFlag        = b;  }
-  Void  setAdaptiveMotPredictionFlag  ( Bool        b  )  { m_bAdaptiveMotPredictionFlag        = b;  }
-  Void  setDefaultBaseModFlag         ( Bool        b  )  { m_bDefaultBaseModeFlag              = b;  }
-  Void  setDefaultMotPredictionFlag   ( Bool        b  )  { m_bDefaultMotPredictionFlag         = b;  }
-// JVT-U160 LMI }
-  Void  setNumRefIdxActiveOverrideFlag( Bool        b  )  { m_bNumRefIdxActiveOverrideFlag      = b;  }
-  Void  setNumRefIdxActive            ( ListIdx     e,
-                                        UInt        ui )  { m_auiNumRefIdxActive[e]             = ui; }
-  Void  setNumRefIdxUpdate            ( UInt        ui,
-                                        ListIdx     e,
-                                        UInt        p  )  { m_aauiNumRefIdxActiveUpdate[ui][e]  = p;  }
-  Void  setNoOutputOfPriorPicsFlag    ( Bool        b  )  { m_bNoOutputOfPriorPicsFlag          = b;  }
-  Void  setAdaptiveRefPicBufferingFlag( Bool        b  )  { m_bAdaptiveRefPicBufferingModeFlag  = b;  }
-  Void  setAdaptiveRefPicMarkingFlag  (Bool  		b  )  { m_bAdaptiveRefPicMarkingModeFlag    = b;  }//JVT-S036 lsj
-  Void  setCabacInitIdc               ( UInt        ui )  { m_uiCabacInitIdc                    = ui; }
-  Void  setSliceQpDelta               ( Int         i  )  { m_iSliceQpDelta                     = i;  }
-  Void  setSliceHeaderQp              ( Int         i  )  { setSliceQpDelta( i - m_rcPPS.getPicInitQp() );  }
-  
-  Void setSimplePriorityId			  (UInt			ui)	   { m_uiPriorityId = ui;}
-  Void setDiscardableFlag			  (Bool			b)	   { m_bDiscardableFlag = b;}
-
-  Void setBaseLayerUsesConstrainedIntraPred( Bool b ) { m_bBaseLayerUsesConstrainedIntraPred = b; }
-
-  Void  setSliceGroupChangeCycle(UInt uiSliceGroupChangeCycle){m_uiSliceGroupChangeCycle = uiSliceGroupChangeCycle;};
-  ErrVal FMOInit();
-  ErrVal FMOUninit(); //TMM_INTERLACE
-
-  Void setFieldPicFlag                ( Bool        b  )  { m_bFieldPicFlag                     = b;  }
-  Void setBottomFieldFlag             ( Bool        b  )  { m_bBottomFieldFlag                  = b;  }
-  Void  setPicOrderCntLsb             ( UInt        ui )  { m_uiPicOrderCntLsb                  = ui; }
-  Void setDeltaPicOrderCntBottom      ( Int         i  )  { m_iDeltaPicOrderCntBottom           = i;  }
-  Void setDeltaPicOrderCnt            ( UInt        ui,
-		                                    Int         i  )  { m_aiDeltaPicOrderCnt[ui]            = i;  }
-  
-//	TMM_EC {{
-	Bool	getTrueSlice()	const	{ return	m_bTrueSlice;}
-	Void	setTrueSlice( Bool bTrueSlice)	{ m_bTrueSlice = bTrueSlice;}
-	ERROR_CONCEAL	m_eErrorConceal;
-	Bool	m_bTrueSlice;
-//  TMM_EC }}
-  Void  setRedundantPicCnt            (UInt         ui )  { m_uiRedundantPicCnt                 = ui; }  // JVT-Q054 Red. Picture
-
-//JVT-T054{
-  Void          setLayerCGSSNR(UInt ui) { m_uiLayerCGSSNR = ui;}
-  UInt          getLayerCGSSNR() { return m_uiLayerCGSSNR;}
-  Void          setQualityLevelCGSSNR(UInt ui) { m_uiQualityLevelCGSSNR = ui;}
-  UInt          getQualityLevelCGSSNR() const { return m_uiQualityLevelCGSSNR;}
-  Void          setBaseLayerCGSSNR(UInt ui) { m_uiBaseLayerCGSSNR = ui;}
-  Void          setBaseQualityLevelCGSSNR(UInt ui) { m_uiBaseQualityLevelCGSSNR = ui;}
-//JVT-T054}
-	//JVT-W047 wxwan
-	Void          setOutputFlag(Bool b)	{ m_bOutputFlag = b; }
-	//JVT-W047 wxwan
-
-  //EIDR bug-fix
-  Void			setInIDRAccess(Bool b)	{ m_bInIDRAccess = b; }
-  Bool			getInIDRAccess()		{ return m_bInIDRAccess; }
-
-  //JVT-V079 Low-complexity MB mode decision {
-  Void setLowComplexMbEnable( Bool b )  { m_bLowComplexMbEnable = b; }
-  //JVT-V079 Low-complexity MB mode decision }
- 
- protected:
-  ErrVal xReadH264AVCCompatible( HeaderSymbolReadIf*   pcReadIf );
-  ErrVal xReadScalable         ( HeaderSymbolReadIf*   pcReadIf );
-  ErrVal xWriteScalable        ( HeaderSymbolWriteIf* pcWriteIf,
-                                 UInt uiQualityLevelCGSSNR,
-                                 UInt uiBaseLayerCGSSNR,
-                                 UInt uiBaseQualityLevelCGSSNR,
-                                 Bool bAdaptivePredictionFlag,
-                                 Bool bDefaultBaseModeFlag,
-                                 Bool bAdaptiveResPredictionFlag,
-                                 UInt uiWriteStart,
-                                 UInt uiWriteStop ) const;
-
-  ErrVal xWriteH264AVCCompatible( HeaderSymbolWriteIf*  pcWriteIf ) const;
-
-public:
-  HeaderSymbolReadIf*                 m_pcReadIf;
-  
-protected:
-  const PictureParameterSet&  m_rcPPS;
-  const SequenceParameterSet& m_rcSPS;
-
-  NalRefIdc                   m_eNalRefIdc;
-  NalUnitType                 m_eNalUnitType;
-  UInt                        m_uiLayerId;
-  UInt                        m_uiTemporalLevel;
-  UInt                        m_uiQualityLevelSH;
+private:
+  //===== syntax =====
   UInt                        m_uiFirstMbInSlice;
   SliceType                   m_eSliceType;
   UInt                        m_uiPicParameterSetId;
+  UInt                        m_uiColourPlaneId;
   UInt                        m_uiFrameNum;
-  UInt                        m_uiNumMbsInSlice;
+  Bool                        m_bFieldPicFlag;
+  Bool                        m_bBottomFieldFlag;
   UInt                        m_uiIdrPicId;
+  UInt                        m_uiPicOrderCntLsb;
+  Int                         m_iDeltaPicOrderCntBottom;
+  Int                         m_iDeltaPicOrderCnt0;
+  Int                         m_iDeltaPicOrderCnt1;
+  UInt                        m_uiRedundantPicCnt;
+  Bool                        m_bDirectSpatialMvPredFlag;
+  Bool                        m_bNumRefIdxActiveOverrideFlag;
+  UInt                        m_uiNumRefIdxL0ActiveMinus1;
+  UInt                        m_uiNumRefIdxL1ActiveMinus1;
+  RefPicListReOrdering        m_cRefPicListReorderingL0;
+  RefPicListReOrdering        m_cRefPicListReorderingL1;
   Bool                        m_bBasePredWeightTableFlag;
   UInt                        m_uiLumaLog2WeightDenom;
   UInt                        m_uiChromaLog2WeightDenom;
-  PredWeightTable             m_acPredWeightTable[2];
-
-  Bool                        m_bDirectSpatialMvPredFlag;
-
-  Bool                        m_bUseBasePredictionFlag;
-  Bool                        m_bStoreBaseRepresentationFlag;
-  Bool                        m_bLayerBaseFlag;
-  UInt                        m_uiBaseLayerId;
-  UInt                        m_uiBaseQualityLevel;
-  Bool                        m_bAdaptivePredictionFlag;
-  //JVT-W046 {
-  Bool                        m_bSliceSkipFlag;
-  //JVT-W046 }
-// JVT-U160 LMI {
-  Bool                        m_bAdaptiveResPredictionFlag;
-  Bool                        m_bDefaultBaseModeFlag;
-  Bool                        m_bAdaptiveMotPredictionFlag;
-  Bool                        m_bDefaultMotPredictionFlag;
-  // JVT-U160 LMI }
-  Bool                        m_bNumRefIdxActiveOverrideFlag;
-  UInt                        m_auiNumRefIdxActive[2];
-  RplrBuffer                  m_acRplrBuffer      [2];
-  UInt                        m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2];
+  PredWeightTable             m_cPredWeightTableL0;
+  PredWeightTable             m_cPredWeightTableL1;
   Bool                        m_bNoOutputOfPriorPicsFlag;
-  Bool                        m_bAdaptiveRefPicBufferingModeFlag;
-//JVT-S036 lsj start 
-  Bool						            m_bAdaptiveRefPicMarkingModeFlag;
-  UInt						            m_bMemoryManagementControlOperation;
-  UInt						            m_bDifferenceOfPicNumsMinus1;
-  UInt						            m_bLongTermPicNum;
-  MmcoBuffer				          m_cMmmcoBaseBuffer; 
-//JVT-S036 lsj end
-  MmcoBuffer                  m_cMmmcoBuffer;
+  Bool                        m_bLongTermReferenceFlag;
+  DecRefPicMarking            m_cDecRefPicMarking;
   UInt                        m_uiCabacInitIdc;
   Int                         m_iSliceQpDelta;
-  DeblockingFilterParameterScalable   m_cDeblockingFilterParameterScalable;
-  
-
+  Bool                        m_bSPForSwitchFlag;
+  Int                         m_iSliceQsDelta;
+  DBFilterParameter           m_cDeblockingFilterParameter;
   UInt                        m_uiSliceGroupChangeCycle;
-  FMO*                        m_pcFMO;
+  UInt                        m_uiRefLayerDQId;
+  DBFilterParameter           m_cInterLayerDeblockingFilterParameter;
+  Bool                        m_bConstrainedIntraResamplingFlag;
+  Bool                        m_bRefLayerChromaPhaseXPlus1Flag;
+  UInt                        m_uiRefLayerChromaPhaseYPlus1;
+  Int                         m_iScaledRefLayerLeftOffset;
+  Int                         m_iScaledRefLayerTopOffset;
+  Int                         m_iScaledRefLayerRightOffset;
+  Int                         m_iScaledRefLayerBottomOffset;
+  Bool                        m_bSliceSkipFlag;
+  UInt                        m_uiNumMbsInSliceMinus1;
+  Bool                        m_bAdaptiveBaseModeFlag;
+  Bool                        m_bDefaultBaseModeFlag;
+  Bool                        m_bAdaptiveMotionPredictionFlag;
+  Bool                        m_bDefaultMotionPredictionFlag;
+  Bool                        m_bAdaptiveResidualPredictionFlag;
+  Bool                        m_bDefaultResidualPredictionFlag;
+  Bool                        m_bTCoeffLevelPredictionFlag;
+  UInt                        m_uiScanIdxStart;
+  UInt                        m_uiScanIdxStop;
 
-  Bool                        m_bBaseLayerUsesConstrainedIntraPred;
-
-  UInt						            m_uiPriorityId;
-  Bool					              m_bDiscardableFlag;
-  // JVT-W062 {
-  /*
-  // JVT-V088 LMI {
-  // JVT-U116 LMI {
-  Bool                        m_bTl0PicIdxPresentFlag;
-  UInt                        m_uiTl0PicIdx;
-  UInt                        m_uiPrevTl0PicIdx;
-  Bool                        m_bTl0PicIdxResetFlag;
-  UInt                        m_uiNumTl0PicIdxUpdate;
-  // JVT-U116 LMI }
-  // JVT-V088 LMI }
-  */
-  // JVT-W062 }
-  UInt                        m_uiRedundantPicCnt;  // JVT-Q054 Red. Picture
-
-  Bool                        m_bFieldPicFlag;
-  Bool                        m_bBottomFieldFlag;
-	UInt                        m_uiPicOrderCntLsb;
-  Int                         m_iDeltaPicOrderCntBottom;
-  Int                         m_aiDeltaPicOrderCnt[2];
-
-//JVT-T054{
-  UInt                        m_uiLayerCGSSNR;
-  UInt                        m_uiQualityLevelCGSSNR;
-  UInt                        m_uiBaseLayerCGSSNR;
-  UInt                        m_uiBaseQualityLevelCGSSNR;
-//JVT-T054}
-
-	//JVT-W047 wxwan
-	Bool												m_bOutputFlag;
-	//JVT-W047 wxwan
-
-  //JVT-U106 Behaviour at slice boundaries{
-  Bool                        m_bCIUFlag;
-  //JVT-U106 Behaviour at slice boundaries}
-  Bool                        m_bAVCRewriteFlag;   // V-035
-  Int                         m_iSpatialScalabilityType;
-  Bool                        m_bRecosntructionLayer;
-
-  //JVT-V079 Low-complexity MB mode decision {
-  UInt m_bLowComplexMbEnable;
-  //JVT-V079 Low-complexity MB mode decision }
-
-  // TMM_ESS {
-public:
-  Int           getLeftOffset ()   const { return m_iScaledBaseLeftOffset; }
-  Int           getRightOffset ()  const { return m_iScaledBaseRightOffset; }
-  Int           getTopOffset ()    const { return m_iScaledBaseTopOffset; }
-  Int           getBottomOffset () const { return m_iScaledBaseBottomOffset; }
-  Int           getBaseChromaPhaseX () const { return (Int)m_uiBaseChromaPhaseXPlus1-1; }
-  Int           getBaseChromaPhaseY () const { return (Int)m_uiBaseChromaPhaseYPlus1-1; }
-  Void          setLeftOffset   ( Int i ) { m_iScaledBaseLeftOffset = i; }
-  Void          setRightOffset  ( Int i ) { m_iScaledBaseRightOffset = i; }
-  Void          setTopOffset    ( Int i ) { m_iScaledBaseTopOffset = i; }
-  Void          setBottomOffset ( Int i ) { m_iScaledBaseBottomOffset = i; }
-  Void          setBaseChromaPhaseX ( Int i)  { m_uiBaseChromaPhaseXPlus1 = i+1; }
-  Void          setBaseChromaPhaseY ( Int i)  { m_uiBaseChromaPhaseYPlus1 = i+1; }
-  Void          Print               ( );
-
-  UInt          getMGSCoeffStart()          const { return m_uiMGSCoeffStart; }
-  UInt          getMGSCoeffStop ()          const { return m_uiMGSCoeffStop;  }
-  Void          setMGSCoeffStart( UInt ui )       { m_uiMGSCoeffStart = ui; }
-  Void          setMGSCoeffStop ( UInt ui )       { m_uiMGSCoeffStop  = ui; }
-
-  Void          setQLDiscardable  ( UInt ui )     { m_uiQLDiscardable = ui;} //DS_FIX_FT_09_2007
-
-  Bool          m_bBaseFrameMbsOnlyFlag;
-  Bool          m_bBaseFieldPicFlag;
-  Bool          m_bBaseBotFieldFlag;
-
-protected:
-  UInt          m_uiBaseChromaPhaseXPlus1;
-  UInt          m_uiBaseChromaPhaseYPlus1;
-
-  Int           m_iScaledBaseLeftOffset;
-  Int           m_iScaledBaseTopOffset;
-  Int           m_iScaledBaseRightOffset;
-  Int           m_iScaledBaseBottomOffset;
-
-// TMM_ESS }
-
-  Bool          m_bFgsEntropyOrderFlag;
-  UInt          m_uiMGSCoeffStart;
-  UInt          m_uiMGSCoeffStop;
-  //EIDR bug-fix
-  Bool			m_bInIDRAccess; 
-
-  UInt      m_uiQLDiscardable; //DS_FIX_FT_09_2007
-
+  //===== derived parameters =====
+  const SequenceParameterSet* m_pcSPS;
+  const PictureParameterSet*  m_pcPPS;
+  StatBuf< const UChar*, 8 >  m_acScalingMatrix;
 };
+
+
 
 
 #if defined( WIN32 )
 # pragma warning( default: 4251 )
 # pragma warning( default: 4275 )
 #endif
-
-typedef SliceHeaderBase::PredWeight PW;
 
 H264AVC_NAMESPACE_END
 

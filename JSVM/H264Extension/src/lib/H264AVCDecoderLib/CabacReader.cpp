@@ -93,20 +93,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "BitReadBuffer.h"
 #include "DecError.h"
 
-#include "H264AVCCommonLib/FGSCoder.h"
-
-// h264 namepace begin
 H264AVC_NAMESPACE_BEGIN
 
 const int MAX_COEFF[9] = {8,16,16,16,15,4,4,15,15};
 const int COUNT_THR[9] = { 3, 4, 4, 4, 3, 2, 2, 3, 3};
-
-#if 0 // FAST_CABAC
-#define RNOKCABAC( exp ) exp
-#else
-#define RNOKCABAC( exp ) RNOK(exp)
-#endif
-
 
 CabacReader::CabacReader():
   m_cFieldFlagCCModel   ( 1,                3),
@@ -128,24 +118,11 @@ CabacReader::CabacReader():
   m_cDeltaQpCCModel     ( 1,                NUM_DELTA_QP_CTX ),
   m_cIntraPredCCModel   ( 9,                NUM_IPR_CTX ),
   m_cCbpCCModel         ( 3,                NUM_CBP_CTX ),
-  m_cBCbpEnhanceCCModel ( NUM_BLOCK_TYPES,  NUM_BCBP_CTX ),
-  m_cCbpEnhanceCCModel  ( 3,                NUM_CBP_CTX ),
   m_cTransSizeCCModel   ( 1,                NUM_TRANSFORM_SIZE_CTX ),
   m_uiBitCounter        ( 0 ),
   m_uiPosCounter        ( 0 ),
-  m_bParentFlag         ( true ),
   m_uiLastDQpNonZero    ( 0 )
 {
-  UInt ui;
-
-  for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ )
-  {
-    m_apcFragBitBuffers [ui] = 0;
-    m_apcFragmentReaders[ui] = 0;
-  }
-
-  m_uiCurrentFragment = 0;
-  m_uiNumFragments    = 0;
 }
 
 
@@ -154,10 +131,11 @@ CabacReader::~CabacReader()
 }
 
 
-ErrVal CabacReader::xInitContextModels( const SliceHeader& rcSliceHeader )
+ErrVal
+CabacReader::xInitContextModels( const SliceHeader& rcSliceHeader )
 {
-  Int  iQp    = rcSliceHeader.getPicQp();
-  Bool bIntra = rcSliceHeader.isIntra();
+  Int  iQp    = rcSliceHeader.getSliceQp();
+  Bool bIntra = rcSliceHeader.isIntraSlice();
   Int  iIndex = rcSliceHeader.getCabacInitIdc();
 
   if( bIntra )
@@ -179,9 +157,6 @@ ErrVal CabacReader::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cLastCCModel.initBuffer(        (Short*)INIT_LAST_I,          iQp ) );
     RNOK( m_cOneCCModel.initBuffer(         (Short*)INIT_ONE_I,           iQp ) );
     RNOK( m_cAbsCCModel.initBuffer(         (Short*)INIT_ABS_I,           iQp ) );
-
-    RNOK( m_cCbpEnhanceCCModel.initBuffer(  (Short*)INIT_CBP_ENH_I,       iQp ) );
-    RNOK( m_cBCbpEnhanceCCModel.initBuffer( (Short*)INIT_BCBP_ENH_I,      iQp ) );
 
     RNOK( m_cTransSizeCCModel.initBuffer(   (Short*)INIT_TRANSFORM_SIZE_I,iQp ) );
     RNOK( m_cFieldFlagCCModel.initBuffer(   (Short*)INIT_MB_AFF_I,        iQp ) );
@@ -208,66 +183,55 @@ ErrVal CabacReader::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cOneCCModel.initBuffer(         (Short*)INIT_ONE_P            [iIndex], iQp ) );
     RNOK( m_cAbsCCModel.initBuffer(         (Short*)INIT_ABS_P            [iIndex], iQp ) );
 
-    RNOK( m_cCbpEnhanceCCModel.initBuffer(  (Short*)INIT_CBP_ENH_P        [iIndex], iQp ) );
-    RNOK( m_cBCbpEnhanceCCModel.initBuffer( (Short*)INIT_BCBP_ENH_P       [iIndex], iQp ) );
-
     RNOK( m_cTransSizeCCModel.initBuffer(   (Short*)INIT_TRANSFORM_SIZE_P [iIndex], iQp ) );
 		RNOK( m_cFieldFlagCCModel.initBuffer(   (Short*)INIT_MB_AFF_P         [iIndex], iQp ) );
     RNOK( m_cFldMapCCModel.initBuffer(      (Short*)INIT_FLD_MAP_P        [iIndex], iQp ) );
     RNOK( m_cFldLastCCModel.initBuffer(     (Short*)INIT_FLD_LAST_P       [iIndex], iQp ) );
   }
 
-
-
   return Err::m_nOK;
 }
 
 
-ErrVal CabacReader::create( CabacReader*& rpcCabacReader )
+ErrVal
+CabacReader::create( CabacReader*& rpcCabacReader )
 {
   rpcCabacReader = new CabacReader;
-
-  ROT( NULL == rpcCabacReader );
-
+  ROF( rpcCabacReader );
   return Err::m_nOK;
 }
 
-ErrVal CabacReader::destroy()
+ErrVal
+CabacReader::destroy()
 {
   delete this;
   return Err::m_nOK;
 }
 
 
-ErrVal CabacReader::init( BitReadBuffer* pcBitReadBuffer )
+ErrVal 
+CabacReader::init( BitReadBuffer* pcBitReadBuffer )
 {
-  ROT( NULL == pcBitReadBuffer );
-
+  ROF ( pcBitReadBuffer );
   RNOK( CabaDecoder::init( pcBitReadBuffer ) );
-
   return Err::m_nOK;
 }
 
 
-ErrVal CabacReader::uninit()
+ErrVal
+CabacReader::uninit()
 {
   RNOK( CabaDecoder::uninit() );
-
   return Err::m_nOK;
 }
 
 
-
-
-
-ErrVal CabacReader::startSlice( const SliceHeader& rcSliceHeader )
+ErrVal
+CabacReader::startSlice( const SliceHeader& rcSliceHeader )
 {
   m_uiLastDQpNonZero  = 0;
-
   RNOK( xInitContextModels( rcSliceHeader ) );
-
   RNOK( CabaDecoder::start() );
-
   return Err::m_nOK;
 }
 
@@ -341,11 +305,11 @@ ErrVal CabacReader::xRefFrame( MbDataAccess& rcMbDataAccess, UInt& ruiRefFrame, 
 {
   UInt uiCtx = rcMbDataAccess.getCtxRefIdx( eLstIdx, eParIdx );
 
-  RNOKCABAC( CabaDecoder::getSymbol( ruiRefFrame, m_cRefPicCCModel.get( 0, uiCtx ) ) );
+  RNOK( CabaDecoder::getSymbol( ruiRefFrame, m_cRefPicCCModel.get( 0, uiCtx ) ) );
 
   if ( 0 != ruiRefFrame )
   {
-    RNOKCABAC( CabaDecoder::getUnarySymbol( ruiRefFrame, &m_cRefPicCCModel.get( 0, 4 ), 1 ) );
+    RNOK( CabaDecoder::getUnarySymbol( ruiRefFrame, &m_cRefPicCCModel.get( 0, 4 ), 1 ) );
     ruiRefFrame++;
   }
 
@@ -364,7 +328,7 @@ ErrVal CabacReader::xMotionPredFlag(  Bool& bFlag, ListIdx eLstIdx )
   UInt  uiCode;
 
   UInt  uiCtx = 0;
-  RNOKCABAC( CabaDecoder::getSymbol( uiCode, m_cBLPredFlagCCModel.get( eLstIdx, uiCtx ) ) );
+  RNOK( CabaDecoder::getSymbol( uiCode, m_cBLPredFlagCCModel.get( eLstIdx, uiCtx ) ) );
 
   bFlag = ( uiCode != 0 );
 
@@ -385,15 +349,15 @@ ErrVal CabacReader::blockModes( MbDataAccess& rcMbDataAccess )
   {
     UInt uiBlockMode = 0;
 
-    if( ! rcMbDataAccess.getSH().isInterB() )
+    if( ! rcMbDataAccess.getSH().isBSlice() )
     {
-      RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 0, 1 ) ) );
+      RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 0, 1 ) ) );
       if( 0 == uiSymbol )
       {
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 0, 3 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 0, 3 ) ) );
         if( 0 != uiSymbol )
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 0, 4 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 0, 4 ) ) );
           uiBlockMode = ( 0 != uiSymbol) ? 2 : 3;
         }
         else
@@ -404,43 +368,43 @@ ErrVal CabacReader::blockModes( MbDataAccess& rcMbDataAccess )
     }
     else
     {
-      RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 0 ) ) );
+      RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 0 ) ) );
       if( 0 != uiSymbol )
       {
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 1 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 1 ) ) );
         if( 0 != uiSymbol )
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 2 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 2 ) ) );
           if( 0 != uiSymbol )
           {
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
             if( 0 != uiSymbol )
             {
               uiBlockMode = 10;
-              RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
+              RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
               uiBlockMode += uiSymbol;
             }
             else
             {
               uiBlockMode = 6;
-              RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
+              RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
               uiBlockMode += uiSymbol << 1;
-              RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
+              RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
               uiBlockMode += uiSymbol;
             }
           }
           else
           {
             uiBlockMode = 2;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
             uiBlockMode += uiSymbol << 1;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
             uiBlockMode += uiSymbol;
           }
         }
         else
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cBlockTypeCCModel.get( 1, 3 ) ) );
           uiBlockMode = uiSymbol;
         }
         uiBlockMode++;
@@ -462,11 +426,11 @@ ErrVal CabacReader::blockModes( MbDataAccess& rcMbDataAccess )
 
 Bool CabacReader::isMbSkipped( MbDataAccess& rcMbDataAccess )
 {
-  ROTRS( rcMbDataAccess.getSH().isIntra(), false );
+  ROTRS( rcMbDataAccess.getSH().isIntraSlice(), false );
   UInt uiSymbol;
 
   UInt uiCtx = rcMbDataAccess.getCtxMbSkipped();
-  if( rcMbDataAccess.getSH().isInterB() )
+  if( rcMbDataAccess.getSH().isBSlice() )
   {
     CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 7 + uiCtx ) );
   }
@@ -520,23 +484,6 @@ ErrVal CabacReader::resPredFlag( MbDataAccess& rcMbDataAccess )
   return Err::m_nOK;
 }
 
-ErrVal CabacReader::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff )
-{
-  UInt  uiSymbol;
-  UInt  uiCtx = ( bBaseCoeff ? 2 : 3 );
-
-  RNOK( CabaDecoder::getSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );
-  rcMbDataAccess.getMbData().setResidualPredFlag( (uiSymbol!=0) );
-
-  DTRACE_T( "ResidualPredFlag" );
-  DTRACE_TY( "ae(v)" );
-  DTRACE_CODE( uiSymbol );
-  DTRACE_N;
-
-  return Err::m_nOK;
-}
-
-
 
 ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
 {
@@ -546,34 +493,34 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
   UInt act_sym;
   UInt mod_sym;
 
-  if( rcMbDataAccess.getSH().isIntra() )
+  if( rcMbDataAccess.getSH().isIntraSlice() )
   {
-    RNOKCABAC( CabaDecoder::getSymbol( act_sym, m_cMbTypeCCModel.get( 0, rcMbDataAccess.getCtxMbIntra4x4() ) ) );
+    RNOK( CabaDecoder::getSymbol( act_sym, m_cMbTypeCCModel.get( 0, rcMbDataAccess.getCtxMbIntra4x4() ) ) );
 
     if( 0 != act_sym )
     {
-      RNOKCABAC( CabaDecoder::getTerminateBufferBit( act_sym ) )
+      RNOK( CabaDecoder::getTerminateBufferBit( act_sym ) )
       if( 0 != act_sym )
       {
         act_sym = 25;
       }
       else
       {
-        RNOKCABAC( CabaDecoder::getSymbol( act_sym, m_cMbTypeCCModel.get( 0, 4 ) ) );
+        RNOK( CabaDecoder::getSymbol( act_sym, m_cMbTypeCCModel.get( 0, 4 ) ) );
         act_sym = 12* act_sym + 1;
 
-        RNOKCABAC( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 5 ) ) );
+        RNOK( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 5 ) ) );
 
         if( 0 != mod_sym )
         {
-          RNOKCABAC( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 6 ) ) );
+          RNOK( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 6 ) ) );
           act_sym += ++mod_sym << 2;
         }
 
-        RNOKCABAC( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 7 ) ) );
+        RNOK( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 7 ) ) );
         act_sym += mod_sym << 1;
 
-        RNOKCABAC( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 8 ) ) );
+        RNOK( CabaDecoder::getSymbol( mod_sym, m_cMbTypeCCModel.get( 0, 8 ) ) );
         act_sym += mod_sym;
       }
     }
@@ -584,46 +531,46 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
     uiMbMode = 0;
     UInt uiSymbol;
 
-    if( ! rcMbDataAccess.getSH().isInterB() )
+    if( ! rcMbDataAccess.getSH().isBSlice() )
     {
-      RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 4 ) ) );
+      RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 4 ) ) );
       if( 0 != uiSymbol )
       {
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 7 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 7 ) ) );
         uiMbMode = ( 0 != uiSymbol ) ? 7 : 6;
       }
       else
       {
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 5 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 5 ) ) );
         if( 0 != uiSymbol )
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 7 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 7 ) ) );
           uiMbMode = ( 0 != uiSymbol ) ? 2 : 3;
         }
         else
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 6 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 6 ) ) );
           uiMbMode = ( 0 != uiSymbol ) ? 4 : 1;
         }
       }
     }
     else
     {
-      RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, rcMbDataAccess.getCtxMbType() ) ) );
+      RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, rcMbDataAccess.getCtxMbType() ) ) );
       if( 0 != uiSymbol )
       {
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 4 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 4 ) ) );
         if( 0 != uiSymbol )
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 5 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 5 ) ) );
           if( 0 != uiSymbol )
           {
             uiMbMode = 12;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
             uiMbMode += uiSymbol << 3;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
             uiMbMode += uiSymbol << 2;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
             uiMbMode += uiSymbol << 1;
             if( 24 == uiMbMode)
             {
@@ -641,7 +588,7 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
                 {
                   uiMbMode = 23;
                 }
-                RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+                RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
                 uiMbMode += uiSymbol;
               }
             }
@@ -649,48 +596,48 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
           else
           {
             uiMbMode = 3;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
             uiMbMode += uiSymbol << 2;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
             uiMbMode += uiSymbol << 1;
-            RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+            RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
             uiMbMode += uiSymbol;
           }
         }
         else
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 2, 6 ) ) );
           uiMbMode = ( 0 != uiSymbol ) ? 2 : 1;
         }
       }
     }
 
-    if( ! ( uiMbMode <= 6 || (rcMbDataAccess.getSH().isInterB() && uiMbMode <= 23) ) )
+    if( ! ( uiMbMode <= 6 || (rcMbDataAccess.getSH().isBSlice() && uiMbMode <= 23) ) )
     {
-      RNOKCABAC( CabaDecoder::getTerminateBufferBit( uiSymbol ) )
+      RNOK( CabaDecoder::getTerminateBufferBit( uiSymbol ) )
       if( 0 != uiSymbol )
       {
-        uiMbMode += ( rcMbDataAccess.getSH().isInterB() ) ? 22 : 24;
+        uiMbMode += ( rcMbDataAccess.getSH().isBSlice() ) ? 22 : 24;
       }
       else
       {
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 8 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 8 ) ) );
         uiMbMode += ( 0 != uiSymbol ) ? 12 : 0;
 
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 9 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 9 ) ) );
         if( 0 != uiSymbol )
         {
-          RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 9 ) ) );
+          RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 9 ) ) );
           uiMbMode += ( 0 != uiSymbol ) ? 8 : 4;
         }
 
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 10 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 10 ) ) );
         uiMbMode += uiSymbol << 1;
-        RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 10 ) ) );
+        RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMbTypeCCModel.get( 1, 10 ) ) );
         uiMbMode += uiSymbol;
       }
     }
-    if( ! rcMbDataAccess.getSH().isInterB() )
+    if( ! rcMbDataAccess.getSH().isBSlice() )
     {
       uiMbMode--;
     }
@@ -700,7 +647,7 @@ ErrVal CabacReader::mbMode( MbDataAccess& rcMbDataAccess )
 
   DTRACE_T( "MbMode" );
   DTRACE_TY( "ae(v)" );
-  DTRACE_CODE( ( ! rcMbDataAccess.getSH().isIntra()) ? uiMbMode+1:uiMbMode );
+  DTRACE_CODE( ( ! rcMbDataAccess.getSH().isIntraSlice()) ? uiMbMode+1:uiMbMode );
   DTRACE_N;
 
   return Err::m_nOK;
@@ -722,15 +669,15 @@ ErrVal CabacReader::xGetMvdComponent( Short& rsMvdComp, UInt uiAbsSum, UInt uiCt
   rsMvdComp = 0;
 
   UInt uiSymbol;
-  RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cMvdCCModel.get( 0, uiLocalCtx ) ) );
+  RNOK( CabaDecoder::getSymbol( uiSymbol, m_cMvdCCModel.get( 0, uiLocalCtx ) ) );
 
   ROTRS( 0 == uiSymbol, Err::m_nOK )
 
-  RNOKCABAC( CabaDecoder::getExGolombMvd( uiSymbol, &m_cMvdCCModel.get( 1, uiCtx ), 3 ) );
+  RNOK( CabaDecoder::getExGolombMvd( uiSymbol, &m_cMvdCCModel.get( 1, uiCtx ), 3 ) );
   uiSymbol++;
 
   UInt uiSign;
-  RNOKCABAC( CabaDecoder::getEpSymbol( uiSign ) );
+  RNOK( CabaDecoder::getEpSymbol( uiSign ) );
 
   rsMvdComp = ( 0 != uiSign ) ? -(Int)uiSymbol : (Int)uiSymbol;
 
@@ -832,7 +779,7 @@ ErrVal CabacReader::xGetMvd( MbDataAccess& rcMbDataAccess, Mv& rcMv, LumaIdx cId
 ErrVal CabacReader::fieldFlag( MbDataAccess& rcMbDataAccess )
 {
   UInt uiSymbol;
-  RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cFieldFlagCCModel.get( 0, rcMbDataAccess.getCtxFieldFlag() ) ) );
+  RNOK( CabaDecoder::getSymbol( uiSymbol, m_cFieldFlagCCModel.get( 0, rcMbDataAccess.getCtxFieldFlag() ) ) );
 
   rcMbDataAccess.setFieldMode( uiSymbol != 0 );
 
@@ -848,11 +795,11 @@ ErrVal CabacReader::intraPredModeChroma( MbDataAccess& rcMbDataAccess )
 {
 
   UInt uiSymbol;
-  RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cChromaPredCCModel.get( 0, rcMbDataAccess.getCtxChromaPredMode() ) ) );
+  RNOK( CabaDecoder::getSymbol( uiSymbol, m_cChromaPredCCModel.get( 0, rcMbDataAccess.getCtxChromaPredMode() ) ) );
 
   if( uiSymbol )
   {
-    RNOKCABAC( CabaDecoder::getUnaryMaxSymbol( uiSymbol, m_cChromaPredCCModel.get( 0 ) + 3, 0, 2 ) );
+    RNOK( CabaDecoder::getUnaryMaxSymbol( uiSymbol, m_cChromaPredCCModel.get( 0 ) + 3, 0, 2 ) );
     uiSymbol++;
   }
 
@@ -872,15 +819,15 @@ ErrVal CabacReader::intraPredModeLuma( MbDataAccess& rcMbDataAccess, LumaIdx cId
   UInt uiSymbol;
   UInt uiIPredMode;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 0 ) ) );
+  RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 0 ) ) );
 
   if( ! uiSymbol )
   {
-    RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
     uiIPredMode  = uiSymbol;
-    RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
     uiIPredMode |= (uiSymbol << 1);
-    RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = ( uiIPredMode | (uiSymbol << 2) );
   }
   else
@@ -906,25 +853,25 @@ ErrVal CabacReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop
   a = rcMbDataAccess.getLeftLumaCbp ( B4x4Idx( 0 ), 0, 16 );
   b = rcMbDataAccess.getAboveLumaCbp( B4x4Idx( 0 ), 0, 16 ) << 1;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
+  RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
   uiCbp = uiBit;
 
   a = uiCbp & 1;
   b = rcMbDataAccess.getAboveLumaCbp( B4x4Idx( 2 ), 0, 16 ) << 1;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
+  RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
   uiCbp += uiBit << 1;
 
   a = rcMbDataAccess.getLeftLumaCbp ( B4x4Idx( 8 ), 0, 16 );
   b = (uiCbp  << 1) & 2;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
+  RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
   uiCbp += uiBit << 2;
 
   a = ( uiCbp >> 2 ) & 1;
   b = uiCbp & 2;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
+  RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, 3 - (a + b) ) ) );
   uiCbp += uiBit << 3;
 
   uiCtx = 1;
@@ -935,14 +882,14 @@ ErrVal CabacReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop
   a = uiLeftChromaCbp  > 0 ? 1 : 0;
   b = uiAboveChromaCbp > 0 ? 2 : 0;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, a + b ) ) );
+  RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( uiCtx, a + b ) ) );
 
   if( uiBit )
   {
     a = uiLeftChromaCbp  > 1 ? 1 : 0;
     b = uiAboveChromaCbp > 1 ? 2 : 0;
 
-    RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( ++uiCtx, a + b ) ) );
+    RNOK( CabaDecoder::getSymbol( uiBit, m_cCbpCCModel.get( ++uiCtx, a + b ) ) );
     uiCbp += (1 == uiBit) ? 32 : 16;
   }
 
@@ -1030,13 +977,13 @@ ErrVal CabacReader::deltaQp( MbDataAccess& rcMbDataAccess )
   Int iDQp = 0;
   UInt uiCtx = m_uiLastDQpNonZero;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiDQp, m_cDeltaQpCCModel.get( 0, uiCtx ) ) );
+  RNOK( CabaDecoder::getSymbol( uiDQp, m_cDeltaQpCCModel.get( 0, uiCtx ) ) );
 
   m_uiLastDQpNonZero = uiDQp;
 
   if( uiDQp )
   {
-    RNOKCABAC( CabaDecoder::getUnarySymbol( uiDQp, &m_cDeltaQpCCModel.get( 0, 2 ), 1 ) );
+    RNOK( CabaDecoder::getUnarySymbol( uiDQp, &m_cDeltaQpCCModel.get( 0, 2 ), 1 ) );
 
     iDQp = (uiDQp + 2) / 2;
 
@@ -1093,7 +1040,7 @@ ErrVal CabacReader::xReadBCbp( MbDataAccess& rcMbDataAccess, Bool& rbCoded, Resi
   UInt uiCtx      = rcMbDataAccess.getCtxCodedBlockBit( uiBitPos, uiStart, uiStop );
   UInt uiBit;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cBCbpCCModel.get( type2ctx1[ eResidualMode ], uiCtx) ) );
+  RNOK( CabaDecoder::getSymbol( uiBit, m_cBCbpCCModel.get( type2ctx1[ eResidualMode ], uiCtx) ) );
 
   rbCoded = ( uiBit == 1 );
   rcMbDataAccess.getMbData().setBCBP( uiBitPos, uiBit);
@@ -1123,7 +1070,7 @@ ErrVal CabacReader::xReadBCbp( MbDataAccess& rcMbDataAccess, Bool& rbCoded, Resi
   UInt uiCtx      = rcMbDataAccess.getCtxCodedBlockBit( uiBitPos, uiStart, uiStop );
   UInt uiBit;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiBit, m_cBCbpCCModel.get( type2ctx1[ eResidualMode ], uiCtx) ) );
+  RNOK( CabaDecoder::getSymbol( uiBit, m_cBCbpCCModel.get( type2ctx1[ eResidualMode ], uiCtx) ) );
 
   rbCoded = ( uiBit == 1 );
   rcMbDataAccess.getMbData().setBCBP( uiBitPos, uiBit);
@@ -1174,14 +1121,14 @@ ErrVal CabacReader::xReadCoeff( TCoeff*         piCoeff,
   {
     UInt uiSig;
     //--- read significance symbol ---
-    RNOKCABAC( CabaDecoder::getSymbol( uiSig, rcMapCCModel.get( type2ctx2[eResidualMode], ui ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSig, rcMapCCModel.get( type2ctx2[eResidualMode], ui ) ) );
 
     if( uiSig )
     {
       piCoeff[pucScan[ui]] = uiSig;
 
       UInt uiLast;
-      RNOKCABAC( CabaDecoder::getSymbol( uiLast, rcLastCCModel.get( type2ctx2[eResidualMode], ui ) ) );
+      RNOK( CabaDecoder::getSymbol( uiLast, rcLastCCModel.get( type2ctx2[eResidualMode], ui ) ) );
       if( uiLast )
       {
         break;
@@ -1207,12 +1154,12 @@ ErrVal CabacReader::xReadCoeff( TCoeff*         piCoeff,
     {
       UInt uiCtx = min (c1,4);
 
-      RNOKCABAC( CabaDecoder::getSymbol( uiCoeff, m_cOneCCModel.get( type2ctx1[eResidualMode], uiCtx ) ) );
+      RNOK( CabaDecoder::getSymbol( uiCoeff, m_cOneCCModel.get( type2ctx1[eResidualMode], uiCtx ) ) );
 
       if( 1 == uiCoeff )
       {
         uiCtx = min (c2,4);
-        RNOKCABAC( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( type2ctx1[eResidualMode], uiCtx ) ) );
+        RNOK( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( type2ctx1[eResidualMode], uiCtx ) ) );
         uiCoeff += 2;
 
         c1=0;
@@ -1229,7 +1176,7 @@ ErrVal CabacReader::xReadCoeff( TCoeff*         piCoeff,
       }
 
       UInt uiSign;
-      RNOKCABAC( CabaDecoder::getEpSymbol( uiSign ) );
+      RNOK( CabaDecoder::getEpSymbol( uiSign ) );
 
       piCoeff[pucScan[ui]] = ( uiSign ? -(Int)uiCoeff : (Int)uiCoeff );
     }
@@ -1275,7 +1222,7 @@ ErrVal CabacReader::transformSize8x8Flag( MbDataAccess& rcMbDataAccess)
   UInt uiSymbol;
   UInt uiCtx = rcMbDataAccess.getCtx8x8Flag();
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cTransSizeCCModel.get( 0, uiCtx ) ) );
+  RNOK( CabaDecoder::getSymbol( uiSymbol, m_cTransSizeCCModel.get( 0, uiCtx ) ) );
 
   rcMbDataAccess.getMbData().setTransformSize8x8( uiSymbol != 0 );
 
@@ -1293,15 +1240,15 @@ ErrVal CabacReader::intraPredModeLuma8x8( MbDataAccess& rcMbDataAccess, B8x8Idx 
   UInt uiSymbol;
   UInt uiIPredMode;
 
-  RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 0 ) ) );
+  RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 0 ) ) );
 
   if( ! uiSymbol )
   {
-    RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
     uiIPredMode  = uiSymbol;
-    RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
     uiIPredMode |= (uiSymbol << 1);
-    RNOKCABAC( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
+    RNOK( CabaDecoder::getSymbol( uiSymbol, m_cIntraPredCCModel.get( 0, 1 ) ) );
     rcMbDataAccess.getMbData().intraPredMode( cIdx ) = ( uiIPredMode | (uiSymbol << 2) );
   }
   else
@@ -1357,14 +1304,14 @@ ErrVal CabacReader::residualBlock8x8( MbDataAccess& rcMbDataAccess,
     {
       UInt uiSig;
       //--- read significance symbol ---
-        RNOKCABAC( CabaDecoder::getSymbol( uiSig, pcMapCCModel[pos2ctx_map[ui]] ) );
+        RNOK( CabaDecoder::getSymbol( uiSig, pcMapCCModel[pos2ctx_map[ui]] ) );
 
       if( uiSig )
       {
         piCoeff[pucScan[ui]] = uiSig;
         UInt uiLast;
 
-          RNOKCABAC( CabaDecoder::getSymbol( uiLast, pcLastCCModel[pos2ctx_last8x8[ui]] ) );
+          RNOK( CabaDecoder::getSymbol( uiLast, pcLastCCModel[pos2ctx_last8x8[ui]] ) );
 
         if( uiLast )
         {
@@ -1396,12 +1343,12 @@ ErrVal CabacReader::residualBlock8x8( MbDataAccess& rcMbDataAccess,
     {
       UInt uiCtx = min (c1,4);
 
-      RNOKCABAC( CabaDecoder::getSymbol( uiCoeff, m_cOneCCModel.get( uiCtxOffset, uiCtx ) ) );
+      RNOK( CabaDecoder::getSymbol( uiCoeff, m_cOneCCModel.get( uiCtxOffset, uiCtx ) ) );
 
       if( 1 == uiCoeff )
       {
         uiCtx = min (c2,4);
-        RNOKCABAC( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( uiCtxOffset, uiCtx ) ) );
+        RNOK( CabaDecoder::getExGolombLevel( uiCoeff, m_cAbsCCModel.get( uiCtxOffset, uiCtx ) ) );
         uiCoeff += 2;
 
         c1=0;
@@ -1418,7 +1365,7 @@ ErrVal CabacReader::residualBlock8x8( MbDataAccess& rcMbDataAccess,
       }
 
       UInt uiSign;
-      RNOKCABAC( CabaDecoder::getEpSymbol( uiSign ) );
+      RNOK( CabaDecoder::getEpSymbol( uiSign ) );
 
       piCoeff[iIndex] = ( uiSign ? -(Int)uiCoeff : (Int)uiCoeff );
     }

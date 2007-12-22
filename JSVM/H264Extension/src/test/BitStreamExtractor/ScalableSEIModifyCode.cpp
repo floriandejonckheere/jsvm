@@ -399,16 +399,14 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
   for( UInt uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
   {
 		//JVT-W051 {
-		//pcScalableModifyCode->WriteCode( pcScalableSei->getLayerId( uiLayer ), 8 );
 		pcScalableModifyCode->WriteUVLC( pcScalableSei->getLayerId( uiLayer ) );
 		//JVT-W051 }
 //JVT-S036 lsj start
-    //pcScalableModifyCode->WriteCode( pcScalableSei->getSimplePriorityId( uiLayer ), 6 );//SEI changes update
     pcScalableModifyCode->WriteCode( pcScalableSei->getPriorityId( uiLayer ), 6 );//SEI changes update
     pcScalableModifyCode->WriteFlag( pcScalableSei->getDiscardableFlag( uiLayer ) );   
     pcScalableModifyCode->WriteCode( pcScalableSei->getDependencyId( uiLayer ), 3 );
-    pcScalableModifyCode->WriteCode( pcScalableSei->getQualityLevel( uiLayer ), 4 );
-    pcScalableModifyCode->WriteCode( pcScalableSei->getTemporalLevel( uiLayer ), 3 );//SEI changes update
+    pcScalableModifyCode->WriteCode( pcScalableSei->getQualityId( uiLayer ), 4 );
+    pcScalableModifyCode->WriteCode( pcScalableSei->getTemporalId( uiLayer ), 3 );//SEI changes update
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getSubPicLayerFlag( uiLayer ) );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getSubRegionLayerFlag( uiLayer ) );
     pcScalableModifyCode->WriteFlag( pcScalableSei->getIroiSliceDivisionInfoPresentFlag( uiLayer ) );
@@ -726,7 +724,7 @@ ScalableSEIModifyCode::SEICode  ( h264::SEI::ScalableSeiDependencyChange* pcScal
   pcScalableModifyCode->WriteUVLC( uiNumScalableLayersMinus1 );
   for( uiLayer = 0; uiLayer <= uiNumScalableLayersMinus1; uiLayer++ )
   {
-    pcScalableModifyCode->WriteCode( pcScalableSeiDependencyChange->getLayerId( uiLayer ), 8);
+    pcScalableModifyCode->WriteCode( pcScalableSeiDependencyChange->getDependencyId( uiLayer ), 8);
     pcScalableModifyCode->WriteFlag( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) );
     if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
     {

@@ -86,7 +86,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/MbData.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
-#include "H264AVCCommonLib/FrameUnit.h"
+#include "H264AVCCommonLib/Frame.h"
 
 #include "H264AVCCommonLib/CFMO.h"
 #include <math.h>
@@ -252,8 +252,10 @@ ErrVal MbDataCtrl::init( const SequenceParameterSet& rcSPS )
 
   m_iMbPerLine = rcSPS.getFrameWidthInMbs();
 
-  RNOK( m_cpDFPBuffer.init( uiSize+1 ) );
-  m_cpDFPBuffer.clear();
+  RNOK( m_cDBFPBuffer   .init( uiSize + 1 ) );
+  RNOK( m_cILDBFPBuffer .init( uiSize + 1 ) );
+  m_cDBFPBuffer   .clear();
+  m_cILDBFPBuffer .clear();
   RNOK( m_cMbProcessed.init( uiSize ) );
   m_cMbProcessed.clear();
   m_bInitDone     = true;
@@ -299,7 +301,7 @@ MbDataCtrl::xBuildVirtualBaseLayer( MbDataCtrl* pcMbBaseDataCtrl,
   const Int iMbEndY   = pcSliceHeader->getSPS().getFrameHeightInMbs();
   const Int iMbEndX   = iMbStride;
 
-  const Bool  bBaseProg  = !pcSliceHeader->isMbAff() && !pcSliceHeader->getFieldPicFlag();
+  const Bool  bBaseProg  = !pcSliceHeader->isMbaffFrame() && !pcSliceHeader->getFieldPicFlag();
   const Bool  bBaseField = pcSliceHeader->getFieldPicFlag();
   Int   iSrc0 = iMbStride, iSrc1 = 0, iCopyForce = 0;
 
@@ -525,7 +527,7 @@ MbDataCtrl::xInitVBLUpsampleData( MbDataCtrl*         pcBaseMbDataCtrl,
   const SliceHeader* pcBaseSliceHeader = pcBaseMbDataCtrl->m_pcSliceHeader;
 	ROT( NULL == pcBaseSliceHeader);
 
-  Bool  bBaseProg    = !pcBaseSliceHeader->isMbAff() && !pcBaseSliceHeader->getFieldPicFlag();
+  Bool  bBaseProg    = !pcBaseSliceHeader->isMbaffFrame() && !pcBaseSliceHeader->getFieldPicFlag();
   //Bool  bBaseProg    = !pcParameters->m_bBaseIsMbAff && !pcParameters->m_bBaseFieldPicFlag; 
   Bool  bBaseField   = pcBaseSliceHeader->getFieldPicFlag();
   //Bool  bBaseField   = pcParameters->m_bBaseFieldPicFlag;
@@ -639,12 +641,18 @@ ErrVal MbDataCtrl::uninit()
 
 	RNOK( m_cMbProcessed.uninit() );
 
-  for( UInt n = 0; n < m_cpDFPBuffer.size(); n++ )
+  for( UInt n = 0; n < m_cDBFPBuffer.size(); n++ )
   {
-    delete m_cpDFPBuffer.get( n );
-    m_cpDFPBuffer.set( n, NULL );
+    delete m_cDBFPBuffer.get( n );
+    m_cDBFPBuffer.set( n, 0 );
   }
-  RNOK( m_cpDFPBuffer.uninit() );
+  RNOK( m_cDBFPBuffer.uninit() );
+  for( UInt n = 0; n < m_cILDBFPBuffer.size(); n++ )
+  {
+    delete m_cILDBFPBuffer.get( n );
+    m_cILDBFPBuffer.set( n, 0 );
+  }
+  RNOK( m_cILDBFPBuffer.uninit() );
 
   m_bInitDone = false;
   return Err::m_nOK;
@@ -711,39 +719,8 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
 	m_iColocatedOffset  = 0;
   m_bPicCodedField    = rcSH.getFieldPicFlag();
 
-  if( rcSH.isInterB() )
+  if( rcSH.isBSlice() )
   {
-    if( rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_IDR_SCALABLE &&
-        rcSH.getNalUnitType() != NAL_UNIT_CODED_SLICE_SCALABLE     && bDecoder
-				&& rcSH.getRefListSize( LIST_1 ) )
-    {
-//EIDR 0619{
-		//const RefPic& rcRefPic0L1 = rcSH.getRefPic( 1, rcSH.getPicType(), LIST_1 );
-
-//EIDR bug-fix
-			const RefPic& rcRefPic0L1 = ( rcSH.getPicType()!= BOT_FIELD && rcSH.getRefListSize(LIST_1) > 1  && 
-				rcSH.getRefPic(2, rcSH.getPicType(), LIST_1).getFrame()->getPoc() < rcSH.getRefPic(1, rcSH.getPicType(), LIST_1).getFrame()->getPoc() && 
-				rcSH.getRefPic(2, rcSH.getPicType(), LIST_1).getFrame()->getPoc() > rcSH.getPoc()) 
-				? rcSH.getRefPic( 2, rcSH.getPicType(), LIST_1 ) : rcSH.getRefPic( 1, rcSH.getPicType(), LIST_1 ); 
-//EIDR 0619} 
-      AOF_DBG( rcRefPic0L1.isAvailable() );
-      const FrameUnit* pcFU = rcRefPic0L1.getFrame()->getFrameUnit();
-
-      Int iCurrPoc    = rcSH.getPoc();
-      Int iTopDiffPoc = iCurrPoc - pcFU->getPic( TOP_FIELD )->getPoc();
-      Int iBotDiffPoc = iCurrPoc - pcFU->getPic( BOT_FIELD )->getPoc();
-
-      m_bUseTopField    = ( abs( iTopDiffPoc ) < abs( iBotDiffPoc ) );
-      m_pcMbDataCtrl0L1 = pcFU->getMbDataCtrl();
-
-      if( FRAME != rcSH.getPicType() )
-      {
-        if( rcRefPic0L1.getFrame()->getPicType() != rcSH.getPicType() && m_pcMbDataCtrl0L1->isPicCodedField() )
-        {
-          m_iColocatedOffset = m_iMbPerLine;
-        }
-      }
-    }
 
     if( pcMbDataCtrl )
     {
@@ -755,15 +732,20 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
   {
     m_uiSliceId++;
 
-    //manu.mathew@samsung : memory leak fix
-    if( m_cpDFPBuffer.get( m_uiSliceId ) )
+    DBFilterParameter* pcDBF   = new DBFilterParameter( rcSH.getDeblockingFilterParameter() );
+    DBFilterParameter* pcILDBF = new DBFilterParameter( rcSH.getInterLayerDeblockingFilterParameter() );
+    if( m_cDBFPBuffer.get( m_uiSliceId ) )
     {
-      delete m_cpDFPBuffer.get( m_uiSliceId );
-      m_cpDFPBuffer.set( m_uiSliceId, NULL );
+      delete m_cDBFPBuffer.get( m_uiSliceId );
+      m_cDBFPBuffer  .set( m_uiSliceId, 0 );
     }
-    //--
-
-    m_cpDFPBuffer.set( m_uiSliceId, rcSH.getDeblockingFilterParameterScalable().getCopy() );
+    if( m_cILDBFPBuffer.get( m_uiSliceId ) )
+    {
+      delete m_cILDBFPBuffer.get( m_uiSliceId );
+      m_cILDBFPBuffer.set( m_uiSliceId, 0 );
+    }
+    m_cDBFPBuffer  .set( m_uiSliceId, pcDBF );
+    m_cILDBFPBuffer.set( m_uiSliceId, pcILDBF );
    
     m_bDirect8x8InferenceFlag = rcSH.getSPS().getDirect8x8InferenceFlag();
   }
@@ -775,7 +757,7 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
   m_uiMbOffset      = rcSH.getBottomFieldFlag() ? 1 * m_iMbPerLine : 0;
   m_uiMbStride      = rcSH.getFieldPicFlag   () ? 2 * m_iMbPerLine : m_iMbPerLine;
   m_iMbPerColumn    = rcSH.getFieldPicFlag   () ?  iMbPerColumn>>1 : iMbPerColumn;
-  m_ucLastMbQp      = rcSH.getPicQp();
+  m_ucLastMbQp      = rcSH.getSliceQp();
 
   H264AVC_DELETE_CLASS( m_pcMbDataAccess );
   return Err::m_nOK;
@@ -825,7 +807,7 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
   AOT_DBG( uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset >= m_uiSize );
 
   Bool     bLf          = (m_eProcessingState == POST_PROCESS);
-  Bool     bMbAff       = m_pcSliceHeader->isMbAff();
+  Bool     bMbAff       = m_pcSliceHeader->isMbaffFrame();
   Bool     bTopMb       = ((bMbAff && (uiMbY % 2)) ? false : true);
   UInt     uiMbYComp    = ( bMbAff ? ( bTopMb ? uiMbY+1 : uiMbY-1 ) : uiMbY );
   UInt     uiCurrIdx    = uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset;
@@ -912,7 +894,6 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 																													xGetColMbData( uiIdxColTop ),
 																													xGetColMbData( uiIdxColBot ),
                                                          *m_pcSliceHeader,
-                                                         *m_cpDFPBuffer.get( uiSliceId ),
                                                           uiMbX,
                                                           uiMbY,
 																													bTopMb,
@@ -943,7 +924,7 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
   AOT_DBG( uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset >= m_uiSize );
 
  Bool     bLf          = (m_eProcessingState == POST_PROCESS);
-  Bool     bMbAff       = m_pcSliceHeader->isMbAff();
+  Bool     bMbAff       = m_pcSliceHeader->isMbaffFrame();
   Bool     bTopMb       = ((bMbAff && (uiMbY % 2)) ? false : true);
   UInt     uiMbYComp    = ( bMbAff ? ( bTopMb ? uiMbY+1 : uiMbY-1 ) : uiMbY );
   UInt     uiCurrIdx    = uiMbY * m_uiMbStride + uiMbX + m_uiMbOffset;
@@ -1032,7 +1013,6 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
 																													pcMbDataCtrlRef->getMbData( uiIdxColTop),
                                                           pcMbDataCtrlRef->getMbData( uiIdxColBot),
                                                           *m_pcSliceHeader,
-                                                          *m_cpDFPBuffer.get( uiSliceId ),
                                                           uiMbX,
                                                           uiMbY,
 																													bTopMb,
@@ -1053,6 +1033,7 @@ ErrVal MbDataCtrl::initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *
 
 ControlData::ControlData()
 : m_pcMbDataCtrl         ( 0   )
+, m_pcMbDataCtrl0L1( 0 )
 , m_pcSliceHeader        ( 0   )
 , m_pcSliceHeaderBot     ( 0 )
 , m_dLambda              ( 0   )
@@ -1091,6 +1072,7 @@ ControlData::~ControlData()
 Void
 ControlData::clear()
 {
+  m_pcMbDataCtrl0L1 = 0;
   m_pcBaseLayerRec       = 0;
   m_pcBaseLayerSbb       = 0;
   m_pcBaseLayerCtrl      = 0;
@@ -1113,6 +1095,7 @@ ControlData::init( SliceHeader*  pcSliceHeader,
   m_pcMbDataCtrl  = pcMbDataCtrl;
   m_dLambda       = dLambda;
   
+  m_pcMbDataCtrl0L1 = 0;
   m_pcBaseLayerRec       = 0;
   m_pcBaseLayerSbb       = 0;
   m_pcBaseLayerCtrl      = 0;
@@ -1130,6 +1113,7 @@ ControlData::init( SliceHeader*  pcSliceHeader )
 
   m_pcSliceHeader = pcSliceHeader;
   
+  m_pcMbDataCtrl0L1 = 0;
   m_pcBaseLayerRec       = 0;
   m_pcBaseLayerSbb       = 0;
   m_pcBaseLayerCtrl      = 0;

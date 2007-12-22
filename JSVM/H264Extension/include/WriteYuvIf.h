@@ -91,7 +91,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 
-
 class H264AVCVIDEOIOLIB_API WriteYuvIf
 {
 protected:
@@ -104,7 +103,8 @@ public:
                              const UChar *pCr,
                              UInt uiLumHeight,
                              UInt uiLumWidth,
-                             UInt uiLumStride )  = 0;
+                             UInt uiLumStride,
+                             const UInt rauiCropping[] )  = 0;
 
   virtual ErrVal destroy() = 0;
 };

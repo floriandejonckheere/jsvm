@@ -180,7 +180,6 @@ private:
   h264::H264AVCPacketAnalyzer*  m_pcH264AVCPacketAnalyzer;
   h264::CreaterH264AVCDecoder*  m_pcH264AVCDecoder;
     //bug-fix suffix{{
-  h264::CreaterH264AVCDecoder*  m_pcH264AVCDecoderSuffix;
   ReadBitstreamIf*            m_pcReadBitstream;
   //bug-fix suffix}}
   // for SEI writing
@@ -191,19 +190,19 @@ private:
   h264::NalUnitEncoder*         m_pcNalUnitEncoder;
 
   Bool                          m_bOutputReconstructions;
-  Bool                          m_bMGS;
   UInt                          m_uiNumLayers;
-  UInt                          m_auiNumFGSLayers [MAX_LAYERS];
-  UInt                          m_auiNumFrames    [MAX_LAYERS];
-  UInt                          m_auiGOPSize      [MAX_LAYERS];
-  UInt                          m_auiNumTempLevel [MAX_LAYERS];
-  UInt                          m_auiFrameWidth   [MAX_LAYERS];
-  UInt                          m_auiFrameHeight  [MAX_LAYERS];
-  UInt                          m_auiSPSRequired  [32];
-  UInt                          m_auiPPSRequired  [256];
-  Double*                       m_aaadDeltaDist   [MAX_LAYERS][MAX_QUALITY_LEVELS];
-  UInt*                         m_aaauiPacketSize [MAX_LAYERS][MAX_QUALITY_LEVELS];
-  UInt*                         m_aaauiQualityID  [MAX_LAYERS][MAX_QUALITY_LEVELS];
+  UInt                          m_auiNumFGSLayers     [MAX_LAYERS];
+  UInt                          m_auiNumFrames        [MAX_LAYERS];
+  UInt                          m_auiGOPSize          [MAX_LAYERS];
+  UInt                          m_auiNumTempLevel     [MAX_LAYERS];
+  UInt                          m_auiFrameWidth       [MAX_LAYERS];
+  UInt                          m_auiFrameHeight      [MAX_LAYERS];
+  UInt                          m_auiSPSRequired      [32];
+  UInt                          m_auiSubsetSPSRequired[32];
+  UInt                          m_auiPPSRequired      [256];
+  Double*                       m_aaadDeltaDist       [MAX_LAYERS][MAX_QUALITY_LEVELS];
+  UInt*                         m_aaauiPacketSize     [MAX_LAYERS][MAX_QUALITY_LEVELS];
+  UInt*                         m_aaauiQualityID      [MAX_LAYERS][MAX_QUALITY_LEVELS];
 
   PicBufferList                 m_cActivePicBufferList;
   PicBufferList                 m_cUnusedPicBufferList;

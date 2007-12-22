@@ -87,40 +87,24 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-ControlMngH264AVCDecoder::ControlMngH264AVCDecoder():
-  m_pcMbDataCtrl          ( NULL ),
-  m_pcFrameMng            ( NULL ),
-  m_pcParameterSetMng     ( NULL ),
-  m_pcSliceReader         ( NULL ),
-  m_pcNalUnitParser       ( NULL ),
-  m_pcSliceDecoder        ( NULL ),
-  m_pcControlMng          ( NULL ),
-  m_pcBitReadBuffer       ( NULL ),
-  m_pcUvlcReader          ( NULL ),
-  m_pcMbParser            ( NULL ),
-  m_pcLoopFilter          ( NULL ),
-  m_pcMbDecoder           ( NULL ),
-  m_pcTransform           ( NULL ),
-  m_pcIntraPrediction     ( NULL ),
-  m_pcMotionCompensation  ( NULL ),
-  m_pcQuarterPelFilter    ( NULL ),
-  m_pcCabacReader         ( NULL ),
-  m_pcSampleWeighting     ( NULL ),
-  m_uiCurrLayer           ( MSYS_UINT_MAX ),
-  m_bLayer0IsAVC          ( true ),
-	m_bMbAff                ( false )
+ControlMngH264AVCDecoder::ControlMngH264AVCDecoder()
+: m_pcMbDataCtrl          ( NULL )
+, m_pcUvlcReader          ( NULL )
+, m_pcMbParser            ( NULL )
+, m_pcMotionCompensation  ( NULL )
+, m_pcCabacReader         ( NULL )
+, m_pcSampleWeighting     ( NULL )
+, m_uiCurrLayer           ( MSYS_UINT_MAX )
 {
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
     m_auiMbXinFrame           [uiLayer] = 0;
     m_auiMbYinFrame           [uiLayer] = 0;
-    m_apcMCTFDecoder          [uiLayer] = NULL;
-    m_apcPocCalculator        [uiLayer] = NULL;
+    m_apcLayerDecoder         [uiLayer] = NULL;
     m_apcYuvFullPelBufferCtrl [uiLayer] = NULL;
 		m_uiInitialized           [uiLayer] = false;
   }
 }
-
 
 
 ControlMngH264AVCDecoder::~ControlMngH264AVCDecoder()
@@ -128,81 +112,37 @@ ControlMngH264AVCDecoder::~ControlMngH264AVCDecoder()
 }
 
 
-
-
 ErrVal
-ControlMngH264AVCDecoder::init( FrameMng*            pcFrameMng,
-                             ParameterSetMng*     pcParameterSetMng,
-                             PocCalculator*       apcPocCalculator        [MAX_LAYERS],
-                             SliceReader*         pcSliceReader,
-                             NalUnitParser*       pcNalUnitParser,
-                             SliceDecoder*        pcSliceDecoder,
-                             BitReadBuffer*       pcBitReadBuffer,
-                             UvlcReader*          pcUvlcReader,
-                             MbParser*            pcMbParser,
-                             LoopFilter*          pcLoopFilter,
-                             MbDecoder*           pcMbDecoder,
-                             Transform*           pcTransform,
-                             IntraPrediction*     pcIntraPrediction,
-                             MotionCompensation*  pcMotionCompensation,
-                             YuvBufferCtrl*       apcYuvFullPelBufferCtrl [MAX_LAYERS],
-                             QuarterPelFilter*    pcQuarterPelFilter,
-                             CabacReader*         pcCabacReader,
-                             SampleWeighting*     pcSampleWeighting,
-                             MCTFDecoder*         apcMCTFDecoder          [MAX_LAYERS],
-                             H264AVCDecoder*         pcH264AVCDecoder )
+ControlMngH264AVCDecoder::init( UvlcReader*          pcUvlcReader,
+                                MbParser*            pcMbParser,
+                                MotionCompensation*  pcMotionCompensation,
+                                YuvBufferCtrl*       apcYuvFullPelBufferCtrl [MAX_LAYERS],
+                                CabacReader*         pcCabacReader,
+                                SampleWeighting*     pcSampleWeighting,
+                                LayerDecoder*        apcLayerDecoder         [MAX_LAYERS] )
 { 
+  ROF( pcUvlcReader );
+  ROF( pcMbParser );
+  ROF( pcMotionCompensation );
+  ROF( pcCabacReader );
+  ROF( pcSampleWeighting );
 
-  ROT( NULL == pcFrameMng );
-  ROT( NULL == pcParameterSetMng );
-  ROT( NULL == pcSliceReader );
-  ROT( NULL == pcNalUnitParser );
-  ROT( NULL == pcSliceDecoder );
-  ROT( NULL == pcBitReadBuffer );
-  ROT( NULL == pcUvlcReader );
-  ROT( NULL == pcMbParser );
-  ROT( NULL == pcLoopFilter );
-  ROT( NULL == pcMbDecoder );
-  ROT( NULL == pcTransform );
-  ROT( NULL == pcIntraPrediction );
-  ROT( NULL == pcMotionCompensation );
-  ROT( NULL == pcQuarterPelFilter );
-  ROT( NULL == pcCabacReader );
-  ROT( NULL == pcSampleWeighting );
-  ROT( NULL == pcH264AVCDecoder );
-
-  m_bLayer0IsAVC          = true;
   m_uiCurrLayer           = MSYS_UINT_MAX;
-  m_pcFrameMng            = pcFrameMng; 
-  m_pcParameterSetMng     = pcParameterSetMng;
-  m_pcSliceReader         = pcSliceReader; 
-  m_pcNalUnitParser       = pcNalUnitParser; 
-  m_pcSliceDecoder        = pcSliceDecoder; 
-  m_pcBitReadBuffer       = pcBitReadBuffer; 
   m_pcUvlcReader          = pcUvlcReader; 
   m_pcMbParser            = pcMbParser; 
-  m_pcLoopFilter          = pcLoopFilter; 
-  m_pcMbDecoder           = pcMbDecoder; 
-  m_pcTransform           = pcTransform; 
-  m_pcIntraPrediction     = pcIntraPrediction; 
   m_pcMotionCompensation  = pcMotionCompensation; 
-  m_pcQuarterPelFilter    = pcQuarterPelFilter; 
   m_pcCabacReader         = pcCabacReader; 
   m_pcSampleWeighting     = pcSampleWeighting; 
-  m_pcH264AVCDecoder         = pcH264AVCDecoder;
 
-  ROT( NULL == apcMCTFDecoder );
-  ROT( NULL == apcPocCalculator );
-  ROT( NULL == apcYuvFullPelBufferCtrl );
+  ROF( apcLayerDecoder );
+  ROF( apcYuvFullPelBufferCtrl );
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
-    ROT( NULL == apcMCTFDecoder         [uiLayer] );
-    ROT( NULL == apcPocCalculator       [uiLayer] );
-    ROT( NULL == apcYuvFullPelBufferCtrl[uiLayer] );
+    ROF( apcLayerDecoder        [uiLayer] );
+    ROF( apcYuvFullPelBufferCtrl[uiLayer] );
 
-    m_apcMCTFDecoder          [uiLayer] = apcMCTFDecoder          [uiLayer];
-    m_apcPocCalculator        [uiLayer] = apcPocCalculator        [uiLayer];
+    m_apcLayerDecoder         [uiLayer] = apcLayerDecoder         [uiLayer];
     m_apcYuvFullPelBufferCtrl [uiLayer] = apcYuvFullPelBufferCtrl [uiLayer];
   }
   
@@ -210,35 +150,32 @@ ControlMngH264AVCDecoder::init( FrameMng*            pcFrameMng,
 }
 
 
-
-
-ErrVal ControlMngH264AVCDecoder::uninit()
+ErrVal
+ControlMngH264AVCDecoder::uninit()
 {
   return Err::m_nOK;
 }
 
 
-
-ErrVal ControlMngH264AVCDecoder::create( ControlMngH264AVCDecoder*& rpcControlMngH264AVCDecoder )
+ErrVal
+ControlMngH264AVCDecoder::create( ControlMngH264AVCDecoder*& rpcControlMngH264AVCDecoder )
 {
   rpcControlMngH264AVCDecoder = new ControlMngH264AVCDecoder;
-
-  ROT( NULL == rpcControlMngH264AVCDecoder );
+  ROF( rpcControlMngH264AVCDecoder );
   return Err::m_nOK;
 }
 
 
-
-
-ErrVal ControlMngH264AVCDecoder::destroy()
+ErrVal
+ControlMngH264AVCDecoder::destroy()
 {
   delete this;
   return Err::m_nOK;
 }
 
 
-
-ErrVal ControlMngH264AVCDecoder::initMbForParsing( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex )
+ErrVal
+ControlMngH264AVCDecoder::initMbForParsing( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
   
@@ -248,12 +185,13 @@ ErrVal ControlMngH264AVCDecoder::initMbForParsing( MbDataAccess*& rpcMbDataAcces
   uiMbX = uiMbIndex - uiMbY * m_auiMbXinFrame[m_uiCurrLayer];
 
   RNOK( m_pcMbDataCtrl                          ->initMb( rpcMbDataAccess, uiMbY, uiMbX ) );
-  RNOK( m_apcYuvFullPelBufferCtrl[m_uiCurrLayer]->initMb(                  uiMbY, uiMbX, m_bMbAff ) );
+  RNOK( m_apcYuvFullPelBufferCtrl[m_uiCurrLayer]->initMb(                  uiMbY, uiMbX, false ) );
 
   return Err::m_nOK;
 }
 
-ErrVal ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )
+ErrVal
+ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
   
@@ -264,7 +202,8 @@ ErrVal ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess*& rpcMbDataAcce
   return Err::m_nOK;
 }
 
-ErrVal ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )
+ErrVal
+ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
   
@@ -274,7 +213,8 @@ ErrVal ControlMngH264AVCDecoder::initMbForDecoding( MbDataAccess& rcMbDataAccess
   return Err::m_nOK;
 }
 
-ErrVal ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )
+ErrVal
+ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
   
@@ -286,32 +226,20 @@ ErrVal ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess*& rpcMbDataAcc
 }
 
 
-ErrVal ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff  )// TMM_INTERLACE
+ErrVal
+ControlMngH264AVCDecoder::initMbForFiltering( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff  )
 {
   ROF( m_uiCurrLayer < MAX_LAYERS );
   
-  RNOK( m_apcYuvFullPelBufferCtrl[m_uiCurrLayer]->initMb(                  uiMbY, uiMbX, bMbAff ) );
-
+  RNOK( m_apcYuvFullPelBufferCtrl[m_uiCurrLayer]->initMb( uiMbY, uiMbX, bMbAff ) );
   return Err::m_nOK;
 }
 
 
 ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
 {
-  UInt  uiLayer             = rcSH->getLayerId                    ();
-//JVT-T054{
-  if(rcSH->getBaseLayerId() != MSYS_UINT_MAX && rcSH->getQualityLevel() != 0)
-  {
-    if( !m_apcMCTFDecoder[uiLayer]->isActive())
-    {
-      m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
-    }
-    //if(!m_apcMCTFDecoder[uiLayer]-^>getResizeParameters())
-      RNOK( xInitESS( rcSH ) );
-    return Err::m_nOK;
-  }
+  UInt  uiLayer = rcSH->getDependencyId();
 
-//JVT-T054}
   ROTRS( m_uiInitialized[uiLayer], Err::m_nOK );
   m_auiMbXinFrame[uiLayer]  = rcSH->getSPS().getFrameWidthInMbs   ();
   m_auiMbYinFrame[uiLayer]  = rcSH->getSPS().getFrameHeightInMbs  ();
@@ -321,74 +249,40 @@ ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
 
   RNOK( m_apcYuvFullPelBufferCtrl [uiLayer]->initSlice( uiSizeY, uiSizeX, YUV_Y_MARGIN, YUV_X_MARGIN ) );
 
-  if( uiLayer == 0 )
-  {
-    m_bLayer0IsAVC  = ( rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE || 
-                        rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR);
-    
-    RNOK( m_pcFrameMng->initSlice               ( rcSH ) );
-    m_pcH264AVCDecoder->setReconstructionLayerId( uiLayer );
-    m_pcH264AVCDecoder->setBaseAVCCompatible    ( m_bLayer0IsAVC );
-  }
-  else
-  {
-    m_pcH264AVCDecoder->setReconstructionLayerId( uiLayer );
-  }
-
-  if( (rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_SCALABLE ||  
-      rcSH->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR_SCALABLE) &&
-			rcSH->getTrueSlice())//TMM_EC
-  {
-    m_apcMCTFDecoder[uiLayer]->initSlice0( rcSH );
-  }
-
   RNOK( xInitESS( rcSH ) );
-
 	m_uiInitialized[uiLayer] = true;
 
   return Err::m_nOK;
 }
 
 
-// TMM_ESS {
 ErrVal ControlMngH264AVCDecoder::initSPS( SequenceParameterSet& rcSequenceParameterSet, UInt  uiLayer )
 {
   m_auiMbXinFrame[uiLayer]  = rcSequenceParameterSet.getFrameWidthInMbs   ();
   m_auiMbYinFrame[uiLayer]  = rcSequenceParameterSet.getFrameHeightInMbs  ();
-
   return Err::m_nOK;
 }
 
 
 ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
 {
-  UInt uiLayer = pcSliceHeader->getLayerId();
-  UInt uiBaseLayer = pcSliceHeader->getBaseLayerId();
-//JVT-T054{
-  if( pcSliceHeader->getQualityLevel() == 0)
+  UInt uiLayer = pcSliceHeader->getDependencyId();
+
+  if( pcSliceHeader->getQualityId() == 0)
   {
     pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameter[uiLayer]);
   }
-  else
+
+  if( ! pcSliceHeader->getNoInterLayerPredFlag() )
   {
-    ROT( pcSliceHeader->getQualityLevel() > MAX_QUALITY_LEVELS );
-    pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()]);
-  }
-//JVT-T054}
-  if (uiBaseLayer != MSYS_UINT_MAX )
-  {
-//JVT-T054{
-    ResizeParameters * curr;
-    if(pcSliceHeader->getQualityLevel() == 0)
+    UInt  uiBaseLayer = pcSliceHeader->getRefLayerDependencyId();
+
+    ResizeParameters * curr = 0;
+    if(pcSliceHeader->getQualityId() == 0)
     {
       curr = &m_ResizeParameter[uiLayer];
     }
-    else
-    {
-      ROT( pcSliceHeader->getQualityLevel() > MAX_QUALITY_LEVELS );
-      curr = &m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()];
-    }
-//JVT-T054}
+
     curr->m_iInWidth  = m_auiMbXinFrame  [uiBaseLayer] << 4;
     curr->m_iInHeight = m_auiMbYinFrame  [uiBaseLayer] << 4;
 
@@ -407,18 +301,12 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
       printf("\nControlMngH264AVCDecoder::initEES() - use of Extended Spatial Scalability not signaled\n");
       return Err::m_nERR;
     }
-    //end 
-//JVT-T054{
-    if(pcSliceHeader->getQualityLevel() == 0)
+
+    if(pcSliceHeader->getQualityId() == 0)
     {
-      m_apcMCTFDecoder[uiLayer]->setResizeParameters(&m_ResizeParameter[uiLayer]);
+      m_apcLayerDecoder[uiLayer]->setResizeParameters(&m_ResizeParameter[uiLayer]);
     }
-    else
-    {
-      ROT( pcSliceHeader->getQualityLevel() > MAX_QUALITY_LEVELS );
-      m_apcMCTFDecoder[uiLayer]->setResizeParametersCGSSNR(pcSliceHeader->getQualityLevel(), &m_ResizeParameterCGSSNR[uiLayer][pcSliceHeader->getQualityLevel()]);
-    }
-//JVT-T054}
+
     if (curr->m_iExtendedSpatialScalability == ESS_SEQ)
     {
       printf("Extended Spatial Scalability - crop win: origin=(%3d,%3d) - size=(%3d,%3d)\n\n",
@@ -432,75 +320,12 @@ ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
   }
 	return Err::m_nOK;
 }
-// TMM_ESS }
 
 
-
-ErrVal ControlMngH264AVCDecoder::initSlice( SliceHeader& rcSH, ProcessingState eProcessingState )
+ErrVal
+ControlMngH264AVCDecoder::initSliceForReading( const SliceHeader& rcSH )
 {
-  m_uiCurrLayer   = rcSH.getLayerId();
-  m_pcMbDataCtrl  = rcSH.getFrameUnit()->getMbDataCtrl();
-
-  RNOK( m_pcMbDataCtrl->initSlice( rcSH, eProcessingState, true, NULL ) );
-  RNOK( m_pcSampleWeighting->initSlice( rcSH ) );
-
-  if( PARSE_PROCESS == eProcessingState && rcSH.getTrueSlice())//TMM_EC
-  {
-    MbSymbolReadIf* pcMbSymbolReadIf;
-    
-    if( rcSH.getPPS().getEntropyCodingModeFlag() )
-    {
-      pcMbSymbolReadIf = m_pcCabacReader;
-    }
-    else
-    {
-      pcMbSymbolReadIf = m_pcUvlcReader;
-    }
-
-    RNOK( pcMbSymbolReadIf->startSlice( rcSH ) );
-    RNOK( m_pcMbParser->initSlice( pcMbSymbolReadIf ) );
-
-  }
-
-  if( DECODE_PROCESS == eProcessingState)
-  {
-    RNOK( m_pcMotionCompensation->initSlice( rcSH ) );
-  }
-
-	m_bMbAff = rcSH.isMbAff();
-  m_pcSliceHeader = &rcSH;
-
-//TMM_INTERLACE{
-	IntFrame *pcMCFrame = m_pcFrameMng->getPredictionIntFrame();
-  if( m_bMbAff )
-  {
-		RNOK( pcMCFrame->addFrameFieldBuffer() );
-	}
-	else
-	{
-		RNOK( pcMCFrame->addFieldBuffer( rcSH.getPicType() ) );
-	}
-//TMM_INTERLACE}
-
-  return Err::m_nOK;
-}
-
-
-//TMM_INTERLACE{
-ErrVal ControlMngH264AVCDecoder::removeFrameFieldBuffer( )
-{
-	IntFrame *pcMCFrame = m_pcFrameMng->getPredictionIntFrame();
-  if( pcMCFrame )
-		RNOK( pcMCFrame->removeFrameFieldBuffer() );
-
-  return Err::m_nOK;
-}
-//TMM_INTERLACE}
-
-
-ErrVal ControlMngH264AVCDecoder::initSliceForReading( const SliceHeader& rcSH )
-{
-  m_uiCurrLayer   = rcSH.getLayerId();
+  m_uiCurrLayer   = rcSH.getDependencyId();
 
   MbSymbolReadIf* pcMbSymbolReadIf;
   
@@ -513,38 +338,38 @@ ErrVal ControlMngH264AVCDecoder::initSliceForReading( const SliceHeader& rcSH )
     pcMbSymbolReadIf = m_pcUvlcReader;
   }
 
-	if ( rcSH.getTrueSlice())
+	if ( rcSH.isTrueSlice())
 	{
 		RNOK( pcMbSymbolReadIf->startSlice( rcSH ) );
 	}
   RNOK( m_pcMbParser->initSlice( pcMbSymbolReadIf ) );
-  m_pcSliceHeader = &rcSH;
 
   return Err::m_nOK;
 }
 
 
-ErrVal ControlMngH264AVCDecoder::initSliceForDecoding( const SliceHeader& rcSH )
+ErrVal
+ControlMngH264AVCDecoder::initSliceForDecoding( const SliceHeader& rcSH )
 {
-  m_uiCurrLayer   = rcSH.getLayerId();
+  m_uiCurrLayer   = rcSH.getDependencyId();
 
   RNOK( m_pcMotionCompensation->initSlice( rcSH ) );
   RNOK( m_pcSampleWeighting->initSlice( rcSH ) );
-  m_pcSliceHeader = &rcSH;
 
   return Err::m_nOK;
 }
 
 
-ErrVal ControlMngH264AVCDecoder::initSliceForFiltering( const SliceHeader& rcSH )
+ErrVal
+ControlMngH264AVCDecoder::initSliceForFiltering( const SliceHeader& rcSH )
 {
-  m_uiCurrLayer   = rcSH.getLayerId();
-
+  m_uiCurrLayer   = rcSH.getDependencyId();
   return Err::m_nOK;
 }
 
 
-ErrVal ControlMngH264AVCDecoder::finishSlice( const SliceHeader& rcSH, Bool& rbPicDone, Bool& rbFrameDone )
+ErrVal
+ControlMngH264AVCDecoder::finishSlice( const SliceHeader& rcSH, Bool& rbPicDone, Bool& rbFrameDone )
 {
   rbPicDone     = m_pcMbDataCtrl->isPicDone( rcSH );
   rbFrameDone   = m_pcMbDataCtrl->isFrameDone( rcSH );

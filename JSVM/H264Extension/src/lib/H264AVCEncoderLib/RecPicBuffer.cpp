@@ -126,7 +126,7 @@ RecPicBufUnit::create( RecPicBufUnit*&              rpcRecPicBufUnit,
   rpcRecPicBufUnit = new RecPicBufUnit();
   ROF( rpcRecPicBufUnit );
 
-  rpcRecPicBufUnit->m_pcReconstructedFrame  = new IntFrame  ( rcYuvBufferCtrlFullPel,
+  rpcRecPicBufUnit->m_pcReconstructedFrame  = new Frame  ( rcYuvBufferCtrlFullPel,
                                                               rcYuvBufferCtrlHalfPel );
   rpcRecPicBufUnit->m_pcMbDataCtrl          = new MbDataCtrl();
   ROF( rpcRecPicBufUnit->m_pcReconstructedFrame );
@@ -372,7 +372,7 @@ RecPicBuffer::store( RecPicBufUnit*   pcRecPicBufUnit,
                      PicBufferList&   rcOutputList,
                      PicBufferList&   rcUnusedList )
 {
-  RNOK( xStorePicture( pcRecPicBufUnit, rcOutputList, rcUnusedList, pcSliceHeader, pcSliceHeader->isIdrNalUnit() ) );
+  RNOK( xStorePicture( pcRecPicBufUnit, rcOutputList, rcUnusedList, pcSliceHeader, pcSliceHeader->getIdrFlag() ) );
   
   if( pcRecPicBufUnit->isNeededForRef() )
   {
@@ -391,16 +391,16 @@ RecPicBuffer::getRefLists( RefFrameList&  rcList0,
   //===== clear lists =====
   rcList0.reset();
   rcList1.reset();
-  ROTRS( rcSliceHeader.isIntra(), Err::m_nOK );
+  ROTRS( rcSliceHeader.isIntraSlice(), Err::m_nOK );
 
-  if( rcSliceHeader.isInterP() )
+  if( rcSliceHeader.isPSlice() )
   {
     RNOK( xInitRefListPSlice  ( rcList0 ) );
     RNOK( xRefListRemapping   ( rcList0, LIST_0, &rcSliceHeader ) );
     RNOK( xAdaptListSize      ( rcList0, LIST_0,  rcSliceHeader ) );
     RNOK( xDumpRefList        ( rcList0, LIST_0 ) );
   }
-  else // rcSliceHeader.isInterB()
+  else // rcSliceHeader.isBSlice()
   {
     RNOK( xInitRefListsBSlice ( rcList0, rcList1 ) );
     RNOK( xRefListRemapping   ( rcList0, LIST_0, &rcSliceHeader ) );
@@ -484,7 +484,7 @@ RecPicBuffer::xCheckMissingPics( SliceHeader*   pcSliceHeader,
                                  PicBufferList& rcOutputList,
                                  PicBufferList& rcUnusedList )
 {
-  ROTRS( pcSliceHeader->isIdrNalUnit(), Err::m_nOK );
+  ROTRS( pcSliceHeader->getIdrFlag(), Err::m_nOK );
   ROTRS( ( ( m_uiLastRefFrameNum + 1 ) % m_uiMaxFrameNum ) == pcSliceHeader->getFrameNum(), Err::m_nOK );
 
   UInt  uiMissingFrames = pcSliceHeader->getFrameNum() - m_uiLastRefFrameNum - 1;
@@ -680,7 +680,7 @@ RecPicBuffer::xUpdateMemory( SliceHeader* pcSliceHeader )
 {
   ROTRS( pcSliceHeader && pcSliceHeader->getNalRefIdc() == NAL_REF_IDC_PRIORITY_LOWEST, Err::m_nOK );
 
-  if( pcSliceHeader && pcSliceHeader->getAdaptiveRefPicBufferingFlag() )
+  if( pcSliceHeader && pcSliceHeader->getDecRefPicMarking().getAdaptiveRefPicMarkingModeFlag() )
   {
     RNOK( xMMCO( pcSliceHeader ) );
   }
@@ -731,8 +731,8 @@ RecPicBuffer::xMMCO( SliceHeader* pcSliceHeader )
 {
   ROF( pcSliceHeader );
 
-  MmcoOp            eMmcoOp;
-  const MmcoBuffer& rcMmcoBuffer  = pcSliceHeader->getMmcoBuffer();
+  Mmco            eMmcoOp;
+  const DecRefPicMarking& rcMmcoBuffer  = pcSliceHeader->getDecRefPicMarking();
   Int               iIndex        = 0;
   UInt              uiVal1, uiVal2;
 
@@ -984,7 +984,7 @@ RecPicBuffer::xRefListRemapping( RefFrameList&  rcList,
                                  SliceHeader*   pcSliceHeader )
 {
   ROF( pcSliceHeader );
-  const RplrBuffer& rcRplrBuffer = pcSliceHeader->getRplrBuffer( eListIdx );
+  const RefPicListReOrdering& rcRplrBuffer = pcSliceHeader->getRefPicListReordering( eListIdx );
 
   //===== re-ordering ======
   if( rcRplrBuffer.getRefPicListReorderingFlag() )
@@ -996,7 +996,7 @@ RecPicBuffer::xRefListRemapping( RefFrameList&  rcList,
 
     while( RPLR_END != ( uiCommand = rcRplrBuffer.get( uiIndex ).getCommand( uiIdentifier ) ) )
     {
-      IntFrame* pcFrame = 0;
+      Frame* pcFrame = 0;
 
       if( uiCommand == RPLR_LONG )
       {

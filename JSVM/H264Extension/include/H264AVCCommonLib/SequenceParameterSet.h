@@ -137,8 +137,9 @@ public:
   static Short  getMaxIntMvVer            ( UInt uiLevelIdc, Bool bField ) { return m_aLevelLimit[uiLevelIdc].uiMaxVMvRange / (bField?2:1); }
   static Short  getMaxIntMvHor            () { return 8192; }
 
+  Bool                  isSubSetSPS                           ()          const { return m_eNalUnitType == NAL_UNIT_SUBSET_SPS; }
   NalUnitType           getNalUnitType                        ()          const { return m_eNalUnitType; }
-  UInt                  getLayerId                            ()          const { return m_uiLayerId; }
+  UInt                  getDependencyId                       ()          const { return m_uiDependencyId; }
   Profile               getProfileIdc                         ()          const { return m_eProfileIdc;}
   Bool                  getConstrainedSet0Flag                ()          const { return m_bConstrainedSet0Flag; }
   Bool                  getConstrainedSet1Flag                ()          const { return m_bConstrainedSet1Flag; }
@@ -162,13 +163,12 @@ public:
   UInt                  getFrameHeightInMbs                   ()          const { return m_uiFrameHeightInMbs;}
   Bool                  getDirect8x8InferenceFlag             ()          const { return m_bDirect8x8InferenceFlag;}
   UInt                  getMbInFrame                          ()          const { return m_uiFrameWidthInMbs * m_uiFrameHeightInMbs;}
-  Bool                  getInitState                          ()          const { return m_bInitDone; }
  
 	Bool                  getFrameMbsOnlyFlag()                             const { return m_bFrameMbsOnlyFlag; }
 	Bool                  getMbAdaptiveFrameFieldFlag()                     const { return m_bMbAdaptiveFrameFieldFlag; }
 
   Void  setNalUnitType                        ( NalUnitType e )           { m_eNalUnitType                          = e;  }
-  Void  setLayerId                            ( UInt        ui )          { m_uiLayerId                             = ui; }
+  Void  setDependencyId                            ( UInt        ui )          { m_uiDependencyId                             = ui; }
   Void  setProfileIdc                         ( Profile     e  )          { m_eProfileIdc                           = e;  }
   Void  setConstrainedSet0Flag                ( Bool        b  )          { m_bConstrainedSet0Flag                  = b;  }
   Void  setConstrainedSet1Flag                ( Bool        b  )          { m_bConstrainedSet1Flag                  = b;  }
@@ -191,7 +191,6 @@ public:
   Void  setFrameWidthInMbs                    ( UInt        ui )          { m_uiFrameWidthInMbs                     = ui; }
   Void  setFrameHeightInMbs                   ( UInt        ui )          { m_uiFrameHeightInMbs                    = ui; }
   Void  setDirect8x8InferenceFlag             ( Bool        b  )          { m_bDirect8x8InferenceFlag               = b;  }
-  Void  setInitState                          ( Bool        b  )          { m_bInitDone                             = b;  }
 
   Void setMGSVect                             ( UInt ui, UInt uiVect )    { m_uiMGSVect[ui] = uiVect; }
   UInt getMGSCoeffStart                       ( UInt uiNum )        const { return uiNum ? getMGSCoeffStart( uiNum - 1 ) + m_uiMGSVect[uiNum - 1] : 0; }
@@ -222,11 +221,6 @@ public:
   ErrVal write( HeaderSymbolWriteIf*  pcWriteIf )       const;
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
                 NalUnitType           eNalUnitType );
-//SSPS {
-	ErrVal writeSubSPS( HeaderSymbolWriteIf*  pcWriteIf )       const;
-  ErrVal readSubSPS ( HeaderSymbolReadIf*   pcReadIf,
-                NalUnitType           eNalUnitType );
-//SSPS }
 // TMM_ESS {
   Void setResizeParameters    ( const ResizeParameters * params );
   Void getResizeParameters    ( ResizeParameters * params ) const;
@@ -242,32 +236,28 @@ public:
   Void  setBaseChromaPhaseYPlus1 ( UInt ui)       { m_uiBaseChromaPhaseYPlus1 = ui; }
   UInt  getBaseChromaPhaseXPlus1 () const         { return m_uiBaseChromaPhaseXPlus1 ; }
   UInt  getBaseChromaPhaseYPlus1 () const         { return m_uiBaseChromaPhaseYPlus1 ; }
+  Void  setChromaPhaseXPlus1 ( UInt ui)       { m_uiChromaPhaseXPlus1 = ui; }
+  Void  setChromaPhaseYPlus1 ( UInt ui)       { m_uiChromaPhaseYPlus1 = ui; }
+  UInt  getChromaPhaseXPlus1 () const         { return m_uiChromaPhaseXPlus1 ; }
+  UInt  getChromaPhaseYPlus1 () const         { return m_uiChromaPhaseYPlus1 ; }
+  Int   getScaledBaseLeftOffset   () const { return m_iScaledBaseLeftOffset; }
+  Int   getScaledBaseTopOffset    () const { return m_iScaledBaseTopOffset; }
+  Int   getScaledBaseRightOffset  () const { return m_iScaledBaseRightOffset; }
+  Int   getScaledBaseBottomOffset () const { return m_iScaledBaseBottomOffset; }
+
   //JVT-W046 }
   // JVT-V035
-  Bool getAVCRewriteFlag ()                       const { return m_bAVCRewriteFlag; }
+  Bool getTCoeffLevelPredictionFlag ()                       const { return m_bAVCRewriteFlag; }
   Bool getAVCAdaptiveRewriteFlag ()               const { return m_bAVCAdaptiveRewriteFlag; }
   Void setAVCRewriteFlag( Bool b )                { m_bAVCRewriteFlag = b; }
   Void setAVCAdaptiveRewriteFlag ( Bool b )
   { 
-	  if( getAVCRewriteFlag() == false && b == true )
+	  if( getTCoeffLevelPredictionFlag() == false && b == true )
 		  printf("WARNING: Setting AVCAdaptiveRewriteFlag when AVCRewriteFlag is false.\n");
 	  m_bAVCAdaptiveRewriteFlag = b; 
   }
 
   // TMM_ESS }
-
- // Bool  getRCDOBlockSizes         () const { return m_bRCDOBlockSizes; }
- // Bool  getRCDOMotionCompensationY() const { return m_bRCDOMotionCompensationY; }
- // Bool  getRCDOMotionCompensationC() const { return m_bRCDOMotionCompensationC; }
- // Bool  getRCDODeblocking         () const { return m_bRCDODeblocking; }
-
- // Void  setRCDOBlockSizes         ( Bool b ) { m_bRCDOBlockSizes          = b; }
- // Void  setRCDOMotionCompensationY( Bool b ) { m_bRCDOMotionCompensationY = b; }
- // Void  setRCDOMotionCompensationC( Bool b ) { m_bRCDOMotionCompensationC = b; }
- // Void  setRCDODeblocking         ( Bool b ) { m_bRCDODeblocking          = b; }
-
-  Void  set4TapMotionCompensationY( Bool b ) {m_b4TapMotionCompensationY = b; } // V090
-  Bool  get4TapMotionCompensationY() const { return m_b4TapMotionCompensationY; }  // V090
 
   // JVT-V068 HRD {
   VUI*  getVUI                     () const { return m_pcVUI; }
@@ -282,8 +272,6 @@ public:
 	ErrVal ReadSVCVUIParametersExtension ( HeaderSymbolReadIf*   pcReadIf );
   Bool getSVCVUIParametersPresentFlag()            const { return m_bSVCVUIParametersPresentFlag;      }
 	Bool getAdditionalExtension2Flag()               const { return m_bAdditionalExtension2Flag;         }
-  Bool getAdditionalExtension2DataFlag()           const { return m_bAdditionalExtension2DataFlag;     }
-	Bool getSubSPS()                                 const { return m_bSubSPS;                           }
 	Bool getFixedFrameRateFlag( UInt ui )            const { return m_bFixedFrameRateFlag[ui];           }
   Bool getNalHrdParametersPresentFlag( UInt ui )   const { return m_bNalHrdParametersPresentFlag[ui];  }
 	Bool getVclHrdParametersPresentFlag( UInt ui )   const { return m_bVclHrdParametersPresentFlag[ui];  }
@@ -291,11 +279,11 @@ public:
 	Bool getTimingInfoPresentFlag( UInt ui )         const { return m_bTimingInfoPresentFlag[ui];        }
 	Bool getLowDelayHrdFlag( UInt ui )               const { return m_bLowDelayHrdFlag[ui];              }
 	UInt getNumLayersMinus1()                        const { return m_uiNumLayersMinus1;                 }
-	UInt getDependencyId( UInt ui )                  const { return m_uiDependencyId[ui];                }
-	UInt getQualityId( UInt ui )                     const { return m_uiQualityId[ui];                   }
-	UInt getTemporalId( UInt ui )                    const { return m_uiTemporalId[ui];                  }
-	UInt getNumUnitsInTick( UInt ui )                const { return m_uiNumUnitsInTick[ui];              }
-	UInt getTimeScale( UInt ui )                     const { return m_uiTimeScale[ui];                   }
+	UInt getDependencyId( UInt ui )                  const { return m_auiDependencyId[ui];                }
+	UInt getQualityId( UInt ui )                     const { return m_auiQualityId[ui];                   }
+	UInt getTemporalId( UInt ui )                    const { return m_auiTemporalId[ui];                  }
+	UInt getNumUnitsInTick( UInt ui )                const { return m_auiNumUnitsInTick[ui];              }
+	UInt getTimeScale( UInt ui )                     const { return m_auiTimeScale[ui];                   }
 	Void setFixedFrameRateFlag( UInt ui, Bool b )          {  m_bFixedFrameRateFlag[ui]  = b;            }
   Void setNalHrdParametersPresentFlag( UInt ui, Bool b ) {  m_bNalHrdParametersPresentFlag[ui]  = b;   }
 	Void setVclHrdParametersPresentFlag( UInt ui, Bool b ) {  m_bVclHrdParametersPresentFlag[ui]  = b;   }
@@ -303,17 +291,24 @@ public:
 	Void setTimingInfoPresentFlag( UInt ui, Bool b )       {  m_bTimingInfoPresentFlag[ui]  = b;         } 
 	Void setLowDelayHrdFlag( UInt ui, Bool b )             {  m_bLowDelayHrdFlag[ui]  = b;               }
 	Void setNumLayersMinus1( UInt ui)                      {  m_uiNumLayersMinus1  = ui;                 }
-	Void setDependencyId( UInt ui,UInt uj )                {  m_uiDependencyId[ui]  = uj;                }
-	Void setQualityId( UInt ui,UInt uj )                   {  m_uiQualityId[ui]  = uj;                   }
-	Void setTemporalId( UInt ui,UInt uj )                  {  m_uiTemporalId[ui]  = uj;                  }
-	Void setNumUnitsInTick( UInt ui,UInt uj )              {  m_uiNumUnitsInTick[ui]  = uj;              }
-	Void setTimeScale( UInt ui,UInt uj )                   {  m_uiTimeScale[ui]  = uj;                   }
+	Void setDependencyId( UInt ui,UInt uj )                {  m_auiDependencyId[ui]  = uj;                }
+	Void setQualityId( UInt ui,UInt uj )                   {  m_auiQualityId[ui]  = uj;                   }
+	Void setTemporalId( UInt ui,UInt uj )                  {  m_auiTemporalId[ui]  = uj;                  }
+	Void setNumUnitsInTick( UInt ui,UInt uj )              {  m_auiNumUnitsInTick[ui]  = uj;              }
+	Void setTimeScale( UInt ui,UInt uj )                   {  m_auiTimeScale[ui]  = uj;                   }
   Void setSVCVUIParametersPresentFlag ( Bool b )         {  m_bSVCVUIParametersPresentFlag  = b;       }
 	Void setAdditionalExtension2Flag    ( Bool b )         {  m_bAdditionalExtension2Flag     = b;       }
-  Void setAdditionalExtension2DataFlag( Bool b )         {  m_bAdditionalExtension2DataFlag = b;       }
-	Void setSubSPS                      ( Bool b )         {  m_bSubSPS                       = b;       }
 
 //SSPS }
+  UInt  getFrameCropLeftOffset  ()  const { return m_uiFrameCropLeftOffset;   }
+  UInt  getFrameCropRightOffset ()  const { return m_uiFrameCropRightOffset;  }
+  UInt  getFrameCropTopOffset   ()  const { return m_uiFrameCropTopOffset;    }
+  UInt  getFrameCropBottomOffset()  const { return m_uiFrameCropBottomOffset; }
+
+  Void  setFrameCropLeftOffset  ( UInt ui ) { m_uiFrameCropLeftOffset   = ui; }
+  Void  setFrameCropRightOffset ( UInt ui ) { m_uiFrameCropRightOffset  = ui; }
+  Void  setFrameCropTopOffset   ( UInt ui ) { m_uiFrameCropTopOffset    = ui; }
+  Void  setFrameCropBottomOffset( UInt ui ) { m_uiFrameCropBottomOffset = ui; }
 
 protected:
 	ErrVal xReadPicOrderCntInfo         ( HeaderSymbolReadIf* pcReadIf );
@@ -324,10 +319,8 @@ protected:
 
 
 protected:
-  Bool          m_bInitDone;
-
   NalUnitType   m_eNalUnitType;
-  UInt          m_uiLayerId;
+  UInt          m_uiDependencyId;
   Profile       m_eProfileIdc;
   Bool          m_bConstrainedSet0Flag;
   Bool          m_bConstrainedSet1Flag;
@@ -375,13 +368,6 @@ protected:
 	Bool          m_bFrameMbsOnlyFlag;
 	Bool          m_bMbAdaptiveFrameFieldFlag;
 
-  // Bool          m_bRCDOBlockSizes;
-  // Bool          m_bRCDOMotionCompensationY;
-  // Bool          m_bRCDOMotionCompensationC;
- // Bool          m_bRCDODeblocking;
-
-  Bool          m_b4TapMotionCompensationY;  // V090
-
   Bool          m_bAVCRewriteFlag;          // V-035
   Bool          m_bAVCAdaptiveRewriteFlag;
   Bool          m_bAVCHeaderRewriteFlag;    // JVT-W046
@@ -391,10 +377,8 @@ protected:
   // JVT-V068 HRD }
 
   //SSPS {
-	Bool m_bSubSPS;
 	Bool m_bSVCVUIParametersPresentFlag;
 	Bool m_bAdditionalExtension2Flag;
-	Bool m_bAdditionalExtension2DataFlag;
 	Bool m_bFixedFrameRateFlag[MAX_LAYERS];
 	Bool m_bNalHrdParametersPresentFlag[MAX_LAYERS];
 	Bool m_bVclHrdParametersPresentFlag[MAX_LAYERS];
@@ -402,12 +386,17 @@ protected:
 	Bool m_bTimingInfoPresentFlag[MAX_LAYERS];
 	Bool m_bLowDelayHrdFlag[MAX_LAYERS];
 	UInt m_uiNumLayersMinus1;
-	UInt m_uiDependencyId[MAX_LAYERS];
-	UInt m_uiQualityId[MAX_LAYERS];
-	UInt m_uiTemporalId[MAX_LAYERS];
-	UInt m_uiNumUnitsInTick[MAX_LAYERS];
-	UInt m_uiTimeScale[MAX_LAYERS];
+	UInt m_auiDependencyId[MAX_LAYERS];
+	UInt m_auiQualityId[MAX_LAYERS];
+	UInt m_auiTemporalId[MAX_LAYERS];
+	UInt m_auiNumUnitsInTick[MAX_LAYERS];
+	UInt m_auiTimeScale[MAX_LAYERS];
 	//SSPS }
+
+  UInt          m_uiFrameCropLeftOffset;
+  UInt          m_uiFrameCropRightOffset;
+  UInt          m_uiFrameCropTopOffset;
+  UInt          m_uiFrameCropBottomOffset;
 
 private:
   static const LevelLimit m_aLevelLimit[52];

@@ -185,7 +185,7 @@ class H264AVCENCODERLIB_API LayerParameters
 {
 public:
   LayerParameters()
-    : m_uiLayerId                         (0)
+    : m_uiDependencyId                         (0)
     , m_uiFrameWidth                      (352)
     , m_uiFrameHeight                     (288)
     , m_dInputFrameRate                   (7.5)
@@ -293,7 +293,7 @@ public:
 
 
   //===== get =====
-  UInt                            getLayerId                        () const {return m_uiLayerId; }
+  UInt                            getDependencyId                        () const {return m_uiDependencyId; }
   UInt                            getFrameWidth                     () const {return m_uiFrameWidth; }
   UInt                            getFrameHeight                    () const {return m_uiFrameHeight; }
   Double                          getInputFrameRate                 () const {return m_dInputFrameRate; }
@@ -356,11 +356,11 @@ public:
   //--> consider ROI Extraction ICU/ETRI DS
   
   UInt getMGSVect                        (UInt uiNum) const { return m_uiMGSVectorMode ? m_uiMGSVect[uiNum] : (uiNum == 0 ? 16 : 0); }
-  Bool getAVCRewriteFlag ()               const { return m_bAVCRewriteFlag==1; }
+  Bool getTCoeffLevelPredictionFlag ()               const { return m_bAVCRewriteFlag==1; }
   Bool getAVCAdaptiveRewriteFlag ()       const { return m_bAVCAdaptiveRewriteFlag==1; }
 
   //===== set =====
-  Void setLayerId                         (UInt   p) { m_uiLayerId                        = p; }
+  Void setDependencyId                         (UInt   p) { m_uiDependencyId                        = p; }
   Void setFrameWidth                      (UInt   p) { m_uiFrameWidth                     = p; }
   Void setFrameHeight                     (UInt   p) { m_uiFrameHeight                    = p; }
   Void setInputFrameRate                  (Double p) { m_dInputFrameRate                  = p; }
@@ -450,7 +450,7 @@ public:
                                     Double  d  )           { m_adDeltaQPTLevel[tl] = d; }
 
 public:
-  UInt                      m_uiLayerId;
+  UInt                      m_uiDependencyId;
   UInt                      m_uiFrameWidth;
   UInt                      m_uiFrameHeight;
   Double                    m_dInputFrameRate;
@@ -651,10 +651,8 @@ public:
 // JVT-U116 W062 LMI
     , m_uiTl0DepRepIdxSeiEnable           ( 0 )
     , m_uiCIUFlag                         ( 0 ) //JV
-    , m_ui4TapMotionCompensationY         ( 0 ) // V090
     , m_uiEncodeKeyPictures               ( 0 )
     , m_uiMGSKeyPictureControl            ( 0 )
-    , m_uiMGSKeyPictureMotionRefinement   ( 1 )
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -796,27 +794,11 @@ public:
   }
   //JVT-U106 Behaviour at slice boundaries}
 
-  // UInt  getRCDOBlockSizes         ()  const { return m_uiRCDOBlockSizes; }
- // UInt  getRCDOMotionCompensationY()  const { return m_uiRCDOMotionCompensationY; }
-//  UInt  getRCDOMotionCompensationC()  const { return m_uiRCDOMotionCompensationC; }
-//  UInt  getRCDODeblocking         ()  const { return m_uiRCDODeblocking; }
-
-  UInt  get4TapMotionCompensationY()  const { return m_ui4TapMotionCompensationY; }  // V090
-  Void  set4TapMotionCompensationY( UInt ui )  { m_ui4TapMotionCompensationY = ui; } // V090
-
-  //Void  setRCDOBlockSizes         ( UInt ui )  { m_uiRCDOBlockSizes          = ui; }
-  //Void  setRCDOMotionCompensationY( UInt ui )  { m_uiRCDOMotionCompensationY = ui; }
-  //Void  setRCDOMotionCompensationC( UInt ui )  { m_uiRCDOMotionCompensationC = ui; }
-  //Void  setRCDODeblocking         ( UInt ui )  { m_uiRCDODeblocking          = ui; }
-
   Void  setEncodeKeyPictures      ( UInt ui )          { m_uiEncodeKeyPictures = ui; }
   UInt  getEncodeKeyPictures      ()           const   { return m_uiEncodeKeyPictures; }
 
   Void  setMGSKeyPictureControl   ( UInt ui )          { m_uiMGSKeyPictureControl = ui; }
   UInt  getMGSKeyPictureControl   ()           const   { return m_uiMGSKeyPictureControl; }
-
-  Void  setMGSKeyPictureMotRef    ( UInt ui )          { m_uiMGSKeyPictureMotionRefinement = ui; }
-  UInt  getMGSKeyPictureMotRef    ()           const   { return m_uiMGSKeyPictureMotionRefinement; }
 
   // JVT-V068 HRD {
   UInt getEnableVUI()    { return getEnableNalHRD() || getEnableVclHRD(); }
@@ -913,16 +895,8 @@ protected:
   UInt                      m_uiCIUFlag;
   //JVT-U106 Behaviour at slice boundaries}
 
- // UInt    m_uiRCDOBlockSizes;
-//  UInt    m_uiRCDOMotionCompensationY;
-//  UInt    m_uiRCDOMotionCompensationC;
-//  UInt    m_uiRCDODeblocking;
-
-  UInt    m_ui4TapMotionCompensationY;  // V090
-
   UInt    m_uiEncodeKeyPictures;  // 0:only FGS[default], 1:FGS&MGS, 2:always[useless]
   UInt    m_uiMGSKeyPictureControl;
-  UInt    m_uiMGSKeyPictureMotionRefinement;
 
   // JVT-V068 HRD {
   UInt    m_uiNalHRD;

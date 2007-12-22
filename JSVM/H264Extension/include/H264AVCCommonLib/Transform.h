@@ -93,7 +93,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/Quantizer.h"
 #include "H264AVCCommonLib/YuvMbBuffer.h"
-#include "H264AVCCommonLib/IntYuvMbBuffer.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -138,18 +137,18 @@ public:
   ErrVal        addPrediction8x8Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, Bool& bCoded  );
   ErrVal        addPredictionChromaBlocks ( TCoeff* piCoeff, TCoeff* piRef, UInt uiQp, UInt uiRefQp, Bool& bDCflag, Bool& bACflag );
 
-  ErrVal        transform8x8Blk           ( IntYuvMbBuffer*       pcOrgData,
-                                            IntYuvMbBuffer*       pcPelData,
+  ErrVal        transform8x8Blk           ( YuvMbBuffer*       pcOrgData,
+                                            YuvMbBuffer*       pcPelData,
                                             TCoeff*               piCoeff,
                                             const UChar*          pucScale,
                                             UInt&                 ruiAbsSum );
-  ErrVal        transform4x4Blk           ( IntYuvMbBuffer*       pcOrgData,
-                                            IntYuvMbBuffer*       pcPelData,
+  ErrVal        transform4x4Blk           ( YuvMbBuffer*       pcOrgData,
+                                            YuvMbBuffer*       pcPelData,
                                             TCoeff*               piCoeff,
                                             const UChar*          pucScale,
                                             UInt&                 ruiAbsSum );
-  ErrVal        transformMb16x16          ( IntYuvMbBuffer* pcOrgData, 
-                                            IntYuvMbBuffer* pcPelData, 
+  ErrVal        transformMb16x16          ( YuvMbBuffer* pcOrgData, 
+                                            YuvMbBuffer* pcPelData, 
                                             TCoeff* piCoeff, 
                                             const UChar* pucScale, 
                                             UInt& ruiDcAbs,  
@@ -177,14 +176,14 @@ public:
 
   void         setStoreCoeffFlag(Bool flag)   { m_storeCoeffFlag = flag;}
   Bool         getStoreCoeffFlag()        {return  m_storeCoeffFlag;}
-  ErrVal       transform4x4BlkCGS         ( IntYuvMbBuffer*         pcOrgData,
-                                            IntYuvMbBuffer*         pcPelData,                                   
+  ErrVal       transform4x4BlkCGS         ( YuvMbBuffer*         pcOrgData,
+                                            YuvMbBuffer*         pcPelData,                                   
                                             TCoeff*                 piCoeff,
                                             TCoeff*                 piCoeffBase,
                                             const UChar*            pucScale,
                                             UInt&                   ruiAbsSum );
-  ErrVal       transform8x8BlkCGS           ( IntYuvMbBuffer*       pcOrgData,
-                                            IntYuvMbBuffer*         pcPelData,
+  ErrVal       transform8x8BlkCGS           ( YuvMbBuffer*       pcOrgData,
+                                            YuvMbBuffer*         pcPelData,
                                             TCoeff*                 piCoeff,
                                             TCoeff*                 piCoeffBase,
                                             const UChar*            pucScale,

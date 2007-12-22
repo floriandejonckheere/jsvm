@@ -98,36 +98,29 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif
 
 
-class H264AVCVIDEOIOLIB_API WriteYuvToFile
-: public WriteYuvIf
+class H264AVCVIDEOIOLIB_API WriteYuvToFile : public WriteYuvIf
 {
 protected:
   WriteYuvToFile();
   virtual ~WriteYuvToFile();
 
 public:
-  static ErrVal create( WriteYuvIf*& rpcWriteYuv, const std::string& rcFileName );
-  ErrVal destroy();
+  static ErrVal create    ( WriteYuvToFile*&    rpcWriteYuv );
+  ErrVal        destroy   ();
 
-  ErrVal writeFrame( const UChar *pLum,
-                     const UChar *pCb,
-                     const UChar *pCr,
-                     UInt uiLumHeight,
-                     UInt uiLumWidth,
-                     UInt uiLumStride );
+  ErrVal        init      ( const std::string&  rcFileName );
+  ErrVal        uninit    ();
 
-protected:
-  ErrVal xWriteFrame    ( const UChar *pLum, const UChar *pCb, const UChar *pCr,
-                          UInt uiHeight, UInt uiWidth, UInt uiStride );
-
-  ErrVal xInit( const std::string& rcFileName );
+  ErrVal        writeFrame( const UChar*  pLum,
+                            const UChar*  pCb,
+                            const UChar*  pCr,
+                            UInt          uiLumHeight,
+                            UInt          uiLumWidth,
+                            UInt          uiLumStride,
+                            const UInt    rauiCropping[] );
 
 protected:
   LargeFile m_cFile;
-  Bool  m_bInitDone;
-  BinData m_cTempBuffer;
-  UInt  m_uiWidth;
-  UInt  m_uiHeight;
 };
 
 #if defined( WIN32 )

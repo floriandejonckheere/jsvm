@@ -93,38 +93,67 @@ template<class T>
 class DynBuf
 {
 public:
-  DynBuf(): m_uiBufferSize(0), m_pT(NULL) {}
+  DynBuf()
+  : m_uiBufferSize( 0 )
+  , m_pT          ( 0 )
+  {
+  }
+
+  DynBuf( const DynBuf<T>& rcDynBuf )
+  : m_uiBufferSize( 0 )
+  , m_pT          ( 0 )
+  {
+    ANOK( copy( rcDynBuf ) );
+  }
+
+  virtual ~DynBuf()
+  {
+    ANOK( uninit() );
+  }
 
   ErrVal init( UInt uiBufferSize )
   {
-    ROT( NULL != m_pT );
+    ROF( m_pT == 0 );
     m_pT = new T [ uiBufferSize ];
-    ROT( NULL == m_pT );
+    ROT( m_pT == 0 );
     m_uiBufferSize = uiBufferSize;
     return Err::m_nOK;
   }
 
   ErrVal uninit()
   {
-    if(NULL != m_pT )
+    if( m_pT != 0 )
     {
-    delete [] m_pT;
-    m_pT = NULL;
+      delete [] m_pT;
+      m_pT = 0;
     }
     m_uiBufferSize = 0;
+    return Err::m_nOK;
+  }
 
+  ErrVal copy( const DynBuf& rcDynBuf )
+  {
+    if( m_uiBufferSize != rcDynBuf.m_uiBufferSize )
+    {
+      RNOK( uninit() );
+      RNOK( init  ( rcDynBuf.m_uiBufferSize ) );
+    }
+    for( UInt uiIndex = 0; uiIndex < m_uiBufferSize; uiIndex++ )
+    {
+      m_pT[ uiIndex ] = rcDynBuf.m_pT[ uiIndex ];
+    }
     return Err::m_nOK;
   }
 
   T& get( UInt uiOffset ) const
   {
-    AOT_DBG(uiOffset >= m_uiBufferSize);
+    AOT( uiOffset >= m_uiBufferSize );
     return m_pT[uiOffset];
   }
 
   Void set( UInt uiOffset, T t )
   {
-    AOT_DBG(uiOffset >= m_uiBufferSize);
+    AOT( uiOffset >= m_uiBufferSize );
     m_pT[uiOffset] = t;
   }
 
@@ -136,15 +165,15 @@ public:
     }
   }
 
-  T& operator[] (const UInt uiOffset)
+  T& operator[] ( const UInt uiOffset )
   {
-    AOT_DBG(uiOffset >= m_uiBufferSize);
+    AOT( uiOffset >= m_uiBufferSize );
     return m_pT[uiOffset];
   }
 
-  const T& operator[] (const UInt uiOffset) const
+  const T& operator[] ( const UInt uiOffset ) const
   {
-    AOT_DBG(uiOffset >= m_uiBufferSize);
+    AOT( uiOffset >= m_uiBufferSize );
     return m_pT[uiOffset];
   }
 
@@ -170,7 +199,27 @@ template< class T, UInt uiSize >
 class StatBuf
 {
 public:
-  StatBuf() {}
+  StatBuf()
+  {
+  }
+
+  StatBuf( const StatBuf< T, uiSize >& rcStatBuf )
+  {
+    copy( rcStatBuf );
+  }
+
+  virtual ~StatBuf()
+  {
+  }
+
+  Void copy( const StatBuf< T, uiSize >& rcStatBuf )
+  {
+    for( UInt ui = 0; ui < uiSize; ui++ )
+    {
+      m_aT[ui] = rcStatBuf.m_aT[ui];
+    }
+    //::memcpy( m_aT, rcStatBuf.m_aT, uiSize * sizeof( T ) );
+  }
 
   ErrVal get( T& rcT, UInt uiOffset ) const
   {
@@ -179,14 +228,7 @@ public:
     return Err::m_nOK;
   }
 
-  const ErrVal get( const T& rcT, UInt uiOffset ) const
-  {
-    ROT(uiOffset >= uiSize);
-    rcT = m_aT[uiOffset];
-    return Err::m_nOK;
-  }
-
-  const Bool isValidOffset( UInt uiOffset ) const { return uiOffset < uiSize; }
+  Bool isValidOffset( UInt uiOffset ) const { return uiOffset < uiSize; }
 
   const T& get( UInt uiOffset ) const
   {
@@ -226,7 +268,11 @@ public:
     return m_aT[uiOffset];
   }
 
-  Void clear() { ::memset( m_aT, 0, sizeof(T) * uiSize); }
+  const StatBuf<T,uiSize>& operator = ( const StatBuf<T,uiSize>& rcStatBuf )
+  {
+    copy( rcStatBuf );
+    return *this;
+  }
 
   UInt size() const  { return uiSize; }
 
@@ -412,10 +458,10 @@ XDataList<T>::setElementAndRemove( UInt uiIPos, UInt uiRPos, T* pEntry )
 
 
 
-class IntFrame;
+class Frame;
 class ControlData;
 
-typedef XDataList<IntFrame>     RefFrameList;
+typedef XDataList<Frame>     RefFrameList;
 typedef XDataList<ControlData>  CtrlDataList;
 
 

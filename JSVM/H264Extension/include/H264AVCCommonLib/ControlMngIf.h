@@ -102,51 +102,30 @@ protected:
   virtual ~ControlMngIf() {};
 
 public:
-  virtual ErrVal initSlice0           (SliceHeader *rcSH)                               = 0;
-// TMM_ESS 
+  virtual ErrVal initSlice0           (SliceHeader*                 rcSH )    = 0;
   virtual ErrVal initSPS              ( SequenceParameterSet&       rcSPS,
-                                        UInt  uiLayer )                                 = 0;
+                                        UInt                        uiLayer ) = 0;
 
   virtual ErrVal initParameterSets    ( const SequenceParameterSet& rcSPS,
                                         const PictureParameterSet&  rcPPSLP,
-                                        const PictureParameterSet&  rcPPSHP )           = 0;
+                                        const PictureParameterSet&  rcPPSHP ) = 0;
 
-  virtual ErrVal initParameterSetsForFGS    ( const SequenceParameterSet& rcSPS,
-                                        const PictureParameterSet&  rcPPSLP,
-                                        const PictureParameterSet&  rcPPSHP )           = 0;
+  virtual ErrVal initSliceForCoding   ( const SliceHeader&  rcSH )        = 0;
+  virtual ErrVal initSliceForReading  ( const SliceHeader&  rcSH )        = 0;
+  virtual ErrVal initSliceForDecoding ( const SliceHeader&  rcSH )        = 0;
+  virtual ErrVal initSliceForFiltering( const SliceHeader&  rcSH )        = 0;
+  virtual ErrVal initSliceForWeighting( const SliceHeader&  rcSH )        = 0;
+  virtual ErrVal finishSlice          ( const SliceHeader&  rcSH,
+                                        Bool&               rbPicDone,
+                                        Bool&               rbFrameDone ) = 0;
 
-  virtual ErrVal initSlice            ( SliceHeader&                rcSH,
-                                        ProcessingState             eProcessingState )  = 0;
-  virtual ErrVal finishSlice          ( const SliceHeader&          rcSH,
-                                        Bool&                       rbPicDone,
-                                        Bool&                       rbFrameDone )       = 0;
-
-  virtual ErrVal initMbForParsing     ( MbDataAccess*&              rpcMbDataAccess,
-                                        UInt                        uiMbIndex )         = 0;
-  virtual ErrVal initMbForDecoding    ( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )         = 0;
+  virtual ErrVal initMbForParsing     ( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex )                      = 0;
+  virtual ErrVal initMbForDecoding    ( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff ) = 0;
   virtual ErrVal initMbForFiltering   ( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff ) = 0;
 
-  virtual ErrVal initSliceForCoding   ( const SliceHeader&          rcSH )              = 0;
-  virtual ErrVal initSliceForReading  ( const SliceHeader&          rcSH )              = 0;
-  virtual ErrVal initSliceForDecoding ( const SliceHeader&          rcSH )              = 0;
-  virtual ErrVal initSliceForFiltering( const SliceHeader&          rcSH )              = 0;
-
-  virtual ErrVal initMbForCoding      ( MbDataAccess& rcMbDataAccess,   UInt uiMbY, UInt uiMbX, Bool bMbAff, Bool bFieldFlag ) = 0;
-  virtual ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess,   UInt uiMbY, UInt uiMbX, Bool bMbAff )         = 0;
-  virtual ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess,   UInt uiMbY, UInt uiMbX, Bool bMbAff ) = 0;
-
-//TMM_WP
-  virtual ErrVal initSliceForWeighting   ( const SliceHeader&          rcSH )           = 0;
-//TMM_WP
-
-//TMM_INTERLACE{
-  virtual ErrVal removeFrameFieldBuffer  ( )              = 0;
-//TMM_INTERLACE}
-
-
-//JVT-T054{
-  virtual MbDataCtrl* getMbDataCtrl() = 0;
-//JVT-T054}
+  virtual ErrVal initMbForCoding      ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff, Bool bFieldFlag )  = 0;
+  virtual ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )                   = 0;
+  virtual ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff )                   = 0;
 };
 
 

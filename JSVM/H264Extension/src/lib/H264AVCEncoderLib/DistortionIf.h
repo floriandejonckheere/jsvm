@@ -94,8 +94,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 
-class IntYuvMbBuffer;
-class IntYuvPicBuffer;
+class YuvMbBuffer;
+class YuvPicBuffer;
 class XDistortion;
 class XDistSearchStruct;
 
@@ -127,7 +127,7 @@ protected:
   virtual ~XDistortionIf() {}
 
 public:
-  virtual Void    loadOrgMbPelData( IntYuvPicBuffer* pcOrgYuvBuffer, IntYuvMbBuffer*& rpcOrgMbBuffer ) = 0;
+  virtual Void    loadOrgMbPelData( YuvPicBuffer* pcOrgYuvBuffer, YuvMbBuffer*& rpcOrgMbBuffer ) = 0;
 
   virtual UInt    get8x8Cb        ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
   virtual UInt    get8x8Cr        ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
@@ -135,11 +135,11 @@ public:
   virtual UInt    getLum8x8       ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
   virtual UInt    getLum4x4       ( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD ) = 0;
 //TMM_WP
-  ErrVal getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiLumaLog2WeightDenom );
-  ErrVal getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb );
+  ErrVal getLumaWeight( YuvPicBuffer* pcOrgPicBuffer, YuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiLumaLog2WeightDenom );
+  ErrVal getChromaWeight( YuvPicBuffer* pcOrgPicBuffer, YuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb );
 
-  ErrVal getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset );
-  ErrVal getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset, Bool bCb );
+  ErrVal getLumaOffsets( YuvPicBuffer* pcOrgPicBuffer, YuvPicBuffer* pcRefPicBuffer, Double& rfOffset );
+  ErrVal getChromaOffsets( YuvPicBuffer* pcOrgPicBuffer, YuvPicBuffer* pcRefPicBuffer, Double& rfOffset, Bool bCb );
 //TMM_WP
 };
 

@@ -91,7 +91,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "CreaterH264AVCEncoder.h"
 #include "ControlMngH264AVCEncoder.h"
 #include "H264AVCCommonLib/ParameterSetMng.h"
-#include "H264AVCCommonLib/FrameMng.h"
 
 #include <math.h>
 
@@ -109,10 +108,6 @@ H264AVCEncoder::H264AVCEncoder():
   m_pcNalUnitEncoder  ( NULL ),
   m_pcControlMng      ( NULL ),
   m_pcCodingParameter ( NULL ),
-  m_pcFrameMng        ( NULL ),
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  m_pcMbDataCtrl      ( NULL ),
-#endif
   m_bVeryFirstCall    ( true ),
   m_bScalableSeiMessage( false ),
   m_bInitDone         ( false ),
@@ -120,7 +115,7 @@ H264AVCEncoder::H264AVCEncoder():
   m_bWrteROISEI		  ( true ), 
   m_loop_roi_sei	  ( 0 )
 {
-  ::memset( m_apcMCTFEncoder, 0x00, MAX_LAYERS*sizeof(Void*) );
+  ::memset( m_apcLayerEncoder, 0x00, MAX_LAYERS*sizeof(Void*) );
   ::memset( m_aaadFinalFramerate, 0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(Double) );
   ::memset( m_aaadSeqBits,        0x00, MAX_LAYERS*MAX_TEMP_LEVELS*MAX_QUALITY_LEVELS*sizeof(Double) );
   //JVT-W052
@@ -192,16 +187,16 @@ H264AVCEncoder::destroy()
 }
 
 
-IntFrame*
+Frame*
 H264AVCEncoder::getLowPassRec( UInt uiLayerId )
 {
   //===== shall not be called in non-CGS mode =====
-  IntFrame* pcLPRec = 0;
+  Frame* pcLPRec = 0;
   for( UInt uiBL = MSYS_UINT_MAX; ( uiBL = m_pcCodingParameter->getLayerParameters( uiLayerId ).getBaseLayerId() ) != MSYS_UINT_MAX; uiLayerId = uiBL )
   {
-    if( m_apcMCTFEncoder[uiBL]->getMGSLPRec() )
+    if( m_apcLayerEncoder[uiBL]->getMGSLPRec() )
     {
-      pcLPRec = m_apcMCTFEncoder[uiBL]->getMGSLPRec();
+      pcLPRec = m_apcLayerEncoder[uiBL]->getMGSLPRec();
     }
     else
     {
@@ -212,11 +207,10 @@ H264AVCEncoder::getLowPassRec( UInt uiLayerId )
 }
 
 
-IntFrame*
-H264AVCEncoder::getELRefPic( UInt uiLayerId, Int iPoc,
-                            UInt uiIdrPicId)//EIDR 0619
+Frame*
+H264AVCEncoder::getELRefPic( UInt uiLayerId, Int iPoc )
 {
-  IntFrame* pcELRefPic = 0;
+  Frame* pcELRefPic = 0;
   for( UInt uiELId = uiLayerId + 1; uiELId < m_pcCodingParameter->getNumberOfLayers(); uiELId++ )
   {
     //===== check whether higher layer can be used =====
@@ -234,7 +228,7 @@ H264AVCEncoder::getELRefPic( UInt uiLayerId, Int iPoc,
     //===== get frame =====
     if( uiScalType == 0 )
     {
-      pcELRefPic = m_apcMCTFEncoder[uiELId]->getRefPic( iPoc, uiIdrPicId); //EIDR 0619
+      pcELRefPic = m_apcLayerEncoder[uiELId]->getRefPic( iPoc );
     }
     else
     {
@@ -251,14 +245,13 @@ H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
                                     UInt&   ruiBaseLayerIdMotionOnly,
                                     Int &   riSpatialScalabilityType,
                                     UInt    uiLayerId,
-                                    Int     iPoc,
                                     PicType ePicType,
-                                    UInt		uiIdrPicId)//EIDR 0619
+                                    UInt		uiTemporalId )
 {
   //===== get spatial resolution ratio =====
  
 // TMM_ESS 
-  riSpatialScalabilityType = m_apcMCTFEncoder[uiLayerId]->getSpatialScalabilityType();
+  riSpatialScalabilityType = m_apcLayerEncoder[uiLayerId]->getSpatialScalabilityType();
 
   //===== check data availability =====
   if( ruiBaseLayerId < m_pcCodingParameter->getNumberOfLayers() )
@@ -266,8 +259,7 @@ H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
     Bool  bExists = false;
     Bool  bMotion = false;
 
-    RNOK( m_apcMCTFEncoder[ruiBaseLayerId]->getBaseLayerStatus( bExists, bMotion, iPoc, ePicType
-                                                                ,uiIdrPicId) );//EIDR 0619
+    RNOK( m_apcLayerEncoder[ruiBaseLayerId]->getBaseLayerStatus( bExists, bMotion, ePicType, uiTemporalId ) );
 
     ruiBaseLayerIdMotionOnly  = ( bMotion ? ruiBaseLayerId : MSYS_UINT_MAX );
     ruiBaseLayerId            = ( bExists ? ruiBaseLayerId : MSYS_UINT_MAX );
@@ -280,64 +272,61 @@ H264AVCEncoder::getBaseLayerStatus( UInt&   ruiBaseLayerId,
 }
 
 ErrVal
-H264AVCEncoder::getBaseLayerDataAvailability  ( IntFrame*&    pcFrame,
-                                                IntFrame*&    pcResidual,
-                                                MbDataCtrl*&  pcMbDataCtrl,
-                                                Bool&         bConstrainedIPredBL,
-                                                Bool&         bForCopyOnly,
-                                                Int           iSpatialScalability,
-                                                UInt          uiBaseLayerId,
-                                                Int           iPoc,
-                                                Bool          bMotion,
-                                                Bool&         bBaseDataAvailable,
-                                                PicType       ePicType,
-                                                UInt					uiIdrPicId)//EIDR 0619
+H264AVCEncoder::getBaseLayerDataAvailability ( Frame*&       pcFrame,
+                                               Frame*&       pcResidual,
+                                               MbDataCtrl*&  pcMbDataCtrl,
+                                               Bool&         bConstrainedIPredBL,
+                                               Bool&         bForCopyOnly,
+                                               Int           iSpatialScalability,
+                                               UInt          uiBaseLayerId,
+                                               Bool          bMotion,
+                                               Bool&         bBaseDataAvailable,
+                                               PicType       ePicType,
+                                               UInt					 uiTemporalId )
 {
   ROF ( uiBaseLayerId < MAX_LAYERS );
 
-  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerDataAvailability( pcFrame, 
-                                                                       pcResidual, 
-                                                                       pcMbDataCtrl, 
-                                                                       bConstrainedIPredBL,
-                                                                       bForCopyOnly, 
-                                                                       iSpatialScalability, 
-                                                                       iPoc, 
-                                                                       bMotion,
-                                                                       ePicType,
-                                                                       uiIdrPicId) );//EIDR 0619
+  RNOK( m_apcLayerEncoder[uiBaseLayerId]->getBaseLayerDataAvailability( pcFrame, 
+                                                                        pcResidual, 
+                                                                        pcMbDataCtrl, 
+                                                                        bConstrainedIPredBL,
+                                                                        bForCopyOnly, 
+                                                                        iSpatialScalability, 
+                                                                        bMotion,
+                                                                        ePicType,
+                                                                        uiTemporalId ) );
 
   bBaseDataAvailable = pcFrame && pcResidual && pcMbDataCtrl;
 
   return Err::m_nOK;
 }
+
+
 ErrVal
-H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
-                                  IntFrame*&    pcResidual,
+H264AVCEncoder::getBaseLayerData( Frame*&       pcFrame,
+                                  Frame*&       pcResidual,
                                   MbDataCtrl*&  pcMbDataCtrl,
                                   MbDataCtrl*&  pcMbDataCtrlEL,		// ICU/ETRI FGS_MOT_USE
                                   Bool&         bConstrainedIPredBL,
                                   Bool&         bForCopyOnly,
                                   Int           iSpatialScalability,
                                   UInt          uiBaseLayerId,
-                                  Int           iPoc,
-                                  Bool				 bMotion,
-                                  PicType      ePicType,
-                                  UInt				 uiIdrPicId)//EIDR 0619
+                                  Bool				  bMotion,
+                                  PicType       ePicType,
+                                  UInt				  uiTemporalId )
 {
   ROF ( uiBaseLayerId < MAX_LAYERS );
 
-  // ICU/ETRI FGS_MOT_USE
-  RNOK( m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, 
-                                                           pcResidual, 
-                                                           pcMbDataCtrl,
-                                                           pcMbDataCtrlEL,
-                                                           bConstrainedIPredBL, 
-                                                           bForCopyOnly, 
-                                                           iSpatialScalability, 
-                                                           iPoc, 
-                                                           bMotion,
-                                                           ePicType,
-                                                           uiIdrPicId) );//EIDR 0619
+  RNOK( m_apcLayerEncoder[uiBaseLayerId]->getBaseLayerData( pcFrame, 
+                                                            pcResidual, 
+                                                            pcMbDataCtrl,
+                                                            pcMbDataCtrlEL,
+                                                            bConstrainedIPredBL, 
+                                                            bForCopyOnly, 
+                                                            iSpatialScalability, 
+                                                            bMotion,
+                                                            ePicType,
+                                                            uiTemporalId ) );
 
   pcMbDataCtrlEL = pcMbDataCtrl;
   return Err::m_nOK;
@@ -345,10 +334,10 @@ H264AVCEncoder::getBaseLayerData( IntFrame*&    pcFrame,
 
 
 ErrVal
-H264AVCEncoder::getBaseLayerResidual( IntFrame*&      pcResidual,
+H264AVCEncoder::getBaseLayerResidual( Frame*&      pcResidual,
                                       UInt            uiBaseLayerId)
 {
-  pcResidual = m_apcMCTFEncoder[uiBaseLayerId]->getBaseLayerResidual();  
+  pcResidual = m_apcLayerEncoder[uiBaseLayerId]->getBaseLayerResidual();  
   return Err::m_nOK;
 }
 
@@ -357,32 +346,29 @@ UInt
 H264AVCEncoder::getNewBits( UInt uiBaseLayerId )
 {
   ROFRS( uiBaseLayerId < MAX_LAYERS, 0 );
-  return m_apcMCTFEncoder[uiBaseLayerId]->getNewBits();
+  return m_apcLayerEncoder[uiBaseLayerId]->getNewBits();
 }
 
 
 ErrVal
-H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
+H264AVCEncoder::init( LayerEncoder*     apcLayerEncoder[MAX_LAYERS],
                       ParameterSetMng*  pcParameterSetMng,
                       PocCalculator*    pcPocCalculator,
                       NalUnitEncoder*   pcNalUnitEncoder,
                       ControlMngIf*     pcControlMng,
                       CodingParameter*  pcCodingParameter,
-                      FrameMng*         pcFrameMng
                       // JVT-V068 {
-                      ,StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler 
+                      StatBuf<Scheduler*, MAX_SCALABLE_LAYERS>* apcScheduler 
                       // JVT-V068 }
                       )
 {
-  ROT( NULL == apcMCTFEncoder );
-  ROT( NULL == pcFrameMng );
+  ROT( NULL == apcLayerEncoder );
   ROT( NULL == pcParameterSetMng );
   ROT( NULL == pcPocCalculator );
   ROT( NULL == pcNalUnitEncoder );
   ROT( NULL == pcControlMng );
   ROT( NULL == pcCodingParameter );
 
-  m_pcFrameMng        = pcFrameMng;
   m_pcParameterSetMng = pcParameterSetMng;
   m_pcPocCalculator   = pcPocCalculator;
   m_pcNalUnitEncoder  = pcNalUnitEncoder;
@@ -391,18 +377,18 @@ H264AVCEncoder::init( MCTFEncoder*      apcMCTFEncoder[MAX_LAYERS],
 
   // JVT-V068 {
   m_apcScheduler = apcScheduler;
-  m_apcScheduler->clear();
+  m_apcScheduler->setAll( 0 );
   // JVT-V068 }
 
   UInt uiLayer;
   for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {
-    ROT( NULL == apcMCTFEncoder[uiLayer] );
-    m_apcMCTFEncoder[uiLayer] = apcMCTFEncoder[uiLayer];
+    ROT( NULL == apcLayerEncoder[uiLayer] );
+    m_apcLayerEncoder[uiLayer] = apcLayerEncoder[uiLayer];
   }
   for( ; uiLayer < MAX_LAYERS; uiLayer++ )
   {
-    m_apcMCTFEncoder[uiLayer] = 0;
+    m_apcLayerEncoder[uiLayer] = 0;
   }
 
   m_cAccessUnitList.clear();
@@ -421,7 +407,6 @@ H264AVCEncoder::uninit()
   m_pcNalUnitEncoder            = NULL;
   m_pcControlMng                = NULL;
   m_pcCodingParameter           = NULL;
-  m_pcFrameMng                  = NULL;
   m_bInitDone                   = false;
   m_bVeryFirstCall              = true;
   m_bScalableSeiMessage         = true;
@@ -429,7 +414,7 @@ H264AVCEncoder::uninit()
 
   for( UInt uiLayer = 0; uiLayer < MAX_LAYERS; uiLayer++ )
   {
-    m_apcMCTFEncoder    [uiLayer] = NULL;
+    m_apcLayerEncoder    [uiLayer] = NULL;
     m_acOrgPicBufferList[uiLayer]   .clear();
     m_acRecPicBufferList[uiLayer]   .clear();
   }
@@ -482,7 +467,7 @@ ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataA
   RNOK ( m_pcNalUnitEncoder->initNalUnit    ( pcExtBinDataAccessor ) );
   RNOK ( m_pcNalUnitEncoder->writeNesting   ( cSEIMessageList ) );
   RNOK ( m_pcNalUnitEncoder->closeNalUnit   ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
+  RNOK( m_apcLayerEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
 
   RNOK( pcSceneInfoSEI->destroy() );
   RNOK( pcScalableNestingSei->destroy() );
@@ -576,7 +561,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
           //pcScalableSEI->setSimplePriorityId(uiNumScalableLayer, uiSimplePriorityId);//SEI update
           pcScalableSEI->setPriorityId(uiNumScalableLayer, uiPriorityId);//SEI update
           pcScalableSEI->setDiscardableFlag(uiNumScalableLayer, bDiscardableFlag);
-          pcScalableSEI->setTemporalLevel(uiNumScalableLayer, uiTempLevel);
+          pcScalableSEI->setTemporalId(uiNumScalableLayer, uiTempLevel);
           pcScalableSEI->setDependencyId(uiNumScalableLayer, uiDependencyID);
           pcScalableSEI->setQualityLevel(uiNumScalableLayer, uiQualityLevel);				
    //JVT-S036 lsj end
@@ -598,7 +583,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
 					pcScalableSEI->setLayerConversionFlag(uiNumScalableLayer, 0); //default: 0, could be changed SEI changes update
           //JVT-W046 }
           //JVT-W047
-          if(m_apcMCTFEncoder[0]->m_bOutputFlag)
+          if(m_apcLayerEncoder[0]->m_bOutputFlag)
             pcScalableSEI->setLayerOutputFlag(uiNumScalableLayer,true);
           else
             pcScalableSEI->setLayerOutputFlag(uiNumScalableLayer,false);
@@ -1009,7 +994,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
   RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+  RNOK( m_apcLayerEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
 
   return Err::m_nOK;
 
@@ -1032,7 +1017,7 @@ H264AVCEncoder::xWriteScalableSEILayersNotPresent( ExtBinDataAccessor* pcExtBinD
   RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
   RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+  RNOK( m_apcLayerEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
 
   return Err::m_nOK;
 }
@@ -1050,7 +1035,7 @@ H264AVCEncoder::xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinD
 
   for( uiLayer = 0; uiLayer < uiNumLayers; uiLayer++ )
   {
-    pcScalableSeiDependencyChange->setLayerId( uiLayer, uiLayerId[uiLayer]);
+    pcScalableSeiDependencyChange->setDependencyId( uiLayer, uiLayerId[uiLayer]);
     pcScalableSeiDependencyChange->setLayerDependencyInfoPresentFlag( uiLayer, pbLayerDependencyInfoPresentFlag[uiLayer] );
     if ( pcScalableSeiDependencyChange->getLayerDependencyInfoPresentFlag( uiLayer ) )
     {
@@ -1067,7 +1052,7 @@ H264AVCEncoder::xWriteScalableSEIDependencyChange( ExtBinDataAccessor* pcExtBinD
   RNOK( m_pcNalUnitEncoder  ->initNalUnit         ( pcExtBinDataAccessor ) );
   RNOK( m_pcNalUnitEncoder  ->write               ( cSEIMessageList ) );
   RNOK( m_pcNalUnitEncoder  ->closeNalUnit        ( uiBits ) );
-  RNOK( m_apcMCTFEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
+  RNOK( m_apcLayerEncoder[0] ->addParameterSetBits ( uiBits+4*8 ) );
 
   return Err::m_nOK;
 }
@@ -1081,7 +1066,7 @@ H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor )
 
   //===== set message =====
   UInt uiScalableLayerId = 0;	//should be changed
-  pcSubPicSEI->setLayerId( uiScalableLayerId );
+  pcSubPicSEI->setDependencyId( uiScalableLayerId );
   
   //===== write message =====
   UInt              uiBits = 0;
@@ -1102,7 +1087,7 @@ H264AVCEncoder::xWriteSubPicSEI ( ExtBinDataAccessor* pcExtBinDataAccessor, UInt
   RNOK( SEI::SubPicSei::create( pcSubPicSEI ) );
 
   //===== set message =====
-  pcSubPicSEI->setLayerId( layer_id );
+  pcSubPicSEI->setDependencyId( layer_id );
   
   //===== write message =====
   UInt              uiBits = 0;
@@ -1203,13 +1188,15 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,
 
     if( m_pcCodingParameter->getNumberOfLayers() )
     {
-      UInt  uiLayer = rcSPS.getLayerId();
+      UInt  uiLayer = rcSPS.getDependencyId();
       UInt  uiSize  = pcExtBinDataAccessor->size();
-      RNOK( m_apcMCTFEncoder[uiLayer]->addParameterSetBits( 8*(uiSize+4) ) );
+      RNOK( m_apcLayerEncoder[uiLayer]->addParameterSetBits( 8*(uiSize+4) ) );
     }
     
 // JVT-V068 {
-    if ( (m_pcCodingParameter->getEnableNalHRD() || m_pcCodingParameter->getEnableVclHRD()) && rcSPS.getProfileIdc() != SCALABLE_PROFILE )
+    if ( (m_pcCodingParameter->getEnableNalHRD() || m_pcCodingParameter->getEnableVclHRD()) && 
+         rcSPS.getProfileIdc() != SCALABLE_BASELINE_PROFILE &&
+         rcSPS.getProfileIdc() != SCALABLE_HIGH_PROFILE )
     {
       pcAVCSPS = m_cUnWrittenSPS.front();
     }
@@ -1230,11 +1217,11 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,
       {
         UInt  uiSPSId = rcPPS.getSeqParameterSetId();
         SequenceParameterSet* pcSPS;
-        RNOK( m_pcParameterSetMng->get( pcSPS, uiSPSId ) );
+        RNOK( m_pcParameterSetMng->get( pcSPS, uiSPSId, rcPPS.referencesSubsetSPS() ) );
 
-        UInt  uiLayer = pcSPS->getLayerId();
+        UInt  uiLayer = pcSPS->getDependencyId();
         UInt  uiSize  = pcExtBinDataAccessor->size();
-        RNOK( m_apcMCTFEncoder[uiLayer]->addParameterSetBits( 8*(uiSize+4) ) );
+        RNOK( m_apcLayerEncoder[uiLayer]->addParameterSetBits( 8*(uiSize+4) ) );
       }
       
       m_cUnWrittenPPS.pop_front();
@@ -1261,7 +1248,7 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
                          PicBufferList*           apcPicBufferUnusedList )
 {
   UInt  uiHighestLayer  = m_pcCodingParameter->getNumberOfLayers() - 1;
-  UInt  uiTargetSize    = ( 1 << m_pcCodingParameter->getLayerParameters(uiHighestLayer).getDecompositionStages() ) + ( m_apcMCTFEncoder[uiHighestLayer]->firstGOPCoded() ? 0 : 1 );
+  UInt  uiTargetSize    = ( 1 << m_pcCodingParameter->getLayerParameters(uiHighestLayer).getDecompositionStages() ) + ( m_apcLayerEncoder[uiHighestLayer]->firstGOPCoded() ? 0 : 1 );
 
   //===== fill lists =====
   for( UInt uiLayer = 0; uiLayer <= uiHighestLayer; uiLayer++ )
@@ -1308,10 +1295,10 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   //===== finish encoding =====
   for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {
-    RNOK( m_apcMCTFEncoder[uiLayer]->finish           ( ruiNumCodedFrames, rdHighestLayerOutputRate, m_aaadFinalFramerate, m_aaauidSeqBits ) );
-    RNOK( m_apcMCTFEncoder[uiLayer]->SingleLayerFinish( m_aaauidSeqBits, m_aaadSingleLayerBitrate ) );
+    RNOK( m_apcLayerEncoder[uiLayer]->finish           ( ruiNumCodedFrames, rdHighestLayerOutputRate, m_aaadFinalFramerate, m_aaauidSeqBits ) );
+    RNOK( m_apcLayerEncoder[uiLayer]->SingleLayerFinish( m_aaauidSeqBits, m_aaadSingleLayerBitrate ) );
     //JVT-W051 {
-    m_adAvgBitrate[uiLayer] = m_apcMCTFEncoder[uiLayer]->m_dAvgBitrate;
+    m_adAvgBitrate[uiLayer] = m_apcLayerEncoder[uiLayer]->m_dAvgBitrate;
     //JVT-W051 }
   }
   printf("\n");
@@ -1441,12 +1428,12 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
   //===== init GOP =====
   for( uiLayer = 0; uiLayer <  m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
   {
-    m_apcMCTFEncoder[uiLayer]->setLayerCGSSNR           ( m_pcCodingParameter->getLayerParameters( uiLayer ).getLayerCGSSNR           () );
-    m_apcMCTFEncoder[uiLayer]->setQualityLevelCGSSNR    ( m_pcCodingParameter->getLayerParameters( uiLayer ).getQualityLevelCGSSNR    () );
-    m_apcMCTFEncoder[uiLayer]->setBaseLayerCGSSNR       ( m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseLayerCGSSNR       () );
-    m_apcMCTFEncoder[uiLayer]->setBaseQualityLevelCGSSNR( m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseQualityLevelCGSSNR() );
+    m_apcLayerEncoder[uiLayer]->setLayerCGSSNR           ( m_pcCodingParameter->getLayerParameters( uiLayer ).getLayerCGSSNR           () );
+    m_apcLayerEncoder[uiLayer]->setQualityLevelCGSSNR    ( m_pcCodingParameter->getLayerParameters( uiLayer ).getQualityLevelCGSSNR    () );
+    m_apcLayerEncoder[uiLayer]->setBaseLayerCGSSNR       ( m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseLayerCGSSNR       () );
+    m_apcLayerEncoder[uiLayer]->setBaseQualityLevelCGSSNR( m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseQualityLevelCGSSNR() );
 
-    RNOK( m_apcMCTFEncoder[uiLayer]->initGOP( m_cAccessUnitList, m_acOrgPicBufferList[uiLayer] ) );
+    RNOK( m_apcLayerEncoder[uiLayer]->initGOP( m_cAccessUnitList, m_acOrgPicBufferList[uiLayer] ) );
   }
 
   //JVT-W052
@@ -1454,8 +1441,8 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
   {
     for( uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
     {
-      m_uiNumofCGS[m_apcMCTFEncoder[uiLayer]->getLayerCGSSNR()] = m_pcCodingParameter->getLayerParameters( uiLayer ).getQualityLevelCGSSNR() + m_pcCodingParameter->getLayerParameters( uiLayer ).getNumberOfQualityLevelsCGSSNR() - 1;
-      m_uicrcVal  [m_apcMCTFEncoder[uiLayer]->getLayerCGSSNR()] = 0xffff;
+      m_uiNumofCGS[m_apcLayerEncoder[uiLayer]->getLayerCGSSNR()] = m_pcCodingParameter->getLayerParameters( uiLayer ).getQualityLevelCGSSNR() + m_pcCodingParameter->getLayerParameters( uiLayer ).getNumberOfQualityLevelsCGSSNR() - 1;
+      m_uicrcVal  [m_apcLayerEncoder[uiLayer]->getLayerCGSSNR()] = 0xffff;
     }
   }
   //JVT-W052
@@ -1469,17 +1456,17 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
     {
       if( m_pcCodingParameter->getNonRequiredEnable() )
       {
-        if( uiLayer == m_pcCodingParameter->getNumberOfLayers() - 1 )   m_apcMCTFEncoder[ uiLayer ]->setNonRequiredWrite( 2 );
-        else                                                            m_apcMCTFEncoder[ uiLayer ]->setNonRequiredWrite( 1 );
+        if( uiLayer == m_pcCodingParameter->getNumberOfLayers() - 1 )   m_apcLayerEncoder[ uiLayer ]->setNonRequiredWrite( 2 );
+        else                                                            m_apcLayerEncoder[ uiLayer ]->setNonRequiredWrite( 1 );
       }
       //JVT-W051 {
       m_bIsFirstGOP = false;
-      if ( m_apcMCTFEncoder[uiLayer]->firstGOPCoded() == false )
+      if ( m_apcLayerEncoder[uiLayer]->firstGOPCoded() == false )
       {
         m_bIsFirstGOP = true;
       }
       //JVT-W051 }
-      RNOK( m_apcMCTFEncoder[uiLayer]->process( uiAUIndex,
+      RNOK( m_apcLayerEncoder[uiLayer]->process( uiAUIndex,
                                                 m_cAccessUnitList,
                                                 m_acOrgPicBufferList  [uiLayer],
                                                 m_acRecPicBufferList  [uiLayer],
@@ -1490,19 +1477,19 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
                                                 // JVT-V068 HRD }
                                               ) );
       //JVT-W051 {
-      m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] = m_apcMCTFEncoder[uiLayer]->m_dFrameBits/1000;
+      m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] = m_apcLayerEncoder[uiLayer]->m_dFrameBits/1000;
       if ( uiLayer == 0 && uiAUIndex == 0 )
       {
-        m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] += (Double)m_apcMCTFEncoder[uiLayer]->xGetParameterSetBits()/1000;
+        m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] += (Double)m_apcLayerEncoder[uiLayer]->xGetParameterSetBits()/1000;
       }
       if ( m_bIsFirstGOP )
       {			
-        m_uiProfileIdc[uiLayer] = m_apcMCTFEncoder[uiLayer]->m_uiProfileIdc;
-        m_uiLevelIdc[uiLayer] = m_apcMCTFEncoder[uiLayer]->m_uiLevelIdc;
-        m_bConstraint0Flag[uiLayer] = m_apcMCTFEncoder[uiLayer]->m_bConstraint0Flag;
-        m_bConstraint1Flag[uiLayer] = m_apcMCTFEncoder[uiLayer]->m_bConstraint1Flag;
-        m_bConstraint2Flag[uiLayer] = m_apcMCTFEncoder[uiLayer]->m_bConstraint2Flag;
-        m_bConstraint3Flag[uiLayer] = m_apcMCTFEncoder[uiLayer]->m_bConstraint3Flag;
+        m_uiProfileIdc[uiLayer] = m_apcLayerEncoder[uiLayer]->m_uiProfileIdc;
+        m_uiLevelIdc[uiLayer] = m_apcLayerEncoder[uiLayer]->m_uiLevelIdc;
+        m_bConstraint0Flag[uiLayer] = m_apcLayerEncoder[uiLayer]->m_bConstraint0Flag;
+        m_bConstraint1Flag[uiLayer] = m_apcLayerEncoder[uiLayer]->m_bConstraint1Flag;
+        m_bConstraint2Flag[uiLayer] = m_apcLayerEncoder[uiLayer]->m_bConstraint2Flag;
+        m_bConstraint3Flag[uiLayer] = m_apcLayerEncoder[uiLayer]->m_bConstraint3Flag;
       }
       //JVT-W051 }
     }		
@@ -1558,12 +1545,16 @@ H264AVCEncoder::xInitParameterSets()
   {
     //===== get configuration parameters =====
     LayerParameters&  rcLayerParameters   = m_pcCodingParameter->getLayerParameters( uiIndex );
-//bug-fix suffix{{
-  //Bool              bH264AVCCompatible  = m_pcCodingParameter->getBaseLayerMode() > 0 && uiIndex == 0;
-  Bool              bH264AVCCompatible  = ( uiIndex == 0 );
-//bug-fix suffix}}
-  UInt              uiMbY               = rcLayerParameters.getFrameHeight() / 16;
-    UInt              uiMbX               = rcLayerParameters.getFrameWidth () / 16;
+  //bug-fix suffix{{
+    Bool              bH264AVCCompatible  = ( uiIndex == 0 );
+  //bug-fix suffix}}
+    UInt              uiMbY               = ( rcLayerParameters.getFrameHeight() + 15 ) >> 4;
+    UInt              uiMbX               = ( rcLayerParameters.getFrameWidth () + 15 ) >> 4;
+    UInt              uiFrameMbsOnlyFlag  = ( !rcLayerParameters.getPAff() && !rcLayerParameters.getMbAff() );
+    UInt              uiCropLeft          = 0;
+    UInt              uiCropTop           = 0;
+    UInt              uiCropRight         = ( ( 16 - ( rcLayerParameters.getFrameWidth () % 16 ) ) % 16 ) / 2;                      // chroma_format_idc is always equal to 1
+    UInt              uiCropBottom        = ( ( 16 - ( rcLayerParameters.getFrameHeight() % 16 ) ) % 16 ) / 2 / uiFrameMbsOnlyFlag; // chroma_format_idc is always equal to 1
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
@@ -1600,14 +1591,23 @@ H264AVCEncoder::xInitParameterSets()
       pcPPSLP->setSeqParameterSetId( uiSPSId   );
       RNOK( m_pcParameterSetMng->store( pcPPSLP ) );
     }
-    pcSPS->setSeqParameterSetId( uiSPSId++ );
+    pcSPS->setSeqParameterSetId( uiSPSId );
+    if( uiIndex )
+    {
+      uiSPSId++;
+      pcSPS->setNalUnitType( NAL_UNIT_SUBSET_SPS );
+    }
+    else
+    {
+      pcSPS->setNalUnitType( NAL_UNIT_SPS );
+    }
     RNOK( m_pcParameterSetMng->store( pcSPS   ) );
 
 
     //===== set sequence parameter set parameters =====
-    pcSPS->setNalUnitType                         ( NAL_UNIT_SPS );
-    pcSPS->setLayerId                             ( rcLayerParameters.getLayerId() );
-    pcSPS->setProfileIdc                          ( bH264AVCCompatible ? ( rcLayerParameters.getAdaptiveTransform() > 0 ? HIGH_PROFILE : MAIN_PROFILE ) : SCALABLE_PROFILE );
+    pcSPS->setAVCHeaderRewriteFlag( true );
+    pcSPS->setDependencyId                        ( rcLayerParameters.getDependencyId() );
+    pcSPS->setProfileIdc                          ( bH264AVCCompatible ? ( rcLayerParameters.getAdaptiveTransform() > 0 ? HIGH_PROFILE : MAIN_PROFILE ) : SCALABLE_HIGH_PROFILE );
     pcSPS->setConstrainedSet0Flag                 ( false );
     pcSPS->setConstrainedSet1Flag                 ( bH264AVCCompatible ? 1 : 0 );
     pcSPS->setConstrainedSet2Flag                 ( false );
@@ -1621,6 +1621,11 @@ H264AVCEncoder::xInitParameterSets()
     pcSPS->setFrameWidthInMbs                     ( uiMbX );
     pcSPS->setFrameHeightInMbs                    ( uiMbY );
     pcSPS->setDirect8x8InferenceFlag              ( true  );
+    pcSPS->setFrameCropLeftOffset                 ( uiCropLeft );
+    pcSPS->setFrameCropRightOffset                ( uiCropRight );
+    pcSPS->setFrameCropTopOffset                  ( uiCropTop );
+    pcSPS->setFrameCropBottomOffset               ( uiCropBottom );
+
     // TMM_ESS 
     pcSPS->setResizeParameters                    (rcLayerParameters.getResizeParameters());
 
@@ -1631,7 +1636,7 @@ H264AVCEncoder::xInitParameterSets()
     }
     else
     {
-      pcSPS->setAVCRewriteFlag(rcLayerParameters.getAVCRewriteFlag());
+      pcSPS->setAVCRewriteFlag(rcLayerParameters.getTCoeffLevelPredictionFlag());
       pcSPS->setAVCAdaptiveRewriteFlag(rcLayerParameters.getAVCAdaptiveRewriteFlag());
     }
     
@@ -1650,25 +1655,6 @@ H264AVCEncoder::xInitParameterSets()
       pcSPS->setMGSVect                           ( ui, rcLayerParameters.getMGSVect( ui ) );
     }
 
-   // pcSPS->setRCDOBlockSizes         ( false );
-   // pcSPS->setRCDOMotionCompensationY( false );
-  //  pcSPS->setRCDOMotionCompensationC( false );
-   // pcSPS->setRCDODeblocking         ( false );
-    // UInt  uiRCDOBS  = m_pcCodingParameter->getRCDOBlockSizes         ();
-   // UInt  uiRCDOMCY = m_pcCodingParameter->getRCDOMotionCompensationY();
-   // UInt  uiRCDOMCC = m_pcCodingParameter->getRCDOMotionCompensationC();
-  //  UInt  uiRCDODB  = m_pcCodingParameter->getRCDODeblocking         ();
-    // pcSPS->setRCDOBlockSizes         ( ( uiIndex && uiRCDOBS  ) || ( uiRCDOBS  > 1 ) );
-    // pcSPS->setRCDOMotionCompensationY( ( uiIndex && uiRCDOMCY ) || ( uiRCDOMCY > 1 ) );
-   // pcSPS->setRCDOMotionCompensationC( ( uiIndex && uiRCDOMCC ) || ( uiRCDOMCC > 1 ) );
-   // pcSPS->setRCDODeblocking         ( ( uiIndex && uiRCDODB  ) || ( uiRCDODB  > 1 ) );
-
-  // V090
-  pcSPS->set4TapMotionCompensationY( false );
-  UInt  ui4TapMCY = m_pcCodingParameter->get4TapMotionCompensationY();                 // V090
-  pcSPS->set4TapMotionCompensationY( ( uiIndex && ui4TapMCY ) || ( ui4TapMCY > 1 ) );  // V090
-  // V090
-
   // JVT-V068 HRD {
     pcSPS->setVUI( pcSPS );
   xInitLayerInfoForHrd( pcSPS, uiIndex );
@@ -1676,11 +1662,9 @@ H264AVCEncoder::xInitParameterSets()
   //SSPS {
 		if( uiIndex ) // sub-SPS
 		{
-			pcSPS->setSubSPS( true );
-      pcSPS->setNalUnitType ( NAL_UNIT_SUB_SPS );
+      pcSPS->setAVCHeaderRewriteFlag( false );
 			pcSPS->setSVCVUIParametersPresentFlag( false );
 			pcSPS->setAdditionalExtension2Flag( false);
-			pcSPS->setAdditionalExtension2DataFlag(false);
 			pcSPS->setNumLayersMinus1(0);
 			for (UInt i = 0;i<MAX_LAYERS;i++)
 			{
@@ -1699,16 +1683,14 @@ H264AVCEncoder::xInitParameterSets()
 		}
 		else
 		{
-			pcSPS->setSubSPS( false );
 			pcSPS->setSVCVUIParametersPresentFlag( false );
 			pcSPS->setAdditionalExtension2Flag( false);
-			pcSPS->setAdditionalExtension2DataFlag(false);
-		
 		}
 	//SSPS }
     //===== set picture parameter set parameters =====
+    pcPPSHP->setReferencesSubsetSPS                   ( uiIndex > 0 );
     pcPPSHP->setNalUnitType                           ( NAL_UNIT_PPS );
-    pcPPSHP->setLayerId                               ( rcLayerParameters.getLayerId() );
+    pcPPSHP->setDependencyId                               ( rcLayerParameters.getDependencyId() );
     pcPPSHP->setEntropyCodingModeFlag                 ( rcLayerParameters.getEntropyCodingModeFlag() );
     pcPPSHP->setPicOrderPresentFlag                   ( true );
     pcPPSHP->setNumRefIdxActive( LIST_0               , m_pcCodingParameter->getNumRefFrames() );
@@ -1725,7 +1707,7 @@ H264AVCEncoder::xInitParameterSets()
     if ( m_pcCodingParameter->getEnableRedundantKeyPic() == true ) 
     {	
       pcPPSHP->setEnableRedundantKeyPicCntPresentFlag   ( true );
-      if( rcLayerParameters.getLayerId() != 0 )
+      if( rcLayerParameters.getDependencyId() != 0 )
       {
         pcPPSHP->setRedundantPicCntPresentFlag            ( true );
         pcPPSHP->setRedundantKeyPicCntPresentFlag         ( true );
@@ -1757,8 +1739,9 @@ H264AVCEncoder::xInitParameterSets()
 
     if( ! rcLayerParameters.getContrainedIntraForLP() )
     {
+      pcPPSLP->setReferencesSubsetSPS                   ( pcPPSHP->referencesSubsetSPS() );
       pcPPSLP->setNalUnitType                           ( pcPPSHP->getNalUnitType                           ()  );
-      pcPPSLP->setLayerId                               ( pcPPSHP->getLayerId                               ()  );
+      pcPPSLP->setDependencyId                               ( pcPPSHP->getDependencyId                               ()  );
       pcPPSLP->setEntropyCodingModeFlag                 ( pcPPSHP->getEntropyCodingModeFlag                 ()  );
       pcPPSLP->setPicOrderPresentFlag                   ( pcPPSHP->getPicOrderPresentFlag                   ()  );
       pcPPSLP->setNumRefIdxActive( LIST_0               , pcPPSHP->getNumRefIdxActive               ( LIST_0 )  );
@@ -1804,260 +1787,6 @@ H264AVCEncoder::xInitParameterSets()
   return Err::m_nOK;
 }
 
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-MbCoder* H264AVCEncoder::xGetPcMbCoder()
-{
-  return m_pcMbCoder;
-}
-
-ErrVal H264AVCEncoder::initMb( MbDataAccess*& pcMbDataAccessRewrite, UInt uiMbY, UInt uiMbX )
-{
-  return m_pcMbDataCtrl->initMb( pcMbDataAccessRewrite, uiMbY, uiMbX );
-}
-
-ErrVal H264AVCEncoder::initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl )
-{
-  return m_pcMbDataCtrl->initSlice( rcSH, eProcessingState, bDecoder, pcMbDataCtrl );
-}
-
-Void
-H264AVCEncoder::xStoreEstimation( MbDataAccess& rcMbDataAccess, MbDataAccess& rcMbBestData )
-{
-  if( rcMbBestData.getMbData().isIntra() )
-  {
-    rcMbBestData.getMbData().getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
-    rcMbBestData.getMbData().getMbMvdData   ( LIST_0 ).clear();
-
-    if( rcMbDataAccess.getSH().isInterB() )
-    {
-      rcMbBestData.getMbData().getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
-      rcMbBestData.getMbData().getMbMvdData   ( LIST_1 ).clear();
-    }
-  }
-  else if( rcMbBestData.getMbData().isSkiped() )
-  {
-    rcMbBestData.getMbData().getMbMvdData( LIST_0 ).clear();
-
-    if( rcMbDataAccess.getSH().isInterB() )
-    {
-      rcMbBestData.getMbData().getMbMvdData( LIST_1 ).clear();
-    }
-  }  
-
-  UInt uiFwdBwd = 0;
-  if( rcMbDataAccess.getSH().isInterB() )
-  {
-    for( Int n = 3; n >= 0; n--)
-    {
-      uiFwdBwd <<= 4;
-      uiFwdBwd += (0 < rcMbBestData.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
-      uiFwdBwd += (0 < rcMbBestData.getMbData().getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) )) ? 2:0;
-    }
-  }
-
-  if( rcMbDataAccess.getSH().isInterP() )
-  {
-    for( Int n = 3; n >= 0; n--)
-    {
-      uiFwdBwd <<= 4;
-      uiFwdBwd +=  (0 < rcMbBestData.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) )) ? 1:0;
-    }
-  }
-  rcMbBestData.getMbData().setFwdBwd  ( uiFwdBwd );
-  //rcMbBestData.copyTo     ( rcMbDataAccess );
-  
-  rcMbDataAccess.getMbData()            .copyFrom( rcMbBestData.getMbData() );
-  rcMbDataAccess.getMbTCoeffs()         .copyFrom( rcMbBestData.getMbTCoeffs() );
-  rcMbDataAccess.getMbData().copyMotion( rcMbBestData.getMbData(), 0 );  // SET THE SLICE ID (BIT OF A HACK)  
-
-  if( ! rcMbDataAccess.getMbData().isIntra4x4() && ( rcMbDataAccess.getMbData().getMbCbp() & 0x0F ) == 0 
-    && !rcMbDataAccess.getMbData().isIntra_BL() 	  
-    )
-  {
-    rcMbDataAccess.getMbData().setTransformSize8x8( false );
-  }
-}
-
-
-ErrVal
-H264AVCEncoder::xCreateAvcRewriteEncoder() {
-
-  ROT( NULL == this);
-  // only create the parts relating to the SVC-AVC rewrite	
-  RNOK( BitWriteBuffer              ::create( m_pcBitWriteBuffer ) );
-  RNOK( BitCounter                  ::create( m_pcBitCounter ) );
-  RNOK( NalUnitEncoder              ::create( m_pcNalUnitEncoder) );
-
-  RNOK( UvlcWriter                  ::create( m_pcUvlcWriter ) );
-  RNOK( UvlcWriter                  ::create( m_pcUvlcTester ) );
-  RNOK( CabacWriter                 ::create( m_pcCabacWriter ) );
-  RNOK( MbCoder                     ::create( m_pcMbCoder ) );
-  RNOK( RateDistortion              ::create( m_pcRateDistortion ) ); // maybe used in init m_pcMbCoder
-
-  return Err::m_nOK;
-}
-
-ErrVal
-H264AVCEncoder::xInitAvcRewriteEncoder() {
-  // init
-  RNOK( m_pcBitWriteBuffer          ->init() );
-  RNOK( m_pcBitCounter              ->init() );
-  
-  RNOK( m_pcUvlcWriter              ->init( m_pcBitWriteBuffer ) );
-  RNOK( m_pcUvlcTester              ->init( m_pcBitCounter ) );
-  RNOK( m_pcCabacWriter             ->init( m_pcBitWriteBuffer ) );
-
-  RNOK( m_pcNalUnitEncoder          ->init( m_pcBitWriteBuffer,
-                                            m_pcUvlcWriter,
-                                            m_pcUvlcTester));   // 
-     
-  return Err::m_nOK;
-}
-
-ErrVal
-H264AVCEncoder::xInitSliceForAvcRewriteCoding(const SliceHeader& rcSH)
-{
-  MbSymbolWriteIf* m_pcMbSymbolWriteIf;
-  bool bCabac = rcSH.getPPS().getEntropyCodingModeFlag();
-
-  if(bCabac )
-  {
-    m_pcMbSymbolWriteIf = m_pcCabacWriter;
-  }
-  else
-  {
-    m_pcMbSymbolWriteIf = m_pcUvlcWriter;
-  }
-
-  RNOK( m_pcMbSymbolWriteIf   ->startSlice( rcSH ) );
-  RNOK( m_pcMbCoder           ->initSlice ( rcSH, m_pcMbSymbolWriteIf, m_pcRateDistortion) ); // 
-
-  if (m_pcMbDataCtrl == NULL)
-  {
-    m_pcMbDataCtrl = new MbDataCtrl();
-    m_pcMbDataCtrl->init( rcSH.getSPS() ); 
-  }
-    
-  return Err::m_nOK;
-}
-
-ErrVal
-H264AVCEncoder::xCloseAvcRewriteEncoder() {
-
-  RNOK( m_pcBitWriteBuffer        ->destroy() );
-  RNOK( m_pcBitCounter            ->destroy() );
-  RNOK( m_pcNalUnitEncoder        ->destroy() );
-  RNOK( m_pcUvlcWriter            ->destroy() );
-  RNOK( m_pcUvlcTester            ->destroy() );
-  RNOK( m_pcCabacWriter           ->destroy() );
-  RNOK( m_pcMbCoder               ->destroy() );
-  RNOK( m_pcRateDistortion        ->destroy() );
-  if( m_pcMbDataCtrl )
-  {
-    m_pcMbDataCtrl->uninit();
-    m_pcMbDataCtrl = NULL;
-  }
-  return Err::m_nOK;
-}
-
-// overloaded functions to write parameter sets
-ErrVal  
-H264AVCEncoder::xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,const SliceHeader& rcSH, const NalUnitType eNalUnitType) {
-  UInt uiBits=0;
-  RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
-  switch( eNalUnitType )
-  {
-  case NAL_UNIT_SPS:
-	case NAL_UNIT_SUB_SPS: //SSPS
-    {
-      // Todo: disable sending seq_parameter_set_svc_extension if profile_idc == 83			
-      RNOK( m_pcNalUnitEncoder->write( rcSH.getSPS()) );		// write SPS	  
-      break;
-    }
-  case NAL_UNIT_PPS:
-    {
-      RNOK( m_pcNalUnitEncoder->write( rcSH.getPPS()) );		// write PPS	 
-      break;
-    }
-  case NAL_UNIT_SEI:     // SHARP_AVC_REWRITE_OUTPUT: TODO
-    break;
-  case NAL_UNIT_ACCESS_UNIT_DELIMITER:    
-    break;
-  case NAL_UNIT_END_OF_SEQUENCE:
-    break;
-  case NAL_UNIT_END_OF_STREAM:
-    break;
-  default:
-    break;
-  }
-
-  RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
-  return Err::m_nOK;
-}
-
-ErrVal  
-H264AVCEncoder::xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor, SequenceParameterSet& rcSps) {
-  UInt uiBits=0;
-  RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
-  
-  Profile profile_idc_save = rcSps.getProfileIdc();
-
-  if (profile_idc_save ==   SCALABLE_PROFILE)  // SVC extension 
-    rcSps.setProfileIdc(HIGH_PROFILE);
-
-  RNOK( m_pcNalUnitEncoder->write( rcSps) );	// write SPS	  
-
-  RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
-
-  rcSps.setProfileIdc(profile_idc_save);     // resume the profile
-
-  return Err::m_nOK;
-}
-
-ErrVal  
-H264AVCEncoder::xAvcRewriteParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor, PictureParameterSet& rcPps) {
-  UInt uiBits=0;
-  RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );	
-  RNOK( m_pcNalUnitEncoder->write( rcPps) );		// write PPS	  
-
-  RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
-
-  return Err::m_nOK;
-}
-
-ErrVal  
-H264AVCEncoder::xAvcRewriteSliceHeader ( ExtBinDataAccessor* pcExtBinDataAccessor, SliceHeader& rcSH) {
-  // need to write AVC compatible
-  NalUnitType nal_type_save = rcSH.getNalUnitType();
-
-  if (nal_type_save==NAL_UNIT_CODED_SLICE_SCALABLE)
-    rcSH.setNalUnitType(NAL_UNIT_CODED_SLICE);
-  else if (nal_type_save==NAL_UNIT_CODED_SLICE_IDR_SCALABLE)
-    rcSH.setNalUnitType(NAL_UNIT_CODED_SLICE_IDR);
-
-  RNOK( m_pcNalUnitEncoder->write  (rcSH) );
-
-  // resume the NAL slice type
-  rcSH.setNalUnitType(nal_type_save);
-
-  return Err::m_nOK;
-}
-
-ErrVal  
-H264AVCEncoder::xAvcRewriteInitNalUnit ( ExtBinDataAccessor* pcExtBinDataAccessor) {
-
-  RNOK( m_pcNalUnitEncoder->initNalUnit( pcExtBinDataAccessor ) );
-  return Err::m_nOK;
-}
-
-ErrVal  
-H264AVCEncoder::xAvcRewriteCloseNalUnit () {
-  UInt uiBits;
-  RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
-  return Err::m_nOK;
-}
-
-#endif
 
 // JVT-V068 HRD {
 ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt uiLayer )
@@ -2103,7 +1832,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
       UInt uiHrdIdx = uiTemporalId * uiTotalFGSLevel + uiFGSLevel;
 
       pcVui->getLayerInfo(uiHrdIdx).setDependencyID(uiDependencyId);
-      pcVui->getLayerInfo(uiHrdIdx).setTemporalLevel(uiTemporalId);
+      pcVui->getLayerInfo(uiHrdIdx).setTemporalId(uiTemporalId);
       pcVui->getLayerInfo(uiHrdIdx).setQualityLevel(uiQualityLevel);
       pcVui->getTimingInfo(uiHrdIdx).setTimingInfoPresentFlag((m_pcCodingParameter->getEnableVUITimingInfo()!=0));
       if (pcVui->getTimingInfo(uiHrdIdx).getTimingInfoPresentFlag() )
@@ -2186,7 +1915,7 @@ ErrVal H264AVCEncoder::writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* p
       pcScalableNestingSei->setDependencyId( uiIndex, uiDependencyId[uiIndex] );
 			pcScalableNestingSei->setQualityLevel( uiIndex, uiQualityLevel[uiIndex] );
 		}
-    pcScalableNestingSei->setTemporalLevel(uiTemporalId);
+    pcScalableNestingSei->setTemporalId(uiTemporalId);
 		delete uiDependencyId;
 		delete uiQualityLevel;
 	}
@@ -2205,7 +1934,7 @@ ErrVal H264AVCEncoder::writeNestingTl0DepRepIdxSEIMessage( ExtBinDataAccessor* p
 	  RNOK ( m_pcNalUnitEncoder->initNalUnit    ( pcExtBinDataAccessor ) );
 	  RNOK ( m_pcNalUnitEncoder->writeNesting   ( cSEIMessageList ) );
 	  RNOK ( m_pcNalUnitEncoder->closeNalUnit   ( uiBits ) );
-	  RNOK( m_apcMCTFEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
+	  RNOK( m_apcLayerEncoder[0]->addParameterSetBits ( uiBits+4*8 ) );
 
     RNOK( pcTl0DepRepIdxSEI->destroy() );
   	RNOK( pcScalableNestingSei->destroy() );
@@ -2233,4 +1962,364 @@ H264AVCEncoder::writeTl0DepRepIdxSEI ( ExtBinDataAccessor* pcExtBinDataAccessor,
 
 }
 //JVT-W062 }
+
+
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+
+RewriteEncoder::RewriteEncoder()
+: m_bInitialized      ( false )
+, m_bSliceInProgress  ( false )
+, m_uiBinDataSize     ( 0 )
+, m_pcBitWriteBuffer  ( 0 )
+, m_pcBitCounter      ( 0 )
+, m_pcNalUnitEncoder  ( 0 )
+, m_pcUvlcWriter      ( 0 )
+, m_pcUvlcTester      ( 0 )
+, m_pcCabacWriter     ( 0 )
+, m_pcMbCoder         ( 0 )
+, m_pcRateDistortion  ( 0 )
+, m_pcMbDataCtrl      ( 0 )
+, m_pcBinData         ( 0 )
+, m_pcBinDataAccessor ( 0 )
+, m_pcSliceHeader     ( 0 )
+, m_pcMbSymbolWriteIf ( 0 )
+, m_bTraceEnable      ( true )
+{
+}
+
+RewriteEncoder::~RewriteEncoder()
+{
+}
+
+ErrVal
+RewriteEncoder::create( RewriteEncoder*& rpcRewriteEncoder )
+{
+  rpcRewriteEncoder = new RewriteEncoder;
+  ROF ( rpcRewriteEncoder );
+  RNOK( rpcRewriteEncoder->xCreate() );
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::destroy()
+{
+  ROT ( m_bInitialized );
+  RNOK( m_pcBitWriteBuffer  ->destroy() );
+  RNOK( m_pcBitCounter      ->destroy() );
+  RNOK( m_pcNalUnitEncoder  ->destroy() );
+  RNOK( m_pcUvlcWriter      ->destroy() );
+  RNOK( m_pcUvlcTester      ->destroy() );
+  RNOK( m_pcCabacWriter     ->destroy() );
+  RNOK( m_pcMbCoder         ->destroy() );
+  RNOK( m_pcRateDistortion  ->destroy() );
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::init()
+{
+  ROT ( m_bInitialized );
+
+  INIT_ETRACE;
+  OPEN_ETRACE;
+
+  RNOK( m_pcBitWriteBuffer  ->init() );
+  RNOK( m_pcBitCounter      ->init() );
+  RNOK( m_pcNalUnitEncoder  ->init( m_pcBitWriteBuffer, m_pcUvlcWriter, m_pcUvlcTester ) );
+  RNOK( m_pcUvlcWriter      ->init( m_pcBitWriteBuffer ) );
+  RNOK( m_pcUvlcTester      ->init( m_pcBitCounter ) );
+  RNOK( m_pcCabacWriter     ->init( m_pcBitWriteBuffer ) );
+  m_bInitialized      = true;
+  m_bSliceInProgress  = false;
+  m_uiBinDataSize     = 0;
+  m_pcMbDataCtrl      = 0;
+  m_pcBinData         = 0;
+  m_pcBinDataAccessor = 0;
+  m_pcSliceHeader     = 0;
+  m_pcMbSymbolWriteIf = 0;
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::uninit()
+{
+  ROT ( m_bSliceInProgress );
+  ROF ( m_bInitialized );
+
+  RNOK( m_pcBitWriteBuffer  ->uninit() );
+  RNOK( m_pcBitCounter      ->uninit() );
+  RNOK( m_pcNalUnitEncoder  ->uninit() );
+  RNOK( m_pcUvlcWriter      ->uninit() );
+  RNOK( m_pcUvlcTester      ->uninit() );
+  RNOK( m_pcCabacWriter     ->uninit() );
+  RNOK( m_pcMbCoder         ->uninit() );
+  
+  if( m_pcMbDataCtrl )
+  {
+    RNOK(  m_pcMbDataCtrl   ->uninit() );
+    delete m_pcMbDataCtrl;
+  }
+  m_cRewrittenParameterSets .clear  ();
+
+  CLOSE_ETRACE;
+  
+  m_bInitialized = false;
+
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::startSlice( BinDataList& rcBinDataList, const SliceHeader& rcSliceHeader )
+{
+  ROF ( m_bInitialized );
+  ROT ( m_bSliceInProgress );
+
+  //===== init SPS and write parameter sets when required =====
+  RNOK( xInitSPS    ( rcSliceHeader.getSPS() ) );
+  RNOK( xRewriteSPS ( rcSliceHeader.getSPS(), rcBinDataList ) );
+  RNOK( xRewritePPS ( rcSliceHeader.getPPS(), rcBinDataList ) );
+
+  //===== set entropy coder and create slice header =====
+  m_pcMbSymbolWriteIf   = ( rcSliceHeader.getPPS().getEntropyCodingModeFlag() ? (MbSymbolWriteIf*)m_pcCabacWriter : (MbSymbolWriteIf*)m_pcUvlcWriter );
+  RNOK( xCreateSliceHeader( rcSliceHeader ) );
+
+  //===== init NAL unit, write slice header, and init slice =====
+  RNOK( xInitNALUnit() );
+  ETRACE_NEWSLICE;
+  RNOK( m_pcSliceHeader     ->write     ( *m_pcUvlcWriter ) );
+  RNOK( m_pcMbSymbolWriteIf ->startSlice( *m_pcSliceHeader ) );
+  RNOK( m_pcMbCoder         ->initSlice ( *m_pcSliceHeader, m_pcMbSymbolWriteIf, m_pcRateDistortion ) );
+  RNOK( m_pcMbDataCtrl      ->initSlice ( *m_pcSliceHeader, DECODE_PROCESS, true, NULL ) );
+
+  m_bSliceInProgress  = true;
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::finishSlice( BinDataList& rcBinDataList )
+{
+  ROF ( m_bInitialized );
+  ROF ( m_bSliceInProgress );
+  RNOK( xCloseNALUnit( rcBinDataList ) );
+
+  delete m_pcSliceHeader;
+  m_pcMbSymbolWriteIf = 0;
+  m_pcSliceHeader     = 0;
+  m_bSliceInProgress  = false;
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX )
+{
+  ROF ( m_bInitialized );
+  ROF ( m_bSliceInProgress );
+  RNOK( m_pcMbDataCtrl->initMb( rpcMbDataAccess, uiMbY, uiMbX ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::storeMb( MbDataAccess& rcMbDataAccess, const MbDataAccess& rcMbDataAccessSrc )
+{
+  ROF ( m_bInitialized );
+  ROF ( m_bSliceInProgress );
+
+  //===== copy data =====
+  rcMbDataAccess.getMbData    ().copyFrom   ( rcMbDataAccessSrc.getMbData   ()    );
+  rcMbDataAccess.getMbTCoeffs ().copyFrom   ( rcMbDataAccessSrc.getMbTCoeffs()    );
+  rcMbDataAccess.getMbData    ().copyMotion ( rcMbDataAccessSrc.getMbData   (), 0 );
+  
+  //===== clear motion data for later usage =====
+  if( rcMbDataAccess.getMbData().isIntra() )
+  {
+    rcMbDataAccess.getMbData().getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
+    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_0 ).clear();
+    rcMbDataAccess.getMbData().getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
+    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_1 ).clear();
+  }
+  else if( rcMbDataAccess.getMbData().isSkiped() )
+  {
+    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_0 ).clear();
+    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_1 ).clear();
+  }  
+  UInt uiFwdBwd = 0;
+  if( rcMbDataAccessSrc.getSH().isBSlice() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += ( rcMbDataAccess.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) ) > 0 ? 1 : 0 );
+      uiFwdBwd += ( rcMbDataAccess.getMbData().getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) ) > 0 ? 2 : 0 );
+    }
+  }
+  else if( rcMbDataAccessSrc.getSH().isPSlice() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += ( rcMbDataAccess.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) ) > 0 ? 1 : 0 );
+    }
+  }
+  rcMbDataAccess.getMbData().setFwdBwd( uiFwdBwd );
+
+  //===== clear 8x8 transform flag when required =====
+  if( ! rcMbDataAccess.getMbData().isIntra4x4() && ( rcMbDataAccess.getMbData().getMbCbp() & 0x0F ) == 0 && !rcMbDataAccess.getMbData().isIntraBL() )
+  {
+    rcMbDataAccess.getMbData().setTransformSize8x8( false );
+  }
+    
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::encodeMb( MbDataAccess& rcMbDataAccess, Bool bTerminateSlice )
+{
+  ROF ( m_bInitialized );
+  ROF ( m_bSliceInProgress );
+  RNOK( m_pcMbCoder->encode( rcMbDataAccess, NULL, 0, bTerminateSlice, true ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::xCreate()
+{
+  RNOK( BitWriteBuffer::create( m_pcBitWriteBuffer  ) );
+  RNOK( BitCounter    ::create( m_pcBitCounter      ) );
+  RNOK( NalUnitEncoder::create( m_pcNalUnitEncoder  ) );
+  RNOK( UvlcWriter    ::create( m_pcUvlcWriter      ) );
+  RNOK( UvlcWriter    ::create( m_pcUvlcTester      ) );
+  RNOK( CabacWriter   ::create( m_pcCabacWriter     ) );
+  RNOK( MbCoder       ::create( m_pcMbCoder         ) );
+  RNOK( RateDistortion::create( m_pcRateDistortion  ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::xInitSPS( const SequenceParameterSet& rcSPS )
+{
+  ROTRS ( m_uiBinDataSize, Err::m_nOK );
+
+  m_uiBinDataSize = rcSPS.getFrameWidthInMbs() * rcSPS.getFrameHeightInMbs() * 768;
+  m_pcMbDataCtrl  = new MbDataCtrl;
+  ROF   ( m_pcMbDataCtrl );
+  RNOK  ( m_pcMbDataCtrl->init( rcSPS ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::xCreateSliceHeader( const SliceHeader& rcSH )
+{
+  //===== create copy of given slice header =====
+  m_pcSliceHeader = new SliceHeader( rcSH );
+  ROF( m_pcSliceHeader );
+
+  //===== modify parameters for rewrite slice header =====
+  m_pcSliceHeader->setNalUnitType                   ( rcSH.getIdrFlag() ? NAL_UNIT_CODED_SLICE_IDR : NAL_UNIT_CODED_SLICE );
+  m_pcSliceHeader->setDependencyId                  ( 0 );
+  m_pcSliceHeader->setQualityId                     ( 0 );
+  m_pcSliceHeader->setNoInterLayerPredFlag          ( true );
+  m_pcSliceHeader->setRefLayerDQId                  ( MSYS_UINT_MAX );
+  m_pcSliceHeader->setAdaptiveBaseModeFlag          ( false );
+  m_pcSliceHeader->setAdaptiveMotionPredictionFlag  ( false );
+  m_pcSliceHeader->setAdaptiveResidualPredictionFlag( false );
+  m_pcSliceHeader->setScanIdxStart                  ( 0 );
+  m_pcSliceHeader->setScanIdxStop                   ( 16 );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::xInitNALUnit()
+{
+  UChar*  pucBuffer   = new UChar [ m_uiBinDataSize ];
+  m_pcBinData         = new BinData;
+  m_pcBinDataAccessor = new BinDataAccessor;
+  ROF( pucBuffer );
+  ROF( m_pcBinData );
+  ROF( m_pcBinDataAccessor );
+
+  m_pcBinData->set( pucBuffer, m_uiBinDataSize );
+  m_pcBinData->setMemAccessor( *m_pcBinDataAccessor );
+
+  RNOK( m_pcNalUnitEncoder->initNalUnit( m_pcBinDataAccessor ) );
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::xCloseNALUnit( BinDataList& rcBinDataList )
+{
+  UInt uiBits = 0;
+  RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
+
+  m_pcBinData->set( m_pcBinData->data(), m_pcBinDataAccessor->size() ); // set correct size
+  rcBinDataList.push_back( m_pcBinData );
+  delete m_pcBinDataAccessor;
+
+  m_pcBinData         = 0;
+  m_pcBinDataAccessor = 0;
+  return Err::m_nOK;
+}
+
+Bool
+RewriteEncoder::xIsRewritten( const Void* pParameterSet )
+{
+  MyList<const Void*>::iterator iIter = m_cRewrittenParameterSets.begin();
+  MyList<const Void*>::iterator iEnd  = m_cRewrittenParameterSets.end  ();
+  while( iIter != iEnd )
+  {
+    if( (*iIter) == pParameterSet )
+    {
+      return true;
+    }
+    iIter++;
+  }
+  return false;
+}
+
+ErrVal
+RewriteEncoder::xRewriteSPS( const SequenceParameterSet& rcSPS, BinDataList& rcBinDataList )
+{
+  ROTRS( xIsRewritten( &rcSPS ), Err::m_nOK );
+
+  //===== store nal_unit_type and profile_idc =====
+  NalUnitType eNalUnitType  = rcSPS.getNalUnitType();
+  Profile     eProfile      = rcSPS.getProfileIdc ();
+
+  //===== modify nal_unit_type and profile_idc =====
+  const_cast<SequenceParameterSet&>(rcSPS).setNalUnitType( NAL_UNIT_SPS );
+  const_cast<SequenceParameterSet&>(rcSPS).setProfileIdc ( HIGH_PROFILE );
+
+  //===== write SPS =====
+  RNOK( xInitNALUnit  () );
+  RNOK( m_pcNalUnitEncoder->write( rcSPS ) );
+  RNOK( xCloseNALUnit ( rcBinDataList ) );
+  m_cRewrittenParameterSets.push_back( &rcSPS );
+
+  //===== restore original nal_unit_type and profile_idc =====
+  const_cast<SequenceParameterSet&>(rcSPS).setNalUnitType( eNalUnitType );
+  const_cast<SequenceParameterSet&>(rcSPS).setProfileIdc ( eProfile );
+
+  return Err::m_nOK;
+}
+
+ErrVal
+RewriteEncoder::xRewritePPS( const PictureParameterSet& rcPPS, BinDataList& rcBinDataList )
+{
+  ROTRS( xIsRewritten( &rcPPS ), Err::m_nOK );
+
+  //===== write PPS =====
+  RNOK( xInitNALUnit  () );
+  RNOK( m_pcNalUnitEncoder->write( rcPPS ) );
+  RNOK( xCloseNALUnit ( rcBinDataList ) );
+  m_cRewrittenParameterSets.push_back( &rcPPS );
+
+  return Err::m_nOK;
+}
+
+
+#endif
+
+
+
 H264AVC_NAMESPACE_END

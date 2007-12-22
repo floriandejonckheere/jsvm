@@ -91,7 +91,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "H264AVCCommonLib/ControlMngIf.h"
-#include "H264AVCCommonLib/FrameMng.h"
 #include "H264AVCCommonLib/ParameterSetMng.h"
 #include "H264AVCCommonLib/PocCalculator.h"
 #include "SliceReader.h"
@@ -124,110 +123,56 @@ protected:
 	virtual ~ControlMngH264AVCDecoder();
 
 public:
-  static ErrVal create( ControlMngH264AVCDecoder*& rpcControlMngH264AVCDecoder );
-
-  ErrVal init(  FrameMng*           pcFrameMng,
-                ParameterSetMng*    pcParameterSetMng,
-                PocCalculator*      apcPocCalculator      [MAX_LAYERS],
-                SliceReader*        pcSliceReader,
-                NalUnitParser*      pcNalUnitParser,
-                SliceDecoder*       pcSliceDecoder,
-                BitReadBuffer*      pcBitReadBuffer,
-                UvlcReader*         pcUvlcReader,
-                MbParser*           pcMbParser,
-                LoopFilter*         pcLoopFilter,
-                MbDecoder*          pcMbDecoder,
-                Transform*          pcTransform,
-                IntraPrediction*    pcIntraPrediction,
-                MotionCompensation* pcMotionCompensation,
-                YuvBufferCtrl*      pcYuvFullPelBufferCtrl[MAX_LAYERS],
-                QuarterPelFilter*   pcQuarterPelFilter,
-                CabacReader*        pcCabacReader,
-                SampleWeighting*    pcSampleWeighting,
-                MCTFDecoder*        apcMCTFDecoder        [MAX_LAYERS],
-                H264AVCDecoder*        pcH264AVCDecoder );
-
-  ErrVal uninit();
-  ErrVal destroy();
+  static ErrVal create  ( ControlMngH264AVCDecoder*&  rpcControlMngH264AVCDecoder );
+  ErrVal        destroy ();
+  ErrVal        init    ( UvlcReader*                 pcUvlcReader,
+                          MbParser*                   pcMbParser,
+                          MotionCompensation*         pcMotionCompensation,
+                          YuvBufferCtrl*              pcYuvFullPelBufferCtrl[MAX_LAYERS],
+                          CabacReader*                pcCabacReader,
+                          SampleWeighting*            pcSampleWeighting,
+                          LayerDecoder*               apcLayerDecoder       [MAX_LAYERS] );
+  ErrVal        uninit  ();
 
   ErrVal initMbForParsing     ( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex );
   ErrVal initMbForDecoding    ( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff );
   ErrVal initMbForFiltering   ( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff );
 
-  ErrVal initSlice0           (SliceHeader *rcSH);
-  // TMM_ESS 
-  ErrVal initSPS              ( SequenceParameterSet& rcSequenceParameterSet,
-                                UInt  uiLayer );
-	
-  ErrVal initSPS              ( SequenceParameterSet& rcSequenceParameterSet );
+  ErrVal initSlice0           ( SliceHeader*                rcSH);
+  ErrVal initSPS              ( SequenceParameterSet&       rcSequenceParameterSet, UInt  uiLayer );
   ErrVal initParameterSets    ( const SequenceParameterSet& rcSPS,
                                 const PictureParameterSet&  rcPPSLP,
                                 const PictureParameterSet&  rcPPSHP  )    { return Err::m_nERR; }
 
-  ErrVal initParameterSetsForFGS    ( const SequenceParameterSet& rcSPS,
-                                const PictureParameterSet&  rcPPSLP,
-                                const PictureParameterSet&  rcPPSHP  )    { return Err::m_nERR; }
-
-  ErrVal initSlice            ( SliceHeader& rcSH, ProcessingState eProcessingState );
-  ErrVal finishSlice          ( const SliceHeader& rcSH, Bool& rbPicDone, Bool& rbFrameDone );
   ErrVal initSliceForCoding   ( const SliceHeader& rcSH ) { return Err::m_nERR; }
   ErrVal initSliceForReading  ( const SliceHeader& rcSH );
   ErrVal initSliceForDecoding ( const SliceHeader& rcSH );
   ErrVal initSliceForFiltering( const SliceHeader& rcSH );
+  ErrVal initSliceForWeighting( const SliceHeader& rcSH ) { return m_pcSampleWeighting->initSlice( rcSH ); }
+  ErrVal finishSlice          ( const SliceHeader& rcSH, Bool& rbPicDone, Bool& rbFrameDone );
 
-  ErrVal initMbForCoding    ( MbDataAccess& rcMbDataAccess,   UInt uiMbY, UInt uiMbX, Bool bMbAff, Bool bFieldFlag ) { return Err::m_nERR; }
-  ErrVal initMbForDecoding  ( MbDataAccess& rcMbDataAccess,   UInt uiMbY, UInt uiMbX, Bool bMbAff );// TMM_INTERLACE
-  ErrVal initMbForFiltering ( MbDataAccess& rcMbDataAccess,   UInt uiMbY, UInt uiMbX, Bool bMbAff );// TMM_INTERLACE
-
-  UvlcReader*  getUvlcReader()  { return m_pcUvlcReader;  };
-  CabacReader* getCabacReader() { return m_pcCabacReader; };
-
-//TMM_WP
-  ErrVal initSliceForWeighting   ( const SliceHeader& rcSH ) {  return m_pcSampleWeighting->initSlice( rcSH ); }
-//TMM_WP
-  MbDataCtrl* getMbDataCtrl() { return m_pcMbDataCtrl;} //JVT-T054
-
-//TMM_INTERLACE{
-  virtual ErrVal removeFrameFieldBuffer   ( );
-//TMM_INTERLACE}
+  ErrVal initMbForCoding      ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff, Bool bFieldFlag ) { return Err::m_nERR; }
+  ErrVal initMbForDecoding    ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff );
+  ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff );
 
 protected:
   ErrVal xInitESS             ( SliceHeader* pcSliceHeader );
 
-
 protected:
-  UInt                    m_uiCurrLayer;
-  Bool                    m_bLayer0IsAVC;
-  UInt                    m_auiMbXinFrame           [MAX_LAYERS]; 
-  UInt                    m_auiMbYinFrame           [MAX_LAYERS];
-  MbDataCtrl*             m_pcMbDataCtrl;
+  UInt                      m_uiCurrLayer;
+  UInt                      m_auiMbXinFrame           [MAX_LAYERS]; 
+  UInt                      m_auiMbYinFrame           [MAX_LAYERS];
+  MbDataCtrl*               m_pcMbDataCtrl;
 
-  FrameMng*               m_pcFrameMng;
-  ParameterSetMng*        m_pcParameterSetMng;
-  PocCalculator*          m_apcPocCalculator        [MAX_LAYERS];
-  SliceReader*            m_pcSliceReader;
-  NalUnitParser*          m_pcNalUnitParser;
-  SliceDecoder*           m_pcSliceDecoder;
-  ControlMngH264AVCDecoder*  m_pcControlMng;
-  BitReadBuffer*          m_pcBitReadBuffer;
-  UvlcReader*             m_pcUvlcReader;
-  MbParser*               m_pcMbParser;
-  LoopFilter*             m_pcLoopFilter;
-  MbDecoder*              m_pcMbDecoder;
-  Transform*              m_pcTransform;
-  IntraPrediction*        m_pcIntraPrediction;
-  MotionCompensation*     m_pcMotionCompensation;
-  YuvBufferCtrl*          m_apcYuvFullPelBufferCtrl [MAX_LAYERS];
-  QuarterPelFilter*       m_pcQuarterPelFilter;
-  CabacReader*            m_pcCabacReader;
-  SampleWeighting*        m_pcSampleWeighting;
-  MCTFDecoder*            m_apcMCTFDecoder          [MAX_LAYERS];
-  H264AVCDecoder*         m_pcH264AVCDecoder;
-  Bool                    m_uiInitialized           [MAX_LAYERS];
-  ResizeParameters        m_ResizeParameter[MAX_LAYERS]; // TMM_ESS
-  Bool                    m_bMbAff;
-  const SliceHeader*      m_pcSliceHeader;
-  ResizeParameters        m_ResizeParameterCGSSNR[MAX_LAYERS][MAX_QUALITY_LEVELS+1];
+  UvlcReader*               m_pcUvlcReader;
+  MbParser*                 m_pcMbParser;
+  MotionCompensation*       m_pcMotionCompensation;
+  YuvBufferCtrl*            m_apcYuvFullPelBufferCtrl [MAX_LAYERS];
+  CabacReader*              m_pcCabacReader;
+  SampleWeighting*          m_pcSampleWeighting;
+  LayerDecoder*             m_apcLayerDecoder         [MAX_LAYERS];
+  Bool                      m_uiInitialized           [MAX_LAYERS];
+  ResizeParameters          m_ResizeParameter         [MAX_LAYERS];
 };
 
 H264AVC_NAMESPACE_END

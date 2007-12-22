@@ -93,13 +93,13 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-class IntYuvMbBuffer;
+class YuvMbBuffer;
 
 class H264AVCCOMMONLIB_API MbTransformCoeffs
 {
 public:
-  ErrVal copyPredictionFrom( IntYuvMbBuffer &rcPred );
-  ErrVal copyPredictionTo( IntYuvMbBuffer &rcPred );
+  ErrVal copyPredictionFrom( YuvMbBuffer &rcPred );
+  ErrVal copyPredictionTo( YuvMbBuffer &rcPred );
 
   MbTransformCoeffs() ;
   TCoeff*       get   ( LumaIdx   cLumaIdx )          { return &m_aaiLevel[cLumaIdx     ][0]; }

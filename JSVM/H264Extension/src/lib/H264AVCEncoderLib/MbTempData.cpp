@@ -88,7 +88,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/MbData.h"
 #include "H264AVCCommonLib/YuvMbBuffer.h"
-#include "H264AVCCommonLib/IntYuvMbBuffer.h"
 
 
   
@@ -128,7 +127,7 @@ IntMbTempData::~IntMbTempData()
 Void IntMbTempData::clear()
 {
   MbData::clear();
-  IntYuvMbBuffer::setZero();
+  YuvMbBuffer::setZero();
 
   MbDataStruct::clear();
   CostData::clear();
@@ -152,7 +151,7 @@ Void IntMbTempData::copyTo( MbDataAccess& rcMbDataAccess )
   rcMbDataAccess.getMbMvdData(LIST_0)   .copyFrom( m_acMbMvdData[LIST_0] );
   rcMbDataAccess.getMbMotionData(LIST_0).copyFrom( m_acMbMotionData[LIST_0] );
 
-  if( rcMbDataAccess.getSH().isInterB() )
+  if( rcMbDataAccess.getSH().isBSlice() )
   {
     rcMbDataAccess.getMbMvdData(LIST_1)   .copyFrom( m_acMbMvdData[LIST_1] );
     rcMbDataAccess.getMbMotionData(LIST_1).copyFrom( m_acMbMotionData[LIST_1] );
@@ -176,7 +175,7 @@ Void IntMbTempData::loadChromaData( IntMbTempData& rcMbTempData )
 {
   ::memcpy( get(CIdx(0)), rcMbTempData.get(CIdx(0)), sizeof(TCoeff)*128);
   setChromaPredMode( rcMbTempData.getChromaPredMode() );
-  IntYuvMbBuffer::loadChroma( rcMbTempData );
+  YuvMbBuffer::loadChroma( rcMbTempData );
   distU()  = rcMbTempData.distU();
   distV()  = rcMbTempData.distV();
   getTempYuvMbBuffer().loadChroma( rcMbTempData.getTempYuvMbBuffer() );

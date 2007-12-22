@@ -128,7 +128,7 @@ public:
 
 class FMO
 {
-
+  Bool  m_bInitialized;
 	int NumberOfSliceGroups_;    // the number of slice groups  (0 == scan order, 7 == maximum)
 
 	int *MbToSliceGroupMap_;
@@ -149,6 +149,9 @@ public :
 
 	FMO& operator = ( const FMO& rcFmo )
   {
+    m_bInitialized  = rcFmo.m_bInitialized;
+    ROFRS( m_bInitialized, *this );
+
     NumberOfSliceGroups_=rcFmo.NumberOfSliceGroups_;
     PicSizeInMapUnits_=rcFmo.PicSizeInMapUnits_;
     
@@ -201,7 +204,7 @@ public :
 
 public:
 	
-	FMO():MbToSliceGroupMap_(0),MapUnitToSliceGroupMap_(0),PicSizeInMapUnits_(0),numMbInSliceGroup_(0)	{	};	
+	FMO():m_bInitialized(false),MbToSliceGroupMap_(0),MapUnitToSliceGroupMap_(0),PicSizeInMapUnits_(0),numMbInSliceGroup_(0)	{	};	
 	~FMO(){	finit();};		
 
 	int init ();

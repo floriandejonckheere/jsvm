@@ -34,15 +34,9 @@ DEFS			= -DMSYS_LINUX
 OBJS          	= \
 			$(OBJ_DIR)/CabacContextModel.o \
 			$(OBJ_DIR)/CabacContextModel2DBuffer.o \
-			$(OBJ_DIR)/FGSCoder.o \
 			$(OBJ_DIR)/Frame.o \
-			$(OBJ_DIR)/FrameMng.o \
-			$(OBJ_DIR)/FrameUnit.o \
 			$(OBJ_DIR)/H264AVCCommonLib.o \
-			$(OBJ_DIR)/IntFrame.o \
 			$(OBJ_DIR)/IntraPrediction.o \
-			$(OBJ_DIR)/IntYuvMbBuffer.o \
-			$(OBJ_DIR)/IntYuvPicBuffer.o \
 			$(OBJ_DIR)/LoopFilter.o \
 			$(OBJ_DIR)/MbData.o \
 			$(OBJ_DIR)/MbDataAccess.o \

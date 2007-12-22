@@ -117,10 +117,10 @@ public:
   class MEBiSearchParameters
   {
   public:
-    IntYuvMbBuffer* pcAltRefPelData;    // the prediction signal for the opposite list (not weighted)
+    YuvMbBuffer* pcAltRefPelData;    // the prediction signal for the opposite list (not weighted)
     UInt            uiL1Search;         // 1 if current search is L1 search, else false
-    const IntFrame* pcAltRefFrame;      // the reference frame of the opposite list
-    const PW*       apcWeight[2];       // { list 0 prediction weight, list 1 prediction weight }
+    const Frame* pcAltRefFrame;      // the reference frame of the opposite list
+    const PredWeight*       apcWeight[2];       // { list 0 prediction weight, list 1 prediction weight }
   };
 
 protected:
@@ -185,7 +185,7 @@ public:
   UInt    getRateCost           ( UInt                  uiBits,
                                   Bool                  bSad  )            { xGetMotionCost( bSad, 0 ); return xGetCost( uiBits ); }
   ErrVal  estimateBlockWithStart( const MbDataAccess&   rcMbDataAccess,
-                                  const IntFrame&       rcRefFrame,
+                                  const Frame&       rcRefFrame,
                                   Mv&                   rcMv,         // <-- MVSTART / --> MV
                                   Mv&                   rcMvPred,
                                   UInt&                 ruiBits,
@@ -194,11 +194,11 @@ public:
                                   UInt                  uiMode,
                                   Bool                  bQPelRefinementOnly,
                                   UInt                  uiSearchRange,
-                                  const PW*             pcPW,
+                                  const PredWeight*             pcPW,
                                   MEBiSearchParameters* pcBSP = 0 );
 
   
-  virtual ErrVal compensateBlock( IntYuvMbBuffer *pcRecPelData, UInt uiBlk, UInt uiMode, IntYuvMbBuffer *pcRefPelData2 = NULL ) = 0;
+  virtual ErrVal compensateBlock( YuvMbBuffer *pcRecPelData, UInt uiBlk, UInt uiMode, YuvMbBuffer *pcRefPelData2 = NULL ) = 0;
 
   DFunc getDistortionFunction() { return m_cParams.getSubPelDFunc(); }
 
@@ -209,20 +209,16 @@ public:
 
 protected:
 
-  Void          xTZSearch             ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Int iSearchRange = 0 );
+  Void          xTZSearch             ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Int iSearchRange = 0 );
   __inline Void xTZSearchHelp         ( IntTZSearchStrukt& rcStrukt, const Int iSearchX, const Int iSearchY, const UChar ucPointNr, const UInt uiDistance );
   __inline Void xTZ2PointSearch       ( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect );
   __inline Void xTZ8PointSquareSearch ( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect, const Int iStartX, const Int iStartY, const Int iDist );
   __inline Void xTZ8PointDiamondSearch( IntTZSearchStrukt& rcStrukt, SearchRect rcSearchRect, const Int iStartX, const Int iStartY, const Int iDist );
 
-  Void          xPelBlockSearch ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
-  Void          xPelSpiralSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
-  Void          xPelLogSearch   ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bFme,  UInt uiStep = 4, UInt uiSearchRange = 0 );
-  virtual Void  xSubPelSearch   ( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode,     Bool bQPelOnly ) = 0;
-
-//TMM_WP
-   Int getDistScaleFactor(Int iCurrPoc, Int iL0Poc, Int iL1Poc ) const;
-//TMM_WP
+  Void          xPelBlockSearch ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
+  Void          xPelSpiralSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD,                              UInt uiSearchRange = 0 );
+  Void          xPelLogSearch   ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, Bool bFme,  UInt uiStep = 4, UInt uiSearchRange = 0 );
+  virtual Void  xSubPelSearch   ( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode,     Bool bQPelOnly ) = 0;
 
 protected:
   QuarterPelFilter* m_pcQuarterPelFilter;

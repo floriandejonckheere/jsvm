@@ -93,11 +93,6 @@ H264AVC_NAMESPACE_BEGIN
 
 class BitReadBuffer
 {
-public:
-  class ReadStop
-  {
-  };
-
 protected:
   BitReadBuffer();
   virtual ~BitReadBuffer();
@@ -105,55 +100,39 @@ protected:
 public:
   static ErrVal create( BitReadBuffer*& rpcBitReadBuffer );
   ErrVal destroy();
-  Void setModeCabac()
+  ErrVal init   () { return Err::m_nOK; }
+  ErrVal uninit () { return Err::m_nOK; }
+
+  ErrVal  initPacket  ( ULong*  puiBits, 
+                        UInt    uiBitsInPacket );
+  Void    setModeCabac()
   { // problem with cabac, cause cabac decoder uses stop bit + trailing stuffing bits
-    m_uiBitsLeft = 8*((m_uiBitsLeft+7)/8);
+    m_uiBitsLeft = 8 * ( ( m_uiBitsLeft + 7 ) / 8 );
   }
-  ErrVal init() { return Err::m_nOK; }
-  ErrVal uninit() { return Err::m_nOK; }
 
-  ErrVal  assignFragments           ( UChar** ppucFragBuffers, 
-                                      UInt&   ruiNumFragments);
-  ErrVal  separateFragments         ( UChar** ppucFragBuffers, 
-                                      UInt*   puiFragLengthInBits,
-                                      UInt&   ruiNumFragments,
-                                      UInt    uiMaxNumFragments );
-  ErrVal  initPacket                ( ULong*  puiBits, 
-                                      UInt    uiBitsInPacket, 
-                                      UInt*   puiNumFragments     = 0,
-                                      UChar** ppucFragBuffers     = 0 );
+  ErrVal  get     ( UInt& ruiBits, UInt uiNumberOfBits );
+  ErrVal  get     ( UInt& ruiBits );
+  ErrVal  flush   ( UInt uiNumberOfBits );
+  ErrVal  samples ( Pel* pPel, UInt uiNumberOfSamples );
 
-  ErrVal get  ( UInt& ruiBits, UInt uiNumberOfBits );
-  ErrVal get  ( UInt& ruiBits);
-  Void   show ( UInt& ruiBits, UInt uiNumberOfBits = 1 );
-  ErrVal flush( UInt uiNumberOfBits );
-
-  ErrVal samples( Pel* pPel, UInt uiNumberOfSamples );
-
-  Int getBitsUntilByteAligned()     {  return m_iValidBits & (0x7);  }
-  Bool isWordAligned()              {  return( 0 == (m_iValidBits & (0x1f)) );  }
-  Bool isByteAligned()              {  return( 0 == (m_iValidBits & (0x7)) );   }
-
-  Bool isValid();
-  UInt getBytesLeft()               {  return(m_uiBitsLeft/8); }//JVT-P031
-  UInt getBitsLeft()                {  return(m_uiBitsLeft); }//JVT-P031
+  Int     getBitsUntilByteAligned ()  { return m_iValidBits & 0x7;  }
+  Bool    isWordAligned           ()  { return ( 0 == ( m_iValidBits & 0x1f ) ); }
+  Bool    isByteAligned           ()  { return ( 0 == ( m_iValidBits & 0x7  ) ); }
+  Bool    isValid                 ()  { return ( m_uiBitsLeft > 1 ); }
 
 private:
   __inline Void xReadNextWord();
 
   ULong  xSwap( ULong ul )
   {
-    // heiko.schwarz@hhi.fhg.de: support for BSD systems as proposed by Steffen Kamp [kamp@ient.rwth-aachen.de]
 #ifdef MSYS_BIG_ENDIAN
     return ul;
 #else
     ULong ul2;
-
     ul2  = ul>>24;
     ul2 |= (ul>>8) & 0x0000ff00;
     ul2 |= (ul<<8) & 0x00ff0000;
     ul2 |= ul<<24;
-
     return ul2;
 #endif
   }
@@ -165,9 +144,6 @@ protected:
   ULong  m_ulCurrentBits;
   UInt   m_uiNextBits;
   ULong* m_pulStreamPacket;
-  UInt    m_uiNumFragments;
-  UInt    m_auiFragLengthInBytes[MAX_NUM_PD_FRAGMENTS];
-  UChar*  m_apucFragBuffers     [MAX_NUM_PD_FRAGMENTS];
 };
 
 

@@ -88,7 +88,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "CodingParameter.h"
 #include "RecPicBuffer.h"
 #include "H264AVCCommonLib/PocCalculator.h"
-#include "H264AVCCommonLib/FrameMng.h"
 #include "H264AVCCommonLib/Transform.h"
 
 #include "H264AVCCommonLib/CFMO.h"
@@ -185,9 +184,9 @@ ErrVal SliceEncoder::uninit()
 
 ErrVal
 SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
-                                   IntFrame*        pcFrame,
-                                   IntFrame*        pcRecSubband,
-                                   IntFrame*        pcPredSignal,
+                                   Frame*        pcFrame,
+                                   Frame*        pcRecSubband,
+                                   Frame*        pcPredSignal,
                                    ControlData&     rcControlData,
                                    UInt             uiMbInRow,
                                    RefFrameList&    rcRefFrameList,
@@ -198,8 +197,8 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 
 	SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader          ( ePicType );
   MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
-  IntFrame*     pcBaseLayerFrame      =  rcControlData.getBaseLayerRec          ();
-  IntFrame*     pcBaseLayerResidual   =  rcControlData.getBaseLayerSbb          ();
+  Frame*     pcBaseLayerFrame      =  rcControlData.getBaseLayerRec          ();
+  Frame*     pcBaseLayerResidual   =  rcControlData.getBaseLayerSbb          ();
   MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
   Double        dLambda               =  rcControlData.getLambda                ();
   Int           iSpatialScalabilityType =  rcControlData.getSpatialScalabilityType(); // TMM_ESS
@@ -248,9 +247,10 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     RNOK( m_pcControlMng   ->initMbForCoding( *pcMbDataAccess,    uiMbY, uiMbX, false, false  ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
     pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
+    pcMbDataAccess->getMbData().setFieldFlag(ePicType!=FRAME);
 
 	  //JVT-U106 Behaviour at slice boundaries{
-	  if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
+    if( ! rcSliceHeader.getNoInterLayerPredFlag() )
 	    m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
 	  //JVT-U106 Behaviour at slice boundaries}
 
@@ -297,7 +297,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
  
     /* commented out by jzhao@sharplabs. This is not right. It will affect syntax of the next MB
     it got lucky because before JSVM8_10, the base cbp is not set at all, it's always 0.
-    if( ! pcMbDataAccess->getMbData().isIntra() && pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) && !rcSliceHeader.getAVCRewriteFlag())
+    if( ! pcMbDataAccess->getMbData().isIntraSlice() && pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) && !rcSliceHeader.getTCoeffLevelPredictionFlag())
     {
     pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
     } */
@@ -306,7 +306,7 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
       && pcBaseLayerResidual )	
     {
-      IntYuvPicBuffer* pcBaseResidual = pcBaseLayerResidual->getPic( ePicType )->getFullPelYuvBuffer();
+      YuvPicBuffer* pcBaseResidual = pcBaseLayerResidual->getPic( ePicType )->getFullPelYuvBuffer();
       pcBaseResidual->clearCurrMb();
     }
 		//JVT-X046 {
@@ -393,10 +393,10 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
 
 ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
                                          ControlData& rcControlData,
-                                         IntFrame*    pcFrame,
-                                         IntFrame*    pcRecSubband,
-                                         IntFrame*    pcBaseLayer,
-                                         IntFrame*    pcPredSignal,
+                                         Frame*    pcFrame,
+                                         Frame*    pcRecSubband,
+                                         Frame*    pcBaseLayer,
+                                         Frame*    pcPredSignal,
                                          UInt         uiMbInRow,
                                          Double				dLambda,
 																				 PicType      ePicType )
@@ -455,9 +455,10 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
     RNOK( m_pcControlMng    ->initMbForCoding ( *pcMbDataAccess,    uiMbY, uiMbX, false, false ) );
     pcMbDataAccess->getMbData().deactivateMotionRefinement();
     pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
+    pcMbDataAccess->getMbData().setFieldFlag(ePicType!=FRAME);
 
 	//JVT-U106 Behaviour at slice boundaries{
-    if( rcSliceHeader.getBaseLayerId() != MSYS_UINT_MAX )
+    if( ! rcSliceHeader.getNoInterLayerPredFlag() )
 	     m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
 	//JVT-U106 Behaviour at slice boundaries}
     RNOK( m_pcMbEncoder     ->encodeIntra     ( *pcMbDataAccess,
@@ -548,11 +549,11 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
 // TMM_INTERLACE{
 ErrVal SliceEncoder::encodeIntraPictureMbAff( UInt&				 ruiBits,
                                               ControlData& rcControlData,
-                                              IntFrame*    pcOrgFrame,
-                                              IntFrame*    pcFrame,
-                                              IntFrame*    pcRecSubband,
-                                              IntFrame*    pcBaseLayer,
-                                              IntFrame*    pcPredSignal,
+                                              Frame*    pcOrgFrame,
+                                              Frame*    pcFrame,
+                                              Frame*    pcRecSubband,
+                                              Frame*    pcBaseLayer,
+                                              Frame*    pcPredSignal,
                                               UInt				 uiMbInRow,
                                               Double			 dLambda )
 {
@@ -580,11 +581,11 @@ ErrVal SliceEncoder::encodeIntraPictureMbAff( UInt&				 ruiBits,
 
   UInt uiBits = m_pcMbCoder ->getBitCount();
 
-  IntFrame* apcOrgFrame  [4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcFrame     [4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcRecSubband[4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcBaseLayer [4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcPredSignal[4] = { NULL, NULL, NULL, NULL };
+  Frame* apcOrgFrame  [4] = { NULL, NULL, NULL, NULL };
+  Frame* apcFrame     [4] = { NULL, NULL, NULL, NULL };
+  Frame* apcRecSubband[4] = { NULL, NULL, NULL, NULL };
+  Frame* apcBaseLayer [4] = { NULL, NULL, NULL, NULL };
+  Frame* apcPredSignal[4] = { NULL, NULL, NULL, NULL };
 
 	RNOK( gSetFrameFieldArrays( apcOrgFrame,   pcOrgFrame   ) );
   RNOK( gSetFrameFieldArrays( apcFrame,      pcFrame      ) );
@@ -592,11 +593,11 @@ ErrVal SliceEncoder::encodeIntraPictureMbAff( UInt&				 ruiBits,
   RNOK( gSetFrameFieldArrays( apcBaseLayer,  pcBaseLayer  ) );
   RNOK( gSetFrameFieldArrays( apcPredSignal, pcPredSignal ) );
 
-  IntYuvMbBuffer acIntYuvMbBufferPredSignal[2];
-  IntYuvMbBuffer acIntYuvMbBufferRecSubBand[2];
-  IntYuvMbBuffer acIntYuvMbBufferFrame     [2];
+  YuvMbBuffer acIntYuvMbBufferPredSignal[2];
+  YuvMbBuffer acIntYuvMbBufferRecSubBand[2];
+  YuvMbBuffer acIntYuvMbBufferFrame     [2];
 
-  UInt uiLastQp = rcSliceHeader.getPicQp();
+  UInt uiLastQp = rcSliceHeader.getSliceQp();
 
   //===== loop over macroblocks =====
   UInt          uiMbAddress     = rcSliceHeader.getFirstMbInSlice ();
@@ -606,7 +607,7 @@ ErrVal SliceEncoder::encodeIntraPictureMbAff( UInt&				 ruiBits,
     MbDataBuffer acMbData[2];
     Double adCost[2]  = {0,0};
 
-    IntYuvMbBuffer cTempBuffer;
+    YuvMbBuffer cTempBuffer;
 
     UInt auiLastQpTest[2] = {uiLastQp, uiLastQp};
     Int eP;
@@ -718,12 +719,12 @@ ErrVal SliceEncoder::encodeIntraPictureMbAff( UInt&				 ruiBits,
 ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                             UInt&         ruiBits,
                                             SliceHeader&  rcSH,
-                                            IntFrame*     pcOrgFrame,
-                                            IntFrame*     pcFrame,
-                                            IntFrame*     pcResidual,
-                                            IntFrame*     pcPredSignal,
- 																						IntFrame*     pcBaseSubband,
-                                            IntFrame*     pcBaseLayer,
+                                            Frame*     pcOrgFrame,
+                                            Frame*     pcFrame,
+                                            Frame*     pcResidual,
+                                            Frame*     pcPredSignal,
+ 																						Frame*     pcBaseSubband,
+                                            Frame*     pcBaseLayer,
                                             MbDataCtrl*   pcMbDataCtrl,
                                             MbDataCtrl*   pcMbDataCtrlBaseMotion,
                                             UInt          uiMbInRow,
@@ -741,10 +742,10 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
   UInt            uiMbAddress       = rcSH.getFirstMbInSlice();
   UInt            uiLastMbAddress   = rcSH.getLastMbInSlice ();
   UInt            uiBits            = m_pcMbCoder->getBitCount();
-  Int             iQPRes            = rcSH.getPicQp();
-  Int             iQPIntra          = rcSH.getPicQp(); //- 2;
+  Int             iQPRes            = rcSH.getSliceQp();
+  Int             iQPIntra          = rcSH.getSliceQp(); //- 2;
 
-  IntYuvMbBuffer  cZeroBuffer;
+  YuvMbBuffer  cZeroBuffer;
   cZeroBuffer.setAllSamplesToZero();
 
 	if( ePicType!=FRAME )
@@ -779,12 +780,13 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       RNOK( pcMbDataCtrlBaseMotion->initMb  ( pcMbDataAccessBase, uiMbY, uiMbX ) );
     }
     pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
+    pcMbDataAccess->getMbData().setFieldFlag(ePicType!=FRAME);
 
     if( pcMbDataAccess->getMbData().isIntra() )
     {
       Double dCost = 0;
       //JVT-U106 Behaviour at slice boundaries{
-	   if( rcSH.getBaseLayerId() != MSYS_UINT_MAX )
+      if( ! rcSH.getNoInterLayerPredFlag() )
 		    m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
 	    //JVT-U106 Behaviour at slice boundaries}
 
@@ -821,7 +823,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                                dLambda,
                                                iMaxDeltaQp ) );
 
-      if( pcMbDataAccess->getSH().getBaseLayerId() != MSYS_UINT_MAX && ! pcMbDataAccess->getSH().getAdaptivePredictionFlag() )
+      if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() )
       {
         ROF( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) );
         pcMbDataAccess->getMbData().setBLSkipFlag( true );
@@ -840,7 +842,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
         && pcBaseSubband )	
       {
-        IntYuvPicBuffer* pcBaseResidual = pcBaseSubband->getPic( ePicType )->getFullPelYuvBuffer();
+        YuvPicBuffer* pcBaseResidual = pcBaseSubband->getPic( ePicType )->getFullPelYuvBuffer();
         pcBaseResidual->clearCurrMb();
       }
 
@@ -868,12 +870,12 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
 ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
                                                  UInt&				ruiBits,
                                                  SliceHeader&	rcSH,
-                                                 IntFrame*    pcOrgFrame,
-                                                 IntFrame*    pcFrame,
-                                                 IntFrame*    pcResidual,
-                                                 IntFrame*    pcPredSignal,
-     																						 IntFrame*    pcBaseSubband,
-                                                 IntFrame*    pcBaseLayer,
+                                                 Frame*    pcOrgFrame,
+                                                 Frame*    pcFrame,
+                                                 Frame*    pcResidual,
+                                                 Frame*    pcPredSignal,
+     																						 Frame*    pcBaseSubband,
+                                                 Frame*    pcBaseLayer,
                                                  MbDataCtrl*	pcMbDataCtrl,
                                                  MbDataCtrl*  pcMbDataCtrlBaseMotion,
                                                  MbDataCtrl*   pcMbDataCtrlInterlBaseMotion,
@@ -889,18 +891,18 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
   RNOK( m_pcControlMng->initSliceForCoding( rcSH              ) );
 
   UInt uiBits   = m_pcMbCoder->getBitCount();
-  Int  iQPRes   = rcSH.getPicQp           ();
-  Int  iQPIntra = rcSH.getPicQp           (); //- 2;
+  Int  iQPRes   = rcSH.getSliceQp           ();
+  Int  iQPIntra = rcSH.getSliceQp           (); //- 2;
 
-  IntYuvMbBuffer  cZeroBuffer;
+  YuvMbBuffer  cZeroBuffer;
   cZeroBuffer.setAllSamplesToZero();
 
-  IntFrame*	apcFrame      [4] = { NULL, NULL, NULL, NULL };
-  IntFrame*	apcOrgFrame   [4] = { NULL, NULL, NULL, NULL };
-  IntFrame*	apcResidual   [4] = { NULL, NULL, NULL, NULL };
-  IntFrame*	apcPredSignal [4] = { NULL, NULL, NULL, NULL };
-  IntFrame*	apcBaseSubband[4] = { NULL, NULL, NULL, NULL };
-  IntFrame*	apcBaseLayer  [4] = { NULL, NULL, NULL, NULL };
+  Frame*	apcFrame      [4] = { NULL, NULL, NULL, NULL };
+  Frame*	apcOrgFrame   [4] = { NULL, NULL, NULL, NULL };
+  Frame*	apcResidual   [4] = { NULL, NULL, NULL, NULL };
+  Frame*	apcPredSignal [4] = { NULL, NULL, NULL, NULL };
+  Frame*	apcBaseSubband[4] = { NULL, NULL, NULL, NULL };
+  Frame*	apcBaseLayer  [4] = { NULL, NULL, NULL, NULL };
 
 	RNOK( gSetFrameFieldArrays( apcFrame,       pcFrame       ) );
 	RNOK( gSetFrameFieldArrays( apcOrgFrame,    pcOrgFrame    ) );
@@ -984,7 +986,7 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
                                                  dLambda,
                                                  iMaxDeltaQp ) );
 
-        if( pcMbDataAccess->getSH().getBaseLayerId() != MSYS_UINT_MAX && ! pcMbDataAccess->getSH().getAdaptivePredictionFlag() )
+        if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() )
         {
           ROF( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) );
           pcMbDataAccess->getMbData().setBLSkipFlag( true );
@@ -1017,10 +1019,10 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
 // TMM_INTERLACE{
 ErrVal
 SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
-                                        IntFrame*     pcOrgFrame,
-                                        IntFrame*     pcFrame,
-                                        IntFrame*     pcRecSubband,
-                                        IntFrame*     pcPredSignal,
+                                        Frame*     pcOrgFrame,
+                                        Frame*     pcFrame,
+                                        Frame*     pcRecSubband,
+                                        Frame*     pcPredSignal,
                                         ControlData&  rcControlData,
                                         UInt          uiMbInRow,
                                         RefFrameList& rcRefFrameList,
@@ -1030,8 +1032,8 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
 
   SliceHeader&  rcSliceHeader						= *rcControlData.getSliceHeader          ( FRAME );
   MbDataCtrl*   pcMbDataCtrl						= rcControlData.getMbDataCtrl            ();
-	IntFrame*     pcBaseLayerFrame        = rcControlData.getBaseLayerRec          ();
-	IntFrame*     pcBaseLayerResidual     = rcControlData.getBaseLayerSbb          ();
+	Frame*     pcBaseLayerFrame        = rcControlData.getBaseLayerRec          ();
+	Frame*     pcBaseLayerResidual     = rcControlData.getBaseLayerSbb          ();
   MbDataCtrl*   pcBaseLayerCtrl					= rcControlData.getBaseLayerCtrl         ();
   MbDataCtrl*   pcBaseLayerCtrlField  =  rcControlData.getBaseLayerCtrlField    ();
   Double        dLambda									= rcControlData.getLambda                ();
@@ -1053,19 +1055,19 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
   RefFrameList acRefFrameList    [2];
   RefFrameList acRefFrameListBase[2];
 
-  IntYuvMbBuffer acIntYuvMbBufferPredSignal[2];
-  IntYuvMbBuffer acIntYuvMbBufferRecSubBand[2];
-  IntYuvMbBuffer acIntYuvMbBufferFrame     [2];
+  YuvMbBuffer acIntYuvMbBufferPredSignal[2];
+  YuvMbBuffer acIntYuvMbBufferRecSubBand[2];
+  YuvMbBuffer acIntYuvMbBufferFrame     [2];
 
   RNOK( gSetFrameFieldLists( acRefFrameList    [0], acRefFrameList    [1], rcRefFrameList     ) );
   RNOK( gSetFrameFieldLists( acRefFrameListBase[0], acRefFrameListBase[1], rcRefFrameListBase ) );
 
-  IntFrame* apcOrgFrame  [4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcFrame     [4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcRecSubband[4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcPredSignal[4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcBaseLayerF[4] = { NULL, NULL, NULL, NULL };
-  IntFrame* apcBaseLayerR[4] = { NULL, NULL, NULL, NULL };
+  Frame* apcOrgFrame  [4] = { NULL, NULL, NULL, NULL };
+  Frame* apcFrame     [4] = { NULL, NULL, NULL, NULL };
+  Frame* apcRecSubband[4] = { NULL, NULL, NULL, NULL };
+  Frame* apcPredSignal[4] = { NULL, NULL, NULL, NULL };
+  Frame* apcBaseLayerF[4] = { NULL, NULL, NULL, NULL };
+  Frame* apcBaseLayerR[4] = { NULL, NULL, NULL, NULL };
 
 	RNOK( gSetFrameFieldArrays( apcFrame,      pcFrame             ) );
   RNOK( gSetFrameFieldArrays( apcOrgFrame,   pcOrgFrame          ) );
@@ -1076,7 +1078,7 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
 
   MbDataBuffer acMbData[2];
   Bool   abSkipModeAllowed[4] = {true,true,true,true};
-  UInt uiLastQp = rcSliceHeader.getPicQp();
+  UInt uiLastQp = rcSliceHeader.getSliceQp();
 
   //===== loop over macroblocks =====
   UInt       uiMbAddress			= rcSliceHeader.getFirstMbInSlice();
@@ -1153,7 +1155,7 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
 
       /* commented out by jzhao@sharplabs. This is not right. It will affect syntax of the next MB
       it got lucky because before JSVM8_10, the base cbp is not set at all, it's always 0.
-      if( ! pcMbDataAccess->getMbData().isIntra() && pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
+      if( ! pcMbDataAccess->getMbData().isIntraSlice() && pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
       {
       pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
       }
@@ -1227,7 +1229,7 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
 
 ErrVal
 SliceEncoder::encodeSlice( SliceHeader&  rcSliceHeader,
-                           IntFrame*     pcFrame,
+                           Frame*     pcFrame,
                            MbDataCtrl*   pcMbDataCtrl,
                            RefFrameList& rcList0,
                            RefFrameList& rcList1,
@@ -1243,7 +1245,7 @@ SliceEncoder::encodeSlice( SliceHeader&  rcSliceHeader,
   {
     pcMbDataCtrlL1 = rcList1.getEntry( 0 )->getRecPicBufUnit()->getMbDataCtrl();
   }
-  ROT( rcSliceHeader.isInterB() && ! pcMbDataCtrlL1 );
+  ROT( rcSliceHeader.isBSlice() && ! pcMbDataCtrlL1 );
 
   //===== initialization =====
   RNOK( pcMbDataCtrl  ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, pcMbDataCtrlL1 ) );
@@ -1296,19 +1298,14 @@ ErrVal SliceEncoder::xInitDefaultWeights(Double *pdWeights, UInt uiLumaWeightDen
 
 
 ErrVal SliceEncoder::xSetPredWeights( SliceHeader& rcSH,
-                                      IntFrame* pOrgFrame,
+                                      Frame* pOrgFrame,
                                       RefFrameList& rcRefFrameList0,
                                       RefFrameList& rcRefFrameList1)
 
 {
-  RNOK( rcSH.getPredWeightTable(LIST_0).uninit() );
-  RNOK( rcSH.getPredWeightTable(LIST_1).uninit() );
-  RNOK( rcSH.getPredWeightTable(LIST_0).init( rcSH.getNumRefIdxActive( LIST_0) ) );
-  RNOK( rcSH.getPredWeightTable(LIST_1).init( rcSH.getNumRefIdxActive( LIST_1) ) );
+  ROTRS( rcSH.isIntraSlice(), Err::m_nOK );
 
-  ROTRS( rcSH.isIntra(), Err::m_nOK );
-
-  const SampleWeightingParams& rcSWP = m_pcCodingParameter->getSampleWeightingParams(rcSH.getLayerId());
+  const SampleWeightingParams& rcSWP = m_pcCodingParameter->getSampleWeightingParams(rcSH.getDependencyId());
 
   { // determine denoms
     const UInt uiLumaDenom = rcSWP.getLumaDenom();
@@ -1321,9 +1318,9 @@ ErrVal SliceEncoder::xSetPredWeights( SliceHeader& rcSH,
   const Int iChromaScale = 1<<rcSH.getChromaLog2WeightDenom();
   const Int iLumaScale   = 1<<rcSH.getLumaLog2WeightDenom();
 
-   m_pcControlMng->initSliceForWeighting(rcSH);
+  m_pcControlMng->initSliceForWeighting(rcSH);
 
-  if( rcSH.isInterB() )
+  if( rcSH.isBSlice() )
   {
       ROTRS( 1 != rcSH.getPPS().getWeightedBiPredIdc(), Err::m_nOK );
   }
@@ -1332,7 +1329,7 @@ ErrVal SliceEncoder::xSetPredWeights( SliceHeader& rcSH,
     ROTRS( ! rcSH.getPPS().getWeightedPredFlag(), Err::m_nOK );
   }
 
-  if( rcSH.isInterB() )
+  if( rcSH.isBSlice() )
   {
       RNOK( rcSH.getPredWeightTable(LIST_1).initDefaults( rcSH.getLumaLog2WeightDenom(), rcSH.getChromaLog2WeightDenom() ) );
   }
@@ -1344,8 +1341,6 @@ ErrVal SliceEncoder::xSetPredWeights( SliceHeader& rcSH,
   Double afFwOffsets[MAX_REF_FRAMES][3];
   Double afBwOffsets[MAX_REF_FRAMES][3];
 
-  Double fDiscardThr = m_pcCodingParameter->getSampleWeightingParams(rcSH.getLayerId()).getDiscardThr();
-
   /* init arrays with default weights */
   for (UInt x = 0; x < MAX_REF_FRAMES; x++)
   {
@@ -1356,17 +1351,15 @@ ErrVal SliceEncoder::xSetPredWeights( SliceHeader& rcSH,
       afBwOffsets[x][0] = afBwOffsets[x][1] = afBwOffsets[x][2] = 0;
   }
 
-  if( rcSH.isInterB() )
+  if( rcSH.isBSlice() )
   {
       RNOK( m_pcMbEncoder->getPredWeights( rcSH, LIST_1, afBwWeight,
                                            pOrgFrame, rcRefFrameList1 ) );
-      RNOK( rcSH.getPredWeightTable( LIST_1).setPredWeightsAndFlags( iLumaScale, iChromaScale,
-                                                                     afBwWeight, fDiscardThr ) );
+      RNOK( rcSH.getPredWeightTable( LIST_1).setWeights( afBwWeight, iLumaScale, iChromaScale ) );
   }
 
   RNOK( m_pcMbEncoder->getPredWeights( rcSH, LIST_0, afFwWeight, pOrgFrame, rcRefFrameList0 ) );
-  RNOK( rcSH.getPredWeightTable( LIST_0).setPredWeightsAndFlags( iLumaScale, iChromaScale,
-                                                                 afFwWeight, fDiscardThr ) );
+  RNOK( rcSH.getPredWeightTable( LIST_0).setWeights( afFwWeight, iLumaScale, iChromaScale ) );
 
   return Err::m_nOK;
 }
@@ -1427,7 +1420,7 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
   SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader           ();
   MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
   MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
-  IntFrame*     pcBaseLayerSbb        =  rcControlData.getBaseLayerSbb         ();
+  Frame*     pcBaseLayerSbb        =  rcControlData.getBaseLayerSbb         ();
   UInt          uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
   UInt          uiLastMbAddress       =  rcSliceHeader.getLastMbInSlice         ();
  
@@ -1456,7 +1449,7 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
       if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
         && pcBaseLayerSbb )	
       {
-        IntYuvPicBuffer* pcBaseResidual = pcBaseLayerSbb->getFullPelYuvBuffer();
+        YuvPicBuffer* pcBaseResidual = pcBaseLayerSbb->getFullPelYuvBuffer();
 
         pcBaseResidual->getBufferCtrl().initMb( uiMbY, uiMbX, false);
         pcBaseResidual->clearCurrMb();
@@ -1485,7 +1478,7 @@ SliceEncoder::updatePictureAVCRewrite( ControlData&     rcControlData,
   //====== initialization ======
   RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
 
-  if( rcSliceHeader.getAVCRewriteFlag() == true )
+  if( rcSliceHeader.getTCoeffLevelPredictionFlag() == true )
   {
 	  // Update the macroblock state
 	  // Must be done after the bit-stream has been constructed
@@ -1506,7 +1499,7 @@ SliceEncoder::updatePictureAVCRewrite( ControlData&     rcControlData,
 		  }
 
 		  if( ( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL || pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16) )
-			  && pcMbDataAccess->getSH().getAVCRewriteFlag() )
+			  && pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() )
 		  {
 
 			  if( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL )
@@ -1543,8 +1536,8 @@ SliceEncoder::updatePictureAVCRewrite( ControlData&     rcControlData,
 		  }
 
       // overwrite the QP so that rewriter can get correct QP
-      if (pcMbDataAccess->getSH().getAVCRewriteFlag() && (pcMbDataAccess->getSH().getBaseLayerId() != MSYS_UINT_MAX)
-        && (pcMbDataAccess->getSH().getLayerId() != pcMbDataAccess->getSH().getBaseLayerId()))          {
+      if (pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() && ! pcMbDataAccess->getSH().getNoInterLayerPredFlag()
+        && (pcMbDataAccess->getSH().getDependencyId() != pcMbDataAccess->getSH().getRefLayerDependencyId()))          {
           if(( pcMbDataAccess->getMbData().getMbExtCbp() == 0 ) && (!pcMbDataAccess->getMbData().isIntra16x16()))
             pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getLastQp());
         }

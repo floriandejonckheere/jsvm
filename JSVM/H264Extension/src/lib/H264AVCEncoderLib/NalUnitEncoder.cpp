@@ -100,7 +100,8 @@ NalUnitEncoder::NalUnitEncoder()
 , m_pucTempBuffer         ( 0 )
 , m_pucTempBufferBackup   ( 0 )
 , m_uiPacketLength        ( MSYS_UINT_MAX )
-, m_eNalUnitType          ( NAL_UNIT_EXTERNAL )
+, m_eNalUnitType          ( NAL_UNIT_UNSPECIFIED_0 )
+, m_eNalRefIdc            ( NAL_REF_IDC_PRIORITY_LOWEST )
 {
 }
 
@@ -136,7 +137,8 @@ NalUnitEncoder::init( BitWriteBuffer*       pcBitWriteBuffer,
   m_pucTempBuffer         = NULL;
   m_pucTempBufferBackup   = NULL;
   m_uiPacketLength        = MSYS_UINT_MAX;
-  m_eNalUnitType          = NAL_UNIT_EXTERNAL;
+  m_eNalUnitType          = NAL_UNIT_UNSPECIFIED_0;
+  m_eNalRefIdc            = NAL_REF_IDC_PRIORITY_LOWEST;
 
   return Err::m_nOK;
 }
@@ -156,7 +158,8 @@ NalUnitEncoder::uninit()
   m_pucBuffer             = NULL;
   m_pucTempBuffer         = NULL;
   m_uiPacketLength        = MSYS_UINT_MAX;
-  m_eNalUnitType          = NAL_UNIT_EXTERNAL;
+  m_eNalUnitType          = NAL_UNIT_UNSPECIFIED_0;
+  m_eNalRefIdc            = NAL_REF_IDC_PRIORITY_LOWEST;
 
   return Err::m_nOK;
 }
@@ -214,7 +217,9 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
   ROF( m_pcBinDataAccessor == pcExtBinDataAccessor );
 
   //===== write trailing bits =====
-  if( NAL_UNIT_END_OF_SEQUENCE != m_eNalUnitType && NAL_UNIT_END_OF_STREAM != m_eNalUnitType )
+  if( NAL_UNIT_END_OF_SEQUENCE != m_eNalUnitType &&
+      NAL_UNIT_END_OF_STREAM   != m_eNalUnitType &&
+     (NAL_UNIT_PREFIX          != m_eNalUnitType || m_eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST) )
   {
     RNOK( xWriteTrailingBits() );
   }
@@ -222,9 +227,7 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
 
   //===== convert to payload and add header =====
   UInt  uiHeaderBytes = 1;
-  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-      m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
-      m_eNalUnitType == NAL_UNIT_PREFIX )
+  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || m_eNalUnitType == NAL_UNIT_PREFIX )
   {
     uiHeaderBytes += NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
   }
@@ -321,7 +324,8 @@ NalUnitEncoder::closeAndAppendNalUnits( UInt                    *pauiBits,
   m_bIsUnitActive     = false;
   m_pucBuffer         = NULL;
   m_pcBinDataAccessor = NULL;
-  m_eNalUnitType      = NAL_UNIT_EXTERNAL;
+  m_eNalUnitType      = NAL_UNIT_UNSPECIFIED_0;
+  m_eNalRefIdc        = NAL_REF_IDC_PRIORITY_LOWEST;
   return Err::m_nOK;
 }
 
@@ -334,7 +338,8 @@ NalUnitEncoder::closeNalUnit( UInt& ruiBits )
 
   //===== write trailing bits =====
   if( NAL_UNIT_END_OF_SEQUENCE != m_eNalUnitType &&
-      NAL_UNIT_END_OF_STREAM   != m_eNalUnitType )
+      NAL_UNIT_END_OF_STREAM   != m_eNalUnitType &&
+     (NAL_UNIT_PREFIX          != m_eNalUnitType || m_eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST) )
   {
     RNOK ( xWriteTrailingBits() );
   }
@@ -342,9 +347,7 @@ NalUnitEncoder::closeNalUnit( UInt& ruiBits )
 
   //===== convert to payload and add header =====
   UInt  uiHeaderBytes = 1;
-  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE ||
-    m_eNalUnitType == NAL_UNIT_CODED_SLICE_IDR_SCALABLE ||
-    m_eNalUnitType == NAL_UNIT_PREFIX )
+  if( m_eNalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE || m_eNalUnitType == NAL_UNIT_PREFIX )
   {
     uiHeaderBytes += NAL_UNIT_HEADER_SVC_EXTENSION_BYTES;
   }
@@ -359,8 +362,8 @@ NalUnitEncoder::closeNalUnit( UInt& ruiBits )
   m_bIsUnitActive     = false;
   m_pucBuffer         = NULL;
   m_pcBinDataAccessor = NULL;
-  m_eNalUnitType      = NAL_UNIT_EXTERNAL;
-
+  m_eNalUnitType      = NAL_UNIT_UNSPECIFIED_0;
+  m_eNalRefIdc        = NAL_REF_IDC_PRIORITY_LOWEST;
   return Err::m_nOK;
 }
 
@@ -432,17 +435,9 @@ ErrVal NalUnitEncoder::xWriteTrailingBits( )
 ErrVal
 NalUnitEncoder::write( const SequenceParameterSet& rcSPS )
 {
-  //SSPS {
-	if( rcSPS.getNalUnitType() == NAL_UNIT_SPS )
-	{
-    RNOK( rcSPS.write( m_pcHeaderSymbolWriteIf ) );
-	}
-	else
-	{
-	  RNOK( rcSPS.writeSubSPS( m_pcHeaderSymbolWriteIf ) );
-	}
-  //SSPS }
+  RNOK( rcSPS.write( m_pcHeaderSymbolWriteIf ) );
   m_eNalUnitType  = rcSPS.getNalUnitType();
+  m_eNalRefIdc    = NAL_REF_IDC_PRIORITY_HIGHEST;
   return Err::m_nOK;
 }
 
@@ -453,6 +448,17 @@ NalUnitEncoder::write( const PictureParameterSet& rcPPS )
   RNOK( rcPPS.write( m_pcHeaderSymbolWriteIf ) );
 
   m_eNalUnitType  = rcPPS.getNalUnitType();
+  m_eNalRefIdc    = NAL_REF_IDC_PRIORITY_HIGHEST;
+  return Err::m_nOK;
+}
+
+
+ErrVal
+NalUnitEncoder::writePrefix( const SliceHeader& rcSH )
+{
+  RNOK( rcSH.writePrefix( *m_pcHeaderSymbolWriteIf ) );
+  m_eNalUnitType  = NAL_UNIT_PREFIX;
+  m_eNalRefIdc    = rcSH.getNalRefIdc();
   return Err::m_nOK;
 }
 
@@ -460,9 +466,48 @@ NalUnitEncoder::write( const PictureParameterSet& rcPPS )
 ErrVal
 NalUnitEncoder::write( const SliceHeader& rcSH )
 {
-  RNOK( rcSH.write( m_pcHeaderSymbolWriteIf ) );
+  SliceHeader           cSH           = rcSH;
+  HeaderSymbolWriteIf*  pcCurrWriteIf = m_pcHeaderSymbolWriteIf;
+  UInt                  uiSourceLayer = g_nLayer;
 
-  m_eNalUnitType  = rcSH.getNalUnitType();
+  for( UInt uiMGSFragment = 0; true; uiMGSFragment++ )
+  {
+    ETRACE_DECLARE( Bool m_bTraceEnable = true );
+
+    //----- modify copy of slice header -----
+    cSH.setDependencyId                   ( rcSH.getLayerCGSSNR         () );
+    cSH.setQualityId                      ( rcSH.getQualityLevelCGSSNR  () + uiMGSFragment );
+    cSH.setDiscardableFlag                ( rcSH.getDiscardableFlag     () || cSH.getQualityId() >= rcSH.getQLDiscardable() );
+    cSH.setNoInterLayerPredFlag           ( rcSH.getNoInterLayerPredFlag() && cSH.getQualityId() == 0 );
+    cSH.setScanIdxStart                   ( rcSH.getSPS().getMGSCoeffStart( uiMGSFragment ) );
+    cSH.setScanIdxStop                    ( rcSH.getSPS().getMGSCoeffStop ( uiMGSFragment ) );
+    cSH.setRefLayerDQId                   ( uiMGSFragment == 0 ? rcSH.getRefLayerDQId                   () : ( rcSH.getLayerCGSSNR() << 4 ) + rcSH.getQualityLevelCGSSNR() + uiMGSFragment - 1 );
+    cSH.setAdaptiveBaseModeFlag           ( uiMGSFragment == 0 ? rcSH.getAdaptiveBaseModeFlag           () : false  );
+    cSH.setAdaptiveMotionPredictionFlag   ( uiMGSFragment == 0 ? rcSH.getAdaptiveMotionPredictionFlag   () : false  );
+    cSH.setAdaptiveResidualPredictionFlag ( uiMGSFragment == 0 ? rcSH.getAdaptiveResidualPredictionFlag () : false  );
+    cSH.setDefaultBaseModeFlag            ( uiMGSFragment == 0 ? rcSH.getDefaultBaseModeFlag            () : true   );
+    cSH.setDefaultMotionPredictionFlag    ( uiMGSFragment == 0 ? rcSH.getDefaultMotionPredictionFlag    () : true   );
+    cSH.setDefaultResidualPredictionFlag  ( uiMGSFragment == 0 ? rcSH.getDefaultResidualPredictionFlag  () : true   );
+
+    //----- write copy of slice header -----
+    RNOK( cSH.write( *pcCurrWriteIf ) );
+    if( rcSH.getSPS().getMGSCoeffStop( uiMGSFragment ) == 16 )
+    {
+      break;
+    }
+
+    //----- update -----
+    g_nLayer++;
+    ETRACE_LAYER( g_nLayer );
+    pcCurrWriteIf = pcCurrWriteIf->getHeaderSymbolWriteIfNextSlice( true );
+  }
+
+  ETRACE_DECLARE( Bool m_bTraceEnable = true );
+  g_nLayer = uiSourceLayer;
+  ETRACE_LAYER( g_nLayer );
+
+  m_eNalUnitType  = rcSH.getNalUnitType ();
+  m_eNalRefIdc    = rcSH.getNalRefIdc   ();
   return Err::m_nOK;
 }
 
@@ -473,6 +518,7 @@ NalUnitEncoder::write( SEI::MessageList& rcSEIMessageList )
   RNOK( SEI::write( m_pcHeaderSymbolWriteIf, m_pcHeaderSymbolTestIf, &rcSEIMessageList ) );
 
   m_eNalUnitType  = NAL_UNIT_SEI;
+  m_eNalRefIdc    = NAL_REF_IDC_PRIORITY_LOWEST;
   return Err::m_nOK;
 }
 
@@ -481,7 +527,8 @@ ErrVal
 NalUnitEncoder::writeNesting( SEI::MessageList& rcSEIMessageList )
 {
   RNOK( SEI::writeNesting( m_pcHeaderSymbolWriteIf, m_pcHeaderSymbolTestIf, &rcSEIMessageList ) );
-  m_eNalUnitType = NAL_UNIT_SEI;
+  m_eNalUnitType  = NAL_UNIT_SEI;
+  m_eNalRefIdc    = NAL_REF_IDC_PRIORITY_LOWEST;
   return Err::m_nOK;
 }
 // JVT-T073 }
@@ -491,7 +538,8 @@ ErrVal
 NalUnitEncoder::writeScalableNestingSei( SEI::MessageList& rcSEIMessageList )
 {
   RNOK( SEI::writeScalableNestingSei( m_pcHeaderSymbolWriteIf, m_pcHeaderSymbolTestIf, &rcSEIMessageList ) );
-  m_eNalUnitType = NAL_UNIT_SEI;
+  m_eNalUnitType  = NAL_UNIT_SEI;
+  m_eNalRefIdc    = NAL_REF_IDC_PRIORITY_LOWEST;
   return Err::m_nOK;
 }
 // JVT-V068 }

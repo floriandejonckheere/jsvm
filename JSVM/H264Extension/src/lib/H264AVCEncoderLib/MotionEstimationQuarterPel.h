@@ -93,7 +93,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "MotionEstimation.h"
-#include "H264AVCCommonLib/YuvMbBuffer.h"
 #define X1 24
 
 
@@ -109,12 +108,12 @@ protected:
 public:
   static ErrVal create( MotionEstimation*& rpcMotionEstimation );
 
-  ErrVal compensateBlock( IntYuvMbBuffer *pcRecPelData, UInt uiBlk, UInt uiMode, IntYuvMbBuffer *pcRefPelData2 = NULL );
+  ErrVal compensateBlock( YuvMbBuffer *pcRecPelData, UInt uiBlk, UInt uiMode, YuvMbBuffer *pcRefPelData2 = NULL );
 
-  Void xSubPelSearch( IntYuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode, Bool bQPelOnly );
+  Void xSubPelSearch( YuvPicBuffer *pcPelData, Mv& rcMv, UInt& ruiSAD, UInt uiBlk, UInt uiMode, Bool bQPelOnly );
 
 protected:
-  Void xCompensateBlocksHalf( XPel *pPelDes, IntYuvPicBuffer *pcRefPelData, Mv cMv, UInt uiMode, UInt uiYSize, UInt uiXSize );
+  Void xCompensateBlocksHalf( XPel *pPelDes, YuvPicBuffer *pcRefPelData, Mv cMv, UInt uiMode, UInt uiYSize, UInt uiXSize );
   Void xGetSizeFromMode( UInt& ruiXSize, UInt& ruiYSize, UInt uiMode );
   Void xInitBuffer();
 

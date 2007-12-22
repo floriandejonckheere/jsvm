@@ -93,8 +93,8 @@ ParameterSetMng::ParameterSetMng() :
   m_uiActiveSPSId( MSYS_UINT_MAX ),
   m_uiActivePPSId( MSYS_UINT_MAX )
 {
-  m_cSPSBuf.clear();
-  m_cPPSBuf.clear();
+  m_cSPSBuf.setAll( 0 );
+  m_cPPSBuf.setAll( 0 );
 }
 
 ErrVal ParameterSetMng::create( ParameterSetMng*& rpcParameterSetMng )
@@ -144,8 +144,13 @@ ErrVal ParameterSetMng::uninit()
 }
 
 
-ErrVal ParameterSetMng::get( SequenceParameterSet*& rpcSPS, UInt uiSPSId)
+ErrVal ParameterSetMng::get( SequenceParameterSet*& rpcSPS, UInt uiSPSId, Bool bSubSetSPS )
 {
+  if( bSubSetSPS )
+  {
+    uiSPSId += NUM_SPS_IDS;
+  }
+
   RNOK( m_cSPSBuf.get( rpcSPS, uiSPSId) );
 
   ROT( NULL == rpcSPS);
@@ -161,6 +166,10 @@ ErrVal ParameterSetMng::store( SequenceParameterSet* pcSPS )
   ROT( NULL == pcSPS );
 
   UInt uiSPSId = pcSPS->getSeqParameterSetId();
+  if( pcSPS->isSubSetSPS() )
+  {
+    uiSPSId += NUM_SPS_IDS;
+  }
 
   ROF( m_cSPSBuf.isValidOffset(uiSPSId) )
 

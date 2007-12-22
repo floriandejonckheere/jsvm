@@ -129,7 +129,6 @@ public:
     m_rcMbColocatedTop(             rcMbDataAccess.m_rcMbColocatedTop ),
     m_rcMbColocatedBot(             rcMbDataAccess.m_rcMbColocatedBot ),
     m_rcSliceHeader(                rcMbDataAccess.m_rcSliceHeader ),
-    m_rcDFP(                        rcMbDataAccess.m_rcDFP ),
     m_cMv3D_A(                      rcMbDataAccess.m_cMv3D_A ),
     m_cMv3D_B(                      rcMbDataAccess.m_cMv3D_B ),
     m_cMv3D_C(                      rcMbDataAccess.m_cMv3D_C ),
@@ -166,7 +165,6 @@ public:
                 const MbData&    rcMbColocatedTop,
                 const MbData&    rcMbColocatedBot,
                 SliceHeader&     rcSliceHeader,
-                const DFPScalable& rcDFP,
                 UInt             uiPosX,
                 UInt             uiPosY,
 								Bool             bTopMb,
@@ -187,7 +185,6 @@ public:
                   m_rcMbColocatedTop            ( rcMbColocatedTop      ),
                   m_rcMbColocatedBot            ( rcMbColocatedBot      ),
                   m_rcSliceHeader               ( rcSliceHeader           ),
-                  m_rcDFP                       ( rcDFP                   ),
                   m_cMv3D_A                     ( 0, 0, 0                 ),
                   m_cMv3D_B                     ( 0, 0, 0                 ),
                   m_cMv3D_C                     ( 0, 0, 0                 ),
@@ -197,7 +194,7 @@ public:
                   m_bTopMb                      ( bTopMb                  ),
                   m_bUseTopField                ( bUseTopField            ),
 				          m_bColocatedField             ( bColocatedField         ),
-                  m_bMbAff                      ( rcSliceHeader.isMbAff() ),
+                  m_bMbAff                      ( rcSliceHeader.isMbaffFrame() ),
                   m_ucLastMbQp                  ( ucLastMbQp              ),
                   m_pcMbDataAccessBase          ( NULL                    )
   {
@@ -272,8 +269,8 @@ public:
     // return a flag indicating wether it'e eligible for residual prediction in transform domain for CGS
     if (getMbDataAccessBase() != NULL)
     {
-      Bool slice_flag = getSH().getPicCoeffResidualPredFlag( );
-      return slice_flag && !getMbData().isIntra_nonBL() && !getMbDataAccessBase()->getMbData().isIntra_nonBL();
+      Bool slice_flag = getSH().getCoeffResidualPredFlag( );
+      return slice_flag && !getMbData().isIntraButnotIBL() && !getMbDataAccessBase()->getMbData().isIntraButnotIBL();
     }
     return false;
 
@@ -282,9 +279,9 @@ public:
   Bool getDisableCoeffResidualPredFlag() {
     if (getMbDataAccessBase() != NULL)
     {
-      Bool slice_flag = getSH().getPicCoeffResidualPredFlag( );
+      Bool slice_flag = getSH().getCoeffResidualPredFlag( );
       // is this correct???
-      return slice_flag && ( getMbData().isIntra_nonBL() || getMbDataAccessBase()->getMbData().isIntra_nonBL() );
+      return slice_flag && ( getMbData().isIntraButnotIBL() || getMbDataAccessBase()->getMbData().isIntraButnotIBL() );
     }
 
     return false;
@@ -296,8 +293,8 @@ public:
   ErrVal  setConvertMbType  ( UInt uiMbType );
   Bool    isSkippedMb       ()                    const
   {
-    ROTRS( m_rcSliceHeader.isIntra(), false );
-    if( m_rcSliceHeader.isInterB() )
+    ROTRS( m_rcSliceHeader.isIntraSlice(), false );
+    if( m_rcSliceHeader.isBSlice() )
     {
       return (m_rcMbCurr.getMbMode() == MODE_SKIP) &&
              (m_rcMbCurr.getMbCbp () == 0)         &&
@@ -333,11 +330,6 @@ public:
 
   Bool  isLeftMbExisting  () const { return m_uiPosX != 0; }
   Bool  isAboveMbExisting       () const { return ( ! ((m_uiPosY == 0) || ((m_uiPosY == 1) && m_rcMbCurr.getFieldFlag()))); }
-
-  Bool isConstrainedInterLayerPred( )
-  {
-  	return getSH().getBaseLayerUsesConstrainedIntraPred();
-  }
 
   UInt getCtxChromaPredMode ()                  const;
   UInt getCtxCoeffCount     ( LumaIdx cIdx, UInt uiStart, UInt uiStop )    const;
@@ -397,8 +389,15 @@ public:
 //	TMM_EC {{
   Bool  getMvPredictorDirectVirtual ( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1  );
 //  TMM_EC }}
-  const DFP& getDeblockingFilterParameter(Bool bInterlayer=false)     const { if (bInterlayer) return m_rcDFP.getInterlayerDeblockingFilterParameter();
-                                                                                          else return m_rcDFP.getDeblockingFilterParameter();}
+
+  const DBFilterParameter&  getDBFilterParameter( Bool bInterLayer = false )
+  {
+    if( bInterLayer )
+    {
+      return  m_rcSliceHeader.getInterLayerDeblockingFilterParameter();
+    }
+    return    m_rcSliceHeader.getDeblockingFilterParameter();
+  }
 
   Void getMvSkipMode( Mv& rcMv )
   {
@@ -456,19 +455,9 @@ protected:
 
   
   __inline Void          xGetColocatedMvRefIdx              ( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const;
-  __inline const RefPic& xGetColocatedMvRefPic              ( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const;
-
   __inline Void          xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SChar& rscRefIdx, ParIdx8x8 eParIdx ) const;
-  __inline const RefPic& xGetColocatedMvsRefPicNonInterlaced( Mv acMv[], SChar& rscRefIdx, ParIdx8x8 eParIdx ) const;
  
 	Bool xSpatialDirectMode ( ParIdx8x8 eParIdx, Bool b8x8, RefFrameList* pcL0RefFrameList, RefFrameList* pcL1RefFrameList );
-  Bool xTemporalDirectMode( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant);
-  Bool xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant );
-  Bool xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar ascRefIdx[], ParIdx8x8 eParIdx, Bool bFaultTolerant );
-//	TMM_EC {{
-	Bool xTemporalDirectModeVirtual( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 );
-	Bool xTemporalDirectModeMvRefVirtual( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1);
-//  TMM_EC }}
 
   Bool  xIsAvailable     ( const MbData& rcMbData )  const
   {
@@ -484,8 +473,8 @@ protected:
     {
       return true;
     }
-    Bool b = m_rcSliceHeader.getAVCRewriteFlag();
-    return b && rcMbData.isIntra() || !b && rcMbData.isIntra_nonBL();
+    Bool b = m_rcSliceHeader.getTCoeffLevelPredictionFlag();
+    return b && rcMbData.isIntra() || !b && rcMbData.isIntraButnotIBL();
   }
 
   __inline Bool xCheckMv (const Mv& rcMv) const
@@ -524,7 +513,6 @@ public:
   const MbData&  m_rcMbColocatedBot;
 
   SliceHeader&  m_rcSliceHeader;
-  const DFPScalable&          m_rcDFP;
 
   Mv3D  m_cMv3D_A;
   Mv3D  m_cMv3D_B;
@@ -617,7 +605,7 @@ __inline SChar MbDataAccess::xGetRefIdxLeft( ListIdx eListIdx, ParIdx8x8 eParIdx
   {
     return BLOCK_NOT_AVAILABLE;
   }
-  if( m_rcSliceHeader.isInterB() )
+  if( m_rcSliceHeader.isBSlice() )
   {
     if( rcMbData.getMbMode() == MODE_SKIP || ( rcMbData.getMbMode() == MODE_8x8 && rcMbData.getBlkMode( Par8x8( 2*(cIdx.y()/2) + cIdx.x()/2 ) ) == BLK_SKIP ) )
     return BLOCK_NOT_AVAILABLE;
@@ -649,7 +637,7 @@ __inline SChar MbDataAccess::xGetRefIdxAbove( ListIdx eListIdx, ParIdx8x8 eParId
   {
     return BLOCK_NOT_AVAILABLE;
   }
-  if( m_rcSliceHeader.isInterB() )
+  if( m_rcSliceHeader.isBSlice() )
   {
     if( rcMbData.getMbMode() == MODE_SKIP || ( rcMbData.getMbMode() == MODE_8x8 && rcMbData.getBlkMode( Par8x8( 2*(cIdx.y()/2) + cIdx.x()/2 ) ) == BLK_SKIP ) )
     return BLOCK_NOT_AVAILABLE;
@@ -737,10 +725,10 @@ __inline UInt MbDataAccess::getCtxChromaPredMode() const
   // -- Current layer blocks will inherit the 
   // -- prediction modes from the lower layer.
   // -- However, this happens after parsing.
-  if( getSH().getAVCRewriteFlag() )
+  if( getSH().getTCoeffLevelPredictionFlag() )
   {
-	  uiCtx -= ( xGetMbLeft().getChromaPredMode() > 0 && xGetMbLeft().isIntra_BL() ) ? 1 : 0;
-	  uiCtx -= ( xGetMbAbove().getChromaPredMode() > 0 && xGetMbAbove().isIntra_BL() ) ? 1 : 0;
+	  uiCtx -= ( xGetMbLeft().getChromaPredMode() > 0 && xGetMbLeft().isIntraBL() ) ? 1 : 0;
+	  uiCtx -= ( xGetMbAbove().getChromaPredMode() > 0 && xGetMbAbove().isIntraBL() ) ? 1 : 0;
   }
 
   return uiCtx;
@@ -758,13 +746,13 @@ __inline Int MbDataAccess::mostProbableIntraPredMode( LumaIdx cIdx )
   const MbData& rcMbDataAbove = xGetBlockAbove( cIdxA );
   Int iAbovePredMode = ( xIsAvailableIntra( rcMbDataAbove ) ? rcMbDataAbove.intraPredMode( cIdxA ) : OUTSIDE);
 
-	if( getSH().getAVCRewriteFlag() )
+	if( getSH().getTCoeffLevelPredictionFlag() )
 	{
 		// ENCODER
-		if( rcMbDataLeft.isIntra_BL() )
+		if( rcMbDataLeft.isIntraBL() )
 			iLeftPredMode = DC_PRED;
 
-		if( rcMbDataAbove.isIntra_BL() )
+		if( rcMbDataAbove.isIntraBL() )
 			iAbovePredMode = DC_PRED;
 
 		// DECODER
@@ -785,7 +773,7 @@ __inline Int MbDataAccess::encodeIntraPredMode( LumaIdx cIdx )
   const Int iMostProbable   = mostProbableIntraPredMode( cIdx );
   const Int iIntraPredMode  = m_rcMbCurr.intraPredMode ( cIdx );
 
-  if( getMbData().getBLSkipFlag() && getSH().getAVCRewriteFlag() )	  
+  if( getMbData().getBLSkipFlag() && getSH().getTCoeffLevelPredictionFlag() )	  
 	  return iIntraPredMode;  
 
   ROTRS( iMostProbable == iIntraPredMode, -1 )
@@ -1174,60 +1162,6 @@ __inline Void MbDataAccess::xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SCha
 }
 
 
-__inline const RefPic& MbDataAccess::xGetColocatedMvRefPic( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const
-{
-  ListIdx         eListIdx         = LIST_0;
-  MvRefConversion eMvRefConversion = ONE_TO_ONE;
-  const MbData&   rcMbColocated    = xGetBlockColocated( cIdx, eMvRefConversion );
-  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx ) ) < BLOCK_NOT_AVAILABLE  )
-  {
-    eListIdx  = LIST_1;
-    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx );
-  }
-  if( rscRefIdx < BLOCK_NOT_AVAILABLE  )
-  {
-    rcMv = Mv::ZeroMv();
-  }
-  else
-  {
-    rcMv = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( cIdx );
-  }
-
-    //--- mv scaling ----
-  if( eMvRefConversion == FRM_TO_FLD )
-  {
-    rcMv.setFrameToFieldPredictor();
-  }
-  else if( eMvRefConversion == FLD_TO_FRM )
-  {
-    rcMv.setFieldToFramePredictor();
-  }
-  return rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPic( cIdx );
-}
-
-__inline const RefPic& MbDataAccess::xGetColocatedMvsRefPicNonInterlaced( Mv acMv[], SChar& rscRefIdx, ParIdx8x8 eParIdx ) const
-{
-  ListIdx         eListIdx         = LIST_0;
-   const MbData&   rcMbColocated    = xGetBlockColocatedNonInterlaced();
-  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx ) ) < BLOCK_NOT_AVAILABLE )
-  {
-    eListIdx  = LIST_1;
-    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx );
-  }
-  if( rscRefIdx < BLOCK_NOT_AVAILABLE )
-  {
-    acMv[0] = acMv[1] = acMv[2] = acMv[3] = Mv::ZeroMv();
-  }
-  else
-  {
-    acMv[0] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
-    acMv[1] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
-    acMv[2] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
-    acMv[3] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
-  }
-
-  return rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPic( eParIdx );
-}
 
 
 __inline const MbData& MbDataAccess::xGetMbLeft() const

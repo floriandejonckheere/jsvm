@@ -121,48 +121,24 @@ class H264AVCCOMMONLIB_API SEI
 public:
   enum MessageType
   {
-    // JVT-V068 HRD {
     BUFFERING_PERIOD                      = 0,
     PIC_TIMING                            = 1,
-    AVC_COMPATIBLE_HRD_SEI                = 30,
-//    RESERVED_SEI                          = 31, JVT-W052
-
-//JVT-W052 wxwan
-		INTEGRITY_CHECK_SEI												= 31,
-		//RESERVED_SEI													=32,//JVT-W049
-//JVT-W052 wxwan
-//JVT-W049 {
-	  REDUNDANT_PIC_SEI                     = 32,
-    //RESERVED_SEI                          = 33,//JVT-X032
-//JVT-W049 }
-    // JVT-V068 HRD }
-//JVT-X032 {
-    TL_SWITCHING_POINT_SEI                = 33,
-    RESERVED_SEI                          = 35,//JVT-W062
-//JVT-X032 }
+    SCENE_INFO_SEI                        = 9,
     SUB_SEQ_INFO                          = 10,
-  MOTION_SEI                            = 18,
-    SCALABLE_SEI                          = 22,
-    SUB_PIC_SEI                            = 23,
-    //{{Quality level estimation and modified truncation- JVTO044 and m12007
-    //France Telecom R&D-(nathalie.cammas@francetelecom.com)
-    //QUALITYLEVEL_SEI                      = 25,//SEI changes update
-  //}}Quality level estimation and modified truncation- JVTO044 and m12007
- PRIORITYLEVEL_SEI                      = 25,//SEI changes update
-	// JVT-S080 LMI {
-  SCALABLE_SEI_LAYERS_NOT_PRESENT       = 26,
-    SCALABLE_SEI_DEPENDENCY_CHANGE        = 27,
-    // JVT-T073    RESERVED_SEI                          = 28,
-  // JVT-S080 LMI }
-    //  JVT-T073 {
-  SCENE_INFO_SEI                        = 9,
-  SCALABLE_NESTING_SEI                  = 28,
-  PR_COMPONENT_INFO_SEI                 = 29,
-  //RESERVED_SEI                          = 31, // JVT-V068
-  // JVT-W062
-  TL0_DEP_REP_IDX_SEI                   = 34,
-    //  JVT-T073 }
-    NON_REQUIRED_SEI                      = 24
+    MOTION_SEI                            = 18,
+    SCALABLE_SEI                          = 24,
+    SUB_PIC_SEI                           = 25,
+    NON_REQUIRED_SEI                      = 26,
+    PRIORITYLEVEL_SEI                     = 27,
+    SCALABLE_SEI_LAYERS_NOT_PRESENT       = 28,
+    SCALABLE_SEI_DEPENDENCY_CHANGE        = 29,
+    SCALABLE_NESTING_SEI                  = 30,
+    AVC_COMPATIBLE_HRD_SEI                = 31,
+    INTEGRITY_CHECK_SEI										= 32,
+    REDUNDANT_PIC_SEI                     = 33,
+    TL0_DEP_REP_IDX_SEI                   = 34,
+    TL_SWITCHING_POINT_SEI                = 35,
+    RESERVED_SEI                          = 36
   };
 
 
@@ -263,7 +239,7 @@ public:
     //Void setSimplePriorityId ( UInt uilayer, UInt uiLevel )                    { m_simple_priority_id                    [uilayer] = uiLevel; }//SEI changes update
     Void setPriorityId ( UInt uilayer, UInt uiLevel )                         { m_priority_id                          [uilayer] = uiLevel; }//SEI changes update
 		Void setDiscardableFlag  (UInt uilayer, Bool bFlag)                       { m_discardable_flag                     [uilayer] = bFlag;   }
-    Void setTemporalLevel ( UInt uilayer, UInt uiLevel )                      { m_temporal_level                       [uilayer] = uiLevel; }
+    Void setTemporalId ( UInt uilayer, UInt uiLevel )                      { m_temporal_level                       [uilayer] = uiLevel; }
     Void setDependencyId ( UInt uilayer, UInt uiId )                          { m_dependency_id                        [uilayer] = uiId;    }
     Void setQualityLevel ( UInt uilayer, UInt uiLevel )                        { m_quality_level                       [uilayer] = uiLevel; }
     Void setSubPicLayerFlag ( UInt uilayer, Bool bFlag)                        { m_sub_pic_layer_flag[uilayer] = bFlag; }
@@ -452,9 +428,9 @@ public:
     //UInt getSimplePriorityId ( UInt uilayer ) const { return  m_simple_priority_id [uilayer]; }//SEI changes update
     UInt getPriorityId ( UInt uilayer ) const { return  m_priority_id [uilayer]; }//SEI changes update
     Bool getDiscardableFlag  (UInt uilayer) const { return  m_discardable_flag [uilayer]; }
-    UInt getTemporalLevel ( UInt uilayer ) const { return m_temporal_level[uilayer]; }
+    UInt getTemporalId ( UInt uilayer ) const { return m_temporal_level[uilayer]; }
     UInt getDependencyId ( UInt uilayer ) const { return m_dependency_id[uilayer]; }
-    UInt getQualityLevel ( UInt uilayer ) const { return m_quality_level[uilayer]; }
+    UInt getQualityId ( UInt uilayer ) const { return m_quality_level[uilayer]; }
 
     Bool getSubPicLayerFlag ( UInt uilayer ) { return m_sub_pic_layer_flag[uilayer]; }
     Bool getSubRegionLayerFlag ( UInt uilayer ) const { return m_sub_region_layer_flag[uilayer]; }
@@ -815,11 +791,11 @@ public:
     ErrVal        write    ( HeaderSymbolWriteIf*  pcWriteIf );
     ErrVal        read    ( HeaderSymbolReadIf*    pcReadIf  );
 
-    UInt getLayerId  ()          const  { return m_uiLayerId;        }
-    Void setLayerId ( UInt uiLayerId) { m_uiLayerId = uiLayerId;  }
+    UInt getDependencyId  ()          const  { return m_uiDependencyId;        }
+    Void setDependencyId ( UInt uiLayerId) { m_uiDependencyId = uiLayerId;  }
 
   private:
-    UInt m_uiLayerId;
+    UInt m_uiDependencyId;
   };
 
   class H264AVCCOMMONLIB_API MotionSEI : public SEIMessage
@@ -861,7 +837,7 @@ public:
   ////JVT-W137
   ////UInt     getDeltaBytesRateOfLevel(UInt ui) { return m_auiDeltaBytesRateOfLevel[ui];}
   ////Void     setDeltaBytesRateOfLevel(UInt uiIndex, UInt ui) { m_auiDeltaBytesRateOfLevel[uiIndex] = ui;} //~JVT-W137
-  //UInt     getQualityLevel(UInt ui) { return m_auiQualityLevel[ui];}
+  //UInt     getQualityId(UInt ui) { return m_auiQualityLevel[ui];}
   //Void     setQualityLevel(UInt uiIndex, UInt ui) { m_auiQualityLevel[uiIndex] = ui;}
   //UInt     getDependencyId() { return m_uiDependencyId;}
   //Void     setDependencyId( UInt ui) { m_uiDependencyId = ui;}
@@ -977,7 +953,7 @@ public:
       ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
       ErrVal read           ( HeaderSymbolReadIf    *pcReadIf);
       Void setNumLayersMinus1( UInt ui )                                        { m_uiNumLayersMinus1 = ui;  }
-      Void setLayerId ( UInt uiLayer, UInt uiId )                                { m_auiLayerId                              [uiLayer] = uiId; }
+      Void setDependencyId ( UInt uiLayer, UInt uiId )                                { m_auiLayerId                              [uiLayer] = uiId; }
     Void setLayerDependencyInfoPresentFlag ( UInt uiLayer, Bool bFlag ) { m_abLayerDependencyInfoPresentFlag[uiLayer] = bFlag; }
       Void setNumDirectDependentLayers ( UInt uiLayer, UInt ui ) { m_auiNumDirectDependentLayers[uiLayer] = ui; }
     Void setDirectDependentLayerIdDeltaMinus1( UInt uiLayer, UInt uiDirectLayer, UInt uiIdDeltaMinus1 )  { m_auiDirectDependentLayerIdDeltaMinus1[uiLayer][uiDirectLayer] = uiIdDeltaMinus1; }
@@ -985,7 +961,7 @@ public:
     Void setOutputFlag ( Bool bFlag )  { m_bOutputFlag = bFlag; }
 
       UInt getNumLayersMinus1() const {return m_uiNumLayersMinus1;}
-      UInt getLayerId ( UInt uiLayer ) const { return m_auiLayerId[uiLayer]; }
+      UInt getDependencyId ( UInt uiLayer ) const { return m_auiLayerId[uiLayer]; }
       UInt getNumDirectDependentLayers ( UInt uiLayer ) const { return m_auiNumDirectDependentLayers[uiLayer]; }
     UInt getDirectDependentLayerIdDeltaMinus1( UInt uiLayer, UInt uiDirectLayer ) const { return m_auiDirectDependentLayerIdDeltaMinus1[uiLayer][uiDirectLayer]; }
     UInt getLayerDependencyInfoSrcLayerIdDeltaMinus1 ( UInt uiLayer ) const { return m_auiLayerDependencyInfoSrcLayerIdDeltaMinus1[uiLayer]; }
@@ -1029,7 +1005,7 @@ public:
     Bool getAllPicturesInAuFlag()  const { return m_bAllPicturesInAuFlag; }
     UInt getNumPictures()          const { return m_uiNumPictures; }
   UInt getDependencyId( UInt uiIndex ) { return m_auiDependencyId[uiIndex]; }
-  UInt getQualityLevel( UInt uiIndex ) { return m_auiQualityLevel[uiIndex]; }
+  UInt getQualityId( UInt uiIndex ) { return m_auiQualityLevel[uiIndex]; }
 
   Void setAllPicturesInAuFlag( Bool bFlag ) { m_bAllPicturesInAuFlag = bFlag; }
   Void setNumPictures( UInt uiNum ) { m_uiNumPictures = uiNum; }
@@ -1037,13 +1013,13 @@ public:
   Void setQualityLevel( UInt uiIndex, UInt uiValue ) { m_auiQualityLevel[uiIndex] = uiValue; }
 
     // JVT-V068 {
-    UInt getTemporalLevel() { return m_uiTemporalLevel; }
-    Void setTemporalLevel( UInt uiValue ) { m_uiTemporalLevel = uiValue; }
+    UInt getTemporalId() { return m_uiTemporalId; }
+    Void setTemporalId( UInt uiValue ) { m_uiTemporalId = uiValue; }
     // JVT-V068 }
   //JVT-W062 {
   UInt getTl0DepRepIdx() const { return m_uiTl0DepRepIdx; }
   UInt getNestedSeiType() const { return m_uiNestedSeiType; }
-  Void setTemporalId( UInt uiValue ) { m_uiTemporalId = uiValue; }
+//  Void setTemporalId( UInt uiValue ) { m_uiTemporalId = uiValue; }
   private:
     UInt  m_uiTl0DepRepIdx;
     UInt  m_uiTemporalId;
@@ -1054,7 +1030,7 @@ public:
     UInt  m_auiDependencyId[MAX_PICTURES_IN_ACCESS_UNIT];
     UInt  m_auiQualityLevel[MAX_PICTURES_IN_ACCESS_UNIT];
     // JVT-V068 {
-    UInt  m_uiTemporalLevel;
+    //UInt  m_uiTemporalId;  //????
     // JVT-V068 }
     SEIMessage *m_pcSEIMessage;
   };
@@ -1085,34 +1061,6 @@ public:
     UInt m_uiSecondSceneId;
   };
   // JVT-T073 }
-
-  #define MAX_SLICE_NUM 4
-  class H264AVCCOMMONLIB_API PRComponentInfoSei : public SEIMessage
-  {
-  protected:
-    PRComponentInfoSei() : SEIMessage(PR_COMPONENT_INFO_SEI) {}
-
-  public:
-    static ErrVal create ( PRComponentInfoSei*& rpcSeiMessage);
-    ErrVal destroy       ();
-    ErrVal write         ( HeaderSymbolWriteIf  *pcWriteIf);
-    ErrVal read          ( HeaderSymbolReadIf   *pcReadIf);
-
-    Void setNumDependencyIdMinus1( UInt uiNum         ) { m_uiNumDependencyIdMinus1 = uiNum; }
-    Void setPrDependencyId       ( UInt* auiPrDepId   ) { memcpy( m_uiPrDependencyId,        auiPrDepId,   sizeof(UInt)*MAX_LAYERS                                  ); }
-    Void setNumQualLevelMinus1   ( UInt* auiNumQL     ) { memcpy( m_uiNumQualityLevelMinus1, auiNumQL,     sizeof(UInt)*MAX_LAYERS                                  ); }
-    Void setPrQualLevel          ( UInt* aauiQL       ) { memcpy( m_uiPrQualityLevel,        aauiQL,       sizeof(UInt)*MAX_LAYERS*MAX_QUALITY_LEVELS               ); }
-    Void setNumSlice             ( UInt* aauiNumSlice ) { memcpy( m_uiNumPrSliceMinus1,      aauiNumSlice, sizeof(UInt)*MAX_LAYERS*MAX_QUALITY_LEVELS               ); }
-    Void setChromaOffset         ( UInt* aaauiOffset  ) { memcpy( m_uiChromaOffset,          aaauiOffset,  sizeof(UInt)*MAX_LAYERS*MAX_QUALITY_LEVELS*MAX_SLICE_NUM ); }
-
-  private:
-    UInt m_uiNumDependencyIdMinus1;
-    UInt m_uiPrDependencyId       [MAX_LAYERS];
-    UInt m_uiNumQualityLevelMinus1[MAX_LAYERS];
-    UInt m_uiPrQualityLevel       [MAX_LAYERS][MAX_QUALITY_LEVELS];
-    UInt m_uiNumPrSliceMinus1     [MAX_LAYERS][MAX_QUALITY_LEVELS];
-    UInt m_uiChromaOffset         [MAX_LAYERS][MAX_QUALITY_LEVELS][MAX_SLICE_NUM];
-  };
 
   // JVT-V068 HRD {
   class H264AVCCOMMONLIB_API BufferingPeriod :
@@ -1163,7 +1111,7 @@ public:
     ErrVal write( HeaderSymbolWriteIf* pcWriteIf );
     ErrVal read ( HeaderSymbolReadIf* pcReadIf );
 
-    ErrVal setHRD( UInt uiSPSId, const HRD* apcHrd[] );
+    ErrVal setHRD( UInt uiSPSId, Bool bSubSetSPS, const HRD* apcHrd[] );
 
   private:
     const HRD* m_apcHrd[2];
@@ -1229,7 +1177,7 @@ public:
 
   public:
     static ErrVal create( PicTiming*& rpcPicTiming, const VUI* pcVUI, UInt uiLayerIndex );
-    static ErrVal create( PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, UInt uiLayerIndex );
+    static ErrVal create( PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, Bool bSubSetSPS, UInt uiLayerIndex );
 
     Int  getTimestamp( UInt uiNum = 0, UInt uiLayerIndex = 0 );
     ErrVal setTimestamp( UInt uiNum, UInt uiLayerIndex, Int iTimestamp );

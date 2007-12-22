@@ -91,7 +91,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "DistortionIf.h"
 #include "H264AVCCommonLib/YuvMbBuffer.h"
-#include "H264AVCCommonLib/IntYuvMbBuffer.h"
 
 #define Abs(x) abs(x)
 
@@ -113,7 +112,7 @@ protected:
 
 public:
 
-  IntYuvMbBuffer* getYuvMbBuffer() { return &m_cOrgData; }
+  YuvMbBuffer* getYuvMbBuffer() { return &m_cOrgData; }
 
   static  ErrVal  create ( XDistortion*& rpcDistortion );
   virtual ErrVal  destroy();
@@ -134,7 +133,7 @@ public:
   UInt    getLum16x16RP( XPel *pPel, Int iStride, DFunc eDFunc = DF_SSD );
   UInt    checkLargeDistortion( XPel *pOrg, XPel *pPel, Int iStride );
 
-  Void    loadOrgMbPelData( IntYuvPicBuffer* pcOrgYuvBuffer, IntYuvMbBuffer*& rpcOrgMbBuffer );
+  Void    loadOrgMbPelData( YuvPicBuffer* pcOrgYuvBuffer, YuvMbBuffer*& rpcOrgMbBuffer );
 
   Void set4x4Block( LumaIdx cIdx )
   {
@@ -156,12 +155,12 @@ public:
   }
 
 //TMM_WP
-  ErrVal getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiLumaLog2WeightDenom );
-  ErrVal getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer, IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb );
-  ErrVal getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
-                         IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset );
-  ErrVal getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
-                           IntYuvPicBuffer* pcRefPicBuffer,
+  ErrVal getLumaWeight( YuvPicBuffer* pcOrgPicBuffer, YuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiLumaLog2WeightDenom );
+  ErrVal getChromaWeight( YuvPicBuffer* pcOrgPicBuffer, YuvPicBuffer* pcRefPicBuffer, Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb );
+  ErrVal getLumaOffsets( YuvPicBuffer* pcOrgPicBuffer,
+                         YuvPicBuffer* pcRefPicBuffer, Double& rfOffset );
+  ErrVal getChromaOffsets( YuvPicBuffer* pcOrgPicBuffer,
+                           YuvPicBuffer* pcRefPicBuffer,
                            Double& rfOffset, Bool bCb );
 //TMM_WP
 
@@ -208,7 +207,7 @@ private:
 //TMM_WP
 
 protected:
-  IntYuvMbBuffer  m_cOrgData;
+  YuvMbBuffer  m_cOrgData;
   XDistortionFunc m_aaafpDistortionFunc[2][4][12];
   Int             m_aiRows[12];
   Int             m_aiCols[12];

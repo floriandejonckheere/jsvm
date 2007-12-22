@@ -87,7 +87,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCEncoderLib.h"
 #include "Distortion.h"
 
-#include "H264AVCCommonLib/IntYuvPicBuffer.h"
+#include "H264AVCCommonLib/YuvPicBuffer.h"
 
 #include <math.h>
 
@@ -123,7 +123,7 @@ ErrVal XDistortion::destroy()
 }
 
 
-Void XDistortion::loadOrgMbPelData( IntYuvPicBuffer* pcOrgYuvBuffer, IntYuvMbBuffer*& rpcOrgMbBuffer )
+Void XDistortion::loadOrgMbPelData( YuvPicBuffer* pcOrgYuvBuffer, YuvMbBuffer*& rpcOrgMbBuffer )
 {
   m_cOrgData.loadBuffer( pcOrgYuvBuffer );
   rpcOrgMbBuffer = &m_cOrgData;
@@ -1432,8 +1432,8 @@ Void XDistortion::xGetWeight(XPel *pucRef, XPel *pucOrg, const UInt uiStride,
 
 
 
-ErrVal XDistortion::getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
-                                   IntYuvPicBuffer* pcRefPicBuffer, Double& rfWeight,
+ErrVal XDistortion::getLumaWeight( YuvPicBuffer* pcOrgPicBuffer,
+                                   YuvPicBuffer* pcRefPicBuffer, Double& rfWeight,
                                    UInt uiLumaLog2WeightDenom)
 {
   ROT( NULL == pcRefPicBuffer );
@@ -1464,8 +1464,8 @@ ErrVal XDistortion::getLumaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
 }
 
 
-ErrVal XDistortion::getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
-                                     IntYuvPicBuffer* pcRefPicBuffer,
+ErrVal XDistortion::getChromaWeight( YuvPicBuffer* pcOrgPicBuffer,
+                                     YuvPicBuffer* pcRefPicBuffer,
                                      Double& rfWeight, UInt uiChromaLog2WeightDenom, Bool bCb )
 {
   ROT( NULL == pcRefPicBuffer );
@@ -1477,8 +1477,8 @@ ErrVal XDistortion::getChromaWeight( IntYuvPicBuffer* pcOrgPicBuffer,
   return Err::m_nOK;
 }
 
-ErrVal XDistortion::getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
-                                    IntYuvPicBuffer* pcRefPicBuffer, Double& rfOffset )
+ErrVal XDistortion::getLumaOffsets( YuvPicBuffer* pcOrgPicBuffer,
+                                    YuvPicBuffer* pcRefPicBuffer, Double& rfOffset )
 {
   ROT( NULL == pcRefPicBuffer );
   ROT( NULL == pcOrgPicBuffer );
@@ -1504,8 +1504,8 @@ ErrVal XDistortion::getLumaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
 }
 
 
-ErrVal XDistortion::getChromaOffsets( IntYuvPicBuffer* pcOrgPicBuffer,
-                                      IntYuvPicBuffer* pcRefPicBuffer,
+ErrVal XDistortion::getChromaOffsets( YuvPicBuffer* pcOrgPicBuffer,
+                                      YuvPicBuffer* pcRefPicBuffer,
                                       Double& rfOffset, Bool bCb )
 {
   ROT( NULL == pcRefPicBuffer );

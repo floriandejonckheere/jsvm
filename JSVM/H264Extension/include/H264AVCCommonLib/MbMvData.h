@@ -216,21 +216,12 @@ public:
   {
     m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = BLOCK_NOT_AVAILABLE;
     m_usMotPredFlags=0; 
-  
-    m_acRefPic[ 0 ].setFrame( NULL ); 
-    m_acRefPic[ 1 ].setFrame( NULL );
-    m_acRefPic[ 2 ].setFrame( NULL );
-    m_acRefPic[ 3 ].setFrame( NULL );
   }
 
 
   Void reset()
   {
     clear( BLOCK_NOT_AVAILABLE );
-    m_acRefPic[ 0 ].setFrame( NULL );
-    m_acRefPic[ 1 ].setFrame( NULL );
-    m_acRefPic[ 2 ].setFrame( NULL );
-    m_acRefPic[ 3 ].setFrame( NULL );
   }
 
   Void clear( RefIdxValues eRefIdxValues )
@@ -269,34 +260,6 @@ public:
   Void  setMotPredFlag( Bool bFlag, ParIdx8x8  eParIdx );
   Void  setMotPredFlag( Bool bFlag, LumaIdx    cIdx    );
 
-
-
-  Void  setRefPic( const Frame* pcRefFrame )
-  {
-    m_acRefPic[ 0 ].setFrame( pcRefFrame );
-    m_acRefPic[ 1 ].setFrame( pcRefFrame );
-    m_acRefPic[ 2 ].setFrame( pcRefFrame );
-    m_acRefPic[ 3 ].setFrame( pcRefFrame );
-  }
-  Void  setRefPic( const Frame* pcRefFrame, ParIdx16x8 eParIdx  )
-  {
-    UInt uiOffset = m_auiBlk2Part[ eParIdx ];
-    m_acRefPic[ uiOffset     ].setFrame( pcRefFrame );
-    m_acRefPic[ uiOffset + 1 ].setFrame( pcRefFrame );
-  }
-  Void  setRefPic( const Frame* pcRefFrame, ParIdx8x16 eParIdx  )
-  {
-    UInt uiOffset = m_auiBlk2Part[ eParIdx ];
-    m_acRefPic[ uiOffset     ].setFrame( pcRefFrame );
-    m_acRefPic[ uiOffset + 2 ].setFrame( pcRefFrame );
-  }
-  Void  setRefPic( const Frame* pcRefFrame, ParIdx8x8  eParIdx  )
-  {
-    m_acRefPic[ m_auiBlk2Part[ eParIdx ] ].setFrame( pcRefFrame );
-  }
-
-  const RefPic& getRefPic( ParIdx8x8 eParIdx )        const { return m_acRefPic[ m_auiBlk2Part[ eParIdx ] ];  }
-  const RefPic& getRefPic( LumaIdx cIdx )             const { return m_acRefPic[ m_auiBlk2Part[ cIdx.b4x4() ] ];  }
 
   Void  getMvRef         ( Mv& rcMv, SChar& rscRef, LumaIdx cIdx )                            const;
   Void  getMv3D          ( Mv3D& rcMv3D,            LumaIdx cIdx )                            const;
@@ -347,7 +310,6 @@ private:
 
 public:
   SChar   m_ascRefIdx[4];
-  RefPic  m_acRefPic [4];
   UShort  m_usMotPredFlags;
 };
 

@@ -97,8 +97,6 @@ H264AVC_NAMESPACE_BEGIN
 
 class H264AVCEncoder;
 class MbData;
-class Frame;
-class FrameMng;
 class BitWriteBuffer;
 class Transform;
 class YuvBufferCtrl;
@@ -123,7 +121,7 @@ class MotionEstimationQuarterPel;
 class RateDistortion;
 class RateDistortionRateConstraint;
 class History;
-class MCTFEncoder;
+class LayerEncoder;
 class XDistortion;
 class ControlMngH264AVCEncoder;
 class ReconstructionBypass;
@@ -186,9 +184,8 @@ protected:
 
 protected:
   H264AVCEncoder*           m_pcH264AVCEncoder;
-  FrameMng*                 m_pcFrameMng;
 
-  MCTFEncoder*              m_apcMCTFEncoder          [MAX_LAYERS];
+  LayerEncoder*             m_apcLayerEncoder         [MAX_LAYERS];
   SliceEncoder*             m_pcSliceEncoder;
   ControlMngH264AVCEncoder* m_pcControlMng;
   BitWriteBuffer*           m_pcBitWriteBuffer;

@@ -91,7 +91,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-class IntFrame;
+class Frame;
 class IntYuvMbBufferExtension;
 class MbDataCtrl;
 class YuvBufferCtrl;
@@ -108,7 +108,7 @@ public:
   ErrVal init();
   ErrVal uninit();
 
-  ErrVal padRecFrame( IntFrame* pcIntFrame, const MbDataCtrl* pcMbDataCtrl, YuvBufferCtrl* pcYuvFullPelBufferCtrl, UInt uiFrameWidthInMb, UInt uiFrameHeightInMb );
+  ErrVal padRecFrame( Frame* pcIntFrame, const MbDataCtrl* pcMbDataCtrl, YuvBufferCtrl* pcYuvFullPelBufferCtrl, UInt uiFrameWidthInMb, UInt uiFrameHeightInMb );
   ErrVal padRecMb( IntYuvMbBufferExtension* pcBuffer, UInt uiMask );
   ErrVal padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, UInt uiMask ); //TMM_INTERLACE
 

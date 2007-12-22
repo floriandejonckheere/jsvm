@@ -93,9 +93,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/MotionVectorCalculation.h"
 #include "H264AVCCommonLib/YuvMbBuffer.h"
 #include "H264AVCCommonLib/YuvPicBuffer.h"
-#include "H264AVCCommonLib/IntYuvMbBuffer.h"
-#include "H264AVCCommonLib/IntYuvPicBuffer.h"
-#include "H264AVCCommonLib/IntFrame.h"
+#include "H264AVCCommonLib/Frame.h"
 #include "H264AVCCommonLib/QuarterPelFilter.h"
 
 
@@ -104,10 +102,7 @@ H264AVC_NAMESPACE_BEGIN
 
 class SampleWeighting;
 class QuarterPelFilter;
-class FrameMng;
-class Frame;
 
-class FGSCoder;
 class Transform;
 
 #if defined( WIN32 )
@@ -118,29 +113,10 @@ class H264AVCCOMMONLIB_API MotionCompensation :
 public MotionVectorCalculation
 {
 protected:
-
-  class MC8x8D
+  class MC8x8
   {
   public:
-    MC8x8D( Par8x8 ePar8x8 ) :  m_cIdx( B8x8Idx(ePar8x8) )  { clear(); }
-    Void clear()
-    {
-      m_apcRefBuffer[0] = m_apcRefBuffer[1] = NULL;
-      m_apcPW[0]        = m_apcPW[1]        = NULL;
-    }
-
-    B4x4Idx         m_cIdx;
-    PW              m_acPW[2];
-    const PW*       m_apcPW[2];
-    YuvPicBuffer*   m_apcRefBuffer[2];
-    Mv3D            m_aacMv[2][6];
-		Short           m_sChromaOffset[2];
-  };
-
-  class IntMC8x8D
-  {
-  public:
-    IntMC8x8D( Par8x8 ePar8x8 ) :  m_cIdx( B8x8Idx(ePar8x8) )  { clear(); }
+    MC8x8( Par8x8 ePar8x8 ) :  m_cIdx( B8x8Idx(ePar8x8) )  { clear(); }
     Void clear()
     {
       m_apcRefBuffer[0] = m_apcRefBuffer[1] = NULL;
@@ -148,9 +124,9 @@ protected:
     }
 
     B4x4Idx           m_cIdx;
-    PW                m_acPW[2];
-    const PW*         m_apcPW[2];
-    IntYuvPicBuffer*  m_apcRefBuffer[2];
+    PredWeight        m_acPW[2];
+    const PredWeight* m_apcPW[2];
+    YuvPicBuffer*     m_apcRefBuffer[2];
     Mv3D              m_aacMv[2][6];
     Mv3D              m_aacMvd[2][6];  // differential motion vector 
 		Short             m_sChromaOffset[2];
@@ -161,15 +137,6 @@ protected:
 	virtual ~MotionCompensation();
 
 public:
-  // V090
-  Void set4Tap( Bool b4TapY, UInt uiFrameNum )
-  {
-    m_b4TapY      = b4TapY;
-    m_uiFrameNum  = uiFrameNum;
-    m_pcQuarterPelFilter->set4Tap( b4TapY );
-  }
-  //V090
-
   static ErrVal create( MotionCompensation*& rpcMotionCompensation );
   ErrVal destroy();
 
@@ -180,14 +147,11 @@ public:
   ErrVal initSlice( const SliceHeader& rcSH );
   ErrVal uninit();
 
-  ErrVal compensateMb( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer, Bool bFaultTolerant, Bool bCalcMv = true );
-  ErrVal calculateMb( MbDataAccess& rcMbDataAccess, Bool bFaultTolerant );
-
   ErrVal compensateMbBLSkipIntra( MbDataAccess&      rcMbDataAccessBase,
-                                  IntYuvMbBuffer*    pcRecBuffer,
-                                  IntFrame*          pcBaseLayerRec );
-  ErrVal copyMbBuffer(  IntYuvMbBuffer*    pcMbBufSrc,
-                        IntYuvMbBuffer*    pcMbBufDes,
+                                  YuvMbBuffer*    pcRecBuffer,
+                                  Frame*          pcBaseLayerRec );
+  ErrVal copyMbBuffer(  YuvMbBuffer*    pcMbBufSrc,
+                        YuvMbBuffer*    pcMbBufDes,
                         Int sX, Int sY, Int eX, Int eY);
 
   Void setResizeParameters   (ResizeParameters*				resizeParameters)
@@ -198,72 +162,61 @@ public:
   ErrVal compensateMb     ( MbDataAccess&   rcMbDataAccess,
                             RefFrameList&   rcRefFrameList0,
                             RefFrameList&   rcRefFrameList1,
-                            IntYuvMbBuffer* pcRecBuffer,
-                            Bool            bCalcMv,
-                            Bool            bSR = false );
+                            YuvMbBuffer* pcRecBuffer,
+                            Bool            bCalcMv );
   ErrVal compensateSubMb  ( B8x8Idx         c8x8Idx,
                             MbDataAccess&   rcMbDataAccess,
                             RefFrameList&   rcRefFrameList0,
                             RefFrameList&   rcRefFrameList1,
-                            IntYuvMbBuffer* pcRecBuffer,
+                            YuvMbBuffer* pcRecBuffer,
                             Bool            bCalcMv,
-                            Bool            bFaultTolerant, 
-                            Bool            bSR = false );
-  Void xAdjustResidualRefBlk          ( XPel*           piResidualRef,
-                                        UInt            uiBlkWidth,
-                                        UInt            uiBlkHeight,
-                                        Int             iStride );
-
-
-  Void xAdjustChromaResidualRefBlock  ( XPel*           piResidualRef,
-                                        Int             iStride );
-
+                            Bool            bFaultTolerant );
   ErrVal xCompensateMbAllModes        ( MbDataAccess&   rcMbDataAccess, 
                                         RefFrameList&   rcRefFrameList0, 
                                         RefFrameList&   rcRefFrameList1, 
-                                        IntYuvMbBuffer* pcYuvMbBuffer );
+                                        YuvMbBuffer* pcYuvMbBuffer );
 
   ErrVal updateMb(MbDataAccess&   rcMbDataAccess,
-                  IntFrame*       pcMCFrame,
-                  IntFrame*       pcPrdFrame,
+                  Frame*       pcMCFrame,
+                  Frame*       pcPrdFrame,
                   ListIdx         eListPrd,
                   Int             iRefIdx); 
 
   ErrVal updateSubMb( B8x8Idx         c8x8Idx,
                       MbDataAccess&   rcMbDataAccess,
-                      IntFrame*       pcMCFrame,
-                      IntFrame*       pcPrdFrame,
+                      Frame*       pcMCFrame,
+                      Frame*       pcPrdFrame,
                       ListIdx         eListPrd );
 
   Void xUpdateMb8x8Mode(    B8x8Idx         c8x8Idx,
                             MbDataAccess&   rcMbDataAccess,
-                            IntFrame*       pcMCFrame,
-                            IntFrame*       pcPrdFrame,
+                            Frame*       pcMCFrame,
+                            Frame*       pcPrdFrame,
                             ListIdx         eListPrd );
 
   ErrVal updateDirectBlock( MbDataAccess&   rcMbDataAccess, 
-                            IntFrame*       pcMCFrame,
-                            IntFrame*       pcPrdFrame,
+                            Frame*       pcMCFrame,
+                            Frame*       pcPrdFrame,
                             ListIdx         eListPrd,
                             Int             iRefIdx,                                             
                             B8x8Idx         c8x8Idx );
 
-  Void xUpdateBlk( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D );
-  Void xUpdateBlk( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
+  Void xUpdateBlk( Frame* pcPrdFrame, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D );
+  Void xUpdateBlk( Frame* pcPrdFrame, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D, SParIdx4x4 eSParIdx );
 
-  Void xUpdateLuma( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, UShort *usWeight );
-  Void xUpdateLuma( IntFrame* pcPrdFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
+  Void xUpdateLuma( Frame* pcPrdFrame, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D, UShort *usWeight );
+  Void xUpdateLuma( Frame* pcPrdFrame, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
 
-  Void updateBlkAdapt( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX, 
+  Void updateBlkAdapt( YuvPicBuffer* pcSrcBuffer, YuvPicBuffer* pcDesBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX, 
                                       UShort *usWeight);
 
   Void xUpdAdapt( XPel* pucDest, XPel* pucSrc, Int iDestStride, Int iSrcStride, Int iDx, Int iDy, 
                                     UInt uiSizeY, UInt uiSizeX, UShort weight, UShort wMax );
 
-  __inline Void xUpdateChroma( IntYuvPicBuffer* pcSrcBuffer, IntYuvPicBuffer* pcDesBuffer,  LumaIdx cIdx, Mv cMv, 
+  __inline Void xUpdateChroma( YuvPicBuffer* pcSrcBuffer, YuvPicBuffer* pcDesBuffer,  LumaIdx cIdx, Mv cMv, 
     Int iSizeY, Int iSizeX, UShort *usWeight);
-  Void xUpdateChroma( IntFrame* pcSrcFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
-  Void xUpdateChroma( IntFrame* pcSrcFrame, Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, UShort *usWeight );
+  Void xUpdateChroma( Frame* pcSrcFrame, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D, SParIdx4x4 eSParIdx, UShort *usWeight );
+  Void xUpdateChroma( Frame* pcSrcFrame, Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D, UShort *usWeight );
   __inline Void xUpdateChromaPel( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX, UShort weight );
 
   ErrVal calcMvMb   (                   MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
@@ -272,42 +225,29 @@ public:
 //TMM_EC }
   ErrVal calcMvSubMb( B8x8Idx c8x8Idx,  MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
-  ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, Bool& rbValid, Bool bFaultTolerant, Bool bCalcMv = true );
-  ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, IntYuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1, Bool bSR = false );
+  ErrVal compensateDirectBlock( MbDataAccess& rcMbDataAccess, YuvMbBuffer *pcRecBuffer, B8x8Idx c8x8Idx, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 );
   ErrVal initMb( UInt uiMbY, UInt uiMbX, MbDataAccess& rcMbDataAccess );
 
 
 protected:
-  Void xPredMb8x8Mode( MbDataAccess& rcMbDataAccess, YuvMbBuffer* pcRecBuffer );
-  Void xPredMb8x8Mode( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntYuvMbBuffer* pcRecBuffer, Bool bSR = false );
+  Void xPredMb8x8Mode( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, const Frame* pcRefFrame0, const Frame* pcRefFrame1, YuvMbBuffer* pcRecBuffer );
  
-  Void xPredLuma(   YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D );
-  Void xPredChroma( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D );
-
-  Void xPredLuma(   YuvMbBuffer* apcTarBuffer[2], Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
-  Void xPredChroma( YuvMbBuffer* apcTarBuffer[2], Int iSizeX, Int iSizeY, MC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
-
-
-  Void xPredLuma  ( IntYuvMbBuffer* pcRecBuffer,      Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, Bool bSR = false );
-  Void xPredLuma  ( IntYuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx, Bool bSR = false );
-  Void xPredChroma( IntYuvMbBuffer* pcRecBuffer,      Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D );
-  Void xPredChroma( IntYuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, IntMC8x8D& rcMc8x8D, SParIdx4x4 eSParIdx );
+  Void xPredLuma  ( YuvMbBuffer* pcRecBuffer,      Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D );
+  Void xPredLuma  ( YuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D, SParIdx4x4 eSParIdx );
+  Void xPredChroma( YuvMbBuffer* pcRecBuffer,      Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D );
+  Void xPredChroma( YuvMbBuffer* apcTarBuffer[2],  Int iSizeX, Int iSizeY, MC8x8& rcMc8x8D, SParIdx4x4 eSParIdx );
 
 private:
 	__inline Short xCorrectChromaMv( const MbDataAccess& rcMbDataAccess, PicType eRefPicType );
-  __inline Void xGetMbPredData( MbDataAccess& rcMbDataAccess, MC8x8D& rcMC8x8D );
-  __inline Void xGetBlkPredData( MbDataAccess& rcMbDataAccess, MC8x8D& rcMC8x8D, BlkMode eBlkMode );
-  __inline Void xPredChromaPel( Pel* pucDest, Int iDestStride, Pel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
-  __inline Void xPredChroma( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
 
-  __inline Void xGetMbPredData  ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame, IntMC8x8D& rcMC8x8D );
-  __inline Void xGetBlkPredData ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame, IntMC8x8D& rcMC8x8D, BlkMode eBlkMode );
+  __inline Void xGetMbPredData  ( MbDataAccess& rcMbDataAccess, const Frame* pcRefFrame, MC8x8& rcMC8x8D );
+  __inline Void xGetBlkPredData ( MbDataAccess& rcMbDataAccess, const Frame* pcRefFrame, MC8x8& rcMC8x8D, BlkMode eBlkMode );
 
   __inline Void xPredChromaPel  ( XPel* pucDest, Int iDestStride, XPel* pucSrc, Int iSrcStride, Mv cMv, Int iSizeY, Int iSizeX );
-  __inline Void xPredChroma     ( IntYuvMbBuffer* pcDesBuffer, IntYuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
+  __inline Void xPredChroma     ( YuvMbBuffer* pcDesBuffer, YuvPicBuffer* pcSrcBuffer, LumaIdx cIdx, Mv cMv, Int iSizeY, Int iSizeX);
 
-  __inline Void xGetMbPredData  ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntMC8x8D& rcMC8x8D );
-  __inline Void xGetBlkPredData ( MbDataAccess& rcMbDataAccess, const IntFrame* pcRefFrame0, const IntFrame* pcRefFrame1, IntMC8x8D& rcMC8x8D, BlkMode eBlkMode );
+  __inline Void xGetMbPredData  ( MbDataAccess& rcMbDataAccess, const Frame* pcRefFrame0, const Frame* pcRefFrame1, MC8x8& rcMC8x8D );
+  __inline Void xGetBlkPredData ( MbDataAccess& rcMbDataAccess, const Frame* pcRefFrame0, const Frame* pcRefFrame1, MC8x8& rcMC8x8D, BlkMode eBlkMode );
 
 protected:
   QuarterPelFilter* m_pcQuarterPelFilter;
@@ -323,8 +263,6 @@ protected:
   ResizeParameters*				m_pcResizeParameters; 
 
   UInt  m_uiFrameNum;
-
-  Bool m_b4TapY; // V090
 };
 
 #if defined( WIN32 )

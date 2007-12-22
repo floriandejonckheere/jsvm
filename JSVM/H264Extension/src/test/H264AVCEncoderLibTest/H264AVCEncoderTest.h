@@ -145,7 +145,7 @@ protected:
   EncoderCodingParameter*       m_pcEncoderCodingParameter;
   h264::CreaterH264AVCEncoder*  m_pcH264AVCEncoder;
   WriteBitstreamToFile*         m_pcWriteBitstreamToFile;
-  WriteYuvIf*                   m_apcWriteYuv           [MAX_LAYERS];
+  WriteYuvToFile*               m_apcWriteYuv           [MAX_LAYERS];
   ReadYuvFile*                  m_apcReadYuv            [MAX_LAYERS];
 
   PicBufferList                 m_acActivePicBufferList [MAX_LAYERS];
@@ -156,6 +156,7 @@ protected:
   UInt                          m_auiHeight             [MAX_LAYERS];
   UInt                          m_auiWidth              [MAX_LAYERS];
   UInt                          m_auiStride             [MAX_LAYERS];
+  UInt                          m_aauiCropping          [MAX_LAYERS][4];
 
   UChar                         m_aucStartCodeBuffer[5];
   BinData                       m_cBinDataStartCode;

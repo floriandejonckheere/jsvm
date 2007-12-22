@@ -93,133 +93,37 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-class UCharArrayParser
-{
-public:
-  UCharArrayParser( UChar* paucArray ) : m_paucArray( paucArray ), m_scPos( 7 ) {}
-
-  bool getBit()
-  {
-    if( m_scPos < 0 )
-    {
-      m_scPos = 7;
-      m_paucArray++;
-    }
-    return ( *m_paucArray & (1<<m_scPos--) ) != 0;
-  }
-
-  UInt getBits( UChar uiNumBits )
-  {
-    UInt uiValue = 0;
-    for( Int i = uiNumBits - 1; i >= 0 ; i-- )
-    {
-      if( getBit() )
-      {
-        uiValue |= 1 << i;
-      }
-    }
-    return uiValue;
-  }
-
-private:
-  UChar *m_paucArray;
-  SChar  m_scPos;
-};
 
 class BitReadBuffer;
 
 
-class NalUnitParser
+class NalUnitParser : public NalUnitHeader
 {
+protected:
+  NalUnitParser                   ();
+  virtual ~NalUnitParser          ();
+
 public:
-  NalUnitParser                 ();
-  virtual ~NalUnitParser        ();
+  static ErrVal   create          ( NalUnitParser*&     rpcNalUnitParser  );
+  ErrVal          destroy         ();
+  ErrVal          init            ( BitReadBuffer*      pcBitReadBuffer,
+                                    HeaderSymbolReadIf* pcHeaderSymbolReadIf );
+  ErrVal          uninit          ();
 
-  static ErrVal create          ( NalUnitParser*&   rpcNalUnitParser  );
+  ErrVal          initNalUnit     ( BinDataAccessor&    rcBinDataAccessor );
+  ErrVal          closeNalUnit    ( Bool                bCheckEndOfNalUnit = true );
 
-  ErrVal        init            ( BitReadBuffer*    pcBitReadBuffer   );
-  ErrVal        destroy         ();
+private:
+  ErrVal          xInitSODB       ( BinDataAccessor&    rcBinDataAccessor,
+                                    Bool                bTrailingBits );
 
-  ErrVal        initNalUnit     ( BinDataAccessor*  pcBinDataAccessor, 
-                                  //Bool*             KeyPicFlag, 
-                                  UInt&             uiNumBytesRemoved,            //FIX_FRAG_CAVLC
-	                                Bool              bPreParseHeader     = true,
-                                  Bool              bConcatenated       = false,  //FRAG_FIX
-		                              Bool              bCheckGap           = false,  //TMM_EC
-                                  UInt*             puiNumFragments     = 0,
-                                  UChar**           ppucFragBuffers     = 0 ); 
-  ErrVal        closeNalUnit    ();
-
-  NalUnitType   getNalUnitType  ()      { return m_eNalUnitType;    }
-//  TMM_EC {{
-  Bool          isTrueNalUnit   ()      { return *(int*)m_pucBuffer != 0xdeadface;    }
-  ErrVal        setNalUnitType  (NalUnitType eNalRefUnitType)    { m_eNalUnitType=eNalRefUnitType; return Err::m_nOK;}
-//  TMM_EC }}
-  NalRefIdc     getNalRefIdc    ()      { return m_eNalRefIdc;      }
-  UInt          getLayerId      ()      { return m_uiLayerId;       }
-  UInt          getTemporalLevel()      { return m_uiTemporalLevel; }
-  UInt          getQualityLevel ()      { return m_uiQualityLevel;  }
-  UInt          getPriorityId ()        { return m_uiPriorityId;  }
-
-	//JVT-W047
-	Bool          getOutputFlag ()        { return m_bOutputFlag;   }
-	Void					setOutputFlag (Bool bflag) { m_bOutputFlag = bflag; }
-	//JVT-W047
-
-  Bool          getUseBasePredFlag()    { return m_bUseBasePredFlag;}
-  Bool          getLayerBaseFlag()      { return m_bLayerBaseFlag;}
-  Bool          getDiscardableFlag ()    { return m_bDiscardableFlag;}
-
-  //JVT-P031
-  UInt getBytesLeft();
-  UInt getBitsLeft();
-  ErrVal initSODBNalUnit( BinDataAccessor* pcBinDataAccessor );
-//  UInt getNalHeaderSize( BinDataAccessor* pcBinDataAccessor ) const;
-  // JVT-V088,W062 LMI 
-  //Bool getTl0PicIdxPresentFlag() {return m_bTl0PicIdxPresentFlag;}
-  Void setCheckAllNALUs(Bool b) { m_bCheckAllNALUs = b;}
-  Void setDecodedLayer( UInt uiLayer) { m_uiDecodedLayer = uiLayer;}
-  //~JVT-P031
-  ErrVal  readAUDelimiter       ();
-  ErrVal  readEndOfSeqence      ();
-  ErrVal  readEndOfStream       ();
-
-protected:
-  Void    xTrace                ( Bool  bDDIPresent     );
-  ErrVal  xConvertPayloadToRBSP ( UInt& ruiPacketLength );
-  ErrVal  xConvertRBSPToSODB    ( UInt  iPacketLength,
-                                  UInt& ruiBitsInPacket );
-
-protected:
-  BitReadBuffer *m_pcBitReadBuffer;
-//TMM_EC {{
-public:
-  UChar         *m_pucBuffer;
-protected:
-//TMM_EC }}
-  NalUnitType   m_eNalUnitType;
-  NalRefIdc     m_eNalRefIdc;
-
-  UInt          m_uiPriorityId;
-  UInt          m_uiTemporalLevel;
-  UInt          m_uiLayerId;
-  UInt          m_uiQualityLevel;
-
-	Bool          m_bOutputFlag;//JVT-W047
-
-  // JVT T083
-  Bool          m_bLayerBaseFlag;
-  Bool          m_bUseBasePredFlag;
-  Bool          m_bDiscardableFlag;
-  // JVT-V088,W062 LMI {
-  //Bool          m_bTl0PicIdxPresentFlag;
-  //UInt          m_uiTl0PicIdx;
-  // JVT-V088 LMI }
-  Bool          m_bCheckAllNALUs;
-  UInt          m_uiDecodedLayer;
-  //~JVT-P031
-  UInt          m_uiBitsInPacketSaved; //FRAG_FIX
+private:
+  Bool                m_bInitialized;
+  Bool                m_bNalUnitInitialized;
+  BitReadBuffer*      m_pcBitReadBuffer;
+  HeaderSymbolReadIf* m_pcHeaderSymbolReadIf;
 };
+
 
 
 H264AVC_NAMESPACE_END

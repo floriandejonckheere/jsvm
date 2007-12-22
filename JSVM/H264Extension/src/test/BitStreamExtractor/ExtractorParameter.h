@@ -123,7 +123,7 @@ public:
 	Void                  setFrameWidth       (UInt uiWidth )     { m_uiFrameWidth = uiWidth; }
 	Void                  setFrameHeight      (UInt uiHeight)     { m_uiFrameHeight = uiHeight; }
   Void                  setLayer            (UInt layer )       { m_uiLayer = layer;        }
-  Void                  setLayerId          (UInt layer )       { m_uiLayerId = layer;        }
+  Void                  setDependencyId          (UInt layer )       { m_uiDependencyId = layer;        }
   Void                  setBitrate          ( Double dBitrate ) { m_dBitrate = dBitrate;    }
   Void                  setOutFileName      (std::string strName){ m_cOutFile = strName;    }
   Void                  setMaxFGSLayerKept  (UInt fgs)           { m_uiMaxFGSLayerKept = fgs; }
@@ -132,7 +132,7 @@ public:
   Int                   getResult           ()            const { return m_iResult;         }
   Bool                  getAnalysisOnly     ()            const { return m_bAnalysisOnly;   }
   UInt                  getLayer            ()            const { return m_uiLayer;         }
-  UInt                  getLayerId          ()            const { return m_uiLayerId;       }
+  UInt                  getDependencyId          ()            const { return m_uiDependencyId;       }
   UInt                  getFGSLayer         ()            const { return m_uiFGSLayer;      }
   UInt                  getLevel            ()            const { return m_uiLevel;         }
 	UInt                  getFrameWidth       ()            const { return m_uiFrameWidth;    }
@@ -199,7 +199,7 @@ protected:
   Int             m_iResult;
   UInt            m_uiScalableLayer;
   UInt            m_uiLayer;
-  UInt            m_uiLayerId;
+  UInt            m_uiDependencyId;
   UInt            m_uiLevel;
   UInt            m_uiFGSLayer;
 	UInt            m_uiFrameWidth;

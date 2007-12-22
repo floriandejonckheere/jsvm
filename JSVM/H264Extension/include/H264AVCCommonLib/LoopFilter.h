@@ -94,8 +94,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 class ControlMngIf;
-class IntYuvPicBuffer;
-class IntFrame;
+class YuvPicBuffer;
+class Frame;
 
 class ReconstructionBypass;
 
@@ -144,20 +144,15 @@ public:
   static ErrVal create( LoopFilter*& rpcLoopFilter );
   ErrVal destroy();
 
-  ErrVal process        ( SliceHeader& rcSH, IntFrame* pcIntFrame = NULL
-							            ,bool  bAllSliceDone= false
-													,Bool* bMbStatus = NULL);
-  
 	ErrVal process        ( SliceHeader&        rcSH,
-                          IntFrame*           pcFrame,
+                          Frame*           pcFrame,
                           MbDataCtrl*         pcMbDataCtrlMot,
                           MbDataCtrl*         pcMbDataCtrlRes,
                           UInt                uiMbInRow,
                           RefFrameList*       pcRefFrameList0,
                           RefFrameList*       pcRefFrameList1,
 						              bool				        bAllSliceDone,
-                          bool                spatial_scalable_flg,
-													Bool*								bMbStatus = NULL);//JVT-X046
+                          bool                spatial_scalable_flg);//JVT-X046
 
   ErrVal init( ControlMngIf*          pcControlMngIf,
                ReconstructionBypass*  pcReconstructionBypass,
@@ -169,40 +164,11 @@ public:
   Void setFilterMode( LFMode eLFMode = LFM_DEFAULT_FILTER ) { m_eLFMode = eLFMode; }
 
   // Hanke@RWTH
-  Void setHighpassFramePointer( IntFrame* pcHighpassFrame = NULL ) { m_pcHighpassFrame = pcHighpassFrame; }
+  Void setHighpassFramePointer( Frame* pcHighpassFrame = NULL ) { m_pcHighpassFrame = pcHighpassFrame; }
 
 private:
 
-  UChar xCheckMvDataB( const MbData& rcQMbData, const LumaIdx cQIdx, const MbData& rcPMbData, const LumaIdx cPIdx, const Short sHorMvThr, const Short sVerMvThr );
-  UChar xCheckMvDataP( const MbData& rcQMbData, const LumaIdx cQIdx, const MbData& rcPMbData, const LumaIdx cPIdx, const Short sHorMvThr, const Short sVerMvThr );
-
-  __inline ErrVal xFilterMb       ( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag ); //V032, added enhanced layer indicator
-  __inline ErrVal xFilterMbFast ( const MbDataAccess& rcMbDataAccess, bool enhancedLayerFlag); //V032, added enhanced layer indicator
-	ErrVal xGetFilterStrengthFast ( const MbDataAccess& rcMbDataAccess, const Int iFilterIdc );
-  __inline UInt xGetHorFilterStrengthFast( const MbData& rcMbDataCurr,
-		                                       const MbData& rcMbDataAbove,
-																					 LumaIdx       cIdx,
-																					 Bool          bAboveIntra,
-																					 Bool          bCheckMv,
-																					 Bool          bCoded,
-																					 const Short   sVerMvThr,
-																					 Int           iIntraStrength);
-  __inline UInt xGetVerFilterStrengthFast( const MbData& rcMbDataCurr,
-		                                       const MbData& rcMbDataLeft,
-																					 LumaIdx       cIdx,
-																					 Bool          bLeftIntra,
-																					 Bool          bCheckMv,
-																					 Bool          bCoded,
-																					 const Short   sVerMvThr);
-
   __inline Void xFilter( Pel* pFlt, const Int& iOffset, const Int& iIndexA, const Int& iIndexB, const UChar& ucBs, const Bool& bLum );
-
-  __inline UInt xGetHorFilterStrength( const MbDataAccess& rcMbDataAccess, LumaIdx cIdx, Int iFilterIdc);
-  __inline UInt xGetVerFilterStrength( const MbDataAccess& rcMbDataAccess, LumaIdx cIdx, Int iFilterIdc);
-  __inline ErrVal xLumaHorFiltering  ( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
-  __inline ErrVal xLumaVerFiltering  ( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
-  __inline ErrVal xChromaHorFiltering( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
-  __inline ErrVal xChromaVerFiltering( const MbDataAccess& rcMbDataAccess, const DFP& rcDFP, YuvPicBuffer* pcYuvBuffer);
 
    __inline Void   xFilter                       ( XPel*               pFlt,
                                                   const Int&          iOffset,
@@ -212,7 +178,7 @@ private:
                                                   const Bool&         bLum );
   __inline ErrVal xFilterMb                     ( MbDataAccess* rcMbDataAccessMot,
                                                   MbDataAccess* rcMbDataAccessRes,
-                                                  IntYuvPicBuffer*    pcYuvBuffer,
+                                                  YuvPicBuffer*    pcYuvBuffer,
                                                   RefFrameList*       pcRefFrameList0,
                                                   RefFrameList*       pcRefFrameList1,
                                                   bool                spatial_scalable_flg,
@@ -265,17 +231,17 @@ private:
   }
 
   __inline ErrVal xLumaHorFiltering             ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DFP&          rcDFP,
-                                                  IntYuvPicBuffer*    pcYuvBuffer );
+                                                  const DBFilterParameter&          rcDFP,
+                                                  YuvPicBuffer*    pcYuvBuffer );
   __inline ErrVal xLumaVerFiltering             ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DFP&          rcDFP,
-                                                  IntYuvPicBuffer*    pcYuvBuffer );
+                                                  const DBFilterParameter&          rcDFP,
+                                                  YuvPicBuffer*    pcYuvBuffer );
   __inline ErrVal xChromaHorFiltering           ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DFP&          rcDFP,
-                                                  IntYuvPicBuffer*    pcYuvBuffer );
+                                                  const DBFilterParameter&          rcDFP,
+                                                  YuvPicBuffer*    pcYuvBuffer );
   __inline ErrVal xChromaVerFiltering           ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DFP&          rcDFP,
-                                                  IntYuvPicBuffer*    pcYuvBuffer );
+                                                  const DBFilterParameter&          rcDFP,
+                                                  YuvPicBuffer*    pcYuvBuffer );
 
   UChar           xCheckMvDataP_RefIdx          ( const MbData&       rcQMbData,
                                                   const LumaIdx       cQIdx,
@@ -310,15 +276,14 @@ private:
 
 protected:
   // Hanke@RWTH
-  IntFrame*        m_pcHighpassFrame;
-  IntYuvPicBuffer* m_pcHighpassYuvBuffer;
+  Frame*        m_pcHighpassFrame;
+  YuvPicBuffer* m_pcHighpassYuvBuffer;
 
   UChar m_aucBs[4];
 
   ControlMngIf*    m_pcControlMngIf;
-  FrameUnit*       m_pcRecFrameUnit;
   UChar            m_aaaucBs[2][4][4];
-  IntYuvPicBuffer* m_apcIntYuvBuffer[4];
+  YuvPicBuffer* m_apcIntYuvBuffer[4];
   LFMode           m_eLFMode;
   ReconstructionBypass*         m_pcReconstructionBypass;
 

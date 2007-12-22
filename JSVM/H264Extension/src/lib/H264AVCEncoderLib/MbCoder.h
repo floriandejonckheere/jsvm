@@ -122,8 +122,6 @@ public:
                               Int						iSpatialScalabilityType,
                               Bool          bTerminateSlice ,
                               Bool          bSendTerminateSlice);
-  ErrVal  encodeMotion      ( MbDataAccess& rcMbDataAccess,
-                              MbDataAccess* pcMbDataAccessBase );
   UInt    getBitCount       ()  { return m_pcMbSymbolWriteIf->getNumberOfWrittenBits(); }
   
 	//JVT-X046 {
@@ -136,13 +134,6 @@ public:
 
 protected:
   ErrVal xWriteIntraPredModes ( MbDataAccess& rcMbDataAccess );
-  
-  
-  
-  ErrVal xWriteMotionPredFlags_FGS( MbDataAccess& rcMbDataAccess,
-                                    MbDataAccess* pcMbDataAccessBase,
-                                    MbMode        eMbMode,
-                                    ListIdx       eLstIdx );
   ErrVal xWriteMotionPredFlags    ( MbDataAccess& rcMbDataAccess,
                                     MbMode        eMbMode,
                                     ListIdx       eLstIdx );

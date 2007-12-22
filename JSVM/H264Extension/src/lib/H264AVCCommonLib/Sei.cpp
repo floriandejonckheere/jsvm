@@ -455,7 +455,6 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     // JVT-T073 {
 	case SCALABLE_NESTING_SEI: return ScalableNestingSei::create( (ScalableNestingSei*&) rpcSEIMessage );
     // JVT-T073 }
-    case PR_COMPONENT_INFO_SEI: return PRComponentInfoSei::create( (PRComponentInfoSei*&) rpcSEIMessage );
 // JVT-V068 {
     case AVC_COMPATIBLE_HRD_SEI: 
       return AVCCompatibleHRD::create( (AVCCompatibleHRD*&)rpcSEIMessage, NULL );
@@ -2018,7 +2017,7 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 
 SEI::SubPicSei::SubPicSei ()
 : SEIMessage		( SUB_PIC_SEI ),
-m_uiLayerId			( 0 )
+m_uiDependencyId			( 0 )
 {
 }
 
@@ -2037,14 +2036,14 @@ SEI::SubPicSei::create( SubPicSei*& rpcSeiMessage)
 ErrVal
 SEI::SubPicSei::write( HeaderSymbolWriteIf *pcWriteIf )
 {
-	RNOK	( pcWriteIf->writeUvlc( m_uiLayerId, "Sub-picture scalable SEI: m_uiLayerId" ) );
+	RNOK	( pcWriteIf->writeUvlc( m_uiDependencyId, "Sub-picture scalable SEI: m_uiDependencyId" ) );
 	return Err::m_nOK;
 }
 
 ErrVal
 SEI::SubPicSei::read( HeaderSymbolReadIf *pcReadIf )
 {
-	RNOK	( pcReadIf->getUvlc( m_uiLayerId, "Sub-picture scalable SEI: m_uiLayerd" ) );
+	RNOK	( pcReadIf->getUvlc( m_uiDependencyId, "Sub-picture scalable SEI: m_uiLayerd" ) );
 	return Err::m_nOK;
 }
 
@@ -2515,7 +2514,7 @@ SEI::ScalableNestingSei::write( HeaderSymbolWriteIf *pcWriteIf )
 			RNOK( pcWriteIf->writeCode( m_auiQualityLevel[uiIndex],4, " ScalableNestingSei:uiQualityLevel " ) );
 		}	    
 		// JVT-V068 HRD {
-    	RNOK( pcWriteIf->writeCode( m_uiTemporalLevel,3, " ScalableNestingSei:uiTemporalLevel " ) );
+    	RNOK( pcWriteIf->writeCode( m_uiTemporalId,3, " ScalableNestingSei:uiTemporalLevel " ) );
 		// JVT-V068 HRD }
 	}
 	UInt uiBits = pcWriteIf->getNumberOfWrittenBits()-uiStartBits;
@@ -2544,7 +2543,7 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 			RNOK( pcReadIf->getCode( m_auiQualityLevel[uiIndex],4, " ScalableNestingSei:uiQualityLevel " ) );
 		}
     // JVT-V068 HRD {
-    RNOK( pcReadIf->getCode( m_uiTemporalLevel,3, " ScalableNestingSei:uiTemporalLevel " ) );
+    RNOK( pcReadIf->getCode( m_uiTemporalId,3, " ScalableNestingSei:uiTemporalLevel " ) );
     // JVT-V068 HRD }
 	}
 	RNOK( pcReadIf->readZeroByteAlign() ); //nesting_zero_bit
@@ -2701,69 +2700,7 @@ SEI::IntegrityCheckSEI::read( HeaderSymbolReadIf* pcReadIf )
 }
 // JVT-W052 wxwan
 
-// PR slice component info
-ErrVal
-SEI::PRComponentInfoSei::create( PRComponentInfoSei* &rpcSeiMessage )
-{
-  rpcSeiMessage = new PRComponentInfoSei();
-  ROT( NULL == rpcSeiMessage );
-  return Err::m_nOK;
-}
 
-ErrVal
-SEI::PRComponentInfoSei::destroy()
-{
-  delete this;
-  return Err::m_nOK;
-}
-
-ErrVal
-SEI::PRComponentInfoSei::write( HeaderSymbolWriteIf *pcWriteIf )
-{
-  UInt ui_i, ui_j, ui_k;
-  UInt uiStart = pcWriteIf->getNumberOfWrittenBits();
-  UInt uiPayloadSize = 0;
-  RNOK( pcWriteIf->writeUvlc( m_uiNumDependencyIdMinus1, "PRComponentInfo: NumDependencyIdMinus1" ) );
-  for( ui_i=0; ui_i<=m_uiNumDependencyIdMinus1; ui_i++ )
-  {
-    RNOK( pcWriteIf->writeCode( m_uiPrDependencyId[ui_i], 3, "PRComponentInfo: PrDependencyId" ) );
-    RNOK( pcWriteIf->writeUvlc( m_uiNumQualityLevelMinus1[ui_i], "PRComponentInfo: NumQualityLevelsMinus1" ) );
-    for( ui_j=0; ui_j<=m_uiNumQualityLevelMinus1[ui_i]; ui_j++ )
-    {
-      RNOK( pcWriteIf->writeCode( m_uiPrQualityLevel[ui_i][ui_j], 2, "PRComponentInfo: PrQualityLevel" ) );
-      RNOK( pcWriteIf->writeUvlc( m_uiNumPrSliceMinus1[ui_i][ui_j], "PRComponentInfo: NumPrSliceMinus1" ) );
-      for( ui_k=0; ui_k<=m_uiNumPrSliceMinus1[ui_i][ui_j]; ui_k++ )
-      {
-        RNOK( pcWriteIf->writeUvlc( m_uiChromaOffset[ui_i][ui_j][ui_k], "PRComponentInfo: ChromaOffset" ) );
-      }
-    }
-  }
-  uiPayloadSize = ( pcWriteIf->getNumberOfWrittenBits() - uiStart + 7 )/8;
-
-  return Err::m_nOK;
-}
-
-ErrVal
-SEI::PRComponentInfoSei::read( HeaderSymbolReadIf *pcReadIf )
-{
-  UInt ui_i, ui_j, ui_k;
-  RNOK( pcReadIf->getUvlc( m_uiNumDependencyIdMinus1, "PRComponentInfo: NumDependencyIdMinus1" ) );
-  for( ui_i=0; ui_i<=m_uiNumDependencyIdMinus1; ui_i++ )
-  {
-    RNOK( pcReadIf->getCode( m_uiPrDependencyId[ui_i], 3, "PRComponentInfo: PrDependencyId" ) );
-    RNOK( pcReadIf->getUvlc( m_uiNumQualityLevelMinus1[ui_i], "PRComponentInfo: NumQualityLevelsMinus1" ) );
-    for( ui_j=0; ui_j<=m_uiNumQualityLevelMinus1[ui_i]; ui_j++ )
-    {
-      RNOK( pcReadIf->getCode( m_uiPrQualityLevel[ui_i][ui_j], 2, "PRComponentInfo: PrQualityLevel" ) );
-      RNOK( pcReadIf->getUvlc( m_uiNumPrSliceMinus1[ui_i][ui_j], "PRComponentInfo: NumPrSliceMinus1" ) );
-      for( ui_k=0; ui_k<=m_uiNumPrSliceMinus1[ui_i][ui_j]; ui_k++ )
-      {
-        RNOK( pcReadIf->getUvlc( m_uiChromaOffset[ui_i][ui_j][ui_k], "PRComponentInfo: ChromaOffset" ) );
-      }
-    }
-  }
-  return Err::m_nOK;
-}
 
 // JVT-V068 HRD {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2800,13 +2737,13 @@ ErrVal SEI::BufferingPeriod::create( BufferingPeriod*& rpcBufferingPeriod, Param
   return Err::m_nOK;
 }
 
-ErrVal SEI::BufferingPeriod::setHRD( UInt uiSPSId, const HRD* apcHrd[] )
+ErrVal SEI::BufferingPeriod::setHRD( UInt uiSPSId, Bool bSubSetSPS, const HRD* apcHrd[] )
 {
-  ROF( m_pcParameterSetMng->isValidSPS(uiSPSId));
+  ROF( m_pcParameterSetMng->isValidSPS(uiSPSId, bSubSetSPS ));
   m_uiSeqParameterSetId = uiSPSId;
 
   SequenceParameterSet *pcSPS = NULL;
-  m_pcParameterSetMng->get( pcSPS, m_uiSeqParameterSetId);  
+  m_pcParameterSetMng->get( pcSPS, m_uiSeqParameterSetId, bSubSetSPS);  
 
   m_apcHrd[HRD::NAL_HRD] = apcHrd[HRD::NAL_HRD];
   m_apcHrd[HRD::VCL_HRD] = apcHrd[HRD::VCL_HRD];
@@ -2937,12 +2874,12 @@ ErrVal SEI::PicTiming::create( PicTiming*& rpcPicTiming, const VUI* pcVUI, UInt 
   return Err::m_nOK;
 }
 
-ErrVal SEI::PicTiming::create(PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, UInt uiLayerIndex)
+ErrVal SEI::PicTiming::create(PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, Bool bSubSetSPS, UInt uiLayerIndex)
 {
-	ROF( parameterSetMng->isValidSPS(uiSPSId));
+	ROF( parameterSetMng->isValidSPS(uiSPSId, bSubSetSPS));
 
 	SequenceParameterSet *pcSPS = NULL;
-	parameterSetMng->get( pcSPS, uiSPSId );  
+	parameterSetMng->get( pcSPS, uiSPSId, bSubSetSPS );  
 
 	VUI& rcVUI = *(pcSPS->getVUI ()); // get a pointer to VUI of SPS with m_uiSeqParameterSetId
 
@@ -3189,9 +3126,9 @@ ErrVal SEI::AVCCompatibleHRD::write( HeaderSymbolWriteIf* pcWriteIf )
   for ( UInt ui = 0; ui < m_rcVUI.getNumLayers(); ui++ )
   {
     VUI::LayerInfo& rcLayerInfo = m_rcVUI.getLayerInfo(ui);
-    if ( rcLayerInfo.getTemporalLevel() < m_rcVUI.getNumTemporalLevels() - 1 )
+    if ( rcLayerInfo.getTemporalId() < m_rcVUI.getNumTemporalLevels() - 1 )
     {
-      RNOK( pcWriteIf->writeCode( rcLayerInfo.getTemporalLevel(), 3,  "SEI: temporal_level"  ) );
+      RNOK( pcWriteIf->writeCode( rcLayerInfo.getTemporalId(), 3,  "SEI: temporal_level"  ) );
       RNOK( m_rcVUI.getTimingInfo(ui).write( pcWriteIf) );
       RNOK( m_rcVUI.getNalHrd(ui).write( pcWriteIf ) );
       RNOK( m_rcVUI.getVclHrd(ui).write( pcWriteIf ) );

@@ -155,7 +155,7 @@ ErrVal Scheduler::createBufferingSei( SEI::BufferingPeriod*& rpcBufferingPeriod,
   SequenceParameterSet *pcSPS;
   RNOK( pcParameterSetMng->getActiveSPS( pcSPS ) );
 
-  rpcBufferingPeriod->setHRD(pcSPS->getSeqParameterSetId(), m_apcHrd);
+  rpcBufferingPeriod->setHRD(pcSPS->getSeqParameterSetId(), pcSPS->isSubSetSPS(), m_apcHrd );
 
   RNOK (xCreateBufferingSeiHrd(HRD::NAL_HRD, *m_apcHrd[HRD::NAL_HRD], rpcBufferingPeriod));
   RNOK (xCreateBufferingSeiHrd(HRD::VCL_HRD, *m_apcHrd[HRD::VCL_HRD], rpcBufferingPeriod));
@@ -200,7 +200,7 @@ ErrVal Scheduler::createTimingSei( SEI::PicTiming*& rpcPicTiming, const VUI* pcV
     
   rpcPicTiming->setCpbRemovalDelay(UInt((m_dActualInTime - m_dLastBPTime) * m_dClockFrequency + 0.5) );
   
-  if( rcSH.isIdrNalUnit()) 
+  if( rcSH.getIdrFlag() )
   {
     m_dLastBPTime = m_dActualInTime;
   }

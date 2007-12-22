@@ -96,9 +96,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 H264AVC_NAMESPACE_BEGIN
 
 class MbDecoder;
-class IntFrame;
-class Transform;
-class FrameMng;
+class Frame;
 
 class SliceDecoder
 {
@@ -107,66 +105,54 @@ protected:
 	virtual ~SliceDecoder();
 
 public:
-  static ErrVal create( SliceDecoder*&      rpcSliceDecoder );
-  ErrVal destroy();
+  static ErrVal create  ( SliceDecoder*&      rpcSliceDecoder );
+  ErrVal        destroy ();
 
-  ErrVal init         ( MbDecoder*          pcMbDecoder,
-                        ControlMngIf*       pcControlMng,
-                        Transform*          pcTransform );
-  ErrVal uninit       ();
+  ErrVal        init    ( MbDecoder*          pcMbDecoder,
+                          ControlMngIf*       pcControlMng
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+                          ,RewriteEncoder*    pcRewriteEncoder
+#endif
+                          );
+  ErrVal        uninit  ();
 
-//	TMM_EC {{
-	ErrVal processVirtual( const SliceHeader& rcSH,
-                         Bool                bReconstructAll,
-                         UInt uiMbRead );
-//	TMM_EC }}
-  ErrVal process      ( const SliceHeader&  rcSH,
-                        Bool                bReconstructAll,
-                        UInt                uiMbRead );
-  ErrVal decode       ( SliceHeader&        rcSH,
-                        MbDataCtrl*         pcMbDataCtrl,
-                        MbDataCtrl*         pcMbDataCtrlBase,
-                        IntFrame*           pcFrame,
-                        IntFrame*           pcResidual,
-                        IntFrame*           pcPredSignal,
-                        IntFrame*           pcBaseLayer,
-                        IntFrame*           pcBaseLayerResidual,
-                        RefFrameList*       pcRefFrameList0,
-                        RefFrameList*       pcRefFrameList1,
-                        Bool                bReconstructAll,
-                        UInt                uiMbInRow,
-                        UInt                uiMbRead );
-ErrVal decodeMbAff( SliceHeader&   rcSH,
-                        MbDataCtrl*         pcMbDataCtrl,
-                        MbDataCtrl*         pcMbDataCtrlBase,
-                        MbDataCtrl*         pcMbDataCtrlBaseField,
-                        IntFrame*           pcFrame,
-                        IntFrame*           pcResidual,
-                        IntFrame*           pcPredSignal,
-                        IntFrame*           pcBaseLayer,
-                        IntFrame*           pcBaseLayerResidual,
-                        RefFrameList*       pcRefFrameList0,
-                        RefFrameList*       pcRefFrameList1,
-                        Bool                bReconstructAll );
-
-  ErrVal compensatePrediction( SliceHeader& rcSH );
-	ErrVal compensatePrediction( SliceHeader& rcSH, Bool* bMbStatus = NULL);//JVT-X046
+  ErrVal  decode        ( SliceHeader&        rcSH,
+                          MbDataCtrl*         pcMbDataCtrl,
+                          MbDataCtrl*         pcMbDataCtrlBase,
+                          Frame*              pcFrame,
+                          Frame*              pcResidual,
+                          Frame*              pcBaseLayer,
+                          Frame*              pcBaseLayerResidual,
+                          RefFrameList*       pcRefFrameList0,
+                          RefFrameList*       pcRefFrameList1,
+                          MbDataCtrl*         pcMbDataCtrl0L1,
+                          Bool                bReconstructAll );
+  ErrVal  decodeMbAff   ( SliceHeader&        rcSH,
+                          MbDataCtrl*         pcMbDataCtrl,
+                          MbDataCtrl*         pcMbDataCtrlBase,
+                          MbDataCtrl*         pcMbDataCtrlBaseField,
+                          Frame*              pcFrame,
+                          Frame*              pcResidual,
+                          Frame*              pcBaseLayer,
+                          Frame*              pcBaseLayerResidual,
+                          RefFrameList*       pcRefFrameList0,
+                          RefFrameList*       pcRefFrameList1,
+                          MbDataCtrl*         pcMbDataCtrl0L1,
+                          Bool                bReconstructAll );
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-  ErrVal                xSetAvcRewriteEncoder(H264AVCEncoder* pcAvcRewriteEncoder);
-  ErrVal                xStoreInfoForAvcRewrite(SliceHeader&   rcSH,
-                                                MbDataAccess* pcMbDataAccess,
-                                                MbDataAccess* pcMbDataAccessBase,
-                                                UInt uiMbRead);
+private:
+  ErrVal  xRewriteMb    ( MbDataAccess&       rcMbDataAccess,
+                          MbDataAccess*       pcMbDataAccessBase,
+                          Bool                bLastMbInSlice );
 #endif
 
 protected:
-  MbDecoder*    m_pcMbDecoder;
-  ControlMngIf* m_pcControlMng;
-  Transform*    m_pcTransform;
-  Bool          m_bInitDone;
+  Bool            m_bInitDone;
+  ControlMngIf*   m_pcControlMng;
+  MbDecoder*      m_pcMbDecoder;
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-  H264AVCEncoder*       m_pcAvcRewriteEncoder;
+  RewriteEncoder* m_pcRewriteEncoder;
 #endif
 };
 

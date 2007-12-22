@@ -94,8 +94,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "MbSymbolWriteIf.h"
 #include "H264AVCEncoder.h"
 #include "H264AVCCommonLib/MbData.h"
-#include "H264AVCCommonLib/Frame.h"
-#include "H264AVCCommonLib/FrameMng.h"
 #include "BitWriteBuffer.h"
 #include "H264AVCCommonLib/Transform.h"
 #include "H264AVCCommonLib/YuvBufferCtrl.h"
@@ -131,8 +129,7 @@ protected:
 
 public:
   static ErrVal create( ControlMngH264AVCEncoder*& rpcControlMngH264AVCEncoder );
-  ErrVal init(  FrameMng*               pcFrameMng,
-                MCTFEncoder*            apcMCTFEncoder          [MAX_LAYERS],
+  ErrVal init(  LayerEncoder*           apcLayerEncoder         [MAX_LAYERS],
                 SliceEncoder*           pcSliceEncoder,
                 ControlMngH264AVCEncoder*  pcControlMng,
                 BitWriteBuffer*         pcBitWriteBuffer,
@@ -170,13 +167,8 @@ public:
                             const PictureParameterSet&  rcPPSLP,
                             const PictureParameterSet&  rcPPSHP );
 
-  ErrVal initParameterSetsForFGS( const SequenceParameterSet& rcSPS,
-                            const PictureParameterSet&  rcPPSLP,
-                            const PictureParameterSet&  rcPPSHP );
-
   ErrVal initMbForFiltering( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex );
 
-  ErrVal initSlice( SliceHeader& rcSH, ProcessingState eProcessingState );
   ErrVal finishSlice( const SliceHeader& rcSH, Bool& rbPicDone, Bool& rbFrameDone );
 
   ErrVal initMbForParsing( MbDataAccess*& rpcMbDataAccess, UInt uiMbIndex ) { return Err::m_nERR; }
@@ -205,12 +197,11 @@ public:
 
   MbDataCtrl* getMbDataCtrl() { return m_pcMbDataCtrl;} //JVT-T054
   //--TM 0109.2006
-  FMO* getFMO(){return m_pcFMO;}
-  Void setFMO(FMO* fmo){m_pcFMO = fmo;}
+  const FMO* getFMO() const {return m_pcFMO;}
+  Void setFMO( const FMO* fmo){m_pcFMO = fmo;}
 
 protected:
-  FrameMng*               m_pcFrameMng;
-  MCTFEncoder*            m_apcMCTFEncoder          [MAX_LAYERS];
+  LayerEncoder*           m_apcLayerEncoder         [MAX_LAYERS];
   SliceEncoder*           m_pcSliceEncoder;
   ControlMngH264AVCEncoder*  m_pcControlMng;
   BitWriteBuffer*         m_pcBitWriteBuffer;
@@ -243,7 +234,7 @@ protected:
   Bool                    m_bLayer0IsAVC;
   Bool                    m_bAVCMode;
 
-  FMO* m_pcFMO;
+  const FMO* m_pcFMO;
 };
 
 

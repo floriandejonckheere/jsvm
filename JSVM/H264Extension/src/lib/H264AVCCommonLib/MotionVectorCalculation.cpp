@@ -84,7 +84,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "H264AVCCommonLib.h"
-#include "H264AVCCommonLib/FrameMng.h"
 #include "H264AVCCommonLib/MotionVectorCalculation.h"
 
 
@@ -107,7 +106,7 @@ MotionVectorCalculation::~MotionVectorCalculation()
 ErrVal MotionVectorCalculation::initSlice( const SliceHeader& rcSH )
 {
   m_bSpatialDirectMode  = rcSH.getDirectSpatialMvPredFlag();
-  m_uiMaxBw             = rcSH.isInterB() ? 2 : 1;
+  m_uiMaxBw             = rcSH.isBSlice() ? 2 : 1;
 
   return Err::m_nOK;
 }
@@ -292,28 +291,38 @@ Void MotionVectorCalculation::xCalc8x8( B8x8Idx       c8x8Idx,
   {
     case BLK_SKIP:
     {
-      MbDataAccess* pTmp = rcMbDataAccess.getMbDataAccessBase();
-      rcMbDataAccess.setMbDataAccessBase( NULL );
-      for( uiBw = 0; uiBw < m_uiMaxBw; uiBw++ )
+      if( rcMbDataAccess.getSH().isH264AVCCompatible() )
       {
-        ListIdx       eListIdx        = ListIdx( uiBw );
-        MbMotionData& rcMbMotionData  = rcMbDataAccess.getMbMotionData( eListIdx );
-
-        if( 0 < (scRefPic = rcMbMotionData.getRefIdx( eParIdx ) ) )
-        {
-          if( rcMbMotionData.getMotPredFlag( eParIdx ) )
-          {
-            AOF( pcMbDataAccessBase );
-            cMv = pcMbDataAccessBase->getMbMotionData( eListIdx ).getMv( eParIdx );
-          }
-          else
-          {
-            rcMbDataAccess.getMvPredictor( cMv, scRefPic, eListIdx, eParIdx );
-          }
-          rcMbMotionData.setAllMv( cMv, eParIdx );
-        }
+        RefFrameList* pcL0  = rcMbDataAccess.getSH().getRefFrameList( FRAME, LIST_0 );
+        RefFrameList* pcL1  = rcMbDataAccess.getSH().getRefFrameList( FRAME, LIST_1 );
+        Bool          bOneMv;
+        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) );
       }
-      rcMbDataAccess.setMbDataAccessBase( pTmp );
+      else
+      {
+        MbDataAccess* pTmp = rcMbDataAccess.getMbDataAccessBase();
+        rcMbDataAccess.setMbDataAccessBase( NULL );
+        for( uiBw = 0; uiBw < m_uiMaxBw; uiBw++ )
+        {
+          ListIdx       eListIdx        = ListIdx( uiBw );
+          MbMotionData& rcMbMotionData  = rcMbDataAccess.getMbMotionData( eListIdx );
+
+          if( 0 < (scRefPic = rcMbMotionData.getRefIdx( eParIdx ) ) )
+          {
+            if( rcMbMotionData.getMotPredFlag( eParIdx ) )
+            {
+              AOF( pcMbDataAccessBase );
+              cMv = pcMbDataAccessBase->getMbMotionData( eListIdx ).getMv( eParIdx );
+            }
+            else
+            {
+              rcMbDataAccess.getMvPredictor( cMv, scRefPic, eListIdx, eParIdx );
+            }
+            rcMbMotionData.setAllMv( cMv, eParIdx );
+          }
+        }
+        rcMbDataAccess.setMbDataAccessBase( pTmp );
+      }
       break;
     }
     case BLK_8x8:

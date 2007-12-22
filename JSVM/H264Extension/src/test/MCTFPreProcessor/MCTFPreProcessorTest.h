@@ -116,7 +116,7 @@ private:
   PreProcessorParameter*        m_pcParameter;
   h264::CodingParameter         m_cCodingParameter;
   h264::MCTFPreProcessor*       m_pcMCTFPreProcessor;
-  WriteYuvIf*                   m_pcWriteYuv;
+  WriteYuvToFile*               m_pcWriteYuv;
   ReadYuvFile*                  m_pcReadYuv;
   PicBufferList                 m_cActivePicBufferList;
   PicBufferList                 m_cUnusedPicBufferList;

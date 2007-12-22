@@ -129,7 +129,6 @@ public:
   ErrVal  blockModes( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode( MbDataAccess& rcMbDataAccess/*, Bool bBLQRefFlag*/ );
   ErrVal  resPredFlag( MbDataAccess& rcMbDataAccess );
-  ErrVal  resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff );
 
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx );
   ErrVal  mvd( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  );
@@ -165,18 +164,6 @@ public:
   ErrVal  BLSkipFlag( MbDataAccess& rcMbDataAccess );
   ErrVal  terminatingBit ( UInt uiIsLast );
   UInt getNumberOfWrittenBits();
-  BitWriteBufferIf* getWriteBuffer()    
-  {
-    return m_pcBitWriteBufferIf;
-  }
-  ErrVal  RQreset( const SliceHeader& rcSliceHeader )
-  {
-    RNOK( xInitContextModels( rcSliceHeader ) );
-
-    RNOK( CabaEncoder::start() );
-
-    return Err::m_nOK;  
-  }
 	
 	//JVT-X046 {
 	CabacContextModel2DBuffer& getFieldFlagCCModel(void)  {return m_cFieldFlagCCModel;   }
@@ -201,9 +188,6 @@ public:
 	CabacContextModel2DBuffer& getDeltaQpCCModel(void)    {return m_cDeltaQpCCModel;     }
 	CabacContextModel2DBuffer& getIntraPredCCModel(void)  {return m_cIntraPredCCModel;   }
 	CabacContextModel2DBuffer& getCbpCCModel(void)        {return m_cCbpCCModel;         }
-
-	CabacContextModel2DBuffer& getBCbpEnhanceCCModel(void){return m_cBCbpEnhanceCCModel; }
-	CabacContextModel2DBuffer& getCbpEnhanceCCModel(void) {return m_cCbpEnhanceCCModel;  }
 	CabacContextModel2DBuffer& getTransSizeCCModel(void)  {return m_cTransSizeCCModel;   }
 
 	void loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf);
@@ -255,9 +239,6 @@ protected:
   CabacContextModel2DBuffer m_cDeltaQpCCModel;
   CabacContextModel2DBuffer m_cIntraPredCCModel;
   CabacContextModel2DBuffer m_cCbpCCModel;
-
-  CabacContextModel2DBuffer m_cBCbpEnhanceCCModel;
-  CabacContextModel2DBuffer m_cCbpEnhanceCCModel;
   CabacContextModel2DBuffer m_cTransSizeCCModel;
 
   const SliceHeader* m_pcSliceHeader;
@@ -268,8 +249,6 @@ protected:
 
   // new variables for switching bitstream inputs
   CabaEncoder*    m_apcCabacEncoder [MAX_NUM_PD_FRAGMENTS];
-  UInt            m_uiNumFragments;
-  UInt            m_uiCurrentFragment;
   CabacWriter    *m_pcNextCabacWriter;
 };
 

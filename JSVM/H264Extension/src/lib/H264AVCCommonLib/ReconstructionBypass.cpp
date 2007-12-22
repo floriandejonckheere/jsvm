@@ -84,8 +84,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/ReconstructionBypass.h"
 
 
-#include "H264AVCCommonLib/IntFrame.h"
-#include "H264AVCCommonLib/IntYuvMbBuffer.h"
+#include "H264AVCCommonLib/Frame.h"
+#include "H264AVCCommonLib/YuvMbBuffer.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "H264AVCCommonLib/YuvBufferCtrl.h"
 
@@ -118,9 +118,9 @@ ErrVal ReconstructionBypass::uninit()
   return Err::m_nOK;
 }
  
-ErrVal ReconstructionBypass::padRecFrame( IntFrame* pcIntFrame, const MbDataCtrl* pcMbDataCtrl, YuvBufferCtrl* pcYuvFullPelBufferCtrl, UInt uiFrameWidthInMb, UInt uiFrameHeightInMb )
+ErrVal ReconstructionBypass::padRecFrame( Frame* pcIntFrame, const MbDataCtrl* pcMbDataCtrl, YuvBufferCtrl* pcYuvFullPelBufferCtrl, UInt uiFrameWidthInMb, UInt uiFrameHeightInMb )
 {
-  IntYuvPicBuffer* pcIntYuvPicBuffer = pcIntFrame->getFullPelYuvBuffer();
+  YuvPicBuffer* pcIntYuvPicBuffer = pcIntFrame->getFullPelYuvBuffer();
 
   // loop over macroblocks
   for( UInt uiMbY = 0; uiMbY < uiFrameWidthInMb; uiMbY++ )

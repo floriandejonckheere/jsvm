@@ -147,12 +147,12 @@ UInt LayerParameters::getNumberOfQualityLevelsCGSSNR() const
 ErrVal LayerParameters::check()
 {
 //TMM_INTERLACE{
-  ROTREPORT( ( getFrameHeight           () % 32 ) &&
-             ( getMbAff() > 0 || getPAff() > 0 ),       "Frame Height must be a multiple of 32 for interlace" );
+  ROTREPORT( ( getFrameHeight           () % 4 ) &&
+             ( getMbAff() > 0 || getPAff() > 0 ),       "Frame Height must be a multiple of 4 for interlace" );
 //TMM_INTERLACE}
 
-  ROTREPORT( getFrameWidth              () % 16,        "Frame Width must be a multiple of 16" );
-  ROTREPORT( getFrameHeight             () % 16,        "Frame Height must be a multiple of 16" );
+  ROTREPORT( getFrameWidth              () % 2,         "Frame Width must be a multiple of 2" );
+  ROTREPORT( getFrameHeight             () % 2,         "Frame Height must be a multiple of 2" );
   ROTREPORT( getInputFrameRate          () < 
              getOutputFrameRate         (),             "Output frame rate must be less than or equal to input frame rate" );
   ROTREPORT( getAdaptiveTransform       () > 2,         "FRExt mode not supported" );
@@ -160,7 +160,7 @@ ErrVal LayerParameters::check()
   ROTREPORT( getInterLayerPredictionMode() > 2,         "Unsupported inter-layer prediction mode" );
   ROTREPORT( getMotionInfoMode          () > 2,         "Motion info mode not supported" );
 
-  ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getLayerId(), "BaseLayerId is not possible" );
+  ROTREPORT( getBaseLayerId() != MSYS_UINT_MAX && getBaseLayerId() >= getDependencyId(), "BaseLayerId is not possible" );
 
   UInt uiVectPos = 0;
   UInt ui;
@@ -177,9 +177,9 @@ ErrVal LayerParameters::check()
     ROTREPORT( !bTrailingZeros && getMGSVect( ui ) == 0, "Zeros inside of the MGSVector are not allowed (except for the first element and the end of the vector)." );
   }
   Bool bUseMGSVectors = getMGSVect( 0 ) != 16;
-  ROTREPORT( ( getAVCRewriteFlag() || getAVCAdaptiveRewriteFlag() ) && bUseMGSVectors, "MGS Vectors are not allowed with AVC rewriting enabled." );
+  ROTREPORT( ( getTCoeffLevelPredictionFlag() || getAVCAdaptiveRewriteFlag() ) && bUseMGSVectors, "MGS Vectors are not allowed with AVC rewriting enabled." );
 
-  if ((getBaseLayerId() == MSYS_UINT_MAX) && (getAVCRewriteFlag() == true))
+  if ((getBaseLayerId() == MSYS_UINT_MAX) && (getTCoeffLevelPredictionFlag() == true))
   {
     printf( "AvcRewriteFlag should be false for base layer, reset to 0\n" );
     m_bAVCRewriteFlag = 0;
@@ -220,8 +220,8 @@ ErrVal LayerParameters::check()
       return Err::m_nOK;
     }
 
-    uiFrameWidthInMbs = m_uiFrameWidth>>4;
-    uiFrameHeightInMbs = m_uiFrameHeight>>4;
+    uiFrameWidthInMbs  = ( m_uiFrameWidth  + 15 ) >> 4;
+    uiFrameHeightInMbs = ( m_uiFrameHeight + 15 ) >> 4;
     uiFrameSizeInMbs = uiFrameWidthInMbs*uiFrameHeightInMbs;
     uiNumSlicePerHeight = (uiFrameHeightInMbs+m_uiSliceArgument-1)/m_uiSliceArgument;
     m_uiNumSliceMinus1 = ((m_uiNumSliceGroupsMinus1+1) * uiNumSlicePerHeight) - 1;
@@ -252,14 +252,14 @@ ErrVal LayerParameters::check()
     m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_uiRunLengthMinus1[0];
     m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
     m_puiFirstMbInSlice[uiSliceId] = 0;
-    m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*(m_uiFrameWidth>>4) + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
+    m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*uiFrameWidthInMbs + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
     uiSliceId += uiNumSlicePerHeight;
     for (i=1; i<=m_uiNumSliceGroupsMinus1; i++)
     {
       m_puiGridSliceWidthInMbsMinus1[uiSliceId] = m_uiRunLengthMinus1[i];
       m_puiGridSliceHeightInMbsMinus1[uiSliceId] = m_uiSliceArgument-1;
       m_puiFirstMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId-uiNumSlicePerHeight] + m_uiRunLengthMinus1[i-1] + 1;
-      m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*(m_uiFrameWidth>>4) + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
+      m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*uiFrameWidthInMbs + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
       uiSliceId += uiNumSlicePerHeight;
     }
     uiSliceId = 0;
@@ -273,8 +273,8 @@ ErrVal LayerParameters::check()
         if ( j == (uiNumSlicePerHeight-1) )
           m_puiGridSliceHeightInMbsMinus1[uiSliceId] = (m_uiFrameHeight>>4) - (j*m_uiSliceArgument) - 1;
 
-        m_puiFirstMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId-1] + m_uiSliceArgument*(m_uiFrameWidth>>4);
-        m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*(m_uiFrameWidth>>4) + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
+        m_puiFirstMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId-1] + m_uiSliceArgument*uiFrameWidthInMbs;
+        m_puiLastMbInSlice[uiSliceId] = m_puiFirstMbInSlice[uiSliceId] + m_puiGridSliceHeightInMbsMinus1[uiSliceId]*uiFrameWidthInMbs + m_puiGridSliceWidthInMbsMinus1[uiSliceId];
       }
     }
     // Debug
@@ -413,7 +413,6 @@ ErrVal CodingParameter::check()
   ROTREPORT( m_uiMGSKeyPictureControl > 2,          "Unsupported value for MGSControl" );
   ROTREPORT( m_uiMGSKeyPictureControl &&
             !m_uiCGSSNRRefinementFlag,              "MGSControl can only be specified in connection with CGSSNRRefinementFlag=1" );
-  ROTREPORT( m_uiMGSKeyPictureMotionRefinement > 1, "Unsupported value for MGSKeyPicMotRef" );
 
 
   Double  dMaxFrameDelay  = max( 0, m_dMaximumFrameRate * m_dMaximumDelay / 1000.0 );

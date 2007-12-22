@@ -191,6 +191,11 @@ int FMO::init()
     delete[] MapUnitToSliceGroupMap_;
   MapUnitToSliceGroupMap_ = NULL;
   }
+  if( numMbInSliceGroup_ )        // fix HS
+  {                               // fix HS
+    delete[] numMbInSliceGroup_;  // fix HS
+    numMbInSliceGroup_ = NULL;
+  }
 
   InitFirstMBsInSlices();
 
@@ -203,7 +208,7 @@ int FMO::init()
   calcMbNumInSliceGroup();
 
   printFmoMaps();
-
+  m_bInitialized = true;
   return 0;
 }
 
@@ -231,7 +236,7 @@ int FMO::finit()
     delete[] numMbInSliceGroup_;  // fix HS
     numMbInSliceGroup_ = NULL;
   }
-
+  m_bInitialized = false;
   return 0;
 }
 

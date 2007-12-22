@@ -118,7 +118,7 @@ public:
   ErrVal  uninit          ();
 
   Bool    isValid         () const;
-  UInt    getQualityLevel () const  { return m_uiQualityLevel; }
+  UInt    getQualityId () const  { return m_uiQualityId; }
   UInt    getFGSLayer     () const  { return m_uiFGSLayer; }
   UInt    getFrameID      () const  { return m_uiFrameID; }
   UInt    getLayer        () const  { return m_uiLayer; };
@@ -128,7 +128,7 @@ protected:
   UInt    m_uiFGSLayer;
   UInt    m_uiRate;
   Double  m_dDeltaDistortion;
-  UInt    m_uiQualityLevel;
+  UInt    m_uiQualityId;
   //JVT-S043
   UInt    m_uiLayer;
 };
@@ -195,7 +195,7 @@ public:
                                   UInt    uiMinLevel,
                                   UInt    uiMaxLevel );
 
-  UInt    getQualityLevel       ( UInt    uiLayer,
+  UInt    getQualityId       ( UInt    uiLayer,
                                   UInt    uiFGSLayer,
                                   UInt    uiFrameNumInCodingOrder ) const;
 

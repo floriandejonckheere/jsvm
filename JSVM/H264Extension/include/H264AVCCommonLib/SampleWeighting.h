@@ -92,7 +92,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 #include  "H264AVCCommonLib/YuvMbBuffer.h"
-#include  "H264AVCCommonLib/IntYuvMbBuffer.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -113,24 +112,20 @@ public:
 
   ErrVal initSlice( const SliceHeader& rcSliceHeader );
 
-  Void getTargetBuffers( YuvMbBuffer*    apcTarBuffer[2], YuvMbBuffer*    pcRecBuffer, const PW* pcPW0, const PW* pcPW1 );
-  Void getTargetBuffers( IntYuvMbBuffer* apcTarBuffer[2], IntYuvMbBuffer* pcRecBuffer, const PW* pcPW0, const PW* pcPW1 );
+  Void getTargetBuffers( YuvMbBuffer* apcTarBuffer[2], YuvMbBuffer* pcRecBuffer, const PredWeight* pcPW0, const PredWeight* pcPW1 );
 
-  Void weightLumaSamples(   YuvMbBuffer*    pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
-  Void weightChromaSamples( YuvMbBuffer*    pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
-
-  Void weightLumaSamples(   IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
-  Void weightChromaSamples( IntYuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PW* pcPW0, const PW* pcPW1 );
+  Void weightLumaSamples(   YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PredWeight* pcPW0, const PredWeight* pcPW1 );
+  Void weightChromaSamples( YuvMbBuffer* pcRecBuffer, Int iSizeX, Int iSizeY, LumaIdx cIdx, const PredWeight* pcPW0, const PredWeight* pcPW1 );
 
   //===== for motion estimation of bi-predicted blocks with standard weights =====
-  Void inverseLumaSamples  ( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, IntYuvMbBuffer* pcFixBuffer, Int iYSize, Int iXSize );
+  Void inverseLumaSamples  ( YuvMbBuffer* pcDesBuffer, YuvMbBuffer* pcOrgBuffer, YuvMbBuffer* pcFixBuffer, Int iYSize, Int iXSize );
 
   //===== for motion estimation of bi-predicted blocks with non-standard weights =====
-  Void weightInverseLumaSamples  ( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, IntYuvMbBuffer* pcFixBuffer, const PW* pcSearchPW, const PW* pcFixPW, Double&  rdWeight, Int iYSize, Int iXSize );
+  Void weightInverseLumaSamples  ( YuvMbBuffer* pcDesBuffer, YuvMbBuffer* pcOrgBuffer, YuvMbBuffer* pcFixBuffer, const PredWeight* pcSearchPW, const PredWeight* pcFixPW, Double&  rdWeight, Int iYSize, Int iXSize );
 
   //===== for motion estimation of unidirectional predicted blocks with non-standard weights =====
-  Void weightInverseLumaSamples  ( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, const PW* pcPW, Double&  rdWeight, Int iYSize, Int iXSize );
-  Void weightInverseChromaSamples( IntYuvMbBuffer* pcDesBuffer, IntYuvMbBuffer* pcOrgBuffer, const PW* pcPW, Double* padWeight, Int iYSize, Int iXSize );
+  Void weightInverseLumaSamples  ( YuvMbBuffer* pcDesBuffer, YuvMbBuffer* pcOrgBuffer, const PredWeight* pcPW, Double&  rdWeight, Int iYSize, Int iXSize );
+  Void weightInverseChromaSamples( YuvMbBuffer* pcDesBuffer, YuvMbBuffer* pcOrgBuffer, const PredWeight* pcPW, Double* padWeight, Int iYSize, Int iXSize );
 
 //TMM_WP
   ErrVal initSliceForWeighting( const SliceHeader& rcSliceHeader);
@@ -158,8 +153,7 @@ protected:
   XMixSampleFunc m_afpXMixSampleFunc[5];
 
 private:
-  YuvMbBuffer     m_cYuvBiBuffer;
-  IntYuvMbBuffer  m_cIntYuvBiBuffer;
+  YuvMbBuffer  m_cIntYuvBiBuffer;
   UInt            m_uiLumaLogWeightDenom;
   UInt            m_uiChromaLogWeightDenom;
   Bool            m_bExplicit;

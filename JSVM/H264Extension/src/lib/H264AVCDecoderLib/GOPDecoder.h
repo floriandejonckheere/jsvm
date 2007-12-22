@@ -91,6 +91,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/MbDataCtrl.h"
 #include "DownConvert.h"
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+#include "../H264AVCEncoderLib/H264AVCEncoder.h"
+#endif
 
 // TMM_ESS 
 #include "ResizeParameters.h"
@@ -101,7 +104,6 @@ H264AVC_NAMESPACE_BEGIN
 class H264AVCDecoder;
 class SliceReader;
 class SliceDecoder;
-class FrameMng;
 class PocCalculator;
 class LoopFilter;
 class HeaderSymbolReadIf;
@@ -109,17 +111,12 @@ class ParameterSetMng;
 class NalUnitParser;
 class ControlMngIf;
 class MotionCompensation;
-class IntFrame; 
-class RQFGSDecoder;
-
+class Frame; 
 class ReconstructionBypass;
 class YuvBufferCtrl; 
+class SliceDataNALUnit;
 
-//JVT-U106 Behaviour at slice boundaries{
-class ReconstructionBypass;
-//JVT-U106 Behaviour at slice boundaries}
 
-//H264AVCDECODERLIB_API
 
 class H264AVCDECODERLIB_API DPBUnit
 {
@@ -132,38 +129,39 @@ protected:
 public:
   static ErrVal create        ( DPBUnit*&                   rpcDPBUnit,
                                 YuvBufferCtrl&              rcYuvBufferCtrl,
-                                const SequenceParameterSet& rcSPS );
+                                const SequenceParameterSet& rcSPS,
+                                UInt                        uiDependencyId );
   ErrVal        destroy       ();
 
-  ErrVal        init          ( const SliceHeader& rcSH );
-
-  ErrVal        initNonEx     ( Int       iPoc,
-                                UInt      uiFrameNum );
-  ErrVal        initBase      ( DPBUnit&  rcDPBUnit,
-                                IntFrame* pcFrameBaseRep );
+  ErrVal        init          ( const SliceHeader&          rcSH );
+  ErrVal        initNonEx     ( Int                         iPoc,
+                                UInt                        uiFrameNum );
+  ErrVal        initBase      ( DPBUnit&                    rcDPBUnit,
+                                Frame*                      pcFrameBaseRep );
   ErrVal        uninit        ();
 
-  ErrVal        markNonRef    ();
-  ErrVal        markOutputted ();
+  ErrVal        markNonRef      ();
+  ErrVal        markOutputted   ();
+  Void          setPicType      ( PicType     picType       )   { m_ePicType = picType; }
+  Void          setNalRefIdc    ( NalRefIdc   nalRefIdc     )   { m_eNalRefIdc = nalRefIdc; }
+  Void          setMbDataCtrl   ( MbDataCtrl* pcMbDataCtrl  )   { m_cControlData.setMbDataCtrl( pcMbDataCtrl ); }
 
+  UInt          getFrameNum     ()  const { return m_uiFrameNum; }
+  UInt          getTLevel       ()  const { return m_uiTemporalId; }
+  Bool          useBasePred     ()  const { return m_bUseBasePred; }
+  Bool          isExisting      ()  const { return m_bExisting; }
+  Bool          isNeededForRef  ()  const { return m_bNeededForReference; }
+  Bool          isOutputted     ()  const { return m_bOutputted; }
+  Bool          isBaseRep       ()  const { return m_bBaseRepresentation; }
+  Bool          isConstrIPred   ()  const { return m_bConstrainedIntraPred; }
+  Bool          isNalRefIdc     ()  const { return m_eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST; }
+  PicType       getPicType      ()  const { return m_ePicType; }
+  Frame*        getFrame        ()        { return m_pcFrame; }
+  ControlData&  getCtrlData     ()        { return m_cControlData; }
+  MbDataCtrl*   getMbDataCtrlBL ()        { return m_pcMbDataCtrlBL; }
+  UInt          getQualityId    ()  const { return m_uiQualityId;}
 
-  UInt          getFrameNum   ()  const { return m_uiFrameNum; }
-  UInt          getTLevel     ()  const { return m_uiTemporalLevel; }
-  Bool          useBasePred   ()  const { return m_bUseBasePred; }
-  Bool          isExisting    ()  const { return m_bExisting; }
-  Bool          isNeededForRef()  const { return m_bNeededForReference; }
-  Bool          isOutputted   ()  const { return m_bOutputted; }
-  Bool          isBaseRep     ()  const { return m_bBaseRepresentation; }
-  Bool          isConstrIPred ()  const { return m_bConstrainedIntraPred; }
-  Bool          isNalRefIdc   ()  const { return m_eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST; }
-  PicType       getPicType    ()  const { return m_ePicType; }
-  Void          setPicType    ( PicType picType )      { m_ePicType = picType; }
-  Void          setNalRefIdc  ( NalRefIdc nalRefIdc )  { m_eNalRefIdc = nalRefIdc; }
-  IntFrame*     getFrame      ()        { return m_pcFrame; }
-  ControlData&  getCtrlData   ()        { return m_cControlData; }
-
-  Int           getPicNum     ( UInt uiCurrFrameNum, 
-                                UInt uiMaxFrameNum ) const
+  Int getPicNum ( UInt uiCurrFrameNum, UInt uiMaxFrameNum ) const
   {
     if( m_uiFrameNum > uiCurrFrameNum )
     {
@@ -171,23 +169,36 @@ public:
     }
     return (Int)m_uiFrameNum;
   }
-//JVT-T054{
-  UInt          getQualityLevel() const { return m_uiQualityLevel;}
-  Void          setMbDataCtrl(MbDataCtrl* pcMbDataCtrl) { m_cControlData.setMbDataCtrl(pcMbDataCtrl);}
-//JVT-T054}
+
+  ErrVal storeMbDataCtrlBL( MbDataCtrl* pcMbDataCtrl )
+  {
+    ROF( pcMbDataCtrl );
+    RNOK( m_pcMbDataCtrlBL->copyMotion( *pcMbDataCtrl ) );
+    return Err::m_nOK;
+  }
+  ErrVal switchMbDataCtrlBL( DPBUnit* pcDPBUnit )
+  {
+    ROF( pcDPBUnit );
+    MbDataCtrl* pTmp = m_pcMbDataCtrlBL;
+    m_pcMbDataCtrlBL = pcDPBUnit->m_pcMbDataCtrlBL;
+    pcDPBUnit->m_pcMbDataCtrlBL = pTmp;
+    return Err::m_nOK;
+  }
+
 private:
   Int         m_iPoc;
   UInt        m_uiFrameNum;
-  UInt        m_uiTemporalLevel;
+  UInt        m_uiTemporalId;
   Bool        m_bUseBasePred;
   Bool        m_bExisting;
   Bool        m_bNeededForReference;
   Bool        m_bOutputted;
   Bool        m_bBaseRepresentation;
-  IntFrame*   m_pcFrame;
+  Frame*      m_pcFrame;
   ControlData m_cControlData;
+  MbDataCtrl* m_pcMbDataCtrlBL;
   Bool        m_bConstrainedIntraPred;
-  UInt        m_uiQualityLevel; //JVT-T054
+  UInt        m_uiQualityId;
   NalRefIdc   m_eNalRefIdc;
   PicType     m_ePicType;
 };
@@ -216,108 +227,94 @@ public:
   ErrVal              destroy             ();
   ErrVal              init                ( YuvBufferCtrl*              pcFullPelBufferCtrl,
                                             UInt                        uiLayer ); // just for dump output
-  ErrVal              initSPS             ( const SequenceParameterSet& rcSPS );
+  ErrVal              initSPS             ( const SequenceParameterSet& rcSPS,
+                                            UInt                        uiDependencyId );
   ErrVal              uninit              ();
 
 
   ErrVal              initCurrDPBUnit     ( DPBUnit*&                   rpcCurrDPBUnit,
                                             SliceHeader*                pcSliceHeader,
                                             PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList,
-                                            Bool                        bRef = false); //JVT-T054
+                                            PicBufferList&              rcUnusedList );
+  ErrVal              initPicCurrDPBUnit  ( PicBuffer*&                 rpcPicBuffer,
+                                            Bool                        bRefinement );
+
   DPBUnit*            getLastUnit         ();
-  DPBUnit*            getDPBUnit          ( Int                         iPoc );
   ErrVal              setPrdRefLists      ( DPBUnit*                    pcCurrDPBUnit );
-//TMM_EC {{
-  ErrVal							getPrdRefListsFromBase( DPBUnit*   pcCurrDPBUnit, SliceHeader* pBaseMbDataCtrl , DPBUnit*    pcbaseDPBUnit);
-//TMM_EC }}
   ErrVal              store               ( DPBUnit*&                   rpcDPBUnit,
                                             PicBufferList&              rcOutputList,
                                             PicBufferList&              rcUnusedList,
-                                            IntFrame*                   pcFrameBaseRep = NULL,
-                                            Bool                        bRef = false); //JVT-T054
+                                            Frame*                      pcFrameBaseRep = 0 );
   ErrVal              update              ( DPBUnit*                    pcDPBUnit );
   ErrVal              clear               ( PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList,
-                                            Int&                        riMaxPoc );
+                                            PicBufferList&              rcUnusedList );
 
-  ErrVal              xSlidingWindowBase  ( UInt mCurrFrameNum ); //JVT-S036 lsj 
-  ErrVal              xMMCOBase           ( SliceHeader* pcSliceHeader, UInt mCurrFrameNum );//JVT-S036 lsj
-//JVT-T054{
-ErrVal                CreateDPBUnit(DPBUnit *pcDPBUnit, const SequenceParameterSet&  rcSPS );
-Void                  setCurrDPBUnit(DPBUnit * pcDPBUnit) { m_pcCurrDPBUnit = pcDPBUnit;}
-//JVT-T054}
-  DPBUnit*            getCurrDPBUnit(){return        m_pcCurrDPBUnit;};
-  ErrVal              initPicBuffer(PicBuffer*&    rpcPicBuffer);
-  ErrVal              initPicCurrDPBUnit( PicBuffer*&                 rpcPicBuffer,
-                                          Bool                        bRef = false); //JVT-T054
+  ErrVal              slidingWindowBase   ( UInt                        mCurrFrameNum );
+  ErrVal              MMCOBase            ( SliceHeader*                pcSliceHeader,
+                                            UInt                        mCurrFrameNum );
 
 protected:
-  Void                xSetIdentifier      ( UInt&                       uiNum, 
-		                                        PicType&                    rePicType, 
-																						const PicType               eCurrentPicType );
+  Void                xSetIdentifier          ( UInt&                       uiNum, 
+		                                            PicType&                    rePicType, 
+																						    const PicType               eCurrentPicType );
+  ErrVal              xCreateData             ( UInt                        uiMaxPicsInDPB,
+                                                const SequenceParameterSet& rcSPS,
+                                                UInt                        uiDependencyId );
+  ErrVal              xDeleteData             ();
   
-  ErrVal              xCreateData         ( UInt                        uiMaxPicsInDPB,
-                                            const SequenceParameterSet& rcSPS );
-  ErrVal              xDeleteData         ();
+  ErrVal              xClearBuffer            (); // remove non-ref frames that are not output pictures
+  ErrVal              xUpdateMemory           ( SliceHeader*                pcSliceHeader );
+  ErrVal              xSlidingWindow          ();
+  ErrVal              xMMCO                   ( SliceHeader*                pcSliceHeader );
+
+  ErrVal              xMarkShortTermUnusedBase( const PicType               ePicType,
+                                                UInt						            mCurrFrameNum,  
+                                                UInt                        uiDiffOfPicNums );
+  ErrVal              xMarkShortTermUnused    ( const PicType               ePicType,
+                                                const DPBUnit*              pcCurrentDPBUnit,
+                                                UInt                        uiDiffOfPicNums );
   
-  ErrVal              xClearBuffer        (); // remove non-ref frames that are not output pictures
+  ErrVal              xOutput                 ( PicBufferList&              rcOutputList,
+                                                PicBufferList&              rcUnusedList );
+  ErrVal              xClearOutputAll         ( PicBufferList&              rcOutputList,
+                                                PicBufferList&              rcUnusedList,
+                                                Bool                        bFinal );            
 
-  ErrVal              xUpdateMemory       ( SliceHeader*                pcSliceHeader );
-  ErrVal              xSlidingWindow      ();
-  ErrVal              xMMCO               ( SliceHeader*                pcSliceHeader );
 
-  ErrVal              xMarkShortTermUnusedBase( const PicType           ePicType,
-                                                UInt						        mCurrFrameNum,  
-                                                UInt                    uiDiffOfPicNums );//JVT-S036 lsj
-  ErrVal              xMarkShortTermUnused( const PicType               ePicType,
-                                            const DPBUnit*              pcCurrentDPBUnit,
-                                            UInt                        uiDiffOfPicNums );
+  ErrVal              xStorePicture           ( DPBUnit*                    pcDPBUnit, // just for checking
+                                                PicBufferList&              rcOutputList,
+                                                PicBufferList&              rcUnusedList,
+                                                Bool                        bTreatAsIdr,
+                                                Bool                        bFrameMbsOnlyFlag,
+                                                Bool                        bRefinement );
+  ErrVal              xCheckMissingPics       ( const SliceHeader*          pcSliceHeader,
+                                                PicBufferList&              rcOutputList,
+                                                PicBufferList&              rcUnusedList );
+
+
+  ErrVal              xInitPrdListPSlice      ( RefFrameList&               rcList0,
+                                                Frame*                      pcCurrentFrame,
+                                                PicType                     eCurrentPicType,
+																						    SliceType                   eSliceType );
+  ErrVal              xInitPrdListsBSlice     ( RefFrameList&               rcList0,
+                                                RefFrameList&               rcList1,
+                                                Frame*                      pcCurrentFrame,
+                                                PicType                     eCurrentPicType,
+																						    SliceType                   eSliceType );
+
+  ErrVal              xSetInitialRefFieldList ( RefFrameList&               rcList,
+                                                Frame*                      pcCurrentFrame,
+                                                PicType                     eCurrentPicType,
+																						    SliceType                   eSliceType );
+  ErrVal              xPrdListRemapping       ( RefFrameList&               rcList,
+                                                ListIdx                     eListIdx,
+                                                SliceHeader*                pcSliceHeader );
+  ErrVal              xUpdateDPBUnitList      ( DPBUnit                     *pcDPBUNit  );
   
-  ErrVal              xOutput             ( PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList );
-  ErrVal              xClearOutputAll     ( PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList,
-                                            Int&                        riMaxPoc, 
-                                            Bool                        bFinal );            
-
-
-  ErrVal              xStorePicture       ( DPBUnit*                    pcDPBUnit, // just for checking
-                                            PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList,
-                                            Bool                        bTreatAsIdr,
-                                            Bool                        bFrameMbsOnlyFlag,
-                                            Bool                        bRef = false ); //JVT-T054
-  ErrVal              xCheckMissingPics   ( SliceHeader*                pcSliceHeader,
-                                            PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList );
-
-  ErrVal              xInitPrdListPSlice  ( RefFrameList&               rcList0,
-                                            IntFrame*                   pcCurrentFrame,
-                                            PicType                     eCurrentPicType,
-																						SliceType                   eSliceType );
-
-  ErrVal              xInitPrdListsBSlice ( RefFrameList&               rcList0,
-                                            RefFrameList&               rcList1,
-                                            IntFrame*                   pcCurrentFrame,
-                                            PicType                     eCurrentPicType,
-																						SliceType                   eSliceType );
-
-  ErrVal              xSetInitialRefFieldList( RefFrameList&            rcList,
-                                            IntFrame*                   pcCurrentFrame,
-                                            PicType                     eCurrentPicType,
-																						SliceType                   eSliceType );
-
-  ErrVal              xPrdListRemapping   ( RefFrameList&               rcList,
-                                            ListIdx                     eListIdx,
-                                            SliceHeader*                pcSliceHeader );
-  ErrVal              xUpdateDPBUnitList  ( DPBUnit                     *pcDPBUNit  ); //JVT-T054
   //===== debugging ======
-  ErrVal              xDumpDPB            ();
-  ErrVal              xDumpRefList        ( RefFrameList&               rcList,
-		                                        ListIdx                     eListIdx );
-
-
+  ErrVal              xDumpDPB                ();
+  ErrVal              xDumpRefList            ( RefFrameList&               rcList,
+		                                            ListIdx                     eListIdx );
 private:
   Bool                m_bInitDone;
   YuvBufferCtrl*      m_pcYuvBufferCtrl;
@@ -331,293 +328,198 @@ private:
   DPBUnit*            m_pcCurrDPBUnit;
   DPBUnit*            m_pcLastDPBUnit;
   PicBufferList       m_cPicBufferList;
-public:
-	UInt                m_uiMaxlayerId;//JVT-W047
-	Void                setMaxLayerId (UInt ui) { m_uiMaxlayerId = ui; }//JVT-W047
-
 };
 
 
 
-class H264AVCDECODERLIB_API MCTFDecoder
-{ 
-  enum
-  {
-    NUM_TMP_FRAMES = 5 // JVT-Q054 Red. Picture
-//    NUM_TMP_FRAMES = 3 // Hanke@RWTH
-  };
-  enum NextNalType
-  {
-    ALL           = 0x00,
-    LOW_PASS      = 0x01,
-    LOW_PASS_IDR  = 0x02
-  };
-
+class H264AVCDECODERLIB_API MbStatus
+{
 public:
-//TMM_EC {{
-	ErrVal			getECMethod( SliceHeader *rpcSliceHeader, ERROR_CONCEAL &m_eErrorConceal);
-  ErrVal              getBaseLayerUnit(Int iPoc, DPBUnit   *&pcBaseDPBUnit);
-  ErrVal              getBaseLayerDPB(ControlData&    rcControlData,  DPBUnit *&pcBaseDPBUnit);
-	UInt	m_bBaseLayerLost;
-	SliceHeader	*m_pcVeryFirstSliceHeader;
-	FrameMng	*m_pcFrameMng;
-	ERROR_CONCEAL	m_eErrorConcealTemp;
-	UInt			m_uiDecompositionStages;
-	UInt			m_uiDecompositionStagesBase;
-	ERROR_CONCEAL	m_eErrorConceal;
-  Bool      m_bEnhanceAvailable;
-//TMM_EC }}
+  MbStatus();
+  virtual ~MbStatus();
+
+  Void    reset           ();
+  Bool    canBeUpdated    ( const SliceHeader*  pcSliceHeader );
+  ErrVal  update          ( SliceHeader*        pcSliceHeader );
+
+  SliceHeader*        getSliceHeader    ()        { return    m_pcSliceHeader; }
+  const SliceHeader*  getSliceHeader    ()  const { return    m_pcSliceHeader; }
+  UInt                getSliceIdc       ()  const { return    m_uiSliceIdc; }
+  UInt                getFirstMbInSlice ()  const { return    m_uiSliceIdc >> 7; }
+  UInt                getDQId           ()  const { return    m_uiSliceIdc        & 0x7F; }
+  UInt                getDependencyId   ()  const { return  ( m_uiSliceIdc >> 4 ) & 0x7; }
+  UInt                getQualityId      ()  const { return    m_uiSliceIdc        & 0xF; }
+
+private:
+  UInt          m_uiSliceIdc;
+  SliceHeader*  m_pcSliceHeader;
+};
+
+
+
+class H264AVCDECODERLIB_API LayerDecoder
+{ 
+  enum { NUM_TMP_FRAMES = 2 };
+
 protected:
-	MCTFDecoder         ();
-	virtual ~MCTFDecoder();
+	LayerDecoder         ();
+	virtual ~LayerDecoder();
 
 public:
   //===== general functions ======
-  static  ErrVal  create        ( MCTFDecoder*&               rpcMCTFDecoder );
+  static  ErrVal  create        ( LayerDecoder*&          rpcLayerDecoder );
   ErrVal          destroy       ();
-  ErrVal          init          ( H264AVCDecoder*             pcH264AVCDecoder,
-                                  SliceReader*                pcSliceReader,
-                                  SliceDecoder*               pcSliceDecoder,
-                                  RQFGSDecoder*               pcRQFGSDecoder,
-                                  NalUnitParser*              pcNalUnitParser,
-                                  ControlMngIf*               pcControlMng,
-                                  LoopFilter*                 pcLoopFilter,
-                                  HeaderSymbolReadIf*         pcHeaderSymbolReadIf,
-                                  ParameterSetMng*            pcParameterSetMng,
-                                  PocCalculator*              pcPocCalculator,
-                                  YuvBufferCtrl*              pcYuvFullPelBufferCtrl,
-                                  DecodedPicBuffer*           pcDecodedPictureBuffer,
-                                  MotionCompensation*         pcMotionCompensation,
-                                  QuarterPelFilter*           pcQuarterPelFilter
-								  //JVT-U106 Behaviour at slice boundaries{
-								  ,ReconstructionBypass*      pcReconstructionBypass
-								  //JVT-U106 Behaviour at slice boundaries}
-								  );
+  ErrVal          init          ( UInt                    uiDependencyId,
+                                  H264AVCDecoder*         pcH264AVCDecoder,
+                                  NalUnitParser*          pcNalUnitParser,
+                                  SliceReader*            pcSliceReader,
+                                  SliceDecoder*           pcSliceDecoder,
+                                  ControlMngIf*           pcControlMng,
+                                  LoopFilter*             pcLoopFilter,
+                                  HeaderSymbolReadIf*     pcHeaderSymbolReadIf,
+                                  ParameterSetMng*        pcParameterSetMng,
+                                  PocCalculator*          pcPocCalculator,
+                                  YuvBufferCtrl*          pcYuvFullPelBufferCtrl,
+                                  DecodedPicBuffer*       pcDecodedPictureBuffer,
+                                  MotionCompensation*     pcMotionCompensation,
+								                  ReconstructionBypass*   pcReconstructionBypass
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+                                  ,RewriteEncoder*        pcRewriteEncoder
+#endif
+                                  );
   ErrVal          uninit        ();
-  ErrVal          initSlice0    ( SliceHeader*                pcSliceHeader );
-  ErrVal          initSlice     ( SliceHeader*                pcSliceHeader,
-                                  UInt                        uiLastLayer,
-                                  Bool                        bLastNalInAU,
-                                  Bool                        bCGSSNRInAU); //JVT-T054
 
-  ErrVal        GetAVCFrameForDPB( SliceHeader*&  rpcSliceHeader,
-                                        PicBuffer*&    rpcPicBuffer,
-                                        PicBufferList& rcOutputList,
-                                        PicBufferList& rcUnusedList); //JVT-T054_FIX
-  ErrVal          process       ( SliceHeader*&               rpcSliceHeader,
-                                  PicBuffer*                  pcPicBuffer,
-                                  PicBufferList&              rcPicBufferOutputList,
-                                  PicBufferList&              rcPicBufferUnusedList,
-                                  Bool                        bReconstructionLayer );
-  ErrVal          finishProcess ( PicBufferList&              rcPicBufferOutputList,
-                                  PicBufferList&              rcPicBufferUnusedList,
-                                  Int&                        riMaxPoc );
+  //===== main processing functions =====
+  ErrVal  processSliceData      ( PicBuffer*              pcPicBuffer,
+                                  PicBufferList&          rcPicBufferOutputList,
+                                  PicBufferList&          rcPicBufferUnusedList,
+                                  BinDataList&            rcBinDataList,
+                                  SliceDataNALUnit&       rcSliceDataNALUnit );
+  ErrVal  finishProcess         ( PicBufferList&          rcPicBufferOutputList,
+                                  PicBufferList&          rcPicBufferUnusedList );
 
+  //===== returning data =====
+  ErrVal            getBaseLayerDataAvailability  ( Frame*&           pcFrame,
+                                                    Frame*&           pcResidual,
+                                                    MbDataCtrl*&      pcMbDataCtrl,
+                                                    Bool&             bBaseDataAvailable );
+  ErrVal            getBaseLayerData              ( Frame*&           pcFrame,
+                                                    Frame*&           pcResidual,
+                                                    MbDataCtrl*&      pcMbDataCtrl,
+                                                    Bool&             rbConstrainedIPred,
+                                                    Bool              bSpatialScalability );
+  ErrVal            getBaseLayerPWTable           ( PredWeightTable*& rpcPredWeightTable,
+                                                    ListIdx           eListIdx );
+  Void              setResizeParameters           ( ResizeParameters* params )        { m_pcResizeParameter = params; }
+  ResizeParameters* getResizeParameters           ()                                  { return m_pcResizeParameter; }
+  Int               getSpatialScalabilityType     ()                            const { return m_pcResizeParameter->m_iSpatialScalabilityType; }
+  UInt              getFrameWidth                 ()                            const { return m_uiFrameWidthInMb*16; }
+  UInt              getFrameHeight                ()                            const { return m_uiFrameHeightInMb*16; }
+  Frame*            getBaseLayerResidual          ()                                  { return m_pcBaseLayerResidual; }
 
+private:
+  //===== create data arrays =====
+  ErrVal  xCreateData                 ( const SequenceParameterSet&   rcSPS );
+  ErrVal  xDeleteData                 ();
 
-  Bool            isActive        () { return m_bActive; }
-  UInt            getFrameWidth   () { return m_uiFrameWidthInMb*16; }
-  UInt            getFrameHeight  () { return m_uiFrameHeightInMb*16; }
+  //===== initialization =====
+  ErrVal  xReadSliceHeader            ( SliceHeader*&           rpcSliceHeader,
+                                        SliceDataNALUnit&       rcSliceDataNalUnit );
+  ErrVal  xInitSliceHeader            ( SliceHeader&            rcSliceHeader,
+                                        const SliceDataNALUnit& rcSliceDataNalUnit );
+  ErrVal  xInitSPS                    ( const SliceHeader&      rcSliceHeader );
+  ErrVal  xInitDPBUnit                ( SliceHeader&            rcSliceHeader,
+                                        PicBuffer*              pcPicBuffer,
+                                        PicBufferList&          rcPicBufferOutputList,
+                                        PicBufferList&          rcPicBufferUnusedList );
 
-  ErrVal          getBaseLayerDataAvailability  ( IntFrame*&    pcFrame,
-                                                  IntFrame*&    pcResidual,
-                                                  MbDataCtrl*&  pcMbDataCtrl,
-                                                  Bool&         bBaseDataAvailable,
-                                                  Bool          bSpatialScalability,
-                                                  Int           iPoc );
+  //===== slice processing =====
+  ErrVal  xInitSlice                  ( SliceHeader*&           rpcSliceHeader,
+                                        PicBuffer*              pcPicBuffer,
+                                        PicBufferList&          rcPicBufferOutputList,
+                                        PicBufferList&          rcPicBufferUnusedList,
+                                        SliceDataNALUnit&       rcSliceDataNalUnit );
+  ErrVal  xParseSlice                 ( SliceHeader&            rcSliceHeader );
+  ErrVal  xDecodeSlice                ( SliceHeader&            rcSliceHeader,
+                                        PicBufferList&          rcPicBufferOutputList,
+                                        PicBufferList&          rcPicBufferUnusedList,
+                                        const SliceDataNALUnit& rcSliceDataNalUnit );
+  ErrVal  xFinishSlice                ( PicBufferList&          rcPicBufferOutputList,
+                                        PicBufferList&          rcPicBufferUnusedList,
+                                        const SliceDataNALUnit& rcSliceDataNalUnit );
 
-  ErrVal          getBaseLayerData              ( IntFrame*&    pcFrame,
-                                                  IntFrame*&    pcResidual,
-                                                  MbDataCtrl*&  pcMbDataCtrl,
-																									MbDataCtrl*&  pcMbDataCtrlEL,
-                                                  Bool&         rbConstrainedIPred,
-                                                  Bool          bSpatialScalability,
-                                                  Int           iPoc );
-  ErrVal          getBaseLayerPWTable           ( SliceHeader::PredWeightTable*& rpcPredWeightTable,
-                                                  ListIdx                        eListIdx,
-                                                  Int                            iPoc );
+  //===== base layer processing =====
+  ErrVal  xInitESSandCroppingWindow   ( SliceHeader&            rcSliceHeader,
+                                        MbDataCtrl&             rcMbDataCtrl,
+                                        ControlData&            rcControlData ); 
+  ErrVal  xInitBaseLayer              ( ControlData&            rcControlData,
+												                SliceHeader*&           rcSliceHeaderBase );
+  ErrVal  xGetBaseLayerData           ( ControlData&            rcControlData,
+                                        Frame*&                 rpcBaseFrame,
+                                        Frame*&                 rpcBaseResidual,
+                                        MbDataCtrl*&            rpcBaseDataCtrl,
+                                        Bool&                   rbBaseDataAvailable,
+                                        Bool&                   rbConstrainedIPredBL,
+                                        Bool&                   rbSpatialScalability,
+                                        ResizeParameters*       pcResizeParameter );
+  ErrVal  xConstrainedIntraUpsampling ( Frame*                  pcFrame,
+                                        Frame*                  pcUpsampling, 
+                                        Frame*                  pcTemp,
+                                        MbDataCtrl*             pcBaseDataCtrl,
+                                        ReconstructionBypass*   pcReconstructionBypass,
+                                        ResizeParameters*       pcResizeParameters,
+                                        PicType                 ePicType );
+  Void    xGetPosition                ( ResizeParameters*       pcResizeParameters,
+                                        Int*                    px,
+                                        Int*                    py,
+                                        Bool                    uv_flag );
+  Void    xSetMCResizeParameters      ( ResizeParameters*				resizeParameters );
 
-  Void            setQualityLevelForPrediction  ( UInt ui )         { m_uiQualityLevelForPrediction = ui; }
-  PocCalculator*  getPocCalculator              ()                  { return m_pcPocCalculator; }
-//JVT-T054{
-  Void              setResizeParametersCGSSNR ( UInt ui, ResizeParameters* params ) { m_pcResizeParameterCGSSNR[ui] = params; }
-  ResizeParameters* getResizeParametersCGSSNR (UInt ui)                           { return m_pcResizeParameterCGSSNR[ui]; }
-//JVT-T054}
-// TMM_ESS {
-  Void              setResizeParameters ( ResizeParameters* params ) { m_pcResizeParameter = params; }
-  ResizeParameters* getResizeParameters ()                           { return m_pcResizeParameter; }
-  Int               getSpatialScalabilityType()                      { return m_pcResizeParameter->m_iSpatialScalabilityType; }
-// TMM_ESS }
-  Void				setWaitForIdr(Bool b)	{ m_bWaitForIdr = b;}
-  Bool				getWaitForIdr()			{ return m_bWaitForIdr;}
-
-  MbDataCtrl*   getBaseMbDataCtrl() {return m_pcBaseMbDataCtrl;}
-  Void          setBaseMbDataCtrl(MbDataCtrl* pcMbDataCtrl) {m_pcBaseMbDataCtrl = pcMbDataCtrl;}
-
-//JVT-T054{
-  Void        setAVCBased(Bool b)   { m_bAVCBased = b;}
-  Bool        getAVCBased()         { return m_bAVCBased;}
-ErrVal        setILPrediction(IntFrame * pcFrame, PicType ePicType);
-ErrVal        ReconstructLastFGS             ( Bool                          bHighestLayer, Bool bHighestMGSLayer );
-DPBUnit*      getLastDPBUnit() { return m_pcDecodedPictureBuffer->getLastUnit();}
-//JVT-T054}
-DecodedPicBuffer* getDecodedPicBuffer() { return m_pcDecodedPictureBuffer; } //JVT-W047
-
-IntFrame*     getBaseLayerResidual() {return  m_pcBaseLayerResidual;} // this one is upsampled base layer's residual
-
-protected:
-  //===== create and initialize data arrays =====
-  ErrVal      xCreateData                     ( const SequenceParameterSet&   rcSPS );
-  ErrVal      xDeleteData                     ();
-
-
-  ErrVal      xZeroIntraMacroblocks           ( IntFrame*                     pcFrame,
-                                                ControlData&                  rcCtrlData );
-  ErrVal      xAddBaseLayerResidual           ( ControlData&                  rcControlData,
-                                                IntFrame*                     pcFrame );
-//TMM_EC 
-	//JVT-X046 {
-	ErrVal			xDecodeEnhanceLayerVirtual       ( SliceHeader*&                 rpcSliceHeader,
-																								 PicBuffer*&                   rpcPicBuffer,
-																								 PicBufferList&                rcOutputList,
-																								 PicBufferList&                rcUnusedList,
-																								 Bool                          bReconstructionLayer );
-	//JVT-X046 }
-  ErrVal      xInitBaseLayer                  ( ControlData&                  rcControlData,
-												SliceHeader *&rcSliceHeaderBase);
-
-
-  ErrVal      xInitESSandCroppingWindow       ( SliceHeader&                  rcSliceHeader,
-                                                MbDataCtrl&                   rcMbDataCtrl,
-                                                ControlData&                  rcControlData); 
-
-  //===== decode pictures / subbands =====
-  ErrVal      xDecodeSuffixUnit               ( SliceHeader*&                 rpcSliceHeader,
-                                                PicBuffer*&                   rpcPicBuffer,
-                                                PicBufferList&                rcOutputList,
-                                                PicBufferList&                rcUnusedList,
-                                                Bool                          bReconstructionLayer );   //JVT-S036 lsj
-  ErrVal      xDecodeBaseRepresentation       ( SliceHeader*&                 rpcSliceHeader,
-                                                PicBuffer*&                   rpcPicBuffer,
-                                                PicBufferList&                rcOutputList,
-                                                PicBufferList&                rcUnusedList,
-                                                Bool                          bReconstructionLayer );
-//TMM_EC{{
-  ErrVal      xDecodeBaseRepresentationVirtual       ( SliceHeader*&                 rpcSliceHeader,
-	  PicBuffer*&                   rpcPicBuffer,
-	  PicBufferList&                rcOutputList,
-	  PicBufferList&                rcUnusedList,
-	  Bool                          bReconstructionLayer );
-//TMM_EC}}
-  ErrVal      xReconstructLastFGS             ( Bool                          bHighestLayer, Bool bHighestMGSLayer ); //JVT-T054
-  ErrVal      xMotionCompensation             ( IntFrame*                     pcMCFrame,
-                                                RefFrameList&                 rcRefFrameList0,
-                                                RefFrameList&                 rcRefFrameList1,
-                                                MbDataCtrl*                   pcMbDataCtrl,
-                                                SliceHeader&                  rcSH  );
-
-  Bool isPictureDecComplete(SliceHeader* rpcSliceHeader);
-  const Bool isNewPictureStart(SliceHeader* rpcSliceHeader);
-  ErrVal InitWhenNewPictureStart(SliceHeader* pcSliceHeader, MbDataCtrl*   pcMbDataCtrl);
-  Void setMCResizeParameters   (ResizeParameters*				resizeParameters);
-
-  ErrVal xGetBaseLayerData( ControlData&    rcControlData,
-                            IntFrame*&      rpcBaseFrame,
-                            IntFrame*&      rpcBaseResidual,
-                            MbDataCtrl*&    rpcBaseDataCtrl,
-                            MbDataCtrl*&    rpcMbDataCtrlEL,
-                            Bool&           rbBaseDataAvailable,
-                            Bool&           rbConstrainedIPredBL,
-                            Bool&           rbSpatialScalability,
-                            ResizeParameters* pcResizeParameter);
-
-
-  //JVT-U106 Behaviour at slice boundaries{
-  ErrVal xConstrainedIntraUpsampling(IntFrame*pcFrame,
-									 IntFrame*pcUpsampling, 
-									 IntFrame*pcTemp,
-									 MbDataCtrl* pcBaseDataCtrl,
-									 ReconstructionBypass* pcReconstructionBypass,
-									 ResizeParameters* pcResizeParameters,
-                   PicType ePicType );
-  void   xGetPosition(ResizeParameters* pcResizeParameters,Int*px,Int*py,bool uv_flag);
-  //JVT-U106 Behaviour at slice boundaries}
 protected:
   //----- references -----
-  H264AVCDecoder*     m_pcH264AVCDecoder;
-  SliceReader*        m_pcSliceReader;
-  SliceDecoder*       m_pcSliceDecoder;
-  RQFGSDecoder*       m_pcRQFGSDecoder;
-  NalUnitParser*      m_pcNalUnitParser;
-  ControlMngIf*       m_pcControlMng;
-  LoopFilter*         m_pcLoopFilter;
-  HeaderSymbolReadIf* m_pcHeaderSymbolReadIf;
-  ParameterSetMng*    m_pcParameterSetMng;
-  PocCalculator*      m_pcPocCalculator;
-  YuvBufferCtrl*      m_pcYuvFullPelBufferCtrl;
-  DecodedPicBuffer*   m_pcDecodedPictureBuffer;
-  MotionCompensation* m_pcMotionCompensation;
-  QuarterPelFilter*   m_pcQuarterPelFilter;
-  DownConvert         m_cDownConvert;
-
+  H264AVCDecoder*       m_pcH264AVCDecoder;
+  NalUnitParser*        m_pcNalUnitParser;
+  SliceReader*          m_pcSliceReader;
+  SliceDecoder*         m_pcSliceDecoder;
+  ControlMngIf*         m_pcControlMng;
+  LoopFilter*           m_pcLoopFilter;
+  HeaderSymbolReadIf*   m_pcHeaderSymbolReadIf;
+  ParameterSetMng*      m_pcParameterSetMng;
+  PocCalculator*        m_pcPocCalculator;
+  YuvBufferCtrl*        m_pcYuvFullPelBufferCtrl;
+  DecodedPicBuffer*     m_pcDecodedPictureBuffer;
+  MotionCompensation*   m_pcMotionCompensation;
+  ReconstructionBypass* m_pcReconstructionBypass;
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  RewriteEncoder*       m_pcRewriteEncoder;
+#endif
+  DownConvert           m_cDownConvert;
 
   //----- general parameters -----
-  Bool                m_bInitDone;
-  Bool                m_bCreateDone;
-  Bool                m_bWaitForIdr;
-  Bool                m_bReconstructAll;
-  UInt                m_uiFrameWidthInMb;
-  UInt                m_uiFrameHeightInMb;
-  UInt                m_uiMbNumber;
+  Bool                  m_bInitialized;
+  Bool                  m_bSPSInitialized;
+  Bool                  m_bDependencyRepresentationInitialized;
+  Bool                  m_bLayerRepresentationInitialized;
+  UInt                  m_uiFrameWidthInMb;
+  UInt                  m_uiFrameHeightInMb;
+  UInt                  m_uiMbNumber;
+  UInt                  m_uiDependencyId;
+  UInt                  m_uiQualityId;
 
-  Bool                m_bActive;
-  UInt                m_uiLayerId;
-  
+  //----- macroblock status and slice headers -----
+  MbStatus*             m_pacMbStatus;
+  MyList<SliceHeader*>  m_cSliceHeaderList;
 
-  //----- frame memories and control data -----
-  IntFrame*           m_apcFrameTemp    [NUM_TMP_FRAMES];
-  IntFrame*           m_pcResidual;
-  IntFrame*           m_pcILPrediction;
-  IntFrame*           m_pcPredSignal;
-  IntFrame*           m_pcBaseLayerFrame;
-  IntFrame*           m_pcBaseLayerResidual;
-  MbDataCtrl*         m_pcBaseLayerCtrl;
-  MbDataCtrl*         m_pcBaseLayerCtrlField;               // macroblock data of the base layer pictures
-
-  DPBUnit*            m_pcCurrDPBUnit;
-
-  MbDataCtrl*         m_pcBaseLayerCtrlEL;
-
-  UInt                m_uiNumLayers[2];
-  
-//JVT-T054{
-  Bool                m_bAVCBased;
-  ResizeParameters*   m_pcResizeParameterCGSSNR[MAX_QUALITY_LEVELS+1];
-  //JVT-T054}
-  // TMM_ESS 
-  ResizeParameters*   m_pcResizeParameter;
- 
-  // should this layer be decoded at all, and up to which FGS layer should be decoded
-  UInt                m_uiQualityLevelForPrediction;
-  
-  // ROI DECODE ICU/ETRI
-  Int m_iMbProcessed;
-  Bool m_bIsNewPic;
-  MbDataCtrl*  m_pcBaseMbDataCtrl;
-
-  //JVT-U106 Behaviour at slice boundaries{
-  ReconstructionBypass* m_pcReconstructionBypass;
-  //JVT-U106 Behaviour at slice boundaries}
-	//JVT-X046 {
-public:
-	UInt			m_uiMbNumInFrame;
-	UInt			m_uiDecodedMbNum;
-	Bool			*m_bMbStatus;
-	UInt			m_uiNextFirstMb;
-	UInt			m_uiLostMbNum;
-	Bool			m_bInitBaseLayer;
-	SliceHeader*	m_pcSliceHeader;//slice header backup
-	//JVT-X046 }
+  //----- frame memories, control data, and references  -----
+  ResizeParameters*     m_pcResizeParameter;
+  DPBUnit*              m_pcCurrDPBUnit;
+  MbDataCtrl*           m_pcBaseLayerCtrl;
+  MbDataCtrl*           m_pcBaseLayerCtrlField;
+  Frame*                m_pcResidual;
+  Frame*                m_pcILPrediction;
+  Frame*                m_pcBaseLayerFrame;
+  Frame*                m_pcBaseLayerResidual;
+  Frame*                m_apcFrameTemp[NUM_TMP_FRAMES];
 };
 
 H264AVC_NAMESPACE_END

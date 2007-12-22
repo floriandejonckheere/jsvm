@@ -125,7 +125,6 @@ public:
   virtual ErrVal  blockModes          ( MbDataAccess& rcMbDataAccess ) = 0;
   virtual ErrVal  mbMode              ( MbDataAccess& rcMbDataAccess /*, Bool bBLQRefFlag*/ ) = 0;
   virtual ErrVal  resPredFlag         ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual ErrVal  resPredFlag_FGS     ( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff ) = 0;
 
   virtual ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx ) = 0;
   virtual ErrVal  mvd                 ( MbDataAccess& rcMbDataAccess, ListIdx eLstIdx, ParIdx16x8 eParIdx  ) = 0;
@@ -162,8 +161,6 @@ public:
   virtual ErrVal  terminatingBit      ( UInt uiIsLast ) = 0;
   virtual UInt    getNumberOfWrittenBits() = 0;
   virtual ErrVal  fieldFlag           ( MbDataAccess& rcMbDataAccess ) = 0;
-  virtual BitWriteBufferIf* getWriteBuffer() = 0;
-  virtual ErrVal  RQreset             ( const SliceHeader& rcSliceHeader ) = 0;
 
   virtual ErrVal  startSlice          ( const SliceHeader& rcSliceHeader ) = 0;
   virtual ErrVal  getLastByte         (UChar &uiLastByte, UInt &uiLastBitPos) = 0; //FIX_FRAG_CAVLC

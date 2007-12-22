@@ -101,7 +101,7 @@ FGSPacketEntry::FGSPacketEntry()
 , m_uiFGSLayer        ( MSYS_UINT_MAX )
 , m_uiRate            ( MSYS_UINT_MAX )
 , m_dDeltaDistortion  ( forbiddenDist )
-, m_uiQualityLevel    ( MSYS_UINT_MAX )
+, m_uiQualityId    ( MSYS_UINT_MAX )
 , m_uiLayer           ( MSYS_UINT_MAX )
 {
 }
@@ -115,7 +115,7 @@ FGSPacketEntry::~FGSPacketEntry()
 Void
 FGSPacketEntry::setQualityLevel( UInt uiQualityLevel )
 {
-  m_uiQualityLevel = uiQualityLevel;
+  m_uiQualityId = uiQualityLevel;
 }
 
 
@@ -134,7 +134,7 @@ FGSPacketEntry::init( UInt   uiLayer,
     m_uiFGSLayer        = uiFGSLayer;
     m_uiRate            = uiPacketRate;
     m_dDeltaDistortion  = dDeltaDistortion;
-    m_uiQualityLevel    = MSYS_UINT_MAX;
+    m_uiQualityId    = MSYS_UINT_MAX;
   }
   return Err::m_nOK;
 }
@@ -147,7 +147,7 @@ FGSPacketEntry::uninit()
   m_uiFGSLayer        = MSYS_UINT_MAX;
   m_uiRate            = MSYS_UINT_MAX;
   m_dDeltaDistortion  = forbiddenDist;
-  m_uiQualityLevel    = MSYS_UINT_MAX;
+  m_uiQualityId    = MSYS_UINT_MAX;
   m_uiLayer           = MSYS_UINT_MAX;
   return Err::m_nOK;
 }
@@ -595,13 +595,13 @@ QualityLevelEstimation::optimizeQualityLevel( UInt uiTopLayer,
 
 
 UInt
-QualityLevelEstimation::getQualityLevel( UInt uiLayer,
+QualityLevelEstimation::getQualityId( UInt uiLayer,
                                          UInt uiFGSLayer,
                                          UInt uiFrameNumInCodingOrder ) const
 {
   ROF( uiFGSLayer              <= m_auiNumFGSPackets[uiLayer] );
   ROF( uiFrameNumInCodingOrder <  m_auiNumFrames[uiLayer]     );
 
-  return m_aaacFGSPacketEntry[uiLayer][uiFGSLayer][uiFrameNumInCodingOrder].getQualityLevel();
+  return m_aaacFGSPacketEntry[uiLayer][uiFGSLayer][uiFrameNumInCodingOrder].getQualityId();
 }
 

@@ -94,14 +94,14 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-UInt UvlcReader::m_auiShiftLuma[16];
-UInt UvlcReader::m_auiShiftChroma[16];
-UInt UvlcReader::m_auiBestCodeTab[16];
-
-#define RUNBEFORE_NUM  7
-#define MAX_VALUE  0xdead
+#define RUNBEFORE_NUM 7
+#define MAX_VALUE     0xdead
 #define TOTRUN_NUM    15
-const UInt g_auiIncVlc[] = {0,3,6,12,24,48,32768};	// maximum vlc = 6
+
+const UInt g_auiIncVlc[7] = 
+{
+  0, 3, 6, 12, 24, 48, 32768
+};
 
 const UChar COEFF_COST[16] =
 {
@@ -237,7 +237,7 @@ const UChar g_aucCwMapTC16[3][62] =
 
 const UChar g_aucLenTableTO16[3][4][17] =
 {
-  {   // 0702
+  {
     { 1, 6, 8, 9,10,11,13,13,13,14,14,15,15,16,16,16,16},
     { 0, 2, 6, 8, 9,10,11,13,13,14,14,15,15,15,16,16,16},
     { 0, 0, 3, 7, 8, 9,10,11,13,13,14,14,15,15,16,16,16},
@@ -341,34 +341,18 @@ const UInt g_auiRefSymLen[2][27] =
   }
 };
 
-UvlcReader::UvlcReader() :
-  m_pcBitReadBuffer( NULL ),
-  m_uiBitCounter( 0 ),
-  m_uiPosCounter( 0 ),
-  m_bRunLengthCoding( false ),
-  m_uiRun( 0 )
-, m_bParentFlag     ( true )          
-, m_bTruncated      ( false )
+UvlcReader::UvlcReader()
+: m_pcBitReadBuffer ( 0 )
+, m_uiBitCounter    ( 0 )
+, m_uiPosCounter    ( 0 )
+, m_bRunLengthCoding( false )
+, m_uiRun           ( 0 )
 {
-  UInt ui;
-
-  for( ui = 0; ui < MAX_NUM_PD_FRAGMENTS; ui ++ )
-  {
-    m_apcFragBitBuffers [ui] = 0;
-    m_apcFragSymGrps    [ui] = 0;
-  }
-
-  m_uiCurrentFragment = 0;
-  m_uiNumFragments    = 0;
-  m_pSymGrp        = new UcSymGrpReader( this );
 }
 
 UvlcReader::~UvlcReader()
 {
-  delete m_pSymGrp; 
 }
-
-
 
 __inline ErrVal UvlcReader::xGetCode( UInt& ruiCode, UInt uiLength )
 {
@@ -606,7 +590,6 @@ ErrVal UvlcReader::readByteAlign()
   return Err::m_nOK;
 }
 
-//JVT-T073 {
 ErrVal UvlcReader::readZeroByteAlign()
 {
   UInt uiCode;
@@ -627,9 +610,7 @@ ErrVal UvlcReader::readZeroByteAlign()
 
   return Err::m_nOK;
 }
-//JVT-T073 }
 
-// JVT-V068 HRD {
 ErrVal UvlcReader::getSCode( Int& riCode, UInt uiLength, Char* pcTraceString )
 {
   DTRACE_TH( pcTraceString );
@@ -649,16 +630,12 @@ ErrVal UvlcReader::getSCode( Int& riCode, UInt uiLength, Char* pcTraceString )
 
   return Err::m_nOK;
 }
-// JVT-V068 HRD }
+
 
 ErrVal UvlcReader::startSlice( const SliceHeader& rcSliceHeader )
 {
-  m_bRunLengthCoding  = ! rcSliceHeader.isIntra();
+  m_bRunLengthCoding  = ! rcSliceHeader.isIntraSlice();
   m_uiRun             = 0;
-
-  // for FGS refinement coding
-  RQreset( rcSliceHeader );
-
   return Err::m_nOK;
 }
 
@@ -790,17 +767,6 @@ ErrVal UvlcReader::mbMode( MbDataAccess& rcMbDataAccess )
 }
 
 ErrVal UvlcReader::resPredFlag( MbDataAccess& rcMbDataAccess )
-{
-  UInt uiCode;
-  DTRACE_T( "ResidualPredFlag" );
-  RNOK( xGetFlag( uiCode ) );
-  DTRACE_N;
-  rcMbDataAccess.getMbData().setResidualPredFlag( uiCode?true:false );
-
-  return Err::m_nOK;
-}
-
-ErrVal UvlcReader::resPredFlag_FGS( MbDataAccess& rcMbDataAccess, Bool bBaseCoeff )
 {
   UInt uiCode;
   DTRACE_T( "ResidualPredFlag" );
@@ -965,7 +931,7 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.getMbData().isIntra() );
   UInt uiCbp;
 #if NOK_MGSCAVLC
-  if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+  if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
   {
     if( uiTemp == 0 )
     {
@@ -1448,57 +1414,6 @@ ErrVal UvlcReader::xCodeFromBitstream2D( const UChar* aucCod, const UChar* aucLe
   return Err::m_nERR;
 }
 
-ErrVal UvlcReader::xCodeFromBitstream2Di( const UInt* auiCod, const UInt* auiLen, UInt uiWidth, UInt uiHeight, UInt& uiVal1, UInt& uiVal2 )
-{
-  const UInt *pauiLenTab;
-  const UInt *pauiCodTab;
-  UChar  uiLenRead = 0;
-  UInt   uiCode    = 0;
-  UChar  uiMaxLen  = 0;
-
-  // Find maximum number of bits to read before generating error
-  pauiLenTab = auiLen;
-  pauiCodTab = auiCod;
-  for (UInt j = 0; j < uiHeight; j++, pauiLenTab += uiWidth, pauiCodTab += uiWidth)
-  {
-    for ( UInt i = 0; i < uiWidth; i++ )
-    {
-      if ( pauiLenTab[i] > uiMaxLen )
-      {
-        uiMaxLen = pauiLenTab[i];
-      }
-    }
-  }
-
-  while ( uiLenRead < uiMaxLen )
-  {
-    // Read next bit
-    UInt uiBit;
-    
-    RNOKS( m_pcBitReadBuffer->get( uiBit, 1 ) );
-
-    uiCode = ( uiCode << 1 ) + uiBit;
-    uiLenRead++;
-
-    // Check for matches
-    pauiLenTab = auiLen;
-    pauiCodTab = auiCod;
-    for (UInt j = 0; j < uiHeight; j++, pauiLenTab += uiWidth, pauiCodTab += uiWidth)
-    {
-      for (UInt i = 0; i < uiWidth; i++)
-      {
-        if ( (pauiLenTab[i] == uiLenRead) && (pauiCodTab[i] == uiCode) )
-        {
-          uiVal1 = i;
-          uiVal2 = j;
-          return Err::m_nOK;
-        }
-      }
-    }
-
-  }
-  return Err::m_nERR;
-}
 
 ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt& uiTotalRun, MbDataAccess &rcMbDataAccess )
 {
@@ -1568,7 +1483,7 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
   if( uiMaxCoeffs <= 4 )
   {
 #if NOK_MGSCAVLC
-    if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
     {
       UInt uiTempVlcTable = min(uiVlcTable + 4-uiMaxCoeffs, 2);
       xGetTotalRun4( uiTempVlcTable, uiTotalRun );
@@ -1582,7 +1497,7 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
   else
   {
 #if NOK_MGSCAVLC
-    if( rcMbDataAccess.getSH().getBaseLayerId() != MSYS_UINT_MAX )
+    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
     {
       UInt uiTempVlcTable = uiVlcTable;
       if( uiMaxCoeffs < 15 )
@@ -1877,335 +1792,8 @@ ErrVal UvlcReader::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
         uiPos -= 4;
       }
     }
-
-  }
-
-
-  return Err::m_nOK;
-}
-
-
-
-ErrVal
-UvlcReader::xGetGolomb(UInt& uiSymbol, UInt uiK)
-{
-  UInt uiCode;
-  UInt uiR;
-  UInt uiQ = 0;
-  UInt uiC = 0;
-  UInt uiT = uiK >> 1;
-
-  while ( uiT > 0 )
-  {
-    uiC++;
-    uiT >>= 1;
-  }
-
-  // Unary part
-  do {
-    RNOKS( xGetFlag( uiCode ) );
-    uiQ++;
-  } while ( uiCode != 0 );
-  uiQ--;
-
-  uiSymbol = uiQ * uiK;
-
-  if ( uiC == 0 )
-  {
-    return Err::m_nOK;
-  }
-
-  // Binary part
-  RNOKS( xGetFlag( uiCode ) );
-  if ( uiCode == 0 )
-  {
-    if ( uiC > 1 )
-    {
-      RNOKS( xGetCode( uiR, uiC-1 ) );
-    } else {
-      uiR = 0;
-    }
-  } else {
-    RNOKS( xGetCode( uiCode, uiC ) );
-    uiR = uiCode + uiC;
-  }
-  DTRACE_N;
-
-  uiSymbol += uiR;
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-UvlcReader::xDecodeMonSeq ( UInt* auiSeq, UInt uiStart, UInt uiLen )
-{
-  UInt uiPos   = 0;
-  UInt uiLevel = uiStart;
-  while ( uiLevel > 0 && uiPos < uiLen )
-  {
-    UInt uiRun;
-    DTRACE_T("eob_run");
-    RNOKS( xGetGolomb( uiRun, 1 ) );
-    for (UInt ui=0; ui<uiRun; ui++,uiPos++)
-      auiSeq[uiPos] = uiLevel;
-    uiLevel--;
-  }
-  for (; uiPos < uiLen; uiPos++)
-  {
-    auiSeq[uiPos] = 0;
-  }
-  
-  return Err::m_nOK;
-}
-
-ErrVal 
-UvlcReader::xGetSigRunCode( UInt& uiVal, UInt uiCodeTab )
-{
-  if( uiCodeTab == 0)
-  {
-    RNOKS(xGetUnaryCode( uiVal ));
-  }
-  else if( uiCodeTab == 1)
-  {
-    RNOKS(xGetCodeCB1( uiVal ));
-  }
-  else if( uiCodeTab == 2)
-  {
-    RNOKS(xGetCodeCB2( uiVal ));
-  }
-  else if( uiCodeTab == 3)
-  {
-    UInt uiCode; 
-
-    RNOKS( xGetFlag( uiCode ) );
-
-    if(uiCode == 1)
-    {
-      uiVal = 0;
-    }
-    else
-    {
-      RNOKS( xGetCodeCB2( uiCode ) );
-      uiVal = uiCode+1;
-    }
-  }
-  else
-  {
-    UInt uiCode; 
-
-    RNOKS( xGetFlag( uiCode ) );
-
-    if(uiCode == 1)
-    {
-      uiVal = 0;
-    }
-    else
-    {
-      RNOKS( xGetCodeCB1( uiCode ) );
-      uiVal = uiCode+1;
-    }
-  }
-
-  return Err::m_nOK;
-}
-
-
-ErrVal 
-UvlcReader::xGetCodeCB1 ( UInt& uiVal )
-{
-  UInt uiPrefixLen = 0;
-  UInt uiFlag;
-
-  do
-  {
-    RNOKS(xGetFlag(uiFlag));
-    uiPrefixLen++;
-  }
-  while (uiFlag == 0);
-  RNOKS( xGetFlag( uiFlag) );
-  
-  uiVal = (2*(uiPrefixLen-1))+(1-uiFlag);
-  return Err::m_nOK;
-}
-
-ErrVal 
-UvlcReader::xGetCodeCB2( UInt& uiVal )
-{
-  UInt uiPrefixLen = 0;
-  UInt uiCode;
-
-  do
-  {
-    RNOKS( xGetCode( uiCode, 2) );
-    uiPrefixLen++;
-  }
-  while (uiCode == 0);
-
-  uiVal = (3*(uiPrefixLen-1))+(3-uiCode);
-  return Err::m_nOK;
-}
-
-ErrVal 
-UvlcReader::xGetUnaryCode( UInt& uiVal )
-{
-  UInt uiCode;
-  UInt uiSymbol = 0;
-
-  do
-  {
-    RNOKS( xGetFlag( uiCode ) );
-    if(uiCode == 1)
-    {
-      uiVal = uiSymbol;
-      break;
-    }
-    else
-    {
-      uiSymbol++;
-    }
-  }
-  while (true);
-  return Err::m_nOK;
-}
-
-ErrVal
-UvlcReader::xGetSigRunTabCode(UInt &uiTab)
-{
-  UInt uiFlag;
-
-  RNOKS(xGetFlag(uiFlag));
-  if(uiFlag == 1)
-  {
-    uiTab = 0;
-  }
-  else
-  {
-    RNOKS(xGetFlag(uiFlag));
-    if(uiFlag == 1)
-    {
-      uiTab = 1;
-    }
-    else 
-    {
-      RNOKS(xGetFlag(uiFlag));
-      if(uiFlag == 1)
-      {
-        uiTab  = 2;
-      }
-      else
-      {
-        RNOKS(xGetFlag(uiFlag));
-        uiTab = 4-uiFlag;
-      }
-    }
   }
   return Err::m_nOK;
 }
-
-
-
-ErrVal
-UvlcReader::RQreset( const SliceHeader& rcSliceHeader )
-{
-  m_pSymGrp->Init();
-  return Err::m_nOK;
-}
-
-
-UcSymGrpReader::UcSymGrpReader( UvlcReader* pParent )
-{
-  Init();
-}
-
-ErrVal
-UcSymGrpReader::Init()
-{
-  m_uiCode         = 0;
-  m_uiLen          = CAVLC_SYMGRP_SIZE;
-  m_auiSymCount[0] = m_auiSymCount[1] = m_auiSymCount[2] = 0;
-  m_uiTable = 0;
-  m_uiCodedFlag    = false;
-
-  return Err::m_nOK;
-}
-
-ErrVal
-// actually used only for refinement coefficients
-UcSymGrpReader::xFetchSymbol( UvlcReader* pcUvlcReader,
-                              UInt        uiBaseSign,
-                              TCoeff*     piCoeffPtr,
-                              Char*       pcTraceString )
-{
-  if( m_uiLen == CAVLC_SYMGRP_SIZE )
-  {
-    UInt uiTemp;
-   
-    m_uiCodedFlag = true;
-    RNOKS( pcUvlcReader->codeFromBitstream2Di( g_auiRefSymCode[m_uiTable], g_auiRefSymLen[m_uiTable], 27, 1, m_uiCode, uiTemp ) );
-
-    UInt uiCode = m_uiCode;
-    UInt uiDenom = 9;
-
-    for(UInt ui = 0; ui < CAVLC_SYMGRP_SIZE; ui++)
-    {
-      UChar ucSym;
-      ucSym = uiCode/uiDenom;
-      m_auiSymbolBuf[ui] = ucSym;
-      m_auiSymCount[ucSym]++;
-
-      uiCode = (uiCode % uiDenom);
-      uiDenom /= 3;
-    }
-  
-    m_uiLen   = 0;
-    m_uiCode  = 0;
-  }
-
-  *piCoeffPtr = 0;
-  if (m_auiSymbolBuf[m_uiLen] > 0) {
-    UInt uiSymbol = m_auiSymbolBuf[m_uiLen] - 1;
-    UInt uiSignEL = ( uiBaseSign ^ uiSymbol );
-    *piCoeffPtr   = ( uiSignEL ? -1 : 1 );
-  }
-
-  m_uiLen ++;
-
-  return Err::m_nOK;
-}
-
-Bool
-UcSymGrpReader::UpdateVlc()
-{
-  UInt uiFlag = m_uiCodedFlag;
-  if (uiFlag) {
-    // updating
-    m_uiTable = 0;
-    if (m_auiSymCount[0] < 2 *(m_auiSymCount[1] + m_auiSymCount[2]) ||
-      m_auiSymCount[1] < 2 * m_auiSymCount[2]) {
-      m_uiTable = 1;
-    }
-
-    // scaling
-    m_auiSymCount[0] = (m_auiSymCount[0] >> 1);
-    m_auiSymCount[1] = (m_auiSymCount[1] >> 1);
-    m_auiSymCount[2] = (m_auiSymCount[2] >> 1);
-    m_uiCodedFlag = false;
-    
-    m_uiLen = CAVLC_SYMGRP_SIZE;
-  }
-  return (uiFlag != 0);
-}
-
-ErrVal
-UcSymGrpReader::Flush()
-{
-  m_uiCode         = 0;
-
-  m_uiLen          = CAVLC_SYMGRP_SIZE;
-
-  return Err::m_nOK;
-}
-
 
 H264AVC_NAMESPACE_END
