@@ -543,6 +543,8 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   rpcSliceHeader->setStoreRefBasePicFlag                ( false );
   rpcSliceHeader->setPriorityId                         ( 0 );
   rpcSliceHeader->setDiscardableFlag                    ( false );
+  rpcSliceHeader->setQualityId                          ( 0 );
+  rpcSliceHeader->setIdrFlag                            ( rcFrameSpec.getNalUnitType  () == NAL_UNIT_CODED_SLICE_IDR );
 
 
   //===== set general parameters =====

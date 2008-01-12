@@ -477,7 +477,7 @@ NalUnitEncoder::write( const SliceHeader& rcSH )
     //----- modify copy of slice header -----
     cSH.setDependencyId                   ( rcSH.getLayerCGSSNR         () );
     cSH.setQualityId                      ( rcSH.getQualityLevelCGSSNR  () + uiMGSFragment );
-    cSH.setDiscardableFlag                ( rcSH.getDiscardableFlag     () || cSH.getQualityId() >= rcSH.getQLDiscardable() );
+    cSH.setDiscardableFlag                ( rcSH.getDiscardableFlag     () );
     cSH.setNoInterLayerPredFlag           ( rcSH.getNoInterLayerPredFlag() && cSH.getQualityId() == 0 );
     cSH.setScanIdxStart                   ( rcSH.getSPS().getMGSCoeffStart( uiMGSFragment ) );
     cSH.setScanIdxStop                    ( rcSH.getSPS().getMGSCoeffStop ( uiMGSFragment ) );

@@ -218,7 +218,7 @@ public:
   {
   protected:
     ScalableSei ();
-    ~ScalableSei();
+    virtual ~ScalableSei();
 
   public:
     static ErrVal create ( ScalableSei*&      rpcSeiMessage);

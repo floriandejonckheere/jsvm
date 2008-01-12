@@ -412,11 +412,9 @@ H264AVCDecoder::getBaseLayerResidual( Frame*& pcResidual,
 }
 
 ErrVal
-H264AVCDecoder::getBaseLayerPWTable( PredWeightTable*& rpcPredWeightTable,
-                                     UInt              uiRefLayerDependencyId,
-                                     ListIdx           eListIdx )
+H264AVCDecoder::getBaseSliceHeader( SliceHeader*& rpcSliceHeader, UInt uiRefLayerDependencyId )
 {
-  RNOK( m_apcLayerDecoder[ uiRefLayerDependencyId ]->getBaseLayerPWTable( rpcPredWeightTable, eListIdx ) );
+  RNOK( m_apcLayerDecoder[ uiRefLayerDependencyId ]->getBaseSliceHeader( rpcSliceHeader ) );
   return Err::m_nOK;
 }
 

@@ -218,7 +218,6 @@ public:
     {
       m_aT[ui] = rcStatBuf.m_aT[ui];
     }
-    //::memcpy( m_aT, rcStatBuf.m_aT, uiSize * sizeof( T ) );
   }
 
   ErrVal get( T& rcT, UInt uiOffset ) const

@@ -3391,7 +3391,14 @@ LayerEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   //===== de-blocking filter parameters =====
   if( pcSliceHeader->getPPS().getDeblockingFilterParametersPresentFlag() )
   {
-    pcSliceHeader->getDeblockingFilterParameter().setDisableDeblockingFilterIdc ( m_uiFilterIdc       );
+    UInt uiFilterIdc = m_uiFilterIdc;
+    if( ( eNalUnitType == NAL_UNIT_CODED_SLICE || eNalUnitType == NAL_UNIT_CODED_SLICE_IDR ) && uiFilterIdc > 2 )
+    {
+      if      ( uiFilterIdc == 3 )  uiFilterIdc = 0;
+      else if ( uiFilterIdc == 4 )  uiFilterIdc = 2;
+      else                          ROT( 1 );
+    }
+    pcSliceHeader->getDeblockingFilterParameter().setDisableDeblockingFilterIdc ( uiFilterIdc         );
     pcSliceHeader->getDeblockingFilterParameter().setSliceAlphaC0Offset         ( 2 * m_iAlphaOffset  );
     pcSliceHeader->getDeblockingFilterParameter().setSliceBetaOffset            ( 2 * m_iBetaOffset   );
   }
@@ -5161,7 +5168,8 @@ LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
     if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
     {
       pcSliceHeader->setRedundantPicCnt( 0 );	// set redundant_pic_cnt to 0 for primary coded picture
-			m_apcFrameTemp[9]->copy((rcControlData.getBaseLayerSbb()),ePicType);//RPIC bug fix
+      if( rcControlData.getBaseLayerSbb() )
+  			m_apcFrameTemp[9]->copy((rcControlData.getBaseLayerSbb()),ePicType);//RPIC bug fix
     }
     // JVT-Q054 Red. Picture }
     RNOK( pcBLRecFrame->copy      ( pcFrame, ePicType ) );
@@ -5216,8 +5224,11 @@ LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
 			m_apcFrameTemp[6]->copy(pcBLRecFrame,ePicType);
 			m_apcFrameTemp[7]->copy(pcResidual,ePicType);
 			m_apcFrameTemp[8]->copy(pcPredSignal,ePicType); 
-      m_apcFrameTemp[10]->copy((rcControlData.getBaseLayerSbb()),ePicType);
-      rcControlData.getBaseLayerSbb()->copy(m_apcFrameTemp[9],ePicType);
+      if( rcControlData.getBaseLayerSbb() )
+      {
+        m_apcFrameTemp[10]->copy((rcControlData.getBaseLayerSbb()),ePicType);
+        rcControlData.getBaseLayerSbb()->copy(m_apcFrameTemp[9],ePicType);
+      }
       //RPIC bug fix }
       // in current version, slice repetition is supported for each primary coded slice
       UInt  uiRedundantPicNum = 1;  // number of redundant pictures for each primary coded picture
@@ -5244,7 +5255,8 @@ LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
 			pcBLRecFrame->copy(m_apcFrameTemp[6],ePicType);
 			pcResidual->copy(m_apcFrameTemp[7],ePicType);
 			pcPredSignal->copy(m_apcFrameTemp[8],ePicType); 
-			rcControlData.getBaseLayerSbb()->copy(m_apcFrameTemp[10],ePicType);
+      if( rcControlData.getBaseLayerSbb() )
+  			rcControlData.getBaseLayerSbb()->copy(m_apcFrameTemp[10],ePicType);
       //RPIC bug fix }
     }
     // JVT-Q054 Red. Picture }

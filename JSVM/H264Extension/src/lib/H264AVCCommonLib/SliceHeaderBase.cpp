@@ -480,7 +480,7 @@ PredWeight::write( HeaderSymbolWriteIf& rcWriteIf ) const
 }
 
 ErrVal
-PredWeight::read( HeaderSymbolReadIf& rcReadIf )
+PredWeight::read( HeaderSymbolReadIf& rcReadIf, UInt uiLumaLog2WeightDenom, UInt uiChromaLog2WeightDenom )
 {
   RNOK  ( rcReadIf.getFlag( m_bLumaWeightFlag,   "PWT: luma_weight_flag" ) );
   if( m_bLumaWeightFlag )
@@ -489,6 +489,11 @@ PredWeight::read( HeaderSymbolReadIf& rcReadIf )
     RNOK( rcReadIf.getSvlc( m_iLumaOffset,       "PWT: luma_offset" ) );
     ROT ( m_iLumaWeight < -128 || m_iLumaWeight > 127 );
     ROT ( m_iLumaOffset < -128 || m_iLumaOffset > 127 );
+  }
+  else
+  {
+    m_iLumaWeight = ( 1 << uiLumaLog2WeightDenom );
+    m_iLumaOffset = 0;
   }
   RNOK  ( rcReadIf.getFlag( m_bChromaWeightFlag, "PWT: chroma_weight_flag" ) );
   if( m_bChromaWeightFlag )
@@ -501,6 +506,11 @@ PredWeight::read( HeaderSymbolReadIf& rcReadIf )
     ROT ( m_iChromaCbOffset < -128 || m_iChromaCbOffset > 127 );
     ROT ( m_iChromaCrWeight < -128 || m_iChromaCrWeight > 127 );
     ROT ( m_iChromaCrOffset < -128 || m_iChromaCrOffset > 127 );
+  }
+  else
+  {
+    m_iChromaCbWeight = m_iChromaCrWeight = ( 1 << uiChromaLog2WeightDenom );
+    m_iChromaCbOffset = m_iChromaCrOffset = 0;
   }
   return Err::m_nOK;
 }
@@ -718,11 +728,11 @@ PredWeightTable::write( HeaderSymbolWriteIf& rcWriteIf, UInt uiNumRefIdxActiveMi
 }
 
 ErrVal
-PredWeightTable::read( HeaderSymbolReadIf& rcReadIf, UInt uiNumRefIdxActiveMinus1 )
+PredWeightTable::read( HeaderSymbolReadIf& rcReadIf, UInt uiNumRefIdxActiveMinus1, UInt uiLumaLog2WeightDenom, UInt uiChromaLog2WeightDenom )
 {
   for( UInt uiIndex = 0; uiIndex <= uiNumRefIdxActiveMinus1; uiIndex++ )
   {
-    RNOK( get( uiIndex ).read( rcReadIf ) );
+    RNOK( get( uiIndex ).read( rcReadIf, uiLumaLog2WeightDenom, uiChromaLog2WeightDenom ) );
   }
   return Err::m_nOK;
 }
@@ -1420,7 +1430,7 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
         RNOK(   m_cPredWeightTableL0.write( rcWriteIf, m_uiNumRefIdxL0ActiveMinus1 ) );
         if( isBSlice() )
         {
-          RNOK( m_cPredWeightTableL1.write( rcWriteIf, m_uiNumRefIdxL0ActiveMinus1 ) );
+          RNOK( m_cPredWeightTableL1.write( rcWriteIf, m_uiNumRefIdxL1ActiveMinus1 ) );
         }
       }
     }
@@ -1618,10 +1628,10 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
       {
         RNOK(   rcReadIf.getUvlc ( m_uiLumaLog2WeightDenom,                        "PWT: luma_log_weight_denom" ) );
         RNOK(   rcReadIf.getUvlc ( m_uiChromaLog2WeightDenom,                      "PWT: chroma_log_weight_denom" ) );
-        RNOK(   m_cPredWeightTableL0.read( rcReadIf, m_uiNumRefIdxL0ActiveMinus1 ) );
+        RNOK(   m_cPredWeightTableL0.read( rcReadIf, m_uiNumRefIdxL0ActiveMinus1, m_uiLumaLog2WeightDenom, m_uiChromaLog2WeightDenom ) );
         if( isBSlice() )
         {
-          RNOK( m_cPredWeightTableL1.read( rcReadIf, m_uiNumRefIdxL0ActiveMinus1 ) );
+          RNOK( m_cPredWeightTableL1.read( rcReadIf, m_uiNumRefIdxL1ActiveMinus1, m_uiLumaLog2WeightDenom, m_uiChromaLog2WeightDenom ) );
         }
       }
     }

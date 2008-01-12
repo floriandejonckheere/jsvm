@@ -1883,12 +1883,6 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
   Frame*        pcRecFrame          = ( bReconstructBaseRep ? pcBaseRepFrame : pcFrame );
   MbDataCtrl*   pcMbDataCtrl        = rcControlData.getMbDataCtrl ();
 
-  //===== init base layer =====
-  RNOK( xInitBaseLayer( rcControlData, pcSliceHeaderBase ) );
-
-  //----- decoding -----
-  RNOK( m_pcControlMng->initSliceForDecoding( rcSliceHeader ) );
-
   //===== get reference frame lists =====
   RNOK( m_pcDecodedPictureBuffer->setPrdRefLists( m_pcCurrDPBUnit ) );
   RefFrameList& rcRefFrameList0 = rcControlData.getPrdFrameList( LIST_0 );
@@ -1896,6 +1890,12 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
   MbDataCtrl*   pcMbDataCtrl0L1 = rcControlData.getMbDataCtrl0L1();
   rcSliceHeader.setRefFrameList( &rcRefFrameList0, FRAME, LIST_0 );
   rcSliceHeader.setRefFrameList( &rcRefFrameList1, FRAME, LIST_1 );
+
+  //===== init base layer =====
+  RNOK( xInitBaseLayer( rcControlData, pcSliceHeaderBase ) );
+
+  //----- decoding -----
+  RNOK( m_pcControlMng->initSliceForDecoding( rcSliceHeader ) );
 
   if( rcSliceHeader.isMbaffFrame() )
   {
@@ -2104,21 +2104,23 @@ LayerDecoder::xInitSliceHeader( SliceHeader& rcSliceHeader, const SliceDataNALUn
      !rcSliceHeader.getNoInterLayerPredFlag       ()            &&
       rcSliceHeader.getBasePredWeightTableFlag    ()              )
   {
-    PredWeightTable* pcPredWeightTableL0 = NULL;
-    PredWeightTable* pcPredWeightTableL1 = NULL;
-    RNOK( m_pcH264AVCDecoder->getBaseLayerPWTable( pcPredWeightTableL0, rcSliceHeader.getRefLayerDependencyId(), LIST_0 ) );
-    RNOK( m_pcH264AVCDecoder->getBaseLayerPWTable( pcPredWeightTableL1, rcSliceHeader.getRefLayerDependencyId(), LIST_1 ) );
-    rcSliceHeader.getPredWeightTable( LIST_0 ).copy( *pcPredWeightTableL0 );
-    rcSliceHeader.getPredWeightTable( LIST_1 ).copy( *pcPredWeightTableL1 );
+    SliceHeader*  pcBaseSliceHeader = 0;
+    RNOK( m_pcH264AVCDecoder->getBaseSliceHeader( pcBaseSliceHeader, rcSliceHeader.getRefLayerDependencyId() ) );
+    rcSliceHeader.setLumaLog2WeightDenom  ( pcBaseSliceHeader->getLumaLog2WeightDenom  () );
+    rcSliceHeader.setChromaLog2WeightDenom( pcBaseSliceHeader->getChromaLog2WeightDenom() );
+    rcSliceHeader.getPredWeightTableL0().copy( pcBaseSliceHeader->getPredWeightTableL0 () );
+    rcSliceHeader.getPredWeightTableL1().copy( pcBaseSliceHeader->getPredWeightTableL1 () );
   }
   else if( rcSliceHeader.getPPS().getWeightedPredFlag ()            && 
            rcSliceHeader.getSliceType                 () == P_SLICE &&
           !rcSliceHeader.getNoInterLayerPredFlag      ()            &&
            rcSliceHeader.getBasePredWeightTableFlag   ()              )
   {
-    PredWeightTable* pcPredWeightTableL0 = NULL;
-    RNOK( m_pcH264AVCDecoder->getBaseLayerPWTable( pcPredWeightTableL0, rcSliceHeader.getRefLayerDependencyId(), LIST_0 ) );
-    rcSliceHeader.getPredWeightTable( LIST_0 ).copy( *pcPredWeightTableL0 );
+    SliceHeader*  pcBaseSliceHeader = 0;
+    RNOK( m_pcH264AVCDecoder->getBaseSliceHeader( pcBaseSliceHeader, rcSliceHeader.getRefLayerDependencyId() ) );
+    rcSliceHeader.setLumaLog2WeightDenom  ( pcBaseSliceHeader->getLumaLog2WeightDenom  () );
+    rcSliceHeader.setChromaLog2WeightDenom( pcBaseSliceHeader->getChromaLog2WeightDenom() );
+    rcSliceHeader.getPredWeightTableL0().copy( pcBaseSliceHeader->getPredWeightTableL0 () );
   }
 
   //===== init FMO ==== !!!! check & improve that part !!!!!
@@ -2196,16 +2198,14 @@ LayerDecoder::xInitDPBUnit( SliceHeader&   rcSliceHeader,
 
 
 ErrVal
-LayerDecoder::getBaseLayerPWTable( PredWeightTable*& rpcPredWeightTable,
-                                  ListIdx           eListIdx )
+LayerDecoder::getBaseSliceHeader( SliceHeader*& rpcSliceHeader )
 {
   ROF( m_bInitialized );
 
-  DPBUnit*      pcBaseDPBUnit = m_pcDecodedPictureBuffer->getLastUnit();
+  DPBUnit* pcBaseDPBUnit = m_pcDecodedPictureBuffer->getLastUnit();
   ROF( pcBaseDPBUnit );
-  SliceHeader*  pcSliceHeader = pcBaseDPBUnit->getCtrlData().getSliceHeader();
-  ROF( pcSliceHeader );
-  rpcPredWeightTable          = &pcSliceHeader->getPredWeightTable( eListIdx );
+  rpcSliceHeader = pcBaseDPBUnit->getCtrlData().getSliceHeader();
+  ROF( rpcSliceHeader );
   return Err::m_nOK;
 }
 

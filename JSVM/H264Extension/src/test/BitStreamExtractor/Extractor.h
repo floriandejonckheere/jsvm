@@ -149,6 +149,8 @@ public:
                             UInt                    uiLevel,
                             UInt                    uiFGSLayer,
                             Bool                    bNewPicture );
+  ErrVal addPic( h264::PacketDescription& rcPacketDescription );
+
   UInt64  getNALUBytesNoUse (  UInt uiLayer,
                                UInt uiLevel,
                                UInt uiFGS   )    const { return m_aaaui64NumNALUBytesNoUse[uiLayer][uiLevel][uiFGS]; }

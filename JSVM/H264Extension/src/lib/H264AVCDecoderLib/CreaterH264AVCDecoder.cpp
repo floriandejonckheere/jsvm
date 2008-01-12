@@ -387,8 +387,13 @@ AccessUnitSlices::xSetComplete( Bool              bEndOfStream,
     UInt                                        uiNextDQId  = (*iIter)->getDQId();
     while( iIter != iEnd )
     {
-      if( (*iIter)->getDQId() != uiCurrDQId && (*iIter)->getDQId() != uiNextDQId )
+      if( (*iIter)->getDQId() == uiCurrDQId )
       {
+        iIter++;
+      }
+      else if( uiNextDQId == MSYS_UINT_MAX || (*iIter)->getDQId() > uiNextDQId )
+      {
+        // remove non-required layer representation
         MyList<SliceDataNALUnit*>::reverse_iterator iNext     = iIter; iNext++;
         MyList<SliceDataNALUnit*>::iterator         iToDelete = iNext.base();
         delete *iToDelete;
@@ -396,14 +401,20 @@ AccessUnitSlices::xSetComplete( Bool              bEndOfStream,
         iIter     = static_cast<MyList<SliceDataNALUnit*>::reverse_iterator>( iToDelete );
         iEnd      = m_cSliceDataNalUnitList.rend();
       }
+      else if( ( (*iIter)->getDQId() >> 4 ) == ( uiNextDQId >> 4 ) )
+      {
+        if( (*iIter)->getDQId() != uiNextDQId )
+        {
+          printf( "WARNING: missing layer representation (Q=%d), chosing Q=%d\n", uiNextDQId & 15, (*iIter)->getDQId() & 15 );
+        }
+        uiCurrDQId  = (*iIter)->getDQId();
+        uiNextDQId  = (*iIter)->getRefLayerDQId();
+        iIter++;
+      }
       else
       {
-        if( (*iIter)->getDQId() == uiNextDQId )
-        {
-          uiCurrDQId  = uiNextDQId;
-          uiNextDQId  = (*iIter)->getRefLayerDQId();
-        }
-        iIter++;
+        printf( "ERROR: referenced dependency representation missing (D=%d)\n", uiNextDQId >> 4 );
+        AOT( 1 ); // replace with error concealment code in later versions
       }
     }
     AOF( uiNextDQId == MSYS_UINT_MAX ); // we are missing required packets (replace with error concealment in later version)

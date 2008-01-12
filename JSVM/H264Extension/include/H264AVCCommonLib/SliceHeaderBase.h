@@ -262,7 +262,9 @@ public:
 
   Void    copy  ( const PredWeight&     rcPredWeight );
   ErrVal  write ( HeaderSymbolWriteIf&  rcWriteIf ) const;
-  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf );
+  ErrVal  read  ( HeaderSymbolReadIf&   rcReadIf,
+                  UInt                  uiLumaLog2WeightDenom,
+                  UInt                  uiChromaLog2WeightDenom );
 
   ErrVal  initRandomly  ();
   ErrVal  initWeights   ( Int iLumaWeight, Int iCbWeight, Int iCrWeight );
@@ -330,7 +332,7 @@ public:
   Void    clear ();
   Void    copy  ( const PredWeightTable&  rcPredWeightTable );
   ErrVal  write ( HeaderSymbolWriteIf&    rcWriteIf,  UInt uiNumRefIdxActiveMinus1 ) const;
-  ErrVal  read  ( HeaderSymbolReadIf&     rcReadIf,   UInt uiNumRefIdxActiveMinus1 );
+  ErrVal  read  ( HeaderSymbolReadIf&     rcReadIf,   UInt uiNumRefIdxActiveMinus1, UInt uiLumaLog2WeightDenom, UInt uiChromaLog2WeightDenom );
 
   const PredWeightTable& operator = ( const PredWeightTable& rcPredWeightTable )    { copy( rcPredWeightTable ); return *this; }
 };

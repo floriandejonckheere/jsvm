@@ -408,8 +408,8 @@ public:
                                                     MbDataCtrl*&      pcMbDataCtrl,
                                                     Bool&             rbConstrainedIPred,
                                                     Bool              bSpatialScalability );
-  ErrVal            getBaseLayerPWTable           ( PredWeightTable*& rpcPredWeightTable,
-                                                    ListIdx           eListIdx );
+  ErrVal            getBaseSliceHeader            ( SliceHeader*&     rpcSliceHeader );
+
   Void              setResizeParameters           ( ResizeParameters* params )        { m_pcResizeParameter = params; }
   ResizeParameters* getResizeParameters           ()                                  { return m_pcResizeParameter; }
   Int               getSpatialScalabilityType     ()                            const { return m_pcResizeParameter->m_iSpatialScalabilityType; }

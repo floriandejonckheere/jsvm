@@ -151,10 +151,8 @@ public:
                                           UInt              uiBaseLayerId );
   ErrVal  getBaseLayerResidual          ( Frame*&           pcResidual,
                                           UInt              uiBaseLayerId );
-  ErrVal  getBaseLayerPWTable           ( PredWeightTable*& rpcPredWeightTable,
-                                          UInt              uiBaseLayerId,
-                                          ListIdx           eListIdx );
-
+  ErrVal  getBaseSliceHeader            ( SliceHeader*&     rpcSliceHeader,
+                                          UInt              uiRefLayerDependencyId );
 
 
 protected:

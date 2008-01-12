@@ -1855,13 +1855,13 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
     		// JVT-S054 (ADD) ->
 				if ( m_first_mb_in_roi[i] != NULL )
 					free( m_first_mb_in_roi[i] );
-				m_first_mb_in_roi[i] = (UInt*)malloc( m_num_rois_minus1[i]*sizeof(UInt) );
+        m_first_mb_in_roi[i] = (UInt*)malloc( (m_num_rois_minus1[i]+1)*sizeof(UInt) );
 				if ( m_roi_width_in_mbs_minus1[i] != NULL )
 					free( m_roi_width_in_mbs_minus1[i] );
-				m_roi_width_in_mbs_minus1[i] = (UInt*)malloc( m_num_rois_minus1[i]*sizeof(UInt) );
+        m_roi_width_in_mbs_minus1[i] = (UInt*)malloc( (m_num_rois_minus1[i]+1)*sizeof(UInt) );
 				if ( m_roi_height_in_mbs_minus1[i] != NULL )
 					free( m_roi_height_in_mbs_minus1[i] );
-				m_roi_height_in_mbs_minus1[i] = (UInt*)malloc( m_num_rois_minus1[i]*sizeof(UInt) );
+        m_roi_height_in_mbs_minus1[i] = (UInt*)malloc( (m_num_rois_minus1[i]+1)*sizeof(UInt) );
     		// JVT-S054 (ADD) <-
 				for ( j = 0; j <= m_num_rois_minus1[i]; j++ )
 				{

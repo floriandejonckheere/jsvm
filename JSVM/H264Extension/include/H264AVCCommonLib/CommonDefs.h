@@ -92,6 +92,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
+#define HEIKO 1
+
+
+
 typedef UChar CoefMap;
 
 #define _JSVM_VERSION_ "9.10" //added by jerome.vieron@thomson.net

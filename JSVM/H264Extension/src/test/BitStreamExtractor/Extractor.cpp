@@ -816,10 +816,12 @@ Extractor::xAnalyse()
       if(!cPacketDescription.bDiscardable||cPacketDescription.Layer>=uiExtLayer)
       {
         RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
+        RNOK( m_cScalableStreamDescription.addPic( cPacketDescription ) );
       }
       else
       {
         RNOK( m_cScalableStreamDescription.addPacketNoUse( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
+        RNOK( m_cScalableStreamDescription.addPic( cPacketDescription ) );
       }
       //DS_FIX_FT_09_2007
       UInt eNalUnitType = cPacketDescription.NalUnitType;
@@ -841,7 +843,10 @@ Extractor::xAnalyse()
 
     //JVT-P031
     if(!m_bUseSIP || !cPacketDescription.bDiscardable)
+    {
       RNOK( m_cScalableStreamDescription.addPacket( uiPacketSize, uiLayer, uiLevel, uiFGSLayer, bNewPicture ) );
+      RNOK( m_cScalableStreamDescription.addPic( cPacketDescription ) );
+    }
     //~JVT-P031
     //DS_FIX_FT_09_2007
     UInt eNalUnitType = cPacketDescription.NalUnitType;
@@ -4534,11 +4539,6 @@ ScalableStreamDescription::addPacket( UInt  uiNumBytes,
 
   m_aaaui64NumNALUBytes[uiLayer][uiLevel][uiFGSLayer] += uiNumBytes;
 
-  if( bNewPicture && uiFGSLayer == 0 )
-  {
-    m_aauiNumPictures[uiLayer][uiLevel]++;
-  }
-
   return Err::m_nOK;
 }
 
@@ -4558,14 +4558,27 @@ ScalableStreamDescription::addPacketNoUse( UInt  uiNumBytes,
 
   m_aaaui64NumNALUBytesNoUse[uiLayer][uiLevel][uiFGSLayer] += uiNumBytes;
 
-  if( bNewPicture && uiFGSLayer == 0 )
-  {
-    m_aauiNumPictures[uiLayer][uiLevel]++;
-  }
-
   return Err::m_nOK;
 }
 //S051}
+
+
+ErrVal ScalableStreamDescription::addPic( h264::PacketDescription& rcPacketDescription )
+{
+  if((rcPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE ||
+      rcPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_IDR ) &&
+      rcPacketDescription.uiFirstMb   == 0 )
+  {
+    m_aauiNumPictures[0][rcPacketDescription.Level]++;
+  }
+  if( rcPacketDescription.NalUnitType == NAL_UNIT_CODED_SLICE_SCALABLE &&
+      rcPacketDescription.FGSLayer    == 0 &&
+      rcPacketDescription.uiFirstMb   == 0 )
+  {
+    m_aauiNumPictures[rcPacketDescription.Layer][rcPacketDescription.Level]++;
+  }
+  return Err::m_nOK;
+}
 
 ErrVal
 ScalableStreamDescription::analyse()
