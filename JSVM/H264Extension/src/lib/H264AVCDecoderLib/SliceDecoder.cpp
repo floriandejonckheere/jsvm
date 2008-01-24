@@ -195,8 +195,8 @@ SliceDecoder::decode( SliceHeader&  rcSH,
 
   //===== loop over macroblocks =====
   UInt uiMbAddress     = rcSH.getFirstMbInSlice();
-  UInt uiLastMbAddress = rcSH.getFirstMbInSlice() + rcSH.getNumMbsInSlice() - 1;
-  while( uiMbAddress <= uiLastMbAddress )
+  UInt uiNumMbsInSlice = rcSH.getNumMbsInSlice();
+  for( UInt uiNumMbsDecoded = 0; uiNumMbsDecoded < uiNumMbsInSlice; uiNumMbsDecoded++ )
   {
     MbDataAccess* pcMbDataAccess     = NULL;
     MbDataAccess* pcMbDataAccessBase = NULL;
@@ -222,7 +222,7 @@ SliceDecoder::decode( SliceHeader&  rcSH,
                                               bReconstructAll ) );
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-    RNOK( xRewriteMb( *pcMbDataAccess, pcMbDataAccessBase, uiMbAddress == uiLastMbAddress ) );
+    RNOK( xRewriteMb( *pcMbDataAccess, pcMbDataAccessBase, uiNumMbsDecoded == uiNumMbsInSlice - 1 ) );
 #endif
 
   	if( rcSH.isTrueSlice())
@@ -291,8 +291,8 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
   RNOK( gSetFrameFieldArrays( apcBaseLayerResidual, pcBaseLayerResidual ) );
 
   //===== loop over macroblocks =====
-  UInt uiMbAddress           = rcSH.getFirstMbInSlice();
-  const UInt uiLastMbAddress = rcSH.getNumMbsInSlice ()-1;
+  UInt uiMbAddress      = rcSH.getFirstMbInSlice();
+  UInt uiLastMbAddress  = rcSH.getFirstMbInSlice() + rcSH.getNumMbsInSlice() - 1;
   for( ; uiMbAddress <= uiLastMbAddress; uiMbAddress+=2 )
   {
     for( UInt eP = 0; eP < 2; eP++ )

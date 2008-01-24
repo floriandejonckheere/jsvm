@@ -7,7 +7,7 @@ original    => "BUS_352x288_30.yuv",
 width       => 352,
 height      => 288,
 framerate   => 30,
-nbframes    => 15,
+nbframes    => 30,
 verbosemode => 1,	
 phasemode   => 1,
 
@@ -49,13 +49,13 @@ tests              => [
                        # Test   0 #
                        #----------#
                        {
-                        name        => "L0",
+                        name        => "L1",
                         mode        => 1,
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                  			bitrate     => 307,
-                  			psnr        => 34.21,
+                  	bitrate     => 262,
+                  	psnr        => 34.87,
                         encdecmatch => 1,
                        },
                        #----------#
@@ -67,8 +67,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1365,
-                  			psnr        => 34.0696,
+                  	bitrate     => 1202,
+                  	psnr        => 34.79,
                         encdecmatch => 1,
                        },
                       ],

@@ -2008,6 +2008,17 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
 
       if( ePicType != TOP_FIELD ) { ETRACE_NEWFRAME; }
 
+#if HEIKO
+      if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
+      {
+        m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits + uiBitsSEI;
+      }
+      else
+      {
+        m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits + uiBitsSEI;
+      }
+#endif
+
       ruiBits = ruiBits + uiBits + uiBitsSEI;
       uiBitsSEI=0;
     }
@@ -2437,6 +2448,17 @@ LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcc
       // JVT-V068 }
 
       rcPicOutputDataList.push_back( cPicOutputData );
+
+#if HEIKO
+      if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
+      {
+        m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits + uiBitsSEI;
+      }
+      else
+      {
+        m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits + uiBitsSEI;
+      }
+#endif
 
     //S051{
     if(m_uiAnaSIP>0)

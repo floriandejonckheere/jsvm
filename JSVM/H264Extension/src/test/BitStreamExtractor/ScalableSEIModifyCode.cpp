@@ -423,6 +423,12 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getBitstreamRestrictionInfoPresentFlag( uiLayer ) );//JVT-W051
 		//SEI changes update }
     pcScalableModifyCode->WriteFlag( pcScalableSei->getExactInterlayerPredFlag( uiLayer ) ); //JVT-S036 lsj
+#if HEIKO
+    if( pcScalableSei->getSubPicLayerFlag( uiLayer ) || pcScalableSei->getIroiSliceDivisionInfoPresentFlag( uiLayer ) )
+    {
+      pcScalableModifyCode->WriteFlag( pcScalableSei->getExactSampleValueMatchFlag( uiLayer ) );
+    }
+#endif
     //pcScalableModifyCode->WriteFlag( pcScalableSei->getAvcLayerConversionFlag( uiLayer ) ); //JVT-W046
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerConversionFlag( uiLayer ) ); //JVT-W046 SEI changes update
 		pcScalableModifyCode->WriteFlag( pcScalableSei->getLayerOutputFlag( uiLayer ) );//JVT-W047 wxwan

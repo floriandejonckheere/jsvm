@@ -196,6 +196,8 @@ PicEncoder::init( CodingParameter*    pcCodingParameter,
   RNOK( m_pcRecPicBuffer  ->init( m_pcYuvBufferCtrlFullPel, m_pcYuvBufferCtrlHalfPel ) );
   RNOK( m_pcInputPicBuffer->init() );
 
+  m_pcSliceEncoder->getMbEncoder()->setLowComplexMbEnable( 0, false );
+
   //----- init parameters -----
   m_uiWrittenBytes          = 0;
   m_uiCodedFrames           = 0;
@@ -581,8 +583,8 @@ PicEncoder::xInitSliceHeader( SliceHeader*&     rpcSliceHeader,
   //===== set MMCO commands =====
   if( rcFrameSpec.getMmcoBuf() )
   {
-    rpcSliceHeader->getDecRefPicMarking().setAdaptiveRefPicMarkingModeFlag( true );
     rpcSliceHeader->getDecRefPicMarking().copy( *rcFrameSpec.getMmcoBuf() );
+    rpcSliceHeader->getDecRefPicMarking().setAdaptiveRefPicMarkingModeFlag( true );
   }
 
   //===== set RPRL commands =====
