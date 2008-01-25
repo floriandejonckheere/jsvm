@@ -1550,11 +1550,11 @@ H264AVCEncoder::xInitParameterSets()
   //bug-fix suffix}}
     UInt              uiMbY               = ( rcLayerParameters.getFrameHeight() + 15 ) >> 4;
     UInt              uiMbX               = ( rcLayerParameters.getFrameWidth () + 15 ) >> 4;
-    UInt              uiFrameMbsOnlyFlag  = ( !rcLayerParameters.getPAff() && !rcLayerParameters.getMbAff() );
+    UInt              uiFrameMbsOnlyFlag  = ( !rcLayerParameters.getPAff() && !rcLayerParameters.getMbAff() ? 1 : 0 );
     UInt              uiCropLeft          = 0;
     UInt              uiCropTop           = 0;
-    UInt              uiCropRight         = ( ( 16 - ( rcLayerParameters.getFrameWidth () % 16 ) ) % 16 ) / 2;                      // chroma_format_idc is always equal to 1
-    UInt              uiCropBottom        = ( ( 16 - ( rcLayerParameters.getFrameHeight() % 16 ) ) % 16 ) / 2 / uiFrameMbsOnlyFlag; // chroma_format_idc is always equal to 1
+    UInt              uiCropRight         = ( ( 16 - ( rcLayerParameters.getFrameWidth () % 16 ) ) % 16 ) / 2;                              // chroma_format_idc is always equal to 1
+    UInt              uiCropBottom        = ( ( 16 - ( rcLayerParameters.getFrameHeight() % 16 ) ) % 16 ) / 2 / ( 2 - uiFrameMbsOnlyFlag ); // chroma_format_idc is always equal to 1
     UInt              uiOutFreq           = (UInt)ceil( rcLayerParameters.getOutputFrameRate() );
     UInt              uiMvRange           = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange() / 4;
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );

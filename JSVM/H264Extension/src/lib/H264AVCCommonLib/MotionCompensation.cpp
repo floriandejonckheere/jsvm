@@ -1106,14 +1106,10 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess&      rcMbDataA
                                                     YuvMbBuffer*    pcRecBuffer,
                                                     Frame*          pcBaseLayerRec )
 {
+  ROFRS( rcMbDataAccess.getMbData().getBLSkipFlag(), Err::m_nOK );
 
-  if(!rcMbDataAccess.getMbData().getBLSkipFlag())
-    return Err::m_nOK;
-
-  // TMM_INTERLACE{
-	//if ( m_pcResizeParameters && (m_pcResizeParameters->m_bBaseIsMbAff || m_pcResizeParameters->m_bIsMbAff) )
-  //  return Err::m_nOK;
-  // TMM_INTERLACE}
+  //=== not allowed when current or reference layer is MBAFF (see text JVT-X201) ====
+  ROTRS( m_pcResizeParameters && ( m_pcResizeParameters->m_bBaseIsMbAff || m_pcResizeParameters->m_bIsMbAff ), Err::m_nOK );
 
   MbDataAccess* pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
   MbData&         rcMbData          = pcMbDataAccessBase->getMbData          ();

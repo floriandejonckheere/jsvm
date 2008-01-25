@@ -321,8 +321,8 @@ SliceHeader::getMbPositionFromAddress( UInt& ruiMbY, UInt& ruiMbX, UInt uiMbAddr
   UInt uiMbsInRow = getSPS().getFrameWidthInMbs();
   if( isMbaffFrame() )
   {
-    ruiMbY = ( 2 * ( uiMbAddress / 2 ) / uiMbsInRow ) + ( uiMbAddress % 2 );
-    ruiMbX = (     ( uiMbAddress / 2 ) % uiMbsInRow );
+    ruiMbY = ( ( uiMbAddress / 2 ) / uiMbsInRow * 2 ) + ( uiMbAddress % 2 );
+    ruiMbX = ( ( uiMbAddress / 2 ) % uiMbsInRow     );
   }
   else
   {
@@ -339,8 +339,8 @@ SliceHeader::getMbPosAndIndexFromAddress( UInt& ruiMbY, UInt& ruiMbX, UInt& ruiM
   UInt uiMbsInRow = getSPS().getFrameWidthInMbs();
   if( isMbaffFrame() )
   {
-    ruiMbY      = ( 2 * ( uiMbAddress / 2 ) / uiMbsInRow ) + ( uiMbAddress % 2 );
-    ruiMbX      = (     ( uiMbAddress / 2 ) % uiMbsInRow );
+    ruiMbY      = ( ( uiMbAddress / 2 ) / uiMbsInRow * 2 ) + ( uiMbAddress % 2 );
+    ruiMbX      = ( ( uiMbAddress / 2 ) % uiMbsInRow     );
     ruiMbIndex  = uiMbsInRow * ruiMbY + ruiMbX;
   }
   else
@@ -357,8 +357,8 @@ SliceHeader::getMbIndexFromAddress( UInt uiMbAddress ) const
   if( isMbaffFrame() )
   {
     UInt    uiMbsInRow  = getSPS().getFrameWidthInMbs();
-    UInt    uiMbY       = ( 2 * ( uiMbAddress / 2 ) / uiMbsInRow ) + ( uiMbAddress % 2 );
-    UInt    uiMbX       = (     ( uiMbAddress / 2 ) % uiMbsInRow );
+    UInt    uiMbY       = ( ( uiMbAddress / 2 ) / uiMbsInRow * 2 ) + ( uiMbAddress % 2 );
+    UInt    uiMbX       = ( ( uiMbAddress / 2 ) % uiMbsInRow     );
     UInt    uiMbIndex   = uiMbsInRow * uiMbY + uiMbX;
     return  uiMbIndex;
   }

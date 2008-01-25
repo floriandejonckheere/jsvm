@@ -1507,13 +1507,13 @@ LayerEncoder::xMotionCompensation( Frame*        pcMCFrame,
   RNOK( pcMbDataCtrl        ->initSlice( rcSH, PRE_PROCESS, false, NULL ) );
   RNOK( m_pcMotionEstimation->initSlice( rcSH              ) );
 
-  pcMbEncoder->setBaseLayerRec(m_pcBaseLayerFrame);
   MbDataCtrl*      pcBaseMbDataCtrl = getBaseMbDataCtrl();
 
   RefFrameList* apcRefFrameList0[4] = { NULL, NULL, NULL, NULL };
   RefFrameList* apcRefFrameList1[4] = { NULL, NULL, NULL, NULL };
   const PicType ePicType = rcSH.getPicType();
   const Bool    bMbAff   = rcSH.isMbaffFrame   ();
+  Frame* apcBLFrame[3] = { 0, 0, m_pcBaseLayerFrame };
   
   if( bMbAff )
   {
@@ -1529,6 +1529,13 @@ LayerEncoder::xMotionCompensation( Frame*        pcMCFrame,
     apcRefFrameList1[ BOT_FIELD ] = ( NULL == pcRefFrameList1 ) ? NULL : &acRefFrameList1[1];
     apcRefFrameList0[     FRAME ] = pcRefFrameList0;
     apcRefFrameList1[     FRAME ] = pcRefFrameList1;
+
+    if( m_pcBaseLayerFrame )
+    {
+      m_pcBaseLayerFrame->addFrameFieldBuffer();
+      apcBLFrame[0] = m_pcBaseLayerFrame->getPic( TOP_FIELD );
+      apcBLFrame[1] = m_pcBaseLayerFrame->getPic( BOT_FIELD );
+    }
   }
   else
   {
@@ -1558,6 +1565,8 @@ LayerEncoder::xMotionCompensation( Frame*        pcMCFrame,
 
     const PicType eMbPicType = pcMbDataAccess->getMbPicType();
     pcMbDataAccess->setMbDataAccessBase(pcMbDataAccessBase);
+    pcMbEncoder->setBaseLayerRec( apcBLFrame[ eMbPicType - 1 ] );
+
     RNOK( pcMbEncoder->compensatePrediction( *pcMbDataAccess, 
                                               pcMCFrame->getPic( eMbPicType ),
                                              *apcRefFrameList0 [ eMbPicType ],
@@ -2008,7 +2017,6 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
 
       if( ePicType != TOP_FIELD ) { ETRACE_NEWFRAME; }
 
-#if HEIKO
       if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
       {
         m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits + uiBitsSEI;
@@ -2017,7 +2025,6 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       {
         m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits + uiBitsSEI;
       }
-#endif
 
       ruiBits = ruiBits + uiBits + uiBitsSEI;
       uiBitsSEI=0;
@@ -2449,7 +2456,6 @@ LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcc
 
       rcPicOutputDataList.push_back( cPicOutputData );
 
-#if HEIKO
       if( m_pcH264AVCEncoder->getCodingParameter()->getCGSSNRRefinement() )
       {
         m_pcH264AVCEncoder->m_aaadSeqBits[getLayerCGSSNR()][pcSliceHeader->getTemporalId()][getQualityLevelCGSSNR()] += uiBits + uiBitsSEI;
@@ -2458,7 +2464,6 @@ LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcc
       {
         m_pcH264AVCEncoder->m_aaadSeqBits[m_uiDependencyId][pcSliceHeader->getTemporalId()][0] += uiBits + uiBitsSEI;
       }
-#endif
 
     //S051{
     if(m_uiAnaSIP>0)
@@ -5700,7 +5705,6 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 	RNOK( pcMbDataCtrl        ->initSlice( rcSH, PRE_PROCESS, false, NULL ) );
 	RNOK( m_pcMotionEstimation->initSlice( rcSH              ) );
 
-	pcMbEncoder->setBaseLayerRec(m_pcBaseLayerFrame);
 	RefFrameList* apcRefFrameList0[4] = { NULL, NULL, NULL, NULL };
 	RefFrameList* apcRefFrameList1[4] = { NULL, NULL, NULL, NULL };
 	const Bool    bMbAff   = rcSH.isMbaffFrame   ();
@@ -5719,7 +5723,7 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 
 	if( bMbAff )
 	{
-		RefFrameList acRefFrameList0[2];
+    RefFrameList acRefFrameList0[2];
 		RefFrameList acRefFrameList1[2];
 
 		RNOK( gSetFrameFieldLists( acRefFrameList0[0], acRefFrameList0[1], *pcRefFrameList0 ) );
