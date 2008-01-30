@@ -114,12 +114,10 @@ public:
   ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
 	ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Bool bFieldFlag, const Int iForceQp );
   ErrVal init( const SequenceParameterSet& rcSPS );
-//	TMM_EC {{
-  ErrVal initMbTDEnhance( MbDataAccess*& rpcMbDataAccess, MbDataCtrl *pcMbDataCtrlRef, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
-//  TMM_EC }}
 
   ErrVal uninit();
   ErrVal reset();
+  ErrVal resetData() { return xResetData(); }
   ErrVal initSlice( SliceHeader& rcSH, ProcessingState eProcessingState, Bool bDecoder, MbDataCtrl* pcMbDataCtrl );
   ErrVal initUsedField(SliceHeader& rcSH, RefFrameList&           rcRefFrameList1); //TMM
   Bool isPicDone( const SliceHeader& rcSH );

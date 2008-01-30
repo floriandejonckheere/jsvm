@@ -302,13 +302,6 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
     } */
 
-    // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
-    if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
-      && pcBaseLayerResidual )	
-    {
-      YuvPicBuffer* pcBaseResidual = pcBaseLayerResidual->getPic( ePicType )->getFullPelYuvBuffer();
-      pcBaseResidual->clearCurrMb();
-    }
 		//JVT-X046 {
     uiCodedMBNumber++;
 		if (m_uiSliceMode==1) //fixed slice size in number of MBs
@@ -1375,15 +1368,14 @@ SliceEncoder::updatePictureResTransform( ControlData&     rcControlData,
   SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader           ();
   MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
   MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
-  UInt          uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
-  UInt          uiLastMbAddress       =  rcSliceHeader.getLastMbInSlice         ();
+  UInt          uiMbAddress           =  0;
+  UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
 
   //====== initialization ======
   RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
 
   // Update the macroblock state
   // Must be done after the bit-stream has been constructed
-  uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
   for( ; uiMbAddress <= uiLastMbAddress; )
   {
     UInt          uiMbY               = uiMbAddress / uiMbInRow;
@@ -1421,14 +1413,12 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
   MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
   MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
   Frame*     pcBaseLayerSbb        =  rcControlData.getBaseLayerSbb         ();
-  UInt          uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
-  UInt          uiLastMbAddress       =  rcSliceHeader.getLastMbInSlice         ();
+  UInt          uiMbAddress           =  0;
+  UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
  
-
   //====== initialization ======
   RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
 
-  uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
   for( ; uiMbAddress <= uiLastMbAddress; )
   {
     UInt          uiMbY               = uiMbAddress / uiMbInRow;
@@ -1464,16 +1454,15 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
 
 // JVT-V035
 ErrVal
-SliceEncoder::updatePictureAVCRewrite( ControlData&     rcControlData,
-									  UInt          uiMbInRow )
+SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRow, MyList<UInt>& rcFirstMbInSliceList )
 {
   ROF( m_bInitDone );
 
   SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader           ();
   MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
   MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
-  UInt          uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
-  UInt          uiLastMbAddress       =  rcSliceHeader.getLastMbInSlice         ();
+  UInt          uiMbAddress           =  0;
+  UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
 
   //====== initialization ======
   RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
@@ -1482,7 +1471,6 @@ SliceEncoder::updatePictureAVCRewrite( ControlData&     rcControlData,
   {
 	  // Update the macroblock state
 	  // Must be done after the bit-stream has been constructed
-	  uiMbAddress           =  rcSliceHeader.getFirstMbInSlice        ();
 	  for( ; uiMbAddress <= uiLastMbAddress; )
 	  {
 		  UInt          uiMbY               = uiMbAddress / uiMbInRow;
@@ -1536,11 +1524,29 @@ SliceEncoder::updatePictureAVCRewrite( ControlData&     rcControlData,
 		  }
 
       // overwrite the QP so that rewriter can get correct QP
-      if (pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() && ! pcMbDataAccess->getSH().getNoInterLayerPredFlag()
-        && (pcMbDataAccess->getSH().getDependencyId() != pcMbDataAccess->getSH().getRefLayerDependencyId()))          {
-          if(( pcMbDataAccess->getMbData().getMbExtCbp() == 0 ) && (!pcMbDataAccess->getMbData().isIntra16x16()))
-            pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getLastQp());
+      if( pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag()            &&
+         !pcMbDataAccess->getSH().getNoInterLayerPredFlag()                 &&
+          pcMbDataAccess->getMbData().getMbExtCbp() == 0                    &&
+         !pcMbDataAccess->getMbData().isIntra16x16()                        &&
+          pcMbDataAccess->getMbData().getQp() != pcMbDataAccess->getLastQp()  )
+      {
+        Bool                    bFirstMbInSlice = false;
+        MyList<UInt>::iterator  cIter           = rcFirstMbInSliceList.begin();
+        MyList<UInt>::iterator  cEnd            = rcFirstMbInSliceList.end  ();
+        while( cIter != cEnd )
+        {
+          if( (*cIter) == uiMbAddress )
+          {
+            bFirstMbInSlice = true;
+            break;
+          }
+          cIter++;
         }
+        if( ! bFirstMbInSlice )
+        {
+          pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getLastQp() );
+        }
+      }
 
 		  uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
 	  }

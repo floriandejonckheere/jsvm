@@ -716,7 +716,7 @@ protected:
   UInt                          m_uiMaxGOPSize;                       // maximum possible GOP size (specified by the level)
   UInt                          m_uiDecompositionStages;              // number of decomposition stages
   UInt                          m_uiTemporalResolution;               // temporal subsampling in comparison to highest layer
-  UInt                          m_uiNotCodedMCTFStages;               // number of MCTF stages that are only used for temporal downsampling
+  UInt                          m_uiNotCodedStages    ;               // number of stages that are only used for temporal downsampling
   UInt                          m_uiFrameDelay;                       // maximum possible delay in frames
   UInt                          m_uiMaxNumRefFrames;                  // maximum number of active reference pictures in a list
   UInt                          m_uiLowPassIntraPeriod;               // intra period for lowest temporal resolution

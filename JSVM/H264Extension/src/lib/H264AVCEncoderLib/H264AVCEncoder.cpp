@@ -497,7 +497,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
     //Bool bSubSeq            = ( i == 0 && m_pcCodingParameter->getBaseLayerMode() > 1 );
 
     LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( i );
-    UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages();
+    UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedStages    ();
 // *LMH(20060203): Fix Bug due to underflow (Replace)
     //UInt uiMinTempLevel   = ( !bH264AVCCompatible ||bSubSeq ) ? 0: max( 0, uiTotalTempLevel - 1 );
     UInt uiMinTempLevel   = 0; //bugfix replace
@@ -517,7 +517,7 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
   for ( UInt uiCurrLayer = 0; uiCurrLayer < uiInputLayers; uiCurrLayer++)
   {
     LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters ( uiCurrLayer );
-    UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedMCTFStages() + 1;
+    UInt uiTotalTempLevel = rcLayer.getDecompositionStages () - rcLayer.getNotCodedStages    () + 1;
     UInt uiTotalFGSLevel = rcLayer.getNumberOfQualityLevelsCGSSNR();
     UInt uiMinTempLevel     = 0; //bugfix replace
 
@@ -1796,7 +1796,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
   VUI* pcVui = pcSPS->getVUI();
   LayerParameters& rcLayer = m_pcCodingParameter->getLayerParameters(uiLayer);
 
-  UInt uiTotalTemporalLevel = rcLayer.getDecompositionStages()- rcLayer.getNotCodedMCTFStages() + 1;
+  UInt uiTotalTemporalLevel = rcLayer.getDecompositionStages()- rcLayer.getNotCodedStages    () + 1;
   UInt uiTotalFGSLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? pcSPS->getNumberOfQualityLevelsCGSSNR() : 1);
   UInt uiDependencyId = m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getLayerCGSSNR() : uiLayer;
 
@@ -2070,6 +2070,15 @@ RewriteEncoder::uninit()
 }
 
 ErrVal
+RewriteEncoder::resetData()
+{
+  ROF ( m_pcMbDataCtrl );
+  RNOK( m_pcMbDataCtrl->resetData () );
+  RNOK( m_pcMbDataCtrl->reset     () );
+  return Err::m_nOK;
+}
+
+ErrVal
 RewriteEncoder::startSlice( BinDataList& rcBinDataList, const SliceHeader& rcSliceHeader )
 {
   ROF ( m_bInitialized );
@@ -2090,7 +2099,7 @@ RewriteEncoder::startSlice( BinDataList& rcBinDataList, const SliceHeader& rcSli
   RNOK( m_pcSliceHeader     ->write     ( *m_pcUvlcWriter ) );
   RNOK( m_pcMbSymbolWriteIf ->startSlice( *m_pcSliceHeader ) );
   RNOK( m_pcMbCoder         ->initSlice ( *m_pcSliceHeader, m_pcMbSymbolWriteIf, m_pcRateDistortion ) );
-  RNOK( m_pcMbDataCtrl      ->initSlice ( *m_pcSliceHeader, DECODE_PROCESS, true, NULL ) );
+  RNOK( m_pcMbDataCtrl      ->initSlice ( *m_pcSliceHeader, ENCODE_PROCESS, false, NULL ) );
 
   m_bSliceInProgress  = true;
   return Err::m_nOK;
@@ -2126,9 +2135,9 @@ RewriteEncoder::storeMb( MbDataAccess& rcMbDataAccess, const MbDataAccess& rcMbD
   ROF ( m_bSliceInProgress );
 
   //===== copy data =====
-  rcMbDataAccess.getMbData    ().copyFrom   ( rcMbDataAccessSrc.getMbData   ()    );
-  rcMbDataAccess.getMbTCoeffs ().copyFrom   ( rcMbDataAccessSrc.getMbTCoeffs()    );
-  rcMbDataAccess.getMbData    ().copyMotion ( rcMbDataAccessSrc.getMbData   (), 0 );
+  rcMbDataAccess.getMbData    ().copyFrom   ( rcMbDataAccessSrc.getMbData   () );
+  rcMbDataAccess.getMbTCoeffs ().copyFrom   ( rcMbDataAccessSrc.getMbTCoeffs() );
+  rcMbDataAccess.getMbData    ().copyMotion ( rcMbDataAccessSrc.getMbData   () );
   
   //===== clear motion data for later usage =====
   if( rcMbDataAccess.getMbData().isIntra() )

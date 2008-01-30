@@ -110,6 +110,9 @@ public:
 	TraceFile         ();
 	virtual ~TraceFile();
 
+  static ErrVal disable     ();
+  static ErrVal enable      ();
+
   static ErrVal initTrace   ();
   static ErrVal openTrace   ( Char* pucBaseFilename );
   static ErrVal closeTrace  ();
@@ -140,6 +143,7 @@ public:
   static ErrVal newLine();
 	
 protected:
+  static Bool  sm_bDisable;
   static UInt  sm_uiLayer;
   static FILE* sm_fTrace      [MAX_TRACE_LAYERS];
   static UInt  sm_uiFrameNum  [MAX_TRACE_LAYERS];
@@ -160,6 +164,9 @@ H264AVC_NAMESPACE_END
 
 
 #if ENCODER_TRACE
+  #define ETRACE_OFF       if( m_bTraceEnable ) TraceFile::disable     ()
+  #define ETRACE_ON        if( m_bTraceEnable ) TraceFile::enable      ()
+
   #define INIT_ETRACE      if( m_bTraceEnable ) TraceFile::initTrace   ()
   #define OPEN_ETRACE      if( m_bTraceEnable ) TraceFile::openTrace   ("TraceEncoder")
   #define CLOSE_ETRACE     if( m_bTraceEnable ) TraceFile::closeTrace  ()
@@ -186,6 +193,9 @@ H264AVC_NAMESPACE_END
   #define ETRACE_DO(x)     if( m_bTraceEnable ) x
   #define ETRACE_DECLARE(x) x
  #else
+
+  #define ETRACE_OFF
+  #define ETRACE_ON
 
   #define OPEN_ETRACE
   #define INIT_ETRACE
@@ -215,6 +225,9 @@ H264AVC_NAMESPACE_END
 #endif
 
 #if DECODER_TRACE
+  #define DTRACE_OFF       TraceFile::disable     ()
+  #define DTRACE_ON        TraceFile::enable      ()
+
   #define INIT_DTRACE      TraceFile::initTrace   ()
   #define OPEN_DTRACE      TraceFile::openTrace   ("TraceDecoder")
   #define CLOSE_DTRACE     TraceFile::closeTrace  ()
@@ -240,6 +253,9 @@ H264AVC_NAMESPACE_END
   #define DTRACE_N         TraceFile::newLine     ()
   #define DTRACE_DO(x)     x
 #else
+  #define DTRACE_OFF
+  #define DTRACE_ON
+
   #define OPEN_DTRACE
   #define OPEN_DTRACE_NR
   #define INIT_DTRACE

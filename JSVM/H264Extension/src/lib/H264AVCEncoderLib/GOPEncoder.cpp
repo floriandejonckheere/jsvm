@@ -153,7 +153,7 @@ LayerEncoder::LayerEncoder()
 , m_uiMaxGOPSize                    ( 0 )
 , m_uiDecompositionStages           ( 0 )
 , m_uiTemporalResolution            ( 0 )
-, m_uiNotCodedMCTFStages            ( 0 )
+, m_uiNotCodedStages                ( 0 )
 , m_uiFrameDelay                    ( 0 )
 , m_uiMaxNumRefFrames               ( 0 )
 , m_uiLowPassIntraPeriod            ( 0 )
@@ -406,7 +406,7 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   }
   m_uiDecompositionStages   = pcLayerParameters->getDecompositionStages     ();
   m_uiTemporalResolution    = pcLayerParameters->getTemporalResolution      ();
-  m_uiNotCodedMCTFStages    = pcLayerParameters->getNotCodedMCTFStages      ();
+  m_uiNotCodedStages        = pcLayerParameters->getNotCodedStages          ();
   m_uiFrameDelay            = pcLayerParameters->getFrameDelay              ();
   m_uiMaxNumRefFrames       = pcCodingParameter->getNumRefFrames            ();
   m_uiLowPassIntraPeriod    = pcCodingParameter->getIntraPeriodLowPass      ();
@@ -605,7 +605,7 @@ LayerEncoder::init( CodingParameter*   pcCodingParameter,
   for( UInt uiBaseLayerId = 0; uiBaseLayerId < m_uiDependencyId; uiBaseLayerId++ )
   {
     m_uiMinScalableLayer += pcCodingParameter->getLayerParameters( uiBaseLayerId ).getDecompositionStages() -
-      pcCodingParameter->getLayerParameters( uiBaseLayerId ).getNotCodedMCTFStages () + 1U;
+      pcCodingParameter->getLayerParameters( uiBaseLayerId ).getNotCodedStages     () + 1U;
   }
 	//JVT-X046 {
   m_uiSliceMode = pcCodingParameter->getSliceMode();
@@ -1848,6 +1848,8 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
   SliceHeader* pcSliceHeader       = rcControlData.getSliceHeader ( ePicType );
   ROF( pcSliceHeader );   
   const Bool   bFrameMbsOnlyFlag   = pcSliceHeader->getSPS().getFrameMbsOnlyFlag();
+
+  MyList<UInt>  cFirstMbInSliceList;
   
   //----- subsequence SEI -----
   if( m_bWriteSubSequenceSei && m_bH264AVCCompatible )
@@ -1979,6 +1981,8 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       RNOK( m_pcNalUnitEncoder->closeNalUnit        ( uiBits ) );
       RNOK( xAppendNewExtBinDataAccessor            ( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
       uiBits += 4*8;
+
+      cFirstMbInSliceList.push_back( pcSliceHeader->getFirstMbInSlice() );
 
       PicOutputData cPicOutputData;
       cPicOutputData.FirstPicInAU  = pcSliceHeader->getNoInterLayerPredFlag() && pcSliceHeader->getFirstMbInSlice() == 0;
@@ -2194,6 +2198,8 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
       }
       //JVT-W052
 
+      cFirstMbInSliceList.push_back( pcSliceHeader->getFirstMbInSlice() );
+
       PicOutputData cPicOutputData;
       cPicOutputData.FirstPicInAU  = pcSliceHeader->getNoInterLayerPredFlag() && pcSliceHeader->getFirstMbInSlice() == 0;
       cPicOutputData.iPicType      = pcSliceHeader->getPicType();
@@ -2280,7 +2286,7 @@ LayerEncoder::xEncodeLowPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcce
     if (pcSliceHeader->getTCoeffLevelPredictionFlag())
     {
       //===== update state prior to deblocking
-      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
+      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb, cFirstMbInSliceList );
     }
 
   return Err::m_nOK;
@@ -2308,6 +2314,8 @@ LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcc
   UInt  uiBits      = 0;//prefix unit 
   SliceHeader* pcSliceHeader = rcControlData.getSliceHeader( ePicType );
   ROF( pcSliceHeader );
+
+  MyList<UInt> cFirstMbInSliceList;
 
   //----- Subsequence SEI -----
   if( m_bWriteSubSequenceSei &&   m_bH264AVCCompatible )
@@ -2423,6 +2431,8 @@ LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcc
       //----- update -----
       RNOK( xAppendNewExtBinDataAccessor( rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor ) );
       uiBits += 4*8;
+
+      cFirstMbInSliceList.push_back( pcSliceHeader->getFirstMbInSlice() );
 
       PicOutputData cPicOutputData;
       cPicOutputData.FirstPicInAU  = rcControlData.getSliceHeader( ePicType )->getNoInterLayerPredFlag() && rcControlData.getSliceHeader( ePicType )->getFirstMbInSlice() == 0;
@@ -2582,6 +2592,7 @@ LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcc
       RNOK( m_pcNalUnitEncoder->closeAndAppendNalUnits( auiBits, rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor, m_cBinData, NULL, 0, 0 ) );
       uiBits = auiBits[0] + 4*8;
 
+      cFirstMbInSliceList.push_back( pcSliceHeader->getFirstMbInSlice() );
 
       PicOutputData cPicOutputData;
       cPicOutputData.FirstPicInAU  = rcControlData.getSliceHeader( ePicType )->getNoInterLayerPredFlag() && rcControlData.getSliceHeader( ePicType )->getFirstMbInSlice() == 0;
@@ -2662,7 +2673,7 @@ LayerEncoder::xEncodeHighPassSignal( ExtBinDataAccessorList&  rcOutExtBinDataAcc
   if (pcSliceHeader->getTCoeffLevelPredictionFlag())
   {
     //===== update state prior to deblocking
-    m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb );
+    m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb, cFirstMbInSliceList );
   }
 
   ETRACE_NEWFRAME;
@@ -3280,7 +3291,7 @@ LayerEncoder::xInitSliceHeader( UInt uiTemporalLevel,
   if ( uiFrameIdInGOP == 0 || uiFrameIdInGOP == ( 1 << m_uiDecompositionStages ) )
     eNalRefIdc = NAL_REF_IDC_PRIORITY_HIGHEST;
   else
-    eNalRefIdc = NalRefIdc( min( 2, max( 0, (Int)( m_uiDecompositionStages - m_uiNotCodedMCTFStages - uiTemporalLevel ) ) ) );
+    eNalRefIdc = NalRefIdc( min( 2, max( 0, (Int)( m_uiDecompositionStages - m_uiNotCodedStages     - uiTemporalLevel ) ) ) );
 
   NalUnitType   eNalUnitType  = ( m_bH264AVCCompatible ? ( uiFrameIdInGOP ? NAL_UNIT_CODED_SLICE : NAL_UNIT_CODED_SLICE_IDR ) : NAL_UNIT_CODED_SLICE_SCALABLE );
   Bool          bIdr          = false;
@@ -3605,7 +3616,7 @@ LayerEncoder::xInitReordering( UInt    uiFrameIdInGOP,
     RNOK( xSetRplrAndMmco( *pcSliceHeader ) );
   }
   }
-  else if( m_uiDecompositionStages - pcSliceHeader->getTemporalId() >= m_uiNotCodedMCTFStages )
+  else if( m_uiDecompositionStages - pcSliceHeader->getTemporalId() >= m_uiNotCodedStages     )
   {
     UIntList cFrameNumList;
     UIntList cFieldNumList;
@@ -3757,7 +3768,7 @@ LayerEncoder::xSetScalingFactors( UInt uiBaseLevel )
 #if SCALING_FACTOR_HACK
   // heiko.schwarz@hhi.fhg.de: This is a bad hack for ensuring that the
   // closed-loop config files work and use identical scaling factor as
-  // the MCTF version. The non-update scaling factors don't work and shall
+  // the old version. The non-update scaling factors don't work and shall
   // be completely removed in future versions.
   if( m_uiDependencyId == 0 && m_uiFrameWidthInMb <= 11 )
 #else
@@ -5623,16 +5634,16 @@ ErrVal
 LayerEncoder::xStoreReconstruction( PicBufferList&  rcPicBufferOutputList )
 {
   PicBufferList::iterator cOutputIter = rcPicBufferOutputList.begin();
-  for( UInt uiIndex = (m_bFirstGOPCoded?1:0); uiIndex <= (m_uiGOPSize >> m_uiNotCodedMCTFStages); uiIndex++, cOutputIter++ )
+  for( UInt uiIndex = (m_bFirstGOPCoded?1:0); uiIndex <= (m_uiGOPSize >> m_uiNotCodedStages    ); uiIndex++, cOutputIter++ )
   {
     PicBuffer*  pcPicBuffer = *cOutputIter;
     if( m_papcCLRecFrame )
     {
-      RNOK( m_papcCLRecFrame[uiIndex<<m_uiNotCodedMCTFStages]->store( pcPicBuffer ) );
+      RNOK( m_papcCLRecFrame[uiIndex<<m_uiNotCodedStages    ]->store( pcPicBuffer ) );
     }
     else
     {
-      RNOK( m_papcFrame[uiIndex<<m_uiNotCodedMCTFStages]->store( pcPicBuffer ) );
+      RNOK( m_papcFrame[uiIndex<<m_uiNotCodedStages    ]->store( pcPicBuffer ) );
     }
   }
   return Err::m_nOK;
@@ -5713,6 +5724,8 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 	UInt  uiBitsSEI   = 0;
 	SliceHeader* pcSliceHeader = rcControlData.getSliceHeader( ePicType );
 	ROF( pcSliceHeader );
+
+  MyList<UInt> cFirstMbInSliceList;
 
 	//----- Subsequence SEI -----
 	if( m_bWriteSubSequenceSei &&   m_bH264AVCCompatible )
@@ -5815,15 +5828,10 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 				RNOK( m_pcSliceEncoder->m_pcControlMng->initSliceForCoding( *pcSliceHeader ) );
 
 				//====== initialization ======
-				Int             iQPRes            = pcSliceHeader->getSliceQp();
-				Int             iQPIntra          = pcSliceHeader->getSliceQp(); //- 2;
 				YuvMbBuffer  cZeroBuffer;
 				cZeroBuffer.setAllSamplesToZero();
 				iSpatialScalabilityType=rcControlData.getSpatialScalabilityType();
 				uiBits = m_pcSliceEncoder->m_pcMbCoder->getBitCount();
-				Double dLambda,dQpPredData,dScalFactor,dQP;
-				UInt uiTLevel,iQP;
-
 
 				m_pcSliceEncoder->m_pcMbCoder->bSliceCodedDone=false;
 				//===== loop over macroblocks =====
@@ -5858,18 +5866,6 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 					}
 					// >>>> bug fix by heiko.schwarz@hhi.fhg.de
 
-					dScalFactor = rcControlData.getScalingFactor();
-					dQpPredData = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-					if( m_bExplicitQPCascading )
-					{
-						uiTLevel               = m_uiDecompositionStages - uiBaseLevel;
-						dQpPredData                  = m_adBaseQpLambdaMotion[ uiBaseLevel ] + m_adDeltaQPTLevel[ uiTLevel ];
-					}
-					dLambda = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
-					iQP = max( MIN_QP, min( MAX_QP, (Int)floor( dQpPredData + 0.5 ) ) );
-					pcSliceHeader->setSliceHeaderQp( iQP );
-					rcControlData. setLambda       ( dLambda );
-
 					const PicType eMbPicType = pcMbDataAccess->getMbPicType();
 					pcMbDataAccess->setMbDataAccessBase(pcMbDataAccessBase);
 
@@ -5902,20 +5898,6 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 					}
 					pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
 
-					dScalFactor = rcControlData.getScalingFactor();
-					dQP = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-					if( m_bExplicitQPCascading )
-					{
-						uiTLevel = m_uiDecompositionStages - uiBaseLevel;
-						dQP = m_dBaseQPResidual + m_adDeltaQPTLevel[ uiTLevel ];
-					}
-					dLambda = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
-					iQP  = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );          
-					pcSliceHeader->setSliceHeaderQp ( iQP );
-					rcControlData. setLambda        ( dLambda );
-					iQPRes            = pcSliceHeader->getSliceQp();
-					iQPIntra          = pcSliceHeader->getSliceQp();
-					
 					if( pcMbDataAccess->getMbData().isIntra() )
 					{
 						dCost = 0;
@@ -5924,7 +5906,7 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 							m_pcSliceEncoder->m_pcMbEncoder->setIntraBLFlag(m_pcSliceEncoder->m_pbIntraBLFlag[uiMbAddress]);
 						//JVT-U106 Behaviour at slice boundaries}
 
-						pcMbDataAccess->getMbData().setQp( iQPIntra );
+            pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getSH().getSliceQp() );
 
 						RNOK( m_pcSliceEncoder->m_pcMbEncoder ->encodeIntra   ( *pcMbDataAccess, 
 							pcMbDataAccessBase, 
@@ -5991,7 +5973,7 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 					}
 					else
 					{
-						pcMbDataAccess->getMbData().setQp( iQPRes );
+            pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getSH().getSliceQp() );
 
 						m_pcSliceEncoder->m_pcTransform->setClipMode( false );
 						RNOK( m_pcSliceEncoder->m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess, 
@@ -6079,6 +6061,8 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 				RNOK( m_pcNalUnitEncoder->closeAndAppendNalUnits( auiBits, rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor, m_cBinData, NULL, 0, 0 ) );
 				muiBits = auiBits[0] + 4*8;
 
+        cFirstMbInSliceList.push_back( pcSliceHeader->getFirstMbInSlice() );
+
 				PicOutputData cPicOutputData;
 				cPicOutputData.FirstPicInAU  = rcControlData.getSliceHeader()->getNoInterLayerPredFlag() && rcControlData.getSliceHeader()->getFirstMbInSlice() == 0;
         cPicOutputData.iPicType      = rcControlData.getSliceHeader()->getPicType();
@@ -6102,6 +6086,18 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 				uiBitsSEI =0;
 			}
 		}
+
+    if ( !pcSliceHeader->getNoInterLayerPredFlag()
+      && pcSliceHeader->getCoeffResidualPredFlag() )
+    {
+      m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
+    }
+
+    if (pcSliceHeader->getTCoeffLevelPredictionFlag())
+    {
+      //===== update state prior to deblocking
+      m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb, cFirstMbInSliceList );
+    }
 
 		return Err::m_nOK;
 	}
@@ -6188,15 +6184,10 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 			RNOK( m_pcSliceEncoder->m_pcControlMng->initSliceForCoding( *pcSliceHeader ) );
 
 			//====== initialization ======
-			Int             iQPRes            = pcSliceHeader->getSliceQp();
-			Int             iQPIntra          = pcSliceHeader->getSliceQp(); //- 2;
 			YuvMbBuffer  cZeroBuffer;
 			cZeroBuffer.setAllSamplesToZero();
 			iSpatialScalabilityType=rcControlData.getSpatialScalabilityType();
 			uiBits = m_pcSliceEncoder->m_pcMbCoder->getBitCount();
-			Double dLambda,dQpPredData,dScalFactor,dQP;
-			UInt uiTLevel,iQP;
-
 
 			m_pcSliceEncoder->m_pcMbCoder->bSliceCodedDone=false;
 			//===== loop over macroblocks =====
@@ -6228,18 +6219,6 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 					RNOK( m_pcYuvHalfPelBufferCtrl->initMb( uiMbY, uiMbX, false           ) );
 					RNOK( m_pcMotionEstimation    ->initMb( uiMbY, uiMbX, *pcMbDataAccess ) );
 
-					dScalFactor = rcControlData.getScalingFactor();
-					dQpPredData = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-					if( m_bExplicitQPCascading )
-					{
-						uiTLevel               = m_uiDecompositionStages - uiBaseLevel;
-						dQpPredData                  = m_adBaseQpLambdaMotion[ uiBaseLevel ] + m_adDeltaQPTLevel[ uiTLevel ];
-					}
-					dLambda = 0.85 * pow( 2.0, min( 52.0, dQpPredData ) / 3.0 - 4.0 );
-					iQP = max( MIN_QP, min( MAX_QP, (Int)floor( dQpPredData + 0.5 ) ) );
-					pcSliceHeader->setSliceHeaderQp( iQP );
-					rcControlData. setLambda       ( dLambda );
-
 					//JVT-U106 Behaviour at slice boundaries{
 					if( ! rcSliceHeader.getNoInterLayerPredFlag() )
 						pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
@@ -6264,7 +6243,6 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 						dCost,
 						true ) );
 
-
 					const PicType eMbPicType = pcMbDataAccess->getMbPicType();
 					pcMbDataAccess->setMbDataAccessBase(pcMbDataAccessBase);
 
@@ -6277,20 +6255,6 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 						bCalcMv, bFaultTolerant ) );						
 
 					RNOK( pcOrigFrame->predictionSlices  ( pcOrigFrame,pcMCFrame,  uiMbY, uiMbX) );
-
-					dScalFactor = rcControlData.getScalingFactor();
-					dQP = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
-					if( m_bExplicitQPCascading )
-					{
-						uiTLevel = m_uiDecompositionStages - uiBaseLevel;
-						dQP = m_dBaseQPResidual + m_adDeltaQPTLevel[ uiTLevel ];
-					}
-					dLambda = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
-					iQP  = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );          
-					pcSliceHeader->setSliceHeaderQp ( iQP );
-					rcControlData. setLambda        ( dLambda );
-					iQPRes            = pcSliceHeader->getSliceQp();
-					iQPIntra          = pcSliceHeader->getSliceQp();
 
 					// store the new prediction frame that is obtained by invoking the special MC 
 					RNOK( pcResidual->copyMb(pcOrigFrame, uiMbY, uiMbX) );						
@@ -6321,7 +6285,7 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 							m_pcSliceEncoder->m_pcMbEncoder->setIntraBLFlag(m_pcSliceEncoder->m_pbIntraBLFlag[uiMbAddress]);
 						//JVT-U106 Behaviour at slice boundaries}
 
-						pcMbDataAccess->getMbData().setQp( iQPIntra );
+            pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getSH().getSliceQp() );
 
 						RNOK( m_pcSliceEncoder->m_pcMbEncoder ->encodeIntra   ( *pcMbDataAccess, 
 							pcMbDataAccessBase, 
@@ -6388,7 +6352,7 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 					}
 					else
 					{
-						pcMbDataAccess->getMbData().setQp( iQPRes );
+            pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getSH().getSliceQp() );
 
 						m_pcSliceEncoder->m_pcTransform->setClipMode( false );
 						RNOK( m_pcSliceEncoder->m_pcMbEncoder ->encodeResidual  ( *pcMbDataAccess, 
@@ -6481,6 +6445,8 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
             RNOK( m_pcNalUnitEncoder->closeAndAppendNalUnits( auiBits, rcOutExtBinDataAccessorList, &m_cExtBinDataAccessor, m_cBinData, NULL, 0, 0 ) );
 			muiBits = auiBits[0] + 4*8;
 
+      cFirstMbInSliceList.push_back( pcSliceHeader->getFirstMbInSlice() );
+
 			PicOutputData cPicOutputData;
 			cPicOutputData.FirstPicInAU  = rcControlData.getSliceHeader()->getNoInterLayerPredFlag() && rcControlData.getSliceHeader()->getFirstMbInSlice() == 0;
       cPicOutputData.iPicType      = rcControlData.getSliceHeader()->getPicType();
@@ -6512,6 +6478,18 @@ LayerEncoder::xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcO
 		if( pcBaseLayerFrame )    RNOK( pcBaseLayerFrame   ->removeFieldBuffer( ePicType ) );
 		if( pcBaseLayerResidual ) RNOK( pcBaseLayerResidual->removeFieldBuffer( ePicType ) );
 	}
+
+  if ( !pcSliceHeader->getNoInterLayerPredFlag()
+    && pcSliceHeader->getCoeffResidualPredFlag() )
+  {
+    m_pcSliceEncoder->updatePictureResTransform( rcControlData,m_uiFrameWidthInMb);
+  }
+
+  if (pcSliceHeader->getTCoeffLevelPredictionFlag())
+  {
+    //===== update state prior to deblocking
+    m_pcSliceEncoder->updatePictureAVCRewrite( rcControlData, m_uiFrameWidthInMb, cFirstMbInSliceList );
+  }
 
 	ETRACE_NEWFRAME;
 	return Err::m_nOK;
@@ -6575,6 +6553,16 @@ LayerEncoder::xEncodeNonKeyPictureSlices(UInt uiBaseLevel, UInt uiFrame, 							
 		}
 		//===== set lambda and QP =====
 		RNOK( xInitControlDataMotion  ( uiBaseLevel, uiFrame, true, ePicType ) );
+    {
+      //----- set slice header QP (residual QP) ----
+      Double  dQP = m_dBaseQPResidual - 6.0 * log10( rcControlData.getScalingFactor() ) / log10( 2.0 );
+      if( m_bExplicitQPCascading )
+      {
+        dQP = m_dBaseQPResidual + m_adDeltaQPTLevel[ m_uiDecompositionStages - uiBaseLevel ];
+      }
+      Int iQP = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
+      pcSliceHeader->setSliceHeaderQp( iQP );
+    }
 
 		//NonRequired JVT-Q066 (06-04-08){{
 		if(m_uiDependencyId != 0 && m_uiNonRequiredWrite != 0)
@@ -6774,7 +6762,7 @@ LayerEncoder::process( UInt            uiAUIndex,
 
 
   //===== encode non-key pictures =====
-  for( Int iLevel = (Int)m_uiDecompositionStages - 1; iLevel >= (Int)m_uiNotCodedMCTFStages && ! bPicCoded; iLevel-- )
+  for( Int iLevel = (Int)m_uiDecompositionStages - 1; iLevel >= (Int)m_uiNotCodedStages     && ! bPicCoded; iLevel-- )
   {
     m_uiScalableLayerId = m_uiMinScalableLayer + ( m_uiDecompositionStages - (UInt)iLevel );
 
@@ -6823,7 +6811,7 @@ LayerEncoder::process( UInt            uiAUIndex,
   if( uiAUIndex == rcPicBufferInputList.size() - 1 )
   {
     m_bGOPInitialized   = false;
-    m_uiScalableLayerId = m_uiMinScalableLayer + ( m_uiDecompositionStages - m_uiNotCodedMCTFStages + 1 );
+    m_uiScalableLayerId = m_uiMinScalableLayer + ( m_uiDecompositionStages - m_uiNotCodedStages     + 1 );
 
     RNOK( xStoreReconstruction( rcPicBufferOutputList ) );
     RNOK( xFinishGOP          ( rcPicBufferInputList,
@@ -6843,7 +6831,7 @@ LayerEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
                          PicBufferList& rcPicBufferUnusedList,
                          Double         aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] )
 {
-  UInt  uiLowPassSize = m_uiGOPSize >> m_uiNotCodedMCTFStages;
+  UInt  uiLowPassSize = m_uiGOPSize >> m_uiNotCodedStages    ;
 
   while( rcPicBufferOutputList.size() > uiLowPassSize + ( m_bFirstGOPCoded ? 0 : 1 ) )
   {
@@ -6866,8 +6854,8 @@ LayerEncoder::xFinishGOP( PicBufferList& rcPicBufferInputList,
   {
     m_adSeqBits     [uiLevel] += (Double)m_auiCurrGOPBits    [uiLevel];
   }
-  UInt uiLayerOffset = (UInt)m_uiScalableLayerId - ( m_uiDecompositionStages-m_uiNotCodedMCTFStages+1 );
-  for( uiLevel = 0; uiLevel <= m_uiDecompositionStages-m_uiNotCodedMCTFStages; uiLevel++ )
+  UInt uiLayerOffset = (UInt)m_uiScalableLayerId - ( m_uiDecompositionStages-m_uiNotCodedStages    +1 );
+  for( uiLevel = 0; uiLevel <= m_uiDecompositionStages-m_uiNotCodedStages    ; uiLevel++ )
   {
     aaauidSeqBits [m_uiDependencyId][uiLevel][0] = m_adSeqBits[uiLayerOffset+uiLevel];
   }
@@ -7006,7 +6994,7 @@ LayerEncoder::finish( UInt&    ruiNumCodedFrames,
   ROFRS( m_auiNumFramesCoded[0], Err::m_nOK );
 
   UInt  uiStage;
-  UInt  uiMaxStage        = m_uiDecompositionStages - m_uiNotCodedMCTFStages;
+  UInt  uiMaxStage        = m_uiDecompositionStages - m_uiNotCodedStages    ;
   // Bug fix: yiliang.bao@nokia.com
   // uiMaxStage is unsigned, it has a problem when uiMaxStage == 0,
   // uiMaxStage - 1 will result in a large number
@@ -7206,7 +7194,7 @@ LayerEncoder::SingleLayerFinish( Double aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MA
       for( UInt uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel++ )
         aaadCurrBits[uiLayer][uiTempLevel][uiQualityLevel] = aaadBits[uiLayer][uiTempLevel][uiQualityLevel];
   UInt  uiStage;
-  UInt  uiMaxStage        = m_uiDecompositionStages - m_uiNotCodedMCTFStages;
+  UInt  uiMaxStage        = m_uiDecompositionStages - m_uiNotCodedStages    ;
   UInt  uiMinStage        = 0; //bugfix replace
 
   for( UInt uiTempLevel = 0; uiTempLevel < uiMinStage; uiTempLevel++)

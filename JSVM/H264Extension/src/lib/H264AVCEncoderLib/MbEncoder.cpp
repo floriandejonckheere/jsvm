@@ -1137,7 +1137,9 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
         m_pcIntMbTempData->cbp()       = xCalcMbCbp( uiExtCbp );
         m_pcIntMbTempData->coeffCost() = uiCoeffCost;
 
-        Bool  b8x8Trafo = ( uiTrafo8x8 && ( m_pcIntMbTempData->getMbCbp() & 0x0F ) );
+        Bool  bCoeffsPresent  = ( ( m_pcIntMbTempData->getMbCbp() & 0x0F ) != 0 );
+        Bool  bBaseIs8x8      = ( m_pcIntMbTempData->getResidualPredFlag( PART_16x16 ) && m_pcIntMbTempData->getMbDataAccess().getMbDataAccessBase()->getMbData().isTransformSize8x8() );
+        Bool  b8x8Trafo       = ( ( uiTrafo8x8 ) && ( bCoeffsPresent || bBaseIs8x8 ) );
         m_pcIntMbTempData ->setTransformSize8x8( b8x8Trafo );
 
         //----- fix QP ------

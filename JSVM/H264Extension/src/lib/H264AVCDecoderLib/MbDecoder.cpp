@@ -287,8 +287,7 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
   }
 
   // overwrite the QP, so the rewritten AVC bitstream can get correct QPDelta
-  if (rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag() && (!rcMbDataAccess.getSH().getNoInterLayerPredFlag())
-    && (rcMbDataAccess.getSH().getDependencyId() != rcMbDataAccess.getSH().getRefLayerDependencyId()))
+  if (rcMbDataAccess.getSH().getTCoeffLevelPredictionFlag() && (!rcMbDataAccess.getSH().getNoInterLayerPredFlag()) )
   {
     if(( rcMbDataAccess.getMbData().getMbExtCbp() == 0 ) && (!rcMbDataAccess.getMbData().isIntra16x16()))
       rcMbDataAccess.getMbData().setQp( rcMbDataAccess.getLastQp());

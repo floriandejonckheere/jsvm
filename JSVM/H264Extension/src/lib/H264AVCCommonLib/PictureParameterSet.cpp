@@ -156,9 +156,9 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   g_nLayer = 0;
   ETRACE_LAYER(0);
   ETRACE_HEADER( "PICTURE PARAMETER SET" );
-  RNOK  ( pcWriteIf->writeFlag( 0,                                        "NALU HEADER: forbidden_zero_bit" ) );
-  RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NALU HEADER: nal_ref_idc" ) );
-  RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                        "NALU HEADER: nal_unit_type" ) );
+  RNOK  ( pcWriteIf->writeFlag( 0,                                        "NAL unit header: forbidden_zero_bit" ) );
+  RNOK  ( pcWriteIf->writeCode( 3, 2,                                     "NAL unit header: nal_ref_idc" ) );
+  RNOK  ( pcWriteIf->writeCode( m_eNalUnitType, 5,                        "NAL unit header: nal_unit_type" ) );
 
   //===== NAL unit payload =====
   RNOK( pcWriteIf->writeUvlc( getPicParameterSetId(),                     "PPS: pic_parameter_set_id" ) );

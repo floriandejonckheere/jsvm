@@ -1587,12 +1587,6 @@ MbStatus::update( SliceHeader* pcSliceHeader )
 
 
 
-
-
-//////////////////////////////////////////////////////////////////////////
-// MCTF DECODER
-//////////////////////////////////////////////////////////////////////////
-
 LayerDecoder::LayerDecoder()
 : m_pcH264AVCDecoder                    ( 0 )
 , m_pcNalUnitParser                     ( 0 )
@@ -1763,7 +1757,8 @@ LayerDecoder::processSliceData( PicBuffer*         pcPicBuffer,
   ROF( rcSliceDataNALUnit.isSliceHeaderPresent() );
 
   //===== init slice =====
-  SliceHeader*  pcSliceHeader = 0;
+  SliceHeader*  pcSliceHeader                     = 0;
+  Bool          bFirstSliceInLayerRepresentation  = ! m_bLayerRepresentationInitialized;
   RNOK( xInitSlice  ( pcSliceHeader, pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList, rcSliceDataNALUnit ) );
 
   //===== parse slice =====
@@ -1778,7 +1773,7 @@ LayerDecoder::processSliceData( PicBuffer*         pcPicBuffer,
 #endif
 
   //===== decode slice =====
-  RNOK( xDecodeSlice( *pcSliceHeader, rcPicBufferOutputList, rcPicBufferUnusedList, rcSliceDataNALUnit ) );
+  RNOK( xDecodeSlice( *pcSliceHeader, rcPicBufferOutputList, rcPicBufferUnusedList, rcSliceDataNALUnit, bFirstSliceInLayerRepresentation ) );
 
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   //===== finish rewriting =====
@@ -1813,10 +1808,10 @@ LayerDecoder::finishProcess( PicBufferList&  rcPicBufferOutputList,
 
 ErrVal
 LayerDecoder::xInitSlice( SliceHeader*&      rpcSliceHeader,
-                         PicBuffer*         pcPicBuffer,
-                         PicBufferList&     rcPicBufferOutputList,
-                         PicBufferList&     rcPicBufferUnusedList,
-                         SliceDataNALUnit&  rcSliceDataNalUnit )
+                          PicBuffer*         pcPicBuffer,
+                          PicBufferList&     rcPicBufferOutputList,
+                          PicBufferList&     rcPicBufferUnusedList,
+                          SliceDataNALUnit&  rcSliceDataNalUnit )
 {
   //===== delete non-required slice headers =====
   if( ! m_bDependencyRepresentationInitialized )
@@ -1867,9 +1862,10 @@ LayerDecoder::xParseSlice( SliceHeader& rcSliceHeader )
 
 ErrVal
 LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
-                           PicBufferList&          rcPicBufferOutputList,
-                           PicBufferList&          rcPicBufferUnusedList,
-                           const SliceDataNALUnit& rcSliceDataNalUnit )
+                            PicBufferList&          rcPicBufferOutputList,
+                            PicBufferList&          rcPicBufferUnusedList,
+                            const SliceDataNALUnit& rcSliceDataNalUnit,
+                            Bool                    bFirstSliceInLayerRepresentation )
 {
   ROF( m_pcCurrDPBUnit );
   Bool          bReconstructBaseRep = rcSliceHeader.getStoreRefBasePicFlag() && ! rcSliceHeader.getQualityId();
@@ -1892,7 +1888,7 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
   rcSliceHeader.setRefFrameList( &rcRefFrameList1, FRAME, LIST_1 );
 
   //===== init base layer =====
-  RNOK( xInitBaseLayer( rcControlData, pcSliceHeaderBase ) );
+  RNOK( xInitBaseLayer( rcControlData, pcSliceHeaderBase, bFirstSliceInLayerRepresentation ) );
 
   //----- decoding -----
   RNOK( m_pcControlMng->initSliceForDecoding( rcSliceHeader ) );
@@ -2019,6 +2015,14 @@ LayerDecoder::xFinishSlice( PicBufferList& rcPicBufferOutputList, PicBufferList&
   }
   m_uiQualityId                           = 0;
   m_bDependencyRepresentationInitialized  = false;
+
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  //===== reset rewriting macroblock data =====
+  if( rcSliceDataNalUnit.isHighestRewriteLayer() )
+  {
+    RNOK( m_pcRewriteEncoder->resetData() );
+  }
+#endif
 
   return Err::m_nOK;
 }
@@ -2488,7 +2492,8 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
 
 ErrVal
 LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
-						                 SliceHeader*&  rcSliceHeaderBase )
+						                  SliceHeader*&  rcSliceHeaderBase,
+                              Bool           bFirstSliceInLayerRepresentation )
 {
   //===== init =====
   rcControlData.setBaseLayerRec       ( 0 );
@@ -2616,20 +2621,23 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   //===== residual data =====
   if( bBaseDataAvailable )
   {
-    if (pcSliceHeader->getCoeffResidualPredFlag() )
+    if( bFirstSliceInLayerRepresentation )
     {
-      if( ! pcBaseDataCtrl->getSliceHeader()->getNoInterLayerPredFlag() )
-      {        
-        RNOK( m_pcH264AVCDecoder->getBaseLayerResidual( pcBaseResidual, pcSliceHeader->getRefLayerDependencyId() ) );
-      }
-      else
+      if( pcSliceHeader->getCoeffResidualPredFlag() )
       {
-        pcBaseResidual->getFullPelYuvBuffer()->clear();
+        if( ! pcBaseDataCtrl->getSliceHeader()->getNoInterLayerPredFlag() )
+        {        
+          RNOK( m_pcH264AVCDecoder->getBaseLayerResidual( pcBaseResidual, pcSliceHeader->getRefLayerDependencyId() ) );
+        }
+        else
+        {
+          pcBaseResidual->getFullPelYuvBuffer()->clear();
+        }
       }
-    }
 
-    RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual, ePicType ) );
-	  RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, pcResizeParameters, pcBaseDataCtrl, false) ); 
+      RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual, ePicType ) );
+      RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, pcResizeParameters, pcBaseDataCtrl, false) ); 
+    }
     rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
   }
 

@@ -226,8 +226,7 @@ ErrVal encodeIntraPictureMbAff      ( UInt&					ruiBits,
                                     UInt             uiMbInRow );
 
   // JVT-V035
-  ErrVal updatePictureAVCRewrite( ControlData&     rcControlData,
-                                  UInt          uiMbInRow );
+  ErrVal updatePictureAVCRewrite( ControlData&     rcControlData, UInt uiMbInRow, MyList<UInt>& rcFirstMbInSliceList );
 
   ErrVal xAddTCoeffs2            ( MbDataAccess&      rcMbDataAccess,
                                    MbDataAccess&      rcMbDataAccessBase );

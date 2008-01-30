@@ -138,9 +138,9 @@ SEI::write( HeaderSymbolWriteIf*  pcWriteIf,
   g_nLayer = 0;
   ETRACE_LAYER(0);
   ETRACE_HEADER( "SEI MESSAGE" );
-  RNOK  ( pcWriteIf->writeFlag( 0,                "NALU HEADER: forbidden_zero_bit" ) );
-  RNOK  ( pcWriteIf->writeCode( 0, 2,             "NALU HEADER: nal_ref_idc" ) );
-  RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NALU HEADER: nal_unit_type" ) );
+  RNOK  ( pcWriteIf->writeFlag( 0,                "NAL unit header: forbidden_zero_bit" ) );
+  RNOK  ( pcWriteIf->writeCode( 0, 2,             "NAL unit header: nal_ref_idc" ) );
+  RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NAL unit header: nal_unit_type" ) );
 
   while( rpcSEIMessageList->size() )
   {
@@ -171,9 +171,9 @@ SEI::writeNesting( HeaderSymbolWriteIf*  pcWriteIf,
 	g_nLayer = 0;
 	ETRACE_LAYER(0);
 	ETRACE_HEADER( "SEI MESSAGE" );
-	RNOK  ( pcWriteIf->writeFlag( 0,                "NALU HEADER: forbidden_zero_bit"  ) );
-	RNOK  ( pcWriteIf->writeCode( 0, 2,             "NALU HEADER: nal_ref_idc" ) );
-	RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NALU HEADER: nal_unit_type" ) );
+	RNOK  ( pcWriteIf->writeFlag( 0,                "NAL unit header: forbidden_zero_bit"  ) );
+	RNOK  ( pcWriteIf->writeCode( 0, 2,             "NAL unit header: nal_ref_idc" ) );
+	RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NAL unit header: nal_unit_type" ) );
 
 	//first write testing SEI message to get payload size
 	UInt uiBits = 0;
@@ -260,9 +260,9 @@ SEI::writeScalableNestingSei( HeaderSymbolWriteIf*  pcWriteIf,
 	g_nLayer = 0;
 	ETRACE_LAYER(0);
 	ETRACE_HEADER( "SEI MESSAGE" );
-	RNOK  ( pcWriteIf->writeFlag( 0,                "NALU HEADER: forbidden_zero_bit"  ) );
-	RNOK  ( pcWriteIf->writeCode( 0, 2,             "NALU HEADER: nal_ref_idc" ) );
-	RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NALU HEADER: nal_unit_type" ) );
+	RNOK  ( pcWriteIf->writeFlag( 0,                "NAL unit header: forbidden_zero_bit"  ) );
+	RNOK  ( pcWriteIf->writeCode( 0, 2,             "NAL unit header: nal_ref_idc" ) );
+	RNOK  ( pcWriteIf->writeCode( NAL_UNIT_SEI, 5,  "NAL unit header: nal_unit_type" ) );
 
 	//first write testing SEI message to get payload size
 	UInt uiBits = 0;

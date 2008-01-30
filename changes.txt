@@ -1,4 +1,33 @@
 ﻿
+[Currently, all validation scripts work except for those that use the temporal direct mode (AVC conformance test scripts) and those that use error concealment features]
+
+JSVM_9_10_DEVEL -> JSVM_9_10_DEVEL2
+===================================
+
+NOTE: This is a version in development. Some features have been removed.
+
+1) bug fixing: many bug fixes at different places, including
+    - fixing of interlaced support
+    - fixing of slice implementation in combination with other features
+    - fixing of rewriting support
+
+2) modification of validation scripts
+    - correction to some interlaced scripts
+      (upsample parameters for encoding were different than downsampling parameters)
+    - clean up: removal of unsupported variables
+    - clean up: removal of terms "MCTF" and "FGS"
+    - add several new validation scripts that test combination of features
+      that haven't been sufficiently testes before (and didn't work for many cases)
+
+NOTE: THE CURRENT SOFTWARE NEEDS FURTHER IMPROVEMENT
+----------------------------------------------------
+    - temporal direct mode currently not supported due to the removal of the 2nd "base layer" decoder
+      (all validation scripts for AVC bitstreams that use the temporal direct mode fail)
+    - error detection and concealment code has been removed - it need to be added in a more general way
+      (all validation scripts that simulate packet losses fail)
+    - some further checking of match between text and software is required
+
+
 JSVM_9_9 -> JSVM_9_10_DEVEL
 ===========================
 

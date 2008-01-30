@@ -316,6 +316,7 @@ public:
   ErrVal          init              ();
   ErrVal          uninit            ();
 
+  ErrVal          resetData         ();
   ErrVal          startSlice        ( BinDataList&                rcBinDataList,
                                       const SliceHeader&          rcSliceHeader );
   ErrVal          finishSlice       ( BinDataList&                rcBinDataList );

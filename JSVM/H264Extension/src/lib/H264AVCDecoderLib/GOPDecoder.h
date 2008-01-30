@@ -443,7 +443,8 @@ private:
   ErrVal  xDecodeSlice                ( SliceHeader&            rcSliceHeader,
                                         PicBufferList&          rcPicBufferOutputList,
                                         PicBufferList&          rcPicBufferUnusedList,
-                                        const SliceDataNALUnit& rcSliceDataNalUnit );
+                                        const SliceDataNALUnit& rcSliceDataNalUnit,
+                                        Bool                    bFirstSliceInLayerRepresentation );
   ErrVal  xFinishSlice                ( PicBufferList&          rcPicBufferOutputList,
                                         PicBufferList&          rcPicBufferUnusedList,
                                         const SliceDataNALUnit& rcSliceDataNalUnit );
@@ -453,7 +454,8 @@ private:
                                         MbDataCtrl&             rcMbDataCtrl,
                                         ControlData&            rcControlData ); 
   ErrVal  xInitBaseLayer              ( ControlData&            rcControlData,
-												                SliceHeader*&           rcSliceHeaderBase );
+												                SliceHeader*&           rcSliceHeaderBase,
+                                        Bool                    bFirstSliceInLayerRepresentation );
   ErrVal  xGetBaseLayerData           ( ControlData&            rcControlData,
                                         Frame*&                 rpcBaseFrame,
                                         Frame*&                 rpcBaseResidual,

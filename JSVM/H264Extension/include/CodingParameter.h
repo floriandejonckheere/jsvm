@@ -200,7 +200,7 @@ public:
     , m_uiMotionInfoMode                  (0)
     , m_cMotionInfoFilename               ("none")
     , m_uiDecompositionStages             (0)
-    , m_uiNotCodedMCTFStages              (0)
+    , m_uiNotCodedStages                  (0)
     , m_uiTemporalResolution              (0)
     , m_uiFrameDelay                      (0)
     , m_uiBaseQualityLevel                (15)
@@ -316,7 +316,7 @@ public:
 //JVT-V079 Low-complexity MB mode decision }
   
   UInt                            getDecompositionStages            () const {return m_uiDecompositionStages; }
-  UInt                            getNotCodedMCTFStages             () const {return m_uiNotCodedMCTFStages; }
+  UInt                            getNotCodedStages                 () const {return m_uiNotCodedStages    ; }
   UInt                            getTemporalResolution             () const {return m_uiTemporalResolution; }
   UInt                            getFrameDelay                     () const {return m_uiFrameDelay; }
 
@@ -379,7 +379,7 @@ public:
   Void setMotionInfoFilename              (Char*  p) { m_cMotionInfoFilename              = p; }
   
   Void setDecompositionStages             (UInt   p) { m_uiDecompositionStages            = p; }
-  Void setNotCodedMCTFStages              (UInt   p) { m_uiNotCodedMCTFStages             = p; }
+  Void setNotCodedStages                  (UInt   p) { m_uiNotCodedStages                 = p; }
   Void setTemporalResolution              (UInt   p) { m_uiTemporalResolution             = p; }
   Void setFrameDelay                      (UInt   p) { m_uiFrameDelay                     = p; }
 
@@ -482,7 +482,7 @@ public:
   
   //----- derived parameters -----
   UInt                      m_uiDecompositionStages;
-  UInt                      m_uiNotCodedMCTFStages;
+  UInt                      m_uiNotCodedStages    ;
   UInt                      m_uiTemporalResolution;
   UInt                      m_uiFrameDelay;
 

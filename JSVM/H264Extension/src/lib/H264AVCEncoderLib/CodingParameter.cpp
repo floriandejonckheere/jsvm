@@ -437,7 +437,7 @@ ErrVal CodingParameter::check()
     ROTREPORT( uiLogFactorInOutRate == MSYS_UINT_MAX,   "Input frame rate must be a power of 2 of output frame rate" );
     ROTREPORT( uiLogFactorMaxInRate == MSYS_UINT_MAX,   "Maximum frame rate must be a power of 2 of input frame rate" );
 
-    pcLayer->setNotCodedMCTFStages  ( uiLogFactorInOutRate );
+    pcLayer->setNotCodedStages      ( uiLogFactorInOutRate );
     pcLayer->setTemporalResolution  ( uiLogFactorMaxInRate );
     pcLayer->setDecompositionStages ( getDecompositionStages() - uiLogFactorMaxInRate );
     pcLayer->setFrameDelay          ( uiMaxFrameDelay  /  ( 1 << uiLogFactorMaxInRate ) );

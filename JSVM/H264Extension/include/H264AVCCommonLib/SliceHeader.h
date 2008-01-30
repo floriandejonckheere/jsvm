@@ -213,7 +213,7 @@ private:
   Bool          m_bCoeffResidualPred;       // remove
   FMO           m_cFMO;
   RefFrameList* m_aapcRefFrameList[3][2];
-  UInt          m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2]; // for MCTF
+  UInt          m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2]; // for MCTF preprocessor
   Bool          m_bReconstructionLayer;
   //>>> remove
   UInt          m_uiLayerCGSSNR;

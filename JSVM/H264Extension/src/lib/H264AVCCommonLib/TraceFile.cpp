@@ -105,7 +105,7 @@ TraceFile::~TraceFile()
 {
 }
 
-
+Bool  TraceFile::sm_bDisable = false;
 UInt  TraceFile::sm_uiLayer;
 FILE* TraceFile::sm_fTrace      [MAX_TRACE_LAYERS];
 UInt  TraceFile::sm_uiFrameNum  [MAX_TRACE_LAYERS];
@@ -117,6 +117,20 @@ Char  TraceFile::sm_acPos       [9];
 Char  TraceFile::sm_acCode      [6];
 Char  TraceFile::sm_acBits      [MAX_BITS_LENGTH];
 
+
+ErrVal
+TraceFile::disable()
+{
+  sm_bDisable = true;
+  return Err::m_nOK;
+}
+
+ErrVal
+TraceFile::enable()
+{
+  sm_bDisable = false;
+  return Err::m_nOK;
+}
 
 
 ErrVal
@@ -181,6 +195,7 @@ TraceFile::setLayer( UInt uiLayerId )
 ErrVal
 TraceFile::startNalUnit()
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   RNOK( printHeading("Nal Unit") );
   return Err::m_nOK;
 }
@@ -189,6 +204,7 @@ TraceFile::startNalUnit()
 ErrVal
 TraceFile::startFrame()
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   sm_uiFrameNum[sm_uiLayer]++;
   sm_uiSliceNum[sm_uiLayer]=0;
 
@@ -199,6 +215,7 @@ TraceFile::startFrame()
 ErrVal
 TraceFile::startSlice()
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   Char acSliceHead[100];
   ::snprintf( acSliceHead, 100, "Slice # %d Frame # %d", sm_uiSliceNum[sm_uiLayer], sm_uiFrameNum[sm_uiLayer] );
   
@@ -212,6 +229,7 @@ TraceFile::startSlice()
 ErrVal
 TraceFile::startMb( Int iMbAddress )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   Char acMbHead[100];
   ::snprintf( acMbHead, 100, "MB # %d", iMbAddress );
   RNOK( printHeading( acMbHead ) );
@@ -223,6 +241,7 @@ TraceFile::startMb( Int iMbAddress )
 ErrVal
 TraceFile::printHeading( Char* pcString )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   sm_uiPosCounter[sm_uiLayer] = 0;
   if( ! sm_fTrace[0] )
   {
@@ -242,6 +261,7 @@ TraceFile::printHeading( Char* pcString )
 ErrVal
 TraceFile::countBits( UInt uiBitCount )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   sm_uiPosCounter[sm_uiLayer] += uiBitCount;
   return Err::m_nOK;
 }
@@ -251,6 +271,7 @@ TraceFile::countBits( UInt uiBitCount )
 ErrVal
 TraceFile::printPos()
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   ::snprintf( sm_acPos, 8, "@%d", sm_uiPosCounter[sm_uiLayer] );
   return Err::m_nOK;
 }
@@ -259,6 +280,7 @@ TraceFile::printPos()
 ErrVal
 TraceFile::printString( const Char* pcString )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   ::strncat( sm_acLine, pcString, MAX_LINE_LENGTH );
   return Err::m_nOK;
 }
@@ -267,6 +289,7 @@ TraceFile::printString( const Char* pcString )
 ErrVal
 TraceFile::printType( Char* pcString )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   ::snprintf( sm_acType, 8, "%s", pcString);
   return Err::m_nOK;
 }
@@ -275,6 +298,7 @@ TraceFile::printType( Char* pcString )
 ErrVal
 TraceFile::printVal( UInt uiVal )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   Char tmp[8];
   ::snprintf( tmp, 8, "%3u", uiVal);
   ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH);
@@ -285,6 +309,7 @@ TraceFile::printVal( UInt uiVal )
 ErrVal
 TraceFile::printVal( Int iVal )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   Char tmp[8];
   ::snprintf( tmp, 8, "%3i", iVal );
   ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH );
@@ -295,6 +320,7 @@ TraceFile::printVal( Int iVal )
 ErrVal
 TraceFile::printXVal( UInt uiVal )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   Char tmp[8];
   ::snprintf( tmp, 8, "0x%04x", uiVal );
   ::strncat( sm_acLine, tmp, MAX_LINE_LENGTH);
@@ -306,6 +332,7 @@ ErrVal
 TraceFile::addBits( UInt uiVal,
                     UInt uiLength )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   ROT( uiLength > 32 );
 
   Char acBuffer[33];
@@ -338,6 +365,7 @@ ErrVal
 TraceFile::printBits( UInt uiVal,
                       UInt uiLength )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   sm_acBits[0] = '[';
   sm_acBits[1] = ']';
   sm_acBits[2] = '\0';
@@ -349,6 +377,7 @@ TraceFile::printBits( UInt uiVal,
 ErrVal
 TraceFile::printCode( UInt uiVal )
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   ::snprintf( sm_acCode, MAX_LINE_LENGTH, "%u", uiVal );
   return Err::m_nOK;
 }
@@ -357,6 +386,7 @@ TraceFile::printCode( UInt uiVal )
 ErrVal
 TraceFile::printCode(Int iVal)
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   ::snprintf( sm_acCode, MAX_LINE_LENGTH, "%i", iVal );
   return Err::m_nOK;
 }
@@ -365,6 +395,7 @@ TraceFile::printCode(Int iVal)
 ErrVal
 TraceFile::newLine()
 {
+  ROTRS( sm_bDisable, Err::m_nOK );
   if( ! sm_fTrace[0] )
   {
     sm_acLine[0] = '\0';

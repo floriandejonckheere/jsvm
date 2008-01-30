@@ -189,6 +189,7 @@ H264AVCDecoder::initNALUnit( BinData*&          rpcBinData,
   }
 
   //===== create copy of bin data when required =====
+  Bool        bSliceData    = false;
   BinData*    pcBinDataCopy = 0;
   NalUnitType eNalUnitType  = NalUnitType( rpcBinData->data()[ 0 ] & 0x1F );
   if( eNalUnitType == NAL_UNIT_PREFIX               ||
@@ -196,6 +197,7 @@ H264AVCDecoder::initNALUnit( BinData*&          rpcBinData,
       eNalUnitType == NAL_UNIT_CODED_SLICE          ||
       eNalUnitType == NAL_UNIT_CODED_SLICE_IDR        )
   {
+    bSliceData        = true;
     UChar*  pucBuffer = new UChar [ rpcBinData->size() ];
     pcBinDataCopy     = new BinData;
     ROF( pucBuffer );
@@ -208,6 +210,10 @@ H264AVCDecoder::initNALUnit( BinData*&          rpcBinData,
   PrefixHeader* pcPrefixHeader  = 0;
   SliceHeader*  pcSliceHeader   = 0;
   {
+    if( bSliceData )
+    {
+      DTRACE_OFF;
+    }
     Bool            bCompletelyParsed = false;
     BinDataAccessor cBinDataAccessor;
     rpcBinData                ->setMemAccessor( cBinDataAccessor );
@@ -323,6 +329,10 @@ H264AVCDecoder::initNALUnit( BinData*&          rpcBinData,
       }
     }
     RNOK( m_pcNalUnitParser->closeNalUnit( bCompletelyParsed ) );
+    if( bSliceData )
+    {
+      DTRACE_ON;
+    }
   }
 
   //===== update access unit list =====
