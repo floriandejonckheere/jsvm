@@ -117,75 +117,115 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-SliceDataNALUnit::SliceDataNALUnit( BinData* pcBinData, const PrefixHeader& rcPrefixHeader )
-: m_bHeaderExtensionPresent   ( true )
-, m_bSliceHeaderPresent       ( false )
-, m_pcBinDataPrefix           ( pcBinData )
-, m_pcBinData                 ( 0 )
-, m_eNalRefIdc                ( rcPrefixHeader.getNalRefIdc() )
-, m_eNalUnitType              ( rcPrefixHeader.getNalUnitType() )
-, m_bIdrFlag                  ( rcPrefixHeader.getIdrFlag() )
-, m_uiPriorityId              ( rcPrefixHeader.getPriorityId() )
-, m_bNoInterLayerPredFlag     ( rcPrefixHeader.getNoInterLayerPredFlag() )
-, m_uiDependencyId            ( rcPrefixHeader.getDependencyId() )
-, m_uiQualityId               ( rcPrefixHeader.getQualityId() )
-, m_uiTemporalId              ( rcPrefixHeader.getTemporalId() )
-, m_bUseRefBasePicFlag        ( rcPrefixHeader.getUseRefBasePicFlag() )
-, m_bDiscardableFlag          ( rcPrefixHeader.getDiscardableFlag() )
-, m_bOutputFlag               ( rcPrefixHeader.getOutputFlag() )
-, m_bTCoeffLevelPredictionFlag( false )
-, m_uiPPSId                   ( MSYS_UINT_MAX )
-, m_uiSPSId                   ( MSYS_UINT_MAX )
-, m_uiFrameNum                ( MSYS_UINT_MAX )
-, m_uiRedundantPicCnt         ( MSYS_UINT_MAX )
-, m_uiRefLayerDQId            ( MSYS_UINT_MAX )
-, m_uiFrameWidthInMb          ( 0 )
-, m_uiFrameHeightInMb         ( 0 )
-, m_bLastSliceInAccessUnit    ( false )
-, m_bLastAccessUnitInStream   ( false )
-, m_bPartOfIDRAccessUnit      ( false )
-, m_bHighestRewriteLayer      ( false )
+
+NonVCLNALUnit::NonVCLNALUnit( BinData* pcBinData, BinData* pcBinDataPrefix )
+: m_pcBinData       ( pcBinData )
+, m_pcBinDataPrefix ( pcBinDataPrefix )
+, m_eNalUnitType    ( NalUnitType( pcBinData->data()[ 0 ] & 0x1F ) )
 {
-  m_auiCroppingRectangle[0] = 0;
-  m_auiCroppingRectangle[1] = 0;
-  m_auiCroppingRectangle[2] = 0;
-  m_auiCroppingRectangle[3] = 0;
+  setInstance( this );
 }
 
-SliceDataNALUnit::SliceDataNALUnit( BinData* pcBinData, const SliceHeader& rcSliceHeader )
-: m_bHeaderExtensionPresent   (!rcSliceHeader.isH264AVCCompatible() )
-, m_bSliceHeaderPresent       ( true )
-, m_pcBinDataPrefix           ( 0 )
-, m_pcBinData                 ( pcBinData )
-, m_eNalRefIdc                ( rcSliceHeader.getNalRefIdc() )
-, m_eNalUnitType              ( rcSliceHeader.getNalUnitType() )
-, m_bIdrFlag                  ( rcSliceHeader.getIdrFlag() )
-, m_uiPriorityId              ( rcSliceHeader.getPriorityId() )
-, m_bNoInterLayerPredFlag     ( rcSliceHeader.getNoInterLayerPredFlag() )
-, m_uiDependencyId            ( rcSliceHeader.getDependencyId() )
-, m_uiQualityId               ( rcSliceHeader.getQualityId() )
-, m_uiTemporalId              ( rcSliceHeader.getTemporalId() )
-, m_bUseRefBasePicFlag        ( rcSliceHeader.getUseRefBasePicFlag() )
-, m_bDiscardableFlag          ( rcSliceHeader.getDiscardableFlag() )
-, m_bOutputFlag               ( rcSliceHeader.getOutputFlag() )
-, m_bTCoeffLevelPredictionFlag( rcSliceHeader.getTCoeffLevelPredictionFlag() )
-, m_uiPPSId                   ( rcSliceHeader.getPicParameterSetId() )
-, m_uiSPSId                   ( rcSliceHeader.getPPS().getSeqParameterSetId() )
-, m_uiFrameNum                ( rcSliceHeader.getFrameNum() )
-, m_uiRedundantPicCnt         ( rcSliceHeader.getRedundantPicCnt() )
-, m_uiRefLayerDQId            ( rcSliceHeader.getRefLayerDQId() )
-, m_uiFrameWidthInMb          ( rcSliceHeader.getSPS().getFrameWidthInMbs() )
-, m_uiFrameHeightInMb         ( rcSliceHeader.getSPS().getFrameHeightInMbs() )
-, m_bLastSliceInAccessUnit    ( false )
-, m_bLastAccessUnitInStream   ( false )
-, m_bPartOfIDRAccessUnit      ( false )
-, m_bHighestRewriteLayer      ( false )
+NonVCLNALUnit::~NonVCLNALUnit()
 {
+  if( m_pcBinData )
+  {
+    m_pcBinData->deleteData();
+    delete m_pcBinData;
+  }
+  if( m_pcBinDataPrefix )
+  {
+    m_pcBinDataPrefix->deleteData();
+    delete m_pcBinDataPrefix;
+  }
+}
+
+Void
+NonVCLNALUnit::destroyNALOnly()
+{
+  m_pcBinData       = 0;
+  m_pcBinDataPrefix = 0;
+  delete this;
+}
+
+
+SliceDataNALUnit::SliceDataNALUnit( BinData* pcBinData, const SliceHeader& rcSliceHeader )
+: m_pcBinDataPrefix                     ( 0 )
+, m_pcBinData                           ( pcBinData )
+, m_eNalRefIdc                          ( rcSliceHeader.getNalRefIdc() )
+, m_eNalUnitType                        ( rcSliceHeader.getNalUnitType() )
+, m_bIdrFlag                            ( rcSliceHeader.getIdrFlag() )
+, m_uiPriorityId                        ( rcSliceHeader.getPriorityId() )
+, m_bNoInterLayerPredFlag               ( rcSliceHeader.getNoInterLayerPredFlag() )
+, m_uiDependencyId                      ( rcSliceHeader.getDependencyId() )
+, m_uiQualityId                         ( rcSliceHeader.getQualityId() )
+, m_uiTemporalId                        ( rcSliceHeader.getTemporalId() )
+, m_bUseRefBasePicFlag                  ( rcSliceHeader.getUseRefBasePicFlag() )
+, m_bDiscardableFlag                    ( rcSliceHeader.getDiscardableFlag() )
+, m_bOutputFlag                         ( rcSliceHeader.getOutputFlag() )
+, m_bTCoeffLevelPredictionFlag          ( rcSliceHeader.getTCoeffLevelPredictionFlag() )
+, m_uiPPSId                             ( rcSliceHeader.getPicParameterSetId() )
+, m_uiSPSId                             ( rcSliceHeader.getPPS().getSeqParameterSetId() )
+, m_uiFrameNum                          ( rcSliceHeader.getFrameNum() )
+, m_uiRedundantPicCnt                   ( rcSliceHeader.getRedundantPicCnt() )
+, m_uiRefLayerDQId                      ( rcSliceHeader.getRefLayerDQId() )
+, m_uiFrameWidthInMb                    ( rcSliceHeader.getSPS().getFrameWidthInMbs() )
+, m_uiFrameHeightInMb                   ( rcSliceHeader.getSPS().getFrameHeightInMbs() )
+, m_bIsDQIdMax                          ( false )
+, m_bIsDependencyIdMax                  ( false )
+, m_bLastSliceInLayerRepresentation     ( false )
+, m_bLastSliceInDependencyRepresentation( false )
+, m_bLastSliceInAccessUnit              ( false )
+, m_bLastAccessUnitInStream             ( false )
+, m_bPartOfIDRAccessUnit                ( false )
+, m_bHighestRewriteLayer                ( false )
+{
+  setInstance( this );
   m_auiCroppingRectangle[0] = rcSliceHeader.getSPS().getFrameCropLeftOffset  () << 1;
   m_auiCroppingRectangle[1] = rcSliceHeader.getSPS().getFrameCropRightOffset () << 1;
   m_auiCroppingRectangle[2] = rcSliceHeader.getSPS().getFrameCropTopOffset   () << ( rcSliceHeader.getSPS().getFrameMbsOnlyFlag() ? 1 : 2 );
   m_auiCroppingRectangle[3] = rcSliceHeader.getSPS().getFrameCropBottomOffset() << ( rcSliceHeader.getSPS().getFrameMbsOnlyFlag() ? 1 : 2 );
 }
+
+SliceDataNALUnit::SliceDataNALUnit( BinData* pcBinDataPrefix, const PrefixHeader& rcPrefixHeader,
+                                    BinData* pcBinData,       const SliceHeader&  rcSliceHeader )
+: m_pcBinDataPrefix                     ( pcBinDataPrefix )
+, m_pcBinData                           ( pcBinData )
+, m_eNalRefIdc                          ( rcSliceHeader.getNalRefIdc() )
+, m_eNalUnitType                        ( rcSliceHeader.getNalUnitType() )
+, m_bIdrFlag                            ( rcSliceHeader.getIdrFlag() )
+, m_uiPriorityId                        ( rcPrefixHeader.getPriorityId() )
+, m_bNoInterLayerPredFlag               ( rcPrefixHeader.getNoInterLayerPredFlag() )
+, m_uiDependencyId                      ( rcPrefixHeader.getDependencyId() )
+, m_uiQualityId                         ( rcPrefixHeader.getQualityId() )
+, m_uiTemporalId                        ( rcPrefixHeader.getTemporalId() )
+, m_bUseRefBasePicFlag                  ( rcPrefixHeader.getUseRefBasePicFlag() )
+, m_bDiscardableFlag                    ( rcPrefixHeader.getDiscardableFlag() )
+, m_bOutputFlag                         ( rcPrefixHeader.getOutputFlag() )
+, m_bTCoeffLevelPredictionFlag          ( false )
+, m_uiPPSId                             ( rcSliceHeader.getPicParameterSetId() )
+, m_uiSPSId                             ( rcSliceHeader.getPPS().getSeqParameterSetId() )
+, m_uiFrameNum                          ( rcSliceHeader.getFrameNum() )
+, m_uiRedundantPicCnt                   ( rcSliceHeader.getRedundantPicCnt() )
+, m_uiRefLayerDQId                      ( rcSliceHeader.getRefLayerDQId() )
+, m_uiFrameWidthInMb                    ( rcSliceHeader.getSPS().getFrameWidthInMbs() )
+, m_uiFrameHeightInMb                   ( rcSliceHeader.getSPS().getFrameHeightInMbs() )
+, m_bIsDQIdMax                          ( false )
+, m_bIsDependencyIdMax                  ( false )
+, m_bLastSliceInLayerRepresentation     ( false )
+, m_bLastSliceInDependencyRepresentation( false )
+, m_bLastSliceInAccessUnit              ( false )
+, m_bLastAccessUnitInStream             ( false )
+, m_bPartOfIDRAccessUnit                ( false )
+, m_bHighestRewriteLayer                ( false )
+{
+  setInstance( this );
+  m_auiCroppingRectangle[0] = rcSliceHeader.getSPS().getFrameCropLeftOffset  () << 1;
+  m_auiCroppingRectangle[1] = rcSliceHeader.getSPS().getFrameCropRightOffset () << 1;
+  m_auiCroppingRectangle[2] = rcSliceHeader.getSPS().getFrameCropTopOffset   () << ( rcSliceHeader.getSPS().getFrameMbsOnlyFlag() ? 1 : 2 );
+  m_auiCroppingRectangle[3] = rcSliceHeader.getSPS().getFrameCropBottomOffset() << ( rcSliceHeader.getSPS().getFrameMbsOnlyFlag() ? 1 : 2 );
+}
+
 
 SliceDataNALUnit::~SliceDataNALUnit()
 {
@@ -201,63 +241,56 @@ SliceDataNALUnit::~SliceDataNALUnit()
   }
 }
 
-ErrVal
-SliceDataNALUnit::update( BinData* pcBinData, const SliceHeader& rcSliceHeader )
-{
-  ROT( m_bSliceHeaderPresent );
-  ROF( rcSliceHeader.isH264AVCCompatible() );
-  ROF( m_bIdrFlag == rcSliceHeader.getIdrFlag() );
-  m_bSliceHeaderPresent         = true;
-  m_pcBinData                   = pcBinData;
-  m_eNalRefIdc                  = rcSliceHeader.getNalRefIdc();
-  m_eNalUnitType                = rcSliceHeader.getNalUnitType();
-  m_bTCoeffLevelPredictionFlag  = false;
-  m_uiPPSId                     = rcSliceHeader.getPicParameterSetId();
-  m_uiSPSId                     = rcSliceHeader.getPPS().getSeqParameterSetId();
-  m_uiFrameNum                  = rcSliceHeader.getFrameNum();
-  m_uiRedundantPicCnt           = rcSliceHeader.getRedundantPicCnt();
-  m_uiRefLayerDQId              = rcSliceHeader.getRefLayerDQId();
-  m_uiFrameWidthInMb            = rcSliceHeader.getSPS().getFrameWidthInMbs();
-  m_uiFrameHeightInMb           = rcSliceHeader.getSPS().getFrameHeightInMbs();
-  m_auiCroppingRectangle[0]     = rcSliceHeader.getSPS().getFrameCropLeftOffset  () << 1;
-  m_auiCroppingRectangle[1]     = rcSliceHeader.getSPS().getFrameCropRightOffset () << 1;
-  m_auiCroppingRectangle[2]     = rcSliceHeader.getSPS().getFrameCropTopOffset   () << ( rcSliceHeader.getSPS().getFrameMbsOnlyFlag() ? 1 : 2 );
-  m_auiCroppingRectangle[3]     = rcSliceHeader.getSPS().getFrameCropBottomOffset() << ( rcSliceHeader.getSPS().getFrameMbsOnlyFlag() ? 1 : 2 );
-  return Err::m_nOK;
-}
 
-AccessUnitSlices::AccessUnitSlices()
-: m_bEndOfStream                            ( false )
-, m_bComplete                               ( false )
-, m_pcFirstSliceDataNALUnitOfNextAccessUnit ( 0 )
-, m_pcLastPrefixHeader                      ( 0 )
-, m_pcLastSliceHeader                       ( 0 )
+
+
+AccessUnit::AccessUnit()
+: m_bEndOfStream      ( false )
+, m_bComplete         ( false )
+, m_pcLastVCLNALUnit  ( 0 )
+, m_pcLastPrefixHeader( 0 )
+, m_pcLastSliceHeader ( 0 )
 {
 }
 
-AccessUnitSlices::~AccessUnitSlices()
+AccessUnit::~AccessUnit()
 {
-  while( ! m_cSliceDataNalUnitList.empty() )
+  while( ! m_cNalUnitList.empty() )
   {
-    SliceDataNALUnit* pcSliceDataNalUnit = m_cSliceDataNalUnitList.popFront();
-    delete            pcSliceDataNalUnit;
+    NALUnit*  pcNalUnit = m_cNalUnitList.popFront();
+    delete    pcNalUnit;
   }
-  delete m_pcFirstSliceDataNALUnitOfNextAccessUnit;
+  while( ! m_cStartOfNewAccessUnit.empty() )
+  {
+    NALUnit*  pcNalUnit = m_cStartOfNewAccessUnit.popFront();
+    delete    pcNalUnit;
+  }
   delete m_pcLastPrefixHeader;
   delete m_pcLastSliceHeader;
 }
 
+
 ErrVal
-AccessUnitSlices::updateEndOfStream()
+AccessUnit::update( BinData* pcBinData, PrefixHeader& rcPrefixHeader )
 {
-  ROT ( m_bComplete );
-  ROT ( m_bEndOfStream );
-  xSetComplete();
+  ROT( m_bComplete );
+  ROT( m_bEndOfStream );
+  ROF( pcBinData );
+
+  //===== create or extract and update slice data NAL unit =====
+  NonVCLNALUnit* pcNonVCLNalUnit = new NonVCLNALUnit( pcBinData );
+  ROF( pcNonVCLNalUnit );
+
+  //===== update slice data NAL unit list and header references =====
+  m_cNalUnitList.push_back( pcNonVCLNalUnit );
+  delete m_pcLastPrefixHeader;
+  m_pcLastPrefixHeader = &rcPrefixHeader;
   return Err::m_nOK;
 }
 
+
 ErrVal
-AccessUnitSlices::update( BinData* pcBinData, SliceHeader& rcSliceHeader )
+AccessUnit::update( BinData* pcBinData, SliceHeader& rcSliceHeader )
 {
   ROT( m_bComplete );
   ROT( m_bEndOfStream );
@@ -267,24 +300,27 @@ AccessUnitSlices::update( BinData* pcBinData, SliceHeader& rcSliceHeader )
   SliceDataNALUnit* pcSliceDataNalUnit = 0;
   if( m_pcLastPrefixHeader && rcSliceHeader.isH264AVCCompatible() )
   {
-    pcSliceDataNalUnit = m_cSliceDataNalUnitList.popBack();
-    RNOK( pcSliceDataNalUnit->update( pcBinData, rcSliceHeader ) );
+    NALUnit*        pcLastNALUnit   = m_cNalUnitList.popBack();
+    NonVCLNALUnit*  pcPrefixNALUnit = (NonVCLNALUnit*)pcLastNALUnit->getInstance();
+    BinData*        pcBinDataPrefix = pcPrefixNALUnit->getBinData();
+    pcPrefixNALUnit->destroyNALOnly();
+    pcSliceDataNalUnit = new SliceDataNALUnit( pcBinDataPrefix, *m_pcLastPrefixHeader, pcBinData, rcSliceHeader );
   }
   else
   {
     pcSliceDataNalUnit = new SliceDataNALUnit( pcBinData, rcSliceHeader );
-    ROF ( pcSliceDataNalUnit );
   }
+  ROF( pcSliceDataNalUnit );
 
   //===== check for new access unit =====
   if( rcSliceHeader.isFirstSliceOfNextAccessUnit( m_pcLastSliceHeader ) )
   {
-    xSetComplete( false, pcSliceDataNalUnit, &rcSliceHeader );
+    xSetComplete( pcSliceDataNalUnit, &rcSliceHeader );
     return Err::m_nOK;
   }
 
   //===== update slice data NAL unit list and header references =====
-  m_cSliceDataNalUnitList.push_back( pcSliceDataNalUnit );
+  m_cNalUnitList.push_back( pcSliceDataNalUnit );
   delete m_pcLastPrefixHeader;
   delete m_pcLastSliceHeader;
   m_pcLastPrefixHeader  = 0;
@@ -292,85 +328,168 @@ AccessUnitSlices::update( BinData* pcBinData, SliceHeader& rcSliceHeader )
   return Err::m_nOK;
 }
 
+
 ErrVal
-AccessUnitSlices::update( BinData* pcBinData, PrefixHeader& rcPrefixHeader )
+AccessUnit::update( BinData* pcBinData )
 {
   ROT( m_bComplete );
   ROT( m_bEndOfStream );
-  ROF( pcBinData );
 
-  //===== create or extract and update slice data NAL unit =====
-  SliceDataNALUnit* pcSliceDataNalUnit = new SliceDataNALUnit( pcBinData, rcPrefixHeader );
-  ROF ( pcSliceDataNalUnit );
+  Bool bEOS = ( pcBinData == 0 );
 
-  //===== update slice data NAL unit list and header references =====
-  m_cSliceDataNalUnitList.push_back( pcSliceDataNalUnit );
-  delete m_pcLastPrefixHeader;
-  m_pcLastPrefixHeader  = &rcPrefixHeader;
+  if( pcBinData )
+  {
+    BinData* pcBinDataPrefix = 0;
+    if( m_pcLastPrefixHeader && NalUnitType( pcBinData->data()[ 0 ] & 0x1F ) == NAL_UNIT_FILLER_DATA )
+    {
+      NALUnit*        pcLastNALUnit   = m_cNalUnitList.popBack();
+      NonVCLNALUnit*  pcPrefixNALUnit = (NonVCLNALUnit*)pcLastNALUnit->getInstance();
+      pcBinDataPrefix                 = pcPrefixNALUnit->getBinData();
+      pcPrefixNALUnit->destroyNALOnly();
+    }
+    NonVCLNALUnit* pcNonVCLNALUnit = new NonVCLNALUnit( pcBinData, pcBinDataPrefix );
+    ROF( pcNonVCLNALUnit );
+    m_cNalUnitList.push_back( pcNonVCLNALUnit );
+    bEOS = ( pcNonVCLNALUnit->getNalUnitType() == NAL_UNIT_END_OF_STREAM );
+  }
+  if( bEOS )
+  {
+    xSetComplete();
+  }
   return Err::m_nOK;
 }
 
+
 ErrVal
-AccessUnitSlices::getNextSliceDataNalUnit( SliceDataNALUnit*& rpcSliceDataNalUnit )
+AccessUnit::getAndRemoveNextNalUnit( NALUnit*& rpcNalUnit )
 {
   ROF( m_bComplete );
-  rpcSliceDataNalUnit = m_cSliceDataNalUnitList.popFront();
-  if( m_cSliceDataNalUnitList.empty() )
+  rpcNalUnit = m_cNalUnitList.popFront();
+  if( rpcNalUnit->isVCLNALUnit() && rpcNalUnit->getInstance() == (Void*)m_pcLastVCLNALUnit )
+  {
+    m_pcLastVCLNALUnit = 0;
+  }
+  if( m_cNalUnitList.empty() )
   {
     xReInit();
   }
   return Err::m_nOK;
 }
 
-ErrVal
-AccessUnitSlices::getRefToTargetLayerSliceData( const SliceDataNALUnit*& rpcSliceDataNalUnit ) const
-{
-  ROF( m_bComplete );
-  rpcSliceDataNalUnit = *m_cSliceDataNalUnitList.rbegin();
-  return Err::m_nOK;
-}
+
+#define ISVCL(i)  ((*i)->isVCLNALUnit())
+#define SLICE(i)  ((SliceDataNALUnit*)((*i)->getInstance()))
 
 Void
-AccessUnitSlices::xSetComplete( Bool              bEndOfStream,
-                                SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit,
-                                SliceHeader*      pcSliceHeader )
+AccessUnit::xSetComplete( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit,
+                          SliceHeader*      pcFirstSliceHeaderOfNextAccessUnit )
 {
   delete m_pcLastPrefixHeader;
   delete m_pcLastSliceHeader;
-  m_bEndOfStream                            = bEndOfStream;
-  m_bComplete                               = true;
-  m_pcFirstSliceDataNALUnitOfNextAccessUnit = pcFirstSliceDataNALUnitOfNextAccessUnit;
-  m_pcLastPrefixHeader                      = 0;
-  m_pcLastSliceHeader                       = pcSliceHeader;
+  m_bEndOfStream        = ( pcFirstSliceDataNALUnitOfNextAccessUnit == 0 );
+  m_bComplete           = true;
+  m_pcLastVCLNALUnit    = 0;
+  m_pcLastPrefixHeader  = 0;
+  m_pcLastSliceHeader   = pcFirstSliceHeaderOfNextAccessUnit;
 
-  //===== remove slice data structures that only contain prefix headers (could be used for error detection in later version) =====
+  //===== find last slice data NAL unit =====
   {
-    MyList<SliceDataNALUnit*>::iterator iIter =  m_cSliceDataNalUnitList.begin  ();
-    MyList<SliceDataNALUnit*>::iterator iEnd  =  m_cSliceDataNalUnitList.end    ();
+    MyList<NALUnit*>::reverse_iterator iIter = m_cNalUnitList.rbegin();
+    MyList<NALUnit*>::reverse_iterator iEnd  = m_cNalUnitList.rend  ();
     while( iIter != iEnd )
     {
-      if( ! (*iIter)->isSliceHeaderPresent() )
+      if( ISVCL(iIter) )
       {
-        delete *iIter;
-        iIter = m_cSliceDataNalUnitList.erase( iIter );
+        m_pcLastVCLNALUnit = SLICE(iIter);
+        break;
       }
-      else
+      iIter++;
+    }
+    AOF( m_pcLastVCLNALUnit );
+  }
+
+  //===== set NAL units of next access unit =====
+  if( ! m_bEndOfStream )
+  {
+    MyList<NALUnit*>::iterator iIter = m_cNalUnitList.begin();
+    MyList<NALUnit*>::iterator iEnd  = m_cNalUnitList.end  ();
+    //--- goto the NAL unit after the last VCL NAL unit ---
+    while( iIter != iEnd )
+    {
+      if( ISVCL(iIter) && SLICE(iIter) == m_pcLastVCLNALUnit )
       {
         iIter++;
+        break;
       }
+      iIter++;
+    }
+    //--- find first NAL of next access unit ---
+    while( iIter != iEnd )
+    {
+      NalUnitType eNalUnitType = (*iIter)->getNalUnitType();
+      if( ( eNalUnitType >= 6 && eNalUnitType <= 9 ) || ( eNalUnitType >= 14 && eNalUnitType <= 18 ) )
+      {
+        break;
+      }
+      iIter++;
+    }
+    //--- set NAL units of next access unit ---
+    UInt  uiNumNALUnitsToRemove = 0;
+    while( iIter != iEnd )
+    {
+      m_cStartOfNewAccessUnit.push_back( *iIter );
+      uiNumNALUnitsToRemove++;
+      iIter++;
+    }
+    m_cStartOfNewAccessUnit.push_back( pcFirstSliceDataNALUnitOfNextAccessUnit );
+    //--- remove the NAL units from the current access unit ---
+    while( uiNumNALUnitsToRemove )
+    {
+      m_cNalUnitList.pop_back();
+      uiNumNALUnitsToRemove--;
     }
   }
 
-  //===== remove redundant slices (could be used for error concealment in later version) =====
+  //===== analyse NAL units and set parameters of slice data NAL units =====
+  xSetParameters();
+}
+
+
+MyList<NALUnit*>::iterator
+getNextVCL( MyList<NALUnit*>::iterator iIter, MyList<NALUnit*>::iterator iEnd, Bool bFirst = false )
+{
+  if( iIter != iEnd )
   {
-    MyList<SliceDataNALUnit*>::iterator iIter =  m_cSliceDataNalUnitList.begin  ();
-    MyList<SliceDataNALUnit*>::iterator iEnd  =  m_cSliceDataNalUnitList.end    ();
+    if( ! bFirst )
+    {
+      iIter++;
+    }
     while( iIter != iEnd )
     {
-      if( (*iIter)->getRedundantPicCnt() )
+      if( (*iIter)->isVCLNALUnit() )
+      {
+        break;
+      }
+      iIter++;
+    }
+  }
+  return iIter;
+}
+
+
+Void
+AccessUnit::xSetParameters()
+{
+  //===== remove redundant slices (could be used for error concealment in later version) =====
+  {
+    MyList<NALUnit*>::iterator iIter = m_cNalUnitList.begin();
+    MyList<NALUnit*>::iterator iEnd  = m_cNalUnitList.end  ();
+    while( iIter != iEnd )
+    {
+      if( ISVCL(iIter) && SLICE(iIter)->getRedundantPicCnt() )
       {
         delete *iIter;
-        iIter = m_cSliceDataNalUnitList.erase( iIter );
+        iIter = m_cNalUnitList.erase( iIter );
       }
       else
       {
@@ -381,34 +500,43 @@ AccessUnitSlices::xSetComplete( Bool              bEndOfStream,
 
   //===== remove non-required NAL units =====
   {
-    MyList<SliceDataNALUnit*>::reverse_iterator iIter       = m_cSliceDataNalUnitList.rbegin();
-    MyList<SliceDataNALUnit*>::reverse_iterator iEnd        = m_cSliceDataNalUnitList.rend  ();
-    UInt                                        uiCurrDQId  = MSYS_UINT_MAX;
-    UInt                                        uiNextDQId  = (*iIter)->getDQId();
+    MyList<NALUnit*>::reverse_iterator iIter = m_cNalUnitList.rbegin();
+    MyList<NALUnit*>::reverse_iterator iEnd  = m_cNalUnitList.rend  ();
     while( iIter != iEnd )
     {
-      if( (*iIter)->getDQId() == uiCurrDQId )
+      if( ISVCL(iIter) )
+      {
+        break;
+      }
+      iIter++;
+    }
+    AOT( iIter == iEnd );
+    UInt  uiCurrDQId = MSYS_UINT_MAX;
+    UInt  uiNextDQId = SLICE(iIter)->getDQId();
+    while( iIter != iEnd )
+    {
+      if( ! ISVCL(iIter) || SLICE(iIter)->getDQId() == uiCurrDQId )
       {
         iIter++;
       }
-      else if( uiNextDQId == MSYS_UINT_MAX || (*iIter)->getDQId() > uiNextDQId )
+      else if( uiNextDQId == MSYS_UINT_MAX || SLICE(iIter)->getDQId() > uiNextDQId )
       {
         // remove non-required layer representation
-        MyList<SliceDataNALUnit*>::reverse_iterator iNext     = iIter; iNext++;
-        MyList<SliceDataNALUnit*>::iterator         iToDelete = iNext.base();
+        MyList<NALUnit*>::reverse_iterator iNext     = iIter; iNext++;
+        MyList<NALUnit*>::iterator         iToDelete = iNext.base();
         delete *iToDelete;
-        iToDelete = m_cSliceDataNalUnitList.erase( iToDelete );
-        iIter     = static_cast<MyList<SliceDataNALUnit*>::reverse_iterator>( iToDelete );
-        iEnd      = m_cSliceDataNalUnitList.rend();
+        iToDelete = m_cNalUnitList.erase( iToDelete );
+        iIter     = static_cast<MyList<NALUnit*>::reverse_iterator>( iToDelete );
+        iEnd      = m_cNalUnitList.rend();
       }
-      else if( ( (*iIter)->getDQId() >> 4 ) == ( uiNextDQId >> 4 ) )
+      else if( ( SLICE(iIter)->getDQId() >> 4 ) == ( uiNextDQId >> 4 ) )
       {
-        if( (*iIter)->getDQId() != uiNextDQId )
+        if( SLICE(iIter)->getDQId() != uiNextDQId )
         {
-          printf( "WARNING: missing layer representation (Q=%d), chosing Q=%d\n", uiNextDQId & 15, (*iIter)->getDQId() & 15 );
+          printf( "WARNING: missing layer representation (Q=%d), chosing Q=%d\n", uiNextDQId & 15, SLICE(iIter)->getDQId() & 15 );
         }
-        uiCurrDQId  = (*iIter)->getDQId();
-        uiNextDQId  = (*iIter)->getRefLayerDQId();
+        uiCurrDQId  = SLICE(iIter)->getDQId();
+        uiNextDQId  = SLICE(iIter)->getRefLayerDQId();
         iIter++;
       }
       else
@@ -423,24 +551,27 @@ AccessUnitSlices::xSetComplete( Bool              bEndOfStream,
   //===== set highest DQId for which AVC rewriting is possible =====
   UInt  uiHighestRewriteDQId = MSYS_UINT_MAX;
   {
-    MyList<SliceDataNALUnit*>::iterator iIter = m_cSliceDataNalUnitList.begin();
-    MyList<SliceDataNALUnit*>::iterator iEnd  = m_cSliceDataNalUnitList.end  ();
+    MyList<NALUnit*>::iterator iIter = m_cNalUnitList.begin();
+    MyList<NALUnit*>::iterator iEnd  = m_cNalUnitList.end  ();
     while( iIter != iEnd )
     {
-      if( (*iIter)->getNalUnitType() == NAL_UNIT_CODED_SLICE      ||
-          (*iIter)->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR  ||
-          (*iIter)->getTCoeffLevelPredictionFlag() )
+      if( ISVCL(iIter) )
       {
-        uiHighestRewriteDQId = (*iIter)->getDQId();
+        if( SLICE(iIter)->getNalUnitType() == NAL_UNIT_CODED_SLICE      ||
+            SLICE(iIter)->getNalUnitType() == NAL_UNIT_CODED_SLICE_IDR  ||
+            SLICE(iIter)->getTCoeffLevelPredictionFlag() )
+        {
+          uiHighestRewriteDQId = SLICE(iIter)->getDQId();
+        }
       }
       iIter++;
     }
   }
 
   //===== set slice data properties =====
-  MyList<SliceDataNALUnit*>::iterator iIter = m_cSliceDataNalUnitList.begin();
-  MyList<SliceDataNALUnit*>::iterator iEnd  = m_cSliceDataNalUnitList.end  ();
-  MyList<SliceDataNALUnit*>::iterator iNext = iIter; iNext++;
+  MyList<NALUnit*>::iterator iEnd  = m_cNalUnitList.end();
+  MyList<NALUnit*>::iterator iIter = getNextVCL( m_cNalUnitList.begin(), iEnd, true );
+  MyList<NALUnit*>::iterator iNext = getNextVCL( iIter, iEnd );
   while( iIter != iEnd )
   {
     //----- check whether slice is the last slice in a layer or dependency representation ----
@@ -453,65 +584,67 @@ AccessUnitSlices::xSetComplete( Bool              bEndOfStream,
     }
     else
     {
-      bLastSliceInLayerRepresentation       = ( (*iIter)->getDQId         () != (*iNext)->getDQId         () );
-      bLastSliceInDependencyRepresentation  = ( (*iIter)->getDependencyId () != (*iNext)->getDependencyId () );
+      bLastSliceInLayerRepresentation       = ( SLICE(iIter)->getDQId         () != SLICE(iNext)->getDQId         () );
+      bLastSliceInDependencyRepresentation  = ( SLICE(iIter)->getDependencyId () != SLICE(iNext)->getDependencyId () );
     }
     //----- check whether slices is part of an IDR access unit -----
     Bool  bIsPartOfIDRAccessUnit  = false;
-    for( MyList<SliceDataNALUnit*>::iterator iNIter = iIter; iNIter != iEnd && ! bIsPartOfIDRAccessUnit; iNIter++ )
+    for( MyList<NALUnit*>::iterator iNIter = iIter; iNIter != iEnd && ! bIsPartOfIDRAccessUnit; iNIter = getNextVCL( iNIter, iEnd ) )
     {
-      bIsPartOfIDRAccessUnit = (*iNIter)->getIdrFlag();
+      bIsPartOfIDRAccessUnit = SLICE(iNIter)->getIdrFlag();
     }
     //----- set parameters -----
-    (*iIter)->setDQIdMax                            ( (*iIter)->getDQId         () == (*m_cSliceDataNalUnitList.rbegin())->getDQId        () );
-    (*iIter)->setDependencyIdMax                    ( (*iIter)->getDependencyId () == (*m_cSliceDataNalUnitList.rbegin())->getDependencyId() );
-    (*iIter)->setLastSliceInLayerRepresentation     ( bLastSliceInLayerRepresentation );
-    (*iIter)->setLastSliceInDependencyRepresentation( bLastSliceInDependencyRepresentation );
-    (*iIter)->setLastSliceInAccessUnit              ( iNext == iEnd );
-    (*iIter)->setLastAccessUnitInStream             ( m_bEndOfStream );
-    (*iIter)->setPartOfIDRAccessUnit                ( bIsPartOfIDRAccessUnit );
-    (*iIter)->setHighestRewriteLayer                ( (*iIter)->getDQId         () == uiHighestRewriteDQId );
+    SLICE(iIter)->setDQIdMax                            ( SLICE(iIter)->getDQId         () == m_pcLastVCLNALUnit->getDQId        () );
+    SLICE(iIter)->setDependencyIdMax                    ( SLICE(iIter)->getDependencyId () == m_pcLastVCLNALUnit->getDependencyId() );
+    SLICE(iIter)->setLastSliceInLayerRepresentation     ( bLastSliceInLayerRepresentation );
+    SLICE(iIter)->setLastSliceInDependencyRepresentation( bLastSliceInDependencyRepresentation );
+    SLICE(iIter)->setLastSliceInAccessUnit              ( iNext == iEnd );
+    SLICE(iIter)->setLastAccessUnitInStream             ( m_bEndOfStream );
+    SLICE(iIter)->setPartOfIDRAccessUnit                ( bIsPartOfIDRAccessUnit );
+    SLICE(iIter)->setHighestRewriteLayer                ( SLICE(iIter)->getDQId         () == uiHighestRewriteDQId );
     //----- update iterators ----
     iIter = iNext;
-    if( iNext != iEnd )
-    {
-      iNext++;
-    }
+    iNext = getNextVCL( iIter, iEnd );
   }
 }
 
+
 Void
-AccessUnitSlices::xReInit()
+AccessUnit::xReInit()
 {
-  m_cSliceDataNalUnitList.push_back( m_pcFirstSliceDataNALUnitOfNextAccessUnit );
-  m_bComplete                               = false;
-  m_pcFirstSliceDataNALUnitOfNextAccessUnit = 0;
+  m_cNalUnitList = m_cStartOfNewAccessUnit;
+  m_bComplete    = false;
+  m_cStartOfNewAccessUnit.clear();
 }
+
+#undef ISVCL
+#undef SLICE
 
 
 
 
 
 CreaterH264AVCDecoder::CreaterH264AVCDecoder()
-: m_pcH264AVCDecoder      ( 0 )
-, m_pcParameterSetMng     ( 0 )
-, m_pcSliceReader         ( 0 )
-, m_pcNalUnitParser       ( 0 )
-, m_pcSliceDecoder        ( 0 )
-, m_pcControlMng          ( 0 )
-, m_pcBitReadBuffer       ( 0 )
-, m_pcUvlcReader          ( 0 )
-, m_pcMbParser            ( 0 )
-, m_pcLoopFilter          ( 0 )
-, m_pcMbDecoder           ( 0 )
-, m_pcTransform           ( 0 )
-, m_pcIntraPrediction     ( 0 )
-, m_pcMotionCompensation  ( 0 )
-, m_pcQuarterPelFilter    ( 0 )
-, m_pcCabacReader         ( 0 )
-, m_pcSampleWeighting     ( 0 )
+: m_pcH264AVCDecoder        ( 0 )
+, m_pcParameterSetMngAUInit ( 0 )
+, m_pcParameterSetMngDecode ( 0 )
+, m_pcSliceReader           ( 0 )
+, m_pcNalUnitParser         ( 0 )
+, m_pcSliceDecoder          ( 0 )
+, m_pcControlMng            ( 0 )
+, m_pcBitReadBuffer         ( 0 )
+, m_pcUvlcReader            ( 0 )
+, m_pcMbParser              ( 0 )
+, m_pcLoopFilter            ( 0 )
+, m_pcMbDecoder             ( 0 )
+, m_pcTransform             ( 0 )
+, m_pcIntraPrediction       ( 0 )
+, m_pcMotionCompensation    ( 0 )
+, m_pcQuarterPelFilter      ( 0 )
+, m_pcCabacReader           ( 0 )
+, m_pcSampleWeighting       ( 0 )
 #ifdef SHARP_AVC_REWRITE_OUTPUT
-, m_pcRewriteEncoder      ( 0 )
+, m_pcRewriteEncoder        ( 0 )
 #endif
 {
   ::memset( m_apcDecodedPicBuffer,     0x00, MAX_LAYERS * sizeof( Void* ) );
@@ -536,7 +669,8 @@ CreaterH264AVCDecoder::create( CreaterH264AVCDecoder*& rpcCreaterH264AVCDecoder 
 ErrVal
 CreaterH264AVCDecoder::xCreateDecoder()
 {
-  RNOK( ParameterSetMng         ::create( m_pcParameterSetMng ) );
+  RNOK( ParameterSetMng         ::create( m_pcParameterSetMngAUInit ) );
+  RNOK( ParameterSetMng         ::create( m_pcParameterSetMngDecode ) );
   RNOK( BitReadBuffer           ::create( m_pcBitReadBuffer ) );
   RNOK( NalUnitParser           ::create( m_pcNalUnitParser) );
   RNOK( SliceReader             ::create( m_pcSliceReader ) );
@@ -586,7 +720,8 @@ CreaterH264AVCDecoder::destroy()
   RNOK( m_pcQuarterPelFilter      ->destroy() );
   RNOK( m_pcCabacReader           ->destroy() );
   RNOK( m_pcNalUnitParser         ->destroy() );
-  RNOK( m_pcParameterSetMng       ->destroy() );
+  RNOK( m_pcParameterSetMngAUInit ->destroy() );
+  RNOK( m_pcParameterSetMngDecode ->destroy() );
   RNOK( m_pcSampleWeighting       ->destroy() );
   RNOK( m_pcH264AVCDecoder        ->destroy() );
   RNOK( m_pcControlMng            ->destroy() );
@@ -620,13 +755,10 @@ CreaterH264AVCDecoder::init( Bool bOpenTrace )
   RNOK( m_pcUvlcReader            ->init( m_pcBitReadBuffer ) );
   RNOK( m_pcCabacReader           ->init( m_pcBitReadBuffer ) );
   RNOK( m_pcQuarterPelFilter      ->init() );
-  RNOK( m_pcParameterSetMng       ->init() );
+  RNOK( m_pcParameterSetMngAUInit ->init() );
+  RNOK( m_pcParameterSetMngDecode ->init() );
   RNOK( m_pcSampleWeighting       ->init() );
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  RNOK( m_pcSliceDecoder          ->init( m_pcMbDecoder, m_pcControlMng, m_pcRewriteEncoder ) );
-#else
   RNOK( m_pcSliceDecoder          ->init( m_pcMbDecoder, m_pcControlMng ) );
-#endif
   RNOK( m_pcSliceReader           ->init( m_pcMbParser ) );
   RNOK( m_pcMbParser              ->init() );
   RNOK( m_pcLoopFilter            ->init( m_pcControlMng, m_pcReconstructionBypass, false ) );
@@ -635,7 +767,8 @@ CreaterH264AVCDecoder::init( Bool bOpenTrace )
   RNOK( m_pcMbDecoder             ->init( m_pcTransform, m_pcIntraPrediction, m_pcMotionCompensation ) );
   RNOK( m_pcH264AVCDecoder        ->init( m_pcNalUnitParser,
                                           m_pcUvlcReader,
-                                          m_pcParameterSetMng,
+                                          m_pcParameterSetMngAUInit,
+                                          m_pcParameterSetMngDecode,
                                           m_apcLayerDecoder ) );
   RNOK( m_pcReconstructionBypass  ->init() );
 #ifdef SHARP_AVC_REWRITE_OUTPUT
@@ -655,7 +788,7 @@ CreaterH264AVCDecoder::init( Bool bOpenTrace )
                                                  m_pcControlMng,
                                                  m_pcLoopFilter,
                                                  m_pcUvlcReader,
-                                                 m_pcParameterSetMng,
+                                                 m_pcParameterSetMngDecode,
                                                  m_apcPocCalculator        [uiLayer],
                                                  m_apcYuvFullPelBufferCtrl [uiLayer],
                                                  m_apcDecodedPicBuffer     [uiLayer],
@@ -671,7 +804,7 @@ CreaterH264AVCDecoder::init( Bool bOpenTrace )
                                                  m_pcControlMng,
                                                  m_pcLoopFilter,
                                                  m_pcUvlcReader,
-                                                 m_pcParameterSetMng,
+                                                 m_pcParameterSetMngDecode,
                                                  m_apcPocCalculator        [uiLayer],
                                                  m_apcYuvFullPelBufferCtrl [uiLayer],
                                                  m_apcDecodedPicBuffer     [uiLayer],
@@ -696,7 +829,8 @@ CreaterH264AVCDecoder::uninit( Bool bCloseTrace )
 {
   RNOK( m_pcSampleWeighting       ->uninit() );
   RNOK( m_pcQuarterPelFilter      ->uninit() );
-  RNOK( m_pcParameterSetMng       ->uninit() );
+  RNOK( m_pcParameterSetMngAUInit ->uninit() );
+  RNOK( m_pcParameterSetMngDecode ->uninit() );
   RNOK( m_pcSliceDecoder          ->uninit() );
   RNOK( m_pcSliceReader           ->uninit() );
   RNOK( m_pcNalUnitParser         ->uninit() );
@@ -731,20 +865,20 @@ CreaterH264AVCDecoder::uninit( Bool bCloseTrace )
 }
 
 ErrVal
-CreaterH264AVCDecoder::initNALUnit( BinData*& rpcBinData, AccessUnitSlices& rcAccessUnitSlices )
+CreaterH264AVCDecoder::initNALUnit( BinData*& rpcBinData, AccessUnit& rcAccessUnit )
 {
-  RNOK( m_pcH264AVCDecoder->initNALUnit( rpcBinData, rcAccessUnitSlices ) );
+  RNOK( m_pcH264AVCDecoder->initNALUnit( rpcBinData, rcAccessUnit ) );
   return Err::m_nOK;
 }
 
 ErrVal
-CreaterH264AVCDecoder::processSliceData( PicBuffer*         pcPicBuffer,
-                                        PicBufferList&     rcPicBufferOutputList,
-                                        PicBufferList&     rcPicBufferUnusedList,
-                                        BinDataList&       rcBinDataList,
-                                        SliceDataNALUnit&  rcSliceDataNALUnit )
+CreaterH264AVCDecoder::processNALUnit( PicBuffer*         pcPicBuffer,
+                                       PicBufferList&     rcPicBufferOutputList,
+                                       PicBufferList&     rcPicBufferUnusedList,
+                                       BinDataList&       rcBinDataList,
+                                       NALUnit&           rcNALUnit )
 {
-  RNOK( m_pcH264AVCDecoder->processSliceData( pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList, rcBinDataList, rcSliceDataNALUnit ) );
+  RNOK( m_pcH264AVCDecoder->processNALUnit( pcPicBuffer, rcPicBufferOutputList, rcPicBufferUnusedList, rcBinDataList, rcNALUnit ) );
   return Err::m_nOK;
 }
 
@@ -818,6 +952,7 @@ H264AVCPacketAnalyzer::init()
   RNOK( m_pcBitReadBuffer ->init() );
   RNOK( m_pcUvlcReader    ->init( m_pcBitReadBuffer ) );
   RNOK( m_pcNalUnitParser ->init( m_pcBitReadBuffer, m_pcUvlcReader ) );
+  m_uiPrevPicLayer = 0;
   return Err::m_nOK;
 }
 

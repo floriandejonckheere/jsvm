@@ -111,6 +111,7 @@ class NalUnitEncoder;
 class ControlMngIf;
 class ParameterSetMng;
 class LayerEncoder;
+class MotionVectorCalculation;
 
 
 #if defined( WIN32 )
@@ -267,7 +268,7 @@ public:
   Double                            m_aaadSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 protected:
   LayerEncoder*                     m_apcLayerEncoder   [MAX_LAYERS];
-  AccessUnitList                    m_cAccessUnitList;
+  AccessUnitDataList                m_cAccessUnitDataList;
 
   // ICU / ETRI ROI 
   Bool    m_bWrteROISEI;
@@ -316,55 +317,52 @@ public:
   ErrVal          init              ();
   ErrVal          uninit            ();
 
-  ErrVal          resetData         ();
-  ErrVal          startSlice        ( BinDataList&                rcBinDataList,
-                                      const SliceHeader&          rcSliceHeader );
-  ErrVal          finishSlice       ( BinDataList&                rcBinDataList );
-  ErrVal          initMb            ( MbDataAccess*&              rpcMbDataAccess,
-                                      UInt                        uiMbY,
-                                      UInt                        uiMbX );
-  ErrVal          storeMb           ( MbDataAccess&               rcMbDataAccess,
-                                      const MbDataAccess&         rcMbDataAccessSrc );
-  ErrVal          encodeMb          ( MbDataAccess&               rcMbDataAccess,
-                                      Bool                        bTerminateSlice );
-  
-  Bool            isSliceInProgress ()  const { return m_bSliceInProgress; }
+  ErrVal          startPicture      ( const SequenceParameterSet& rcSPS );
+  ErrVal          finishPicture     ( BinDataList&                rcBinDataList );
+  ErrVal          rewriteMb         ( MbDataAccess&               rcMbDataAccessSource );
 
 private:
   ErrVal          xCreate           ();
-  ErrVal          xInitSPS          ( const SequenceParameterSet& rcSPS );
 
-  ErrVal          xCreateSliceHeader( const SliceHeader&          rcSliceHeader );
+  ErrVal          xStartSlice       ( MbDataAccess&               rcMbDataAccessSource );
+  ErrVal          xFinishSlice      ();
   ErrVal          xInitNALUnit      ();
-  ErrVal          xCloseNALUnit     ( BinDataList&                rcBinDataList );
-
+  ErrVal          xCloseNALUnit     ();
   Bool            xIsRewritten      ( const Void*                 pParameterSet );
-  ErrVal          xRewriteSPS       ( const SequenceParameterSet& rcSPS,
-                                      BinDataList&                rcBinDataList );
-  ErrVal          xRewritePPS       ( const PictureParameterSet&  rcPPS,
-                                      BinDataList&                rcBinDataList );
+  ErrVal          xRewriteSPS       ( const SequenceParameterSet& rcSPS );
+  ErrVal          xRewritePPS       ( const PictureParameterSet&  rcPPS );
+
+  ErrVal          xInitMb           ( MbDataAccess*&              rpcMbDataAccessRewrite,
+                                      MbDataAccess&               rcMbDataAccessSource );
+  ErrVal          xAdjustMb         ( MbDataAccess&               rcMbDataAccessRewrite,
+                                      Bool                        bBaseLayer );
+  ErrVal          xEncodeMb         ( MbDataAccess&               rcMbDataAccessRewrite,
+                                      Bool                        bLastMbInSlice );
 
 private:
-  Bool                m_bInitialized;
-  Bool                m_bSliceInProgress;
-  UInt                m_uiBinDataSize;
-  BitWriteBuffer*     m_pcBitWriteBuffer;
-  BitCounter*         m_pcBitCounter;
-  NalUnitEncoder*     m_pcNalUnitEncoder;
-  UvlcWriter*         m_pcUvlcWriter;
-  UvlcWriter*         m_pcUvlcTester;
-  CabacWriter*        m_pcCabacWriter;
-  MbCoder*            m_pcMbCoder;
-  RateDistortion*     m_pcRateDistortion;
-  MbDataCtrl*         m_pcMbDataCtrl;
-  MyList<const Void*> m_cRewrittenParameterSets;
+  Bool                      m_bInitialized;
+  Bool                      m_bPictureInProgress;
+  Bool                      m_bSliceInProgress;
+  UInt                      m_uiBinDataSize;
+  BitWriteBuffer*           m_pcBitWriteBuffer;
+  BitCounter*               m_pcBitCounter;
+  NalUnitEncoder*           m_pcNalUnitEncoder;
+  UvlcWriter*               m_pcUvlcWriter;
+  UvlcWriter*               m_pcUvlcTester;
+  CabacWriter*              m_pcCabacWriter;
+  MotionVectorCalculation*  m_pcMotionVectorCalculation;
+  MbCoder*                  m_pcMbCoder;
+  RateDistortion*           m_pcRateDistortion;
+  MbDataCtrl*               m_pcMbDataCtrl;
+  MyList<const Void*>       m_cRewrittenParameterSets;
   
-  BinData*            m_pcBinData;
-  BinDataAccessor*    m_pcBinDataAccessor;
-  SliceHeader*        m_pcSliceHeader;
-  MbSymbolWriteIf*    m_pcMbSymbolWriteIf;
+  BinData*                  m_pcBinData;
+  BinDataAccessor*          m_pcBinDataAccessor;
+  BinDataList               m_cBinDataList;
+  SliceHeader*              m_pcSliceHeader;
+  MbSymbolWriteIf*          m_pcMbSymbolWriteIf;
 
-  Bool                m_bTraceEnable;
+  Bool                      m_bTraceEnable;
 };
 
 #endif

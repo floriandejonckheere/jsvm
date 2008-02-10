@@ -288,19 +288,6 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
                                                   dCost,
                                                   true ) );
     }
-		//JVT-X046
-    /*RNOK( m_pcMbCoder       ->encode         ( *pcMbDataAccess,
-                                                pcMbDataAccessBase,
-                                                iSpatialScalabilityType,
-                                                (uiMbAddress == uiLastMbAddress),
-                                                true ) );*/
- 
-    /* commented out by jzhao@sharplabs. This is not right. It will affect syntax of the next MB
-    it got lucky because before JSVM8_10, the base cbp is not set at all, it's always 0.
-    if( ! pcMbDataAccess->getMbData().isIntraSlice() && pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) && !rcSliceHeader.getTCoeffLevelPredictionFlag())
-    {
-    pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
-    } */
 
 		//JVT-X046 {
     uiCodedMBNumber++;
@@ -816,9 +803,9 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
                                                dLambda,
                                                iMaxDeltaQp ) );
 
-      if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() )
+      if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() && pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
       {
-        ROF( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) );
+        ROF( pcMbDataAccess->getMbData().getResidualPredFlag() );
         pcMbDataAccess->getMbData().setBLSkipFlag( true );
       }
 
@@ -832,8 +819,7 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       }
       
       // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
-      if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
-        && pcBaseSubband )	
+      if( pcBaseSubband && ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag() ) )	
       {
         YuvPicBuffer* pcBaseResidual = pcBaseSubband->getPic( ePicType )->getFullPelYuvBuffer();
         pcBaseResidual->clearCurrMb();
@@ -979,9 +965,9 @@ ErrVal SliceEncoder::encodeHighPassPictureMbAff( UInt&				ruiMbCoded,
                                                  dLambda,
                                                  iMaxDeltaQp ) );
 
-        if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() )
+        if( ! pcMbDataAccess->getSH().getNoInterLayerPredFlag() && ! pcMbDataAccess->getSH().getAdaptiveBaseModeFlag() && pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
         {
-          ROF( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) );
+          ROF( pcMbDataAccess->getMbData().getResidualPredFlag() );
           pcMbDataAccess->getMbData().setBLSkipFlag( true );
         }
 
@@ -1145,14 +1131,6 @@ SliceEncoder::encodeInterPicturePMbAff( UInt&         ruiBits,
                                                    dLambda,
                                                    dCost,
                                                    abSkipModeAllowed[eP] ) );
-
-      /* commented out by jzhao@sharplabs. This is not right. It will affect syntax of the next MB
-      it got lucky because before JSVM8_10, the base cbp is not set at all, it's always 0.
-      if( ! pcMbDataAccess->getMbData().isIntraSlice() && pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
-      {
-      pcMbDataAccess->getMbData().setMbExtCbp( pcMbDataAccess->getMbData().getMbExtCbp() | pcMbDataAccessBase->getMbData().getMbExtCbp() );
-      }
-      */
 	  
       auiLastQpTest[bField] = pcMbDataAccess->getMbData().getQp();
       adCost [eP>>1] += dCost;
@@ -1372,7 +1350,7 @@ SliceEncoder::updatePictureResTransform( ControlData&     rcControlData,
   UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
 
   //====== initialization ======
-  RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
+  RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, DECODE_PROCESS, false, NULL ) );
 
   // Update the macroblock state
   // Must be done after the bit-stream has been constructed
@@ -1384,19 +1362,30 @@ SliceEncoder::updatePictureResTransform( ControlData&     rcControlData,
     MbDataAccess* pcMbDataAccessBase  = 0;
 
     RNOK( pcMbDataCtrl      ->initMb          ( pcMbDataAccess,     uiMbY, uiMbX ) );
-
     if( pcBaseLayerCtrl )
     {
       RNOK( pcBaseLayerCtrl ->initMb          ( pcMbDataAccessBase, uiMbY, uiMbX ) );
       pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
     }
 
+    // modify QP values (as specified in G.8.1.5.1.2)
+    if( pcMbDataAccess->getMbData().getMbCbp() == 0 && ( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL || pcMbDataAccess->getMbData().getResidualPredFlag() ) )
+    {
+      pcMbDataAccess->getMbData().setQp   ( pcMbDataAccessBase->getMbData().getQp() );
+      pcMbDataAccess->getMbData().setQp4LF( pcMbDataAccessBase->getMbData().getQp() );
+    }
+
     // if cbp==0, tranform size is not transmitted, in this case inherit the transform size from base layer
-    if( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) && pcMbDataAccess->getCoeffResidualPredFlag())
+#if SVC_ERRATA
+    if( pcMbDataAccess->isSCoeffPred() || ( pcMbDataAccess->getMbData().isIntraBL() && pcMbDataAccessBase->getMbData().isIntraButnotIBL() ) )
+#else
+    if( pcMbDataAccess->isSCoeffPred() )
+#endif
     {
       if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
         pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );    
     }
+
     uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
   }
 
@@ -1417,7 +1406,7 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
   UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
  
   //====== initialization ======
-  RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
+  RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, DECODE_PROCESS, false, NULL ) );
 
   for( ; uiMbAddress <= uiLastMbAddress; )
   {
@@ -1434,10 +1423,9 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
     }
 
     // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
-    if( !pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) )
+    if( !pcMbDataAccess->getMbData().getResidualPredFlag() )
     {
-      if( ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ) 
-        && pcBaseLayerSbb )	
+      if( pcBaseLayerSbb && ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag() ) )
       {
         YuvPicBuffer* pcBaseResidual = pcBaseLayerSbb->getFullPelYuvBuffer();
 
@@ -1454,7 +1442,7 @@ SliceEncoder::updateBaseLayerResidual( ControlData&     rcControlData,
 
 // JVT-V035
 ErrVal
-SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRow, MyList<UInt>& rcFirstMbInSliceList )
+SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRow )
 {
   ROF( m_bInitDone );
 
@@ -1465,7 +1453,7 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
   UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
 
   //====== initialization ======
-  RNOK( pcMbDataCtrl      ->initSlice         ( rcSliceHeader, ENCODE_PROCESS, false, NULL ) );
+  RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, DECODE_PROCESS, false, NULL ) );
 
   if( rcSliceHeader.getTCoeffLevelPredictionFlag() == true )
   {
@@ -1486,10 +1474,14 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
 			  pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
 		  }
 
-		  if( ( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL || pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16) )
-			  && pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() )
-		  {
+      // modify QP values (as specified in G.8.1.5.1.2)
+      if( pcMbDataAccess->getMbData().getMbCbp() == 0 && ( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL || pcMbDataAccess->getMbData().getResidualPredFlag() ) )
+      {
+        pcMbDataAccess->getMbData().setQp( pcMbDataAccessBase->getMbData().getQp() );
+      }
 
+		  if( pcMbDataAccess->isTCoeffPred() )
+		  {
 			  if( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL )
 			  {
 				  // We're going to use the BL skip flag to correctly decode the intra prediction mode
@@ -1503,52 +1495,31 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
 					  pcMbDataAccess->getMbData().intraPredMode(cIdx) = pcMbDataAccessBase->getMbData().intraPredMode(cIdx);
 
 				  pcMbDataAccess->getMbData().setChromaPredMode( pcMbDataAccessBase->getMbData().getChromaPredMode() );
-
 			  }
 
-			  if( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 ) ||
-				  ( pcMbDataAccess->getMbData().isIntra() && pcMbDataAccess->getMbData().getBLSkipFlag() ) )
-			  {
-				  // The 8x8 transform flag is present in the bit-stream unless transform coefficients
-				  // are not transmitted at the enhancement layer.  In this case, inherit the base layer
-				  // transform type.  This makes intra predition work correctly, etc.
-				  if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
-					  pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
-			  }
-
-			  if( pcMbDataAccess->getMbData().getResidualPredFlag( PART_16x16 )
-				  || ( pcMbDataAccess->getMbData().isIntra() && pcMbDataAccess->getMbData().getBLSkipFlag() ) )
-			  {
-				  xAddTCoeffs2( *pcMbDataAccess, *pcMbDataAccessBase );
-			  }
+  		  // The 8x8 transform flag is present in the bit-stream unless transform coefficients
+			  // are not transmitted at the enhancement layer.  In this case, inherit the base layer
+			  // transform type.  This makes intra predition work correctly, etc.
+			  if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
+				  pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
+	
+			  xAddTCoeffs2( *pcMbDataAccess, *pcMbDataAccessBase );
 		  }
 
-      // overwrite the QP so that rewriter can get correct QP
-      if( pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag()            &&
-         !pcMbDataAccess->getSH().getNoInterLayerPredFlag()                 &&
-          pcMbDataAccess->getMbData().getMbExtCbp() == 0                    &&
-         !pcMbDataAccess->getMbData().isIntra16x16()                        &&
-          pcMbDataAccess->getMbData().getQp() != pcMbDataAccess->getLastQp()  )
+      if( pcMbDataAccess->getMbAddress() > 0 &&
+          pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() &&
+         !pcMbDataAccess->getSH().getNoInterLayerPredFlag() &&
+         !pcMbDataAccess->getMbData().isIntra16x16() &&
+          pcMbDataAccess->getMbData().getMbExtCbp() == 0 )
       {
-        Bool                    bFirstMbInSlice = false;
-        MyList<UInt>::iterator  cIter           = rcFirstMbInSliceList.begin();
-        MyList<UInt>::iterator  cEnd            = rcFirstMbInSliceList.end  ();
-        while( cIter != cEnd )
-        {
-          if( (*cIter) == uiMbAddress )
-          {
-            bFirstMbInSlice = true;
-            break;
-          }
-          cIter++;
-        }
-        if( ! bFirstMbInSlice )
-        {
-          pcMbDataAccess->getMbData().setQp( pcMbDataAccess->getLastQp() );
-        }
+        pcMbDataAccess->getMbData().setQp4LF( pcMbDataAccess->getLastQp4LF() );
+      }
+      else
+      {
+        pcMbDataAccess->getMbData().setQp4LF( pcMbDataAccess->getMbData().getQp() );
       }
 
-		  uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
+      uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
 	  }
   }
 

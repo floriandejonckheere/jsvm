@@ -164,10 +164,10 @@ Void IntMbTempData::copyResidualDataTo( MbDataAccess& rcMbDataAccess )
   rcMbDataAccess.getMbData    ().setBCBP              ( getBCBP             () );
   rcMbDataAccess.getMbData    ().setMbExtCbp          ( getMbExtCbp         () );
   rcMbDataAccess.getMbData    ().setQp                ( getQp               () );
+  rcMbDataAccess.getMbData    ().setQp4LF             ( getQp4LF            () );
   rcMbDataAccess.getMbTCoeffs ().copyFrom             ( *this                  );
   rcMbDataAccess.getMbData    ().setTransformSize8x8  ( isTransformSize8x8  () );
-
-  rcMbDataAccess.getMbData    ().setResidualPredFlags ( getResidualPredFlags() );
+  rcMbDataAccess.getMbData    ().setResidualPredFlag  ( getResidualPredFlag () );
 }
 
 

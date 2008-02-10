@@ -97,16 +97,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 // h264 namepace begin
 H264AVC_NAMESPACE_BEGIN
 
-enum ResidualMode
-{
-  LUMA_I16_DC  = 0,
-  LUMA_I16_AC     ,
-  LUMA_SCAN       ,
-  CHROMA_DC       ,
-  CHROMA_AC
-  , LUMA_8X8
-};
-
 class BitWriteBufferIf;
 
 

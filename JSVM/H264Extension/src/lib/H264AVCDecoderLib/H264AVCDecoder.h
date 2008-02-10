@@ -106,8 +106,9 @@ class HeaderSymbolReadIf;
 class ParameterSetMng;
 class NalUnitParser;
 class ControlMngIf;
-class AccessUnitSlices;
-class SliceDataNALUnit;
+class AccessUnit;
+class NALUnit;
+class NonVCLNALUnit;
 
 
 class H264AVCDECODERLIB_API H264AVCDecoder
@@ -122,18 +123,19 @@ public:
   ErrVal  destroy         ();
   ErrVal  init            ( NalUnitParser*      pcNalUnitParser,
                             HeaderSymbolReadIf* pcHeaderSymbolReadIf,
-                            ParameterSetMng*    pcParameterSetMng,
+                            ParameterSetMng*    pcParameterSetMngAUInit,
+                            ParameterSetMng*    pcParameterSetMngDecode,
                             LayerDecoder*       apcLayerDecoder[MAX_LAYERS] );
   ErrVal  uninit          ();
 
   //===== main processing functions =====
   ErrVal  initNALUnit     ( BinData*&         rpcBinData,
-                            AccessUnitSlices& rcAccessUnitSlices );
-  ErrVal  processSliceData( PicBuffer*        pcPicBuffer,
+                            AccessUnit&       rcAccessUnit );
+  ErrVal  processNALUnit  ( PicBuffer*        pcPicBuffer,
                             PicBufferList&    rcPicBufferOutputList,
                             PicBufferList&    rcPicBufferUnusedList,
                             BinDataList&      rcBinDataList,
-                            SliceDataNALUnit& rcSliceDataNALUnit );
+                            NALUnit&          rcNALUnit );
 
   //===== get inter-layer prediction data =====
   ErrVal  getBaseLayerDataAvailability  ( Frame*&           pcFrame,
@@ -154,12 +156,16 @@ public:
   ErrVal  getBaseSliceHeader            ( SliceHeader*&     rpcSliceHeader,
                                           UInt              uiRefLayerDependencyId );
 
+protected:
+  ErrVal  xProcessNonVCLNALUnit         ( NonVCLNALUnit&    rcNonVCLNALUnit );
+
 
 protected:
   Bool                m_bInitDone;
   NalUnitParser*      m_pcNalUnitParser;
   HeaderSymbolReadIf* m_pcHeaderSymbolReadIf;
-  ParameterSetMng*    m_pcParameterSetMng;
+  ParameterSetMng*    m_pcParameterSetMngAUInit;
+  ParameterSetMng*    m_pcParameterSetMngDecode;
   LayerDecoder*       m_apcLayerDecoder[MAX_LAYERS];
 };
 

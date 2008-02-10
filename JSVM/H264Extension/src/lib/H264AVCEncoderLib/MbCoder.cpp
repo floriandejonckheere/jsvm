@@ -177,6 +177,7 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
                         Bool          bSendTerminateSlice)
 {
   ROF( m_bInitDone );
+  ROTRS( rcMbDataAccess.getSH().getSliceSkipFlag(), Err::m_nOK );
 
   rcMbDataAccess.getMbData().setBCBP(0);
   
@@ -229,28 +230,16 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 				{
 					RNOK  ( m_pcMbSymbolWriteIf->BLSkipFlag( rcMbDataAccess ) );
 				}
-// JVT-U160 LMI {
-        /*
-        else
-        {
-          ROF( rcMbDataAccess.getMbData().getBLSkipFlag () );
-        }
-        */
-// JVT-U160 LMI }
-// TMM_ESS {
       }
       else  
       {
           ROT  ( rcMbDataAccess.getMbData().getBLSkipFlag () );
       }
-// TMM_ESS }
     }
     else
     {
       ROT  ( rcMbDataAccess.getMbData().getBLSkipFlag () );
     }
-    
-  
 
     //===== macroblock mode =====
     if( ! rcMbDataAccess.getMbData().getBLSkipFlag() )
@@ -810,12 +799,11 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
     RNOK( m_pcMbSymbolWriteIf->deltaQp( rcMbDataAccess ) );
   }
 
-  if( uiMGSFragment == 0 ) // only in first MGS fragment
+  if( uiMGSFragment == 0 ) // required, since we don't have the correct slice header
   if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
      !rcMbDataAccess.getMbData().isIntra() )
   {
-     // JVT-U160 LMI
-    if( rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag() )
+    if( rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag() && pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
     {
       if( ! rcMbDataAccess.getSH().isIntraSlice() )
       {

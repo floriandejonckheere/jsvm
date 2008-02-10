@@ -238,7 +238,7 @@ public:
   UInt  getBaseChromaPhaseYPlus1 () const         { return m_uiBaseChromaPhaseYPlus1 ; }
   Void  setChromaPhaseXPlus1 ( UInt ui)       { m_uiChromaPhaseXPlus1 = ui; }
   Void  setChromaPhaseYPlus1 ( UInt ui)       { m_uiChromaPhaseYPlus1 = ui; }
-  UInt  getChromaPhaseXPlus1 () const         { return m_uiChromaPhaseXPlus1 ; }
+  Bool  getChromaPhaseXPlus1Flag () const         { return ( m_uiChromaPhaseXPlus1 > 0 ); }
   UInt  getChromaPhaseYPlus1 () const         { return m_uiChromaPhaseYPlus1 ; }
   Int   getScaledBaseLeftOffset   () const { return m_iScaledBaseLeftOffset; }
   Int   getScaledBaseTopOffset    () const { return m_iScaledBaseTopOffset; }

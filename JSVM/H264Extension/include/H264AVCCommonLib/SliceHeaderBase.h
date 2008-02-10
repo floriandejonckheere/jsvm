@@ -565,7 +565,7 @@ public:
   Int     getPPSQp      ()  const   { AOF( parameterSetsInitialized() ); return getPPS().getPicInitQp(); }   
 
   UInt                            getFirstMbInSlice                     ()                    const { return ( isMbaffFrame() ? m_uiFirstMbInSlice << 1 : m_uiFirstMbInSlice ); }
-  SliceType                       getSliceType                          ()                    const { return m_eSliceType; }
+  SliceType                       getSliceType                          ()                    const { return SliceType( m_eSliceType % 5 ); }
   UInt                            getPicParameterSetId                  ()                    const { return m_uiPicParameterSetId; }
   UInt                            getColourPlaneId                      ()                    const { return m_uiColourPlaneId; }
   UInt                            getFrameNum                           ()                    const { return m_uiFrameNum; }

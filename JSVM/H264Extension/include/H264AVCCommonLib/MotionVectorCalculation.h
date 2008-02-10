@@ -102,8 +102,14 @@ protected:
   virtual ~MotionVectorCalculation();
 
 public:
+  static ErrVal create  ( MotionVectorCalculation*& rpcMotionVectorCalculation );
+  ErrVal        destroy ();
+
   ErrVal initSlice( const SliceHeader& rcSH );
   ErrVal uninit();
+
+  ErrVal  calcMvMb    ( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
+  ErrVal  calcMvSubMb ( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );
 
 protected:
   Void xCalcSDirect( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase );

@@ -109,9 +109,11 @@ public:
 
   ErrVal initSlice      ( MbSymbolReadIf* pcMbSymbolReadIf );
   ErrVal read           ( MbDataAccess&   rcMbDataAccess,
+                          UInt            uiNumMbRead,
                           Bool&           rbEndOfSlice );
 
 protected:
+  Bool   xCheckSkipSliceMb            ( MbDataAccess& rcMbDataAccess, UInt uiNumMbRead, Bool& rbEndOfSlice );
   ErrVal xSkipMb                      ( MbDataAccess& rcMbDataAccess );
   ErrVal xReadIntraPredModes          ( MbDataAccess& rcMbDataAccess );
 

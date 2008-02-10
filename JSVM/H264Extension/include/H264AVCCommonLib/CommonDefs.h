@@ -92,15 +92,14 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
-#define HEIKO 1
-
+#define HEIKO       1
+#define SVC_ERRATA  1 // resolved SVC errata issues (not specified in JVT-X201)
 
 
 typedef UChar CoefMap;
 
 #define _JSVM_VERSION_ "9.10" //added by jerome.vieron@thomson.net
 
-#define TO_BE_REMOVED     1   // things that are different in the SVC text
 #define NOK_MGSCAVLC      1   // check if this is conforming to the SVC text
 
 #if !NOK_MGSCAVLC
@@ -307,6 +306,16 @@ enum SearchMode
   SPIRAL_SEARCH = 1,
   LOG_SEARCH    = 2,
   FAST_SEARCH   = 3
+};
+
+enum ResidualMode
+{
+  LUMA_I16_DC  = 0,
+  LUMA_I16_AC     ,
+  LUMA_SCAN       ,
+  CHROMA_DC       ,
+  CHROMA_AC       ,
+  LUMA_8X8
 };
 
 

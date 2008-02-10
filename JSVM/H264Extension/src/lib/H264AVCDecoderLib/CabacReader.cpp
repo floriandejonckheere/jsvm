@@ -230,6 +230,7 @@ ErrVal
 CabacReader::startSlice( const SliceHeader& rcSliceHeader )
 {
   m_uiLastDQpNonZero  = 0;
+  ROTRS( rcSliceHeader.getSliceSkipFlag(), Err::m_nOK );
   RNOK( xInitContextModels( rcSliceHeader ) );
   RNOK( CabaDecoder::start() );
   return Err::m_nOK;

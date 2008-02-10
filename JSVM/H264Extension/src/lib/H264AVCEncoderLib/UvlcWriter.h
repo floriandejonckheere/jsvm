@@ -134,8 +134,6 @@ public:
   ErrVal  setFirstBits(UChar ucByte,UInt uiLastBitPos); //FIX_FRAG_CAVLC
   ErrVal  finishSlice();
 
-  ErrVal closeSlice();
-
   ErrVal  blockModes( MbDataAccess& rcMbDataAccess );
   ErrVal  mbMode     ( MbDataAccess& rcMbDataAccess );
   ErrVal  resPredFlag( MbDataAccess& rcMbDataAccess );

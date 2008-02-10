@@ -99,9 +99,6 @@ H264AVC_NAMESPACE_BEGIN
 SliceDecoder::SliceDecoder()
 : m_pcMbDecoder       ( 0 )
 , m_pcControlMng      ( 0 )
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-, m_pcRewriteEncoder  ( 0 )
-#endif
 , m_bInitDone         ( false )
 {
 }
@@ -128,24 +125,14 @@ SliceDecoder::destroy()
 
 ErrVal
 SliceDecoder::init( MbDecoder*        pcMbDecoder,
-                    ControlMngIf*     pcControlMng
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-                    ,RewriteEncoder*  pcRewriteEncoder
-#endif
-                    )
+                    ControlMngIf*     pcControlMng )
 {
   ROT( m_bInitDone );
   ROF( pcMbDecoder );
   ROF( pcControlMng );
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  ROF( pcRewriteEncoder );
-#endif
 
   m_pcMbDecoder       = pcMbDecoder;
   m_pcControlMng      = pcControlMng;
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  m_pcRewriteEncoder  = pcRewriteEncoder;
-#endif
   m_bInitDone         = true;
   return Err::m_nOK;
 }
@@ -158,9 +145,6 @@ SliceDecoder::uninit()
 
   m_pcMbDecoder       = 0;
   m_pcControlMng      = 0;
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  m_pcRewriteEncoder  = 0;
-#endif
   m_bInitDone         = false;
   return Err::m_nOK;
 }
@@ -221,10 +205,6 @@ SliceDecoder::decode( SliceHeader&  rcSH,
                                               pcRefFrameList1,
                                               bReconstructAll ) );
 
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-    RNOK( xRewriteMb( *pcMbDataAccess, pcMbDataAccessBase, uiNumMbsDecoded == uiNumMbsInSlice - 1 ) );
-#endif
-
   	if( rcSH.isTrueSlice())
 	  {
 		  uiMbAddress=rcSH.getFMO()->getNextMBNr(uiMbAddress);
@@ -271,6 +251,11 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
 
   RNOK( gSetFrameFieldLists( acRefFrameList0[0], acRefFrameList0[1], *pcRefFrameList0 ) );
   RNOK( gSetFrameFieldLists( acRefFrameList1[0], acRefFrameList1[1], *pcRefFrameList1 ) );
+
+  rcSH.setRefFrameList( &(acRefFrameList0[0]), TOP_FIELD, LIST_0 );
+  rcSH.setRefFrameList( &(acRefFrameList0[1]), BOT_FIELD, LIST_0 );
+  rcSH.setRefFrameList( &(acRefFrameList1[0]), TOP_FIELD, LIST_1 );
+  rcSH.setRefFrameList( &(acRefFrameList1[1]), BOT_FIELD, LIST_1 );
 
   RefFrameList* apcRefFrameList0[2];
   RefFrameList* apcRefFrameList1[2];
@@ -353,193 +338,6 @@ SliceDecoder::decodeMbAff( SliceHeader&   rcSH,
 
 	return Err::m_nOK;
 }
-
-
-
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-
-ErrVal
-SliceDecoder::xRewriteMb( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase, Bool bLastMbInSlice )
-{
-  ROFRS( m_pcRewriteEncoder->isSliceInProgress(), Err::m_nOK );
-
-  //===== create MbDataAccess for rewriting and copy MB data =====
-  MbDataAccess* pcMbDataAccessRewrite = 0;
-  UInt          uiMbY                 = rcMbDataAccess.getMbY();
-  UInt          uiMbX                 = rcMbDataAccess.getMbX();
-  RNOK( m_pcRewriteEncoder->initMb  (   pcMbDataAccessRewrite, uiMbY, uiMbX   ) );
-  rcMbDataAccess.getMbTCoeffs().switchLevelCoeffData();
-  RNOK( m_pcRewriteEncoder->storeMb (  *pcMbDataAccessRewrite, rcMbDataAccess ) );
-  rcMbDataAccess.getMbTCoeffs().switchLevelCoeffData();
-#if 1 // not required
-  ROT ( pcMbDataAccessRewrite->getMbData().getMbCbp() >= 48 );
-#endif
-
-  //===== trace =====
-  ETRACE_DECLARE( UInt  uiMbAddress = pcMbDataAccessRewrite->getSH().getMbAddressFromPosition( uiMbY, uiMbX ) );
-  ETRACE_DECLARE( Bool m_bTraceEnable = true );
-  ETRACE_NEWMB  ( uiMbAddress );
-
-  //===== correct MbMode =====
-  pcMbDataAccessRewrite->getMbData().setBLSkipFlag      ( false );
-  pcMbDataAccessRewrite->getMbData().setResidualPredFlag( false );
-  pcMbDataAccessRewrite->getMbData().setBCBPAll         ( 0 );
-  if( pcMbDataAccessRewrite->getMbData().getMbMode() == MODE_SKIP )
-  {
-    if( ! rcMbDataAccess.getSH().isH264AVCCompatible() || ! rcMbDataAccess.getSH().isBSlice() )
-    {
-      pcMbDataAccessRewrite->getMbData().setMbMode( MODE_16x16 );
-    }
-    else 
-    {
-      pcMbDataAccessRewrite->getMbData().setMbMode( MODE_8x8 );
-      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-      {
-        if( rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag() )
-        {
-          pcMbDataAccessRewrite->getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
-        }
-        else
-        {
-          pcMbDataAccessRewrite->getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_4x4 );
-        }
-      }
-    }
-  }
-  else if( pcMbDataAccessRewrite->getMbData().getMbMode() == MODE_8x8 )
-  {
-    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-    {
-      if( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) == BLK_SKIP )
-      {
-        if( ! rcMbDataAccess.getSH().isH264AVCCompatible() || rcMbDataAccess.getSH().getSPS().getDirect8x8InferenceFlag() )
-        {
-          pcMbDataAccessRewrite->getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
-        }
-        else
-        {
-          pcMbDataAccessRewrite->getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_4x4 );
-        }
-      }
-    }
-  }
-
-  //===== recompute motion vector differences =====
-  if( !pcMbDataAccessRewrite->getMbData().isIntra() )
-  {
-    UInt          uiList;
-    Mv            cMv;
-    MbMotionData  cMbMotionData[2];
-
-    //----- save motion data and clear mvd's -----
-    for( uiList = 0; uiList < 2; uiList++ )
-    {
-      ListIdx eListIdx = ( uiList == 0 ? LIST_0 : LIST_1 );
-
-      cMbMotionData[uiList].copyFrom( pcMbDataAccessRewrite->getMbMotionData( eListIdx ) );
-      pcMbDataAccessRewrite->getMbMvdData   ( eListIdx ).clear();
-      pcMbDataAccessRewrite->getMbMotionData( eListIdx ).setMotPredFlag( false );
-
-    }
-
-    //----- re-assign mvd's (this is a sub-optimal implementation) -----
-    for( uiList = 0; uiList < 2; uiList++ )
-    {
-      ListIdx eListIdx = ( uiList == 0 ? LIST_0 : LIST_1 );
-
-      //----- recompute mvd's -----
-      for( S4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-      {
-        m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, 0 );
-
-        cMv  = cMbMotionData[uiList].getMv( cIdx );
-        cMv -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
-        pcMbDataAccessRewrite->getMbMvdData( eListIdx ).setMv( cMv, cIdx );
-      }
-
-      //----- set mvd's for all 4x4 blocks (for CABAC context models) -----
-      switch( pcMbDataAccessRewrite->getMbData().getMbMode() )
-      {
-      case MODE_16x16:
-        cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( );
-        pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv );
-        break;
-      case MODE_16x8:
-        cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_0 );
-        pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_0 );
-        cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_16x8_1 );
-        pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_1 );
-        break;
-      case MODE_8x16:
-        cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_0 );
-        pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_0 );
-        cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( PART_8x16_1 );
-        pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_1 );
-        break;
-      case MODE_8x8:
-        {					
-          for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
-          {
-            ParIdx8x8 eParIdx = c8x8Idx.b8x8();
-
-            switch( pcMbDataAccessRewrite->getMbData().getBlkMode( c8x8Idx.b8x8Index() ) )
-            {
-            case BLK_8x8:
-              cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx );
-              pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx );
-              break;
-            case BLK_8x4:
-              cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_0 );
-              pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_0 );
-              cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_1 );
-              pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_1 );
-              break;
-            case BLK_4x8:
-              cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_0 );
-              pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_0 );
-              cMv = pcMbDataAccessRewrite->getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_1 );
-              pcMbDataAccessRewrite->getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_1 );
-              break;
-            case BLK_4x4:
-              break;
-            default:
-              RERR();
-            }
-          }
-        }
-        break;
-      default:
-        RERR();
-      }
-    }
-
-#if 1 // not required
-    //>>>>> SANITY CHECK >>>>>
-    m_pcMbDecoder->calcMv( *pcMbDataAccessRewrite, NULL );
-    for( uiList = 0; uiList < 2; uiList++ )
-    {
-      for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-      {
-        ListIdx eListIdx = ( uiList == 0 ? LIST_0 : LIST_1 );
-        cMv              = cMbMotionData[uiList].getMv( cIdx );
-        cMv             -= pcMbDataAccessRewrite->getMbMotionData( eListIdx ).getMv( cIdx );
-        if( cMv.getHor() || cMv.getVer() )
-        {
-          RERR();
-        }
-      }
-    }
-    //<<<<< SANITY CHECK <<<<<
-#endif
-  }
-
-  //===== write macroblock =====
-  RNOK( m_pcRewriteEncoder->encodeMb( *pcMbDataAccessRewrite, bLastMbInSlice ) );
-
-  return Err::m_nOK;
-}
-
-#endif
 
 
 H264AVC_NAMESPACE_END

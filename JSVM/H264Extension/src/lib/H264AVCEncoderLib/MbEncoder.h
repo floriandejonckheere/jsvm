@@ -535,8 +535,22 @@ protected:
 
   UInt  xCalcMbCbp    ( UInt uiExtCbp );
 
-  Void reCalcBlock8x8(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int mode);
-  ErrVal reCalcBlock8x8Rewrite(IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int mode);
+  Void   reCalcBlock4x4               ( IntMbTempData& rcMbTempData, LumaIdx c4x4Idx );
+  Void   reCalcBlock8x8               ( IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int mode );
+  Void   reCalcChroma                 ( IntMbTempData& rcMbTempData );
+  
+  ErrVal reCalcBlock4x4Rewrite        ( IntMbTempData& rcMbTempData, LumaIdx c4x4Idx );
+  ErrVal reCalcBlock8x8Rewrite        ( IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, Int mode );
+  ErrVal reCalcBlock16x16Rewrite      ( IntMbTempData& rcMbTempData );
+  ErrVal reCalcChromaRewrite          ( IntMbTempData& rcMbTempData );
+
+  ErrVal xCheckSkipSliceMb            ( IntMbTempData& rcMbTempData );
+  ErrVal xCheckSkipSliceMbIntra4      ( IntMbTempData& rcMbTempData, LumaIdx c4x4Idx, UInt& ruiAbsSum );
+  ErrVal xCheckSkipSliceMbIntra8      ( IntMbTempData& rcMbTempData, B8x8Idx c8x8Idx, UInt& ruiAbsSum );
+  ErrVal xCheckSkipSliceMbIntra16     ( IntMbTempData& rcMbTempData, UInt&   ruiAcAbs );
+  ErrVal xCheckSkipSliceMbIntraChroma ( IntMbTempData& rcMbTempData, UInt&   ruiChromaCbp );
+
+  ErrVal xAdjustRewriteReconstruction ( IntMbTempData& rcMbTempData );
 
 private:
   UChar xGetFrameBits ( ListIdx eLstIdx, Int iRefPic );

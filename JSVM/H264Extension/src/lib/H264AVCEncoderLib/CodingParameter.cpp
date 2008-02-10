@@ -449,6 +449,8 @@ ErrVal CodingParameter::check()
       ROTREPORT( !pcBaseLayer,           "MGS vectors are not allowed in the base layer." );
     }
 
+    ROTREPORT( ! pcBaseLayer && pcLayer->getSliceSkip(), "Slice skip only supported in enhancement layers" );
+
     if( pcBaseLayer ) // for sub-sequence SEI
     {
       Bool bResolutionChange = pcLayer->getFrameWidth () != pcBaseLayer->getFrameWidth() || 
@@ -505,6 +507,16 @@ ErrVal CodingParameter::check()
 // TMM_ESS }
 
       pcBaseLayer->setContrainedIntraForLP();
+
+      if( pcLayer->getSliceSkip() && pcLayer->getSliceSkipTLevelStart() == 0 )
+      {
+        pcLayer->setContrainedIntraForLP();
+      }
+    }
+    if( pcLayer->getTCoeffLevelPredictionFlag() )
+    {
+      pcLayer->setContrainedIntraForLP();
+      pcLayer->setInterLayerPredictionMode( pcLayer->getInterLayerPredictionMode() > 0 ? 2 : 0 );
     }
 
     ROTREPORT( pcLayer->getBaseQualityLevel() > 15, "Base quality level may not exceed 15." );

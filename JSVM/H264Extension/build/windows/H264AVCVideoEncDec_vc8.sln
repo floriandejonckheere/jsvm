@@ -71,6 +71,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AvcRewriterStatic", "..\..\
 		{82257DCF-2D80-412C-8416-128CE791E930} = {82257DCF-2D80-412C-8416-128CE791E930}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "YUVCompareStatic", "..\..\src\tools\YUVCompare\YUVCompare_vc8.vcproj", "{59F31E5B-D325-4297-9187-DC2EAABE9E7B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -137,6 +139,10 @@ Global
 		{0FC02A5E-4E06-4CAC-8FB2-1C968FF0BDE9}.Debug|Win32.Build.0 = Debug|Win32
 		{0FC02A5E-4E06-4CAC-8FB2-1C968FF0BDE9}.Release|Win32.ActiveCfg = Release|Win32
 		{0FC02A5E-4E06-4CAC-8FB2-1C968FF0BDE9}.Release|Win32.Build.0 = Release|Win32
+		{59F31E5B-D325-4297-9187-DC2EAABE9E7B}.Debug|Win32.ActiveCfg = Debug|Win32
+		{59F31E5B-D325-4297-9187-DC2EAABE9E7B}.Debug|Win32.Build.0 = Debug|Win32
+		{59F31E5B-D325-4297-9187-DC2EAABE9E7B}.Release|Win32.ActiveCfg = Release|Win32
+		{59F31E5B-D325-4297-9187-DC2EAABE9E7B}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

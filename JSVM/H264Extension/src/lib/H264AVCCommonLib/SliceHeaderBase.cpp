@@ -783,7 +783,7 @@ DBFilterParameter::write( HeaderSymbolWriteIf& rcWriteIf ) const
   if( ! m_bInterLayerParameters )
   {
     RNOK  ( rcWriteIf.writeUvlc( m_uiDisableDeblockingFilterIdc,  "SH: disable_deblocking_filter_idc" ) );
-    if( m_uiDisableDeblockingFilterIdc )
+    if( m_uiDisableDeblockingFilterIdc != 1 )
     {
       RNOK( rcWriteIf.writeSvlc( m_iSliceAlphaC0OffsetDiv2,       "SH: slice_alpha_c0_offset_div2" ) );
       RNOK( rcWriteIf.writeSvlc( m_iSliceBetaOffsetDiv2,          "SH: slice_beta_offset_div2" ) );
@@ -792,7 +792,7 @@ DBFilterParameter::write( HeaderSymbolWriteIf& rcWriteIf ) const
   else
   {
     RNOK  ( rcWriteIf.writeUvlc( m_uiDisableDeblockingFilterIdc,  "SH: disable_inter_layer_deblocking_filter_idc" ) );
-    if( m_uiDisableDeblockingFilterIdc )
+    if( m_uiDisableDeblockingFilterIdc != 1 )
     {
       RNOK( rcWriteIf.writeSvlc( m_iSliceAlphaC0OffsetDiv2,       "SH: inter_layer_slice_alpha_c0_offset_div2" ) );
       RNOK( rcWriteIf.writeSvlc( m_iSliceBetaOffsetDiv2,          "SH: inter_layer_slice_beta_offset_div2" ) );
@@ -807,7 +807,7 @@ DBFilterParameter::read( HeaderSymbolReadIf& rcReadIf, Bool bSVCNalUnit )
   if( ! m_bInterLayerParameters )
   {
     RNOK  ( rcReadIf.getUvlc( m_uiDisableDeblockingFilterIdc, "SH: disable_deblocking_filter_idc" ) );
-    if( m_uiDisableDeblockingFilterIdc )
+    if( m_uiDisableDeblockingFilterIdc != 1 )
     {
       RNOK( rcReadIf.getSvlc( m_iSliceAlphaC0OffsetDiv2,      "SH: slice_alpha_c0_offset_div2" ) );
       RNOK( rcReadIf.getSvlc( m_iSliceBetaOffsetDiv2,         "SH: slice_beta_offset_div2" ) );
@@ -816,7 +816,7 @@ DBFilterParameter::read( HeaderSymbolReadIf& rcReadIf, Bool bSVCNalUnit )
   else
   {
     RNOK  ( rcReadIf.getUvlc( m_uiDisableDeblockingFilterIdc, "SH: disable_inter_layer_deblocking_filter_idc" ) );
-    if( m_uiDisableDeblockingFilterIdc )
+    if( m_uiDisableDeblockingFilterIdc != 1 )
     {
       RNOK( rcReadIf.getSvlc( m_iSliceAlphaC0OffsetDiv2,      "SH: inter_layer_slice_alpha_c0_offset_div2" ) );
       RNOK( rcReadIf.getSvlc( m_iSliceBetaOffsetDiv2,         "SH: inter_layer_slice_beta_offset_div2" ) );

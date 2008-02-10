@@ -231,6 +231,8 @@ public:
     // JVT-S054 (ADD) <-
     , m_bAVCRewriteFlag                  ( 0 )   // JVT-V035
     , m_bAVCAdaptiveRewriteFlag          ( 0 )   // JVT-V035
+    , m_uiSliceSkip                      ( 0 )
+    , m_uiSliceSkipTLevelStart           ( 0 )
     , m_uiLowComplexMbEnable             ( 0 )   // JVT-V079    
 
 	//S051{
@@ -358,6 +360,11 @@ public:
   UInt getMGSVect                        (UInt uiNum) const { return m_uiMGSVectorMode ? m_uiMGSVect[uiNum] : (uiNum == 0 ? 16 : 0); }
   Bool getTCoeffLevelPredictionFlag ()               const { return m_bAVCRewriteFlag==1; }
   Bool getAVCAdaptiveRewriteFlag ()       const { return m_bAVCAdaptiveRewriteFlag==1; }
+  
+  UInt getSliceSkip() const { return m_uiSliceSkip; }
+  UInt getSliceSkipTLevelStart()  const { return m_uiSliceSkipTLevelStart; }
+  Void setSliceSkip( UInt uiSliceSkip ) { m_uiSliceSkip = uiSliceSkip; }
+  Void setSliceSkipTLevelStart( UInt ui )  { m_uiSliceSkipTLevelStart = ui; }
 
   //===== set =====
   Void setDependencyId                         (UInt   p) { m_uiDependencyId                        = p; }
@@ -534,6 +541,9 @@ public:
   // JVT-V035
   UInt         m_bAVCRewriteFlag;
   UInt         m_bAVCAdaptiveRewriteFlag;
+
+  UInt    m_uiSliceSkip;
+  UInt    m_uiSliceSkipTLevelStart;
 
 // JVT-Q065 EIDR{
   Int						m_iIDRPeriod;

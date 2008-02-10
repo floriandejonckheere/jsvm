@@ -126,8 +126,7 @@ RecPicBufUnit::create( RecPicBufUnit*&              rpcRecPicBufUnit,
   rpcRecPicBufUnit = new RecPicBufUnit();
   ROF( rpcRecPicBufUnit );
 
-  rpcRecPicBufUnit->m_pcReconstructedFrame  = new Frame  ( rcYuvBufferCtrlFullPel,
-                                                              rcYuvBufferCtrlHalfPel );
+  rpcRecPicBufUnit->m_pcReconstructedFrame  = new Frame  ( rcYuvBufferCtrlFullPel, rcYuvBufferCtrlHalfPel, FRAME, 0 );
   rpcRecPicBufUnit->m_pcMbDataCtrl          = new MbDataCtrl();
   ROF( rpcRecPicBufUnit->m_pcReconstructedFrame );
   ROF( rpcRecPicBufUnit->m_pcMbDataCtrl );

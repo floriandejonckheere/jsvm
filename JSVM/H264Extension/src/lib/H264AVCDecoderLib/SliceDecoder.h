@@ -89,9 +89,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #endif // _MSC_VER > 1000
 
 #include "H264AVCCommonLib/ControlMngIf.h"
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-#include "../H264AVCEncoderLib/H264AVCEncoder.h"
-#endif
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -109,11 +106,7 @@ public:
   ErrVal        destroy ();
 
   ErrVal        init    ( MbDecoder*          pcMbDecoder,
-                          ControlMngIf*       pcControlMng
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-                          ,RewriteEncoder*    pcRewriteEncoder
-#endif
-                          );
+                          ControlMngIf*       pcControlMng );
   ErrVal        uninit  ();
 
   ErrVal  decode        ( SliceHeader&        rcSH,
@@ -140,20 +133,10 @@ public:
                           MbDataCtrl*         pcMbDataCtrl0L1,
                           Bool                bReconstructAll );
 
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-private:
-  ErrVal  xRewriteMb    ( MbDataAccess&       rcMbDataAccess,
-                          MbDataAccess*       pcMbDataAccessBase,
-                          Bool                bLastMbInSlice );
-#endif
-
 protected:
   Bool            m_bInitDone;
   ControlMngIf*   m_pcControlMng;
   MbDecoder*      m_pcMbDecoder;
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-  RewriteEncoder* m_pcRewriteEncoder;
-#endif
 };
 
 

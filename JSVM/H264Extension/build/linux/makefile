@@ -14,6 +14,7 @@ all:
 	$(MAKE) -C test/SIPAnalyser
 	$(MAKE) -C tools/DownConvert
 	$(MAKE) -C tools/PSNR
+	$(MAKE) -C tools/YUVCompare
 
 debug:
 	$(MAKE) -C lib/H264AVCVideoIoLib debug
@@ -31,6 +32,7 @@ debug:
 	$(MAKE) -C test/SIPAnalyser debug
 	$(MAKE) -C tools/DownConvert debug
 	$(MAKE) -C tools/PSNR debug
+	$(MAKE) -C tools/YUVCompare debug
 
 release:
 	$(MAKE) -C lib/H264AVCVideoIoLib release
@@ -48,6 +50,7 @@ release:
 	$(MAKE) -C test/SIPAnalyser release
 	$(MAKE) -C tools/DownConvert release
 	$(MAKE) -C tools/PSNR release
+	$(MAKE) -C tools/YUVCompare release
 
 clean:
 	$(MAKE) -C lib/H264AVCVideoIoLib clean
@@ -65,3 +68,4 @@ clean:
 	$(MAKE) -C test/SIPAnalyser clean
 	$(MAKE) -C tools/DownConvert clean
 	$(MAKE) -C tools/PSNR clean
+	$(MAKE) -C tools/YUVCompare clean

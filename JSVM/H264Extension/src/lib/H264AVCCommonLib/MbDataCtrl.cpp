@@ -103,6 +103,7 @@ MbDataCtrl::MbDataCtrl():
   m_pcMbDataAccess  ( NULL ),
   m_pcSliceHeader   ( NULL ),
   m_ucLastMbQp      ( 0 ),
+  m_ucLastMbQp4LF   ( 0 ),
   m_uiMbStride      ( 0 ),
   m_uiMbOffset      ( 0 ),
   m_iMbPerLine      ( 0 ),
@@ -161,7 +162,7 @@ ErrVal MbDataCtrl::xCreateData( UInt uiSize )
 
   // clear outside mb data
   m_pcMbData[uiSize-1].getMbTCoeffs().setAllCoeffCount( 0 );
-  m_pcMbData[uiSize-1].initMbData( 0, MSYS_UINT_MAX );
+  m_pcMbData[uiSize-1].initMbData( 0, 0, MSYS_UINT_MAX );
 
   return Err::m_nOK;
 }
@@ -271,6 +272,7 @@ MbDataCtrl::copyMotion( MbDataCtrl& rcMbDataCtrl )
   {
     RNOK( m_pcMbData[n].copyMotion( rcMbDataCtrl.m_pcMbData[n], m_uiSliceId ) );
   }
+  m_bPicCodedField = rcMbDataCtrl.m_bPicCodedField;
   return Err::m_nOK;
 }
 
@@ -631,6 +633,7 @@ MbDataCtrl::upsampleMotion( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcPa
 ErrVal MbDataCtrl::uninit()
 {
   m_ucLastMbQp      = 0;
+  m_ucLastMbQp4LF   = 0;
   m_uiMbStride      = 0;
   m_uiMbOffset      = 0;
   m_iMbPerLine      = 0;
@@ -683,6 +686,7 @@ MbDataCtrl::copyIntraPred( MbDataCtrl& rcMbDataCtrl )
 ErrVal MbDataCtrl::reset()
 {
   m_ucLastMbQp      = 0;
+  m_ucLastMbQp4LF   = 0;
   m_uiMbProcessed   = 0;
   m_uiSliceId       = 0;
   m_pcMbDataCtrl0L1 = 0;
@@ -721,10 +725,36 @@ ErrVal MbDataCtrl::initSlice( SliceHeader& rcSH,
 
   if( rcSH.isBSlice() )
   {
-
     if( pcMbDataCtrl )
     {
       m_pcMbDataCtrl0L1 = pcMbDataCtrl;
+    }
+    if( rcSH.isH264AVCCompatible() && rcSH.isBSlice() && bDecoder && m_eProcessingState == DECODE_PROCESS && m_pcMbDataCtrl0L1 )
+    {
+      const RefFrameList* pcRefFrameList  = rcSH.getRefFrameList( rcSH.getPicType(), LIST_1 );
+      ROF( pcRefFrameList );
+      const Frame*        pcPic0L1        = pcRefFrameList->getEntry( 0 );
+      ROF( pcPic0L1 );
+      const Frame*        pcFrame0L1      = pcPic0L1->getFrame();
+      ROF( pcFrame0L1 );
+
+      Int iCurrPoc      = rcSH.getPoc();
+      Int iTopDiffPoc   = iCurrPoc - pcFrame0L1->getTopFieldPoc();
+      Int iBotDiffPoc   = iCurrPoc - pcFrame0L1->getBotFieldPoc();
+      m_bUseTopField    = ( abs( iTopDiffPoc ) < abs( iBotDiffPoc ) );
+
+      if( pcMbDataCtrl )
+      {
+        m_pcMbDataCtrl0L1 = pcMbDataCtrl;
+      }
+
+      if( FRAME != rcSH.getPicType() )
+      {
+        if( pcPic0L1->getPicType() != rcSH.getPicType() && m_pcMbDataCtrl0L1->isPicCodedField() )
+        {
+          m_iColocatedOffset = m_iMbPerLine;
+        }
+      }
     }
   }
 
@@ -844,7 +874,8 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
   
   if( m_pcMbDataAccess )
   {
-    m_ucLastMbQp = m_pcMbDataAccess->getMbData().getQp();
+    m_ucLastMbQp    = m_pcMbDataAccess->getMbData().getQp();
+    m_ucLastMbQp4LF = m_pcMbDataAccess->getMbData().getQp4LF();
   }
 
   UInt uiSliceId = rcMbDataCurr.getSliceId();
@@ -854,7 +885,7 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
     {
       uiSliceId = m_uiSliceId;
       rcMbDataCurr.getMbTCoeffs().clear();
-      rcMbDataCurr.initMbData( m_ucLastMbQp, uiSliceId );
+      rcMbDataCurr.initMbData( m_ucLastMbQp, m_ucLastMbQp4LF, uiSliceId );
       rcMbDataCurr.clear();
       m_uiMbProcessed++;
 			m_cMbProcessed.get(uiCurrIdx) = true;
@@ -899,8 +930,7 @@ ErrVal MbDataCtrl::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMb
 																													bTopMb,
 																													m_bUseTopField,
                                                           bColocatedField,// TMM_INTERLACE
-                                                          m_ucLastMbQp );
-
+                                                          m_ucLastMbQp, m_ucLastMbQp4LF );
 
   ROT( NULL == m_pcMbDataAccess );
 
@@ -928,10 +958,12 @@ ControlData::ControlData()
 , m_uiUseBLMotion        ( 0   )
 , m_dScalingFactor       ( 1.0 )
 , m_pacFGSMbQP           ( 0 )
+, m_pacFGSMbQP4LF        ( 0 )
 , m_pauiFGSMbCbp         ( 0 )
 , m_pabFGS8x8Trafo       ( 0 )
 , m_bIsNormalMbDataCtrl  ( true )
 , m_pacBQMbQP            ( 0 )
+, m_pacBQMbQP4LF         ( 0 )
 , m_pauiBQMbCbp          ( 0 )
 , m_pabBQ8x8Trafo        ( 0 )
 , m_paeBQMbMode          ( 0 )
@@ -945,9 +977,11 @@ ControlData::ControlData()
 ControlData::~ControlData()
 {
   AOT( m_pacBQMbQP );
+  AOT( m_pacBQMbQP4LF );
   AOT( m_pauiBQMbCbp );
   AOT( m_pabBQ8x8Trafo );
   AOT( m_pacFGSMbQP );
+  AOT( m_pacFGSMbQP4LF );
   AOT( m_pauiFGSMbCbp );
   AOT( m_pabFGS8x8Trafo );
 }
@@ -1010,9 +1044,11 @@ ErrVal
 ControlData::initBQData( UInt uiNumMb )
 {
   ROT( m_pacBQMbQP );
+  ROT( m_pacBQMbQP4LF );
   ROT( m_pauiBQMbCbp );
   ROT( m_pabBQ8x8Trafo );
   ROFS( ( m_pacBQMbQP      = new UChar [uiNumMb] ) );
+  ROFS( ( m_pacBQMbQP4LF   = new UChar [uiNumMb] ) );
   ROFS( ( m_pauiBQMbCbp    = new UInt  [uiNumMb] ) );
   ROFS( ( m_pabBQ8x8Trafo  = new Bool  [uiNumMb] ) );
   ROFS( ( m_paeBQMbMode    = new MbMode[uiNumMb] ) );
@@ -1026,6 +1062,7 @@ ErrVal
 ControlData::uninitBQData()
 {
   delete [] m_pacBQMbQP;
+  delete [] m_pacBQMbQP4LF;
   delete [] m_pauiBQMbCbp;
   delete [] m_pabBQ8x8Trafo;
   delete [] m_paeBQMbMode;
@@ -1033,6 +1070,7 @@ ControlData::uninitBQData()
   delete [] m_paacBQMotionData[0];
   delete [] m_paacBQMotionData[1];
   m_pacBQMbQP     = 0;
+  m_pacBQMbQP4LF  = 0;
   m_pauiBQMbCbp   = 0;
   m_pabBQ8x8Trafo = 0;
   m_paeBQMbMode   = 0;
@@ -1047,11 +1085,13 @@ ErrVal
 ControlData::storeBQLayerQpAndCbp()
 {
   ROF( m_pacBQMbQP );
+  ROF( m_pacBQMbQP4LF );
   ROF( m_pauiBQMbCbp );
   ROF( m_pabBQ8x8Trafo );
   for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
   {
     m_pacBQMbQP     [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    m_pacBQMbQP4LF  [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
     m_pauiBQMbCbp   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
     m_pabBQ8x8Trafo [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
     m_paeBQMbMode   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbMode();
@@ -1066,19 +1106,23 @@ ErrVal
 ControlData::switchBQLayerQpAndCbp()
 {
   ROF( m_pacBQMbQP );
+  ROF( m_pacBQMbQP4LF );
   ROF( m_pauiBQMbCbp );
   ROF( m_pabBQ8x8Trafo );
   for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
   {
-    UChar ucQP  = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
-    UInt  uiCbp = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
-    Bool  bT8x8 = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
+    UChar ucQP    = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    UChar ucQP4LF = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
+    UInt  uiCbp   = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
+    Bool  bT8x8   = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
 
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp               ( m_pacBQMbQP     [uiMbIndex] );
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp4LF            ( m_pacBQMbQP4LF  [uiMbIndex] );
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiBQMbCbp   [uiMbIndex] );
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabBQ8x8Trafo [uiMbIndex] );
 
     m_pacBQMbQP     [uiMbIndex] = ucQP;
+    m_pacBQMbQP4LF  [uiMbIndex] = ucQP4LF;
     m_pauiBQMbCbp   [uiMbIndex] = uiCbp;
     m_pabBQ8x8Trafo [uiMbIndex] = bT8x8;
 
@@ -1109,9 +1153,11 @@ ErrVal
 ControlData::initFGSData( UInt uiNumMb )
 {
   ROT( m_pacFGSMbQP );
+  ROT( m_pacFGSMbQP4LF );
   ROT( m_pauiFGSMbCbp );
   ROT( m_pabFGS8x8Trafo );
   ROFS( ( m_pacFGSMbQP      = new UChar [uiNumMb] ) );
+  ROFS( ( m_pacFGSMbQP4LF   = new UChar [uiNumMb] ) );
   ROFS( ( m_pauiFGSMbCbp    = new UInt  [uiNumMb] ) );
   ROFS( ( m_pabFGS8x8Trafo  = new Bool  [uiNumMb] ) );
   return Err::m_nOK;
@@ -1121,9 +1167,11 @@ ErrVal
 ControlData::uninitFGSData()
 {
   delete [] m_pacFGSMbQP;
+  delete [] m_pacFGSMbQP4LF;
   delete [] m_pauiFGSMbCbp;
   delete [] m_pabFGS8x8Trafo;
   m_pacFGSMbQP      = 0;
+  m_pacFGSMbQP4LF   = 0;
   m_pauiFGSMbCbp    = 0;
   m_pabFGS8x8Trafo  = 0;
   return Err::m_nOK;
@@ -1133,11 +1181,13 @@ ErrVal
 ControlData::storeFGSLayerQpAndCbp()
 {
   ROF( m_pacFGSMbQP );
+  ROF( m_pacFGSMbQP4LF );
   ROF( m_pauiFGSMbCbp );
   ROF( m_pabFGS8x8Trafo );
   for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
   {
     m_pacFGSMbQP     [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    m_pacFGSMbQP4LF  [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
     m_pauiFGSMbCbp   [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
     m_pabFGS8x8Trafo [uiMbIndex] = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
   }
@@ -1148,19 +1198,23 @@ ErrVal
 ControlData::switchFGSLayerQpAndCbp()
 {
   ROF( m_pacFGSMbQP );
+  ROF( m_pacFGSMbQP4LF );
   ROF( m_pauiFGSMbCbp );
   ROF( m_pabFGS8x8Trafo );
   for( UInt uiMbIndex = 0; uiMbIndex < m_pcMbDataCtrl->getSize(); uiMbIndex++ )
   {
-    UChar ucQP  = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
-    UInt  uiCbp = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
-    Bool  bT8x8 = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
+    UChar ucQP      = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp();
+    UChar ucQP4LF   = m_pcMbDataCtrl->getMbData( uiMbIndex ).getQp4LF();
+    UInt  uiCbp     = m_pcMbDataCtrl->getMbData( uiMbIndex ).getMbExtCbp();
+    Bool  bT8x8     = m_pcMbDataCtrl->getMbData( uiMbIndex ).isTransformSize8x8();
 
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp               ( m_pacFGSMbQP     [uiMbIndex] );
+    m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setQp4LF            ( m_pacFGSMbQP4LF  [uiMbIndex] );
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setMbExtCbp         ( m_pauiFGSMbCbp   [uiMbIndex] );
     m_pcMbDataCtrl->getMbDataByIndex( uiMbIndex ).setTransformSize8x8 ( m_pabFGS8x8Trafo [uiMbIndex] );
 
     m_pacFGSMbQP     [uiMbIndex] = ucQP;
+    m_pacFGSMbQP4LF  [uiMbIndex] = ucQP4LF;
     m_pauiFGSMbCbp   [uiMbIndex] = uiCbp;
     m_pabFGS8x8Trafo [uiMbIndex] = bT8x8;
   }

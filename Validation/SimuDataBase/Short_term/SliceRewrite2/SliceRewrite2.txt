@@ -67,8 +67,8 @@
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 641,
-            	        psnr => 30.54,
+            	        bitrate => 640,
+            	        psnr => 30.55,
             	      },
             	      #----------#
                       # Test   1 #
@@ -79,7 +79,7 @@
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 1577,
+            	        bitrate => 1575,
             	        psnr => 34.76,
             	      },
             	      #----------#
@@ -91,7 +91,7 @@
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 3047,
+            	        bitrate => 3040,
             	        psnr => 38.64,
             	        encdecmatch => 1,
             	      },
@@ -104,8 +104,8 @@
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 2210,
-            	        psnr => 35.92,
+            	        bitrate => 2201,
+            	        psnr => 35.93,
             	      },
             	      #----------#    		              
 		  ],

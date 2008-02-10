@@ -100,6 +100,7 @@ class H264AVCCOMMONLIB_API MbTransformCoeffs
 public:
   ErrVal copyPredictionFrom( YuvMbBuffer &rcPred );
   ErrVal copyPredictionTo( YuvMbBuffer &rcPred );
+  ErrVal clearPrediction();
 
   MbTransformCoeffs() ;
   TCoeff*       get   ( LumaIdx   cLumaIdx )          { return &m_aaiLevel[cLumaIdx     ][0]; }
@@ -134,6 +135,8 @@ public:
 
   Void  clearAcBlk                 ( ChromaIdx cChromaIdx );
   Void  clearLumaLevels            ();
+  Void  clearChromaLevels          ();
+  Void  clearLumaLevels4x4         ( LumaIdx c4x4Idx );
   Void  clearLumaLevels8x8         ( B8x8Idx c8x8Idx );
   Void  clearLumaLevels8x8Block    ( B8x8Idx c8x8Idx );
   Void  clearNewLumaLevels         ( MbTransformCoeffs& rcBaseMbTCoeffs );

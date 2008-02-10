@@ -132,6 +132,7 @@ public:
   ErrVal        predict8x8Blk             ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiAbsSum );
   ErrVal        predictChromaBlocks       ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );    
   ErrVal        predictScaledACCoeffs     ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp );  
+  ErrVal        predictScaledChromaCoeffs ( TCoeff *piCoeff, TCoeff* piRef, UInt uiRefQp );  
   ErrVal        predictMb16x16            ( TCoeff* piCoeff, TCoeff* piRef, UInt uiRefQp, UInt& ruiDcAbs, UInt& ruiAcAbs );
   ErrVal        addPrediction4x4Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiDstQp, UInt uiRefQp, UInt &uiCoded  );
   ErrVal        addPrediction8x8Blk       ( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, Bool& bCoded  );

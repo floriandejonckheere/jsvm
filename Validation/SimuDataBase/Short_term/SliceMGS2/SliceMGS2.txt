@@ -1,0 +1,146 @@
+{
+#==========================================================#
+#               General parameters                         #
+#==========================================================#
+name 	=> "SliceMGS2",
+original 	=> "MOBILE_352x288_30.yuv",
+width       => 352,
+height      => 288,
+framerate   => 30,
+nbframes    => 50,
+verbosemode => 1,	
+
+#==========================================================#
+#               Encoding parameters                        #
+#==========================================================#
+runencode	     => 1,
+qualitylayer    => 1,
+
+#=======================#
+# Layers  parameters    #
+#=======================#     
+layers      => [
+                #----------#
+                # Layer  0 #
+                #----------#
+                {
+                 width        => 352,
+                 height       => 288,
+                 framerate    =>  30,
+                },
+                #----------#
+                # Layer  1 #
+                #----------#
+                {
+                 width        => 352,
+                 height       => 288,
+                 framerate    =>  30,
+                },
+                #----------#
+                # Layer  2 #
+                #----------#
+                {
+                 width        => 352,
+                 height       => 288,
+                 framerate    =>  30,
+                },
+               ],
+   
+#==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )   #
+#==========================================================#  
+bitratecheckrange  => 5,
+psnrcheckrange     => 0.0,     
+tests              => [
+                       #----------#
+                       #   Test 0  #
+                       #----------#
+                       {
+            		        name => "L0",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+                  			bitrate     => 515,
+                  			psnr        => 30.08,
+                       },                                                                  
+                       #----------#
+                       #   Test 1  #
+                       #----------#
+                       {
+            		        name => "L1",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+                  			bitrate     => 1547,
+                  			psnr        => 34.55,
+                       },                                                                  
+                       #----------#
+                       #   Test 2  #
+                       #----------#
+                       {
+            		        name => "L2",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+                  			bitrate     => 2867,
+                  			psnr        => 38.02,
+            		        encdecmatch => 1,
+                       },                                                                  
+                       #----------#
+                       #   Test 3  #
+                       #----------#
+                       {
+            		name => "LX0-Std",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+			useql       => 0,
+                  	bitrate     => 1000,
+            		psnr        => 32.06,
+			},
+                       #----------#
+                       #   Test 4  #
+                       #----------#
+                       {
+            		name => "LX0-QL",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+			useql       => 1,
+                  	bitrate     => 1000,
+            		psnr        => 32.13,
+			},
+                       #----------#
+                       #   Test 5  #
+                       #----------#
+                       {
+            		name => "LX1-Std",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+			useql       => 0,
+                  	bitrate     => 2500,
+            		psnr        => 37.09,
+			},
+                       #----------#
+                       #   Test 6  #
+                       #----------#
+                       {
+            		name => "LX1-QL",
+                        mode        => 1,
+                        width       => 352,
+                        height      => 288,
+                        framerate   => 30,
+			useql       => 1,
+                  	bitrate     => 2500,
+            		psnr        => 37.12,
+			},
+                      ],
+}
+

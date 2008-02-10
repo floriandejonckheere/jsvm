@@ -102,6 +102,18 @@ MotionVectorCalculation::~MotionVectorCalculation()
 {
 }
 
+ErrVal MotionVectorCalculation::create( MotionVectorCalculation*& rpcMotionVectorCalculation )
+{
+  rpcMotionVectorCalculation = new MotionVectorCalculation();
+  ROF( rpcMotionVectorCalculation );
+  return Err::m_nOK;
+}
+
+ErrVal MotionVectorCalculation::destroy()
+{
+  delete this;
+  return Err::m_nOK;
+}
 
 ErrVal MotionVectorCalculation::initSlice( const SliceHeader& rcSH )
 {
@@ -293,8 +305,8 @@ Void MotionVectorCalculation::xCalc8x8( B8x8Idx       c8x8Idx,
     {
       if( rcMbDataAccess.getSH().isH264AVCCompatible() )
       {
-        RefFrameList* pcL0  = rcMbDataAccess.getSH().getRefFrameList( FRAME, LIST_0 );
-        RefFrameList* pcL1  = rcMbDataAccess.getSH().getRefFrameList( FRAME, LIST_1 );
+        RefFrameList* pcL0  = rcMbDataAccess.getSH().getRefFrameList( rcMbDataAccess.getMbPicType(), LIST_0 );
+        RefFrameList* pcL1  = rcMbDataAccess.getSH().getRefFrameList( rcMbDataAccess.getMbPicType(), LIST_1 );
         Bool          bOneMv;
         AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) );
       }
@@ -686,7 +698,63 @@ Void MotionVectorCalculation::xCalc8x8( MbDataAccess& rcMbDataAccess,
   }
 }
 
+ErrVal
+MotionVectorCalculation::calcMvMb( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase )
+{
+  switch( rcMbDataAccess.getMbData().getMbMode() )
+  {
+  case MODE_16x16:
+    xCalc16x16( rcMbDataAccess, pcMbDataAccessBase );
+    break;
+  case MODE_16x8:
+    xCalc16x8( rcMbDataAccess, pcMbDataAccessBase );
+    break;
+  case MODE_8x16:
+    xCalc8x16( rcMbDataAccess, pcMbDataAccessBase );
+    break;
+  case MODE_SKIP:
+    if( rcMbDataAccess.getSH().isBSlice() )
+    {
+      if( rcMbDataAccess.getSH().isH264AVCCompatible() )
+      {
+        RefFrameList* pcL0  = rcMbDataAccess.getSH().getRefFrameList( rcMbDataAccess.getMbPicType(), LIST_0 );
+        RefFrameList* pcL1  = rcMbDataAccess.getSH().getRefFrameList( rcMbDataAccess.getMbPicType(), LIST_1 );
+        B8x8Idx       c8x8Idx;
+        Bool          bOneMv;
+        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx++;
+        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx++;
+        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx++;
+        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); 
+      }
+      else
+      {
+        xCalcSDirect( rcMbDataAccess, pcMbDataAccessBase );
+      }
+    }
+    else
+    {
+      Mv cMvSkip;
+      rcMbDataAccess.getMvPredictorSkipMode( cMvSkip );
+      rcMbDataAccess.getMbMotionData( LIST_0 ).setAllMv( cMvSkip );
+    }
+    break;
+  case MODE_8x8:
+  case MODE_8x8ref0:
+    xCalc8x8( rcMbDataAccess, pcMbDataAccessBase, false );
+    break;
+  default:
+    break;
+  }
+  return Err::m_nOK;
+}
+
+ErrVal
+MotionVectorCalculation::calcMvSubMb( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase )
+{
+  xCalc8x8( c8x8Idx, rcMbDataAccess, pcMbDataAccessBase, false );
+  return Err::m_nOK;
+}
+
 
 H264AVC_NAMESPACE_END
-
 

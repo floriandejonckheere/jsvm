@@ -1,5 +1,30 @@
 ﻿
-[Currently, all validation scripts work except for those that use the temporal direct mode (AVC conformance test scripts) and those that use error concealment features]
+[Currently, all validation scripts work except for those that use error concealment features]
+
+
+JSVM_9_10_DEVEL2 -> JSVM_9_10_DEVEL3
+====================================
+
+NOTE: This is a version in development. Error concealment at the decoder has been removed.
+
+1) newly added features
+    - re-implementation of temporal direct mode
+    - implementation of SVC skipped slices (slice_skip_flag = 1)
+    - support of non-complete layer representations (slices missing) 
+      for quality_id > 0 in decoder (no error concealment - this is
+      allowed in conforming bit streams)
+
+2) bug fixing: many bug fixes at different places
+
+3) addition of new validation scripts
+
+NOTE: THE CURRENT SOFTWARE NEEDS FURTHER IMPROVEMENT
+----------------------------------------------------
+    - error detection and concealment code has been removed - it need to be added in a more general way
+      (all validation scripts that simulate packet losses fail)
+    - some known mismatches between software and text need to be fixed
+    - some further checking of match between text and software is required
+
 
 JSVM_9_10_DEVEL -> JSVM_9_10_DEVEL2
 ===================================

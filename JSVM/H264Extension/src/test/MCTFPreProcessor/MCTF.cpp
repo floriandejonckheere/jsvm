@@ -204,10 +204,8 @@ MCTF::xCreateData( const SequenceParameterSet& rcSPS )
 
   for( uiIndex = 0; uiIndex <= ( 1U << m_uiDecompositionStages ); uiIndex++ )
   {
-    ROFS ( ( m_papcFrame         [ uiIndex ] = new Frame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
-    ROFS ( ( m_papcResidual      [ uiIndex ] = new Frame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
+    ROFS ( ( m_papcFrame         [ uiIndex ] = new Frame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) ) );
+    ROFS ( ( m_papcResidual      [ uiIndex ] = new Frame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) ) );
     RNOK  (   m_papcFrame         [ uiIndex ] ->init        () );
     RNOK  (   m_papcResidual      [ uiIndex ] ->init        () );
 
@@ -221,9 +219,8 @@ MCTF::xCreateData( const SequenceParameterSet& rcSPS )
     RNOK  (       m_pacControlData[ uiIndex ] . setSliceHeader  (  pcSliceHeader ) );
   }
 
-  ROFS   ( ( m_pcFrameTemp                   = new Frame( *m_pcYuvFullPelBufferCtrl,
-                                                              *m_pcYuvHalfPelBufferCtrl ) ) );
-  RNOK    (   m_pcFrameTemp                   ->init        () );
+  ROFS   ( ( m_pcFrameTemp                   = new Frame( *m_pcYuvFullPelBufferCtrl, *m_pcYuvHalfPelBufferCtrl, FRAME, 0 ) ) );
+  RNOK   (   m_pcFrameTemp                   ->init        () );
 
   return Err::m_nOK;
 }

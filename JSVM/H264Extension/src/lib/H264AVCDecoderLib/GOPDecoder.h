@@ -235,7 +235,8 @@ public:
   ErrVal              initCurrDPBUnit     ( DPBUnit*&                   rpcCurrDPBUnit,
                                             SliceHeader*                pcSliceHeader,
                                             PicBufferList&              rcOutputList,
-                                            PicBufferList&              rcUnusedList );
+                                            PicBufferList&              rcUnusedList,
+                                            Bool                        bFirstSliceInLayerRepresentation );
   ErrVal              initPicCurrDPBUnit  ( PicBuffer*&                 rpcPicBuffer,
                                             Bool                        bRefinement );
 
@@ -349,9 +350,11 @@ public:
   UInt                getDQId           ()  const { return    m_uiSliceIdc        & 0x7F; }
   UInt                getDependencyId   ()  const { return  ( m_uiSliceIdc >> 4 ) & 0x7; }
   UInt                getQualityId      ()  const { return    m_uiSliceIdc        & 0xF; }
+  Bool                isCoded           ()  const { return    m_bIsCoded; }
 
 private:
   UInt          m_uiSliceIdc;
+  Bool          m_bIsCoded;
   SliceHeader*  m_pcSliceHeader;
 };
 
@@ -441,13 +444,26 @@ private:
                                         SliceDataNALUnit&       rcSliceDataNalUnit );
   ErrVal  xParseSlice                 ( SliceHeader&            rcSliceHeader );
   ErrVal  xDecodeSlice                ( SliceHeader&            rcSliceHeader,
+                                        const SliceDataNALUnit& rcSliceDataNalUnit,
+                                        Bool                    bFirstSliceInLayerRepresentation );
+  ErrVal  xFinishLayerRepresentation  ( SliceHeader&            rcSliceHeader,
                                         PicBufferList&          rcPicBufferOutputList,
                                         PicBufferList&          rcPicBufferUnusedList,
                                         const SliceDataNALUnit& rcSliceDataNalUnit,
-                                        Bool                    bFirstSliceInLayerRepresentation );
-  ErrVal  xFinishSlice                ( PicBufferList&          rcPicBufferOutputList,
+                                        BinDataList&            rcBinDataList );
+  ErrVal  xFinishSlice                ( SliceHeader&            rcSliceHeader,
+                                        PicBufferList&          rcPicBufferOutputList,
                                         PicBufferList&          rcPicBufferUnusedList,
-                                        const SliceDataNALUnit& rcSliceDataNalUnit );
+                                        const SliceDataNALUnit& rcSliceDataNalUnit,
+                                        BinDataList&            rcBinDataList );
+
+  //===== picture processing =====
+  ErrVal  xCheckForMissingSlices      ( const SliceDataNALUnit& rcSliceDataNalUnit );
+  ErrVal  xSetLoopFilterQPs           ( MbDataCtrl&             rcMbDataCtrl );
+#ifdef SHARP_AVC_REWRITE_OUTPUT
+  ErrVal  xRewritePicture             ( BinDataList&            rcBinDataList,
+                                        MbDataCtrl&             rcMbDataCtrl );
+#endif
 
   //===== base layer processing =====
   ErrVal  xInitESSandCroppingWindow   ( SliceHeader&            rcSliceHeader,

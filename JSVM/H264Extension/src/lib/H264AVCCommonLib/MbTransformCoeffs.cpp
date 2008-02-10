@@ -120,9 +120,6 @@ MbTransformCoeffs::load( FILE* pFile )
 
 Void MbTransformCoeffs::clear()
 {
-  for (Int i=0; i<24; i++)
-    ::memset( &(m_aaiLevel[i][0]), 0, 16*sizeof(TCoeff) );
-
   ::memset( m_aaiLevel, 0, sizeof( m_aaiLevel ) );
   ::memset( m_aaucCoeffCount, 0, sizeof(m_aaucCoeffCount));
 }
@@ -132,6 +129,15 @@ Void MbTransformCoeffs::clearAcBlk( ChromaIdx cChromaIdx )
   ::memset( &m_aaiLevel[16+cChromaIdx][1], 0, sizeof( TCoeff) * 15 );
 }
 
+ErrVal MbTransformCoeffs::clearPrediction()
+{
+  TCoeff *pcDst     = get( B4x4Idx(0) );
+  for( UInt ui = 0; ui < 384; ui++ )
+  {
+    (pcDst++)->m_sPred = 0;
+  }
+  return Err::m_nOK;
+}
 
 ErrVal MbTransformCoeffs::copyPredictionFrom( YuvMbBuffer &rcPred )
 {
@@ -217,6 +223,18 @@ Void
 MbTransformCoeffs::clearLumaLevels()
 {
   ::memset( &m_aaiLevel[0][0], 0, sizeof(TCoeff)*16*16 );
+}
+
+Void
+MbTransformCoeffs::clearChromaLevels()
+{
+  ::memset( get( CIdx(0) ), 0, sizeof(TCoeff)*128 );
+}
+
+Void
+MbTransformCoeffs::clearLumaLevels4x4( LumaIdx c4x4Idx )
+{
+  ::memset( get( c4x4Idx ), 0, sizeof(TCoeff)*16 );
 }
 
 Void

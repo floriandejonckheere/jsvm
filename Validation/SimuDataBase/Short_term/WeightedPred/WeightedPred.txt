@@ -21,7 +21,7 @@ runencode   => 1,
 
 #=======================#
 # Layers  parameters    #
-#=======================#     
+#=======================#
 layers      => [
                 #----------#
                 # Layer  0 #
@@ -40,13 +40,13 @@ layers      => [
                  framerate    =>  30,
                 },
                ],
-   
+
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
-#==========================================================#  
+#==========================================================#
 bitratecheckrange  => 3,
 psnrcheckrange     => 0,
-         
+
 tests              => [
                        #----------#
                        # Test   0 #
@@ -57,7 +57,7 @@ tests              => [
                         width       => 176,
                         height      => 144,
                         framerate   => 15,
-                  	bitrate     => 313,
+                  	bitrate     => 314,
                   	psnr        => 32.86,
                         encdecmatch => 1,
                        },
@@ -70,8 +70,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-			bitrate     => 978,	
-			psnr        => 31.18,
+			bitrate     => 977,
+		        psnr        => 31.18,
                         encdecmatch => 1,
                        },
                       ],

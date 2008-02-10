@@ -50,24 +50,41 @@ tests      => [
     # Test   0 #
     #----------#
 		{
-		 name => "ENP0",
+		 name => "All NALs",
+		 mode => 1,
+		 width       => 352,
+                 height      => 288,
+                 framerate   => 30,
+                 bitrate     => 511,
+                 psnr        => 27.72,
+		 encdecmatch => 1,
+		},
+		#----------#
+    # Test   1 #
+    #----------#
+		{
+		 name => "without NR-SEI",
 		 mode => 1,
 		 width       => 352,
                  height      => 288,
                  framerate   => 30,
 		 useenp0     => 1,
+                 bitrate     => 506,
+                 psnr        => 27.72,
 		 encdecmatch => 1,
 		},
 		#----------#
-    # Test   1 #
+    # Test   2 #
     #----------#	
 		{
-		 name => "ENP1",
+		 name => "without NR-SEI and NR-PICs",
 		 mode => 1,
 		 width       => 352,
                  height      => 288,
                  framerate   => 30,
 		 useenp1     => 1,
+                 bitrate     => 318,
+                 psnr        => 27.72,
 		 encdecmatch => 1,
 		},
 	],

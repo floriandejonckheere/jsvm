@@ -1,6 +1,6 @@
 {
 #==========================================================#
-#               General parameters                         #
+#               General parameters                        #
 #==========================================================#
 name              => "ESS2",
 original          => "FOOTBALL_352x288_30.yuv",
@@ -11,18 +11,18 @@ width             => 352,
 height            => 288,
 framerate         => 15,
 nbframes          => 34,
-verbosemode       => 1,	
-phasemode         => 1,
+verbosemode       => 1,
+	phasemode         => 1,
 
 #==========================================================#
-#               Encoding parameters                        #
+#               Encoding parameters                       #
 #==========================================================#
 runencode      => 1,
 
 #=======================#
 # Layers  parameters    #
-#=======================#     
-layers      => [
+#=======================#
+     layers      => [
                 #----------#
                 # Layer  0 #
                 #----------#
@@ -40,14 +40,12 @@ layers      => [
                  framerate    =>  15,
                 },
                ],
-   
+   #==========================================================#
+#          Extracting +Decoding parameters  (i.e Tests )  #
 #==========================================================#
-#          Extracting +Decoding parameters  (i.e Tests )   #
-#==========================================================#  
-bitratecheckrange  => 3,
+  bitratecheckrange  => 3,
 psnrcheckrange     => 0,
-         
-tests              => [
+         tests              => [
                        #----------#
                        # Test   0 #
                        #----------#
@@ -57,7 +55,7 @@ tests              => [
                         width       => 320,
                         height      => 240,
                         framerate   => 15,
-                        bitrate     => 494,
+                        bitrate     => 495,
                         psnr        => 31.56,
                         encdecmatch => 0,
                        },
@@ -70,10 +68,9 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 15,
-                        bitrate     => 768,
+                        bitrate     => 760,
                         psnr        => 31.53,
                         encdecmatch => 1,
-                       },                      
-                      ],
+                       },
+                                            ],
 }
-

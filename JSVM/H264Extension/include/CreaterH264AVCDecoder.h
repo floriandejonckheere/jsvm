@@ -127,40 +127,74 @@ class RewriteEncoder;
 H264AVC_NAMESPACE_BEGIN
 
 
-class H264AVCDECODERLIB_API SliceDataNALUnit
+class H264AVCDECODERLIB_API NALUnit
+{
+protected:
+  NALUnit() : m_pInstance( 0 ) {}
+public:
+  virtual ~NALUnit()  {}
+  virtual Bool        isVCLNALUnit  () const = 0;
+  virtual NalUnitType getNalUnitType() const = 0;
+  Void*               getInstance   ()          { return m_pInstance; }
+protected:
+  Void                setInstance   ( Void* p ) { m_pInstance = p;    }
+private:
+  Void*   m_pInstance;
+};
+
+
+class H264AVCDECODERLIB_API NonVCLNALUnit : public NALUnit
 {
 public:
-  SliceDataNALUnit( BinData* pcBinData, const PrefixHeader& rcPrefixHeader );
-  SliceDataNALUnit( BinData* pcBinData, const SliceHeader&  rcSliceHeader  );
+  NonVCLNALUnit( BinData* pcBinData, BinData* pcBinDataPrefix = 0 );
+  virtual ~NonVCLNALUnit();
+
+  Void        destroyNALOnly  ();
+
+  Bool        isVCLNALUnit    ()  const { return false; }
+  BinData*    getBinData      ()        { return m_pcBinData; }
+  BinData*    getBinDataPrefix()        { return m_pcBinDataPrefix; }
+  NalUnitType getNalUnitType  ()  const { return m_eNalUnitType; }
+
+private:
+  BinData*    m_pcBinData;
+  BinData*    m_pcBinDataPrefix;
+  NalUnitType m_eNalUnitType;
+};
+
+
+class H264AVCDECODERLIB_API SliceDataNALUnit : public NALUnit
+{
+public:
+  SliceDataNALUnit( BinData* pcBinData,       const SliceHeader&  rcSliceHeader  );
+  SliceDataNALUnit( BinData* pcBinDataPrefix, const PrefixHeader& rcPrefixHeader,
+                    BinData* pcBinData,       const SliceHeader&  rcSliceHeader  );
   virtual ~SliceDataNALUnit();
 
-  ErrVal  update  ( BinData* pcBinData, const SliceHeader&  rcSliceHeader  );
-
-  Bool        isHeaderExtensionPresent    ()  const { return m_bHeaderExtensionPresent; }
-  Bool        isSliceHeaderPresent        ()  const { return m_bSliceHeaderPresent; }
-  BinData*    getBinDataPrefix            ()        { return m_pcBinDataPrefix; }
-  BinData*    getBinData                  ()        { return m_pcBinData; }
-  NalRefIdc   getNalRefIdc                ()  const { return m_eNalRefIdc; }
-  NalUnitType getNalUnitType              ()  const { return m_eNalUnitType; }
-  Bool        getIdrFlag                  ()  const { return m_bIdrFlag; }
-  UInt        getPriorityId               ()  const { return m_uiPriorityId; }
-  Bool        getNoInterLayerPredFlag     ()  const { return m_bNoInterLayerPredFlag; }
-  UInt        getDependencyId             ()  const { return m_uiDependencyId; }
-  UInt        getQualityId                ()  const { return m_uiQualityId; }
-  UInt        getDQId                     ()  const { return m_uiQualityId + ( m_uiDependencyId << 4 ); }
-  UInt        getTemporalId               ()  const { return m_uiTemporalId; }
-  Bool        getUseRefBasePicFlag        ()  const { return m_bUseRefBasePicFlag; }
-  Bool        getDiscardableFlag          ()  const { return m_bDiscardableFlag; }
-  Bool        getOutputFlag               ()  const { return m_bOutputFlag; }
-  Bool        getTCoeffLevelPredictionFlag()  const { return m_bTCoeffLevelPredictionFlag; }
-  UInt        getPPSId                    ()  const { return m_uiPPSId; }
-  UInt        getSPSId                    ()  const { return m_uiSPSId; }
-  UInt        getFrameNum                 ()  const { return m_uiFrameNum; }
-  UInt        getRedundantPicCnt          ()  const { return m_uiRedundantPicCnt; }
-  UInt        getRefLayerDQId             ()  const { return m_uiRefLayerDQId; }
-  UInt        getFrameWidthInMb           ()  const { return m_uiFrameWidthInMb; }
-  UInt        getFrameHeightInMb          ()  const { return m_uiFrameHeightInMb; }
-  const UInt* getCroppingRectangle        ()  const { return m_auiCroppingRectangle; }
+  Bool          isVCLNALUnit                ()  const { return true; }
+  BinData*      getBinDataPrefix            ()        { return m_pcBinDataPrefix; }
+  BinData*      getBinData                  ()        { return m_pcBinData; }
+  NalRefIdc     getNalRefIdc                ()  const { return m_eNalRefIdc; }
+  NalUnitType   getNalUnitType              ()  const { return m_eNalUnitType; }
+  Bool          getIdrFlag                  ()  const { return m_bIdrFlag; }
+  UInt          getPriorityId               ()  const { return m_uiPriorityId; }
+  Bool          getNoInterLayerPredFlag     ()  const { return m_bNoInterLayerPredFlag; }
+  UInt          getDependencyId             ()  const { return m_uiDependencyId; }
+  UInt          getQualityId                ()  const { return m_uiQualityId; }
+  UInt          getDQId                     ()  const { return m_uiQualityId + ( m_uiDependencyId << 4 ); }
+  UInt          getTemporalId               ()  const { return m_uiTemporalId; }
+  Bool          getUseRefBasePicFlag        ()  const { return m_bUseRefBasePicFlag; }
+  Bool          getDiscardableFlag          ()  const { return m_bDiscardableFlag; }
+  Bool          getOutputFlag               ()  const { return m_bOutputFlag; }
+  Bool          getTCoeffLevelPredictionFlag()  const { return m_bTCoeffLevelPredictionFlag; }
+  UInt          getPPSId                    ()  const { return m_uiPPSId; }
+  UInt          getSPSId                    ()  const { return m_uiSPSId; }
+  UInt          getFrameNum                 ()  const { return m_uiFrameNum; }
+  UInt          getRedundantPicCnt          ()  const { return m_uiRedundantPicCnt; }
+  UInt          getRefLayerDQId             ()  const { return m_uiRefLayerDQId; }
+  UInt          getFrameWidthInMb           ()  const { return m_uiFrameWidthInMb; }
+  UInt          getFrameHeightInMb          ()  const { return m_uiFrameHeightInMb; }
+  const UInt*   getCroppingRectangle        ()  const { return m_auiCroppingRectangle; }
 
   Bool  isDQIdMax                             ()  const { return m_bIsDQIdMax; }
   Bool  isDependencyIdMax                     ()  const { return m_bIsDependencyIdMax; }
@@ -182,8 +216,6 @@ public:
 
 private:
   //===== slice based parameters =====
-  Bool        m_bHeaderExtensionPresent;
-  Bool        m_bSliceHeaderPresent;
   BinData*    m_pcBinDataPrefix;
   BinData*    m_pcBinData;
   NalRefIdc   m_eNalRefIdc;
@@ -217,38 +249,40 @@ private:
   Bool        m_bHighestRewriteLayer;
 };
 
-class H264AVCDECODERLIB_API AccessUnitSlices
+
+class H264AVCDECODERLIB_API AccessUnit
 {
 public:
-  AccessUnitSlices();
-  virtual ~AccessUnitSlices();
+  AccessUnit();
+  virtual ~AccessUnit();
 
-  ErrVal  updateEndOfStream ();
-  ErrVal  update            ( BinData* pcBinData, SliceHeader&  rcSliceHeader );
-  ErrVal  update            ( BinData* pcBinData, PrefixHeader& rcPrefixHeader );
+  ErrVal  update( BinData* pcBinData, PrefixHeader& rcPrefixHeader );
+  ErrVal  update( BinData* pcBinData, SliceHeader&  rcSliceHeader );
+  ErrVal  update( BinData* pcBinData = 0 );
+  
+  ErrVal  getAndRemoveNextNalUnit( NALUnit*& rpcNalUnit );
 
-  ErrVal  getNextSliceDataNalUnit     ( SliceDataNALUnit*&        rpcSliceDataNalUnit );
-  ErrVal  getRefToTargetLayerSliceData( const SliceDataNALUnit*&  rpcSliceDataNalUnit ) const;
-
-  Bool                  isEndOfStream       ()  const   { return m_bEndOfStream; }
-  Bool                  isComplete          ()  const   { return m_bComplete; }
-  Bool                  isEmpty             ()  const   { return m_cSliceDataNalUnitList.empty(); }
-  const PrefixHeader*   getLastPrefixHeader ()  const   { return m_pcLastPrefixHeader; }
-  const SliceHeader*    getLastSliceHeader  ()  const   { return m_pcLastSliceHeader; }
-
-private:
-  Void  xSetComplete( Bool              bEndOfStream                            = true,
-                      SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit = 0,
-                      SliceHeader*      pcSliceHeader                           = 0 );
-  Void  xReInit     ();
+  Bool                    isEndOfStream       ()  const   { return m_bEndOfStream; }
+  Bool                    isComplete          ()  const   { return m_bComplete; }
+  Bool                    isEmpty             ()  const   { return m_cNalUnitList.empty(); }
+  const SliceDataNALUnit* getLastVCLNalUnit   ()  const   { return m_pcLastVCLNALUnit; }
+  const PrefixHeader*     getLastPrefixHeader ()  const   { return m_pcLastPrefixHeader; }
+  const SliceHeader*      getLastSliceHeader  ()  const   { return m_pcLastSliceHeader; }
 
 private:
-  Bool                        m_bEndOfStream;
-  Bool                        m_bComplete;
-  MyList<SliceDataNALUnit*>   m_cSliceDataNalUnitList;
-  SliceDataNALUnit*           m_pcFirstSliceDataNALUnitOfNextAccessUnit;
-  PrefixHeader*               m_pcLastPrefixHeader;
-  SliceHeader*                m_pcLastSliceHeader;
+  Void  xSetComplete  ( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit = 0,
+                        SliceHeader*      pcFirstSliceHeaderOfNextAccessUnit      = 0 );
+  Void  xSetParameters();
+  Void  xReInit       ();
+
+private:
+  Bool              m_bEndOfStream;
+  Bool              m_bComplete;
+  MyList<NALUnit*>  m_cNalUnitList;
+  MyList<NALUnit*>  m_cStartOfNewAccessUnit;
+  SliceDataNALUnit* m_pcLastVCLNALUnit;
+  PrefixHeader*     m_pcLastPrefixHeader;
+  SliceHeader*      m_pcLastSliceHeader;
 };
 
 
@@ -265,12 +299,12 @@ public:
   ErrVal        uninit  ( Bool bCloseTrace );
 
   ErrVal  initNALUnit     ( BinData*&         rpcBinData,
-                            AccessUnitSlices& rcAccessUnitSlices );
-  ErrVal  processSliceData( PicBuffer*        pcPicBuffer,
+                            AccessUnit&       rcAccessUnit );
+  ErrVal  processNALUnit  ( PicBuffer*        pcPicBuffer,
                             PicBufferList&    rcPicBufferOutputList,
                             PicBufferList&    rcPicBufferUnusedList,
                             BinDataList&      rcBinDataList,
-                            SliceDataNALUnit& rcSliceDataNALUnit );
+                            NALUnit&          rcNALUnit );
 
 protected:
   ErrVal  xCreateDecoder  ();
@@ -279,7 +313,8 @@ protected:
   H264AVCDecoder*           m_pcH264AVCDecoder;
   DecodedPicBuffer*         m_apcDecodedPicBuffer     [MAX_LAYERS];
   LayerDecoder*             m_apcLayerDecoder         [MAX_LAYERS];
-  ParameterSetMng*          m_pcParameterSetMng;
+  ParameterSetMng*          m_pcParameterSetMngAUInit;
+  ParameterSetMng*          m_pcParameterSetMngDecode;
   PocCalculator*            m_apcPocCalculator        [MAX_LAYERS];
   SliceReader*              m_pcSliceReader;
   NalUnitParser*            m_pcNalUnitParser;

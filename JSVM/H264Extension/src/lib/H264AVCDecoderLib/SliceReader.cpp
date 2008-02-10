@@ -178,7 +178,7 @@ SliceReader::read( SliceHeader& rcSH,
       pcMbDataAccess->setFieldMode( pcMbDataAccess->getDefaultFieldFlag() );
     }
 
-    RNOK( m_pcMbParser->read( *pcMbDataAccess, bEndOfSlice  ) );
+    RNOK( m_pcMbParser->read( *pcMbDataAccess, ruiMbRead, bEndOfSlice  ) );
     UInt      uiMbIndex   = rcSH.getMbIndexFromAddress( uiMbAddress );
     MbStatus& rcMbStatus  = pacMbStatus[ uiMbIndex ];
     RNOK( rcMbStatus.update( &pcMbDataAccess->getSH() ) );

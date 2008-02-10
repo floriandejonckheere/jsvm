@@ -138,15 +138,15 @@ class Scheduler;
 typedef MyList<UInt>        UIntList;
 
 
-class H264AVCENCODERLIB_API AccessUnit
+class H264AVCENCODERLIB_API AccessUnitData
 {
 public:
-  AccessUnit  ( Int         iPoc )  : m_iPoc( iPoc )   
+  AccessUnitData  ( UInt uiAUIndex ) : m_uiAUIndex( uiAUIndex )   
   , m_pcNonRequiredSei ( NULL )  //NonRequired JVT-Q066 (06-04-08)
   {}
-  ~AccessUnit ()                                            {}
+  ~AccessUnitData ()                                            {}
 
-  Int                     getPoc          () const          { return m_iPoc; }
+  UInt                    getAUIndex      () const          { return m_uiAUIndex; }
   ExtBinDataAccessorList& getNalUnitList  ()                { return m_cNalUnitList; }
   //NonRequired JVT-Q066 (06-04-08){{
   ErrVal				  CreatNonRequiredSei()				{ RNOK(SEI::NonRequiredSei::create( m_pcNonRequiredSei)) return Err::m_nOK;}
@@ -159,54 +159,49 @@ public:
 	//JVT-W052 wxwan
 
 private:
-  Int                     m_iPoc;
+  UInt                    m_uiAUIndex;
   ExtBinDataAccessorList  m_cNalUnitList;
   SEI::NonRequiredSei*	  m_pcNonRequiredSei; //NonRequired JVT-Q066 (06-04-08)
 	SEI::IntegrityCheckSEI* m_pcIntegrityCheckSei;//JVT-W052
 };
 
-
-class H264AVCENCODERLIB_API AccessUnitList // no longer required !!!!
+class H264AVCENCODERLIB_API AccessUnitDataList
 {
 public:
-  AccessUnitList  ()  {}
-  ~AccessUnitList ()  {}
+  AccessUnitDataList  ()  {}
+  ~AccessUnitDataList ()  {}
 
-  Void        clear           ()            { m_cAccessUnitList.clear(); }
-  AccessUnit& getAccessUnit   ( Int iPoc )
+  Void            clear               ()            { m_cAccessUnitDataList.clear(); }
+  AccessUnitData& getAccessUnitData   ( UInt uiAUIndex )
   {
     //===== hack for EIDR (this class should be removed completely =====
-    /*
-    std::list<AccessUnit>::iterator  iter = m_cAccessUnitList.begin();
-    std::list<AccessUnit>::iterator  end  = m_cAccessUnitList.end  ();
+    std::list<AccessUnitData>::iterator  iter = m_cAccessUnitDataList.begin();
+    std::list<AccessUnitData>::iterator  end  = m_cAccessUnitDataList.end  ();
     for( ; iter != end; iter++ )
     {
-      if( (*iter).getPoc() == iPoc )
+      if( (*iter).getAUIndex() == uiAUIndex )
       {
         return (*iter);
       }
     }
-    */
-    AccessUnit cAU( iPoc );
-    m_cAccessUnitList.push_back( cAU );
-    return m_cAccessUnitList.back();
+    AccessUnitData cAUData( uiAUIndex );
+    m_cAccessUnitDataList.push_back( cAUData );
+    return m_cAccessUnitDataList.back();
   }
   Void        emptyNALULists  ( ExtBinDataAccessorList& rcOutputList )
   {
-    while( ! m_cAccessUnitList.empty() )
+    while( ! m_cAccessUnitDataList.empty() )
     {
-      ExtBinDataAccessorList& rcNaluList = m_cAccessUnitList.front().getNalUnitList();
+      ExtBinDataAccessorList& rcNaluList = m_cAccessUnitDataList.front().getNalUnitList();
       rcOutputList += rcNaluList;
       rcNaluList.clear();
-      m_cAccessUnitList.pop_front();
+      m_cAccessUnitDataList.pop_front();
     }
   }
 
 private:
-  std::list<AccessUnit>  m_cAccessUnitList;
+  std::list<AccessUnitData>  m_cAccessUnitDataList;
 };
-
-
 
 
 class PicOutputData
@@ -285,10 +280,10 @@ public:
  
   ErrVal        addParameterSetBits ( UInt                            uiParameterSetBits );
   Bool          firstGOPCoded       ()                                { return m_bFirstGOPCoded; }
-  ErrVal        initGOP             ( AccessUnitList&                 rcAccessUnitList,
+  ErrVal        initGOP             ( AccessUnitData&                 rcAccessUnitData,
                                       PicBufferList&                  rcPicBufferInputList );
   ErrVal        process             ( UInt                            uiAUIndex,
-                                      AccessUnitList&                 rcAccessUnitList,
+                                      AccessUnitData&                 rcAccessUnitData,
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
                                       PicBufferList&                  rcPicBufferUnusedList,
@@ -375,11 +370,11 @@ public:
 	UInt			xGetParameterSetBits()	{ return m_uiParameterSetBits; }
 	//JVT-W051 }
 	//JVT-X046 {
-  ErrVal xEncodeNonKeyPictureSlices(  UInt                        uiBaseLevel,
-								  UInt                        uiFrame, 
-								  AccessUnitList&             rcAccessUnitList,
-								PicBufferList&				  rcPicBufferInputList,
-								PicOutputDataList&            rcPicOutputDataList );
+  ErrVal xEncodeNonKeyPictureSlices(  UInt               uiBaseLevel,
+								                      UInt               uiFrame, 
+								                      AccessUnitData&    rcAccessUnitData,
+								                      PicBufferList&		 rcPicBufferInputList,
+								                      PicOutputDataList& rcPicOutputDataList );
 
   ErrVal  xEncodeHighPassSignalSlices         ( ExtBinDataAccessorList&  rcOutExtBinDataAccessorList,
 											RefFrameList* pcRefFrameList0,
@@ -530,11 +525,11 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   //===== stage encoding =====
   ErrVal  xEncodeKeyPicture             ( Bool&                       rbKeyPicCoded,                         
                                           UInt                        uiFrame,
-                                          AccessUnitList&             rcAccessUnitList,
+                                          AccessUnitData&             rcAccessUnitData,
                                           PicOutputDataList&          rcPicOutputDataList );
   ErrVal  xEncodeNonKeyPicture          ( UInt                        uiBaseLevel,
                                           UInt                        uiFrame,
-                                          AccessUnitList&             rcAccessUnitList,
+                                          AccessUnitData&             rcAccessUnitData,
                                           PicOutputDataList&          rcPicOutputDataList
                                           , PicType                   ePicType  //TMM
                                           );

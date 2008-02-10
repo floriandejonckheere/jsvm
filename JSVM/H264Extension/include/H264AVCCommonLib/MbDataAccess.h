@@ -141,6 +141,7 @@ public:
 		m_bIsTopRowMb(                  rcMbDataAccess.m_bIsTopRowMb ),
     m_bMbAff(                       rcMbDataAccess.m_bMbAff ),
     m_ucLastMbQp(                   rcMbDataAccess.m_ucLastMbQp ),
+    m_ucLastMbQp4LF(                rcMbDataAccess.m_ucLastMbQp4LF ),
 		m_eMbPicType(                   rcMbDataAccess.m_eMbPicType ),
     m_pcMbDataAccessBase(           rcMbDataAccess.m_pcMbDataAccessBase )
   {
@@ -170,7 +171,8 @@ public:
 								Bool             bTopMb,
 								Bool             bUseTopField,
 								Bool             bColocatedField,
-                SChar               ucLastMbQp )
+                SChar            ucLastMbQp,
+                SChar            ucLastMbQp4LF )
                 : m_rcMbCurr                    ( rcMbCurr                ),
                   m_rcMbComplementary           ( rcMbComplementary       ),
                   m_rcMbLeft                    ( rcMbLeft                ),
@@ -196,6 +198,7 @@ public:
 				          m_bColocatedField             ( bColocatedField         ),
                   m_bMbAff                      ( rcSliceHeader.isMbaffFrame() ),
                   m_ucLastMbQp                  ( ucLastMbQp              ),
+                  m_ucLastMbQp4LF               ( ucLastMbQp4LF           ),
                   m_pcMbDataAccessBase          ( NULL                    )
   {
     m_bIsTopRowMb = ( m_rcSliceHeader.getFieldPicFlag() ? ! m_rcSliceHeader.getBottomFieldFlag() : ( m_uiPosY % 2 == 0 ) );
@@ -212,8 +215,18 @@ public:
 
 
 public:
+  UInt getMbAddress()    const
+  {
+    UInt uiMbsInRow = getSH().getSPS().getFrameWidthInMbs();
+    if( !m_bMbAff )
+    {
+      return uiMbsInRow * getMbY() + getMbX();
+    }
+    return ( ( getMbY() / 2 ) * 2 * uiMbsInRow ) + ( getMbX() * 2 ) + ( getMbY() % 2 );
+  }
 
-  const UInt      getMbAddress          ()    const { return getSH().getSPS().getFrameWidthInMbs() * getMbY() + getMbX(); }
+  Bool            isFirstMbInSlice      ()    const { return ( getMbAddress() == getSH().getFirstMbInSlice() ); }
+  Bool            isLastMbInSlice       ()    const { return ( getMbAddress() == getSH().getLastMbInSlice () ); }
   const MbData&   getMbData             ()    const { return m_rcMbCurr; }
   MbData&         getMbData             ()          { return m_rcMbCurr; }
   const MbData&   getMbDataCurr         ()    const { return m_rcMbCurr; }
@@ -265,25 +278,37 @@ public:
     return false;
   }
 
-  Bool getCoeffResidualPredFlag() {
-    // return a flag indicating wether it'e eligible for residual prediction in transform domain for CGS
-    if (getMbDataAccessBase() != NULL)
-    {
-      Bool slice_flag = getSH().getCoeffResidualPredFlag( );
-      return slice_flag && !getMbData().isIntraButnotIBL() && !getMbDataAccessBase()->getMbData().isIntraButnotIBL();
-    }
-    return false;
-
+  Bool getCoeffResidualPredFlag()
+  {
+    ROFRS( m_pcMbDataAccessBase,                                  false );
+    ROFRS( m_rcSliceHeader.getSCoeffResidualPredFlag(),           false );
+    ROTRS( m_pcMbDataAccessBase->getMbData().isIntraButnotIBL(),  false );
+    return true;
   }
 
-  Bool getDisableCoeffResidualPredFlag() {
-    if (getMbDataAccessBase() != NULL)
-    {
-      Bool slice_flag = getSH().getCoeffResidualPredFlag( );
-      // is this correct???
-      return slice_flag && ( getMbData().isIntraButnotIBL() || getMbDataAccessBase()->getMbData().isIntraButnotIBL() );
-    }
+  Bool getDisableCoeffResidualPredFlag() 
+  {
+    ROFRS( m_pcMbDataAccessBase,                                  false );
+    ROFRS( m_rcSliceHeader.getSCoeffResidualPredFlag(),           false );
+    ROTRS( m_pcMbDataAccessBase->getMbData().isIntra(),           true  );
+    return false;
+  }
 
+  Bool  isSCoeffPred()
+  {
+    ROFRS( m_rcSliceHeader.getSCoeffResidualPredFlag(),                               false );
+    ROFRS( m_pcMbDataAccessBase,                                                      false );
+    ROTRS(!m_rcMbCurr.isIntra   () && m_rcMbCurr.getResidualPredFlag(),               true  );
+    ROTRS( m_rcMbCurr.isIntraBL () && m_pcMbDataAccessBase->getMbData().isIntraBL(),  true  );
+    return false;
+  }
+
+  Bool  isTCoeffPred()
+  {
+    ROFRS( m_rcSliceHeader.getTCoeffLevelPredictionFlag(),            false );
+    ROFRS( m_pcMbDataAccessBase,                                      false );
+    ROTRS(!m_rcMbCurr.isIntra() && m_rcMbCurr.getResidualPredFlag(),  true  );
+    ROTRS( m_rcMbCurr.isIntra() && m_rcMbCurr.getBLSkipFlag(),        true  );
     return false;
   }
 
@@ -298,18 +323,17 @@ public:
     {
       return (m_rcMbCurr.getMbMode() == MODE_SKIP) &&
              (m_rcMbCurr.getMbCbp () == 0)         &&
-            !(m_rcMbCurr.getResidualPredFlag(PART_16x16));
+            !(m_rcMbCurr.getResidualPredFlag());
     }
     return m_rcMbCurr.getMbMode() == MODE_SKIP;
   }
 
-  Void    setLastQp   ( Int iQp  )  { m_ucLastMbQp = (UChar)iQp; }
-
+  Void    setLastQp   ( Int iQp  )              { m_ucLastMbQp = (UChar)iQp; }
   Void    addDeltaQp  ( Int iDQp )              { m_rcMbCurr.setQp( (m_ucLastMbQp + iDQp+(MAX_QP+1)) % (MAX_QP+1) ); }
   Void    resetQp     ()                        { m_rcMbCurr.setQp( m_ucLastMbQp );  }
   Int     getDeltaQp  ()                        { return (m_rcMbCurr.getQp() - m_ucLastMbQp); }
   UChar   getLastQp  ()                   const { return m_ucLastMbQp; }
-
+  UChar   getLastQp4LF()                  const { return m_ucLastMbQp4LF; }
 
   const SliceHeader&       getSH           ()                    const { return m_rcSliceHeader;}
   SliceHeader&             getSH           ()                          { return m_rcSliceHeader;}
@@ -386,9 +410,6 @@ public:
                               Bool bFaultTolerant, 
                               RefFrameList* pcL0RefFrameList=NULL, 
                               RefFrameList* pcL1RefFrameList=NULL );
-//	TMM_EC {{
-  Bool  getMvPredictorDirectVirtual ( ParIdx8x8 eParIdx, Bool& rbOneMv, Bool bFaultTolerant, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1  );
-//  TMM_EC }}
 
   const DBFilterParameter&  getDBFilterParameter( Bool bInterLayer = false )
   {
@@ -456,8 +477,14 @@ protected:
   
   __inline Void          xGetColocatedMvRefIdx              ( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const;
   __inline Void          xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SChar& rscRefIdx, ParIdx8x8 eParIdx ) const;
- 
+
+  __inline const RefPicIdc& xGetColocatedMvRefPic              ( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const;
+  __inline const RefPicIdc& xGetColocatedMvsRefPicNonInterlaced( Mv acMv[], SChar& rscRefIdx, ParIdx8x8 eParIdx ) const;
+
 	Bool xSpatialDirectMode ( ParIdx8x8 eParIdx, Bool b8x8, RefFrameList* pcL0RefFrameList, RefFrameList* pcL1RefFrameList );
+  Bool xTemporalDirectMode( ParIdx8x8 eParIdx, Bool b8x8, Bool bFaultTolerant);
+  Bool xTemporalDirectModeMvRef( Mv acMv[], SChar ascRefIdx[], LumaIdx cIdx, Bool bFaultTolerant );
+  Bool xTemporalDirectModeMvsRefNonInterlaced( Mv aacMv[][4], SChar ascRefIdx[], ParIdx8x8 eParIdx, Bool bFaultTolerant );
 
   Bool  xIsAvailable     ( const MbData& rcMbData )  const
   {
@@ -527,6 +554,7 @@ public:
   Bool      m_bIsTopRowMb;
   Bool      m_bMbAff;
   SChar     m_ucLastMbQp;
+  SChar     m_ucLastMbQp4LF;
   PicType   m_eMbPicType;
 
   MbDataAccess* m_pcMbDataAccessBase;
@@ -1162,6 +1190,64 @@ __inline Void MbDataAccess::xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SCha
 }
 
 
+__inline
+const RefPicIdc&
+MbDataAccess::xGetColocatedMvRefPic( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) const
+{
+  ListIdx         eListIdx         = LIST_0;
+  MvRefConversion eMvRefConversion = ONE_TO_ONE;
+  const MbData&   rcMbColocated    = xGetBlockColocated( cIdx, eMvRefConversion );
+  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx ) ) < BLOCK_NOT_AVAILABLE  )
+  {
+    eListIdx  = LIST_1;
+    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx );
+  }
+  if( rscRefIdx < BLOCK_NOT_AVAILABLE  )
+  {
+    rcMv = Mv::ZeroMv();
+  }
+  else
+  {
+    rcMv = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( cIdx );
+  }
+
+  //--- mv scaling ----
+  if( eMvRefConversion == FRM_TO_FLD )
+  {
+    rcMv.setFrameToFieldPredictor();
+  }
+  else if( eMvRefConversion == FLD_TO_FRM )
+  {
+    rcMv.setFieldToFramePredictor();
+  }
+  return rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPicIdc( cIdx );
+}
+
+__inline
+const RefPicIdc&
+MbDataAccess::xGetColocatedMvsRefPicNonInterlaced( Mv acMv[], SChar& rscRefIdx, ParIdx8x8 eParIdx ) const
+{
+  ListIdx         eListIdx         = LIST_0;
+  const MbData&   rcMbColocated    = xGetBlockColocatedNonInterlaced();
+  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx ) ) < BLOCK_NOT_AVAILABLE )
+  {
+    eListIdx  = LIST_1;
+    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx );
+  }
+  if( rscRefIdx < BLOCK_NOT_AVAILABLE )
+  {
+    acMv[0] = acMv[1] = acMv[2] = acMv[3] = Mv::ZeroMv();
+  }
+  else
+  {
+    acMv[0] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
+    acMv[1] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
+    acMv[2] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
+    acMv[3] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
+  }
+
+  return rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPicIdc( eParIdx );
+}
 
 
 __inline const MbData& MbDataAccess::xGetMbLeft() const

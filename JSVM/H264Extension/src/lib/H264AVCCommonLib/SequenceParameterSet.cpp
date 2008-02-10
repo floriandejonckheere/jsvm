@@ -571,10 +571,12 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
     {
       RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,                  "SPS: chroma_phase_x_plus1" ) );
+      m_uiBaseChromaPhaseXPlus1 = m_uiChromaPhaseXPlus1;
     }
     if (getChromaFormatIdc() == 1 )  
     {
       RNOK( pcReadIf->getCode( m_uiChromaPhaseYPlus1, 2,                  "SPS: chroma_phase_y_plus1" ) );
+      m_uiBaseChromaPhaseYPlus1 = m_uiChromaPhaseYPlus1;
     }
     if( m_uiExtendedSpatialScalability == ESS_SEQ )
     {
@@ -740,6 +742,8 @@ Void SequenceParameterSet::setResizeParameters ( const ResizeParameters * params
   }
   else
   {
+    m_uiBaseChromaPhaseXPlus1 = m_uiChromaPhaseXPlus1;
+    m_uiBaseChromaPhaseYPlus1 = m_uiChromaPhaseYPlus1;
     m_iScaledBaseBottomOffset = 0;
     m_iScaledBaseLeftOffset = 0;
     m_iScaledBaseRightOffset = 0;
@@ -775,6 +779,8 @@ Void SequenceParameterSet::getResizeParameters ( ResizeParameters * params ) con
   }
   else
   {
+    params->m_iBaseChromaPhaseX = params->m_iChromaPhaseX;
+    params->m_iBaseChromaPhaseY = params->m_iChromaPhaseY;
     params->m_iOutWidth   = w;
     params->m_iOutHeight  = h;
     params->m_iPosX       = 0;

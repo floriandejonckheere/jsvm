@@ -487,7 +487,7 @@ QualityLevelAssigner::xInitStreamParameters()
       m_auiPPSRequired[cPacketDescription.PPSid] |= (1 << cPacketDescription.Layer);
     }
     else if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
-             ! cPacketDescription.FGSLayer )
+             ! cPacketDescription.FGSLayer     && cPacketDescription.uiFirstMb == 0 )
     {
       m_auiNumFrames[cPacketDescription.Layer]++;
 
@@ -799,7 +799,7 @@ QualityLevelAssigner::xInitRateValues()
 	}
 //prefix unit}}
 
-      if( cPacketDescription.FGSLayer == 0 )
+      if( cPacketDescription.FGSLayer == 0 && cPacketDescription.uiFirstMb == 0 )
       {
         auiFrameNum[cPacketDescription.Layer]++;
       }
@@ -908,7 +908,7 @@ QualityLevelAssigner::xGetNextValidPacket( BinData*&          rpcBinData,
 	}
 //prefix unit}}
       //===== update frame num =====
-      if( ! cPacketDescription.FGSLayer )
+      if( ! cPacketDescription.FGSLayer && cPacketDescription.uiFirstMb == 0 )
       {
         auiFrameNum[cPacketDescription.Layer]++;
       }
@@ -1080,25 +1080,25 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
   //=====   L O O P   O V E R   A C C E S S   U N I T S   =====
   //=====                                                 =====
   //-----------------------------------------------------------
-  Bool                    bFirstAccessUnit = true;
-  h264::AccessUnitSlices  cAccessUnitSlices;
-  while( ! cAccessUnitSlices.isEndOfStream() )
+  Bool              bFirstAccessUnit = true;
+  h264::AccessUnit  cAccessUnit;
+  while( ! cAccessUnit.isEndOfStream() )
   {
     //===== read next access unit =====
-    while( ! cAccessUnitSlices.isComplete() )
+    while( ! cAccessUnit.isComplete() )
     {
       BinData*  pcBinData = 0;
       Bool      bEOS      = false; // dummy
       RNOK( xGetNextValidPacket( pcBinData, pcReadBitStream, uiTopLayer, uiLayer, uiFGSLayer, uiLevel, bIndependent, bEOS, auiFrameNumAnalysis ) );
-      RNOK( m_pcH264AVCDecoder->initNALUnit ( pcBinData, cAccessUnitSlices ) );
+      RNOK( m_pcH264AVCDecoder->initNALUnit ( pcBinData, cAccessUnit ) );
       RNOK( pcReadBitStream->releasePacket  ( pcBinData ) );
     }
 
     //===== set dimensions =====
     if( bFirstAccessUnit )
     {
-      const h264::SliceDataNALUnit* pcSliceDataNalUnit  = 0;
-      RNOK( cAccessUnitSlices.getRefToTargetLayerSliceData( pcSliceDataNalUnit ) );
+      const h264::SliceDataNALUnit* pcSliceDataNalUnit = cAccessUnit.getLastVCLNalUnit();
+      ROF( pcSliceDataNalUnit );
       uiMbX             = pcSliceDataNalUnit->getFrameWidthInMb  ();
       uiMbY             = pcSliceDataNalUnit->getFrameHeightInMb ();
       UInt uiChromaSize = ( ( uiMbX << 3 ) + YUV_X_MARGIN     ) * ( ( uiMbY << 3 ) + YUV_Y_MARGIN );
@@ -1118,20 +1118,20 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
     }
 
     //===== process access unit =====
-    while( cAccessUnitSlices.isComplete() )
+    while( cAccessUnit.isComplete() )
     {
       //----- decode NAL unit -----
-      BinDataList             cBinDataList; // dummy
-      h264::SliceDataNALUnit* pcSliceDataNalUnit  = 0;
-      pcPicBuffer                                 = 0;
-      RNOK( cAccessUnitSlices.getNextSliceDataNalUnit( pcSliceDataNalUnit ) );
+      BinDataList     cBinDataList; // dummy
+      h264::NALUnit*  pcNalUnit  = 0;
+      pcPicBuffer                = 0;
+      RNOK( cAccessUnit.getAndRemoveNextNalUnit( pcNalUnit ) );
       RNOK( xGetNewPicBuffer( pcPicBuffer, uiSize ) );
 #if WIN32 // for linux, this has to be slightly re-formulated
       // re-direct stdout 
       Int   orig_stdout     = _dup(1);
       FILE* stdout_copy     = freopen( tmp_file_name, "wt", stdout );
 #endif
-      RNOK( m_pcH264AVCDecoder->processSliceData( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cBinDataList, *pcSliceDataNalUnit ) );
+      RNOK( m_pcH264AVCDecoder->processNALUnit( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cBinDataList, *pcNalUnit ) );
 #if WIN32 // for linux, this have to be slightly re-formulated
       // restore stdout
       fclose( stdout );
@@ -1177,7 +1177,7 @@ QualityLevelAssigner::xInitDistortion( UInt*  auiDistortion,
  
       //----- free buffers and delete slice data NAL units -----
       RNOK( xRemovePicBuffer( cPicBufferUnusedList  ) );
-      delete pcSliceDataNalUnit;
+      delete pcNalUnit;
     }
   }
 
@@ -1344,10 +1344,6 @@ QualityLevelAssigner::xDetermineQualityIDs()
       {
         m_aaauiQualityID[uiLayer][uiFGSLayer][uiFrame] = ( uiFGSLayer ? cQualityLevelEstimation.getQualityId( uiLayer, uiFGSLayer, uiFrame ) : 63 );
       }
-      if( true )
-      {
-        m_aaauiQualityID[uiLayer][1][0] = 62; // first frame must be presents (when any other MGS refinement is present)
-      }
     }
   }
 
@@ -1473,7 +1469,7 @@ QualityLevelAssigner::xWriteQualityLayerStreamPID()
         bAVCComaptible = true;
       }
       if( ! cPacketDescription.ParameterSet && cPacketDescription.NalUnitType != NAL_UNIT_SEI &&
-				! cPacketDescription.FGSLayer  && cPacketDescription.NalUnitType != NAL_UNIT_PREFIX)//prefix unit
+          ! cPacketDescription.FGSLayer  && cPacketDescription.NalUnitType != NAL_UNIT_PREFIX && cPacketDescription.uiFirstMb == 0 )
       {
         auiFrameNum[cPacketDescription.Layer]++;
       }

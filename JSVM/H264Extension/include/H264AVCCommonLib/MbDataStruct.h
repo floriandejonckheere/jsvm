@@ -102,10 +102,12 @@ public:
 
   Void copy( const MbDataStruct& rcMbDataStruct );
   Void reset();
-  Void initMbData( UChar ucQp, UInt uiSliceId )                 { m_uiSliceId = uiSliceId;  m_ucQp = ucQp;  }
+  Void initMbData( UChar ucQp, UChar ucQp4LF, UInt uiSliceId )                 { m_uiSliceId = uiSliceId;  m_ucQp = ucQp;  m_ucQp4LF = ucQp4LF; }
   Void copyFrom( const MbDataStruct& rcMbDataStruct );
   Void clear();
-  UChar getQpLF()                                         const { return isPCM() ? 0 : m_ucQp; }
+  UChar getQpLF()                                         const { return isPCM() ? 0 : m_ucQp4LF; }
+  UChar getQp4LF()                                        const { return m_ucQp4LF; }
+  Void  setQp4LF( UChar ucQp )                                  { m_ucQp4LF = ucQp; }
   UChar getQp()                                           const { return m_ucQp; }
   Void  setQp( UChar ucQp )                                     { m_ucQp = ucQp; }
   Void  clearIntraPredictionModes( Bool bAll );
@@ -161,46 +163,11 @@ public:
   Void setSkipFlag( Bool b)                                     { m_bSkipFlag = b; }
   Void setMbCbpResidual( UInt uiMbCbpResidual )                 { m_uiMbCbpResidual = uiMbCbpResidual; }
 
-  UShort  getResidualPredFlags  ()                        const { return   m_usResidualPredFlags; }
-  Bool    getResidualPredFlag   ( LumaIdx     cIdx      ) const { return ( m_usResidualPredFlags & ( 1 << cIdx.b4x4() ) ) != 0; }
-  Bool    getResidualPredFlag   ( ParIdx16x16 eParIdx   ) const { return getResidualPredFlag( B4x4Idx( eParIdx ) ); }
-  Bool    getResidualPredFlag   ( ParIdx16x8  eParIdx   ) const { return getResidualPredFlag( B4x4Idx( eParIdx ) ); }
-  Bool    getResidualPredFlag   ( ParIdx8x16  eParIdx   ) const { return getResidualPredFlag( B4x4Idx( eParIdx ) ); }
-  Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
-                                  SParIdx8x8  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
-  Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
-                                  SParIdx8x4  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
-  Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
-                                  SParIdx4x8  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
-  Bool    getResidualPredFlag   ( ParIdx8x8   eParIdx,
-                                  SParIdx4x4  eSParIdx  ) const { return getResidualPredFlag( B4x4Idx( eParIdx+eSParIdx ) ); }
-
- // TMM_ESS 
-  Bool    getInCropWindowFlag   ()                        const { return   m_bInCropWindowFlag; }
+  Bool    getResidualPredFlag   ()                        const { return m_bResidualPredFlag; }
+  Bool    getInCropWindowFlag   ()                        const { return m_bInCropWindowFlag; }
 
 
-  Void    setResidualPredFlags  ( UShort      usFlags   )       { m_usResidualPredFlags = usFlags; } 
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  LumaIdx     cIdx      );
-  Void    setResidualPredFlag   ( Bool        bFlag/*,
-                                  ParIdx16x16 eParIdx*/   );
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  ParIdx16x8  eParIdx   );
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  ParIdx8x16  eParIdx   );
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  ParIdx8x8   eParIdx,
-                                  SParIdx8x8  eSParIdx  );
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  ParIdx8x8   eParIdx,
-                                  SParIdx8x4  eSParIdx  );
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  ParIdx8x8   eParIdx,
-                                  SParIdx4x8  eSParIdx  );
-  Void    setResidualPredFlag   ( Bool        bFlag,
-                                  ParIdx8x8   eParIdx,
-                                  SParIdx4x4  eSParIdx  );
-// TMM_ESS 
+  Void    setResidualPredFlag   ( Bool        bFlag  )       { m_bResidualPredFlag = bFlag; } 
   Void    setInCropWindowFlag   ( Bool        bFlag  )       { m_bInCropWindowFlag = bFlag; } 
 
 	Void		setEssRPChkEnable	(UInt val)		{ m_uiEssRPChkEnable = val; }
@@ -235,8 +202,9 @@ public:
   BlkMode m_aBlkMode[4];
   SChar   m_ascIPredMode[16];
   UChar   m_ucQp;
+  UChar   m_ucQp4LF;
 
-  UShort  m_usResidualPredFlags;
+  Bool    m_bResidualPredFlag;
   Bool    m_bTransformSize8x8;
   Bool    m_bSkipFlag;
 
@@ -253,115 +221,6 @@ public:
 public:
   static const UChar m_aucACTab[7];
 };
-
-
-
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, LumaIdx cIdx )
-{
-  m_usResidualPredFlags &= ~(UShort)(1<<cIdx.b4x4());
-  ROFVS( bFlag );
-  m_usResidualPredFlags += (1<<cIdx.b4x4());
-}
-
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag/*, ParIdx16x16 eParIdx*/ )
-{
-  setResidualPredFlag( bFlag, B4x4Idx( 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 2) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 3) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 5) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 6) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 7) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 8) );  
-  setResidualPredFlag( bFlag, B4x4Idx( 9) );  
-  setResidualPredFlag( bFlag, B4x4Idx(10) );  
-  setResidualPredFlag( bFlag, B4x4Idx(11) );  
-  setResidualPredFlag( bFlag, B4x4Idx(12) );  
-  setResidualPredFlag( bFlag, B4x4Idx(13) );  
-  setResidualPredFlag( bFlag, B4x4Idx(14) );  
-  setResidualPredFlag( bFlag, B4x4Idx(15) );  
-}
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx16x8 eParIdx )
-{
-  UInt ui = eParIdx;
-
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 2) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 3) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 6) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 7) );  
-}
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x16 eParIdx )
-{
-  UInt ui = eParIdx;
-
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 8) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 9) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+12) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+13) );  
-}
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx8x8 eSParIdx )
-{
-  UInt ui = eParIdx+eSParIdx;
-
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 5) );  
-}
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx8x4 eSParIdx )
-{
-  UInt ui = eParIdx+eSParIdx;
-
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 1) );  
-}
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx4x8 eSParIdx )
-{
-  UInt ui = eParIdx+eSParIdx;
-
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 4) );  
-}
-
-__inline
-Void
-MbDataStruct::setResidualPredFlag( Bool bFlag, ParIdx8x8 eParIdx, SParIdx4x4 eSParIdx )
-{
-  UInt ui = eParIdx+eSParIdx;
-
-  setResidualPredFlag( bFlag, B4x4Idx(ui+ 0) );  
-}
-
 
 
 H264AVC_NAMESPACE_END

@@ -108,15 +108,16 @@ class H264AVCCOMMONLIB_API Frame
 {
 public:
 	Frame                ( YuvBufferCtrl&    rcYuvFullPelBufferCtrl,
-                            YuvBufferCtrl&    rcYuvHalfPelBufferCtrl,
-														PicType           ePicType=FRAME );
+                         YuvBufferCtrl&    rcYuvHalfPelBufferCtrl,
+												 PicType           ePicType,
+                         Frame*            pcFrame );
 	virtual ~Frame       ();
 
   ErrVal  init            ();
   ErrVal  initHalfPel     ();
   ErrVal  initHalfPel     ( XPel*& rpucYuvBuffer );
 
-	static ErrVal create    ( Frame*& rpcIntFrame, YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, PicType ePicType );
+  static ErrVal create    ( Frame*& rpcIntFrame, YuvBufferCtrl& rcYuvFullPelBufferCtrl, YuvBufferCtrl& rcYuvHalfPelBufferCtrl, PicType ePicType, Frame* pcFrame );
 	ErrVal  destroy         ();
   ErrVal  uninit          ();
   ErrVal  uninitHalfPel   ();
@@ -132,6 +133,8 @@ public:
 
   Void      setDPBUnit      ( DPBUnit*  pcDPBUnit ) { m_pcDPBUnit = pcDPBUnit; }
   DPBUnit*  getDPBUnit      ()                      { return m_pcDPBUnit; }
+
+  const Frame*  getFrame() const { return m_pcFrame; }
 
   Void            setRecPicBufUnit( RecPicBufUnit* pcUnit ) { m_pcDPBUnit = (DPBUnit*)(Void*)pcUnit; }
   RecPicBufUnit*  getRecPicBufUnit()                        { return (RecPicBufUnit*)(Void*)m_pcDPBUnit; }
@@ -231,7 +234,9 @@ public:
 	  }
   // JVT-Q065 EIDR}
 
-    m_iPoc = pcSrcFrame->m_iPoc;
+    m_iPoc          = pcSrcFrame->m_iPoc;
+    m_iTopFieldPoc  = pcSrcFrame->m_iTopFieldPoc;
+    m_iBotFieldPoc  = pcSrcFrame->m_iBotFieldPoc;
     RNOK( getFullPelYuvBuffer()->copy( pcSrcFrame->getFullPelYuvBuffer() ) );
   
     return Err::m_nOK;
@@ -378,6 +383,8 @@ public:
 
 	Bool  isPocAvailable()           const { return m_bPocIsSet; }
 	Int   getPoc        ()           const { return m_iPoc; }
+  Int   getTopFieldPoc()           const { return m_iTopFieldPoc; }
+  Int   getBotFieldPoc()           const { return m_iBotFieldPoc; }
 
   Void  setTopFieldPoc( Int iPoc );
   Void  setBotFieldPoc( Int iPoc );
@@ -423,7 +430,8 @@ public:
 
   Bool  isHalfPel()   { return m_bHalfPel; }
 
-	Frame* getPic    ( PicType ePicType );
+  const Frame*  getPic( PicType ePicType ) const;
+  Frame*        getPic( PicType ePicType );
 
 	PicType getPicType ()            const { return m_ePicType; }
 	Void setPicType    ( PicType ePicType ){ m_ePicType = ePicType; }
@@ -458,10 +466,13 @@ protected:
   Bool            m_bHalfPel;
   Bool            m_bExtended;
 	Bool            m_bPocIsSet;
+  Int             m_iTopFieldPoc;
+  Int             m_iBotFieldPoc;
   Int             m_iPoc;
 	PicType         m_ePicType;
-  Frame*       m_pcIntFrameTopField;
-  Frame*       m_pcIntFrameBotField;
+  Frame*          m_pcIntFrameTopField;
+  Frame*          m_pcIntFrameBotField;
+  Frame*          m_pcFrame;
   UInt            m_uiFrameIdInGop;
 
   DPBUnit*        m_pcDPBUnit;

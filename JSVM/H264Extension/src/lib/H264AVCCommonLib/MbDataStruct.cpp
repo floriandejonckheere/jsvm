@@ -135,7 +135,8 @@ MbDataStruct::MbDataStruct()
 , m_usFwdBwd            ( 0 )
 , m_ucChromaPredMode    ( 0 )
 , m_ucQp                ( 0 )
-, m_usResidualPredFlags ( 0 )
+, m_ucQp4LF             ( 0 )
+, m_bResidualPredFlag   ( false )
 , m_bTransformSize8x8   ( false )
 , m_bSkipFlag       ( true )
 , m_bInCropWindowFlag ( false ) //TMM_ESS	
@@ -160,8 +161,9 @@ Void MbDataStruct::reset()
   m_uiMbCbp             = 0;
   m_ucChromaPredMode    = 0;
   m_ucQp                = 0;
-  m_usResidualPredFlags = 0;
-  m_bTransformSize8x8   = 0;
+  m_ucQp4LF             = 0;
+  m_bResidualPredFlag   = false;
+  m_bTransformSize8x8   = false;
   m_bInCropWindowFlag   = false; //TMM_ESS	
   DO_DBG( clearIntraPredictionModes( true ) );//TMM_INTERLACE
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS  
@@ -177,8 +179,8 @@ Void MbDataStruct::clear()
   m_uiMbCbp             = 0;
   m_ucChromaPredMode    = 0;
   m_uiBCBP              = 0;
-  m_usResidualPredFlags = 0;
-  m_bTransformSize8x8   = 0;
+  m_bResidualPredFlag   = false;
+  m_bTransformSize8x8   = false;
   m_bInCropWindowFlag   = false; //TMM_ESS	
   clearIntraPredictionModes( true );
   m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;  //TMM_ESS
@@ -243,10 +245,11 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
   m_bBLSkipFlag         = rcMbDataStruct.m_bBLSkipFlag;
   m_eMbMode             = rcMbDataStruct.m_eMbMode;
   m_ucQp                = rcMbDataStruct.m_ucQp;
+  m_ucQp4LF             = rcMbDataStruct.m_ucQp4LF;
   m_uiMbCbp             = rcMbDataStruct.m_uiMbCbp;
   m_ucChromaPredMode    = rcMbDataStruct.m_ucChromaPredMode;
   m_uiBCBP              = rcMbDataStruct.m_uiBCBP;
-  m_usResidualPredFlags = rcMbDataStruct.m_usResidualPredFlags;
+  m_bResidualPredFlag   = rcMbDataStruct.m_bResidualPredFlag;
   m_bTransformSize8x8   = rcMbDataStruct.m_bTransformSize8x8;
   m_bFieldFlag          = rcMbDataStruct.m_bFieldFlag;
    

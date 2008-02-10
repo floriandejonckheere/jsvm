@@ -1158,6 +1158,9 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("AvcRewriteFlag",          &(rcLayer.m_bAVCRewriteFlag),                            0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("AvcAdaptiveRewriteFlag",  &(rcLayer.m_bAVCAdaptiveRewriteFlag),                    0 );
 
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("SliceSkip",          &(rcLayer.m_uiSliceSkip),                            0 );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("SliceSkipTIdStart",  &(rcLayer.m_uiSliceSkipTLevelStart),                 0 );
+
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ExplicitQPCascading", &(rcLayer.m_uiExplicitQPCascading), 0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel0",         &(rcLayer.m_adDeltaQPTLevel[0]),    0 );
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("DQP4TLevel1",         &(rcLayer.m_adDeltaQPTLevel[1]),    0 );

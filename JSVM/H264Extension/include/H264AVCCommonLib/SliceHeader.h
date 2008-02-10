@@ -172,13 +172,16 @@ public:
                                             ListIdx eLstIdx )   const { return m_aapcRefFrameList[ ePicType - 1 ][ eLstIdx ]; }
   UInt          getNumRefIdxUpdate        ( UInt    uiTempLevel,
                                             ListIdx eListIdx )  const { return m_aauiNumRefIdxActiveUpdate[uiTempLevel][eListIdx]; }
-  Bool          getCoeffResidualPredFlag  ()                    const { return m_bCoeffResidualPred; }
+  Bool          getSCoeffResidualPredFlag ()                    const { return m_bSCoeffResidualPred; }
   Bool          isReconstructionLayer     ()                    const { return m_bReconstructionLayer; }
   const FMO*    getFMO                    ()                    const { return &m_cFMO;}
   FMO*          getFMO                    ()                          { return &m_cFMO;}
   PicType       getPicType                ()                    const;
   Int           getPoc                    ()                    const;
   Int           getPoc                    ( PicType ePicType )  const;
+  Int           getDistScaleFactor        ( PicType eMbPicType,
+                                            SChar   sL0RefIdx,
+                                            SChar   sL1RefIdx ) const;
 
   Void          setErrorConcealMode       ( ERROR_CONCEAL       eErrorConcealMode       )   { m_eErrorConcealMode       = eErrorConcealMode; }
   Void          setTrueSlice              ( Bool                bTrueSlice              )   { m_bTrueSlice              = bTrueSlice; }
@@ -194,7 +197,7 @@ public:
   Void          setNumRefIdxUpdate        ( UInt                uiTempLevel,
                                             ListIdx             eListIdx,
                                             UInt                uiNumRefIdxActive       )   { m_aauiNumRefIdxActiveUpdate[uiTempLevel][eListIdx] = uiNumRefIdxActive;  }
-  Void          setCoeffResidualPredFlag  ( const SliceHeader*  pcRefSliceHeader        );
+  Void          setSCoeffResidualPredFlag ( const SliceHeader*  pcRefSliceHeader        );
   Void          setReconstructionLayer    ( Bool                bReconstructionLayer    )   { m_bReconstructionLayer = bReconstructionLayer; }
   Void          setPicType                ( PicType             ePicType                );
 
@@ -210,7 +213,7 @@ private:
   Int           m_iTopFieldPoc;
   Int           m_iBotFieldPoc;
   Int           m_iSpatialScalabilityType;  // remove
-  Bool          m_bCoeffResidualPred;       // remove
+  Bool          m_bSCoeffResidualPred;      // remove
   FMO           m_cFMO;
   RefFrameList* m_aapcRefFrameList[3][2];
   UInt          m_aauiNumRefIdxActiveUpdate[MAX_TEMP_LEVELS][2]; // for MCTF preprocessor

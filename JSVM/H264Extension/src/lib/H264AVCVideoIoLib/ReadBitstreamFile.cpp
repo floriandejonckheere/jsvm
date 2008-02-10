@@ -137,7 +137,7 @@ ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
   // next we expect "0x01"
   ROTS(Buffer[0]!=0x01);
 
-  // the is a min of two zeros in a startcode
+  // there is a min of two zeros in a startcode
   ROTS(uiZeros<2);
 
   // get the current position
@@ -150,6 +150,12 @@ ErrVal ReadBitstreamFile::extractPacket( BinData*& rpcBinData, Bool& rbEOS )
 
   do
   {
+    if( dwBytesRead == 1 )
+    {
+      n = 1;
+      break;
+    }
+
     puc = Buffer;
     uiCond = 0;
 

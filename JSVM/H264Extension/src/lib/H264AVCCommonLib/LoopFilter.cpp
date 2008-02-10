@@ -625,7 +625,7 @@ __inline ErrVal LoopFilter::xFilterMb( MbDataAccess*        pcMbDataAccessMot,
   RNOK( xLumaVerFiltering(   *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
   RNOK( xLumaHorFiltering(   *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
  //V032 of FSL for disabling chroma deblocking in enh. layer
-  if (!enhancedLayerFlag || (enhancedLayerFlag && iFilterIdc !=3 && iFilterIdc != 4) ) 
+  if ( iFilterIdc != 3 && iFilterIdc != 4 ) 
   { 
 	RNOK( xChromaVerFiltering( *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
 	RNOK( xChromaHorFiltering( *pcMbDataAccessRes, rcDFP, pcYuvBuffer ) );
@@ -696,27 +696,8 @@ __inline UInt LoopFilter::xGetVerFilterStrength_RefIdx( const MbDataAccess* pcMb
     }
   } 
   // SSUN@SHARP end of JVT-P013r1
-  else
-  {  
-    //-- Samsung 2005.02.xx
-    if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
-    {
-      if( cIdx.x() )
-      {
-        return 1;		//	if not MB_boundary
-      }
 
-      // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
-      if( ( pcMbDataAccessRes->isAvailableLeft() || ( pcMbDataAccessRes->isLeftMbExisting() && iFilterIdc != 2 && iFilterIdc != 4) ) && //V032 of FSL
-            pcMbDataAccessRes->getMbDataLeft().getMbMode() == INTRA_BL )
-      {
-        return 1;
-      }
-    }
-    //--
-  }
-
- if( NULL == pcMbDataAccessMot )
+  if( NULL == pcMbDataAccessMot )
   {
     pcMbDataAccessMot = pcMbDataAccessRes;
   }
@@ -843,7 +824,8 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
                                                         bool                spatial_scalable_flg )  // SSUN@SHARP
 {
   // SSUN@SHARP JVT-P013r1
-  if(spatial_scalable_flg){  
+  if( spatial_scalable_flg )
+  {  
     if( cIdx.y() )
     {
       const MbData& rcMbDataCurr  = pcMbDataAccessRes->getMbDataCurr();
@@ -888,26 +870,8 @@ __inline UInt LoopFilter::xGetHorFilterStrength_RefIdx( const MbDataAccess* pcMb
     }
   }
   // SSUN@SHARP end of JVT-P013r1
-  else
-  {  
-    //-- Samsung 2005.02.xx
-    if(pcMbDataAccessRes->getMbDataCurr().getMbMode() == INTRA_BL)
-    {
-      if( cIdx.y() )
-      {
-        return 1;		//	if not MB_boundary
-      }
 
-      // is either in same slice or deblocking across slice boundaries is enabled (and the XXX macroblock is inside the picture)
-      if( ( pcMbDataAccessRes->isAvailableAbove() || ( pcMbDataAccessRes->isAboveMbExisting() && iFilterIdc != 2 && iFilterIdc != 4) ) &&
-            pcMbDataAccessRes->getMbDataAbove().getMbMode() == INTRA_BL )
-      {
-        return 1;
-      }
-    }
-    //--
-  }
- if( NULL == pcMbDataAccessMot )
+  if( NULL == pcMbDataAccessMot )
   {
     pcMbDataAccessMot = pcMbDataAccessRes;
   }

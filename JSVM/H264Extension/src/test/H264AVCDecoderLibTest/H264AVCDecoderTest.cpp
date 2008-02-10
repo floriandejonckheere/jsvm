@@ -105,7 +105,6 @@ H264AVCDecoderTest::BufferParameters::~BufferParameters()
 ErrVal
 H264AVCDecoderTest::BufferParameters::init( const h264::SliceDataNALUnit& rcSliceDataNalUnit )
 {
-  ROF( rcSliceDataNalUnit.isSliceHeaderPresent() );
   UInt uiMbX        = rcSliceDataNalUnit.getFrameWidthInMb  ();
   UInt uiMbY        = rcSliceDataNalUnit.getFrameHeightInMb ();
   UInt uiChromaSize = ( ( uiMbX << 3 ) + YUV_X_MARGIN     ) * ( ( uiMbY << 3 ) + YUV_Y_MARGIN );
@@ -253,12 +252,12 @@ H264AVCDecoderTest::uninit()
 ErrVal
 H264AVCDecoderTest::go()
 {
-  UInt                    uiNumProcessed    = 0;
-  Bool                    bFirstAccessUnit  = true;
-  h264::AccessUnitSlices  cAccessUnitSlices;
-  while( ! cAccessUnitSlices.isEndOfStream() )
+  UInt              uiNumProcessed    = 0;
+  Bool              bFirstAccessUnit  = true;
+  h264::AccessUnit  cAccessUnit;
+  while( ! cAccessUnit.isEndOfStream() )
   {
-    RNOK( xProcessAccessUnit( cAccessUnitSlices, bFirstAccessUnit, uiNumProcessed ) );
+    RNOK( xProcessAccessUnit( cAccessUnit, bFirstAccessUnit, uiNumProcessed ) );
   }
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   printf("\n%d NAL units rewritten\n\n",  uiNumProcessed );
@@ -272,26 +271,26 @@ H264AVCDecoderTest::go()
 }
 
 ErrVal  
-H264AVCDecoderTest::xProcessAccessUnit( h264::AccessUnitSlices& rcAccessUnitSlices, Bool& rbFirstAccessUnit, UInt& ruiNumProcessed )
+H264AVCDecoderTest::xProcessAccessUnit( h264::AccessUnit& rcAccessUnit, Bool& rbFirstAccessUnit, UInt& ruiNumProcessed )
 {
-  ROT( rcAccessUnitSlices.isEndOfStream() );
-  ROT( rcAccessUnitSlices.isComplete   () );
+  ROT( rcAccessUnit.isEndOfStream() );
+  ROT( rcAccessUnit.isComplete   () );
 
   //===== read next access unit ====
-  while( !rcAccessUnitSlices.isComplete() )
+  while( !rcAccessUnit.isComplete() )
   {
     BinData*  pcBinData     = 0;
     Bool      bEndOfStream  = false; // dummy
     RNOK( m_pcReadBitstream ->extractPacket ( pcBinData, bEndOfStream ) );
-    RNOK( m_pcH264AVCDecoder->initNALUnit   ( pcBinData, rcAccessUnitSlices ) );
+    RNOK( m_pcH264AVCDecoder->initNALUnit   ( pcBinData, rcAccessUnit ) );
     RNOK( m_pcReadBitstream ->releasePacket ( pcBinData ) );
   }
 
   //===== get buffer dimensions =====
   if( rbFirstAccessUnit )
   {
-    const h264::SliceDataNALUnit*  pcSliceDataNalUnit = 0;
-    RNOK( rcAccessUnitSlices.getRefToTargetLayerSliceData( pcSliceDataNalUnit ) );
+    const h264::SliceDataNALUnit* pcSliceDataNalUnit = rcAccessUnit.getLastVCLNalUnit();
+    ROF ( pcSliceDataNalUnit );
     RNOK( m_cBufferParameters.init( *pcSliceDataNalUnit ) );
     rbFirstAccessUnit = false;
 #ifdef SHARP_AVC_REWRITE_OUTPUT
@@ -301,21 +300,23 @@ H264AVCDecoderTest::xProcessAccessUnit( h264::AccessUnitSlices& rcAccessUnitSlic
 #endif
   }
 
+  printf( "---------- new ACCESS UNIT ----------\n" );
+
   //===== decode access unit =====
-  while( rcAccessUnitSlices.isComplete() )
+  while( rcAccessUnit.isComplete() )
   {
-    h264::SliceDataNALUnit* pcSliceDataNalUnit = 0;
-    PicBuffer*              pcPicBuffer        = 0;
-    PicBufferList           cPicBufferOutputList;
-    PicBufferList           cPicBufferUnusedList;
-    BinDataList             cBinDataList;
-    RNOK( rcAccessUnitSlices.getNextSliceDataNalUnit( pcSliceDataNalUnit ) );
+    h264::NALUnit*  pcNalUnit   = 0;
+    PicBuffer*      pcPicBuffer = 0;
+    PicBufferList   cPicBufferOutputList;
+    PicBufferList   cPicBufferUnusedList;
+    BinDataList     cBinDataList;
+    RNOK( rcAccessUnit.getAndRemoveNextNalUnit( pcNalUnit ) );
     RNOK( xGetNewPicBuffer( pcPicBuffer, m_cBufferParameters.getBufferSize() ) );
-    RNOK( m_pcH264AVCDecoder->processSliceData( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cBinDataList, *pcSliceDataNalUnit ) );
+    RNOK( m_pcH264AVCDecoder->processNALUnit( pcPicBuffer, cPicBufferOutputList, cPicBufferUnusedList, cBinDataList, *pcNalUnit ) );
     RNOK( xOutputNALUnits ( cBinDataList,         ruiNumProcessed ) );
     RNOK( xOutputPicBuffer( cPicBufferOutputList, ruiNumProcessed ) );
     RNOK( xRemovePicBuffer( cPicBufferUnusedList ) );
-    delete pcSliceDataNalUnit;    
+    delete pcNalUnit;    
   }
   return Err::m_nOK;
 }

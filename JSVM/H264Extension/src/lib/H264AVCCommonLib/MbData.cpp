@@ -293,6 +293,16 @@ MbData::copyMotion( const MbData& rcMbData,
   m_apcMbMvdData[0]->copyFrom( *rcMbData.m_apcMbMvdData[0] );
   m_apcMbMvdData[1]->copyFrom( *rcMbData.m_apcMbMvdData[1] );
 
+  if( m_apcMbMotionDataBase[0] )
+  {
+    m_apcMbMotionDataBase[0]->copyFrom( *rcMbData.m_apcMbMotionDataBase[0] );
+  }
+  if( m_apcMbMotionDataBase[1] )
+  {
+    m_apcMbMotionDataBase[1]->copyFrom( *rcMbData.m_apcMbMotionDataBase[1] );
+  }
+  m_bHasMotionRefinement = rcMbData.m_bHasMotionRefinement;
+
   return Err::m_nOK;
 }
 
@@ -303,7 +313,7 @@ MbData::copyMotionBL( MbData& rcMbData,
                       UInt    uiSliceId )
 {
   m_uiSliceId   = ( uiSliceId != MSYS_UINT_MAX ? uiSliceId : m_uiSliceId );
-  m_bBLSkipFlag = false;
+  m_bBLSkipFlag = rcMbData.m_bBLSkipFlag;
   m_eMbMode     = ( rcMbData.m_eMbMode     == MODE_SKIP ? MODE_8x8   : rcMbData.m_eMbMode     );
   m_aBlkMode[0] = ( rcMbData.m_aBlkMode[0] == BLK_SKIP || rcMbData.m_eMbMode == MODE_SKIP ? ( bDirect8x8 ? BLK_8x8 : BLK_4x4 ) : rcMbData.m_aBlkMode[0] );
   m_aBlkMode[1] = ( rcMbData.m_aBlkMode[1] == BLK_SKIP || rcMbData.m_eMbMode == MODE_SKIP ? ( bDirect8x8 ? BLK_8x8 : BLK_4x4 ) : rcMbData.m_aBlkMode[1] );
@@ -351,7 +361,8 @@ MbData::copyIntraPred( MbData &rcMbData )
    setMbExtCbp( rcMbData.getMbExtCbp() );
 
 	// COPY QUANTIZER DATA
-	m_ucQp = rcMbData.m_ucQp;
+	m_ucQp    = rcMbData.m_ucQp;
+  m_ucQp4LF = rcMbData.m_ucQp4LF;
 
 	return Err::m_nOK;
 }
@@ -383,6 +394,10 @@ MbData::copyTCoeffs( MbData& rcMbData )
 
   // COPY CBP
   setMbExtCbp( rcMbData.getMbExtCbp() );
+
+  // COPY QP
+  m_ucQp    = rcMbData.m_ucQp;
+  m_ucQp4LF = rcMbData.m_ucQp4LF;
 
   return Err::m_nOK;
 }

@@ -1,4 +1,4 @@
-{
+	{
 #==========================================================#
 #               General parameters                         #
 #==========================================================#
@@ -96,9 +96,9 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 75,
+				bitrate => 76,
 				useql     => 1,
-            		        psnr => 29.49,            		        
+            		        psnr => 29.51,            		        
             		      },
             		      #----------#
 			 
@@ -111,8 +111,8 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 143,
-            		        psnr => 31.40,
+				bitrate => 144,
+            		        psnr => 31.39,
             		      },
             		      #----------#
 		                   #----------#
@@ -124,9 +124,9 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 150,
+				bitrate => 147,
 				useql     => 1,
-            		        psnr => 31.85,            		        
+            		        psnr => 31.77,            		        
             		      },
             		      #----------#
                       # Test   4 #
@@ -137,8 +137,8 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 480,
-            		        psnr => 28.59,
+				bitrate => 488,
+            		        psnr => 28.68,
             		      },
     		              #----------#
 		      # Test   5 #
@@ -149,9 +149,9 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 480,
+				bitrate => 484,
 				useql     => 1,
-            		        psnr => 28.36,
+            		        psnr => 28.51,
             		      },
 		  ],
 }

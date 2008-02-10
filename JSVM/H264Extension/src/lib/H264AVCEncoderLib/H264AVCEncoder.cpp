@@ -391,7 +391,7 @@ H264AVCEncoder::init( LayerEncoder*     apcLayerEncoder[MAX_LAYERS],
     m_apcLayerEncoder[uiLayer] = 0;
   }
 
-  m_cAccessUnitList.clear();
+  m_cAccessUnitDataList.clear();
 
   return Err::m_nOK;
 }
@@ -419,7 +419,7 @@ H264AVCEncoder::uninit()
     m_acRecPicBufferList[uiLayer]   .clear();
   }
 
-  m_cAccessUnitList.clear();
+  m_cAccessUnitDataList.clear();
 
   return Err::m_nOK;
 }
@@ -1273,7 +1273,7 @@ H264AVCEncoder::process( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   }
 
   //===== update data accessor list =====
-  m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
+  m_cAccessUnitDataList.emptyNALULists( rcExtBinDataAccessorList );
 
   return Err::m_nOK;
 }
@@ -1290,7 +1290,7 @@ H264AVCEncoder::finish( ExtBinDataAccessorList&  rcExtBinDataAccessorList,
   RNOK( xProcessGOP( apcPicBufferOutputList, apcPicBufferUnusedList ) );
 
   //===== update data accessor list =====
-  m_cAccessUnitList.emptyNALULists( rcExtBinDataAccessorList );
+  m_cAccessUnitDataList.emptyNALULists( rcExtBinDataAccessorList );
 
   //===== finish encoding =====
   for( UInt uiLayer = 0; uiLayer < m_pcCodingParameter->getNumberOfLayers(); uiLayer++ )
@@ -1433,7 +1433,7 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
     m_apcLayerEncoder[uiLayer]->setBaseLayerCGSSNR       ( m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseLayerCGSSNR       () );
     m_apcLayerEncoder[uiLayer]->setBaseQualityLevelCGSSNR( m_pcCodingParameter->getLayerParameters( uiLayer ).getBaseQualityLevelCGSSNR() );
 
-    RNOK( m_apcLayerEncoder[uiLayer]->initGOP( m_cAccessUnitList, m_acOrgPicBufferList[uiLayer] ) );
+    RNOK( m_apcLayerEncoder[uiLayer]->initGOP( m_cAccessUnitDataList.getAccessUnitData( MSYS_UINT_MAX ), m_acOrgPicBufferList[uiLayer] ) );
   }
 
   //JVT-W052
@@ -1448,7 +1448,7 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
   //JVT-W052
 
   //===== loop over access units in GOP, and layers inside access units =====
-  for( uiAUIndex = 0; uiAUIndex <= 64;                                       uiAUIndex++ )
+  for( uiAUIndex = 0; uiAUIndex <= 64; uiAUIndex++ )
   {																																									//JVT-W052
     if(m_pcCodingParameter->getIntegrityCheckSEIEnable() && m_pcCodingParameter->getCGSSNRRefinement())//JVT-W052
       RNOK( SEI::IntegrityCheckSEI::create( m_pcIntegrityCheckSEI ) );							//JVT-W052
@@ -1467,7 +1467,7 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
       }
       //JVT-W051 }
       RNOK( m_apcLayerEncoder[uiLayer]->process( uiAUIndex,
-                                                m_cAccessUnitList,
+                                                m_cAccessUnitDataList.getAccessUnitData( uiAUIndex ),
                                                 m_acOrgPicBufferList  [uiLayer],
                                                 m_acRecPicBufferList  [uiLayer],
                                                 apcPicBufferUnusedList[uiLayer],
@@ -1965,32 +1965,38 @@ H264AVCEncoder::writeTl0DepRepIdxSEI ( ExtBinDataAccessor* pcExtBinDataAccessor,
 
 
 
+
+
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 
 RewriteEncoder::RewriteEncoder()
-: m_bInitialized      ( false )
-, m_bSliceInProgress  ( false )
-, m_uiBinDataSize     ( 0 )
-, m_pcBitWriteBuffer  ( 0 )
-, m_pcBitCounter      ( 0 )
-, m_pcNalUnitEncoder  ( 0 )
-, m_pcUvlcWriter      ( 0 )
-, m_pcUvlcTester      ( 0 )
-, m_pcCabacWriter     ( 0 )
-, m_pcMbCoder         ( 0 )
-, m_pcRateDistortion  ( 0 )
-, m_pcMbDataCtrl      ( 0 )
-, m_pcBinData         ( 0 )
-, m_pcBinDataAccessor ( 0 )
-, m_pcSliceHeader     ( 0 )
-, m_pcMbSymbolWriteIf ( 0 )
-, m_bTraceEnable      ( true )
+: m_bInitialized              ( false )
+, m_bPictureInProgress        ( false )
+, m_bSliceInProgress          ( false )
+, m_uiBinDataSize             ( 0 )
+, m_pcBitWriteBuffer          ( 0 )
+, m_pcBitCounter              ( 0 )
+, m_pcNalUnitEncoder          ( 0 )
+, m_pcUvlcWriter              ( 0 )
+, m_pcUvlcTester              ( 0 )
+, m_pcCabacWriter             ( 0 )
+, m_pcMotionVectorCalculation ( 0 )
+, m_pcMbCoder                 ( 0 )
+, m_pcRateDistortion          ( 0 )
+, m_pcMbDataCtrl              ( 0 )
+, m_pcBinData                 ( 0 )
+, m_pcBinDataAccessor         ( 0 )
+, m_pcSliceHeader             ( 0 )
+, m_pcMbSymbolWriteIf         ( 0 )
+, m_bTraceEnable              ( true )
 {
 }
+
 
 RewriteEncoder::~RewriteEncoder()
 {
 }
+
 
 ErrVal
 RewriteEncoder::create( RewriteEncoder*& rpcRewriteEncoder )
@@ -2001,20 +2007,25 @@ RewriteEncoder::create( RewriteEncoder*& rpcRewriteEncoder )
   return Err::m_nOK;
 }
 
+
 ErrVal
 RewriteEncoder::destroy()
 {
   ROT ( m_bInitialized );
-  RNOK( m_pcBitWriteBuffer  ->destroy() );
-  RNOK( m_pcBitCounter      ->destroy() );
-  RNOK( m_pcNalUnitEncoder  ->destroy() );
-  RNOK( m_pcUvlcWriter      ->destroy() );
-  RNOK( m_pcUvlcTester      ->destroy() );
-  RNOK( m_pcCabacWriter     ->destroy() );
-  RNOK( m_pcMbCoder         ->destroy() );
-  RNOK( m_pcRateDistortion  ->destroy() );
+  RNOK( m_pcBitWriteBuffer          ->destroy() );
+  RNOK( m_pcBitCounter              ->destroy() );
+  RNOK( m_pcNalUnitEncoder          ->destroy() );
+  RNOK( m_pcUvlcWriter              ->destroy() );
+  RNOK( m_pcUvlcTester              ->destroy() );
+  RNOK( m_pcCabacWriter             ->destroy() );
+  RNOK( m_pcMotionVectorCalculation ->destroy() );
+  RNOK( m_pcMbCoder                 ->destroy() );
+  RNOK( m_pcRateDistortion          ->destroy() );
+
+  delete this;
   return Err::m_nOK;
 }
+
 
 ErrVal
 RewriteEncoder::init()
@@ -2030,37 +2041,40 @@ RewriteEncoder::init()
   RNOK( m_pcUvlcWriter      ->init( m_pcBitWriteBuffer ) );
   RNOK( m_pcUvlcTester      ->init( m_pcBitCounter ) );
   RNOK( m_pcCabacWriter     ->init( m_pcBitWriteBuffer ) );
-  m_bInitialized      = true;
-  m_bSliceInProgress  = false;
-  m_uiBinDataSize     = 0;
-  m_pcMbDataCtrl      = 0;
-  m_pcBinData         = 0;
-  m_pcBinDataAccessor = 0;
-  m_pcSliceHeader     = 0;
-  m_pcMbSymbolWriteIf = 0;
+  m_bInitialized        = true;
+  m_bPictureInProgress  = false;
+  m_bSliceInProgress    = false;
+  m_uiBinDataSize       = 0;
+  m_pcMbDataCtrl        = 0;
+  m_pcBinData           = 0;
+  m_pcBinDataAccessor   = 0;
+  m_pcSliceHeader       = 0;
+  m_pcMbSymbolWriteIf   = 0;
   return Err::m_nOK;
 }
+
 
 ErrVal
 RewriteEncoder::uninit()
 {
-  ROT ( m_bSliceInProgress );
+  ROT ( m_bPictureInProgress );
   ROF ( m_bInitialized );
 
-  RNOK( m_pcBitWriteBuffer  ->uninit() );
-  RNOK( m_pcBitCounter      ->uninit() );
-  RNOK( m_pcNalUnitEncoder  ->uninit() );
-  RNOK( m_pcUvlcWriter      ->uninit() );
-  RNOK( m_pcUvlcTester      ->uninit() );
-  RNOK( m_pcCabacWriter     ->uninit() );
-  RNOK( m_pcMbCoder         ->uninit() );
+  RNOK( m_pcBitWriteBuffer          ->uninit() );
+  RNOK( m_pcBitCounter              ->uninit() );
+  RNOK( m_pcNalUnitEncoder          ->uninit() );
+  RNOK( m_pcUvlcWriter              ->uninit() );
+  RNOK( m_pcUvlcTester              ->uninit() );
+  RNOK( m_pcCabacWriter             ->uninit() );
+  RNOK( m_pcMotionVectorCalculation ->uninit() );
+  RNOK( m_pcMbCoder                 ->uninit() );
   
   if( m_pcMbDataCtrl )
   {
-    RNOK(  m_pcMbDataCtrl   ->uninit() );
+    RNOK(  m_pcMbDataCtrl           ->uninit() );
     delete m_pcMbDataCtrl;
   }
-  m_cRewrittenParameterSets .clear  ();
+  m_cRewrittenParameterSets         .clear  ();
 
   CLOSE_ETRACE;
   
@@ -2069,162 +2083,103 @@ RewriteEncoder::uninit()
   return Err::m_nOK;
 }
 
-ErrVal
-RewriteEncoder::resetData()
-{
-  ROF ( m_pcMbDataCtrl );
-  RNOK( m_pcMbDataCtrl->resetData () );
-  RNOK( m_pcMbDataCtrl->reset     () );
-  return Err::m_nOK;
-}
 
 ErrVal
-RewriteEncoder::startSlice( BinDataList& rcBinDataList, const SliceHeader& rcSliceHeader )
+RewriteEncoder::startPicture( const SequenceParameterSet& rcSPS )
 {
-  ROF ( m_bInitialized );
-  ROT ( m_bSliceInProgress );
-
-  //===== init SPS and write parameter sets when required =====
-  RNOK( xInitSPS    ( rcSliceHeader.getSPS() ) );
-  RNOK( xRewriteSPS ( rcSliceHeader.getSPS(), rcBinDataList ) );
-  RNOK( xRewritePPS ( rcSliceHeader.getPPS(), rcBinDataList ) );
-
-  //===== set entropy coder and create slice header =====
-  m_pcMbSymbolWriteIf   = ( rcSliceHeader.getPPS().getEntropyCodingModeFlag() ? (MbSymbolWriteIf*)m_pcCabacWriter : (MbSymbolWriteIf*)m_pcUvlcWriter );
-  RNOK( xCreateSliceHeader( rcSliceHeader ) );
-
-  //===== init NAL unit, write slice header, and init slice =====
-  RNOK( xInitNALUnit() );
-  ETRACE_NEWSLICE;
-  RNOK( m_pcSliceHeader     ->write     ( *m_pcUvlcWriter ) );
-  RNOK( m_pcMbSymbolWriteIf ->startSlice( *m_pcSliceHeader ) );
-  RNOK( m_pcMbCoder         ->initSlice ( *m_pcSliceHeader, m_pcMbSymbolWriteIf, m_pcRateDistortion ) );
-  RNOK( m_pcMbDataCtrl      ->initSlice ( *m_pcSliceHeader, ENCODE_PROCESS, false, NULL ) );
-
-  m_bSliceInProgress  = true;
-  return Err::m_nOK;
-}
-
-ErrVal
-RewriteEncoder::finishSlice( BinDataList& rcBinDataList )
-{
-  ROF ( m_bInitialized );
-  ROF ( m_bSliceInProgress );
-  RNOK( xCloseNALUnit( rcBinDataList ) );
-
-  delete m_pcSliceHeader;
-  m_pcMbSymbolWriteIf = 0;
-  m_pcSliceHeader     = 0;
-  m_bSliceInProgress  = false;
-  return Err::m_nOK;
-}
-
-ErrVal
-RewriteEncoder::initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX )
-{
-  ROF ( m_bInitialized );
-  ROF ( m_bSliceInProgress );
-  RNOK( m_pcMbDataCtrl->initMb( rpcMbDataAccess, uiMbY, uiMbX ) );
-  return Err::m_nOK;
-}
-
-ErrVal
-RewriteEncoder::storeMb( MbDataAccess& rcMbDataAccess, const MbDataAccess& rcMbDataAccessSrc )
-{
-  ROF ( m_bInitialized );
-  ROF ( m_bSliceInProgress );
-
-  //===== copy data =====
-  rcMbDataAccess.getMbData    ().copyFrom   ( rcMbDataAccessSrc.getMbData   () );
-  rcMbDataAccess.getMbTCoeffs ().copyFrom   ( rcMbDataAccessSrc.getMbTCoeffs() );
-  rcMbDataAccess.getMbData    ().copyMotion ( rcMbDataAccessSrc.getMbData   () );
+  ROF( m_bInitialized );
+  ROT( m_bPictureInProgress );
   
-  //===== clear motion data for later usage =====
-  if( rcMbDataAccess.getMbData().isIntra() )
+  m_bPictureInProgress  = true;
+  UInt uiBinDataSize    = rcSPS.getFrameWidthInMbs() * rcSPS.getFrameHeightInMbs() * 768;
+  if(  uiBinDataSize == m_uiBinDataSize )
   {
-    rcMbDataAccess.getMbData().getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
-    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_0 ).clear();
-    rcMbDataAccess.getMbData().getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
-    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_1 ).clear();
+    RNOK( m_pcMbDataCtrl->resetData () );
+    RNOK( m_pcMbDataCtrl->reset     () );
+    return Err::m_nOK;
   }
-  else if( rcMbDataAccess.getMbData().isSkiped() )
+  
+  if( m_pcMbDataCtrl )
   {
-    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_0 ).clear();
-    rcMbDataAccess.getMbData().getMbMvdData   ( LIST_1 ).clear();
-  }  
-  UInt uiFwdBwd = 0;
-  if( rcMbDataAccessSrc.getSH().isBSlice() )
-  {
-    for( Int n = 3; n >= 0; n--)
-    {
-      uiFwdBwd <<= 4;
-      uiFwdBwd += ( rcMbDataAccess.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) ) > 0 ? 1 : 0 );
-      uiFwdBwd += ( rcMbDataAccess.getMbData().getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) ) > 0 ? 2 : 0 );
-    }
+    RNOK(  m_pcMbDataCtrl->uninit() );
+    delete m_pcMbDataCtrl;
   }
-  else if( rcMbDataAccessSrc.getSH().isPSlice() )
-  {
-    for( Int n = 3; n >= 0; n--)
-    {
-      uiFwdBwd <<= 4;
-      uiFwdBwd += ( rcMbDataAccess.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) ) > 0 ? 1 : 0 );
-    }
-  }
-  rcMbDataAccess.getMbData().setFwdBwd( uiFwdBwd );
-
-  //===== clear 8x8 transform flag when required =====
-  if( ! rcMbDataAccess.getMbData().isIntra4x4() && ( rcMbDataAccess.getMbData().getMbCbp() & 0x0F ) == 0 && !rcMbDataAccess.getMbData().isIntraBL() )
-  {
-    rcMbDataAccess.getMbData().setTransformSize8x8( false );
-  }
-    
+  m_uiBinDataSize = uiBinDataSize;
+  m_pcMbDataCtrl  = new MbDataCtrl;
+  ROF ( m_pcMbDataCtrl );
+  RNOK( m_pcMbDataCtrl->init( rcSPS ) );
   return Err::m_nOK;
 }
+
 
 ErrVal
-RewriteEncoder::encodeMb( MbDataAccess& rcMbDataAccess, Bool bTerminateSlice )
+RewriteEncoder::finishPicture( BinDataList& rcBinDataList )
 {
-  ROF ( m_bInitialized );
-  ROF ( m_bSliceInProgress );
-  RNOK( m_pcMbCoder->encode( rcMbDataAccess, NULL, 0, bTerminateSlice, true ) );
+  ROF( m_bInitialized );
+  ROF( m_bPictureInProgress );
+  ROT( m_bSliceInProgress );
+
+  m_bPictureInProgress  = false;
+  rcBinDataList        += m_cBinDataList;
+  m_cBinDataList.clear();
   return Err::m_nOK;
 }
+
+
+ErrVal
+RewriteEncoder::rewriteMb( MbDataAccess& rcMbDataAccessSource )
+{
+  ROF( m_bInitialized );
+  ROF( m_bPictureInProgress );
+  ROT( m_bSliceInProgress == rcMbDataAccessSource.isFirstMbInSlice() );
+
+  //===== start slice =====
+  if( rcMbDataAccessSource.isFirstMbInSlice() )
+  {
+    RNOK( xStartSlice( rcMbDataAccessSource ) );
+  }
+
+  //===== process macroblock =====
+  MbDataAccess*     pcMbDataAccessRewrite = 0;
+  RNOK( xInitMb  (  pcMbDataAccessRewrite, rcMbDataAccessSource ) );
+  RNOK( xAdjustMb( *pcMbDataAccessRewrite, rcMbDataAccessSource.getSH().isH264AVCCompatible() ) );
+  RNOK( xEncodeMb( *pcMbDataAccessRewrite, rcMbDataAccessSource.isLastMbInSlice() ) );
+
+  //===== finish slice =====
+  if( rcMbDataAccessSource.isLastMbInSlice() )
+  {
+    RNOK( xFinishSlice() );
+  }
+
+  return Err::m_nOK;
+}
+
 
 ErrVal
 RewriteEncoder::xCreate()
 {
-  RNOK( BitWriteBuffer::create( m_pcBitWriteBuffer  ) );
-  RNOK( BitCounter    ::create( m_pcBitCounter      ) );
-  RNOK( NalUnitEncoder::create( m_pcNalUnitEncoder  ) );
-  RNOK( UvlcWriter    ::create( m_pcUvlcWriter      ) );
-  RNOK( UvlcWriter    ::create( m_pcUvlcTester      ) );
-  RNOK( CabacWriter   ::create( m_pcCabacWriter     ) );
-  RNOK( MbCoder       ::create( m_pcMbCoder         ) );
-  RNOK( RateDistortion::create( m_pcRateDistortion  ) );
+  RNOK( BitWriteBuffer          ::create( m_pcBitWriteBuffer          ) );
+  RNOK( BitCounter              ::create( m_pcBitCounter              ) );
+  RNOK( NalUnitEncoder          ::create( m_pcNalUnitEncoder          ) );
+  RNOK( UvlcWriter              ::create( m_pcUvlcWriter              ) );
+  RNOK( UvlcWriter              ::create( m_pcUvlcTester              ) );
+  RNOK( CabacWriter             ::create( m_pcCabacWriter             ) );
+  RNOK( MotionVectorCalculation ::create( m_pcMotionVectorCalculation ) );
+  RNOK( MbCoder                 ::create( m_pcMbCoder                 ) );
+  RNOK( RateDistortion          ::create( m_pcRateDistortion          ) );
   return Err::m_nOK;
 }
 
-ErrVal
-RewriteEncoder::xInitSPS( const SequenceParameterSet& rcSPS )
-{
-  ROTRS ( m_uiBinDataSize, Err::m_nOK );
-
-  m_uiBinDataSize = rcSPS.getFrameWidthInMbs() * rcSPS.getFrameHeightInMbs() * 768;
-  m_pcMbDataCtrl  = new MbDataCtrl;
-  ROF   ( m_pcMbDataCtrl );
-  RNOK  ( m_pcMbDataCtrl->init( rcSPS ) );
-  return Err::m_nOK;
-}
 
 ErrVal
-RewriteEncoder::xCreateSliceHeader( const SliceHeader& rcSH )
+RewriteEncoder::xStartSlice( MbDataAccess& rcMbDataAccessSource )
 {
   //===== create copy of given slice header =====
-  m_pcSliceHeader = new SliceHeader( rcSH );
+  m_pcSliceHeader = new SliceHeader( rcMbDataAccessSource.getSH() );
   ROF( m_pcSliceHeader );
 
   //===== modify parameters for rewrite slice header =====
-  m_pcSliceHeader->setNalUnitType                   ( rcSH.getIdrFlag() ? NAL_UNIT_CODED_SLICE_IDR : NAL_UNIT_CODED_SLICE );
+  m_pcSliceHeader->setNalUnitType                   ( m_pcSliceHeader->getIdrFlag() ? NAL_UNIT_CODED_SLICE_IDR : NAL_UNIT_CODED_SLICE );
   m_pcSliceHeader->setDependencyId                  ( 0 );
   m_pcSliceHeader->setQualityId                     ( 0 );
   m_pcSliceHeader->setNoInterLayerPredFlag          ( true );
@@ -2234,9 +2189,37 @@ RewriteEncoder::xCreateSliceHeader( const SliceHeader& rcSH )
   m_pcSliceHeader->setAdaptiveResidualPredictionFlag( false );
   m_pcSliceHeader->setScanIdxStart                  ( 0 );
   m_pcSliceHeader->setScanIdxStop                   ( 16 );
+  m_pcSliceHeader->setSliceHeaderQp                 ( rcMbDataAccessSource.getMbData().getQp4LF() );
+  m_pcSliceHeader->setSliceSkipFlag                 ( false );
 
+  //===== set entropy coder, write parameter, init NAL unit, write slice header, and init slice =====
+  m_pcMbSymbolWriteIf = ( m_pcSliceHeader->getPPS().getEntropyCodingModeFlag() ? (MbSymbolWriteIf*)m_pcCabacWriter : (MbSymbolWriteIf*)m_pcUvlcWriter );
+  RNOK( xRewriteSPS     ( m_pcSliceHeader->getSPS() ) );
+  RNOK( xRewritePPS     ( m_pcSliceHeader->getPPS() ) );
+  RNOK( xInitNALUnit    () );
+  ETRACE_NEWSLICE;
+  RNOK( m_pcSliceHeader             ->write     ( *m_pcUvlcWriter   ) );
+  RNOK( m_pcMbSymbolWriteIf         ->startSlice( *m_pcSliceHeader  ) );
+  RNOK( m_pcMotionVectorCalculation ->initSlice ( *m_pcSliceHeader  ) );
+  RNOK( m_pcMbCoder                 ->initSlice ( *m_pcSliceHeader, m_pcMbSymbolWriteIf, m_pcRateDistortion ) );
+  RNOK( m_pcMbDataCtrl              ->initSlice ( *m_pcSliceHeader, ENCODE_PROCESS, false, NULL ) );
+
+  m_bSliceInProgress  = true;
   return Err::m_nOK;
 }
+
+
+ErrVal
+RewriteEncoder::xFinishSlice()
+{
+  RNOK( xCloseNALUnit() );
+  delete m_pcSliceHeader;
+  m_pcSliceHeader     = 0;
+  m_pcMbSymbolWriteIf = 0;
+  m_bSliceInProgress  = false;
+  return Err::m_nOK;
+}
+
 
 ErrVal
 RewriteEncoder::xInitNALUnit()
@@ -2255,20 +2238,22 @@ RewriteEncoder::xInitNALUnit()
   return Err::m_nOK;
 }
 
+
 ErrVal
-RewriteEncoder::xCloseNALUnit( BinDataList& rcBinDataList )
+RewriteEncoder::xCloseNALUnit()
 {
   UInt uiBits = 0;
   RNOK( m_pcNalUnitEncoder->closeNalUnit( uiBits ) );
 
   m_pcBinData->set( m_pcBinData->data(), m_pcBinDataAccessor->size() ); // set correct size
-  rcBinDataList.push_back( m_pcBinData );
+  m_cBinDataList.push_back( m_pcBinData );
   delete m_pcBinDataAccessor;
 
   m_pcBinData         = 0;
   m_pcBinDataAccessor = 0;
   return Err::m_nOK;
 }
+
 
 Bool
 RewriteEncoder::xIsRewritten( const Void* pParameterSet )
@@ -2286,8 +2271,9 @@ RewriteEncoder::xIsRewritten( const Void* pParameterSet )
   return false;
 }
 
+
 ErrVal
-RewriteEncoder::xRewriteSPS( const SequenceParameterSet& rcSPS, BinDataList& rcBinDataList )
+RewriteEncoder::xRewriteSPS( const SequenceParameterSet& rcSPS )
 {
   ROTRS( xIsRewritten( &rcSPS ), Err::m_nOK );
 
@@ -2302,7 +2288,7 @@ RewriteEncoder::xRewriteSPS( const SequenceParameterSet& rcSPS, BinDataList& rcB
   //===== write SPS =====
   RNOK( xInitNALUnit  () );
   RNOK( m_pcNalUnitEncoder->write( rcSPS ) );
-  RNOK( xCloseNALUnit ( rcBinDataList ) );
+  RNOK( xCloseNALUnit () );
   m_cRewrittenParameterSets.push_back( &rcSPS );
 
   //===== restore original nal_unit_type and profile_idc =====
@@ -2312,17 +2298,250 @@ RewriteEncoder::xRewriteSPS( const SequenceParameterSet& rcSPS, BinDataList& rcB
   return Err::m_nOK;
 }
 
+
 ErrVal
-RewriteEncoder::xRewritePPS( const PictureParameterSet& rcPPS, BinDataList& rcBinDataList )
+RewriteEncoder::xRewritePPS( const PictureParameterSet& rcPPS )
 {
   ROTRS( xIsRewritten( &rcPPS ), Err::m_nOK );
 
   //===== write PPS =====
   RNOK( xInitNALUnit  () );
   RNOK( m_pcNalUnitEncoder->write( rcPPS ) );
-  RNOK( xCloseNALUnit ( rcBinDataList ) );
+  RNOK( xCloseNALUnit () );
   m_cRewrittenParameterSets.push_back( &rcPPS );
 
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RewriteEncoder::xInitMb( MbDataAccess*& rpcMbDataAccessRewrite, MbDataAccess& rcMbDataAccessSource )
+{
+  //===== create MbDataAccess for rewriting =====
+  rpcMbDataAccessRewrite = 0;
+  UInt  uiMbY            = rcMbDataAccessSource.getMbY();
+  UInt  uiMbX            = rcMbDataAccessSource.getMbX();
+  RNOK( m_pcMbDataCtrl->initMb( rpcMbDataAccessRewrite, uiMbY, uiMbX ) );
+
+  //===== copy macroblock data =====
+  rcMbDataAccessSource   .getMbTCoeffs().switchLevelCoeffData ();
+  rpcMbDataAccessRewrite->getMbData   ().copyFrom             ( rcMbDataAccessSource.getMbData   () );
+  rpcMbDataAccessRewrite->getMbTCoeffs().copyFrom             ( rcMbDataAccessSource.getMbTCoeffs() );
+  rpcMbDataAccessRewrite->getMbData   ().copyMotion           ( rcMbDataAccessSource.getMbData   () );
+  rcMbDataAccessSource   .getMbTCoeffs().switchLevelCoeffData ();
+
+  //===== set correct rewrite QP =====
+  rpcMbDataAccessRewrite->getMbData().setQp( rcMbDataAccessSource.getMbData().getQp4LF() );
+  
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RewriteEncoder::xAdjustMb( MbDataAccess& rcMbDataAccessRewrite, Bool bBaseLayer )
+{
+  //===== clear motion data for later usage =====
+  if( rcMbDataAccessRewrite.getMbData().isIntra() )
+  {
+    rcMbDataAccessRewrite.getMbData().getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
+    rcMbDataAccessRewrite.getMbData().getMbMvdData   ( LIST_0 ).clear();
+    rcMbDataAccessRewrite.getMbData().getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
+    rcMbDataAccessRewrite.getMbData().getMbMvdData   ( LIST_1 ).clear();
+  }
+  else if( rcMbDataAccessRewrite.getMbData().isSkiped() )
+  {
+    rcMbDataAccessRewrite.getMbData().getMbMvdData   ( LIST_0 ).clear();
+    rcMbDataAccessRewrite.getMbData().getMbMvdData   ( LIST_1 ).clear();
+  }  
+  UInt uiFwdBwd = 0;
+  if( rcMbDataAccessRewrite.getSH().isBSlice() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += ( rcMbDataAccessRewrite.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) ) > 0 ? 1 : 0 );
+      uiFwdBwd += ( rcMbDataAccessRewrite.getMbData().getMbMotionData( LIST_1 ).getRefIdx( Par8x8(n) ) > 0 ? 2 : 0 );
+    }
+  }
+  else if( rcMbDataAccessRewrite.getSH().isPSlice() )
+  {
+    for( Int n = 3; n >= 0; n--)
+    {
+      uiFwdBwd <<= 4;
+      uiFwdBwd += ( rcMbDataAccessRewrite.getMbData().getMbMotionData( LIST_0 ).getRefIdx( Par8x8(n) ) > 0 ? 1 : 0 );
+    }
+  }
+  rcMbDataAccessRewrite.getMbData().setFwdBwd( uiFwdBwd );
+
+  //===== clear 8x8 transform flag when required =====
+  if( ! rcMbDataAccessRewrite.getMbData().isIntra4x4() && ( rcMbDataAccessRewrite.getMbData().getMbCbp() & 0x0F ) == 0 && !rcMbDataAccessRewrite.getMbData().isIntraBL() )
+  {
+    rcMbDataAccessRewrite.getMbData().setTransformSize8x8( false );
+  }
+
+  //===== correct MbMode =====
+  rcMbDataAccessRewrite.getMbData().setBLSkipFlag      ( false );
+  rcMbDataAccessRewrite.getMbData().setResidualPredFlag( false );
+  rcMbDataAccessRewrite.getMbData().setBCBPAll         ( 0 );
+  if( rcMbDataAccessRewrite.getMbData().getMbMode() == MODE_SKIP )
+  {
+    if( ! bBaseLayer || ! rcMbDataAccessRewrite.getSH().isBSlice() )
+    {
+      rcMbDataAccessRewrite.getMbData().setMbMode( MODE_16x16 );
+    }
+    else 
+    {
+      rcMbDataAccessRewrite.getMbData().setMbMode( MODE_8x8 );
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        if( rcMbDataAccessRewrite.getSH().getSPS().getDirect8x8InferenceFlag() )
+        {
+          rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
+        }
+        else
+        {
+          rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_4x4 );
+        }
+      }
+    }
+  }
+  else if( rcMbDataAccessRewrite.getMbData().getMbMode() == MODE_8x8 )
+  {
+    for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+    {
+      if( rcMbDataAccessRewrite.getMbData().getBlkMode( c8x8Idx.b8x8Index() ) == BLK_SKIP )
+      {
+        if( ! bBaseLayer || rcMbDataAccessRewrite.getSH().getSPS().getDirect8x8InferenceFlag() )
+        {
+          rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_8x8 );
+        }
+        else
+        {
+          rcMbDataAccessRewrite.getMbData().setBlkMode( c8x8Idx.b8x8Index(), BLK_4x4 );
+        }
+      }
+    }
+  }
+
+  //===== recompute motion vector differences =====
+  if( !rcMbDataAccessRewrite.getMbData().isIntra() )
+  {
+    UInt          uiList;
+    Mv            cMv;
+    MbMotionData  cMbMotionData[2];
+
+    //----- save motion data and clear mvd's -----
+    for( uiList = 0; uiList < 2; uiList++ )
+    {
+      ListIdx eListIdx = ( uiList == 0 ? LIST_0 : LIST_1 );
+      cMbMotionData[uiList].copyFrom( rcMbDataAccessRewrite.getMbMotionData( eListIdx ) );
+      rcMbDataAccessRewrite.getMbMvdData   ( eListIdx ).clear();
+      rcMbDataAccessRewrite.getMbMotionData( eListIdx ).setMotPredFlag( false );
+    }
+
+    //----- re-assign mvd's (this is a sub-optimal implementation) -----
+    for( uiList = 0; uiList < 2; uiList++ )
+    {
+      ListIdx eListIdx = ( uiList == 0 ? LIST_0 : LIST_1 );
+
+      //----- recompute mvd's -----
+      for( S4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+      {
+        RNOK( m_pcMotionVectorCalculation->calcMvMb( rcMbDataAccessRewrite, 0 ) );
+        cMv  = cMbMotionData[uiList].getMv( cIdx );
+        cMv -= rcMbDataAccessRewrite.getMbMotionData( eListIdx ).getMv( cIdx );
+        rcMbDataAccessRewrite.getMbMvdData( eListIdx ).setMv( cMv, cIdx );
+      }
+
+      //----- set mvd's for all 4x4 blocks (for CABAC context models) -----
+      switch( rcMbDataAccessRewrite.getMbData().getMbMode() )
+      {
+      case MODE_16x16:
+        cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( );
+        rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv );
+        break;
+      case MODE_16x8:
+        cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( PART_16x8_0 );
+        rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_0 );
+        cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( PART_16x8_1 );
+        rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, PART_16x8_1 );
+        break;
+      case MODE_8x16:
+        cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( PART_8x16_0 );
+        rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_0 );
+        cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( PART_8x16_1 );
+        rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, PART_8x16_1 );
+        break;
+      case MODE_8x8:
+        {					
+          for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+          {
+            ParIdx8x8 eParIdx = c8x8Idx.b8x8();
+
+            switch( rcMbDataAccessRewrite.getMbData().getBlkMode( c8x8Idx.b8x8Index() ) )
+            {
+            case BLK_8x8:
+              cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( eParIdx );
+              rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, eParIdx );
+              break;
+            case BLK_8x4:
+              cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_0 );
+              rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_0 );
+              cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( eParIdx, SPART_8x4_1 );
+              rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_8x4_1 );
+              break;
+            case BLK_4x8:
+              cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_0 );
+              rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_0 );
+              cMv = rcMbDataAccessRewrite.getMbMvdData( eListIdx ).getMv( eParIdx, SPART_4x8_1 );
+              rcMbDataAccessRewrite.getMbMvdData(eListIdx).setAllMv( cMv, eParIdx, SPART_4x8_1 );
+              break;
+            case BLK_4x4:
+              break;
+            default:
+              RERR();
+            }
+          }
+        }
+        break;
+      default:
+        RERR();
+      }
+    }
+
+#if 1 // not required
+    //>>>>> SANITY CHECK >>>>>
+    RNOK( m_pcMotionVectorCalculation->calcMvMb( rcMbDataAccessRewrite, 0 ) );
+    for( uiList = 0; uiList < 2; uiList++ )
+    {
+      for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+      {
+        ListIdx eListIdx = ( uiList == 0 ? LIST_0 : LIST_1 );
+        cMv              = cMbMotionData[uiList].getMv( cIdx );
+        cMv             -= rcMbDataAccessRewrite.getMbMotionData( eListIdx ).getMv( cIdx );
+        if( cMv.getHor() || cMv.getVer() )
+        {
+          RERR();
+        }
+      }
+    }
+    //<<<<< SANITY CHECK <<<<<
+#endif
+  }
+
+  return Err::m_nOK;
+}
+
+
+ErrVal
+RewriteEncoder::xEncodeMb( MbDataAccess& rcMbDataAccessRewrite, Bool bLastMbInSlice )
+{
+  //===== trace =====
+  ETRACE_DECLARE( UInt uiMbAddress = rcMbDataAccessRewrite.getMbAddress() );
+  ETRACE_NEWMB  ( uiMbAddress );
+
+  //===== encode =====
+  RNOK( m_pcMbCoder->encode( rcMbDataAccessRewrite, NULL, 0, bLastMbInSlice, true ) );
   return Err::m_nOK;
 }
 

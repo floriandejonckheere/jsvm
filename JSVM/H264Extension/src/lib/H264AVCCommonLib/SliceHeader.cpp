@@ -101,7 +101,7 @@ SliceHeader::SliceHeader()
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
 , m_iBotFieldPoc        ( 0 )
-, m_bCoeffResidualPred  ( false )
+, m_bSCoeffResidualPred ( false )
 //>>> remove
 , m_uiLayerCGSSNR                     ( 0 )
 , m_uiQualityLevelCGSSNR              ( 0 )
@@ -128,7 +128,7 @@ SliceHeader::SliceHeader( const NalUnitHeader& rcNalUnitHeader )
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
 , m_iBotFieldPoc        ( 0 )
-, m_bCoeffResidualPred  ( false )
+, m_bSCoeffResidualPred ( false )
 //>>> remove
 , m_uiLayerCGSSNR                     ( 0 )
 , m_uiQualityLevelCGSSNR              ( 0 )
@@ -155,7 +155,7 @@ SliceHeader::SliceHeader( const PrefixHeader& rcPrefixHeader )
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
 , m_iBotFieldPoc        ( 0 )
-, m_bCoeffResidualPred  ( false )
+, m_bSCoeffResidualPred ( false )
 //>>> remove
 , m_uiLayerCGSSNR                     ( 0 )
 , m_uiQualityLevelCGSSNR              ( 0 )
@@ -182,7 +182,7 @@ SliceHeader::SliceHeader( const SequenceParameterSet& rcSPS, const PictureParame
 , m_uiLastMbInSlice     ( 0 )
 , m_iTopFieldPoc        ( 0 )
 , m_iBotFieldPoc        ( 0 )
-, m_bCoeffResidualPred  ( false )
+, m_bSCoeffResidualPred ( false )
 //>>> remove
 , m_uiLayerCGSSNR                     ( 0 )
 , m_uiQualityLevelCGSSNR              ( 0 )
@@ -210,7 +210,7 @@ SliceHeader::SliceHeader( const SliceHeader& rcSliceHeader )
 , m_iTopFieldPoc            ( rcSliceHeader.m_iTopFieldPoc )
 , m_iBotFieldPoc            ( rcSliceHeader.m_iBotFieldPoc )
 , m_iSpatialScalabilityType ( rcSliceHeader.m_iSpatialScalabilityType )
-, m_bCoeffResidualPred      ( rcSliceHeader.m_bCoeffResidualPred )
+, m_bSCoeffResidualPred     ( rcSliceHeader.m_bSCoeffResidualPred )
 //>>> remove
 , m_uiLayerCGSSNR                     ( 0 )
 , m_uiQualityLevelCGSSNR              ( 0 )
@@ -241,7 +241,7 @@ SliceHeader::init( const SequenceParameterSet& rcSPS, const PictureParameterSet&
   m_uiLastMbInSlice     = 0;
   m_iTopFieldPoc        = 0;
   m_iBotFieldPoc        = 0;
-  m_bCoeffResidualPred  = false;
+  m_bSCoeffResidualPred = false;
   m_bReconstructionLayer= false;
   ::memset( m_aapcRefFrameList, 0x00, sizeof( m_aapcRefFrameList ) );
   for(UInt ui=0;ui<MAX_TEMP_LEVELS;ui++)
@@ -262,7 +262,7 @@ SliceHeader::copy( const SliceHeader& rcSliceHeader )
   m_uiLastMbInSlice       = rcSliceHeader.m_uiLastMbInSlice;
   m_iTopFieldPoc          = rcSliceHeader.m_iTopFieldPoc;
   m_iBotFieldPoc          = rcSliceHeader.m_iBotFieldPoc;
-  m_bCoeffResidualPred    = rcSliceHeader.m_bCoeffResidualPred;
+  m_bSCoeffResidualPred   = rcSliceHeader.m_bSCoeffResidualPred;
   m_bReconstructionLayer  = rcSliceHeader.m_bReconstructionLayer;
   m_cFMO                  = rcSliceHeader.m_cFMO;
   ::memcpy( m_aapcRefFrameList, rcSliceHeader.m_aapcRefFrameList, sizeof( m_aapcRefFrameList ) );
@@ -407,9 +407,9 @@ SliceHeader::getPredWeight( ListIdx eListIdx, UInt uiRefIdx, Bool bFieldFlag )
 PicType
 SliceHeader::getPicType() const
 {
-  ROFRS(  getFieldPicFlag (), FRAME );
-  ROFRS(  getBotFieldPoc  (), TOP_FIELD );
-  return                      BOT_FIELD;
+  ROFRS(  getFieldPicFlag   (), FRAME );
+  ROFRS(  getBottomFieldFlag(), TOP_FIELD );
+  return                        BOT_FIELD;
 }
 
 Int
@@ -425,16 +425,18 @@ SliceHeader::getPoc( PicType ePicType ) const
 }
 
 Void
-SliceHeader::setCoeffResidualPredFlag( const SliceHeader* pcRefSliceHeader )
+SliceHeader::setSCoeffResidualPredFlag( const SliceHeader* pcRefSliceHeader )
 {
-  m_bCoeffResidualPred = false;
+  m_bSCoeffResidualPred = false;
   if( pcRefSliceHeader )
   {
     ROTVS( getTCoeffLevelPredictionFlag () );
     ROFVS( m_iSpatialScalabilityType == SST_RATIO_1 );
-    ROFVS( getSPS().getFrameMbsOnlyFlag() );
-    ROFVS( pcRefSliceHeader->getSPS().getFrameMbsOnlyFlag() );
-    m_bCoeffResidualPred = true;
+    ROFVS( getSPS().getFrameMbsOnlyFlag() == pcRefSliceHeader->getSPS().getFrameMbsOnlyFlag() );
+    ROFVS( getFieldPicFlag() == pcRefSliceHeader->getFieldPicFlag() );
+    ROFVS( getSPS().getChromaPhaseXPlus1Flag() == getRefLayerChromaPhaseXPlus1Flag() );
+    ROFVS( getSPS().getChromaPhaseYPlus1() == getRefLayerChromaPhaseYPlus1() );
+    m_bSCoeffResidualPred = true;
   }
 }
 
@@ -648,6 +650,28 @@ SliceHeader::xInitScalingMatrix()
 }
 
 
+Int
+SliceHeader::getDistScaleFactor( PicType eMbPicType,
+                                 SChar   sL0RefIdx,
+                                 SChar   sL1RefIdx ) const
+{
+  const Frame*  pcFrameL0 = getRefFrameList( eMbPicType, LIST_0 )->getEntry( sL0RefIdx - 1 );
+  const Frame*  pcFrameL1 = getRefFrameList( eMbPicType, LIST_1 )->getEntry( sL1RefIdx - 1 );
+  Int           iDiffPocD = pcFrameL1->getPoc() - pcFrameL0->getPoc();
+  if( iDiffPocD == 0 )
+  {
+    return 1024;
+  }
+  else
+  {
+    Int iDiffPocB = getPoc( eMbPicType ) - pcFrameL0->getPoc();
+    Int iTDB      = gClipMinMax( iDiffPocB, -128, 127 );
+    Int iTDD      = gClipMinMax( iDiffPocD, -128, 127 );
+    Int iX        = (0x4000 + abs(iTDD/2)) / iTDD;
+    Int iScale    = gClipMinMax( (iTDB * iX + 32) >> 6, -1024, 1023 );
+    return iScale;
+  }
+}
 
 
 H264AVC_NAMESPACE_END

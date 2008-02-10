@@ -144,9 +144,12 @@ MbParser::uninit()
 
 ErrVal
 MbParser::read( MbDataAccess&  rcMbDataAccess,
+                UInt           uiNumMbRead,
                 Bool&          rbEndOfSlice )
 {
   ROF( m_bInitDone );
+
+  ROTRS( xCheckSkipSliceMb( rcMbDataAccess, uiNumMbRead, rbEndOfSlice ), Err::m_nOK );
 
   Bool bIsCoded = true;
   if( m_pcMbSymbolReadIf->isMbSkipped( rcMbDataAccess ) )
@@ -784,7 +787,14 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
   if( (rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getMbData().isIntra()) &&
       (rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag() && !rcMbDataAccess.getSH().isIntraSlice()) )
   {
-    DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
+    if( rcMbDataAccess.getMbData().getInCropWindowFlag() )
+    {
+      DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
+    }
+    else
+    {
+      rcMbDataAccess.getMbData().setResidualPredFlag( false );
+    }
   }
   else
   {
@@ -867,6 +877,28 @@ MbParser::xScanChromaBlocks( MbDataAccess& rcMbDataAccess, UInt uiChromCbp, UInt
     }
   }
   return Err::m_nOK;
+}
+
+
+Bool
+MbParser::xCheckSkipSliceMb( MbDataAccess& rcMbDataAccess, UInt uiNumMbRead, Bool& rbEndOfSlice )
+{
+  ROFRS( rcMbDataAccess.getSH().getSliceSkipFlag(), false );
+
+  MbData& rcMbData = rcMbDataAccess.getMbData();
+  rcMbData.setSkipFlag          ( false );
+  rcMbData.setBLSkipFlag        ( true );
+  rcMbData.setResidualPredFlag  ( true );
+  rcMbData.setMbExtCbp          ( 0 );
+  rcMbData.setFwdBwd            ( 0 );
+  rcMbDataAccess.resetQp        ();
+  rcMbDataAccess.getMbMotionData( LIST_0 ).clear( BLOCK_NOT_PREDICTED );
+  rcMbDataAccess.getMbMotionData( LIST_1 ).clear( BLOCK_NOT_PREDICTED );
+  rcMbDataAccess.getMbMvdData   ( LIST_0 ).clear();
+  rcMbDataAccess.getMbMvdData   ( LIST_1 ).clear();
+
+  rbEndOfSlice = ( uiNumMbRead >= rcMbDataAccess.getSH().getNumMbsInSliceMinus1() );
+  return true;
 }
 
 

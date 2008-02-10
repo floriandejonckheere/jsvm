@@ -197,15 +197,6 @@ ErrVal MotionCompensation::compensateDirectBlock( MbDataAccess& rcMbDataAccess, 
 
   Int       iRefIdx0    = rcMbDataAccess.getMbMotionData( LIST_0 ).getRefIdx( ePar8x8 );
   Int       iRefIdx1    = rcMbDataAccess.getMbMotionData( LIST_1 ).getRefIdx( ePar8x8 );
-//TMM_EC {{
-	if( rcMbDataAccess.getSH().getErrorConcealMode() == EC_TEMPORAL_DIRECT)
-	{
-		Bool bOneMv = false;
-		ROFRS( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, true, rcRefFrameListL0, rcRefFrameListL1 ), Err::m_nOK );
-		iRefIdx0    = rcMbDataAccess.getMbMotionData( LIST_0).getRefIdx( c8x8Idx.b8x8());
-		iRefIdx1    = rcMbDataAccess.getMbMotionData( LIST_1).getRefIdx( c8x8Idx.b8x8());
-	}
-//TMM_EC }}
   Frame* pcRefFrame0 = ( iRefIdx0 > 0 ? rcRefFrameListL0[ iRefIdx0 ] : NULL );
   Frame* pcRefFrame1 = ( iRefIdx1 > 0 ? rcRefFrameListL1[ iRefIdx1 ] : NULL );
 
@@ -906,94 +897,6 @@ __inline Void MotionCompensation::xUpdateChromaPel( XPel* pucDest, Int iDestStri
     pucDest += iDestStride;
   }
 }
-//TMM_EC{
-ErrVal MotionCompensation::calcMvMbTD(MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase, RefFrameList& rcRefFrameListL0, RefFrameList& rcRefFrameListL1 )
-{
-  MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
-  if(rcMbDataAccess.getSH().isTrueSlice()||eMbMode!=MODE_SKIP)
-  {
-    return Err::m_nOK;
-  }
-
-	if( rcMbDataAccess.getSH().isBSlice() )
-	{
-		B8x8Idx c8x8Idx;
-		Bool bOneMv;
-		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); c8x8Idx++;
-		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); c8x8Idx++;
-		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); c8x8Idx++;
-		AOF( rcMbDataAccess.getMvPredictorDirectVirtual( c8x8Idx.b8x8(), bOneMv, false, rcRefFrameListL0, rcRefFrameListL1 ) ); 
-  }
-  else
-  {
-	  rcMbDataAccess.getMvPredictorSkipMode();
-  }
- 	return Err::m_nOK;
-}
-////TMM_EC}
-ErrVal MotionCompensation::calcMvMb( MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase )
-{
-  MbMode eMbMode  = rcMbDataAccess.getMbData().getMbMode();
-
-  switch( eMbMode )
-  {
-  case MODE_16x16:
-    xCalc16x16( rcMbDataAccess, pcMbDataAccessBase );
-    break;
-  case MODE_16x8:
-    xCalc16x8( rcMbDataAccess, pcMbDataAccessBase );
-    break;
-  case MODE_8x16:
-    xCalc8x16( rcMbDataAccess, pcMbDataAccessBase );
-    break;
-  case MODE_SKIP:
-    if( rcMbDataAccess.getSH().isBSlice() )
-    {
-      if( rcMbDataAccess.getSH().isH264AVCCompatible() )
-      {
-        RefFrameList* pcL0 = rcMbDataAccess.getSH().getRefFrameList( FRAME, LIST_0 );
-        RefFrameList* pcL1 = rcMbDataAccess.getSH().getRefFrameList( FRAME, LIST_1 );
-        B8x8Idx       c8x8Idx;
-        Bool          bOneMv;
-        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx++;
-        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx++;
-        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); c8x8Idx++;
-        AOF( rcMbDataAccess.getMvPredictorDirect( c8x8Idx.b8x8(), bOneMv, false, pcL0, pcL1 ) ); 
-      }
-      else
-      {
-        xCalcSDirect( rcMbDataAccess, pcMbDataAccessBase );
-      }
-    }
-    else
-    {
-      Mv cMvSkip;
-      rcMbDataAccess.getMvPredictorSkipMode( cMvSkip );
-      rcMbDataAccess.getMbMotionData( LIST_0 ).setAllMv( cMvSkip );
-    }
-    break;
-  case MODE_8x8:
-  case MODE_8x8ref0:
-    xCalc8x8( rcMbDataAccess, pcMbDataAccessBase, false );
-    break;
-  default:
-    break;
-  }
-  return Err::m_nOK;
-}
-
-ErrVal MotionCompensation::calcMvSubMb( B8x8Idx c8x8Idx, MbDataAccess& rcMbDataAccess, MbDataAccess* pcMbDataAccessBase )
-{
-  xCalc8x8( c8x8Idx, rcMbDataAccess, pcMbDataAccessBase, false );
-  return Err::m_nOK;
-}
-
-
-
-
-
-
-
 
 
 ErrVal MotionCompensation::compensateSubMb( B8x8Idx         c8x8Idx,

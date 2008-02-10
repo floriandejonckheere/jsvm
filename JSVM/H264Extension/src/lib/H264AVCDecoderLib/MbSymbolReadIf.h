@@ -91,31 +91,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-#ifdef SHARP_AVC_REWRITE_OUTPUT
-// tmporary: to prevent enum type redefination conflict with the encoder
-#if !defined(AFX_MBSYMBOLWRITEIF_H__E5736EAC_0841_4E22_A1F0_ACAD8A7E5490__INCLUDED_) 
-enum ResidualMode
-{
-  LUMA_I16_DC  = 0,
-  LUMA_I16_AC     ,
-  LUMA_SCAN       ,
-  CHROMA_DC       ,
-  CHROMA_AC       
-  , LUMA_8X8
-};
-#endif
-#else
-enum ResidualMode
-{
-  LUMA_I16_DC  = 0,
-  LUMA_I16_AC     ,
-  LUMA_SCAN       ,
-  CHROMA_DC       ,
-  CHROMA_AC       
-  , LUMA_8X8
-};
-#endif
-
 
 class MbSymbolReadIf
 {

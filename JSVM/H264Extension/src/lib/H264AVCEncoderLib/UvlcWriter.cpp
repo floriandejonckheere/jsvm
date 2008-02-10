@@ -749,7 +749,7 @@ ErrVal UvlcWriter::mbMode( MbDataAccess& rcMbDataAccess )
 
 ErrVal UvlcWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 {
-  UInt uiCode = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
+  UInt uiCode = ( rcMbDataAccess.getMbData().getResidualPredFlag() ? 1 : 0 );
 
   ETRACE_T( "ResidualPredFlag" );
   RNOK( xWriteFlag( uiCode ) );

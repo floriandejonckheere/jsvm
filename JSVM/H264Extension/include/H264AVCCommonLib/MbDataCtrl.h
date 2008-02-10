@@ -137,6 +137,7 @@ public:
     for( UInt uiMbIdx = 0; uiMbIdx < getSize(); uiMbIdx++ )
     {
       getMbDataByIndex( uiMbIdx ).setQp      ( pSrcMbDataCtrl->getMbData( uiMbIdx ).getQp() );
+      getMbDataByIndex( uiMbIdx ).setQp4LF   ( pSrcMbDataCtrl->getMbData( uiMbIdx ).getQp4LF() );
       getMbDataByIndex( uiMbIdx ).setTransformSize8x8 ( pSrcMbDataCtrl->getMbData( uiMbIdx ).isTransformSize8x8() );
       getMbDataByIndex( uiMbIdx ).setMbExtCbp( pSrcMbDataCtrl->getMbData( uiMbIdx ).getMbExtCbp() );
     }
@@ -242,6 +243,7 @@ protected:
   MbDataAccess*       m_pcMbDataAccess;
 
   UChar               m_ucLastMbQp;
+  UChar               m_ucLastMbQp4LF;
   UInt                m_uiMbStride;
   UInt                m_uiMbOffset;
   Int                 m_iMbPerLine;
@@ -396,12 +398,14 @@ private:
   Bool          m_bSpatialScalability;     // TMM_ESS  
 
   UChar*        m_pacFGSMbQP;
+  UChar*        m_pacFGSMbQP4LF;
   UInt*         m_pauiFGSMbCbp;
   Bool*         m_pabFGS8x8Trafo;
   Bool          m_bIsNormalMbDataCtrl;
 
   //===== base quality data (CBP, QP, 8x8flag) =====
   UChar*        m_pacBQMbQP;
+  UChar*        m_pacBQMbQP4LF;
   UInt*         m_pauiBQMbCbp;
   Bool*         m_pabBQ8x8Trafo;
   MbMode*       m_paeBQMbMode;

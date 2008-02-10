@@ -94,6 +94,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
+class Frame;
+
 class H264AVCCOMMONLIB_API MbMvData
 {
 public:
@@ -196,6 +198,29 @@ public:
 # pragma warning( disable: 4251 )
 #endif
 
+
+class H264AVCCOMMONLIB_API RefPicIdc 
+{
+public:
+  RefPicIdc() : m_iPoc(0), m_ePicType(NOT_SPECIFIED), m_pcFrame(0) {}
+
+  Void  set( const Frame* pcFrame );
+  
+  Bool          isValid ()  const;
+  const Frame*  getPic  ()  const;
+  
+  Bool  operator==( const RefPicIdc& rcRefPicIdc )  const { return ( ( m_iPoc == rcRefPicIdc.m_iPoc ) && ( m_ePicType == rcRefPicIdc.m_ePicType ) ); }
+  Bool  operator!=( const RefPicIdc& rcRefPicIdc )  const { return ( ( m_iPoc != rcRefPicIdc.m_iPoc ) || ( m_ePicType != rcRefPicIdc.m_ePicType ) ); }
+
+  const RefPicIdc& operator=( const RefPicIdc& rcRefPicIdc ) { m_iPoc = rcRefPicIdc.m_iPoc; m_ePicType = rcRefPicIdc.m_ePicType; m_pcFrame = rcRefPicIdc.m_pcFrame; return *this; }
+
+private:
+  Int           m_iPoc;
+  PicType       m_ePicType;
+  const Frame*  m_pcFrame;
+};
+
+
 class H264AVCCOMMONLIB_API MbMotionData :
 public MbMvData
 {
@@ -230,6 +255,7 @@ public:
     m_usMotPredFlags = 0x0000;
     m_bFieldFlag = false;
     m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = eRefIdxValues;
+    m_acRefPicIdc[ 0 ] = m_acRefPicIdc[ 1 ] = m_acRefPicIdc[ 2 ] = m_acRefPicIdc[ 3 ] = RefPicIdc();
   }
 
 	Void  setFieldMode( Bool b )       { m_bFieldFlag = b; }
@@ -247,6 +273,14 @@ public:
   SChar getRefIdx( LumaIdx cIdx )        const  { return m_ascRefIdx[ m_auiBlk2Part[ cIdx.b4x4() ] ]; }
   SChar getRefIdx( Par8x8 ePar8x8 )      const  { return m_ascRefIdx[ ePar8x8]; }
 
+  const RefPicIdc&  getRefPicIdc  ()                      const  { return m_acRefPicIdc[ 0         ]; }
+  const RefPicIdc&  getRefPicIdc  ( ParIdx16x8 eParIdx  ) const  { return m_acRefPicIdc[ m_auiBlk2Part[ eParIdx ] ]; }
+  const RefPicIdc&  getRefPicIdc  ( ParIdx8x16 eParIdx  ) const  { return m_acRefPicIdc[ m_auiBlk2Part[ eParIdx ] ]; }
+  const RefPicIdc&  getRefPicIdc  ( ParIdx8x8  eParIdx  ) const  { return m_acRefPicIdc[ m_auiBlk2Part[ eParIdx ] ]; }
+  const RefPicIdc&  getRefPicIdc  ( LumaIdx cIdx )        const  { return m_acRefPicIdc[ m_auiBlk2Part[ cIdx.b4x4() ] ]; }
+  const RefPicIdc&  getRefPicIdc  ( Par8x8 ePar8x8 )      const  { return m_acRefPicIdc[ ePar8x8]; }
+
+  ErrVal  setRefPicIdcs ( RefFrameList* pcRefFrameList );
 
   Bool  getMotPredFlag()                     const  { return xGetMotPredFlag( 0 ); }
   Bool  getMotPredFlag( ParIdx16x8 eParIdx ) const  { return xGetMotPredFlag( eParIdx ); }
@@ -309,8 +343,9 @@ private:
   static const UInt   m_auiBlk2Part[16];
 
 public:
-  SChar   m_ascRefIdx[4];
-  UShort  m_usMotPredFlags;
+  SChar       m_ascRefIdx   [4];
+  RefPicIdc   m_acRefPicIdc [4];
+  UShort      m_usMotPredFlags;
 };
 
 

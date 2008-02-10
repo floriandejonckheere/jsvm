@@ -251,9 +251,8 @@ ErrVal CabacWriter::startSlice( const SliceHeader& rcSliceHeader )
 {
   m_pcSliceHeader     = &rcSliceHeader;
   m_uiLastDQpNonZero  = 0;
-
+  ROTRS( m_pcSliceHeader->getSliceSkipFlag(), Err::m_nOK );
   RNOK( xInitContextModels( rcSliceHeader ) );
-
   RNOK( CabaEncoder::start() );
 
   return Err::m_nOK;
@@ -504,7 +503,7 @@ ErrVal CabacWriter::BLSkipFlag( MbDataAccess& rcMbDataAccess )
 
 ErrVal CabacWriter::resPredFlag( MbDataAccess& rcMbDataAccess )
 {
-  UInt  uiSymbol = ( rcMbDataAccess.getMbData().getResidualPredFlag( PART_16x16 ) ? 1 : 0 );
+  UInt  uiSymbol = ( rcMbDataAccess.getMbData().getResidualPredFlag() ? 1 : 0 );
   UInt  uiCtx    = ( rcMbDataAccess.getMbData().getBLSkipFlag() ? 0 : 1 );
 
   RNOK( CabaEncoder::writeSymbol( uiSymbol, m_cResPredFlagCCModel.get( 0, uiCtx ) ) );

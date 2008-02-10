@@ -1853,7 +1853,9 @@ Extractor::xExtractPoints()
         uiLevel    = cPacketDescription.Level;
         uiFGSLayer = cPacketDescription.FGSLayer;
       }
+#if 0 // debug
       printf("Input NAL %d D %d T %d Q %d \n", cPacketDescription.NalUnitType, uiLayer, uiLevel, uiFGSLayer);
+#endif
       bApplyToNext = cPacketDescription.ApplyToNext;
       bNewPicture   = ( ! cPacketDescription.ParameterSet && ! cPacketDescription.ApplyToNext && !bFirstPacket );
       if((cPacketDescription.NalUnitType == 20 || cPacketDescription.NalUnitType == 21 ) && cPacketDescription.Layer == 0 && cPacketDescription.FGSLayer == 0 && getBaseLayerAVCCompatible())
@@ -2008,7 +2010,9 @@ Extractor::xExtractPoints()
       //============ write and release packet ============
       if( bKeep )
       {
+#if 0 // debug
         printf("D %d T %d Q %d \n", uiLayer, uiLevel, uiFGSLayer);
+#endif
         if( bCountStat )
         {
           auiHighestRetainedQualityId[cPacketDescription.Layer] = max( auiHighestRetainedQualityId[cPacketDescription.Layer], cPacketDescription.FGSLayer );
@@ -3118,11 +3122,11 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
       {
         if(m_pcH264AVCPacketAnalyzer->getNonRequiredSeiFlag() == 1)
           bKeep = 0;
-        //NonRequired JVT-Q066 (06-04-08){{
-        if( m_uiExtractNonRequiredPics == 1 && pcNonRequiredDescription && cPacketDescription.NalUnitType != NAL_UNIT_PPS &&
-          cPacketDescription.NalUnitType != NAL_UNIT_SPS && cPacketDescription.NalUnitType != NAL_UNIT_SEI)
-        //if( m_uiExtractNonRequiredPics == 1 && pcNonRequiredDescription)
-        //NonRequired JVT-Q066 (06-04-08)}}
+        if( m_uiExtractNonRequiredPics == 1 && pcNonRequiredDescription &&
+          cPacketDescription.NalUnitType != NAL_UNIT_PPS &&
+          cPacketDescription.NalUnitType != NAL_UNIT_SPS &&
+          cPacketDescription.NalUnitType != NAL_UNIT_SUBSET_SPS &&
+          cPacketDescription.NalUnitType != NAL_UNIT_SEI )
         {
           for(UInt i = 0; i <= pcNonRequiredDescription->getNumInfoEntriesMinus1(); i++)
           {

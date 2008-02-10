@@ -146,32 +146,17 @@ public:
   ErrVal        uninit  ();
   ErrVal        go      ();
 
-  //==== to remove ====
-  ErrVal initPacketToDecode(Bool &bDecode,
-                            BinData*& pcBinData,
-                            BinDataAccessor* cBinDataAccessor,
-                            Bool &bEOS,
-                            UInt& uiNalUnitType,
-                            UInt &uiMbX,
-                            UInt &uiMbY,
-                            UInt& uiSize,
-                            UInt rauiCropping[],
-                            UInt uiPreNalUnitType,
-                            Int iPos,
-                            MyList<BinData*>&  cVirtualSliceList,
-                            Bool bVirtualSlice);
-
 private:
-  ErrVal  xProcessAccessUnit( h264::AccessUnitSlices& rcAccessUnitSlices, 
-                              Bool&                   rbFirstAccessUnit,
-                              UInt&                   ruiNumProcessed );
-  ErrVal  xGetNewPicBuffer  ( PicBuffer*&             rpcPicBuffer,
-                              UInt                    uiSize );
-  ErrVal  xOutputNALUnits   ( BinDataList&            rcBinDataList, 
-                              UInt&                   ruiNumNALUnits );
-  ErrVal  xOutputPicBuffer  ( PicBufferList&          rcPicBufferOutputList, 
-                              UInt&                   ruiNumFrames );
-  ErrVal  xRemovePicBuffer  ( PicBufferList&          rcPicBufferUnusedList );
+  ErrVal  xProcessAccessUnit( h264::AccessUnit& rcAccessUnit, 
+                              Bool&             rbFirstAccessUnit,
+                              UInt&             ruiNumProcessed );
+  ErrVal  xGetNewPicBuffer  ( PicBuffer*&       rpcPicBuffer,
+                              UInt              uiSize );
+  ErrVal  xOutputNALUnits   ( BinDataList&      rcBinDataList, 
+                              UInt&             ruiNumNALUnits );
+  ErrVal  xOutputPicBuffer  ( PicBufferList&    rcPicBufferOutputList, 
+                              UInt&             ruiNumFrames );
+  ErrVal  xRemovePicBuffer  ( PicBufferList&    rcPicBufferUnusedList );
 
 private:
   Bool                          m_bInitialized;

@@ -58,7 +58,7 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 214,
+				bitrate => 215,
             		        psnr => 29.77,
             		      },
 			 
@@ -71,8 +71,8 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 696,
-            		        psnr => 33.50,
+				bitrate => 694,
+            		        psnr => 33.49,
             		        encdecmatch => 1,
             		      },
             		      #----------#
@@ -85,9 +85,9 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 385,
+				bitrate => 374,
 				useql     => 0,
-            		        psnr => 30.74,            		        
+            		        psnr => 30.76,            		        
             		      },
             		      #----------#
 		                   #----------#
@@ -99,9 +99,9 @@
             		        width => 352,
             		        height => 288,
             		        framerate => 15,
-				bitrate => 385,
+				bitrate => 367,
 				useql     => 1,
-            		        psnr => 31.06,            		        
+            		        psnr => 31.01,            		        
             		      },
 		  ],
 }

@@ -740,6 +740,36 @@ Transform::predictScaledACCoeffs(  TCoeff *piCoeff,
 	return Err::m_nOK;
 }
 
+ErrVal
+Transform::predictScaledChromaCoeffs( TCoeff *piCoeff, TCoeff *piRef, UInt uiRefQp )
+{
+  // DECLARATIONS
+  TCoeff  cPredCoeff[0x80] = {0};
+  UInt    uiDcAbs=0, uiAcAbs=0;
+
+  // Predict the chroma coefficients
+  predictChromaBlocks( cPredCoeff+0x00, piRef+0x00, uiRefQp, uiDcAbs, uiAcAbs  );
+  predictChromaBlocks( cPredCoeff+0x40, piRef+0x40, uiRefQp, uiDcAbs, uiAcAbs  );
+
+  for( UInt uiBlkOff = 0x00; uiBlkOff < 0x80; uiBlkOff += 0x10 )
+  {
+    TCoeff* piPredBlk = cPredCoeff  + uiBlkOff;
+    TCoeff* piCoefBlk = piCoeff     + uiBlkOff;
+
+    for( UInt i0 = 0; i0 < 16; i0++ )
+    {
+      piPredBlk[i0] = -piPredBlk[i0];
+    }
+    x4x4Dequant( piPredBlk, piPredBlk, m_cChromaQp );
+    for( UInt i1 = 0; i1 < 16; i1++ )
+    {
+      piCoefBlk[i1] = piPredBlk[i1];
+    }
+  }
+
+  return Err::m_nOK;
+}
+
 
 ErrVal Transform::addPrediction4x4Blk( TCoeff* piCoeff, TCoeff* piRefCoeff, UInt uiQp, UInt uiRefQp, UInt &uiCoded  )
 {	
