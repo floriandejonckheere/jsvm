@@ -86,14 +86,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define DEFAULTU 0
 #define DEFAULTV 0
 
-//#define OLD_DYADIC_UPSAMPLE //to be outcommented to use the old MPEG-4 (dyadic) upsampling filter for both luma and chroma
-
 #define FILTER_UP   int piFilter[16] = {  0,  0,  1,  0, -5,  0, 20,   32,   20,    0, -5,  0,  1,  0,  0,   64 };
 #define FILTER_UP_4 int piFilter[16] = {  0,  0,  0,  0, -3,  0, 19,   32,   19,    0, -3,  0,  0,  0,  0,   64 };
-#ifndef OLD_DYADIC_UPSAMPLE
-//cixunzhang add
 #define FILTER_UP_CHROMA   int piFilter_chroma[16] = {  0,  0,  0,  0, 0,  0, 16,   32,   16,    0, 0,  0,  0,  0,  0,   64 };
-#endif
 #define UPS4TAP 0
 #define FILTER_DOWN int piFilter[16] = {  0,  2,  0, -4, -3,  5, 19,   26,   19,    5, -3, -4,  0,  2,  0,   64 };
 
@@ -101,7 +96,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #ifndef DOWN_CONVERT_STATIC //TMM_JV
 #include "H264AVCCommonLib/MbDataCtrl.h"
 
-#define RESIDUAL_B8_BASED 0   // 1: residual upsampling is 8x8 based; 0: transform-block based
 #endif // DOWN_CONVERT_STATIC
 
 #include "ResizeParameters.h"
@@ -270,14 +264,14 @@ private:
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
                                   bool chroma, bool interlace,
                                   int output_chroma_phase_shift_x, int input_chroma_phase_shift_x,
-                                  unsigned char *buf_blocksize );
+                                  unsigned char *buf_blocksize, unsigned int level_idc );
   void   xFilterResidualVer     ( short *buf_in, short *buf_out, 
                                   int width, 
                                   int x, int y, int w, int h, 
                                   int wsize_in, int hsize_in, 
                                   bool chroma,  bool interlace,
                                   int output_chroma_phase_shift_y, int input_chroma_phase_shift_y,
-                                  unsigned char *buf_blocksize );
+                                  unsigned char *buf_blocksize, unsigned int level_idc, bool bField );
  						           
   void   xCrop                  ( short*            psBufferY, int iStrideY,
                                   short*            psBufferU, int iStrideU,

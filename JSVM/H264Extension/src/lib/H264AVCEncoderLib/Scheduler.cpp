@@ -146,14 +146,14 @@ ErrVal Scheduler::destroy()
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 //##ModelId=407BE99E002E
-ErrVal Scheduler::createBufferingSei( SEI::BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng* pcParameterSetMng)
+ErrVal Scheduler::createBufferingSei( SEI::BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng* pcParameterSetMng, UInt uiDQId )
 {
   ROF ( m_bInitDone );
 
   RNOK( SEI::BufferingPeriod::create( rpcBufferingPeriod, pcParameterSetMng ) );
 
   SequenceParameterSet *pcSPS;
-  RNOK( pcParameterSetMng->getActiveSPS( pcSPS ) );
+  RNOK( pcParameterSetMng->getActiveSPS( pcSPS, uiDQId ) );
 
   rpcBufferingPeriod->setHRD(pcSPS->getSeqParameterSetId(), pcSPS->isSubSetSPS(), m_apcHrd );
 

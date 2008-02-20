@@ -118,6 +118,7 @@ ResizeParameters::initRefListPoc ()
 {
 	for (Int i=0; i<MAX_REFLIST_SIZE;i++)
 	  {m_aiRefListPoc[0][i]=-1;m_aiRefListPoc[1][i]=-1;}
+  m_aiNumActive[0]=m_aiNumActive[1]=0;
 }
 
 Void

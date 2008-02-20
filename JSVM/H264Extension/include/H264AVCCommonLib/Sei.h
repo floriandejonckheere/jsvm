@@ -159,22 +159,6 @@ public:
 
 
 
-  class H264AVCCOMMONLIB_API ReservedSei : public SEIMessage
-  {
-  protected:
-    ReservedSei( UInt uiSize = 0 ) : SEIMessage(RESERVED_SEI), m_uiSize(uiSize) {}
-
-  public:
-    static ErrVal create( ReservedSei*&         rpcReservedSei,
-                          UInt                  uiSize );
-    ErrVal        write ( HeaderSymbolWriteIf*  pcWriteIf );
-    ErrVal        read  ( HeaderSymbolReadIf*   pcReadIf );
-
-  private:
-    UInt m_uiSize;
-  };
-
-
   class H264AVCCOMMONLIB_API SubSeqInfo : public SEIMessage
   {
   protected:
@@ -269,8 +253,8 @@ public:
 		Void setRewritingInfoFlag ( UInt uilayer, UInt bType, Bool bFlag )              { m_rewriting_info_flag             [uilayer][bType]  = bFlag;     }
 		Void setConversionTypeIdc ( UInt uilayer, UInt uiIdc )                          { m_conversion_type_idc   [uilayer]                   = uiIdc;     } 
 		Void setRewritingProfileLevelIdc ( UInt uilayer, UInt bType, Int32 uiIdc )      { m_rewriting_profile_level_idc     [uilayer][bType]  = uiIdc;     }
-		Void setRewritingAvgBitrate ( UInt uilayer, UInt bType, UInt uiBitrate )        { m_rewriting_avg_bitrate           [uilayer][bType]  = uiBitrate; }
-		Void setRewritingMaxBitrate ( UInt uilayer, UInt bType, UInt uiBitrate )        { m_rewriting_max_bitrate           [uilayer][bType]  = uiBitrate; }
+		Void setRewritingAvgBitrateBPS ( UInt uilayer, UInt bType, Double dBitrate )        { m_rewriting_avg_bitrate           [uilayer][bType]  = xConvertFromBPS( dBitrate ); }
+		Void setRewritingMaxBitrateBPS ( UInt uilayer, UInt bType, Double dBitrate )        { m_rewriting_max_bitrate           [uilayer][bType]  = xConvertFromBPS( dBitrate ); }
 //JVT-W046 }
 		//SEI changes update }
 		Void setLayerOutputFlag      ( UInt uilayer,Bool bFlag )                       {m_layer_output_flag													[uilayer] = bFlag; }//JVT-W047 wxwan
@@ -287,10 +271,10 @@ public:
   //JVT-S036 lsj start
     //Void setProfileLevelInfoSrcLayerIdDelta ( UInt uilayer, UInt uiIdc ) { m_profile_level_info_src_layer_id_delta [uilayer] = uiIdc; }//SEI changes update
 
-    Void setAvgBitrate ( UInt uilayer, UInt uiBitrate )                        { m_avg_bitrate                    [uilayer] = uiBitrate; }
-    Void setMaxBitrateLayer ( UInt uilayer, UInt uiBitrate )                    { m_max_bitrate_layer                [uilayer] = uiBitrate; }
+    Void setAvgBitrateBPS ( UInt uilayer, Double dBitrate )                        { m_avg_bitrate                    [uilayer] = xConvertFromBPS( dBitrate ); }
+    Void setMaxBitrateLayerBPS ( UInt uilayer, Double dBitrate )                    { m_max_bitrate_layer                [uilayer] = xConvertFromBPS( dBitrate ); }
     //Void setMaxBitrateDecodedPicture ( UInt uilayer, UInt uiBitrate )                { m_max_bitrate_decoded_picture            [uilayer] = uiBitrate; }
-		Void setMaxBitrateDecodedPicture ( UInt uilayer, UInt uiBitrate )                { m_max_bitrate_layer_representation            [uilayer] = uiBitrate; }//JVT-W051
+		Void setMaxBitrateDecodedPictureBPS ( UInt uilayer, Double dBitrate )                { m_max_bitrate_layer_representation            [uilayer] = xConvertFromBPS( dBitrate ); }//JVT-W051
     Void setMaxBitrateCalcWindow ( UInt uilayer, UInt uiBitrate )                  { m_max_bitrate_calc_window              [uilayer] = uiBitrate; }
   //JVT-S036 lsj end
 
@@ -459,8 +443,10 @@ public:
 		Bool   getRewritingInfoFlag ( UInt uilayer, UInt bType )         const { return m_rewriting_info_flag            [uilayer][bType]; }
 		UInt   getConversionTypeIdc ( UInt uilayer )                     const { return m_conversion_type_idc            [uilayer];        }
 		Int32  getRewritingProfileLevelIdc ( UInt uilayer, UInt bType )  const { return m_rewriting_profile_level_idc    [uilayer][bType]; }
-		UInt   getRewritingAvgBitrate ( UInt uilayer, UInt bType )       const { return m_rewriting_avg_bitrate          [uilayer][bType]; }
-		UInt   getRewritingMaxBitrate ( UInt uilayer, UInt bType )       const { return m_rewriting_max_bitrate          [uilayer][bType]; }
+		UInt   getRewritingAvgBitrateBPS ( UInt uilayer, UInt bType )       const { return xConvertToBPS( m_rewriting_avg_bitrate[uilayer][bType] ); }
+		UInt   getRewritingMaxBitrateBPS ( UInt uilayer, UInt bType )       const { return xConvertToBPS( m_rewriting_max_bitrate[uilayer][bType] ); }
+    UInt   getRewritingAvgBitrateCode( UInt uilayer, UInt bType )       const { return m_rewriting_avg_bitrate[uilayer][bType]; }
+    UInt   getRewritingMaxBitrateCode( UInt uilayer, UInt bType )       const { return m_rewriting_max_bitrate[uilayer][bType]; }
 		//JVT-W046 }
     //SEI changes update }
 		//JVT-W047 wxwan
@@ -478,10 +464,12 @@ public:
   //JVT-S036 lsj start
     //UInt getProfileLevelInfoSrcLayerIdDelta ( UInt uilayer) const { return m_profile_level_info_src_layer_id_delta [uilayer];}//SEI changes update
 
-    UInt getAvgBitrate ( UInt uilayer ) const { return m_avg_bitrate[uilayer]; }
-    UInt getMaxBitrateLayer ( UInt uilayer ) const { return m_max_bitrate_layer[uilayer]; }
-    //UInt getMaxBitrateDecodedPicture ( UInt uilayer ) const { return m_max_bitrate_decoded_picture[uilayer]; }
-		UInt getMaxBitrateDecodedPicture ( UInt uilayer ) const { return m_max_bitrate_layer_representation[uilayer]; }//JVT-W051
+    UInt getAvgBitrateCode ( UInt uilayer ) const { return m_avg_bitrate[uilayer]; }
+    UInt getMaxBitrateLayerCode ( UInt uilayer ) const { return m_max_bitrate_layer[uilayer]; }
+    UInt getMaxBitrateDecodedPictureCode ( UInt uilayer ) const { return m_max_bitrate_layer_representation[uilayer]; }
+    UInt getAvgBitrateBPS ( UInt uilayer ) const { return xConvertToBPS( m_avg_bitrate[uilayer] ); }
+    UInt getMaxBitrateLayerBPS ( UInt uilayer ) const { return xConvertToBPS( m_max_bitrate_layer[uilayer] ); }
+		UInt getMaxBitrateDecodedPictureBPS ( UInt uilayer ) const { return xConvertToBPS( m_max_bitrate_layer_representation[uilayer] ); }
     UInt getMaxBitrateCalcWindow ( UInt uilayer ) const { return m_max_bitrate_calc_window[uilayer]; }
   //JVT-S036 lsj end
 
@@ -564,8 +552,10 @@ public:
 		UInt getPrDependencyId ( UInt uilayer ) const { return m_pr_dependency_id [uilayer]; }
 		UInt getPrId ( UInt uilayer, UInt uiIndex ) const { return m_pr_id [uilayer][uiIndex]; }
 		Int32 getPrProfileLevelIdc ( UInt uilayer, UInt uiIndex ) const { return m_pr_profile_level_idc [uilayer][uiIndex]; }
-		UInt getPrAvgBitrate ( UInt uilayer, UInt uiIndex ) const { return m_pr_avg_bitrate [uilayer][uiIndex]; }
-		UInt getPrMaxBitrate ( UInt uilayer, UInt uiIndex ) const { return m_pr_max_bitrate [uilayer][uiIndex]; }
+    UInt getPrAvgBitrateCode( UInt uilayer, UInt uiIndex ) const { return m_pr_avg_bitrate [uilayer][uiIndex]; }
+    UInt getPrMaxBitrateCode( UInt uilayer, UInt uiIndex ) const { return m_pr_max_bitrate [uilayer][uiIndex]; }
+		UInt getPrAvgBitrateBPS ( UInt uilayer, UInt uiIndex ) const { return xConvertToBPS( m_pr_avg_bitrate [uilayer][uiIndex] ); }
+		UInt getPrMaxBitrateBPS ( UInt uilayer, UInt uiIndex ) const { return xConvertToBPS( m_pr_max_bitrate [uilayer][uiIndex] ); }
 		//void setQualityLayerInfoPresentFlag ( Bool bFlag ) { m_quality_layer_info_present_flag = bFlag; }	
 		void setPriorityLayerInfoPresentFlag ( Bool bFlag ) { m_priority_layer_info_present_flag = bFlag; }
 		//void setBitstreamRestrictionFlag ( UInt uilayer, Bool bFlag ){ m_bitstream_restriction_info_present_flag [uilayer] = bFlag; }	
@@ -591,11 +581,34 @@ public:
 		void setPrDependencyId ( UInt uilayer, UInt uiPrDependencyId ) { m_pr_dependency_id [uilayer] = uiPrDependencyId; }
 		void setPrId ( UInt uilayer, UInt uiIndex, UInt uiPrId ) { m_pr_id [uilayer][uiIndex] = uiPrId; }
 		void setPrProfileLevelIdx ( UInt uilayer, UInt uiIndex, Int32 uiPrProfileLevelIdc ) { m_pr_profile_level_idc [uilayer][uiIndex] = uiPrProfileLevelIdc; }
-		void setPrAvgBitrate ( UInt uilayer, UInt uiIndex, UInt uiPrAvgBitrate ) { m_pr_avg_bitrate [uilayer][uiIndex] = uiPrAvgBitrate; }
-		void setPrMaxBitrate ( UInt uilayer, UInt uiIndex, UInt uiPrMaxBitrate ) { m_pr_max_bitrate [uilayer][uiIndex] = uiPrMaxBitrate; }
+		void setPrAvgBitrateBPS ( UInt uilayer, UInt uiIndex, Double dPrAvgBitrate ) { m_pr_avg_bitrate [uilayer][uiIndex] = xConvertFromBPS(dPrAvgBitrate); }
+		void setPrMaxBitrateBPS ( UInt uilayer, UInt uiIndex, Double dPrMaxBitrate ) { m_pr_max_bitrate [uilayer][uiIndex] = xConvertFromBPS(dPrMaxBitrate); }
     //JVT-W051 }
     //SEI changes update }
- private:
+ 
+protected:
+    static UInt  xConvertToBPS( UInt x )
+    {
+      const UInt auiScale[4] = { 100, 1000, 10000, 100000 };
+      return ( x & 0x3fff ) * auiScale[ x >> 14 ];
+    }
+
+    static UInt  xConvertFromBPS( Double d )
+    {
+      const Double adScale[4] = { 100.0, 1000.0, 10000.0, 100000.0 };
+      for( UInt uiExp = 0; uiExp < 4; uiExp++ )
+      {
+        UInt x = (UInt)floor( d / adScale[ uiExp ] + 0.5 );
+        if( x < ( 1 << 14 ) )
+        {
+          return ( ( uiExp << 14 ) | x );
+        }
+      }
+      AOT(1);
+      return MSYS_UINT_MAX;
+    }
+
+private:
 // BUG_FIX liuhui{
     UInt m_std_AVC_Offset;
 // BUG_FIX liuhui}
@@ -980,7 +993,7 @@ public:
 
   // JVT-S080 LMI }
 // JVT-T073 {
-#define MAX_PICTURES_IN_ACCESS_UNIT 50
+#define MAX_LREP_IN_ACCESS_UNIT 50
   class H264AVCCOMMONLIB_API ScalableNestingSei : public SEIMessage
   {
   protected:
@@ -988,7 +1001,7 @@ public:
       : SEIMessage(SCALABLE_NESTING_SEI)
       , m_bAllPicturesInAuFlag  (0)
     , m_uiNumPictures         (0)
-    , m_pcSEIMessage          (NULL)
+    //, m_pcSEIMessage          (NULL)
     {}
 
   public:
@@ -1017,23 +1030,21 @@ public:
     Void setTemporalId( UInt uiValue ) { m_uiTemporalId = uiValue; }
     // JVT-V068 }
   //JVT-W062 {
-  UInt getTl0DepRepIdx() const { return m_uiTl0DepRepIdx; }
-  UInt getNestedSeiType() const { return m_uiNestedSeiType; }
 //  Void setTemporalId( UInt uiValue ) { m_uiTemporalId = uiValue; }
   private:
-    UInt  m_uiTl0DepRepIdx;
     UInt  m_uiTemporalId;
-    UInt  m_uiNestedSeiType;
   //JVT-W062 }  
     Bool  m_bAllPicturesInAuFlag;
     UInt  m_uiNumPictures;
-    UInt  m_auiDependencyId[MAX_PICTURES_IN_ACCESS_UNIT];
-    UInt  m_auiQualityLevel[MAX_PICTURES_IN_ACCESS_UNIT];
+    UInt  m_auiDependencyId[MAX_LREP_IN_ACCESS_UNIT];
+    UInt  m_auiQualityLevel[MAX_LREP_IN_ACCESS_UNIT];
     // JVT-V068 {
     //UInt  m_uiTemporalId;  //????
     // JVT-V068 }
-    SEIMessage *m_pcSEIMessage;
+    //SEIMessage *m_pcSEIMessage;
   };
+
+
   //scene_info is taken as en example
   class H264AVCCOMMONLIB_API SceneInfoSei : public SEIMessage
   {
@@ -1166,9 +1177,9 @@ public:
     };
 
   protected:
-    PicTiming( const VUI& rcVUI, UInt uiLayerIndex ) 
+    PicTiming( const VUI* pcVUI, UInt uiLayerIndex ) 
       : SEIMessage          ( PIC_TIMING )
-      , m_rcVUI             ( rcVUI )
+      , m_pcVUI             ( pcVUI )
       , m_uiLayerIndex      ( uiLayerIndex )
       , m_uiCpbRemovalDelay ( MSYS_UINT_MAX )
       , m_uiDpbOutputDelay  ( MSYS_UINT_MAX )
@@ -1177,7 +1188,8 @@ public:
 
   public:
     static ErrVal create( PicTiming*& rpcPicTiming, const VUI* pcVUI, UInt uiLayerIndex );
-    static ErrVal create( PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, Bool bSubSetSPS, UInt uiLayerIndex );
+    static ErrVal create( PicTiming*& rpcPicTiming, ParameterSetMng* pcParameterSetMng );
+    static ErrVal create( PicTiming*& rpcPicTiming, ParameterSetMng* pcParameterSetMng, UInt uiSPSId, Bool bSubSetSPS, UInt uiLayerIndex );
 
     Int  getTimestamp( UInt uiNum = 0, UInt uiLayerIndex = 0 );
     ErrVal setTimestamp( UInt uiNum, UInt uiLayerIndex, Int iTimestamp );
@@ -1195,7 +1207,7 @@ public:
     Void      setPicStruct(PicStruct ePicStruct) { m_ePicStruct = ePicStruct; }
 
   private:
-    const VUI& m_rcVUI;
+    const VUI* m_pcVUI;
     UInt m_uiLayerIndex;
 
     UInt m_uiCpbRemovalDelay;
@@ -1210,9 +1222,9 @@ public:
   public:
 
   protected:
-    AVCCompatibleHRD( VUI& rcVUI ) 
+    AVCCompatibleHRD( VUI* pcVUI ) 
       : SEIMessage          ( AVC_COMPATIBLE_HRD_SEI )
-      , m_rcVUI             ( rcVUI )
+      , m_pcVUI             ( pcVUI )
     {}
 
   public:
@@ -1222,7 +1234,7 @@ public:
     ErrVal read ( HeaderSymbolReadIf* pcReadIf );
 
   private:
-    VUI& m_rcVUI;
+    VUI* m_pcVUI;
   };
   // JVT-V068 HRD }
 

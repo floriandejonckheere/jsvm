@@ -51,7 +51,7 @@ public:
   static ErrVal create( Scheduler*& rpcScheduler );
   ErrVal destroy();
 
-  ErrVal createBufferingSei( SEI::BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng* pcParameterSetMng);
+  ErrVal createBufferingSei( SEI::BufferingPeriod*& rpcBufferingPeriod, ParameterSetMng* pcParameterSetMng, UInt uiDQId );
   ErrVal createTimingSei( SEI::PicTiming*& rpcPicTiming, const VUI* pcVui, UInt uiPicNumOffset, SliceHeader &rcSH, UInt uiInputFormat, UInt uiLayerIndex);
 
   ErrVal calculateTiming( UInt uiVclSize, UInt uiAUSize, Bool bIsIdr, Bool bFieldPicFlag);

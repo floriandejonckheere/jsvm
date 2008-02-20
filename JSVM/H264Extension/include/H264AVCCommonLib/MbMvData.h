@@ -231,9 +231,6 @@ public:
   Void field2frame( const MbMotionData& rcMbMotionDataTopField, const MbMotionData& rcMbMotionDataBotField, Bool bTopFrameMb );
   Void frame2field( const MbMotionData& rcMbMotionDataTop, const MbMotionData& rcMbMotionDataBot, PicType eMbPicType, Bool bSameSlice );
  
-  Void field2FrameRefIdx();
-  Void frame2FieldRefIdx();
-  
   BlkMode getBlkMode( const ParIdx8x8 eParIdx, BlkMode eBlkMode );
   MbMotionData()
     : MbMvData        (        ),
@@ -306,10 +303,8 @@ public:
   
   ErrVal  upsampleMotion( const MbMotionData& rcMbMvData, Par8x8 ePar8x8 );
 
-// TMM_ESS {
-  ErrVal upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , ResizeParameters* pcParameters );
-  ErrVal upsampleMotionNonDyad( SChar* scBl8x8RefIdx , Mv* acBl4x4Mv , ResizeParameters* pcParameters , Mv deltaMv[4] ); 
-// TMM_ESS }
+  ErrVal copyMotion( SChar* pscBl4x4RefIdx, Mv* acBl4x4Mv );
+
 private:
   SChar xFrameFieldConversion( SChar sRefIdx, PicType ePicType ) const
   {

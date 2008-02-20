@@ -171,9 +171,7 @@ CreaterH264AVCEncoder::SetVeryFirstCall()
 
 ErrVal
 CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,
-                                           // JVT-V068 {
-                                           SequenceParameterSet* pcAVCSPS,
-                                           // JVT-V068 }
+                                           SequenceParameterSet*& rpcAVCSPS,
                                            Bool&               rbMoreSets )
 {
   if( m_pcCodingParameter->getAVCmode() )
@@ -182,11 +180,7 @@ CreaterH264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAcces
     m_pcH264AVCEncoder->setScalableSEIMessage(); // due to Nokia's (Ye-Kui's) weird implementation
     return Err::m_nOK;
   }
-  RNOK( m_pcH264AVCEncoder->writeParameterSets( pcExtBinDataAccessor
-                                           		// JVT-V068 {
-												, pcAVCSPS
-                                           		// JVT-V068 }
-												, rbMoreSets ) );
+  RNOK( m_pcH264AVCEncoder->writeParameterSets( pcExtBinDataAccessor, rpcAVCSPS, rbMoreSets ) );
   return Err::m_nOK;
 }
 

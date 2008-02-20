@@ -459,7 +459,8 @@ private:
 
   //===== picture processing =====
   ErrVal  xCheckForMissingSlices      ( const SliceDataNALUnit& rcSliceDataNalUnit );
-  ErrVal  xSetLoopFilterQPs           ( MbDataCtrl&             rcMbDataCtrl );
+  ErrVal  xSetLoopFilterQPs           ( SliceHeader&            rcSliceHeader,
+                                        MbDataCtrl&             rcMbDataCtrl );
 #ifdef SHARP_AVC_REWRITE_OUTPUT
   ErrVal  xRewritePicture             ( BinDataList&            rcBinDataList,
                                         MbDataCtrl&             rcMbDataCtrl );

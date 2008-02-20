@@ -386,23 +386,36 @@ public:
   Int   getTopFieldPoc()           const { return m_iTopFieldPoc; }
   Int   getBotFieldPoc()           const { return m_iBotFieldPoc; }
 
-  Void  setTopFieldPoc( Int iPoc );
-  Void  setBotFieldPoc( Int iPoc );
 	Void  setPoc        ( Int iPoc )       { m_iPoc = iPoc; m_bPocIsSet = true; }
 	Void  setPoc        ( const SliceHeader& rcSH )
 	{ 
 		ASSERT( m_ePicType==FRAME );
 		const PicType ePicType = rcSH.getPicType();
 
-		if( ePicType & TOP_FIELD )
-		{
-			setTopFieldPoc( rcSH.getTopFieldPoc() );
-		}
-		if( ePicType & BOT_FIELD )
-		{
-			setBotFieldPoc( rcSH.getBotFieldPoc() );
-		}
-	}
+    if( ePicType & TOP_FIELD )
+    {
+      m_iTopFieldPoc = rcSH.getTopFieldPoc();
+      if( m_pcIntFrameTopField && m_pcIntFrameBotField )
+      {
+        m_pcIntFrameTopField->setPoc( m_iTopFieldPoc );
+        setPoc( m_pcIntFrameBotField->isPocAvailable() ? max( m_pcIntFrameBotField->getPoc(), m_iTopFieldPoc ) : m_iTopFieldPoc );
+      }
+    }
+    if( ePicType & BOT_FIELD )
+    {
+      m_iBotFieldPoc = rcSH.getBotFieldPoc();
+      if( m_pcIntFrameTopField && m_pcIntFrameBotField )
+      {
+        m_pcIntFrameBotField->setPoc( m_iBotFieldPoc );
+        setPoc( m_pcIntFrameTopField->isPocAvailable() ? min( m_pcIntFrameTopField->getPoc(), m_iBotFieldPoc ) : m_iBotFieldPoc );
+      }
+    }
+    if( ! m_pcIntFrameTopField || ! m_pcIntFrameBotField )
+    {
+      setPoc( max( m_iTopFieldPoc, m_iBotFieldPoc ) );
+    }
+  }
+
 
 //JVT-S036 lsj{
   Int	getFrameNum()	  const		{ return m_iFrameNum; }

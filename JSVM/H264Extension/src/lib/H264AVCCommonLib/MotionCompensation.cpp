@@ -1005,95 +1005,81 @@ Void MotionCompensation::xPredMb8x8Mode(       B8x8Idx         c8x8Idx,
   m_pcSampleWeighting->weightChromaSamples( pcRecBuffer, 4, 4, c8x8Idx, cMC8x8D.m_apcPW[LIST_0], cMC8x8D.m_apcPW[LIST_1] );
 }
 
-ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess&      rcMbDataAccess,
-                                                    YuvMbBuffer*    pcRecBuffer,
-                                                    Frame*          pcBaseLayerRec )
+ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess& rcMbDataAccess,
+                                                    YuvMbBuffer*  pcRecBuffer,
+                                                    Frame*        pcBaseLayerRec )
 {
   ROFRS( rcMbDataAccess.getMbData().getBLSkipFlag(), Err::m_nOK );
+  ROFRS( m_pcResizeParameters,                                                      Err::m_nOK ); // MGS (quality_id > 0)
+  ROTRS( m_pcResizeParameters->m_bBaseIsMbAff || m_pcResizeParameters->m_bIsMbAff,  Err::m_nOK );
+  ROTRS( m_pcResizeParameters->m_iSpatialScalabilityType <= SST_RATIO_2,            Err::m_nOK );
 
-  //=== not allowed when current or reference layer is MBAFF (see text JVT-X201) ====
-  ROTRS( m_pcResizeParameters && ( m_pcResizeParameters->m_bBaseIsMbAff || m_pcResizeParameters->m_bIsMbAff ), Err::m_nOK );
-
-  MbDataAccess* pcMbDataAccessBase = rcMbDataAccess.getMbDataAccessBase();
-  MbData&         rcMbData          = pcMbDataAccessBase->getMbData          ();
-  ResizeParameters*	 pcParameters   = m_pcResizeParameters;
-  YuvMbBuffer cBaseMbRec;
-
-//TMM_INTERLACE {
-//	if(rcMbData.getBaseMbData(1)==0 && rcMbData.getBaseMbData(2)==0)
-	if(rcMbData.getBaseMbMode(1)==NOT_AVAILABLE && rcMbData.getBaseMbMode(2)==NOT_AVAILABLE)
-//TMM_INTERLACE }
-    return Err::m_nOK;
-
-  Int iMbX = rcMbDataAccess.getMbX();
-  Int iMbY = rcMbDataAccess.getMbY();
-
-  Int iScaledBaseOrigX = pcParameters->m_iPosX;
-  Int iScaledBaseOrigY = pcParameters->m_iPosY; 
-
-  Int iInWidth = pcParameters->m_iInWidth;
-  Int iInHeight = pcParameters->m_iInHeight;
-  Int iOutWidth = pcParameters->m_iOutWidth;
-  Int iOutHeight = pcParameters->m_iOutHeight;
-
-//TMM_INTERLACE {
-	if (rcMbDataAccess.m_bMbAff && rcMbDataAccess.m_eMbPicType != FRAME)
-	{
-		iMbY /= 2;
-		iScaledBaseOrigY /= 2;
-		iOutHeight /= 2;
-	}
-//TMM_INTERLACE }
-
-
-  Int cX, cY;
-  Int cBaseX, cBaseY;
-
-  cBaseX = (((((16*iMbX-iScaledBaseOrigX+13)*iInWidth  + iOutWidth /2) / iOutWidth)>>4)<<4); 
-  cBaseY = (((((16*iMbY-iScaledBaseOrigY+13)*iInHeight + iOutHeight/2) / iOutHeight)>>4)<<4); 
-
-//TMM_INTERLACE {
-  /*cX = rcMbData.getBaseMbData(1)?((cBaseX*iOutWidth + iInWidth/2 )/iInWidth + iScaledBaseOrigX)%16:16;
-  cY = rcMbData.getBaseMbData(2)?((cBaseY*iOutHeight + iInHeight/2)/iInHeight + iScaledBaseOrigY)%16:16;*/
-  cX = (rcMbData.getBaseMbMode(1)!=NOT_AVAILABLE) ?((cBaseX*iOutWidth + iInWidth/2 )/iInWidth + iScaledBaseOrigX)%16:16;
-  cY = (rcMbData.getBaseMbMode(2)!=NOT_AVAILABLE) ?((cBaseY*iOutHeight + iInHeight/2)/iInHeight + iScaledBaseOrigY)%16:16;
-//TMM_INTERLACE }
-
-  cBaseMbRec.loadBuffer(((Frame*)pcBaseLayerRec)->getFullPelYuvBuffer());
-
-//TMM_INTERLACE {
-  /*if(!rcMbData.getBaseMbData(0)->isIntraSlice() || 
-     (cX<16 && !rcMbData.getBaseMbData(1)->isIntraSlice()) ||
-     (cY<16 && !rcMbData.getBaseMbData(2)->isIntraSlice()) ||
-     (cX<16 && cY<16 && !rcMbData.getBaseMbData(3)->isIntraSlice())) // Otherwise, INTRA_BL, not handled here
+  Int iMbX      = rcMbDataAccess.getMbX() * 16;
+  Int iMbY      = rcMbDataAccess.getMbY() * 16;
+  Int iRefW     = m_pcResizeParameters->m_iInWidth;
+  Int iRefH     = m_pcResizeParameters->m_iInHeight;
+  Int iScaledW  = m_pcResizeParameters->m_iOutWidth;
+  Int iScaledH  = m_pcResizeParameters->m_iOutHeight;
+  Int iLeftOff  = m_pcResizeParameters->m_iPosX;
+  Int iTopOff   = m_pcResizeParameters->m_iPosY;
+  if( m_pcResizeParameters->m_bFieldPicFlag )
   {
-    if(rcMbData.getBaseMbData(0)->isIntraSlice())
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, 0, cX, cY);
-    if(cX<16 && rcMbData.getBaseMbData(1)->isIntraSlice())
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, 0, 16, cY);
-    if(cY<16 && rcMbData.getBaseMbData(2)->isIntraSlice())
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, cY, cX, 16);
-    if(cX<16 && cY<16 && rcMbData.getBaseMbData(3)->isIntraSlice())
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, cY, 16, 16);
-  }*/
-//((Frame*)pcBaseLayerRec)->getFullPelYuvBuffer()->write();
-
-  if( (rcMbData.getBaseMbMode(0)!=INTRA_4X4) || 
-      (cX<16 && rcMbData.getBaseMbMode(1)!=INTRA_4X4) ||
-      (cY<16 && rcMbData.getBaseMbMode(2)!=INTRA_4X4) ||
-      (cX<16 && cY<16 && rcMbData.getBaseMbMode(3)!=INTRA_4X4) ) // Otherwise, INTRA_BL, not handled here
-  {
-    if(rcMbData.getBaseMbMode(0)==INTRA_4X4)
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, 0, cX, cY);
-    if(cX<16 && rcMbData.getBaseMbMode(1)==INTRA_4X4)
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, 0, 16, cY);
-    if(cY<16 && rcMbData.getBaseMbMode(2)==INTRA_4X4)
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, 0, cY, cX, 16);
-    if(cX<16 && cY<16 && rcMbData.getBaseMbMode(3)==INTRA_4X4)
-      copyMbBuffer(&cBaseMbRec, pcRecBuffer, cX, cY, 16, 16);
+    iScaledH   /= 2;
+    iTopOff    /= 2;
   }
-//TMM_INTERLACE }
+  if( m_pcResizeParameters->m_bBaseFieldPicFlag )
+  {
+    iRefH      /= 2;
+  }
+  Int iShiftX   = ( m_pcResizeParameters->m_level_idc <= 30 ? 16 : 31 - PosCalcParam::CeilLog2( iRefW ) ); 
+  Int iShiftY   = ( m_pcResizeParameters->m_level_idc <= 30 ? 16 : 31 - PosCalcParam::CeilLog2( iRefH ) ); 
+  Int iScaleX   = ( ( iRefW << iShiftX ) + ( iScaledW >> 1 ) ) / iScaledW;
+  Int iScaleY   = ( ( iRefH << iShiftY ) + ( iScaledH >> 1 ) ) / iScaledH;
+  Int iBaseMbX0 = ( ( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
+  Int iBaseMbY0 = ( ( ( iMbY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY ) >> 4;
+  Int iCX       = 0;
+  Int iCY       = 0;
 
+  //----- determine first location that points to a different macroblock (not efficient implementation!) -----
+  for( ; iCX < 16; iCX++ )
+  {
+    Int iBaseMbX = ( ( ( iMbX + iCX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
+    if( iBaseMbX > iBaseMbX0 )
+    {
+      break;
+    }
+  }
+  for( ; iCY < 16; iCY++ )
+  {
+    Int iBaseMbY = ( ( ( iMbY + iCY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY ) >> 4;
+    if( iBaseMbY > iBaseMbY0 )
+    {
+      break;
+    }
+  }
+
+  //----- load intra data -----
+  YuvMbBuffer cBaseMbRec;
+  cBaseMbRec.loadBuffer( pcBaseLayerRec->getFullPelYuvBuffer() );
+
+  //----- copy intra data -----
+  MbData& rcMbData = rcMbDataAccess.getMbDataAccessBase()->getMbData();
+  if( rcMbData.isBaseIntra( 0, 0 ) )
+  {
+    RNOK( copyMbBuffer( &cBaseMbRec, pcRecBuffer, 0, 0, iCX, iCY ) );
+  }
+  if( rcMbData.isBaseIntra( 1, 0 ) && iCX < 16 )
+  {
+    RNOK( copyMbBuffer( &cBaseMbRec, pcRecBuffer, iCX, 0, 16, iCY ) );
+  }
+  if( rcMbData.isBaseIntra( 0, 1 ) && iCY < 16 )
+  {
+    RNOK( copyMbBuffer( &cBaseMbRec, pcRecBuffer, 0, iCY, iCX, 16 ) );
+  }
+  if( rcMbData.isBaseIntra( 1, 1 ) && iCX < 16 && iCY < 16 )
+  {
+    RNOK( copyMbBuffer( &cBaseMbRec, pcRecBuffer, iCX, iCY, 16, 16 ) );
+  }
   return Err::m_nOK;
 }
 

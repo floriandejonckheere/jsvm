@@ -146,8 +146,9 @@ public:
   {}
   ~AccessUnitData ()                                            {}
 
-  UInt                    getAUIndex      () const          { return m_uiAUIndex; }
-  ExtBinDataAccessorList& getNalUnitList  ()                { return m_cNalUnitList; }
+  UInt                    getAUIndex        () const          { return m_uiAUIndex; }
+  ExtBinDataAccessorList& getNalUnitList    ()                { return m_cNalUnitList; }
+  ExtBinDataAccessorList& getRedNalUnitList ()                { return m_cRedNalUnitList; }
   //NonRequired JVT-Q066 (06-04-08){{
   ErrVal				  CreatNonRequiredSei()				{ RNOK(SEI::NonRequiredSei::create( m_pcNonRequiredSei)) return Err::m_nOK;}
   SEI::NonRequiredSei*	  getNonRequiredSei()				{ return m_pcNonRequiredSei; }
@@ -161,6 +162,7 @@ public:
 private:
   UInt                    m_uiAUIndex;
   ExtBinDataAccessorList  m_cNalUnitList;
+  ExtBinDataAccessorList  m_cRedNalUnitList;
   SEI::NonRequiredSei*	  m_pcNonRequiredSei; //NonRequired JVT-Q066 (06-04-08)
 	SEI::IntegrityCheckSEI* m_pcIntegrityCheckSei;//JVT-W052
 };
@@ -195,6 +197,9 @@ public:
       ExtBinDataAccessorList& rcNaluList = m_cAccessUnitDataList.front().getNalUnitList();
       rcOutputList += rcNaluList;
       rcNaluList.clear();
+      ExtBinDataAccessorList& rcRedNaluList = m_cAccessUnitDataList.front().getRedNalUnitList();
+      rcOutputList += rcRedNaluList;
+      rcRedNaluList.clear();
       m_cAccessUnitDataList.pop_front();
     }
   }

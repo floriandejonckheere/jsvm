@@ -270,10 +270,11 @@ public:
   const SliceHeader*      getLastSliceHeader  ()  const   { return m_pcLastSliceHeader; }
 
 private:
-  Void  xSetComplete  ( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit = 0,
-                        SliceHeader*      pcFirstSliceHeaderOfNextAccessUnit      = 0 );
-  Void  xSetParameters();
-  Void  xReInit       ();
+  Void  xSetComplete      ( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessUnit = 0,
+                            SliceHeader*      pcFirstSliceHeaderOfNextAccessUnit      = 0 );
+  Void  xSetParameters    ();
+  Void  xRemoveRedundant  ();
+  Void  xReInit           ();
 
 private:
   Bool              m_bEndOfStream;

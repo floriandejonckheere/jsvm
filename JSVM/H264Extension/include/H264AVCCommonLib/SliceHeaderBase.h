@@ -639,6 +639,7 @@ public:
   Bool                            getTCoeffLevelPredictionFlag          ()                    const { return m_bTCoeffLevelPredictionFlag; }
   UInt                            getScanIdxStart                       ()                    const { return m_uiScanIdxStart; }
   UInt                            getScanIdxStop                        ()                    const { return m_uiScanIdxStop; }
+  Bool                            hasDefaultScanIdx                     ()                    const { return m_uiScanIdxStart == 0 && m_uiScanIdxStop == 16; }
   Bool                            parameterSetsInitialized              ()                    const { return m_pcPPS != 0 && m_pcSPS != 0; }
   const SequenceParameterSet&     getSPS                                ()                    const { AOF( parameterSetsInitialized() ); return *m_pcSPS; }
   const PictureParameterSet&      getPPS                                ()                    const { AOF( parameterSetsInitialized() ); return *m_pcPPS; }

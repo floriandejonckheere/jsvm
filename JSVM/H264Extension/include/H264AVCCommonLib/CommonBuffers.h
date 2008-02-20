@@ -120,6 +120,20 @@ public:
     return Err::m_nOK;
   }
 
+  ErrVal reinit( UInt uiAddBufferSize )
+  {
+    T* pT = new T [ m_uiBufferSize + uiAddBufferSize ];
+    ROF( pT );
+    for( UInt ui = 0; ui < m_uiBufferSize; ui++ )
+    {
+      pT[ui] = m_pT[ui];
+    }
+    delete [] m_pT;
+    m_pT = pT;
+    m_uiBufferSize += uiAddBufferSize;
+    return Err::m_nOK;
+  }
+
   ErrVal uninit()
   {
     if( m_pT != 0 )
@@ -143,6 +157,12 @@ public:
       m_pT[ uiIndex ] = rcDynBuf.m_pT[ uiIndex ];
     }
     return Err::m_nOK;
+  }
+
+  const DynBuf<T>& operator = ( const DynBuf<T>& rcDynBuf )
+  {
+    ANOK( copy( rcDynBuf ) );
+    return *this;
   }
 
   T& get( UInt uiOffset ) const

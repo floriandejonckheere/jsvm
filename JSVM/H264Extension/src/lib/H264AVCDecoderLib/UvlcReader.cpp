@@ -138,6 +138,28 @@ const UChar g_aucCodeTableTZ4[3][4] =
   { 1, 0, 0, 0,},
 };
 
+const UChar g_aucLenTableTZ8[7][8] =
+{
+  { 1, 3, 3, 4, 4, 4, 5, 5 },
+  { 3, 2, 3, 3, 3, 3, 3    },
+  { 3, 3, 2, 2, 3, 3       },
+  { 3, 2, 2, 2, 3          },
+  { 2, 2, 2, 2             },
+  { 2, 2, 1                },
+  { 1, 1                   }
+};
+
+const UChar g_aucCodeTableTZ8[7][8] =
+{
+  { 1, 2, 3, 2, 3, 1, 1, 0 },
+  { 0, 1, 1, 4, 5, 6, 7    },
+  { 0, 1, 1, 2, 6, 7       },
+  { 6, 0, 1, 2, 7          },
+  { 0, 1, 2, 3             },
+  { 0, 1, 1                },
+  { 0, 1                   }
+};
+
 const UChar g_aucLenTableTZ16[TOTRUN_NUM][16] =
 {
 
@@ -930,8 +952,7 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   RNOK( xGetUvlcCode( uiTemp ) );
   Bool bIntra = ( !rcMbDataAccess.getMbData().getBLSkipFlag() && rcMbDataAccess.getMbData().isIntra() );
   UInt uiCbp;
-#if NOK_MGSCAVLC
-  if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
+  if( ! rcMbDataAccess.getSH().hasDefaultScanIdx() )
   {
     if( uiTemp == 0 )
     {
@@ -952,7 +973,6 @@ ErrVal UvlcReader::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
     }
   }
   else
-#endif
   {
     uiCbp  = ( bIntra ? g_aucCbpIntra[uiTemp]: g_aucCbpInter[uiTemp] );
   }
@@ -1045,10 +1065,8 @@ ErrVal UvlcReader::residualBlock( MbDataAccess& rcMbDataAccess,
       DTRACE_T( "Luma:" );
       DTRACE_V( cIdx );
       DTRACE_N;
-
       xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes, uiStart, uiStop );
-      ROF( uiStart == 0 && uiStop == 16 );
-      xGetRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 15, uiTotalRun, rcMbDataAccess );
+      xGetRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, uiStop - max(1,uiStart), uiTotalRun, rcMbDataAccess );
       break;
     }
   case LUMA_SCAN:
@@ -1238,24 +1256,27 @@ ErrVal UvlcReader::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cId
 {
   UInt uiCoeffCountCtx = rcMbDataAccess.getCtxCoeffCount( cIdx, uiStart, uiStop );
 
-#if NOK_MGSCAVLC
-  if( uiStop-uiStart != 16 )
+  if( ! rcMbDataAccess.getSH().hasDefaultScanIdx() )
   {
-    UInt uiCodePos, ui, uj;
-    UInt uiBw   = uiStop-uiStart;
-    UInt uiXdim = min(16,uiBw)+1;
-    UInt uiYdim = min(3, uiBw)+1;
+    UInt uiDummy, uiTargetCoeffTokenIdx;
+    RNOK( xCodeFromBitstream2D( &g_aucCwCodeVectTO16[uiCoeffCountCtx][0], &g_aucCwLenVectTO16[uiCoeffCountCtx][0], 62, 1, uiTargetCoeffTokenIdx, uiDummy ) );
 
     uiCoeffCountCtx = min(uiCoeffCountCtx, 2);
-    RNOK( xCodeFromBitstream2D( &g_aucCwCodeVectTO16[uiCoeffCountCtx][0], &g_aucCwLenVectTO16[uiCoeffCountCtx][0], 62, 1, uiCodePos, ui ) );
-    for( ui=uj=0; uj<=uiCodePos; ui++ )
-      if( g_aucCwMapTO16[uiCoeffCountCtx][ui] < uiYdim && g_aucCwMapTC16[uiCoeffCountCtx][ui] < uiXdim )
-        uj++;
-    uiTrailingOnes = g_aucCwMapTO16[uiCoeffCountCtx][ui-1];
-    uiCoeffCount   = g_aucCwMapTC16[uiCoeffCountCtx][ui-1];
+    UInt uiBw       = uiStop-uiStart;
+    UInt uiXdim     = min(16,uiBw)+1;
+    UInt uiYdim     = min(3, uiBw)+1;
+    UInt uiCoeffTokenIdx, uiIdx;
+    for( uiCoeffTokenIdx = uiIdx = 0; uiIdx <= uiTargetCoeffTokenIdx; uiCoeffTokenIdx++ )
+    {
+      if( g_aucCwMapTO16[uiCoeffCountCtx][uiCoeffTokenIdx] < uiYdim && g_aucCwMapTC16[uiCoeffCountCtx][uiCoeffTokenIdx] < uiXdim )
+      {
+        uiIdx++;
+      }
+    }
+    uiTrailingOnes = g_aucCwMapTO16[uiCoeffCountCtx][uiCoeffTokenIdx-1];
+    uiCoeffCount   = g_aucCwMapTC16[uiCoeffCountCtx][uiCoeffTokenIdx-1];
   }
   else
-#endif
   {
     xGetTrailingOnes16( uiCoeffCountCtx, uiCoeffCount, uiTrailingOnes );
   }
@@ -1270,24 +1291,27 @@ ErrVal UvlcReader::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx c
 {
   UInt uiCoeffCountCtx = rcMbDataAccess.getCtxCoeffCount( cIdx, uiStart, uiStop );
 
-#if NOK_MGSCAVLC
-  if( uiStop-uiStart != 16 )
+  if( ! rcMbDataAccess.getSH().hasDefaultScanIdx() )
   {
-    UInt uiCodePos, ui, uj;
-    UInt uiBw     = uiStop-uiStart;
-    UInt uiXdim   = min(16,uiBw)+1;
-    UInt uiYdim   = min(3, uiBw)+1;
+    UInt uiDummy, uiTargetCoeffTokenIdx;
+    RNOK( xCodeFromBitstream2D( &g_aucCwCodeVectTO16[uiCoeffCountCtx][0], &g_aucCwLenVectTO16[uiCoeffCountCtx][0], 62, 1, uiTargetCoeffTokenIdx, uiDummy ) );
 
     uiCoeffCountCtx = min(uiCoeffCountCtx, 2);
-    RNOK( xCodeFromBitstream2D( &g_aucCwCodeVectTO16[uiCoeffCountCtx][0], &g_aucCwLenVectTO16[uiCoeffCountCtx][0], 62, 1, uiCodePos, ui ) );
-    for( ui=uj=0; uj<=uiCodePos; ui++ )
-      if( g_aucCwMapTO16[uiCoeffCountCtx][ui] < uiYdim && g_aucCwMapTC16[uiCoeffCountCtx][ui] < uiXdim )
-        uj++;
-    uiTrailingOnes = g_aucCwMapTO16[uiCoeffCountCtx][ui-1];
-    uiCoeffCount   = g_aucCwMapTC16[uiCoeffCountCtx][ui-1];
+    UInt uiBw       = uiStop-uiStart;
+    UInt uiXdim     = min(16,uiBw)+1;
+    UInt uiYdim     = min(3, uiBw)+1;
+    UInt uiCoeffTokenIdx, uiIdx;
+    for( uiCoeffTokenIdx = uiIdx = 0; uiIdx <= uiTargetCoeffTokenIdx; uiCoeffTokenIdx++ )
+    {
+      if( g_aucCwMapTO16[uiCoeffCountCtx][uiCoeffTokenIdx] < uiYdim && g_aucCwMapTC16[uiCoeffCountCtx][uiCoeffTokenIdx] < uiXdim )
+      {
+        uiIdx++;
+      }
+    }
+    uiTrailingOnes = g_aucCwMapTO16[uiCoeffCountCtx][uiCoeffTokenIdx-1];
+    uiCoeffCount   = g_aucCwMapTC16[uiCoeffCountCtx][uiCoeffTokenIdx-1];
   }
   else
-#endif
   {
     xGetTrailingOnes16( uiCoeffCountCtx, uiCoeffCount, uiTrailingOnes );
   }
@@ -1319,37 +1343,9 @@ ErrVal UvlcReader::xGetTrailingOnes16( UInt uiLastCoeffCount, UInt& uiCoeffCount
   }
   else
   {
-    assert (uiLastCoeffCount < 3);
-
-#if NOK_MGSCAVLC
-    UInt uiCodePos, uiDummy;
-    RNOK( xCodeFromBitstream2D( &g_aucCwCodeVectTO16[uiLastCoeffCount][0], &g_aucCwLenVectTO16[uiLastCoeffCount][0], 62, 1, uiCodePos, uiDummy ) );
-    uiTrailingOnes = g_aucCwMapTO16[uiLastCoeffCount][uiCodePos];
-    uiCoeffCount   = g_aucCwMapTC16[uiLastCoeffCount][uiCodePos];
-    DTRACE_DO( m_uiBitCounter = g_aucCwLenVectTO16[uiLastCoeffCount][uiCodePos] );
-
-    //(HK) the following is to demonstrate that the new VLC tables have the same behavior as the old ones
-    static Bool bOnce = true;
-    if( bOnce )
-    {
-      for( UInt uiLCC = 0; uiLCC < 3; uiLCC++ )
-      {
-        for( UInt ui = 0; ui < 62; ui++ )
-        {
-          UInt uiTO = g_aucCwMapTO16[uiLCC][ui];
-          UInt uiCC = g_aucCwMapTC16[uiLCC][ui];
-
-          ROF( g_aucCwCodeVectTO16[uiLCC][ui] == g_aucCodeTableTO16[uiLCC][uiTO][uiCC] );
-          ROF( g_aucCwLenVectTO16[uiLCC][ui]  == g_aucLenTableTO16[uiLCC][uiTO][uiCC] );
-        }
-      }
-    }
-    bOnce = false;
-    //(HK) end
-#else
+    ROF( uiLastCoeffCount < 3 );
     RNOK( xCodeFromBitstream2D( &g_aucCodeTableTO16[uiLastCoeffCount][0][0], &g_aucLenTableTO16[uiLastCoeffCount][0][0], 17, 4, uiCoeffCount, uiTrailingOnes ) );
     DTRACE_DO( m_uiBitCounter = g_aucLenTableTO16[uiLastCoeffCount][uiTrailingOnes][uiCoeffCount] );
-#endif
   }
 
   DTRACE_T( "  TrailingOnes16: Vlc: " );
@@ -1480,32 +1476,33 @@ ErrVal UvlcReader::xGetRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTraili
 
 
   uiVlcTable = uiCoeffCnt-1;
-  if( uiMaxCoeffs <= 4 )
+  if( ! rcMbDataAccess.getSH().hasDefaultScanIdx() )
   {
-#if NOK_MGSCAVLC
-    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
+    if( uiMaxCoeffs <= 4 )
     {
       UInt uiTempVlcTable = min(uiVlcTable + 4-uiMaxCoeffs, 2);
       xGetTotalRun4( uiTempVlcTable, uiTotalRun );
     }
-    else
-#endif
+    else if( uiMaxCoeffs <= 8 )
     {
-      xGetTotalRun4( uiVlcTable, uiTotalRun );
+      UInt uiTempVlcTable = min(uiVlcTable + 8-uiMaxCoeffs, 6);
+      xGetTotalRun8( uiTempVlcTable, uiTotalRun );
     }
-  }
-  else
-  {
-#if NOK_MGSCAVLC
-    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
+    else
     {
       UInt uiTempVlcTable = uiVlcTable;
       if( uiMaxCoeffs < 15 )
         uiTempVlcTable = min(uiVlcTable + 16-uiMaxCoeffs, 14);
       xGetTotalRun16( uiTempVlcTable, uiTotalRun );
     }
+  }
+  else
+  {
+    if( uiMaxCoeffs <= 4 )
+    {
+      xGetTotalRun4( uiVlcTable, uiTotalRun );
+    }
     else
-#endif
     {
       xGetTotalRun16( uiVlcTable, uiTotalRun );
     }
@@ -1564,6 +1561,23 @@ ErrVal UvlcReader::xGetTotalRun4( UInt& uiVlcPos, UInt& uiTotalRun )
   DTRACE_V( uiTotalRun );
   DTRACE_N;
   DTRACE_COUNT(g_aucLenTableTZ4[uiVlcPos][uiTotalRun]);
+
+  return Err::m_nOK;
+}
+
+
+ErrVal UvlcReader::xGetTotalRun8( UInt& uiVlcPos, UInt& uiTotalRun )
+{
+  UInt uiTemp;
+  RNOK( xCodeFromBitstream2D( &g_aucCodeTableTZ8[uiVlcPos][0], &g_aucLenTableTZ8[uiVlcPos][0], 8, 1, uiTotalRun, uiTemp ) );
+
+  DTRACE_POS;
+  DTRACE_T( "  TotalZeros8 vlc: " );
+  DTRACE_V( uiVlcPos );
+  DTRACE_T( " TotalRun: " );
+  DTRACE_V( uiTotalRun );
+  DTRACE_N;
+  DTRACE_COUNT(g_aucLenTableTZ8[uiVlcPos][uiTotalRun]);
 
   return Err::m_nOK;
 }

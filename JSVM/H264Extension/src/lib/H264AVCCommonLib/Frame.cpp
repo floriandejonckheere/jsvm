@@ -444,27 +444,6 @@ ErrVal Frame::extendFrame( QuarterPelFilter* pcQuarterPelFilter, PicType ePicTyp
   return Err::m_nOK;
 }
 
-Void Frame::setTopFieldPoc( Int iPoc )
-{
-	ASSERT( m_ePicType==FRAME );
-	if( NULL != m_pcIntFrameTopField && NULL != m_pcIntFrameBotField )
-	{
-    m_iTopFieldPoc = iPoc;
-	  m_pcIntFrameTopField->setPoc( iPoc );
-		setPoc( m_pcIntFrameBotField->isPocAvailable() ? max( m_pcIntFrameBotField->getPoc(), iPoc ) : iPoc );
-	}
-}
-
-Void Frame::setBotFieldPoc( Int iPoc )
-{
-	ASSERT( m_ePicType==FRAME );
-	if( NULL != m_pcIntFrameTopField && NULL != m_pcIntFrameBotField )
-	{
-    m_iBotFieldPoc = iPoc;
-		m_pcIntFrameBotField->setPoc( iPoc );
-		setPoc( m_pcIntFrameTopField->isPocAvailable() ? min( m_pcIntFrameTopField->getPoc(), iPoc ) : iPoc );
-	}
-}
 
 // JVT-R057 LA-RDO}
 Void Frame::initChannelDistortion()

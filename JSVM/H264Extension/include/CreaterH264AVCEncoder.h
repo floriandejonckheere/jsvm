@@ -145,9 +145,7 @@ public:
   ErrVal init               ( CodingParameter*    pcCodingParameter);
   ErrVal uninit             ();
   ErrVal writeParameterSets ( ExtBinDataAccessor* pcExtBinDataAccessor,
-                              // JVT-V068 {
-                              SequenceParameterSet* pcAVCSPS,
-                              // JVT-V068 }
+                              SequenceParameterSet*& rpcAVCSPS,
                               Bool&               rbMoreSets );
   
 // JVT-V068 {

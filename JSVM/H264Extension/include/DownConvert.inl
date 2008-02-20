@@ -696,7 +696,6 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   short *buf1, *ptr1, *buf2, *ptr2, *tmp_buf1, *tmp_buf2;
   unsigned char *tmp_buf3;
 
-
   int resample_mode = pcParameters->m_iResampleMode;
   int iNbPasses=1+(resample_mode==1);
   int iPass;
@@ -705,6 +704,7 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
   int input_chroma_phase_shift_y = pcParameters->m_iBaseChromaPhaseY;
   int output_chroma_phase_shift_x = pcParameters->m_iChromaPhaseX;
   int output_chroma_phase_shift_y = pcParameters->m_iChromaPhaseY;
+  bool bField = ( resample_mode > 0 );
 
   tmp_buf1=new short[iWidth*iHeight];
   tmp_buf2=new short[width*iHeight];
@@ -746,12 +746,12 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideY;
   }
-    xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 0, (resample_mode>0), 0, 0, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 0, (resample_mode>0), 0, 0, tmp_buf3, pcParameters->m_level_idc );
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideY;
   }
-    xFilterResidualVer(tmp_buf2, buf2, iStrideY, x, y, w, h, width, iHeight, 0, (resample_mode>0), 0, 0, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideY, x, y, w, h, width, iHeight, 0, (resample_mode>0), 0, 0, tmp_buf3, pcParameters->m_level_idc, false );
   }
 
   if(resample_mode>1){
@@ -805,14 +805,14 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideU;
   }
-    xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 1, (resample_mode>0), 
-                       output_chroma_phase_shift_x, input_chroma_phase_shift_x, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 1, (resample_mode>0), 
+                     output_chroma_phase_shift_x, input_chroma_phase_shift_x, tmp_buf3, pcParameters->m_level_idc );
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
-    xFilterResidualVer(tmp_buf2, buf2, iStrideU, x, y, w, h, width, iHeight, 1, (resample_mode>0), 
-                       output_chroma_phase_shift_y, input_chroma_phase_shift_y, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, x, y, w, h, width, iHeight, 1, (resample_mode>0), 
+                     output_chroma_phase_shift_y, input_chroma_phase_shift_y, tmp_buf3, pcParameters->m_level_idc, bField );
   }
 
   if(resample_mode>1){
@@ -849,14 +849,14 @@ DownConvert::xGenericUpsampleEss( short* psBufferY, int iStrideY,
     ptr2+=iWidth;
     ptr1+=iStrideV;
   }
-    xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 1, (resample_mode>0), 
-                       output_chroma_phase_shift_x, input_chroma_phase_shift_x, tmp_buf3);
+  xFilterResidualHor(tmp_buf1, tmp_buf2, width, x, w, iWidth, iHeight, pcMbDataCtrl, 1, (resample_mode>0), 
+                     output_chroma_phase_shift_x, input_chroma_phase_shift_x, tmp_buf3, pcParameters->m_level_idc );
   for(j=0;j<height;j++){
     for(i=0;i<width;i++)buf1[i]=0;
     buf1+=iStrideU;
   }
-    xFilterResidualVer(tmp_buf2, buf2, iStrideU, x, y, w, h, width, iHeight, 1, (resample_mode>0), 
-                       output_chroma_phase_shift_y, input_chroma_phase_shift_y, tmp_buf3);
+  xFilterResidualVer(tmp_buf2, buf2, iStrideU, x, y, w, h, width, iHeight, 1, (resample_mode>0), 
+                     output_chroma_phase_shift_y, input_chroma_phase_shift_y, tmp_buf3, pcParameters->m_level_idc, bField );
   } 
 
   if(resample_mode>1){
@@ -1003,14 +1003,13 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
                                   h264::MbDataCtrl*  pcMbDataCtrl, 
                                   bool chroma, bool interlace,
                                   int output_chroma_phase_shift_x, int input_chroma_phase_shift_x,
-                                  unsigned char *buf_blocksize )
+                                  unsigned char *buf_blocksize, unsigned int level_idc )
 {
   int j, i, k, i1;
   short *ptr1, *ptr2;
   unsigned char *ptr3;
   int p, p2, p3, block = ( chroma ? 4 : 8 );
   int iMbPerRow = wsize_in >> 4;
-  unsigned short deltaa, deltab;
 
   int *x16 = new int[w]; 
   int* k16 = new int[w]; // for relative phase shift in unit of 1/16 sample
@@ -1032,6 +1031,33 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
   }
   else
   {
+    int shiftX = 16;
+    if( level_idc > 30 )
+    {
+      shiftX = 0;
+      int t = wsize_in - 1;
+      while( t > 0 )
+      {
+        shiftX++;
+        t >>= 1;
+      }
+      shiftX = 31 - shiftX;
+    }
+    int scaleX = ( ( wsize_in << shiftX ) + ( w >> 1 ) ) / w;
+    int addX   = ( ( wsize_in * ( 2 + ( output_chroma_phase_shift_x >> 1 ) ) << ( shiftX - 2 ) ) + ( w >> 1 ) ) / w + ( 1 << ( shiftX - 5 ) );
+    int deltaX = 2 * ( 4 + input_chroma_phase_shift_x );
+    for( i = 0; i < w; i++ )
+    {
+      k = ( ( i * scaleX + addX ) >> ( shiftX - 4 ) ) - deltaX;
+      if(k<0)
+        k = 0;
+      i1 = k >> 4;
+      k -= i1 * 16;
+      p = ( k > 7 && (i1 + 1) < wsize_in ) ? ( i1 + 1 ) : i1;
+      p = p < 0 ? 0 : p;
+      x16[i] = i1; k16[i] = k; p16[i] = p;
+    }
+    /*
     deltaa = ((wsize_in<<16) + (w>>1))/w;
     if(chroma)
     {
@@ -1062,7 +1088,8 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
         p = p < 0 ? 0 : p;
         x16[i] = i1; k16[i] = k; p16[i] = p;
       }
-	}
+	  }
+  */
   }
 
   for( j = 0; j < hsize_in; j++ )
@@ -1073,7 +1100,6 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
     for( i = 0; i < w; i++ )
     {
       i1 = x16[i]; k = k16[i]; p = p16[i];
-#if !RESIDUAL_B8_BASED
       if( !chroma && !interlace)
       {
         const h264::MbData& rcMbData = pcMbDataCtrl->getMbData( (p>>4) + (j>>4) * iMbPerRow );
@@ -1083,7 +1109,6 @@ DownConvert::xFilterResidualHor ( short *buf_in, short *buf_out,
         else block = 4;
         ptr3[i] = (unsigned char) block;
       }
-#endif
       p = p / block;
       p2 = ( i1 / block ) == p ? i1 : ( p * block );
       p3 = ( (i1+1) / block ) == p ? (i1+1) : ( p*block + (block-1) );
@@ -1106,13 +1131,12 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
                                   int wsize_in, int hsize_in, 
                                   bool chroma, bool interlace,
                                   int output_chroma_phase_shift_y, int input_chroma_phase_shift_y,
-                                  unsigned char *buf_blocksize )
+                                  unsigned char *buf_blocksize, unsigned int level_idc, bool bField )
 {
   int j, i, k, j1;
   short *ptr1, *ptr2;
   unsigned char *ptr3;
   int p, p2, p3, block = ( chroma ? 4 : 8 );
-  unsigned short deltaa, deltab;
 
   int* y16 = new int[h]; 
   int* k16 = new int[h]; // for relative phase shift in unit of 1/16 sample
@@ -1134,6 +1158,43 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
   }
   else
   {
+    int shiftY = 16;
+    if( level_idc > 30 )
+    {
+      shiftY = 0;
+      int t = hsize_in - 1;
+      while( t > 0 )
+      {
+        shiftY++;
+        t >>= 1;
+      }
+      shiftY = 31 - shiftY;
+    }
+    int scaleY = ( ( hsize_in << shiftY ) + ( h >> 1 ) ) / h;
+    int addY   = 0;
+    int deltaY = 0;
+    if( bField )
+    {
+      addY   = ( ( hsize_in * ( 4 + output_chroma_phase_shift_y ) << ( shiftY - 3 ) ) + ( h >> 1 ) ) / h + ( 1 << ( shiftY - 5 ) );
+      deltaY = 2 * ( 4 + input_chroma_phase_shift_y );
+    }
+    else
+    {
+      addY   = ( ( hsize_in * ( 2 + ( output_chroma_phase_shift_y >> 1 ) ) << ( shiftY - 2 ) ) + ( h >> 1 ) ) / h + ( 1 << ( shiftY - 5 ) );
+      deltaY = 2 * ( 4 + input_chroma_phase_shift_y );
+    }
+    for(j = 0; j < h; j++)
+    {
+      k = ( ( j * scaleY + addY ) >> ( shiftY - 4 ) ) - deltaY;
+      if(k<0)
+        k = 0;
+      j1 = k >> 4;
+      k -= j1 * 16;
+      p = ( k > 7 && ( j1+1 ) < hsize_in ) ? ( j1+1 ) : j1;
+      p = p < 0 ? 0 : p;
+      y16[j] = j1; k16[j] = k; p16[j] = p;
+    }
+    /*
 //TMM_INTERLACE{
 		if ( hsize_in > h )
 		{
@@ -1202,8 +1263,9 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
         p = p < 0 ? 0 : p;
         y16[j] = j1; k16[j] = k; p16[j] = p;
       }
-	}
-		} //TMM_INTERLACE{}
+	   }
+  	} //TMM_INTERLACE{}
+   */
   }
 
   for( i = 0; i < w; i++ )
@@ -1214,12 +1276,10 @@ DownConvert::xFilterResidualVer ( short *buf_in, short *buf_out,
     for( j = 0; j < h; j++ )
     {
       j1 = y16[j]; k = k16[j]; p = p16[j];
-#if !RESIDUAL_B8_BASED
       if( !chroma && !interlace)
       {
         block = ptr3[ wsize_in * p ];
       }
-#endif
       p = p / block;
       p2 = ( j1/block ) == p ? j1 : ( p*block );
       p3 = ( (j1+1) / block ) == p ? (j1+1) : ( p*block + (block-1) );

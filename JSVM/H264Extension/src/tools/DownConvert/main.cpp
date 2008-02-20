@@ -749,11 +749,7 @@ int main(int argc, char *argv[])
           case 1:
             {
               FILTER_UP
-#ifdef OLD_DYADIC_UPSAMPLE
-              int* piFilter_chroma=pifilter;
-#else
               FILTER_UP_CHROMA
-#endif
               cDownConvert.upsample(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp, iStage, piFilter, piFilter_chroma);
               break;
             }

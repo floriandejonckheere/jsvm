@@ -229,7 +229,6 @@ public:
   Bool            isLastMbInSlice       ()    const { return ( getMbAddress() == getSH().getLastMbInSlice () ); }
   const MbData&   getMbData             ()    const { return m_rcMbCurr; }
   MbData&         getMbData             ()          { return m_rcMbCurr; }
-  const MbData&   getMbDataCurr         ()    const { return m_rcMbCurr; }
   const MbData&   getMbDataLeft         ()    const { return m_rcMbLeft; }
   const MbData&   getMbDataAbove        ()    const { return m_rcMbAbove; }
 	const MbData&   getMbDataAboveAbove   ()    const { return m_rcMbAboveAbove; }
@@ -957,10 +956,6 @@ __inline UInt MbDataAccess::getLeftLumaCbp( LumaIdx cIdx, UInt uiStart, UInt uiS
   }
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
-    if( uiStart != 0 || uiStop != 16 )
-    {
-      AOT( 1 );
-    }
     return rcMbData.isAcCoded() ? 1 : 0;
   }
   return ( rcMbData.calcMbCbp( uiStart, uiStop ) >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
@@ -976,10 +971,6 @@ __inline UInt MbDataAccess::getAboveLumaCbp( LumaIdx cIdx, UInt uiStart, UInt ui
   }
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
-    if( uiStart != 0 || uiStop != 16 )
-    {
-      ROT( 1 );
-    }
     return rcMbData.isAcCoded() ? 1 : 0;
   }
   return ( rcMbData.calcMbCbp( uiStart, uiStop ) >> m_auc4x4Idx28x8Idx[ cIdx.b4x4() ] ) & 1;
@@ -991,10 +982,6 @@ __inline UInt MbDataAccess::getLeftChromaCbp( UInt uiStart, UInt uiStop )  const
 
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
-    if( uiStart != 0 || uiStop != 16 )
-    {
-      ROT( 1 );
-    }
     return rcMbData.getCbpChroma16x16();
   }
   return rcMbData.calcMbCbp( uiStart, uiStop ) >> 4;
@@ -1006,10 +993,6 @@ __inline UInt MbDataAccess::getAboveChromaCbp( UInt uiStart, UInt uiStop )  cons
 
   if( !rcMbData.getBLSkipFlag() && rcMbData.isIntra16x16() )
   {
-    if( uiStart != 0 || uiStop != 16 )
-    {
-      ROT( 1 );
-    }
     return rcMbData.getCbpChroma16x16();
   }
   return rcMbData.calcMbCbp( uiStart, uiStop ) >> 4;

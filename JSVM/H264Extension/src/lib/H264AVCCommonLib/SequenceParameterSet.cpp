@@ -466,7 +466,7 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
     RNOK( pcWriteIf->writeFlag( getSVCVUIParametersPresentFlag(),       "SPS: svc_vui_parameters_present_flag" ) );
     if( getSVCVUIParametersPresentFlag() )
     {
-      RNOK( writeSVCVUIParametersExtension( pcWriteIf ) );
+      RNOK( m_pcVUI->writeSVCExtension( pcWriteIf ) );
     }
   }
 
@@ -601,7 +601,7 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     RNOK ( pcReadIf->getFlag( m_bSVCVUIParametersPresentFlag,             "SPS: svc_vui_parameters_present_flag" ) );
     if( m_bSVCVUIParametersPresentFlag )
     {
-      RNOK( ReadSVCVUIParametersExtension( pcReadIf ) );
+      RNOK( m_pcVUI->readSVCExtension( pcReadIf ) );
     }
   }
 
@@ -611,63 +611,6 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   return Err::m_nOK;
 }
 
-//SSPS {
-ErrVal
-SequenceParameterSet::writeSVCVUIParametersExtension( HeaderSymbolWriteIf* pcWriteIf ) const
-{
-	RNOK  ( pcWriteIf->writeUvlc( getNumLayersMinus1(),                       "SVC VUI: num_layers_minus1" ) );
-	for ( UInt i = 0; i <= getNumLayersMinus1(); i++ )
-	{
-		RNOK  ( pcWriteIf->writeCode( getDependencyId(i),              3,              "SVC VUI: dependency_id" ) );
-		RNOK  ( pcWriteIf->writeCode( getQualityId(i),                 4,              "SVC VUI: quality_id" ) );
-		RNOK  ( pcWriteIf->writeCode( getTemporalId(i),                3,              "SVC VUI: temporal_id" ) );
-    RNOK  ( pcWriteIf->writeFlag( getTimingInfoPresentFlag(i),                    "SVC VUI: timing_info_present_flag" ) );
-		if ( getTimingInfoPresentFlag(i) )
-		{
-      RNOK  ( pcWriteIf->writeCode( getNumUnitsInTick(i),            32,              "SVC VUI: dependency_id" ) );
-      RNOK  ( pcWriteIf->writeCode( getTimeScale(i),                 32,              "SVC VUI: time_scale" ) );
-			RNOK  ( pcWriteIf->writeFlag( getFixedFrameRateFlag(i),                        "SVC VUI: fixed_frame_rate_flag" ) );
-		}
-		RNOK  ( pcWriteIf->writeFlag( getNalHrdParametersPresentFlag(i),              "SVC VUI: nal_hrd_parameters_present_flag" ) );
-		if ( getNalHrdParametersPresentFlag(i) )
-			//add hrd parameters here
-		RNOK  ( pcWriteIf->writeFlag( getVclHrdParametersPresentFlag(i),              "SVC VUI: vcl_hrd_parameters_present_flag" ) );
-		if ( getVclHrdParametersPresentFlag(i) )
-			//add hrd parameters here
-		if ( getNalHrdParametersPresentFlag(i)||getVclHrdParametersPresentFlag(i) )
-			RNOK  ( pcWriteIf->writeFlag( getLowDelayHrdFlag(i),                        "SVC VUI: low_delay_hrd_flag" ) );
-		RNOK  ( pcWriteIf->writeFlag( getPicStructPresentFlag(i),                    "SVC VUI: pic_struct_present_flag" ) );
-	}
-	return Err::m_nOK;
-}
-ErrVal
-SequenceParameterSet::ReadSVCVUIParametersExtension( HeaderSymbolReadIf* pcReadIf )
-{
-	RNOK  ( pcReadIf->getUvlc( m_uiNumLayersMinus1,                       "SVC VUI: num_layers_minus1" ) );
-	for ( UInt i = 0; i <= m_uiNumLayersMinus1; i++ )
-	{
-		RNOK  ( pcReadIf->getCode( m_auiDependencyId[i],              3,              "SVC VUI: dependency_id" ) );
-		RNOK  ( pcReadIf->getCode( m_auiQualityId[i],                 4,              "SVC VUI: quality_id" ) );
-		RNOK  ( pcReadIf->getCode( m_auiTemporalId[i],                3,              "SVC VUI: temporal_id" ) );
-    RNOK  ( pcReadIf->getFlag( m_bTimingInfoPresentFlag[i],                    "SVC VUI: timing_info_present_flag" ) );
-		if ( m_bTimingInfoPresentFlag[i] )
-		{
-      RNOK  ( pcReadIf->getCode( m_auiNumUnitsInTick[i],            32,              "SVC VUI: dependency_id" ) );
-      RNOK  ( pcReadIf->getCode( m_auiTimeScale[i],                 32,              "SVC VUI: time_scale" ) );
-			RNOK  ( pcReadIf->getFlag( m_bFixedFrameRateFlag[i],                        "SVC VUI: fixed_frame_rate_flag" ) );
-		}
-		RNOK  ( pcReadIf->getFlag( m_bNalHrdParametersPresentFlag[i],              "SVC VUI: nal_hrd_parameters_present_flag" ) );
-		if ( m_bNalHrdParametersPresentFlag[i] )
-			//add hrd parameters here
-		RNOK  ( pcReadIf->getFlag( m_bVclHrdParametersPresentFlag[i],              "SVC VUI: vcl_hrd_parameters_present_flag" ) );
-		if ( m_bVclHrdParametersPresentFlag[i] )
-			//add hrd parameters here
-		if ( m_bNalHrdParametersPresentFlag[i]||m_bVclHrdParametersPresentFlag[i] )
-			RNOK  ( pcReadIf->getFlag( m_bLowDelayHrdFlag[i],                        "SVC VUI: low_delay_hrd_flag" ) );
-		RNOK  ( pcReadIf->getFlag( m_bPicStructPresentFlag[i],                    "SVC VUI: pic_struct_present_flag" ) );
-	}
-	return Err::m_nOK;
-}
 
 
 ErrVal
@@ -677,6 +620,7 @@ SequenceParameterSet::xWriteFrext( HeaderSymbolWriteIf* pcWriteIf ) const
          m_eProfileIdc != HIGH_10_PROFILE           &&
          m_eProfileIdc != HIGH_422_PROFILE          &&
          m_eProfileIdc != HIGH_444_PROFILE          &&
+         m_eProfileIdc != CAVLC_444_PROFILE         &&
          m_eProfileIdc != SCALABLE_BASELINE_PROFILE &&
          m_eProfileIdc != SCALABLE_HIGH_PROFILE,      Err::m_nOK );
 
@@ -699,6 +643,7 @@ SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
          m_eProfileIdc != HIGH_10_PROFILE           &&
          m_eProfileIdc != HIGH_422_PROFILE          &&
          m_eProfileIdc != HIGH_444_PROFILE          &&
+         m_eProfileIdc != CAVLC_444_PROFILE         &&
          m_eProfileIdc != SCALABLE_BASELINE_PROFILE &&
          m_eProfileIdc != SCALABLE_HIGH_PROFILE,      Err::m_nOK );
 

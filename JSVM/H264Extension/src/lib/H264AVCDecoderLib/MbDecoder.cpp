@@ -285,12 +285,10 @@ MbDecoder::decode( MbDataAccess&  rcMbDataAccess,
       ROF( rcMbDataAccess.getMbData().isTransformSize8x8() == pcMbDataAccessBase->getMbData().isTransformSize8x8() );
     }
   }
-#if SVC_ERRATA
   else if( rcMbDataAccess.getSH().getSCoeffResidualPredFlag() && rcMbDataAccess.getMbData().isIntraBL() && ( rcMbDataAccess.getMbData().getMbCbp() & 0x0F ) == 0 && pcMbDataAccessBase->getMbData().isIntraButnotIBL() )
   {
     rcMbDataAccess.getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
   }
-#endif
 
   //===== update transform coefficient levels =====
   if( rcMbDataAccess.isTCoeffPred() )

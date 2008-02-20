@@ -92,19 +92,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
-#define HEIKO       1
-#define SVC_ERRATA  1 // resolved SVC errata issues (not specified in JVT-X201)
+#define _JSVM_VERSION_ "9.10"
 
 
-typedef UChar CoefMap;
-
-#define _JSVM_VERSION_ "9.10" //added by jerome.vieron@thomson.net
-
-#define NOK_MGSCAVLC      1   // check if this is conforming to the SVC text
-
-#if !NOK_MGSCAVLC
-#error
-#endif
 
 #define MB_BUFFER_WIDTH 24
 #define MB_BASE_WIDTH   16
@@ -118,6 +108,8 @@ typedef UChar CoefMap;
 #define NO_ABOVE_REF       2
 #define NO_ABOVELEFT_REF   4
 #define NO_ABOVERIGHT_REF  8
+
+typedef UChar CoefMap;
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -287,6 +279,7 @@ enum Profile
   HIGH_10_PROFILE   = 110,
   HIGH_422_PROFILE  = 122,
   HIGH_444_PROFILE  = 144,
+  CAVLC_444_PROFILE = 244,
 
   SCALABLE_BASELINE_PROFILE = 83,
   SCALABLE_HIGH_PROFILE     = 86

@@ -224,7 +224,8 @@ VUI::VUI( SequenceParameterSet* pcSPS):
   m_bVuiParametersPresentFlag     ( false ),
   m_bOverscanInfoPresentFlag      ( false ),
   m_bOverscanAppropriateFlag      ( false ),
-  m_cBitstreamRestriction         ( pcSPS )
+  m_cBitstreamRestriction         ( pcSPS ),
+  m_uiDefaultIdx                  ( MSYS_UINT_MAX )
 {
   m_eProfileIdc = pcSPS->getProfileIdc();
 }
@@ -322,38 +323,41 @@ ErrVal VUI::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
   RNOK( m_cVideoSignalType.write( pcWriteIf ) );
   RNOK( m_cChromaLocationInfo.write( pcWriteIf ) );
-	if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
-	{
-    UInt uiNumLayers = m_uiNumTemporalLevels * m_uiNumFGSLevels;
-		RNOK( pcWriteIf->writeUvlc( uiNumLayers - 1,  "VUI: num_temporal_layers_minus1"));
-		for(UInt i=0; i<uiNumLayers; i++)
-		{
-      RNOK( m_acLayerInfo.get(i).write( pcWriteIf) );
-			RNOK( m_acTimingInfo.get(i).write( pcWriteIf) );
-      RNOK( m_acNalHrd.get(i).write( pcWriteIf ) );
-      RNOK( m_acVclHrd.get(i).write( pcWriteIf ) );
-      if( m_acNalHrd.get(i).getHrdParametersPresentFlag() || m_acVclHrd.get(i).getHrdParametersPresentFlag() )
-      {
-        RNOK( pcWriteIf->writeFlag( m_abLowDelayHrdFlag.get(i),           "VUI: low_delay_hrd_flag[i]"));
-      }
-      RNOK( pcWriteIf->writeFlag( m_abPicStructPresentFlag.get(i),        "VUI: pic_struct_present_flag[i]"));
-		}
-	}
-	else
-	{
-		RNOK( m_acTimingInfo.get(0).write( pcWriteIf ) ); //DL
-    RNOK( m_acNalHrd.get(0).write( pcWriteIf ) );
-    RNOK( m_acVclHrd.get(0).write( pcWriteIf ) );
-    if( m_acNalHrd.get(0).getHrdParametersPresentFlag() || m_acVclHrd.get(0).getHrdParametersPresentFlag() )
-    {
-      RNOK( pcWriteIf->writeFlag( m_abLowDelayHrdFlag.get(0),           "VUI: low_delay_hrd_flag"));
-    }
-    RNOK( pcWriteIf->writeFlag( m_abPicStructPresentFlag.get(0),        "VUI: pic_struct_present_flag"));
-	}
 
+  ROT( m_uiDefaultIdx == MSYS_UINT_MAX );
+  RNOK( m_acTimingInfo.get(m_uiDefaultIdx).write( pcWriteIf ) );
+  RNOK( m_acNalHrd.get(m_uiDefaultIdx).write( pcWriteIf ) );
+  RNOK( m_acVclHrd.get(m_uiDefaultIdx).write( pcWriteIf ) );
+  if( m_acNalHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() || m_acVclHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() )
+  {
+    RNOK( pcWriteIf->writeFlag( m_abLowDelayHrdFlag.get(m_uiDefaultIdx),           "VUI: low_delay_hrd_flag"));
+  }
+  RNOK( pcWriteIf->writeFlag( m_abPicStructPresentFlag.get(m_uiDefaultIdx),        "VUI: pic_struct_present_flag"));
 
   RNOK( m_cBitstreamRestriction.write( pcWriteIf ) );
  
+  return Err::m_nOK;
+}
+
+
+ErrVal VUI::writeSVCExtension( HeaderSymbolWriteIf* pcWriteIf ) const
+{
+  ROF( getNumLayers() );
+  RNOK( pcWriteIf->writeUvlc( getNumLayers() - 1,            "SPS: num_layers_nimus1" ) );
+
+  for( UInt uiLayer = 0; uiLayer < getNumLayers(); uiLayer++ )
+  {
+    RNOK( m_acLayerInfo.get(uiLayer).write( pcWriteIf ) );
+    RNOK( m_acTimingInfo.get(uiLayer).write( pcWriteIf ) );
+    RNOK( m_acNalHrd.get(uiLayer).write( pcWriteIf ) );
+    RNOK( m_acVclHrd.get(uiLayer).write( pcWriteIf ) );
+    if( m_acNalHrd.get(uiLayer).getHrdParametersPresentFlag() || m_acVclHrd.get(uiLayer).getHrdParametersPresentFlag() )
+    {
+      RNOK( pcWriteIf->writeFlag( m_abLowDelayHrdFlag.get(uiLayer),           "VUI: low_delay_hrd_flag"));
+    }
+    RNOK( pcWriteIf->writeFlag( m_abPicStructPresentFlag.get(uiLayer),        "VUI: pic_struct_present_flag"));
+  }
+
   return Err::m_nOK;
 }
 
@@ -367,7 +371,6 @@ ErrVal VUI::LayerInfo::read( HeaderSymbolReadIf* pcReadIf )
 
 ErrVal VUI::read( HeaderSymbolReadIf *pcReadIf )
 {
-  UInt uiNumLayers;
   RNOKS( m_cAspectRatioInfo.read( pcReadIf ) );
 
   RNOKS( pcReadIf->getFlag( m_bOverscanInfoPresentFlag,          "VUI: overscan_info_present_flag"));
@@ -379,74 +382,68 @@ ErrVal VUI::read( HeaderSymbolReadIf *pcReadIf )
   RNOKS( m_cVideoSignalType.read( pcReadIf ) );
   RNOKS( m_cChromaLocationInfo.read( pcReadIf ) );
 
-  if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
-	{
-		RNOKS( pcReadIf->getUvlc( uiNumLayers,                              "VUI: num_temporal_layers_minus1"));
-    uiNumLayers++;
-	}
-  else
-  {
-    uiNumLayers = 1;
-  }
-
-  m_acLayerInfo.uninit();
-  m_acLayerInfo.init( uiNumLayers );
-
-  m_acTimingInfo.uninit();
-	m_acTimingInfo.init( uiNumLayers );
-
-  m_acNalHrd.uninit();
-  m_acNalHrd.init( uiNumLayers );
-
-  m_acVclHrd.uninit();
-  m_acVclHrd.init( uiNumLayers );
-
-  m_abLowDelayHrdFlag.uninit();
-  m_abLowDelayHrdFlag.init( uiNumLayers );
-
+  m_acLayerInfo           .uninit();
+  m_acTimingInfo          .uninit();
+  m_acNalHrd              .uninit();
+  m_acVclHrd              .uninit();
+  m_abLowDelayHrdFlag     .uninit();
   m_abPicStructPresentFlag.uninit();
-  m_abPicStructPresentFlag.init( uiNumLayers );
+  m_acLayerInfo           .init( 1 );
+	m_acTimingInfo          .init( 1 );
+  m_acNalHrd              .init( 1 );
+  m_acVclHrd              .init( 1 );
+  m_abLowDelayHrdFlag     .init( 1 );
+  m_abPicStructPresentFlag.init( 1 );
 
-	for(UInt i=0; i<uiNumLayers; i++)
-	{
-    if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
-    {
-      m_acLayerInfo.get(i).read(pcReadIf);
-    }
-    else
-    {
-      // fill in the LayerInfo of AVC compatible layer
-      m_acLayerInfo[0].setDependencyID(0);
-      m_acLayerInfo[0].setQualityLevel(0);
-      m_acLayerInfo[0].setTemporalId(0);
-    }
+  // fill in the LayerInfo of AVC compatible layer
+  m_uiDefaultIdx = 0;
+  m_acLayerInfo[m_uiDefaultIdx].setDependencyID(0);
+  m_acLayerInfo[m_uiDefaultIdx].setQualityLevel(0);
+  m_acLayerInfo[m_uiDefaultIdx].setTemporalId(0);
 
-		RNOKS( m_acTimingInfo.get(i).read( pcReadIf ) ); //DL
-    RNOKS( m_acNalHrd.get(i).read( pcReadIf ) );
-    RNOKS( m_acVclHrd.get(i).read( pcReadIf ) );
-    if( m_acNalHrd.get(i).getHrdParametersPresentFlag() || m_acVclHrd.get(i).getHrdParametersPresentFlag() )
-    {
-      RNOKS( pcReadIf->getFlag( m_abLowDelayHrdFlag[i],                "VUI: low_delay_hrd_flag"));
-    }
-    RNOKS( pcReadIf->getFlag( m_abPicStructPresentFlag[i],             "VUI: pic_struct_present_flag"));
-	}
+	RNOKS( m_acTimingInfo.get(m_uiDefaultIdx).read( pcReadIf ) );
+  RNOKS( m_acNalHrd.get(m_uiDefaultIdx).read( pcReadIf ) );
+  RNOKS( m_acVclHrd.get(m_uiDefaultIdx).read( pcReadIf ) );
+  if( m_acNalHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() || m_acVclHrd.get(m_uiDefaultIdx).getHrdParametersPresentFlag() )
+  {
+    RNOKS( pcReadIf->getFlag( m_abLowDelayHrdFlag[m_uiDefaultIdx],                "VUI: low_delay_hrd_flag"));
+  }
+  RNOKS( pcReadIf->getFlag( m_abPicStructPresentFlag[m_uiDefaultIdx],             "VUI: pic_struct_present_flag"));
 
   RNOKS( m_cBitstreamRestriction.read( pcReadIf ) );
   return Err::m_nOK;
 }
 
-//Void VUI::setNalHrdFlag(Bool nal_hrd_parameters_present_flag)
-//{
-//	m_cNalHrd.setHrdParametersPresentFlag(nal_hrd_parameters_present_flag);
-//}
-//
-//Void VUI::setVclHrdFlag(Bool vcl_hrd_parameters_present_flag)
-//{
-//	m_cVclHrd.setHrdParametersPresentFlag(vcl_hrd_parameters_present_flag);
-//}
 
+ErrVal VUI::readSVCExtension( HeaderSymbolReadIf *pcReadIf )
+{
+  UInt uiNumLayers = 0;
+  RNOK( pcReadIf->getUvlc( uiNumLayers,            "SPS: num_layers_nimus1" ) );
+  uiNumLayers++;
 
-// JVT-V068 HRD } 
+  UInt uiStartIdx = m_acLayerInfo.size();
+  m_acLayerInfo           .reinit( uiNumLayers );
+  m_acTimingInfo          .reinit( uiNumLayers );
+  m_acNalHrd              .reinit( uiNumLayers );
+  m_acVclHrd              .reinit( uiNumLayers );
+  m_abLowDelayHrdFlag     .reinit( uiNumLayers );
+  m_abPicStructPresentFlag.reinit( uiNumLayers );
+
+  for( UInt uiLayer = uiStartIdx; uiLayer < uiNumLayers + uiStartIdx; uiLayer++ )
+  {
+    RNOK( m_acLayerInfo.get(uiLayer).read( pcReadIf ) );
+    RNOK( m_acTimingInfo.get(uiLayer).read( pcReadIf ) );
+    RNOK( m_acNalHrd.get(uiLayer).read( pcReadIf ) );
+    RNOK( m_acVclHrd.get(uiLayer).read( pcReadIf ) );
+    if( m_acNalHrd.get(uiLayer).getHrdParametersPresentFlag() || m_acVclHrd.get(uiLayer).getHrdParametersPresentFlag() )
+    {
+      RNOK( pcReadIf->getFlag( m_abLowDelayHrdFlag.get(uiLayer),           "VUI: low_delay_hrd_flag"));
+    }
+    RNOK( pcReadIf->getFlag( m_abPicStructPresentFlag.get(uiLayer),        "VUI: pic_struct_present_flag"));
+  }
+
+  return Err::m_nOK;
+}
 
 // h264 namespace end
 H264AVC_NAMESPACE_END

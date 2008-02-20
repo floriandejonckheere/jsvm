@@ -377,6 +377,8 @@ MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl,
 	Int  iMbEndY = iMbOrigY + pcParameters->m_iOutHeight/16;
 
   UInt uiMbStride= m_iMbPerLine;
+
+  MvScaleParam cMvScaleParam( *pcParameters );
   
   //////////////////////////////////////////////////////////
   //VBL
@@ -391,7 +393,8 @@ MbDataCtrl::copyMotionBL( MbDataCtrl& rcBaseMbDataCtrl,
   for(Int iMbX = iMbOrigX ; iMbX < iMbEndX; iMbX++)
 			{
     MbData& rcMbDes = m_pcMbData[iMbY*uiMbStride + iMbX];
-    RNOK( rcMbDes.copyMotionBL( pcVBLMbDataCtrl->m_pcMbData[(iMbY - iMbOrigY)*uiMbStride + (iMbX - iMbOrigX)], bDirect8x8, m_uiSliceId ) );
+    rcMbDes.setFieldFlag( m_bBuildInterlacePred );
+    RNOK( rcMbDes.copyMotionBL( pcVBLMbDataCtrl->m_pcMbData[(iMbY - iMbOrigY)*uiMbStride + (iMbX - iMbOrigX)], bDirect8x8, cMvScaleParam, m_uiSliceId ) );
     rcMbDes.setInCropWindowFlag( true );
 	 }
 
@@ -432,6 +435,8 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl&       rcBaseMbDataCtrl,
 
   UInt	uiBaseMbStride, uiBLMbOffset=0, uiConfig=0;
   UInt	uiMbStride   = m_iMbPerLine;
+
+  MvScaleParam cMvScaleParam( *pcParameters );
   
   //////////////////////////////////////////////////////////
   //VBL
@@ -445,6 +450,13 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl&       rcBaseMbDataCtrl,
   xInitVBLUpsampleData(pcVBLMbDataCtrl,pcParameters,uiConfig,iMbOrigY,iMbEndY ,iScaledBaseOrigY,uiBaseMbStride);
   /////////////////////////////////////////////////////////////
 
+  PosCalcParam cPosCalcParam;
+  cPosCalcParam.m_iShiftX = ( pcParameters->m_level_idc <= 30 ? 16 : 31 - PosCalcParam::CeilLog2( pcParameters->m_iInWidth  ) );
+  cPosCalcParam.m_iShiftY = ( pcParameters->m_level_idc <= 30 ? 16 : 31 - PosCalcParam::CeilLog2( pcParameters->m_iInHeight ) );
+  cPosCalcParam.m_iScaleX = ( ( pcParameters->m_iInWidth  << cPosCalcParam.m_iShiftX ) + ( pcParameters->m_iOutWidth  >> 1 ) ) / pcParameters->m_iOutWidth;
+  cPosCalcParam.m_iScaleY = ( ( pcParameters->m_iInHeight << cPosCalcParam.m_iShiftY ) + ( pcParameters->m_iOutHeight >> 1 ) ) / pcParameters->m_iOutHeight;
+  cPosCalcParam.m_iAddX   = ( 1 << ( cPosCalcParam.m_iShiftX - 1 ) );
+  cPosCalcParam.m_iAddY   = ( 1 << ( cPosCalcParam.m_iShiftY - 1 ) );
   
   // loop on MBs of high res picture
   //--------------------------------
@@ -454,6 +466,13 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl&       rcBaseMbDataCtrl,
     {
       //VBL
       xInitVBLPelOrig( pcVBLMbDataCtrl,uiConfig,iMbX,iMbY,iScaledBaseOrigX,iScaledBaseOrigY,aiPelOrig,uiBLMbOffset);
+
+      cMvScaleParam.m_iXMbPos = iMbX * 16;
+      cMvScaleParam.m_iYMbPos = iMbY * 16;
+      if( pcParameters->m_bIsMbAff && m_bBuildInterlacePred )
+      {
+        cMvScaleParam.m_iYMbPos = ( iMbY >> 1 ) * 32 + ( iMbY % 2 );
+      }
 
       // get current high res MB and upsampling
       MbData& rcMbDes = m_pcMbData[iMbY*uiMbStride + iMbX];
@@ -466,12 +485,10 @@ MbDataCtrl::xUpsampleMotionESS( MbDataCtrl&       rcBaseMbDataCtrl,
       // check if MB is inside cropping window - if not, no upsampling is performed
       if ( (iMbX >= iMbOrigX) && (iMbX < iMbEndX) && (iMbY >= iMbOrigY) && (iMbY < iMbEndY) )
       {
-         RNOK(rcMbDes.upsampleMotionESS(pcVBLMbDataCtrl->m_pcMbData+uiBLMbOffset,
-                                         uiBaseMbStride,
-                                         aiPelOrig,
-										                     bDirect8x8,
-                                         pcParameters));
-           rcMbDes.setInCropWindowFlag( true );
+        RNOK( rcMbDes.upsampleMotionESS( pcVBLMbDataCtrl->m_pcMbData+uiBLMbOffset,
+                                         uiBaseMbStride, aiPelOrig, bDirect8x8,
+                                         pcParameters, cPosCalcParam, cMvScaleParam ) );
+        rcMbDes.setInCropWindowFlag( true );
 		  }
       else
       {

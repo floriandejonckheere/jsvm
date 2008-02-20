@@ -101,293 +101,129 @@ class ReconstructionBypass;
 
 class H264AVCCOMMONLIB_API LoopFilter
 {
+  enum LFPass
+  {
+    FIRST_PASS  = 0,
+    SECOND_PASS = 1,
+    ONE_PASS    = 1,
+    TWO_PASSES  = 2
+  };
   enum Dir
   {
     VER = 0,
-    HOR
+    HOR = 1
   };
-
-public:
-  enum LFMode
-  {
-    LFM_DEFAULT_FILTER    = 0,
-    LFM_NO_INTER_FILTER   = 1,
-    LFM_NO_INTRAINTER     = 2,
-    LFM_EXTEND_INTRA_SUR  = 4,
-    LFM_NO_FILTER         = 8
-  };
-
   typedef struct
   {
     UChar ucAlpha;
     UChar aucClip[5];
-  }AlphaClip;
-
-  typedef struct
-  {
-    Pel* pFlt;
-    Int iOffset;
-    Int iIndexA;
-    Int iIndexB;
-    UChar ucBs;
-    Bool bLum;
-  }FilterParameter;
-
-  static const UChar g_aucBetaTab[52]; // leszek
-  static const AlphaClip g_acAlphaClip[52]; // leszek
+  } AlphaClip;
+  static const UChar      g_aucBetaTab  [52];
+  static const AlphaClip  g_acAlphaClip [52];
 
 protected:
 	LoopFilter();
 	virtual ~LoopFilter();
 
 public:
-  static ErrVal create( LoopFilter*& rpcLoopFilter );
-  ErrVal destroy();
+  static ErrVal create  ( LoopFilter*&           rpcLoopFilter );
+  ErrVal        destroy ();
+  ErrVal        init    ( ControlMngIf*          pcControlMngIf,
+                          ReconstructionBypass*  pcReconstructionBypass,
+                          Bool                   bEncoder );
+  ErrVal        uninit  ();
 
-	ErrVal process        ( SliceHeader&        rcSH,
-                          Frame*           pcFrame,
-                          MbDataCtrl*         pcMbDataCtrlMot,
-                          MbDataCtrl*         pcMbDataCtrlRes,
-                          UInt                uiMbInRow,
-                          RefFrameList*       pcRefFrameList0,
-                          RefFrameList*       pcRefFrameList1,
-						              bool				        bAllSliceDone,
-                          bool                spatial_scalable_flg);//JVT-X046
-
-  ErrVal init( ControlMngIf*          pcControlMngIf,
-               ReconstructionBypass*  pcReconstructionBypass,
-               Bool                   bEncoder
-               );
-
-  ErrVal uninit();
-
-  Void setFilterMode( LFMode eLFMode = LFM_DEFAULT_FILTER ) { m_eLFMode = eLFMode; }
-
-  // Hanke@RWTH
-  Void setHighpassFramePointer( Frame* pcHighpassFrame = NULL ) { m_pcHighpassFrame = pcHighpassFrame; }
+  ErrVal        process ( SliceHeader&           rcSH,
+                          Frame*                 pcFrame,
+                          Frame*                 pcResidual,
+                          MbDataCtrl*            pcMbDataCtrl,
+                          Bool                   bInterLayerFlag,
+                          Bool                   bSpatialScalabilityFlag );
 
 private:
+  ErrVal        xFilterMb             ( MbDataAccess&             rcMbDataAccess,
+                                        YuvPicBuffer*             pcYuvBuffer,
+                                        YuvPicBuffer*             pcResidual,
+                                        Bool                      bInterLayerFlag,
+                                        Bool                      bSpatialScalableFlag,
+                                        LFPass                    eLFPass );
+  ErrVal        xRecalcCBP            ( MbDataAccess&             rcMbDataAccess );
+  ErrVal        xPadding              ( SliceHeader&              rcSH,
+                                        MbDataCtrl*               pcMbDataCtrl,
+                                        Frame*                    apcFrame[] );
 
-  __inline Void xFilter( Pel* pFlt, const Int& iOffset, const Int& iIndexA, const Int& iIndexB, const UChar& ucBs, const Bool& bLum );
+  //===== determination of filter strength =====
+  UInt          xGetHorFilterStrength ( const MbDataAccess&       rcMbDataAccess,
+                                        LumaIdx                   cIdx,
+                                        Int                       iFilterIdc,
+                                        Bool                      bInterLayerFlag,
+                                        Bool                      bSpatialScalableFlag,
+                                        LFPass                    eLFPass );
+  UInt          xGetVerFilterStrength ( const MbDataAccess&       rcMbDataAccess,
+                                        LumaIdx                   cIdx,
+                                        Int                       iFilterIdc,
+                                        Bool                      bInterLayerFlag,
+                                        Bool                      bSpatialScalableFlag,
+                                        LFPass                    eLFPass );
+  const MbData& xGetMbDataLeft        ( const MbDataAccess&       rcMbDataAccess,
+                                        LumaIdx&                  rcIdx );
+  const MbData& xGetMbDataAbove       ( const MbDataAccess&       rcMbDataAccess );
+  Bool          xFilterInsideEdges    ( const MbDataAccess&       rcMbDataAccess,
+                                        Int                       iFilterIdc,
+                                        Bool                      bInterLayerFlag,
+                                        LFPass                    eLFPass );
+  Bool          xFilterLeftEdge       ( const MbDataAccess&       rcMbDataAccess,
+                                        Int                       iFilterIdc,
+                                        Bool                      bInterLayerFlag,
+                                        LFPass                    eLFPass );
+  Bool          xFilterTopEdge        ( const MbDataAccess&       rcMbDataAccess,
+                                        Int                       iFilterIdc,
+                                        Bool                      bInterLayerFlag,
+                                        LFPass                    eLFPass );
+  UChar         xCheckMvDataP         ( const MbData&             rcQMbData,
+                                        const LumaIdx             cQIdx,
+                                        const MbData&             rcPMbData,
+                                        const LumaIdx             cPIdx,
+                                        const Short               sHorMvThr,
+                                        const Short               sVerMvThr  );
+  UChar         xCheckMvDataB         ( const MbData&             rcQMbData,
+                                        const LumaIdx             cQIdx,
+                                        const MbData&             rcPMbData,
+                                        const LumaIdx             cPIdx,
+                                        const Short               sHorMvThr,
+                                        const Short               sVerMvThr );
 
-   __inline Void   xFilter                       ( XPel*               pFlt,
-                                                  const Int&          iOffset,
-                                                  const Int&          iIndexA,
-                                                  const Int&          iIndexB,
-                                                  const UChar&        ucBs,
-                                                  const Bool&         bLum );
-  __inline ErrVal xFilterMb                     ( MbDataAccess* rcMbDataAccessMot,
-                                                  MbDataAccess* rcMbDataAccessRes,
-                                                  YuvPicBuffer*    pcYuvBuffer,
-                                                  RefFrameList*       pcRefFrameList0,
-                                                  RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg,
-									                        			  bool				  enhancedLayerFlag ); //V032 of FSL, added enhanced layer indicator
-  ErrVal xRecalcCBP( MbDataAccess &rcMbDataAccess )
-  {
-    UInt uiCbp = 0;
-    UInt uiStart = 0;
-    UInt uiStop  = 16;
-    if( rcMbDataAccess.getMbData().isTransformSize8x8() )
-    {
-      const UChar *pucScan = rcMbDataAccess.getMbData().getFieldFlag() ? g_aucFieldScan64 : g_aucFrameScan64;
-      uiStart <<= 2;
-      uiStop  <<= 2;
-      for( B8x8Idx cIdx; cIdx.isLegal(); cIdx++ )
-      {
-        TCoeff *piCoeff = rcMbDataAccess.getMbTCoeffs().get8x8( cIdx );
-        for( UInt ui = uiStart; ui < uiStop; ui++ )
-        {
-          if( m_bEncoder ? piCoeff[pucScan[ui]].getLevel() : piCoeff[pucScan[ui]].getCoeff() )
-          {
-            uiCbp |= 0x33 << cIdx.b8x8();
-            break;
-          }
-        }
-      }
-    }
-    else
-    {
-      const UChar *pucScan = rcMbDataAccess.getMbData().getFieldFlag() ? g_aucFieldScan : g_aucFrameScan;
-      for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-      {
-        TCoeff *piCoeff = rcMbDataAccess.getMbTCoeffs().get( cIdx );
-        for( UInt ui = uiStart; ui < uiStop; ui++ )
-        {
-          if( m_bEncoder ? piCoeff[pucScan[ui]].getLevel() : piCoeff[pucScan[ui]].getCoeff() )
-          {
-            uiCbp |= 1<<cIdx.b4x4();
-            break;
-          }
-        }
-      }
-      if( rcMbDataAccess.getMbData().isIntra16x16() )
-      {
-        uiCbp = uiCbp ? 0xFFFF : 0;
-      }
-    }
-    rcMbDataAccess.getMbData().setAndConvertMbExtCbp( uiCbp );
-    return Err::m_nOK;
-  }
+  //===== filtering =====
+  ErrVal        xLumaHorFiltering     ( const MbDataAccess&       rcMbDataAccess,
+                                        const DBFilterParameter&  rcDFP,
+                                        YuvPicBuffer*             pcYuvBuffer );
+  ErrVal        xLumaVerFiltering     ( const MbDataAccess&       rcMbDataAccess,
+                                        const DBFilterParameter&  rcDFP,
+                                        YuvPicBuffer*             pcYuvBuffer );
+  ErrVal        xChromaHorFiltering   ( const MbDataAccess&       rcMbDataAccess,
+                                        const DBFilterParameter&  rcDFP,
+                                        YuvPicBuffer*             pcYuvBuffer );
+  ErrVal        xChromaVerFiltering   ( const MbDataAccess&       rcMbDataAccess,
+                                        const DBFilterParameter&  rcDFP,
+                                        YuvPicBuffer*             pcYuvBuffer );
+  Void          xFilter               ( XPel*                     pFlt,
+                                        const Int&                iOffset,
+                                        const Int&                iIndexA,
+                                        const Int&                iIndexB,
+                                        const UChar&              ucBs,
+                                        const Bool&               bLum );
 
-  __inline ErrVal xLumaHorFiltering             ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DBFilterParameter&          rcDFP,
-                                                  YuvPicBuffer*    pcYuvBuffer );
-  __inline ErrVal xLumaVerFiltering             ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DBFilterParameter&          rcDFP,
-                                                  YuvPicBuffer*    pcYuvBuffer );
-  __inline ErrVal xChromaHorFiltering           ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DBFilterParameter&          rcDFP,
-                                                  YuvPicBuffer*    pcYuvBuffer );
-  __inline ErrVal xChromaVerFiltering           ( const MbDataAccess& rcMbDataAccessRes,
-                                                  const DBFilterParameter&          rcDFP,
-                                                  YuvPicBuffer*    pcYuvBuffer );
-
-  UChar           xCheckMvDataP_RefIdx          ( const MbData&       rcQMbData,
-                                                  const LumaIdx       cQIdx,
-                                                  const MbData&       rcPMbData,
-                                                  const LumaIdx       cPIdx,
-                                                  const Short         sHorMvThr,
-                                                  const Short         sVerMvThr,
-                                                  RefFrameList&       rcRefFrameList0,
-                                                  RefFrameList&       rcRefFrameList1  );
-  UChar           xCheckMvDataB_RefIdx          ( const MbData&       rcQMbData,
-                                                  const LumaIdx       cQIdx,
-                                                  const MbData&       rcPMbData,
-                                                  const LumaIdx       cPIdx,
-                                                  const Short         sHorMvThr,
-                                                  const Short         sVerMvThr,
-                                                  RefFrameList&       rcRefFrameList0,
-                                                  RefFrameList&       rcRefFrameList1 );
-  __inline UInt   xGetHorFilterStrength_RefIdx  ( const MbDataAccess* pcMbDataAccessMot,
-                                                  const MbDataAccess* pcMbDataAccessRes,
-                                                  LumaIdx             cIdx,
-                                                  Int                 iFilterIdc,
-                                                  RefFrameList*       pcRefFrameList0,
-                                                  RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg );
-  __inline UInt   xGetVerFilterStrength_RefIdx  ( const MbDataAccess* pcMbDataAccessMot,
-                                                  const MbDataAccess* pcMbDataAccessRes,
-                                                  LumaIdx             cIdx,
-                                                  Int                 iFilterIdc,
-                                                  RefFrameList*       pcRefFrameList0,
-                                                  RefFrameList*       pcRefFrameList1,
-                                                  bool                spatial_scalable_flg );
 
 protected:
-  // Hanke@RWTH
-  Frame*        m_pcHighpassFrame;
-  YuvPicBuffer* m_pcHighpassYuvBuffer;
-
-  UChar m_aucBs[4];
-
-  ControlMngIf*    m_pcControlMngIf;
-  UChar            m_aaaucBs[2][4][4];
-  YuvPicBuffer* m_apcIntYuvBuffer[4];
-  LFMode           m_eLFMode;
-  ReconstructionBypass*         m_pcReconstructionBypass;
-
-  UChar           m_aucBsHorTop[4];
-  UChar           m_aucBsVerBot[4];
-  Bool            m_bVerMixedMode;
-  Bool            m_bHorMixedMode;
-  Bool            m_bAddEdge;
-  Bool          m_bEncoder;
-
-protected:
-
-  template <UInt uiLum> Void xFilterTempl( FilterParameter& rcFilterParameter )
-  {
-    const Int iAlpha = g_acAlphaClip[ rcFilterParameter.iIndexA ].ucAlpha;
-
-    Int P0 = rcFilterParameter.pFlt[-rcFilterParameter.iOffset];
-    Int Q0 = rcFilterParameter.pFlt[       0];
-
-    Int iDelta = Q0 - P0;
-    Int iAbsDelta  = abs( iDelta  );
-
-    AOF_DBG( rcFilterParameter.ucBs );
-
-    ROFVS( iAbsDelta < iAlpha );
-
-
-    const Int iBeta = g_aucBetaTab [ rcFilterParameter.iIndexB ];
-
-    Int P1  = rcFilterParameter.pFlt[-2*rcFilterParameter.iOffset];
-    Int Q1  = rcFilterParameter.pFlt[   rcFilterParameter.iOffset];
-
-    ROFVS( (abs(P0 - P1) < iBeta) && (abs(Q0 - Q1) < iBeta) );
-
-    if( rcFilterParameter.ucBs < 4 )
-    {
-      Int C0 = g_acAlphaClip[ rcFilterParameter.iIndexA ].aucClip[rcFilterParameter.ucBs];
-
-      if( uiLum )
-      {
-        Int P2 = rcFilterParameter.pFlt[-3*rcFilterParameter.iOffset] ;
-        Int Q2 = rcFilterParameter.pFlt[ 2*rcFilterParameter.iOffset] ;
-        Int aq = (( abs( Q2 - Q0 ) < iBeta ) ? 1 : 0 );
-        Int ap = (( abs( P2 - P0 ) < iBeta ) ? 1 : 0 );
-
-        if( ap )
-        {
-          rcFilterParameter.pFlt[-2*rcFilterParameter.iOffset] = P1 + gClipMinMax((P2 + ((P0 + Q0 + 1)>>1) - (P1<<1)) >> 1, -C0, C0 );
-        }
-
-        if( aq  )
-        {
-          rcFilterParameter.pFlt[   rcFilterParameter.iOffset] = Q1 + gClipMinMax((Q2 + ((P0 + Q0 + 1)>>1) - (Q1<<1)) >> 1, -C0, C0 );
-        }
-
-        C0 += ap + aq -1;
-      }
-
-      C0++;
-      Int iDiff      = gClipMinMax(((iDelta << 2) + (P1 - Q1) + 4) >> 3, -C0, C0 ) ;
-      rcFilterParameter.pFlt[-rcFilterParameter.iOffset] = gClip( P0 + iDiff );
-      rcFilterParameter.pFlt[       0] = gClip( Q0 - iDiff );
-      return;
-    }
-
-
-    if( ! uiLum )
-    {
-      rcFilterParameter.pFlt[         0] = ((Q1 << 1) + Q0 + P1 + 2) >> 2;
-      rcFilterParameter.pFlt[  -rcFilterParameter.iOffset] = ((P1 << 1) + P0 + Q1 + 2) >> 2;
-    }
-    else
-    {
-      Int P2 = rcFilterParameter.pFlt[-3*rcFilterParameter.iOffset] ;
-      Int Q2 = rcFilterParameter.pFlt[ 2*rcFilterParameter.iOffset] ;
-      Bool bEnable  = (iAbsDelta < ((iAlpha >> 2) + 2));
-      Bool aq       = bEnable & ( abs( Q2 - Q0 ) < iBeta );
-      Bool ap       = bEnable & ( abs( P2 - P0 ) < iBeta );
-      Int PQ0 = P0 + Q0;
-
-      if( aq )
-      {
-        rcFilterParameter.pFlt[         0] = (P1 + ((Q1 + PQ0) << 1) +  Q2 + 4) >> 3;
-        rcFilterParameter.pFlt[   rcFilterParameter.iOffset] = (PQ0 +Q1 + Q2 + 2) >> 2;
-        rcFilterParameter.pFlt[ 2*rcFilterParameter.iOffset] = (((rcFilterParameter.pFlt[ 3*rcFilterParameter.iOffset] + Q2) <<1) + Q2 + Q1 + PQ0 + 4) >> 3;
-      }
-      else
-      {
-        rcFilterParameter.pFlt[         0] = ((Q1 << 1) + Q0 + P1 + 2) >> 2;
-      }
-
-      if( ap )
-      {
-        rcFilterParameter.pFlt[  -rcFilterParameter.iOffset] = (Q1 + ((P1 + PQ0) << 1) +  P2 + 4) >> 3;
-        rcFilterParameter.pFlt[-2*rcFilterParameter.iOffset] = (PQ0 +P1 + P2 + 2) >> 2;
-        rcFilterParameter.pFlt[-3*rcFilterParameter.iOffset] = (((rcFilterParameter.pFlt[-4*rcFilterParameter.iOffset] + P2) <<1) + P2 + P1 + PQ0 + 4) >> 3;
-      }
-      else
-      {
-        rcFilterParameter.pFlt[  -rcFilterParameter.iOffset] = ((P1 << 1) + P0 + Q1 + 2) >> 2;
-      }
-    }
-  }
-
+  ControlMngIf*           m_pcControlMngIf;
+  ReconstructionBypass*   m_pcReconstructionBypass;
+  UChar                   m_aaaucBs[2][4][4];
+  UChar                   m_aucBsHorTop[4];
+  UChar                   m_aucBsVerBot[4];
+  Bool                    m_bVerMixedMode;
+  Bool                    m_bHorMixedMode;
+  Bool                    m_bAddEdge;
+  Bool                    m_bEncoder;
 };
 
 

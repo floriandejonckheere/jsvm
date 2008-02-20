@@ -195,11 +195,12 @@ protected:
   ErrVal xWriteTrailingOnes4( UInt uiCoeffCount, UInt uiTrailingOnes );
   ErrVal xWriteTrailingOnes16( UInt uiLastCoeffCount, UInt uiCoeffCount, UInt uiTrailingOnes );
   ErrVal xWriteTotalRun4( UInt uiVlcPos, UInt uiTotalRun );
+  ErrVal xWriteTotalRun8( UInt uiVlcPos, UInt uiTotalRun );
   ErrVal xWriteTotalRun16( UInt uiVlcPos, UInt uiTotalRun );
   ErrVal xWriteLevelVLC0( Int iLevel );
   ErrVal xWriteLevelVLCN( Int iLevel, UInt uiVlcLength );
   ErrVal xWriteRun( UInt uiVlcPos, UInt uiRun );
-  ErrVal xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt uiTotalRun, MbDataAccess &rcMbDataAccess );
+  ErrVal xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt uiTotalRun, MbDataAccess &rcMbDataAccess, Bool bDefaultScanIdx );
   ErrVal xWriteRefFrame( Bool bWriteBit, UInt uiRefFrame );
   ErrVal xWriteMotionPredFlag( Bool bFlag );
 

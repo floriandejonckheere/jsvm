@@ -212,7 +212,11 @@ ErrVal BitWriteBuffer::getLastByte(UChar &uiLastByte, UInt &uiLastBitPos)
 //~FIX_FRAG_CAVLC
 ErrVal BitWriteBuffer::write( UInt uiBits, UInt uiNumberOfBits )
 {
-  AOF_DBG( uiNumberOfBits <= 32 );
+  if( uiNumberOfBits > 32 )
+  {
+    RNOK( write( 0x00, uiNumberOfBits - 32 ) );
+    uiNumberOfBits = 32;
+  }
 
   AOF_DBG( ! ( (uiBits >> 1) >> (uiNumberOfBits - 1)) ); // because shift with 32 has no effect
 

@@ -143,9 +143,7 @@ public:
   virtual ErrVal uninit ();
 
   ErrVal writeParameterSets ( ExtBinDataAccessor*       pcExtBinDataAccessor,
-                              // JVT-V068 {
-                              SequenceParameterSet *pcAVCSPS, 
-                              // JVT-V068 }
+                              SequenceParameterSet*&    rpcAVCSPS, 
                               Bool&                     rbMoreSets );
   ErrVal process            ( ExtBinDataAccessorList&   rcExtBinDataAccessorList, 
                               PicBuffer*                apcOriginalPicBuffer   [MAX_LAYERS],

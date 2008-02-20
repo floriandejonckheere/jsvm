@@ -451,11 +451,8 @@ Bool
 SliceHeader::isFirstSliceOfNextAccessUnit( const SliceHeader* pcLastSliceHeader ) const
 {
   ROFRS   ( pcLastSliceHeader,                                                              false );
-#if 1 // redundant pictures in not in correct order currently (should be modified in later versions)
-#else
   ROTRS   ( pcLastSliceHeader->getRedundantPicCnt       ()  < getRedundantPicCnt        (), false );
   ROTRS   ( pcLastSliceHeader->getRedundantPicCnt       ()  > getRedundantPicCnt        (), true  );
-#endif
   ROTRS   ( pcLastSliceHeader->getDependencyId          ()  < getDependencyId           (), false );
   ROTRS   ( pcLastSliceHeader->getDependencyId          ()  > getDependencyId           (), true  );
   ROTRS   ( pcLastSliceHeader->getQualityId             ()  < getQualityId              (), false );

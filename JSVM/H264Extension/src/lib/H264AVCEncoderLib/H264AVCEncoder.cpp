@@ -443,8 +443,9 @@ ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataA
     ROT( uiNumPictures == 0 );
     UInt *uiDependencyId = new UInt[uiNumPictures];
     UInt *uiQualityLevel = new UInt[uiNumPictures];
-        uiDependencyId[0] = 0;
-        uiQualityLevel[0] = 0;
+    UInt uiTemporalId = 0;
+    uiDependencyId[0] = 0;
+    uiQualityLevel[0] = 0;
 
     pcScalableNestingSei->setNumPictures( uiNumPictures );
     for( UInt uiIndex = 0; uiIndex < uiNumPictures; uiIndex++ )
@@ -452,6 +453,7 @@ ErrVal H264AVCEncoder::writeNestingSEIMessage( ExtBinDataAccessor* pcExtBinDataA
       pcScalableNestingSei->setDependencyId( uiIndex, uiDependencyId[uiIndex] );
       pcScalableNestingSei->setQualityLevel( uiIndex, uiQualityLevel[uiIndex] );
     }
+    pcScalableNestingSei->setTemporalId( uiTemporalId );
     delete uiDependencyId;
     delete uiQualityLevel;
   }
@@ -639,17 +641,15 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
           //SEI changes update }
           if(pcScalableSEI->getBitrateInfoPresentFlag(uiNumScalableLayer))
           {
-            UInt uiAvgBitrate = (UInt)( m_aaadSingleLayerBitrate[uiDependencyID][uiCurrTempLevel][uiQualityLevel]+0.5 );
-          //JVT-S036 lsj start
-            UInt uiMaxBitrateLayer = 0;	//should be changed
-            UInt uiMaxBitrateDecodedPicture = 0;	//should be changed
-            UInt uiMaxBitrateCalcWindow = 0; //should be changed
+            Double  dAvgBitrate               = m_aaadSingleLayerBitrate[uiDependencyID][uiCurrTempLevel][uiQualityLevel];
+            Double  dMaxBitrateLayer          = 0.0;	//should be changed
+            Double  dMaxBitrateDecodedPicture = 0.0;	//should be changed
+            UInt    uiMaxBitrateCalcWindow    = 0;    //should be changed
 
-            pcScalableSEI->setAvgBitrate(uiNumScalableLayer, uiAvgBitrate);
-            pcScalableSEI->setMaxBitrateLayer(uiNumScalableLayer, uiMaxBitrateLayer);
-            pcScalableSEI->setMaxBitrateDecodedPicture(uiNumScalableLayer, uiMaxBitrateDecodedPicture);
+            pcScalableSEI->setAvgBitrateBPS(uiNumScalableLayer, dAvgBitrate);
+            pcScalableSEI->setMaxBitrateLayerBPS(uiNumScalableLayer, dMaxBitrateLayer);
+            pcScalableSEI->setMaxBitrateDecodedPictureBPS(uiNumScalableLayer, dMaxBitrateDecodedPicture);
             pcScalableSEI->setMaxBitrateCalcWindow(uiNumScalableLayer, uiMaxBitrateCalcWindow);
-            //JVT-S036 lsj end
           }
 
           if(pcScalableSEI->getFrmRateInfoPresentFlag(uiNumScalableLayer))
@@ -977,8 +977,8 @@ H264AVCEncoder::xWriteScalableSEI( ExtBinDataAccessor* pcExtBinDataAccessor )
         pcScalableSEI->setPrProfileLevelIdx(i,j,uilayerProfileLevelIdc);
 
 
-        pcScalableSEI->setPrAvgBitrate(i,j,(UInt)(m_adAvgBitrate[uiPrDependencyId]+0.5));
-        pcScalableSEI->setPrMaxBitrate(i,j,(UInt)(m_aadMaxBitrate[uiPrDependencyId][uiPrId]+0.5));
+        pcScalableSEI->setPrAvgBitrateBPS(i,j,m_adAvgBitrate[uiPrDependencyId]);
+        pcScalableSEI->setPrMaxBitrateBPS(i,j,m_aadMaxBitrate[uiPrDependencyId][uiPrId]);
       }
     }
   }
@@ -1124,9 +1124,7 @@ H264AVCEncoder::xWriteMotionSEI( ExtBinDataAccessor* pcExtBinDataAccessor, UInt 
 
 ErrVal
 H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor, 
-                                    // JVT-V068 {
-                                    SequenceParameterSet *pcAVCSPS, 
-                                    // JVT-V068 }
+                                    SequenceParameterSet*& rpcAVCSPS, 
                                     Bool &rbMoreSets )
 {
   if( m_bVeryFirstCall )
@@ -1198,7 +1196,7 @@ H264AVCEncoder::writeParameterSets( ExtBinDataAccessor* pcExtBinDataAccessor,
          rcSPS.getProfileIdc() != SCALABLE_BASELINE_PROFILE &&
          rcSPS.getProfileIdc() != SCALABLE_HIGH_PROFILE )
     {
-      pcAVCSPS = m_cUnWrittenSPS.front();
+      rpcAVCSPS = &rcSPS;
     }
 // JVT-V068 }
 
@@ -1477,10 +1475,10 @@ H264AVCEncoder::xProcessGOP( PicBufferList* apcPicBufferOutputList,
                                                 // JVT-V068 HRD }
                                               ) );
       //JVT-W051 {
-      m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] = m_apcLayerEncoder[uiLayer]->m_dFrameBits/1000;
+      m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] = m_apcLayerEncoder[uiLayer]->m_dFrameBits;
       if ( uiLayer == 0 && uiAUIndex == 0 )
       {
-        m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] += (Double)m_apcLayerEncoder[uiLayer]->xGetParameterSetBits()/1000;
+        m_aaadFrameInGOPBits[uiAUIndex][uiLayer][0] += (Double)m_apcLayerEncoder[uiLayer]->xGetParameterSetBits();
       }
       if ( m_bIsFirstGOP )
       {			
@@ -1602,7 +1600,10 @@ H264AVCEncoder::xInitParameterSets()
       pcSPS->setNalUnitType( NAL_UNIT_SPS );
     }
     RNOK( m_pcParameterSetMng->store( pcSPS   ) );
-
+    UInt  uiDId   = ( m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayerParameters.getLayerCGSSNR()        : uiIndex );
+    UInt  uiQId   = ( m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayerParameters.getQualityLevelCGSSNR() : 0 );
+    UInt  uiDQId  = ( uiDId << 4 ) + uiQId;
+    m_pcParameterSetMng->setActiveSPS( pcSPS->getSeqParameterSetId(), uiDQId );
 
     //===== set sequence parameter set parameters =====
     pcSPS->setAVCHeaderRewriteFlag( true );
@@ -1663,23 +1664,8 @@ H264AVCEncoder::xInitParameterSets()
 		if( uiIndex ) // sub-SPS
 		{
       pcSPS->setAVCHeaderRewriteFlag( false );
-			pcSPS->setSVCVUIParametersPresentFlag( false );
+			pcSPS->setSVCVUIParametersPresentFlag( ( m_pcCodingParameter->getEnableVUI()!=0 ) );
 			pcSPS->setAdditionalExtension2Flag( false);
-			pcSPS->setNumLayersMinus1(0);
-			for (UInt i = 0;i<MAX_LAYERS;i++)
-			{
-				pcSPS->setDependencyId(i,0);
-				pcSPS->setQualityId(i,0);
-				pcSPS->setTemporalId(i,0);
-				pcSPS->setTimingInfoPresentFlag(i,false);
-				pcSPS->setNumUnitsInTick(i,0);
-				pcSPS->setTimeScale(i,0);
-				pcSPS->setFixedFrameRateFlag(i,false);
-				pcSPS->setNalHrdParametersPresentFlag(i,false);
-				pcSPS->setVclHrdParametersPresentFlag(i,false);
-				pcSPS->setLowDelayHrdFlag(i,false);
-				pcSPS->setPicStructPresentFlag(i,false);
-			}
 		}
 		else
 		{
@@ -1805,19 +1791,23 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
   if (pcVui->getVuiParametersPresentFlag())
   {
     pcVui->setProfileIdc(pcSPS->getProfileIdc());
-    pcVui->setBaseLayerProfileIdc( m_pcCodingParameter->getLayerParameters(0).getAdaptiveTransform() > 0 ? HIGH_PROFILE : MAIN_PROFILE );
     pcVui->setLevelIdc(pcSPS->getLevelIdc());
 
     pcVui->init( uiTotalTemporalLevel, uiTotalFGSLevel );
 
     // initiate Nal HRD pamameters
-    UInt uiCpbBrNalFactor = pcVui->getBaseLayerProfileIdc() < HIGH_PROFILE ? 1200 : 
-                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 1500 :
-                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 3600 : 4800 ) );
-
-    UInt uiCpbBrVclFactor = pcVui->getBaseLayerProfileIdc() < HIGH_PROFILE ? 1000 : 
-                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 1250 :
-                          ( pcVui->getBaseLayerProfileIdc() < HIGH_10_PROFILE ? 3000 : 4000 ) );
+    UInt uiCpbBrVclFactor = 1250;
+    UInt uiCpbBrNalFactor = 1500;
+    if( pcVui->getProfileIdc() == HIGH_10_PROFILE )
+    {
+      uiCpbBrVclFactor = 3000;
+      uiCpbBrNalFactor = 3600;
+    }
+    else if( pcVui->getProfileIdc() == HIGH_422_PROFILE || pcVui->getProfileIdc() == HIGH_444_PROFILE || pcVui->getProfileIdc() == CAVLC_444_PROFILE )
+    {
+      uiCpbBrVclFactor = 4000;
+      uiCpbBrNalFactor = 4800;
+    }
 
     // handle 'output frequency' case
     Float fOutFreq = (Float)rcLayer.getOutputFrameRate() / ( 1 << (uiTotalTemporalLevel - 1) );
@@ -1828,7 +1818,7 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
     for (UInt uiFGSLevel = 0; uiFGSLevel < uiTotalFGSLevel; uiFGSLevel++)
     {
       UInt uiQualityLevel = (m_pcCodingParameter->getCGSSNRRefinement() == 1 ? rcLayer.getQualityLevelCGSSNR() : uiFGSLevel);
-      UInt uiIndex = (uiDependencyId<<5)+(uiTemporalId<<2)+uiQualityLevel;
+      UInt uiIndex = (uiDependencyId<<7)+(uiTemporalId<<4)+uiQualityLevel;
       UInt uiHrdIdx = uiTemporalId * uiTotalFGSLevel + uiFGSLevel;
 
       pcVui->getLayerInfo(uiHrdIdx).setDependencyID(uiDependencyId);
@@ -1860,6 +1850,11 @@ ErrVal H264AVCEncoder::xInitLayerInfoForHrd(SequenceParameterSet* pcSPS, UInt ui
         RNOK( pcScheduler->initBuffer (pcVui, uiHrdIdx));
         pcScheduler->setInitialOutputDelay( 2*rcLayer.getDecompositionStages() );
         (*m_apcScheduler)[uiIndex] = pcScheduler;
+      }
+
+      if( uiTemporalId == uiTotalTemporalLevel - 1 && uiFGSLevel == uiTotalFGSLevel - 1 )
+      {
+        pcVui->setDefaultIdx( uiHrdIdx );
       }
     }
   }

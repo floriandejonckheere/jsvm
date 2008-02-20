@@ -98,7 +98,7 @@
             		        framerate => 15,
 				bitrate => 76,
 				useql     => 1,
-            		        psnr => 29.51,            		        
+            		        psnr => 29.53,            		        
             		      },
             		      #----------#
 			 
@@ -111,7 +111,7 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 144,
+				bitrate => 143,
             		        psnr => 31.39,
             		      },
             		      #----------#
@@ -124,9 +124,9 @@
             		        width => 176,
             		        height => 144,
             		        framerate => 15,
-				bitrate => 147,
+				bitrate => 148,
 				useql     => 1,
-            		        psnr => 31.77,            		        
+            		        psnr => 31.79,            		        
             		      },
             		      #----------#
                       # Test   4 #
@@ -151,7 +151,7 @@
             		        framerate => 15,
 				bitrate => 484,
 				useql     => 1,
-            		        psnr => 28.51,
+            		        psnr => 28.50,
             		      },
 		  ],
 }

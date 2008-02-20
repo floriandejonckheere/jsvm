@@ -576,8 +576,8 @@ Extractor::xAnalyse()
       {
         m_uiPr_Id[i][j] = pcTmpScalableSei->getPrId(i,j);
         m_uiPr_Profile_Level_Idc[i][j] = pcTmpScalableSei->getPrProfileLevelIdc(i,j);
-        m_dPr_Avg_Bitrate[i][j] = pcTmpScalableSei->getPrAvgBitrate(i,j);
-        m_dPr_Max_Bitrate[i][j] = pcTmpScalableSei->getPrMaxBitrate(i,j);
+        m_dPr_Avg_Bitrate[i][j] = pcTmpScalableSei->getPrAvgBitrateBPS(i,j);
+        m_dPr_Max_Bitrate[i][j] = pcTmpScalableSei->getPrMaxBitrateBPS(i,j);
       }
     }
     //JVT-W051 }
@@ -613,8 +613,8 @@ Extractor::xAnalyse()
           if(m_bRewriting_Info_Flag[ui][uiType])
           {
             m_uiRewriting_Profile_Level_Idc[ui][uiType] = pcTmpScalableSei->getRewritingProfileLevelIdc(ui,uiType);
-            m_dRewriting_Avg_Bitrate[ui][uiType] = pcTmpScalableSei->getRewritingAvgBitrate(ui,uiType);
-            m_dRewriting_Max_Bitrate[ui][uiType] = pcTmpScalableSei->getRewritingMaxBitrate(ui,uiType);
+            m_dRewriting_Avg_Bitrate[ui][uiType] = pcTmpScalableSei->getRewritingAvgBitrateBPS(ui,uiType);
+            m_dRewriting_Max_Bitrate[ui][uiType] = pcTmpScalableSei->getRewritingMaxBitrateBPS(ui,uiType);
           }		
         }
       }
@@ -689,7 +689,7 @@ Extractor::xAnalyse()
           cPacketDescription.FGSLayer,
           cPacketDescription.ParameterSet ? "ParameterSet" : "   SliceData",
           cPacketDescription.ParameterSet || ( cPacketDescription.Level == 0 && cPacketDescription.FGSLayer == 0 )  ? " No" : "Yes",
-          cPacketDescription.FGSLayer ? "Yes" : " No" );
+          cPacketDescription.FGSLayer ? " No" : " No" );
       }
       m_uiMaxSize = max( m_uiMaxSize, uiSize );
     }
@@ -896,7 +896,7 @@ Extractor::xAnalyse()
     m_auiDependencyId[uiScalableLayerId] = uiDependencyId;
     m_auiTempLevel   [uiScalableLayerId] = uiTempLevel;
     m_auiQualityLevel[uiScalableLayerId] = uiQualityLevel;
-    UInt uiBitrate      =  pcTmpScalableSei->getAvgBitrate(uiScalableLayerId);
+    UInt uiBitrate      =  pcTmpScalableSei->getAvgBitrateBPS(uiScalableLayerId);
     m_auiFrmWidth[uiScalableLayerId] = (pcTmpScalableSei->getFrmWidthInMbsMinus1(uiScalableLayerId)+1) << 4;
     m_auiFrmHeight[uiScalableLayerId] = (pcTmpScalableSei->getFrmHeightInMbsMinus1(uiScalableLayerId)+1) << 4;
     m_adFramerate[uiScalableLayerId] = (pcTmpScalableSei->getAvgFrmRate(uiScalableLayerId))/256.0;
@@ -2358,9 +2358,9 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         if( uiWantedScalableLayer == MSYS_UINT_MAX ) //-f
         {
           if( pcNewScalableSei->getQualityId( uiNumScalableLayer ) == uiMaxFGSLayer )
-            pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, (UInt)(pcOldScalableSei->getAvgBitrate( uiScalableLayer ) * ( 1 - dSNRLayerDiff ) ) );
+            pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) * ( 1.0 - dSNRLayerDiff ) );
           else
-            pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, pcOldScalableSei->getAvgBitrate( uiScalableLayer ) );
+            pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) );
         }
         else if( uiMaxBitrate == MSYS_UINT_MAX )//-e
         {
@@ -2368,24 +2368,24 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
       Double dBitrate = m_aaadSingleBitrate[pcOldScalableSei->getDependencyId(uiScalableLayer)]
                                                [pcOldScalableSei->getTemporalId(uiScalableLayer)]
                                                [pcOldScalableSei->getQualityId(uiScalableLayer)];
-      pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, (UInt)(dBitrate+0.5) );
+      pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, dBitrate );
 //~cleaning
         }
         else //-b
         {
           if( pcNewScalableSei->getDependencyId( uiNumScalableLayer ) == m_auiDependencyId[uiWantedScalableLayer] &&
               pcNewScalableSei->getQualityId( uiNumScalableLayer ) == m_auiQualityLevel[uiWantedScalableLayer] )
-            pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, (UInt)(pcOldScalableSei->getAvgBitrate( uiScalableLayer ) * ( 1 - dSNRLayerDiff ) ) );
+            pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) * ( 1.0 - dSNRLayerDiff ) );
           else
-            pcNewScalableSei->setAvgBitrate( uiNumScalableLayer, pcOldScalableSei->getAvgBitrate( uiScalableLayer ) );
+            pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) );
               }
       }
 
       else
-        pcNewScalableSei->setAvgBitrate(uiNumScalableLayer, pcOldScalableSei->getAvgBitrate( uiScalableLayer ) );
+        pcNewScalableSei->setAvgBitrateBPS(uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) );
     //JVT-S036 lsj start
-      pcNewScalableSei->setMaxBitrateLayer(uiNumScalableLayer, pcOldScalableSei->getMaxBitrateLayer( uiScalableLayer ) );
-      pcNewScalableSei->setMaxBitrateDecodedPicture(uiNumScalableLayer, pcOldScalableSei->getMaxBitrateDecodedPicture( uiScalableLayer ) );
+      pcNewScalableSei->setMaxBitrateLayerBPS(uiNumScalableLayer, (Double)pcOldScalableSei->getMaxBitrateLayerBPS( uiScalableLayer ) );
+      pcNewScalableSei->setMaxBitrateDecodedPictureBPS(uiNumScalableLayer, (Double)pcOldScalableSei->getMaxBitrateDecodedPictureBPS( uiScalableLayer ) );
       pcNewScalableSei->setMaxBitrateCalcWindow(uiNumScalableLayer, pcOldScalableSei->getMaxBitrateCalcWindow( uiScalableLayer ) );
     //JVT-S036 lsj end
     }
@@ -2628,8 +2628,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         if( pcOldScalableSei->getRewritingInfoFlag(uiScalableLayer, uiType) )
         {
           pcNewScalableSei->setRewritingProfileLevelIdc(uiScalableLayer,uiType,pcOldScalableSei->getRewritingProfileLevelIdc(uiScalableLayer,uiType));
-          pcNewScalableSei->setRewritingAvgBitrate(uiScalableLayer,uiType,pcOldScalableSei->getRewritingAvgBitrate(uiScalableLayer,uiType));
-          pcNewScalableSei->setRewritingMaxBitrate(uiScalableLayer,uiType,pcOldScalableSei->getRewritingMaxBitrate(uiScalableLayer,uiType));
+          pcNewScalableSei->setRewritingAvgBitrateBPS(uiScalableLayer,uiType,(Double)pcOldScalableSei->getRewritingAvgBitrateBPS(uiScalableLayer,uiType));
+          pcNewScalableSei->setRewritingMaxBitrateBPS(uiScalableLayer,uiType,(Double)pcOldScalableSei->getRewritingMaxBitrateBPS(uiScalableLayer,uiType));
         }
       }
     }
@@ -2712,8 +2712,8 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
       {
         pcNewScalableSei->setPrId(i,j,pcOldScalableSei->getPrId(i,j));
         pcNewScalableSei->setPrProfileLevelIdx(i,j,pcOldScalableSei->getPrProfileLevelIdc(i,j));
-        pcNewScalableSei->setPrAvgBitrate(i,j,pcOldScalableSei->getPrAvgBitrate(i,j));
-        pcNewScalableSei->setPrMaxBitrate(i,j,pcOldScalableSei->getPrMaxBitrate(i,j));
+        pcNewScalableSei->setPrAvgBitrateBPS(i,j,(Double)pcOldScalableSei->getPrAvgBitrateBPS(i,j));
+        pcNewScalableSei->setPrMaxBitrateBPS(i,j,(Double)pcOldScalableSei->getPrMaxBitrateBPS(i,j));
       }
     }
   }
@@ -2846,7 +2846,7 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
   UInt uiMaxTempLevel        = m_pcExtractorParameter->getLevel();
   UInt uiMaxFGSLayer         = m_pcExtractorParameter->getFGSLayer();
   Double dMaxFGSLayer        = uiMaxFGSLayer;
-  UInt uiMaxBitrate          = (UInt) m_pcExtractorParameter->getBitrate();
+  UInt uiMaxBitrate          = (UInt) m_pcExtractorParameter->getBitrate()*1000;
   UInt uiKeepScalableLayer   = 0;
   UInt uiDecreaseBitrate     = MSYS_UINT_MAX;
 // JVT-T073 {
@@ -3401,7 +3401,7 @@ Extractor::xExtractTrace()
         }
         else if( uiSize > uiNextLength )
         {
-          if( cPacketDescription.FGSLayer == 0 )
+          if( true /*cPacketDescription.FGSLayer == 0*/ )
           {
             fprintf( stderr, "\nERROR: The packet at start pos. 0x%08x is not truncatable\n", uiNextStart );
             RERR();
@@ -3673,13 +3673,7 @@ Extractor::xGetExtParameters()
   ERROR( uiExtLevel==MSYS_UINT_MAX, "Temporal resolution of extraction/inclusion point not supported" );
   ERROR( uiExtLevel>m_cScalableStreamDescription.getMaxLevel(uiExtLayer), "Spatio-temporal resolution of extraction/inclusion point not supported" );
    //--- target number of bytes -----
-  Double RoiNum;
-  if (m_pcExtractorParameter->getROIFlag())
-    RoiNum = 1.0;
-  else
-    RoiNum = m_pcH264AVCPacketAnalyzer->m_uiNumSliceGroupsMinus1 + 1.0;
   Double  dTargetNumExtBytes  = rcExtPoint.dBitRate / 8.0 * 1000.0 / m_cScalableStreamDescription.getFrameRate(uiExtLayer,uiExtLevel)  * (Double)m_cScalableStreamDescription.getNumPictures(uiExtLayer,uiExtLevel);
-  dTargetNumExtBytes /= RoiNum;
   m_pcExtractorParameter->setTargetRate(dTargetNumExtBytes);
 
   return Err::m_nOK;
@@ -4091,7 +4085,7 @@ Double Extractor::GetImageRateForQualityLevelActual(UInt uiLayer, UInt uiNumImag
         Double dTime = m_cScalableStreamDescription.getNumPictures(m_uiTruncateLayer, m_uiTruncateLevel) / 
           m_cScalableStreamDescription.getFrameRate( m_uiTruncateLayer, m_uiTruncateLevel);
         Double dDecBitrate = (1-dRatio) * (m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame][uiNumImage] - 
-          m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNumImage] ) * 8 / 1000 / dTime;
+          m_aaauiBytesForQualityLevel[uiLayer][uiPIDIndexInFrame-1][uiNumImage] ) * 8 / dTime;
         m_aaadSingleBitrate[m_uiTruncateLayer][m_uiTruncateLevel][m_uiTruncateFGSLayer] -= dDecBitrate;
       }
     }
@@ -4253,7 +4247,7 @@ Extractor::xCalcSIPBitrate()
       m_cScalableStreamDescription.getFrameRate( uiLayer, uiLevel );
     for( UInt uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++ )
     {
-      Double dDecBitrate = (Double)(Int64)m_cScalableStreamDescription.getNALUBytesNoUse(uiLayer, uiLevel, uiFGS ) * 8 / dTime / 1000;
+      Double dDecBitrate = (Double)(Int64)m_cScalableStreamDescription.getNALUBytesNoUse(uiLayer, uiLevel, uiFGS ) * 8 / dTime;
       if( ( m_aaadSingleBitrate[uiLayer][uiLevel][uiFGS]-dDecBitrate ) < 0.05 * m_aaadSingleBitrate[uiLayer][uiLevel][uiFGS] )
         m_aaadSingleBitrate[uiLayer][uiLevel][uiFGS] = 0; //force the layer non-existing
       else
@@ -4481,7 +4475,7 @@ ScalableStreamDescription::init( h264::SEI::ScalableSei* pcScalableSei )
     m_aaadFramerate        [uiLayer][uiLevel][uiFGS] = pcScalableSei->getFrmRateInfoPresentFlag( uiScalableLayer ) ?
                                         pcScalableSei->getAvgFrmRate( uiScalableLayer )/256.0 : 0;
     m_aaauiBitrate         [uiLayer][uiLevel][uiFGS] = pcScalableSei->getBitrateInfoPresentFlag( uiScalableLayer ) ?
-                                        pcScalableSei->getAvgBitrate( uiScalableLayer ) : 0;
+                                        pcScalableSei->getAvgBitrateBPS( uiScalableLayer ) : 0;
     m_aaauiFrmWidth        [uiLayer][uiLevel][uiFGS] = pcScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) ?
                                       ( pcScalableSei->getFrmWidthInMbsMinus1    ( uiScalableLayer ) + 1 ) << 4 : 0;
     m_aaauiFrmHeight       [uiLayer][uiLevel][uiFGS] = pcScalableSei->getFrmSizeInfoPresentFlag( uiScalableLayer ) ?
@@ -4621,10 +4615,10 @@ Extractor::xOutput( )
 
     if( uiQualityLevel)
       printf( "       %3d     %3dx%3d      %7.4lf   %8.2lf               (%d,%d,%d) \n",
-      uiScalableLayer,uiFrameWidth, uiFrameHeight, dFrameRate, dBitrate, uiDependencyId, uiTempLevel, uiQualityLevel );
+      uiScalableLayer,uiFrameWidth, uiFrameHeight, dFrameRate, dBitrate/1000.0, uiDependencyId, uiTempLevel, uiQualityLevel );
     else //Q = 0
       printf( "       %3d     %3dx%3d      %7.4lf   %8.2lf  %10.2lf   (%d,%d,%d) \n",
-      uiScalableLayer,uiFrameWidth, uiFrameHeight, dFrameRate, dBitrate, m_aadMinBitrate[uiDependencyId][uiTempLevel], uiDependencyId, uiTempLevel, uiQualityLevel );
+      uiScalableLayer,uiFrameWidth, uiFrameHeight, dFrameRate, dBitrate/1000.0, m_aadMinBitrate[uiDependencyId][uiTempLevel]/1000.0, uiDependencyId, uiTempLevel, uiQualityLevel );
   
     //JVT-W046 {
 		//SEI changes update {
@@ -4656,8 +4650,8 @@ Extractor::xOutput( )
         if(bRewritingInfoFlag)
         {
           Int32  uiRewritingProfileLevel  =  m_uiRewriting_Profile_Level_Idc[uiScalableLayer][uiType];
-          UInt   dRewritingAvgBitRate    =  m_dRewriting_Avg_Bitrate[uiScalableLayer][uiType];
-          UInt   dRewritingMaxBitRate    =  m_dRewriting_Max_Bitrate[uiScalableLayer][uiType];
+          UInt   dRewritingAvgBitRate    =  m_dRewriting_Avg_Bitrate[uiScalableLayer][uiType]/1000;
+          UInt   dRewritingMaxBitRate    =  m_dRewriting_Max_Bitrate[uiScalableLayer][uiType]/1000;
           printf( "\n ConvType" "   RewritingProfileLevel" "   RewritingAvgBitrate" "   RewritingMaxBitrate\n");
           printf( "      %3d                  %7d                      %11d                      %11d\n",
             uiConvType, uiRewritingProfileLevel, dRewritingAvgBitRate, dRewritingMaxBitRate );
@@ -4694,8 +4688,8 @@ Extractor::xOutput( )
       Int32 uiPrProfile_Level	= m_uiPr_Profile_Level_Idc[uiCurrDependencyLayer][uiCurrPriorityLayer];
       UInt uiProfile = uiPrProfile_Level >> 16;
       UInt uiLevel = (uiPrProfile_Level << 24) >> 24;
-      UInt dPrAvgBitrate		= m_dPr_Avg_Bitrate[uiCurrDependencyLayer][uiCurrPriorityLayer];
-      UInt dPrMaxBitrate		= m_dPr_Max_Bitrate[uiCurrDependencyLayer][uiCurrPriorityLayer];
+      UInt dPrAvgBitrate		= m_dPr_Avg_Bitrate[uiCurrDependencyLayer][uiCurrPriorityLayer]/1000;
+      UInt dPrMaxBitrate		= m_dPr_Max_Bitrate[uiCurrDependencyLayer][uiCurrPriorityLayer]/1000;
       printf( "  %3d    %3d  %5d   %5d   %11d     %11d\n",
         uiCurrDependencyLayer, uiCurrPriorityLayer, uiProfile, uiLevel, dPrAvgBitrate, dPrMaxBitrate );		
     }
@@ -4722,7 +4716,7 @@ for ( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; 
     UInt uiQualityLevel  = m_auiQualityLevel         [uiScalableLayer];
 
     printf( "       %3d     %3dx%3d      %7.4lf   %8.2lf     (%d,%d,%d) \n",
-      uiScalableLayer,uiFrameWidth, uiFrameHeight, dFrameRate, dBitrate, uiDependencyId, uiTempLevel, uiQualityLevel );
+      uiScalableLayer,uiFrameWidth, uiFrameHeight, dFrameRate, dBitrate/1000.0, uiDependencyId, uiTempLevel, uiQualityLevel );
   }
   printf( "\n\n" );
 }

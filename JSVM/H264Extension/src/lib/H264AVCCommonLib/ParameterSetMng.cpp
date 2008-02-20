@@ -89,12 +89,14 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 H264AVC_NAMESPACE_BEGIN
 
-ParameterSetMng::ParameterSetMng() :
-  m_uiActiveSPSId( MSYS_UINT_MAX ),
-  m_uiActivePPSId( MSYS_UINT_MAX )
+ParameterSetMng::ParameterSetMng()
 {
   m_cSPSBuf.setAll( 0 );
   m_cPPSBuf.setAll( 0 );
+  for( UInt ui = 0; ui < 16*8; ui++ )
+  {
+    m_auiActiveSPSId[ui] = MSYS_UINT_MAX;
+  }
 }
 
 ErrVal ParameterSetMng::create( ParameterSetMng*& rpcParameterSetMng )
@@ -154,8 +156,6 @@ ErrVal ParameterSetMng::get( SequenceParameterSet*& rpcSPS, UInt uiSPSId, Bool b
   RNOK( m_cSPSBuf.get( rpcSPS, uiSPSId) );
 
   ROT( NULL == rpcSPS);
-
-  m_uiActiveSPSId = uiSPSId;
   return Err::m_nOK;
 }
 
@@ -203,8 +203,6 @@ ErrVal ParameterSetMng::get( PictureParameterSet*& rpcPPS, UInt uiPPSId )
   RNOK( m_cPPSBuf.get( rpcPPS, uiPPSId ) );
 
   ROT( NULL == rpcPPS );
-
-  m_uiActivePPSId = uiPPSId;
   return Err::m_nOK;
 }
 
@@ -270,15 +268,41 @@ ErrVal ParameterSetMng::setParamterSetList( std::list<SequenceParameterSet*>& rc
 }
 
 // JVT-V068 HRD {
-ErrVal ParameterSetMng::getActiveSPS( SequenceParameterSet *& rpcSPS)
+ErrVal ParameterSetMng::getActiveSPS( SequenceParameterSet *& rpcSPS, UInt uiDQId )
 {
+  ROF( uiDQId < 16*8 );
   rpcSPS = NULL; 
-  RNOKS( m_cSPSBuf.get( rpcSPS, m_uiActiveSPSId) );
+  RNOKS( m_cSPSBuf.get( rpcSPS, m_auiActiveSPSId[uiDQId] ) );
 
   ROTS( NULL == rpcSPS);
   return Err::m_nOK;
 }
 // JVT-V068 HRD }
+
+ErrVal ParameterSetMng::getActiveSPSDQ0( SequenceParameterSet *& rpcSPS )
+{
+  rpcSPS = NULL; 
+  if( m_auiActiveSPSId[0] != MSYS_UINT_MAX )
+  {
+    rpcSPS = m_cSPSBuf.get( m_auiActiveSPSId[0] );
+  }
+  if( ! rpcSPS )
+  {
+    //===== search for new SPS ====
+    UInt uiMaxIndex = m_cSPSBuf.size();
+    for( UInt uiIndex = 0; uiIndex < uiMaxIndex; uiIndex++ )
+    {
+      if( m_cSPSBuf.get( uiIndex ) && ! m_cSPSBuf.get( uiIndex )->isSubSetSPS() )
+      {
+        rpcSPS = m_cSPSBuf.get( uiIndex );
+        break;
+      }
+    }
+  }
+  ROT( NULL == rpcSPS);
+  return Err::m_nOK;
+}
+
 
 H264AVC_NAMESPACE_END
 

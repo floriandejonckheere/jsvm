@@ -189,6 +189,9 @@ public:
   ErrVal write( HeaderSymbolWriteIf* pcWriteIf )          const;
   ErrVal read( HeaderSymbolReadIf* pcReadIf );
 
+  ErrVal writeSVCExtension( HeaderSymbolWriteIf* pcWriteIf )          const;
+  ErrVal readSVCExtension( HeaderSymbolReadIf* pcReadIf );
+
   Bool getOverscanInfoPresentFlag()                 const { return m_bOverscanInfoPresentFlag; }
   Bool getOverscanAppropriateFlag()                 const { return m_bOverscanAppropriateFlag; }
   Bool getLowDelayHrdFlag(UInt uiIndex)             const { return m_abLowDelayHrdFlag.get(uiIndex); }
@@ -198,8 +201,6 @@ public:
   const TimingInfo&             getTimingInfo(UInt uiIndex)           const { return m_acTimingInfo.get(uiIndex); }
   const HRD&                    getNalHrd(UInt uiIndex)               const { return m_acNalHrd.get(uiIndex); }
   const HRD&                    getVclHrd(UInt uiIndex)               const { return m_acVclHrd.get(uiIndex); }
-  //const Bool&                   getLowDelayHrdFlag ( UInt uiIndex )     const { return m_abLowDelayHrdFlag.get(uiIndex); }
-  //const Bool&                   getPicStructPresentFlag( UInt uiIndex ) const { return m_abPicStructPresentFlag.get(uiIndex); }
 
   const AspectRatioInfo&        getAspectRatioInfo()      const { return m_cAspectRatioInfo; }
   const VideoSignalType&        getVideoSignalType()      const { return m_cVideoSignalType; }
@@ -212,9 +213,9 @@ public:
   HRD&                          getVclHrd(UInt uiSchedulerID)                     { return m_acVclHrd[uiSchedulerID]; }
   Bool&                         getLowDelayHrdFlag ( UInt uiSchedulerID )         { return m_abLowDelayHrdFlag[uiSchedulerID]; }
   Bool&                         getPicStructPresentFlag( UInt uiSchedulerID )     { return m_abPicStructPresentFlag[uiSchedulerID]; }
-  UInt                          getNumLayers()                                    { return m_uiNumTemporalLevels*m_uiNumFGSLevels; }
-  UInt                          getNumTemporalLevels()                            { return m_uiNumTemporalLevels; }
-  UInt                          getNumFGSLevels()                                 { return m_uiNumFGSLevels; }
+  UInt                          getNumLayers()          const                     { return m_uiNumTemporalLevels*m_uiNumFGSLevels; }
+  UInt                          getNumTemporalLevels()  const                     { return m_uiNumTemporalLevels; }
+  UInt                          getNumFGSLevels()       const                     { return m_uiNumFGSLevels; }
 
   AspectRatioInfo&              getAspectRatioInfo()            { return m_cAspectRatioInfo; }
   VideoSignalType&              getVideoSignalType()            { return m_cVideoSignalType; }
@@ -222,16 +223,11 @@ public:
 	Void                          setProfileIdc ( Profile eProfileIdc) { m_eProfileIdc = eProfileIdc; }
 	UInt                          getProfileIdc () const { return m_eProfileIdc; }
 
-  Void                          setBaseLayerProfileIdc ( Profile eProfileIdc) { m_eBaseLayerProfileIdc = eProfileIdc; }
-  UInt                          getBaseLayerProfileIdc () const { return m_eProfileIdc; }
-
   Void                          setLevelIdc ( UInt eLevelIdc) { m_uiLevelIdc = eLevelIdc; }
   UInt                          getLevelIdc () const { return m_uiLevelIdc; }
 
   Void setOverscanInfoPresentFlag ( Bool bOverscanInfoPresentFlag )                 { m_bOverscanInfoPresentFlag = bOverscanInfoPresentFlag; }
   Void setOverscanAppropriateFlag ( Bool bOverscanAppropriateFlag )                 { m_bOverscanAppropriateFlag = bOverscanAppropriateFlag; }
-
-  //Void setNumLayers( UInt uiNumLayers ) { m_uiNumLayers = uiNumLayers; }
 
   Bool  getVuiParametersPresentFlag() const { return m_bVuiParametersPresentFlag; }
   Void  setVuiParametersPresentFlag( Bool bVuiParametersPresentFlag ) { m_bVuiParametersPresentFlag = bVuiParametersPresentFlag; }
@@ -241,6 +237,9 @@ public:
   Void  setVUITimingInfoSimulationOn  ();
   Void  setVUITimingInfoPresentFlag( Bool bVUITimingInfoPresentFlag);
   ErrVal InitHrd( UInt uiIndex, HRD::HrdParamType eHrdType, UInt uiBitRate, UInt uiCpbSize);
+
+  Void setDefaultIdx( UInt ui ) { m_uiDefaultIdx = ui; }
+  UInt getDefaultIdx() const { return m_uiDefaultIdx; }
 
 protected:
   Bool m_bVuiParametersPresentFlag;
@@ -261,9 +260,9 @@ protected:
 
   UInt m_uiNumTemporalLevels;
   UInt m_uiNumFGSLevels;
+  UInt m_uiDefaultIdx;
 
 	Profile m_eProfileIdc;
-  Profile m_eBaseLayerProfileIdc;
   UInt  m_uiLevelIdc;
 };
 

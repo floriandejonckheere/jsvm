@@ -1531,7 +1531,7 @@ SliceHeaderSyntax::write( HeaderSymbolWriteIf& rcWriteIf, Bool bInclusiveNalUnit
       RNOK(     rcWriteIf.writeFlag ( m_bTCoeffLevelPredictionFlag,                   "SH: tcoeff_level_prediction_flag" ) );	
     }
   }
-  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() ) 
+  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() && ! m_bSliceSkipFlag ) 
   {
     UInt  uiScanIdxStart  = ( m_uiScanIdxStart == m_uiScanIdxStop ? 1 : m_uiScanIdxStart );
     UInt  uiScanIdxEnd    = ( m_uiScanIdxStart == m_uiScanIdxStop ? 0 : m_uiScanIdxStop - 1 );
@@ -1745,7 +1745,7 @@ SliceHeaderSyntax::read( ParameterSetMng& rcParameterSetMng, HeaderSymbolReadIf&
       RNOK(     rcReadIf.getFlag ( m_bTCoeffLevelPredictionFlag,                   "SH: tcoeff_level_prediction_flag" ) );	
     }
   }
-  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() ) 
+  if( !getSPS().getAVCHeaderRewriteFlag() && ! isH264AVCCompatible() && ! m_bSliceSkipFlag ) 
   {
     RNOK(       rcReadIf.getCode ( m_uiScanIdxStart, 4,                            "SH: scan_idx_start" ) );
     RNOK(       rcReadIf.getCode ( m_uiScanIdxStop,  4,                            "SH: scan_idx_end" ) );
@@ -1926,11 +1926,12 @@ SliceHeaderSyntax::xInitScalingMatrix()
 ErrVal
 SliceHeaderSyntax::xInitParameterSets( ParameterSetMng& rcParameterSetMng, UInt uiPPSId, Bool bSubSetSPS )
 {
-  SequenceParameterSet* pcSPS = 0;
-  PictureParameterSet*  pcPPS = 0;
+  SequenceParameterSet* pcSPS   = 0;
+  PictureParameterSet*  pcPPS   = 0;
+  UInt                  uiDQId  = (getDependencyId()<<4)+getQualityId();
   RNOK( rcParameterSetMng.get( pcPPS, uiPPSId ) );
   RNOK( rcParameterSetMng.get( pcSPS, pcPPS->getSeqParameterSetId(), bSubSetSPS ) );
-  
+  rcParameterSetMng.setActiveSPS( pcSPS->getSeqParameterSetId(), uiDQId );
   RNOK( xInitParameterSets( *pcSPS, *pcPPS ) );
   return Err::m_nOK;
 }

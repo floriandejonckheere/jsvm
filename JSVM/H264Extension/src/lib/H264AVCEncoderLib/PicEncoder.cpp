@@ -840,15 +840,7 @@ PicEncoder::xFinishPicture( RecPicBufUnit&  rcRecPicBufUnit,
   }
 
   //===== deblocking =====
-  RNOK( m_pcLoopFilter->process( rcSliceHeader,
-                                 rcRecPicBufUnit.getRecFrame(),
-                                 rcRecPicBufUnit.getMbDataCtrl(),
-                                 rcRecPicBufUnit.getMbDataCtrl(),
-                                 m_uiFrameWidthInMb,
-                                 &rcList0,
-                                 &rcList1,
-								 true,
-                                 false ) );
+  RNOK( m_pcLoopFilter->process( rcSliceHeader, rcRecPicBufUnit.getRecFrame(), NULL, rcRecPicBufUnit.getMbDataCtrl(), false, false ) );
 
   //===== get PSNR =====
   Double dPSNR[3];

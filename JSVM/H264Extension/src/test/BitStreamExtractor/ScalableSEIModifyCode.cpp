@@ -453,10 +453,10 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
   // JVT-S036 lsj delete
     if( pcScalableSei->getBitrateInfoPresentFlag( uiLayer ) )
     {
-      pcScalableModifyCode->WriteCode( pcScalableSei->getAvgBitrate( uiLayer ), 16 );
+      pcScalableModifyCode->WriteCode( pcScalableSei->getAvgBitrateCode( uiLayer ), 16 );
     //JVT-S036 lsj start
-      pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateLayer( uiLayer ), 16 );
-      pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateDecodedPicture( uiLayer ), 16 );
+      pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateLayerCode( uiLayer ), 16 );
+      pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateDecodedPictureCode( uiLayer ), 16 );
       pcScalableModifyCode->WriteCode( pcScalableSei->getMaxBitrateCalcWindow( uiLayer ), 16 );
     //JVT-S036 lsj end
     }
@@ -649,8 +649,8 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
           //pcScalableModifyCode->WriteCode(pcScalableSei->getAvcAvgBitrate( uiLayer,ui ),16 );
           //pcScalableModifyCode->WriteCode(pcScalableSei->getAvcMaxBitrate( uiLayer,ui ),16 );
 					pcScalableModifyCode->WriteCode(pcScalableSei->getRewritingProfileLevelIdc( uiLayer,ui ),24 );
-          pcScalableModifyCode->WriteCode(pcScalableSei->getRewritingAvgBitrate( uiLayer,ui ),16 );
-          pcScalableModifyCode->WriteCode(pcScalableSei->getRewritingMaxBitrate( uiLayer,ui ),16 );
+          pcScalableModifyCode->WriteCode(pcScalableSei->getRewritingAvgBitrateCode( uiLayer,ui ),16 );
+          pcScalableModifyCode->WriteCode(pcScalableSei->getRewritingMaxBitrateCode( uiLayer,ui ),16 );
         }
       }
     }
@@ -685,8 +685,8 @@ ScalableSEIModifyCode::SEICode( h264::SEI::ScalableSei* pcScalableSei, ScalableS
 			{
 				pcScalableModifyCode->WriteUVLC( pcScalableSei->getPrId( i, j ) );
 				pcScalableModifyCode->WriteCode( pcScalableSei->getPrProfileLevelIdc( i, j ),24 );
-				pcScalableModifyCode->WriteCode( pcScalableSei->getPrAvgBitrate( i, j ), 16 );
-				pcScalableModifyCode->WriteCode( pcScalableSei->getPrMaxBitrate( i, j ), 16 );
+				pcScalableModifyCode->WriteCode( pcScalableSei->getPrAvgBitrateCode( i, j ), 16 );
+				pcScalableModifyCode->WriteCode( pcScalableSei->getPrMaxBitrateCode( i, j ), 16 );
 			}
 		}
 	}

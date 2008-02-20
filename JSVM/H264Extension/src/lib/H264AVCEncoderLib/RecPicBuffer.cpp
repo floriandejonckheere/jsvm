@@ -159,7 +159,7 @@ RecPicBufUnit::init( SliceHeader* pcSliceHeader,
   m_bOutputted            = false;
   m_pcPicBuffer           = pcPicBuffer;
 
-  m_pcReconstructedFrame->setPoc( m_iPoc );
+  m_pcReconstructedFrame->setPoc( *pcSliceHeader );
 
   return Err::m_nOK;
 }

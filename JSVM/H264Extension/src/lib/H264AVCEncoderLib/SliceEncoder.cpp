@@ -1376,11 +1376,7 @@ SliceEncoder::updatePictureResTransform( ControlData&     rcControlData,
     }
 
     // if cbp==0, tranform size is not transmitted, in this case inherit the transform size from base layer
-#if SVC_ERRATA
     if( pcMbDataAccess->isSCoeffPred() || ( pcMbDataAccess->getMbData().isIntraBL() && pcMbDataAccessBase->getMbData().isIntraButnotIBL() ) )
-#else
-    if( pcMbDataAccess->isSCoeffPred() )
-#endif
     {
       if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
         pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );    
@@ -1446,11 +1442,10 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
 {
   ROF( m_bInitDone );
 
-  SliceHeader&  rcSliceHeader         = *rcControlData.getSliceHeader           ();
-  MbDataCtrl*   pcMbDataCtrl          =  rcControlData.getMbDataCtrl            ();
-  MbDataCtrl*   pcBaseLayerCtrl       =  rcControlData.getBaseLayerCtrl         ();
-  UInt          uiMbAddress           =  0;
-  UInt          uiLastMbAddress       =  rcSliceHeader.getMbInPic() - 1;
+  SliceHeader&  rcSliceHeader   = *rcControlData.getSliceHeader();
+  FMO&          rcFMO           = *rcSliceHeader.getFMO();
+  MbDataCtrl*   pcMbDataCtrl    = rcControlData.getMbDataCtrl();
+  MbDataCtrl*   pcBaseLayerCtrl = rcControlData.getBaseLayerCtrl();
 
   //====== initialization ======
   RNOK( pcMbDataCtrl->initSlice( rcSliceHeader, DECODE_PROCESS, false, NULL ) );
@@ -1459,68 +1454,72 @@ SliceEncoder::updatePictureAVCRewrite( ControlData& rcControlData, UInt uiMbInRo
   {
 	  // Update the macroblock state
 	  // Must be done after the bit-stream has been constructed
-	  for( ; uiMbAddress <= uiLastMbAddress; )
-	  {
-		  UInt          uiMbY               = uiMbAddress / uiMbInRow;
-		  UInt          uiMbX               = uiMbAddress % uiMbInRow;
-		  MbDataAccess* pcMbDataAccess      = 0;
-		  MbDataAccess* pcMbDataAccessBase  = 0;
+    for( Int iSliceGroupId = 0; ! rcFMO.SliceGroupCompletelyCoded( iSliceGroupId ); iSliceGroupId++ )
+    {
+      UInt  uiFirstMbInSliceGroup = rcFMO.getFirstMBOfSliceGroup( iSliceGroupId );
+      UInt  uiLastMbInSliceGroup  = rcFMO.getLastMBInSliceGroup ( iSliceGroupId );
 
-		  RNOK( pcMbDataCtrl      ->initMb          ( pcMbDataAccess,     uiMbY, uiMbX ) );
+      for( UInt uiMbAddress = uiFirstMbInSliceGroup; uiMbAddress <= uiLastMbInSliceGroup; uiMbAddress = rcFMO.getNextMBNr( uiMbAddress ) )
+	    {
+		    UInt          uiMbY               = uiMbAddress / uiMbInRow;
+		    UInt          uiMbX               = uiMbAddress % uiMbInRow;
+		    MbDataAccess* pcMbDataAccess      = 0;
+		    MbDataAccess* pcMbDataAccessBase  = 0;
 
-		  if( pcBaseLayerCtrl )
-		  {
-			  RNOK( pcBaseLayerCtrl ->initMb          ( pcMbDataAccessBase, uiMbY, uiMbX ) );
-			  pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
-		  }
+		    RNOK( pcMbDataCtrl->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
 
-      // modify QP values (as specified in G.8.1.5.1.2)
-      if( pcMbDataAccess->getMbData().getMbCbp() == 0 && ( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL || pcMbDataAccess->getMbData().getResidualPredFlag() ) )
-      {
-        pcMbDataAccess->getMbData().setQp( pcMbDataAccessBase->getMbData().getQp() );
-      }
+		    if( pcBaseLayerCtrl )
+		    {
+			    RNOK( pcBaseLayerCtrl ->initMb( pcMbDataAccessBase, uiMbY, uiMbX ) );
+			    pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
+		    }
 
-		  if( pcMbDataAccess->isTCoeffPred() )
-		  {
-			  if( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL )
-			  {
-				  // We're going to use the BL skip flag to correctly decode the intra prediction mode
-				  AOT( pcMbDataAccess->getMbData().getBLSkipFlag() == false );
+        // modify QP values (as specified in G.8.1.5.1.2)
+        if( pcMbDataAccess->getMbData().getMbCbp() == 0 && ( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL || pcMbDataAccess->getMbData().getResidualPredFlag() ) )
+        {
+          pcMbDataAccess->getMbData().setQp( pcMbDataAccessBase->getMbData().getQp() );
+        }
 
-				  // Inherit the mode of the base block
-				  pcMbDataAccess->getMbData().setMbMode( pcMbDataAccessBase->getMbData().getMbMode() );
+		    if( pcMbDataAccess->isTCoeffPred() )
+		    {
+			    if( pcMbDataAccess->getMbData().getMbMode() == INTRA_BL )
+			    {
+				    // We're going to use the BL skip flag to correctly decode the intra prediction mode
+				    AOT( pcMbDataAccess->getMbData().getBLSkipFlag() == false );
 
-				  // Inherit intra prediction modes
-				  for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
-					  pcMbDataAccess->getMbData().intraPredMode(cIdx) = pcMbDataAccessBase->getMbData().intraPredMode(cIdx);
+				    // Inherit the mode of the base block
+				    pcMbDataAccess->getMbData().setMbMode( pcMbDataAccessBase->getMbData().getMbMode() );
 
-				  pcMbDataAccess->getMbData().setChromaPredMode( pcMbDataAccessBase->getMbData().getChromaPredMode() );
-			  }
+				    // Inherit intra prediction modes
+				    for( B4x4Idx cIdx; cIdx.isLegal(); cIdx++ )
+					    pcMbDataAccess->getMbData().intraPredMode(cIdx) = pcMbDataAccessBase->getMbData().intraPredMode(cIdx);
 
-  		  // The 8x8 transform flag is present in the bit-stream unless transform coefficients
-			  // are not transmitted at the enhancement layer.  In this case, inherit the base layer
-			  // transform type.  This makes intra predition work correctly, etc.
-			  if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
-				  pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
-	
-			  xAddTCoeffs2( *pcMbDataAccess, *pcMbDataAccessBase );
-		  }
+				    pcMbDataAccess->getMbData().setChromaPredMode( pcMbDataAccessBase->getMbData().getChromaPredMode() );
+			    }
 
-      if( pcMbDataAccess->getMbAddress() > 0 &&
-          pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() &&
-         !pcMbDataAccess->getSH().getNoInterLayerPredFlag() &&
-         !pcMbDataAccess->getMbData().isIntra16x16() &&
-          pcMbDataAccess->getMbData().getMbExtCbp() == 0 )
-      {
-        pcMbDataAccess->getMbData().setQp4LF( pcMbDataAccess->getLastQp4LF() );
-      }
-      else
-      {
-        pcMbDataAccess->getMbData().setQp4LF( pcMbDataAccess->getMbData().getQp() );
-      }
+  		    // The 8x8 transform flag is present in the bit-stream unless transform coefficients
+			    // are not transmitted at the enhancement layer.  In this case, inherit the base layer
+			    // transform type.  This makes intra predition work correctly, etc.
+			    if( !( pcMbDataAccess->getMbData().getMbCbp() & 0x0F ) )
+				    pcMbDataAccess->getMbData().setTransformSize8x8( pcMbDataAccessBase->getMbData().isTransformSize8x8() );
+  	
+			    xAddTCoeffs2( *pcMbDataAccess, *pcMbDataAccessBase );
+		    }
 
-      uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
-	  }
+        if( pcMbDataAccess->getMbAddress() != uiFirstMbInSliceGroup &&
+            pcMbDataAccess->getSH().getTCoeffLevelPredictionFlag() &&
+           !pcMbDataAccess->getSH().getNoInterLayerPredFlag() &&
+           !pcMbDataAccess->getMbData().isIntra16x16() &&
+            pcMbDataAccess->getMbData().getMbExtCbp() == 0 )
+        {
+          pcMbDataAccess->getMbData().setQp4LF( pcMbDataAccess->getLastQp4LF() );
+        }
+        else
+        {
+          pcMbDataAccess->getMbData().setQp4LF( pcMbDataAccess->getMbData().getQp() );
+        }
+	    }
+    }
   }
 
   return Err::m_nOK;

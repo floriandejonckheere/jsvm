@@ -319,7 +319,7 @@ MbEncoder::encodeIntra( MbDataAccess&  rcMbDataAccess,
   }
 
   RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
-  xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, false, NULL );
+  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, 0, 0, false, NULL ) );
 
 
   //JVT-R057 LA-RDO{
@@ -514,7 +514,7 @@ MbEncoder::encodeMacroblock( MbDataAccess&  rcMbDataAccess,
 
   //===== fix estimation =====
   RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
-  xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, false, NULL );
+  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, &rcList0, &rcList1, false, NULL ) );
 
   //===== uninit =====
   m_pcIntMbBestData   ->uninit();
@@ -764,8 +764,7 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
   //JVT-V079 Low-complexity MB mode decision }
   
   RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
-
-  xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, false, &cBaseLayerBuffer  );
+  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, &rcRefFrameList0, 0, false, &cBaseLayerBuffer ) );
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
@@ -1696,9 +1695,7 @@ MbEncoder::estimatePrediction( MbDataAccess&   rcMbDataAccess,
     RNOK  ( xEstimateMbIntra4   ( rcMbDataAccess, m_pcIntMbTempData, m_pcIntMbBestData,                   bBSlice ) );
     RNOK  ( xEstimateMbPCM      ( m_pcIntMbTempData, m_pcIntMbBestData,                   bBSlice ) );
   }
-  xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, true, &cBaseLayerBuffer );
-
-
+  RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, NULL, NULL, &rcRefFrameList0, &rcRefFrameList1, true, &cBaseLayerBuffer ) );
 
   //JVT-R057 LA-RDO{
   if(m_bLARDOEnable)
@@ -1859,9 +1856,8 @@ MbEncoder::compensatePrediction( MbDataAccess&   rcMbDataAccess,
       //----- motion compensated prediction -----
       RNOK( m_pcMotionEstimation->compensateMb( rcMbDataAccess, rcRefFrameList0, rcRefFrameList1, &cYuvMbBuffer, bCalcMv ) );
     }
+    RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess, &cYuvMbBuffer, getBaseLayerRec()));
   }
-
-  RNOK(m_pcMotionEstimation->compensateMbBLSkipIntra(rcMbDataAccess, &cYuvMbBuffer, getBaseLayerRec()));
 
   //===== insert into frame =====
   RNOK( pcMCFrame->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
@@ -3251,13 +3247,15 @@ MbEncoder::xReStoreParameter( MbDataAccess&   rcMbDataAccess,
 
 
 
-Void
-MbEncoder::xStoreEstimation( MbDataAccess&   rcMbDataAccess,
-                             IntMbTempData&  rcMbBestData,
-                             Frame*       pcRecSubband,
-                             Frame*       pcPredSignal,
-                             Bool            bMotionFieldEstimation,
-                             YuvMbBuffer* pcBaseLayerBuffer )
+ErrVal
+MbEncoder::xStoreEstimation( MbDataAccess&  rcMbDataAccess,
+                             IntMbTempData& rcMbBestData,
+                             Frame*         pcRecSubband,
+                             Frame*         pcPredSignal,
+                             RefFrameList*  pcRefList0,
+                             RefFrameList*  pcRefList1,
+                             Bool           bMotionFieldEstimation,
+                             YuvMbBuffer*   pcBaseLayerBuffer )
 {
   if( bMotionFieldEstimation )
   {
@@ -3341,15 +3339,18 @@ MbEncoder::xStoreEstimation( MbDataAccess&   rcMbDataAccess,
 
   rcMbDataAccess.getMbData().setQp4LF( rcMbDataAccess.getMbData().getQp() );
 
+  RNOK( rcMbDataAccess.getMbMotionData( LIST_0 ).setRefPicIdcs( pcRefList0 ) );
+  RNOK( rcMbDataAccess.getMbMotionData( LIST_1 ).setRefPicIdcs( pcRefList1 ) );
+
   if( rcMbDataAccess.getMbData().getResidualPredFlag() )
   {
-    AOF( pcBaseLayerBuffer );
+    ROF( pcBaseLayerBuffer );
     ((YuvMbBuffer&)rcMbBestData).add( *pcBaseLayerBuffer );
   }
 
   if( pcPredSignal )
   {
-    ANOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &rcMbBestData.getTempYuvMbBuffer() ) );
+    RNOK( pcPredSignal->getFullPelYuvBuffer()->loadBuffer( &rcMbBestData.getTempYuvMbBuffer() ) );
   }
 
   if( pcRecSubband )
@@ -3367,12 +3368,14 @@ MbEncoder::xStoreEstimation( MbDataAccess&   rcMbDataAccess,
       cYuvMbBuffer.subtract   ( rcMbBestData.getTempYuvMbBuffer() );
     }
 
-    ANOK( pcRecSubband->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
+    RNOK( pcRecSubband->getFullPelYuvBuffer()->loadBuffer( &cYuvMbBuffer ) );
   }
 
   rcMbBestData.clip();
   if( m_pcIntPicBuffer )
     m_pcIntPicBuffer->loadBuffer( &rcMbBestData );
+
+  return Err::m_nOK;
 }
 
 

@@ -150,6 +150,28 @@ const UChar g_aucCodeTableTZ4[3][4] =
   { 1, 0, 0, 0,},
 };
 
+const UChar g_aucLenTableTZ8[7][8] =
+{
+  { 1, 3, 3, 4, 4, 4, 5, 5 },
+  { 3, 2, 3, 3, 3, 3, 3    },
+  { 3, 3, 2, 2, 3, 3       },
+  { 3, 2, 2, 2, 3          },
+  { 2, 2, 2, 2             },
+  { 2, 2, 1                },
+  { 1, 1                   }
+};
+
+const UChar g_aucCodeTableTZ8[7][8] =
+{
+  { 1, 2, 3, 2, 3, 1, 1, 0 },
+  { 0, 1, 1, 4, 5, 6, 7    },
+  { 0, 1, 1, 2, 6, 7       },
+  { 6, 0, 1, 2, 7          },
+  { 0, 1, 2, 3             },
+  { 0, 1, 1                },
+  { 0, 1                   }
+};
+
 const UChar g_aucLenTable3[7][15] =
 {
   {1,1},
@@ -907,8 +929,7 @@ ErrVal UvlcWriter::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
   }
   UInt uiTemp = ( bIntra ? g_aucCbpIntra[uiCbp]: g_aucCbpInter[uiCbp] );
 
-#if NOK_MGSCAVLC
-  if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
+  if( uiStart != 0 || uiStop != 16 )
   {
     UInt uiPrevCbp = 0;
     if( rcMbDataAccess.isAvailableLeft() )
@@ -919,7 +940,6 @@ ErrVal UvlcWriter::cbp( MbDataAccess& rcMbDataAccess, UInt uiStart, UInt uiStop 
     RNOK( xWriteUvlcCode( (uiTemp == uiPrevTemp) ? 0:(uiTemp+1) ) );
   }
   else
-#endif
   {
     RNOK( xWriteUvlcCode( uiTemp ) );
   }
@@ -1052,6 +1072,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
     uiTrailingOnes = 3;
   }
 
+  Bool bDefaultScanIdx = ( uiStart == 0 && uiStop == 16 );
 
   switch( eResidualMode )
   {
@@ -1061,7 +1082,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_V( cIdx );
       ETRACE_N;
       RNOK( xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes, uiStart, uiStop ) );
-      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 16, uiTotalRun, rcMbDataAccess ) );
+      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 16, uiTotalRun, rcMbDataAccess, bDefaultScanIdx ) );
       break;
     }
   case LUMA_I16_AC:
@@ -1070,7 +1091,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_V( cIdx );
       ETRACE_N;
       RNOK( xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes, uiStart, uiStop ) );
-      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 15, uiTotalRun, rcMbDataAccess ) );
+      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, uiStop-max(1,uiStart), uiTotalRun, rcMbDataAccess, bDefaultScanIdx ) );
       break;
     }
   case LUMA_SCAN:
@@ -1079,7 +1100,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_V( cIdx );
       ETRACE_N;
       RNOK( xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes, uiStart, uiStop ) );
-      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, uiStop-uiStart, uiTotalRun, rcMbDataAccess ) );
+      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, uiStop-uiStart, uiTotalRun, rcMbDataAccess, bDefaultScanIdx ) );
       // this is useful only in AR_FGS
       rcMbDataAccess.getMbData().setBCBP( cIdx, uiCoeffCnt != 0, true);
       break;
@@ -1166,6 +1187,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
     uiTrailingOnes = 3;
   }
 
+  Bool bDefaultScanIdx = ( uiStart == 0 && uiStop == 16 );
 
   switch( eResidualMode )
   {
@@ -1175,7 +1197,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_V( cIdx );
       ETRACE_N;
       RNOK( xPredictNonZeroCnt( rcMbDataAccess, cIdx, uiCoeffCnt, uiTrailingOnes, uiStart, uiStop ) );
-      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, uiStop - max( 1, uiStart), uiTotalRun, rcMbDataAccess ) );
+      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, uiStop - max( 1, uiStart), uiTotalRun, rcMbDataAccess, bDefaultScanIdx ) );
       // this is useful only in AR_FGS
       rcMbDataAccess.getMbData().setBCBP( 16 + cIdx, uiCoeffCnt != 0, true);
       break;
@@ -1186,7 +1208,7 @@ ErrVal UvlcWriter::residualBlock( MbDataAccess& rcMbDataAccess,
       ETRACE_V( cIdx );
       ETRACE_N;
       RNOK( xWriteTrailingOnes4( uiCoeffCnt, uiTrailingOnes ) );
-      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 4, uiTotalRun, rcMbDataAccess ) );
+      RNOK( xWriteRunLevel( aiLevelRun, uiCoeffCnt, uiTrailingOnes, 4, uiTotalRun, rcMbDataAccess, bDefaultScanIdx ) );
       // this is useful only in AR_FGS
       rcMbDataAccess.getMbData().setBCBP( 24 + cIdx.plane(), uiCoeffCnt != 0, true);
       break;
@@ -1230,8 +1252,7 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx c
 {
   UInt uiCoeffCountCtx = rcMbDataAccess.getCtxCoeffCount( cIdx, uiStart, uiStop );
 
-#if NOK_MGSCAVLC
-  if( uiStop-uiStart != 16 )
+  if( uiStart != 0 || uiStop != 16 )
   {
     // Re-pack VLC matrix
     // NB: This only needs to be done once at the start of the slice.
@@ -1244,8 +1265,8 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx c
     UInt uiZ[5]   = {0,1,2,4,7};
     UInt uiMaxVal = uiXdim*uiYdim - uiZ[uiYdim];
 
-    uiCoeffCountCtx = min(uiCoeffCountCtx, 2);
-    memcpy(aucCwMapTO16, g_aucCwMapTO16[uiCoeffCountCtx], sizeof(UChar)*4*17);
+    UInt uiCoeffCountCtxMap = min(uiCoeffCountCtx, 2);
+    memcpy(aucCwMapTO16, g_aucCwMapTO16[uiCoeffCountCtxMap], sizeof(UChar)*4*17);
     for( uiMapIdx=1; uiMapIdx<=uiMaxVal; uiMapIdx++ )
     {
       Bool bFound = false;
@@ -1271,9 +1292,6 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, ChromaIdx c
   {
     xWriteTrailingOnes16( uiCoeffCountCtx, uiCoeffCount, uiTrailingOnes );
   }
-#else
-  xWriteTrailingOnes16( uiCoeffCountCtx, uiCoeffCount, uiTrailingOnes );
-#endif
 
   rcMbDataAccess.getMbTCoeffs().setCoeffCount( cIdx, uiCoeffCount );
 
@@ -1285,8 +1303,7 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cId
 {
   UInt uiCoeffCountCtx = rcMbDataAccess.getCtxCoeffCount( cIdx, uiStart, uiStop );
 
-#if NOK_MGSCAVLC
-  if( uiStop-uiStart != 16 )
+  if( uiStart != 0 || uiStop != 16 )
   {
     // Re-pack VLC matrix
     // NB: This only needs to be done once at the start of the slice.
@@ -1299,8 +1316,8 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cId
     UInt uiZ[5]   = {0,1,2,4,7};
     UInt uiMaxVal = uiXdim*uiYdim - uiZ[uiYdim];
     
-    uiCoeffCountCtx = min(uiCoeffCountCtx, 2);
-    memcpy(aucCwMapTO16, g_aucCwMapTO16[uiCoeffCountCtx], sizeof(UChar)*4*17);
+    UInt uiCoeffCountCtxMap = min(uiCoeffCountCtx, 2);
+    memcpy(aucCwMapTO16, g_aucCwMapTO16[uiCoeffCountCtxMap], sizeof(UChar)*4*17);
     for( uiMapIdx=1; uiMapIdx<=uiMaxVal; uiMapIdx++ )
     {
       Bool bFound = false;
@@ -1327,16 +1344,13 @@ ErrVal UvlcWriter::xPredictNonZeroCnt( MbDataAccess& rcMbDataAccess, LumaIdx cId
   {
     xWriteTrailingOnes16( uiCoeffCountCtx, uiCoeffCount, uiTrailingOnes );
   }
-#else
-  xWriteTrailingOnes16( uiCoeffCountCtx, uiCoeffCount, uiTrailingOnes );
-#endif
 
   rcMbDataAccess.getMbTCoeffs().setCoeffCount( cIdx, uiCoeffCount );
 
   return Err::m_nOK;
 }
 
-ErrVal UvlcWriter::xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt uiTotalRun, MbDataAccess &rcMbDataAccess )
+ErrVal UvlcWriter::xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrailingOnes, UInt uiMaxCoeffs, UInt uiTotalRun, MbDataAccess &rcMbDataAccess, Bool bDefaultScanIdx )
 {
 
   ROTRS( 0 == uiCoeffCnt, Err::m_nOK );
@@ -1404,32 +1418,33 @@ ErrVal UvlcWriter::xWriteRunLevel( Int* aiLevelRun, UInt uiCoeffCnt, UInt uiTrai
 
 
   iVlcTable = uiCoeffCnt-1;
-  if( uiMaxCoeffs <= 4 )
+  if( ! bDefaultScanIdx )
   {
-#if NOK_MGSCAVLC
-    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
+    if( uiMaxCoeffs <= 4 )
     {
       UInt uiTempVlcTable = min(iVlcTable + 4-uiMaxCoeffs, 2);
       xWriteTotalRun4( uiTempVlcTable, uiTotalRun );
     }
-    else
-#endif
+    else if( uiMaxCoeffs <= 8 )
     {
-      xWriteTotalRun4( iVlcTable, uiTotalRun );
+      UInt uiTempVlcTable = min(iVlcTable + 8-uiMaxCoeffs, 6);
+      xWriteTotalRun8( uiTempVlcTable, uiTotalRun );
     }
-  }
-  else
-  {
-#if NOK_MGSCAVLC
-    if( ! rcMbDataAccess.getSH().getNoInterLayerPredFlag() )
+    else
     {
       UInt uiTempVlcTable = iVlcTable;
       if( uiMaxCoeffs < 15 )
         uiTempVlcTable = min(iVlcTable + 16-uiMaxCoeffs, 14);
       xWriteTotalRun16( uiTempVlcTable, uiTotalRun );
     }
+  }
+  else
+  {
+    if( uiMaxCoeffs <= 4 )
+    {
+      xWriteTotalRun4( iVlcTable, uiTotalRun );
+    }
     else
-#endif
     {
       xWriteTotalRun16( iVlcTable, uiTotalRun );
     }
@@ -1476,22 +1491,12 @@ ErrVal UvlcWriter::xWriteTrailingOnes16( UInt uiLastCoeffCount, UInt uiCoeffCoun
   }
   else
   {
-#if NOK_MGSCAVLC
-    UInt uiCodePos = g_aucCwMapTO16[uiLastCoeffCount][uiTrailingOnes][uiCoeffCount];
-    RNOK( m_pcBitWriteBufferIf->write( g_aucCwCodeVectTO16[uiLastCoeffCount][uiCodePos],
-                                  g_aucCwLenVectTO16[uiLastCoeffCount][uiCodePos] ) );
-    ETRACE_DO( m_uiBitCounter = g_aucCwLenVectTO16[uiLastCoeffCount][uiCodePos] );
-
-    uiVal = g_aucCwCodeVectTO16[uiLastCoeffCount][uiCodePos];
-    uiSize = g_aucCwLenVectTO16[uiLastCoeffCount][uiCodePos];
-#else
     RNOK( m_pcBitWriteBufferIf->write( g_aucCodeTableTO16[uiLastCoeffCount][uiTrailingOnes][uiCoeffCount],
                                   g_aucLenTableTO16[uiLastCoeffCount][uiTrailingOnes][uiCoeffCount] ) );
     ETRACE_DO( m_uiBitCounter = g_aucLenTableTO16[uiLastCoeffCount][uiTrailingOnes][uiCoeffCount] );
 
     uiVal = g_aucCodeTableTO16[uiLastCoeffCount][uiTrailingOnes][uiCoeffCount];
     uiSize = g_aucLenTableTO16[uiLastCoeffCount][uiTrailingOnes][uiCoeffCount];
-#endif
   }
 
   ETRACE_T( "  TrailingOnes16: Vlc: " );
@@ -1537,6 +1542,23 @@ ErrVal UvlcWriter::xWriteTotalRun4( UInt uiVlcPos, UInt uiTotalRun )
   ETRACE_V( uiTotalRun );
   ETRACE_N;
   ETRACE_COUNT(g_aucLenTableTZ4[uiVlcPos][uiTotalRun]);
+
+  return Err::m_nOK;
+}
+
+
+ErrVal UvlcWriter::xWriteTotalRun8( UInt uiVlcPos, UInt uiTotalRun )
+{
+  RNOK( m_pcBitWriteBufferIf->write( g_aucCodeTableTZ8[uiVlcPos][uiTotalRun],
+    g_aucLenTableTZ8[uiVlcPos][uiTotalRun] ) );
+
+  ETRACE_POS;
+  ETRACE_T( "  TotalZeros8 vlc: " );
+  ETRACE_V( uiVlcPos );
+  ETRACE_T( " TotalRun: " );
+  ETRACE_V( uiTotalRun );
+  ETRACE_N;
+  ETRACE_COUNT(g_aucLenTableTZ8[uiVlcPos][uiTotalRun]);
 
   return Err::m_nOK;
 }
@@ -1777,6 +1799,7 @@ ErrVal UvlcWriter::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
 
 
   //===== loop over 4x4 blocks =====
+  Bool bDefaultScanIdx = ( uiStart == 0 && uiStop == 16 );
   for( uiBlk = 0; uiBlk < 4; uiBlk++ )
   {
     if( auiTrailingOnes[uiBlk] > 3 )
@@ -1790,7 +1813,7 @@ ErrVal UvlcWriter::residualBlock8x8( MbDataAccess&  rcMbDataAccess,
                           auiTrailingOnes[uiBlk],
                           uiStop-uiStart,
                           auiTotalRun[uiBlk],
-                          rcMbDataAccess ) );
+                          rcMbDataAccess, bDefaultScanIdx ) );
   }
 
   return Err::m_nOK;

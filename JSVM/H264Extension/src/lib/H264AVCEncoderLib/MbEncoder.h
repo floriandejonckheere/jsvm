@@ -515,12 +515,14 @@ protected:
   
   ErrVal  xCheckBestEstimation  ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData );
-  Void    xStoreEstimation      ( MbDataAccess&     rcMbDataAccess,
+  ErrVal  xStoreEstimation      ( MbDataAccess&     rcMbDataAccess,
                                   IntMbTempData&    rcMbBestData,
-                                  Frame*         pcRecSubband,
-                                  Frame*         pcPredSignal,
+                                  Frame*            pcRecSubband,
+                                  Frame*            pcPredSignal,
+                                  RefFrameList*     pcRefList0,
+                                  RefFrameList*     pcRefList1,
                                   Bool              bMotionFieldEstimation,
-                                  YuvMbBuffer*   pcBaseLayerBuffer );
+                                  YuvMbBuffer*      pcBaseLayerBuffer );
   Bool    xCheckUpdate          ( YuvMbBuffer&   rcPredBuffer,
                                   YuvMbBuffer&   rcOrigBuffer,
                                   LumaIdx           cIdx,

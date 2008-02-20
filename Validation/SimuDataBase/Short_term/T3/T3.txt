@@ -126,7 +126,7 @@
             		        width => 320,
             		        height => 256,
             		        framerate => 30,
-            		        bitrate => 536,
+            		        bitrate => 535,
             		        psnr => 30.39,
         		        },
 		                  #----------#
@@ -139,7 +139,7 @@
             		        height => 128,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 32.75,
+            		        psnr => 32.77,
             		      },
 		                  #----------#
                       # Test   4 #
@@ -151,7 +151,7 @@
             		        height => 64,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 32.06,
+            		        psnr => 32.07,
           		        },
               		     #----------#
                       # Test   5 #
@@ -163,7 +163,7 @@
             		        height => 256,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 32.19,
+            		        psnr => 32.18,
           		      },	
               		    #----------#
                       # Test   6 #
@@ -175,7 +175,7 @@
             		        height => 256,
             		        framerate => 7.5,
             		        bitrate => 0,
-            		        psnr => 32.95
+            		        psnr => 32.94
         		         },
         		          #----------#
                       # Test   7 #
@@ -199,7 +199,7 @@
             		        height => 256,
             		        framerate => 30/16,
             		        bitrate => 0,
-            		        psnr => 35.29,
+            		        psnr => 35.30,
             		      },	
             		      #----------#
                       # Test   9 #
@@ -210,7 +210,7 @@
             		        width => 320,
             		        height => 256,
             		        framerate => 30,
-            		        bitrate => 572,
+            		        bitrate => 571,
             		        psnr => 0,
             		      },	
             		      #----------#
@@ -258,7 +258,7 @@
             		        width => 160,
             		        height => 128,
             		        framerate => 7.5,
-            		        bitrate => 127,
+            		        bitrate => 128,
             		        psnr => 33.55,
             		      },
 		],

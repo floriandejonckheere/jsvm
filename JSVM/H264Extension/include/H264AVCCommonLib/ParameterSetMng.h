@@ -121,7 +121,9 @@ public:
   ErrVal get( PictureParameterSet *& rpcPPS, UInt uiPPSId );
   ErrVal store( SequenceParameterSet* pcSPS );
   ErrVal store( PictureParameterSet* pcPPS );
-  ErrVal getActiveSPS( SequenceParameterSet *& rpcSPS); 
+  Void   setActiveSPS   ( UInt uiSPSId, UInt uiDQId )  { m_auiActiveSPSId[uiDQId] = uiSPSId + ( uiDQId ? NUM_SPS_IDS : 0 ); }
+  ErrVal getActiveSPS   ( SequenceParameterSet*& rpcSPS, UInt uiDQId ); 
+  ErrVal getActiveSPSDQ0( SequenceParameterSet*& rpcSPS ); 
 
 private:
   ErrVal xDestroyPPS(UInt uiPPSId);
@@ -130,8 +132,7 @@ private:
 private:
   StatBuf<SequenceParameterSet*,2*NUM_SPS_IDS>  m_cSPSBuf;
   StatBuf<PictureParameterSet*,256> m_cPPSBuf;
-  UInt m_uiActiveSPSId;
-  UInt m_uiActivePPSId;
+  UInt m_auiActiveSPSId[16*8];
   std::list<SequenceParameterSet*>  m_cSPSList;
   std::list<PictureParameterSet*>   m_cPPSList;
 };

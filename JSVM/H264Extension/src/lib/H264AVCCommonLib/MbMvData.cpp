@@ -276,8 +276,6 @@ Void MbMotionData::frame2field( const MbMotionData& rcMbMotionDataTop, const MbM
   m_ascRefIdx[2] = rcMbMotionDataBot.m_ascRefIdx[iRefIdxOffset+0];
   m_ascRefIdx[3] = rcMbMotionDataBot.m_ascRefIdx[iRefIdxOffset+1];
 
-  frame2FieldRefIdx();
-  
   m_acMv[ 0] = rcMbMotionDataTop.m_acMv[iMvOffset11+0];
   m_acMv[ 1] = rcMbMotionDataTop.m_acMv[iMvOffset11+1];
   m_acMv[ 2] = rcMbMotionDataTop.m_acMv[iMvOffset21+2];
@@ -295,12 +293,7 @@ Void MbMotionData::frame2field( const MbMotionData& rcMbMotionDataTop, const MbM
   m_acMv[14] = rcMbMotionDataBot.m_acMv[iMvOffset42+6];
   m_acMv[15] = rcMbMotionDataBot.m_acMv[iMvOffset42+7];
 
-  for(Int n = 0; n < 16; n++ )
-  {
-    m_acMv[n].setFrameToFieldPredictor();
-  }
-
-  m_bFieldFlag = true;
+  m_bFieldFlag = false;
 }
 
 Void MbMotionData::field2frame( const MbMotionData& rcMbMotionDataTop, const MbMotionData& rcMbMotionDataBot, Bool bTopFrameMb)
@@ -342,8 +335,6 @@ Void MbMotionData::field2frame( const MbMotionData& rcMbMotionDataTop, const MbM
 	m_ascRefIdx[3] = m_ascRefIdx[1];
 	bTopRef[3] = bTopRef[1];
  
-  field2FrameRefIdx();
-
 	m_acMv[ 0] = (bTopRef[0]) ? rcMbMotionDataTop.m_acMv[iMvOffset+0] : rcMbMotionDataBot.m_acMv[iMvOffset+0];
 	m_acMv[ 1] = (bTopRef[0]) ? rcMbMotionDataTop.m_acMv[iMvOffset+1] : rcMbMotionDataBot.m_acMv[iMvOffset+1];
 	m_acMv[ 2] = (bTopRef[1]) ? rcMbMotionDataTop.m_acMv[iMvOffset+2] : rcMbMotionDataBot.m_acMv[iMvOffset+2];
@@ -362,38 +353,8 @@ Void MbMotionData::field2frame( const MbMotionData& rcMbMotionDataTop, const MbM
 	m_acMv[14] = (bTopRef[3]) ? rcMbMotionDataTop.m_acMv[iMvOffset+6] : rcMbMotionDataBot.m_acMv[iMvOffset+6];
 	m_acMv[15] = (bTopRef[3]) ? rcMbMotionDataTop.m_acMv[iMvOffset+7] : rcMbMotionDataBot.m_acMv[iMvOffset+7];
 
-  m_bFieldFlag = false; 
-
-  for( Int n = 0; n < 16; n++ )
-  {
-    m_acMv[n].setFieldToFramePredictor();
-  }
+  m_bFieldFlag = true;
 }
-
-Void MbMotionData::field2FrameRefIdx()
-{
-  Int n;
-  for( n = 0; n < 4; n++ )
-    {
-      if( m_ascRefIdx[n] > BLOCK_NOT_PREDICTED )
-      {
-        m_ascRefIdx[n] = ((m_ascRefIdx[n]-1)>>1)+1;
-      }
-    }
-}
-
-Void MbMotionData::frame2FieldRefIdx()
-{
-  Int n;
-  for( n = 0; n < 4; n++ )
-    {
-      if( m_ascRefIdx[n] > BLOCK_NOT_PREDICTED )
-      {
-        m_ascRefIdx[n] = ((m_ascRefIdx[n]-1)<<1)+1;
-      }
-    }
-}
-
 
 BlkMode MbMotionData::getBlkMode( const ParIdx8x8 eParIdx, BlkMode eBlkMode )
 {
@@ -450,73 +411,20 @@ MbMotionData::upsampleMotion( const MbMotionData& rcMbMotionData, Par8x8 ePar8x8
   return Err::m_nOK;
 }
 
-// TMM_ESS {
 ErrVal
-MbMotionData::upsampleMotionNonDyad( SChar* pscBl4x4RefIdx  , Mv* acBl4x4Mv , ResizeParameters* pcParameters )
+MbMotionData::copyMotion( SChar* pscBl4x4RefIdx, Mv* acBl4x4Mv )
 {
-  int iScaledBaseWidth  = pcParameters->m_iOutWidth;
-  int iScaledBaseHeight = pcParameters->m_iOutHeight;
-  int iBaseWidth        = pcParameters->m_iInWidth;
-  int iBaseHeight       = pcParameters->m_iInHeight;
-  
   for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
   {	
-	m_ascRefIdx[uiB8x8Idx] = pscBl4x4RefIdx[g_aucConvertTo4x4Idx[uiB8x8Idx]];
-	m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?BLOCK_NOT_PREDICTED:m_ascRefIdx[uiB8x8Idx]); 
+    m_ascRefIdx[uiB8x8Idx] = pscBl4x4RefIdx[g_aucConvertTo4x4Idx[uiB8x8Idx]];
+    m_ascRefIdx[uiB8x8Idx] = ((m_ascRefIdx[uiB8x8Idx]<=0)?BLOCK_NOT_PREDICTED:m_ascRefIdx[uiB8x8Idx]); 
   }
-
-  Int   dx , dy;
-
   for (Int iB4x4Idx=0 ; iB4x4Idx<16 ; iB4x4Idx++ )
   {
     m_acMv[iB4x4Idx] = acBl4x4Mv[iB4x4Idx];
-
-    dx = (Int) m_acMv[iB4x4Idx].getHor();
-    dy = (Int) m_acMv[iB4x4Idx].getVer();
-
-    Int sign;
-    sign = (dx>0) ? 1 : (-1);
-    dx = sign * (sign * dx * iScaledBaseWidth + iBaseWidth/2 ) / iBaseWidth;
-    sign = (dy>0)?1:(-1);
-    dy = sign * (sign * dy * iScaledBaseHeight + iBaseHeight/2) / iBaseHeight;
-
-    m_acMv[iB4x4Idx].set( dx , dy );
-  }
-
-  return Err::m_nOK;
-}
-
-
-ErrVal
-MbMotionData::upsampleMotionNonDyad(SChar*              scBl8x8RefIdx , 
-                                    Mv*                 acBl4x4Mv , 
-                                    ResizeParameters*   pcParameters , 
-                                    Mv                  deltaMv[4] ) 
-{
-  upsampleMotionNonDyad( scBl8x8RefIdx , acBl4x4Mv , pcParameters );
-
-  // PICTURE LEVEL ESS 
-  for (UInt uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
-  {	
-  	const UChar *b4Idx = &(g_aucConvertBlockOrder[uiB8x8Idx*4]);
-    if (m_ascRefIdx[uiB8x8Idx] > 0)
-    {
-      m_acMv[*(b4Idx++)] += deltaMv[uiB8x8Idx];
-      m_acMv[*(b4Idx++)] += deltaMv[uiB8x8Idx];
-      m_acMv[*(b4Idx++)] += deltaMv[uiB8x8Idx];
-      m_acMv[*b4Idx] += deltaMv[uiB8x8Idx];
-     }
-    else
-    {
-      m_acMv[*(b4Idx++)].set(0,0);
-      m_acMv[*(b4Idx++)].set(0,0);
-      m_acMv[*(b4Idx++)].set(0,0);
-      m_acMv[*(b4Idx)].set(0,0);
-    }
   }
   return Err::m_nOK;
 }
 
-// TMM_ESS }
 
 H264AVC_NAMESPACE_END

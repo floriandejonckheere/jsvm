@@ -392,6 +392,9 @@ AccessUnit::xSetComplete( SliceDataNALUnit* pcFirstSliceDataNALUnitOfNextAccessU
   m_pcLastPrefixHeader  = 0;
   m_pcLastSliceHeader   = pcFirstSliceHeaderOfNextAccessUnit;
 
+  //===== remove redundant NAL units =====
+  xRemoveRedundant();
+
   //===== find last slice data NAL unit =====
   {
     MyList<NALUnit*>::reverse_iterator iIter = m_cNalUnitList.rbegin();
@@ -478,7 +481,7 @@ getNextVCL( MyList<NALUnit*>::iterator iIter, MyList<NALUnit*>::iterator iEnd, B
 
 
 Void
-AccessUnit::xSetParameters()
+AccessUnit::xRemoveRedundant()
 {
   //===== remove redundant slices (could be used for error concealment in later version) =====
   {
@@ -497,7 +500,11 @@ AccessUnit::xSetParameters()
       }
     }
   }
+}
 
+Void
+AccessUnit::xSetParameters()
+{
   //===== remove non-required NAL units =====
   {
     MyList<NALUnit*>::reverse_iterator iIter = m_cNalUnitList.rbegin();
@@ -1116,6 +1123,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
           Bool bAllPicturesInAuFlag;
           UInt uiNumPictures;
           UInt *puiDependencyId, *puiQualityLevel;
+          UInt uiTemporalId;
           SEI::ScalableNestingSei* pcSEI = (SEI::ScalableNestingSei*)pcSEIMessage;
           bAllPicturesInAuFlag = pcSEI->getAllPicturesInAuFlag();
           if( bAllPicturesInAuFlag == 0 )
@@ -1129,6 +1137,7 @@ H264AVCPacketAnalyzer::process( BinData*            pcBinData,
               puiDependencyId[uiIndex] = pcSEI->getDependencyId(uiIndex);
               puiQualityLevel[uiIndex] = pcSEI->getQualityId(uiIndex);
             }
+            uiTemporalId = pcSEI->getTemporalId();
             delete puiDependencyId;
             delete puiQualityLevel;
           }

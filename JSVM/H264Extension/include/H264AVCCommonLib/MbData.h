@@ -111,6 +111,7 @@ public:
     m_apcMbMotionData[ LIST_1 ]  = NULL;
     m_apcMbData[0]=m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;
     m_aeMbMode[0]=m_aeMbMode[1]=m_aeMbMode[2]=m_aeMbMode[3]=NOT_AVAILABLE;//TMM_INTERLACE
+    m_aabBaseIntra[0][0]=m_aabBaseIntra[0][1]=m_aabBaseIntra[1][0]=m_aabBaseIntra[1][1]=false;
   }
 
   UInt calcMbCbp ( UInt uiStart, UInt uiStop ) const;
@@ -156,10 +157,8 @@ public:
 
   operator MbTransformCoeffs& ()                                        { return *m_pcMbTCoeffs; }
 
-//TMM_INTERLACE {
-//  MbData* getBaseMbData(Int mbIdx){return m_apcMbData[mbIdx];}
-  MbMode getBaseMbMode(Int mbIdx){return m_aeMbMode[mbIdx];}
-//TMM_INTERLACE }
+  MbMode  getBaseMbMode(Int mbIdx){return m_aeMbMode[mbIdx];}
+  Bool    isBaseIntra(Int iPosX, Int iPosY) const { return m_aabBaseIntra[iPosX][iPosY]; }
 
   Void    copy( const MbData& rcMbData );
   ErrVal  loadAll( FILE* pFile );
@@ -169,8 +168,8 @@ public:
   ErrVal  copyMotionScale( const MbData& rcMbData, const PicType eMbPicType, const Int iDirectCopyMode);
  
 
-  ErrVal  copyMotion    ( const MbData& rcMbData, UInt    uiSliceId = MSYS_UINT_MAX );
-  ErrVal  copyMotionBL  ( MbData& rcMbData, Bool bDirect8x8, UInt    uiSliceId = MSYS_UINT_MAX );
+  ErrVal  copyMotion    ( const MbData& rcMbData, UInt uiSliceId = MSYS_UINT_MAX );
+  ErrVal  copyMotionBL  ( MbData& rcMbData, Bool bDirect8x8, MvScaleParam& rcMvScaleParam, UInt uiSliceId = MSYS_UINT_MAX );
   ErrVal  upsampleMotion( MbData& rcMbData, Par8x8  ePar8x8, Bool bDirect8x8   );
 
   // functions for SVC to AVC rewrite
@@ -182,7 +181,9 @@ public:
                             const UInt uiBaseMbStride,
                             const Int aiPelOrig[2],
                             const Bool bDirect8x8,
-                            ResizeParameters* pcParameters);
+                            ResizeParameters* pcParameters, 
+                            PosCalcParam& rcPosCalcParam, 
+                            MvScaleParam& rcMvScaleParam );
   ErrVal  noUpsampleMotion(); 
   ErrVal	configureFieldFrameMode( Bool bFieldFlag );
   // TMM_ESS }
@@ -205,28 +206,37 @@ protected:
   MbData*                   m_apcMbData     [4];
   SChar                     m_ascBl4x4RefIdx[2][16];// ref index of list_0/1 for each 4x4 blk
   Mv                        m_acBl4x4Mv	    [2][16];// motion vectors of list_0/1 for each 4x4 blk
+  Bool                      m_abBl4x4FieldMb[2][16];
 	MbMode										m_aeMbMode      [4];    //TMM_INTERLACE
+  Bool                      m_aabBaseIntra  [2][2];
 
   ErrVal xInitESS             ( );
+
+  ErrVal xSetInterIntraIndication( MbData*            pcBaseMbData,
+                                   UInt               uiBaseMbStride,
+                                   const Int          aiPelOrig[2],
+                                   ResizeParameters*  pcParameters, 
+                                   PosCalcParam&      rcPosCalcParam );
 
  ErrVal  xFillBaseMbData( MbData*           pcBaseMbData,
                           const UInt        uiBaseMbStride,
                           const Int         aiPelOrig[2],
                           const Bool        bDirect8x8,
                           ResizeParameters* pcParameters,
-                          //MbMode            aeMbMode [4], //TMM_INTERLACE
+                          PosCalcParam&     rcPosCalcParam,
                           BlkMode           aeBlkMode[4][4],
                           UInt&             uiMbBaseOrigX,
-                          UInt&             uiMbBaseOrigY);
+                          UInt&             uiMbBaseOrigY );
  
  ErrVal  xESSCheckRP( MbData*           pcBaseMbData,
                       const UInt        uiBaseMbStride,
                       const Int         aiPelOrig[2],
-                      ResizeParameters* pcParameters);
+                      ResizeParameters* pcParameters,
+                      PosCalcParam&     rcPosCalcParam );
 
  ErrVal xBuildPartInfo(   const Int aiPelOrig[2],
                           ResizeParameters* pcParameters,
-                          //const MbMode      aeMbMode[4], //TMM_INTERLACE
+                          PosCalcParam&     rcPosCalcParam,
                           const  BlkMode     aeBlkMode[4][4],  
                           UInt          aui4x4Idx[4][4],
                           UInt          auiMbIdx [4][4], 
@@ -239,11 +249,14 @@ protected:
 
   ErrVal xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
                                 const UInt        auiMbIdx	  [4][4], 
-                                const Int        aaiPartInfo[4][4]);
+                                const Int        aaiPartInfo[4][4],
+                                MvScaleParam&     rcMvScalParam );
+
+  ErrVal xScaleMotionParameters( MvScaleParam&  rcMvScaleParam );
 
   ErrVal xMergeMotionData();
 
-  ErrVal xFillMbMvData		  ( ResizeParameters* pcParameters );
+  ErrVal xFillMbMvData		  ();
 							  
   ErrVal xMergeBl8x8MvAndRef( const UInt uiBlIdx	);
 

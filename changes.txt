@@ -2,6 +2,36 @@
 [Currently, all validation scripts work except for those that use error concealment features]
 
 
+JSVM_9_10_DEVEL3 -> JSVM_9_10
+=============================
+
+NOTE:  Error concealment at the decoder has been removed.
+NOTE2: The project files for VS 6 and VS 7 are not up-to-date. Only the
+       project files for VS 8 and the makefiles for Linux are up-to-date.
+
+1) newly added features
+    - correction of loop filter operation
+    - implementation of two-stage modes in loop filter (idc=3 and 6)
+    - correction (update) of position calculation in residual resampling
+    - correction (update) of position calculation in motion resampling
+    - correction (update) of motion vector scaling
+    - correction (update) of intra-inter prediction mode
+    - correction (update) of AVC rewrite mode with multiple slice groups
+
+2) bug fixing: some bug fixes at different places
+
+3) addition of new validation scripts
+
+NOTE: THE CURRENT SOFTWARE SHOULD BE FURTHER IMPROVED (volunteers are required!)
+-----------------------------------------------------
+    - error detection and concealment code has been removed - it need to be added in a more general way
+      (all validation scripts that simulate packet losses fail)
+    - further checking of match between text and software is required
+    - I_BL macroblocks should be implemented
+    - long-term reference pictures should be implemented
+
+
+
 JSVM_9_10_DEVEL2 -> JSVM_9_10_DEVEL3
 ====================================
 

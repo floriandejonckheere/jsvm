@@ -310,8 +310,14 @@ MbData::copyMotion( const MbData& rcMbData,
 ErrVal
 MbData::copyMotionBL( MbData& rcMbData,
                       Bool    bDirect8x8,
+                      MvScaleParam& rcMvScaleParam,
                       UInt    uiSliceId )
 {
+  Int iRefFieldPic  = ( rcMvScaleParam.m_bRefLayerFieldPicFlag ? 1 : 0 );
+  Int iFieldPic     = ( rcMvScaleParam.m_bFieldPicFlag ? 1 : 0 );
+  Int iFieldMb      = ( m_bFieldFlag ? 1 : 0 );
+  Int iRefFieldMb   = ( rcMbData.m_bFieldFlag ? 1 : 0 );
+
   m_uiSliceId   = ( uiSliceId != MSYS_UINT_MAX ? uiSliceId : m_uiSliceId );
   m_bBLSkipFlag = rcMbData.m_bBLSkipFlag;
   m_eMbMode     = ( rcMbData.m_eMbMode     == MODE_SKIP ? MODE_8x8   : rcMbData.m_eMbMode     );
@@ -319,7 +325,6 @@ MbData::copyMotionBL( MbData& rcMbData,
   m_aBlkMode[1] = ( rcMbData.m_aBlkMode[1] == BLK_SKIP || rcMbData.m_eMbMode == MODE_SKIP ? ( bDirect8x8 ? BLK_8x8 : BLK_4x4 ) : rcMbData.m_aBlkMode[1] );
   m_aBlkMode[2] = ( rcMbData.m_aBlkMode[2] == BLK_SKIP || rcMbData.m_eMbMode == MODE_SKIP ? ( bDirect8x8 ? BLK_8x8 : BLK_4x4 ) : rcMbData.m_aBlkMode[2] );
   m_aBlkMode[3] = ( rcMbData.m_aBlkMode[3] == BLK_SKIP || rcMbData.m_eMbMode == MODE_SKIP ? ( bDirect8x8 ? BLK_8x8 : BLK_4x4 ) : rcMbData.m_aBlkMode[3] );
-  m_bFieldFlag  = rcMbData.m_bFieldFlag;
 
   if( rcMbData.m_eMbMode == MODE_SKIP || rcMbData.m_eMbMode == MODE_8x8)
   {
@@ -340,8 +345,47 @@ MbData::copyMotionBL( MbData& rcMbData,
   m_apcMbMotionData[0]->copyFrom( *rcMbData.m_apcMbMotionData[0] );
   m_apcMbMotionData[1]->copyFrom( *rcMbData.m_apcMbMotionData[1] );
 
-  m_apcMbMvdData[0]->copyFrom( *rcMbData.m_apcMbMvdData[0] );
-  m_apcMbMvdData[1]->copyFrom( *rcMbData.m_apcMbMvdData[1] );
+  //===== correct field flag =====
+  m_apcMbMotionData[0]->setFieldMode( m_bFieldFlag );
+  m_apcMbMotionData[1]->setFieldMode( m_bFieldFlag );
+
+  //===== convert reference indices =====
+  if( ( iFieldMb - iFieldPic ) != ( iRefFieldMb - iRefFieldPic ) )
+  {
+    for( UInt uiList = 0; uiList < 2; uiList++ )
+    {
+      for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
+      {
+        Int iRefIdx = m_apcMbMotionData[uiList]->getRefIdx( c8x8Idx.b8x8() );
+        if( iRefIdx > 0 )
+        {
+          iRefIdx    --;
+          iRefIdx    *= ( 1 + iFieldMb - iFieldPic );
+          iRefIdx    /= ( 1 + iRefFieldMb - iRefFieldPic );
+          iRefIdx    ++;
+          m_apcMbMotionData[uiList]->setRefIdx( (SChar)iRefIdx, c8x8Idx.b8x8() );
+        }
+      }
+    }
+  }
+
+  //===== convert vertical motion vectors =====
+  if( iFieldMb != iRefFieldMb )
+  {
+    for( UInt uiList = 0; uiList < 2; uiList++ )
+    {
+      for( B4x4Idx c4x4Idx; c4x4Idx.isLegal(); c4x4Idx++ )
+      {
+        Mv  cMv   = m_apcMbMotionData[uiList]->getMv( c4x4Idx );
+        Int iMvY  = cMv.getVer() * ( 1 + iRefFieldMb ) / ( 1 + iFieldMb );
+        cMv.setVer( (Short)iMvY );
+        m_apcMbMotionData[uiList]->setMv( cMv, c4x4Idx );
+      }
+    }
+  }
+
+  m_apcMbMvdData[0]->clear();
+  m_apcMbMvdData[1]->clear();
 
   return Err::m_nOK;
 }
@@ -424,7 +468,7 @@ MbData::copyMotionScale( const MbData& rcMbDataBL1,
 
   if( rcMbDataBL.isIntra() )
   {
-    m_bFieldFlag  = FRAME != eMbPicType;
+    m_bFieldFlag  = rcMbDataBL.m_bFieldFlag;
     m_bBLSkipFlag = rcMbDataBL.m_bBLSkipFlag;
     m_eMbMode     = rcMbDataBL.m_eMbMode;
     m_aBlkMode[0] = rcMbDataBL.m_aBlkMode[0];
@@ -447,7 +491,7 @@ MbData::copyMotionScale( const MbData& rcMbDataBL1,
   }
   else
   {
-    m_bFieldFlag  = FRAME != eMbPicType;
+    m_bFieldFlag  = rcMbDataBL.m_bFieldFlag;
     m_bBLSkipFlag = false;
     m_eMbMode     = MODE_8x8;
  
@@ -524,7 +568,7 @@ MbData::copyMotionScale( const MbData& rcMbDataBL,
                          const PicType eMbPicType,
                          const Int     iDirectCopyMode )
 {
-  m_bFieldFlag  = FRAME != eMbPicType;
+  m_bFieldFlag  = rcMbDataBL.m_bFieldFlag;
   m_bBLSkipFlag = rcMbDataBL.m_bBLSkipFlag;
   m_eMbMode     = rcMbDataBL.m_eMbMode;
   m_aBlkMode[0] = rcMbDataBL.m_aBlkMode[0];
@@ -538,17 +582,6 @@ MbData::copyMotionScale( const MbData& rcMbDataBL,
 
   m_apcMbMotionData[0]->setFieldMode(  m_bFieldFlag );
   m_apcMbMotionData[1]->setFieldMode(  m_bFieldFlag );
-
-  if(iDirectCopyMode==1) //field2frame
-  {
-    m_apcMbMotionData[0]->field2FrameRefIdx();
-    m_apcMbMotionData[1]->field2FrameRefIdx();
-  }
-  else if(iDirectCopyMode==2)//frame2field
-  {
-    m_apcMbMotionData[0]->frame2FieldRefIdx();
-    m_apcMbMotionData[1]->frame2FieldRefIdx();
-  }
 
   return Err::m_nOK;
 }
@@ -681,13 +714,12 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
                            const UInt uiBaseMbStride,
                            const Int aiPelOrig[2], 
                            const Bool bDirect8x8,
-                           ResizeParameters* pcParameters)
+                           ResizeParameters* pcParameters, 
+                           PosCalcParam& rcPosCalcParam,
+                           MvScaleParam& rcMvScaleParam )
 {
     Bool        abBl8x8Intra  [4]= {false,false,false,false}; 
-//TMM_INTERLACE {
-//    MbMode      aeMbMode      [4]= {MODE_16x16,MODE_16x16,MODE_16x16,MODE_16x16};
     m_aeMbMode[0]=m_aeMbMode[1]=m_aeMbMode[2]=m_aeMbMode[3]=NOT_AVAILABLE;
-//TMM_INTERLACE }
     BlkMode     aeBlkMode     [4][4];  
     UInt        auiMbIdx	    [4][4]; 
     UInt        aui4x4Idx	    [4][4];
@@ -697,6 +729,9 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
     // initializing
     //-------------
      xInitESS();
+
+     RNOK( xSetInterIntraIndication( pcBaseMbData, uiBaseMbStride, aiPelOrig, pcParameters, rcPosCalcParam ) );
+
     // Fill Base idx
     //-----------------
     xFillBaseMbData(pcBaseMbData, 
@@ -704,7 +739,7 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
                     aiPelOrig, 
                     bDirect8x8, 
                     pcParameters, 
-                    //aeMbMode, //TMM_INTERLACE
+                    rcPosCalcParam,
                     aeBlkMode,
                     uiMbBaseOrigX,
                     uiMbBaseOrigY);
@@ -712,7 +747,8 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
 		xESSCheckRP(pcBaseMbData,
 								uiBaseMbStride,
 								aiPelOrig,
-								pcParameters);
+                pcParameters,
+                rcPosCalcParam );
 
   if( m_eMbMode!=INTRA_4X4)
   {
@@ -720,7 +756,7 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
     //----------------------------------------------
     xBuildPartInfo(aiPelOrig, 
                   pcParameters,
-                  //aeMbMode, //TMM_INTERLACE
+                  rcPosCalcParam,
                   aeBlkMode,  
                   aui4x4Idx, 
                   auiMbIdx,
@@ -733,21 +769,30 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
     //--------------------------
     UInt uiB8x8=0,uiB4x4=0;
     for ( uiB8x8=0 ; uiB8x8<4 ; uiB8x8++)
+    {
       if(!abBl8x8Intra[uiB8x8]) 
       {
         Bool        bWasBl4x4Intra  [4]= {false,false,false,false};
         for (uiB4x4=0 ; uiB4x4<4 ; uiB4x4++)
-          if(aaiPartInfo[uiB8x8][uiB4x4]==-1) xRemoveIntra4x4(uiB4x4,bWasBl4x4Intra,aui4x4Idx[uiB8x8],auiMbIdx[uiB8x8],aaiPartInfo[uiB8x8]);
+        {
+          if(aaiPartInfo[uiB8x8][uiB4x4]==-1) 
+          {
+            xRemoveIntra4x4(uiB4x4,bWasBl4x4Intra,aui4x4Idx[uiB8x8],auiMbIdx[uiB8x8],aaiPartInfo[uiB8x8]);
+          }
+        }
       }
+    }
       
     //--- Remove 8x8 INTRA blocks
     //----------------------------    
       for ( uiB8x8=0 ; uiB8x8<4 ; uiB8x8++) 
+      {
         if(abBl8x8Intra[uiB8x8]) xRemoveIntra8x8(uiB8x8,abBl8x8Intra,aui4x4Idx,auiMbIdx,aaiPartInfo);
+      }
 
     // 8x8 blocks partitioning
     //------------------------
-    xInherit8x8MotionData (aui4x4Idx,auiMbIdx,aaiPartInfo);
+    xInherit8x8MotionData (aui4x4Idx,auiMbIdx,aaiPartInfo,rcMvScaleParam);
 
     // macroblock mode choice
     //-----------------------
@@ -759,7 +804,7 @@ MbData::upsampleMotionESS (MbData* pcBaseMbData,
 
   // Transfer in MB structure
   //-------------------------
-  RNOK( xFillMbMvData(pcParameters ) );
+  RNOK( xFillMbMvData() );
 
   //--- Set fwd/bwd 
   UInt uiFwdBwd = 0;
@@ -805,17 +850,23 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
                           const Int aiPelOrig[2],
                           const Bool bDirect8x8,
                           ResizeParameters* pcParameters,
-                          //MbMode      aeMbMode	  [4], //TMM_INTERLACE
+                          PosCalcParam& rcPosCalcParam,
                           BlkMode     aeBlkMode	  [4][4],
                           UInt&       uiMbBaseOrigX,
                           UInt&       uiMbBaseOrigY)
 {
-    //--- Base MB association + Fill in Base MbMode + aeBlkMode
-    ///////////////////////////////////////////////////////////
+  //--- Base MB association + Fill in Base MbMode + aeBlkMode
+  ///////////////////////////////////////////////////////////
+  Int iBaseX0 = ( ( aiPelOrig[0] +  1 ) * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX;
+  Int iBaseY0 = ( ( aiPelOrig[1] +  1 ) * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY;
+  Int iBaseX1 = ( ( aiPelOrig[0] + 13 ) * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX;
+  Int iBaseY1 = ( ( aiPelOrig[1] + 13 ) * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY;
+  /*
     const Int iBaseX0 = ((aiPelOrig[0]+1)*pcParameters->m_iInWidth + pcParameters->m_iOutWidth/2) / pcParameters->m_iOutWidth; 
     const Int iBaseY0 = ((aiPelOrig[1]+1)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight; 
     const Int iBaseX1 = ((aiPelOrig[0]+13)*pcParameters->m_iInWidth  + pcParameters->m_iOutWidth /2) / pcParameters->m_iOutWidth; 
     const Int iBaseY1 = ((aiPelOrig[1]+13)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight; 
+    */
 
     uiMbBaseOrigX=(iBaseX0>>4);
     uiMbBaseOrigY=(iBaseY0>>4);
@@ -854,10 +905,7 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
                }
              }
 
-//TMM_INTERLACE {
-//             aeMbMode[uiIdxMb]= eMbMode;
              m_aeMbMode[uiIdxMb]= eMbMode;
-//TMM_INTERLACE }
 
              bIsMbIntra &= (eMbMode==INTRA_4X4);
         }
@@ -868,11 +916,48 @@ MbData::xFillBaseMbData(  MbData* pcBaseMbData,
     return Err::m_nOK;   
 }
 
+
+ErrVal
+MbData::xSetInterIntraIndication( MbData*           pcBaseMbData,
+                                  UInt              uiBaseMbStride,
+                                  const Int         aiPelOrig[2],
+                                  ResizeParameters* pcParameters, 
+                                  PosCalcParam&     rcPosCalcParam )
+{
+  ROF( pcParameters );
+  if ( pcParameters->m_iSpatialScalabilityType <= SST_RATIO_2 )
+  {
+    m_aabBaseIntra[0][0] = m_aabBaseIntra[1][0] = m_aabBaseIntra[0][1] = m_aabBaseIntra[1][1] = false;
+    return Err::m_nOK;
+  }
+
+  Int   iNumXMb   = ( pcParameters->m_iInWidth  / 16 );
+  Int   iNumYMb   = ( pcParameters->m_iInHeight / 16 );
+  Int   iBaseX0   = ( (  aiPelOrig[0]     * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX ) >> 4;
+  Int   iBaseY0   = ( (  aiPelOrig[1]     * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY ) >> 4;
+  Int   iBaseX1   = ( ( (aiPelOrig[0]+15) * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX ) >> 4;
+  Int   iBaseY1   = ( ( (aiPelOrig[1]+15) * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY ) >> 4;
+  Int   iMb00Idx  = ( iBaseX0 < 0 || iBaseY0 < 0 || iBaseX0 >= iNumXMb || iBaseY0 >= iNumYMb ? -1 : iBaseY0 * (Int)uiBaseMbStride + iBaseX0 );
+  Int   iMb10Idx  = ( iBaseX1 < 0 || iBaseY0 < 0 || iBaseX1 >= iNumXMb || iBaseY0 >= iNumYMb ? -1 : iBaseY0 * (Int)uiBaseMbStride + iBaseX1 );
+  Int   iMb01Idx  = ( iBaseX0 < 0 || iBaseY1 < 0 || iBaseX0 >= iNumXMb || iBaseY1 >= iNumYMb ? -1 : iBaseY1 * (Int)uiBaseMbStride + iBaseX0 );
+  Int   iMb11Idx  = ( iBaseX1 < 0 || iBaseY1 < 0 || iBaseX1 >= iNumXMb || iBaseY1 >= iNumYMb ? -1 : iBaseY1 * (Int)uiBaseMbStride + iBaseX1 );
+
+  //----- set intra/inter indication -----
+  m_aabBaseIntra[0][0] = ( iMb00Idx != -1 && pcBaseMbData[iMb00Idx].m_eMbMode >= INTRA_4X4 );
+  m_aabBaseIntra[1][0] = ( iMb10Idx != -1 && pcBaseMbData[iMb10Idx].m_eMbMode >= INTRA_4X4 );
+  m_aabBaseIntra[0][1] = ( iMb01Idx != -1 && pcBaseMbData[iMb01Idx].m_eMbMode >= INTRA_4X4 );
+  m_aabBaseIntra[1][1] = ( iMb11Idx != -1 && pcBaseMbData[iMb11Idx].m_eMbMode >= INTRA_4X4 );
+
+  return Err::m_nOK;   
+}
+
+
 ErrVal
 MbData::xESSCheckRP( MbData*           pcBaseMbData,
                      const UInt        uiBaseMbStride,
                      const Int         aiPelOrig[2],
-                     ResizeParameters* pcParameters)
+                     ResizeParameters* pcParameters,
+                     PosCalcParam&     rcPosCalcParam )
 {
   int i, j, k, list;
   int iBaseX0, iBaseY0, iBaseX1, iBaseY1;
@@ -886,12 +971,20 @@ MbData::xESSCheckRP( MbData*           pcBaseMbData,
 
   for(i=0; i<4; i++)
   {
+    iBaseY0 = ( ( aiPelOrig[1] + i*4   ) * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY;
+    iBaseY1 = ( ( aiPelOrig[1] + i*4+3 ) * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY;
+    /*
     iBaseY0 = ((aiPelOrig[1]+i*4)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
     iBaseY1 = ((aiPelOrig[1]+i*4+3)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
+    */
     for(j=0; j<4; j++)
     {
+      iBaseX0 = ( ( aiPelOrig[0] + j*4   ) * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX;
+      iBaseX1 = ( ( aiPelOrig[0] + j*4+3 ) * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX;
+      /*
       iBaseX0 = ((aiPelOrig[0]+j*4)*pcParameters->m_iInWidth + pcParameters->m_iOutWidth/2) / pcParameters->m_iOutWidth;
       iBaseX1 = ((aiPelOrig[0]+j*4+3)*pcParameters->m_iInWidth + pcParameters->m_iOutWidth/2) / pcParameters->m_iOutWidth;
+      */
 
       uiBaseBlkX0 = (iBaseX0 >> 2);
       uiBaseBlkY0 = (iBaseY0 >> 2);
@@ -942,7 +1035,7 @@ MbData::xESSCheckRP( MbData*           pcBaseMbData,
 ErrVal
 MbData::xBuildPartInfo(const Int         aiPelOrig[2],
                        ResizeParameters* pcParameters,
-                       // const MbMode      aeMbMode[4], //TMM_INTERLACE
+                       PosCalcParam&     rcPosCalcParam,
                        const  BlkMode    aeBlkMode[4][4],  
                        UInt              aui4x4Idx[4][4],
                        UInt              auiMbIdx [4][4], 
@@ -956,11 +1049,16 @@ MbData::xBuildPartInfo(const Int         aiPelOrig[2],
         for( Int y=0;y<2;y++)
         {
             UInt uiB8x8Idx=(y<<1) + x;
-
+            UInt uiBaseX0 = ( ( aiPelOrig[0] + x*8 + 1 ) * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX;
+            UInt uiBaseX1 = ( ( aiPelOrig[0] + x*8 + 5 ) * rcPosCalcParam.m_iScaleX + rcPosCalcParam.m_iAddX ) >> rcPosCalcParam.m_iShiftX;
+            UInt uiBaseY0 = ( ( aiPelOrig[1] + y*8 + 1 ) * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY;
+            UInt uiBaseY1 = ( ( aiPelOrig[1] + y*8 + 5 ) * rcPosCalcParam.m_iScaleY + rcPosCalcParam.m_iAddY ) >> rcPosCalcParam.m_iShiftY;
+            /*
             UInt uiBaseX0=((aiPelOrig[0]+x*8+1)*pcParameters->m_iInWidth  + pcParameters->m_iOutWidth/2)  / pcParameters->m_iOutWidth ;
             UInt uiBaseX1=((aiPelOrig[0]+x*8+5)*pcParameters->m_iInWidth  + pcParameters->m_iOutWidth/2)  / pcParameters->m_iOutWidth ;
             UInt uiBaseY0=((aiPelOrig[1]+y*8+1)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
             UInt uiBaseY1=((aiPelOrig[1]+y*8+5)*pcParameters->m_iInHeight + pcParameters->m_iOutHeight/2) / pcParameters->m_iOutHeight;
+            */
             
             uiBaseX0 -= (uiMbBaseOrigX<<4);
             uiBaseX1 -= (uiMbBaseOrigX<<4);
@@ -981,16 +1079,10 @@ MbData::xBuildPartInfo(const Int         aiPelOrig[2],
           
           //Set PartInfo
           /////////////// 
-//TMM_INTERLACE {
-					/*aaiPartInfo[uiB8x8Idx][0]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][0]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][0]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][0]]])%8 ] [aui4x4Idx[uiB8x8Idx][0]];
-          aaiPartInfo[uiB8x8Idx][1]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][1]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][1]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][1]]])%8 ] [aui4x4Idx[uiB8x8Idx][1]];
-          aaiPartInfo[uiB8x8Idx][2]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][2]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][2]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][2]]])%8 ] [aui4x4Idx[uiB8x8Idx][2]];
-          aaiPartInfo[uiB8x8Idx][3]=aaacGetPartInfo[ aeMbMode[auiMbIdx[uiB8x8Idx][3]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][3]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][3]]])%8 ] [aui4x4Idx[uiB8x8Idx][3]];*/
 					aaiPartInfo[uiB8x8Idx][0]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][0]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][0]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][0]]])%8 ] [aui4x4Idx[uiB8x8Idx][0]];
           aaiPartInfo[uiB8x8Idx][1]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][1]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][1]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][1]]])%8 ] [aui4x4Idx[uiB8x8Idx][1]];
           aaiPartInfo[uiB8x8Idx][2]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][2]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][2]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][2]]])%8 ] [aui4x4Idx[uiB8x8Idx][2]];
           aaiPartInfo[uiB8x8Idx][3]=aaacGetPartInfo[ m_aeMbMode[auiMbIdx[uiB8x8Idx][3]]] [(aeBlkMode[auiMbIdx[uiB8x8Idx][3]][g_aucConvertTo8x8Idx[aui4x4Idx[uiB8x8Idx][3]]])%8 ] [aui4x4Idx[uiB8x8Idx][3]];
-//TMM_INTERLACE }
          
           aaiPartInfo[uiB8x8Idx][0]+=  (aaiPartInfo[uiB8x8Idx][0]==-1? 0:auiMbIdx[uiB8x8Idx][0]<<4);
           aaiPartInfo[uiB8x8Idx][1]+=  (aaiPartInfo[uiB8x8Idx][1]==-1? 0:auiMbIdx[uiB8x8Idx][1]<<4);
@@ -1004,11 +1096,85 @@ MbData::xBuildPartInfo(const Int         aiPelOrig[2],
     return Err::m_nOK;
 }
 
+
+ErrVal
+MbData::xScaleMotionParameters( MvScaleParam& rcMvScaleParam )
+{
+  Int iRefFieldPic  = ( rcMvScaleParam.m_bRefLayerFieldPicFlag ? 1 : 0 );
+  Int iFieldPic     = ( rcMvScaleParam.m_bFieldPicFlag ? 1 : 0 );
+  Int iFieldMb      = ( m_bFieldFlag ? 1 : 0 );
+
+  for( UInt uiList = 0; uiList < 2; uiList++ )
+  for( UInt ui4x4Idx = 0; ui4x4Idx < 16; ui4x4Idx++ )
+  {
+    Int iRefFieldMb = ( m_abBl4x4FieldMb[uiList][ui4x4Idx] ? 1 : 0 );
+
+    //===== convert reference index =====
+    if( m_ascBl4x4RefIdx[uiList][ui4x4Idx] > 0 )
+    {
+      m_ascBl4x4RefIdx[uiList][ui4x4Idx] --; 
+      m_ascBl4x4RefIdx[uiList][ui4x4Idx] *= ( 1 + iFieldMb - iFieldPic );
+      m_ascBl4x4RefIdx[uiList][ui4x4Idx] /= ( 1 + iRefFieldMb - iRefFieldPic );
+      m_ascBl4x4RefIdx[uiList][ui4x4Idx] ++; 
+    }
+
+    //===== convert motion vector to frame motion vector =====
+    if( iRefFieldMb )
+    {
+      m_acBl4x4Mv[uiList][ui4x4Idx].setVer( m_acBl4x4Mv[uiList][ui4x4Idx].getVer() * 2 );
+    }
+
+    //===== scale motion vector =====
+    Int idSW = 0;
+    Int idSH = 0;
+    Int idOX = 0;
+    Int idOY = 0;
+    if( rcMvScaleParam.m_bCroppingChangeFlag )
+    {
+      Int iRefIdx = m_ascBl4x4RefIdx[uiList][ui4x4Idx];
+      if( iRefIdx > 0 )
+      {
+        ROT( iRefIdx > rcMvScaleParam.m_aiNumActive[uiList] );
+        idOX = rcMvScaleParam.m_aaidOX[uiList][iRefIdx-1];
+        idOY = rcMvScaleParam.m_aaidOY[uiList][iRefIdx-1];
+        idSW = rcMvScaleParam.m_aaidSW[uiList][iRefIdx-1];
+        idSH = rcMvScaleParam.m_aaidSH[uiList][iRefIdx-1];
+      }
+    }
+
+    Int iScaleX = ( ( ( rcMvScaleParam.m_iScaledW + idSW ) << 16 ) + ( rcMvScaleParam.m_iRefLayerW >> 1 ) ) / rcMvScaleParam.m_iRefLayerW;
+    Int iScaleY = ( ( ( rcMvScaleParam.m_iScaledH + idSH ) << 16 ) + ( rcMvScaleParam.m_iRefLayerH >> 1 ) ) / rcMvScaleParam.m_iRefLayerH;
+    Int iMvX    = ( m_acBl4x4Mv[uiList][ui4x4Idx].getHor() * iScaleX + 32768 ) >> 16;
+    Int iMvY    = ( m_acBl4x4Mv[uiList][ui4x4Idx].getVer() * iScaleY + 32768 ) >> 16;
+    m_acBl4x4Mv[uiList][ui4x4Idx].set( (Short)iMvX, (Short)iMvY );
+
+    //===== add correction vector =====
+    if( rcMvScaleParam.m_bCroppingChangeFlag )
+    {
+      Int iX  =   rcMvScaleParam.m_iXMbPos +   4 * ( ui4x4Idx % 4 ) + 1                                                        - rcMvScaleParam.m_iLeftOffset;
+      Int iY  = ( rcMvScaleParam.m_iYMbPos + ( 4 * ( ui4x4Idx / 4 ) + 1 ) * ( 1 + iFieldMb - iFieldPic ) ) * ( 1 + iFieldPic ) - rcMvScaleParam.m_iTopOffset;
+      iScaleX = ( ( ( 4 * idSW ) << 16 ) + ( rcMvScaleParam.m_iScaledW >> 1 ) ) / rcMvScaleParam.m_iScaledW;
+      iScaleY = ( ( ( 4 * idSH ) << 16 ) + ( rcMvScaleParam.m_iScaledH >> 1 ) ) / rcMvScaleParam.m_iScaledH;
+      iMvX    = ( ( iX * iScaleX + 32768 ) >> 16 ) - 4 * idOX + m_acBl4x4Mv[uiList][ui4x4Idx].getHor();
+      iMvY    = ( ( iY * iScaleY + 32768 ) >> 16 ) - 4 * idOY + m_acBl4x4Mv[uiList][ui4x4Idx].getVer();
+      m_acBl4x4Mv[uiList][ui4x4Idx].set( (Short)iMvX, (Short)iMvY );
+    }
+
+    //===== scale to field vector when required =====
+    if( iFieldMb )
+    {
+      m_acBl4x4Mv[uiList][ui4x4Idx].setVer( m_acBl4x4Mv[uiList][ui4x4Idx].getVer() / 2 );
+    }
+  }
+  return Err::m_nOK;
+}
+
         
 ErrVal 
 MbData::xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
                                const UInt        auiMbIdx	  [4][4], 
-                               const Int         aaiPartInfo[4][4])
+                               const Int         aaiPartInfo[4][4],
+                               MvScaleParam&     rcMvScalParam )
  {
    UInt uiB8x8Idx=0;
    for(uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++)
@@ -1045,8 +1211,10 @@ MbData::xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
        const UChar uc8x8Idx=g_aucConvertTo8x8Idx[ucMapIdx];
        m_acBl4x4Mv[0][*pucBlockOrder]     =pcmbMd0->getMv(B4x4Idx(ucMapIdx));
        m_ascBl4x4RefIdx[0][*pucBlockOrder]=pcmbMd0->getRefIdx(Par8x8(uc8x8Idx));	
+       m_abBl4x4FieldMb[0][*pucBlockOrder]=pcmbMd0->getFieldMode();
        m_acBl4x4Mv[1][*pucBlockOrder]     =pcmbMd1->getMv(B4x4Idx(ucMapIdx));
        m_ascBl4x4RefIdx[1][*pucBlockOrder]=pcmbMd1->getRefIdx(Par8x8(uc8x8Idx));
+       m_abBl4x4FieldMb[1][*pucBlockOrder]=pcmbMd1->getFieldMode();
 
        //fill cbp
        ///////////
@@ -1055,11 +1223,18 @@ MbData::xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
      }
    }
 
+  RNOK( xScaleMotionParameters( rcMvScalParam ) );
+
    //Homogenization step
    ////////////////////////////////
    //--- Merge Ref Indexes and Mvs inside a given 8x8 block  
    for ( uiB8x8Idx=0 ; uiB8x8Idx<4 ; uiB8x8Idx++) 
-     if(m_aBlkMode[uiB8x8Idx]!= BLK_8x8) xMergeBl8x8MvAndRef(uiB8x8Idx);
+   {
+     if(m_aBlkMode[uiB8x8Idx]!= BLK_8x8)
+     {
+       xMergeBl8x8MvAndRef(uiB8x8Idx);
+     }
+   }
 
    return Err::m_nOK;
  }
@@ -1365,40 +1540,11 @@ MbData::xRemoveIntra4x4(const UInt uiBlIdx,
 
 
 ErrVal
-MbData::xFillMbMvData(ResizeParameters* pcParameters )
+MbData::xFillMbMvData()
 {
-    //--- IF ESS PICTURE LEVEL
-    if( pcParameters->m_iExtendedSpatialScalability == ESS_PICT )
-    {
-        Mv      deltaMv[4];
-        Int     refFrNum, refPosX, refPosY;
-        Int     curFrNum = pcParameters->getPoc();
-        Int     curPosX = pcParameters->getCurrentPictureParameters(curFrNum)->m_iPosX;
-        Int     curPosY = pcParameters->getCurrentPictureParameters(curFrNum)->m_iPosY;
-
-        for (UInt uilist=0; uilist<2; uilist++)
-        {	for (UInt uiB8x8Idx=0; uiB8x8Idx<4 ; uiB8x8Idx++)
-        {
-            int refidx=	 m_ascBl4x4RefIdx[uilist][g_aucConvertTo4x4Idx[uiB8x8Idx]];
-            if(refidx <=0)  deltaMv[uiB8x8Idx].set(0,0) ;
-            else
-            {
-                refFrNum = pcParameters->m_aiRefListPoc[uilist][refidx-1];
-                refPosX = pcParameters->getCurrentPictureParameters(refFrNum)->m_iPosX;
-                refPosY = pcParameters->getCurrentPictureParameters(refFrNum)->m_iPosY;
-                deltaMv[uiB8x8Idx].set( 4*(refPosX-curPosX) , 4*(refPosY-curPosY) );
-            }
-        }
-        m_apcMbMotionData[uilist]->upsampleMotionNonDyad( m_ascBl4x4RefIdx[uilist] , m_acBl4x4Mv[uilist] , pcParameters , deltaMv );
-        }
-    }
-    else
-    {
-        m_apcMbMotionData[0]->upsampleMotionNonDyad( m_ascBl4x4RefIdx[0] , m_acBl4x4Mv[0] , pcParameters );
-        m_apcMbMotionData[1]->upsampleMotionNonDyad( m_ascBl4x4RefIdx[1] , m_acBl4x4Mv[1] , pcParameters );
-    }
-
-    return Err::m_nOK;   
+  m_apcMbMotionData[0]->copyMotion( m_ascBl4x4RefIdx[0], m_acBl4x4Mv[0] );
+  m_apcMbMotionData[1]->copyMotion( m_ascBl4x4RefIdx[1], m_acBl4x4Mv[1] );
+  return Err::m_nOK;   
 }
 
 H264AVC_NAMESPACE_END

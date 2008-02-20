@@ -267,39 +267,11 @@ public:
   UInt          getMaxBitRate() const;
   // JVT-V068 HRD } 
 
-//SSPS {
-	ErrVal writeSVCVUIParametersExtension ( HeaderSymbolWriteIf*  pcWriteIf )  const;
-	ErrVal ReadSVCVUIParametersExtension ( HeaderSymbolReadIf*   pcReadIf );
   Bool getSVCVUIParametersPresentFlag()            const { return m_bSVCVUIParametersPresentFlag;      }
 	Bool getAdditionalExtension2Flag()               const { return m_bAdditionalExtension2Flag;         }
-	Bool getFixedFrameRateFlag( UInt ui )            const { return m_bFixedFrameRateFlag[ui];           }
-  Bool getNalHrdParametersPresentFlag( UInt ui )   const { return m_bNalHrdParametersPresentFlag[ui];  }
-	Bool getVclHrdParametersPresentFlag( UInt ui )   const { return m_bVclHrdParametersPresentFlag[ui];  }
-	Bool getPicStructPresentFlag( UInt ui )          const { return m_bPicStructPresentFlag[ui];         }
-	Bool getTimingInfoPresentFlag( UInt ui )         const { return m_bTimingInfoPresentFlag[ui];        }
-	Bool getLowDelayHrdFlag( UInt ui )               const { return m_bLowDelayHrdFlag[ui];              }
-	UInt getNumLayersMinus1()                        const { return m_uiNumLayersMinus1;                 }
-	UInt getDependencyId( UInt ui )                  const { return m_auiDependencyId[ui];                }
-	UInt getQualityId( UInt ui )                     const { return m_auiQualityId[ui];                   }
-	UInt getTemporalId( UInt ui )                    const { return m_auiTemporalId[ui];                  }
-	UInt getNumUnitsInTick( UInt ui )                const { return m_auiNumUnitsInTick[ui];              }
-	UInt getTimeScale( UInt ui )                     const { return m_auiTimeScale[ui];                   }
-	Void setFixedFrameRateFlag( UInt ui, Bool b )          {  m_bFixedFrameRateFlag[ui]  = b;            }
-  Void setNalHrdParametersPresentFlag( UInt ui, Bool b ) {  m_bNalHrdParametersPresentFlag[ui]  = b;   }
-	Void setVclHrdParametersPresentFlag( UInt ui, Bool b ) {  m_bVclHrdParametersPresentFlag[ui]  = b;   }
-	Void setPicStructPresentFlag( UInt ui, Bool b )        {  m_bPicStructPresentFlag[ui]  = b;          }
-	Void setTimingInfoPresentFlag( UInt ui, Bool b )       {  m_bTimingInfoPresentFlag[ui]  = b;         } 
-	Void setLowDelayHrdFlag( UInt ui, Bool b )             {  m_bLowDelayHrdFlag[ui]  = b;               }
-	Void setNumLayersMinus1( UInt ui)                      {  m_uiNumLayersMinus1  = ui;                 }
-	Void setDependencyId( UInt ui,UInt uj )                {  m_auiDependencyId[ui]  = uj;                }
-	Void setQualityId( UInt ui,UInt uj )                   {  m_auiQualityId[ui]  = uj;                   }
-	Void setTemporalId( UInt ui,UInt uj )                  {  m_auiTemporalId[ui]  = uj;                  }
-	Void setNumUnitsInTick( UInt ui,UInt uj )              {  m_auiNumUnitsInTick[ui]  = uj;              }
-	Void setTimeScale( UInt ui,UInt uj )                   {  m_auiTimeScale[ui]  = uj;                   }
   Void setSVCVUIParametersPresentFlag ( Bool b )         {  m_bSVCVUIParametersPresentFlag  = b;       }
 	Void setAdditionalExtension2Flag    ( Bool b )         {  m_bAdditionalExtension2Flag     = b;       }
 
-//SSPS }
   UInt  getFrameCropLeftOffset  ()  const { return m_uiFrameCropLeftOffset;   }
   UInt  getFrameCropRightOffset ()  const { return m_uiFrameCropRightOffset;  }
   UInt  getFrameCropTopOffset   ()  const { return m_uiFrameCropTopOffset;    }
@@ -376,22 +348,8 @@ protected:
   VUI*          m_pcVUI;
   // JVT-V068 HRD }
 
-  //SSPS {
 	Bool m_bSVCVUIParametersPresentFlag;
 	Bool m_bAdditionalExtension2Flag;
-	Bool m_bFixedFrameRateFlag[MAX_LAYERS];
-	Bool m_bNalHrdParametersPresentFlag[MAX_LAYERS];
-	Bool m_bVclHrdParametersPresentFlag[MAX_LAYERS];
-	Bool m_bPicStructPresentFlag[MAX_LAYERS];
-	Bool m_bTimingInfoPresentFlag[MAX_LAYERS];
-	Bool m_bLowDelayHrdFlag[MAX_LAYERS];
-	UInt m_uiNumLayersMinus1;
-	UInt m_auiDependencyId[MAX_LAYERS];
-	UInt m_auiQualityId[MAX_LAYERS];
-	UInt m_auiTemporalId[MAX_LAYERS];
-	UInt m_auiNumUnitsInTick[MAX_LAYERS];
-	UInt m_auiTimeScale[MAX_LAYERS];
-	//SSPS }
 
   UInt          m_uiFrameCropLeftOffset;
   UInt          m_uiFrameCropRightOffset;

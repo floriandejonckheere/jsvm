@@ -183,6 +183,7 @@ private:
   ErrVal xGetRun              ( UInt uiVlcPos, UInt& uiRun  );
   ErrVal xGetTotalRun16       ( UInt uiVlcPos, UInt& uiTotalRun );
   ErrVal xGetTotalRun4        ( UInt& uiVlcPos, UInt& uiTotalRun );
+  ErrVal xGetTotalRun8        ( UInt& uiVlcPos, UInt& uiTotalRun );
   ErrVal xGetTrailingOnes4    ( UInt& uiCoeffCount, UInt& uiTrailingOnes );
 
 protected:

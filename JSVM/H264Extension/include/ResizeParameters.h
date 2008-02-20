@@ -28,6 +28,7 @@ struct PictureParameters {
     Int  m_iBaseChromaPhaseY;
 };
 
+
 class ResizeParameters {
 public:
     ResizeParameters()
@@ -130,9 +131,10 @@ public:
     // ----- PICT LEVEL   
     Int   m_iPoc; 
     FILE  *m_pParamFile; 
+    Int   m_aiNumActive[2];
     Int   m_aiRefListPoc[2][MAX_REFLIST_SIZE]; 
+  	Int m_level_idc;//jzxu, 02Nov2007
 
-	Int m_level_idc;//jzxu, 02Nov2007
 protected:
     PictureParameters m_acCurrentGop[MAX_PICT_PARAM_NB];
 
@@ -141,6 +143,103 @@ private:
     Void xCleanPictureParameters ( PictureParameters * pc );
     Void xInitPictureParameters  ( PictureParameters * pc );
 } ;
+
+
+class PosCalcParam
+{
+public:
+  PosCalcParam() : m_iShiftX(0), m_iShiftY(0), m_iScaleX(1), m_iScaleY(1), m_iAddX(0), m_iAddY(0), m_iDeltaX(0), m_iDeltaY(0) {}
+  static Int CeilLog2( Int i )
+  {
+    Int s = 0; i--;
+    while( i > 0 )
+    {
+      s++;
+      i >>= 1;
+    }
+    return s;
+  }
+public:
+  Int m_iShiftX;
+  Int m_iShiftY;
+  Int m_iScaleX;
+  Int m_iScaleY;
+  Int m_iAddX;
+  Int m_iAddY;
+  Int m_iDeltaX;
+  Int m_iDeltaY;
+};
+
+class MvScaleParam
+{
+public:
+  MvScaleParam( ResizeParameters& rcResizeParameters )
+  {
+    m_iScaledW              = rcResizeParameters.m_iOutWidth;
+    m_iScaledH              = rcResizeParameters.m_iOutHeight;
+    m_iRefLayerW            = rcResizeParameters.m_iInWidth;
+    m_iRefLayerH            = rcResizeParameters.m_iInHeight;
+    m_bFieldPicFlag         = rcResizeParameters.m_bFieldPicFlag;
+    m_bRefLayerFieldPicFlag = rcResizeParameters.m_bBaseFieldPicFlag;
+    m_bCroppingChangeFlag   = ( rcResizeParameters.m_iExtendedSpatialScalability == ESS_PICT );
+    if( m_bCroppingChangeFlag )
+    {
+      Int iCurrLO = rcResizeParameters.m_iPosX;
+      Int iCurrRO = rcResizeParameters.m_iGlobWidth - rcResizeParameters.m_iPosX - rcResizeParameters.m_iOutWidth;
+      Int iCurrTO = rcResizeParameters.m_iPosY;
+      Int iCurrBO = rcResizeParameters.m_iGlobHeight - rcResizeParameters.m_iPosY - rcResizeParameters.m_iOutHeight;
+      m_iLeftOffset    = iCurrLO;
+      m_iTopOffset     = iCurrTO;
+      m_aiNumActive[0] = rcResizeParameters.m_aiNumActive[0];
+      m_aiNumActive[1] = rcResizeParameters.m_aiNumActive[1];
+      for( UInt uiIdx0 = 0; uiIdx0 < (UInt)rcResizeParameters.m_aiNumActive[0]; uiIdx0++ )
+      {
+        Int                      iPoc  = rcResizeParameters.m_aiRefListPoc[0][uiIdx0];
+        const PictureParameters* pcRP  = rcResizeParameters.getCurrentPictureParameters( iPoc );
+        AOF( pcRP );
+        Int iRefLO  = pcRP->m_iPosX;
+        Int iRefRO  = rcResizeParameters.m_iGlobWidth - pcRP->m_iPosX - pcRP->m_iOutWidth;
+        Int iRefTO  = pcRP->m_iPosY;
+        Int iRefBO  = rcResizeParameters.m_iGlobHeight - pcRP->m_iPosY - pcRP->m_iOutHeight;
+        m_aaidOX[0][uiIdx0] = iCurrLO - iRefLO;
+        m_aaidOY[0][uiIdx0] = iCurrTO - iRefTO;
+        m_aaidSW[0][uiIdx0] = iCurrRO - iRefRO + m_aaidOX[0][uiIdx0];
+        m_aaidSH[0][uiIdx0] = iCurrBO - iRefBO + m_aaidOY[0][uiIdx0];
+      }
+      for( UInt uiIdx1 = 0; uiIdx1 < (UInt)rcResizeParameters.m_aiNumActive[1]; uiIdx1++ )
+      {
+        Int                      iPoc  = rcResizeParameters.m_aiRefListPoc[1][uiIdx1];
+        const PictureParameters* pcRP  = rcResizeParameters.getCurrentPictureParameters( iPoc );
+        AOF( pcRP );
+        Int iRefLO  = pcRP->m_iPosX;
+        Int iRefRO  = rcResizeParameters.m_iGlobWidth - pcRP->m_iPosX - pcRP->m_iOutWidth;
+        Int iRefTO  = pcRP->m_iPosY;
+        Int iRefBO  = rcResizeParameters.m_iGlobHeight - pcRP->m_iPosY - pcRP->m_iOutHeight;
+        m_aaidOX[1][uiIdx1] = iCurrLO - iRefLO;
+        m_aaidOY[1][uiIdx1] = iCurrTO - iRefTO;
+        m_aaidSW[1][uiIdx1] = iCurrRO - iRefRO + m_aaidOX[1][uiIdx1];
+        m_aaidSH[1][uiIdx1] = iCurrBO - iRefBO + m_aaidOY[1][uiIdx1];
+      }
+    }
+  }
+public:
+  Int   m_iScaledW;
+  Int   m_iScaledH;
+  Int   m_iRefLayerW;
+  Int   m_iRefLayerH;
+  Int   m_iLeftOffset;
+  Int   m_iTopOffset;
+  Bool  m_bFieldPicFlag;
+  Bool  m_bRefLayerFieldPicFlag;
+  Bool  m_bCroppingChangeFlag;
+  Int   m_aiNumActive[2];
+  Int   m_aaidOX[2][33];
+  Int   m_aaidOY[2][33];
+  Int   m_aaidSW[2][33];
+  Int   m_aaidSH[2][33];
+  Int   m_iXMbPos;
+  Int   m_iYMbPos;
+};
 
 #undef INTRA_UPSAMPLING_TYPE_DEFAULT
 //H264AVC_NAMESPACE_END

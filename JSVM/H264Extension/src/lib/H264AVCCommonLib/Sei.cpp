@@ -321,24 +321,20 @@ SEI::xRead( HeaderSymbolReadIf* pcReadIf,
 
   RNOK( xReadPayloadHeader( pcReadIf, eMessageType, uiSize) );
 
-  // JVT-V068 { 
-  // Dump HRD SEIs
-  if (eMessageType==BUFFERING_PERIOD||eMessageType==PIC_TIMING||eMessageType==AVC_COMPATIBLE_HRD_SEI)
+  // special handling for bit stream extractor
+  if( pcParameterSetMng == 0 && ( eMessageType == PIC_TIMING || eMessageType == BUFFERING_PERIOD ) )
   {
-    RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) )
-    
+    RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) );
     UInt uiDummy;
     while (uiSize--)
     {
       pcReadIf->getCode(uiDummy, 8, "SEI: Byte ignored.");
     }
     RNOK( pcReadIf->readByteAlign() );
-
     return Err::m_nOK;
   }
-  // JVT-V068 }
-  RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) )
 
+  RNOK( xCreate( rpcSEIMessage, eMessageType, pcParameterSetMng, uiSize ) )
   RNOK( rpcSEIMessage->read( pcReadIf ) );
   RNOK( pcReadIf->readByteAlign() );
   return Err::m_nOK;
@@ -459,7 +455,7 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
     case AVC_COMPATIBLE_HRD_SEI: 
       return AVCCompatibleHRD::create( (AVCCompatibleHRD*&)rpcSEIMessage, NULL );
     case PIC_TIMING:       
-      return PicTiming::create( (PicTiming*&)rpcSEIMessage, NULL, 0 );
+      return PicTiming::create( (PicTiming*&)rpcSEIMessage, rpcParameterSetMng );
     case BUFFERING_PERIOD: 
       return BufferingPeriod::create( (BufferingPeriod*&) rpcSEIMessage, rpcParameterSetMng );
 // JVT-V068 }
@@ -474,7 +470,8 @@ SEI::xCreate( SEIMessage*&  rpcSEIMessage,
 		case TL_SWITCHING_POINT_SEI:
 			return TLSwitchingPointSei::create((TLSwitchingPointSei*&) rpcSEIMessage );
     //JVT-X032 }
-    default :           return ReservedSei::create( (ReservedSei*&) rpcSEIMessage, uiSize );
+    default : 
+      ROT(1);
   }
   //return Err::m_nOK;
 }
@@ -513,33 +510,6 @@ SEI::xWritePayloadHeader( HeaderSymbolWriteIf*  pcWriteIf,
 }
 
 
-
-
-
-ErrVal
-SEI::ReservedSei::create( ReservedSei*& rpcReservedSei,
-                          UInt          uiSize )
-{
-  rpcReservedSei = new ReservedSei (uiSize);
-  ROT( NULL == rpcReservedSei );
-  return Err::m_nOK;
-}
-
-
-ErrVal
-SEI::ReservedSei::write( HeaderSymbolWriteIf* pcWriteIf )
-{
-  AF();
-  return Err::m_nOK;
-}
-
-
-ErrVal
-SEI::ReservedSei::read( HeaderSymbolReadIf* pcReadIf )
-{
-  AF();
-  return Err::m_nOK;
-}
 
 
 
@@ -1902,7 +1872,7 @@ SEI::ScalableSei::read ( HeaderSymbolReadIf *pcReadIf )
 			{
 			  RNOK	( pcReadIf->getUvlc( m_seq_parameter_set_id_delta[i][j],					     ""	) );
 			}
-			RNOK    ( pcReadIf->getUvlc( m_num_seq_parameter_set_minus1[i],              ""  ) );
+			RNOK    ( pcReadIf->getUvlc( m_num_subset_seq_parameter_set_minus1[i],              ""  ) );
 			for( j = 0; j <= m_num_subset_seq_parameter_set_minus1[i]; j++ )
 			{
 			  RNOK	( pcReadIf->getUvlc( m_subset_seq_parameter_set_id_delta[i][j],				""	) );
@@ -2506,16 +2476,14 @@ SEI::ScalableNestingSei::write( HeaderSymbolWriteIf *pcWriteIf )
 	RNOK( pcWriteIf->writeFlag( m_bAllPicturesInAuFlag, " ScalableNestingSei:AllPicturesInAuFlag " ) );
 	if( m_bAllPicturesInAuFlag == 0 )
 	{
-		RNOK( pcWriteIf->writeUvlc( m_uiNumPictures, "ScalableNestingSei:NumPictures" ) );
-		ROT( m_uiNumPictures == 0 );
+    ROT( m_uiNumPictures == 0 );
+		RNOK( pcWriteIf->writeUvlc( m_uiNumPictures-1, "ScalableNestingSei:NumPictures" ) );
 		for( uiIndex = 0; uiIndex < m_uiNumPictures; uiIndex++ )
 		{
 			RNOK( pcWriteIf->writeCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
 			RNOK( pcWriteIf->writeCode( m_auiQualityLevel[uiIndex],4, " ScalableNestingSei:uiQualityLevel " ) );
 		}	    
-		// JVT-V068 HRD {
-    	RNOK( pcWriteIf->writeCode( m_uiTemporalId,3, " ScalableNestingSei:uiTemporalLevel " ) );
-		// JVT-V068 HRD }
+  	RNOK( pcWriteIf->writeCode( m_uiTemporalId,3, " ScalableNestingSei:uiTemporalLevel " ) );
 	}
 	UInt uiBits = pcWriteIf->getNumberOfWrittenBits()-uiStartBits;
 	UInt uiBitsMod8 = uiBits%8;
@@ -2536,68 +2504,63 @@ SEI::ScalableNestingSei::read( HeaderSymbolReadIf *pcReadIf )
 	if( m_bAllPicturesInAuFlag == 0 )
 	{
 		RNOK( pcReadIf->getUvlc( m_uiNumPictures, "ScalableNestingSei:NumPictures" ) );
-		ROT( m_uiNumPictures == 0 );
+		m_uiNumPictures++;
 		for( UInt uiIndex = 0; uiIndex < m_uiNumPictures; uiIndex++ )
 		{
 			RNOK( pcReadIf->getCode( m_auiDependencyId[uiIndex],3, " ScalableNestingSei:uiDependencyId " ) );
 			RNOK( pcReadIf->getCode( m_auiQualityLevel[uiIndex],4, " ScalableNestingSei:uiQualityLevel " ) );
 		}
-    // JVT-V068 HRD {
     RNOK( pcReadIf->getCode( m_uiTemporalId,3, " ScalableNestingSei:uiTemporalLevel " ) );
-    // JVT-V068 HRD }
 	}
 	RNOK( pcReadIf->readZeroByteAlign() ); //nesting_zero_bit
 
 	//Read the following SEI message
-	UInt uiType, uiPayloadSize;
-	while(1)
-	{
-		RNOK( pcReadIf->getCode( uiType, 8, " ScalableNestingSei:SEI type" ) );
-		if( uiType != 0xff )
-			break;
-	}
-	while(1)
-	{
-		RNOK( pcReadIf->getCode( uiPayloadSize, 8, " ScalableNestingSei:SEI payloadSize" ) );
-		if( uiPayloadSize != 0xff )
-			break;
-	}
-	switch( uiType )
-	{
-	case SCENE_INFO_SEI:
-		{
-			SEI::SceneInfoSei* pcSceneInfoSei;
-			RNOK( SEI::SceneInfoSei::create(pcSceneInfoSei) );
-			RNOK( pcSceneInfoSei->read(pcReadIf) );
-			//add some control
-
-			RNOK( pcSceneInfoSei->destroy() );  
-			break;
-		}
-  //JVT-W062 {
-  case SEI::TL0_DEP_REP_IDX_SEI:
-    {
-      SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSei;
-  		RNOK( SEI::Tl0DepRepIdxSei::create(pcTl0DepRepIdxSei) );
-	    RNOK( pcTl0DepRepIdxSei->read(pcReadIf) );
-	    RNOK( pcTl0DepRepIdxSei->destroy() );  
-      break;
-    }
-//JVT-W062 }
-
-	//more case can be added here
-	default:
-// JVT-V068 {
-    {
-      for (UInt ui=0; ui<uiPayloadSize; ui++)
+  do 
+  {
+	  UInt uiType, uiPayloadSize;
+	  while(1)
+	  {
+		  RNOK( pcReadIf->getCode( uiType, 8, " ScalableNestingSei:SEI type" ) );
+		  if( uiType != 0xff )
+			  break;
+	  }
+	  while(1)
+	  {
+		  RNOK( pcReadIf->getCode( uiPayloadSize, 8, " ScalableNestingSei:SEI payloadSize" ) );
+		  if( uiPayloadSize != 0xff )
+			  break;
+	  }
+	  switch( uiType )
+	  {
+	  case SCENE_INFO_SEI:
+		  {
+			  SEI::SceneInfoSei* pcSceneInfoSei;
+			  RNOK( SEI::SceneInfoSei::create(pcSceneInfoSei) );
+			  RNOK( pcSceneInfoSei->read(pcReadIf) );
+			  RNOK( pcSceneInfoSei->destroy() );  
+			  break;
+		  }
+    case SEI::TL0_DEP_REP_IDX_SEI:
       {
-        UInt uiDummy;
-        pcReadIf->getCode(uiDummy, 8, "SEI: Byte ignored" );
+        SEI::Tl0DepRepIdxSei* pcTl0DepRepIdxSei;
+  		  RNOK( SEI::Tl0DepRepIdxSei::create(pcTl0DepRepIdxSei) );
+	      RNOK( pcTl0DepRepIdxSei->read(pcReadIf) );
+	      RNOK( pcTl0DepRepIdxSei->destroy() );  
+        break;
       }
-    }
-// JVT-V068 }
-		break;
-	}
+	  //more case can be added here
+	  default:
+      {
+        for (UInt ui=0; ui<uiPayloadSize; ui++)
+        {
+          UInt uiDummy;
+          pcReadIf->getCode(uiDummy, 8, "SEI: Byte ignored" );
+        }
+      }
+		  break;
+	  }
+    RNOK( pcReadIf->readByteAlign() );
+  } while( pcReadIf->moreRBSPData() );
 
 	return Err::m_nOK;
 }
@@ -2787,44 +2750,45 @@ ErrVal SEI::BufferingPeriod::write( HeaderSymbolWriteIf* pcWriteIf )
 
 ErrVal SEI::BufferingPeriod::read ( HeaderSymbolReadIf* pcReadIf )
 {
-//  RNOKS( pcReadIf->getUvlc( m_uiSeqParameterSetId, "SEI: seq_parameter_set_id" ) );
-//
-//  ROF( m_pcParameterSetMng->isValidSPS(m_uiSeqParameterSetId));
-//
-//  SequenceParameterSet *pcSPS = NULL;
-//  m_pcParameterSetMng->get( pcSPS,m_uiSeqParameterSetId);  
-//
-//  m_pcVUI = pcSPS->getVUI ();// get a pointer to VUI of the SPS with m_uiSeqParameterSetId
-//
-//  Bool bNalHrdBpPresentFlag = m_pcVUI ? m_pcVUI->getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() : false;
-//  Bool bVclHrdBpPresentFlag = m_pcVUI ? m_pcVUI->getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() : false;
-//
-//  if (bNalHrdBpPresentFlag) 
-//  {
-//    m_aacSchedSel[HRD::NAL_HRD].init( m_pcVUI->getNalHrd(m_uiLayerIndex).getCpbCnt() + 1 );
-//  }
-//  if (bVclHrdBpPresentFlag) 
-//  {
-//    m_aacSchedSel[HRD::VCL_HRD].init( m_pcVUI->getVclHrd(m_uiLayerIndex).getCpbCnt() + 1 );
-//  }
-//
-//  if (bNalHrdBpPresentFlag)
-//  {
-//    const HRD& rcNalHRD = m_pcVUI->getNalHrd(m_uiLayerIndex);
-//    for( UInt n = 0; n < rcNalHRD.getCpbCnt(); n++ )
-//    {
-//      RNOKS( getSchedSel( HRD::NAL_HRD, n ).read( pcReadIf, rcNalHRD ) );
-//    }
-//  }
-//
-//  if (bVclHrdBpPresentFlag)
-//  {
-//    const HRD& rcVlcHRD = m_pcVUI->getVclHrd(m_uiLayerIndex);
-//    for( UInt n = 0; n < rcVlcHRD.getCpbCnt(); n++ )
-//    {
-//      RNOKS( getSchedSel( HRD::VCL_HRD, n ).read( pcReadIf, rcVlcHRD ) );
-//    }
-//  }
+  RNOKS( pcReadIf->getUvlc( m_uiSeqParameterSetId, "SEI: seq_parameter_set_id" ) );
+
+  Bool bSubsetSPS = false; // depends on whether it is nested and dId == 0 and qId == 0
+  ROF( m_pcParameterSetMng->isValidSPS(m_uiSeqParameterSetId, bSubsetSPS ) );
+
+  SequenceParameterSet *pcSPS = NULL;
+  m_pcParameterSetMng->get( pcSPS,m_uiSeqParameterSetId, bSubsetSPS);  
+
+  VUI* pcVUI = pcSPS->getVUI ();// get a pointer to VUI of the SPS with m_uiSeqParameterSetId
+
+  Bool bNalHrdBpPresentFlag = pcVUI ? pcVUI->getNalHrd(pcVUI->getDefaultIdx()).getHrdParametersPresentFlag() : false;
+  Bool bVclHrdBpPresentFlag = pcVUI ? pcVUI->getVclHrd(pcVUI->getDefaultIdx()).getHrdParametersPresentFlag() : false;
+
+  if (bNalHrdBpPresentFlag) 
+  {
+    m_aacSchedSel[HRD::NAL_HRD].init( pcVUI->getNalHrd(pcVUI->getDefaultIdx()).getCpbCnt() + 1 );
+  }
+  if (bVclHrdBpPresentFlag) 
+  {
+    m_aacSchedSel[HRD::VCL_HRD].init( pcVUI->getVclHrd(pcVUI->getDefaultIdx()).getCpbCnt() + 1 );
+  }
+
+  if (bNalHrdBpPresentFlag)
+  {
+    const HRD& rcNalHRD = pcVUI->getNalHrd(pcVUI->getDefaultIdx());
+    for( UInt n = 0; n < rcNalHRD.getCpbCnt(); n++ )
+    {
+      RNOKS( getSchedSel( HRD::NAL_HRD, n ).read( pcReadIf, rcNalHRD ) );
+    }
+  }
+
+  if (bVclHrdBpPresentFlag)
+  {
+    const HRD& rcVlcHRD = pcVUI->getVclHrd(pcVUI->getDefaultIdx());
+    for( UInt n = 0; n < rcVlcHRD.getCpbCnt(); n++ )
+    {
+      RNOKS( getSchedSel( HRD::VCL_HRD, n ).read( pcReadIf, rcVlcHRD ) );
+    }
+  }
   return Err::m_nOK;
 }
 
@@ -2841,9 +2805,9 @@ ErrVal SEI::BufferingPeriod::SchedSel::write( HeaderSymbolWriteIf* pcWriteIf, co
 
 ErrVal SEI::BufferingPeriod::SchedSel::read ( HeaderSymbolReadIf* pcReadIf, const HRD& rcHrd )
 {
-//  const UInt uiLength = rcHrd.getInitialCpbRemovalDelayLength();
-//  RNOKS( pcReadIf->getCode( m_uiInitialCpbRemovalDelay ,       uiLength, "SEI: initial_cpb_removal_delay ") );
-//  RNOKS( pcReadIf->getCode( m_uiInitialCpbRemovalDelayOffset,  uiLength, "SEI: initial_cpb_removal_delay_offset ") );
+  const UInt uiLength = rcHrd.getInitialCpbRemovalDelayLength();
+  RNOKS( pcReadIf->getCode( m_uiInitialCpbRemovalDelay ,       uiLength, "SEI: initial_cpb_removal_delay ") );
+  RNOKS( pcReadIf->getCode( m_uiInitialCpbRemovalDelayOffset,  uiLength, "SEI: initial_cpb_removal_delay_offset ") );
   return Err::m_nOK;
 }
 
@@ -2866,24 +2830,42 @@ UInt SEI::PicTiming::getNumClockTs()
   }
 }
 
-ErrVal SEI::PicTiming::create( PicTiming*& rpcPicTiming, const VUI* pcVUI, UInt uiLayerIndex )
+ErrVal SEI::PicTiming::create( PicTiming*& rpcPicTiming, ParameterSetMng* pcParameterSetMng )
 {
-  //ROT( NULL == pcVUI );
-  rpcPicTiming = new PicTiming( *pcVUI, uiLayerIndex );
+  if( ! pcParameterSetMng )
+  {
+    rpcPicTiming = new PicTiming( 0, 0 ); // not usable
+    ROT( NULL == rpcPicTiming );
+    return Err::m_nOK;
+  }
+  SequenceParameterSet* pcSPS = 0;
+  RNOK( pcParameterSetMng->getActiveSPSDQ0( pcSPS ) );
+  ROF ( pcSPS );
+  VUI* pcVUI = pcSPS->getVUI();
+  ROF ( pcVUI );
+  rpcPicTiming = new PicTiming( pcVUI, 0 ); // not for nested
   ROT( NULL == rpcPicTiming );
   return Err::m_nOK;
 }
 
-ErrVal SEI::PicTiming::create(PicTiming*& rpcPicTiming, ParameterSetMng* parameterSetMng, UInt uiSPSId, Bool bSubSetSPS, UInt uiLayerIndex)
+ErrVal SEI::PicTiming::create(PicTiming*& rpcPicTiming, const VUI* pcVUI, UInt uiLayerIndex )
 {
-	ROF( parameterSetMng->isValidSPS(uiSPSId, bSubSetSPS));
+  ROT( NULL == pcVUI );
+  rpcPicTiming = new PicTiming( pcVUI, uiLayerIndex );
+  ROT( NULL == rpcPicTiming );
+  return Err::m_nOK;
+}
+
+ErrVal SEI::PicTiming::create(PicTiming*& rpcPicTiming, ParameterSetMng* pcParameterSetMng, UInt uiSPSId, Bool bSubSetSPS, UInt uiLayerIndex)
+{
+	ROF( pcParameterSetMng->isValidSPS(uiSPSId, bSubSetSPS));
 
 	SequenceParameterSet *pcSPS = NULL;
-	parameterSetMng->get( pcSPS, uiSPSId, bSubSetSPS );  
+	pcParameterSetMng->get( pcSPS, uiSPSId, bSubSetSPS );  
 
 	VUI& rcVUI = *(pcSPS->getVUI ()); // get a pointer to VUI of SPS with m_uiSeqParameterSetId
 
-	rpcPicTiming = new PicTiming( rcVUI, uiLayerIndex );
+	rpcPicTiming = new PicTiming( &rcVUI, uiLayerIndex );
 	ROT( NULL == rpcPicTiming );
 
 	return Err::m_nOK;
@@ -2892,13 +2874,13 @@ ErrVal SEI::PicTiming::create(PicTiming*& rpcPicTiming, ParameterSetMng* paramet
 ErrVal SEI::PicTiming::write( HeaderSymbolWriteIf* pcWriteIf )
 {
   const HRD* pcHRD = NULL;
-  if( m_rcVUI.getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  if( m_pcVUI->getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
   {
-    pcHRD = &m_rcVUI.getNalHrd(m_uiLayerIndex);
+    pcHRD = &m_pcVUI->getNalHrd(m_uiLayerIndex);
   }
-  else if( m_rcVUI.getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  else if( m_pcVUI->getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
   {
-    pcHRD = &m_rcVUI.getVclHrd(m_uiLayerIndex);
+    pcHRD = &m_pcVUI->getVclHrd(m_uiLayerIndex);
   }
 
   if( NULL != pcHRD )
@@ -2907,7 +2889,7 @@ ErrVal SEI::PicTiming::write( HeaderSymbolWriteIf* pcWriteIf )
     RNOK( pcWriteIf->writeCode( m_uiDpbOutputDelay,   pcHRD->getDpbOutputDelayLength(),  "SEI: dpb_output_delay"   ) );
   }
 
-  if( m_rcVUI.getPicStructPresentFlag(m_uiLayerIndex) )
+  if( m_pcVUI->getPicStructPresentFlag(m_uiLayerIndex) )
   {
     RNOK( pcWriteIf->writeCode( m_ePicStruct, 4,      "SEI: pic_struct"         ) );
     AOT( NULL == pcHRD );
@@ -2923,7 +2905,7 @@ ErrVal SEI::PicTiming::write( HeaderSymbolWriteIf* pcWriteIf )
 
 Int  SEI::PicTiming::getTimestamp( UInt uiNum, UInt uiLayerIndex )
 {
-  return m_acClockTimestampBuf.get( uiNum ).get( m_rcVUI, uiLayerIndex );
+  return m_acClockTimestampBuf.get( uiNum ).get( *m_pcVUI, uiLayerIndex );
 }
 
 ErrVal  SEI::PicTiming::setDpbOutputDelay( UInt uiDpbOutputDelay)
@@ -2935,7 +2917,7 @@ ErrVal  SEI::PicTiming::setDpbOutputDelay( UInt uiDpbOutputDelay)
 
 ErrVal SEI::PicTiming::setTimestamp( UInt uiNum, UInt uiLayerIndex, Int iTimestamp )
 {
-  m_acClockTimestampBuf.get( uiNum ).set( m_rcVUI, uiLayerIndex, iTimestamp );
+  m_acClockTimestampBuf.get( uiNum ).set( *m_pcVUI, uiLayerIndex, iTimestamp );
   return Err::m_nOK;
 }
 
@@ -2949,13 +2931,13 @@ ErrVal  SEI::PicTiming::setCpbRemovalDelay(UInt uiCpbRemovalDelay)
 ErrVal SEI::PicTiming::read( HeaderSymbolReadIf* pcReadIf )
 {
   const HRD* pcHRD = NULL;
-  if( m_rcVUI.getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  if( m_pcVUI->getNalHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
   {
-    pcHRD = &m_rcVUI.getNalHrd(m_uiLayerIndex);
+    pcHRD = &m_pcVUI->getNalHrd(m_uiLayerIndex);
   }
-  else if( m_rcVUI.getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
+  else if( m_pcVUI->getVclHrd(m_uiLayerIndex).getHrdParametersPresentFlag() )
   {
-    pcHRD = &m_rcVUI.getVclHrd(m_uiLayerIndex);
+    pcHRD = &m_pcVUI->getVclHrd(m_uiLayerIndex);
   }
 
   if( NULL != pcHRD )
@@ -2964,7 +2946,7 @@ ErrVal SEI::PicTiming::read( HeaderSymbolReadIf* pcReadIf )
     RNOKS( pcReadIf->getCode( m_uiDpbOutputDelay,   pcHRD->getDpbOutputDelayLength(),  "SEI: dpb_output_delay"   ) );
   }
 
-  if( m_rcVUI.getPicStructPresentFlag(m_uiLayerIndex) )
+  if( m_pcVUI->getPicStructPresentFlag(m_uiLayerIndex) )
   {
     UInt uiCode = 0;
     RNOKS( pcReadIf->getCode( uiCode, 4, "SEI: pic_struct" ) );
@@ -3111,33 +3093,32 @@ Void SEI::PicTiming::ClockTimestamp::set( const VUI& rcVUI, UInt uiLayerIndex, I
 
 ErrVal SEI::AVCCompatibleHRD::create( AVCCompatibleHRD*& rpcAVCCompatibleHRD, VUI* pcVUI )
 {
-  ROT( NULL == pcVUI );
-  rpcAVCCompatibleHRD = new AVCCompatibleHRD( *pcVUI );
+  rpcAVCCompatibleHRD = new AVCCompatibleHRD( pcVUI );
   ROT( NULL == rpcAVCCompatibleHRD );
   return Err::m_nOK;
 }
 
 ErrVal SEI::AVCCompatibleHRD::write( HeaderSymbolWriteIf* pcWriteIf )
 {
-  AOF( m_rcVUI.getNumTemporalLevels() > 1 );
+  ROF( m_pcVUI );
+  ROF( m_pcVUI->getNumLayers() == m_pcVUI->getNumTemporalLevels() );
 
-  RNOK( pcWriteIf->writeUvlc( m_rcVUI.getNumLayers() - 1,  "SEI: num_of_temporal_layers_in_base_layer_minus1"  ) );
+  RNOK( pcWriteIf->writeUvlc( m_pcVUI->getNumLayers() - 1,  "SEI: num_of_temporal_layers_in_base_layer_minus1"  ) );
 
-  for ( UInt ui = 0; ui < m_rcVUI.getNumLayers(); ui++ )
+  for ( UInt ui = 0; ui < m_pcVUI->getNumLayers(); ui++ )
   {
-    VUI::LayerInfo& rcLayerInfo = m_rcVUI.getLayerInfo(ui);
-    if ( rcLayerInfo.getTemporalId() < m_rcVUI.getNumTemporalLevels() - 1 )
+    ROT( m_pcVUI->getLayerInfo(ui).getDependencyID() );
+    ROT( m_pcVUI->getLayerInfo(ui).getQualityId() );
+
+    RNOK( pcWriteIf->writeCode( m_pcVUI->getLayerInfo(ui).getTemporalId(), 3,  "SEI: temporal_level"  ) );
+    RNOK( m_pcVUI->getTimingInfo(ui).write( pcWriteIf) );
+    RNOK( m_pcVUI->getNalHrd(ui).write( pcWriteIf ) );
+    RNOK( m_pcVUI->getVclHrd(ui).write( pcWriteIf ) );
+    if( m_pcVUI->getNalHrd(ui).getHrdParametersPresentFlag() || m_pcVUI->getVclHrd(ui).getHrdParametersPresentFlag() )
     {
-      RNOK( pcWriteIf->writeCode( rcLayerInfo.getTemporalId(), 3,  "SEI: temporal_level"  ) );
-      RNOK( m_rcVUI.getTimingInfo(ui).write( pcWriteIf) );
-      RNOK( m_rcVUI.getNalHrd(ui).write( pcWriteIf ) );
-      RNOK( m_rcVUI.getVclHrd(ui).write( pcWriteIf ) );
-      if( m_rcVUI.getNalHrd(ui).getHrdParametersPresentFlag() || m_rcVUI.getVclHrd(ui).getHrdParametersPresentFlag() )
-      {
-        RNOK( pcWriteIf->writeFlag( m_rcVUI.getLowDelayHrdFlag(ui),           "VUI: low_delay_hrd_flag[i]"));
-      }
-      RNOK( pcWriteIf->writeFlag( m_rcVUI.getPicStructPresentFlag(ui),        "VUI: pic_struct_present_flag[i]"));
+      RNOK( pcWriteIf->writeFlag( m_pcVUI->getLowDelayHrdFlag(ui),           "VUI: low_delay_hrd_flag[i]"));
     }
+    RNOK( pcWriteIf->writeFlag( m_pcVUI->getPicStructPresentFlag(ui),        "VUI: pic_struct_present_flag[i]"));
   }
 
   return Err::m_nOK;
@@ -3146,7 +3127,30 @@ ErrVal SEI::AVCCompatibleHRD::write( HeaderSymbolWriteIf* pcWriteIf )
 ErrVal
 SEI::AVCCompatibleHRD::read( HeaderSymbolReadIf* pcReadIf )
 {
-  AF();
+  // read, but don't store
+  UInt uiNumLayers = 0;
+  RNOK( pcReadIf->getUvlc( uiNumLayers,  "SEI: num_of_temporal_layers_in_base_layer_minus1"  ) );
+  uiNumLayers++;
+
+  for( UInt ui = 0; ui < uiNumLayers; ui++ )
+  {
+    UInt            uiTemporalId          = 0;
+    VUI::TimingInfo cTimingInfo;
+    HRD             cNalHrd, cVclHrd;
+    Bool            bLowDelayFlag         = false;
+    Bool            bPicStructPresentFlag = false;
+
+    RNOK( pcReadIf->getCode( uiTemporalId, 3,  "SEI: temporal_level"  ) );
+    RNOK( cTimingInfo.read( pcReadIf) );
+    RNOK( cNalHrd.read( pcReadIf ) );
+    RNOK( cVclHrd.read( pcReadIf ) );
+    if( cNalHrd.getHrdParametersPresentFlag() || cVclHrd.getHrdParametersPresentFlag() )
+    {
+      RNOK( pcReadIf->getFlag( bLowDelayFlag,           "VUI: low_delay_hrd_flag[i]"));
+    }
+    RNOK( pcReadIf->getFlag( bPicStructPresentFlag,        "VUI: pic_struct_present_flag[i]"));
+  }
+
   return Err::m_nOK;
 }
 
@@ -3208,7 +3212,7 @@ SEI::RedundantPicSei::write(HeaderSymbolWriteIf* pcWriteIf)
 		RNOK    ( pcWriteIf->writeUvlc( m_num_qId_minus1[ i ],                                     "RedundantPicSEI: m_num_qId_minus1"                 ) );
 		for( j = 0; j <= m_num_qId_minus1[ i ]; j++ ) 
 		{
-			RNOK	( pcWriteIf->writeCode( m_quality_id[ i ][ j ],                         2 ,    "RedundantPicSEI: m_quality_id"                     ) );
+			RNOK	( pcWriteIf->writeCode( m_quality_id[ i ][ j ],                         4 ,    "RedundantPicSEI: m_quality_id"                     ) );
 			RNOK    ( pcWriteIf->writeUvlc( m_num_redundant_pics_minus1[ i ][ j ],                 "RedundantPicSEI: m_num_redundant_pics_minus1"      ) );
 			for( k = 0; k <= m_num_redundant_pics_minus1[ i ][ j ]; k++ ) 
 			{
@@ -3238,7 +3242,7 @@ SEI::RedundantPicSei::read(HeaderSymbolReadIf* pcReadIf)
 		RNOK    ( pcReadIf->getUvlc( m_num_qId_minus1[ i ],                                     ""                  ) );
 		for( j = 0; j <= m_num_qId_minus1[ i ]; j++ ) 
 		{
-			RNOK	( pcReadIf->getCode( m_quality_id[ i ][ j ],                         2 ,    ""                  ) );
+			RNOK	( pcReadIf->getCode( m_quality_id[ i ][ j ],                         4 ,    ""                  ) );
 			RNOK    ( pcReadIf->getUvlc( m_num_redundant_pics_minus1[ i ][ j ],                 ""                  ) );
 			for( k = 0; k <= m_num_redundant_pics_minus1[ i ][ j ]; k++ ) 
 			{

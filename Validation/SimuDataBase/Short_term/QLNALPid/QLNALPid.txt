@@ -79,8 +79,8 @@ tests      => [
 		 height => 144,
 		 framerate => 15,
 		 useql     => 1,
-		 bitrate => 183,
-		 psnr => 32.88,
+		 bitrate => 182,
+		 psnr => 32.87,
 		},
 		#----------#
     # Test   1 #
@@ -92,7 +92,7 @@ tests      => [
 		 height => 144,
 		 framerate => 15,
 		 bitrate => 188,
-		 psnr => 33.06,
+		 psnr => 33.05,
 		},
 		#----------#
     # Test   2 #
@@ -104,8 +104,8 @@ tests      => [
 		 height => 288,
 		 framerate => 30,
 		 useql     => 1,
-		 bitrate => 593,
-		 psnr => 30.32,
+		 bitrate => 589,
+		 psnr => 30.30,
 		},
 		#----------#
     # Test   3 #
@@ -116,7 +116,7 @@ tests      => [
 		 width => 352,
 		 height => 288,
 		 framerate => 30,
-		 bitrate => 557,
+		 bitrate => 556,
 		 psnr => 30.13,
 		 },
 	],
