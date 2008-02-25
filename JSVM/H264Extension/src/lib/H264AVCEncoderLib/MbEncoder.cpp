@@ -95,6 +95,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "RateDistortionIf.h"
 
+// JVT-W043 {
+#include "RateCtlBase.h"
+#include "RateCtlQuadratic.h"
+// JVT-W043 }
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -318,6 +322,12 @@ MbEncoder::encodeIntra( MbDataAccess&  rcMbDataAccess,
     RNOK( xEstimateMbPCM    ( m_pcIntMbTempData, m_pcIntMbBestData,              false  ) );
   }
 
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    pcGenericRC->update_rc( jsvmCalcMAD( m_pcIntMbBestData, rcMbDataAccess ) );
+  }
+  // JVT-W043 }
   RNOK( m_pcRateDistortionIf->fixMacroblockQP( *m_pcIntMbBestData ) );
   RNOK( xStoreEstimation( rcMbDataAccess, *m_pcIntMbBestData, pcRecSubband, pcPredSignal, 0, 0, false, NULL ) );
 
@@ -750,6 +760,12 @@ MbEncoder::encodeInterP( MbDataAccess&    rcMbDataAccess,
     RNOK  ( xEstimateMbPCM      ( m_pcIntMbTempData, m_pcIntMbBestData,                 false ) );
   }
 
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    pcGenericRC->update_rc( jsvmCalcMAD( m_pcIntMbBestData, rcMbDataAccess ) );
+  }
+  // JVT-W043 }
   // JVT-V079 Low-complexity MB mode decision {
   if ( (bLowComplexMbEnable==true) && (!m_pcIntMbBestData->isIntra()) )
   {
@@ -934,6 +950,9 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
   Bool    bRemovePSkip= false;
   //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
 
+  // JVT-W043 {
+  UInt bestuiDist = MSYS_UINT_MAX;
+  // JVT-W043 }
   if( ! rcMbDataAccess.getMbDataAccessBase() || ! rcMbDataAccess.getMbDataAccessBase()->getMbData().getInCropWindowFlag() )
   {
     iMaxCnt = 1;
@@ -1261,6 +1280,9 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
           //>>> fix (skip mode in hierarchical P pictures) - H. Schwarz
           bRemovePSkip = bCoefficientsInPSkip;
           //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
+          // JVT-W043 {
+          bestuiDist = uiDist;
+          // JVT-W043 }
         }
 
         m_pcIntMbTempData->uninit();
@@ -1305,6 +1327,13 @@ MbEncoder::encodeResidual( MbDataAccess&  rcMbDataAccess,
   }
   //<<< fix (skip mode in hierarchical P pictures) - H. Schwarz
 
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
+    pcGenericRC->update_rc( bestuiDist );
+  }
+  // JVT-W043 }
   return Err::m_nOK;
 }
 
@@ -8435,6 +8464,38 @@ MbEncoder::getChannelDistortion(MbDataAccess&   rcMbDataAccess,
 }
 
 //JVT-R057 LA-RDO}
+
+// JVT-W043 {
+unsigned int MbEncoder::jsvmCalcMAD( IntMbTempData*&   rpcMbBestData, MbDataAccess&  rcMbDataAccess ) 
+{
+  UInt  uiDist   = 0;
+  UInt  uiDelta  = 1;
+  Int   n, m;
+
+  IntMbTempData *rpcMbTempData = new IntMbTempData;
+  rpcMbTempData->init( rcMbDataAccess );	
+  rpcMbTempData->loadLuma   ( *m_pcIntOrgMbPelData );
+  rpcMbTempData->loadChroma ( *m_pcIntOrgMbPelData );
+
+  XPel* pucDst        = rpcMbBestData->getMbLumAddr();
+  XPel* pucSrc        = rpcMbTempData->getMbLumAddr();
+  Int   iStride       = rpcMbTempData->getLStride();  
+  Int   iDeltaXStride = uiDelta * iStride;
+  AOF( iStride == rpcMbBestData->getLStride() );
+
+  for( n = 0; n < 16; n += uiDelta )
+  {
+    for( m = 0; m < 16; m += uiDelta )
+    {
+      uiDist += abs( pucSrc[m] - pucDst[m] );
+    }
+    pucSrc += iDeltaXStride;
+    pucDst += iDeltaXStride;
+  }
+  delete rpcMbTempData;
+  return uiDist;
+}
+// JVT-W043 }
 
 Void
 MbEncoder::reCalcBlock4x4( IntMbTempData& rcMbTempData, LumaIdx c4x4Idx )

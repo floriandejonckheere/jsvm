@@ -59,6 +59,8 @@ OBJS          	= \
 			$(OBJ_DIR)/SliceEncoder.o \
 			$(OBJ_DIR)/UvlcWriter.o \
 			$(OBJ_DIR)/Scheduler.o \
+                        $(OBJ_DIR)/RateCtlBase.o \
+                        $(OBJ_DIR)/RateCtlQuadratic.o \
 				
 
 LIBS				= -lpthread

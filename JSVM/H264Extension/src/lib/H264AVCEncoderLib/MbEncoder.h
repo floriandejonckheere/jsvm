@@ -385,6 +385,10 @@ protected:
   ErrVal  xEstimateMbPCM        ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,
                                   Bool              bBSlice  );
+  // JVT-W043 {
+  UInt    jsvmCalcMAD           ( IntMbTempData*&   rpcMbBestData, 
+                                  MbDataAccess&  rcMbDataAccess );
+  // JVT-W043 }
   
   ErrVal  xEstimateMbSkip       ( IntMbTempData*&   rpcMbTempData,
                                   IntMbTempData*&   rpcMbBestData,

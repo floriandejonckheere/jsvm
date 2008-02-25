@@ -94,6 +94,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include <math.h>
 
+// JVT-W043 {
+#include "RateCtlBase.h"
+#include "RateCtlQuadratic.h"
+// JVT-W043 }
 // JVT-V068 HRD {
 #include "Scheduler.h"
 #include "H264AVCCommonLib/Hrd.h"
@@ -1684,6 +1688,12 @@ H264AVCEncoder::xInitParameterSets()
     // heiko.schwarz@hhi.fhg.de: ensures that the PPS QP will be in the valid range (specified QP can be outside that range to force smaller/higher lambdas)
     //pcPPSHP->setPicInitQp                             ( (Int)rcLayerParameters.getBaseQpResidual() );
     pcPPSHP->setPicInitQp                             ( min( 51, max( 0, (Int)rcLayerParameters.getBaseQpResidual() ) ) );
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcPPSHP->setPicInitQp                           ( min( 51, max( 0, (Int)pcGenericRC->m_pcJSVMParams->SetInitialQP ) ) );
+    }
+    // JVT-W043 }
     pcPPSHP->setChomaQpIndexOffset                    ( 0 );
     pcPPSHP->setDeblockingFilterParametersPresentFlag ( ! m_pcCodingParameter->getLoopFilterParams().isDefault() );
     pcPPSHP->setConstrainedIntraPredFlag              ( true );

@@ -707,7 +707,7 @@ protected:
   Bool                          m_bFrameMbsOnlyFlag;                  // frame macroblocks only block
   UInt                          m_uiDependencyId;                          // layer id for current layer
   UInt                          m_uiScalableLayerId;                  // scalable layer id for current layer
-  UInt                          m_uiBaseLayerId;                      // layer if of base layer
+  UInt                          m_uiBaseLayerId;                      // layer id of base layer
   UInt                          m_uiBaseQualityLevel;                 // quality level of the base layer
   UInt                          m_uiQualityLevelForPrediction;        // quality level for prediction
   UInt                          m_uiFrameWidthInMb;                   // frame width in macroblocks

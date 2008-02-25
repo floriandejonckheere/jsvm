@@ -663,6 +663,16 @@ public:
     , m_uiCIUFlag                         ( 0 ) //JV
     , m_uiEncodeKeyPictures               ( 0 )
     , m_uiMGSKeyPictureControl            ( 0 )
+// JVT-W043 {
+    , m_uiRCMinQP                         ( 12 )
+    , m_uiRCMaxQP                         ( 40 )
+    , m_uiMaxQpChange                     ( 2 )
+    , m_uiInitialQp                       ( 30 )
+    , m_uiBasicUnit                       ( 99 )
+    , m_uiBitRate                         ( 64000 )
+    , m_uiRateControlEnable               ( 0 )
+    , m_uiAdaptInitialQP                  ( 0 )
+// JVT-W043 }
   {
     for( UInt uiLayer = 0; uiLayer < 6; uiLayer++ )
     {
@@ -919,6 +929,17 @@ protected:
   UInt    m_uiSliceMode;
   UInt    m_uiSliceArgument;
   //JVT-X046 }
+
+  // JVT-W043
+  public:
+    UInt                      m_uiRCMinQP;
+    UInt                      m_uiRCMaxQP;
+    UInt                      m_uiMaxQpChange;
+    UInt                      m_uiInitialQp;
+    UInt                      m_uiBasicUnit;
+    UInt                      m_uiBitRate;
+    UInt                      m_uiRateControlEnable;
+    UInt                      m_uiAdaptInitialQP;
 };
 
 #if defined( MSYS_WIN32 )

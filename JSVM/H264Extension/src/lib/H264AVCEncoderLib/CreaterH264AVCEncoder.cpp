@@ -520,6 +520,12 @@ CreaterH264AVCEncoder::uninit()
   return Err::m_nOK;
 }
 
+// JVT-W043 {
+CodingParameter* CreaterH264AVCEncoder::getCodingParameter( void )
+{ 
+  return  m_pcCodingParameter;
+}
+// JVT-W043 }
 // JVT-V068 {
 ErrVal CreaterH264AVCEncoder::writeAVCCompatibleHRDSEI( ExtBinDataAccessor* pcExtBinDataAccessor, SequenceParameterSet* pcAVCSPS )
 {

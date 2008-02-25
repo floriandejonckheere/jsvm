@@ -86,7 +86,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCEncoderTest.h"
 #include "EncoderCodingParameter.h"
 #include <cstdio>
-
+// JVT-W043
+#include "RateCtlBase.h"
+#include "RateCtlQuadratic.h"
 // JVT-V068 {
 #include "H264AVCCommonLib/SequenceParameterSet.h"
 // JVT-V068 }
@@ -415,6 +417,76 @@ H264AVCEncoderTest::go()
   //===== initialization =====
   RNOK( m_pcH264AVCEncoder->init( m_pcEncoderCodingParameter ) ); 
 
+  // JVT-W043 {
+  bRateControlEnable = (Bool)((m_pcH264AVCEncoder->getCodingParameter()->m_uiRateControlEnable) > 0 ? true : false );
+  if ( bRateControlEnable )
+  {
+    Int   iGOPSize     = m_pcEncoderCodingParameter->getGOPSize();    
+    Int   iFullGOPs    = uiMaxFrame / iGOPSize;
+    Double dMaximumFrameRate = m_pcEncoderCodingParameter->getMaximumFrameRate();
+    iGOPSize =  (Int)floor( 0.5F + iGOPSize / (dMaximumFrameRate / (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate)) );
+    iGOPSize = max( iGOPSize, 1 );
+    Int uiLocalMaxFrame =  (Int)floor( 0.5F + uiMaxFrame / (dMaximumFrameRate / (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate)) );
+    if ( uiLocalMaxFrame % iGOPSize == 0 )
+      iFullGOPs--;
+    Int   iNb          = iFullGOPs * (iGOPSize - 1);
+
+    pcJSVMParams  = new jsvm_parameters;
+    pcGenericRC   = new rc_generic( pcJSVMParams );
+    pcQuadraticRC = new rc_quadratic( pcGenericRC, pcJSVMParams );    
+
+    // parameter initialization
+    pcQuadraticRC->m_iDDquant       = (Int) m_pcH264AVCEncoder->getCodingParameter()->m_uiMaxQpChange;
+    pcQuadraticRC->m_iPMaxQpChange  = (Int) m_pcH264AVCEncoder->getCodingParameter()->m_uiMaxQpChange;
+    pcJSVMParams->bit_rate          = (Float) (m_pcH264AVCEncoder->getCodingParameter()->m_uiBitRate);
+    pcJSVMParams->BasicUnit         = m_pcH264AVCEncoder->getCodingParameter()->m_uiBasicUnit;
+    pcJSVMParams->basicunit         = m_pcH264AVCEncoder->getCodingParameter()->m_uiBasicUnit;
+    pcJSVMParams->RCMaxQP           = m_pcH264AVCEncoder->getCodingParameter()->m_uiRCMaxQP;
+    pcJSVMParams->RCMinQP           = m_pcH264AVCEncoder->getCodingParameter()->m_uiRCMinQP;    
+    pcJSVMParams->SetInitialQP      = m_pcH264AVCEncoder->getCodingParameter()->m_uiInitialQp;
+    pcJSVMParams->m_uiIntraPeriod   = m_pcEncoderCodingParameter->getIntraPeriod();
+    pcJSVMParams->FrameRate         = (Float) (m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_dOutputFrameRate);
+    pcJSVMParams->height            = m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_uiFrameHeight;
+    pcJSVMParams->width             = m_pcH264AVCEncoder->getCodingParameter()->getLayerParameters(0).m_uiFrameWidth;
+    pcJSVMParams->no_frames         = uiMaxFrame;
+    pcJSVMParams->successive_Bframe = iGOPSize - 1;
+    pcJSVMParams->m_uiLayerId       = 0;
+
+    if ( m_pcH264AVCEncoder->getCodingParameter()->m_uiAdaptInitialQP )
+      pcGenericRC->adaptInitialQP();
+  
+    switch( iGOPSize )
+    {
+    case 1:
+      pcJSVMParams->HierarchicalLevels = 0;
+      break;
+    case 2:
+      pcJSVMParams->HierarchicalLevels = 1;
+      break;
+    case 4:
+      pcJSVMParams->HierarchicalLevels = 2;
+      break;
+    case 8:
+      pcJSVMParams->HierarchicalLevels = 3;
+      break;
+    case 16:
+      pcJSVMParams->HierarchicalLevels = 4;
+      break;
+    case 32:
+    default:
+      fprintf(stderr, "\n RC not stable for large number of hierarchical levels...exiting...\n" );
+      assert(0); // some compilers do not compile assert in release/Ox mode
+      exit(1);
+      break;
+    }
+    
+    // rate control initialization functions
+    pcQuadraticRC->init();
+    pcQuadraticRC->rc_init_seq();
+    pcQuadraticRC->rc_init_GOP(uiMaxFrame - iNb - 1, iNb);
+    pcGenericRC->generic_alloc();    
+  }
+  // JVT-W043 }
 
   //===== write parameter sets =====
   for( bMoreSets = true; bMoreSets;  )
@@ -493,7 +565,6 @@ H264AVCEncoderTest::go()
     m_auiWidth    [uiLayer] =   auiMbX[uiLayer]<<4;
     m_auiStride   [uiLayer] =  (auiMbX[uiLayer]<<4)+ 2*YUV_X_MARGIN;
   }
-
 
   //===== loop over frames =====
   for( uiFrame = 0; uiFrame < uiMaxFrame; uiFrame++ )
@@ -596,6 +667,15 @@ H264AVCEncoderTest::go()
   {
     RNOK	( ScalableDealing() );
   }
+
+  // JVT-W043 {
+  if ( bRateControlEnable )
+  {
+    delete pcJSVMParams;
+    delete pcGenericRC;
+    delete pcQuadraticRC;
+  }
+  // JVT-W043 }
 
   return Err::m_nOK;
 }

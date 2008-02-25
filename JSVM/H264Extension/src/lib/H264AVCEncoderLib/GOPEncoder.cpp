@@ -107,6 +107,11 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "Scheduler.h"
 // JVT-V068 }
 
+// JVT-W043 {
+#include "RateCtlBase.h"
+#include "RateCtlQuadratic.h"
+// JVT-W043 }
+
 H264AVC_NAMESPACE_BEGIN
 
 
@@ -4604,8 +4609,14 @@ LayerEncoder::xInitControlDataMotion( UInt uiBaseLevel,
   ControlData&    rcControlData     = m_pacControlData[uiFrameIdInGOP];
   SliceHeader*    pcSliceHeader  = rcControlData.getSliceHeader  ( ePicType );
   ROF( pcSliceHeader );
-  Double          dScalFactor       = rcControlData.getScalingFactor();
+  Double          dScalFactor       = rcControlData.getScalingFactor();  
   Double          dQpPredData       = m_adBaseQpLambdaMotion[ uiBaseLevel ] - 6.0 * log10( dScalFactor ) / log10( 2.0 );
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    dQpPredData = m_adBaseQpLambdaMotion[ uiBaseLevel ] = pcGenericRC->m_pcJSVMParams->qp;
+  }
+  // JVT-W043 }
   if( m_bExplicitQPCascading )
   {
     UInt  uiTLevel               = m_uiDecompositionStages - uiBaseLevel;
@@ -4642,12 +4653,24 @@ LayerEncoder::xInitControlDataLowPass( UInt uiFrameIdInGOP,
   {
     dQP                         = m_dBaseQpLambdaMotionLP + m_adDeltaQPTLevel[ 0 ];
   }
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    dQP = m_dBaseQpLambdaMotionLP = pcGenericRC->m_pcJSVMParams->qp;
+  }
+  // JVT-W043 }
   Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
   dQP                           = m_dBaseQPResidual - 6.0 * log10( dScalFactor ) / log10( 2.0 );
   if( m_bExplicitQPCascading )
   {
     dQP                         = m_dBaseQPResidual + m_adDeltaQPTLevel[ 0 ];
   }
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    dQP = m_dBaseQPResidual = pcGenericRC->m_pcJSVMParams->qp;
+  }
+  // JVT-W043 }
   Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
 
   pcSliceHeader->setSliceHeaderQp ( iQP );
@@ -4705,6 +4728,12 @@ LayerEncoder::xInitControlDataHighPass( UInt uiFrameIdInGOP,
     UInt  uiTLevel              = m_uiDecompositionStages - uiBaseLevel;
     dQP                         = m_dBaseQPResidual + m_adDeltaQPTLevel[ uiTLevel ];
   }
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    dQP = m_dBaseQPResidual = pcGenericRC->m_pcJSVMParams->qp;
+  }
+  // JVT-W043 }
   Double        dLambda         = 0.85 * pow( 2.0, min( 52.0, dQP ) / 3.0 - 4.0 );
   Int           iQP             = max( MIN_QP, min( MAX_QP, (Int)floor( dQP + 0.5 ) ) );
 
@@ -4755,6 +4784,18 @@ LayerEncoder::xMotionEstimationFrame( UInt uiBaseLevel, UInt uiFrame, PicType eP
        RNOK( xGetPredictionListsField( rcRefFrameList0, rcRefFrameList1, uiBaseLevel, uiFrame, RLU_MOTION_ESTIMATION, true, ePicType ) );
       }
     }
+
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
+      pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
+      pcGenericRC->m_pcJSVMParams->type = B_SLICE;
+      pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
+      pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
+      pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
+    }
+    // JVT-W043 }
 
     //===== set lambda and QP =====
       RNOK( xInitControlDataMotion  ( uiBaseLevel, uiFrame, true, ePicType ) );
@@ -4872,6 +4913,18 @@ LayerEncoder::xDecompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicType ePicT
       }
   }
 
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
+    pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
+    pcGenericRC->m_pcJSVMParams->type = B_SLICE;
+    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
+    pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
+    pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
+  }
+  // JVT-W043 }
+
   //===== set lambda and QP =====// warnnig false in 7.8
     RNOK( xInitControlDataMotion( uiBaseLevel, uiFrame, true, ePicType ) );
 
@@ -4911,6 +4964,18 @@ LayerEncoder::xCompositionFrame( UInt uiBaseLevel, UInt uiFrame, PicBufferList& 
   SliceHeader*  pcSliceHeader = m_pacControlData[ uiFrameIdInGOP ].getSliceHeader( ePicType );
   ROF( pcSliceHeader );
     
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
+    pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
+    pcGenericRC->m_pcJSVMParams->type = B_SLICE;
+    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
+    pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
+    pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
+  }
+  // JVT-W043 }
+
   //--- highest FGS reference for closed-loop coding ---
   Frame*     pcCLRecFrame       = 0;
   Frame*     pcCLRecResidual    = 0;
@@ -5077,6 +5142,25 @@ LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
 
     m_pcLowPassBaseReconstruction->setUnusedForRef(m_papcFrame[0]->getUnusedForRef());  // JVT-Q065 EIDR
 
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;
+      pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP;
+      pcGenericRC->m_pcJSVMParams->type = 
+        ( uiFrame > 0 && (uiFrame % pcJSVMParams->m_uiIntraPeriod) != 0 ) ? 
+        ( ( pcGenericRC->m_pcJSVMParams->current_frame_number % m_uiGOPSize == 0 ) ? P_SLICE : B_SLICE ) : I_SLICE;
+      pcGenericRC->m_pcJSVMParams->nal_reference_idc = 1;
+      pcGenericRC->m_pcJSVMParams->number = pcGenericRC->m_pcJSVMParams->current_frame_number;
+
+      pcQuadraticRC->rc_init_pict(1, 0, 1, 1.0F);
+      if ( pcJSVMParams->m_uiIntraPeriod != 1 )
+        pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
+      else
+        pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC1(0);
+    }
+    // JVT-W043 }
+
     //===== initialize =====
     RNOK( xInitControlDataLowPass ( uiFrameIdInGOP, m_uiDecompositionStages-1, uiFrame, ePicType ) );
 
@@ -5202,6 +5286,23 @@ LayerEncoder::xEncodeKeyPicture( Bool&               rbKeyPicCoded,
                                   uiBits,
                                   rcPicOutputDataList,
                                   ePicType ) );
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcQuadraticRC->rc_update_pict_frame( uiBits );
+      pcQuadraticRC->rc_update_pict( uiBits );
+      /* update quadratic R-D model */
+      if ( (pcGenericRC->m_pcJSVMParams->type == P_SLICE || 
+        (pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 && pcGenericRC->m_pcJSVMParams->current_frame_number) ) 
+        && pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag )
+        pcQuadraticRC->updateRCModel();
+      else if ( (pcGenericRC->m_pcJSVMParams->type == P_SLICE || 
+        (pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 && pcGenericRC->m_pcJSVMParams->current_frame_number) ) 
+        && !(pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag) 
+        && pcGenericRC->m_iNoGranularFieldRC == 0 )
+        pcQuadraticRC->updateRCModel();
+    }
+    // JVT-W043 }
     // JVT-Q054 Red. Picture {
     if ( pcSliceHeader->getPPS().getRedundantPicCntPresentFlag() )
     {
@@ -5360,6 +5461,22 @@ LayerEncoder::xEncodeNonKeyPicture( UInt               uiBaseLevel,
   m_abCoded[uiFrameIdInGOP] = true;
   UInt uiBits          = 0;
 
+  // JVT-W043 {
+  if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+  {
+    pcGenericRC->m_pcJSVMParams->current_frame_number = m_uiGOPSize * m_uiGOPNumber + uiFrameIdInGOP; 
+    pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->current_frame_number );
+    pcGenericRC->m_pcJSVMParams->current_mb_nr = 0;    
+    pcGenericRC->m_pcJSVMParams->type = 
+        ( uiFrame > 0 && (uiFrame % pcJSVMParams->m_uiIntraPeriod) != 0 ) ? 
+        ( ( pcGenericRC->m_pcJSVMParams->current_frame_number % m_uiGOPSize == 0 ) ? P_SLICE : B_SLICE ) : I_SLICE;
+    pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
+    pcGenericRC->m_pcJSVMParams->number = pcGenericRC->m_pcJSVMParams->current_frame_number;
+
+    pcQuadraticRC->rc_init_pict(1, 0, 1, 1.0F);
+    pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(0);
+  }
+  // JVT-W043 }
   SliceHeader*  pcSliceHeader          = rcControlData.getSliceHeader( ePicType );
   //JVT-W047
   m_bOutputFlag = pcSliceHeader->getOutputFlag();
@@ -5456,6 +5573,18 @@ LayerEncoder::xEncodeNonKeyPicture( UInt               uiBaseLevel,
                                       uiBitsRes, rcPicOutputDataList,
                                       ePicType ) );
     }
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcQuadraticRC->rc_update_pict_frame( uiBits );
+      pcQuadraticRC->rc_update_pict( uiBits );
+      if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE && pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag )
+        pcQuadraticRC->updateRCModel();
+      else if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE && !(pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag)
+        && pcGenericRC->m_iNoGranularFieldRC == 0 )
+        pcQuadraticRC->updateRCModel();
+    }
+    // JVT-W043 }
     //JVT-Q054 Red. Picture {
     //JVT-W049 {
     if ( (pcSliceHeader->getPPS().getRedundantPicCntPresentFlag())&& (!pcSliceHeader->getPPS().getRedundantKeyPicCntPresentFlag()))
@@ -6658,6 +6787,12 @@ LayerEncoder::process( UInt             uiAUIndex,
     m_pcSliceEncoder->getMbEncoder()->setLARDOEnable( m_bLARDOEnable );
     m_pcSliceEncoder->getMbEncoder()->setLayerID    ( m_uiDependencyId    );
   }
+  // JVT-W043 {
+  if ( bRateControlEnable )
+  {
+    pcJSVMParams->m_uiLayerId = m_uiDependencyId;
+  }
+  // JVT-W043 }
   RNOK( xInitBitCounts() );
 
   //===== update higher layer pictures =====

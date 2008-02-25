@@ -867,6 +867,16 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",           &m_uiSliceArgument,                                    0 );
   //JVT-X046 }
 
+  //JVT-W043 {
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCMinQP",                 &m_uiRCMinQP,                                         12 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCMaxQP",                 &m_uiRCMaxQP,                                         40 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxQpChange",             &m_uiMaxQpChange,                                      2 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("InitialQp",               &m_uiInitialQp,                                       30 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BasicUnit",               &m_uiBasicUnit,                                       99 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("BitRate",                 &m_uiBitRate,                                      64000 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RateControlEnable",       &m_uiRateControlEnable,                                0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("AdaptInitialQP",          &m_uiAdaptInitialQP,                                   0 );
+  // JVT-W043 }
   m_pEncoderLines[uiParLnCount] = NULL;
 
   while (!feof(f))

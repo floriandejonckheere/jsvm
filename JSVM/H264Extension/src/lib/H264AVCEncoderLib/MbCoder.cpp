@@ -87,6 +87,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/Tables.h"
 #include "H264AVCCommonLib/TraceFile.h"
 
+// JVT-W043 {
+#include "RateCtlBase.h"
+#include "RateCtlQuadratic.h"
+// JVT-W043 }
 //JVT-X046 {
 #include "CabacWriter.h"
 #include "UvlcWriter.h"
@@ -181,6 +185,14 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
 
   rcMbDataAccess.getMbData().setBCBP(0);
   
+  // JVT-W043 {
+  if ( bRateControlEnable )
+  {
+    pcGenericRC->m_iRCTotalBits = getBitCount();
+    pcGenericRC->m_iRCTextureBits = 0;
+  }
+  // JVT-W043 }
+
   //===== skip flag =====
   Bool  bIsCoded  = ! rcMbDataAccess.isSkippedMb();
 
@@ -315,6 +327,12 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
       }
     }
 
+    // JVT-W043 {
+    if ( bRateControlEnable )
+    {
+      pcGenericRC->m_iRCTextureBits = getBitCount();
+    }
+    // JVT-W043 }
 
     //===== TEXTURE =====
     if( ! rcMbDataAccess.getMbData().isPCM() )
@@ -363,6 +381,13 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
         ETRACE_LAYER( g_nLayer );
       }
     }
+
+    // JVT-W043 {
+    if ( bRateControlEnable )
+    {
+      pcGenericRC->m_iRCTextureBits = getBitCount() - pcGenericRC->m_iRCTextureBits;
+    }
+    // JVT-W043 }
   }
   m_bPrevIsSkipped = !bIsCoded;
 
@@ -406,6 +431,15 @@ ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
   {
     RNOK( m_pcMbSymbolWriteIf->finishSlice() );
   }
+
+  // JVT-W043 {
+  if ( bRateControlEnable )
+  {
+    pcGenericRC->m_iRCTotalBits = getBitCount() - pcGenericRC->m_iRCTotalBits;
+    pcGenericRC->m_iRCHeaderBits = pcGenericRC->m_iRCTotalBits - pcGenericRC->m_iRCTextureBits;
+  }
+  // JVT-W043 }
+
   MbSymbolWriteIf *pcMasterWriter = m_pcMbSymbolWriteIf;
   uiSourceLayer = g_nLayer;
   for( uiMGSFragment = 0; rcMbDataAccess.getSH().getSPS().getMGSCoeffStop( uiMGSFragment ) < 16; uiMGSFragment++ )

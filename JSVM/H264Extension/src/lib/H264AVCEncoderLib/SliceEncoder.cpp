@@ -92,6 +92,10 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/CFMO.h"
 
+// JVT-W043 {
+#include "RateCtlBase.h"
+#include "RateCtlQuadratic.h"
+// JVT-W043 }
 H264AVC_NAMESPACE_BEGIN
 
 
@@ -230,6 +234,26 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
   //===== loop over macroblocks =====
   for( ; uiMbAddress <= uiLastMbAddress; ) //--ICU/ETRI FMO Implementation
   {
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcGenericRC->m_pcJSVMParams->current_mb_nr = uiMbAddress;
+      if( pcGenericRC->m_pcJSVMParams->basicunit == pcGenericRC->m_pcJSVMParams->FrameSizeInMbs ) {
+        // qp remains unchanged
+      }
+      // basic unit layer rate control
+      else if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE ) {
+        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0 
+          && (pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks % pcGenericRC->m_pcJSVMParams->BasicUnit) == 0 ) {
+            // frame coding
+            if( pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag ) {
+              pcQuadraticRC->updateRCModel();
+              pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2( pcGenericRC->m_iTopFieldFlag );
+            }
+          }
+      }
+    }
+    // JVT-W043 }
     ETRACE_NEWMB( uiMbAddress );
 
     MbDataAccess* pcMbDataAccess     = NULL;
@@ -253,6 +277,12 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
     if( ! rcSliceHeader.getNoInterLayerPredFlag() )
 	    m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
 	  //JVT-U106 Behaviour at slice boundaries}
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcMbDataAccess->getMbData().setQp( pcGenericRC->m_pcJSVMParams->qp );
+    }
+    // JVT-W043 }
 
     if( rcRefFrameListBase.getSize() )
     {
@@ -289,6 +319,16 @@ SliceEncoder::encodeInterPictureP( UInt&            ruiBits,
                                                   true ) );
     }
 
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcGenericRC->m_iNumberofHeaderBits           += pcGenericRC->m_iRCHeaderBits;
+      pcGenericRC->m_iNumberofBasicUnitHeaderBits  += pcGenericRC->m_iRCHeaderBits;
+      pcGenericRC->m_iNumberofTextureBits          += pcGenericRC->m_iRCTextureBits;
+      pcGenericRC->m_iNumberofBasicUnitTextureBits += pcGenericRC->m_iRCTextureBits;
+      pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks++;
+    }
+    // JVT-W043 }
 		//JVT-X046 {
     uiCodedMBNumber++;
 		if (m_uiSliceMode==1) //fixed slice size in number of MBs
@@ -418,6 +458,29 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
   //===== loop over macroblocks =====
   for(  ; uiMbAddress <= uiLastMbAddress;  ) //--ICU/ETRI FMO Implementation
   {
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcGenericRC->m_pcJSVMParams->current_mb_nr = uiMbAddress;
+      if( pcGenericRC->m_pcJSVMParams->basicunit == pcGenericRC->m_pcJSVMParams->FrameSizeInMbs ) {
+        // qp remains unchanged
+      }
+      // basic unit layer rate control
+      else if ( pcGenericRC->m_pcJSVMParams->RCUpdateMode == RC_MODE_1 ) {
+        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0 
+          && (pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks % pcGenericRC->m_pcJSVMParams->BasicUnit) == 0 ) {
+            // frame coding
+            if( pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag ) {
+              pcQuadraticRC->updateRCModel();
+              if ( pcJSVMParams->m_uiIntraPeriod != 1 )
+                pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2(pcGenericRC->m_iTopFieldFlag);
+              else
+                pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC1(pcGenericRC->m_iTopFieldFlag);
+            }
+          }
+      }
+    }
+    // JVT-W043 }
     ETRACE_NEWMB( uiMbAddress );
 
     MbDataAccess* pcMbDataAccess     = NULL;
@@ -437,6 +500,12 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
     pcMbDataAccess->setMbDataAccessBase( pcMbDataAccessBase );
     pcMbDataAccess->getMbData().setFieldFlag(ePicType!=FRAME);
 
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcMbDataAccess->getMbData().setQp( pcGenericRC->m_pcJSVMParams->qp );
+    }
+    // JVT-W043 }
 	//JVT-U106 Behaviour at slice boundaries{
     if( ! rcSliceHeader.getNoInterLayerPredFlag() )
 	     m_pcMbEncoder->setIntraBLFlag(m_pbIntraBLFlag[uiMbAddress]);
@@ -503,6 +572,16 @@ ErrVal SliceEncoder::encodeIntraPicture( UInt&        ruiBits,
 		}
 		//JVT-X046 }
 
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcGenericRC->m_iNumberofHeaderBits           += pcGenericRC->m_iRCHeaderBits;
+      pcGenericRC->m_iNumberofBasicUnitHeaderBits  += pcGenericRC->m_iRCHeaderBits;
+      pcGenericRC->m_iNumberofTextureBits          += pcGenericRC->m_iRCTextureBits;
+      pcGenericRC->m_iNumberofBasicUnitTextureBits += pcGenericRC->m_iRCTextureBits;
+      pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks++;
+    }
+    // JVT-W043 }
     uiMbAddress = rcSliceHeader.getFMO()->getNextMBNr(uiMbAddress );
 		//JVT-X046 {
 		if (uiMbAddress==-1)
@@ -741,6 +820,31 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
   //===== loop over macroblocks =====
   for(  ruiMbCoded = 0; uiMbAddress <= uiLastMbAddress;  ) //--ICU/ETRI FMO Implementation
   {
+    // JVT-W043 {
+    if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+    {
+      pcGenericRC->m_pcJSVMParams->number = pcGenericRC->m_pcJSVMParams->current_frame_number;      
+      pcJSVMParams->CurrGopLevel = pcGenericRC->getCurrGopLevel( pcGenericRC->m_pcJSVMParams->number );
+      pcGenericRC->m_pcJSVMParams->nal_reference_idc = (pcJSVMParams->CurrGopLevel == 0) ? 0 : 1;
+      pcGenericRC->m_pcJSVMParams->current_mb_nr = uiMbAddress;
+
+      if( pcGenericRC->m_pcJSVMParams->basicunit == pcGenericRC->m_pcJSVMParams->FrameSizeInMbs ) {
+        // qp remains unchanged
+      }
+      // basic unit layer rate control
+      else if ( pcGenericRC->m_pcJSVMParams->type == P_SLICE ) {
+        if( pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks > 0 
+          && (pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks % pcGenericRC->m_pcJSVMParams->BasicUnit) == 0 ) {
+            // frame coding
+            if( pcGenericRC->m_pcJSVMParams->frame_mbs_only_flag ) {
+              pcQuadraticRC->updateRCModel();
+              pcGenericRC->m_pcJSVMParams->qp = pcQuadraticRC->updateQPRC2( pcGenericRC->m_iTopFieldFlag );
+              iQPRes = pcGenericRC->m_pcJSVMParams->qp;
+            }
+          }
+      }
+    }
+    // JVT-W043 }
     ETRACE_NEWMB( uiMbAddress );
 
     MbDataAccess* pcMbDataAccess = NULL;
@@ -817,7 +921,16 @@ ErrVal SliceEncoder::encodeHighPassPicture( UInt&         ruiMbCoded,
       {
         ruiMbCoded++;
       }
-      
+      // JVT-W043 {
+      if ( bRateControlEnable && !pcJSVMParams->m_uiLayerId )
+      {
+        pcGenericRC->m_iNumberofHeaderBits           += pcGenericRC->m_iRCHeaderBits;
+        pcGenericRC->m_iNumberofBasicUnitHeaderBits  += pcGenericRC->m_iRCHeaderBits;
+        pcGenericRC->m_iNumberofTextureBits          += pcGenericRC->m_iRCTextureBits;
+        pcGenericRC->m_iNumberofBasicUnitTextureBits += pcGenericRC->m_iRCTextureBits;
+        pcGenericRC->m_pcJSVMParams->NumberofCodedMacroBlocks++;
+      }
+      // JVT-W043 }
       // Update the state of the baselayer residual data -- it may be reused in subsequent layers - ASEGALL@SHARPLABS.COM
       if( pcBaseSubband && ( pcMbDataAccess->getMbData().isIntra() || ! pcMbDataAccess->getMbData().getResidualPredFlag() ) )	
       {

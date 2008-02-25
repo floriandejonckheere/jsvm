@@ -514,6 +514,12 @@
 				RelativePath=".\PicEncoder.cpp">
 			</File>
 			<File
+				RelativePath=".\RateCtlBase.cpp">
+			</File>
+			<File
+				RelativePath=".\RateCtlQuadratic.cpp">
+			</File>
+			<File
 				RelativePath="RateDistortion.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
@@ -657,6 +663,12 @@
 			</File>
 			<File
 				RelativePath=".\PicEncoder.h">
+			</File>
+			<File
+				RelativePath="..\..\..\include\RateCtlBase.h">
+			</File>
+			<File
+				RelativePath="..\..\..\include\RateCtlQuadratic.h">
 			</File>
 			<File
 				RelativePath="RateDistortion.h">

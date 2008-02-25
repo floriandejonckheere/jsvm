@@ -1,6 +1,11 @@
 ﻿
 [Currently, all validation scripts work except for those that use error concealment features]
 
+JSVM_9_10 -> JSVM_9_11
+======================
+
+1) newly added features
+    - rate control for the base layer
 
 JSVM_9_10_DEVEL3 -> JSVM_9_10
 =============================
