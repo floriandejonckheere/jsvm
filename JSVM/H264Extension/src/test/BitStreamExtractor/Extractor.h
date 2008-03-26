@@ -300,12 +300,15 @@ protected:
   Int CurNalKeepingNeed(h264::PacketDescription cPacketDescription
                  , const ExtractorParameter::Point& rcExtPoint);
 
-  void          xSetROIParameters  ();
-  ErrVal        GetPictureDataKeep( h264::PacketDescription* pcPacketDescription, 
-		                                    Double dRemainingBytes, 
-																				Double dCurrPacketBytes, 
-																				Bool& bKeep );
-	ErrVal        xResetSLFGSBitrate( UInt uiDependencyId, UInt uiTempLevel, UInt uiFGSLayer, Double dDecBitrate ); //cleaning
+  void          xSetROIParameters   ();
+  ErrVal        GetPictureDataKeep  ( h264::PacketDescription* pcPacketDescription, 
+		                                  Double dRemainingBytes, 
+																			Double dCurrPacketBytes, 
+																			Bool& bKeep );
+	ErrVal        xResetSLFGSBitrate  ( UInt uiDependencyId, UInt uiTempLevel, UInt uiFGSLayer, Double dDecBitrate ); //cleaning
+  ErrVal        xReCalculateBr      ();
+  Void          xMakeDepLayerList   ( UInt uiScalableLayerId, std::list<UInt>& DepLayerList );
+
 
   Void          setBaseLayerAVCCompatible( Bool bAVCCompatible ) { m_bAVCCompatible = bAVCCompatible; }
   Bool          getBaseLayerAVCCompatible() const { return m_bAVCCompatible; }
@@ -412,7 +415,8 @@ protected:
   UInt                          m_auiFrmWidth[MAX_SCALABLE_LAYERS];
   UInt                          m_auiFrmHeight[MAX_SCALABLE_LAYERS];
   Double                        m_adFramerate[MAX_SCALABLE_LAYERS];
-  UInt                          m_auiDirDepLayer[MAX_SCALABLE_LAYERS];
+  UInt                          m_auiDirDepLayerDelta[MAX_SCALABLE_LAYERS][2];
+  std::list<UInt>               m_acDepLayerList[MAX_SCALABLE_LAYERS];
   Double                        m_adFrameRate[MAX_TEMP_LEVELS];
   Double                        m_aadMinBitrate[MAX_LAYERS][MAX_TEMP_LEVELS];
   Double                        m_aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];

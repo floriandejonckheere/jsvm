@@ -230,6 +230,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\DownConvert.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\Frame.cpp"
 				>
 			</File>
@@ -1015,6 +1019,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\ControlMngIf.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\include\DownConvert.h"
 				>
 			</File>
 			<File

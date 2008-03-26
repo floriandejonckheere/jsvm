@@ -162,7 +162,7 @@ protected:
   XPel  m_aucYuvBuffer[MB_BUFFER_WIDTH*(29+1)];
 };
 
-class H264AVCCOMMONLIB_API IntYuvMbBufferExtension : public YuvMbBuffer
+class H264AVCCOMMONLIB_API YuvMbBufferExtension : public YuvMbBuffer
 {
 public:
   Void loadSurrounding( YuvPicBuffer* pcSrcBuffer );

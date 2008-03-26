@@ -73,14 +73,6 @@ typedef enum
   ADAPTIVE_CODING
 } CodingType;
 
-typedef enum
-{
-  P_SLICE = 0,
-  B_SLICE,
-  I_SLICE,
-  SP_SLICE,
-  SI_SLICE
-} SliceType;
 
 class jsvm_parameters {
 public:
@@ -138,10 +130,10 @@ public:
   int   m_iNumberofGOP;
   int   m_iNumberofCodedBFrame;  
   // MAD stats
-  long long m_i64TotalMADBasicUnit;
+  Int64 m_i64TotalMADBasicUnit;
   int   *m_piMADofMB;
   // buffer and budget
-  long long m_i64CurrentBufferFullness; //LIZG 25/10/2002
+  Int64 m_i64CurrentBufferFullness; //LIZG 25/10/2002
   int   m_iRemainingBits;
 
   int   m_iRCTextureBits;

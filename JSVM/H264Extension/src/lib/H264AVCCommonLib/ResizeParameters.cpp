@@ -1,172 +1,108 @@
+
+
 #include <stdio.h>	
 #include "ResizeParameters.h"
+#include "H264AVCCommonLib/SliceHeader.h"
 
 #define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
 
-Void
-ResizeParameters::init()
-{
-  xCleanGopParameters(m_acCurrentGop);
-  initRefListPoc();
-}
-
-Void
-ResizeParameters::xCleanGopParameters ( PictureParameters * pc )
-{
-  for (Int i=0; i<MAX_PICT_PARAM_NB; i++)
-  {
-    xCleanPictureParameters(&pc[i]);
-  }
-}
-
-Void
-ResizeParameters::xCleanPictureParameters ( PictureParameters * pc )
-{
-  pc->m_iPosX = -1;
-  pc->m_iPosY = -1;
-  pc->m_iOutWidth  = -1;
-  pc->m_iOutHeight = -1;
-  pc->m_iBaseChromaPhaseX = -1;  
-  pc->m_iBaseChromaPhaseY = 0;
-}
-
-
-Void
-ResizeParameters::xInitPictureParameters ( PictureParameters * pc )
-{
-  pc->m_iPosX = m_iPosX;
-  pc->m_iPosY = m_iPosY;
-  pc->m_iOutWidth  = m_iOutWidth;
-  pc->m_iOutHeight = m_iOutHeight;
-  pc->m_iBaseChromaPhaseX = m_iBaseChromaPhaseX;
-  pc->m_iBaseChromaPhaseY = m_iBaseChromaPhaseY;
-}
-
-Void
-ResizeParameters::setCurrentPictureParametersWith ( Int index )
-{
-  if (m_iExtendedSpatialScalability < ESS_PICT)
-    return;
-
-  PictureParameters * pc;
-  pc = &m_acCurrentGop[index % MAX_PICT_PARAM_NB];
-
-  m_iPosX      = pc->m_iPosX;
-  m_iPosY      = pc->m_iPosY;
-  m_iOutWidth  = pc->m_iOutWidth;
-  m_iOutHeight = pc->m_iOutHeight;
-  m_iBaseChromaPhaseX = pc->m_iBaseChromaPhaseX;
-  m_iBaseChromaPhaseY = pc->m_iBaseChromaPhaseY;
-}
-
-Void
-ResizeParameters::setPictureParametersByOffset ( Int iIndex, Int iOl, Int iOr, Int iOt, Int iOb, Int iBcpx, Int iBcpy )
-{
-  setPictureParametersByValue(iIndex,
-                              iOl*2, iOt*2,
-                              m_iGlobWidth - (iOl*2) - (iOr *2), m_iGlobHeight - (iOt*2) - (iOb *2),
-                              iBcpx, iBcpy
-                             );
-}
-
-Void
-ResizeParameters::setPictureParametersByValue ( Int index, Int px, Int py, Int ow, Int oh, Int bcpx, Int bcpy )
-{
-  if (m_iExtendedSpatialScalability == ESS_PICT)
-  {
-    m_iPosX       = px;
-    m_iPosY       = py;
-    m_iOutWidth   = ow;
-    m_iOutHeight  = oh;
-  }
-
-  m_iBaseChromaPhaseX = bcpx;  
-  m_iBaseChromaPhaseY = bcpy;
-
-  PictureParameters * pc = &m_acCurrentGop[index % MAX_PICT_PARAM_NB];
-
-  pc->m_iPosX      = m_iPosX;
-  pc->m_iPosY      = m_iPosY;
-  pc->m_iOutWidth  = m_iOutWidth;
-  pc->m_iOutHeight = m_iOutHeight;
-  pc->m_iBaseChromaPhaseX = m_iBaseChromaPhaseX;
-  pc->m_iBaseChromaPhaseY = m_iBaseChromaPhaseY;
-}
+H264AVC_NAMESPACE_BEGIN
 
 ErrVal
-ResizeParameters::readPictureParameters ( Int index )
+ResizeParameters::readPictureParameters( FILE* pFile, Bool bFrameMbsOnlyFlag )
 {
-    Int iPosX, iPosY, iOutWidth, iOutHeight;  
+  ROF( pFile );
 
-    if ( fscanf(m_pParamFile,"%d,%d,%d,%d\n",&iPosX,&iPosY,&iOutWidth,&iOutHeight) == 0 )
-    {
-        printf("\nResizeParameters::readPictureParameters () : cannot read picture params\n");
-        return Err::m_nERR;
-    }
-
-    ROTREPORT( iPosX % 2 , "Cropping Window must be even aligned" );
-    ROTREPORT( iPosY % 2 , "Cropping Window must be even aligned" );  
-
-    ROTREPORT( m_iInWidth > iOutWidth || m_iInHeight > iOutHeight , "Cropping Window must be bigger than base layer" );
-    setPictureParametersByValue(index, iPosX, iPosY, iOutWidth, iOutHeight, m_iBaseChromaPhaseX, m_iBaseChromaPhaseY );  
-      
-    return Err::m_nOK;
-}
-
-Void
-ResizeParameters::initRefListPoc ()
-{
-	for (Int i=0; i<MAX_REFLIST_SIZE;i++)
-	  {m_aiRefListPoc[0][i]=-1;m_aiRefListPoc[1][i]=-1;}
-  m_aiNumActive[0]=m_aiNumActive[1]=0;
-}
-
-Void
-ResizeParameters::print ()
-{
-  printf("m_iExtendedSpatialScalability = %d\n", m_iExtendedSpatialScalability);
-  printf("m_iSpatialScalabilityType     = %d\n", m_iSpatialScalabilityType);
-  printf("m_bCrop                       = %d\n", m_bCrop);
-  printf("m_iInWidth                    = %d\n", m_iInWidth);
-  printf("m_iInHeight                   = %d\n", m_iInHeight);
-  printf("m_iGlobWidth                  = %d\n", m_iGlobWidth);
-  printf("m_iGlobHeight                 = %d\n", m_iGlobHeight);
-  printf("m_iChromaPhaseX               = %d\n", m_iChromaPhaseX);
-  printf("m_iChromaPhaseY               = %d\n", m_iChromaPhaseY);
-  printf("m_iPosX                       = %d\n", m_iPosX);
-  printf("m_iPosY                       = %d\n", m_iPosY);
-  printf("m_iOutWidth                   = %d\n", m_iOutWidth);
-  printf("m_iOutHeight                  = %d\n", m_iOutHeight);
-  printf("m_iBaseChromaPhaseX           = %d\n", m_iBaseChromaPhaseX);
-  printf("m_iBaseChromaPhaseY           = %d\n", m_iBaseChromaPhaseY);
-  printf("m_iIntraUpsamplingType        = %d\n", m_iIntraUpsamplingType);
-}
-
-Void
-ResizeParameters::SetUpSampleMode()
-{
-  int bot=0;
-
-  if(m_bFrameMbsOnlyFlag && m_bBaseFrameMbsOnlyFlag)
-    m_iResampleMode = 0;
-  else if(m_bBaseFrameMbsOnlyFlag)
+  //===== read parameters =====
+  Int iLeft = 0;
+  Int iTop  = 0;
+  Int iSW   = 0;
+  Int iSH   = 0;
+  if( fscanf( pFile, "%d,%d,%d,%d\n", &iLeft, &iTop, &iSW, &iSH ) == 0 )
   {
-    bot = (m_bFieldPicFlag & m_bBotFieldFlag);
-    m_iResampleMode = 2 + bot;
+    printf("\nPictureParameters::read() : cannot read picture params\n");
+    return Err::m_nERR;
   }
-  else if(m_bFrameMbsOnlyFlag)
+
+  //===== check parameters =====
+  Int   iRight  = m_iFrameWidth  - iSW - iLeft;
+  Int   iBot    = m_iFrameHeight - iSH - iTop;
+  Int   iV      = ( bFrameMbsOnlyFlag ? 2 : 4 );
+  Bool  bHor    = ( iLeft %  2 != 0 || iRight %  2 != 0 );
+  Bool  bVer    = ( iTop  % iV != 0 || iBot   % iV != 0 );
+  ROTREPORT( bHor,                       "Cropping window must be horizonzally aligned on a 2 pixel grid" );
+  ROTREPORT( bVer &&  bFrameMbsOnlyFlag, "Cropping window must be vertically aligned on a 2 pixel grid" );
+  ROTREPORT( bVer && !bFrameMbsOnlyFlag, "Cropping window must be vertically aligned on a 4 pixel grid for interlaced configurations" );
+  ROTREPORT( iSW < m_iRefLayerFrmWidth,  "Cropping Window must be bigger than base layer" );
+  ROTREPORT( iSH < m_iRefLayerFrmHeight, "Cropping Window must be bigger than base layer" );
+
+  //===== set parameters =====
+  m_iScaledRefFrmWidth  = iSW;
+  m_iScaledRefFrmHeight = iSH;
+  m_iLeftFrmOffset      = iLeft;
+  m_iTopFrmOffset       = iTop;
+
+  return Err::m_nOK;
+}
+
+
+Void
+ResizeParameters::updateCurrLayerParameters( const SliceHeader& rcSH )
+{
+  m_iLevelIdc         = rcSH.getSPS().getLevelIdc();
+  m_bFrameMbsOnlyFlag = rcSH.getSPS().getFrameMbsOnlyFlag();
+  m_bFieldPicFlag     = rcSH.getFieldPicFlag();
+  m_bBotFieldFlag     = rcSH.getBottomFieldFlag();
+  m_bIsMbAffFrame     = rcSH.isMbaffFrame();
+  m_iFrameWidth       = rcSH.getSPS().getFrameWidthInMbs () << 4;
+  m_iFrameHeight      = rcSH.getSPS().getFrameHeightInMbs() << 4;
+  m_iChromaPhaseX     = rcSH.getSPS().getChromaPhaseX();
+  m_iChromaPhaseY     = rcSH.getSPS().getChromaPhaseY();
+  if( rcSH.getQualityId() > 0 || rcSH.getNoInterLayerPredFlag() )
   {
-    bot = m_bBaseFieldPicFlag? m_bBaseBotFieldFlag : 0;
-    m_iResampleMode = 4 + bot*2;
+    m_iExtendedSpatialScalability = ESS_NONE;
+    m_iScaledRefFrmWidth          = m_iFrameWidth;
+    m_iScaledRefFrmHeight         = m_iFrameHeight;
+    m_iLeftFrmOffset              = 0;
+    m_iTopFrmOffset               = 0;
+    m_iRefLayerChromaPhaseX       = m_iChromaPhaseX;
+    m_iRefLayerChromaPhaseY       = m_iChromaPhaseY;
   }
   else
   {
-    if(m_bBaseFieldPicFlag==0 && m_bFieldPicFlag==0)
-      m_iResampleMode = 1;
-    else
-    {
-      bot = m_bBaseFieldPicFlag? m_bBaseBotFieldFlag : m_bBotFieldFlag;
-      m_iResampleMode = 4 + bot*2;
-    }
+    m_iExtendedSpatialScalability = rcSH.getSPS().getExtendedSpatialScalability();
+    m_iScaledRefFrmWidth          = m_iFrameWidth  - 2 * ( rcSH.getScaledRefLayerLeftOffset() + rcSH.getScaledRefLayerRightOffset () );
+    m_iScaledRefFrmHeight         = m_iFrameHeight - 2 * ( rcSH.getScaledRefLayerTopOffset () + rcSH.getScaledRefLayerBottomOffset() );
+    m_iLeftFrmOffset              = 2 * rcSH.getScaledRefLayerLeftOffset();
+    m_iTopFrmOffset               = 2 * rcSH.getScaledRefLayerTopOffset ();
+    m_iRefLayerChromaPhaseX       = rcSH.getRefLayerChromaPhaseX();
+    m_iRefLayerChromaPhaseY       = rcSH.getRefLayerChromaPhaseY();
   }
 }
+
+
+Void
+ResizeParameters::updateRefLayerParameters( const SliceHeader& rcSH )
+{
+  m_bRefLayerFrameMbsOnlyFlag   = rcSH.getSPS().getFrameMbsOnlyFlag();
+  m_bRefLayerFieldPicFlag       = rcSH.getFieldPicFlag();
+  m_bRefLayerBotFieldFlag       = rcSH.getBottomFieldFlag();
+  m_bRefLayerIsMbAffFrame       = rcSH.isMbaffFrame();
+  m_iRefLayerFrmWidth           = rcSH.getSPS().getFrameWidthInMbs () << 4;
+  m_iRefLayerFrmHeight          = rcSH.getSPS().getFrameHeightInMbs() << 4;
+}
+
+
+Void
+ResizeParameters::updatePicParameters( const PictureParameters& rcPP )
+{
+  m_iScaledRefFrmWidth    = rcPP.m_iScaledRefFrmWidth;
+  m_iScaledRefFrmHeight   = rcPP.m_iScaledRefFrmHeight;
+  m_iLeftFrmOffset        = rcPP.m_iLeftFrmOffset;
+  m_iTopFrmOffset         = rcPP.m_iTopFrmOffset;
+  m_iRefLayerChromaPhaseX = rcPP.m_iRefLayerChromaPhaseX;
+  m_iRefLayerChromaPhaseY = rcPP.m_iRefLayerChromaPhaseY;
+}
+
+
+H264AVC_NAMESPACE_END

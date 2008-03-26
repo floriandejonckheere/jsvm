@@ -102,7 +102,13 @@ public:
 
   Void copy( const MbDataStruct& rcMbDataStruct );
   Void reset();
-  Void initMbData( UChar ucQp, UChar ucQp4LF, UInt uiSliceId )                 { m_uiSliceId = uiSliceId;  m_ucQp = ucQp;  m_ucQp4LF = ucQp4LF; }
+  Void initMbData( UChar ucQp, UChar ucQp4LF, UInt uiSliceId, SliceType eSliceType )
+  {
+    m_eSliceType  = eSliceType;
+    m_uiSliceId   = uiSliceId;
+    m_ucQp        = ucQp; 
+    m_ucQp4LF     = ucQp4LF; 
+  }
   Void copyFrom( const MbDataStruct& rcMbDataStruct );
   Void clear();
   UChar getQpLF()                                         const { return isPCM() ? 0 : m_ucQp4LF; }
@@ -132,6 +138,12 @@ public:
   Bool    isIntra4x4        ()                            const { return m_eMbMode == INTRA_4X4; }
   Bool    isIntra16x16      ()                            const { return m_eMbMode  > INTRA_4X4 && m_eMbMode < MODE_PCM; }
   Bool    isIntra           ()                            const { return m_eMbMode >= INTRA_4X4; }
+  Bool    isIntraInSlice    ( UInt uiSliceId )            const
+  {
+    ROFRS( isIntra(),                   false );
+    ROTRS( uiSliceId == MSYS_UINT_MAX,  true  ); // special value: don't check sliceId here
+    return uiSliceId == m_uiSliceId;
+  }
   Bool    isIntraBL         ()                            const { return m_eMbMode == INTRA_BL; } // SSUN@SHARP
   Bool    isIntraButnotIBL  ()                            const { return (m_eMbMode >= INTRA_4X4 && m_eMbMode != INTRA_BL); } // SSUN@SHARP
   Bool    isSkiped          ()                            const { return m_eMbMode == MODE_SKIP; }
@@ -142,7 +154,9 @@ public:
   SChar   intraPredMode(LumaIdx cIdx)                     const { return m_ascIPredMode[cIdx]; }
   UInt    getCbpChroma16x16 ()                            const { AOF_DBG(isIntra16x16()); return m_aucACTab[(m_eMbMode-(INTRA_4X4+1))>>2 ]; }
   Void setMbMode( MbMode eMbMode )                              { m_eMbMode = eMbMode; }
+  Void setSliceId( UInt ui )                                    { m_uiSliceId = ui; }
   UInt getSliceId()                                       const { return m_uiSliceId;}
+  SliceType getSliceType()                                const { return m_eSliceType; }
   Void setChromaPredMode( UChar ucChromaPredMode )              { m_ucChromaPredMode = ucChromaPredMode; }
   UChar getChromaPredMode()                               const { return m_ucChromaPredMode; }
   Void setFwdBwd( UShort usFwdBwd )                             { m_usFwdBwd = usFwdBwd; }
@@ -153,9 +167,10 @@ public:
   Void setBCBP( UInt uiPos, UInt uiBit, Bool bReset = false )
   { 
     if( bReset )
+    {
       m_uiBCBP &= ~(1 << uiPos);
-
-    m_uiBCBP |= (uiBit << uiPos); 
+    }
+    m_uiBCBP   |= (uiBit << uiPos); 
   }
   Void setBCBP( UInt uiBCBP )                                   { m_uiBCBP = uiBCBP; }
   UInt getBCBP()                                          const { return m_uiBCBP; }
@@ -166,20 +181,11 @@ public:
   Bool    getResidualPredFlag   ()                        const { return m_bResidualPredFlag; }
   Bool    getInCropWindowFlag   ()                        const { return m_bInCropWindowFlag; }
 
-
   Void    setResidualPredFlag   ( Bool        bFlag  )       { m_bResidualPredFlag = bFlag; } 
   Void    setInCropWindowFlag   ( Bool        bFlag  )       { m_bInCropWindowFlag = bFlag; } 
 
-	Void		setEssRPChkEnable	(UInt val)		{ m_uiEssRPChkEnable = val; }
-	Void		setMVThres				(UInt val)		{ m_uiMVThres = val; }
-
-
   ErrVal  save( FILE* pFile );
   ErrVal  load( FILE* pFile );
-
-
-  ErrVal  upsampleMotion    ( const MbDataStruct& rcMbDataStruct,
-                              Par8x8              ePar8x8, Bool bDirect8x8 );
 
   Void    setBLSkipFlag         ( Bool b )  { m_bBLSkipFlag = b; }
   Bool    getBLSkipFlag         () const    { return m_bBLSkipFlag; }
@@ -190,33 +196,30 @@ public:
 
 	Void    setFieldFlag          ( Bool b )  { m_bFieldFlag = b; }
   Bool    getFieldFlag          () const    { return m_bFieldFlag; }
-  
-public:
-  UInt    m_uiSliceId;
-  Bool    m_bBLSkipFlag;
-  MbMode  m_eMbMode;
-  UInt    m_uiMbCbp;
-  UInt    m_uiBCBP;
-  UShort  m_usFwdBwd;
-  UChar   m_ucChromaPredMode;
-  BlkMode m_aBlkMode[4];
-  SChar   m_ascIPredMode[16];
-  UChar   m_ucQp;
-  UChar   m_ucQp4LF;
 
-  Bool    m_bResidualPredFlag;
-  Bool    m_bTransformSize8x8;
-  Bool    m_bSkipFlag;
+  Void    setSafeResPred        ( Bool b )  { m_bRPSafe = b; }
+  Bool    getSafeResPred        () const    { return m_bRPSafe; }
 
-  // TMM_ESS 
-  Bool    m_bInCropWindowFlag;  // indicates if the scaled base layer MB is inside the cropping window
-  Bool    m_bFieldFlag;
-
-	UInt m_uiMbCbpResidual;
-
-	UInt		m_uiEssRPChkEnable;
-	UInt		m_uiMVThres;		
-  Bool    m_bRPSafe; 
+protected:
+  UInt      m_uiSliceId;
+  SliceType m_eSliceType;
+  Bool      m_bBLSkipFlag;
+  MbMode    m_eMbMode;
+  UInt      m_uiMbCbp;
+  UInt      m_uiBCBP;
+  UShort    m_usFwdBwd;
+  UChar     m_ucChromaPredMode;
+  BlkMode   m_aBlkMode[4];
+  SChar     m_ascIPredMode[16];
+  UChar     m_ucQp;
+  UChar     m_ucQp4LF;
+  Bool      m_bResidualPredFlag;
+  Bool      m_bTransformSize8x8;
+  Bool      m_bSkipFlag;
+  Bool      m_bInCropWindowFlag;  // indicates if the scaled base layer MB is inside the cropping window
+  Bool      m_bFieldFlag;
+	UInt      m_uiMbCbpResidual;
+  Bool      m_bRPSafe; 
 
 public:
   static const UChar m_aucACTab[7];

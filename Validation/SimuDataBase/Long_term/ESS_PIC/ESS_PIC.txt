@@ -44,7 +44,7 @@ singleloopflag       => "-bcip",
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #==========================================================#  
-bitratecheckrange  => 3,
+bitratecheckrange  => 1,
 psnrcheckrange    =>  0,
     
      tests      => [
@@ -58,7 +58,7 @@ psnrcheckrange    =>  0,
   	                height => 336,
   	                framerate => 30,
   	                bitrate => 786,
-  	                psnr => 37.28,
+  	                psnr => 37.27,
   	                encdecmatch => 1,
               	   },
                     #----------#
@@ -70,7 +70,7 @@ psnrcheckrange    =>  0,
                      width => 640,
                      height => 560,
                      framerate => 30,
-                     bitrate => 1416,
+                     bitrate => 1417,
                      psnr => 35.93,
                      encdecmatch => 1,
                      },

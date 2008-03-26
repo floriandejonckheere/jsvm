@@ -89,6 +89,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #pragma once
 #endif // _MSC_VER > 1000
 
+#include "ResizeParameters.h"
 
 H264AVC_NAMESPACE_BEGIN
 
@@ -97,9 +98,6 @@ H264AVC_NAMESPACE_BEGIN
 #if defined( MSYS_WIN32 )
 # pragma warning( disable: 4275 )
 #endif
-
-// TMM_ESS 
-#include "ResizeParameters.h"
 
 #define MAX_CONFIG_PARAMS 256
 
@@ -398,12 +396,9 @@ public:
   Void setBaseLayerId                     (UInt   p) { m_uiBaseLayerId                    = p; }
   Void setMbAff                           (UInt   p) { m_uiMbAff                          = p; }
   Void setPAff                            (UInt   p) { m_uiPAff                           = p; }
-// TMM_ESS {
-  int                 getExtendedSpatialScalability     () { return m_ResizeParameter.m_iExtendedSpatialScalability; }
-  int                 getSpatialScalabilityType         () { return m_ResizeParameter.m_iSpatialScalabilityType; }
-  Void                setResizeParameters      (ResizeParameters *p) { memcpy(&m_ResizeParameter, p, sizeof(ResizeParameters)); }
-  ResizeParameters*   getResizeParameters      () {return &m_ResizeParameter; }
-// TMM_ESS }
+
+  ResizeParameters&   getResizeParameters ()  { return m_cResizeParameters; }
+  const std::string&  getESSFilename      ()  { return m_cESSFilename; }
 
 // JVT-Q065 EIDR{
   Int				  getIDRPeriod			   () { return m_iIDRPeriod; }
@@ -456,6 +451,9 @@ public:
   Void    setDeltaQPTLevel        ( UInt    tl,
                                     Double  d  )           { m_adDeltaQPTLevel[tl] = d; }
 
+  Void    setInterlaced( Bool b ) { m_bInterlaced = b; }
+  Bool    isInterlaced() const { return m_bInterlaced; }
+
 public:
   UInt                      m_uiDependencyId;
   UInt                      m_uiFrameWidth;
@@ -498,7 +496,8 @@ public:
   UInt                      m_uiBaseLayerTempRes;
 
   //----- ESS ---- 
-  ResizeParameters          m_ResizeParameter;
+  ResizeParameters          m_cResizeParameters;
+  std::string               m_cESSFilename;
 
   UInt                      m_uiMbAff;
   UInt                      m_uiPAff;
@@ -572,6 +571,7 @@ public:
   UInt    m_uiExplicitQPCascading;
   Double  m_adDeltaQPTLevel[MAX_TEMP_LEVELS];
 
+  Bool    m_bInterlaced;
 };
 
 
@@ -686,9 +686,11 @@ public:
 public:
   const MotionVectorSearchParams& getMotionVectorSearchParams       () const {return m_cMotionVectorSearchParams; }
   const LoopFilterParams&         getLoopFilterParams               () const {return m_cLoopFilterParams; }
+  const LoopFilterParams&         getInterLayerLoopFilterParams     () const {return m_cInterLayerLoopFilterParams; }
 
   MotionVectorSearchParams&       getMotionVectorSearchParams       ()       {return m_cMotionVectorSearchParams; }
   LoopFilterParams&               getLoopFilterParams               ()       {return m_cLoopFilterParams; }
+  LoopFilterParams&               getInterLayerLoopFilterParams     ()       {return m_cInterLayerLoopFilterParams; }
 
   const LayerParameters&          getLayerParameters  ( UInt    n )   const   { return m_acLayerParameters[n]; }
   LayerParameters&                getLayerParameters  ( UInt    n )           { return m_acLayerParameters[n]; }
@@ -785,9 +787,6 @@ public:
 
   ErrVal                          check                   ();
   
-  // TMM_ESS 
-  ResizeParameters*               getResizeParameters  ( UInt    n )    { return m_acLayerParameters[n].getResizeParameters(); }
-
   Int					              		  getNonRequiredEnable    ()			{ return m_bNonRequiredEnable; }  //NonRequired JVT-Q066 (06-04-08)
 
 //JVT-T054{
@@ -855,6 +854,7 @@ protected:
 
   MotionVectorSearchParams  m_cMotionVectorSearchParams;
   LoopFilterParams          m_cLoopFilterParams;
+  LoopFilterParams          m_cInterLayerLoopFilterParams;
 
   UInt                      m_uiNumberOfLayers;
   LayerParameters           m_acLayerParameters[MAX_LAYERS];

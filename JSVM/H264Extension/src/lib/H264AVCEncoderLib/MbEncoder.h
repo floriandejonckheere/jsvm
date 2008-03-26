@@ -160,7 +160,6 @@ public:
 
   ErrVal  encodeInterP        ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,
-                                Int             iSpatialScalabilityType,
                                 Frame*       pcOrgFrame,
                                 Frame*       pcFrame,
                                 Frame*       pcRecSubband,
@@ -189,7 +188,6 @@ public:
 
   ErrVal  estimatePrediction  ( MbDataAccess&   rcMbDataAccess,
                                 MbDataAccess*   pcMbDataAccessBase,
-                                Int							iSpatialScalabilityType,
                                 RefFrameList&   rcRefFrameList0,
                                 RefFrameList&   rcRefFrameList1,
                                 const Frame* pcBaseLayerFrame,
@@ -279,11 +277,9 @@ public:
   Void          setBaseLayerRec     ( Frame*   pcBaseLayerRec  )   { m_pcBaseLayerFrame    = pcBaseLayerRec;   }
   Frame*     getBaseLayerRec     ()  { return  m_pcBaseLayerFrame;     }
   
-  //JVT-U106 Behaviour at slice boundaries{
-  void  setIntraBLFlag(Bool b){ m_bIntraBLFlag=b; }
-  //JVT-U106 Behaviour at slice boundaries}
-protected:
+  Void  setBaseModeAllowedFlag( Bool b ) { m_bBaseModeAllowedFlag = b; }
 
+protected:
   ErrVal  xScale4x4Block        ( TCoeff*            piCoeff,
                                   const UChar*       pucScale,
                                   UInt               uiStart,
@@ -351,6 +347,7 @@ protected:
                                   IntMbTempData*    pcMbRefData,
                                   RefFrameList&     rcRefFrameList0,
                                   RefFrameList&     rcRefFrameList1,
+                                  Bool              bBLSkip,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   Frame*         pcBaseLayerRec = 0 
                                   );
@@ -400,7 +397,6 @@ protected:
                                   RefFrameList&     rcRefFrameList1,
                                   const Frame*   pcBaseLayerRec,
                                   Bool              bBSlice,
-                                  Int				iSpatialScalabilityType,
                                   MbDataAccess*     pcMbDataAccessBaseMotion,
                                   MbDataAccess&     rcMbDataAccess,
                                   Bool              bResidualPred );
@@ -607,9 +603,7 @@ protected:
   //S051{
   Bool		m_bUseBDir;
   //S051}
-  //JVT-U106 Behaviour at slice boundaries{
-  Bool  m_bIntraBLFlag;
-  //JVT-U106 Behaviour at slice boundaries}
+  Bool  m_bBaseModeAllowedFlag;
 };
 
 

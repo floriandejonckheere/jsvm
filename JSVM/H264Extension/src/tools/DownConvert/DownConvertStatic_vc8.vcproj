@@ -45,7 +45,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="..\..\..\include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="DOWN_CONVERT_STATIC"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
@@ -135,7 +135,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="..\..\..\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE"
+				PreprocessorDefinitions="DOWN_CONVERT_STATIC"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
 				FloatingPointModel="1"
@@ -204,6 +204,18 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
+				RelativePath="..\..\lib\H264AVCCommonLib\DownConvert.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						PreprocessorDefinitions="DOWN_CONVERT_STATIC"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="main.cpp"
 				>
 				<FileConfiguration
@@ -213,7 +225,7 @@
 						Name="VCCLCompilerTool"
 						Optimization="2"
 						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
+						PreprocessorDefinitions="DOWN_CONVERT_STATIC"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -223,7 +235,7 @@
 						Name="VCCLCompilerTool"
 						Optimization="0"
 						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
+						PreprocessorDefinitions="DOWN_CONVERT_STATIC"
 						BasicRuntimeChecks="3"
 					/>
 				</FileConfiguration>
@@ -235,14 +247,6 @@
 			>
 			<File
 				RelativePath="..\..\..\include\DownConvert.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\include\DownConvert.inl"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\include\DownConvertTools.inl"
 				>
 			</File>
 		</Filter>

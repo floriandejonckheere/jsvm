@@ -476,11 +476,10 @@ XDataList<T>::setElementAndRemove( UInt uiIPos, UInt uiRPos, T* pEntry )
 }
 
 
-
 class Frame;
 class ControlData;
 
-typedef XDataList<Frame>     RefFrameList;
+typedef XDataList<Frame>        RefFrameList;
 typedef XDataList<ControlData>  CtrlDataList;
 
 

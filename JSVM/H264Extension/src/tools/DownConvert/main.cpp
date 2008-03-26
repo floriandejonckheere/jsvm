@@ -79,106 +79,110 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 ********************************************************************************
 */
 
+#define _CRT_SECURE_NO_WARNINGS 1
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#define DOWN_CONVERT_STATIC
 
 #include "DownConvert.h"
 
 
 typedef struct
 {
-  int             width;
-  int             height;
-  unsigned char*  data;
+  int            stride;
+  int            lines;
+  unsigned char* data;
+  unsigned char* data2;
 } ColorComponent;
 
 typedef struct
 {
-  ColorComponent lum;
-  ColorComponent cb;
-  ColorComponent cr;
+  ColorComponent y;
+  ColorComponent u;
+  ColorComponent v;
 } YuvFrame;
 
 
-
-void createColorComponent( ColorComponent* cc )
+void
+createColorComponent( ColorComponent& c, int maxwidth, int maxheight )
 {
- if( ! ( cc->data = new unsigned char[cc->width * cc->height]))
+  maxwidth  = ( ( maxwidth  + 15 ) >> 4 ) << 4;
+  maxheight = ( ( maxheight + 15 ) >> 4 ) << 4;
+  int size  = maxwidth * maxheight;
+  c.stride  = maxwidth;
+  c.lines   = maxheight;
+  c.data    = new unsigned char [ size ];
+  c.data2   = new unsigned char [ size ];
+
+  if( ! c.data || ! c.data2 )
   {
-   fprintf(stderr, "\nERROR: memory allocation failed!\n\n");
+    fprintf(stderr, "\nERROR: memory allocation failed!\n\n");
     exit(1);
   }
 }
 
-void deleteColorComponent( ColorComponent* cc )
+void
+deleteColorComponent( ColorComponent& c )
 {
-  delete[] cc->data;
-  cc->data = NULL;
+  delete[] c.data;
+  delete[] c.data2;
+  c.stride  = 0;
+  c.lines   = 0;
+  c.data    = 0;
+  c.data2   = 0;
 }
 
-
-void setColorComponent ( ColorComponent* cc, unsigned char value )
+int
+readColorComponent( ColorComponent& c, FILE* file, int width, int height, bool second )
 {
-  memset(cc->data, value, cc->width*cc->height);
-}
+  assert( width  <= c.stride );
+  assert( height <= c.lines  );
 
-
-void createFrame( YuvFrame* f, int width, int height )
-{
-  f->lum.width = width;    f->lum.height  = height;     createColorComponent( &f->lum );
-  f->cb .width = width/2;  f->cb .height  = height/2;   createColorComponent( &f->cb  );
-  f->cr .width = width/2;  f->cr .height  = height/2;   createColorComponent( &f->cr  );
-}
-
-void deleteFrame( YuvFrame* f )
-{
-  deleteColorComponent( &f->lum );
-  deleteColorComponent( &f->cb  );
-  deleteColorComponent( &f->cr  );
-}
-
-void setFrame ( YuvFrame* f, unsigned char y_value,  unsigned char u_value, unsigned char v_value)
-{
-  setColorComponent(&f->lum, y_value);
-  setColorComponent(&f->cb,  u_value);
-  setColorComponent(&f->cr,  v_value);
-}
-
-void clearFrame ( YuvFrame* f)
-{
-  setFrame(f, 0, 0, 0);
-}
-
-void readColorComponent( ColorComponent* cc, FILE* file, int inwidth, int inheight )
-{
-  int rsize;
-
-  for( int i = 0; i < inheight; i++ )
+  for( int i = 0; i < height; i++ )
   {
-    rsize = fread( cc->data+i*cc->width, sizeof(unsigned char), inwidth, file );
-
-    if( rsize != inwidth )
+    unsigned char* buffer = ( second ? c.data2 : c.data ) + i * c.stride;
+    int            rsize  = fread( buffer, sizeof(unsigned char), width, file );
+    if( rsize != width )
     {
-      fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-      exit(1);
+      return 1;
     }
+  }
+  return 0;
+}
+
+void
+duplicateColorComponent( ColorComponent& c )
+{
+  ::memcpy( c.data2, c.data, c.stride * c.lines * sizeof(unsigned char) );
+}
+
+void
+combineTopAndBottomInColorComponent( ColorComponent& c, Bool bBotField )
+{
+  int            offs = ( bBotField ? c.stride : 0 );  
+  unsigned char* pDes = c.data  + offs;
+  unsigned char* pSrc = c.data2 + offs;
+  for( int i = 0; i < c.lines / 2; i++, pDes += 2*c.stride, pSrc += 2*c.stride )
+  {
+    ::memcpy( pDes, pSrc, c.stride * sizeof(unsigned char) );
   }
 }
 
-void writeColorComponent( ColorComponent* cc, FILE* file, int outwidth, int outheight )
+void
+writeColorComponent( ColorComponent& c, FILE* file, int width, int height, bool second )
 {
-  int wsize;
+  assert( width  <= c.stride );
+  assert( height <= c.lines  );
 
-  for( int i = 0; i < outheight; i++ )
+  for( int i = 0; i < height; i++ )
   {
-    wsize = fwrite( cc->data+i*cc->width, sizeof(unsigned char), outwidth, file );
+    unsigned char* buffer = ( second ? c.data2 : c.data ) + i * c.stride;
+    int            wsize  = fwrite( buffer, sizeof(unsigned char), width, file );
 
-    if( outwidth != wsize )
+    if( wsize != width )
     {
       fprintf(stderr, "\nERROR: while writing to output file!\n\n");
       exit(1);
@@ -186,201 +190,66 @@ void writeColorComponent( ColorComponent* cc, FILE* file, int outwidth, int outh
   }
 }
 
-void readFrame( YuvFrame* f, FILE* file, int width, int height )
+
+void 
+createFrame( YuvFrame& f, int width, int height )
 {
-  readColorComponent( &f->lum, file, width, height );
-  readColorComponent( &f->cb,  file, width/2, height/2 );
-  readColorComponent( &f->cr,  file, width/2, height/2 );
+  createColorComponent( f.y, width,      height      );
+  createColorComponent( f.u, width >> 1, height >> 1 );
+  createColorComponent( f.v, width >> 1, height >> 1 );
 }
 
-void writeFrame( YuvFrame* f, FILE* file, int width, int height )
+void 
+deleteFrame( YuvFrame& f )
 {
-  writeColorComponent( &f->lum, file, width, height );
-  writeColorComponent( &f->cb,  file, width/2, height/2 );
-  writeColorComponent( &f->cr,  file, width/2, height/2 );
+  deleteColorComponent( f.y );
+  deleteColorComponent( f.u );
+  deleteColorComponent( f.v );
 }
 
-void ess_readPic ( YuvFrame* f, FILE* file, int input_width, int input_height, bool ess_downsample_flg, int resample_mode )
+int
+readFrame( YuvFrame& f, FILE* file, int width, int height, bool second = false )
 {
-  if( !ess_downsample_flg && (resample_mode==6 || resample_mode==7) )
+  ROTRS( readColorComponent( f.y, file, width,      height,      second ), 1 );
+  ROTRS( readColorComponent( f.u, file, width >> 1, height >> 1, second ), 1 );
+  ROTRS( readColorComponent( f.v, file, width >> 1, height >> 1, second ), 1 );
+  return 0;
+}
+
+void
+duplicateFrame( YuvFrame& f )
+{
+  duplicateColorComponent( f.y );
+  duplicateColorComponent( f.u );
+  duplicateColorComponent( f.v );
+}
+
+void
+combineTopAndBottomInFrame( YuvFrame& f, Bool botField )
+{
+  combineTopAndBottomInColorComponent( f.y, botField );
+  combineTopAndBottomInColorComponent( f.u, botField );
+  combineTopAndBottomInColorComponent( f.v, botField );
+}
+
+void
+writeFrame( YuvFrame& f, FILE* file, int width, int height, bool both = false )
+{
+  writeColorComponent( f.y, file, width,      height,      false );
+  writeColorComponent( f.u, file, width >> 1, height >> 1, false );
+  writeColorComponent( f.v, file, width >> 1, height >> 1, false );
+  
+  if( both )
   {
-    memcpy(f->lum.data, f->lum.data+f->lum.width*f->lum.height/2, input_height*input_width/2 );
-    memcpy(f->cb.data, f->cb.data+f->cb.width*f->cb.height/2, input_height*input_width/8 );
-    memcpy(f->cr.data, f->cr.data+f->cr.width*f->cr.height/2, input_height*input_width/8 );
-    return; 
-  }
-
-  // read Y
-  int rsize = fread( f->lum.data, input_height, input_width, file );
-
-  if( rsize != input_width )
-  {
-    fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-    exit(1);
-  }
-  // read Cb
-  rsize = fread( f->cb.data, input_height/2, input_width/2, file );
-
-  if( rsize != input_width/2 )
-  {
-    fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-    exit(1);
-  }
-  // read Cr
-  rsize = fread( f->cr.data, input_height/2, input_width/2, file );
-
-  if( rsize != input_width/2 )
-  {
-    fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-    exit(1);
-  }
-
-  if( ( ess_downsample_flg && (resample_mode==1 || resample_mode==2 || resample_mode==3) ) ||
-      (!ess_downsample_flg && (resample_mode==1 || resample_mode==4 || resample_mode==5) )   )
-  {
-    int y;
-    int top_first = (resample_mode!=3 && resample_mode!=5);
-    int buf_siz = f->lum.width*f->lum.height/2;
-
-    for(y=0; y<input_height/2; y++)
-    {
-      memcpy(f->lum.data+buf_siz+y*input_width, f->lum.data+(2*y+top_first)*input_width, input_width);
-      memcpy(f->lum.data+buf_siz+buf_siz/2+y*input_width, f->lum.data+(2*y+1-top_first)*input_width, input_width);
-    }
-    memcpy(f->lum.data, f->lum.data+buf_siz+buf_siz/2, input_width*input_height/2 );
-    buf_siz >>= 2;
-    for(y=0; y<input_height/4; y++)
-    {
-      memcpy(f->cb.data+buf_siz+y*input_width/2, f->cb.data+(2*y+top_first)*input_width/2, input_width/2);
-      memcpy(f->cb.data+buf_siz+buf_siz/2+y*input_width/2, f->cb.data+(2*y+1-top_first)*input_width/2, input_width/2);
-      memcpy(f->cr.data+buf_siz+y*input_width/2, f->cr.data+(2*y+top_first)*input_width/2, input_width/2);
-      memcpy(f->cr.data+buf_siz+buf_siz/2+y*input_width/2, f->cr.data+(2*y+1-top_first)*input_width/2, input_width/2);
-    }
-    memcpy(f->cb.data, f->cb.data+buf_siz+buf_siz/2, input_width*input_height/8 );
-    memcpy(f->cr.data, f->cr.data+buf_siz+buf_siz/2, input_width*input_height/8 );
+    writeColorComponent( f.y, file, width,      height,      true );
+    writeColorComponent( f.u, file, width >> 1, height >> 1, true );
+    writeColorComponent( f.v, file, width >> 1, height >> 1, true );
   }
 }
 
 
-void ess_writePic ( YuvFrame* f, FILE* file, int output_width, int output_height, bool ess_downsample_flg, int resample_mode )
-{
-  int buf_siz = f->lum.width*f->lum.height/2;
-  if((ess_downsample_flg && (resample_mode==4 || resample_mode==5) ) || resample_mode==1)
-  {
-    memcpy(f->lum.data+buf_siz+buf_siz/2, f->lum.data, output_width*output_height/2 );
-    memcpy(f->cb.data+buf_siz/4+buf_siz/8, f->cb.data, output_width*output_height/8 );
-    memcpy(f->cr.data+buf_siz/4+buf_siz/8, f->cr.data, output_width*output_height/8 );
-    if(resample_mode!=1) return;
-  }
-  if(ess_downsample_flg && resample_mode>5) 
-  {
-    memcpy(f->lum.data+buf_siz, f->lum.data, output_width*output_height/2 );
-    memcpy(f->cb.data+buf_siz/4, f->cb.data, output_width*output_height/8 );
-    memcpy(f->cr.data+buf_siz/4, f->cr.data, output_width*output_height/8 );
-  }
-  if((ess_downsample_flg && resample_mode>5) || resample_mode==1)
-  {
-    int y;
-    int top_first=(resample_mode==6 || resample_mode==1);
-    for(y=0; y<output_height/2; y++)
-    {
-      memcpy(f->lum.data+(2*y+top_first)*output_width, f->lum.data+buf_siz+y*output_width, output_width);
-      memcpy(f->lum.data+(2*y+1-top_first)*output_width, f->lum.data+buf_siz+buf_siz/2+y*output_width, output_width);
-    }
-    buf_siz >>= 2;
-    for(y=0; y<output_height/4; y++)
-    {
-      memcpy(f->cb.data+(2*y+top_first)*output_width/2, f->cb.data+buf_siz+y*output_width/2, output_width/2);
-      memcpy(f->cb.data+(2*y+1-top_first)*output_width/2, f->cb.data+buf_siz+buf_siz/2+y*output_width/2, output_width/2);
-      memcpy(f->cr.data+(2*y+top_first)*output_width/2, f->cr.data+buf_siz+y*output_width/2, output_width/2);
-      memcpy(f->cr.data+(2*y+1-top_first)*output_width/2, f->cr.data+buf_siz+buf_siz/2+y*output_width/2, output_width/2);
-    }
-  }
-  // write Y
-  int rsize = fwrite( f->lum.data, output_height, output_width, file );
-
-  if( rsize != output_width )
-  {
-    fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-    exit(1);
-  }
-  // write Cb
-  rsize = fwrite( f->cb.data, output_height/2, output_width/2, file );
-
-  if( rsize != output_width/2 )
-  {
-    fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-    exit(1);
-  }
-  // write Cr
-  rsize = fwrite( f->cr.data, output_height/2, output_width/2, file );
-
-  if( rsize != output_width/2 )
-  {
-    fprintf(stderr, "\nERROR: while reading from input file!\n\n");
-    exit(1);
-  }
-}
-
-
-void ess_resamplePic ( YuvFrame* pcFrame, DownConvert& rcDownConvert, int input_width, int input_height, 
-                        int output_width, int output_height, int crop_x0, int crop_y0, int crop_w, int crop_h,
-                        int input_chroma_phase_shift_x, int input_chroma_phase_shift_y, 
-                       int output_chroma_phase_shift_x, int output_chroma_phase_shift_y, 
-                       bool ess_downsample_flg, int resample_mode)
-{
-  if(ess_downsample_flg)
-  {
-    if(resample_mode==4 || resample_mode==7)
-    {
-      rcDownConvert.downsample_ver( pcFrame->lum.data,  pcFrame->lum.width,
-                                    pcFrame->cb .data,  pcFrame->cb .width,
-                                    pcFrame->cr .data,  pcFrame->cr .width,
-                                    input_width, input_height,  1 );
-    }
-    else if(resample_mode==5 || resample_mode==6)
-    {
-      rcDownConvert.downsample_ver( pcFrame->lum.data,  pcFrame->lum.width,
-                                    pcFrame->cb .data,  pcFrame->cb .width,
-                                    pcFrame->cr .data,  pcFrame->cr .width,
-                                    input_width, input_height,  0 );
-    }
-    rcDownConvert.downsample3( pcFrame->lum.data, pcFrame->cb.data, pcFrame->cr.data,
-                               input_width, input_height, output_width, output_height,
-                               crop_x0, crop_y0, crop_w, crop_h, 
-                               input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                               output_chroma_phase_shift_x, output_chroma_phase_shift_y,
-                               resample_mode, pcFrame->lum.height*pcFrame->lum.width/2);
-  }
-  else
-  {
-    rcDownConvert.upsample3( pcFrame->lum.data, pcFrame->cb.data, pcFrame->cr.data,
-                             input_width, input_height, output_width, output_height,
-                             crop_x0, crop_y0, crop_w, crop_h, 
-                             input_chroma_phase_shift_x, input_chroma_phase_shift_y,
-                             output_chroma_phase_shift_x, output_chroma_phase_shift_y,
-                             resample_mode, pcFrame->lum.height*pcFrame->lum.width/2);
-    if(resample_mode==2 || resample_mode==4 || resample_mode==7)
-    {
-      rcDownConvert.upsample_ver( pcFrame->lum.data,  pcFrame->lum.width,
-                                  pcFrame->cb .data,  pcFrame->cb .width,
-                                  pcFrame->cr .data,  pcFrame->cr .width,
-                                  output_width, output_height/2,
-                                  crop_y0, crop_h, 1 );
-    }
-    else if(resample_mode==3 || resample_mode==5 || resample_mode==6)
-    {
-      rcDownConvert.upsample_ver( pcFrame->lum.data,  pcFrame->lum.width,
-                                  pcFrame->cb .data,  pcFrame->cb .width,
-                                  pcFrame->cr .data,  pcFrame->cr .width,
-                                  output_width, output_height/2,  
-                                  crop_y0, crop_h, 0 );
-    }
-  }
-}
-
-
-void print_usage_and_exit( int test, char* name, char* message = 0 )
+void 
+print_usage_and_exit( int test, char* name, char* message = 0 )
 {
   if( test )
   {
@@ -388,7 +257,6 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     {
       fprintf ( stderr, "\nERROR: %s\n", message );
     }
-
     fprintf (   stderr, "\nUsage: %s <win> <hin> <in> <wout> <hout> <out> [<method> [<t> [<skip> [<frms>]]]] [[-crop <args>] [-phase <args>] [-resample_mode <arg>]]\n\n", name );
     fprintf (   stderr, "  win     : input width  (luma samples)\n" );
     fprintf (   stderr, "  hin     : input height (luma samples)\n" );
@@ -404,7 +272,7 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
     fprintf (   stderr, "               dyadic downsampling (MPEG-4 downsampling filter)\n" );
     fprintf (   stderr, "            2: crop only\n" );
     fprintf (   stderr, "            3: upsampling (Three-lobed Lanczos-windowed sinc)\n" );
-    fprintf (   stderr, "                 4: upsampling (JVT-O041: AVC 6-tap 1/2 pel + bilinear 1/4 pel)\n" );
+    fprintf (   stderr, "            4: upsampling (JVT-O041: AVC 6-tap 1/2 pel + bilinear 1/4 pel)\n" );
     fprintf (   stderr, "  t       : number of temporal downsampling stages (default: 0)\n" );
     fprintf (   stderr, "  skip    : number of frames to skip at start (default: 0)\n" );
     fprintf (   stderr, "  frms    : number of frames wanted in output file (default: max)\n" );
@@ -442,403 +310,414 @@ void print_usage_and_exit( int test, char* name, char* message = 0 )
   }
 }
 
-void updateCropParametersFromFile(ResizeParameters * rp, FILE * crop_file, int method, char* name)
+
+void 
+updateCropParametersFromFile( ResizeParameters& cRP, FILE* cropFile, int resamplingMethod, char* name )
 {
   int crop_x0;
   int crop_y0;
   int crop_w;
   int crop_h;
-  if ((fscanf(crop_file,"%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w,&crop_h))!=EOF)
+  if( fscanf( cropFile, "%d,%d,%d,%d\n", &crop_x0, &crop_y0, &crop_w, &crop_h ) != EOF )
   {
-    rp->m_iPosX      = crop_x0;
-    rp->m_iPosY      = crop_y0;
-    rp->m_iOutWidth  = crop_w;
-    rp->m_iOutHeight = crop_h;
+    cRP.m_iLeftFrmOffset      = crop_x0;
+    cRP.m_iTopFrmOffset       = crop_y0;
+    cRP.m_iScaledRefFrmWidth  = crop_w;
+    cRP.m_iScaledRefFrmHeight = crop_h;
   }
-  
-  print_usage_and_exit ((rp->m_iPosX&1||rp->m_iPosY&1||rp->m_iOutWidth&1||rp->m_iOutHeight&1), name, "Crop parameters must be event values");
-  print_usage_and_exit (((method==2)&&((rp->m_iOutWidth != min(rp->m_iInWidth, rp->m_iGlobWidth))||(rp->m_iOutHeight != min(rp->m_iInHeight, rp->m_iGlobHeight)))), name, "Crop dimensions must be the same as the minimal dimensions");
-  print_usage_and_exit ((rp->m_iOutWidth>max(rp->m_iInWidth,rp->m_iGlobWidth)||rp->m_iOutHeight>max(rp->m_iInHeight,rp->m_iGlobHeight)||rp->m_iOutWidth<min(rp->m_iInWidth,rp->m_iGlobWidth)||rp->m_iOutHeight<min(rp->m_iInHeight,rp->m_iGlobHeight)),name,"wrong crop window size");
-  print_usage_and_exit (!((rp->m_iPosX+rp->m_iOutWidth)<=max(rp->m_iInWidth,rp->m_iGlobWidth)&&(rp->m_iPosY+rp->m_iOutHeight)<=max(rp->m_iInHeight,rp->m_iGlobHeight)),name,"wrong crop window size and origin");
+  print_usage_and_exit( cRP.m_iLeftFrmOffset     & 1 || cRP.m_iTopFrmOffset       & 1,                                              name, "cropping parameters must be even values" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmWidth & 1 || cRP.m_iScaledRefFrmHeight & 1,                                              name, "cropping parameters must be even values" );
+  print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmWidth  != min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),  name, "crop dimensions must be the same as the minimal dimensions" );
+  print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmHeight != min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),  name, "crop dimensions must be the same as the minimal dimensions" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmWidth  < min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iScaledRefFrmHeight < min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            name, "wrong crop window size" );
+  print_usage_and_exit( cRP.m_iLeftFrmOffset + cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),     name, "wrong crop window size and origin" );
+  print_usage_and_exit( cRP.m_iTopFrmOffset  + cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),     name, "wrong crop window size and origin" );
 }
 
 
-int main(int argc, char *argv[])
+void
+resampleFrame( YuvFrame&          rcFrame, 
+               DownConvert&       rcDownConvert,
+               ResizeParameters&  rcRP,
+               int                resamplingMethod,
+               int                resamplingMode,
+               bool               resampling,
+               bool               upsampling,
+               bool               bSecondInputFrame )
 {
-  DownConvert   cDownConvert;
-  ResizeParameters * rp = new ResizeParameters;
-  
-  rp->m_iInWidth                   = 0;
-  rp->m_iInHeight                  = 0;
-  rp->m_iGlobWidth                 = 0;
-  rp->m_iGlobHeight                = 0;
-  rp->m_iBaseChromaPhaseX          =-1;
-  rp->m_iBaseChromaPhaseY          = 0;
-  rp->m_iChromaPhaseX              =-1;
-  rp->m_iChromaPhaseY              = 0;
-  rp->m_iPosX                      = 0;
-  rp->m_iPosY                      = 0;
-  rp->m_iOutWidth                  = 0;
-  rp->m_iOutHeight                 = 0;
-  rp->m_iExtendedSpatialScalability= 0;
-  rp->m_iPoc                       = 0;
-  rp->m_pParamFile                 = 0;  
-  
-  int   iStage              = 0;
-  int   temporal_stages     = 0;
-  int   skip_at_start       = 0;
-  int   number_frames       = (1<<30);
-  FILE* input_file          = 0;
-  FILE* output_file         = 0;
-  FILE* crop_file           = 0;
-  int   method              = 0;
-  bool  resample            = false;
-  bool  upsample            = false;
-  bool  crop_init           = false;
-  bool  phase_init          = false;
-  bool  method_init         = false;
-  bool  crop_file_init      = false;
-  int   sequence_length     = 0;
-  int   skip_between        = 0;
-  int   i;
-  int   frame_width;
-  int   frame_height;
-  int   resample_mode       = 0;
-  bool   downsample_flg      = 1;
-  
-  int           written, skip;
-  YuvFrame      cFrame;
-  
-  print_usage_and_exit ((argc<7||argc>24), argv[0],"number of arguments");
-  rp->m_iInWidth        = atoi  ( argv[1] );
-  rp->m_iInHeight       = atoi  ( argv[2] );
-  input_file            = fopen ( argv[3], "rb" );
-  rp->m_iGlobWidth      = atoi  ( argv[4] );
-  rp->m_iGlobHeight     = atoi  ( argv[5] );
-  output_file           = fopen ( argv[6], "wb" );
-  
-  print_usage_and_exit ((input_file == NULL||output_file == NULL),argv[0],"failed to open file");
-  print_usage_and_exit(((rp->m_iInWidth>rp->m_iGlobWidth&&rp->m_iInHeight<rp->m_iGlobHeight)||(rp->m_iInWidth<rp->m_iGlobWidth&&rp->m_iInHeight>rp->m_iGlobHeight)),argv[0],"mixed Upsample and Downsample");
-  
-  fseek(  input_file, 0, SEEK_END );
-  sequence_length = ((unsigned int)ftell(input_file)/(3*rp->m_iInWidth*rp->m_iInHeight/2));
-  fseek(  input_file, 0, SEEK_SET );
-  
-  i = 7;
-  while (i<argc)
+  //===== cropping only =====
+  if( ! resampling && ! upsampling )
   {
-    if (strcmp(argv[i], "-crop")==0)
+    rcDownConvert.cropping              ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+    return;
+  }
+  
+  //===== upsampling ====
+  if( upsampling )
+  {
+    if( resamplingMethod == 1 )
     {
-      print_usage_and_exit ((method == 1), argv[0], "No crop in Dyadic method");
-      print_usage_and_exit (((method == 2)&&(rp->m_iInWidth<rp->m_iGlobWidth)), argv[0], "No crop only while upsampling");
-      print_usage_and_exit ((crop_init||argc<(i+3)||argc==(i+4)||argc==(i+5)),argv[0],"Error in crop parameters");
-      crop_init = true;
+      rcDownConvert.upsamplingDyadic    ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+      return;
+    }
+    if( resamplingMethod == 3 )
+    {
+      rcDownConvert.upsamplingLanczos   ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+      return;
+    }
+    if( resamplingMethod == 4 )
+    {
+      rcDownConvert.upsampling6tapBilin ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+      return;
+    }
+    if( resamplingMode < 4 )
+    {
+      rcDownConvert.upsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP, resamplingMode == 3 );
+      return;
+    }
+    {
+      duplicateFrame( rcFrame );
+      rcRP.m_bRefLayerBotFieldFlag  = ( resamplingMode == 5 );
+      rcDownConvert.upsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+      rcRP.m_bRefLayerBotFieldFlag  = ( resamplingMode != 5 );
+      rcDownConvert.upsamplingSVC       ( rcFrame.y.data2, rcFrame.y.stride, rcFrame.u.data2, rcFrame.u.stride, rcFrame.v.data2, rcFrame.v.stride, &rcRP );
+      rcRP.m_bRefLayerBotFieldFlag  = false; // reset
+      return;
+    }
+  }
+
+  //===== downsampling =====
+  if( resamplingMethod == 1 )
+  {
+    rcDownConvert.downsamplingDyadic    ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+    return;
+  }
+  if( resamplingMode < 4 )
+  {
+    rcDownConvert.downsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP, resamplingMode == 3 );
+    return;
+  }
+  if( ! bSecondInputFrame )
+  {
+    rcRP.m_bRefLayerBotFieldFlag = ( resamplingMode == 5 );
+    rcDownConvert.downsamplingSVC       ( rcFrame.y.data,  rcFrame.y.stride, rcFrame.u.data,  rcFrame.u.stride, rcFrame.v.data,  rcFrame.v.stride, &rcRP );
+    rcRP.m_bRefLayerBotFieldFlag = false; // reset
+  }
+  else
+  {
+    rcRP.m_bRefLayerBotFieldFlag = ( resamplingMode == 4 );
+    rcDownConvert.downsamplingSVC       ( rcFrame.y.data2, rcFrame.y.stride, rcFrame.u.data2, rcFrame.u.stride, rcFrame.v.data2, rcFrame.v.stride, &rcRP );
+    rcRP.m_bRefLayerBotFieldFlag = false; // reset
+    combineTopAndBottomInFrame ( rcFrame, resamplingMode == 4 );
+  }
+}
+
+
+
+int
+main( int argc, char *argv[] )
+{
+  //===== set standard resize parameters =====
+  ResizeParameters cRP;
+  cRP.m_bRefLayerFrameMbsOnlyFlag   = true;
+  cRP.m_bFrameMbsOnlyFlag           = true;
+  cRP.m_bRefLayerFieldPicFlag       = false;
+  cRP.m_bFieldPicFlag               = false;
+  cRP.m_bRefLayerBotFieldFlag       = false;
+  cRP.m_bBotFieldFlag               = false;
+  cRP.m_bRefLayerIsMbAffFrame       = false;
+  cRP.m_bIsMbAffFrame               = false;
+  cRP.m_iRefLayerChromaPhaseX       = -1;
+  cRP.m_iRefLayerChromaPhaseY       = 0;
+  cRP.m_iChromaPhaseX               = -1;
+  cRP.m_iChromaPhaseY               = 0;
+  cRP.m_iRefLayerFrmWidth           = 0;
+  cRP.m_iRefLayerFrmHeight          = 0;
+  cRP.m_iScaledRefFrmWidth          = 0;
+  cRP.m_iScaledRefFrmHeight         = 0;
+  cRP.m_iFrameWidth                 = 0;
+  cRP.m_iFrameHeight                = 0;
+  cRP.m_iLeftFrmOffset              = 0;
+  cRP.m_iTopFrmOffset               = 0;
+  cRP.m_iExtendedSpatialScalability = 0;
+  cRP.m_iLevelIdc                   = 0;
+
+  //===== init parameters =====
+  FILE* inputFile                   = 0;
+  FILE* outputFile                  = 0;
+  FILE* croppingParametersFile      = 0;
+  int   resamplingMethod            = 0;
+  int   resamplingMode              = 0;
+  bool  croppingInitialized         = false;
+  bool  phaseInitialized            = false;
+  bool  methodInitialized           = false;
+  bool  resampling                  = false;
+  bool  upsampling                  = false;
+  int   numSpatialDyadicStages      = 0;
+  int   skipBetween                 = 0;
+  int   skipAtStart                 = 0;
+  int   maxNumOutputFrames          = 0;
+
+
+  //===== read input parameters =====
+  print_usage_and_exit( ( argc < 7 || argc > 24 ), argv[0], "wrong number of arguments" );
+  cRP.m_iRefLayerFrmWidth   = atoi  ( argv[1] );
+  cRP.m_iRefLayerFrmHeight  = atoi  ( argv[2] );
+  inputFile                 = fopen ( argv[3], "rb" );
+  cRP.m_iFrameWidth         = atoi  ( argv[4] );
+  cRP.m_iFrameHeight        = atoi  ( argv[5] );
+  outputFile                = fopen ( argv[6], "wb" );
+  print_usage_and_exit( ! inputFile,  argv[0], "failed to open input file" );
+  print_usage_and_exit( ! outputFile, argv[0], "failed to open input file" );
+  print_usage_and_exit( cRP.m_iRefLayerFrmWidth > cRP.m_iFrameWidth && cRP.m_iRefLayerFrmHeight < cRP.m_iFrameHeight, argv[0], "mixed upsampling and downsampling not supported" );
+  print_usage_and_exit( cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth && cRP.m_iRefLayerFrmHeight > cRP.m_iFrameHeight, argv[0], "mixed upsampling and downsampling not supported" );
+  for( int i = 7; i < argc; )
+  {
+    if( ! strcmp( argv[i], "-crop" ) )
+    {
+      print_usage_and_exit( resamplingMethod == 1,                                                argv[0], "cropping in dyadic method not supported" );
+      print_usage_and_exit( resamplingMethod == 2 && cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth, argv[0], "cropping only in upsampling not supported" );
+      print_usage_and_exit( croppingInitialized || argc < i+3 || argc == i+4 || argc == i+5,      argv[0], "error in cropping parameters" );
+      croppingInitialized = true;
       i++;
-      print_usage_and_exit (!(atoi(argv[i])==0||atoi(argv[i])==1),argv[0],"Wrong crop type");
-      rp->m_iExtendedSpatialScalability = (atoi(argv[i]))+1;
-      print_usage_and_exit(((rp->m_iExtendedSpatialScalability!=1)&&(rp->m_iExtendedSpatialScalability!=2)),argv[0],"Wrong crop type");
-      i++;
-      if (rp->m_iExtendedSpatialScalability==1)
+      cRP.m_iExtendedSpatialScalability = atoi( argv[i++] ) + 1;
+      print_usage_and_exit( cRP.m_iExtendedSpatialScalability != 1 && cRP.m_iExtendedSpatialScalability != 2, argv[0], "unsupported cropping mode" );
+      if( cRP.m_iExtendedSpatialScalability == 1 )
       {
-        rp->m_iPosX = atoi  ( argv[i] );
-        i++;
-        rp->m_iPosY = atoi  ( argv[i] );
-        i++;
-        rp->m_iOutWidth   = atoi  ( argv[i] );
-        i++;
-        rp->m_iOutHeight  = atoi  ( argv[i] );
-        i++;
-        print_usage_and_exit ((rp->m_iPosX&1||rp->m_iPosY&1||rp->m_iOutWidth&1||rp->m_iOutHeight&1), argv[0], "Crop parameters must be event values");
-        print_usage_and_exit (((method==2)&&((rp->m_iOutWidth != min(rp->m_iInWidth, rp->m_iGlobWidth))||(rp->m_iOutHeight != min(rp->m_iInHeight, rp->m_iGlobHeight)))), argv[0], "Crop dimensions must be the same as the minimal dimensions");
-        print_usage_and_exit ((rp->m_iOutWidth>max(rp->m_iInWidth,rp->m_iGlobWidth)||rp->m_iOutHeight>max(rp->m_iInHeight,rp->m_iGlobHeight)||rp->m_iOutWidth<min(rp->m_iInWidth,rp->m_iGlobWidth)||rp->m_iOutHeight<min(rp->m_iInHeight,rp->m_iGlobHeight)),argv[0],"wrong crop window size");
-        print_usage_and_exit (!((rp->m_iPosX+rp->m_iOutWidth)<=max(rp->m_iInWidth,rp->m_iGlobWidth)&&(rp->m_iPosY+rp->m_iOutHeight)<=max(rp->m_iInHeight,rp->m_iGlobHeight)),argv[0],"wrong crop window size and origin");
+        cRP.m_iLeftFrmOffset      = atoi( argv[i++] );
+        cRP.m_iTopFrmOffset       = atoi( argv[i++] );
+        cRP.m_iScaledRefFrmWidth  = atoi( argv[i++] );
+        cRP.m_iScaledRefFrmHeight = atoi( argv[i++] );
+        print_usage_and_exit( cRP.m_iLeftFrmOffset     & 1 || cRP.m_iTopFrmOffset       & 1,                                              argv[0], "cropping parameters must be even values" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmWidth & 1 || cRP.m_iScaledRefFrmHeight & 1,                                              argv[0], "cropping parameters must be even values" );
+        print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmWidth  != min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),  argv[0], "crop dimensions must be the same as the minimal dimensions" );
+        print_usage_and_exit( resamplingMethod == 2 && cRP.m_iScaledRefFrmHeight != min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),  argv[0], "crop dimensions must be the same as the minimal dimensions" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmWidth  < min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iScaledRefFrmHeight < min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),                            argv[0], "wrong crop window size" );
+        print_usage_and_exit( cRP.m_iLeftFrmOffset + cRP.m_iScaledRefFrmWidth  > max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ),     argv[0], "wrong crop window size and origin" );
+        print_usage_and_exit( cRP.m_iTopFrmOffset  + cRP.m_iScaledRefFrmHeight > max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight ),     argv[0], "wrong crop window size and origin" );
       }
       else
       {
-        crop_file_init = true;
-        crop_file = fopen ( argv[i], "rb" );
-        i++;
-        print_usage_and_exit ((crop_file == NULL),argv[0],"failed to open crop parameters file");
+        croppingParametersFile = fopen( argv[i++], "rb" );
+        print_usage_and_exit( ! croppingParametersFile, argv[0], "failed to open cropping parameters file" );
       }
     }
-    else if (strcmp(argv[i], "-phase")==0)
+    else if( ! strcmp( argv[i], "-phase" ) )
     {
-      print_usage_and_exit ((method != 0), argv[0], "Phase only in normative resampling");
-           
-      print_usage_and_exit ((phase_init||argc<(i+5)),argv[0],"wrong number of phase parameters");
+      print_usage_and_exit( resamplingMethod != 0,          argv[0], "phases only supported in normative resampling" );
+      print_usage_and_exit( phaseInitialized || argc < i+5, argv[0], "wrong number of phase parameters" );
+      phaseInitialized = true;
       i++;
-      phase_init = true;
-      rp->m_iBaseChromaPhaseX  = atoi  ( argv[i] );
-      i++;
-      rp->m_iBaseChromaPhaseY  = atoi  ( argv[i] );
-      i++;
-      rp->m_iChromaPhaseX = atoi  ( argv[i] );
-      i++;
-      rp->m_iChromaPhaseY = atoi  ( argv[i] );
-      i++;
-      print_usage_and_exit ((rp->m_iBaseChromaPhaseX>1||rp->m_iBaseChromaPhaseX<-1||rp->m_iBaseChromaPhaseY>1||rp->m_iBaseChromaPhaseY<-1||rp->m_iChromaPhaseX>1||rp->m_iChromaPhaseX<-1||rp->m_iChromaPhaseY>1||rp->m_iChromaPhaseY<-1),argv[0],"Wrong phase parameters (range : [-1, 1])");
+      cRP.m_iRefLayerChromaPhaseX = atoi( argv[i++] );
+      cRP.m_iRefLayerChromaPhaseY = atoi( argv[i++] );
+      cRP.m_iChromaPhaseX         = atoi( argv[i++] );
+      cRP.m_iChromaPhaseY         = atoi( argv[i++] );
+      print_usage_and_exit( cRP.m_iRefLayerChromaPhaseX > 0 || cRP.m_iRefLayerChromaPhaseX < -1, argv[0], "wrong phase x parameters (range : [-1, 0])");
+      print_usage_and_exit( cRP.m_iRefLayerChromaPhaseY > 1 || cRP.m_iRefLayerChromaPhaseY < -1, argv[0], "wrong phase x parameters (range : [-1, 1])");
+      print_usage_and_exit( cRP.m_iChromaPhaseX         > 0 || cRP.m_iChromaPhaseX         < -1, argv[0], "wrong phase x parameters (range : [-1, 0])");
+      print_usage_and_exit( cRP.m_iChromaPhaseY         > 1 || cRP.m_iChromaPhaseY         < -1, argv[0], "wrong phase x parameters (range : [-1, 1])");
     }
-
-    else if (strcmp(argv[i], "-resample_mode")==0)
+    else if( ! strcmp( argv[i], "-resample_mode" ) )
     {
-      print_usage_and_exit ((method != 0), argv[0], "resample_mode only in normative resampling");
-           
-      resample = true;
+      print_usage_and_exit( resamplingMethod != 0,                    argv[0], "resample_mode only supported in normative resampling" );
+      resampling      = true;
       i++;
-      resample_mode     = atoi  ( argv[i] );
-      if (resample_mode > 5 || resample_mode < 0) resample_mode = 0;
-      i++;
+      resamplingMode  = atoi( argv[i++] );
+      print_usage_and_exit( resamplingMode < 0 || resamplingMode > 5, argv[0], "unsupported resample_mode" );
     }      
     else if (i == 7)
     {
-      method_init = true;
-      method = atoi  ( argv[i] );
-      i++;
-      print_usage_and_exit ((method<0||method>4),argv[0],"wrong method");
-      if (method>2)
+      methodInitialized = true;
+      resamplingMethod  = atoi( argv[i++] );
+      print_usage_and_exit( resamplingMethod < 0 || resamplingMethod > 4, argv[0], "unsupported method" );
+      if( resamplingMethod > 2 )
       {
-        fprintf( stderr, "\nNot normative, nor dyadic resampling or not crop only\n");
-        print_usage_and_exit((rp->m_iInWidth>rp->m_iGlobWidth||rp->m_iInHeight>rp->m_iGlobHeight),argv[0],"Wrong method for downsampling");
+        print_usage_and_exit( cRP.m_iRefLayerFrmWidth  > cRP.m_iFrameWidth,  argv[0], "method 3 and 4 are not supported for downsampling" );
+        print_usage_and_exit( cRP.m_iRefLayerFrmHeight > cRP.m_iFrameHeight, argv[0], "method 3 and 4 are not supported for downsampling" );
       }
-      if (!(method == 2))
+      if( resamplingMethod != 2 )
       {
-        resample = true;
-        if (rp->m_iInWidth < rp->m_iGlobWidth)
-        {
-          upsample = true;
-					downsample_flg = !upsample;//TMM_INTERLACE
-        }
+        resampling  = true;
+        upsampling  = ( cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth );
       }
-      if (method==1)
+      if( resamplingMethod == 1 )
       {
-        if (upsample)
+        if( upsampling )
         {
-          int div = rp->m_iGlobWidth / rp->m_iInWidth;
-          if      (div == 1) iStage = 0;
-          else if (div == 2) iStage = 1;
-          else if (div == 4) iStage = 2;
-          else if (div == 8) iStage = 3;
-          else { print_usage_and_exit(true, argv[0], "ratio not supported for dyadic upsampling method"); }
-          print_usage_and_exit((((rp->m_iGlobWidth / rp->m_iInWidth)*rp->m_iInWidth)!=rp->m_iGlobWidth), argv[0],"ratio is not dyadic");
-          print_usage_and_exit((rp->m_iInHeight*div != rp->m_iGlobHeight), argv[0], "Not the same ratio for Height and Width in dyadic mode");
+          int      div  = cRP.m_iFrameWidth / cRP.m_iRefLayerFrmWidth;
+          if     ( div == 1) numSpatialDyadicStages =  0;
+          else if( div == 2) numSpatialDyadicStages =  1;
+          else if( div == 4) numSpatialDyadicStages =  2;
+          else if( div == 8) numSpatialDyadicStages =  3;
+          else               numSpatialDyadicStages = -1;
+          print_usage_and_exit( numSpatialDyadicStages < 0,                           argv[0], "ratio not supported for dyadic upsampling method" );
+          print_usage_and_exit( div * cRP.m_iRefLayerFrmWidth  != cRP.m_iFrameWidth,  argv[0], "ratio is not dyadic in dyadic mode" );
+          print_usage_and_exit( div * cRP.m_iRefLayerFrmHeight != cRP.m_iFrameHeight, argv[0], "different horizontal and vertical ratio in dyadic mode" );
         }
         else
         {
-          int div = rp->m_iInWidth / rp->m_iGlobWidth;
-          if      (div == 1) {iStage = 0; fprintf( stderr, "\nNo resampling in dyadic method\n");}
-          else if (div == 2)  iStage = 1;
-          else if (div == 4)  iStage = 2;
-          else if (div == 8)  iStage = 3;
-          else { print_usage_and_exit(true, argv[0], "ratio not supported for dyadic upsampling method"); }
-          print_usage_and_exit((((rp->m_iInWidth / rp->m_iGlobWidth)*rp->m_iGlobWidth)!=rp->m_iInWidth), argv[0],"ratio is not dyadic");
-          print_usage_and_exit((rp->m_iGlobHeight*div != rp->m_iInHeight), argv[0], "Not the same ratio for Height and Width in dyadic mode");
+          int      div  = cRP.m_iRefLayerFrmWidth / cRP.m_iFrameWidth;
+          if     ( div == 1) numSpatialDyadicStages =  0;
+          else if( div == 2) numSpatialDyadicStages =  1;
+          else if( div == 4) numSpatialDyadicStages =  2;
+          else if( div == 8) numSpatialDyadicStages =  3;
+          else               numSpatialDyadicStages = -1;
+          print_usage_and_exit( numSpatialDyadicStages < 0,                           argv[0], "ratio not supported for dyadic downsampling method" );
+          print_usage_and_exit( div * cRP.m_iFrameWidth  != cRP.m_iRefLayerFrmWidth,  argv[0], "ratio is not dyadic in dyadic mode" );
+          print_usage_and_exit( div * cRP.m_iFrameHeight != cRP.m_iRefLayerFrmHeight, argv[0], "different horizontal and vertical ratio in dyadic mode" );
         }
       }
     }
-    else if (i == 8)
+    else if( i == 8 )
     {
-      temporal_stages = atoi ( argv[i] );
-      i++;
-      print_usage_and_exit ((temporal_stages<0),argv[0],"Error in temporal stage");
+      int TStages = atoi( argv[i++] );
+      skipBetween = ( 1 << TStages ) - 1;
+      print_usage_and_exit( TStages < 0,              argv[0], "negative number of temporal stages" );
     }
-    else if (i == 9)
+    else if( i == 9 )
     {
-      skip_at_start = atoi ( argv[i] );
-      i++;
-      print_usage_and_exit (((skip_at_start<0)||(skip_at_start>=sequence_length)),argv[0],"Error in number of frame to skip at start");
+      skipAtStart = atoi( argv[i++] );
+      print_usage_and_exit( skipAtStart < 0,          argv[0], "negative number of skipped frames at start" );
     }
-    else if (i == 10)
+    else if( i == 10 )
     {
-      number_frames = atoi ( argv[i] );
-      i++;
-      print_usage_and_exit ((number_frames<0),argv[0],"Error in number of frames");
+      maxNumOutputFrames = atoi( argv[i++] );
+      print_usage_and_exit( maxNumOutputFrames < 0 ,  argv[0], "negative number of output frames" );
     }
     else
     {
-      print_usage_and_exit (true,argv[0]);
+      print_usage_and_exit( true, argv[0], "error in command line parameters" );
     }
   }
-  
-  if (!method_init)
+  if( ! methodInitialized )
   {
-    resample = true;
-    if (rp->m_iInWidth < rp->m_iGlobWidth)
+    resampling  = true;
+    upsampling  = ( cRP.m_iRefLayerFrmWidth < cRP.m_iFrameWidth );
+  }
+  if( ! croppingInitialized )
+  {
+    if( resamplingMethod == 2 )
     {
-      upsample = true;
-			downsample_flg = !upsample;//TMM_INTERLACE
+      cRP.m_iScaledRefFrmWidth  = min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+      cRP.m_iScaledRefFrmHeight = min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+    }
+    else
+    {
+      cRP.m_iScaledRefFrmWidth  = max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+      cRP.m_iScaledRefFrmHeight = max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
     }
   }
-  
-  if (!crop_init)
+
+  //===== set basic parameters for resampling control =====
+  if( resamplingMethod == 0 )
   {
-    rp->m_iOutWidth = max(rp->m_iInWidth,rp->m_iGlobWidth);
-    rp->m_iOutHeight = max(rp->m_iInHeight,rp->m_iGlobHeight);
-  }
-  
-  if (method == 2)
-  {
-    if (!crop_init)
+    if( resamplingMode == 1 )
     {
-      rp->m_iOutWidth = min(rp->m_iInWidth,rp->m_iGlobWidth);
-      rp->m_iOutHeight = min(rp->m_iInHeight,rp->m_iGlobHeight);
-      fprintf( stderr, "\nCrop parameters set to default 0,0,min_width,min_height\n");
+      cRP.m_bRefLayerFrameMbsOnlyFlag = false;
+      cRP.m_bFrameMbsOnlyFlag         = false;
     }
-  }
-  
-  skip_between    = ( 1 << temporal_stages ) - 1;
-  
-  if ( number_frames > ((sequence_length - skip_at_start+((1<<temporal_stages)-1))>>temporal_stages) )
-  {
-    if (number_frames != (1 << 30))
+    else if( resamplingMode == 2 || resamplingMode == 3 )
     {
-      fprintf( stderr, "\nWrong number of frames\n");
-    }
-    number_frames   = ((sequence_length - skip_at_start+((1<<temporal_stages)-1))>>temporal_stages);
-  }
-    
-  frame_width = (rp->m_iInWidth > rp->m_iGlobWidth) ? rp->m_iInWidth : rp->m_iGlobWidth;
-  frame_height = (rp->m_iInHeight > rp->m_iGlobHeight) ? rp->m_iInHeight : rp->m_iGlobHeight;  
-    
-  createFrame( &cFrame, frame_width*2, frame_height*2 );
-  cDownConvert.init( frame_width*2, frame_height*2 );
-  
-  long start_time = clock();
-  
-  for( skip = skip_at_start, rp->m_iPoc = 0, written = 0; ((rp->m_iPoc < sequence_length)&&(written < number_frames)); rp->m_iPoc++, skip = skip_between )
-  {
-    for( int num_skip = skip; num_skip > 0; num_skip-- )
-    {
-      fseek( input_file, rp->m_iInWidth*rp->m_iInHeight*3/2, SEEK_CUR);
-    }
-    rp->m_iPoc += skip;
-    
-    if ((rp->m_iPoc < sequence_length)&&(written < number_frames))
-    {
-      clearFrame      ( &cFrame );
-      
-      if(method)
-      readFrame       ( &cFrame, input_file, rp->m_iInWidth, rp->m_iInHeight );      
-      else
-        ess_readPic   ( &cFrame, input_file, rp->m_iInWidth, rp->m_iInHeight, downsample_flg, resample_mode );
-      
-      if (crop_file_init&&rp->m_iExtendedSpatialScalability==2)
+      cRP.m_bFrameMbsOnlyFlag     = false;
+      if( ! upsampling )
       {
-        updateCropParametersFromFile(rp, crop_file, method, argv[0]);
+        cRP.m_bFieldPicFlag       = true;
+        cRP.m_bBotFieldFlag       = ( resamplingMode == 3 );
       }
-      if ((rp->m_iOutWidth==min(rp->m_iInWidth, rp->m_iGlobWidth))&&
-          (rp->m_iOutHeight==min(rp->m_iInHeight, rp->m_iGlobHeight))&&
-           method!=0)
+    }
+    else if( resamplingMode == 4 || resamplingMode == 5 )
+    {
+      cRP.m_bRefLayerFrameMbsOnlyFlag = false;
+      cRP.m_bRefLayerFieldPicFlag     = true;
+    }
+  }
+
+  //===== initialize classes =====
+  YuvFrame    cFrame;
+  DownConvert cDownConvert;
+  {
+    int maxWidth  = max( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  );
+    int maxHeight = max( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight );
+    createFrame( cFrame, maxWidth, maxHeight );
+    cDownConvert.init(   maxWidth, maxHeight );
+  }
+
+  printf("Resampler\n\n");
+
+  //===== loop over frames =====
+  int   skip              = skipAtStart;
+  int   writtenFrames     = 0;
+  int   numInputFrames    = ( resamplingMode >= 4 && ! upsampling ? 2 : 1 );
+  int   numOutputFrames   = ( resamplingMode >= 4 &&   upsampling ? 2 : 1 );
+  bool  bFinished         = false;
+  long  startTime         = clock();
+  while( ! bFinished )
+  {
+    for( int inputFrame = 0; inputFrame < numInputFrames && ! bFinished; inputFrame++ )
+    {
+      //===== read input frame =====
+      for( int numToRead = skip + 1; numToRead > 0 && ! bFinished; numToRead-- )
       {
-        resample = false;
+        bFinished = ( readFrame( cFrame, inputFile, cRP.m_iRefLayerFrmWidth, cRP.m_iRefLayerFrmHeight, inputFrame != 0 ) != 0 );
       }
-      else
+      skip = skipBetween;
+      if( cRP.m_iExtendedSpatialScalability == 2 && ! bFinished )
       {
-        resample = true;
-      }
-      
-      if ((!resample) && (!upsample))
-      {
-        cDownConvert.crop(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp);      
-      }
-      else
-      {
-        if (upsample)
-        {
-          switch (method)
-          {
-          case 1:
-            {
-              FILTER_UP
-              FILTER_UP_CHROMA
-              cDownConvert.upsample(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp, iStage, piFilter, piFilter_chroma);
-              break;
-            }
-          case 0:
-            {
-              ess_resamplePic ( &cFrame, cDownConvert, rp->m_iInWidth, rp->m_iInHeight, rp->m_iGlobWidth, rp->m_iGlobHeight,
-                                rp->m_iPosX, rp->m_iPosY, rp->m_iOutWidth, rp->m_iOutHeight, rp->m_iBaseChromaPhaseX, rp->m_iChromaPhaseY,
-                                rp->m_iChromaPhaseX, rp->m_iChromaPhaseY, downsample_flg, resample_mode);
-              break;
-            }
-          case 3:
-          case 4:
-            {
-              cDownConvert.upsample_non_dyadic(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp, method);
-              break;
-            }
-          default:
-            {
-              print_usage_and_exit (true, argv[0], "Wrong upsample");
-            }
-          }
-        }
-        if (!upsample)
-        {
-          switch (method)
-          {
-          case 0:
-            {
-              //cDownConvert.downsample3(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp);
-              ess_resamplePic ( &cFrame, cDownConvert, rp->m_iInWidth, rp->m_iInHeight, rp->m_iGlobWidth, rp->m_iGlobHeight,
-                                rp->m_iPosX, rp->m_iPosY, rp->m_iOutWidth, rp->m_iOutHeight, rp->m_iBaseChromaPhaseX, rp->m_iChromaPhaseY,
-                                rp->m_iChromaPhaseX, rp->m_iChromaPhaseY, downsample_flg, resample_mode);
-              break;
-            }
-          case 1:
-            {
-              FILTER_DOWN
-              cDownConvert.downsample(cFrame.lum.data, cFrame.lum.width, cFrame.cb.data, cFrame.cb.width, cFrame.cr.data, cFrame.cr.width, rp, iStage, piFilter);
-              break;
-            }
-          default:
-            {
-              print_usage_and_exit (true, argv[0], "Wrong downsample");
-            }
-          }
-        }
+        updateCropParametersFromFile( cRP, croppingParametersFile, resamplingMethod, argv[0] );
       }
 
-      if(method!=0)
-      writeFrame ( &cFrame, output_file,  rp->m_iGlobWidth, rp->m_iGlobHeight );
+      //===== set resampling parameter =====
+      if( resamplingMethod != 0 &&
+          cRP.m_iScaledRefFrmWidth  == min( cRP.m_iRefLayerFrmWidth,  cRP.m_iFrameWidth  ) &&
+          cRP.m_iScaledRefFrmHeight == min( cRP.m_iRefLayerFrmHeight, cRP.m_iFrameHeight )   )
+      {
+        resampling = false;
+      }
       else
-      ess_writePic ( &cFrame, output_file, rp->m_iGlobWidth, rp->m_iGlobHeight, downsample_flg, resample_mode );
-
-      if(resample_mode>3){
-        if(downsample_flg){
-          fseek( input_file, skip*rp->m_iInWidth*rp->m_iInHeight*3/2, SEEK_CUR);
-          rp->m_iPoc += skip;
-       //   written++;
-        }
-        if (crop_file_init&&rp->m_iExtendedSpatialScalability==2)
-        {
-          updateCropParametersFromFile(rp, crop_file, method, argv[0]);
-        }
-        ess_readPic   ( &cFrame, input_file, rp->m_iInWidth, rp->m_iInHeight, downsample_flg, resample_mode+2 );
-        ess_resamplePic ( &cFrame, cDownConvert, rp->m_iInWidth, rp->m_iInHeight, rp->m_iGlobWidth, rp->m_iGlobHeight,
-                          rp->m_iPosX, rp->m_iPosY, rp->m_iOutWidth, rp->m_iOutHeight, rp->m_iBaseChromaPhaseX, rp->m_iChromaPhaseY,
-                          rp->m_iChromaPhaseX, rp->m_iChromaPhaseY, downsample_flg, resample_mode+2 );
-        ess_writePic ( &cFrame, output_file, rp->m_iGlobWidth, rp->m_iGlobHeight, downsample_flg, resample_mode+2 );
+      {
+        resampling = true;
       }
 
-      fprintf( stderr, "\r%6d frames converted", ++written );
+      //===== resample input frame =====
+      if( ! bFinished )
+      {
+        resampleFrame( cFrame, cDownConvert, cRP, resamplingMethod, resamplingMode, resampling, upsampling, inputFrame != 0 );
+      }
+    }
+
+    //===== write output frame =====
+    if( ! bFinished )
+    {
+      Bool bWriteTwoFrames = ( numOutputFrames == 2 && ( maxNumOutputFrames == 0 || writtenFrames + 1 < maxNumOutputFrames ) );
+      writeFrame( cFrame, outputFile, cRP.m_iFrameWidth, cRP.m_iFrameHeight, bWriteTwoFrames );
+      writtenFrames += ( bWriteTwoFrames ? 2 : 1 );
+      bFinished      = ( maxNumOutputFrames != 0 && writtenFrames == maxNumOutputFrames );
+      fprintf( stderr, "\r%6d frames converted", writtenFrames );
     }
   }
-  long end_time = clock();
-  
-  deleteFrame( &cFrame     );
-  fclose     ( input_file  );
-  fclose     ( output_file );
-  
-  if (crop_file_init)
-  {
-    fclose   ( crop_file   );
-  }
-  
-  fprintf(stderr, "\n" );
-  double delta_in_s = (double)(end_time - start_time) / CLOCKS_PER_SEC;
-  fprintf(stderr, "in %.2lf seconds => %.0lf ms/frame\n", delta_in_s, delta_in_s/written*1000);
-  //TMM_FIX
-  delete rp;
+  long  endTime           = clock();
 
+  deleteFrame( cFrame );
+  fclose     ( inputFile );
+  fclose     ( outputFile );
+  if( croppingParametersFile )
+  {
+    fclose   ( croppingParametersFile );
+  }
+
+  fprintf( stderr, "\n" );
+  double deltaInSecond = (double)( endTime - startTime) / (double)CLOCKS_PER_SEC;
+  fprintf( stderr, "in %.2lf seconds => %.0lf ms/frame\n", deltaInSecond, deltaInSecond / (double)writtenFrames * 1000.0 );
+  if( writtenFrames < maxNumOutputFrames )
+  {
+    fprintf( stderr, "\nNOTE: less output frames generated than specified!!!\n\n" );
+  }
   return 0;
 }
+

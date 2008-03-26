@@ -142,9 +142,6 @@
 				RelativePath="..\H264AVCDecoderLib\CreaterH264AVCDecoder.cpp">
 			</File>
 			<File
-				RelativePath="..\H264AVCDecoderLib\FGSSubbandDecoder.cpp">
-			</File>
-			<File
 				RelativePath="..\H264AVCDecoderLib\GOPDecoder.cpp">
 			</File>
 			<File
@@ -192,9 +189,6 @@
 			</File>
 			<File
 				RelativePath="..\H264AVCDecoderLib\DecError.h">
-			</File>
-			<File
-				RelativePath="..\H264AVCDecoderLib\FGSSubbandDecoder.h">
 			</File>
 			<File
 				RelativePath="..\H264AVCDecoderLib\GOPDecoder.h">

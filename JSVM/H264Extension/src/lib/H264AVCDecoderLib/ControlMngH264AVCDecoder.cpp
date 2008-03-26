@@ -249,7 +249,6 @@ ErrVal ControlMngH264AVCDecoder::initSlice0( SliceHeader *rcSH )
 
   RNOK( m_apcYuvFullPelBufferCtrl [uiLayer]->initSlice( uiSizeY, uiSizeX, YUV_Y_MARGIN, YUV_X_MARGIN ) );
 
-  RNOK( xInitESS( rcSH ) );
 	m_uiInitialized[uiLayer] = true;
 
   return Err::m_nOK;
@@ -261,64 +260,6 @@ ErrVal ControlMngH264AVCDecoder::initSPS( SequenceParameterSet& rcSequenceParame
   m_auiMbXinFrame[uiLayer]  = rcSequenceParameterSet.getFrameWidthInMbs   ();
   m_auiMbYinFrame[uiLayer]  = rcSequenceParameterSet.getFrameHeightInMbs  ();
   return Err::m_nOK;
-}
-
-
-ErrVal ControlMngH264AVCDecoder::xInitESS( SliceHeader* pcSliceHeader )
-{
-  UInt uiLayer = pcSliceHeader->getDependencyId();
-
-  if( pcSliceHeader->getQualityId() == 0)
-  {
-    pcSliceHeader->getSPS().getResizeParameters(&m_ResizeParameter[uiLayer]);
-  }
-
-  if( ! pcSliceHeader->getNoInterLayerPredFlag() )
-  {
-    UInt  uiBaseLayer = pcSliceHeader->getRefLayerDependencyId();
-
-    ResizeParameters * curr = 0;
-    if(pcSliceHeader->getQualityId() == 0)
-    {
-      curr = &m_ResizeParameter[uiLayer];
-    }
-
-    curr->m_iInWidth  = m_auiMbXinFrame  [uiBaseLayer] << 4;
-    curr->m_iInHeight = m_auiMbYinFrame  [uiBaseLayer] << 4;
-
-    bool is_crop_aligned = (curr->m_iPosX%16 == 0) && (curr->m_iPosY%16 == 0);
-    if      ((curr->m_iInWidth == curr->m_iOutWidth) && (curr->m_iInHeight == curr->m_iOutHeight) &&
-             is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-      curr->m_iSpatialScalabilityType = SST_RATIO_1;
-    else if ((curr->m_iInWidth*2 == curr->m_iOutWidth) && (curr->m_iInHeight*2 == curr->m_iOutHeight) &&
-             is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-      curr->m_iSpatialScalabilityType = SST_RATIO_2;
-    else 
-      curr->m_iSpatialScalabilityType = SST_RATIO_X;
-
-    if ( curr->m_iExtendedSpatialScalability == ESS_NONE && curr->m_iSpatialScalabilityType > SST_RATIO_2 )
-    {
-      printf("\nControlMngH264AVCDecoder::initEES() - use of Extended Spatial Scalability not signaled\n");
-      return Err::m_nERR;
-    }
-
-    if(pcSliceHeader->getQualityId() == 0)
-    {
-      m_apcLayerDecoder[uiLayer]->setResizeParameters(&m_ResizeParameter[uiLayer]);
-    }
-
-    if (curr->m_iExtendedSpatialScalability == ESS_SEQ)
-    {
-      printf("Extended Spatial Scalability - crop win: origin=(%3d,%3d) - size=(%3d,%3d)\n\n",
-             curr->m_iPosX,curr->m_iPosY,curr->m_iOutWidth,curr->m_iOutHeight);
-    }
-    else if (curr->m_iExtendedSpatialScalability == ESS_PICT)
-    {
-      printf("Extended Spatial Scalability - crop win by picture\n\n");
-    }
-    
-  }
-	return Err::m_nOK;
 }
 
 

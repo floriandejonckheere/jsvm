@@ -170,6 +170,14 @@ SOURCE=.\PicEncoder.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\RateCtlBase.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\RateCtlQuadratic.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\RateDistortion.cpp
 # End Source File
 # Begin Source File

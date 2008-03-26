@@ -102,41 +102,35 @@ public MbDataStruct
 {
 public:
   MbData()
-  : m_pcMbTCoeffs         ( 0 )
-  , m_bHasMotionRefinement( false )
+  : m_pcMbTCoeffs( 0 )
   {
-    m_apcMbMvdData   [ LIST_0 ]  = NULL;
-    m_apcMbMvdData   [ LIST_1 ]  = NULL;
-    m_apcMbMotionData[ LIST_0 ]  = NULL;
-    m_apcMbMotionData[ LIST_1 ]  = NULL;
-    m_apcMbData[0]=m_apcMbData[1]=m_apcMbData[2]=m_apcMbData[3]=0;
-    m_aeMbMode[0]=m_aeMbMode[1]=m_aeMbMode[2]=m_aeMbMode[3]=NOT_AVAILABLE;//TMM_INTERLACE
-    m_aabBaseIntra[0][0]=m_aabBaseIntra[0][1]=m_aabBaseIntra[1][0]=m_aabBaseIntra[1][1]=false;
+    m_apcMbMvdData   [ LIST_0 ] = NULL;
+    m_apcMbMvdData   [ LIST_1 ] = NULL;
+    m_apcMbMotionData[ LIST_0 ] = NULL;
+    m_apcMbMotionData[ LIST_1 ] = NULL;
+    m_aabBaseIntra   [ 0 ][ 0 ] = false;
+    m_aabBaseIntra   [ 0 ][ 1 ] = false;
+    m_aabBaseIntra   [ 1 ][ 0 ] = false;
+    m_aabBaseIntra   [ 1 ][ 1 ] = false;
+  }
+  ~MbData()
+  {
   }
 
   UInt calcMbCbp ( UInt uiStart, UInt uiStop ) const;
   Bool calcBCBP  ( UInt uiStart, UInt uiStop, UInt uiPos ) const;
 
-  ~MbData()
-  {
-  }
-
   Void init(  MbTransformCoeffs*  pcMbTCoeffs,
               MbMvData*           pcMbMvdDataList0,
               MbMvData*           pcMbMvdDataList1,
               MbMotionData*       pcMbMotionDataList0,
-              MbMotionData*       pcMbMotionDataList1,
-              MbMotionData*       pcMbMotionDataBaseList0 = NULL,
-              MbMotionData*       pcMbMotionDataBaseList1 = NULL)
+              MbMotionData*       pcMbMotionDataList1 )
   {
-    AOT( m_bHasMotionRefinement );
     m_pcMbTCoeffs           = pcMbTCoeffs;
     m_apcMbMvdData[0]       = pcMbMvdDataList0;
     m_apcMbMvdData[1]       = pcMbMvdDataList1;
     m_apcMbMotionData[0]    = pcMbMotionDataList0;
     m_apcMbMotionData[1]    = pcMbMotionDataList1;
-    m_apcMbMotionDataBase[0] = pcMbMotionDataBaseList0;
-    m_apcMbMotionDataBase[1] = pcMbMotionDataBaseList1;
   }
 
 public:
@@ -148,137 +142,26 @@ public:
   const MbMvData&           getMbMvdData    ( ListIdx eListIdx )  const { return *m_apcMbMvdData   [ eListIdx ]; }
   const MbMotionData&       getMbMotionData ( ListIdx eListIdx )  const { return *m_apcMbMotionData[ eListIdx ]; }
 
-  MbMotionData&             getMbMotionDataBase ( ListIdx eListIdx )        { return m_bHasMotionRefinement ? *m_apcMbMotionDataBase[eListIdx] : *m_apcMbMotionData[ eListIdx ]; }
-  const MbMotionData&       getMbMotionDataBase ( ListIdx eListIdx )  const { return m_bHasMotionRefinement ? *m_apcMbMotionDataBase[eListIdx] : *m_apcMbMotionData[ eListIdx ]; }
-
-  Void                      switchMotionRefinement();
-  Void                      activateMotionRefinement();
-  Void                      deactivateMotionRefinement()                    { m_bHasMotionRefinement = false; }
-
   operator MbTransformCoeffs& ()                                        { return *m_pcMbTCoeffs; }
 
-  MbMode  getBaseMbMode(Int mbIdx){return m_aeMbMode[mbIdx];}
   Bool    isBaseIntra(Int iPosX, Int iPosY) const { return m_aabBaseIntra[iPosX][iPosY]; }
+  Void    setBaseIntra( Int iPosX, Int iPosY, Bool b ) { m_aabBaseIntra[iPosX][iPosY] = b; }
 
   Void    copy( const MbData& rcMbData );
   ErrVal  loadAll( FILE* pFile );
   ErrVal  saveAll( FILE* pFile );
 
-  ErrVal  copyMotionScale( const MbData& rcMbData, const MbData& rcMbDataBLComplementary, const PicType eMbPicType, const Bool bIsTopMbconst, const Int iDirectCopyMode=0);
-  ErrVal  copyMotionScale( const MbData& rcMbData, const PicType eMbPicType, const Int iDirectCopyMode);
- 
-
   ErrVal  copyMotion    ( const MbData& rcMbData, UInt uiSliceId = MSYS_UINT_MAX );
-  ErrVal  copyMotionBL  ( MbData& rcMbData, Bool bDirect8x8, MvScaleParam& rcMvScaleParam, UInt uiSliceId = MSYS_UINT_MAX );
-  ErrVal  upsampleMotion( MbData& rcMbData, Par8x8  ePar8x8, Bool bDirect8x8   );
 
   // functions for SVC to AVC rewrite
   ErrVal  copyTCoeffs   ( MbData& rcMbData );
   ErrVal  copyIntraPred ( MbData& rcMbData );
 
-	// TMM_ESS {
-  ErrVal upsampleMotionESS( MbData* pcBaseMbData,
-                            const UInt uiBaseMbStride,
-                            const Int aiPelOrig[2],
-                            const Bool bDirect8x8,
-                            ResizeParameters* pcParameters, 
-                            PosCalcParam& rcPosCalcParam, 
-                            MvScaleParam& rcMvScaleParam );
-  ErrVal  noUpsampleMotion(); 
-  ErrVal	configureFieldFrameMode( Bool bFieldFlag );
-  // TMM_ESS }
-  ErrVal  initMbCbp();
-
-
 protected:
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMvData*           m_apcMbMvdData[2];
   MbMotionData*       m_apcMbMotionData[2];
-
-  MbMode              m_eMbModeBase;
-  BlkMode             m_aBlkModeBase[4];
-  MbMotionData*       m_apcMbMotionDataBase[2];
-  Bool                m_bHasMotionRefinement;
-
-  static const UChar		    m_aucPredictor  [2][4];
-  static const Char         aaacGetPartInfo [7][4][16];
- 
-  MbData*                   m_apcMbData     [4];
-  SChar                     m_ascBl4x4RefIdx[2][16];// ref index of list_0/1 for each 4x4 blk
-  Mv                        m_acBl4x4Mv	    [2][16];// motion vectors of list_0/1 for each 4x4 blk
-  Bool                      m_abBl4x4FieldMb[2][16];
-	MbMode										m_aeMbMode      [4];    //TMM_INTERLACE
-  Bool                      m_aabBaseIntra  [2][2];
-
-  ErrVal xInitESS             ( );
-
-  ErrVal xSetInterIntraIndication( MbData*            pcBaseMbData,
-                                   UInt               uiBaseMbStride,
-                                   const Int          aiPelOrig[2],
-                                   ResizeParameters*  pcParameters, 
-                                   PosCalcParam&      rcPosCalcParam );
-
- ErrVal  xFillBaseMbData( MbData*           pcBaseMbData,
-                          const UInt        uiBaseMbStride,
-                          const Int         aiPelOrig[2],
-                          const Bool        bDirect8x8,
-                          ResizeParameters* pcParameters,
-                          PosCalcParam&     rcPosCalcParam,
-                          BlkMode           aeBlkMode[4][4],
-                          UInt&             uiMbBaseOrigX,
-                          UInt&             uiMbBaseOrigY );
- 
- ErrVal  xESSCheckRP( MbData*           pcBaseMbData,
-                      const UInt        uiBaseMbStride,
-                      const Int         aiPelOrig[2],
-                      ResizeParameters* pcParameters,
-                      PosCalcParam&     rcPosCalcParam );
-
- ErrVal xBuildPartInfo(   const Int aiPelOrig[2],
-                          ResizeParameters* pcParameters,
-                          PosCalcParam&     rcPosCalcParam,
-                          const  BlkMode     aeBlkMode[4][4],  
-                          UInt          aui4x4Idx[4][4],
-                          UInt          auiMbIdx [4][4], 
-                          Int          aaiPartInfo[4][4],
-                          Bool          abBl8x8Intra[4],
-                          const UInt    uiMbBaseOrigX,
-                          const UInt    uiMbBaseOrigY );
-
-  ErrVal xInheritMbMotionData ( const Int        aaiPartInfo[4][4]	);
-
-  ErrVal xInherit8x8MotionData( const UInt        aui4x4Idx  [4][4],
-                                const UInt        auiMbIdx	  [4][4], 
-                                const Int        aaiPartInfo[4][4],
-                                MvScaleParam&     rcMvScalParam );
-
-  ErrVal xScaleMotionParameters( MvScaleParam&  rcMvScaleParam );
-
-  ErrVal xMergeMotionData();
-
-  ErrVal xFillMbMvData		  ();
-							  
-  ErrVal xMergeBl8x8MvAndRef( const UInt uiBlIdx	);
-
-  ErrVal xFillMvandRefBl4x4	( const UInt uiBlIdx, const UChar* pucWhich, const UInt uiList, const SChar* psChosenRefIdx );
-
-  ErrVal xRemoveIntra8x8(const UInt uiBlIdx, 
-                          const Bool* abBl8x8Intra,
-                          UInt  aui4x4Idx[4][4],
-                          UInt  auiMbIdx[4][4],
-                          Int   aaiPartInfo[4][4]);
-
-  ErrVal  xCopyBl8x8(const UInt uiBlIdx,
-                      const UInt uiBlIdxCopy,
-                      UInt  aui4x4Idx[4][4],
-                      UInt  auiMbIdx[4][4],
-                      Int  aaiPartInfo[4][4]);
-
-  ErrVal xRemoveIntra4x4(const UInt uiBlIdx,
-                         Bool bWasBl4x4Intra[4], //TMM_JV
-                         UInt  aui4x4Idx[4],
-                         UInt  auiMbIdx[4],
-                         Int  aaiPartInfo[4]);
+  Bool                m_aabBaseIntra  [2][2];
 };
 
 
@@ -295,6 +178,7 @@ public :
   MbMvData          m_acMbMvData[2];
   MbMotionData      m_acMbMotionData[2];
 };
+
 
 H264AVC_NAMESPACE_END
 

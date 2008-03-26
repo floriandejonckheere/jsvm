@@ -119,7 +119,6 @@ public:
 
   ErrVal  encode            ( MbDataAccess& rcMbDataAccess,
                               MbDataAccess* pcMbDataAccessBase,
-                              Int						iSpatialScalabilityType,
                               Bool          bTerminateSlice ,
                               Bool          bSendTerminateSlice);
   UInt    getBitCount       ()  { return m_pcMbSymbolWriteIf->getNumberOfWrittenBits(); }

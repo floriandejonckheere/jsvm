@@ -89,7 +89,7 @@
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #==========================================================#  
-    bitratecheckrange  => 3,
+    bitratecheckrange  => 1,
     psnrcheckrange    =>  0,	
 
     tests      => [
@@ -114,7 +114,7 @@
             		        width => 320,
             		        height => 256,
             		        framerate => 30,
-            		        bitrate => 653,
+            		        bitrate => 651,
             		        psnr => 31.52,
             		      },
     		              #----------#
@@ -126,8 +126,8 @@
             		        width => 320,
             		        height => 256,
             		        framerate => 30,
-            		        bitrate => 535,
-            		        psnr => 30.39,
+            		        bitrate => 536,
+            		        psnr => 30.40,
         		        },
 		                  #----------#
                       # Test   3 #
@@ -175,7 +175,7 @@
             		        height => 256,
             		        framerate => 7.5,
             		        bitrate => 0,
-            		        psnr => 32.94
+            		        psnr => 32.95,
         		         },
         		          #----------#
                       # Test   7 #
@@ -187,7 +187,7 @@
             		        height => 256,
             		        framerate => 30/8,
             		        bitrate => 0,
-            		        psnr => 34.18,
+            		        psnr => 34.19,
             		      },	
 		                  #----------#
                       # Test   8 #
@@ -199,7 +199,7 @@
             		        height => 256,
             		        framerate => 30/16,
             		        bitrate => 0,
-            		        psnr => 35.30,
+            		        psnr => 35.31,
             		      },	
             		      #----------#
                       # Test   9 #
@@ -235,7 +235,7 @@
             		        height => 256,
             		        framerate => 15,
             		        bitrate => 0,
-            		        psnr => 28.73,
+            		        psnr => 28.72,
             		      },
             		      #----------#
                       # Test  12 #
@@ -259,7 +259,7 @@
             		        height => 128,
             		        framerate => 7.5,
             		        bitrate => 128,
-            		        psnr => 33.55,
+            		        psnr => 33.54,
             		      },
 		],
 }

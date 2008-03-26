@@ -1,6 +1,20 @@
 ﻿
 [Currently, all validation scripts work except for those that use error concealment features]
 
+
+JSVM_9_11 -> JSVM_9_12
+======================
+
+several bug fixes and corrections, including
+    - correction of resampling for intra (interlaced, constrained intra upsampling)
+    - correction of resampling for residual (interlaced)
+    - correction of resampling for motion data (interlaced)
+    - correction of bit rate specification in SEI message (Nokia)
+    - correction of CABAC parsing for new SVC syntax elements
+
+addition of new validation scripts
+
+
 JSVM_9_10 -> JSVM_9_11
 ======================
 

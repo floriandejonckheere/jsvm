@@ -40,7 +40,7 @@ layers      => [
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #==========================================================#  
-bitratecheckrange  => 3,
+bitratecheckrange  => 1,
 psnrcheckrange     => 0.1,     
 tests              => [
                        #----------#

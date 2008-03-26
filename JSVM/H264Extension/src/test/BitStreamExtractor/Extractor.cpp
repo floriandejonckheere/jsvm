@@ -132,6 +132,7 @@ Extractor::Extractor()
     m_auiDependencyId[uiScalableLayer] = 0;
     m_auiTempLevel[uiScalableLayer] = 0;
     m_auiQualityLevel[uiScalableLayer] = 0;
+    m_auiDirDepLayerDelta[uiScalableLayer][0] = m_auiDirDepLayerDelta[uiScalableLayer][1] = MSYS_UINT_MAX;
   }
 
   m_uiTruncateLayer = MSYS_UINT_MAX;
@@ -901,12 +902,15 @@ Extractor::xAnalyse()
     m_auiFrmHeight[uiScalableLayerId] = (pcTmpScalableSei->getFrmHeightInMbsMinus1(uiScalableLayerId)+1) << 4;
     m_adFramerate[uiScalableLayerId] = (pcTmpScalableSei->getAvgFrmRate(uiScalableLayerId))/256.0;
     m_aaauiScalableLayerId[uiDependencyId][uiTempLevel][uiQualityLevel] = uiScalableLayerId;
-    m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] = (Double) uiBitrate;
-    m_adTotalBitrate[uiScalableLayerId] = 0; //initial value
-    if(pcTmpScalableSei->getNumDirectlyDependentLayers(uiScalableLayerId))
-      m_auiDirDepLayer[uiScalableLayerId] = pcTmpScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayerId, 0); //JVT-S036 lsj
-    else
-      m_auiDirDepLayer[uiScalableLayerId] = MSYS_UINT_MAX;
+
+    m_adTotalBitrate[uiScalableLayerId] = (Double) uiBitrate;
+    if(pcTmpScalableSei->getNumDirectlyDependentLayers(uiScalableLayerId) >= 1)
+    {
+      m_auiDirDepLayerDelta[uiScalableLayerId][0] = pcTmpScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayerId, 0) + 1; //JVT-S036 lsj
+      if(pcTmpScalableSei->getNumDirectlyDependentLayers(uiScalableLayerId) == 2)
+        m_auiDirDepLayerDelta[uiScalableLayerId][1] = pcTmpScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayerId, 1) + 1; //JVT-S036 lsj
+    }
+
     if(!m_adFrameRate[uiTempLevel])
       m_adFrameRate[uiTempLevel] = pcTmpScalableSei->getAvgFrmRate(uiScalableLayerId)/256.0;
   }
@@ -923,81 +927,103 @@ Extractor::xAnalyse()
   }
   //NS leak fix extractor end
 
+  //calculate dependent relationship among scalable layers with list
+  for( UInt uiSId = 0; uiSId <= m_uiScalableNumLayersMinus1; uiSId++ )
+  {
+    if( m_auiDirDepLayerDelta[uiSId][0] != MSYS_UINT_MAX ) // with dependent layers
+    {
+      xMakeDepLayerList( uiSId-m_auiDirDepLayerDelta[uiSId][0], m_acDepLayerList[uiSId] );
+    }
+    if( m_auiDirDepLayerDelta[uiSId][1] != MSYS_UINT_MAX )
+    {
+      xMakeDepLayerList( uiSId-m_auiDirDepLayerDelta[uiSId][1], m_acDepLayerList[uiSId] );
+    }
+  }
   
+  //calculate min_bitrate and single_bitrate for each scalable layer (representation)
   for( UInt uiDependencyId = 0; uiDependencyId <= uiMaxLayer; uiDependencyId++)
   {
-    UInt uiMinTL = 0;
-    for( UInt uiTempLevel = uiMinTL; uiTempLevel <= uiMaxTempLevel; uiTempLevel++)
+    for( UInt uiTempLevel = 0; uiTempLevel <= uiMaxTempLevel; uiTempLevel++)
     {
-      for( UInt uiFGS = 0; uiFGS < MAX_QUALITY_LEVELS; uiFGS++)
+      for( UInt uiQualityLevel = 0; uiQualityLevel < MAX_QUALITY_LEVELS; uiQualityLevel++)
       {
-        UInt uiScalableLayerIdDes = getScalableLayer( uiDependencyId, uiTempLevel, uiFGS );
+        UInt uiScalableLayerIdDes = getScalableLayer( uiDependencyId, uiTempLevel, uiQualityLevel );
         if(uiScalableLayerIdDes == MSYS_UINT_MAX) // No such scalable layers
           continue;
-        if(m_auiDirDepLayer[uiScalableLayerIdDes] == MSYS_UINT_MAX) // no direct dependent layer
+        if(m_auiDirDepLayerDelta[uiScalableLayerIdDes][0] == MSYS_UINT_MAX) // no direct dependent layer
         { //usually base layer: D=0,T=0,Q=0
-          m_aadMinBitrate[uiDependencyId][uiTempLevel] = m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS];
-          m_adTotalBitrate[uiScalableLayerIdDes] = m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS];
+          m_aadMinBitrate[uiDependencyId][uiTempLevel] = m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] = m_adTotalBitrate[uiScalableLayerIdDes];
         }
         else//with direct dependent layer
         {
-          UInt uiScalableLayerIdBas = uiScalableLayerIdDes - m_auiDirDepLayer[uiScalableLayerIdDes];
+          UInt uiScalableLayerIdBas = uiScalableLayerIdDes - m_auiDirDepLayerDelta[uiScalableLayerIdDes][0];
           UInt uiDepLayer           = m_auiDependencyId[uiScalableLayerIdBas];
           UInt uiDepTL              = m_auiTempLevel[uiScalableLayerIdBas];
 
-          if( uiFGS ) //Q!=0
+          if( uiQualityLevel ) //Q!=0
           {
-            ROF(uiScalableLayerIdBas == getScalableLayer( uiDependencyId, uiTempLevel, uiFGS-1 ));
-            m_adTotalBitrate[uiScalableLayerIdDes] = m_adTotalBitrate[uiScalableLayerIdBas];
-            for(  UInt uiTIndex = 0; uiTIndex <= uiTempLevel; uiTIndex++)
-              m_adTotalBitrate[uiScalableLayerIdDes] += m_aaadSingleBitrate[uiDependencyId][uiTIndex][uiFGS]
-                *m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTIndex )
-                /m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel )
-                *(1 << (uiTempLevel-uiTIndex));
+            ROF(uiScalableLayerIdBas == getScalableLayer( uiDependencyId, uiTempLevel, uiQualityLevel-1 ));
+            m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] =
+              m_adTotalBitrate[uiScalableLayerIdDes] - m_adTotalBitrate[uiScalableLayerIdBas];
+             if( uiTempLevel && m_auiDirDepLayerDelta[uiScalableLayerIdDes][1] != MSYS_UINT_MAX ) // T>0, Q>0
+             {
+               //In this case, uiQualityLevel within all TL shall be considered
+               for( UInt uiTL = 0; uiTL < uiTempLevel; uiTL++ )
+               {
+                 Double dFactor = m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTL )
+                   /m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiTL )
+                   *m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiTempLevel )
+                   /m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel ); //this factor represents the factor of different TL to current TL
+                 m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] -= m_aaadSingleBitrate[uiDependencyId][uiTL][uiQualityLevel] * dFactor;
+               }
+             }
           }
           else if( uiTempLevel ) // T != 0, Q = 0
           {
-            m_aadMinBitrate[uiDependencyId][uiTempLevel] = m_aadMinBitrate[uiDepLayer][uiDepTL] 
-              *m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiDepTL )
+            Double dFactor = m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiDepTL )
               /m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiDepTL )
               *m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiTempLevel )
-              /m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel );
-            m_aadMinBitrate[uiDependencyId][uiTempLevel] += m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS];
-            m_adTotalBitrate[uiScalableLayerIdDes] = m_adTotalBitrate[uiScalableLayerIdBas]
-              *m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiDepTL )
-              /m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel )
-              *(1 << (uiTempLevel-uiDepTL));
-            m_adTotalBitrate[uiScalableLayerIdDes] += m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS];
-            if( uiDependencyId ) //D>0, T>0, Q=0
+              /m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel ); //this factor represents the factor of different TL to current TL
+            // default value: for D=0, or base layer without current TL exist           
+            m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] = m_adTotalBitrate[uiScalableLayerIdDes]
+              - m_adTotalBitrate[m_aaauiScalableLayerId[uiDepLayer][uiDepTL][uiQualityLevel]] * dFactor;
+            m_aadMinBitrate[uiDependencyId][uiTempLevel] = m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] + 
+              m_aadMinBitrate[uiDepLayer][uiDepTL] * dFactor;
+            if( uiDependencyId && m_auiDirDepLayerDelta[uiScalableLayerIdDes][1] != MSYS_UINT_MAX ) //D>0, T>0, Q=0
             {
-              UInt uiTmpDependencyId = uiDependencyId;
-              while(true)
-              {
-                UInt uiTmpScalableLayer = getScalableLayer(uiTmpDependencyId, 0, 0);
-                UInt uiTmpScalableLayerIdBas = uiTmpScalableLayer - m_auiDirDepLayer[uiTmpScalableLayer];
-                UInt uiTmpDepLayer = m_auiDependencyId[uiTmpScalableLayerIdBas];
-                UInt uiTmpDepQuality = m_auiQualityLevel[uiTmpScalableLayerIdBas];
+              //In this case, pictures with TL=uiTempLevel in base layer exists
+              UInt uiTmpScalableLayerIdBas = uiScalableLayerIdDes - m_auiDirDepLayerDelta[uiScalableLayerIdDes][1];
+              UInt uiTmpDepLayer = m_auiDependencyId[uiTmpScalableLayerIdBas];
               //bitrate calculation
-                m_aadMinBitrate[uiDependencyId][uiTempLevel] += m_aaadSingleBitrate[uiTmpDepLayer][uiTempLevel][uiFGS];
-                for( UInt uiQualityLevel = 0; uiQualityLevel <= uiTmpDepQuality; uiQualityLevel++ )
-                  m_adTotalBitrate[uiScalableLayerIdDes] += m_aaadSingleBitrate[uiTmpDepLayer][uiTempLevel][uiQualityLevel];
-                uiTmpDependencyId = uiTmpDepLayer;
-                if( !uiTmpDependencyId )
-                  break;
+              //store tmp value for base layer
+              m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] = 
+                m_adTotalBitrate[uiScalableLayerIdDes] - m_adTotalBitrate[uiTmpScalableLayerIdBas]; 
+              m_aadMinBitrate[uiDependencyId][uiTempLevel] = m_aadMinBitrate[uiTmpDepLayer][uiTempLevel];
+              //consider the same layer
+              for( UInt uiTL = 0; uiTL < uiTempLevel; uiTL++ )
+              {
+                dFactor = m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTL )
+                  /m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiTL )
+                  *m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiTempLevel )
+                  /m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel ); 
+                m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] -= m_aaadSingleBitrate[uiDependencyId][uiTL][uiQualityLevel] * dFactor;
+                m_aadMinBitrate[uiDependencyId][uiTempLevel] += m_aaadSingleBitrate[uiDependencyId][uiTL][uiQualityLevel] * dFactor;
               }
+              m_aadMinBitrate[uiDependencyId][uiTempLevel] += m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel];
             }
           }
           else //D!=0, T=0, Q=0
           {
+            m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel] = 
+              m_adTotalBitrate[uiScalableLayerIdDes] - m_adTotalBitrate[uiScalableLayerIdBas];
             m_aadMinBitrate[uiDependencyId][uiTempLevel]    = m_aadMinBitrate[uiDepLayer][uiTempLevel]
-              + m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS];
-            m_adTotalBitrate[uiScalableLayerIdDes] = m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiFGS]
-              + m_adTotalBitrate[uiScalableLayerIdBas]; 
+              + m_aaadSingleBitrate[uiDependencyId][uiTempLevel][uiQualityLevel];
           }
         }
       }
     }
   }
+
   xOutput( );
 
   //----- reset input file -----
@@ -1098,6 +1124,12 @@ Extractor::xSetParameters()
     m_uiTruncateLayer = uiExtLayer;
     m_uiTruncateLevel = uiExtLevel;
     m_uiTruncateFGSLayer = m_pcExtractorParameter->getMaxFGSLayerKept();
+
+    //Then reset all above scalable layers' bitrate within the same layerId
+    for( UInt uiTL = 0; uiTL < MAX_TEMP_LEVELS; uiTL++ )
+    for( UInt uiQL = 1; uiQL < MAX_QUALITY_LEVELS; uiQL++ )
+      m_aaadSingleBitrate[uiExtLayer][uiTL][uiQL] = 0;
+
     return Err::m_nOK;
   }
 //JVT-T054}
@@ -1181,6 +1213,77 @@ Extractor::xSetParameters()
 
   return Err::m_nOK;
 }
+
+ErrVal
+Extractor::xReCalculateBr()
+{  
+  UInt   uiLayer, uiTLevel, uiQLevel;
+
+  UInt   uiExtLayer  = m_pcExtractorParameter->getLayer();
+  UInt   uiExtLevel  = m_pcExtractorParameter->getLevel();
+
+  for( UInt uiScalableLayer = 0; uiScalableLayer <= m_uiScalableNumLayersMinus1; uiScalableLayer++ )
+  {
+    uiLayer = m_auiDependencyId[uiScalableLayer];
+    uiTLevel = m_auiTempLevel[uiScalableLayer];
+    uiQLevel = m_auiQualityLevel[uiScalableLayer];
+    if( uiLayer > uiExtLayer || uiTLevel > uiExtLevel || uiQLevel > m_aadTargetSNRLayer[uiLayer][uiTLevel] ) // scalable layer to be discarded
+    {
+      m_adTotalBitrate[uiScalableLayer] = 0;
+    } 
+    else if( uiLayer == 0 && uiQLevel <= m_aadTargetSNRLayer[uiLayer][uiTLevel] ) // all contained layers remain
+    {
+      ; // remain unchanged
+    }
+    else // dependent layer changes, re-calculate
+    {
+      m_adTotalBitrate[uiScalableLayer]   = m_aaadSingleBitrate[uiLayer][uiTLevel][uiQLevel]; //initialize
+      std::list<UInt>::iterator iIter     = m_acDepLayerList[uiScalableLayer].begin();
+      std::list<UInt>::iterator iIterEnd  = m_acDepLayerList[uiScalableLayer].end();
+      while ( iIter != iIterEnd )
+      {
+        UInt uiScalableLayerDep = (*iIter);
+        UInt uiLayerDep = m_auiDependencyId[uiScalableLayerDep];
+        UInt uiLevelDep = m_auiTempLevel[uiScalableLayerDep];
+        UInt uiQLDep = m_auiQualityLevel[uiScalableLayerDep];
+        Double dFactor = m_cScalableStreamDescription.getNumPictures( uiExtLayer, uiLevelDep )
+         /m_cScalableStreamDescription.getFrameRate(uiExtLayer, uiLevelDep )
+         *m_cScalableStreamDescription.getFrameRate(uiExtLayer, uiTLevel )
+         /m_cScalableStreamDescription.getNumPictures( uiExtLayer, uiTLevel ); //this factor represents the factor of different TL to current TL
+        
+        m_adTotalBitrate[uiScalableLayer] += m_aaadSingleBitrate[uiLayerDep][uiLevelDep][uiQLDep] * dFactor;
+        iIter++;
+      }
+    }
+  }
+  return Err::m_nOK;
+}
+
+Void
+Extractor::xMakeDepLayerList( UInt uiScalableLayerId, std::list<UInt>& DepLayerList )
+{
+  //This function add all dependent layersId for "uiScalableLayerId" into list "DepLayerList"
+  //First, push the current layer into list
+  if( DepLayerList.size()==0 || std::find(DepLayerList.begin(), DepLayerList.end(), uiScalableLayerId) == DepLayerList.end() ) //doesn't exist
+    DepLayerList.push_back( uiScalableLayerId ); 
+
+  if( m_acDepLayerList[uiScalableLayerId].size() == 0 )
+    return;
+  else
+  {
+    std::list<UInt>::iterator iIterBgn = m_acDepLayerList[uiScalableLayerId].begin();
+    std::list<UInt>::iterator iIterEnd = m_acDepLayerList[uiScalableLayerId].end();
+    while( iIterBgn != iIterEnd )
+    {
+      UInt uiLayerId = (*iIterBgn);
+      if( std::find(DepLayerList.begin(), DepLayerList.end(), uiLayerId ) == DepLayerList.end() ) //doesn't exist
+        DepLayerList.push_back( uiLayerId );
+      xMakeDepLayerList( uiLayerId, DepLayerList ); 
+      iIterBgn++;
+    }
+  }
+}
+
 
 ErrVal
 Extractor::go()
@@ -1717,6 +1820,8 @@ Extractor::xExtractPoints()
     currFrame[uiLayer] = 0;
   }
 
+  RNOK( xReCalculateBr() );
+
   // consider ROI ICU/ETRI DS
   const MyList<ExtractorParameter::Point>&          rcExtList   = m_pcExtractorParameter->getExtractionList();
   ROT( rcExtList.size() != 1 );
@@ -2252,7 +2357,10 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
       pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
       pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer
       )
-      bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
+    {
+      if( !(m_pcExtractorParameter->getKeepfExtraction() ) ) // -keepf is not in use
+        bExactMatchFlag[pcOldScalableSei->getDependencyId( uiScalableLayer )] = false;
+    }
     else if( uiMaxLayer != MSYS_UINT_MAX && uiMaxBitrate == MSYS_UINT_MAX &&  // -e
             pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
             pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer )
@@ -2268,7 +2376,17 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
 //JVT-S036 lsj end
     if( uiWantedScalableLayer == MSYS_UINT_MAX ) //-l, -t, -f
     {
-      if( pcOldScalableSei->getDependencyId( uiScalableLayer ) > uiMaxLayer    ||
+      if( m_pcExtractorParameter->getKeepfExtraction() ) // -keepf is in use
+      {
+        if( pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel ||
+            pcOldScalableSei->getDependencyId( uiScalableLayer ) > uiMaxLayer ||
+            pcOldScalableSei->getDependencyId( uiScalableLayer ) == uiMaxLayer &&
+            pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer
+          )
+          continue;
+      }
+      else // not -keepf
+        if( pcOldScalableSei->getDependencyId( uiScalableLayer ) > uiMaxLayer    ||
           pcOldScalableSei->getQualityId( uiScalableLayer ) > uiMaxFGSLayer ||
           pcOldScalableSei->getTemporalId( uiScalableLayer ) > uiMaxTempLevel  )
           continue;
@@ -2282,25 +2400,13 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
                              [pcOldScalableSei->getQualityId( uiScalableLayer )]  <= 0 )
         continue;
     }
-    else if( uiMaxBitrate == MSYS_UINT_MAX )//-sl
+    else //-sl, -b
     {
-      {
-        if( pcOldScalableSei->getDependencyId(uiScalableLayer) > m_auiDependencyId[uiWantedScalableLayer] ||
-        pcOldScalableSei->getTemporalId(uiScalableLayer)  > m_auiTempLevel[uiWantedScalableLayer]  )
+      if( uiWantedScalableLayer != uiScalableLayer &&
+        std::find( m_acDepLayerList[uiWantedScalableLayer].begin(), m_acDepLayerList[uiWantedScalableLayer].end(), uiScalableLayer ) 
+        == m_acDepLayerList[uiWantedScalableLayer].end() ) //not in dependent layer list
         continue;
-        else if( pcOldScalableSei->getDependencyId(uiScalableLayer) == m_auiDependencyId[uiWantedScalableLayer] &&
-          pcOldScalableSei->getQualityId(uiScalableLayer) > m_auiQualityLevel[uiWantedScalableLayer] )
-        continue;
-      }
     }
-    else //-b
-    {
-      if( pcOldScalableSei->getDependencyId ( uiScalableLayer )  > m_auiDependencyId[uiWantedScalableLayer] ||
-          pcOldScalableSei->getTemporalId( uiScalableLayer )  > m_auiTempLevel   [uiWantedScalableLayer] ||
-          pcOldScalableSei->getDependencyId ( uiScalableLayer ) == m_auiDependencyId[uiWantedScalableLayer] &&
-          pcOldScalableSei->getQualityId ( uiScalableLayer )  > m_auiQualityLevel[uiWantedScalableLayer] )
-        continue;
-     }
 
     pcNewScalableSei->setLayerId( uiNumScalableLayer, uiNumScalableLayer );
 // JVT S080 LMI {
@@ -2365,10 +2471,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         else if( uiMaxBitrate == MSYS_UINT_MAX )//-e
         {
 //cleaning
-      Double dBitrate = m_aaadSingleBitrate[pcOldScalableSei->getDependencyId(uiScalableLayer)]
-                                               [pcOldScalableSei->getTemporalId(uiScalableLayer)]
-                                               [pcOldScalableSei->getQualityId(uiScalableLayer)];
-      pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, dBitrate );
+          pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, m_adTotalBitrate[uiScalableLayer] );
 //~cleaning
         }
         else //-b
@@ -2378,11 +2481,11 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
             pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) * ( 1.0 - dSNRLayerDiff ) );
           else
             pcNewScalableSei->setAvgBitrateBPS( uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) );
-              }
+        }
       }
 
       else
-        pcNewScalableSei->setAvgBitrateBPS(uiNumScalableLayer, (Double)pcOldScalableSei->getAvgBitrateBPS( uiScalableLayer ) );
+        pcNewScalableSei->setAvgBitrateBPS(uiNumScalableLayer, m_adTotalBitrate[uiScalableLayer] );
     //JVT-S036 lsj start
       pcNewScalableSei->setMaxBitrateLayerBPS(uiNumScalableLayer, (Double)pcOldScalableSei->getMaxBitrateLayerBPS( uiScalableLayer ) );
       pcNewScalableSei->setMaxBitrateDecodedPictureBPS(uiNumScalableLayer, (Double)pcOldScalableSei->getMaxBitrateDecodedPictureBPS( uiScalableLayer ) );
@@ -2494,12 +2597,12 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
       {
         //change direct dependent layer info
         assert( j <= 2 );
-        UInt uiOldDepScaLayer  = uiScalableLayer - pcOldScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayer, j); //JVT-S036 lsj
+        UInt uiOldDepScaLayer  = uiScalableLayer - ( pcOldScalableSei->getNumDirectlyDependentLayerIdDeltaMinus1(uiScalableLayer, j)+1 );
         UInt uiOldDependencyId = pcOldScalableSei->getDependencyId(uiOldDepScaLayer);
         UInt uiOldTempLevel    = pcOldScalableSei->getTemporalId(uiOldDepScaLayer);
         UInt uiOldQualityLevel = pcOldScalableSei->getQualityId(uiOldDepScaLayer);
         UInt uiNewDepScaLayer  = tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][uiOldQualityLevel];
-        if( uiNewDepScaLayer == MSYS_UINT_MAX ) //this happens only when SIP is used and ALL packets of certain scalable layer is discarded
+        if( m_bUseSIP && uiNewDepScaLayer == MSYS_UINT_MAX ) // this happens only when SIP is used and ALL packets of certain scalable layer is discarded
         {
           while(uiOldTempLevel && uiNewDepScaLayer == MSYS_UINT_MAX)
           {
@@ -2510,32 +2613,32 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
         }
         if( j == 0 ) //direct dependent layer 0
         {
-        if( pcOldScalableSei->getQualityId(uiScalableLayer) ) // Q != 0
-        {
-          assert( uiNumScalableLayer - uiNewDepScaLayer >= 0 );
-        }
-        else if( pcOldScalableSei->getTemporalId(uiScalableLayer) ) //TL != 0, Q = 0
-        {
-          assert( uiNumScalableLayer - uiNewDepScaLayer >= 0 );
-        }
-        else // D != 0, T = 0, Q = 0
-        {
-          Int iFGS;
-          for( iFGS = (Int) uiOldQualityLevel; iFGS >=0; iFGS-- )
+          if( pcOldScalableSei->getQualityId(uiScalableLayer) ) // Q != 0
           {
-            if(tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][iFGS] != MSYS_UINT_MAX )
-              break;
+            assert( uiNumScalableLayer - uiNewDepScaLayer >= 0 );
           }
-          uiOldQualityLevel = ( iFGS >= 0 ) ? (UInt) iFGS : 0;
-          uiNewDepScaLayer = tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][uiOldQualityLevel];
-        }
+          else if( pcOldScalableSei->getTemporalId(uiScalableLayer) ) //TL != 0, Q = 0
+          {
+            assert( uiNumScalableLayer - uiNewDepScaLayer >= 0 );
+          }
+          else // D != 0, T = 0, Q = 0
+          {
+            Int iFGS;
+            for( iFGS = (Int) uiOldQualityLevel; iFGS >=0; iFGS-- )
+            {
+              if(tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][iFGS] != MSYS_UINT_MAX )
+                break;
+            }
+            uiOldQualityLevel = ( iFGS >= 0 ) ? (UInt) iFGS : 0;
+            uiNewDepScaLayer = tmpScaLayerId[uiOldDependencyId][uiOldTempLevel][uiOldQualityLevel];
+          }
 
-        if( uiNewDepScaLayer == MSYS_UINT_MAX ) //this should not happen
-        {
-          printf("No reasonable dependent layer exist!! Errror!!\n");
-            exit(1);
-        }
-        pcNewScalableSei->setDirectlyDependentLayerIdDeltaMinus1(uiNumScalableLayer, j, uiNumScalableLayer - uiNewDepScaLayer); //JVT-S036 lsj
+          if( uiNewDepScaLayer == MSYS_UINT_MAX ) //this should not happen
+          {
+            printf("No reasonable dependent layer exist!! Errror!!\n");
+              exit(1);
+          }
+          pcNewScalableSei->setDirectlyDependentLayerIdDeltaMinus1(uiNumScalableLayer, j, uiNumScalableLayer - uiNewDepScaLayer - 1);
         }
         else if( j == 1 ) // j == 1, direct dependent layer 1
         {
@@ -2566,7 +2669,7 @@ Extractor::xChangeScalableSEIMesssage( BinData *pcBinData, BinData *pcBinDataSEI
           printf("No reasonable dependent layer exist!! Errror!!\n");
           exit(1);
         }
-        pcNewScalableSei->setDirectlyDependentLayerIdDeltaMinus1(uiNumScalableLayer, j, uiNumScalableLayer - uiNewDepScaLayer); //JVT-S036 lsj
+        pcNewScalableSei->setDirectlyDependentLayerIdDeltaMinus1(uiNumScalableLayer, j, uiNumScalableLayer - uiNewDepScaLayer - 1);
         }
       }
     }
@@ -2846,7 +2949,9 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
   UInt uiMaxTempLevel        = m_pcExtractorParameter->getLevel();
   UInt uiMaxFGSLayer         = m_pcExtractorParameter->getFGSLayer();
   Double dMaxFGSLayer        = uiMaxFGSLayer;
-  UInt uiMaxBitrate          = (UInt) m_pcExtractorParameter->getBitrate()*1000;
+  UInt uiMaxBitrate          = (UInt) m_pcExtractorParameter->getBitrate(); 
+  if( uiMaxBitrate != MSYS_UINT_MAX )
+    uiMaxBitrate *= 1000; //change to bps
   UInt uiKeepScalableLayer   = 0;
   UInt uiDecreaseBitrate     = MSYS_UINT_MAX;
 // JVT-T073 {
@@ -2858,13 +2963,66 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
   {
     //-l, -t, -f
     uiKeepScalableLayer = 0;
-    for ( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+    if( m_pcExtractorParameter->getKeepfExtraction() ) //keepf is in use, re-calculation is not needed
     {
-      if( m_cScalableStreamDescription.getDependencyId( uiScalableLayer ) <= uiMaxLayer    &&
-          m_cScalableStreamDescription.getFGSLevel( uiScalableLayer )     <= uiMaxFGSLayer &&
-          m_cScalableStreamDescription.getTempLevel( uiScalableLayer )    <= uiMaxTempLevel   )
-      uiKeepScalableLayer++;
+      for( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+      {
+        if( ( m_cScalableStreamDescription.getTempLevel( uiScalableLayer )    <= uiMaxTempLevel )
+          &&( m_cScalableStreamDescription.getDependencyId( uiScalableLayer ) <= uiMaxLayer ||
+            ( m_cScalableStreamDescription.getDependencyId( uiScalableLayer ) == uiMaxLayer &&
+              m_cScalableStreamDescription.getFGSLevel( uiScalableLayer )     <= uiMaxFGSLayer ) 
+            )
+          )
+         uiKeepScalableLayer++;
+      }
     }
+    else // -l -t -f without -keepf, need to re-calculate bitrate
+    {
+      Bool *bUnchanged = 0;
+      if( uiMaxFGSLayer < MAX_QUALITY_LEVELS ) //using -f option, need to re-calculate bitrate
+        bUnchanged = new Bool [m_cScalableStreamDescription.getNumOfScalableLayers()];
+      for ( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+      {
+        if( uiMaxFGSLayer < MAX_QUALITY_LEVELS )
+          bUnchanged[uiScalableLayer] = false; //default value
+        UInt uiLayer = m_auiDependencyId[uiScalableLayer]; //m_cScalableStreamDescription.getDependencyId( uiScalableLayer );
+        UInt uiTempLevel = m_auiTempLevel[uiScalableLayer]; //m_cScalableStreamDescription.getTempLevel( uiScalableLayer );
+        UInt uiQualityLevel = m_auiQualityLevel[uiScalableLayer]; //m_cScalableStreamDescription.getFGSLevel( uiScalableLayer );
+        if( uiLayer <= uiMaxLayer && uiQualityLevel <= uiMaxFGSLayer && uiTempLevel <= uiMaxTempLevel   )
+        {
+          uiKeepScalableLayer++;
+          if( uiMaxFGSLayer < MAX_QUALITY_LEVELS ) // re-calculate
+          {
+            bUnchanged[uiScalableLayer] = true; //keep current scalable layer
+            if( m_acDepLayerList[uiScalableLayer].size() ) //check dependent layers
+            {
+              Double dTmpBR = 0; //store re-calculated bitrate
+              std::list<UInt>::iterator iIter     = m_acDepLayerList[uiScalableLayer].begin();
+              std::list<UInt>::iterator iIterEnd  = m_acDepLayerList[uiScalableLayer].end();
+              while( iIter != iIterEnd )
+              {
+                UInt uiTmpSL = (*iIter);
+                if( bUnchanged[uiTmpSL] == true ) //dependent layer not  exist
+                {
+                  UInt uiL = m_auiDependencyId[uiTmpSL]; //m_cScalableStreamDescription.getDependencyId( uiTmpSL );
+                  UInt uiTL = m_auiTempLevel[uiTmpSL]; //m_cScalableStreamDescription.getTempLevel( uiTmpSL );
+                  UInt uiQL = m_auiQualityLevel[uiTmpSL]; //m_cScalableStreamDescription; //??????????????
+                  Double dFactor = m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTL )
+                   /m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiTL )
+                   *m_cScalableStreamDescription.getFrameRate(uiMaxLayer, uiTempLevel )
+                   /m_cScalableStreamDescription.getNumPictures( uiMaxLayer, uiTempLevel ); //this factor represents the factor of different TL to current TL
+                  dTmpBR += m_aaadSingleBitrate[uiL][uiTL][uiQL] * dFactor;
+                } //bUnchanged
+                iIter++;
+              } // while
+              m_adTotalBitrate[uiScalableLayer] = dTmpBR + m_aaadSingleBitrate[uiLayer][uiTempLevel][uiQualityLevel];
+            } //if list size
+          } // if uiMaxFGSLayer
+        } //if all <=
+      } //for
+      if( uiMaxFGSLayer != 1000 )
+        delete[] bUnchanged;
+    } //else
   }
   else
   {
@@ -2877,71 +3035,26 @@ Extractor::xExtractLayerLevel() // this function for extracting using "-sl, -l, 
     }
     else if( uiMaxBitrate != MSYS_UINT_MAX )
     {
-      UInt uiCurrBitrate, uiPrevBitrate = 0, uiFinalBitrate = MSYS_UINT_MAX;
-      UInt uiPos = 0;
-      for( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
+      if( uiMaxBitrate < (UInt)(m_adTotalBitrate[0]+0.5) )
       {
-        uiCurrBitrate = (UInt)(m_adTotalBitrate[uiScalableLayer]+0.5);
-
-        if( uiCurrBitrate == uiMaxBitrate )
-        {
-          uiFinalBitrate = uiCurrBitrate;
-          uiPos = uiScalableLayer;
-          uiDecreaseBitrate = 0;
-          break;
-        }
-        else if( uiCurrBitrate > uiMaxBitrate && uiPrevBitrate < uiMaxBitrate &&
-          m_cScalableStreamDescription.getFGSLevel( uiScalableLayer ) != 0 )
-        {
-          uiFinalBitrate = uiCurrBitrate;
-          uiPos = uiScalableLayer;
-          uiDecreaseBitrate = uiMaxBitrate - uiPrevBitrate;
-          break;
-        }
-        uiPrevBitrate = uiCurrBitrate;
+        WARNING( true, "Bit-rate underflow for allowable minimum bitrate! Scalable layer 0 is determined to be output.\n" );
+        uiWantedScalableLayer = 0;
       }
-      if( uiDecreaseBitrate == MSYS_UINT_MAX )  // No FGS layer satisfy
+      else
       {
-        uiFinalBitrate = 0;
-        uiPrevBitrate = (UInt)(m_adTotalBitrate[0]+0.5);
-        if( uiPrevBitrate > uiMaxBitrate )
+        for( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
         {
-          printf( "Too small bitrate. No packet will be released. \n" );
-          exit( 1 );
-        }
-        for( UInt uiScalableLayer = 1; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
-        {
-          uiCurrBitrate = (UInt)( m_adTotalBitrate[uiScalableLayer]+0.5);
-          if( uiCurrBitrate <= uiMaxBitrate && uiCurrBitrate > uiFinalBitrate )
+          if( uiMaxBitrate < (UInt)(m_adTotalBitrate[uiScalableLayer]+0.5) )
           {
-            uiFinalBitrate = uiCurrBitrate;
-            uiPos = uiScalableLayer;
+            uiWantedScalableLayer = uiScalableLayer-1;
+            break;
           }
         }
-        uiMaxBitrate = uiFinalBitrate;
       }
-      uiWantedScalableLayer = uiPos;
-    }
-    if( uiWantedScalableLayer != MSYS_UINT_MAX )
-    {
-      uiMaxLayer     = m_cScalableStreamDescription.getDependencyId( uiWantedScalableLayer );
-      uiMaxTempLevel = m_cScalableStreamDescription.getTempLevel( uiWantedScalableLayer );
-      uiMaxFGSLayer  = m_cScalableStreamDescription.getFGSLevel ( uiWantedScalableLayer );
-    }
-    for( UInt uiScalableLayer = 0; uiScalableLayer < m_cScalableStreamDescription.getNumOfScalableLayers(); uiScalableLayer++ )
-    {
-      if( m_cScalableStreamDescription.getTempLevel( uiScalableLayer ) <= uiMaxTempLevel )
-      {
-        if( m_cScalableStreamDescription.getDependencyId( uiScalableLayer ) == uiMaxLayer   &&
-            m_cScalableStreamDescription.getFGSLevel    ( uiScalableLayer ) <= uiMaxFGSLayer||
-            m_cScalableStreamDescription.getDependencyId( uiScalableLayer ) <  uiMaxLayer     )
-            uiKeepScalableLayer++;
-      }
-
-    }
-    uiMaxLayer = MSYS_UINT_MAX;
-    uiMaxTempLevel = MSYS_UINT_MAX;
-    uiMaxFGSLayer = MSYS_UINT_MAX;
+    } 
+    else if( m_uiExtractNonRequiredPics != MSYS_UINT_MAX ) // non-required
+      uiWantedScalableLayer = m_cScalableStreamDescription.getNumOfScalableLayers() - 1;
+    uiKeepScalableLayer = m_acDepLayerList[uiWantedScalableLayer].size()+1;
   }
   if( uiKeepScalableLayer == 0 )
   {
@@ -4313,6 +4426,12 @@ Extractor::xSetParameters_SIP()
     m_uiTruncateLayer = uiExtLayer;
     m_uiTruncateLevel = uiExtLevel;
     m_uiTruncateFGSLayer = m_pcExtractorParameter->getMaxFGSLayerKept();
+
+    //Then reset all above scalable layers' bitrate within the same layerId
+    for( UInt uiTL = 0; uiTL < MAX_TEMP_LEVELS; uiTL++ )
+    for( UInt uiQL = 1; uiQL < MAX_QUALITY_LEVELS; uiQL++ )
+      m_aaadSingleBitrate[uiExtLayer][uiTL][uiQL] = 0;
+
     return Err::m_nOK;
   }
 //JVT-T054}
@@ -4661,41 +4780,7 @@ Extractor::xOutput( )
 		
     //JVT-W046 }
   }
-  //JVT-W051 {
-  //printf( "\n DLayer" " QLayer" " Profile"" Level" "   QLAvgBitrate" "   QLMaxBitrate\n");
-  //for ( UInt uiDependencyLayer = 0; uiDependencyLayer <= m_uiQl_num_dId_minus1; uiDependencyLayer++ )
-  //{
-  //  UInt uiCurrDependencyLayer = m_uiQl_Dependency_Id[uiDependencyLayer];
-  //  for ( UInt uiQualityLayer = 0; uiQualityLayer <= m_uiQl_num_minus1[uiCurrDependencyLayer]; uiQualityLayer++ )
-  //  {
-  //    UInt uiCurrQualityLayer = m_uiQl_Id[uiCurrDependencyLayer][uiQualityLayer];
-  //    Int32 uiQLProfile_Level	= m_uiQl_Profile_Level_Idc[uiCurrDependencyLayer][uiCurrQualityLayer];
-  //    UInt uiProfile = uiQLProfile_Level >> 16;
-  //    UInt uiLevel = (uiQLProfile_Level << 24) >> 24;
-  //    UInt dQLAvgBitrate		= m_dQl_Avg_Bitrate[uiCurrDependencyLayer][uiCurrQualityLayer];
-  //    UInt dQLMaxBitrate		= m_dQl_Max_Bitrate[uiCurrDependencyLayer][uiCurrQualityLayer];
-  //    printf( "  %3d    %3d  %5d   %5d   %11d     %11d\n",
-  //      uiCurrDependencyLayer, uiCurrQualityLayer, uiProfile, uiLevel, dQLAvgBitrate, dQLMaxBitrate );		
-  //  }
-  //}
-  printf( "\n DLayer" " PLayer" " Profile"" Level" "   PrAvgBitrate" "   PrMaxBitrate\n");
-  for ( UInt uiDependencyLayer = 0; uiDependencyLayer <= m_uiPr_num_dId_minus1; uiDependencyLayer++ )
-  {
-    UInt uiCurrDependencyLayer = m_uiPr_Dependency_Id[uiDependencyLayer];
-    for ( UInt uiPriorityLayer = 0; uiPriorityLayer <= m_uiPr_num_minus1[uiCurrDependencyLayer]; uiPriorityLayer++ )
-    {
-      UInt uiCurrPriorityLayer = m_uiPr_Id[uiCurrDependencyLayer][uiPriorityLayer];
-      Int32 uiPrProfile_Level	= m_uiPr_Profile_Level_Idc[uiCurrDependencyLayer][uiCurrPriorityLayer];
-      UInt uiProfile = uiPrProfile_Level >> 16;
-      UInt uiLevel = (uiPrProfile_Level << 24) >> 24;
-      UInt dPrAvgBitrate		= m_dPr_Avg_Bitrate[uiCurrDependencyLayer][uiCurrPriorityLayer]/1000;
-      UInt dPrMaxBitrate		= m_dPr_Max_Bitrate[uiCurrDependencyLayer][uiCurrPriorityLayer]/1000;
-      printf( "  %3d    %3d  %5d   %5d   %11d     %11d\n",
-        uiCurrDependencyLayer, uiCurrPriorityLayer, uiProfile, uiLevel, dPrAvgBitrate, dPrMaxBitrate );		
-    }
-  }
-  //JVT-W051 }
-//SEI changes update }
+  //SEI changes update }
 }
 
 Void

@@ -157,7 +157,6 @@ public:
                                         UInt          uiMbInRow,
                                         Double        dLambda,
                                         Int           iMaxDeltaQp,
-                                        Int						iSpatialScalabilityType,
 																				PicType       ePicType );
 // TMM_INTERLACE{
   ErrVal  encodeHighPassPictureMbAff  ( UInt&         ruiMbCoded,
@@ -174,8 +173,7 @@ public:
                                         MbDataCtrl*   pcMbDataCtrlInterlBaseMotion,
                                         UInt          uiMbInRow,
                                         Double        dLambda,
-                                        Int           iMaxDeltaQp,
-                                        Int						iSpatialScalabilityType);
+                                        Int           iMaxDeltaQp );
 
 ErrVal encodeIntraPictureMbAff      ( UInt&					ruiBits,
                                         ControlData&	rcControlData, 
@@ -231,10 +229,12 @@ ErrVal encodeIntraPictureMbAff      ( UInt&					ruiBits,
   ErrVal xAddTCoeffs2            ( MbDataAccess&      rcMbDataAccess,
                                    MbDataAccess&      rcMbDataAccessBase );
 
+  Void    setIntraBLFlagArrays( Bool* apabBaseModeFlagAllowedArrays[2] )
+  {
+    m_apabBaseModeFlagAllowedArrays[0] = apabBaseModeFlagAllowedArrays[0];
+    m_apabBaseModeFlagAllowedArrays[1] = apabBaseModeFlagAllowedArrays[1];
+  }
 
-  //JVT-U106 Behaviour at slice boundaries{
-  Void    setIntraBLFlag  (Bool* b){m_pbIntraBLFlag=b;}
-  //JVT-U106 Behaviour at slice boundaries}
 public://protected://JVT-X046 
   MbEncoder* m_pcMbEncoder;
   MbCoder* m_pcMbCoder;
@@ -246,10 +246,7 @@ public://protected://JVT-X046
   UInt  m_uiFrameCount;
   SliceType m_eSliceType;
   Bool m_bTraceEnable;
-  ResizeParameters*				m_pcResizeParameters; 
-  //JVT-U106 Behaviour at slice boundaries{
-  Bool* m_pbIntraBLFlag;
-  //JVT-U106 Behaviour at slice boundaries}
+  Bool* m_apabBaseModeFlagAllowedArrays[2];
 	//JVT-X046 {
   UInt m_uiSliceMode;
   UInt m_uiSliceArgument;

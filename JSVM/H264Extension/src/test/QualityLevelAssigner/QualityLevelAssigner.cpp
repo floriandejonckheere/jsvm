@@ -80,7 +80,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 */
 
 
-#include "QualityLevelAssigner.h"
 
 #include "ReadBitstreamFile.h"
 #include "WriteBitstreamToFile.h"
@@ -89,6 +88,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "QualityLevelParameter.h"
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/CommonDefs.h"
+#include "QualityLevelAssigner.h"
 #include <math.h>
 #if WIN32
 #if VC2005
@@ -98,6 +98,7 @@ FILE _iob[3] = {__iob_func()[0], __iob_func()[1], __iob_func()[2]};
 #include <io.h>
 #include <windows.h>
 #endif
+
 
 using namespace h264;
 
@@ -1711,5 +1712,4 @@ QualityLevelAssigner::xInsertPriorityLevelSEI( WriteBitstreamToFile* pcWriteBitS
   return Err::m_nOK;
 }
 //SEI changes update }
-
 

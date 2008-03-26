@@ -158,7 +158,6 @@ public:
 
   ErrVal  getBaseLayerStatus  ( UInt&         ruiBaseLayerId,
 																UInt&         ruiBaseLayerIdMotionOnly,
-																Int&          riSpatialScalabilityType,
 																UInt          uiLayerId,
 																PicType       ePicType,
 																UInt					uiTemporalId );
@@ -166,22 +165,18 @@ public:
 	ErrVal  getBaseLayerDataAvailability  ( Frame*&       pcFrame,
 																					Frame*&       pcResidual,
 																					MbDataCtrl*&  pcMbDataCtrl,
-																					Bool&         bConstrainedIPredBL,
-																					Bool&         bForCopyOnly,
-																					Int           iSpatialScalability,
 																					UInt          uiBaseLayerId,
 																					Bool          bMotion,
 																					Bool&         bBaseDataAvailable,
 																					PicType       ePicType,
 																					UInt					uiTemporalId );
 
-	ErrVal  getBaseLayerData    ( Frame*&       pcFrame,
+	ErrVal  getBaseLayerData    ( SliceHeader&  rcELSH,
+                                Frame*&       pcFrame,
 																Frame*&       pcResidual,
 																MbDataCtrl*&  pcMbDataCtrl,
 																MbDataCtrl*&  pcMbDataCtrlEL,
-																Bool&         bConstrainedIPredBL,
-																Bool&         bForCopyOnly,
-																Int           iSpatialScalability,
+																Bool          bSpatialScalability,
 																UInt          uiBaseLayerId,
 																Bool					bMotion,
 																PicType       ePicType,
@@ -207,12 +202,9 @@ public:
 	Bool bGetScalableSeiMessage	() const { return m_bScalableSeiMessage; }
 	Void SetVeryFirstCall				()			 { m_bVeryFirstCall = true; }
 
-	Double m_aaauidSeqBits [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
-// BUG_FIX liuhui{
 	UInt   getScalableLayerId( UInt uiLayer, UInt uiTempLevel, UInt uiFGS ) const { return m_aaauiScalableLayerId[uiLayer][uiTempLevel][uiFGS]; }
-	Double m_aaadSingleLayerBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
-	UInt   m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
-// BUG_FIX liuhui}
+  Void   setBitrateRep( UInt uiLayer, UInt uiTL, UInt uiQL, Double dVal ) { m_aaadLayerBitrateRep[uiLayer][uiTL][uiQL] = dVal; }
+  Double getBitrateRep( UInt uiLayer, UInt uiTL, UInt uiQL ) const { return m_aaadLayerBitrateRep[uiLayer][uiTL][uiQL]; }
 
 	//JVT-W052
 	CodingParameter*  getCodingParameter()  { return m_pcCodingParameter;}
@@ -290,6 +282,9 @@ protected:
 	Bool		m_bConstraint3Flag[MAX_LAYERS];
 	Bool		m_bIsFirstGOP;
 	//JVT-W051 }
+
+  Double m_aaadLayerBitrateRep [MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];            
+	UInt   m_aaauiScalableLayerId[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS];
 
 	//JVT-W052
 public:

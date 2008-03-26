@@ -95,6 +95,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/TraceFile.h"
 #include "H264AVCCommonLib/MbDataCtrl.h"
+#include "H264AVCCommonLib/Frame.h"
 // JVT-V068 HRD {
 #include "H264AVCCommonLib/ParameterSetMng.h"
 // JVT-V068 HRD }
@@ -292,22 +293,11 @@ public:
                                       PicBufferList&                  rcPicBufferInputList,
                                       PicBufferList&                  rcPicBufferOutputList,
                                       PicBufferList&                  rcPicBufferUnusedList,
-                                      Double                          aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS]
-                                      // JVT-V068 HRD {
-									  ,ParameterSetMng*                pcParameterSetMng
-                                      // JVT-V068 HRD {
-									                  );
+									                    ParameterSetMng*                pcParameterSetMng );
   ErrVal        finish              ( UInt&                           ruiNumCodedFrames,
                                       Double&                         rdOutputRate,
                                       Double                          aaadOutputFramerate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
                                       Double                          aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
-
-// BUG_FIX liuhui{
-  ErrVal        SingleLayerFinish(   Double                           aaadBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS],
-                                     Double                           aaadSingleBitrate[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
-// BUG_FIX liuhui}
-
-
 
   Int           getFrameWidth       ()                                { return 16*m_uiFrameWidthInMb; }
   Int           getFrameHeight      ()                                { return 16*m_uiFrameHeightInMb; }
@@ -319,35 +309,25 @@ public:
 	ErrVal       getBaseLayerDataAvailability( Frame*&                  pcFrame,
   																					 Frame*&                  pcResidual,
 																						 MbDataCtrl*&             pcMbDataCtrl,
-																						 Bool&                    bConstrainedIPredBL,
-																						 Bool&                    bForCopyOnly,
-																						 Int                      iSpatialScalability,
 																						 Bool                     bMotion,
 																						 PicType                  ePicType,
 																						 UInt											uiTemporalId );
 
-		ErrVal        getBaseLayerData    ( Frame*&                      pcFrame,
+		ErrVal        getBaseLayerData    ( SliceHeader&                 rcELSH,
+                                        Frame*&                      pcFrame,
 																				Frame*&                      pcResidual,
 																				MbDataCtrl*&                 pcMbDataCtrl,
 																				MbDataCtrl*&                 pcMbDataCtrlEL,			// ICU/ETRI FGS_MOT_USE
-																				Bool&                        bConstrainedIPredBL,
-																				Bool&                        bForCopyOnly,
-																				Int                          iSpatialScalability,
+																				Bool                         bSpatialScalability,
 																				Bool                         bMotion,
 																				PicType                      ePicType,
 																				UInt												 uiTemporalId );
 
 		UInt          getNewBits          ()  { UInt ui = m_uiNewlyCodedBits; m_uiNewlyCodedBits = 0; return ui; }
-		UInt*         getGOPBits          ()  { return m_auiCurrGOPBits;			}
 		UInt          getScalableLayer    ()  const { return m_uiScalableLayerId; }
 
 		Frame*     getMGSLPRec         ();
     Frame*     getRefPic           ( Int iPoc	);
-
-
-  //===== ESS =====
-  Int                     getSpatialScalabilityType() { return m_pcResizeParameters->m_iSpatialScalabilityType; }
-  ResizeParameters*       getResizeParameters()       { return m_pcResizeParameters; }
 
   Void			setNonRequiredWrite ( UInt ui ) {m_uiNonRequiredWrite = ui;} //NonRequired JVT-Q066 (06-04-08)
   //Bug_Fix JVT-R057{
@@ -412,8 +392,7 @@ protected:
   ErrVal  xInitGOP                      ( PicBufferList&              rcPicBufferInputList );
   ErrVal  xFinishGOP                    ( PicBufferList&              rcPicBufferInputList,
                                           PicBufferList&              rcPicBufferOutputList,
-                                          PicBufferList&              rcPicBufferUnusedList,
-                                          Double                      aaauidSeqBits[MAX_LAYERS][MAX_TEMP_LEVELS][MAX_QUALITY_LEVELS] );
+                                          PicBufferList&              rcPicBufferUnusedList );
 
   ErrVal  xInitExtBinDataAccessor       ( ExtBinDataAccessor&         rcExtBinDataAccessor );
   ErrVal  xAppendNewExtBinDataAccessor  ( ExtBinDataAccessorList&     rcExtBinDataAccessorList,
@@ -493,6 +472,8 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
                                           UInt                        uiBaseLevel,  //TMM_ESS
                                           UInt                        uiFrame,      //TMM_ESS
                                           Bool                        bMotion,
+                                          RefFrameList*               pcRefFrameList0,
+                                          RefFrameList*               pcRefFrameList1,
 																					PicType                     ePicType ); 
 
   ErrVal  xGetPredictionListsFieldKey  (  RefFrameList&               rcRefList0,
@@ -658,9 +639,6 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   MbDataCtrl*   xGetMbDataCtrlL1    ( SliceHeader& rcSH, UInt uiCurrBasePos, RefFrameList* pcRefFrameList1 );
   Void          xAssignSimplePriorityId ( SliceHeader *pcSliceHeader );
   
-   //===== ESS =====
-   ErrVal		xFillPredictionLists_ESS( UInt uiBaseLevel , UInt uiFrame );
-
   UInt				getPreAndSuffixUnitEnable()	{return m_uiPreAndSuffixUnitEnable;} //JVT-S036 lsj 
 	UInt							  getMMCOBaseEnable		  ()			  const	  { return m_uiMMCOBaseEnable; } //JVT-S036 lsj
 
@@ -670,16 +648,6 @@ ErrVal xMotionCompensationMbAff(        Frame*                   pcMCFrame,
   //S051}
   Void setMCResizeParameters   (ResizeParameters*				resizeParameters);
 
-  //JVT-U106 Behaviour at slice boundaries{
-  ErrVal xConstrainedIntraUpsampling(Frame*pcFrame,
-									 Frame*pcUpsampling, 
-									 Frame*pcTemp,
-									 MbDataCtrl* pcBaseDataCtrl,
-									 ReconstructionBypass* pcReconstructionBypass,
-									 ResizeParameters* pcResizeParameters
-                   , PicType ePicType);
-  void  xGetPosition(ResizeParameters* pcResizeParameters,Int*px,Int*py,bool uv_flag);
-  //JVT-U106 Behaviour at slice boundaries{
 protected:
   //----- instances -----
   ExtBinDataAccessor            m_cExtBinDataAccessor;
@@ -737,6 +705,9 @@ protected:
   UInt                          m_uiFilterIdc;                        // de-blocking filter idc
   Int                           m_iAlphaOffset;                       // alpha offset for de-blocking filter
   Int                           m_iBetaOffset;                        // beta offset for de-blocking filter
+  UInt                          m_uiInterLayerFilterIdc;              // de-blocking filter idc
+  Int                           m_iInterLayerAlphaOffset;             // alpha offset for de-blocking filter
+  Int                           m_iInterLayerBetaOffset;              // beta offset for de-blocking filter
 
   Bool                          m_bLoadMotionInfo;                    // load motion data from file
   Bool                          m_bSaveMotionInfo;                    // save motion data to file
@@ -763,7 +734,7 @@ protected:
   Frame**                    m_papcSubband;                        // reconstructed subband pictures
   Frame*                     m_pcLowPassBaseReconstruction;        // base reconstruction of last low-pass picture
 //TMM_WP
-  Bool                          m_bBaseLayerWp;
+  Bool                       m_bBaseLayerWp;
 //TMM_WP
   Frame*                     m_pcAnchorFrameOriginal;              // original anchor frame
   Frame*                     m_pcAnchorFrameReconstructed;         // reconstructed anchor frame
@@ -791,11 +762,10 @@ protected:
   Double                        m_adPSNRSumY        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumU        [MAX_DSTAGES+1];
   Double                        m_adPSNRSumV        [MAX_DSTAGES+1];
-  UInt m_auiCurrGOPBits     [ MAX_SCALABLE_LAYERS ];
-  Double m_adSeqBits        [ MAX_SCALABLE_LAYERS ];
 
   //----- ESS -----
   ResizeParameters*				m_pcResizeParameters; 
+  FILE*                   m_pESSFile;
 
   Bool*                         m_pbFieldPicFlag;
 
@@ -848,8 +818,8 @@ protected:
   //JVT-U106 Behaviour at slice boundaries{
   Bool                          m_bCIUFlag;
   ReconstructionBypass*         m_pcReconstructionBypass;
-  Bool*                         m_pbIntraBLFlag; 
   //JVT-U106 Behaviour at slice boundaries}
+  Bool*                         m_apabBaseModeFlagAllowedArrays[2];
   UInt                          m_uiMinScalableLayer;
   UInt                          m_uiFramesInCompleteGOPsProcessed;
   Bool                          m_bGOPInitialized;
@@ -895,6 +865,8 @@ public:
   //JVT-X046 }
   UInt    m_uiLastCodedFrameIdInGOP;
   UInt    m_uiLastCodedTemporalId;
+
+  Bool    m_bInterlaced;
 };
 
 #if defined( WIN32 )

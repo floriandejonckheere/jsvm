@@ -93,18 +93,14 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib/HeaderSymbolWriteIf.h"
 #include "H264AVCCommonLib/ScalingMatrix.h"
 
-// TMM_ESS 
-#include "ResizeParameters.h"
-
 // JVT-V068 HRD {
 #include "H264AVCCommonLib/Vui.h"
 // JVT-V068 HRD }
 
 H264AVC_NAMESPACE_BEGIN
 
-// JVT-V068 HRD {
 class CodingParameter;
-// JVT-V068 HRD }
+class ResizeParameters;
 
 class H264AVCCOMMONLIB_API SequenceParameterSet
 {
@@ -222,8 +218,7 @@ public:
   ErrVal read ( HeaderSymbolReadIf*   pcReadIf,
                 NalUnitType           eNalUnitType );
 // TMM_ESS {
-  Void setResizeParameters    ( const ResizeParameters * params );
-  Void getResizeParameters    ( ResizeParameters * params ) const;
+  Void setResizeParameters    ( const ResizeParameters& rcResizeParameters );
 
   Void setExtendedSpatialScalability ( UInt ui ) { m_uiExtendedSpatialScalability = ui ;}
   UInt getExtendedSpatialScalability () const    { return m_uiExtendedSpatialScalability; }
@@ -240,6 +235,8 @@ public:
   Void  setChromaPhaseYPlus1 ( UInt ui)       { m_uiChromaPhaseYPlus1 = ui; }
   Bool  getChromaPhaseXPlus1Flag () const         { return ( m_uiChromaPhaseXPlus1 > 0 ); }
   UInt  getChromaPhaseYPlus1 () const         { return m_uiChromaPhaseYPlus1 ; }
+  Int   getChromaPhaseX           () const  { return (Int)m_uiChromaPhaseXPlus1 - 1; }
+  Int   getChromaPhaseY           () const  { return (Int)m_uiChromaPhaseYPlus1 - 1; }
   Int   getScaledBaseLeftOffset   () const { return m_iScaledBaseLeftOffset; }
   Int   getScaledBaseTopOffset    () const { return m_iScaledBaseTopOffset; }
   Int   getScaledBaseRightOffset  () const { return m_iScaledBaseRightOffset; }

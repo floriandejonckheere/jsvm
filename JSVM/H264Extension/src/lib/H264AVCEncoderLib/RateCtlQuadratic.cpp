@@ -18,8 +18,12 @@
  **************************************************************************
  */
 
+#include "H264AVCEncoderLib.h"
+#include "H264AVCCommonLib.h"
 #include "RateCtlBase.h"
 #include "RateCtlQuadratic.h"
+
+using namespace h264;
 
 jsvm_parameters *pcJSVMParams;
 rc_generic      *pcGenericRC;

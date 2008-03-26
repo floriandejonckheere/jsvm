@@ -167,7 +167,6 @@ public:
   UInt          getLastMbInSlice          ()                    const { return m_uiLastMbInSlice; }
   Int           getTopFieldPoc            ()                    const { return m_iTopFieldPoc;  }
   Int           getBotFieldPoc            ()                    const { return m_iBotFieldPoc;  }
-  Int           getSpatialScalabilityType ()                    const { return m_iSpatialScalabilityType; }
   RefFrameList* getRefFrameList           ( PicType ePicType,
                                             ListIdx eLstIdx )   const { return m_aapcRefFrameList[ ePicType - 1 ][ eLstIdx ]; }
   UInt          getNumRefIdxUpdate        ( UInt    uiTempLevel,
@@ -190,14 +189,13 @@ public:
   Void          setLastMbInSlice          ( UInt                uiLastMbInSlice         )   { m_uiLastMbInSlice         = uiLastMbInSlice; }
   Void          setTopFieldPoc            ( Int                 iTopFieldPoc            )   { m_iTopFieldPoc            = iTopFieldPoc;  }
   Void          setBotFieldPoc            ( Int                 iBotFieldPoc            )   { m_iBotFieldPoc            = iBotFieldPoc;  }
-  Void          setSpatialScalabilityType ( Int                 iSpatialScalabilityType )   { m_iSpatialScalabilityType = iSpatialScalabilityType; }
   Void          setRefFrameList           ( RefFrameList*       pcRefFrameList,
                                             PicType             ePicType,
                                             ListIdx             eListIdx                )   { m_aapcRefFrameList[ ePicType - 1 ][ eListIdx ]  = pcRefFrameList; }
   Void          setNumRefIdxUpdate        ( UInt                uiTempLevel,
                                             ListIdx             eListIdx,
                                             UInt                uiNumRefIdxActive       )   { m_aauiNumRefIdxActiveUpdate[uiTempLevel][eListIdx] = uiNumRefIdxActive;  }
-  Void          setSCoeffResidualPredFlag ( const SliceHeader*  pcRefSliceHeader        );
+  Void          setSCoeffResidualPredFlag ( ResizeParameters*   pcResizeParameters      );
   Void          setReconstructionLayer    ( Bool                bReconstructionLayer    )   { m_bReconstructionLayer = bReconstructionLayer; }
   Void          setPicType                ( PicType             ePicType                );
 
@@ -212,7 +210,6 @@ private:
   UInt          m_uiLastMbInSlice;
   Int           m_iTopFieldPoc;
   Int           m_iBotFieldPoc;
-  Int           m_iSpatialScalabilityType;  // remove
   Bool          m_bSCoeffResidualPred;      // remove
   FMO           m_cFMO;
   RefFrameList* m_aapcRefFrameList[3][2];

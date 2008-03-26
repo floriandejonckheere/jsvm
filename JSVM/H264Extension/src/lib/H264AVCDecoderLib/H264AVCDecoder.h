@@ -138,20 +138,11 @@ public:
                             NALUnit&          rcNALUnit );
 
   //===== get inter-layer prediction data =====
-  ErrVal  getBaseLayerDataAvailability  ( Frame*&           pcFrame,
+  ErrVal  getBaseLayerData              ( SliceHeader&      rcELSH,
+                                          Frame*&           pcFrame,
                                           Frame*&           pcResidual,
                                           MbDataCtrl*&      pcMbDataCtrl,
-                                          Bool&             bBaseDataAvailable,
-                                          Bool&             rbSpatialScalability,
-                                          UInt              uiLayerId,
-                                          UInt              uiBaseLayerId );
-  ErrVal  getBaseLayerData              ( Frame*&           pcFrame,
-                                          Frame*&           pcResidual,
-                                          MbDataCtrl*&      pcMbDataCtrl,
-                                          Bool&             rbConstrainedIPred,
-                                          Bool&             rbSpatialScalability,
-                                          UInt              uiBaseLayerId );
-  ErrVal  getBaseLayerResidual          ( Frame*&           pcResidual,
+                                          ResizeParameters& rcResizeParameters,
                                           UInt              uiBaseLayerId );
   ErrVal  getBaseSliceHeader            ( SliceHeader*&     rpcSliceHeader,
                                           UInt              uiRefLayerDependencyId );

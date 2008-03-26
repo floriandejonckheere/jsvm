@@ -133,12 +133,12 @@ public:
                           Bool                   bEncoder );
   ErrVal        uninit  ();
 
-  ErrVal        process ( SliceHeader&           rcSH,
-                          Frame*                 pcFrame,
-                          Frame*                 pcResidual,
-                          MbDataCtrl*            pcMbDataCtrl,
-                          Bool                   bInterLayerFlag,
-                          Bool                   bSpatialScalabilityFlag );
+  ErrVal        process ( SliceHeader&              rcSH,
+                          Frame*                    pcFrame,
+                          Frame*                    pcResidual,
+                          MbDataCtrl*               pcMbDataCtrl,
+                          const DBFilterParameter*  pcInterLayerDBParameter,
+                          Bool                      bSpatialScalabilityFlag );
 
 private:
   ErrVal        xFilterMb             ( MbDataAccess&             rcMbDataAccess,
@@ -148,9 +148,6 @@ private:
                                         Bool                      bSpatialScalableFlag,
                                         LFPass                    eLFPass );
   ErrVal        xRecalcCBP            ( MbDataAccess&             rcMbDataAccess );
-  ErrVal        xPadding              ( SliceHeader&              rcSH,
-                                        MbDataCtrl*               pcMbDataCtrl,
-                                        Frame*                    apcFrame[] );
 
   //===== determination of filter strength =====
   UInt          xGetHorFilterStrength ( const MbDataAccess&       rcMbDataAccess,

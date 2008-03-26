@@ -479,7 +479,7 @@ Void YuvMbBuffer::setAllSamplesToZero()
 }
 
 
-Void IntYuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
+Void YuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
 {
   Int x, y;
   Int iDesStride = getLStride();
@@ -545,7 +545,7 @@ Void IntYuvMbBufferExtension::loadSurrounding( YuvPicBuffer* pcSrcBuffer )
 }
 
 //TMM_INTERLACE {
-Void IntYuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask )
+Void YuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, UInt uiMask )
 {
   Int x, y;
   Int iDesStride = getLStride();
@@ -646,7 +646,7 @@ Void IntYuvMbBufferExtension::loadSurrounding_MbAff( YuvPicBuffer* pcSrcBuffer, 
 
 //TMM_INTERLACE }
 
-Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, Int iStride, Bool bPresent )
+Void YuvMbBufferExtension::xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, Int iStride, Bool bPresent )
 {
   XPel pPelH[9];
   XPel pPelV[9];
@@ -701,35 +701,35 @@ Void IntYuvMbBufferExtension::xMerge( Int xDir, Int yDir, Int iSize, XPel *puc, 
   }
 }
 
-Void IntYuvMbBufferExtension::mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent )
+Void YuvMbBufferExtension::mergeFromLeftAbove ( LumaIdx cIdx, Bool bCornerMbPresent )
 {
   xMerge( 1, 1, 8, getYBlk( cIdx ), getLStride(), bCornerMbPresent );
   xMerge( 1, 1, 4, getUBlk( cIdx ), getCStride(), bCornerMbPresent );
   xMerge( 1, 1, 4, getVBlk( cIdx ), getCStride(), bCornerMbPresent );
 }
 
-Void IntYuvMbBufferExtension::mergeRightBelow    ( LumaIdx cIdx, Bool bCornerMbPresent )
+Void YuvMbBufferExtension::mergeRightBelow    ( LumaIdx cIdx, Bool bCornerMbPresent )
 {
   xMerge( -1, -1, 8, getYBlk( cIdx ), getLStride(), bCornerMbPresent );
   xMerge( -1, -1, 4, getUBlk( cIdx ), getCStride(), bCornerMbPresent );
   xMerge( -1, -1, 4, getVBlk( cIdx ), getCStride(), bCornerMbPresent );
 }
 
-Void IntYuvMbBufferExtension::mergeFromRightAbove( LumaIdx cIdx, Bool bCornerMbPresent )
+Void YuvMbBufferExtension::mergeFromRightAbove( LumaIdx cIdx, Bool bCornerMbPresent )
 {
   xMerge( -1, 1, 8, getYBlk( cIdx ), getLStride(), bCornerMbPresent );
   xMerge( -1, 1, 4, getUBlk( cIdx ), getCStride(), bCornerMbPresent );
   xMerge( -1, 1, 4, getVBlk( cIdx ), getCStride(), bCornerMbPresent );
 }
 
-Void IntYuvMbBufferExtension::mergeLeftBelow     ( LumaIdx cIdx, Bool bCornerMbPresent )
+Void YuvMbBufferExtension::mergeLeftBelow     ( LumaIdx cIdx, Bool bCornerMbPresent )
 {
   xMerge( 1, -1, 8, getYBlk( cIdx ), getLStride(), bCornerMbPresent );
   xMerge( 1, -1, 4, getUBlk( cIdx ), getCStride(), bCornerMbPresent );
   xMerge( 1, -1, 4, getVBlk( cIdx ), getCStride(), bCornerMbPresent );
 }
 
-Void IntYuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
@@ -762,7 +762,7 @@ Void IntYuvMbBufferExtension::copyFromBelow      ( LumaIdx cIdx )
   }
 }
 
-Void IntYuvMbBufferExtension::copyFromLeft       ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromLeft       ( LumaIdx cIdx )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
@@ -801,7 +801,7 @@ Void IntYuvMbBufferExtension::copyFromLeft       ( LumaIdx cIdx )
   }
 }
 
-Void IntYuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
@@ -831,7 +831,7 @@ Void IntYuvMbBufferExtension::copyFromAbove      ( LumaIdx cIdx )
   }
 }
 
-Void IntYuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
@@ -870,7 +870,7 @@ Void IntYuvMbBufferExtension::copyFromRight      ( LumaIdx cIdx )
   }
 }
 
-Void IntYuvMbBufferExtension::xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV )
+Void YuvMbBufferExtension::xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV )
 {
   XPel* pPel    = getYBlk( cIdx );
   Int   iStride = getLStride();
@@ -909,7 +909,7 @@ Void IntYuvMbBufferExtension::xFill( LumaIdx cIdx, XPel cY, XPel cU, XPel cV )
   }
 }
 
-Void IntYuvMbBufferExtension::copyFromLeftAbove  ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromLeftAbove  ( LumaIdx cIdx )
 {
   XPel cY = *(getYBlk( cIdx ) - 1 - getLStride());
   XPel cU = *(getUBlk( cIdx ) - 1 - getCStride());
@@ -918,7 +918,7 @@ Void IntYuvMbBufferExtension::copyFromLeftAbove  ( LumaIdx cIdx )
   xFill( cIdx, cY, cU, cV );
 }
 
-Void IntYuvMbBufferExtension::copyFromRightAbove ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromRightAbove ( LumaIdx cIdx )
 {
   XPel cY = *(getYBlk( cIdx ) + 8 - getLStride());
   XPel cU = *(getUBlk( cIdx ) + 4 - getCStride());
@@ -927,7 +927,7 @@ Void IntYuvMbBufferExtension::copyFromRightAbove ( LumaIdx cIdx )
   xFill( cIdx, cY, cU, cV );
 }
 
-Void IntYuvMbBufferExtension::copyFromLeftBelow  ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromLeftBelow  ( LumaIdx cIdx )
 {
   XPel cY = *(getYBlk( cIdx ) - 1 + 8 * getLStride());
   XPel cU = *(getUBlk( cIdx ) - 1 + 4 * getCStride());
@@ -936,7 +936,7 @@ Void IntYuvMbBufferExtension::copyFromLeftBelow  ( LumaIdx cIdx )
   xFill( cIdx, cY, cU, cV );
 }
 
-Void IntYuvMbBufferExtension::copyFromRightBelow ( LumaIdx cIdx )
+Void YuvMbBufferExtension::copyFromRightBelow ( LumaIdx cIdx )
 {
   XPel cY = *(getYBlk( cIdx ) + 8 + 8 * getLStride());
   XPel cU = *(getUBlk( cIdx ) + 4 + 4 * getCStride());

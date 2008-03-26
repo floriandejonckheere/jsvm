@@ -217,12 +217,12 @@ LoopFilter::uninit()
 
 
 ErrVal
-LoopFilter::process( SliceHeader& rcSH,
-                     Frame*       pcFrame,
-                     Frame*       pcResidual,
-                     MbDataCtrl*  pcMbDataCtrl,
-                     Bool         bInterLayerFlag,
-                     Bool         bSpatialScalabilityFlag )
+LoopFilter::process( SliceHeader&             rcSH,
+                     Frame*                   pcFrame,
+                     Frame*                   pcResidual,
+                     MbDataCtrl*              pcMbDataCtrl,
+                     const DBFilterParameter* pcInterLayerDBParameter,
+                     Bool                     bSpatialScalabilityFlag )
 {
   ROF ( m_pcControlMngIf );
   ROF ( pcFrame );
@@ -249,9 +249,10 @@ LoopFilter::process( SliceHeader& rcSH,
 
 
   //===== filtering =====
-  const DBFilterParameter&  rcDFP       = ( bInterLayerFlag ? rcSH.getInterLayerDeblockingFilterParameter() : rcSH.getDeblockingFilterParameter() );
-  Int                       iFilterIdc  = rcDFP.getDisableDeblockingFilterIdc();
-  LFPass                    eNumPasses  = ( iFilterIdc == 3 || iFilterIdc == 6 ? TWO_PASSES : ONE_PASS ); 
+  Bool                      bInterLayerFlag = ( pcInterLayerDBParameter != 0 );
+  const DBFilterParameter&  rcDFP           = ( bInterLayerFlag ? *pcInterLayerDBParameter : rcSH.getDeblockingFilterParameter() );
+  Int                       iFilterIdc      = rcDFP.getDisableDeblockingFilterIdc();
+  LFPass                    eNumPasses      = ( iFilterIdc == 3 || iFilterIdc == 6 ? TWO_PASSES : ONE_PASS ); 
 
   for( LFPass eLFPass = FIRST_PASS; eLFPass < eNumPasses; eLFPass = LFPass( eLFPass + 1 ) )
   {
@@ -270,63 +271,9 @@ LoopFilter::process( SliceHeader& rcSH,
       RNOK( xFilterMb( *pcMbDataAccess, pcFrameBuffer, pcResidualBuffer, bInterLayerFlag, bSpatialScalabilityFlag, eLFPass ) );
     }
   }
-  ROFRS ( bInterLayerFlag, Err::m_nOK );
-
-  RNOK  ( xPadding( rcSH, pcMbDataCtrl, apcFrame ) );
-  return Err::m_nOK;
-}
-
-
-ErrVal
-LoopFilter::xPadding( SliceHeader&  rcSH,
-                      MbDataCtrl*   pcMbDataCtrl,
-                      Frame*        apcFrame[] )
-{
-  Bool bMbAff = rcSH.isMbaffFrame();
-
-  for( UInt uiMbAddress = 0; uiMbAddress < rcSH.getMbInPic(); uiMbAddress++ )
-  {
-    MbDataAccess* pcMbDataAccess = 0;
-    UInt          uiMbY, uiMbX;
-    rcSH.getMbPositionFromAddress( uiMbY, uiMbX, uiMbAddress );
-
-    RNOK( pcMbDataCtrl    ->initMb            (  pcMbDataAccess, uiMbY, uiMbX ) );
-    RNOK( m_pcControlMngIf->initMbForFiltering( *pcMbDataAccess, uiMbY, uiMbX, bMbAff ) );
-    UInt  uiMask = 0;
-
-    if( bMbAff )
-    {
-      RNOK( pcMbDataCtrl->getBoundaryMask_MbAff( uiMbY, uiMbX, uiMask ) );
-      if( uiMask )
-      {
-        PicType                 eMbPicType  = ( ( uiMbY % 2 ) ? BOT_FIELD : TOP_FIELD );
-        YuvPicBuffer*           pcPicBuffer = apcFrame[ eMbPicType ]->getFullPelYuvBuffer();
-        IntYuvMbBufferExtension cBuffer;
-        cBuffer.setAllSamplesToZero   ();
-        cBuffer.loadSurrounding_MbAff ( pcPicBuffer,  uiMask );
-        RNOK( m_pcReconstructionBypass->padRecMb_MbAff( &cBuffer, uiMask ));
-        pcPicBuffer->loadBuffer_MbAff ( &cBuffer,     uiMask );
-      }
-    }
-    else
-    {
-      RNOK( pcMbDataCtrl->getBoundaryMask( uiMbY, uiMbX, uiMask ) );
-      if( uiMask )
-      {
-        PicType                 eMbPicType  = pcMbDataAccess->getMbPicType();
-        YuvPicBuffer*           pcPicBuffer = apcFrame[ eMbPicType ]->getFullPelYuvBuffer();
-        IntYuvMbBufferExtension cBuffer;
-        cBuffer.setAllSamplesToZero ();
-        cBuffer.loadSurrounding     ( pcPicBuffer );
-        RNOK( m_pcReconstructionBypass->padRecMb( &cBuffer, uiMask ));
-        pcPicBuffer->loadBuffer     ( &cBuffer );
-      }
-    }
-  }
 
   return Err::m_nOK;
 }
-
 
 
 ErrVal

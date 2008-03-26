@@ -137,7 +137,7 @@ public:
   }
   Void clear()
   {
-    m_fRdCost     = DOUBLE_MAX;
+    m_fRdCost      = DOUBLE_MAX;
     m_uiAddBits    = 0;
     m_uiBits       = 0;
     m_uiYDist      = 0;

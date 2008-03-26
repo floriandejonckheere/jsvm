@@ -94,8 +94,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 #include "H264AVCCommonLib/YuvBufferCtrl.h"
 #include "H264AVCCommonLib/MbTransformCoeffs.h"
-#include "DownConvert.h"
-
+#include "H264AVCCommonLib/MbDataCtrl.h"
 
 
 H264AVC_NAMESPACE_BEGIN
@@ -103,7 +102,6 @@ H264AVC_NAMESPACE_BEGIN
 
 
 class YuvMbBuffer;
-class MbDataCtrl;
 
 
 
@@ -176,11 +174,6 @@ public:
   ErrVal        inverseUpdate           ( YuvPicBuffer*  pcSrcYuvPicBuffer, YuvPicBuffer*  pcMCPYuvPicBuffer0, YuvPicBuffer*  pcMCPYuvPicBuffer1 );
 
   ErrVal        copy                    ( YuvPicBuffer*  pcSrcYuvPicBuffer );
-  //JVT-U106 Behaviour at slice boundaries{
-  ErrVal        copyMask                    ( YuvPicBuffer*  pcSrcYuvPicBuffer,Int**ppiMaskL,Int**ppiMaskC );
-  ErrVal        copyPortion                  ( YuvPicBuffer*  pcSrcYuvPicBuffer);
-  //JVT-U106 Behaviour at slice boundaries}
-  ErrVal        copyMSB8BitsMB          ( YuvPicBuffer*  pcSrcYuvPicBuffer );
   ErrVal        setZeroMB               ();
 
   ErrVal        subtract                ( YuvPicBuffer*  pcSrcYuvPicBuffer0, YuvPicBuffer* pcSrcYuvPicBuffer1 );
@@ -200,10 +193,6 @@ public:
 
   ErrVal        getSSD                  ( Double& dSSDY, Double& dSSDU, Double& dSSDV, PicBuffer* pcOrgPicBuffer );
 
-    // TMM_ESS {
-    ErrVal        upsampleResidual        ( DownConvert& rcDownConvert, ResizeParameters *pcParameters, MbDataCtrl* pcMbDataCtrl, Bool bClip );
-    ErrVal        upsample                ( DownConvert& rcDownConvert, ResizeParameters *pcParameters, Bool bClip );
-    // TMM_ESS }
   ErrVal        setNonZeroFlags         ( UShort* pusNonZeroFlags, UInt uiStride );
 
   ErrVal        clear();

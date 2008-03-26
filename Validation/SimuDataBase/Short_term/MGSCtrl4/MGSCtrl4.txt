@@ -51,7 +51,7 @@
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )  #
 #==========================================================#
-        bitratecheckrange  => 3.,
+        bitratecheckrange  => 1.,
       psnrcheckrange     => 0.,
 	      tests      => [
 		                  #----------#
@@ -63,8 +63,8 @@
             		        width => 384,
             		        height => 288,
             		        framerate => 25,
-            		        bitrate => 1428,
-            		        psnr => 36.30,
+            		        bitrate => 1433,
+            		        psnr => 36.34,
 				encdecmatch => 1,
             		      },
             		      #----------#

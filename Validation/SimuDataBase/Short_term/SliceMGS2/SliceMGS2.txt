@@ -49,7 +49,7 @@ layers      => [
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #==========================================================#  
-bitratecheckrange  => 5,
+bitratecheckrange  => 1,
 psnrcheckrange     => 0.0,     
 tests              => [
                        #----------#
@@ -73,7 +73,7 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1545,
+                  			bitrate     => 1537,
                   			psnr        => 34.54,
                        },                                                                  
                        #----------#
@@ -85,7 +85,7 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 2856,
+                  			bitrate     => 2851,
                   			psnr        => 38.00,
             		        encdecmatch => 1,
                        },                                                                  
@@ -112,8 +112,8 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
 			useql       => 1,
-                  	bitrate     => 999,
-            		psnr        => 32.14,
+                  	bitrate     => 988,
+            		psnr        => 32.05,
 			},
                        #----------#
                        #   Test 5  #
@@ -125,7 +125,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
 			useql       => 0,
-                  	bitrate     => 2466,
+                  	bitrate     => 2459,
             		psnr        => 37.07,
 			},
                        #----------#
@@ -138,7 +138,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
 			useql       => 1,
-                  	bitrate     => 2493,
+                  	bitrate     => 2485,
             		psnr        => 37.12,
 			},
                       ],

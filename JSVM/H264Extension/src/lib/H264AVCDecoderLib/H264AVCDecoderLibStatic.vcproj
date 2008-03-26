@@ -226,9 +226,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\FGSSubbandDecoder.cpp">
-			</File>
-			<File
 				RelativePath="GOPDecoder.cpp">
 				<FileConfiguration
 					Name="Release|Win32">
@@ -428,9 +425,6 @@
 			</File>
 			<File
 				RelativePath="..\..\..\include\CreaterH264AVCDecoder.h">
-			</File>
-			<File
-				RelativePath=".\FGSSubbandDecoder.h">
 			</File>
 			<File
 				RelativePath="GOPDecoder.h">

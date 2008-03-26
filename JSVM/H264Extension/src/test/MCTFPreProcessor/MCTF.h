@@ -205,9 +205,9 @@ protected:
   UInt                          m_uiFrameHeightInMb;                  // frame height in macroblocks
   UInt                          m_uiMbNumber;                         // number of macroblocks in a frame
   Double                        m_adBaseQpLambdaMotion[MAX_DSTAGES];  // base QP's for mode decision and motion estimation
-  Frame*                     m_pcFrameTemp;                        // auxiliary frame memory
-  Frame**                    m_papcFrame;                          // frame stores
-  Frame**                    m_papcResidual;                       // frame stores for residual data
+  Frame*                        m_pcFrameTemp;                        // auxiliary frame memory
+  Frame**                       m_papcFrame;                          // frame stores
+  Frame**                       m_papcResidual;                       // frame stores for residual data
   ControlData*                  m_pacControlData;                     // control data arrays
   PicBufferList                 m_cOrgPicBufferList;
   PicBufferList                 m_cRecPicBufferList;

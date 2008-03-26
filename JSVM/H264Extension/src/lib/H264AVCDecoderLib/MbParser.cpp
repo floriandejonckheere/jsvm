@@ -756,6 +756,24 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
 {
   Bool bReadDQp = true;
 
+  if( (rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getMbData().isIntra()) &&
+      (rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag() && !rcMbDataAccess.getSH().isIntraSlice()) )
+  {
+    if( rcMbDataAccess.getMbData().getInCropWindowFlag() )
+    {
+      DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
+    }
+    else
+    {
+      rcMbDataAccess.getMbData().setResidualPredFlag( false );
+    }
+  }
+  else
+  {
+    rcMbDataAccess.getMbData().setResidualPredFlag( ( rcMbDataAccess.getSH().isIntraSlice() && rcMbDataAccess.getMbData().getBLSkipFlag() ) ||
+                                                    (!rcMbDataAccess.getSH().isIntraSlice() && rcMbDataAccess.getMbData().getBLSkipFlag() && !rcMbDataAccess.getSH().getNoInterLayerPredFlag() ) );
+  }
+
   if( rcMbDataAccess.getMbData().getBLSkipFlag() || 
      !rcMbDataAccess.getMbData().isIntra16x16() )
   {
@@ -782,24 +800,6 @@ MbParser::xReadTextureInfo( MbDataAccess&   rcMbDataAccess,
   else
   {
     rcMbDataAccess.resetQp();
-  }
-
-  if( (rcMbDataAccess.getMbData().getBLSkipFlag() || !rcMbDataAccess.getMbData().isIntra()) &&
-      (rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag() && !rcMbDataAccess.getSH().isIntraSlice()) )
-  {
-    if( rcMbDataAccess.getMbData().getInCropWindowFlag() )
-    {
-      DECRNOK( m_pcMbSymbolReadIf->resPredFlag( rcMbDataAccess ) );
-    }
-    else
-    {
-      rcMbDataAccess.getMbData().setResidualPredFlag( false );
-    }
-  }
-  else
-  {
-    rcMbDataAccess.getMbData().setResidualPredFlag( ( rcMbDataAccess.getSH().isIntraSlice() && rcMbDataAccess.getMbData().getBLSkipFlag() ) ||
-                                                    (!rcMbDataAccess.getSH().isIntraSlice() && rcMbDataAccess.getMbData().getBLSkipFlag() && !rcMbDataAccess.getSH().getNoInterLayerPredFlag() ) );
   }
 
   UInt uiDummy     = 0;

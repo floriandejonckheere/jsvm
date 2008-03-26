@@ -349,9 +349,8 @@ MCTF::xMotionEstimation( RefFrameList*    pcRefFrameList0,
     RNOK( m_pcYuvHalfPelBufferCtrl->initMb  ( uiMbY, uiMbX,false ) );
     RNOK( m_pcMotionEstimation    ->initMb  ( uiMbY, uiMbX, *pcMbDataAccess ) );
 
-    RNOK( m_pcMbEncoder->estimatePrediction ( *pcMbDataAccess, 
+    RNOK( m_pcMbEncoder->estimatePrediction ( *pcMbDataAccess,
                                                NULL, 
-                                               0, 
                                               *pcRefFrameList0, 
                                               *pcRefFrameList1, 
                                               NULL, 

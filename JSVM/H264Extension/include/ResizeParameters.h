@@ -1,247 +1,184 @@
+
 #ifndef _RESIZE_PARAMETERS_H_
 #define _RESIZE_PARAMETERS_H_
 
 #include "Typedefs.h"
-#include "H264AVCCommonIf.h"
+#include "Macros.h"
+#ifdef DOWN_CONVERT_STATIC
+#include <iostream>
+#include <assert.h>
+#define ESS_NONE  0
+#define ESS_SEQ   1
+#define ESS_PICT  2
+#else
+#include "H264AVCCommonLib.h"
 
-#define MAX_PICT_PARAM_NB          128
-#define	MAX_REFLIST_SIZE		   32
-//H264AVC_NAMESPACE_BEGIN
+H264AVC_NAMESPACE_BEGIN
 
-#define INTRA_UPSAMPLING_TYPE_DEFAULT     2
+class SliceHeader;
+class ResizeParameters;
+
+#endif
+
 
 #define SST_RATIO_1   0
 #define SST_RATIO_2   1
 #define SST_RATIO_3_2 2
 #define SST_RATIO_X   3
 
-#define ESS_NONE      0
-#define ESS_SEQ       1
-#define ESS_PICT      2
 
-struct PictureParameters {
-    Int  m_iPosX;          // Position     Xorig
-    Int  m_iPosY;          //              Yorig
-    Int  m_iOutWidth;      // Size of the upsampled baselayer
-    Int  m_iOutHeight;     //  
-    Int  m_iBaseChromaPhaseX;
-    Int  m_iBaseChromaPhaseY;
+__inline Int CeilLog2( Int i )
+{
+  Int s = 0; i--;
+  while( i > 0 )
+  {
+    s++;
+    i >>= 1;
+  }
+  return s;
+}
+
+
+class PictureParameters 
+{
+public:
+  Void copy ( const PictureParameters& rcPicParam )
+  {
+    m_iScaledRefFrmWidth    = rcPicParam.m_iScaledRefFrmWidth;
+    m_iScaledRefFrmHeight   = rcPicParam.m_iScaledRefFrmHeight;
+    m_iLeftFrmOffset        = rcPicParam.m_iLeftFrmOffset;
+    m_iTopFrmOffset         = rcPicParam.m_iTopFrmOffset;
+    m_iRefLayerChromaPhaseX = rcPicParam.m_iRefLayerChromaPhaseX;
+    m_iRefLayerChromaPhaseY = rcPicParam.m_iRefLayerChromaPhaseY;
+  }
+  const PictureParameters& operator = ( const PictureParameters& rcPicParam )
+  {
+    copy( rcPicParam );
+    return *this;
+  }
+
+public:
+  Int   m_iScaledRefFrmWidth;
+  Int   m_iScaledRefFrmHeight;
+  Int   m_iLeftFrmOffset;
+  Int   m_iTopFrmOffset;
+  Int   m_iRefLayerChromaPhaseX;
+  Int   m_iRefLayerChromaPhaseY;
 };
 
 
-class ResizeParameters {
+class ResizeParameters 
+{
 public:
     ResizeParameters()
+      : m_iExtendedSpatialScalability ( ESS_NONE )
+      , m_iLevelIdc                   ( 0 )
+      , m_bFrameMbsOnlyFlag           ( true )
+      , m_bFieldPicFlag               ( false )
+      , m_bBotFieldFlag               ( false )
+      , m_bIsMbAffFrame               ( false )
+      , m_iFrameWidth                 ( 0 )
+      , m_iFrameHeight                ( 0 )
+      , m_iChromaPhaseX               ( 0 )
+      , m_iChromaPhaseY               ( 0 )
+      , m_iScaledRefFrmWidth          ( 0 )
+      , m_iScaledRefFrmHeight         ( 0 )
+      , m_iLeftFrmOffset              ( 0 )
+      , m_iTopFrmOffset               ( 0 )
+      , m_iRefLayerChromaPhaseX       ( 0 )
+      , m_iRefLayerChromaPhaseY       ( 0 )
+      , m_bRefLayerFrameMbsOnlyFlag   ( true )
+      , m_bRefLayerFieldPicFlag       ( false )
+      , m_bRefLayerBotFieldFlag       ( false )
+      , m_bRefLayerIsMbAffFrame       ( false )
+      , m_iRefLayerFrmWidth           ( 0 )
+      , m_iRefLayerFrmHeight          ( 0 )
     { 
-      m_iExtendedSpatialScalability = ESS_NONE;
-      m_iSpatialScalabilityType = SST_RATIO_1;
-      m_bCrop = false;
-  
-      m_iChromaPhaseX = -1;  
-      m_iChromaPhaseY = 0;
-      m_iBaseChromaPhaseX = -1;  
-      m_iBaseChromaPhaseY = 0;
-      m_iIntraUpsamplingType = INTRA_UPSAMPLING_TYPE_DEFAULT;
-
-      m_iResampleMode = 0;   // SSUN, 28Nov2005
-      m_bBaseFrameMbsOnlyFlag      = true;
-      m_bBaseIsMbAff               = false;
-      m_bFrameMbsOnlyFlag          = true;
-      m_bBaseFieldPicFlag          = false;
-      m_bFieldPicFlag              = false;
-      m_bIsMbAff                   = false;
-      m_bBaseBotFieldFlag          = false;
-      m_bBotFieldFlag              = false;
-      m_bInterlaced								 = false; 
-
-     m_pParamFile = NULL;
-#ifndef DOWN_CONVERT_STATIC
-    init();
-#endif
     };
 
-    Void init ();
-
-    Void  setCurrentPictureParametersWith ( Int index );
-    Void setPictureParametersByOffset ( Int iIndex, Int iOl, Int iOr, Int iOt, Int iOb, Int iBcpx, Int iBcpy );
-    Void setPictureParametersByValue ( Int index, Int px, Int py, Int ow, Int oh, Int bcpx, Int bcpy );
-
-    const PictureParameters* getCurrentPictureParameters ( Int index ) 
-                    { return &m_acCurrentGop[index%MAX_PICT_PARAM_NB];} 
-    Int  getLeftOffset   ( Int index ) const 
-                    { return (m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosX) /2; }
-    Int  getRightOffset  ( Int index ) const 
-                     { return (m_iGlobWidth - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosX - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iOutWidth) /2; }
-    Int  getTopOffset    ( Int index ) const 
-                     { return (m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosY) /2; }
-    Int  getBottomOffset ( Int index ) const 
-                     { return (m_iGlobHeight - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iPosY - m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iOutHeight) /2; }
-    Int  getBaseChromaPhaseX ( Int index ) const 
-                     { return m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseX; }
-    Int  getBaseChromaPhaseY ( Int index ) const 
-                     { return m_acCurrentGop[index%MAX_PICT_PARAM_NB].m_iBaseChromaPhaseY; }
-
-    Int  getPoc() const { return m_iPoc; }; 
-    Void setPoc( Int iPoc ) { m_iPoc = iPoc; }; 
-    ErrVal readPictureParameters ( Int index ); 
-    Void initRefListPoc();
-
-    Void print ();
-
-public:
-    Int m_iExtendedSpatialScalability;
-    Int m_iSpatialScalabilityType;
-
-    Bool m_bCrop;                // if crop is needed
-
-    // ---- Global
-    Int  m_iInWidth;       // Size of the baselayer
-    Int  m_iInHeight;      //
-    Int  m_iGlobWidth;     // Global size  Wenh      if (!bCrop) then it's equal to iOutWidth
-    Int  m_iGlobHeight;    //              Henh      if (!bCrop) then it's equal to iOutHeight
-    Int m_iChromaPhaseX;
-    Int m_iChromaPhaseY;
-
-    // ----- Last Value if by picture
-    Int  m_iPosX;          // Position     Xorig
-    Int  m_iPosY;          //              Yorig
-    Int  m_iOutWidth;      // Size of the upsampled baselayer
-    Int  m_iOutHeight;     //  
-    Int  m_iBaseChromaPhaseX;
-    Int  m_iBaseChromaPhaseY;
-
-    // ----- Intra Upsampling method
-    Int m_iIntraUpsamplingType;   // 1:lanczos, 2:?pel + bilin ?pel
-
-    Int m_iResampleMode;   // SSUN, 28Nov2005
+#ifdef DOWN_CONVERT_STATIC
+#else
+    ErrVal  readPictureParameters     ( FILE* pFile, Bool bFrameMbsOnlyFlag );
     
-    Bool m_bBaseFrameMbsOnlyFlag;
-    Bool m_bBaseFieldPicFlag;
-    Bool m_bBaseBotFieldFlag;
-    Bool m_bBaseIsMbAff;
+    Void    updateCurrLayerParameters ( const SliceHeader&        rcSH );
+    Void    updateRefLayerParameters  ( const SliceHeader&        rcSH );
+    Void    updatePicParameters       ( const PictureParameters&  rcPP );
 
-    Bool m_bFrameMbsOnlyFlag;
-    Bool m_bFieldPicFlag;
-    Bool m_bIsMbAff;
-    Bool m_bBotFieldFlag;
-    Bool m_bInterlaced; 
+    Int     getLeftFrmOffset          ()  const { return m_iLeftFrmOffset; }
+    Int     getTopFrmOffset           ()  const { return m_iTopFrmOffset; }
+    Int     getRightFrmOffset         ()  const { return m_iFrameWidth  - m_iScaledRefFrmWidth  - m_iLeftFrmOffset; }
+    Int     getBotFrmOffset           ()  const { return m_iFrameHeight - m_iScaledRefFrmHeight - m_iTopFrmOffset; }
+#endif
 
-    void SetUpSampleMode();
-
-    // ----- PICT LEVEL   
-    Int   m_iPoc; 
-    FILE  *m_pParamFile; 
-    Int   m_aiNumActive[2];
-    Int   m_aiRefListPoc[2][MAX_REFLIST_SIZE]; 
-  	Int m_level_idc;//jzxu, 02Nov2007
-
-protected:
-    PictureParameters m_acCurrentGop[MAX_PICT_PARAM_NB];
-
-private:
-    Void xCleanGopParameters     ( PictureParameters * pc );
-    Void xCleanPictureParameters ( PictureParameters * pc );
-    Void xInitPictureParameters  ( PictureParameters * pc );
-} ;
-
-
-class PosCalcParam
-{
-public:
-  PosCalcParam() : m_iShiftX(0), m_iShiftY(0), m_iScaleX(1), m_iScaleY(1), m_iAddX(0), m_iAddY(0), m_iDeltaX(0), m_iDeltaY(0) {}
-  static Int CeilLog2( Int i )
-  {
-    Int s = 0; i--;
-    while( i > 0 )
+    Bool  getCroppingChangeFlag() const
     {
-      s++;
-      i >>= 1;
+      return ( m_iExtendedSpatialScalability == ESS_PICT );
     }
-    return s;
-  }
-public:
-  Int m_iShiftX;
-  Int m_iShiftY;
-  Int m_iScaleX;
-  Int m_iScaleY;
-  Int m_iAddX;
-  Int m_iAddY;
-  Int m_iDeltaX;
-  Int m_iDeltaY;
-};
-
-class MvScaleParam
-{
-public:
-  MvScaleParam( ResizeParameters& rcResizeParameters )
-  {
-    m_iScaledW              = rcResizeParameters.m_iOutWidth;
-    m_iScaledH              = rcResizeParameters.m_iOutHeight;
-    m_iRefLayerW            = rcResizeParameters.m_iInWidth;
-    m_iRefLayerH            = rcResizeParameters.m_iInHeight;
-    m_bFieldPicFlag         = rcResizeParameters.m_bFieldPicFlag;
-    m_bRefLayerFieldPicFlag = rcResizeParameters.m_bBaseFieldPicFlag;
-    m_bCroppingChangeFlag   = ( rcResizeParameters.m_iExtendedSpatialScalability == ESS_PICT );
-    if( m_bCroppingChangeFlag )
+    Bool  getCroppingFlag() const
     {
-      Int iCurrLO = rcResizeParameters.m_iPosX;
-      Int iCurrRO = rcResizeParameters.m_iGlobWidth - rcResizeParameters.m_iPosX - rcResizeParameters.m_iOutWidth;
-      Int iCurrTO = rcResizeParameters.m_iPosY;
-      Int iCurrBO = rcResizeParameters.m_iGlobHeight - rcResizeParameters.m_iPosY - rcResizeParameters.m_iOutHeight;
-      m_iLeftOffset    = iCurrLO;
-      m_iTopOffset     = iCurrTO;
-      m_aiNumActive[0] = rcResizeParameters.m_aiNumActive[0];
-      m_aiNumActive[1] = rcResizeParameters.m_aiNumActive[1];
-      for( UInt uiIdx0 = 0; uiIdx0 < (UInt)rcResizeParameters.m_aiNumActive[0]; uiIdx0++ )
-      {
-        Int                      iPoc  = rcResizeParameters.m_aiRefListPoc[0][uiIdx0];
-        const PictureParameters* pcRP  = rcResizeParameters.getCurrentPictureParameters( iPoc );
-        AOF( pcRP );
-        Int iRefLO  = pcRP->m_iPosX;
-        Int iRefRO  = rcResizeParameters.m_iGlobWidth - pcRP->m_iPosX - pcRP->m_iOutWidth;
-        Int iRefTO  = pcRP->m_iPosY;
-        Int iRefBO  = rcResizeParameters.m_iGlobHeight - pcRP->m_iPosY - pcRP->m_iOutHeight;
-        m_aaidOX[0][uiIdx0] = iCurrLO - iRefLO;
-        m_aaidOY[0][uiIdx0] = iCurrTO - iRefTO;
-        m_aaidSW[0][uiIdx0] = iCurrRO - iRefRO + m_aaidOX[0][uiIdx0];
-        m_aaidSH[0][uiIdx0] = iCurrBO - iRefBO + m_aaidOY[0][uiIdx0];
-      }
-      for( UInt uiIdx1 = 0; uiIdx1 < (UInt)rcResizeParameters.m_aiNumActive[1]; uiIdx1++ )
-      {
-        Int                      iPoc  = rcResizeParameters.m_aiRefListPoc[1][uiIdx1];
-        const PictureParameters* pcRP  = rcResizeParameters.getCurrentPictureParameters( iPoc );
-        AOF( pcRP );
-        Int iRefLO  = pcRP->m_iPosX;
-        Int iRefRO  = rcResizeParameters.m_iGlobWidth - pcRP->m_iPosX - pcRP->m_iOutWidth;
-        Int iRefTO  = pcRP->m_iPosY;
-        Int iRefBO  = rcResizeParameters.m_iGlobHeight - pcRP->m_iPosY - pcRP->m_iOutHeight;
-        m_aaidOX[1][uiIdx1] = iCurrLO - iRefLO;
-        m_aaidOY[1][uiIdx1] = iCurrTO - iRefTO;
-        m_aaidSW[1][uiIdx1] = iCurrRO - iRefRO + m_aaidOX[1][uiIdx1];
-        m_aaidSH[1][uiIdx1] = iCurrBO - iRefBO + m_aaidOY[1][uiIdx1];
-      }
+      ROTRS( m_iExtendedSpatialScalability == ESS_PICT,   true );
+      ROFRS( m_iLeftFrmOffset == 0,                       true );
+      ROFRS( m_iTopFrmOffset  == 0,                       true );
+      ROFRS( m_iFrameWidth    == m_iScaledRefFrmWidth,    true );
+      ROFRS( m_iFrameHeight   == m_iScaledRefFrmHeight,   true );
+      return false;
     }
-  }
+    Bool  getSpatialResolutionChangeFlag() const
+    {
+      ROTRS( m_iExtendedSpatialScalability == ESS_PICT,                 true );
+      ROFRS( m_bFieldPicFlag         == m_bRefLayerFieldPicFlag,        true );
+      ROFRS( m_bIsMbAffFrame         == m_bRefLayerIsMbAffFrame,        true );
+      ROFRS( ( m_iLeftFrmOffset %                          16   ) == 0, true );
+      ROFRS( ( m_iTopFrmOffset  % ( m_bIsMbAffFrame ? 32 : 16 ) ) == 0, true );
+      ROFRS( m_iRefLayerFrmWidth     == m_iScaledRefFrmWidth,           true );
+      ROFRS( m_iRefLayerFrmHeight    == m_iScaledRefFrmHeight,          true );
+      ROFRS( m_iRefLayerChromaPhaseX == m_iChromaPhaseX,                true );
+      ROFRS( m_iRefLayerChromaPhaseY == m_iChromaPhaseY,                true );
+      return false;
+    }
+    Bool  getRestrictedSpatialResolutionChangeFlag() const
+    {
+      ROFRS( m_bFieldPicFlag      == m_bRefLayerFieldPicFlag,                                                     false );
+      ROFRS( m_bIsMbAffFrame      == m_bRefLayerIsMbAffFrame,                                                     false );
+      ROFRS( ( m_iLeftFrmOffset %                          16   ) == 0,                                           false );
+      ROFRS( ( m_iTopFrmOffset  % ( m_bIsMbAffFrame ? 32 : 16 ) ) == 0,                                           false );
+      ROFRS( m_iRefLayerFrmHeight == m_iScaledRefFrmHeight || 2 * m_iRefLayerFrmHeight == m_iScaledRefFrmHeight,  false );
+      ROFRS( m_iRefLayerFrmWidth  == m_iScaledRefFrmWidth  || 2 * m_iRefLayerFrmWidth  == m_iScaledRefFrmWidth,   false );
+      return true;
+    }
+
 public:
-  Int   m_iScaledW;
-  Int   m_iScaledH;
-  Int   m_iRefLayerW;
-  Int   m_iRefLayerH;
-  Int   m_iLeftOffset;
-  Int   m_iTopOffset;
+  //===== parameters of current layer =====
+  Int   m_iExtendedSpatialScalability;
+  Int   m_iLevelIdc;
+  Bool  m_bFrameMbsOnlyFlag;
   Bool  m_bFieldPicFlag;
+  Bool  m_bBotFieldFlag;
+  Bool  m_bIsMbAffFrame;
+  Int   m_iFrameWidth;
+  Int   m_iFrameHeight;
+  Int   m_iChromaPhaseX;
+  Int   m_iChromaPhaseY;
+  Int   m_iScaledRefFrmWidth;     // also in PictureParameters
+  Int   m_iScaledRefFrmHeight;    // also in PictureParameters
+  Int   m_iLeftFrmOffset;         // also in PictureParameters
+  Int   m_iTopFrmOffset;          // also in PictureParameters
+  Int   m_iRefLayerChromaPhaseX;  // also in PictureParameters
+  Int   m_iRefLayerChromaPhaseY;  // also in PictureParameters
+
+  //===== parameters for base layer =====
+  Bool  m_bRefLayerFrameMbsOnlyFlag;
   Bool  m_bRefLayerFieldPicFlag;
-  Bool  m_bCroppingChangeFlag;
-  Int   m_aiNumActive[2];
-  Int   m_aaidOX[2][33];
-  Int   m_aaidOY[2][33];
-  Int   m_aaidSW[2][33];
-  Int   m_aaidSH[2][33];
-  Int   m_iXMbPos;
-  Int   m_iYMbPos;
+  Bool  m_bRefLayerBotFieldFlag;
+  Bool  m_bRefLayerIsMbAffFrame;
+  Int   m_iRefLayerFrmWidth;
+  Int   m_iRefLayerFrmHeight;
 };
 
-#undef INTRA_UPSAMPLING_TYPE_DEFAULT
-//H264AVC_NAMESPACE_END
+
+#ifdef DOWN_CONVERT_STATIC
+#else
+H264AVC_NAMESPACE_END
+#endif
 
 #endif 

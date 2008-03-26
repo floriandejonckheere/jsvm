@@ -41,7 +41,7 @@ RSC=rc.exe
 # PROP Intermediate_Dir "..\..\..\build\windows\lib\AvcRewriterLib\ReleaseStatic"
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /Zi /O2 /I "..\..\..\include" /I "." /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCCOMMONLIB_LIB" /D "AVCREWRITERLIB_LIB" /D "USE_NAMESPACE_H264AVC" /YX"AvcRewriterLib.h" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /Zi /O2 /I "..\..\..\include" /I "." /D "NDEBUG" /D "WIN32" /D "_MBCS" /D "_LIB" /D "H264AVCCOMMONLIB_LIB" /D "H264AVCDECODERLIB_LIB" /D "H264AVCENCODERLIB_LIB" /D "SHARP_AVC_REWRITE_OUTPUT" /D "USE_NAMESPACE_H264AVC" /YX"AvcRewriterLib.h" /FD /c
 # ADD BASE RSC /l 0x407 /d "NDEBUG"
 # ADD RSC /l 0x407 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -105,10 +105,6 @@ SOURCE=..\H264AVCDecoderLib\CreaterH264AVCDecoder.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\H264AVCDecoderLib\FGSSubbandDecoder.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=..\H264AVCDecoderLib\GOPDecoder.cpp
 # End Source File
 # Begin Source File
@@ -166,10 +162,6 @@ SOURCE=..\H264AVCDecoderLib\ControlMngH264AVCDecoder.h
 # Begin Source File
 
 SOURCE=..\H264AVCDecoderLib\DecError.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\H264AVCDecoderLib\FGSSubbandDecoder.h
 # End Source File
 # Begin Source File
 

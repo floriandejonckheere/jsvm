@@ -41,7 +41,7 @@ layers      => [
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #==========================================================#  
-bitratecheckrange  => 3,
+bitratecheckrange  => 1,
 psnrcheckrange     => 0,
          
 tests              => [
@@ -67,7 +67,7 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  	bitrate     => 1201,
+                  	bitrate     => 1203,
                   	psnr        => 34.78,
                         encdecmatch => 1,
                        },

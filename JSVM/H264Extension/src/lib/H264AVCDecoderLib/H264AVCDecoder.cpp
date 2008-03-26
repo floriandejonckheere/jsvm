@@ -435,46 +435,15 @@ H264AVCDecoder::xProcessNonVCLNALUnit( NonVCLNALUnit& rcNonVCLNALUnit )
   return Err::m_nOK;
 }
 
-
 ErrVal
-H264AVCDecoder::getBaseLayerDataAvailability( Frame*&       pcFrame,
-                                              Frame*&       pcResidual,
-                                              MbDataCtrl*&  pcMbDataCtrl,
-                                              Bool&         rbBaseDataAvailable,
-                                              Bool&         rbSpatialScalability,
-                                              UInt          uiLayerId,
-                                              UInt          uiBaseLayerId )
+H264AVCDecoder::getBaseLayerData( SliceHeader&      rcELSH,
+                                  Frame*&           pcFrame,
+                                  Frame*&           pcResidual,
+                                  MbDataCtrl*&      pcMbDataCtrl,
+                                  ResizeParameters& rcResizeParameters,
+                                  UInt              uiBaseLayerId )
 {
-  if( m_apcLayerDecoder[uiLayerId]->getFrameHeight() != m_apcLayerDecoder[uiBaseLayerId]->getFrameHeight() &&
-      m_apcLayerDecoder[uiLayerId]->getFrameWidth () != m_apcLayerDecoder[uiBaseLayerId]->getFrameWidth ()   )
-  {
-    rbSpatialScalability = true;
-  }
-  else
-  {
-    rbSpatialScalability = false;
-  }
-  RNOK( m_apcLayerDecoder[uiBaseLayerId]->getBaseLayerDataAvailability( pcFrame, pcResidual, pcMbDataCtrl, rbBaseDataAvailable ) );
-  return Err::m_nOK;
-}
-
-ErrVal
-H264AVCDecoder::getBaseLayerData( Frame*&       pcFrame,
-                                  Frame*&       pcResidual,
-                                  MbDataCtrl*&  pcMbDataCtrl,
-                                  Bool&         rbConstrainedIPred,
-                                  Bool&         rbSpatialScalability,
-                                  UInt          uiBaseLayerId )
-{
-  RNOK( m_apcLayerDecoder[uiBaseLayerId]->getBaseLayerData( pcFrame, pcResidual, pcMbDataCtrl, rbConstrainedIPred, rbSpatialScalability ) );
-  return Err::m_nOK;
-}
-
-ErrVal
-H264AVCDecoder::getBaseLayerResidual( Frame*& pcResidual,
-                                      UInt    uiBaseLayerId )
-{
-  pcResidual = m_apcLayerDecoder[uiBaseLayerId]->getBaseLayerResidual();
+  RNOK( m_apcLayerDecoder[uiBaseLayerId]->getBaseLayerData( rcELSH, pcFrame, pcResidual, pcMbDataCtrl, rcResizeParameters ) );
   return Err::m_nOK;
 }
 

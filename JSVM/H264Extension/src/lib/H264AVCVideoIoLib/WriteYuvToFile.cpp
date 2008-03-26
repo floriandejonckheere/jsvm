@@ -144,7 +144,7 @@ WriteYuvToFile::writeFrame( const UChar* pLum,
   UInt          y;
   const UChar*  pucSrc;
 
-  uiWidth   -= rauiCropping[1] + rauiCropping[1];
+  uiWidth   -= rauiCropping[0] + rauiCropping[1];
   uiHeight  -= rauiCropping[2] + rauiCropping[3];
 
   pucSrc = pLum + ( rauiCropping[0] + rauiCropping[2] * uiStride );

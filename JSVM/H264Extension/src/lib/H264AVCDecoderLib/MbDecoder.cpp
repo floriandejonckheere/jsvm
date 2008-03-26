@@ -181,6 +181,7 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
         {
           if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag() )
           {
+            ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx() );
           }
         }
@@ -189,10 +190,12 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
         {
           if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_16x8_0 ) )
           {
+            ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_16x8_0 ), PART_16x8_0 );
           }
           if( rcMbData.isBlockFwdBwd( B_8x8_2, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_16x8_1 ) )
           {
+            ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_16x8_1 ), PART_16x8_1 );
           }
         }
@@ -201,10 +204,12 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
         {
           if( rcMbData.isBlockFwdBwd( B_8x8_0, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_8x16_0 ) )
           {
+            ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_8x16_0 ), PART_8x16_0 );
           }
           if( rcMbData.isBlockFwdBwd( B_8x8_1, eListIdx ) && rcMbMotionData.getMotPredFlag( PART_8x16_1 ) )
           {
+            ROF( pcMbDataAccessBase );
             rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( PART_8x16_1 ), PART_8x16_1 );
           }
         }
@@ -215,8 +220,9 @@ MbDecoder::xPredictionFromBaseLayer( MbDataAccess&  rcMbDataAccess,
           for( B8x8Idx c8x8Idx; c8x8Idx.isLegal(); c8x8Idx++ )
           {
             if( rcMbData.getBlkMode( c8x8Idx.b8x8Index() ) != BLK_SKIP  &&
-              rcMbData.isBlockFwdBwd( c8x8Idx.b8x8Index(), eListIdx ) && rcMbMotionData.getMotPredFlag( c8x8Idx.b8x8() ) )
+                rcMbData.isBlockFwdBwd( c8x8Idx.b8x8Index(), eListIdx ) && rcMbMotionData.getMotPredFlag( c8x8Idx.b8x8() ) )
             {
+              ROF( pcMbDataAccessBase );
               rcMbMotionData.setRefIdx( pcMbDataAccessBase->getMbMotionData( eListIdx ).getRefIdx( c8x8Idx.b8x8() ), c8x8Idx.b8x8() );
             }
           }

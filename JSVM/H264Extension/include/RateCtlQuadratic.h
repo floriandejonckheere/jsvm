@@ -110,8 +110,8 @@ private:
   double *m_pdFCBUPFMAD;
 
   bool   m_bGOPOverdue;
-  long long m_i64IPrevBits;
-  long long m_i64PPrevBits;
+  Int64  m_i64IPrevBits;
+  Int64  m_i64PPrevBits;
 
   // rate control variables
   int    m_iXp, m_iXb;

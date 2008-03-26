@@ -90,6 +90,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 #include "H264AVCCommonLib/MbDataCtrl.h"
+#include "H264AVCCommonLib/Frame.h"
 #include "DownConvert.h"
 #ifdef SHARP_AVC_REWRITE_OUTPUT
 #include "../H264AVCEncoderLib/H264AVCEncoder.h"
@@ -153,7 +154,6 @@ public:
   Bool          isNeededForRef  ()  const { return m_bNeededForReference; }
   Bool          isOutputted     ()  const { return m_bOutputted; }
   Bool          isBaseRep       ()  const { return m_bBaseRepresentation; }
-  Bool          isConstrIPred   ()  const { return m_bConstrainedIntraPred; }
   Bool          isNalRefIdc     ()  const { return m_eNalRefIdc != NAL_REF_IDC_PRIORITY_LOWEST; }
   PicType       getPicType      ()  const { return m_ePicType; }
   Frame*        getFrame        ()        { return m_pcFrame; }
@@ -197,7 +197,6 @@ private:
   Frame*      m_pcFrame;
   ControlData m_cControlData;
   MbDataCtrl* m_pcMbDataCtrlBL;
-  Bool        m_bConstrainedIntraPred;
   UInt        m_uiQualityId;
   NalRefIdc   m_eNalRefIdc;
   PicType     m_ePicType;
@@ -402,23 +401,15 @@ public:
                                   PicBufferList&          rcPicBufferUnusedList );
 
   //===== returning data =====
-  ErrVal            getBaseLayerDataAvailability  ( Frame*&           pcFrame,
+  ErrVal            getBaseLayerData              ( SliceHeader&      rcELSH,
+                                                    Frame*&           pcFrame,
                                                     Frame*&           pcResidual,
                                                     MbDataCtrl*&      pcMbDataCtrl,
-                                                    Bool&             bBaseDataAvailable );
-  ErrVal            getBaseLayerData              ( Frame*&           pcFrame,
-                                                    Frame*&           pcResidual,
-                                                    MbDataCtrl*&      pcMbDataCtrl,
-                                                    Bool&             rbConstrainedIPred,
-                                                    Bool              bSpatialScalability );
+                                                    ResizeParameters& rcResizeParameters );
   ErrVal            getBaseSliceHeader            ( SliceHeader*&     rpcSliceHeader );
 
-  Void              setResizeParameters           ( ResizeParameters* params )        { m_pcResizeParameter = params; }
-  ResizeParameters* getResizeParameters           ()                                  { return m_pcResizeParameter; }
-  Int               getSpatialScalabilityType     ()                            const { return m_pcResizeParameter->m_iSpatialScalabilityType; }
-  UInt              getFrameWidth                 ()                            const { return m_uiFrameWidthInMb*16; }
-  UInt              getFrameHeight                ()                            const { return m_uiFrameHeightInMb*16; }
-  Frame*            getBaseLayerResidual          ()                                  { return m_pcBaseLayerResidual; }
+  UInt              getFrameWidth                 ()  const { return m_uiFrameWidthInMb*16; }
+  UInt              getFrameHeight                ()  const { return m_uiFrameHeightInMb*16; }
 
 private:
   //===== create data arrays =====
@@ -471,28 +462,13 @@ private:
                                         MbDataCtrl&             rcMbDataCtrl,
                                         ControlData&            rcControlData ); 
   ErrVal  xInitBaseLayer              ( ControlData&            rcControlData,
-												                SliceHeader*&           rcSliceHeaderBase,
                                         Bool                    bFirstSliceInLayerRepresentation );
   ErrVal  xGetBaseLayerData           ( ControlData&            rcControlData,
                                         Frame*&                 rpcBaseFrame,
                                         Frame*&                 rpcBaseResidual,
                                         MbDataCtrl*&            rpcBaseDataCtrl,
-                                        Bool&                   rbBaseDataAvailable,
-                                        Bool&                   rbConstrainedIPredBL,
-                                        Bool&                   rbSpatialScalability,
-                                        ResizeParameters*       pcResizeParameter );
-  ErrVal  xConstrainedIntraUpsampling ( Frame*                  pcFrame,
-                                        Frame*                  pcUpsampling, 
-                                        Frame*                  pcTemp,
-                                        MbDataCtrl*             pcBaseDataCtrl,
-                                        ReconstructionBypass*   pcReconstructionBypass,
-                                        ResizeParameters*       pcResizeParameters,
-                                        PicType                 ePicType );
-  Void    xGetPosition                ( ResizeParameters*       pcResizeParameters,
-                                        Int*                    px,
-                                        Int*                    py,
-                                        Bool                    uv_flag );
-  Void    xSetMCResizeParameters      ( ResizeParameters*				resizeParameters );
+                                        ResizeParameters&       rcResizeParameters );
+  Void    xSetMCResizeParameters      ( ResizeParameters&				rcResizeParameters );
 
 protected:
   //----- references -----
@@ -530,7 +506,7 @@ protected:
   MyList<SliceHeader*>  m_cSliceHeaderList;
 
   //----- frame memories, control data, and references  -----
-  ResizeParameters*     m_pcResizeParameter;
+  ResizeParameters      m_cResizeParameters;
   DPBUnit*              m_pcCurrDPBUnit;
   MbDataCtrl*           m_pcBaseLayerCtrl;
   MbDataCtrl*           m_pcBaseLayerCtrlField;

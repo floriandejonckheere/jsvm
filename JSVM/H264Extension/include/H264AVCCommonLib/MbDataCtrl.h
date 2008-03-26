@@ -98,6 +98,153 @@ H264AVC_NAMESPACE_BEGIN
 #endif
 
 
+class MbDataCtrl;
+
+class H264AVCCOMMONLIB_API PosCalcParam
+{
+public:
+  PosCalcParam( ResizeParameters& rcResizeParameters );
+
+public:
+  Bool  m_bRSChangeFlag;
+  Int   m_iBaseMbAff;
+  Int   m_iCurrMbAff;
+  Int   m_iBaseField;
+  Int   m_iCurrField;
+  Int   m_iBaseBotField;
+  Int   m_iCurrBotField;
+  Int   m_iRefW;
+  Int   m_iRefH;
+  Int   m_iScaledW;
+  Int   m_iScaledH;
+  Int   m_iOffsetX;
+  Int   m_iOffsetY;
+  Int   m_iShiftX;
+  Int   m_iShiftY;
+  Int   m_iScaleX;
+  Int   m_iScaleY;
+  Int   m_iAddX;
+  Int   m_iAddY;
+};
+
+
+class H264AVCCOMMONLIB_API MvScaleParam
+{
+public:
+  MvScaleParam( ResizeParameters& rcResizeParameters, RefFrameList* pcRefFrameList0, RefFrameList* pcRefFrameList1 );
+
+public:
+  Bool  m_bRSChangeFlag;
+  Bool  m_bCropChangeFlag;
+  Int   m_iCurrMbAff;
+  Int   m_iBaseField;
+  Int   m_iCurrField;
+  Int   m_iRefW;
+  Int   m_iRefH;
+  Int   m_iScaledW;
+  Int   m_iScaledH;
+  Int   m_iOffsetX;
+  Int   m_iOffsetY;
+  Int   m_iScaleX;
+  Int   m_iScaleY;
+  Int   m_aiNumActive [2];
+  Int   m_aaidOX      [2][33];
+  Int   m_aaidOY      [2][33];
+  Int   m_aaidSW      [2][33];
+  Int   m_aaidSH      [2][33];
+};
+
+class H264AVCCOMMONLIB_API MotionUpsampling
+{
+public:
+  MotionUpsampling  ( MbDataCtrl&       rcMbDataCtrlCurr,
+                      SliceHeader&      rcSliceHeaderCurr,
+                      ResizeParameters& rcResizeParameters,
+                      MbDataCtrl&       rcMbDataCtrlBase,
+                      RefFrameList*     pcRefFrameList0,
+                      RefFrameList*     pcRefFrameList1,
+                      Bool              bFieldMacroblocks,
+                      Bool              bCheckResidualPred  = false,
+                      Int               iMvThreshold        = 0 );
+  ~MotionUpsampling ();
+
+  ErrVal  resample  ( Int iMbXCurr, Int iMbYCurr );
+
+private:
+  ErrVal  xInitMb                     ( Int       iMbXCurr,
+                                        Int       iMbYCurr );
+  Bool    xIsInCropWindow             ();
+  ErrVal  xGetRefLayerMb              ( Int       iXInsideCurrMb,     // subclause G.6.1
+                                        Int       iYInsideCurrMb,
+                                        Int&      riBaseMbIdx,
+                                        Int&      riXInsideBaseMb,
+                                        Int&      riYInsideBaseMb );
+  ErrVal  xGetRefLayerPartIdc         ( Int       iXInsideCurrMb,     // subclause G.6.2
+                                        Int       iYInsideCurrMb,
+                                        Int&      riPartIdc );
+  ErrVal  xSetPartIdcArray            ();                             // subclause G.8.6.1.1
+    
+  ErrVal  xGetInitialBaseRefIdxAndMv  ( Int       i4x4BlkX,           // reference index and motion vector scaling of subclause G.8.6.1.2
+                                        Int       i4x4BlkY,
+                                        ListIdx   eListIdx,
+                                        Int       iPartIdc,
+                                        Int&      riRefIdx,
+                                        Mv&       rcMv );
+  Int     xGetMinRefIdx               ( Int       iRefIdxA,           // function MinPositive() specified in subclause G.8.6.1.2
+                                        Int       iRefIdxB );
+  ErrVal  xGetRefIdxAndInitialMvPred  ( ListIdx   eListIdx );         // first part of subclause G.8.6.1.2
+  
+  Int     xMvDiff                     ( const Mv& rcMvA,              // function mvDiff specified in subclause G.8.6.1.2
+                                        const Mv& rcMbB );
+  ErrVal  xDeriveBlockModeAndUpdateMv ( Int       i8x8BlkIdx );       // second part of subclause G.8.6.1.2
+  
+  Bool    x8x8BlocksHaveSameMotion    ( ListIdx   eListIdx,
+                                        Int       i8x8IdxA,
+                                        Int       i8x8IdxB );         // compare motion parameters of 8x8 blocks
+  ErrVal  xDeriveMbMode               ();                             // derive predicted macroblock mode
+  ErrVal  xDeriveFwdBwd               ();                             // set forward/backward indication
+  
+  ErrVal  xSetInterIntraIdc           ();                             // set indications for intra-inter combination process
+  ErrVal  xSetResPredSafeFlag         ();                             // set flag indicating whether residual prediction is "safe" 
+
+  ErrVal  xSetPredMbData              ();                             // store prediction data in MbData structure
+
+
+private:
+  //===== general parameters =====
+  Bool              m_bCheckResidualPred;
+  Int               m_iMvThreshold;
+  Bool              m_bCurrFieldMb;
+  SliceType         m_eSliceType;
+  Int               m_iRefLayerDQId;
+  Int               m_iMaxListIdx;
+  Bool              m_bSCoeffPred;
+  Bool              m_bTCoeffPred;
+  MbDataCtrl&       m_rcMbDataCtrlCurr;
+  ResizeParameters& m_rcResizeParameters;
+  PosCalcParam      m_cPosCalc;
+  MvScaleParam      m_cMvScale;
+  MbDataCtrl&       m_rcMbDataCtrlBase;
+  Int               m_iMbX0CropFrm;
+  Int               m_iMbY0CropFrm;
+  Int               m_iMbX1CropFrm;
+  Int               m_iMbY1CropFrm;
+  //===== macroblock parameters =====
+  Int               m_iMbXCurr;             // inside current picture (i.e. frame or field)
+  Int               m_iMbYCurr;             // inside current picture (i.e. frame or field)
+  //===== auxiliary arrays and variables =====
+  Bool              m_bInCropWindow;        // set  in xInitMb
+  Bool              m_bIntraBL;             // set  in xSetPartIdcArray
+  Int               m_aaiPartIdc    [4][4]; // set  in xSetPartIdcArray
+  Int               m_aaiRefIdxTemp [4][4]; // used in xGetRefIdxAndInitialMvPred
+  Int               m_aaaiRefIdx [2][2][2]; // set  in xGetRefIdxAndInitialMvPred
+  Mv                m_aaacMv     [2][4][4]; // set  in xGetRefIdxAndInitialMvPred, modified in xDeriveBlockModeAndUpdateMv
+  BlkMode           m_aeBlkMode  [4];       // set  in xDeriveBlockModeAndUpdateMv
+  MbMode            m_eMbMode;              // set  in xDeriveMbMode
+  UInt              m_uiFwdBwd;             // set  in xDeriveFwdBwd
+  Bool              m_aabBaseIntra  [2][2]; // set  in xSetInterIntraIdc
+  Bool              m_bResPredSafe;         // set  in xInitMb, modified in xSetResPredSafeFlag
+};
 
 
 
@@ -108,8 +255,8 @@ public:
   ~MbDataCtrl();
 
 public:
-  ErrVal getBoundaryMask( Int iMbY, Int iMbX, UInt& ruiMask ) const ;
-  ErrVal getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask ) const ; //TMM_INTERLACE
+  ErrVal getBoundaryMask      ( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ) const;
+  ErrVal getBoundaryMask_MbAff( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ) const;
 
   ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Int iForceQp = -1 );
 	ErrVal initMb( MbDataAccess*& rpcMbDataAccess, UInt uiMbY, UInt uiMbX, const Bool bFieldFlag, const Int iForceQp );
@@ -132,25 +279,6 @@ public:
 
   MbData& getMbDataByIndex( UInt uiIndex )        { AOT_DBG( uiIndex >= m_uiSize );  return m_pcMbData[ uiIndex ]; }
 
-  ErrVal saveQpAndCbp( MbDataCtrl *pSrcMbDataCtrl )
-  {
-    for( UInt uiMbIdx = 0; uiMbIdx < getSize(); uiMbIdx++ )
-    {
-      getMbDataByIndex( uiMbIdx ).setQp      ( pSrcMbDataCtrl->getMbData( uiMbIdx ).getQp() );
-      getMbDataByIndex( uiMbIdx ).setQp4LF   ( pSrcMbDataCtrl->getMbData( uiMbIdx ).getQp4LF() );
-      getMbDataByIndex( uiMbIdx ).setTransformSize8x8 ( pSrcMbDataCtrl->getMbData( uiMbIdx ).isTransformSize8x8() );
-      getMbDataByIndex( uiMbIdx ).setMbExtCbp( pSrcMbDataCtrl->getMbData( uiMbIdx ).getMbExtCbp() );
-    }
-
-    return Err::m_nOK;
-  }
-
-	Void					setEssRPChkEnable	(UInt val)  { m_uiEssRPChkEnable = val; }
-	Void					setMVThres				(UInt val)	{ m_uiMVThres = val; }
-
-  Bool          getBuildInterlacePred ()  { return  m_bBuildInterlacePred;    }
-  Void          setBuildInterlacePred ( Bool bBuildInterlacePredpred )  { m_bBuildInterlacePred = bBuildInterlacePredpred;    }
-
   ErrVal clear() { return xResetData(); }
 
   MbData& getMbData( UInt uiMbX, UInt uiMbY )   { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
@@ -158,41 +286,25 @@ public:
 	MbData& getMbData( UInt uiMbX, UInt uiMbY ) const  { AOT_DBG( uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset >= m_uiSize );  return m_pcMbData[uiMbY*m_uiMbStride+uiMbX+m_uiMbOffset]; }
 //  TMM_EC }}
 
-  ErrVal        copyMotionBLForceFrame ( MbDataCtrl& rcMbDataCtrl );
-  
-  ErrVal        switchMotionRefinement();
+  ErrVal  copyMotion    ( MbDataCtrl&       rcMbDataCtrl );
+  ErrVal  upsampleMotion( SliceHeader*      pcSliceHeader,
+                          ResizeParameters* pcResizeParameters,
+                          MbDataCtrl*       pcBaseMbDataCtrl, 
+                          RefFrameList*     pcRefFrameList0,
+                          RefFrameList*     pcRefFrameList1,
+                          Bool              bFieldResampling,
+                          Bool              bResidualPredCheck = false,
+                          Int               iMvThreshold       = 0 );
 
-  ErrVal        copyMotion    ( MbDataCtrl& rcMbDataCtrl );
-  ErrVal        copyMotionBL  ( MbDataCtrl& rcMbDataCtrl, ResizeParameters* pcParameters  );
-  ErrVal        upsampleMotion ( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
-
-  // JVT-V035, functions for SVC to AVC rewrite
-  ErrVal  copyTCoeffs   ( MbDataCtrl& rcMbDataCtrl );
-  ErrVal  copyIntraPred ( MbDataCtrl& rcMbDataCtrl );
-
-//JVT-T054{
-  ErrVal        initMbCBP( MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
-//JVT-T054}
   //--ICU/ETRI FMO Implementation
   const Int getSliceGroupIDofMb(Int mb);
 
-  // ICU/ETRI FGS_MOT_USE
-	Bool xGetDirect8x8InferenceFlagPublic() { return m_bDirect8x8InferenceFlag; }
-  Void xSetDirect8x8InferenceFlag(Bool b) { m_bDirect8x8InferenceFlag = b; }
-
-  UInt GetMbStride() { return m_uiMbStride; }
-  Void SetMbStride(UInt Stride) { m_uiMbStride = Stride; }  
-
   // JVT-S054 (ADD)
   UInt getSliceId() const { return m_uiSliceId;}
-  //JVT-U106 Behaviour at slice boundaries{
-  ErrVal        getBoundaryMaskCIU( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID );
-  ErrVal        getBoundaryMaskCIU_MbAff( Int iMbY, Int iMbX, UInt& ruiMask, UInt uiCurrentSliceID ); //TMM_INTERLACE
-  //JVT-U106 Behaviour at slice boundaries}
-	//JVT-X046 {
+
+  //JVT-X046 {
 	MbData* xGetMbData(UInt uiMbAddress) { return &m_pcMbData[uiMbAddress]; }
-	void updateMBProcessed(UInt uiProcessed) { m_uiMbProcessed += uiProcessed; }
-	//JVT-X046 }
+
 protected:
   const MbData& xGetOutMbData()            const { return m_pcMbData[m_uiSize]; }
   const MbData& xGetRefMbData( UInt uiSliceId, Int uiCurrSliceID, Int iMbY, Int iMbX, Bool bLoopFilter ); 
@@ -202,42 +314,11 @@ protected:
   ErrVal xDeleteData();
   ErrVal xResetData();
 
-  Bool xGetDirect8x8InferenceFlag() { return m_bDirect8x8InferenceFlag; }
-
-  ErrVal  xUpsampleMotionESS(MbDataCtrl& rcBaseMbDataCtrl, ResizeParameters* pcParameters );
-  
-  MbDataCtrl*		xBuildVirtualBaseLayer( MbDataCtrl* pcMbBaseDataCtrl,Bool bField,ResizeParameters* pcParameters);
-
-  ErrVal				xConvertMotion( MbDataCtrl& rcMbDataCtrl,Bool bField,ResizeParameters* pcParameters);
-
-
-  ErrVal        xInitVBLUpsampleData( MbDataCtrl*         pcBaseMbDataCtrl,
-                                      ResizeParameters*   pcParameters,
-                                      UInt&               ruiConfig,
-                                      Int&                riMbOrigY,
-                                      Int&                riMbEndY ,
-                                      Int&                riScaledBaseOrigY,
-                                      UInt&               ruiBaseMbStride     );
-
-  ErrVal        xUninitVBLUpsampleData( ResizeParameters*   pcParameters,
-                                        UInt                uiConfig );
-
-  ErrVal xInitVBLPelOrig( MbDataCtrl*         pcBaseMbDataCtrl,
-                             UInt                uiConfig,
-                             Int                 iMbX,
-                             Int                 iMbY,
-                             Int                 iScaledBaseOrigX,
-                             Int                 iScaledBaseOrigY,  
-                             Int                 aiPelOrig[2],
-                             UInt&               ruiBLMbOffset);
-
 protected:
-  DynBuf<Bool>        m_cMbProcessed;
   DynBuf<DBFilterParameter*>  m_cDBFPBuffer;
   DynBuf<DBFilterParameter*>  m_cILDBFPBuffer;
   MbTransformCoeffs*  m_pcMbTCoeffs;
   MbMotionData*       m_apcMbMotionData[2];
-  MbMotionData*       m_apcMbMotionDataBase[2];
   MbMvData*           m_apcMbMvdData[2];
   MbData*             m_pcMbData;
   MbDataAccess*       m_pcMbDataAccess;
@@ -257,12 +338,7 @@ protected:
   Bool                m_bUseTopField;
   Bool                m_bPicCodedField;
   Bool                m_bInitDone;
-  Bool                m_bDirect8x8InferenceFlag;
-  Bool                m_bBuildInterlacePred;
   SliceHeader*        m_pcSliceHeader;
-	UInt								m_uiEssRPChkEnable;
-	UInt								m_uiMVThres;
-
 };
 
 
@@ -354,14 +430,6 @@ public:
   UInt          getBaseLayerId    () { return m_uiBaseLayerId; }
   UInt          getBaseLayerIdMotion()  { return m_uiBaseLayerIdMotion; }
 
-// TMM_ESS {
-  Void          setSpatialScalabilityType ( int iSST )   { m_iSpatialScalabilityType = iSST; }
-  Int           getSpatialScalabilityType ()             { return m_iSpatialScalabilityType; }
-  Void          setSpatialScalability ( Bool b )         { m_bSpatialScalability = b; }
-  Bool          getSpatialScalability ()                 { return m_bSpatialScalability; }
-// TMM_ESS }
-
-
   RefFrameList& getPrdFrameList     ( UInt uiList )   { return m_acPrdFrameList          [uiList]; }
   
   ErrVal        initFGSData             ( UInt uiNumMb );
@@ -373,6 +441,9 @@ public:
   ErrVal        uninitBQData          ();
   ErrVal        storeBQLayerQpAndCbp  ();
   ErrVal        switchBQLayerQpAndCbp ();
+
+  Void          setSpatialScalability ( Bool b )  { m_bSpatialScalability = b; }
+  Bool          getSpatialScalability ()  const   { return m_bSpatialScalability; }
 
 private:
   MbDataCtrl*   m_pcMbDataCtrl;
@@ -394,7 +465,6 @@ private:
   UInt          m_uiBaseLayerId;
   UInt          m_uiBaseLayerIdMotion;
 
-  Int           m_iSpatialScalabilityType; // TMM_ESS
   Bool          m_bSpatialScalability;     // TMM_ESS  
 
   UChar*        m_pacFGSMbQP;

@@ -118,28 +118,61 @@ ErrVal ReconstructionBypass::uninit()
   return Err::m_nOK;
 }
  
-ErrVal ReconstructionBypass::padRecFrame( Frame* pcIntFrame, const MbDataCtrl* pcMbDataCtrl, YuvBufferCtrl* pcYuvFullPelBufferCtrl, UInt uiFrameWidthInMb, UInt uiFrameHeightInMb )
+ErrVal
+ReconstructionBypass::padRecFrame( Frame*             pcFrame, 
+                                   const MbDataCtrl*  pcMbDataCtrl,
+                                   ResizeParameters*  pcResizeParameters,
+                                   UInt               uiSliceId /* = MSYS_UINT_MAX */ )
 {
-  YuvPicBuffer* pcIntYuvPicBuffer = pcIntFrame->getFullPelYuvBuffer();
+  ROF( pcFrame );
+  ROF( pcMbDataCtrl );
+  ROF( pcResizeParameters );
 
-  // loop over macroblocks
-  for( UInt uiMbY = 0; uiMbY < uiFrameWidthInMb; uiMbY++ )
+  RNOK( pcFrame->addFrameFieldBuffer() );
+
+  UInt    uiFrmWidth  =   pcResizeParameters->m_iRefLayerFrmWidth  >> 4;
+  UInt    uiFrmHeight =   pcResizeParameters->m_iRefLayerFrmHeight >> 4;
+  Bool    bMbAffFrame =   pcResizeParameters->m_bRefLayerIsMbAffFrame;
+  PicType ePicType    = ( pcResizeParameters->m_bRefLayerFieldPicFlag ? ( pcResizeParameters->m_bRefLayerBotFieldFlag ? BOT_FIELD : TOP_FIELD ) : FRAME );
+
+  for( UInt uiMbY = 0; uiMbY < uiFrmHeight; uiMbY++ )
+  for( UInt uiMbX = 0; uiMbX < uiFrmWidth;  uiMbX++ )
   {
-    for( UInt uiMbX = 0; uiMbX < uiFrameHeightInMb; uiMbX++ )
+    UInt  uiMask  = 0;
+    Bool  bIntra  = pcMbDataCtrl->getMbData( uiMbX, uiMbY ).isIntraInSlice( uiSliceId );
+    RNOK( pcFrame->getFullPelYuvBuffer()->getYuvBufferCtrl().initMb( uiMbY, uiMbX, bMbAffFrame ) );
+
+    if( ! bMbAffFrame )
     {
-      UInt uiMask = 0;
-
-      //===== init macroblock =====
-      RNOK( pcMbDataCtrl   ->getBoundaryMask( uiMbY, uiMbX, uiMask ) );
-			RNOK( pcYuvFullPelBufferCtrl->initMb  ( uiMbY, uiMbX, false  ) );
-      if( uiMask )
+      RNOK( pcMbDataCtrl->getBoundaryMask( uiMbY, uiMbX, uiMask, uiSliceId ) );
+      if  ( uiMask || ! bIntra )
       {
-		    IntYuvMbBufferExtension cBuffer;
-		    cBuffer.loadSurrounding( pcIntYuvPicBuffer );
-
-        RNOK( padRecMb( &cBuffer, uiMask ) );
-
-  	    pcIntYuvPicBuffer->loadBuffer( &cBuffer );
+        YuvMbBufferExtension  cBuffer;
+        YuvPicBuffer*         pcPicBuffer = pcFrame->getPic( ePicType )->getFullPelYuvBuffer();
+        cBuffer.setAllSamplesToZero ();
+        if( uiMask )
+        {
+          cBuffer.loadSurrounding   ( pcPicBuffer );
+          RNOK( xPadRecMb           ( &cBuffer, uiMask ) );
+        }
+        pcPicBuffer->loadBuffer     ( &cBuffer );
+      }
+    }
+    else
+    {
+      RNOK( pcMbDataCtrl->getBoundaryMask_MbAff( uiMbY, uiMbX, uiMask, uiSliceId ) );
+      if  ( uiMask || ! bIntra )
+      {
+        YuvMbBufferExtension  cBuffer;
+        PicType               eMbPicType  = ( uiMbY % 2 ? BOT_FIELD : TOP_FIELD );
+        YuvPicBuffer*         pcPicBuffer = pcFrame->getPic( eMbPicType )->getFullPelYuvBuffer();
+        cBuffer.setAllSamplesToZero     ();
+        if( uiMask )
+        {
+          cBuffer.loadSurrounding_MbAff ( pcPicBuffer,  uiMask );
+          RNOK( xPadRecMb_MbAff         ( &cBuffer,     uiMask ) );
+        }
+        pcPicBuffer->loadBuffer_MbAff   ( &cBuffer,     uiMask );
       }
     }
   }
@@ -147,9 +180,10 @@ ErrVal ReconstructionBypass::padRecFrame( Frame* pcIntFrame, const MbDataCtrl* p
   return Err::m_nOK;
 }
 
-ErrVal ReconstructionBypass::padRecMb( IntYuvMbBufferExtension* pcBuffer, UInt uiMask )
-{
 
+ErrVal
+ReconstructionBypass::xPadRecMb( YuvMbBufferExtension* pcBuffer, UInt uiMask )
+{
   Bool bAboveIntra      = 0 != (uiMask & 0x01);
   Bool bBelowIntra      = 0 != (uiMask & 0x10);
   Bool bLeftIntra       = 0 != (uiMask & 0x40);
@@ -275,8 +309,9 @@ ErrVal ReconstructionBypass::padRecMb( IntYuvMbBufferExtension* pcBuffer, UInt u
   return Err::m_nOK;
 }
 
-//TMM_INTERLACE  {
-ErrVal ReconstructionBypass::padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, UInt uiMask )
+
+ErrVal
+ReconstructionBypass::xPadRecMb_MbAff( YuvMbBufferExtension* pcBuffer, UInt uiMask )
 {
   Bool bAboveIntra      = 0 != (uiMask & 0x01);
   Bool bBelowIntra      = 0 != (uiMask & 0x10);
@@ -444,7 +479,6 @@ ErrVal ReconstructionBypass::padRecMb_MbAff( IntYuvMbBufferExtension* pcBuffer, 
 
   return Err::m_nOK;
 }
-//TMM_INTERLACE  }
 
 H264AVC_NAMESPACE_END
 

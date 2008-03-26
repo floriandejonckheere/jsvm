@@ -85,6 +85,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "H264AVCCommonLib.h"
 #include "H264AVCCommonLib/SequenceParameterSet.h"
 #include "H264AVCCommonLib/TraceFile.h"
+#include "ResizeParameters.h"
 #include <cmath>
 
 
@@ -176,9 +177,9 @@ SequenceParameterSet::SequenceParameterSet  ()
 , m_uiFrameWidthInMbs                       ( 0 )
 , m_uiFrameHeightInMbs                      ( 0 )
 , m_bDirect8x8InferenceFlag                 ( false )
-,m_uiExtendedSpatialScalability             ( ESS_NONE ) // TMM_ESS
-,m_uiChromaPhaseXPlus1                      ( 0 ) // TMM_ESS
-,m_uiChromaPhaseYPlus1                      ( 1 )// TMM_ESS
+, m_uiExtendedSpatialScalability            ( ESS_NONE ) // TMM_ESS
+, m_uiChromaPhaseXPlus1                     ( 0 ) // TMM_ESS
+, m_uiChromaPhaseYPlus1                     ( 1 )// TMM_ESS
 , m_uiBaseChromaPhaseXPlus1                 ( 0 ) //JVT-W046
 , m_uiBaseChromaPhaseYPlus1                 ( 1 ) //JVT-W046
 , m_bInterlayerDeblockingPresent            ( 0 )
@@ -231,7 +232,7 @@ SequenceParameterSet::destroy()
 SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameterSet& rcSPS )
 {
   m_eNalUnitType                      = rcSPS.m_eNalUnitType;
-  m_uiDependencyId                         = rcSPS.m_uiDependencyId;
+  m_uiDependencyId                    = rcSPS.m_uiDependencyId;
   m_eProfileIdc                       = rcSPS.m_eProfileIdc;
   m_bConstrainedSet0Flag              = rcSPS.m_bConstrainedSet0Flag;
   m_bConstrainedSet1Flag              = rcSPS.m_bConstrainedSet1Flag;
@@ -258,10 +259,8 @@ SequenceParameterSet& SequenceParameterSet::operator = ( const SequenceParameter
   m_uiExtendedSpatialScalability      = rcSPS.m_uiExtendedSpatialScalability;
   m_uiChromaPhaseXPlus1               = rcSPS.m_uiChromaPhaseXPlus1;
   m_uiChromaPhaseYPlus1               = rcSPS.m_uiChromaPhaseYPlus1;
-//JVT-W046 {
-  m_uiBaseChromaPhaseXPlus1               = rcSPS.m_uiBaseChromaPhaseXPlus1;
-  m_uiBaseChromaPhaseYPlus1               = rcSPS.m_uiBaseChromaPhaseYPlus1;
-//JVT-W046 }
+  m_uiBaseChromaPhaseXPlus1           = rcSPS.m_uiBaseChromaPhaseXPlus1;
+  m_uiBaseChromaPhaseYPlus1           = rcSPS.m_uiBaseChromaPhaseYPlus1;
   m_iScaledBaseLeftOffset             = rcSPS.m_iScaledBaseLeftOffset;
   m_iScaledBaseTopOffset              = rcSPS.m_iScaledBaseTopOffset;
   m_iScaledBaseRightOffset            = rcSPS.m_iScaledBaseRightOffset;
@@ -590,6 +589,15 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
       RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
       RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
     }
+    else
+    {
+      m_uiBaseChromaPhaseXPlus1 = m_uiChromaPhaseXPlus1;
+      m_uiBaseChromaPhaseYPlus1 = m_uiChromaPhaseYPlus1;
+      m_iScaledBaseLeftOffset   = 0;
+      m_iScaledBaseTopOffset    = 0;
+      m_iScaledBaseRightOffset  = 0;
+      m_iScaledBaseBottomOffset = 0;
+    }
     RNOK( pcReadIf->getFlag( m_bAVCRewriteFlag,                           "SPS: seq_tcoeff_level_prediction_flag" ) );
     if( m_bAVCRewriteFlag )
     {
@@ -666,73 +674,34 @@ SequenceParameterSet::xReadFrext( HeaderSymbolReadIf* pcReadIf )
 }
 
 
-// TMM_ESS {
-Void SequenceParameterSet::setResizeParameters ( const ResizeParameters * params )
+Void SequenceParameterSet::setResizeParameters( const ResizeParameters& rcResizeParameters )
 {
-  m_uiExtendedSpatialScalability = (UInt)params->m_iExtendedSpatialScalability;
+  Int iVer = ( m_bFrameMbsOnlyFlag ? 2 : 4 ); // m_bFrameMbsOnlyFlag must be set !!!!!
 
-  m_uiChromaPhaseXPlus1 = (UInt)(params->m_iChromaPhaseX+1);
-  m_uiChromaPhaseYPlus1 = (UInt)(params->m_iChromaPhaseY+1);
+  m_uiExtendedSpatialScalability  = (UInt)rcResizeParameters.m_iExtendedSpatialScalability;
+  m_uiChromaPhaseXPlus1           = (UInt)( rcResizeParameters.m_iChromaPhaseX + 1 );
+  m_uiChromaPhaseYPlus1           = (UInt)( rcResizeParameters.m_iChromaPhaseY + 1 );
 
-  if (m_uiExtendedSpatialScalability == ESS_SEQ)
+  if( m_uiExtendedSpatialScalability == ESS_SEQ )
   {
-//JVT-W046 {
-    m_uiBaseChromaPhaseXPlus1 = (UInt)(params->m_iBaseChromaPhaseX+1);
-    m_uiBaseChromaPhaseYPlus1 = (UInt)(params->m_iBaseChromaPhaseY+1);
-//JVT-W046 }
-    m_iScaledBaseLeftOffset   = params->m_iPosX /2;
-    m_iScaledBaseTopOffset    = params->m_iPosY /2;
-    m_iScaledBaseRightOffset  = (params->m_iGlobWidth - params->m_iPosX - params->m_iOutWidth) /2;
-    m_iScaledBaseBottomOffset = (params->m_iGlobHeight - params->m_iPosY - params->m_iOutHeight) /2;
+    m_uiBaseChromaPhaseXPlus1 = (UInt)(rcResizeParameters.m_iRefLayerChromaPhaseX+1);
+    m_uiBaseChromaPhaseYPlus1 = (UInt)(rcResizeParameters.m_iRefLayerChromaPhaseY+1);
+    m_iScaledBaseLeftOffset   = rcResizeParameters.m_iLeftFrmOffset / 2;
+    m_iScaledBaseTopOffset    = rcResizeParameters.m_iTopFrmOffset  / iVer;
+    m_iScaledBaseRightOffset  = ( rcResizeParameters.m_iFrameWidth  - rcResizeParameters.m_iLeftFrmOffset - rcResizeParameters.m_iScaledRefFrmWidth  ) / 2;
+    m_iScaledBaseBottomOffset = ( rcResizeParameters.m_iFrameHeight - rcResizeParameters.m_iTopFrmOffset  - rcResizeParameters.m_iScaledRefFrmHeight ) / iVer;
   }
   else
   {
     m_uiBaseChromaPhaseXPlus1 = m_uiChromaPhaseXPlus1;
     m_uiBaseChromaPhaseYPlus1 = m_uiChromaPhaseYPlus1;
     m_iScaledBaseBottomOffset = 0;
-    m_iScaledBaseLeftOffset = 0;
-    m_iScaledBaseRightOffset = 0;
-    m_iScaledBaseTopOffset = 0;
-  }
- }
-
-Void SequenceParameterSet::getResizeParameters ( ResizeParameters * params ) const
-{
-  params->m_iExtendedSpatialScalability = m_uiExtendedSpatialScalability;
-
-  params->m_bCrop = (m_uiExtendedSpatialScalability != ESS_NONE);
-
-  int w = m_uiFrameWidthInMbs * 16;
-  int h = m_uiFrameHeightInMbs * 16;
-  params->m_iGlobWidth  = w;
-  params->m_iGlobHeight = h;
-
-  params->m_iChromaPhaseX = (Int)m_uiChromaPhaseXPlus1 - 1;
-  params->m_iChromaPhaseY = (Int)m_uiChromaPhaseYPlus1 - 1;
-
-
-  if (m_uiExtendedSpatialScalability == ESS_SEQ)
-  {
-    //JVT-W046 {
-    params->m_iBaseChromaPhaseX = (Int)m_uiBaseChromaPhaseXPlus1 - 1;
-    params->m_iBaseChromaPhaseY = (Int)m_uiBaseChromaPhaseYPlus1 - 1;
-    //JVT-W046 }
-    params->m_iPosX       = m_iScaledBaseLeftOffset *2;
-    params->m_iPosY       = m_iScaledBaseTopOffset *2;
-    params->m_iOutWidth   = w - params->m_iPosX - (m_iScaledBaseRightOffset *2);
-    params->m_iOutHeight  = h - params->m_iPosY - (m_iScaledBaseBottomOffset *2);
-  }
-  else
-  {
-    params->m_iBaseChromaPhaseX = params->m_iChromaPhaseX;
-    params->m_iBaseChromaPhaseY = params->m_iChromaPhaseY;
-    params->m_iOutWidth   = w;
-    params->m_iOutHeight  = h;
-    params->m_iPosX       = 0;
-    params->m_iPosY       = 0;
+    m_iScaledBaseLeftOffset   = 0;
+    m_iScaledBaseRightOffset  = 0;
+    m_iScaledBaseTopOffset    = 0;
   }
 }
-// TMM_ESS }
+
 
 ErrVal SequenceParameterSet::xReadPicOrderCntInfo( HeaderSymbolReadIf* pcReadIf )
 {

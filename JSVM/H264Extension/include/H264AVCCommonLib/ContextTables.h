@@ -87,31 +87,30 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #if !defined(AFX_CONTEXTTABLES_H__CBFE313E_2382_4ECC_9D41_416668E3507D__INCLUDED_)
 #define AFX_CONTEXTTABLES_H__CBFE313E_2382_4ECC_9D41_416668E3507D__INCLUDED_
 
-#define NUM_ABT_MODE_CTX 3
-#define NUM_MB_TYPE_CTX  11
-#define NUM_B8_TYPE_CTX  9
-#define NUM_MV_RES_CTX   10
-#define NUM_REF_NO_CTX   6
-#define NUM_DELTA_QP_CTX 4
-#define NUM_BL_PRED_FLAG_CTX   4
-#define NUM_RES_PRED_FLAG_CTX   4
-#define NUM_IPR_CTX    2
-#define NUM_CBP_CTX    4
-#define NUM_BCBP_CTX   4
-#define NUM_MAP_CTX   16 
-#define NUM_LAST_CTX  15
-#define NUM_ONE_CTX    5
-#define NUM_ABS_CTX    5
-#define NUM_TRANSFORM_SIZE_CTX 3
+#define NUM_ABT_MODE_CTX        3
+#define NUM_MB_TYPE_CTX        11
+#define NUM_B8_TYPE_CTX         9
+#define NUM_MV_RES_CTX         10
+#define NUM_REF_NO_CTX          6
+#define NUM_DELTA_QP_CTX        4
+#define NUM_BL_SKIP_FLAG_CTX    3
+#define NUM_MOT_PRED_FLAG_CTX   2
+#define NUM_RES_PRED_FLAG_CTX   2
+#define NUM_IPR_CTX             2
+#define NUM_CBP_CTX             4
+#define NUM_BCBP_CTX            4
+#define NUM_MAP_CTX            16 
+#define NUM_LAST_CTX           15
+#define NUM_ONE_CTX             5
+#define NUM_ABS_CTX             5
+#define NUM_TRANSFORM_SIZE_CTX  3
+#define NUM_ADAPTIVE_BCBP_CTX   1
+#define NUM_EXTRA_RUN_CTX       2
 
-#define NUM_ADAPTIVE_BCBP_CTX     1
-#define NUM_EXTRA_RUN_CTX         2
-
-#define NUM_BLOCK_TYPES 8
-
-#define NUM_CTX_MODELS_I     1
-#define NUM_CTX_MODELS_P     3
-#define CTX_UNUSED          {0,64}
+#define NUM_BLOCK_TYPES         8
+#define NUM_CTX_MODELS_I        1
+#define NUM_CTX_MODELS_P        3
+#define CTX_UNUSED         {0,64}
 
 // h264 namepace begin
 H264AVC_NAMESPACE_BEGIN
@@ -264,59 +263,20 @@ static const Short INIT_REF_NO_P[3][2][6][2] =
 };
 
 
-
-static const Short INIT_BL_PRED_FLAG_I[1][2][4][2] =
+static const Short INIT_MOTION_PRED_FLAG[1][1][NUM_MOT_PRED_FLAG_CTX][2] =
 {
-  //----- model 0 -----
   {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED },
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
-  }
-};
-static const Short INIT_BL_PRED_FLAG_P[3][2][4][2] =
-{
-  //----- model 0 -----
-  {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED },
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
-  },
-  //----- model 1 -----
-  {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED },
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
-  },
-  //----- model 2 -----
-  {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED },
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
+    {  {-6, 67}, {-6, 67} }
   }
 };
 
-
-
-
-static const Short INIT_RES_PRED_FLAG_I[1][1][NUM_RES_PRED_FLAG_CTX][2] =
+static const Short INIT_RES_PRED_FLAG[1][1][NUM_RES_PRED_FLAG_CTX][2] =
 {
-  //----- model 0 -----
   {
-    {  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED ,  CTX_UNUSED }
+    {  { -23, 104 } ,  { -35,  106 } }
   }
 };
-static const Short INIT_RES_PRED_FLAG_P[3][1][NUM_RES_PRED_FLAG_CTX][2] =
-{
-  //----- model 0 -----
-  {
-    {  { 0, 100 } ,  { 0,  80 } ,  { 0,  50 } ,  { 0,  50 } }
-  },
-    //----- model 1 -----
-  {
-    {  { 0, 100 } ,  { 0,  80 } ,  { 0,  50 } ,  { 0,  50 } }
-  },
-    //----- model 2 -----
-  {
-    {  { 0, 100 } ,  { 0,  80 } ,  { 0,  50 } ,  { 0,  50 } }
-  }
-};
+
 
 static const Short INIT_DELTA_QP_I[1][1][4][2]=
 {
@@ -469,11 +429,17 @@ static const Short INIT_FLD_LAST_P[3][8][NUM_LAST_CTX][2] =
   }
 };
 
-static const Short INIT_BL_SKIP[1][1][4][2] =
+
+static const Short INIT_BL_SKIP_I[1][1][NUM_BL_SKIP_FLAG_CTX][2] =
 {
-  //----- model 0 -----
   {
-    { { 0, 64 } , { 0, 64 } , { 0, 64 } , { 0, 64 } }
+    {  {-14, 138} ,  {-22, 140} ,  {-11, 99}  }
+  }
+};
+static const Short INIT_BL_SKIP_P[1][1][NUM_BL_SKIP_FLAG_CTX][2] =
+{
+  {
+    {  {0, 75}    ,  {2, 65}    ,  {2, 59}    }
   }
 };
 

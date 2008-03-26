@@ -17,6 +17,8 @@
  **************************************************************************
  */
 
+#include "H264AVCEncoderLib.h"
+#include "H264AVCCommonLib.h"
 #include "RateCtlBase.h"
 
 bool bRateControlEnable;
@@ -134,7 +136,7 @@ int rc_generic::Qstep2QP( double dQstep )
 */
 double rc_generic::ComputeFrameMAD()
 {
-  long long TotalMAD = 0;
+  Int64 TotalMAD = 0;
   int i;
   for(i = 0; i < m_pcJSVMParams->FrameSizeInMbs; i++)
     TotalMAD += m_piMADofMB[i];

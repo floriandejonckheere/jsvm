@@ -102,8 +102,8 @@ public:
   Void copyFrom( const MbMvData& rcMbMvData, const ParIdx8x8 eParIdx );
   Void copyFrom( const MbMvData& rcMbMvData );
 
-  MbMvData():
-   m_bFieldFlag ( false )
+  MbMvData()
+    : m_bFieldFlag( false )
   {
     clear();  
   }
@@ -164,33 +164,12 @@ public:
   const Mv& getMv( ParIdx8x8  eParIdx, SParIdx4x4 eSParIdx )  const { return m_acMv[ eParIdx + eSParIdx ]; }
   const Mv& getMv( LumaIdx cIdx )                             const { return m_acMv[ cIdx.b4x4() ]; }
 
-
   ErrVal  save( FILE* pFile );
   ErrVal  load( FILE* pFile );
 
-  ErrVal  upsampleMotion( const MbMvData& rcMbMvData, Par8x8 ePar8x8 );
-
- 
-
-private:
-  MbMvData( const MbMvData& )                   {}
-
-  Mv xFrameFieldConversion( const Mv& rcMv, PicType ePicType ) const
-  {
-    if( ePicType==FRAME && m_bFieldFlag )
-    {
-      return Mv( rcMv.getHor(), rcMv.getVer()*2 );
-    }
-    else if( ePicType!=FRAME && ! m_bFieldFlag )
-    {
-      return Mv( rcMv.getHor(), rcMv.getVer()/2 );
-    }
-    return Mv( rcMv.getHor(), rcMv.getVer() );
-  }
-
-public:
-  Mv  m_acMv[16];
-  Bool    m_bFieldFlag;
+protected:
+  Mv    m_acMv[16];
+  Bool  m_bFieldFlag;
 };
 
 
@@ -221,25 +200,21 @@ private:
 };
 
 
-class H264AVCCOMMONLIB_API MbMotionData :
-public MbMvData
+class H264AVCCOMMONLIB_API MbMotionData : public MbMvData
 {
 public:
   Void copyFrom( const MbMotionData& rcMbMotionData, const ParIdx8x8  eParIdx  );
   Void copyFrom( const MbMotionData& rcMbMotionData );
 
-  Void field2frame( const MbMotionData& rcMbMotionDataTopField, const MbMotionData& rcMbMotionDataBotField, Bool bTopFrameMb );
-  Void frame2field( const MbMotionData& rcMbMotionDataTop, const MbMotionData& rcMbMotionDataBot, PicType eMbPicType, Bool bSameSlice );
- 
   BlkMode getBlkMode( const ParIdx8x8 eParIdx, BlkMode eBlkMode );
-  MbMotionData()
-    : MbMvData        (        ),
-      m_usMotPredFlags( 0x0000 )
+  
+  MbMotionData() 
+    : MbMvData        ()
+    , m_usMotPredFlags( 0x0000 )
   {
     m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = BLOCK_NOT_AVAILABLE;
-    m_usMotPredFlags=0; 
+    m_usMotPredFlags = 0; 
   }
-
 
   Void reset()
   {
@@ -251,7 +226,7 @@ public:
     MbMvData::clear();
     m_usMotPredFlags = 0x0000;
     m_bFieldFlag = false;
-    m_ascRefIdx[ 0 ] = m_ascRefIdx[ 1 ] = m_ascRefIdx[ 2 ] = m_ascRefIdx[ 3 ] = eRefIdxValues;
+    m_ascRefIdx  [ 0 ] = m_ascRefIdx  [ 1 ] = m_ascRefIdx  [ 2 ] = m_ascRefIdx  [ 3 ] = eRefIdxValues;
     m_acRefPicIdc[ 0 ] = m_acRefPicIdc[ 1 ] = m_acRefPicIdc[ 2 ] = m_acRefPicIdc[ 3 ] = RefPicIdc();
   }
 
@@ -291,7 +266,6 @@ public:
   Void  setMotPredFlag( Bool bFlag, ParIdx8x8  eParIdx );
   Void  setMotPredFlag( Bool bFlag, LumaIdx    cIdx    );
 
-
   Void  getMvRef         ( Mv& rcMv, SChar& rscRef, LumaIdx cIdx )                            const;
   Void  getMv3D          ( Mv3D& rcMv3D,            LumaIdx cIdx )                            const;
   Void  getMvRefNeighbour( Mv& rcMv, SChar& rscRef, LumaIdx cIdx )    const;
@@ -299,25 +273,6 @@ public:
 
   ErrVal  save( FILE* pFile );
   ErrVal  load( FILE* pFile );
-
-  
-  ErrVal  upsampleMotion( const MbMotionData& rcMbMvData, Par8x8 ePar8x8 );
-
-  ErrVal copyMotion( SChar* pscBl4x4RefIdx, Mv* acBl4x4Mv );
-
-private:
-  SChar xFrameFieldConversion( SChar sRefIdx, PicType ePicType ) const
-  {
-    if( ePicType==FRAME && m_bFieldFlag )
-    {
-      sRefIdx = ((sRefIdx-1)>>1)+1;
-    }
-    else if( ePicType!=FRAME && ! m_bFieldFlag )
-    {
-      sRefIdx = ((sRefIdx-1)<<1)+1;
-    }
-    return sRefIdx;
-  }
 
   Bool  xGetMotPredFlag ( UInt  uiPos )  const
   {
@@ -332,15 +287,10 @@ private:
   }
 
 private:
-  MbMotionData( const MbMotionData& )  {}
-
-private:
-  static const UInt   m_auiBlk2Part[16];
-
-public:
-  SChar       m_ascRefIdx   [4];
-  RefPicIdc   m_acRefPicIdc [4];
-  UShort      m_usMotPredFlags;
+  static const UInt m_auiBlk2Part[16];
+  SChar             m_ascRefIdx   [4];
+  RefPicIdc         m_acRefPicIdc [4];
+  UShort            m_usMotPredFlags;
 };
 
 

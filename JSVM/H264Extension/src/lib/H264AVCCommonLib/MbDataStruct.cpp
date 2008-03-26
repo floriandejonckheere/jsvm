@@ -128,6 +128,7 @@ const UChar MbDataStruct::m_aucACTab[7] =
 
 MbDataStruct::MbDataStruct()
 : m_uiSliceId           ( 0 )
+, m_eSliceType          ( NOT_SPECIFIED_SLICE )
 , m_bBLSkipFlag         ( false )
 , m_eMbMode             ( MODE_SKIP )
 , m_uiMbCbp             ( 0 )
@@ -142,8 +143,6 @@ MbDataStruct::MbDataStruct()
 , m_bInCropWindowFlag ( false ) //TMM_ESS	
 , m_bFieldFlag              ( 0 )
 , m_uiMbCbpResidual         ( 0 )
-, m_uiEssRPChkEnable			( 0 )
-, m_uiMVThres							( 20 )
 , m_bRPSafe								( true )
 {
   DO_DBG( clearIntraPredictionModes( true ) );//TMM_INTERLACE
@@ -156,6 +155,7 @@ Void MbDataStruct::reset()
   m_uiBCBP              = 0;
   m_usFwdBwd            = 0;
   m_uiSliceId           = 0;
+  m_eSliceType          = NOT_SPECIFIED_SLICE;
   m_bBLSkipFlag         = false;
   m_eMbMode             = MODE_SKIP;
   m_uiMbCbp             = 0;
@@ -242,6 +242,7 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
 {
   m_usFwdBwd            = rcMbDataStruct.m_usFwdBwd;
   m_uiSliceId           = rcMbDataStruct.m_uiSliceId;
+  m_eSliceType          = rcMbDataStruct.m_eSliceType;
   m_bBLSkipFlag         = rcMbDataStruct.m_bBLSkipFlag;
   m_eMbMode             = rcMbDataStruct.m_eMbMode;
   m_ucQp                = rcMbDataStruct.m_ucQp;
@@ -256,59 +257,6 @@ Void MbDataStruct::copyFrom( const MbDataStruct& rcMbDataStruct )
   ::memcpy( m_aBlkMode,     rcMbDataStruct.m_aBlkMode,      sizeof(m_aBlkMode) );
   ::memcpy( m_ascIPredMode, rcMbDataStruct.m_ascIPredMode,  sizeof(m_ascIPredMode) );
 }
-
-
-
-ErrVal
-MbDataStruct::upsampleMotion( const MbDataStruct& rcMbDataStruct, Par8x8 ePar8x8, Bool bDirect8x8 )
-{
-  //--- get & set fwd/bwd ---
-  UShort  usFwdBwd8x8 = ( ( rcMbDataStruct.m_usFwdBwd >> ( ePar8x8 << 2 ) ) & 0x03 );
-  m_usFwdBwd          = usFwdBwd8x8 + (usFwdBwd8x8<<4) + (usFwdBwd8x8<<8) + (usFwdBwd8x8<<12);
-
-  //--- set block modes ---
-  m_aBlkMode[0] = m_aBlkMode[1] = m_aBlkMode[2] = m_aBlkMode[3] = BLK_8x8;
-  
-  B8x8Idx c8x8Idx(ePar8x8);
-  UInt uiCbp = rcMbDataStruct.getMbExtCbp() >> c8x8Idx.b4x4();
-
-  UInt uiMbCbp = 0;
-  uiMbCbp |= ((uiCbp&0x10) ? 0x33 : 0);
-  uiMbCbp |= ((uiCbp&0x20) ? 0xcc : 0);
-  uiMbCbp <<= 8; 
-  uiMbCbp |= ((uiCbp&0x01) ? 0x33 : 0);
-  uiMbCbp |= ((uiCbp&0x02) ? 0xcc : 0);
-
-  setMbExtCbp( uiMbCbp );
-
-  //--- set macroblock mode ---
-  if      ( rcMbDataStruct.m_eMbMode >= INTRA_4X4 )
-  {
-    m_eMbMode = INTRA_4X4;
-  }
-  else if ( rcMbDataStruct.m_eMbMode == MODE_8x8 || rcMbDataStruct.m_eMbMode == MODE_8x8ref0 )
-  {
-    switch( rcMbDataStruct.m_aBlkMode[ePar8x8] )
-    {
-    case BLK_SKIP:  m_eMbMode = ( bDirect8x8 ? MODE_16x16 : MODE_8x8 );     break;
-    case BLK_8x8:   m_eMbMode = MODE_16x16;   break;
-    case BLK_8x4:   m_eMbMode = MODE_16x8;    break;
-    case BLK_4x8:   m_eMbMode = MODE_8x16;    break;
-    case BLK_4x4:   m_eMbMode = MODE_8x8;     break;
-    }
-  }
-  else if ( rcMbDataStruct.m_eMbMode == MODE_SKIP )
-  {
-    m_eMbMode = ( bDirect8x8 ? MODE_16x16 : MODE_8x8 );
-  }
-  else
-  {
-    m_eMbMode = MODE_16x16;
-  }
-
-  return Err::m_nOK;
-}
-
 
 
 Bool

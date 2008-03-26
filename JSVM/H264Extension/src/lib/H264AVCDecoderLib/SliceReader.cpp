@@ -170,7 +170,6 @@ SliceReader::read( SliceHeader& rcSH,
     Bool bCropWindowFlag = pcMbDataCtrl->getMbData( uiMbX, uiMbY ).getInCropWindowFlag();
 
     RNOK( pcMbDataCtrl->initMb( pcMbDataAccess, uiMbY, uiMbX ) );
-    pcMbDataAccess->getMbData().deactivateMotionRefinement();
     pcMbDataAccess->getMbData().setInCropWindowFlag( bCropWindowFlag );
 
   	if( rcSH.isMbaffFrame() && uiMbAddress % 2 == 0 )

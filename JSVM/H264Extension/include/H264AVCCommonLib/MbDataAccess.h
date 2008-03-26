@@ -1133,10 +1133,10 @@ __inline Void MbDataAccess::xGetColocatedMvRefIdx( Mv& rcMv, SChar& rscRefIdx, L
   MvRefConversion eMvRefConversion = ONE_TO_ONE;
   const MbData&   rcMbColocated    = xGetBlockColocated( cIdx, eMvRefConversion );
 
-  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx ) ) < BLOCK_NOT_AVAILABLE )
+  if( ( rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx ) ) < BLOCK_NOT_AVAILABLE )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx );
+    rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx );
   }
   if( rscRefIdx < BLOCK_NOT_AVAILABLE )
   {
@@ -1144,7 +1144,7 @@ __inline Void MbDataAccess::xGetColocatedMvRefIdx( Mv& rcMv, SChar& rscRefIdx, L
   }
   else
   {
-    rcMv = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( cIdx );
+    rcMv = rcMbColocated.getMbMotionData( eListIdx ).getMv( cIdx );
   }
 }
 
@@ -1154,10 +1154,10 @@ __inline Void MbDataAccess::xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SCha
 {
   ListIdx         eListIdx         = LIST_0;
   const MbData&   rcMbColocated    = xGetBlockColocatedNonInterlaced();
-  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx ) ) < BLOCK_NOT_AVAILABLE )
+  if( ( rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx ) ) < BLOCK_NOT_AVAILABLE )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx );
+    rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx );
   }
   if( rscRefIdx < BLOCK_NOT_AVAILABLE )
   {
@@ -1165,10 +1165,10 @@ __inline Void MbDataAccess::xGetColocatedMvsRefIdxNonInterlaced( Mv acMv[], SCha
   }
   else
   {
-    acMv[0] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
-    acMv[1] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
-    acMv[2] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
-    acMv[3] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
+    acMv[0] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
+    acMv[1] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
+    acMv[2] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
+    acMv[3] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
   }
 }
 
@@ -1180,10 +1180,10 @@ MbDataAccess::xGetColocatedMvRefPic( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) 
   ListIdx         eListIdx         = LIST_0;
   MvRefConversion eMvRefConversion = ONE_TO_ONE;
   const MbData&   rcMbColocated    = xGetBlockColocated( cIdx, eMvRefConversion );
-  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx ) ) < BLOCK_NOT_AVAILABLE  )
+  if( ( rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx ) ) < BLOCK_NOT_AVAILABLE  )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( cIdx );
+    rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( cIdx );
   }
   if( rscRefIdx < BLOCK_NOT_AVAILABLE  )
   {
@@ -1191,7 +1191,7 @@ MbDataAccess::xGetColocatedMvRefPic( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) 
   }
   else
   {
-    rcMv = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( cIdx );
+    rcMv = rcMbColocated.getMbMotionData( eListIdx ).getMv( cIdx );
   }
 
   //--- mv scaling ----
@@ -1203,7 +1203,7 @@ MbDataAccess::xGetColocatedMvRefPic( Mv& rcMv, SChar& rscRefIdx, LumaIdx cIdx ) 
   {
     rcMv.setFieldToFramePredictor();
   }
-  return rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPicIdc( cIdx );
+  return rcMbColocated.getMbMotionData( eListIdx ).getRefPicIdc( cIdx );
 }
 
 __inline
@@ -1212,10 +1212,10 @@ MbDataAccess::xGetColocatedMvsRefPicNonInterlaced( Mv acMv[], SChar& rscRefIdx, 
 {
   ListIdx         eListIdx         = LIST_0;
   const MbData&   rcMbColocated    = xGetBlockColocatedNonInterlaced();
-  if( ( rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx ) ) < BLOCK_NOT_AVAILABLE )
+  if( ( rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx ) ) < BLOCK_NOT_AVAILABLE )
   {
     eListIdx  = LIST_1;
-    rscRefIdx = rcMbColocated.getMbMotionDataBase( eListIdx ).getRefIdx( eParIdx );
+    rscRefIdx = rcMbColocated.getMbMotionData( eListIdx ).getRefIdx( eParIdx );
   }
   if( rscRefIdx < BLOCK_NOT_AVAILABLE )
   {
@@ -1223,13 +1223,13 @@ MbDataAccess::xGetColocatedMvsRefPicNonInterlaced( Mv acMv[], SChar& rscRefIdx, 
   }
   else
   {
-    acMv[0] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
-    acMv[1] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
-    acMv[2] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
-    acMv[3] = rcMbColocated.getMbMotionDataBase( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
+    acMv[0] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_0 );
+    acMv[1] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_1 );
+    acMv[2] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_2 );
+    acMv[3] = rcMbColocated.getMbMotionData( eListIdx ).getMv( eParIdx, SPART_4x4_3 );
   }
 
-  return rcMbColocated.getMbMotionDataBase( eListIdx ).getRefPicIdc( eParIdx );
+  return rcMbColocated.getMbMotionData( eListIdx ).getRefPicIdc( eParIdx );
 }
 
 

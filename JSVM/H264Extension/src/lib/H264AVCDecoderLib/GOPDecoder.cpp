@@ -113,7 +113,6 @@ DPBUnit::DPBUnit()
 , m_pcFrame               ( NULL )
 , m_cControlData          ()
 , m_pcMbDataCtrlBL        ( NULL )
-, m_bConstrainedIntraPred ( false )
 {
 }
 
@@ -188,7 +187,6 @@ DPBUnit::init( const SliceHeader& rcSH )
   m_bNeededForReference   = rcSH.getNalRefIdc() > 0;
   m_bOutputted            = false;
   m_bBaseRepresentation   = false;
-  m_bConstrainedIntraPred = rcSH.getPPS().getConstrainedIntraPredFlag();
   m_uiQualityId           = rcSH.getQualityId();
   return Err::m_nOK;
 }
@@ -206,7 +204,6 @@ DPBUnit::initNonEx( Int   iPoc,
   m_bNeededForReference   = true;
   m_bOutputted            = false;
   m_bBaseRepresentation   = false;
-  m_bConstrainedIntraPred = false;
   return Err::m_nOK;
 }
 
@@ -223,7 +220,6 @@ DPBUnit::initBase( DPBUnit& rcDPBUnit,
   m_bExisting             = rcDPBUnit.m_bExisting;
   m_bNeededForReference   = rcDPBUnit.m_bNeededForReference;
   m_bOutputted            = rcDPBUnit.m_bOutputted;
-  m_bConstrainedIntraPred = rcDPBUnit.m_bConstrainedIntraPred;
   m_bBaseRepresentation   = true;
   m_uiQualityId           = rcDPBUnit.m_uiQualityId;
 
@@ -247,7 +243,6 @@ DPBUnit::uninit()
   m_bNeededForReference   = false;
   m_bOutputted            = false;
   m_bBaseRepresentation   = false;
-  m_bConstrainedIntraPred = false;
   return Err::m_nOK;
 }
 
@@ -1657,7 +1652,6 @@ LayerDecoder::LayerDecoder()
 , m_uiDependencyId                      ( 0 )
 , m_uiQualityId                         ( 0 )
 , m_pacMbStatus                         ( 0 )
-, m_pcResizeParameter                   ( 0 )
 , m_pcCurrDPBUnit                       ( 0 )
 , m_pcBaseLayerCtrl                     ( 0 )
 , m_pcBaseLayerCtrlField                ( 0 )
@@ -1765,7 +1759,6 @@ LayerDecoder::init( UInt                   uiDependencyId,
 
   m_pacMbStatus                           = 0;
 
-  m_pcResizeParameter                     = 0;
   m_pcCurrDPBUnit                         = 0;
   m_pcBaseLayerCtrl                       = 0;
   m_pcBaseLayerCtrlField                  = 0;
@@ -1891,7 +1884,6 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
   Bool          bReconstructAll     = rcSliceDataNalUnit.isDQIdMax();
   Bool          bReconstructMCMbs   = bReconstructAll || ( rcSliceDataNalUnit.isDependencyIdMax() && bReconstructBaseRep );
   PicType       ePicType            = rcSliceHeader.getPicType();
-  SliceHeader*  pcSliceHeaderBase   = 0;
   ControlData&  rcControlData       = m_pcCurrDPBUnit->getCtrlData();
   Frame*        pcFrame             = m_pcCurrDPBUnit->getFrame   ();
   Frame*        pcBaseRepFrame      = m_apcFrameTemp[0];
@@ -1907,7 +1899,7 @@ LayerDecoder::xDecodeSlice( SliceHeader&            rcSliceHeader,
   rcSliceHeader.setRefFrameList( &rcRefFrameList1, ePicType, LIST_1 );
 
   //===== init base layer =====
-  RNOK( xInitBaseLayer( rcControlData, pcSliceHeaderBase, bFirstSliceInLayerRepresentation ) );
+  RNOK( xInitBaseLayer( rcControlData, bFirstSliceInLayerRepresentation ) );
 
   //----- decoding -----
   RNOK( m_pcControlMng->initSliceForDecoding( rcSliceHeader ) );
@@ -2000,8 +1992,7 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
                                    pcBaseRepFrame,
                                    m_pcResidual,
                                    pcMbDataCtrl,
-                                   false,
-                                   rcControlData.getSpatialScalability() ) );
+                                   0, rcControlData.getSpatialScalability() ) );
   }
   RNOK( m_pcILPrediction->copy( pcFrame, ePicType ) );
   if( bReconstructAll )
@@ -2010,8 +2001,7 @@ LayerDecoder::xFinishLayerRepresentation( SliceHeader&            rcSliceHeader,
                                    pcFrame,
                                    m_pcResidual,
                                    pcMbDataCtrl,
-                                   false,
-                                   rcControlData.getSpatialScalability() ) );
+                                   0, rcControlData.getSpatialScalability() ) );
   }
 #endif
 
@@ -2356,9 +2346,9 @@ LayerDecoder::xInitSPS( const SliceHeader& rcSliceHeader )
 
 ErrVal
 LayerDecoder::xInitDPBUnit( SliceHeader&   rcSliceHeader,
-                           PicBuffer*     pcPicBuffer, 
-                           PicBufferList& rcPicBufferOutputList, 
-                           PicBufferList& rcPicBufferUnusedList )
+                            PicBuffer*     pcPicBuffer, 
+                            PicBufferList& rcPicBufferOutputList, 
+                            PicBufferList& rcPicBufferUnusedList )
 {
   if( ! m_bLayerRepresentationInitialized )
   {
@@ -2394,29 +2384,11 @@ LayerDecoder::getBaseSliceHeader( SliceHeader*& rpcSliceHeader )
 
 
 ErrVal
-LayerDecoder::getBaseLayerDataAvailability ( Frame*&       pcFrame,
-                                            Frame*&       pcResidual,
-                                            MbDataCtrl*&  pcMbDataCtrl,
-                                            Bool&         bBaseDataAvailable )
-{
-  ROF( m_bInitialized );
-
-  DPBUnit*  pcBaseDPBUnit = m_pcDecodedPictureBuffer->getLastUnit();
-  ROF( pcBaseDPBUnit );
-  pcMbDataCtrl            = pcBaseDPBUnit->getCtrlData().getMbDataCtrl();
-  pcResidual              = m_pcResidual;
-  pcFrame                 = m_pcILPrediction;
-  bBaseDataAvailable      = pcFrame && pcResidual && pcMbDataCtrl;
-  return Err::m_nOK;
-}
-
-
-ErrVal
-LayerDecoder::getBaseLayerData( Frame*&       pcFrame,
-                                Frame*&       pcResidual,
-                                MbDataCtrl*&  pcMbDataCtrl,
-                                Bool&         rbConstrainedIPred,
-                                Bool          bSpatialScalability )
+LayerDecoder::getBaseLayerData( SliceHeader&      rcELSH,
+                                Frame*&           pcFrame,
+                                Frame*&           pcResidual,
+                                MbDataCtrl*&      pcMbDataCtrl,
+                                ResizeParameters& rcResizeParameters )
 {
   ROF( m_bInitialized );
 
@@ -2424,18 +2396,23 @@ LayerDecoder::getBaseLayerData( Frame*&       pcFrame,
   ROF( pcBaseDPBUnit );
   pcMbDataCtrl                  = pcBaseDPBUnit->getCtrlData().getMbDataCtrl ();
   SliceHeader*  pcSliceHeader   = pcBaseDPBUnit->getCtrlData().getSliceHeader();
-	const PicType ePicType        = pcSliceHeader->getPicType                  ();
-  rbConstrainedIPred            = pcBaseDPBUnit->isConstrIPred               ();
   pcFrame                       = m_pcILPrediction;
   pcResidual                    = m_pcResidual;
+  ROF( pcMbDataCtrl );
+  ROF( pcSliceHeader );
+  ROF( pcFrame );
+  ROF( pcResidual );
 
-  if( bSpatialScalability )
+  //===== update resize parameters =====
+  rcResizeParameters.updateRefLayerParameters( *pcSliceHeader );
+
+  if( rcResizeParameters.getSpatialResolutionChangeFlag() )
   {
-    RNOK( m_apcFrameTemp[0]->copy( pcFrame, ePicType ) );
+    RNOK( m_apcFrameTemp[0]->copy( pcFrame, pcSliceHeader->getPicType() ) );
     pcFrame = m_apcFrameTemp[0];
-
-    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, NULL, pcMbDataCtrl,
-                                   true, pcBaseDPBUnit->getCtrlData().getSpatialScalability()) );
+    RNOK( m_pcLoopFilter->process( *pcSliceHeader, pcFrame, NULL, pcMbDataCtrl, 
+                                   &rcELSH.getInterLayerDeblockingFilterParameter(),
+                                   pcBaseDPBUnit->getCtrlData().getSpatialScalability() ) );
   }
   
   return Err::m_nOK;
@@ -2550,9 +2527,12 @@ LayerDecoder::xDeleteData()
 
 ErrVal
 LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
-                                        MbDataCtrl&   rcMbDataCtrl,
-                                        ControlData&    rcControlData)
+                                         MbDataCtrl&   rcMbDataCtrl,
+                                         ControlData&  rcControlData)
 { 
+  m_cResizeParameters.updateCurrLayerParameters( rcSliceHeader );
+  m_pcCurrDPBUnit->getFrame()->setPicParameters( m_cResizeParameters, &rcSliceHeader );
+
   if( rcSliceHeader.getNoInterLayerPredFlag() || rcSliceHeader.getQualityId() )
   {
     for( Int iMbY = 0; iMbY < (Int)m_uiFrameHeightInMb; iMbY++ )
@@ -2570,28 +2550,14 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
     rcMbDataCtrl.getMbDataByIndex( uiMbY * m_uiFrameWidthInMb + uiMbX ).setInCropWindowFlag( false );
   }
 
-  //===== init resize parameter =====
-  m_pcResizeParameter->m_bFrameMbsOnlyFlag          = rcSliceHeader.getSPS().getFrameMbsOnlyFlag();
-  m_pcResizeParameter->m_bFieldPicFlag			        = rcSliceHeader.getFieldPicFlag();
-  m_pcResizeParameter->m_bIsMbAff                   = rcSliceHeader.isMbaffFrame();
-  m_pcResizeParameter->m_bBotFieldFlag			        = rcSliceHeader.getBottomFieldFlag();
-  m_pcResizeParameter->setPictureParametersByOffset ( rcSliceHeader.getPoc(),
-                                                      rcSliceHeader.getScaledRefLayerLeftOffset(),
-                                                      rcSliceHeader.getScaledRefLayerRightOffset(),
-                                                      rcSliceHeader.getScaledRefLayerTopOffset(),
-                                                      rcSliceHeader.getScaledRefLayerBottomOffset(),
-                                                      rcSliceHeader.getRefLayerChromaPhaseX(),
-                                                      rcSliceHeader.getRefLayerChromaPhaseY() );
-  m_pcResizeParameter->setPoc( rcSliceHeader.getPoc() );
 
   //===== set crop window flag: in current macroblock data (we don't need the base layer here) =====
-  if( m_pcResizeParameter->m_iSpatialScalabilityType == SST_RATIO_1 ||
-      m_pcResizeParameter->m_iSpatialScalabilityType == SST_RATIO_2   )
+  if( m_cResizeParameters.getRestrictedSpatialResolutionChangeFlag() )
   {
-    Int iMbOrigX  = m_pcResizeParameter->m_iPosX      / 16;
-    Int iMbOrigY  = m_pcResizeParameter->m_iPosY      / 16;
-    Int iMbEndX   = m_pcResizeParameter->m_iOutWidth  / 16 + iMbOrigX;
-    Int iMbEndY   = m_pcResizeParameter->m_iOutHeight / 16 + iMbOrigY;
+    Int iMbOrigX  = m_cResizeParameters.m_iLeftFrmOffset      / 16;
+    Int iMbOrigY  = m_cResizeParameters.m_iTopFrmOffset       / 16;
+    Int iMbEndX   = m_cResizeParameters.m_iScaledRefFrmWidth  / 16 + iMbOrigX;
+    Int iMbEndY   = m_cResizeParameters.m_iScaledRefFrmHeight / 16 + iMbOrigY;
     for( Int iMbY = iMbOrigY; iMbY < iMbEndY; iMbY++ )
     for( Int iMbX = iMbOrigX; iMbX < iMbEndX; iMbX++ )
     {
@@ -2600,18 +2566,12 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
   }
   else
   {
-    // ESS
-    if( m_pcResizeParameter->m_iExtendedSpatialScalability == ESS_PICT )
-    {
-      m_pcResizeParameter->setCurrentPictureParametersWith( m_pcResizeParameter->getPoc() );  // really ugly
-    }
-    Int iScaledBaseOrigX  = m_pcResizeParameter->m_iPosX;
-    Int iScaledBaseOrigY  = m_pcResizeParameter->m_iPosY;
-    Int iScaledBaseWidth  = m_pcResizeParameter->m_iOutWidth;
-    Int iScaledBaseHeight = m_pcResizeParameter->m_iOutHeight;
-   
-    
-		if ( ! m_pcResizeParameter->m_bIsMbAff )
+    Int iScaledBaseOrigX  = m_cResizeParameters.m_iLeftFrmOffset;
+    Int iScaledBaseOrigY  = m_cResizeParameters.m_iTopFrmOffset;
+    Int iScaledBaseWidth  = m_cResizeParameters.m_iScaledRefFrmWidth;
+    Int iScaledBaseHeight = m_cResizeParameters.m_iScaledRefFrmHeight;
+       
+		if( ! m_cResizeParameters.m_bIsMbAffFrame && ! m_cResizeParameters.m_bFieldPicFlag )
 		{
       for( Int iMbY = 0; iMbY < (Int)m_uiFrameHeightInMb; iMbY++ )
       for( Int iMbX = 0; iMbX < (Int)m_uiFrameWidthInMb;  iMbX++ )
@@ -2619,21 +2579,22 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
         if( ( iMbX >= ( iScaledBaseOrigX + 15 ) / 16 ) && ( iMbX < ( iScaledBaseOrigX + iScaledBaseWidth  ) / 16 ) &&
             ( iMbY >= ( iScaledBaseOrigY + 15 ) / 16 ) && ( iMbY < ( iScaledBaseOrigY + iScaledBaseHeight ) / 16 )   )
         {
-        rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
+          rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
         }
       }
 		}
 		else
 		{
-			assert( m_uiFrameHeightInMb%2==0 );
-			for( Int iMbY = 0; iMbY < (Int)m_uiFrameHeightInMb; iMbY+=2 )
-			for( Int iMbX = 0; iMbX < (Int)m_uiFrameWidthInMb;  iMbX++ )
+			AOT( m_uiFrameHeightInMb % 2 );
+			for( Int iMbY0 = 0; iMbY0 < (Int)m_uiFrameHeightInMb; iMbY0+=2 )
+			for( Int iMbX  = 0; iMbX  < (Int)m_uiFrameWidthInMb;  iMbX ++  )
 			{
-				if( ( iMbX >= ( iScaledBaseOrigX + 15 ) / 16 ) && ( iMbX < ( iScaledBaseOrigX + iScaledBaseWidth  ) / 16 ) &&
-						( iMbY >= ( iScaledBaseOrigY + 15 ) / 16 ) && ( (iMbY+1) < ( iScaledBaseOrigY + iScaledBaseHeight ) / 16 )   )
+        Int   iMbY1  = iMbY0 + 1;
+				if( ( iMbX  >= ( iScaledBaseOrigX + 15 ) / 16 ) && ( iMbX  < ( iScaledBaseOrigX + iScaledBaseWidth  ) / 16 ) &&
+						( iMbY0 >= ( iScaledBaseOrigY + 15 ) / 16 ) && ( iMbY1 < ( iScaledBaseOrigY + iScaledBaseHeight ) / 16 )   )
 				{
-					rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
-					rcMbDataCtrl.getMbDataByIndex( (UInt)(iMbY+1)*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
+					rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY0*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
+					rcMbDataCtrl.getMbDataByIndex( (UInt)iMbY1*m_uiFrameWidthInMb+(UInt)iMbX ).setInCropWindowFlag( true );
 				}
 			}
 		}
@@ -2645,7 +2606,6 @@ LayerDecoder::xInitESSandCroppingWindow( SliceHeader&  rcSliceHeader,
 
 ErrVal
 LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
-						                  SliceHeader*&  rcSliceHeaderBase,
                               Bool           bFirstSliceInLayerRepresentation )
 {
   //===== init =====
@@ -2657,48 +2617,7 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   Frame*        pcBaseFrame         = 0;
   Frame*        pcBaseResidual      = 0;
   MbDataCtrl*   pcBaseDataCtrl      = 0;
-  Bool          bConstrainedIPredBL = false;
-  Bool          bSpatialScalability = false; 
-  Bool          bBaseDataAvailable  = false;
   SliceHeader*  pcSliceHeader       = rcControlData.getSliceHeader();
-  const PicType ePicType            = pcSliceHeader->getPicType();
- 
-  //===== create resize parameters ======  !!!! not nice !!! -> completely rewrite that resize parameter thing
-  ResizeParameters  cQResizeParameters;
-  ResizeParameters* pcResizeParameters = m_pcResizeParameter;
-  if( pcSliceHeader->getQualityId() )
-  {
-    pcResizeParameters                                = &cQResizeParameters;
-    pcResizeParameters->m_iExtendedSpatialScalability = ESS_NONE;
-    pcResizeParameters->m_bCrop                       = false;
-    pcResizeParameters->m_iSpatialScalabilityType     = SST_RATIO_1;
-    pcResizeParameters->m_iGlobWidth                  = m_uiFrameWidthInMb  << 4;
-    pcResizeParameters->m_iGlobHeight                 = m_uiFrameHeightInMb << 4;
-    pcResizeParameters->m_iOutWidth                   = pcResizeParameters->m_iGlobWidth;
-    pcResizeParameters->m_iOutHeight                  = pcResizeParameters->m_iGlobHeight;
-    pcResizeParameters->m_iInWidth                    = pcResizeParameters->m_iGlobWidth;
-    pcResizeParameters->m_iInHeight                   = pcResizeParameters->m_iGlobHeight;
-    pcResizeParameters->m_iPosX                       = 0;
-    pcResizeParameters->m_iPosY                       = 0;
-    pcResizeParameters->m_iChromaPhaseX               = ( pcSliceHeader->getSPS().getChromaPhaseXPlus1Flag() ? 0 : -1 );
-    pcResizeParameters->m_iChromaPhaseY               = (Int)pcSliceHeader->getSPS().getChromaPhaseYPlus1() - 1;
-    pcResizeParameters->m_iBaseChromaPhaseX           = pcResizeParameters->m_iChromaPhaseX;
-    pcResizeParameters->m_iBaseChromaPhaseY           = pcResizeParameters->m_iChromaPhaseY;
-    pcResizeParameters->m_bFrameMbsOnlyFlag           = pcSliceHeader->getSPS().getFrameMbsOnlyFlag();
-    pcResizeParameters->m_bFieldPicFlag			          = pcSliceHeader->getFieldPicFlag();
-    pcResizeParameters->m_bIsMbAff                    = pcSliceHeader->isMbaffFrame();
-    pcResizeParameters->m_bBotFieldFlag			          = pcSliceHeader->getBottomFieldFlag();
-    pcResizeParameters->m_iPoc                        = pcSliceHeader->getPoc( ePicType );
-    pcResizeParameters->m_iResampleMode               = 0;
-    pcResizeParameters->m_bBaseFrameMbsOnlyFlag       = pcResizeParameters->m_bFrameMbsOnlyFlag;
-    pcResizeParameters->m_bBaseFieldPicFlag           = pcResizeParameters->m_bFieldPicFlag;
-    pcResizeParameters->m_bBaseIsMbAff                = pcResizeParameters->m_bIsMbAff;
-    pcResizeParameters->m_bBaseBotFieldFlag           = pcResizeParameters->m_bBaseBotFieldFlag;
-    pcResizeParameters->SetUpSampleMode           ();
-    rcControlData      .setSpatialScalability     ( false );
-    rcControlData      .setSpatialScalabilityType ( SST_RATIO_1 );
-    pcSliceHeader     ->setSpatialScalabilityType ( SST_RATIO_1 );
-  }
 
   if( ! pcSliceHeader->getNoInterLayerPredFlag() )
   {
@@ -2706,82 +2625,38 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
                              pcBaseFrame, 
                              pcBaseResidual, 
                              pcBaseDataCtrl, 
-                             bBaseDataAvailable, 
-                             bConstrainedIPredBL, 
-                             bSpatialScalability,
-                             pcResizeParameters ) );
-   
-    ROF( bBaseDataAvailable );
-
-    pcResizeParameters->m_level_idc = rcControlData.getSliceHeader()->getSPS().getLevelIdc();
+                             m_cResizeParameters ) );
+    rcControlData.setSpatialScalability( m_cResizeParameters.getSpatialResolutionChangeFlag() );
+  }
+  else
+  {
+    rcControlData.setSpatialScalability( false );
   }
 
   //===== motion data =====
   if( pcBaseDataCtrl )
   {
-    if( pcResizeParameters->m_iExtendedSpatialScalability == ESS_PICT ) 
-    {
-      RefFrameList& rcList0=rcControlData.getPrdFrameList( LIST_0 );
-      RefFrameList& rcList1=rcControlData.getPrdFrameList( LIST_1 );
-	 
-      UInt uiIndex;
-      for( uiIndex = 1; uiIndex <= rcList0.getActive(); uiIndex++ )
-      {
-        pcResizeParameters->m_aiRefListPoc[0][uiIndex-1]=rcList0[uiIndex]->getPoc() ;
-      }
-      pcResizeParameters->m_aiNumActive[0]=rcList0.getActive();
-      for( uiIndex = 1; uiIndex <= rcList1.getActive(); uiIndex++ )
-      {
-        pcResizeParameters->m_aiRefListPoc[1][uiIndex-1]=rcList1[uiIndex]->getPoc() ;
-      }
-      pcResizeParameters->m_aiNumActive[1]=rcList1.getActive();
-    }
+    RefFrameList* pcList0 = &rcControlData.getPrdFrameList( LIST_0 );
+    RefFrameList* pcList1 = &rcControlData.getPrdFrameList( LIST_1 );
 
-    //=== create Upsampled VBL Frame ===
+    pcSliceHeader->setSCoeffResidualPredFlag( &m_cResizeParameters );
     RNOK( m_pcBaseLayerCtrl->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
-    RNOK( pcBaseDataCtrl->switchMotionRefinement() );
-    m_pcBaseLayerCtrl->setBuildInterlacePred( pcResizeParameters->m_bFieldPicFlag );
-
-    RNOK( m_pcBaseLayerCtrl->upsampleMotion( *pcBaseDataCtrl, pcResizeParameters ) );
-    if( pcSliceHeader->getQualityId() )
-    {
-      RNOK( m_pcBaseLayerCtrl->initMbCBP( *pcBaseDataCtrl, pcResizeParameters ) );
-    }
-    
-    pcSliceHeader->setSCoeffResidualPredFlag( pcBaseDataCtrl->getSliceHeader() );
-    //===== data needed for residual prediction in transform domain or SVC to AVC translation====/
-    Bool avcRewriteFlag = pcSliceHeader->getTCoeffLevelPredictionFlag();
-  
-    if( avcRewriteFlag || pcSliceHeader->getSCoeffResidualPredFlag() )
-    { 
-      m_pcBaseLayerCtrl->copyTCoeffs( *pcBaseDataCtrl );
-      if( rcControlData.getSliceHeader()->getTCoeffLevelPredictionFlag() )
-      { 	
-        m_pcBaseLayerCtrl->copyIntraPred( *pcBaseDataCtrl );
-      }    
-    }
- 
+    RNOK( m_pcBaseLayerCtrl->upsampleMotion( pcSliceHeader, &m_cResizeParameters, pcBaseDataCtrl, pcList0, pcList1, m_cResizeParameters.m_bFieldPicFlag ) );
     rcControlData.setBaseLayerCtrl( m_pcBaseLayerCtrl );
-
-    //=== create Upsampled VBL Field ===
-    if( pcResizeParameters->m_bIsMbAff )
+    if( m_cResizeParameters.m_bIsMbAffFrame )
     {
       RNOK( m_pcBaseLayerCtrlField->initSlice( *pcSliceHeader, PRE_PROCESS, false, NULL ) );
-      m_pcBaseLayerCtrlField->setBuildInterlacePred( true );
-      RNOK( m_pcBaseLayerCtrlField->upsampleMotion( *pcBaseDataCtrl, pcResizeParameters ) );
+      RNOK( m_pcBaseLayerCtrlField->upsampleMotion( pcSliceHeader, &m_cResizeParameters, pcBaseDataCtrl, pcList0, pcList1, true ) );
       rcControlData.setBaseLayerCtrlField( m_pcBaseLayerCtrlField );
     }
-
-    RNOK( pcBaseDataCtrl->switchMotionRefinement() );
   }
 
   //===== residual data =====
-  if( bBaseDataAvailable )
+  if( pcBaseResidual )
   {
     if( bFirstSliceInLayerRepresentation )
     {
-      RNOK( m_pcBaseLayerResidual->copy( pcBaseResidual, ePicType ) );
-      RNOK( m_pcBaseLayerResidual->upsampleResidual( m_cDownConvert, pcResizeParameters, pcBaseDataCtrl, false) ); 
+      RNOK( m_pcBaseLayerResidual->residualUpsampling( pcBaseResidual, m_cDownConvert, &m_cResizeParameters, pcBaseDataCtrl ) );
     }
     rcControlData.setBaseLayerSbb( m_pcBaseLayerResidual );
   }
@@ -2789,318 +2664,49 @@ LayerDecoder::xInitBaseLayer( ControlData&   rcControlData,
   //===== reconstruction (intra) =====
   if( pcBaseFrame )
   {
-	  if(rcControlData.getSliceHeader()->getConstrainedIntraResamplingFlag())
+    if( bFirstSliceInLayerRepresentation )
     {
-		  xConstrainedIntraUpsampling(pcBaseFrame,m_pcBaseLayerFrame,m_apcFrameTemp[0],pcBaseDataCtrl,m_pcReconstructionBypass, pcResizeParameters, ePicType);
-	  }
-	  else
-	  {
-      RNOK( m_pcBaseLayerFrame->copy( pcBaseFrame, ePicType ) );
-      RNOK( m_pcBaseLayerFrame->upsample( m_cDownConvert, pcResizeParameters, true ) );
-	  }
+      Frame*  pcTempBaseFrame = m_apcFrameTemp[0];
+      Frame*  pcTempFrame     = m_apcFrameTemp[1];
+      RNOK( m_pcBaseLayerFrame->intraUpsampling( pcBaseFrame, pcTempBaseFrame, pcTempFrame, m_cDownConvert, &m_cResizeParameters, 
+                                                 pcBaseDataCtrl, m_pcBaseLayerCtrl, m_pcBaseLayerCtrlField,
+                                                 m_pcReconstructionBypass, rcControlData.getSliceHeader()->getConstrainedIntraResamplingFlag() ) );
+    }
     rcControlData.setBaseLayerRec( m_pcBaseLayerFrame );
   }
 
-  if(pcBaseDataCtrl==NULL) rcSliceHeaderBase=NULL;
-  else rcSliceHeaderBase=pcBaseDataCtrl->getSliceHeader();
-
-  xSetMCResizeParameters(m_pcResizeParameter);
+  xSetMCResizeParameters( m_cResizeParameters );
 
   return Err::m_nOK;
 }
 
 
 Void
-LayerDecoder::xSetMCResizeParameters   (ResizeParameters*				resizeParameters)
+LayerDecoder::xSetMCResizeParameters( ResizeParameters& rcResizeParameters )
 {
-  m_pcMotionCompensation->setResizeParameters(resizeParameters);
+  m_pcMotionCompensation->setResizeParameters( &rcResizeParameters );
 } 
 
 
 ErrVal
 LayerDecoder::xGetBaseLayerData( ControlData&      rcControlData,
-                                Frame*&           rpcBaseFrame,
-                                Frame*&           rpcBaseResidual,
-                                MbDataCtrl*&      rpcBaseDataCtrl,
-                                Bool&             rbBaseDataAvailable,
-                                Bool&             rbConstrainedIPredBL,
-                                Bool&             rbSpatialScalability,
-                                ResizeParameters* pcResizeParameter)
+                                 Frame*&           rpcBaseFrame,
+                                 Frame*&           rpcBaseResidual,
+                                 MbDataCtrl*&      rpcBaseDataCtrl,
+                                 ResizeParameters& rcResizeParameters )
  
 {
- SliceHeader* pcSliceHeader = rcControlData.getSliceHeader();
+  SliceHeader* pcSliceHeader = rcControlData.getSliceHeader();
 
- RNOK( m_pcH264AVCDecoder->getBaseLayerDataAvailability( rpcBaseFrame, 
-																						           	 rpcBaseResidual, 
-																						             rpcBaseDataCtrl, 
-          																							 rbBaseDataAvailable,
-                                                         rbSpatialScalability,
-                                                         m_uiDependencyId,
-                                                         pcSliceHeader->getRefLayerDependencyId() ) );    
-  ROF( rbBaseDataAvailable );
-
-  pcResizeParameter->m_iResampleMode          = 0; 
-  pcResizeParameter->m_bBaseFrameMbsOnlyFlag	= rpcBaseDataCtrl->getSliceHeader()->getSPS().getFrameMbsOnlyFlag();
-  pcResizeParameter->m_bBaseFieldPicFlag			= rpcBaseDataCtrl->getSliceHeader()->getFieldPicFlag();
-  pcResizeParameter->m_bBaseIsMbAff           = rpcBaseDataCtrl->getSliceHeader()->isMbaffFrame();   
-  pcResizeParameter->m_bBaseBotFieldFlag			= rpcBaseDataCtrl->getSliceHeader()->getBottomFieldFlag();
-  pcResizeParameter->SetUpSampleMode();
-
-  rcControlData.setSpatialScalability     ( rbSpatialScalability );
-  rcControlData.setSpatialScalabilityType ( pcResizeParameter->m_iSpatialScalabilityType );
-  rcControlData.getSliceHeader()->setSpatialScalabilityType(pcResizeParameter->m_iSpatialScalabilityType);
-  
-  rbSpatialScalability = rbSpatialScalability? rbSpatialScalability : pcResizeParameter->m_iResampleMode>0;
-
-	RNOK( m_pcH264AVCDecoder->getBaseLayerData( rpcBaseFrame, 
+	RNOK( m_pcH264AVCDecoder->getBaseLayerData( *pcSliceHeader,
+                                              rpcBaseFrame, 
    	                                          rpcBaseResidual, 
    	                                          rpcBaseDataCtrl,
-   	                                          rbConstrainedIPredBL, 
-   	                                          rbSpatialScalability,
+   	                                          rcResizeParameters, 
     																					pcSliceHeader->getRefLayerDependencyId() ) );
- 
   return Err::m_nOK;
 }
 
-
-ErrVal
-LayerDecoder::xConstrainedIntraUpsampling( Frame*             pcFrame,
-										                      Frame*             pcUpsampling, 
-										                      Frame*             pcTemp,
-										                      MbDataCtrl*           pcBaseDataCtrl,
-										                      ReconstructionBypass* pcReconstructionBypass,
-										                      ResizeParameters*     pcResizeParameters,
-                                          PicType ePicType ) // TMM_INTERLACE
-
-{
-	int input_width   = pcResizeParameters->m_iInWidth;
-	int output_width  = pcResizeParameters->m_iGlobWidth;  
-	int output_height = pcResizeParameters->m_iGlobHeight;
-
-	if(pcResizeParameters->m_iSpatialScalabilityType)
-	{
-		UInt uiMbInRow=input_width>>4;
-		Int** ppiMaskL,**ppiMaskC;
-		Int* piXL,*piXC,*piYL,*piYC;
-		Int  k,l;
-		UInt  uiSliceNbr=1;
-
-		ppiMaskL=new Int*[output_height];
-		for(k=0;k<output_height;k++)
-		{
-			ppiMaskL[k]=new Int[output_width];
-		}
-		ppiMaskC=new Int*[output_height/2];
-		for(k=0;k<output_height/2;k++)
-		{
-			ppiMaskC[k]=new Int[output_width/2];
-		}
-
-		piXL=new Int[output_width];
-		piXC=new Int[output_width/2];
-		piYL=new Int[output_height];
-		piYC=new Int[output_height/2];
-		xGetPosition(pcResizeParameters,piXL,piYL,false);
-		xGetPosition(pcResizeParameters,piXC,piYC,true);
-
-		m_apcFrameTemp[1]->setZero();
-		pcTemp->copy(pcFrame, ePicType);
-
-		//Assume slice id is ordered from 1 2 3...
-		for(UInt i=0;i<pcBaseDataCtrl->getSize();i++)
-		{
-			UInt          uiMbY             = i / uiMbInRow;
-			UInt          uiMbX             = i % uiMbInRow;
-			if(pcBaseDataCtrl->getMbData(uiMbX,uiMbY).getSliceId()>uiSliceNbr)
-				uiSliceNbr=pcBaseDataCtrl->getMbData(uiMbX,uiMbY).getSliceId();
-		}
-
-    Bool bBaseIsMbAff= pcResizeParameters->m_bBaseIsMbAff;
-
-    for(UInt iSliceID=1;iSliceID<=uiSliceNbr;iSliceID++)
-		{
-			pcFrame->copyPortion(pcTemp);
-			for(UInt uiMbAddress= 0 ;uiMbAddress<pcBaseDataCtrl->getSize();uiMbAddress++)
-				//===== loop over macroblocks use raster scan =====
-			{
-				UInt          uiMbY             = uiMbAddress / uiMbInRow;
-				UInt          uiMbX             = uiMbAddress % uiMbInRow;
-		    pcFrame->getFullPelYuvBuffer()->getYuvBufferCtrl().initMb(uiMbY, uiMbX,bBaseIsMbAff);// TMM_INTERLACE
-		    UInt uiMask = 0;
-				RNOK( pcBaseDataCtrl->getBoundaryMaskCIU( uiMbY, uiMbX, uiMask, iSliceID ) );
-				if( uiMask )
-				{
-					IntYuvMbBufferExtension cBuffer;
-					cBuffer.setAllSamplesToZero();
-
-					cBuffer.loadSurrounding( pcFrame->getFullPelYuvBuffer() );
-
-					RNOK( pcReconstructionBypass->padRecMb( &cBuffer, uiMask ) );
-					pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
-				}
-				else if(!(pcBaseDataCtrl->getMbData(uiMbX,uiMbY).isIntra()&&(pcBaseDataCtrl->getMbData(uiMbX,uiMbY).getSliceId()==iSliceID)))
-				{
-					IntYuvMbBufferExtension cBuffer;
-					cBuffer.setAllSamplesToZero();
-					pcFrame->getFullPelYuvBuffer()->loadBuffer( &cBuffer );
-				}
-			}
-
-      RNOK( pcUpsampling->copy( pcFrame, ePicType ) );// TMM_INTERLACE
-			pcUpsampling->upsample(m_cDownConvert, pcResizeParameters, true);
-			for(k=0;k<output_height;k++)
-			{
-				for(l=0;l<output_width;l++)
-				{
-					if(piXL[l]==-128||piYL[k]==-128)
-						ppiMaskL[k][l]=0;
-					else
-					{
-						Int  iX=piXL[l];
-						Int  iY=piYL[k];
-						if(pcBaseDataCtrl->getMbData(iX>>4,iY>>4).isIntra()&&(pcBaseDataCtrl->getMbData(iX>>4,iY>>4).getSliceId()==iSliceID))
-							ppiMaskL[k][l]=1;
-						else
-							ppiMaskL[k][l]=0;
-					}
-				}          
-			}
-
-			for(k=0;k<output_height/2;k++)
-			{
-				for(l=0;l<output_width/2;l++)
-				{
-					if(piXC[l]==-128||piYC[k]==-128)
-						ppiMaskL[k][l]=0;
-					else
-					{
-						Int  iX=piXC[l];
-						Int  iY=piYC[k];
-						if(pcBaseDataCtrl->getMbData(iX>>3,iY>>3).isIntra()&&(pcBaseDataCtrl->getMbData(iX>>3,iY>>3).getSliceId()==iSliceID))
-							ppiMaskC[k][l]=1;
-						else
-							ppiMaskC[k][l]=0;
-					}
-				}          
-			}
-			m_apcFrameTemp[1]->copyMask(pcUpsampling,ppiMaskL,ppiMaskC);
-		}
-
-		pcUpsampling->copy(m_apcFrameTemp[1], ePicType);// TMM_INTERLACE
-		delete[]piXL;
-		delete[]piYL;
-		delete[]piXC;
-		delete[]piYC;
-		for(k=0;k<output_height;k++)
-		{
-			delete[]ppiMaskL[k];
-		}
-		delete[] ppiMaskL;
-		for(k=0;k<output_height/2;k++)
-		{
-			delete[]ppiMaskC[k];
-		}
-		delete[] ppiMaskC;
-
-	}
-  else // fix by H. Schwarz
-  {
-    pcUpsampling->copy( pcFrame, ePicType );
-  }
-	return Err::m_nOK;
-}
-
-void LayerDecoder::xGetPosition(ResizeParameters* pcResizeParameters,Int*px,Int*py,bool uv_flag)
-
-{
-	Int iratio=uv_flag?2:1;
-	int input_width   = pcResizeParameters->m_iInWidth/iratio;
-	int input_height  = pcResizeParameters->m_iInHeight/iratio;
-	int output_width  = pcResizeParameters->m_iGlobWidth/iratio;  
-	int output_height = pcResizeParameters->m_iGlobHeight/iratio;
-	int crop_x0 = pcResizeParameters->m_iPosX/iratio;
-	int crop_y0 = pcResizeParameters->m_iPosY/iratio;
-	int crop_w = pcResizeParameters->m_iOutWidth/iratio;
-	int crop_h = pcResizeParameters->m_iOutHeight/iratio;  
-	int input_chroma_phase_shift_x = pcResizeParameters->m_iBaseChromaPhaseX;
-	int input_chroma_phase_shift_y = pcResizeParameters->m_iBaseChromaPhaseY;
-	int output_chroma_phase_shift_x = pcResizeParameters->m_iChromaPhaseX;
-	int output_chroma_phase_shift_y = pcResizeParameters->m_iChromaPhaseY;
-
-	int i, j;
-	bool ratio1_flag = ( input_width == crop_w );
-	unsigned short deltaa, deltab;
-
-	for(i=0; i<crop_x0; i++)  px[i] = -128;
-
-	for(i=crop_x0+crop_w; i<output_width; i++)  px[i] = -128;
-
-	if(ratio1_flag)
-	{
-		for(i = 0; i < crop_w; i++)
-		{
-			px[i+crop_x0] = i*16+4*(2+output_chroma_phase_shift_x)-4*(2+input_chroma_phase_shift_x);
-		}
-	}
-	else
-	{
-		deltaa = ((input_width<<16) + (crop_w>>1))/crop_w;
-		if(uv_flag)
-		{
-			deltab = ((input_width<<14) + (crop_w>>1))/crop_w;
-			for(i = 0; i < crop_w; i++)
-			{
-				px[i+crop_x0] = ((i*deltaa + (2 + output_chroma_phase_shift_x)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_x);
-				px[i+crop_x0] =(Int)(px[i+crop_x0]/16.0+0.5);
-			}
-		}
-		else
-		{
-			deltab = ((input_width<<15) + (crop_w>>1))/crop_w;
-			for(i = 0; i < crop_w; i++)
-			{
-				px[i+crop_x0] = (i*deltaa + deltab - 30720)>>12;
-				px[i+crop_x0] =(Int)(px[i+crop_x0]/16.0+0.5);
-			}
-		}
-	}
-
-	ratio1_flag = ( input_height == crop_h );
-
-	for(j=0; j<crop_y0; j++)   py[j] = -128;
-
-	for(j=crop_y0+crop_h; j<output_height; j++)  py[j] = -128;
-
-	if(ratio1_flag)
-	{
-		for(j = 0; j < crop_h; j++)
-		{
-			py[j+crop_y0] = j*16+4*(2+output_chroma_phase_shift_y)-4*(2+input_chroma_phase_shift_y);
-		}
-	}
-	else
-	{
-		deltaa = ((input_height<<16) + (crop_h>>1))/crop_h;
-		if(uv_flag)
-		{
-			deltab = ((input_height<<14) + (crop_h>>1))/crop_h;
-			for(j = 0; j < crop_h; j++)
-			{
-				py[j+crop_y0] = ((j*deltaa + (2 + output_chroma_phase_shift_y)*deltab + 2048)>>12) - 4*(2 + input_chroma_phase_shift_y);
-				py[j+crop_y0] =(Int)(py[j+crop_y0]/16.0+0.5);
-			}
-		}
-		else
-		{
-			deltab = ((input_height<<15) + (crop_h>>1))/crop_h;
-			for(j = 0; j < crop_h; j++)
-			{
-				py[j+crop_y0] = (j*deltaa + deltab - 30720)>>12;
-				py[j+crop_y0] =(Int)(py[j+crop_y0]/16.0+0.5);
-			}
-		}
-	}
-}
 
 H264AVC_NAMESPACE_END
 

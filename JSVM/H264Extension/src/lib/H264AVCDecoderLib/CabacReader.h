@@ -188,7 +188,7 @@ protected:
   CabacContextModel2DBuffer m_cBlockTypeCCModel;
   CabacContextModel2DBuffer m_cMvdCCModel;
   CabacContextModel2DBuffer m_cRefPicCCModel;
-  CabacContextModel2DBuffer m_cBLPredFlagCCModel;
+  CabacContextModel2DBuffer m_cMotPredFlagCCModel;
   CabacContextModel2DBuffer m_cResPredFlagCCModel;
   CabacContextModel2DBuffer m_cDeltaQpCCModel;
   CabacContextModel2DBuffer m_cIntraPredCCModel;

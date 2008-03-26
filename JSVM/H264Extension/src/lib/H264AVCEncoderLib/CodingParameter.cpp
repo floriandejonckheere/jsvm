@@ -114,7 +114,7 @@ ErrVal LoopFilterParams::check() const
 {
   //V032 of FSL for extending the Idc value to 3 and 4 w.r.t. 0 and 2 in the enhanced layer 
   //for disabling chroma deblocking in enhanced layer
-  ROTREPORT( 4 < getFilterIdc(),        "Loop Filter Idc exceeds supported range 0..4");  if( 69 != getAlphaOffset() )
+  ROTREPORT( 6 < getFilterIdc(),        "Loop Filter Idc exceeds supported range 0..6"); 
 
 
   if( 69 != getAlphaOffset() )
@@ -178,6 +178,12 @@ ErrVal LayerParameters::check()
   }
   Bool bUseMGSVectors = getMGSVect( 0 ) != 16;
   ROTREPORT( ( getTCoeffLevelPredictionFlag() || getAVCAdaptiveRewriteFlag() ) && bUseMGSVectors, "MGS Vectors are not allowed with AVC rewriting enabled." );
+
+  if( bUseMGSVectors && m_uiMaxAbsDeltaQP )
+  {
+    m_uiMaxAbsDeltaQP = 0;
+    printf("\nInfo: MaxDeltaQP was set to 0 for layer with MGSVectorMode\n\n");
+  }
 
   if ((getBaseLayerId() == MSYS_UINT_MAX) && (getTCoeffLevelPredictionFlag() == true))
   {
@@ -341,8 +347,9 @@ UInt CodingParameter::getLogFactor( Double r0, Double r1 )
 
 ErrVal CodingParameter::check()
 {
-  ROTS( m_cLoopFilterParams         .check() );
-  ROTS( m_cMotionVectorSearchParams .check() );
+  ROTS( m_cLoopFilterParams           .check() );
+  ROTS( m_cInterLayerLoopFilterParams .check() );
+  ROTS( m_cMotionVectorSearchParams   .check() );
 
   if( getAVCmode() )
   {
@@ -408,12 +415,16 @@ ErrVal CodingParameter::check()
   ROTREPORT( getBaseLayerMode   ()  > 2,                "Base layer mode not supported" );
   ROTREPORT( getNumberOfLayers  ()  > MAX_LAYERS,       "Number of layers not supported" );
 
+  if( m_uiCIUFlag )
+  {
+    UInt uiILFIdc = m_cInterLayerLoopFilterParams.getFilterIdc();
+    ROTREPORT( uiILFIdc != 1 && uiILFIdc != 2 && uiILFIdc != 5, "Inter-layer deblocking filter idc not supported for constrained intra upsampling" );
+  }
 
   ROTREPORT( m_uiEncodeKeyPictures    > 2,          "Key picture mode not supported" );
   ROTREPORT( m_uiMGSKeyPictureControl > 2,          "Unsupported value for MGSControl" );
   ROTREPORT( m_uiMGSKeyPictureControl &&
             !m_uiCGSSNRRefinementFlag,              "MGSControl can only be specified in connection with CGSSNRRefinementFlag=1" );
-
 
   Double  dMaxFrameDelay  = max( 0, m_dMaximumFrameRate * m_dMaximumDelay / 1000.0 );
   UInt    uiMaxFrameDelay = (UInt)floor( dMaxFrameDelay );
@@ -451,17 +462,15 @@ ErrVal CodingParameter::check()
 
     ROTREPORT( ! pcBaseLayer && pcLayer->getSliceSkip(), "Slice skip only supported in enhancement layers" );
 
-    if( pcBaseLayer ) // for sub-sequence SEI
+    if( pcBaseLayer )
     {
       Bool bResolutionChange = pcLayer->getFrameWidth () != pcBaseLayer->getFrameWidth() || 
                                pcLayer->getFrameHeight() != pcBaseLayer->getFrameHeight();
-      // maybe the following is only necessary when key pictures are used
       ROTREPORT( bResolutionChange && pcLayer->getMGSVect(0) != 16, "Base layer and current layer must have the same resolution when MGS vectors are used in the current layer." );
       ROTREPORT( pcLayer->getInputFrameRate() < pcBaseLayer->getInputFrameRate(), "Input frame rate less than base layer output frame rate" );
       UInt uiLogFactorRate = getLogFactor( pcBaseLayer->getInputFrameRate(), pcLayer->getInputFrameRate() );
       ROTREPORT( uiLogFactorRate == MSYS_UINT_MAX, "Input Frame rate must be a power of 2 from layer to layer" );
       pcLayer->setBaseLayerTempRes( uiLogFactorRate );
-
 
       ROTREPORT( pcLayer->getFrameWidth ()  < pcBaseLayer->getFrameWidth (), "Frame width  less than base layer frame width" );
       ROTREPORT( pcLayer->getFrameHeight()  < pcBaseLayer->getFrameHeight(), "Frame height less than base layer frame height" );
@@ -469,48 +478,34 @@ ErrVal CodingParameter::check()
      
       pcLayer->setBaseLayerSpatRes( uiLogFactorWidth );
 			
-// TMM_ESS {
-      ResizeParameters * resize = pcLayer->getResizeParameters();
-      if (resize->m_iExtendedSpatialScalability != ESS_NONE)
-        {
-          ROTREPORT(resize->m_iInWidth  % 16,   "Base layer width must be a multiple of 16" );
-          ROTREPORT(resize->m_iInHeight % 16,   "Base layer height must be a multiple of 16" );
-          if (resize->m_bCrop)
-            {
-              ROTREPORT( resize->m_iPosX % 2 , "Cropping Window must be even aligned" );
-              ROTREPORT( resize->m_iPosY % 2 , "Cropping Window must be even aligned" );  
-              ROTREPORT(resize->m_iGlobWidth  % 16, "Enhancement layer width must be a multiple of 16" );
-              ROTREPORT(resize->m_iGlobHeight % 16, "Enhancement layer height must be a multiple of 16" );
-            }
-          else
-            {
-              resize->m_iGlobWidth = resize->m_iOutWidth;
-              resize->m_iGlobHeight = resize->m_iOutHeight;
-            }
-            /*
-          printf("\n\n*************************\n%dx%d  -> %dx%d %s -> %dx%d\n",
-                 resize->m_iInWidth, resize->m_iInHeight,
-                 resize->m_iOutWidth, resize->m_iOutHeight,
-                 (resize->m_bCrop ? "Crop" : "No_Crop"),
-                 resize->m_iGlobWidth, resize->m_iGlobHeight);
-          printf("ExtendedSpatialScalability: %d    SpatialScalabilityType: %d\n",
-            resize->m_iExtendedSpatialScalability,
-                 resize->m_iSpatialScalabilityType);
-                 */
-        }
-        /*
-      else
-        {
-          printf("\n\n*************************\n No_Crop\n");
-        }
-        */
-// TMM_ESS }
+      ResizeParameters& rcRP = pcLayer->getResizeParameters();
+      if( rcRP.m_iExtendedSpatialScalability != ESS_NONE )
+      {
+        Bool  bI    = ( pcLayer->getMbAff() || pcLayer->getPAff() );
+        Int   iV    = ( bI ? 4 : 2 );
+        Int   iL    = rcRP.m_iLeftFrmOffset;
+        Int   iT    = rcRP.m_iTopFrmOffset;
+        Int   iR    = rcRP.m_iFrameWidth  - rcRP.m_iScaledRefFrmWidth  - iL;
+        Int   iB    = rcRP.m_iFrameHeight - rcRP.m_iScaledRefFrmHeight - iT;
+        Bool  bHor  = ( iL %  2 != 0 || iR %  2 != 0 );
+        Bool  bVer  = ( iT % iV != 0 || iB % iV != 0 );
+        ROTREPORT( bHor,        "Cropping window must be horizonzally aligned on a 2 pixel grid" );
+        ROTREPORT( bVer && !bI, "Cropping window must be vertically aligned on a 2 pixel grid" );
+        ROTREPORT( bVer &&  bI, "Cropping window must be vertically aligned on a 4 pixel grid for interlaced configurations" );
+      }
 
       pcBaseLayer->setContrainedIntraForLP();
 
       if( pcLayer->getSliceSkip() && pcLayer->getSliceSkipTLevelStart() == 0 )
       {
         pcLayer->setContrainedIntraForLP();
+      }
+
+      if( pcLayer->getTCoeffLevelPredictionFlag() )
+      {
+        Bool bSpatial = pcLayer->getResizeParameters().getSpatialResolutionChangeFlag();
+        ROTREPORT( bSpatial,              "AVCRewriteFlag cannot be equal to 1 for a spatial enhancement layer" );
+        ROTREPORT( m_uiEncodeKeyPictures, "Key pictures are not supported in connection with AVCRewriteFlag" );
       }
     }
     if( pcLayer->getTCoeffLevelPredictionFlag() )

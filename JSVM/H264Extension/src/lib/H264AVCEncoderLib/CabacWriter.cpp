@@ -104,7 +104,7 @@ CabacWriter::CabacWriter():
 	m_cFieldFlagCCModel   ( 1,                3),
   m_cFldMapCCModel      ( NUM_BLOCK_TYPES,  NUM_MAP_CTX),
   m_cFldLastCCModel     ( NUM_BLOCK_TYPES,  NUM_LAST_CTX),
-  m_cBLSkipCCModel(1,4),
+  m_cBLSkipCCModel      ( 1,                NUM_BL_SKIP_FLAG_CTX ),
   m_cBCbpCCModel( NUM_BLOCK_TYPES, NUM_BCBP_CTX ),
   m_cMapCCModel( NUM_BLOCK_TYPES, NUM_MAP_CTX ),
   m_cLastCCModel( NUM_BLOCK_TYPES, NUM_LAST_CTX ),
@@ -115,7 +115,7 @@ CabacWriter::CabacWriter():
   m_cBlockTypeCCModel( 2, NUM_B8_TYPE_CTX ),
   m_cMvdCCModel( 2, NUM_MV_RES_CTX ),
   m_cRefPicCCModel( 2, NUM_REF_NO_CTX ),
-  m_cBLPredFlagCCModel( 2, NUM_BL_PRED_FLAG_CTX ),
+  m_cMotPredFlagCCModel( 1, NUM_MOT_PRED_FLAG_CTX ),
   m_cResPredFlagCCModel( 1, NUM_RES_PRED_FLAG_CTX ),
   m_cDeltaQpCCModel( 1, NUM_DELTA_QP_CTX ),
   m_cIntraPredCCModel( 9, NUM_IPR_CTX ),
@@ -147,12 +147,12 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBlockTypeCCModel.initBuffer(   (Short*)INIT_B8_TYPE_I,       iQp ) );
     RNOK( m_cMvdCCModel.initBuffer(         (Short*)INIT_MV_RES_I,        iQp ) );
     RNOK( m_cRefPicCCModel.initBuffer(      (Short*)INIT_REF_NO_I,        iQp ) );
-    RNOK( m_cBLPredFlagCCModel.initBuffer(  (Short*)INIT_BL_PRED_FLAG_I,  iQp ) );
-    RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG_I, iQp ) );
+    RNOK( m_cMotPredFlagCCModel.initBuffer( (Short*)INIT_MOTION_PRED_FLAG,iQp ) );
+    RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG,   iQp ) );
     RNOK( m_cDeltaQpCCModel.initBuffer(     (Short*)INIT_DELTA_QP_I,      iQp ) );
     RNOK( m_cIntraPredCCModel.initBuffer(   (Short*)INIT_IPR_I,           iQp ) );
     RNOK( m_cChromaPredCCModel.initBuffer(  (Short*)INIT_CIPR_I,          iQp ) );
-    RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,         iQp ) );
+    RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP_I,       iQp ) );
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_I,           iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_I,          iQp ) );
@@ -172,12 +172,12 @@ ErrVal CabacWriter::xInitContextModels( const SliceHeader& rcSliceHeader )
     RNOK( m_cBlockTypeCCModel.initBuffer(   (Short*)INIT_B8_TYPE_P        [iIndex], iQp ) );
     RNOK( m_cMvdCCModel.initBuffer(         (Short*)INIT_MV_RES_P         [iIndex], iQp ) );
     RNOK( m_cRefPicCCModel.initBuffer(      (Short*)INIT_REF_NO_P         [iIndex], iQp ) );
-    RNOK( m_cBLPredFlagCCModel.initBuffer(  (Short*)INIT_BL_PRED_FLAG_P   [iIndex], iQp ) );
-    RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG_P  [iIndex], iQp ) );
+    RNOK( m_cMotPredFlagCCModel.initBuffer( (Short*)INIT_MOTION_PRED_FLAG,          iQp ) );
+    RNOK( m_cResPredFlagCCModel.initBuffer( (Short*)INIT_RES_PRED_FLAG,             iQp ) );
     RNOK( m_cDeltaQpCCModel.initBuffer(     (Short*)INIT_DELTA_QP_P       [iIndex], iQp ) );
     RNOK( m_cIntraPredCCModel.initBuffer(   (Short*)INIT_IPR_P            [iIndex], iQp ) );
     RNOK( m_cChromaPredCCModel.initBuffer(  (Short*)INIT_CIPR_P           [iIndex], iQp ) );
-    RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP,                   iQp ) );
+    RNOK( m_cBLSkipCCModel.initBuffer(      (Short*)INIT_BL_SKIP_P,                 iQp ) );
 
     RNOK( m_cCbpCCModel.initBuffer(         (Short*)INIT_CBP_P            [iIndex], iQp ) );
     RNOK( m_cBCbpCCModel.initBuffer(        (Short*)INIT_BCBP_P           [iIndex], iQp ) );
@@ -353,8 +353,7 @@ ErrVal CabacWriter::xMotionPredFlag( Bool bFlag, ListIdx eLstIdx )
 {
   UInt  uiCode  = ( bFlag ? 1: 0 );
 
-  UInt  uiCtx = 0; // version 1
-  RNOK( CabaEncoder::writeSymbol( uiCode, m_cBLPredFlagCCModel.get( eLstIdx, uiCtx ) ) );
+  RNOK( CabaEncoder::writeSymbol( uiCode, m_cMotPredFlagCCModel.get( 0, eLstIdx ) ) );
 
   ETRACE_T( "MotionPredFlag" );
   ETRACE_TY( "ae(v)" );
@@ -1412,7 +1411,7 @@ CabacWriter::loadCabacWrite(MbSymbolWriteIf *pcMbSymbolWriteIf)
 	m_cBlockTypeCCModel.setCabacContextModel(pcCabacWriter->getBlockTypeCCModel().getCabacContextModel());
 	m_cMvdCCModel.setCabacContextModel(pcCabacWriter->getMvdCCModel().getCabacContextModel());
 	m_cRefPicCCModel.setCabacContextModel(pcCabacWriter->getRefPicCCModel().getCabacContextModel());
-	m_cBLPredFlagCCModel.setCabacContextModel(pcCabacWriter->getBLPredFlagCCModel().getCabacContextModel());
+  m_cMotPredFlagCCModel.setCabacContextModel(pcCabacWriter->getMotPredFlagCCModel().getCabacContextModel());
 	m_cResPredFlagCCModel.setCabacContextModel(pcCabacWriter->getResPredFlagCCModel().getCabacContextModel());
 	m_cDeltaQpCCModel.setCabacContextModel(pcCabacWriter->getDeltaQpCCModel().getCabacContextModel());
 	m_cIntraPredCCModel.setCabacContextModel(pcCabacWriter->getIntraPredCCModel().getCabacContextModel());

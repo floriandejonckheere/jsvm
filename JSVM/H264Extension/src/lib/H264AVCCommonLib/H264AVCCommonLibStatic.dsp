@@ -97,19 +97,11 @@ SOURCE=.\CFMO.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\FGSCoder.cpp
+SOURCE=.\DownConvert.cpp
 # End Source File
 # Begin Source File
 
 SOURCE=.\Frame.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\FrameMng.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\FrameUnit.cpp
 # End Source File
 # Begin Source File
 
@@ -122,19 +114,7 @@ SOURCE=.\Hrd.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=.\IntFrame.cpp
-# End Source File
-# Begin Source File
-
 SOURCE=.\IntraPrediction.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\IntYuvMbBuffer.cpp
-# End Source File
-# Begin Source File
-
-SOURCE=.\IntYuvPicBuffer.cpp
 # End Source File
 # Begin Source File
 
@@ -298,19 +278,11 @@ SOURCE=..\..\..\include\H264AVCCommonLib\ControlMngIf.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\H264AVCCommonLib\FGSCoder.h
+SOURCE=..\..\..\include\DownConvert.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\..\include\H264AVCCommonLib\Frame.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\include\H264AVCCommonLib\FrameMng.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\include\H264AVCCommonLib\FrameUnit.h
 # End Source File
 # Begin Source File
 
@@ -338,19 +310,7 @@ SOURCE=..\..\..\include\H264AVCCommonLib\Hrd.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\..\include\H264AVCCommonLib\IntFrame.h
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\..\include\H264AVCCommonLib\IntraPrediction.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\include\H264AVCCommonLib\IntYuvMbBuffer.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\..\include\H264AVCCommonLib\IntYuvPicBuffer.h
 # End Source File
 # Begin Source File
 

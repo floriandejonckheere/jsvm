@@ -169,67 +169,10 @@
 				RelativePath=".\CFMO.cpp">
 			</File>
 			<File
-				RelativePath="FGSCoder.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
+				RelativePath=".\DownConvert.cpp">
 			</File>
 			<File
 				RelativePath="Frame.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="FrameMng.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="FrameUnit.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -274,67 +217,7 @@
 				RelativePath=".\Hrd.cpp">
 			</File>
 			<File
-				RelativePath="IntFrame.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="IntraPrediction.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="IntYuvMbBuffer.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BasicRuntimeChecks="3"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="IntYuvPicBuffer.cpp">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
@@ -965,16 +848,10 @@
 				RelativePath="..\..\..\include\H264AVCCommonLib\ControlMngIf.h">
 			</File>
 			<File
-				RelativePath="..\..\..\include\H264AVCCommonLib\FGSCoder.h">
+				RelativePath="..\..\..\include\DownConvert.h">
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\Frame.h">
-			</File>
-			<File
-				RelativePath="..\..\..\include\H264AVCCommonLib\FrameMng.h">
-			</File>
-			<File
-				RelativePath="..\..\..\include\H264AVCCommonLib\FrameUnit.h">
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\GlobalFunctions.h">
@@ -995,16 +872,7 @@
 				RelativePath="..\..\..\include\H264AVCCommonLib\Hrd.h">
 			</File>
 			<File
-				RelativePath="..\..\..\include\H264AVCCommonLib\IntFrame.h">
-			</File>
-			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\IntraPrediction.h">
-			</File>
-			<File
-				RelativePath="..\..\..\include\H264AVCCommonLib\IntYuvMbBuffer.h">
-			</File>
-			<File
-				RelativePath="..\..\..\include\H264AVCCommonLib\IntYuvPicBuffer.h">
 			</File>
 			<File
 				RelativePath="..\..\..\include\H264AVCCommonLib\LoopFilter.h">

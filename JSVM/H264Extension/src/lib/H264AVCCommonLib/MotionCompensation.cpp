@@ -1009,32 +1009,33 @@ ErrVal MotionCompensation::compensateMbBLSkipIntra( MbDataAccess& rcMbDataAccess
                                                     YuvMbBuffer*  pcRecBuffer,
                                                     Frame*        pcBaseLayerRec )
 {
-  ROFRS( rcMbDataAccess.getMbData().getBLSkipFlag(), Err::m_nOK );
-  ROFRS( m_pcResizeParameters,                                                      Err::m_nOK ); // MGS (quality_id > 0)
-  ROTRS( m_pcResizeParameters->m_bBaseIsMbAff || m_pcResizeParameters->m_bIsMbAff,  Err::m_nOK );
-  ROTRS( m_pcResizeParameters->m_iSpatialScalabilityType <= SST_RATIO_2,            Err::m_nOK );
+  ROFRS( rcMbDataAccess.getMbData().getBLSkipFlag(),                        Err::m_nOK );
+  ROFRS( m_pcResizeParameters,                                              Err::m_nOK );
+  ROTRS( m_pcResizeParameters->m_bRefLayerIsMbAffFrame,                     Err::m_nOK );
+  ROTRS( m_pcResizeParameters->m_bIsMbAffFrame,                             Err::m_nOK );
+  ROTRS( m_pcResizeParameters->getRestrictedSpatialResolutionChangeFlag(),  Err::m_nOK );
 
   Int iMbX      = rcMbDataAccess.getMbX() * 16;
   Int iMbY      = rcMbDataAccess.getMbY() * 16;
-  Int iRefW     = m_pcResizeParameters->m_iInWidth;
-  Int iRefH     = m_pcResizeParameters->m_iInHeight;
-  Int iScaledW  = m_pcResizeParameters->m_iOutWidth;
-  Int iScaledH  = m_pcResizeParameters->m_iOutHeight;
-  Int iLeftOff  = m_pcResizeParameters->m_iPosX;
-  Int iTopOff   = m_pcResizeParameters->m_iPosY;
+  Int iRefW     = m_pcResizeParameters->m_iRefLayerFrmWidth;
+  Int iRefH     = m_pcResizeParameters->m_iRefLayerFrmHeight;
+  Int iScaledW  = m_pcResizeParameters->m_iScaledRefFrmWidth;
+  Int iScaledH  = m_pcResizeParameters->m_iScaledRefFrmHeight;
+  Int iLeftOff  = m_pcResizeParameters->m_iLeftFrmOffset;
+  Int iTopOff   = m_pcResizeParameters->m_iTopFrmOffset;
   if( m_pcResizeParameters->m_bFieldPicFlag )
   {
     iScaledH   /= 2;
     iTopOff    /= 2;
   }
-  if( m_pcResizeParameters->m_bBaseFieldPicFlag )
+  if( m_pcResizeParameters->m_bRefLayerFieldPicFlag )
   {
     iRefH      /= 2;
   }
-  Int iShiftX   = ( m_pcResizeParameters->m_level_idc <= 30 ? 16 : 31 - PosCalcParam::CeilLog2( iRefW ) ); 
-  Int iShiftY   = ( m_pcResizeParameters->m_level_idc <= 30 ? 16 : 31 - PosCalcParam::CeilLog2( iRefH ) ); 
-  Int iScaleX   = ( ( iRefW << iShiftX ) + ( iScaledW >> 1 ) ) / iScaledW;
-  Int iScaleY   = ( ( iRefH << iShiftY ) + ( iScaledH >> 1 ) ) / iScaledH;
+  Int iShiftX   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefW ) ); 
+  Int iShiftY   = ( m_pcResizeParameters->m_iLevelIdc <= 30 ? 16 : 31 - CeilLog2( iRefH ) ); 
+  Int iScaleX   = ( ( (UInt)iRefW << iShiftX ) + ( iScaledW >> 1 ) ) / iScaledW;
+  Int iScaleY   = ( ( (UInt)iRefH << iShiftY ) + ( iScaledH >> 1 ) ) / iScaledH;
   Int iBaseMbX0 = ( ( ( iMbX - iLeftOff ) * iScaleX + ( 1 << ( iShiftX - 1 ) ) ) >> iShiftX ) >> 4;
   Int iBaseMbY0 = ( ( ( iMbY - iTopOff  ) * iScaleY + ( 1 << ( iShiftY - 1 ) ) ) >> iShiftY ) >> 4;
   Int iCX       = 0;

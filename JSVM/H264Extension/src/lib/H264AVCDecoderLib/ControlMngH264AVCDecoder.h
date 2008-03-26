@@ -111,9 +111,6 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include "GOPDecoder.h"
 #include "H264AVCDecoder.h"
 
-// TMM_ESS 
-#include "ResizeParameters.h"
-
 H264AVC_NAMESPACE_BEGIN
 
 class ControlMngH264AVCDecoder : public ControlMngIf
@@ -156,9 +153,6 @@ public:
   ErrVal initMbForFiltering   ( MbDataAccess& rcMbDataAccess, UInt uiMbY, UInt uiMbX, Bool bMbAff );
 
 protected:
-  ErrVal xInitESS             ( SliceHeader* pcSliceHeader );
-
-protected:
   UInt                      m_uiCurrLayer;
   UInt                      m_auiMbXinFrame           [MAX_LAYERS]; 
   UInt                      m_auiMbYinFrame           [MAX_LAYERS];
@@ -172,7 +166,6 @@ protected:
   SampleWeighting*          m_pcSampleWeighting;
   LayerDecoder*             m_apcLayerDecoder         [MAX_LAYERS];
   Bool                      m_uiInitialized           [MAX_LAYERS];
-  ResizeParameters          m_ResizeParameter         [MAX_LAYERS];
 };
 
 H264AVC_NAMESPACE_END

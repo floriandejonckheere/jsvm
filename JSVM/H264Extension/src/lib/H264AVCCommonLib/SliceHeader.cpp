@@ -209,7 +209,6 @@ SliceHeader::SliceHeader( const SliceHeader& rcSliceHeader )
 , m_uiLastMbInSlice         ( rcSliceHeader.m_uiLastMbInSlice )
 , m_iTopFieldPoc            ( rcSliceHeader.m_iTopFieldPoc )
 , m_iBotFieldPoc            ( rcSliceHeader.m_iBotFieldPoc )
-, m_iSpatialScalabilityType ( rcSliceHeader.m_iSpatialScalabilityType )
 , m_bSCoeffResidualPred     ( rcSliceHeader.m_bSCoeffResidualPred )
 //>>> remove
 , m_uiLayerCGSSNR                     ( 0 )
@@ -425,17 +424,14 @@ SliceHeader::getPoc( PicType ePicType ) const
 }
 
 Void
-SliceHeader::setSCoeffResidualPredFlag( const SliceHeader* pcRefSliceHeader )
+SliceHeader::setSCoeffResidualPredFlag( ResizeParameters* pcResizeParameters )
 {
   m_bSCoeffResidualPred = false;
-  if( pcRefSliceHeader )
+  if( pcResizeParameters )
   {
+    ROTVS( getNoInterLayerPredFlag() );
+    ROTVS( pcResizeParameters->getSpatialResolutionChangeFlag() );
     ROTVS( getTCoeffLevelPredictionFlag () );
-    ROFVS( m_iSpatialScalabilityType == SST_RATIO_1 );
-    ROFVS( getSPS().getFrameMbsOnlyFlag() == pcRefSliceHeader->getSPS().getFrameMbsOnlyFlag() );
-    ROFVS( getFieldPicFlag() == pcRefSliceHeader->getFieldPicFlag() );
-    ROFVS( getSPS().getChromaPhaseXPlus1Flag() == getRefLayerChromaPhaseXPlus1Flag() );
-    ROFVS( getSPS().getChromaPhaseYPlus1() == getRefLayerChromaPhaseYPlus1() );
     m_bSCoeffResidualPred = true;
   }
 }

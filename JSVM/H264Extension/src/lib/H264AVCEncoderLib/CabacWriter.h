@@ -183,7 +183,7 @@ public:
 	CabacContextModel2DBuffer& getBlockTypeCCModel(void)  {return m_cBlockTypeCCModel;   }
 	CabacContextModel2DBuffer& getMvdCCModel(void)        {return m_cMvdCCModel;         }
 	CabacContextModel2DBuffer& getRefPicCCModel(void)     {return m_cRefPicCCModel;      }
-	CabacContextModel2DBuffer& getBLPredFlagCCModel(void) {return m_cBLPredFlagCCModel;  }
+  CabacContextModel2DBuffer& getMotPredFlagCCModel(void){return m_cMotPredFlagCCModel; }
 	CabacContextModel2DBuffer& getResPredFlagCCModel(void){return m_cResPredFlagCCModel; }
 	CabacContextModel2DBuffer& getDeltaQpCCModel(void)    {return m_cDeltaQpCCModel;     }
 	CabacContextModel2DBuffer& getIntraPredCCModel(void)  {return m_cIntraPredCCModel;   }
@@ -234,7 +234,7 @@ protected:
   CabacContextModel2DBuffer m_cBlockTypeCCModel;
   CabacContextModel2DBuffer m_cMvdCCModel;
   CabacContextModel2DBuffer m_cRefPicCCModel;
-  CabacContextModel2DBuffer m_cBLPredFlagCCModel;
+  CabacContextModel2DBuffer m_cMotPredFlagCCModel;
   CabacContextModel2DBuffer m_cResPredFlagCCModel;
   CabacContextModel2DBuffer m_cDeltaQpCCModel;
   CabacContextModel2DBuffer m_cIntraPredCCModel;

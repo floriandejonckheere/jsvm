@@ -176,7 +176,6 @@ ErrVal MbCoder::uninit()
 
 ErrVal MbCoder::encode( MbDataAccess& rcMbDataAccess,
                         MbDataAccess* pcMbDataAccessBase,
-                        Int           iSpatialScalabilityType,
                         Bool          bTerminateSlice,
                         Bool          bSendTerminateSlice)
 {
@@ -808,6 +807,20 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
 {
 
   Bool bWriteDQp = true;
+
+  if( uiMGSFragment == 0 ) // required, since we don't have the correct slice header
+  if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
+     !rcMbDataAccess.getMbData().isIntra() )
+  {
+    if( rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag() && pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
+    {
+      if( ! rcMbDataAccess.getSH().isIntraSlice() )
+      {
+        RNOK( m_pcMbSymbolWriteIf->resPredFlag( rcMbDataAccess ) );
+      }
+    }
+  }
+
   if( uiStart != 0 || uiStop != 16 )
   {
     ROT( rcMbDataAccess.getMbData().isIntraButnotIBL() );
@@ -831,19 +844,6 @@ ErrVal MbCoder::xWriteTextureInfo( MbDataAccess&            rcMbDataAccess,
   if( uiStart != uiStop && bWriteDQp )
   {
     RNOK( m_pcMbSymbolWriteIf->deltaQp( rcMbDataAccess ) );
-  }
-
-  if( uiMGSFragment == 0 ) // required, since we don't have the correct slice header
-  if( rcMbDataAccess.getMbData().getBLSkipFlag() ||
-     !rcMbDataAccess.getMbData().isIntra() )
-  {
-    if( rcMbDataAccess.getSH().getAdaptiveResidualPredictionFlag() && pcMbDataAccessBase->getMbData().getInCropWindowFlag() )
-    {
-      if( ! rcMbDataAccess.getSH().isIntraSlice() )
-      {
-        RNOK( m_pcMbSymbolWriteIf->resPredFlag( rcMbDataAccess ) );
-      }
-    }
   }
 
   if( uiStart != uiStop && rcMbDataAccess.getMbData().isIntra16x16() )

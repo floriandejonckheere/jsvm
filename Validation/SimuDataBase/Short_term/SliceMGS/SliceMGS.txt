@@ -48,7 +48,7 @@ layers      => [
 #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #==========================================================#  
-bitratecheckrange  => 5,
+bitratecheckrange  => 1,
 psnrcheckrange     => 0.0,     
 tests              => [
                        #----------#
@@ -60,7 +60,7 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 651,
+                  			bitrate     => 652,
                   			psnr        => 30.56,
                        },                                                                  
                        #----------#
@@ -72,8 +72,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1593,
-                  			psnr        => 35.41,
+                  			bitrate     => 1586,
+                  			psnr        => 35.40,
                        },                                                                  
                        #----------#
                        #   Test 2  #
@@ -85,7 +85,7 @@ tests              => [
                         height      => 288,
                         framerate   => 30,
                   			bitrate     => 2614,
-                  			psnr        => 38.02,
+                  			psnr        => 37.96,
             		        encdecmatch => 1,
                        },                                                                  
                        #----------#
@@ -97,8 +97,8 @@ tests              => [
                         width       => 352,
                         height      => 288,
                         framerate   => 30,
-                  			bitrate     => 1868,
-            		psnr        => 36.02,
+                  			bitrate     => 1860,
+            		psnr        => 36.00,
 			},
                       ],
 }

@@ -7,7 +7,7 @@ INC_DIR				= ../../../../include
 LIB_DIR				= ../../../../../../lib
 BIN_DIR				= ../../../../../../bin
 
-SRC_DIR1		=
+SRC_DIR1		= ../../../../src/lib/H264AVCCommonLib
 SRC_DIR2		=
 SRC_DIR3		=
 SRC_DIR4		=
@@ -22,11 +22,12 @@ OBJ_DIR				= ./objects
 PRJ_NAME			= DownConvert
 
 # defines to set
-DEFS				= -DMSYS_LINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DMSYS_UNIX_LARGEFILE
+DEFS				= -DMSYS_LINUX -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -DMSYS_UNIX_LARGEFILE -DDOWN_CONVERT_STATIC
 
 # set objects
-OBJS          		= 	\
-					$(OBJ_DIR)/main.o \
+OBJS          		= \
+                                      $(OBJ_DIR)/DownConvert.o \
+                                      $(OBJ_DIR)/main.o \
 
 # set libs to link with
 LIBS				= -ldl

@@ -92,6 +92,8 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #include <string> 
 #include "CodingParameter.h"
 
+using namespace h264;
+
 #define ROTREPORT(x,t) {if(x) {::printf("\n%s\n",t); assert(0); return Err::m_nInvalidParameter;} }
 
 class EncoderConfigLineStr : public h264::EncoderConfigLineBase
@@ -360,7 +362,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       UInt ui;
       for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
       {
-        getResizeParameters(ui)->m_bInterlaced = (uiMbAff > 0) ? true : false;
+        getLayerParameters(ui).setInterlaced( (uiMbAff > 0) );
       }
       n += 1;
       continue;
@@ -375,7 +377,7 @@ ErrVal EncoderCodingParameter::init( Int     argc,
       UInt ui;
       for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
       {
-        getResizeParameters(ui)->m_bInterlaced = (uiPAff > 0) ? true : false;
+        getLayerParameters(ui).setInterlaced( (uiPAff > 0) );
       }
       n += 1;
       continue;
@@ -698,14 +700,6 @@ Void EncoderCodingParameter::printHelp()
   //JVT-U106 Behaviour at slice boundaries{
   printf("  -ciu    (Constrained intra upsampling)[0: no, 1: yes]\n");
   //JVT-U106 Behaviour at slice boundaries}
-   
-  /*printf("  -rcdo-bs   (value)  RDCO block size restriction     (0:off,1:ELonly,2:on)\n" );
-  printf("  -rcdo-mc-y (value)  RDCO motion compensation luma   (0:off,1:ELonly,2:on)\n" );
-  printf("  -rcdo-mc-c (value)  RDCO motion compensation chroma (0:off,1:ELonly,2:on)\n" );
-  printf("  -rcdo-mc   (value)  RDCO motion compensation        (0:off,1:ELonly,2:on)\n" );
-  printf("  -rcdo-db   (value)  RDCO deblocking                 (0:off,1:ELonly,2:on)\n" );
-  printf("  -rcdo      (value)  RDCO (all components)           (0:off,1:ELonly,2:on)\n" );
-*/
   printf("  -kpm       (mode) [0:only for FGS(default), 1:FGS&MGS, 2:always]\n");
   printf("  -mgsctrl   (mode) [0:normal encoding(default), 1:EL ME, 2:EL ME+MC]\n");
   
@@ -794,6 +788,9 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("LoopFilterDisable",       &(m_cLoopFilterParams.m_uiFilterIdc),                  0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterAlphaC0Offset", &(m_cLoopFilterParams.m_iAlphaOffset),                 0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("LoopFilterBetaOffset",    &(m_cLoopFilterParams.m_iBetaOffset),                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("InterLayerLoopFilterDisable",       &(m_cInterLayerLoopFilterParams.m_uiFilterIdc),                  0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("InterLayerLoopFilterAlphaC0Offset", &(m_cInterLayerLoopFilterParams.m_iAlphaOffset),                 0 );
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineInt ("InterLayerLoopFilterBetaOffset",    &(m_cInterLayerLoopFilterParams.m_iBetaOffset),                  0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchMode",              &(m_cMotionVectorSearchParams.m_uiSearchMode),         0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchFuncFullPel",       &(m_cMotionVectorSearchParams.m_uiFullPelDFunc),       0 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SearchFuncSubPel",        &(m_cMotionVectorSearchParams.m_uiSubPelDFunc),        0 );
@@ -867,6 +864,8 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",           &m_uiSliceArgument,                                    0 );
   //JVT-X046 }
 
+  m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("ConstrainedIntraUps",     &m_uiCIUFlag,                                          0 );
+
   //JVT-W043 {
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCMinQP",                 &m_uiRCMinQP,                                         12 );
   m_pEncoderLines[uiParLnCount++] = new EncoderConfigLineUInt("RCMaxQP",                 &m_uiRCMaxQP,                                         40 );
@@ -939,11 +938,13 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
 
   for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
   {
+    Bool  bFrameMbsOnly = true;
     getLayerParameters(ui).setDependencyId(ui);
     RNOK( xReadLayerFromFile( acLayerConfigName[ui], getLayerParameters(ui) ) );
 		if ( getLayerParameters(ui).m_uiMbAff || getLayerParameters(ui).m_uiPAff )
     {
-      bInterlaced = true;			
+      bFrameMbsOnly = false;
+      bInterlaced   = true;			
     }
 
     // HS: set base layer id
@@ -992,8 +993,6 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
           getLayerParameters(ui).setLayerCGSSNR(uiLastLayer);
           getLayerParameters(ui).setQualityLevelCGSSNR(0);
         }
-        //getLayerParameters(ui).setBaseLayerCGSSNR( getLayerParameters(ui-1).getLayerCGSSNR() );
-        //getLayerParameters(ui).setBaseQualityLevelCGSSNR( getLayerParameters(ui-1).getQualityLevelCGSSNR() + getLayerParameters(ui-1).getNumberOfQualityLevelsCGSSNR() - 1 );
         getLayerParameters(ui).setBaseLayerCGSSNR( getLayerParameters(uiBaseLayerId).getLayerCGSSNR() );
         getLayerParameters(ui).setBaseQualityLevelCGSSNR( getLayerParameters(uiBaseLayerId).getQualityLevelCGSSNR() + getLayerParameters(uiBaseLayerId).getNumberOfQualityLevelsCGSSNR() - 1 );
       }
@@ -1009,17 +1008,10 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
       }
     }
 
-//JVT-T054}
-// TMM_ESS {
-    ResizeParameters * curr;
-    curr = getResizeParameters(ui);
-
-// JVT-Q065 EIDR{
-    if(ui > 0 && getLayerParameters(ui-1).getIDRPeriod() == getLayerParameters(ui).getIDRPeriod())
+    if( uiBaseLayerId != MSYS_UINT_MAX && getLayerParameters(uiBaseLayerId).getIDRPeriod() == getLayerParameters(ui).getIDRPeriod() )
     {
-	    getLayerParameters(ui).setBLSkipEnable(true);
+	    getLayerParameters(ui).setBLSkipEnable( true );
     }
-// JVT-Q065 EIDR}
 
 //DS_FIX_FT_09_2007
   //uiBaseLayerId is no more discardable
@@ -1030,38 +1022,39 @@ ErrVal EncoderCodingParameter::xReadFromFile( std::string& rcFilename, std::stri
     }
 //~DS_FIX_FT_09_2007
 
-    if (ui>0)
+    if( uiBaseLayerId != MSYS_UINT_MAX )
     {
-      ResizeParameters * prev = getResizeParameters(uiBaseLayerId); // HS: use "real" base layer
-      curr->m_iInWidth = prev->m_iGlobWidth; //TMM
-      curr->m_iInHeight = prev->m_iGlobHeight; //TMM
+      ResizeParameters& rcCurrRP    = getLayerParameters(ui).getResizeParameters();
+      ResizeParameters& rcPrevRP    = getLayerParameters(uiBaseLayerId).getResizeParameters();
+      rcCurrRP.m_iRefLayerFrmWidth  = rcPrevRP.m_iFrameWidth;
+      rcCurrRP.m_iRefLayerFrmHeight = rcPrevRP.m_iFrameHeight;
 
-      bool is_crop_aligned = (curr->m_iPosX%16 == 0) && (curr->m_iPosY%16 == 0);
-      if      ((curr->m_iInWidth == curr->m_iOutWidth) && (curr->m_iInHeight == curr->m_iOutHeight) &&
-               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-        curr->m_iSpatialScalabilityType = SST_RATIO_1;
-      else if ((curr->m_iInWidth*2 == curr->m_iOutWidth) && (curr->m_iInHeight*2 == curr->m_iOutHeight) &&
-               is_crop_aligned && (curr->m_iExtendedSpatialScalability < ESS_PICT) )
-        curr->m_iSpatialScalabilityType = SST_RATIO_2;
-      else 
+      if( rcCurrRP.m_iExtendedSpatialScalability == ESS_NONE )
       {
-        curr->m_iSpatialScalabilityType = SST_RATIO_X;
-        if ( curr->m_iExtendedSpatialScalability == ESS_NONE )
-          curr->m_iExtendedSpatialScalability = ESS_SEQ;
+        if( rcCurrRP.m_iLeftFrmOffset ||
+            rcCurrRP.m_iTopFrmOffset  ||
+            rcCurrRP.m_iFrameWidth   != rcCurrRP.m_iScaledRefFrmWidth    ||
+            rcCurrRP.m_iFrameHeight  != rcCurrRP.m_iScaledRefFrmHeight   ||
+            rcCurrRP.m_iChromaPhaseX != rcCurrRP.m_iRefLayerChromaPhaseX ||
+            rcCurrRP.m_iChromaPhaseY != rcCurrRP.m_iRefLayerChromaPhaseY )
+        {
+          rcCurrRP.m_iExtendedSpatialScalability = ESS_SEQ;
+        }
       }
-     }
+    }
     else
     {
-      curr->m_iSpatialScalabilityType = SST_RATIO_1;
-      curr->m_iExtendedSpatialScalability = ESS_NONE;
+      ResizeParameters& rcCurrRP              = getLayerParameters(ui).getResizeParameters();
+      rcCurrRP.m_iExtendedSpatialScalability  = ESS_NONE;
+      rcCurrRP.m_iRefLayerFrmWidth            = rcCurrRP.m_iFrameWidth;
+      rcCurrRP.m_iRefLayerFrmHeight           = rcCurrRP.m_iFrameHeight;
     }
-// TMM_ESS }
   }
 
   
 //TMM_INTERLACE{
   for( ui = 0; ui < m_uiNumberOfLayers; ui++ )
-    getResizeParameters(ui)->m_bInterlaced = bInterlaced;
+    getLayerParameters(ui).setInterlaced( bInterlaced );
 //TMM_INTERLACE}
 
   return Err::m_nOK;
@@ -1073,7 +1066,7 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
                                                     h264::LayerParameters&  rcLayer )
 {
   std::string acTags[4];
-  std::string cInputFilename, cOutputFilename, cMotionFilename, cESSFilename;
+  std::string cInputFilename, cOutputFilename, cMotionFilename;
 
   //S051{
   std::string cEncSIPFilename;
@@ -1091,57 +1084,57 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
   //--ICU/ETRI FMO Implementation
   UInt bSliceGroupChangeDirection_flag=0;
 
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceWidth",    &(rcLayer.m_uiFrameWidth),               176       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",   &(rcLayer.m_uiFrameHeight),              352       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateIn",    &(rcLayer.m_dInputFrameRate),            30        );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateOut",   &(rcLayer.m_dOutputFrameRate),           30        );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",      &cInputFilename,                         "test.yuv");
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",      &cOutputFilename,                        "rec.yuv" );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MbAff",          &(rcLayer.m_uiMbAff),                    0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("PAff",           &(rcLayer.m_uiPAff),                     0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",     &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",          &(rcLayer.m_uiAdaptiveTransform),        0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",     &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",             &(rcLayer.m_dBaseQpResidual),            32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQPLP",         &(rcLayer.m_dQpModeDecisionLP),          -1.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP0",          &(rcLayer.m_adQpModeDecision[0]),        32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP1",          &(rcLayer.m_adQpModeDecision[1]),        32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP2",          &(rcLayer.m_adQpModeDecision[2]),        32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP3",          &(rcLayer.m_adQpModeDecision[3]),        32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP4",          &(rcLayer.m_adQpModeDecision[4]),        32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP5",          &(rcLayer.m_adQpModeDecision[5]),        32.0      );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("InterLayerPred", &(rcLayer.m_uiInterLayerPredictionMode), 0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",    &(rcLayer.m_uiBaseQualityLevel),         15        );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MotionInfoMode", &(rcLayer.m_uiMotionInfoMode),           0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("MotionInfoFile", &cMotionFilename,                        "test.mot");
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("LowComplexityMbMode",         &(rcLayer.m_uiLowComplexMbEnable), 0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("UseESS",         &(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability), 0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ESSPicParamFile",&cESSFilename,                                              "ess.dat" );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropWidth",   &(rcLayer.m_ResizeParameter.m_iOutWidth),                   0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropHeight",  &(rcLayer.m_ResizeParameter.m_iOutHeight),                  0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",     &(rcLayer.m_ResizeParameter.m_iPosX),                       0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",     &(rcLayer.m_ResizeParameter.m_iPosY),                       0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSChromaPhaseX",&(rcLayer.m_ResizeParameter.m_iChromaPhaseX),              -1         );  // SSUN, Nov2005
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSChromaPhaseY",&(rcLayer.m_ResizeParameter.m_iChromaPhaseY),               0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseX",&(rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX),      -1         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseY",&(rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY),       0         );  // SSUN, Nov2005
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",&(rcLayer.m_uiForceReorderingCommands),  0         );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerId",    &(rcLayer.m_uiBaseLayerId),              MSYS_UINT_MAX );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceMode",      &(rcLayer.m_uiSliceMode),                             0       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",  &(rcLayer.m_uiSliceArgument),                        50       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumSlicGrpMns1", &(rcLayer.m_uiNumSliceGroupsMinus1),                  0       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpMapType",  &(rcLayer.m_uiSliceGroupMapType),                     2       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgDrFlag",&(bSliceGroupChangeDirection_flag),         0       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgRtMus1",&(rcLayer.m_uiSliceGroupChangeRateMinus1),           85       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",&rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumROI", &(rcLayer.m_uiNumROI),                  0       );
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ROICfgFileNm",&rcLayer.m_cROIConfigFileName,             "roicfg.cfg" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceWidth",          &(rcLayer.m_uiFrameWidth),               176       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SourceHeight",         &(rcLayer.m_uiFrameHeight),              352       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateIn",          &(rcLayer.m_dInputFrameRate),            30        );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("FrameRateOut",         &(rcLayer.m_dOutputFrameRate),           30        );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("InputFile",            &cInputFilename,                         "test.yuv");
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ReconFile",            &cOutputFilename,                        "rec.yuv" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MbAff",                &(rcLayer.m_uiMbAff),                    0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("PAff",                 &(rcLayer.m_uiPAff),                     0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SymbolMode",           &(rcLayer.m_uiEntropyCodingModeFlag),    1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("FRExt",                &(rcLayer.m_uiAdaptiveTransform),        0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MaxDeltaQP",           &(rcLayer.m_uiMaxAbsDeltaQP),            1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("QP",                   &(rcLayer.m_dBaseQpResidual),            32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQPLP",               &(rcLayer.m_dQpModeDecisionLP),          -1.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP0",                &(rcLayer.m_adQpModeDecision[0]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP1",                &(rcLayer.m_adQpModeDecision[1]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP2",                &(rcLayer.m_adQpModeDecision[2]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP3",                &(rcLayer.m_adQpModeDecision[3]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP4",                &(rcLayer.m_adQpModeDecision[4]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineDbl ("MeQP5",                &(rcLayer.m_adQpModeDecision[5]),        32.0      );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("InterLayerPred",       &(rcLayer.m_uiInterLayerPredictionMode), 0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseQuality",          &(rcLayer.m_uiBaseQualityLevel),         15        );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("MotionInfoMode",       &(rcLayer.m_uiMotionInfoMode),           0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("MotionInfoFile",       &cMotionFilename,                        "test.mot");
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("LowComplexityMbMode",  &(rcLayer.m_uiLowComplexMbEnable), 0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("UseESS",               &(rcLayer.m_cResizeParameters.m_iExtendedSpatialScalability), 0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ESSPicParamFile",      &(rcLayer.m_cESSFilename),                                              "ess.dat" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropWidth",         &(rcLayer.m_cResizeParameters.m_iScaledRefFrmWidth),                   0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSCropHeight",        &(rcLayer.m_cResizeParameters.m_iScaledRefFrmHeight),                  0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginX",           &(rcLayer.m_cResizeParameters.m_iLeftFrmOffset),                       0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSOriginY",           &(rcLayer.m_cResizeParameters.m_iTopFrmOffset),                       0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSChromaPhaseX",      &(rcLayer.m_cResizeParameters.m_iChromaPhaseX),              -1         );  // SSUN, Nov2005
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSChromaPhaseY",      &(rcLayer.m_cResizeParameters.m_iChromaPhaseY),               0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseX",  &(rcLayer.m_cResizeParameters.m_iRefLayerChromaPhaseX),      -1         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("ESSBaseChromaPhaseY",  &(rcLayer.m_cResizeParameters.m_iRefLayerChromaPhaseY),       0         );  // SSUN, Nov2005
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("ForceReOrdering",      &(rcLayer.m_uiForceReorderingCommands),  0         );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("BaseLayerId",          &(rcLayer.m_uiBaseLayerId),              MSYS_UINT_MAX );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceMode",            &(rcLayer.m_uiSliceMode),                             0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SliceArgument",        &(rcLayer.m_uiSliceArgument),                        50       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumSlicGrpMns1",       &(rcLayer.m_uiNumSliceGroupsMinus1),                  0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpMapType",        &(rcLayer.m_uiSliceGroupMapType),                     2       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgDrFlag",      &(bSliceGroupChangeDirection_flag),         0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("SlcGrpChgRtMus1",      &(rcLayer.m_uiSliceGroupChangeRateMinus1),           85       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("SlcGrpCfgFileNm",      &rcLayer.m_cSliceGroupConfigFileName,             "sgcfg.cfg" );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("NumROI",               &(rcLayer.m_uiNumROI),                  0       );
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr ("ROICfgFileNm",         &rcLayer.m_cROIConfigFileName,             "roicfg.cfg" );
 // JVT-Q065 EIDR{
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	  &(rcLayer.m_iIDRPeriod),								0		);
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineInt ("IDRPeriod",	          &(rcLayer.m_iIDRPeriod),								0		);
 // JVT-Q065 EIDR}
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	          &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",&(rcLayer.m_uiUseRedundantSlice), 0   );  //JVT-Q054 Red. Picture
-  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantKeySlc",&(rcLayer.m_uiUseRedundantKeySlice), 0   );  //JVT-W049
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt ("PLR",	                &(rcLayer.m_uiPLR),								0		); //JVT-R057 LA-RDO
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantSlc",      &(rcLayer.m_uiUseRedundantSlice), 0   );  //JVT-Q054 Red. Picture
+  m_pLayerLines[uiParLnCount++] = new EncoderConfigLineUInt("UseRedundantKeySlc",   &(rcLayer.m_uiUseRedundantKeySlice), 0   );  //JVT-W049
   //S051{
   m_pLayerLines[uiParLnCount++] = new EncoderConfigLineStr( "EncSIPFile", &cEncSIPFilename, ""); 
   //S051}
@@ -1219,40 +1212,20 @@ ErrVal EncoderCodingParameter::xReadLayerFromFile ( std::string&            rcFi
     uiParLnCount++;
   }
 
-// TMM_ESS {
-  // default values
-  rcLayer.m_ResizeParameter.m_iInWidth    = ( ( rcLayer.m_uiFrameWidth  + 15 ) >> 4 ) << 4;
-  rcLayer.m_ResizeParameter.m_iInHeight   = ( ( rcLayer.m_uiFrameHeight + 15 ) >> 4 ) << 4;
-  rcLayer.m_ResizeParameter.m_iGlobWidth  = rcLayer.m_ResizeParameter.m_iInWidth;
-  rcLayer.m_ResizeParameter.m_iGlobHeight = rcLayer.m_ResizeParameter.m_iInHeight;
-  rcLayer.m_ResizeParameter.m_bCrop       = false;
+  rcLayer.m_cResizeParameters.m_iFrameWidth         = (Int)( ( rcLayer.m_uiFrameWidth  + 15 ) >> 4 ) << 4;
+  rcLayer.m_cResizeParameters.m_iFrameHeight        = (Int)( ( rcLayer.m_uiFrameHeight + 15 ) >> 4 ) << 4;
+  rcLayer.m_cResizeParameters.m_iRefLayerFrmWidth   = rcLayer.m_cResizeParameters.m_iFrameWidth; 
+  rcLayer.m_cResizeParameters.m_iRefLayerFrmHeight  = rcLayer.m_cResizeParameters.m_iFrameHeight;
 
-  if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability)  
+  if( ! rcLayer.m_cResizeParameters.m_iExtendedSpatialScalability )  
   {
-//TMM {
-   rcLayer.m_ResizeParameter.m_bCrop = true;        
-   	   
-//TMM }     
-    if(rcLayer.m_ResizeParameter.m_iExtendedSpatialScalability==2)
-    {
-      rcLayer.m_ResizeParameter.m_pParamFile = fopen( cESSFilename.c_str(), "r");
-      if( NULL == rcLayer.m_ResizeParameter.m_pParamFile )
-      { 
-        printf( "failed to open resize parameter file %s\n", cESSFilename.c_str() );
-        return Err::m_nERR;
-      }
-      rcLayer.m_ResizeParameter.m_iSpatialScalabilityType = SST_RATIO_X;
-    }
-  } else {
-    // default values
-    rcLayer.m_ResizeParameter.m_iOutWidth   = rcLayer.m_uiFrameWidth;
-    rcLayer.m_ResizeParameter.m_iOutHeight  = rcLayer.m_uiFrameHeight;
-    rcLayer.m_ResizeParameter.m_iPosX       = 0;
-    rcLayer.m_ResizeParameter.m_iPosY       = 0;
-    rcLayer.m_ResizeParameter.m_iBaseChromaPhaseX = rcLayer.m_ResizeParameter.m_iChromaPhaseX;  // SSUN, Nov2005
-    rcLayer.m_ResizeParameter.m_iBaseChromaPhaseY = rcLayer.m_ResizeParameter.m_iChromaPhaseY;
+    rcLayer.m_cResizeParameters.m_iScaledRefFrmWidth    = rcLayer.m_cResizeParameters.m_iFrameWidth;
+    rcLayer.m_cResizeParameters.m_iScaledRefFrmHeight   = rcLayer.m_cResizeParameters.m_iFrameHeight;
+    rcLayer.m_cResizeParameters.m_iLeftFrmOffset        = 0;
+    rcLayer.m_cResizeParameters.m_iTopFrmOffset         = 0;
+    rcLayer.m_cResizeParameters.m_iRefLayerChromaPhaseX = rcLayer.m_cResizeParameters.m_iChromaPhaseX;
+    rcLayer.m_cResizeParameters.m_iRefLayerChromaPhaseY = rcLayer.m_cResizeParameters.m_iChromaPhaseY;
   }
-// TMM_ESS }
 
   //--ICU/ETRI FMO Implementation : FMO stuff start
   rcLayer.m_bSliceGroupChangeDirection_flag = ( bSliceGroupChangeDirection_flag != 0 );

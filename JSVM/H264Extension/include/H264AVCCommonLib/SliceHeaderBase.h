@@ -696,7 +696,7 @@ public:
   Void  setRefLayerChromaPhaseX               ( Int                         iRefLayerChromaPhaseX                 )  { m_bRefLayerChromaPhaseXPlus1Flag       = iRefLayerChromaPhaseX == 0; }
   Void  setRefLayerChromaPhaseY               ( Int                         iRefLayerChromaPhaseY                 )  { m_uiRefLayerChromaPhaseYPlus1          = iRefLayerChromaPhaseY + 1; }
   Void  setScaledRefLayerLeftOffset           ( Int                         iScaledRefLayerLeftOffset             )  { m_iScaledRefLayerLeftOffset            = iScaledRefLayerLeftOffset; }
-  Void  setScaledRefLayerTopOffset            ( Int                         iScaledRefLayerTopOffset              )  { m_iScaledRefLayerTopOffset             = ( isFrameMbsOnly() ? iScaledRefLayerTopOffset : iScaledRefLayerTopOffset >> 1 ); }
+  Void  setScaledRefLayerTopOffset            ( Int                         iScaledRefLayerTopOffset              )  { m_iScaledRefLayerTopOffset             = ( isFrameMbsOnly() ? iScaledRefLayerTopOffset    : iScaledRefLayerTopOffset    >> 1 ); }
   Void  setScaledRefLayerRightOffset          ( Int                         iScaledRefLayerRightOffset            )  { m_iScaledRefLayerRightOffset           = iScaledRefLayerRightOffset; }
   Void  setScaledRefLayerBottomOffset         ( Int                         iScaledRefLayerBottomOffset           )  { m_iScaledRefLayerBottomOffset          = ( isFrameMbsOnly() ? iScaledRefLayerBottomOffset : iScaledRefLayerBottomOffset >> 1 ); }
   Void  setSliceSkipFlag                      ( Bool                        bSliceSkipFlag                        )  { m_bSliceSkipFlag                       = bSliceSkipFlag; }

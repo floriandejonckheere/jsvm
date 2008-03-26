@@ -92,7 +92,7 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 
 
 
-#define _JSVM_VERSION_ "9.11"
+#define _JSVM_VERSION_ "9.12"
 
 
 
@@ -103,6 +103,9 @@ THIS IS NOT A GRANT OF PATENT RIGHTS - SEE THE ITU-T PATENT POLICY.
 #define OUTSIDE         -1
 #define DOUBLE_MAX      1.7e+308
 
+#define ESS_NONE      0
+#define ESS_SEQ       1
+#define ESS_PICT      2
 
 #define NO_LEFT_REF        1
 #define NO_ABOVE_REF       2
@@ -199,11 +202,12 @@ enum ProcessingState
 
 enum SliceType
 {
-  P_SLICE  = 0,
-  B_SLICE  = 1,
-  I_SLICE  = 2,
-  SP_SLICE = 3,
-  SI_SLICE = 4
+  P_SLICE             = 0,
+  B_SLICE             = 1,
+  I_SLICE             = 2,
+  SP_SLICE            = 3,
+  SI_SLICE            = 4,
+  NOT_SPECIFIED_SLICE = 5
 };
 
 

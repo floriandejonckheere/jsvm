@@ -43,7 +43,7 @@ runencode      => 1,
    #==========================================================#
 #          Extracting +Decoding parameters  (i.e Tests )  #
 #==========================================================#
-  bitratecheckrange  => 3,
+  bitratecheckrange  => 1,
 psnrcheckrange     => 0,
          tests              => [
                        #----------#
@@ -68,8 +68,8 @@ psnrcheckrange     => 0,
                         width       => 352,
                         height      => 288,
                         framerate   => 15,
-                        bitrate     => 762,
-                        psnr        => 31.52,
+                        bitrate     => 761,
+                        psnr        => 31.51,
                         encdecmatch => 1,
                        },
                                             ],

@@ -44,7 +44,7 @@
 #          Extracting +Decoding parameters  (i.e Tests )   #
 #          mode == 11 decode + rewrite                     #
 #==========================================================#  
-      bitratecheckrange  => 3.,
+      bitratecheckrange  => 1.,
       psnrcheckrange     => 0.,
 	
 
@@ -58,8 +58,8 @@
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 333,
-            	        psnr => 29.20,
+            	        bitrate => 332,
+            	        psnr => 29.22,
             	      },
             	      #----------#
                       # Test   1 #
@@ -70,8 +70,8 @@
             	        width => 352,
             	        height => 288,
             	        framerate => 30,
-            	        bitrate => 871,
-            	        psnr => 32.33,
+            	        bitrate => 867,
+            	        psnr => 32.34,
             	        encdecmatch => 1,
             	      },
             	      #----------#    		              
