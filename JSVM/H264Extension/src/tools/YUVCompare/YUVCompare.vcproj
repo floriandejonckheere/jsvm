@@ -3,6 +3,7 @@
 	ProjectType="Visual C++"
 	Version="7.10"
 	Name="YUVCompareStatic"
+	ProjectGUID="{70688DBE-8755-4F2D-A69A-9C31877B602E}"
 	SccProjectName=""
 	SccLocalPath="">
 	<Platforms>
