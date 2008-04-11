@@ -2,6 +2,30 @@
 [Currently, all validation scripts work except for those that use error concealment features]
 
 
+JSVM_9_12 -> JSVM_9_12_1
+=======================
+
+- Alignment between "SVC levels" text (clause G.10.2) and software related to the level idc computation
+
+- Changes to trace file high-level syntax elements so as to be aligned with the SVC spec :
+constrained_set0_flag → constraint_set0_flag 
+constrained_set1_flag → constraint_set1_flag 
+constrained_set2_flag → constraint_set2_flag 
+constrained_set3_flag → constraint_set3_flag 
+interlayer_deblocking_filter_control_present_flag  → inter_layer_deblocking_filter_control_present_flag 
+chroma_phase_x_plus1 → chroma_phase_x_plus1_flag 
+base_chroma_phase_x_plus1 → seq_ref_layer_chroma_phase_x_plus1_flag 
+base_chroma_phase_y_plus1 → seq_ref_layer_chroma_phase_y_plus1 
+scaled_base_left_offset → seq_scaled_ref_layer_left_offset 
+scaled_base_top_offset → seq_scaled_ref_layer_top_offset 
+scaled_base_right_offset → seq_scaled_ref_layer_right_offset 
+scaled_base_bottom_offset → seq_scaled_ref_layer_bottom_offset 
+deblocking_filter_parameters_present_flag → deblocking_filter_control_present_flag 
+
+- Very minor changes in the software manual
+
+
+
 JSVM_9_11 -> JSVM_9_12
 ======================
 

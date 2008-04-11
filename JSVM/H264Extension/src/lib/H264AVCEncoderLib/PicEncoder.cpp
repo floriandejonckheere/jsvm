@@ -383,7 +383,7 @@ PicEncoder::xInitSPS()
   UInt  uiOutFreq   = (UInt)ceil( m_pcCodingParameter->getMaximumFrameRate() );
   UInt  uiMvRange   = m_pcCodingParameter->getMotionVectorSearchParams().getSearchRange();
   UInt  uiDPBSize   = m_pcCodingParameter->getDPBSize();
-  UInt  uiLevelIdc  = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
+  UInt  uiLevelIdc  = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize, 0, 0 );
 
   //===== create parameter sets =====
   RNOK( SequenceParameterSet::create( m_pcSPS ) );

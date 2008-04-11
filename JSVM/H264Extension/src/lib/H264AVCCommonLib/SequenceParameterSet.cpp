@@ -313,9 +313,12 @@ SequenceParameterSet::xGetLevelLimit( const LevelLimit*& rpcLevelLimit, Int iLev
 
 
 UInt
-SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic )
+SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic, UInt uiRefLayerMbY, UInt uiRefLayerMbX )
+//SequenceParameterSet::getLevelIdc( UInt uiMbY, UInt uiMbX, UInt uiOutFreq, UInt uiMvRange, UInt uiNumRefPic )
 {
-  UInt uiFrameSize = uiMbY * uiMbX;
+  UInt refLayerMbs = uiRefLayerMbY * uiRefLayerMbX;
+  UInt uiFrameSize = uiMbY * uiMbX + ( ( refLayerMbs + 1 ) >> 1 );
+  //UInt uiFrameSize = uiMbY * uiMbX;
   UInt uiMbPerSec  = uiFrameSize * uiOutFreq;
   UInt uiDPBSizeX2 = (uiFrameSize*16*16*3/2) * uiNumRefPic * 2;
 
@@ -363,10 +366,10 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
 
   //===== Sequence parameter set =====
   RNOK  ( pcWriteIf->writeCode( getProfileIdc(),                  8,      "SPS: profile_idc" ) );
-  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet0Flag,                   "SPS: constrained_set0_flag" ) );
-  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet1Flag,                   "SPS: constrained_set1_flag" ) );
-  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet2Flag,                   "SPS: constrained_set2_flag" ) );
-  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet3Flag,                   "SPS: constrained_set3_flag" ) );
+  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet0Flag,                   "SPS: constraint_set0_flag" ) ); //VB-JV 04/08
+  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet1Flag,                   "SPS: constraint_set1_flag" ) );  //VB-JV 04/08
+  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet2Flag,                   "SPS: constraint_set2_flag" ) );  //VB-JV 04/08
+  RNOK  ( pcWriteIf->writeFlag( m_bConstrainedSet3Flag,                   "SPS: constraint_set3_flag" ) );   //VB-JV 04/08
   RNOK  ( pcWriteIf->writeCode( 0,                                4,      "SPS: reserved_zero_4bits" ) );
   RNOK  ( pcWriteIf->writeCode( getLevelIdc(),                    8,      "SPS: level_idc" ) );
   RNOK  ( pcWriteIf->writeUvlc( getSeqParameterSetId(),                   "SPS: seq_parameter_set_id" ) );
@@ -431,28 +434,28 @@ SequenceParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   //===== start of subset sequence parameter set extension ======
   if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
   {
-    RNOK( pcWriteIf->writeFlag( getInterlayerDeblockingPresent(),       "SPS: interlayer_deblocking_filter_control_present_flag" ) );
+    RNOK( pcWriteIf->writeFlag( getInterlayerDeblockingPresent(),       "SPS: inter_layer_deblocking_filter_control_present_flag" ) ); //VB-JV 04/08
     RNOK( pcWriteIf->writeCode( getExtendedSpatialScalability(), 2,     "SPS: extended_spatial_scalability" ) );
 
     if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
     {
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1" ) );
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseXPlus1, 1,             "SPS: chroma_phase_x_plus1_flag" ) ); //VB-JV 04/08
     }
     if (getChromaFormatIdc() == 1 )  
     {
-      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) );
+      RNOK( pcWriteIf->writeCode( m_uiChromaPhaseYPlus1, 2,             "SPS: chroma_phase_y_plus1" ) ); 
     }
     if( getExtendedSpatialScalability() == ESS_SEQ )
     {
       if (getChromaFormatIdc() > 0 )
       {
-        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: base_chroma_phase_x_plus1" ) );
-        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: base_chroma_phase_y_plus1" ) );
+        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseXPlus1, 1,       "SPS: seq_ref_layer_chroma_phase_x_plus1_flag" ) );  //VB-JV 04/08
+        RNOK( pcWriteIf->writeCode( m_uiBaseChromaPhaseYPlus1, 2,       "SPS: seq_ref_layer_chroma_phase_y_plus1" ) );       //VB-JV 04/08
       }
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: scaled_base_left_offset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: scaled_base_top_offset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: scaled_base_right_offset" ) );
-      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: scaled_base_bottom_offset" ) );
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseLeftOffset,              "SPS: seq_scaled_ref_layer_left_offset" ) );         //VB-JV 04/08
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseTopOffset,               "SPS: seq_scaled_ref_layer_top_offset" ) );          //VB-JV 04/08
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseRightOffset,             "SPS: seq_scaled_ref_layer_right_offset" ) );        //VB-JV 04/08
+      RNOK( pcWriteIf->writeSvlc( m_iScaledBaseBottomOffset,            "SPS: seq_scaled_ref_layer_bottom_offset" ) );       //VB-JV 04/08
     }
     RNOK( pcWriteIf->writeFlag( m_bAVCRewriteFlag,                      "SPS: seq_tcoeff_level_prediction_flag" ) );
     if( m_bAVCRewriteFlag )
@@ -498,10 +501,10 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
           m_eProfileIdc != HIGH_PROFILE               &&
           m_eProfileIdc != SCALABLE_BASELINE_PROFILE  &&
           m_eProfileIdc != SCALABLE_HIGH_PROFILE        );
-  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet0Flag,                      "SPS: constrained_set0_flag" ) );
-  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet1Flag,                      "SPS: constrained_set1_flag" ) );
-  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet2Flag,                      "SPS: constrained_set2_flag" ) );
-  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet3Flag,                      "SPS: constrained_set3_flag" ) );
+  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet0Flag,                      "SPS: constraint_set0_flag" ) );  //VB-JV 04/08
+  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet1Flag,                      "SPS: constraint_set1_flag" ) );  //VB-JV 04/08
+  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet2Flag,                      "SPS: constraint_set2_flag" ) );  //VB-JV 04/08
+  RNOK  ( pcReadIf->getFlag( m_bConstrainedSet3Flag,                      "SPS: constraint_set3_flag" ) );  //VB-JV 04/08
   RNOK  ( pcReadIf->getCode( uiTmp,                               4,      "SPS: reserved_zero_4bits" ) );
   ROT   ( uiTmp );
   RNOK  ( pcReadIf->getCode( m_uiLevelIdc,                        8,      "SPS: level_idc" ) );
@@ -564,12 +567,12 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
   //===== start of subset parameter extension =====
   if( m_eProfileIdc == SCALABLE_BASELINE_PROFILE || m_eProfileIdc == SCALABLE_HIGH_PROFILE )
   {
-    RNOK( pcReadIf->getFlag( m_bInterlayerDeblockingPresent,              "SPS: interlayer_deblocking_filter_control_present_flag" ) );
+    RNOK( pcReadIf->getFlag( m_bInterlayerDeblockingPresent,              "SPS: inter_layer_deblocking_filter_control_present_flag" ) ); //VB-JV 04/08
 
     RNOK( pcReadIf->getCode( m_uiExtendedSpatialScalability, 2,           "SPS: extended_spatial_scalability" ) );
     if (getChromaFormatIdc() == 1 || getChromaFormatIdc() == 2 )
     {
-      RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,                  "SPS: chroma_phase_x_plus1" ) );
+      RNOK( pcReadIf->getCode( m_uiChromaPhaseXPlus1, 1,                  "SPS: chroma_phase_x_plus1_flag" ) );  //VB-JV 04/08
       m_uiBaseChromaPhaseXPlus1 = m_uiChromaPhaseXPlus1;
     }
     if (getChromaFormatIdc() == 1 )  
@@ -581,13 +584,13 @@ SequenceParameterSet::read( HeaderSymbolReadIf* pcReadIf,
     {
       if( getChromaFormatIdc() > 0 )
       {
-        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 1,            "SPS: base_chroma_phase_x_plus1" ) );
-        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,            "SPS: base_chroma_phase_y_plus1" ) );
+        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseXPlus1, 1,            "SPS: seq_ref_layer_chroma_phase_x_plus1_flag" ) ); //VB-JV 04/08
+        RNOK( pcReadIf->getCode( m_uiBaseChromaPhaseYPlus1, 2,            "SPS: seq_ref_layer_chroma_phase_y_plus1" ) );      //VB-JV 04/08
       }
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: scaled_base_left_offset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: scaled_base_top_offset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: scaled_base_right_offset" ) );
-      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: scaled_base_bottom_offset" ) );
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseLeftOffset,                   "SPS: seq_scaled_ref_layer_left_offset" ) );        //VB-JV 04/08
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseTopOffset,                    "SPS: seq_scaled_ref_layer_top_offset" ) );		  //VB-JV 04/08
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseRightOffset,                  "SPS: seq_scaled_ref_layer_right_offset" ) );		  //VB-JV 04/08
+      RNOK( pcReadIf->getSvlc( m_iScaledBaseBottomOffset,                 "SPS: seq_scaled_ref_layer_bottom_offset" ) );	  //VB-JV 04/08
     }
     else
     {

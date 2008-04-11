@@ -219,7 +219,7 @@ PictureParameterSet::write( HeaderSymbolWriteIf* pcWriteIf ) const
   RNOK( pcWriteIf->writeSvlc( (Int)getPicInitQp() - 26,                   "PPS: pic_init_qp_minus26" ) );
   RNOK( pcWriteIf->writeSvlc( 0,                                          "PPS: pic_init_qs_minus26" ) );
   RNOK( pcWriteIf->writeSvlc( getChomaQpIndexOffset(),                    "PPS: chroma_qp_index_offset" ) );
-  RNOK( pcWriteIf->writeFlag( getDeblockingFilterParametersPresentFlag(), "PPS: deblocking_filter_parameters_present_flag" ) );
+  RNOK( pcWriteIf->writeFlag( getDeblockingFilterParametersPresentFlag(), "PPS: deblocking_filter_control_present_flag" ) ); //VB-JV 04/08
   RNOK( pcWriteIf->writeFlag( getConstrainedIntraPredFlag(),              "PPS: constrained_intra_pred_flag" ) );
   RNOK( pcWriteIf->writeFlag( getRedundantPicCntPresentFlag(),            "PPS: redundant_pic_cnt_present_flag" ) );  // JVT-Q054 Red. Picture
 
@@ -313,7 +313,7 @@ PictureParameterSet::read( HeaderSymbolReadIf*  pcReadIf,
   RNOK( pcReadIf->getSvlc( iTmp,                                          "PPS: chroma_qp_index_offset" ) );
   ROT ( iTmp < -12 || iTmp > 12 );
   setChomaQpIndexOffset( iTmp );
-  RNOK( pcReadIf->getFlag( m_bDeblockingFilterParametersPresentFlag,      "PPS: deblocking_filter_parameters_present_flag" ) );
+  RNOK( pcReadIf->getFlag( m_bDeblockingFilterParametersPresentFlag,      "PPS: deblocking_filter_control_present_flag" ) ); //VB-JV 04/08
   RNOK( pcReadIf->getFlag( m_bConstrainedIntraPredFlag,                   "PPS: constrained_intra_pred_flag" ) );
   RNOK( pcReadIf->getFlag( m_bRedundantPicCntPresentFlag,                 "PPS: redundant_pic_cnt_present_flag" ) );  // JVT-Q054 Red. Picture
   RNOK( xReadFrext( pcReadIf ) );

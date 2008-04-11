@@ -1555,8 +1555,23 @@ H264AVCEncoder::xInitParameterSets()
     UInt              uiDPBSize           = ( 1 << max( 1, rcLayerParameters.getDecompositionStages() ) );
                       uiDPBSize          += ( rcLayerParameters.getPAff() > 0 ) ? 1 : 0; // TMM 
     UInt              uiNumRefPic         = uiDPBSize; 
-    UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
-    ROT( uiLevelIdc == MSYS_UINT_MAX );
+  
+    UInt uiLayer;
+    UInt uiRefLayerMbY = 0;
+    UInt uiRefLayerMbX = 0;
+    //===== subclause G.10.2.1 =====
+    if( uiIndex > 1 )
+    {
+      for( uiLayer = 0; uiLayer < uiIndex; uiLayer++ )
+      {
+        uiRefLayerMbY += ( m_pcCodingParameter->getLayerParameters( uiLayer ).getFrameHeight() + 15 ) >> 4;
+        uiRefLayerMbX += ( m_pcCodingParameter->getLayerParameters( uiLayer ).getFrameWidth()  + 15 ) >> 4;
+      }
+    }
+    UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize, uiRefLayerMbY, uiRefLayerMbX );
+	//  UInt              uiLevelIdc          = SequenceParameterSet::getLevelIdc( uiMbY, uiMbX, uiOutFreq, uiMvRange, uiDPBSize );
+
+	ROT( uiLevelIdc == MSYS_UINT_MAX );
 
     
     //===== create parameter sets, set Id's, and store =====
