@@ -144,9 +144,10 @@ private:
   ErrVal        xFilterMb             ( MbDataAccess&             rcMbDataAccess,
                                         YuvPicBuffer*             pcYuvBuffer,
                                         YuvPicBuffer*             pcResidual,
-                                        Bool                      bInterLayerFlag,
+                                        const DBFilterParameter*  pcInterLayerDBParameter, 
                                         Bool                      bSpatialScalableFlag,
-                                        LFPass                    eLFPass );
+                                        LFPass                    eLFPass );            //VB-JV 04/08
+
   ErrVal        xRecalcCBP            ( MbDataAccess&             rcMbDataAccess );
 
   //===== determination of filter strength =====

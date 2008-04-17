@@ -268,8 +268,9 @@ LoopFilter::process( SliceHeader&             rcSH,
       YuvPicBuffer* pcFrameBuffer     = apcFrame[ eMbPicType ]->getFullPelYuvBuffer();
       YuvPicBuffer* pcResidualBuffer  = ( pcResidual ? apcResidual[ eMbPicType ]->getFullPelYuvBuffer() : 0 );
 
-      RNOK( xFilterMb( *pcMbDataAccess, pcFrameBuffer, pcResidualBuffer, bInterLayerFlag, bSpatialScalabilityFlag, eLFPass ) );
-    }
+      RNOK( xFilterMb( *pcMbDataAccess, pcFrameBuffer, pcResidualBuffer, pcInterLayerDBParameter, bSpatialScalabilityFlag, eLFPass ) ); //VB-JV 04/08
+
+	}
   }
 
   return Err::m_nOK;
@@ -277,11 +278,12 @@ LoopFilter::process( SliceHeader&             rcSH,
 
 
 ErrVal
-LoopFilter::xFilterMb( MbDataAccess& rcMbDataAccess, YuvPicBuffer* pcYuvBuffer, YuvPicBuffer* pcResidual, Bool bInterLayerFlag, Bool bSpatialScalableFlag, LFPass eLFPass )
+LoopFilter::xFilterMb( MbDataAccess& rcMbDataAccess, YuvPicBuffer* pcYuvBuffer, YuvPicBuffer* pcResidual, const DBFilterParameter* pcInterLayerDBParameter, Bool bSpatialScalableFlag, LFPass eLFPass ) //VB-JV 04/08
 {
   RNOK( xRecalcCBP( rcMbDataAccess ) );
 
-  const DBFilterParameter&  rcDFP       = ( bInterLayerFlag ? rcMbDataAccess.getSH().getInterLayerDeblockingFilterParameter() : rcMbDataAccess.getSH().getDeblockingFilterParameter() );
+  Bool                      bInterLayerFlag = ( pcInterLayerDBParameter != 0 );//VB-JV 04/08
+  const DBFilterParameter&  rcDFP           = ( bInterLayerFlag ? *pcInterLayerDBParameter : rcMbDataAccess.getSH().getDeblockingFilterParameter() );//VB-JV 04/08
   Int                       iFilterIdc  = rcDFP.getDisableDeblockingFilterIdc();
   Bool                      b8x8        = rcMbDataAccess.getMbData().isTransformSize8x8();
 
